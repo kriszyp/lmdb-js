@@ -271,7 +271,7 @@ values2obj_copy(
 	}
 
 	for ( i = 0; ppValue[i] != NULL; i++ )
-		;
+		; /* EMPTY */
 
 	tmpberval = (BerVarray)slapi_ch_malloc( (i+1) * (sizeof(struct berval)) );
 	if ( tmpberval == NULL ) {
@@ -297,19 +297,18 @@ bvptr2obj_copy(
 	struct berval	**bvptr, 
 	BerVarray	*bvobj )
 {
-	int		rc = LDAP_SUCCESS;
 	int		i;
 	BerVarray	tmpberval;
 
-	if ( bvptr == NULL || *bvptr == NULL ) {
-		return LDAP_OTHER;
+	if ( bvptr == NULL ) {
+		*bvobj = NULL;
+		return LDAP_SUCCESS;
 	}
 
-	for ( i = 0; bvptr != NULL && bvptr[i] != NULL; i++ ) {
+	for ( i = 0; bvptr[i] != NULL; i++ )
 		; /* EMPTY */
-	}
 
-	tmpberval = (BerVarray)slapi_ch_malloc( (i + 1)*sizeof(struct berval));
+	tmpberval = (BerVarray)slapi_ch_malloc( (i + 1) * sizeof(struct berval));
 	if ( tmpberval == NULL ) {
 		return LDAP_NO_MEMORY;
 	} 
@@ -319,14 +318,13 @@ bvptr2obj_copy(
 		tmpberval[i].bv_len = bvptr[i]->bv_len;
 		AC_MEMCPY( tmpberval[i].bv_val, bvptr[i]->bv_val, bvptr[i]->bv_len );
 	}
+
 	tmpberval[i].bv_val = NULL;
 	tmpberval[i].bv_len = 0;
 
-	if ( rc == LDAP_SUCCESS ) {
-		*bvobj = tmpberval;
-	}
+	*bvobj = tmpberval;
 
-	return rc;
+	return LDAP_SUCCESS;
 }
 
 /*
