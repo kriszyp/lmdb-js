@@ -212,9 +212,11 @@ do_search(
 		char abuf[BUFSIZ/2], *ptr = abuf;
 		int len = 0, alen;
 
+		sprintf(abuf, "scope=%d deref=%d", op->ors_scope, op->ors_deref);
 		Statslog( LDAP_DEBUG_STATS,
-	    		"conn=%lu op=%lu SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
-	    		op->o_connid, op->o_opid, op->o_req_dn.bv_val, op->ors_scope, op->ors_filterstr.bv_val );
+		        "conn=%lu op=%lu SRCH base=\"%s\" %s filter=\"%s\"\n",
+		        op->o_connid, op->o_opid, op->o_req_dn.bv_val, abuf,
+		        op->ors_filterstr.bv_val );
 
 		for ( i = 0; i<siz; i++ ) {
 			alen = op->ors_attrs[i].an_name.bv_len;
@@ -224,7 +226,7 @@ do_search(
 			if (len && (len + 1 + alen >= sizeof(abuf))) {
 				Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu SRCH attr=%s\n",
 				    op->o_connid, op->o_opid, abuf, 0, 0 );
-	    			len = 0;
+				len = 0;
 				ptr = abuf;
 			}
 			if (len) {
