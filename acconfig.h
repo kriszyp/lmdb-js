@@ -17,32 +17,32 @@
 /* define this to remove -lldap cache support */
 #undef LDAP_NOCACHE
 
-/* define this for phonetic support */
-#undef LDAP_PHONETIC
-
 /* define this for LDAP referrals support */
 #undef LDAP_REFERRALS
 
+/* define this for phonetic support */
+#undef SLAPD_PHONETIC
+
 /* define this to use SLAPD shell backend */
-#undef SLAPD_SHELL
+/* #undef SLAPD_SHELL */
 
 /* define this to use SLAPD passwd backend */
-#undef SLAPD_PASSWD
+/* #undef SLAPD_PASSWD */
 
 /* define this to use SLAPD LDBM backend */
-#undef SLAPD_LDBM
+/* #undef SLAPD_LDBM */
 
 /* define this to use DBBTREE w/ LDBM backend */
-#undef LDBM_USE_DBBTREE
+/* #undef LDBM_USE_DBBTREE */
 
 /* define this to use DBHASH w/ LDBM backend */
-#undef LDBM_USE_DBHASH
+/* #undef LDBM_USE_DBHASH */
 
 /* define this to use GDBM w/ LDBM backend */
-#undef LDBM_USE_GDBM
+/* #undef LDBM_USE_GDBM */
 
 /* define this to use NDBM w/ LDBM backend */
-#undef LDBM_USE_NDBM
+/* #undef LDBM_USE_NDBM */
 
 
 /* Leave that blank line there!!  Autoheader needs it. */

@@ -190,9 +190,10 @@ AC_PATH_PROG(FINGER, finger, /usr/ucb/finger,
 	$PATH:/usr/ucb)
 
 ldbm_use="none"
-LIBDB=""
+LDBM_LIB=""
+LDBM_DEFS=""
 
-if test "$BUILD_LDBM" = "yes" ; then
+if test "$SLAPD_LDBM" = "yes" ; then
 	if test $ldbm_prefer = any -o $ldbm_prefer = dbbtree \
 			-o $ldbm_prefer = dbhash ; then
 		AC_CHECK_FUNC(dbopen,[
@@ -201,36 +202,37 @@ if test "$BUILD_LDBM" = "yes" ; then
 			AC_CHECK_LIB(db,dbopen,[
 				ldbm_use=$ldbm_prefer
 				ldbm_prefer=found
-				LIBDB="-ldb"
+				LDBM_LIB="-ldb"
 			]) 
 		])
 
 		if test $ldbm_prefer = found ; then
 			if test $ldbm_use = dbhash ; then
-				AC_DEFINE(LDBM_USE_DBHASH,1)
-dnl				LDAP_DEFS="$LDAP_DEFS -DLDBM_USE_DBHASH"
+dnl				AC_DEFINE(LDBM_USE_DBHASH,1)
+				LDBM_DEFS="$LDAP_DEFS -DLDBM_USE_DBHASH"
 			else
-				AC_DEFINE(LDBM_USE_DBBTREE,1)
-dnl				LDAP_DEFS="$LDAP_DEFS -DLDBM_USE_DBBTREE"
+dnl				AC_DEFINE(LDBM_USE_DBBTREE,1)
+				LDBM_DEFS="$LDAP_DEFS -DLDBM_USE_DBBTREE"
 			fi
 		fi
 	fi
+
 	if test $ldbm_prefer = any -o $ldbm_prefer = gdbm ; then
 		AC_CHECK_LIB(gdbm, gdbm_open,[
 			ldbm_use=$ldbm_prefer
 			ldbm_prefer=found
-			LIBDB="-lgdbm"
-			AC_DEFINE(LDBM_USE_GDBM,1)
-dnl			LDAP_DEFS="$LDAP_DEFS -DLDBM_USE_GDBM"
+			LDBM_LIB="-lgdbm"
+dnl			AC_DEFINE(LDBM_USE_GDBM,1)
+			LDBM_DEFS="$LDAP_DEFS -DLDBM_USE_GDBM"
 		]) 
 	fi
 	if test $ldbm_prefer = any -o $ldbm_prefer = ndbm ; then
 		AC_CHECK_LIB(dbm,dbm_open,[
 			ldbm_use=ndbm
 			ldbm_prefer=found
-			LIBDB="-ldbm"
-			AC_DEFINE(LDBM_USE_NDBM,1)
-dnl			LDAP_DEFS="$LDAP_DEFS -DLDBM_USE_NDBM"
+			LDBM_LIB="-ldbm"
+dnl			AC_DEFINE(LDBM_USE_NDBM,1)
+			LDBM_DEFS="$LDAP_DEFS -DLDBM_USE_NDBM"
 		]) 
 	fi
 
@@ -242,9 +244,6 @@ dnl			LDAP_DEFS="$LDAP_DEFS -DLDBM_USE_NDBM"
 		AC_MSG_WARN(LDBM using NDBM, functionality will be limited)
 	fi
 fi
-
-AC_SUBST(LDAP_DEFS)
-AC_SUBST(LIBDB)
 
 # ud needs termcap (should insert check here)
 LIBTERMCAP="-ltermcap"
@@ -321,6 +320,17 @@ AC_REPLACE_FUNCS(strdup)
 
 # Check Configuration
 CF_SYS_ERRLIST
+
+AC_SUBST(LDAP_DEFS)
+AC_SUBST(LDAP_LIBS)
+AC_SUBST(LDAPD_DEFS)
+AC_SUBST(LDAPD_LIBS)
+AC_SUBST(SLAPD_DEFS)
+AC_SUBST(SLAPD_LIBS)
+AC_SUBST(SLUPPD_DEFS)
+AC_SUBST(SLUPPD_LIBS)
+AC_SUBST(LDBM_DEFS)
+AC_SUBST(LDBM_LIBS)
 
 dnl AC_OUTPUT( \
 dnl clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \

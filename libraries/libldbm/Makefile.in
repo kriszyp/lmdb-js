@@ -6,6 +6,10 @@ XPROGRAMS	= testldbm
 SRCS		= ldbm.c
 OBJS		= ldbm.o
 
+XDEFS		= @LDBM_DEFS@
+XLIBS		= @LDBM_LIBS@
+
 LIBS = -L$(LDAP_LIBDIR) -lavl $(AC_LIBS)
+
 testldbm:	libldbm.a testldbm.o
 	$(CC) $(LDFLAGS) -o $@ testldbm.o $(LIBS)
