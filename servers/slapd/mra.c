@@ -23,6 +23,10 @@
 
 #include "slap.h"
 
+#ifdef LDAP_COMP_MATCH
+#include "component.h"
+#endif
+
 void
 mra_free(
 	Operation *op,
@@ -31,7 +35,7 @@ mra_free(
 {
 #ifdef LDAP_COMP_MATCH
 	/* free component assertion */
-	if ( mra->ma_rule->smr_usage & SLAP_MR_COMPONENT ) {
+	if ( mra->ma_rule->smr_usage & SLAP_MR_COMPONENT && mra->ma_cf ) {
 		component_free( mra->ma_cf );
 	}
 #endif
@@ -54,6 +58,9 @@ get_mra(
 	struct berval value = BER_BVNULL;
 	struct berval rule_text = BER_BVNULL;
 	MatchingRuleAssertion ma;
+#ifdef LDAP_COMP_MATCH
+	AttributeAliasing* aa = NULL;
+#endif
 
 	memset( &ma, 0, sizeof ma);
 
@@ -189,10 +196,13 @@ get_mra(
 	if( rc != LDAP_SUCCESS ) return rc;
 
 #ifdef LDAP_COMP_MATCH
-	/* Matching Rule for Component Matching */
-	Debug( LDAP_DEBUG_FILTER, "matchingrule %s\n",
-		ma.ma_rule->smr_mrule.mr_oid, 0, 0);
-	if( ma.ma_rule && ma.ma_rule->smr_usage & SLAP_MR_COMPONENT ) {
+	/* Check If this attribute is aliased */
+	if ( is_aliased_attribute && ma.ma_desc && ( aa = is_aliased_attribute ( ma.ma_desc ) ) ) {
+		rc = get_aliased_filter ( op, &ma, aa, text );
+		if ( rc != LDAP_SUCCESS ) return rc;
+	}
+	else if ( ma.ma_rule && ma.ma_rule->smr_usage & SLAP_MR_COMPONENT ) {
+		/* Matching Rule for Component Matching */
 		rc = get_comp_filter( op, &ma.ma_value, &ma.ma_cf, text );
 		if ( rc != LDAP_SUCCESS ) return rc;
 	}

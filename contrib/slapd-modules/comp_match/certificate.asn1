@@ -63,7 +63,7 @@ Extensions ::= SEQUENCE SIZE(1..MAX) OF Extension
 
 Extension ::= SEQUENCE {
 	extnID	OBJECT IDENTIFIER,
---	critical BOOLEAN DEFAULT FALSE,
+	critical BOOLEAN DEFAULT FALSE,
 	extnValue OCTET STRING
 -- contains a DER encoding of a value of type &ExtnType
 -- for the extension object identified by extnId --
@@ -85,7 +85,60 @@ printableStringOid OBJECT-TYPE
 	SYNTAX PrintableString
 	ACCESS read-write
 	STATUS mandatory
+	::= { 2 5 4 3 }
+
+printableStringOid2 OBJECT-TYPE
+	SYNTAX PrintableString
+	ACCESS read-write
+	STATUS mandatory
 	::= { 2 5 4 6 }    
 
+printableStringOid3 OBJECT-TYPE
+	SYNTAX PrintableString
+	ACCESS read-write
+	STATUS mandatory
+	::= { 2 5 4 7 }
+
+printableStringOid4 OBJECT-TYPE
+	SYNTAX PrintableString
+	ACCESS read-write
+	STATUS mandatory
+	::= { 2 5 4 8 }    
+
+printableStringOid5 OBJECT-TYPE
+	SYNTAX PrintableString
+	ACCESS read-write
+	STATUS mandatory
+	::= { 2 5 4 10 }    
+
+printableStringOid6 OBJECT-TYPE
+	SYNTAX PrintableString
+	ACCESS read-write
+	STATUS mandatory
+	::= { 2 5 4 11 }
+
+iA5StringOid OBJECT-TYPE
+	SYNTAX IA5String
+	ACCESS read-write
+	STATUS mandatory
+	::= { 1 2 840 113549 1 9 1 }
+
+octetStringOid OBJECT-TYPE
+	SYNTAX OCTET STRING
+	ACCESS read-write
+	STATUS mandatory
+	::= { 2 5 29 19 }
+
+octetStringOid2 OBJECT-TYPE
+	SYNTAX OCTET STRING
+	ACCESS read-write
+	STATUS mandatory
+	::= { 2 16 840 1 113730 1 13 }
+
+octetStringOid3 OBJECT-TYPE
+	SYNTAX OCTET STRING
+	ACCESS read-write
+	STATUS mandatory
+	::= { 2 5 29 14 }
 
 END

@@ -1,5 +1,6 @@
-#include "asn.h"
 #include "component.h"
+#include "asn.h"
+#include "componentlib.h"
 
 AsnTypetoMatchingRuleTable directory_component_matching_table = {
 	"1.2.36.79672281.1.13.7",
@@ -67,7 +68,8 @@ struct asntype_to_syntax asn_to_syntax_mapping_tbl[] = {
 { BASICTYPE_BITCONTAINING, NULL , NULL, NULL },
 { BASICTYPE_RELATIVE_OID, "OID", "1.3.6.1.4.1.1466.115.121.1.38", NULL },
 { BASICTYPE_ANY, NULL, NULL, NULL },
-{ RDNSequence, "RDN" , "1.2.36.79672281.1.5.0", NULL },
+{ COMPOSITE_ASN1_TYPE, NULL , NULL, NULL },
+{ RDNSequence, "Distinguished Name" , "1.3.6.1.4.1.1466.115.121.1.12", NULL },
 { RelativeDistinguishedName, "RDN", "1.2.36.79672281.1.5.0", NULL },
 { TelephoneNumber, "Telephone Number" , "1.3.6.1.4.1.1466.115.121.1.50", NULL },
 { FacsimileTelephoneNumber__telephoneNumber, "Facsimile Telephone Number","1.3.6.1.4.1.1466.115.121.1.22", NULL },

@@ -168,6 +168,9 @@ int bdb_entry_return(
 	 * is when an entry has been modified, in which case we also need
 	 * to free e_attrs.
 	 */
+#ifdef LDAP_COMP_MATCH
+	comp_tree_free( e->e_attrs );
+#endif
 	if( !e->e_bv.bv_val ) {	/* A regular entry, from do_add */
 		entry_free( e );
 		return 0;

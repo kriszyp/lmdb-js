@@ -19,6 +19,7 @@
 #include "lutil.h"
 #include <ldap.h>
 #include <slap.h>
+#include <component.h>
 
 #include <asn-incl.h>
 #include "asn.h"
@@ -115,6 +116,8 @@ typedef struct ComponentIA5String {
 
 #define GEncComponentIA5String GEncComponentUTF8String
 #define GDecComponentIA5String GDecComponentUTF8String
+int
+BDecComponentIA5StringTag ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int mode );
 int BDecComponentIA5String ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 #define MatchingComponentIA5String MatchingComponentOcts
 #define ExtractingComponentIA5String(mem_op, cr,data)	NULL
@@ -202,6 +205,7 @@ typedef struct ComponentOcts {
 #define GASNOCTS_PRESENT(aocts) ((aocts)->value.octs != NULL)
 int GEncComponentOcts (GenBuf *b, ComponentOcts *octs);
 int GDecComponentOcts (void* mem_op, GenBuf *b, void *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentOctsTag ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int mode );
 int BDecComponentOcts (void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 int MatchingComponentOcts (char* oid, ComponentSyntaxInfo *a, ComponentSyntaxInfo *b);
 #define ExtractingComponentOcts(mem_op,cr,data)	NULL
@@ -376,6 +380,8 @@ typedef struct ComponentAnyInfo
 	PrintFcn	Print;
 } ComponentAnyInfo;
 
+typedef struct ComponentAnyInfo OidDecoderMapping ;
+
 typedef struct ComponentAny{
 	void*		syntax;
 	ComponentDesc	*comp_desc;
@@ -402,7 +408,11 @@ void InstallAnyByComponentInt (int anyId, ComponentInt intId, unsigned int size,
 
 void InstallAnyByComponentOid (int anyId, AsnOid *oid, unsigned int size, EncodeFcn encode, gser_decoder_func* G_decode, ber_tag_decoder_func* B_decode, ExtractFcn extract, MatchFcn match, FreeFcn free, PrintFcn print);
 
+int CheckSelectTypeCorrect ( void* mem_op, ComponentAnyInfo *v, struct berval* select );
 
+OidDecoderMapping* RetrieveOidDecoderMappingbyBV( struct berval* in );
+OidDecoderMapping* RetrieveOidDecoderMappingbyOid( char* ch_oid, int oid_len );
+OidDecoderMapping* RetrieveOidDecoderMappingbyDesc( char* desc, int desc_len );
 /*
  * UTCTime
  */
@@ -511,12 +521,17 @@ retrieve_matching_rule( char* mr_oid, AsnTypeId type );
 #define INITIAL_DN_SIZE 128
 #define INITIAL_ATTR_SIZE 256
 #define INCREMENT_SIZE 32
+/*
+ * Followings are for conversion from ASN.1 RDN and DN to
+ * LDAP encodings
+ */
+#define MAX_ALIASING_ENTRY 128
 int increment_bv_mem ( struct berval* in );
 int intToAscii ( int value, char* buf );
 typedef ComponentList irRDNSequence;
 typedef ComponentList irRelativeDistinguishedName;
 typedef ComponentOid irAttributeType;
-typedef struct irAttributeTypeAndValue /* SEQUENCE */
+typedef struct comp_irAttributeTypeAndValue /* SEQUENCE */
 {
 	Syntax* syntax;
 	ComponentDesc* comp_desc;
@@ -527,4 +542,5 @@ typedef struct irAttributeTypeAndValue /* SEQUENCE */
 } irAttributeTypeAndValue;
 #define RDN_MATCH_OID "1.2.36.79672281.1.13.3"
 #define DN_MATCH_OID "2.5.13.1"
+
 #endif

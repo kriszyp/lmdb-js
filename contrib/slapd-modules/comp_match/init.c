@@ -16,8 +16,9 @@
 #include "lutil.h"
 #include <ldap.h>
 #include "slap.h"
-
 #include "component.h"
+
+#include "componentlib.h"
 #include "asn.h"
 #include <asn-gser.h>
 
@@ -27,12 +28,101 @@
 #define SLAPD_COMP_MATCH SLAPD_MOD_DYNAMIC
 #endif
 
+/*
+ * Attribute and MatchingRule aliasing table
+ */
+AttributeAliasing aa_table [ MAX_ALIASING_ENTRY ];
+MatchingRuleAliasing mra_table [ MAX_ALIASING_ENTRY ];
 
 OD_entry* gOD_table = NULL;
 AsnTypetoMatchingRuleTable* gATMR_table = NULL;
 
 int
 load_derived_matching_rule ( char* cfg_path ){
+}
+
+AttributeAliasing*
+comp_is_aliased_attribute( void *in  )
+{
+	AttributeAliasing* curr_aa;
+	int i;
+	AttributeDescription *ad = (AttributeDescription*)in;
+
+	for ( i = 0; aa_table[i].aa_aliasing_ad && i < MAX_ALIASING_ENTRY; i++ ) {
+		if ( strncmp(aa_table[i].aa_aliasing_ad->ad_cname.bv_val , ad->ad_cname.bv_val, ad->ad_cname.bv_len) == 0 )
+			return &aa_table[i];
+	}
+	return NULL;
+}
+
+static int
+add_aa_entry( int index, char* aliasing_at_name, char* aliased_at_name, char* mr_name, char* component_filter )
+{
+	char text[1][128];
+	int rc;
+	struct berval type;
+
+	/* get and store aliasing AttributeDescription */
+	type.bv_val = aliasing_at_name;
+	type.bv_len = strlen ( aliasing_at_name );
+	rc = slap_bv2ad ( &type, &aa_table[index].aa_aliasing_ad,(char**)text );
+	if ( rc != LDAP_SUCCESS ) return rc;
+
+	/* get and store aliased AttributeDescription */
+	type.bv_val = aliased_at_name;
+	type.bv_len = strlen ( aliased_at_name );
+	rc = slap_bv2ad ( &type, &aa_table[index].aa_aliased_ad,(char**)text );
+	if ( rc != LDAP_SUCCESS ) return rc;
+
+	/* get and store componentFilterMatch */
+	type.bv_val = mr_name;
+	type.bv_len = strlen ( mr_name);
+	aa_table[index].aa_mr = mr_bvfind ( &type );
+
+	/* get and store a component filter */
+	type.bv_val = component_filter;
+	type.bv_len = strlen ( component_filter );
+	rc = get_comp_filter( NULL, &type, &aa_table[index].aa_cf,(char**)text);
+
+	aa_table[index].aa_cf_str = component_filter;
+
+	return rc;
+}
+
+/*
+ * Initialize attribute aliasing table when this module is loaded
+ * add_aa_entry ( index for the global table,
+ *                name of the aliasing attribute,
+ *                component filter with filling value parts "xxx"
+ *              )
+ * "xxx" will be replaced with effective values later.
+ * See RFC3687 to understand the content of a component filter.
+ */
+char* pre_processed_comp_filter[] = {
+/*1*/"item:{ component \"tbsCertificate.issuer.rdnSequence\", rule distinguishedNameMatch, value xxx }",
+/*2*/"item:{ component \"tbsCertificate.serialNumber\", rule integerMatch, value xxx }",
+/*3*/"and:{ item:{ component \"tbsCertificate.serialNumber\", rule integerMatch, value xxx }, item:{ component \"tbsCertificate.issuer.rdnSequence\", rule distinguishedNameMatch, value xxx } }"
+};
+
+static int
+init_attribute_aliasing_table ()
+{
+	int rc;
+	int index = 0 ;
+
+	rc = add_aa_entry ( index, "x509CertificateIssuer", "userCertificate","componentFilterMatch", pre_processed_comp_filter[index] );
+	if ( rc != LDAP_SUCCESS ) return LDAP_PARAM_ERROR;
+	index++;
+
+	rc = add_aa_entry ( index, "x509CertificateSerial","userCertificate", "componentFilterMatch", pre_processed_comp_filter[index] );
+	if ( rc != LDAP_SUCCESS ) return LDAP_PARAM_ERROR;
+	index++;
+
+	rc = add_aa_entry ( index, "x509CertificateSerialAndIssuer", "userCertificate", "componentFilterMatch", pre_processed_comp_filter[index] );
+	if ( rc != LDAP_SUCCESS ) return LDAP_PARAM_ERROR;
+	index++;
+
+	return LDAP_SUCCESS;
 }
 
 MatchingRule*
@@ -54,65 +144,6 @@ retrieve_matching_rule( char* mr_oid, AsnTypeId type ) {
 	return (MatchingRule*)NULL;
 }
 
-OD_entry*
-retrieve_oid_decoder_table ( char* oid ) {
-	OD_entry* curr_entry;
-	for ( curr_entry = gOD_table ; curr_entry != NULL ;
-				curr_entry = curr_entry->oe_next ) {
-		if ( strcmp ( curr_entry->oe_oid , oid ) == 0 )
-			return curr_entry;
-	}
-	return (OD_entry*) NULL;
-}
-
-int
-add_OD_entry ( char* oid, gser_decoder_func* gser_decoder ,
-		ber_decoder_func ber_decoder, converter_func* converter ) {
-	OD_entry* new_entry;
-
-	if ( !gOD_table ) {
-		gOD_table = new_entry = (OD_entry*) malloc( sizeof ( OD_entry ) );
-		gOD_table->oe_next = NULL;
-		gOD_table->oe_prev = NULL;
-	}
-	else {
-		new_entry = (OD_entry*) malloc( sizeof ( OD_entry ) );
-		if ( !new_entry ) return -1;
-		gOD_table->oe_prev = new_entry;
-		new_entry->oe_next = gOD_table;
-		new_entry->oe_prev = NULL;
-		gOD_table = new_entry;
-	}
-
-	strcpy ( new_entry->oe_oid ,oid );
-	new_entry->oe_gser_decoder = gser_decoder;
-	new_entry->oe_ber_decoder = ber_decoder;
-	new_entry->oe_converter = converter;
-
-	return 1;
-}
-
-int
-remove_OD_entry ( char* oid ) {
-	OD_entry* curr_entry;
-	for ( curr_entry = gOD_table ; curr_entry != NULL ;
-				curr_entry = curr_entry->oe_next ) {
-		if ( strcmp ( curr_entry->oe_oid , oid ) == 0 ) {
-			if ( !curr_entry->oe_next ) {
-				if ( curr_entry->oe_prev ) {
-					curr_entry->oe_prev->oe_next = NULL;
-				}
-			} else {
-				curr_entry->oe_prev->oe_next = curr_entry->oe_next;
-				curr_entry->oe_next->oe_prev = curr_entry->oe_prev;
-			}
-			free ( curr_entry );
-			return 1;
-		}
-	}
-	return -1;
-}
-
 void* 
 comp_convert_attr_to_comp LDAP_P (( Attribute* a, Syntax *syn, struct berval* bv ))
 {
@@ -123,15 +154,13 @@ comp_convert_attr_to_comp LDAP_P (( Attribute* a, Syntax *syn, struct berval* bv
 	char* oid = a->a_desc->ad_type->sat_atype.at_oid ;
         GenBuf* b;
         ExpBuf* buf;
-	OD_entry* od_entry;
+	OidDecoderMapping* odm;
 	
 	/* look for the decoder registered for the given attribute */
-	od_entry =  retrieve_oid_decoder_table ( oid );
-	if ( !od_entry || !od_entry->oe_ber_decoder ) return (void*)NULL;
-	if ( od_entry->oe_converter ) {
-		size = (*od_entry->oe_converter)( bv );
-		if ( size <= 0 ) return (void*)NULL;
-	}
+	odm = RetrieveOidDecoderMappingbyOid( oid, strlen(oid) );
+
+	if ( !odm || (!odm->BER_Decode && odm->GSER_Decode) )
+		return (void*)NULL;
 
 	buf = ExpBufAllocBuf();
 	ExpBuftoGenBuf( buf, &b );
@@ -145,16 +174,20 @@ comp_convert_attr_to_comp LDAP_P (( Attribute* a, Syntax *syn, struct berval* bv
 	 * The flag of Attribute will say something about it in the future
 	 */
 	if ( slap_syntax_is_ber ( syn ) ) {
-		rc =BDecComponentTop(od_entry->oe_ber_decoder, a->a_comp_data->cd_mem_op, b, 0,0, &component,&bytesDecoded,mode ) ;
+#if 0
+		rc =BDecComponentTop(odm->BER_Decode, a->a_comp_data->cd_mem_op, b, 0,0, &component,&bytesDecoded,mode ) ;
+#endif
+		rc = odm->BER_Decode ( a->a_comp_data->cd_mem_op,b,&component,&bytesDecoded, mode );
 	}
 	else {
-		rc = od_entry->oe_gser_decoder( a->a_comp_data->cd_mem_op, b, component,&bytesDecoded,mode);
+		rc = odm->GSER_Decode( a->a_comp_data->cd_mem_op, b, component,&bytesDecoded,mode);
 	}
 
 	ExpBufFreeBuf( buf );
 	if ( rc == -1 ) {
 		ShutdownNibbleMemLocal ( a->a_comp_data->cd_mem_op );
-		a->a_comp_data->cd_mem_op = NULL;
+		free ( a->a_comp_data );
+		a->a_comp_data = NULL;
 		return (void*)NULL;
 	}
 	else {
@@ -225,7 +258,8 @@ int intToAscii( int value, char* buf ) {
 int
 comp_convert_asn_to_ldap ( MatchingRule* mr, ComponentSyntaxInfo* csi, struct berval* bv, int *allocated )
 {
-	int value, rc;
+	int rc;
+	struct berval prettied;
 	Syntax* syn;
 
 	AsnTypetoSyntax* asn_to_syn =
@@ -307,14 +341,16 @@ comp_convert_asn_to_ldap ( MatchingRule* mr, ComponentSyntaxInfo* csi, struct be
 			return LDAP_INVALID_SYNTAX;
 		*allocated = 1;
 		rc = ConvertRDNSequence2RFC2253( (irRDNSequence*)csi, bv );
-		return rc;
+		if ( rc != LDAP_SUCCESS ) return rc;
+		break;
           case RelativeDistinguishedName :
 		/*rdnMatch*/
 		if( strncmp( mr->smr_mrule.mr_oid, RDN_MATCH_OID, strlen(RDN_MATCH_OID) ) != 0 )
 			return LDAP_INVALID_SYNTAX;
 		*allocated = 1;
 		rc = ConvertRDN2RFC2253((irRelativeDistinguishedName*)csi,bv);
-		return rc;
+		if ( rc != LDAP_SUCCESS ) return rc;
+		break;
           case TelephoneNumber :
           case FacsimileTelephoneNumber__telephoneNumber :
 		break;
@@ -328,9 +364,22 @@ comp_convert_asn_to_ldap ( MatchingRule* mr, ComponentSyntaxInfo* csi, struct be
 		return LDAP_INVALID_SYNTAX;
         }
 
-	if ( csi->csi_syntax && csi->csi_syntax->ssyn_validate ) {
-		if ( csi->csi_syntax->ssyn_validate(csi->csi_syntax, bv) != LDAP_SUCCESS )
-			return LDAP_INVALID_SYNTAX;
+	if ( csi->csi_syntax ) {
+		if ( csi->csi_syntax->ssyn_validate ) {
+ 			rc = csi->csi_syntax->ssyn_validate(csi->csi_syntax, bv);
+			if ( rc != LDAP_SUCCESS )
+				return LDAP_INVALID_SYNTAX;
+		}
+		if ( csi->csi_syntax->ssyn_pretty ) {
+			rc = csi->csi_syntax->ssyn_pretty(csi->csi_syntax, bv, &prettied , NULL );
+			if ( rc != LDAP_SUCCESS )
+				return LDAP_INVALID_SYNTAX;
+#if 0
+			free ( bv->bv_val );/*potential memory leak?*/
+#endif
+			bv->bv_val = prettied.bv_val;
+			bv->bv_len = prettied.bv_len;
+		}
 	}
 
 	return LDAP_SUCCESS;
@@ -343,7 +392,8 @@ comp_convert_asn_to_ldap ( MatchingRule* mr, ComponentSyntaxInfo* csi, struct be
 #define IS_TERMINAL_COMPREF(cr) (cr->cr_curr->ci_next == NULL)
 int
 comp_test_all_components (
-	void* mem_op,
+	void* attr_mem_op,
+	void* assert_mem_op,
 	ComponentSyntaxInfo *csi_attr,
 	ComponentAssertion* ca )
 {
@@ -353,40 +403,11 @@ comp_test_all_components (
 	struct berval *ca_val = &ca->ca_ma_value;
 
 	switch ( cr->cr_curr->ci_type ) {
-	    case LDAP_COMPREF_IDENTIFIER:
-	    case LDAP_COMPREF_FROM_BEGINNING:
-	    case LDAP_COMPREF_FROM_END:
-		csi_temp = (ComponentSyntaxInfo*)csi_attr->csi_comp_desc->cd_extract_i( mem_op, cr, csi_attr );
-		if ( cr->cr_curr->ci_type == LDAP_COMPREF_ALL ) {
-			rc = comp_test_all_components ( mem_op, csi_temp, ca );
-		} else {
-			rc = comp_test_one_component( mem_op, csi_temp, ca );
-		}
-		break;
-	    case LDAP_COMPREF_COUNT:
-		/* "count" component reference should be the last component id */
-		if ( IS_TERMINAL_COMPREF(cr) ) {
-			ComponentInt *k;
-			k = (ComponentInt*)CompAlloc( mem_op, sizeof(ComponentInt) );
-			k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-			k->comp_desc->cd_tag = 0;
-			k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentInt;
-			k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentInt;
-			k->comp_desc->cd_extract_i = (extract_component_from_id_func*)NULL;
-			k->comp_desc->cd_type = ASN_BASIC;
-			k->comp_desc->cd_type_id = BASICTYPE_INTEGER;
-			k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentInt;
-			k->value = AsnListCount(&((ComponentList*)csi_attr)->comp_list);
-			rc = comp_test_one_component( mem_op, k, ca );
-		} else {
-			rc = LDAP_INVALID_SYNTAX;
-		}
-		break;
 	    case LDAP_COMPREF_ALL:
 		if ( IS_TERMINAL_COMPREF(cr) ) {
 			FOR_EACH_LIST_ELMT( comp_elmt, &((ComponentList*)csi_attr)->comp_list )
 			{
-				rc = comp_test_one_component( mem_op, comp_elmt, ca );
+				rc = comp_test_one_component( attr_mem_op, assert_mem_op, comp_elmt, ca );
 				if ( rc == LDAP_COMPARE_TRUE ) {
 					break;
 				}
@@ -396,13 +417,8 @@ comp_test_all_components (
 			FOR_EACH_LIST_ELMT( comp_elmt, &((ComponentList*)csi_attr)->comp_list )
 			{
 				cr->cr_curr = start_compid;
-				csi_temp = comp_elmt->csi_comp_desc->cd_extract_i( mem_op, cr, comp_elmt );
-				if ( cr->cr_curr->ci_type == LDAP_COMPREF_ALL ) {
-					rc = comp_test_all_components ( mem_op, csi_temp, ca );
-				} else {
-					rc = comp_test_one_component ( mem_op, csi_temp, ca );
-				}
-
+				rc = comp_test_components ( attr_mem_op, assert_mem_op, comp_elmt, ca );
+				
 				if ( rc == LDAP_COMPARE_TRUE ) {
 					break;
 				}
@@ -413,6 +429,10 @@ comp_test_all_components (
 	    case LDAP_COMPREF_SELECT:
 	    case LDAP_COMPREF_DEFINED:
 	    case LDAP_COMPREF_UNDEFINED:
+	    case LDAP_COMPREF_IDENTIFIER:
+	    case LDAP_COMPREF_FROM_BEGINNING:
+	    case LDAP_COMPREF_FROM_END:
+	    case LDAP_COMPREF_COUNT:
 		rc = LDAP_OPERATIONS_ERROR;
 		break;
 	    default:
@@ -430,109 +450,6 @@ eat_bv_whsp ( struct berval* in )
         }
 }
 
-int
-get_primitive_GSER_value ( struct berval* in )
-{
-	int count, sequent_dquote, unclosed_brace, succeed;
-	char* ptr = in->bv_val;
-	char* end = in->bv_val + in->bv_len;
-
-	eat_bv_whsp( in );
-	/*
- 	 * Four cases of GSER <Values>
-	 * 1) "..." :
-	 *      StringVal, GeneralizedTimeVal, UTCTimeVal, ObjectDescriptorVal
-	 * 2) '...'B or '...'H :
-	 *      BitStringVal, OctetStringVal
-	 * 3) {...} :
-	 *      SEQUENCE, SEQUENCEOF, SETOF, SET, CHOICE, BIT STRING(bit list)
-	 * 4) Between two white spaces
-	 *      INTEGER, BOOLEAN, NULL,ENUMERATE, REAL
-	 */
-
-	if ( in->bv_len <= 0 )
-		return LDAP_INVALID_SYNTAX;
-
-	succeed = 0;
-	if ( ptr[0] == '"' ) {
-		for( count = 1, sequent_dquote = 0 ; ; count++ ) {
-			/* In order to find escaped double quote */
-			if ( ptr[count] == '"' ) sequent_dquote++;
-			else sequent_dquote = 0;
-
-			if ( ptr[count] == '\0' || (ptr + count) > end ) {
-				break;
-			}
-
-			if ( ( ptr[count] == '"' && ptr[count-1] != '"') ||
-			( sequent_dquote > 2 && (sequent_dquote%2) == 1 ) ) {
-				succeed = 1;
-				break;
-			}
-		}
-
-        	if ( !succeed || ptr[count] != '"' )
-			return LDAP_FILTER_ERROR;
-
-		in->bv_val = ptr+1; /*the next to '"'*/
-		in->bv_len = count - 1; /* exclude '"' */
-	}
-	else if ( ptr[0] == '\'' ) {
-		for( count = 1 ; ; count++ ) {
-			if ( ptr[count] == '\0' || (ptr+count) > end ) {
-				break;
-			}
-			if ((ptr[count-1] == '\'' && ptr[count] == 'B')||
-			(ptr[count-1] == '\'' && ptr[count] == 'H') ) {
-				succeed = 1;
-				break;
-			}
-		}
-
-        	if ( !succeed || !(ptr[count] == 'H' || ptr[count] == 'B') )
-			return LDAP_FILTER_ERROR;
-
-		in->bv_val = ptr+1; /* the next to '"' */
-		in->bv_len = count - 2; /* exclude "'H" or "'B" */
-
-	}
-	else if ( ptr[0] == '{' ) {
-		for( count = 1, unclosed_brace = 1 ; ; count++ ) {
-			if ( ptr[count] == '{' ) unclosed_brace++;
-			if ( ptr[count] == '}' ) unclosed_brace--;
-
-			if ( ptr[count] == '\0' || (ptr+count) > end )
-				break;
-			if ( unclosed_brace == 0 ) {
-				succeed = 1;
-				break;
-			}
-		}
-
-        	if ( !succeed || ptr[count] != '}' )
-			return LDAP_FILTER_ERROR;
-
-		in->bv_val = ptr+1; /*the next to '"'*/
-		in->bv_len = count - 1; /* exclude '"' */
-	}
-        else {
-                /*Find  following white space where the value is ended*/
-                for( count = 1 ; ; count++ ) {
-                        if ( ptr[count] == '\0' || ptr[count] == ' ' ||
-					(ptr+count) >end ) {
-                                break;
-                        }
-                }
-        	if ( ptr[count] != ' ' )
-			return LDAP_FILTER_ERROR;
-
-		in->bv_val = ptr; /*the next to '"'*/
-		in->bv_len = count; /* exclude '"' */
-        }
-
-        return LDAP_SUCCESS;
-}
-
 /*
  * Perform matching one referenced component against assertion
  * If the matching rule in a component filter is allComponentsMatch
@@ -543,7 +460,8 @@ get_primitive_GSER_value ( struct berval* in )
  */
 int
 comp_test_one_component (
-	void* mem_op,
+	void* attr_mem_op,
+	void* assert_mem_op,
 	ComponentSyntaxInfo *csi_attr,
 	ComponentAssertion *ca )
 {
@@ -555,7 +473,7 @@ comp_test_one_component (
 	if ( mr->smr_usage & SLAP_MR_COMPONENT ) {
 		/* If allComponentsMatch or its derivatives */
 		if ( !ca->ca_comp_data.cd_tree ) {
-			comp_convert_assert_to_comp( mem_op, csi_attr, &ca->ca_ma_value, &csi_assert, &len, DEC_ALLOC_MODE_0 );
+			comp_convert_assert_to_comp( assert_mem_op, csi_attr, &ca->ca_ma_value, &csi_assert, &len, DEC_ALLOC_MODE_0 );
 			ca->ca_comp_data.cd_tree = (void*)csi_assert;
 		} else {
 			csi_assert = ca->ca_comp_data.cd_tree;
@@ -575,31 +493,172 @@ comp_test_one_component (
 	} else {
 		/* LDAP existing matching rules */
 		struct berval attr_bv = BER_BVNULL;
+		struct berval n_attr_bv = BER_BVNULL;
 		struct berval* assert_bv = &ca->ca_ma_value;
 		int allocated = 0;
 		/*Attribute is converted to compatible LDAP encodings*/
 		if ( comp_convert_asn_to_ldap( mr, csi_attr, &attr_bv, &allocated ) != LDAP_SUCCESS )
 			return LDAP_INAPPROPRIATE_MATCHING;
-
+		/* extracted component value is not normalized */
+		if ( ca->ca_ma_rule->smr_normalize ) {
+			rc = ca->ca_ma_rule->smr_normalize (
+				SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
+				NULL, ca->ca_ma_rule,
+				&attr_bv, &n_attr_bv, NULL );
+			if ( rc != LDAP_SUCCESS )
+				return rc;
+			if ( allocated && attr_bv.bv_val )
+				free (attr_bv.bv_val);
+		} else {
+			n_attr_bv = attr_bv;
+		}
+#if 0
 		/*Assertion value is validated by MR's syntax*/
 		if ( !ca->ca_comp_data.cd_tree ) {
-			if ( get_primitive_GSER_value( assert_bv ) != LDAP_SUCCESS ) 
-				return LDAP_INVALID_SYNTAX;
-			assert_bv->bv_val[assert_bv->bv_len] = '\0';
-			if ( mr->smr_syntax->ssyn_validate( mr->smr_syntax, assert_bv ) != LDAP_SUCCESS ) {
-				return LDAP_INVALID_SYNTAX;
-			}
 			ca->ca_comp_data.cd_tree = assert_bv;
 		}
 		else {
 			assert_bv = ca->ca_comp_data.cd_tree;
 		}
-
-		rc = csi_value_match( mr, &attr_bv, assert_bv );
-		if ( allocated ) free (attr_bv.bv_val);
+#endif
+		rc = csi_value_match( mr, &n_attr_bv, assert_bv );
+		if ( n_attr_bv.bv_val )
+			free ( n_attr_bv.bv_val );
 		return rc;
 	}
 }
+
+int
+comp_test_components( void* attr_nm, void* assert_nm, ComponentSyntaxInfo* csi_attr, ComponentAssertion* ca) {
+	char* peek_head;
+	int mode, bytesDecoded = 0, rc;
+	GenBuf* b;
+	ExpBuf* buf;
+	OidDecoderMapping* odm;
+	struct berval bv;
+	char oid[MAX_OID_LEN];
+	void* contained_comp, *anytype_comp;
+	ComponentReference* cr = ca->ca_comp_ref;
+
+	/* Extracting the component refrenced by ca->ca_comp_ref */
+	csi_attr = (ComponentSyntaxInfo*)csi_attr->csi_comp_desc->cd_extract_i( attr_nm, cr, csi_attr );
+	if ( !csi_attr ) return LDAP_INVALID_SYNTAX;
+	/* perform matching, considering the type of a Component Reference(CR)*/
+	switch( cr->cr_curr->ci_type ) {
+	   case LDAP_COMPREF_IDENTIFIER:
+	   case LDAP_COMPREF_FROM_BEGINNING:
+	   case LDAP_COMPREF_FROM_END:
+	   case LDAP_COMPREF_COUNT:
+		/*
+		 * Exactly one component is referenced
+		 * Fast Path for matching for this case
+		 */
+		rc = comp_test_one_component ( attr_nm, assert_nm, csi_attr, ca );
+		break;
+	   case LDAP_COMPREF_ALL:
+		/*
+		 * If <all> type CR is used
+		 * more than one component will be tested
+		 */
+		rc = comp_test_all_components ( attr_nm, assert_nm, csi_attr, ca );
+		break;
+
+	   case LDAP_COMPREF_CONTENT:
+		/*
+		 * <content> type CR is used
+		 * check if it is followed by <select> type CR.
+		 * 1) If so, look up the corresponding decoder  in the mapping
+		 * table(OID to decoder) by <select>
+		 * and then decode the OCTET/BIT STRING with the decoder
+		 * Finially, extreact the target component with the remaining CR.
+		 * 2) If not, just return the current component, It SHOULD not be
+		 * extracted further, because the component MUST be BIT/OCTET
+                 * string.
+                 */
+
+		cr->cr_curr = cr->cr_curr->ci_next;
+		if ( !cr->cr_curr ) {
+			/* case 2) in above description */
+			rc = comp_test_one_component ( attr_nm, assert_nm, csi_attr, ca );
+			break;
+		}
+
+		if ( cr->cr_curr->ci_type == LDAP_COMPREF_SELECT ) {
+			/* Look up OID mapping table */	
+			odm = RetrieveOidDecoderMappingbyBV( &cr->cr_curr->ci_val.ci_select_value );
+			
+			if ( !odm || !odm->BER_Decode )
+				return  LDAP_PROTOCOL_ERROR;
+
+			/* current componet MUST be either BIT or OCTET STRING */
+			if ( csi_attr->csi_comp_desc->cd_type_id != BASICTYPE_BITSTRING ) {
+				bv.bv_val = ((ComponentBits*)csi_attr)->value.bits;
+				bv.bv_len = ((ComponentBits*)csi_attr)->value.bitLen;
+			}
+			else if ( csi_attr->csi_comp_desc->cd_type_id != BASICTYPE_BITSTRING ) {
+				bv.bv_val = ((ComponentOcts*)csi_attr)->value.octs;
+				bv.bv_len = ((ComponentOcts*)csi_attr)->value.octetLen;
+			}
+			else
+				return LDAP_PROTOCOL_ERROR;
+
+			buf = ExpBufAllocBuf();
+			ExpBuftoGenBuf( buf, &b );
+			ExpBufInstallDataInBuf ( buf, bv.bv_val, bv.bv_len );
+			BufResetInReadMode( b );
+			mode = DEC_ALLOC_MODE_2;
+
+			/* Try to decode with BER/DER decoder */
+#if 0
+			rc =BDecComponentTop( odm->BER_Decode, attr_nm, b, 0,0, &contained_comp,&bytesDecoded, mode );
+#endif
+			rc = odm->BER_Decode ( attr_nm,b,&contained_comp,&bytesDecoded, mode );
+
+#if 0
+			if ( rc != LDAP_SUCCESS ) {
+				/* If fails with BER/DER decoder, try with GSER */
+				bytesDecoded = 0;
+				BufResetInReadMode( b );
+				rc = odm->GSER_decoder( attr_nm, b, contained_comp, &bytesDecoded, mode);
+			}
+#endif
+			ExpBufFreeBuf( buf );
+
+			if ( rc != LDAP_SUCCESS ) return LDAP_PROTOCOL_ERROR;
+
+			/* xxx.content.(x.xy.xyz).rfc822Name */
+			/* In the aboe Ex. move CR to the right to (x.xy.xyz)*/
+			cr->cr_curr = cr->cr_curr->ci_next;
+			if (!cr->cr_curr )
+				rc = comp_test_one_component ( attr_nm, assert_nm, csi_attr, ca );
+			else
+				rc = comp_test_components( attr_nm, assert_nm, contained_comp, ca );
+		}
+		else {
+			/* Ivalid Component reference */
+			rc = LDAP_PROTOCOL_ERROR;
+		}
+		break;
+	   case LDAP_COMPREF_SELECT:
+		if (csi_attr->csi_comp_desc->cd_type_id != BASICTYPE_ANY )
+			return LDAP_INVALID_SYNTAX;
+		rc = CheckSelectTypeCorrect( attr_nm, ((ComponentAny*)csi_attr)->cai, &cr->cr_curr->ci_val.ci_select_value );
+		if ( rc < 0 ) return LDAP_INVALID_SYNTAX;
+
+		/* point to the real component, not any type component */
+		csi_attr = ((ComponentAny*)csi_attr)->value;
+		cr->cr_curr = cr->cr_curr->ci_next;
+		if ( cr->cr_curr )
+			rc =  comp_test_components( attr_nm, assert_nm, csi_attr, ca);
+		else
+			rc =  comp_test_one_component( attr_nm, assert_nm, csi_attr, ca);
+		break;
+	   default:
+		rc = LDAP_INVALID_SYNTAX;
+	}
+	return rc;
+}
+
 
 void*
 comp_nibble_memory_allocator ( int init_mem, int inc_mem ) {
@@ -622,10 +681,10 @@ extern convert_attr_to_comp_func* attr_converter;
 extern convert_assert_to_comp_func* assert_converter;
 extern convert_asn_to_ldap_func* csi_converter;
 extern free_component_func* component_destructor;
-extern test_component_func* test_one_component;
-extern test_component_func* test_all_components;
+extern test_component_func* test_components;
 extern alloc_nibble_func* nibble_mem_allocator;
 extern free_nibble_func* nibble_mem_free;
+extern test_membership_func* is_aliased_attribute;
 
 
 int init_module(int argc, char *argv[]) {
@@ -635,16 +694,18 @@ int init_module(int argc, char *argv[]) {
 	attr_converter = comp_convert_attr_to_comp;
 	assert_converter = comp_convert_assert_to_comp;
 	component_destructor = comp_free_component;
-	test_one_component = comp_test_one_component;
-	test_all_components = comp_test_all_components;
+	test_components = comp_test_components;
 	nibble_mem_allocator = comp_nibble_memory_allocator;
 	nibble_mem_free = comp_nibble_memory_free;
+	is_aliased_attribute = (test_membership_func*)comp_is_aliased_attribute;
 
 	/* file path needs to be */
 	load_derived_matching_rule ("derived_mr.cfg");
 
 	/* the initialization for example X.509 certificate */
 	init_module_AuthenticationFramework();
+	init_module_AuthorityKeyIdentifierDefinition();
+	init_attribute_aliasing_table ();
 	return 0;
 }
 

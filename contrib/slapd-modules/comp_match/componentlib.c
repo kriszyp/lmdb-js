@@ -16,8 +16,9 @@
 #include "lutil.h"
 #include <ldap.h>
 #include "slap.h"
-
 #include "component.h"
+
+#include "componentlib.h"
 #include "asn.h"
 #include <asn-gser.h>
 #include <stdlib.h>
@@ -1935,6 +1936,37 @@ BDecComponentVisibleString ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, 
 /*
  * Routines for handling an ANY DEFINED Type
  */
+
+/* Check if the <select> type CR and the OID of the given ANY type */
+int
+CheckSelectTypeCorrect ( void* mem_op, ComponentAnyInfo* cai, struct berval* select ) {
+	int strLen;
+	AttributeType* ad_type;
+	char* oid;
+	char* result;
+
+	if ( IsNumericOid ( select->bv_val , select->bv_len ) ) {
+		oid = select->bv_val;
+		strLen = select->bv_len;
+	} else {
+		ad_type = at_bvfind( select );
+
+		if ( !ad_type )
+			return LDAP_DECODING_ERROR;
+
+		oid = ad_type->sat_atype.at_oid;
+		strLen = strlen ( oid );
+	}
+	result = EncodeComponentOid ( mem_op, oid , &strLen );
+	if ( !result || strLen <= 0 ) return (-1);
+
+	if ( cai->oid.octetLen == strLen &&
+		strncmp ( cai->oid.octs, result, strLen ) == 0 )
+		return (1);
+	else
+		return (-1);
+}
+
 int
 SetAnyTypeByComponentOid ( ComponentAny *v, ComponentOid *id ) {
 	Hash hash;
@@ -1977,7 +2009,8 @@ GEncComponentAny ( GenBuf *b, ComponentAny *in )
 }
 
 int
-BDecComponentAny ( void* mem_op, GenBuf *b, ComponentAny *result, AsnLen *bytesDecoded, int mode) {
+BEncComponentAny ( void* mem_op, GenBuf *b, ComponentAny *result, AsnLen *bytesDecoded, int mode)
+{
         ComponentAny *k, **k2;
                                                                           
         k = (ComponentAny*) result;
@@ -1995,6 +2028,55 @@ BDecComponentAny ( void* mem_op, GenBuf *b, ComponentAny *result, AsnLen *bytesD
 		result->value = (void*) CompAlloc ( mem_op, result->cai->size );
 		if ( !result->value ) return 0;
 		result->cai->BER_Decode ( mem_op, b, result->value, (int*)bytesDecoded, DEC_ALLOC_MODE_1);
+
+		k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
+		if ( !k->comp_desc )  {
+			if ( k ) CompFree ( mem_op, k );
+			return LDAP_DECODING_ERROR;
+		}
+		k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentAny;
+		k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentAny;
+		k->comp_desc->cd_free = (comp_free_func*)FreeComponentAny;
+		k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
+		k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
+		k->comp_desc->cd_extract_i = NULL;
+		k->comp_desc->cd_type = ASN_BASIC;
+		k->comp_desc->cd_type_id = BASICTYPE_ANY;
+		k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentAny;
+		return LDAP_SUCCESS;
+	}
+	else {
+		Asn1Error ("ERROR - Component ANY Decode routine is NULL\n");
+		return 0;
+	}
+}
+
+int
+BDecComponentAny ( void* mem_op, GenBuf *b, ComponentAny *result, AsnLen *bytesDecoded, int mode) {
+	int rc;
+        ComponentAny *k, **k2;
+                                                                          
+        k = (ComponentAny*) result;
+
+	if ( !k ) return (-1);
+                                                                          
+        if ( mode & DEC_ALLOC_MODE_0 ) {
+                k2 = (ComponentAny**) result;
+                *k2 = (ComponentAny*) CompAlloc( mem_op, sizeof( ComponentAny ) );
+		if ( !*k2 ) return LDAP_DECODING_ERROR;
+                k = *k2;
+        }
+	
+	if ((result->cai != NULL) && (result->cai->BER_Decode != NULL)) {
+#if 0
+		result->value = (void*) CompAlloc ( mem_op, result->cai->size );
+		if ( !result->value ) return 0;
+#endif
+		result->cai->BER_Decode ( mem_op, b, &result->value, (int*)bytesDecoded, DEC_ALLOC_MODE_0 );
+#if 0
+		rc = BDecComponentTop( result->cai->BER_Decode, mem_op, 0, 0, &result->value, bytesDecoded, DEC_ALLOC_MODE_0 );
+		if ( rc != LDAP_SUCCESS ) return rc;
+#endif
 
 		k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
 		if ( !k->comp_desc )  {
@@ -2137,6 +2219,112 @@ InstallAnyByComponentInt (int anyId, ComponentInt intId, unsigned int size,
 		Insert(anyIntHashTblG, a, h);
 }
 
+
+/*
+ * OID and its corresponding decoder can be registerd with this func.
+ * If contained types constrained by <select> are used,
+ * their OID and decoder MUST be registered, otherwise it will return no entry.
+ * An open type(ANY type) also need be registered.
+ */
+void
+InstallOidDecoderMapping ( char* ch_oid, EncodeFcn encode, gser_decoder_func* G_decode, ber_tag_decoder_func* B_decode, ExtractFcn extract, MatchFcn match ) {
+	AsnOid oid;
+	int strLen;
+	void* mem_op;
+
+	strLen = strlen( ch_oid );
+	if( strLen <= 0 ) return;
+	mem_op = comp_nibble_memory_allocator ( 128, 16 );
+	oid.octs = EncodeComponentOid ( mem_op, ch_oid, &strLen );
+	oid.octetLen = strLen;
+	if( strLen <= 0 ) return;
+	
+
+	InstallAnyByComponentOid ( 0, &oid, 0, encode, G_decode, B_decode,
+						extract, match, NULL, NULL);
+	comp_nibble_memory_free(mem_op);
+}
+
+/*
+ * Look up Oid-decoder mapping table by berval have either
+ * oid or description
+ */
+OidDecoderMapping*
+RetrieveOidDecoderMappingbyBV( struct berval* in ) {
+	if ( IsNumericOid ( in->bv_val, in->bv_len ) )
+		return RetrieveOidDecoderMappingbyOid( in->bv_val, in->bv_len );
+	else
+		return RetrieveOidDecoderMappingbyDesc( in->bv_val, in->bv_len );
+}
+
+/*
+ * Look up Oid-decoder mapping table by dotted OID
+ */
+OidDecoderMapping*
+RetrieveOidDecoderMappingbyOid( char* ch_oid, int oid_len ) {
+	Hash hash;
+	void *anyInfo;
+	AsnOid oid;
+	int strLen;
+	void* mem_op;
+
+	mem_op = comp_nibble_memory_allocator ( 128, 16 );
+	oid.octs = EncodeComponentOid ( mem_op, ch_oid, &oid_len);
+	oid.octetLen = oid_len;
+	if( strLen <= 0 ) {
+		comp_nibble_memory_free( mem_op );
+		return;
+	}
+	
+	/* use encoded oid as hash string */
+	hash = MakeHash ( oid.octs, oid.octetLen);
+	comp_nibble_memory_free( mem_op );
+	if (CheckForAndReturnValue (anyOidHashTblG, hash, &anyInfo))
+		return (OidDecoderMapping*) anyInfo;
+	else
+		return (OidDecoderMapping*) NULL;
+
+}
+
+/*
+ * Look up Oid-decoder mapping table by description
+ */
+OidDecoderMapping*
+RetrieveOidDecoderMappingbyDesc( char* desc, int desc_len ) {
+	Hash hash;
+	void *anyInfo;
+	AsnOid oid;
+	AttributeType* ad_type;
+	struct berval bv;
+	void* mem_op;
+
+	bv.bv_val = desc;
+	bv.bv_len = desc_len;
+	ad_type = at_bvfind( &bv );
+
+	oid.octs = ad_type->sat_atype.at_oid;
+	oid.octetLen = strlen ( oid.octs );
+
+	if ( !ad_type )
+		return (OidDecoderMapping*) NULL;
+
+	mem_op = comp_nibble_memory_allocator ( 128, 16 );
+
+	oid.octs = EncodeComponentOid ( mem_op, oid.octs , &oid.octetLen );
+	if( oid.octetLen <= 0 ) {
+		comp_nibble_memory_free( mem_op );
+		return (OidDecoderMapping*) NULL;
+	}
+	
+	/* use encoded oid as hash string */
+	hash = MakeHash ( oid.octs, oid.octetLen);
+	comp_nibble_memory_free( mem_op );
+	if (CheckForAndReturnValue (anyOidHashTblG, hash, &anyInfo))
+		return (OidDecoderMapping*) anyInfo;
+	else
+		return (OidDecoderMapping*) NULL;
+
+}
 void
 InstallAnyByComponentOid (int anyId, AsnOid *oid, unsigned int size,
 			EncodeFcn encode, gser_decoder_func* G_decode,
@@ -2148,8 +2336,11 @@ InstallAnyByComponentOid (int anyId, AsnOid *oid, unsigned int size,
 
 	a = (ComponentAnyInfo*) malloc (sizeof (ComponentAnyInfo));
 	a->anyId = anyId;
-	a->oid.octs = NULL;
-	a->oid.octetLen = 0;
+	if ( oid ) {
+		a->oid.octs = malloc( oid->octetLen );
+		memcpy ( a->oid.octs, oid->octs, oid->octetLen );
+		a->oid.octetLen = oid->octetLen;
+	}
 	a->size = size;
 	a->Encode = encode;
 	a->GSER_Decode = G_decode;
@@ -2180,9 +2371,9 @@ AsnLen *bytesDecoded _AND_
 int mode) {
 	tag = BDecTag ( b, bytesDecoded );
 	elmtLen = BDecLen ( b, bytesDecoded );
+	if ( elmtLen <= 0 ) return (-1);
 	if ( tag != MAKE_TAG_ID (UNIV, CONS, SEQ_TAG_CODE) ) {
-		printf("Invliad Tag\n");
-		exit (1);
+		return (-1);
 	}
 		
 	return (*decoder)( mem_op, b, tag, elmtLen, (ComponentSyntaxInfo*)v,(int*)bytesDecoded, mode );
@@ -2212,9 +2403,8 @@ int mode) {
  * LDAP Encodings : cn=sang,o=ibm,c=us 
  */
 
-int
-increment_bv_mem ( struct berval* in ) {
-	int new_size = in->bv_len + INCREMENT_SIZE;
+increment_bv_mem_by_size ( struct berval* in, int size ) {
+	int new_size = in->bv_len + size;
 	in->bv_val = realloc( in->bv_val, new_size );
 	in->bv_len = new_size;
 }
@@ -2245,7 +2435,7 @@ ConvertBER2Desc( char* in, int size, struct berval* out, int* pos ) {
 
 	/*check if the buffer can store the first/second arc and two dots*/
 	if ( out->bv_len < *pos + 2 + 1 + rc )
-		increment_bv_mem ( out );
+		increment_bv_mem_by_size ( out, INCREMENT_SIZE );
 
 	if ( firstArcNum == 1)
 		out->bv_val[*pos] = '1';
@@ -2269,7 +2459,7 @@ ConvertBER2Desc( char* in, int size, struct berval* out, int* pos ) {
 		rc = intToAscii ( arcNum, buf );
 
 		if ( out->bv_len < *pos + rc + 1 )
-			increment_bv_mem ( out );
+			increment_bv_mem_by_size ( out, INCREMENT_SIZE );
 
 		memcpy( out->bv_val + *pos, buf, rc );
 		*pos += rc;
@@ -2303,14 +2493,14 @@ ConvertComponentAttributeTypeAndValue2RFC2253 ( irAttributeTypeAndValue* in, str
 	rc = ConvertBER2Desc( in->type.value.octs, in->type.value.octetLen, out, pos );
 	if ( rc != LDAP_SUCCESS ) return rc;
 	if ( out->bv_len < *pos + 1/*for '='*/  )
-		increment_bv_mem ( out );
+		increment_bv_mem_by_size ( out, INCREMENT_SIZE );
 	/*Between type and value, put '='*/
 	out->bv_val[*pos] = '=';
 	(*pos)++;
 
 	/*Assume it is string*/		
 	if ( out->bv_len < *pos + value_size )
-		increment_bv_mem ( out );
+		increment_bv_mem_by_size ( out, INCREMENT_SIZE );
 	memcpy( out->bv_val + *pos, value_ptr, value_size );
 	out->bv_len += value_size;
 	*pos += value_size;
@@ -2329,10 +2519,10 @@ ConvertRelativeDistinguishedName2RFC2253 ( irRelativeDistinguishedName* in, stru
 		rc = ConvertComponentAttributeTypeAndValue2RFC2253( attr_typeNvalue, out, pos );
 		if ( rc != LDAP_SUCCESS ) return LDAP_INVALID_SYNTAX;
 
-		if ( out->bv_len < pos + 1/*for '+'*/  )
-			increment_bv_mem ( out );
+		if ( out->bv_len < *pos + 1/*for '+'*/  )
+			increment_bv_mem_by_size ( out, INCREMENT_SIZE );
 		/*between multivalued RDNs, put comma*/
-		out->bv_val[*pos++] = '+';
+		out->bv_val[(*pos)++] = '+';
 	}
 	(*pos)--;/*remove the last '+'*/
 	return LDAP_SUCCESS;
@@ -2366,13 +2556,13 @@ ConvertRDNSequence2RFC2253( irRDNSequence *in, struct berval* out ) {
 		if ( rc != LDAP_SUCCESS ) return LDAP_INVALID_SYNTAX;
 
 		if ( out->bv_len < pos + 1/*for ','*/ )
-			increment_bv_mem ( out );
+			increment_bv_mem_by_size ( out, INCREMENT_SIZE );
 		/*Between RDN, put comma*/
 		out->bv_val[pos++] = ',';
 	}
 	pos--;/*remove the last '+'*/
 	out->bv_val[pos] = '\0';
-	out->bv_len = pos;
+	out->bv_len =pos;
 	return LDAP_SUCCESS;
 }
 

@@ -40,23 +40,31 @@
 
 #include "slap.h"
 
-#ifdef LDAP_COMP_MATCH
-extern free_component_func* component_destructor;
-#endif
 void
 attr_free( Attribute *a )
 {
 	if ( a->a_nvals && a->a_nvals != a->a_vals )
 		ber_bvarray_free( a->a_nvals );
 	ber_bvarray_free( a->a_vals );
-#ifdef LDAP_COMP_MATCH
-	if ( component_destructor && a->a_comp_data &&  a->a_comp_data->cd_mem_op ) {
-		component_destructor( a->a_comp_data->cd_mem_op );
-		free ( a->a_comp_data );
-	}
-#endif
 	free( a );
 }
+
+#ifdef LDAP_COMP_MATCH
+void
+comp_tree_free( Attribute *a )
+{
+	Attribute *next;
+
+	for( ; a != NULL ; a = next ) {
+		next = a->a_next;
+		if ( component_destructor && a->a_comp_data &&
+					a->a_comp_data->cd_mem_op ) {
+			component_destructor( a->a_comp_data->cd_mem_op );
+			free ( a->a_comp_data );
+		}
+	}
+}
+#endif
 
 void
 attrs_free( Attribute *a )

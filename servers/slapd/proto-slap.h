@@ -375,6 +375,11 @@ LDAP_SLAPD_F (int) componentFilterValidate LDAP_P((
 LDAP_SLAPD_F (int) allComponentsValidate LDAP_P((
         Syntax *syntax,
         struct berval* bv ));
+
+LDAP_SLAPD_V (test_membership_func*) is_aliased_attribute;
+
+LDAP_SLAPD_V (free_component_func*) component_destructor;
+
 #endif
 
 /*

@@ -4,12 +4,12 @@
 #include "portable.h"
 #include <ac/string.h>
 #include <ac/socket.h>
-#include "ldap_pvt.h"
+#include <ldap_pvt.h>
 #include "lutil.h"
 #include <ldap.h>
 #include "slap.h"
 
-typedef enum {ASN_BASIC, ASN_COMPOSITE } AsnType;
+typedef enum { ASN_BASIC, ASN_COMPOSITE } AsnType;
 /*
  * Decoder Modes
  * Different operation is required to handle Decoding(2), Extracted Component
@@ -34,5 +34,25 @@ typedef enum {ASN_BASIC, ASN_COMPOSITE } AsnType;
 #define DEC_ALLOC_MODE_2        0x04
 #define CALL_TAG_DECODER        0x08
 #define CALL_CONTENT_DECODER    ~0x08
+/*
+ * For Attribute Aliasing
+ */
+#define MAX_ALIASING_ENTRY 128
+typedef struct comp_attribute_aliasing {
+        AttributeDescription*	aa_aliasing_ad;
+        AttributeDescription*	aa_aliased_ad;
+        ComponentFilter*	aa_cf;
+	MatchingRule*		aa_mr;
+	char*			aa_cf_str;
+} AttributeAliasing;
+                                                                                 
+typedef struct comp_matchingrule_aliasing {
+        MatchingRule*	mra_aliasing_attr;
+        MatchingRule*	mra_aliased_attr;
+        AttributeDescription*	mra_attr;
+        ComponentFilter*	mra_cf;
+	MatchingRule*		mra_mr;
+	char*			aa_cf_str;
+} MatchingRuleAliasing;
 
 #endif

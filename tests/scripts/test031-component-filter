@@ -212,7 +212,84 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.extensions.\2a.extnValue.content.\282.5.29.35\29.authorityCertSerialNumber\", rule integerMatch, value 0 })"
+echo "        f=$FILTER ..."
+echo "#         f=$FILTER ..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	"$FILTER" >> $SEARCHOUT 2>&1
 
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.subject.rdnSequence.\2a\", rule rdnMatch, value \"c=US\" })"
+echo "        f=$FILTER ..."
+echo "#         f=$FILTER ..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	"$FILTER" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.subject.rdnSequence.\2a.\2a.value.\282.5.4.6\29\", rule caseExactMatch, value \"US\" })"
+echo "        f=$FILTER ..."
+echo "#         f=$FILTER ..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	"$FILTER" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+FILTER="(x509CertificateIssuer:distinguishedNameMatch:=c=US)"
+echo "        f=$FILTER ..."
+echo "#         f=$FILTER ..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	"$FILTER" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+FILTER="(x509CertificateSerial:integerMatch:=0)"
+echo "        f=$FILTER ..."
+echo "#         f=$FILTER ..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	"$FILTER" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+FILTER="(x509CertificateSerialAndIssuer:certificateExactMatch:=0\$c=US)"
+echo "        f=$FILTER ..."
+echo "#         f=$FILTER ..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	"$FILTER" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 

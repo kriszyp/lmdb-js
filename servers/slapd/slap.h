@@ -2803,9 +2803,13 @@ typedef void free_component_func LDAP_P ((
         void* mem_op));
 
 typedef int test_component_func LDAP_P ((
-	void* mem_op,
+	void* attr_mem_op,
+	void* assert_mem_op,
         struct slap_component_syntax_info* csi,
 	struct slap_component_assertion* ca));
+
+typedef void* test_membership_func LDAP_P ((
+	void* in ));
 
 typedef int allcomponent_matching_func LDAP_P((
 	char* oid,

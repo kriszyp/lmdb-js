@@ -17,7 +17,7 @@
 
 topbuilddir = ../../../../build
 topsrcdir = ../../..
-snaccdir = /home/slim/snacc
+snaccdir = /usr/local/snacc
 
 LIBTOOL=$(topbuilddir)/libtool
 OPT=-g -O2 -DLDAP_COMPONENT
@@ -42,19 +42,22 @@ componentlib.lo:	componentlib.c
 certificate.lo:	certificate.c
 	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(INCS) -c $?
 
+authorityKeyIdentifier.lo:	authorityKeyIdentifier.c
+	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(INCS) -c $?
+
 asn_to_syn_mr.lo:	asn_to_syn_mr.c
 	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(INCS) -c $?
 
 init.lo:	init.c
 	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(INCS) -c $?
 
-compmatch.la:	componentlib.lo init.lo certificate.lo asn_to_syn_mr.lo
+compmatch.la:	componentlib.lo init.lo certificate.lo asn_to_syn_mr.lo authorityKeyIdentifier.lo
 	$(LIBTOOL) --mode=link $(CC) $(OPT) $(LIBS) -version-info 0:0:0 \
 	-rpath /usr/local/libexec/openldap -module -o $@ $? $(LIBS)
 
 clean:
-	\rm compmatch.la componentlib.lo certificate.lo asn_to_syn_mr.lo\
-		init.o init.lo componentlib.o certificate.o asn_to_syn_mr.o
+	\rm compmatch.la componentlib.lo certificate.lo asn_to_syn_mr.lo authorityKeyIdentifier.lo\
+		init.o init.lo componentlib.o certificate.o asn_to_syn_mr.o authorityKeyIdentifier.o
 install:
 	cp -r .libs $(topsrcdir)/tests/data/comp_libs
 	cp compmatch.la  $(topsrcdir)/tests/data/comp_libs

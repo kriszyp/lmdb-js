@@ -12,7 +12,6 @@
 #define _H_ASN_MODULE
 
 typedef enum { BER, GSER } EncRulesType;
-typedef enum { ASN_BASIC, ASN_COMPOSITE } AsnType;
 
 typedef enum AsnTypeId {
 	BASICTYPE_BOOLEAN,
