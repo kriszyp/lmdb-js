@@ -22,7 +22,7 @@ The information contained in these servers can be presented as
 belonging to a single Directory Information Tree (DIT).
 .LP
 A basic knowledge of the functionality of the
-.BR slapd_ldap (5)
+.BR slapd\-ldap (5)
 backend is recommended.
 This backend has been designed as an enhancement of the ldap backend.
 The two backends share many features (actually they also share
@@ -38,7 +38,7 @@ excessive overhead for some applications, so its use should be
 carefully considered.
 In the examples section, some typical scenarios will be discussed.
 .SH EXAMPLES
-There are examples various places in this document, as well as in the
+There are examples in various places in this document, as well as in the
 slapd/back-meta/data/ directory in the OpenLDAP source tree.
 .SH CONFIGURATION
 The
@@ -82,7 +82,7 @@ targets are selected.
 They include: add, delete, modify, modrdn; compare is not included, as
 well as bind since, as they don't alter entries, in case of multiple
 matches an attempt is made to perform the operation on any candidate
-target, with the constraint that at most on must succeed.
+target, with the constraint that at most one must succeed.
 This directive can also be used when processing targets to mark a
 specific target as default.
 .TP
@@ -100,7 +100,7 @@ The "server" directive that was allowed in the LDAP backend (although
 deprecated) has been discarded in the Meta backend.
 The <protocol> part can be anything ldap_initialize(3) accepts
 ({ldap|ldaps|ldapi} and variants); <host> and <port> may be omitted,
-defaulting to whatever is set in /etc/ldap.conf (correct me!?!).
+defaulting to whatever is set in /etc/ldap.conf
 The <naming context> part is mandatory.
 It must end with one of the naming contexts defined for the backend,
 e.g.:
@@ -120,7 +120,7 @@ The optional number marks target <target> as the default one, starting
 from 1.
 Target <target> must be defined.
 .TP
-.B binddn <administrative dn for ac purposes>
+.B binddn <administrative dn for access control purposes>
 This directive, as in the LDAP backend, allows to define the dn that is
 used to query the target server for acl checking; it should have read
 access on the target server to attributes used on the proxy for acl
@@ -128,7 +128,7 @@ checking.
 There is no risk of giving away such values; they are only used to
 check permissions.
 .TP
-.B bindpw <password for ac purposes>
+.B bindpw <password for access control purposes>
 This directive sets the password for acl checking in conjunction
 with the above mentioned "binddn" directive.
 .TP
@@ -142,6 +142,9 @@ administrative dn should used instead.
 This directive sets the credential that will be used in case a bind
 with the backend's "rootdn" succeeds, and the bind is propagated to
 the target using the "pseudorootdn" dn.
+.LP
+Note: cleartext credentials must be supplied here; as a consequence,
+using the pseudorootdn/pseudorootpw directives is inherently unsafe.
 .TP
 .B rewrite* ...
 The rewrite options are described in the "REWRITING" section.
@@ -193,10 +196,10 @@ with base "dc=foo,dc=com" and scope at least "one", which results in
 spawning two searches to the targets.
 .LP
 2a) Two directory servers don't share any portion of naming context,
-but they'd present as a single DIT.
+but they'd present as a single DIT
 [Caveat: uniqueness of (massaged) entries among the two servers is
 assumed; integrity checks risk to incur in excessive overhead and have
-not been implemented.]  Say we have "dc=bar,dc=org" and "o=Foo,c=US",
+not been implemented].  Say we have "dc=bar,dc=org" and "o=Foo,c=US",
 and we'd like them to appear as branches of "dc=foo,dc=com", say
 "dc=a,dc=foo,dc=com" and "dc=b,dc=foo,dc=com".
 Then we need to configure our Meta backend as:
@@ -653,5 +656,6 @@ been written:
 with the advantage of saving one rewrite pass ...)
 .SH "SEE ALSO"
 .BR slapd.conf (5),
+.BR slapd\-ldap (5),
 .BR slapd (8),
 .BR regex (7).
