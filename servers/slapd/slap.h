@@ -108,7 +108,7 @@ LDAP_BEGIN_DECL
 #define SLAP_PRINTABLE(c)	( ASCII_ALNUM(c) || (c) == '\'' || \
 	(c) == '(' || (c) == ')' || (c) == '+' || (c) == ',' || \
 	(c) == '-' || (c) == '.' || (c) == '/' || (c) == ':' || \
-	(c) == '?' || (c) == ' ' )
+	(c) == '?' || (c) == ' ' || (c) == '=' )
 #define SLAP_PRINTABLES(c)	( SLAP_PRINTABLE(c) || (c) == '$' )
 
 /* must match in schema_init.c */
