@@ -190,11 +190,18 @@ do_search(
 			goto return_results;
 
 		} else if ( entry != NULL ) {
-			send_search_entry( &backends[0], conn, op,
-				entry, attrs, attrsonly, NULL );
+			rc = test_filter( NULL, conn, op,
+				entry, filter );
+
+			if( rc == LDAP_COMPARE_TRUE ) {
+				send_search_entry( &backends[0], conn, op,
+					entry, attrs, attrsonly, NULL );
+			}
+			entry_free( entry );
+
 			send_ldap_result( conn, op, LDAP_SUCCESS,
 				NULL, NULL, NULL, NULL );
-			entry_free( entry );
+
 			goto return_results;
 		}
 	}
