@@ -40,6 +40,9 @@
 
 #include "portable.h"
 
+#if SIZEOF_WCHAR_T >= 4
+/* These routines assume ( sizeof(wchar_t) >= 4 ) */
+
 #include <stdio.h>
 #include <ac/stdlib.h>		/* For wctomb, wcstombs, mbtowc, mbstowcs */
 #include <ac/string.h>
@@ -472,3 +475,5 @@ ldap_x_mbs_to_utf8s ( char *utf8str, const char *mbstr, size_t count,
 
 	return n;	
 }
+
+#endif

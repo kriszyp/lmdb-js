@@ -866,6 +866,9 @@
 /* The number of bytes in type long */
 #undef SIZEOF_LONG
 
+/* The number of bytes in type wchar_t */
+#undef SIZEOF_WCHAR_T
+
 /* define to you inet_aton(3) is available */
 #undef HAVE_INET_ATON
 

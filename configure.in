@@ -2219,6 +2219,7 @@ fi
 AC_COMPILE_CHECK_SIZEOF(short) 
 AC_COMPILE_CHECK_SIZEOF(int) 
 AC_COMPILE_CHECK_SIZEOF(long)
+AC_COMPILE_CHECK_SIZEOF(wchar_t)
 
 if test "$ac_cv_sizeof_int" -lt 4 ; then
 	AC_MSG_WARN([OpenLDAP requires 'int' to be 32 bits or greater.])
