@@ -1097,6 +1097,10 @@ rdnMatch(
  * dnParent - dn's parent, in-place
  * note: the incoming dn is assumed to be normalized/prettyfied,
  * so that escaped rdn/ava separators are in '\'+hexpair form
+ *
+ * note: "dn" and "pdn" can point to the same berval;
+ * beware that, in this case, the pointer to the original buffer
+ * will get lost.
  */
 void
 dnParent( 
