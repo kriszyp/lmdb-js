@@ -277,7 +277,6 @@ static int dodelete(
 
 /*
  * Delete all the children of an entry recursively until leaf nodes are reached.
- *
  */
 static int deletechildren(
 	LDAP *ld,
@@ -286,7 +285,7 @@ static int deletechildren(
 	LDAPMessage *res, *e;
 	int entries;
 	int rc;
-	static char *attrs[] = { "1.1", NULL };
+	static char *attrs[] = { LDAP_NO_ATTRS, NULL };
 
 	if ( verbose ) printf ( _("deleting children of: %s\n"), dn );
 	/*
