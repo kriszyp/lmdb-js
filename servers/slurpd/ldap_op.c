@@ -432,7 +432,7 @@ op_ldap_modrdn(
     /*
      * Punt if we don't have all the args.
      */
-    if ( GOT_ALL_MODDN(state) ) {
+    if ( !GOT_ALL_MODDN(state) ) {
 	Debug( LDAP_DEBUG_ANY, "Error: op_ldap_modrdn: missing arguments\n",
 		0, 0, 0 );
 	*errmsg = "Missing argument: requires \"newrdn\" and \"deleteoldrdn\"";
