@@ -15,6 +15,8 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
+#include <ldap_log.h>
+
 #include "slap.h"
 
 #include "../../libraries/liblber/lber-int.h"
