@@ -3,8 +3,9 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
 
@@ -25,7 +26,7 @@ id2children_add(
 	IDList		*idl;
 	char		buf[20];
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &key, 0, sizeof( key ) );
 	memset( &data, 0, sizeof( data ) );
 #endif
@@ -70,7 +71,7 @@ has_children(
 	IDList		*idl;
 	char		buf[20];
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &key, 0, sizeof( key ) );
 #endif
 

@@ -3,15 +3,22 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+
+#ifdef HAVE_FCNTL_H
 #include <fcntl.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#endif
+
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
+
 #include <sys/stat.h>
-#include "portable.h"
+
 #include "slap.h"
 
 extern char	**charray_dup();

@@ -16,12 +16,19 @@
 
 #include "portable.h"
 
-#include <sys/types.h>
 #include <stdio.h>
-#include <string.h>
+
+#ifdef STDC_HEADERS
 #include <stdlib.h>
-#include <pwd.h>
+#include <stdarg.h>
+#else
 #include <varargs.h>
+#endif
+
+#include <pwd.h>
+
+#include <ac/string.h>
+
 #include <lber.h>
 #include <ldap.h>
 #include "shellutil.h"
@@ -316,19 +323,30 @@ ecalloc( unsigned nelem, unsigned elsize )
 
 /* VARARGS */
 void
-debug_printf( va_alist /* char *fmt, args... */ )
+debug_printf
+#ifdef STDC_HEADERS
+	( char *fmt, ... )
+#else
+	( va_alist )
     va_dcl
+#endif
 {
-    char	*fmt;
     va_list	ap;
+#ifndef STDC_HEADERS
+    char	*fmt;
+#endif
 
-    if ( debugflg ) {
-	va_start( ap );
-	fmt = va_arg( ap, char * );
-	fprintf( stderr, "%s: ", progname );
-	vfprintf( stderr, fmt, ap );
-	va_end( ap );
-    }
+	if ( debugflg ) {
+#ifdef STDC_HEADERS
+		va_start( ap, fmt );
+#else
+		va_start( ap );
+		fmt = va_arg( ap, char * );
+#endif
+		fprintf( stderr, "%s: ", progname );
+		vfprintf( stderr, fmt, ap );
+		va_end( ap );
+	}
 }
 
 

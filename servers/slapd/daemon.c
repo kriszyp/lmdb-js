@@ -8,42 +8,32 @@
 #include "portable.h"
 
 #include <stdio.h>
+
+#include <ac/ctype.h>
+#include <ac/errno.h>
+#include <ac/signal.h>
+#include <ac/socket.h>
 #include <ac/string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <errno.h>
 #include <ac/time.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <signal.h>
-#ifdef _AIX
-#include <sys/select.h>
-#endif
+#include <ac/unistd.h>
+
 #include "slap.h"
 #include "ldapconfig.h"
-#ifdef NEED_FILIO
-#include <sys/filio.h>
-#else /* NEED_FILIO */
-#include <sys/ioctl.h>
-#endif /* NEED_FILIO */
-#ifdef USE_SYSCONF
-#include <unistd.h>
-#endif /* USE_SYSCONF */
 
-#ifdef TCP_WRAPPERS
+#ifdef HAVE_SYS_FILIO_H
+#include <sys/filio.h>
+#elif HAVE_SYS_IOCTL_H
+#include <sys/ioctl.h>
+#endif
+
+#ifdef HAVE_TCPD
 #include <tcpd.h>
 
 int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
-#endif /* TCP_WRAPPERS */
+#endif /* TCP Wrappers */
 
 extern Operation	*op_add();
-
-#ifdef DECL_SYS_ERRLIST
-extern int		sys_nerr;
-extern char		*sys_errlist[];
-#endif
 
 extern time_t		currenttime;
 extern pthread_mutex_t	currenttime_mutex;
@@ -79,14 +69,14 @@ slapd_daemon(
 	FILE			*fp;
 	int			on = 1;
 
-#ifdef USE_SYSCONF
+#ifdef HAVE_SYSCONF
 	dtblsize = sysconf( _SC_OPEN_MAX );
-#else /* USE_SYSCONF */
+#elif HAVE_GETDTABLESIZE
 	dtblsize = getdtablesize();
-#endif /* USE_SYSCONF */
-	/*
-	 * Add greg@greg.rim.or.jp
-	 */
+#else
+	dtblsize = FD_SETSIZE
+#endif
+
 #ifdef FD_SETSIZE
 	if(dtblsize > FD_SETSIZE) {
 		dtblsize = FD_SETSIZE;
@@ -151,14 +141,14 @@ slapd_daemon(
 	}
 
 	(void) SIGNAL( SIGPIPE, SIG_IGN );
-#ifdef linux
+#ifdef HAVE_LINUX_THREADS
 	/*
 	 * LinuxThreads are implemented using SIGUSR1/USR2,
 	 * so we'll use SIGSTKFLT and SIGUNUSED
 	 */
 	(void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
 	(void) SIGNAL( SIGUNUSED, (void *) set_shutdown );
-#else /* !linux */
+#else  /* !linux */
 	(void) SIGNAL( SIGUSR1, (void *) do_nothing );
 	(void) SIGNAL( SIGUSR2, (void *) set_shutdown );
 #endif /* !linux */
@@ -284,7 +274,7 @@ slapd_daemon(
 				char *s;
 				client_addr = inet_ntoa( from.sin_addr );
 
-#if defined(REVERSE_LOOKUP) || defined(TCP_WRAPPERS)
+#if defined(SLAPD_RLOOKUPS) || defined(HAVE_TCPD)
 				hp = gethostbyaddr( (char *)
 				    &(from.sin_addr.s_addr),
 				    sizeof(from.sin_addr.s_addr), AF_INET );
@@ -309,7 +299,7 @@ slapd_daemon(
 				client_addr = NULL;
 			}
 
-#ifdef TCP_WRAPPERS
+#ifdef HAVE_TCPD
 			if(!hosts_ctl("slapd", client_name, client_addr,
 				STRING_UNKNOWN))
 			{
@@ -325,7 +315,7 @@ slapd_daemon(
 				pthread_mutex_unlock( &new_conn_mutex );
 				continue;
 			}
-#endif /* TCP_WRAPPERS */
+#endif /* HAVE_TCPD */
 
 			Statslog( LDAP_DEBUG_STATS,
 			    "conn=%d fd=%d connection from %s (%s) accepted.\n",
@@ -424,7 +414,7 @@ set_shutdown()
 {
 	Debug( LDAP_DEBUG_ANY, "slapd got shutdown signal\n", 0, 0, 0 );
 	slapd_shutdown = 1;
-#ifdef linux
+#ifdef HAVE_LINUX_THREADS
 	/*
 	 * LinuxThreads are implemented using SIGUSR1/USR2,
 	 * so we'll use SIGSTKFLT and SIGUNUSED
@@ -444,7 +434,7 @@ static void
 do_nothing()
 {
 	Debug( LDAP_DEBUG_TRACE, "slapd got do_nothing signal\n", 0, 0, 0 );
-#ifdef linux
+#ifdef HAVE_LINUX_THREADS
 	/*
 	 * LinuxThreads are implemented using SIGUSR1/USR2,
 	 * so we'll use SIGSTKFLT and SIGUNUSED

@@ -1,13 +1,16 @@
 /* value.c - routines for dealing with values */
 
 #include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include <sys/stat.h>
-#include "portable.h"
+
 #include "slap.h"
 
 int
@@ -100,7 +103,7 @@ value_normalize(
 	*d = '\0';
 }
 
-#define MIN( a, b )	(a < b ? a : b )
+#define LDAP_MIN( a, b )	((a) < (b) ? (a) : (b) )
 
 int
 value_cmp(
@@ -134,7 +137,7 @@ value_cmp(
 		break;
 
 	case SYNTAX_BIN:
-		rc = memcmp( v1->bv_val, v2->bv_val, MIN( v1->bv_len,
+		rc = memcmp( v1->bv_val, v2->bv_val, LDAP_MIN( v1->bv_len,
 		    v2->bv_len ) );
 		break;
 	}

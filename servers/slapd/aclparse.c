@@ -3,16 +3,14 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <regex.h>
+
+#include <ac/ctype.h>
+#include <ac/regex.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
 
 #include "slap.h"
-#include "portable.h"
 
 extern Filter		*str2filter();
 extern struct acl	*global_acl;
@@ -210,11 +208,11 @@ parse_acl(
 			} else if ( strcasecmp( left, "dnattr" ) == 0 ) {
 				b->a_dnattr = strdup( right );
 
-#ifdef ACLGROUP
+#ifdef SLAPD_ACLGROUPS
 			} else if ( strcasecmp( left, "group" ) == 0 ) {
 				regtest(fname, lineno, right);
 				b->a_group = dn_upcase(strdup( right ));
-#endif /* ACLGROUP */
+#endif /* SLAPD_ACLGROUPS */
 			} else if ( strcasecmp( left, "domain" ) == 0 ) {
 				char	*s;
 				regtest(fname, lineno, right);

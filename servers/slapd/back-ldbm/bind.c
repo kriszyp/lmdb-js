@@ -3,45 +3,33 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/krb.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
-#ifdef KERBEROS
-#ifdef KERBEROS_V
-#include <kerberosIV/krb.h>
-#else
-#include <krb.h>
-#endif /* KERBEROS_V */
-#endif /* KERBEROS */
 
-#ifdef LDAP_CRYPT
-/* change for crypted passwords -- lukeh */
-#ifdef __NeXT__
-extern char *crypt (char *key, char *salt);
-#else
-#include <unistd.h>
-#endif
-#endif /* LDAP_CRYPT */
-
-#ifdef LDAP_SHA1
+#ifdef SLAPD_SHA1
 #include <lutil_sha1.h>
-#endif /* LDAP_SHA1 */
-#ifdef LDAP_MD5
+#endif /* SLAPD_SHA1 */
+
+#ifdef SLAPD_MD5
 #include <lutil_md5.h>
-#endif /* LDAP_MD5 */
+#endif /* SLAPD_MD5 */
 
 #include <lutil.h>
 
 extern Attribute	*attr_find();
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 extern int	krbv4_ldap_auth();
 #endif
 
-#ifdef LDAP_CRYPT
+#ifdef SLAPD_CRYPT
 pthread_mutex_t crypt_mutex;
 
 static int
@@ -65,7 +53,7 @@ crypted_value_find(
 					return ( 0 );
 				}
 				pthread_mutex_unlock( &crypt_mutex );
-#ifdef LDAP_MD5
+#ifdef SLAPD_MD5
 		} else if ( syntax != SYNTAX_BIN && strncasecmp( "{MD5}",
 			vals[i]->bv_val, (sizeof("{MD5}") - 1 ) ) == 0 ) {
 				ldap_MD5_CTX MD5context;
@@ -87,8 +75,8 @@ crypted_value_find(
 				if (strcmp(userpassword, base64digest) == 0) {
 					return ( 0 );
 				}
-#endif /* LDAP_MD5 */
-#ifdef LDAP_SHA1
+#endif /* SLAPD_MD5 */
+#ifdef SLAPD_SHA1
 		} else if ( syntax != SYNTAX_BIN && strncasecmp( "{SHA}",
 			vals[i]->bv_val, (sizeof("{SHA}") - 1 ) ) == 0 ) {
 				ldap_SHA1_CTX SHA1context;
@@ -110,7 +98,7 @@ crypted_value_find(
 				if (strcmp(userpassword, base64digest) == 0) {
 					return ( 0 );
 				}
-#endif /* LDAP_SHA1 */
+#endif /* SLAPD_SHA1 */
 		} else {
                 if ( value_cmp( vals[i], v, syntax, normalize ) == 0 ) {
                         return( 0 );
@@ -120,7 +108,7 @@ crypted_value_find(
 
 	return( 1 );
 }
-#endif /* LDAP_CRYPT */
+#endif /* SLAPD_CRYPT */
 
 int
 ldbm_back_bind(
@@ -137,7 +125,7 @@ ldbm_back_bind(
 	Attribute	*a;
 	int		rc;
 	char		*matched = NULL;
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	char		krbname[MAX_K_NAME_SZ + 1];
 	AUTH_DAT	ad;
 #endif
@@ -195,7 +183,7 @@ ldbm_back_bind(
 			goto return_results;
 		}
 
-#ifdef LDAP_CRYPT
+#ifdef SLAPD_CRYPT
 		if ( crypted_value_find( a->a_vals, cred, a->a_syntax, 0, cred ) != 0 )
 #else
 		if ( value_find( a->a_vals, cred, a->a_syntax, 0 ) != 0 )
@@ -214,7 +202,7 @@ ldbm_back_bind(
 		rc = 0;
 		break;
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	case LDAP_AUTH_KRBV41:
 		if ( krbv4_ldap_auth( be, cred, &ad ) != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,

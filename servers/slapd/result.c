@@ -3,19 +3,14 @@
 #include "portable.h"
 
 #include <stdio.h>
+
+#include <ac/errno.h>
+#include <ac/signal.h>
+#include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <errno.h>
-#include <signal.h>
-#include "slap.h"
 
-#ifdef DECL_SYS_ERRLIST
-extern int		sys_nerr;
-extern char		*sys_errlist[];
-#endif
+#include "slap.h"
 
 extern int		active_threads;
 extern pthread_mutex_t	active_threads_mutex;
@@ -63,7 +58,7 @@ send_ldap_result2(
 		break;
 	}
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( (ber = ber_alloc_t( conn->c_version == 30 ? 0 : LBER_USE_DER ))
 	    == NULLBER ) {
 #else
@@ -73,13 +68,13 @@ send_ldap_result2(
 		return;
 	}
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if ( op->o_cldap ) {
 		rc = ber_printf( ber, "{is{t{ess}}}", op->o_msgid, "", tag,
 		    err, matched ? matched : "", text ? text : "" );
 	} else
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		rc = ber_printf( ber, "{it{{ess}}}", op->o_msgid, tag, err,
 		    matched ? matched : "", text ? text : "" );
@@ -124,7 +119,7 @@ send_ldap_result2(
 		active_threads--;
 		conn->c_writewaiter = 1;
 
-#ifdef linux
+#ifdef HAVE_LINUX_THREADS
 		pthread_kill( listener_tid, SIGSTKFLT );
 #else /* !linux */
 		pthread_kill( listener_tid, SIGUSR1 );
@@ -159,7 +154,7 @@ send_ldap_result(
     char	*text
 )
 {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if ( op->o_cldap ) {
 		SAFEMEMCPY( (char *)conn->c_sb.sb_useaddr, &op->o_clientaddr,
 		    sizeof( struct sockaddr ));
@@ -213,7 +208,7 @@ send_search_entry(
 
 	edn = dn_normalize_case( strdup( e->e_dn ) );
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( (ber = ber_alloc_t( conn->c_version == 30 ? 0 : LBER_USE_DER ))
 		== NULLBER )
 #else
@@ -226,7 +221,7 @@ send_search_entry(
 		goto error_return;
 	}
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		rc = ber_printf( ber, "{it{{s{", op->o_msgid,
 		    LDAP_RES_SEARCH_ENTRY, e->e_dn );
@@ -315,7 +310,7 @@ send_search_entry(
 
 	free(edn);
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		rc = ber_printf( ber, "}}}}" );
 	} else

@@ -1,10 +1,8 @@
 #include "portable.h"
 
-#if defined( nextstep )
+#ifndef HAVE_TEMPNAME
 
-#include <string.h>
-
-char *tempnam( char *dir, char *pfx );
+#include <ac/string.h>
 
 char *tempnam( char *dir, char *pfx )
 {

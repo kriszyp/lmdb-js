@@ -75,7 +75,7 @@ struct ldentry {
 
 
 #ifdef LDAP_DEBUG
-void debug_printf();
+void debug_printf LDAP_P((char *, ...));
 #else /* LDAP_DEBUG */
 #define debug_printf()
 #endif /* LDAP_DEBUG */

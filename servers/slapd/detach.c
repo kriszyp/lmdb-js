@@ -13,20 +13,14 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <sys/types.h>
-#ifdef SVR4
+
+#include <ac/signal.h>
+#include <ac/unistd.h>
+
 #include <sys/stat.h>
-#endif /* svr4 */
 #include <fcntl.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
-#include <signal.h>
-#include "portable.h"
-
-#ifdef USE_SYSCONF
-#include <unistd.h>
-#endif /* USE_SYSCONF */
-
 
 detach()
 {
@@ -35,11 +29,13 @@ detach()
 	extern int	ldap_debug;
 #endif
 
-#ifdef USE_SYSCONF
+#ifdef HAVE_SYSCONF
 	nbits = sysconf( _SC_OPEN_MAX );
-#else /* USE_SYSCONF */
+#elif HAVE_GETDTABLESIZE
 	nbits = getdtablesize();
-#endif /* USE_SYSCONF */
+#else
+	nbits = FD_SETSIZE
+#endif 
 
 #ifdef FD_SETSIZE
 	if ( nbits > FD_SETSIZE ) {
@@ -51,7 +47,7 @@ detach()
 	if ( ldap_debug == 0 ) {
 #endif
 		for ( i = 0; i < 5; i++ ) {
-#if defined( sunos5 ) && defined( THREAD_SUNOS5_LWP )
+#if defined( HAVE_LWP_THR )
 			switch ( fork1() ) {
 #else
 			switch ( fork() ) {
@@ -88,14 +84,14 @@ detach()
 			(void) dup2( sd, 2 );
 		close( sd );
 
-#ifdef USE_SETSID
+#ifdef HAVE_SETSID
 		setsid();
-#else /* USE_SETSID */
+#else /* HAVE_SETSID */
 		if ( (sd = open( "/dev/tty", O_RDWR )) != -1 ) {
 			(void) ioctl( sd, TIOCNOTTY, NULL );
 			(void) close( sd );
 		}
-#endif /* USE_SETSID */
+#endif /* HAVE_SETSID */
 #ifdef LDAP_DEBUG
 	} 
 #endif

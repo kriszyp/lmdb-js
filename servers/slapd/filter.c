@@ -3,9 +3,10 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "slap.h"
 
 static int	get_filter_list();
@@ -56,7 +57,7 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 	err = 0;
 	*fstr = NULL;
 	f->f_choice = ber_peek_tag( ber, &len );
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		switch ( f->f_choice ) {
 		case LDAP_FILTER_EQUALITY:
@@ -194,7 +195,7 @@ get_filter_list( Connection *conn, BerElement *ber, Filter **f, char **fstr )
 
 	Debug( LDAP_DEBUG_FILTER, "begin get_filter_list\n", 0, 0, 0 );
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		(void) ber_skip_tag( ber, &len );
 	}
@@ -235,7 +236,7 @@ get_substring_filter(
 
 	Debug( LDAP_DEBUG_FILTER, "begin get_substring_filter\n", 0, 0, 0 );
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		(void) ber_skip_tag( ber, &len );
 	}
@@ -253,7 +254,7 @@ get_substring_filter(
 	sprintf( *fstr, "(%s=", f->f_sub_type );
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) ) {
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		if ( conn->c_version == 30 ) {
 			rc = ber_scanf( ber, "{a}", &val );
 		} else
@@ -271,7 +272,7 @@ get_substring_filter(
 		value_normalize( val, syntax );
 
 		switch ( tag ) {
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		case LDAP_SUBSTRING_INITIAL_30:
 #endif
 		case LDAP_SUBSTRING_INITIAL:
@@ -285,7 +286,7 @@ get_substring_filter(
 			strcat( *fstr, val );
 			break;
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		case LDAP_SUBSTRING_ANY_30:
 #endif
 		case LDAP_SUBSTRING_ANY:
@@ -297,7 +298,7 @@ get_substring_filter(
 			strcat( *fstr, val );
 			break;
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		case LDAP_SUBSTRING_FINAL_30:
 #endif
 		case LDAP_SUBSTRING_FINAL:

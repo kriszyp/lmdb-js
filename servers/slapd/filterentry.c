@@ -3,10 +3,11 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <regex.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/regex.h>
+
 #include "slap.h"
 
 extern Attribute	*attr_find();

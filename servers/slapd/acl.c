@@ -3,12 +3,10 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <regex.h>
+
+#include <ac/regex.h>
+#include <ac/socket.h>
+#include <ac/string.h>
 
 #include "slap.h"
 
@@ -362,7 +360,7 @@ acl_access_allowed(
 
 			return( (b->a_access & ~ACL_SELF) >= access );
 		}
-#ifdef ACLGROUP
+#ifdef SLAPD_ACLGROUPS
 		if ( b->a_group != NULL && op->o_dn != NULL ) {
 			char buf[512];
 
@@ -386,7 +384,7 @@ acl_access_allowed(
 				return( (b->a_access & ~ACL_SELF) >= access );
 			}
 		}
-#endif /* ACLGROUP */
+#endif /* SLAPD_ACLGROUPS */
 	}
 
 	if ( odn ) free( odn );

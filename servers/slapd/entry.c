@@ -3,10 +3,11 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "slap.h"
 
 void	entry_free();

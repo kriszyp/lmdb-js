@@ -3,14 +3,17 @@
 #include "portable.h"
 
 #include <stdio.h>
+
+#include <ac/errno.h>
+#include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/param.h>
 #include <sys/stat.h>
-#include <errno.h>
+
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
 
 #include "slap.h"
 #include "back-ldbm.h"
@@ -180,7 +183,7 @@ ldbm_cache_fetch(
 )
 {
 	Datum	data;
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &data, 0, sizeof( data ) );
 #endif
 

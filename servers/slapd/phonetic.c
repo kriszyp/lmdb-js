@@ -3,15 +3,15 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include "portable.h"
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/time.h>
+
 #include "slap.h"
 
-#if !defined(METAPHONE) && !defined(SOUNDEX)
+#if !defined(METAPHONE) && !defined(SLAPD_PHONETIC)
 #define METAPHONE
 #endif
 
@@ -79,7 +79,7 @@ word_dup( char *w )
 #define MAXPHONEMELEN	4
 #endif
 
-#if defined(SOUNDEX)
+#if defined(SLAPD_PHONETIC)
 
 /* lifted from isode-8.0 */
 char *
@@ -430,4 +430,4 @@ phonetic( char *Word )
 }
 
 #endif /* metaphone */
-#endif /* soundex */
+#endif /* SLAPD_PHONETIC */

@@ -1,8 +1,8 @@
 #include "portable.h"
 
-#if defined( ultrix ) || defined( nextstep )
+#ifndef HAVE_STRDUP
 
-#include <string.h>
+#include <ac/string.h>
 
 char *strdup( char *s )
 {
@@ -16,4 +16,4 @@ char *strdup( char *s )
         return( p );
 }
 
-#endif /* ultrix || nextstep */
+#endif /* !strdup */

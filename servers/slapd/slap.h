@@ -139,7 +139,7 @@ struct access {
 	char		*a_dnattr;
 	long		a_access;
 
-#ifdef SLAPD_ACLGROUP
+#ifdef SLAPD_ACLGROUPS
     char		*a_group;
 #endif
 
@@ -211,7 +211,7 @@ typedef struct backend {
 	IFP	be_init;	/* backend init routine			   */
 	IFP	be_close;	/* backend close routine		   */
 
-#ifdef ACLGROUP
+#ifdef SLAPD_ACLGROUPS
 	IFP	be_group;	/* backend group member test               */
 #endif
 } Backend;

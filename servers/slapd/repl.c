@@ -3,10 +3,12 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include <sys/file.h>
-#include <sys/socket.h>
+
 #include "slap.h"
 
 extern pthread_mutex_t	replog_mutex;

@@ -3,15 +3,13 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include "portable.h"
-#ifdef USE_LOCKF
-#include <unistd.h>
-#endif
+
+#include <ac/socket.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
 #include <sys/file.h>
 #include <sys/param.h>
-#include <sys/socket.h>
 #include "slap.h"
 
 FILE *

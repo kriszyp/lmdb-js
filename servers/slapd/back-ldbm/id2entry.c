@@ -3,8 +3,9 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
 
@@ -23,7 +24,7 @@ id2entry_add( Backend *be, Entry *e )
 	Datum		key, data;
 	int		len, rc, flags;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &key, 0, sizeof( key ) );
 	memset( &data, 0, sizeof( data ) );
 #endif
@@ -75,7 +76,7 @@ id2entry_delete( Backend *be, Entry *e )
 	/* XXX - check for writer lock - should also check no reader pending */
 	assert(pthread_rdwr_wchk_np(&e->e_rdwr));
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &key, 0, sizeof( key ) );
 #endif
 
@@ -116,7 +117,7 @@ id2entry( Backend *be, ID id, int rw )
 	Datum		key, data;
 	Entry		*e;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &key, 0, sizeof( key ) );
 	memset( &data, 0, sizeof( data ) );
 #endif

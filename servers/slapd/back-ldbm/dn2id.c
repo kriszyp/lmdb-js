@@ -3,9 +3,10 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
@@ -26,7 +27,7 @@ dn2id_add(
 	Datum		key, data;
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &key, 0, sizeof( key ) );
 	memset( &data, 0, sizeof( data ) );
 #endif
@@ -71,7 +72,7 @@ dn2id(
 	ID		id;
 	Datum		key, data;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &key, 0, sizeof( key ) );
 	memset( &data, 0, sizeof( data ) );
 #endif
@@ -128,7 +129,7 @@ dn2id_delete(
 	Datum		key;
 	int		rc;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &key, 0, sizeof( key ) );
 #endif
 
