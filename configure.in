@@ -12,9 +12,8 @@ AC_INIT(include/ldap.h)dnl
 AC_CONFIG_AUX_DIR(build)dnl
 AM_INIT_AUTOMAKE(openldap,[1.2], [no ac_define])dnl
 
-dnl Do not use AutoConf 2.12; it produces a configuration script
-dnl that causes an "internal 2K buffer" error on HPUX when run
-dnl with /bin/sh.  Autoconf 2.10 seems to be okay.
+dnl We use autoconf features new to 2.13.
+dnl 	aclocal.m4 should be built using aclocal from automake 1.4
 AC_PREREQ(2.13)dnl Required Autoconf version
 
 AC_CONFIG_HEADER(include/portable.h)dnl
