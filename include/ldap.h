@@ -209,23 +209,27 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_SYNC_DONE	"1.3.6.1.4.1.4203.666.5.8"
 #define LDAP_SYNC_INFO			"1.3.6.1.4.1.4203.666.10.2"
 
-#define LDAP_SYNC_REFRESH_PRESENTS	0
-#define LDAP_SYNC_REFRESH_DELETES   1
+#define LDAP_SYNC_NONE					0x00
+#define LDAP_SYNC_REFRESH_ONLY			0x01
+#define LDAP_SYNC_REFRESH_AND_PERSIST	0x03
+
+#define LDAP_SYNC_REFRESH_PRESENTS		0
+#define LDAP_SYNC_REFRESH_DELETES		1
 
 #define LDAP_TAG_SYNC_NEW_COOKIE		((ber_tag_t) 0x80U)
 #define LDAP_TAG_SYNC_REFRESH_DELETE	((ber_tag_t) 0xa1U)
 #define LDAP_TAG_SYNC_REFRESH_PRESENT	((ber_tag_t) 0xa2U)
 #define	LDAP_TAG_SYNC_ID_SET			((ber_tag_t) 0xa3U)
 
-#define LDAP_TAG_SYNC_COOKIE	((ber_tag_t) 0x04U)
-#define LDAP_TAG_REFRESHDELETES	((ber_tag_t) 0x01U)
-#define LDAP_TAG_REFRESHDONE	((ber_tag_t) 0x01U)
-#define LDAP_TAG_RELOAD_HINT	((ber_tag_t) 0x01U)
+#define LDAP_TAG_SYNC_COOKIE			((ber_tag_t) 0x04U)
+#define LDAP_TAG_REFRESHDELETES			((ber_tag_t) 0x01U)
+#define LDAP_TAG_REFRESHDONE			((ber_tag_t) 0x01U)
+#define LDAP_TAG_RELOAD_HINT			((ber_tag_t) 0x01U)
 
-#define LDAP_SYNC_PRESENT		0
-#define LDAP_SYNC_ADD			1
-#define LDAP_SYNC_MODIFY		2
-#define LDAP_SYNC_DELETE		3
+#define LDAP_SYNC_PRESENT				0
+#define LDAP_SYNC_ADD					1
+#define LDAP_SYNC_MODIFY				2
+#define LDAP_SYNC_DELETE				3
 
 #define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473"
 #define LDAP_CONTROL_SORTRESPONSE	"1.2.840.113556.1.4.474"
@@ -449,30 +453,7 @@ typedef struct ldapcontrol {
 
 #define LDAP_OTHER				0x50
 
-#define LDAP_API_ERROR(n)		LDAP_RANGE((n),0x51,0x61) /* 81-97 */
-#define LDAP_API_RESULT(n)		(((n) == LDAP_SUCCESS) || \
-								LDAP_RANGE((n),0x51,0x61)) /* 0,81-97 */
-
-/* reserved for APIs */
-#define LDAP_SERVER_DOWN		0x51
-#define LDAP_LOCAL_ERROR		0x52
-#define LDAP_ENCODING_ERROR		0x53
-#define LDAP_DECODING_ERROR		0x54
-#define LDAP_TIMEOUT			0x55
-#define LDAP_AUTH_UNKNOWN		0x56
-#define LDAP_FILTER_ERROR		0x57
-#define LDAP_USER_CANCELLED		0x58
-#define LDAP_PARAM_ERROR		0x59
-#define LDAP_NO_MEMORY			0x5a
-
-/* used but not reserved for APIs */
-#define LDAP_CONNECT_ERROR				0x5b	/* draft-ietf-ldap-c-api-xx */
-#define LDAP_NOT_SUPPORTED				0x5c	/* draft-ietf-ldap-c-api-xx */
-#define LDAP_CONTROL_NOT_FOUND			0x5d	/* draft-ietf-ldap-c-api-xx */
-#define LDAP_NO_RESULTS_RETURNED		0x5e	/* draft-ietf-ldap-c-api-xx */
-#define LDAP_MORE_RESULTS_TO_RETURN		0x5f	/* draft-ietf-ldap-c-api-xx */
-#define LDAP_CLIENT_LOOP				0x60	/* draft-ietf-ldap-c-api-xx */
-#define LDAP_REFERRAL_LIMIT_EXCEEDED	0x61	/* draft-ietf-ldap-c-api-xx */
+/* Expermental result codes -- subject to change */
 
 #define LDAP_SYNC_RESOURCES_EXHAUSTED	0x100
 #define LDAP_SYNC_SECURITY_VIOLATION	0x101
@@ -489,10 +470,32 @@ typedef struct ldapcontrol {
 #define LDAP_TOO_LATE					0x112
 #define LDAP_CANNOT_CANCEL				0x113
 
-/* LDAP SYNC request type */
-#define LDAP_SYNC_NONE					0x00
-#define LDAP_SYNC_REFRESH_ONLY			0x01
-#define LDAP_SYNC_REFRESH_AND_PERSIST	0x03
+#define LDAP_API_ERROR(n)		((n)<0)
+#define LDAP_API_RESULT(n)		((n)<=0)
+
+/* API Error Codes
+ *
+ * Based on draft-ietf-ldap-c-api-xx
+ * but with new (negative) codes
+ */
+#define LDAP_SERVER_DOWN		(-1)
+#define LDAP_LOCAL_ERROR		(-2)
+#define LDAP_ENCODING_ERROR		(-3)
+#define LDAP_DECODING_ERROR		(-4)
+#define LDAP_TIMEOUT			(-5)
+#define LDAP_AUTH_UNKNOWN		(-6)
+#define LDAP_FILTER_ERROR		(-7)
+#define LDAP_USER_CANCELLED		(-8)
+#define LDAP_PARAM_ERROR		(-9)
+#define LDAP_NO_MEMORY			(-10)
+#define LDAP_CONNECT_ERROR				(-11)
+#define LDAP_NOT_SUPPORTED				(-12)
+#define LDAP_CONTROL_NOT_FOUND			(-13)
+#define LDAP_NO_RESULTS_RETURNED		(-14)
+#define LDAP_MORE_RESULTS_TO_RETURN		(-15)
+#define LDAP_CLIENT_LOOP				(-16)
+#define LDAP_REFERRAL_LIMIT_EXCEEDED	(-17)
+
 
 /*
  * This structure represents both ldap messages and ldap responses.
