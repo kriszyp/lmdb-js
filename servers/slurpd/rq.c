@@ -36,6 +36,7 @@
 #include <stdio.h>
 
 #include <ac/stdlib.h>
+#include <ac/string.h>
 #include <ac/unistd.h>		/* get ftruncate() */
 
 #include "slurp.h"
@@ -314,8 +315,6 @@ Rq_needtrim(
 )
 {
     int		rc = 0;
-    Re		*re;
-    int		nzrc = 0;	/* nzrc is count of entries with refcnt == 0 */
     time_t	now;
 
     if ( rq == NULL ) {

@@ -50,7 +50,9 @@ static void free_ldmarr LDAP_P(( LDAPMod ** ));
 static int getmodtype LDAP_P(( char * ));
 static void dump_ldm_array LDAP_P(( LDAPMod ** ));
 static char **read_krbnames LDAP_P(( Ri * ));
+#ifdef HAVE_KERBEROS
 static void upcase LDAP_P(( char * ));
+#endif
 static int do_bind LDAP_P(( Ri *, int * ));
 static int do_unbind LDAP_P(( Ri * ));
 
@@ -885,6 +887,7 @@ read_krbnames(
 }
 
 
+#ifdef HAVE_KERBEROS
 
 /*
  * upcase a string
@@ -900,3 +903,5 @@ upcase(
 	    *p = TOUPPER( (unsigned char) *p );
     }
 }
+
+#endif /* HAVE_KERBEROS */
