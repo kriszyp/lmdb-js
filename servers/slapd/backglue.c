@@ -177,6 +177,7 @@ glue_back_db_destroy (
 
 typedef struct glue_state {
 	int err;
+	int slimit;
 	int matchlen;
 	char *matched;
 	int nrefs;
@@ -190,6 +191,11 @@ glue_back_response ( Operation *op, SlapReply *rs )
 
 	switch(rs->sr_type) {
 	case REP_SEARCH:
+		if ( rs->sr_nentries >= gs->slimit ) {
+			gs->err = LDAP_SIZELIMIT_EXCEEDED;
+			return -1;
+		}
+		/* fallthru */
 	case REP_SEARCHREF:
 		return SLAP_CB_CONTINUE;
 
@@ -242,7 +248,7 @@ glue_back_search ( Operation *op, SlapReply *rs )
 	glueinfo *gi = (glueinfo *) b0->bd_info;
 	int i;
 	long stoptime = 0;
-	glue_state gs = {0, 0, NULL, 0, NULL};
+	glue_state gs = {0, 0, 0, NULL, 0, NULL};
 	slap_callback cb = { NULL, glue_back_response, NULL, NULL };
 	int scope0, slimit0, tlimit0;
 	struct berval dn, ndn;
@@ -273,7 +279,7 @@ glue_back_search ( Operation *op, SlapReply *rs )
 		op->o_callback = &cb;
 		rs->sr_err = gs.err = LDAP_UNWILLING_TO_PERFORM;
 		scope0 = op->ors_scope;
-		slimit0 = op->ors_slimit;
+		slimit0 = gs.slimit = op->ors_slimit;
 		tlimit0 = op->ors_tlimit;
 		dn = op->o_req_dn;
 		ndn = op->o_req_ndn;
@@ -293,7 +299,7 @@ glue_back_search ( Operation *op, SlapReply *rs )
 			}
 			if (slimit0) {
 				op->ors_slimit = slimit0 - rs->sr_nentries;
-				if (op->ors_slimit <= 0) {
+				if (op->ors_slimit < 0) {
 					rs->sr_err = gs.err = LDAP_SIZELIMIT_EXCEEDED;
 					break;
 				}
