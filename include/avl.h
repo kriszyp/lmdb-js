@@ -61,6 +61,15 @@ typedef int		(*AVL_CMP) LDAP_P((const void*, const void*));
 typedef int		(*AVL_DUP) LDAP_P((void*, void*));
 typedef void	(*AVL_FREE) LDAP_P((void*));
 
+#ifdef __MINGW32__
+#   undef LDAP_F_PRE
+#   ifdef LIBAVL_DECL
+#	define LDAP_F_PRE	extern __declspec(LIBAVL_DECL)
+#   else
+#	define LDAP_F_PRE	extern
+#   endif
+#endif
+
 LDAP_F( int )
 avl_free LDAP_P(( Avlnode *root, AVL_FREE dfree ));
 

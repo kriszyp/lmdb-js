@@ -225,6 +225,15 @@ struct ldap_disptmpl {
 typedef int (*ldap_writeptype) LDAP_P((
 	void *writeparm, char *p, ber_len_t len ));
 
+#ifdef __MINGW32__
+#   undef LDAP_F_PRE
+#   ifdef LIBLDAP_DECL
+#	define LDAP_F_PRE	extern __declspec(LIBLDAP_DECL)
+#   else
+#	define LDAP_F_PRE	extern
+#   endif
+#endif
+
 LDAP_F( int )
 ldap_init_templates LDAP_P(( char *file, struct ldap_disptmpl **tmpllistp ));
 

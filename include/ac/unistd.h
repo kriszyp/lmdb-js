@@ -23,6 +23,15 @@
 
 /* note: callers of crypt(3) should include <ac/crypt.h> */
 
+#ifdef __MINGW32__
+#   undef LDAP_F_PRE
+#   ifdef LIBLUTIL_DECL
+#	define LDAP_F_PRE	extern __declspec(LIBLUTIL_DECL)
+#   else
+#	define LDAP_F_PRE	extern
+#   endif
+#endif
+
 #ifndef HAVE_GETPASS
 LDAP_F(char*)(getpass) LDAP_P((const char *getpass));
 #else
@@ -48,8 +57,12 @@ LDAP_F(char*)(getpass)();
 		const char *tmpdir,
 		const char *prefix));
 #endif
+
+/* This is never even checked for or implemented if not present */
+#if 0
 #ifndef HAVE_MKTEMP
 	LDAP_F(char *)(mktemp) LDAP_P((char *));
+#endif
 #endif
 
 /* use lutil file locking */

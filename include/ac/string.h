@@ -42,6 +42,15 @@
 #	endif
 #endif
 
+#ifdef __MINGW32__
+#   undef LDAP_F_PRE
+#   ifdef LIBLDAP_DECL
+#	define LDAP_F_PRE	extern __declspec(LIBLDAP_DECL)
+#   else
+#	define LDAP_F_PRE	extern
+#   endif
+#endif
+
 /* use ldap_pvt_strtok instead of strtok or strtok_r! */
 LDAP_F(char *) ldap_pvt_strtok LDAP_P((
 	char *str, const char *delim, char **pos ));

@@ -87,6 +87,15 @@ typedef struct ldap_objectclass {
 #define LDAP_SCHEMA_STRUCTURAL			1
 #define LDAP_SCHEMA_AUXILIARY			2
 
+#ifdef __MINGW32__
+#   undef LDAP_F_PRE
+#   ifdef LIBLDAP_DECL
+#	define LDAP_F_PRE	extern __declspec(LIBLDAP_DECL)
+#   else
+#	define LDAP_F_PRE	extern
+#   endif
+#endif
+
 LDAP_F( LDAP_CONST char * )
 ldap_syntax2name LDAP_P((
 	LDAP_SYNTAX * syn ));

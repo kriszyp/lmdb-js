@@ -78,6 +78,15 @@ struct ldap_searchobj {
 #define LDAP_SEARCHPREF_ERR_FILE	4
 
 
+#ifdef __MINGW32__
+#   undef LDAP_F_PRE
+#   ifdef LIBLDAP_DECL
+#	define LDAP_F_PRE	extern __declspec(LIBLDAP_DECL)
+#   else
+#	define LDAP_F_PRE	extern
+#   endif
+#endif
+
 LDAP_F( int )
 ldap_init_searchprefs LDAP_P(( char *file,
 	struct ldap_searchobj **solistp ));

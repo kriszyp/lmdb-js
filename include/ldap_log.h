@@ -74,6 +74,15 @@ extern int	ldap_syslog_level;
 #define Debug( level, fmt, arg1, arg2, arg3 )
 #endif /* LDAP_DEBUG */
 
+#ifdef __MINGW32__
+#   undef LDAP_F_PRE
+#   ifdef LIBLUTIL_DECL
+#	define LDAP_F_PRE	extern __declspec(LIBLUTIL_DECL)
+#   else
+#	define LDAP_F_PRE	extern
+#   endif
+#endif
+
 LDAP_F(void) lutil_debug LDAP_P((
 	int debug, int level,
 	const char* fmt, ... )) LDAP_GCCATTR((format(printf, 3, 4)));

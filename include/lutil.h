@@ -19,13 +19,22 @@
  * Include file for LDAP utility routine
  */
 
+LDAP_BEGIN_DECL
+
+#ifdef __MINGW32__
+#   undef LDAP_F_PRE
+#   ifdef LIBLUTIL_DECL
+#	define LDAP_F_PRE	extern __declspec(LIBLUTIL_DECL)
+#   else
+#	define LDAP_F_PRE	extern
+#   endif
+#endif
+
 /* n octets encode into ceiling(n/3) * 4 bytes */
 /* Avoid floating point math by through extra padding */
 
 #define LUTIL_BASE64_ENCODE_LEN(n)	((n)/3 * 4 + 4)
 #define LUTIL_BASE64_DECODE_LEN(n)	((n)/4 * 3)
-
-LDAP_BEGIN_DECL
 
 /* ISC Base64 Routines */
 /* base64.c */

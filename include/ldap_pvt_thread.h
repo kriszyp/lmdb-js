@@ -137,7 +137,8 @@ typedef struct ldap_pvt_thread_lwp_cv ldap_pvt_thread_cond_t;
 
 LDAP_END_DECL
 
-#elif HAVE_NT_THREADS
+/* If we're in the NT env at all, we want these defs, threaded or not */
+#elif defined(WINNT) || defined(_WINNT) /* HAVE_NT_THREADS */
 
 LDAP_BEGIN_DECL
 
@@ -175,6 +176,15 @@ LDAP_END_DECL
 #endif /* no threads support */
 
 LDAP_BEGIN_DECL
+
+#ifdef __MINGW32__
+#   undef LDAP_F_PRE
+#   ifdef LIBLDAP_DECL
+#	define LDAP_F_PRE	extern __declspec(LIBLDAP_DECL)
+#   else
+#	define LDAP_F_PRE	extern
+#   endif
+#endif
 
 LDAP_F( int )
 ldap_pvt_thread_initialize LDAP_P(( void ));

@@ -504,6 +504,15 @@ typedef struct ldap_url_desc {
  */
 struct timeval;
 
+#ifdef __MINGW32__
+#   undef LDAP_F_PRE
+#   ifdef LIBLDAP_DECL
+#	define LDAP_F_PRE	extern __declspec(LIBLDAP_DECL)
+#   else
+#	define LDAP_F_PRE	extern
+#   endif
+#endif
+
 /*
  * in options.c:
  */

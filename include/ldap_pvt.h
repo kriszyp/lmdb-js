@@ -23,6 +23,15 @@ LDAP_BEGIN_DECL
 
 struct hostent;	/* avoid pulling in <netdb.h> */
 
+#ifdef __MINGW32__
+#   undef LDAP_F_PRE
+#   ifdef LIBLDAP_DECL
+#	define LDAP_F_PRE	extern __declspec(LIBLDAP_DECL)
+#   else
+#	define LDAP_F_PRE	extern
+#   endif
+#endif
+
 LDAP_F( char * )
 ldap_pvt_ctime LDAP_P((
 	const time_t *tp,

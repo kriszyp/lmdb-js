@@ -36,6 +36,15 @@ typedef struct {
     unsigned char buffer[64];
 } lutil_SHA1_CTX;
   
+#ifdef __MINGW32__
+#   undef LDAP_F_PRE
+#   ifdef LIBLUTIL_DECL
+#	define LDAP_F_PRE	extern __declspec(LIBLUTIL_DECL)
+#   else
+#	define LDAP_F_PRE	extern
+#   endif
+#endif
+
 LDAP_F( void )
 lutil_SHA1Transform
 	LDAP_P((uint32 state[5], const unsigned char buffer[64]));
