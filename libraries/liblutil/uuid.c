@@ -17,6 +17,7 @@
  */
 #include "portable.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <sys/types.h>
 
@@ -30,10 +31,6 @@
 #else
 #  include <ac/socket.h>
 #  include <ac/time.h>
-
-	/* 100 usec intervals from 10/10/1582 to 1/1/1970 */
-#	define UUID_TPLUS	0x01B21DD2138140LL
-
 #  ifdef HAVE_SYS_SYSCTL_H
 #    include <net/if.h>
 #    include <sys/sysctl.h>
@@ -163,7 +160,83 @@ lutil_eaddr( void )
 	return eaddr;
 #endif
 }
+
+#if (ULONG_MAX >> 31 >> 31) > 1 || defined HAVE_LONG_LONG
+
+#if (ULONG_MAX >> 31 >> 31) > 1
+    typedef unsigned long       UI64;
+	/* 100 usec intervals from 10/10/1582 to 1/1/1970 */
+#   define UUID_TPLUS           0x01B21DD2138140ul
+#else
+    typedef unsigned long long  UI64;
+#   define UUID_TPLUS           0x01B21DD2138140ull
 #endif
+
+#define high32(i)           ((unsigned long) ((i) >> 32))
+#define low32(i)            ((unsigned long) (i) & 0xFFFFFFFFul)
+#define set_add64(res, i)   ((res) += (i))
+#define set_add64l(res, i)  ((res) += (i))
+#define mul64ll(i1, i2)     ((UI64) (i1) * (i2))
+
+#else /* ! (ULONG_MAX >= 64 bits || HAVE_LONG_LONG) */
+
+typedef struct {
+	unsigned long high, low;
+} UI64;
+
+static const UI64 UUID_TPLUS = { 0x01B21Dul, 0xD2138140ul };
+
+#define high32(i)			 ((i).high)
+#define low32(i)			 ((i).low)
+
+/* res += ui64 */
+#define set_add64(res, ui64) \
+{ \
+	res.high += ui64.high; \
+	res.low	 = (res.low + ui64.low) & 0xFFFFFFFFul; \
+	if (res.low < ui64.low) res.high++; \
+}
+
+/* res += ul32 */
+#define set_add64l(res, ul32) \
+{ \
+	res.low	= (res.low + ul32) & 0xFFFFFFFFul; \
+	if (res.low < ul32) res.high++; \
+}
+
+/* compute i1 * i2 */
+static UI64
+mul64ll(unsigned long i1, unsigned long i2)
+{
+	const unsigned int high1 = (i1 >> 16), low1 = (i1 & 0xffff);
+	const unsigned int high2 = (i2 >> 16), low2 = (i2 & 0xffff);
+
+	UI64 res;
+	unsigned long tmp;
+
+	res.high = (unsigned long) high1 * high2;
+	res.low	 = (unsigned long) low1	 * low2;
+
+	tmp = (unsigned long) low1 * high2;
+	res.high += (tmp >> 16);
+	tmp = (tmp << 16) & 0xFFFFFFFFul;
+	res.low = (res.low + tmp) & 0xFFFFFFFFul;
+	if (res.low < tmp)
+		res.high++;
+
+	tmp = (unsigned long) low2 * high1;
+	res.high += (tmp >> 16);
+	tmp = (tmp << 16) & 0xFFFFFFFFul;
+	res.low = (res.low + tmp) & 0xFFFFFFFFul;
+	if (res.low < tmp)
+		res.high++;
+
+	return res;
+}
+
+#endif /* ULONG_MAX >= 64 bits || HAVE_LONG_LONG */
+
+#endif /* !HAVE_UUID_TO_STR && !_WIN32 */
 
 /*
 ** All we really care about is an ISO UUID string.  The format of a UUID is:
@@ -235,10 +308,11 @@ lutil_uuidstr( char *buf, size_t len )
  
 #else
 	struct timeval tv;
-	unsigned long long tl;
+	UI64 tl;
 	unsigned char *nl;
 	unsigned short t2, t3, s1;
-	unsigned int t1;
+	unsigned long t1, tl_high;
+	unsigned int rc;
 
 	/*
 	 * Theoretically we should delay if seq wraps within 100usec but for now
@@ -259,22 +333,26 @@ lutil_uuidstr( char *buf, size_t len )
 	tv.tv_usec = 0;
 #endif
 
-	tl = ( tv.tv_sec * 10000000LL ) + ( tv.tv_usec * 10LL ) + UUID_TPLUS;
+	tl = mul64ll(tv.tv_sec, 10000000UL);
+	set_add64l(tl, tv.tv_usec * 10UL);
+	set_add64(tl, UUID_TPLUS);
+
 	nl = lutil_eaddr();
 
-	t1 = tl & 0xffffffff;					/* time_low */
-	t2 = ( tl >> 32 ) & 0xffff;				/* time_mid */
-	t3 = ( ( tl >> 48 ) & 0x0fff ) | 0x1000;	/* time_hi_and_version */
+	t1 = low32(tl);				/* time_low */
+	tl_high = high32(tl);
+	t2 = tl_high & 0xffff;		/* time_mid */
+	t3 = ((tl_high >> 16) & 0x0fff) | 0x1000;	/* time_hi_and_version */
 	s1 = ( ++seq & 0x1fff ) | 0x8000;		/* clock_seq_and_reserved */
 
-	t1 = snprintf( buf, len,
-		"%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
-	    t1, (unsigned) t2, (unsigned) t3, (unsigned) s1,
+	rc = snprintf( buf, len,
+		"%08lx-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+		t1, (unsigned) t2, (unsigned) t3, (unsigned) s1,
 		(unsigned) nl[0], (unsigned) nl[1],
 		(unsigned) nl[2], (unsigned) nl[3],
 		(unsigned) nl[4], (unsigned) nl[5] );
 
-	return (0 < t1 && t1 < len) ? t1 : 0;
+	return rc < len ? rc : 0;
 #endif
 }
 
