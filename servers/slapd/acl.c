@@ -1118,7 +1118,7 @@ dn_match_cleanup:;
 			 * rights given by the acis.
 			 */
 			for ( i = 0; at->a_vals[i].bv_val != NULL; i++ ) {
-				if (aci_mask( be, conn, op,
+				if (aci_mask( op,
 					e, desc, val,
 #ifdef SLAP_NVALUES
 					&at->a_nvals[i],
