@@ -148,11 +148,18 @@ index_read(
 	attr_normalize( type );
 	at_cn = at_canonical_name( type );
 
+	if ( at_cn == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "<= index_read no canonical name for type \"%s\"\n",
+			type != NULL ? type : "(NULL)", 0, 0 );
+		return( NULL );
+	}
+
 	if ( (db = ldbm_cache_open( be, at_cn, LDBM_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-		    "<= index_read NULL (could not open %s%s)\n", at_cn,
-		    LDBM_SUFFIX, 0 );
+		    "<= index_read NULL (could not open %s%s)\n",
+			at_cn, LDBM_SUFFIX, 0 );
 		return( NULL );
 	}
 
