@@ -40,52 +40,6 @@
 #define LDAPI_SOCK LDAP_RUNDIR LDAP_DIRSEP "ldapi"
 
 /*
- * SHARED DEFINITIONS - other things you can change
- */
-	/* default attribute to use when sorting entries, NULL => sort by DN */
-#define SORT_ATTR	NULL
-	/* default count of DN components to show in entry displays */
-#define DEFAULT_RDNCOUNT	2
-	/* default config file locations */
-#define FILTERFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "ldapfilter.conf"
-
-/*
- * FINGER DEFINITIONS
- */
-	/* banner to print */
-#define FINGER_BANNER		"OpenLDAP Finger Service...\r\n"
-	/* who to report errors to */
-#define FINGER_ERRORS		"System Administrator"
-	/* what to say if no matches are found */
-#define FINGER_NOMATCH		"Search failed to find anything.\r\n"
-	/* what to say if the service may be unavailable */
-#define FINGER_UNAVAILABLE	\
-"The directory service may be temporarily unavailable.\r\n\
-Please try again later.\r\n"
-	/* printed if a match has no email address - for disptmp default */
-#define FINGER_NOEMAIL1	"None registered in this service."
-#define FINGER_NOEMAIL2	NULL
-#define FINGER_NOEMAIL	{ FINGER_NOEMAIL1, FINGER_NOEMAIL2, NULL }
-	/* maximum number of matches returned */
-#define FINGER_SIZELIMIT	50
-	/* max number of hits displayed in full before a list is presented */
-#define FINGER_LISTLIMIT	1
-	/* what to exec for "finger @host" */
-#define FINGER_CMD		LDAP_FINGER
-	/* how to treat aliases when searching */
-#define FINGER_DEREF		LDAP_DEREF_FINDING
-	/* attribute to use when sorting results */
-#define FINGER_SORT_ATTR	SORT_ATTR
-#ifdef LDAP_UFN
-	/* enable ufn support */
-#define FINGER_UFN
-#endif
-	/* timeout for searches */
-#define FINGER_TIMEOUT		60
-	/* number of DN components to show in entry displays */
-#define FINGER_RDNCOUNT		DEFAULT_RDNCOUNT
-
-/*
  * MAIL500 MAILER DEFINITIONS
  */
 	/* max number of ambiguous matches reported */
@@ -100,6 +54,8 @@ Please try again later.\r\n"
 /*
  * UD DEFINITIONS
  */
+	/* default config file locations */
+#define FILTERFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "ldapfilter.conf"
 	/* ud configuration file */
 #define UD_CONFIG_FILE		LDAP_SYSCONFDIR LDAP_DIRSEP "ud.conf"
 	/* default editor */
