@@ -333,12 +333,6 @@ dnl clients/rcpt500/Makefile:build/top.mk:clients/rcpt500/Makefile.in:build/rule
 dnl contrib/Makefile:build/top.mk:contrib/Makefile.in:build/dir.mk \
 dnl contrib/saucer/Makefile:build/top.mk:contrib/saucer/Makefile.in:build/rules.mk \
 dnl contrib/whois++/Makefile:build/top.mk:contrib/whois++/Makefile.in:build/rules.mk \
-dnl libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk \
-dnl libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk \
-dnl libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk \
-dnl libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk \
-dnl libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk \
-dnl libraries/liblthread/Makefile:build/top.mk:libraries/liblthread/Makefile.in:build/lib.mk \
 dnl servers/ldapd/Makefile:build/top.mk:servers/ldapd/Makefile.in:build/srv.mk \
 dnl servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
 dnl servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/srv.mk \
@@ -354,6 +348,13 @@ AC_OUTPUT( \
 clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
 include/Makefile:build/top.mk:include/Makefile.in \
 libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
+libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk \
+libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk \
+libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk \
+libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk \
+libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk \
+libraries/liblthread/Makefile:build/top.mk:libraries/liblthread/Makefile.in:build/lib.mk \
+libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk \
 servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in \
 Makefile:build/top.mk:Makefile.in:build/dir.mk \
