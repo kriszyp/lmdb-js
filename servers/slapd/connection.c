@@ -991,12 +991,19 @@ int connection_read(ber_socket_t s)
 		/* connections_mutex and c_mutex are locked */
 		connection_closing( c );
 		connection_close( c );
+		connection_return( c );
+		ldap_pvt_thread_mutex_unlock( &connections_mutex );
+		return 0;
 	}
 
-	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_READ, NULL ) )
+	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_READ, NULL ) ) {
 		slapd_set_read( s, 1 );
-	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL ) )
+	}
+
+	if ( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_NEEDS_WRITE, NULL ) ) {
 		slapd_set_write( s, 1 );
+	}
+
 	connection_return( c );
 	ldap_pvt_thread_mutex_unlock( &connections_mutex );
 	return 0;
