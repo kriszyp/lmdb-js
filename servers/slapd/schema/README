@@ -1,5 +1,5 @@
-This directory contains user application schema definitions for
-use with slapd(5).
+This directory contains user application schema definitions for use
+with slapd(8).
 
 File                    Description
 ----                    -----------
