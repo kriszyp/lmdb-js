@@ -1139,8 +1139,6 @@ operations_error:
 		conn->c_n_ops_completed++;
 	}
 
-no_co_op_free:
-
 	switch( tag ) {
 	case LBER_ERROR:
 	case LDAP_REQ_UNBIND:
