@@ -32,8 +32,8 @@ NOSLASH="no"			# by default, / dependencies are included
 SRCDIR=""
 SED=cat
 
-: ${CC=cc}
-: ${CC_MKDEP=$CC}
+: ${CC=cc}					# use cc by default
+: ${CC_MKDEP=$CC}			# select default compiler to generate dependencies
 : ${CC_MKDEP_FLAGS="-M"}	# cc -M usually produces dependencies
 
 while :
@@ -53,7 +53,8 @@ while :
 			SRCDIR=$2
 			shift; shift ;;
 
-		# -c allows you to select a compiler to use (default is cc)
+		# -c allows you to select a compiler to use to generate
+		# dependencies.  Leaves $CC alone.
 		-c)
 			CC_MKDEP=$2
 			shift; shift ;;
@@ -129,7 +130,7 @@ cat << _EOF_ >> $TMP
 
 #
 # files: $*
-# command: $CC $CC_MKDEP_FLAGS $files
+# command: $CC_MKDEP $CC_MKDEP_FLAGS $files
 #
 
 _EOF_
