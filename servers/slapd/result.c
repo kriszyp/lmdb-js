@@ -839,7 +839,7 @@ send_search_entry(
 
 	/* eventually will loop through generated operational attributes */
 	/* only have subschemaSubentry implemented */
-	aa = backend_operational( be, conn, op, e );
+	aa = backend_operational( be, conn, op, e, attrs, opattrs );
 	
 	for (a = aa ; a != NULL; a = a->a_next ) {
 		AttributeDescription *desc = a->a_desc;

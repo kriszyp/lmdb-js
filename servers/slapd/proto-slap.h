@@ -210,7 +210,9 @@ LDAP_SLAPD_F (Attribute *) backend_operational(
 	BackendDB *,
 	Connection *conn,
 	Operation *op,
-	Entry * );
+	Entry *e,
+	char **attrs,
+	int opattrs );
 
 
 /*

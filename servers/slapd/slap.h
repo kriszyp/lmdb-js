@@ -483,6 +483,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_createTimestamp;
 	AttributeDescription *si_ad_modifiersName;
 	AttributeDescription *si_ad_modifyTimestamp;
+	AttributeDescription *si_ad_hasSubordinates;
 	AttributeDescription *si_ad_subschemaSubentry;
 
 	/* root DSE attribute descriptions */
@@ -918,6 +919,7 @@ struct slap_backend_db {
 #define		be_chk_referrals	bd_info->bi_chk_referrals
 #define		be_group	bd_info->bi_acl_group
 #define		be_attribute	bd_info->bi_acl_attribute
+#define		be_operational	bd_info->bi_operational
 
 #define		be_controls	bd_info->bi_controls
 
@@ -1138,6 +1140,10 @@ struct slap_backend_info {
 		Entry *e, const char *edn,
 		AttributeDescription *entry_at,
 		struct berval ***vals ));
+
+	int	(*bi_operational)  LDAP_P((Backend *bd,
+		struct slap_conn *c, struct slap_op *o,
+		Entry *e, char **attrs, int opattrs, Attribute **a ));
 
 	int	(*bi_connection_init) LDAP_P((BackendDB *bd,
 		struct slap_conn *c));

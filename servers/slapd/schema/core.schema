@@ -51,6 +51,12 @@ attributetype ( 2.5.18.4 NAME 'modifiersName'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
 	SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
 
+attributetype ( 2.5.18.9 NAME 'hasSubordinates'
+	DESC 'X.501: entry has children'
+	EQUALITY booleanMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.7
+	SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
+
 attributetype ( 2.5.18.10 NAME 'subschemaSubentry'
 	DESC 'RFC2252: name of controlling subschema entry'
 	EQUALITY distinguishedNameMatch

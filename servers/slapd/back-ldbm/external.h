@@ -88,6 +88,12 @@ extern int	ldbm_back_attribute LDAP_P(( BackendDB *bd,
 	AttributeDescription* entry_at,
 	struct berval ***vals));
 
+extern int	ldbm_back_operational LDAP_P((BackendDB *bd,
+	Connection *conn, Operation *op,
+	Entry *e,
+	char **attrs,
+	int opattrs,
+	Attribute **a ));
 
 /* hooks for slap tools */
 extern int ldbm_tool_entry_open LDAP_P(( BackendDB *be, int mode ));

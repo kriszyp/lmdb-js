@@ -1087,9 +1087,11 @@ Attribute *backend_operational(
 	Backend *be,
 	Connection *conn,
 	Operation *op,
-	Entry *e )
+	Entry *e,
+	char **attrs,
+	int opattrs	)
 {
-	Attribute *a = NULL;
+	Attribute *a = NULL, **ap = &a;
 
 #ifdef SLAPD_SCHEMA_DN
 	a = ch_malloc( sizeof( Attribute ) );
@@ -1101,7 +1103,19 @@ Attribute *backend_operational(
 	a->a_vals[1] = NULL;
 
 	a->a_next = NULL;
+	ap = &a->a_next;
 #endif
+
+	/*
+	 * If operational attributes (allegedly) are required, 
+	 * and the backend supports specific operational attributes, 
+	 * add them to the attribute list
+	 */
+	if ( ( opattrs || attrs ) && be->be_operational != NULL ) {
+		( void )be->be_operational( be, conn, op, e, 
+					    attrs, opattrs, ap );
+	}
 
 	return a;
 }
+

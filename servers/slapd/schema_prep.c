@@ -165,6 +165,8 @@ struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_modifiersName) },
 	{ "modifyTimestamp", NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_modifyTimestamp) },
+	{ "hasSubordinates", NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_hasSubordinates) },
 	{ "subschemaSubentry", NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_subschemaSubentry) },
 
