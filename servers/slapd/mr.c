@@ -178,11 +178,15 @@ mr_add(
 	smr->smr_oidlen = strlen( mr->mr_oid );
 	smr->smr_usage = def->mrd_usage;
 	smr->smr_compat_syntaxes = compat_syn;
-	smr->smr_convert = def->mrd_convert;
 	smr->smr_normalize = def->mrd_normalize;
 	smr->smr_match = def->mrd_match;
+#ifdef SLAP_NVALUES
+	/* disable indexing for now */
+#else
+	smr->smr_convert = def->mrd_convert;
 	smr->smr_indexer = def->mrd_indexer;
 	smr->smr_filter = def->mrd_filter;
+#endif
 	smr->smr_associated = amr;
 
 	if ( smr->smr_syntax_oid ) {
