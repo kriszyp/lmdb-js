@@ -78,6 +78,7 @@ OL_ARG_ENABLE(phonetic,[    --enable-phonetic	enable phonetic/soundex], no)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	enable reverse lookups], auto)dnl
 
 dnl SLAPD Backend options
+OL_ARG_ENABLE(bdb2,[    --enable-bdb2	enable bdb2 backend], no)dnl
 OL_ARG_ENABLE(ldbm,[    --enable-ldbm	enable ldbm backend], yes)dnl
 OL_ARG_WITH(ldbm_api,[      --with-ldbm-api	use LDBM API], auto,
 	[auto db2 db gdbm ndbm manual])
@@ -111,6 +112,9 @@ fi
 
 if test $ol_enable_slapd = no ; then
 	dnl SLAPD was specificallly disabled
+	if test $ol_enable_bdb2 = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_bdb2 argument])
+	fi
 	if test $ol_enable_ldbm = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable_ldbm argument])
 	fi
@@ -146,6 +150,7 @@ if test $ol_enable_slapd = no ; then
 	fi
 
 	# force settings to no
+	ol_enable_bdb2=no
 	ol_enable_ldbm=no
 	ol_enable_passwd=no
 	ol_enable_perl=no
@@ -169,6 +174,10 @@ elif test $ol_enable_ldbm = no ; then
 		AC_MSG_WARN([LDBM disabled, ignoring --with_ldbm_type argument])
 	fi
 
+	if test $ol_enable_ldbm = yes ; then
+		AC_MSG_ERROR([BDB2 requires --enable-ldbm])
+	fi
+
 	if test $ol_enable_passwd = no -a \
 		$ol_enable_perl = no -a
 		$ol_enable_shell = no ; then
@@ -178,8 +187,26 @@ elif test $ol_enable_ldbm = no ; then
 	ol_with_ldbm_api=no
 	ol_with_ldbm_type=no
 
+elif test $ol_enable_bdb2 = yes ; then
+	dnl SLAPD with BDB2
+
+	if test $ol_with_ldbm_api != auto -a \
+		$ol_with_ldbm_api != db2 ; then
+		AC_MSG_ERROR([BDB2 requires LDBM API DB2])
+	fi
+
+	ol_with_ldbm_api=db2
+
 else
 	dnl SLAPD with LDBM
+
+	if test $ol_enable_bdb2 != no ; then
+		if test $ol_with_ldbm_api != auto -a \
+			$ol_with_ldbm_api != db2 ; then
+			AC_MSG_WARN([BDB2 requires LDBM api db2 or auto])
+			ol_enable_bdb2=no
+		fi
+	fi
 
 	if test $ol_with_ldbm_api = gdbm -a \
 		$ol_with_ldbm_type = btree ; then
@@ -216,6 +243,7 @@ BUILD_LDAPD=no
 BUILD_SLAPD=no
 BUILD_SLURPD=no
 
+BUILD_BDB2=no
 BUILD_LDBM=no
 BUILD_PASSWD=no
 BUILD_PERL=no
@@ -1008,6 +1036,11 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db2 ; then
 	fi
 fi
 
+ol_link_bdb2=no
+if test $ol_link_ldbm = db2 -a $ol_enable_bdb2 != no ; then
+	ol_link_bdb2=yes
+fi
+
 if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db ; then
 	OL_BERKELEY_DB
 
@@ -1378,6 +1411,12 @@ if test "$ol_enable_rlookups" != no ; then
 	AC_DEFINE(SLAPD_RLOOKUPS,1)
 fi
 
+if test "$ol_link_bdb2" != no ; then
+	AC_DEFINE(SLAPD_BDB2,1)
+	BUILD_SLAPD=yes
+	BUILD_BDB2=yes
+fi
+
 if test "$ol_link_ldbm" != no ; then
 	AC_DEFINE(SLAPD_LDBM,1)
 	BUILD_SLAPD=yes
@@ -1415,6 +1454,7 @@ dnl ----------------------------------------------------------------
 
 AC_SUBST(BUILD_LDAPD)
 AC_SUBST(BUILD_SLAPD)
+  AC_SUBST(BUILD_BDB2)
   AC_SUBST(BUILD_LDBM)
   AC_SUBST(BUILD_PASSWD)
   AC_SUBST(BUILD_PERL)
