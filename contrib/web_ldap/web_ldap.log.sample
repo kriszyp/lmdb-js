@@ -1,0 +1,34 @@
+==> web_ldap request made at: Thu Dec 10 12:17:02 1998
+
+ Interactive Unix Command Line Request:
+
+ Server Name: ldap.bigfoot.com
+ Query: cn=jens*moller
+ Passed In: 
+ Searchbase: 
+ LDAP Port: 389
+ Number of Attributes: 0
+
+--- Process Arguments: 2 ----
+
+ argv[0]: web_ldap
+ argv[1]: DEF
+
+==< Results >==
+
+** performing ldap_open at Thu Dec 10 12:17:02 1998
+
+** performing ldap_bind_s at Thu Dec 10 12:17:02 1998
+
+** performing ldap_search_s at Thu Dec 10 12:17:02 1998
+
+ dn=cn="JENS MOLLER",mail=jmoller@con5097.cs.mci.com,c=US,o=con5097.cs.mci.com
+ dn=cn="JENS MOLLER",mail=100321.3153@compuserve.com,c=US,o=compuserve.com
+ dn=cn="jens moller",mail=jens1lund2moller@hotmail.com,c=US,o=hotmail.com
+ dn=cn="Jens Moller",mail=jensklethmoller@hotmail.com,c=US,o=hotmail.com
+ dn=cn="jens moller",mail=jamoller@hotmail.com,c=US,o=hotmail.com
+ dn=cn="Jens Mollerup",mail=jmollerup@aki.ku.dk,c=US,o=aki.ku.dk
+
+Finished gathering results at Thu Dec 10 12:17:02 1998
+
+==< Done >==

@@ -1,0 +1,50 @@
+<html>
+<head>
+<title>Web LDAP Access</title>
+</head>
+<body text="#000000"
+bgcolor="#FFFFCC">
+<h2>Web LDAP Access</h2>
+<!-- Form Action Statement -->
+<form action="/cgi-bin/web_ldap" method="POST">
+<input type=hidden name="FORM" value="300">
+<p>
+Please fill in the LDAP request you desire. You may use
+wildcards (*) in this fashion:
+<ul>
+<b>Common Name Examples</b><p>
+<li>cn=jens moller
+<li>cn=*moller
+<li>cn=j* moller
+<p>
+<b>Surname Examples</b><p>
+<li>sn=moller
+<li>sn=*moller
+</ul>
+<p>
+You may specify a configuration file if you have created a
+new one, otherwise, leave it set to "DEF".
+<hr>
+
+<pre>
+ LDAP Request: <input type="text" size="40" name="LDAP_REQUEST">
+  
+  Config File: <input type="text" size="40" value="DEF" name="CONFIG">
+</pre>
+
+<input type="submit" name="button" value="Generate Results">
+<input type="reset" value="Reset">
+</ul>
+<p>
+</form>
+<hr>
+This is a freeware prototype application that includes the
+source code. Please study it if you need to understand how it
+works. It currenly only does simple LDAP Directory reads, however, 
+an interactive application has to start somewhere. 
+<p>
+Authored by: <a href="mailto:Jens@colomar.com">Jens Moller</a>.
+</body>
+</html>
+
+

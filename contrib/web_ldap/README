@@ -1,0 +1,17 @@
+The web_ldap package contains the following files:
+
+  COPYRIGHT             - Your rights to use this software
+  Makefile              - Build file
+  README                - This file
+  maint_form.h          - HTML form processing
+  process_form.h        - HTML form processing
+  util.c                - HTML form processingg
+  web_ldap.c            - Form/LDAP processing
+  web_ldap.cfg          - configuration File
+  web_ldap.html         - HTML Form
+  web_ldap.log.sample   - Sample Log file
+  web_ldap_usage.txt    - Instructions for use
+  web_ldap_usage.html   - Instructions for use in HTML
+  
+Please reveiw the web_ldap.txt or web_ldap_usage.html 
+file to understand how to utilize this software.
