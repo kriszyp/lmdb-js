@@ -965,6 +965,7 @@ send_search_entry(
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OTHER,
 			    NULL, "encoding description error", NULL, NULL );
+			attrs_free( aa );
 			goto error_return;
 		}
 
@@ -1000,6 +1001,7 @@ send_search_entry(
 					ber_free( ber, 1 );
 					send_ldap_result( conn, op, LDAP_OTHER,
 						NULL, "encoding values error", NULL, NULL );
+					attrs_free( aa );
 					goto error_return;
 				}
 			}
@@ -1017,6 +1019,7 @@ send_search_entry(
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OTHER,
 			    NULL, "encode end error", NULL, NULL );
+			attrs_free( aa );
 			goto error_return;
 		}
 	}
