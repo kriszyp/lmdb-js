@@ -133,9 +133,9 @@ AC_ARG_WITH(xxslurpdoptions,[SLURPD Options:])
 OL_ARG_ENABLE(slurpd,[  --enable-slurpd	enable building slurpd], auto)dnl
 
 AC_ARG_WITH(xxliboptions,[Library Generation & Linking Options])
-AM_ENABLE_STATIC
-dnl AM_DISABLE_SHARED
-AM_ENABLE_SHARED
+AC_ENABLE_STATIC
+dnl AC_DISABLE_SHARED
+AC_ENABLE_SHARED
 
 dnl General "enable" options
 # validate options
@@ -414,7 +414,7 @@ dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
 dnl (for now, let autoconf sort this out)
 dnl CFLAGS=${CFLAGS-""}
 
-AM_PROG_LIBTOOL
+AC_PROG_LIBTOOL
 dnl AC_PROG_MAKE_SET
 
 AC_PROG_AWK
@@ -800,6 +800,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		dnl 	pthread_create() with -kthread (FreeBSD)
 		dnl 	pthread_create() with -pthread (FreeBSD/Digital Unix)
 		dnl 	pthread_create() with -pthreads (?)
+		dnl 	pthread_create() with -mthreads (AIX)
 		dnl 	pthread_create() with -thread (?)
 		dnl
 		dnl Check pthread (final) libraries
@@ -878,6 +879,7 @@ int main(argc, argv)
 		OL_PTHREAD_TRY_LINK([-kthread],	[ol_cv_pthread_kthread])
 		OL_PTHREAD_TRY_LINK([-pthread],	[ol_cv_pthread_pthread])
 		OL_PTHREAD_TRY_LINK([-pthreads],[ol_cv_pthread_pthreads])
+		OL_PTHREAD_TRY_LINK([-mthreads],[ol_cv_pthread_mthreads])
 		OL_PTHREAD_TRY_LINK([-thread],	[ol_cv_pthread_thread])
 
 		OL_PTHREAD_TRY_LINK([-lpthread -lmach -lexc -lc_r],
