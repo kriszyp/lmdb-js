@@ -2065,11 +2065,12 @@ typedef struct slap_paged_state {
 #define LDAP_PSEARCH_BY_SCOPEOUT	0x05
 #define LDAP_PSEARCH_BY_PREDELETE	0x06
 
-struct psid_entry {
+struct psid_entry {		/* DELETE ME */
 	struct slap_op *ps_op;
 	LDAP_LIST_ENTRY(psid_entry) ps_link;
 };
 
+#if 0	/* DELETE ME */
 struct slog_entry {
 	struct berval sl_uuid;
 	struct berval sl_name;
@@ -2084,6 +2085,7 @@ struct slap_session_entry {
 	struct berval se_spec;
 	LDAP_LIST_ENTRY( slap_session_entry ) se_link;
 };
+#endif
 
 struct slap_csn_entry {
 	struct berval ce_csn;
