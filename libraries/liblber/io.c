@@ -536,15 +536,20 @@ get_lenbyte:
 		ber->ber_rwptr += res;
 
 		/* convert length. */
-		ber->ber_len = 0;
 		for( to_go = 0; to_go < res ; to_go++ ) {
 			ber->ber_len <<= 8;
 			ber->ber_len |= netlen[to_go];
 		}
+		if (PTR_IN_VAR(ber->ber_rwptr, ber->ber_len))
+			return LBER_DEFAULT;
 	}
 
 fill_buffer:	
 	/* now fill the buffer. */
+	if (ber->ber_len==0) {
+		errno = ERANGE;
+		return LBER_DEFAULT;
+	}
 	if (ber->ber_buf==NULL) {
 		ber->ber_buf = (char *) LBER_MALLOC( ber->ber_len );
 		if (ber->ber_buf==NULL) {
