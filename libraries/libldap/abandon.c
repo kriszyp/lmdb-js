@@ -186,7 +186,12 @@ do_abandon(
 			ld->ld_errno = LDAP_NO_MEMORY;
 
 		} else {
-			LDAP_NEXT_MSGID(ld, i);
+	/*
+	 * We already have the mutex in LDAP_R_COMPILE, so
+	 * don't try to get it again.
+	 *		LDAP_NEXT_MSGID(ld, i);
+	 */
+			i = ++(ld)->ld_msgid;
 #ifdef LDAP_CONNECTIONLESS
 			if ( LDAP_IS_UDP(ld) ) {
 			    err = ber_write( ber, ld->ld_options.ldo_peer,
