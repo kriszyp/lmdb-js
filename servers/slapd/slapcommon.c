@@ -277,6 +277,8 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 	}
 
+	ldap_syslog = 0;
+
 	if ( !nbackends ) {
 		fprintf( stderr, "No databases found in config file\n" );
 		exit( EXIT_FAILURE );
