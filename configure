@@ -1751,8 +1751,8 @@ if eval "test \"`echo '$''{'cf_cv_pthread_flag'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-								save_CPPFLAGS=$CPPFLAGS
-				CPPFLAGS="-pthread $CPPFLAGS"
+								save_LIBS="$LIBS"
+				LIBS="-pthread $LIBS"
 				cat > conftest.$ac_ext <<EOF
 #line 1758 "configure"
 #include "confdefs.h"
@@ -1774,7 +1774,7 @@ else
   cf_cv_pthread_flag=no
 fi
 rm -f conftest*
-								CPPFLAGS=$save_CPPFLAGS
+								LIBS="$save_LIBS"
 			
 fi
 
