@@ -27,8 +27,8 @@ XLIBS = $(SLAPD_L) $(LDBM_LIBS)
 XXLIBS = $(SLAPD_LIBS) \
 	$(LDBM_LIBS) $(SECURITY_LIBS) \
 	$(LDIF_LIBS) $(LUTIL_LIBS)
-XXXLIBS = $(LTHREAD_LIBS) $(SLAPI_LIBS) \
-	@LIBSLAPITOOLS@ $(MODULES_LIBS)
+XXXLIBS = $(LTHREAD_LIBS)
+SLAPI_DEP_LIBS = $(LIBS) $(SLAPI_LIBS) @LIBSLAPITOOLS@ $(MODULES_LIBS)
 
 STATIC_DEPENDS=@SLAPD_NO_STATIC@ ../libbackends.a
 
@@ -58,13 +58,16 @@ build-progs: $(PROGRAMS)
 # SLAP Tools
 #
 slapadd:	slapadd.o $(STATIC_DEPENDS) $(SLAPOBJS) $(SLAPD_L) 
-	$(LTLINK) -o $@ slapadd.o $(SLAPOBJS) $(STATIC_DEPENDS) $(LIBS)
+	$(LTLINK) -o $@ slapadd.o $(SLAPOBJS) $(STATIC_DEPENDS) \
+	$(SLAPI_DEP_LIBS)
 
 slapcat:	slapcat.o $(STATIC_DEPENDS) $(SLAPOBJS) $(SLAPD_L) 
-	$(LTLINK) -o $@ slapcat.o $(SLAPOBJS) $(STATIC_DEPENDS) $(LIBS)
+	$(LTLINK) -o $@ slapcat.o $(SLAPOBJS) $(STATIC_DEPENDS) \
+	$(SLAPI_DEP_LIBS)
 
 slapindex:	slapindex.o $(STATIC_DEPENDS) $(SLAPOBJS) $(SLAPD_L) 
-	$(LTLINK) -o $@ slapindex.o $(SLAPOBJS) $(STATIC_DEPENDS) $(LIBS)
+	$(LTLINK) -o $@ slapindex.o $(SLAPOBJS) $(STATIC_DEPENDS) \
+	$(SLAPI_DEP_LIBS)
 
 slappasswd:		slappasswd.o $(SLAPD_L) 
 	$(LTLINK) -o $@ slappasswd.o $(LIBS)
