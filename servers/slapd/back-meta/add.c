@@ -108,8 +108,8 @@ meta_back_add( Operation *op, SlapReply *rs )
 		 * to allow their use in ACLs at the back-ldap
 		 * level.
 		 */
-		if ( strcmp( a->a_desc->ad_type->sat_syntax->ssyn_oid,
-					SLAPD_DN_SYNTAX ) == 0 )
+		if ( a->a_desc->ad_type->sat_syntax ==
+				slap_schema.si_syn_distinguishedName )
 		{
 			(void)ldap_dnattr_rewrite( &dc, a->a_vals );
 		}

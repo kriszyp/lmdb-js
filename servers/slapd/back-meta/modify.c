@@ -97,17 +97,25 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	dc.ctx = "modifyAttrDN";
 	isupdate = be_shadow_update( op );
 	for ( i = 0, ml = op->orm_modlist; ml; ml = ml->sml_next ) {
-		int j;
+		int	j, is_oc = 0;
 
 		if ( !isupdate && ml->sml_desc->ad_type->sat_no_user_mod  ) {
 			continue;
 		}
 
-		ldap_back_map( &li->targets[ candidate ]->mt_rwmap.rwm_at,
-				&ml->sml_desc->ad_cname, &mapped,
-				BACKLDAP_MAP );
-		if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
-			continue;
+		if ( ml->sml_desc == slap_schema.si_ad_objectClass 
+				|| ml->sml_desc == slap_schema.si_ad_structuralObjectClass )
+		{
+			is_oc = 1;
+			mapped = ml->sml_desc->ad_cname;
+
+		} else {
+			ldap_back_map( &li->targets[ candidate ]->mt_rwmap.rwm_at,
+					&ml->sml_desc->ad_cname, &mapped,
+					BACKLDAP_MAP );
+			if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
+				continue;
+			}
 		}
 
 		modv[ i ] = &mods[ i ];
@@ -120,19 +128,39 @@ meta_back_modify( Operation *op, SlapReply *rs )
 		 * level.
 		 */
 		if ( ml->sml_values != NULL ) {
-			/* mod_op must be delete all values */
-			if ( strcmp( ml->sml_desc->ad_type->sat_syntax->ssyn_oid,
-						SLAPD_DN_SYNTAX ) == 0 )
-			{
-				( void )ldap_dnattr_rewrite( &dc, ml->sml_values );
-			}
-
-			if ( ml->sml_values != NULL ) {
+			if ( is_oc ) {
 				for ( j = 0; !BER_BVISNULL( &ml->sml_values[ j ] ); j++ )
 					;
 				mods[ i ].mod_bvalues =
 					(struct berval **)ch_malloc( ( j + 1 ) *
-					sizeof(struct berval *) );
+					sizeof( struct berval * ) );
+				for ( j = 0; !BER_BVISNULL( &ml->sml_values[ j ] ); j++ ) {
+					ldap_back_map( &li->targets[ candidate ]->mt_rwmap.rwm_oc,
+							&ml->sml_values[ j ],
+							&mapped, BACKLDAP_MAP );
+					if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) )
+					{
+						continue;
+					}
+					mods[ i ].mod_bvalues[ j ] = &mapped;
+				}
+				mods[ i ].mod_bvalues[ j ] = NULL;
+
+			} else {
+				if ( ml->sml_desc->ad_type->sat_syntax ==
+						slap_schema.si_syn_distinguishedName )
+				{
+					( void )ldap_dnattr_rewrite( &dc, ml->sml_values );
+					if ( ml->sml_values == NULL ) {
+						continue;
+					}
+				}
+
+				for ( j = 0; !BER_BVISNULL( &ml->sml_values[ j ] ); j++ )
+					;
+				mods[ i ].mod_bvalues =
+					(struct berval **)ch_malloc( ( j + 1 ) *
+					sizeof( struct berval * ) );
 				for ( j = 0; !BER_BVISNULL( &ml->sml_values[ j ] ); j++ ) {
 					mods[ i ].mod_bvalues[ j ] = &ml->sml_values[ j ];
 				}
@@ -147,8 +175,8 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	}
 	modv[ i ] = 0;
 
-	rc = ldap_modify_ext_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
-			modv, NULL, NULL ) != LDAP_SUCCESS;
+	rs->sr_err = ldap_modify_ext_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
+			modv, NULL, NULL );
 
 cleanup:;
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
@@ -162,14 +190,13 @@ cleanup:;
 	}
 	free( mods );
 	free( modv );
-	
-	if ( rc == 0 ) {
-		return meta_back_op_result( lc, op, rs ) == LDAP_SUCCESS
-			? 0 : 1;
-	} /* else */
 
+	if ( rc != -1 ) {
+		return meta_back_op_result( lc, op, rs );
+	}
+	
 	send_ldap_result( op, rs );
 
-	return rc;
+	return rs->sr_err;
 }
 
