@@ -243,13 +243,11 @@ wait4msg(
 
 #ifdef LDAP_DEBUG
 	if ( timeout == NULL ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"wait4msg (infinite timeout), msgid %d\n",
-			msgid, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "wait4msg (infinite timeout), msgid %d\n",
+		    msgid, 0, 0 );
 	} else {
-		Debug( LDAP_DEBUG_TRACE,
-			"wait4msg (timeout %ld sec, %ld usec), msgid %d\n",
-			(long) timeout->tv_sec, (long) timeout->tv_usec, msgid );
+		Debug( LDAP_DEBUG_TRACE, "wait4msg (timeout %ld sec, %ld usec), msgid %d\n",
+		       (long) timeout->tv_sec, (long) timeout->tv_usec, msgid );
 	}
 #endif /* LDAP_DEBUG */
 
@@ -304,7 +302,7 @@ wait4msg(
 			    {
 				    ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
 				        LDAP_TIMEOUT);
-				    return -1;
+				    return( rc );
 			    }
 
 			    if ( rc == -1 ) {
@@ -353,7 +351,7 @@ wait4msg(
 		}
 	}
 
-	return rc;
+	return( rc );
 }
 
 
