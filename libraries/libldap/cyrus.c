@@ -601,36 +601,20 @@ ldap_int_sasl_bind(
 
 		if( saslrc == SASL_INTERACT ) {
 			int res;
-
-#if SASL_VERSION_MAJOR >= 2
-			/* XXX the application should free interact results.
-			 * FIXME: this should happen only 
-			 * if saslrc == SASL_INTERACT
-			 *
-			 * I assume that prompts->result is not needed
-			 * by the subsequent call to (interact)() */
-			if ( prompts != NULL && prompts->result != NULL ) {
-				LDAP_FREE( (void *)prompts->result );
-				prompts->result = NULL;
-			}
-#endif
-
 			if( !interact ) break;
 			res = (interact)( ld, flags, defaults, prompts );
-			if( res != LDAP_SUCCESS ) {
-				break;
-			}
+			if( res != LDAP_SUCCESS ) break;
 		}
 	} while ( saslrc == SASL_INTERACT );
 
 	ccred.bv_len = credlen;
 
 	if ( (saslrc != SASL_OK) && (saslrc != SASL_CONTINUE) ) {
-		ld->ld_errno = sasl_err2ldap( saslrc );
+		rc = ld->ld_errno = sasl_err2ldap( saslrc );
 #if SASL_VERSION_MAJOR >= 2
 		ld->ld_error = (char *)sasl_errdetail( ctx );
 #endif
-		return ld->ld_errno;
+		goto done;
 	}
 
 	do {
@@ -662,7 +646,8 @@ ldap_int_sasl_bind(
 #endif
 				ber_bvfree( scred );
 			}
-			return ld->ld_errno;
+			rc = ld->ld_errno;
+			goto done;
 		}
 
 		if( rc == LDAP_SUCCESS && saslrc == SASL_OK ) {
@@ -679,7 +664,8 @@ ldap_int_sasl_bind(
 					rc, saslrc, scred->bv_len );
 #endif
 				ber_bvfree( scred );
-				return ld->ld_errno = LDAP_LOCAL_ERROR;
+				rc = ld->ld_errno = LDAP_LOCAL_ERROR;
+				goto done;
 			}
 			break;
 		}
@@ -712,9 +698,7 @@ ldap_int_sasl_bind(
 				int res;
 				if( !interact ) break;
 				res = (interact)( ld, flags, defaults, prompts );
-				if( res != LDAP_SUCCESS ) {
-					break;
-				}
+				if( res != LDAP_SUCCESS ) break;
 			}
 		} while ( saslrc == SASL_INTERACT );
 
@@ -726,19 +710,19 @@ ldap_int_sasl_bind(
 #if SASL_VERSION_MAJOR >= 2
 			ld->ld_error = (char *)sasl_errdetail( ctx );
 #endif
-			return ld->ld_errno;
+			rc = ld->ld_errno;
+			goto done;
 		}
 	} while ( rc == LDAP_SASL_BIND_IN_PROGRESS );
 
-	if ( rc != LDAP_SUCCESS ) {
-		return rc;
-	}
+	if ( rc != LDAP_SUCCESS ) goto done;
 
 	if ( saslrc != SASL_OK ) {
 #if SASL_VERSION_MAJOR >= 2
 		ld->ld_error = (char *)sasl_errdetail( ctx );
 #endif
-		return ld->ld_errno = sasl_err2ldap( saslrc );
+		rc = ld->ld_errno = sasl_err2ldap( saslrc );
+		goto done;
 	}
 
 	if( flags != LDAP_SASL_QUIET ) {
@@ -770,6 +754,12 @@ ldap_int_sasl_bind(
 			}
 			ldap_pvt_sasl_install( ld->ld_conns->lconn_sb, ctx );
 		}
+	}
+
+done:
+	if( interact ) {
+		/* cleanup */
+		(void) (interact)( NULL, flags, defaults, prompts );
 	}
 
 	return rc;
