@@ -11,10 +11,31 @@ OpenLDAP 1.0 README
 	For more information:
 		http://www.OpenLDAP.org/
 
+REQUIRED SOFTWARE
+	Build OpenLDAP requires the following software components:
+
+	Base system (libraries and tools):
+		Standard C compiler, headers, and libraries
+		POSIX REGEX headers and libraries
+
+	SLAPD:
+		LDBM compatible datastore
+			(Berkeley DB, Sleepycat DB2, or GDBM)
+	SLURPD:
+		LTHREAD compatible thread package
+			(POSIX pthreads, MIT pthreads, Mach Cthreads or Sun LWP)
+
+	LDAPD:
+		ISODE compatible ldap distribution
+
+	CLIENTS/CONTRIBware:
+		Depends on package.  See per package READMEs.
+		
+
 MAKING AND INSTALLING THE DISTRIBUTION
 
-    You should be able to make and install the distribution with a pretty
-    standard default configuration by typing the following commands
+    You should be able to make and install the distribution with a
+    default configuration by typing the following commands:
 
 	% ./configure --help
 		This will list the available options.
@@ -39,7 +60,7 @@ MAKING AND INSTALLING THE DISTRIBUTION
 	# make install
 
     in this directory.  This should produce something that basically
-    works.
+    works.  You can "cd tests; make" to verify the build.
 
     You will probably want to do a little configuration to suit your
     site, though.  There are one file you might want to edit:
