@@ -42,14 +42,16 @@ static char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 static char maxcsnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 static const char *progname = "slapadd";
 
-static ldap_pvt_thread_cond_t put_cond;
-static ldap_pvt_thread_mutex_t put_mutex;
+static ldap_pvt_thread_cond_t put_cond1;
+static ldap_pvt_thread_cond_t put_cond2;
+static ldap_pvt_thread_mutex_t put_mutex1;
+static ldap_pvt_thread_mutex_t put_mutex2;
 static Entry *put_e;
 static struct berval bvtext;
 static int put_lineno;
 static int put_rc;
 
-static int use_thread = 1;	/*FIXME need a new switch for this */
+static int use_thread = 0;	/*FIXME need a new switch for this */
 
 static void *do_put(void *ptr)
 {
@@ -57,12 +59,15 @@ static void *do_put(void *ptr)
 	Entry *e;
 	int lineno;
 
-	ldap_pvt_thread_mutex_lock( &put_mutex );
+	ldap_pvt_thread_mutex_lock( &put_mutex1 );
 	do {
-		ldap_pvt_thread_cond_wait( &put_cond, &put_mutex );
+		ldap_pvt_thread_cond_wait( &put_cond1, &put_mutex1 );
 		if ( put_rc ) {
 			break;
 		}
+		ldap_pvt_thread_mutex_lock( &put_mutex2 );
+		ldap_pvt_thread_cond_signal( &put_cond2 );
+		ldap_pvt_thread_mutex_unlock( &put_mutex2 );
 
 		e = put_e;
 		lineno = put_lineno;
@@ -93,7 +98,7 @@ static void *do_put(void *ptr)
 		entry_free( e );
 
 	} while (1);
-	ldap_pvt_thread_mutex_unlock( &put_mutex );
+	ldap_pvt_thread_mutex_unlock( &put_mutex1 );
 }
 
 int
@@ -137,14 +142,17 @@ slapadd( int argc, char **argv )
 
 	if ( use_thread ) {
 		ldap_pvt_thread_initialize();
-		ldap_pvt_thread_cond_init( &put_cond );
-		ldap_pvt_thread_mutex_init( &put_mutex );
+		ldap_pvt_thread_cond_init( &put_cond1 );
+		ldap_pvt_thread_cond_init( &put_cond2 );
+		ldap_pvt_thread_mutex_init( &put_mutex1 );
+		ldap_pvt_thread_mutex_init( &put_mutex2 );
 		rc = ldap_pvt_thread_create( &put_tid, 0, do_put, NULL );
 		if ( rc ) {
 			fprintf( stderr, "%s: could not create thread.\n",
 				progname );
 			exit( EXIT_FAILURE );
 		}
+		ldap_pvt_thread_mutex_lock( &put_mutex2 );
 	}
 
 	lmax = 0;
@@ -360,15 +368,18 @@ slapadd( int argc, char **argv )
 		}
 
 		if ( use_thread ) {
-			ldap_pvt_thread_mutex_lock( &put_mutex );
+			ldap_pvt_thread_mutex_lock( &put_mutex1 );
 			if (put_rc) {
 				rc = put_rc;
+				ldap_pvt_thread_mutex_unlock( &put_mutex1 );
 				break;
 			}
 			put_e = e;
 			put_lineno = lineno;
-			ldap_pvt_thread_cond_signal( &put_cond );
-			ldap_pvt_thread_mutex_unlock( &put_mutex );
+			ldap_pvt_thread_cond_signal( &put_cond1 );
+			ldap_pvt_thread_mutex_unlock( &put_mutex1 );
+			/* Make sure writer wakes up */
+			ldap_pvt_thread_cond_wait( &put_cond2, &put_mutex2 );
 			continue;
 		}
 
@@ -399,16 +410,19 @@ slapadd( int argc, char **argv )
 	}
 
 	if ( use_thread ) {
-		ldap_pvt_thread_mutex_lock( &put_mutex );
+		ldap_pvt_thread_mutex_unlock( &put_mutex2 );
+		ldap_pvt_thread_mutex_lock( &put_mutex1 );
 		/* Tell child thread to stop if it hasn't aborted */
 		if ( !put_rc ) {
 			put_rc = EXIT_FAILURE;
-			ldap_pvt_thread_cond_signal( &put_cond );
+			ldap_pvt_thread_cond_signal( &put_cond1 );
 		}
-		ldap_pvt_thread_mutex_unlock( &put_mutex );
+		ldap_pvt_thread_mutex_unlock( &put_mutex1 );
 		ldap_pvt_thread_join( put_tid, NULL );
-		ldap_pvt_thread_mutex_destroy( &put_mutex );
-		ldap_pvt_thread_cond_destroy( &put_cond );
+		ldap_pvt_thread_mutex_destroy( &put_mutex2 );
+		ldap_pvt_thread_mutex_destroy( &put_mutex1 );
+		ldap_pvt_thread_cond_destroy( &put_cond2 );
+		ldap_pvt_thread_cond_destroy( &put_cond1 );
 	}
 
 	bvtext.bv_len = textlen;
