@@ -22,6 +22,9 @@ Current contributions:
 	slapd-modules
 		Native modules
 
+	slapd-tools
+		Tools to use with slapd
+
 	slapi-plugins
 		SLAPI plugins
 
