@@ -20,7 +20,6 @@
 
 int
 starttls_extop (
-	SLAP_EXTOP_CALLBACK_FN cb,
 	Connection *conn,
 	Operation *op,
 	const char * reqoid,

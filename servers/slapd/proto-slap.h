@@ -321,18 +321,7 @@ LDAP_SLAPD_F (int) entry_id_cmp LDAP_P(( Entry *a, Entry *b ));
  * extended.c
  */
 
-#define SLAPD_EXTOP_GETVERSION 0
-#define SLAPD_EXTOP_GETPROTO 1
-#define SLAPD_EXTOP_GETAUTH 2
-#define SLAPD_EXTOP_GETDN 3
-#define SLAPD_EXTOP_GETCLIENT 4
-
-typedef int (*SLAP_EXTOP_CALLBACK_FN) LDAP_P((
-	Connection *conn, Operation *op,
-	int msg, int arg, void *argp ));
-
 typedef int (*SLAP_EXTOP_MAIN_FN) LDAP_P((
-	SLAP_EXTOP_CALLBACK_FN,
 	Connection *conn, Operation *op,
 	const char * reqoid,
 	struct berval * reqdata,
@@ -667,7 +656,6 @@ LDAP_SLAPD_F (int) dscompare LDAP_P(( const char *s1, const char *s2del, char de
  */
 
 LDAP_SLAPD_F (int) starttls_extop LDAP_P((
-	SLAP_EXTOP_CALLBACK_FN,
 	Connection *conn, Operation *op,
 	const char * reqoid,
 	struct berval * reqdata,
@@ -723,7 +711,6 @@ LDAP_SLAPD_F (void) slap_init_user LDAP_P(( char *username, char *groupname ));
  * passwd.c
  */
 LDAP_SLAPD_F (int) passwd_extop LDAP_P((
-	SLAP_EXTOP_CALLBACK_FN,
 	Connection *conn, Operation *op,
 	const char * reqoid,
 	struct berval * reqdata,
