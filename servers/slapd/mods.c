@@ -219,9 +219,13 @@ modify_delete_values(
 		return LDAP_NO_SUCH_ATTRIBUTE;
 	}
 
-	for ( i = 0; mod->sm_values[i].bv_val != NULL; i++ ) {
+	for ( i = 0; !BER_BVISNULL( &mod->sm_values[i] ); i++ ) {
 		int	found = 0;
-		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
+		for ( j = 0; !BER_BVISNULL( &a->a_vals[j] ); j++ ) {
+			/* skip already deleted values */
+			if ( a->a_vals[j].bv_val == &dummy ) {
+				continue;
+			}
 
 			if( mod->sm_nvalues ) {
 				assert( a->a_nvals );
