@@ -613,11 +613,11 @@ typedef struct idNode {
  */
 static int
 node_find_cmp(
-	ID id,
-	idNode *n
+	const void *id,
+	const void *node
 )
 {
-	return id - n->i_id;
+	return *(const ID *)id - ((const idNode *)node)->i_id;
 }
 
 static int
@@ -653,7 +653,7 @@ idNode * bdb_find_id_node(
 	Avlnode *tree
 )
 {
-	return avl_find(tree, (const void *)id, (AVL_CMP)node_find_cmp);
+	return avl_find(tree, &id, node_find_cmp);
 }
 
 idNode * bdb_find_rdn_node(
@@ -876,7 +876,7 @@ bdb_dn2id_delete(
 	rc = db->del( db, txn, &key, 0);
 
 	ldap_pvt_thread_rdwr_wlock(&bdb->bi_tree_rdwr);
-	n = avl_delete(&bdb->bi_tree, (void *)e->e_id, (AVL_CMP)node_find_cmp);
+	n = avl_delete(&bdb->bi_tree, &e->e_id, node_find_cmp);
 	if (n) {
 		if (n->i_parent) {
 			ldap_pvt_thread_rdwr_wlock(&n->i_parent->i_kids_rdwr);
