@@ -45,6 +45,8 @@ const struct berval slap_unknown_bv = BER_BVC("unknown");
 const struct berval slap_true_bv = BER_BVC("TRUE");
 const struct berval slap_false_bv = BER_BVC("FALSE");
 
-//struct sync_cookie *slap_sync_cookie = NULL;
+#if 0
+struct sync_cookie *slap_sync_cookie = NULL;
+#endif
 struct slap_sync_cookie_s slap_sync_cookie =
 			LDAP_STAILQ_HEAD_INITIALIZER( slap_sync_cookie );
