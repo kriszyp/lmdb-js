@@ -9,6 +9,7 @@ Changes included in OpenLDAP 1.2 Release Engineering
 	Fixed lber/io.c Cray T90 specific pointer arithmetic problem (ITS#325)
 	Fixed s_addr dereferencing (ITS#340)
 	Fixed ud strstr crash (ITS#328)
+	Fixed -lthread rdwr 2-writer bug (ITS#395)
 	Added TCP_NODELAY support
 	Changed slapd to apply ACL to lastmod attributes
 	Changed slapd.conf default referral
