@@ -18,7 +18,7 @@ Please read:
 	http://www.OpenLDAP.org/devel/contributing.html
 
 
-OpenLDAP 2.0 Projects
+OpenLDAP 2.x Projects
 ---------------------
 	SLAPD
 		Update back-perl
@@ -31,8 +31,6 @@ OpenLDAP 2.0 Projects
 	clients
 		use _ext API, avoid deprecated routines
 		referral chasing options/rebind proc
-	Add TLS SASL/EXTERNAL support
-	SLAPD/SLURD Admin Guide
 	Update manual pages
 
 
@@ -46,7 +44,6 @@ Perform a security audit (and fix any hole found)
 
 Medium projects
 ---------------
-Design and Implement a LDAP C++ API
 Redesign and Implement a LDAP C API
 Modify -lldap to be reentrant/threadsafe
 	implement LDAP concurrency draft
@@ -63,8 +60,6 @@ Add compare of RootDSE, cn=subschema, etc.
 Add user configurable attributes to RootDSE
 Create ldapcompare (from ldapsearch) to support compare operations
 Create ldapquery (from ldapsearch?) to support searching using ldap_getfilter(3)
-Extend mail500 (and other daemons) to use ldap_getfilter(3)
-Add useful information to our FAQ http://www.openldap.org/faq/
 Update any manual page
 
 
