@@ -24,6 +24,7 @@ OpenLDAP 2.2.9 Release
 	Updated slapd overlay framework
 	Added slapd Delivery Method syntax validation (ITS#3052)
 	Added libldap ditContentRule oidMacro support (ITS#2920)
+	Removed lint
 	Build Environment
 		Fixed slapd dynamic backend build (ITS#3044)
 		Fixed slaptools DESTDIR handling (ITS#3070)
