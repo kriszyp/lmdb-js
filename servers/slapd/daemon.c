@@ -35,13 +35,16 @@ int deny_severity = LOG_NOTICE;
 time_t starttime;
 ber_socket_t dtblsize;
 
-#ifdef LDAP_PF_LOCAL
 typedef union slap_sockaddr {
 	struct sockaddr sa_addr;
 	struct sockaddr_in sa_in_addr;
+#ifdef LDAP_INET6
+	struct sockaddr_in6 sa_in6_addr;
+#endif
+#ifdef LDAP_PF_LOCAL
 	struct sockaddr_un sa_un_addr;
+#endif
 } Sockaddr;
-#endif /* LDAP_PF_LOCAL */
 
 typedef struct slap_listener {
 	char* sl_url;
@@ -50,12 +53,8 @@ typedef struct slap_listener {
 	int		sl_is_tls;
 #endif
 	ber_socket_t		sl_sd;
-#ifdef LDAP_PF_LOCAL
 	Sockaddr sl_sa;
 #define sl_addr	sl_sa.sa_in_addr
-#else	
-	struct sockaddr_in	sl_addr;
-#endif /* LDAP_PF_LOCAL */
 } Listener;
 
 Listener **slap_listeners = NULL;
@@ -203,6 +202,11 @@ static Listener * open_listener( const char* url )
 	LDAPURLDesc *lud;
 	char *s;
 	int port;
+#ifdef LDAP_INET6
+	char serv[7];
+	struct addrinfo hints, *res, *sai;
+	int err;
+#endif
 
 	rc = ldap_url_parse( url, &lud );
 
@@ -234,6 +238,55 @@ static Listener * open_listener( const char* url )
 	}
 #endif
 
+#ifdef LDAP_INET6
+	memset( &hints, '\0', sizeof(hints) );
+	hints.ai_flags = AI_PASSIVE;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+#  ifdef LDAP_PF_LOCAL
+	if (lud->lud_protocol == LDAP_PROTO_LOCAL) {
+		if ( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) {
+			err = getaddrinfo(NULL, "/tmp/.ldap-sock", &hints, &res);
+			if (!err)
+				unlink( "/tmp/.ldap-sock" );
+		} else {
+			err = getaddrinfo(NULL, lud->lud_host, &hints, &res);
+			if (!err)
+				unlink( lud->lud_host );
+		}
+	} else
+#  endif /* LDAP_PF_LOCAL */
+	{
+		snprintf(serv, sizeof serv, "%d", lud->lud_port);
+		if( lud->lud_host == NULL || lud->lud_host[0] == '\0'
+			|| strcmp(lud->lud_host, "*") == 0 )
+		{
+			err = getaddrinfo(NULL, serv, &hints, &res);
+		} else {
+			err = getaddrinfo(lud->lud_host, serv, &hints, &res);
+		}
+	}
+
+	if ( err ) {
+		Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo failed\n", 0, 0, 0);
+		ldap_free_urldesc( lud );
+		return NULL;
+	}
+
+	ldap_free_urldesc( lud );
+	sai = res;
+	do {
+		l.sl_sd = socket( sai->ai_family, sai->ai_socktype, sai->ai_protocol);
+		if ( l.sl_sd == AC_SOCKET_INVALID ) {
+			Debug( LDAP_DEBUG_ANY,
+				"daemon: socket() failed errno=%d (%s)\n", err,
+				sock_errstr(err), 0 );
+			continue;
+		}
+
+		if ( sai->ai_family != AF_UNIX ) {
+#else
 #ifdef LDAP_PF_LOCAL
 	if (lud->lud_protocol == LDAP_PROTO_LOCAL) {
 		port = 0;
@@ -246,7 +299,8 @@ static Listener * open_listener( const char* url )
 			strcpy( l.sl_sa.sa_un_addr.sun_path, "/tmp/.ldap-sock" );
 		} else {
 			if ( strlen(lud->lud_host) > (sizeof(l.sl_sa.sa_un_addr.sun_path) - 1) ) {
-				Debug( LDAP_DEBUG_ANY, "domain socket path (%s) too long in URL: %s",
+				Debug( LDAP_DEBUG_ANY,
+					"daemon: domain socket path (%s) too long in URL: %s",
 					lud->lud_host, url, 0);
 				ldap_free_urldesc( lud );
 				return NULL;
@@ -260,8 +314,9 @@ static Listener * open_listener( const char* url )
 			sizeof( l.sl_sa.sa_un_addr.sun_family ) +
 			strlen( l.sl_sa.sa_un_addr.sun_path ) + 1;
 #endif
-	} else {
+	} else
 #endif /* LDAP_PF_LOCAL */
+	{
 
 	port = lud->lud_port;
 
@@ -280,7 +335,8 @@ static Listener * open_listener( const char* url )
 		if( !inet_aton( lud->lud_host, &l.sl_addr.sin_addr ) ) {
 			struct hostent *he = gethostbyname( lud->lud_host );
 			if( he == NULL ) {
-				Debug( LDAP_DEBUG_ANY, "invalid host (%s) in URL: %s",
+				Debug( LDAP_DEBUG_ANY,
+					"daemon: invalid host (%s) in URL: %s",
 					lud->lud_host, url, 0);
 				ldap_free_urldesc( lud );
 				return NULL;
@@ -290,18 +346,12 @@ static Listener * open_listener( const char* url )
 			       sizeof( l.sl_addr.sin_addr ) );
 		}
 	}
-#ifdef LDAP_PF_LOCAL
 	}
-#endif /* LDAP_PF_LOCAL */
 
 	ldap_free_urldesc( lud );
 
-#ifdef LDAP_PF_LOCAL
 	l.sl_sd = socket( l.sl_sa.sa_addr.sa_family, SOCK_STREAM, 0 );
 	if ( l.sl_sd == AC_SOCKET_INVALID ) {
-#else
-	if ( (l.sl_sd = socket( AF_INET, SOCK_STREAM, 0 )) == AC_SOCKET_INVALID ) {
-#endif /* LDAP_PF_LOCAL */
 		int err = sock_errno();
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: socket() failed errno=%d (%s)\n", err,
@@ -323,6 +373,7 @@ static Listener * open_listener( const char* url )
 	/* for IP sockets only */
 	if ( l.sl_sa.sa_addr.sa_family == AF_INET ) {
 #endif /* LDAP_PF_LOCAL */
+#endif /* LDAP_INET6 */
 
 #ifdef SO_REUSEADDR
 	/* enable address reuse */
@@ -361,27 +412,87 @@ static Listener * open_listener( const char* url )
 	}
 #endif
 
+#ifdef LDAP_INET6
+		} /* sai->ai_family != AF_UNIX */
+		if (!bind(l.sl_sd, sai->ai_addr, sai->ai_addrlen))
+			break;
+		err = sock_errno();
+		Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed errno=%d (%s)\n",
+			(long) l.sl_sd, err, sock_errstr(err) );
+		tcp_close( l.sl_sd );
+	} while ((sai = sai->ai_next) != NULL);
+
+	if (!sai) {
+		Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed\n",
+			(long) l.sl_sd, 0, 0 );
+		return NULL;
+	}
+
+	switch ( sai->ai_family ) {
+#ifdef LDAP_PF_LOCAL
+	case AF_UNIX:
+		if ( chmod( (char *)sai->ai_addr, S_IRWXU ) < 0 ) {
+			err = sock_errno();
+			Debug( LDAP_DEBUG_ANY, "daemon: fchmod(%ld) failed errno=%d (%s)",
+				(long) l.sl_sd, err, sock_errstr(err) );
+			tcp_close( l.sl_sd );
+			return NULL;
+		}
+		l.sl_name = ch_malloc( strlen((char *)sai->ai_addr) + sizeof("PATH=") );
+		sprintf( l.sl_name, "PATH=%s", sai->ai_addr );
+		break;
+#  endif /* LDAP_PF_LOCAL */
+
+	case AF_INET: {
+		char addr[INET_ADDRSTRLEN];
+		inet_ntop( AF_INET,
+			&((struct sockaddr_in *)sai->ai_addr)->sin_addr,
+			addr, sizeof(addr) );
+		l.sl_name = ch_malloc( strlen(addr) + strlen(serv) + sizeof("IP=:") );
+		sprintf( l.sl_name, "IP=%s:%s", addr, serv );
+	} break;
+
+#ifdef AF_INET6
+	case AF_INET6: {
+		char addr[INET6_ADDRSTRLEN];
+		inet_ntop( AF_INET6,
+			&((struct sockaddr_in6 *)sai->ai_addr)->sin6_addr,
+			addr, sizeof addr);
+		l.sl_name = ch_malloc( strlen(addr) + strlen(serv) + sizeof("IP= ") );
+		sprintf( l.sl_name, "IP=%s %s", addr, serv );
+	} break;
+#endif
+
+	default:
+		Debug( LDAP_DEBUG_ANY, "daemon: unsupported address family (%d)\n",
+			(int) sai->ai_family, 0, 0 );
+		break;
+	}
+#else
 #ifdef LDAP_PF_LOCAL
 	/* close conditional */
 	}
+#endif /* LDAP_PF_LOCAL */
 
 	switch ( l.sl_sa.sa_addr.sa_family ) {
+#ifdef LDAP_PF_LOCAL
 		case AF_UNIX:
 			rc = bind( l.sl_sd, (struct sockaddr *)&l.sl_sa,
 				sizeof(l.sl_sa.sa_un_addr) );
 			break;
+#endif
+
 		case AF_INET:
 			rc = bind( l.sl_sd, (struct sockaddr *)&l.sl_sa,
 				sizeof(l.sl_sa.sa_in_addr) );
 			break;
+
 		default:
 			rc = AC_SOCKET_ERROR;
 			errno = EINVAL;
 			break;
 	}
-#else
-	rc = bind( l.sl_sd, (struct sockaddr *) &l.sl_addr, sizeof(l.sl_addr) );
-#endif /* LDAP_PF_LOCAL */
+
 	if ( rc == AC_SOCKET_ERROR ) {
 		int err = sock_errno();
 		Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed errno=%d (%s)\n",
@@ -389,41 +500,40 @@ static Listener * open_listener( const char* url )
 		tcp_close( l.sl_sd );
 		return NULL;
 	}
-#ifdef LDAP_PF_LOCAL
-	if ( l.sl_sa.sa_addr.sa_family == AF_UNIX ) {
-		if ( chmod( l.sl_sa.sa_un_addr.sun_path, S_IRWXU ) < 0 ) {
-			int err = sock_errno();
-			Debug( LDAP_DEBUG_ANY, "daemon: fchmod(%ld) failed errno=%d (%s)",
-				(long) l.sl_sd, err, sock_errstr(err) );
-			tcp_close( l.sl_sd );
-			return NULL;
-		}
-	}
-#endif /* LDAP_PF_LOACL */
-	l.sl_url = ch_strdup( url );
-#ifdef LDAP_PF_LOCAL
+
 	switch ( l.sl_sa.sa_addr.sa_family ) {
+#ifdef LDAP_PF_LOCAL
 		case AF_UNIX:
-			l.sl_name = ch_malloc( strlen(l.sl_sa.sa_un_addr.sun_path) + sizeof("PATH=") );
+			if ( chmod( l.sl_sa.sa_un_addr.sun_path, S_IRWXU ) < 0 ) {
+				int err = sock_errno();
+				Debug( LDAP_DEBUG_ANY,
+					"daemon: chmod(%ld) failed errno=%d (%s)",
+					(long) l.sl_sd, err, sock_errstr(err) );
+				tcp_close( l.sl_sd );
+				return NULL;
+			}
+
+			l.sl_name = ch_malloc( strlen(l.sl_sa.sa_un_addr.sun_path)
+				+ sizeof("PATH=") );
 			sprintf( l.sl_name, "PATH=%s", l.sl_sa.sa_un_addr.sun_path );
 			break;
+#  endif /* LDAP_PF_LOCAL */
+
 		case AF_INET:
 			l.sl_name = ch_malloc( sizeof("IP=255.255.255.255:65336") );
 			s = inet_ntoa( l.sl_addr.sin_addr );
 			sprintf( l.sl_name, "IP=%s:%d",
 				s != NULL ? s : "unknown" , port );
 			break;
+
 		default:
 			l.sl_name = ch_strdup( "UNKNOWN" );
 			break;
 	}
-#else
-	l.sl_name = ch_malloc( sizeof("IP=255.255.255.255:65336") );
-	s = inet_ntoa( l.sl_addr.sin_addr );
-	sprintf( l.sl_name, "IP=%s:%d",
-		s != NULL ? s : "unknown" , port );
-#endif /* LDAP_PF_LOCAL */
 
+#endif /* LDAP_INET6 */
+
+	l.sl_url = ch_strdup( url );
 	li = ch_malloc( sizeof( Listener ) );
 	*li = l;
 
@@ -582,14 +692,14 @@ slapd_daemon_task(
 
 		fd_set			readfds;
 		fd_set			writefds;
-#ifdef LDAP_PF_LOCAL
+#if defined( LDAP_PF_LOCAL ) || defined( LDAP_INET6 )
 		Sockaddr		from;
 /* minimize impact, undefine later. */
 #define	sin_addr sa_in_addr.sin_addr
 #define	sin_port sa_in_addr.sin_port
 #else
 		struct sockaddr_in	from;
-#endif /* LDAP_PF_LOCAL */
+#endif /* LDAP_PF_LOCAL || LDAP_INET6 */
 #if defined(SLAPD_RLOOKUPS)
         struct hostent		*hp;
 #endif
@@ -726,7 +836,11 @@ slapd_daemon_task(
 #ifdef LDAP_PF_LOCAL
 			char	peername[MAXPATHLEN + sizeof("PATH=")];
 #else
+#  ifdef LDAP_INET6
+			char	peername[sizeof("IP=ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff 65535")];
+#  else
 			char	peername[sizeof("IP=255.255.255.255:65336")];
+#  endif
 #endif /* LDAP_PF_LOCAL */
 			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID )
 				continue;
@@ -782,32 +896,56 @@ slapd_daemon_task(
 				continue;
 			}
 
-#ifdef LDAP_PF_LOCAL
+#if defined( LDAP_PF_LOCAL ) || defined( LDAP_INET6 )
 			switch ( from.sa_addr.sa_family ) {
+#  ifdef LDAP_PF_LOCAL
 			case AF_UNIX:
 				sprintf( peername, "PATH=%s", from.sa_un_addr.sun_path );
 				break;
-			case AF_INET:
 #endif /* LDAP_PF_LOCAL */
+
+#  ifdef LDAP_INET6
+			case AF_INET6: {
+				char addr[INET6_ADDRSTRLEN];
+				sprintf( peername, "IP=%s %d",
+					inet_ntop( AF_INET6,
+						&from.sa_in6_addr.sin6_addr,
+					    addr, sizeof addr) ? addr : "unknown",
+					(unsigned) ntohs( from.sa_in6_addr.sin6_port ) );
+			} break;
+#  endif /* LDAP_INET6 */
+
+			case AF_INET:
+#endif /* LDAP_PF_LOCAL || LDAP_INET6 */
 			peeraddr = inet_ntoa( from.sin_addr );
 			sprintf( peername, "IP=%s:%d",
 				peeraddr != NULL ? peeraddr : "unknown",
 				(unsigned) ntohs( from.sin_port ) );
+#if defined( LDAP_PF_LOCAL ) || defined( LDAP_INET6 )
+				break;
 
-#if defined(SLAPD_RLOOKUPS)
+			default:
+				slapd_close(s);
+				continue;
+			}
+			if ( from.sa_addr.sa_family != AF_UNIX ) {
+#endif /* LDAP_PF_LOCAL || LDAP_INET6 */
+#ifdef SLAPD_RLOOKUPS
+#  ifdef LDAP_INET6
+		if ( from.sa_addr.sa_family == AF_INET6 )
 			hp = gethostbyaddr( (char *)
-			    &(from.sin_addr),
+				&(from.sa_in6_addr.sin6_addr),
+				sizeof(from.sa_in6_addr.sin6_addr),
+				AF_INET6 );
+		else
+#  endif LDAP_INET6
+			hp = gethostbyaddr( (char *) &(from.sin_addr),
 			    sizeof(from.sin_addr), AF_INET );
 
-			if(hp) {
-				dnsname = ldap_pvt_str2lower( hp->h_name );
-
-			} else {
-				dnsname = NULL;
-			}
+			dnsname = hp ? ldap_pvt_str2lower( hp->h_name ) : NULL;
 #else
 			dnsname = NULL;
-#endif
+#endif /* SLAPD_RLOOKUPS */
 
 #ifdef HAVE_TCPD
 			if( !hosts_ctl("slapd",
@@ -827,15 +965,11 @@ slapd_daemon_task(
 				continue;
 			}
 #endif /* HAVE_TCPD */
-#ifdef LDAP_PF_LOCAL
-				break;
-			default:
-				slapd_close(s);
-				continue;
+#if defined( LDAP_PF_LOCAL ) || defined( LDAP_INET6 )
 			}
 #undef	sin_addr
 #undef	sin_port
-#endif /* LDAP_PF_LOCAL */
+#endif /* LDAP_PF_LOCAL || LDAP_INET6 */
 
 			if( (id = connection_init(s,
 				slap_listeners[l]->sl_url,
