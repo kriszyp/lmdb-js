@@ -20,7 +20,9 @@
 #else
 #	ifdef HAVE_STRING_H
 #		include <string.h>
-#	elif HAVE_STRINGS_H
+#	endif
+#	if defined(HAVE_STRINGS_H) && (!defined(HAVE_STRING_H) ||
+		defined(BOTH_STRINGS_H))
 #		include <strings.h>
 #	endif
 
