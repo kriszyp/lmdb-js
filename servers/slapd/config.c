@@ -120,6 +120,8 @@ read_config( const char *fname, int depth )
 	LDAPURLDesc *ludp;
 	static BackendInfo *bi = NULL;
 	static BackendDB	*be = NULL;
+	char	*next;
+
 
 	vals[1].bv_val = NULL;
 
@@ -259,7 +261,7 @@ read_config( const char *fname, int depth )
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT, 
-					"%s: line %d: missing level in \"concurrency <level\" "
+					"%s: line %d: missing level in \"concurrency <level>\" "
 					" line\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
@@ -270,7 +272,19 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 
-			c = atoi( cargv[1] );
+			c = strtol( cargv[1], &next, 10 );
+			if ( next == NULL || next[0] != '\0' ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: unable to parse level \"%s\" in \"concurrency <level>\" "
+					" line\n", fname, lineno, cargv[1] );
+#else
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: unable to parse level \"%s\" in \"concurrency <level>\" line\n",
+				    fname, lineno, cargv[1] );
+#endif
+				return( 1 );
+			}
 
 			if( c < 1 ) {
 #ifdef NEW_LOGGING
@@ -541,7 +555,19 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 
-			c = atoi( cargv[1] );
+			c = strtol( cargv[1], &next, 10 );
+			if (next == NULL || next[0] != '\0' ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: unable to parse count \"%s\" in \"threads <count>\" line\n",
+					fname, lineno, cargv[1] );
+#else
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: unable to parse count \"%s\" in \"threads <count>\" line\n",
+				    fname, lineno, cargv[1] );
+#endif
+				return( 1 );
+			}
 
 			if( c < 0 ) {
 #ifdef NEW_LOGGING
@@ -821,8 +847,6 @@ read_config( const char *fname, int depth )
 					if ( strcasecmp( cargv[i], "unlimited" ) == 0 ) {
 						lim->lms_s_soft = -1;
 					} else {
-						char *next;
-
 						lim->lms_s_soft = strtol( cargv[i] , &next, 0 );
 						if ( next == cargv[i] ) {
 #ifdef NEW_LOGGING
@@ -901,8 +925,6 @@ read_config( const char *fname, int depth )
 					if ( strcasecmp( cargv[i], "unlimited" ) == 0 ) {
 						lim->lms_t_soft = -1;
 					} else {
-						char *next;
-
 						lim->lms_t_soft = strtol( cargv[i] , &next, 0 );
 						if ( next == cargv[i] ) {
 #ifdef NEW_LOGGING
@@ -1150,25 +1172,38 @@ read_config( const char *fname, int depth )
 "%s: line %d: depth line must appear inside a database definition.\n",
                                    fname, lineno, 0 );
 #endif
-							return 1;
+				return 1;
+                       }
 
-                       } else if ((i = atoi(cargv[1])) < 0) {
+		       i = strtol( cargv[1], &next, 10 );
+		       if ( next == NULL || next[0] != '\0' ) {
+#ifdef NEW_LOGGING
+			       LDAP_LOG( CONFIG, INFO, 
+					  "%s: line %d: unable to parse depth \"%s\" in \"maxDerefDepth <depth>\" "
+					  "line.\n", fname, lineno, cargv[1] );
+#else
+                               Debug( LDAP_DEBUG_ANY,
+					  "%s: line %d: unable to parse depth \"%s\" in \"maxDerefDepth <depth>\" "
+					  "line.\n", fname, lineno, cargv[1] );
+#endif
+				return 1;
+		       }
+
+		       if (i < 0) {
 #ifdef NEW_LOGGING
 			       LDAP_LOG( CONFIG, INFO, 
 					  "%s: line %d: depth must be positive.\n",
-					  fname, lineno ,0 );
+					  fname, lineno, 0 );
 #else
                                Debug( LDAP_DEBUG_ANY,
 "%s: line %d: depth must be positive.\n",
                                    fname, lineno, 0 );
 #endif
-							return 1;
+				return 1;
 
 
-                       } else {
-                           be->be_max_deref_depth = i;
-					   }
-
+                       }
+                       be->be_max_deref_depth = i;
 
 		/* set magic "root" dn for this database */
 		} else if ( strcasecmp( cargv[0], "rootdn" ) == 0 ) {
@@ -1632,64 +1667,67 @@ restrict_unknown:;
 			}
 
 			for( i=1; i < cargc; i++ ) {
-				if( strncasecmp( cargv[i], "ssf=",
-					sizeof("ssf") ) == 0 )
-				{
-					set->sss_ssf =
-						atoi( &cargv[i][sizeof("ssf")] );
+				int	*tgt;
+				char	*src;
 
-				} else if( strncasecmp( cargv[i], "transport=",
-					sizeof("transport") ) == 0 )
+				if ( strncasecmp( cargv[i], "ssf=",
+						STRLENOF("ssf=") ) == 0 )
 				{
-					set->sss_transport =
-						atoi( &cargv[i][sizeof("transport")] );
+					tgt = &set->sss_ssf;
+					src = &cargv[i][STRLENOF("ssf=")];
 
-				} else if( strncasecmp( cargv[i], "tls=",
-					sizeof("tls") ) == 0 )
+				} else if ( strncasecmp( cargv[i], "transport=",
+						STRLENOF("transport=") ) == 0 )
 				{
-					set->sss_tls =
-						atoi( &cargv[i][sizeof("tls")] );
+					tgt = &set->sss_transport;
+					src = &cargv[i][STRLENOF("transport=")];
 
-				} else if( strncasecmp( cargv[i], "sasl=",
-					sizeof("sasl") ) == 0 )
+				} else if ( strncasecmp( cargv[i], "tls=",
+						STRLENOF("tls=") ) == 0 )
 				{
-					set->sss_sasl =
-						atoi( &cargv[i][sizeof("sasl")] );
+					tgt = &set->sss_tls;
+					src = &cargv[i][STRLENOF("tls=")];
 
-				} else if( strncasecmp( cargv[i], "update_ssf=",
-					sizeof("update_ssf") ) == 0 )
+				} else if ( strncasecmp( cargv[i], "sasl=",
+						STRLENOF("sasl=") ) == 0 )
 				{
-					set->sss_update_ssf =
-						atoi( &cargv[i][sizeof("update_ssf")] );
+					tgt = &set->sss_sasl;
+					src = &cargv[i][STRLENOF("sasl=")];
 
-				} else if( strncasecmp( cargv[i], "update_transport=",
-					sizeof("update_transport") ) == 0 )
+				} else if ( strncasecmp( cargv[i], "update_ssf=",
+						STRLENOF("update_ssf=") ) == 0 )
 				{
-					set->sss_update_transport =
-						atoi( &cargv[i][sizeof("update_transport")] );
+					tgt = &set->sss_update_ssf;
+					src = &cargv[i][STRLENOF("update_ssf=")];
 
-				} else if( strncasecmp( cargv[i], "update_tls=",
-					sizeof("update_tls") ) == 0 )
+				} else if ( strncasecmp( cargv[i], "update_transport=",
+						STRLENOF("update_transport=") ) == 0 )
 				{
-					set->sss_update_tls =
-						atoi( &cargv[i][sizeof("update_tls")] );
+					tgt = &set->sss_update_transport;
+					src = &cargv[i][STRLENOF("update_transport=")];
 
-				} else if( strncasecmp( cargv[i], "update_sasl=",
-					sizeof("update_sasl") ) == 0 )
+				} else if ( strncasecmp( cargv[i], "update_tls=",
+						STRLENOF("update_tls=") ) == 0 )
 				{
-					set->sss_update_sasl =
-						atoi( &cargv[i][sizeof("update_sasl")] );
+					tgt = &set->sss_update_tls;
+					src = &cargv[i][STRLENOF("update_tls=")];
 
-				} else if( strncasecmp( cargv[i], "simple_bind=",
-					sizeof("simple_bind") ) == 0 )
+				} else if ( strncasecmp( cargv[i], "update_sasl=",
+						STRLENOF("update_sasl=") ) == 0 )
 				{
-					set->sss_simple_bind =
-						atoi( &cargv[i][sizeof("simple_bind")] );
+					tgt = &set->sss_update_sasl;
+					src = &cargv[i][STRLENOF("update_sasl=")];
+
+				} else if ( strncasecmp( cargv[i], "simple_bind=",
+						STRLENOF("simple_bind=") ) == 0 )
+				{
+					tgt = &set->sss_simple_bind;
+					src = &cargv[i][STRLENOF("simple_bind=")];
 
 				} else {
 #ifdef NEW_LOGGING
 					LDAP_LOG( CONFIG, CRIT, 
-						   "%s: line %d: unknown factor %S in "
+						   "%s: line %d: unknown factor %s in "
 						   "\"security <factors>\" line.\n",
 						   fname, lineno, cargv[1] );
 #else
@@ -1700,7 +1738,24 @@ restrict_unknown:;
 
 					return( 1 );
 				}
+
+				*tgt = strtol( src, &next, 10 );
+				if ( next == NULL || next[0] != '\0' ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG( CONFIG, CRIT, 
+						   "%s: line %d: unable to parse factor \"%s\" in "
+						   "\"security <factors>\" line.\n",
+						   fname, lineno, cargv[1] );
+#else
+					Debug( LDAP_DEBUG_ANY,
+		    "%s: line %d: unable to parse factor \"%s\" in \"security <factors>\" line\n",
+					    fname, lineno, cargv[i] );
+#endif
+
+					return( 1 );
+				}
 			}
+
 		/* where to send clients when we don't hold it */
 		} else if ( strcasecmp( cargv[0], "referral" ) == 0 ) {
 			if ( cargc < 2 ) {
@@ -1768,10 +1823,22 @@ restrict_unknown:;
 					"%s: line %d: Error in debug directive, \"debug subsys level\"\n",
 					fname, lineno, 0 );
 #endif
-
 				return( 1 );
 			}
-                        level = atoi( cargv[2] );
+                        level = strtol( cargv[2], &next, 10 );
+			if ( next == NULL || next[0] != '\0' ){
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, 
+					   "%s: line %d: unable to parse level \"%s\" in debug directive, "
+					   "\"debug <subsys> <level>\"\n", fname, lineno , cargv[2] );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					   "%s: line %d: unable to parse level \"%s\" in debug directive, "
+					   "\"debug <subsys> <level>\"\n", fname, lineno , cargv[2] );
+#endif
+				return( 1 );
+			}
+
                         if ( level <= 0 ) level = lutil_mnem2level( cargv[2] );
                         lutil_set_debug_level( cargv[1], level );
 		/* specify an Object Identifier macro */
@@ -1898,11 +1965,11 @@ restrict_unknown:;
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT, 
-					"%s: line %d: missing level in \"loglevel <level>\""
+					"%s: line %d: missing level(s) in \"loglevel <level> [...]\""
 					" line.\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
-		    "%s: line %d: missing level in \"loglevel <level>\" line\n",
+		    "%s: line %d: missing level(s) in \"loglevel <level> [...]\" line\n",
 				    fname, lineno, 0 );
 #endif
 
@@ -1912,7 +1979,21 @@ restrict_unknown:;
 			ldap_syslog = 0;
 
 			for( i=1; i < cargc; i++ ) {
-				ldap_syslog += atoi( cargv[1] );
+				int	level = strtol( cargv[i], &next, 10 );
+				if ( next == NULL || next[0] != '\0' ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG( CONFIG, CRIT, 
+						"%s: line %d: unable to parse level \"%s\" in \"loglevel <level> [...]\""
+						" line.\n", fname, lineno , cargv[i] );
+#else
+					Debug( LDAP_DEBUG_ANY,
+						"%s: line %d: unable to parse level \"%s\" in \"loglevel <level> [...]\""
+						" line.\n", fname, lineno , cargv[i] );
+#endif
+					return( 1 );
+				}
+
+				ldap_syslog |= level;
 			}
 
 		/* list of sync replication information in this backend (slave only) */

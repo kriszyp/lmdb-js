@@ -252,7 +252,7 @@ parse_acl(
 )
 {
 	int		i;
-	char		*left, *right, *style;
+	char		*left, *right, *style, *next;
 	struct berval	bv;
 	AccessControl	*a;
 	Access	*b;
@@ -1270,7 +1270,13 @@ parse_acl(
 						acl_usage();
 					}
 
-					b->a_authz.sai_ssf = atoi( right );
+					b->a_authz.sai_ssf = strtol( right, *next, 10 );
+					if ( next == NULL || next[0] != '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: unable to parse ssf value (%s)\n",
+							fname, lineno, right );
+						acl_usage();
+					}
 
 					if( !b->a_authz.sai_ssf ) {
 						fprintf( stderr,
@@ -1303,7 +1309,13 @@ parse_acl(
 						acl_usage();
 					}
 
-					b->a_authz.sai_transport_ssf = atoi( right );
+					b->a_authz.sai_transport_ssf = strtol( right, &next, 10 );
+					if ( next == NULL || next[0] != '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: unable to parse transport_ssf value (%s)\n",
+							fname, lineno, right );
+						acl_usage();
+					}
 
 					if( !b->a_authz.sai_transport_ssf ) {
 						fprintf( stderr,
@@ -1336,7 +1348,13 @@ parse_acl(
 						acl_usage();
 					}
 
-					b->a_authz.sai_tls_ssf = atoi( right );
+					b->a_authz.sai_tls_ssf = strtol( right, &next, 10 );
+					if ( next == NULL || next[0] != '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: unable to parse tls_ssf value (%s)\n",
+							fname, lineno, right );
+						acl_usage();
+					}
 
 					if( !b->a_authz.sai_tls_ssf ) {
 						fprintf( stderr,
@@ -1369,7 +1387,13 @@ parse_acl(
 						acl_usage();
 					}
 
-					b->a_authz.sai_sasl_ssf = atoi( right );
+					b->a_authz.sai_sasl_ssf = strtol( right, &next, 10 );
+					if ( next == NULL || next[0] != '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: unable to parse sasl_ssf value (%s)\n",
+							fname, lineno, right );
+						acl_usage();
+					}
 
 					if( !b->a_authz.sai_sasl_ssf ) {
 						fprintf( stderr,
