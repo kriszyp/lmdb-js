@@ -89,6 +89,7 @@ typedef struct bdb_entry_info {
 
 	int bei_state;
 #define	CACHE_ENTRY_DELETED	1
+#define	CACHE_ENTRY_NO_KIDS	2
 
 	/*
 	 * remaining fields require backend cache lock to access

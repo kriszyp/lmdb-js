@@ -205,8 +205,7 @@ retry:	/* transaction retry */
 	}
 
 #ifndef BDB_HIER
-	rs->sr_err = ei->bei_kids ? 0 : bdb_dn2id_children( op->o_bd, ltid,
-		&e->e_nname, 0 );
+	rs->sr_err = bdb_dn2id_children( op, ltid, e );
 	if ( rs->sr_err != DB_NOTFOUND ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -239,6 +238,7 @@ retry:	/* transaction retry */
 		}
 		goto return_results;
 	}
+	ei->bei_state |= CACHE_ENTRY_NO_KIDS;
 #endif
 	if (!manageDSAit && is_entry_referral( e ) ) {
 		/* parent is a referral, don't allow add */

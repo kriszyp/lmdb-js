@@ -79,10 +79,9 @@ int bdb_dn2id_delete(
 	Entry *e );
 
 int bdb_dn2id_children(
-	BackendDB *be,
+	Operation *op,
 	DB_TXN *tid,
-	struct berval *dn,
-	int flags );
+	Entry *e );
 
 int
 bdb_dn2idl(

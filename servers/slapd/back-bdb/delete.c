@@ -323,8 +323,7 @@ retry:	/* transaction retry */
 	}
 
 	/* Can't do it if we have kids */
-	rs->sr_err = ei->bei_kids ? 0 : bdb_dn2id_children( op->o_bd, lt2,
-		&e->e_nname, 0 );
+	rs->sr_err = bdb_dn2id_children( op, lt2, e );
 	if( rs->sr_err != DB_NOTFOUND ) {
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:

@@ -357,7 +357,7 @@ bdb_cache_find_entry_ndn2id(
 				*res = eip;
 				return rc;
 			}
-		} else if ( ei2->bei_state == CACHE_ENTRY_DELETED ) {
+		} else if ( ei2->bei_state & CACHE_ENTRY_DELETED ) {
 			/* In the midst of deleting? Give it a chance to
 			 * complete.
 			 */
@@ -443,7 +443,7 @@ bdb_cache_find_entry_id(
 
 	/* Ok, we found the info, do we have the entry? */
 	if ( *eip && rc == 0 ) {
-		if ( (*eip)->bei_state == CACHE_ENTRY_DELETED ) {
+		if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
 			rc = DB_NOTFOUND;
 		} else if (!(*eip)->bei_e ) {
 			if (!ep) {
@@ -492,6 +492,8 @@ bdb_cache_add(
 	rc = bdb_entryinfo_add_internal( bdb, ei, e->e_id, nrdn, &new, locker );
 	new->bei_e = e;
 	e->e_private = new;
+	new->bei_state = CACHE_ENTRY_NO_KIDS;
+	ei->bei_state &= ~CACHE_ENTRY_NO_KIDS;
 	bdb_cache_entryinfo_unlock( ei );
 	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
 	return rc;
@@ -600,7 +602,7 @@ bdb_cache_delete_entry(
 	assert( e->e_private );
 
 	/* Set this early, warn off any queriers */
-	ei->bei_state = CACHE_ENTRY_DELETED;
+	ei->bei_state |= CACHE_ENTRY_DELETED;
 
 	/* Get write lock on the data */
 	bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
@@ -670,7 +672,7 @@ bdb_cache_delete_entry_internal(
 	/*
 	 * flag entry to be freed later by a call to cache_return_entry()
 	 */
-	e->bei_state = CACHE_ENTRY_DELETED;
+	e->bei_state |= CACHE_ENTRY_DELETED;
 
 	return( 0 );
 }

@@ -353,30 +353,37 @@ bdb_dn2id(
 
 int
 bdb_dn2id_children(
-	BackendDB	*be,
+	Operation *op,
 	DB_TXN *txn,
-	struct berval *dn, 
-	int flags )
+	Entry *e )
 {
 	int		rc;
-	DBT		key, data;
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	DB *db = bdb->bi_dn2id->bdi_db;
-	ID		id;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( INDEX, ARGS, 
-		"=> bdb_dn2id_children( %s )\n", dn->bv_val, 0, 0 );
+		"=> bdb_dn2id_children( %s )\n", e->e_nname.bv_val, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_children( %s )\n",
-		dn->bv_val, 0, 0 );
+		e->e_nname.bv_val, 0, 0 );
 #endif
 
+	if ( BEI(e)->bei_kids ) {
+		rc = 0;
+	}
+	if ( BEI(e)->bei_state & CACHE_ENTRY_NO_KIDS ) {
+		rc = DB_NOTFOUND;
+	} else {
+
+	DBT		key, data;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+	DB *db = bdb->bi_dn2id->bdi_db;
+	ID		id;
+
 	DBTzero( &key );
-	key.size = dn->bv_len + 2;
-	key.data = ch_malloc( key.size );
+	key.size = e->e_nname.bv_len + 2;
+	key.data = sl_malloc( key.size, op->o_tmpmemctx );
 	((char *)key.data)[0] = DN_ONE_PREFIX;
-	AC_MEMCPY( &((char *)key.data)[1], dn->bv_val, key.size - 1 );
+	AC_MEMCPY( &((char *)key.data)[1], e->e_nname.bv_val, key.size - 1 );
 
 	/* we actually could do a empty get... */
 	DBTzero( &data );
@@ -386,17 +393,23 @@ bdb_dn2id_children(
 	data.doff = 0;
 	data.dlen = sizeof(id);
 
-	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags | flags );
-	free( key.data );
+	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
+	sl_free( key.data, op->o_tmpmemctx );
+
+	if ( rc == DB_NOTFOUND ) {
+		BEI(e)->bei_state |= CACHE_ENTRY_NO_KIDS;
+	}
+
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( INDEX, DETAIL1, 
 		"<= bdb_dn2id_children( %s ): %s (%d)\n", 
-		dn->bv_val, rc == 0 ? "" : ( rc == DB_NOTFOUND ? "no " :
+		e->e_nname.bv_val, rc == 0 ? "" : ( rc == DB_NOTFOUND ? "no " :
 		db_strerror(rc)), rc );
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_children( %s ): %s (%d)\n",
-		dn->bv_val,
+		e->e_nname.bv_val,
 		rc == 0 ? "" : ( rc == DB_NOTFOUND ? "no " :
 			db_strerror(rc) ), rc );
 #endif
