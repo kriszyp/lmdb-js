@@ -619,17 +619,24 @@ int backend_check_referrals(
 	Backend *be,
 	Connection *conn,
 	Operation *op,
-	struct berval ***bv,
+	const char *dn,
+	const char *ndn,
 	const char **text )
 {
+	int rc = LDAP_SUCCESS;
 	*bv = NULL;
 
 	if( be->be_chk_referrals ) {
-		return be->be_chk_referrals( be,
-			conn, op, bv, text );
+		rc = be->be_chk_referrals( be,
+			conn, op, dn, ndn, text );
+
+		if( rc != LDAP_SUCCESS && rc != LDAP_REFERRAL ) {
+			send_ldap_result( conn, op, rc,
+				NULL, text, NULL, NULL );
+		}
 	}
 
-	return LDAP_SUCCESS;
+	return rc;
 }
 
 int 

@@ -39,7 +39,6 @@ do_search(
 	Backend		*be;
 	int			rc;
 	const char		*text;
-	struct berval **urls = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "do_search\n", 0, 0, 0 );
 
@@ -224,11 +223,10 @@ do_search(
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, &urls, &text );
+	rc = backend_check_referrals( be, conn, op,
+		base, nbase, &text );
+
 	if ( rc != LDAP_SUCCESS ) {
-		send_ldap_result( conn, op, rc,
-			NULL, text, urls, NULL );
-		ber_bvecfree( urls );
 		goto return_results;
 	}
 

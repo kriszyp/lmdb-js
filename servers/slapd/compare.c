@@ -36,7 +36,6 @@ do_compare(
 	AttributeAssertion ava;
 	Backend	*be;
 	int rc = LDAP_SUCCESS;
-	struct berval **urls = NULL;
 	const char *text = NULL;
 
 	ava.aa_desc = NULL;
@@ -108,6 +107,7 @@ do_compare(
 
 	/* make sure this backend recongizes critical controls */
 	rc = backend_check_controls( be, conn, op, &text ) ;
+
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );
@@ -115,11 +115,10 @@ do_compare(
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, &urls, &text );
+	rc = backend_check_referrals( be, conn, op,
+		dn, ndn, &text );
+
 	if ( rc != LDAP_SUCCESS ) {
-		send_ldap_result( conn, op, rc,
-			NULL, text, urls, NULL );
-		ber_bvecfree( urls );
 		goto cleanup;
 	}
 

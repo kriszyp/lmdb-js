@@ -910,7 +910,7 @@ struct slap_backend_info {
 
 	int	(*bi_chk_referrals) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		struct berval ***urls,
+		const char *dn, const char *ndn,
 		const char **text ));
 
 	int	(*bi_acl_group)  LDAP_P((Backend *bd,

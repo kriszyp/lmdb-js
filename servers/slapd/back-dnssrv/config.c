@@ -13,7 +13,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "back-dnssrv.h"
+#include "external.h"
 
 int
 dnssrv_back_db_config(

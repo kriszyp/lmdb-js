@@ -12,7 +12,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "back-dnssrv.h"
+#include "external.h"
 
 #ifdef SLAPD_DNSSRV_DYNAMIC
 
@@ -56,16 +56,16 @@ dnssrv_back_initialize(
 	bi->bi_op_unbind = 0;
 	bi->bi_op_search = dnssrv_back_search;
 	bi->bi_op_compare = dnssrv_back_compare;
-	bi->bi_op_modify = dnssrv_back_modify;
-	bi->bi_op_modrdn = dnssrv_back_modrdn;
-	bi->bi_op_add = dnssrv_back_add;
-	bi->bi_op_delete = dnssrv_back_delete;
+	bi->bi_op_modify = 0;
+	bi->bi_op_modrdn = 0;
+	bi->bi_op_add = 0;
+	bi->bi_op_delete = 0;
 	bi->bi_op_abandon = 0;
 
 	bi->bi_extended = 0;
 
 	bi->bi_acl_group = 0;
-	bi->bi_chk_referrals = 0;
+	bi->bi_chk_referrals = dnssrv_back_referrals;
 
 #ifdef HAVE_CYRUS_SASL
 	bi->bi_sasl_authorize = 0;

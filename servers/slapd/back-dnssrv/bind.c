@@ -14,7 +14,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "back-dnssrv.h"
+#include "external.h"
 
 int
 dnssrv_back_bind(
