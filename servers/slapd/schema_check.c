@@ -437,18 +437,22 @@ entry_schema_check(
 
 #ifdef SLAP_EXTENDED_SCHEMA
 			if( oc->soc_kind == LDAP_SCHEMA_AUXILIARY ) {
-				int k=0;
+				int k;
+
 				if( cr ) {
+					k = -1;
 					if( cr->scr_auxiliaries ) {
 						for( ; cr->scr_auxiliaries[k]; k++ ) {
 							if( cr->scr_auxiliaries[k] == oc ) {
-								k=-1;
+								k = 0;
 								break;
 							}
 						}
 					}
 				} else if ( global_disallows & SLAP_DISALLOW_AUX_WO_CR ) {
-					k=-1;
+					k = -1;
+				} else {
+					k = 0;	
 				}
 
 				if( k == -1 ) {
