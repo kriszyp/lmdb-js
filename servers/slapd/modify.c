@@ -31,8 +31,11 @@ do_modify(
 	char		*ndn;
 	char		*last;
 	unsigned long	tag, len;
-	LDAPModList	*modlist, *tmp;
+	LDAPModList	*modlist;
 	LDAPModList	**modtail;
+#ifdef LDAP_DEBUG
+	LDAPModList *tmp;
+#endif
 	Backend		*be;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modify\n", 0, 0, 0 );

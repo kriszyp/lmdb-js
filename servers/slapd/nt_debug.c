@@ -10,7 +10,7 @@
 
 static FILE *log_file;
 
-void Debug( int level, const char *fmt, ... )
+void (Debug)( int level, const char *fmt, ... )
 {
 	char buffer[4096];
 	va_list vl;
