@@ -22,7 +22,7 @@ int ldap_url_parse( const char *url, LDAPURLDesc **ludpp )
 .LP
 typedef struct ldap_url_desc {
     char *      lud_scheme;     /* URI scheme */
-    char        lud_host;       /* LDAP host to contact */
+    char *      lud_host;       /* LDAP host to contact */
     int         lud_port;       /* port on host */
     char *      lud_dn;         /* base for search */
     char **     lud_attrs;      /* list of attributes */
