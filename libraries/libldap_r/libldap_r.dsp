@@ -281,6 +281,7 @@ SOURCE=..\libldap\print.c
 # Begin Source File
 
 SOURCE=.\rdwr.c
+# ADD CPP /I "..\libldap"
 # End Source File
 # Begin Source File
 
@@ -332,10 +333,6 @@ SOURCE=.\thr_nt.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\thr_sleep.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\thr_stub.c
 # End Source File
 # Begin Source File
@@ -345,6 +342,15 @@ SOURCE=.\threads.c
 # Begin Source File
 
 SOURCE=..\libldap\tls.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\libldap\tmplout.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\tpool.c
+# ADD CPP /I "..\libldap"
 # End Source File
 # Begin Source File
 
