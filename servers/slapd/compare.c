@@ -176,7 +176,7 @@ do_compare(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
 			"do_compare: conn %d  dn (%s) attr(%s) value (%s)\n",
-			conn->c_connid, dn, ava.aa_desc->ad_cname->bv_val,
+			conn->c_connid, dn, ava.aa_desc->ad_cname.bv_val,
 			ava.aa_value->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",

@@ -568,7 +568,6 @@ ldap_free_request_int( LDAP *ld, LDAPRequest *lr )
 void
 ldap_free_request( LDAP *ld, LDAPRequest *lr )
 {
-	LDAPRequest     *tmplr, *nextlr;
 	LDAPRequest     **ttmplr;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_free_request (origid %d, msgid %d)\n",

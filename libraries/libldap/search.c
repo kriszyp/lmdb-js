@@ -73,7 +73,7 @@ static int put_filter_list LDAP_P((
  *
  * Example:
  *	char	*attrs[] = { "mail", "title", 0 };
- *	ldap_search_ext( ld, "c=us,o=UM", LDAP_SCOPE_SUBTREE, "cn~=bob",
+ *	ldap_search_ext( ld, "dc=example,dc=com", LDAP_SCOPE_SUBTREE, "cn~=bob",
  *	    attrs, attrsonly, sctrls, ctrls, timeout, sizelimit,
  *		&msgid );
  */
@@ -203,7 +203,7 @@ ldap_search_ext_s(
  *
  * Example:
  *	char	*attrs[] = { "mail", "title", 0 };
- *	msgid = ldap_search( ld, "c=us@o=UM", LDAP_SCOPE_SUBTREE, "cn~=bob",
+ *	msgid = ldap_search( ld, "dc=example,dc=com", LDAP_SCOPE_SUBTREE, "cn~=bob",
  *	    attrs, attrsonly );
  */
 int
@@ -466,7 +466,7 @@ ldap_pvt_find_wildcard( const char *s )
 
 /* unescape filter value */
 /* support both LDAP v2 and v3 escapes */
-/* output can include nul characters */
+/* output can include nul characters! */
 ber_slen_t
 ldap_pvt_filter_value_unescape( char *fval )
 {
@@ -487,7 +487,6 @@ ldap_pvt_filter_value_unescape( char *fval )
 
 			if (( v1 = hex2value( fval[v] )) >= 0 ) {
 				/* LDAPv3 escape */
-
 				if (( v2 = hex2value( fval[v+1] )) < 0 ) {
 					/* must be two digit code */
 					return -1;
@@ -498,9 +497,18 @@ ldap_pvt_filter_value_unescape( char *fval )
 
 			} else {
 				/* LDAPv2 escape */
-				fval[r++] = fval[v];
+				switch( fval[v] ) {
+				case '(':
+				case ')':
+				case '*':
+				case '\\':
+					fval[r++] = fval[v];
+					break;
+				default:
+					/* illegal escape */
+					return -1;
+				}
 			}
-
 			break;
 
 		default:

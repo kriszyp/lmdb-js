@@ -196,10 +196,6 @@ SOURCE=..\libldap\free.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\libldap\friendly.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\libldap\getattr.c
 # End Source File
 # Begin Source File

@@ -110,6 +110,14 @@ lutil_progname LDAP_P((
 LDAP_LUTIL_F( int )
 lutil_pair( ber_socket_t sd[2] );
 
+/* uuid.c */
+LDAP_LUTIL_F( size_t )
+lutil_uuidstr( char *buf, size_t len );
+
+/* csn.c */
+LDAP_LUTIL_F( size_t )
+lutil_csnstr( char *buf, size_t len, unsigned int replica, unsigned int mod );
+
 /*
  * Sometimes not all declarations in a header file are needed.
  * An indicator to this is whether or not the symbol's type has

@@ -346,7 +346,6 @@ acl_get(
 						continue;
 
 				} else if ( a->acl_dn_style == ACL_STYLE_ONE ) {
-					char *rdn;
 					int rdnlen = -1;
 
 					if ( dnlen <= patlen )
@@ -549,7 +548,6 @@ acl_mask(
 						continue;
 
 				} else if ( b->a_dn_style == ACL_STYLE_ONE ) {
-					char *rdn;
 					int rdnlen = -1;
 
 					if ( odnlen <= patlen )

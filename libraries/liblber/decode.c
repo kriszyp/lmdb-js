@@ -137,6 +137,11 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 		*len = lc;
 	}
 
+	/* BER length should be non-negative */
+	if( *len < 0 ) {
+		return LBER_DEFAULT;
+	}
+
 	/* BER element should have enough data left */
 	if( *len > ber_pvt_ber_remaining( ber ) ) {
 		return LBER_DEFAULT;
@@ -293,7 +298,7 @@ ber_get_stringa( BerElement *ber, char **buf )
 		return LBER_DEFAULT;
 	}
 
-	if ( (ber_len_t) ber_read( ber, *buf, datalen ) != datalen ) {
+	if ( datalen > 0 && (ber_len_t) ber_read( ber, *buf, datalen ) != datalen ) {
 		LBER_FREE( *buf );
 		*buf = NULL;
 		return LBER_DEFAULT;

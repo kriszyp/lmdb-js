@@ -379,7 +379,7 @@ bdb_dn2idl(
 	ID *ids )
 {
 	int		rc;
-	DBT		key, data;
+	DBT		key;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 

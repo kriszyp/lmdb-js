@@ -17,7 +17,7 @@
  *   scope is one of these three strings:  base one sub (default=base)
  *   filter is an string-represented filter as in RFC 2254
  *
- *  e.g.,  ldap://host:port/dc=com?o,cn?base?o=openldap?extension
+ *  e.g.,  ldap://host:port/dc=com?o,cn?base?(o=openldap)?extension
  *
  *  We also tolerate URLs that look like: <ldapurl> and <URL:ldapurl>
  */

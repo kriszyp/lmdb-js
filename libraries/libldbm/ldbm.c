@@ -120,8 +120,10 @@ ldbm_db_errcall( const char *prefix, char *message )
 
 int ldbm_initialize( const char* home )
 {
+#if DB_VERSION_MAJOR < 3
 	int	err;
 	u_int32_t	envFlags;
+#endif
 
 	if(ldbm_initialized++) return 1;
 

@@ -140,6 +140,10 @@ SOURCE=..\..\include\ac\bytes.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\csn.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\debug.c
 # End Source File
 # Begin Source File
@@ -280,6 +284,10 @@ SOURCE=.\sockpair.c
 # Begin Source File
 
 SOURCE=.\utils.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\uuid.c
 # End Source File
 # End Target
 # End Project

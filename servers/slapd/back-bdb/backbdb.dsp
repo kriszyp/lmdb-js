@@ -131,6 +131,14 @@ SOURCE=.\add.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\attr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\attribute.c
+# End Source File
+# Begin Source File
+
 SOURCE=".\back-bdb.h"
 # End Source File
 # Begin Source File
@@ -144,6 +152,10 @@ SOURCE=.\compare.c
 # Begin Source File
 
 SOURCE=.\config.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\dbcache.c
 # End Source File
 # Begin Source File
 
@@ -187,7 +199,15 @@ SOURCE=.\idl.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\index.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\init.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\key.c
 # End Source File
 # Begin Source File
 

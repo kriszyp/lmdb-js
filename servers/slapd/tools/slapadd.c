@@ -14,6 +14,9 @@
 #include <ac/socket.h>
 #include <ac/unistd.h>
 
+#include <lber.h>
+#include <ldif.h>
+
 #include "slapcommon.h"
 
 int

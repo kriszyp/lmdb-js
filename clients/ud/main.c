@@ -327,7 +327,6 @@ void
 change_base( int type, char **base, char *s )
 {
 	register char *cp;			/* utility pointers */
-	char **rdns;				/* for parsing */
 	char *output_string = NULL;		/* for nice output */
 	int num_picked;				/* # of selected base */
 	int j;					/* used with num_picked */

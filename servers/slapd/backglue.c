@@ -627,8 +627,6 @@ glue_tool_entry_open (
 	int mode
 )
 {
-	int i, rc;
-
 	/* We don't know which backend to talk to yet, so just
 	 * remember the mode and move on...
 	 */

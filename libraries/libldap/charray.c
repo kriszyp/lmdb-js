@@ -77,8 +77,9 @@ ldap_charray_merge(
 
 	aa = (char **) LDAP_REALLOC( (char *) *a, (n + nn + 1) * sizeof(char *) );
 
-	if( aa == NULL )
+	if( aa == NULL ) {
 		return -1;
+	}
 
 	*a = aa;
 

@@ -565,7 +565,7 @@ be_issuffix(
 )
 {
 	int	i;
-	int	len = strlen(suffix);
+	size_t len = strlen(suffix);
 
 	for ( i = 0; be->be_nsuffix != NULL && be->be_nsuffix[i] != NULL; i++ ) {
 		if ( len != be->be_nsuffix[i]->bv_len ) {

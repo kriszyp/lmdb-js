@@ -130,7 +130,6 @@ load_editor( void )
 {
 	FILE *fp;
 	char *cp, *editor = UD_DEFAULT_EDITOR;
-	int tmpfd;
 #ifndef HAVE_SPAWNLP
 	int pid;
 	int status;
@@ -145,16 +144,18 @@ load_editor( void )
 #ifdef HAVE_MKSTEMP
 	strcpy(entry_temp_file, LDAP_TMPDIR LDAP_DIRSEP "udXXXXXX");
 
-	tmpfd = mkstemp(entry_temp_file);
+	{
+		int tmpfd = mkstemp(entry_temp_file);
 
-	if( tmpfd < 0 ) {
-		perror("mkstemp");
-		return -1;
-	}
+		if( tmpfd < 0 ) {
+			perror("mkstemp");
+			return -1;
+		}
 
-	if ((fp = fdopen(tmpfd, "w")) == NULL) {
-		perror("fdopen");
-		return(-1);
+		if ((fp = fdopen(tmpfd, "w")) == NULL) {
+			perror("fdopen");
+			return(-1);
+		}
 	}
 
 #else

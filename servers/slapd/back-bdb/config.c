@@ -13,7 +13,9 @@
 #include "back-bdb.h"
 
 #define	SLAP_BDB_ALLOW_DBNOTXN
-#define	SLAP_BDB_ALLOW_DIRTY_READ
+#ifdef DB_DIRTY_READ
+#	define	SLAP_BDB_ALLOW_DIRTY_READ
+#endif
 
 int
 bdb_db_config(

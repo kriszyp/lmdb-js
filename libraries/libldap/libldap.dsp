@@ -199,10 +199,6 @@ SOURCE=.\free.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\friendly.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\getattr.c
 # End Source File
 # Begin Source File

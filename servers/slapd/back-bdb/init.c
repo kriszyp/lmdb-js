@@ -432,8 +432,8 @@ bdb_initialize(
 	bi->bi_op_abandon = bdb_abandon;
 
 	bi->bi_extended = bdb_extended;
-#endif
 	bi->bi_acl_group = bdb_group;
+#endif
 	bi->bi_acl_attribute = bdb_attribute;
 	bi->bi_chk_referrals = bdb_referrals;
 

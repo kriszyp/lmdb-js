@@ -592,7 +592,7 @@ COMPLETE:
 
 int slap_sasl_authorized( char *authcDN, char *authzDN )
 {
-	int rc;
+	int rc = LDAP_INAPPROPRIATE_AUTH;
 
 #ifdef HAVE_CYRUS_SASL
 	/* User binding as anonymous */
@@ -619,19 +619,22 @@ int slap_sasl_authorized( char *authcDN, char *authzDN )
 	/* Check source rules */
 	rc = slap_sasl_check_authz( authcDN, authzDN, SASL_AUTHZ_SOURCE_ATTR,
 	   authcDN );
-	if( rc == LDAP_SUCCESS )
+	if( rc == LDAP_SUCCESS ) {
 		goto DONE;
+	}
 
 	/* Check destination rules */
 	rc = slap_sasl_check_authz( authzDN, authcDN, SASL_AUTHZ_DEST_ATTR,
 	   authcDN );
-	if( rc == LDAP_SUCCESS )
+	if( rc == LDAP_SUCCESS ) {
 		goto DONE;
+	}
 
-#endif
 	rc = LDAP_INAPPROPRIATE_AUTH;
 
 DONE:
+#endif
+
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
 		   "slap_sasl_authorized: return %d\n", rc ));

@@ -49,7 +49,7 @@ get_limits(
 		case SLAP_LIMITS_ONE:
 		case SLAP_LIMITS_SUBTREE:
 		case SLAP_LIMITS_CHILDREN: {
-			long 	d;
+			size_t d;
 			
 			if ( ndn == NULL || ndn[0] == '\0' ) {
 				break;

@@ -23,9 +23,10 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
+#include "lutil.h"
+
 #include "ldap_pvt.h"
 #include "slap.h"
-
 
 int
 do_modify(

@@ -232,6 +232,10 @@ SOURCE=.\kerberos.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\limits.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\lock.c
 # End Source File
 # Begin Source File
@@ -273,6 +277,10 @@ SOURCE=.\phonetic.c
 # Begin Source File
 
 SOURCE=".\proto-slap.h"
+# End Source File
+# Begin Source File
+
+SOURCE=.\referral.c
 # End Source File
 # Begin Source File
 

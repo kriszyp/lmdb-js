@@ -32,6 +32,8 @@
 #include <stdio.h>
 #include <ac/time.h>
 
+#include <lutil.h>
+
 size_t
 lutil_csnstr(char *buf, size_t len, unsigned int replica, unsigned int mod)
 {
@@ -55,7 +57,8 @@ lutil_csnstr(char *buf, size_t len, unsigned int replica, unsigned int mod)
 	    ltm->tm_year + 1900, ltm->tm_mon, ltm->tm_mday, ltm->tm_hour,
 	    ltm->tm_min, ltm->tm_sec, op, replica, mod );
 
-	return ( n < len ) ? n : 0;
+	if( n < 0 ) return 0;
+	return ( (size_t) n < len ) ? n : 0;
 }
 
 #ifdef TEST

@@ -18,6 +18,8 @@
 
 #include "../liblber/lber-int.h"
 
+#include <ac/queue.h>
+
 #ifdef HAVE_CYRUS_SASL
 	/* the need for this should be removed */
 #include <sasl.h>
@@ -194,7 +196,7 @@ typedef struct ldap_conn {
 #endif
 	BerElement		*lconn_ber;	/* ber receiving on this conn. */
 
-	struct ldap_conn	*lconn_next;
+	struct ldap_conn *lconn_next;
 } LDAPConn;
 
 

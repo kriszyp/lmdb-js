@@ -9,8 +9,6 @@
  * This is free software; you can redistribute and use it
  * under the same terms as OpenLDAP itself.
  */
-/* Adapted for incorporatation into OpenLDAP by Kurt Zeilenga */
-
 /*
  * Sorry this file is so scary, but it needs to run on a wide range of
  * platforms.  The only exported routine is lutil_uuidstr() which is all
@@ -20,13 +18,21 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
+
 
 #ifdef HAVE_SYS_UUID_H
 #  include <sys/uuid.h>
+#elif defined( _WIN32 )
+#  include <rpc.h>
 #else
 #  include <ac/socket.h>
 #  include <ac/time.h>
+
+	/* 100 usec intervals from 10/10/1582 to 1/1/1970 */
+#	define UUID_TPLUS	0x01B21DD2138140LL
+
 #  ifdef HAVE_SYS_SYSCTL_H
 #    include <net/if.h>
 #    include <sys/sysctl.h>
@@ -35,9 +41,6 @@
 #endif
 
 #include <lutil.h>
-
-/* 100 usec intervals from 10/10/1582 to 1/1/1970 */
-#define UUID_TPLUS	0x01B21DD2138140LL
 
 #ifndef HAVE_SYS_UUID_H
 static unsigned char *
@@ -175,7 +178,7 @@ lutil_eaddr( void )
 ** We use DCE version one, and the DCE variant.  Our unique identifier is
 ** the first ethernet address on the system.
 */
-int
+size_t
 lutil_uuidstr( char *buf, size_t len )
 {
 #ifdef HAVE_SYS_UUID_H
@@ -200,11 +203,34 @@ lutil_uuidstr( char *buf, size_t len )
 		return 0;
 	}
 
-	strncpy( buf, s, l );
+	strncpy( buf, s, len );
 	free( s );
 
 	return l;
 
+#elif defined( _WIN32 )
+	UUID uuid;
+	unsigned char *uuidstr;
+	size_t uuidlen;
+
+	if( UuidCreate( &uuid ) != RPC_S_OK ) {
+		return 0;
+	}
+ 
+	if( UuidToString( &uuid, &uuidstr ) !=  RPC_S_OK ) {
+		return 0;
+	}
+
+	uuidlen = strlen( uuidstr );
+	if( uuidlen >= len ) {
+		return 0;
+	}
+
+	strncpy( buf, uuidstr, len );
+	free( uuidstr );
+
+	return uuidlen;
+ 
 #else
 	struct timeval tv;
 	unsigned long long tl;
