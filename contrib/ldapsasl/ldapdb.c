@@ -19,6 +19,9 @@
 #include "saslutil.h"
 #include "saslplug.h"
 
+#define SASL_VERSION_FULL ((SASL_VERSION_MAJOR << 16) |\
+	(SASL_VERSION_MINOR << 8) |SASL_VERSION_STEP)
+
 #include "plugin_common.h"
 
 #include <ldap.h>
@@ -206,6 +209,7 @@ static void ldapdb_auxprop_lookup(void *glob_context,
     if(cp.ld) ldap_unbind(cp.ld);
 }
 
+#if SASL_VERSION_FULL >= 0x020110
 static int ldapdb_auxprop_store(void *glob_context,
 				  sasl_server_params_t *sparams,
 				  struct propctx *prctx,
@@ -257,6 +261,7 @@ static int ldapdb_auxprop_store(void *glob_context,
     if (cp.ld) ldap_unbind(cp.ld);
     return i;
 }
+#endif /* SASL_VERSION_FULL >= 2.1.16 */
 
 static void ldapdb_auxprop_free(void *glob_ctx, const sasl_utils_t *utils)
 {
@@ -270,7 +275,11 @@ static sasl_auxprop_plug_t ldapdb_auxprop_plugin = {
     ldapdb_auxprop_free,	/* auxprop_free */
     ldapdb_auxprop_lookup,	/* auxprop_lookup */
     ldapdb,    /* name */
+#if SASL_VERSION_FULL >=0x020110
     ldapdb_auxprop_store	/* spare if <2.1.16*/
+#else
+    NULL
+#endif
 };
 
 static int ldapdb_auxprop_plug_init(const sasl_utils_t *utils,
