@@ -819,7 +819,6 @@ rdn_attrs( const char * rdn, char ***types, char ***values)
 	int		rc;
 	
 	assert( rdn );
-	assert( types );
 	assert( values );
 
 	rc = ldap_str2rdn( rdn, &tmpRDN, &p, LDAP_DN_FORMAT_LDAP );
@@ -834,8 +833,10 @@ rdn_attrs( const char * rdn, char ***types, char ***values)
 		assert( ava->la_attr );
 		assert( ava->la_value );
 
-		charray_add_n( types, ava->la_attr->bv_val, 
-				ava->la_attr->bv_len );
+		if ( types ) {
+			charray_add_n( types, ava->la_attr->bv_val, 
+					ava->la_attr->bv_len );
+		}
 		charray_add_n( values, ava->la_value->bv_val, 
 				ava->la_value->bv_len );
 	}
