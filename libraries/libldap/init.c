@@ -187,12 +187,6 @@ static void openldap_ldap_init_w_userconf(const char *file)
 
 	/* try file */
 	openldap_ldap_init_w_conf(file);
-
-	if(path == NULL) {
-		/* try .file */
-		sprintf(path, ".%s", file);
-		openldap_ldap_init_w_conf(path);
-	}
 }
 
 static void openldap_ldap_init_w_env(const char *prefix)
@@ -289,6 +283,15 @@ void openldap_ldap_initialize( void )
 
 	openldap_ldap_init_w_conf(DEFAULT_LDAP_CONF_FILE);
 	openldap_ldap_init_w_userconf(DEFAULT_LDAP_USERRC_FILE);
+
+	{
+		char *altfile = getenv("LDAPRC");
+
+		if( altfile != NULL ) {
+			openldap_ldap_init_w_conf( altfile );
+		}
+	}
+
 	openldap_ldap_init_w_env(NULL);
 
 	openldap_ldap_initialized = 1;
