@@ -247,7 +247,7 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 
        ret->set_pagesize( ret, DEFAULT_DB_PAGE_SIZE );
        ret->set_malloc( ret, ldbm_malloc );
-       ret->set_cachesize( ret, 0, dbcachesize, 0 );
+
        err = ret->open( ret, name, NULL, DB_TYPE, rw, mode);
        LDBM_UNLOCK;
        if ( err != 0 )

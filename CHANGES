@@ -1,10 +1,14 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.9 Engineering
+	Add slapd obsolete schema check
+	Add slapd collective schema check
+	Fix slapd printableString syntax bug
+	Fix ldbm bdb3 set_cachesize bug
 	Build Environment
 		Add nisMailAlias (ITS#876)
 		Fix inet_ntop configure test (ITS#1146)
-		Fix thr_nt.c typo bug
+		Fix thr_nt.c syntax bug
 
 OpenLDAP 2.0.8 Release
 	Fixed slapd empty OID value bug (ITS#882)
