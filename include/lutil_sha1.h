@@ -16,6 +16,7 @@ LDAP_BEGIN_DECL
  */
 
 #ifndef LDAP_UINT32
+#define LDAP_UINT32 1
 typedef LDAP_UINT4 uint32;
 #endif
 
