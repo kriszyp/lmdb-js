@@ -116,7 +116,7 @@ int lutil_entropy( char *buf, int nbytes )
 
 			/* hopefully has good resolution */
 #ifdef HAVE_GETTIMEOFDAY
-			(void) gettimeofday( &rdata.tv, sizeof( rdata.tv ) );
+			(void) gettimeofday( &rdata.tv, NULL );
 #else
 			(void) time( &rdata.time );
 #endif
