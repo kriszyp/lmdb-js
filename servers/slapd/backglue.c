@@ -314,6 +314,8 @@ glue_back_search ( Operation *op, SlapReply *rs )
 			 * check for abandon 
 			 */
 			if (op->o_abandon) {
+				op->o_req_dn = dn;
+				op->o_req_ndn = ndn;
 				goto done;
 			}
 			op->o_bd = gi->n[i].be;
