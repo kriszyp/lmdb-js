@@ -182,6 +182,7 @@ objectclass: OpenLDAPperson
 cn: Rosco P. Coltrane
 sn: Coltrane
 uid: rosco
+description: Fat tycoon
 
 dn: cn=Rosco P. Coltrane, ou=Information Technology Division, ou=People, dc=example,dc=com
 changetype: modrdn
