@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.330 2000/09/15 01:27:25 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.331 2000/09/18 17:02:09 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -16208,6 +16208,7 @@ fi
   
   
   
+  
 
 
 
@@ -16442,6 +16443,7 @@ s%@BUILD_PERL@%$BUILD_PERL%g
 s%@BUILD_SHELL@%$BUILD_SHELL%g
 s%@BUILD_SQL@%$BUILD_SQL%g
 s%@BUILD_TCL@%$BUILD_TCL%g
+s%@BUILD_BDB_DYNAMIC@%$BUILD_BDB_DYNAMIC%g
 s%@BUILD_DNSSRV_DYNAMIC@%$BUILD_DNSSRV_DYNAMIC%g
 s%@BUILD_LDAP_DYNAMIC@%$BUILD_LDAP_DYNAMIC%g
 s%@BUILD_LDBM_DYNAMIC@%$BUILD_LDBM_DYNAMIC%g

@@ -174,8 +174,13 @@ bdb_back_db_open(
 		return rc;
 	}
 
+#ifdef SLAPD_BDB_PRIVATE
 	flags = DB_INIT_LOCK | DB_INIT_TXN |
 		DB_PRIVATE | DB_RECOVER | DB_THREAD;
+#else
+	flags = DB_INIT_LOCK | DB_INIT_TXN | DB_INIT_MPOOL |
+		DB_RECOVER | DB_THREAD;
+#endif
 
 	rc = bdi->bdi_dbenv->open( bdi->bdi_dbenv,
 		bdi->bdi_dbenv_home,
