@@ -2,7 +2,7 @@
  * Copyright 1998 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
-/*
+/* Portions
  * Copyright (c) 1990 Regents of the University of Michigan.
  * All rights reserved.
  *
