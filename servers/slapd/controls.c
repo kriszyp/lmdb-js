@@ -49,6 +49,8 @@ static SLAP_CTRL_PARSE_FN parseManageDSAit;
 static SLAP_CTRL_PARSE_FN parseNoOp;
 static SLAP_CTRL_PARSE_FN parsePagedResults;
 static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
+static SLAP_CTRL_PARSE_FN parsePermitModify;
+static SLAP_CTRL_PARSE_FN parseNoReferrals;
 
 #ifdef LDAP_CONTROL_SUBENTRIES
 static SLAP_CTRL_PARSE_FN parseSubentries;
@@ -91,6 +93,16 @@ static struct slap_control {
 	{ LDAP_CONTROL_SUBENTRIES,
 		SLAP_CTRL_SEARCH, NULL,
 		parseSubentries },
+#endif
+#ifdef LDAP_CONTROL_PERMITMODIFY
+	{ LDAP_CONTROL_PERMITMODIFY,
+		SLAP_CTRL_UPDATE, NULL,
+		parsePermitModify },
+#endif
+#ifdef LDAP_CONTROL_NOREFERRALS
+	{ LDAP_CONTROL_NOREFERRALS,
+		SLAP_CTRL_SEARCH, NULL,
+		parseNoReferrals },
 #endif
 #ifdef LDAP_CLIENT_UPDATE
 	{ LDAP_CONTROL_CLIENT_UPDATE,
@@ -742,6 +754,56 @@ static int parseSubentries (
 		: SLAP_NONCRITICAL_CONTROL;
 
 	op->o_subentries_visibility = (ctrl->ldctl_value.bv_val[2] != 0x00);
+
+	return LDAP_SUCCESS;
+}
+#endif
+
+#ifdef LDAP_CONTROL_PERMITMODIFY
+static int parsePermitModify (
+	Connection *conn,
+	Operation *op,
+	LDAPControl *ctrl,
+	const char **text )
+{
+	if ( op->o_permitmodify != SLAP_NO_CONTROL ) {
+		*text = "permitmodify control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( ctrl->ldctl_value.bv_len ) {
+		*text = "permitmodify control value not empty";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	op->o_permitmodify = ctrl->ldctl_iscritical
+		? SLAP_CRITICAL_CONTROL
+		: SLAP_NONCRITICAL_CONTROL;
+
+	return LDAP_SUCCESS;
+}
+#endif
+
+#ifdef LDAP_CONTROL_NOREFERRALS
+static int parseNoReferrals (
+	Connection *conn,
+	Operation *op,
+	LDAPControl *ctrl,
+	const char **text )
+{
+	if ( op->o_noreferrals != SLAP_NO_CONTROL ) {
+		*text = "noreferrals control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( ctrl->ldctl_value.bv_len ) {
+		*text = "noreferrals control value not empty";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	op->o_noreferrals = ctrl->ldctl_iscritical
+		? SLAP_CRITICAL_CONTROL
+		: SLAP_NONCRITICAL_CONTROL;
 
 	return LDAP_SUCCESS;
 }
