@@ -244,36 +244,29 @@ parse_oc(
 	const char	*err;
 	char		*oid = NULL;
 
-	/* Kludge for OIDmacros. If the numericOid field starts nonnumeric
-	 * look for and expand a macro. The macro's place in the input line
-	 * will be replaced with a field of '0's to keep ldap_str2objectclass
-	 * happy. The actual oid will be swapped into place afterward.
-	 */
-	if ( !isdigit( *argv[2] ))
-	{
-		oid = find_oidm(argv[2]);
-		if (!oid)
-		{
-			fprintf(stderr, "%s: line %d: OID %s not recognized\n",
-				fname, lineno, argv[2]);
-			exit( EXIT_FAILURE );
-		}
-		if (oid != argv[2])
-			memset(strstr(line, argv[2]), '0', strlen(argv[2]));
-		else
-			oid = NULL;
-	}
 	oc = ldap_str2objectclass(line,&code,&err);
 	if ( !oc ) {
 		fprintf( stderr, "%s: line %d: %s before %s\n",
 			 fname, lineno, ldap_scherr2str(code), err );
 		oc_usage();
 	}
-	if (oid)
-	{
-		ldap_memfree(oc->oc_oid);
-		oc->oc_oid = oid;
+	if ( oc->oc_oid ) {
+		if ( !isdigit( oc->oc_oid[0] )) {
+			/* Expand OID macros */
+			oid = find_oidm( oc->oc_oid );
+			if ( !oid ) {
+				fprintf(stderr,
+					"%s: line %d: OID %s not recognized\n",
+					fname, lineno, oc->oc_oid);
+				exit( EXIT_FAILURE );
+			}
+			if ( oid != oc->oc_oid ) {
+				ldap_memfree( oc->oc_oid );
+				oc->oc_oid = oid;
+			}
+		}
 	}
+	/* oc->oc_oid == NULL will be an error someday */
 	code = oc_add(oc,&err);
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s %s\n",
@@ -349,25 +342,12 @@ parse_at(
 	char		*oid = NULL;
 	char		*soid = NULL;
 
-	/* Kludge for OIDmacros. If the numericOid field starts nonnumeric
-	 * look for and expand a macro. The macro's place in the input line
-	 * will be replaced with a field of '0's to keep ldap_str2attr
-	 * happy. The actual oid will be swapped into place afterward.
-	 */
-	if ( !isdigit( *argv[2] ))
-	{
-		oid = find_oidm(argv[2]);
-		if (!oid)
-		{
-			fprintf(stderr, "%s: line %d: OID %s not recognized\n",
-				fname, lineno, argv[2]);
-			exit( EXIT_FAILURE );
-		}
-		if (oid != argv[2])
-			memset(strstr(line, argv[2]), '0', strlen(argv[2]));
-		else
-			oid = NULL;
-	}
+ 	/* Kludge for OIDmacros for syntaxes. If the syntax field starts
+	 * nonnumeric, look for and expand a macro. The macro's place in
+	 * the input line will be replaced with a field of '0's to keep
+	 * ldap_str2attributetype happy. The actual oid will be swapped
+	 * into place afterwards.
+ 	 */
 	for (; argv[3]; argv++)
 	{
 		if (!strcasecmp(argv[3], "syntax") &&
@@ -393,11 +373,23 @@ parse_at(
 			 fname, lineno, ldap_scherr2str(code), err );
 		at_usage();
 	}
-	if (oid)
-	{
-		ldap_memfree(at->at_oid);
-		at->at_oid = oid;
+	if ( at->at_oid ) {
+		if ( !isdigit( at->at_oid[0] )) {
+			/* Expand OID macros */
+			oid = find_oidm( at->at_oid );
+			if ( !oid ) {
+				fprintf(stderr,
+					"%s: line %d: OID %s not recognized\n",
+					fname, lineno, at->at_oid);
+				exit( EXIT_FAILURE );
+			}
+			if ( oid != at->at_oid ) {
+				ldap_memfree( at->at_oid );
+				at->at_oid = oid;
+			}
+		}
 	}
+	/* at->at_oid == NULL will be an error someday */
 	if (soid)
 	{
 		ldap_memfree(at->at_syntax_oid);
