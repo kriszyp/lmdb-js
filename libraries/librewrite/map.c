@@ -24,6 +24,8 @@
 
 #include <portable.h>
 
+#include <stdio.h>
+
 #ifdef HAVE_PWD_H
 #include <pwd.h>
 #endif

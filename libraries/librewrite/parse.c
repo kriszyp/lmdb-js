@@ -24,6 +24,8 @@
 
 #include <portable.h>
 
+#include <stdio.h>
+
 #include "rewrite-int.h"
 
 static int
