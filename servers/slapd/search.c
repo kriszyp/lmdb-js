@@ -340,10 +340,10 @@ do_search(
 	suffix_alias( be, &nbase );
 
 #if defined( LDAP_SLAPI )
-	slapi_pblock_set( pb, SLAPI_BACKEND, (void *)be );
-	slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
-	slapi_pblock_set( pb, SLAPI_OPERATION, (void *)op );
-	slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)base.bv_val );
+	slapi_backend_set_pb( pb, be );
+	slapi_connection_set_pb( pb, conn );
+	slapi_operation_set_pb( pb, op );
+	slapi_pblock_set( pb, SLAPI_SEARCH_TARGET, (void *)base.bv_val );
 	slapi_pblock_set( pb, SLAPI_SEARCH_SCOPE, (void *)scope );
 	slapi_pblock_set( pb, SLAPI_SEARCH_DEREF, (void *)deref );
 	slapi_pblock_set( pb, SLAPI_SEARCH_SIZELIMIT, (void *)sizelimit );
@@ -351,7 +351,6 @@ do_search(
 	slapi_pblock_set( pb, SLAPI_SEARCH_FILTER, (void *)filter );
 	slapi_pblock_set( pb, SLAPI_SEARCH_STRFILTER, (void *)fstr.bv_val );
 	slapi_pblock_set( pb, SLAPI_SEARCH_ATTRSONLY, (void *)attrsonly );
-	slapi_pblock_set( pb, SLAPI_REQCONTROLS, (void *)op->o_ctrls );
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
 
 	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_SEARCH_FN, pb );

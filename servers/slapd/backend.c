@@ -693,8 +693,8 @@ backend_unbind(
 	Slapi_PBlock *pb = op->o_pb;
 
 #if defined( LDAP_SLAPI )
-	slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
-	slapi_pblock_set( pb, SLAPI_OPERATION, (void *)op );
+	slapi_connection_set_pb( pb, conn );
+	slapi_operation_set_pb( pb, op );
 #endif /* defined( LDAP_SLAPI ) */
 
 	for ( i = 0; i < nbackends; i++ ) {

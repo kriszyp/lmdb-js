@@ -272,12 +272,11 @@ do_compare(
 	suffix_alias( be, &ndn );
 
 #if defined( LDAP_SLAPI )
-	slapi_pblock_set( pb, SLAPI_BACKEND, (void *)be );
-	slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
-	slapi_pblock_set( pb, SLAPI_OPERATION, (void *)op );
-	slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
+	slapi_backend_set_pb( pb, be );
+	slapi_connection_set_pb( pb, conn );
+	slapi_operation_set_pb( pb, op );
+	slapi_pblock_set( pb, SLAPI_COMPARE_TARGET, (void *)dn.bv_val );
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
-	slapi_pblock_set( pb, SLAPI_REQCONTROLS, (void *)op->o_ctrls );
 	slapi_pblock_set( pb, SLAPI_COMPARE_TYPE, (void *)desc.bv_val );
 	slapi_pblock_set( pb, SLAPI_COMPARE_VALUE, (void *)&value );
 
