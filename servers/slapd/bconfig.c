@@ -275,6 +275,8 @@ config_build_entry( ConfigArgs *c, Entry *e, ObjectClass *oc,
 		rc = config_get_vals(&ct[i], c);
 		if (rc == LDAP_SUCCESS) {
 			attr_merge(e, ct[i].ad, c->rvalue_vals, c->rvalue_nvals);
+			ber_bvarray_free( c->rvalue_nvals );
+			ber_bvarray_free( c->rvalue_vals );
 		}
 	}
 

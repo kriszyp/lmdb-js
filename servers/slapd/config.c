@@ -133,7 +133,7 @@ static int config_updateref(ConfigArgs *c);
 static int config_include(ConfigArgs *c);
 #ifdef HAVE_TLS
 static int config_tls_option(ConfigArgs *c);
-static int config_tls_verify(ConfigArgs *c);
+static int config_tls_config(ConfigArgs *c);
 #endif
 
 enum {
@@ -199,7 +199,7 @@ static OidRec OidMacros[] = {
 
 static ConfigTable SystemConfiguration[] = {
 	/* This attr is read-only */
-	{ "", "", 0, 0, 0, ARG_MAGIC|ARG_STRING,
+	{ "", "", 0, 0, 0, ARG_MAGIC,
 		&config_fname, "( OLcfgAt:78 NAME 'olcConfigFile' "
 			"DESC 'File for slapd configuration directives' "
 			"EQUALITY caseIgnoreMatch "
@@ -520,7 +520,7 @@ static ConfigTable SystemConfiguration[] = {
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "TLSCRLCheck", NULL, 0, 0, 0,
 #ifdef HAVE_TLS
-		CFG_TLS_CRLCHECK|ARG_MAGIC, &config_tls_option,
+		CFG_TLS_CRLCHECK|ARG_MAGIC, &config_tls_config,
 #else
 		ARG_IGNORED, NULL,
 #endif
@@ -536,7 +536,7 @@ static ConfigTable SystemConfiguration[] = {
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "TLSVerifyClient", NULL, 0, 0, 0,
 #ifdef HAVE_TLS
-		CFG_TLS_VERIFY|ARG_MAGIC, &config_tls_verify,
+		CFG_TLS_VERIFY|ARG_MAGIC, &config_tls_config,
 #else
 		ARG_IGNORED, NULL,
 #endif
@@ -727,7 +727,10 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 		case ARG_INT:	c->value_int = *(int *)cf->arg_item; break;
 		case ARG_LONG:	c->value_long = *(long *)cf->arg_item; break;
 		case ARG_BER_LEN_T:	c->value_ber_t = *(ber_len_t *)cf->arg_item; break;
-		case ARG_STRING:	c->value_string = *(char **)cf->arg_item; break;
+		case ARG_STRING:
+			if ( *(char **)cf->arg_item )
+				c->value_string = ch_strdup(*(char **)cf->arg_item);
+			break;
 		}
 	}
 	if ( cf->arg_type & ARGS_POINTER) {
@@ -742,11 +745,14 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 			if ( c->value_string && c->value_string[0]) {
 				ber_str2bv( c->value_string, 0, 0, &bv);
 			} else {
-				rc = 1;
+				return 1;
 			}
 			break;
 		}
-		ber_bvarray_add(&c->rvalue_vals, &bv);
+		if (( cf->arg_type & ARGS_POINTER ) == ARG_STRING )
+			ber_bvarray_add(&c->rvalue_vals, &bv);
+		else
+			value_add(&c->rvalue_vals, &bv);
 	}
 	return rc;
 }
@@ -969,7 +975,7 @@ config_generic(ConfigArgs *c) {
 			break;
 		case CFG_SALT:
 			if ( passwd_salt )
-				c->value_string = passwd_salt;
+				c->value_string = ch_strdup( passwd_salt );
 			else
 				rc = 1;
 			break;
@@ -980,7 +986,7 @@ config_generic(ConfigArgs *c) {
 			c->value_int = (c->be->be_restrictops & SLAP_RESTRICT_OP_WRITES) != 0;
 			break;
 		case CFG_AZPOLICY:
-			c->value_string = (char *)slap_sasl_getpolicy();
+			c->value_string = ch_strdup( slap_sasl_getpolicy());
 			break;
 		case CFG_AZREGEXP:
 			rc = 1;
@@ -1025,12 +1031,13 @@ config_generic(ConfigArgs *c) {
 			break;
 		}
 		case CFG_REPLOG:
-			c->value_string = c->be->be_replogfile;
+			if ( c->be->be_replogfile )
+				c->value_string = ch_strdup( c->be->be_replogfile );
 			break;
 		case CFG_ROOTDSE: {
 			ConfigFile *cf = (ConfigFile *)c->line;
 			if ( cf->c_dseFiles ) {
-				c->rvalue_vals = cf->c_dseFiles;
+				value_add( &c->rvalue_vals, cf->c_dseFiles );
 			} else {
 				rc = 1;
 			}
@@ -1038,7 +1045,7 @@ config_generic(ConfigArgs *c) {
 			break;
 		case CFG_LOGFILE:
 			if ( logfileName )
-				c->value_string = logfileName;
+				c->value_string = ch_strdup( logfileName );
 			else
 				rc = 1;
 			break;
@@ -1318,7 +1325,7 @@ static int
 config_fname(ConfigArgs *c) {
 	if(c->emit && c->line) {
 		ConfigFile *cf = (ConfigFile *)c->line;
-		c->value_string = cf->c_file.bv_val;
+		value_add_one( &c->rvalue_vals, &cf->c_file );
 		return 0;
 	}
 	return(1);
@@ -1331,8 +1338,8 @@ config_search_base(ConfigArgs *c) {
 	if(c->emit) {
 		int rc = 1;
 		if (!BER_BVISEMPTY(&default_search_base)) {
-			ber_bvarray_add(&c->rvalue_vals, &default_search_base);
-			ber_bvarray_add(&c->rvalue_nvals, &default_search_nbase);
+			value_add_one(&c->rvalue_vals, &default_search_base);
+			value_add_one(&c->rvalue_nvals, &default_search_nbase);
 			rc = 0;
 		}
 		return rc;
@@ -1366,7 +1373,7 @@ config_passwd_hash(ConfigArgs *c) {
 		struct berval bv;
 		for (i=0; default_passwd_hash && default_passwd_hash[i]; i++) {
 			ber_str2bv(default_passwd_hash[i], 0, 0, &bv);
-			ber_bvarray_add(&c->rvalue_vals, &bv);
+			value_add_one(&c->rvalue_vals, &bv);
 		}
 		return i ? 0 : 1;
 	}
@@ -1398,8 +1405,8 @@ config_schema_dn(ConfigArgs *c) {
 	struct berval dn;
 	int rc;
 	if ( c->emit ) {
-		ber_bvarray_add(&c->rvalue_vals, &c->be->be_schemadn);
-		ber_bvarray_add(&c->rvalue_nvals, &c->be->be_schemandn);
+		value_add_one(&c->rvalue_vals, &c->be->be_schemadn);
+		value_add_one(&c->rvalue_nvals, &c->be->be_schemandn);
 		return 0;
 	}
 	c->be->be_schemadn = c->value_dn;
@@ -1506,12 +1513,13 @@ config_suffix(ConfigArgs *c) {
 	struct berval pdn, ndn;
 	int rc;
 	if (c->emit) {
-		int i;
-		for (i=0; !BER_BVISNULL(&c->be->be_suffix[i]); i++) {
-			ber_bvarray_add(&c->rvalue_vals, &c->be->be_suffix[i]);
-			ber_bvarray_add(&c->rvalue_nvals, &c->be->be_nsuffix[i]);
+		if ( !BER_BVISNULL( &c->be->be_suffix[0] )) {
+			value_add( &c->rvalue_vals, c->be->be_suffix );
+			value_add( &c->rvalue_nvals, c->be->be_nsuffix );
+			return 0;
+		} else {
+			return 1;
 		}
-		return i ? 0 : 1;
 	}
 #ifdef SLAPD_MONITOR_DN
 	if(!strcasecmp(c->argv[1], SLAPD_MONITOR_DN)) {
@@ -1549,9 +1557,13 @@ config_suffix(ConfigArgs *c) {
 static int
 config_rootdn(ConfigArgs *c) {
 	if (c->emit) {
-		ber_bvarray_add(&c->rvalue_vals, &c->be->be_rootdn);
-		ber_bvarray_add(&c->rvalue_nvals, &c->be->be_rootndn);
-		return 0;
+		if ( !BER_BVISNULL( &c->be->be_rootdn )) {
+			value_add_one(&c->rvalue_vals, &c->be->be_rootdn);
+			value_add_one(&c->rvalue_nvals, &c->be->be_rootndn);
+			return 0;
+		} else {
+			return 1;
+		}
 	}
 	c->be->be_rootdn = c->value_dn;
 	c->be->be_rootndn = c->value_ndn;
@@ -1563,7 +1575,7 @@ config_rootpw(ConfigArgs *c) {
 	Backend *tbe;
 	if (c->emit) {
 		if (!BER_BVISEMPTY(&c->be->be_rootpw)) {
-			c->value_string="*";
+			c->value_string=ch_strdup("*");
 			return 0;
 		}
 		return 1;
@@ -1604,17 +1616,26 @@ verbs_to_mask(ConfigArgs *c, struct verb_mask_list *v, slap_mask_t *m) {
 	return(0);
 }
 
+int
+mask_to_verbs(ConfigArgs *c, struct verb_mask_list *v, slap_mask_t m) {
+	int i, j;
+	struct berval bv;
+
+	if (!m) return 1;
+	for (i=0; v[i].word; i++) {
+		if ( v[i].mask == -1 && m != v[i].mask ) continue;
+		if ( m & v[i].mask ) {
+			ber_str2bv( v[i].word, 0, 0, &bv );
+			value_add_one( &c->rvalue_vals, &bv );
+		}
+	}
+	return 0;
+}
+
 static int
 config_restrict(ConfigArgs *c) {
 	slap_mask_t restrictops = 0;
-	int i, j;
-	struct verb_mask_list restrictable_exops[] = {
-		{ LDAP_EXOP_START_TLS,		SLAP_RESTRICT_EXOP_START_TLS },
-		{ LDAP_EXOP_MODIFY_PASSWD,	SLAP_RESTRICT_EXOP_MODIFY_PASSWD },
-		{ LDAP_EXOP_X_WHO_AM_I,		SLAP_RESTRICT_EXOP_WHOAMI },
-		{ LDAP_EXOP_X_CANCEL,		SLAP_RESTRICT_EXOP_CANCEL },
-		{ NULL,	0 }
-	};
+	int i;
 	struct verb_mask_list restrictable_ops[] = {
 		{ "bind",		SLAP_RESTRICT_OP_BIND },
 		{ "add",		SLAP_RESTRICT_OP_ADD },
@@ -1623,42 +1644,31 @@ config_restrict(ConfigArgs *c) {
 		{ "rename",		SLAP_RESTRICT_OP_RENAME },
 		{ "delete",		SLAP_RESTRICT_OP_DELETE },
 		{ "search",		SLAP_RESTRICT_OP_SEARCH },
-		{ "compare",		SLAP_RESTRICT_OP_COMPARE },
+		{ "compare",	SLAP_RESTRICT_OP_COMPARE },
 		{ "read",		SLAP_RESTRICT_OP_READS },
 		{ "write",		SLAP_RESTRICT_OP_WRITES },
+		{ "extended",	SLAP_RESTRICT_OP_EXTENDED },
+		{ "extended=" LDAP_EXOP_START_TLS,		SLAP_RESTRICT_EXOP_START_TLS },
+		{ "extended=" LDAP_EXOP_MODIFY_PASSWD,	SLAP_RESTRICT_EXOP_MODIFY_PASSWD },
+		{ "extended=" LDAP_EXOP_X_WHO_AM_I,		SLAP_RESTRICT_EXOP_WHOAMI },
+		{ "extended=" LDAP_EXOP_X_CANCEL,		SLAP_RESTRICT_EXOP_CANCEL },
 		{ NULL,	0 }
 	};
 
 	if (c->emit) {
-		return 1;
+		return mask_to_verbs( c, restrictable_ops, c->be->be_restrictops );
 	}
-	for(i = 1; i < c->argc; i++) {
-		j = verb_to_mask(c, restrictable_ops, i);
-		if(restrictable_ops[j].word) {
-			restrictops |= restrictable_ops[j].mask;
-			continue;
-		} else if(!strncasecmp(c->argv[i], "extended", STRLENOF("extended"))) {
-			char *e = c->argv[i] + STRLENOF("extended");
-			if(e[0] == '=') {
-				int k = verb_to_mask(c, restrictable_exops, e[1]);
-				if(restrictable_exops[k].word) {
-					restrictops |= restrictable_exops[k].mask;
-					continue;
-				} else break;
-			} else if(!e[0]) {
-				restrictops &= ~SLAP_RESTRICT_EXOP_MASK;
-				restrictops |= SLAP_RESTRICT_OP_EXTENDED;
-			} else break;
-		}
+	i = verbs_to_mask( c, restrictable_ops, &restrictops );
+	if ( i ) {
+		Debug(LDAP_DEBUG_ANY, "%s: "
+			"unknown operation %s in \"restrict <features>\" line\n",
+			c->log, c->argv[i], 0);
+		return(1);
 	}
-	if(i < c->argc) {
-		c->be->be_restrictops |= restrictops;
-		return(0);
-	}
-	Debug(LDAP_DEBUG_ANY, "%s: "
-		"unknown operation %s in \"restrict <features>\" line\n",
-		c->log, c->argv[i], 0);
-	return(1);
+	if ( restrictops & SLAP_RESTRICT_OP_EXTENDED )
+		restrictops &= ~SLAP_RESTRICT_EXOP_MASK;
+	c->be->be_restrictops |= restrictops;
+	return(0);
 }
 
 static int
@@ -1673,7 +1683,7 @@ config_allows(ConfigArgs *c) {
 		{ NULL,	0 }
 	};
 	if (c->emit) {
-		return 1;
+		return mask_to_verbs( c, allowable_ops, global_allows );
 	}
 	i = verbs_to_mask(c, allowable_ops, &allows);
 	if ( i ) {
@@ -1699,7 +1709,7 @@ config_disallows(ConfigArgs *c) {
 		{ NULL, 0 }
 	};
 	if (c->emit) {
-		return 1;
+		return mask_to_verbs( c, disallowable_ops, global_disallows );
 	}
 	i = verbs_to_mask(c, disallowable_ops, &disallows);
 	if ( i ) {
@@ -1725,7 +1735,7 @@ config_requires(ConfigArgs *c) {
 		{ NULL, 0 }
 	};
 	if (c->emit) {
-		return 1;
+		return mask_to_verbs( c, requires_ops, c->be->be_requires );
 	}
 	i = verbs_to_mask(c, requires_ops, &requires);
 	if ( i ) {
@@ -1760,11 +1770,12 @@ config_loglevel(ConfigArgs *c) {
 		{ "Any",	-1 },
 		{ NULL,	0 }
 	};
-	ldap_syslog = 0;
 
 	if (c->emit) {
-		return 1;
+		return mask_to_verbs( c, loglevel_ops, ldap_syslog );
 	}
+
+	ldap_syslog = 0;
 
 	for( i=1; i < c->argc; i++ ) {
 		int	level;
@@ -1815,7 +1826,12 @@ static int
 config_referral(ConfigArgs *c) {
 	struct berval vals[2];
 	if (c->emit) {
-		return 1;
+		if ( default_referral ) {
+			value_add( &c->rvalue_vals, default_referral );
+			return 0;
+		} else {
+			return 1;
+		}
 	}
 	if(validate_global_referral(c->argv[1])) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
@@ -1824,7 +1840,7 @@ config_referral(ConfigArgs *c) {
 		return(1);
 	}
 
-	ber_str2bv(c->argv[1], 0, 1, &vals[0]);
+	ber_str2bv(c->argv[1], 0, 0, &vals[0]);
 	vals[1].bv_val = NULL; vals[1].bv_len = 0;
 	if(value_add(&default_referral, vals)) return(LDAP_OTHER);
 	return(0);
@@ -1990,8 +2006,8 @@ config_updatedn(ConfigArgs *c) {
 	int rc;
 	if (c->emit) {
 		if (!BER_BVISEMPTY(&c->be->be_update_ndn)) {
-			ber_bvarray_add(&c->rvalue_vals, &c->be->be_update_ndn);
-			ber_bvarray_add(&c->rvalue_nvals, &c->be->be_update_ndn);
+			value_add_one(&c->rvalue_vals, &c->be->be_update_ndn);
+			value_add_one(&c->rvalue_nvals, &c->be->be_update_ndn);
 			return 0;
 		}
 		return 1;
@@ -2022,7 +2038,12 @@ static int
 config_updateref(ConfigArgs *c) {
 	struct berval vals[2];
 	if (c->emit) {
-		return 1;
+		if ( c->be->be_update_refs ) {
+			value_add( &c->rvalue_vals, c->be->be_update_refs );
+			return 0;
+		} else {
+			return 1;
+		}
 	}
 	if(!SLAP_SHADOW(c->be)) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
@@ -2049,12 +2070,13 @@ static int
 config_include(ConfigArgs *c) {
 	unsigned long savelineno = c->lineno;
 	int rc;
-	ConfigFile *cf = ch_calloc( 1, sizeof(ConfigFile));
+	ConfigFile *cf;
 	ConfigFile *cfsave = cfn;
 	ConfigFile *cf2 = NULL;
 	if (c->emit) {
 		return 1;
 	}
+	cf = ch_calloc( 1, sizeof(ConfigFile));
 	if ( cfn->c_kids ) {
 		for (cf2=cfn->c_kids; cf2 && cf2->c_sibs; cf2=cf2->c_sibs) ;
 		cf2->c_sibs = cf;
@@ -2077,9 +2099,6 @@ config_include(ConfigArgs *c) {
 static int
 config_tls_option(ConfigArgs *c) {
 	int flag;
-	if (c->emit) {
-		return 1;
-	}
 	switch(c->type) {
 	case CFG_TLS_RAND:		flag = LDAP_OPT_X_TLS_RANDOM_FILE;	break;
 	case CFG_TLS_CIPHER:		flag = LDAP_OPT_X_TLS_CIPHER_SUITE;	break;
@@ -2087,27 +2106,33 @@ config_tls_option(ConfigArgs *c) {
 	case CFG_TLS_CERT_KEY:	flag = LDAP_OPT_X_TLS_KEYFILE;		break;
 	case CFG_TLS_CA_PATH:	flag = LDAP_OPT_X_TLS_CACERTDIR;	break;
 	case CFG_TLS_CA_FILE:	flag = LDAP_OPT_X_TLS_CACERTFILE;	break;
-#ifdef HAVE_OPENSSL_CRL
-	case CFG_TLS_CRLCHECK:	flag = LDAP_OPT_X_TLS_CRLCHECK;		break;
-#endif
 		default:		Debug(LDAP_DEBUG_ANY, "%s: "
 						"unknown tls_option <%x>\n",
 						c->log, c->type, 0);
+	}
+	if (c->emit) {
+		return 1;
 	}
 	return(ldap_pvt_tls_set_option(NULL, flag, c->argv[1]));
 }
 
 static int
-config_tls_verify(ConfigArgs *c) {
-	int i;
+config_tls_config(ConfigArgs *c) {
+	int i, flag;
 	if (c->emit) {
 		return 1;
 	}
+	switch(c->type) {
+#ifdef HAVE_OPENSSL_CRL
+	case CFG_TLS_CRLCHECK:	flag = LDAP_OPT_X_TLS_CRLCHECK;		break;
+#endif
+	case CFG_TLS_VERIFY:	flag = LDAP_OPT_X_TLS_REQUIRE_CERT;	break;
+	}
 	if(isdigit((unsigned char)c->argv[1][0])) {
 		i = atoi(c->argv[1]);
-		return(ldap_pvt_tls_set_option(NULL, LDAP_OPT_X_TLS_REQUIRE_CERT, &i));
+		return(ldap_pvt_tls_set_option(NULL, flag, &i));
 	} else {
-		return(ldap_int_tls_config(NULL, LDAP_OPT_X_TLS_REQUIRE_CERT, c->argv[1]));
+		return(ldap_int_tls_config(NULL, flag, c->argv[1]));
 	}
 }
 #endif
@@ -2271,35 +2296,6 @@ fp_parse_line(ConfigArgs *c)
 	c->argv[c->argc] = NULL;
 	return(0);
 }
-
-
-#if 0
-/* Loads ucdata, returns 1 if loading, 0 if already loaded, -1 on error */
-static int
-load_ucdata( char *path )
-{
-#if 0
-	static int loaded = 0;
-	int err;
-	
-	if ( loaded ) {
-		return( 0 );
-	}
-	err = ucdata_load( path ? path : SLAPD_DEFAULT_UCDATA, UCDATA_ALL );
-	if ( err ) {
-		Debug( LDAP_DEBUG_ANY, "error loading ucdata (error %d)\n",
-		       err, 0, 0 );
-
-		return( -1 );
-	}
-	loaded = 1;
-	return( 1 );
-#else
-	/* ucdata is now hardcoded */
-	return( 0 );
-#endif
-}
-#endif
 
 void
 config_destroy( )
