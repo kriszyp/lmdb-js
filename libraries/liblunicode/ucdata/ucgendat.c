@@ -27,12 +27,12 @@ static char rcsid[] = "$Id: ucgendat.c,v 1.3 1999/10/07 20:49:56 mleisher Exp $"
 #endif
 #endif
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#ifndef WIN32
-#include <unistd.h>
-#endif
+#include <ac/string.h>
+#include <ac/unistd.h>
 
 #define ishdigit(cc) (((cc) >= '0' && (cc) <= '9') ||\
                       ((cc) >= 'A' && (cc) <= 'F') ||\
@@ -176,13 +176,7 @@ static unsigned long nums_used;
 static unsigned long nums_size;
 
 static void
-#ifdef __STDC__
 add_range(unsigned long start, unsigned long end, char *p1, char *p2)
-#else
-add_range(start, end, p1, p2)
-unsigned long start, end;
-char *p1, *p2;
-#endif
 {
     int i, j, k, len;
     _ranges_t *rlp;
@@ -280,14 +274,7 @@ char *p1, *p2;
 }
 
 static void
-#ifdef __STDC__
 ordered_range_insert(unsigned long c, char *name, int len)
-#else
-ordered_range_insert(c, name, len)
-unsigned long c;
-char *name;
-int len;
-#endif
 {
     int i, j;
     unsigned long s, e;
@@ -425,12 +412,7 @@ int len;
 }
 
 static void
-#ifdef __STDC__
 add_decomp(unsigned long code)
-#else
-add_decomp(code)
-unsigned long code;
-#endif
 {
     unsigned long i, j, size;
 
@@ -494,12 +476,7 @@ unsigned long code;
 }
 
 static void
-#ifdef __STDC__
 add_title(unsigned long code)
-#else
-add_title(code)
-unsigned long code;
-#endif
 {
     unsigned long i, j;
 
@@ -539,12 +516,7 @@ unsigned long code;
 }
 
 static void
-#ifdef __STDC__
 add_upper(unsigned long code)
-#else
-add_upper(code)
-unsigned long code;
-#endif
 {
     unsigned long i, j;
 
@@ -591,12 +563,7 @@ unsigned long code;
 }
 
 static void
-#ifdef __STDC__
 add_lower(unsigned long code)
-#else
-add_lower(code)
-unsigned long code;
-#endif
 {
     unsigned long i, j;
 
@@ -643,12 +610,7 @@ unsigned long code;
 }
 
 static void
-#ifdef __STDC__
 ordered_ccl_insert(unsigned long c, unsigned long ccl_code)
-#else
-ordered_ccl_insert(c, ccl_code)
-unsigned long c, ccl_code;
-#endif
 {
     unsigned long i, j;
 
@@ -721,12 +683,7 @@ unsigned long c, ccl_code;
  * multiplied by 2.
  */
 static unsigned long
-#ifdef __STDC__
 make_number(short num, short denom)
-#else
-make_number(num, denom)
-short num, denom;
-#endif
 {
     unsigned long n;
 
@@ -755,13 +712,7 @@ short num, denom;
 }
 
 static void
-#ifdef __STDC__
 add_number(unsigned long code, short num, short denom)
-#else
-add_number(code, num, denom)
-unsigned long code;
-short num, denom;
-#endif
 {
     unsigned long i, j;
 
@@ -812,12 +763,7 @@ short num, denom;
  * entry.
  */
 static void
-#ifdef __STDC__
 read_cdata(FILE *in)
-#else
-read_cdata(in)
-FILE *in;
-#endif
 {
     unsigned long i, lineno, skip, code, ccl_code;
     short wnum, neg, number[2];
@@ -1092,12 +1038,7 @@ FILE *in;
 }
 
 static _decomp_t *
-#ifdef __STDC__
 find_decomp(unsigned long code)
-#else
-find_decomp(code)
-unsigned long code;
-#endif
 {
     long l, r, m;
 
@@ -1116,12 +1057,7 @@ unsigned long code;
 }
 
 static void
-#ifdef __STDC__
 decomp_it(_decomp_t *d)
-#else
-decomp_it(d)
-_decomp_t *d;
-#endif
 {
     unsigned long i;
     _decomp_t *dp;
@@ -1139,11 +1075,7 @@ _decomp_t *d;
  * in the decomposition.
  */
 static void
-#ifdef __STDC__
 expand_decomp(void)
-#else
-expand_decomp()
-#endif
 {
     unsigned long i;
 
@@ -1156,12 +1088,7 @@ expand_decomp()
 }
 
 static void
-#ifdef __STDC__
 write_cdata(char *opath)
-#else
-write_cdata(opath)
-char *opath;
-#endif
 {
     FILE *out;
     unsigned long i, idx, bytes, nprops;
@@ -1434,13 +1361,7 @@ char *opath;
 }
 
 int
-#ifdef __STDC__
 main(int argc, char *argv[])
-#else
-main(argc, argv)
-int argc;
-char *argv[];
-#endif
 {
     FILE *in;
     char *prog, *opath;

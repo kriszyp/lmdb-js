@@ -35,13 +35,7 @@ static char rcsid[] = "$Id: urestubs.c,v 1.2 1999/09/21 15:47:44 mleisher Exp $"
  * This routine should return the lower case equivalent for the character or,
  * if there is no lower case quivalent, the character itself.
  */
-ucs4_t
-#ifdef __STDC__
-_ure_tolower(ucs4_t c)
-#else
-_ure_tolower(c)
-ucs4_t c;
-#endif
+ucs4_t _ure_tolower(ucs4_t c)
 {
     return c;
 }
@@ -52,13 +46,7 @@ ucs4_t c;
  * properties.
  */
 int
-#ifdef __STDC__
 _ure_matches_properties(unsigned long props, ucs4_t c)
-#else
-_ure_matches_properties(props, c)
-unsigned long props;
-ucs4_t c;
-#endif
 {
     return 1;
 }

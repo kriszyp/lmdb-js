@@ -22,20 +22,16 @@
 #ifndef _h_ucpgba
 #define _h_ucpgba
 
+#include "portable.h"
+
 /*
  * $Id: ucpgba.h,v 1.4 1999/11/19 15:24:30 mleisher Exp $
  */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+LDAP_BEGIN_DECL
 
 #undef __
-#ifdef __STDC__
 #define __(x) x
-#else
-#define __(x) ()
-#endif
 
 /***************************************************************************
  *
@@ -155,8 +151,6 @@ extern void ucstring_cursor_info __((ucstring_t *string, int *direction,
 
 #undef __
 
-#ifdef __cplusplus
-}
-#endif
+LDAP_END_DECL
 
 #endif /* _h_ucpgba */

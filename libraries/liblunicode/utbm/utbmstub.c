@@ -37,13 +37,7 @@ static char rcsid[] = "$Id: utbmstub.c,v 1.1 1999/09/21 15:45:18 mleisher Exp $"
  * of a space character.  Return zero otherwise.
  */
 int
-#ifdef __STDC__
 _utbm_isspace(ucs4_t c, int compress)
-#else
-_utbm_isspace(c, compress)
-ucs4_t c;
-int compress;
-#endif
 {
     if (compress)
       return (c == 0x09 || c == 0x0a || c == 0x0d ||
@@ -57,12 +51,7 @@ int compress;
  * Return non-zero if the character is a control character, or zero otherwise.
  */
 int
-#ifdef __STDC__
 _utbm_iscntrl(ucs4_t c)
-#else
-_utbm_iscntrl(c)
-ucs4_t c;
-#endif
 {
     return 0;
 }
@@ -72,12 +61,7 @@ ucs4_t c;
  * otherwise.
  */
 int
-#ifdef __STDC__
 _utbm_nonspacing(ucs4_t c)
-#else
-_utbm_nonspacing(c)
-ucs4_t c;
-#endif
 {
     return 0;
 }
@@ -86,12 +70,7 @@ ucs4_t c;
  * Convert a character to lower case.
  */
 ucs4_t
-#ifdef __STDC__
 _utbm_tolower(ucs4_t c)
-#else
-_utbm_tolower(c)
-ucs4_t c;
-#endif
 {
     return c;
 }
@@ -100,12 +79,7 @@ ucs4_t c;
  * Convert a character to upper case.
  */
 ucs4_t
-#ifdef __STDC__
 _utbm_toupper(ucs4_t c)
-#else
-_utbm_toupper(c)
-ucs4_t c;
-#endif
 {
     return c;
 }
@@ -114,12 +88,7 @@ ucs4_t c;
  * Convert a character to title case.
  */
 ucs4_t
-#ifdef __STDC__
 _utbm_totitle(ucs4_t c)
-#else
-_utbm_totitle(c)
-ucs4_t c;
-#endif
 {
     return c;
 }

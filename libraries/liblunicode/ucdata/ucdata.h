@@ -26,16 +26,10 @@
  * $Id: ucdata.h,v 1.5 1999/11/19 15:24:29 mleisher Exp $
  */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+LDAP_BEGIN_DECL
 
 #undef __
-#ifdef __STDC__
 #define __(x) x
-#else
-#define __(x) ()
-#endif
 
 #define UCDATA_VERSION "2.3"
 
@@ -291,16 +285,16 @@ extern void ucdata_load __((char *paths, int mask));
 extern void ucdata_unload __((int mask));
 extern void ucdata_reload __((char *paths, int mask));
 
+#ifdef UCDATA_DEPRECATED
 /*
  * Deprecated functions, now just compatibility macros.
  */
 #define ucdata_setup(p) ucdata_load(p, UCDATA_ALL)
 #define ucdata_cleanup() ucdata_unload(UCDATA_ALL)
+#endif
 
 #undef __
 
-#ifdef __cplusplus
-}
-#endif
+LDAP_END_DECL
 
 #endif /* _h_ucdata */

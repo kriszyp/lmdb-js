@@ -75,13 +75,7 @@ typedef struct _utbm_pattern_t {
  * Routine to look up the skip value for a character.
  */
 static unsigned long
-#ifdef __STDC__
 _utbm_skip(utbm_pattern_t p, ucs2_t *start, ucs2_t *end)
-#else
-_utbm_skip(p, start, end)
-utbm_pattern_t p;
-ucs2_t *start, *end;
-#endif
 {
     unsigned long i;
     ucs4_t c1, c2;
@@ -105,15 +99,8 @@ ucs2_t *start, *end;
 }
 
 static int
-#ifdef __STDC__
 _utbm_match(utbm_pattern_t pat, ucs2_t *text, ucs2_t *start, ucs2_t *end,
             unsigned long *match_start, unsigned long *match_end)
-#else
-_utbm_match(pat, text, start, end, match_start, match_end)
-utbm_pattern_t pat;
-ucs2_t *text, *start, *end;
-unsigned long *match_start, *match_end;
-#endif
 {
     int check_space;
     ucs4_t c1, c2;
@@ -231,11 +218,7 @@ unsigned long *match_start, *match_end;
  *************************************************************************/
 
 utbm_pattern_t
-#ifdef __STDC__
 utbm_create_pattern(void)
-#else
-utbm_create_pattern()
-#endif
 {
     utbm_pattern_t p;
 
@@ -245,12 +228,7 @@ utbm_create_pattern()
 }
 
 void
-#ifdef __STDC__
 utbm_free_pattern(utbm_pattern_t pattern)
-#else
-utbm_free_pattern(pattern)
-utbm_pattern_t pattern;
-#endif
 {
     if (pattern == 0)
       return;
@@ -265,15 +243,8 @@ utbm_pattern_t pattern;
 }
 
 void
-#ifdef __STDC__
 utbm_compile(ucs2_t *pat, unsigned long patlen, unsigned long flags,
              utbm_pattern_t p)
-#else
-utbm_compile(pat, patlen, flags, p)
-ucs2_t *pat;
-unsigned long patlen, flags;
-utbm_pattern_t p;
-#endif
 {
     int have_space;
     unsigned long i, j, k, slen;
@@ -449,15 +420,8 @@ utbm_pattern_t p;
 }
 
 int
-#ifdef __STDC__
 utbm_exec(utbm_pattern_t pat, ucs2_t *text, unsigned long textlen,
           unsigned long *match_start, unsigned long *match_end)
-#else
-utbm_exec(pat, text, textlen, match_start, match_end)
-utbm_pattern_t pat;
-ucs2_t *text;
-unsigned long textlen, *match_start, *match_end;
-#endif
 {
     unsigned long k;
     ucs2_t *start, *end;

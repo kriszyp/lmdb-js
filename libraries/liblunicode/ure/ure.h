@@ -23,22 +23,18 @@
 #ifndef _h_ure
 #define _h_ure
 
+#include "portable.h"
+
 /*
  * $Id: ure.h,v 1.2 1999/09/21 15:47:44 mleisher Exp $
  */
 
 #include <stdio.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+LDAP_BEGIN_DECL
 
 #undef __
-#ifdef __STDC__
 #define __(x) x
-#else
-#define __(x) ()
-#endif
 
 /*
  * Set of character class flags.
@@ -143,8 +139,6 @@ extern int _ure_matches_properties __((unsigned long props, ucs4_t c));
 
 #undef __
 
-#ifdef __cplusplus
-}
-#endif
+LDAP_END_DECL
 
 #endif /* _h_ure */

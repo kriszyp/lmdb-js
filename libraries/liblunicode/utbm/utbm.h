@@ -27,16 +27,12 @@
  * $Id: utbm.h,v 1.1 1999/09/21 15:45:18 mleisher Exp $
  */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "portable.h"
+
+LDAP_BEGIN_DECL
 
 #undef __
-#ifdef __STDC__
 #define __(x) x
-#else
-#define __(x) ()
-#endif
 
 /*************************************************************************
  *
@@ -102,8 +98,9 @@ extern ucs4_t _utbm_totitle __((ucs4_t c));
 
 #undef __
 
-#ifdef __cplusplus
-}
+LDAP_END_DECL
+
 #endif
+
 
 #endif /* _h_utbm */

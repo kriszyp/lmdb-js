@@ -24,9 +24,12 @@
 static char rcsid[] = "$Id: ure.c,v 1.2 1999/09/21 15:47:43 mleisher Exp $";
 #endif
 
+#include "portable.h"
+
 #include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
+#include <ac/unistd.h>
+#include <ac/string.h>
+
 #include "ure.h"
 
 /*
@@ -251,13 +254,7 @@ typedef struct _ure_dfa_t {
  *************************************************************************/
 
 static void
-#if NeedFunctionPrototypes
 _ure_memmove(char *dest, char *src, unsigned long bytes)
-#else
-_ure_memmove(dest, src, bytes)
-char *dest, *src;
-unsigned long bytes;
-#endif
 {
     long i, j;
 
@@ -301,13 +298,7 @@ unsigned long bytes;
 }
 
 static void
-#ifdef __STDC__
 _ure_push(ucs2_t v, _ure_buffer_t *b)
-#else
-_ure_push(v, b)
-ucs2_t v;
-_ure_buffer_t *b;
-#endif
 {
     _ure_stlist_t *s;
 
@@ -341,12 +332,7 @@ _ure_buffer_t *b;
 }
 
 static ucs2_t
-#ifdef __STDC__
 _ure_peek(_ure_buffer_t *b)
-#else
-_ure_peek(b)
-_ure_buffer_t *b;
-#endif
 {
     if (b == 0 || b->stack.slist_used == 0)
       return _URE_NOOP;
@@ -355,12 +341,7 @@ _ure_buffer_t *b;
 }
 
 static ucs2_t
-#ifdef __STDC__
 _ure_pop(_ure_buffer_t *b)
-#else
-_ure_pop(b)
-_ure_buffer_t *b;
-#endif
 {
     ucs2_t v;
 
@@ -386,15 +367,8 @@ _ure_buffer_t *b;
  * variable, and return the number of characters consumed.
  */
 static unsigned long
-#ifdef __STDC__
 _ure_prop_list(ucs2_t *pp, unsigned long limit, unsigned long *mask,
                _ure_buffer_t *b)
-#else
-_ure_prop_list(pp, limit, mask, b)
-ucs2_t *pp;
-unsigned long limit, *mask;
-_ure_buffer_t *b;
-#endif
 {
     unsigned long n, m;
     ucs2_t *sp, *ep;
@@ -450,14 +424,7 @@ _ure_buffer_t *b;
  * of characters used.
  */
 static unsigned long
-#ifdef __STDC__
 _ure_hex(ucs2_t *np, unsigned long limit, ucs4_t *n)
-#else
-_ure_hex(np, limit, n)
-ucs2_t *np;
-unsigned long limit;
-ucs4_t *n;
-#endif
 {
     ucs2_t i;
     ucs2_t *sp, *ep;
@@ -494,14 +461,7 @@ ucs4_t *n;
  * them in increasing range-start order.
  */
 static void
-#ifdef __STDC__
 _ure_add_range(_ure_ccl_t *ccl, _ure_range_t *r, _ure_buffer_t *b)
-#else
-_ure_add_range(ccl, r, b)
-_ure_ccl_t *ccl;
-_ure_range_t *r;
-_ure_buffer_t *b;
-#endif
 {
     ucs2_t i;
     ucs4_t tmp;
@@ -567,11 +527,9 @@ _URE_MATHSYM|_URE_CURRENCYSYM|_URE_OTHERSYM)
 #define _URE_SPACE_MASK  (_URE_SPACESEP|_URE_LINESEP|_URE_PARASEP)
 
 typedef void (*_ure_cclsetup_t)(
-#ifdef __STDC__
     _ure_symtab_t *sym,
     unsigned long mask,
     _ure_buffer_t *b
-#endif
 );
 
 typedef struct {
@@ -583,27 +541,13 @@ typedef struct {
 } _ure_trie_t;
 
 static void
-#ifdef __STDC__
 _ure_ccl_setup(_ure_symtab_t *sym, unsigned long mask, _ure_buffer_t *b)
-#else
-_ure_ccl_setup(sym, mask, b)
-_ure_symtab_t *sym;
-unsigned long mask;
-_ure_buffer_t *b;
-#endif
 {
     sym->props |= mask;
 }
 
 static void
-#ifdef __STDC__
 _ure_space_setup(_ure_symtab_t *sym, unsigned long mask, _ure_buffer_t *b)
-#else
-_ure_space_setup(sym, mask, *b)
-_ure_symtab_t *sym;
-unsigned long mask;
-_ure_buffer_t b;
-#endif
 {
     _ure_range_t range;
 
@@ -625,14 +569,7 @@ _ure_buffer_t b;
 }
 
 static void
-#ifdef __STDC__
 _ure_xdigit_setup(_ure_symtab_t *sym, unsigned long mask, _ure_buffer_t *b)
-#else
-_ure_xdigit_setup(sym, mask, b)
-_ure_symtab_t *sym;
-unsigned long mask;
-_ure_buffer_t *b;
-#endif
 {
     _ure_range_t range;
 
@@ -723,16 +660,8 @@ static _ure_trie_t cclass_trie[] = {
  * trie.
  */
 static unsigned long
-#ifdef __STDC__
 _ure_posix_ccl(ucs2_t *cp, unsigned long limit, _ure_symtab_t *sym,
                _ure_buffer_t *b)
-#else
-_ure_posix_ccl(cp, limit, sym, b)
-ucs2_t *cp;
-unsigned long limit;
-_ure_symtab_t *sym;
-_ure_buffer_t *b;
-#endif
 {
     int i;
     unsigned long n;
@@ -776,16 +705,8 @@ _ure_buffer_t *b;
  * Construct a list of ranges and return the number of characters consumed.
  */
 static unsigned long
-#ifdef __STDC__
 _ure_cclass(ucs2_t *cp, unsigned long limit, _ure_symtab_t *symp,
             _ure_buffer_t *b)
-#else
-_ure_cclass(cp, limit, symp, b)
-ucs2_t *cp;
-unsigned long limit;
-_ure_symtab_t *symp;
-_ure_buffer_t *b;
-#endif
 {
     int range_end;
     unsigned long n;
@@ -954,14 +875,7 @@ _ure_buffer_t *b;
  * Probe for a low surrogate hex code.
  */
 static unsigned long
-#ifdef __STDC__
 _ure_probe_ls(ucs2_t *ls, unsigned long limit, ucs4_t *c)
-#else
-_ure_probe_ls(ls, limit, c)
-ucs2_t *ls;
-unsigned long limit;
-ucs4_t *c;
-#endif
 {
     ucs4_t i, code;
     ucs2_t *sp, *ep;
@@ -982,16 +896,8 @@ ucs4_t *c;
 }
 
 static unsigned long
-#ifdef __STDC__
 _ure_compile_symbol(ucs2_t *sym, unsigned long limit, _ure_symtab_t *symp,
                     _ure_buffer_t *b)
-#else
-_ure_compile_symbol(sym, limit, symp, b)
-ucs2_t *sym;
-unsigned long limit;
-_ure_symtab_t *symp;
-_ure_buffer_t *b;
-#endif
 {
     ucs4_t c;
     ucs2_t *sp, *ep;
@@ -1135,12 +1041,7 @@ _ure_buffer_t *b;
 }
 
 static int
-#ifdef __STDC__
 _ure_sym_neq(_ure_symtab_t *a, _ure_symtab_t *b)
-#else
-_ure_sym_neq(a, b)
-_ure_symtab_t *a, *b;
-#endif
 {
     if (a->type != b->type || a->mods != b->mods || a->props != b->props)
       return 1;
@@ -1161,15 +1062,8 @@ _ure_symtab_t *a, *b;
  * Construct a symbol, but only keep unique symbols.
  */
 static ucs2_t
-#ifdef __stdc__
 _ure_make_symbol(ucs2_t *sym, unsigned long limit, unsigned long *consumed,
                  _ure_buffer_t *b)
-#else
-_ure_make_symbol(sym, limit, consumed, b)
-ucs2_t *sym;
-unsigned long limit, *consumed;
-_ure_buffer_t *b;
-#endif
 {
     ucs2_t i;
     _ure_symtab_t *sp, symbol;
@@ -1227,13 +1121,7 @@ _ure_buffer_t *b;
  *************************************************************************/
 
 static ucs2_t
-#ifdef __stdc__
 _ure_make_expr(ucs2_t type, ucs2_t lhs, ucs2_t rhs, _ure_buffer_t *b)
-#else
-_ure_make_expr(type, lhs, rhs, b)
-ucs2_t type, lhs, rhs;
-_ure_buffer_t *b;
-#endif
 {
     ucs2_t i;
 
@@ -1286,14 +1174,7 @@ static unsigned char spmap[] = {
  * reduce to a DFA.  The starting state for the reduction will be returned.
  */
 static ucs2_t
-#ifdef __STDC__
 _ure_re2nfa(ucs2_t *re, unsigned long relen, _ure_buffer_t *b)
-#else
-_ure_re2nfa(re, relen, b)
-ucs2_t *re;
-unsigned long relen;
-_ure_buffer_t *b;
-#endif
 {
     ucs2_t c, state, top, sym, *sp, *ep;
     unsigned long used;
@@ -1377,13 +1258,7 @@ _ure_buffer_t *b;
 }
 
 static void
-#ifdef __STDC__
 _ure_add_symstate(ucs2_t sym, ucs2_t state, _ure_buffer_t *b)
-#else
-_ure_add_symstate(sym, state, b)
-ucs2_t sym, state;
-_ure_buffer_t *b;
-#endif
 {
     ucs2_t i, *stp;
     _ure_symtab_t *sp;
@@ -1424,13 +1299,7 @@ _ure_buffer_t *b;
 }
 
 static ucs2_t
-#ifdef __STDC__
 _ure_add_state(ucs2_t nstates, ucs2_t *states, _ure_buffer_t *b)
-#else
-_ure_add_state(nstates, states, b)
-ucs2_t nstates, *states;
-_ure_buffer_t *b;
-#endif
 {
     ucs2_t i;
     _ure_state_t *sp;
@@ -1484,13 +1353,7 @@ _ure_buffer_t *b;
 }
 
 static void
-#ifdef __STDC__
 _ure_reduce(ucs2_t start, _ure_buffer_t *b)
-#else
-_ure_reduce(start, b)
-ucs2_t start;
-_ure_buffer_t *b;
-#endif
 {
     ucs2_t i, j, state, eval, syms, rhs;
     ucs2_t s1, s2, ns1, ns2;
@@ -1665,13 +1528,7 @@ _ure_buffer_t *b;
 }
 
 static void
-#ifdef __STDC__
 _ure_add_equiv(ucs2_t l, ucs2_t r, _ure_buffer_t *b)
-#else
-_ure_add_equiv(l, r, b)
-ucs2_t l, r;
-_ure_buffer_t *b;
-#endif
 {
     ucs2_t tmp;
 
@@ -1715,12 +1572,7 @@ _ure_buffer_t *b;
  * Merge the DFA states that are equivalent.
  */
 static void
-#ifdef __STDC__
 _ure_merge_equiv(_ure_buffer_t *b)
-#else
-_ure_merge_equiv(b)
-_ure_buffer_t *b;
-#endif
 {
     ucs2_t i, j, k, eq, done;
     _ure_state_t *sp1, *sp2, *ls, *rs;
@@ -1776,11 +1628,7 @@ _ure_buffer_t *b;
  *************************************************************************/
 
 ure_buffer_t
-#ifdef __STDC__
 ure_buffer_create(void)
-#else
-ure_buffer_create()
-#endif
 {
     ure_buffer_t b;
 
@@ -1790,12 +1638,7 @@ ure_buffer_create()
 }
 
 void
-#ifdef __STDC__
 ure_buffer_free(ure_buffer_t buf)
-#else
-ure_buffer_free(buf)
-ure_buffer_t buf;
-#endif
 {
     unsigned long i;
 
@@ -1833,15 +1676,7 @@ ure_buffer_t buf;
 }
 
 ure_dfa_t
-#ifdef __STDC__
 ure_compile(ucs2_t *re, unsigned long relen, int casefold, ure_buffer_t buf)
-#else
-ure_compile(re, relen, casefold, buf)
-ucs2_t *re;
-unsigned long relen;
-int casefold;
-ure_buffer_t buf;
-#endif
 {
     ucs2_t i, j, state;
     _ure_state_t *sp;
@@ -1959,12 +1794,7 @@ ure_buffer_t buf;
 }
 
 void
-#ifdef __STDC__
 ure_dfa_free(ure_dfa_t dfa)
-#else
-ure_dfa_free(dfa)
-ure_dfa_t dfa;
-#endif
 {
     ucs2_t i;
 
@@ -1988,13 +1818,7 @@ ure_dfa_t dfa;
 }
 
 void
-#ifdef __STDC__
 ure_write_dfa(ure_dfa_t dfa, FILE *out)
-#else
-ure_write_dfa(dfa, out)
-ure_dfa_t dfa;
-FILE *out;
-#endif
 {
     ucs2_t i, j, k, h, l;
     _ure_dstate_t *sp;
@@ -2111,16 +1935,8 @@ FILE *out;
                         (cc) == 0x2029)
 
 int
-#ifdef __STDC__
 ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
          unsigned long *match_start, unsigned long *match_end)
-#else
-ure_exec(dfa, flags, text, textlen, match_start, match_end)
-ure_dfa_t dfa;
-int flags;
-ucs2_t *text;
-unsigned long textlen, *match_start,  *match_end;
-#endif
 {
     int i, j, matched, found, skip;
     unsigned long ms, me;

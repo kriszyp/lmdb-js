@@ -27,12 +27,13 @@ static char rcsid[] = "$Id: ucdata.c,v 1.3 1999/08/23 16:14:09 mleisher Exp $";
 #endif
 #endif
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#ifndef WIN32
-#include <unistd.h>
-#endif
+#include <ac/string.h>
+#include <ac/unistd.h>
+
 
 #include "ucdata.h"
 
@@ -68,12 +69,7 @@ static unsigned long masks32[32] = {
                         ((((cc) >> 16) & 0xff) << 8)|((cc) >> 24))
 
 static FILE *
-#ifdef __STDC__
 _ucopenfile(char *paths, char *filename, char *mode)
-#else
-_ucopenfile(paths, filename, mode)
-char *paths, *filename, *mode;
-#endif
 {
     FILE *f;
     char *fp, *dp, *pp, path[BUFSIZ];
@@ -114,13 +110,7 @@ static unsigned short *_ucprop_offsets;
 static unsigned long  *_ucprop_ranges;
 
 static void
-#ifdef __STDC__
 _ucprop_load(char *paths, int reload)
-#else
-_ucprop_load(paths, reload)
-char *paths;
-int reload;
-#endif
 {
     FILE *in;
     unsigned long size, i;
@@ -210,11 +200,7 @@ int reload;
 }
 
 static void
-#ifdef __STDC__
 _ucprop_unload(void)
-#else
-_ucprop_unload()
-#endif
 {
     if (_ucprop_size == 0)
       return;
@@ -228,12 +214,7 @@ _ucprop_unload()
 }
 
 static int
-#ifdef __STDC__
 _ucprop_lookup(unsigned long code, unsigned long n)
-#else
-_ucprop_lookup(code, n)
-unsigned long code, n;
-#endif
 {
     long l, r, m;
 
@@ -272,12 +253,7 @@ unsigned long code, n;
 }
 
 int
-#ifdef __STDC__
 ucisprop(unsigned long code, unsigned long mask1, unsigned long mask2)
-#else
-ucisprop(code, mask1, mask2)
-unsigned long code, mask1, mask2;
-#endif
 {
     unsigned long i;
 
@@ -308,13 +284,7 @@ static unsigned short _uccase_len[2];
 static unsigned long *_uccase_map;
 
 static void
-#ifdef __STDC__
 _uccase_load(char *paths, int reload)
-#else
-_uccase_load(paths, reload)
-char *paths;
-int reload;
-#endif
 {
     FILE *in;
     unsigned long i;
@@ -371,11 +341,7 @@ int reload;
 }
 
 static void
-#ifdef __STDC__
 _uccase_unload(void)
-#else
-_uccase_unload()
-#endif
 {
     if (_uccase_size == 0)
       return;
@@ -385,14 +351,7 @@ _uccase_unload()
 }
 
 static unsigned long
-#ifdef __STDC__
 _uccase_lookup(unsigned long code, long l, long r, int field)
-#else
-_uccase_lookup(code, l, r, field)
-unsigned long code;
-long l, r;
-int field;
-#endif
 {
     long m;
 
@@ -418,12 +377,7 @@ int field;
 }
 
 unsigned long
-#ifdef __STDC__
 uctoupper(unsigned long code)
-#else
-uctoupper(code)
-unsigned long code;
-#endif
 {
     int field;
     long l, r;
@@ -450,12 +404,7 @@ unsigned long code;
 }
 
 unsigned long
-#ifdef __STDC__
 uctolower(unsigned long code)
-#else
-uctolower(code)
-unsigned long code;
-#endif
 {
     int field;
     long l, r;
@@ -482,12 +431,7 @@ unsigned long code;
 }
 
 unsigned long
-#ifdef __STDC__
 uctotitle(unsigned long code)
-#else
-uctotitle(code)
-unsigned long code;
-#endif
 {
     int field;
     long l, r;
@@ -527,13 +471,7 @@ static unsigned long *_ucdcmp_nodes;
 static unsigned long *_ucdcmp_decomp;
 
 static void
-#ifdef __STDC__
 _ucdcmp_load(char *paths, int reload)
-#else
-_ucdcmp_load(paths, reload)
-char *paths;
-int reload;
-#endif
 {
     FILE *in;
     unsigned long size, i;
@@ -583,11 +521,7 @@ int reload;
 }
 
 static void
-#ifdef __STDC__
 _ucdcmp_unload(void)
-#else
-_ucdcmp_unload()
-#endif
 {
     if (_ucdcmp_size == 0)
       return;
@@ -601,12 +535,7 @@ _ucdcmp_unload()
 }
 
 int
-#ifdef __STDC__
 ucdecomp(unsigned long code, unsigned long *num, unsigned long **decomp)
-#else
-ucdecomp(code, num, decomp)
-unsigned long code, *num, **decomp;
-#endif
 {
     long l, r, m;
 
@@ -634,12 +563,7 @@ unsigned long code, *num, **decomp;
 }
 
 int
-#ifdef __STDC__
 ucdecomp_hangul(unsigned long code, unsigned long *num, unsigned long decomp[])
-#else
-ucdecomp_hangul(code, num, decomp)
-unsigned long code, *num, decomp[];
-#endif
 {
     if (!ucishangul(code))
       return 0;
@@ -663,13 +587,7 @@ static unsigned long  _uccmcl_size;
 static unsigned long *_uccmcl_nodes;
 
 static void
-#ifdef __STDC__
 _uccmcl_load(char *paths, int reload)
-#else
-_uccmcl_load(paths, reload)
-char *paths;
-int reload;
-#endif
 {
     FILE *in;
     unsigned long i;
@@ -717,11 +635,7 @@ int reload;
 }
 
 static void
-#ifdef __STDC__
 _uccmcl_unload(void)
-#else
-_uccmcl_unload()
-#endif
 {
     if (_uccmcl_size == 0)
       return;
@@ -731,12 +645,7 @@ _uccmcl_unload()
 }
 
 unsigned long
-#ifdef __STDC__
 uccombining_class(unsigned long code)
-#else
-uccombining_class(code)
-unsigned long code;
-#endif
 {
     long l, r, m;
 
@@ -766,14 +675,8 @@ static unsigned long *_ucnum_nodes;
 static unsigned long _ucnum_size;
 static short *_ucnum_vals;
 
-static void
-#ifdef __STDC__
+void
 _ucnumb_load(char *paths, int reload)
-#else
-_ucnumb_load(paths, reload)
-char *paths;
-int reload;
-#endif
 {
     FILE *in;
     unsigned long size, i;
@@ -832,11 +735,7 @@ int reload;
 }
 
 static void
-#ifdef __STDC__
 _ucnumb_unload(void)
-#else
-_ucnumb_unload()
-#endif
 {
     if (_ucnum_size == 0)
       return;
@@ -846,13 +745,7 @@ _ucnumb_unload()
 }
 
 int
-#ifdef __STDC__
 ucnumber_lookup(unsigned long code, struct ucnumber *num)
-#else
-ucnumber_lookup(code, num)
-unsigned long code;
-struct ucnumber *num;
-#endif
 {
     long l, r, m;
     short *vp;
@@ -881,13 +774,7 @@ struct ucnumber *num;
 }
 
 int
-#ifdef __STDC__
 ucdigit_lookup(unsigned long code, int *digit)
-#else
-ucdigit_lookup(code, digit)
-unsigned long code;
-int *digit;
-#endif
 {
     long l, r, m;
     short *vp;
@@ -918,12 +805,7 @@ int *digit;
 }
 
 struct ucnumber
-#ifdef __STDC__
 ucgetnumber(unsigned long code)
-#else
-ucgetnumber(code)
-unsigned long code;
-#endif
 {
     struct ucnumber num;
 
@@ -940,12 +822,7 @@ unsigned long code;
 }
 
 int
-#ifdef __STDC__
 ucgetdigit(unsigned long code)
-#else
-ucgetdigit(code)
-unsigned long code;
-#endif
 {
     int dig;
 
@@ -968,13 +845,7 @@ unsigned long code;
  **************************************************************************/
 
 void
-#ifdef __STDC__
 ucdata_load(char *paths, int masks)
-#else
-ucdata_load(paths, masks)
-char *paths;
-int masks;
-#endif
 {
     if (masks & UCDATA_CTYPE)
       _ucprop_load(paths, 0);
@@ -989,12 +860,7 @@ int masks;
 }
 
 void
-#ifdef __STDC__
 ucdata_unload(int masks)
-#else
-ucdata_unload(masks)
-int masks;
-#endif
 {
     if (masks & UCDATA_CTYPE)
       _ucprop_unload();
@@ -1009,13 +875,7 @@ int masks;
 }
 
 void
-#ifdef __STDC__
 ucdata_reload(char *paths, int masks)
-#else
-ucdata_reload(paths, masks)
-char *paths;
-int masks;
-#endif
 {
     if (masks & UCDATA_CTYPE)
       _ucprop_load(paths, 1);
@@ -1032,11 +892,7 @@ int masks;
 #ifdef TEST
 
 void
-#ifdef __STDC__
 main(void)
-#else
-main()
-#endif
 {
     int dig;
     unsigned long i, lo, *dec;

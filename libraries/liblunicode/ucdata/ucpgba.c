@@ -27,8 +27,11 @@ static char rcsid[] = "$Id: ucpgba.c,v 1.4 1999/11/29 16:41:06 mleisher Exp $";
 #endif
 #endif
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "ucdata.h"
 #include "ucpgba.h"
 
@@ -93,12 +96,7 @@ sizeof(_symmetric_pairs)/sizeof(_symmetric_pairs[0]);
  * This routine looks up the other form of a symmetric pair.
  */
 static unsigned long
-#ifdef __STDC__
 _ucsymmetric_pair(unsigned long c)
-#else
-_ucsymmetric_pair(c)
-unsigned long c;
-#endif
 {
     int i;
 
@@ -115,15 +113,8 @@ unsigned long c;
  * the visual text order chain.
  */
 static ucrun_t *
-#ifdef __STDC__
 _add_run(ucstring_t *str, unsigned long *src,
          unsigned long start, unsigned long end, int direction)
-#else
-_add_run(str, src, start, end, direction)
-ucstring_t *str;
-unsigned long *src, start, end;
-int direction;
-#endif
 {
     long i, t;
     ucrun_t *run;
@@ -179,14 +170,8 @@ int direction;
 }
 
 static void
-#ifdef __STDC__
 _ucadd_rtl_segment(ucstring_t *str, unsigned long *source, unsigned long start,
                    unsigned long end)
-#else
-_ucadd_rtl_segment(str, source, start, end)
-ucstring_t *str;
-unsigned long *source, start, end;
-#endif
 {
     unsigned long s, e;
     ucrun_t *run, *lrun;
@@ -298,14 +283,8 @@ unsigned long *source, start, end;
 }
 
 static void
-#ifdef __STDC__
 _ucadd_ltr_segment(ucstring_t *str, unsigned long *source, unsigned long start,
                    unsigned long end)
-#else
-_ucadd_ltr_segment(str, source, start, end)
-ucstring_t *str;
-unsigned long *source, start, end;
-#endif
 {
     ucrun_t *run;
 
@@ -329,14 +308,8 @@ unsigned long *source, start, end;
 }
 
 ucstring_t *
-#ifdef __STDC__
 ucstring_create(unsigned long *source, unsigned long start, unsigned long end,
                 int default_direction, int cursor_motion)
-#else
-ucstring_create(source, start, end, default_direction, cursor_motion)
-unsigned long *source, start, end;
-int default_direction, cursor_motion;
-#endif
 {
     int rtl_first;
     unsigned long s, e;
@@ -446,12 +419,7 @@ int default_direction, cursor_motion;
 }
 
 void
-#ifdef __STDC__
 ucstring_free(ucstring_t *s)
-#else
-ucstring_free(s)
-ucstring_t *s;
-#endif
 {
     ucrun_t *l, *r;
 
@@ -472,13 +440,7 @@ ucstring_t *s;
 }
 
 int
-#ifdef __STDC__
 ucstring_set_cursor_motion(ucstring_t *str, int cursor_motion)
-#else
-ucstring_set_cursor_motion(s, cursor_motion)
-ucstring_t *str;
-int cursor_motion;
-#endif
 {
     int n;
 
@@ -491,13 +453,7 @@ int cursor_motion;
 }
 
 static int
-#ifdef __STDC__
 _ucstring_visual_cursor_right(ucstring_t *str, int count)
-#else
-_ucstring_visual_cursor_right(str, count)
-ucstring_t *str;
-int count;
-#endif
 {
     int cnt = count;
     unsigned long size;
@@ -535,13 +491,7 @@ int count;
 }
 
 static int
-#ifdef __STDC__
 _ucstring_logical_cursor_right(ucstring_t *str, int count)
-#else
-_ucstring_logical_cursor_right(str, count)
-ucstring_t *str;
-int count;
-#endif
 {
     int cnt = count;
     unsigned long size;
@@ -619,13 +569,7 @@ int count;
 }
 
 int
-#ifdef __STDC__
 ucstring_cursor_right(ucstring_t *str, int count)
-#else
-ucstring_cursor_right(str, count)
-ucstring_t *str;
-int count;
-#endif
 {
     if (str == 0)
       return 0;
@@ -635,13 +579,7 @@ int count;
 }
 
 static int
-#ifdef __STDC__
 _ucstring_visual_cursor_left(ucstring_t *str, int count)
-#else
-_ucstring_visual_cursor_left(str, count)
-ucstring_t *str;
-int count;
-#endif
 {
     int cnt = count;
     unsigned long size;
@@ -680,13 +618,7 @@ int count;
 }
 
 static int
-#ifdef __STDC__
 _ucstring_logical_cursor_left(ucstring_t *str, int count)
-#else
-_ucstring_logical_cursor_left(str, count)
-ucstring_t *str;
-int count;
-#endif
 {
     int cnt = count;
     unsigned long size;
@@ -764,13 +696,7 @@ int count;
 }
 
 int
-#ifdef __STDC__
 ucstring_cursor_left(ucstring_t *str, int count)
-#else
-ucstring_cursor_left(str, count)
-ucstring_t *str;
-int count;
-#endif
 {
     if (str == 0)
       return 0;
@@ -780,13 +706,7 @@ int count;
 }
 
 void
-#ifdef __STDC__
 ucstring_cursor_info(ucstring_t *str, int *direction, unsigned long *position)
-#else
-ucstring_cursor_info(str, direction, position)
-ucstring_t *str, int *direction;
-unsigned long *position;
-#endif
 {
     long c;
     unsigned long size;
