@@ -2297,9 +2297,15 @@ fi
 dnl ----------------------------------------------------------------
 dnl FreeBSD (and others) have crypt(3) in -lcrypt
 if test $ol_enable_crypt != no ; then
+	save_LIBS="$LIBS"
+	LIBS="$TLS_LIBS $LIBS"
+
 	AC_CHECK_FUNC(crypt, [have_crypt=yes], [
+		LIBS="$save_LIBS"
 		AC_CHECK_LIB(crypt, crypt, [LUTIL_LIBS="$LUTIL_LIBS -lcrypt"
 			have_crypt=yes], [have_crypt=no])])
+
+	LIBS="$save_LIBS"
 
 	if test $have_crypt = yes ; then
 		AC_DEFINE(HAVE_CRYPT,1, [define if crypt(3) is available])
