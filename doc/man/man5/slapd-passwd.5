@@ -1,4 +1,4 @@
-.TH SLAPD-PASSWD 5 "30 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD-PASSWD 5 "2 May 2002" "OpenLDAP LDVERSION"
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
@@ -12,11 +12,14 @@ The PASSWD backend to
 serves up the user account information listed in the system
 .BR passwd (5)
 file.
+The DN of each entry is "uid=<username>,<suffix>".
+Note that non-base searches scan the the entire passwd file, and
+are best suited for hosts with small passwd files.
 .SH CONFIGURATION
-These
+This
 .B slapd.conf
-options apply to the PASSWD backend database.
-That is, they must follow a "database passwd" line and come before any
+option applies to the PASSWD backend database.
+That is, it must follow a "database passwd" line and come before any
 subsequent "backend" or "database" lines.
 Other database options are described in the
 .BR slapd.conf (5)

@@ -1,4 +1,4 @@
-.TH SLAPD-NULL 5 "30 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD-NULL 5 "2 May 2002" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .SH NAME
 slapd-null \- Null backend to slapd
@@ -35,11 +35,13 @@ The default is "off".
 .SH EXAMPLE
 Here is a possible slapd.conf extract using the Null backend:
 .LP
+.RS
 .nf
-  database null
-  suffix   "cn=Nothing"
-  bind     on
+database null
+suffix   "cn=Nothing"
+bind     on
 .fi
+.RE
 .SH FILES
 ETCDIR/slapd.conf
 .SH SEE ALSO

@@ -1,4 +1,4 @@
-.TH SLAPD-SQL 5 "01 May 2002" "OpenLDAP LDVERSION"
+.TH SLAPD-SQL 5 "2 May 2002" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .SH NAME
 slapd-sql \- SQL backend to slapd
@@ -52,17 +52,19 @@ manual page.
 .TP
 .B dbname <datasource name>
 The name of the ODBC datasource to use.
-.TP
+.LP
 .B dbhost <hostname>
-.TP
+.br
 .B dbuser <username>
-.TP
+.br
 .B dbpasswd <password>
+.RS
 These three options are generally unneeded, because this information is already
 taken from the datasource.
 Use them if you need to override datasource settings.
 Also, several RDBMS' drivers tend to require explicit passing of user/password,
 even if those are given in datasource.
+.RE
 .TP
 .B subtree_cond <SQL expression>
 Specifies a where-clause template used to form a subtree search condition.
@@ -127,11 +129,11 @@ Let's suppose that we store information about persons working in our
 organization in two tables:
 .LP
 .nf
-  PERSONS                 PHONES
-  ----------              -------------
-  id integer              id integer
-  first_name varchar      pers_id integer references persons(id)
-  last_name varchar       phone
+  PERSONS              PHONES
+  ----------           -------------
+  id integer           id integer
+  first_name varchar   pers_id integer references persons(id)
+  last_name varchar    phone
   middle_name varchar
   ...
 .fi

@@ -1,4 +1,4 @@
-.TH SLAPD-LDAP 5 "30 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD-LDAP 5 "2 May 2002" "OpenLDAP LDVERSION"
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
@@ -22,6 +22,19 @@ subsequent "backend" or "database" lines.
 Other database options are described in the
 .BR slapd.conf (5)
 manual page.
+.LP
+Note: It is strongly recommended to set
+.RS
+lastmod  off
+.RE
+for every
+.B ldap
+and
+.B meta
+database.
+This is because operational attributes related to entry creation and
+modification should not be used, as they could be passed to the target
+servers, generating an error.
 .TP
 .B uri <ldapurl>
 LDAP server to use.
@@ -71,20 +84,24 @@ manual page.
 This maps the OpenLDAP objectclass `groupOfNames' to the Active
 Directory objectclass `group':
 .LP
+.RS
 .nf
-  map objectclass groupOfNames group
+map objectclass groupOfNames group
 .fi
+.RE
 .LP
 This presents a limited attribute set from the foreign
 server:
 .LP
+.RS
 .nf
-  map attribute cn *
-  map attribute sn *
-  map attribute manager *
-  map attribute description *
-  map attribute *
+map attribute cn *
+map attribute sn *
+map attribute manager *
+map attribute description *
+map attribute *
 .fi
+.RE
 .LP
 These lines map cn, sn, manager, and description to themselves, and 
 any other attribute gets "removed" from the object before it is sent 

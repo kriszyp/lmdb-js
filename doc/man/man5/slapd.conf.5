@@ -1,4 +1,4 @@
-.TH SLAPD.CONF 5 "30 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD.CONF 5 "2 May 2002" "OpenLDAP LDVERSION"
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
@@ -915,6 +915,8 @@ and \fB{CRYPT}\fP passwords are not recommended.  If empty
 Specify the DN suffix of queries that will be passed to this 
 backend database.  Multiple suffix lines can be given and at least one is 
 required for each database definition.
+If the suffix of one database is "inside" that of another, the database
+with the inner suffix must come first in the configuration file.
 .TP
 .B suffixalias <alias> <aliased suffix>
 Specify an alternate suffix that may be used to reference an already defined
@@ -951,9 +953,37 @@ Each database may allow specific configuration options; they are
 documented separately in the
 .BR slapd-<backend> (5)
 manual pages.
-.SH EXAMPLE
-"OpenLDAP Administrator's Guide" contains an annotated
+.SH EXAMPLES
+.LP
+Here is a short example of a configuration file:
+.LP
+.RS
+.nf
+include   SYSCONFDIR/schema/core.schema
+pidfile   LOCALSTATEDIR/slapd.pid
+
+database  bdb
+suffix    "dc=our-domain,dc=com"
+# The database directory MUST exist prior to
+# running slapd AND should only be accessible
+# by the slapd/tools. Mode 700 recommended.
+directory LOCALSTATEDIR/openldap-data
+# Indices to maintain
+index     objectClass  eq
+index     cn,sn,mail   pres,eq,approx,sub
+
+# We serve small clients that do not handle referrals,
+# so handle remote lookups on their behalf.
+database  ldap
+suffix    ""
+uri       ldap://ldap.some-server.com/
+lastmod   off
+.fi
+.RE
+.LP
+"OpenLDAP Administrator's Guide" contains a longer annotated
 example of a configuration file.
+The original ETCDIR/slapd.conf is another example.
 .SH FILES
 ETCDIR/slapd.conf
 .SH SEE ALSO

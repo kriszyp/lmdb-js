@@ -1,4 +1,4 @@
-.TH SLAPD_META 5 "30 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD_META 5 "2 May 2002" "OpenLDAP LDVERSION"
 .\" Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
 .\" Copying restrictions apply.  See the COPYRIGHT file.
 .\" Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
@@ -61,11 +61,9 @@ knowledge of such attributes.
 While code to strip the modification attributes has been put in place
 (and #ifdef'd), it implies unmotivated overhead.
 So it is strongly recommended to set
-.LP
-.nf
-	lastmod		off
-.fi
-.LP
+.RS
+lastmod  off
+.RE
 for every
 .B ldap
 and
@@ -108,10 +106,12 @@ The <naming context> part is mandatory.
 It must end with one of the naming contexts defined for the backend,
 e.g.:
 .LP
+.RS
 .nf
-  suffix "\fBdc=foo,dc=com\fP"
-  uri    "ldap://x.foo.com/dc=x,\fBdc=foo,dc=com\fP"
+suffix "\fBdc=foo,dc=com\fP"
+uri    "ldap://x.foo.com/dc=x,\fBdc=foo,dc=com\fP"
 .fi
+.RE
 .LP
 The <naming context> part doesn't need to be unique across the targets;
 it may also match one of the values of the "suffix" directive.
@@ -185,12 +185,14 @@ Consider a couple of scenarios first.
 say "dc=a,dc=foo,dc=com" and "dc=b,dc=foo,dc=com".
 Then, an unambiguous Meta database can be configured as:
 .LP
+.RS
 .nf
-  database meta
-  suffix   "dc=foo,dc=com"
-  uri      "ldap://a.foo.com/dc=a,dc=foo,dc=com"
-  uri      "ldap://b.foo.com/dc=b,dc=foo,dc=com"
+database meta
+suffix   "\fBdc=foo,dc=com\fP"
+uri      "ldap://a.foo.com/dc=a,\fBdc=foo,dc=com\fP"
+uri      "ldap://b.foo.com/dc=b,\fBdc=foo,dc=com\fP"
 .fi
+.RE
 .LP
 Operations directed to a specific target can be easily resolved
 because there are no ambiguities.
@@ -208,16 +210,18 @@ and we'd like them to appear as branches of "dc=foo,dc=com", say
 "dc=a,dc=foo,dc=com" and "dc=b,dc=foo,dc=com".
 Then we need to configure our Meta backend as:
 .LP
+.RS
 .nf
-  database	meta
-  suffix	"dc=foo,dc=com"
-  
-  uri		"ldap://a.bar.com/dc=a,dc=foo,dc=com"
-  suffixmassage	"dc=a,dc=foo,dc=com" "dc=bar,dc=org"
-	
-  uri		"ldap://b.foo.com/dc=b,dc=foo,dc=com"
-  suffixmassage	"dc=b,dc=foo,dc=com" "o=Foo,c=US"
+database      meta
+suffix        "dc=foo,dc=com"
+
+uri           "ldap://a.bar.com/\fBdc=a,dc=foo,dc=com\fP"
+suffixmassage "\fBdc=a,dc=foo,dc=com\fP" "dc=bar,dc=org"
+
+uri           "ldap://b.foo.com/\fBdc=b,dc=foo,dc=com\fP"
+suffixmassage "\fBdc=b,dc=foo,dc=com\fP" "o=Foo,c=US"
 .fi
+.RE
 .LP
 Again, operations can be resolved without ambiguity, although
 some rewriting is required.
@@ -243,16 +247,18 @@ is not altered.
 2b) Consider the above reported scenario with the two servers
 sharing the same naming context:
 .LP
+.RS
 .nf
-  database	meta
-  suffix	"dc=foo,dc=com"
-  
-  uri		"ldap://a.bar.com/dc=foo,dc=com"
-  suffixmassage	"dc=foo,dc=com" "dc=bar,dc=org"
-	
-  uri		"ldap://b.foo.com/dc=foo,dc=com"
-  suffixmassage	"dc=foo,dc=com" "o=Foo,c=US"
+database      meta
+suffix        "\fBdc=foo,dc=com\fP"
+
+uri           "ldap://a.bar.com/\fBdc=foo,dc=com\fP"
+suffixmassage "\fBdc=foo,dc=com\fP" "dc=bar,dc=org"
+
+uri           "ldap://b.foo.com/\fBdc=foo,dc=com\fP"
+suffixmassage "\fBdc=foo,dc=com\fP" "o=Foo,c=US"
 .fi
+.RE
 .LP
 All the previous considerations hold, except that now there is
 no way to unambiguously resolve a DN.
@@ -283,11 +289,13 @@ slapd except a special subtle case (please drop me a note if you can
 find other exceptions: <ando@openldap.org>).
 The rule
 .LP
+.RS
 .nf
-  access to dn="<dn>" attr=<attr>
-	 by dnattr=<dnattr> read
-	 by * none
+access to dn="<dn>" attr=<attr>
+       by dnattr=<dnattr> read
+       by * none
 .fi
+.RE
 .LP
 cannot be matched iff the attribute that is being requested, <attr>,
 is NOT <dnattr>, and the attribute that determines membership,
@@ -367,30 +375,8 @@ More flags (mainly Action Flags) will be added as needed.
 .SH "Pattern matching:"
 See
 .BR regex (7).
-.SH "String Substitution:"
-The string substitution happens according to a substitution pattern.
-.TP
-.B -
-substring substitution is allowed with the syntax `\ed' where `d' is a
-digit ranging 0-9 (0 is the full match).
-I see that 0-9 digit expansion is a widely accepted practise; however
-there is no technical reason to use such a strict limit.
-A syntax of the form `\e{ddd}' should be fine if there is any need to
-use a higher number of possible submatches.
-.TP
-.B -
-variable substitution will be allowed (at least when I figure out
-which kind of variable could be proficiently substituted)
-.TP
-.B -
-map lookup will be allowed (map lookup of substring matches in gdbm,
-ldap(!), math(?) and so on maps `a la sendmail'.
-.TP
-.B -
-subroutine invocation will make it possible to rewrite a submatch in
-terms of the output of another rewriteContext.
 .SH "Substitution Pattern Syntax:"
-everything starting with `%' requires substitution;
+Everything starting with `%' requires substitution;
 .LP
 the only obvious exception is `%%', which is left as is;
 .LP
@@ -401,16 +387,18 @@ the basic substitution is `%d', where `d' is a digit;
 a `%' followed by a `{' invokes an advanced substitution.
 The pattern is:
 .LP
-.nf
-  `%' `{' [ <op> ] <name> `(' <substitution> `)' `}'
-.fi
+.RS
+`%' `{' [ <op> ] <name> `(' <substitution> `)' `}'
+.RE
 .LP
 where <name> must be a legal name for the map, i.e.
 .LP
+.RS
 .nf
-  <name> ::= [a-z][a-z0-9]* (case insensitive)
-  <op> ::= `>' `|' `&' `&&' `*' `**' `$'
+<name> ::= [a-z][a-z0-9]* (case insensitive)
+<op> ::= `>' `|' `&' `&&' `*' `**' `$'
 .fi
+.RE
 .LP
 and <substitution> must be a legal substitution
 pattern, with no limits on the nesting level.
@@ -482,26 +470,33 @@ server \-> client rewriting.
 .LP
 client -> server:
 .LP
+.RS
 .nf
-     (default)       if defined and no specific context 
-                     is available
-     bindDn          bind
-     searchBase      search
-     searchFilter    search
-     compareDn       compare
-     addDn           add
-     modifyDn        modify
-     modrDn          modrdn
-     newSuperiorDn   modrdn
-     deleteDn        delete
+(default)      if defined and no specific context 
+               is available
+bindDn         bind
+searchBase     search
+searchFilter   search
+compareDn      compare
+addDn          add
+modifyDn       modify
+modrDn         modrdn
+newSuperiorDn  modrdn
+deleteDn       delete
 .fi
+.RE
 .LP
 server -> client:
 .LP
+.RS
 .nf
-     searchResult    search (only if defined; no default)
-     matchedDn       all ops (only if defined; no default; NOT IMPL.)
+searchResult   search (only if defined; no default;
+               acts on DN and DN-syntax attributes 
+               of search results)
+matchedDn      all ops (only if defined; no default;
+               NOT IMPL. except in search)
 .fi
+.RE
 .LP
 .SH "Basic configuration syntax"
 .TP
@@ -537,103 +532,107 @@ Sets the maximum number of total rewriting passes that can be
 performed in a single rewrite operation (to avoid loops).
 .SH "Configuration examples:"
 .nf
-     # set to `off' to disable rewriting
-     rewriteEngine on
+# set to `off' to disable rewriting
+rewriteEngine on
 
-     # Everything defined here goes into the `default' context.
-     # This rule changes the naming context of anything sent
-     # to `dc=home,dc=net' to `dc=OpenLDAP, dc=org'
+# Everything defined here goes into the `default' context.
+# This rule changes the naming context of anything sent
+# to `dc=home,dc=net' to `dc=OpenLDAP, dc=org'
 
-     rewriteRule "(.*)dc=home,[ ]?dc=net"
-                 "%1dc=OpenLDAP, dc=org"  ":"
+rewriteRule "(.*)dc=home,[ ]?dc=net"
+            "%1dc=OpenLDAP, dc=org"  ":"
 
-     # since a pretty/normalized DN does not include spaces
-     # after rdn separators, e.g. `,', this rule suffices:
+# since a pretty/normalized DN does not include spaces
+# after rdn separators, e.g. `,', this rule suffices:
 
-     rewriteRule "(.*)dc=home,dc=net"
-                 "%1dc=OpenLDAP,dc=org"  ":"
+rewriteRule "(.*)dc=home,dc=net"
+            "%1dc=OpenLDAP,dc=org"  ":"
 
-     # Start a new context (ends input of the previous one).
-     # This rule adds blanks between DN parts if not present.
-     rewriteContext  addBlanks
-     rewriteRule     "(.*),([^ ].*)" "%1, %2"
+# Start a new context (ends input of the previous one).
+# This rule adds blanks between DN parts if not present.
+rewriteContext  addBlanks
+rewriteRule     "(.*),([^ ].*)" "%1, %2"
 
-     # This one eats blanks
-     rewriteContext  eatBlanks
-     rewriteRule     "(.*),[ ](.*)" "%1,%2"
+# This one eats blanks
+rewriteContext  eatBlanks
+rewriteRule     "(.*),[ ](.*)" "%1,%2"
 
-     # Here control goes back to the default rewrite
-     # context; rules are appended to the existing ones.
-     # anything that gets here is piped into rule `addBlanks'
-     rewriteContext  default
-     rewriteRule     ".*" "%{>addBlanks(%0)}" ":"
+# Here control goes back to the default rewrite
+# context; rules are appended to the existing ones.
+# anything that gets here is piped into rule `addBlanks'
+rewriteContext  default
+rewriteRule     ".*" "%{>addBlanks(%0)}" ":"
 
-     # Anything with `uid=username' is looked up in
-     # /etc/passwd for gecos (I know it's nearly useless,
-     # but it is there just as a guideline to implementing
-     # custom maps).
-     # Note the `I' flag that leaves `uid=username' in place 
-     # if `username' does not have a valid account, and the
-     # `:' that forces the rule to be processed exactly once.
-     rewriteContext  uid2Gecos
-     rewriteRule     "(.*)uid=([a-z0-9]+),(.+)"
-                     "%1cn=%2{xpasswd},%3"      "I:"
+.\" # Anything with `uid=username' is looked up in
+.\" # /etc/passwd for gecos (I know it's nearly useless,
+.\" # but it is there just as a guideline to implementing
+.\" # custom maps).
+.\" # Note the `I' flag that leaves `uid=username' in place 
+.\" # if `username' does not have a valid account, and the
+.\" # `:' that forces the rule to be processed exactly once.
+.\" rewriteContext  uid2Gecos
+.\" rewriteRule     "(.*)uid=([a-z0-9]+),(.+)"
+.\"                 "%1cn=%2{xpasswd},%3"      "I:"
+.\" 
+.\" # Finally, in a bind, if one uses a `uid=username' DN,
+.\" # it is rewritten in `cn=name surname' if possible.
+.\" rewriteContext  bindDn
+.\" rewriteRule     ".*" "%{>addBlanks(%{>uid2Gecos(%0)})}" ":"
+.\" 
+# Rewrite the search base  according to `default' rules.
+rewriteContext  searchBase alias default
 
-     # Finally, in a bind, if one uses a `uid=username' DN,
-     # it is rewritten in `cn=name surname' if possible.
-     rewriteContext  bindDn
-     rewriteRule     ".*" "%{>addBlanks(%{>uid2Gecos(%0)})}" ":"
+# Search results with OpenLDAP DN are rewritten back with
+# `dc=home,dc=net' naming context, with spaces eaten.
+rewriteContext  searchResult
+rewriteRule     "(.*[^ ]?)[ ]?dc=OpenLDAP,[ ]?dc=org"
+                "%{>eatBlanks(%1)}dc=home,dc=net"    ":"
 
-     # Rewrite the search base  according to `default' rules.
-     rewriteContext  searchBase alias default
+# Bind with email instead of full DN: we first need
+# an ldap map that turns attributes into a DN (the
+# argument used when invoking the map is appended to 
+# the URI and acts as the filter portion)
+rewriteMap ldap attr2dn "ldap://host/dc=my,dc=org?dn?sub"
 
-     # Search results with OpenLDAP DN are rewritten back with
-     # `dc=home,dc=net' naming context, with spaces eaten.
-     rewriteContext  searchResult
-     rewriteRule     "(.*[^ ]?)[ ]?dc=OpenLDAP,[ ]?dc=org"
-                     "%{>eatBlanks(%1)}dc=home,dc=net"    ":"
+# Then we need to detect DN made up of a single email,
+# e.g. `mail=someone@example.com'; note that the rule
+# in case of match stops rewriting; in case of error,
+# it is ignored.  In case we are mapping virtual
+# to real naming contexts, we also need to rewrite
+# regular DNs, because the definition of a bindDn
+# rewrite context overrides the default definition.
+rewriteContext bindDn
+rewriteRule "^mail=[^,]+@[^,]+$" "%{attr2dn(%0)}" "@I"
 
-     # Bind with email instead of full DN: we first need
-     # an ldap map that turns attributes into a DN (the
-     # filter is appended by the ldap map substitution):
-     rewriteMap ldap attr2dn "ldap://host/dc=my,dc=org?dn?sub"
+# This is a rather sophisticated example. It massages a
+# search filter in case who performs the search has
+# administrative privileges.  First we need to keep
+# track of the bind DN of the incoming request, which is
+# stored in a variable called `binddn' with session scope,
+# and left in place to allow regular binding:
+rewriteContext  bindDn
+rewriteRule     ".+" "%{&&binddn(%0)}%0" ":"
 
-     # Then we need to detect emails; note that the rule
-     # in case of match stops rewriting; in case of error,
-     # it is ignored.  In case we are mapping virtual
-     # to real naming contexts, we also need to rewrite
-     # regular DNs, because the definition of a bindDn
-     # rewrite context overrides the default definition.
-     rewriteContext bindDn
-     rewriteRule "^mail=[^,]+@[^,]+$" "%{attr2dn(%0)}" "@I"
-
-     # This is a rather sophisticated example. It massages a
-     # search filter in case who performs the search has
-     # administrative privileges.  First we need to keep
-     # track of the bind DN of the incoming request:
-     rewriteContext  bindDn
-     rewriteRule     ".+" "%{&&binddn(%0)}%0" ":"
-
-     # A search filter containing `uid=' is rewritten only
-     # if an appropriate DN is bound.
-     # To do this, in the first rule the bound DN is
-     # dereferenced, while the filter is decomposed in a
-     # prefix, the argument of the `uid=', and in a
-     # suffix. A tag `<>' is appended to the DN. If the DN
-     # refers to an entry in the `ou=admin' subtree, the
-     # filter is rewritten OR-ing the `uid=<arg>' with
-     # `cn=<arg>'; otherwise it is left as is. This could be
-     # useful, for instance, to allow apache's auth_ldap-1.4
-     # module to authenticate users with both `uid' and
-     # `cn', but only if the request comes from a possible
-     # `dn: cn=Web auth, ou=admin, dc=home, dc=net' user.
-     rewriteContext searchFilter
-     rewriteRule "(.*\e\e()uid=([a-z0-9_]+)(\e\e).*)"
-       "%{**binddn}<>%{&prefix(%1)}%{&arg(%2)}%{&suffix(%3)}"
-       ":I"
-     rewriteRule "[^,]+,ou=admin,dc=home,dc=net"
-       "%{*prefix}|(uid=%{*arg})(cn=%{*arg})%{*suffix}" "@I"
-     rewriteRule ".*<>" "%{*prefix}uid=%{*arg}%{*suffix}" ":"
+# A search filter containing `uid=' is rewritten only
+# if an appropriate DN is bound.
+# To do this, in the first rule the bound DN is
+# dereferenced, while the filter is decomposed in a
+# prefix, in the value of the `uid=<arg>' AVA, and 
+# in a suffix. A tag `<>' is appended to the DN. 
+# If the DN refers to an entry in the `ou=admin' subtree, 
+# the filter is rewritten OR-ing the `uid=<arg>' with
+# `cn=<arg>'; otherwise it is left as is. This could be
+# useful, for instance, to allow apache's auth_ldap-1.4
+# module to authenticate users with both `uid' and
+# `cn', but only if the request comes from a possible
+# `cn=Web auth,ou=admin,dc=home,dc=net' user.
+rewriteContext searchFilter
+rewriteRule "(.*\e\e()uid=([a-z0-9_]+)(\e\e).*)"
+  "%{**binddn}<>%{&prefix(%1)}%{&arg(%2)}%{&suffix(%3)}"
+  ":I"
+rewriteRule "[^,]+,ou=admin,dc=home,dc=net"
+  "%{*prefix}|(uid=%{*arg})(cn=%{*arg})%{*suffix}" "@I"
+rewriteRule ".*<>" "%{*prefix}uid=%{*arg}%{*suffix}" ":"
 .fi
 .SH "LDAP Proxy resolution (a possible evolution of slapd\-ldap(5)):"
 In case the rewritten DN is an LDAP URI, the operation is initiated

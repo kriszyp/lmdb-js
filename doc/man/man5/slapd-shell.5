@@ -1,4 +1,4 @@
-.TH SLAPD-SHELL 5 "30 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD-SHELL 5 "2 May 2002" "OpenLDAP LDVERSION"
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
@@ -22,32 +22,121 @@ subsequent "backend" or "database" lines.
 Other database options are described in the
 .BR slapd.conf (5)
 manual page.
+.LP
+These options specify the pathname and arguments of the program to
+execute in response to the given LDAP operation.
+Each option is followed by the input lines that the program receives:
 .TP
-.B bind     <pathname>
+.B abandon  <pathname> <argument>...
+.nf
+ABANDON
+msgid: <message id>
+<repeat { "suffix:" <database suffix DN> }>
+.fi
 .TP
-.B unbind   <pathname>
+.B add      <pathname> <argument>...
+.nf
+ADD
+msgid: <message id>
+<repeat { "suffix:" <database suffix DN> }>
+<entry in LDIF format>
+.fi
 .TP
-.B search   <pathname>
+.B bind     <pathname> <argument>...
+.nf
+BIND
+msgid: <message id>
+<repeat { "suffix:" <database suffix DN> }>
+dn: <DN>
+method: <method number>
+credlen: <length of <credentials>>
+cred: <credentials>
+.fi
 .TP
-.B compare  <pathname>
+.B compare  <pathname> <argument>...
+.nf
+COMPARE
+msgid: <message id>
+<repeat { "suffix:" <database suffix DN> }>
+dn: <DN>
+<attribute>: <value>
+.fi
 .TP
-.B modify   <pathname>
+.B delete   <pathname> <argument>...
+.nf
+DELETE
+msgid: <message id>
+<repeat { "suffix:" <database suffix DN> }>
+dn: <DN>
+.fi
 .TP
-.B modrdn   <pathname>
+.B modify   <pathname> <argument>...
+.nf
+MODIFY
+msgid: <message id>
+<repeat { "suffix:" <database suffix DN> }>
+dn: <DN>
+<repeat {
+    <"add"/"delete"/"replace">: <attribute>
+    <repeat { <attribute>: <value> }>
+    -
+}>
+.fi
 .TP
-.B add      <pathname>
+.B modrdn   <pathname> <argument>...
+.nf
+MODRDN
+msgid: <message id>
+<repeat { "suffix:" <database suffix DN> }>
+dn: <DN>
+newrdn: <new RDN>
+deleteoldrdn: <0 or 1>
+<if new superior is specified: "newSuperior: <DN>">
+.fi
 .TP
-.B delete   <pathname>
+.B search   <pathname> <argument>...
+.nf
+SEARCH
+msgid: <message id>
+<repeat { "suffix:" <database suffix DN> }>
+base: <base DN>
+scope: <0-2, see ldap.h>
+deref: <0-3, see ldap.h>
+sizelimit: <size limit>
+timelimit: <time limit>
+filter: <filter>
+attrsonly: <0 or 1>
+attrs: <"all" or space-separated attribute list>
+.fi
 .TP
-.B abandon  <pathname>
-These options specify the pathname of the command to execute in response 
-to the given LDAP operation.
+.B unbind   <pathname> <argument>...
+.nf
+UNBIND
+msgid: <message id>
+<repeat { "suffix:" <database suffix DN> }>
+dn: <bound DN>
+.fi
+.LP
 Note that you need only supply configuration lines for those commands you
 want the backend to handle.
 Operations for which a command is not supplied will be refused with an
 "unwilling to perform" error.
+.LP
+The commands - except \fBabandon\fP and \fBunbind\fP - should output:
+.RS
+.nf
+RESULT
+code: <integer>
+matched: <matched DN>
+info: <text>
+.fi
+.RE
+where only RESULT is mandatory.
+The \fBsearch\fP RESULT should be preceded by the entries in LDIF
+format, each entry followed by a blank line.
+Lines starting with `#' or `DEBUG:' are ignored.
 .SH EXAMPLE
-There is a skeleton search script in the slapd/back-shell/ directory
+There is an example search script in the slapd/back-shell/ directory
 in the OpenLDAP source tree.
 .SH FILES
 ETCDIR/slapd.conf

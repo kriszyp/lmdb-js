@@ -1,4 +1,4 @@
-.TH SLAPD-PERL 5 "30 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD-PERL 5 "2 May 2002" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .SH NAME
 slapd-perl \- Perl backend to slapd
@@ -63,7 +63,7 @@ It arguments are as follows:
   * time limit
   * filter string
   * attributes only flag (1 for yes)
-  * list of attributes that are to be returned (may be empty).
+  * list of attributes to return (may be empty)
 .fi
 .LP
 Return value: (resultcode, ldif-entry, ldif-entry, ...)
@@ -85,7 +85,8 @@ Its arguments are as follows.
   * object reference
   * dn
   * a list formatted as follows
-    { "ADD" | "DELETE" | "REPLACE" }, attributetype, value..., ...
+    ({ "ADD" | "DELETE" | "REPLACE" },
+     attributetype, value...)...
 .fi
 .LP
 .TP
@@ -94,7 +95,7 @@ This method is called when a add request comes from a client.
 Its arguments are as follows.
 .nf
   * object reference
-  * entry in string format.
+  * entry in string format
 .fi
 .LP
 .TP
