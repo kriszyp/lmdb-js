@@ -32,7 +32,7 @@ bdb_compare(
 	int		manageDSAit = get_manageDSAit( op );
 
 	/* get entry */
-	rc = bdb_dn2entry( be, NULL, ndn, &e, &matched, 0 );
+	rc = bdb_dn2entry_r( be, NULL, ndn, &e, &matched, 0 );
 
 	switch( rc ) {
 	case DB_NOTFOUND:
@@ -53,7 +53,7 @@ bdb_compare(
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
-			bdb_entry_return( be, matched );
+			bdb_cache_return_entry_r( &bdb->bi_cache, matched );
 			matched = NULL;
 
 		} else {
@@ -119,7 +119,7 @@ return_results:
 done:
 	/* free entry */
 	if( e != NULL ) {
-		bdb_entry_return( be, e );
+		bdb_cache_return_entry_r( &bdb->bi_cache, e );
 	}
 
 	return rc;

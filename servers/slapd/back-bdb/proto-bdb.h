@@ -57,8 +57,10 @@ bdb_db_cache(
 /*
  * dn2entry.c
  */
-int bdb_dn2entry LDAP_P(( BackendDB *be, DB_TXN *tid,
-	struct berval *dn, Entry **e, Entry **matched, int flags ));
+int bdb_dn2entry_rw LDAP_P(( BackendDB *be, DB_TXN *tid,
+       struct berval *dn, Entry **e, Entry **matched, int flags, int rw ));
+#define bdb_dn2entry_r(be, tid, dn, e, m, f) bdb_dn2entry_rw((be), (tid), (dn), (e), (m), (f), 0)
+#define bdb_dn2entry_w(be, tid, dn, e, m, f) bdb_dn2entry_rw((be), (tid), (dn), (e), (m), (f), 1)
 
 /*
  * dn2id.c
@@ -103,7 +105,7 @@ bdb_dn2idl(
 /*
  * entry.c
  */
-int bdb_entry_return( BackendDB *be, Entry *e );
+int bdb_entry_return( Entry *e );
 BI_entry_release_rw bdb_entry_release;
 
 /*
@@ -127,7 +129,7 @@ int bdb_filter_candidates(
 BI_acl_group bdb_group;
 
 /*
- * id2entry
+ * id2entry.c
  */
 int bdb_id2entry_add(
 	BackendDB *be,
@@ -142,13 +144,18 @@ int bdb_id2entry_update(
 int bdb_id2entry_delete(
 	BackendDB *be,
 	DB_TXN *tid,
-	ID id );
+	Entry *e);
 
-int bdb_id2entry(
+int bdb_id2entry_rw(
 	BackendDB *be,
 	DB_TXN *tid,
 	ID id,
-	Entry **e );
+	Entry **e,
+	int rw );
+#define bdb_id2entry_r(be, tid, id, e)      bdb_id2entry_rw((be), (tid), (id), (e), 0)
+#define bdb_id2entry_w(be, tid, id, e)      bdb_id2entry_rw((be), (tid), (id), (e), 1)
+
+void bdb_entry_free ( Entry *e );
 
 /*
  * idl.c
@@ -281,6 +288,40 @@ int bdb_modify_internal(
  * passwd.c
  */
 BI_op_extended bdb_exop_passwd;
+
+
+/*
+ * cache.c
+ */
+
+void bdb_cache_entry_commit( Entry *e );
+void bdb_cache_return_entry_rw( Cache *cache, Entry *e, int rw );
+#define bdb_cache_return_entry_r(c, e) bdb_cache_return_entry_rw((c), (e), 0)
+#define bdb_cache_return_entry_w(c, e) bdb_cache_return_entry_rw((c), (e), 1)
+int bdb_cache_add_entry_rw(
+       Cache   *cache,
+       Entry   *e,
+       int     rw
+);
+int bdb_cache_update_entry(
+       Cache   *cache,
+       Entry   *e
+);
+ID bdb_cache_find_entry_ndn2id(
+       Backend *be,
+       Cache   *cache,
+       struct berval   *ndn
+);
+Entry* bdb_cache_find_entry_id(
+       Cache   *cache,
+       ID      id,
+       int     rw
+);
+int bdb_cache_delete_entry(
+       Cache   *cache,
+       Entry   *e
+);
+void bdb_cache_release_all( Cache *cache );
 
 LDAP_END_DECL
 

@@ -78,6 +78,8 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_dbenv_mode = DEFAULT_MODE;
 	bdb->bi_txn = 1;	/* default to using transactions */
 
+	bdb->bi_cache.c_maxsize = DEFAULT_CACHE_SIZE;
+
 #ifndef NO_THREADS
 #if 0
 	bdb->bi_lock_detect = DB_LOCK_NORUN;
@@ -88,6 +90,7 @@ bdb_db_init( BackendDB *be )
 
 	ldap_pvt_thread_mutex_init( &bdb->bi_database_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
+	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_mutex );
 #ifdef BDB_HIER
 	ldap_pvt_thread_rdwr_init( &bdb->bi_tree_rdwr );
 #endif
@@ -349,6 +352,8 @@ bdb_db_close( BackendDB *be )
 	free( bdb->bi_databases );
 	bdb_attr_index_destroy( bdb->bi_attrs );
 
+	bdb_cache_release_all (&bdb->bi_cache);
+
 	return 0;
 }
 
@@ -369,6 +374,8 @@ bdb_db_destroy( BackendDB *be )
 					db_strerror(rc), rc, 0 );
 			}
 		}
+
+		bdb_cache_release_all (&bdb->bi_cache);
 
 		rc = bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
 		bdb->bi_dbenv = NULL;

@@ -64,8 +64,8 @@ bdb_add(
 	}
 
 	if( 0 ) {
-		/* transaction retry */
-retry:	rc = txn_abort( ltid );
+retry:          /* transaction retry */
+                rc = txn_abort( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
 		if( rc != 0 ) {
@@ -130,7 +130,7 @@ retry:	rc = txn_abort( ltid );
 #endif
 
 		/* get parent */
-		rc = bdb_dn2entry( be, ltid, &pdn, &p, &matched, 0 );
+		rc = bdb_dn2entry_r( be, ltid, &pdn, &p, &matched, 0 );
 
 		switch( rc ) {
 		case 0:
@@ -154,7 +154,7 @@ retry:	rc = txn_abort( ltid );
 				refs = is_entry_referral( matched )
 					? get_entry_referrals( be, conn, op, matched )
 					: NULL;
-				bdb_entry_return( be, matched );
+				bdb_cache_return_entry_r(&bdb->bi_cache, matched);
 				matched = NULL;
 
 			} else {
@@ -180,8 +180,8 @@ retry:	rc = txn_abort( ltid );
 		switch( opinfo.boi_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
-			/* free parent and writer lock */
-			bdb_entry_return( be, p );
+			/* free parent and reader lock */
+			bdb_cache_return_entry_r( &bdb->bi_cache, p );
 			p = NULL;
 			goto retry;
 		}
@@ -214,10 +214,8 @@ retry:	rc = txn_abort( ltid );
 
 		if ( is_entry_referral( p ) ) {
 			/* parent is a referral, don't allow add */
-			char *matched_dn = ch_strdup( p->e_dn );
-			BerVarray refs = is_entry_referral( p )
-				? get_entry_referrals( be, conn, op, p )
-				: NULL;
+			char *matched_dn = p->e_dn;
+			BerVarray refs = get_entry_referrals( be, conn, op, p );
 
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent is referral\n",
 				0, 0, 0 );
@@ -226,7 +224,8 @@ retry:	rc = txn_abort( ltid );
 				matched_dn, NULL, refs, NULL );
 
 			ber_bvarray_free( refs );
-			free( matched_dn );
+			bdb_cache_return_entry_r( be, p );
+			p = NULL;
 			goto done;
 		}
 
@@ -235,8 +234,8 @@ retry:	rc = txn_abort( ltid );
 			/* parent must be an administrative point of the required kind */
 		}
 
-		/* free parent and writer lock */
-		bdb_entry_return( be, p );
+		/* free parent and reader lock */
+		bdb_cache_return_entry_r( be, p );
 		p = NULL;
 
 	} else {
@@ -361,12 +360,21 @@ retry:	rc = txn_abort( ltid );
 		text = "commit failed";
 
 	} else {
+                /* add the entry to the entry cache */
+                /* we should add to cache only upon free of txn-abort */
+                if (bdb_cache_add_entry_rw(&bdb->bi_cache, e, CACHE_WRITE_LOCK) != 0) {
+                        text = "cache add failed";
+                        goto return_results;
+                }
+ 
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_add: added id=%08lx dn=\"%s\"\n",
 			e->e_id, e->e_dn, 0 );
 		rc = LDAP_SUCCESS;
 		text = NULL;
 	}
+
+	bdb_cache_entry_commit (e);
 
 return_results:
 	send_ldap_result( conn, op, rc,
@@ -379,10 +387,6 @@ return_results:
 	}
 
 done:
-	if (p != NULL) {
-		/* free parent and writer lock */
-		bdb_entry_return( be, p ); 
-	}
 
 	if( ltid != NULL ) {
 		txn_abort( ltid );

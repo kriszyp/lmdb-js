@@ -86,6 +86,10 @@ bdb_exop_passwd(
 
 	if( 0 ) {
 retry:	/* transaction retry */
+		if ( e != NULL ) {
+			bdb_cache_delete_entry(&bdb->bi_cache, e);
+			bdb_cache_return_entry_w(&bdb->bi_cache, e);
+		}
 		Debug( LDAP_DEBUG_TRACE, "bdb_exop_passwd: retrying...\n", 0, 0, 0 );
 		rc = txn_abort( ltid );
 		ltid = NULL;
@@ -119,7 +123,7 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rc = bdb_dn2entry( be, ltid, dn, &e, NULL, 0 );
+	rc = bdb_dn2entry_w( be, ltid, dn, &e, NULL, 0 );
 
 	switch(rc) {
 	case DB_LOCK_DEADLOCK:
@@ -174,8 +178,6 @@ retry:	/* transaction retry */
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			*text = NULL;
-			bdb_entry_return( be, e );
-			e = NULL;
 			goto retry;
 		case 0:
 			break;
@@ -191,8 +193,6 @@ retry:	/* transaction retry */
 			switch(rc) {
 			case DB_LOCK_DEADLOCK:
 			case DB_LOCK_NOTGRANTED:
-				bdb_entry_return( be, e );
-				e = NULL;
 				goto retry;
 			}
 			*text = "entry update failed";
@@ -212,9 +212,9 @@ retry:	/* transaction retry */
 
 done:
 	if( e != NULL ) {
-		bdb_entry_return( be, e );
+		bdb_cache_return_entry_w( &bdb->bi_cache, e );
 	}
-
+		
 	if( hash.bv_val != NULL ) {
 		free( hash.bv_val );
 	}

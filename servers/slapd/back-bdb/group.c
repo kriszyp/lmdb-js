@@ -33,7 +33,7 @@ bdb_group(
 	AttributeDescription *group_at
 )
 {
-	struct bdbinfo *li = (struct bdbinfo *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct bdb_op_info *boi = (struct bdb_op_info *) op->o_private;
 	DB_TXN *txn;
 	Entry *e;
@@ -88,7 +88,7 @@ bdb_group(
 #endif
 	} else {
 		/* can we find group entry */
-		rc = bdb_dn2entry( be, txn, gr_ndn, &e, NULL, 0 );
+		rc = bdb_dn2entry_r( be, NULL, gr_ndn, &e, NULL, 0 ); 
 		if( rc ) {
 			if( txn ) {
 				boi->boi_err = rc;
@@ -208,7 +208,7 @@ bdb_group(
 return_results:
 	if( target != e ) {
 		/* free entry */
-		bdb_entry_return( be, e );
+		bdb_cache_return_entry_r( &bdb->bi_cache, e );
 	}
 
 #ifdef NEW_LOGGING

@@ -53,6 +53,12 @@ int bdb_id2entry_put(
 	return rc;
 }
 
+/*
+ * This routine adds (or updates) an entry on disk.
+ * The cache should be already be updated.
+ */
+
+
 int bdb_id2entry_add(
 	BackendDB *be,
 	DB_TXN *tid,
@@ -69,17 +75,18 @@ int bdb_id2entry_update(
 	return bdb_id2entry_put(be, tid, e, 0);
 }
 
-int bdb_id2entry(
+int bdb_id2entry_rw(
 	BackendDB *be,
 	DB_TXN *tid,
 	ID id,
-	Entry **e )
+	Entry **e,
+	int rw )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_id2entry->bdi_db;
 	DBT key, data;
 	struct berval bv;
-	int rc;
+	int rc = 0;
 
 	*e = NULL;
 
@@ -89,6 +96,10 @@ int bdb_id2entry(
 
 	DBTzero( &data );
 	data.flags = DB_DBT_MALLOC;
+
+	if ((*e = bdb_cache_find_entry_id(&bdb->bi_cache, id, rw)) != NULL) {
+		return 0;
+	}
 
 	/* fetch it */
 	rc = db->get( db, tid, &key, &data, bdb->bi_db_opflags );
@@ -109,53 +120,85 @@ int bdb_id2entry(
 		 */
 		ch_free( data.data );
 	}
+
+	if (rc == 0 && bdb_cache_add_entry_rw(&bdb->bi_cache, *e, rw) != 0) {
+		if ((*e)->e_private != NULL)
+			free ((*e)->e_private);
+		(*e)->e_private = NULL;
+		bdb_entry_return (*e);
+		if ((*e=bdb_cache_find_entry_id(&bdb->bi_cache,id,rw)) != NULL) {
+			return 0;
+		}
+	}
+
 #ifdef BDB_HIER
 	bdb_fix_dn(be, id, *e);
 #endif
+
+	if (rc == 0)
+		bdb_cache_entry_commit(*e);
+
 	return rc;
 }
 
 int bdb_id2entry_delete(
 	BackendDB *be,
 	DB_TXN *tid,
-	ID id )
+	Entry *e )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_id2entry->bdi_db;
 	DBT key;
 	int rc;
 
+	bdb_cache_delete_entry(&bdb->bi_cache, e);
+
 	DBTzero( &key );
-	key.data = (char *) &id;
+	key.data = (char *) &e->e_id;
 	key.size = sizeof(ID);
 
+	/* delete from database */
 	rc = db->del( db, tid, &key, 0 );
 
 	return rc;
 }
 
 int bdb_entry_return(
-	BackendDB *be,
 	Entry *e )
 {
 	/* Our entries are allocated in two blocks; the data comes from
 	 * the db itself and the Entry structure and associated pointers
 	 * are allocated in entry_decode. The db data pointer is saved
-	 * in e_private. Since the Entry structure is allocated as a single
+	 * in e_bv. Since the Entry structure is allocated as a single
 	 * block, e_attrs is always a fixed offset from e. The exception
 	 * is when an entry has been modified, in which case we also need
 	 * to free e_attrs.
 	 */
+	if( !e->e_bv.bv_val ) {	/* A regular entry, from do_add */
+		entry_free( e );
+		return 0;
+	}
 	if( (void *) e->e_attrs != (void *) (e+1)) {
 		attrs_free( e->e_attrs );
 	}
+
+	/* See if the DNs were changed by modrdn */
+	if( e->e_nname.bv_val < e->e_bv.bv_val || e->e_nname.bv_val >
+		e->e_bv.bv_val + e->e_bv.bv_len ) {
+		ch_free(e->e_name.bv_val);
+		ch_free(e->e_nname.bv_val);
+		e->e_name.bv_val = NULL;
+		e->e_nname.bv_val = NULL;
+	}
 #ifdef BDB_HIER
 	/* We had to construct the dn and ndn as well, in a single block */
-	free( e->e_dn );
+	if( e->e_name.bv_val ) {
+		free( e->e_name.bv_val );
+	}
 #endif
-	/* In tool mode the e_private buffer is realloc'd, leave it alone */
-	if( e->e_private && !(slapMode & SLAP_TOOL_MODE) ) {
-		free( e->e_private );
+	/* In tool mode the e_bv buffer is realloc'd, leave it alone */
+	if( !(slapMode & SLAP_TOOL_MODE) ) {
+		free( e->e_bv.bv_val );
 	}
 
 	free( e );
@@ -170,12 +213,20 @@ int bdb_entry_release(
 	Entry *e,
 	int rw )
 {
-	int retval = 0;
-
-	if (o && o->o_tag == LDAP_REQ_ADD)
-		entry_free(e);
-	else
-		retval = bdb_entry_return( be, e );
-
-	return retval;
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+ 
+	/* slapMode : SLAP_SERVER_MODE, SLAP_TOOL_MODE,
+			SLAP_TRUNCATE_MODE, SLAP_UNDEFINED_MODE */
+ 
+	if ( slapMode == SLAP_SERVER_MODE ) {
+		/* free entry and reader or writer lock */
+		bdb_cache_return_entry_rw( &bdb->bi_cache, e, rw );
+	} else {
+		if (e->e_private != NULL)
+			free (e->e_private);
+		e->e_private = NULL;
+		bdb_entry_return ( e );
+	}
+ 
+	return 0;
 }

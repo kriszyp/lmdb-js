@@ -29,7 +29,7 @@ bdb_attribute(
 	AttributeDescription *entry_at,
 	BerVarray *vals )
 {
-	struct bdbinfo *li = (struct bdbinfo *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct bdb_op_info *boi = (struct bdb_op_info *) op->o_private;
 	DB_TXN *txn = NULL;
 	Entry *e;
@@ -79,7 +79,7 @@ bdb_attribute(
 
 	} else {
 		/* can we find entry */
-		rc = bdb_dn2entry( be, txn, entry_ndn, &e, NULL, 0 );
+		rc = bdb_dn2entry_r( be, NULL, entry_ndn, &e, NULL, 0 );
 		switch( rc ) {
 		case DB_NOTFOUND:
 		case 0:
@@ -200,7 +200,7 @@ bdb_attribute(
 return_results:
 	if( target != e ) {
 		/* free entry */
-		bdb_entry_return( be, e );
+		bdb_cache_return_entry_r(&bdb->bi_cache, e);
 	}
 
 #ifdef NEW_LOGGING

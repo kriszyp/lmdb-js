@@ -75,6 +75,22 @@ LDAP_BEGIN_DECL
 #endif
 #endif
 
+#define DEFAULT_CACHE_SIZE     1000
+
+/* for the in-core cache of entries */
+typedef struct bdb_cache {
+        int             c_maxsize;
+        int             c_cursize;
+        Avlnode         *c_dntree;
+        Avlnode         *c_idtree;
+        Entry           *c_lruhead;     /* lru - add accessed entries here */
+        Entry           *c_lrutail;     /* lru - rem lru entries from here */
+        ldap_pvt_thread_mutex_t c_mutex;
+} Cache;
+ 
+#define CACHE_READ_LOCK                0
+#define CACHE_WRITE_LOCK       1
+ 
 #define BDB_INDICES		128
 
 struct bdb_db_info {
@@ -97,6 +113,7 @@ struct bdb_info {
 	int		bi_db_opflags;	/* db-specific flags */
 
 	slap_mask_t	bi_defaultmask;
+	Cache		bi_cache;
 	Avlnode		*bi_attrs;
 #ifdef BDB_HIER
 	Avlnode		*bi_tree;

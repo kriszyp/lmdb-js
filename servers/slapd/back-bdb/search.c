@@ -78,7 +78,7 @@ bdb_search(
 	} else
 #endif
 	{
-		rc = bdb_dn2entry( be, NULL, nbase, &e, &matched, 0 );
+		rc = bdb_dn2entry_r( be, NULL, nbase, &e, &matched, 0 );
 	}
 
 	switch(rc) {
@@ -86,6 +86,12 @@ bdb_search(
 	case 0:
 		break;
 	default:
+		if (e != NULL) {
+			bdb_cache_return_entry_w(&bdb->bi_cache, e);
+		}
+		if (matched != NULL) {
+			bdb_cache_return_entry_r(&bdb->bi_cache, matched);
+		}
 		send_ldap_result( conn, op, rc=LDAP_OTHER,
 			NULL, "internal error", NULL, NULL );
 		return rc;
@@ -104,7 +110,7 @@ bdb_search(
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
 
-			bdb_entry_return( be, matched );
+			bdb_cache_return_entry_r (&bdb->bi_cache, matched);
 			matched = NULL;
 
 			if( erefs ) {
@@ -135,7 +141,7 @@ bdb_search(
 		erefs = get_entry_referrals( be, conn, op, e );
 		refs = NULL;
 
-		bdb_entry_return( be, e );
+		bdb_cache_return_entry_r( &bdb->bi_cache, e );
 		e = NULL;
 
 		if( erefs ) {
@@ -245,7 +251,7 @@ bdb_search(
 	cursor = e->e_id == NOID ? 1 : e->e_id;
 
 	if ( e != &slap_entry_root ) {
-		bdb_entry_return( be, e );
+		bdb_cache_return_entry_r(&bdb->bi_cache, e);
 	}
 	e = NULL;
 
@@ -296,7 +302,7 @@ bdb_search(
 		}
 
 		/* get the entry with reader lock */
-		rc = bdb_id2entry( be, NULL, id, &e );
+		rc = bdb_id2entry_r( be, NULL, id, &e );
 
 		if ( e == NULL ) {
 			if( !BDB_IDL_IS_RANGE(candidates) ) {
@@ -418,7 +424,7 @@ bdb_search(
 			if ( scopeok ) {
 				/* check size limit */
 				if ( --slimit == -1 ) {
-					bdb_entry_return( be, e );
+					bdb_cache_return_entry_r (&bdb->bi_cache, e);
 					e = NULL;
 					send_search_result( conn, op,
 						rc = LDAP_SIZELIMIT_EXCEEDED, NULL, NULL,
@@ -437,7 +443,7 @@ bdb_search(
 					case 1:		/* entry not sent */
 						break;
 					case -1:	/* connection closed */
-						bdb_entry_return( be, e );
+						bdb_cache_return_entry_r(&bdb->bi_cache, e);
 						e = NULL;
 						rc = LDAP_OTHER;
 						goto done;
@@ -457,7 +463,8 @@ bdb_search(
 loop_continue:
 		if( e != NULL ) {
 			/* free reader lock */
-			bdb_entry_return( be, e );
+                        bdb_cache_return_entry_r ( &bdb->bi_cache, e );
+                        e = NULL;
 		}
 
 		ldap_pvt_thread_yield();
@@ -469,6 +476,11 @@ loop_continue:
 	rc = 0;
 
 done:
+	if( e != NULL ) {
+		/* free reader lock */
+		bdb_cache_return_entry_r ( &bdb->bi_cache, e );
+	}
+
 	if( v2refs ) ber_bvarray_free( v2refs );
 	if( realbase.bv_val ) ch_free( realbase.bv_val );
 

@@ -18,18 +18,19 @@
  */
 
 int
-bdb_dn2entry(
+bdb_dn2entry_rw(
 	BackendDB	*be,
 	DB_TXN *tid,
 	struct berval *dn,
 	Entry **e,
 	Entry **matched,
-	int flags )
+	int flags,
+	int rw )
 {
 	int rc;
 	ID		id, id2 = 0;
 
-	Debug(LDAP_DEBUG_TRACE, "bdb_dn2entry(\"%s\")\n",
+	Debug(LDAP_DEBUG_TRACE, "bdb_dn2entry_rw(\"%s\")\n",
 		dn->bv_val, 0, 0 );
 
 	*e = NULL;
@@ -46,9 +47,9 @@ bdb_dn2entry(
 	}
 
 	if( id2 == 0 ) {
-		rc = bdb_id2entry( be, tid, id, e );
+		rc = bdb_id2entry_rw( be, tid, id, e, rw );
 	} else {
-		rc = bdb_id2entry( be, tid, id2, matched );
+		rc = bdb_id2entry_r( be, tid, id2, matched);
 	}
 
 	return rc;

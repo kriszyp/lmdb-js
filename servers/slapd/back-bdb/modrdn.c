@@ -46,7 +46,7 @@ bdb_modrdn(
 	LDAPRDN		*new_rdn = NULL;
 	LDAPRDN		*old_rdn = NULL;
 
-	Entry		*np = NULL;				/* newSuperior Entry */
+	Entry		*np = NULL;			/* newSuperior Entry */
 	struct berval	*np_dn = NULL;			/* newSuperior dn */
 	struct berval	*np_ndn = NULL;			/* newSuperior ndn */
 	struct berval	*new_parent_dn = NULL;	/* np_dn, p_dn, or NULL */
@@ -70,6 +70,16 @@ bdb_modrdn(
 
 	if( 0 ) {
 retry:	/* transaction retry */
+		if (e != NULL) {
+			bdb_cache_delete_entry(&bdb->bi_cache, e);
+			bdb_cache_return_entry_w(&bdb->bi_cache, e);
+		}
+		if (p != NULL) {
+			bdb_cache_return_entry_r(&bdb->bi_cache, p);
+		}
+		if (np != NULL) {
+			bdb_cache_return_entry_r(&bdb->bi_cache, np);
+		}
 		Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn: retrying...\n", 0, 0, 0 );
 		rc = txn_abort( ltid );
 		ltid = NULL;
@@ -103,7 +113,7 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rc = bdb_dn2entry( be, ltid, ndn, &e, &matched, 0 );
+	rc = bdb_dn2entry_w( be, ltid, ndn, &e, &matched, 0 );
 
 	switch( rc ) {
 	case 0:
@@ -123,11 +133,11 @@ retry:	/* transaction retry */
 		BerVarray refs;
 
 		if( matched != NULL ) {
-			matched_dn = strdup( matched->e_dn );
+			matched_dn = ch_strdup( matched->e_dn );
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
-			bdb_entry_return( be, matched );
+			bdb_cache_return_entry_r( &bdb->bi_cache, matched );
 			matched = NULL;
 
 		} else {
@@ -176,7 +186,7 @@ retry:	/* transaction retry */
 		/* Make sure parent entry exist and we can write its 
 		 * children.
 		 */
-		rc = bdb_dn2entry( be, ltid, &p_ndn, &p, NULL, 0 );
+		rc = bdb_dn2entry_r( be, ltid, &p_ndn, &p, NULL, 0 );
 
 		switch( rc ) {
 		case 0:
@@ -291,7 +301,7 @@ retry:	/* transaction retry */
 			/* newSuperior == entry being moved?, if so ==> ERROR */
 			/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
-			rc = bdb_dn2entry( be, ltid, nnewSuperior, &np, NULL, 0 );
+			rc = bdb_dn2entry_r( be, ltid, nnewSuperior, &np, NULL, 0 );
 
 			switch( rc ) {
 			case 0:
@@ -571,12 +581,17 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+	(void) bdb_cache_delete_entry(&bdb->bi_cache, e);
+
 	/* Binary format uses a single contiguous block, cannot
 	 * free individual fields. Leave new_dn/new_ndn set so
 	 * they can be individually freed later.
 	 */
 	e->e_name = new_dn;
 	e->e_nname = new_ndn;
+
+	new_dn.bv_val = NULL;
+        new_ndn.bv_val = NULL;
 
 	/* add new one */
 	rc = bdb_dn2id_add( be, ltid, np_ndn, e );
@@ -630,11 +645,13 @@ retry:	/* transaction retry */
 		rc = LDAP_OTHER;
 		text = "commit failed";
 	} else {
+		(void) bdb_cache_update_entry(&bdb->bi_cache, e);
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: added id=%08lx dn=\"%s\"\n",
 			e->e_id, e->e_dn, 0 );
 		rc = LDAP_SUCCESS;
 		text = NULL;
+		bdb_cache_entry_commit( e );
 	}
 
 return_results:
@@ -664,18 +681,18 @@ done:
 
 	/* LDAP v3 Support */
 	if( np != NULL ) {
-		/* free new parent and writer lock */
-		bdb_entry_return( be, np );
+		/* free new parent and reader lock */
+		bdb_cache_return_entry_r(&bdb->bi_cache, np);
 	}
 
 	if( p != NULL ) {
-		/* free parent and writer lock */
-		bdb_entry_return( be, p );
+		/* free parent and reader lock */
+		bdb_cache_return_entry_r(&bdb->bi_cache, p);
 	}
 
 	/* free entry */
 	if( e != NULL ) {
-		bdb_entry_return( be, e );
+		bdb_cache_return_entry_w( &bdb->bi_cache, e );
 	}
 
 	if( ltid != NULL ) {

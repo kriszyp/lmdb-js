@@ -223,6 +223,12 @@ bdb_dn2id(
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id( \"%s\" )\n", dn->bv_val, 0, 0 );
 
+	assert (id);
+ 
+	if ((*id = bdb_cache_find_entry_ndn2id(be,&bdb->bi_cache,dn)) != NOID) {
+		return 0;
+	}
+
 	DBTzero( &key );
 	key.size = dn->bv_len + 2;
 	key.data = ch_malloc( key.size );
@@ -263,6 +269,7 @@ bdb_dn2id_matched(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 	char 		*buf, *dn;
+	ID		cached_id;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_matched( \"%s\" )\n", in->bv_val, 0, 0 );
 
@@ -284,8 +291,20 @@ bdb_dn2id_matched(
 
 		*id = NOID;
 
-		/* fetch it */
-		rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
+		/* lookup cache */
+		cached_id = bdb_cache_find_entry_ndn2id(be,&bdb->bi_cache,dn);
+ 
+		if (cached_id != NOID) {
+			rc = 0;
+			*id = cached_id;
+			if ( dn != buf+1 ) {
+				*id2 = *id;
+			}
+			break;
+		} else {
+			/* fetch it */
+			rc = db->get(db, txn, &key, &data, bdb->bi_db_opflags );
+		}
 
 		if( rc == DB_NOTFOUND ) {
 			char 	*pdn = NULL;

@@ -36,7 +36,7 @@ bdb_referrals(
 	} 
 
 	/* get entry */
-	rc = bdb_dn2entry( be, NULL, ndn, &e, &matched, 0 );
+	rc = bdb_dn2entry_r( be, NULL, ndn, &e, &matched, 0 );
 
 	switch(rc) {
 	case DB_NOTFOUND:
@@ -47,6 +47,12 @@ bdb_referrals(
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_referrals: dn2entry failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 ); 
+		if (e != NULL) {
+                        bdb_cache_return_entry_r(&bdb->bi_cache, e);
+		}
+                if (matched != NULL) {
+                        bdb_cache_return_entry_r(&bdb->bi_cache, matched);
+		}
 		send_ldap_result( conn, op, rc=LDAP_OTHER,
 			NULL, "internal error", NULL, NULL );
 		return rc;
@@ -68,7 +74,7 @@ bdb_referrals(
 				refs = get_entry_referrals( be, conn, op, matched );
 			}
 
-			bdb_entry_return( be, matched );
+			bdb_cache_return_entry_r (&bdb->bi_cache, matched);
 			matched = NULL;
 		} else if ( default_referral != NULL ) {
 			rc = LDAP_OTHER;
@@ -113,6 +119,6 @@ bdb_referrals(
 		ber_bvarray_free( refs );
 	}
 
-	bdb_entry_return( be, e );
+	bdb_cache_return_entry_r(&bdb->bi_cache, e);
 	return rc;
 }

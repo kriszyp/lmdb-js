@@ -42,6 +42,9 @@ bdb_delete(
 
 	if( 0 ) {
 retry:	/* transaction retry */
+		if( e != NULL ) {
+			bdb_cache_return_entry_w(&bdb->bi_cache, e);
+		}
 		Debug( LDAP_DEBUG_TRACE, "==> bdb_delete: retrying...\n",
 			0, 0, 0 );
 		rc = txn_abort( ltid );
@@ -100,7 +103,7 @@ retry:	/* transaction retry */
 		}
 #endif
 		/* get parent */
-		rc = bdb_dn2entry( be, ltid, &pdn, &p, NULL, 0 );
+		rc = bdb_dn2entry_r( be, ltid, &pdn, &p, NULL, 0 );
 
 		switch( rc ) {
 		case 0:
@@ -128,7 +131,7 @@ retry:	/* transaction retry */
 		rc = access_allowed( be, conn, op, p,
 			children, NULL, ACL_WRITE );
 
-		bdb_entry_return( be, p );
+		bdb_cache_return_entry_r(&bdb->bi_cache, p);
 		p = NULL;
 
 		switch( opinfo.boi_err ) {
@@ -191,7 +194,7 @@ retry:	/* transaction retry */
 	}
 
 	/* get entry for read/modify/write */
-	rc = bdb_dn2entry( be, ltid, ndn, &e, &matched, DB_RMW );
+	rc = bdb_dn2entry_w( be, ltid, ndn, &e, &matched, DB_RMW );
 
 	switch( rc ) {
 	case 0:
@@ -219,7 +222,7 @@ retry:	/* transaction retry */
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
-			bdb_entry_return( be, matched );
+			bdb_cache_return_entry_r(&bdb->bi_cache, matched );
 			matched = NULL;
 
 		} else {
@@ -297,7 +300,7 @@ retry:	/* transaction retry */
 	}
 
 	/* delete from id2entry */
-	rc = bdb_id2entry_delete( be, ltid, e->e_id );
+	rc = bdb_id2entry_delete( be, ltid, e );
 	if ( rc != 0 ) {
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
@@ -371,7 +374,7 @@ return_results:
 done:
 	/* free entry */
 	if( e != NULL ) {
-		bdb_entry_return( be, e );
+		bdb_cache_return_entry_w(&bdb->bi_cache, e);
 	}
 
 	if( ltid != NULL ) {

@@ -147,6 +147,16 @@ bdb_db_config(
 		if( rc != LDAP_SUCCESS ) return 1;
 #endif
 
+	/* size of the cache in entries */
+         } else if ( strcasecmp( argv[0], "cachesize" ) == 0 ) {
+                 if ( argc < 2 ) {
+                         fprintf( stderr,
+                 "%s: line %d: missing size in \"cachesize <size>\" line\n",
+                             fname, lineno );
+                         return( 1 );
+                 }
+                 bdb->bi_cache.c_maxsize = atoi( argv[1] );
+
 	/* anything else */
 	} else {
 		fprintf( stderr, "%s: line %d: "

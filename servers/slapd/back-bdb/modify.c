@@ -198,6 +198,10 @@ bdb_modify(
 
 	if( 0 ) {
 retry:	/* transaction retry */
+		if( e != NULL ) {
+			bdb_cache_delete_entry(&bdb->bi_cache, e);
+			bdb_cache_return_entry_w(&bdb->bi_cache, e);
+		}
 		Debug(LDAP_DEBUG_TRACE,
 			"bdb_modify: retrying...\n", 0, 0, 0);
 		rc = txn_abort( ltid );
@@ -232,7 +236,7 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rc = bdb_dn2entry( be, ltid, ndn, &e, &matched, 0 );
+	rc = bdb_dn2entry_w( be, ltid, ndn, &e, &matched, 0 );
 
 	if ( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -261,7 +265,7 @@ retry:	/* transaction retry */
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
-			bdb_entry_return( be, matched );
+			bdb_cache_return_entry_r (&bdb->bi_cache, matched);
 			matched = NULL;
 
 		} else {
@@ -364,8 +368,7 @@ done:
 	}
 
 	if( e != NULL ) {
-		bdb_entry_return( be, e );
+		bdb_cache_return_entry_w (&bdb->bi_cache, e);
 	}
 	return rc;
 }
-

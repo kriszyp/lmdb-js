@@ -43,7 +43,7 @@ bdb_bind(
 	Debug( LDAP_DEBUG_ARGS, "==> bdb_bind: dn: %s\n", dn->bv_val, 0, 0);
 
 	/* get entry */
-	rc = bdb_dn2entry( be, NULL, ndn, &e, &matched, 0 );
+	rc = bdb_dn2entry_r( be, NULL, ndn, &e, &matched, 0 );
 
 	switch(rc) {
 	case DB_NOTFOUND:
@@ -67,7 +67,7 @@ bdb_bind(
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
 
-			bdb_entry_return( be, matched );
+			bdb_cache_return_entry_r( &bdb->bi_cache, matched );
 			matched = NULL;
 
 		} else {
@@ -240,7 +240,7 @@ bdb_bind(
 done:
 	/* free entry and reader lock */
 	if( e != NULL ) {
-		bdb_entry_return( be, e );
+		bdb_cache_return_entry_r( &bdb->bi_cache, e );
 	}
 
 	/* front end with send result on success (rc==0) */
