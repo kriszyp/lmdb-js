@@ -131,8 +131,6 @@ struct ldap_tmplitem {
 };
 
 
-#define NULLTMPLITEM	((struct ldap_tmplitem *)0)
-
 #define LDAP_SET_TMPLITEM_APPDATA( ti, datap )	\
 	( (ti)->ti_appdata = (void *)(datap) )
 
@@ -151,8 +149,6 @@ struct ldap_oclist {
     struct ldap_oclist	*oc_next;
 };
 
-#define NULLOCLIST	((struct ldap_oclist *)0)
-
 
 /*
  * add defaults list
@@ -165,8 +161,6 @@ struct ldap_adddeflist {
     char		*ad_value;
     struct ldap_adddeflist	*ad_next;
 };
-
-#define NULLADLIST	((struct ldap_adddeflist *)0)
 
 
 /*
@@ -207,8 +201,6 @@ struct ldap_disptmpl {
     struct ldap_disptmpl	*dt_next;
 };
 
-#define NULLDISPTMPL	((struct ldap_disptmpl *)0)
-
 #define LDAP_SET_DISPTMPL_APPDATA( dt, datap )	\
 	( (dt)->dt_appdata = (void *)(datap) )
 
@@ -229,7 +221,7 @@ struct ldap_disptmpl {
 #define LDAP_DTMPL_BUFSIZ	8192
 
 
-typedef int (*writeptype) LDAP_P(( void *writeparm, char *p, int len ));
+typedef int (*ldap_writeptype) LDAP_P(( void *writeparm, char *p, int len ));
 
 LDAP_F( int )
 ldap_init_templates LDAP_P(( char *file, struct ldap_disptmpl **tmpllistp ));
@@ -283,40 +275,40 @@ LDAP_F( int )
 ldap_entry2text LDAP_P(( LDAP *ld,
 	char *buf, LDAPMessage *entry,
 	struct ldap_disptmpl *tmpl, char **defattrs, char ***defvals,
-	writeptype writeproc, void *writeparm, char *eol, int rdncount,
+	ldap_writeptype writeproc, void *writeparm, char *eol, int rdncount,
 	unsigned long opts ));
 
 LDAP_F( int )
 ldap_vals2text LDAP_P(( LDAP *ld,
 	char *buf, char **vals, char *label, int labelwidth,
-	unsigned long syntaxid, writeptype writeproc, void *writeparm,
+	unsigned long syntaxid, ldap_writeptype writeproc, void *writeparm,
 	char *eol, int rdncount ));
 
 LDAP_F( int )
 ldap_entry2text_search LDAP_P(( LDAP *ld,
 	char *dn, char *base, LDAPMessage *entry,
 	struct ldap_disptmpl *tmpllist, char **defattrs, char ***defvals,
-	writeptype writeproc, void *writeparm, char *eol, int rdncount,
+	ldap_writeptype writeproc, void *writeparm, char *eol, int rdncount,
 	unsigned long opts ));
 
 LDAP_F( int )
 ldap_entry2html LDAP_P(( LDAP *ld,
 	char *buf, LDAPMessage *entry,
 	struct ldap_disptmpl *tmpl, char **defattrs, char ***defvals,
-	writeptype writeproc, void *writeparm, char *eol, int rdncount,
+	ldap_writeptype writeproc, void *writeparm, char *eol, int rdncount,
 	unsigned long opts, char *urlprefix, char *base ));
 
 LDAP_F( int )
 ldap_vals2html LDAP_P(( LDAP *ld,
 	char *buf, char **vals, char *label, int labelwidth,
-	unsigned long syntaxid, writeptype writeproc, void *writeparm,
+	unsigned long syntaxid, ldap_writeptype writeproc, void *writeparm,
 	char *eol, int rdncount, char *urlprefix ));
 
 LDAP_F( int )
 ldap_entry2html_search LDAP_P(( LDAP
 	*ld, char *dn, char *base, LDAPMessage *entry,
 	struct ldap_disptmpl *tmpllist, char **defattrs, char ***defvals,
-	writeptype writeproc, void *writeparm, char *eol, int rdncount,
+	ldap_writeptype writeproc, void *writeparm, char *eol, int rdncount,
 	unsigned long opts, char *urlprefix ));
 
 LDAP_END_DECL
