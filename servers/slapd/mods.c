@@ -16,6 +16,8 @@
 
 #include "portable.h"
 
+#include <ac/string.h>
+
 #include "slap.h"
 
 int
@@ -40,8 +42,7 @@ modify_add_values(
 	Modification	*mod,
 	int	permissive,
 	const char	**text,
-	char *textbuf, size_t textlen
-)
+	char *textbuf, size_t textlen )
 {
 	int		i, j;
 	int		matched;
@@ -176,8 +177,8 @@ modify_add_values(
 
 		} else {
 			rc = modify_check_duplicates( mod->sm_desc, mr,
-					a ? a->a_vals : NULL, mod->sm_bvalues,
-					permissive, text, textbuf, textlen );
+				a ? a->a_vals : NULL, mod->sm_bvalues,
+				permissive, text, textbuf, textlen );
 
 			if ( permissive && rc == LDAP_TYPE_OR_VALUE_EXISTS ) {
 				return LDAP_SUCCESS;
@@ -190,8 +191,7 @@ modify_add_values(
 	}
 
 	/* no - add them */
-	if( attr_merge( e, mod->sm_desc, mod->sm_values, mod->sm_nvalues ) != 0 )
-	{
+	if( attr_merge( e, mod->sm_desc, mod->sm_values, mod->sm_nvalues ) != 0 ) {
 		/* this should return result of attr_merge */
 		*text = textbuf;
 		snprintf( textbuf, textlen,
@@ -263,8 +263,7 @@ modify_delete_values(
 
 	for ( i = 0; mod->sm_values[i].bv_val != NULL; i++ ) {
 		int	found = 0;
-		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ )
-		{
+		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
 			int match;
 
 			if( mod->sm_nvalues ) {
@@ -312,7 +311,6 @@ modify_delete_values(
 			break;
 		}
 
-
 		if ( found == 0 ) {
 			*text = textbuf;
 			snprintf( textbuf, textlen,
@@ -324,8 +322,7 @@ modify_delete_values(
 	}
 
 	/* compact array skipping dummies */
-	for ( k = 0, j = 0; a->a_vals[k].bv_val != NULL; k++ )
-	{
+	for ( k = 0, j = 0; a->a_vals[k].bv_val != NULL; k++ ) {
 		/* skip dummies */
 		if( a->a_vals[k].bv_val == &dummy ) {
 			assert( a->a_nvals == NULL || a->a_nvals[k].bv_val == &dummy );
@@ -366,8 +363,7 @@ modify_replace_values(
 	Modification	*mod,
 	int		permissive,
 	const char	**text,
-	char *textbuf, size_t textlen
-)
+	char *textbuf, size_t textlen )
 {
 	(void) attr_delete( &e->e_attrs, mod->sm_desc );
 
@@ -378,11 +374,67 @@ modify_replace_values(
 	return LDAP_SUCCESS;
 }
 
+int
+modify_increment_values(
+	Entry	*e,
+	Modification	*mod,
+	int	permissive,
+	const char	**text,
+	char *textbuf, size_t textlen )
+{
+	Attribute *a;
+
+	a = attr_find( e->e_attrs, mod->sm_desc );
+	if( a == NULL ) {
+		*text = textbuf;
+		snprintf( textbuf, textlen,
+			"modify/increment: %s: no such attribute",
+			mod->sm_desc->ad_cname.bv_val );
+		return LDAP_NO_SUCH_ATTRIBUTE;
+	}
+
+
+	if ( !strcmp( a->a_desc->ad_type->sat_syntax_oid, SLAPD_INTEGER_SYNTAX )) {
+		int i;
+		char str[sizeof(long)*3 + 2]; /* overly long */
+		long incr = atol( mod->sm_bvalues[0].bv_val );
+
+		/* treat zero and errors as a no-op */
+		if( incr == 0 ) {
+			return LDAP_SUCCESS;
+		}
+
+		for( i=0; a->a_nvals[i].bv_val != NULL; i++ ) {
+			char *tmp;
+			long value = atol( a->a_nvals[i].bv_val );
+			size_t strln = snprintf( str, sizeof(str), "%ld", value+incr );
+
+			tmp = SLAP_REALLOC( a->a_nvals[i].bv_val, strln+1 );
+			if( tmp == NULL ) {
+				*text = "modify/increment: reallocation error";
+				return LDAP_OTHER;;
+			}
+			a->a_nvals[i].bv_val = tmp;
+			a->a_nvals[i].bv_len = strln;
+
+			AC_MEMCPY( a->a_nvals[i].bv_val, str, strln+1 );
+		}
+
+	} else {
+		snprintf( textbuf, textlen,
+			"modify/increment: %s: increment not supported for value syntax %s",
+			mod->sm_desc->ad_cname.bv_val,
+			a->a_desc->ad_type->sat_syntax_oid );
+		return LDAP_CONSTRAINT_VIOLATION;
+	}
+
+	return LDAP_SUCCESS;
+}
+
 void
 slap_mod_free(
 	Modification	*mod,
-	int				freeit
-)
+	int				freeit )
 {
 	if ( mod->sm_values != NULL ) ber_bvarray_free( mod->sm_values );
 	mod->sm_values = NULL;
@@ -395,8 +447,7 @@ slap_mod_free(
 
 void
 slap_mods_free(
-    Modifications	*ml
-)
+    Modifications	*ml )
 {
 	Modifications *next;
 

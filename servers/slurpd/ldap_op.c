@@ -331,6 +331,16 @@ op_ldap_modify(
 	    nvals = 0;
 	    nops++;
 	    break;
+	case T_MODOPINCREMENT:
+	    state = T_MODOPINCREMENT;
+	    ldmarr = ( LDAPMod ** )
+		    ch_realloc(ldmarr, (( nops + 2 ) * ( sizeof( LDAPMod * ))));
+	    ldmarr[ nops ] = ldm = alloc_ldapmod();
+	    ldm->mod_op = LDAP_MOD_INCREMENT | LDAP_MOD_BVALUES;
+	    ldm->mod_type = value;
+	    nvals = 0;
+	    nops++;
+	    break;
 	default:
 	    if ( state == AWAITING_OP ) {
 #ifdef NEW_LOGGING
@@ -695,6 +705,9 @@ char *type )
     }
     if ( !strcmp( type, T_MODOPDELETESTR )) {
 	return( T_MODOPDELETE );
+    }
+    if ( !strcmp( type, T_MODOPINCREMENTSTR )) {
+	return( T_MODOPINCREMENT );
     }
     return( T_ERR );
 }

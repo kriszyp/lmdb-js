@@ -117,8 +117,10 @@
 #define	T_MODOPREPLACE		9
 #define	T_MODOPDELETESTR	"delete"
 #define	T_MODOPDELETE		10
+#define	T_MODOPINCREMENTSTR	"increment"
+#define	T_MODOPINCREMENT	11
 #define	T_MODSEPSTR		"-"
-#define	T_MODSEP		11
+#define	T_MODSEP		12
 
 #define	T_NEWRDNSTR		"newrdn"
 #define	T_DELOLDRDNSTR	"deleteoldrdn"

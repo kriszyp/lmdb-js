@@ -141,6 +141,7 @@ LDAP_BEGIN_DECL
 /* must match in schema_init.c */
 #define SLAPD_DN_SYNTAX			"1.3.6.1.4.1.1466.115.121.1.12"
 #define SLAPD_NAMEUID_SYNTAX	"1.3.6.1.4.1.1466.115.121.1.34"
+#define SLAPD_INTEGER_SYNTAX	"1.3.6.1.4.1.1466.115.121.1.27"
 #define SLAPD_GROUP_ATTR		"member"
 #define SLAPD_GROUP_CLASS		"groupOfNames"
 #define SLAPD_ROLE_ATTR			"roleOccupant"
@@ -1395,22 +1396,27 @@ struct slap_backend_db {
 #define	SLAP_BFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
 #define	SLAP_BFLAG_GLUE_SUBORDINATE	0x0020U	/* child of a glue hierarchy */
 #define	SLAP_BFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
-#define SLAP_BFLAG_ALIASES		0x0100U
-#define SLAP_BFLAG_REFERRALS	0x0200U
-#define SLAP_BFLAG_SUBENTRIES	0x0400U
-#define SLAP_BFLAG_MONITOR		0x1000U
-#define SLAP_BFLAG_DYNAMIC		0x2000U
+#define SLAP_BFLAG_MONITOR			0x0080U /* a monitor backend */
+#define SLAP_BFLAG_INCREMENT		0x0100U
+#define SLAP_BFLAG_ALIASES			0x1000U
+#define SLAP_BFLAG_REFERRALS		0x2000U
+#define SLAP_BFLAG_SUBENTRIES		0x4000U
+#define SLAP_BFLAG_DYNAMIC			0x8000U
 	slap_mask_t	be_flags;
 #define SLAP_LASTMOD(be)	(!((be)->be_flags & SLAP_BFLAG_NOLASTMOD))
 #define	SLAP_GLUE_INSTANCE(be)	((be)->be_flags & SLAP_BFLAG_GLUE_INSTANCE)
 #define	SLAP_GLUE_SUBORDINATE(be) \
 	((be)->be_flags & SLAP_BFLAG_GLUE_SUBORDINATE)
 #define	SLAP_GLUE_LINKED(be)	((be)->be_flags & SLAP_BFLAG_GLUE_LINKED)
+
+#define SLAP_MONITOR(be)	((be)->be_flags & SLAP_BFLAG_MONITOR)
+#define SLAP_INCREMENT(be)	((be)->be_flags & SLAP_BFLAG_INCREMENT)
+
 #define SLAP_ALIASES(be)	((be)->be_flags & SLAP_BFLAG_ALIASES)
 #define SLAP_REFERRALS(be)	((be)->be_flags & SLAP_BFLAG_REFERRALS)
 #define SLAP_SUBENTRIES(be)	((be)->be_flags & SLAP_BFLAG_SUBENTRIES)
-#define SLAP_MONITOR(be)	((be)->be_flags & SLAP_BFLAG_MONITOR)
 #define SLAP_DYNAMIC(be)	((be)->be_flags & SLAP_BFLAG_DYNAMIC)
+
 
 	slap_mask_t	be_restrictops;		/* restriction operations */
 #define SLAP_RESTRICT_OP_ADD		0x0001U

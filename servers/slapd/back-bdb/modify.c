@@ -112,6 +112,28 @@ int bdb_modify_internal(
 			}
 			break;
 
+		case LDAP_MOD_INCREMENT:
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, DETAIL1, 
+				"bdb_modify_internal: increment\n", 0, 0, 0 );
+#else
+			Debug(LDAP_DEBUG_ARGS,
+				"bdb_modify_internal: increment\n", 0, 0, 0);
+#endif
+			err = modify_increment_values( e, mod, get_permissiveModify(op),
+				text, textbuf, textlen );
+			if( err != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG ( OPERATION, ERR, 
+					"bdb_modify_internal: %d %s\n", err, *text, 0 );
+#else
+				Debug(LDAP_DEBUG_ARGS,
+					"bdb_modify_internal: %d %s\n",
+					err, *text, 0);
+#endif
+			}
+			break;
+
 		case SLAP_MOD_SOFTADD:
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1, 

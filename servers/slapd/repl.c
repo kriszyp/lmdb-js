@@ -285,7 +285,9 @@ replog1(
 			if ( ri && ri->ri_attrs ) {
 				int is_in = ad_inlist( ml->sml_desc, ri->ri_attrs );
 
-				if ( ( !is_in && !ri->ri_exclude ) || ( is_in && ri->ri_exclude ) ) {
+				if ( ( !is_in && !ri->ri_exclude )
+					|| ( is_in && ri->ri_exclude ) )
+				{
 					continue;
 				}
 			}
@@ -302,9 +304,14 @@ replog1(
 			case LDAP_MOD_REPLACE:
 				fprintf( fp, "replace: %s\n", type );
 				break;
+
+			case LDAP_MOD_INCREMENT:
+				fprintf( fp, "increment: %s\n", type );
+				break;
 			}
-			if ( ml->sml_bvalues )
+			if ( ml->sml_bvalues ) {
 				print_vals( fp, &ml->sml_desc->ad_cname, ml->sml_bvalues );
+			}
 			fprintf( fp, "-\n" );
 		}
 		break;

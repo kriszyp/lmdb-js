@@ -16,7 +16,10 @@ associatedDomain: example.com
 
 dn: ou=People,o=University of Michigan,c=US
 objectClass: organizationalUnit
+objectClass: extensibleObject
 ou: People
+uidNumber: 0
+gidNumber: 0
 
 dn: ou=Alumni Association,ou=People,o=University of Michigan,c=US
 objectClass: organizationalUnit

@@ -129,6 +129,7 @@ ldbm_back_db_init(
 
 	/* indicate system schema supported */
 	be->be_flags |= 
+		SLAP_BFLAG_INCREMENT |
 #ifdef LDBM_SUBENTRIES
 		SLAP_BFLAG_SUBENTRIES |
 #endif

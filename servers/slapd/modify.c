@@ -50,6 +50,7 @@ do_modify(
 	Slapi_PBlock *pb = op->o_pb;
 #endif
 	int manageDSAit;
+	int increment = 0;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_modify: enter\n", 0, 0, 0 );
@@ -147,14 +148,53 @@ do_modify(
 		case LDAP_MOD_REPLACE:
 			break;
 
+		case LDAP_MOD_INCREMENT:
+			if( op->o_protocol >= LDAP_VERSION3 ) {
+				increment++;
+				if ( mod->sml_values == NULL ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG( OPERATION, ERR, "do_modify: "
+						"modify/increment operation (%ld) requires value\n",
+						(long)mop, 0, 0 );
+#else
+					Debug( LDAP_DEBUG_ANY, "do_modify: "
+						"modify/increment operation (%ld) requires value\n",
+						(long) mop, 0, 0 );
+#endif
+
+					send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
+						"modify/increment operation requires value" );
+					goto cleanup;
+				}
+
+				if( mod->sml_values[1].bv_val ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG( OPERATION, ERR, "do_modify: modify/increment "
+						"operation (%ld) requires single value\n",
+						(long)mop, 0, 0 );
+#else
+					Debug( LDAP_DEBUG_ANY, "do_modify: modify/increment "
+						"operation (%ld) requires single value\n",
+						(long) mop, 0, 0 );
+#endif
+
+					send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
+						"modify/increment operation requires single value" );
+					goto cleanup;
+				}
+
+				break;
+			}
+			/* fall thru */
+
 		default: {
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, ERR, 
-					"do_modify: invalid modify operation (%ld)\n",
+					"do_modify: unrecognized modify operation (%ld)\n",
 					(long)mop, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
-					"do_modify: invalid modify operation (%ld)\n",
+					"do_modify: unrecognized modify operation (%ld)\n",
 					(long) mop, 0, 0 );
 #endif
 
@@ -227,9 +267,10 @@ do_modify(
 	for ( tmp = modlist; tmp != NULL; tmp = tmp->sml_next ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, DETAIL1, "\t%s:  %s\n", 
-			tmp->sml_op == LDAP_MOD_ADD ?
-			"add" : (tmp->sml_op == LDAP_MOD_DELETE ?
-			"delete" : "replace"), tmp->sml_type.bv_val, 0 );
+			tmp->sml_op == LDAP_MOD_ADD ? "add" :
+				(tmp->sml_op == LDAP_MOD_INCREMENT ? "increment" :
+					(tmp->sml_op == LDAP_MOD_DELETE ? "delete" :
+						"replace")), tmp->sml_type.bv_val, 0 );
 
 		if ( tmp->sml_values == NULL ) {
 			LDAP_LOG( OPERATION, DETAIL1, "\t\tno values", 0, 0, 0 );
@@ -243,9 +284,10 @@ do_modify(
 
 #else
 		Debug( LDAP_DEBUG_ARGS, "\t%s: %s\n",
-			tmp->sml_op == LDAP_MOD_ADD
-				? "add" : (tmp->sml_op == LDAP_MOD_DELETE
-					? "delete" : "replace"), tmp->sml_type.bv_val, 0 );
+			tmp->sml_op == LDAP_MOD_ADD ? "add" :
+				(tmp->sml_op == LDAP_MOD_INCREMENT ? "increment" :
+				(tmp->sml_op == LDAP_MOD_DELETE ? "delete" :
+					"replace")), tmp->sml_type.bv_val, 0 );
 
 		if ( tmp->sml_values == NULL ) {
 			Debug( LDAP_DEBUG_ARGS, "%s\n",
@@ -311,7 +353,7 @@ do_modify(
 			if (rs->sr_ref != default_referral) ber_bvarray_free( rs->sr_ref );
 		} else {
 			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-					"referral missing" );
+				"referral missing" );
 		}
 		goto cleanup;
 	}
@@ -325,6 +367,12 @@ do_modify(
 	/* check for referrals */
 	if( backend_check_referrals( op, rs ) != LDAP_SUCCESS ) {
 		goto cleanup;
+	}
+
+	/* check for modify/increment support */
+	if( increment && !SLAP_INCREMENT( op->o_bd ) ) {
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"modify/increment not supported in context" );
 	}
 
 #if defined( LDAP_SLAPI )
@@ -399,7 +447,7 @@ do_modify(
 		 */
 #if defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
 		if ( !op->o_bd->syncinfo &&
-				( !op->o_bd->be_update_ndn.bv_len || repl_user ))
+			( !op->o_bd->be_update_ndn.bv_len || repl_user ))
 #elif defined(LDAP_SYNCREPL) && defined(SLAPD_MULTIMASTER)
 		if ( !op->o_bd->syncinfo )  /* LDAP_SYNCREPL overrides MM */
 #elif !defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
@@ -572,7 +620,9 @@ int slap_mods_check(
 		}
 
 		if ( is_at_obsolete( ad->ad_type ) &&
-			( ml->sml_op == LDAP_MOD_ADD || ml->sml_values != NULL ) )
+			(( ml->sml_op != LDAP_MOD_REPLACE &&
+				ml->sml_op != LDAP_MOD_DELETE ) ||
+					ml->sml_values != NULL ))
 		{
 			/*
 			 * attribute is obsolete,
@@ -580,6 +630,22 @@ int slap_mods_check(
 			 */
 			snprintf( textbuf, textlen,
 				"%s: attribute is obsolete",
+				ml->sml_type.bv_val );
+			*text = textbuf;
+			return LDAP_CONSTRAINT_VIOLATION;
+		}
+
+		if ( ml->sml_op == LDAP_MOD_INCREMENT &&
+#ifdef SLAPD_REAL_SYNTAX
+			!is_at_syntax( ad->ad_type, SLAPD_REAL_SYNTAX ) &&
+#endif
+			!is_at_syntax( ad->ad_type, SLAPD_INTEGER_SYNTAX ) )
+		{
+			/*
+			 * attribute values must be INTEGER or REAL
+			 */
+			snprintf( textbuf, textlen,
+				"%s: attribute syntax inappropriate for increment",
 				ml->sml_type.bv_val );
 			*text = textbuf;
 			return LDAP_CONSTRAINT_VIOLATION;
@@ -679,8 +745,6 @@ int slap_mods_check(
 
 				ml->sml_nvalues[nvals].bv_val = NULL;
 				ml->sml_nvalues[nvals].bv_len = 0;
-
-			} else {
 			}
 		}
 	}
@@ -747,9 +811,7 @@ int slap_mods_opattrs(
 		if( global_schemacheck ) {
 			int rc = mods_structural_class( mods, &tmpval,
 				text, textbuf, textlen );
-			if( rc != LDAP_SUCCESS ) {
-				return rc;
-			}
+			if( rc != LDAP_SUCCESS ) return rc;
 
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;

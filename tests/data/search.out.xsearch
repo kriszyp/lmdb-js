@@ -250,7 +250,10 @@ telephoneNumber: +1 313 555 4177
 
 dn: ou=People,o=University of Michigan,c=US
 objectClass: organizationalUnit
+objectClass: extensibleObject
 ou: People
+uidNumber: 0
+gidNumber: 0
 
 dn: o=University of Michigan,c=US
 objectClass: organization

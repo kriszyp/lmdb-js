@@ -129,6 +129,14 @@ dn: cn=James A Jones 2,ou=Information Technology Division,ou=People,o=University
 changetype: delete
 # TRAILING COMMENT AND WHITE SPACE
 
+dn: ou=People,o=University of Michigan,c=US
+changetype: modify
+increment: uidNumber
+uidNumber: 1
+-
+increment: gidNumber
+gidNumber: -1
+
 EOMODS
 
 RC=$?

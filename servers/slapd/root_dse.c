@@ -1,5 +1,5 @@
 /* $OpenLDAP$ */
-/* root_dse.c - Provides the ROOT DSA-Specific Entry
+/* root_dse.c - Provides the Root DSA-Specific Entry
  *
  * Copyright 1999-2003 The OpenLDAP Foundation.
  * All rights reserved.
@@ -25,11 +25,12 @@
 #endif
 
 static struct berval supportedFeatures[] = {
-	BER_BVC(LDAP_FEATURE_ALL_OPERATIONAL_ATTRS), /* all Operational Attributes ("+") */
-	BER_BVC(LDAP_FEATURE_OBJECTCLASS_ATTRS), /* OCs in Attributes List */
+	BER_BVC(LDAP_FEATURE_ALL_OPERATIONAL_ATTRS), /* All Op Attrs (+) */
+	BER_BVC(LDAP_FEATURE_OBJECTCLASS_ATTRS), /* OCs in Attrs List (+person) */
 	BER_BVC(LDAP_FEATURE_ABSOLUTE_FILTERS), /* (&) and (|) search filters */
 	BER_BVC(LDAP_FEATURE_LANGUAGE_TAG_OPTIONS), /* Language Tag Options */
 	BER_BVC(LDAP_FEATURE_LANGUAGE_RANGE_OPTIONS), /* Language Range Options */
+	BER_BVC(LDAP_FEATURE_MODIFY_INCREMENT), /* Modify/increment */
 	{0,NULL}
 };
 
@@ -96,24 +97,24 @@ root_dse_info(
 
 	vals[0].bv_val = "top";
 	vals[0].bv_len = sizeof("top")-1;
-	if( attr_merge( e, ad_objectClass, vals, NULL ) )
-	{
+	if( attr_merge( e, ad_objectClass, vals, NULL ) ) {
 		return LDAP_OTHER;
 	}
 
 	vals[0].bv_val = "OpenLDAProotDSE";
 	vals[0].bv_len = sizeof("OpenLDAProotDSE")-1;
-	if( attr_merge( e, ad_objectClass, vals, NULL ) )
+	if( attr_merge( e, ad_objectClass, vals, NULL ) ) {
 		return LDAP_OTHER;
-	if( attr_merge( e, ad_structuralObjectClass, vals, NULL ) )
+	}
+	if( attr_merge( e, ad_structuralObjectClass, vals, NULL ) ) {
 		return LDAP_OTHER;
+	}
 
 	for ( i = 0; i < nbackends; i++ ) {
 		if ( backends[i].be_flags & SLAP_BFLAG_MONITOR ) {
 			vals[0] = backends[i].be_suffix[0];
 			nvals[0] = backends[i].be_nsuffix[0];
-			if( attr_merge( e, ad_monitorContext, vals, nvals ) )
-			{
+			if( attr_merge( e, ad_monitorContext, vals, nvals ) ) {
 				return LDAP_OTHER;
 			}
 			continue;
@@ -124,8 +125,7 @@ root_dse_info(
 		for ( j = 0; backends[i].be_suffix[j].bv_val != NULL; j++ ) {
 			vals[0] = backends[i].be_suffix[j];
 			nvals[0] = backends[i].be_nsuffix[0];
-			if( attr_merge( e, ad_namingContexts, vals, nvals ) )
-			{
+			if( attr_merge( e, ad_namingContexts, vals, nvals ) ) {
 				return LDAP_OTHER;
 			}
 		}
@@ -170,8 +170,7 @@ root_dse_info(
 		snprintf(buf, sizeof buf, "%d", i);
 		vals[0].bv_val = buf;
 		vals[0].bv_len = strlen( vals[0].bv_val );
-		if( attr_merge( e, ad_supportedLDAPVersion, vals, NULL ) )
-		{
+		if( attr_merge( e, ad_supportedLDAPVersion, vals, NULL ) ) {
 			return LDAP_OTHER;
 		}
 	}
@@ -183,8 +182,7 @@ root_dse_info(
 		for ( i=0; supportedSASLMechanisms[i] != NULL; i++ ) {
 			vals[0].bv_val = supportedSASLMechanisms[i];
 			vals[0].bv_len = strlen( vals[0].bv_val );
-			if( attr_merge( e, ad_supportedSASLMechanisms, vals, NULL ) )
-			{
+			if( attr_merge( e, ad_supportedSASLMechanisms, vals, NULL ) ) {
 				return LDAP_OTHER;
 			}
 		}
@@ -192,8 +190,7 @@ root_dse_info(
 	}
 
 	if ( default_referral != NULL ) {
-		if( attr_merge( e, ad_ref, default_referral, NULL /* FIXME */ ) )
-		{
+		if( attr_merge( e, ad_ref, default_referral, NULL /* FIXME */ ) ) {
 			return LDAP_OTHER;
 		}
 	}
@@ -202,7 +199,7 @@ root_dse_info(
 		Attribute *a;
 		for( a = usr_attr->e_attrs; a != NULL; a = a->a_next ) {
 			if( attr_merge( e, a->a_desc, a->a_vals,
-			 (a->a_nvals == a->a_vals) ? NULL : a->a_nvals ) )
+				(a->a_nvals == a->a_vals) ? NULL : a->a_nvals ) )
 			{
 				return LDAP_OTHER;
 			}
@@ -276,7 +273,7 @@ int read_root_dse_file( const char *fname )
 
 		for(a = e->e_attrs; a != NULL; a = a->a_next) {
 			if( attr_merge( usr_attr, a->a_desc, a->a_vals,
-			(a->a_nvals == a->a_vals) ? NULL : a->a_nvals ) )
+				(a->a_nvals == a->a_vals) ? NULL : a->a_nvals ) )
 			{
 				rc = LDAP_OTHER;
 				break;

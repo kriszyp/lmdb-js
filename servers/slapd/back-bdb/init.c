@@ -68,6 +68,7 @@ bdb_db_init( BackendDB *be )
 
 	/* indicate system schema supported */
 	be->be_flags |=
+		SLAP_BFLAG_INCREMENT |
 #ifdef BDB_SUBENTRIES
 		SLAP_BFLAG_SUBENTRIES |
 #endif
