@@ -337,6 +337,7 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 	}
 
+	at_oc_cache = 1;
 	ldap_syslog = 0;
 
 	switch ( tool ) {

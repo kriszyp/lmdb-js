@@ -119,6 +119,7 @@ struct oindexrec {
 };
 
 static Avlnode	*oc_index = NULL;
+static Avlnode	*oc_cache = NULL;
 static LDAP_SLIST_HEAD(OCList, slap_object_class) oc_list
 	= LDAP_SLIST_HEAD_INITIALIZER(&oc_list);
 
@@ -161,9 +162,17 @@ oc_bvfind( struct berval *ocname )
 {
 	struct oindexrec	*oir;
 
+	if ( oc_cache ) {
+		oir = avl_find( oc_cache, ocname, oc_index_name_cmp );
+		if ( oir ) return oir->oir_oc;
+	}
 	oir = avl_find( oc_index, ocname, oc_index_name_cmp );
 
 	if ( oir != NULL ) {
+		if ( at_oc_cache ) {
+			avl_insert( &oc_cache, (caddr_t) oir,
+				oc_index_cmp, avl_dup_error );
+		}
 		return( oir->oir_oc );
 	}
 

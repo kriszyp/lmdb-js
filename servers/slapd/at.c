@@ -57,8 +57,11 @@ struct aindexrec {
 };
 
 static Avlnode	*attr_index = NULL;
+static Avlnode	*attr_cache = NULL;
 static LDAP_SLIST_HEAD(ATList, slap_attribute_type) attr_list
 	= LDAP_SLIST_HEAD_INITIALIZER(&attr_list);
+
+int at_oc_cache;
 
 static int
 attr_index_cmp(
@@ -100,7 +103,17 @@ at_bvfind( struct berval *name )
 {
 	struct aindexrec *air;
 
+	if ( attr_cache ) {
+		air = avl_find( attr_cache, name, attr_index_name_cmp );
+		if ( air ) return air->air_at;
+	}
+
 	air = avl_find( attr_index, name, attr_index_name_cmp );
+
+	if ( air && ( slapMode & SLAP_TOOL_MODE ) && at_oc_cache ) {
+		avl_insert( &attr_cache, (caddr_t) air,
+			attr_index_cmp, avl_dup_error );
+	}
 
 	return air != NULL ? air->air_at : NULL;
 }

@@ -144,6 +144,7 @@ LDAP_SLAPD_F (int) slap_entry2mods LDAP_P(( Entry *e,
 /*
  * at.c
  */
+LDAP_SLAPD_V(int) at_oc_cache;
 LDAP_SLAPD_F (void) at_config LDAP_P((
 	const char *fname, int lineno,
 	int argc, char **argv ));
