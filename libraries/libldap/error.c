@@ -110,6 +110,12 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_NO_OPERATION,				N_("No Operation")},
 	{LDAP_ASSERTION_FAILED,			N_("Assertion Failed")},
 
+	{LDAP_CUP_RESOURCES_EXHAUSTED,	N_("LCUP Resources Exhausted")},
+	{LDAP_CUP_SECURITY_VIOLATION,	N_("LCUP Security Violation")},
+	{LDAP_CUP_INVALID_DATA,			N_("LCUP Invalid Data")},
+	{LDAP_CUP_UNSUPPORTED_SCHEME,	N_("LCUP Unsupported Scheme")},
+	{LDAP_CUP_RELOAD_REQUIRED,		N_("LCUP Reload Required")},
+
 	{LDAP_CANCELLED,				N_("Cancelled")},
 	{LDAP_NO_SUCH_OPERATION,		N_("No Operation to Cancel")},
 	{LDAP_TOO_LATE,					N_("Too Late to Cancel")},
@@ -147,7 +153,20 @@ ldap_err2string( int err )
 
 	e = ldap_int_error( err );
 
-	return e ? _(e->e_reason) : _("Unknown error");
+	if (e) {
+		return e->e_reason;
+
+	} else if ( LDAP_API_ERROR(err) ) {
+		return _("Unknown API error");
+
+	} else if ( LDAP_E_ERROR(err) ) {
+		return _("Unknown (extension) error");
+
+	} else if ( LDAP_X_ERROR(err) ) {
+		return _("Unknown (private extension) error");
+	}
+
+	return _("Unknown error");
 }
 
 /* deprecated */
@@ -166,7 +185,7 @@ ldap_perror( LDAP *ld, LDAP_CONST char *str )
 
 	fprintf( stderr, "%s: %s (%d)\n",
 		str ? str : "ldap_perror",
-		e ? _(e->e_reason) : _("unknown LDAP result code"),
+		e ? _(e->e_reason) : _("unknown result code"),
 		ld->ld_errno );
 
 	if ( ld->ld_matched != NULL && ld->ld_matched[0] != '\0' ) {
@@ -213,7 +232,7 @@ ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )
  *   BindResponse ::= [APPLICATION 1] SEQUENCE {
  *     COMPONENTS OF LDAPResult,
  *     serverSaslCreds  [7] OCTET STRING OPTIONAL }
- * 
+ *
  * and ExtendedOp results:
  *
  *   ExtendedResponse ::= [APPLICATION 24] SEQUENCE {
