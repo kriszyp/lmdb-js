@@ -12,8 +12,13 @@
 ## A copy of this license is available in the file LICENSE in the
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
-if [ x"$MONITORDB" = x"yes" ] ; then
+if [ x"$MONITORDB" = x"yes" -o x"$MONITORDB" = xmod ] ; then
 	MON=monitor
+	if [ $MONITORDB = mod ] ; then
+		MONMOD=monitormod
+	else
+		MONMOD=nomod
+	fi
 else
 	MON=nomonitor
 fi
@@ -26,5 +31,6 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${AC_refint}#//"			\
 	-e "s/^#${AC_unique}#//"			\
 	-e "s/^#${MON}#//"				\
+	-e "s/^#${MONMOD}#//"				\
 	-e "s/@CACHETTL@/${CACHETTL}/"			\
 	-e "s/@ENTRY_LIMIT@/${CACHE_ENTRY_LIMIT}/"   
