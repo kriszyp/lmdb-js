@@ -169,7 +169,12 @@ ldap_send_entry(
 			continue;
 		attr->a_next = 0;
 		attr->a_desc = NULL;
-		slap_str2ad(a, &attr->a_desc, &text);
+		if (slap_str2ad(a, &attr->a_desc, &text) != LDAP_SUCCESS) {
+			if (slap_str2undef_ad(a, &attr->a_desc, &text) != LDAP_SUCCESS) {
+				ch_free(attr);
+				continue;
+			}
+		}		
 		attr->a_vals = ldap_get_values_len(lc->ld, e, a);
 		if (!attr->a_vals)
 			attr->a_vals = &dummy;
