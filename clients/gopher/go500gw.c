@@ -48,6 +48,8 @@
 #include "ldapconfig.h"
 
 int	debug;
+int ldap_syslog;
+int ldap_syslog_level;
 int	dosyslog;
 int	inetd;
 int	dtblsize;

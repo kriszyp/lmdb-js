@@ -47,6 +47,8 @@
 
 int	debug;
 int	dosyslog;
+int ldap_syslog;
+int ldap_syslog_level;
 int	inetd;
 int	dtblsize;
 
