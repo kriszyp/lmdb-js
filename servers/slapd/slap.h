@@ -63,6 +63,7 @@
 #define SLAP_SCHERR_ATTR_INCOMPLETE	9
 #define SLAP_SCHERR_MR_NOT_FOUND	10
 #define SLAP_SCHERR_SYN_NOT_FOUND	11
+#define SLAP_SCHERR_MR_INCOMPLETE	12
 
 LDAP_BEGIN_DECL
 
@@ -238,7 +239,7 @@ typedef struct slap_matching_rule {
 	LDAP_MATCHING_RULE		smr_mrule;
 	slap_mr_normalize_func		*smr_normalize;
 	slap_mr_compare_func		*smr_compare;
-	Syntax				smr_syntax;
+	Syntax				*smr_syntax;
 	struct slap_matching_rule	*smr_next;
 } MatchingRule;
 #define smr_oid				smr_mrule.mr_oid
