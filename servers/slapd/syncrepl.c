@@ -524,7 +524,7 @@ do_syncrepl(
 					ber_write( ctrl_ber, rctrlp->ldctl_value.bv_val, rctrlp->ldctl_value.bv_len, 0 );
 					ber_reset( ctrl_ber, 1 );
 
-					ber_scanf( ctrl_ber, "{" );
+					ber_scanf( ctrl_ber, "{" /*"}"*/);
 					if ( ber_peek_tag( ctrl_ber, &len )
 						== LDAP_SYNC_TAG_COOKIE ) {
 						ber_scanf( ctrl_ber, "o", &syncCookie );
@@ -562,7 +562,7 @@ do_syncrepl(
 				if ( !rc && !strcmp( retoid, LDAP_SYNC_INFO ) ) {
 					sync_info_arrived = 1;
 					res_ber = ber_init( retdata );
-					ber_scanf( res_ber, "{e", &syncstate );
+					ber_scanf( res_ber, "{e" /*"}"*/, &syncstate );
 
 					if ( syncstate == LDAP_SYNC_REFRESH_DONE ) {
 						syncrepl_del_nonpresent( ld, &op );
@@ -578,7 +578,7 @@ do_syncrepl(
 
 					if ( ber_peek_tag( res_ber, &len )
 								== LDAP_SYNC_TAG_COOKIE ) {
-						ber_scanf( res_ber, "o}", &syncCookie );
+						ber_scanf( res_ber, /*"{"*/ "o}", &syncCookie );
 						if ( syncCookie.bv_len ) {
 							ber_bvfree( si->syncCookie );
 							si->syncCookie = ber_dupbv( NULL, &syncCookie );
