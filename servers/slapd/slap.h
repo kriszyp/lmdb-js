@@ -476,8 +476,9 @@ typedef struct slap_matching_rule {
 #define SLAP_MR_ORDERING		0x0200U
 #define SLAP_MR_SUBSTR			0x0400U
 #define SLAP_MR_EXT				0x0800U /* implicitly extensible */
+#define	SLAP_MR_ORDERED_INDEX		0x1000U
 #ifdef LDAP_COMP_MATCH
-#define SLAP_MR_COMPONENT		0x1000U
+#define SLAP_MR_COMPONENT		0x2000U
 #endif
 
 #define SLAP_MR_EQUALITY_APPROX	( SLAP_MR_EQUALITY | 0x0010U )

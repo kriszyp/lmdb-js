@@ -413,17 +413,20 @@ bdb_idl_fetch_key(
 	DB			*db,
 	DB_TXN		*tid,
 	DBT			*key,
-	ID			*ids )
+	ID			*ids,
+	DBC                     **saved_cursor,
+	int                     get_flag )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc;
-	DBT data;
+	DBT data, key2, *kptr;
 	DBC *cursor;
 	ID *i;
 	void *ptr;
 	size_t len;
 	int rc2;
 	int flags = bdb->bi_db_opflags | DB_MULTIPLE;
+	int opflag;
 
 	/* If using BerkeleyDB 4.0, the buf must be large enough to
 	 * grab the entire IDL in one get(), otherwise BDB will leak
@@ -450,7 +453,18 @@ bdb_idl_fetch_key(
 
 	assert( ids != NULL );
 
-	if ( bdb->bi_idl_cache_size ) {
+	if ( saved_cursor && *saved_cursor ) {
+		opflag = DB_NEXT;
+	} else if ( get_flag == LDAP_FILTER_GE ) {
+		opflag = DB_SET_RANGE;
+	} else if ( get_flag == LDAP_FILTER_LE ) {
+		opflag = DB_FIRST;
+	} else {
+		opflag = DB_SET;
+	}
+
+	/* only non-range lookups can use the IDL cache */
+	if ( bdb->bi_idl_cache_size && opflag == DB_SET ) {
 		rc = bdb_idl_cache_get( bdb, db, key, ids );
 		if ( rc != LDAP_NO_SUCH_OBJECT ) return rc;
 	}
@@ -463,14 +477,44 @@ bdb_idl_fetch_key(
 
 	if ( tid ) flags |= DB_RMW;
 
-	rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
+	/* If we're not reusing an existing cursor, get a new one */
+	if( opflag != DB_NEXT )
+		rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
+	else
+		cursor = *saved_cursor;
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
 			"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
 		return rc;
 	}
+	
+	/* If this is a LE lookup, save original key so we can determine
+	 * when to stop
+	 */
+	if ( get_flag == LDAP_FILTER_LE ) {
+		DBTzero( &key2 );
+		key2.flags = DB_DBT_USERMEM;
+		key2.ulen = sizeof(keybuf);
+		key2.data = keybuf;
+		AC_MEMCPY( keybuf, key->data, key->size );
+		kptr = &key2;
+	} else {
+		kptr = key;
+	}
+	len = key->size;
+	rc = cursor->c_get( cursor, kptr, &data, flags | opflag );
 
-	rc = cursor->c_get( cursor, key, &data, flags | DB_SET );
+	/* skip presence key on range inequality lookups */
+	while (rc == 0 && kptr->size != len) {
+		rc = cursor->c_get( cursor, kptr, &data, flags | DB_NEXT_NODUP );
+	}
+	/* If we're doing a LE compare and the new key is greater than
+	 * our search key, we're done
+	 */
+	if (rc == 0 && get_flag == LDAP_FILTER_LE && memcmp( kptr->data,
+		key->data, key->size ) > 0 ) {
+		rc = DB_NOTFOUND;
+	}
 	if (rc == 0) {
 		i = ids;
 		while (rc == 0) {
@@ -502,7 +546,13 @@ bdb_idl_fetch_key(
 		data.size = BDB_IDL_SIZEOF(ids);
 	}
 
-	rc2 = cursor->c_close( cursor );
+	if ( saved_cursor && rc == 0 ) {
+		if ( !*saved_cursor )
+			*saved_cursor = cursor;
+		rc2 = 0;
+	}
+	else
+		rc2 = cursor->c_close( cursor );
 	if (rc2) {
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
 			"close failed: %s (%d)\n", db_strerror(rc2), rc2, 0 );

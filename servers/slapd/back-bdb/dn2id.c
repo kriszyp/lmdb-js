@@ -357,7 +357,7 @@ bdb_dn2idl(
 	((char *)key.data)[0] = prefix;
 	AC_MEMCPY( &((char *)key.data)[1], e->e_nname.bv_val, key.size - 1 );
 
-	rc = bdb_idl_fetch_key( op->o_bd, db, NULL, &key, ids );
+	rc = bdb_idl_fetch_key( op->o_bd, db, NULL, &key, ids, NULL, 0 );
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,

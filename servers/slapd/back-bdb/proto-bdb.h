@@ -242,11 +242,13 @@ bdb_idl_cache_del(
 unsigned bdb_idl_search( ID *ids, ID id );
 
 int bdb_idl_fetch_key(
-	BackendDB *be,
-	DB *db,
-	DB_TXN *txn,
-	DBT *key,
-	ID *ids );
+	BackendDB	*be,
+	DB			*db,
+	DB_TXN		*tid,
+	DBT			*key,
+	ID			*ids,
+	DBC                     **saved_cursor,
+	int                     get_flag );
 
 int bdb_idl_insert( ID *ids, ID id );
 
@@ -343,7 +345,9 @@ bdb_key_read(
 	DB *db,
 	DB_TXN *txn,
     struct berval *k,
-	ID *ids );
+	ID *ids,
+    DBC **saved_cursor,
+        int get_flags );
 
 extern int
 bdb_key_change(

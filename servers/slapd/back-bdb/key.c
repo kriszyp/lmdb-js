@@ -32,7 +32,9 @@ bdb_key_read(
 	DB *db,
 	DB_TXN *txn,
 	struct berval *k,
-	ID *ids
+	ID *ids,
+	DBC **saved_cursor,
+	int get_flag
 )
 {
 	int rc;
@@ -45,7 +47,7 @@ bdb_key_read(
 	key.ulen = key.size;
 	key.flags = DB_DBT_USERMEM;
 
-	rc = bdb_idl_fetch_key( be, db, txn, &key, ids );
+	rc = bdb_idl_fetch_key( be, db, txn, &key, ids, saved_cursor, get_flag );
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_index_read: failed (%d)\n",

@@ -32,6 +32,12 @@ static int equality_candidates(
 	AttributeAssertion *ava,
 	ID *ids,
 	ID *tmp );
+static int inequality_candidates(
+	Operation *op,
+	AttributeAssertion *ava,
+	ID *ids,
+	ID *tmp,
+	int gtorlt );
 static int approx_candidates(
 	Operation *op,
 	AttributeAssertion *ava,
@@ -127,15 +133,23 @@ bdb_filter_candidates(
 		break;
 
 	case LDAP_FILTER_GE:
-		/* no GE index, use pres */
+		/* if no GE index, use pres */
 		Debug( LDAP_DEBUG_FILTER, "\tGE\n", 0, 0, 0 );
-		rc = presence_candidates( op, f->f_ava->aa_desc, ids );
+		if( f->f_ava->aa_desc->ad_type->sat_ordering &&
+			( f->f_ava->aa_desc->ad_type->sat_ordering->smr_usage && SLAP_MR_ORDERED_INDEX ) )
+			rc = inequality_candidates( op, f->f_ava, ids, tmp, LDAP_FILTER_GE );
+		else
+			rc = presence_candidates( op, f->f_ava->aa_desc, ids );
 		break;
 
 	case LDAP_FILTER_LE:
-		/* no LE index, use pres */
+		/* if no LE index, use pres */
 		Debug( LDAP_DEBUG_FILTER, "\tLE\n", 0, 0, 0 );
-		rc = presence_candidates( op, f->f_ava->aa_desc, ids );
+		if( f->f_ava->aa_desc->ad_type->sat_ordering &&
+			( f->f_ava->aa_desc->ad_type->sat_ordering->smr_usage && SLAP_MR_ORDERED_INDEX ) )
+			rc = inequality_candidates( op, f->f_ava, ids, tmp, LDAP_FILTER_LE );
+		else
+			rc = presence_candidates( op, f->f_ava->aa_desc, ids );
 		break;
 
 	case LDAP_FILTER_NOT:
@@ -289,7 +303,7 @@ presence_candidates(
 		return -1;
 	}
 
-	rc = bdb_key_read( op->o_bd, db, NULL, &prefix, ids );
+	rc = bdb_key_read( op->o_bd, db, NULL, &prefix, ids, NULL, 0 );
 
 	if( rc == DB_NOTFOUND ) {
 		BDB_IDL_ZERO( ids );
@@ -385,7 +399,7 @@ equality_candidates(
 	}
 
 	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
-		rc = bdb_key_read( op->o_bd, db, NULL, &keys[i], tmp );
+		rc = bdb_key_read( op->o_bd, db, NULL, &keys[i], tmp, NULL, 0 );
 
 		if( rc == DB_NOTFOUND ) {
 			BDB_IDL_ZERO( ids );
@@ -506,7 +520,7 @@ approx_candidates(
 	}
 
 	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
-		rc = bdb_key_read( op->o_bd, db, NULL, &keys[i], tmp );
+		rc = bdb_key_read( op->o_bd, db, NULL, &keys[i], tmp, NULL, 0 );
 
 		if( rc == DB_NOTFOUND ) {
 			BDB_IDL_ZERO( ids );
@@ -621,7 +635,7 @@ substring_candidates(
 	}
 
 	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
-		rc = bdb_key_read( op->o_bd, db, NULL, &keys[i], tmp );
+		rc = bdb_key_read( op->o_bd, db, NULL, &keys[i], tmp, NULL, 0 );
 
 		if( rc == DB_NOTFOUND ) {
 			BDB_IDL_ZERO( ids );
@@ -662,3 +676,114 @@ substring_candidates(
 	return( rc );
 }
 
+static int
+inequality_candidates(
+	Operation *op,
+	AttributeAssertion *ava,
+	ID *ids,
+	ID *tmp,
+	int gtorlt )
+{
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+	DB	*db;
+	int i;
+	int rc;
+	slap_mask_t mask;
+	struct berval prefix = {0, NULL};
+	struct berval *keys = NULL;
+	MatchingRule *mr;
+	DBC * cursor = NULL;
+
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_inequality_candidates (%s)\n",
+			ava->aa_desc->ad_cname.bv_val, 0, 0 );
+
+	BDB_IDL_ALL( bdb, ids );
+
+	rc = bdb_index_param( op->o_bd, ava->aa_desc, LDAP_FILTER_EQUALITY,
+		&db, &mask, &prefix );
+
+	if( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY,
+			"<= bdb_inequality_candidates: (%s) "
+			"index_param failed (%d)\n",
+			ava->aa_desc->ad_cname.bv_val, rc, 0 );
+		return 0;
+	}
+
+	if ( db == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"<= bdb_inequality_candidates: (%s) not indexed\n", 
+			ava->aa_desc->ad_cname.bv_val, 0, 0 );
+		return 0;
+	}
+
+	mr = ava->aa_desc->ad_type->sat_equality;
+	if( !mr ) {
+		return 0;
+	}
+
+	if( !mr->smr_filter ) {
+		return 0;
+	}
+
+	rc = (mr->smr_filter)(
+		LDAP_FILTER_EQUALITY,
+		mask,
+		ava->aa_desc->ad_type->sat_syntax,
+		mr,
+		&prefix,
+		&ava->aa_value,
+		&keys, op->o_tmpmemctx );
+
+	if( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"<= bdb_inequality_candidates: (%s, %s) "
+			"MR filter failed (%d)\n",
+			prefix.bv_val, ava->aa_desc->ad_cname.bv_val, rc );
+		return 0;
+	}
+
+	if( keys == NULL ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"<= bdb_inequality_candidates: (%s) no keys\n",
+			ava->aa_desc->ad_cname.bv_val, 0, 0 );
+		return 0;
+	}
+
+	BDB_IDL_ZERO( ids );
+	while(1) {
+		rc = bdb_key_read( op->o_bd, db, NULL, &keys[0], tmp, &cursor, gtorlt );
+
+		if( rc == DB_NOTFOUND ) {
+			rc = 0;
+			break;
+		} else if( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE,
+			       "<= bdb_inequality_candidates: (%s) "
+			       "key read failed (%d)\n",
+			       ava->aa_desc->ad_cname.bv_val, rc, 0 );
+			break;
+		}
+
+		if( BDB_IDL_IS_ZERO( tmp ) ) {
+			Debug( LDAP_DEBUG_TRACE,
+			       "<= bdb_inequality_candidates: (%s) NULL\n", 
+			       ava->aa_desc->ad_cname.bv_val, 0, 0 );
+			break;
+		}
+
+		bdb_idl_union( ids, tmp );
+
+		if( BDB_IDL_IS_ZERO( ids ) )
+			break;
+		i++;
+	}
+	ber_bvarray_free_x( keys, op->o_tmpmemctx );
+
+	Debug( LDAP_DEBUG_TRACE,
+		"<= bdb_inequality_candidates: id=%ld, first=%ld, last=%ld\n",
+		(long) ids[0],
+		(long) BDB_IDL_FIRST(ids),
+		(long) BDB_IDL_LAST(ids) );
+	return( rc );
+}
