@@ -4112,7 +4112,7 @@ int slapi_entry_rdn_values_present( const Slapi_Entry *e )
 			LDAPAVA *ava = &rdn[0][i];
 			Slapi_Attr *a = NULL;
 
-			if ( slapi_attr_entry_attr_find( e, ava->la_attr.bv_val, &a ) == 0 &&
+			if ( slapi_entry_attr_find( (Slapi_Entry *)e, ava->la_attr.bv_val, &a ) == 0 &&
 			     slapi_attr_value_find( a, &ava->la_value ) == 0 )
 				match++;
 		}
@@ -4147,7 +4147,7 @@ int slapi_entry_add_rdn_values( Slapi_Entry *e )
 			LDAPAVA *ava = &rdn[0][i];
 			Slapi_Attr *a = NULL;
 
-			if ( slapi_attr_entry_attr_find( e, ava->la_attr.bv_val, &a ) == 0 &&
+			if ( slapi_entry_attr_find( e, ava->la_attr.bv_val, &a ) == 0 &&
 			     slapi_attr_value_find( a, &ava->la_value ) == 0 )
 				continue;
 

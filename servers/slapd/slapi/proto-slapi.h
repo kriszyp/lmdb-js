@@ -303,7 +303,8 @@ extern Slapi_PBlock *slapi_modrdn_internal( char * olddn, char * newrdn,
 		int deloldrdn, LDAPControl **controls, int log_change);
 extern char **slapi_get_supported_extended_ops(void);
 extern struct berval *slapi_int_get_supported_extop( int );
-Connection *slapi_int_init_connection(char *DN, int OpType);
+extern Connection *slapi_int_init_connection(char *DN, int OpType);
+extern void slapi_int_connection_destroy( Connection **pConn );
 
 /*
  * Was: slapi_cl.h

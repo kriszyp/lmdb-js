@@ -225,7 +225,7 @@ slapi_int_init_connection(
 	return pConn;
 }
 
-static void slapi_int_connection_destroy( Connection **pConn )
+void slapi_int_connection_destroy( Connection **pConn )
 {
 	Connection *conn = *pConn;
 	Operation *op;
