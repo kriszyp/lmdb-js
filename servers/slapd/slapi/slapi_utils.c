@@ -312,7 +312,7 @@ slapi_entry_attr_get_charptr( const Slapi_Entry *e, const char *type )
 		return NULL;
 	}
 
-	if ( attr->a_vals != NULL && attr->a_vals[0].bv_val != NULL ) {
+	if ( attr->a_vals != NULL && attr->a_vals[0].bv_len != 0 ) {
 		return slapi_ch_strdup( attr->a_vals[0].bv_val );
 	}
 
@@ -857,7 +857,9 @@ slapi_dn_normalize( char *dn )
 	bdn.bv_val = dn;
 	bdn.bv_len = strlen( dn );
 
-	dnNormalize2( NULL, &bdn, &ndn, NULL );
+	if ( dnNormalize2( NULL, &bdn, &ndn, NULL ) != LDAP_SUCCESS ) {
+		return NULL;
+	}
 
 	/*
 	 * FIXME: ain't it safe to set dn = ndn.bv_val ?
@@ -871,20 +873,11 @@ slapi_dn_normalize( char *dn )
 #endif /* LDAP_SLAPI */
 }
 
-/*
- * FIXME: this function is dangerous and should be deprecated;
- * DN normalization is a lot more than lower-casing, and BTW
- * OpenLDAP's DN normalization for case insensitive attributes
- * is already lower case
- */
 char *
 slapi_dn_normalize_case( char *dn ) 
 {
 #ifdef LDAP_SLAPI
-	slapi_dn_normalize( dn );
-	ldap_pvt_str2lower( dn );
-
-	return dn;
+	return slapi_dn_normalize( dn );
 #else /* LDAP_SLAPI */
 	return NULL;
 #endif /* LDAP_SLAPI */
