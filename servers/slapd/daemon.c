@@ -30,6 +30,8 @@ int deny_severity = LOG_NOTICE;
 
 #ifdef LDAP_PF_LOCAL
 #include <sys/stat.h>
+/* this should go in <ldap.h> as soon as it is accepted */
+#define LDAPI_MOD_URLEXT		"x-mod"
 #endif /* LDAP_PF_LOCAL */
 
 /* globals */
@@ -303,6 +305,171 @@ static void slap_free_listener_addresses(struct sockaddr **sal)
 	ch_free(sal);
 }
 
+#ifdef LDAP_PF_LOCAL
+static int get_url_perms(
+	char 	**exts,
+	mode_t	*perms,
+	int	*crit )
+{
+	int	i;
+
+	assert( exts );
+	assert( perms );
+	assert( crit );
+
+	*crit = 0;
+	for ( i = 0; exts[ i ]; i++ ) {
+		char	*type = exts[ i ];
+		int	c = 0;
+
+		if ( type[ 0 ] == '!' ) {
+			c = 1;
+			type++;
+		}
+
+		if ( strncasecmp( type, LDAPI_MOD_URLEXT "=", sizeof(LDAPI_MOD_URLEXT "=") - 1 ) == 0 ) {
+			char 	*value = type + sizeof(LDAPI_MOD_URLEXT "=") - 1;
+			mode_t	p = 0;
+
+#if 0
+			if ( strlen( value ) != 9 ) {
+				return LDAP_OTHER;
+			}
+
+			switch ( value[ 0 ] ) {
+			case 'r':
+				p |= S_IRUSR;
+				break;
+			case '-':
+				break;
+			default:
+				return LDAP_OTHER;
+			} 
+
+			switch ( value[ 1 ] ) {
+			case 'w':
+				p |= S_IWUSR;
+				break;
+			case '-':
+				break;
+			default:
+				return LDAP_OTHER;
+			} 
+
+			switch ( value[ 2 ] ) {
+			case 'x':
+				p |= S_IXUSR;
+				break;
+			case '-':
+				break;
+			default:
+				return LDAP_OTHER;
+			} 
+
+			switch ( value[ 3 ] ) {
+			case 'r':
+				p |= S_IRGRP;
+				break;
+			case '-':
+				break;
+			default:
+				return LDAP_OTHER;
+			} 
+
+			switch ( value[ 4 ] ) {
+			case 'w':
+				p |= S_IWGRP;
+				break;
+			case '-':
+				break;
+			default:
+				return LDAP_OTHER;
+			} 
+
+			switch ( value[ 5 ] ) {
+			case 'x':
+				p |= S_IXGRP;
+				break;
+			case '-':
+				break;
+			default:
+				return LDAP_OTHER;
+			} 
+
+			switch ( value[ 6 ] ) {
+			case 'r':
+				p |= S_IROTH;
+				break;
+			case '-':
+				break;
+			default:
+				return LDAP_OTHER;
+			} 
+
+			switch ( value[ 7 ] ) {
+			case 'w':
+				p |= S_IWOTH;
+				break;
+			case '-':
+				break;
+			default:
+				return LDAP_OTHER;
+			} 
+
+			switch ( value[ 8 ] ) {
+			case 'x':
+				p |= S_IXOTH;
+				break;
+			case '-':
+				break;
+			default:
+				return LDAP_OTHER;
+			} 
+#else
+			if ( strlen(value) != 3 ) {
+				return LDAP_OTHER;
+			} 
+
+			switch ( value[ 0 ] ) {
+			case 'w':
+				p |= S_IRWXU;
+				break;
+			case '-':
+				break;
+			default:
+				return LDAP_OTHER;
+			} 
+
+			switch ( value[ 1 ] ) {
+			case 'w':
+				p |= S_IRWXG;
+				break;
+			case '-':
+				break;
+			default:
+				return LDAP_OTHER;
+			} 
+
+			switch ( value[ 2 ] ) {
+			case 'w':
+				p |= S_IRWXO;
+				break;
+			case '-':
+				break;
+			default:
+				return LDAP_OTHER;
+			} 
+#endif
+
+			*crit = c;
+			*perms = p;
+
+			return LDAP_SUCCESS;
+		}
+	}
+}
+#endif /* LDAP_PF_LOCAL */
+
 /* port = 0 indicates AF_LOCAL */
 static int slap_get_listener_addresses(
 	const char *host,
@@ -487,7 +654,8 @@ static Listener * slap_open_listener(
 	struct sockaddr **sal, **psal;
 	int socktype = SOCK_STREAM;	/* default to COTS */
 #ifdef LDAP_PF_LOCAL
-	mode_t perms = S_IRWXU;
+	mode_t 	perms = S_IRWXU;
+	int	crit = 1;
 #endif
 
 	rc = ldap_url_parse( url, &lud );
@@ -541,6 +709,10 @@ static Listener * slap_open_listener(
 			err = slap_get_listener_addresses(LDAPI_SOCK, 0, &sal);
 		} else {
 			err = slap_get_listener_addresses(lud->lud_host, 0, &sal);
+		}
+
+		if ( lud->lud_exts ) {
+			err = get_url_perms( lud->lud_exts, &perms, &crit );
 		}
 #else
 
@@ -696,7 +868,7 @@ static Listener * slap_open_listener(
 #ifdef LDAP_PF_LOCAL
 	case AF_LOCAL: {
 		char *addr = ((struct sockaddr_un *)*sal)->sun_path;
-		if ( chmod( addr, perms ) < 0 ) {
+		if ( chmod( addr, perms ) < 0 && crit ) {
 			int err = sock_errno();
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
