@@ -177,7 +177,10 @@ main( int argc, char **argv )
 
 		time( &starttime );
 		pthread_attr_init( &attr );
+#ifdef DETACH_LISTENER_THREAD
+		/* we should detach it if we're going to join with it */
 		pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
+#endif
 
 #if !defined(HAVE_PTHREADS_D4)
 		/* POSIX_THREADS or compatible
@@ -201,7 +204,11 @@ main( int argc, char **argv )
 		}
 #endif	/* !draft4 */
 		pthread_attr_destroy( &attr );
+#ifdef HAVE_PHREADS_FINAL
+		pthread_join( listener_tid, (void *) NULL );
+#else
 		pthread_join( listener_tid, (void *) &status );
+#endif
 		pthread_exit( 0 );
 	} else {
 		Connection		c;
