@@ -532,16 +532,41 @@ slapd_daemon_task(
 
 		/* loop through the writers */
 #ifdef HAVE_WINSOCK
-		for ( i = 0; i < writefds.fd_count; i++ ) {
-			int wd = writefds.fd_array[i];
+		for ( i = 0; i < writefds.fd_count; i++ )
+#else
+		for ( i = 0; i < nfds; i++ )
+#endif
+		{
+			int wd, active;
+
+#ifdef HAVE_WINSOCK
+			wd = writefds.fd_array[i];
+#else
+			if( ! FD_ISSET( i, &writefds ) ) {
+				continue;
+			}
+			wd = i;
+#endif
 
 			if ( wd == tcps ) {
 				continue;
 			}
 
 			Debug( LDAP_DEBUG_CONNS,
-				"daemon: signalling write waiter on %d\n",
+				"daemon: write active on %d\n",
 				wd, 0, 0 );
+
+			ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+			active = FD_ISSET( wd, &slap_daemon.sd_actives );
+			ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
+
+			if( ! active ) {
+				/* descriptor no longer in FD set, should be closed */
+				Debug( LDAP_DEBUG_CONNS,
+			   		"daemon: write %d inactive, closing.\n", wd, 0, 0 );
+				tcp_close( wd );
+				continue;
+			}
 
 			slapd_clr_write( wd, 0 );
 			if ( connection_write( wd ) < 0 ) {
@@ -549,61 +574,47 @@ slapd_daemon_task(
 				slapd_close( wd );
 			}
 		}
-#else
-		for ( i = 0; i < nfds; i++ ) {
-			if ( i == tcps ) {
-				continue;
-			}
-			if ( FD_ISSET( i, &writefds ) ) {
-				Debug( LDAP_DEBUG_CONNS,
-				    "daemon: signaling write waiter on %d\n", i, 0, 0 );
-
-				/* clear the write flag */
-				slapd_clr_write( i, 0 );
-				
-				if( connection_write( i ) < 0 ) { 
-					FD_CLR( i, &readfds );
-					slapd_close( i );
-				}
-			}
-		}
-#endif
 
 #ifdef HAVE_WINSOCK
-		for ( i = 0; i < readfds.fd_count; i++ ) {
-			int rd = readfds.fd_array[i];
+		for ( i = 0; i < readfds.fd_count; i++ )
+#else
+		for ( i = 0; i < nfds; i++ )
+#endif
+		{
+			int rd, active;
+
+#ifdef HAVE_WINSOCK
+			rd = readfds.fd_array[i];
+#else
+			if( ! FD_ISSET( i, &readfds ) ) {
+				continue;
+			}
+			rd = i;
+#endif
+
 			if ( rd == tcps ) {
 				continue;
 			}
+
 			Debug ( LDAP_DEBUG_CONNS,
 				"daemon: read activity on %d\n", rd, 0, 0 );
 
 			ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-			assert( FD_ISSET( rd, &slap_daemon.sd_actives) );
+			active = FD_ISSET( rd, &slap_daemon.sd_actives );
 			ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
+
+			if( ! active ) {
+				/* descriptor no longer in FD set, should be closed */
+				Debug( LDAP_DEBUG_CONNS,
+			   		"daemon: read %d inactive, closing.\n", rd, 0, 0 );
+				tcp_close( rd );
+				continue;
+			}
 
 			if ( connection_read( rd ) < 0 ) {
 				slapd_close( rd );
 			}
 		}
-#else
-		for ( i = 0; i < nfds; i++ ) {
-			if ( i == tcps ) {
-				continue;
-			}
-
-			if ( FD_ISSET( i, &readfds ) ) {
-				Debug( LDAP_DEBUG_CONNS,
-				    "daemon: read activity on %d\n", i, 0, 0 );
-
-				assert( FD_ISSET( i, &slap_daemon.sd_actives) );
-
-				if( connection_read( i ) < 0) {
-					slapd_close( i );
-				}
-			}
-		}
-#endif
 		ldap_pvt_thread_yield();
 	}
 
