@@ -201,7 +201,7 @@ extern BerMemoryFunctions*		ber_int_memory_fns;
 #define LBER_INT_FREE(p)		ber_memfree((p))
 #define LBER_INT_VFREE(v)		ber_memvfree((void**)(v))
 #define LBER_INT_STRDUP(s)		ber_strdup((s))
-	
+
 #define LBER_MALLOC(s)		ber_memalloc((s))
 #define LBER_CALLOC(n,s)	ber_memcalloc((n),(s))
 #define LBER_REALLOC(p,s)	ber_memrealloc((p),(s))

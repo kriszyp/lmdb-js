@@ -178,7 +178,14 @@ ber_realloc( BerElement *ber, unsigned long len )
 void
 ber_free( BerElement *ber, int freebuf )
 {
+#ifdef LDAP_MEMORY_DEBUG
 	assert( ber != NULL );
+#endif
+
+	if( ber == NULL ) {
+		return;
+	}
+
 	assert( BER_VALID( ber ) );
 
 	if ( freebuf && ber->ber_buf != NULL )
