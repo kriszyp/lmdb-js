@@ -287,8 +287,6 @@ typedef struct slap_op {
 	time_t		o_time;		/* time op was initiated	  */
 	char		*o_dn;		/* dn bound when op was initiated */
 	char		*o_ndn;		/* normalized dn bound when op was initiated */
-        char            *o_suffix;      /* suffix if aliased              */
-        char            *o_suffixAliased;       /* pending suffix translation     */
 	int		o_authtype;	/* auth method used to bind dn	  */
 					/* values taken from ldap.h	  */
 					/* LDAP_AUTH_*			  */

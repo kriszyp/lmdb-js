@@ -28,8 +28,6 @@ char *suffixAlias (char *dn, Operation *op, Backend *be)
 	if(dn == NULL) return NULL;
 
 	dnLength = strlen ( dn );
-        op->o_suffix = NULL;
-        op->o_suffixAliased = NULL;
         for ( i = 0;
               be->be_suffixAlias != NULL && be->be_suffixAlias[i] != NULL;
               i += 2) {
@@ -41,12 +39,10 @@ char *suffixAlias (char *dn, Operation *op, Backend *be)
                 if (!strcasecmp(be->be_suffixAlias[i], 
 				dn + (dnLength - aliasLength))) {
                         char *oldDN = dn;
-                        op->o_suffixAliased = ch_strdup ( be->be_suffixAlias[i] );
                         dn = ch_malloc ( (dnLength - aliasLength) +
                                           strlen (be->be_suffixAlias[ i+1 ]) + 1);
                         strncpy (dn, oldDN, dnLength - aliasLength);
                         strcpy  (dn + (dnLength - aliasLength), be->be_suffixAlias[ i+1 ]);
-                        op->o_suffix = ch_strdup (dn);
                         Debug( LDAP_DEBUG_ARGS, "ALIAS: converted %s to %s", oldDN, dn, 0);
                         free (oldDN);
 			break;
