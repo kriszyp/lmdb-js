@@ -164,3 +164,14 @@ ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )
 
 	return( ld->ld_errno );
 }
+
+
+int 
+ldap_get_lderrno(LDAP *ld, char **matched, char **msg)
+{
+        if ( matched )
+                *matched = ld->ld_matched;
+        if ( msg )
+                *msg = NULL;
+        return( ld->ld_errno );
+}

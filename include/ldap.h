@@ -523,6 +523,7 @@ LDAP_F int ldap_delete_s LDAP_P(( LDAP *ld, char *dn ));
 LDAP_F int ldap_result2error LDAP_P(( LDAP *ld, LDAPMessage *r, int freeit ));
 LDAP_F char *ldap_err2string LDAP_P(( int err ));
 LDAP_F void ldap_perror LDAP_P(( LDAP *ld, char *s ));
+LDAP_F int ldap_get_lderrno LDAP_P((LDAP *ld, char **matched, char **msg));
 
 /*
  * in modify.c:
