@@ -50,13 +50,18 @@ ldappasswd \- change the password of an LDAP entry
 .BI \-Y \ mech\fR]
 [\c
 .BR \-Z[Z] ]
+[\c
+.IR user ]
 .SH DESCRIPTION
 .B ldappasswd
 is a tool to set the password of an LDAP user.
 .LP
 .B ldappasswd
-sets the password of associated with the user.  If the new
-password is not specified on the command line or the user
+sets the password of associated with the user [or an optionally
+specified
+.IR user ]. 
+If the new
+password is not specified on the command line and the user
 doesn't enable prompting, the server will be asked to generate
 a password for the user.
 .LP

@@ -102,7 +102,9 @@ main( int argc, char **argv )
 
     prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : prog + 1;
 
-    while (( i = getopt( argc, argv, "cf:r" "Cd:D:h:H:IkKMnO:p:P:QRU:vw:WxX:Y:Z" )) != EOF ) {
+    while (( i = getopt( argc, argv, "cf:r"
+		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:Y:Z" )) != EOF )
+	{
 	switch( i ) {
 	/* Delete Specific Options */
 	case 'c':	/* continuous operation mode */

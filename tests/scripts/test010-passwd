@@ -56,7 +56,7 @@ echo "Using ldappasswd (PASS 1)  ..."
 echo "Pass 1" >> $TESTOUT
 $LDAPPASSWD -h localhost -p $PORT \
 	-w secret -s newsecret \
-	"cn=md5, $BASEDN" >> $TESTOUT 2>&1
+	-D "cn=md5, $BASEDN" >> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
@@ -65,7 +65,7 @@ if test $RC != 0 ; then
 fi
 $LDAPPASSWD -h localhost -p $PORT \
 	-w secret -s newsecret \
-	"cn=smd5, $BASEDN" >> $TESTOUT 2>&1
+	-D "cn=smd5, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
@@ -73,7 +73,7 @@ if test $RC != 0 ; then
 fi
 $LDAPPASSWD -h localhost -p $PORT \
 	-w secret -s newsecret \
-	"cn=sha, $BASEDN" >> $TESTOUT 2>&1
+	-D "cn=sha, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
@@ -81,7 +81,7 @@ if test $RC != 0 ; then
 fi
 $LDAPPASSWD -h localhost -p $PORT \
 	-w secret -s newsecret \
-	"cn=ssha, $BASEDN" >> $TESTOUT 2>&1
+	-D "cn=ssha, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
@@ -93,7 +93,7 @@ echo "Pass 2" >> $TESTOUT
 echo "Using ldappasswd (PASS 2)  ..."
 $LDAPPASSWD -h localhost -p $PORT \
 	-w newsecret \
-	"cn=md5, $BASEDN" >> $TESTOUT 2>&1
+	-D "cn=md5, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
@@ -101,7 +101,7 @@ if test $RC != 0 ; then
 fi
 $LDAPPASSWD -h localhost -p $PORT \
 	-w newsecret \
-	"cn=smd5, $BASEDN" >> $TESTOUT 2>&1
+	-D "cn=smd5, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
@@ -109,7 +109,7 @@ if test $RC != 0 ; then
 fi
 $LDAPPASSWD -h localhost -p $PORT \
 	-w newsecret \
-	"cn=sha, $BASEDN" >> $TESTOUT 2>&1
+	-D "cn=sha, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
@@ -117,7 +117,7 @@ if test $RC != 0 ; then
 fi
 $LDAPPASSWD -h localhost -p $PORT \
 	-w newsecret \
-	"cn=ssha, $BASEDN" >> $TESTOUT 2>&1
+	-D "cn=ssha, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID

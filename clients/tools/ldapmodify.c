@@ -159,7 +159,9 @@ main( int argc, char **argv )
     authmethod = -1;
 	version = -1;
 
-    while (( i = getopt( argc, argv, "acrf:F" "Cd:D:h:H:IkKMnO:p:P:QRU:vw:WxX:Y:Z" )) != EOF ) {
+    while (( i = getopt( argc, argv, "acrf:F"
+		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:Y:Z" )) != EOF )
+	{
 	switch( i ) {
 	/* Modify Options */
 	case 'a':	/* add */

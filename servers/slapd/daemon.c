@@ -277,6 +277,15 @@ static Listener * open_listener( const char* url )
 	ldap_free_urldesc( lud );
 	sai = res;
 	do {
+		if ( (sai->ai_family != AF_INET)
+#  ifdef LDAP_PF_INET6
+		     && (sai->ai_family != AF_INET6)
+#  endif
+#  ifdef LDAP_PF_LOCAL
+		     && (sai->ai_family != AF_LOCAL)
+#  endif
+		     )
+			continue;
 		l.sl_sd = socket( sai->ai_family, sai->ai_socktype, sai->ai_protocol);
 		if ( l.sl_sd == AC_SOCKET_INVALID ) {
 			int err = sock_errno();
@@ -910,7 +919,7 @@ slapd_daemon_task(
 			case AF_INET6:
 			if ( IN6_IS_ADDR_V4MAPPED(&from.sa_in6_addr.sin6_addr) ) {
 				peeraddr = inet_ntoa( *((struct in_addr *)
-							&from.sa_in6_addr.sin6_addr.s6_addr32[3]) );
+							&from.sa_in6_addr.sin6_addr.s6_addr[12]) );
 				sprintf( peername, "IP=%s:%d",
 					 peeraddr != NULL ? peeraddr : "unknown",
 					 (unsigned) ntohs( from.sa_in6_addr.sin6_port ) );

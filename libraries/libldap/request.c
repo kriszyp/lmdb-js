@@ -410,9 +410,11 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 			prevlc = tmplc;
 		}
 		ldap_free_urllist( lc->lconn_server );
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		if ( lc->lconn_krbinstance != NULL ) {
 			LDAP_FREE( lc->lconn_krbinstance );
 		}
+#endif
 		if ( lc->lconn_sb != ld->ld_sb ) {
 			ber_sockbuf_free( lc->lconn_sb );
 		}
