@@ -77,8 +77,8 @@ LDAP_SLAPD_F (char *) access2str LDAP_P(( slap_access_t access ));
 LDAP_SLAPD_F (slap_access_t) str2access LDAP_P(( const char *str ));
 
 #define ACCESSMASK_MAXLEN	sizeof("unknown (+wrscan)")
-LDAP_SLAPD_F (char *) accessmask2str LDAP_P(( slap_access_mask_t mask, char* ));
-LDAP_SLAPD_F (slap_access_mask_t) str2accessmask LDAP_P(( const char *str ));
+LDAP_SLAPD_F (char *) accessmask2str LDAP_P(( slap_mask_t mask, char* ));
+LDAP_SLAPD_F (slap_mask_t) str2accessmask LDAP_P(( const char *str ));
 
 /*
  * at.c
@@ -269,7 +269,7 @@ LDAP_SLAPD_F (long) connection_init LDAP_P((
 	const char* peername,
 	const char* sockname,
 	int use_tls,
-	unsigned ssf,
+	slap_ssf_t ssf,
 	char *id ));
 
 LDAP_SLAPD_F (void) connection_closing LDAP_P(( Connection *c ));
@@ -537,7 +537,7 @@ LDAP_SLAPD_F (int) slap_sasl_open( Connection *c );
 LDAP_SLAPD_F (char **) slap_sasl_mechs( Connection *c );
 
 LDAP_SLAPD_F (int) slap_sasl_external( Connection *c,
-	unsigned ssf,	/* relative strength of external security */
+	slap_ssf_t ssf,	/* relative strength of external security */
 	char *authid );	/* asserted authenication id */
 
 LDAP_SLAPD_F (int) slap_sasl_reset( Connection *c );
@@ -547,7 +547,7 @@ LDAP_SLAPD_F (int) slap_sasl_bind LDAP_P((
 	Connection *conn, Operation *op, 
 	const char *dn, const char *ndn,
 	const char *mech, struct berval *cred,
-	char **edn, unsigned long *ssf ));
+	char **edn, slap_ssf_t *ssf ));
 
 /* oc.c */
 LDAP_SLAPD_F (int) oc_schema_info( Entry *e );

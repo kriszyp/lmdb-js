@@ -114,6 +114,10 @@ LDAP_BEGIN_DECL
 
 LDAP_SLAPD_F (int) slap_debug;
 
+typedef unsigned slap_ssf_t;
+typedef unsigned long slap_mask_t;
+
+
 /*
  * Index types
  */
@@ -149,8 +153,6 @@ LDAP_SLAPD_F (int) slap_debug;
 #define SLAP_INDEX_AUTO_SUBTYPES  0x2000UL /* use mask with subtypes */
 #define SLAP_INDEX_LANG           0x4000UL /* use index with lang subtypes */
 #define SLAP_INDEX_AUTO_LANG      0x8000UL /* use mask with lang subtypes */
-
-typedef unsigned long slap_mask_t;
 
 /*
  * there is a single index for each attribute.  these prefixes ensure
@@ -618,7 +620,6 @@ typedef enum slap_style_e {
 	ACL_STYLE_EXACT = ACL_STYLE_BASE
 } slap_style_t;
 
-typedef unsigned long slap_access_mask_t;
 
 /* the "by" part */
 typedef struct slap_access {
@@ -681,7 +682,7 @@ typedef struct slap_access {
 #define ACL_LVL_ASSIGN_READ(m)		ACL_PRIV_ASSIGN((m),ACL_LVL_READ)
 #define ACL_LVL_ASSIGN_WRITE(m)		ACL_PRIV_ASSIGN((m),ACL_LVL_WRITE)
 
-	slap_access_mask_t	a_mask;
+	slap_mask_t	a_access_mask;
 
 	slap_style_t a_dn_style;
 	char		*a_dn_pat;

@@ -24,7 +24,7 @@ static AccessControl * acl_get(
 	int nmatches, regmatch_t *matches );
 
 static slap_control_t acl_mask(
-	AccessControl *ac, slap_access_mask_t *mask,
+	AccessControl *ac, slap_mask_t *mask,
 	Backend *be, Connection *conn, Operation *op,
 	Entry *e,
 	AttributeDescription *desc,
@@ -85,7 +85,7 @@ access_allowed(
 #ifdef LDAP_DEBUG
 	char accessmaskbuf[ACCESSMASK_MAXLEN];
 #endif
-	slap_access_mask_t mask;
+	slap_mask_t mask;
 	slap_control_t control;
 
 	const char *attr = desc ? desc->ad_cname->bv_val : NULL;
@@ -341,7 +341,7 @@ acl_get(
 static slap_control_t
 acl_mask(
     AccessControl	*a,
-	slap_access_mask_t *mask,
+	slap_mask_t *mask,
     Backend		*be,
     Connection	*conn,
     Operation	*op,
@@ -372,7 +372,7 @@ acl_mask(
 		accessmask2str( *mask, accessmaskbuf ) );
 
 	for ( i = 1, b = a->acl_access; b != NULL; b = b->a_next, i++ ) {
-		slap_access_mask_t oldmask, modmask;
+		slap_mask_t oldmask, modmask;
 
 		ACL_INVALIDATE( modmask );
 
@@ -643,7 +643,7 @@ acl_mask(
 
 			/* this case works different from the others above.
 			 * since aci's themselves give permissions, we need
-			 * to first check b->a_mask, the ACL's access level.
+			 * to first check b->a_access_mask, the ACL's access level.
 			 */
 
 			if( op->o_ndn == NULL || op->o_ndn[0] == '\0' ) {
@@ -657,7 +657,7 @@ acl_mask(
 			/* first check if the right being requested
 			 * is allowed by the ACL clause.
 			 */
-			if ( ! ACL_GRANT( b->a_mask, *mask ) ) {
+			if ( ! ACL_GRANT( b->a_access_mask, *mask ) ) {
 				continue;
 			}
 
@@ -686,7 +686,7 @@ acl_mask(
 			}
 
 			/* remove anything that the ACL clause does not allow */
-			tgrant &= b->a_mask & ACL_PRIV_MASK;
+			tgrant &= b->a_access_mask & ACL_PRIV_MASK;
 			tdeny &= ACL_PRIV_MASK;
 
 			/* see if we have anything to contribute */
@@ -715,7 +715,7 @@ acl_mask(
 		} else
 #endif
 		{
-			modmask = b->a_mask;
+			modmask = b->a_access_mask;
 		}
 
 

@@ -186,7 +186,7 @@ do_bind(
 
 	if ( method == LDAP_AUTH_SASL ) {
 		char *edn;
-		unsigned long ssf = 0;
+		slap_ssf_t ssf = 0;
 
 		if ( version < LDAP_VERSION3 ) {
 			Debug( LDAP_DEBUG_ANY, "do_bind: sasl with LDAPv%ld\n",

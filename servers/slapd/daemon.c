@@ -829,7 +829,7 @@ slapd_daemon_task(
 			ber_int_t s;
 			socklen_t len = sizeof(from);
 			long id;
-			unsigned ssf = 0;
+			slap_ssf_t ssf = 0;
 			char *authid = NULL;
 
 			char	*dnsname;

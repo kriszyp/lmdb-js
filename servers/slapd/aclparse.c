@@ -258,7 +258,7 @@ parse_acl(
 
 			b = (Access *) ch_calloc( 1, sizeof(Access) );
 
-			ACL_INVALIDATE( b->a_mask );
+			ACL_INVALIDATE( b->a_access_mask );
 
 			if ( ++i == argc ) {
 				fprintf( stderr,
@@ -682,7 +682,7 @@ parse_acl(
 			if( i == argc || ( strcasecmp( left, "stop" ) == 0 )) { 
 				/* out of arguments or plain stop */
 
-				ACL_PRIV_ASSIGN(b->a_mask, ACL_PRIV_ADDITIVE);
+				ACL_PRIV_ASSIGN(b->a_access_mask, ACL_PRIV_ADDITIVE);
 				b->a_type = ACL_STOP;
 
 				access_append( &a->acl_access, b );
@@ -692,7 +692,7 @@ parse_acl(
 			if( strcasecmp( left, "continue" ) == 0 ) {
 				/* plain continue */
 
-				ACL_PRIV_ASSIGN(b->a_mask, ACL_PRIV_ADDITIVE);
+				ACL_PRIV_ASSIGN(b->a_access_mask, ACL_PRIV_ADDITIVE);
 				b->a_type = ACL_CONTINUE;
 
 				access_append( &a->acl_access, b );
@@ -702,7 +702,7 @@ parse_acl(
 			if( strcasecmp( left, "break" ) == 0 ) {
 				/* plain continue */
 
-				ACL_PRIV_ASSIGN(b->a_mask, ACL_PRIV_ADDITIVE);
+				ACL_PRIV_ASSIGN(b->a_access_mask, ACL_PRIV_ADDITIVE);
 				b->a_type = ACL_BREAK;
 
 				access_append( &a->acl_access, b );
@@ -712,7 +712,7 @@ parse_acl(
 			if ( strcasecmp( left, "by" ) == 0 ) {
 				/* we've gone too far */
 				--i;
-				ACL_PRIV_ASSIGN(b->a_mask, ACL_PRIV_ADDITIVE);
+				ACL_PRIV_ASSIGN(b->a_access_mask, ACL_PRIV_ADDITIVE);
 				b->a_type = ACL_STOP;
 
 				access_append( &a->acl_access, b );
@@ -722,13 +722,13 @@ parse_acl(
 			/* get <access> */
 			if( strncasecmp( left, "self", 4 ) == 0 ) {
 				b->a_dn_self = 1;
-				ACL_PRIV_ASSIGN( b->a_mask, str2accessmask( &left[4] ) );
+				ACL_PRIV_ASSIGN( b->a_access_mask, str2accessmask( &left[4] ) );
 
 			} else {
-				ACL_PRIV_ASSIGN( b->a_mask, str2accessmask( left ) );
+				ACL_PRIV_ASSIGN( b->a_access_mask, str2accessmask( left ) );
 			}
 
-			if( ACL_IS_INVALID( b->a_mask ) ) {
+			if( ACL_IS_INVALID( b->a_access_mask ) ) {
 				fprintf( stderr,
 					"%s: line %d: expecting <access> got \"%s\"\n",
 					fname, lineno, left );
@@ -793,7 +793,7 @@ parse_acl(
 }
 
 char *
-accessmask2str( slap_access_mask_t mask, char *buf )
+accessmask2str( slap_mask_t mask, char *buf )
 {
 	int none=1;
 
@@ -880,10 +880,10 @@ accessmask2str( slap_access_mask_t mask, char *buf )
 	return buf;
 }
 
-slap_access_mask_t
+slap_mask_t
 str2accessmask( const char *str )
 {
-	slap_access_mask_t	mask;
+	slap_mask_t	mask;
 
 	if( !ASCII_ALPHA(str[0]) ) {
 		int i;
@@ -1131,7 +1131,7 @@ print_access( Access *b )
 
 	fprintf( stderr, " %s%s",
 		b->a_dn_self ? "self" : "",
-		accessmask2str( b->a_mask, maskbuf ) );
+		accessmask2str( b->a_access_mask, maskbuf ) );
 
 	if( b->a_type == ACL_BREAK ) {
 		fprintf( stderr, " break" );
