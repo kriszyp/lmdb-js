@@ -953,7 +953,6 @@ ldap_pvt_tls_check_hostname( void *s, const char *name_in )
 			int n, len1, len2 = 0;
 			char *domain;
 			GENERAL_NAME *gn;
-			X509V3_EXT_METHOD *method;
 
 			len1 = strlen(name);
 			n = sk_GENERAL_NAME_num(alt);
@@ -990,8 +989,7 @@ ldap_pvt_tls_check_hostname( void *s, const char *name_in )
 				}
 			}
 
-			method = X509V3_EXT_get(ex);
-			method->ext_free(alt);
+			GENERAL_NAMES_free(alt);
 			if (i < n) {	/* Found a match */
 				ret = LDAP_SUCCESS;
 			}
