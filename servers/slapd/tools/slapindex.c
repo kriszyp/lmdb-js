@@ -47,17 +47,12 @@ main( int argc, char **argv )
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	type = argv[argc - 1];
 
-	if( strcasecmp( type, "dn" ) == 0 ) {
-		desc = NULL;
+	rc = slap_str2ad( type, &desc, &text );
 
-	} else {
-		rc = slap_str2ad( type, &desc, &text );
-
-		if( rc != LDAP_SUCCESS ) {
-			fprintf( stderr, "%s: unrecognized attribute type: %s\n",
-				progname, text );
-			exit( EXIT_FAILURE );
-		}
+	if( rc != LDAP_SUCCESS ) {
+		fprintf( stderr, "%s: unrecognized attribute type: %s\n",
+			progname, text );
+		exit( EXIT_FAILURE );
 	}
 #else
 	desc = type = attr_normalize( argv[argc - 1] );
@@ -79,10 +74,7 @@ main( int argc, char **argv )
 		id != NOID;
 		id = be->be_entry_next( be ) )
 	{
-		struct berval **values;
 		Entry* e = be->be_entry_get( be, id );
-		struct berval bv;
-		struct berval *bvals[2];
 
 		if ( e == NULL ) {
 			fprintf( stderr,
@@ -97,12 +89,13 @@ main( int argc, char **argv )
 				id, e->e_dn );
 		}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-		if( desc == NULL )
-#else
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		if( strcasecmp( type, "dn" ) == 0 )
-#endif
 		{
+			struct berval **values;
+			struct berval bv;
+			struct berval *bvals[2];
+
 			bv.bv_val = e->e_ndn;
 			bv.bv_len = strlen( bv.bv_val );
 			bvals[0] = &bv;
@@ -121,7 +114,9 @@ main( int argc, char **argv )
 				}
 			}
 
-		} else {
+		} else
+#endif
+		{
 			Attribute *attr;
 			
 #ifdef SLAPD_SCHEMA_NOT_COMPAT

@@ -25,23 +25,17 @@ LDAP_BEGIN_DECL
 
 #define SUBLEN			3
 
-#define DN_BASE_PREFIX		'='
-#define DN_ONE_PREFIX	 	'@'
-#define DN_SUBTREE_PREFIX 	'?'
+#define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
+#define DN_ONE_PREFIX	 	'%'
+#define DN_SUBTREE_PREFIX 	'@'
 
 /*
  * there is a single index for each attribute.  these prefixes ensure
  * that there is no collision among keys.
  */
-#define EQ_PREFIX	'='	/* prefix for equality keys     */
-#define APPROX_PREFIX	'~'	/* prefix for approx keys       */
-#define SUB_PREFIX	'*'	/* prefix for substring keys    */
-#define CONT_PREFIX	'\\'	/* prefix for continuation keys */
 
-/* allow 3 characters per byte + PREFIX + EOS */
-#define CONT_SIZE ( sizeof(long)*3 + 1 + 1 )
-
-#define UNKNOWN_PREFIX	'?'	/* prefix for unknown keys    */
+/* allow PREFIX + byte for continuate number */
+#define SLAP_INDEX_CONT_SIZE ( sizeof(SLAP_INDEX_CONT_PREFIX) + sizeof(unsigned char) )
 
 #define DEFAULT_BLOCKSIZE	8192
 
@@ -113,6 +107,7 @@ struct ldbminfo {
 	ldap_pvt_thread_mutex_t		li_root_mutex;
 	ldap_pvt_thread_mutex_t		li_add_mutex;
 	int			li_mode;
+	slap_index	li_defaultmask;
 	char			*li_directory;
 	Cache		li_cache;
 	Avlnode			*li_attrs;
@@ -122,11 +117,6 @@ struct ldbminfo {
 	DBCache		li_dbcache[MAXDBCACHE];
 	ldap_pvt_thread_mutex_t		li_dbcache_mutex;
 	ldap_pvt_thread_cond_t		li_dbcache_cv;
-#if 0
-#if defined(HAVE_BERKELEY_DB) && DB_VERSION_MAJOR >= 2
-	DB_ENV                      *li_db_env;
-#endif
-#endif
 };
 
 LDAP_END_DECL

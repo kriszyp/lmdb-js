@@ -108,13 +108,43 @@ LIBSLAPD_F (int) slap_debug;
 /*
  * Index types
  */
-#define SLAP_INDEX_PRESENCE      0x0001U
-#define SLAP_INDEX_EQUALITY      0x0002U
-#define SLAP_INDEX_APPROX        0x0004U
-#define SLAP_INDEX_SUBSTR        0x0008U
-#define SLAP_INDEX_EXTENDED		 0x0010U
-#define SLAP_INDEX_UNDEFINED     0x1000U
-#define SLAP_INDEX_FROMINIT      0x8000U	/* psuedo type */
+#define SLAP_INDEX_TYPE           0x00FFUL
+#define SLAP_INDEX_UNDEFINED      0x0001UL
+#define SLAP_INDEX_PRESENT        0x0002UL
+#define SLAP_INDEX_EQUALITY       0x0004UL
+#define SLAP_INDEX_APPROX         0x0008UL
+#define SLAP_INDEX_SUBSTR         0x0010UL
+#define SLAP_INDEX_EXTENDED		  0x0020UL
+
+#define SLAP_INDEX_DEFAULT        SLAP_INDEX_EQUALITY
+
+#define IS_SLAP_INDEX(mask, type)	(((mask) & (type)) == (type) )
+
+#define SLAP_INDEX_SUBSTR_TYPE    0x0F00UL
+
+#define SLAP_INDEX_SUBSTR_INITIAL ( SLAP_INDEX_SUBSTR | 0x0100UL ) 
+#define SLAP_INDEX_SUBSTR_ANY     ( SLAP_INDEX_SUBSTR | 0x0200UL )
+#define SLAP_INDEX_SUBSTR_FINAL   ( SLAP_INDEX_SUBSTR | 0x0400UL )
+#define SLAP_INDEX_SUBSTR_DEFAULT ( SLAP_INDEX_SUBSTR \
+	| SLAP_INDEX_SUBSTR_INITIAL | SLAP_INDEX_SUBSTR_FINAL )
+
+#define SLAP_INDEX_FLAGS          0xF000UL
+#define SLAP_INDEX_SUBTYPES       0x1000UL /* use index with subtypes */
+#define SLAP_INDEX_AUTO_SUBTYPES  0x2000UL /* use mask with subtypes */
+#define SLAP_INDEX_LANG           0x4000UL /* use index with lang subtypes */
+#define SLAP_INDEX_AUTO_LANG      0x8000UL /* use mask with lang subtypes */
+
+typedef long slap_index;
+
+/*
+ * there is a single index for each attribute.  these prefixes ensure
+ * that there is no collision among keys.
+ */
+#define SLAP_INDEX_EQUALITY_PREFIX	'=' 	/* prefix for equality keys     */
+#define SLAP_INDEX_APPROX_PREFIX	'~'		/* prefix for approx keys       */
+#define SLAP_INDEX_SUBSTR_PREFIX	'*'		/* prefix for substring keys    */
+#define SLAP_INDEX_CONT_PREFIX		'.'		/* prefix for continuation keys */
+#define SLAP_INDEX_UNKNOWN_PREFIX	'?'		/* prefix for unknown keys */
 
 /*
  * represents schema information for a database
@@ -211,18 +241,18 @@ typedef int slap_mr_indexer_func LDAP_P((
 	unsigned use,
 	struct slap_syntax *syntax,	/* syntax of stored value */
 	struct slap_matching_rule *mr,
+	struct berval *prefix,
 	struct berval **values,
-	struct berval **keys ));
-
-struct slap_filter; 	/* forward declaration */
+	struct berval ***keys ));
 
 /* Filter index function */
 typedef int slap_mr_filter_func LDAP_P((
 	unsigned use,
 	struct slap_syntax *syntax,	/* syntax of stored value */
 	struct slap_matching_rule *mr,
-	struct slap_filter *filter,
-	struct berval **keys ));
+	struct berval *prefix,
+	void * assertValue,
+	struct berval ***keys ));
 
 typedef struct slap_matching_rule {
 	LDAP_MATCHING_RULE		smr_mrule;
@@ -266,6 +296,7 @@ typedef struct slap_attribute_type {
 	struct slap_attribute_type	*sat_sup;
 	struct slap_attribute_type	**sat_subtypes;
 	MatchingRule			*sat_equality;
+	MatchingRule			*sat_approx;
 	MatchingRule			*sat_ordering;
 	MatchingRule			*sat_substr;
 	Syntax				*sat_syntax;
@@ -326,6 +357,7 @@ typedef struct slap_attr_desc {
 #define SLAP_DESC_BINARY	0x1U
 } AttributeDescription;
 
+#define slap_ad_is_lang(ad)		( (ad)->ad_lang != NULL )
 #define slap_ad_is_binary(ad)	( (int)((ad)->ad_flags & SLAP_DESC_BINARY) ? 1 : 0 )
 
 /*
@@ -492,6 +524,7 @@ typedef struct slap_filter {
 
 #define f_dn		f_un.f_un_type  /* used for DN indices */
 #define f_type		f_un.f_un_type
+#define f_desc		f_type
 #define f_ava		f_un.f_un_ava
 #define f_avtype	f_un.f_un_ava.ava_type
 #define f_avvalue	f_un.f_un_ava.ava_value

@@ -149,6 +149,7 @@ int slap_bv2ad(
 				*text = "multiple language tag options specified";
 				goto done;
 			}
+
 			desc.ad_lang = tokens[i];
 
 			/* normalize to all lower case, it's easy */

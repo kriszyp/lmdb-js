@@ -125,8 +125,10 @@ ldbm_cache_open(
 	}
 	li->li_dbcache[i].dbc_maxids = (li->li_dbcache[i].dbc_blksize /
 	    sizeof(ID)) - ID_BLOCK_IDS_OFFSET;
-	li->li_dbcache[i].dbc_maxindirect = (SLAPD_LDBM_MIN_MAXIDS /
-	    li->li_dbcache[i].dbc_maxids) + 1;
+	li->li_dbcache[i].dbc_maxindirect = ( SLAPD_LDBM_MIN_MAXIDS /
+	    li->li_dbcache[i].dbc_maxids ) + 1;
+
+	assert( li->li_dbcache[i].dbc_maxindirect < 256 );
 
 	Debug( LDAP_DEBUG_ARGS,
 	    "ldbm_cache_open (blksize %ld) (maxids %d) (maxindirect %d)\n",

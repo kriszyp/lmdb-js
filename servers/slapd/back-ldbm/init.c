@@ -79,7 +79,9 @@ ldbm_back_initialize(
 	bi->bi_tool_entry_get = ldbm_tool_entry_get;
 	bi->bi_tool_entry_put = ldbm_tool_entry_put;
 	bi->bi_tool_index_attr = ldbm_tool_index_attr;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	bi->bi_tool_index_change = ldbm_tool_index_change;
+#endif
 	bi->bi_tool_sync = ldbm_tool_sync;
 
 #ifdef HAVE_CYRUS_SASL
@@ -132,7 +134,6 @@ ldbm_back_db_init(
 )
 {
 	struct ldbminfo	*li;
-	char		*argv[ 4 ];
 
 	/* allocate backend-database-specific stuff */
 	li = (struct ldbminfo *) ch_calloc( 1, sizeof(struct ldbminfo) );
@@ -158,12 +159,6 @@ ldbm_back_db_init(
 	/* default database directory */
 	li->li_directory = ch_strdup( DEFAULT_DB_DIRECTORY );
 
-	argv[ 0 ] = "objectclass";
-	argv[ 1 ] = "eq";
-	argv[ 2 ] = NULL;
-	attr_index_config( li, "ldbm objectclass initialization",
-		0, 2, argv, 1 );
-
 	/* initialize various mutex locks & condition variables */
 	ldap_pvt_thread_mutex_init( &li->li_root_mutex );
 	ldap_pvt_thread_mutex_init( &li->li_add_mutex );
@@ -182,6 +177,17 @@ ldbm_back_db_open(
     BackendDB	*be
 )
 {
+	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	char		*argv[ 4 ];
+
+	/* allocate backend-database-specific stuff */
+
+	argv[ 0 ] = "objectclass";
+	argv[ 1 ] = "eq";
+	argv[ 2 ] = NULL;
+	attr_index_config( li, "ldbm objectclass initialization",
+		0, 2, argv, 1 );
+
 	return 0;
 }
 

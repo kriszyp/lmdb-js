@@ -17,7 +17,7 @@ SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
 		repl.c lock.c controls.c extended.c kerberos.c passwd.c \
 		schema.c schema_check.c schema_init.c schema_prep.c \
 		schemaparse.c ad.c at.c mr.c syntax.c oc.c \
-		monitor.c configinfo.c starttls.c \
+		monitor.c configinfo.c starttls.c index.c \
 		root_dse.c sasl.c module.c suffixalias.c $(@PLAT@_SRCS)
 
 OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
@@ -28,7 +28,7 @@ OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
 		repl.o lock.o controls.o extended.o kerberos.o passwd.o \
 		schema.o schema_check.o schema_init.o schema_prep.o \
 		schemaparse.o ad.o at.o mr.o syntax.o oc.o \
-		monitor.o configinfo.o starttls.o \
+		monitor.o configinfo.o starttls.o index.o \
 		root_dse.o sasl.o module.o suffixalias.o $(@PLAT@_OBJS)
 
 LDAP_INCDIR= ../../include

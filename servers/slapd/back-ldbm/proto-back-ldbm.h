@@ -33,8 +33,11 @@ Entry *deref_internal_r LDAP_P((
  * attr.c
  */
 
-void attr_mask LDAP_P(( struct ldbminfo *li, const char *type, int *indexmask ));
-void attr_index_config LDAP_P(( struct ldbminfo *li,
+void attr_mask LDAP_P(( struct ldbminfo *li,
+	const char *desc,
+	slap_index *indexmask ));
+
+int attr_index_config LDAP_P(( struct ldbminfo *li,
 	const char *fname, int lineno,
 	int argc, char **argv, int init ));
 void attr_index_destroy LDAP_P(( Avlnode *tree ));
@@ -130,14 +133,57 @@ ID idl_nextid LDAP_P(( ID_BLOCK *idl, ID *cursor ));
 /*
  * index.c
  */
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+extern int
+index_param LDAP_P((
+	Backend *be,
+	AttributeDescription *desc,
+	int ftype,
+	char **dbname,
+	slap_index *mask,
+	struct berval **prefix ));
 
-int index_add_entry LDAP_P(( Backend *be, Entry *e ));
+extern int
+index_values LDAP_P((
+	Backend *be,
+	AttributeDescription *desc,
+	struct berval **vals,
+	ID id,
+	int op ));
+#endif
+
+int index_entry LDAP_P(( Backend *be, int r, Entry *e, Attribute *ap ));
+#define index_entry_add(be,e,ap) index_entry((be),SLAP_INDEX_ADD_OP,(e),(ap))
+#define index_entry_del(be,e,ap) index_entry((be),SLAP_INDEX_DELETE_OP,(e),(ap))
+
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
+int index_change_values LDAP_P((
+    Backend		*be,
+    char		*desc,
+    struct berval	**vals,
+    ID			id,
+    unsigned int	op
+));
 ID_BLOCK * index_read LDAP_P(( Backend *be,
-	char *type, int indextype, char *val ));
-/* Possible operations supported (op) by index_change_values() */
-int index_change_values LDAP_P(( Backend *be,
-	char *type, struct berval **vals,
-	ID  id, unsigned int op ));
+	char *desc, int indextype, char *val ));
+#endif
+
+/*
+ * key.c
+ */
+extern int
+key_change LDAP_P((
+    Backend		*be,
+    DBCache	*db,
+    struct berval *k,
+    ID			id,
+    int			op ));
+extern int
+key_read LDAP_P((
+    Backend	*be,
+	DBCache *db,
+    struct berval *k,
+	ID_BLOCK **idout ));
 
 /*
  * passwd.c

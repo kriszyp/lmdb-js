@@ -220,6 +220,10 @@ SOURCE=.\init.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\key.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\modify.c
 # End Source File
 # Begin Source File
@@ -241,10 +245,6 @@ SOURCE=".\proto-back-ldbm.h"
 # Begin Source File
 
 SOURCE=.\search.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\startup.c
 # End Source File
 # Begin Source File
 

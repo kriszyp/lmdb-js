@@ -110,8 +110,8 @@ str2entry( char *s )
 			maxvals = 0;
 			a = NULL;
 		}
-#endif
 
+#endif
 		if ( strcasecmp( type, "dn" ) == 0 ) {
 			free( type );
 

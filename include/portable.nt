@@ -21,6 +21,9 @@
 #define SLAPD_SCHEMA_NOT_COMPAT 1
 #endif
 
+/* comment this out if you don't have Cyrus SASL */
+#define HAVE_CYRUS_SASL 1
+
 /* --------------------------------------------------- */
 /* begin of MSVC5 specific entries */
 
@@ -277,7 +280,7 @@ typedef signed int ssize_t;
 #define SLAPD_LDBM 1
 
 /* define this to use SLAPD SQL backend */
-#define SLAPD_SQL 1
+/* #undef SLAPD_SQL */
 
 /* define this to use SLAPD passwd backend */
 /* #undef SLAPD_PASSWD */

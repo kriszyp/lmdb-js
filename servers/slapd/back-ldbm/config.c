@@ -25,6 +25,7 @@ ldbm_back_db_config(
     char	**argv
 )
 {
+	int rc;
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
 	if ( li == NULL ) {
@@ -67,7 +68,9 @@ ldbm_back_db_config(
 "%s: line %d: extra junk after \"index <attr> [pres,eq,approx,sub]\" line (ignored)\n",
 			    fname, lineno );
 		}
-		attr_index_config( li, fname, lineno, argc - 1, &argv[1], 0 );
+		rc = attr_index_config( li, fname, lineno, argc - 1, &argv[1], 0 );
+
+		if( rc != LDAP_SUCCESS ) return 1;
 
 	/* size of the cache in entries */
 	} else if ( strcasecmp( argv[0], "cachesize" ) == 0 ) {

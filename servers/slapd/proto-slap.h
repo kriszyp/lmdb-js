@@ -267,6 +267,13 @@ LIBSLAPD_F (int) get_manageDSAit LDAP_P(( Operation *op ));
 
 LIBSLAPD_F (int) read_config LDAP_P(( const char *fname ));
 
+
+/*
+ * index.c
+ */
+LIBSLAPD_F (int) slap_index2prefix LDAP_P(( int indextype ));
+LIBSLAPD_F (int) slap_str2index LDAP_P(( const char *str, slap_index *idx ));
+
 /*
  * connection.c
  */

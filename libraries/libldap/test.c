@@ -232,7 +232,6 @@ static int
 bind_prompt( LDAP *ld, LDAP_CONST char *url, int request, ber_int_t msgid)
 {
 	static char	dn[256], passwd[256];
-	char *dnp;
 	int	authmethod;
 
 	printf("rebind for request=%d msgid=%ld url=%s\n",

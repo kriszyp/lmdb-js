@@ -154,85 +154,13 @@ int ldbm_modify_internal(
 	}
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
-	/* run through the attributes removing old indices */
-	for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
-		mod = &ml->sml_mod;
+	/* delete indices for old attributes */
+	index_entry_del( be, e, save_attrs);
 
-		switch ( mod->sm_op ) {
-		case LDAP_MOD_REPLACE: {
-			/* Need to remove all values from indexes */
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-			/* not yet implemented */
-#else
-			Attribute *a = save_attrs
-				? attr_find( save_attrs, mod->sm_desc )
-				: NULL;
-
-			if( a != NULL ) {
-				(void) index_change_values( be,
-					mod->mod_type,
-					a->a_vals,
-					e->e_id,
-					SLAP_INDEX_DELETE_OP );
-			}
-#endif
-			} break;
-
-		case LDAP_MOD_DELETE:
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-			/* not yet implemented */
-#else
-			/* remove deleted values */
-			(void) index_change_values( be,
-				mod->mod_type,
-				mod->mod_bvalues,
-				e->e_id,
-				SLAP_INDEX_DELETE_OP );
-#endif
-			break;
-		}
-	}
+	/* add indices for new attributes */
+	index_entry_add( be, e, e->e_attrs);
 
 	attrs_free( save_attrs );
-
-	/* run through the attributes adding new indices */
-	for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
-		mod = &ml->sml_mod;
-
-		switch ( mod->sm_op ) {
-		case LDAP_MOD_REPLACE:
-		case LDAP_MOD_ADD:
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-			/* not yet implemented */
-#else
-			(void) index_change_values( be,
-				mod->mod_type,
-				mod->mod_bvalues,
-				e->e_id,
-				SLAP_INDEX_ADD_OP );
-#endif
-			break;
-
-		case LDAP_MOD_DELETE: {
-			/* Need to add all remaining values */
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-			/* not yet implemented */
-#else
-			Attribute *a = e->e_attrs
-				? attr_find( e->e_attrs, mod->sm_desc )
-				: NULL;
-
-			if( a != NULL ) {
-				(void) index_change_values( be,
-					mod->mod_type,
-					a->a_vals,
-					e->e_id,
-					SLAP_INDEX_ADD_OP );
-			}
-#endif
-			} break;
-		}
-	}
 
 	return LDAP_SUCCESS;
 }

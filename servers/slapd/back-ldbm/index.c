@@ -15,33 +15,338 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+static index_mask(
+	Backend *be,
+	AttributeDescription *desc,
+	char **dbname,
+	char **atname )
+{
+	AttributeType *at;
+	slap_index mask = 0;
 
+	/* we do support indexing of binary attributes */
+	if( slap_ad_is_binary( desc ) ) return 0;
+
+	attr_mask( be->be_private, desc->ad_cname->bv_val, &mask );
+
+	if( mask ) {
+		*atname = desc->ad_cname->bv_val;
+		*dbname = desc->ad_cname->bv_val;
+		return mask;
+	}
+
+	if( slap_ad_is_lang( desc ) ) {
+		/* has language tag */
+		attr_mask( be->be_private, desc->ad_type->sat_cname, &mask );
+
+		if( mask & SLAP_INDEX_AUTO_LANG ) {
+			*atname = desc->ad_cname->bv_val;
+			*dbname = desc->ad_type->sat_cname;
+			return mask;
+		}
+		if( mask & SLAP_INDEX_LANG ) {
+			*atname = desc->ad_type->sat_cname;
+			*dbname = desc->ad_type->sat_cname;
+			return mask;
+		}
+	}
+
+	/* see if supertype defined mask for its subtypes */
+	for( at = desc->ad_type; at != NULL ; at = at->sat_sup ) {
+		attr_mask( be->be_private, at->sat_cname, &mask );
+
+		if( mask & SLAP_INDEX_AUTO_SUBTYPES ) {
+			*atname = desc->ad_type->sat_cname;
+			*dbname = at->sat_cname;
+			return mask;
+		}
+		if( mask & SLAP_INDEX_SUBTYPES ) {
+			*atname = at->sat_cname;
+			*dbname = at->sat_cname;
+			return mask;
+		}
+
+		if( mask ) break;
+	}
+
+	return 0;
+}
+
+int index_param(
+	Backend *be,
+	AttributeDescription *desc,
+	int ftype,
+	char **dbnamep,
+	slap_index *maskp,
+	struct berval **prefixp )
+{
+	slap_index mask;
+	char *dbname;
+	char *atname;
+
+	mask = index_mask( be, desc, &dbname, &atname );
+
+	if( mask == 0 ) {
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	switch(ftype) {
+	case LDAP_FILTER_PRESENT:
+		if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
+			goto done;
+		}
+		break;
+
+	case LDAP_FILTER_APPROX:
+		if( IS_SLAP_INDEX( mask, SLAP_INDEX_APPROX ) ) {
+			goto done;
+		}
+		/* fall thru */
+
+	case LDAP_FILTER_EQUALITY:
+		if( IS_SLAP_INDEX( mask, SLAP_INDEX_EQUALITY ) ) {
+			goto done;
+		}
+		break;
+
+	case LDAP_FILTER_SUBSTRINGS:
+		if( IS_SLAP_INDEX( mask, SLAP_INDEX_SUBSTR ) ) {
+			goto done;
+		}
+		break;
+
+	default:
+		return LDAP_OTHER;
+	}
+
+	return LDAP_INAPPROPRIATE_MATCHING;
+
+done:
+	*dbnamep = dbname;
+	*prefixp = ber_bvstrdup( atname );
+	*maskp = mask;
+	return LDAP_SUCCESS;
+}
+
+static int indexer(
+	Backend *be,
+	char *dbname,
+	char *atname,
+	struct berval **vals,
+	ID id,
+	int op,
+	slap_index mask )
+{
+	int rc, i;
+	const char *text;
+    DBCache	*db;
+	AttributeDescription *ad = NULL;
+	struct berval **keys;
+	struct berval prefix;
+
+	assert( mask );
+
+	rc = slap_str2ad( atname, &ad, &text );
+
+	if( rc != LDAP_SUCCESS ) return rc;
+
+	prefix.bv_val = atname;
+	prefix.bv_len = strlen( atname );
+
+	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
+	
+	if ( db == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "<= index_read NULL (could not open %s%s)\n",
+			dbname, LDBM_SUFFIX, 0 );
+		ad_free( ad, 1 );
+		return LDAP_OTHER;
+	}
+
+	if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
+		key_change( be, db, &prefix, id, op );
+	}
+
+	if( IS_SLAP_INDEX( mask, SLAP_INDEX_EQUALITY ) ) {
+		rc = ad->ad_type->sat_equality->smr_indexer(
+			mask,
+			ad->ad_type->sat_syntax,
+			ad->ad_type->sat_equality,
+			&prefix, vals, &keys );
+
+		if( rc == LDAP_SUCCESS ) {
+			for( i= 0; keys[i] != NULL; i++ ) {
+				key_change( be, db, keys[i], id, op );
+ 			}
+		}
+	}
+
+	if( IS_SLAP_INDEX( mask, SLAP_INDEX_APPROX ) ) {
+		rc = ad->ad_type->sat_approx->smr_indexer(
+			mask,
+			ad->ad_type->sat_syntax,
+			ad->ad_type->sat_approx,
+			&prefix, vals, &keys );
+
+		if( rc == LDAP_SUCCESS ) {
+			for( i= 0; keys[i] != NULL; i++ ) {
+				key_change( be, db, keys[i], id, op );
+ 			}
+		}
+	}
+
+	if( IS_SLAP_INDEX( mask, SLAP_INDEX_SUBSTR ) ) {
+		rc = ad->ad_type->sat_substr->smr_indexer(
+			mask,
+			ad->ad_type->sat_syntax,
+			ad->ad_type->sat_substr,
+			&prefix, vals, &keys );
+
+		if( rc == LDAP_SUCCESS ) {
+			for( i= 0; keys[i] != NULL; i++ ) {
+				key_change( be, db, keys[i], id, op );
+ 			}
+		}
+	}
+
+	ldbm_cache_close( be, db );
+	ad_free( ad, 1 );
+	return LDAP_SUCCESS;
+}
+
+static int index_at_values(
+	Backend *be,
+	AttributeType *type,
+	const char *lang,
+	struct berval **vals,
+	ID id,
+	int op,
+	char ** dbnamep,
+	slap_index *maskp )
+{
+	slap_index mask;
+	slap_index tmpmask = 0;
+	int lindex = 0;
+
+	if( type->sat_sup ) {
+		/* recurse */
+		(void) index_at_values( be,
+			type->sat_sup, lang,
+			vals, id, op,
+			dbnamep, &tmpmask );
+	}
+
+	attr_mask( be->be_private, type->sat_cname, &mask );
+
+	if( mask ) {
+		*dbnamep = type->sat_cname;
+	} else if ( tmpmask & SLAP_INDEX_AUTO_SUBTYPES ) {
+		mask = tmpmask;
+	}
+
+	if( mask ) {
+		indexer( be, *dbnamep,
+			type->sat_cname,
+			vals, id, op,
+			mask );
+	}
+
+	if( lang ) {
+		char *dbname = NULL;
+		size_t tlen = strlen( type->sat_cname );
+		size_t llen = strlen( lang );
+		char *lname = ch_malloc( tlen + llen + sizeof(";") );
+
+		sprintf( lname, "%s;%s", type->sat_cname, lang );
+
+		attr_mask( be->be_private, lname, &tmpmask );
+
+		if( tmpmask ) {
+			dbname = lname;
+		} else if ( mask & SLAP_INDEX_AUTO_LANG ) {
+			dbname = *dbnamep;
+			tmpmask = mask;
+		}
+
+		if( dbname != NULL ) {
+			indexer( be, dbname, lname,
+				vals, id, op,
+				tmpmask );
+		}
+
+		ch_free( lname );
+	}
+
+	return LDAP_SUCCESS;
+}
+
+int index_values(
+	Backend *be,
+	AttributeDescription *desc,
+	struct berval **vals,
+	ID id,
+	int op )
+{
+	char *dbname = NULL;
+	slap_index mask;
+
+	if( slap_ad_is_binary( desc ) ) {
+		/* binary attributes have no index capabilities */
+		return LDAP_SUCCESS;
+	}
+
+	(void) index_at_values( be,
+		desc->ad_type, desc->ad_lang,
+		vals, id, op,
+		&dbname, &mask );
+
+	return LDAP_SUCCESS;
+}
+
+#else
+int index_change_values(
+    Backend		*be,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription *desc,
+#else
+    char		*desc,
+#endif
+    struct berval	**vals,
+    ID			id,
+    unsigned int	op
+);
+
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 static int	change_value(Backend *be,
-			  DBCache *db,
-			  char *type,
-			  int indextype,
-			  char *val,
-			  ID id,
-			  int
-			  (*idl_func)(Backend *, DBCache *, Datum, ID));
-static int	index2prefix(int indextype);
+	DBCache *db,
+	char *type,
+	int indextype,
+	char *val,
+	ID id,
+	int
+	(*idl_func)(Backend *, DBCache *, Datum, ID));
+#endif
 #endif
 
 int
-index_add_entry(
+index_entry(
     Backend	*be,
-    Entry	*e
+	int op,
+    Entry	*e,
+	Attribute *ap
 )
 {
 #ifndef SLAPD_SCHEMA_NOT_COMPAT
-	Attribute	*ap;
 	struct berval	bv;
 	struct berval	*bvals[2];
+#endif
 
-	Debug( LDAP_DEBUG_TRACE, "=> index_add( %ld, \"%s\" )\n", e->e_id,
-	    e->e_dn, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> index_entry_%s( %ld, \"%s\" )\n",
+		op == SLAP_INDEX_ADD_OP ? "add" : "del",
+		e->e_id, e->e_dn );
 
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	/*
 	 * dn index entry - make it look like an attribute so it works
 	 * with index_change_values() call
@@ -55,39 +360,37 @@ index_add_entry(
 	/* add the dn to the indexes */
 	{
 		char *dn = ch_strdup("dn");
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
-#else
-		index_change_values( be, dn, bvals, e->e_id, SLAP_INDEX_ADD_OP );
-#endif
+		index_change_values( be, dn, bvals, e->e_id, op );
 		free( dn );
 	}
 
 	free( bv.bv_val );
+#endif
 
 	/* add each attribute to the indexes */
-	for ( ap = e->e_attrs; ap != NULL; ap = ap->a_next ) {
+	for ( ap; ap != NULL; ap = ap->a_next ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* index_change_values( be, SLAP_INDEX_ADD_OP, e->e_id, ap ); */
+		index_values( be, ap->a_desc, ap->a_vals, e->e_id, op );
 #else
-		index_change_values( be, ap->a_type, ap->a_vals, e->e_id,
-				     SLAP_INDEX_ADD_OP );
+		index_change_values( be, ap->a_type, ap->a_vals, e->e_id, op );
 #endif
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= index_add( %ld, \"%s\" ) 0\n", e->e_id,
-	    e->e_ndn, 0 );
-#endif
-	return( 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= index_entry_%s( %ld, \"%s\" ) success\n",
+	    op == SLAP_INDEX_ADD_OP ? "add" : "del",
+		e->e_id, e->e_dn );
+
+	return LDAP_SUCCESS;
 }
 
 #ifndef SLAPD_SCHEMA_NOT_COMPAT
+
 ID_BLOCK *
 index_read(
     Backend	*be,
     char	*type,
     int		indextype,
-    char	*val
+    char *val
 )
 {
 	DBCache	*db;
@@ -102,7 +405,7 @@ index_read(
 
 	ldbm_datum_init( key );
 
-	prefix = index2prefix( indextype );
+	prefix = slap_index2prefix( indextype );
 	Debug( LDAP_DEBUG_TRACE, "=> index_read(\"%c%s\"->\"%s\")\n",
 	    prefix, type, val );
 
@@ -188,7 +491,7 @@ change_value(
 	char	*realval = val;
 	char	buf[BUFSIZ];
 
-	char	prefix = index2prefix( indextype );
+	char	prefix = slap_index2prefix( indextype );
 
 	ldbm_datum_init( key );
 
@@ -226,18 +529,23 @@ change_value(
 	return( rc );
 
 }
-#endif
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+static
+#endif
 int
 index_change_values(
     Backend		*be,
-    char		*type,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription *desc,
+#else
+    char		*desc,
+#endif
     struct berval	**vals,
     ID			id,
     unsigned int	op
 )
 {
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	char		*val, *p, *code, *w;
 	unsigned	i, j, len;
 	int		indexmask, syntax;
@@ -251,6 +559,12 @@ index_change_values(
 				    Datum, ID);
 	char		*at_cn;	/* Attribute canonical name */
 	int		mode;
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	char *type = desc->ad_cname->bv_val;
+#else
+	char *type = desc;
+#endif
 
 	if( vals == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -278,7 +592,7 @@ index_change_values(
 #ifndef SLAPD_SCHEMA_NOT_COMPAT
 	attr_normalize(type);
 #endif
-	attr_mask( be->be_private, type, &indexmask );
+	attr_mask( be->be_private, desc, &indexmask );
 
 	if ( indexmask == 0 ) {
 		return( 0 );
@@ -307,20 +621,19 @@ index_change_values(
 		return( -1 );
 	}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
-#else
 	/*
 	 * presence index entry
 	 */
-	if ( indexmask & SLAP_INDEX_PRESENCE ) {
-		change_value( be, db, at_cn, SLAP_INDEX_PRESENCE,
+	if ( indexmask & SLAP_INDEX_PRESENT ) {
+		change_value( be, db, at_cn, SLAP_INDEX_PRESENT,
 			"*", id, idl_funct );
 	}
 
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	if ( syntax & SYNTAX_BIN ) {
 		goto done;
 	}
+#endif
 
 	for ( i = 0; vals[i] != NULL; i++ ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -340,7 +653,9 @@ index_change_values(
 		(void) memcpy( val, vals[i]->bv_val, len );
 		val[len] = '\0';
 
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		value_normalize( val, syntax );
+#endif
 
 		/* value_normalize could change the length of val */
 		len = strlen( val );
@@ -414,35 +729,10 @@ index_change_values(
 			free( bigbuf );
 		}
 	}
-#endif
-
-done:
-	ldbm_cache_close( be, db );
-#endif
-	return( 0 );
-}
-
 #ifndef SLAPD_SCHEMA_NOT_COMPAT
-static int
-index2prefix( int indextype )
-{
-	int	prefix;
-
-	switch ( indextype ) {
-	case SLAP_INDEX_EQUALITY:
-		prefix = EQ_PREFIX;
-		break;
-	case SLAP_INDEX_APPROX:
-		prefix = APPROX_PREFIX;
-		break;
-	case SLAP_INDEX_SUBSTR:
-		prefix = SUB_PREFIX;
-		break;
-	default:
-		prefix = UNKNOWN_PREFIX;
-		break;
-	}
-
-	return( prefix );
+done:
+#endif
+	ldbm_cache_close( be, db );
+	return LDAP_SUCCESS;
 }
 #endif

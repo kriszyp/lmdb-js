@@ -17,6 +17,34 @@
 
 static ID_BLOCK* idl_dup( ID_BLOCK *idl );
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+static void cont_alloc( Datum cont, Datum key )
+{
+	ldbm_datum_init( cont );
+	cont.dsize = 1 + sizeof(ID) + key.dsize;
+	cont.dptr = ch_malloc( cont.dsize );
+
+	memcpy( &((unsigned char *)cont.dptr)[1 + sizeof(ID)],
+		key.dptr, key.dsize );
+}
+
+static void cont_id( Datum cont, ID id )
+{
+	int i;
+
+	for( i=1; i <= sizeof(id); i++) {
+		((unsigned char *)cont.dptr)[i] = (unsigned char)(id & 0xFF);
+		id >>= 8;
+	}
+
+}
+
+static void cont_free( Datum cont )
+{
+	ch_free( cont.dptr );
+}
+#endif
+
 /* Allocate an ID_BLOCK with room for nids ids */
 ID_BLOCK *
 idl_alloc( unsigned int nids )
@@ -106,7 +134,6 @@ idl_fetch(
 	Datum	data;
 	ID_BLOCK	*idl;
 	ID_BLOCK	**tmp;
-	char	*kstr;
 	int	i, nids;
 
 	idl = idl_fetch_one( be, db, key );
@@ -141,16 +168,22 @@ idl_fetch(
 	tmp = (ID_BLOCK **) ch_malloc( (i + 1) * sizeof(ID_BLOCK *) );
 
 	/* read in all the blocks */
-	kstr = (char *) ch_malloc( key.dsize + CONT_SIZE );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	cont_alloc( data, key );
+#else
+	kstr = (char *) ch_malloc( key.dsize + SLAP_INDEX_CONT_SIZE );
+#endif
 	nids = 0;
 	for ( i = 0; !ID_BLOCK_NOID(idl, i); i++ ) {
-		ldbm_datum_init( data );
-
-		sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		cont_id( data, ID_BLOCK_ID(idl, i) );
+#else
+		sprintf( kstr, "%c%ld%s", SLAP_INDEX_CONT_PREFIX,
 			ID_BLOCK_ID(idl, i), key.dptr );
 
 		data.dptr = kstr;
 		data.dsize = strlen( kstr ) + 1;
+#endif
 
 		if ( (tmp[i] = idl_fetch_one( be, db, data )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
@@ -161,7 +194,11 @@ idl_fetch(
 		nids += ID_BLOCK_NIDS(tmp[i]);
 	}
 	tmp[i] = NULL;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	cont_free( data );
+#else
 	free( kstr );
+#endif
 	idl_free( idl );
 
 	/* allocate space for the big block */
@@ -300,10 +337,14 @@ idl_change_first(
 	}
 
 	/* write block with new key */
-	sprintf( bkey.dptr, "%c%ld%s", CONT_PREFIX,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	cont_id( bkey, ID_BLOCK_ID(b, 0) );
+#else
+	sprintf( bkey.dptr, "%c%ld%s", SLAP_INDEX_CONT_PREFIX,
 		ID_BLOCK_ID(b, 0), hkey.dptr );
-
 	bkey.dsize = strlen( bkey.dptr ) + 1;
+#endif
+
 	if ( (rc = idl_store( be, db, bkey, b )) != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "idl_store of (%s) returns %d\n", bkey.dptr, rc, 0 );
@@ -332,10 +373,12 @@ idl_insert_key(
 {
 	int	i, j, first, rc;
 	ID_BLOCK	*idl, *tmp, *tmp2, *tmp3;
-	char	*kstr;
 	Datum	k2;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
+	char	*kstr;
 
 	ldbm_datum_init( k2 );
+#endif
 
 	if ( (idl = idl_fetch_one( be, db, key )) == NULL ) {
 #ifdef LDBM_DEBUG
@@ -392,23 +435,38 @@ idl_insert_key(
 			/* store it */
 			rc = idl_store( be, db, key, idl );
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			cont_alloc( k2, key );
+			cont_id( k2, ID_BLOCK_ID(tmp, 0) );
+#else
 			/* store the first id block */
-			kstr = (char *) ch_malloc( key.dsize + CONT_SIZE );
-			sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+			kstr = (char *) ch_malloc( key.dsize + SLAP_INDEX_CONT_SIZE );
+			sprintf( kstr, "%c%ld%s", SLAP_INDEX_CONT_PREFIX,
 				ID_BLOCK_ID(tmp, 0), key.dptr );
 
 			k2.dptr = kstr;
 			k2.dsize = strlen( kstr ) + 1;
+#endif
+
 			rc = idl_store( be, db, k2, tmp );
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			cont_id( k2, ID_BLOCK_ID(tmp2, 0) );
+#else
 			/* store the second id block */
-			sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+			sprintf( kstr, "%c%ld%s", SLAP_INDEX_CONT_PREFIX,
 				ID_BLOCK_ID(tmp2, 0), key.dptr );
 			k2.dptr = kstr;
 			k2.dsize = strlen( kstr ) + 1;
+#endif
 			rc = idl_store( be, db, k2, tmp2 );
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			cont_free( k2 );
+#else
 			free( kstr );
+#endif
+
 			idl_free( tmp );
 			idl_free( tmp2 );
 			break;
@@ -429,6 +487,7 @@ idl_insert_key(
 	/* select the block to try inserting into *//* XXX linear search XXX */
 	for ( i = 0; !ID_BLOCK_NOID(idl, i) && id > ID_BLOCK_ID(idl, i); i++ )
 		;	/* NULL */
+
 	if ( i != 0 ) {
 		i--;
 		first = 0;
@@ -437,15 +496,25 @@ idl_insert_key(
 	}
 
 	/* get the block */
-	kstr = (char *) ch_malloc( key.dsize + CONT_SIZE );
-	sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	cont_alloc( k2, key );
+	cont_id( k2, ID_BLOCK_ID(idl, i) );
+#else
+	kstr = (char *) ch_malloc( key.dsize + SLAP_INDEX_CONT_SIZE );
+	sprintf( kstr, "%c%ld%s", SLAP_INDEX_CONT_PREFIX,
 		ID_BLOCK_ID(idl, i), key.dptr );
 	k2.dptr = kstr;
 	k2.dsize = strlen( kstr ) + 1;
+#endif
+
 	if ( (tmp = idl_fetch_one( be, db, k2 )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "nonexistent continuation block (%s)\n",
 		    k2.dptr, 0, 0 );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		cont_free( k2 );
+#else
 		free( kstr );
+#endif
 		idl_free( idl );
 		return( -1 );
 	}
@@ -484,16 +553,25 @@ idl_insert_key(
 		/* is there a next block? */
 		if ( !first && !ID_BLOCK_NOID(idl, i + 1) ) {
 			/* read it in */
-			k2.dptr = (char *) ch_malloc( key.dsize + CONT_SIZE );
-			sprintf( k2.dptr, "%c%ld%s", CONT_PREFIX,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			cont_alloc( k2, key );
+			cont_id( k2, ID_BLOCK_ID(idl, i) );
+#else
+			k2.dptr = (char *) ch_malloc( key.dsize + SLAP_INDEX_CONT_SIZE );
+			sprintf( k2.dptr, "%c%ld%s", SLAP_INDEX_CONT_PREFIX,
 				ID_BLOCK_ID(idl, i + 1), key.dptr );
 			k2.dsize = strlen( k2.dptr ) + 1;
+#endif
 			if ( (tmp2 = idl_fetch_one( be, db, k2 )) == NULL ) {
 				Debug( LDAP_DEBUG_ANY,
 				    "idl_fetch_one (%s) returns NULL\n",
 				    k2.dptr, 0, 0 );
 				/* split the original block */
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				cont_free( k2 );
+#else
 				free( k2.dptr );
+#endif
 				goto split;
 			}
 
@@ -514,14 +592,26 @@ idl_insert_key(
 			     */
 			    rc = idl_insert( &tmp, id, db->dbc_maxids );
 			    assert( rc == 0 );
-			    k3.dptr = kstr;
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				k3.dptr = ch_malloc(k2.dsize);
+				k3.dsize = k2.dsize;
+				memcpy(k3.dptr, k2.dptr, k3.dsize);
+#else
+			    k3.dptr = strdup( kstr );
 			    k3.dsize = strlen( kstr ) + 1;
+#endif
 			    if ( (rc = idl_store( be, db, k3, tmp )) != 0 ) {
 				Debug( LDAP_DEBUG_ANY,
 			    "idl_store of (%s) returns %d\n", k3.dptr, rc, 0 );
 			    }
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				free( k3.dptr );
+#else
 			    free( kstr );
 			    kstr = k2.dptr;
+#endif
 
 			    id = id2;
 			    /* This new id will necessarily be inserted
@@ -548,7 +638,12 @@ idl_insert_key(
 					    "id %ld already in next block\n",
 					    id, 0, 0 );
 				}
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				assert( 0 ); /* not yet implemented */
+#else
 				free( kstr );
+#endif
 				idl_free( tmp );
 				idl_free( tmp2 );
 				idl_free( idl );
@@ -586,10 +681,14 @@ split:
 
 			/* delete all indirect blocks */
 			for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ ) {
-				sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				cont_id( k2, ID_BLOCK_ID(idl, j) );
+#else
+				sprintf( kstr, "%c%ld%s", SLAP_INDEX_CONT_PREFIX,
 					ID_BLOCK_ID(idl, j), key.dptr );
 				k2.dptr = kstr;
 				k2.dsize = strlen( kstr ) + 1;
+#endif
 
 				rc = ldbm_cache_delete( db, k2 );
 			}
@@ -599,7 +698,11 @@ split:
 			idl = idl_allids( be );
 			rc = idl_store( be, db, key, idl );
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			cont_free( k2 );
+#else
 			free( kstr );
+#endif
 			idl_free( idl );
 			idl_free( tmp );
 			return( rc );
@@ -629,17 +732,25 @@ split:
 		rc = idl_store( be, db, key, tmp );
 
 		/* store the first id block */
-		sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		cont_id( k2, ID_BLOCK_ID(tmp2, 0) );
+#else
+		sprintf( kstr, "%c%ld%s", SLAP_INDEX_CONT_PREFIX,
 			ID_BLOCK_ID(tmp2, 0), key.dptr );
 		k2.dptr = kstr;
 		k2.dsize = strlen( kstr ) + 1;
+#endif
 		rc = idl_store( be, db, k2, tmp2 );
 
 		/* store the second id block */
-		sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		cont_id( k2, ID_BLOCK_ID(tmp3, 0) );
+#else
+		sprintf( kstr, "%c%ld%s", SLAP_INDEX_CONT_PREFIX,
 			ID_BLOCK_ID(tmp3, 0), key.dptr );
 		k2.dptr = kstr;
 		k2.dsize = strlen( kstr ) + 1;
+#endif
 		rc = idl_store( be, db, k2, tmp3 );
 
 		idl_free( tmp2 );
@@ -647,7 +758,11 @@ split:
 		break;
 	}
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	cont_free( k2 );
+#else
 	free( kstr );
+#endif
 	idl_free( tmp );
 	idl_free( idl );
 	return( rc );
@@ -722,7 +837,9 @@ idl_delete_key (
 	ID_BLOCK *idl;
 	unsigned i;
 	int j, nids;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	char	*kstr;
+#endif
 
 	if ( (idl = idl_fetch_one( be, db, key ) ) == NULL )
 	{
@@ -766,16 +883,25 @@ idl_delete_key (
 	   */
 	for ( nids = 0; !ID_BLOCK_NOID(idl, nids); nids++ )
 		;	/* NULL */
-	kstr = (char *) ch_malloc( key.dsize + CONT_SIZE );
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	cont_alloc( data, key );
+#else
+	kstr = (char *) ch_malloc( key.dsize + SLAP_INDEX_CONT_SIZE );
+#endif
 
 	for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ ) 
 	{
 		ID_BLOCK *tmp;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		cont_id( data, ID_BLOCK_ID(idl, j) );
+#else
 		ldbm_datum_init( data );
-		sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+		sprintf( kstr, "%c%ld%s", SLAP_INDEX_CONT_PREFIX,
 			ID_BLOCK_ID(idl, j), key.dptr );
 		data.dptr = kstr;
 		data.dsize = strlen( kstr ) + 1;
+#endif
 
 		if ( (tmp = idl_fetch_one( be, db, data )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
@@ -813,14 +939,23 @@ idl_delete_key (
 						idl_store( be, db, key, idl );
 				}
 				idl_free( tmp );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				cont_free( data );
+#else
 				free( kstr );
+#endif
 				idl_free( idl );
 				return 0;
 			}
 		}
 		idl_free( tmp );
 	}
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	cont_free( data );
+#else
 	free( kstr );
+#endif
 	idl_free( idl );
 	return -1;
 }

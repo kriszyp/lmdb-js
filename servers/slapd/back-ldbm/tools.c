@@ -160,7 +160,7 @@ ID ldbm_tool_entry_put(
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_tool_entry_put( %ld, \"%s\" )\n",
 		e->e_id, e->e_dn, 0 );
 
-	rc = index_add_entry( be, e );
+	rc = index_entry_add( be, e, e->e_attrs );
 
 	if( rc != 0 ) {
 		return NOID;
@@ -202,18 +202,21 @@ int ldbm_tool_index_attr(
 )
 {
 	static DBCache *db = NULL;
-	int indexmask;
-	char * at_cn;
+	slap_index indexmask;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
+	char *desc;
+#endif
+	char *at_cname;
 
 	assert( slapMode & SLAP_TOOL_MODE );
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	at_cn = desc->ad_cname->bv_val;
+	at_cname = desc->ad_cname->bv_val;
 #else
 	attr_normalize( type );
-	at_cn = at_canonical_name( type );
+	at_cname = desc = at_canonical_name( type );
 
-	if( at_cn == NULL ) {
+	if( desc == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"<= index_attr NULL (attribute type %s has no canonical name)\n",
 			type, 0, 0 );
@@ -221,14 +224,14 @@ int ldbm_tool_index_attr(
 	}
 #endif
 
-	assert( at_cn != NULL );
-	attr_mask( be->be_private, at_cn, &indexmask );
+	assert( desc != NULL );
+	attr_mask( be->be_private, desc, &indexmask );
 
-	if ( (db = ldbm_cache_open( be, at_cn, LDBM_SUFFIX, LDBM_NEWDB ))
+	if ( (db = ldbm_cache_open( be, at_cname, LDBM_SUFFIX, LDBM_NEWDB ))
 	    == NULL )
 	{
 		Debug( LDAP_DEBUG_ANY,
-		    "<= index_attr NULL (could not open %s%s)\n", at_cn,
+		    "<= index_attr NULL (could not open %s%s)\n", at_cname,
 		    LDBM_SUFFIX, 0 );
 		return 0;
 	}
@@ -243,22 +246,22 @@ int ldbm_tool_index_change(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc,
 #else
-	char* type,
+	char* desc,
 #endif
 	struct berval **bv,
 	ID id,
 	int op )
 {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	char *type = desc->ad_cname->bv_val;
-#endif
-
 	assert( slapMode & SLAP_TOOL_MODE );
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	index_values( be, desc, bv, id, op );
+#else
 	index_change_values( be,
-		type, bv, id, op );
+		desc, bv, id, op );
 
 	return 0;
+#endif
 }
 
 int ldbm_tool_sync( BackendDB *be )

@@ -229,8 +229,11 @@ test_ava_filter(
 		MatchingRule *mr;
 
 		switch ( type ) {
-		case LDAP_FILTER_EQUALITY:
 		case LDAP_FILTER_APPROX:
+			mr = a->a_desc->ad_type->sat_approx;
+			if( mr != NULL ) break;
+
+		case LDAP_FILTER_EQUALITY:
 			mr = a->a_desc->ad_type->sat_equality;
 			break;
 

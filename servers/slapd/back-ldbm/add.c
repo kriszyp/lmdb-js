@@ -223,14 +223,9 @@ ldbm_back_add(
 
 	rc = -1;
 
-	/*
-	 * Add the entry to the attribute indexes, then add it to
-	 * the id2children index, dn2id index, and the id2entry index.
-	 */
-
 	/* attribute indexes */
-	if ( index_add_entry( be, e ) != 0 ) {
-		Debug( LDAP_DEBUG_TRACE, "index_add_entry failed\n", 0,
+	if ( index_entry_add( be, e, e->e_attrs ) != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE, "index_entry_add failed\n", 0,
 		    0, 0 );
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "index generation failed", NULL, NULL );

@@ -224,6 +224,10 @@ SOURCE=.\filterentry.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\index.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\init.c
 # End Source File
 # Begin Source File
@@ -293,6 +297,10 @@ SOURCE=.\schema_check.c
 # Begin Source File
 
 SOURCE=.\schema_init.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\schema_prep.c
 # End Source File
 # Begin Source File
 
