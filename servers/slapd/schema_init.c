@@ -59,9 +59,13 @@
 
 /* approx matching rules */
 #define directoryStringApproxMatchOID	"1.3.6.1.4.1.4203.666.4.4"
-#define directoryStringApproxMatch		NULL
+#define directoryStringApproxMatch  	approxMatch
+#define directoryStringApproxIndexer 	approxIndexer
+#define directoryStringApproxFilter  	approxFilter
 #define IA5StringApproxMatchOID			"1.3.6.1.4.1.4203.666.4.5"
-#define IA5StringApproxMatch			NULL
+#define IA5StringApproxMatch  			approxMatch
+#define IA5StringApproxIndexer			approxIndexer
+#define IA5StringApproxFilter  			approxFilter
 
 /* orderring matching rules */
 #define caseIgnoreOrderingMatch			caseIgnoreMatch
@@ -643,6 +647,295 @@ UTF8StringNormalize(
 
 	return LDAP_SUCCESS;
 }
+
+#if defined(SLAPD_APPROX_MULTISTRING)
+
+#if defined(SLAPD_APPROX_INITIALS)
+#define SLAPD_APPROX_DELIMITER "._ "
+#define SLAPD_APPROX_WORDLEN 2
+#else
+#define SLAPD_APPROX_DELIMITER " "
+#define SLAPD_APPROX_WORDLEN 1
+#endif
+
+static int
+approxMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	char *val, *assertv, **values, **words, *c;
+	int i, count, len, nextchunk=0, nextavail=0;
+
+
+	/* Isolate how many words there are */
+	val = ch_strdup( value->bv_val );
+	for( c=val,count=1; *c; c++ ) {
+		c = strpbrk( c, SLAPD_APPROX_DELIMITER );
+		if ( c == NULL ) break;
+		*c = '\0';
+		count++;
+	}
+
+	/* Get a phonetic copy of each word */
+	words = (char **)ch_malloc( count * sizeof(char *) );
+	values = (char **)ch_malloc( count * sizeof(char *) );
+	for( c=val,i=0;  i<count;  i++,c+=strlen(c)+1 ) {
+		words[i] = c;
+		values[i] = phonetic(c);
+	}
+
+
+	/* Work through the asserted value's words, to see if  at least some
+	   of the words are there, in the same order. */
+	assertv = ch_strdup( ((struct berval *)assertedValue)->bv_val );
+	len = 0;
+	while ( nextchunk < ((struct berval *)assertedValue)->bv_len ) {
+		len = strcspn( assertv + nextchunk, SLAPD_APPROX_DELIMITER);
+#if defined(SLAPD_APPROX_INITIALS)
+		if( len <= 1 ) {
+			/* Single letter words need to at least match one word's initial */
+			for( i=nextavail; i<count; i++ )
+				if( !strncasecmp( assertv+nextchunk, words[i], 1 ))
+					break;
+		}
+
+		else
+#endif
+		{
+			/* Isolate the next word in the asserted value and phonetic it */
+			assertv[nextchunk+len] = '\0';
+			val = phonetic( assertv + nextchunk );
+
+			/* See if this phonetic chunk is in the remaining words of *value */
+			for( i=nextavail; i<count; i++ ){
+				if( !strcmp( val, values[i] ) ){
+					nextavail = i+1;
+					break;
+				}
+			}
+		}
+
+		/* This chunk in the asserted value was NOT within the *value. */
+		if( i >= count ) {
+			nextavail=-1;
+			break;
+		}
+
+		/* Go on to the next word in the asserted value */
+		nextchunk += len+1;
+	}
+
+	/* If some of the words were seen, call it a match */
+	if( nextavail > 0 ) {
+		*matchp = 0;
+	}
+	else {
+		*matchp = 1;
+	}
+
+	/* Cleanup allocs */
+	ch_free( assertv );
+	for( i=0; i<count; i++ ) {
+		ch_free( values[i] );
+	}
+	ch_free( values );
+	ch_free( words );
+	ch_free( val );
+
+	return LDAP_SUCCESS;
+}
+
+
+int 
+approxIndexer(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	struct berval **values,
+	struct berval ***keysp )
+{
+	char *val, *c;
+	int i,j, len, wordcount, keycount=0;
+	struct berval **newkeys, **keys=NULL;
+
+
+	for( j=0; values[j] != NULL; j++ ) {
+
+		/* Isolate how many words there are. There will be a key for each */
+		val = ch_strdup( values[j]->bv_val );
+		for( wordcount=0,c=val;  *c;  c++) {
+			len = strcspn(c, SLAPD_APPROX_DELIMITER);
+			if( len >= SLAPD_APPROX_WORDLEN ) wordcount++;
+			c+= len;
+			if (*c == '\0') break;
+			*c = '\0';
+		}
+
+		/* Allocate/increase storage to account for new keys */
+		newkeys = (struct berval **)ch_malloc( (keycount + wordcount + 1) 
+		   * sizeof(struct berval *) );
+		memcpy( newkeys, keys, keycount * sizeof(struct berval *) );
+		if( keys ) ch_free( keys );
+		keys = newkeys;
+
+		/* Get a phonetic copy of each word */
+		for( c=val,i=0;  i<wordcount;  c+=len+1  ) {
+			len = strlen( c );
+			if( len < SLAPD_APPROX_WORDLEN ) continue;
+			keys[keycount] = (struct berval *)ch_malloc( sizeof(struct berval) );
+			keys[keycount]->bv_val = phonetic( c );
+			keys[keycount]->bv_len = strlen( keys[keycount]->bv_val );
+			keycount++;
+			i++;
+		}
+
+		ch_free( val );
+	}
+	keys[keycount] = NULL;
+	*keysp = keys;
+
+	return LDAP_SUCCESS;
+}
+
+
+int 
+approxFilter(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	void * assertValue,
+	struct berval ***keysp )
+{
+	char *val, *c;
+	int i, count, len;
+	struct berval **keys;
+
+
+	/* Isolate how many words there are. There will be a key for each */
+	val = ch_strdup( ((struct berval *)assertValue)->bv_val );
+	for( count=0,c=val;  *c;  c++) {
+		len = strcspn(c, SLAPD_APPROX_DELIMITER);
+		if( len >= SLAPD_APPROX_WORDLEN ) count++;
+		c+= len;
+		if (*c == '\0') break;
+		*c = '\0';
+	}
+
+	/* Allocate storage for new keys */
+	keys = (struct berval **)ch_malloc( (count + 1) * sizeof(struct berval *) );
+
+	/* Get a phonetic copy of each word */
+	for( c=val,i=0;  i<count; c+=len+1 ) {
+		len = strlen(c);
+		if( len < SLAPD_APPROX_WORDLEN ) continue;
+		keys[i] = (struct berval *)ch_malloc( sizeof(struct berval) );
+		keys[i]->bv_val = phonetic( c );
+		keys[i]->bv_len = strlen( keys[i]->bv_val );
+		i++;
+	}
+
+	ch_free( val );
+
+	keys[count] = NULL;
+	*keysp = keys;
+
+	return LDAP_SUCCESS;
+}
+
+
+#else
+/* No other form of Approximate Matching is defined */
+
+static int
+approxMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	char *vapprox, *avapprox;
+
+	vapprox = phonetic( value->bv_val );
+	avapprox = phonetic( ((struct berval *)assertedValue)->bv_val);
+
+	*matchp = strcmp( vapprox, avapprox );
+
+	ch_free( vapprox );
+	ch_free( avapprox );
+
+	return LDAP_SUCCESS;
+}
+
+int 
+approxIndexer(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	struct berval **values,
+	struct berval ***keysp )
+{
+	int i;
+	struct berval **keys;
+
+
+	for( i=0; values[i] != NULL; i++ ) {
+		/* just count them */
+	}
+	assert( i > 0 );
+
+	keys = (struct berval **)ch_malloc( sizeof( struct berval * ) * (i+1) );
+
+	/* Copy each value and run it through phonetic() */
+	for( i=0; values[i] != NULL; i++ ) {
+		keys[i] = ch_malloc( sizeof( struct berval * ) );
+		keys[i]->bv_val = phonetic( values[i]->bv_val );
+		keys[i]->bv_len = strlen( keys[i]->bv_val );
+	}
+	keys[i] = NULL;
+
+	*keysp = keys;
+	return LDAP_SUCCESS;
+}
+
+
+int 
+approxFilter(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	void * assertValue,
+	struct berval ***keysp )
+{
+	struct berval **keys;
+
+
+	keys = (struct berval **)ch_malloc( sizeof( struct berval * ) * 2 );
+
+	/* Copy the value and run it through phonetic() */
+	keys[0] = ch_malloc( sizeof( struct berval * ) );
+	keys[0]->bv_val = phonetic( ((struct berval *)assertValue)->bv_val );
+	keys[0]->bv_len = strlen( keys[0]->bv_val );
+	keys[1] = NULL;
+
+	*keysp = keys;
+	return LDAP_SUCCESS;
+}
+#endif
+
 
 static int
 caseExactMatch(
@@ -3842,14 +4135,16 @@ struct mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
 		NULL, NULL,
-		directoryStringApproxMatch, NULL, NULL,
+		directoryStringApproxMatch, directoryStringApproxIndexer, 
+		directoryStringApproxFilter,
 		NULL},
 
 	{"( " IA5StringApproxMatchOID " NAME 'IA5StringApproxMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
 		NULL, NULL,
-		IA5StringApproxMatch, NULL, NULL,
+		IA5StringApproxMatch, IA5StringApproxIndexer, 
+		IA5StringApproxFilter,
 		NULL},
 
 	/*
