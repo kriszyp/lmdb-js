@@ -663,6 +663,7 @@ exact_match:
 
 			if ( bv.bv_val[ -1 ] == ',' && dn_match( &op.o_req_ndn, &bv ) ) {
 				switch ( op.oq_search.rs_scope ) {
+				case LDAP_X_SCOPE_SUBTREE:
 				case LDAP_X_SCOPE_CHILDREN:
 					rc = LDAP_SUCCESS;
 					break;
