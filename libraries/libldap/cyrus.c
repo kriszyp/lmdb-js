@@ -331,8 +331,13 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	/* Are there anything left in the buffer? */
 	if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
 		ret = ber_pvt_sb_do_write( sbiod, &p->buf_out );
-		if ( ret <= 0 )
+		if ( ret < 0 )
 			return ret;
+		/* Still have something left?? */
+		if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
+			errno = EAGAIN;
+			return 0;
+		}
 	}
 
 	/* now encode the next packet. */
