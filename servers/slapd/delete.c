@@ -79,8 +79,8 @@ do_delete(
 		goto cleanup;
 	}
 
-	/* make sure this backend recongizes critical controls */
-	rc = backend_check_controls( be, conn, op, &text ) ;
+	/* check restrictions */
+	rc = backend_check_restrictions( be, conn, op, NULL, &text ) ;
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );
@@ -90,14 +90,6 @@ do_delete(
 	/* check for referrals */
 	rc = backend_check_referrals( be, conn, op, dn, ndn );
 	if ( rc != LDAP_SUCCESS ) {
-		goto cleanup;
-	}
-
-	if ( global_readonly || be->be_readonly ) {
-		Debug( LDAP_DEBUG_ANY, "do_delete: database is read-only\n",
-		       0, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-		                  NULL, "directory is read-only", NULL, NULL );
 		goto cleanup;
 	}
 

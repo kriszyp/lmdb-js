@@ -425,8 +425,8 @@ long connection_init(
 	c->c_n_read = 0;
 	c->c_n_write = 0;
 
-	/* assume LDAPv3 until bind */
-	c->c_protocol = LDAP_VERSION3;
+	/* set to zero until bind, implies LDAP_VERSION3 */
+	c->c_protocol = 0;
 
     c->c_activitytime = c->c_starttime = slap_get_time();
 
@@ -449,6 +449,9 @@ long connection_init(
     c->c_conn_state = SLAP_C_INACTIVE;
     c->c_struct_state = SLAP_C_USED;
 
+	c->c_ssf = c->c_transport_ssf = ssf;
+	c->c_tls_ssf = 0;
+
 #ifdef HAVE_TLS
     if ( use_tls ) {
 	    c->c_is_tls = 1;
@@ -458,6 +461,7 @@ long connection_init(
 	    c->c_needs_tls_accept = 0;
     }
 #endif
+
 	slap_sasl_open( c );
 	slap_sasl_external( c, ssf, authid );
 
@@ -922,16 +926,20 @@ int connection_read(ber_socket_t s)
 
 		} else if ( rc == 0 ) {
 			void *ssl;
-			slap_ssf_t ssf;
 			char *authid;
 
 			c->c_needs_tls_accept = 0;
 
 			/* we need to let SASL know */
 			ssl = (void *)ldap_pvt_tls_sb_handle( c->c_sb );
-			ssf = (slap_ssf_t) ldap_pvt_tls_get_strength( ssl );
+
+			c->c_tls_ssf = (slap_ssf_t) ldap_pvt_tls_get_strength( ssl );
+			if( c->c_tls_ssf > c->c_ssf ) {
+				c->c_ssf = c->c_tls_ssf;
+			}
+
 			authid = (char *)ldap_pvt_tls_get_peer( ssl );
-			slap_sasl_external( c, ssf, authid );
+			slap_sasl_external( c, c->c_tls_ssf, authid );
 		}
 		connection_return( c );
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
@@ -1143,7 +1151,8 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	arg->co_op->o_ndn = ch_strdup( arg->co_op->o_dn );
 	(void) dn_normalize( arg->co_op->o_ndn );
 
-	arg->co_op->o_protocol = conn->c_protocol;
+	arg->co_op->o_protocol = conn->c_protocol
+		? conn->c_protocol : LDAP_VERSION3;
 	arg->co_op->o_connid = conn->c_connid;
 
 	arg->co_op->o_authtype = conn->c_authtype;

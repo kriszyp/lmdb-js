@@ -159,10 +159,11 @@ LDAP_SLAPD_F (int) be_entry_release_rw LDAP_P(( Backend *be, Entry *e, int rw ))
 
 LDAP_SLAPD_F (int) backend_unbind LDAP_P((Connection *conn, Operation *op));
 
-LDAP_SLAPD_F( int )	backend_check_controls LDAP_P((
+LDAP_SLAPD_F( int )	backend_check_restrictions LDAP_P((
 	Backend *be,
 	Connection *conn,
 	Operation *op,
+	const char *extoid,
 	const char **text ));
 
 LDAP_SLAPD_F( int )	backend_check_referrals LDAP_P((
@@ -751,6 +752,11 @@ LDAP_SLAPD_F (int)	krbv4_ldap_auth();
  * Other...
  */
 
+LDAP_SLAPD_F (slap_mask_t)	global_restrictops;
+LDAP_SLAPD_F (slap_mask_t)	global_disallows;
+LDAP_SLAPD_F (slap_mask_t)	global_requires;
+LDAP_SLAPD_F (slap_ssf_set_t)	global_ssf_set;
+
 LDAP_SLAPD_F (struct berval **)	default_referral;
 LDAP_SLAPD_F (char *)		replogfile;
 LDAP_SLAPD_F (const char) 	Versionstr[];
@@ -758,7 +764,6 @@ LDAP_SLAPD_F (int)		defsize;
 LDAP_SLAPD_F (int)		deftime;
 LDAP_SLAPD_F (int)		g_argc;
 LDAP_SLAPD_F (slap_access_t)	global_default_access;
-LDAP_SLAPD_F (int)		global_readonly;
 LDAP_SLAPD_F (int)		global_lastmod;
 LDAP_SLAPD_F (int)		global_idletimeout;
 LDAP_SLAPD_F (int)		global_schemacheck;

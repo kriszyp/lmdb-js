@@ -75,9 +75,15 @@ LDAP_BEGIN_DECL
 #define ASCII_ALPHA(c)	( ASCII_LOWER(c) || ASCII_UPPER(c) )
 #define ASCII_DIGIT(c)	( (c) >= '0' && (c) <= '9' )
 #define ASCII_ALNUM(c)	( ASCII_ALPHA(c) || ASCII_DIGIT(c) )
-
 #define ASCII_PRINTABLE(c) ( (c) >= ' ' && (c) <= '~' )
-#define FILTER_ESCAPE(c) ( (c) == '\\' || (c) == '(' || (c) == ')' || !ASCII_PRINTABLE(c) )
+
+#define SLAP_NIBBLE(c) ((c)&0x0f)
+#define SLAP_ESCAPE_CHAR ('\\')
+#define SLAP_ESCAPE_LO(c) ( "0123456789ABCDEF"[SLAP_NIBBLE(c)] )
+#define SLAP_ESCAPE_HI(c) ( SLAP_ESCAPE_LO((c)>>4) )
+
+#define FILTER_ESCAPE(c) ( (c) == '*' || (c) == '\\' \
+	|| (c) == '(' || (c) == ')' || !ASCII_PRINTABLE(c) )
 
 #define DN_SEPARATOR(c)	((c) == ',' || (c) == ';')
 #define RDN_SEPARATOR(c)	((c) == ',' || (c) == ';' || (c) == '+')
@@ -114,9 +120,21 @@ LDAP_BEGIN_DECL
 
 LDAP_SLAPD_F (int) slap_debug;
 
-typedef unsigned slap_ssf_t;
 typedef unsigned long slap_mask_t;
 
+/* Security Strength Factor */
+typedef unsigned slap_ssf_t;
+
+typedef struct slap_ssf_set {
+	slap_ssf_t sss_ssf;
+	slap_ssf_t sss_transport;
+	slap_ssf_t sss_tls;
+	slap_ssf_t sss_sasl;
+	slap_ssf_t sss_update_ssf;
+	slap_ssf_t sss_update_transport;
+	slap_ssf_t sss_update_tls;
+	slap_ssf_t sss_update_sasl;
+} slap_ssf_set_t;
 
 /*
  * Index types
@@ -620,6 +638,18 @@ typedef enum slap_style_e {
 	ACL_STYLE_EXACT = ACL_STYLE_BASE
 } slap_style_t;
 
+typedef struct slap_authz_info {
+	ber_tag_t	sai_method;		/* LDAP_AUTH_* from <ldap.h> */
+	char *		sai_mech;		/* SASL Mechanism */
+	char *		sai_dn;			/* DN for reporting purposes */
+	char *		sai_ndn;		/* Normalized DN */
+
+	/* Security Strength Factors */
+	slap_ssf_t	sai_ssf;			/* Overall SSF */
+	slap_ssf_t	sai_transport_ssf;	/* Transport SSF */
+	slap_ssf_t	sai_tls_ssf;		/* TLS SSF */
+	slap_ssf_t	sai_sasl_ssf;		/* SASL SSF */
+} AuthorizationInformation;
 
 /* the "by" part */
 typedef struct slap_access {
@@ -684,8 +714,10 @@ typedef struct slap_access {
 
 	slap_mask_t	a_access_mask;
 
+	AuthorizationInformation	a_authz;
+#define a_dn_pat	a_authz.sai_dn
+
 	slap_style_t a_dn_style;
-	char		*a_dn_pat;
 	AttributeDescription	*a_dn_at;
 	int			a_dn_self;
 
@@ -803,6 +835,43 @@ struct slap_backend_db {
 #define		be_sync bd_info->bi_tool_sync
 #endif
 
+	slap_mask_t	be_restrictops;		/* restriction operations */
+#define SLAP_RESTRICT_OP_ADD		0x0001U
+#define	SLAP_RESTRICT_OP_BIND		0x0002U
+#define SLAP_RESTRICT_OP_COMPARE	0x0004U
+#define SLAP_RESTRICT_OP_DELETE		0x0008U
+#define	SLAP_RESTRICT_OP_EXTENDED	0x0010U
+#define SLAP_RESTRICT_OP_MODIFY		0x0020U
+#define SLAP_RESTRICT_OP_RENAME		0x0040U
+#define SLAP_RESTRICT_OP_SEARCH		0x0080U
+
+#define SLAP_RESTRICT_OP_READS	\
+	( SLAP_RESTRICT_OP_COMPARE    \
+	| SLAP_RESTRICT_OP_SEARCH )
+#define SLAP_RESTRICT_OP_WRITES	\
+	( SLAP_RESTRICT_OP_ADD    \
+	| SLAP_RESTRICT_OP_DELETE \
+	| SLAP_RESTRICT_OP_MODIFY \
+	| SLAP_RESTRICT_OP_RENAME )
+
+#define SLAP_DISALLOW_BIND_V2	0x0001U	/* LDAPv2 bind */
+#define SLAP_DISALLOW_BIND_ANON 0x0002U /* no anonymous */
+#define SLAP_DISALLOW_BIND_ANON_CRED \
+								0x0004U /* cred should be empty */
+#define SLAP_DISALLOW_BIND_ANON_DN \
+								0x0008U /* dn should be empty */
+
+	slap_mask_t	be_requires;	/* pre-operation requirements */
+#define SLAP_REQUIRE_BIND		0x0001U	/* bind before op */
+#define SLAP_REQUIRE_LDAP_V3	0x0002U	/* LDAPv3 before op */
+#define SLAP_REQUIRE_AUTHC		0x0004U	/* authentication before op */
+#define SLAP_REQUIRE_SASL		0x0008U	/* SASL before op  */
+#define SLAP_REQUIRE_STRONG		0x0010U	/* strong authentication before op */
+
+
+	/* Required Security Strength Factor */
+	slap_ssf_set_t be_ssf_set;
+
 	/* these should be renamed from be_ to bd_ */
 	char	**be_suffix;	/* the DN suffixes of data in this backend */
 	char	**be_nsuffix;	/* the normalized DN suffixes in this backend */
@@ -810,7 +879,6 @@ struct slap_backend_db {
 	char	*be_root_dn;	/* the magic "root" dn for this db 	*/
 	char	*be_root_ndn;	/* the magic "root" normalized dn for this db	*/
 	struct berval be_root_pw;	/* the magic "root" password for this db	*/
-	int	be_readonly;	/* 1 => db is in "read only" mode	   */
 	unsigned int be_max_deref_depth;       /* limit for depth of an alias deref  */
 	int	be_sizelimit;	/* size limit for this backend   	   */
 	int	be_timelimit;	/* time limit for this backend       	   */
@@ -981,22 +1049,22 @@ struct slap_backend_info {
 	void	*bi_private;	/* anything the backend type needs */
 };
 
-typedef struct slap_authz_info {
-	unsigned	sai_ssf;		/* Security Strength Factor */
-	ber_tag_t	sai_method;		/* LDAP_AUTH_* from <ldap.h> */
-	char *		sai_mech;		/* SASL Mechanism */
-	char *		sai_dn;			/* DN for reporting purposes */
-	char *		sai_ndn;		/* Normalized DN */
-} AuthorizationInformation;
-
 #define c_authtype	c_authz.sai_method
 #define c_authmech	c_authz.sai_mech
 #define c_dn		c_authz.sai_dn
+#define c_ssf			c_authz.sai_ssf
+#define c_transport_ssf	c_authz.sai_transport_ssf
+#define c_tls_ssf		c_authz.sai_tls_ssf
+#define c_sasl_ssf		c_authz.sai_sasl_ssf
 
 #define o_authtype	o_authz.sai_method
 #define o_authmech	o_authz.sai_mech
 #define o_dn		o_authz.sai_dn
 #define o_ndn		o_authz.sai_ndn
+#define o_ssf			o_authz.sai_ssf
+#define o_transport_ssf	o_authz.sai_transport_ssf
+#define o_tls_ssf		o_authz.sai_tls_ssf
+#define o_sasl_ssf		o_authz.sai_sasl_ssf
 
 /*
  * represents an operation pending from an ldap client

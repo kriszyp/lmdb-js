@@ -59,6 +59,11 @@ do_bind(
 	 * Force to connection to "anonymous" until bind succeeds.
 	 */
 
+	if ( conn->c_authmech != NULL ) {
+		free( conn->c_authmech );
+		conn->c_authmech = NULL;
+	}
+
 	if ( conn->c_cdn != NULL ) {
 		free( conn->c_cdn );
 		conn->c_cdn = NULL;
@@ -175,6 +180,13 @@ do_bind(
 		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 			NULL, "requested protocol version not supported", NULL, NULL );
 		goto cleanup;
+
+	} else if (( global_disallows & SLAP_DISALLOW_BIND_V2 ) &&
+		version < LDAP_VERSION3 )
+	{
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
+			NULL, "requested protocol version not allowed", NULL, NULL );
+		goto cleanup;
 	}
 
 	/* we set connection version regardless of whether bind succeeds
@@ -269,12 +281,34 @@ do_bind(
 
 	/* accept "anonymous" binds */
 	if ( cred.bv_len == 0 || ndn == NULL || *ndn == '\0' ) {
+		rc = LDAP_SUCCESS;
+		text = NULL;
+
+		if( cred.bv_len &&
+			( global_disallows & SLAP_DISALLOW_BIND_ANON_CRED ))
+		{
+			/* cred is not empty, disallow */
+			rc = LDAP_INVALID_CREDENTIALS;
+
+		} else if ( ndn != NULL && *ndn != '\0' &&
+			( global_disallows & SLAP_DISALLOW_BIND_ANON_DN ))
+		{
+			/* DN is not empty, disallow */
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			text = "unwilling to allow anonymous bind with non-empty DN";
+
+		} else if ( global_disallows & SLAP_DISALLOW_BIND_ANON ) {
+			/* disallow */
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			text = "anonymous bind disallowed";
+		}
+
 		/*
 		 * we already forced connection to "anonymous",
 		 * just need to send success
 		 */
-		send_ldap_result( conn, op, LDAP_SUCCESS,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, rc,
+			NULL, text, NULL, NULL );
 		Debug( LDAP_DEBUG_TRACE, "do_bind: v%d anonymous bind\n",
 	   		version, 0, 0 );
 		goto cleanup;
@@ -302,9 +336,8 @@ do_bind(
 
 	conn->c_authz_backend = be;
 
-	/* make sure this backend recongizes critical controls */
-	rc = backend_check_controls( be, conn, op, &text ) ;
-
+	/* check restrictions */
+	rc = backend_check_restrictions( be, conn, op, NULL, &text ) ;
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );

@@ -16,7 +16,7 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
-#define MAXARGS	100
+#define MAXARGS	128
 
 /*
  * defaults for various global variables
@@ -25,7 +25,10 @@ int		defsize = SLAPD_DEFAULT_SIZELIMIT;
 int		deftime = SLAPD_DEFAULT_TIMELIMIT;
 AccessControl	*global_acl = NULL;
 slap_access_t		global_default_access = ACL_READ;
-int		global_readonly = 0;
+slap_mask_t		global_restrictops = 0;
+slap_mask_t		global_disallows = 0;
+slap_mask_t		global_requires = 0;
+slap_ssf_set_t	global_ssf_set;
 char		*replogfile;
 int		global_lastmod = ON;
 int		global_idletimeout = 0;
@@ -451,15 +454,181 @@ read_config( const char *fname )
 				return( 1 );
 			}
 			if ( be == NULL ) {
-				global_readonly = (strcasecmp( cargv[1], "on" ) == 0);
+				if ( strcasecmp( cargv[1], "on" ) == 0 ) {
+					global_restrictops |= SLAP_RESTRICT_OP_WRITES;
+				} else {
+					global_restrictops &= ~SLAP_RESTRICT_OP_WRITES;
+				}
 			} else {
 				if ( strcasecmp( cargv[1], "on" ) == 0 ) {
-					be->be_readonly = 1;
+					be->be_restrictops |= SLAP_RESTRICT_OP_WRITES;
 				} else {
-					be->be_readonly = 0;
+					be->be_restrictops &= ~SLAP_RESTRICT_OP_WRITES;
 				}
 			}
 
+
+		/* disallow these features */
+		} else if ( strcasecmp( cargv[0], "disallows" ) == 0 ||
+			strcasecmp( cargv[0], "disallow" ) == 0 )
+		{
+			slap_mask_t	disallows;
+
+			if ( be != NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+"%s: line %d: disallow line must appear prior to database definitions\n",
+				    fname, lineno, 0 );
+			}
+
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing feature(s) in \"disallows <features>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+
+			disallows = 0;
+
+			for( i=1; i < cargc; i++ ) {
+				if( strcasecmp( cargv[i], "bind_v2" ) == 0 ) {
+					disallows |= SLAP_DISALLOW_BIND_V2;
+
+				} else if( strcasecmp( cargv[i], "bind_anon_cred" ) == 0 ) {
+					disallows |= SLAP_DISALLOW_BIND_ANON_CRED;
+
+				} else if( strcasecmp( cargv[i], "bind_anon_dn" ) == 0 ) {
+					disallows |= SLAP_DISALLOW_BIND_ANON_DN;
+
+				} else if( strcasecmp( cargv[i], "none" ) != 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+		    "%s: line %d: unknown feature %s in \"disallow <features>\" line\n",
+					    fname, lineno, cargv[i] );
+					return( 1 );
+				}
+			}
+
+			global_disallows = disallows;
+
+		/* require these features */
+		} else if ( strcasecmp( cargv[0], "requires" ) == 0 ||
+			strcasecmp( cargv[0], "require" ) == 0 )
+		{
+			slap_mask_t	requires;
+
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing feature(s) in \"requires <features>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+
+			requires = 0;
+
+			for( i=1; i < cargc; i++ ) {
+				if( strcasecmp( cargv[i], "bind" ) == 0 ) {
+					requires |= SLAP_REQUIRE_BIND;
+
+				} else if( strcasecmp( cargv[i], "LDAPv3" ) == 0 ) {
+					requires |= SLAP_REQUIRE_LDAP_V3;
+
+				} else if( strcasecmp( cargv[i], "authc" ) == 0 ) {
+					requires |= SLAP_REQUIRE_AUTHC;
+
+				} else if( strcasecmp( cargv[i], "SASL" ) == 0 ) {
+					requires |= SLAP_REQUIRE_SASL;
+
+				} else if( strcasecmp( cargv[i], "strong" ) == 0 ) {
+					requires |= SLAP_REQUIRE_STRONG;
+
+				} else if( strcasecmp( cargv[i], "none" ) != 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+		    "%s: line %d: unknown feature %s in \"requires <features>\" line\n",
+					    fname, lineno, cargv[i] );
+					return( 1 );
+				}
+			}
+
+			if ( be == NULL ) {
+				global_requires = requires;
+			} else {
+				be->be_requires = requires;
+			}
+
+		/* required security factors */
+		} else if ( strcasecmp( cargv[0], "security" ) == 0 ) {
+			slap_ssf_set_t *set;
+
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing factor(s) in \"security <factors>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+
+			if ( be == NULL ) {
+				set = &global_ssf_set;
+			} else {
+				set = &be->be_ssf_set;
+			}
+
+			for( i=1; i < cargc; i++ ) {
+				if( strncasecmp( cargv[i], "ssf=",
+					sizeof("ssf") ) == 0 )
+				{
+					set->sss_ssf =
+						atoi( &cargv[i][sizeof("ssf")] );
+
+				} else if( strncasecmp( cargv[i], "transport=",
+					sizeof("transport") ) == 0 )
+				{
+					set->sss_transport =
+						atoi( &cargv[i][sizeof("transport")] );
+
+				} else if( strncasecmp( cargv[i], "tls=",
+					sizeof("tls") ) == 0 )
+				{
+					set->sss_tls =
+						atoi( &cargv[i][sizeof("tls")] );
+
+				} else if( strncasecmp( cargv[i], "sasl=",
+					sizeof("sasl") ) == 0 )
+				{
+					set->sss_sasl =
+						atoi( &cargv[i][sizeof("sasl")] );
+
+				} else if( strncasecmp( cargv[i], "update_ssf=",
+					sizeof("update_ssf") ) == 0 )
+				{
+					set->sss_update_ssf =
+						atoi( &cargv[i][sizeof("update_ssf")] );
+
+				} else if( strncasecmp( cargv[i], "update_transport=",
+					sizeof("update_transport") ) == 0 )
+				{
+					set->sss_update_transport =
+						atoi( &cargv[i][sizeof("update_transport")] );
+
+				} else if( strncasecmp( cargv[i], "update_tls=",
+					sizeof("update_tls") ) == 0 )
+				{
+					set->sss_update_tls =
+						atoi( &cargv[i][sizeof("update_tls")] );
+
+				} else if( strncasecmp( cargv[i], "update_sasl=",
+					sizeof("update_sasl") ) == 0 )
+				{
+					set->sss_update_sasl =
+						atoi( &cargv[i][sizeof("update_sasl")] );
+
+				} else {
+					Debug( LDAP_DEBUG_ANY,
+		    "%s: line %d: unknown feature %s in \"requires <features>\" line\n",
+					    fname, lineno, cargv[i] );
+					return( 1 );
+				}
+			}
+
+		
 		/* where to send clients when we don't hold it */
 		} else if ( strcasecmp( cargv[0], "referral" ) == 0 ) {
 			if ( cargc < 2 ) {
@@ -556,7 +725,12 @@ read_config( const char *fname )
 				    fname, lineno, 0 );
 				return( 1 );
 			}
-			ldap_syslog = atoi( cargv[1] );
+
+			ldap_syslog = 0;
+
+			for( i=1; i < cargc; i++ ) {
+				ldap_syslog += atoi( cargv[1] );
+			}
 
 		/* list of replicas of the data in this backend (master only) */
 		} else if ( strcasecmp( cargv[0], "replica" ) == 0 ) {

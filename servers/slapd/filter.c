@@ -699,18 +699,11 @@ int filter_escape_value(
 	out->bv_val = (char *) ch_malloc( ( in->bv_len * 3 ) + 1 );
 	out->bv_len = 0;
 
-#undef NIBBLE
-#undef ESCAPE_LO
-#undef ESCAPE_HI
-#define NIBBLE(c) ((c)&0x0f)
-#define ESCAPE_LO(c) ( NIBBLE(c) + ( NIBBLE(c) < 10 ? '0' : 'A' - 10 ) )
-#define ESCAPE_HI(c) ( ESCAPE_LO((c)>>4) )
-
 	for( i=0; i < in->bv_len ; i++ ) {
 		if( FILTER_ESCAPE(in->bv_val[i]) ) {
-			out->bv_val[out->bv_len++] = '\\';
-			out->bv_val[out->bv_len++] = ESCAPE_HI( in->bv_val[i] );
-			out->bv_val[out->bv_len++] = ESCAPE_LO( in->bv_val[i] );
+			out->bv_val[out->bv_len++] = SLAP_ESCAPE_CHAR;
+			out->bv_val[out->bv_len++] = SLAP_ESCAPE_HI( in->bv_val[i] );
+			out->bv_val[out->bv_len++] = SLAP_ESCAPE_LO( in->bv_val[i] );
 		} else {
 			out->bv_val[out->bv_len++] = in->bv_val[i];
 		}
@@ -719,5 +712,3 @@ int filter_escape_value(
 	out->bv_val[out->bv_len] = '\0';
 	return LDAP_SUCCESS;
 }
-
-

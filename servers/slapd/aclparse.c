@@ -672,6 +672,110 @@ parse_acl(
 				}
 #endif /* SLAPD_ACI_ENABLED */
 
+				if ( strcasecmp( left, "ssf" ) == 0 ) {
+					if( b->a_authz.sai_ssf ) {
+						fprintf( stderr,
+							"%s: line %d: ssf attribute already specified.\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					if ( right == NULL || *right == '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: no ssf is defined\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					b->a_authz.sai_ssf = atoi( right );
+
+					if( !b->a_authz.sai_ssf ) {
+						fprintf( stderr,
+							"%s: line %d: invalid ssf value (%s)\n",
+							fname, lineno, right );
+						acl_usage();
+					}
+					continue;
+				}
+
+				if ( strcasecmp( left, "transport_ssf" ) == 0 ) {
+					if( b->a_authz.sai_transport_ssf ) {
+						fprintf( stderr,
+							"%s: line %d: transport_ssf attribute already specified.\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					if ( right == NULL || *right == '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: no transport_ssf is defined\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					b->a_authz.sai_transport_ssf = atoi( right );
+
+					if( !b->a_authz.sai_transport_ssf ) {
+						fprintf( stderr,
+							"%s: line %d: invalid transport_ssf value (%s)\n",
+							fname, lineno, right );
+						acl_usage();
+					}
+					continue;
+				}
+
+				if ( strcasecmp( left, "tls_ssf" ) == 0 ) {
+					if( b->a_authz.sai_tls_ssf ) {
+						fprintf( stderr,
+							"%s: line %d: tls_ssf attribute already specified.\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					if ( right == NULL || *right == '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: no tls_ssf is defined\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					b->a_authz.sai_tls_ssf = atoi( right );
+
+					if( !b->a_authz.sai_tls_ssf ) {
+						fprintf( stderr,
+							"%s: line %d: invalid tls_ssf value (%s)\n",
+							fname, lineno, right );
+						acl_usage();
+					}
+					continue;
+				}
+
+				if ( strcasecmp( left, "sasl_ssf" ) == 0 ) {
+					if( b->a_authz.sai_sasl_ssf ) {
+						fprintf( stderr,
+							"%s: line %d: sasl_ssf attribute already specified.\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					if ( right == NULL || *right == '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: no sasl_ssf is defined\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					b->a_authz.sai_sasl_ssf = atoi( right );
+
+					if( !b->a_authz.sai_sasl_ssf ) {
+						fprintf( stderr,
+							"%s: line %d: invalid sasl_ssf value (%s)\n",
+							fname, lineno, right );
+						acl_usage();
+					}
+					continue;
+				}
+
 				if( right != NULL ) {
 					/* unsplit */
 					right[-1] = '=';
@@ -969,6 +1073,7 @@ acl_usage( void )
 #ifdef SLAPD_ACI_ENABLED
 			"\t[aci=<attrname>]\n"
 #endif
+			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n"
 		"<access> ::= [self]{<level>|<priv>}\n"
 		"<level> ::= none | auth | compare | search | read | write\n"
 		"<priv> ::= {=|+|-}{w|r|s|c|x}+\n"
@@ -1128,6 +1233,24 @@ print_access( Access *b )
 		fprintf( stderr, " aci=%s", b->a_aci_at->ad_cname->bv_val );
 	}
 #endif
+
+	/* Security Strength Factors */
+	if ( b->a_authz.sai_ssf ) {
+		fprintf( stderr, " ssf=%ud",
+			b->a_authz.sai_ssf );
+	}
+	if ( b->a_authz.sai_transport_ssf ) {
+		fprintf( stderr, " transport_ssf=%ud",
+			b->a_authz.sai_transport_ssf );
+	}
+	if ( b->a_authz.sai_tls_ssf ) {
+		fprintf( stderr, " tls_ssf=%ud",
+			b->a_authz.sai_tls_ssf );
+	}
+	if ( b->a_authz.sai_sasl_ssf ) {
+		fprintf( stderr, " sasl_ssf=%ud",
+			b->a_authz.sai_sasl_ssf );
+	}
 
 	fprintf( stderr, " %s%s",
 		b->a_dn_self ? "self" : "",

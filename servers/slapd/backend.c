@@ -39,11 +39,11 @@
 #ifdef SLAPD_TCL
 #include "back-tcl/external.h"
 #endif
-#ifdef SLAPD_NTDOMAIN
-#include "back-domain/external.h"
-#endif
 #ifdef SLAPD_SQL
 #include "back-sql/external.h"
+#endif
+#ifdef SLAPD_PRIVATE
+#include "private/external.h"
 #endif
 
 static BackendInfo binfo[] = {
@@ -68,11 +68,12 @@ static BackendInfo binfo[] = {
 #if defined(SLAPD_TCL) && !defined(SLAPD_TCL_DYNAMIC)
 	{"tcl",		tcl_back_initialize},
 #endif
-#if defined(SLAPD_NTDOMAIN) && !defined(SLAPD_NTDOMAIN_DYNAMIC)
-	{"ntdom",	domain_back_initialize},
-#endif
 #if defined(SLAPD_SQL) && !defined(SLAPD_SQL_DYNAMIC)
 	{"sql",		sql_back_initialize},
+#endif
+	/* for any private backend */
+#if defined(SLAPD_PRIVATE) && !defined(SLAPD_PRIVATE_DYNAMIC)
+	{"private",	private_back_initialize},
 #endif
 	{NULL}
 };
@@ -393,6 +394,9 @@ backend_db_init(
 	be->be_timelimit = deftime;
 	be->be_dfltaccess = global_default_access;
 
+	be->be_restrictops = global_restrictops;
+	be->be_requires = global_requires;
+
  	/* assign a default depth limit for alias deref */
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
 
@@ -584,7 +588,7 @@ backend_connection_destroy(
 	return 0;
 }
 
-int
+static int
 backend_check_controls(
 	Backend *be,
 	Connection *conn,
@@ -605,6 +609,183 @@ backend_check_controls(
 			return LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
 		}
 	}
+
+	return LDAP_SUCCESS;
+}
+
+int
+backend_check_restrictions(
+	Backend *be,
+	Connection *conn,
+	Operation *op,
+	const char *extoid,
+	const char **text )
+{
+	int rc;
+	slap_mask_t restrictops;
+	slap_mask_t requires;
+	slap_mask_t opflag;
+	slap_ssf_set_t *ssf;
+	int updateop = 0;
+
+	if( be ) {
+		rc = backend_check_controls( be, conn, op, text );
+
+		if( rc != LDAP_SUCCESS ) {
+			return rc;
+		}
+
+		restrictops = be->be_restrictops;
+		requires = be->be_requires;
+		ssf = &be->be_ssf_set;
+
+	} else {
+		restrictops = global_restrictops;
+		requires = global_requires;
+		ssf = &global_ssf_set;
+	}
+
+	switch( op->o_tag ) {
+	case LDAP_REQ_ADD:
+		opflag = SLAP_RESTRICT_OP_ADD;
+		updateop++;
+		break;
+	case LDAP_REQ_BIND:
+		opflag = SLAP_RESTRICT_OP_BIND;
+		break;
+	case LDAP_REQ_COMPARE:
+		opflag = SLAP_RESTRICT_OP_COMPARE;
+		break;
+	case LDAP_REQ_DELETE:
+		updateop++;
+		opflag = SLAP_RESTRICT_OP_DELETE;
+		break;
+	case LDAP_REQ_EXTENDED:
+		opflag = SLAP_RESTRICT_OP_EXTENDED;
+		break;
+	case LDAP_REQ_MODIFY:
+		updateop++;
+		opflag = SLAP_RESTRICT_OP_MODIFY;
+		break;
+	case LDAP_REQ_RENAME:
+		updateop++;
+		opflag = SLAP_RESTRICT_OP_RENAME;
+		break;
+	case LDAP_REQ_SEARCH:
+		opflag = SLAP_RESTRICT_OP_SEARCH;
+		break;
+	case LDAP_REQ_UNBIND:
+		opflag = 0;
+		break;
+	default:
+		*text = "restrict operations internal error";
+		return LDAP_OTHER;
+	}
+
+	if( ( extoid == NULL || strcmp( extoid, LDAP_EXOP_START_TLS ) )
+		&& op->o_tag != LDAP_REQ_BIND )
+	{
+		/* these checks don't apply to bind nor StartTLS */
+
+		if( op->o_tag == LDAP_REQ_EXTENDED ) {
+			/* threat other extended operations as update ops */
+			updateop++;
+		}
+
+		if( op->o_ssf < ssf->sss_ssf ) {
+			*text = "confidentiality required";
+			return LDAP_CONFIDENTIALITY_REQUIRED;
+		}
+		if( op->o_transport_ssf < ssf->sss_transport ) {
+			*text = "transport confidentiality required";
+			return LDAP_CONFIDENTIALITY_REQUIRED;
+		}
+		if( op->o_tls_ssf < ssf->sss_tls ) {
+			*text = "TLS confidentiality required";
+			return LDAP_CONFIDENTIALITY_REQUIRED;
+		}
+		if( op->o_sasl_ssf < ssf->sss_sasl ) {
+			*text = "SASL confidentiality required";
+			return LDAP_CONFIDENTIALITY_REQUIRED;
+		}
+
+		if( updateop ) {
+			if( op->o_ssf < ssf->sss_update_ssf ) {
+				*text = "update confidentiality required";
+				return LDAP_CONFIDENTIALITY_REQUIRED;
+			}
+			if( op->o_transport_ssf < ssf->sss_update_transport ) {
+				*text = "transport update confidentiality required";
+				return LDAP_CONFIDENTIALITY_REQUIRED;
+			}
+			if( op->o_tls_ssf < ssf->sss_update_tls ) {
+				*text = "TLS update confidentiality required";
+				return LDAP_CONFIDENTIALITY_REQUIRED;
+			}
+			if( op->o_sasl_ssf < ssf->sss_update_sasl ) {
+				*text = "SASL update confidentiality required";
+				return LDAP_CONFIDENTIALITY_REQUIRED;
+			}
+		}
+
+		if( requires & SLAP_REQUIRE_STRONG ) {
+			/* should check mechanism */
+			if( op->o_authmech == NULL ||
+				op->o_dn == NULL || *op->o_dn == '\0' )
+			{
+				*text = "SASL authentication required";
+				return LDAP_STRONG_AUTH_REQUIRED;
+			}
+		}
+
+		if( requires & SLAP_REQUIRE_SASL ) {
+			if( op->o_authmech == NULL ||
+				op->o_dn == NULL || *op->o_dn == '\0' )
+			{
+				*text = "SASL authentication required";
+				return LDAP_STRONG_AUTH_REQUIRED;
+			}
+		}
+			
+		if( requires & SLAP_REQUIRE_AUTHC ) {
+			if( op->o_dn == NULL || *op->o_dn == '\0' ) {
+				*text = "authentication required";
+				return LDAP_UNWILLING_TO_PERFORM;
+			}
+		}
+
+		if( requires & SLAP_REQUIRE_BIND ) {
+			int version;
+			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+			version = conn->c_protocol;
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+
+			if( !version ) {
+				/* no bind has occurred */
+				*text = "BIND required";
+				return LDAP_OPERATIONS_ERROR;
+			}
+		}
+
+		if( requires & SLAP_REQUIRE_LDAP_V3 ) {
+			if( op->o_protocol < LDAP_VERSION3 ) {
+				/* no bind has occurred */
+				*text = "operation restricted to LDAPv3 clients";
+				return LDAP_OPERATIONS_ERROR;
+			}
+		}
+	}
+
+	if( restrictops & opflag ) {
+		if( (restrictops & SLAP_RESTRICT_OP_READS)
+			== SLAP_RESTRICT_OP_READS )
+		{
+			*text = "read operations restricted";
+		} else {
+			*text = "operation restricted";
+		}
+		return LDAP_UNWILLING_TO_PERFORM;
+ 	}
 
 	return LDAP_SUCCESS;
 }
