@@ -365,6 +365,14 @@ substring_comp_candidates(
 		if( idl == NULL ) {
 			break;
 		}
+
+		/* if we're down to two (or less) matches, stop searching */
+		if( ID_BLOCK_NIDS(idl) < 3 ) {
+			Debug( LDAP_DEBUG_TRACE, "substring_comp_candiates: "
+				"down to a %ld matches, stopped search\n",
+					(long) ID_BLOCK_NIDS(idl), 0, 0 );
+			break;
+		}
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= substring_comp_candidates %ld\n",
