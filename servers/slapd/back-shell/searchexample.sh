@@ -23,7 +23,7 @@ LOGIN=`echo $FILTER | sed -e 's/.*=\(.*\))/\1/'`
 
 PWLINE=`grep -i "^$LOGIN" /etc/passwd`
 
-sleep 60
+#sleep 60
 # if we found an entry that matches
 if [ $? = 0 ]; then
 	echo $PWLINE | awk -F: '{
