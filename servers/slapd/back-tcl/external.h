@@ -1,3 +1,7 @@
+/*
+ * $Id
+ */
+
 #ifndef _TCL_EXTERNAL_H
 #define _TCL_EXTERNAL_H
 
