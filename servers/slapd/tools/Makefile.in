@@ -75,3 +75,16 @@ clean-local: FORCE
 
 depend-local: FORCE
 	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS)
+
+install-local: install-ldbm-$(BUILD_LDBM) \
+	install-quipu-$(BUILD_QUIPU)
+
+install-ldbm-no:
+
+install-ldbm-yes install-ldbm-mod: FORCE
+	-$(MKDIR) $(DESTDIR)$(sbindir)
+	@for bin in $(PROGRAMS); do \
+		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 \
+			$$bin$(EXEEXT) $(DESTDIR)$(sbindir); \
+	done
+
