@@ -414,11 +414,7 @@ nameUIDNormalize(
 			}
 		}
 
-#ifdef USE_DN_NORMALIZE
 		rc = dnNormalize2( NULL, &out, normalized );
-#else
-		rc = dnPretty2( NULL, &out, normalized );
-#endif
 
 		if( rc != LDAP_SUCCESS ) {
 			free( out.bv_val );
