@@ -63,7 +63,7 @@ ldbm_back_exop_passwd(
 		new = slap_passwd_generate();
 
 		if( new == NULL || new->bv_len == 0 ) {
-			*text = ch_strdup("password generation failed.");
+			*text = "password generation failed.";
 			rc = LDAP_OPERATIONS_ERROR;
 			goto done;
 		}

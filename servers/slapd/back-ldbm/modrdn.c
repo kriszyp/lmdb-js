@@ -143,7 +143,7 @@ ldbm_back_modrdn(
 		if( (p = dn2entry_w( be, p_ndn, NULL )) == NULL) {
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
 				0, 0, 0);
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			send_ldap_result( conn, op, LDAP_OTHER,
 				NULL, NULL, NULL, NULL );
 			goto return_results;
 		}
@@ -206,7 +206,7 @@ ldbm_back_modrdn(
 			Debug( LDAP_DEBUG_TRACE,
 			       "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
 			       np_ndn, 0, 0);
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			send_ldap_result( conn, op, LDAP_OTHER,
 				NULL, NULL, NULL, NULL );
 			goto return_results;
 		}
@@ -422,7 +422,7 @@ ldbm_back_modrdn(
 
 	/* delete old one */
 	if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}
@@ -440,7 +440,7 @@ ldbm_back_modrdn(
 
 	/* add new one */
 	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}
@@ -466,7 +466,7 @@ ldbm_back_modrdn(
 	/* id2entry index */
 	if ( id2entry_add( be, e ) != 0 ) {
 		entry_free( e );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}

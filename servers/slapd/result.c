@@ -650,8 +650,8 @@ send_search_entry(
 
 	if ( ber == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, "allocating BER error", NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "BER allocation error", NULL, NULL );
 		goto error_return;
 	}
 
@@ -661,8 +661,8 @@ send_search_entry(
 	if ( rc == -1 ) {
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 		ber_free( ber, 1 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-		    NULL, "encoding dn error", NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+		    NULL, "encoding DN error", NULL, NULL );
 		goto error_return;
 	}
 
@@ -719,8 +719,8 @@ send_search_entry(
 		if (( rc = ber_printf( ber, "{s[" /*]}*/ , desc )) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 			ber_free( ber, 1 );
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			    NULL, "encoding type error", NULL, NULL );
+			send_ldap_result( conn, op, LDAP_OTHER,
+			    NULL, "encoding description error", NULL, NULL );
 			goto error_return;
 		}
 
@@ -739,8 +739,8 @@ send_search_entry(
 					Debug( LDAP_DEBUG_ANY,
 					    "ber_printf failed\n", 0, 0, 0 );
 					ber_free( ber, 1 );
-					send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-						NULL, "encoding value error", NULL, NULL );
+					send_ldap_result( conn, op, LDAP_OTHER,
+						NULL, "encoding values error", NULL, NULL );
 					goto error_return;
 				}
 			}
@@ -749,7 +749,7 @@ send_search_entry(
 		if (( rc = ber_printf( ber, /*{[*/ "]}" )) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 			ber_free( ber, 1 );
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			send_ldap_result( conn, op, LDAP_OTHER,
 			    NULL, "encode end error", NULL, NULL );
 			goto error_return;
 		}
@@ -806,8 +806,8 @@ send_search_entry(
 		if (( rc = ber_printf( ber, "{s[" /*]}*/ , desc )) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 			ber_free( ber, 1 );
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			    NULL, "encoding type error", NULL, NULL );
+			send_ldap_result( conn, op, LDAP_OTHER,
+			    NULL, "encoding description error", NULL, NULL );
 			goto error_return;
 		}
 
@@ -827,8 +827,8 @@ send_search_entry(
 					Debug( LDAP_DEBUG_ANY,
 					    "ber_printf failed\n", 0, 0, 0 );
 					ber_free( ber, 1 );
-					send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-						NULL, "encoding value error", NULL, NULL );
+					send_ldap_result( conn, op, LDAP_OTHER,
+						NULL, "encoding values error", NULL, NULL );
 					goto error_return;
 				}
 			}
@@ -837,7 +837,7 @@ send_search_entry(
 		if (( rc = ber_printf( ber, /*{[*/ "]}" )) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 			ber_free( ber, 1 );
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			send_ldap_result( conn, op, LDAP_OTHER,
 			    NULL, "encode end error", NULL, NULL );
 			goto error_return;
 		}
@@ -850,7 +850,7 @@ send_search_entry(
 	if ( rc == -1 ) {
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 		ber_free( ber, 1 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "encode entry end error", NULL, NULL );
 		return( 1 );
 	}
@@ -946,7 +946,7 @@ send_search_reference(
 	if ( ber == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"send_search_reference: ber_alloc failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "alloc BER error", NULL, NULL );
 		return -1;
 	}
@@ -958,8 +958,8 @@ send_search_reference(
 		Debug( LDAP_DEBUG_ANY,
 			"send_search_reference: ber_printf failed\n", 0, 0, 0 );
 		ber_free( ber, 1 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, "encode dn error", NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "encode DN error", NULL, NULL );
 		return -1;
 	}
 

@@ -53,6 +53,7 @@ do_modrdn(
 	Backend	*newSuperior_be = NULL;
 	ber_len_t	length;
 	int rc;
+	char *text;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modrdn\n", 0, 0, 0 );
 
@@ -108,7 +109,7 @@ do_modrdn(
 			Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid new superior (%s)\n",
 				newSuperior, 0, 0 );
 			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-				"invalid (new superior) DN", NULL, NULL );
+				"new superior invalid", NULL, NULL );
 			goto cleanup;
 		}
 
@@ -165,11 +166,11 @@ do_modrdn(
 	}
 
 	/* make sure this backend recongizes critical controls */
-	rc = backend_check_controls( be, conn, op ) ;
+	rc = backend_check_controls( be, conn, op, &text ) ;
 
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
-			NULL, NULL, NULL, NULL );
+			NULL, text, NULL, NULL );
 		goto cleanup;
 	}
 
@@ -192,7 +193,7 @@ do_modrdn(
 			rc = LDAP_AFFECTS_MULTIPLE_DSAS;
 
 			send_ldap_result( conn, op, rc,
-				NULL, NULL, NULL, NULL );
+				NULL, "cannot rename between DSAa", NULL, NULL );
 
 			goto cleanup;
 		}

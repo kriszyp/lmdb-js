@@ -159,7 +159,7 @@ int ldbm_modify_internal(
 	/* modify indexes */
 	if ( index_add_mods( be, modlist, e->e_id ) != 0 ) {
 		/* our indices are likely hosed */
-		return LDAP_OPERATIONS_ERROR;
+		return LDAP_OTHER;
 	}
 
 	return LDAP_SUCCESS;
@@ -241,7 +241,7 @@ ldbm_back_modify(
 
 	/* change the entry itself */
 	if ( id2entry_add( be, e ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, NULL, NULL, NULL );
 		goto error_return;
 	}

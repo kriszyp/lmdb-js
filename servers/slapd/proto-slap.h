@@ -175,7 +175,8 @@ LIBSLAPD_F (int) backend_unbind LDAP_P((Connection *conn, Operation *op));
 LIBSLAPD_F( int )	backend_check_controls LDAP_P((
 	Backend *be,
 	Connection *conn,
-	Operation *op ));
+	Operation *op,
+	char **text ));
 
 LIBSLAPD_F (int) backend_connection_init LDAP_P((Connection *conn));
 LIBSLAPD_F (int) backend_connection_destroy LDAP_P((Connection *conn));

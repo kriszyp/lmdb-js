@@ -592,7 +592,8 @@ int
 backend_check_controls(
 	Backend *be,
 	Connection *conn,
-	Operation *op )
+	Operation *op,
+	char **text )
 {
 	LDAPControl **ctrls;
 	ctrls = op->o_ctrls;
@@ -604,6 +605,7 @@ backend_check_controls(
 		if( (*ctrls)->ldctl_iscritical &&
 			!charray_inlist( be->be_controls, (*ctrls)->ldctl_oid ) )
 		{
+			*text = "control unavailable in NamingContext";
 			return LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
 		}
 	}

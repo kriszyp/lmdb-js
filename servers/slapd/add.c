@@ -48,8 +48,8 @@ do_add( Connection *conn, Operation *op )
 	LDAPModList	*modlist = NULL;
 	LDAPModList	**modtail = &modlist;
 	Modifications *mods = NULL;
-	char *text;
 #endif
+	char *text;
 	int			rc = LDAP_SUCCESS;
 
 	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
@@ -181,11 +181,11 @@ do_add( Connection *conn, Operation *op )
 	}
 
 	/* make sure this backend recongizes critical controls */
-	rc = backend_check_controls( be, conn, op ) ;
+	rc = backend_check_controls( be, conn, op, &text ) ;
 
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
-			NULL, NULL, NULL, NULL );
+			NULL, text, NULL, NULL );
 		goto done;
 	}
 
@@ -238,8 +238,7 @@ do_add( Connection *conn, Operation *op )
 #endif
 				if( rc != LDAP_SUCCESS ) {
 					send_ldap_result( conn, op, rc,
-						NULL, text,
-						NULL, NULL );
+						NULL, text, NULL, NULL );
 					goto done;
 				}
 			}

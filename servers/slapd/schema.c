@@ -58,8 +58,8 @@ schema_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 	{
 		/* Out of memory, do something about it */
 		entry_free( e );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "out of memory", NULL, NULL );
 		return;
 	}
 	

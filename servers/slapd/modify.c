@@ -49,6 +49,7 @@ do_modify(
 	Modifications *mods = NULL;
 	Backend		*be;
 	int rc;
+	char	*text;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modify\n", 0, 0, 0 );
 
@@ -180,11 +181,11 @@ do_modify(
 	}
 
 	/* make sure this backend recongizes critical controls */
-	rc = backend_check_controls( be, conn, op ) ;
+	rc = backend_check_controls( be, conn, op, &text ) ;
 
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
-			NULL, NULL, NULL, NULL );
+			NULL, text, NULL, NULL );
 		goto cleanup;
 	}
 
