@@ -515,9 +515,11 @@ slap_sasl_check_authz( Operation *op,
 	if( rc != LDAP_SUCCESS ) goto COMPLETE;
 
 	/* Check if the *assertDN matches any **vals */
-	for( i=0; vals[i].bv_val != NULL; i++ ) {
-		rc = slap_sasl_match( op, &vals[i], assertDN, authc );
-		if ( rc == LDAP_SUCCESS ) goto COMPLETE;
+	if( vals != NULL ) {
+		for( i=0; vals[i].bv_val != NULL; i++ ) {
+			rc = slap_sasl_match( op, &vals[i], assertDN, authc );
+			if ( rc == LDAP_SUCCESS ) goto COMPLETE;
+		}
 	}
 	rc = LDAP_INAPPROPRIATE_AUTH;
 
