@@ -77,7 +77,7 @@ ldap_sasl_bind(
 	if( rc != LDAP_SUCCESS ) return rc;
 
 	if( mechanism == LDAP_SASL_SIMPLE ) {
-		if( dn == NULL && cred != NULL ) {
+		if( dn == NULL && cred != NULL && cred->bv_len ) {
 			/* use default binddn */
 			dn = ld->ld_defbinddn;
 		}
