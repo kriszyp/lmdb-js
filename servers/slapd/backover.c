@@ -36,8 +36,9 @@ over_db_func(
 	enum db_which which
 )
 {
-	slap_overinfo *oi = (slap_overinfo *) be->bd_info;
+	slap_overinfo *oi = be->bd_info->bi_private;
 	slap_overinst *on = oi->oi_list;
+	BackendInfo *bi_orig = be->bd_info;
 	BI_db_open **func;
 	int rc = 0;
 
@@ -54,7 +55,7 @@ over_db_func(
 			rc = func[which]( be );
 		}
 	}
-	be->bd_info = (BackendInfo *)oi;
+	be->bd_info = bi_orig;
 	return rc;
 }
 
@@ -67,8 +68,9 @@ over_db_config(
 	char **argv
 )
 {
-	slap_overinfo *oi = (slap_overinfo *) be->bd_info;
+	slap_overinfo *oi = be->bd_info->bi_private;
 	slap_overinst *on = oi->oi_list;
+	BackendInfo *bi_orig = be->bd_info;
 	int rc = 0;
 
 	if ( oi->oi_orig->bi_db_config ) {
@@ -87,7 +89,7 @@ over_db_config(
 			if ( rc != SLAP_CONF_UNKNOWN ) break;
 		}
 	}
-	be->bd_info = (BackendInfo *)oi;
+	be->bd_info = bi_orig;
 	return rc;
 }
 
@@ -112,7 +114,7 @@ over_db_destroy(
 	BackendDB *be
 )
 {
-	slap_overinfo *oi = (slap_overinfo *) be->bd_info;
+	slap_overinfo *oi = be->bd_info->bi_private;
 	slap_overinst *on = oi->oi_list, *next;
 	int rc;
 
@@ -188,7 +190,7 @@ over_op_func(
 	enum op_which which
 )
 {
-	slap_overinfo *oi = (slap_overinfo *) op->o_bd->bd_info;
+	slap_overinfo *oi = op->o_bd->bd_info->bi_private;
 	slap_overinst *on = oi->oi_list;
 	BI_op_bind **func;
 	BackendDB *be = op->o_bd, db = *op->o_bd;
@@ -209,15 +211,16 @@ over_op_func(
 		}
 	}
 
-	op->o_bd = be;
 	func = &oi->oi_orig->bi_op_bind;
 	if ( func[which] && rc == SLAP_CB_CONTINUE ) {
+		db.bd_info = oi->oi_orig;
 		rc = func[which]( op, rs );
 	}
 	/* should not fall thru this far without anything happening... */
 	if ( rc == SLAP_CB_CONTINUE ) {
 		rc = op_rc[ which ];
 	}
+	op->o_bd = be;
 	op->o_callback = cb.sc_next;
 	return rc;
 }
@@ -342,6 +345,12 @@ overlay_config( BackendDB *be, const char *ov )
 		oi = ch_malloc( sizeof(slap_overinfo) );
 		oi->oi_orig = be->bd_info;
 		oi->oi_bi = *be->bd_info;
+
+		/* Save a pointer to ourself in bi_private.
+		 * This allows us to keep working in conjunction
+		 * with backglue...
+		 */
+		oi->oi_bi.bi_private = oi;
 		oi->oi_list = NULL;
 		bi = (BackendInfo *)oi;
 
@@ -376,7 +385,7 @@ overlay_config( BackendDB *be, const char *ov )
 		be->bd_info = bi;
 
 	} else {
-		oi = (slap_overinfo *) be->bd_info;
+		oi = be->bd_info->bi_private;
 	}
 
 #if 0
