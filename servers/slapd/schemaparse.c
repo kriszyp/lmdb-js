@@ -290,32 +290,6 @@ parse_at(
 	char		*oid = NULL;
 	char		*soid = NULL;
 
- 	/* Kludge for OIDmacros for syntaxes. If the syntax field starts
-	 * nonnumeric, look for and expand a macro. The macro's place in
-	 * the input line will be replaced with a field of '0's to keep
-	 * ldap_str2attributetype happy. The actual oid will be swapped
-	 * into place afterwards.
- 	 */
-	for (; argv[3]; argv++)
-	{
-		/* Allow numeric OIDs to be wrapped in single quotes */
-		if (!strcasecmp(argv[3], "syntax") && argv[4] != NULL &&
-		    !OID_LEADCHAR(argv[4][argv[4][0] == '\'' ? 1 : 0]))
-		{
-			int slen;
-			Syntax *syn;
-			syn = syn_find_desc(argv[4], &slen);
-			if (!syn)
-			{
-			    fprintf(stderr, "%s: line %d: OID %s not found\n",
-				fname, lineno, argv[4]);
-				return 1;
-			}
-			memset(strstr(line, argv[4]), '0', slen);
-			soid = ch_strdup(syn->ssyn_syn.syn_oid );
-			break;
-		}
-	}
 	at = ldap_str2attributetype(line,&code,&err,LDAP_SCHEMA_ALLOW_ALL);
 	if ( !at ) {
 		fprintf( stderr, "%s: line %d: %s before %s\n",
@@ -340,9 +314,20 @@ parse_at(
 		}
 	}
 	/* at->at_oid == NULL will be an error someday */
-	if (soid) {
-		ldap_memfree(at->at_syntax_oid);
-		at->at_syntax_oid = soid;
+	if ( at->at_syntax_oid && !OID_LEADCHAR( at->at_syntax_oid[0] )) {
+		/* Expand OID macros */
+		oid = find_oidm( at->at_syntax_oid );
+		if ( !oid ) {
+			fprintf(stderr,
+				"%s: line %d: OID %s not recognized\n",
+				fname, lineno, at->at_syntax_oid);
+			return 1;
+		}
+		if ( oid != at->at_syntax_oid ) {
+			ldap_memfree( at->at_syntax_oid );
+			at->at_syntax_oid = oid;
+		}
+
 	}
 	code = at_add(at,&err);
 	if ( code ) {
