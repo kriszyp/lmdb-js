@@ -347,13 +347,13 @@ AC_DEFUN([OL_C_UPPER_LOWER],
 AC_MSG_CHECKING([if toupper() requires islower()])
 AC_CACHE_VAL(ol_cv_c_upper_lower,[
 	AC_TRY_RUN([
-#include <ctypes.h>
+#include <ctype.h>
 main()
 {
 	if ('C' == toupper('C'))
-		exit 0;
+		exit(0);
 	else
-		exit 1;
+		exit(1);
 }],
 	[ol_cv_c_upper_lower=no],
 	[ol_cv_c_upper_lower=yes],

@@ -9,6 +9,11 @@
 # include <errno.h>
 #endif
 
+#ifdef DECL_SYS_ERRLIST 
+extern int      sys_nerr;
+extern char     *sys_errlist[];
+#endif
+    
 /* use _POSIX_VERSION for POSIX.1 code */
 
 #endif /* _AC_ERRNO_H */
