@@ -515,6 +515,7 @@ ber_get_next(
 		char buf[sizeof(ber->ber_len)-1];
 		ber_len_t tlen = 0;
 
+		errno = 0;
 		sblen=ber_int_sb_read( sb, ber->ber_rwptr,
 			((char *)&ber->ber_len + LENSIZE*2 - 1)-ber->ber_rwptr);
 		if (sblen<=0) return LBER_DEFAULT;
@@ -655,6 +656,7 @@ ber_get_next(
 		to_go = ber->ber_end - ber->ber_rwptr;
 		assert( to_go > 0 );
 		
+		errno = 0;
 		res = ber_int_sb_read( sb, ber->ber_rwptr, to_go );
 		if (res<=0) return LBER_DEFAULT;
 		ber->ber_rwptr+=res;
