@@ -898,6 +898,7 @@ slapd_daemon_task(
 				    "daemon: accept(%ld) failed errno=%d (%s)\n",
 				    (long) slap_listeners[l]->sl_sd, err,
 				    sock_errstr(err) );
+				ldap_pvt_thread_yield();
 				continue;
 			}
 
@@ -908,6 +909,7 @@ slapd_daemon_task(
 					"daemon: %ld beyond descriptor table size %ld\n",
 					(long) s, (long) dtblsize, 0 );
 				slapd_close(s);
+				ldap_pvt_thread_yield();
 				continue;
 			}
 #endif
