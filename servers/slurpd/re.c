@@ -192,9 +192,15 @@ Re_parse(
 		Debug( LDAP_DEBUG_ANY,
 			"Error: Re_parse: bad type <%s>\n",
 			type, 0, 0 );
+		free( type );
+		if ( value != NULL )
+			free( value );
 		return -1;
 	    }
 	}
+	free( type );
+	if ( value != NULL )
+		free( value );
     }
 
     if ( state != GOT_ALL ) {
@@ -205,12 +211,14 @@ Re_parse(
     }
 
     for (;;) {
+	char *const dash = "-";
+
 	if (( buf = ldif_getline( &rp )) == NULL ) {
 	    break;
 	}
 	buflen = strlen( buf );
 	if (( buflen == 1 ) && ( buf[ 0 ] == '-' )) {
-	    type = "-";
+	    type  = dash;
 	    value = NULL;
 	} else {
 	    if ( ldif_parse_line( buf, &type, &value, &len ) < 0 ) {
@@ -235,6 +243,11 @@ Re_parse(
 	re->re_mods[ nml + 1 ].mi_type = NULL;
 	re->re_mods[ nml + 1 ].mi_val = NULL;
 	nml++;
+
+	if ( type != dash )
+		free( type );
+	if ( value != NULL )
+		free( value );
     }
     return 0;
 }
@@ -314,8 +327,11 @@ get_repl_hosts(
 		break;
 	    }
 	}
+	free( type );
 	if ( !repl_ok ) {
 	    warn_unknown_replica( value, port );
+	    if ( value != NULL )
+		free( value );
 	    continue;
 	}
 
@@ -328,6 +344,9 @@ get_repl_hosts(
 	rh[ nreplicas ].rh_hostname = strdup( value );
 	rh[ nreplicas ].rh_port = port;
 	nreplicas++;
+
+	if ( value != NULL )
+		free( value );
     }
 
     if ( nreplicas == 0 ) {
