@@ -195,7 +195,7 @@ ldap_back_group(
 		ldap_msgfree(result);
 	}
 
-cleanup:
+cleanup:;
 	if ( ld != NULL ) {
 		ldap_unbind(ld);
 	}

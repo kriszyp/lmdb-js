@@ -183,7 +183,7 @@ ldap_back_search(
 	if ((msgid = ldap_search(lc->ld, mbase, scope, mapped_filter, mapped_attrs,
 		attrsonly)) == -1)
 	{
-fail:
+fail:;
 		rc = ldap_back_op_result(lc, op);
 		goto finish;
 	}
@@ -273,7 +273,7 @@ fail:
 		match, err, NULL, NULL, count );
 #endif /* !ENABLE_REWRITE */
 
-finish:
+finish:;
 	if ( match ) {
 #ifdef ENABLE_REWRITE
 		if ( mmatch != match ) {

@@ -142,7 +142,7 @@ ldap_back_modify(
 
 	ldap_modify_s( lc->ld, mdn, modv );
 
-cleanup:
+cleanup:;
 #ifdef ENABLE_REWRITE
 	if ( mdn != dn ) {
 #endif /* ENABLE_REWRITE */
