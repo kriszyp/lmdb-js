@@ -34,9 +34,9 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include "lutil.h"
 
 #include "slap.h"
+#include "lutil.h"
 #include "back-monitor.h"
 
 #define CONN_CN_PREFIX	"Connection"
