@@ -25,12 +25,8 @@ test-ldbm:	FORCE
 
 clean-local:	FORCE
 	$(RM) test-db/[!C]* test-repl/[!C]* *core
-	$(RM) $(PROGRAMS)
-	$(RM) *.o
 
 veryclean-local: FORCE
 	@-$(RM) data
 	$(RM) -r test-db test-repl
-	$(RM) $(PROGRAMS)
-	$(RM) *.o
 
