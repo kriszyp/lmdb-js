@@ -897,6 +897,7 @@ config_generic(ConfigArgs *c) {
 				return(1);
 			}
 			break;
+			}
 #endif
 
 		case CFG_DEPTH:
