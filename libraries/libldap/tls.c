@@ -679,7 +679,7 @@ ldap_pvt_tls_get_strength( void *s )
 }
 
 
-const char *
+char *
 ldap_pvt_tls_get_peer( void *s )
 {
     X509 *x;
@@ -698,11 +698,32 @@ ldap_pvt_tls_get_peer( void *s )
 }
 
 char *
+ldap_pvt_tls_get_peer_dn( void *s )
+{
+	X509 *x;
+	X509_NAME *xn;
+	char buf[2048], *p, *dn;
+
+	x = SSL_get_peer_certificate((SSL *)s);
+
+	if (!x) return NULL;
+    
+	xn = X509_get_subject_name(x);
+	p = X509_NAME_oneline(xn, buf, sizeof(buf));
+
+	dn = ldap_dcedn2dn( p );
+
+	X509_free(x);
+	return dn;
+}
+
+char *
 ldap_pvt_tls_get_peer_hostname( void *s )
 {
 	X509 *x;
 	X509_NAME *xn;
 	char buf[2048], *p;
+	int ret;
 
 	x = SSL_get_peer_certificate((SSL *)s);
 
@@ -711,7 +732,8 @@ ldap_pvt_tls_get_peer_hostname( void *s )
 	
 	xn = X509_get_subject_name(x);
 
-	if ( X509_NAME_get_text_by_NID(xn, NID_commonName, buf, sizeof(buf)) == -1 ) {
+	ret = X509_NAME_get_text_by_NID(xn, NID_commonName, buf, sizeof(buf));
+	if( ret == -1 ) {
 		X509_free(x);
 		return NULL;
 	}

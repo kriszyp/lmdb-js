@@ -174,7 +174,8 @@ LDAP_F (int) ldap_pvt_tls_connect LDAP_P(( struct ldap *ld, Sockbuf *sb, void *c
 LDAP_F (int) ldap_pvt_tls_accept LDAP_P(( Sockbuf *sb, void *ctx_arg ));
 LDAP_F (void *) ldap_pvt_tls_sb_handle LDAP_P(( Sockbuf *sb ));
 LDAP_F (void *) ldap_pvt_tls_get_handle LDAP_P(( struct ldap *ld ));
-LDAP_F (const char *) ldap_pvt_tls_get_peer LDAP_P(( void *handle ));
+LDAP_F (char *) ldap_pvt_tls_get_peer LDAP_P(( void *handle ));
+LDAP_F (char *) ldap_pvt_tls_get_peer_dn LDAP_P(( void *handle ));
 LDAP_F (int) ldap_pvt_tls_get_strength LDAP_P(( void *handle ));
 LDAP_F (int) ldap_pvt_tls_inplace LDAP_P(( Sockbuf *sb ));
 LDAP_F (int) ldap_pvt_tls_start LDAP_P(( struct ldap *ld, Sockbuf *sb, void *ctx_arg ));
