@@ -57,7 +57,6 @@ ainfo_cmp(
 #endif
 }
 
-#if 0
 void
 bdb_attr_mask(
     struct bdb_info	*bdb,
@@ -75,7 +74,6 @@ bdb_attr_mask(
 	
 	*indexmask = a != NULL ? a->ai_indexmask : 0;
 }
-#endif
 
 int
 bdb_attr_index_config(

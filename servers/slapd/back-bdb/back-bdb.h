@@ -1,7 +1,7 @@
-/* back-bdb.h - ldap ldbm back-end header file */
+/* back-bdb.h - bdb back-end header file */
 /* $OpenLDAP$ */
 /*
- * Copyright 2000 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000-2001 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -15,7 +15,7 @@
 
 LDAP_BEGIN_DECL
 
-/* #define BDB_INDEX 1 */
+#define BDB_INDEX 1
 /* #define BDB_REINDEX 1 */
 /* #define BDB_FILTER_INDICES 1 */
 #define BDB_CONFIG_INDICES 1

@@ -29,7 +29,7 @@ static slap_mask_t index_mask(
 	/* we do not support indexing of binary attributes */
 	if( slap_ad_is_binary( desc ) ) return 0;
 
-	attr_mask( be->be_private, desc->ad_cname->bv_val, &mask );
+	bdb_attr_mask( be->be_private, desc->ad_cname->bv_val, &mask );
 
 	if( mask ) {
 		*atname = desc->ad_cname->bv_val;
@@ -39,7 +39,7 @@ static slap_mask_t index_mask(
 
 	if( slap_ad_is_lang( desc ) ) {
 		/* has language tag */
-		attr_mask( be->be_private, desc->ad_type->sat_cname, &mask );
+		bdb_attr_mask( be->be_private, desc->ad_type->sat_cname, &mask );
 
 		if( mask & SLAP_INDEX_AUTO_LANG ) {
 			*atname = desc->ad_cname->bv_val;
@@ -55,7 +55,7 @@ static slap_mask_t index_mask(
 
 	/* see if supertype defined mask for its subtypes */
 	for( at = desc->ad_type; at != NULL ; at = at->sat_sup ) {
-		attr_mask( be->be_private, at->sat_cname, &mask );
+		bdb_attr_mask( be->be_private, at->sat_cname, &mask );
 
 		if( mask & SLAP_INDEX_AUTO_SUBTYPES ) {
 			*atname = desc->ad_type->sat_cname;
@@ -252,7 +252,7 @@ static int index_at_values(
 			dbnamep, &tmpmask );
 	}
 
-	attr_mask( be->be_private, type->sat_cname, &mask );
+	bdb_attr_mask( be->be_private, type->sat_cname, &mask );
 
 	if( mask ) {
 		*dbnamep = type->sat_cname;
@@ -275,7 +275,7 @@ static int index_at_values(
 
 		sprintf( lname, "%s;%s", type->sat_cname, lang );
 
-		attr_mask( be->be_private, lname, &tmpmask );
+		bdb_attr_mask( be->be_private, lname, &tmpmask );
 
 		if( tmpmask ) {
 			dbname = lname;

@@ -40,6 +40,15 @@ int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
 
 /*
+ * dbcache.c
+ */
+int
+bdb_db_cache(
+    Backend	*be,
+    const char *name,
+	DB *db );
+
+/*
  * dn2entry.c
  */
 int bdb_dn2entry LDAP_P(( BackendDB *be, DB_TXN *tid,
@@ -205,8 +214,18 @@ extern int
 bdb_key_read(
     Backend	*be,
 	DB *db,
+	DB_TXN *txn,
     struct berval *k,
 	ID *ids );
+
+extern int
+bdb_key_change(
+    Backend	 *be,
+    DB *db,
+	DB_TXN *txn,
+    struct berval *k,
+    ID id,
+    int	op );
 	
 /*
  * nextid.c

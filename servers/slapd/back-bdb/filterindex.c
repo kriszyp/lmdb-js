@@ -440,7 +440,7 @@ approx_candidates(
 		ID_BLOCK *save;
 		ID_BLOCK *tmp;
 
-		rc = key_read( be, db, keys[i], &tmp );
+		rc = bdb_key_read( be, db, keys[i], tmp );
 
 		if( rc != LDAP_SUCCESS ) {
 			idl_free( idl );
@@ -562,7 +562,7 @@ substring_candidates(
 		ID_BLOCK *save;
 		ID_BLOCK *tmp;
 
-		rc = key_read( be, db, keys[i], &tmp );
+		rc = bdb_key_read( be, db, keys[i], &tmp );
 
 		if( rc != LDAP_SUCCESS ) {
 			idl_free( idl );
