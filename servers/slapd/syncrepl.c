@@ -41,7 +41,7 @@ static const struct berval slap_syncrepl_cn_bvc = BER_BVC(CN_STR SYNCREPL_STR);
 
 static int syncuuid_cmp( const void *, const void * );
 static void avl_ber_bvfree( void * );
-static void syncrepl_del_nonpresent( Operation *, syncinfo_t * );
+static void syncrepl_del_nonpresent( Operation *, syncinfo_t *, BerVarray );
 
 /* callback functions */
 static int dn_callback( struct slap_op *, struct slap_rep * );
@@ -689,7 +689,7 @@ do_syncrep2(
 					if ( refreshDeletes == 0 && match < 0 &&
 						err == LDAP_SUCCESS )
 					{
-						syncrepl_del_nonpresent( op, si );
+						syncrepl_del_nonpresent( op, si, NULL );
 					} else {
 						avl_free( si->si_presentlist, avl_ber_bvfree );
 						si->si_presentlist = NULL;
@@ -782,15 +782,20 @@ do_syncrep2(
 						}
 						ber_scanf( ber, "[W]", &syncUUIDs );
 						ber_scanf( ber, /*"{"*/ "}" );
-						for ( i = 0; !BER_BVISNULL( &syncUUIDs[i] ); i++ ) {
-							struct berval *syncuuid_bv;
-							syncuuid_bv = ber_dupbv( NULL, &syncUUIDs[i] );
-							slap_sl_free( syncUUIDs[i].bv_val,op->o_tmpmemctx );
-							avl_insert( &si->si_presentlist,
-								(caddr_t) syncuuid_bv,
-								syncuuid_cmp, avl_dup_error );
+						if ( refreshDeletes ) {
+							syncrepl_del_nonpresent( op, si, syncUUIDs );
+							ber_bvarray_free_x( syncUUIDs, op->o_tmpmemctx );
+						} else {
+							for ( i = 0; !BER_BVISNULL( &syncUUIDs[i] ); i++ ) {
+								struct berval *syncuuid_bv;
+								syncuuid_bv = ber_dupbv( NULL, &syncUUIDs[i] );
+								slap_sl_free( syncUUIDs[i].bv_val,op->o_tmpmemctx );
+								avl_insert( &si->si_presentlist,
+									(caddr_t) syncuuid_bv,
+									syncuuid_cmp, avl_dup_error );
+							}
+							slap_sl_free( syncUUIDs, op->o_tmpmemctx );
 						}
-						slap_sl_free( syncUUIDs, op->o_tmpmemctx );
 						break;
 					default:
 						Debug( LDAP_DEBUG_ANY,
@@ -821,7 +826,7 @@ do_syncrep2(
 
 					if ( si->si_refreshPresent == 1 ) {
 						if ( match < 0 ) {
-							syncrepl_del_nonpresent( op, si );
+							syncrepl_del_nonpresent( op, si, NULL );
 						}
 					} 
 
@@ -1576,10 +1581,13 @@ static struct berval gcbva[] = {
 	BER_BVNULL
 };
 
+#define NP_DELETE_ONE	2
+
 static void
 syncrepl_del_nonpresent(
 	Operation *op,
-	syncinfo_t *si )
+	syncinfo_t *si,
+	BerVarray uuids )
 {
 	Backend* be = op->o_bd;
 	slap_callback	cb = { NULL };
@@ -1614,28 +1622,51 @@ syncrepl_del_nonpresent(
 	op->ors_deref = LDAP_DEREF_NEVER;
 	op->o_time = slap_get_time();
 	op->ors_tlimit = SLAP_NO_LIMIT;
-	op->ors_slimit = SLAP_NO_LIMIT;
 
-	memset( &an[0], 0, 2 * sizeof( AttributeName ) );
-	an[0].an_name = slap_schema.si_ad_entryUUID->ad_cname;
-	an[0].an_desc = slap_schema.si_ad_entryUUID;
-	op->ors_attrs = an;
 
-	op->ors_attrsonly = 0;
-	op->ors_filter = str2filter_x( op, si->si_filterstr.bv_val );
-	op->ors_filterstr = si->si_filterstr;
+	if ( uuids ) {
+		Filter uf;
+		AttributeAssertion eq;
+		int i;
 
-	op->o_nocaching = 1;
-	op->o_managedsait = SLAP_CONTROL_NONE;
+		op->ors_attrsonly = 1;
+		op->ors_attrs = slap_anlist_no_attrs;
+		op->ors_limit = NULL;
+		op->ors_filter = &uf;
+		op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 
-	if ( limits_check( op, &rs_search ) == 0 ) {
-		rc = be->be_search( op, &rs_search );
+		uf.f_ava = &eq;
+		uf.f_av_desc = slap_schema.si_ad_entryUUID;
+		uf.f_next = NULL;
+		uf.f_choice = LDAP_FILTER_EQUALITY;
+		si->si_refreshDelete |= NP_DELETE_ONE;
+
+		for (i=0; uuids[i].bv_val; i++) {
+			op->ors_slimit = 1;
+			uf.f_av_value = uuids[i];
+			rc = be->be_search( op, &rs_search );
+		}
+		si->si_refreshDelete ^= NP_DELETE_ONE;
+	} else {
+		memset( &an[0], 0, 2 * sizeof( AttributeName ) );
+		an[0].an_name = slap_schema.si_ad_entryUUID->ad_cname;
+		an[0].an_desc = slap_schema.si_ad_entryUUID;
+		op->ors_attrs = an;
+		op->ors_slimit = SLAP_NO_LIMIT;
+		op->ors_attrsonly = 0;
+		op->ors_filter = str2filter_x( op, si->si_filterstr.bv_val );
+		op->ors_filterstr = si->si_filterstr;
+		op->o_nocaching = 1;
+		op->o_managedsait = SLAP_CONTROL_NONE;
+
+		if ( limits_check( op, &rs_search ) == 0 ) {
+			rc = be->be_search( op, &rs_search );
+		}
+		if ( op->ors_filter ) filter_free_x( op, op->ors_filter );
 	}
 
 	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	op->o_nocaching = 0;
-
-	if ( op->ors_filter ) filter_free_x( op, op->ors_filter );
 
 	if ( !LDAP_LIST_EMPTY( &si->si_nonpresentlist ) ) {
 		np_list = LDAP_LIST_FIRST( &si->si_nonpresentlist );
@@ -2200,12 +2231,14 @@ nonpresent_callback(
 		si->si_presentlist = NULL;
 
 	} else if ( rs->sr_type == REP_SEARCH ) {
-		a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryUUID );
+		if ( !(si->si_refreshDelete & NP_DELETE_ONE )) {
+			a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryUUID );
 
-		if ( a == NULL ) return 0;
+			if ( a == NULL ) return 0;
 
-		present_uuid = avl_find( si->si_presentlist, &a->a_nvals[0],
-			syncuuid_cmp );
+			present_uuid = avl_find( si->si_presentlist, &a->a_nvals[0],
+				syncuuid_cmp );
+		}
 
 		if ( present_uuid == NULL ) {
 			np_entry = (struct nonpresent_entry *)
