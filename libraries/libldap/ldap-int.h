@@ -125,6 +125,10 @@ struct ldapoptions {
    	void		*ldo_tls_ctx;
    	int		ldo_tls_mode;
 #endif
+#ifdef HAVE_CYRUS_SASL
+	sasl_ssf_t	ldo_sasl_minssf;
+	sasl_ssf_t	ldo_sasl_maxssf;
+#endif
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
 };
 

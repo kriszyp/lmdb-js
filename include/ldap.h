@@ -129,6 +129,11 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_TLS_ALLOW		3
 #define LDAP_OPT_X_TLS_TRY		4
 
+/* SASL options */
+#define LDAP_OPT_X_SASL_MINSSF		0x6100
+#define LDAP_OPT_X_SASL_MAXSSF		0x6101
+#define LDAP_OPT_X_SASL_ACTSSF		0x6102
+
 /* on/off values */
 #define LDAP_OPT_ON		((void *) 1)
 #define LDAP_OPT_OFF	((void *) 0)

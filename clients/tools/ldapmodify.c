@@ -16,7 +16,9 @@
 #include <ac/string.h>
 #include <ac/unistd.h>
 
+#ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
+#endif
 
 #ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
@@ -36,6 +38,14 @@ static char	*binddn = NULL;
 static char	*passwd = NULL;
 static char	*ldaphost = NULL;
 static int	ldapport = 0;
+#ifdef HAVE_CYRUS_SASL
+static char	*sasl_authc_id = NULL;
+static char	*sasl_authz_id = NULL;
+static char	*sasl_mech = NULL;
+static int	sasl_integrity = 0;
+static int	sasl_privacy = 0;
+#endif
+static int	use_tls = 0;
 static int	new, replace, not, verbose, contoper, force, valsfromfiles;
 static LDAP	*ld;
 
@@ -76,23 +86,34 @@ static void
 usage( const char *prog )
 {
     fprintf( stderr,
-		 "Add or modify entries from an LDAP server\n\n"
-	     "usage: %s [-abcknrvF] [-M[M]] [-d debug-level] [-P version] [-h ldaphost]\n"
-	     "            [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile ]\n"
-	     "       a    - add values (default%s)\n"
-	     "       b    - read values from files (for binary attributes)\n"
-	     "       c    - continuous operation\n"
-	     "       D    - bind DN\n"
-		 "       M    - enable Manage DSA IT control (-MM for critical)\n"
-	     "       d    - debug level\n"
-	     "       f    - read from file\n"
-	     "       F    - force all changes records to be used\n"
-	     "       h    - ldap host\n"
-	     "       n    - print adds, don't actually do them\n"
-	     "       p    - LDAP port\n"
-	     "       r    - replace values\n"
-	     "       v    - verbose mode\n"
-	     "       w    - password\n"
+"Add or modify entries from an LDAP server\n\n"
+"usage: %s [options]\n"
+"	The list of desired operations are read from stdin or from the file\n"
+"	specified by \"-f file\".\n"
+"options:\n"
+"	-a\t\tadd values (default%s)\n"
+"	-b\t\tread values from files (for binary attributes)\n"
+"	-c\t\tcontinuous operation\n"
+"	-d level\tset LDAP debugging level to `level'\n"
+"	-D dn\t\tbind DN\n"
+"	-E\t\trequest SASL privacy (-EE to make it critical)\n"
+"	-f file\t\tperform sequence of operations listed in file\n"
+"	-F\t\tforce all changes records to be used\n"
+"	-h host\t\tLDAP server\n"
+"	-I\t\trequest SASL integrity checking (-II to make it\n"
+"		\tcritical)\n"
+"	-k\t\tuse Kerberos authentication\n"
+"	-K\t\tlike -k, but do only step 1 of the Kerberos bind\n"
+"	-M\t\tenable Manage DSA IT control (-MM to make it critical)\n"
+"	-n\t\tprint adds, don't actually do them\n"
+"	-p port\t\tport on LDAP server\n"
+"	-r\t\treplace values\n"
+"	-U user\t\tSASL authentication identity (username)\n"
+"	-v\t\tverbose mode\n"
+"	-w passwd\tbind password (for Simple authentication)\n"
+"	-X id\t\tSASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
+"	-Y mech\t\tSASL mechanism\n"
+"	-Z\t\trequest the use of TLS (-ZZ to make it critical)\n"
 	     , prog, (strcmp( prog, "ldapadd" ) ? " is to replace" : "") );
     exit( EXIT_FAILURE );
 }
@@ -123,7 +144,7 @@ main( int argc, char **argv )
     authmethod = LDAP_AUTH_SIMPLE;
 	version = -1;
 
-    while (( i = getopt( argc, argv, "WFMabckKnrtvh:p:D:w:d:f:P:" )) != EOF ) {
+    while (( i = getopt( argc, argv, "abcD:d:EFf:h:IKkMnP:p:rtU:vWw:X:Y:Z" )) != EOF ) {
 	switch( i ) {
 	case 'a':	/* add */
 	    new = 1;
@@ -141,8 +162,7 @@ main( int argc, char **argv )
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		authmethod = LDAP_AUTH_KRBV4;
 #else
-		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
-		usage( argv[0] );
+		fprintf( stderr, "%s was not compiled with Kerberos support\n", argv[0] );
 		return( EXIT_FAILURE );
 #endif
 	    break;
@@ -150,8 +170,7 @@ main( int argc, char **argv )
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		authmethod = LDAP_AUTH_KRBV41;
 #else
-		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
-		usage( argv[0] );
+		fprintf( stderr, "%s was not compiled with Kerberos support\n", argv[0] );
 		return( EXIT_FAILURE );
 #endif
 	    break;
@@ -210,6 +229,67 @@ main( int argc, char **argv )
 			usage( argv[0] );
 		}
 		break;
+	case 'I':
+#ifdef HAVE_CYRUS_SASL
+		sasl_integrity++;
+		authmethod = LDAP_AUTH_SASL;
+#else
+		fprintf( stderr, "%s was not compiled with SASL support\n",
+			argv[0] );
+		return( EXIT_FAILURE );
+#endif
+		break;
+	case 'E':
+#ifdef HAVE_CYRUS_SASL
+		sasl_privacy++;
+		authmethod = LDAP_AUTH_SASL;
+#else
+		fprintf( stderr, "%s was not compiled with SASL support\n",
+			argv[0] );
+		return( EXIT_FAILURE );
+#endif
+		break;
+	case 'Y':
+#ifdef HAVE_CYRUS_SASL
+		if ( strcasecmp( optarg, "any" ) && strcmp( optarg, "*" ) ) {
+			sasl_mech = strdup( optarg );
+		}
+		authmethod = LDAP_AUTH_SASL;
+#else
+		fprintf( stderr, "%s was not compiled with SASL support\n",
+			argv[0] );
+		return( EXIT_FAILURE );
+#endif
+		break;
+	case 'U':
+#ifdef HAVE_CYRUS_SASL
+		sasl_authc_id = strdup( optarg );
+		authmethod = LDAP_AUTH_SASL;
+#else
+		fprintf( stderr, "%s was not compiled with SASL support\n",
+			argv[0] );
+		return( EXIT_FAILURE );
+#endif
+		break;
+	case 'X':
+#ifdef HAVE_CYRUS_SASL
+		sasl_authz_id = strdup( optarg );
+		authmethod = LDAP_AUTH_SASL;
+#else
+		fprintf( stderr, "%s was not compiled with SASL support\n",
+			argv[0] );
+		return( EXIT_FAILURE );
+#endif
+		break;
+	case 'Z':
+#ifdef HAVE_TLS
+		use_tls++;
+#else
+		fprintf( stderr, "%s was not compiled with TLS support\n",
+			argv[0] );
+		return( EXIT_FAILURE );
+#endif
+		break;
 	default:
 	    usage( prog );
 	}
@@ -218,20 +298,25 @@ main( int argc, char **argv )
     if ( argc != optind )
 	usage( prog );
 
-	if( authmethod != LDAP_AUTH_SIMPLE ) {
-		if( version == LDAP_VERSION3 ) {
-			fprintf(stderr, "Kerberos requires LDAPv2\n");
-			return EXIT_FAILURE;
+	if ( ( authmethod == LDAP_AUTH_KRBV4 ) || ( authmethod ==
+			LDAP_AUTH_KRBV41 ) ) {
+		if( version != LDAP_VERSION2 ) {
+			fprintf( stderr, "Kerberos requires LDAPv2\n" );
+			return( EXIT_FAILURE );
 		}
-		version = LDAP_VERSION2;
+	}
+	else if ( authmethod == LDAP_AUTH_SASL ) {
+		if( version != LDAP_VERSION3 ) {
+			fprintf( stderr, "SASL requires LDAPv3\n" );
+			return( EXIT_FAILURE );
+		}
 	}
 
 	if( manageDSAit ) {
-		if( version == LDAP_VERSION2 ) {
+		if( version != LDAP_VERSION3 ) {
 			fprintf(stderr, "manage DSA control requires LDAPv3\n");
 			return EXIT_FAILURE;
 		}
-		version = LDAP_VERSION3;
 	}
 
     if ( infile != NULL ) {
@@ -277,13 +362,62 @@ main( int argc, char **argv )
 		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION to %d\n", version );
 	}
 
+	if ( use_tls && ldap_start_tls( ld, NULL, NULL ) != LDAP_SUCCESS ) {
+		if ( use_tls > 1 ) {
+			ldap_perror( ld, "ldap_start_tls" );
+			return( EXIT_FAILURE );
+		}
+	}
+
 	if (want_bindpw)
 		passwd = getpass("Enter LDAP Password: ");
 
-	if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
-	    ldap_perror( ld, "ldap_bind" );
-	    return( EXIT_FAILURE );
+	if ( authmethod == LDAP_AUTH_SASL ) {
+#ifdef HAVE_CYRUS_SASL
+		int	minssf = 0, maxssf = 0;
+
+		if ( sasl_integrity > 0 )
+			maxssf = 1;
+		if ( sasl_integrity > 1 )
+			minssf = 1;
+		if ( sasl_privacy > 0 )
+			maxssf = 100000; /* Something big value */
+		if ( sasl_privacy > 1 )
+			minssf = 56;
+		
+		if ( ldap_set_option( ld, LDAP_OPT_X_SASL_MINSSF,
+			(void *)&minssf ) != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set LDAP_OPT_X_SASL_MINSSF"
+				"%d\n", minssf);
+			return( EXIT_FAILURE );
+		}
+		if ( ldap_set_option( ld, LDAP_OPT_X_SASL_MAXSSF,
+			(void *)&maxssf ) != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set LDAP_OPT_X_SASL_MINSSF"
+				"%d\n", minssf);
+			return( EXIT_FAILURE );
+		}
+		
+		if ( ldap_negotiated_sasl_bind_s( ld, binddn, sasl_authc_id,
+				sasl_authz_id, sasl_mech, NULL, NULL, NULL )
+					!= LDAP_SUCCESS ) {
+			ldap_perror( ld, "ldap_sasl_bind" );
+			return( EXIT_FAILURE );
+		}
+#else
+		fprintf( stderr, "%s was not compiled with SASL support\n",
+			argv[0] );
+		return( EXIT_FAILURE );
+#endif
 	}
+	else {
+		if ( ldap_bind_s( ld, binddn, passwd, authmethod )
+				!= LDAP_SUCCESS ) {
+			ldap_perror( ld, "ldap_bind" );
+			return( EXIT_FAILURE );
+		}
+	}
+
     }
 
     rc = 0;
@@ -377,7 +511,7 @@ process_ldif_rec( char *rbuf, int count )
 
     new_entry = new;
 
-    rc = got_all = saw_replica = delete_entry = expect_modop = 0;
+    rc = got_all = saw_replica = delete_entry = modop = expect_modop = 0;
     expect_deleteoldrdn = expect_newrdn = expect_newsup = 0;
 	expect_sep = expect_ct = 0;
     linenum = 0;

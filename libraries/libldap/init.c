@@ -75,6 +75,12 @@ static const struct ol_attribute {
   	{0, ATTR_TLS,		"TLS_CACERT",	NULL,	LDAP_OPT_X_TLS_CACERTFILE},
   	{0, ATTR_TLS,		"TLS_CACERTDIR",NULL,	LDAP_OPT_X_TLS_CACERTDIR},
   	{0, ATTR_TLS,		"TLS_REQCERT",	NULL,	LDAP_OPT_X_TLS_REQUIRE_CERT},
+#ifdef HAVE_CYRUS_SASL
+	{0, ATTR_INT,		"SASL_MINSSF",	NULL,
+		offsetof(struct ldapoptions, ldo_sasl_minssf)},
+	{0, ATTR_INT,		"SASL_MAXSSF",	NULL,
+		offsetof(struct ldapoptions, ldo_sasl_maxssf)},
+#endif
 	{0, ATTR_NONE,		NULL,		NULL,	0}
 };
 
@@ -374,6 +380,10 @@ void ldap_int_initialize( void )
 
 #ifdef HAVE_TLS
    	gopts.ldo_tls_ctx = NULL;
+#endif
+#ifdef HAVE_CYRUS_SASL
+	gopts.ldo_sasl_minssf = 0;
+	gopts.ldo_sasl_maxssf = INT_MAX;
 #endif
 
 	gopts.ldo_valid = LDAP_INITIALIZED;

@@ -35,6 +35,18 @@ ldapmodrdn \- LDAP rename entry tool
 [\c
 .BI \-P \ 2\fR\||\|\fI3\fR]
 [\c
+.BR \-E[E] ]
+[\c
+.BR \-I[I] ]
+[\c
+.BI \-U \ username\fR]
+[\c
+.BI \-X \ authzid\fR]
+[\c
+.BI \-Y \ mech\fR]
+[\c
+.BR \-Z[Z] ]
+[\c
 .BI \-f \ file\fR]
 [\c
 .I dn  rdn\fR]
@@ -113,6 +125,48 @@ Specify an alternate TCP port where the ldap server is listening.
 .TP
 .BI \-P \ 2\fR\||\|\fI3
 Specify the LDAP protocol version to use.
+.TP
+.B \-E[E]
+Requset the use of SASL privacy (encryption). If the server allows it, data
+sent between the client and the server will be encrypted. If the server
+requires the use of encryption and this flag is not specified, the command
+will fail. If you use
+.B \-EE\c
+, the command will fail if the server does not support encryption.
+.B \-E[E]
+implies
+.B \-I[I]
+.TP
+.B \-I[I]
+Request the use of SASL integrity checking. It protects data sent between the
+client and the server from being modified along the way, but it does not
+prevent sniffing. If the server requires the use of integrity checking and
+this flag is not specified, the command will fail.If you use
+.B \-II\c
+, the command will fail if the server does not support this function. 
+.TP
+.BI \-U \ username
+Specify the username for SASL bind. The syntax of the username depends on the
+actual SASL mechanism used.
+.TP
+.BI \-X \ authzid
+Specify the requested authorization ID for SASL bind.
+.I authzid
+must be one of the following formats:
+.B dn:\c
+.I <distinguished name>
+or
+.B u:\c
+.I <username>
+.TP
+.BI \-Y \ mech
+Specify the SASL mechanism to be used for authentication. If it's not
+specified, the program will choose the best mechanism the server knows.
+.TP
+.B \-Z[Z]
+Request the use of TLS (Transport Layer Security). If you use
+.B \-ZZ\c
+, the command will fail if TLS negotiation does not succeed for some reason.
 .SH INPUT FORMAT
 If the command-line arguments \fIdn\fP and \fIrdn\fP are given, \fIrdn\fP
 will replace the RDN of the entry specified by the DN, \fIdn\fP.

@@ -782,6 +782,58 @@ ldap_pvt_sasl_getsimple(void *context, int id, const char **result, int *len)
 	return SASL_OK;
 }
 
+int
+ldap_pvt_sasl_get_option( LDAP *ld, int option, void *arg )
+{
+	sasl_ssf_t	*ssf;
+	
+	if ( ld == NULL )
+		return -1;
+
+	switch ( option ) {
+		case LDAP_OPT_X_SASL_MINSSF:
+			*(int *)arg = ld->ld_options.ldo_sasl_minssf;
+			break;
+		case LDAP_OPT_X_SASL_MAXSSF:
+			*(int *)arg = ld->ld_options.ldo_sasl_maxssf;
+			break;
+		case LDAP_OPT_X_SASL_ACTSSF:
+			if ( ld->ld_sasl_context == NULL ) {
+				*(int *)arg = -1;
+				break;
+			}
+			if ( sasl_getprop( ld->ld_sasl_context, SASL_SSF, &ssf )
+					!= SASL_OK )
+				return -1;
+			*(int *)arg = *ssf;
+			break;
+		default:
+			return -1;
+	}
+	return 0;
+}
+
+int
+ldap_pvt_sasl_set_option( LDAP *ld, int option, void *arg )
+{
+	if ( ld == NULL )
+		return -1;
+
+	switch ( option ) {
+		case LDAP_OPT_X_SASL_MINSSF:
+			ld->ld_options.ldo_sasl_minssf = *(int *)arg;
+			break;
+		case LDAP_OPT_X_SASL_MAXSSF:
+			ld->ld_options.ldo_sasl_maxssf = *(int *)arg;
+			break;
+		case LDAP_OPT_X_SASL_ACTSSF:
+			/* This option is read-only */
+		default:
+			return -1;
+	}
+	return 0;
+}
+
 /*
  * ldap_negotiated_sasl_bind_s - bind to the ldap server (and X.500)
  * using SASL authentication.
