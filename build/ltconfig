@@ -1134,7 +1134,8 @@ freebsd3*)
   version_type=freebsd
   library_names_spec='${libname}${release}.so.$versuffix $libname.so'
   if [ -x `/usr/bin/objformat` ]; then
-  finish_cmds='PATH="$PATH:/sbin" OBJFORMAT=`objformat` ldconfig -m $libdir'
+  OBJFORMAT=`/usr/bin/objformat`
+  finish_cmds='PATH="$PATH:/sbin" OBJFORMAT="$OBJFORMAT" ldconfig -m $libdir'
   else
   finish_cmds='PATH="$PATH:/sbin" ldconfig -m $libdir'
   fi
