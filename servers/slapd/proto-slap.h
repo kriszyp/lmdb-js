@@ -255,6 +255,7 @@ void send_ldap_search_result LDAP_P(( Connection *conn, Operation *op, int err,
  */
 
 int oc_schema_check LDAP_P(( Entry *e ));
+int oc_check_operational LDAP_P(( char *type ));
 ObjectClass *oc_find LDAP_P((const char *ocname));
 int oc_add LDAP_P((LDAP_OBJECT_CLASS *oc, const char **err));
 Syntax *syn_find LDAP_P((const char *synname));

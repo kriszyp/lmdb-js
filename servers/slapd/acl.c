@@ -55,12 +55,8 @@ access_allowed(
 		e->e_dn, attr, 0 );
 
 	/* the lastmod attributes are ignored by ACL checking */
-	if ( strcasecmp( attr, "modifiersname" ) == 0 ||
-		strcasecmp( attr, "modifytimestamp" ) == 0 ||
-		strcasecmp( attr, "creatorsname" ) == 0 ||
-		strcasecmp( attr, "createtimestamp" ) == 0 )
-	{
- 		Debug( LDAP_DEBUG_ACL, "LASTMOD attribute: %s access allowed\n",
+	if ( oc_check_operational( attr ) ) {
+ 		Debug( LDAP_DEBUG_ACL, "Operational attribute: %s access allowed\n",
 			attr, 0, 0 );
 		return(1);
 	}
@@ -403,12 +399,8 @@ acl_check_modlist(
 		regmatch_t       matches[MAXREMATCHES];
 
 		/* the lastmod attributes are ignored by ACL checking */
-		if ( strcasecmp( mlist->ml_type, "modifiersname" ) == 0 ||
-			strcasecmp( mlist->ml_type, "modifytimestamp" ) == 0 ||
-			strcasecmp( mlist->ml_type, "creatorsname" ) == 0 ||
-			strcasecmp( mlist->ml_type, "createtimestamp" ) == 0 ) 
-		{
-			Debug( LDAP_DEBUG_ACL, "LASTMOD attribute: %s access allowed\n",
+		if ( oc_check_operational( mlist->ml_type ) ) {
+			Debug( LDAP_DEBUG_ACL, "Operational attribute: %s access allowed\n",
 				mlist->ml_type, 0, 0 );
 			continue;
 		}

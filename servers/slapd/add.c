@@ -162,10 +162,7 @@ add_created_attrs( Operation *op, Entry *e )
 
 	/* remove any attempts by the user to add these attrs */
 	for ( a = &e->e_attrs; *a != NULL; a = next ) {
-		if ( strcasecmp( (*a)->a_type, "modifiersname" ) == 0 || 
-			strcasecmp( (*a)->a_type, "modifytimestamp" ) == 0 ||
-			strcasecmp( (*a)->a_type, "creatorsname" ) == 0 ||
-			strcasecmp( (*a)->a_type, "createtimestamp" ) == 0 ) {
+		if ( oc_check_operational( (*a)->a_type ) ) {
 			tmp = *a;
 			*a = (*a)->a_next;
 			attr_free( tmp );

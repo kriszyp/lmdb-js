@@ -33,13 +33,9 @@ add_lastmods( Operation *op, LDAPModList **modlist )
 
 	/* remove any attempts by the user to modify these attrs */
 	for ( m = modlist; *m != NULL; m = &(*m)->ml_next ) {
-            if ( strcasecmp( (*m)->ml_type, "modifytimestamp" ) == 0 || 
-				strcasecmp( (*m)->ml_type, "modifiersname" ) == 0 ||
-				strcasecmp( (*m)->ml_type, "createtimestamp" ) == 0 || 
-				strcasecmp( (*m)->ml_type, "creatorsname" ) == 0 ) {
-
+            if ( oc_check_operational( (*m)->ml_type ) ) {
                 Debug( LDAP_DEBUG_TRACE,
-					"add_lastmods: found lastmod attr: %s\n",
+					"add_lastmods: found operational attr: %s\n",
 					(*m)->ml_type, 0, 0 );
                 tmp = *m;
                 *m = (*m)->ml_next;

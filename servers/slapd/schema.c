@@ -125,9 +125,9 @@ oc_check_required( Entry *e, char *ocname )
 
 /*
  * check to see if attribute is 'operational' or not.
- * this function should be externalized...
+ * this list should be extensible...
  */
-static int
+int
 oc_check_operational( char *type )
 {
 	return ( strcasecmp( type, "modifiersname" ) == 0 ||
@@ -1051,12 +1051,12 @@ schema_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 
 	val.bv_val = ch_strdup( "top" );
 	val.bv_len = strlen( val.bv_val );
-	attr_merge( e, "objectclass", vals );
+	attr_merge( e, "objectClass", vals );
 	ldap_memfree( val.bv_val );
 
 	val.bv_val = ch_strdup( "subschema" );
 	val.bv_len = strlen( val.bv_val );
-	attr_merge( e, "objectclass", vals );
+	attr_merge( e, "objectClass", vals );
 	ldap_memfree( val.bv_val );
 
 	if ( syn_schema_info( e ) ) {

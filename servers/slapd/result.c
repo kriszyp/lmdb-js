@@ -231,23 +231,20 @@ send_search_entry(
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		regmatch_t       matches[MAXREMATCHES];
 
-		if ( attrs != NULL && ! charray_inlist( attrs, a->a_type ) ) {
-			continue;
+		if ( attrs == NULL ) {
+			/* all addrs request, skip operational attributes */
+			if( oc_check_operational( a->a_type )) {
+				continue;
+			}
+		} else {
+			/* specific addrs requested */
+			if ( !charray_inlist( attrs, a->a_type )) {
+				continue;
+			}
 		}
 
-		/* the lastmod attributes are ignored by ACL checking */
-		if ( strcasecmp( a->a_type, "modifiersname" ) == 0 ||
-			strcasecmp( a->a_type, "modifytimestamp" ) == 0 ||
-			strcasecmp( a->a_type, "creatorsname" ) == 0 ||
-			strcasecmp( a->a_type, "createtimestamp" ) == 0 ) 
-		{
-			Debug( LDAP_DEBUG_ACL, "LASTMOD attribute: %s access DEFAULT\n",
-				a->a_type, 0, 0 );
-			acl = NULL;
-		} else {
-			acl = acl_get_applicable( be, op, e, a->a_type,
-				MAXREMATCHES, matches );
-		}
+		acl = acl_get_applicable( be, op, e, a->a_type,
+			MAXREMATCHES, matches );
 
 		if ( ! acl_access_allowed( acl, be, conn, e,
 			NULL, op, ACL_READ, edn, matches ) ) 
