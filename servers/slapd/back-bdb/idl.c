@@ -1053,7 +1053,7 @@ over:		ida = IDL_MIN( BDB_IDL_FIRST(a), BDB_IDL_FIRST(b) );
 			idb = NOID;
 		else
 			idb = b[cursorc];
-		if (b[cursorb] < idb)
+		if (cursorb <= b[0] && b[cursorb] < idb)
 			a[cursora++] = b[cursorb++];
 		else {
 			a[cursora++] = idb;
