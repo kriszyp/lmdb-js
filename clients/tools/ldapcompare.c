@@ -152,7 +152,7 @@ main( int argc, char **argv )
 		bvalue.bv_len = lutil_b64_pton( &sep[1],
 			bvalue.bv_val, strlen( &sep[1] ));
 
-		if (bvalue.bv_len == -1) {
+		if (bvalue.bv_len == (ber_len_t)-1) {
 			fprintf(stderr, "base64 decode error\n");
 			exit(-1);
 		}

@@ -52,7 +52,7 @@ int ldap_parse_passwd(
 		tag = ber_scanf( ber, "{o}", newpasswd );
 		ber_free( ber, 1 );
 
-		if( tag == -1 ) {
+		if( tag == LBER_ERROR ) {
 			rc = ld->ld_errno = LDAP_DECODING_ERROR;
 		}
 	}

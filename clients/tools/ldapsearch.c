@@ -543,13 +543,13 @@ getNextPage:
 			}
 
 			err = ber_printf( seber, "{b}", abs(subentries) == 1 ? 0 : 1 );
-	    	if ( err == LBER_ERROR ) {
+	    	if ( err == -1 ) {
 				ber_free( seber, 1 );
 				fprintf( stderr, "Subentries control encoding error!\n" );
 				return EXIT_FAILURE;
 			}
 
-			if ( ber_flatten2( seber, &c[i].ldctl_value, 0 ) == LBER_ERROR ) {
+			if ( ber_flatten2( seber, &c[i].ldctl_value, 0 ) == -1 ) {
 				return EXIT_FAILURE;
 			}
 
@@ -594,7 +594,7 @@ getNextPage:
 				return EXIT_FAILURE;
 			}
 
-			if ( ber_flatten2( vrber, &c[i].ldctl_value, 0 ) == LBER_ERROR ) {
+			if ( ber_flatten2( vrber, &c[i].ldctl_value, 0 ) == -1 ) {
 				return EXIT_FAILURE;
 			}
 
@@ -609,7 +609,7 @@ getNextPage:
 			}
 
 			ber_printf( prber, "{iO}", pageSize, &cookie );
-			if ( ber_flatten2( prber, &c[i].ldctl_value, 0 ) == LBER_ERROR ) {
+			if ( ber_flatten2( prber, &c[i].ldctl_value, 0 ) == -1 ) {
 				return EXIT_FAILURE;
 			}
 			

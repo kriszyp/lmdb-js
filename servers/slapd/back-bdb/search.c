@@ -1135,7 +1135,7 @@ send_pagerequest_response(
 	 */
 	ber_printf( ber, "{iO}", tentries, &cookie ); 
 
-	if ( ber_flatten2( ber, &ctrls[0]->ldctl_value, 0 ) == LBER_ERROR ) {
+	if ( ber_flatten2( ber, &ctrls[0]->ldctl_value, 0 ) == -1 ) {
 		goto done;
 	}
 
