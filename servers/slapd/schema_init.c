@@ -296,46 +296,6 @@ bitStringValidate(
 }
 
 static int
-bitStringNormalize(
-	Syntax *syntax,
-	struct berval *val,
-	struct berval *normalized )
-{
-	/*
-	 * A normalized bitString is has no extaneous (leading) zero bits.
-	 * That is, '00010'B is normalized to '10'B
-	 * However, as a special case, '0'B requires no normalization.
-	 */
-	char *p;
-
-	/* start at the first bit */
-	p = &val->bv_val[1];
-
-	/* Find the first non-zero bit */
-	while ( *p == '0' ) p++;
-
-	if( *p == '\'' ) {
-		/* no non-zero bits */
-		ber_str2bv( "\'0\'B", sizeof("\'0\'B") - 1, 1, normalized );
-		goto done;
-	}
-
-	normalized->bv_val = ch_malloc( val->bv_len + 1 );
-
-	normalized->bv_val[0] = '\'';
-	normalized->bv_len = 1;
-
-	for( ; *p != '\0'; p++ ) {
-		normalized->bv_val[normalized->bv_len++] = *p;
-	}
-
-	normalized->bv_val[normalized->bv_len] = '\0';
-
-done:
-	return LDAP_SUCCESS;
-}
-
-static int
 nameUIDValidate(
 	Syntax *syntax,
 	struct berval *in )
@@ -386,53 +346,44 @@ nameUIDNormalize(
 
 	ber_dupbv( &out, val );
 	if( out.bv_len != 0 ) {
-		struct berval uidin = { 0, NULL };
-		struct berval uidout = { 0, NULL };
+		struct berval uid = { 0, NULL };
 
 		if( out.bv_val[out.bv_len-1] == 'B'
 			&& out.bv_val[out.bv_len-2] == '\'' )
 		{
 			/* assume presence of optional UID */
-			uidin.bv_val = strrchr( out.bv_val, '#' );
+			uid.bv_val = strrchr( out.bv_val, '#' );
 
-			if( uidin.bv_val == NULL ) {
+			if( uid.bv_val == NULL ) {
 				free( out.bv_val );
 				return LDAP_INVALID_SYNTAX;
 			}
 
-			uidin.bv_len = out.bv_len - (uidin.bv_val - out.bv_val);
-			out.bv_len -= uidin.bv_len--;
+			uid.bv_len = out.bv_len - (uid.bv_val - out.bv_val);
+			out.bv_len -= uid.bv_len--;
 
 			/* temporarily trim the UID */
-			*(uidin.bv_val++) = '\0';
-
-			rc = bitStringNormalize( syntax, &uidin, &uidout );
-
-			if( rc != LDAP_SUCCESS ) {
-				free( out.bv_val );
-				return LDAP_INVALID_SYNTAX;
-			}
+			*(uid.bv_val++) = '\0';
 		}
 
 		rc = dnNormalize2( NULL, &out, normalized );
 
 		if( rc != LDAP_SUCCESS ) {
 			free( out.bv_val );
-			free( uidout.bv_val );
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		if( uidout.bv_len ) {
+		if( uid.bv_len ) {
 			normalized->bv_val = ch_realloc( normalized->bv_val,
-				normalized->bv_len + uidout.bv_len + sizeof("#") );
+				normalized->bv_len + uid.bv_len + sizeof("#") );
 
 			/* insert the separator */
 			normalized->bv_val[normalized->bv_len++] = '#';
 
 			/* append the UID */
 			AC_MEMCPY( &normalized->bv_val[normalized->bv_len],
-				uidout.bv_val, uidout.bv_len );
-			normalized->bv_len += uidout.bv_len;
+				uid.bv_val, uid.bv_len );
+			normalized->bv_len += uid.bv_len;
 
 			/* terminate */
 			normalized->bv_val[normalized->bv_len] = '\0';
@@ -4294,7 +4245,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 		X_NOT_H_R ")",
 		SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )",
-		0, bitStringValidate, bitStringNormalize, NULL },
+		0, bitStringValidate, NULL, NULL },
 	{"( 1.3.6.1.4.1.1466.115.121.1.7 DESC 'Boolean' )",
 		0, booleanValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' "
