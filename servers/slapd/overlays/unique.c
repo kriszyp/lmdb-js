@@ -245,25 +245,132 @@ static int count_attr_cb(
 	return(0);
 }
 
-/* XXX extraneous (slap_response*) to avoid compiler warning */
+static int count_filter_len(
+	unique_data *ud,
+	AttributeDescription *ad,
+	BerVarray b,
+	int ks
+)
+{
+	unique_attrs *up;
+	int i;
+
+	while(!is_at_operational(ad->ad_type)) {
+		if(ud->ignore) {
+			for(up = ud->ignore; up; up = up->next)
+				if(ad == up->attr) break;
+			if(up) break;
+		}
+		if(ud->attrs) {
+			for(up = ud->attrs; up; up = up->next)
+				if(ad == up->attr) break;
+			if(!up) break;
+		}
+		if(b && b[0].bv_val) for(i = 0; b[i].bv_val; i++)
+			ks += b[i].bv_len + ad->ad_cname.bv_len + 3;
+		else if(ud->strict)
+			ks += ad->ad_cname.bv_len + 4;	/* (attr=*) */
+		break;
+	}
+	return ks;
+}
+
+static char *build_filter(
+	unique_data *ud,
+	AttributeDescription *ad,
+	BerVarray b,
+	char *kp
+)
+{
+	unique_attrs *up;
+	int i;
+
+	while(!is_at_operational(ad->ad_type)) {
+		if(ud->ignore) {
+			for(up = ud->ignore; up; up = up->next)
+				if(ad == up->attr) break;
+			if(up) break;
+		}
+		if(ud->attrs) {
+			for(up = ud->attrs; up; up = up->next)
+				if(ad == up->attr) break;
+			if(!up) break;
+		}
+		if(b && b[0].bv_val) for(i = 0; b[i].bv_val; i++)
+			kp += sprintf(kp, "(%s=%s)", ad->ad_cname.bv_val, b[i].bv_val);
+		else if(ud->strict)
+			kp += sprintf(kp, "(%s=*)", ad->ad_cname.bv_val);
+		break;
+	}
+	return kp;
+}
+
+static int unique_search(
+	Operation *op,
+	Operation *nop,
+	SlapReply *rs,
+	char *key
+)
+{
+	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
+	unique_data *ud = on->on_bi.bi_private;
+	SlapReply nrs = { REP_RESULT };
+	slap_callback cb = { NULL, NULL, NULL, NULL }; /* XXX */
+	unique_counter uq = { 0 };
+	int rc;
+
+	nop->ors_filter = str2filter_x(nop, key);
+	ber_str2bv(key, 0, 0, &nop->ors_filterstr);
+
+	cb.sc_response	= (slap_response*)count_attr_cb;
+	cb.sc_private	= &uq;
+	nop->o_callback	= &cb;
+	nop->o_tag	= LDAP_REQ_SEARCH;
+	nop->ors_scope	= LDAP_SCOPE_SUBTREE;
+	nop->ors_deref	= LDAP_DEREF_NEVER;
+	nop->ors_slimit	= SLAP_NO_LIMIT;
+	nop->ors_tlimit	= SLAP_NO_LIMIT;
+	nop->ors_attrs	= slap_anlist_no_attrs;
+	nop->ors_attrsonly = 1;
+	nop->o_sync_slog_size = -1;
+
+	nop->o_req_ndn	= ud->dn;
+	nop->o_ndn = op->o_bd->be_rootndn;
+
+	rc = nop->o_bd->be_search(nop, &nrs);
+	filter_free_x(nop, nop->ors_filter);
+	ch_free( key );
+
+	if(rc != LDAP_SUCCESS && rc != LDAP_NO_SUCH_OBJECT) {
+		op->o_bd->bd_info = (BackendInfo *) on->on_info;
+		send_ldap_error(op, rs, rc, "unique_search failed");
+		return(rs->sr_err);
+	}
+
+	Debug(LDAP_DEBUG_TRACE, "=> unique_search found %d records\n", uq.count, 0, 0);
+
+	if(uq.count) {
+		op->o_bd->bd_info = (BackendInfo *) on->on_info;
+		send_ldap_error(op, rs, LDAP_CONSTRAINT_VIOLATION,
+			"some attributes not unique");
+		return(rs->sr_err);
+	}
+
+	return(SLAP_CB_CONTINUE);
+}
 
 static int unique_add(
 	Operation *op,
 	SlapReply *rs
 )
 {
-	Operation nop = *op;
-	SlapReply nrs = { REP_RESULT };
-	slap_callback cb = { NULL, NULL, NULL, NULL }; /* XXX */
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
+	unique_data *ud = on->on_bi.bi_private;
+	Operation nop = *op;
 
 	Attribute *a;
-	BerVarray b = NULL;
 	char *key, *kp;
-	int i, rc, ks = 16;
-	unique_attrs *up;
-	unique_counter uq = { 0 };
-	unique_data *ud = on->on_bi.bi_private;
+	int ks = 16;
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_add <%s>\n", op->o_req_dn.bv_val, 0, 0);
 
@@ -296,21 +403,7 @@ static int unique_add(
 			"unique_add() got null op.ora_e.e_attrs");
 		return(rs->sr_err);
 	} else for(; a; a = a->a_next) {
-		if(is_at_operational(a->a_desc->ad_type)) continue;
-		if(ud->ignore) {
-			for(up = ud->ignore; up; up = up->next)
-				if(a->a_desc == up->attr) break;
-			if(up) continue;
-		}
-		if(ud->attrs) {
-			for(up = ud->attrs; up; up = up->next)
-				if(a->a_desc == up->attr) break;
-			if(!up) continue;
-		}
-		if((b = a->a_vals) && b[0].bv_val) for(i = 0; b[i].bv_val; i++)
-			ks += b[i].bv_len + a->a_desc->ad_cname.bv_len + STRLENOF( "(=)" );
-		else if(ud->strict)
-			ks += a->a_desc->ad_cname.bv_len + STRLENOF( "(=*)" );
+		ks = count_filter_len(ud, a->a_desc, a->a_vals, ks);
 	}
 
 	key = ch_malloc(ks);
@@ -318,66 +411,14 @@ static int unique_add(
 	kp = key + sprintf(key, "(|");
 
 	for(a = op->ora_e->e_attrs; a; a = a->a_next) {
-		if(is_at_operational(a->a_desc->ad_type)) continue;
-		if(ud->ignore) {
-			for(up = ud->ignore; up; up = up->next)
-				if(a->a_desc == up->attr) break;
-			if(up) continue;
-		}
-		if(ud->attrs) {
-			for(up = ud->attrs; up; up = up->next)
-				if(a->a_desc == up->attr) break;
-			if(!up) continue;
-		}
-		if((b = a->a_vals) && b[0].bv_val) for(i = 0; b[i].bv_val; i++)
-			kp += sprintf(kp, "(%s=%s)", a->a_desc->ad_cname.bv_val, b[i].bv_val);
-		else if(ud->strict)
-			kp += sprintf(kp, "(%s=*)", a->a_desc->ad_cname.bv_val);
+		kp = build_filter(ud, a->a_desc, a->a_vals, kp);
 	}
 
-	kp += sprintf(kp, ")");
+	sprintf(kp, ")");
 
 	Debug(LDAP_DEBUG_TRACE, "=> unique_add %s\n", key, 0, 0);
 
-	nop.ors_filter = str2filter_x(&nop, key);
-	ber_str2bv(key, 0, 0, &nop.ors_filterstr);
-
-	cb.sc_response	= (slap_response*)count_attr_cb;
-	cb.sc_private	= &uq;
-	nop.o_callback	= &cb;
-	nop.o_tag	= LDAP_REQ_SEARCH;
-	nop.ors_scope	= LDAP_SCOPE_SUBTREE;
-	nop.ors_deref	= LDAP_DEREF_NEVER;
-	nop.ors_slimit	= SLAP_NO_LIMIT;
-	nop.ors_tlimit	= SLAP_NO_LIMIT;
-	/* no attrs! */
-	nop.ors_attrs = slap_anlist_no_attrs;
-	nop.ors_attrsonly = 1;
-	nop.o_sync_slog_size = -1;
-
-	nop.o_req_ndn	= ud->dn;
-	nop.o_ndn = op->o_bd->be_rootndn;
-
-	rc = nop.o_bd->be_search(&nop, &nrs);
-	filter_free_x(&nop, nop.ors_filter);
-	ch_free( key );
-
-	if(rc != LDAP_SUCCESS && rc != LDAP_NO_SUCH_OBJECT) {
-		op->o_bd->bd_info = (BackendInfo *) on->on_info;
-		send_ldap_error(op, rs, rc, "unique_add search failed");
-		return(rs->sr_err);
-	}
-
-	Debug(LDAP_DEBUG_TRACE, "=> unique_add found %d records\n", uq.count, 0, 0);
-
-	if(uq.count) {
-		op->o_bd->bd_info = (BackendInfo *) on->on_info;
-		send_ldap_error(op, rs, LDAP_CONSTRAINT_VIOLATION,
-			"some attributes not unique");
-		return(rs->sr_err);
-	}
-
-	return(SLAP_CB_CONTINUE);
+	return unique_search(op, &nop, rs, key);
 }
 
 
@@ -386,18 +427,13 @@ static int unique_modify(
 	SlapReply *rs
 )
 {
-	Operation nop = *op;
-	SlapReply nrs = { REP_RESULT };
-	slap_callback cb = { NULL, (slap_response*)count_attr_cb, NULL, NULL };
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
+	unique_data *ud = on->on_bi.bi_private;
+	Operation nop = *op;
 
-	BerVarray b = NULL;
 	Modifications *m;
 	char *key, *kp;
-	int i, rc, ks = 16;		/* a handful of extra bytes */
-	unique_attrs *up;
-	unique_counter uq = { 0 };
-	unique_data *ud = on->on_bi.bi_private;
+	int ks = 16;		/* a handful of extra bytes */
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_modify <%s>\n", op->o_req_dn.bv_val, 0, 0);
 
@@ -429,22 +465,8 @@ static int unique_modify(
 			"unique_modify() got null op.orm_modlist");
 		return(rs->sr_err);
 	} else for(; m; m = m->sml_next) {
-		if(is_at_operational(m->sml_desc->ad_type) ||
-			((m->sml_op & LDAP_MOD_OP) == LDAP_MOD_DELETE)) continue;
-		if(ud->ignore) {
-			for(up = ud->ignore; up; up = up->next)
-				if(m->sml_desc == up->attr) break;
-			if(up) continue;
-		}
-		if(ud->attrs) {
-			for(up = ud->attrs; up; up = up->next)
-				if(m->sml_desc == up->attr) break;
-			if(!up) continue;
-		}
-		if((b = m->sml_values) && b[0].bv_val) for(i = 0; b[i].bv_val; i++)
-			ks += b[i].bv_len + m->sml_desc->ad_cname.bv_len + 3;
-		else if(ud->strict)
-			ks += m->sml_desc->ad_cname.bv_len + 4;	/* (attr=*) */
+		if ((m->sml_op & LDAP_MOD_OP) == LDAP_MOD_DELETE) continue;
+		ks = count_filter_len(ud, m->sml_desc, m->sml_values, ks);
 	}
 
 	key = ch_malloc(ks);
@@ -452,62 +474,15 @@ static int unique_modify(
 	kp = key + sprintf(key, "(|");
 
 	for(m = op->orm_modlist; m; m = m->sml_next) {
-		if(is_at_operational(m->sml_desc->ad_type) ||
-			((m->sml_op & LDAP_MOD_OP) == LDAP_MOD_DELETE)) continue;
-		if(ud->ignore) {
-			for(up = ud->ignore; up; up = up->next)
-				if(m->sml_desc == up->attr) break;
-			if(up) continue;
-		}
-		if(ud->attrs) {
-			for(up = ud->attrs; up; up = up->next)
-				if(m->sml_desc == up->attr) break;
-			if(!up) continue;
-		}
-		if((b = m->sml_values) && b[0].bv_val) for(i = 0; b[i].bv_val; i++)
-			kp += sprintf(kp, "(%s=%s)", m->sml_desc->ad_cname.bv_val, b[i].bv_val);
-		else if(ud->strict)
-			kp += sprintf(kp, "(%s=*)", m->sml_desc->ad_cname.bv_val);
+ 		if ((m->sml_op & LDAP_MOD_OP) == LDAP_MOD_DELETE) continue;
+ 		kp = build_filter(ud, m->sml_desc, m->sml_values, kp);
 	}
 
-	kp += sprintf(kp, ")");
+	sprintf(kp, ")");
 
 	Debug(LDAP_DEBUG_TRACE, "=> unique_modify %s\n", key, 0, 0);
 
-	nop.ors_filter = str2filter_x(&nop, key);
-	ber_str2bv(key, 0, 0, &nop.ors_filterstr);
-
-	cb.sc_response	= (slap_response*)count_attr_cb;
-	cb.sc_private	= &uq;
-	nop.o_callback	= &cb;
-	nop.o_tag	= LDAP_REQ_SEARCH;
-	nop.ors_scope	= LDAP_SCOPE_SUBTREE;
-	nop.ors_deref	= LDAP_DEREF_NEVER;
-	nop.ors_slimit	= SLAP_NO_LIMIT;
-	nop.ors_tlimit	= SLAP_NO_LIMIT;
-	nop.o_req_ndn	= ud->dn;
-	nop.o_ndn = op->o_bd->be_rootndn;
-
-	rc = nop.o_bd->be_search(&nop, &nrs);
-	ch_free( key );
-
-	if(rc != LDAP_SUCCESS && rc != LDAP_NO_SUCH_OBJECT) {
-		op->o_bd->bd_info = (BackendInfo *) on->on_info;
-		send_ldap_error(op, rs, rc, "unique_modify search failed");
-		return(rs->sr_err);
-	}
-
-	Debug(LDAP_DEBUG_TRACE, "=> unique_modify found %d records\n", uq.count, 0, 0);
-
-	if(uq.count) {
-		op->o_bd->bd_info = (BackendInfo *) on->on_info;
-		send_ldap_error(op, rs, LDAP_CONSTRAINT_VIOLATION,
-			"some attributes not unique");
-		return(rs->sr_err);
-	}
-
-	return(SLAP_CB_CONTINUE);
-
+	return unique_search(op, &nop, rs, key);
 }
 
 
@@ -516,17 +491,14 @@ static int unique_modrdn(
 	SlapReply *rs
 )
 {
-	Operation nop = *op;
-	SlapReply nrs = { REP_RESULT };
-	slap_callback cb = { NULL, (slap_response*)count_attr_cb, NULL, NULL };
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
+	unique_data *ud = on->on_bi.bi_private;
+	Operation nop = *op;
 
 	char *key, *kp;
 	int i, rc, ks = 16;		/* a handful of extra bytes */
-	unique_attrs *up;
-	unique_counter uq = { 0 };
-	unique_data *ud = on->on_bi.bi_private;
 	LDAPRDN	newrdn;
+	struct berval bv[2];
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_modrdn <%s> <%s>\n",
 		op->o_req_dn.bv_val, op->orr_newrdn.bv_val, 0);
@@ -564,79 +536,27 @@ static int unique_modrdn(
 		newrdn[i]->la_private = ad;
 	}
 
+	bv[1].bv_val = NULL;
+	bv[1].bv_len = 0;
+
 	for(i = 0; newrdn[i]; i++) {
-		AttributeDescription *ad = newrdn[i]->la_private;
-		if(ud->ignore) {
-			for(up = ud->ignore; up; up = up->next)
-				if(ad == up->attr) break;
-			if(up) continue;
-		}
-		if(ud->attrs) {
-			for(up = ud->attrs; up; up = up->next)
-				if(ad == up->attr) break;
-			if(!up) continue;
-		}
-		ks += newrdn[i]->la_value.bv_len + ad->ad_cname.bv_len + 3;
+		bv[0] = newrdn[i]->la_value;
+		ks = count_filter_len(ud, newrdn[i]->la_private, bv, ks);
 	}
 
 	key = ch_malloc(ks);
 	kp = key + sprintf(key, "(|");
 
 	for(i = 0; newrdn[i]; i++) {
-		AttributeDescription *ad = newrdn[i]->la_private;
-		if(ud->ignore) {
-			for(up = ud->ignore; up; up = up->next)
-				if(ad == up->attr) break;
-			if(up) continue;
-		}
-		if(ud->attrs) {
-			for(up = ud->attrs; up; up = up->next)
-				if(ad == up->attr) break;
-			if(!up) continue;
-		}
-		kp += sprintf(kp, "(%s=%s)", ad->ad_cname.bv_val,
-			newrdn[i]->la_value.bv_val);
+		bv[0] = newrdn[i]->la_value;
+		kp = build_filter(ud, newrdn[i]->la_private, bv, kp);
 	}
 
-	kp += sprintf(kp, ")");
-
+	sprintf(kp, ")");
 
 	Debug(LDAP_DEBUG_TRACE, "=> unique_modrdn %s\n", key, 0, 0);
 
-	nop.ors_filter = str2filter_x(&nop, key);
-	ber_str2bv(key, 0, 0, &nop.ors_filterstr);
-
-	cb.sc_response	= (slap_response*)count_attr_cb;
-	cb.sc_private	= &uq;
-	nop.o_callback	= &cb;
-	nop.o_tag	= LDAP_REQ_SEARCH;
-	nop.ors_scope	= LDAP_SCOPE_SUBTREE;
-	nop.ors_deref	= LDAP_DEREF_NEVER;
-	nop.ors_slimit	= SLAP_NO_LIMIT;
-	nop.ors_tlimit	= SLAP_NO_LIMIT;
-	nop.o_req_ndn	= ud->dn;
-	nop.o_ndn = op->o_bd->be_rootndn;
-
-	rc = nop.o_bd->be_search(&nop, &nrs);
-	ch_free( key );
-	ldap_rdnfree_x( newrdn, op->o_tmpmemctx );
-
-	if(rc != LDAP_SUCCESS && rc != LDAP_NO_SUCH_OBJECT) {
-		op->o_bd->bd_info = (BackendInfo *) on->on_info;
-		send_ldap_error(op, rs, rc, "unique_modrdn search failed");
-		return(rs->sr_err);
-	}
-
-	Debug(LDAP_DEBUG_TRACE, "=> unique_modrdn found %d records\n", uq.count, 0, 0);
-
-	if(uq.count) {
-		op->o_bd->bd_info = (BackendInfo *) on->on_info;
-		send_ldap_error(op, rs, LDAP_CONSTRAINT_VIOLATION,
-			"some attributes not unique");
-		return(rs->sr_err);
-	}
-
-	return(SLAP_CB_CONTINUE);
+	return unique_search(op, &nop, rs, key);
 }
 
 /*
