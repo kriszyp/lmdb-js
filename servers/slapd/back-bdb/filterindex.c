@@ -58,6 +58,20 @@ bdb_filter_candidates(
 #endif
 
 	switch ( f->f_choice ) {
+	case SLAPD_FILTER_COMPUTED:
+		switch( f->f_result ) {
+		case LDAP_COMPARE_FALSE:
+			BDB_IDL_ZERO( ids );
+			break;
+		case LDAP_COMPARE_TRUE: {
+			struct bdb_info *bdb = (struct bdb_info *)op->o_bd->be_private;
+			BDB_IDL_ALL( bdb, ids );
+			} break;
+		case SLAPD_COMPARE_UNDEFINED:
+			break;
+		}
+		break;
+
 	case SLAPD_FILTER_DN_ONE:
 #ifdef NEW_LOGGING
 		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tDN ONE\n", 0, 0, 0 );
@@ -483,6 +497,7 @@ equality_candidates(
 		if( rc == DB_NOTFOUND ) {
 			BDB_IDL_ZERO( ids );
 			rc = 0;
+			break;
 		} else if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( INDEX, RESULTS, 
