@@ -473,7 +473,7 @@ static struct slap_schema_ad_map {
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL, NULL, NULL, NULL,
-		offsetof(struct slap_internal_schema, si_ad_entryCSN) },
+		offsetof(struct slap_internal_schema, si_ad_namingCSN) },
 
 	{ "superiorUUID", "( 1.3.6.1.4.1.4203.666.1.11 NAME 'superiorUUID' "   
 			"DESC 'LCUP/LDUP: UUID of the superior entry' "

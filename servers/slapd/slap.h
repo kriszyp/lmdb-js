@@ -36,7 +36,7 @@
 #include "ldap_queue.h"
 
 #ifdef LDAP_DEVEL
-/* #define SLAP_NVALUES 1 */
+#define SLAP_NVALUES 1
 #define SLAP_EXTENDED_SCHEMA 1
 #endif
 
@@ -728,6 +728,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_collectiveExclusions;
 	AttributeDescription *si_ad_entryUUID;
 	AttributeDescription *si_ad_entryCSN;
+	AttributeDescription *si_ad_namingCSN;
 	AttributeDescription *si_ad_superiorUUID;
 
 #ifdef LDAP_CACHING
