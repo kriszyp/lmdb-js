@@ -308,6 +308,13 @@ typedef struct ldapmodlist {
 /*
  * represents schema information for a database
  */
+typedef struct slap_oid_macro {
+	struct slap_oid_macro *next;
+	char *name;
+	char *oid;
+	int oidlen;
+} OidMacro;
+
 typedef int slap_syntax_check_func LDAP_P((struct berval * val));
 
 typedef struct slap_syntax {

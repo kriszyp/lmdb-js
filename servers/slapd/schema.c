@@ -559,6 +559,17 @@ syn_find( const char *synname )
 	return( NULL );
 }
 
+Syntax *
+syn_find_desc( const char *syndesc, int *len )
+{
+	Syntax		*synp;
+
+	for (synp = syn_list; synp; synp = synp->ssyn_next)
+		if ((*len = dscompare( synp->ssyn_syn.syn_desc, syndesc, '{')))
+			return synp;
+	return( NULL );
+}
+
 static int
 syn_insert(
     Syntax		*ssyn,
@@ -879,47 +890,47 @@ struct syntax_defs_rec {
 };
 
 struct syntax_defs_rec syntax_defs[] = {
-	{"( 1.3.6.1.4.1.1466.115.121.1.3 DESC 'Attribute Type Description' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.3 DESC 'AttributeTypeDescription' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.4 DESC 'Audio' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.5 DESC 'Binary' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'BitString' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.9 DESC 'Certificate List' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.10 DESC 'Certificate Pair' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.9 DESC 'CertificateList' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.10 DESC 'CertificatePair' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'DN' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'Delivery Method' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.15 DESC 'Directory String' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.16 DESC 'DIT Content Rule Description' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.17 DESC 'DIT Structure Rule Description' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.21 DESC 'Enhanced Guide' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.22 DESC 'Facsimile Telephone Number' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.24 DESC 'Generalized Time' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'DeliveryMethod' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.15 DESC 'DirectoryString' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.16 DESC 'DITContentRuleDescription' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.17 DESC 'DITStructureRuleDescription' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.21 DESC 'EnhancedGuide' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.22 DESC 'FacsimileTelephoneNumber' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.24 DESC 'GeneralizedTime' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.25 DESC 'Guide' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5 String' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'INTEGER' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.30 DESC 'Matching Rule Description' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.31 DESC 'Matching Rule Use Description' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.32 DESC 'Mail Preference' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'Name And Optional UID' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'Name Form Description' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'Numeric String' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.37 DESC 'Object Class Description' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5String' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'Integer' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.30 DESC 'MatchingRuleDescription' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.31 DESC 'MatchingRuleUseDescription' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.32 DESC 'MailPreference' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'NameAndOptionalUID' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'NameFormDescription' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'NumericString' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.37 DESC 'ObjectClassDescription' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.38 DESC 'OID' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.39 DESC 'Other Mailbox' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.40 DESC 'Octet String' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.41 DESC 'Postal Address' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.42 DESC 'Protocol Information' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.43 DESC 'Presentation Address' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.44 DESC 'Printable String' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.49 DESC 'Supported Algorithm' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.50 DESC 'Telephone Number' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'Teletex Terminal Identifier' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'Telex Number' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.53 DESC 'UTC Time' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.54 DESC 'LDAP Syntax Description' )", NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.58 DESC 'Substring Assertion' )", NULL},
-	{"( 1.3.6.1.1.1.0.0 DESC 'NIS netgroup triple' )", NULL},
-	{"( 1.3.6.1.1.1.0.1 DESC 'Boot parameter' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.39 DESC 'OtherMailbox' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.40 DESC 'OctetString' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.41 DESC 'PostalAddress' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.42 DESC 'ProtocolInformation' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.43 DESC 'PresentationAddress' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.44 DESC 'PrintableString' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.49 DESC 'SupportedAlgorithm' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.50 DESC 'TelephoneNumber' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'TeletexTerminalIdentifier' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'TelexNumber' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.53 DESC 'UTCTime' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.54 DESC 'LDAPSyntaxDescription' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.58 DESC 'SubstringAssertion' )", NULL},
+	{"( 1.3.6.1.1.1.0.0 DESC 'NISnetgrouptriple' )", NULL},
+	{"( 1.3.6.1.1.1.0.1 DESC 'Bootparameter' )", NULL},
 	{NULL, NULL}
 };
 

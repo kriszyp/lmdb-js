@@ -357,6 +357,7 @@ int oc_check_no_usermod_attr LDAP_P(( char *type ));
 ObjectClass *oc_find LDAP_P((const char *ocname));
 int oc_add LDAP_P((LDAP_OBJECT_CLASS *oc, const char **err));
 Syntax *syn_find LDAP_P((const char *synname));
+Syntax *syn_find_desc LDAP_P((const char *syndesc, int *slen));
 int syn_add LDAP_P((LDAP_SYNTAX *syn, slap_syntax_check_func *check, const char **err));
 MatchingRule *mr_find LDAP_P((const char *mrname));
 int mr_add LDAP_P((LDAP_MATCHING_RULE *mr, slap_mr_normalize_func *normalize, slap_mr_compare_func *compare, const char **err));
@@ -373,9 +374,10 @@ int is_entry_objectclass LDAP_P(( Entry *, char* objectclass ));
  */
 
 void parse_oc_old LDAP_P(( Backend *be, char *fname, int lineno, int argc, char **argv ));
-void parse_oc LDAP_P(( char *fname, int lineno, char *line ));
-void parse_at LDAP_P(( char *fname, int lineno, char *line ));
+void parse_oc LDAP_P(( char *fname, int lineno, char *line, char **argv ));
+void parse_at LDAP_P(( char *fname, int lineno, char *line, char **argv ));
 char *scherr2str LDAP_P((int code));
+int dscompare LDAP_P(( char *s1, char *s2del, char delim ));
 /*
  * str2filter.c
  */

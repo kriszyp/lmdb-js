@@ -421,12 +421,15 @@ read_config( char *fname )
 			       fname, lineno, 0 );
 			return( 1 );
 #endif
+		/* specify an Object Identifier macro */
+		} else if ( strcasecmp( cargv[0], "objectidentifier" ) == 0 ) {
+			parse_oidm( fname, lineno, cargc, cargv );
 		/* specify an objectclass */
 		} else if ( strcasecmp( cargv[0], "objectclass" ) == 0 ) {
 			if ( *cargv[1] == '(' ) {
 				char * p;
 				p = strchr(saveline,'(');
-				parse_oc( fname, lineno, p );
+				parse_oc( fname, lineno, p, cargv );
 			} else {
 				parse_oc_old( be, fname, lineno, cargc, cargv );
 			}
@@ -436,7 +439,7 @@ read_config( char *fname )
 			if ( *cargv[1] == '(' ) {
 				char * p;
 				p = strchr(saveline,'(');
-				parse_at( fname, lineno, p );
+				parse_at( fname, lineno, p, cargv );
 			} else {
 				attr_syntax_config( fname, lineno, cargc - 1,
 				    &cargv[1] );

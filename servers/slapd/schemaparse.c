@@ -144,22 +144,134 @@ parse_oc_old(
 	ldap_memfree(oc);
 }
 
+/* OID Macros */
+
+/* String compare with delimiter check. Return 0 if not
+ * matched, otherwise return length matched.
+ */
+int
+dscompare(char *s1, char *s2, char delim)
+{
+	char *orig = s1;
+	while (*s1++ == *s2++)
+		if (!s1[-1]) break;
+	--s1;
+	--s2;
+	if (!*s1 && (!*s2 || *s2 == delim))
+		return s1 - orig;
+	return 0;
+}
+
+static OidMacro *om_list = NULL;
+
+/* Replace an OID Macro invocation with its full numeric OID.
+ * If the macro is used with "macroname:suffix" append ".suffix"
+ * to the expansion.
+ */
+static char *
+find_oidm(char *oid)
+{
+	OidMacro *om;
+	char *new;
+	int pos, suflen;
+
+	/* OID macros must start alpha */
+	if ( !isdigit( *oid ) )
+	{
+	    for (om = om_list; om; om=om->next)
+	    {
+		if ((pos = dscompare(om->name, oid, ':')))
+		{
+			suflen = strlen(oid + pos);
+			new = ch_calloc(1, om->oidlen + suflen + 1);
+			strcpy(new, om->oid);
+			if (suflen)
+			{
+				suflen = om->oidlen;
+				new[suflen++] = '.';
+				strcpy(new+suflen, oid+pos+1);
+			}
+			return new;
+		}
+	    }
+	    return NULL;
+	}
+	return oid;
+}
+
+void
+parse_oidm(
+    char	*fname,
+    int		lineno,
+    int		argc,
+    char 	**argv
+)
+{
+	OidMacro *om;
+
+	if (argc != 3)
+	{
+usage:		fprintf( stderr, "ObjectIdentifier <name> <oid>\n");
+		exit( EXIT_FAILURE );
+	}
+	om = (OidMacro *) ch_malloc( sizeof(OidMacro) );
+	om->name = ch_strdup( argv[1] );
+	om->oid = find_oidm( argv[2] );
+	if (!om->oid)
+	{
+		fprintf( stderr, "%s: line %d: OID %s not recognized\n",
+			fname, lineno, argv[2] );
+		goto usage;
+	}
+	if (om->oid == argv[2])
+		om->oid = ch_strdup( argv[2] );
+	om->oidlen = strlen( om->oid );
+	om->next = om_list;
+	om_list = om;
+}
+
 void
 parse_oc(
     char	*fname,
     int		lineno,
-    char	*line
+    char	*line,
+    char	**argv
 )
 {
 	LDAP_OBJECT_CLASS *oc;
 	int		code;
 	const char	*err;
+	char		*oid = NULL;
 
+	/* Kludge for OIDmacros. If the numericOid field starts nonnumeric
+	 * look for and expand a macro. The macro's place in the input line
+	 * will be replaced with a field of '0's to keep ldap_str2objectclass
+	 * happy. The actual oid will be swapped into place afterward.
+	 */
+	if ( !isdigit( *argv[2] ))
+	{
+		oid = find_oidm(argv[2]);
+		if (!oid)
+		{
+			fprintf(stderr, "%s: line %d: OID %s not recognized\n",
+				fname, lineno, argv[2]);
+			exit( EXIT_FAILURE );
+		}
+		if (oid != argv[2])
+			memset(strstr(line, argv[2]), '0', strlen(argv[2]));
+		else
+			oid = NULL;
+	}
 	oc = ldap_str2objectclass(line,&code,&err);
 	if ( !oc ) {
 		fprintf( stderr, "%s: line %d: %s before %s\n",
 			 fname, lineno, ldap_scherr2str(code), err );
 		oc_usage();
+	}
+	if (oid)
+	{
+		ldap_memfree(oc->oc_oid);
+		oc->oc_oid = oid;
 	}
 	code = oc_add(oc,&err);
 	if ( code ) {
@@ -226,18 +338,69 @@ void
 parse_at(
     char	*fname,
     int		lineno,
-    char	*line
+    char	*line,
+    char	**argv
 )
 {
 	LDAP_ATTRIBUTE_TYPE *at;
 	int		code;
 	const char	*err;
+	char		*oid = NULL;
+	char		*soid = NULL;
 
+	/* Kludge for OIDmacros. If the numericOid field starts nonnumeric
+	 * look for and expand a macro. The macro's place in the input line
+	 * will be replaced with a field of '0's to keep ldap_str2attr
+	 * happy. The actual oid will be swapped into place afterward.
+	 */
+	if ( !isdigit( *argv[2] ))
+	{
+		oid = find_oidm(argv[2]);
+		if (!oid)
+		{
+			fprintf(stderr, "%s: line %d: OID %s not recognized\n",
+				fname, lineno, argv[2]);
+			exit( EXIT_FAILURE );
+		}
+		if (oid != argv[2])
+			memset(strstr(line, argv[2]), '0', strlen(argv[2]));
+		else
+			oid = NULL;
+	}
+	for (; argv[3]; argv++)
+	{
+		if (!strcasecmp(argv[3], "syntax") &&
+		    !isdigit(*argv[4]))
+		{
+			int slen;
+			Syntax *syn;
+			syn = syn_find_desc(argv[4], &slen);
+			if (!syn)
+			{
+			    fprintf(stderr, "%s: line %d: OID %s not found\n",
+				fname, lineno, argv[4]);
+			    exit( EXIT_FAILURE );
+			}
+			memset(strstr(line, argv[4]), '0', slen);
+			soid = ch_strdup(syn->ssyn_syn.syn_oid );
+			break;
+		}
+	}
 	at = ldap_str2attributetype(line,&code,&err);
 	if ( !at ) {
 		fprintf( stderr, "%s: line %d: %s before %s\n",
 			 fname, lineno, ldap_scherr2str(code), err );
 		at_usage();
+	}
+	if (oid)
+	{
+		ldap_memfree(at->at_oid);
+		at->at_oid = oid;
+	}
+	if (soid)
+	{
+		ldap_memfree(at->at_syntax_oid);
+		at->at_syntax_oid = soid;
 	}
 	code = at_add(at,&err);
 	if ( code ) {
