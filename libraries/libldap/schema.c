@@ -23,7 +23,7 @@
 static const char *
 choose_name( char *names[], const char *fallback )
 {
-	return( (names != NULL && names[0] != NULL) ? names[0] : fallback );
+	return (names != NULL && names[0] != NULL) ? names[0] : fallback;
 }
 
 LDAP_CONST char *
@@ -62,12 +62,24 @@ ldap_contentrule2name( LDAPContentRule * cr )
 	return( choose_name( cr->cr_names, cr->cr_oid ) );
 }
 
+LDAP_CONST char *
+ldap_nameform2name( LDAPNameForm * nf )
+{
+	return( choose_name( nf->nf_names, nf->nf_oid ) );
+}
+
+LDAP_CONST char *
+ldap_structurerule2name( LDAPStructureRule * sr )
+{
+	return( choose_name( sr->sr_names, NULL ) );
+}
+
 /*
  * When pretty printing the entities we will be appending to a buffer.
  * Since checking for overflow, realloc'ing and checking if no error
- * is extremely boring, we will use a protection layer that will let
- * us blissfully ignore the error until the end.  This layer is
- * implemented with the help of the next type.
+ * is extremely boring, we error until the end.  This layer is
+ * implemented with the he will use a protection layer that will let
+ * us blissfully ignore thlp of the next type.
  */
 
 typedef struct safe_string {
@@ -291,6 +303,34 @@ print_noidlen(safe_string *ss, char *s, int l)
 	}
 	return(ret);
 }
+
+static int
+print_ruleid(safe_string *ss, int rid)
+{
+	char buf[64];
+	snprintf(buf, sizeof buf, "%d", rid);
+	return print_literal(ss,buf);
+}
+
+static int
+print_ruleids(safe_string *ss, int n, int *rids)
+{
+	int i;
+
+	if( n == 1 ) {
+		print_ruleid(ss,rids[0]);
+		return print_whsp(ss);
+	} else {
+		print_literal(ss,"("/*)*/);
+		for( i=0; i<n; i++ ) {
+			print_whsp(ss);
+			print_ruleid(ss,rids[i]);
+		}
+		print_whsp(ss);
+		return print_literal(ss,/*(*/")");
+	}
+}
+
 
 static int
 print_extensions(safe_string *ss, LDAPSchemaExtensionItem **extensions)
@@ -640,6 +680,139 @@ ldap_contentrule2bv( LDAPContentRule * cr, struct berval *bv )
 }
 
 char *
+ldap_structurerule2str( LDAPStructureRule * sr )
+{
+	struct berval bv;
+	if (ldap_structurerule2bv( sr, &bv ))
+		return(bv.bv_val);
+	else
+		return NULL;
+}
+
+struct berval *
+ldap_structurerule2bv( LDAPStructureRule * sr, struct berval *bv )
+{
+	safe_string * ss;
+	
+	ss = new_safe_string(256);
+	if ( !ss )
+		return NULL;
+
+	print_literal(ss,"("/*)*/);
+	print_whsp(ss);
+
+	print_ruleid(ss, sr->sr_ruleid);
+	print_whsp(ss);
+
+	if ( sr->sr_names ) {
+		print_literal(ss,"NAME");
+		print_qdescrs(ss,sr->sr_names);
+	}
+
+	if ( sr->sr_desc ) {
+		print_literal(ss,"DESC");
+		print_qdstring(ss,sr->sr_desc);
+	}
+
+	if ( sr->sr_obsolete ) {
+		print_literal(ss, "OBSOLETE");
+		print_whsp(ss);
+	}
+
+	print_literal(ss,"FORM");
+	print_whsp(ss);
+	print_woid(ss,sr->sr_nameform);
+	print_whsp(ss);
+
+	if ( sr->sr_nsup_ruleids ) {
+		print_literal(ss,"SUP");
+		print_whsp(ss);
+		print_ruleids(ss,sr->sr_nsup_ruleids,sr->sr_sup_ruleids);
+		print_whsp(ss);
+	}
+
+	print_whsp(ss);
+	print_extensions(ss, sr->sr_extensions);
+
+	print_literal(ss, /*(*/")");
+
+	bv->bv_val = safe_strdup(ss);
+	bv->bv_len = ss->pos;
+	safe_string_free(ss);
+	return(bv);
+}
+
+
+char *
+ldap_nameform2str( LDAPNameForm * nf )
+{
+	struct berval bv;
+	if (ldap_nameform2bv( nf, &bv ))
+		return(bv.bv_val);
+	else
+		return NULL;
+}
+
+struct berval *
+ldap_nameform2bv( LDAPNameForm * nf, struct berval *bv )
+{
+	safe_string * ss;
+	
+	ss = new_safe_string(256);
+	if ( !ss )
+		return NULL;
+
+	print_literal(ss,"("/*)*/);
+	print_whsp(ss);
+
+	print_numericoid(ss, nf->nf_oid);
+	print_whsp(ss);
+
+	if ( nf->nf_names ) {
+		print_literal(ss,"NAME");
+		print_qdescrs(ss,nf->nf_names);
+	}
+
+	if ( nf->nf_desc ) {
+		print_literal(ss,"DESC");
+		print_qdstring(ss,nf->nf_desc);
+	}
+
+	if ( nf->nf_obsolete ) {
+		print_literal(ss, "OBSOLETE");
+		print_whsp(ss);
+	}
+
+	print_literal(ss,"OC");
+	print_whsp(ss);
+	print_woid(ss,nf->nf_objectclass);
+	print_whsp(ss);
+
+	print_literal(ss,"MUST");
+	print_whsp(ss);
+	print_oids(ss,nf->nf_at_oids_must);
+	print_whsp(ss);
+
+
+	if ( nf->nf_at_oids_may ) {
+		print_literal(ss,"MAY");
+		print_whsp(ss);
+		print_oids(ss,nf->nf_at_oids_may);
+		print_whsp(ss);
+	}
+
+	print_whsp(ss);
+	print_extensions(ss, nf->nf_extensions);
+
+	print_literal(ss, /*(*/")");
+
+	bv->bv_val = safe_strdup(ss);
+	bv->bv_len = ss->pos;
+	safe_string_free(ss);
+	return(bv);
+}
+
+char *
 ldap_attributetype2str( LDAPAttributeType * at )
 {
 	struct berval bv;
@@ -935,6 +1108,28 @@ ldap_int_parse_numericoid(const char **sp, int *code, const int flags)
 		res[len] = '\0';
 	}
 	return(res);
+}
+
+/* Parse a sequence of dot-separated decimal strings */
+int
+ldap_int_parse_ruleid(const char **sp, int *code, const int flags, int *ruleid)
+{
+	*ruleid=0;
+
+	if ( !LDAP_DIGIT(**sp) ) {
+		*code = LDAP_SCHERR_NODIGIT;
+		return -1;
+	}
+	*ruleid = (**sp) - '0';
+	(*sp)++;
+
+	while ( LDAP_DIGIT(**sp) ) {
+		*ruleid *= 10;
+		*ruleid += (**sp) - '0';
+		(*sp)++;
+	}
+
+	return 0;
 }
 
 /* Parse a qdescr or a list of them enclosed in () */
@@ -1234,7 +1429,7 @@ LDAPSyntax *
 ldap_str2syntax( LDAP_CONST char * s,
 	int * code,
 	LDAP_CONST char ** errp,
-	LDAP_CONST int flags )
+	LDAP_CONST unsigned flags )
 {
 	int kind;
 	const char * ss = s;
@@ -1376,7 +1571,7 @@ LDAPMatchingRule *
 ldap_str2matchingrule( LDAP_CONST char * s,
 	int * code,
 	LDAP_CONST char ** errp,
-	LDAP_CONST int flags )
+	LDAP_CONST unsigned flags )
 {
 	int kind;
 	const char * ss = s;
@@ -1453,6 +1648,11 @@ ldap_str2matchingrule( LDAP_CONST char * s,
 			ldap_matchingrule_free(mr);
 			return NULL;
 		case TK_RIGHTPAREN:
+			if( !seen_syntax ) {
+				*code = LDAP_SCHERR_MISSING;
+				ldap_matchingrule_free(mr);
+				return NULL;
+			}
 			return mr;
 		case TK_BAREWORD:
 			if ( !strcmp(sval,"NAME") ) {
@@ -1570,7 +1770,7 @@ LDAPMatchingRuleUse *
 ldap_str2matchingruleuse( LDAP_CONST char * s,
 	int * code,
 	LDAP_CONST char ** errp,
-	LDAP_CONST int flags )
+	LDAP_CONST unsigned flags )
 {
 	int kind;
 	const char * ss = s;
@@ -1647,6 +1847,11 @@ ldap_str2matchingruleuse( LDAP_CONST char * s,
 			ldap_matchingruleuse_free(mru);
 			return NULL;
 		case TK_RIGHTPAREN:
+			if( !seen_applies ) {
+				*code = LDAP_SCHERR_MISSING;
+				ldap_matchingruleuse_free(mru);
+				return NULL;
+			}
 			return mru;
 		case TK_BAREWORD:
 			if ( !strcmp(sval,"NAME") ) {
@@ -1767,7 +1972,7 @@ LDAPAttributeType *
 ldap_str2attributetype( LDAP_CONST char * s,
 	int * code,
 	LDAP_CONST char ** errp,
-	LDAP_CONST int flags )
+	LDAP_CONST unsigned flags )
 {
 	int kind;
 	const char * ss = s;
@@ -2145,7 +2350,7 @@ LDAPObjectClass *
 ldap_str2objectclass( LDAP_CONST char * s,
 	int * code,
 	LDAP_CONST char ** errp,
-	LDAP_CONST int flags )
+	LDAP_CONST unsigned flags )
 {
 	int kind;
 	const char * ss = s;
@@ -2427,7 +2632,7 @@ LDAPContentRule *
 ldap_str2contentrule( LDAP_CONST char * s,
 	int * code,
 	LDAP_CONST char ** errp,
-	LDAP_CONST int flags )
+	LDAP_CONST unsigned flags )
 {
 	int kind;
 	const char * ss = s;
@@ -2467,45 +2672,14 @@ ldap_str2contentrule( LDAP_CONST char * s,
 
 	/*
 	 * Definitions MUST begin with an OID in the numericoid format.
-	 * However, this routine is used by clients to parse the response
-	 * from servers and very well known servers will provide an OID
-	 * in the wrong format or even no OID at all.  We do our best to
-	 * extract info from those servers.
 	 */
 	parse_whsp(&ss);
 	savepos = ss;
 	cr->cr_oid = ldap_int_parse_numericoid(&ss,code,0);
 	if ( !cr->cr_oid ) {
-		if ( (flags & LDAP_SCHEMA_ALLOW_ALL) && (ss == savepos) ) {
-			/* Backtracking */
-			ss = savepos;
-			kind = get_token(&ss,&sval);
-			if ( kind == TK_BAREWORD ) {
-				if ( !strcmp(sval, "NAME") ||
-				     !strcmp(sval, "DESC") ||
-				     !strcmp(sval, "OBSOLETE") ||
-				     !strcmp(sval, "AUX") ||
-				     !strcmp(sval, "MUST") ||
-				     !strcmp(sval, "MAY") ||
-				     !strcmp(sval, "NOT") ||
-				     !strncmp(sval, "X-", 2) ) {
-					/* Missing OID, backtrack */
-					ss = savepos;
-				} else if ( flags &
-					LDAP_SCHEMA_ALLOW_OID_MACRO ) {
-					/* Non-numerical OID, ignore */
-					int len = ss-savepos;
-					cr->cr_oid = LDAP_MALLOC(len+1);
-					strncpy(cr->cr_oid, savepos, len);
-					cr->cr_oid[len] = 0;
-				}
-			}
-			LDAP_FREE(sval);
-		} else {
-			*errp = ss;
-			ldap_contentrule_free(cr);
-			return NULL;
-		}
+		*errp = ss;
+		ldap_contentrule_free(cr);
+		return NULL;
 	}
 	parse_whsp(&ss);
 
@@ -2670,6 +2844,393 @@ ldap_str2contentrule( LDAP_CONST char * s,
 	}
 }
 
+void
+ldap_structurerule_free(LDAPStructureRule * sr)
+{
+	if (sr->sr_names) LDAP_VFREE(sr->sr_names);
+	if (sr->sr_desc) LDAP_FREE(sr->sr_desc);
+	if (sr->sr_nameform) LDAP_FREE(sr->sr_nameform);
+	if (sr->sr_sup_ruleids) LDAP_FREE(sr->sr_sup_ruleids);
+	free_extensions(sr->sr_extensions);
+	LDAP_FREE(sr);
+}
+
+LDAPStructureRule *
+ldap_str2structurerule( LDAP_CONST char * s,
+	int * code,
+	LDAP_CONST char ** errp,
+	LDAP_CONST unsigned flags )
+{
+	int kind, ret;
+	const char * ss = s;
+	char * sval;
+	int seen_name = 0;
+	int seen_desc = 0;
+	int seen_obsolete = 0;
+	int seen_nameform = 0;
+	int seen_ruleids = 0;
+	LDAPStructureRule * sr;
+	char ** ext_vals;
+	const char * savepos;
+
+	if ( !s ) {
+		*code = LDAP_SCHERR_EMPTY;
+		*errp = "";
+		return NULL;
+	}
+
+	*errp = s;
+	sr = LDAP_CALLOC(1,sizeof(LDAPStructureRule));
+
+	if ( !sr ) {
+		*code = LDAP_SCHERR_OUTOFMEM;
+		return NULL;
+	}
+
+	kind = get_token(&ss,&sval);
+	if ( kind != TK_LEFTPAREN ) {
+		*code = LDAP_SCHERR_NOLEFTPAREN;
+		LDAP_FREE(sval);
+		ldap_structurerule_free(sr);
+		return NULL;
+	}
+
+	/*
+	 * Definitions MUST begin with a ruleid.
+	 */
+	parse_whsp(&ss);
+	savepos = ss;
+	ret = ldap_int_parse_ruleid(&ss,code,0,&sr->sr_ruleid);
+	if ( ret ) {
+		*errp = ss;
+		ldap_structurerule_free(sr);
+		return NULL;
+	}
+	parse_whsp(&ss);
+
+	/*
+	 * Beyond this point we will be liberal an accept the items
+	 * in any order.
+	 */
+	while (1) {
+		kind = get_token(&ss,&sval);
+		switch (kind) {
+		case TK_EOS:
+			*code = LDAP_SCHERR_NORIGHTPAREN;
+			*errp = ss;
+			ldap_structurerule_free(sr);
+			return NULL;
+		case TK_RIGHTPAREN:
+			if( !seen_nameform ) {
+				*code = LDAP_SCHERR_MISSING;
+				ldap_structurerule_free(sr);
+				return NULL;
+			}
+			return sr;
+		case TK_BAREWORD:
+			if ( !strcmp(sval,"NAME") ) {
+				LDAP_FREE(sval);
+				if ( seen_name ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_structurerule_free(sr);
+					return(NULL);
+				}
+				seen_name = 1;
+				sr->sr_names = parse_qdescrs(&ss,code);
+				if ( !sr->sr_names ) {
+					if ( *code != LDAP_SCHERR_OUTOFMEM )
+						*code = LDAP_SCHERR_BADNAME;
+					*errp = ss;
+					ldap_structurerule_free(sr);
+					return NULL;
+				}
+			} else if ( !strcmp(sval,"DESC") ) {
+				LDAP_FREE(sval);
+				if ( seen_desc ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_structurerule_free(sr);
+					return(NULL);
+				}
+				seen_desc = 1;
+				parse_whsp(&ss);
+				kind = get_token(&ss,&sval);
+				if ( kind != TK_QDSTRING ) {
+					*code = LDAP_SCHERR_UNEXPTOKEN;
+					*errp = ss;
+					LDAP_FREE(sval);
+					ldap_structurerule_free(sr);
+					return NULL;
+				}
+				sr->sr_desc = sval;
+				parse_whsp(&ss);
+			} else if ( !strcmp(sval,"OBSOLETE") ) {
+				LDAP_FREE(sval);
+				if ( seen_obsolete ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_structurerule_free(sr);
+					return(NULL);
+				}
+				seen_obsolete = 1;
+				sr->sr_obsolete = LDAP_SCHEMA_YES;
+				parse_whsp(&ss);
+			} else if ( !strcmp(sval,"FORM") ) {
+				LDAP_FREE(sval);
+				if ( seen_nameform ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_structurerule_free(sr);
+					return(NULL);
+				}
+				seen_nameform = 1;
+				sr->sr_nameform = parse_woid(&ss,code);
+				if ( !sr->sr_nameform ) {
+					*errp = ss;
+					ldap_structurerule_free(sr);
+					return NULL;
+				}
+				parse_whsp(&ss);
+			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
+				/* Should be parse_qdstrings */
+				ext_vals = parse_qdescrs(&ss, code);
+				if ( !ext_vals ) {
+					*errp = ss;
+					ldap_structurerule_free(sr);
+					return NULL;
+				}
+				if ( add_extension(&sr->sr_extensions,
+						    sval, ext_vals) ) {
+					*code = LDAP_SCHERR_OUTOFMEM;
+					*errp = ss;
+					LDAP_FREE(sval);
+					ldap_structurerule_free(sr);
+					return NULL;
+				}
+			} else {
+				*code = LDAP_SCHERR_UNEXPTOKEN;
+				*errp = ss;
+				LDAP_FREE(sval);
+				ldap_structurerule_free(sr);
+				return NULL;
+			}
+			break;
+		default:
+			*code = LDAP_SCHERR_UNEXPTOKEN;
+			*errp = ss;
+			LDAP_FREE(sval);
+			ldap_structurerule_free(sr);
+			return NULL;
+		}
+	}
+}
+
+void
+ldap_nameform_free(LDAPNameForm * nf)
+{
+	LDAP_FREE(nf->nf_oid);
+	if (nf->nf_names) LDAP_VFREE(nf->nf_names);
+	if (nf->nf_desc) LDAP_FREE(nf->nf_desc);
+	if (nf->nf_objectclass) LDAP_FREE(nf->nf_objectclass);
+	if (nf->nf_at_oids_must) LDAP_VFREE(nf->nf_at_oids_must);
+	if (nf->nf_at_oids_may) LDAP_VFREE(nf->nf_at_oids_may);
+	free_extensions(nf->nf_extensions);
+	LDAP_FREE(nf);
+}
+
+LDAPNameForm *
+ldap_str2nameform( LDAP_CONST char * s,
+	int * code,
+	LDAP_CONST char ** errp,
+	LDAP_CONST unsigned flags )
+{
+	int kind;
+	const char * ss = s;
+	char * sval;
+	int seen_name = 0;
+	int seen_desc = 0;
+	int seen_obsolete = 0;
+	int seen_class = 0;
+	int seen_must = 0;
+	int seen_may = 0;
+	LDAPNameForm * nf;
+	char ** ext_vals;
+	const char * savepos;
+
+	if ( !s ) {
+		*code = LDAP_SCHERR_EMPTY;
+		*errp = "";
+		return NULL;
+	}
+
+	*errp = s;
+	nf = LDAP_CALLOC(1,sizeof(LDAPNameForm));
+
+	if ( !nf ) {
+		*code = LDAP_SCHERR_OUTOFMEM;
+		return NULL;
+	}
+
+	kind = get_token(&ss,&sval);
+	if ( kind != TK_LEFTPAREN ) {
+		*code = LDAP_SCHERR_NOLEFTPAREN;
+		LDAP_FREE(sval);
+		ldap_nameform_free(nf);
+		return NULL;
+	}
+
+	/*
+	 * Definitions MUST begin with an OID in the numericoid format.
+	 * However, this routine is used by clients to parse the response
+	 * from servers and very well known servers will provide an OID
+	 * in the wrong format or even no OID at all.  We do our best to
+	 * extract info from those servers.
+	 */
+	parse_whsp(&ss);
+	savepos = ss;
+	nf->nf_oid = ldap_int_parse_numericoid(&ss,code,0);
+	if ( !nf->nf_oid ) {
+		*errp = ss;
+		ldap_nameform_free(nf);
+		return NULL;
+	}
+	parse_whsp(&ss);
+
+	/*
+	 * Beyond this point we will be liberal an accept the items
+	 * in any order.
+	 */
+	while (1) {
+		kind = get_token(&ss,&sval);
+		switch (kind) {
+		case TK_EOS:
+			*code = LDAP_SCHERR_NORIGHTPAREN;
+			*errp = ss;
+			ldap_nameform_free(nf);
+			return NULL;
+		case TK_RIGHTPAREN:
+			if( !seen_class || !seen_must ) {
+				*code = LDAP_SCHERR_MISSING;
+				ldap_nameform_free(nf);
+				return NULL;
+			}
+			return nf;
+		case TK_BAREWORD:
+			if ( !strcmp(sval,"NAME") ) {
+				LDAP_FREE(sval);
+				if ( seen_name ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_nameform_free(nf);
+					return(NULL);
+				}
+				seen_name = 1;
+				nf->nf_names = parse_qdescrs(&ss,code);
+				if ( !nf->nf_names ) {
+					if ( *code != LDAP_SCHERR_OUTOFMEM )
+						*code = LDAP_SCHERR_BADNAME;
+					*errp = ss;
+					ldap_nameform_free(nf);
+					return NULL;
+				}
+			} else if ( !strcmp(sval,"DESC") ) {
+				LDAP_FREE(sval);
+				if ( seen_desc ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_nameform_free(nf);
+					return(NULL);
+				}
+				seen_desc = 1;
+				parse_whsp(&ss);
+				kind = get_token(&ss,&sval);
+				if ( kind != TK_QDSTRING ) {
+					*code = LDAP_SCHERR_UNEXPTOKEN;
+					*errp = ss;
+					LDAP_FREE(sval);
+					ldap_nameform_free(nf);
+					return NULL;
+				}
+				nf->nf_desc = sval;
+				parse_whsp(&ss);
+			} else if ( !strcmp(sval,"OBSOLETE") ) {
+				LDAP_FREE(sval);
+				if ( seen_obsolete ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_nameform_free(nf);
+					return(NULL);
+				}
+				seen_obsolete = 1;
+				nf->nf_obsolete = LDAP_SCHEMA_YES;
+				parse_whsp(&ss);
+			} else if ( !strcmp(sval,"MUST") ) {
+				LDAP_FREE(sval);
+				if ( seen_must ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_nameform_free(nf);
+					return(NULL);
+				}
+				seen_must = 1;
+				nf->nf_at_oids_must = parse_oids(&ss,code,0);
+				if ( !nf->nf_at_oids_must ) {
+					*errp = ss;
+					ldap_nameform_free(nf);
+					return NULL;
+				}
+				parse_whsp(&ss);
+			} else if ( !strcmp(sval,"MAY") ) {
+				LDAP_FREE(sval);
+				if ( seen_may ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_nameform_free(nf);
+					return(NULL);
+				}
+				seen_may = 1;
+				nf->nf_at_oids_may = parse_oids(&ss,code,0);
+				if ( !nf->nf_at_oids_may ) {
+					*errp = ss;
+					ldap_nameform_free(nf);
+					return NULL;
+				}
+				parse_whsp(&ss);
+			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
+				/* Should be parse_qdstrings */
+				ext_vals = parse_qdescrs(&ss, code);
+				if ( !ext_vals ) {
+					*errp = ss;
+					ldap_nameform_free(nf);
+					return NULL;
+				}
+				if ( add_extension(&nf->nf_extensions,
+						    sval, ext_vals) ) {
+					*code = LDAP_SCHERR_OUTOFMEM;
+					*errp = ss;
+					LDAP_FREE(sval);
+					ldap_nameform_free(nf);
+					return NULL;
+				}
+			} else {
+				*code = LDAP_SCHERR_UNEXPTOKEN;
+				*errp = ss;
+				LDAP_FREE(sval);
+				ldap_nameform_free(nf);
+				return NULL;
+			}
+			break;
+		default:
+			*code = LDAP_SCHERR_UNEXPTOKEN;
+			*errp = ss;
+			LDAP_FREE(sval);
+			ldap_nameform_free(nf);
+			return NULL;
+		}
+	}
+}
+
 static char *const err2text[] = {
 	"Success",
 	"Out of memory",
@@ -2681,7 +3242,9 @@ static char *const err2text[] = {
 	"Bad description",
 	"Bad superiors",
 	"Duplicate option",
-	"Unexpected end of data"
+	"Unexpected end of data",
+	"Missing required field",
+	"Out of order field"
 };
 
 char *
