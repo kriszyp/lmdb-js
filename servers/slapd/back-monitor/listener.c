@@ -39,6 +39,23 @@ monitor_subsys_listener_init(
 
 	assert( be != NULL );
 
+	if ( ( l = slapd_get_listeners() ) == NULL ) {
+		if ( slapMode & SLAP_TOOL_MODE ) {
+			return 0;
+		}
+
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, CRIT,
+			"monitor_subsys_listener_init: "
+			"unable to get listeners\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_listener_init: "
+			"unable to get listeners\n", 0, 0, 0 );
+#endif
+		return( -1 );
+	}
+
 	mi = ( struct monitorinfo * )be->be_private;
 
 	if ( monitor_cache_get( mi, 
@@ -55,19 +72,6 @@ monitor_subsys_listener_init(
 			"unable to get entry '%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val, 
 			"", "" );
-#endif
-		return( -1 );
-	}
-
-	if ( ( l = slapd_get_listeners() ) == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_listener_init: "
-			"unable to get listeners\n", 0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_listener_init: "
-			"unable to get listeners\n", 0, 0, 0 );
 #endif
 		return( -1 );
 	}
