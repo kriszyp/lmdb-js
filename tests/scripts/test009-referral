@@ -127,6 +127,18 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Testing objectClass/attributeType inheritance ..."
+$LDAPSEARCH -M -a never -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+	'(&(objectClass=inetorgperson)(userid=uham))' \
+	"2.5.4.0" "userid" >> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+
 kill -HUP $PID $SLAVEPID
 
 LDIF=$SEARCHOUTMASTER
