@@ -131,11 +131,11 @@ syncprov_state_ctrl(
 	Operation	*op,
 	SlapReply	*rs,
 	Entry		*e,
-	int			entry_sync_state,
+	int		entry_sync_state,
 	LDAPControl	**ctrls,
-	int			num_ctrls,
-	int			send_cookie,
-	struct berval	*cookie)
+	int		num_ctrls,
+	int		send_cookie,
+	struct berval	*cookie )
 {
 	Attribute* a;
 	int ret;
@@ -145,27 +145,31 @@ syncprov_state_ctrl(
 	BerElementBuffer berbuf;
 	BerElement *ber = (BerElement *)&berbuf;
 
-	struct berval entryuuid_bv	= BER_BVNULL;
+	struct berval	entryuuid_bv = BER_BVNULL;
 
 	ber_init2( ber, 0, LBER_USE_DER );
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
 	ctrls[num_ctrls] = op->o_tmpalloc( sizeof ( LDAPControl ), op->o_tmpmemctx );
-
-	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		AttributeDescription *desc = a->a_desc;
-		if ( desc == slap_schema.si_ad_entryUUID ) {
-			entryuuid_bv = a->a_nvals[0];
-			break;
+	
+	/* NOTE: this function is called also for referrals;
+	 * in this case, e is null, right? */
+	if ( e ) {
+		for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+			AttributeDescription *desc = a->a_desc;
+			if ( desc == slap_schema.si_ad_entryUUID ) {
+				entryuuid_bv = a->a_nvals[0];
+				break;
+			}
 		}
-	}
 
-	if ( send_cookie && cookie ) {
-		ber_printf( ber, "{eOON}",
-			entry_sync_state, &entryuuid_bv, cookie );
-	} else {
-		ber_printf( ber, "{eON}",
-			entry_sync_state, &entryuuid_bv );
+		if ( send_cookie && cookie ) {
+			ber_printf( ber, "{eOON}",
+				entry_sync_state, &entryuuid_bv, cookie );
+		} else {
+			ber_printf( ber, "{eON}",
+				entry_sync_state, &entryuuid_bv );
+		}
 	}
 
 	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_STATE;
@@ -1258,7 +1262,9 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 
 	if ( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF ) {
 		int i;
-		if ( srs->sr_state.ctxcsn ) {
+		/* FIXME: when rs->sr_type == REP_SEARCHREF,
+		 * rs->sr_entry is NULL! */
+		if ( srs->sr_state.ctxcsn && rs->sr_entry ) {
 			Attribute *a = attr_find( rs->sr_entry->e_attrs,
 				slap_schema.si_ad_entryCSN );
 			/* Don't send the ctx entry twice */
@@ -1603,8 +1609,8 @@ syncprov_db_open(
     BackendDB *be
 )
 {
-    slap_overinst   *on = (slap_overinst *) be->bd_info;
-    syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
+	slap_overinst   *on = (slap_overinst *) be->bd_info;
+	syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
 
 	char opbuf[OPERATION_BUFFER_SIZE];
 	Operation *op = (Operation *)opbuf;
@@ -1624,6 +1630,10 @@ syncprov_db_open(
 	rc = be_entry_get_rw( op, be->be_nsuffix, NULL,
 		slap_schema.si_ad_contextCSN, 0, &e );
 
+	BER_BVZERO( &si->si_ctxcsn );
+
+	/* FIXME: when rs->sr_type == REP_SEARCHREF,
+	 * rs->sr_entry == NULL! */
 	if ( e ) {
 		a = attr_find( e->e_attrs, slap_schema.si_ad_contextCSN );
 		if ( a ) {
@@ -1636,8 +1646,14 @@ syncprov_db_open(
 		}
 		be_entry_release_r( op, e );
 	}
+
+	if ( BER_BVISNULL( &si->si_ctxcsn ) ) {
+		slap_get_csn( op, si->si_ctxcsnbuf, sizeof(si->si_ctxcsnbuf),
+				&si->si_ctxcsn, 0 );
+	}
+	
 	op->o_bd->bd_info = (BackendInfo *)on;
-    return 0;
+	return 0;
 }
 
 /* Write the current contextCSN into the underlying db.
