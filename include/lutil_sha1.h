@@ -15,7 +15,9 @@ LDAP_BEGIN_DECL
  * 100% Public Domain
  */
 
+#ifndef LDAP_UINT32
 typedef LDAP_UINT4 uint32;
+#endif
 
 typedef struct {
     uint32 state[5];
