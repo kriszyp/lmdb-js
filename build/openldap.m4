@@ -1216,3 +1216,16 @@ AC_DEFUN([OL_SASL_COMPAT],
 #endif
 	],	[ol_cv_sasl_compat=yes], [ol_cv_sasl_compat=no])])
 ])
+dnl ====================================================================
+dnl check for msg_accrights in msghdr
+AC_DEFUN(OL_MSGHDR_MSG_ACCRIGHTS,
+ [AC_CACHE_CHECK(msg_accrights in msghdr, ol_cv_msg_accrights,
+   [AC_TRY_COMPILE([#include <socket.h>],
+		[struct msghdr m; m.msg_accrightslen=0],
+		ol_cv_msghdr_msg_accrights=yes, ol_cv_msghdr_msg_accrights=no)
+	])
+  if test $ol_cv_func_ctime_r_type = "int" ; then
+	AC_DEFINE(HAVE_MSGHDR_MSG_ACCRIGHTS,1,
+		[define if struct msghdr has msg_accrights])
+  fi
+])dnl

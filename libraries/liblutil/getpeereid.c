@@ -19,7 +19,8 @@
 #include <sys/ucred.h>
 #endif
 
-#if !defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && defined(HAVE_SENDMSG)
+#if !defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
+	defined(HAVE_SENDMSG) && defined(HAVE_MSGHDR_MSG_ACCRIGHTS)
 #define DO_SENDMSG
 #ifdef HAVE_SYS_UIO_H
 #include <sys/uio.h>

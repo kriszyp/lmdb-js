@@ -887,6 +887,9 @@
 /* define to vsnprintf routine */
 #undef vsnprintf
 
+/* define if struct msghdr has msg_accrights */
+#undef HAVE_MSGHDR_MSG_ACCRIGHTS
+
 /* define to snprintf routine */
 #undef snprintf
 
