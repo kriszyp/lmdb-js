@@ -674,8 +674,9 @@ static int move_entry(Entry * entry, struct berval * ndn,
 	    }
 	  }
 	  else if(exists_res) {
+		int close_res;
 	    res = LDAP_ALREADY_EXISTS;
-	    int close_res = close(exists_res);
+	    close_res = close(exists_res);
 	    if(close_res == -1) {
 	/* log heinous error */
 	    }
@@ -696,7 +697,7 @@ static int ldif_back_modrdn(Operation *op, SlapReply *rs) {
 	struct ldif_info *ni = (struct ldif_info *) op->o_bd->be_private;
 	struct berval new_dn = {0, NULL}, new_ndn = {0, NULL};
 	struct berval * new_parent_dn = NULL;
-	struct berval p_dn;
+	struct berval p_dn, bv = {0, NULL};
 	Entry * entry = NULL;
 	LDAPRDN new_rdn = NULL;
 	LDAPRDN old_rdn = NULL;
@@ -731,7 +732,6 @@ static int ldif_back_modrdn(Operation *op, SlapReply *rs) {
 	  p_dn = slap_empty_bv;
 	dnParent(&entry->e_name, &p_dn);
 	build_new_dn(&new_dn, &p_dn, &op->oq_modrdn.rs_newrdn, NULL); 
-	struct berval bv = {0, NULL};
 	dnNormalize( 0, NULL, NULL, &new_dn, &bv, op->o_tmpmemctx );
 	ber_dupbv( &new_ndn, &bv );
 	entry->e_name = new_dn;
