@@ -44,7 +44,7 @@ ISO	 International Standards Organisation	http://www.iso.org/
 ITU	 International Telephone Union		http://www.itu.int/
 RFC	 RFC Editor				http://www.rfc-editor.org/
 OpenSSL  OpenSSL				http://www.openssl.org/
-Cyrus	 Cyrus					http://asg.cmu.edu/cyrus/
+Cyrus	 Cyrus					http://asg.web.cmu.edu/cyrus/
 Sleepy	 Sleepycat Software			http://www.sleepycat.com/
 FSF	 Free Software Foundation		http://www.fsf.org/
 GNU	 Gnu Not Unix 				http://www.gnu.org/
@@ -54,7 +54,7 @@ GNU	 Gnu Not Unix 				http://www.gnu.org/
 Name		Jump
 BerkeleyDB	http://www.sleepycat.com/
 CVS		http://www.cyclic.com/
-Cyrus		http://asg.cmu.edu/cyrus/sasl/
+Cyrus		http://asg.web.cmu.edu/cyrus/
 GNU		http://www.gnu.org/software/
 GDBM		http://www.gnu.org/software/gdbm/
 Heimdal		http://www.pdc.kth.se/heimdal/
@@ -62,6 +62,7 @@ MIT Kerberos	http://web.mit.edu/kerberos/www/
 OpenLDAP	http://www.openldap.org/software/
 OpenSSL		http://www.openssl.org/
 Perl		http://www.perl.com/
+SASL		http://asg.web.cmu.edu/sasl/
 SQL		http://www.sql.com/
 TCL		http://www.tcl.com/
 !endblock
@@ -92,7 +93,7 @@ IPSEC	Internet Protocol Security
 ITS	Issue Tracking System
 LBER	Lightweight BER
 LDAP	Lightweight Directory Access Protocol
-LDIF	LDAP Directory Interchange Format
+LDIF	LDAP Data Interchange Format
 LDBM	LDAP Database Manager
 OID	Object Identifier
 OSI	OSI

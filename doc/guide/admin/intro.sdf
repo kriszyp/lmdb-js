@@ -157,8 +157,9 @@ clients.  {{slapd}} supports both IPv4 and IPv6 protocols.
 
 {{B:{{TERM[expand]SASL}}}}: {{slapd}} supports
 strong authentication services through the use of SASL.  {{slapd}}'s
-SASL implementation utilizes {{PRD:Cyrus}} software which supports
-a number of mechanisms including DIGEST-MD5, EXTERNAL, and GSSAPI.
+SASL implementation utilizes {{PRD:Cyrus}} {{PRD:SASL}} software
+which supports a number of mechanisms including
+DIGEST-MD5, EXTERNAL, and GSSAPI.
 
 {{B:{{TERM[expand]TLS}}}}: {{slapd}} provides privacy and 
 integrity protections through the use of TLS (or SSL).  {{slapd}}'s

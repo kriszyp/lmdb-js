@@ -290,7 +290,7 @@ given. Kerberos authentication requires a valid srvtab file.
 The {{EX:credentials=}} parameter, which is only required if using
 simple authentication, gives the password for {{EX:binddn}} on the
 slave slapd.  Simple authentication is deprecated in favor of
-SASL based authentication services.
+{{TERM:SASL}} based authentication services.
 
 The {{EX:srvtab=}} parameter is deprecated in favor of SASL
 based authentication services.

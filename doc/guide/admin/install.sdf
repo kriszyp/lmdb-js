@@ -72,13 +72,14 @@ Kerberos, is highly recommended.
 
 H3: {{TERM[expand]SASL}}
 
-OpenLDAP clients and servers require installation of {{PRD:Cyrus}}
-SASL libraries to provide {{TERM[expand]SASL}} services.  Though
+OpenLDAP clients and servers require installation of {{PRD:Cyrus}}'s
+{{PRD:SASL}} libraries to provide {{TERM[expand]SASL}} services.  Though
 some operating systems may provide this library as part of the
 base system or as an optional software component, Cyrus SASL
 often requires separate installation.
 
-Cyrus SASL is available from {{URL:http://asg.cmu.edu/cyrus/sasl/}}.
+Cyrus SASL is available from
+{{URL:http://asg.web.cmu.edu/sasl/sasl-library.html}}.
 Cyrus SASL will make use of OpenSSL and Kerberos/GSSAPI libraries
 if preinstalled.
 
