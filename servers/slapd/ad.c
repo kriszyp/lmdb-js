@@ -278,7 +278,7 @@ done:;
 
 	/* Not found, add new one */
 	while (d2 == NULL) {
-		int dlen = 0;
+		size_t dlen = 0;
 		ldap_pvt_thread_mutex_lock( &desc.ad_type->sat_ad_mutex );
 		/* check again now that we've locked */
 		for (d2 = desc.ad_type->sat_ad; d2; d2=d2->ad_next) {
@@ -303,20 +303,21 @@ done:;
 		 * options length.
 		 */
 		if (desc.ad_lang.bv_len || desc.ad_flags != SLAP_DESC_NONE) {
+			dlen = desc.ad_type->sat_cname.bv_len;
 			if (desc.ad_lang.bv_len) {
-				dlen = desc.ad_lang.bv_len+1;
+				dlen += 1+desc.ad_lang.bv_len;
 			}
-			dlen += desc.ad_type->sat_cname.bv_len+1;
 			if( slap_ad_is_binary( &desc ) ) {
-				dlen += sizeof("binary");
+				dlen += sizeof(";binary")-1;
 			}
 		}
 
-		d2 = ch_malloc(sizeof(AttributeDescription) + dlen);
+		d2 = ch_malloc(sizeof(AttributeDescription) + dlen + 1);
 		d2->ad_type = desc.ad_type;
 		d2->ad_flags = desc.ad_flags;
 		d2->ad_cname.bv_len = desc.ad_cname.bv_len;
 		d2->ad_lang.bv_len = desc.ad_lang.bv_len;
+
 		if (dlen == 0) {
 			d2->ad_cname.bv_val = d2->ad_type->sat_cname.bv_val;
 			d2->ad_lang.bv_val = NULL;
@@ -326,7 +327,7 @@ done:;
 			if( slap_ad_is_binary( &desc ) ) {
 				strcpy(d2->ad_cname.bv_val+d2->ad_cname.bv_len,
 					";binary");
-				d2->ad_cname.bv_len += sizeof("binary");
+				d2->ad_cname.bv_len += sizeof(";binary")-1;
 			}
 			if( d2->ad_lang.bv_len ) {
 				d2->ad_cname.bv_val[d2->ad_cname.bv_len++]=';';
