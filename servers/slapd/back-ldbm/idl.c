@@ -259,6 +259,8 @@ idl_fetch(
 	}
 	free( (char *) tmp );
 
+	assert( ID_BLOCK_NIDS(idl) == nids );
+
 #ifdef LDBM_DEBUG_IDL
 	idl_check(idl);
 #endif

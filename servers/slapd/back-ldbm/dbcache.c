@@ -325,6 +325,7 @@ ldbm_cache_sync( Backend *be )
 	ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
 }
 
+#if 0 /* macro in proto-back-ldbm.h */
 Datum
 ldbm_cache_fetch(
     DBCache	*db,
@@ -333,6 +334,7 @@ ldbm_cache_fetch(
 {
 	return ldbm_fetch( db->dbc_db, key );
 }
+#endif /* 0 */
 
 int
 ldbm_cache_store(
