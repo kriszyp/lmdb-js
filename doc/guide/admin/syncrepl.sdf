@@ -356,7 +356,6 @@ can be defined with any database type.
 >		scope=sub
 >		attrs="cn,sn,ou,telephoneNumber,title,l"
 >		schemachecking=off
->		updatedn="cn=replica,dc=example,dc=com"
 >		bindmethod=simple
 >		binddn="cn=syncuser,dc=example,dc=com"
 >		credentials=secret
@@ -368,10 +367,8 @@ bind as {{EX:cn=syncuser,dc=example,dc=com}} using simple authentication
 with password "secret".  Note that the access control privilege of
 {{EX:cn=syncuser,dc=example,dc=com}} should be set appropriately 
 in the provider to retrieve the desired replication content.
-The consumer will write to its database with the privilege of the
-{{EX:cn=replica,dc=example,dc=com}} entry as specified in the
-{{EX:updatedn=}} directive. The {{EX:updatedn}} entry should have
-write permission to the replica content.
+The consumer uses the rootdn to write to its database so it
+always has full permissions to write all content.
 
 The synchronization search in the above example will search for the
 entries whose objectClass is organizationalPerson in the entire subtree
