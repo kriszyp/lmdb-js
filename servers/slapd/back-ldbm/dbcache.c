@@ -207,6 +207,8 @@ ldbm_cache_open(
 	Debug( LDAP_DEBUG_TRACE, "<= ldbm_cache_open (opened %d)\n", i, 0, 0 );
 #endif
 
+	ldap_pvt_thread_mutex_init( &li->li_dbcache[i].dbc_write_mutex );
+
 	ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
 	return( &li->li_dbcache[i] );
 }
@@ -241,6 +243,7 @@ ldbm_cache_really_close( Backend *be, DBCache *db )
 		ldbm_close( db->dbc_db );
 		free( db->dbc_name );
 		db->dbc_name = NULL;
+		ldap_pvt_thread_mutex_destroy( &db->dbc_write_mutex );
 	}
 	ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
 }
