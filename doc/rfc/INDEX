@@ -33,6 +33,8 @@ rfc3296.txt Named Subordinate References in LDAP (PS)
 rfc3377.txt LDAP(v3): Technical Specification (PS)
 rfc3383.txt IANA Considerations for LDAP (BCP)
 rfc3663.txt Domain Administrative Data in LDAP (E)
+rfc3671.txt Collective Attributes in LDAP (PS)
+rfc3672.txt Subentries in the LDAP (PS)
 rfc3673.txt LDAPv3: All Operational Attributes (PS)
 rfc3674.txt Feature Discovery in LDAP (PS)
 
