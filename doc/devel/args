@@ -1,9 +1,9 @@
 Tools           ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-ldapdelete        CD    I K M OPQ*  U WXYZ  cd f h  k  n p     vwx
-ldapmodify        CD F  I K M OPQ*  U WXYZabcd f h  k  n p r t vwx
-ldapmodrdn        CD    I K M OPQ*  U WXYZ  cd f h  k  n p rs  vwx
-ldappasswd      A CD    I     O Q*S U WXYZa  d   h          s  vwx   
-ldapsearch      A CD    I KLM OPQ*STUVWXYZab*d f h  kl n p  stuvwx z
+ldapdelete        CD    I K M OPQR  U WXYZ  cd f h  k  n p     vwx
+ldapmodify        CD F  I K M OPQR  U WXYZabcd f h  k  n p r t vwx
+ldapmodrdn        CD    I K M OPQR  U WXYZ  cd f h  k  n p rs  vwx
+ldappasswd      A CD    I     O QRS U WXYZa  d   h          s  vwx   
+ldapsearch      A CD    I KLM OPQRSTUVWXYZab*d f h  kl n p  stuvwx z
 
 Other Clients   ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 fax500                                         f h    m
@@ -31,7 +31,6 @@ ud                 D                 V      cd f     l  p   s uv
 	-v verbose
 	-w Bind password
 
-	-R deprecated (was "don't chase")
 
 * LDAPv3 Only 
 	-x simple bind (not recommended, excepting for anonymous access)
@@ -40,16 +39,17 @@ ud                 D                 V      cd f     l  p   s uv
 	-Z StartTLS
 
 	-Y SASL Mechanism (defaults to "best")
-	-O SASL Security Options
-	-U SASL Authentication Identity (username)
-	-X SASL Authorization Identity
+	-R SASL Realm (defaults to empty)
+	-O SASL Security Options (defaults to "noanonymous,noplain")
+	-U SASL Authentication Identity (defaults to USER)
+	-X SASL Authorization Identity (defaults to empty)
 
-	-I SASL interactive mode
-	-Q SASL quiet mode
+	-I SASL interactive mode (default: automatic)
+	-Q SASL quiet mode (default: automatic)
 
 
-* LDAPv2+ Only
-	-K LDAPv2 Kerberos Bind (Step 1 only) (depecated)
-	-k LDAPv2 Kerberos Bind (depecated)
+* LDAPv2+ Only (DEPRECATED)
+	-K LDAPv2 Kerberos Bind (Step 1 only)
+	-k LDAPv2 Kerberos Bind
 
 $OpenLDAP$
