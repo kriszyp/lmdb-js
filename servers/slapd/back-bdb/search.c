@@ -1226,8 +1226,7 @@ bdb_build_lcup_update_ctrl(
 				ber_dupbv( latest_entrycsn_bv, &entrycsn_bv );
 			} else {
 				res = value_match( &ret, desc,
-					desc->ad_type->sat_ordering,
-					SLAP_MR_ASSERTION_SYNTAX_MATCH,
+					desc->ad_type->sat_ordering, 0,
 					&entrycsn_bv, latest_entrycsn_bv, &text );
 				if ( res != LDAP_SUCCESS ) {
 					ret = 0;
@@ -1368,8 +1367,7 @@ bdb_build_sync_state_ctrl(
 				ber_dupbv( latest_entrycsn_bv, &entrycsn_bv );
 			} else {
 				res = value_match( &ret, desc,
-						desc->ad_type->sat_ordering,
-						SLAP_MR_ASSERTION_SYNTAX_MATCH,
+						desc->ad_type->sat_ordering, 0,
 						&entrycsn_bv, latest_entrycsn_bv, &text );
 				if ( res != LDAP_SUCCESS ) {
 					ret = 0;

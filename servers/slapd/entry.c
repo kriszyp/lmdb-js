@@ -244,20 +244,21 @@ str2entry( char *s )
 		nvals[0].bv_val = NULL;
 
 		if( ad->ad_type->sat_equality &&
-			ad->ad_type->sat_equality->smr_match &&
-			ad->ad_type->sat_syntax->ssyn_normalize )
+			ad->ad_type->sat_equality->smr_normalize )
 		{
-			rc = ad->ad_type->sat_syntax->ssyn_normalize(
+			rc = ad->ad_type->sat_equality->smr_normalize(
+				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 				ad->ad_type->sat_syntax,
+				ad->ad_type->sat_equality,
 				&vals[0], &nvals[0] );
 
 			if( rc ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, DETAIL1,
-					"str2entry:  NULL (ssyn_normalize %d)\n" , rc, 0, 0 );
+					"str2entry:  NULL (smr_normalize %d)\n" , rc, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
-			   		"<= str2entry NULL (ssyn_normalize %d)\n", rc, 0, 0 );
+			   		"<= str2entry NULL (smr_normalize %d)\n", rc, 0, 0 );
 #endif
 
 				entry_free( e );
@@ -683,24 +684,25 @@ int entry_decode(struct berval *bv, Entry **e)
 
 #ifdef SLAP_NVALUES
 		if( count && ad->ad_type->sat_equality &&
-			ad->ad_type->sat_equality->smr_match &&
-			ad->ad_type->sat_syntax->ssyn_normalize )
+			ad->ad_type->sat_equality->smr_normalize )
 		{
 			a->a_nvals = ch_malloc((count+1)*sizeof(struct berval));
 
 			for(j=0; j<count; j++) {
-				rc = ad->ad_type->sat_syntax->ssyn_normalize(
+				rc = ad->ad_type->sat_equality->smr_normalize(
+					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 					ad->ad_type->sat_syntax,
+					ad->ad_type->sat_equality,
 					&a->a_vals[j], &a->a_nvals[j] );
 
 				if( rc ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG( OPERATION, DETAIL1,
-						"entry_decode: NULL (ssyn_normalize %d)\n",
+						"entry_decode: NULL (smr_normalize %d)\n",
 						rc, 0, 0 );
 #else
 					Debug( LDAP_DEBUG_ANY,
-				   		"<= entry_decode NULL (ssyn_normalize %d)\n",
+				   		"<= entry_decode NULL (smr_normalize %d)\n",
 						rc, 0, 0 );
 #endif
 

@@ -316,7 +316,9 @@ typedef struct slap_syntax {
 #define SLAP_SYNTAX_HIDE	0x8000U /* hide (do not publish) */
 
 	slap_syntax_validate_func	*ssyn_validate;
+#ifndef SLAP_NVALUES
 	slap_syntax_transform_func	*ssyn_normalize;
+#endif
 	slap_syntax_transform_func	*ssyn_pretty;
 
 #ifdef SLAPD_BINARY_CONVERSION
@@ -338,7 +340,11 @@ typedef struct slap_syntax_defs_rec {
 	char *sd_desc;
 	int sd_flags;
 	slap_syntax_validate_func *sd_validate;
+#ifdef SLAP_NVALUES
+	slap_syntax_transform_func *sd_normalizeXXX; /* to be deleted */
+#else
 	slap_syntax_transform_func *sd_normalize;
+#endif
 	slap_syntax_transform_func *sd_pretty;
 #ifdef SLAPD_BINARY_CONVERSION
 	slap_syntax_transform_func *sd_ber2str;
@@ -410,23 +416,27 @@ typedef struct slap_matching_rule {
 
 #define SLAP_MR_HIDE			0x8000U
 
-#define SLAP_MR_TYPE_MASK		0x0F00U
-#define SLAP_MR_SUBTYPE_MASK	0x00F0U
-#define SLAP_MR_USAGE			0x000FU
+#define SLAP_MR_TYPE_MASK		0xF000U
+#define SLAP_MR_SUBTYPE_MASK	0x0F00U
+#define SLAP_MR_USAGE			0x00FFU
 
 #define SLAP_MR_NONE			0x0000U
-#define SLAP_MR_EQUALITY		0x0100U
-#define SLAP_MR_ORDERING		0x0200U
-#define SLAP_MR_SUBSTR			0x0400U
-#define SLAP_MR_EXT				0x0800U /* implicitly extensible */
+#define SLAP_MR_EQUALITY		0x1000U
+#define SLAP_MR_ORDERING		0x2000U
+#define SLAP_MR_SUBSTR			0x4000U
+#define SLAP_MR_EXT				0x8000U /* implicitly extensible */
 
-#define SLAP_MR_EQUALITY_APPROX	( SLAP_MR_EQUALITY | 0x0010U )
-#define SLAP_MR_DN_FOLD			0x0008U
+#define SLAP_MR_EQUALITY_APPROX	( SLAP_MR_EQUALITY | 0x0100U )
 
-#define SLAP_MR_SUBSTR_INITIAL	( SLAP_MR_SUBSTR | 0x0010U )
-#define SLAP_MR_SUBSTR_ANY		( SLAP_MR_SUBSTR | 0x0020U )
-#define SLAP_MR_SUBSTR_FINAL	( SLAP_MR_SUBSTR | 0x0040U )
+#define SLAP_MR_SUBSTR_INITIAL	( SLAP_MR_SUBSTR | 0x0100U )
+#define SLAP_MR_SUBSTR_ANY		( SLAP_MR_SUBSTR | 0x0200U )
+#define SLAP_MR_SUBSTR_FINAL	( SLAP_MR_SUBSTR | 0x0400U )
 
+#ifndef SLAP_NVALUES
+#define SLAP_MR_DN_FOLD			0x0080U
+#endif
+
+#ifndef SLAP_NVALUES
 /*
  * normally the asserted value is expected to conform to
  * assertion syntax specified in the matching rule, however
@@ -434,8 +444,8 @@ typedef struct slap_matching_rule {
  * the asserted value is expected to conform to the
  * attribute's value syntax.
  */
-#define SLAP_MR_ASSERTION_SYNTAX_MATCH				0x0000U
-#define SLAP_MR_ATTRIBUTE_SYNTAX_MATCH				0x0001U
+#define SLAP_MR_ASSERTION_SYNTAX_MATCH		0x0000U
+#define SLAP_MR_ATTRIBUTE_SYNTAX_MATCH		0x0001U
 
 /* For SLAP_MR_ATTRIBUTE_SYNTAX_MATCHes, this flag indicates
  * that the asserted value of the attribute syntax has been
@@ -444,11 +454,32 @@ typedef struct slap_matching_rule {
  */
 #define SLAP_MR_ATTRIBUTE_SYNTAX_CONVERTED_MATCH	0x0002U
 
+#else
+/*
+ * The asserted value, depending on the particular usage,
+ * is expected to conform to either the assertion syntax
+ * or the attribute syntax.   In some cases, the syntax of
+ * the value is known.  If so, these flags indicate which
+ * syntax the value is expected to conform to.  If not,
+ * neither of these flags is set (until the syntax of the
+ * provided value is determined).  If the value is of the
+ * attribute syntax, the flag is changed once a value of
+ * the assertion syntax is derived from the provided value.
+ */
+#define SLAP_MR_VALUE_OF_ASSERTION_SYNTAX	0x0001U
+#define SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX	0x0002U
+
+#define SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX( usage ) \
+	((usage) & SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX )
+#define SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX( usage ) \
+	((usage) & SLAP_MR_VALUE_OF_ASSERTION_SYNTAX )
+#endif
+
 /* either or both the asserted value or attribute value
  * may be provided in normalized form
  */
-#define SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH		0x0004U
-#define SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH	0x0008U
+#define SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH		0x0010U
+#define SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH	0x0020U
 
 #define SLAP_IS_MR_ASSERTION_SYNTAX_MATCH( usage ) \
 	(!((usage) & SLAP_MR_ATTRIBUTE_SYNTAX_MATCH))
@@ -519,6 +550,7 @@ typedef struct slap_mrule_defs_rec {
 	slap_mr_indexer_func *		mrd_indexer;
 	slap_mr_filter_func *		mrd_filter;
 
+	/* For equality rule, this may refer to an appropriate approximate rule */
 	char *						mrd_associated;
 } slap_mrule_defs_rec;
 

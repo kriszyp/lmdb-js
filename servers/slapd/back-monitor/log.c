@@ -332,7 +332,11 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
 				int match;
 				int rc = value_match( &match, mod->sm_desc, mr,
+#ifdef SLAP_NVALUES
+					0,
+#else
 					SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
+#endif
 					&a->a_vals[j], &asserted, &text );
 
 				if ( rc == LDAP_SUCCESS && match == 0 ) {
@@ -411,7 +415,11 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
 			int match;
 			int rc = value_match( &match, mod->sm_desc, mr,
+#ifdef SLAP_NVALUES
+				0,
+#else
 				SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
+#endif
 				&a->a_vals[j], &asserted, &text );
 
 			if( rc == LDAP_SUCCESS && match != 0 ) {

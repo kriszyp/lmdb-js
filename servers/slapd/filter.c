@@ -414,6 +414,15 @@ get_substring_filter(
 			goto return_error;
 		}
 
+#ifdef SLAP_NVALUES
+		/* validate using equality matching rule validator! */
+		rc = asserted_value_validate_normalize(
+			f->f_sub_desc, f->f_sub_desc->ad_type->sat_substr,
+			usage, &value, &bv, text );
+		if( rc != LDAP_SUCCESS ) {
+			goto return_error;
+		}
+#else
 		/* validate using equality matching rule validator! */
 		rc = value_validate( f->f_sub_desc->ad_type->sat_equality,
 			&value, text );
@@ -426,6 +435,7 @@ get_substring_filter(
 		if( rc != LDAP_SUCCESS ) {
 			goto return_error;
 		}
+#endif
 
 		value = bv;
 
@@ -1423,6 +1433,15 @@ get_substring_vrFilter(
 			goto return_error;
 		}
 
+#ifdef SLAP_NVALUES
+		/* validate using equality matching rule validator! */
+		rc = asserted_value_validate_normalize(
+			vrf->vrf_sub_desc, vrf->vrf_sub_desc->ad_type->sat_substr,
+			usage, &value, &bv, text );
+		if( rc != LDAP_SUCCESS ) {
+			goto return_error;
+		}
+#else
 		/* valiate using equality matching rule validator! */
 		rc = value_validate( vrf->vrf_sub_desc->ad_type->sat_equality,
 			&value, text );
@@ -1435,6 +1454,7 @@ get_substring_vrFilter(
 		if( rc != LDAP_SUCCESS ) {
 			goto return_error;
 		}
+#endif
 
 		value = bv;
 

@@ -30,6 +30,9 @@ modify_check_duplicates(
 {
 	int		i, j, numvals = 0, nummods,
 			rc = LDAP_SUCCESS, matched;
+#ifdef SLAP_NVALUES
+	/* needs major reworking */
+#else
 	BerVarray	nvals = NULL, nmods = NULL;
 
 	/*
@@ -121,23 +124,24 @@ modify_check_duplicates(
 		goto return_results;
 	}
 
-	for ( i = 0; mods[ i ].bv_val != NULL; i++ ) {
+	for ( i=0; mods[i].bv_val != NULL; i++ ) {
 		rc = value_normalize( ad, SLAP_MR_EQUALITY,
-			&mods[ i ], &nmods[ i ], text );
+			&mods[i], &nmods[i], text );
 
 		if ( rc != LDAP_SUCCESS ) {
-			nmods[ i ].bv_val = NULL;
+			nmods[i].bv_val = NULL;
 			goto return_results;
 		}
 
 		if ( numvals > 0 && numvals < nummods ) {
-			for ( matched = 0, j = 0; nvals[ j ].bv_val; j++ ) {
+			for ( matched=0, j=0; nvals[j].bv_val; j++ ) {
 				int match;
 
 				rc = (*mr->smr_match)( &match,
 					SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
 					ad->ad_type->sat_syntax,
 					mr, &nmods[ i ], &nvals[ j ] );
+
 				if ( rc != LDAP_SUCCESS ) {
 					nmods[ i + 1 ].bv_val = NULL;
 					*text = textbuf;
@@ -270,6 +274,7 @@ return_results:;
 		ber_bvarray_free( nmods );
 	}
 
+#endif
 	return rc;
 }
 
@@ -324,8 +329,7 @@ modify_add_values(
 			/* test asserted values against existing values */
 			if( a ) {
 				for( matched = 0, j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
-					if ( bvmatch( &mod->sm_bvalues[i],
-						&a->a_vals[j] ) ) {
+					if ( bvmatch( &mod->sm_bvalues[i], &a->a_vals[j] ) ) {
 						if ( permissive ) {
 							matched++;
 							continue;
@@ -389,24 +393,49 @@ modify_add_values(
 
 		int		rc;
 
-		if ( mod->sm_bvalues[ 1 ].bv_val == 0 ) {
+		if ( mod->sm_bvalues[1].bv_val == 0 ) {
 			if ( a != NULL ) {
 				struct berval	asserted;
 				int		i;
 
+#ifndef SLAP_NVALUES
 				rc = value_normalize( mod->sm_desc, SLAP_MR_EQUALITY,
 					&mod->sm_bvalues[ 0 ], &asserted, text );
-
 				if ( rc != LDAP_SUCCESS ) {
 					return rc;
 				}
+#endif
 
 				for ( matched = 0, i = 0; a->a_vals[ i ].bv_val; i++ ) {
 					int	match;
 
+#ifdef SLAP_NVALUES
+					if( mod->sm_nvalues ) {
+						rc = value_match( &match, mod->sm_desc, mr,
+							SLAP_MR_EQUALITY
+								| SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
+								| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
+								| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
+							&a->a_nvals[i],
+							&mod->sm_nvalues[0],
+							text );
+
+					} else {
+						rc = value_match( &match, mod->sm_desc, mr,
+							SLAP_MR_EQUALITY
+								| SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+							&a->a_vals[i],
+							&mod->sm_values[0],
+							text );
+					}
+
+#else
 					rc = value_match( &match, mod->sm_desc, mr,
 						SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
-						&a->a_vals[ i ], &asserted, text );
+						&a->a_vals[i],
+						&asserted,
+						text );
+#endif
 
 					if( rc == LDAP_SUCCESS && match == 0 ) {
 						if ( permissive ) {
@@ -519,6 +548,9 @@ modify_delete_values(
 		return LDAP_NO_SUCH_ATTRIBUTE;
 	}
 
+#ifdef SLAP_NVALUES
+	nvals = a->a_nvals;
+#else
 	/* find each value to delete */
 	for ( j = 0; a->a_vals[ j ].bv_val != NULL; j++ )
 		/* count existing values */ ;
@@ -545,10 +577,12 @@ modify_delete_values(
 			goto return_results;
 		}
 	}
+#endif
 
 	for ( i = 0; mod->sm_bvalues[ i ].bv_val != NULL; i++ ) {
-		struct	berval asserted;
 		int	found = 0;
+#ifndef SLAP_NVALUES
+		struct	berval asserted;
 
 		/* normalize the value to be deleted */
 		rc = value_normalize( mod->sm_desc, SLAP_MR_EQUALITY,
@@ -557,6 +591,7 @@ modify_delete_values(
 		if( rc != LDAP_SUCCESS ) {
 			goto return_results;
 		}
+#endif
 
 		/* search it */
 		for ( j = 0; nvals[ j ].bv_val != NULL; j++ ) {
@@ -566,13 +601,34 @@ modify_delete_values(
 				continue;
 			}
 
+#ifdef SLAP_NVALUES
+			if( mod->sm_nvalues ) {
+				rc = (*mr->smr_match)( &match,
+					SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
+						| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
+						| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
+					a->a_desc->ad_type->sat_syntax,
+					mr, &nvals[ j ],
+					&mod->sm_nvalues[i] );
+			} else {
+				rc = (*mr->smr_match)( &match,
+					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+					a->a_desc->ad_type->sat_syntax,
+					mr, &nvals[ j ],
+					&mod->sm_values[i] );
+			}
+#else
 			rc = (*mr->smr_match)( &match,
 				SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
 				a->a_desc->ad_type->sat_syntax,
-				mr, &nvals[ j ], &asserted );
+				mr, &nvals[ j ],
+				&asserted );
+#endif
 
 			if ( rc != LDAP_SUCCESS ) {
+#ifndef SLAP_NVALUES
 				free( asserted.bv_val );
+#endif
 				*text = textbuf;
 				snprintf( textbuf, textlen,
 					"%s: matching rule failed",
@@ -593,7 +649,9 @@ modify_delete_values(
 			break;
 		}
 
+#ifndef SLAP_NVALUES
 		free( asserted.bv_val );
+#endif
 
 		if ( found == 0 ) {
 			*text = textbuf;

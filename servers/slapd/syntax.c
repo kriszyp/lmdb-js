@@ -151,7 +151,9 @@ syn_add(
 	ssyn->ssyn_oidlen = strlen(syn->syn_oid);
 	ssyn->ssyn_flags = def->sd_flags;
 	ssyn->ssyn_validate = def->sd_validate;
+#ifndef SLAP_NVALUES
 	ssyn->ssyn_normalize = def->sd_normalize;
+#endif
 	ssyn->ssyn_pretty = def->sd_pretty;
 
 #ifdef SLAPD_BINARY_CONVERSION

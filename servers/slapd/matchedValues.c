@@ -240,8 +240,8 @@ test_ava_vrFilter(
 			int rc;
 			const char *text;
 
-			rc = value_match( &ret, a->a_desc, mr, 
-				SLAP_MR_ASSERTION_SYNTAX_MATCH, bv, &ava->aa_value, &text );
+			rc = value_match( &ret, a->a_desc, mr, 0,
+				bv, &ava->aa_value, &text );
 			if( rc != LDAP_SUCCESS ) {
 				return rc;
 			}
@@ -326,8 +326,7 @@ test_substrings_vrFilter(
 			int rc;
 			const char *text;
 
-			rc = value_match( &ret, a->a_desc, mr,
-				SLAP_MR_ASSERTION_SYNTAX_MATCH,
+			rc = value_match( &ret, a->a_desc, mr, 0,
 				bv, vrf->vrf_sub, &text );
 
 			if( rc != LDAP_SUCCESS ) {
@@ -365,6 +364,7 @@ test_mra_vrFilter(
 			value = mra->ma_value;
 
 		} else {
+			int rc;
 			const char	*text = NULL;
 
 			/* check if matching is appropriate */
@@ -373,14 +373,19 @@ test_mra_vrFilter(
 				continue;
 			}
 
+#ifdef SLAP_NVALUES
+			rc = asserted_value_validate_normalize( a->a_desc, mra->ma_rule,
+				SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
+				&mra->ma_value, &value, &text );
+#else
 			/* normalize for equality */
-			if ( value_validate_normalize( a->a_desc, 
+			rc = value_validate_normalize( a->a_desc, 
 				SLAP_MR_EQUALITY,
 				&mra->ma_value, &value,
-				&text ) != LDAP_SUCCESS ) {
-				continue;
-			}
+				&text );
+#endif
 
+			if( rc != LDAP_SUCCESS ) continue;
 		}
 
 		for ( bv = a->a_vals, j = 0; bv->bv_val != NULL; bv++, j++ ) {
@@ -388,11 +393,8 @@ test_mra_vrFilter(
 			int rc;
 			const char *text;
 
-			rc = value_match( &ret, a->a_desc, mra->ma_rule,
-				SLAP_MR_ASSERTION_SYNTAX_MATCH,
-				bv, &value,
-				&text );
-
+			rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+				bv, &value, &text );
 			if( rc != LDAP_SUCCESS ) {
 				return rc;
 			}

@@ -90,11 +90,15 @@ objectSubClassMatch(
 		return SLAPD_COMPARE_UNDEFINED;
 	}
 
+#ifdef SLAP_NVALUES
+	assert(0 /* FIX ME */);
+#else
 	if( SLAP_IS_MR_ATTRIBUTE_SYNTAX_MATCH( flags ) ) {
 		*matchp = ( asserted != oc );
 	} else {
 		*matchp = !is_object_subclass( asserted, oc );
 	}
+#endif
 
 #if OCDEBUG
 #ifdef NEW_LOGGING

@@ -28,6 +28,10 @@
 #define HASH_Update(c,buf,len)	lutil_HASHUpdate(c,buf,len)
 #define HASH_Final(d,c)			lutil_HASHFinal(d,c)
 
+#ifdef SLAP_NVALUES
+#define SLAP_MR_DN_FOLD (0) /* TO BE DELETED */
+#endif
+
 /* recycled validatation routines */
 #define berValidate						blobValidate
 
@@ -2983,11 +2987,13 @@ static int caseIgnoreIA5Indexer(
 			if( rc != LDAP_SUCCESS ) {
 				break;
 			}
+#ifndef SLAP_NVALUES
 		} else if ( mr->smr_syntax->ssyn_normalize ) {
 			rc = (mr->smr_syntax->ssyn_normalize)( syntax, &values[i], &value );
 			if( rc != LDAP_SUCCESS ) {
 				break;
 			}
+#endif
 		} else {
 			ber_dupbv( &value, &values[i] );
 		}

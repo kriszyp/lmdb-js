@@ -123,6 +123,56 @@ value_add_one(
 	return LDAP_SUCCESS;
 }
 
+#ifdef SLAP_NVALUES
+int asserted_value_validate_normalize( 
+	AttributeDescription *ad,
+	MatchingRule *mr,
+	unsigned usage,
+	struct berval *in,
+	struct berval *out,
+	const char ** text )
+{
+	int rc;
+
+	/* we expect the value to be in the assertion syntax */
+	assert( !SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX(usage) );
+
+	if( mr == NULL ) {
+		*text = "inappropriate matching request";
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	if( !mr->smr_match ) {
+		*text = "requested matching rule not supported";
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	assert( mr->smr_syntax );
+	assert( mr->smr_syntax->ssyn_validate );
+
+	rc = (mr->smr_syntax->ssyn_validate)( mr->smr_syntax, in );
+
+	if( rc != LDAP_SUCCESS ) {
+		*text = "value does not conform to assertion syntax";
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	if( mr->smr_normalize ) {
+		rc = (mr->smr_normalize)( usage,
+			ad ? ad->ad_type->sat_syntax : NULL,
+			mr, in, out );
+
+		if( rc != LDAP_SUCCESS ) {
+			*text = "unable to normalize value for matching";
+			return LDAP_INVALID_SYNTAX;
+		}
+
+	} else {
+		ber_dupbv( out, in );
+	}
+}
+
+#else
 int
 value_validate(
 	MatchingRule *mr,
@@ -165,25 +215,7 @@ value_normalize(
 	const char **text )
 {
 	int rc;
-	MatchingRule *mr;
-
-	switch( usage & SLAP_MR_TYPE_MASK ) {
-	case SLAP_MR_NONE:
-	case SLAP_MR_EQUALITY:
-		mr = ad->ad_type->sat_equality;
-		break;
-	case SLAP_MR_ORDERING:
-		mr = ad->ad_type->sat_ordering;
-		break;
-	case SLAP_MR_SUBSTR:
-		mr = ad->ad_type->sat_substr;
-		break;
-	case SLAP_MR_EXT:
-	default:
-		assert( 0 );
-		*text = "internal error";
-		return LDAP_OTHER;
-	}
+	MatchingRule *mr = ad_mr( ad, usage );
 
 	if( mr == NULL ) {
 		*text = "inappropriate matching request";
@@ -233,25 +265,7 @@ value_validate_normalize(
 	const char **text )
 {
 	int rc;
-	MatchingRule *mr;
-
-	switch( usage & SLAP_MR_TYPE_MASK ) {
-	case SLAP_MR_NONE:
-	case SLAP_MR_EQUALITY:
-		mr = ad->ad_type->sat_equality;
-		break;
-	case SLAP_MR_ORDERING:
-		mr = ad->ad_type->sat_ordering;
-		break;
-	case SLAP_MR_SUBSTR:
-		mr = ad->ad_type->sat_substr;
-		break;
-	case SLAP_MR_EXT:
-	default:
-		assert( 0 );
-		*text = "internal error";
-		return LDAP_OTHER;
-	}
+	MatchingRule *mr = ad_mr( ad, usage );
 
 	if( mr == NULL ) {
 		*text = "inappropriate matching request";
@@ -308,6 +322,7 @@ value_validate_normalize(
 
 	return LDAP_SUCCESS;
 }
+#endif
 
 int
 value_match(
@@ -329,6 +344,7 @@ value_match(
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
+#ifndef SLAP_NVALUES
 	if( ad->ad_type->sat_syntax->ssyn_normalize ) {
 		rc = ad->ad_type->sat_syntax->ssyn_normalize(
 			ad->ad_type->sat_syntax, v1, &nv1 );
@@ -349,6 +365,7 @@ value_match(
 		/* let smr_match know we've converted the value */
 		flags |= SLAP_MR_ATTRIBUTE_SYNTAX_CONVERTED_MATCH;
 	}
+#endif
 
 	rc = (mr->smr_match)( match, flags,
 		ad->ad_type->sat_syntax,
@@ -360,7 +377,6 @@ value_match(
 	if (nv2.bv_val ) free( nv2.bv_val );
 	return rc;
 }
-
 
 int value_find_ex(
 	AttributeDescription *ad,
@@ -376,6 +392,23 @@ int value_find_ex(
 	if( mr == NULL || !mr->smr_match ) {
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
+
+#ifdef SLAP_NVALUES
+	assert(SLAP_IS_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH( flags ));
+
+	if( !SLAP_IS_MR_ASSERTED_VALUE_NORMALIZED_MATCH( flags ) &&
+		mr->smr_normalize )
+	{
+		rc = (mr->smr_normalize)(
+			flags & SLAP_MR_TYPE_MASK|SLAP_MR_SUBTYPE_MASK,
+			ad ? ad->ad_type->sat_syntax : NULL,
+			mr, val, &nval );
+
+		if( rc != LDAP_SUCCESS ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
+#else
 
 	/* Take care of this here or ssyn_normalize later will hurt */
 	if ( SLAP_IS_MR_ATTRIBUTE_SYNTAX_NONCONVERTED_MATCH( flags )
@@ -406,6 +439,7 @@ int value_find_ex(
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 	}
+#endif
 
 	for ( i = 0; vals[i].bv_val != NULL; i++ ) {
 		int match;

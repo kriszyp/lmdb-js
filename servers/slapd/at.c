@@ -485,6 +485,11 @@ at_add(
 	}
 
 	if ( sat->sat_ordering_oid ) {
+		if( !sat->sat_equality ) {
+			*err = sat->sat_ordering_oid;
+			return SLAP_SCHERR_ATTR_BAD_MR;
+		}
+
 		mr = mr_find(sat->sat_ordering_oid);
 
 		if( mr == NULL ) {
@@ -520,6 +525,11 @@ at_add(
 	}
 
 	if ( sat->sat_substr_oid ) {
+		if( !sat->sat_equality ) {
+			*err = sat->sat_substr_oid;
+			return SLAP_SCHERR_ATTR_BAD_MR;
+		}
+
 		mr = mr_find(sat->sat_substr_oid);
 
 		if( mr == NULL ) {
@@ -537,9 +547,7 @@ at_add(
 		 * syntax and compat syntaxes instead of those
 		 * associated with the substrings rule.
 		 */
-		if( sat->sat_equality &&
-			sat->sat_syntax != sat->sat_equality->smr_syntax )
-		{
+		if( sat->sat_syntax != sat->sat_equality->smr_syntax ) {
 			if( sat->sat_equality->smr_compat_syntaxes == NULL ) {
 				*err = sat->sat_substr_oid;
 				return SLAP_SCHERR_ATTR_BAD_MR;

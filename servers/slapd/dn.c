@@ -241,8 +241,11 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			LDAPAVA			*ava = rdn[ 0 ][ iAVA ];
 			AttributeDescription	*ad;
 			slap_syntax_validate_func *validf = NULL;
+#ifdef SLAP_NVALUES
+			slap_mr_normalize_func *normf = NULL;
+#endif
 			slap_syntax_transform_func *transf = NULL;
-			MatchingRule *mr;
+			MatchingRule *mr = NULL;
 			struct berval		bv = { 0, NULL };
 			int			do_sort = 0;
 
@@ -267,17 +270,19 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 
 			if( ava->la_flags & LDAP_AVA_BINARY ) {
 				/* AVA is binary encoded, don't muck with it */
-				validf = NULL;
-				transf = NULL;
-				mr = NULL;
 			} else if( flags & SLAP_LDAPDN_PRETTY ) {
-				validf = NULL;
 				transf = ad->ad_type->sat_syntax->ssyn_pretty;
-				mr = NULL;
-			} else {
+				if( !transf ) {
+					validf = ad->ad_type->sat_syntax->ssyn_validate;
+				}
+			} else { /* normalization */
 				validf = ad->ad_type->sat_syntax->ssyn_validate;
-				transf = ad->ad_type->sat_syntax->ssyn_normalize;
 				mr = ad->ad_type->sat_equality;
+#ifdef SLAP_NVALUES
+				if( mr ) normf = mr->smr_normalize;
+#else
+				transf = ad->ad_type->sat_syntax->ssyn_normalize;
+#endif
 			}
 
 			if ( validf ) {
@@ -294,7 +299,11 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 
 			if ( transf ) {
 				/*
+#ifdef SLAP_NVALUES
+			 	 * transform value by pretty function
+#else
 			 	 * transform value by normalize/pretty function
+#endif
 				 *	if value is empty, use empty_bv
 				 */
 				rc = ( *transf )( ad->ad_type->sat_syntax,
@@ -308,6 +317,27 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 				}
 			}
 
+#ifdef SLAP_NVALUES
+			if ( normf ) {
+				/*
+			 	 * normalize value
+				 *	if value is empty, use empty_bv
+				 */
+				rc = ( *normf )(
+					0,
+					ad->ad_type->sat_syntax,
+					mr,
+					ava->la_value.bv_len
+						? &ava->la_value
+						: (struct berval *) &slap_empty_bv,
+					&bv );
+			
+				if ( rc != LDAP_SUCCESS ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+			}
+
+#else
 			if( mr && ( mr->smr_usage & SLAP_MR_DN_FOLD ) ) {
 				char *s = bv.bv_val;
 
@@ -317,6 +347,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 				}
 				free( s );
 			}
+#endif
 
 			if( bv.bv_val ) {
 				free( ava->la_value.bv_val );

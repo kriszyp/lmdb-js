@@ -143,8 +143,15 @@ do_compare(
 		goto cleanup;
 	}
 
+#ifdef SLAP_NVALUES
+	rc = asserted_value_validate_normalize( ava.aa_desc,
+		ava.aa_desc->ad_type->sat_equality,
+		SLAP_MR_EQUALITY|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
+		&value, &ava.aa_value, &text );
+#else
 	rc = value_validate_normalize( ava.aa_desc, SLAP_MR_EQUALITY,
 		&value, &ava.aa_value, &text );
+#endif
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc, NULL, text, NULL, NULL );
 		goto cleanup;
@@ -347,7 +354,15 @@ static int compare_entry(
 	{
 		rc = LDAP_COMPARE_FALSE;
 
-		if ( value_find( ava->aa_desc, a->a_vals, &ava->aa_value ) == 0 ) {
+#ifdef SLAP_NVALUES
+		if ( value_find_ex( ava->aa_desc,
+			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
+			a->a_nvals ? a->a_nvals : a->a_vals,
+			&ava->aa_value ) == 0 )
+#else
+		if ( value_find( ava->aa_desc, a->a_vals, &ava->aa_value ) == 0 )
+#endif
+		{
 			rc = LDAP_COMPARE_TRUE;
 			break;
 		}

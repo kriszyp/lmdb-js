@@ -609,13 +609,14 @@ int slap_mods_check(
 
 #ifdef SLAP_NVALUES
 			if( nvals && ad->ad_type->sat_equality &&
-				ad->ad_type->sat_equality->smr_match &&
-				ad->ad_type->sat_syntax->ssyn_normalize )
+				ad->ad_type->sat_equality->smr_normalize )
 			{
 				ml->sml_nvalues = ch_malloc( (nvals+1)*sizeof(struct berval) );
 				for( nvals = 0; ml->sml_values[nvals].bv_val; nvals++ ) {
-					rc = ad->ad_type->sat_syntax->ssyn_normalize(
+					rc = ad->ad_type->sat_equality->smr_normalize(
+						0,
 						ad->ad_type->sat_syntax,
+						ad->ad_type->sat_equality,
 						&ml->sml_values[nvals], &ml->sml_nvalues[nvals] );
 					if( rc ) {
 #ifdef NEW_LOGGING

@@ -224,7 +224,7 @@ entry_schema_check(
 
 	/* naming check */
 	rc = entry_naming_check( e, text, textbuf, textlen );
-	if ( rc != LDAP_SUCCESS ) {
+	if( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
 
@@ -849,7 +849,15 @@ entry_naming_check(
 			break;
 		}
 
-		if ( value_find( desc, attr->a_vals, &ava->la_value ) != 0 ) {
+#ifdef SLAP_NVALUES
+		if ( value_find_ex( desc,
+			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH.
+			attr->a_nvals ? attr->a_nvals : attr->a_vals,
+			&ava->la_value ) != 0 )
+#else
+		if ( value_find( desc, attr->a_vals, &ava->la_value ) != 0 )
+#endif
+		{
 			snprintf( textbuf, textlen, 
 				"value of naming attribute '%s' is not present in entry",
 				ava->la_attr.bv_val );

@@ -845,3 +845,25 @@ ad_find_option_definition( const char *opt, int optlen )
 	}
 	return NULL;
 }
+
+MatchingRule *ad_mr(
+	AttributeDescription *ad,
+	unsigned usage )
+{
+	switch( usage & SLAP_MR_TYPE_MASK ) {
+	case SLAP_MR_NONE:
+	case SLAP_MR_EQUALITY:
+		return ad->ad_type->sat_equality;
+		break;
+	case SLAP_MR_ORDERING:
+		return ad->ad_type->sat_ordering;
+		break;
+	case SLAP_MR_SUBSTR:
+		return ad->ad_type->sat_substr;
+		break;
+	case SLAP_MR_EXT:
+	default:
+		assert( 0 /* ad_mr: bad usage */);
+	}
+	return NULL;
+}

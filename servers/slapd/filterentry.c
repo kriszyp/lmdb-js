@@ -237,8 +237,7 @@ static int test_mra_filter(
 				int rc;
 				const char *text;
 	
-				rc = value_match( &ret, a->a_desc, mra->ma_rule,
-					SLAP_MR_ASSERTION_SYNTAX_MATCH,
+				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
 					bv, &mra->ma_value, &text );
 	
 				if( rc != LDAP_SUCCESS ) {
@@ -266,9 +265,15 @@ static int test_mra_filter(
 			}
 
 			/* normalize for equality */
+#ifdef SLAP_NVALUES
+			rc = asserted_value_validate_normalize( a->a_desc, mra->ma_rule,
+				SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
+				&mra->ma_value, &value, &text );
+#else
 			rc = value_validate_normalize( a->a_desc, 
 				SLAP_MR_EQUALITY,
 				&mra->ma_value, &value, &text );
+#endif
 			if ( rc != LDAP_SUCCESS ) {
 				continue;
 			}
@@ -284,8 +289,7 @@ static int test_mra_filter(
 				int ret;
 				int rc;
 	
-				rc = value_match( &ret, a->a_desc, mra->ma_rule,
-					SLAP_MR_ASSERTION_SYNTAX_MATCH,
+				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
 					bv, &value, &text );
 	
 				if( rc != LDAP_SUCCESS ) {
@@ -341,8 +345,15 @@ static int test_mra_filter(
 					}
 
 					/* normalize for equality */
+#ifdef SLAP_NVALUES
+					rc = asserted_value_validate_normalize( ad,
+						mra->ma_rule,
+						SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
+						&mra->ma_value, &value, &text );
+#else
 					rc = value_validate_normalize( ad, SLAP_MR_EQUALITY,
 						&mra->ma_value, &value, &text );
+#endif
 					if ( rc != LDAP_SUCCESS ) {
 						continue;
 					}
@@ -355,8 +366,7 @@ static int test_mra_filter(
 				}
 
 				/* check match */
-				rc = value_match( &ret, ad, mra->ma_rule,
-					SLAP_MR_ASSERTION_SYNTAX_MATCH,
+				rc = value_match( &ret, ad, mra->ma_rule, 0,
 					bv, &value, &text );
 
 				if( rc != LDAP_SUCCESS ) {
@@ -429,8 +439,7 @@ test_ava_filter(
 			int rc;
 			const char *text;
 
-			rc = value_match( &ret, a->a_desc, mr,
-				SLAP_MR_ASSERTION_SYNTAX_MATCH,
+			rc = value_match( &ret, a->a_desc, mr, 0,
 				bv, &ava->aa_value, &text );
 
 			if( rc != LDAP_SUCCESS ) {
@@ -661,8 +670,7 @@ test_substrings_filter(
 			int rc;
 			const char *text;
 
-			rc = value_match( &ret, a->a_desc, mr,
-				SLAP_MR_ASSERTION_SYNTAX_MATCH,
+			rc = value_match( &ret, a->a_desc, mr, 0,
 				bv, f->f_sub, &text );
 
 			if( rc != LDAP_SUCCESS ) {

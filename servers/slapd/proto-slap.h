@@ -88,6 +88,10 @@ LDAP_SLAPD_F (int) an_find LDAP_P(( AttributeName *a, struct berval *s ));
 LDAP_SLAPD_F (int) ad_define_option LDAP_P(( const char *name,
 	const char *fname, int lineno ));
 
+LDAP_SLAPD_F (MatchingRule *) ad_mr(
+	AttributeDescription *ad,
+	unsigned usage );
+
 /*
  * add.c
  */
@@ -1065,6 +1069,15 @@ LDAP_SLAPD_F (void) slap_init_user LDAP_P(( char *username, char *groupname ));
 /*
  * value.c
  */
+#ifdef SLAP_NVALUES
+LDAP_SLAPD_F (int) asserted_value_validate_normalize LDAP_P((
+	AttributeDescription *ad,
+	MatchingRule *mr,
+	unsigned usage,
+	struct berval *in,
+	struct berval *out,
+	const char ** text ));
+#else
 LDAP_SLAPD_F (int) value_validate LDAP_P((
 	MatchingRule *mr,
 	struct berval *in,
@@ -1081,6 +1094,9 @@ LDAP_SLAPD_F (int) value_validate_normalize LDAP_P((
 	struct berval *in,
 	struct berval *out,
 	const char ** text ));
+#define value_find(ad,values,value) (value_find_ex((ad),0,(values),(value)))
+#endif
+
 LDAP_SLAPD_F (int) value_match LDAP_P((
 	int *match,
 	AttributeDescription *ad,
@@ -1089,12 +1105,12 @@ LDAP_SLAPD_F (int) value_match LDAP_P((
 	struct berval *v1,
 	void *v2,
 	const char ** text ));
-#define value_find(ad,values,value) (value_find_ex((ad),0,(values),(value)))
 LDAP_SLAPD_F (int) value_find_ex LDAP_P((
 	AttributeDescription *ad,
 	unsigned flags,
 	BerVarray values,
 	struct berval *value ));
+
 LDAP_SLAPD_F (int) value_add LDAP_P((
 	BerVarray *vals,
 	BerVarray addvals ));
