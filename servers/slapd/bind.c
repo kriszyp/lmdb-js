@@ -37,6 +37,7 @@ do_bind(
 	ber_int_t		version;
 	ber_tag_t method;
 	char		*mech;
+	char		*saslmech;
 	char		*dn;
 	char *ndn;
 	ber_tag_t	tag;
@@ -204,30 +205,15 @@ do_bind(
 			goto cleanup;
 		}
 
-		if( !charray_inlist( supportedSASLMechanisms, mech ) ) {
-			Debug( LDAP_DEBUG_ANY,
-				"do_bind: sasl mechanism=\"%s\" not supported.\n",
-				mech, 0, 0 );
-			send_ldap_result( conn, op, rc = LDAP_AUTH_METHOD_NOT_SUPPORTED,
-				NULL, "SASL mechanism not supported", NULL, NULL );
-			goto cleanup;
-		}
-
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 		if ( conn->c_sasl_bind_mech != NULL ) {
 			/* SASL bind is in progress */
-#ifdef HAVE_CYRUS_SASL
-			assert( conn->c_sasl_bind_context != NULL );
-#endif
+			saslmech = NULL;
 
 			if((strcmp(conn->c_sasl_bind_mech, mech) != 0)) {
 				/* mechanism changed */
-#ifdef HAVE_CYRUS_SASL
-				/* dispose of context */
-				sasl_dispose(&conn->c_sasl_bind_context);
-				conn->c_sasl_bind_context = NULL;
-#endif
+				slap_sasl_reset(conn);
 			}
 
 			free( conn->c_sasl_bind_mech );
@@ -236,38 +222,27 @@ do_bind(
 #ifdef LDAP_DEBUG
 		} else {
 			/* SASL bind is NOT in progress */
+			saslmech = mech;
 			assert( conn->c_sasl_bind_mech == NULL );
-#ifdef HAVE_CYRUS_SASL
-			assert( conn->c_sasl_bind_context == NULL );
-#endif
 #endif
 		}
 
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 		edn = NULL;
-		rc = sasl_bind( conn, op, dn, ndn, mech, &cred, &edn );
+		rc = slap_sasl_bind( conn, op, dn, ndn, saslmech, &cred, &edn );
 
 		if( rc == LDAP_SUCCESS ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-#ifdef HAVE_CYRUS_SASL
-			assert( conn->c_sasl_bind_context == NULL );
-#endif
 			conn->c_dn = edn;
+			conn->c_authmech = mech;
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 		} else if ( rc == LDAP_SASL_BIND_IN_PROGRESS ) {
-#ifdef HAVE_CYRUS_SASL
-			assert( conn->c_sasl_bind_context != NULL );
-#endif
 			conn->c_sasl_bind_mech = mech;
-			mech = NULL;
-
-#ifdef HAVE_CYRUS_SASL
-		} else {
-			assert( conn->c_sasl_bind_context == NULL );
-#endif
 		}
+
+		mech = NULL;
 
 		goto cleanup;
 
@@ -281,18 +256,11 @@ do_bind(
 			free(conn->c_sasl_bind_mech);
 			conn->c_sasl_bind_mech = NULL;
 
-#ifdef HAVE_CYRUS_SASL
-			assert( conn->c_sasl_bind_context != NULL );
-			sasl_dispose(&conn->c_sasl_bind_context);
-			conn->c_sasl_bind_context = NULL;
-#endif
 		} else {
 			assert( !conn->c_sasl_bind_in_progress );
-#ifdef HAVE_CYRUS_SASL
-			assert( conn->c_sasl_bind_context == NULL );
-#endif
 		}
 
+		slap_sasl_reset( conn );
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 	}
 
@@ -389,14 +357,6 @@ cleanup:
 		/* dispose of mech */
 		free( conn->c_sasl_bind_mech );
 		conn->c_sasl_bind_mech = NULL;
-
-#ifdef HAVE_CYRUS_SASL
-		if( conn->c_sasl_bind_context != NULL ) {
-			/* dispose of context */
-			sasl_dispose(&conn->c_sasl_bind_context);
-			conn->c_sasl_bind_context = NULL;
-		}
-#endif
 
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 	}

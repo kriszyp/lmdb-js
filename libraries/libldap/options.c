@@ -285,7 +285,7 @@ ldap_get_option(
 	     		return LDAP_OPT_SUCCESS;
 #endif
 #ifdef HAVE_CYRUS_SASL
-	   	if ( ldap_pvt_sasl_get_option(ld, option, outvalue ) == 0 )
+	   	if ( ldap_int_sasl_get_option(ld, option, outvalue ) == 0 )
 	     		return LDAP_OPT_SUCCESS;
 #endif
 		/* bad param */
@@ -582,7 +582,7 @@ ldap_set_option(
 	     	return LDAP_OPT_SUCCESS;
 #endif
 #ifdef HAVE_CYRUS_SASL
-		if ( ldap_pvt_sasl_set_option( ld, option, (void *)invalue ) == 0 )
+		if ( ldap_int_sasl_set_option( ld, option, (void *)invalue ) == 0 )
 			return LDAP_OPT_SUCCESS;
 #endif
 		/* bad param */
@@ -595,4 +595,15 @@ int
 ldap_set_rebind_proc( LDAP *ld, LDAP_REBIND_PROC *rebind_proc)
 {
 	return( ldap_set_option( ld, LDAP_OPT_REBIND_PROC, (void *)rebind_proc));
+}
+
+int
+ldap_set_sasl_interact_proc( LDAP *ld, LDAP_SASL_INTERACT_PROC *proc)
+{
+#ifdef HAVE_CYRUS_SASL
+	ld->ld_options.ldo_sasl_interact = proc;
+	return LDAP_OPT_SUCCESS;
+#else
+	return LDAP_OPT_ERROR;
+#endif
 }

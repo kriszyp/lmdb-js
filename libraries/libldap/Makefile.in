@@ -10,7 +10,7 @@ XLIBRARY = ../libldap.a
 PROGRAMS = apitest ltest ttest
 
 SRCS	= bind.c open.c result.c error.c compare.c search.c \
-	controls.c messages.c references.c extended.c \
+	controls.c messages.c references.c extended.c cyrus.c \
 	modify.c add.c modrdn.c delete.c abandon.c ufn.c cache.c \
 	getfilter.c sasl.c sbind.c kbind.c unbind.c friendly.c cldap.c \
 	free.c disptmpl.c srchpref.c dsparse.c tmplout.c sort.c \
@@ -20,7 +20,7 @@ SRCS	= bind.c open.c result.c error.c compare.c search.c \
 	charray.c tls.c dn.c os-local.c dnssrv.c \
 	utf-8.c
 OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
-	controls.lo messages.lo references.lo extended.lo \
+	controls.lo messages.lo references.lo extended.lo cyrus.lo \
 	modify.lo add.lo modrdn.lo delete.lo abandon.lo ufn.lo cache.lo \
 	getfilter.lo sasl.lo sbind.lo kbind.lo unbind.lo friendly.lo cldap.lo \
 	free.lo disptmpl.lo srchpref.lo dsparse.lo tmplout.lo sort.lo \

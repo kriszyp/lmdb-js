@@ -136,24 +136,19 @@ struct berval **get_entry_referrals(
 	return NULL;
 }
 
-int sasl_init(void) {
-	return 0;
-}
-
-int sasl_destroy(void) {
-	return 0;
-}
-
-#ifdef HAVE_CYRUS_SASL
-int sasl_bind(
-    Connection          *conn,
-    Operation           *op,
-    const char          *dn,
-    const char          *ndn,
-    const char          *mech,
-    struct berval       *cred,
-    char                **edn)
+int slap_sasl_init(void)
 {
-	return -1;
+	return;
 }
-#endif
+
+int slap_sasl_destroy(void)
+{
+	return;
+}
+
+char * slap_sasl_secprops( const char *in )
+{
+	assert(0);
+	return NULL;
+}
+

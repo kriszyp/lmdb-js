@@ -268,7 +268,9 @@ LDAP_SLAPD_F (long) connection_init LDAP_P((
 	const char* dnsname,
 	const char* peername,
 	const char* sockname,
-	int use_tls ));
+	int use_tls,
+	unsigned ssf,
+	char *id ));
 
 LDAP_SLAPD_F (void) connection_closing LDAP_P(( Connection *c ));
 LDAP_SLAPD_F (int) connection_state_closing LDAP_P(( Connection *c ));
@@ -526,12 +528,22 @@ LDAP_SLAPD_F (int) str2result LDAP_P(( char *s,
 /*
  * sasl.c
  */
-LDAP_SLAPD_F (char **) supportedSASLMechanisms;
 
-LDAP_SLAPD_F (int) sasl_init(void);
-LDAP_SLAPD_F (int) sasl_destroy(void);
-LDAP_SLAPD_F (int) sasl_errldap LDAP_P(( int ));
-LDAP_SLAPD_F (int) sasl_bind LDAP_P((
+LDAP_SLAPD_F (int) slap_sasl_init(void);
+LDAP_SLAPD_F (char *) slap_sasl_secprops( const char * );
+LDAP_SLAPD_F (int) slap_sasl_destroy(void);
+
+LDAP_SLAPD_F (int) slap_sasl_open( Connection *c );
+LDAP_SLAPD_F (char **) slap_sasl_mechs( Connection *c );
+
+LDAP_SLAPD_F (int) slap_sasl_external( Connection *c,
+	unsigned ssf,	/* relative strength of external security */
+	char *authid );	/* asserted authenication id */
+
+LDAP_SLAPD_F (int) slap_sasl_reset( Connection *c );
+LDAP_SLAPD_F (int) slap_sasl_close( Connection *c );
+
+LDAP_SLAPD_F (int) slap_sasl_bind LDAP_P((
 	Connection *conn, Operation *op, 
 	const char *dn, const char *ndn,
 	const char *mech, struct berval *cred,
@@ -820,7 +832,9 @@ LDAP_SLAPD_F (int) config_info LDAP_P((
 	Entry **e, const char **text ));
 
 LDAP_SLAPD_F (int) root_dse_info LDAP_P((
-	Entry **e, const char **text ));
+	Connection *conn,
+	Entry **e,
+	const char **text ));
 
 LDAP_SLAPD_F (int) do_abandon LDAP_P((Connection *conn, Operation *op));
 LDAP_SLAPD_F (int) do_add LDAP_P((Connection *conn, Operation *op));

@@ -92,6 +92,10 @@ ldap_str2charray LDAP_P((
 	const char *str,
 	const char *brkstr ));
 
+LDAP_F( char * )
+ldap_charray2str LDAP_P((
+	char **array, const char* sep ));
+
 /* url.c */
 LDAP_F (void) ldap_pvt_hex_unescape LDAP_P(( char *s ));
 LDAP_F (int) ldap_pvt_unhex( int c );
@@ -118,22 +122,22 @@ LDAP_F (int) ldap_pvt_unhex( int c );
 #define LDAP_NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
 
 #ifdef HAVE_CYRUS_SASL
-/* sasl.c */
-LDAP_END_DECL
-#include <sasl.h>
-#include <ldap.h> 
-LDAP_BEGIN_DECL
+/* cyrus.c */
+struct sasl_security_properties; /* avoid pulling in <sasl.h> */
+LDAP_F (int) ldap_pvt_sasl_secprops LDAP_P((
+	const char *in,
+	struct sasl_security_properties *secprops ));
 
-LDAP_F (int) ldap_pvt_sasl_init LDAP_P(( void )); /* clientside init */
-LDAP_F (int) ldap_pvt_sasl_install LDAP_P(( Sockbuf *, void * ));
-LDAP_F (int) ldap_pvt_sasl_bind LDAP_P(( LDAP *, LDAP_CONST char *,
-	LDAP_CONST char *, LDAP_CONST sasl_callback_t *, LDAPControl **,
-	LDAPControl ** ));
-LDAP_F (int) ldap_pvt_sasl_get_option LDAP_P(( LDAP *ld, int option,
-	void *arg ));
-LDAP_F (int) ldap_pvt_sasl_set_option LDAP_P(( LDAP *ld, int option,
-	void *arg ));
+LDAP_F (void *) ldap_pvt_sasl_mutex_new LDAP_P((void));
+LDAP_F (int) ldap_pvt_sasl_mutex_lock LDAP_P((void *mutex));
+LDAP_F (int) ldap_pvt_sasl_mutex_unlock LDAP_P((void *mutex));
+LDAP_F (void) ldap_pvt_sasl_mutex_dispose LDAP_P((void *mutex));
+
+struct sockbuf; /* avoid pulling in <lber.h> */
+LDAP_F (int) ldap_pvt_sasl_install LDAP_P(( struct sockbuf *, void * ));
 #endif /* HAVE_CYRUS_SASL */
+
+#define LDAP_PVT_SASL_LOCAL_SSF	52	/* SSF for Unix Domain Sockets */
 
 /* search.c */
 LDAP_F( char * )
@@ -154,15 +158,15 @@ struct ldapoptions;
 struct ldap;
 
 LDAP_F (int) ldap_pvt_tls_init LDAP_P(( void ));
-LDAP_F (int) ldap_pvt_tls_config LDAP_P(( struct ldapoptions *lo, int option, const char *arg ));
 LDAP_F (int) ldap_pvt_tls_connect LDAP_P(( struct ldap *ld, Sockbuf *sb, void *ctx_arg ));
 LDAP_F (int) ldap_pvt_tls_accept LDAP_P(( Sockbuf *sb, void *ctx_arg ));
-LDAP_F (int) ldap_pvt_tls_get_option LDAP_P(( struct ldapoptions *lo, int option, void *arg ));
-LDAP_F (int) ldap_pvt_tls_set_option LDAP_P(( struct ldapoptions *lo, int option, void *arg ));
 LDAP_F (void *) ldap_pvt_tls_sb_handle LDAP_P(( Sockbuf *sb ));
 LDAP_F (void *) ldap_pvt_tls_get_handle LDAP_P(( struct ldap *ld ));
 LDAP_F (int) ldap_pvt_tls_inplace LDAP_P(( Sockbuf *sb ));
 LDAP_F (int) ldap_pvt_tls_start LDAP_P(( struct ldap *ld, Sockbuf *sb, void *ctx_arg ));
+
+LDAP_F (int) ldap_pvt_tls_get_option LDAP_P(( struct ldapoptions *lo, int option, void *arg ));
+LDAP_F (int) ldap_pvt_tls_set_option LDAP_P(( struct ldapoptions *lo, int option, void *arg ));
 
 /*  
  * UTF-8 (in utf-8.c)

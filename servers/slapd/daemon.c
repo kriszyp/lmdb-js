@@ -828,6 +828,8 @@ slapd_daemon_task(
 			ber_int_t s;
 			socklen_t len = sizeof(from);
 			long id;
+			unsigned ssf = 0;
+			char *authid = NULL;
 
 			char	*dnsname;
 			char	*peeraddr;
@@ -899,6 +901,7 @@ slapd_daemon_task(
 #  ifdef LDAP_PF_LOCAL
 			case AF_LOCAL:
 				sprintf( peername, "PATH=%s", from.sa_un_addr.sun_path );
+				ssf = LDAP_PVT_SASL_LOCAL_SSF;
 				break;
 #endif /* LDAP_PF_LOCAL */
 
@@ -966,18 +969,22 @@ slapd_daemon_task(
 #endif /* HAVE_TCPD */
 			}
 
-			if( (id = connection_init(s,
+			id = connection_init(s,
 				slap_listeners[l]->sl_url,
 				dnsname != NULL ? dnsname : "unknown",
 				peername,
 				slap_listeners[l]->sl_name,
 #ifdef HAVE_TLS
-				slap_listeners[l]->sl_is_tls
+				slap_listeners[l]->sl_is_tls,
 #else
-				0
+				0,
 #endif
-				)) < 0 )
-			{
+				ssf,
+				authid );
+
+			if( authid ) ch_free(authid);
+
+			if( id < 0 ) {
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: connection_init(%ld, %s, %s) failed.\n",
 					(long) s,

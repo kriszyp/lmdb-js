@@ -26,14 +26,15 @@
 
 int ldap_open_defconn( LDAP *ld )
 {
-	if (( ld->ld_defconn = ldap_new_connection( ld, ld->ld_options.ldo_defludp, 1,1,NULL )) == NULL )
-	{
+	ld->ld_defconn = ldap_new_connection( ld,
+		ld->ld_options.ldo_defludp, 1, 1, NULL );
+
+	if( ld->ld_defconn == NULL ) {
 		ld->ld_errno = LDAP_SERVER_DOWN;
 		return -1;
 	}
 
 	++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
-
 	return 0;
 }
 
@@ -91,7 +92,7 @@ ldap_create( LDAP **ldp )
 		ldap_int_initialize(gopts, NULL);
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_init\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_create\n", 0, 0, 0 );
 
 #ifdef HAVE_WINSOCK2
 {	WORD wVersionRequested;
@@ -179,7 +180,7 @@ ldap_create( LDAP **ldp )
  *
  * Example:
  *	LDAP	*ld;
- *	ld = ldap_open( host, port );
+ *	ld = ldap_init( host, port );
  */
 LDAP *
 ldap_init( LDAP_CONST char *defhost, int defport )
@@ -250,8 +251,9 @@ ldap_start_tls_s ( LDAP *ld,
 		if (ldap_pvt_tls_inplace(lc->lconn_sb) != 0)
 			return LDAP_OPERATIONS_ERROR;
 
+		/* XXYYZ: this initiates operaton only on default connection! */
 		rc = ldap_extended_operation_s(ld, LDAP_EXOP_START_TLS,
-							NULL, serverctrls, clientctrls, &rspoid, &rspdata);
+			NULL, serverctrls, clientctrls, &rspoid, &rspdata);
 
 		if (rc != LDAP_SUCCESS)
 			return rc;
@@ -270,14 +272,21 @@ ldap_start_tls_s ( LDAP *ld,
 }
 
 int
-open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
-	char **krbinstancep, int async )
+ldap_int_open_connection(
+	LDAP *ld,
+	LDAPConn *conn,
+	LDAPURLDesc *srv,
+	int async )
 {
 	int rc = -1;
+#ifdef HAVE_CYRUS_SASL
+	char *sasl_host = NULL;
+	int sasl_ssf = 0;
+#endif
 	int port;
 	long addr;
 
-	Debug( LDAP_DEBUG_TRACE, "open_ldap_connection\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_int_open_connection\n", 0, 0, 0 );
 
 	port = srv->lud_port;
 	if (port == 0)
@@ -290,30 +299,36 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 
 	switch ( ldap_pvt_url_scheme2proto( srv->lud_scheme ) ) {
 		case LDAP_PROTO_TCP:
-			rc = ldap_connect_to_host( ld, sb, srv->lud_host,
-				addr, port, async );
-			if ( rc == -1 )
-				return rc;
-			ber_sockbuf_add_io( sb, &ber_sockbuf_io_tcp,
+			rc = ldap_connect_to_host( ld, conn->lconn_sb, 0,
+				srv->lud_host, addr, port, async );
+			if ( rc == -1 ) return rc;
+			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_tcp,
 				LBER_SBIOD_LEVEL_PROVIDER, NULL );
+
+#ifdef HAVE_CYRUS_SASL
+			sasl_host = ldap_host_connected_to( conn->lconn_sb );
+#endif
 			break;
 		case LDAP_PROTO_UDP:
-			rc = ldap_connect_to_host( ld, sb, srv->lud_host,
-				addr, port, async );
-			if ( rc == -1 )
-				return rc;
-			ber_sockbuf_add_io( sb, &ber_sockbuf_io_udp,
+			rc = ldap_connect_to_host( ld, conn->lconn_sb, 1,
+				srv->lud_host, addr, port, async );
+			if ( rc == -1 ) return rc;
+			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_udp,
 				LBER_SBIOD_LEVEL_PROVIDER, NULL );
 			break;
 		case LDAP_PROTO_IPC:
 #ifdef LDAP_PF_LOCAL
 			/* only IPC mechanism supported is PF_LOCAL (PF_UNIX) */
-			rc = ldap_connect_to_path( ld, sb,
+			rc = ldap_connect_to_path( ld, conn->lconn_sb, 0,
 				srv->lud_host, async );
-			if ( rc == -1 )
-				return rc;
-			ber_sockbuf_add_io( sb, &ber_sockbuf_io_fd,
+			if ( rc == -1 ) return rc;
+			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_fd,
 				LBER_SBIOD_LEVEL_PROVIDER, NULL );
+
+#ifdef HAVE_CYRUS_SASL
+			sasl_host = ldap_host_connected_to( conn->lconn_sb );
+			sasl_ssf = LDAP_PVT_SASL_LOCAL_SSF;
+#endif
 			break;
 #endif /* LDAP_PF_LOCAL */
 		default:
@@ -321,31 +336,41 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 			break;
 	}
 
-	ber_sockbuf_add_io( sb, &ber_sockbuf_io_readahead,
+#ifdef HAVE_CYRUS_SASL
+	if( sasl_host != NULL ) {
+		ldap_int_sasl_open( ld, conn, sasl_host, sasl_ssf );
+	}
+#endif
+
+	ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_readahead,
 		LBER_SBIOD_LEVEL_PROVIDER, NULL );
 #ifdef LDAP_DEBUG
-	ber_sockbuf_add_io( sb, &ber_sockbuf_io_debug, INT_MAX, NULL );
+	ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+		INT_MAX, NULL );
 #endif
 
 #ifdef HAVE_TLS
 	if (ld->ld_options.ldo_tls_mode == LDAP_OPT_X_TLS_HARD ||
 		strcmp( srv->lud_scheme, "ldaps" ) == 0 )
 	{
-		rc = ldap_pvt_tls_start( ld, sb, ld->ld_options.ldo_tls_ctx );
+		rc = ldap_pvt_tls_start( ld, conn->lconn_sb,
+			ld->ld_options.ldo_tls_ctx );
 		if (rc != LDAP_SUCCESS)
 			return rc;
 	}
 #endif
 
-	if ( krbinstancep != NULL ) {
+	if ( conn->lconn_krbinstance != NULL ) {
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		char *c;
-		if (( *krbinstancep = ldap_host_connected_to( sb )) != NULL &&
-		    ( c = strchr( *krbinstancep, '.' )) != NULL ) {
+		conn->lconn_krbinstance = ldap_host_connected_to( conn->sb );
+
+		if( conn->lconn_krbinstance != NULL && 
+		    ( c = strchr( conn->lconn_krbinstance, '.' )) != NULL ) {
 			*c = '\0';
 		}
 #else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
-		*krbinstancep = NULL;
+		conn->lconn_krbinstance = NULL;
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 	}
 

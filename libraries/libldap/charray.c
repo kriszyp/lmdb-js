@@ -217,3 +217,48 @@ ldap_str2charray( const char *str_in, const char *brkstr )
 	LDAP_FREE( str );
 	return( res );
 }
+
+char * ldap_charray2str( char **a, const char *sep )
+{
+	char *s, **v, *p;
+	int len = 0;
+	int slen;
+
+	if( sep == NULL ) sep = " ";
+
+	slen = strlen( sep );
+
+	for ( v = a; *v != NULL; v++ ) {
+		len += strlen( *v ) + slen; /* for a space */
+	}
+
+	if ( len == 0 ) {
+		return NULL;
+	}
+
+	len -= slen;
+	len += 1; /* EOS */
+
+	s = LDAP_MALLOC ( len );
+
+	if ( s == NULL ) {
+		return NULL;	
+	}
+
+	p = s;
+	for ( v = a; *v != NULL; v++ ) {
+		int len;
+
+		if ( v != a ) {
+			strncpy( p, sep, slen );
+			p += slen;
+		}
+
+		len = strlen( *v );
+		strncpy( p, *v, len );
+		p += len;
+	}
+
+	*p = '\0';
+	return s;
+}

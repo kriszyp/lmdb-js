@@ -5,9 +5,10 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-#ifdef HAVE_CYRUS_SASL
 
 #include "portable.h"
+
+#if 0
 
 #include <stdio.h>
 

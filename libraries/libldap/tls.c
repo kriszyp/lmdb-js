@@ -59,6 +59,8 @@ static DH * tls_tmp_dh_cb( SSL *ssl, int is_export, int key_length );
 
 static SSL_CTX *tls_def_ctx = NULL;
 
+static int tls_seed_PRNG( const char *randfile );
+
 #ifdef LDAP_R_COMPILE
 /*
  * provide mutexes for the SSLeay library.
@@ -626,6 +628,7 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 #endif
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -668,7 +671,7 @@ ldap_pvt_tls_get_peer_issuer( LDAP *ld )
 }
 
 int
-ldap_pvt_tls_config( struct ldapoptions *lo, int option, const char *arg )
+ldap_int_tls_config( struct ldapoptions *lo, int option, const char *arg )
 {
 	int i;
 
@@ -699,9 +702,9 @@ ldap_pvt_tls_config( struct ldapoptions *lo, int option, const char *arg )
 		if (i >= 0)
 			return ldap_pvt_tls_set_option( lo, option, &i );
 		return -1;
-	default:
-		return -1;
 	}
+
+	return -1;
 }
 
 int

@@ -26,8 +26,10 @@ struct ldapoptions ldap_int_global_options =
 #define ATTR_INT	2
 #define ATTR_KV		3
 #define ATTR_STRING	4
-#define ATTR_TLS	5
-#define ATTR_URIS	6
+#define ATTR_URIS	5
+
+#define ATTR_SASL	6
+#define ATTR_TLS	7
 
 struct ol_keyvalue {
 	const char *		key;
@@ -66,6 +68,10 @@ static const struct ol_attribute {
 	{0, ATTR_BOOL,		"REFERRALS",	NULL,	LDAP_BOOL_REFERRALS},
 	{0, ATTR_BOOL,		"RESTART",		NULL,	LDAP_BOOL_RESTART},
 
+#ifdef HAVE_CYRUS_SASL
+	{0, ATTR_SASL,		"SASL_SECPROPS",NULL,	LDAP_OPT_X_SASL_SECPROPS},
+#endif
+
 #ifdef HAVE_TLS
   	{0, ATTR_TLS,		"TLS",			NULL,	LDAP_OPT_X_TLS},
 	{0, ATTR_TLS,		"TLS_CERT",		NULL,	LDAP_OPT_X_TLS_CERTFILE},
@@ -74,13 +80,6 @@ static const struct ol_attribute {
   	{0, ATTR_TLS,		"TLS_CACERTDIR",NULL,	LDAP_OPT_X_TLS_CACERTDIR},
   	{0, ATTR_TLS,		"TLS_REQCERT",	NULL,	LDAP_OPT_X_TLS_REQUIRE_CERT},
 	{0, ATTR_TLS,		"TLS_RANDFILE",	NULL,	LDAP_OPT_X_TLS_RANDOM_FILE},
-#endif
-
-#ifdef HAVE_CYRUS_SASL
-	{0, ATTR_INT,		"SASL_MINSSF",	NULL,
-		offsetof(struct ldapoptions, ldo_sasl_minssf)},
-	{0, ATTR_INT,		"SASL_MAXSSF",	NULL,
-		offsetof(struct ldapoptions, ldo_sasl_maxssf)},
 #endif
 
 	{0, ATTR_NONE,		NULL,		NULL,	0}
@@ -204,11 +203,6 @@ static void openldap_ldap_init_w_conf(
 				if (* (char**) p != NULL) LDAP_FREE(* (char**) p);
 				* (char**) p = LDAP_STRDUP(opt);
 				break;
-			case ATTR_TLS:
-#ifdef HAVE_TLS
-			   	ldap_pvt_tls_config( gopts, attrs[i].offset, opt );
-#endif
-				break;
 			case ATTR_URIS:
 				if (attrs[i].offset == 0) {
 					ldap_set_option( NULL, LDAP_OPT_URI, opt );
@@ -216,7 +210,18 @@ static void openldap_ldap_init_w_conf(
 					ldap_set_option( NULL, LDAP_OPT_HOST_NAME, opt );
 				}
 				break;
+			case ATTR_SASL:
+#ifdef HAVE_CYRUS_SASL
+			   	ldap_int_sasl_config( gopts, attrs[i].offset, opt );
+#endif
+				break;
+			case ATTR_TLS:
+#ifdef HAVE_TLS
+			   	ldap_int_tls_config( gopts, attrs[i].offset, opt );
+#endif
+				break;
 			}
+
 			break;
 		}
 	}
@@ -338,11 +343,6 @@ static void openldap_ldap_init_w_env(
 				* (char**) p = LDAP_STRDUP(value);
 			}
 			break;
-		case ATTR_TLS:
-#ifdef HAVE_TLS
-		   	ldap_pvt_tls_config( gopts, attrs[i].offset, value );
-#endif			 	
-		   	break;
 		case ATTR_URIS:
 			if (attrs[i].offset == 0) {
 				ldap_set_option( NULL, LDAP_OPT_URI, value );
@@ -350,6 +350,16 @@ static void openldap_ldap_init_w_env(
 				ldap_set_option( NULL, LDAP_OPT_HOST_NAME, value );
 			}
 			break;
+		case ATTR_SASL:
+#ifdef HAVE_CYRUS_SASL
+		   	ldap_int_sasl_config( gopts, attrs[i].offset, value );
+#endif			 	
+		   	break;
+		case ATTR_TLS:
+#ifdef HAVE_TLS
+		   	ldap_int_tls_config( gopts, attrs[i].offset, value );
+#endif			 	
+		   	break;
 		}
 	}
 }
@@ -389,8 +399,11 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
    	gopts->ldo_tls_ctx = NULL;
 #endif
 #ifdef HAVE_CYRUS_SASL
-	gopts->ldo_sasl_minssf = 0;
-	gopts->ldo_sasl_maxssf = INT_MAX;
+	memset( &gopts->ldo_sasl_secprops, '\0', sizeof(gopts->ldo_sasl_secprops) );
+
+	gopts->ldo_sasl_secprops.max_ssf = INT_MAX;
+	gopts->ldo_sasl_secprops.maxbufsize = 65536;
+	gopts->ldo_sasl_secprops.security_flags = SASL_SEC_NOPLAINTEXT|SASL_SEC_NOANONYMOUS;
 #endif
 
 	gopts->ldo_valid = LDAP_INITIALIZED;
@@ -398,11 +411,27 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
    	return;
 }
 
+#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
+	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+char * ldap_int_hostname = "localhost";
+#endif
+
 void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 {
 	if ( gopts->ldo_valid == LDAP_INITIALIZED ) {
 		return;
 	}
+
+#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
+	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+	{
+		char hostbuf[MAXHOSTNAMELEN+1];
+		if( gethostname( hostbuf, MAXHOSTNAMELEN ) == 0 ) {
+			hostbuf[MAXHOSTNAMELEN] = '\0';
+			ldap_int_hostname = hostbuf;
+		}
+	}
+#endif
 
 	ldap_int_utils_init();
 
@@ -410,9 +439,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
    	ldap_pvt_tls_init();
 #endif
 
-#ifdef HAVE_CYRUS_SASL
-	ldap_pvt_sasl_init();
-#endif
+	ldap_int_sasl_init();
 
 	if ( ldap_int_tblsize == 0 )
 		ldap_int_ip_init();

@@ -256,9 +256,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 
 	if ( connect ) {
 		for ( srv = srvlist; srv != NULL; srv = srv->lud_next ) {
-			if ( open_ldap_connection( ld, lc->lconn_sb,
-			    		srv, &lc->lconn_krbinstance, 0 ) != -1 )
-			{
+			if ( ldap_int_open_connection( ld, lc, srv, 0 ) != -1 ) {
 				break;
 			}
 		}
@@ -395,6 +393,8 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		if( lc->lconn_ber != NULL ) {
 			ber_free( lc->lconn_ber, 1 );
 		}
+
+		ldap_int_sasl_close( ld, lc );
 
 		prevlc = NULL;
 		for ( tmplc = ld->ld_conns; tmplc != NULL;

@@ -176,11 +176,12 @@ main (int  argc, char **argv )
 #ifdef GO500GW_HOSTNAME
 	strcpy( myhost, GO500GW_HOSTNAME );
 #else
-	if ( myhost[0] == '\0' && gethostname( myhost, sizeof(myhost) )
+	if ( myhost[0] == '\0' && gethostname( myhost, sizeof(myhost)-1 )
 	    == -1 ) {
 		perror( "gethostname" );
 		exit( EXIT_FAILURE );
 	}
+	myhost[sizeof(myhost)-1] = '\0';
 #endif
 
 	/* detach if stderr is redirected or no debugging */

@@ -116,7 +116,7 @@ read_config( const char *fname )
 
 			if( bi == NULL ) {
 				Debug( LDAP_DEBUG_ANY,
-					"backend %s initialization failed.n",
+					"backend %s initialization failed.\n",
 				    cargv[1], 0, 0 );
 				return( 1 );
 			}
@@ -135,7 +135,7 @@ read_config( const char *fname )
 
 			if( be == NULL ) {
 				Debug( LDAP_DEBUG_ANY,
-					"database %s initialization failed.n",
+					"database %s initialization failed.\n",
 				    cargv[1], 0, 0 );
 				return( 1 );
 			}
@@ -208,7 +208,7 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "password-hash" ) == 0 ) {
 			if ( cargc < 2 ) {
 				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing realm in \"password-hash <hash>\" line\n",
+	    "%s: line %d: missing hash in \"password-hash <hash>\" line\n",
 				    fname, lineno, 0 );
 				return( 1 );
 			}
@@ -222,11 +222,11 @@ read_config( const char *fname )
 				default_passwd_hash = ch_strdup( cargv[1] );
 			}
 
-		/* set DIGEST realm */
-		} else if ( strcasecmp( cargv[0], "digest-realm" ) == 0 ) {
+		/* set SASL realm */
+		} else if ( strcasecmp( cargv[0], "sasl-realm" ) == 0 ) {
 			if ( cargc < 2 ) {
 				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing realm in \"digest-realm <realm>\" line\n",
+	    "%s: line %d: missing realm in \"sasl-realm <realm>\" line\n",
 				    fname, lineno, 0 );
 				return( 1 );
 			}
@@ -241,6 +241,25 @@ read_config( const char *fname )
 
 			} else {
 				global_realm = ch_strdup( cargv[1] );
+			}
+
+		/* SASL security properties */
+		} else if ( strcasecmp( cargv[0], "sasl-secprops" ) == 0 ) {
+			char *txt;
+
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing flags in \"sasl-secprops <properties>\" line\n",
+				    fname, lineno, 0 );
+				return 1;
+			}
+
+			txt = slap_sasl_secprops( cargv[1] );
+			if ( txt != NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: sasl-secprops: %s\n",
+				    fname, lineno, txt );
+				return 1;
 			}
 
 		/* set time limit */

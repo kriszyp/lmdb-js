@@ -18,6 +18,11 @@
 
 #include "../liblber/lber-int.h"
 
+#ifdef HAVE_CYRUS_SASL
+	/* the need for this should be removed */
+#include <sasl.h>
+#endif
+
 /* 
  * Support needed if the library is running in the kernel
  */
@@ -142,8 +147,8 @@ struct ldapoptions {
    	int		ldo_tls_mode;
 #endif
 #ifdef HAVE_CYRUS_SASL
-	sasl_ssf_t	ldo_sasl_minssf;
-	sasl_ssf_t	ldo_sasl_maxssf;
+	struct sasl_security_properties	ldo_sasl_secprops;
+	LDAP_SASL_INTERACT_PROC	*ldo_sasl_interact;
 #endif
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
 };
@@ -164,7 +169,8 @@ typedef struct ldap_server {
  * structure for representing an LDAP server connection
  */
 typedef struct ldap_conn {
-	Sockbuf			*lconn_sb;
+	Sockbuf		*lconn_sb;
+	void		*lconn_sasl_ctx;
 	int			lconn_refcnt;
 	time_t		lconn_lastused;	/* time */
 	int			lconn_rebind_inprogress;	/* set if rebind in progress */
@@ -266,7 +272,8 @@ struct ldap {
 #define ld_cctrls		ld_options.ldo_cctrls
 #define ld_rebindproc	ld_options.ldo_rebindproc
 
-#define ld_version		ld_options.ldo_version	
+#define ld_version		ld_options.ldo_version
+
 	char	*ld_host;
 	int		ld_port;
 
@@ -298,22 +305,20 @@ struct ldap {
 	LDAPConn	*ld_defconn;	/* default connection */
 	LDAPConn	*ld_conns;	/* list of server connections */
 	void		*ld_selectinfo;	/* platform specifics for select */
-#ifdef HAVE_CYRUS_SASL
-	sasl_conn_t		*ld_sasl_context;
-#endif /* HAVE_CYRUS_SASL */
 };
 #define LDAP_VALID(ld)	( (ld)->ld_valid == LDAP_VALID_SESSION )
 
 #if defined(HAVE_RES_QUERY) && defined(LDAP_R_COMPILE)
 #include <ldap_pvt_thread.h>
-extern ldap_pvt_thread_mutex_t ldap_int_resolv_mutex;
+LDAP_V ( ldap_pvt_thread_mutex_t ) ldap_int_resolv_mutex;
 #endif /* HAVE_RES_QUERY && LDAP_R_COMPILE */
 
 /*
  * in init.c
  */
 
-LDAP_F ( struct ldapoptions ) ldap_int_global_options;
+LDAP_V ( struct ldapoptions ) ldap_int_global_options;
+
 LDAP_F ( void ) ldap_int_initialize LDAP_P((struct ldapoptions *, int *));
 LDAP_F ( void ) ldap_int_initialize_global_options LDAP_P((
 	struct ldapoptions *, int *));
@@ -400,16 +405,20 @@ LDAP_F (char *) ldap_get_kerberosv4_credentials LDAP_P((
  * in open.c
  */
 LDAP_F (int) ldap_open_defconn( LDAP *ld );
-LDAP_F (int) open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srvlist, char **krbinstancep, int async );
+LDAP_F (int) ldap_int_open_connection( LDAP *ld,
+	LDAPConn *conn, LDAPURLDesc *srvlist, int async );
 
 /*
  * in os-ip.c
  */
 LDAP_F (int) ldap_int_tblsize;
 LDAP_F (int) ldap_int_timeval_dup( struct timeval **dest, const struct timeval *tm );
-LDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb, const char *host, unsigned long address, int port, int async );
+LDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb,
+	int proto, const char *host, unsigned long address, int port,
+	int async );
 
 #if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) || defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+LDAP_V (char *) ldap_int_hostname;
 LDAP_F (char *) ldap_host_connected_to( Sockbuf *sb );
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
@@ -427,7 +436,8 @@ LDAP_F (int) ldap_is_write_ready( LDAP *ld, Sockbuf *sb );
  * in os-local.c
  */
 #ifdef LDAP_PF_UNIX 
-LDAP_F (int) ldap_connect_to_path( LDAP *ld, Sockbuf *sb, const char *path, int async );
+LDAP_F (int) ldap_connect_to_path( LDAP *ld, Sockbuf *sb, int proto,
+	const char *path, int async );
 #endif /* LDAP_PF_UNIX */
 
 /*
@@ -518,6 +528,31 @@ LDAP_F (char *) ldap_url_list2urls LDAP_P((
 LDAP_F (void) ldap_free_urllist LDAP_P((
 	LDAPURLDesc *ludlist ));
 
+/*
+ * in cyrus.c
+ */
+LDAP_F (int) ldap_int_sasl_init LDAP_P(( void ));
+
+LDAP_F (int) ldap_int_sasl_open LDAP_P((
+	LDAP *ld, LDAPConn *conn,
+	const char* host, ber_len_t ssf ));
+LDAP_F (int) ldap_int_sasl_close LDAP_P(( LDAP *ld, LDAPConn *conn ));
+
+LDAP_F (int) ldap_int_sasl_get_option LDAP_P(( LDAP *ld,
+	int option, void *arg ));
+LDAP_F (int) ldap_int_sasl_set_option LDAP_P(( LDAP *ld,
+	int option, void *arg ));
+LDAP_F (int) ldap_int_sasl_config LDAP_P(( struct ldapoptions *lo,
+	int option, const char *arg ));
+
+LDAP_F (int) ldap_int_sasl_bind LDAP_P((
+	struct ldap *, LDAP_CONST char *,
+	const char *, LDAPControl **, LDAPControl ** ));
+
+/*
+ * in tls.c
+ */
+LDAP_F (int) ldap_int_tls_config LDAP_P(( struct ldapoptions *lo, int option, const char *arg ));
 
 LDAP_END_DECL
 

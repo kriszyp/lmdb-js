@@ -100,35 +100,35 @@ AC_SUBST(ldap_subdir)dnl
 
 dnl ----------------------------------------------------------------
 dnl General "enable" options
-OL_ARG_ENABLE(debug,[  --enable-debug 	enable debugging], yes)dnl
-OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
-OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl
-OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
-OL_ARG_ENABLE(referrals,[  --enable-referrals	enable V2 Referrals extension], yes)dnl
-OL_ARG_ENABLE(kbind,[  --enable-kbind	enable V2 Kerberos IV bind], auto)dnl
-OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
-OL_ARG_ENABLE(ipv6,[  --enable-ipv6 	enable IPv6 support], auto)dnl
-OL_ARG_ENABLE(local,[  --enable-local		enable AF_LOCAL socket support], auto)dnl
-OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
+OL_ARG_ENABLE(debug,[  --enable-debug 	  enable debugging], yes)dnl
+OL_ARG_ENABLE(syslog,[  --enable-syslog	  enable syslog support], auto)dnl
+OL_ARG_ENABLE(proctitle,[  --enable-proctitle	  enable proctitle support], yes)dnl
+OL_ARG_ENABLE(cache,[  --enable-cache	  enable caching], yes)dnl
+OL_ARG_ENABLE(referrals,[  --enable-referrals	  enable V2 Referrals extension], yes)dnl
+OL_ARG_ENABLE(kbind,[  --enable-kbind	  enable V2 Kerberos IV bind], auto)dnl
+OL_ARG_ENABLE(cldap,[  --enable-cldap	  enable connectionless ldap], no)dnl
+OL_ARG_ENABLE(ipv6,[  --enable-ipv6 	  enable IPv6 support], auto)dnl
+OL_ARG_ENABLE(local,[  --enable-local	  enable AF_LOCAL (AF_UNIX) socket support], auto)dnl
+OL_ARG_ENABLE(x_compile,[  --enable-x-compile	  enable cross compiling],
 	no, [yes no])dnl
 
 dnl ----------------------------------------------------------------
 dnl General "with" options
-dnl OL_ARG_ENABLE(dmalloc,[  --enable-dmalloc	enable debug malloc support], no)dnl
+dnl OL_ARG_ENABLE(dmalloc,[  --enable-dmalloc	  enable debug malloc support], no)dnl
 
-OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl	with Cyrus SASL support],
+OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl	  with Cyrus SASL support],
 	auto, [auto yes no] )
-OL_ARG_WITH(fetch,[  --with-fetch		with fetch URL support],
+OL_ARG_WITH(fetch,[  --with-fetch		  with fetch URL support],
 	auto, [auto yes no] )
-OL_ARG_WITH(kerberos,[  --with-kerberos	with support],
+OL_ARG_WITH(kerberos,[  --with-kerberos	  with support],
 	auto, [auto k5 k5only k425 kth k4 afs yes no])
-OL_ARG_WITH(readline,[  --with-readline	with readline support],
+OL_ARG_WITH(readline,[  --with-readline	  with readline support],
 	auto, [auto yes no] )
-OL_ARG_WITH(threads,[  --with-threads	use threads],
+OL_ARG_WITH(threads,[  --with-threads	  with threads],
 	auto, [auto nt posix mach pth lwp yes no manual] )
-OL_ARG_WITH(tls,[  --with-tls		with TLS/SSL support],
+OL_ARG_WITH(tls,[  --with-tls		  with TLS/SSL support],
 	auto, [auto ssleay openssl yes no] )
-OL_ARG_WITH(yielding_select,[  --with-yielding-select	with implicitly yielding select],
+OL_ARG_WITH(yielding_select,[  --with-yielding-select  with implicitly yielding select],
 	auto, [auto yes no manual] )
 
 dnl ----------------------------------------------------------------
@@ -138,53 +138,53 @@ dnl ----------------------------------------------------------------
 dnl ----------------------------------------------------------------
 dnl SLAPD OPTIONS
 AC_ARG_WITH(xxslapdoptions,[SLAPD (Standalone LDAP Daemon) Options:])
-OL_ARG_ENABLE(slapd,[  --enable-slapd	enable building slapd], yes)dnl
-OL_ARG_ENABLE(cleartext,[    --enable-cleartext	enable cleartext passwords], yes)dnl
-OL_ARG_ENABLE(crypt,[    --enable-crypt	enable crypt(3) passwords], auto)dnl
-OL_ARG_ENABLE(kpasswd,[    --enable-kpasswd	enable kerberos password verification], no)dnl
-OL_ARG_ENABLE(spasswd,[    --enable-spasswd	enable (Cyrus) SASL password verification], no)dnl
-OL_ARG_ENABLE(modules,[    --enable-modules	enable dynamic module support], no)dnl
-OL_ARG_ENABLE(multimaster,[    --enable-multimaster	enable multimaster replication], no)dnl
-OL_ARG_ENABLE(phonetic,[    --enable-phonetic	enable phonetic/soundex], no)dnl
-OL_ARG_ENABLE(rlookups,[    --enable-rlookups	enable reverse lookups], auto)dnl
-OL_ARG_ENABLE(aci,[    --enable-aci	enable per-object ACIs], no)dnl
-OL_ARG_ENABLE(wrappers,[    --enable-wrappers	enable tcp wrapper support], no)dnl
-OL_ARG_ENABLE(dynamic,[    --enable-dynamic	enable linking built binaries with dynamic libs], no)dnl
+OL_ARG_ENABLE(slapd,[  --enable-slapd	  enable building slapd], yes)dnl
+OL_ARG_ENABLE(cleartext,[    --enable-cleartext	  enable cleartext passwords], yes)dnl
+OL_ARG_ENABLE(crypt,[    --enable-crypt	  enable crypt(3) passwords], auto)dnl
+OL_ARG_ENABLE(kpasswd,[    --enable-kpasswd	  enable kerberos password verification], no)dnl
+OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verification], no)dnl
+OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no)dnl
+OL_ARG_ENABLE(multimaster,[    --enable-multimaster  enable multimaster replication], no)dnl
+OL_ARG_ENABLE(phonetic,[    --enable-phonetic	  enable phonetic/soundex], no)dnl
+OL_ARG_ENABLE(rlookups,[    --enable-rlookups	  enable reverse lookups], auto)dnl
+OL_ARG_ENABLE(aci,[    --enable-aci	  enable per-object ACIs], no)dnl
+OL_ARG_ENABLE(wrappers,[    --enable-wrappers	  enable tcp wrapper support], no)dnl
+OL_ARG_ENABLE(dynamic,[    --enable-dynamic	  enable linking built binaries with dynamic libs], no)dnl
 
 dnl SLAPD Backend options
-OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	enable dnssrv backend], no)dnl
-OL_ARG_WITH(dnssrv_module,[      --with-dnssrv-module	module type], static,
+OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend], no)dnl
+OL_ARG_WITH(dnssrv_module,[    --with-dnssrv-module  module type], static,
 	[static dynamic])
-OL_ARG_ENABLE(ldap,[    --enable-ldap	enable ldap backend], no)dnl
-OL_ARG_WITH(ldap_module,[      --with-ldap-module	module type], static,
+OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend], no)dnl
+OL_ARG_WITH(ldap_module,[    --with-ldap-module	  module type], static,
 	[static dynamic])
-OL_ARG_ENABLE(ldbm,[    --enable-ldbm	enable ldbm backend], yes)dnl
-OL_ARG_WITH(ldbm_api,[      --with-ldbm-api	use LDBM API], auto,
+OL_ARG_ENABLE(ldbm,[    --enable-ldbm	  enable ldbm backend], yes)dnl
+OL_ARG_WITH(ldbm_api,[    --with-ldbm-api       with LDBM API], auto,
 	[auto berkeley bcompat mdbm gdbm])
-OL_ARG_WITH(ldbm_module,[      --with-ldbm-module	module type], static,
+OL_ARG_WITH(ldbm_module,[    --with-ldbm-module	  module type], static,
 	[static dynamic])
-OL_ARG_WITH(ldbm_type,[      --with-ldbm-type	use LDBM type], auto,
+OL_ARG_WITH(ldbm_type,[    --with-ldbm-type	  use LDBM type], auto,
 	[auto btree hash])
-OL_ARG_ENABLE(passwd,[    --enable-passwd	enable passwd backend], no)dnl
-OL_ARG_WITH(passwd_module,[      --with-passwd-module	module type], static,
+OL_ARG_ENABLE(passwd,[    --enable-passwd	  enable passwd backend], no)dnl
+OL_ARG_WITH(passwd_module,[    --with-passwd-module  module type], static,
 	[static dynamic])
-OL_ARG_ENABLE(perl,[    --enable-perl	enable perl backend], no)dnl
-OL_ARG_WITH(perl_module,[      --with-perl-module	module type], static,
+OL_ARG_ENABLE(perl,[    --enable-perl	  enable perl backend], no)dnl
+OL_ARG_WITH(perl_module,[    --with-perl-module	  module type], static,
 	[static dynamic])
-OL_ARG_ENABLE(shell,[    --enable-shell	enable shell backend], no)dnl
-OL_ARG_WITH(shell_module,[      --with-shell-module	module type], static,
+OL_ARG_ENABLE(shell,[    --enable-shell	  enable shell backend], no)dnl
+OL_ARG_WITH(shell_module,[    --with-shell-module	  module type], static,
 	[static dynamic])
-OL_ARG_ENABLE(sql,[    --enable-sql	enable sql backend], no)dnl
-OL_ARG_WITH(sql_module,[      --with-sql-module	module type], static,
+OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend], no)dnl
+OL_ARG_WITH(sql_module,[    --with-sql-module	  module type], static,
 	[static dynamic])
-OL_ARG_ENABLE(tcl,[    --enable-tcl	enable tcl backend], no)dnl
-OL_ARG_WITH(tcl_module,[      --with-tcl-module	module type], static,
+OL_ARG_ENABLE(tcl,[    --enable-tcl	  enable tcl backend], no)dnl
+OL_ARG_WITH(tcl_module,[    --with-tcl-module	  module type], static,
 	[static dynamic])
 
 dnl ----------------------------------------------------------------
 dnl SLURPD OPTIONS
 AC_ARG_WITH(xxslurpdoptions,[SLURPD (Replication Daemon) Options:])
-OL_ARG_ENABLE(slurpd,[  --enable-slurpd	enable building slurpd], auto)dnl
+OL_ARG_ENABLE(slurpd,[  --enable-slurpd	  enable building slurpd], auto)dnl
 
 dnl ----------------------------------------------------------------
 AC_ARG_WITH(xxliboptions,[Library Generation & Linking Options])

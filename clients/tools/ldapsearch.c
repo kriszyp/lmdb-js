@@ -31,6 +31,7 @@
 
 #include "ldif.h"
 #include "lutil.h"
+#include "lutil_ldap.h"
 #include "ldap_defaults.h"
 
 static void
@@ -64,6 +65,7 @@ usage( const char *s )
 "\t\t\tand version\n"
 "\t-M\t\tenable Manage DSA IT control (-MM to make critical)\n"
 "\t-n\t\tshow what would be done but don't actually search\n"
+"\t-O secprops\tSASL security properties\n"
 "\t-p port\t\tport on LDAP server\n"
 "\t-P version\tprocotol version (default: 3)\n"
 "\t-s scope\tone of base, one, or sub (search scope)\n"
@@ -143,8 +145,7 @@ static int	ldapport = 0;
 static char	*sasl_authc_id = NULL;
 static char	*sasl_authz_id = NULL;
 static char	*sasl_mech = NULL;
-static int	sasl_integrity = 0;
-static int	sasl_privacy = 0;
+static char	*sasl_secprops = NULL;
 #endif
 static int	use_tls = 0;
 static char	*sortattr = NULL;
@@ -170,7 +171,7 @@ main( int argc, char **argv )
 	authmethod = LDAP_AUTH_SIMPLE;
 
 	while (( i = getopt( argc, argv,
-		"Aa:b:CD:d:Ef:h:IKkLl:MnP:p:RS:s:T:tU:uV:vWw:X:Y:Zz:")) != EOF )
+		"Aa:b:CD:d:f:h:KkLl:MnO:P:p:RS:s:T:tU:uV:vWw:X:Y:Zz:")) != EOF )
 	{
 	switch( i ) {
 	case 'n':	/* do nothing */
@@ -309,19 +310,9 @@ main( int argc, char **argv )
 			usage( argv[0] );
 		}
 		break;
-	case 'I':
+	case 'O':
 #ifdef HAVE_CYRUS_SASL
-		sasl_integrity++;
-		authmethod = LDAP_AUTH_SASL;
-#else
-		fprintf( stderr, "%s was not compiled with SASL support\n",
-			argv[0] );
-		return( EXIT_FAILURE );
-#endif
-		break;
-	case 'E':
-#ifdef HAVE_CYRUS_SASL
-		sasl_privacy++;
+		sasl_secprops = strdup( optarg );
 		authmethod = LDAP_AUTH_SASL;
 #else
 		fprintf( stderr, "%s was not compiled with SASL support\n",
@@ -531,37 +522,25 @@ main( int argc, char **argv )
 
 	if ( authmethod == LDAP_AUTH_SASL ) {
 #ifdef HAVE_CYRUS_SASL
-		int	minssf = 0, maxssf = 0;
+		ldap_set_sasl_interact_proc( ld, lutil_sasl_interact );
 
-		if ( sasl_integrity > 0 )
-			maxssf = 1;
-		if ( sasl_integrity > 1 )
-			minssf = 1;
-		if ( sasl_privacy > 0 )
-			maxssf = 100000; /* Something big value */
-		if ( sasl_privacy > 1 )
-			minssf = 56;
-		
-		if ( ldap_set_option( ld, LDAP_OPT_X_SASL_MINSSF,
-				(void *)&minssf ) != LDAP_OPT_SUCCESS ) {
-			fprintf( stderr, "Could not set LDAP_OPT_X_SASL_MINSSF"
-				"%d\n", minssf);
-			return( EXIT_FAILURE );
-		}
-		if ( ldap_set_option( ld, LDAP_OPT_X_SASL_MAXSSF,
-				(void *)&maxssf ) != LDAP_OPT_SUCCESS ) {
-			fprintf( stderr, "Could not set LDAP_OPT_X_SASL_MAXSSF"
-				"%d\n", maxssf);
-			return( EXIT_FAILURE );
+		if( sasl_secprops != NULL ) {
+			rc = ldap_set_option( ld, LDAP_OPT_X_SASL_SECPROPS,
+				(void *) sasl_secprops );
+			
+			if( rc != LDAP_OPT_SUCCESS ) {
+				fprintf( stderr,
+					"Could not set LDAP_OPT_X_SASL_SECPROPS: %s\n",
+					sasl_secprops );
+				return( EXIT_FAILURE );
+			}
 		}
 		
-		rc = ldap_negotiated_sasl_bind_s( ld, binddn, sasl_authc_id,
-				sasl_authz_id, sasl_mech,
-				passwd.bv_len ? &passwd : NULL,
-				NULL, NULL );
+		rc = ldap_sasl_interactive_bind_s( ld, binddn,
+				sasl_mech, NULL, NULL );
 
 		if( rc != LDAP_SUCCESS ) {
-			ldap_perror( ld, "ldap_negotiated_sasl_bind_s" );
+			ldap_perror( ld, "ldap_sasl_interactive_bind_s" );
 			return( EXIT_FAILURE );
 		}
 #else

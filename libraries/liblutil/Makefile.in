@@ -13,11 +13,11 @@ NT_OBJS = ntservice.o slapdmsg.res
 UNIX_SRCS = detach.c
 UNIX_OBJS = detach.o
 
-SRCS	= base64.c debug.c entropy.c \
+SRCS	= base64.c debug.c entropy.c sasl.c \
 	md5.c passwd.c sha1.c getpass.c lockf.c utils.c sockpair.c \
 	@LIBSRCS@ $(@PLAT@_SRCS)
 
-OBJS	= base64.o debug.o entropy.o \
+OBJS	= base64.o debug.o entropy.o sasl.o \
 	md5.o passwd.o sha1.o getpass.o lockf.o utils.o sockpair.o \
 	@LIBOBJS@ $(@PLAT@_OBJS)
 

@@ -1,9 +1,9 @@
 Tools           ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-ldapdelete        CDE   I K M  P *  U WXYZ  cd f h  k  n p     vw
-ldapmodify        CDEF  I K M  P *  U WXYZabcd f h  k  n p r t vw
-ldapmodrdn        CDE   I K M  P *  U WXYZ  cd f h  k  n p rs  vw
-ldappasswd      A CDE   I        *S U WXYZa  d   h          s  vw    
-ldapsearch      A CDE   I KLM  P *STUVWXYZab*d f h  kl n p  stuvw  z
+ldapdelete        CD      K M OP *  U WXYZ  cd f h  k  n p     vw
+ldapmodify        CD F    K M OP *  U WXYZabcd f h  k  n p r t vw
+ldapmodrdn        CD      K M OP *  U WXYZ  cd f h  k  n p rs  vw
+ldappasswd      A CD          O  *S U WXYZa  d   h          s  vw    
+ldapsearch      A CD      KLM OP *STUVWXYZab*d f h  kl n p  stuvw  z
 
 Other Clients   ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 fax500                                         f h    m
@@ -17,7 +17,7 @@ ud                 D                 V      cd f     l  p   s uv
 
 
 * reserved
-	GHJNOegijmoqxy
+	EGHIJNOegijmoqxy
 
 * General flags:
 	-C Chase Referrals
@@ -31,15 +31,13 @@ ud                 D                 V      cd f     l  p   s uv
 	-p port
 	-v verbose
 	-w bind password
-	-W prompt for bind password
 
 * LDAPv3 Only 
 	-M ManageDSAIT
 
 	-Z StartTLS
 
-	-I SASL Intergity
-	-E SASL Privacy (encryption)
+	-O SASL Security Options
 	-U SASL Authentication Identity (username)
 	-X SASL Authorization Identity
 	-Y SASL Mechanism

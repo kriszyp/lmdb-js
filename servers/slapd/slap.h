@@ -19,10 +19,6 @@
 #include <ac/time.h>
 #include <ac/param.h>
 
-#ifdef HAVE_CYRUS_SASL
-#include <sasl.h>
-#endif
-
 #include "avl.h"
 
 #ifndef ldap_debug
@@ -798,12 +794,6 @@ struct slap_backend_db {
 #define		be_sync bd_info->bi_tool_sync
 #endif
 
-#ifdef HAVE_CYRUS_SASL
-#define		be_sasl_authorize bd_info->bi_sasl_authorize
-#define		be_sasl_getsecret bd_info->bi_sasl_getsecret
-#define		be_sasl_putsecret bd_info->bi_sasl_putsecret
-#endif
-
 	/* these should be renamed from be_ to bd_ */
 	char	**be_suffix;	/* the DN suffixes of data in this backend */
 	char	**be_nsuffix;	/* the normalized DN suffixes in this backend */
@@ -977,18 +967,6 @@ struct slap_backend_info {
 		struct berval **bv, ID id, int op ));
 	int (*bi_tool_sync) LDAP_P(( BackendDB *be ));
 
-#ifdef HAVE_CYRUS_SASL
-	int (*bi_sasl_authorize) LDAP_P(( BackendDB *be,
-		const char *authnid, const char *authzid,
-		const char **canon_authzid, const char **errstr ));
-	int (*bi_sasl_getsecret) LDAP_P(( BackendDB *be,
-		const char *mechanism, const char *authzid,
-		const char *realm, sasl_secret_t **secret ));
-	int (*bi_sasl_putsecret) LDAP_P(( BackendDB *be,
-		const char *mechanism, const char *auth_identity,
-		const char *realm, const sasl_secret_t *secret ));
-#endif /* HAVE_CYRUS_SASL */
-
 #define SLAP_INDEX_ADD_OP		0x0001
 #define SLAP_INDEX_DELETE_OP	0x0002
 
@@ -1012,18 +990,8 @@ typedef struct slap_op {
 	ber_tag_t	o_tag;		/* tag of the request		  */
 	time_t		o_time;		/* time op was initiated	  */
 
-#ifdef SLAP_AUTHZID
-	/* should only be used for reporting purposes */
-	char	*o_authc_dn;	/* authentication DN */
-
-	/* should be used as the DN of the User */
-	char	*o_authz_dn;	/* authorization DN */
-	char	*o_authz_ndn;	/* authorizaiton NDN */
-
-#else
 	char		*o_dn;		/* dn bound when op was initiated */
 	char		*o_ndn;		/* normalized dn bound when op was initiated */
-#endif
 
 	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
 	ber_tag_t	o_authtype;	/* auth method used to bind dn	  */
@@ -1071,9 +1039,6 @@ typedef struct slap_conn {
 	/* only can be changed by binding thread */
 	int		c_sasl_bind_in_progress;	/* multi-op bind in progress */
 	char	*c_sasl_bind_mech;			/* mech in progress */
-#ifdef HAVE_CYRUS_SASL
-	sasl_conn_t	*c_sasl_bind_context;	/* Cyrus SASL state data */
-#endif
 
 	/* authentication backend */
 	Backend *c_authc_backend;
@@ -1081,19 +1046,8 @@ typedef struct slap_conn {
 	/* authorization backend - normally same as c_authc_backend */
 	Backend *c_authz_backend;
 
-#ifdef SLAP_AUTHZID
-	/* authentication backend */
-	/* should only be used for reporting purposes */
-	char	*c_authc_dn;	/* authentication DN */
-
-	/* should be used as the DN of the User */
-	char	*c_authz_dn;	/* authorization DN */
-	char	*c_authz_ndn;	/* authorization NDN */
-
-#else
 	char	*c_cdn;		/* DN provided by the client */
 	char	*c_dn;		/* DN bound to this conn  */
-#endif
 
 	ber_int_t	c_protocol;	/* version of the LDAP protocol used by client */
 	ber_tag_t	c_authtype;/* auth method used to bind c_dn  */
@@ -1112,6 +1066,7 @@ typedef struct slap_conn {
 	int	c_is_tls;		/* true if this LDAP over raw TLS */
 	int	c_needs_tls_accept;	/* true if SSL_accept should be called */
 #endif
+	void	*c_sasl_context;	/* SASL session context */
 
 	long	c_n_ops_received;		/* num of ops received (next op_id) */
 	long	c_n_ops_executing;	/* num of ops currently executing */

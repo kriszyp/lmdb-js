@@ -288,7 +288,9 @@ long connection_init(
 	const char* dnsname,
 	const char* peername,
 	const char* sockname,
-	int use_tls )
+	int use_tls,
+	unsigned ssf,
+	char *authid )
 {
 	unsigned long id;
 	Connection *c;
@@ -376,9 +378,7 @@ long connection_init(
         c->c_pending_ops = NULL;
 
 		c->c_sasl_bind_mech = NULL;
-#ifdef HAVE_CYRUS_SASL
-		c->c_sasl_bind_context = NULL;
-#endif
+		c->c_sasl_context = NULL;
 
         c->c_sb = ber_sockbuf_alloc( );
 		c->c_currentber = NULL;
@@ -404,9 +404,7 @@ long connection_init(
     assert( c->c_ops == NULL );
     assert( c->c_pending_ops == NULL );
 	assert( c->c_sasl_bind_mech == NULL );
-#ifdef HAVE_CYRUS_SASL
-	assert( c->c_sasl_bind_context == NULL );
-#endif
+	assert( c->c_sasl_context == NULL );
 	assert( c->c_currentber == NULL );
 
 	c->c_listener_url = ch_strdup( url  );
@@ -441,6 +439,7 @@ long connection_init(
             s, c->c_peer_name, 0 );
     }
 
+
     id = c->c_connid = conn_nextid++;
 
     c->c_conn_state = SLAP_C_INACTIVE;
@@ -455,6 +454,8 @@ long connection_init(
 	    c->c_needs_tls_accept = 0;
     }
 #endif
+	slap_sasl_open( c );
+	slap_sasl_external( c, ssf, authid );
 
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
     ldap_pvt_thread_mutex_unlock( &connections_mutex );
@@ -531,12 +532,8 @@ connection_destroy( Connection *c )
 		free(c->c_sasl_bind_mech);
 		c->c_sasl_bind_mech = NULL;
 	}
-#ifdef HAVE_CYRUS_SASL
-	if(c->c_sasl_bind_context != NULL ) {
-		sasl_dispose( &c->c_sasl_bind_context );
-		c->c_sasl_bind_context = NULL;
-	}
-#endif
+
+	slap_sasl_close( c );
 
 	if ( c->c_currentber != NULL ) {
 		ber_free( c->c_currentber, 1 );
@@ -917,8 +914,14 @@ int connection_read(ber_socket_t s)
 				    NULL);
 			}
 			connection_close( c );
+
 		} else if ( rc == 0 ) {
 			c->c_needs_tls_accept = 0;
+
+#if 0
+			/* we need to let SASL know */
+			slap_sasl_external( c, ssf, authid );
+#endif
 		}
 		connection_return( c );
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );

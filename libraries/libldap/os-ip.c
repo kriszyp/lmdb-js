@@ -95,9 +95,9 @@ ldap_pvt_ndelay_off(LDAP *ld, int fd)
 }
 
 static ber_socket_t
-ldap_pvt_socket(LDAP *ld, int family)
+ldap_int_socket(LDAP *ld, int family, int type )
 {
-	ber_socket_t s = socket(family, SOCK_STREAM, 0);
+	ber_socket_t s = socket(family, type, 0);
 	osip_debug(ld, "ldap_new_socket: %d\n",s,0,0);
 	return ( s );
 }
@@ -110,22 +110,23 @@ ldap_pvt_close_socket(LDAP *ld, int s)
 }
 
 static int
-ldap_pvt_prepare_socket(LDAP *ld, int fd)
+ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 {
-	osip_debug(ld, "ldap_prepare_socket: %d\n",fd,0,0);
+	osip_debug(ld, "ldap_prepare_socket: %d\n", s,0,0);
 
 #ifdef TCP_NODELAY
-{
-	int dummy = 1;
-	if ( setsockopt( fd, IPPROTO_TCP, TCP_NODELAY,
-		(char*) &dummy, sizeof(dummy) ) == AC_SOCKET_ERROR )
-	{
-		osip_debug(ld, "ldap_prepare_socket: "
-			"setsockopt(%d, TCP_NODELAY) failed (ignored).\n",
-			fd, 0, 0);
+	if( proto = LDAP_PROTO_TCP ) {
+		int dummy = 1;
+		if ( setsockopt( s, IPPROTO_TCP, TCP_NODELAY,
+			(char*) &dummy, sizeof(dummy) ) == AC_SOCKET_ERROR )
+		{
+			osip_debug(ld, "ldap_prepare_socket: "
+				"setsockopt(%d, TCP_NODELAY) failed (ignored).\n",
+				s, 0, 0);
+		}
 	}
-}
 #endif
+
 	return 0;
 }
 
@@ -183,7 +184,9 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 #undef TRACE
 
 static int
-ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr *sin, socklen_t addrlen, int async)
+ldap_pvt_connect(LDAP *ld, ber_socket_t s,
+	struct sockaddr *sin, socklen_t addrlen,
+	int async)
 {
 	struct timeval	tv, *opt_tv=NULL;
 	fd_set		wfds, *z=NULL;
@@ -275,8 +278,10 @@ ldap_pvt_inet_aton( const char *host, struct in_addr *in)
 
 
 int
-ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
-		unsigned long address, int port, int async)
+ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
+	int proto,
+	const char *host,
+	unsigned long address, int port, int async)
 {
 	struct sockaddr_in	sin;
 	struct in_addr		in;
@@ -290,12 +295,13 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
 	
 	if (host != NULL) {
 #ifdef HAVE_GETADDRINFO
-	        char serv[7];
+		char serv[7];
 		struct addrinfo hints, *res, *sai;
 
 		memset( &hints, '\0', sizeof(hints) );
 		hints.ai_family = AF_UNSPEC;
-		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_socktype = proto == LDAP_PROTO_UDP
+			? SOCK_DGRAM : SOCK_STREAM;
 
 		snprintf(serv, sizeof serv, "%d", ntohs(port));
 		if ( getaddrinfo(host, serv, &hints, &res) ) {
@@ -305,9 +311,16 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
 		sai = res;
 		rc = -1;
 		do {
-			s = ldap_pvt_socket( ld, sai->ai_family );
+			/* we assume AF_x and PF_x are equal for all x */
+			s = ldap_int_socket( ld, sai->ai_family,
+				proto == LDAP_PROTO_UDP ? SOCK_DGRAM : SOCK_STREAM );
 			if ( s == -1 ) {
 				continue;
+			}
+
+			if ( ldap_int_prepare_socket(ld, s, proto ) == -1 ) {
+				ldap_pvt_close_socket(ld, s);
+				break;
 			}
 
 			switch (sai->ai_family) {
@@ -330,6 +343,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
 					addr, serv, 0);
 			} break;
 			}
+
 			rc = ldap_pvt_connect(ld, s, sai->ai_addr, sai->ai_addrlen, async);
 			if ( (rc == 0) || (rc == -2) ) {
 				ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_FD, &s );
@@ -363,15 +377,15 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
 	rc = s = -1;
 	for ( i = 0; !use_hp || (hp->h_addr_list[i] != 0); ++i, rc = -1 ) {
 
-		s = ldap_pvt_socket( ld, AF_INET );
+		s = ldap_int_socket( ld, PF_INET,
+			proto == LDAP_PROTO_UDP ? SOCK_DGRAM : SOCK_STREAM );
 		if ( s == -1 ) {
 			/* use_hp ? continue : break; */
 			break;
 		}
 	   
-		if ( ldap_pvt_prepare_socket(ld, s) == -1 ) {
+		if ( ldap_int_prepare_socket( ld, s, proto ) == -1 ) {
 			ldap_pvt_close_socket(ld, s);
-			/* use_hp ? continue : break; */
 			break;
 		}
 
@@ -385,7 +399,9 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
 		osip_debug(ld, "ldap_connect_to_host: Trying %s:%d\n", 
 				inet_ntoa(sin.sin_addr),ntohs(sin.sin_port),0);
 
-		rc = ldap_pvt_connect(ld, s, (struct sockaddr *)&sin, sizeof(struct sockaddr_in), async);
+		rc = ldap_pvt_connect(ld, s,
+			(struct sockaddr *)&sin, sizeof(struct sockaddr_in),
+			async);
    
 		if ( (rc == 0) || (rc == -2) ) {
 			ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_FD, &s );
@@ -401,27 +417,28 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
 	return rc;
 }
 
-#if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND ) || defined( HAVE_TLS ) || defined( HAVE_CYRUS_SASL )
+#if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND ) \
+	|| defined( HAVE_TLS ) || defined( HAVE_CYRUS_SASL )
 char *
 ldap_host_connected_to( Sockbuf *sb )
 {
-	struct hostent		*hp;
-	socklen_t         	len;
-	struct sockaddr	        sa;
-	char                    *addr;
+	struct hostent	*hp;
+	socklen_t		len;
+	struct sockaddr	sa;
+	char			*addr;
+	char			*host;
 
    	/* buffers for gethostbyaddr_r */
-   	struct hostent		he_buf;
-        int			local_h_errno;
+   	struct hostent	he_buf;
+	int				local_h_errno;
    	char			*ha_buf=NULL;
-	ber_socket_t		sd;
-#define DO_RETURN(x) if (ha_buf) LDAP_FREE(ha_buf); return (x);
-   
+	ber_socket_t	sd;
+
 	(void)memset( (char *)&sa, '\0', sizeof( struct sockaddr ));
 	len = sizeof( sa );
 
 	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
-	if ( getpeername( sd, (struct sockaddr *)&sa, &len ) == -1 ) {
+	if ( getpeername( sd, &sa, &len ) == -1 ) {
 		return( NULL );
 	}
 
@@ -432,6 +449,10 @@ ldap_host_connected_to( Sockbuf *sb )
 	 */
 
 	switch (sa.sa_family) {
+#ifdef LDAP_PF_LOCAL
+	case AF_LOCAL:
+		return LDAP_STRDUP( ldap_int_hostname );
+#endif
 #ifdef LDAP_PF_INET6
 	case AF_INET6:
 		addr = (char *) &((struct sockaddr_in6 *)&sa)->sin6_addr;
@@ -441,25 +462,37 @@ ldap_host_connected_to( Sockbuf *sb )
 	case AF_INET:
 		addr = (char *) &((struct sockaddr_in *)&sa)->sin_addr;
 		len = sizeof( struct in_addr );
+
+		{
+			struct sockaddr_in localhost;
+			localhost.sin_addr.s_addr = htonl( INADDR_ANY );
+
+			if( memcmp ( &localhost.sin_addr,
+				&((struct sockaddr_in *)&sa)->sin_addr,
+				sizeof(localhost.sin_addr) ) == 0 )
+			{
+				return LDAP_STRDUP( ldap_int_hostname );
+			}
+		}
 		break;
+
 	default:
 		return( NULL );
 		break;
 	}
+
+	host = NULL;
 	if ((ldap_pvt_gethostbyaddr_a( addr, len,
 		sa.sa_family, &he_buf, &ha_buf,
-		&hp,&local_h_errno ) ==0 ) && (hp != NULL) )
+		&hp,&local_h_errno ) == 0 ) &&
+		(hp != NULL) && ( hp->h_name != NULL ) )
 	{
-		if ( hp->h_name != NULL ) {
-			char *host = LDAP_STRDUP( hp->h_name );   
-			DO_RETURN( host );
-		}
+		host = LDAP_STRDUP( hp->h_name );   
 	}
 
-	DO_RETURN( NULL );
+	LDAP_FREE( ha_buf );
+	return host;
 }
-#undef DO_RETURN   
-   
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND || HAVE_TLS */
 
 
