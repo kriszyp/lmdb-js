@@ -3,6 +3,7 @@ OpenLDAP 2.2 Change Log
 OpenLDAP 2.2.5 Engineering
 	Fix back-bdb syncrepl psearch add bug
 	Honour access denied return value from ACL plugins
+	Fix back-ldap suffix massage when --enable-rewrite=no (ITS#2923)
 
 OpenLDAP 2.2.4 Release
 	Initial release for "general" use.
