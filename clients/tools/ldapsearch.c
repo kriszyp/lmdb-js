@@ -116,7 +116,7 @@ usage( void )
 	fprintf( stderr, _("             [!]sync=ro[/<cookie>]            (LDAP Sync refreshOnly)\n"));
 	fprintf( stderr, _("                     rp[/<cookie>][/<slimit>] (LDAP Sync refreshAndPersist)\n"));
 	fprintf( stderr, _("  -F prefix  URL prefix for files (default: %s)\n"), def_urlpre);
-	fprintf( stderr, _("  -l limit   time limit (in seconds) for search\n"));
+	fprintf( stderr, _("  -l limit   time limit (in seconds, or \"none\" or \"max\") for search\n"));
 	fprintf( stderr, _("  -L         print responses in LDIFv1 format\n"));
 	fprintf( stderr, _("  -LL        print responses in LDIF format without comments\n"));
 	fprintf( stderr, _("  -LLL       print responses in LDIF format without comments\n"));
@@ -127,7 +127,7 @@ usage( void )
 	fprintf( stderr, _("  -tt        write all values to files in temporary directory\n"));
 	fprintf( stderr, _("  -T path    write files to directory specified by path (default: %s)\n"), def_tmpdir);
 	fprintf( stderr, _("  -u         include User Friendly entry names in the output\n"));
-	fprintf( stderr, _("  -z limit   size limit (in entries) for search\n"));
+	fprintf( stderr, _("  -z limit   size limit (in entries, or \"none\" or \"max\") for search\n"));
 	tool_common_usage();
 	exit( EXIT_FAILURE );
 }
@@ -436,6 +436,13 @@ handle_private_option( int i )
 	case 'l':	/* time limit */
 		if ( strcasecmp( optarg, "none" ) == 0 ) {
 			timelimit = 0;
+
+		} else if ( strcasecmp( optarg, "max" ) == 0 ) {
+			/* RFC 2251:
+			        maxInt INTEGER ::= 2147483647 -- (2^^31 - 1) --
+			 */
+			timelimit = 2147483647;
+
 		} else {
 			ival = strtol( optarg, &next, 10 );
 			if ( next == NULL || next[0] != '\0' ) {
@@ -487,6 +494,13 @@ handle_private_option( int i )
 	case 'z':	/* size limit */
 		if ( strcasecmp( optarg, "none" ) == 0 ) {
 			sizelimit = 0;
+
+		} else if ( strcasecmp( optarg, "max" ) == 0 ) {
+			/* RFC 2251:
+			        maxInt INTEGER ::= 2147483647 -- (2^^31 - 1) --
+			 */
+			sizelimit = 2147483647;
+
 		} else {
 			ival = strtol( optarg, &next, 10 );
 			if ( next == NULL || next[0] != '\0' ) {
