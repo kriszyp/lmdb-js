@@ -723,8 +723,14 @@ syncrepl_message_to_entry(
 		return NULL;
 	}
 
-	e = ( Entry * ) sl_calloc( 1, sizeof( Entry ), op->o_tmpmemctx);
+	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ) );
 	dnPrettyNormal( NULL, &bdn, &e->e_name, &e->e_nname, op->o_tmpmemctx );
+	ber_dupbv( &op->o_req_dn, &e->e_name );
+	ber_dupbv( &op->o_req_ndn, &e->e_nname );
+	sl_free( e->e_nname.bv_val, op->o_tmpmemctx );
+	sl_free( e->e_name.bv_val, op->o_tmpmemctx );
+	e->e_name = op->o_req_dn;
+	e->e_nname = op->o_req_ndn;
 
 	while ( ber_remaining( ber ) ) {
 		if ( (ber_scanf( ber, "{mW}", &tmp.sml_type, &tmp.sml_values ) ==
