@@ -1,5 +1,5 @@
-This directory contains user application schema definitions for
-use with slapd(5).
+This directory contains user application schema definitions for use
+with slapd(8).
 
 File                    Description
 ----                    -----------
@@ -9,7 +9,7 @@ core.schema             OpenLDAP "core"
 cosine.schema           COSINE Pilot
 inetorgperson.schema    InetOrgPerson
 java.schema             Java Object (RFC 2713)
-krb5-kdc.schema         Kerberos V KDC
+krb5-kdc.schema         Kerberos V KDC (experimental)
 microsoft.ext.schema    Microsoft (FYI)
 microsoft.schema        Microsoft (FYI)
 microsoft.std.schema    Microsoft (FYI)
