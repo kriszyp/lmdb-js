@@ -238,7 +238,7 @@ static int
 str2subvals( const char *in, Filter *f )
 {
 	char	*nextstar, *val, *freeme;
-	int	gotstar;
+	int	gotstar, rc = 0;
 
 	Debug( LDAP_DEBUG_FILTER, "str2subvals \"%s\"\n", in, 0, 0 );
 
@@ -248,27 +248,40 @@ str2subvals( const char *in, Filter *f )
 	gotstar = 0;
 
 	while ( val && *val ) {
-		if ( (nextstar = ldap_pvt_find_wildcard( val )) != NULL )
+		if ( (nextstar = ldap_pvt_find_wildcard( val )) != NULL ) {
+			gotstar++;
+			if ( nextstar == val ) {
+				/* we got two stars in a row with no val! */
+				if ( gotstar > 1 ) {
+					rc = -1;
+					break;
+				}
+				val++;
+				continue;
+			}
 			*nextstar++ = '\0';
-
-		ldap_pvt_filter_value_unescape( val );
-
-		if ( gotstar == 0 ) {
-			f->f_sub_initial = ber_bvstrdup( val );
-
-		} else if ( nextstar == NULL ) {
-			f->f_sub_final = ber_bvstrdup( val );
-
-		} else {
-			charray_add( (char ***) &f->f_sub_any, (char *) ber_bvstrdup( val ) );
 		}
 
-		gotstar = 1;
+		if ( ldap_pvt_filter_value_unescape( val ) < 1 ) {
+			rc = -1;
+			break;
+		}
+
+		if ( nextstar == NULL ) {
+			f->f_sub_final = ber_bvstrdup( val );
+
+		} else if ( gotstar == 1 ) {
+			f->f_sub_initial = ber_bvstrdup( val );
+
+		} else {
+			ber_bvecadd( &f->f_sub_any, ber_bvstrdup( val ) );
+		}
+
 		val = nextstar;
 	}
 
 	free( freeme );
-	return( 0 );
+	return( rc );
 }
 
 /*

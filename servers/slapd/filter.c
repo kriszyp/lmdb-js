@@ -654,6 +654,7 @@ filter_print( Filter *f )
 			fprintf( stderr, "%s",
 				escaped.bv_val );
 			ber_memfree( escaped.bv_val );
+			i = 1;
 		}
 		if ( f->f_sub_any != NULL ) {
 			for ( i = 0; f->f_sub_any[i] != NULL; i++ ) {
@@ -668,7 +669,9 @@ filter_print( Filter *f )
 			fprintf( stderr,
 				"*%s", escaped.bv_val );
 			ber_memfree( escaped.bv_val );
+			i = 0;
 		}
+		if ( i ) fprintf( stderr, "*" );
 		fprintf( stderr, /*(*/ ")" );
 		break;
 
