@@ -185,19 +185,9 @@ main( argc, argv )
 		pthread_attr_init( &attr );
 		pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
 
-#ifdef PTHREAD_MUTEX_INITIALIZER
-		/*
+#ifndef THREAD_MIT_PTHREADS
+		/* POSIX_THREADS or compatible
 		 * This is a draft 10 or standard pthreads implementation
-		 */
-		if ( pthread_create( &listener_tid, attr, (void *) slapd_daemon,
-		    (void *) port ) != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-			    "listener pthread_create failed\n", 0, 0, 0 );
-			exit( 1 );
-		}
-#else	/* !PTHREAD_MUTEX_INITIALIZER */
-		/*
-		 * This is a draft 4 or earlier pthreads implementation
 		 */
 		if ( pthread_create( &listener_tid, &attr, (void *) slapd_daemon,
 		    (void *) port ) != 0 ) {
@@ -205,7 +195,17 @@ main( argc, argv )
 			    "listener pthread_create failed\n", 0, 0, 0 );
 			exit( 1 );
 		}
-#endif	/* !PTHREAD_MUTEX_INITIALIZER */
+#else	/* !THREAD_MIT_PTHREADS */
+		/*
+		 * This is a draft 4 or earlier pthreads implementation
+		 */
+		if ( pthread_create( &listener_tid, attr, (void *) slapd_daemon,
+		    (void *) port ) != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+			    "listener pthread_create failed\n", 0, 0, 0 );
+			exit( 1 );
+		}
+#endif	/* !THREAD_MIT_PTHREADS */
 		pthread_attr_destroy( &attr );
 		pthread_join( listener_tid, (void *) &status );
 		pthread_exit( 0 );
