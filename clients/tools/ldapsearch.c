@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldif.h>

@@ -14,7 +14,7 @@ EDITOR=/usr/bin/vi
 FINGER=/usr/bin/finger
 SENDMAIL=/usr/sbin/sendmail
 
-RUNDIR=/var/run
+LDAP_RUNDIR=/var/run
 
 MANCOMPRESS=gzip
 MANCOMPRESSSUFFIX=.gz

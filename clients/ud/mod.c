@@ -13,12 +13,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <lber.h>
-#include <ldap.h>
+#include <time.h>
 #ifndef __STDC__
 #include <memory.h>
 #endif
 #include <sys/types.h>
+
+#include <lber.h>
+#include <ldap.h>
 #include "ud.h"
 
 extern struct entry Entry; 

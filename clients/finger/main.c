@@ -10,9 +10,6 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#include "lber.h"
-#include "ldap.h"
-#include "disptmpl.h"
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -29,6 +26,11 @@
 #include <sys/select.h>
 #endif /* aix */
 #include <signal.h>
+
+#include "lber.h"
+#include "ldap.h"
+#include "disptmpl.h"
+
 #include "portable.h"
 #include "ldapconfig.h"
 

@@ -13,8 +13,11 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include <time.h>
+
 #include <lber.h>
 #include <ldap.h>
+
 #include "ud.h"
 
 #ifdef DEBUG

@@ -21,10 +21,14 @@
 #include <stdlib.h>
 #endif
 #include <ctype.h>
+#include <time.h>
 #include <errno.h>
+
 #include <lber.h>
 #include <ldap.h>
+
 #include <ldapconfig.h>
+
 #if !defined(DOS) && !defined( VMS)
 #include <sys/types.h>
 #endif
@@ -34,6 +38,7 @@
 #else /* USE_TERMIOS */
 #include <sgtty.h>
 #endif /* USE_TERMIOS */
+
 #include "ud.h"
 
 #if defined(VMS)

@@ -10,9 +10,6 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#include "lber.h"
-#include "ldap.h"
-#include "disptmpl.h"
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -30,12 +27,17 @@
 #ifdef aix
 #include <sys/select.h>
 #endif /* aix */
-#include "portable.h"
-#include "ldapconfig.h"
 
 #ifdef USE_SYSCONF
 #include <unistd.h>
 #endif /* USE_SYSCONF */
+
+#include "lber.h"
+#include "ldap.h"
+#include "disptmpl.h"
+
+#include "portable.h"
+#include "ldapconfig.h"
 
 int	debug;
 int	dosyslog;

@@ -16,6 +16,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #ifdef MACOS
 #include "macos.h"
 #else /* MACOS */

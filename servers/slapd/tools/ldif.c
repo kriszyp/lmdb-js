@@ -24,7 +24,7 @@ main( argc, argv )
 {
 	char	buf[BUFSIZ];
 	char	*type, *out;
-	int	binary = 0;
+	int	len, binary = 0;
 
 	if (argc < 2 || argc > 3 ) {
 		usage( argv[0] );
@@ -79,7 +79,9 @@ main( argc, argv )
 	}
 
 	/* not binary:  one value per line... */
-	while ( gets( buf ) != NULL ) {
+	while ( fgets( buf, sizeof(buf), stdin ) != NULL ) {
+		if( buf[len=strlen(buf)] == '\n') buf[len] = '\0';
+
 		if (( out = ldif_type_and_value( type, buf, strlen( buf ) ))
 		    == NULL ) {
 		    	perror( "ldif_type_and_value" );

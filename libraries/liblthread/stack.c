@@ -1,6 +1,7 @@
 /* stack.c - stack handling routines */
 
 #include <stdio.h>
+#include <time.h>
 #include "lber.h"
 #include "ldap.h"
 

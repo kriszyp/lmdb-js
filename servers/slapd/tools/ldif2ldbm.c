@@ -5,9 +5,8 @@
 #include <sys/param.h>
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
+#include "ldapconfig.h"
 
-#define DEFAULT_CONFIGFILE	"%ETCDIR%/slapd.conf"
-#define DEFAULT_SBINDIR		"%SBINDIR%"
 #define INDEXCMD		"ldif2index"
 #define ID2ENTRYCMD		"ldif2id2entry"
 #define ID2CHILDRENCMD		"ldif2id2children"
@@ -75,7 +74,7 @@ main( int argc, char **argv )
 	extern char	*optarg;
 
 	sbindir = DEFAULT_SBINDIR;
-	tailorfile = DEFAULT_CONFIGFILE;
+	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	dbnum = -1;
 	while ( (i = getopt( argc, argv, "d:e:s:f:i:j:n:" )) != EOF ) {
 		switch ( i ) {

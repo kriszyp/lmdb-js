@@ -318,7 +318,7 @@ typedef struct ldap_server {
 typedef struct ldap_conn {
 	Sockbuf			*lconn_sb;
 	int			lconn_refcnt;
-	unsigned int		lconn_lastused;	/* time */
+	time_t		lconn_lastused;	/* time */
 	int			lconn_status;
 #define LDAP_CONNST_NEEDSOCKET		1
 #define LDAP_CONNST_CONNECTING		2

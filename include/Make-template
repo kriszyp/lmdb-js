@@ -31,7 +31,8 @@ ldapconfig.h:	ldapconfig.h.edit Makefile
         echo " * INSTALL file for more information." >> $@; \
         echo " */ " >> $@; \
         echo "" >> $@; \
-	$(SED) -e 's;%ETCDIR%;$(RUNTIMEETCDIR);' \
+	$(SED) -e 's;%ETCDIR%;$(LDAP_ETCDIR);' \
+			-e 's;%BINDIR%;$(LDAP_BINDIR);' \
 			-e 's;%SBINDIR%;$(LDAP_SBINDIR);' \
 			-e 's;%LIBEXECDIR%;$(LDAP_LIBEXECDIR);' \
 			-e 's;%RUNDIR%;$(LDAP_RUNDIR);' \

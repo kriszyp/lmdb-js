@@ -10,8 +10,8 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#ifndef _CONFIG_H
-#define _CONFIG_H
+#ifndef _LDAP_CONFIG_H
+#define _LDAP_CONFIG_H
 
 /*
  * config.h for LDAP -- edit this file to customize LDAP client behavior.
@@ -26,6 +26,11 @@
 #define LDAPHOST	"localhost"
 	/* default place to start searching */
 #define DEFAULT_BASE	"o=Your Organization Name, c=US"
+
+#define DEFAULT_BINDIR		"%BINDIR%"
+#define DEFAULT_SBINDIR		"%SBINDIR%"
+#define DEFAULT_ETCDIR		"%ETCDIR%"
+#define DEFAULT_LIBEXECDIR	"%LIBEXECDIR%"
 
 /*********************************************************************
  *                                                                   *
@@ -265,4 +270,4 @@ Please try again later.\r\n"
 	/* minimum max ids that a single index entry can map to in ldbm */
 #define SLAPD_LDBM_MIN_MAXIDS		4000
 
-#endif /* _CONFIG_H */
+#endif /* _LDAP_CONFIG_H */

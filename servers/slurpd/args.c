@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include <lber.h>
 #include <ldap.h>

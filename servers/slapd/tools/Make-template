@@ -73,14 +73,9 @@ ldif2index:	ldif2index.o ../libbackends.a $(OBJS2)
 	$(CC) $(ALDFLAGS) -o $@ ldif2index.o $(OBJS2) \
 		../libbackends.a $(LDFLAGS) $(LIBS2)
 
-ldif2ldbm:	ldif2ldbm.sed.o ../libbackends.a $(OBJS2)
-	$(CC) $(ALDFLAGS) -o $@ ldif2ldbm.sed.o $(OBJS2) \
+ldif2ldbm:	ldif2ldbm.o ../libbackends.a $(OBJS2)
+	$(CC) $(ALDFLAGS) -o $@ ldif2ldbm.o $(OBJS2) \
 		../libbackends.a $(LDFLAGS) $(LIBS2)
-
-ldif2ldbm.sed.c: ldif2ldbm.c
-	$(SED) -e 's;%ETCDIR%;$(LDAP_ETCDIR);' \
-			-e 's;%SBINDIR%;$(LDAP_SBINDIR);' \
-		ldif2ldbm.c > ldif2ldbm.sed.c
 
 ldif2id2entry:	ldif2id2entry.o ../libbackends.a $(OBJS2)
 	$(CC) $(ALDFLAGS) -o $@ ldif2id2entry.o $(OBJS2) \
