@@ -184,14 +184,14 @@ merge_entry(
 		} else if ( rc == LDAP_REFERRAL ||
 					rc == LDAP_NO_SUCH_OBJECT ) {
 			syncrepl_add_glue( op, e );
-		} else {
-			rc = 0;
+			e = NULL;
 		}
+		if ( e ) entry_free( e );
 	} else {
 		be_entry_release_w( op, e );
 	}
 
-	return rc;
+	return 0;
 }
 
 /* compare base and scope of incoming and cached queries */
@@ -642,10 +642,14 @@ static void
 free_query (CachedQuery* qc) 
 {
 	Query* q = (Query*)qc; 
+	int i;
+
 	free(qc->q_uuid.bv_val); 
 	filter_free(q->filter); 
 	free (q->base.bv_val); 
-
+	for (i=0; q->attrs[i].an_name.bv_val; i++) {
+		free(q->attrs[i].an_name.bv_val);
+	}
 	free(q->attrs); 
 	free(qc); 
 }
@@ -1881,14 +1885,37 @@ proxy_cache_close(
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	cache_manager *cm = on->on_bi.bi_private;
+	query_manager *qm = cm->qm;
 	void *private = be->be_private;
-	int rc = 0;
+	int i, j, rc = 0;
 
 	if ( cm->be_private && cm->bi->bi_db_close ) {
 		be->be_private = cm->be_private;
 		rc = cm->bi->bi_db_close( be );
 		be->be_private = private;
 	}
+	for ( i=0; i<cm->numtemplates; i++ ) {
+		CachedQuery *qc, *qn;
+		for ( qc = qm->templates[i].query; qc; qc = qn ) {
+			qn = qc->next;
+			free_query( qc );
+		}
+		free( qm->templates[i].querystr.bv_val );
+		ldap_pvt_thread_rdwr_destroy( &qm->templates[i].t_rwlock ); 
+	}
+	free( qm->templates );
+	qm->templates = NULL;
+
+	for ( i=0; i<cm->numattrsets; i++ ) {
+		free( qm->attr_sets[i].ID_array );
+		for ( j=0; j<qm->attr_sets[i].count; j++ ) {
+			free( qm->attr_sets[i].attrs[j].an_name.bv_val );
+		}
+		free( qm->attr_sets[i].attrs );
+	}
+	free( qm->attr_sets );
+	qm->attr_sets = NULL;
+
 	return rc;
 }
 
@@ -1899,6 +1926,7 @@ proxy_cache_destroy(
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	cache_manager *cm = on->on_bi.bi_private;
+	query_manager *qm = cm->qm;
 	void *private = be->be_private;
 	int rc = 0;
 
@@ -1907,6 +1935,10 @@ proxy_cache_destroy(
 		rc = cm->bi->bi_db_destroy( be );
 		be->be_private = private;
 	}
+	ldap_pvt_thread_mutex_destroy(&qm->lru_mutex); 
+	ldap_pvt_thread_mutex_destroy(&cm->cache_mutex); 
+	ldap_pvt_thread_mutex_destroy(&cm->remove_mutex); 
+	free( qm );
 	free( cm );
 	return rc;
 }
