@@ -49,8 +49,9 @@ Localize tools
 
 Small projects
 --------------
-Add dumpasn1 logging support
+Implement additional matching rules from RFC3698
 Implement LDAPprep and SASLprep
+Add dumpasn1 logging support
 Add tests to test suite
 Convert utfconv.txt into man page(s).
 Recode linked-list structs to use <ldap_queue.h> macros
