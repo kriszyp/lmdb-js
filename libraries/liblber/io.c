@@ -217,7 +217,7 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 				BER_DUMP(( "liblber", LDAP_LEVEL_DETAIL2, ber, 1 ));
 
 #else
-		ber_log_printf( LDAP_DEBUG_ANY, sb->sb_debug,
+		ber_log_printf( LDAP_DEBUG_TRACE, sb->sb_debug,
 			"ber_flush: %ld bytes to sd %ld%s\n",
 			towrite, (long) sb->sb_fd,
 			ber->ber_rwptr != ber->ber_buf ?  " (re-flush)" : "" );
