@@ -485,8 +485,6 @@ be_isroot_pw( Backend *be, char *ndn, struct berval *cred )
 int
 be_entry_release_rw( Backend *be, Entry *e, int rw )
 {
-	int rc;
-
 	if ( be->be_release ) {
 		/* free and release entry from backend */
 		return be->be_release( be, e, rw );
