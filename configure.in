@@ -310,7 +310,11 @@ dnl Checks for programs
 dnl AC_PROG_INSTALL
 
 dnl The default compiler is cc (NOT gcc)
-CC=${CC-"cc"}
+dnl 	except on cygwin
+dnl		(should check to see if 'cc' exists instead)
+if test "$host_os" != "cygwin" ;
+	CC=${CC-"cc"}
+fi
 dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
 dnl CFLAGS=${CFLAGS-""}
 
