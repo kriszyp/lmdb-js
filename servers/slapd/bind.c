@@ -540,9 +540,10 @@ do_bind(
 		 */
 		int ldapRc;
 
-		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&ldapRc ) != 0 )
+		if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&ldapRc ) != 0 ) ||
+		     ldapRc == LDAP_SUCCESS ) {
 			ldapRc = LDAP_OTHER;
-
+		}
 		op->orb_edn.bv_val = NULL;
 		op->orb_edn.bv_len = 0;
 		if ( rs->sr_err != SLAPI_BIND_FAIL && ldapRc == LDAP_SUCCESS ) {

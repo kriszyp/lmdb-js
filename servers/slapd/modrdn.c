@@ -336,8 +336,10 @@ do_modrdn(
 		Debug(LDAP_DEBUG_TRACE, "do_modrdn: modrdn preoperation plugin "
 				"failed.\n", 0, 0, 0);
 #endif
-		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0)
+		if ( ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 ) ||
+		     rs->sr_err == LDAP_SUCCESS ) {
 			rs->sr_err = LDAP_OTHER;
+		}
 		goto cleanup;
 	}
 #endif /* defined( LDAP_SLAPI ) */

@@ -556,8 +556,10 @@ static int doPreAddPluginFNs( Operation *op )
 #else
 		Debug(LDAP_DEBUG_TRACE, "do_add: add preoperation plugin failed.\n",
 				0, 0, 0);
-		if ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0 )
+		if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0 ) ||
+		     rc == LDAP_SUCCESS ) {
 			rc = LDAP_OTHER;
+		}
 #endif
 	} else {
 		rc = LDAP_SUCCESS;

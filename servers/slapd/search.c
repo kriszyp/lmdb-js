@@ -482,8 +482,10 @@ static int doPreSearchPluginFNs( Operation *op )
 		Debug(LDAP_DEBUG_TRACE, "doPreSearchPluginFNs: search preoperation plugin "
 				"returned %d.\n", rc, 0, 0);
 #endif
-		if ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0)
+		if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0 ) ||
+		     rc == LDAP_SUCCESS ) {
 			rc = LDAP_OTHER;
+		}
 	} else {
 		rc = LDAP_SUCCESS;
 	}
