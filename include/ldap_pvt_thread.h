@@ -137,8 +137,7 @@ typedef struct ldap_pvt_thread_lwp_cv ldap_pvt_thread_cond_t;
 
 LDAP_END_DECL
 
-/* If we're in the NT env at all, we want these defs, threaded or not (which should be fixed) */
-#elif defined(WINNT) || defined(_WINNT) || defined(_WIN32) || defined(HAVE_NT_THREADS)
+#elif defined(HAVE_NT_THREADS)
 
 LDAP_BEGIN_DECL
 

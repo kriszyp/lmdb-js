@@ -21,6 +21,10 @@
 #	include <unistd.h>
 #endif
 
+#if HAVE_PROCESS_H
+#	include <process.h>
+#endif
+
 /* note: callers of crypt(3) should include <ac/crypt.h> */
 
 #ifdef __MINGW32__

@@ -38,18 +38,19 @@ void CommenceStartupProcessing( LPCTSTR serviceName,
 void ReportSlapdShutdownComplete( void );
 void *getRegParam( char *svc, char *value );
 
-#define SERVICE_EXIT( e, n ) \
-		if ( is_NT_Service ) \
-{ \
-			SLAPDServiceStatus.dwWin32ExitCode				= e; \
-			SLAPDServiceStatus.dwServiceSpecificExitCode	= n; \
-} 
+#define SERVICE_EXIT( e, n )	do { \
+	if ( is_NT_Service ) { \
+		SLAPDServiceStatus.dwWin32ExitCode				= (e); \
+		SLAPDServiceStatus.dwServiceSpecificExitCode	= (n); \
+	} \
+} while ( 0 )
+
 #else
 #define SERVICE_EXIT( e, n )
 #define MAIN_RETURN(x) return(x)
 #endif
 
-#ifdef HAVE_NT_EVENT_MANAGER
+#ifdef HAVE_NT_EVENT_LOG
 void LogSlapdStartedEvent( char *svc, int slap_debug, char *configfile, char *urls );
 void LogSlapdStoppedEvent( char *svc );
 #endif
@@ -111,7 +112,7 @@ usage( char *name )
 #ifdef LOG_LOCAL4
 		"\t-l sysloguser\tSyslog User (default: LOCAL4)\n"
 #endif
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_NT_EVENT_LOG
 		"\t-n NTserviceName\tNT service name\n"
 #endif
 
@@ -145,8 +146,11 @@ int main( int argc, char **argv )
 #ifdef LOG_LOCAL4
     int     syslogUser = DEFAULT_SYSLOG_USER;
 #endif
-#ifdef HAVE_WINSOCK
+
+#ifdef HAVE_NT_EVENT_LOG
 	char        *NTservice  = SERVICE_NAME;
+#endif
+#ifdef HAVE_NT_SERVICE_MANAGER
 	char		*configfile = ".\\slapd.conf";
 #else
 	char		*configfile = SLAPD_DEFAULT_CONFIGFILE;
@@ -223,7 +227,7 @@ int main( int argc, char **argv )
 #ifdef LDAP_CONNECTIONLESS
 				 "c"
 #endif
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_NT_EVENT_LOG
 				 "n:"
 #endif
 #ifdef HAVE_TLS
@@ -312,7 +316,7 @@ int main( int argc, char **argv )
 			break;
 #endif /* SETUID && GETUID */
 
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_NT_EVENT_LOG
 		case 'n':  /* NT service name */
 			NTservice = ch_strdup( optarg );
 			break;
@@ -392,7 +396,7 @@ int main( int argc, char **argv )
 #endif
 
 #ifndef HAVE_WINSOCK
-		lutil_detach( no_detach, 0 );
+	lutil_detach( no_detach, 0 );
 #endif /* HAVE_WINSOCK */
 
 #ifdef CSRIMALLOC
@@ -428,7 +432,7 @@ int main( int argc, char **argv )
 		}
 	}
 
-#ifdef HAVE_NT_EVENT_MANAGER
+#ifdef HAVE_NT_EVENT_LOG
 	LogSlapdStartedEvent( NTservice, slap_debug, configfile, urls );
 #endif
 
@@ -449,7 +453,7 @@ destroy:
 	rc |= slap_destroy();
 
 stop:
-#ifdef HAVE_NT_EVENT_MANAGER
+#ifdef HAVE_NT_EVENT_LOG
 	LogSlapdStoppedEvent( NTservice );
 #endif
 
