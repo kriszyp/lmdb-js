@@ -30,12 +30,9 @@
  * no mutex protection in here - take our chances!
  */
 
-void
+int
 config_info(
-	Connection *conn,
-	Operation *op,
-	char **attrs,
-	int attrsonly )
+	Entry **entry, char **text )
 {
 	Entry		*e;
 	char		buf[BUFSIZ];
@@ -53,6 +50,18 @@ config_info(
 	e->e_ndn = ch_strdup( SLAPD_CONFIG_DN );
 	(void) dn_normalize( e->e_ndn );
 	e->e_private = NULL;
+
+	val.bv_val = "top";
+	val.bv_len = sizeof("top")-1;
+	attr_merge( e, "objectClass", vals );
+
+	val.bv_val = "LDAPsubentry";
+	val.bv_len = sizeof("LDAPsubentry")-1;
+	attr_merge( e, "objectClass", vals );
+
+	val.bv_val = "extensibleObject";
+	val.bv_len = sizeof("extensibleObject")-1;
+	attr_merge( e, "objectClass", vals );
 
 	{
 		char *rdn = ch_strdup( SLAPD_CONFIG_DN );
@@ -79,24 +88,8 @@ config_info(
 		attr_merge( e, "database", vals );
 	}
 
-	val.bv_val = "top";
-	val.bv_len = sizeof("top")-1;
-	attr_merge( e, "objectClass", vals );
-
-	val.bv_val = "LDAPsubentry";
-	val.bv_len = sizeof("LDAPsubentry")-1;
-	attr_merge( e, "objectClass", vals );
-
-	val.bv_val = "extensibleObject";
-	val.bv_len = sizeof("extensibleObject")-1;
-	attr_merge( e, "objectClass", vals );
-
-	send_search_entry( &backends[0], conn, op, e,
-		attrs, attrsonly, NULL );
-	send_search_result( conn, op, LDAP_SUCCESS,
-		NULL, NULL, NULL, NULL, 1 );
-
-	entry_free( e );
+	*entry = e;
+	return LDAP_SUCCESS;
 }
 
 #endif /* slapd_config_dn */
