@@ -31,7 +31,7 @@ static void cont_alloc( Datum *cont, Datum *key )
 
 static void cont_id( Datum *cont, ID id )
 {
-	int i;
+	unsigned int i;
 
 	for( i=1; i <= sizeof(id); i++) {
 		((unsigned char *)cont->dptr)[i] = (unsigned char)(id & 0xFF);

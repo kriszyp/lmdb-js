@@ -45,7 +45,7 @@ static char *const err2text[SLAP_SCHERR_LAST+1] = {
 char *
 scherr2str(int code)
 {
-	if ( code < 0 || code >= (sizeof(err2text)/sizeof(char *)) ) {
+	if ( code < 0 || code >= (int)(sizeof(err2text)/sizeof(char *)) ) {
 		return "Unknown error";
 	} else {
 		return err2text[code];

@@ -197,7 +197,7 @@ meta_back_search(
 	for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; ++i, ++lsc ) {
 		char 	*realbase = ( char * )base->bv_val;
 		int 	realscope = scope;
-		int 	suffixlen;
+		ber_len_t suffixlen;
 		char	*mapped_filter, **mapped_attrs;
 		
 		if ( lsc[ 0 ]->candidate != META_CANDIDATE ) {

@@ -166,7 +166,7 @@ int module_load(const char* file_name, int argc, char *argv[])
 		return rc;
 	}
 
-	if (rc >= (sizeof(module_regtable) / sizeof(struct module_regtable_t))
+	if (rc >= (int)(sizeof(module_regtable) / sizeof(struct module_regtable_t))
 		|| module_regtable[rc].proc == NULL)
 	{
 #ifdef NEW_LOGGING
