@@ -9,7 +9,7 @@
  *  LIBLDAP url.c -- LDAP URL related routines
  *
  *  LDAP URLs look like this:
- *    ldap[s]://host:port/dn[[?attributes[?scope[?filter[?extensions]]]]
+ *    ldap[s]://host:port[/[dn[?[attributes][?[scope][?[filter][?exts]]]]]]
  *
  *  where:
  *   attributes is a comma separated list
@@ -221,14 +221,10 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	/* scan forward for '/' that marks end of hostport and begin. of dn */
 	p = strchr( url, '/' );
 
-	if( p == NULL ) {
-		LDAP_FREE( url );
-		ldap_free_urldesc( ludp );
-		return LDAP_URL_ERR_BADURL;
+	if( p != NULL ) {
+		/* terminate hostport; point to start of dn */
+		*p++ = '\0';
 	}
-
-	/* terminate hostport; point to start of dn */
-	*p++ = '\0';
 
 	if (( q = strchr( url, ':' )) != NULL ) {
 		*q++ = '\0';
@@ -252,28 +248,27 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 		return LDAP_URL_ERR_MEM;
 	}
 
-	/* scan forward for '?' that may marks end of dn */
-	q = strchr( p, '?' );
-
-	if( q == NULL ) {
-		/* no '?' */
-		hex_unescape( p );
-		ludp->lud_dn = LDAP_STRDUP( p );
-
-		if( ludp->lud_dn == NULL ) {
-			LDAP_FREE( url );
-			ldap_free_urldesc( ludp );
-			return LDAP_URL_ERR_MEM;
-		}
-
+	if( p == NULL ) {
 		LDAP_FREE( url );
 		*ludpp = ludp;
 		return LDAP_URL_SUCCESS;
 	}
 
-	*q++ = '\0';
-	hex_unescape( p );
-	ludp->lud_dn = LDAP_STRDUP( p );
+	/* scan forward for '?' that may marks end of dn */
+	q = strchr( p, '?' );
+
+	if( q != NULL ) {
+		/* terminate dn part */
+		*q++ = '\0';
+	}
+
+	if( *p != '\0' ) {
+		/* parse dn part */
+		hex_unescape( p );
+		ludp->lud_dn = LDAP_STRDUP( p );
+	} else {
+		ludp->lud_dn = LDAP_STRDUP( "" );
+	}
 
 	if( ludp->lud_dn == NULL ) {
 		LDAP_FREE( url );
@@ -281,14 +276,24 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 		return LDAP_URL_ERR_MEM;
 	}
 
+	if( q == NULL ) {
+		/* no more */
+		LDAP_FREE( url );
+		*ludpp = ludp;
+		return LDAP_URL_SUCCESS;
+	}
+
 	/* scan forward for '?' that may marks end of attributes */
 	p = q;
 	q = strchr( p, '?' );
 
 	if( q != NULL ) {
+		/* terminate attributes part */
 		*q++ = '\0';
 	}
+
 	if( *p != '\0' ) {
+		/* parse attributes */
 		hex_unescape( p );
 		ludp->lud_attrs = ldap_str2charray( p, "," );
 
@@ -298,8 +303,9 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 			return LDAP_URL_ERR_BADATTRS;
 		}
 	}
+
 	if ( q == NULL ) {
-		/* no '?' */
+		/* no more */
 		LDAP_FREE( url );
 		*ludpp = ludp;
 		return LDAP_URL_SUCCESS;
@@ -310,9 +316,12 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	q = strchr( p, '?' );
 
 	if( q != NULL ) {
+		/* terminate the scope part */
 		*q++ = '\0';
 	}
+
 	if( *p != '\0' ) {
+		/* parse the scope */
 		hex_unescape( p );
 		ludp->lud_scope = str2scope( p );
 
@@ -322,8 +331,9 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 			return LDAP_URL_ERR_BADSCOPE;
 		}
 	}
+
 	if ( q == NULL ) {
-		/* no '?' */
+		/* no more */
 		LDAP_FREE( url );
 		*ludpp = ludp;
 		return LDAP_URL_SUCCESS;
@@ -334,9 +344,12 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	q = strchr( p, '?' );
 
 	if( q != NULL ) {
+		/* terminate the filter part */
 		*q++ = '\0';
 	}
+
 	if( *p != '\0' ) {
+		/* parse the filter */
 		hex_unescape( p );
 
 		if( ! *p ) {
@@ -354,8 +367,9 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 			return LDAP_URL_ERR_MEM;
 		}
 	}
+
 	if ( q == NULL ) {
-		/* no '?' */
+		/* no more */
 		LDAP_FREE( url );
 		*ludpp = ludp;
 		return LDAP_URL_SUCCESS;
@@ -372,6 +386,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 		return LDAP_URL_ERR_BADURL;
 	}
 
+	/* parse the extensions */
 	ludp->lud_exts = ldap_str2charray( p, "," );
 
 	if( ludp->lud_exts == NULL ) {
@@ -385,14 +400,15 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	}
 
 	if( i == 0 ) {
+		/* must have 1 or more */
 		ldap_charray_free( ludp->lud_exts );
 		LDAP_FREE( url );
 		ldap_free_urldesc( ludp );
 		return LDAP_URL_ERR_BADEXTS;
 	}
 
+	/* no more */
 	*ludpp = ludp;
-
 	LDAP_FREE( url );
 	return LDAP_URL_SUCCESS;
 }
