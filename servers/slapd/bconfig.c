@@ -3384,6 +3384,14 @@ out:
 	return rs->sr_err;
 }
 
+/* Modify rules:
+ *  for single-valued attributes, should just use REPLACE.
+ *    any received DELETE/ADD on a single-valued attr will
+ *      be checked (if a DEL value is provided) and then
+ *      rewritten as a REPLACE.
+ *    any DELETE received without a corresponding ADD will be
+ *      rejected with LDAP_CONSTRAINT_VIOLATION.
+ */
 static int
 config_back_modify( Operation *op, SlapReply *rs )
 {
@@ -3991,6 +3999,12 @@ config_back_initialize( BackendInfo *bi )
 	ConfigTable *ct = config_back_cf_table;
 	char *argv[4];
 	int i;
+	static char *controls[] = {
+		LDAP_CONTROL_MANAGEDSAIT,
+		NULL
+	};
+
+	bi->bi_controls = controls;
 
 	bi->bi_open = 0;
 	bi->bi_close = 0;
