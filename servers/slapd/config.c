@@ -46,6 +46,7 @@ char   *slapd_args_file = NULL;
 
 int nSaslRegexp = 0;
 SaslRegexp_t *SaslRegexp = NULL;
+int sasl_external_x509dn_convert;
 
 static char	*fp_getline(FILE *fp, int *lineno);
 static void	fp_getline_init(int *lineno);
@@ -549,6 +550,9 @@ read_config( const char *fname )
 
 				return 1;
 			}
+
+		} else if ( strcasecmp( cargv[0], "sasl-external-x509dn-convert" ) == 0 ) {
+			sasl_external_x509dn_convert++;
 
 		/* set UCDATA path */
 		} else if ( strcasecmp( cargv[0], "ucdata-path" ) == 0 ) {

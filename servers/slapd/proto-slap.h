@@ -811,6 +811,7 @@ LDAP_SLAPD_F (int)		global_idletimeout;
 LDAP_SLAPD_F (int)		global_schemacheck;
 LDAP_SLAPD_F (char)		*global_host;
 LDAP_SLAPD_F (char)		*global_realm;
+LDAP_SLAPD_F (int)		sasl_external_x509dn_convert;
 LDAP_SLAPD_F (char)		*default_passwd_hash;
 LDAP_SLAPD_F (int)		lber_debug;
 LDAP_SLAPD_F (int)		ldap_syslog;

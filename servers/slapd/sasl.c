@@ -27,7 +27,6 @@
 
 static sasl_security_properties_t sasl_secprops;
 
-
 static int
 slap_sasl_log(
 	void *context,
@@ -107,21 +106,43 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 		return( LDAP_SUCCESS );
 	}
 	ctx = conn->c_sasl_context;
-	dn = ch_strdup( id );
 	len = strlen( id );
 
-	/* An authcID will need to be prefixed with u: */
+	/* An authcID needs to be converted to authzID form */
 	if( flags & FLAG_GETDN_AUTHCID ) {
-		dn = ch_realloc( dn, len+3 );
-		memmove( dn+2, dn, len+1 );
-		dn[0] = 'u';
-		dn[1] = ':';
-		len += 2;
+		if( sasl_external_x509dn_convert && conn->c_sasl_bind_mech
+			&& ( strcasecmp( LDAP_SASL_EXTERNAL, conn->c_sasl_bind_mech ) == 0 ) 
+			&& len && dn[0] == '/' and dn[len-1]== '/' )
+		{
+			/* check SASL external for X.509 style DN and */
+			/* convert to dn:<dn> form */
+			char *tmpdn = ldap_dcedn2dn( id );
+			len = strlen( tmpdn );
+
+			dn = ch_malloc( dn, len+4 );
+			dn[0] = 'd';
+			dn[1] = 'n';
+			dn[2] = ':';
+			memmove( &dn[3], tmpdn, len+1 );
+			len += 3;
+
+		} else {
+			/* convert to u:<username> form */
+			dn = ch_malloc( dn, len+3 );
+			dn[0] = 'u';
+			dn[1] = ':';
+			memmove( &dn[2], id, len+1 );
+			len += 2;
+		}
+	} else {
+		dn = ch_strdup( id );
 	}
 
 	/* An authzID must be properly prefixed */
-	if( flags & FLAG_GETDN_AUTHZID && strncasecmp( dn, "u:", 2 ) &&
-	  strncasecmp( dn, "dn:", 3 ) ) {
+	if( flags & FLAG_GETDN_AUTHZID
+		&& strncasecmp( dn, "u:", 2 )
+		&& strncasecmp( dn, "dn:", 3 ) )
+	{
 		ch_free( dn );
 		*dnptr = NULL;
 		return( LDAP_INAPPROPRIATE_AUTH );
