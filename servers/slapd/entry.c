@@ -99,14 +99,17 @@ str2entry( char *s )
 		}
 
 		if ( strcasecmp( type, "dn" ) == 0 ) {
+			free( type );
+
 			if ( e->e_dn != NULL ) {
 				Debug( LDAP_DEBUG_ANY,
  "str2entry: entry %ld has multiple dns \"%s\" and \"%s\" (second ignored)\n",
 				    e->e_id, e->e_dn,
 					value != NULL ? value : NULL );
+				if( value != NULL ) free( value );
 				continue;
 			}
-			e->e_dn = ch_strdup( value != NULL ? value : "" );
+			e->e_dn = value != NULL ? value : ch_strdup( "" );
 
 			if ( e->e_ndn != NULL ) {
 				Debug( LDAP_DEBUG_ANY,
@@ -127,8 +130,13 @@ str2entry( char *s )
 			Debug( LDAP_DEBUG_TRACE,
 			    "<= str2entry NULL (attr_merge)\n", 0, 0, 0 );
 			entry_free( e );
+			free( value );
+			free( type );
 			return( NULL );
 		}
+
+		free( value );
+		free( type );
 		nvals++;
 	}
 
