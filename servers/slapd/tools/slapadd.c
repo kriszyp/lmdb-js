@@ -226,7 +226,8 @@ main( int argc, char **argv )
 			{
 				vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
 				vals[0].bv_val = uuidbuf;
-				attr_merge( e, slap_schema.si_ad_entryUUID, vals, NULL );
+				attr_merge_normalize_one( e,
+							slap_schema.si_ad_entryUUID, vals, NULL );
 			}
 
 			if( attr_find( e->e_attrs, slap_schema.si_ad_creatorsName )
