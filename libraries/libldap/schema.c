@@ -1,7 +1,8 @@
 /*
  * Copyright 1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
- *
+ */
+/*
  * schema.c:  parsing routines used by servers and clients to process
  *	schema definitions
  */
