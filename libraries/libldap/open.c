@@ -182,7 +182,7 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 
 	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
 		LDAP_FREE( (char*) ld->ld_options.ldo_defhost );
-		if ( ld->ld_options.ldo_defbase == NULL ) {
+		if ( ld->ld_options.ldo_defbase != NULL ) {
 			LDAP_FREE( (char*) ld->ld_options.ldo_defbase );
 		}
 		LDAP_FREE( (char*) ld );
