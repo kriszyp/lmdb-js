@@ -161,6 +161,41 @@ LDAP_END_DECL
 #define LDBM_REPLACE	GDBM_REPLACE
 #define LDBM_SYNC	0x80000000
 
+#elif defined( HAVE_MDBM )
+
+/*****************************************************************
+ *                                                               *
+ * use mdbm if possible                                          *
+ *                                                               *
+ *****************************************************************/
+
+#include <mdbm.h>
+
+LDAP_BEGIN_DECL
+
+typedef datum		Datum;
+typedef MDBM		*LDBM;
+
+LDAP_END_DECL
+    
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+/* for ldbm_open */
+#define LDBM_READER	O_RDONLY
+#define LDBM_WRITER	O_RDWR
+#define LDBM_WRCREAT	(O_RDWR|O_CREAT)
+#define LDBM_NEWDB	(O_RDWR|O_TRUNC|O_CREAT)
+#define LDBM_FAST	0
+
+#define LDBM_SUFFIX	".mdbm"
+
+/* for ldbm_insert */
+#define LDBM_INSERT	MDBM_INSERT
+#define LDBM_REPLACE	MDBM_REPLACE
+#define LDBM_SYNC	0x80000000
+
 
 #elif defined( HAVE_NDBM )
 
