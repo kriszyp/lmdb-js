@@ -538,15 +538,46 @@ dn_normalize( char *dn )
 	return dn;
 }
 
+/*
+ * dnParent - dn's parent, in-place
+ */
+int
+dnParent( 
+	const char	*dn, 
+	const char	**pdn )
+{
+	LDAPRDN		*tmpRDN;
+	const char	*p;
+	int		rc;
+
+	rc = ldap_str2rdn( dn, &tmpRDN, &p, LDAP_DN_FORMAT_LDAP );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+	ldap_rdnfree( tmpRDN );
+
+	assert( DN_SEPARATOR( p[ 0 ] ) );
+	p++;
+
+	while ( ASCII_SPACE( p[ 0 ] ) ) {
+		p++;
+	}
+
+	*pdn = p;
+
+	return LDAP_SUCCESS;
+}
 
 /*
  * dn_parent - return the dn's parent, in-place
+ * FIXME: should be replaced by dnParent()
  */
 char *
 dn_parent(
-	Backend	*be,
+	Backend		*be,
 	const char	*dn )
 {
+#if 0
 	const char	*s;
 	int	inquote;
 
@@ -593,12 +624,74 @@ dn_parent(
 	}
 
 	return "";
+#endif
+	const char	*pdn;
+
+	if ( dn == NULL ) {
+		return NULL;
+	}
+
+	while ( dn[ 0 ] != '\0' && ASCII_SPACE( dn[ 0 ] ) ) {
+		dn++;
+	}
+
+	if ( dn[ 0 ] == '\0' ) {
+		return NULL;
+	}
+
+	if ( be != NULL && be_issuffix( be, dn ) ) {
+		return NULL;
+	}
+
+	if ( dnParent( dn, &pdn ) != LDAP_SUCCESS ) {
+		return NULL;
+	}
+	
+	return ( char * )pdn;
 }
 
-int dn_rdnlen(
-	Backend	*be,
+int
+dnExtractRdn( 
+	const char	*dn, 
+	struct berval 	**rdn )
+{
+	LDAPRDN		*tmpRDN;
+	const char	*p;
+	char		*rdnout;
+	int		rc;
+
+	assert( dn );
+	assert( rdn );
+
+	rc = ldap_str2rdn( dn, &tmpRDN, &p, LDAP_DN_FORMAT_LDAP );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	rc = ldap_rdn2str( tmpRDN, &rdnout, LDAP_DN_FORMAT_LDAPV3 );
+	ldap_rdnfree( tmpRDN );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	*rdn = ber_bvstr( rdnout );
+	if ( *rdn == NULL ) {
+		free( rdnout );
+		return LDAP_NO_MEMORY;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+/*
+ * FIXME: should be replaced by dnExtractRdn() (together with dn_rdn)
+ */
+int 
+dn_rdnlen(
+	Backend		*be,
 	const char	*dn_in )
 {
+#if 0
 	char	*s;
 	int	inquote;
 
@@ -641,12 +734,47 @@ int dn_rdnlen(
 	}
 
 	return( s - dn_in );
+#endif
+	struct berval	*rdn = NULL;
+	int		retval = 0;
+
+	assert( dn_in );
+
+	if ( dn_in == NULL ) {
+		return 0;
+	}
+
+	while ( dn_in[ 0 ] && ASCII_SPACE( dn_in[ 0 ] ) ) {
+		dn_in++;
+	}
+
+	if ( dn_in[ 0 ] == '\0' ) {
+		return 0;
+	}
+
+	if ( be != NULL && be_issuffix( be, dn_in ) ) {
+		return 0;
+	}
+
+	if ( dnExtractRdn( dn_in, &rdn ) != LDAP_SUCCESS ) {
+		ber_bvfree( rdn );
+		return 0;
+	}
+
+	retval = rdn->bv_len;
+	ber_bvfree( rdn );
+
+	return retval;
 }
 
+/*
+ * FIXME: should be replaced by dnExtractRdn() (together with dn_rdnlen)
+ */
 char * dn_rdn(
 	Backend	*be,
 	const char	*dn_in )
 {
+#if 0
 	char *rdn;
 	int i = dn_rdnlen( be, dn_in );
 
@@ -654,6 +782,37 @@ char * dn_rdn(
 	strncpy(rdn, dn_in, i);
 	rdn[i] = '\0';
 	return rdn;
+#endif 
+	struct berval	*rdn = NULL;
+	char		*retval;
+
+	assert( dn_in );
+
+	if ( dn_in == NULL ) {
+		return NULL;
+	}
+
+	while ( dn_in[ 0 ] && ASCII_SPACE( dn_in[ 0 ] ) ) {
+		dn_in++;
+	}
+
+	if ( dn_in[ 0 ] == '\0' ) {
+		return NULL;
+	}
+
+	if ( be != NULL && be_issuffix( be, dn_in ) ) {
+		return NULL;
+	}
+
+	if ( dnExtractRdn( dn_in, &rdn ) != LDAP_SUCCESS ) {
+		ber_bvfree( rdn );
+		return NULL;
+	}
+
+	retval = rdn->bv_val;
+	free( rdn );
+
+	return retval;
 }
 
 /*
