@@ -34,6 +34,10 @@
 
 static SLAP_EXTOP_MAIN_FN ldap_back_exop_whoami;
 
+static int
+parse_idassert( BackendDB *be, const char *fname, int lineno,
+		int argc, char **argv );
+
 int
 ldap_back_db_config(
     BackendDB	*be,
@@ -168,6 +172,10 @@ ldap_back_db_config(
 			return( 1 );
 		}
 		ber_str2bv( argv[1], 0, 1, &li->proxyauthzpw );
+
+	/* identity assertion stuff... */
+	} else if ( strncasecmp( argv[0], "idassert-", STRLENOF( "idassert-" ) ) == 0 ) {
+		return parse_idassert( be, fname, lineno, argc, argv );
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	/* save bind creds for referral rebinds? */
@@ -652,3 +660,80 @@ suffix_massage_config(
 	return 0;
 }
 #endif /* ENABLE_REWRITE */
+
+#ifdef LDAP_BACK_PROXY_AUTHZ
+static int
+parse_idassert(
+    BackendDB	*be,
+    const char	*fname,
+    int		lineno,
+    int		argc,
+    char	**argv
+)
+{
+	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
+
+	if ( strcasecmp( argv[0], "idassert-mode" ) == 0 ) {
+		if ( argc != 2 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( CONFIG, CRIT, 
+				"%s: line %d: illegal args number %d in \"idassert-mode <args>\" line.\n",
+				fname, lineno, argc );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: illegal args number %d in \"idassert-mode <args>\" line.\n",
+				fname, lineno, argc );
+#endif
+			return 1;
+		}
+
+		if ( strcasecmp( argv[1], "self" ) == 0 ) {
+			/* will proxyAuthz as (rewritten) client's identity */
+			li->idassert_mode = LDAP_BACK_IDASSERT_SELF;
+
+		} else if ( strcasecmp( argv[1], "anonymous" ) == 0 ) {
+			/* will proxyAuthz as anonymous */
+			li->idassert_mode = LDAP_BACK_IDASSERT_ANONYMOUS;
+
+		} else if ( strcasecmp( argv[1], "proxyid" ) == 0 ) {
+			/* will not proxyAuthz */
+			li->idassert_mode = LDAP_BACK_IDASSERT_PROXYID;
+
+		} else {
+			struct berval	dn;
+			int		rc;
+
+			/* will proxyAuthz as argv[1] */
+			li->idassert_mode = LDAP_BACK_IDASSERT_OTHER;
+			
+			ber_str2bv( argv[1], 0, 0, &dn );
+
+			rc = dnNormalize( 0, NULL, NULL, &dn, &li->idassert_dn, NULL );
+			if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: idassert DN \"%s\" is invalid.\n",
+					fname, lineno, argv[1] );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: idassert DN \"%s\" is invalid\n",
+					fname, lineno, argv[1] );
+#endif
+				return 1;
+			}
+		}
+
+	} else if ( strcasecmp( argv[0], "idassert-authz" ) == 0 ) {
+		struct berval	rule;
+
+		ber_str2bv( argv[1], 0, 1, &rule );
+
+		ber_bvarray_add( &li->idassert_authz, &rule );
+
+	} else {
+		return SLAP_CONF_UNKNOWN;
+	}
+
+	return 0;
+}
+#endif /* LDAP_BACK_PROXY_AUTHZ */

@@ -40,8 +40,8 @@ ldap_back_modrdn(
 	struct ldapconn *lc;
 	ber_int_t msgid;
 	dncookie dc;
-#ifdef LDAP_BACK_PROXY_AUTHZ 
 	LDAPControl **ctrls = NULL;
+#ifdef LDAP_BACK_PROXY_AUTHZ 
 	int rc = LDAP_SUCCESS;
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
@@ -88,6 +88,7 @@ ldap_back_modrdn(
 		return -1;
 	}
 
+	ctrls = op->o_ctrls;
 #ifdef LDAP_BACK_PROXY_AUTHZ
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
@@ -98,11 +99,7 @@ ldap_back_modrdn(
 	rs->sr_err = ldap_rename( lc->ld, mdn.bv_val,
 			op->orr_newrdn.bv_val, mnewSuperior.bv_val,
 			op->orr_deleteoldrdn,
-#ifdef LDAP_BACK_PROXY_AUTHZ
 			ctrls,
-#else /* ! LDAP_BACK_PROXY_AUTHZ */
-			op->o_ctrls,
-#endif /* ! LDAP_BACK_PROXY_AUTHZ */
 			NULL, &msgid );
 
 #ifdef LDAP_BACK_PROXY_AUTHZ

@@ -31,6 +31,10 @@
 #include "rewrite.h"
 #endif /* ENABLE_REWRITE */
 
+#ifdef LDAP_DEVEL
+#define LDAP_BACK_PROXY_AUTHZ
+#endif
+
 LDAP_BEGIN_DECL
 
 struct slap_conn;
@@ -87,7 +91,19 @@ struct ldapinfo {
 #ifdef LDAP_BACK_PROXY_AUTHZ
 	struct berval proxyauthzdn;
 	struct berval proxyauthzpw;
+
+	/* ID assert stuff */
+	int		idassert_mode;
+#define	LDAP_BACK_IDASSERT_NONE		0
+#define	LDAP_BACK_IDASSERT_PROXYID	1
+#define	LDAP_BACK_IDASSERT_ANONYMOUS	2
+#define	LDAP_BACK_IDASSERT_SELF		3
+#define	LDAP_BACK_IDASSERT_OTHER	4
+	struct berval	idassert_dn;
+	BerVarray	idassert_authz;
+	/* end of ID assert stuff */
 #endif /* LDAP_BACK_PROXY_AUTHZ */
+
 	ldap_pvt_thread_mutex_t		conn_mutex;
 	int savecred;
 	Avlnode *conntree;

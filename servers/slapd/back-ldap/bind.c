@@ -72,10 +72,9 @@ ldap_back_bind(
 		return -1;
 	}
 
-	if ( lc->bound_dn.bv_val ) {
+	if ( !BER_BVISNULL( &lc->bound_dn ) ) {
 		ch_free( lc->bound_dn.bv_val );
-		lc->bound_dn.bv_len = 0;
-		lc->bound_dn.bv_val = NULL;
+		BER_BVZERO( &lc->bound_dn );
 	}
 	lc->bound = 0;
 	/* method is always LDAP_AUTH_SIMPLE if we got here */
@@ -89,10 +88,10 @@ ldap_back_bind(
 		} else {
 			ber_dupbv( &lc->bound_dn, &op->o_req_dn );
 		}
-		mdn.bv_val = NULL;
+		BER_BVZERO( &mdn );
 
 		if ( li->savecred ) {
-			if ( lc->cred.bv_val ) {
+			if ( !BER_BVISNULL( &lc->cred ) ) {
 				memset( lc->cred.bv_val, 0, lc->cred.bv_len );
 				ch_free( lc->cred.bv_val );
 			}
@@ -108,7 +107,7 @@ ldap_back_bind(
 		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 		lc = avl_delete( &li->conntree, (caddr_t)lc,
 				ldap_back_conn_cmp );
-		if ( lc->local_dn.bv_val )
+		if ( !BER_BVISNULL( &lc->local_dn ) )
 			ch_free( lc->local_dn.bv_val );
 		ber_dupbv( &lc->local_dn, &op->o_req_ndn );
 		lerr = avl_insert( &li->conntree, (caddr_t)lc,
@@ -119,7 +118,7 @@ ldap_back_bind(
 		}
 	}
 
-	if ( mdn.bv_val && mdn.bv_val != op->o_req_dn.bv_val ) {
+	if ( !BER_BVISNULL( &mdn ) && mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
 	}
 
@@ -286,11 +285,9 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 			ber_dupbv( &lc->cred, &li->bindpw );
 			ber_dupbv( &lc->bound_dn, &li->binddn );
 		} else {
-			lc->cred.bv_len = 0;
-			lc->cred.bv_val = NULL;
-			lc->bound_dn.bv_val = NULL;
-			lc->bound_dn.bv_len = 0;
-			if ( op->o_conn && op->o_conn->c_dn.bv_len != 0
+			BER_BVZERO( &lc->cred );
+			BER_BVZERO( &lc->bound_dn );
+			if ( op->o_conn && !BER_BVISEMPTY( &op->o_conn->c_dn )
 					&& ( op->o_bd == op->o_conn->c_authz_backend ) ) {
 				
 				dncookie dc;
@@ -407,12 +404,40 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 		 * control to every operation with the dn bound 
 		 * to the connection as control value.
 		 */
-		if ( ( lc->bound_dn.bv_val == NULL || lc->bound_dn.bv_len == 0 )
-	      			&& ( op->o_conn && op->o_conn->c_dn.bv_val != NULL && op->o_conn->c_dn.bv_len != 0 )
-	      			&& ( li->proxyauthzdn.bv_val != NULL && li->proxyauthzdn.bv_len != 0 ) 
-	      			&& ! gotit ) {
-			rs->sr_err = ldap_sasl_bind(lc->ld, li->proxyauthzdn.bv_val,
-				LDAP_SASL_SIMPLE, &li->proxyauthzpw, NULL, NULL, &msgid);
+		if ( op->o_conn != NULL
+				&& ( BER_BVISNULL( &lc->bound_dn ) || BER_BVISEMPTY( &lc->bound_dn ) ) ) {
+			struct berval	binddn = slap_empty_bv;
+			struct berval	bindcred = slap_empty_bv;
+
+			/* bind as proxyauthzdn only if no idassert mode is requested,
+			 * or if the client's identity is authorized */
+			switch ( li->idassert_mode ) {
+			case LDAP_BACK_IDASSERT_NONE:
+	      			if ( !BER_BVISNULL( &op->o_conn->c_dn ) && !BER_BVISEMPTY( &op->o_conn->c_dn )
+	      					&& !BER_BVISNULL( &li->proxyauthzdn ) && !BER_BVISEMPTY( &li->proxyauthzdn )
+	      					&& !gotit ) {
+					binddn = li->proxyauthzdn;
+					bindcred = li->proxyauthzpw;
+				}
+				break;
+
+			default:
+				if ( li->idassert_authz ) {
+					struct berval	authcDN = BER_BVISNULL( &op->o_conn->c_dn ) ? slap_empty_bv : op->o_conn->c_dn;
+
+					rc = slap_sasl_matches( op, li->idassert_authz,
+							&authcDN, &authcDN );
+					if ( rc != LDAP_SUCCESS ) {
+						break;
+					}
+				}
+				binddn = li->proxyauthzdn;
+				bindcred = li->proxyauthzpw;
+				break;
+			}
+
+			rs->sr_err = ldap_sasl_bind(lc->ld, binddn.bv_val,
+				LDAP_SASL_SIMPLE, &bindcred, NULL, NULL, &msgid);
 
 		} else
 #endif /* LDAP_BACK_PROXY_AUTHZ */
@@ -610,34 +635,21 @@ ldap_back_proxy_authz_ctrl(
 {
 	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
 	LDAPControl	**ctrls = NULL;
+	int		i = 0;
+	struct berval	assertedDN;
 
 	*pctrls = NULL;
 
-	if ( ( lc->bound_dn.bv_val == NULL || lc->bound_dn.bv_len == 0 )
-	      		&& ( op->o_conn && op->o_conn->c_dn.bv_val != NULL && op->o_conn->c_dn.bv_len != 0 )
-	      		&& ( li->proxyauthzdn.bv_val != NULL && li->proxyauthzdn.bv_len != 0 ) ) {
-		int	i = 0;
+	if ( BER_BVISNULL( &li->proxyauthzdn ) ) {
+		goto done;
+	}
 
-		if ( !op->o_proxy_authz ) {
-			ctrls = ch_malloc( sizeof( LDAPControl * ) * (i + 2) );
-			ctrls[ 0 ] = ch_malloc( sizeof( LDAPControl ) );
-			
-			ctrls[ 0 ]->ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
-			ctrls[ 0 ]->ldctl_iscritical = 1;
-			ctrls[ 0 ]->ldctl_value.bv_len = op->o_conn->c_dn.bv_len + 3;
-			ctrls[ 0 ]->ldctl_value.bv_val = ch_malloc( ctrls[ 0 ]->ldctl_value.bv_len + 1 );
-			AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val, "dn:", sizeof( "dn:" ) - 1 );
-			AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val + sizeof( "dn:") - 1,
-					op->o_conn->c_dn.bv_val, op->o_conn->c_dn.bv_len + 1 );
+	if ( !op->o_conn ) {
+		goto done;
+	}
 
-			if ( op->o_ctrls ) {
-				for ( i = 0; op->o_ctrls[ i ]; i++ ) {
-					ctrls[ i + 1 ] = op->o_ctrls[ i ];
-				}
-			}
-			ctrls[ i + 1 ] = NULL;
-
-		} else {
+	if ( li->idassert_mode == LDAP_BACK_IDASSERT_NONE ) {
+		if ( op->o_proxy_authz ) {
 			/*
 			 * FIXME: we do not want to perform proxyAuthz
 			 * on behalf of the client, because this would
@@ -652,9 +664,85 @@ ldap_back_proxy_authz_ctrl(
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			rs->sr_text = "proxyAuthz not allowed within namingContext";
 #endif
+			goto done;
+		}
+
+		if ( !BER_BVISNULL( &lc->bound_dn ) && !BER_BVISEMPTY( &lc->bound_dn ) ) {
+			goto done;
+		}
+
+		if ( BER_BVISNULL( &op->o_conn->c_dn ) || BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
+			goto done;
+		}
+
+		if ( BER_BVISEMPTY( &li->proxyauthzdn ) ) {
+			goto done;
+		}
+
+	} else if ( li->idassert_authz ) {
+		int		rc;
+		struct berval	authcDN = BER_BVISNULL( &op->o_conn->c_dn ) ? slap_empty_bv : op->o_conn->c_dn;
+
+
+		rc = slap_sasl_matches( op, li->idassert_authz,
+				&authcDN, & authcDN );
+		if ( rc != LDAP_SUCCESS ) {
+			/* op->o_conn->c_dn is not authorized
+			 * to use idassert */
+			return rc;
 		}
 	}
 
+	switch ( li->idassert_mode ) {
+	case LDAP_BACK_IDASSERT_NONE:
+	case LDAP_BACK_IDASSERT_SELF:
+		/* original behavior:
+		 * assert the client's identity */
+		assertedDN = op->o_conn->c_dn;
+		break;
+
+	case LDAP_BACK_IDASSERT_ANONYMOUS:
+		/* assert "anonymous" */
+		assertedDN = slap_empty_bv;
+		break;
+
+	case LDAP_BACK_IDASSERT_PROXYID:
+		/* don't assert; bind as proxyauthzdn */
+		goto done;
+
+	case LDAP_BACK_IDASSERT_OTHER:
+		/* assert idassert DN */
+		assertedDN = li->idassert_dn;
+		break;
+
+	default:
+		assert( 0 );
+	}
+
+	if ( BER_BVISNULL( &assertedDN ) ) {
+		assertedDN = slap_empty_bv;
+	}
+
+	ctrls = ch_malloc( sizeof( LDAPControl * ) * (i + 2) );
+	ctrls[ 0 ] = ch_malloc( sizeof( LDAPControl ) );
+	
+	ctrls[ 0 ]->ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
+	ctrls[ 0 ]->ldctl_iscritical = 1;
+	ctrls[ 0 ]->ldctl_value.bv_len = assertedDN.bv_len + STRLENOF( "dn:" );
+	ctrls[ 0 ]->ldctl_value.bv_val = ch_malloc( ctrls[ 0 ]->ldctl_value.bv_len + 1 );
+	AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val, "dn:", STRLENOF( "dn:" ) );
+	AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val + STRLENOF( "dn:" ),
+			assertedDN.bv_val, assertedDN.bv_len );
+	ctrls[ 0 ]->ldctl_value.bv_val[ ctrls[ 0 ]->ldctl_value.bv_len ] = '\0';
+
+	if ( op->o_ctrls ) {
+		for ( i = 0; op->o_ctrls[ i ]; i++ ) {
+			ctrls[ i + 1 ] = op->o_ctrls[ i ];
+		}
+	}
+	ctrls[ i + 1 ] = NULL;
+
+done:;
 	if ( ctrls == NULL ) {
 		ctrls = op->o_ctrls;
 	}

@@ -60,9 +60,7 @@ ldap_back_search(
 	struct berval mfilter = BER_BVNULL;
 	int dontfreetext = 0;
 	dncookie dc;
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	LDAPControl **ctrls = NULL;
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	lc = ldap_back_getconn(op, rs);
 	if ( !lc ) {
@@ -133,6 +131,7 @@ ldap_back_search(
 		goto finish;
 	}
 
+	ctrls = op->o_ctrls;
 #ifdef LDAP_BACK_PROXY_AUTHZ
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
@@ -144,12 +143,7 @@ ldap_back_search(
 	rs->sr_err = ldap_search_ext(lc->ld, mbase.bv_val,
 			op->ors_scope, mfilter.bv_val,
 			mapped_attrs, op->ors_attrsonly,
-#ifdef LDAP_BACK_PROXY_AUTHZ
-			ctrls,
-#else /* ! LDAP_BACK_PROXY_AUTHZ */
-			op->o_ctrls,
-#endif /* ! LDAP_BACK_PROXY_AUTHZ */
-			NULL,
+			ctrls, NULL,
 			tv.tv_sec ? &tv : NULL, op->ors_slimit,
 			&msgid );
 

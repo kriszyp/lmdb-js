@@ -47,9 +47,7 @@ ldap_back_modify(
 	ber_int_t msgid;
 	dncookie dc;
 	int isupdate;
-#ifdef LDAP_BACK_PROXY_AUTHZ 
 	LDAPControl **ctrls = NULL;
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	lc = ldap_back_getconn(op, rs);
 	if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
@@ -159,6 +157,7 @@ ldap_back_modify(
 	}
 	modv[i] = 0;
 
+	ctrls = op->o_ctrls;
 #ifdef LDAP_BACK_PROXY_AUTHZ
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
@@ -167,12 +166,7 @@ ldap_back_modify(
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	rs->sr_err = ldap_modify_ext( lc->ld, mdn.bv_val, modv,
-#ifdef LDAP_BACK_PROXY_AUTHZ
-			ctrls,
-#else /* ! LDAP_BACK_PROXY_AUTHZ */
-			op->o_ctrls,
-#endif /* ! LDAP_BACK_PROXY_AUTHZ */
-			NULL, &msgid );
+			ctrls, NULL, &msgid );
 
 cleanup:;
 #ifdef LDAP_BACK_PROXY_AUTHZ

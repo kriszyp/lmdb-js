@@ -98,16 +98,15 @@ ldap_back_db_init(
  		return -1;
  	}
 
-	li->binddn.bv_val = NULL;
-	li->binddn.bv_len = 0;
-	li->bindpw.bv_val = NULL;
-	li->bindpw.bv_len = 0;
+	BER_BVZERO( &li->binddn );
+	BER_BVZERO( &li->bindpw );
 
 #ifdef LDAP_BACK_PROXY_AUTHZ
-	li->proxyauthzdn.bv_val = NULL;
-	li->proxyauthzdn.bv_len = 0;
-	li->proxyauthzpw.bv_val = NULL;
-	li->proxyauthzpw.bv_len = 0;
+	BER_BVZERO( &li->proxyauthzdn );
+	BER_BVZERO( &li->proxyauthzpw );
+
+	li->idassert_mode = LDAP_BACK_IDASSERT_NONE;
+	BER_BVZERO( &li->idassert_dn );
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
 #ifdef ENABLE_REWRITE
@@ -201,22 +200,26 @@ ldap_back_db_destroy(
 			ldap_free_urldesc( li->lud );
 			li->lud = NULL;
 		}
-		if (li->binddn.bv_val) {
-			ch_free(li->binddn.bv_val);
-			li->binddn.bv_val = NULL;
+		if ( !BER_BVISNULL( &li->binddn ) ) {
+			ch_free( li->binddn.bv_val );
+			BER_BVZERO( &li->binddn );
 		}
-		if (li->bindpw.bv_val) {
-			ch_free(li->bindpw.bv_val);
-			li->bindpw.bv_val = NULL;
+		if ( !BER_BVISNULL( &li->bindpw ) ) {
+			ch_free( li->bindpw.bv_val );
+			BER_BVZERO( &li->bindpw );
 		}
 #ifdef LDAP_BACK_PROXY_AUTHZ
-		if (li->proxyauthzdn.bv_val) {
-			ch_free(li->proxyauthzdn.bv_val);
-			li->proxyauthzdn.bv_val = NULL;
+		if ( !BER_BVISNULL( &li->proxyauthzdn ) ) {
+			ch_free( li->proxyauthzdn.bv_val );
+			BER_BVZERO( &li->proxyauthzdn );
 		}
-		if (li->proxyauthzpw.bv_val) {
-			ch_free(li->proxyauthzpw.bv_val);
-			li->proxyauthzpw.bv_val = NULL;
+		if ( !BER_BVISNULL( &li->proxyauthzpw ) ) {
+			ch_free( li->proxyauthzpw.bv_val );
+			BER_BVZERO( &li->proxyauthzpw );
+		}
+		if ( !BER_BVISNULL( &li->idassert_dn ) ) {
+			ch_free( li->idassert_dn.bv_val );
+			BER_BVZERO( &li->idassert_dn );
 		}
 #endif /* LDAP_BACK_PROXY_AUTHZ */
                 if (li->conntree) {
