@@ -527,13 +527,11 @@ ber_get_next(
 			tag = *p++;
 			if ((tag & LBER_BIG_TAG_MASK) == LBER_BIG_TAG_MASK) {
 				ber_len_t i;
-				for (i=1; (char *)p<ber->ber_rwptr; i++,p++) {
+				for (i=1; (char *)p<ber->ber_rwptr; i++) {
 					tag <<= 8;
-					tag |= *p;
-					if (!(*p & LBER_MORE_TAG_MASK)) {
-						p++;
+					tag |= *p++;
+					if (!(tag & LBER_MORE_TAG_MASK))
 						break;
-					}
 					/* Is the tag too big? */
 					if (i == sizeof(ber_tag_t)-1) {
 						errno = ERANGE;
