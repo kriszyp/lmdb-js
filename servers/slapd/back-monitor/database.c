@@ -51,7 +51,7 @@ monitor_subsys_database_init(
 	int			i;
 	struct monitorentrypriv	*mp;
 	AttributeDescription 	*ad_nc = slap_schema.si_ad_namingContexts;
-	struct berval 		*bv[2], val;
+	struct berval 		val, *bv[2] = { &val, NULL };
 
 	assert( be != NULL );
 	assert( monitor_ad_desc != NULL );
@@ -76,8 +76,6 @@ monitor_subsys_database_init(
 		return( -1 );
 	}
 
-	bv[0] = &val;
-	bv[1] = NULL;
 	e_tmp = NULL;
 	for ( i = nBackendDB; i--; ) {
 		char buf[1024];

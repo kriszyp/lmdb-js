@@ -156,7 +156,7 @@ monitor_subsys_backend_init(
 	mp = ( struct monitorentrypriv * )e_backend->e_private;
 	mp->mp_children = e_tmp;
 
-	monitor_cache_release( mi, e_backend);
+	monitor_cache_release( mi, e_backend );
 
 	return( 0 );
 }

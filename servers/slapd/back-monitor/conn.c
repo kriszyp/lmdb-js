@@ -48,15 +48,17 @@ monitor_subsys_conn_init(
 {
 	struct monitorinfo	*mi;
 	
-	Entry			*e;
-	struct berval           *bv[2], val;
+	Entry			*e, *e_tmp, *e_conn;
+	struct monitorentrypriv	*mp;
+	char			buf[1024];
+	struct berval		val, *bv[2] = { &val, NULL };
 
 	assert( be != NULL );
 
 	mi = ( struct monitorinfo * )be->be_private;
 
 	if ( monitor_cache_get( mi,
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn, &e ) ) {
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn, &e_conn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_conn_init: "
@@ -72,10 +74,134 @@ monitor_subsys_conn_init(
 		return( -1 );
 	}
 
-	bv[0] = &val;
-	bv[1] = NULL;
+	e_tmp = NULL;
 
-	monitor_cache_release( mi, e );
+	/*
+	 * Total conns
+	 */
+	snprintf( buf, sizeof( buf ),
+		"dn: cn=Total,%s\n"
+		"objectClass: top\n"
+		"objectClass: LDAPsubEntry\n"
+#ifdef SLAPD_MONITORSUBENTRY
+		"objectClass: monitorSubEntry\n"
+#else /* !SLAPD_MONITORSUBENTRY */
+		"objectClass: extensibleObject\n"
+#endif /* !SLAPD_MONITORSUBENTRY */
+		"cn: Total\n",
+		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn );
+	
+	e = str2entry( buf );
+	if ( e == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			"monitor_subsys_conn_init: "
+			"unable to create entry 'cn=Total,%s'\n",
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn ));
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_conn_init: "
+			"unable to create entry 'cn=Total,%s'\n%s%s",
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn,
+			"", "" );
+#endif
+		return( -1 );
+	}
+	
+	val.bv_val = "0";
+	val.bv_len = 1;
+	attr_merge( e, monitor_ad_desc, bv );
+	
+	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+	e->e_private = ( void * )mp;
+	mp->mp_next = e_tmp;
+	mp->mp_children = NULL;
+	mp->mp_info = &monitor_subsys[SLAPD_MONITOR_CONN];
+	mp->mp_flags = monitor_subsys[SLAPD_MONITOR_CONN].mss_flags \
+		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
+	mp->mp_flags &= ~MONITOR_F_VOLATILE_CH;
+
+	if ( monitor_cache_add( mi, e ) ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			"monitor_subsys_conn_init: "
+			"unable to add entry 'cn=Total,%s'\n",
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn ));
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_conn_init: "
+			"unable to add entry 'cn=Total,%s'\n%s%s",
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn,
+			"", "" );
+#endif
+		return( -1 );
+	}
+	
+	e_tmp = e;
+
+	/*
+	 * Current conns
+	 */
+	snprintf( buf, sizeof( buf ),
+		"dn: cn=Current,%s\n"
+		"objectClass: top\n"
+		"objectClass: LDAPsubEntry\n"
+#ifdef SLAPD_MONITORSUBENTRY
+		"objectClass: monitorSubEntry\n"
+#else /* !SLAPD_MONITORSUBENTRY */
+		"objectClass: extensibleObject\n"
+#endif /* !SLAPD_MONITORSUBENTRY */
+		"cn: Current\n",
+		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn );
+	
+	e = str2entry( buf );
+	if ( e == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			"monitor_subsys_conn_init: "
+			"unable to create entry 'cn=Current,%s'\n",
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn ));
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_conn_init: "
+			"unable to create entry 'cn=Current,%s'\n%s%s",
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn,
+			"", "" );
+#endif
+		return( -1 );
+	}
+	
+	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+	e->e_private = ( void * )mp;
+	mp->mp_next = e_tmp;
+	mp->mp_children = NULL;
+	mp->mp_info = &monitor_subsys[SLAPD_MONITOR_CONN];
+	mp->mp_flags = monitor_subsys[SLAPD_MONITOR_CONN].mss_flags \
+		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
+	mp->mp_flags &= ~MONITOR_F_VOLATILE_CH;
+
+	if ( monitor_cache_add( mi, e ) ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			"monitor_subsys_conn_init: "
+			"unable to add entry 'cn=Current,%s'\n",
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn ));
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_conn_init: "
+			"unable to add entry 'cn=Current,%s'\n%s%s",
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn,
+			"", "" );
+#endif
+		return( -1 );
+	}
+	
+	e_tmp = e;
+
+	mp = ( struct monitorentrypriv * )e_conn->e_private;
+	mp->mp_children = e_tmp;
+
+	monitor_cache_release( mi, e_conn );
 
 	return( 0 );
 }
@@ -86,53 +212,41 @@ monitor_subsys_conn_update(
 	Entry                   *e
 )
 {
-	Connection		*c;
-	int			connindex;
-	int			nconns, nwritewaiters, nreadwaiters;
+	long 		n = -1;
 
-	Attribute               *a;
-	struct berval           *bv[2], val, **b = NULL;
-	char                    buf[1024];
-
-	assert( mi != NULL );
-	assert( e != NULL );
+	assert( mi );
+	assert( e );
 	
-	bv[0] = &val;
-	bv[1] = NULL;
+	if ( strncasecmp( e->e_ndn, "CN=TOTAL", 
+				sizeof("CN=TOTAL")-1 ) == 0 ) {
+		n = connections_nextid();
 
-	nconns = nwritewaiters = nreadwaiters = 0;
-	for ( c = connection_first( &connindex );
-			c != NULL;
-			c = connection_next( c, &connindex ), nconns++ ) {
-		if ( c->c_writewaiter ) {
-			nwritewaiters++;
-		}
-		if ( c->c_currentber != NULL ) {
-			nreadwaiters++;
-		}
-	}
-	connection_done(c);
+	} else if ( strncasecmp( e->e_ndn, "CN=CURRENT", 
+				sizeof("CN=CURRENT")-1 ) == 0 ) {
+		Connection	*c;
+		int		connindex;
 
-#if 0
-	snprintf( buf, sizeof( buf ), "readwaiters=%d", nreadwaiters );
-
-	if ( ( a = attr_find( e->e_attrs, monitor_ad_desc ) ) != NULL ) {
-		for ( b = a->a_vals; b[0] != NULL; b++ ) {
-			if ( strncmp( b[0]->bv_val, "readwaiters=",
-					sizeof( "readwaiters=" ) - 1 ) == 0 ) {
-				free( b[0]->bv_val );
-				b[0] = ber_bvstrdup( buf );
-				break;
-			}
+		for ( n = 0, c = connection_first( &connindex );
+				c != NULL;
+				n++, c = connection_next( c, &connindex ) ) {
+			/* No Op */ ;
 		}
+		connection_done(c);
 	}
-	
-	if ( b == NULL || b[0] == NULL ) {
-		val.bv_val = buf;
-		val.bv_len = strlen( buf );
-		attr_merge( e, monitor_ad_desc, bv );
+
+	if ( n != -1 ) {
+		Attribute	*a;
+		char		buf[16];
+
+		a = attr_find( e->e_attrs, monitor_ad_desc );
+		if ( a == NULL ) {
+			return( -1 );
+		}
+
+		snprintf( buf, sizeof( buf ), "%ld", n );
+		ber_bvfree( a->a_vals[ 0 ] );
+		a->a_vals[ 0 ] = ber_bvstrdup( buf );
 	}
-#endif
 
 	return( 0 );
 }
@@ -149,7 +263,7 @@ conn_create(
 	char			buf2[22];
 	char			buf3[22];
 
-	struct berval           *bv[2], val;
+	struct berval           val, *bv[2] = { &val, NULL };
 
 	Entry			*e;
 
@@ -232,9 +346,6 @@ conn_create(
 		buf3
 		);
 
-	bv[0] = &val;
-	bv[1] = NULL;
-
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, monitor_ad_desc, bv );
@@ -276,7 +387,8 @@ monitor_subsys_conn_create(
 				c != NULL;
 				c = connection_next( c, &connindex )) {
 			if ( conn_create( c, &e ) || e == NULL ) {
-				// error
+				connection_done(c);
+				return( -1 );
 			}
 			mp = ( struct monitorentrypriv * )e->e_private;
 			mp->mp_next = e_tmp;
@@ -301,7 +413,8 @@ monitor_subsys_conn_create(
 				c = connection_next( c, &connindex )) {
 			if ( c->c_connid == connid ) {
 				if ( conn_create( c, ep ) || *ep == NULL ) {
-					// error
+					connection_done(c);
+					return( -1 );
 				}
 			}
 		}

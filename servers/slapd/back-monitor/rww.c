@@ -116,7 +116,7 @@ monitor_subsys_readw_update_internal(
 	if ( ( a = attr_find( e->e_attrs, monitor_ad_desc ) ) != NULL ) {
 		for ( b = a->a_vals; b[0] != NULL; b++ ) {
 			if ( strncmp( b[0]->bv_val, str, strlen( str ) ) == 0 ) {
-				free( b[0]->bv_val );
+				ber_bvfree( b[0] );
 				b[0] = ber_bvstrdup( buf );
 				break;
 			}

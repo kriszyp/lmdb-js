@@ -151,6 +151,20 @@ struct monitorinfo {
 #define SLAPD_MONITOR_LOG_DN	\
 	SLAPD_MONITOR_LOG_RDN "," SLAPD_MONITOR_DN
 
+#define SLAPD_MONITOR_OPS		10
+#define SLAPD_MONITOR_OPS_NAME		"Operations"
+#define SLAPD_MONITOR_OPS_RDN	\
+	"cn=" SLAPD_MONITOR_OPS_NAME
+#define SLAPD_MONITOR_OPS_DN	\
+	SLAPD_MONITOR_OPS_RDN "," SLAPD_MONITOR_DN
+
+#define SLAPD_MONITOR_SENT		11
+#define SLAPD_MONITOR_SENT_NAME		"Sent"
+#define SLAPD_MONITOR_SENT_RDN	\
+	"cn=" SLAPD_MONITOR_SENT_NAME
+#define SLAPD_MONITOR_SENT_DN	\
+	SLAPD_MONITOR_SENT_RDN "," SLAPD_MONITOR_DN
+
 struct monitorsubsys {
 	int		mss_type;
 	char		*mss_name;

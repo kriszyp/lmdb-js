@@ -59,7 +59,7 @@ monitor_send_children(
 )
 {
 	struct monitorinfo	*mi = (struct monitorinfo *) be->be_private;
-	Entry 			*e, *e_tmp;
+	Entry 			*e, *e_tmp, *e_ch;
 	struct monitorentrypriv *mp;
 	int			nentries;
 	int			rc;
@@ -67,14 +67,42 @@ monitor_send_children(
 	mp = ( struct monitorentrypriv * )e_parent->e_private;
 	e = mp->mp_children;
 
-	if ( e == NULL && MONITOR_HAS_VOLATILE_CH( mp ) ) {
-		monitor_entry_create( mi, NULL, e_parent, &e );
-		if ( e != NULL) {
-			monitor_cache_lock( e );
-		}
+	if ( MONITOR_HAS_VOLATILE_CH( mp ) ) {
+		monitor_entry_create( mi, NULL, e_parent, &e_ch );
 	}
 	monitor_cache_release( mi, e_parent );
 
+	/* no volatile entries? */
+	if ( e_ch == NULL ) {
+		/* no persistent entries? return */
+		if ( e == NULL ) {
+			return( 0 );
+		}
+	
+	/* volatile entries */
+	} else {
+		/* if no persistent, return only volatile */
+		if ( e == NULL ) {
+			e = e_ch;
+			monitor_cache_lock( e_ch );
+
+		/* else append persistent to volatile */
+		} else {
+			e_tmp = e_ch;
+			do {
+				mp = ( struct monitorentrypriv * )e_tmp->e_private;
+				e_tmp = mp->mp_next;
+	
+				if ( e_tmp == NULL ) {
+					mp->mp_next = e;
+					break;
+				}
+			} while ( e_tmp );
+			e = e_ch;
+		}
+	}
+
+	/* return entries */
 	for ( nentries = *nentriesp; e != NULL; ) {
 		mp = ( struct monitorentrypriv * )e->e_private;
 

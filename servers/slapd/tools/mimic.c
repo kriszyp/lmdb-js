@@ -170,6 +170,11 @@ Connection * connection_next( Connection *c, ber_socket_t *b )
 	return NULL;
 }
 
+unsigned long connections_nextid(void)
+{
+	return 0;
+}
+
 void connection_done( Connection *c )
 {
 	assert(0);

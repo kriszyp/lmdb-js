@@ -130,6 +130,22 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL,	/* update */
 		NULL,   /* create */
 		monitor_subsys_log_modify
+       	}, { 
+		SLAPD_MONITOR_OPS, SLAPD_MONITOR_OPS_NAME,
+		NULL, NULL, NULL,
+		MONITOR_F_NONE,
+		monitor_subsys_ops_init,
+		monitor_subsys_ops_update,
+		NULL,   /* create */
+		NULL,	/* modify */
+       	}, { 
+		SLAPD_MONITOR_SENT, SLAPD_MONITOR_SENT_NAME,
+		NULL, NULL, NULL,
+		MONITOR_F_NONE,
+		monitor_subsys_sent_init,
+		monitor_subsys_sent_update,
+		NULL,   /* create */
+		NULL,	/* modify */
 	}, { -1, NULL }
 };
 
