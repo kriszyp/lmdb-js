@@ -591,8 +591,7 @@ access to the attribute holding the referral information
 attribute).
 .SH CAVEATS
 It is strongly recommended to explicitly use the most appropriate
-DN 
-.BR style ,
+.BR <dnstyle> ,
 to avoid possible incorrect specifications of the access rules as well
 as for performance (avoid unrequired regex matching when an exact
 match suffices) reasons.
@@ -623,6 +622,40 @@ For performance reasons, it would be better to use the subtree style.
 	access to dn.subtree="dc=example,dc=com"
 		by ...
 .fi
+.LP
+When writing submatch rules, it may be convenient to avoid unnecessary
+.B regex
+.B <dnstyle>
+use; for instance, to allow access to the subtree of the user 
+that matches the
+.B what
+clause, one could use
+.LP
+.nf
+	access to dn.regex="^(.+,)?uid=([^,]+),dc=example,dc=com$$"
+		by dn.regex="^uid=$1,dc=example,dc=com$$" write
+		by ...
+.fi
+.LP
+However, since all that is required in the 
+.B to
+clause is substring expansion, a more efficient solution is
+.LP
+.nf
+	access to dn.regex="^(.+,)?uid=([^,]+),dc=example,dc=com$$"
+		by dn.exact,expand="uid=$1,dc=example,dc=com" write
+		by ...
+.fi
+.LP
+In fact, while a
+.B <dnstyle>
+of
+.B regex
+implies substring expansion, 
+.BR exact ,
+as well as all the other DN specific
+.B <dnstyle>
+values, does not, so it must be explicitly requested.
 .LP
 .SH FILES
 .TP
