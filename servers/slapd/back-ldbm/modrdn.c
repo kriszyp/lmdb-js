@@ -478,7 +478,9 @@ ldbm_back_modrdn(
 		goto return_results;		
 	}
 	
-	if ( strcasecmp( old_rdn_type, new_rdn_type ) != 0 ) {
+	if ( newSuperior == NULL
+		&& strcasecmp( old_rdn_type, new_rdn_type ) != 0 )
+	{
 	    /* Not a big deal but we may say something */
 #ifdef NEW_LOGGING
 	    LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
