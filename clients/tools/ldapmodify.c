@@ -423,7 +423,7 @@ process_ldapmod_rec( char *rbuf )
 	    rbuf = NULL;
 	} else {
 	    if ( *(p-1) == '\\' ) {	/* lines ending in '\' are continued */
-		strcpy( p - 1, p );
+		SAFEMEMCPY( p - 1, p, strlen( p ) + 1 );
 		rbuf = p;
 		continue;
 	    }

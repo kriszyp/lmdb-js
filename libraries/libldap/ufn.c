@@ -97,7 +97,8 @@ ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, char *prefix,
 
 			if ( (quote = strrchr( ufncomp[ncomp], '"' )) != NULL )
 				*quote = '\0';
-			strcpy( ufncomp[ncomp], ufncomp[ncomp] + 1 );
+			SAFEMEMCPY( ufncomp[ncomp], ufncomp[ncomp] + 1,
+				    strlen( ufncomp[ncomp] + 1 ) + 1 );
 		}
 		if ( ncomp == 0 )
 			phase = 3;
