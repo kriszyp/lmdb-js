@@ -189,7 +189,7 @@ typedef char * caddr_t;
 #define LDAP_DEBUG 1
 
 /* define this for LDAP DNS support */
-#define LDAP_DNS 1
+/* #undef LDAP_DNS */
 
 /* define this to remove -lldap cache support */
 /* #undef LDAP_NOCACHE */
