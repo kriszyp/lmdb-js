@@ -4,6 +4,7 @@ Changes included in OpenLDAP 1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2
 	Add ldappasswd() tool
 	Add client/tools password prompting
+	Fix lber leaking ber_scanf
 	Update client/tools Kerberos option handling
 
 Changes included in OpenLDAP 1.1.3
