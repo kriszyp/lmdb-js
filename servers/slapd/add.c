@@ -625,7 +625,7 @@ slap_entry2mods(
 		for ( i = 0; i < count; i++ ) {
 			ber_dupbv(mod->sml_values+i, a_new->a_vals+i); 
 			if ( mod->sml_nvalues ) {
-				ber_dupbv( mod->sml_nvalues+i, a_new->a_vals+i ); 
+				ber_dupbv( mod->sml_nvalues+i, a_new->a_nvals+i ); 
 			} 
 		}
 
