@@ -1,5 +1,9 @@
 OpenLDAP 2.1 Change Log
 
+OpenLDAP 2.1.25 Engineering
+	Build Environment
+		Update Berkeley DB detection
+
 OpenLDAP 2.1.24 Release
 	Fixed slapd "exact" v "base" handling (ITS#2782)
 	Fixed slapd running as NT service (ITS#2769)
