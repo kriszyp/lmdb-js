@@ -192,10 +192,53 @@ static struct schema_info pwd_UsSchema[] = {
 static ldap_pvt_thread_mutex_t chk_syntax_mutex;
 
 static time_t
+ppolicy_timegm( struct tm *t )
+{
+	static int moffset[12] = {
+		0, 31, 59, 90, 120,
+		151, 181, 212, 243,
+		273, 304, 334 }; 
+	time_t ret; 
+
+	/* t->tm_year is years since 1900 */
+	/* calculate days from years since 1970 (epoch) */ 
+	ret = t->tm_year - 70; 
+	ret *= 365L; 
+
+	/* count leap days in preceding years */ 
+	ret += ((t->tm_year -69) >> 2); 
+
+	/* calculate days from months */ 
+	ret += moffset[t->tm_mon]; 
+
+	/* add in this year's leap day, if any */ 
+	if (((t->tm_year & 3) == 0) && (t->tm_mon > 1)) { 
+		ret ++; 
+	} 
+
+	/* add in days in this month */ 
+	ret += (t->tm_mday - 1); 
+
+	/* convert to hours */ 
+	ret *= 24L; 
+	ret += t->tm_hour; 
+
+	/* convert to minutes */ 
+	ret *= 60L; 
+	ret += t->tm_min; 
+
+	/* convert to seconds */ 
+	ret *= 60L; 
+	ret += t->tm_sec; 
+
+	/* return the result */ 
+	return ret; 
+}
+
+static time_t
 parse_time( char *atm )
 {
-	struct tm tml, tmg;
-	time_t t;
+	struct tm tm;
 
 	if (!atm) return (time_t)-1;
 
@@ -206,38 +249,10 @@ parse_time( char *atm )
 	 */
 	if (strcmp(atm, "00000101000000Z") == 0) return (time_t)0;
 	/*
-	 * else parse the time and return it's time_t value. This will be -1 if the
-	 * text isn't a valid time string.
+	 * else parse the time and return it's time_t value.
 	 */
-	strptime( atm, "%Y%m%d%H%M%SZ", &tml );
-	tml.tm_isdst = -1;
-	t = mktime( &tml );
-	if ( t == (time_t)-1 ) return t;
-
-	/* mktime() assumes localtime. Compute the offset to GMT.
-	 */
-	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-	tmg = *gmtime( &t );
-	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
-
-	tmg.tm_mday -= tml.tm_mday;
-	tmg.tm_hour -= tml.tm_hour;
-	if ( tmg.tm_mday ) {
-		/* The difference should only be +/- 1 day, but may
-		 * fall outside this range at the beginning/end of a month
-		 */
-		if ( tmg.tm_mday > 1 ) tmg.tm_mday = -1;
-		else if ( tmg.tm_mday < -1 ) tmg.tm_mday = 1;
-
-		tmg.tm_hour += tmg.tm_mday > 0 ? 24 : -24;
-	}
-	if ( tmg.tm_hour ) t -= tmg.tm_hour * 3600;
-	tmg.tm_min -= tml.tm_min;
-	if ( tmg.tm_min ) t -= tmg.tm_min * 60;
-	tmg.tm_sec -= tml.tm_sec;
-	if ( tmg.tm_sec ) t -= tmg.tm_sec;
-
-	return t;
+	strptime( atm, "%Y%m%d%H%M%SZ", &tm );
+	return ppolicy_timegm( &tm );
 }
 
 static int
