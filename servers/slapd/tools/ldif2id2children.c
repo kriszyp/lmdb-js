@@ -92,7 +92,7 @@ main( int argc, char **argv )
 #else
 					key.dsize = strlen( val ) + 2;
 					key.dptr = ch_malloc( key.dsize );
-					sprintf( key.dptr, "%c%s", DN_EQ_PREFIX, val );
+					sprintf( key.dptr, "%c%s", DN_ENTRY_PREFIX, val );
 #endif
 					data.dptr = (char *) &id;
 					data.dsize = sizeof(ID);
@@ -102,7 +102,51 @@ main( int argc, char **argv )
 						exit( EXIT_FAILURE );
 					}
 #ifdef DN_INDICES
-					free( val );
+					free( key.dptr );
+
+					{
+						int rc = 0;
+						char *pdn = dn_parent( NULL, val );
+
+						if( pdn != NULL ) {
+							key.dsize = strlen( pdn ) + 2;
+							key.dptr = ch_malloc( key.dsize );
+							sprintf( key.dptr, "%c%s", DN_PARENT_PREFIX, pdn );
+							rc = idl_insert_key( be, db, key, id );
+							free( key.dptr );
+						}
+
+						if( rc == -1 ) {
+							perror( "dn2id dn_parent insert" );
+							exit( EXIT_FAILURE );
+						}
+					}
+
+					{
+						int rc = 0;
+						char **subtree = dn_subtree( NULL, val );
+
+						if( subtree != NULL ) {
+							int i;
+							for( i=0; subtree[i] != NULL; i++ ) {
+								key.dsize = strlen( subtree[i] ) + 2;
+								key.dptr = ch_malloc( key.dsize );
+								sprintf( key.dptr, "%c%s", DN_SUBTREE_PREFIX, subtree[i] );
+
+								rc = idl_insert_key( be, db, key, id );
+
+								free( key.dptr );
+
+								if( rc == -1 ) {
+									perror( "dn2id dn_subtree insert" );
+									exit( EXIT_FAILURE );
+								}
+							}
+
+							charray_free( subtree );
+						}
+
+					}
 #endif
 				}
 	}

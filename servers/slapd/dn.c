@@ -339,6 +339,19 @@ char * dn_rdn(
 	return( dn );
 }
 
+
+/*
+ * return a charray of all subtrees to which the DN resides in
+ */
+char **dn_subtree(
+	Backend	*be,
+    char	*dn )
+{
+	/* not yet implemented */
+	return NULL;
+}
+
+
 /*
  * dn_issuffix - tells whether suffix is a suffix of dn.  both dn
  * and suffix must be normalized.

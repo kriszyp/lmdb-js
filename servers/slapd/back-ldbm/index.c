@@ -133,8 +133,8 @@ index_read(
 	ldbm_datum_init( key );
 
 	prefix = index2prefix( indextype );
-	Debug( LDAP_DEBUG_TRACE, "=> index_read( \"%s\" \"%c\" \"%s\" )\n",
-	    type, prefix, val );
+	Debug( LDAP_DEBUG_TRACE, "=> index_read(\"%c%s\"->\"%s\")\n",
+	    prefix, type, val );
 
 	attr_masks( be->be_private, type, &indexmask, &syntax );
 	if ( ! (indextype & indexmask) ) {

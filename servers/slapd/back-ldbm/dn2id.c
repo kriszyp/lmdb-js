@@ -45,7 +45,7 @@ dn2id_add(
 #else
 	key.dsize = strlen( dn ) + 2;
 	key.dptr = ch_malloc( key.dsize );
-	sprintf( key.dptr, "%c%s", DN_EQ_PREFIX, dn );
+	sprintf( key.dptr, "%c%s", DN_ENTRY_PREFIX, dn );
 #endif
 
 	data.dptr = (char *) &id;
@@ -56,11 +56,45 @@ dn2id_add(
 
 	rc = ldbm_cache_store( db, key, data, flags );
 
-	ldbm_cache_close( be, db );
-
 #ifdef DN_INDICES
 	free( key.dptr );
+
+	if ( rc != -1 ) {
+		char *pdn = dn_parent( NULL, dn );
+
+		if( pdn != NULL ) {
+			key.dsize = strlen( pdn ) + 2;
+			key.dptr = ch_malloc( key.dsize );
+			sprintf( key.dptr, "%c%s", DN_PARENT_PREFIX, pdn );
+			rc = idl_insert_key( be, db, key, id );
+			free( key.dptr );
+		}
+	}
+
+	if ( rc != -1 ) {
+		char **subtree = dn_subtree( NULL, dn );
+
+		if( subtree != NULL ) {
+			int i;
+			for( i=0; subtree[i] != NULL; i++ ) {
+				key.dsize = strlen( subtree[i] ) + 2;
+				key.dptr = ch_malloc( key.dsize );
+				sprintf( key.dptr, "%c%s", DN_SUBTREE_PREFIX, subtree[i] );
+
+				rc = idl_insert_key( be, db, key, id );
+
+				free( key.dptr );
+
+				if(rc == -1) break;
+			}
+
+			charray_free( subtree );
+		}
+
+	}
 #endif
+
+	ldbm_cache_close( be, db );
 
 	Debug( LDAP_DEBUG_TRACE, "<= dn2id_add %d\n", rc, 0, 0 );
 	return( rc );
@@ -96,13 +130,48 @@ dn2id(
 		return( NOID );
 	}
 
+#ifdef DN_INDICES
+	{
+		char *pdn = dn_parent( NULL, dn );
+
+		if( pdn != NULL ) {
+			key.dsize = strlen( pdn ) + 2;
+			key.dptr = ch_malloc( key.dsize );
+			sprintf( key.dptr, "%c%s", DN_PARENT_PREFIX, pdn );
+			(void) idl_delete_key( be, db, key, id );
+			free( key.dptr );
+		}
+
+	}
+
+	{
+		char **subtree = dn_subtree( NULL, dn );
+
+		if( subtree != NULL ) {
+			int i;
+			for( i=0; subtree[i] != NULL; i++ ) {
+				key.dsize = strlen( dn ) + 2;
+				key.dptr = ch_malloc( key.dsize );
+				sprintf( key.dptr, "%c%s", DN_SUBTREE_PREFIX, dn );
+
+				(void) idl_delete_key( be, db, key, id );
+
+				free( key.dptr );
+			}
+
+			charray_free( subtree );
+		}
+
+	}
+#endif
+
 #ifndef DN_INDICES
 	key.dptr = dn;
 	key.dsize = strlen( key.dptr ) + 1;
 #else
 	key.dsize = strlen( dn ) + 2;
 	key.dptr = ch_malloc( key.dsize );
-	sprintf( key.dptr, "%c%s", DN_EQ_PREFIX, dn );
+	sprintf( key.dptr, "%c%s", DN_ENTRY_PREFIX, dn );
 #endif
 
 	data = ldbm_cache_fetch( db, key );
@@ -154,7 +223,7 @@ dn2id_delete(
 #else
 	key.dsize = strlen( dn ) + 2;
 	key.dptr = ch_malloc( key.dsize );
-	sprintf( key.dptr, "%c%s", DN_EQ_PREFIX, dn );
+	sprintf( key.dptr, "%c%s", DN_ENTRY_PREFIX, dn );
 #endif
 
 	rc = ldbm_cache_delete( db, key );

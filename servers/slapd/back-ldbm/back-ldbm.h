@@ -24,8 +24,9 @@ LDAP_BEGIN_DECL
 
 #define SUBLEN			3
 
+#define DN_INDICES 1
 /* #define DN_INDICES 1 *//* generate dn eq, subtree, and parent indices */
-#define DN_EQ_PREFIX		'='
+#define DN_ENTRY_PREFIX		'='
 #define DN_SUBTREE_PREFIX 	'+'
 #define DN_PARENT_PREFIX 	'-'
 
