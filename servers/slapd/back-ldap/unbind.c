@@ -1,7 +1,7 @@
 /* unbind.c - ldap backend unbind function */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* This is an altered version */
