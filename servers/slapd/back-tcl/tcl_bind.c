@@ -1,6 +1,6 @@
 /* bind.c - tcl bind routines
  *
- * $Id: tcl_bind.c,v 1.4 1999/02/19 06:55:20 bcollins Exp $
+ * $Id: tcl_bind.c,v 1.5 1999/02/28 04:55:48 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -24,6 +24,7 @@ tcl_back_bind (
 	Operation * op,
 	char *dn,
 	int method,
+	char		*mech,
 	struct berval *cred,
 	char **edn
 )

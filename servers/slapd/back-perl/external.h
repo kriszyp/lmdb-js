@@ -16,7 +16,8 @@ extern int	perl_back_db_config LDAP_P(( BackendDB *bd,
 
 extern int perl_back_bind LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *dn, int method, struct berval *cred, char** edn ));
+	char *dn, int method, char* mech,
+	struct berval *cred, char** edn ));
 
 extern int	perl_back_unbind LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op ));
