@@ -509,7 +509,7 @@ desc2str_len( LDAPURLDesc *u )
 	case LDAP_SCOPE_BASE:
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:
-#ifdef LDAP_FEATURE_SUBORDINATE_SCOPE
+#ifdef LDAP_SCOPE_SUBORDINATE
 	case LDAP_SCOPE_SUBORDINATE:
 #endif
 		switch ( u->lud_scope ) {
@@ -525,7 +525,7 @@ desc2str_len( LDAPURLDesc *u )
 			len += STRLENOF( "sub" );
 			break;
 
-#ifdef LDAP_FEATURE_SUBORDINATE_SCOPE
+#ifdef LDAP_SCOPE_SUBORDINATE
 		case LDAP_SCOPE_SUBORDINATE:
 			len += STRLENOF( "subordinate" );
 			break;
@@ -597,7 +597,7 @@ desc2str( LDAPURLDesc *u, char *s, int len )
 	case LDAP_SCOPE_BASE:
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:
-#ifdef LDAP_FEATURE_SUBORDINATE_SCOPE
+#ifdef LDAP_SCOPE_SUBORDINATE
 	case LDAP_SCOPE_SUBORDINATE:
 #endif
 		gotscope = 1;
@@ -690,7 +690,7 @@ desc2str( LDAPURLDesc *u, char *s, int len )
 		len -= STRLENOF("sub");
 		break;
 
-#ifdef LDAP_FEATURE_SUBORDINATE_SCOPE
+#ifdef LDAP_SCOPE_SUBORDINATE
 	case LDAP_SCOPE_SUBORDINATE:
 		strcpy( &s[sofar], "children" );
 		sofar += STRLENOF("children");
