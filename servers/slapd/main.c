@@ -13,7 +13,6 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 #include <ac/wait.h>
-#include <ac/signal.h>
 #include <ac/errno.h>
 
 #include "slap.h"
