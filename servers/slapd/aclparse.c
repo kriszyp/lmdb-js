@@ -321,6 +321,23 @@ parse_acl(
 					continue;
 				}
 
+#ifdef SLAPD_ACI_ENABLED
+				if ( strcasecmp( left, "aci" ) == 0 ) {
+					if( b->a_aci_at != NULL ) {
+						fprintf( stderr,
+							"%s: line %d: aci attribute already specified.\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					if ( right != NULL && *right != '\0' )
+						b->a_aci_at = ch_strdup( right );
+					else
+						b->a_aci_at = ch_strdup( SLAPD_ACI_DEFAULT_ATTR );
+					continue;
+				}
+#endif
+
 				/* get <access> */
 				if ( ACL_IS_INVALID(ACL_SET(b->a_access, str2access( left ))) ) {
 					fprintf( stderr,
@@ -441,6 +458,9 @@ acl_usage( void )
 			"\t[group[/<objectclass>[/<attrname>]]=<regex>]\n"
 			"\t[peername=<regex>] [sockname=<regex>]\n"
 			"\t[domain=<regex>] [sockurl=<regex>]\n"
+#ifdef SLAPD_ACI_ENABLED
+			"\t[aci=<attrname>]\n"
+#endif
 		"<access> ::= [self]{none|auth|compare|search|read|write}\n"
 		);
 	exit( EXIT_FAILURE );
@@ -527,6 +547,12 @@ print_access( Access *b )
 	if ( b->a_sockurl_pat != NULL ) {
 		fprintf( stderr, " sockurl=%s", b->a_sockurl_pat );
 	}
+
+#ifdef SLAPD_ACI_ENABLED
+	if ( b->a_aci_at != NULL ) {
+		fprintf( stderr, " aci=%s", b->a_aci_at );
+	}
+#endif
 
 	fprintf( stderr, "\n" );
 }

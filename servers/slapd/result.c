@@ -572,7 +572,7 @@ send_search_entry(
 		acl = acl_get_applicable( be, op, e, a->a_type,
 			MAXREMATCHES, matches );
 
-		if ( ! acl_access_allowed( acl, be, conn, e,
+		if ( ! acl_access_allowed( acl, a->a_type, be, conn, e,
 			NULL, op, ACL_READ, edn, matches ) ) 
 		{
 			continue;
@@ -589,7 +589,7 @@ send_search_entry(
 		if ( ! attrsonly ) {
 			for ( i = 0; a->a_vals[i] != NULL; i++ ) {
 				if ( a->a_syntax & SYNTAX_DN && 
-					! acl_access_allowed( acl, be, conn, e, a->a_vals[i], op,
+					! acl_access_allowed( acl, a->a_type, be, conn, e, a->a_vals[i], op,
 						ACL_READ, edn, matches) )
 				{
 					continue;
@@ -647,7 +647,7 @@ send_search_entry(
 		acl = acl_get_applicable( be, op, e, a->a_type,
 			MAXREMATCHES, matches );
 
-		if ( ! acl_access_allowed( acl, be, conn, e,
+		if ( ! acl_access_allowed( acl, a->a_type, be, conn, e,
 			NULL, op, ACL_READ, edn, matches ) ) 
 		{
 			continue;
@@ -664,7 +664,7 @@ send_search_entry(
 		if ( ! attrsonly ) {
 			for ( i = 0; a->a_vals[i] != NULL; i++ ) {
 				if ( a->a_syntax & SYNTAX_DN && 
-					! acl_access_allowed( acl, be, conn, e, a->a_vals[i], op,
+					! acl_access_allowed( acl, a->a_type, be, conn, e, a->a_vals[i], op,
 						ACL_READ, edn, matches) )
 				{
 					continue;

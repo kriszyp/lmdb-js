@@ -22,7 +22,7 @@ AccessControl * acl_get_applicable LDAP_P(( Backend *be,
 	char *attr, int nmatches, regmatch_t *matches ));
 
 int acl_access_allowed LDAP_P((
-	AccessControl *a, Backend *be, Connection *conn, Entry *e,
+	AccessControl *a, char *attr, Backend *be, Connection *conn, Entry *e,
 	struct berval *val, Operation *op, int  access, char *edn,
 	regmatch_t *matches ));
 

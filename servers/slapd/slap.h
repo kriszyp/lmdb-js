@@ -96,6 +96,8 @@ LDAP_BEGIN_DECL
 #define SLAP_SCHERR_SYN_NOT_FOUND	11
 #define SLAP_SCHERR_MR_INCOMPLETE	12
 
+#define SLAPD_ACI_DEFAULT_ATTR		"aci"
+
 extern int slap_debug;
 
 struct slap_op;
@@ -270,6 +272,10 @@ typedef struct slap_access {
 
 	char		*a_domain_pat;
 	char		*a_sockurl_pat;
+
+#ifdef SLAPD_ACI_ENABLED
+	char		*a_aci_at;
+#endif
 
 	/* ACL Groups */
 	char		*a_group_pat;

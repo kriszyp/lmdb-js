@@ -14,6 +14,11 @@
 
 #include "slap.h"
 
+#ifdef SLAPD_ACI_ENABLED
+int aci_access_allowed (struct berval *aci, char *attr, Backend *be, Entry *e,
+					Operation *op, int access, char *edn, regmatch_t *matches);
+#endif
+
 static int	regex_matches(char *pat, char *str, char *buf, regmatch_t *matches);
 static void	string_expand(char *newbuf, int bufsiz, char *pattern,
 			      char *match, regmatch_t *matches);
@@ -83,7 +88,7 @@ access_allowed(
 		}
 	}
 
-	rc = acl_access_allowed( a, be, conn, e, val, op, access, edn, matches );
+	rc = acl_access_allowed( a, attr, be, conn, e, val, op, access, edn, matches );
 
 	Debug( LDAP_DEBUG_ACL, "\n=> access_allowed: exit (%s) attr (%s)\n",
 		e->e_dn, attr, 0);
@@ -208,6 +213,7 @@ acl_get_applicable(
 int
 acl_access_allowed(
     AccessControl	*a,
+    char		*attr,
     Backend		*be,
     Connection		*conn,
     Entry		*e,
@@ -376,6 +382,52 @@ acl_access_allowed(
 			}
 		}
 
+#ifdef SLAPD_ACI_ENABLED
+		if ( b->a_aci_at != NULL ) {				
+			Attribute	*at;
+
+			/* this case works different from the others above.
+			 * since aci's themselves give permissions, we need
+			 * to first check b->a_access, the ACL's access level.
+			 */
+
+			if( op->o_ndn == NULL || op->o_ndn[0] == '\0' ) {
+				continue;
+			}
+
+			if ( e->e_dn == NULL ) {
+				continue;
+			}
+
+			/* first check if the right being requested is
+			 * higher than allowed by the ACL clause.
+			 */
+			if ( ! ACL_GRANT( b->a_access, access ) ) {
+				continue;
+			}
+
+			/* get the aci attribute */
+			at = attr_find( e->e_attrs, b->a_aci_at );
+			if ( at == NULL ) {
+				continue;
+			}
+
+			/* the aci is an multi-valued attribute.  The
+			 * rights are determined by OR'ing the individual
+			 * rights given by the acis.
+			 */
+			for ( i = 0; at->a_vals[i] != NULL; i++ ) {
+				if ( aci_access_allowed( at->a_vals[i], attr, be, e, op, access, edn, matches ) ) {
+					Debug( LDAP_DEBUG_ACL,
+						"<= acl_access_allowed: matched by clause #%d access granted\n",
+						i, 0, 0 );
+					return(1);
+				}
+			}
+			continue;
+		}
+#endif
+
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_access_allowed: matched by clause #%d access %s\n",
 			i,
@@ -433,7 +485,7 @@ acl_check_modlist(
 				break;
 			}
 			for ( i = 0; mlist->ml_bvalues[i] != NULL; i++ ) {
-				if ( ! acl_access_allowed( a, be, conn, e, mlist->ml_bvalues[i], 
+				if ( ! acl_access_allowed( a, mlist->ml_type, be, conn, e, mlist->ml_bvalues[i], 
 					op, ACL_WRITE, edn, matches) ) 
 				{
 					return( LDAP_INSUFFICIENT_ACCESS );
@@ -443,7 +495,7 @@ acl_check_modlist(
 
 		case LDAP_MOD_DELETE:
 			if ( mlist->ml_bvalues == NULL ) {
-				if ( ! acl_access_allowed( a, be, conn, e,
+				if ( ! acl_access_allowed( a, mlist->ml_type, be, conn, e,
 					NULL, op, ACL_WRITE, edn, matches) ) 
 				{
 					return( LDAP_INSUFFICIENT_ACCESS );
@@ -451,7 +503,7 @@ acl_check_modlist(
 				break;
 			}
 			for ( i = 0; mlist->ml_bvalues[i] != NULL; i++ ) {
-				if ( ! acl_access_allowed( a, be, conn, e, mlist->ml_bvalues[i], 
+				if ( ! acl_access_allowed( a, mlist->ml_type, be, conn, e, mlist->ml_bvalues[i], 
 					op, ACL_WRITE, edn, matches) ) 
 				{
 					return( LDAP_INSUFFICIENT_ACCESS );
@@ -463,6 +515,333 @@ acl_check_modlist(
 
 	return( LDAP_SUCCESS );
 }
+
+#ifdef SLAPD_ACI_ENABLED
+char *
+aci_bvstrdup (struct berval *bv)
+{
+	char *s;
+
+	s = (char *)ch_malloc(bv->bv_len + 1);
+	if (s != NULL) {
+		memcpy(s, bv->bv_val, bv->bv_len);
+		s[bv->bv_len] = 0;
+	}
+	return(s);
+}
+
+int
+aci_strbvcmp (char *s, struct berval *bv)
+{
+	int res, len;
+
+	res = strncasecmp( s, bv->bv_val, bv->bv_len );
+	if (res)
+		return(res);
+	len = strlen(s);
+	if (len > bv->bv_len)
+		return(1);
+	if (len < bv->bv_len)
+		return(-1);
+	return(0);
+}
+
+int
+aci_get_part (struct berval *list, int ix, char sep, struct berval *bv)
+{
+	int len;
+	char *p;
+
+	if (bv) {
+		bv->bv_len = 0;
+		bv->bv_val = NULL;
+	}
+	len = list->bv_len;
+	p = list->bv_val;
+	while (len >= 0 && --ix >= 0) {
+		while (--len >= 0 && *p++ != sep) ;
+	}
+	while (len >= 0 && *p == ' ') {
+		len--;
+		p++;
+	}
+	if (len < 0)
+		return(-1);
+
+	if (!bv)
+		return(0);
+
+	bv->bv_val = p;
+	while (--len >= 0 && *p != sep) {
+		bv->bv_len++;
+		p++;
+	}
+	while (bv->bv_len > 0 && *--p == ' ')
+		bv->bv_len--;
+	return(bv->bv_len);
+}
+
+int
+aci_list_has_right (struct berval *list, int access, int action)
+{
+	struct berval bv;
+	int i, right;
+
+	for (i = 0; aci_get_part(list, i, ',', &bv) >= 0; i++) {
+		if (bv.bv_len <= 0)
+			continue;
+		switch (*bv.bv_val) {
+		case 'c':
+			right = ACL_COMPARE;
+			break;
+		case 's':
+			/* **** NOTE: draft-ietf-ldapext-aci-model-0.3.txt defines
+			 * the right 's' to mean "set", but in the examples states
+			 * that the right 's' means "search".  The latter definition
+			 * is used here.
+			 */
+			right = ACL_SEARCH;
+			break;
+		case 'r':
+			right = ACL_READ;
+			break;
+		case 'w':
+			right = ACL_WRITE;
+			break;
+		case 'x':
+			/* **** NOTE: draft-ietf-ldapext-aci-model-0.3.txt does not 
+			 * define any equivalent to the AUTH right, so I've just used
+			 * 'x' for now.
+			 */
+			right = ACL_AUTH;
+			break;
+		default:
+			right = 0;
+			break;
+		}
+#ifdef SLAPD_ACI_DISCRETE_RIGHTS
+		if (right & access) {
+			return(action);
+		}
+	}
+	return(!action);
+#else
+		if (action != 0) {
+			// check granted
+			if (ACL_GRANT(right, access))
+				return(1);
+		} else {
+			// check denied
+			if (right <= access)
+				return(1);
+		}
+	}
+	return(0);
+#endif
+}
+
+int
+aci_list_has_attr (struct berval *list, char *attr)
+{
+	struct berval bv;
+	int i;
+
+	for (i = 0; aci_get_part(list, i, ',', &bv) >= 0; i++) {
+		if (aci_strbvcmp(attr, &bv) == 0) {
+			return(1);
+		}
+	}
+	return(0);
+}
+
+int
+aci_list_has_attr_right (struct berval *list, char *attr, int access, int action)
+{
+    struct berval bv, entry;
+    int i, found;
+
+	/* loop through each rights/attr pair, skip first part (action) */
+	found = -1;
+	for (i = 1; aci_get_part(list, i + 1, ';', &bv) >= 0; i += 2) {
+		if (aci_list_has_attr(&bv, attr) == 0)
+			continue;
+		found = 0;
+		if (aci_get_part(list, i, ';', &bv) < 0)
+			continue;
+		if (aci_list_has_right(&bv, access, action) != 0)
+			return(1);
+	}
+	return(found);
+}
+
+int
+aci_list_has_permission (struct berval *list, char *attr, int access)
+{
+    struct berval perm, actn;
+    int i, action, specific, general;
+
+	if (attr == NULL || *attr == 0 || strcasecmp(attr, "entry") == 0) {
+		attr = "[entry]";
+	}
+
+	/* loop through each permissions clause */
+	for (i = 0; aci_get_part(list, i, '$', &perm) >= 0; i++) {
+		if (aci_get_part(&perm, 0, ';', &actn) < 0)
+			continue;
+		if (aci_strbvcmp( "grant", &actn ) == 0) {
+			action = 1;
+		} else if (aci_strbvcmp( "deny", &actn ) == 0) {
+			action = 0;
+		} else {
+			continue;
+		}
+
+		specific = aci_list_has_attr_right(&perm, attr, access, action);
+		if (specific >= 0)
+			return(specific);
+
+		general = aci_list_has_attr_right(&perm, "[all]", access, action);
+		if (general >= 0)
+			return(general);
+	}
+	return(0);
+}
+
+int
+aci_group_member (
+	struct berval *subj,
+	char *grpoc,
+	char *grpat,
+    Backend		*be,
+    Entry		*e,
+    Operation		*op,
+	char		*edn,
+	regmatch_t	*matches
+)
+{
+	struct berval bv;
+	char *subjdn, *grpdn;
+	int rc = 0;
+
+	/* format of string is "group/objectClassValue/groupAttrName" */
+	if (aci_get_part(subj, 0, '/', &bv) < 0)
+		return(0);
+	subjdn = aci_bvstrdup(&bv);
+	if (subjdn == NULL)
+		return(0);
+
+	if (aci_get_part(subj, 1, '/', &bv) < 0)
+		grpoc = ch_strdup(grpoc);
+	else
+		grpoc = aci_bvstrdup(&bv);
+
+	if (aci_get_part(subj, 2, '/', &bv) < 0)
+		grpat = ch_strdup(grpat);
+	else
+		grpat = aci_bvstrdup(&bv);
+
+	grpdn = (char *)ch_malloc(1024);
+	if (grpoc != NULL && grpat != NULL && grpdn != NULL) {
+		string_expand(grpdn, 1024, subjdn, edn, matches);
+		if ( dn_normalize_case(grpdn) != NULL ) {
+			rc = (backend_group(be, e, grpdn, op->o_ndn, grpoc, grpat) == 0);
+		}
+		ch_free(grpdn);
+	}
+	if (grpat != NULL)
+		ch_free(grpat);
+	if (grpoc != NULL)
+		ch_free(grpoc);
+	ch_free(subjdn);
+	return(rc);
+}
+
+int
+aci_access_allowed (
+    struct berval	*aci,
+    char			*attr,
+    Backend			*be,
+    Entry			*e,
+    Operation		*op,
+    int				access,
+	char			*edn,
+	regmatch_t		*matches
+)
+{
+    struct berval bv, perms, sdn;
+    char *subjdn;
+	int rc;
+
+	Debug( LDAP_DEBUG_ACL,
+		"\n=> aci_access_allowed: %s access to entry \"%s\"\n",
+		access2str( access ), e->e_dn, 0 );
+
+	Debug( LDAP_DEBUG_ACL,
+		"\n=> aci_access_allowed: %s access to attribute \"%s\" by \"%s\"\n",
+	    access2str( access ),
+		attr,
+		op->o_ndn ? op->o_ndn : "" );
+
+	/* parse an aci of the form:
+		oid#scope#action;rights;attr;rights;attr$action;rights;attr;rights;attr#dnType#subjectDN
+
+	   See draft-ietf-ldapext-aci-model-0.3.txt section 9.1 for
+	   a full description of the format for this attribute.
+
+	   For now, this routine only supports scope=entry.
+	 */
+
+	/* check that the aci has all 5 components */
+	if (aci_get_part(aci, 4, '#', NULL) < 0)
+		return(0);
+
+	/* check that the scope is "entry" */
+	if (aci_get_part(aci, 1, '#', &bv) < 0
+		|| aci_strbvcmp( "entry", &bv ) != 0)
+	{
+		return(0);
+	}
+
+	/* get the list of permissions clauses, bail if empty */
+	if (aci_get_part(aci, 2, '#', &perms) <= 0)
+		return(0);
+
+	/* check if any permissions allow desired access */
+	if (aci_list_has_permission(&perms, attr, access) == 0)
+		return(0);
+
+	/* see if we have a DN match */
+	if (aci_get_part(aci, 3, '#', &bv) < 0)
+		return(0);
+
+	if (aci_get_part(aci, 4, '#', &sdn) < 0)
+		return(0);
+	if (aci_strbvcmp( "access-id", &bv ) == 0) {
+		subjdn = aci_bvstrdup(&sdn);
+		if (subjdn == NULL)
+			return(0);
+		rc = 0;
+		if (dn_normalize_case(subjdn) != NULL)
+			rc = (strcasecmp(op->o_ndn, subjdn) == 0);
+		ch_free(subjdn);
+		return(rc);
+	}
+
+	if (aci_strbvcmp( "self", &bv ) == 0) {
+		return(strcasecmp(op->o_ndn, edn) == 0);
+	}
+
+	if (aci_strbvcmp( "group", &bv ) == 0) {
+		return(aci_group_member(&sdn, "groupOfNames", "member", be, e, op, edn, matches));
+	}
+
+	if (aci_strbvcmp( "role", &bv ) == 0) {
+		return(aci_group_member(&sdn, "organizationalRole", "roleOccupant", be, e, op, edn, matches));
+	}
+
+	return(0);
+}
+#endif	/* SLAPD_ACI_ENABLED */
 
 static void
 string_expand(
