@@ -203,7 +203,7 @@ int ldap_domain2hostlist(
 #endif
 
     rc = LDAP_UNAVAILABLE;
-    len = res_query(request, C_IN, T_SRV, reply, sizeof(reply));
+    len = res_query(request, ns_c_in, ns_t_srv, reply, sizeof(reply));
     if (len >= 0) {
 	unsigned char *p;
 	char host[DNSBUFSIZ];
