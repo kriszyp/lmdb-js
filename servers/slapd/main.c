@@ -79,6 +79,12 @@ static struct {
 	{"slappasswd", slappasswd},
 	{"slaptest", slaptest},
 	{"slapauth", slapauth},
+	/* NOTE: new tools must be added in chronological order,
+	 * not in alphabetical order, because for backwards
+	 * compatibility name[4] is used to identify the
+	 * tools; so name[4]=='a' must refer to "slapadd" and
+	 * not to "slapauth".  Alphabetical order can be used
+	 * for tools whose name[4] is not used yet */
 	{NULL, NULL}
 };
 
@@ -199,6 +205,7 @@ int main( int argc, char **argv )
 	}
 #endif
 	char	*serverNamePrefix = "";
+	size_t	l;
 
 	sl_mem_init();
 
@@ -390,12 +397,24 @@ int main( int argc, char **argv )
 			break;
 
 		case 'T':
-			for (i=0; tools[i].name; i++) {
+			/* try full option string first */
+			for ( i = 0; tools[i].name; i++ ) {
 				if ( strcmp( optarg, &tools[i].name[4] ) == 0 ) {
-					rc = tools[i].func(argc, argv);
-					MAIN_RETURN(rc);
+					rc = tools[i].func( argc, argv );
+					MAIN_RETURN( rc );
 				}
 			}
+
+			/* try bits of option string (backward compatibility for single char) */
+			l = strlen( optarg );
+			for ( i = 0; tools[i].name; i++ ) {
+				if ( strncmp( optarg, &tools[i].name[4], l ) == 0 ) {
+					rc = tools[i].func( argc, argv );
+					MAIN_RETURN( rc );
+				}
+			}
+			
+			/* issue error */
 			serverName = optarg;
 			serverNamePrefix = "slap";
 unrecognized_server_name:;
