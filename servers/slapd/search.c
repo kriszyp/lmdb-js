@@ -237,7 +237,7 @@ do_search(
 			len += an[i].an_name.bv_len;
 		}
 		if (len) {
-			Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD attr=%s\n",
+			Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu SRCH attr=%s\n",
 	    			op->o_connid, op->o_opid, abuf, 0, 0 );
 		}
 	}
