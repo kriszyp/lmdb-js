@@ -712,15 +712,24 @@ void hit_socket( void )
 
 	/* throw something at the socket to terminate the select() in the daemon thread. */
 	if (( s = socket( AF_INET, SOCK_STREAM, 0 )) == INVALID_SOCKET )
-		Debug( LDAP_DEBUG_TRACE, "slap_set_shutdown: socket failed\n\tWSAGetLastError=%d (%s)\n", WSAGetLastError(), WSAGetLastErrorString(), 0 );
+		Debug( LDAP_DEBUG_TRACE,
+			"slap_set_shutdown: socket failed\n\tWSAGetLastError=%d (%s)\n",
+			WSAGetLastError(), WSAGetLastErrorString(), 0 );
+
 	if ( ioctlsocket( s, FIONBIO, &on ) == -1 ) 
-		Debug( LDAP_DEBUG_TRACE, "slap_set_shutdown:FIONBIO ioctl on %d faled\n\tWSAGetLastError=%d (%s)\n", s, WSAGetLastError(), WSAGetLastError() );
+		Debug( LDAP_DEBUG_TRACE,
+			"slap_set_shutdown:FIONBIO ioctl on %d faled\n\tWSAGetLastError=%d (%s)\n",
+			s, WSAGetLastError(), WSAGetLastError() );
 
 	bind_addr.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
+
 	if ( connect( s, (struct sockaddr *)&bind_addr, sizeof( struct sockaddr_in )) == SOCKET_ERROR ) {
 		/* we can probably expect some error to occur here, mostly WSAEWOULDBLOCK */
 	}
+
+	tcp_close(s);
 }
+
 #elif HAVE_WINSOCK
 void sockinit()
 {	WSADATA wsaData;
