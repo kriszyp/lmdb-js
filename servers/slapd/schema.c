@@ -30,7 +30,7 @@ oc_schema_check( Entry *e )
 	if ( (aoc = attr_find( e->e_attrs, "objectclass" )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "No object class for entry (%s)\n",
 		    e->e_dn, 0, 0 );
-		return( 0 );
+		return( 1 );
 	}
 
 	/* check that the entry has required attrs for each oc */
