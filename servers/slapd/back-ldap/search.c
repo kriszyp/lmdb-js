@@ -68,7 +68,7 @@ ldap_back_search(
 	struct timeval	tv;
 	LDAPMessage		*res, *e;
 	int	rc = 0, msgid; 
-	char *match = NULL;
+	struct berval match = { 0, NULL };
 	char **mapped_attrs = NULL;
 	struct berval mbase;
 	struct berval mfilter = { 0, NULL };
@@ -297,8 +297,9 @@ fail:;
 			}
 
 		} else {
-			rc = ldap_parse_result(lc->ld, res, &rs->sr_err, &match,
-				(char **)&rs->sr_text, NULL, NULL, 1);
+			rc = ldap_parse_result(lc->ld, res, &rs->sr_err,
+					&match.bv_val, (char **)&rs->sr_text,
+					NULL, NULL, 1);
 			if (rc != LDAP_SUCCESS ) rs->sr_err = rc;
 			rs->sr_err = ldap_back_map_result(rs);
 			rc = 0;
@@ -312,8 +313,8 @@ fail:;
 	/*
 	 * Rewrite the matched portion of the search base, if required
 	 */
-	if ( match && *match ) {
-		struct berval dn, mdn;
+	if ( match.bv_val && *match.bv_val ) {
+		struct berval mdn;
 
 #ifdef ENABLE_REWRITE
 		dc.ctx = "matchedDn";
@@ -321,8 +322,8 @@ fail:;
 		dc.tofrom = 0;
 		dc.normalized = 0;
 #endif
-		ber_str2bv(match, 0, 0, &dn);
-		ldap_back_dn_massage(&dc, &dn, &mdn);
+		match.bv_len = strlen( match.bv_val );
+		ldap_back_dn_massage(&dc, &match, &mdn);
 		rs->sr_matched = mdn.bv_val;
 	}
 	if ( rs->sr_v2ref ) {
@@ -332,12 +333,12 @@ fail:;
 finish:;
 	send_ldap_result( op, rs );
 
-	if ( match ) {
-		if ( rs->sr_matched != match ) {
+	if ( match.bv_val ) {
+		if ( rs->sr_matched != match.bv_val ) {
 			free( (char *)rs->sr_matched );
 		}
 		rs->sr_matched = NULL;
-		LDAP_FREE(match);
+		LDAP_FREE( match.bv_val );
 	}
 	if ( rs->sr_text ) {
 		LDAP_FREE( (char *)rs->sr_text );
