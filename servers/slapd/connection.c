@@ -153,7 +153,7 @@ static Connection* connection_get( int s )
 #ifndef HAVE_WINSOCK
 	assert( connections[s].c_struct_state == SLAP_C_USED );
 	assert( connections[s].c_conn_state != SLAP_C_INVALID );
-	assert( !ber_pvt_sb_in_use( connections[i].c_sb ) );
+	assert( ber_pvt_sb_in_use( connections[s].c_sb ) );
 
 	c = &connections[s];
 #else
