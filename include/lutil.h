@@ -21,15 +21,6 @@
 
 LDAP_BEGIN_DECL
 
-#ifdef __MINGW32__
-#   undef LDAP_F_PRE
-#   ifdef LIBLUTIL_DECL
-#	define LDAP_F_PRE	extern __declspec(LIBLUTIL_DECL)
-#   else
-#	define LDAP_F_PRE	extern
-#   endif
-#endif
-
 /* n octets encode into ceiling(n/3) * 4 bytes */
 /* Avoid floating point math by through extra padding */
 
@@ -39,52 +30,52 @@ LDAP_BEGIN_DECL
 /* ISC Base64 Routines */
 /* base64.c */
 
-LDAP_F( int )
+LIBLUTIL_F( int )
 lutil_b64_ntop LDAP_P((
 	unsigned char const *,
 	size_t,
 	char *,
 	size_t));
 
-LDAP_F( int )
+LIBLUTIL_F( int )
 lutil_b64_pton LDAP_P((
 	char const *,
 	unsigned char *,
 	size_t));
 
 /* detach.c */
-LDAP_F( void )
+LIBLUTIL_F( void )
 lutil_detach LDAP_P((
 	int debug,
 	int do_close));
 
 /* entropy.c */
-LDAP_F( int )
+LIBLUTIL_F( int )
 lutil_entropy LDAP_P((
 	char *buf,
 	int nbytes ));
 
 /* passwd.c */
-LDAP_F( int )
+LIBLUTIL_F( int )
 lutil_passwd LDAP_P((
 	const char *cred,
 	const char *passwd,
 	const char **methods ));
 
-extern const char* lutil_passwd_schemes[];
+LIBLUTIL_F (const char *) lutil_passwd_schemes[];
 
-LDAP_F( int )
+LIBLUTIL_F( int )
 lutil_passwd_scheme LDAP_P((char *scheme));
 
 /* utils.c */
-LDAP_F( char* )
+LIBLUTIL_F( char* )
 lutil_progname LDAP_P((
 	const char* name,
 	int argc,
 	char *argv[] ));
 
 /* sockpair.c */
-LDAP_F( int )
+LIBLUTIL_F( int )
 lutil_pair( LBER_SOCKET_T sd[2] );
 
 LDAP_END_DECL

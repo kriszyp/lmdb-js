@@ -20,21 +20,12 @@
 
 LDAP_BEGIN_DECL
 
-#ifdef __MINGW32__
-#   undef LDAP_F_PRE
-#   ifdef LIBLBER_DECL
-#	define LDAP_F_PRE	extern __declspec(LIBLBER_DECL)
-#   else
-#	define LDAP_F_PRE	extern
-#   endif
-#endif
-
 /*
  * bprint.c
  */
-LDAP_F( BER_LOG_PRINT_FN ) ber_pvt_log_print;
+LIBLBER_F( BER_LOG_PRINT_FN ) ber_pvt_log_print;
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_pvt_log_printf LDAP_P((
 	int errlvl,
 	int loglvl,

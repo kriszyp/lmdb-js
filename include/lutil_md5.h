@@ -30,31 +30,22 @@ struct lutil_MD5Context {
 	unsigned char in[64];
 };
 
-#ifdef __MINGW32__
-#   undef LDAP_F_PRE
-#   ifdef LIBLUTIL_DECL
-#	define LDAP_F_PRE	extern __declspec(LIBLUTIL_DECL)
-#   else
-#	define LDAP_F_PRE	extern
-#   endif
-#endif
-
-LDAP_F( void )
+LIBLUTIL_F( void )
 lutil_MD5Init LDAP_P((
 	struct lutil_MD5Context *context));
 
-LDAP_F( void )
+LIBLUTIL_F( void )
 lutil_MD5Update LDAP_P((
 	struct lutil_MD5Context *context,
 	unsigned char const *buf,
 	ber_len_t len));
 
-LDAP_F( void )
+LIBLUTIL_F( void )
 lutil_MD5Final LDAP_P((
 	unsigned char digest[16],
 	struct lutil_MD5Context *context));
 
-LDAP_F( void )
+LIBLUTIL_F( void )
 lutil_MD5Transform LDAP_P((
 	ber_uint_t buf[4],
 	const unsigned char in[64]));

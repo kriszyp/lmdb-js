@@ -1,11 +1,13 @@
 /* $OpenLDAP$ */
 
 #include "portable.h"
-
-#include <ldap.h>
+#include <stdio.h>
+#include <ac/string.h>
+#include "slap.h"
 
 static void stubs()
 {
+    ldap_abandon(NULL, 0);
     ldap_add_s(NULL, NULL, NULL);
     ldap_bind_s(NULL, NULL, NULL, 0);
     ldap_delete_s(NULL, NULL);
@@ -25,11 +27,6 @@ static void stubs()
 }
 
 #ifdef HAVE_NT_SERVICE_MANAGER
-
-#include <stdio.h>
-#include <ac/string.h>
-
-#include "slap.h"
 
 ldap_pvt_thread_cond_t	started_event,		stopped_event;
 ldap_pvt_thread_t		start_status_tid,	stop_status_tid;

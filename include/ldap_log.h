@@ -47,6 +47,10 @@ LDAP_BEGIN_DECL
 /* debugging stuff */
 #ifdef LDAP_DEBUG
 
+/*
+ * This is a bogus extern declaration for the compiler. No need to ensure
+ * a 'proper' dllimport.
+ */
 #ifndef ldap_debug
 extern int	ldap_debug;
 #endif /* !ldap_debug */
@@ -74,16 +78,7 @@ extern int	ldap_syslog_level;
 #define Debug( level, fmt, arg1, arg2, arg3 )
 #endif /* LDAP_DEBUG */
 
-#ifdef __MINGW32__
-#   undef LDAP_F_PRE
-#   ifdef LIBLUTIL_DECL
-#	define LDAP_F_PRE	extern __declspec(LIBLUTIL_DECL)
-#   else
-#	define LDAP_F_PRE	extern
-#   endif
-#endif
-
-LDAP_F(void) lutil_debug LDAP_P((
+LIBLUTIL_F(void) lutil_debug LDAP_P((
 	int debug, int level,
 	const char* fmt, ... )) LDAP_GCCATTR((format(printf, 3, 4)));
 

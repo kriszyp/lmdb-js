@@ -47,11 +47,7 @@ BUILD_SRV = @BUILD_SLAPD@
 
 all-local-srv: all-cffiles
 
-NT_GEN_DEFS = -DLIBLUTIL_DECL=dllexport -DLIBAVL_DECL=dllexport \
-	      -DLIBLDBM_DECL=dllexport -DLIBLDIF_DECL=dllexport
-
-NT_DYN_DEFS  = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport $(NT_GEN_DEFS)
-NT_STAT_DEFS = -DLIBLBER_DECL=dllexport -DLIBLDAP_DECL=dllexport $(NT_GEN_DEFS)
+NT_DYN_DEFS  = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport
 
 DEFINES = $(@PLAT@_@LIB_LINKAGE@_DEFS)
 

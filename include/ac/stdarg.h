@@ -27,11 +27,11 @@
  */
 
 #if defined(__MINGW32__) && defined(HAVE_SNPRINTF)
-int snprintf(char *, size_t, const char *, ...);
+LIBC_F (int) snprintf(char *, size_t, const char *, ...);
 #endif
 
 #if defined(__MINGW32__) && defined(HAVE_VSNPRINTF)
-int vsnprintf(char *, size_t, const char *, va_list);
+LIBC_F (int) vsnprintf(char *, size_t, const char *, va_list);
 #endif
 
 #endif /* _AC_STDARG_H */

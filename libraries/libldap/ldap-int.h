@@ -271,8 +271,8 @@ struct ldap {
  * in init.c
  */
 
-LDAP_F ( struct ldapoptions ) ldap_int_global_options;
-void ldap_int_initialize LDAP_P((void));
+LIBLDAP_F ( struct ldapoptions ) ldap_int_global_options;
+LIBLDAP_F ( void ) ldap_int_initialize LDAP_P((void));
 
 
 /* memory.c */
@@ -294,37 +294,36 @@ void ldap_int_initialize LDAP_P((void));
 /*
  * in unit-int.c
  */
-void ldap_int_utils_init LDAP_P(( void ));
+LIBLDAP_F (void) ldap_int_utils_init LDAP_P(( void ));
 
 
 /*
  * in print.c
  */
-int ldap_log_printf LDAP_P((LDAP *ld, int level, const char *fmt, ...))
-                    LDAP_GCCATTR((format(printf, 3, 4)));
+LIBLDAP_F (int) ldap_log_printf LDAP_P((LDAP *ld, int level, const char *fmt, ...)) LDAP_GCCATTR((format(printf, 3, 4)));
 
 /*
  * in cache.c
  */
-void ldap_add_request_to_cache LDAP_P(( LDAP *ld, ber_tag_t msgtype,
+LIBLDAP_F (void) ldap_add_request_to_cache LDAP_P(( LDAP *ld, ber_tag_t msgtype,
         BerElement *request ));
-void ldap_add_result_to_cache LDAP_P(( LDAP *ld, LDAPMessage *result ));
-int ldap_check_cache LDAP_P(( LDAP *ld, ber_tag_t msgtype, BerElement *request ));
+LIBLDAP_F (void) ldap_add_result_to_cache LDAP_P(( LDAP *ld, LDAPMessage *result ));
+LIBLDAP_F (int) ldap_check_cache LDAP_P(( LDAP *ld, ber_tag_t msgtype, BerElement *request ));
 
 /*
  * in controls.c
  */
-LDAPControl *ldap_control_dup LDAP_P((
+LIBLDAP_F (LDAPControl *) ldap_control_dup LDAP_P((
 	const LDAPControl *ctrl ));
 
-LDAPControl **ldap_controls_dup LDAP_P((
+LIBLDAP_F (LDAPControl **) ldap_controls_dup LDAP_P((
 	LDAPControl *const *ctrls ));
 
-int ldap_int_get_controls LDAP_P((
+LIBLDAP_F (int) ldap_int_get_controls LDAP_P((
 	BerElement *be,
 	LDAPControl ***ctrlsp));
 
-int ldap_int_put_controls LDAP_P((
+LIBLDAP_F (int) ldap_int_put_controls LDAP_P((
 	LDAP *ld,
 	LDAPControl *const *ctrls,
 	BerElement *ber ));
@@ -332,14 +331,14 @@ int ldap_int_put_controls LDAP_P((
 /*
  * in dsparse.c
  */
-int next_line_tokens LDAP_P(( char **bufp, ber_len_t *blenp, char ***toksp ));
-void free_strarray LDAP_P(( char **sap ));
+LIBLDAP_F (int) next_line_tokens LDAP_P(( char **bufp, ber_len_t *blenp, char ***toksp ));
+LIBLDAP_F (void) free_strarray LDAP_P(( char **sap ));
 
 #ifdef HAVE_KERBEROS
 /*
  * in kerberos.c
  */
-char *ldap_get_kerberosv4_credentials LDAP_P((
+LIBLDAP_F (char *) ldap_get_kerberosv4_credentials LDAP_P((
 	LDAP *ld,
 	LDAP_CONST char *who,
 	LDAP_CONST char *service,
@@ -351,69 +350,64 @@ char *ldap_get_kerberosv4_credentials LDAP_P((
 /*
  * in open.c
  */
-int ldap_open_defconn( LDAP *ld );
-int open_ldap_connection( LDAP *ld, Sockbuf *sb, const char *host, int defport,
-	char **krbinstancep, int async );
+LIBLDAP_F (int) ldap_open_defconn( LDAP *ld );
+LIBLDAP_F (int) open_ldap_connection( LDAP *ld, Sockbuf *sb, const char *host, int defport, char **krbinstancep, int async );
 
 
 /*
  * in os-ip.c
  */
-extern int ldap_int_tblsize;
-int ldap_int_timeval_dup( struct timeval **dest, const struct timeval *tm );
-int ldap_connect_to_host( LDAP *ld, Sockbuf *sb, const char *host,
-	unsigned long address, int port, int async );
+LIBLDAP_F (int) ldap_int_tblsize;
+LIBLDAP_F (int) ldap_int_timeval_dup( struct timeval **dest, const struct timeval *tm );
+LIBLDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb, const char *host, unsigned long address, int port, int async );
 
-void ldap_close_connection( Sockbuf *sb );
+LIBLDAP_F (void) ldap_close_connection( Sockbuf *sb );
 
 #ifdef HAVE_KERBEROS
-char *ldap_host_connected_to( Sockbuf *sb );
+LIBLDAP_F (char *) ldap_host_connected_to( Sockbuf *sb );
 #endif /* HAVE_KERBEROS */
 
-void ldap_int_ip_init( void );
-int do_ldap_select( LDAP *ld, struct timeval *timeout );
-void *ldap_new_select_info( void );
-void ldap_free_select_info( void *sip );
-void ldap_mark_select_write( LDAP *ld, Sockbuf *sb );
-void ldap_mark_select_read( LDAP *ld, Sockbuf *sb );
-void ldap_mark_select_clear( LDAP *ld, Sockbuf *sb );
-int ldap_is_read_ready( LDAP *ld, Sockbuf *sb );
-int ldap_is_write_ready( LDAP *ld, Sockbuf *sb );
+LIBLDAP_F (void) ldap_int_ip_init( void );
+LIBLDAP_F (int) do_ldap_select( LDAP *ld, struct timeval *timeout );
+LIBLDAP_F (void *) ldap_new_select_info( void );
+LIBLDAP_F (void) ldap_free_select_info( void *sip );
+LIBLDAP_F (void) ldap_mark_select_write( LDAP *ld, Sockbuf *sb );
+LIBLDAP_F (void) ldap_mark_select_read( LDAP *ld, Sockbuf *sb );
+LIBLDAP_F (void) ldap_mark_select_clear( LDAP *ld, Sockbuf *sb );
+LIBLDAP_F (int) ldap_is_read_ready( LDAP *ld, Sockbuf *sb );
+LIBLDAP_F (int) ldap_is_write_ready( LDAP *ld, Sockbuf *sb );
 
 
 /*
  * in request.c
  */
-ber_int_t ldap_send_initial_request( LDAP *ld, ber_tag_t msgtype,
+LIBLDAP_F (ber_int_t) ldap_send_initial_request( LDAP *ld, ber_tag_t msgtype,
 	const char *dn, BerElement *ber );
-BerElement *ldap_alloc_ber_with_options( LDAP *ld );
-void ldap_set_ber_options( LDAP *ld, BerElement *ber );
+LIBLDAP_F (BerElement *) ldap_alloc_ber_with_options( LDAP *ld );
+LIBLDAP_F (void) ldap_set_ber_options( LDAP *ld, BerElement *ber );
 
-int ldap_send_server_request( LDAP *ld, BerElement *ber, ber_int_t msgid,
-	LDAPRequest *parentreq, LDAPServer *srvlist, LDAPConn *lc,
-	int bind );
-LDAPConn *ldap_new_connection( LDAP *ld, LDAPServer **srvlistp, int use_ldsb,
-	int connect, int bind );
-LDAPRequest *ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid );
-void ldap_free_request( LDAP *ld, LDAPRequest *lr );
-void ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind );
-void ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all );
-void ldap_dump_requests_and_responses( LDAP *ld );
+LIBLDAP_F (int) ldap_send_server_request( LDAP *ld, BerElement *ber, ber_int_t msgid, LDAPRequest *parentreq, LDAPServer *srvlist, LDAPConn *lc, int bind );
+LIBLDAP_F (LDAPConn *) ldap_new_connection( LDAP *ld, LDAPServer **srvlistp, int use_ldsb, int connect, int bind );
+LIBLDAP_F (LDAPRequest *) ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid );
+LIBLDAP_F (void) ldap_free_request( LDAP *ld, LDAPRequest *lr );
+LIBLDAP_F (void) ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind );
+LIBLDAP_F (void) ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all );
+LIBLDAP_F (void) ldap_dump_requests_and_responses( LDAP *ld );
 
-int ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp );
-int ldap_append_referral( LDAP *ld, char **referralsp, char *s );
+LIBLDAP_F (int) ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp );
+LIBLDAP_F (int) ldap_append_referral( LDAP *ld, char **referralsp, char *s );
 
 /*
  * in result.c:
  */
 #ifdef LDAP_CONNECTIONLESS
-int cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber );
+LIBLDAP_F (int) cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber );
 #endif
 
 /*
  * in search.c
  */
-BerElement *ldap_build_search_req LDAP_P((
+LIBLDAP_F (BerElement *) ldap_build_search_req LDAP_P((
 	LDAP *ld,
 	const char *base,
 	ber_int_t scope,
@@ -433,13 +427,13 @@ BerElement *ldap_build_search_req LDAP_P((
 /*
  * in unbind.c
  */
-int ldap_ld_free LDAP_P((
+LIBLDAP_F (int) ldap_ld_free LDAP_P((
 	LDAP *ld,
 	int close,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls ));
 
-int ldap_send_unbind LDAP_P((
+LIBLDAP_F (int) ldap_send_unbind LDAP_P((
 	LDAP *ld,
 	Sockbuf *sb,
 	LDAPControl **sctrls,
@@ -449,7 +443,7 @@ int ldap_send_unbind LDAP_P((
 /*
  * in getdxbyname.c
  */
-char **ldap_getdxbyname( const char *domain );
+LIBLDAP_F (char **) ldap_getdxbyname( const char *domain );
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
 #if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
@@ -461,10 +455,8 @@ char **ldap_getdxbyname( const char *domain );
  * hodges@stanford.edu 5-Feb-96
  */
 #if LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET
-extern 
-int ldap_t61_to_8859( char **bufp, ber_len_t *buflenp, int free_input );
-extern 
-int ldap_8859_to_t61( char **bufp, ber_len_t *buflenp, int free_input );
+LIBLDAP_F (int) ldap_t61_to_8859( char **bufp, ber_len_t *buflenp, int free_input );
+LIBLDAP_F (int) ldap_8859_to_t61( char **bufp, ber_len_t *buflenp, int free_input );
 #endif /* LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET */
 #endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
 

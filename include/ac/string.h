@@ -42,21 +42,11 @@
 #	endif
 #endif
 
-#ifdef __MINGW32__
-#   undef LDAP_F_PRE
-#   ifdef LIBLDAP_DECL
-#	define LDAP_F_PRE	extern __declspec(LIBLDAP_DECL)
-#   else
-#	define LDAP_F_PRE	extern
-#   endif
-#endif
-
 /* use ldap_pvt_strtok instead of strtok or strtok_r! */
-LDAP_F(char *) ldap_pvt_strtok LDAP_P((
-	char *str, const char *delim, char **pos ));
+LIBLDAP_F(char *) ldap_pvt_strtok LDAP_P(( char *str, const char *delim,
+					   char **pos ));
 
-LDAP_F(char *) ldap_pvt_strdup LDAP_P((
-	const char * s ));
+LIBLDAP_F(char *) ldap_pvt_strdup LDAP_P(( const char * s ));
 
 #ifndef HAVE_STRDUP
 	/* strdup() is missing, declare our own version */
@@ -64,15 +54,17 @@ LDAP_F(char *) ldap_pvt_strdup LDAP_P((
 #	define strdup(s) ldap_pvt_strdup(s)
 #else
 	/* some systems fail to declare strdup */
-	LDAP_F(char *) (strdup)();
+	LIBC_F(char *) (strdup)();
 #endif
 
 /*
  * some systems fail to declare strcasecmp() and strncasecmp()
  * we need them declared so we can obtain pointers to them
  */
-LDAP_F(int) (strcasecmp)();
-LDAP_F(int) (strncasecmp)();
+
+/* In Mingw32, strcasecmp is not in the C library, so we don't LIBC_F it */
+int (strcasecmp)();
+int (strncasecmp)();
 
 #ifndef SAFEMEMCPY
 #	if defined( HAVE_MEMMOVE )

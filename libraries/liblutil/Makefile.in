@@ -22,6 +22,9 @@ OBJS	= base64.o debug.o entropy.o \
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
+NT_DYN_LIB_DEFS = -DLIBLDAP_DECL=dllimport
+CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_LIB_DEFS)
+
 # These rules are for a Mingw32 build, specifically.
 # It's ok for them to be here because the clean rule is harmless, and
 # slapdmsg.res won't get built unless it's declared in OBJS.

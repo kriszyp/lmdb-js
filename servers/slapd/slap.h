@@ -102,7 +102,7 @@ LDAP_BEGIN_DECL
 
 #define SLAPD_ACI_DEFAULT_ATTR		"aci"
 
-extern int slap_debug;
+LIBSLAPD_F (int) slap_debug;
 
 struct slap_op;
 struct slap_conn;
@@ -444,12 +444,12 @@ typedef struct slap_object_class {
 typedef struct slap_backend_info BackendInfo;	/* per backend type */
 typedef struct slap_backend_db BackendDB;		/* per backend database */
 
-extern int nBackendInfo;
-extern int nBackendDB;
-extern BackendInfo	*backendInfo;
-extern BackendDB	*backendDB;
+LIBSLAPD_F (int) nBackendInfo;
+LIBSLAPD_F (int) nBackendDB;
+LIBSLAPD_F (BackendInfo	*) backendInfo;
+LIBSLAPD_F (BackendDB *) backendDB;
 
-extern int slapMode;	
+LIBSLAPD_F (int) slapMode;	
 #define SLAP_UNDEFINED_MODE	0x0000
 #define SLAP_SERVER_MODE	0x0001
 #define SLAP_TOOL_MODE		0x0002

@@ -31,17 +31,8 @@
  * create a replacement and hope it works
  */
 
-#ifdef __MINGW32__
-#   undef LDAP_F_PRE
-#   ifdef LIBLBER_DECL
-#	define LDAP_F_PRE	extern __declspec(LIBLBER_DECL)
-#   else
-#	define LDAP_F_PRE	extern
-#   endif
-#endif
-
-LDAP_F(void) ber_pvt_assert LDAP_P((
-	const char *file, int line, const char *test ));
+LIBLBER_F (void) ber_pvt_assert LDAP_P(( const char *file, int line,
+					 const char *test ));
 
 /* Can't use LDAP_STRING(test), that'd expand to "test" */
 #if defined(__STDC__) || defined(__cplusplus)

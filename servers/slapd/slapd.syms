@@ -161,6 +161,7 @@ index_add_mods
 index_change_values
 index_read
 is_entry_objectclass
+ldap_abandon
 ldap_add_s
 ldap_bind_s
 ldap_delete_s

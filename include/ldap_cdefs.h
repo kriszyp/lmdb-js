@@ -62,17 +62,67 @@
 #	define LDAP_GCCATTR(attrs)
 #endif
 
+/* Proper support for NT dynamic libraries. */
+
+/*
+ * C library. Mingw32 links with the C run-time library by default,
+ * so the explicit definition of CSTATIC will keep dllimport from
+ * being defined.
+ */
+#if (defined(__MINGW32__) && !defined(CSTATIC) || \
+     defined(_WIN32) && defined(_DLL))
+#	define LIBC_F(type)	extern __declspec(dllimport) type
+#else
+#	define LIBC_F(type)	extern type
+#endif
+
+/* AVL library */
+#if defined(LIBAVL_DECL) && defined(_WIN32)
+#	define LIBAVL_F(type)	extern __declspec(LIBAVL_DECL) type
+#else
+#	define LIBAVL_F(type)	extern type
+#endif
+
+/* LBER library */
+#if defined(LIBLBER_DECL) && defined(_WIN32)
+#	define LIBLBER_F(type)	extern __declspec(LIBLBER_DECL) type
+#else
+#	define LIBLBER_F(type)	extern type
+#endif
+
+/* LDAP library */
+#if defined(LIBLDAP_DECL) && defined(_WIN32)
+#	define LIBLDAP_F(type)	extern __declspec(LIBLDAP_DECL) type
+#else
+#	define LIBLDAP_F(type)	extern type
+#endif
+
+/* LDBM library */
+#if defined(LIBLDBM_DECL) && defined(_WIN32)
+#	define LIBLDBM_F(type)	extern __declspec(LIBLDBM_DECL) type
+#else
+#	define LIBLDBM_F(type)	extern type
+#endif
+
+/* LDIF library */
+#if defined(LIBLDIF_DECL) && defined(_WIN32)
+#	define LIBLDIF_F(type)	extern __declspec(LIBLDIF_DECL) type
+#else
+#	define LIBLDIF_F(type)	extern type
+#endif
+
+/* LUTIL library */
+#if defined(LIBLUTIL_DECL) && defined(_WIN32)
+#	define LIBLUTIL_F(type)	extern __declspec(LIBLUTIL_DECL) type
+#else
+#	define LIBLUTIL_F(type)	extern type
+#endif
+
+/* SLAPD (as a module exporting symbols */
+#if defined(LIBSLAPD_DECL) && defined(_WIN32)
+#	define LIBSLAPD_F(type)	extern __declspec(LIBSLAPD_DECL) type
+#else
+#	define LIBSLAPD_F(type)	extern type
+#endif
 
 #endif /* _LDAP_CDEFS_H */
-
-/* purposely allow these to be redefined */
-#ifndef LDAP_F_PRE
-#	define LDAP_F_PRE	LDAP_F_IMPORT
-#endif
-#ifndef LDAP_F_POST
-#	define LDAP_F_POST	/* no post */
-#endif
-#ifndef LDAP_F
-#define LDAP_F(type)	LDAP_F_PRE type LDAP_F_POST
-#endif
-

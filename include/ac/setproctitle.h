@@ -18,20 +18,11 @@
 #if defined( HAVE_LIBUTIL_H )
 #	include <libutil.h>
 #else
-
-#ifdef __MINGW32__
-#   undef LDAP_F_PRE
-#   ifdef LIBLUTIL_DECL
-#	define LDAP_F_PRE	extern __declspec(LIBLUTIL_DECL)
-#   else
-#	define LDAP_F_PRE	extern
-#   endif
-#endif
 	/* use lutil version */
-	LDAP_F(void) (setproctitle) LDAP_P((const char *fmt, ...)) \
+	LIBLUTIL_F (void) (setproctitle) LDAP_P((const char *fmt, ...)) \
 	                            LDAP_GCCATTR((format(printf, 1, 2)));
-	LDAP_F(int) Argc;
-	LDAP_F(char) **Argv;
+	LIBLUTIL_F (int) Argc;
+	LIBLUTIL_F (char) **Argv;
 #endif
 
 #endif /* LDAP_PROCTITLE */

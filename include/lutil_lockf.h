@@ -19,19 +19,10 @@
 
 LDAP_BEGIN_DECL
 
-#ifdef __MINGW32__
-#   undef LDAP_F_PRE
-#   ifdef LIBLUTIL_DECL
-#	define LDAP_F_PRE	extern __declspec(LIBLUTIL_DECL)
-#   else
-#	define LDAP_F_PRE	extern
-#   endif
-#endif
-
-LDAP_F( int )
+LIBLUTIL_F( int )
 lutil_lockf LDAP_P(( int fd ));
 
-LDAP_F( int )
+LIBLUTIL_F( int )
 lutil_unlockf LDAP_P(( int fd ));
 
 LDAP_END_DECL

@@ -25,8 +25,8 @@
 #	define		sys_errlist	((char **)0)
 #elif DECL_SYS_ERRLIST 
 	/* have sys_errlist but need declaration */
-	extern int      sys_nerr;
-	extern char     *sys_errlist[];
+	LIBC_F (int)      sys_nerr;
+	LIBC_F (char)    *sys_errlist[];
 #endif
 
 #ifdef HAVE_STRERROR
@@ -36,6 +36,6 @@
 	((err) > -1 && (err) < sys_nerr ? sys_errlist[(err)] : "unknown")
 #endif
 
-extern char* strerror_r();
+LIBC_F (char *) strerror_r();
     
 #endif /* _AC_ERRNO_H */

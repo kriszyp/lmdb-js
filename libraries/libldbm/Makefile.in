@@ -11,8 +11,12 @@ OBJS		= ldbm.o
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
+NT_DYN_LIB_DEFS = -DLIBLDAP_DECL=dllimport
+CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_LIB_DEFS)
+
 XLIBS		= -lldbm -lavl
 XXLIBS		= $(LDBM_LIBS)
 
 testldbm:	libldbm.a testldbm.o
 	$(CC) $(LDFLAGS) -o $@ testldbm.o $(LIBS)
+

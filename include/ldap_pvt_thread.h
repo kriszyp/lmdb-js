@@ -175,26 +175,17 @@ LDAP_END_DECL
 
 LDAP_BEGIN_DECL
 
-#ifdef __MINGW32__
-#   undef LDAP_F_PRE
-#   ifdef LIBLDAP_DECL
-#	define LDAP_F_PRE	extern __declspec(LIBLDAP_DECL)
-#   else
-#	define LDAP_F_PRE	extern
-#   endif
-#endif
-
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_initialize LDAP_P(( void ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_destroy LDAP_P(( void ));
 
-LDAP_F( unsigned int )
+LIBLDAP_F( unsigned int )
 ldap_pvt_thread_sleep LDAP_P(( unsigned int s ));
 
 #ifdef HAVE_GETCONCURRENCY
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_get_concurrency LDAP_P(( void ));
 #endif
 
@@ -203,62 +194,62 @@ ldap_pvt_thread_get_concurrency LDAP_P(( void ));
 	/* three concurrent threads should be enough */
 #	define LDAP_THREAD_CONCURRENCY	3
 #	endif
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_set_concurrency LDAP_P(( int ));
 #endif
 
 #define LDAP_PVT_THREAD_CREATE_JOINABLE 0
 #define LDAP_PVT_THREAD_CREATE_DETACHED 1
 
-LDAP_F( int ) 
+LIBLDAP_F( int ) 
 ldap_pvt_thread_create LDAP_P((
 	ldap_pvt_thread_t * thread, 
 	int	detach,
 	void *(*start_routine)( void * ), 
 	void *arg));
 
-LDAP_F( void ) 
+LIBLDAP_F( void ) 
 ldap_pvt_thread_exit LDAP_P(( void *retval ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_join LDAP_P(( ldap_pvt_thread_t thread, void **status ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_kill LDAP_P(( ldap_pvt_thread_t thread, int signo ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_yield LDAP_P(( void ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_cond_init LDAP_P(( ldap_pvt_thread_cond_t *cond ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_cond_destroy LDAP_P(( ldap_pvt_thread_cond_t *cond ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_cond_signal LDAP_P(( ldap_pvt_thread_cond_t *cond ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_cond_broadcast LDAP_P(( ldap_pvt_thread_cond_t *cond ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_cond_wait LDAP_P((
 	ldap_pvt_thread_cond_t *cond, 
 	ldap_pvt_thread_mutex_t *mutex ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_mutex_init LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_mutex_destroy LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_mutex_lock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_mutex_trylock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_mutex_unlock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
 typedef struct ldap_pvt_thread_rdwr_var {
@@ -273,38 +264,38 @@ typedef struct ldap_pvt_thread_rdwr_var {
 	int ltrw_w_wait;
 } ldap_pvt_thread_rdwr_t;
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_rdwr_init LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_rdwr_destroy LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_rdwr_rlock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_rdwr_rtrylock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_rdwr_runlock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_rdwr_wlock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_rdwr_wtrylock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_rdwr_wunlock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 
 #ifdef LDAP_DEBUG
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_rdwr_readers LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_rdwr_writers LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_thread_rdwr_active LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 #endif /* LDAP_DEBUG */
 

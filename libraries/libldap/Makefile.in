@@ -37,7 +37,7 @@ XXLIBS = $(SECURITY_LIBS) $(TLS_LIBS)
 LINKAGE = @LT_LIB_LINKAGE@
 
 NT_DYN_LIB_LIBS  = -llber $(AC_LIBS)
-NT_DYN_LIB_DEFS  = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllexport
+NT_DYN_LIB_DEFS  = -DLIBLBER_DECL=dllimport
 NT_DYN_TEST_DEFS = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport
 
 # Extras for building the library

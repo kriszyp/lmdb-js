@@ -23,21 +23,12 @@ LDAP_BEGIN_DECL
 
 struct hostent;	/* avoid pulling in <netdb.h> */
 
-#ifdef __MINGW32__
-#   undef LDAP_F_PRE
-#   ifdef LIBLDAP_DECL
-#	define LDAP_F_PRE	extern __declspec(LIBLDAP_DECL)
-#   else
-#	define LDAP_F_PRE	extern
-#   endif
-#endif
-
-LDAP_F( char * )
+LIBLDAP_F( char * )
 ldap_pvt_ctime LDAP_P((
 	const time_t *tp,
 	char *buf ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_gethostbyname_a LDAP_P((
 	const char *name, 
 	struct hostent *resbuf,
@@ -45,7 +36,7 @@ ldap_pvt_gethostbyname_a LDAP_P((
 	struct hostent **result,
 	int *herrno_ptr ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_pvt_gethostbyaddr_a LDAP_P((
 	const char *addr,
 	int len,
@@ -58,35 +49,35 @@ ldap_pvt_gethostbyaddr_a LDAP_P((
 
 /* charray.c */
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_charray_add LDAP_P((
     char	***a,
     char	*s ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_charray_merge LDAP_P((
     char	***a,
     char	**s ));
 
-LDAP_F( void )
+LIBLDAP_F( void )
 ldap_charray_free LDAP_P(( char **a ));
 
-LDAP_F( int )
+LIBLDAP_F( int )
 ldap_charray_inlist LDAP_P((
     char	**a,
     char	*s ));
 
-LDAP_F( char ** )
+LIBLDAP_F( char ** )
 ldap_charray_dup LDAP_P(( char **a ));
 
-LDAP_F( char ** )
+LIBLDAP_F( char ** )
 ldap_str2charray LDAP_P((
 	char *str,
 	char *brkstr ));
 
 /* url.c */
-void ldap_pvt_hex_unescape LDAP_P(( char *s ));
-int ldap_pvt_unhex( int c );
+LIBLDAP_F (void) ldap_pvt_hex_unescape LDAP_P(( char *s ));
+LIBLDAP_F (int) ldap_pvt_unhex( int c );
 
 /* these macros assume 'x' is an ASCII x */
 #define LDAP_DNSEPARATOR(c)	((c) == ',' || (c) == ';')
@@ -110,28 +101,28 @@ int ldap_pvt_unhex( int c );
 #define LDAP_NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
 
 /* search.c */
-LDAP_F( char * )
+LIBLDAP_F( char * )
 ldap_pvt_find_wildcard LDAP_P((	char *s ));
 
-LDAP_F( ber_slen_t )
+LIBLDAP_F( ber_slen_t )
 ldap_pvt_filter_value_unescape LDAP_P(( char *filter ));
 
 /* string.c */
-LDAP_F( char * )
+LIBLDAP_F( char * )
 ldap_pvt_str2upper LDAP_P(( char *str ));
 
-LDAP_F( char * )
+LIBLDAP_F( char * )
 ldap_pvt_str2lower LDAP_P(( char *str ));
 
 /* tls.c */
 struct ldapoptions;
 
-int ldap_pvt_tls_init LDAP_P(( void ));
-int ldap_pvt_tls_config LDAP_P(( struct ldapoptions *lo, int option, const char *arg ));
-int ldap_pvt_tls_connect LDAP_P(( Sockbuf *sb, void *ctx_arg ));
-int ldap_pvt_tls_accept LDAP_P(( Sockbuf *sb, void *ctx_arg ));
-int ldap_pvt_tls_get_option LDAP_P(( struct ldapoptions *lo, int option, void *arg ));
-int ldap_pvt_tls_set_option LDAP_P(( struct ldapoptions *lo, int option, void *arg ));
+LIBLDAP_F (int) ldap_pvt_tls_init LDAP_P(( void ));
+LIBLDAP_F (int) ldap_pvt_tls_config LDAP_P(( struct ldapoptions *lo, int option, const char *arg ));
+LIBLDAP_F (int) ldap_pvt_tls_connect LDAP_P(( Sockbuf *sb, void *ctx_arg ));
+LIBLDAP_F (int) ldap_pvt_tls_accept LDAP_P(( Sockbuf *sb, void *ctx_arg ));
+LIBLDAP_F (int) ldap_pvt_tls_get_option LDAP_P(( struct ldapoptions *lo, int option, void *arg ));
+LIBLDAP_F (int) ldap_pvt_tls_set_option LDAP_P(( struct ldapoptions *lo, int option, void *arg ));
 
 LDAP_END_DECL
 

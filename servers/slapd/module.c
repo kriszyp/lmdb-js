@@ -14,12 +14,12 @@ struct module_regtable_t {
 	char *type;
 	int (*proc)(const void *module, const char *file_name);
 } module_regtable[] = {
-		{ "null", load_null },
+							{ "null", load_null },
 #ifdef SLAPD_EXTERNAL_EXTENSIONS
-		{ "extension", load_extension },
+							{ "extension", load_extension },
 #endif
-		{ NULL, NULL }
-};
+							{ NULL, NULL }
+						};
 
 typedef struct module_loaded_t {
 	struct module_loaded_t *next;

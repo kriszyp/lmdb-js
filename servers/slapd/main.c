@@ -28,8 +28,8 @@ static RETSIGTYPE wait4child( int sig );
 struct sockaddr_in	bind_addr;
 
 /* in nt_main.c */
-extern SERVICE_STATUS			SLAPDServiceStatus;
-extern SERVICE_STATUS_HANDLE	hSLAPDServiceStatus;
+LIBLUTIL_F (SERVICE_STATUS)		SLAPDServiceStatus;
+LIBLUTIL_F (SERVICE_STATUS_HANDLE)	hSLAPDServiceStatus;
 extern ldap_pvt_thread_cond_t	started_event,		stopped_event;
 extern int	  is_NT_Service;
 

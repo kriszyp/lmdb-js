@@ -24,7 +24,6 @@ XXLIBS =
 
 LINKAGE = @LT_LIB_LINKAGE@
 
-NT_DYN_LIB_DEFS  = -DLIBLBER_DECL=dllexport
 NT_DYN_TEST_DEFS = -DLIBLBER_DECL=dllimport
 
 # Extras for building the library
