@@ -68,7 +68,7 @@ get_limits(
 				}
 			} else {
 				/* check for unescaped rdn separator */
-				if ( !DN_SEPARATOR( ndn[d-1] ) || SLAP_ESCAPE_CHAR == ndn[d-2] ) {
+				if ( !DN_SEPARATOR( ndn[d-1] ) || DN_ESCAPE( ndn[d-2] ) ) {
 					break;
 				}
 			}

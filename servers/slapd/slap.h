@@ -85,6 +85,7 @@ LDAP_BEGIN_DECL
 #define FILTER_ESCAPE(c) ( (c) == '*' || (c) == '\\' \
 	|| (c) == '(' || (c) == ')' || !ASCII_PRINTABLE(c) )
 
+#define DN_ESCAPE(c)	((c) == SLAP_ESCAPE_CHAR)
 #define DN_SEPARATOR(c)	((c) == ',' || (c) == ';')
 #define RDN_ATTRTYPEANDVALUE_SEPARATOR(c) ((c) == '+') /* RFC 2253 */
 #define RDN_SEPARATOR(c) (DN_SEPARATOR(c) || RDN_ATTRTYPEANDVALUE_SEPARATOR(c))

@@ -525,7 +525,7 @@ select_backend(
 			}
 
 			
-			if ( len && len < dnlen && !DN_SEPARATOR( dn[(dnlen-len)-1] ) ) {
+			if ( len && len < dnlen && ( !DN_SEPARATOR( dn[(dnlen-len)-1] ) || DN_ESCAPE( dn[(dnlen-len)-2] ) ) ) {
 				/* make sure we have a separator */
 				continue;
 			}
