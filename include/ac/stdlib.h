@@ -17,10 +17,6 @@
 
 #else
 
-#	ifdef HAVE_MEMORY_H
-#		include <memory.h>
-#	endif
-
 #	ifdef HAVE_MALLOC_H
 #		include <malloc.h>
 #	endif
