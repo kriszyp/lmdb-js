@@ -3060,7 +3060,7 @@ cat > $BACKENDSC << ENDX
 
 ENDX
 if test "${STATIC_BACKENDS}"; then
-	for b in ${STATIC_BACKENDS}; do
+	for b in config ${STATIC_BACKENDS}; do
 		bb=`echo "${b}" | sed -e 's/back-//'`
 		cat >> $BACKENDSC << ENDX
 extern BI_init ${bb}_back_initialize;
@@ -3072,7 +3072,7 @@ ENDX
 BackendInfo slap_binfo[[]] = {
 ENDX
 
-	for b in ${STATIC_BACKENDS}; do
+	for b in config ${STATIC_BACKENDS}; do
 		bb=`echo "${b}" | sed -e 's/back-//'`
 		echo "    Add ${bb} ..."
 		cat >> $BACKENDSC << ENDX
