@@ -144,14 +144,25 @@ slapacl( int argc, char **argv )
 			break;
 		}
 
-		(void)access_allowed_mask( &op, &e, desc, &val, access,
+		rc = access_allowed_mask( &op, &e, desc, &val, access,
 				NULL, &mask );
 
-		fprintf( stderr, "%s%s%s: %s\n",
-				desc->ad_cname.bv_val,
-				val.bv_val ? "=" : "",
-				val.bv_val ? val.bv_val : "",
-				accessmask2str( mask, accessmaskbuf ) );
+		if ( accessstr ) {
+			fprintf( stderr, "%s access to %s%s%s: %s\n",
+					accessstr,
+					desc->ad_cname.bv_val,
+					val.bv_val ? "=" : "",
+					val.bv_val ? val.bv_val : "",
+					rc ? "ALLOWED" : "DENIED" );
+
+		} else {
+			fprintf( stderr, "%s%s%s: %s\n",
+					desc->ad_cname.bv_val,
+					val.bv_val ? "=" : "",
+					val.bv_val ? val.bv_val : "",
+					accessmask2str( mask, accessmaskbuf ) );
+		}
+		rc = 0;
 	}
 
 destroy:;
