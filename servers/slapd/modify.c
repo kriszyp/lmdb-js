@@ -816,7 +816,7 @@ static LDAPMod **Modifications2LDAPMods(Modifications *modlist)
 /*
  * Free a contiguous block of LDAP modifications.
  */
-void FreeLDAPMods(LDAPMod **modv)
+static void FreeLDAPMods(LDAPMod **modv)
 {
 	int i;
 	LDAPMod *mods;
