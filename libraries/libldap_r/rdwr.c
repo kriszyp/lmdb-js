@@ -53,7 +53,7 @@ ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rw )
 	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
 
 	/* active threads? */
-	if( rw->ltrw_r_active > 0 || rw->ltrw_w_active > 1) {
+	if( rw->ltrw_r_active > 0 || rw->ltrw_w_active > 0) {
 		ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
 		return LDAP_PVT_THREAD_EBUSY;
 	}
@@ -85,7 +85,7 @@ int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
 
 	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
 
-	if( rw->ltrw_w_active > 1 ) {
+	if( rw->ltrw_w_active > 0 ) {
 		/* writer is active */
 
 		rw->ltrw_r_wait++;
@@ -93,7 +93,7 @@ int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
 		do {
 			ldap_pvt_thread_cond_wait(
 				&rw->ltrw_read, &rw->ltrw_mutex );
-		} while( rw->ltrw_w_active > 1 );
+		} while( rw->ltrw_w_active > 0 );
 
 		rw->ltrw_r_wait--;
 	}
@@ -115,7 +115,7 @@ int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rw )
 
 	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
 
-	if( rw->ltrw_w_active > 1) {
+	if( rw->ltrw_w_active > 0) {
 		ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
 		return LDAP_PVT_THREAD_EBUSY;
 	}
