@@ -319,10 +319,14 @@ main( int argc, char **argv )
 	 * has a colon that appears to the left of any equal signs, OR
 	 * if the first line consists entirely of digits (an entry id)
 	 */
+#ifdef LDAP_LDIF
+	use_ldif = 1;
+#else
 	use_ldif = ( *rbuf == '#' ) ||
 		(( p = strchr( rbuf, ':' )) != NULL &&
 		(  q = strchr( rbuf, '\n' )) != NULL && p < q &&
 		(( q = strchr( rbuf, '=' )) == NULL || p < q ));
+#endif
 
 	start = rbuf;
 
@@ -408,7 +412,7 @@ process_ldif_rec( char *rbuf, int count )
 		    *p++ = '\0';
 		    replicaport = atoi( p );
 		}
-		if ( strcasecmp( value, ldaphost ) == 0 &&
+		if ( ldaphost != NULL && strcasecmp( value, ldaphost ) == 0 &&
 			replicaport == ldapport ) {
 		    use_record = 1;
 		}
