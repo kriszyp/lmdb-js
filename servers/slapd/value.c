@@ -186,6 +186,16 @@ value_match(
 {
 	int rc;
 	int usage = 0;
+	struct berval *nv1 = NULL;
+
+	if( ad->ad_type->sat_syntax->ssyn_normalize ) {
+		rc = ad->ad_type->sat_syntax->ssyn_normalize(
+			ad->ad_type->sat_syntax, v1, &nv1 );
+
+		if( rc != LDAP_SUCCESS ) {
+			return LDAP_INAPPROPRIATE_MATCHING;
+		}
+	}
 
 	if( !mr->smr_match ) {
 		return LDAP_INAPPROPRIATE_MATCHING;
@@ -193,8 +203,11 @@ value_match(
 
 	rc = (mr->smr_match)( match, usage,
 		ad->ad_type->sat_syntax,
-		mr, v1, v2 );
+		mr,
+		nv1 != NULL ? nv1 : v1,
+		v2 );
 	
+	ber_bvfree( nv1 );
 	return rc;
 }
 

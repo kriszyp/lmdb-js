@@ -161,6 +161,8 @@ typedef struct slap_syntax {
 #define SLAP_SYNTAX_BER		0x4U /* stored using BER encoding (binary,certificate) */
 
 	slap_syntax_validate_func	*ssyn_validate;
+	slap_syntax_transform_func	*ssyn_normalize;
+	slap_syntax_transform_func	*ssyn_pretty;
 
 #ifdef SLAPD_BINARY_CONVERSION
 	/* convert to and from binary */
