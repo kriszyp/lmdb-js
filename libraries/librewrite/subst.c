@@ -387,6 +387,7 @@ rewrite_subst_apply(
 
 		if ( rc != REWRITE_SUCCESS ) {
 			rc = REWRITE_REGEXEC_ERR;
+			goto cleanup;
 		}
 		
 		/*
