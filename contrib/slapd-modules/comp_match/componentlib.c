@@ -2026,9 +2026,9 @@ RetrieveOidDecoderMappingbyOid( char* ch_oid, int oid_len ) {
 	mem_op = comp_nibble_memory_allocator ( 128, 16 );
 	oid.octs = EncodeComponentOid ( mem_op, ch_oid, &oid_len);
 	oid.octetLen = oid_len;
-	if( strLen <= 0 ) {
+	if( oid_len <= 0 ) {
 		comp_nibble_memory_free( mem_op );
-		return;
+		return NULL;
 	}
 	
 	/* use encoded oid as hash string */
