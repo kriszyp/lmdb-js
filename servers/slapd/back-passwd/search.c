@@ -181,7 +181,7 @@ passwd_back_search(
 		}
 
 	} else {
-		parent = dn_parent( be, base );
+		parent = dn_parent( be, nbase );
 
 		/* This backend is only one layer deep. Don't answer requests for
 		 * anything deeper than that.
