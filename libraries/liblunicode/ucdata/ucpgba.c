@@ -1,5 +1,18 @@
-/*
- * Copyright 2001 Computing Research Labs, New Mexico State University
+/* $OpenLDAP$ */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
+ */
+/* Copyright 2001 Computing Research Labs, New Mexico State University
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -19,13 +32,7 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef lint
-#ifdef __GNUC__
-static char rcsid[] __attribute__ ((unused)) = "$Id: ucpgba.c,v 1.5 2001/01/02 18:46:20 mleisher Exp $";
-#else
-static char rcsid[] = "$Id: ucpgba.c,v 1.5 2001/01/02 18:46:20 mleisher Exp $";
-#endif
-#endif
+/* $Id: ucpgba.c,v 1.5 2001/01/02 18:46:20 mleisher Exp $ */
 
 #include "portable.h"
 

@@ -1,10 +1,18 @@
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* $OpenLDAP$ */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/* Adapted for inclusion into OpenLDAP by Kurt D. Zeilenga */
-/*---
- * Copyright (C) 1999, 2000 Novell, Inc. All Rights Reserved.
+/* Portions Copyright (C) 1999, 2000 Novell, Inc. All Rights Reserved.
  *
  * THIS WORK IS SUBJECT TO U.S. AND INTERNATIONAL COPYRIGHT LAWS AND
  * TREATIES. USE, MODIFICATION, AND REDISTRIBUTION OF THIS WORK IS SUBJECT
@@ -14,13 +22,12 @@
  * OF THIS WORK OTHER THAN AS AUTHORIZED IN VERSION 2.0.1 OF THE OPENLDAP
  * PUBLIC LICENSE, OR OTHER PRIOR WRITTEN CONSENT FROM NOVELL, COULD SUBJECT
  * THE PERPETRATOR TO CRIMINAL AND CIVIL LIABILITY.
- *---*/
-/* Note: A verbatim copy of version 2.0.1 of the OpenLDAP Public License
+ *---
+ * Note: A verbatim copy of version 2.0.1 of the OpenLDAP Public License
  * can be found in the file "build/LICENSE-2.0.1" in this distribution
  * of OpenLDAP Software.
  */
-/*
- * Portions Copyright (C) The Internet Society (1997)
+/* Portions Copyright (C) The Internet Society (1997)
  * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
  */
 

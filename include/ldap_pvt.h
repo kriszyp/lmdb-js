@@ -1,17 +1,20 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, Redwood City, California, USA
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ * 
+ * Copyright 1998-2003 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted only as authorized by the OpenLDAP
- * Public License.  A copy of this license is available at
- * http://www.OpenLDAP.org/license.html or in file LICENSE in the
- * top-level directory of the distribution.
+ * Public License.
+ *
+ * A copy of this license is available in file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/*
- * ldap-pvt.h - Header for ldap_pvt_ functions. These are meant to be used
- * 		by the OpenLDAP distribution only.
+
+/* ldap-pvt.h - Header for ldap_pvt_ functions.
+ * These are meant to be internal to OpenLDAP Software.
  */
 
 #ifndef _LDAP_PVT_H

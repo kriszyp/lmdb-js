@@ -1,16 +1,22 @@
+/* os-local.c -- platform-specific domain socket code */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
- */
-/*  Portions
- *  Copyright (c) 1995 Regents of the University of Michigan.
- *  All rights reserved. 
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- *  os-local.c -- platform-specific domain socket code
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/*
- * Portions (C) Copyright PADL Software Pty Ltd. 1999
+/* Portions Copyright (c) 1995 Regents of the University of Michigan.
+ * All rights reserved. 
+ */
+/* Portions (C) Copyright PADL Software Pty Ltd. 1999
  * Redistribution and use in source and binary forms, with or without 
  * modification, are permitted provided that this notice is preserved
  * and that due credit is given to PADL Software Pty Ltd. This software

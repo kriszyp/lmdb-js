@@ -1,5 +1,18 @@
-/*
- * Copyright 1997, 1998, 1999 Computing Research Labs,
+/* $OpenLDAP$ */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
+ */
+/* Copyright 1997, 1998, 1999 Computing Research Labs,
  * New Mexico State University
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -20,12 +33,10 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+/* $Id: utbm.h,v 1.1 1999/09/21 15:45:18 mleisher Exp $ */
+
 #ifndef _h_utbm
 #define _h_utbm
-
-/*
- * $Id: utbm.h,v 1.1 1999/09/21 15:45:18 mleisher Exp $
- */
 
 #include "portable.h"
 
