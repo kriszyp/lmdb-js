@@ -33,6 +33,16 @@ extern BI_op_unbind	bdb_unbind;
 
 extern BI_chk_referrals	bdb_referrals;
 
+/* tools.c */
+extern BI_tool_entry_open	bdb_tool_entry_open;
+extern BI_tool_entry_close	bdb_tool_entry_close;
+extern BI_tool_entry_next	bdb_tool_entry_next;
+extern BI_tool_entry_get	bdb_tool_entry_get;
+extern BI_tool_entry_put	bdb_tool_entry_put;
+extern BI_tool_entry_reindex	bdb_tool_entry_reindex;
+
+
+
 LDAP_END_DECL
 
 #endif /* _BDB_EXTERNAL_H */

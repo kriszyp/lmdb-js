@@ -277,17 +277,6 @@ int bdb_modify_internal(
  */
 BI_op_extended bdb_exop_passwd;
 
-/*
- * tools.c
- */
-BI_tool_entry_open	bdb_tool_entry_open;
-BI_tool_entry_close	bdb_tool_entry_close;
-BI_tool_entry_next	bdb_tool_entry_next;
-BI_tool_entry_get	bdb_tool_entry_get;
-BI_tool_entry_put	bdb_tool_entry_put;
-BI_tool_entry_reindex	bdb_tool_entry_reindex;
-
-
 LDAP_END_DECL
 
 #endif /* _PROTO_BDB_H */
