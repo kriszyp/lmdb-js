@@ -35,6 +35,8 @@ ldbm_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
+		if ( li->li_directory )
+			free( li->li_directory );
 		li->li_directory = ch_strdup( argv[1] );
 
 		li->li_nextid_file =

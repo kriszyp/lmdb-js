@@ -106,7 +106,7 @@ ldbm_back_db_init(
 	li->li_mode = DEFAULT_MODE;
 
 	/* default database directory */
-	li->li_directory = DEFAULT_DB_DIRECTORY;
+	li->li_directory = ch_strdup( DEFAULT_DB_DIRECTORY );
 
 	/* always index dn, id2children, objectclass (used in some searches) */
 	argv[ 0 ] = "dn";
