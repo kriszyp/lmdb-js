@@ -1,101 +1,115 @@
 # Testing search...
-# refldap://localhost/o=Example,c=RU??sub
-
-dn: cn=Torvlobnor Puzdoy,o=Example,c=RU
-objectClass: inetOrgPerson
-cn: Torvlobnor Puzdoy
-telephoneNumber: 545-4563
-givenName: Torvlobnor
-sn: Puzdoy
-documentIdentifier: documentTitle=book1,o=Example,c=RU
-
-dn: cn=Mitya Kovalev,o=Example,c=RU
-objectClass: inetOrgPerson
-objectClass: posixAccount
-cn: Mitya Kovalev
-telephoneNumber: 332-2334
-telephoneNumber: 222-3234
-givenName: Mitya
-sn: Kovalev
-documentIdentifier: documentTitle=book1,o=Example,c=RU
-documentIdentifier: documentTitle=book2,o=Example,c=RU
-
-dn: documentTitle=book2,o=Example,c=RU
-objectClass: document
-description: abstract2
-documentTitle: book2
-documentAuthor: cn=Mitya Kovalev,o=Example,c=RU
-
 dn: documentTitle=book1,o=Example,c=RU
 objectClass: document
 description: abstract1
 documentTitle: book1
 documentAuthor: cn=Mitya Kovalev,o=Example,c=RU
 documentAuthor: cn=Torvlobnor Puzdoy,o=Example,c=RU
+documentIdentifier: document 1
+
+dn: documentTitle=book2,o=Example,c=RU
+objectClass: document
+description: abstract2
+documentTitle: book2
+documentAuthor: cn=Mitya Kovalev,o=Example,c=RU
+documentIdentifier: document 2
 
 dn: o=Example,c=RU
 objectClass: organization
 o: Example
+
+dn: cn=Mitya Kovalev,o=Example,c=RU
+objectClass: inetOrgPerson
+objectClass: posixAccount
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,o=Example,c=RU
+seeAlso: documentTitle=book2,o=Example,c=RU
+givenName: Mitya
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+
+dn: cn=Torvlobnor Puzdoy,o=Example,c=RU
+objectClass: inetOrgPerson
+cn: Torvlobnor Puzdoy
+sn: Puzdoy
+seeAlso: documentTitle=book1,o=Example,c=RU
+givenName: Torvlobnor
+telephoneNumber: 545-4563
+
+# refldap://localhost/o=Example,c=RU??sub
 
 # Testing exact search...
 dn: cn=Mitya Kovalev,o=Example,c=RU
 objectClass: inetOrgPerson
 objectClass: posixAccount
 cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,o=Example,c=RU
+seeAlso: documentTitle=book2,o=Example,c=RU
+givenName: Mitya
 telephoneNumber: 332-2334
 telephoneNumber: 222-3234
-givenName: Mitya
-sn: Kovalev
-documentIdentifier: documentTitle=book1,o=Example,c=RU
-documentIdentifier: documentTitle=book2,o=Example,c=RU
 
 # Testing substrings initial search...
 dn: cn=Mitya Kovalev,o=Example,c=RU
 objectClass: inetOrgPerson
 objectClass: posixAccount
 cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,o=Example,c=RU
+seeAlso: documentTitle=book2,o=Example,c=RU
+givenName: Mitya
 telephoneNumber: 332-2334
 telephoneNumber: 222-3234
-givenName: Mitya
-sn: Kovalev
-documentIdentifier: documentTitle=book1,o=Example,c=RU
-documentIdentifier: documentTitle=book2,o=Example,c=RU
 
 # Testing substrings any search...
 dn: cn=Mitya Kovalev,o=Example,c=RU
 objectClass: inetOrgPerson
 objectClass: posixAccount
 cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,o=Example,c=RU
+seeAlso: documentTitle=book2,o=Example,c=RU
+givenName: Mitya
 telephoneNumber: 332-2334
 telephoneNumber: 222-3234
-givenName: Mitya
-sn: Kovalev
-documentIdentifier: documentTitle=book1,o=Example,c=RU
-documentIdentifier: documentTitle=book2,o=Example,c=RU
 
 # Testing substrings final search...
 dn: cn=Mitya Kovalev,o=Example,c=RU
 objectClass: inetOrgPerson
 objectClass: posixAccount
 cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,o=Example,c=RU
+seeAlso: documentTitle=book2,o=Example,c=RU
+givenName: Mitya
 telephoneNumber: 332-2334
 telephoneNumber: 222-3234
-givenName: Mitya
-sn: Kovalev
-documentIdentifier: documentTitle=book1,o=Example,c=RU
-documentIdentifier: documentTitle=book2,o=Example,c=RU
 
 # Testing approx search...
 dn: cn=Mitya Kovalev,o=Example,c=RU
 objectClass: inetOrgPerson
 objectClass: posixAccount
 cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,o=Example,c=RU
+seeAlso: documentTitle=book2,o=Example,c=RU
+givenName: Mitya
 telephoneNumber: 332-2334
 telephoneNumber: 222-3234
-givenName: Mitya
+
+# Testing extensible filter search...
+dn: cn=Mitya Kovalev,o=Example,c=RU
+objectClass: inetOrgPerson
+objectClass: posixAccount
+cn: Mitya Kovalev
 sn: Kovalev
-documentIdentifier: documentTitle=book1,o=Example,c=RU
-documentIdentifier: documentTitle=book2,o=Example,c=RU
+seeAlso: documentTitle=book1,o=Example,c=RU
+seeAlso: documentTitle=book2,o=Example,c=RU
+givenName: Mitya
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
 
 # Testing attribute inheritance in filter...
 dn: o=Example,c=RU
@@ -103,60 +117,96 @@ objectClass: organization
 o: Example
 
 # Testing objectClass inheritance in filter...
-# refldap://localhost/o=Example,c=RU??sub
-
-dn: cn=Torvlobnor Puzdoy,o=Example,c=RU
-objectClass: inetOrgPerson
-cn: Torvlobnor Puzdoy
-telephoneNumber: 545-4563
-givenName: Torvlobnor
-sn: Puzdoy
-documentIdentifier: documentTitle=book1,o=Example,c=RU
-
 dn: cn=Mitya Kovalev,o=Example,c=RU
 objectClass: inetOrgPerson
 objectClass: posixAccount
 cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,o=Example,c=RU
+seeAlso: documentTitle=book2,o=Example,c=RU
+givenName: Mitya
 telephoneNumber: 332-2334
 telephoneNumber: 222-3234
-givenName: Mitya
-sn: Kovalev
-documentIdentifier: documentTitle=book1,o=Example,c=RU
-documentIdentifier: documentTitle=book2,o=Example,c=RU
+
+dn: cn=Torvlobnor Puzdoy,o=Example,c=RU
+objectClass: inetOrgPerson
+cn: Torvlobnor Puzdoy
+sn: Puzdoy
+seeAlso: documentTitle=book1,o=Example,c=RU
+givenName: Torvlobnor
+telephoneNumber: 545-4563
+
+# refldap://localhost/o=Example,c=RU??sub
 
 # Testing "auxiliary" objectClass in filter...
 dn: cn=Mitya Kovalev,o=Example,c=RU
 objectClass: inetOrgPerson
 objectClass: posixAccount
 cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,o=Example,c=RU
+seeAlso: documentTitle=book2,o=Example,c=RU
+givenName: Mitya
 telephoneNumber: 332-2334
 telephoneNumber: 222-3234
-givenName: Mitya
-sn: Kovalev
-documentIdentifier: documentTitle=book1,o=Example,c=RU
-documentIdentifier: documentTitle=book2,o=Example,c=RU
+
+# Testing hasSubordinates in filter...
+dn: o=Example,c=RU
+objectClass: organization
+o: Example
+
+# refldap://localhost/o=Example,c=RU??sub
 
 # Testing attribute inheritance in requested attributes...
 dn: cn=Mitya Kovalev,o=Example,c=RU
 cn: Mitya Kovalev
-givenName: Mitya
 sn: Kovalev
+givenName: Mitya
 
 # Testing objectClass in requested attributes...
-Additional information: bad_referral object
-dn: cn=Torvlobnor Puzdoy,o=Example,c=RU
-objectClass: inetOrgPerson
+dn: documentTitle=book1,o=Example,c=RU
+objectClass: document
+
+dn: documentTitle=book2,o=Example,c=RU
+objectClass: document
+
+dn: o=Example,c=RU
+objectClass: organization
 
 dn: cn=Mitya Kovalev,o=Example,c=RU
 objectClass: inetOrgPerson
 objectClass: posixAccount
 
-dn: documentTitle=book2,o=Example,c=RU
-objectClass: document
+dn: cn=Torvlobnor Puzdoy,o=Example,c=RU
+objectClass: inetOrgPerson
 
+# refldap://localhost/o=Example,c=RU??sub
+
+# Testing operational attributes in request...
 dn: documentTitle=book1,o=Example,c=RU
-objectClass: document
+structuralObjectClass: document
+subschemaSubentry: cn=Subschema
+hasSubordinates: FALSE
+
+dn: documentTitle=book2,o=Example,c=RU
+structuralObjectClass: document
+subschemaSubentry: cn=Subschema
+hasSubordinates: FALSE
 
 dn: o=Example,c=RU
-objectClass: organization
+structuralObjectClass: organization
+subschemaSubentry: cn=Subschema
+hasSubordinates: TRUE
+
+dn: cn=Mitya Kovalev,o=Example,c=RU
+structuralObjectClass: inetOrgPerson
+subschemaSubentry: cn=Subschema
+hasSubordinates: FALSE
+
+dn: cn=Torvlobnor Puzdoy,o=Example,c=RU
+structuralObjectClass: inetOrgPerson
+subschemaSubentry: cn=Subschema
+hasSubordinates: FALSE
+
+# refldap://localhost/o=Example,c=RU??sub
 

@@ -148,6 +148,18 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Testing extensible filter search..."
+echo "# Testing extensible filter search..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+	 "(sn:caseExactMatch:=Kovalev)" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 echo "Testing attribute inheritance in filter..."
 echo "# Testing attribute inheritance in filter..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
@@ -184,6 +196,18 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Testing hasSubordinates in filter..."
+echo "# Testing hasSubordinates in filter..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+	 "(hasSubordinates=TRUE)" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 echo "Testing attribute inheritance in requested attributes..."
 echo "# Testing attribute inheritance in requested attributes..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
@@ -208,9 +232,21 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Testing operational attributes in request..."
+echo "# Testing operational attributes in request..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+	 '+' >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 echo "Filtering ldapsearch results..."
 . $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
-echo "Filtering original ldif used to create database..."
+echo "Filtering original ldif..."
 . $LDIFFILTER < $SQLMASTER > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
@@ -261,6 +297,28 @@ telephoneNumber: +39 333 ZZZ 1234
 dn: cn=Torvlobnor Puzdoy,${BASEDN}
 changetype: delete
 
+dn: o=An Org,${BASEDN}
+changetype: add
+objectClass: organization
+o: An Org
+
+dn: o=An Org,${BASEDN}
+changetype: modrdn
+newrdn: o=Another Org
+deleteoldrdn: 1
+
+dn: documentTitle=book1,${BASEDN}
+changetype: modify
+add: documentAuthor
+documentAuthor: cn=Pierangelo Masarati,${BASEDN}
+-
+
+dn: documentTitle=book2,${BASEDN}
+changetype: modify
+add: documentAuthor
+documentAuthor: cn=Pierangelo Masarati,${BASEDN}
+-
+
 EOMODS
 
 		RC=$?
@@ -283,7 +341,7 @@ EOMODS
 
 		echo "Filtering ldapsearch results..."
 		. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
-		echo "Filtering original ldif used to create database..."
+		echo "Filtering modified ldif..."
 		. $LDIFFILTER < $SQLMODS > $LDIFFLT
 		echo "Comparing filter output..."
 		$CMP $SEARCHFLT $LDIFFLT > $CMPOUT

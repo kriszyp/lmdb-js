@@ -10,9 +10,9 @@
 --	expect_return	a bitmap that marks whether create_proc (1) and delete_proc (2) return a value or not
 insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expect_return) values (1,'inetOrgPerson','persons','id','select create_person()','select delete_person(?)',0);
 
-insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expect_return) values (2,'document','documents','id',NULL,NULL,0);
+insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expect_return) values (2,'document','documents','id','select create_doc()','select delete_doc(?)',0);
 
-insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expect_return) values (3,'organization','institutes','id',NULL,NULL,0);
+insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expect_return) values (3,'organization','institutes','id','select create_o()','select delete_o(?)',0);
 
 -- attributeType mappings: describe how an attributeType for a certain objectClass maps to the SQL data.
 --	id		a unique number identifying the attribute	
@@ -35,15 +35,17 @@ insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (5,1,'userPassword','persons.password','persons','persons.password IS NOT NULL','update persons set password=? where id=?',NULL,3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (6,2,'description','documents.abstract','documents',NULL,NULL,NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (6,1,'seeAlso','seeAlso.dn','ldap_entries AS seeAlso,documents,authors_docs,persons','seeAlso.keyval=documents.id AND seeAlso.oc_map_id=2 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id',NULL,NULL,3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (7,2,'documentTitle','documents.title','documents',NULL,NULL,NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (7,2,'description','documents.abstract','documents',NULL,'update documents set abstract=? where id=?',NULL,3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (8,2,'documentAuthor','documentAuthor.dn','ldap_entries AS documentAuthor,documents,authors_docs,persons','documentAuthor.keyval=persons.id AND documentAuthor.oc_map_id=1 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id',NULL,NULL,3,0);
-	
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (9,3,'o','institutes.name','institutes',NULL,NULL,NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (8,2,'documentTitle','documents.title','documents',NULL,'update documents set title=? where id=?',NULL,3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (10,1,'documentIdentifier','documentIdentifier.dn','ldap_entries AS documentIdentifier,documents,authors_docs,persons','documentIdentifier.keyval=documents.id AND documentIdentifier.oc_map_id=2 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id',NULL,NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (9,2,'documentAuthor','documentAuthor.dn','ldap_entries AS documentAuthor,documents,authors_docs,persons','documentAuthor.keyval=persons.id AND documentAuthor.oc_map_id=1 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id','select add_doc_author(?,?)','select delete_doc_author(?,?)',3,0);
+
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (10,2,'documentIdentifier','''document ''||text(documents.id)','documents',NULL,NULL,NULL,3,0);
+
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (11,3,'o','institutes.name','institutes',NULL,'update institutes set name=? where id=?',NULL,3,0);
 
 
 -- entries mapping: each entry must appear in this table, with a unique DN rooted at the database naming context
@@ -81,7 +83,7 @@ insert into ldap_referrals (entry_id,url) values (4,'ldap://localhost/');
 -- these procedures are specific for this RDBMS and are used in mapping objectClass and attributeType creation/modify/deletion
 create function create_person () returns int
 as '
-	select setval (''persons_id_seq'', (select max(id) from persons));
+	select setval (''persons_id_seq'', (select case when max(id) is null then 1 else max(id) end from persons));
 	insert into persons (id,name,surname) 
 		values (nextval(''persons_id_seq''),'''','''');
 	select max(id) from persons
@@ -113,7 +115,7 @@ as '
 
 create function add_phone (varchar, int) returns int
 as '
-	select setval (''phones_id_seq'', (select max(id) from phones));
+	select setval (''phones_id_seq'', (select case when max(id) is null then 1 else max(id) end from phones));
 	insert into phones (id,phone,pers_id)
 		values (nextval(''phones_id_seq''),$1,$2);
 	select max(id) from phones
@@ -123,5 +125,53 @@ create function delete_phone (varchar, int) returns int
 as '
 	delete from phones where phone = $1 and pers_id = $2;
 	select $2 as result
+' language 'sql';
+
+create function create_doc () returns int
+as '
+	select setval (''documents_id_seq'', (select case when max(id) is null then 1 else max(id) end from documents));
+	insert into documents (id,title,abstract) 
+		values (nextval(''documents_id_seq''),'''','''');
+	select max(id) from documents
+' language 'sql';
+
+create function delete_doc (int) returns int
+as '
+	delete from documents where id = $1;
+	select $1 as return
+' language 'sql';
+
+create function create_o () returns int
+as '
+	select setval (''institutes_id_seq'', (select case when max(id) is null then 1 else max(id) end from institutes));
+	insert into institutes (id,name) 
+		values (nextval(''institutes_id_seq''),'''');
+	select max(id) from institutes
+' language 'sql';
+
+create function delete_o (int) returns int
+as '
+	delete from institutes where id = $1;
+	select $1 as return
+' language 'sql';
+
+create function add_doc_author (varchar, int) returns int
+as '
+	insert into authors_docs (pers_id,doc_id) values ((
+		select ldap_entries.keyval
+			from ldap_entries 
+			where upper($1) = upper(ldap_entries.dn)
+	),$2);
+	select $2 as return
+' language 'sql';
+
+create function delete_doc_author (varchar, int) returns int
+as '
+	delete from authors_docs where authors_docs.pers_id = (
+		select ldap_entries.keyval
+			from ldap_entries 
+			where upper($1) = upper(ldap_entries.dn)
+	) and authors_docs.doc_id = $2;
+	select $2 as return
 ' language 'sql';
 
