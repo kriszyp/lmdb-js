@@ -184,8 +184,8 @@ main( int argc, char **argv )
 #endif
 
     if ( !not ) {
-	if (( ld = ldap_open( ldaphost, ldapport )) == NULL ) {
-	    perror( "ldap_open" );
+	if (( ld = ldap_init( ldaphost, ldapport )) == NULL ) {
+	    perror( "ldap_init" );
 	    exit( 1 );
 	}
 

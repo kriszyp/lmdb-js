@@ -254,10 +254,6 @@ main( int argc, char **argv )
 	}
     }
 
-    if ( verbose ) {
-	printf( "ldap_open( %s, %d )\n", ldaphost, ldapport );
-    }
-
 	if ( debug ) {
 		lber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
 		ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug );
@@ -268,8 +264,12 @@ main( int argc, char **argv )
 	(void) SIGNAL( SIGPIPE, SIG_IGN );
 #endif
 
-    if (( ld = ldap_open( ldaphost, ldapport )) == NULL ) {
-	perror( ldaphost );
+    if ( verbose ) {
+	printf( "ldap_init( %s, %d )\n", ldaphost, ldapport );
+    }
+
+    if (( ld = ldap_init( ldaphost, ldapport )) == NULL ) {
+	perror( "ldap_init" );
 	exit( 1 );
     }
 

@@ -48,13 +48,11 @@ ldap_open( char *host, int port )
 		return( NULL );
 	}
 
-	/* we'll assume we're talking version 2 for now */
-	ld->ld_version = LDAP_VERSION2;
-
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	if (( srv = (LDAPServer *)calloc( 1, sizeof( LDAPServer ))) ==
 	    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
 	    strdup( ld->ld_defhost )) == NULL )) {
+		if(srv != NULL) free( (char*) srv );
 		ldap_ld_free( ld, 0 );
 		return( NULL );
 	}
@@ -195,6 +193,10 @@ ldap_init( char *defhost, int defport )
 #endif /* LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET */
 #endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
 
+	/* we'll assume we're talking version 2 for now */
+	ld->ld_version = LDAP_VERSION2;
+
+	ld->ld_sb.sb_sd = -1;
 	return( ld );
 }
 
