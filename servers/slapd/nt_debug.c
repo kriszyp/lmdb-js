@@ -7,6 +7,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
+#include "ldap_defaults.h"
 
 static FILE *log_file;
 

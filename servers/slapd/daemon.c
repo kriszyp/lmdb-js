@@ -534,7 +534,7 @@ slapd_daemon_task(
 		for ( i = 0; i < nfds; i++ )
 #endif
 		{
-			int wd, active;
+			int wd;
 
 #ifdef HAVE_WINSOCK
 			wd = writefds.fd_array[i];
@@ -572,7 +572,7 @@ slapd_daemon_task(
 		for ( i = 0; i < nfds; i++ )
 #endif
 		{
-			int rd, active;
+			int rd;
 
 #ifdef HAVE_WINSOCK
 			rd = readfds.fd_array[i];

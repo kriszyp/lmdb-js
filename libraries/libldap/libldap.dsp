@@ -235,6 +235,14 @@ SOURCE=..\..\include\ldap_cdefs.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\ldap_config.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap_defaults.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\ldap_features.h
 # End Source File
 # Begin Source File
@@ -248,10 +256,6 @@ SOURCE=..\..\include\ldap_pvt.h
 # Begin Source File
 
 SOURCE=..\..\include\ldap_schema.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\ldapconfig.h
 # End Source File
 # Begin Source File
 

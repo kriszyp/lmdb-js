@@ -144,7 +144,7 @@ ldap_matchingrule2str LDAP_P((
 
 LDAP_F( char *)
 ldap_scherr2str LDAP_P((
-	LDAP_CONST int code ));
+	int code ));
 
 LDAP_END_DECL
 

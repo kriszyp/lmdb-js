@@ -14,7 +14,8 @@
 #include "ldap_defaults.h"
 #include "slap.h"
 
-#include "slapdmsg.h"
+/* kludge a path for now */
+#include "../../libraries/liblutil/slapdmsg.h"
 
 #define SCM_NOTIFICATION_INTERVAL	5000
 #define THIRTY_SECONDS				(30 * 1000)
@@ -39,7 +40,7 @@ char *GetLastErrorString( void );
 int srv_install( char* service, char* filename );
 int srv_remove ( char* service, char* filename );
 
-void main( DWORD argc, LPTSTR *argv )
+void nt_main( DWORD argc, LPTSTR *argv )
 {
 	int		length;
 	char	filename[MAX_PATH], *fname_start;
