@@ -33,6 +33,7 @@ int bdb_modify_internal(
 	Modification	*mod;
 	Modifications	*ml;
 	Attribute	*save_attrs;
+	Attribute 	*ap;
 
 	Debug( LDAP_DEBUG_TRACE, "bdb_modify_internal: 0x%08lx: %s\n",
 		e->e_id, e->e_dn, 0);
@@ -115,6 +116,16 @@ int bdb_modify_internal(
 			/* unlock entry, delete from cache */
 			return err; 
 		}
+
+		/* check if modified attribute was indexed */
+		err = bdb_index_is_indexed( be, mod->sm_desc );
+		if ( err == LDAP_SUCCESS ) {
+			ap = attr_find( save_attrs, mod->sm_desc );
+			if ( ap ) ap->a_flags |= SLAP_ATTR_IXDEL;
+
+			ap = attr_find( e->e_attrs, mod->sm_desc );
+			if ( ap ) ap->a_flags |= SLAP_ATTR_IXADD;
+		}
 	}
 
 	/* check that the entry still obeys the schema */
@@ -127,24 +138,40 @@ int bdb_modify_internal(
 		return rc;
 	}
 
-	/* delete indices for old attributes */
-	rc = bdb_index_entry_del( be, tid, e, save_attrs);
-	if ( rc != LDAP_SUCCESS ) {
-		attrs_free( e->e_attrs );
-		e->e_attrs = save_attrs;
-		Debug( LDAP_DEBUG_ANY, "entry index delete failed!\n",
-			0, 0, 0 );
-		return rc;
+	/* update the indices of the modified attributes */
+
+	/* start with deleting the old index entries */
+	for ( ap = save_attrs; ap != NULL; ap = ap->a_next ) {
+		if ( ap->a_flags & SLAP_ATTR_IXDEL ) {
+			rc = bdb_index_values( be, tid, ap->a_desc, ap->a_vals,
+					       e->e_id, SLAP_INDEX_DELETE_OP );
+			if ( rc != LDAP_SUCCESS ) {
+				attrs_free( e->e_attrs );
+				e->e_attrs = save_attrs;
+				Debug( LDAP_DEBUG_ANY,
+				       "Attribute index delete failure",
+				       0, 0, 0 );
+				return rc;
+			}
+			ap->a_flags &= ~SLAP_ATTR_IXDEL;
+		}
 	}
 
-	/* add indices for new attributes */
-	rc = bdb_index_entry_add( be, tid, e, e->e_attrs); 
-	if ( rc != LDAP_SUCCESS ) {
-		attrs_free( e->e_attrs );
-		e->e_attrs = save_attrs;
-		Debug( LDAP_DEBUG_ANY, "entry index add failed!\n",
-			0, 0, 0 );
-		return rc;
+	/* add the new index entries */
+	for ( ap = e->e_attrs; ap != NULL; ap = ap->a_next ) {
+		if (ap->a_flags & SLAP_ATTR_IXADD) {
+			rc = bdb_index_values( be, tid, ap->a_desc, ap->a_vals,
+					       e->e_id, SLAP_INDEX_ADD_OP );
+			if ( rc != LDAP_SUCCESS ) {
+				attrs_free( e->e_attrs );
+				e->e_attrs = save_attrs;
+				Debug( LDAP_DEBUG_ANY,
+				       "Attribute index add failure",
+				       0, 0, 0 );
+				return rc;
+			}
+			ap->a_flags &= ~SLAP_ATTR_IXADD;
+		}
 	}
 
 	return rc;

@@ -139,6 +139,11 @@ ID idl_nextid LDAP_P(( ID_BLOCK *idl, ID *cursor ));
  * index.c
  */
 extern int
+index_is_indexed LDAP_P((
+	Backend *be,
+	AttributeDescription *desc ));
+
+extern int
 index_param LDAP_P((
 	Backend *be,
 	AttributeDescription *desc,

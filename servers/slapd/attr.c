@@ -74,6 +74,7 @@ Attribute *attr_dup( Attribute *a )
 
 	tmp->a_desc = a->a_desc;
 	tmp->a_next = NULL;
+	tmp->a_flags = 0;
 
 	return tmp;
 }
@@ -125,6 +126,7 @@ attr_merge(
 		(*a)->a_desc = desc;
 		(*a)->a_vals = NULL;
 		(*a)->a_next = NULL;
+		(*a)->a_flags = 0;
 	}
 
 	return( value_add( &(*a)->a_vals, vals ) );

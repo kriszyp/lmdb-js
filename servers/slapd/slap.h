@@ -716,6 +716,9 @@ typedef struct slap_attr {
 	AttributeDescription *a_desc;
 	BVarray	a_vals;
 	struct slap_attr	*a_next;
+	unsigned a_flags;
+#define SLAP_ATTR_IXADD		0x1U
+#define SLAP_ATTR_IXDEL		0x2U
 } Attribute;
 
 

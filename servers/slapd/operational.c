@@ -27,6 +27,7 @@ slap_operational_subschemaSubentry( void )
 	a->a_vals[1].bv_val = NULL;
 
 	a->a_next = NULL;
+	a->a_flags = 0;
 
 	return a;
 }
@@ -47,6 +48,7 @@ slap_operational_hasSubordinate( int hs )
 	a->a_vals[1].bv_val = NULL;
 
 	a->a_next = NULL;
+	a->a_flags = 0;
 
 	return a;
 }

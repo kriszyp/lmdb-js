@@ -625,6 +625,7 @@ int entry_decode(struct berval *bv, Entry **e)
 		a->a_desc = ad;
 		bptr = (BVarray)(a+1);
 		a->a_vals = bptr;
+		a->a_flags = 0;
 		j = entry_getlen(&ptr);
 
 		while (j) {

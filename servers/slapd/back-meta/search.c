@@ -646,6 +646,7 @@ meta_send_entry(
 		if ( attr == NULL ) {
 			continue;
 		}
+		attr->a_flags = 0;
 		attr->a_next = 0;
 		attr->a_desc = NULL;
 		if ( slap_bv2ad( &mapped, &attr->a_desc, &text )

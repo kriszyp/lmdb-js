@@ -207,6 +207,11 @@ ID bdb_idl_next( ID *ids, ID *cursor );
  * index.c
  */
 extern int
+bdb_index_is_indexed LDAP_P((
+	Backend *be,
+	AttributeDescription *desc ));
+
+extern int
 bdb_index_param LDAP_P((
 	Backend *be,
 	AttributeDescription *desc,

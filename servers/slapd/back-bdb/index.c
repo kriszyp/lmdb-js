@@ -75,6 +75,24 @@ static slap_mask_t index_mask(
 	return 0;
 }
 
+int bdb_index_is_indexed(
+	Backend *be,
+	AttributeDescription *desc )
+{
+	int rc;
+	slap_mask_t mask;
+	char *dbname;
+	struct berval prefix;
+
+	mask = index_mask( be, desc, &dbname, &prefix );
+
+	if( mask == 0 ) {
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+    	return LDAP_SUCCESS;
+}
+
 int bdb_index_param(
 	Backend *be,
 	AttributeDescription *desc,
