@@ -531,7 +531,19 @@ startup:;
 #endif
 
 	if ( !dryrun && slap_startup( be ) ) {
-		fprintf( stderr, "slap_startup failed\n" );
+
+		switch ( tool ) {
+		case SLAPTEST:
+			fprintf( stderr, "slap_startup failed "
+					"(test would succeed using "
+					"the -u switch)\n" );
+			break;
+
+		default:
+			fprintf( stderr, "slap_startup failed\n" );
+			break;
+		}
+		
 		exit( EXIT_FAILURE );
 	}
 }
