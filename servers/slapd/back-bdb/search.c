@@ -44,7 +44,6 @@ bdb_search(
 	int		attrsonly )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int		 abandon;
 	int		rc;
 	const char *text = NULL;
 	time_t		stoptime;
@@ -299,11 +298,7 @@ bdb_search(
 		int		scopeok = 0;
 
 		/* check for abandon */
-		ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
-		abandon = op->o_abandon;
-		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-
-		if ( abandon ) {
+		if ( op->o_abandon ) {
 			rc = 0;
 			goto done;
 		}

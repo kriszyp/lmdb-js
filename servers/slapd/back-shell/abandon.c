@@ -9,7 +9,6 @@
 
 #include <stdio.h>
 
-#include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 

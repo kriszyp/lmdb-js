@@ -394,7 +394,6 @@ void slap_sasl2dn( struct berval *saslname, struct berval *dn )
 		goto FINISHED;
 	suffix_alias( be, &searchbase );
 
-	ldap_pvt_thread_mutex_init( &op.o_abandonmutex );
 	op.o_tag = LDAP_REQ_SEARCH;
 	op.o_protocol = LDAP_VERSION3;
 	op.o_ndn = *saslname;
@@ -405,8 +404,6 @@ void slap_sasl2dn( struct berval *saslname, struct berval *dn )
 	   scope, /*deref=*/1, /*sizelimit=*/1, /*time=*/0, filter, /*fstr=*/NULL,
 	   /*attrs=*/NULL, /*attrsonly=*/0 );
 	
-	ldap_pvt_thread_mutex_destroy( &op.o_abandonmutex );
-
 FINISHED:
 	if( searchbase.bv_len ) ch_free( searchbase.bv_val );
 	if( filter ) filter_free( filter );
@@ -513,7 +510,6 @@ int slap_sasl_match( struct berval *rule, struct berval *assertDN, struct berval
 	sm.match = 0;
 	cb.sc_private = &sm;
 
-	ldap_pvt_thread_mutex_init( &op.o_abandonmutex );
 	op.o_tag = LDAP_REQ_SEARCH;
 	op.o_protocol = LDAP_VERSION3;
 	op.o_ndn = *authc;
@@ -523,8 +519,6 @@ int slap_sasl_match( struct berval *rule, struct berval *assertDN, struct berval
 	(*be->be_search)( be, /*conn=*/NULL, &op, /*base=*/NULL, &searchbase,
 	   scope, /*deref=*/1, /*sizelimit=*/0, /*time=*/0, filter, /*fstr=*/NULL,
 	   /*attrs=*/NULL, /*attrsonly=*/0 );
-
-	ldap_pvt_thread_mutex_destroy( &op.o_abandonmutex );
 
 	if (sm.match)
 		rc = LDAP_SUCCESS;

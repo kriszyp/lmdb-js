@@ -993,12 +993,8 @@ backend_group(
 )
 {
 	GroupAssertion *g;
-	int i;
 
-	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
-	i = op->o_abandon;
-	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-	if (i) return SLAPD_ABANDON;
+	if ( op->o_abandon ) return SLAPD_ABANDON;
 
 	if ( !dn_match( &target->e_nname, gr_ndn ) ) {
 		/* we won't attempt to send it to a different backend */

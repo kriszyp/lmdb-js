@@ -207,10 +207,7 @@ int ldbm_modify_internal(
 	}
 
 	/* check for abandon */
-	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
-	rc = op->o_abandon;
-	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-	if ( rc ) {
+	if ( op->o_abandon ) {
 		rc = SLAPD_ABANDON;
 		goto exit;
 	}

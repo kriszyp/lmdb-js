@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <ac/syslog.h>
 #include <ac/regex.h>
+#include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/time.h>
 #include <ac/param.h>
@@ -1442,8 +1443,7 @@ typedef struct slap_op {
 
 	ldap_pvt_thread_t	o_tid;	/* thread handling this op */
 
-	ldap_pvt_thread_mutex_t	o_abandonmutex; /* protects o_abandon */
-	char o_abandon;	/* abandon flag */
+	volatile sig_atomic_t o_abandon;	/* abandon flag */
 
 #define SLAP_NO_CONTROL 0
 #define SLAP_NONCRITICAL_CONTROL 1

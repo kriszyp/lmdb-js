@@ -36,8 +36,6 @@ slap_op_free( Operation *op )
 		ldap_controls_free( op->o_ctrls );
 	}
 
-	ldap_pvt_thread_mutex_destroy( &op->o_abandonmutex );
-
 	free( (char *) op );
 }
 
@@ -52,8 +50,6 @@ slap_op_alloc(
 	Operation	*op;
 
 	op = (Operation *) ch_calloc( 1, sizeof(Operation) );
-
-	ldap_pvt_thread_mutex_init( &op->o_abandonmutex );
 
 	op->o_ber = ber;
 	op->o_msgid = msgid;

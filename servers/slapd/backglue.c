@@ -349,14 +349,11 @@ glue_back_search (
 					break;
 				}
 			}
+			rc = 0;
 			/*
 			 * check for abandon 
 			 */
-			ldap_pvt_thread_mutex_lock (&op->o_abandonmutex);
-			rc = op->o_abandon;
-			ldap_pvt_thread_mutex_unlock (&op->o_abandonmutex);
-			if (rc) {
-				rc = 0;
+			if (op->o_abandon) {
 				goto done;
 			}
 			be = gi->n[i].be;

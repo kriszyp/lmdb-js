@@ -11,7 +11,6 @@
 
 #include <ac/socket.h>
 #include <ac/errno.h>
-#include <ac/signal.h>
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
@@ -740,9 +739,7 @@ static void connection_abandon( Connection *c )
 	Operation *o;
 
 	LDAP_STAILQ_FOREACH(o, &c->c_ops, o_next) {
-		ldap_pvt_thread_mutex_lock( &o->o_abandonmutex );
 		o->o_abandon = 1;
-		ldap_pvt_thread_mutex_unlock( &o->o_abandonmutex );
 	}
 
 	/* remove pending operations */

@@ -584,13 +584,10 @@ int backsql_search(BackendDB *be,Connection *conn,Operation *op,
  for(eid=srch_info.id_list;eid!=NULL;eid=eid->next)
   {
    /* check for abandon */
-   ldap_pvt_thread_mutex_lock(&op->o_abandonmutex);
    if (op->o_abandon)
     {
-     ldap_pvt_thread_mutex_unlock(&op->o_abandonmutex);
      break;
     }
-   ldap_pvt_thread_mutex_unlock(&op->o_abandonmutex);
 
    /* check time limit */
    if ( tlimit != -1 && slap_get_time() > stoptime)

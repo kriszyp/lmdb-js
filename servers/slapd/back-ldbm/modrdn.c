@@ -468,13 +468,10 @@ ldbm_back_modrdn(
 #endif
 
 	/* check for abandon */
-	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 	if ( op->o_abandon ) {
-		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 		goto return_results;
 	}
 
-	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 	if ( ( rc_id = dn2id ( be, &new_ndn, &id ) ) || id != NOID ) {
 		/* if (rc_id) something bad happened to ldbm cache */
 		send_ldap_result( conn, op, 
@@ -708,12 +705,9 @@ ldbm_back_modrdn(
 
 	
 	/* check for abandon */
-	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 	if ( op->o_abandon ) {
-		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 		goto return_results;
 	}
-	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 	/* delete old one */
 	if ( dn2id_delete( be, &e->e_nname, e->e_id ) != 0 ) {

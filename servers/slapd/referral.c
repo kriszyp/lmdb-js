@@ -11,7 +11,6 @@
 
 #include <ac/socket.h>
 #include <ac/errno.h>
-#include <ac/signal.h>
 #include <ac/string.h>
 #include <ac/ctype.h>
 #include <ac/time.h>

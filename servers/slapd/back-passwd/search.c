@@ -132,13 +132,10 @@ passwd_back_search(
 
 			for ( pw = getpwent(); pw != NULL; pw = getpwent() ) {
 				/* check for abandon */
-				ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 				if ( op->o_abandon ) {
-					ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 					endpwent();
 					return( -1 );
 				}
-				ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 				/* check time limit */
 				if ( slap_get_time() > stoptime ) {

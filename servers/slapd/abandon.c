@@ -92,9 +92,7 @@ do_abandon(
 
 	LDAP_STAILQ_FOREACH( o, &conn->c_ops, o_next ) {
 		if ( o->o_msgid == id ) {
-			ldap_pvt_thread_mutex_lock( &o->o_abandonmutex );
 			o->o_abandon = 1;
-			ldap_pvt_thread_mutex_unlock( &o->o_abandonmutex );
 			goto done;
 		}
 	}

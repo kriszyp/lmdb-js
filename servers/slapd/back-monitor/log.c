@@ -196,9 +196,7 @@ monitor_subsys_log_modify(
 
 #if 0 	/* need op */
 		/* check for abandon */
-		ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 		if ( op->o_abandon ) {
-			ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 			rc = SLAPD_ABANDON;
 
 			goto cleanup;

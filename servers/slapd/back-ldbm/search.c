@@ -295,15 +295,10 @@ searchit:
 		int scopeok = 0;
 
 		/* check for abandon */
-		ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
-
 		if ( op->o_abandon ) {
-			ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 			rc = 0;
 			goto done;
 		}
-
-		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 		/* check time limit */
 		if ( tlimit != -1 && slap_get_time() > stoptime ) {

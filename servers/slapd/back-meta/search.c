@@ -406,9 +406,7 @@ meta_back_search(
 		int ab, gotit = 0;
 
 		/* check for abandon */
-		ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 		ab = op->o_abandon;
-		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 		for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; lsc++, i++ ) {
 			if ( lsc[ 0 ]->candidate != META_CANDIDATE ) {
