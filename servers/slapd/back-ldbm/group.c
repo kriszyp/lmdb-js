@@ -40,6 +40,7 @@ ldbm_back_group(
 	Entry        *e;
 	int          rc = 1;
 	Attribute   *attr;
+	struct berval bv;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
@@ -52,7 +53,6 @@ ldbm_back_group(
 		group_oc_name = group_oc->soc_oid;
 	}
 #else
-	struct berval bv;
 	const char *ad_objectClass = "objectclass";
 	const char *group_oc_name = group_oc;
 	const char *group_at_name = group_at;
@@ -100,15 +100,54 @@ ldbm_back_group(
         
 	rc = 1;
         
+	
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	if( is_entry_alias( e ) ) {
+		Debug( LDAP_DEBUG_ACL,
+			"<= ldbm_back_group: group is an alias\n", 0, 0, 0 );
+		goto return_results;
+	}
+
+	if( is_entry_referral( e ) ) {
+		Debug( LDAP_DEBUG_ACL,
+			"<= ldbm_back_group: group is an referral\n", 0, 0, 0 );
+		goto return_results;
+	}
+
+	if( is_entry_objectclass( e, group_oc ) ) {
+		Debug( LDAP_DEBUG_ACL,
+			"<= ldbm_back_group: failed to find %s in objectClass\n", 
+				group_oc_name, 0, 0 ); 
+		goto return_results;
+	}
+
+	if ((attr = attr_find(e->e_attrs, group_at)) == NULL) {
+		Debug( LDAP_DEBUG_ACL,
+			"<= ldbm_back_group: failed to find %s\n",
+			group_at_name, 0, 0 ); 
+		goto return_results;
+	}
+
+	Debug( LDAP_DEBUG_ACL,
+		"<= ldbm_back_group: found objectClass %s and %s\n",
+		group_oc_name, group_at_name, 0 ); 
+
+	bv.bv_val = (char *) op_ndn;
+	bv.bv_len = strlen( op_ndn );         
+
+	if( value_find( group_at, attr->a_vals, &bv ) == 0 ) {
+		Debug( LDAP_DEBUG_ACL,
+			"<= ldbm_back_group: \"%s\" not in \"%s\": %s\n", 
+			op_ndn, gr_ndn, group_at_name ); 
+		goto return_results;
+	}
+
+#else
 	if ((attr = attr_find(e->e_attrs, ad_objectClass)) == NULL)  {
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_group: failed to find objectClass\n", 0, 0, 0 );
 		goto return_results;
 	}
-	
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
-#else
 
 	bv.bv_val = "ALIAS";
 	bv.bv_len = sizeof("ALIAS")-1;
@@ -161,6 +200,7 @@ ldbm_back_group(
 		goto return_results;
 	}
 #endif
+
 
 	Debug( LDAP_DEBUG_ACL,
 		"<= ldbm_back_group: \"%s\" is in \"%s\": %s\n", 
