@@ -31,7 +31,8 @@ do_delete(
     Operation	*op
 )
 {
-	char *dn, *ndn = NULL;
+	struct berval dn = { 0, NULL };
+	char *ndn = NULL;
 	const char *text;
 	Backend	*be;
 	int rc;
@@ -39,7 +40,7 @@ do_delete(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		   "do_delete: conn %d\n", conn->c_connid ));
+		"do_delete: conn %d\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_delete\n", 0, 0, 0 );
 #endif
@@ -50,10 +51,10 @@ do_delete(
 	 *	DelRequest := DistinguishedName
 	 */
 
-	if ( ber_scanf( op->o_ber, "a", &dn ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "o", &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_delete: conn: %d  ber_scanf failed\n", conn->c_connid ));
+			"do_delete: conn: %d  ber_scanf failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -65,21 +66,23 @@ do_delete(
 	if( ( rc = get_ctrls( conn, op, 1 ) ) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "oepration", LDAP_LEVEL_ERR,
-			   "do_delete: conn %d  get_ctrls failed\n", conn->c_connid ));
+			"do_delete: conn %d  get_ctrls failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_delete: get_ctrls failed\n", 0, 0, 0 );
 #endif
 		goto cleanup;
 	} 
 
-	ndn = ch_strdup( dn );
+	ndn = ch_strdup( dn.bv_val );
 
 	if(	dn_normalize( ndn ) == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_delete: conn %d  invalid dn (%s).\n", conn->c_connid, dn ));
+			"do_delete: conn %d  invalid dn (%s).\n",
+			conn->c_connid, dn.bv_val ));
 #else
-		Debug( LDAP_DEBUG_ANY, "do_delete: invalid dn (%s)\n", dn, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "do_delete: invalid dn (%s)\n",
+			dn.bv_val, 0, 0 );
 #endif
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
@@ -115,7 +118,7 @@ do_delete(
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d DEL dn=\"%s\"\n",
-		op->o_connid, op->o_opid, dn, 0, 0 );
+		op->o_connid, op->o_opid, dn.bv_val, 0, 0 );
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -126,7 +129,7 @@ do_delete(
 	 */
 	if ( (be = select_backend( ndn, manageDSAit, 0 )) == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
-			NULL, dn, LDAP_SCOPE_DEFAULT );
+			NULL, dn.bv_val, LDAP_SCOPE_DEFAULT );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
@@ -144,7 +147,7 @@ do_delete(
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, dn, ndn );
+	rc = backend_check_referrals( be, conn, op, dn.bv_val, ndn );
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -165,12 +168,12 @@ do_delete(
 		if ( be->be_update_ndn == NULL || repl_user )
 #endif
 		{
-			if ( (*be->be_delete)( be, conn, op, dn, ndn ) == 0 ) {
+			if ( (*be->be_delete)( be, conn, op, dn.bv_val, ndn ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
 				if (be->be_update_ndn == NULL || !repl_user )
 #endif
 				{
-					replog( be, op, dn, ndn, NULL );
+					replog( be, op, dn.bv_val, ndn, NULL );
 				}
 			}
 #ifndef SLAPD_MULTIMASTER
@@ -178,7 +181,7 @@ do_delete(
 			struct berval **defref = be->be_update_refs
 				? be->be_update_refs : default_referral;
 			struct berval **ref = referral_rewrite( default_referral,
-				NULL, dn, LDAP_SCOPE_DEFAULT );
+				NULL, dn.bv_val, LDAP_SCOPE_DEFAULT );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				ref ? ref : defref, NULL );
@@ -191,8 +194,9 @@ do_delete(
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "operation not supported within namingContext", NULL, NULL );
 	}
+
 cleanup:
 	if( ndn != NULL ) free( ndn );
-	free( dn );
+	free( dn.bv_val );
 	return rc;
 }

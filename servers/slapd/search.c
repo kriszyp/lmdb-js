@@ -31,19 +31,20 @@ do_search(
     Operation	*op	/* info about the op to which we're responding */
 ) {
 	int		i;
-	ber_int_t		scope, deref, attrsonly;
-	ber_int_t		sizelimit, timelimit;
-	char		*base = NULL, *nbase = NULL, *fstr = NULL;
+	ber_int_t	scope, deref, attrsonly;
+	ber_int_t	sizelimit, timelimit;
+	struct berval base = { 0, NULL };
+	char		*nbase = NULL, *fstr = NULL;
 	Filter		*filter = NULL;
 	char		**attrs = NULL;
 	Backend		*be;
 	int			rc;
-	const char		*text;
+	const char	*text;
 	int			manageDSAit;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		   "do_search: conn %d\n", conn->c_connid ));
+		"do_search: conn %d\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_search\n", 0, 0, 0 );
 #endif
@@ -73,9 +74,10 @@ do_search(
 	 */
 
 	/* baseObject, scope, derefAliases, sizelimit, timelimit, attrsOnly */
-	if ( ber_scanf( op->o_ber, "{aiiiib" /*}*/,
+	if ( ber_scanf( op->o_ber, "{oiiiib" /*}*/,
 		&base, &scope, &deref, &sizelimit,
-	    &timelimit, &attrsonly ) == LBER_ERROR ) {
+	    &timelimit, &attrsonly ) == LBER_ERROR )
+	{
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
 		rc = SLAPD_DISCONNECT;
@@ -105,7 +107,7 @@ do_search(
 		goto return_results;
 	}
 
-	nbase = ch_strdup( base );
+	nbase = ch_strdup( base.bv_val );
 
 	if( dn_normalize( nbase ) == NULL ) {
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX,
@@ -115,10 +117,10 @@ do_search(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		   "do_search \"%s\" %d %d %d %d %d\n", base, scope,
-		   deref, sizelimit, timelimit, attrsonly ));
+		"do_search \"%s\" %d %d %d %d %d\n", base.bv_val, scope,
+		deref, sizelimit, timelimit, attrsonly ));
 #else
-	Debug( LDAP_DEBUG_ARGS, "SRCH \"%s\" %d %d", base, scope, deref );
+	Debug( LDAP_DEBUG_ARGS, "SRCH \"%s\" %d %d", base.bv_val, scope, deref );
 	Debug( LDAP_DEBUG_ARGS, "    %d %d %d\n", sizelimit, timelimit,
 	    attrsonly);
 #endif
@@ -138,7 +140,7 @@ do_search(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		   "do_search: conn %d	filter: %s\n", conn->c_connid, fstr ));
+		"do_search: conn %d	filter: %s\n", conn->c_connid, fstr ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "    filter: %s\n", fstr, 0, 0 );
 #endif
@@ -155,8 +157,8 @@ do_search(
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			   "do_search: conn %d  get_ctrls failed (%d)\n",
-			   conn->c_connid, rc ));
+			"do_search: conn %d  get_ctrls failed (%d)\n",
+			conn->c_connid, rc ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_search: get_ctrls failed\n", 0, 0, 0 );
 #endif
@@ -168,7 +170,7 @@ do_search(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		   "do_search: conn %d	attrs:", conn->c_connid ));
+		"do_search: conn %d	attrs:", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "    attrs:", 0, 0, 0 );
 #endif
@@ -178,7 +180,7 @@ do_search(
 		for ( i = 0; attrs[i] != NULL; i++ ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-				   "do_search:	   %s", attrs[i] ));
+				"do_search:	   %s", attrs[i] ));
 #else
 			Debug( LDAP_DEBUG_ARGS, " %s", attrs[i], 0, 0 );
 #endif
@@ -194,7 +196,7 @@ do_search(
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
-	    op->o_connid, op->o_opid, base, scope, fstr );
+	    op->o_connid, op->o_opid, base.bv_val, scope, fstr );
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -256,9 +258,10 @@ do_search(
 	}
 
 	if( nbase[0] == '\0' && default_search_nbase != NULL ) {
-		ch_free( base );
+		ch_free( base.bv_val );
 		ch_free( nbase );
-		base = ch_strdup( default_search_base );
+		base.bv_val = ch_strdup( default_search_base );
+		base.bv_len = strlen( default_search_nbase );
 		nbase = ch_strdup( default_search_nbase );
 	}
 
@@ -269,7 +272,7 @@ do_search(
 	 */
 	if ( (be = select_backend( nbase, manageDSAit, 1 )) == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
-			NULL, base, scope );
+			NULL, base.bv_val, scope );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
@@ -287,7 +290,7 @@ do_search(
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, base, nbase );
+	rc = backend_check_referrals( be, conn, op, base.bv_val, nbase );
 	if ( rc != LDAP_SUCCESS ) {
 		goto return_results;
 	}
@@ -297,7 +300,8 @@ do_search(
 
 	/* actually do the search and send the result(s) */
 	if ( be->be_search ) {
-		(*be->be_search)( be, conn, op, base, nbase, scope, deref, sizelimit,
+		(*be->be_search)( be, conn, op, base.bv_val, nbase,
+			scope, deref, sizelimit,
 		    timelimit, filter, fstr, attrs, attrsonly );
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
@@ -305,7 +309,7 @@ do_search(
 	}
 
 return_results:;
-	if( base != NULL) free( base );
+	free( base.bv_val );
 	if( nbase != NULL) free( nbase );
 	if( fstr != NULL) free( fstr );
 	if( filter != NULL) filter_free( filter );

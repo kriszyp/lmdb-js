@@ -36,7 +36,8 @@ do_compare(
 )
 {
 	Entry *entry = NULL;
-	char	*dn = NULL, *ndn=NULL;
+	struct berval dn = { 0, NULL };
+	char *ndn = NULL;
 	struct berval desc;
 	struct berval value;
 	struct berval *nvalue;
@@ -52,7 +53,7 @@ do_compare(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		   "do_compare: conn %d\n", conn->c_connid ));
+		"do_compare: conn %d\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_compare\n", 0, 0, 0 );
 #endif
@@ -68,10 +69,10 @@ do_compare(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{a" /*}*/, &dn ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{o" /*}*/, &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_compare: conn %d  ber_scanf failed\n", conn->c_connid ));
+			"do_compare: conn %d  ber_scanf failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -83,7 +84,7 @@ do_compare(
 	if ( ber_scanf( op->o_ber, "{oo}", &desc, &value ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_compare: conn %d  get ava failed\n", conn->c_connid ));
+			"do_compare: conn %d  get ava failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_compare: get ava failed\n", 0, 0, 0 );
 #endif
@@ -96,7 +97,7 @@ do_compare(
 	if ( ber_scanf( op->o_ber, /*{*/ "}" ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_compare: conn %d  ber_scanf failed\n", conn->c_connid ));
+			"do_compare: conn %d  ber_scanf failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -109,22 +110,23 @@ do_compare(
 	if( ( rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			   "do_compare: conn %d  get_ctrls failed\n", conn->c_connid ));
+			"do_compare: conn %d  get_ctrls failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_compare: get_ctrls failed\n", 0, 0, 0 );
 #endif
 		goto cleanup;
 	} 
 
-	ndn = ch_strdup( dn );
+	ndn = ch_strdup( dn.bv_val );
 
 	if( dn_normalize( ndn ) == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			   "do_compare: conn %d  invalid dn (%s)\n",
-			   conn->c_connid, dn ));
+			"do_compare: conn %d  invalid dn (%s)\n",
+			conn->c_connid, dn.bv_val ));
 #else
-		Debug( LDAP_DEBUG_ANY, "do_compare: invalid dn (%s)\n", dn, 0, 0 );
+		Debug( LDAP_DEBUG_ANY,
+			"do_compare: invalid dn (%s)\n", dn.bv_val, 0, 0 );
 #endif
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
@@ -149,16 +151,17 @@ do_compare(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
 			"do_compare: conn %d  dn (%s) attr(%s) value (%s)\n",
-			conn->c_connid, dn, ava.aa_desc->ad_cname.bv_val,
+			conn->c_connid, dn.bv_val, ava.aa_desc->ad_cname.bv_val,
 			ava.aa_value->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-			dn, ava.aa_desc->ad_cname.bv_val, ava.aa_value->bv_val );
+			dn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value->bv_val );
 #endif
 
 		Statslog( LDAP_DEBUG_STATS,
 			"conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
-			op->o_connid, op->o_opid, dn, ava.aa_desc->ad_cname.bv_val, 0 );
+			op->o_connid, op->o_opid, dn.bv_val,
+			ava.aa_desc->ad_cname.bv_val, 0 );
 
 		rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
 		if( rc != LDAP_SUCCESS ) {
@@ -176,16 +179,17 @@ do_compare(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
 			"do_compare: conn %d  dn (%s) attr(%s) value (%s)\n",
-			conn->c_connid, dn, ava.aa_desc->ad_cname.bv_val,
+			conn->c_connid, dn.bv_val, ava.aa_desc->ad_cname.bv_val,
 			ava.aa_value->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-			dn, ava.aa_desc->ad_cname.bv_val, ava.aa_value->bv_val );
+			dn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value->bv_val );
 #endif
 
 		Statslog( LDAP_DEBUG_STATS,
 			"conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
-			op->o_connid, op->o_opid, dn, ava.aa_desc->ad_cname.bv_val, 0 );
+			op->o_connid, op->o_opid, dn.bv_val,
+			ava.aa_desc->ad_cname.bv_val, 0 );
 
 		rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
 		if( rc != LDAP_SUCCESS ) {
@@ -224,7 +228,7 @@ do_compare(
 	 */
 	if ( (be = select_backend( ndn, manageDSAit, 0 )) == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
-			NULL, dn, LDAP_SCOPE_DEFAULT );
+			NULL, dn.bv_val, LDAP_SCOPE_DEFAULT );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
@@ -243,19 +247,19 @@ do_compare(
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, dn, ndn );
+	rc = backend_check_referrals( be, conn, op, dn.bv_val, ndn );
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		   "do_compare: conn %d	 dn (%s) attr(%s) value (%s)\n",
-		   conn->c_connid, dn, ava.aa_desc->ad_cname.bv_val,
-		   ava.aa_value->bv_val ));
+		"do_compare: conn %d	 dn (%s) attr(%s) value (%s)\n",
+		conn->c_connid, dn.bv_val, ava.aa_desc->ad_cname.bv_val,
+		ava.aa_value->bv_val ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-	    dn, ava.aa_desc->ad_cname.bv_val, ava.aa_value->bv_val );
+	    dn.bv_val, ava.aa_desc->ad_cname.bv_val, ava.aa_value->bv_val );
 #endif
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
@@ -266,14 +270,14 @@ do_compare(
 	ndn = suffix_alias( be, ndn );
 
 	if ( be->be_compare ) {
-		(*be->be_compare)( be, conn, op, dn, ndn, &ava );
+		(*be->be_compare)( be, conn, op, dn.bv_val, ndn, &ava );
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "operation not supported within namingContext", NULL, NULL );
 	}
 
 cleanup:
-	free( dn );
+	free( dn.bv_val );
 	free( ndn );
 	free( desc.bv_val );
 	free( value.bv_val );

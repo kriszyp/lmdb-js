@@ -44,12 +44,15 @@ do_modrdn(
     Operation	*op
 )
 {
-	char	*dn, *ndn = NULL, *newrdn;
+	struct berval dn = { 0, NULL };
+	struct berval newrdn = { 0, NULL };
+	struct berval newSuperior = { 0, NULL };
 	ber_int_t	deloldrdn;
-	Backend	*be;
-	/* Vars for LDAP v3 newSuperior support */
-	char	*newSuperior = NULL;
+
+	char	*ndn = NULL;
 	char	*nnewSuperior = NULL;
+
+	Backend	*be;
 	Backend	*newSuperior_be = NULL;
 	ber_len_t	length;
 	int rc;
@@ -58,7 +61,7 @@ do_modrdn(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		   "do_modrdn: begin\n" ));
+		"do_modrdn: begin\n" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_modrdn\n", 0, 0, 0 );
 #endif
@@ -75,11 +78,12 @@ do_modrdn(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{aab", &dn, &newrdn, &deloldrdn )
-	    == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{oob", &dn, &newrdn, &deloldrdn )
+	    == LBER_ERROR )
+	{
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_modrdn: ber_scanf failed\n" ));
+			"do_modrdn: ber_scanf failed\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -98,11 +102,11 @@ do_modrdn(
 			 */
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "do_modrdn: (v2) invalid field newSuperior.\n" ));
+				"do_modrdn: (v2) invalid field newSuperior.\n" ));
 #else
 			Debug( LDAP_DEBUG_ANY,
-			       "modrdn(v2): invalid field newSuperior!\n",
-			       0, 0, 0 );
+			    "modrdn(v2): invalid field newSuperior!\n",
+			    0, 0, 0 );
 #endif
 
 			send_ldap_disconnect( conn, op,
@@ -111,15 +115,15 @@ do_modrdn(
 			goto cleanup;
 		}
 
-		if ( ber_scanf( op->o_ber, "a", &newSuperior ) 
+		if ( ber_scanf( op->o_ber, "o", &newSuperior ) 
 		     == LBER_ERROR ) {
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "do_modrdn: ber_scanf(\"a\") failed\n" ));
+				"do_modrdn: ber_scanf(\"a\") failed\n" ));
 #else
 			Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\") failed\n",
-			   0, 0, 0 );
+				0, 0, 0 );
 #endif
 
 			send_ldap_disconnect( conn, op,
@@ -128,15 +132,16 @@ do_modrdn(
 			goto cleanup;
 		}
 
-		nnewSuperior = ch_strdup( newSuperior );
+		nnewSuperior = ch_strdup( newSuperior.bv_val );
 
 		if( dn_normalize( nnewSuperior ) == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "do_modrdn:  invalid new superior (%s)\n", newSuperior ));
+				"do_modrdn:  invalid new superior (%s)\n",
+				newSuperior.bv_val ));
 #else
 			Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid new superior (%s)\n",
-				newSuperior, 0, 0 );
+				newSuperior.bv_val, 0, 0 );
 #endif
 
 			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
@@ -148,26 +153,27 @@ do_modrdn(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		   "do_modrdn: dn (%s) newrdn (%s) newsuperior(%s)\n",
-		   dn, newrdn, newSuperior != NULL ? newSuperior : "" ));
+		"do_modrdn: dn (%s) newrdn (%s) newsuperior(%s)\n",
+		dn.bv_val, newrdn.bv_val,
+		newSuperior.bv_len ? newSuperior.bv_val : "" ));
 #else
 	Debug( LDAP_DEBUG_ARGS,
 	    "do_modrdn: dn (%s) newrdn (%s) newsuperior (%s)\n",
-		dn, newrdn,
-		newSuperior != NULL ? newSuperior : "" );
+		dn.bv_val, newrdn.bv_val,
+		newSuperior.bv_len ? newSuperior.bv_val : "" );
 #endif
 
 
 	if ( ber_scanf( op->o_ber, /*{*/ "}") == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_modrdn: ber_scanf failed\n" ));
+			"do_modrdn: ber_scanf failed\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: ber_scanf failed\n", 0, 0, 0 );
 #endif
 
 		send_ldap_disconnect( conn, op,
-				LDAP_PROTOCOL_ERROR, "decoding error" );
+			LDAP_PROTOCOL_ERROR, "decoding error" );
 		rc = SLAPD_DISCONNECT;
 		goto cleanup;
 	}
@@ -175,7 +181,7 @@ do_modrdn(
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_modrdn: get_ctrls failed\n" ));
+			"do_modrdn: get_ctrls failed\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: get_ctrls failed\n", 0, 0, 0 );
 #endif
@@ -184,14 +190,15 @@ do_modrdn(
 		goto cleanup;
 	} 
 
-	ndn = ch_strdup( dn );
+	ndn = ch_strdup( dn.bv_val );
 
 	if( dn_normalize( ndn ) == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_modrdn: invalid dn (%s)\n", dn ));
+			"do_modrdn: invalid dn (%s)\n", dn.bv_val ));
 #else
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid dn (%s)\n", dn, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid dn (%s)\n",
+			dn.bv_val, 0, 0 );
 #endif
 
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
@@ -199,12 +206,13 @@ do_modrdn(
 		goto cleanup;
 	}
 
-	if( !rdn_validate( newrdn ) ) {
+	if( !rdn_validate( newrdn.bv_val ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_modrdn: invalid rdn (%s).\n", newrdn ));
+			"do_modrdn: invalid rdn (%s).\n", newrdn.bv_val ));
 #else
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid rdn (%s)\n", newrdn, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid rdn (%s)\n",
+			newrdn.bv_val, 0, 0 );
 #endif
 
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
@@ -240,7 +248,7 @@ do_modrdn(
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MODRDN dn=\"%s\"\n",
-	    op->o_connid, op->o_opid, dn, 0, 0 );
+	    op->o_connid, op->o_opid, dn.bv_val, 0, 0 );
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -251,7 +259,7 @@ do_modrdn(
 	 */
 	if ( (be = select_backend( ndn, manageDSAit, 0 )) == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
-			NULL, dn, LDAP_SCOPE_DEFAULT );
+			NULL, dn.bv_val, LDAP_SCOPE_DEFAULT );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
@@ -269,7 +277,7 @@ do_modrdn(
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, dn, ndn );
+	rc = backend_check_referrals( be, conn, op, dn.bv_val, ndn );
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -277,7 +285,7 @@ do_modrdn(
 	/* Make sure that the entry being changed and the newSuperior are in 
 	 * the same backend, otherwise we return an error.
 	 */
-	if( newSuperior != NULL ) {
+	if( newSuperior.bv_len ) {
 		newSuperior_be = select_backend( nnewSuperior, 0, 0 );
 
 		if ( newSuperior_be != be ) {
@@ -310,25 +318,25 @@ do_modrdn(
 		if ( be->be_update_ndn == NULL || repl_user )
 #endif
 		{
-			if ( (*be->be_modrdn)( be, conn, op, dn, ndn, newrdn,
-			    deloldrdn, newSuperior ) == 0
+			if ( (*be->be_modrdn)( be, conn, op, dn.bv_val, ndn,
+				newrdn.bv_val, deloldrdn, newSuperior.bv_val ) == 0
 #ifdef SLAPD_MULTIMASTER
 				&& ( be->be_update_ndn == NULL || !repl_user )
 #endif
 			) {
 				struct replog_moddn moddn;
-				moddn.newrdn = newrdn;
+				moddn.newrdn = newrdn.bv_val;
 				moddn.deloldrdn = deloldrdn;
-				moddn.newsup = newSuperior;
+				moddn.newsup = newSuperior.bv_val;
 
-				replog( be, op, dn, ndn, &moddn );
+				replog( be, op, dn.bv_val, ndn, &moddn );
 			}
 #ifndef SLAPD_MULTIMASTER
 		} else {
 			struct berval **defref = be->be_update_refs
 				? be->be_update_refs : default_referral;
 			struct berval **ref = referral_rewrite( defref,
-				NULL, dn, LDAP_SCOPE_DEFAULT );
+				NULL, dn.bv_val, LDAP_SCOPE_DEFAULT );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				ref ? ref : defref, NULL );
@@ -338,16 +346,16 @@ do_modrdn(
 		}
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "operation not supported within namingContext", NULL, NULL );
+			NULL, "operation not supported within namingContext",
+			NULL, NULL );
 	}
 
 cleanup:
-	free( dn );
+	free( dn.bv_val );
+	free( newrdn.bv_val );	
+	free( newSuperior.bv_val );
+
 	if( ndn != NULL ) free( ndn );
-	free( newrdn );	
-	if ( newSuperior != NULL )
-		free( newSuperior );
-	if ( nnewSuperior != NULL )
-		free( nnewSuperior );
+	if ( nnewSuperior != NULL ) free( nnewSuperior );
 	return rc;
 }

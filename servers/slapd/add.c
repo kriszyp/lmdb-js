@@ -34,7 +34,8 @@ int
 do_add( Connection *conn, Operation *op )
 {
 	BerElement	*ber = op->o_ber;
-	char		*dn, *last;
+	char		*last;
+	struct berval dn;
 	ber_len_t	len;
 	ber_tag_t	tag;
 	Entry		*e;
@@ -65,7 +66,7 @@ do_add( Connection *conn, Operation *op )
 	 */
 
 	/* get the name */
-	if ( ber_scanf( ber, "{a", /*}*/ &dn ) == LBER_ERROR ) {
+	if ( ber_scanf( ber, "{o", /*}*/ &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			"do_add: conn %d ber_scanf failed\n", conn->c_connid ));
@@ -79,17 +80,18 @@ do_add( Connection *conn, Operation *op )
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 
-	e->e_dn = dn_pretty( dn );
-	e->e_ndn = dn_normalize( dn );
+	e->e_dn = dn_pretty( dn.bv_val );
+	e->e_ndn = dn_normalize( dn.bv_val );
 	e->e_attrs = NULL;
 	e->e_private = NULL;
 
 	if ( e->e_ndn == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_add: conn %d	 invalid dn (%s)\n", conn->c_connid, dn ));
+			"do_add: conn %d	 invalid dn (%s)\n", conn->c_connid,
+			dn.bv_val ));
 #else
-		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn.bv_val, 0, 0 );
 #endif
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );

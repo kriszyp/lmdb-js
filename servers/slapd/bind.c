@@ -37,7 +37,7 @@ do_bind(
 	ber_int_t		version;
 	ber_tag_t method;
 	char		*mech;
-	char		*dn;
+	struct berval dn = { 0, NULL };
 	char *ndn;
 	ber_tag_t	tag;
 	int			rc = LDAP_SUCCESS;
@@ -46,12 +46,12 @@ do_bind(
 	Backend		*be;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY, "do_bind: conn %d\n", conn->c_connid ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+		"do_bind: conn %d\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_bind\n", 0, 0, 0 );
 #endif
 
-	dn = NULL;
 	ndn = NULL;
 	mech = NULL;
 	cred.bv_val = NULL;
@@ -93,12 +93,12 @@ do_bind(
 	 *	}
 	 */
 
-	tag = ber_scanf( ber, "{iat" /*}*/, &version, &dn, &method );
+	tag = ber_scanf( ber, "{iot" /*}*/, &version, &dn, &method );
 
 	if ( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_bind: conn %d  ber_scanf failed\n", conn->c_connid ));
+			"do_bind: conn %d  ber_scanf failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "bind: ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -145,21 +145,23 @@ do_bind(
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			   "do_bind: conn %d  get_ctrls failed\n", conn->c_connid ));
+			"do_bind: conn %d  get_ctrls failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_bind: get_ctrls failed\n", 0, 0, 0 );
 #endif
 		goto cleanup;
 	} 
 
-	ndn = ch_strdup( dn );
+	ndn = ch_strdup( dn.bv_val );
 
 	if ( dn_normalize( ndn ) == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			   "do_bind: conn %d  invalid dn (%s)\n", conn->c_connid, dn ));
+			"do_bind: conn %d  invalid dn (%s)\n",
+			conn->c_connid, dn.bv_val ));
 #else
-		Debug( LDAP_DEBUG_ANY, "bind: invalid dn (%s)\n", dn, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "bind: invalid dn (%s)\n",
+			dn.bv_val, 0, 0 );
 #endif
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
@@ -169,20 +171,23 @@ do_bind(
 	if( method == LDAP_AUTH_SASL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation",	 LDAP_LEVEL_DETAIL1,
-			   "do_sasl_bind: conn %d  dn (%s) mech %s\n", conn->c_connid,
-			   dn, mech ));
+			"do_sasl_bind: conn %d  dn (%s) mech %s\n", conn->c_connid,
+			dn.bv_val, mech ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "do_sasl_bind: dn (%s) mech %s\n",
-			dn, mech, NULL );
+			dn.bv_val, mech, NULL );
 #endif
 	} else {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-			   "do_bind: conn %d  version=%ld dn=\"%s\" method=%ld\n",
-			   conn->c_connid, (unsigned long) version, dn, (unsigned long)method ));
+			"do_bind: conn %d  version=%ld dn=\"%s\" method=%ld\n",
+			conn->c_connid, (unsigned long) version,
+			dn.bv_val, (unsigned long)method ));
 #else
-		Debug( LDAP_DEBUG_TRACE, "do_bind: version=%ld dn=\"%s\" method=%ld\n",
-			(unsigned long) version, dn, (unsigned long) method );
+		Debug( LDAP_DEBUG_TRACE,
+			"do_bind: version=%ld dn=\"%s\" method=%ld\n",
+			(unsigned long) version,
+			dn.bv_val, (unsigned long) method );
 #endif
 	}
 
@@ -192,8 +197,8 @@ do_bind(
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			   "do_bind: conn %d  unknown version = %ld\n",
-			   conn->c_connid, (unsigned long)version ));
+			"do_bind: conn %d  unknown version = %ld\n",
+			conn->c_connid, (unsigned long)version ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_bind: unknown version=%ld\n",
 			(unsigned long) version, 0, 0 );
@@ -224,8 +229,8 @@ do_bind(
 		if ( version < LDAP_VERSION3 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-				   "do_bind: conn %d  sasl with LDAPv%ld\n",
-				   conn->c_connid, (unsigned long)version ));
+				"do_bind: conn %d  sasl with LDAPv%ld\n",
+				conn->c_connid, (unsigned long)version ));
 #else
 			Debug( LDAP_DEBUG_ANY, "do_bind: sasl with LDAPv%ld\n",
 				(unsigned long) version, 0, 0 );
@@ -272,7 +277,7 @@ do_bind(
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 		edn = NULL;
-		rc = slap_sasl_bind( conn, op, dn, ndn, &cred, &edn, &ssf );
+		rc = slap_sasl_bind( conn, op, dn.bv_val, ndn, &cred, &edn, &ssf );
 
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 		if( rc == LDAP_SUCCESS ) {
@@ -435,7 +440,7 @@ do_bind(
 	if ( (be = select_backend( ndn, 0, 0 )) == NULL ) {
 		if ( default_referral ) {
 			struct berval **ref = referral_rewrite( default_referral,
-				NULL, dn, LDAP_SCOPE_DEFAULT );
+				NULL, dn.bv_val, LDAP_SCOPE_DEFAULT );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				NULL, NULL, ref ? ref : default_referral, NULL );
@@ -469,14 +474,15 @@ do_bind(
 		/* deref suffix alias if appropriate */
 		ndn = suffix_alias( be, ndn );
 
-		ret = (*be->be_bind)( be, conn, op, dn, ndn,
+		ret = (*be->be_bind)( be, conn, op, dn.bv_val, ndn,
 			method, &cred, &edn );
 
 		if ( ret == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
-			conn->c_cdn = dn;
-			dn = NULL;
+			conn->c_cdn = dn.bv_val;
+			dn.bv_val = NULL;
+			dn.bv_len = 0;
 
 			if(edn != NULL) {
 				conn->c_dn = edn;
@@ -494,11 +500,11 @@ do_bind(
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-				   "do_bind: conn %d  v%d bind: \"%s\" to \"%s\" \n",
-				   conn->c_connid, version, conn->c_cdn, conn->c_dn ));
+				"do_bind: conn %d  v%d bind: \"%s\" to \"%s\" \n",
+				conn->c_connid, version, conn->c_cdn, conn->c_dn ));
 #else
 			Debug( LDAP_DEBUG_TRACE, "do_bind: v%d bind: \"%s\" to \"%s\"\n",
-			version, conn->c_cdn, conn->c_dn );
+				version, conn->c_cdn, conn->c_dn );
 #endif
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
@@ -517,9 +523,7 @@ do_bind(
 	}
 
 cleanup:
-	if( dn != NULL ) {
-		free( dn );
-	}
+	free( dn.bv_val );
 	if( ndn != NULL ) {
 		free( ndn );
 	}
