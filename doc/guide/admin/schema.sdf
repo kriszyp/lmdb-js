@@ -103,7 +103,7 @@ something more sophisticated such as the {{OpenLDAP OID Registry}}
 For more information about Object Identifers (and a listing
 service) see {{URL:http://www.alvestrand.no/harald/objectid/}}.
 
-.{{Under no circumstances should you use a fictious OID!}} 
+.{{Under no circumstances should you use a fictitious OID!}} 
 
 To obtain a fully registered OID at {{no cost}}, apply for
 an OID under {{ORG[expand]IANA}} (IANA) maintained
@@ -488,5 +488,5 @@ and their use in defining schema elements:
 >	objectclass ( myObjectClass:1 NAME 'myPhotoObject'
 >		DESC 'mixin myPhoto'
 >		AUXILIARY
->		MAY myPhotoURI )
+>		MAY myPhoto )
 
