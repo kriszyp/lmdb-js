@@ -28,23 +28,25 @@
 
 #ifdef HAVE_DB_185_H
 #	include <db_185.h>
-#ifndef DB_VERSION_MAJOR
-#  define DB_VERSION_MAJOR 1
-#endif
-#ifndef DB_VERSION_MINOR
-#  define DB_VERSION_MINOR 85
-#endif
 #else
 #	ifdef HAVE_DB1_DB_H
 #		include <db1/db.h>
 #	else
 #		include <db.h>
 #	endif
-#	if DB_VERSION_MAJOR >= 2
-#		define R_NOOVERWRITE DB_NOOVERWRITE
-#		ifndef DEFAULT_DB_PAGE_SIZE
-#			define DEFAULT_DB_PAGE_SIZE 4096
-#		endif
+#endif
+
+#ifndef DB_VERSION_MAJOR
+#  define DB_VERSION_MAJOR 1
+#endif
+#ifndef DB_VERSION_MINOR
+#  define DB_VERSION_MINOR 85
+#endif
+
+#if DB_VERSION_MAJOR >= 2
+#	define R_NOOVERWRITE DB_NOOVERWRITE
+#	ifndef DEFAULT_DB_PAGE_SIZE
+#		define DEFAULT_DB_PAGE_SIZE 4096
 #	endif
 #endif
 
