@@ -9,6 +9,11 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
+/*
+ * This routine adds (or updates) an entry on disk.
+ * The cache should already be updated. 
+ */
+
 int
 id2entry_add( Backend *be, Entry *e )
 {
@@ -45,11 +50,12 @@ id2entry_add( Backend *be, Entry *e )
 	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 
 	ldbm_cache_close( be, db );
-	(void) cache_add_entry_lock( &li->li_cache, e, 0 );
+
+	/* XXX entry should have already been added to the cache */
+	/* (void) cache_add_entry_rw( &li->li_cache, e, 0 ); */
 
 	Debug( LDAP_DEBUG_TRACE, "<= id2entry_add %d\n", rc, 0, 0 );
 
-	/* XXX should entries be born locked, i.e. apply writer lock here? */
 	return( rc );
 }
 
@@ -64,9 +70,11 @@ id2entry_delete( Backend *be, Entry *e )
 	Debug(LDAP_DEBUG_TRACE, "=> id2entry_delete( %lu, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
 
+#ifdef notdef
 #ifdef LDAP_DEBUG
 	/* check for writer lock */
 	assert(ldap_pvt_thread_rdwr_writers(&e->e_rdwr) == 1);
+#endif
 #endif
 
 	ldbm_datum_init( key );
@@ -96,7 +104,7 @@ id2entry_delete( Backend *be, Entry *e )
 
 /* XXX returns entry with reader/writer lock */
 Entry *
-id2entry( Backend *be, ID id, int rw )
+id2entry_rw( Backend *be, ID id, int rw )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	struct dbcache	*db;
@@ -145,15 +153,12 @@ id2entry( Backend *be, ID id, int rw )
 		return( NULL );
 	}
 
-	/* acquire required reader/writer lock */
-	if (entry_rdwr_lock(e, rw)) {
-		/* XXX set DELETE flag?? */
-		entry_free(e);
-		return(NULL);
-	}
-
 	e->e_id = id;
-	(void) cache_add_entry_lock( &li->li_cache, e, 0 );
+
+	if( cache_add_entry_rw( &li->li_cache, e, 0, rw ) != 0 ) {
+		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) (cache add failed)\n",
+			rw ? "w" : "r", id, 0 );
+	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) (disk)\n",
 		rw ? "w" : "r", id, 0 );
@@ -163,12 +168,12 @@ id2entry( Backend *be, ID id, int rw )
 Entry *
 id2entry_r( Backend *be, ID id )
 {
-	return( id2entry( be, id, 0 ) );
+	return( id2entry_rw( be, id, 0 ) );
 }
 
 Entry *
 id2entry_w( Backend *be, ID id )
 {
-	return( id2entry( be, id, 1 ) );
+	return( id2entry_rw( be, id, 1 ) );
 }
 

@@ -138,33 +138,19 @@ typedef unsigned long	ID;
  * represents an entry in core
  */
 typedef struct entry {
-	ldap_pvt_thread_rdwr_t	e_rdwr;	/* reader/writer lock */
-
-	char		*e_dn;		/* DN of this entry 		  */
-	char		*e_ndn;		/* normalized DN of this entry	  */
-	Attribute	*e_attrs;	/* list of attributes + values    */
-
-
 	/*
 	 * The ID field should only be changed before entry is
 	 * inserted into a cache.  The ID value is backend
 	 * specific.
 	 */
-	ID		e_id;		/* id of this entry - this should */
-					/* really be private to back-ldbm */
+	ID		e_id;
 
-	/*
-	 * remaining fields require backend cache lock to access
-	 * These items are specific to the LDBM backend and should
-	 * be hidden.
-	 */
-	char		e_state;	/* for the cache		  */
-#define ENTRY_STATE_DELETED		1
-#define ENTRY_STATE_CREATING	2
+	char		*e_dn;		/* DN of this entry */
+	char		*e_ndn;		/* normalized DN of this entry */
+	Attribute	*e_attrs;	/* list of attributes + values */
 
-	int		e_refcnt;	/* # threads ref'ing this entry   */
-	struct entry	*e_lrunext;	/* for cache lru list		  */
-	struct entry	*e_lruprev;
+	/* for use by the backend for any purpose */
+	void*	e_private;
 } Entry;
 
 /*

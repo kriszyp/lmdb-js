@@ -23,7 +23,7 @@ ldbm_back_add(
 	char		*pdn;
 	Entry		*p = NULL;
 	int			rootlock = 0;
-	int			rc = -1; 
+	int			rc; 
 
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", e->e_dn, 0, 0);
 
@@ -121,39 +121,19 @@ ldbm_back_add(
 		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 	}
 
-	/* acquire required reader/writer lock */
-	if (entry_rdwr_lock(e, 1)) {
-		if( p != NULL) {
-			/* free parent and writer lock */
-			cache_return_entry_w( &li->li_cache, p ); 
-		}
-
-		if ( rootlock ) {
-			/* release root lock */
-			ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
-		}
-
-		Debug( LDAP_DEBUG_ANY, "add: could not lock entry\n",
-			0, 0, 0 );
-
-		entry_free(e);
-
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
-		return( -1 );
-	}
-
 	e->e_id = next_id( be );
 
 	/*
 	 * Try to add the entry to the cache, assign it a new dnid.
-	 * This should only fail if the entry already exists.
 	 */
+	rc = cache_add_entry_rw(&li->li_cache, e, ENTRY_STATE_CREATING, 1);
 
-	if ( cache_add_entry_lock( &li->li_cache, e, ENTRY_STATE_CREATING ) != 0 ) {
+	if ( rc != 0 ) {
 		if( p != NULL) {
 			/* free parent and writer lock */
 			cache_return_entry_w( &li->li_cache, p ); 
 		}
+
 		if ( rootlock ) {
 			/* release root lock */
 			ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
@@ -161,14 +141,23 @@ ldbm_back_add(
 
 		Debug( LDAP_DEBUG_ANY, "cache_add_entry_lock failed\n", 0, 0,
 		    0 );
+
+		/* return the id */
 		next_id_return( be, e->e_id );
-                
-		entry_rdwr_unlock(e, 1);
+
+		/* free the entry */
 		entry_free( e );
 
-		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, "", "" );
+		if(rc > 0) {
+			send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, "", "" );
+		} else {
+			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		}
+
 		return( -1 );
 	}
+
+	rc = -1;
 
 	/*
 	 * add it to the id2children index for the parent

@@ -54,11 +54,11 @@ do_add( Connection *conn, Operation *op )
 	}
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
-	/* initialize reader/writer lock */
-	entry_rdwr_init(e);
 
 	e->e_dn = dn;
 	e->e_ndn = dn_normalize_case( ch_strdup( dn ) );
+	e->e_private = NULL;
+
 	dn = NULL;
 
 	Debug( LDAP_DEBUG_ARGS, "    do_add: ndn (%s)\n", e->e_ndn, 0, 0 );

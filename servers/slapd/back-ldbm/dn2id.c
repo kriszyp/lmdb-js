@@ -154,7 +154,7 @@ dn2id_delete(
  */
 
 static Entry *
-dn2entry(
+dn2entry_rw(
     Backend	*be,
     char	*dn,
     char	**matched,
@@ -172,7 +172,7 @@ dn2entry(
 	*matched = NULL;
 
 	if ( (id = dn2id( be, dn )) != NOID &&
-		(e = id2entry( be, id, rw )) != NULL )
+		(e = id2entry_rw( be, id, rw )) != NULL )
 	{
 		return( e );
 	}
@@ -215,7 +215,7 @@ dn2entry_r(
 	char	**matched
 )
 {
-	return( dn2entry( be, dn, matched, 0 ) );
+	return( dn2entry_rw( be, dn, matched, 0 ) );
 }
 
 Entry *
@@ -225,7 +225,7 @@ dn2entry_w(
 	char	**matched
 )
 {
-	return( dn2entry( be, dn, matched, 1 ) );
+	return( dn2entry_rw( be, dn, matched, 1 ) );
 }
 
 

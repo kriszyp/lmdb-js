@@ -146,7 +146,9 @@ ldbm_back_modrdn(
 	e->e_dn = new_dn;
 	e->e_ndn = new_ndn;
 
-	/* XXX
+	(void) cache_update_entry( &li->li_cache, e );
+
+	/* 
 	 * At some point here we need to update the attribute values in
 	 * the entry itself that were effected by this RDN change
 	 * (respecting the value of the deleteoldrdn parameter).

@@ -46,10 +46,10 @@ monitor_info( Connection *conn, Operation *op )
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 	/* initialize reader/writer lock */
-	entry_rdwr_init(e);
 	e->e_attrs = NULL;
 	e->e_dn = ch_strdup( SLAPD_MONITOR_DN );
 	e->e_ndn = dn_normalize_case( ch_strdup(SLAPD_MONITOR_DN) );
+	e->e_private = NULL;
 
 	val.bv_val = Versionstr;
 	if (( p = strchr( Versionstr, '\n' )) == NULL ) {

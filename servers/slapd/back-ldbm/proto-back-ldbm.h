@@ -37,7 +37,9 @@ void attr_index_config LDAP_P(( struct ldbminfo *li, char *fname, int lineno,
 void cache_set_state LDAP_P(( struct cache *cache, Entry *e, int state ));
 void cache_return_entry_r LDAP_P(( struct cache *cache, Entry *e ));
 void cache_return_entry_w LDAP_P(( struct cache *cache, Entry *e ));
-int cache_add_entry_lock LDAP_P(( struct cache *cache, Entry *e, int state ));
+int cache_add_entry_rw LDAP_P(( struct cache *cache, Entry *e,
+	int state, int rw ));
+int cache_update_entry LDAP_P(( struct cache *cache, Entry *e ));
 ID cache_find_entry_dn2id LDAP_P(( Backend *be, struct cache *cache, char *dn ));
 Entry * cache_find_entry_id LDAP_P(( struct cache *cache, ID id, int rw ));
 int cache_delete_entry LDAP_P(( struct cache *cache, Entry *e ));
@@ -85,7 +87,7 @@ int has_children LDAP_P(( Backend *be, Entry *p ));
 
 int id2entry_add LDAP_P(( Backend *be, Entry *e ));
 int id2entry_delete LDAP_P(( Backend *be, Entry *e ));
-Entry * id2entry LDAP_P(( Backend *be, ID id, int rw )); 
+Entry * id2entry_rw LDAP_P(( Backend *be, ID id, int rw )); 
 Entry * id2entry_r LDAP_P(( Backend *be, ID id ));
 Entry * id2entry_w LDAP_P(( Backend *be, ID id ));
 
