@@ -9,7 +9,9 @@ OpenLDAP 2.1.24 Engineering
 	Fixed back-bdb compatibility with BDB 4.2 (ITS#2848)
 	Fixed lunicode insufficient buffer allocation bug (ITS#2727)
 	Fixed libldap destructor bug (ITS#2758)
+	Fixed libldap SASL maxbuf usage (ITS#2770)
 	Fixed libldap_r pthread support (ITS#2820)
+	Fixed liblutil NS_MTA_MD5 hash (ITS#2773)
 	Fixed slapd berbuf align bugs
 	Added lutil_passwd extensions
 	Build Environment
