@@ -993,13 +993,18 @@ if test $ac_cv_func_res_query = no ; then
 fi
 
 if test $ac_cv_func_res_query = no ; then 
+	AC_CHECK_LIB(resolv, res_9_query)
+	ac_cv_func_res_query=$ac_cv_lib_resolv_res_9_query
+fi
+
+if test $ac_cv_func_res_query = no ; then 
 	AC_CHECK_LIB(resolv, __res_query)
 	ac_cv_func_res_query=$ac_cv_lib_resolv___res_query
 fi
 
 if test $ac_cv_func_res_query = no ; then 
 	AC_CHECK_LIB(resolv, _res_9_query)
-	ac_cv_func_res_query=$ac_cv_lib_resolv_res_9_query
+	ac_cv_func_res_query=$ac_cv_lib_resolv__res_9_query
 fi
 
 if test "$ac_cv_func_res_query" = yes ; then
