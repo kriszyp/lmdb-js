@@ -265,7 +265,8 @@ ber_get_stringb LDAP_P((
 LBER_F( ber_tag_t )
 ber_get_stringbv LDAP_P((
 	BerElement *ber,
-	struct berval *bv ));
+	struct berval *bv,
+	int alloc ));
 
 LBER_F( ber_tag_t )
 ber_get_stringa LDAP_P((
