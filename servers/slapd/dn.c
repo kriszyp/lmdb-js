@@ -450,6 +450,18 @@ char **dn_subtree(
 }
 
 
+dn_issuffixbv(
+	const struct berval *dn,
+	const struct berval *suffix
+)
+{
+	if (suffix->bv_len > dn->bv_len)
+		return 0;
+
+	return( strcmp( dn->bv_val + dn->bv_len - suffix->bv_len,
+		suffix->bv_val ) == 0 );
+}
+
 /*
  * dn_issuffix - tells whether suffix is a suffix of dn. Both dn
  * and suffix must be normalized.
