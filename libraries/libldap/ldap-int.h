@@ -147,7 +147,8 @@ struct ldapoptions {
 	LDAPControl **ldo_cctrls;
 
 	/* LDAP rebind callback function */
-	LDAP_REBIND_PROC		*ldo_rebindproc;
+	LDAP_REBIND_PROC *ldo_rebind_proc;
+	void *ldo_rebind_params;
 
 #ifdef HAVE_TLS
    	/* tls context */
@@ -268,7 +269,8 @@ struct ldap {
 
 #define ld_sctrls		ld_options.ldo_sctrls
 #define ld_cctrls		ld_options.ldo_cctrls
-#define ld_rebindproc	ld_options.ldo_rebindproc
+#define ld_rebind_proc	ld_options.ldo_rebind_proc
+#define ld_rebind_params	ld_options.ldo_rebind_params
 
 #define ld_version		ld_options.ldo_version
 
@@ -298,10 +300,17 @@ struct ldap {
 };
 #define LDAP_VALID(ld)	( (ld)->ld_valid == LDAP_VALID_SESSION )
 
-#if defined(HAVE_RES_QUERY) && defined(LDAP_R_COMPILE)
+#ifdef LDAP_R_COMPILE
 #include <ldap_pvt_thread.h>
+
+#ifdef HAVE_RES_QUERY
 LDAP_V ( ldap_pvt_thread_mutex_t ) ldap_int_resolv_mutex;
-#endif /* HAVE_RES_QUERY && LDAP_R_COMPILE */
+#endif /* HAVE_RES_QUERY */
+
+#ifdef HAVE_CYRUS_SASL
+LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_sasl_mutex;
+#endif
+#endif
 
 /*
  * in init.c
@@ -515,6 +524,7 @@ LDAP_F (void) ldap_free_urllist LDAP_P((
 /*
  * in cyrus.c
  */
+
 LDAP_F (int) ldap_int_sasl_init LDAP_P(( void ));
 
 LDAP_F (int) ldap_int_sasl_open LDAP_P((
@@ -542,6 +552,7 @@ LDAP_F (int) ldap_int_sasl_bind LDAP_P((
 	unsigned flags,
 	LDAP_SASL_INTERACT_PROC *interact,
 	void *defaults ));
+
 
 /*
  * in tls.c

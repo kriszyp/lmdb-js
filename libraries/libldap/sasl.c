@@ -37,7 +37,6 @@
 
 #include "ldap-int.h"
 
-
 /*
  * ldap_sasl_bind - bind to the ldap server (and X.500).
  * The dn (usually NULL), mechanism, and credentials are provided.
@@ -417,13 +416,17 @@ ldap_sasl_interactive_bind_s(
 {
 	int rc;
 
+#if defined( LDAP_R_COMPILE ) && defined( HAVE_CYRUS_SASL )
+	ldap_pvt_thread_mutex_lock( &ldap_int_sasl_mutex );
+#endif
+
 	if( mechs == NULL || *mechs == '\0' ) {
 		char *smechs;
 
 		rc = ldap_pvt_sasl_getmechs( ld, &smechs );
 
 		if( rc != LDAP_SUCCESS ) {
-			return rc;
+			goto done;
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
@@ -441,6 +444,11 @@ ldap_sasl_interactive_bind_s(
 	rc = ldap_int_sasl_bind( ld, dn, mechs,
 		serverControls, clientControls,
 		flags, interact, defaults );
+
+done:
+#if defined( LDAP_R_COMPILE ) && defined( HAVE_CYRUS_SASL )
+	ldap_pvt_thread_mutex_unlock( &ldap_int_sasl_mutex );
+#endif
 
 	return rc;
 }

@@ -397,7 +397,8 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 	gopts->ldo_defport = LDAP_PORT;
 
 	gopts->ldo_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
-	gopts->ldo_rebindproc = NULL;
+	gopts->ldo_rebind_proc = NULL;
+	gopts->ldo_rebind_params = NULL;
 
 	LDAP_BOOL_ZERO(gopts);
 

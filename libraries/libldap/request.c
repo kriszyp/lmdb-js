@@ -289,7 +289,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 		 */
 		lc->lconn_rebind_inprogress = 1;
 		/* V3 rebind function */
-		if ( ld->ld_rebindproc != NULL) {
+		if ( ld->ld_rebind_proc != NULL) {
 			LDAPURLDesc	*srvfunc;
 			if( ( srvfunc = ldap_url_dup( srvlist)) == NULL) {
 				ld->ld_errno = LDAP_NO_MEMORY;
@@ -299,8 +299,10 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 				++lc->lconn_refcnt;	/* avoid premature free */
 				ld->ld_defconn = lc;
 
-				Debug( LDAP_DEBUG_TRACE, "Call application rebindproc\n", 0, 0, 0);
-				err = (*ld->ld_rebindproc)( ld, bind->ri_url, bind->ri_request, bind->ri_msgid);
+				Debug( LDAP_DEBUG_TRACE, "Call application rebind_proc\n", 0, 0, 0);
+				err = (*ld->ld_rebind_proc)( ld,
+					bind->ri_url, bind->ri_request, bind->ri_msgid,
+					ld->ld_rebind_params);
 
 				ld->ld_defconn = savedefconn;
 				--lc->lconn_refcnt;

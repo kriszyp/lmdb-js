@@ -17,6 +17,7 @@
 #include "ldap-int.h"
 
 #define LDAP_OPT_REBIND_PROC 0x4e814d
+#define LDAP_OPT_REBIND_PARAMS 0x4e814e
 
 static const LDAPAPIFeatureInfo features[] = {
 #ifdef LDAP_API_FEATURE_X_OPENLDAP
@@ -420,7 +421,10 @@ ldap_set_option(
 
 	/* Only accessed from inside this function by ldap_set_rebind_proc() */
 	case LDAP_OPT_REBIND_PROC: {
-			lo->ldo_rebindproc = (LDAP_REBIND_PROC *)invalue;		
+			lo->ldo_rebind_proc = (LDAP_REBIND_PROC *)invalue;		
+		} return LDAP_OPT_SUCCESS;
+	case LDAP_OPT_REBIND_PARAMS: {
+			lo->ldo_rebind_params = (void *)invalue;		
 		} return LDAP_OPT_SUCCESS;
 	}
 
@@ -593,7 +597,12 @@ ldap_set_option(
 }
 
 int
-ldap_set_rebind_proc( LDAP *ld, LDAP_REBIND_PROC *rebind_proc)
+ldap_set_rebind_proc( LDAP *ld, LDAP_REBIND_PROC *proc, void *params )
 {
-	return( ldap_set_option( ld, LDAP_OPT_REBIND_PROC, (void *)rebind_proc));
+	int rc;
+	rc = ldap_set_option( ld, LDAP_OPT_REBIND_PROC, (void *)proc );
+	if( rc != LDAP_OPT_SUCCESS ) return rc;
+
+	rc = ldap_set_option( ld, LDAP_OPT_REBIND_PARAMS, (void *)params );
+	return rc;
 }

@@ -16,11 +16,13 @@
 #include <ac/ctype.h>
 
 #include "ldap-int.h"
-#ifdef LDAP_R_COMPILE
-#include "ldap_pvt_thread.h"
-#endif
 
 #ifdef HAVE_CYRUS_SASL
+
+#ifdef LDAP_R_COMPILE
+ldap_pvt_thread_mutex_t ldap_int_sasl_mutex;
+#endif
+
 #include <sasl.h>
 
 /*
@@ -62,6 +64,8 @@ int ldap_int_sasl_init( void )
 		ldap_pvt_sasl_mutex_lock,
 		ldap_pvt_sasl_mutex_unlock,    
 		ldap_pvt_sasl_mutex_dispose );    
+
+	ldap_pvt_thread_mutex_init( &ldap_int_sasl_mutex );
 #endif
 
 	if ( sasl_client_init( client_callbacks ) == SASL_OK ) {
