@@ -120,7 +120,7 @@ bdb_bt_compare(
 )
 {
 	unsigned char *u, *c;
-	int i;
+	int i, x;
 
 	u = usrkey->data;
 	c = curkey->data;
@@ -131,9 +131,10 @@ bdb_bt_compare(
 	for( i = sizeof(ID)-1; i >= 0; i--)
 #endif
 	{
-		if( u[i] - c[i] )
-			return u[i] - c[i];
+		x = u[i] - c[i];
+		if( x ) return x;
 	}
+
 	return 0;
 }
 
