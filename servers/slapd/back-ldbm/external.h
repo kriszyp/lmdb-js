@@ -60,6 +60,20 @@ extern int	ldbm_back_group LDAP_P(( BackendDB *bd,
 	Entry *target, char* gr_ndn, char* op_ndn,
 	char* objectclassValue, char* groupattrName));
 
+
+/* hooks for slap tools */
+extern int ldbm_tool_entry_open LDAP_P(( BackendDB *be, int mode ));
+extern int ldbm_tool_entry_close LDAP_P(( BackendDB *be ));
+extern ID ldbm_tool_entry_first LDAP_P(( BackendDB *be ));
+extern ID ldbm_tool_entry_next LDAP_P(( BackendDB *be ));
+extern Entry* ldbm_tool_entry_get LDAP_P(( BackendDB *be, ID id ));
+extern ID ldbm_tool_entry_put LDAP_P(( BackendDB *be, Entry *e ));
+extern int ldbm_tool_index_attr LDAP_P(( BackendDB *be, char* type ));
+extern int ldbm_tool_index_change LDAP_P(( BackendDB *be, char* type,
+	struct berval **bv, ID id, int op ));
+extern int ldbm_tool_sync LDAP_P(( BackendDB *be ));
+
+	
 LDAP_END_DECL
 
 #endif /* _LDBM_EXTERNAL_H */

@@ -43,7 +43,7 @@ id2entry_add( Backend *be, Entry *e )
 	key.dsize = sizeof(ID);
 
 	ldap_pvt_thread_mutex_lock( &entry2str_mutex );
-	data.dptr = entry2str( e, &len, 1 );
+	data.dptr = entry2str( e, &len );
 	data.dsize = len + 1;
 
 	/* store it */
@@ -144,7 +144,6 @@ id2entry_rw( Backend *be, ID id, int rw )
 	}
 
 	e = str2entry( data.dptr );
-
 	ldbm_datum_free( db->dbc_db, data );
 	ldbm_cache_close( be, db );
 
@@ -154,12 +153,7 @@ id2entry_rw( Backend *be, ID id, int rw )
 		return( NULL );
 	}
 
-	if ( e->e_id != id ) {
-		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) (wrong id %ld on disk)\n",
-			rw ? "w" : "r", id, e->e_id );
-		entry_free( e );
-		return( NULL );
-	}
+	e->e_id = id;
 
 	if( cache_add_entry_rw( &li->li_cache, e, rw ) != 0 ) {
 		entry_free( e );

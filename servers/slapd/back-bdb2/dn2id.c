@@ -23,9 +23,6 @@ bdb2i_dn2id_add(
 	Datum		key, data;
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
-	ldbm_datum_init( key );
-	ldbm_datum_init( data );
-
 	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_dn2id_add( \"%s\", %ld )\n", dn, id, 0 );
 
 	if ( (db = bdb2i_cache_open( be, "dn2id", BDB2_SUFFIX, LDBM_WRCREAT ))
@@ -35,11 +32,12 @@ bdb2i_dn2id_add(
 		return( -1 );
 	}
 
-	dn = ch_strdup( dn );
-	(void) dn_normalize_case( dn );
+	ldbm_datum_init( key );
+	key.dsize = strlen( dn ) + 2;
+	key.dptr = ch_malloc( key.dsize );
+	sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, dn );
 
-	key.dptr = dn;
-	key.dsize = strlen( dn ) + 1;
+	ldbm_datum_init( data );
 	data.dptr = (char *) &id;
 	data.dsize = sizeof(ID);
 
@@ -48,7 +46,41 @@ bdb2i_dn2id_add(
 
 	rc = bdb2i_cache_store( db, key, data, flags );
 
-	free( dn );
+	free( key.dptr );
+
+	if ( rc != -1 ) {
+		char *pdn = dn_parent( NULL, dn );
+
+		if( pdn != NULL ) {
+			ldbm_datum_init( key );
+			key.dsize = strlen( pdn ) + 2;
+			key.dptr = ch_malloc( key.dsize );
+			sprintf( key.dptr, "%c%s", DN_ONE_PREFIX, pdn );
+			rc = bdb2i_idl_insert_key( be, db, key, id );
+			free( key.dptr );
+		}
+	}
+
+	if ( rc != -1 ) {
+		char **subtree = dn_subtree( NULL, dn );
+
+		if( subtree != NULL ) {
+			int i;
+			for( i=0; subtree[i] != NULL; i++ ) {
+				ldbm_datum_init( key );
+				key.dsize = strlen( subtree[i] ) + 2;
+				key.dptr = ch_malloc( key.dsize );
+				sprintf( key.dptr, "%c%s", DN_SUBTREE_PREFIX, subtree[i] );
+
+				rc = bdb2i_idl_insert_key( be, db, key, id );
+
+				free( key.dptr );
+			}
+
+			charray_free( subtree );
+		}
+	}
+
 	bdb2i_cache_close( be, db );
 
 	Debug( LDAP_DEBUG_TRACE, "<= bdb2i_dn2id_add %d\n", rc, 0, 0 );
@@ -66,16 +98,10 @@ bdb2i_dn2id(
 	ID		id;
 	Datum		key, data;
 
-	ldbm_datum_init( key );
-	ldbm_datum_init( data );
-
-	dn = ch_strdup( dn );
 	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_dn2id( \"%s\" )\n", dn, 0, 0 );
-	(void) dn_normalize_case( dn );
 
 	/* first check the cache */
 	if ( (id = bdb2i_cache_find_entry_dn2id( be, &li->li_cache, dn )) != NOID ) {
-		free( dn );
 		Debug( LDAP_DEBUG_TRACE, "<= bdb2i_dn2id %ld (in cache)\n", id,
 			0, 0 );
 		return( id );
@@ -83,19 +109,22 @@ bdb2i_dn2id(
 
 	if ( (db = bdb2i_cache_open( be, "dn2id", BDB2_SUFFIX, LDBM_WRCREAT ))
 		== NULL ) {
-		free( dn );
 		Debug( LDAP_DEBUG_ANY, "<= bdb2i_dn2id could not open dn2id%s\n",
 			BDB2_SUFFIX, 0, 0 );
 		return( NOID );
 	}
 
-	key.dptr = dn;
-	key.dsize = strlen( dn ) + 1;
+	ldbm_datum_init( key );
+
+	key.dsize = strlen( dn ) + 2;
+	key.dptr = ch_malloc( key.dsize );
+	sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, dn );
 
 	data = bdb2i_cache_fetch( db, key );
 
 	bdb2i_cache_close( be, db );
-	free( dn );
+
+	free( key.dptr );
 
 	if ( data.dptr == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<= bdb2i_dn2id NOID\n", 0, 0, 0 );
@@ -110,6 +139,41 @@ bdb2i_dn2id(
 	return( id );
 }
 
+ID_BLOCK *
+bdb2i_dn2idl(
+    BackendDB	*be,
+    char	*dn,
+	int	prefix )
+{
+	struct dbcache	*db;
+	Datum key;
+	ID_BLOCK *idl;
+
+	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_dn2idl( \"%c%s\" )\n", prefix, dn, 0 );
+
+	if ( (db = bdb2i_cache_open( be, "dn2id", BDB2_SUFFIX, LDBM_WRCREAT ))
+	    == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "<= bdb2i_dn2idl could not open dn2id%s\n", BDB2_SUFFIX,
+		    0, 0 );
+		return( NULL );
+	}
+
+	ldbm_datum_init( key );
+
+	key.dsize = strlen( dn ) + 2;
+	key.dptr = ch_malloc( key.dsize );
+	sprintf( key.dptr, "%c%s", prefix, dn );
+
+	idl = bdb2i_idl_fetch( be, db, key );
+
+	free( key.dptr );
+
+	bdb2i_cache_close( be, db );
+
+	return( idl );
+}
+
 int
 bdb2i_dn2id_delete(
     BackendDB	*be,
@@ -119,8 +183,6 @@ bdb2i_dn2id_delete(
 	struct dbcache	*db;
 	Datum		key;
 	int		rc;
-
-	ldbm_datum_init( key );
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_dn2id_delete( \"%s\" )\n", dn, 0, 0 );
 
@@ -132,14 +194,15 @@ bdb2i_dn2id_delete(
 		return( -1 );
 	}
 
-	dn = ch_strdup( dn );
-	(void) dn_normalize_case( dn );
-	key.dptr = dn;
-	key.dsize = strlen( dn ) + 1;
+	ldbm_datum_init( key );
+
+	key.dsize = strlen( dn ) + 2;
+	key.dptr = ch_malloc( key.dsize );
+	sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, dn );
 
 	rc = bdb2i_cache_delete( db, key );
 
-	free( dn );
+	free( key.dptr );
 
 	bdb2i_cache_close( be, db );
 

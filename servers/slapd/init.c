@@ -70,6 +70,8 @@ slap_init( int mode, char *name )
 {
 	int rc;
 
+	assert( mode );
+
 	if( slapMode != SLAP_UNDEFINED_MODE ) {
 		Debug( LDAP_DEBUG_ANY,
 	   	 "%s init: init called twice (old=%d, new=%d)\n",
@@ -79,18 +81,12 @@ slap_init( int mode, char *name )
 
 	slapMode = mode;
 
-	switch ( slapMode ) {
-
+	switch ( slapMode & SLAP_MODE ) {
 		case SLAP_SERVER_MODE:
 		case SLAP_TOOL_MODE:
-#ifdef SLAP_TIMEDSERVER_MODE
-		case SLAP_TIMEDSERVER_MODE:
-#endif
-		case SLAP_TOOLID_MODE:
-
 			Debug( LDAP_DEBUG_TRACE,
 				"%s init: initiated %s.\n",
-				name, (mode == SLAP_TOOL_MODE || mode == SLAP_TOOLID_MODE) ? "tool" : "server", 0 );
+				name, ( mode & SLAP_TOOL_MODE ) ? "tool" : "server", 0 );
 
 			slap_name = name;
 	
@@ -110,7 +106,7 @@ slap_init( int mode, char *name )
 			ldap_pvt_thread_mutex_init( &crypt_mutex );
 #endif
 
-			rc = backend_init();
+			rc = backend_init( );
 			break;
 
 		default:
@@ -123,7 +119,7 @@ slap_init( int mode, char *name )
 	return rc;
 }
 
-int slap_startup(int dbnum)
+int slap_startup( Backend *be )
 {
 	int rc;
 
@@ -131,7 +127,7 @@ int slap_startup(int dbnum)
 		"%s startup: initiated.\n",
 		slap_name, 0, 0 );
 
-	rc = backend_startup(dbnum);
+	rc = backend_startup( be );
 
 	if( rc == 0 ) {
 		rc = sasl_init();
@@ -140,7 +136,7 @@ int slap_startup(int dbnum)
 	return rc;
 }
 
-int slap_shutdown(int dbnum)
+int slap_shutdown( Backend *be )
 {
 	int rc;
 
@@ -151,7 +147,7 @@ int slap_shutdown(int dbnum)
 	sasl_destroy();
 
 	/* let backends do whatever cleanup they need to do */
-	rc = backend_shutdown(dbnum); 
+	rc = backend_shutdown( be ); 
 
 	return rc;
 }

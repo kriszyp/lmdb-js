@@ -134,7 +134,7 @@ int ldbm_modify_internal(
 						mod->mod_type,
 						a->a_vals,
 						e->e_id,
-						__INDEX_DELETE_OP);
+						SLAP_INDEX_DELETE_OP);
 				}
 			}
 		}

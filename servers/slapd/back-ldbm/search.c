@@ -400,40 +400,20 @@ search_candidates(
 		lf->f_choice = LDAP_FILTER_AND;
 		lf->f_and = (Filter *) ch_malloc( sizeof(Filter) );
 
-#ifndef DN_INDICES
-		lf->f_and->f_choice = LDAP_FILTER_SUBSTRINGS;
-		lf->f_and->f_sub_type = ch_strdup( "dn" );
-		lf->f_and->f_sub_initial = NULL;
-		lf->f_and->f_sub_any = NULL;
-		lf->f_and->f_sub_final = ch_strdup( e->e_ndn );
-#else
 		lf->f_and->f_choice = SLAPD_FILTER_DN_SUBTREE;
 		lf->f_and->f_dn = e->e_ndn;
-#endif
 
 		lf->f_and->f_next = f;
 		f = lf;
 
 	} else if ( scope == LDAP_SCOPE_ONELEVEL ) {
-#ifndef DN_INDICES
-		char buf[16];
-#endif
-
 		lf = (Filter *) ch_malloc( sizeof(Filter) );
 		lf->f_next = NULL;
 		lf->f_choice = LDAP_FILTER_AND;
 		lf->f_and = (Filter *) ch_malloc( sizeof(Filter) );
 
-#ifndef DN_INDICES
-		lf->f_and->f_choice = LDAP_FILTER_EQUALITY;
-		lf->f_and->f_ava.ava_type = ch_strdup( "id2children" );
-		sprintf( buf, "%ld", e != NULL ? e->e_id : 0 );
-		lf->f_and->f_ava.ava_value.bv_val = ch_strdup( buf );
-		lf->f_and->f_ava.ava_value.bv_len = strlen( buf );
-#else
 		lf->f_and->f_choice = SLAPD_FILTER_DN_ONE;
 		lf->f_and->f_dn = e->e_ndn;
-#endif
 
 		lf->f_and->f_next = f;
 		f = lf;
@@ -446,13 +426,8 @@ search_candidates(
 
 	/* free up filter additions we allocated above */
 	if( lf != NULL ) {
-#ifndef DN_INDICES
-		lf->f_and->f_next = NULL;
-		filter_free( lf );
-#else
 		free( lf->f_and );
 		free( lf );
-#endif
 	}
 
 	if( af != NULL ) {

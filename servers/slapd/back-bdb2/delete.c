@@ -93,7 +93,7 @@ bdb2i_back_delete_internal(
 	}
 #endif
 
-	/* delete from parent's id2children entry */
+	/* find parent's entry */
 	if( (pdn = dn_parent( be, e->e_ndn )) != NULL ) {
 		if( (p = bdb2i_dn2entry_w( be, pdn, &matched )) == NULL) {
 			Debug( LDAP_DEBUG_TRACE,
@@ -123,15 +123,6 @@ bdb2i_back_delete_internal(
 				NULL, NULL, NULL, NULL );
 			goto return_results;
 		}
-	}
-
-	if ( bdb2i_id2children_remove( be, p, e ) != 0 ) {
-		Debug(LDAP_DEBUG_ARGS,
-			"<=- bdb2i_back_delete: operations error %s\n",
-			dn, 0, 0);
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-				NULL, NULL, NULL, NULL );
-		goto return_results;
 	}
 
 	/* delete from dn2id mapping */

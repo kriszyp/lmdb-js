@@ -21,12 +21,10 @@ bdb2i_enter_backend_rw( DB_LOCK *lock, int writer )
 	DBT            lock_dbt;
 	int            ret = 0;
 
-	switch ( slapMode ) {
+	switch ( slapMode & SLAP_MODE ) {
 
 		case SLAP_SERVER_MODE:
-		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
-		case SLAP_TOOLID_MODE:
 			if ( ( ret = lock_id( bdb2i_dbEnv.lk_info, &locker )) != 0 ) {
 
 				Debug( LDAP_DEBUG_ANY,
@@ -103,12 +101,10 @@ bdb2i_leave_backend_rw( DB_LOCK lock, int writer )
 	ret_transaction |= bdb2i_set_txn_checkpoint( bdb2i_dbEnv.tx_info, 0 );
 
 	/*  now release the lock  */
-	switch ( slapMode ) {
+	switch ( slapMode & SLAP_MODE ) {
 
 		case SLAP_SERVER_MODE:
-		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
-		case SLAP_TOOLID_MODE:
 			switch( ( ret_lock = lock_put( bdb2i_dbEnv.lk_info, lock ))) {
 
 				case 0:

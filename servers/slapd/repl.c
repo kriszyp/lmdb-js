@@ -99,7 +99,7 @@ replog(
 		e = change;
 		fprintf( fp, "changetype: add\n" );
 		ldap_pvt_thread_mutex_lock( &entry2str_mutex );
-		tmp = entry2str( e, &len, 0 );
+		tmp = entry2str( e, &len );
 		while ( (tmp = strchr( tmp, '\n' )) != NULL ) {
 			tmp++;
 			if ( ! isspace( (unsigned char) *tmp ) )

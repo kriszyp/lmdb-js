@@ -12,6 +12,7 @@
 static int
 bdb2i_back_db_close_internal( BackendDB *be )
 {
+	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	DB_LOCK         lock;
 
 	/*  since close will probably write the NEXTID file,
@@ -20,8 +21,7 @@ bdb2i_back_db_close_internal( BackendDB *be )
 		return( -1 );
 	}
 
-	if ( slapMode != SLAP_TOOL_MODE ) {
-
+	if ( li->li_nextid != NOID ) {
 		Debug( LDAP_DEBUG_TRACE, "bdb2 backend saving nextid\n", 0, 0, 0 );
 		if ( bdb2i_next_id_save( be ) < 0 ) {
 			Debug( LDAP_DEBUG_ANY, "bdb2 backend nextid save failed!\n",

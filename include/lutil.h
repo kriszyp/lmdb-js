@@ -47,6 +47,14 @@ lutil_passwd LDAP_P((
 	const char *passwd,
 	const char **methods ));
 
+/* utils.c */
+LDAP_F( char* )
+lutil_progname LDAP_P((
+	const char* name,
+	int argc,
+	char *argv[] ));
+
+
 LDAP_END_DECL
 
 #endif /* _LUTIL_H */

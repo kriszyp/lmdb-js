@@ -12,9 +12,9 @@
 #       Stand alone LDAP server tools makefile
 #
 #-----------------------------------------------------------------------------
-HAVE_QUIPU = @BUILD_QUIPU@
 BUILD_LDBM = @BUILD_LDBM@
 BUILD_BDB2 = @BUILD_BDB2@
+BUILD_QUIPU = @BUILD_QUIPU@
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
@@ -30,51 +30,83 @@ XXLIBS = $(LDAPD_LIBS) $(SLAPD_LIBS) \
 	$(LDIF_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
 
-PROGRAMS=ldif2index ldif2ldbm ldbmcat ldif2id2entry ldif2id2children \
-	centipede ldbmtest ldif
+PROGRAMS=ldif slapadd slapcat slapindex
+LDBMPROGRAMS=centipede sizecount
+BDB2PROGRAMS=
+QUIPUPROGRAMS=chlog2replog edb2ldif
 
-PROGRAMS2=ldif2index-bdb2 ldif2ldbm-bdb2 \
-	ldif2id2entry-bdb2 ldif2id2children-bdb2
-
-SRCS = centipede.c ldbmcat.c ldbmtest.c sizecount.c \
-	ldif.c ldif2id2children.c ldif2id2entry.c ldif2index.c ldif2ldbm.c \
-	mimic.c ldif2common.c
-
-SRCS2 = ldif2id2children-bdb2.c ldif2id2entry-bdb2.c \
-	ldif2index-bdb2.c ldif2ldbm-bdb2.c
+SRCS = ldif.c mimic.c slapcommon.c
 
 XSRCS = edb2-vers.c
 
-EDB2LDIFSRCS	= edb2ldif.c ldapsyntax.c
-EDB2LDIFOBJS	= edb2ldif.o ldapsyntax.o
+LDBMSRCS = centipede.c sizecount.c
 
-OBJS1	= mimic.o \
-		../config.o ../ch_malloc.o ../backend.o ../charray.o \
+BDB2SRCS =
+
+QUIPUSRCS	= edb2ldif.c ldapsyntax.c chlog2replog.c
+SLAPD_OBJS = ../config.o ../ch_malloc.o ../backend.o ../charray.o \
 		../module.o ../aclparse.o ../schema.o ../filterentry.o \
 		../acl.o ../phonetic.o ../attr.o ../value.o ../entry.o \
 		../dn.o ../filter.o ../str2filter.o ../ava.o ../init.o \
 		../controls.o ../schemaparse.o
-OBJS2	= $(OBJS1) ldif2common.o
+SLAPOBJS = $(SLAPD_OBJS) slapcommon.o mimic.o 
 
-all-local: build-ldbm build-bdb2 build-edb2ldif build-chlog2replog
+EDB2LDIFSRCS    = edb2ldif.c ldapsyntax.c
+EDB2LDIFOBJS    = edb2ldif.o ldapsyntax.o
+
+all-local: build-progs build-ldbm build-bdb2 build-quipu
+
+build-progs: $(PROGRAMS)
 
 build-ldbm: ldbm-tools-$(BUILD_LDBM)
 ldbm-tools-no:
 	@echo "run configure with --enable-ldbm to build LDBM tools"
 
+ldbm-tools-yes ldbm-tools-mod: $(LDBMPROGRAMS)
+
 build-bdb2: bdb2-tools-$(BUILD_BDB2)
 bdb2-tools-no:
 	@echo "run configure with --enable-bdb2 to build BDB2 tools"
 
-ldbm-tools-yes ldbm-tools-mod: $(PROGRAMS)
+bdb2-tools-yes bdb2-tools-mod: $(BDB2PROGRAMS)
 
-bdb2-tools-yes bdb2-tools-mod: $(PROGRAMS2)
+build-quipu: quipu-tools-$(BUILD_QUIPU)
+quipu-tools-no:
+	@echo "run configure with --enable-quipu to build QUIPU tools"
 
-build-edb2ldif:	edb-$(HAVE_QUIPU)
-edb-no:
-	@echo "run configure with --enable-quipu to build edb2ldif"
-edb-yes: edb2ldif
+quipu-tools-yes quipu-tools-mod: $(QUIPUPROGRAMS)
 
+#
+# SLAP Tools
+#
+slapadd:	slapadd.o ../libbackends.a $(SLAPOBJS) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ slapadd.o $(SLAPOBJS) ../libbackends.a $(LIBS)
+
+slapcat:	slapcat.o ../libbackends.a $(SLAPOBJS) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ slapcat.o $(SLAPOBJS) ../libbackends.a $(LIBS)
+
+slapindex:	slapindex.o ../libbackends.a $(SLAPOBJS) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ slapindex.o $(SLAPOBJS) ../libbackends.a $(LIBS)
+
+ldif:		ldif.o $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ ldif.o $(LIBS)
+
+#
+# LDBM Specific Tools
+#
+centipede:	centipede.o $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ centipede.o $(LIBS)
+
+sizecount:	sizecount.o ../phonetic.o ../ch_malloc.o $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ sizecount.o ../phonetic.o ../ch_malloc.o $(LIBS)
+
+#
+# BDBM Specific Tools
+#
+
+#
+# QUIPU Specific Tools
+#
 edb2ldif:	edb2-vers.o
 	$(CC) $(LDFLAGS) -o $@ $(EDB2LDIFOBJS) edb2-vers.o $(LIBS)
 
@@ -82,81 +114,26 @@ edb2-vers.c: $(EDB2LDIFOBJS)
 	@-$(RM) $@
 	$(MKVERSION) ebd2ldif > $@
 
-build-chlog2replog: chlog-$(HAVE_QUIPU)
-chlog-no:
-	@echo "run configure with --enable-quipu to build chlog2replog"
-chlog-yes: chlog2replog
-
 chlog2replog: chlog2replog.o ../lock.o ../ch_malloc.o $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ chlog2replog.o ../lock.o ../ch_malloc.o $(LIBS)
 
-ldif2index:	ldif2index.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o $@ ldif2index.o $(OBJS2) ../libbackends.a $(LIBS)
-
-ldif2index-bdb2:	ldif2index-bdb2.o ../libbackends.a \
-		$(OBJS2) $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o $@ ldif2index-bdb2.o $(OBJS2) ../libbackends.a $(LIBS)
-
-ldif2ldbm:	ldif2ldbm.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o $@ ldif2ldbm.o $(OBJS2) ../libbackends.a $(LIBS)
-
-ldif2ldbm-bdb2:	ldif2ldbm-bdb2.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o $@ ldif2ldbm-bdb2.o $(OBJS2) ../libbackends.a $(LIBS)
-
-ldif2id2entry:	ldif2id2entry.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o $@ ldif2id2entry.o $(OBJS2) ../libbackends.a $(LIBS)
-
-ldif2id2entry-bdb2:	ldif2id2entry-bdb2.o ../libbackends.a \
-		$(OBJS2) $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o $@ ldif2id2entry-bdb2.o $(OBJS2) ../libbackends.a $(LIBS)
-
-ldif2id2children:	ldif2id2children.o ../libbackends.a \
-		$(OBJS2) $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o $@ ldif2id2children.o $(OBJS2) ../libbackends.a $(LIBS)
-
-ldif2id2children-bdb2:	ldif2id2children-bdb2.o ../libbackends.a \
-		$(OBJS2) $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o $@ ldif2id2children-bdb2.o $(OBJS2) ../libbackends.a $(LIBS)
-
-ldbmcat:	ldbmcat.o $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o $@ ldbmcat.o $(LIBS)
-
-ldif:		ldif.o $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o $@ ldif.o $(LIBS)
-
-centipede:	centipede.o $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o $@ centipede.o $(LIBS)
-
-sizecount:	sizecount.o ../phonetic.o ../ch_malloc.o $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o $@ sizecount.o ../phonetic.o ../ch_malloc.o $(LIBS)
-
-ldbmtest:	ldbmtest.o ../libbackends.a $(OBJS1) $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o ldbmtest ldbmtest.o $(OBJS1) ../libbackends.a $(LIBS)
-
 clean-local: FORCE
-	$(RM) $(PROGRAMS) $(PROGRAMS2) $(XPROGRAMS) $(XSRCS) edb2-vers.c \
-		*.o core .libs/*
+	$(RM) $(PROGRAMS) $(LDBMPROGRAMS2) $(BDB2PROGRAMS) $(QUIPUPROGRAM) \
+		$(XPROGRAMS) $(XSRCS) *.o core .libs/*
 
 depend-local: FORCE
-	@DEPEND=no ; DEPEND_LDBM= ; DEPEND_BDB2= ; DEPEND_QUIPU= ; \
+	@DEPEND_LDBM= ; DEPEND_BDB2= ; DEPEND_QUIPU= ; \
 	if [ "$(BUILD_LDBM)" != "no" ]; then \
-		DEPEND_LDBM="$(SRCS)"; \
-		DEPEND=yes ; \
+		DEPEND_LDBM="$(LDBMSRCS)"; \
 	fi; \
 	if [ "$(BUILD_BDB2)" != "no" ]; then \
-		DEPEND_BDB2="$(SRCS2)"; \
-		DEPEND=yes ; \
+		DEPEND_BDB2="$(BDBMSRCS)"; \
 	fi; \
-	if [ "$(HAVE_QUIPU)" != "no" ]; then \
-		DEPEND_QUIPU="$(QUIPUINCLUDEFLAG) chlog2replog.c $(EDB2LDIFSRCS)"; \
-		DEPEND=yes ; \
+	if [ "$(BUILD_QUIPU)" != "no" ]; then \
+		DEPEND_QUIPU="$(QUIPUINCLUDEFLAG) $(QUIPUSRCS)"; \
 	fi; \
-	if [ "$$DEPEND" = "yes" ]; then \
-	$(MKDEP) $(DEFS) $(DEFINES) $$DEPEND_QUIPU \
-			$$DEPEND_LDBM $$DEPEND_BDB2; \
-	else \
-		echo "slapd-tools: no dependencies to make"; \
-	fi
+	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS) $$DEPEND_QUIPU \
+			$$DEPEND_LDBM $$DEPEND_BDB2
 
 install-local: install-ldbm-$(BUILD_LDBM) install-bdb2-$(BUILD_BDB2) \
 	 install-quipu-$(HAVE_QUIPU)
@@ -165,24 +142,16 @@ install-ldbm-no install-bdb2-no install-quipu-no:
 
 install-ldbm-yes install-ldbm-mod: FORCE
 	@-$(MKDIR) $(sbindir) 
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2index $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldbmcat $(sbindir)	; \
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapcat $(sbindir)	; \
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapentry $(sbindir)	; \
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapindex $(sbindir)	; \
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 centipede $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldbmtest $(sbindir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 centipede $(sbindir)
 
 install-bdb2-yes install-bdb2-mod: FORCE
 	@-$(MKDIR) $(sbindir) 
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm-bdb2 $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2index-bdb2 $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry-bdb2 $(sbindir) ; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children-bdb2 $(sbindir)
 
 install-quipu-yes: FORCE
 	@-$(MKDIR) $(sbindir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 edb2ldif $(sbindir); \
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 chlog2replog $(sbindir)
-

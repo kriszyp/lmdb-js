@@ -6,10 +6,8 @@
 #include <ac/string.h>
 #include <ac/unistd.h>
 
-#include <ldbm.h>
-#include <lber.h>
 #include <ldap.h>
-#include "portable.h"
+#include <ldbm.h>
 
 #define CACHE_SIZE	1000000
 #define MODE		0600
@@ -23,6 +21,7 @@ extern char	*phonetic(char *);
 
 extern int ldap_debug;
 
+int slap_debug;
 int	ldap_syslog;
 int	ldap_syslog_level;
 

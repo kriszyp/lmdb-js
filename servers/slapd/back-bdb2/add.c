@@ -188,9 +188,6 @@ bdb2i_back_add_internal(
 		Debug( LDAP_DEBUG_ANY, "cache_add_entry_lock failed\n", 0, 0,
 		    0 );
 
-		/* return the id */
-		bdb2i_next_id_return( be, e->e_id );
-                
 		/* free the entry */
 		entry_free( e );
 
@@ -204,27 +201,8 @@ bdb2i_back_add_internal(
 	rc = -1;
 
 	/*
-	 * add it to the id2children index for the parent
-	 */
-
-	bdb2i_start_timing( be->bd_info, &time1 );
-
-	if ( bdb2i_id2children_add( be, p, e ) != 0 ) {
-		Debug( LDAP_DEBUG_TRACE, "bdb2i_id2children_add failed\n", 0,
-		    0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
-
-		bdb2i_stop_timing( be->bd_info, time1, "ADD-ID2CHILDREN", conn, op );
-
-		goto return_results;
-	}
-
-	bdb2i_stop_timing( be->bd_info, time1, "ADD-ID2CHILDREN", conn, op );
-
-	/*
 	 * Add the entry to the attribute indexes, then add it to
-	 * the id2children index, dn2id index, and the id2entry index.
+	 * the id2entry and dn2id index.
 	 */
 
 	bdb2i_start_timing( be->bd_info, &time1 );
@@ -317,11 +295,9 @@ bdb2_back_add(
 
 	/*  check, if a new default attribute index will be created,
 		in which case we have to open the index file BEFORE TP  */
-	switch ( slapMode ) {
+	switch ( slapMode & SLAP_MODE ) {
 		case SLAP_SERVER_MODE:
-		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
-		case SLAP_TOOLID_MODE:
 			bdb2i_check_default_attr_index_add( li, e );
 			break;
 	}

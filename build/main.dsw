@@ -87,34 +87,46 @@ Package=<4>
     Project_Dep_Name ldapsearch
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name ldbmcat
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name ldbmtest
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name ldif
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name ldif2id2children
+    Project_Dep_Name testavl
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name ldif2id2entry
+    Project_Dep_Name ud
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name ldif2index
+    Project_Dep_Name slapcat
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name ldif2ldbm
+    Project_Dep_Name slapadd
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name slapindex
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name slapd
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name testavl
+    Project_Dep_Name ldbmcat
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name ud
+    Project_Dep_Name ldif2ldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ldbmindex
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ldbmentry
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ltest
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ltest_r
     End Project Dependency
 }}}
 
@@ -291,6 +303,78 @@ Package=<4>
 
 ###############################################################################
 
+Project: "ldbmentry"=..\servers\slapd\tools\ldbmentry.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name backldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libavl
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldap_r
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldif
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libslapd
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "ldbmindex"=..\servers\slapd\tools\ldbmindex.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name backldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libavl
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldap_r
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldif
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libslapd
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "ldbmtest"=..\servers\slapd\tools\ldbmtest.dsp - Package Owner=<4>
 
 Package=<5>
@@ -346,114 +430,6 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name liblutil
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "ldif2id2children"=..\servers\slapd\tools\ldif2id2children.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name backldbm
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldap_r
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldif
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libavl
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblutil
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblber
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldbm
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libslapd
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "ldif2id2entry"=..\servers\slapd\tools\ldif2id2entry.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name backldbm
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libavl
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldap_r
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldif
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblutil
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblber
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldbm
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libslapd
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "ldif2index"=..\servers\slapd\tools\ldif2index.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name backldbm
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldap_r
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libavl
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblutil
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldif
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblber
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldbm
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libslapd
     End Project Dependency
 }}}
 
@@ -645,6 +621,78 @@ Package=<4>
 
 ###############################################################################
 
+Project: "slapadd"=..\servers\slapd\tools\slapadd.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name backldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libavl
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldap_r
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldif
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libslapd
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "slapcat"=..\servers\slapd\tools\slapcat.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libavl
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldap_r
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldif
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libslapd
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name backldbm
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "slapd"=..\servers\slapd\slapd.dsp - Package Owner=<4>
 
 Package=<5>
@@ -676,6 +724,42 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libslapd
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "slapindex"=..\servers\slapd\tools\slapindex.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name backldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libavl
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldap_r
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldif
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libslapd

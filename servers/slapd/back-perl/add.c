@@ -34,14 +34,15 @@ perl_back_add(
 
 	PerlBackend *perl_back = (PerlBackend *) be->be_private;
 
-	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
+	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );
+	ldap_pvt_thread_mutex_lock( &entry2str_mutex );
 
 	{
 		dSP; ENTER; SAVETMPS;
 
 		PUSHMARK(sp);
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( entry2str( e, &len, 0 ), 0 )));
+		XPUSHs(sv_2mortal(newSVpv( entry2str( e, &len ), 0 )));
 
 		PUTBACK;
 
@@ -58,6 +59,7 @@ perl_back_add(
 		PUTBACK; FREETMPS; LEAVE;
 	}
 
+	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
 	if( return_code != 0 ) {

@@ -84,11 +84,10 @@ int backend_init(void)
 	}
 
 	for( ;
-		binfo[nBackendInfo].bi_type !=  NULL;
+		binfo[nBackendInfo].bi_type != NULL;
 		nBackendInfo++ )
 	{
-		rc = binfo[nBackendInfo].bi_init(
-			&binfo[nBackendInfo] );
+		rc = binfo[nBackendInfo].bi_init( &binfo[nBackendInfo] );
 
 		if(rc != 0) {
 			Debug( LDAP_DEBUG_ANY,
@@ -158,7 +157,7 @@ int backend_add(BackendInfo *aBackendInfo)
    }	    
 }
 
-int backend_startup(int n)
+int backend_startup(Backend *be)
 {
 	int i;
 	int rc = 0;
@@ -171,24 +170,14 @@ int backend_startup(int n)
 		return 1;
 	}
 
-	if(n >= 0) {
+	if(be != NULL) {
 		/* startup a specific backend database */
 		Debug( LDAP_DEBUG_TRACE,
-			"backend_startup: starting database %d\n",
-			n, 0, 0 );
+			"backend_startup: starting database\n",
+			0, 0, 0 );
 
-		/* make sure, n does not exceed the number of backend databases */
-		if ( n >= nbackends ) {
-
-			Debug( LDAP_DEBUG_ANY,
-				"backend_startup: database number %d exceeding maximum (%d)\n",
-				n, nbackends, 0 );
-			return 1;
-		}
-
-		if ( backendDB[n].bd_info->bi_open ) {
-			rc = backendDB[n].bd_info->bi_open(
-				backendDB[n].bd_info );
+		if ( be->bd_info->bi_open ) {
+			rc = be->bd_info->bi_open( be->bd_info );
 		}
 
 		if(rc != 0) {
@@ -198,9 +187,8 @@ int backend_startup(int n)
 			return rc;
 		}
 
-		if ( backendDB[n].bd_info->bi_db_open ) {
-			rc = backendDB[n].bd_info->bi_db_open(
-				&backendDB[n] );
+		if ( be->bd_info->bi_db_open ) {
+			rc = be->bd_info->bi_db_open( be );
 		}
 
 		if(rc != 0) {
@@ -251,36 +239,37 @@ int backend_startup(int n)
 	return rc;
 }
 
-int backend_shutdown(int n)
+int backend_num( Backend *be )
+{
+	int i;
+
+	if( be == NULL ) return -1;
+
+	for( i = 0; i < nBackendDB; i++ ) {
+		if( be == &backendDB[i] ) return i;
+	}
+	return -1;
+}
+
+int backend_shutdown( Backend *be )
 {
 	int i;
 	int rc = 0;
 
-	if(n >= 0) {
+	if( be != NULL ) {
 		/* shutdown a specific backend database */
 
-		/* make sure, n does not exceed the number of backend databases */
-		if ( n >= nbackends ) {
-
-			Debug( LDAP_DEBUG_ANY,
-				"backend_startup: database number %d exceeding maximum (%d)\n",
-				n, nbackends, 0 );
-			return 1;
-		}
-
-		if ( backendDB[n].bd_info->bi_nDB == 0 ) {
+		if ( be->bd_info->bi_nDB == 0 ) {
 			/* no database of this type, we never opened it */
 			return 0;
 		}
 
-		if ( backendDB[n].bd_info->bi_db_close ) {
-			backendDB[n].bd_info->bi_db_close(
-				&backendDB[n] );
+		if ( be->bd_info->bi_db_close ) {
+			be->bd_info->bi_db_close( be );
 		}
 
-		if( backendDB[n].bd_info->bi_close ) {
-			backendDB[n].bd_info->bi_close(
-				backendDB[n].bd_info );
+		if( be->bd_info->bi_close ) {
+			be->bd_info->bi_close( be->bd_info );
 		}
 
 		return 0;

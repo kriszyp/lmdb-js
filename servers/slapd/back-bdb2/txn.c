@@ -7,6 +7,14 @@
 #endif
 #include "txn.h"
 
+/*  default DB files  */
+char  *bdb2i_fixed_filenames[] = {
+	"id2entry",
+	"dn2id",
+	"objectclass",
+	NULL
+};
+
 
 int
 bdb2i_txn_head_init( BDB2_TXN_HEAD *head )
@@ -17,20 +25,19 @@ bdb2i_txn_head_init( BDB2_TXN_HEAD *head )
 	/*  for each fixed DB file allocate a file descriptor node and
         initialize the file's name  */
 	fileNodeH = &head->dbFiles;
-	for ( dbFile = BDB2_DB_DN_FILE; dbFile <= BDB2_DB_OC_IDX_FILE; dbFile++ ) {
 
+	for ( dbFile = 0; bdb2i_fixed_filenames[dbFile] != NULL; dbFile++ ) {
 		char fileName[MAXPATHLEN];
 
 		*fileNodeH = (BDB2_TXN_FILES *) ch_calloc( 1, sizeof( BDB2_TXN_FILES ));
-		if ( *fileNodeH == NULL ) {
 
+		if ( *fileNodeH == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "bdb2i_txn_head_init(): out of memory!\n",
 					0, 0, 0 );
 			return( 1 );
-
 		}
 
-		sprintf( fileName, "%s%s", bdb2i_fixed_filenames[dbFile], BDB2_SUFFIX );
+		sprintf( fileName, "%s" BDB2_SUFFIX, bdb2i_fixed_filenames[dbFile] );
 		(*fileNodeH)->dbc_name = ch_strdup( fileName );
 
 		fileNodeH = &(*fileNodeH)->next;

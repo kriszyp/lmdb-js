@@ -64,6 +64,14 @@ ldif_fetch_url LDAP_P((
 LDAP_F( char * )
 ldif_getline LDAP_P(( char **next ));
 
+LDAP_F( int )
+ldif_read_record LDAP_P((
+	FILE *fp,
+	int *lineno,
+	char **bufp,
+	int *buflen ));
+
+
 #define LDIF_PUT_NOVALUE	0x0000	/* no value */
 #define LDIF_PUT_VALUE		0x0001	/* value w/ auto detection */
 #define LDIF_PUT_TEXT		0x0002	/* assume text */

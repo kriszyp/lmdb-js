@@ -40,7 +40,6 @@ filter_candidates(
 
 	result = NULL;
 	switch ( f->f_choice ) {
-#ifdef DN_INDICES
 	case SLAPD_FILTER_DN_ONE:
 		Debug( LDAP_DEBUG_FILTER, "\tDN ONE\n", 0, 0, 0 );
 		result = dn2idl( be, f->f_dn, DN_ONE_PREFIX );
@@ -50,7 +49,7 @@ filter_candidates(
 		Debug( LDAP_DEBUG_FILTER, "\tDN SUBTREE\n", 0, 0, 0 );
 		result = dn2idl( be, f->f_dn, DN_SUBTREE_PREFIX );
 		break;
-#endif
+
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "\tEQUALITY\n", 0, 0, 0 );
 		result = ava_candidates( be, &f->f_ava, LDAP_FILTER_EQUALITY );

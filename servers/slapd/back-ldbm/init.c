@@ -58,6 +58,19 @@ ldbm_back_initialize(
 	bi->bi_entry_release_rw = ldbm_back_entry_release_rw;
 	bi->bi_acl_group = ldbm_back_group;
 
+	/*
+	 * hooks for slap tools
+	 */
+	bi->bi_tool_entry_open = ldbm_tool_entry_open;
+	bi->bi_tool_entry_close = ldbm_tool_entry_close;
+	bi->bi_tool_entry_first = ldbm_tool_entry_first;
+	bi->bi_tool_entry_next = ldbm_tool_entry_next;
+	bi->bi_tool_entry_get = ldbm_tool_entry_get;
+	bi->bi_tool_entry_put = ldbm_tool_entry_put;
+	bi->bi_tool_index_attr = ldbm_tool_index_attr;
+	bi->bi_tool_index_change = ldbm_tool_index_change;
+	bi->bi_tool_sync = ldbm_tool_sync;
+
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
 
@@ -110,10 +123,6 @@ ldbm_back_db_init(
 	/* arrange to read nextid later (on first request for it) */
 	li->li_nextid = NOID;
 
-#if SLAPD_NEXTID_CHUNK > 1
-	li->li_nextid_wrote = NOID;
-#endif
-
 	/* default cache size */
 	li->li_cache.c_maxsize = DEFAULT_CACHE_SIZE;
 
@@ -129,29 +138,11 @@ ldbm_back_db_init(
 	/* default database directory */
 	li->li_directory = ch_strdup( DEFAULT_DB_DIRECTORY );
 
-#ifndef DN_INDICES
-	/* always index dn, id2children, objectclass (used in some searches) */
-	if ( !at_find( "dn" ) ) {
-		argv[ 0 ] = "dn";
-		argv[ 1 ] = "dn";
-		argv[ 2 ] = NULL;
-		attr_syntax_config( "ldbm dn initialization", 0, 2, argv );
-	}
-	argv[ 0 ] = "dn";
-	argv[ 1 ] = "eq,sub";
-	argv[ 2 ] = NULL;
-	attr_index_config( li, "ldbm dn initialization", 0, 2, argv, 1 );
-	argv[ 0 ] = "id2children";
-	argv[ 1 ] = "eq";
-	argv[ 2 ] = NULL;
-	attr_index_config( li, "ldbm id2children initialization", 0, 2, argv,
-	    1 );
-#endif
 	argv[ 0 ] = "objectclass";
 	argv[ 1 ] = "pres,eq";
 	argv[ 2 ] = NULL;
-	attr_index_config( li, "ldbm objectclass initialization", 0, 2, argv,
-	    1 );
+	attr_index_config( li, "ldbm objectclass initialization",
+		0, 2, argv, 1 );
 
 	/* initialize various mutex locks & condition variables */
 	ldap_pvt_thread_mutex_init( &li->li_root_mutex );

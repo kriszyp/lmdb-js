@@ -28,12 +28,10 @@ bdb2i_cache_open(
 )
 {
 	/*  all files are open, so return handle from file cache  */
-	switch ( slapMode ) {
+	switch ( slapMode & SLAP_MODE ) {
 
 		case SLAP_SERVER_MODE:
-		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
-		case SLAP_TOOLID_MODE:
 			{
 				struct	ldbminfo	*li = (struct ldbminfo *) be->be_private;
 				char	buf[MAXPATHLEN];
@@ -60,12 +58,9 @@ void
 bdb2i_cache_close( BackendDB *be, struct dbcache *db )
 {
 	/*  all files stay open until SERVER or TOOL shut down  */
-	switch ( slapMode ) {
-
+	switch ( slapMode & SLAP_MODE ) {
 		case SLAP_SERVER_MODE:
-		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
-		case SLAP_TOOLID_MODE:
 			return;
 
 		default:
@@ -81,12 +76,9 @@ void
 bdb2i_cache_really_close( BackendDB *be, struct dbcache *db )
 {
 	/*  all files stay open until SERVER or TOOL shut down  */
-	switch ( slapMode ) {
-
+	switch ( slapMode & SLAP_MODE ) {
 		case SLAP_SERVER_MODE:
-		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
-		case SLAP_TOOLID_MODE:
 			return;
 
 		default:
@@ -102,12 +94,10 @@ void
 bdb2i_cache_flush_all( BackendDB *be )
 {
 	/*  if SERVER or TOOL, syncing is done by TP, or during shutdown  */
-	switch ( slapMode ) {
+	switch ( slapMode & SLAP_MODE ) {
 
 		case SLAP_SERVER_MODE:
-		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
-		case SLAP_TOOLID_MODE:
 			return;
 
 		default:
@@ -163,12 +153,12 @@ bdb2i_cache_store(
 		flags, 0, 0, 0, 0 );
 #endif /* LDBM_DEBUG */
 
-	if ( slapMode == SLAP_TIMEDSERVER_MODE )
+	if ( slapMode & SLAP_TIMED_MODE )
 		bdb2i_uncond_start_timing( &time1 );
 
 	rc = bdb2i_db_store( db->dbc_db, key, data, flags );
 
-	if ( slapMode == SLAP_TIMEDSERVER_MODE ) {
+	if ( slapMode & SLAP_TIMED_MODE ) {
 		char buf[BUFSIZ];
 		char buf2[BUFSIZ];
 

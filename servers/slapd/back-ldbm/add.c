@@ -211,9 +211,6 @@ ldbm_back_add(
 		Debug( LDAP_DEBUG_ANY, "cache_add_entry_lock failed\n", 0, 0,
 		    0 );
 
-		/* return the id */
-		next_id_return( be, e->e_id );
-
 		/* free the entry */
 		entry_free( e );
 
@@ -225,20 +222,6 @@ ldbm_back_add(
 	}
 
 	rc = -1;
-
-#ifndef DN_INDICES
-	/*
-	 * add it to the id2children index for the parent
-	 */
-	if ( id2children_add( be, p, e ) != 0 ) {
-		Debug( LDAP_DEBUG_TRACE, "id2children_add failed\n", 0,
-		    0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
-
-		goto return_results;
-	}
-#endif
 
 	/*
 	 * Add the entry to the attribute indexes, then add it to

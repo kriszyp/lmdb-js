@@ -44,14 +44,6 @@ ldbm_back_db_config(
 			free( li->li_directory );
 		li->li_directory = ch_strdup( argv[1] );
 
-		if ( li->li_nextid_file )
-			free( li->li_nextid_file );
-		li->li_nextid_file =
-			ch_malloc( strlen(li->li_directory) + sizeof("/NEXTID") + 1 );
-
-		strcpy(li->li_nextid_file, li->li_directory);
-		strcat(li->li_nextid_file, "/NEXTID");
-
 	/* mode with which to create new database files */
 	} else if ( strcasecmp( argv[0], "mode" ) == 0 ) {
 		if ( argc < 2 ) {

@@ -39,7 +39,7 @@ shell_back_add(
 	fprintf( wfp, "msgid: %ld\n", op->o_msgid );
 	print_suffixes( wfp, be );
 	ldap_pvt_thread_mutex_lock( &entry2str_mutex );
-	fprintf( wfp, "%s", entry2str( e, &len, 0 ) );
+	fprintf( wfp, "%s", entry2str( e, &len ) );
 	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 	fclose( wfp );
 

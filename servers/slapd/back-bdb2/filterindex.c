@@ -36,6 +36,16 @@ bdb2i_filter_candidates(
 
 	result = NULL;
 	switch ( f->f_choice ) {
+	case SLAPD_FILTER_DN_ONE:
+		Debug( LDAP_DEBUG_FILTER, "\tDN ONE\n", 0, 0, 0 );
+		result = bdb2i_dn2idl( be, f->f_dn, DN_SUBTREE_PREFIX );
+		break;
+
+	case SLAPD_FILTER_DN_SUBTREE:
+		Debug( LDAP_DEBUG_FILTER, "\tDN SUBTREE\n", 0, 0, 0 );
+		result = bdb2i_dn2idl( be, f->f_dn, DN_SUBTREE_PREFIX );
+		break;
+
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "\tEQUALITY\n", 0, 0, 0 );
 		result = ava_candidates( be, &f->f_ava, LDAP_FILTER_EQUALITY );

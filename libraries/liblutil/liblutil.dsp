@@ -253,5 +253,9 @@ InputPath=.\slapdmsg.mc
 !ENDIF 
 
 # End Source File
+# Begin Source File
+
+SOURCE=.\utils.c
+# End Source File
 # End Target
 # End Project

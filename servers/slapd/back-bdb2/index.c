@@ -108,8 +108,8 @@ bdb2i_index_read(
 	ldbm_datum_init( key );
 
 	prefix = index2prefix( indextype );
-	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_index_read( \"%s\" \"%c\" \"%s\" )\n",
-	    type, prefix, val );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_index_read( \"%c%s\" -> \"%s\" )\n",
+	    prefix, type, val );
 
 	bdb2i_attr_masks( be->be_private, type, &indexmask, &syntax );
 	if ( ! (indextype & indexmask) ) {
@@ -143,6 +143,7 @@ bdb2i_index_read(
 			tmpval = (char *) ch_malloc( len + 2 );
 			realval = tmpval;
 		}
+
         realval[0] = prefix;
         strcpy( &realval[1], val );
 	}
@@ -238,8 +239,8 @@ bdb2i_index_add_values(
 		return 0;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_index_add_values( \"%s\", %ld )\n", type,
-	    id, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_index_add_values( \"%s\", %ld )\n",
+		type, id, 0 );
 	attr_normalize( type );
 	bdb2i_attr_masks( be->be_private, type, &indexmask, &syntax );
 	if ( indexmask == 0 ) {

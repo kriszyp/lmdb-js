@@ -77,6 +77,12 @@ int bdb2i_dn2id_add LDAP_P(( BackendDB *be, char *dn, ID id ));
 ID bdb2i_dn2id LDAP_P(( BackendDB *be, char *dn ));
 int bdb2i_dn2id_delete LDAP_P(( BackendDB *be, char *dn ));
 
+ID_BLOCK *
+bdb2i_dn2idl LDAP_P((
+    BackendDB	*be,
+    char	*dn,
+	int	prefix ));
+
 Entry * bdb2i_dn2entry_rw LDAP_P((
 	BackendDB *be,
 	char *dn,
@@ -101,8 +107,6 @@ ID_BLOCK * bdb2i_filter_candidates LDAP_P(( BackendDB *be, Filter *f ));
  * id2children.c
  */
 
-int bdb2i_id2children_add LDAP_P(( BackendDB *be, Entry *p, Entry *e ));
-int bdb2i_id2children_remove LDAP_P(( BackendDB *be, Entry *p, Entry *e ));
 int bdb2i_has_children LDAP_P(( BackendDB *be, Entry *p ));
 
 /*

@@ -26,9 +26,6 @@ bdb2i_next_id_save( BackendDB *be )
 	int rc;
 
 	rc = next_id_write( be, id );
-	if (rc == 0) {
-		li->li_nextid_wrote = id;
-	}
 
 	return rc;
 }
@@ -46,42 +43,13 @@ bdb2i_next_id( BackendDB *be )
 		if ( li->li_nextid == NOID ) {
 			li->li_nextid = 1;
 		}
-
-#if SLAPD_NEXTID_CHUNK > 1
-		li->li_nextid_wrote = li->li_nextid;
-#endif
 	}
 
 	id = li->li_nextid++;
 
-#if SLAPD_NEXTID_CHUNK > 1
-	if ( li->li_nextid > li->li_nextid_wrote ) {
-		li->li_nextid_wrote += SLAPD_NEXTID_CHUNK;
-		(void) next_id_write( be, li->li_nextid_wrote );
-	}
-#else
 	(void) next_id_write( be, li->li_nextid );
-#endif
 
 	return( id );
-}
-
-void
-bdb2i_next_id_return( BackendDB *be, ID id )
-{
-#ifdef SLAPD_NEXTID_RETURN
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-
-	if ( id != li->li_nextid - 1 ) {
-		return;
-	}
-
-	li->li_nextid--;
-
-#if !( SLAPD_NEXTID_CHUNK > 1 )
-	(void) next_id_write( be, li->li_nextid );
-#endif
-#endif
 }
 
 ID
@@ -97,10 +65,6 @@ bdb2i_next_id_get( BackendDB *be )
 		if ( li->li_nextid == NOID ) {
 			li->li_nextid = 1;
 		}
-
-#if SLAPD_NEXTID_CHUNK > 1
-		li->li_nextid_wrote = li->li_nextid;
-#endif
 	}
 
 	id = li->li_nextid;

@@ -314,16 +314,12 @@ ldbm_delete( LDBM ldbm, Datum key )
 }
 
 Datum
-#ifdef HAVE_BERKELEY_DB2
-ldbm_firstkey( LDBM ldbm, DBC **dbch )
-#else
-ldbm_firstkey( LDBM ldbm )
-#endif
+ldbm_firstkey( LDBM ldbm, LDBMCursor **dbch )
 {
 	Datum	key, data;
 
 #ifdef HAVE_BERKELEY_DB2
-	DBC  *dbci;
+	LDBMCursor  *dbci;
 
 	ldbm_datum_init( key );
 	ldbm_datum_init( data );
@@ -375,11 +371,7 @@ ldbm_firstkey( LDBM ldbm )
 }
 
 Datum
-#ifdef HAVE_BERKELEY_DB2
-ldbm_nextkey( LDBM ldbm, Datum key, DBC *dbcp )
-#else
-ldbm_nextkey( LDBM ldbm, Datum key )
-#endif
+ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *dbcp )
 {
 	Datum	data;
 
@@ -518,7 +510,7 @@ ldbm_delete( LDBM ldbm, Datum key )
 }
 
 Datum
-ldbm_firstkey( LDBM ldbm )
+ldbm_firstkey( LDBM ldbm, LDBMCursor **dbcp )
 {
 	Datum d;
 
@@ -530,7 +522,7 @@ ldbm_firstkey( LDBM ldbm )
 }
 
 Datum
-ldbm_nextkey( LDBM ldbm, Datum key )
+ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *dbcp )
 {
 	Datum d;
 
@@ -629,7 +621,7 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 
 	return( db );
 
-}/* LDBM ldbm_open() */
+}
 
 
 
@@ -655,7 +647,7 @@ ldbm_close( LDBM ldbm )
 	fflush( stdout );
 #endif
 
-}/* void ldbm_close() */
+}
 
 
 
@@ -672,7 +664,7 @@ ldbm_sync( LDBM ldbm )
 	mdbm_sync( ldbm );
         LDBM_UNLOCK;
 
-}/* void ldbm_sync() */
+}
 
 
 #define MAX_MDBM_RETRY	5
@@ -739,7 +731,7 @@ ldbm_fetch( LDBM ldbm, Datum key )
 
 	return d;
 
-}/* Datum ldbm_fetch() */
+}
 
 
 
@@ -786,8 +778,7 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 
 	return( rc );
 
-}/* int ldbm_store() */
-
+}
 
 
 
@@ -817,7 +808,7 @@ ldbm_delete( LDBM ldbm, Datum key )
 
 	return( rc );
 
-}/* int ldbm_delete() */
+}
 
 
 
@@ -872,24 +863,24 @@ ldbm_get_next( LDBM ldbm, kvpair (*fptr)(MDBM *, kvpair) )
 
 	return ret;
 
-}/* static Datum ldbm_get_next() */
+}
 
 
 
 
 Datum
-ldbm_firstkey( LDBM ldbm )
+ldbm_firstkey( LDBM ldbm, LDBMCursor **dbcp )
 {
 
 	return ldbm_get_next( ldbm, mdbm_first );
 
-}/* Datum ldbm_firstkey() */
+}
 
 
 
 
 Datum
-ldbm_nextkey( LDBM ldbm, Datum key )
+ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *dbcp )
 {
 
 	/* XXX:
@@ -899,7 +890,7 @@ ldbm_nextkey( LDBM ldbm, Datum key )
 
 	return ldbm_get_next( ldbm, mdbm_next );
 
-}/* Datum ldbm_nextkey() */
+}
 
 int
 ldbm_errno( LDBM ldbm )
@@ -907,7 +898,7 @@ ldbm_errno( LDBM ldbm )
 	/* XXX: best we can do with current  mdbm interface */
 	return( errno );
 
-}/* int ldbm_errno() */
+}
 
 
 
@@ -985,7 +976,7 @@ ldbm_delete( LDBM ldbm, Datum key )
 }
 
 Datum
-ldbm_firstkey( LDBM ldbm )
+ldbm_firstkey( LDBM ldbm, LDBMCursor **dbcp )
 {
 	Datum d;
 
@@ -997,7 +988,7 @@ ldbm_firstkey( LDBM ldbm )
 }
 
 Datum
-ldbm_nextkey( LDBM ldbm, Datum key )
+ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *dbcp )
 {
 	Datum d;
 

@@ -3,8 +3,10 @@
 ##
 
 LIBRARY	= liblutil.a
-SRCS	= base64.c debug.c detach.c md5.c passwd.c sha1.c getpass.c lockf.c
-OBJS	= base64.o debug.o detach.o md5.o passwd.o sha1.o getpass.o lockf.o \
+SRCS	= base64.c debug.c detach.c \
+	md5.c passwd.c sha1.c getpass.c lockf.c utils.c
+OBJS	= base64.o debug.o detach.o \
+	md5.o passwd.o sha1.o getpass.o lockf.o utils.o \
 	@LIBOBJS@
 
 LDAP_INCDIR= ../../include       

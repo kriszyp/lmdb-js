@@ -282,7 +282,7 @@ int main( int argc, char **argv )
 
 #ifdef SLAPD_BDB2
 		case 't':  /* timed server */
-			serverMode = SLAP_TIMEDSERVER_MODE;
+			serverMode |= SLAP_TIMED_MODE;
 			break;
 #endif
 
@@ -384,7 +384,7 @@ int main( int argc, char **argv )
 #endif
 #endif /* HAVE_WINSOCK */
 
-	if ( slap_startup(-1)  != 0 ) {
+	if ( slap_startup( NULL )  != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
 		goto shutdown;
@@ -427,7 +427,7 @@ int main( int argc, char **argv )
 
 shutdown:
 	/* remember an error during shutdown */
-	rc |= slap_shutdown(-1);
+	rc |= slap_shutdown( NULL );
 destroy:
 	/* remember an error during destroy */
 	rc |= slap_destroy();

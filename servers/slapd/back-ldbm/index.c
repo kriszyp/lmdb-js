@@ -50,7 +50,7 @@ index_add_entry(
 	/* add the dn to the indexes */
 	{
 		char *dn = ch_strdup("dn");
-		index_change_values( be, dn, bvals, e->e_id, __INDEX_ADD_OP );
+		index_change_values( be, dn, bvals, e->e_id, SLAP_INDEX_ADD_OP );
 		free( dn );
 	}
 
@@ -58,9 +58,8 @@ index_add_entry(
 
 	/* add each attribute to the indexes */
 	for ( ap = e->e_attrs; ap != NULL; ap = ap->a_next ) {
-
 		index_change_values( be, ap->a_type, ap->a_vals, e->e_id,
-				     __INDEX_ADD_OP );
+				     SLAP_INDEX_ADD_OP );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= index_add( %ld, \"%s\" ) 0\n", e->e_id,
@@ -90,14 +89,14 @@ index_add_mods(
 					       mod->mod_type,
 					       mod->mod_bvalues,
 					       id,
-					       __INDEX_ADD_OP);
+					       SLAP_INDEX_ADD_OP );
 			break;
 		case LDAP_MOD_DELETE:
 			rc =  index_change_values( be,
 						   mod->mod_type,
 						   mod->mod_bvalues,
 						   id,
-						   __INDEX_DELETE_OP );
+						   SLAP_INDEX_DELETE_OP );
 			break;
  		case LDAP_MOD_SOFTADD:	/* SOFTADD means index was there */
 			rc = 0;
@@ -159,17 +158,18 @@ index_read(
 	realval = val;
 	tmpval = NULL;
 	if ( prefix != UNKNOWN_PREFIX ) {
-              unsigned int	len = strlen( val );
+		unsigned int	len = strlen( val );
 
-              if ( (len + 2) < sizeof(buf) ) {
+		if ( (len + 2) < sizeof(buf) ) {
 			realval = buf;
 		} else {
 			/* value + prefix + null */
 			tmpval = (char *) ch_malloc( len + 2 );
 			realval = tmpval;
 		}
-              realval[0] = prefix;
-              strcpy( &realval[1], val );
+
+		realval[0] = prefix;
+		strcpy( &realval[1], val );
 	}
 
 	key.dptr = realval;
@@ -272,16 +272,16 @@ index_change_values(
 	if( vals == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"=> index_change_values( %s, NULL, %ld, op=%s )\n", 
-			type, id, ((op == __INDEX_ADD_OP) ? "ADD" : "DELETE" ) );
+			type, id, ((op == SLAP_INDEX_ADD_OP) ? "ADD" : "DELETE" ) );
 		return 0;
 	}
 
 	Debug( LDAP_DEBUG_TRACE,
 	       "=> index_change_values( \"%s\", %ld, op=%s )\n", 
-	       type, id, ((op == __INDEX_ADD_OP) ? "ADD" : "DELETE" ) );
+	       type, id, ((op == SLAP_INDEX_ADD_OP) ? "ADD" : "DELETE" ) );
 
 	
-	if (op == __INDEX_ADD_OP) {
+	if (op == SLAP_INDEX_ADD_OP) {
 
 	    /* Add values */
 
@@ -433,7 +433,7 @@ index_change_values(
 
 	return( 0 );
 
-}/* int index_change_values() */
+}
 
 static int
 index2prefix( int indextype )

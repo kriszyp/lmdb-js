@@ -534,3 +534,62 @@ int ldif_is_not_printable(
 
 	return 1;
 }
+
+/*
+ * slap_read_ldif - read an ldif record.  Return 1 for success, 0 for EOF.
+ */
+int
+ldif_read_record(
+	FILE        *fp,
+	int         *lno,		/* ptr to line number counter              */
+	char        **bufp,     /* ptr to malloced output buffer           */
+	int         *buflenp )  /* ptr to length of *bufp                  */
+{
+	char        linebuf[BUFSIZ], *line;
+	ber_len_t   lcur = 0, len, linesize;
+	int         last_ch = '\n', found_entry = 0, stop;
+
+	line     = linebuf;
+	linesize = sizeof( linebuf );
+
+	for ( stop = feof( fp );  !stop;  last_ch = line[len-1] ) {
+		if ( fgets( line, linesize, fp ) == NULL ) {
+			stop = 1;
+			/* Add \n in case the file does not end with newline */
+			line = "\n";
+		}
+		len = strlen( line );
+
+		if ( last_ch == '\n' ) {
+			(*lno)++;
+
+			if ( line[0] == '\n' ) {
+				if ( !found_entry )
+					continue;
+				break;
+			}
+
+			if ( !found_entry ) {
+				/* Found a new entry */
+				found_entry = 1;
+
+				if ( isdigit( (unsigned char) line[0] ) ) {
+					/* skip index */
+					continue;
+				}
+			}			
+		}
+
+		if ( *buflenp - lcur <= len ) {
+			char *nbufp = ber_memrealloc( *bufp, *buflenp += len + BUFSIZ );
+			if( nbufp == NULL ) {
+				return 0;
+			}
+			*bufp = nbufp;
+		}
+		strcpy( *bufp + lcur, line );
+		lcur += len;
+	}
+
+	return( found_entry );
+}

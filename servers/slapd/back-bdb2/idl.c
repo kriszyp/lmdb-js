@@ -139,12 +139,13 @@ bdb2i_idl_fetch(
 	tmp = (ID_BLOCK **) ch_malloc( (i + 1) * sizeof(ID_BLOCK *) );
 
 	/* read in all the blocks */
-	kstr = (char *) ch_malloc( key.dsize + 20 );
+	kstr = (char *) ch_malloc( key.dsize + CONT_SIZE );
 	nids = 0;
 	for ( i = 0; !ID_BLOCK_NOID(idl, i); i++ ) {
 		ldbm_datum_init( data );
 
-		sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr, ID_BLOCK_ID(idl, i) );
+		sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+			ID_BLOCK_ID(idl, i), key.dptr );
 		data.dptr = kstr;
 		data.dsize = strlen( kstr ) + 1;
 
@@ -298,7 +299,8 @@ idl_change_first(
 	}
 
 	/* write block with new key */
-	sprintf( bkey.dptr, "%c%s%ld", CONT_PREFIX, hkey.dptr, ID_BLOCK_ID(b, 0) );
+	sprintf( bkey.dptr, "%c%ld%s", CONT_PREFIX,
+			ID_BLOCK_ID(b, 0), hkey.dptr );
 	bkey.dsize = strlen( bkey.dptr ) + 1;
 	if ( (rc = idl_store( be, db, bkey, b )) != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -389,16 +391,16 @@ bdb2i_idl_insert_key(
 			rc = idl_store( be, db, key, idl );
 
 			/* store the first id block */
-			kstr = (char *) ch_malloc( key.dsize + 20 );
-			sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr,
-			    ID_BLOCK_ID(tmp, 0) );
+			kstr = (char *) ch_malloc( key.dsize + CONT_SIZE );
+			sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+			    ID_BLOCK_ID(tmp, 0), key.dptr );
 			k2.dptr = kstr;
 			k2.dsize = strlen( kstr ) + 1;
 			rc = idl_store( be, db, k2, tmp );
 
 			/* store the second id block */
-			sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr,
-			    ID_BLOCK_ID(tmp2, 0) );
+			sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+			    ID_BLOCK_ID(tmp2, 0), key.dptr );
 			k2.dptr = kstr;
 			k2.dsize = strlen( kstr ) + 1;
 			rc = idl_store( be, db, k2, tmp2 );
@@ -432,8 +434,9 @@ bdb2i_idl_insert_key(
 	}
 
 	/* get the block */
-	kstr = (char *) ch_malloc( key.dsize + 20 );
-	sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr, ID_BLOCK_ID(idl, i) );
+	kstr = (char *) ch_malloc( key.dsize + CONT_SIZE );
+	sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+		ID_BLOCK_ID(idl, i), key.dptr );
 	k2.dptr = kstr;
 	k2.dsize = strlen( kstr ) + 1;
 	if ( (tmp = idl_fetch_one( be, db, k2 )) == NULL ) {
@@ -477,8 +480,8 @@ bdb2i_idl_insert_key(
 		/* is there a next block? */
 		if ( !first && !ID_BLOCK_NOID(idl, i + 1) ) {
 			/* read it in */
-			sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr,
-			    ID_BLOCK_ID(idl, i + 1) );
+			sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+			    ID_BLOCK_ID(idl, i + 1), key.dptr );
 			k2.dptr = kstr;
 			k2.dsize = strlen( kstr ) + 1;
 			if ( (tmp2 = idl_fetch_one( be, db, k2 )) == NULL ) {
@@ -535,8 +538,8 @@ bdb2i_idl_insert_key(
 
 			/* delete all indirect blocks */
 			for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ ) {
-				sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr,
-				    ID_BLOCK_ID(idl, j) );
+				sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+				    ID_BLOCK_ID(idl, j), key.dptr );
 				k2.dptr = kstr;
 				k2.dsize = strlen( kstr ) + 1;
 
@@ -578,15 +581,15 @@ bdb2i_idl_insert_key(
 		rc = idl_store( be, db, key, tmp );
 
 		/* store the first id block */
-		sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr,
-		    ID_BLOCK_ID(tmp2, 0) );
+		sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+		    ID_BLOCK_ID(tmp2, 0), key.dptr );
 		k2.dptr = kstr;
 		k2.dsize = strlen( kstr ) + 1;
 		rc = idl_store( be, db, k2, tmp2 );
 
 		/* store the second id block */
-		sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr,
-		    ID_BLOCK_ID(tmp3, 0) );
+		sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+		    ID_BLOCK_ID(tmp3, 0), key.dptr );
 		k2.dptr = kstr;
 		k2.dsize = strlen( kstr ) + 1;
 		rc = idl_store( be, db, k2, tmp3 );
@@ -715,11 +718,11 @@ bdb2i_idl_delete_key (
 	   */
 	for ( nids = 0; !ID_BLOCK_NOID(idl, nids); nids++ )
 		;	/* NULL */
-	kstr = (char *) ch_malloc( key.dsize + 20 );
+	kstr = (char *) ch_malloc( key.dsize + CONT_SIZE );
 	for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ )
 	{
 		ldbm_datum_init( data );
-		sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr, ID_BLOCK_ID(idl, j) );
+		sprintf( kstr, "%c%ld%s", CONT_PREFIX, ID_BLOCK_ID(idl, j), key.dptr );
 		data.dptr = kstr;
 		data.dsize = strlen( kstr ) + 1;
 

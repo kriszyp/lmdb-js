@@ -20,17 +20,29 @@ LDAP_BEGIN_DECL
 
 #define SUBLEN			3
 
+#define DN_BASE_PREFIX		'='
+#define DN_ONE_PREFIX		'@'
+#define DN_SUBTREE_PREFIX	'?'
+    
+#define SLAPD_FILTER_DN_ONE			((ber_tag_t) -2)
+#define SLAPD_FILTER_DN_SUBTREE		((ber_tag_t) -3)
+
+
 #define BDB2_SUFFIX     ".bdb2"
 
 
 /*
- * there is a single index for each attribute.  these prefixes insure
+ * there is a single index for each attribute.  these prefixes ensure
  * that there is no collision among keys.
  */
 #define EQ_PREFIX	'='	/* prefix for equality keys     */
 #define APPROX_PREFIX	'~'	/* prefix for approx keys       */
 #define SUB_PREFIX	'*'	/* prefix for substring keys    */
 #define CONT_PREFIX	'\\'	/* prefix for continuation keys */
+
+/* allow 3 characters per byte + PREFIX + EOS */
+#define CONT_SIZE	( sizeof(long)*3 + 1 + 1 )
+
 
 #define UNKNOWN_PREFIX	'?'	/* prefix for unknown keys    */
 
@@ -98,18 +110,19 @@ struct dbcache {
 };
 
 typedef  struct dbcache  BDB2_TXN_FILES;
+typedef  struct dbcache DBCache;
 
 
 /* for the cache of attribute information (which are indexed, etc.) */
 struct attrinfo {
 	char	*ai_type;	/* type name (cn, sn, ...)	*/
 	int	ai_indexmask;	/* how the attr is indexed	*/
-#define INDEX_PRESENCE	0x01
-#define INDEX_EQUALITY	0x02
-#define INDEX_APPROX	0x04
-#define INDEX_SUB	0x08
-#define INDEX_UNKNOWN	0x10
-#define INDEX_FROMINIT	0x20
+#define INDEX_PRESENCE	0x0001
+#define INDEX_EQUALITY	0x0002
+#define INDEX_APPROX	0x0004
+#define INDEX_SUB		0x0008
+#define INDEX_UNKNOWN	0x0010
+#define INDEX_FROMINIT	0x1000
 	int	ai_syntaxmask;	/* what kind of syntax		*/
 /* ...from slap.h...
 #define SYNTAX_CIS      0x01
@@ -118,12 +131,6 @@ struct attrinfo {
    ... etc. ...
 */
 };
-
-/* this could be made an option */
-#ifndef SLAPD_NEXTID_CHUNK
-#define SLAPD_NEXTID_CHUNK	32
-#endif
-
 
 /*  TP stuff  */
 
@@ -178,9 +185,6 @@ extern DB_ENV       bdb2i_dbEnv;
 /*  the private description of a database  */
 struct ldbminfo {
 	ID			li_nextid;
-#if SLAPD_NEXTID_CHUNK > 1
-	ID			li_nextid_wrote;
-#endif
 	char		*li_nextid_file;
 	int			li_mode;
 	char			*li_directory;

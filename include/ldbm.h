@@ -49,22 +49,25 @@ typedef DBT	Datum;
 
 typedef DB	*LDBM;
 
-LDAP_END_DECL
 
 #define DB_TYPE		DB_BTREE
 
 /* for ldbm_open */
 #ifdef HAVE_BERKELEY_DB2
+typedef DBC	LDBMCursor;
 #	define LDBM_READER	DB_RDONLY
 #	define LDBM_WRITER	0x00000      /* hopefully */
 #	define LDBM_WRCREAT	(DB_NOMMAP|DB_CREATE|DB_THREAD)
 #	define LDBM_NEWDB	(DB_TRUNCATE|DB_CREATE|DB_THREAD)
 #else
+typedef int LDBMCursor;
 #	define LDBM_READER	O_RDONLY
 #	define LDBM_WRITER	O_RDWR
 #	define LDBM_WRCREAT	(O_RDWR|O_CREAT)
 #	define LDBM_NEWDB	(O_RDWR|O_TRUNC|O_CREAT)
 #endif
+
+LDAP_END_DECL
 
 #  define LDBM_FAST	0
 
@@ -110,23 +113,25 @@ typedef DBT	Datum;
 
 typedef DB	*LDBM;
 
-LDAP_END_DECL
-
 #define DB_TYPE		DB_HASH
 
 /* for ldbm_open */
 #ifdef LDBM_USE_DB2
+typedef DBC	LDBMCursor;
 #	define LDBM_READER	DB_RDONLY
 #	define LDBM_WRITER	0x00000      /* hopefully */
 #	define LDBM_WRCREAT	(DB_NOMMAP|DB_CREATE|DB_THREAD)
 #	define LDBM_NEWDB	(DB_TRUNCATE|DB_CREATE|DB_THREAD)
 #else
+typedef int LDBMCursor;
 #	define LDBM_READER	O_RDONLY
 #	define LDBM_WRITER	O_RDWR
 #	define LDBM_WRCREAT	(O_RDWR|O_CREAT)
 #	define LDBM_NEWDB	(O_RDWR|O_TRUNC|O_CREAT)
 #	define LDBM_FAST	0
 #endif
+
+LDAP_END_DECL
 
 #define LDBM_SUFFIX	".dbh"
 
@@ -148,7 +153,7 @@ LDAP_END_DECL
 LDAP_BEGIN_DECL
 
 typedef datum		Datum;
-
+typedef int LDBMCursor;
 typedef GDBM_FILE	LDBM;
 
 extern gdbm_error	gdbm_errno;
@@ -182,6 +187,7 @@ LDAP_END_DECL
 LDAP_BEGIN_DECL
 
 typedef datum		Datum;
+typedef int LDBMCursor;
 typedef MDBM		*LDBM;
 
 LDAP_END_DECL
@@ -222,7 +228,7 @@ LDAP_END_DECL
 LDAP_BEGIN_DECL
 
 typedef datum	Datum;
-
+typedef int LDBMCursor;
 typedef DBM	*LDBM;
 
 LDAP_END_DECL
@@ -258,18 +264,12 @@ Datum	ldbm_fetch( LDBM ldbm, Datum key );
 int	ldbm_store( LDBM ldbm, Datum key, Datum data, int flags );
 int	ldbm_delete( LDBM ldbm, Datum key );
 
-#if HAVE_BERKELEY_DB2
-	void   *ldbm_malloc( size_t size );
-	Datum	ldbm_firstkey( LDBM ldbm, DBC **dbch );
-	Datum	ldbm_nextkey( LDBM ldbm, Datum key, DBC *dbcp );
-#else
-	Datum	ldbm_firstkey( LDBM ldbm );
-	Datum	ldbm_nextkey( LDBM ldbm, Datum key );
-#endif
-
+Datum	ldbm_firstkey( LDBM ldbm, LDBMCursor **cursor );
+Datum	ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *cursor );
 
 /* initialization of Datum structures */
 #ifdef HAVE_BERKELEY_DB2
+	void   *ldbm_malloc( size_t size );
 #   define ldbm_datum_init(d) ((void)memset(&(d), 0, sizeof(Datum)))
 #else
 #   define ldbm_datum_init(d) ((void)0)

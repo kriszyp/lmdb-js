@@ -46,13 +46,6 @@ ldap_pvt_thread_mutex_t   txn_dirty_mutex;
 #define NEXTID_RECNO   (db_recno_t) 1
 
 
-/*  default DB files  */
-char  *bdb2i_fixed_filenames[] = {
-
-		"dn", "dn2id", "id2entry", "id2children", "objectclass"
-
-	};
-
 
 #endif  /*  _BDB2_TXN_H_  */
 

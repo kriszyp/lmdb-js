@@ -145,11 +145,9 @@ bdb2_back_modify(
 
 	/*  check, if a new default attribute index will be created,
 		in which case we have to open the index file BEFORE TP  */
-	switch ( slapMode ) {
+	switch ( slapMode & SLAP_MODE ) {
 		case SLAP_SERVER_MODE:
-		case SLAP_TIMEDSERVER_MODE:
 		case SLAP_TOOL_MODE:
-		case SLAP_TOOLID_MODE:
 			bdb2i_check_default_attr_index_mod( li, modlist );
 			break;
 	}
@@ -314,7 +312,7 @@ bdb2i_replace_values(
 {
 	(void) attr_delete( &e->e_attrs, mod->mod_type );
 
-	if ( mod->bvalues != NULL &&
+	if ( mod->mod_bvalues != NULL &&
 		attr_merge( e, mod->mod_type, mod->mod_bvalues ) != 0 )
 	{
 		return( LDAP_CONSTRAINT_VIOLATION );

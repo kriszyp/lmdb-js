@@ -1,0 +1,109 @@
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+#include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/unistd.h>
+
+#include "slapcommon.h"
+
+int
+main( int argc, char **argv )
+{
+	char		*type;
+	ID id;
+	int rc = EXIT_SUCCESS;
+
+	slap_tool_init( "slapindex", SLAPINDEX, argc, argv );
+
+	slap_startup( be );
+
+	if( !be->be_entry_open &&
+		!be->be_entry_close &&
+		!be->be_entry_first &&
+		!be->be_entry_next &&
+		!be->be_entry_get &&
+		!be->be_index_attr &&
+		!be->be_index_change )
+	{
+		fprintf( stderr, "%s: database doesn't support necessary operations.\n",
+			progname );
+		exit( EXIT_FAILURE );
+	}
+
+	type = attr_normalize( argv[argc - 1] );
+
+	if ( !be->be_index_attr( be, type ) ) {
+		fprintf( stderr, "attribute type \"%s\": no indices to generate\n",
+			type );
+		exit( EXIT_FAILURE );
+	}
+
+	if( be->be_entry_open( be, 0 ) != 0 ) {
+		fprintf( stderr, "%s: could not open database.\n",
+			progname );
+		exit( EXIT_FAILURE );
+	}
+
+	for ( id = be->be_entry_first( be );
+		id != NOID;
+		id = be->be_entry_next( be ) )
+	{
+		Attribute *attr;
+		struct berval **values;
+		Entry* e = be->be_entry_get( be, id );
+		struct berval bv;
+		struct berval *bvals[2];
+
+		if ( e == NULL ) {
+			fprintf( stderr,
+				"entry id=%08lx: no data\n", (long) id );
+			rc = EXIT_FAILURE;
+			continue;
+		}
+
+		if( verbose ) {
+			printf("indexing id=%08lx dn=\"%s\"\n",
+				id, e->e_dn );
+		}
+
+		if( strcasecmp( type, "dn" ) == 0 ) {
+			attr = attr_find( e->e_attrs, type );
+
+			if( attr == NULL ) continue;
+
+			values = attr->a_vals;
+
+		} else {
+			bv.bv_val = e->e_ndn;
+			bv.bv_len = strlen( bv.bv_val );
+			bvals[0] = &bv;
+			bvals[1] = NULL;
+
+			values = bvals;
+		}
+
+		if ( be->be_index_change( be,
+			type, attr->a_vals, id, SLAP_INDEX_ADD_OP ) )
+		{
+			rc = EXIT_FAILURE;
+		}
+
+		entry_free( e );
+	}
+
+	(void) be->be_entry_close( be );
+
+	slap_shutdown( be );
+	slap_destroy();
+
+	return( rc );
+}

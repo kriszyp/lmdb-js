@@ -38,7 +38,7 @@ bdb2i_back_init_private(
 	bt->lty_dbhome = DEFAULT_DB_HOME;
 	bt->lty_mpsize = DEFAULT_DBCACHE_SIZE;
 
-	if ( slapMode == SLAP_TIMEDSERVER_MODE )
+	if ( slapMode & SLAP_TIMED_MODE )
 		bt->lty_betiming = 1;
 
 	bi->bi_private = bt;
@@ -77,6 +77,19 @@ bdb2_back_initialize(
 
 	bi->bi_entry_release_rw = bdb2_back_entry_release_rw;
 	bi->bi_acl_group = bdb2_back_group;
+
+	/*
+	 * hooks for slap tools
+	 */
+	bi->bi_tool_entry_open = bdb2_tool_entry_open;
+	bi->bi_tool_entry_close = bdb2_tool_entry_close;
+	bi->bi_tool_entry_first = bdb2_tool_entry_first;
+	bi->bi_tool_entry_next = bdb2_tool_entry_next;
+	bi->bi_tool_entry_get = bdb2_tool_entry_get;
+	bi->bi_tool_entry_put = bdb2_tool_entry_put;
+	bi->bi_tool_index_attr = bdb2_tool_index_attr;
+	bi->bi_tool_index_change = bdb2_tool_index_change;
+	bi->bi_tool_sync = bdb2_tool_sync;
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
@@ -164,27 +177,11 @@ bdb2i_back_db_init_internal(
 	/* default database directory */
 	li->li_directory = DEFAULT_DB_DIRECTORY;
 
-	/* always index dn, id2children, objectclass (used in some searches) */
-	if ( !at_find( "dn" ) ) {
-		argv[ 0 ] = "dn";
-		argv[ 1 ] = "dn";
-		argv[ 2 ] = NULL;
-		attr_syntax_config( "ldbm dn initialization", 0, 2, argv );
-	}
-	argv[ 0 ] = "dn";
-	argv[ 1 ] = "eq,sub";
-	argv[ 2 ] = NULL;
-	bdb2i_attr_index_config( li, "ldbm dn initialization", 0, 2, argv, 1 );
-	argv[ 0 ] = "id2children";
-	argv[ 1 ] = "eq";
-	argv[ 2 ] = NULL;
-	bdb2i_attr_index_config( li, "ldbm id2children initialization", 0, 2, argv,
-	    1 );
 	argv[ 0 ] = "objectclass";
 	argv[ 1 ] = "pres,eq";
 	argv[ 2 ] = NULL;
-	bdb2i_attr_index_config( li, "ldbm objectclass initialization", 0, 2, argv,
-	    1 );
+	bdb2i_attr_index_config( li, "ldbm objectclass initialization",
+		0, 2, argv, 1 );
 
 	/*  initialize the cache mutex */
 	ldap_pvt_thread_mutex_init( &li->li_cache.c_mutex );

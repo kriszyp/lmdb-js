@@ -240,6 +240,10 @@ SOURCE=.\startup.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\tools.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\unbind.c
 # End Source File
 # End Target

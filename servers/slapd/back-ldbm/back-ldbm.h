@@ -24,7 +24,6 @@ LDAP_BEGIN_DECL
 
 #define SUBLEN			3
 
-/* #undef DN_INDICES *//* generate dn eq, subtree, and parent indices */
 #define DN_BASE_PREFIX		'='
 #define DN_ONE_PREFIX	 	'@'
 #define DN_SUBTREE_PREFIX 	'?'
@@ -43,8 +42,6 @@ LDAP_BEGIN_DECL
 
 /* allow 3 characters per byte + PREFIX + EOS */
 #define CONT_SIZE ( sizeof(long)*3 + 1 + 1 )
-
-/* #undef CONT_POSTFIX *//* postfix original key */
 
 #define UNKNOWN_PREFIX	'?'	/* prefix for unknown keys    */
 
@@ -131,20 +128,11 @@ typedef struct ldbm_attrinfo {
 
 #define MAXDBCACHE	16
 
-/* this could be made an option */
-#ifndef SLAPD_NEXTID_CHUNK
-#define SLAPD_NEXTID_CHUNK	32
-#endif
-
 struct ldbminfo {
 	ID			li_nextid;
-#if SLAPD_NEXTID_CHUNK > 1
-	ID			li_nextid_wrote;
-#endif
-	char		*li_nextid_file;
+	ldap_pvt_thread_mutex_t		li_nextid_mutex;
 	ldap_pvt_thread_mutex_t		li_root_mutex;
 	ldap_pvt_thread_mutex_t		li_add_mutex;
-	ldap_pvt_thread_mutex_t		li_nextid_mutex;
 	int			li_mode;
 	char			*li_directory;
 	Cache		li_cache;

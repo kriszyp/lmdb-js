@@ -79,8 +79,9 @@ void ava_free LDAP_P(( Ava *ava, int freeit ));
 
 int backend_init LDAP_P((void));
 int backend_add LDAP_P((BackendInfo *aBackendInfo));
-int backend_startup LDAP_P((int dbnum));
-int backend_shutdown LDAP_P((int dbnum));
+int backend_num LDAP_P((Backend *be));
+int backend_startup LDAP_P((Backend *be));
+int backend_shutdown LDAP_P((Backend *be));
 int backend_destroy LDAP_P((void));
 
 BackendInfo * backend_info LDAP_P(( char *type ));
@@ -206,7 +207,7 @@ void build_new_dn LDAP_P(( char ** new_dn, char *e_dn, char * p_dn,
  */
 
 Entry * str2entry LDAP_P(( char	*s ));
-char * entry2str LDAP_P(( Entry *e, int *len, int printid ));
+char * entry2str LDAP_P(( Entry *e, int *len ));
 void entry_free LDAP_P(( Entry *e ));
 
 int entry_cmp LDAP_P(( Entry *a, Entry *b ));
@@ -441,8 +442,8 @@ extern ldap_pvt_thread_mutex_t	gmtime_mutex;
 extern AccessControl *global_acl;
 
 int	slap_init LDAP_P((int mode, char* name));
-int	slap_startup LDAP_P((int dbnum));
-int	slap_shutdown LDAP_P((int dbnum));
+int	slap_startup LDAP_P(( Backend *be ));
+int	slap_shutdown LDAP_P(( Backend *be ));
 int	slap_destroy LDAP_P((void));
 
 struct sockaddr_in;

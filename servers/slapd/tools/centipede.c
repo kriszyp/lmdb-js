@@ -10,10 +10,10 @@
 #include <ac/time.h>
 #include <ac/unistd.h>		/* get link(), unlink() */
 
-#include <lber.h>
 #include <ldap.h>
-
 #include <ldbm.h>
+
+int	slap_debug;
 
 #define DEFAULT_LDAPFILTER	"(objectclass=*)"
 
@@ -565,10 +565,8 @@ diff_centroids(
 	int		amax, acur, dmax, dcur;
 	char	**vals;
 
-#ifdef HAVE_BERKELEY_DB2
-	DBC	*ocursorp;
-	DBC	*ncursorp;
-#endif /* HAVE_BERKELEY_DB2 */
+	LDBMCursor	*ocursorp;
+	LDBMCursor	*ncursorp;
 
 	if ( verbose ) {
 		printf( "Generating mods for differential %s centroid...", attr );
@@ -622,14 +620,10 @@ diff_centroids(
 
 	olast.dptr = NULL;
 	nlast.dptr = NULL;
-#ifdef HAVE_BERKELEY_DB2
+
 	for ( okey = ldbm_firstkey( oldbm, &ocursorp ),
 			nkey = ldbm_firstkey( nldbm, &ncursorp );
 	      okey.dptr != NULL && nkey.dptr != NULL; )
-#else
-	for ( okey = ldbm_firstkey( oldbm ), nkey = ldbm_firstkey( nldbm );
-	      okey.dptr != NULL && nkey.dptr != NULL; )
-#endif
 	{
 		int	rc = strcmp( okey.dptr, nkey.dptr );
 
@@ -644,13 +638,9 @@ diff_centroids(
 			}
 			nlast = nkey;
 
-#ifdef HAVE_BERKELEY_DB2
 			okey = ldbm_nextkey( oldbm, olast, ocursorp );
 			nkey = ldbm_nextkey( nldbm, nlast, ncursorp );
-#else
-			okey = ldbm_nextkey( oldbm, olast );
-			nkey = ldbm_nextkey( nldbm, nlast );
-#endif
+
 		} else if ( rc > 0 ) {
 			/* new value is not in old centroid - add it */
 			if ( charray_add_dup( &avals, &acur, &amax, nkey.dptr ) == NULL ) {
@@ -663,11 +653,8 @@ diff_centroids(
 			}
 			nlast = nkey;
 
-#ifdef HAVE_BERKELEY_DB2
 			nkey = ldbm_nextkey( nldbm, nlast, ncursorp );
-#else
-			nkey = ldbm_nextkey( nldbm, nlast );
-#endif
+
 		} else {
 			/* old value is not in new centroid - delete it */
 			if ( charray_add_dup( &dvals, &dcur, &dmax, okey.dptr ) == NULL ) {
@@ -680,11 +667,7 @@ diff_centroids(
 			}
 			olast = okey;
 
-#ifdef HAVE_BERKELEY_DB2
 			okey = ldbm_nextkey( oldbm, olast, ocursorp );
-#else
-			okey = ldbm_nextkey( oldbm, olast );
-#endif
 		}
 	}
 
@@ -694,11 +677,7 @@ diff_centroids(
 			return( NULL );
 		}
 
-#ifdef HAVE_BERKELEY_DB2
 		okey = ldbm_nextkey( oldbm, olast, ocursorp );
-#else
-		okey = ldbm_nextkey( oldbm, olast );
-#endif
 		if ( olast.dptr != NULL ) {
 			ldbm_datum_free( oldbm, olast );
 		}
@@ -713,11 +692,7 @@ diff_centroids(
 			return( NULL );
 		}
 
-#ifdef HAVE_BERKELEY_DB2
 		nkey = ldbm_nextkey( nldbm, nlast, ncursorp );
-#else
-		nkey = ldbm_nextkey( nldbm, nlast );
-#endif
 		if ( nlast.dptr != NULL ) {
 			ldbm_datum_free( nldbm, nlast );
 		}
@@ -738,13 +713,8 @@ diff_centroids(
 
 	/* generate list of values to add */
 	lastkey.dptr = NULL;
-#ifdef HAVE_BERKELEY_DB2
 	for ( key = ldbm_firstkey( nldbm, &ncursorp ); key.dptr != NULL;
 	  key = ldbm_nextkey( nldbm, lastkey, ncursorp ) )
-#else
-	for ( key = ldbm_firstkey( nldbm ); key.dptr != NULL;
-	  key = ldbm_nextkey( nldbm, lastkey ) )
-#endif
 	{
 		/* see if it's in the old one */
 		data = ldbm_fetch( oldbm, key );
@@ -769,13 +739,8 @@ diff_centroids(
 
 	/* generate list of values to delete */
 	lastkey.dptr = NULL;
-#ifdef HAVE_BERKELEY_DB2
 	for ( key = ldbm_firstkey( oldbm, &ocursorp ); key.dptr != NULL;
 	  key = ldbm_nextkey( oldbm, lastkey, ocursorp ) )
-#else
-	for ( key = ldbm_firstkey( oldbm ); key.dptr != NULL;
-	  key = ldbm_nextkey( oldbm, lastkey ) )
-#endif
 	{
 		/* see if it's in the new one */
 		data = ldbm_fetch( nldbm, key );
@@ -836,9 +801,7 @@ full_centroid(
 	char	**vals;
 	int		vcur, vmax;
 
-#ifdef HAVE_BERKELEY_DB2
-	DBC *cursorp;
-#endif
+	LDBMCursor *cursorp;
 
 	if ( verbose ) {
 		printf( "Generating mods for full %s centroid...", attr );
@@ -870,13 +833,9 @@ full_centroid(
 	lastkey.dptr = NULL;
 	vals = NULL;
 	vcur = vmax = 0;
-#ifdef HAVE_BERKELEY_DB2
+
 	for ( key = ldbm_firstkey( ldbm, &cursorp ); key.dptr != NULL;
 	  key = ldbm_nextkey( ldbm, lastkey, cursorp ) )
-#else
-	for ( key = ldbm_firstkey( ldbm ); key.dptr != NULL;
-	  key = ldbm_nextkey( ldbm, lastkey ) )
-#endif
 	{
 		if ( charray_add_dup( &vals, &vcur, &vmax, key.dptr ) == NULL ) {
 			ldap_mods_free( mods, 1 );

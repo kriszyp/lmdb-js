@@ -27,9 +27,6 @@ dn2id_add(
 	Datum		key, data;
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
-	ldbm_datum_init( key );
-	ldbm_datum_init( data );
-
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id_add( \"%s\", %ld )\n", dn, id, 0 );
 
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
@@ -39,15 +36,12 @@ dn2id_add(
 		return( -1 );
 	}
 
-#ifndef DN_INDICES
-	key.dptr = dn;
-	key.dsize = strlen( key.dptr ) + 1;
-#else
+	ldbm_datum_init( key );
 	key.dsize = strlen( dn ) + 2;
 	key.dptr = ch_malloc( key.dsize );
 	sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, dn );
-#endif
 
+	ldbm_datum_init( data );
 	data.dptr = (char *) &id;
 	data.dsize = sizeof(ID);
 
@@ -56,13 +50,13 @@ dn2id_add(
 
 	rc = ldbm_cache_store( db, key, data, flags );
 
-#ifdef DN_INDICES
 	free( key.dptr );
 
 	if ( rc != -1 ) {
 		char *pdn = dn_parent( NULL, dn );
 
 		if( pdn != NULL ) {
+			ldbm_datum_init( key );
 			key.dsize = strlen( pdn ) + 2;
 			key.dptr = ch_malloc( key.dsize );
 			sprintf( key.dptr, "%c%s", DN_ONE_PREFIX, pdn );
@@ -77,6 +71,7 @@ dn2id_add(
 		if( subtree != NULL ) {
 			int i;
 			for( i=0; subtree[i] != NULL; i++ ) {
+				ldbm_datum_init( key );
 				key.dsize = strlen( subtree[i] ) + 2;
 				key.dptr = ch_malloc( key.dsize );
 				sprintf( key.dptr, "%c%s",
@@ -93,7 +88,6 @@ dn2id_add(
 		}
 
 	}
-#endif
 
 	ldbm_cache_close( be, db );
 
@@ -112,9 +106,6 @@ dn2id(
 	ID		id;
 	Datum		key, data;
 
-	ldbm_datum_init( key );
-	ldbm_datum_init( data );
-
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id( \"%s\" )\n", dn, 0, 0 );
 
 	/* first check the cache */
@@ -131,22 +122,17 @@ dn2id(
 		return( NOID );
 	}
 
-#ifndef DN_INDICES
-	key.dptr = dn;
-	key.dsize = strlen( key.dptr ) + 1;
-#else
+	ldbm_datum_init( key );
+
 	key.dsize = strlen( dn ) + 2;
 	key.dptr = ch_malloc( key.dsize );
 	sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, dn );
-#endif
 
 	data = ldbm_cache_fetch( db, key );
 
 	ldbm_cache_close( be, db );
 
-#ifdef DN_INDICES
 	free( key.dptr );
-#endif
 
 	if ( data.dptr == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<= dn2id NOID\n", 0, 0, 0 );
@@ -161,7 +147,6 @@ dn2id(
 	return( id );
 }
 
-#ifdef DN_INDICES
 ID_BLOCK *
 dn2idl(
     Backend	*be,
@@ -173,8 +158,6 @@ dn2idl(
 	Datum		key;
 	ID_BLOCK	*idl;
 
-	ldbm_datum_init( key );
-
 	Debug( LDAP_DEBUG_TRACE, "=> dn2idl( \"%c%s\" )\n", prefix, dn, 0 );
 
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
@@ -183,6 +166,8 @@ dn2idl(
 			LDBM_SUFFIX, 0, 0 );
 		return NULL;
 	}
+
+	ldbm_datum_init( key );
 
 	key.dsize = strlen( dn ) + 2;
 	key.dptr = ch_malloc( key.dsize );
@@ -196,7 +181,7 @@ dn2idl(
 
 	return( idl );
 }
-#endif
+
 
 int
 dn2id_delete(
@@ -208,8 +193,6 @@ dn2id_delete(
 	Datum		key;
 	int		rc;
 
-	ldbm_datum_init( key );
-
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id_delete( \"%s\" )\n", dn, 0, 0 );
 
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
@@ -220,20 +203,15 @@ dn2id_delete(
 		return( -1 );
 	}
 
-#ifndef DN_INDICES
-	key.dptr = dn;
-	key.dsize = strlen( key.dptr ) + 1;
-#else
+	ldbm_datum_init( key );
+
 	key.dsize = strlen( dn ) + 2;
 	key.dptr = ch_malloc( key.dsize );
 	sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, dn );
-#endif
 
 	rc = ldbm_cache_delete( db, key );
 
-#ifdef DN_INDICES
 	free( key.dptr );
-#endif
 
 	ldbm_cache_close( be, db );
 

@@ -390,12 +390,15 @@ extern int nBackendDB;
 extern BackendInfo	*backendInfo;
 extern BackendDB	*backendDB;
 
-extern int			slapMode;	
-#define SLAP_UNDEFINED_MODE	0
-#define SLAP_SERVER_MODE	1
-#define SLAP_TOOL_MODE		2
+extern int slapMode;	
+#define SLAP_UNDEFINED_MODE	0x0000
+#define SLAP_SERVER_MODE	0x0001
+#define SLAP_TOOL_MODE		0x0002
+#define SLAP_MODE			0x0003
+
+#define SLAP_TRUNCATE_MODE	0x0100
 #ifdef SLAPD_BDB2
-#  define SLAP_TIMEDSERVER_MODE  3
+#define SLAP_TIMED_MODE		0x1000
 #endif
 #define SLAP_TOOLID_MODE    4
 
@@ -426,6 +429,17 @@ struct slap_backend_db {
 #define		be_connection_init	bd_info->bi_connection_init
 #define		be_connection_destroy	bd_info->bi_connection_destroy
 
+#ifdef SLAPD_TOOLS
+#define		be_entry_open bd_info->bi_tool_entry_open
+#define		be_entry_close bd_info->bi_tool_entry_close
+#define		be_entry_first bd_info->bi_tool_entry_first
+#define		be_entry_next bd_info->bi_tool_entry_next
+#define		be_entry_get bd_info->bi_tool_entry_get
+#define		be_entry_put bd_info->bi_tool_entry_put
+#define		be_index_attr bd_info->bi_tool_index_attr
+#define		be_index_change bd_info->bi_tool_index_change
+#define		be_sync bd_info->bi_tool_sync
+#endif
 
 	/* these should be renamed from be_ to bd_ */
 	char	**be_suffix;	/* the DN suffixes of data in this backend */
@@ -554,6 +568,20 @@ struct slap_backend_info {
 	int	(*bi_connection_destroy) LDAP_P((BackendDB *bd,
 		struct slap_conn *c));
 
+	/* hooks for slap tools */
+	int (*bi_tool_entry_open) LDAP_P(( BackendDB *be, int mode ));
+	int (*bi_tool_entry_close) LDAP_P(( BackendDB *be ));
+	ID (*bi_tool_entry_first) LDAP_P(( BackendDB *be ));
+	ID (*bi_tool_entry_next) LDAP_P(( BackendDB *be ));
+	Entry* (*bi_tool_entry_get) LDAP_P(( BackendDB *be, ID id ));
+	ID (*bi_tool_entry_put) LDAP_P(( BackendDB *be, Entry *e ));
+	int (*bi_tool_index_attr) LDAP_P(( BackendDB *be, char* type ));
+	int (*bi_tool_index_change) LDAP_P(( BackendDB *be, char* type,
+		struct berval **bv, ID id, int op ));
+	int (*bi_tool_sync) LDAP_P(( BackendDB *be ));
+
+#define SLAP_INDEX_ADD_OP		0x0001
+#define SLAP_INDEX_DELETE_OP	0x0002
 
 	unsigned int bi_nDB;	/* number of databases of this type */
 	void	*bi_private;	/* anything the backend type needs */

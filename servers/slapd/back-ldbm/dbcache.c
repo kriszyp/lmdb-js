@@ -121,11 +121,6 @@ ldbm_cache_open(
 	li->li_dbcache[i].dbc_maxindirect = (SLAPD_LDBM_MIN_MAXIDS /
 	    li->li_dbcache[i].dbc_maxids) + 1;
 
-#ifndef CONT_POSTFIX
-	/* don't let maxindirect exceed 9 */
-	li->li_dbcache[i].dbc_maxindirect %= 10;
-#endif
-
 	Debug( LDAP_DEBUG_ARGS,
 	    "ldbm_cache_open (blksize %ld) (maxids %d) (maxindirect %d)\n",
 	    li->li_dbcache[i].dbc_blksize, li->li_dbcache[i].dbc_maxids,
@@ -203,9 +198,7 @@ ldbm_cache_fetch(
 {
 	Datum	data;
 
-	ldbm_datum_init( data );
-
-	data = ldbm_fetch( db->dbc_db, key );
+	return ldbm_fetch( db->dbc_db, key );
 
 	return( data );
 }

@@ -1,6 +1,6 @@
 /* result.c - tcl backend utility functions
  *
- * $Id: tcl_util.c,v 1.7 1999/07/16 00:45:52 kdz Exp $
+ * $Id: tcl_util.c,v 1.8 1999/08/02 23:38:43 hallvard Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -110,9 +110,8 @@ tcl_clean_entry (
 	char *entrystr, *mark1, *mark2, *buf, *bp, *dup;
 	int len, bsize;
 
-	pthread_mutex_lock (&entry2str_mutex);
-	entrystr = entry2str (e, &len, 0);
-	pthread_mutex_unlock (&entry2str_mutex);
+	ldap_pvt_thread_mutex_lock(&entry2str_mutex);
+	entrystr = entry2str (e, &len);
 
 	buf = (char *) ch_malloc (BUFSIZ);
 	buf[0] = '\0';
@@ -147,6 +146,8 @@ tcl_clean_entry (
 		}
 		free (dup);
 	} while ((mark1 = (char *) strchr (mark1, '\n')) != NULL);
+
+	ldap_pvt_thread_mutex_unlock (&entry2str_mutex);
 	return buf;
 }
 

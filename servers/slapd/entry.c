@@ -20,9 +20,8 @@ static unsigned char	*ecur;	/* pointer to end of currently used ebuf */
 static int		emaxsize;/* max size of ebuf	     		 */
 
 Entry *
-str2entry( char	*s )
+str2entry( char *s )
 {
-	int			id = 0;
 	Entry		*e;
 	Attribute	**a;
 	char		*type;
@@ -35,9 +34,9 @@ str2entry( char	*s )
 	char		ptype[64];
 
 	/*
-	 * In string format, an entry looks like this:
+	 * LDIF is used as the string format.
+	 * An entry looks like this:
 	 *
-	 *	<id>\n
 	 *	dn: <dn>\n
 	 *	[<attr>:[:] <value>\n]
 	 *	[<tab><continuedvalue>\n]*
@@ -52,17 +51,7 @@ str2entry( char	*s )
 	Debug( LDAP_DEBUG_TRACE, "=> str2entry\n",
 		s ? s : "NULL", 0, 0 );
 
-	/* check to see if there's an id included */
 	next = s;
-	if ( isdigit( (unsigned char) *s ) ) {
-		id = atoi( s );
-		if ( (s = ldif_getline( &next )) == NULL ) {
-			Debug( LDAP_DEBUG_TRACE,
-			    "<= str2entry NULL (missing newline after id)\n",
-			    0, 0, 0 );
-			return( NULL );
-		}
-	}
 
 	/* initialize reader/writer lock */
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
@@ -74,7 +63,7 @@ str2entry( char	*s )
 		return( NULL );
 	}
 
-	e->e_id = id;
+	e->e_id = NOID;
 	e->e_private = NULL;
 
 	/* dn + attributes */
@@ -172,9 +161,7 @@ str2entry( char	*s )
 char *
 entry2str(
     Entry	*e,
-    int		*len,
-    int		printid
-)
+    int		*len )
 {
 	Attribute	*a;
 	struct berval	*bv;
@@ -188,13 +175,6 @@ entry2str(
 	 */
 
 	ecur = ebuf;
-
-	if ( printid ) {
-		/* id + newline */
-		MAKE_SPACE( 10 );
-		sprintf( (char *) ecur, "%ld\n", e->e_id );
-		ecur = (unsigned char *) strchr( (char *) ecur, '\0' );
-	}
 
 	/* put the dn */
 	if ( e->e_dn != NULL ) {

@@ -57,9 +57,12 @@ main( int argc, char **argv )
 	int		i;
 	char 		*tailorfile;
 
-#ifdef HAVE_BERKELEY_DB2
-	DBC	*cursorp;
-#endif
+	LDBMCursor	*cursorp;
+
+	fprintf(stderr,
+		"ldbmtest not updated to support new index formats!\n" );
+	exit( EXIT_FAILURE );
+
 
 	ldbm_datum_init( savekey );
 	ldbm_datum_init( key );
@@ -91,7 +94,7 @@ main( int argc, char **argv )
 
 	slap_init(SLAP_TOOL_MODE, "ldbmtest");
 	read_config( tailorfile );
-	slap_startup(-1);
+	slap_startup( NULL );
 
 	while ( 1 ) {
 		printf( "dbtest: " );
@@ -114,7 +117,7 @@ main( int argc, char **argv )
 			}
 			break;
 
-		case 'l':	/* lookup somethig in an index */
+		case 'l':	/* lookup something in an index */
 			if ( (dbc = openchoice( buf[1], LDBM_READER, 1, NULL ))
 			    == NULL ) {
 				continue;
@@ -153,15 +156,9 @@ main( int argc, char **argv )
 			}
 
 			savekey.dptr = NULL;
-#ifdef HAVE_BERKELEY_DB2
 			for ( key = ldbm_firstkey( dbc->dbc_db, &cursorp );
 			    key.dptr != NULL;
 			    key = ldbm_nextkey( dbc->dbc_db, key, cursorp ) )
-#else
-			for ( key = ldbm_firstkey( dbc->dbc_db );
-			    key.dptr != NULL;
-			    key = ldbm_nextkey( dbc->dbc_db, key ) )
-#endif
 			{
 				if ( savekey.dptr != NULL )
 					ldbm_datum_free( dbc->dbc_db, savekey );
@@ -327,14 +324,9 @@ main( int argc, char **argv )
 
 			last.dptr = NULL;
 
-#ifdef HAVE_BERKELEY_DB2
 			for ( key = ldbm_firstkey( dbp, &cursorp );
 				key.dptr != NULL;
 				key = ldbm_nextkey( dbp, last, cursorp ) )
-#else
-			for ( key = ldbm_firstkey( dbp ); key.dptr != NULL;
-			    key = ldbm_nextkey( dbp, last ) )
-#endif
 			{
 				if ( last.dptr != NULL ) {
 					ldbm_datum_free( dbp, last );
@@ -360,7 +352,6 @@ main( int argc, char **argv )
 			printf( "          b    => change default backend\n" );
 			printf( "          B    => print default backend\n" );
 			printf( "where <c> is a char selecting the index:\n" );
-			printf( "          c => id2children\n" );
 			printf( "          d => dn2id\n" );
 			printf( "          e => id2entry\n" );
 			printf( "          f => arbitrary file\n" );
@@ -369,7 +360,7 @@ main( int argc, char **argv )
 		}
 	}
 
-	slap_shutdown(-1);
+	slap_shutdown( NULL );
 	slap_destroy();
 
 	return( EXIT_SUCCESS );
@@ -608,9 +599,6 @@ openchoice( char c, int mode, int verbose, char **fname )
 	static char	name[MAXPATHLEN];
 
 	switch ( c ) {
-	case 'c':	/* id2children */
-		sprintf( name, "id2children" );
-		break;
 	case 'd':	/* dn2id */
 		sprintf( name, "dn2id" );
 		break;
@@ -626,7 +614,7 @@ openchoice( char c, int mode, int verbose, char **fname )
 		}
 		break;
 	default:
-		printf( "specify one of [fdeci] to select file\n" );
+		printf( "specify one of [fdei] to select file\n" );
 		return( NULL );
 		break;
 	}
@@ -689,7 +677,6 @@ print_entry(
 		}
 		break;
 
-	case 'c':
 	case 'i':	/* index - key is string, data is dnid[] */
 		if ( key != NULL )
 			fprintf( fp, "%s%s (len %d)\n", klabel, key->dptr,
@@ -706,8 +693,7 @@ print_entry(
 					fprintf( fp, "\t%ld\n", ID_BLOCK_ID(idl, i) );
 				}
 			} else if ( ID_BLOCK_ALLIDS( idl ) ) {
-				fprintf( fp, "\tALLIDS (1..%ld)\n",
-				    ID_BLOCK_NIDS(idl) - 1 );
+				fprintf( fp, "\tALLIDS\n" );
 			} else {
 				for ( i = 0; i < ID_BLOCK_NIDS(idl); i++ ) {
 					fprintf( fp, "\t%ld\n", ID_BLOCK_ID(idl,i) );
@@ -726,7 +712,7 @@ print_entry(
 		break;
 
 	default:
-		fprintf( stderr, "specify [deci] to select a file\n" );
+		fprintf( stderr, "specify [dei] to select a file\n" );
 		break;
 	}
 }
@@ -785,7 +771,6 @@ get_keydata( FILE *fp, char c, Datum *key, Datum *data )
 		}
 		break;
 
-	case 'c':	/* id2children - key is string dnid, data is dnid[] */
 	case 'i':	/* index - key is string, data is dnid[] */
 		if ( key != NULL ) {
 			if ( tty )
@@ -804,7 +789,7 @@ get_keydata( FILE *fp, char c, Datum *key, Datum *data )
 		break;
 
 	default:
-		fprintf(stderr, "specify [deci] to select file type\n");
+		fprintf(stderr, "specify [dei] to select file type\n");
 		break;
 	}
 }

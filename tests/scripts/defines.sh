@@ -3,7 +3,6 @@ DATADIR=$SRCDIR/data
 PROGDIR=./progs
 
 if test "$BACKEND" = "bdb2" ; then
-	LDIF2LDBM=../servers/slapd/tools/ldif2ldbm-bdb2
 	CONF=$DATADIR/slapd-bdb2-master.conf
 	ACLCONF=$DATADIR/slapd-bdb2-acl.conf
 	MASTERCONF=$DATADIR/slapd-bdb2-repl-master.conf
@@ -11,7 +10,6 @@ if test "$BACKEND" = "bdb2" ; then
 	REFSLAVECONF=$DATADIR/slapd-bdb2-ref-slave.conf
 	TIMING="-t"
 else
-	LDIF2LDBM=../servers/slapd/tools/ldif2ldbm
 	CONF=$DATADIR/slapd-master.conf
 	ACLCONF=$DATADIR/slapd-acl.conf
 	MASTERCONF=$DATADIR/slapd-repl-master.conf
@@ -27,6 +25,8 @@ PASSWDCONF=$DATADIR/slapd-passwd.conf
 
 CLIENTDIR=../clients/tools
 #CLIENTDIR=/usr/local/bin
+
+LDIF2LDBM="../servers/slapd/tools/slapadd $LDAP_VERBOSE"
 
 SLAPD=../servers/slapd/slapd
 SLURPD=../servers/slurpd/slurpd

@@ -22,7 +22,7 @@ rm -f $DBDIR/[!C]*
 rm -f $REPLDIR/[!C]*
 
 echo "Running ldif2ldbm to build slapd database..."
-$LDIF2LDBM -f $CONF -i $LDIF -e ../servers/slapd/tools
+$LDIF2LDBM -f $CONF -l $LDIF
 RC=$?
 if test $RC != 0 ; then
 	echo "ldif2ldbm failed!"

@@ -45,7 +45,6 @@ idl_allids( Backend *be )
 	return( idl );
 }
 
-
 /* Free an ID_BLOCK */
 void
 idl_free( ID_BLOCK *idl )
@@ -71,8 +70,6 @@ idl_fetch_one(
 {
 	Datum	data;
 	ID_BLOCK	*idl;
-
-	ldbm_datum_init( data );
 
 	/* Debug( LDAP_DEBUG_TRACE, "=> idl_fetch_one\n", 0, 0, 0 ); */
 
@@ -148,13 +145,9 @@ idl_fetch(
 	for ( i = 0; !ID_BLOCK_NOID(idl, i); i++ ) {
 		ldbm_datum_init( data );
 
-#ifndef CONT_POSTFIX
-		sprintf( kstr, "%c%s%ld", CONT_PREFIX,
-			key.dptr, ID_BLOCK_ID(idl, i) );
-#else
 		sprintf( kstr, "%c%ld%s", CONT_PREFIX,
 			ID_BLOCK_ID(idl, i), key.dptr );
-#endif
+
 		data.dptr = kstr;
 		data.dsize = strlen( kstr ) + 1;
 
@@ -307,13 +300,9 @@ idl_change_first(
 	}
 
 	/* write block with new key */
-#ifdef CONT_POSTFIX
-	sprintf( bkey.dptr, "%c%s%ld", CONT_PREFIX,
-		hkey.dptr, ID_BLOCK_ID(b, 0) );
-#else
 	sprintf( bkey.dptr, "%c%ld%s", CONT_PREFIX,
 		ID_BLOCK_ID(b, 0), hkey.dptr );
-#endif
+
 	bkey.dsize = strlen( bkey.dptr ) + 1;
 	if ( (rc = idl_store( be, db, bkey, b )) != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -405,25 +394,16 @@ idl_insert_key(
 
 			/* store the first id block */
 			kstr = (char *) ch_malloc( key.dsize + CONT_SIZE );
-#ifdef CONT_POSTFIX
-			sprintf( kstr, "%c%s%ld", CONT_PREFIX,
-				key.dptr, ID_BLOCK_ID(tmp, 0) );
-#else
 			sprintf( kstr, "%c%ld%s", CONT_PREFIX,
 				ID_BLOCK_ID(tmp, 0), key.dptr );
-#endif
+
 			k2.dptr = kstr;
 			k2.dsize = strlen( kstr ) + 1;
 			rc = idl_store( be, db, k2, tmp );
 
 			/* store the second id block */
-#ifdef CONT_POSTFIX
-			sprintf( kstr, "%c%s%ld", CONT_PREFIX,
-				key.dptr, ID_BLOCK_ID(tmp2, 0) );
-#else
 			sprintf( kstr, "%c%ld%s", CONT_PREFIX,
 				ID_BLOCK_ID(tmp2, 0), key.dptr );
-#endif
 			k2.dptr = kstr;
 			k2.dsize = strlen( kstr ) + 1;
 			rc = idl_store( be, db, k2, tmp2 );
@@ -458,13 +438,8 @@ idl_insert_key(
 
 	/* get the block */
 	kstr = (char *) ch_malloc( key.dsize + CONT_SIZE );
-#ifdef CONT_POSTFIX
-	sprintf( kstr, "%c%s%ld", CONT_PREFIX,
-		key.dptr, ID_BLOCK_ID(idl, i) );
-#else
 	sprintf( kstr, "%c%ld%s", CONT_PREFIX,
 		ID_BLOCK_ID(idl, i), key.dptr );
-#endif
 	k2.dptr = kstr;
 	k2.dsize = strlen( kstr ) + 1;
 	if ( (tmp = idl_fetch_one( be, db, k2 )) == NULL ) {
@@ -508,13 +483,8 @@ idl_insert_key(
 		/* is there a next block? */
 		if ( !first && !ID_BLOCK_NOID(idl, i + 1) ) {
 			/* read it in */
-#ifdef CONT_POSTFIX
-			sprintf( kstr, "%c%s%ld", CONT_PREFIX,
-				key.dptr, ID_BLOCK_ID(idl, i + 1) );
-#else
 			sprintf( kstr, "%c%ld%s", CONT_PREFIX,
 				ID_BLOCK_ID(idl, i + 1), key.dptr );
-#endif
 			k2.dptr = kstr;
 			k2.dsize = strlen( kstr ) + 1;
 			if ( (tmp2 = idl_fetch_one( be, db, k2 )) == NULL ) {
@@ -571,13 +541,8 @@ idl_insert_key(
 
 			/* delete all indirect blocks */
 			for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ ) {
-#ifdef CONT_POSTFIX
-				sprintf( kstr, "%c%s%ld", CONT_PREFIX,
-					key.dptr, ID_BLOCK_ID(idl, j) );
-#else
 				sprintf( kstr, "%c%ld%s", CONT_PREFIX,
 					ID_BLOCK_ID(idl, j), key.dptr );
-#endif
 				k2.dptr = kstr;
 				k2.dsize = strlen( kstr ) + 1;
 
@@ -619,25 +584,15 @@ idl_insert_key(
 		rc = idl_store( be, db, key, tmp );
 
 		/* store the first id block */
-#ifdef CONT_POSTFIX
-		sprintf( kstr, "%c%s%ld", CONT_PREFIX,
-			key.dptr, ID_BLOCK_ID(tmp2, 0) );
-#else
 		sprintf( kstr, "%c%ld%s", CONT_PREFIX,
 			ID_BLOCK_ID(tmp2, 0), key.dptr );
-#endif
 		k2.dptr = kstr;
 		k2.dsize = strlen( kstr ) + 1;
 		rc = idl_store( be, db, k2, tmp2 );
 
 		/* store the second id block */
-#ifdef CONT_POSTFIX
-		sprintf( kstr, "%c%s%ld", CONT_PREFIX,
-			key.dptr, ID_BLOCK_ID(tmp3, 0) );
-#else
 		sprintf( kstr, "%c%ld%s", CONT_PREFIX,
 			ID_BLOCK_ID(tmp3, 0), key.dptr );
-#endif
 		k2.dptr = kstr;
 		k2.dsize = strlen( kstr ) + 1;
 		rc = idl_store( be, db, k2, tmp3 );
@@ -771,13 +726,8 @@ idl_delete_key (
 	for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ ) 
 	{
 		ldbm_datum_init( data );
-#ifdef CONT_POSTFIX
-		sprintf( kstr, "%c%s%ld", CONT_PREFIX,
-			key.dptr, ID_BLOCK_ID(idl, j) );
-#else
 		sprintf( kstr, "%c%ld%s", CONT_PREFIX,
 			ID_BLOCK_ID(idl, j), key.dptr );
-#endif
 		data.dptr = kstr;
 		data.dsize = strlen( kstr ) + 1;
 

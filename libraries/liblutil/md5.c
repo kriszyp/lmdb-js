@@ -1,4 +1,8 @@
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Modified by Kurt D. Zeilenga for inclusion into OpenLDAP
  * I hereby disclaim copyright in any changes I have made; this
  * code remains in the public domain.
