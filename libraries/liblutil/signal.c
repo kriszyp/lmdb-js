@@ -8,6 +8,7 @@
 #include "portable.h"
 
 #ifdef HAVE_SIGACTION
+#include <ac/string.h>
 #include <ac/signal.h>
 
 lutil_sig_t

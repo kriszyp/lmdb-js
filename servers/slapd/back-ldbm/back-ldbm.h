@@ -107,7 +107,7 @@ struct ldbminfo {
 	ldap_pvt_thread_mutex_t		li_root_mutex;
 	ldap_pvt_thread_mutex_t		li_add_mutex;
 	int			li_mode;
-	slap_index	li_defaultmask;
+	slap_mask_t	li_defaultmask;
 	char			*li_directory;
 	Cache		li_cache;
 	Avlnode			*li_attrs;

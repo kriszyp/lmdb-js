@@ -88,7 +88,7 @@
 static int
 octetStringMatch(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -108,7 +108,8 @@ octetStringMatch(
 
 /* Index generation function */
 int octetStringIndexer(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -161,7 +162,8 @@ int octetStringIndexer(
 
 /* Index generation function */
 int octetStringFilter(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -254,7 +256,7 @@ dnNormalize(
 static int
 dnMatch(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -329,7 +331,7 @@ booleanValidate(
 static int
 booleanMatch(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -628,7 +630,7 @@ IA5StringNormalize(
 static int
 caseExactIA5Match(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -649,7 +651,7 @@ caseExactIA5Match(
 static int
 caseExactIA5SubstringsMatch(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -773,7 +775,8 @@ done:
 
 /* Index generation function */
 int caseExactIA5Indexer(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -826,7 +829,8 @@ int caseExactIA5Indexer(
 
 /* Index generation function */
 int caseExactIA5Filter(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -868,16 +872,18 @@ int caseExactIA5Filter(
 	*keysp = keys;
 	return LDAP_SUCCESS;
 }
+
 /* Substrings Index generation function */
 int caseExactIA5SubstringsIndexer(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
 	struct berval **values,
 	struct berval ***keysp )
 {
-	int i, nkeys, types;
+	ber_len_t i, nkeys;
 	size_t slen, mlen;
 	struct berval **keys;
 	lutil_MD5_CTX   MD5context;
@@ -886,11 +892,6 @@ int caseExactIA5SubstringsIndexer(
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
 
-	types = 0;
-	if( flags & SLAP_MR_SUBSTR_INITIAL ) types++;
-	if( flags & SLAP_MR_SUBSTR_FINAL ) types++;
-	/* no SUBSTR_ANY indexing */
-
 	nkeys=0;
 	for( i=0; values[i] != NULL; i++ ) {
 		/* count number of indices to generate */
@@ -898,10 +899,28 @@ int caseExactIA5SubstringsIndexer(
 			continue;
 		}
 
-		if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
-			nkeys += SLAP_INDEX_SUBSTR_MAXLEN - ( SLAP_INDEX_SUBSTR_MINLEN - 1);
-		} else {
-			nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+		if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
+			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
+					( SLAP_INDEX_SUBSTR_MINLEN - 1);
+			} else {
+				nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+			}
+		}
+
+		if( flags & SLAP_INDEX_SUBSTR_ANY ) {
+			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+				nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
+			}
+		}
+
+		if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
+			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
+					( SLAP_INDEX_SUBSTR_MINLEN - 1);
+			} else {
+				nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+			}
 		}
 	}
 	assert( i > 0 );
@@ -912,7 +931,6 @@ int caseExactIA5SubstringsIndexer(
 		return LDAP_SUCCESS;
 	}
 
-	nkeys *= types; /* We need to generate keys for each type */
 	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
 
 	slen = strlen( syntax->ssyn_oid );
@@ -920,20 +938,47 @@ int caseExactIA5SubstringsIndexer(
 
 	nkeys=0;
 	for( i=0; values[i] != NULL; i++ ) {
-		int j,max;
+		ber_len_t j,max;
 		struct berval *value;
 
+		value = values[i];
 		if( value->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
+
+		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
+			( value->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
+		{
+			char pre = SLAP_INDEX_SUBSTR_PREFIX;
+			max = value->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1);
+
+			for( j=0; j<max; j++ ) {
+				lutil_MD5Init( &MD5context );
+				if( prefix != NULL && prefix->bv_len > 0 ) {
+					lutil_MD5Update( &MD5context,
+						prefix->bv_val, prefix->bv_len );
+				}
+
+				lutil_MD5Update( &MD5context,
+					&pre, sizeof( pre ) );
+				lutil_MD5Update( &MD5context,
+					syntax->ssyn_oid, slen );
+				lutil_MD5Update( &MD5context,
+					mr->smr_oid, mlen );
+				lutil_MD5Update( &MD5context,
+					&value->bv_val[j],
+					SLAP_INDEX_SUBSTR_MAXLEN );
+				lutil_MD5Final( MD5digest, &MD5context );
+
+				keys[nkeys++] = ber_bvdup( &digest );
+			}
+		}
 
 		max = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
 
-		value = values[i];
-
 		for( j=SLAP_INDEX_SUBSTR_MINLEN; j<=max; j++ ) {
 			char pre;
 
-			if( flags & SLAP_MR_SUBSTR_INITIAL ) {
+			if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
 				pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
 				lutil_MD5Init( &MD5context );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -953,7 +998,7 @@ int caseExactIA5SubstringsIndexer(
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
 
-			if( flags & SLAP_MR_SUBSTR_FINAL ) {
+			if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
 				pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
 				lutil_MD5Init( &MD5context );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -976,13 +1021,20 @@ int caseExactIA5SubstringsIndexer(
 		}
 	}
 
-	keys[nkeys] = NULL;
-	*keysp = keys;
+	if( nkeys > 0 ) {
+		keys[nkeys] = NULL;
+		*keysp = keys;
+	} else {
+		ch_free( keys );
+		*keysp = NULL;
+	}
+
 	return LDAP_SUCCESS;
 }
 
 int caseExactIA5SubstringsFilter(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -991,7 +1043,7 @@ int caseExactIA5SubstringsFilter(
 {
 	SubstringsAssertion *sa = assertValue;
 	char pre;
-	int nkeys = 0;
+	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
 	struct berval **keys;
 	lutil_MD5_CTX   MD5context;
@@ -999,12 +1051,24 @@ int caseExactIA5SubstringsFilter(
 	struct berval *value;
 	struct berval digest;
 
-	if( sa->sa_initial != NULL &&
+	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial != NULL &&
 		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		nkeys++;
 	}
-	if( sa->sa_final != NULL &&
+
+	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
+		ber_len_t i;
+		for( i=0; sa->sa_any[i] != NULL; i++ ) {
+			if( sa->sa_any[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+				/* don't bother accounting for stepping */
+				nkeys += sa->sa_any[i]->bv_len -
+					( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
+			}
+		}
+	}
+
+	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final != NULL &&
 		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		nkeys++;
@@ -1024,7 +1088,7 @@ int caseExactIA5SubstringsFilter(
 	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
 	nkeys = 0;
 
-	if( sa->sa_initial != NULL &&
+	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial != NULL &&
 		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
@@ -1048,11 +1112,46 @@ int caseExactIA5SubstringsFilter(
 			value->bv_val, klen );
 		lutil_MD5Final( MD5digest, &MD5context );
 
-		ber_bvfree( value );
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
-	if( sa->sa_final != NULL &&
+	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
+		ber_len_t i, j;
+		pre = SLAP_INDEX_SUBSTR_PREFIX;
+		klen = SLAP_INDEX_SUBSTR_MAXLEN;
+
+		for( i=0; sa->sa_any[i] != NULL; i++ ) {
+			if( sa->sa_any[i]->bv_len < SLAP_INDEX_SUBSTR_MAXLEN ) {
+				continue;
+			}
+
+			value = sa->sa_any[i];
+
+			for(j=0;
+				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
+				j += SLAP_INDEX_SUBSTR_STEP )
+			{
+				lutil_MD5Init( &MD5context );
+				if( prefix != NULL && prefix->bv_len > 0 ) {
+					lutil_MD5Update( &MD5context,
+						prefix->bv_val, prefix->bv_len );
+				}
+				lutil_MD5Update( &MD5context,
+					&pre, sizeof( pre ) );
+				lutil_MD5Update( &MD5context,
+					syntax->ssyn_oid, slen );
+				lutil_MD5Update( &MD5context,
+					mr->smr_oid, mlen );
+				lutil_MD5Update( &MD5context,
+					&value->bv_val[j], klen ); 
+				lutil_MD5Final( MD5digest, &MD5context );
+
+				keys[nkeys++] = ber_bvdup( &digest );
+			}
+		}
+	}
+
+	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final != NULL &&
 		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
@@ -1076,20 +1175,24 @@ int caseExactIA5SubstringsFilter(
 			&value->bv_val[value->bv_len-klen], klen );
 		lutil_MD5Final( MD5digest, &MD5context );
 
-		ber_bvfree( value );
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
-	keys[nkeys] = NULL;
+	if( nkeys > 0 ) {
+		keys[nkeys] = NULL;
+		*keysp = keys;
+	} else {
+		ch_free( keys );
+		*keysp = NULL;
+	}
 
-	*keysp = keys;
 	return LDAP_SUCCESS;
 }
 	
 static int
 caseIgnoreIA5Match(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -1124,7 +1227,7 @@ static char *strcasechr( const char *str, int c )
 static int
 caseIgnoreIA5SubstringsMatch(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -1249,7 +1352,8 @@ done:
 
 /* Index generation function */
 int caseIgnoreIA5Indexer(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -1305,7 +1409,8 @@ int caseIgnoreIA5Indexer(
 
 /* Index generation function */
 int caseIgnoreIA5Filter(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -1348,19 +1453,21 @@ int caseIgnoreIA5Filter(
 	ber_bvfree( value );
 
 	*keysp = keys;
+
 	return LDAP_SUCCESS;
 }
 
 /* Substrings Index generation function */
 int caseIgnoreIA5SubstringsIndexer(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
 	struct berval **values,
 	struct berval ***keysp )
 {
-	int i, nkeys, types;
+	ber_len_t i, nkeys;
 	size_t slen, mlen;
 	struct berval **keys;
 	lutil_MD5_CTX   MD5context;
@@ -1369,11 +1476,6 @@ int caseIgnoreIA5SubstringsIndexer(
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
 
-	types = 0;
-	if( flags & SLAP_MR_SUBSTR_INITIAL ) types++;
-	if( flags & SLAP_MR_SUBSTR_FINAL ) types++;
-	/* no SUBSTR_ANY indexing */
-
 	nkeys=0;
 	for( i=0; values[i] != NULL; i++ ) {
 		/* count number of indices to generate */
@@ -1381,10 +1483,28 @@ int caseIgnoreIA5SubstringsIndexer(
 			continue;
 		}
 
-		if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
-			nkeys += SLAP_INDEX_SUBSTR_MAXLEN - ( SLAP_INDEX_SUBSTR_MINLEN - 1);
-		} else {
-			nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+		if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
+			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
+					( SLAP_INDEX_SUBSTR_MINLEN - 1);
+			} else {
+				nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+			}
+		}
+
+		if( flags & SLAP_INDEX_SUBSTR_ANY ) {
+			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+				nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
+			}
+		}
+
+		if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
+			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
+					( SLAP_INDEX_SUBSTR_MINLEN - 1);
+			} else {
+				nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+			}
 		}
 	}
 	assert( i > 0 );
@@ -1395,7 +1515,6 @@ int caseIgnoreIA5SubstringsIndexer(
 		return LDAP_SUCCESS;
 	}
 
-	nkeys *= types; /* We need to generate keys for each type */
 	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
 
 	slen = strlen( syntax->ssyn_oid );
@@ -1408,16 +1527,44 @@ int caseIgnoreIA5SubstringsIndexer(
 
 		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
 
-		max = SLAP_INDEX_SUBSTR_MAXLEN < values[i]->bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : values[i]->bv_len;
-
 		value = ber_bvdup( values[i] );
 		ldap_pvt_str2upper( value->bv_val );
+
+		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
+			( value->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
+		{
+			char pre = SLAP_INDEX_SUBSTR_PREFIX;
+			max = value->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1);
+
+			for( j=0; j<max; j++ ) {
+				lutil_MD5Init( &MD5context );
+				if( prefix != NULL && prefix->bv_len > 0 ) {
+					lutil_MD5Update( &MD5context,
+						prefix->bv_val, prefix->bv_len );
+				}
+
+				lutil_MD5Update( &MD5context,
+					&pre, sizeof( pre ) );
+				lutil_MD5Update( &MD5context,
+					syntax->ssyn_oid, slen );
+				lutil_MD5Update( &MD5context,
+					mr->smr_oid, mlen );
+				lutil_MD5Update( &MD5context,
+					&value->bv_val[j],
+					SLAP_INDEX_SUBSTR_MAXLEN );
+				lutil_MD5Final( MD5digest, &MD5context );
+
+				keys[nkeys++] = ber_bvdup( &digest );
+			}
+		}
+
+		max = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
+			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
 
 		for( j=SLAP_INDEX_SUBSTR_MINLEN; j<=max; j++ ) {
 			char pre;
 
-			if( flags & SLAP_MR_SUBSTR_INITIAL ) {
+			if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
 				pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
 				lutil_MD5Init( &MD5context );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1437,7 +1584,7 @@ int caseIgnoreIA5SubstringsIndexer(
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
 
-			if( flags & SLAP_MR_SUBSTR_FINAL ) {
+			if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
 				pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
 				lutil_MD5Init( &MD5context );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1462,13 +1609,20 @@ int caseIgnoreIA5SubstringsIndexer(
 		ber_bvfree( value );
 	}
 
-	keys[nkeys] = NULL;
-	*keysp = keys;
+	if( nkeys > 0 ) {
+		keys[nkeys] = NULL;
+		*keysp = keys;
+	} else {
+		ch_free( keys );
+		*keysp = NULL;
+	}
+
 	return LDAP_SUCCESS;
 }
 
 int caseIgnoreIA5SubstringsFilter(
-	unsigned flags,
+	slap_mask_t use,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -1477,7 +1631,7 @@ int caseIgnoreIA5SubstringsFilter(
 {
 	SubstringsAssertion *sa = assertValue;
 	char pre;
-	int nkeys = 0;
+	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
 	struct berval **keys;
 	lutil_MD5_CTX   MD5context;
@@ -1485,12 +1639,24 @@ int caseIgnoreIA5SubstringsFilter(
 	struct berval *value;
 	struct berval digest;
 
-	if( sa->sa_initial != NULL &&
+	if((flags & SLAP_INDEX_SUBSTR_INITIAL) && sa->sa_initial != NULL &&
 		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		nkeys++;
 	}
-	if( sa->sa_final != NULL &&
+
+	if((flags & SLAP_INDEX_SUBSTR_ANY) && sa->sa_any != NULL ) {
+		ber_len_t i;
+		for( i=0; sa->sa_any[i] != NULL; i++ ) {
+			if( sa->sa_any[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+				/* don't bother accounting for stepping */
+				nkeys += sa->sa_any[i]->bv_len -
+					( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
+			}
+		}
+	}
+
+	if((flags & SLAP_INDEX_SUBSTR_FINAL) && sa->sa_final != NULL &&
 		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		nkeys++;
@@ -1510,7 +1676,7 @@ int caseIgnoreIA5SubstringsFilter(
 	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
 	nkeys = 0;
 
-	if( sa->sa_initial != NULL &&
+	if((flags & SLAP_INDEX_SUBSTR_INITIAL) && sa->sa_initial != NULL &&
 		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
@@ -1539,7 +1705,46 @@ int caseIgnoreIA5SubstringsFilter(
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
-	if( sa->sa_final != NULL &&
+	if((flags & SLAP_INDEX_SUBSTR_ANY) && sa->sa_any != NULL ) {
+		ber_len_t i, j;
+		pre = SLAP_INDEX_SUBSTR_PREFIX;
+		klen = SLAP_INDEX_SUBSTR_MAXLEN;
+
+		for( i=0; sa->sa_any[i] != NULL; i++ ) {
+			if( sa->sa_any[i]->bv_len < SLAP_INDEX_SUBSTR_MAXLEN ) {
+				continue;
+			}
+
+			value = ber_bvdup( sa->sa_any[i] );
+			ldap_pvt_str2upper( value->bv_val );
+
+			for(j=0;
+				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
+				j += SLAP_INDEX_SUBSTR_STEP )
+			{
+				lutil_MD5Init( &MD5context );
+				if( prefix != NULL && prefix->bv_len > 0 ) {
+					lutil_MD5Update( &MD5context,
+						prefix->bv_val, prefix->bv_len );
+				}
+				lutil_MD5Update( &MD5context,
+					&pre, sizeof( pre ) );
+				lutil_MD5Update( &MD5context,
+					syntax->ssyn_oid, slen );
+				lutil_MD5Update( &MD5context,
+					mr->smr_oid, mlen );
+				lutil_MD5Update( &MD5context,
+					&value->bv_val[j], klen );
+				lutil_MD5Final( MD5digest, &MD5context );
+
+				keys[nkeys++] = ber_bvdup( &digest );
+			}
+
+			ber_bvfree( value );
+		}
+	}
+
+	if((flags & SLAP_INDEX_SUBSTR_FINAL) && sa->sa_final != NULL &&
 		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
@@ -1568,9 +1773,14 @@ int caseIgnoreIA5SubstringsFilter(
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
-	keys[nkeys] = NULL;
+	if( nkeys > 0 ) {
+		keys[nkeys] = NULL;
+		*keysp = keys;
+	} else {
+		ch_free( keys );
+		*keysp = NULL;
+	}
 
-	*keysp = keys;
 	return LDAP_SUCCESS;
 }
 	
@@ -1632,7 +1842,7 @@ numericStringNormalize(
 static int
 objectIdentifierFirstComponentMatch(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
