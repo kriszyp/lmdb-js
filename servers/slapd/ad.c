@@ -18,8 +18,6 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
-extern ldap_pvt_thread_mutex_t	ad_mutex;	/* init.c */
-
 static int ad_keystring(
 	struct berval *bv )
 {
@@ -45,6 +43,24 @@ void ad_destroy( void *in )
 		n = ad->ad_next;
 		ldap_memfree(ad);
 	}
+}
+
+/* Is there an AttributeDescription for this type that uses this language? */
+AttributeDescription * ad_find_lang(
+	AttributeType *type,
+	struct berval *lang )
+{
+	AttributeDescription *ad;
+
+	ldap_pvt_thread_mutex_lock( &type->sat_ad_mutex );
+	for (ad = type->sat_ad; ad; ad=ad->ad_next)
+	{
+		if (ad->ad_lang.bv_len == lang->bv_len &&
+			!strcasecmp(ad->ad_lang.bv_val, lang->bv_val))
+			break;
+	}
+	ldap_pvt_thread_mutex_unlock( &type->sat_ad_mutex );
+	return ad;
 }
 
 int slap_str2ad(
@@ -143,6 +159,7 @@ int slap_bv2ad(
 		}
 	}
 
+	ldap_pvt_thread_mutex_lock( &desc.ad_type->sat_ad_mutex );
 	/* see if a matching description is already cached */
 	for (d2 = desc.ad_type->sat_ad; d2; d2=d2->ad_next) {
 		if (d2->ad_flags != desc.ad_flags)
@@ -159,28 +176,6 @@ int slap_bv2ad(
 	/* Not found, add new one */
 	while (d2 == NULL) {
 		int dlen = 0;
-		/* uses a single mutex instead of one per attributetype.
-		 * I don't believe this is a significant bottleneck. If
-		 * necessary, could change to a per-AttrType rwlock.
-		 */
-		ldap_pvt_thread_mutex_lock( &ad_mutex );
-		/* Check again just in case another thread added it */
-		for (d2 = desc.ad_type->sat_ad; d2; d2=d2->ad_next) {
-			if (d2->ad_flags != desc.ad_flags)
-				continue;
-			if (d2->ad_lang.bv_len != desc.ad_lang.bv_len)
-				continue;
-			if (d2->ad_lang.bv_len == 0)
-				break;
-			if (strncasecmp(d2->ad_lang.bv_val,desc.ad_lang.bv_val,
-				desc.ad_lang.bv_len) == 0)
-				break;
-		}
-		/* Some other thread added it before we got the lock. */
-		if (d2 != NULL) {
-			ldap_pvt_thread_mutex_unlock( &ad_mutex );
-			break;
-		}
 
 		/* Allocate a single contiguous block. If there are no
 		 * options, we just need space for the AttrDesc structure.
@@ -191,7 +186,7 @@ int slap_bv2ad(
 		if (desc.ad_lang.bv_len || desc.ad_flags != SLAP_DESC_NONE) {
 			if (desc.ad_lang.bv_len)
 				dlen = desc.ad_lang.bv_len+1;
-			dlen += strlen(desc.ad_type->sat_cname)+1;
+			dlen += desc.ad_type->sat_cname.bv_len+1;
 			if( slap_ad_is_binary( &desc ) ) {
 				dlen += sizeof("binary");
 			}
@@ -203,11 +198,11 @@ int slap_bv2ad(
 		d2->ad_cname.bv_len = desc.ad_cname.bv_len;
 		d2->ad_lang.bv_len = desc.ad_lang.bv_len;
 		if (dlen == 0) {
-			d2->ad_cname.bv_val = d2->ad_type->sat_cname;
+			d2->ad_cname.bv_val = d2->ad_type->sat_cname.bv_val;
 			d2->ad_lang.bv_val = NULL;
 		} else {
 			d2->ad_cname.bv_val = (char *)(d2+1);
-			strcpy(d2->ad_cname.bv_val, d2->ad_type->sat_cname);
+			strcpy(d2->ad_cname.bv_val, d2->ad_type->sat_cname.bv_val);
 			if( slap_ad_is_binary( &desc ) ) {
 				strcpy(d2->ad_cname.bv_val+d2->ad_cname.bv_len,
 					";binary");
@@ -235,8 +230,8 @@ int slap_bv2ad(
 			d2->ad_next = desc.ad_type->sat_ad->ad_next;
 			desc.ad_type->sat_ad->ad_next = d2;
 		}
-		ldap_pvt_thread_mutex_unlock( &ad_mutex );
 	}
+	ldap_pvt_thread_mutex_unlock( &desc.ad_type->sat_ad_mutex );
 
 	if( *ad == NULL ) {
 		*ad = d2;

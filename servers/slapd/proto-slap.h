@@ -49,6 +49,10 @@ LDAP_SLAPD_F (int) slap_bv2undef_ad LDAP_P((
 	AttributeDescription **ad,
 	const char **text ));
 
+LDAP_SLAPD_F (AttributeDescription *) ad_find_lang LDAP_P((
+	AttributeType *type,
+	struct berval *lang ));
+
 /*
  * acl.c
  */

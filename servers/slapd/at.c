@@ -181,6 +181,7 @@ at_destroy( void )
 		n = a->sat_next;
 		ldap_memfree(a->sat_subtypes);
 		ad_destroy(a->sat_ad);
+		ldap_pvt_thread_mutex_destroy(&a->sat_ad_mutex);
 		ldap_attributetype_free((LDAPAttributeType *)a);
 	}
 }
@@ -276,6 +277,7 @@ at_add(
 	AC_MEMCPY( &sat->sat_atype, at, sizeof(LDAPAttributeType));
 
 	sat->sat_cname = cname;
+	ldap_pvt_thread_mutex_init(&sat->sat_ad_mutex);
 
 	if ( at->at_sup_oid ) {
 		AttributeType *supsat = at_find(at->at_sup_oid);

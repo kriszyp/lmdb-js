@@ -378,6 +378,7 @@ typedef struct slap_attribute_type {
 	MatchingRule			*sat_ordering;
 	MatchingRule			*sat_substr;
 	Syntax				*sat_syntax;
+	ldap_pvt_thread_mutex_t		sat_ad_mutex;
 	struct slap_attr_desc		*sat_ad;
 	struct slap_attribute_type	*sat_next;
 #define sat_oid			sat_atype.at_oid
