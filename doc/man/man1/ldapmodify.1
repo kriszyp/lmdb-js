@@ -1,6 +1,6 @@
-.TH LDAPMODIFY 1 "10 November 1998" "OpenLDAP LDVERSION"
+.TH LDAPMODIFY 1 "17 August 1999" "OpenLDAP LDVERSION"
 .SH NAME
-ldapmodify, ldapadd \- ldap modify entry and ldap add entry tools
+ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 .SH SYNOPSIS
 .B ldapmodify
 [\c
@@ -233,16 +233,16 @@ Assuming that the file
 exists and has the contents:
 .LP
 .nf
-    dn: cn=Modify Me, o=University of Michigan, c=US
+    dn: cn=Modify Me, dc=OpenLDAP, dc=Org
     changetype: modify
     replace: mail
-    mail: modme@terminator.rs.itd.umich.edu
+    mail: modme@OpenLDAP.org
     -
     add: title
     title: Grand Poobah
     -
     add: jpegPhoto
-    jpegPhoto: /tmp/modme.jpeg
+    jpegPhoto:< file://tmp/modme.jpeg
     -
     delete: description
     -
@@ -256,7 +256,7 @@ the command:
 .LP
 will replace the contents of the "Modify Me" entry's
 .I mail
-attribute with the value "modme@terminator.rs.itd.umich.edu", add a
+attribute with the value "modme@OpenLDAP.org", add a
 .I title
 of "Grand Poobah", and the contents of the file "/tmp/modme.jpeg"
 as a
@@ -269,8 +269,8 @@ The same modifications as above can be performed using the older
 inout format:
 .LP
 .nf
-    cn=Modify Me, o=University of Michigan, c=US
-    mail=modme@terminator.rs.itd.umich.edu
+    cn=Modify Me, dc=OpenLDAP, dc=org
+    mail=modme@OpenLDAP.org
     +title=Grand Poobah
     +jpegPhoto=/tmp/modme.jpeg
     -description
@@ -287,13 +287,13 @@ Assuming that the file
 exists and has the contents:
 .LP
 .nf
-    dn: cn=Barbara Jensen, o=University of Michigan, c=US
+    dn: cn=Barbara Jensen, dc=OpenLDAP, dc=org 
     objectClass: person
     cn: Barbara Jensen
     cn: Babs Jensen
     sn: Jensen
     title: the world's most famous mythical manager
-    mail: bjensen@terminator.rs.itd.umich.edu
+    mail: bjensen@OpenLDAP.org
     uid: bjensen
 .LP
 the command:
@@ -311,7 +311,7 @@ Assuming that the file
 exists and has the contents:
 .LP
 .nf
-    dn: cn=Barbara Jensen, o=University of Michigan, c=US
+    dn: cn=Barbara Jensen, dc=OpenLDAP, dc=org
     changetype: delete
 .LP
 the command:

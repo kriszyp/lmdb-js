@@ -1,6 +1,6 @@
-.TH LDAPSEARCH 1 "25 July 1999" "OpenLDAP LDVERSION"
+.TH LDAPSEARCH 1 "17 August 1999" "OpenLDAP LDVERSION"
 .SH NAME
-ldapsearch \- ldap search tool
+ldapsearch \- LDAP search tool
 .SH SYNOPSIS
 .B ldapsearch
 [\c
@@ -244,45 +244,45 @@ is given, only the "attributename" part is written.
 The following command:
 .LP
 .nf
-    ldapsearch "cn=mark smith" cn telephoneNumber
+    ldapsearch "(sn=smith)" cn sn telephoneNumber
 .fi
 .LP
-will perform a subtree search (using the default search base) for entries
-with a commonName of "mark smith".  The commonName and telephoneNumber
-values will be retrieved and printed to standard output.
+will perform a subtree search (using the default search base) for
+entries with a surname (sn) of smith.  The common name (cn), surname
+(sn) and telephoneNumber values will be retrieved and printed to
+standard output.
 The output might look something like this if two entries are found:
 .LP
 .nf
-cn=Mark D Smith, ou="College of Literature, Science, and the Arts", ou=Students, ou=People, o=University of Michigan, c=US
-cn=Mark Smith
-cn=Mark David Smith
-cn=Mark D Smith 1
-cn=Mark D Smith
-telephoneNumber=+1 313 930-9489
+uid=jts, ou=Volunteers, ou=People, dc=OpenLDAP, dc=org
+cn=John Smith
+cn=John T. Smith
+sn=Smith
+telephoneNumber=+1 555 123-4567
 
-cn=Mark C Smith, ou=Information Technology Division, ou=Faculty and Staff, ou=People, o=University of Michigan, c=US
-cn=Mark Smith
-cn=Mark C Smith 1
-cn=Mark C Smith
-telephoneNumber=+1 313 764-2277
+uid=sss, ou=Staff, ou=People, dc=OpenLDAP, dc=org
+cn=Steve Smith
+cn=Steve S. Smith
+sn=Smith
+telephoneNumber=+1 555 765-4321
 .fi
 .LP
 The command:
 .LP
 .nf
-    ldapsearch -u -t "uid=mcs" jpegPhoto audio
+    ldapsearch -u -t "uid=xyz" jpegPhoto audio
 .fi
 .LP
 will perform a subtree search using the default search base for entries
-with user id of "mcs".  The user friendly form of the entry's DN will be
+with user id of "xyz".  The user friendly form of the entry's DN will be
 output after the line that contains the DN itself, and the jpegPhoto
 and audio values will be retrieved and written to temporary files.  The
 output might look like this if one entry with one value for each of the
 requested attributes is found:
 .LP
 .nf
-cn=Mark C Smith, ou=Information Technology Division, ou=Faculty and Staff, ou=People, o=University of Michigan, c=US
-Mark C Smith, Information Technology Division, Faculty and Staff, People, University of Michigan, US
+uid=xyz, ou=Staff, ou=People, dc=OpenLDAP, dc=org
+xyz, Staff, People, OpenLDAP, org
 audio=/tmp/ldapsearch-audio-a19924
 jpegPhoto=/tmp/ldapsearch-jpegPhoto-a19924
 .fi
@@ -290,12 +290,12 @@ jpegPhoto=/tmp/ldapsearch-jpegPhoto-a19924
 This command:
 .LP
 .nf
-    ldapsearch -L -s one -b "c=US" "o=university*" o description
+    ldapsearch -L -s one -b "c=US" "o=University*" o description
 .fi
 .LP
-will perform a one-level search at the c=US level for all organizations
-whose organizationName begins with \fBuniversity\fP.  Search results
-will be displayed in the LDIF format.
+will perform a one-level search at the c=US level for all entries
+whose organizationName (o) begins begins with \fBUniversity\fP.
+Search results will be displayed in the LDIF format.
 The organizationName and description attribute values will be retrieved
 and printed to standard output, resulting in output similar to this:
 .LP
