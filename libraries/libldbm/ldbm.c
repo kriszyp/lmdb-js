@@ -231,7 +231,8 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 		return NULL;
 	}
 
-#if DB_VERSION_MINOR >= 3
+#if DB_VERSION_MAJOR > 3 || DB_VERSION_MINOR >= 3
+	/* This interface appeared in 3.3 */
 	env->set_alloc( env, ldbm_malloc, NULL, NULL );
 #endif
 
@@ -391,12 +392,10 @@ void
 ldbm_close( LDBM ldbm )
 {
 	LDBM_WLOCK;
-#if DB_VERSION_MAJOR >= 3
+#if DB_VERSION_MAJOR >= 2
 	ldbm->close( ldbm, 0 );
-#elif DB_VERSION_MAJOR >= 2
-	(*ldbm->close)( ldbm, 0 );
 #else
-	(*ldbm->close)( ldbm );
+	ldbm->close( ldbm );
 #endif
 	LDBM_WUNLOCK;
 }
@@ -417,7 +416,7 @@ ldbm_fetch( LDBM ldbm, Datum key )
 
 	LDBM_RLOCK;
 
-#if DB_VERSION_MAJOR >= 3
+#if DB_VERSION_MAJOR >= 2
 	ldbm_datum_init( data );
 
 	data.flags = DB_DBT_MALLOC;
@@ -427,20 +426,8 @@ ldbm_fetch( LDBM ldbm, Datum key )
 		data.dptr = NULL;
 		data.dsize = 0;
 	}
-
-#elif DB_VERSION_MAJOR >= 2
-	ldbm_datum_init( data );
-
-	data.flags = DB_DBT_MALLOC;
-
-	if ( (rc = (*ldbm->get)( ldbm, NULL, &key, &data, 0 )) != 0 ) {
-		ldbm_datum_free( ldbm, data );
-		data.dptr = NULL;
-		data.dsize = 0;
-	}
 #else
-
-	if ( (rc = (*ldbm->get)( ldbm, &key, &data, 0 )) == 0 ) {
+	if ( (rc = ldbm->get( ldbm, &key, &data, 0 )) == 0 ) {
 		/* Berkeley DB 1.85 don't malloc the data for us */
 		/* duplicate it for to ensure reentrancy */
 		data = ldbm_datum_dup( ldbm, data );
@@ -462,19 +449,15 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 
 	LDBM_WLOCK;
 
-#if DB_VERSION_MAJOR >= 3
+#if DB_VERSION_MAJOR >= 2
 	rc = ldbm->put( ldbm, NULL, &key, &data, flags & ~LDBM_SYNC );
 	rc = (-1) * rc;
-
-#elif DB_VERSION_MAJOR >= 2
-	rc = (*ldbm->put)( ldbm, NULL, &key, &data, flags & ~LDBM_SYNC );
-	rc = (-1) * rc;
 #else
-	rc = (*ldbm->put)( ldbm, &key, &data, flags & ~LDBM_SYNC );
+	rc = ldbm->put( ldbm, &key, &data, flags & ~LDBM_SYNC );
 #endif
 
 	if ( flags & LDBM_SYNC )
-		(*ldbm->sync)( ldbm, 0 );
+		ldbm->sync( ldbm, 0 );
 
 	LDBM_WUNLOCK;
 
@@ -488,16 +471,13 @@ ldbm_delete( LDBM ldbm, Datum key )
 
 	LDBM_WLOCK;
 
-#if DB_VERSION_MAJOR >= 3
+#if DB_VERSION_MAJOR >= 2
 	rc = ldbm->del( ldbm, NULL, &key, 0 );
 	rc = (-1) * rc;
-#elif DB_VERSION_MAJOR >= 2
-	rc = (*ldbm->del)( ldbm, NULL, &key, 0 );
-	rc = (-1) * rc;
 #else
-	rc = (*ldbm->del)( ldbm, &key, 0 );
+	rc = ldbm->del( ldbm, &key, 0 );
 #endif
-	(*ldbm->sync)( ldbm, 0 );
+	ldbm->sync( ldbm, 0 );
 
 	LDBM_WUNLOCK;
 
@@ -521,20 +501,17 @@ ldbm_firstkey( LDBM ldbm, LDBMCursor **dbch )
 	LDBM_RLOCK;
 
 	/* acquire a cursor for the DB */
-# if DB_VERSION_MAJOR >= 3
+# if DB_VERSION_MAJOR >= 3 || (DB_VERSION_MAJOR == 2 && DB_VERSION_MINOR > 5)
 	rc = ldbm->cursor( ldbm, NULL, &dbci, 0 );
-# elif defined( DB_VERSION_MAJOR ) && defined( DB_VERSION_MINOR ) && \
-	(DB_VERSION_MAJOR == 2 && DB_VERSION_MINOR < 6)
-	rc = (*ldbm->cursor)( ldbm, NULL, &dbci );
 # else
-	rc = (*ldbm->cursor)( ldbm, NULL, &dbci, 0 );
+	rc = ldbm->cursor( ldbm, NULL, &dbci );
 # endif
 
 	if( rc ) {
 		key.dptr = NULL;
 	} else {
 		*dbch = dbci;
-		if ( (*dbci->c_get)( dbci, &key, &data, DB_NEXT ) == 0 ) {
+		if ( dbci->c_get( dbci, &key, &data, DB_NEXT ) == 0 ) {
 			ldbm_datum_free( ldbm, data );
 		} else {
 			key.dptr = NULL;
@@ -547,7 +524,7 @@ ldbm_firstkey( LDBM ldbm, LDBMCursor **dbch )
 #else
 	LDBM_RLOCK;
 
-	rc = (*ldbm->seq)( ldbm, &key, &data, R_FIRST );
+	rc = ldbm->seq( ldbm, &key, &data, R_FIRST );
 
 	if ( rc == 0 ) {
 		key = ldbm_datum_dup( ldbm, key );
@@ -576,12 +553,12 @@ ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *dbcp )
 	ldbm_datum_free( ldbm, key );
 	key.flags = data.flags = DB_DBT_MALLOC;
 
-	rc = (*dbcp->c_get)( dbcp, &key, &data, DB_NEXT );
+	rc = dbcp->c_get( dbcp, &key, &data, DB_NEXT );
 	if ( rc == 0 ) {
 		ldbm_datum_free( ldbm, data );
 	} else
 #else
-	rc = (*ldbm->seq)( ldbm, &key, &data, R_NEXT );
+	rc = ldbm->seq( ldbm, &key, &data, R_NEXT );
 
 	if ( rc == 0 ) {
 		key = ldbm_datum_dup( ldbm, key );
