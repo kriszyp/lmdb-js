@@ -112,7 +112,7 @@ int ldbm_initialize( const char* home )
 		version = db_version( &major, &minor, &patch );
 
 		if( major != DB_VERSION_MAJOR ||
-			minor >= DB_VERSION_MINOR )
+			minor < DB_VERSION_MINOR )
 		{
 #ifdef LDAP_SYSLOG
 			char error[BUFSIZ];
@@ -120,7 +120,7 @@ int ldbm_initialize( const char* home )
 			sprintf( error, "%s (%d)\n", STRERROR( err ), err );
 
 			syslog( LOG_INFO,
-				"ldbm_initialize(): versoin mismatch\nexpected: %s\ngot: %s\n",
+				"ldbm_initialize(): version mismatch\nexpected: %s\ngot: %s\n",
 				DB_VERSION_STRING,
 				version );
 #endif
