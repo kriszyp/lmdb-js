@@ -149,6 +149,7 @@ typedef struct slap_syntax {
 	LDAP_SYNTAX			ssyn_syn;
 #define ssyn_oid		ssyn_syn.syn_oid
 #define ssyn_desc		ssyn_syn.syn_desc
+#define ssyn_extensions		ssyn_syn.syn_extensions
 
 	unsigned	ssyn_flags;
 
@@ -243,6 +244,7 @@ typedef struct slap_matching_rule {
 #define smr_desc			smr_mrule.mr_desc
 #define smr_obsolete		smr_mrule.mr_obsolete
 #define smr_syntax_oid		smr_mrule.mr_syntax_oid
+#define smr_extensions		smr_mrule.mr_extensions
 } MatchingRule;
 
 typedef struct slap_attribute_type {
@@ -274,6 +276,7 @@ typedef struct slap_attribute_type {
 #define sat_collective		sat_atype.at_collective
 #define sat_no_user_mod		sat_atype.at_no_user_mod
 #define sat_usage		sat_atype.at_usage
+#define sat_extensions		sat_atype.at_extensions
 } AttributeType;
 
 #define is_at_operational(at)	((at)->sat_usage)
@@ -295,6 +298,7 @@ typedef struct slap_object_class {
 #define soc_kind		soc_oclass.oc_kind
 #define soc_at_oids_must	soc_oclass.oc_at_oids_must
 #define soc_at_oids_may		soc_oclass.oc_at_oids_may
+#define soc_extensions		soc_oclass.oc_extensions
 } ObjectClass;
 
 
