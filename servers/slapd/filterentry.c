@@ -126,11 +126,7 @@ test_filter(
 #ifdef SLAPD_EXT_FILTERS
 	case LDAP_FILTER_EXT:
 		Debug( LDAP_DEBUG_FILTER, "    EXT\n", 0, 0, 0 );
-#if SLAPD_SCHEMA_NOT_COMPAT
 		rc = test_mra_filter( be, conn, op, e, f->f_mra );
-#else
-		rc = LDAP_UNWILLING_TO_PERFORM;
-#endif
 		break;
 #endif
 

@@ -414,7 +414,7 @@ acl_mask(
 			const char *desc = b->a_dn_at->ad_cname->bv_val;
 
 			Debug( LDAP_DEBUG_ACL, "<= check a_dn_at: %s\n",
-				b->a_dn_at, 0, 0);
+				desc, 0, 0);
 
 			bv.bv_val = op->o_ndn;
 			bv.bv_len = strlen( bv.bv_val );

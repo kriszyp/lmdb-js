@@ -464,7 +464,7 @@ parse_acl(
 							fprintf( stderr,
 								"%s: line %d: group: \"%s\" not allowed by \"%s\"\n",
 								fname, lineno,
-								b->a_group_at->ad_type,
+								b->a_group_at->ad_cname->bv_val,
 								b->a_group_oc->soc_oid );
 							acl_usage();
 						}
@@ -985,7 +985,8 @@ print_access( Access *b )
 		fprintf( stderr, " group: %s", b->a_group_pat );
 
 		if ( b->a_group_oc ) {
-			fprintf( stderr, " objectClass: %s", b->a_group_oc );
+			fprintf( stderr, " objectClass: %s",
+				b->a_group_oc->soc_oclass.oc_oid );
 
 			if ( b->a_group_at ) {
 				fprintf( stderr, " attributeType: %s", b->a_group_at->ad_cname->bv_val );

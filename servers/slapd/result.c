@@ -713,7 +713,7 @@ send_search_entry(
 
 		if ( ! access_allowed( be, conn, op, e, desc, NULL, ACL_READ ) ) {
 			Debug( LDAP_DEBUG_ACL, "acl: access to attribute %s not allowed\n",
-			    desc, 0, 0 );
+			    desc->ad_cname->bv_val, 0, 0 );
 			continue;
 		}
 
@@ -732,7 +732,7 @@ send_search_entry(
 				{
 					Debug( LDAP_DEBUG_ACL,
 						"acl: access to attribute %s, value %d not allowed\n",
-			    		desc, i, 0 );
+			    		desc->ad_cname->bv_val, i, 0 );
 					continue;
 				}
 
@@ -788,7 +788,7 @@ send_search_entry(
 
 		if ( ! access_allowed( be, conn, op, e,	desc, NULL, ACL_READ ) ) {
 			Debug( LDAP_DEBUG_ACL, "acl: access to attribute %s not allowed\n",
-			    desc, 0, 0 );
+			    desc->ad_cname->bv_val, 0, 0 );
 			continue;
 		}
 
@@ -807,7 +807,7 @@ send_search_entry(
 				{
 					Debug( LDAP_DEBUG_ACL,
 						"acl: access to attribute %s, value %d not allowed\n",
-			    		desc, i, 0 );
+			    		desc->ad_cname->bv_val, i, 0 );
 					continue;
 				}
 

@@ -49,8 +49,7 @@ int is_entry_objectclass(
 	AttributeDescription *objectClass = slap_schema.si_ad_objectClass;
 	assert(!( e == NULL || oc == NULL ));
 
-	if( e == NULL || oc == NULL
-	) {
+	if( e == NULL || oc == NULL ) {
 		return 0;
 	}
 
@@ -63,7 +62,8 @@ int is_entry_objectclass(
 		/* no objectClass attribute */
 		Debug( LDAP_DEBUG_ANY, "is_entry_objectclass(\"%s\", \"%s\") "
 			"no objectClass attribute\n",
-			e->e_dn == NULL ? "" : e->e_dn, oc, 0 );
+			e->e_dn == NULL ? "" : e->e_dn,
+			oc->soc_oclass.oc_oid, 0 );
 
 		return 0;
 	}
