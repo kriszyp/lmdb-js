@@ -78,11 +78,6 @@ sl_mem_detach(
 	void *memctx
 )
 {
-	struct slab_heap *sh = memctx;
-	int size = (char *) sh->h_end - (char *) sh->h_base;
-
-	sh->h_base = ch_realloc( sh->h_base, size );
-
 	ldap_pvt_thread_pool_setkey( ctx, sl_mem_init, NULL, NULL );
 }
 
