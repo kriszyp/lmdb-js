@@ -114,46 +114,44 @@ void slapd_remove(int s) {
 
 void slapd_clr_write(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+	WAKE_LISTENER;
 
 	assert( FD_ISSET( (unsigned) s, &slap_daemon.sd_actives) );
 	FD_CLR( (unsigned) s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-
-	WAKE_LISTENER;
 }
 
 void slapd_set_write(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+    WAKE_LISTENER;
+
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
 	FD_SET( (unsigned) s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-
-    WAKE_LISTENER;
 }
 
 void slapd_clr_read(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+    WAKE_LISTENER;
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
 	FD_CLR( (unsigned) s, &slap_daemon.sd_readers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
-    WAKE_LISTENER;
 }
 
 void slapd_set_read(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+    WAKE_LISTENER;
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
 	FD_SET( (unsigned) s, &slap_daemon.sd_readers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-
-    WAKE_LISTENER;
 }
 
 static void slapd_close(int s) {
