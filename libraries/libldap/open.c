@@ -358,9 +358,9 @@ ldap_int_open_connection(
 	}
 #ifdef LDAP_PF_LOCAL
 	if( proto == LDAP_PROTO_IPC ) {
-		char authid[sizeof("uidNumber=4294967295,gidNumber=4294967295,"
+		char authid[sizeof("uidNumber=4294967295+gidNumber=4294967295,"
 			"cn=peercred,cn=external,cn=auth")];
-		sprintf( authid, "uidNumber=%d,gidNumber=%d,"
+		sprintf( authid, "uidNumber=%d+gidNumber=%d,"
 			"cn=peercred,cn=external,cn=auth",
 			(int) geteuid(), (int) getegid() );
 		ldap_int_sasl_external( ld, conn, authid, LDAP_PVT_SASL_LOCAL_SSF );
