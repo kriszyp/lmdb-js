@@ -440,6 +440,42 @@ send_ldap_result(
 	}
 }
 
+void
+send_ldap_extended(
+    Connection	*conn,
+    Operation	*op,
+    ber_int_t	err,
+    const char	*matched,
+    const char	*text,
+    char		*rspoid,
+	struct berval *rspdata
+)
+{
+	ber_tag_t tag;
+	ber_int_t msgid;
+
+	Debug( LDAP_DEBUG_TRACE,
+		"send_ldap_extended %d:%s\n",
+		err, rspoid ? rspoid : "", NULL );
+
+	tag = req2res( op->o_tag );
+	msgid = (tag != LBER_SEQUENCE) ? op->o_msgid : 0;
+
+#ifdef LDAP_CONNECTIONLESS
+	if ( op->o_cldap ) {
+		ber_pvt_sb_udp_set_dst( conn->c_sb, &op->o_clientaddr );
+		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
+		    inet_ntoa(((struct sockaddr_in *)
+		    &op->o_clientaddr)->sin_addr ),
+		    ((struct sockaddr_in *) &op->o_clientaddr)->sin_port,
+		    0 );
+	}
+#endif
+	send_ldap_response( conn, op, tag, msgid,
+		err, matched, text, NULL,
+		rspoid, rspdata, NULL );
+}
+
 
 void
 send_search_result(
