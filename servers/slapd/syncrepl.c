@@ -1156,6 +1156,8 @@ done:
 	return rc;
 }
 
+static struct berval generic_filterstr = BER_BVC("(objectclass=*)");
+
 /* During a refresh, we may get an LDAP_SYNC_ADD for an already existing
  * entry if a previous refresh was interrupted before sending us a new
  * context state. We try to compare the new entry to the existing entry
@@ -1368,7 +1370,10 @@ retry_add:;
 			/* if an entry was added via syncrepl_add_glue(),
 			 * it likely has no entryUUID, so the previous
 			 * be_search() doesn't find it.  In this case,
-			 * give syncrepl a chance to modify it. */
+			 * give syncrepl a chance to modify it. Also
+			 * allow for entries that were recreated with the
+			 * same DN but a different entryUUID.
+			 */
 			case LDAP_ALREADY_EXISTS:
 				if ( retry ) {
 					Operation	op2 = *op;
@@ -1376,12 +1381,8 @@ retry_add:;
 					slap_callback	cb2 = { 0 };
 
 					op2.o_tag = LDAP_REQ_SEARCH;
-					ber_dupbv_x( &op2.o_req_dn,
-						&entry->e_name,
-						op2.o_tmpmemctx );
-					ber_dupbv_x( &op2.o_req_ndn,
-						&entry->e_nname,
-						op2.o_tmpmemctx );
+					op2.o_req_dn = entry->e_name;
+					op2.o_req_ndn = entry->e_nname;
 					op2.ors_scope = LDAP_SCOPE_BASE;
 					op2.ors_attrs = slap_anlist_all_attributes;
 					op2.ors_attrsonly = 0;
@@ -1389,30 +1390,16 @@ retry_add:;
 					op2.ors_slimit = 1;
 					op2.ors_tlimit = SLAP_NO_LIMIT;
 
-					f.f_choice = LDAP_FILTER_EQUALITY;
-					f.f_ava = &ava;
-					ava.aa_desc = slap_schema.si_ad_objectClass;
-					ber_dupbv_x( &ava.aa_value,
-						&slap_schema.si_oc_glue->soc_cname,
-						op2.o_tmpmemctx );
+					f.f_choice = LDAP_FILTER_PRESENT;
+					f.f_desc = slap_schema.si_ad_objectClass;
 					op2.ors_filter = &f;
-					filter2bv_x( &op2, op2.ors_filter,
-							&op2.ors_filterstr );
+					op2.ors_filterstr = generic_filterstr;
 
 					op2.o_callback = &cb2;
 					cb2.sc_response = dn_callback;
 					cb2.sc_private = &dni;
 
 					be->be_search( &op2, &rs2 );
-
-					op2.o_tmpfree( op2.o_req_dn.bv_val,
-						op2.o_tmpmemctx );
-					op2.o_tmpfree( op2.o_req_ndn.bv_val,
-						op2.o_tmpmemctx );
-					op2.o_tmpfree( ava.aa_value.bv_val,
-						op2.o_tmpmemctx );
-					op2.o_tmpfree( op2.ors_filterstr.bv_val,
-						op2.o_tmpmemctx );
 
 					retry = 0;
 					goto retry_add;
