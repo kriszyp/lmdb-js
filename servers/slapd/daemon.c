@@ -219,7 +219,7 @@ slapd_daemon(
 		zero.tv_usec = 0;
 		Debug( LDAP_DEBUG_CONNS, "before select active_threads %d\n",
 		    active_threads, 0, 0 );
-#ifdef PTHREAD_PREEMPTIVE
+#if	defined(PTHREAD_PREEMPTIVE) || defined(NO_THREADS)
 		tvp = NULL;
 #else
 		tvp = active_threads ? &zero : NULL;
