@@ -3,8 +3,8 @@ OpenLDAP Devel README
 	the OpenLDAP Software Repository.  This copy is likely already
 	not current, the development branch changes frequently.  These
 	changes include code implementing experimental features and
-	unproven bug fixes.  This copy is meant only for reference
-	purposes.
+	unproven bug fixes.  Please do NOT redistribute copies of the
+	development branch.
 
 	The OpenLDAP Developer's FAQ is available at:
 		http://www.openldap.org/faq/index.cgi?file=4
