@@ -126,12 +126,13 @@ do_search(
 			goto return_results;
 		}
 #endif
-		if ( strcmp( base, LDAP_ROOT_DSE ) == 0 ) {
-			root_dse_info( conn, op );
-			goto return_results;
-		}
 	}
 #endif /* monitor or config or schema dn */
+
+	if ( strcmp( base, LDAP_ROOT_DSE ) == 0 && scope == LDAP_SCOPE_BASE ) {
+		root_dse_info( conn, op );
+		goto return_results;
+	}
 
 	/*
 	 * We could be serving multiple database backends.  Select the

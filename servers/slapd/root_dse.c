@@ -54,6 +54,7 @@ root_dse_info( Connection *conn, Operation *op )
 	/* altServer unsupported */
 	/* supportedExtension: no extensions supported */
 	/* supportedControl: no controls supported */
+	/* supportedSASLMechanism: not yet */
 
 	for ( i=LDAP_VERSION_MIN; i<=LDAP_VERSION_MAX; i++ ) {
 		sprintf(buf,"%d",i);
