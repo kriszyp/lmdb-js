@@ -204,20 +204,50 @@ ldbm_back_modrdn(
 #endif
 
 	} else {
-		/* no parent, modrdn entry directly under root */
-		if( ! be_isroot( be, op->o_ndn ) && ! be_issuffix( be, "" ) ) {
+		/* no parent, must be root to modify rdn */
+		if( ! be_isroot( be, op->o_ndn ) ) {
+			if ( be_issuffix( be, "" ) ) {
+				static const Entry rootp = { NOID, "", "", NULL, NULL };
+				p = (Entry *)&rootp;
+				
+				rc = access_allowed( be, conn, op, p,
+						children, NULL, ACL_WRITE );
+				p = NULL;
+								
+				/* check parent for "children" acl */
+				if ( ! rc ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				   "ldbm_back_modrdn: (%s) no parent & not a root.\n",
-				   e->e_dn ));
+					LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+						"ldbm_back_modrdn: no access "
+						"to parent of ("")\n" ));
 #else
-			Debug( LDAP_DEBUG_TRACE, "no parent & not root\n",
-				0, 0, 0);
+					Debug( LDAP_DEBUG_TRACE,
+						"<=- ldbm_back_modrdn: no "
+						"access to parent\n", 0, 0, 0 );
 #endif
 
-			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-				NULL, NULL, NULL, NULL );
-			goto return_results;
+					send_ldap_result( conn, op, 
+						LDAP_INSUFFICIENT_ACCESS,
+						NULL, NULL, NULL, NULL );
+					goto return_results;
+				}
+
+			} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+					   "ldbm_back_modrdn: (%s) has no "
+					   "parent & not a root.\n", dn ));
+#else
+				Debug( LDAP_DEBUG_TRACE,
+					"<=- ldbm_back_modrdn: no parent & "
+					"not root\n", 0, 0, 0);
+#endif
+
+				send_ldap_result( conn, op, 
+					LDAP_INSUFFICIENT_ACCESS,
+					NULL, NULL, NULL, NULL );
+				goto return_results;
+			}
 		}
 
 		ldap_pvt_thread_mutex_lock(&li->li_root_mutex);
