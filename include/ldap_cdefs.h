@@ -7,8 +7,8 @@
 #	define LDAP_BEGIN_DECL	extern "C" {
 #	define LDAP_END_DECL	}
 #else
-#	define LDAP_BEGIN_DECL	/* empty */
-#	define LDAP_END_DECL	/* empty */
+#	define LDAP_BEGIN_DECL	/* begin declarations */
+#	define LDAP_END_DECL	/* end declarations */
 #endif
 
 #if !defined(__NO_PROTOTYPES) && ( \
