@@ -14,7 +14,9 @@ MKDEPFLAG = -l
 
 $(LIBRARY):  version.lo
 	$(LINK) -rpath $(libdir) -o $@ $(OBJS) version.lo
-	@$(RM) ../$@;	\
+	$(RM) ../$@;	\
 	(d=`$(PWD)` ; $(LN_S) `$(BASENAME) $$d`/$@ ../$@)
+	$(RM) ../`$(BASENAME) $@ .la`.a;	\
+	(d=`$(PWD)`; t=`$(BASENAME) $@ .la`.a; $(LN_S) `$(BASENAME) $$d`/.libs/$$t ../$$t)
 
 Makefile: $(top_srcdir)/build/lib-shared.mk
