@@ -70,7 +70,7 @@ bdb_dn2id_add(
 	}
 
 	{
-		char **subtree = dn_subtree( NULL, dn );
+		char **subtree = dn_subtree( be, dn );
 
 		if( subtree != NULL ) {
 			int i;
@@ -152,7 +152,7 @@ bdb_dn2id_delete(
 	}
 
 	{
-		char **subtree = dn_subtree( NULL, dn );
+		char **subtree = dn_subtree( be, dn );
 
 		if( subtree != NULL ) {
 			int i;
@@ -362,6 +362,12 @@ bdb_dn2idl(
 	DB *db = bdb->bi_dn2id->bdi_db;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2idl( \"%s\" )\n", dn, 0, 0 );
+
+	if (prefix == DN_SUBTREE_PREFIX && be_issuffix(be, dn))
+	{
+		BDB_IDL_ALL(bdb, ids);
+		return 0;
+	}
 
 	DBTzero( &key );
 	key.size = strlen( dn ) + 2;
