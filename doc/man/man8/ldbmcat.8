@@ -1,8 +1,8 @@
-.TH LDBMCAT 8C "13 November 1995" "U-M LDAP LDVERSION"
+.TH LDBMCAT 8C "22 September 1998" "OpenLDAP LDVERSION"
 .SH NAME
 ldbmcat \- LDBM to LDIF database format conversion utility
 .SH SYNOPSIS
-.B ETCDIR/ldbmcat [\-n] id2entry\-file
+.B SBINDIR/ldbmcat [\-n] id2entry\-file
 .LP
 .SH DESCRIPTION
 .LP
@@ -33,7 +33,7 @@ give the command:
 .LP
 .nf
 .ft tt
-	ETCDIR/ldbmcat -n id2entry.dbb > ldif
+	SBINDIR/ldbmcat -n id2entry.dbb > ldif
 .ft
 .fi
 .LP
@@ -43,8 +43,8 @@ attribute, give these commands:
 .LP
 .nf
 .ft tt
-	ETCDIR/ldbmcat id2entry.dbb > ldif
-	ETCDIR/ldif2index -i ldif -f slapd-config-file mail
+	SBINDIR/ldbmcat id2entry.dbb > ldif
+	SBINDIR/ldif2index -i ldif -f slapd-config-file mail
 .ft
 .fi
 .LP
@@ -59,3 +59,8 @@ mode) when you do this to ensure consistency of the database.
 .BR slapd (8)
 .LP
 "The SLAPD and SLURPD Administrator's Guide"
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

@@ -1,8 +1,8 @@
-.TH LDAPD 8C "15 June 1992" "U-M LDAP LDVERSION"
+.TH LDAPD 8C "22 September 1998" "OpenLDAP LDVERSION"
 .SH NAME
 ldapd \- LDAP X.500 Protocol Daemon
 .SH SYNOPSIS
-.B ETCDIR/ldapd [\-d level] [\-l] [\-c dsaname]
+.B LIBEXECDIR/ldapd [\-d level] [\-l] [\-c dsaname]
 .B [\-p port] [\-t timeout] [\-r referraltimeout]
 .B [\-I] [\-U]
 .SH DESCRIPTION
@@ -103,7 +103,7 @@ to the first DSA listed in the dsaptailor file, just type:
 .LP
 .nf
 .ft tt
-	ETCDIR/ldapd
+	LIBEXECDIR/ldapd
 .ft
 .fi
 .LP
@@ -112,7 +112,7 @@ will be printed on standard error, type:
 .LP
 .nf
 .ft tt
-	ETCDIR/ldapd -c dsanameoraddr -d 31
+	LIBEXECDIR/ldapd -c dsanameoraddr -d 31
 .ft
 .fi
 .LP
@@ -125,3 +125,8 @@ in the local dsaptailor file.
 .BR inetd (8)
 .LP
 Volume 5 of The ISODE Manual
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  
