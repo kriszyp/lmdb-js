@@ -140,7 +140,7 @@ static void openldap_ldap_init_w_conf(
 		for(i=0; attrs[i].type != ATTR_NONE; i++) {
 			void *p;
 
-			if( !userconf && !attrs[i].useronly ) {
+			if( !userconf && attrs[i].useronly ) {
 				continue;
 			}
 
