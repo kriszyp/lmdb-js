@@ -3,6 +3,7 @@
 
 H1: Using SASL
 
+This chapter details how to make use of SASL to provide auth
 OpenLDAP clients and servers are capable of providing authentication
 via the {{TERM[expand]SASL}} ({{TERM:SASL}}) system, which is
 explained in {{REF:RFC2222}}. There are several industry standard
@@ -18,14 +19,19 @@ exploit SASL's authorization feature, allowing them to authenticate
 themselves and then switch their identity to that of another user
 or service.
 
-Note that in the following text the term "{{user}}" is used to
-describe a person who is connecting to the LDAP server via a client
-program, such as {{ldapsearch}}(1).  The term can also be used to
-describe a computer program that runs itself and accesses the LDAP
-database, such as a sendmail program or a nightly update program
-run out of cron.  Thus {{"user"}} refers to any computer process
-connecting to the LDAP server, whether or not it has a human
-monitoring it.
+This chapter assumes you have read {{Cyrus SASL for System
+Administrators}} provided with the {{PROD:Cyrus}} {{PROD::SASL}}
+package (in {{FILE:doc/sysadmin.html}}).
+
+Note that in the following text the term {{user}} is used to describe
+a person or application entity who is connecting to the LDAP server
+via an LDAP client, such as {{ldapsearch}}(1).  That is, the term
+{{user}} not ony applies to both an individual using an LDAP client,
+but to an application entity which issues LDAP client operations
+without direct user control.  For example, an e-mail server which
+uses LDAP operations to access information held in an LDAP server
+is an application entity.
+
 
 H2: Security Considerations
 
@@ -42,26 +48,25 @@ PLAIN and LOGIN are not discussed further in this document.
 The DIGEST-MD5 mechanism is the mandatory-to-implement authentication
 mechanism for LDAPv3.  Though DIGEST-MD5 is not a strong authentication
 mechanism in comparison with trusted third party authentication
-systems, it does offer significant protections against a number of
-attacks.  Unlike the CRAM-MD5 mechanism, it prevents chosen plaintext
-attacks.  DIGEST-MD5 is favored over weaker and even more dangerous
-use of plaintext password mechanisms.  The CRAM-MD5 mechanism is
-deprecated in favor of DIGEST-MD5.
+systems (such as Kerberos or public key systems), it does offer
+significant protections against a number of attacks.  Unlike the
+CRAM-MD5 mechanism, it prevents chosen plaintext attacks.  DIGEST-MD5
+is favored over weaker and even more dangerous use of plaintext
+password mechanisms.  The CRAM-MD5 mechanism is deprecated in favor
+of DIGEST-MD5.  Use of {{SECT:DIGEST-MD5}} is discussed below.
 
-# Use of DIGEST-MD5 is discussed below.
-
-The KERBEROS_V4 mechanism utilizes Kerberos IV services to provide
-secure authentication services.  There are also GSSAPI based
-mechanisms which utilize Kerberos V.  Kerberos is viewed as a
-secure, distributed authentication system.
-Use of KERBEROS_V4 is discussed below.
-#Use of KERBEROS_V4 and GSSAPI are discussed below.
+The KERBEROS_V4 mechanism utilizes Kerberos IV to provide secure
+authentication services.  There are also GSSAPI based mechanisms
+which is generally used in conjunction with Kerberos V.  Kerberos
+is viewed as a secure, distributed authentication system suitable
+for both small and large enterprises.  Use of {{SECT:KERBEROS_V4}}
+and {{SECT:GSSAPI}} are discussed below.
 
 The EXTERNAL mechanism utilizes authentication services provided
 by lower level network services such as {{TERM:TLS}} (TLS).  When
 used in conjunction with TLS X.509-based public key technology,
-EXTERNAL offers strong authentication.
-#Use of EXTERNAL is discussed in the TLS chapter.
+EXTERNAL offers strong authentication.  Use of EXTERNAL is discussed
+in the {{SECT:Using TLS}} chapter.
 
 There are other strong authentication mechanisms to choose from,
 including OTP (one time passwords) and SRP (secure remote passwords).
@@ -70,8 +75,8 @@ These mechanisms are not discussed in this document.
 
 H2: SASL Authentication
 
-Getting basic SASL authentication running involves a few steps. The
-first step configures your slapd server environment so
+Getting basic SASL authentication running involves a few steps.
+The first step configures your slapd server environment so
 that it can communicate with client programs using the security
 system in place at your site. This usually involves setting up a
 service key, a public key, or other form of secret. The second step
@@ -85,13 +90,18 @@ The next section after that describes the second step of mapping
 authentication identities to DN's.
 
 
-H3: GSSAPI and Kerberos V
+H3: GSSAPI
 
 This section describes the use of the SASL GSSAPI mechanism and
-Kerberos V with OpenLDAP.  It will be assumed that you have Kerberos
+Kerberos V with OpenLDAP. It will be assumed that you have Kerberos
 V deployed, you familiar with the operation of the system and that
-your users are trained its use.  General information about Kerberos
-is available at {{URL:http://web.mit.edu/kerberos/www/}}.
+your users are trained its use.  This section also assumes you have
+familiarized yourself with the use of the GSSAPI mechanism by read
+{{Configuring GSSAPI and Cyrus SASL}} (provided with Cyrus SASL in
+the {{FILE:doc/gssapi}} file) and successfully experimented with
+the Cyrus provided sample_server and sample_client applications.
+General information about Kerberos is available at
+{{URL:http://web.mit.edu/kerberos/www/}}.
 
 To use GSSAPI mechanism with {{slapd}}(8) one must create a service
 key with a principal for {{ldap}} service within realm for the host
@@ -102,7 +112,7 @@ you need to create a service key with the principal:
 >	ldap/directory.example.com@EXAMPLE.COM
 
 When {{slapd}}(8) runs, it must have access to this key.  This is
-generally done by placing the key into a keytab such as
+generally done by placing the key into a keytab, such as
 {{FILE:/etc/krb5.keytab}}.
 
 To use the GSSAPI mechanism to authenticate to the directory, the
@@ -141,9 +151,9 @@ will require a srvtab file with a service key.  SASL aware client
 programs will be obtaining an "ldap" service ticket with the user's
 ticket granting ticket (TGT), with the instance of the ticket
 matching the hostname of the OpenLDAP server. For example, if your
-realm is named EXAMPLE.COM and the slapd server is running on the
-host named directory.example.com, the /etc/srvtab file on the server
-will have a service key
+realm is named {{EX:EXAMPLE.COM}} and the slapd server is running
+on the host named {{EX:directory.example.com}}, the {{FILE:/etc/srvtab}}
+file on the server will have a service key
 
 >	ldap.directory@EXAMPLE.COM
 
@@ -157,8 +167,8 @@ has expired, SASL will print out the message
 >	ldap_sasl_interactive_bind_s: Local error
 
 When the service ticket is obtained, it will be passed to the LDAP
-server as proof of the user's identity.  The server will take the
-user's username and realm out of the service ticket using SASL
+server as proof of the user's identity.  The server will extract
+the identity and realm out of the service ticket using SASL
 library calls, and convert them into an {{authentication request
 DN}} of the form
 
