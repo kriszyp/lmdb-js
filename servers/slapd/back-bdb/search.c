@@ -60,8 +60,12 @@ bdb_search(
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "search", LDAP_LEVEL_ENTRY,"bdb_back_search\n"));
+#else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_back_search\n",
 		0, 0, 0);
+#endif
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -150,8 +154,12 @@ bdb_search(
 			ber_bvarray_free( erefs );
 		}
 
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "search", LDAP_LEVEL_RESULTS,"bdb_search: entry is referral\n"));
+#else
 		Debug( LDAP_DEBUG_TRACE, "bdb_search: entry is referral\n",
 			0, 0, 0 );
+#endif
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			matched_dn.bv_val,
@@ -258,8 +266,12 @@ bdb_search(
 	e = NULL;
 
 	if ( candidates[0] == 0 ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "search", LDAP_LEVEL_RESULTS,"bdb_search: no candidates\n"));
+#else
 		Debug( LDAP_DEBUG_TRACE, "bdb_search: no candidates\n",
 			0, 0, 0 );
+#endif
 
 		send_search_result( conn, op,
 			LDAP_SUCCESS,
@@ -309,9 +321,13 @@ bdb_search(
 		if ( e == NULL ) {
 			if( !BDB_IDL_IS_RANGE(candidates) ) {
 				/* only complain for non-range IDLs */
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "search", LDAP_LEVEL_RESULTS,"bdb_search: candidate %ld not found\n", (long) id));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_search: candidate %ld not found\n",
 					(long) id, 0, 0 );
+#endif
 			}
 
 			goto loop_continue;
@@ -367,9 +383,13 @@ bdb_search(
 
 			} else if ( dnIsSuffix( &e->e_nname, &realbase ) ) {
 				/* alias is within scope */
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "search", LDAP_LEVEL_RESULTS,"bdb_search: \"%s\" in subtree\n", e->edn));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_search: \"%s\" in subtree\n",
 					e->e_dn, 0, 0 );
+#endif
 				goto loop_continue;
 			}
 
@@ -457,14 +477,22 @@ bdb_search(
 					}
 				}
 			} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "search", LDAP_LEVEL_RESULTS,"bdb_search: %ld scope not okay\n", (long) id));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_search: %ld scope not okay\n",
 					(long) id, 0, 0 );
+#endif
 			}
 		} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "search", LDAP_LEVEL_RESULTS,"bdb_search: %ld does match filter\n", (long) id));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_search: %ld does match filter\n",
 				(long) id, 0, 0 );
+#endif
 		}
 
 loop_continue:
@@ -500,8 +528,12 @@ static int base_candidate(
 	Entry	*e,
 	ID		*ids )
 {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "search", LDAP_LEVEL_ENTRY,"base_candidate: base: \"%s\" (0x%08lx)\n", e->e_dn, (long) e->e_id));
+#else
 	Debug(LDAP_DEBUG_ARGS, "base_candidates: base: \"%s\" (0x%08lx)\n",
 		e->e_dn, (long) e->e_id, 0);
+#endif
 
 	ids[0] = 1;
 	ids[1] = e->e_id;
@@ -571,9 +603,13 @@ static int search_candidates(
 	 *		(|[(objectClass=referral)(objectClass=alias)](user-filter))
 	 */
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "search", LDAP_LEVEL_ENTRY,"search_candidates: base=\"%s\" (0x%08lx) scope=%d\n", e->e_dn, (long) e->e_id, scope));
+#else
 	Debug(LDAP_DEBUG_TRACE,
 		"search_candidates: base=\"%s\" (0x%08lx) scope=%d\n",
 		e->e_dn, (long) e->e_id, scope );
+#endif
 
 	xf.f_or = filter;
 	xf.f_choice = LDAP_FILTER_OR;
@@ -630,16 +666,24 @@ static int search_candidates(
 	rc = bdb_filter_candidates( be, &f, ids, tmp );
 
 	if( rc ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "search", LDAP_LEVEL_DETAIL1,"bdb_search_candidates: failed (rc=%d)\n", rc));
+#else
 		Debug(LDAP_DEBUG_TRACE,
 			"bdb_search_candidates: failed (rc=%d)\n",
 			rc, NULL, NULL );
+#endif
 
 	} else {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "search", LDAP_LEVEL_DETAIL1,"bdb_search_candidates: id=%ld first=%ld last=%ld\n", (long) ids[0], (long) BDB_IDL_FIRST(ids), (long) BDB_IDL_LAST(ids)));
+#else
 		Debug(LDAP_DEBUG_TRACE,
 			"bdb_search_candidates: id=%ld first=%ld last=%ld\n",
 			(long) ids[0],
 			(long) BDB_IDL_FIRST(ids),
 			(long) BDB_IDL_LAST(ids) );
+#endif
 	}
 
 	return rc;
