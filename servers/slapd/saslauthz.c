@@ -475,7 +475,8 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 	op.o_time = slap_get_time();
 	op.o_do_not_cache = 1;
 	op.o_is_auth_check = 1;
-	op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
+	op.o_threadctx = conn->c_sasl_bindop ? conn->c_sasl_bindop->o_threadctx :
+		ldap_pvt_thread_pool_context( &connection_pool );
 
 	(*be->be_search)( be, conn, &op, /*base=*/NULL, &searchbase,
 	   scope, /*deref=*/1, /*sizelimit=*/0, /*time=*/0, filter, /*fstr=*/NULL,
@@ -636,7 +637,8 @@ void slap_sasl2dn( Connection *conn,
 	op.o_time = slap_get_time();
 	op.o_do_not_cache = 1;
 	op.o_is_auth_check = 1;
-	op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
+	op.o_threadctx = conn->c_sasl_bindop ? conn->c_sasl_bindop->o_threadctx :
+		ldap_pvt_thread_pool_context( &connection_pool );
 
 	(*be->be_search)( be, conn, &op, NULL, &dn,
 		scope, LDAP_DEREF_NEVER, 1, 0,
