@@ -31,9 +31,7 @@
 /*
  * SHARED DEFINITIONS - things you should change
  */
-/*
- * SHARED DEFINITIONS - things you should change
- */
+#define DEFAULT_DIRSEP		"\\"
 #define DEFAULT_BINDIR		"C:\\OpenLDAP\\bin"
 #define DEFAULT_SBINDIR		"C:\\OpenLDAP\\sbin"
 #define DEFAULT_DATADIR		"C:\\OpenLDAP\\share"
@@ -217,10 +215,10 @@ Please try again later.\r\n"
 #define SLAPD_DEFAULT_SIZELIMIT		500
 	/* default timelimit to spend on a search */
 #define SLAPD_DEFAULT_TIMELIMIT		3600
-	/* location of the slapd pid file */
-#define SLAPD_PIDFILE			"C:\\OpenLDAP\\run\\slapd.pid"
-	/* location of the slapd args file */
-#define SLAPD_ARGSFILE			"C:\\OpenLDAP\\run\\slapd.args"
+	/* extension of the slapd pid file */
+#define SLAPD_PIDEXT			".pid"
+	/* extension of the slapd args file */
+#define SLAPD_ARGSEXT			".args"
 	/* dn of the special "monitor" entry */
 #define SLAPD_MONITOR_DN		"cn=monitor"
 	/* dn of the special "config" entry */
