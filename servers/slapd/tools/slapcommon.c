@@ -255,6 +255,11 @@ slap_tool_init(
 		}
 
 	} else if ( dbnum == -1 ) {
+		if ( nbackends <= 0 ) {
+			fprintf( stderr, "No available databases\n" );
+			exit( EXIT_FAILURE );
+		}
+		
 		be = &backends[dbnum=0];
 		/* If just doing the first by default and it is a
 		 * glue subordinate, find the master.
@@ -268,12 +273,7 @@ slap_tool_init(
 		}
 
 
-		if ( dbnum < 0 ) {
-			fprintf( stderr, "No available database\n" );
-			exit( EXIT_FAILURE );
-		}
-		
-		if ( dbnum > (nbackends-1) ) {
+		if ( dbnum >= nbackends ) {
 			fprintf( stderr, "Available database(s) "
 					"do not allow %s\n", name );
 			exit( EXIT_FAILURE );
@@ -283,11 +283,11 @@ slap_tool_init(
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACKEND, ERR, 
 "The first database does not allow %s; using the first available one (%d)\n",
-				name, (int)(be - &backends[0]) + 1, 0 );
+				name, dbnum + 1, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 "The first database does not allow %s; using the first available one (%d)\n",
-				name, (int)(be - &backends[0]) + 1, 0 );
+				name, dbnum + 1, 0 );
 #endif
 		}
 
