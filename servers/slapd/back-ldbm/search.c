@@ -223,58 +223,64 @@ searchit:
 		}
 	}
 	
-	/* if no time limit requested, use soft limit (unless root!) */
-	if ( tlimit <= 0 ) {
-		if ( isroot ) {
-			tlimit = -1;	/* allow root to set no limit */
-		} else {
-			tlimit = limit->lms_t_soft;
-		}
-		
-	/* if requested limit higher than hard limit, abort */
-	} else if ( tlimit > limit->lms_t_hard ) {
-		/* no hard limit means use soft instead */
-		if ( limit->lms_t_hard == 0 ) {
-			tlimit = limit->lms_t_soft;
-			
-		/* positive hard limit means abort */
-		} else if ( limit->lms_t_hard > 0 ) {
-			send_search_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, NULL, NULL, NULL, 0 );
-			rc = 0; 
-			goto done;
+	/* if root an no specific limit is required, allow unlimited search */
+	if ( isroot ) {
+		if ( tlimit == 0 ) {
+			tlimit = -1;
 		}
 
-		/* negative hard limit means no limit */
+		if ( slimit == 0 ) {
+			slimit = -1;
+		}
+
+	} else {
+		/* if no limit is required, use soft limit */
+		if ( tlimit <= 0 ) {
+			tlimit = limit->lms_t_soft;
+		
+		/* if requested limit higher than hard limit, abort */
+		} else if ( tlimit > limit->lms_t_hard ) {
+			/* no hard limit means use soft instead */
+			if ( limit->lms_t_hard == 0 ) {
+				tlimit = limit->lms_t_soft;
+			
+			/* positive hard limit means abort */
+			} else if ( limit->lms_t_hard > 0 ) {
+				send_search_result( conn, op, 
+						LDAP_UNWILLING_TO_PERFORM,
+						NULL, NULL, NULL, NULL, 0 );
+				rc = 0; 
+				goto done;
+			}
+
+			/* negative hard limit means no limit */
+		}
+
+		/* if no limit is required, use soft limit */
+		if ( slimit <= 0 ) {
+			slimit = limit->lms_s_soft;
+
+		/* if requested limit higher than hard limit, abort */
+		} else if ( slimit > limit->lms_s_hard ) {
+			/* no hard limit means use soft instead */
+			if ( limit->lms_s_hard == 0 ) {
+				slimit = limit->lms_s_soft;
+
+			/* positive hard limit means abort */
+			} else if ( limit->lms_s_hard > 0 ) {
+				send_search_result( conn, op,
+						LDAP_UNWILLING_TO_PERFORM,
+						NULL, NULL, NULL, NULL, 0 );
+				rc = 0;
+				goto done;
+			}
+
+			/* negative hard limit means no limit */
+		}
 	}
 
 	/* compute it anyway; root does not use it */
 	stoptime = op->o_time + tlimit;
-
-	/* if no size limit requested, use soft limit (unless root!) */
-	if ( slimit == 0 ) {
-		if ( isroot ) {
-			slimit = -1;	/* allow root to set no limit */
-		} else {
-			slimit = limit->lms_s_soft;
-		}
-	
-	/* if requested limit higher than hard limit, abort */
-	} else if ( slimit > limit->lms_s_hard ) {
-		/* no hard limit means use soft instead */
-		if ( limit->lms_s_hard == 0 ) {
-			slimit = limit->lms_s_soft;
-
-		/* positive hard limit means abort */
-		} else if ( limit->lms_s_hard > 0 ) {
-			send_search_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, NULL, NULL, NULL, 0 );
-			rc = 0;
-			goto done;
-		}
-
-		/* negative hard limit means no limit */
-	}
 
 	for ( id = idl_firstid( candidates, &cursor ); id != NOID;
 	    id = idl_nextid( candidates, &cursor ) )
