@@ -237,8 +237,10 @@ LDAP_BEGIN_DECL
 #define SLAPI_RESULT_TEXT			882
 #define SLAPI_RESULT_MATCHED			883
 
-/* Virtual attribute service */
-#define SLAPI_PLUGIN_OPATTR_COALESCE_FN		900
+/* Virtual attribute service provider */
+#define SLAPI_PLUGIN_OPATTR_COALESCE_DATA	900
+/* Pointer to a Slapi_AttrSet */
+#define SLAPI_PLUGIN_OPATTR_COALESCE_FN		901
 
 #define SLAPI_PLUGIN_SYNTAX_FLAG_ORKEYS			1
 #define SLAPI_PLUGIN_SYNTAX_FLAG_ORDERING		2
