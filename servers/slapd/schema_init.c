@@ -17,6 +17,13 @@
 #include "ldap_pvt.h"
 #include "lutil_md5.h"
 
+/* We should replace MD5 with a faster hash */
+#define HASH_BYTES				LUTIL_MD5_BYTES
+#define HASH_CONTEXT			lutil_MD5_CTX
+#define HASH_Init(c)			lutil_MD5Init(c)
+#define HASH_Update(c,buf,len)	lutil_MD5Update(c,buf,len)
+#define HASH_Final(d,c)			lutil_MD5Final(d,c)
+
 /* recycled validatation routines */
 #define berValidate						blobValidate
 
@@ -114,11 +121,11 @@ int octetStringIndexer(
 	int i;
 	size_t slen, mlen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	/* we should have at least one value at this point */
 	assert( values != NULL && values[0] != NULL );
@@ -133,18 +140,18 @@ int octetStringIndexer(
 	mlen = strlen( mr->smr_oid );
 
 	for( i=0; values[i] != NULL; i++ ) {
-		lutil_MD5Init( &MD5context );
+		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
-			lutil_MD5Update( &MD5context,
+			HASH_Update( &HASHcontext,
 				prefix->bv_val, prefix->bv_len );
 		}
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			syntax->ssyn_oid, slen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			values[i]->bv_val, values[i]->bv_len );
-		lutil_MD5Final( MD5digest, &MD5context );
+		HASH_Final( HASHdigest, &HASHcontext );
 
 		keys[i] = ber_bvdup( &digest );
 	}
@@ -168,30 +175,30 @@ int octetStringFilter(
 {
 	size_t slen, mlen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval *value = (struct berval *) assertValue;
 	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	slen = strlen( syntax->ssyn_oid );
 	mlen = strlen( mr->smr_oid );
 
 	keys = ch_malloc( sizeof( struct berval * ) * 2 );
 
-	lutil_MD5Init( &MD5context );
+	HASH_Init( &HASHcontext );
 	if( prefix != NULL && prefix->bv_len > 0 ) {
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			prefix->bv_val, prefix->bv_len );
 	}
-	lutil_MD5Update( &MD5context,
+	HASH_Update( &HASHcontext,
 		syntax->ssyn_oid, slen );
-	lutil_MD5Update( &MD5context,
+	HASH_Update( &HASHcontext,
 		mr->smr_oid, mlen );
-	lutil_MD5Update( &MD5context,
+	HASH_Update( &HASHcontext,
 		value->bv_val, value->bv_len );
-	lutil_MD5Final( MD5digest, &MD5context );
+	HASH_Final( HASHdigest, &HASHcontext );
 
 	keys[0] = ber_bvdup( &digest );
 	keys[1] = NULL;
@@ -786,11 +793,11 @@ int caseExactIndexer(
 	int i;
 	size_t slen, mlen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	/* we should have at least one value at this point */
 	assert( values != NULL && values[0] != NULL );
@@ -807,18 +814,18 @@ int caseExactIndexer(
 	for( i=0; values[i] != NULL; i++ ) {
 		struct berval *value = values[i];
 
-		lutil_MD5Init( &MD5context );
+		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
-			lutil_MD5Update( &MD5context,
+			HASH_Update( &HASHcontext,
 				prefix->bv_val, prefix->bv_len );
 		}
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			syntax->ssyn_oid, slen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			value->bv_val, value->bv_len );
-		lutil_MD5Final( MD5digest, &MD5context );
+		HASH_Final( HASHdigest, &HASHcontext );
 
 		keys[i] = ber_bvdup( &digest );
 	}
@@ -840,12 +847,12 @@ int caseExactFilter(
 {
 	size_t slen, mlen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	slen = strlen( syntax->ssyn_oid );
 	mlen = strlen( mr->smr_oid );
@@ -854,18 +861,18 @@ int caseExactFilter(
 
 	keys = ch_malloc( sizeof( struct berval * ) * 2 );
 
-	lutil_MD5Init( &MD5context );
+	HASH_Init( &HASHcontext );
 	if( prefix != NULL && prefix->bv_len > 0 ) {
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			prefix->bv_val, prefix->bv_len );
 	}
-	lutil_MD5Update( &MD5context,
+	HASH_Update( &HASHcontext,
 		syntax->ssyn_oid, slen );
-	lutil_MD5Update( &MD5context,
+	HASH_Update( &HASHcontext,
 		mr->smr_oid, mlen );
-	lutil_MD5Update( &MD5context,
+	HASH_Update( &HASHcontext,
 		value->bv_val, value->bv_len );
-	lutil_MD5Final( MD5digest, &MD5context );
+	HASH_Final( HASHdigest, &HASHcontext );
 
 	keys[0] = ber_bvdup( &digest );
 	keys[1] = NULL;
@@ -887,11 +894,11 @@ int caseExactSubstringsIndexer(
 	ber_len_t i, nkeys;
 	size_t slen, mlen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	/* we should have at least one value at this point */
 	assert( values != NULL && values[0] != NULL );
@@ -954,22 +961,22 @@ int caseExactSubstringsIndexer(
 			max = value->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1);
 
 			for( j=0; j<max; j++ ) {
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
 
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&value->bv_val[j],
 					SLAP_INDEX_SUBSTR_MAXLEN );
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
@@ -983,40 +990,40 @@ int caseExactSubstringsIndexer(
 
 			if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
 				pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					value->bv_val, j );
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
 
 			if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
 				pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&value->bv_val[value->bv_len-j], j );
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
@@ -1049,8 +1056,8 @@ int caseExactSubstringsFilter(
 	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
 
@@ -1082,8 +1089,8 @@ int caseExactSubstringsFilter(
 		return LDAP_SUCCESS;
 	}
 
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	slen = strlen( syntax->ssyn_oid );
 	mlen = strlen( mr->smr_oid );
@@ -1100,20 +1107,20 @@ int caseExactSubstringsFilter(
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
 
-		lutil_MD5Init( &MD5context );
+		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
-			lutil_MD5Update( &MD5context,
+			HASH_Update( &HASHcontext,
 				prefix->bv_val, prefix->bv_len );
 		}
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			&pre, sizeof( pre ) );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			syntax->ssyn_oid, slen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			value->bv_val, klen );
-		lutil_MD5Final( MD5digest, &MD5context );
+		HASH_Final( HASHdigest, &HASHcontext );
 
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
@@ -1134,20 +1141,20 @@ int caseExactSubstringsFilter(
 				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
 				j += SLAP_INDEX_SUBSTR_STEP )
 			{
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&value->bv_val[j], klen ); 
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
@@ -1163,20 +1170,20 @@ int caseExactSubstringsFilter(
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
 
-		lutil_MD5Init( &MD5context );
+		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
-			lutil_MD5Update( &MD5context,
+			HASH_Update( &HASHcontext,
 				prefix->bv_val, prefix->bv_len );
 		}
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			&pre, sizeof( pre ) );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			syntax->ssyn_oid, slen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			&value->bv_val[value->bv_len-klen], klen );
-		lutil_MD5Final( MD5digest, &MD5context );
+		HASH_Final( HASHdigest, &HASHcontext );
 
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
@@ -1356,11 +1363,11 @@ int caseIgnoreIndexer(
 	int i;
 	size_t slen, mlen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	/* we should have at least one value at this point */
 	assert( values != NULL && values[0] != NULL );
@@ -1378,18 +1385,18 @@ int caseIgnoreIndexer(
 		struct berval *value = ber_bvdup( values[i] );
 		ldap_pvt_str2upper( value->bv_val );
 
-		lutil_MD5Init( &MD5context );
+		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
-			lutil_MD5Update( &MD5context,
+			HASH_Update( &HASHcontext,
 				prefix->bv_val, prefix->bv_len );
 		}
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			syntax->ssyn_oid, slen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			value->bv_val, value->bv_len );
-		lutil_MD5Final( MD5digest, &MD5context );
+		HASH_Final( HASHdigest, &HASHcontext );
 
 		ber_bvfree( value );
 
@@ -1413,12 +1420,12 @@ int caseIgnoreFilter(
 {
 	size_t slen, mlen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	slen = strlen( syntax->ssyn_oid );
 	mlen = strlen( mr->smr_oid );
@@ -1428,18 +1435,18 @@ int caseIgnoreFilter(
 
 	keys = ch_malloc( sizeof( struct berval * ) * 2 );
 
-	lutil_MD5Init( &MD5context );
+	HASH_Init( &HASHcontext );
 	if( prefix != NULL && prefix->bv_len > 0 ) {
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			prefix->bv_val, prefix->bv_len );
 	}
-	lutil_MD5Update( &MD5context,
+	HASH_Update( &HASHcontext,
 		syntax->ssyn_oid, slen );
-	lutil_MD5Update( &MD5context,
+	HASH_Update( &HASHcontext,
 		mr->smr_oid, mlen );
-	lutil_MD5Update( &MD5context,
+	HASH_Update( &HASHcontext,
 		value->bv_val, value->bv_len );
-	lutil_MD5Final( MD5digest, &MD5context );
+	HASH_Final( HASHdigest, &HASHcontext );
 
 	keys[0] = ber_bvdup( &digest );
 	keys[1] = NULL;
@@ -1464,11 +1471,11 @@ int caseIgnoreSubstringsIndexer(
 	ber_len_t i, nkeys;
 	size_t slen, mlen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	/* we should have at least one value at this point */
 	assert( values != NULL && values[0] != NULL );
@@ -1533,22 +1540,22 @@ int caseIgnoreSubstringsIndexer(
 			max = value->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1);
 
 			for( j=0; j<max; j++ ) {
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
 
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&value->bv_val[j],
 					SLAP_INDEX_SUBSTR_MAXLEN );
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
@@ -1562,40 +1569,40 @@ int caseIgnoreSubstringsIndexer(
 
 			if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
 				pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					value->bv_val, j );
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
 
 			if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
 				pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&value->bv_val[value->bv_len-j], j );
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
@@ -1630,8 +1637,8 @@ int caseIgnoreSubstringsFilter(
 	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
 
@@ -1663,8 +1670,8 @@ int caseIgnoreSubstringsFilter(
 		return LDAP_SUCCESS;
 	}
 
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	slen = strlen( syntax->ssyn_oid );
 	mlen = strlen( mr->smr_oid );
@@ -1682,20 +1689,20 @@ int caseIgnoreSubstringsFilter(
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
 
-		lutil_MD5Init( &MD5context );
+		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
-			lutil_MD5Update( &MD5context,
+			HASH_Update( &HASHcontext,
 				prefix->bv_val, prefix->bv_len );
 		}
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			&pre, sizeof( pre ) );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			syntax->ssyn_oid, slen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			value->bv_val, klen );
-		lutil_MD5Final( MD5digest, &MD5context );
+		HASH_Final( HASHdigest, &HASHcontext );
 
 		ber_bvfree( value );
 		keys[nkeys++] = ber_bvdup( &digest );
@@ -1718,20 +1725,20 @@ int caseIgnoreSubstringsFilter(
 				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
 				j += SLAP_INDEX_SUBSTR_STEP )
 			{
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&value->bv_val[j], klen );
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
@@ -1750,20 +1757,20 @@ int caseIgnoreSubstringsFilter(
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
 
-		lutil_MD5Init( &MD5context );
+		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
-			lutil_MD5Update( &MD5context,
+			HASH_Update( &HASHcontext,
 				prefix->bv_val, prefix->bv_len );
 		}
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			&pre, sizeof( pre ) );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			syntax->ssyn_oid, slen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			&value->bv_val[value->bv_len-klen], klen );
-		lutil_MD5Final( MD5digest, &MD5context );
+		HASH_Final( HASHdigest, &HASHcontext );
 
 		ber_bvfree( value );
 		keys[nkeys++] = ber_bvdup( &digest );
@@ -2140,11 +2147,11 @@ int caseExactIA5Indexer(
 	int i;
 	size_t slen, mlen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	/* we should have at least one value at this point */
 	assert( values != NULL && values[0] != NULL );
@@ -2161,18 +2168,18 @@ int caseExactIA5Indexer(
 	for( i=0; values[i] != NULL; i++ ) {
 		struct berval *value = values[i];
 
-		lutil_MD5Init( &MD5context );
+		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
-			lutil_MD5Update( &MD5context,
+			HASH_Update( &HASHcontext,
 				prefix->bv_val, prefix->bv_len );
 		}
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			syntax->ssyn_oid, slen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			value->bv_val, value->bv_len );
-		lutil_MD5Final( MD5digest, &MD5context );
+		HASH_Final( HASHdigest, &HASHcontext );
 
 		keys[i] = ber_bvdup( &digest );
 	}
@@ -2194,12 +2201,12 @@ int caseExactIA5Filter(
 {
 	size_t slen, mlen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	slen = strlen( syntax->ssyn_oid );
 	mlen = strlen( mr->smr_oid );
@@ -2208,18 +2215,18 @@ int caseExactIA5Filter(
 
 	keys = ch_malloc( sizeof( struct berval * ) * 2 );
 
-	lutil_MD5Init( &MD5context );
+	HASH_Init( &HASHcontext );
 	if( prefix != NULL && prefix->bv_len > 0 ) {
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			prefix->bv_val, prefix->bv_len );
 	}
-	lutil_MD5Update( &MD5context,
+	HASH_Update( &HASHcontext,
 		syntax->ssyn_oid, slen );
-	lutil_MD5Update( &MD5context,
+	HASH_Update( &HASHcontext,
 		mr->smr_oid, mlen );
-	lutil_MD5Update( &MD5context,
+	HASH_Update( &HASHcontext,
 		value->bv_val, value->bv_len );
-	lutil_MD5Final( MD5digest, &MD5context );
+	HASH_Final( HASHdigest, &HASHcontext );
 
 	keys[0] = ber_bvdup( &digest );
 	keys[1] = NULL;
@@ -2241,11 +2248,11 @@ int caseExactIA5SubstringsIndexer(
 	ber_len_t i, nkeys;
 	size_t slen, mlen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	/* we should have at least one value at this point */
 	assert( values != NULL && values[0] != NULL );
@@ -2308,22 +2315,22 @@ int caseExactIA5SubstringsIndexer(
 			max = value->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1);
 
 			for( j=0; j<max; j++ ) {
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
 
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&value->bv_val[j],
 					SLAP_INDEX_SUBSTR_MAXLEN );
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
@@ -2337,40 +2344,40 @@ int caseExactIA5SubstringsIndexer(
 
 			if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
 				pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					value->bv_val, j );
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
 
 			if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
 				pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&value->bv_val[value->bv_len-j], j );
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
@@ -2403,8 +2410,8 @@ int caseExactIA5SubstringsFilter(
 	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
 
@@ -2436,8 +2443,8 @@ int caseExactIA5SubstringsFilter(
 		return LDAP_SUCCESS;
 	}
 
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	slen = strlen( syntax->ssyn_oid );
 	mlen = strlen( mr->smr_oid );
@@ -2454,20 +2461,20 @@ int caseExactIA5SubstringsFilter(
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
 
-		lutil_MD5Init( &MD5context );
+		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
-			lutil_MD5Update( &MD5context,
+			HASH_Update( &HASHcontext,
 				prefix->bv_val, prefix->bv_len );
 		}
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			&pre, sizeof( pre ) );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			syntax->ssyn_oid, slen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			value->bv_val, klen );
-		lutil_MD5Final( MD5digest, &MD5context );
+		HASH_Final( HASHdigest, &HASHcontext );
 
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
@@ -2488,20 +2495,20 @@ int caseExactIA5SubstringsFilter(
 				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
 				j += SLAP_INDEX_SUBSTR_STEP )
 			{
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&value->bv_val[j], klen ); 
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
@@ -2517,20 +2524,20 @@ int caseExactIA5SubstringsFilter(
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
 
-		lutil_MD5Init( &MD5context );
+		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
-			lutil_MD5Update( &MD5context,
+			HASH_Update( &HASHcontext,
 				prefix->bv_val, prefix->bv_len );
 		}
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			&pre, sizeof( pre ) );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			syntax->ssyn_oid, slen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			&value->bv_val[value->bv_len-klen], klen );
-		lutil_MD5Final( MD5digest, &MD5context );
+		HASH_Final( HASHdigest, &HASHcontext );
 
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
@@ -2706,11 +2713,11 @@ int caseIgnoreIA5Indexer(
 	int i;
 	size_t slen, mlen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	/* we should have at least one value at this point */
 	assert( values != NULL && values[0] != NULL );
@@ -2728,18 +2735,18 @@ int caseIgnoreIA5Indexer(
 		struct berval *value = ber_bvdup( values[i] );
 		ldap_pvt_str2upper( value->bv_val );
 
-		lutil_MD5Init( &MD5context );
+		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
-			lutil_MD5Update( &MD5context,
+			HASH_Update( &HASHcontext,
 				prefix->bv_val, prefix->bv_len );
 		}
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			syntax->ssyn_oid, slen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			value->bv_val, value->bv_len );
-		lutil_MD5Final( MD5digest, &MD5context );
+		HASH_Final( HASHdigest, &HASHcontext );
 
 		ber_bvfree( value );
 
@@ -2763,12 +2770,12 @@ int caseIgnoreIA5Filter(
 {
 	size_t slen, mlen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	slen = strlen( syntax->ssyn_oid );
 	mlen = strlen( mr->smr_oid );
@@ -2778,18 +2785,18 @@ int caseIgnoreIA5Filter(
 
 	keys = ch_malloc( sizeof( struct berval * ) * 2 );
 
-	lutil_MD5Init( &MD5context );
+	HASH_Init( &HASHcontext );
 	if( prefix != NULL && prefix->bv_len > 0 ) {
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			prefix->bv_val, prefix->bv_len );
 	}
-	lutil_MD5Update( &MD5context,
+	HASH_Update( &HASHcontext,
 		syntax->ssyn_oid, slen );
-	lutil_MD5Update( &MD5context,
+	HASH_Update( &HASHcontext,
 		mr->smr_oid, mlen );
-	lutil_MD5Update( &MD5context,
+	HASH_Update( &HASHcontext,
 		value->bv_val, value->bv_len );
-	lutil_MD5Final( MD5digest, &MD5context );
+	HASH_Final( HASHdigest, &HASHcontext );
 
 	keys[0] = ber_bvdup( &digest );
 	keys[1] = NULL;
@@ -2814,11 +2821,11 @@ int caseIgnoreIA5SubstringsIndexer(
 	ber_len_t i, nkeys;
 	size_t slen, mlen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval digest;
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	/* we should have at least one value at this point */
 	assert( values != NULL && values[0] != NULL );
@@ -2883,22 +2890,22 @@ int caseIgnoreIA5SubstringsIndexer(
 			max = value->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1);
 
 			for( j=0; j<max; j++ ) {
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
 
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&value->bv_val[j],
 					SLAP_INDEX_SUBSTR_MAXLEN );
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
@@ -2912,40 +2919,40 @@ int caseIgnoreIA5SubstringsIndexer(
 
 			if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
 				pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					value->bv_val, j );
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
 
 			if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
 				pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&value->bv_val[value->bv_len-j], j );
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
@@ -2980,8 +2987,8 @@ int caseIgnoreIA5SubstringsFilter(
 	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
 	struct berval **keys;
-	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	HASH_CONTEXT   HASHcontext;
+	unsigned char   HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
 
@@ -3013,8 +3020,8 @@ int caseIgnoreIA5SubstringsFilter(
 		return LDAP_SUCCESS;
 	}
 
-	digest.bv_val = MD5digest;
-	digest.bv_len = sizeof(MD5digest);
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	slen = strlen( syntax->ssyn_oid );
 	mlen = strlen( mr->smr_oid );
@@ -3032,20 +3039,20 @@ int caseIgnoreIA5SubstringsFilter(
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
 
-		lutil_MD5Init( &MD5context );
+		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
-			lutil_MD5Update( &MD5context,
+			HASH_Update( &HASHcontext,
 				prefix->bv_val, prefix->bv_len );
 		}
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			&pre, sizeof( pre ) );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			syntax->ssyn_oid, slen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			value->bv_val, klen );
-		lutil_MD5Final( MD5digest, &MD5context );
+		HASH_Final( HASHdigest, &HASHcontext );
 
 		ber_bvfree( value );
 		keys[nkeys++] = ber_bvdup( &digest );
@@ -3068,20 +3075,20 @@ int caseIgnoreIA5SubstringsFilter(
 				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
 				j += SLAP_INDEX_SUBSTR_STEP )
 			{
-				lutil_MD5Init( &MD5context );
+				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
-					lutil_MD5Update( &MD5context,
+					HASH_Update( &HASHcontext,
 						prefix->bv_val, prefix->bv_len );
 				}
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&pre, sizeof( pre ) );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					syntax->ssyn_oid, slen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					mr->smr_oid, mlen );
-				lutil_MD5Update( &MD5context,
+				HASH_Update( &HASHcontext,
 					&value->bv_val[j], klen );
-				lutil_MD5Final( MD5digest, &MD5context );
+				HASH_Final( HASHdigest, &HASHcontext );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
@@ -3100,20 +3107,20 @@ int caseIgnoreIA5SubstringsFilter(
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
 
-		lutil_MD5Init( &MD5context );
+		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
-			lutil_MD5Update( &MD5context,
+			HASH_Update( &HASHcontext,
 				prefix->bv_val, prefix->bv_len );
 		}
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			&pre, sizeof( pre ) );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			syntax->ssyn_oid, slen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			mr->smr_oid, mlen );
-		lutil_MD5Update( &MD5context,
+		HASH_Update( &HASHcontext,
 			&value->bv_val[value->bv_len-klen], klen );
-		lutil_MD5Final( MD5digest, &MD5context );
+		HASH_Final( HASHdigest, &HASHcontext );
 
 		ber_bvfree( value );
 		keys[nkeys++] = ber_bvdup( &digest );
