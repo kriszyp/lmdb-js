@@ -1,0 +1,18 @@
+#
+# Makefile.in for OpenLDAP include directory
+#
+
+install: all FORCE
+		-$(MKDIR) -p $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 ldap.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 lber.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 proto-lber.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 proto-ldap.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 disptmpl.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 srchpref.h $(includedir)
+
+all: FORCE
+clean: FORCE 
+veryclean: FORCE
+depend: FORCE
+

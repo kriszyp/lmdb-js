@@ -26,27 +26,28 @@
  * SHARED DEFINITIONS - things you should change
  */
 #define DEFAULT_BINDIR		"@BINDIR@"
-#define DEFAULT_SBINDIR		"@SBINDIR@"
 #define DEFAULT_ETCDIR		"@ETCDIR@"
 #define DEFAULT_LIBEXECDIR	"@LIBEXECDIR@"
+#define DEFAULT_SBINDIR		"@SBINDIR@"
+#define DEFAULT_SYSCONFDIR	"@SYSCONFDIR@"
 
 /* default ldap host */
 #define LDAPHOST	"localhost"
 
-#define DEFAULT_LDAPHOST_FILE "@ETCDIR@/ldaphost"
+#define DEFAULT_LDAPHOST_FILE "@SYSCONFDIR@/ldaphost"
 /* default place to start searching */
 #define DEFAULT_BASE	"o=Your Organization Name, c=US"
-#define DEFAULT_BASE_FILE "@ETCDIR@/ldapbase"
+#define DEFAULT_BASE_FILE "@SYSCONFDIR@/ldapbase"
 
 /*
  * default binddn and creditials
  *  use files, make sure they are not generally readable
  */
 #define DEFAULT_BINDDN		NULL
-#define DEFAULT_BINDDN_FILE "@ETCDIR@/ldapbinddn"
+#define DEFAULT_BINDDN_FILE "@SYSCONFDIR@/ldapbinddn"
 
 #define DEFAULT_BIND_CRED	NULL
-#define DEFAULT_BIND_CRED_FILE "@ETCDIR@/ldapbindcred"
+#define DEFAULT_BIND_CRED_FILE "@SYSCONFDIR@/ldapbindcred"
 
 /*********************************************************************
  *                                                                   *
@@ -62,10 +63,10 @@
 	/* default count of DN components to show in entry displays */
 #define DEFAULT_RDNCOUNT	2
 	/* default config file locations */
-#define FILTERFILE		"@ETCDIR@/ldapfilter.conf"
-#define TEMPLATEFILE	"@ETCDIR@/ldaptemplates.conf"
-#define SEARCHFILE		"@ETCDIR@/ldapsearchprefs.conf"
-#define FRIENDLYFILE	"@ETCDIR@/ldapfriendly"
+#define FILTERFILE		"@SYSCONFDIR@/ldapfilter.conf"
+#define TEMPLATEFILE	"@SYSCONFDIR@/ldaptemplates.conf"
+#define SEARCHFILE		"@SYSCONFDIR@/ldapsearchprefs.conf"
+#define FRIENDLYFILE	"@SYSCONFDIR@/ldapfriendly"
 
 /*
  * FINGER DEFINITIONS
@@ -139,7 +140,7 @@ Please try again later.\r\n"
 #define GO500GW_BINDDN			NULL
 #define GO500GW_BIND_CRED		NULL
 	/* where the helpfile lives */
-#define GO500GW_HELPFILE	"@ETCDIR@/go500gw.help"
+#define GO500GW_HELPFILE	"@SYSCONFDIR@/go500gw.help"
 	/* port on which to listen */
 #define GO500GW_PORT		7777
 	/* timeout on all searches */
@@ -163,7 +164,7 @@ Please try again later.\r\n"
 #define RCPT500_BINDDN		NULL
 #define RCPT500_BIND_CRED	NULL
 	/* where the helpfile lives */
-#define RCPT500_HELPFILE	"@ETCDIR@/rcpt500.help"
+#define RCPT500_HELPFILE	"@SYSCONFDIR@/rcpt500.help"
 	/* maximum number of matches returned */
 #define RCPT500_SIZELIMIT	50
 	/* address replies will appear to come from */
@@ -237,7 +238,7 @@ Please try again later.\r\n"
  * UD DEFINITIONS
  */
 	/* ud configuration file */
-#define UD_CONFIG_FILE		"@ETCDIR@/ud.conf"
+#define UD_CONFIG_FILE		"@SYSCONFDIR@/ud.conf"
 	/* default editor */
 #define UD_DEFAULT_EDITOR	"@EDITOR@"
 	/* default bbasename of user config file */
@@ -286,7 +287,7 @@ Please try again later.\r\n"
  * SLAPD DEFINITIONS
  */
 	/* location of the default slapd config file */
-#define SLAPD_DEFAULT_CONFIGFILE	"@ETCDIR@/slapd.conf"
+#define SLAPD_DEFAULT_CONFIGFILE	"@SYSCONFDIR@/slapd.conf"
 	/* default sizelimit on number of entries from a search */
 #define SLAPD_DEFAULT_SIZELIMIT		500
 	/* default timelimit to spend on a search */

@@ -1,5 +1,7 @@
 ##
-## Copyright 1998 Net Boolean Incorporated
+## Copyright 1998 The OpenLDAP Foundation
+## COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
+## of this package for details.
 ##
 @SET_MAKE@
 
@@ -15,7 +17,7 @@ bindir = @bindir@
 sbindir = @sbindir@
 libexecdir = @libexecdir@
 datadir = @datadir@
-sysconfdir = @sysconfdir@/ldap
+sysconfdir = @sysconfdir@
 sharedstatedir = @sharedstatedir@
 localstatedir = @localstatedir@
 libdir = @libdir@

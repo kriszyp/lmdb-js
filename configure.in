@@ -1,5 +1,11 @@
+dnl Copyright 1998 The OpenLDAP Foundation.  All Rights Reserved.
 dnl 
-dnl Configure.in
+dnl Redistribution and use in source and binary forms are permitted only
+dnl as authorized by the OpenLDAP Public License.  A copy of this
+dnl license is available at http://www.OpenLDAP.org/license.html or
+dnl in file LICENSE in the top-level directory of the distribution.
+dnl ----
+dnl Configure.in for OpenLDAP
 dnl
 AC_INIT(include/ldap.h)
 dnl
@@ -27,8 +33,6 @@ CF_ARG_OPTION(referrals,[  --enable-referrals	enable referrals (yes)],[
 
 CF_ARG_OPTION(cldap,[  --enable-clapd	enable connectionless ldap (no)],[
 	LDAP_CLDAP=yes],[LDAP_CLDAP=no],no)dnl
-CF_ARG_OPTION(phonetic,[  --enable-phonetic	enable phonetic/soundex  (no)],[
-	LDAP_PHONETIC=yes],[LDAP_PHONETIC=no],no)dnl
 
 dnl General "with" options
 AC_ARG_WITH(kerberos,[  --with-kerberos	use Kerberos (no)],[
@@ -57,8 +61,10 @@ CF_ARG_OPTION(sha1,[    --enable-sha1	enable SHA1 passwords (yes)],[
 	SLAPD_SHA1=no],[SLAPD_SHA1=yes],yes)dnl
 CF_ARG_OPTION(wrappers,[    --enable-wrappers	enable tcp wrapper support (no)],[
 	SLAPD_TCP_WRAPPERS=yes],[LDAP_TCP_WRAPPERS=no],no)dnl
+CF_ARG_OPTION(phonetic,[    --enable-phonetic	enable phonetic/soundex  (no)],[
+	SLAPD_PHONETIC=yes],[SLAPD_PHONETIC=no],no)dnl
 CF_ARG_OPTION(rlookups,[    --enable-rlookups	enable reverse lookups (yes)],[
-	LDAP_RLOOKUP=no],[LDAP_RLOOKUP=yes],yes)dnl
+	SLAPD_RLOOKUP=no],[SLAPD_RLOOKUP=yes],yes)dnl
 
 dnl SLAPD Backend options
 CF_ARG_OPTION(ldbm,[    --enable-ldbm	enable ldbm backend (yes)],[
@@ -111,12 +117,14 @@ if test "$BUILD_SLAPD" != "yes" ; then
 fi
 
 AC_SUBST(BUILD_LDAPD)
+
 AC_SUBST(BUILD_SLAPD)
+  AC_SUBST(SLAPD_LDBM)
+  AC_SUBST(SLAPD_PASSWD)
+  AC_SUBST(SLAPD_SHELL)
+
 AC_SUBST(BUILD_SLURPD)
 
-AC_SUBST(SLAPD_LDBM)
-AC_SUBST(SLAPD_PASSWD)
-AC_SUBST(SLAPD_SHELL)
 
 dnl general LDAP arguments
 LDAP_DEFS=
@@ -125,7 +133,7 @@ if test "$LDAP_DEBUG" = "yes" ; then
 	LDAP_DEFS="$LDAP_DEFS -DLDAP_DEBUG"
 fi
 if test "$LDAP_REFERRALS" = "yes" ; then
-dnl	AC_DEFINE(LDAP_REFERRALS,1)
+	AC_DEFINE(LDAP_REFERRALS,1)
 	LDAP_DEFS="$LDAP_DEFS -DLDAP_REFERRALS"
 fi
 if test "$LDAP_CACHE" = "no" ; then
@@ -136,16 +144,16 @@ if test "$LDAP_CLDAP" = "yes" ; then
 	AC_DEFINE(LDAP_CONNECTIONLESS,1)
 	LDAP_DEFS="$LDAP_DEFS -DCLDAP"
 fi
-if test "$LDAP_PHONETIC" = "yes" ; then
-	AC_DEFINE(LDAP_PHONETIC,1)
-	LDAP_DEFS="$LDAP_DEFS -DSOUNDEX"
-fi
 
 dnl ldapd arguments
 LDAPD_DEFS=
 
 dnl slapd arguments
 SLAPD_DEFS=
+if test "$SLAPD_PHONETIC" = "yes" ; then
+	AC_DEFINE(SLAPD_PHONETIC,1)
+	SLAPD_DEFS="$SLAPD_DEFS -DSOUNDEX"
+fi
 
 if test "$SLAPD_LDBM" = "yes" ; then
 	AC_DEFINE(SLAPD_LDBM,1)
@@ -318,12 +326,12 @@ dnl need do this early
 test "x$prefix" = xNONE && prefix=$ac_default_prefix
 test "x$exec_prefix" = xNONE && exec_prefix='${prefix}'
 
+dnl append /ldap to $sysconfdir, probably should make this a settable option.
+sysconfdir="$sysconfdir/ldap"
 SYSCONFDIR=`eval echo $sysconfdir`
 AC_SUBST(SYSCONFDIR)
 
 dnl AC_OUTPUT( \
-dnl include/ldapconfig.h \
-dnl include/Makefile:build/top.mk:include/Makefile.in	\
 dnl clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
 dnl clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
 dnl clients/ud/Makefile:build/top.mk:clients/ud/Makefile.in:build/rules.mk \
@@ -356,5 +364,7 @@ dnl Makefile:build/top.mk:Makefile.in:build/dir.mk, \
 dnl [date > stamp-h])
 
 AC_OUTPUT( \
+include/ldapconfig.h \
+include/Makefile:build/top.mk:include/Makefile.in \
 Makefile:build/top.mk:Makefile.in:build/dir.mk \
 ,[date > stamp-h])
