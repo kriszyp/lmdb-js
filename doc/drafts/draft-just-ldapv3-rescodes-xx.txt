@@ -1,0 +1,1785 @@
+
+Internet Draft                                       Mike Just, Entrust
+                                                    K. Leclair, Entrust
+                                                Jim Sermersheim, Novell
+                                                   Mark Smith, Netscape
+Document: <draft-just-ldapv3-rescodes-02.txt>               April, 2000
+Category: Standards Track
+
+
+          LDAPv3 Result Codes: Definitions and Appropriate Use
+                    <draft-just-ldapv3-rescodes-02.txt>
+
+
+Status of this Memo
+
+   This document is an Internet-Draft and is in full conformance with
+      all provisions of Section 10 of RFC2026 [RFC2026].
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups. Note that other
+   groups may also distribute working documents as Internet-Drafts.
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time. It is inappropriate to use Internet- Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   The list of current Internet-Drafts can be accessed at
+   http://www.ietf.org/ietf/1id-abstracts.txt
+   The list of Internet-Draft Shadow Directories can be accessed at
+   http://www.ietf.org/shadow.html.
+
+1. Abstract
+
+   The purpose of this document is to describe, in some detail, the
+   meaning and use of the result codes used with the LDAPv3 protocol.
+   Of particular importance are the error codes, which represent the
+   majority of the result codes.  This document provides definitions for
+   each result code, and outlines the expected behaviour of the various
+   operations with respect to how result codes and in particular, error
+   conditions should be handled and which specific error code should be
+   returned.
+
+   It is hoped that this document will facilitate interoperability
+   between clients and servers and the development of intelligent LDAP
+   clients capable of acting upon the results received from the server.
+
+1.1 Relationship to X.500
+
+   The LDAPv3 RFC [RFC2251] states that "An LDAP server MUST act in
+   accordance with the X.500(1993) series of ITU recommendations when
+   providing the service. However, it is not required that an LDAP
+   server make use of any X.500 protocols in providing this service,
+   e.g. LDAP can be mapped onto any other directory system so long as
+   the X.500 data and service model as used in LDAP is not violated in
+   the LDAP interface." This means that there are two types of LDAP
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                     1
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+   servers, those that act as a front end to an X.500 directory, and
+   stand alone LDAP servers which use some other form of repository as
+   the back end.
+
+   Because of differences between X.500 and LDAP there may be some
+   differences in behaviour between LDAP-only servers and LDAP servers
+   that act as front ends to X.500 DSAs. One such difference is the
+   definition of specific access controls for X.500. X.500 defines the
+   discloseOnError permission, an access control parameter for which
+   there is currently no equivalent defined for LDAP. If an LDAP server
+   is acting as a front end to an X.500 DSA then it may return
+   noSuchObject when the target entry is found but the client does not
+   have permission to view or modify the entry. Unless the server
+   implements X.500 style access controls LDAP-only servers should only
+   return noSuchObject when the target entry is not found until such
+   time that similar access controls are defined for LDAP only servers.
+   Because the client may not know what sort of LDAP server it is
+   communicating with it should not rely on the behaviour of the server
+   in this respect.
+
+2. Conventions used in this document
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in RFC-2119 [RFC2119].
+
+3. Overview
+
+   This document collects and refines the definitions and descriptions
+   for LDAPv3 result codes, as found in a variety of sources (see
+   Section 8).  In some cases, material from these sources was absent,
+   inadequate or ambiguous.  It is the hope of this document to present
+   consistent definitions and descriptions of LDAPv3 result codes.
+
+   This document consists of two major sections facilitating information
+   searches based on either a particular result code, or LDAP operation.
+
+   Section 5 presents a glossary for the result codes.  Firstly, each is
+   classified as either an erroneous or non-erroneous result.  The
+   erroneous results, or error codes, are further classified based on
+   the types of error codes defined in X.511 [X511].  Some
+   reclassification was performed where appropriate.  For each result
+   code, a definition, and list of operations that could return this
+   code are given.
+
+   Section 6 describes, for each operation, the result codes that could
+   be returned for that operation.  Firstly, Section 6.1 enumerates
+   those result codes that are applicable to all operations.  Within
+   each remaining section (which is specific to each operation), the
+   error codes that are specific to that operation (in addition to the
+   result codes specified in Section 6.1) are presented.
+
+   Also, Appendix A (Section 11) presents a simple matrix that indicates
+   valid operation/result code pairs in LDAPv3.
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                     2
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+
+4. Table of Contents
+
+   1. Abstract........................................................1
+ 1.1 Relationship to X.500...........................................1
+   2. Conventions used in this document...............................2
+   3. Overview........................................................2
+   4. Table of Contents...............................................3
+   5. Result Codes in LDAPv3..........................................4
+ 5.1 Description of Non-Erroneous Result Codes.......................6
+  5.1.1 success(0)...................................................6
+  5.1.2 compareFalse(5)..............................................6
+  5.1.3 compareTrue(6)...............................................6
+  5.1.4 referral(10).................................................7
+  5.1.5 saslBindInProgress(14).......................................7
+ 5.2 Description of Error Codes......................................7
+  5.2.1 General Error Codes..........................................7
+    5.2.1.1 other(80)................................................7
+  5.2.2 Specific Error Codes.........................................7
+    5.2.2.1 Attribute Problem Error Codes............................7
+     5.2.2.1.1 noSuchAttribute(16)...................................8
+     5.2.2.1.2 undefinedAttributeType(17)............................8
+     5.2.2.1.3 inappropriateMatching(18).............................8
+     5.2.2.1.4 constraintViolation(19)...............................8
+     5.2.2.1.5 attributeOrValueExists(20)............................8
+     5.2.2.1.6 invalidAttributeSyntax(21)............................8
+    5.2.2.2 NameProblem Error Codes..................................9
+     5.2.2.2.1 noSuchObject(32)......................................9
+     5.2.2.2.2 aliasProblem(33)......................................9
+     5.2.2.2.3 invalidDNSyntax(34)...................................9
+    5.2.2.3 SecurityProblem Error Codes..............................9
+     5.2.2.3.1 authMethodNotSupported(7).............................9
+     5.2.2.3.2 strongAuthRequired(8)................................10
+     5.2.2.3.3 confidentialityRequired(13)..........................10
+     5.2.2.3.4 aliasDereferencingProblem(36)........................10
+     5.2.2.3.5 inappropriateAuthentication(48)......................10
+     5.2.2.3.6 invalidCredentials(49)...............................11
+     5.2.2.3.7 insufficientAccessRights(50).........................11
+    5.2.2.4 ServiceProblem Error Codes..............................11
+     5.2.2.4.1 operationsError(1)...................................11
+     5.2.2.4.2 protocolError(2).....................................11
+     5.2.2.4.3 timeLimitExceeded(3).................................12
+     5.2.2.4.4 sizeLimitExceeded(4).................................12
+     5.2.2.4.5 adminLimitExceeded(11)...............................12
+     5.2.2.4.6 unavailableCriticalExtension(12).....................12
+     5.2.2.4.7 busy(51).............................................13
+     5.2.2.4.8 unavailable(52)......................................13
+     5.2.2.4.9 unwillingToPerform(53)...............................13
+     5.2.2.4.10 loopDetect(54)......................................13
+    5.2.2.5 UpdateProblem Error Codes...............................13
+     5.2.2.5.1 namingViolation(64)..................................13
+     5.2.2.5.2 objectClassViolation(65).............................14
+     5.2.2.5.3 notAllowedOnNonLeaf(66)..............................14
+     5.2.2.5.4 notAllowedOnRDN(67)..................................14
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                     3
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+     5.2.2.5.5 entryAlreadyExists(68)...............................14
+     5.2.2.5.6 objectClassModsProhibited(69)........................14
+     5.2.2.5.7 affectsMultipleDSAs(71)..............................15
+   6 LDAP Operations.................................................15
+ 6.1 Common Result Codes............................................16
+  6.1.1 Non-erroneous results.......................................16
+  6.1.2 Security Errors.............................................16
+  6.1.3 Service Errors..............................................16
+  6.1.4 General Errors..............................................16
+ 6.2 Bind Operation Errors..........................................16
+  6.2.1 Non-erroneous results.......................................17
+  6.2.2 Name Errors.................................................17
+  6.2.3 Security Errors.............................................17
+ 6.3 Search Operation Errors........................................17
+  6.3.1 Name Errors.................................................18
+  6.3.2 Attribute Errors............................................18
+  6.3.3 Security Errors.............................................18
+  6.3.4 Service Errors..............................................18
+ 6.4 Modify Operation Errors........................................18
+  6.4.1 Name Errors.................................................19
+  6.4.2 Update Errors...............................................19
+  6.4.3 Attribute Errors............................................19
+  6.4.4 Security Errors.............................................19
+ 6.5 Add Operation Errors...........................................19
+  6.5.1 Name Errors.................................................20
+  6.5.2 Update Errors...............................................20
+  6.5.3 Attribute Errors............................................20
+  6.5.4 Security Errors.............................................20
+ 6.6 Delete Operation Errors........................................21
+  6.6.1 Name Errors.................................................21
+  6.6.2 Update Errors...............................................21
+  6.6.3 Security Errors.............................................21
+ 6.7 ModifyDN Operation Errors......................................21
+  6.7.1 Name Errors.................................................22
+  6.7.2 Update Errors...............................................22
+  6.7.3 Attribute Errors............................................22
+  6.7.4 Security Errors.............................................22
+ 6.8 Compare Operation Errors.......................................22
+  6.8.1 Name Errors.................................................23
+  6.8.2 Attribute Errors............................................23
+  6.8.3 Security Errors.............................................23
+  6.8.4 Example.....................................................23
+ 6.9 Extended Operation Errors......................................24
+ 6.10 Operations with no Server Response............................24
+ 6.11 Unsolicited Notification......................................24
+ 6.12 Controls......................................................25
+   7. Security Considerations........................................25
+   8. References.....................................................25
+   9. Acknowledgments................................................25
+   10. Author's Addresses............................................26
+   11 Appendix A: Operation/Response Matrix..........................27
+   12 Full Copyright Statement.......................................29
+
+5. Result Codes in LDAPv3
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                     4
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+
+   In this section, a glossary of the result codes that may be returned
+   from a server to a client is provided.  This section is meant to
+   provide a central, unified source for these definitions.  RFC 2251
+   [RFC2251] and X.511 [X511] were primary sources, forming the basis
+   for the definitions given in this section.
+
+   LDAP v3 [RFC2251] defines the following result message for return
+   from the server to the client, where "new" indicates those codes that
+   were not used in LDAP v2.
+
+   LDAPResult ::= SEQUENCE {
+        resultCode      ENUMERATED {
+                success                      (0),
+                operationsError              (1),
+                protocolError                (2),
+                timeLimitExceeded            (3),
+                sizeLimitExceeded            (4),
+                compareFalse                 (5),
+                compareTrue                  (6),
+                authMethodNotSupported       (7),
+                strongAuthRequired           (8),
+                -- 9 reserved --
+                referral                     (10),  -- new
+                adminLimitExceeded           (11),  -- new
+                unavailableCriticalExtension (12),  -- new
+                confidentialityRequired      (13),  -- new
+                saslBindInProgress           (14),  -- new
+                noSuchAttribute              (16),
+                undefinedAttributeType       (17),
+                inappropriateMatching        (18),
+                constraintViolation          (19),
+                attributeOrValueExists       (20),
+                invalidAttributeSyntax       (21),
+                -- 22-31 unused --
+                noSuchObject                 (32),
+                aliasProblem                 (33),
+                invalidDNSyntax              (34),
+                -- 35 reserved for undefined isLeaf --
+                aliasDereferencingProblem    (36),
+                -- 37-47 unused --
+                inappropriateAuthentication  (48),
+                invalidCredentials           (49),
+                insufficientAccessRights     (50),
+                busy                         (51),
+                unavailable                  (52),
+                unwillingToPerform           (53),
+                loopDetect                   (54),
+                -- 55-63 unused --
+                namingViolation              (64),
+                objectClassViolation         (65),
+                notAllowedOnNonLeaf          (66),
+                notAllowedOnRDN              (67),
+                entryAlreadyExists           (68),
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                     5
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+                objectClassModsProhibited    (69),
+                -- 70 reserved for CLDAP --
+                affectsMultipleDSAs          (71), -- new
+                -- 72-79 unused --
+                other                        (80) },
+                -- 81-90 reserved for APIs --
+        matchedDN       LDAPDN,
+        errorMessage    LDAPString,
+        referral        [3] Referral OPTIONAL }
+
+   If a client receives a result code that is not listed above, it is to
+   be treated as an unknown error condition. A server MUST NOT return an
+   API result code (81-90).
+
+   The LDAP result includes an errorMessage field, which may, at the
+   server's option, be used to return a string containing a textual,
+   human-readable error diagnostic. As this error diagnostic is not
+   standardized, implementations MUST NOT rely on the values returned.
+   If the server chooses not to return a textual diagnostic, the
+   errorMessage field of the LDAPResult type MUST contain a zero length
+   string.
+
+   In the following subsections, definitions for each result code are
+   provided.  In addition, the operations that may return each result
+   code are also identified.  The set of all operations consists of the
+   following: Bind; Search; Modify; Add; Delete; ModifyDN; Extended; and
+   Compare.
+
+5.1 Description of Non-Erroneous Result Codes
+
+   Five result codes that may be returned in LDAPResult are not used to
+   indicate an error.  These result codes are listed below.  The first
+   three codes, indicate to the client that no further action is
+   required in order to satisfy their request.  In contrast, the last
+   two errors require further action by the client in order to complete
+   their original operation request.
+
+5.1.1 success(0)
+
+   Applicable operations: all except for Compare.
+
+   This result code does not indicate an error. It is returned when the
+   client operation completed successfully.
+
+5.1.2 compareFalse(5)
+
+   Applicable operations: Compare.
+
+   This result code does not indicate an error.  It is used to indicate
+   that the result of a Compare operation is FALSE.
+
+5.1.3 compareTrue(6)
+
+   Applicable operations: Compare.
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                     6
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+
+   This result code does not indicate an error.  It is used to indicate
+   that the result of a Compare operation is TRUE.
+
+5.1.4 referral(10)
+
+   Applicable operations: all.
+
+   This result code is new in LDAPv3.  Rather than indicating an error,
+   this result code is used to indicate that the server does not hold
+   the target entry of the request but is able to provide alternative
+   servers that may.  A set of server(s) URLs may be returned in the
+   referral field, which the client may subsequently query to attempt to
+   complete their operation.
+
+5.1.5 saslBindInProgress(14)
+
+   Applicable operations: Bind.
+
+   This result code is new in LDAPv3.  This result code is not an error
+   response from the server, but rather, is a request for bind
+   continuation.  The server requires the client to send a new bind
+   request, with the same SASL mechanism, to continue the authentication
+   process [RFC2251, Section 4.2.3].
+
+5.2 Description of Error Codes
+
+   General error codes (see Section 5.2.1) are typically returned only
+   when no suitable specific error exists.  Specific error codes (see
+   Section 5.2.2) are meant to capture situations that are specific to
+   the requested operation.
+
+5.2.1 General Error Codes
+
+   A general error code typically specifies an error condition for which
+   there is no suitable specific error code. If the server can return an
+   error, which is more specific than the following general errors, then
+   the specific error should be returned instead.
+
+5.2.1.1 other(80)
+
+   Applicable operations: all.
+
+   This error code should be returned only if no other error code is
+   suitable.  Use of this error code should be avoided if possible.
+   Details of the error should be provided in the error message.
+
+5.2.2 Specific Error Codes
+
+   Specific errors are used to indicate that a particular type of error
+   has occurred.  These error types are Name, Update, Attribute,
+   Security, and Service.
+
+5.2.2.1 Attribute Problem Error Codes
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                     7
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+
+   An attribute error reports a problem related to an attribute
+   specified by the client in their request message.
+
+5.2.2.1.1 noSuchAttribute(16)
+
+   Applicable operations: Modify, Compare.
+
+   This error may be returned if the attribute specified as an argument
+   of the operation does not exist in the entry.
+
+5.2.2.1.2 undefinedAttributeType(17)
+
+   Applicable operations: Modify, Add.
+
+   This error may be returned if the specified attribute is unrecognized
+   by the server, since it is not present in the server∆s defined
+   schema. If the server doesn∆t recognize an attribute specified in a
+   search request as the attribute to be returned the server should not
+   return an error in this case - it should just return values for the
+   requested attributes it does recognize. Note that this result code
+   only applies to the Add and Modify operations [X.511, Section 12.4].
+
+5.2.2.1.3 inappropriateMatching(18)
+
+   Applicable operations: Search.
+
+   An attempt was made, e.g., in a filter, to use a matching rule not
+   defined for the attribute type concerned [X511, Section 12.4].
+
+5.2.2.1.4 constraintViolation(19)
+
+   Applicable operations: Modify, Add, ModifyDN.
+
+   This error should be returned by the server if an attribute value
+   specified by the client violates the constraints placed on the
+   attribute as it was defined in the DSA - this may be a size
+   constraint or a constraint on the content.
+
+5.2.2.1.5 attributeOrValueExists(20)
+
+   Applicable operations: Modify, Add.
+
+   This error should be returned by the server if the value specified by
+   the client already exists within the attribute.
+
+5.2.2.1.6 invalidAttributeSyntax(21)
+
+   Applicable operations: Modify, Add.
+
+   This error should be returned by the server if the attribute syntax
+   for the attribute value, specified as an argument of the operation,
+   is unrecognized or invalid.
+
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                     8
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+5.2.2.2 NameProblem Error Codes
+
+   A name error reports a problem related to the distinguished name
+   provided as an argument to an operation [X511, Section 12.5].
+
+   For result codes of noSuchObject, aliasProblem, invalidDNSyntax and
+   aliasDereferencingProblem (see Section 5.2.2.3.7), the matchedDN
+   field is set to the name of the lowest entry (object or alias) in the
+   directory that was matched.  If no aliases were dereferenced while
+   attempting to locate the entry, this will be a truncated form of the
+   name provided, or if aliases were dereferenced, of the resulting
+   name, as defined in section 12.5 of X.511 [X511]. The matchedDN field
+   is to be set to a zero length string with all other result codes
+   [RFC2251, Section 4.1.10].
+
+5.2.2.2.1 noSuchObject(32)
+
+   Applicable operations: all except for Bind.
+
+   This error should only be returned if the target object cannot be
+   found. For example, in a search operation if the search base can not
+   be located in the DSA the server should return noSuchObject. If,
+   however, the search base is found but does not match the search
+   filter, success, with no resultant objects, should be returned
+   instead of noSuchObject.
+
+   If the LDAP server is a front end for an X.500 DSA then noSuchObject
+   may also be returned if discloseOnError is not granted for an entry
+   and the client does not have permission to view or modify the entry.
+
+5.2.2.2.2 aliasProblem(33)
+
+   Applicable operations: Search.
+
+   An alias has been dereferenced which names no object [X511, Section
+   12.5].
+
+5.2.2.2.3 invalidDNSyntax(34)
+
+   Applicable operations: all.
+
+   This error should be returned by the server if the DN syntax is
+   incorrect. It should not be returned if the DN is correctly formed
+   but represents an entry which is not permitted by the structure rules
+   at the DSA; in this case namingViolation should be returned instead.
+
+5.2.2.3 SecurityProblem Error Codes
+
+   A security error reports a problem in carrying out an operation for
+   security reasons [X511, Section 12.7].
+
+5.2.2.3.1 authMethodNotSupported(7)
+
+   Applicable operations: Bind.
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                     9
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+
+   This error code should be returned if the client requests, in a Bind
+   request, an authentication method which is not supported or
+   recognized by the server.
+
+5.2.2.3.2 strongAuthRequired(8)
+
+   Applicable operations: all.
+
+   This error may be returned on a bind request if the server only
+   accepts strong authentication or it may be returned when a client
+   attempts an operation which requires the client to be strongly
+   authenticated - for example Delete.
+
+   This result code may also be returned in an unsolicited notice of
+   disconnection if the server detects that an established underlying
+   security association protecting communication between the client and
+   server has unexpectedly failed or been compromised. [RFC2251, Section
+   4.4.1]
+
+5.2.2.3.3 confidentialityRequired(13)
+
+   Applicable operations: all.
+
+   This error code is new in LDAPv3. This error code may be returned if
+   the session is not protected by a protocol which provides session
+   confidentiality. For example, if the client did not establish a TLS
+   connection using a cipher suite which provides confidentiality of the
+   session before sending any other requests, and the server requires
+   session confidentiality then the server may reject that request with
+   a result code of confidentialityRequired.
+
+5.2.2.3.4 aliasDereferencingProblem(36)
+
+   Applicable operations: Search.
+
+   An alias was encountered in a situation where it was not allowed or
+   where access was denied [X511, Section 12.5]. For example, if the
+   client does not have read permission for the aliasedObjectName
+   attribute and its value then the error aliasDereferencingProblem
+   should be returned. [X511, Section 7.11.1.1]
+
+   Notice that this error has similar meaning to
+   insufficientAccessRights(50) (see Section 5.2.2.3.7), but is specific
+   to Searching on an alias.
+
+   (See note at start of Section 5.2.2.2 regarding this error code.)
+
+5.2.2.3.5 inappropriateAuthentication(48)
+
+   Applicable operations: Bind.
+
+   This error should be returned by the server when the client has tried
+   to use a method of authentication that is inappropriate, that is a
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    10
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+   method of authentication which the client is unable to use correctly.
+   In other words, the level of security associated with the requestor∆s
+   credentials is inconsistent with the level of protection requested,
+   e.g. simple credentials were supplied while strong credentials were
+   required [X511, Section 12.7].
+
+5.2.2.3.6 invalidCredentials(49)
+
+   Applicable operations: Bind.
+
+   This error code is returned if the DN or password used in a simple
+   bind operation is incorrect, or if the DN or password is incorrect
+   for some other reason, e.g. the password has expired.  This result
+   code only applies to Bind operations -- it should not be returned for
+   other operations if the client does not have sufficient permission to
+   perform the requested operation - in this case the return code should
+   be insufficientAccessRights.
+
+5.2.2.3.7 insufficientAccessRights(50)
+
+   Applicable operations: all except for Bind.
+
+   The requestor does not have the right to carry out the requested
+   operation [X511, Section 12.7]. Note that the more specific
+   aliasDereferencingProblem (see Section 5.2.2.3.4) is returned in case
+   of a Search on an alias where the requestor has
+   insufficientAccessRights.
+
+5.2.2.4 ServiceProblem Error Codes
+
+   A service error reports a problem related to the provision of the
+   service [X511, Section 12.8].
+
+5.2.2.4.1 operationsError(1)
+
+   Applicable operations: all except Bind.
+
+   If the server requires that the client bind before browsing or
+   modifying the directory, the server MAY reject a request other than
+   binding, unbinding or an extended request with the "operationsError"
+   result. [RFC2251, Section 4.2.1]
+
+5.2.2.4.2 protocolError(2)
+
+   Applicable operations: all.
+
+   A protocol error should be returned by the server when an invalid or
+   malformed request is received from the client. This may be a request
+   that is not recognized as an LDAP request, for example, if a
+   nonexistent operation were specified in LDAPMessage.  As well, it may
+   be the result of a request that is missing a required parameter, such
+   as a search filter in a search request. If the server can return an
+   error, which is more specific than protocolError, then this error
+   should be returned instead. For example if the server does not
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    11
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+   recognize the authentication method requested by the client then the
+   error authMethodNotSupported should be returned instead of
+   protocolError. The server may return details of the error in the
+   error string.
+
+5.2.2.4.3 timeLimitExceeded(3)
+
+   Applicable operations: all.
+
+   This error should be returned when the time to perform an operation
+   has exceeded either the time limit specified by the client (which may
+   only be set by the client in a search operation) or the limit
+   specified by the server.  If the time limit is exceeded on a search
+   operation then the result is an arbitrary selection of the
+   accumulated results [X511, Section 7.5].  Note that an arbitrary
+   selection of results may mean that no results are returned to the
+   client.
+
+   If the LDAP server is a front end for an X.500 server, any operation
+   that is chained may exceed the timelimit, therefore clients can
+   expect to receive timelimitExceeded for all operations. For stand
+   alone LDAP-Servers that do not implement chaining it is unlikely that
+   operations other than search operations will exceed the defined
+   timelimit.
+
+5.2.2.4.4 sizeLimitExceeded(4)
+
+   Applicable operations: Search.
+
+   This error should be returned when the number of results generated by
+   a search exceeds the maximum number of results specified by either
+   the client or the server. If the size limit is exceeded then the
+   results of a search operation will be an arbitrary selection of the
+   accumulated results, equal in number to the size limit [X511, Section
+   7.5].
+
+5.2.2.4.5 adminLimitExceeded(11)
+
+   Applicable operations: all.
+
+   This error code is new in LDAPv3.  The server has reached some limit
+   set by an administrative authority, and no partial results are
+   available to return to the user [X511, Section 12.8].  For example,
+   there may be an administrative limit to the number of entries a
+   server will check when gathering potential search result candidates
+   [Net].
+
+5.2.2.4.6 unavailableCriticalExtension(12)
+
+   Applicable operations: all.
+
+   This error code is new in LDAPv3.  The server was unable to satisfy
+   the request because one or more critical extensions were not
+   available [X511, Section 12.8]. This error is returned, for example,
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    12
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+   when a control submitted with a request is marked critical but is not
+   recognized by a server or when such a control is not appropriate for
+   the operation type. [RFC2251 section 4.1.12].
+
+5.2.2.4.7 busy(51)
+
+   Applicable operations: all.
+
+   This error code may be returned if the server is unable to process
+   the client∆s request at this time. This implies that if the client
+   retries the request shortly the server will be able to process it
+   then.
+
+5.2.2.4.8 unavailable(52)
+
+   Applicable operations: all.
+
+   This error code is returned when the server is unavailable to process
+   the client∆s request. This usually means that the LDAP server is
+   shutting down [RFC2251, Section 4.2.3].
+
+5.2.2.4.9 unwillingToPerform(53)
+
+   Applicable operations: all.
+
+   This error code should be returned by the server when a client
+   request is properly formed but which the server is unable to complete
+   due to server-defined restrictions.  For example, the server, or some
+   part of it, is not prepared to execute this request, e.g. because it
+   would lead to excessive consumption of resources or violates the
+   policy of an Administrative Authority involved [X511, Section 12.8].
+   If the server is able to return a more specific error code such as
+   adminLimitExceeded it should. This error may also be returned if the
+   client attempts to modify attributes which can not be modified by
+   users, e.g., operational attributes such as creatorsName or
+   createTimestamp [X511, Section 7.12]. If appropriate, details of the
+   error should be provided in the error message.
+
+5.2.2.4.10 loopDetect(54)
+
+   Applicable operations: all.
+
+   This error may be returned by the server if it detects an alias or
+   referral loop, and is unable to satisfy the client∆s request.
+
+5.2.2.5 UpdateProblem Error Codes
+
+   An update error reports problems related to attempts to add, delete,
+   or modify information in the DIB [X511, Section 12.9].
+
+5.2.2.5.1 namingViolation(64)
+
+   Applicable operations: Add, ModifyDN.
+
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    13
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+   The attempted addition or modification would violate the structure
+   rules of the DIT as defined in the directory schema and X.501.  That
+   is, it would place an entry as the subordinate of an alias entry, or
+   in a region of the DIT not permitted to a member of its object class,
+   or would define an RDN for an entry to include a forbidden attribute
+   type [X511, Section 12.9].
+
+5.2.2.5.2 objectClassViolation(65)
+
+   Applicable operations: Modify, Add, ModifyDN.
+
+   This error should be returned if the operation requested by the user
+   would violate the objectClass requirements for the entry if carried
+   out. On an add or modify operation this would result from trying to
+   add an object class without a required attribute, or by trying to add
+   an attribute which is not permitted by the current object class set
+   in the entry. On a modify operation this may result from trying to
+   remove a required attribute without removing the associated auxiliary
+   object class, or by attempting to remove an object class while the
+   attributes it permits are still present.
+
+5.2.2.5.3 notAllowedOnNonLeaf(66)
+
+   Applicable operations: Delete, ModifyDN.
+
+   This operation should be returned if the client attempts to perform
+   an operation which is permitted only on leaf entries - e.g., if the
+   client attempts to delete a non-leaf entry.  If the directory does
+   not permit ModifyDN for non-leaf entries then this error may be
+   returned if the client attempts to change the DN of a non-leaf entry.
+   (Note that 1988 edition X.500 servers only permitted change of the
+   RDN of an entry's DN [X.511, Section 11.4.1]).
+
+5.2.2.5.4 notAllowedOnRDN(67)
+
+   Applicable operations: Modify.
+
+   The attempted operation would affect the RDN (e.g., removal of an
+   attribute which is a part of the RDN) [X511, Section 12.9].  If the
+   client attempts to remove from an entry any of its distinguished
+   values, those values which form the entry's relative distinguished
+   name the server should return the error notAllowedOnRDN. [RFC2251,
+   Section 4.6]
+
+5.2.2.5.5 entryAlreadyExists(68)
+
+   Applicable operations: Add, ModifyDN.
+
+   This error should be returned by the server when the client attempts
+   to add an entry which already exists, or if the client attempts to
+   rename an entry with the name of an entry which exists.
+
+5.2.2.5.6 objectClassModsProhibited(69)
+
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    14
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+   Applicable operations: Modify.
+
+   An operation attempted to modify an object class that should not be
+   modified, e.g., the structural object class of an entry.  Some
+   servers may not permit object class modifications, especially
+   modifications to the structural object class since this may change
+   the entry entirely, name forms, structure rules etc. [X.511, Section
+   12.9].
+
+5.2.2.5.7 affectsMultipleDSAs(71)
+
+   Applicable operations: ModifyDN.
+
+   This error code is new for LDAPv3. This error code should be returned
+   to indicate that the operation could not be performed since it
+   affects more than one DSA.
+
+   X.500 restricts the ModifyDN operation to only affect entries that
+   are contained within a single server. If the LDAP server is mapped
+   onto DAP, then this restriction will apply, and the resultCode
+   affectsMultipleDSAs will be returned if this error occurred. In
+   general clients MUST NOT expect to be able to perform arbitrary
+   movements of entries and subtrees between servers [RFC2251, Section
+   4.9].
+
+6 LDAP Operations
+
+   LDAP v3 [RFC2251] defines the following LDAPMessage for conveyance of
+   the intended operation request from the client to the server.
+
+   LDAPMessage ::= SEQUENCE {
+        messageID   MessageID,
+        protocolOp  CHOICE {
+                bindRequest     BindRequest,
+                bindResponse    BindResponse,
+                unbindRequest   UnbindRequest,
+                searchRequest   SearchRequest,
+                searchResEntry  SearchResultEntry,
+                searchResDone   SearchResultDone,
+                searchResRef    SearchResultReference,
+                modifyRequest   ModifyRequest,
+                modifyResponse  ModifyResponse,
+                addRequest      AddRequest,
+                addResponse     AddResponse,
+                delRequest      DelRequest,
+                delResponse     DelResponse,
+                modDNRequest    ModifyDNRequest,
+                modDNResponse   ModifyDNResponse,
+                compareRequest  CompareRequest,
+                compareResponse CompareResponse,
+                abandonRequest  AbandonRequest,
+                extendedReq     ExtendedRequest,
+                extendedResp    ExtendedResponse },
+        controls       [0] Controls OPTIONAL }
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    15
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+
+   MessageID ::= INTEGER (0 .. maxInt)
+
+   maxInt INTEGER ::= 2147483647 -- (2^^31 - 1) -
+
+   Starting in Section 6.2, behaviour regarding the return of each
+   result code is specified for each operation.  Section 6.1 indicates
+   those result codes that are typically applicable to all operations.
+
+6.1 Common Result Codes
+
+   The following result codes are applicable to, and may be returned in
+   response to all operations (except where stated otherwise).
+
+6.1.1 Non-erroneous results
+
+   For all but a Compare operation, a success(0) result code will be
+   returned in the case that the requested operation succeeds; a
+   compareTrue would be returned for a Compare operation.  For each
+   operation, the server may return referral(10), as defined in Section
+   5.1.4.
+
+6.1.2 Security Errors
+
+   Of the six possible security errors, two may be returned in response
+   to every operation.  These two errors are strongAuthRequired(8) and
+   confidentialityRequired(13).
+
+6.1.3 Service Errors
+
+   All service errors, except operationsError(1), and
+   sizeLimitExceeded(4) may be returned in response to any LDAP v3
+   operation.  operationsError(1) is applicable to all operations except
+   Bind. sizeLimitExceeded is only applicable to the Search operation.
+
+6.1.4 General Errors
+
+   The general error other(80)is applicable to all operations.
+
+6.2 Bind Operation Errors
+
+   If the bind operation succeeds then a result code of success will be
+   returned to the client. If the server does not hold the target entry
+   of the request, a referral(10) may be returned.  If the operation
+   fails then the result code will be one of the following from the set
+   of non-erroneous result, name errors, security errors, service
+   errors, and general errors.
+
+   If the server does not support the client's requested protocol
+   version, it MUST set the resultCode to protocolError.
+   If the client receives a BindResponse response where the resultCode
+   was protocolError, it MUST close the connection as the server will be
+   unwilling to accept further operations. (This is for compatibility
+
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    16
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+   with earlier versions of LDAP, in which the bind was always the first
+   operation, and there was no negotiation.) [RFC2251, Section 5.2.3]
+
+   The remaining errors listed in this section are operation-specific.
+   An operation may also result in the return of any of the common
+   errors, as listed in Section 6.1.
+
+6.2.1 Non-erroneous results
+
+   In addition to success or referral, the following non-erroneous
+   result code may be returned:
+
+   saslBindInProgress: the server requires the client to send a new bind
+   request, with the same sasl mechanism, to continue the authentication
+   process,
+
+6.2.2 Name Errors
+
+   invalidDNSyntax: the DN provided does not have the correct syntax,
+
+6.2.3 Security Errors
+
+   As stated in Section 6.1.2, strongAuthRequired(8) and
+   confidentialityRequired(13) may be returned for any operation.
+
+   authMethodNotSupported: unrecognized SASL mechanism name,
+
+   inappropriateAuthentication: the server requires the client which had
+   attempted to bind anonymously or without supplying credentials to
+   provide some form of credentials,
+
+   invalidCredentials: the wrong password was supplied or the SASL
+   credentials could not be processed, [RFC2251, Section 4.2.3]
+
+6.3 Search Operation Errors
+
+   X.500 provides three separate operations for searching the directory
+   - Read of a single entry, List of an entry∆s children and search of
+   an entire sub-tree. LDAP provides a single search operation, however
+   the X.500 operations can be simulated by using base, one-level and
+   sub-tree scope restrictions respectively.
+
+   If the Search operation succeeds then zero or more search entries
+   will be returned followed by a search result of success. If the
+   server does not hold the target entry of the request, a referral(10)
+   may be returned.  If the search operation fails then zero or more
+   search entries will be returned followed by a search result
+   containing one of the following result codes from the set of name
+   errors, attribute errors, security errors, service errors, and
+   general errors.
+
+   The remaining errors listed in this section are operation-specific.
+   An operation may also result in the return of any of the common
+   errors, as listed in Section 6.1.
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    17
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+
+6.3.1 Name Errors
+
+   noSuchObject: the base object, for the search, does not exist.
+
+   aliasProblem: an alias was dereferenced which named no object.
+
+   invalidDNSyntax: the DN provided for the search base does not have
+   the correct syntax,
+
+6.3.2 Attribute Errors
+
+   inappropriateMatching: an attempt was made to use a matching rule not
+   defined for an attribute in the search filter.
+
+6.3.3 Security Errors
+
+   As stated in Section 6.1.2, strongAuthRequired(8) and
+   confidentialityRequired(13) may be returned for any operation.
+
+   aliasDereferenceProblem: The client does not have permission for the
+   aliasedObjectName attribute or to search the dereferenced alias
+   object.
+
+   insufficientAccessRights: The requestor does not have sufficient
+   permissions to perform the search. aliasDereferenceProblem should be
+   returned in this case, if applicable.
+
+6.3.4 Service Errors
+
+   In addition to the common service errors indicated in Section 6.1.3,
+   the following service error may also be returned:
+
+   sizeLimitExceeded: the number of search results exceeds the size
+   limit specified by the client or the server. If the server has
+   defined a maximum PDU size, this error may also be returned if the
+   size of the combined results exceeds this limit.
+
+6.4 Modify Operation Errors
+
+   The Modify operation cannot be used to remove from an entry any of
+   its distinguished values, those values that form the entry's relative
+   distinguished name. An attempt to do so will result in the server
+   returning the error notAllowedOnRDN. The Modify DN Operation
+   described in section 5.9 is used to rename an entry. [RFC2251,
+   Section 4.6]
+
+   If the modify operation succeeds, a result code of success will be
+   returned to the client. If the server does not hold the target entry
+   of the request, a referral(10) may be returned.  If the operation
+   fails, the result code will be one of the following from the set of
+   name errors, update errors, attribute errors, security errors,
+   service errors, and general errors.
+
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    18
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+   The remaining errors listed in this section, are operation-specific.
+   An operation may also result in the return of any of the common
+   errors, as listed in Section 6.1.
+
+6.4.1 Name Errors
+
+   noSuchObject: the target object does not exist.
+
+   invalidDNSyntax: the DN provided does not have the correct syntax,
+
+6.4.2 Update Errors
+
+   objectClassViolation: An attempt was made to modify an object which
+   is illegal according to its object class definition in the schema or
+   DIT content rules for that object class.
+
+   notAllowedOnRDN: An attempt was made to modify the object entry∆s
+   distinguished name
+
+   objectClassModsProhibited: The modification attempted to change an
+   entry∆s object class which is not allowed.
+
+6.4.3 Attribute Errors
+
+   noSuchAttribute: the attribute to be modified does not exist in the
+   target entry.
+
+   undefinedAttributeType: The attribute specified does not exist in the
+   server's defined schema.
+
+   constraintViolation: The modification would create an attribute value
+   outside the normal bounds.
+
+   attributeOrValueExists: The modification would create a value which
+   already exists within the attribute.
+
+   invalidAttributeSyntax: The value specified doesn∆t adhere to the
+   syntax definition for that attribute.
+
+6.4.4 Security Errors
+
+   As stated in Section 6.1.2, strongAuthRequired(8) and
+   confidentialityRequired(13) may be returned for any operation.
+
+   insufficientAccessRights: The requestor does not have sufficient
+   permissions to modify the entry.
+
+6.5 Add Operation Errors
+
+   The superior of the entry must exist for the operation to succeed. If
+   not, a noSuchObject error is returned and the matchedDN field will
+   contain the name of the lowest entry in the directory that was
+   matched.
+
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    19
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+   If the add operation succeeds, a result code of success will be
+   returned to the client. If the server does not hold the target entry
+   of the request, a referral(10) may be returned.  If the operation
+   fails, the result code will be one of the following from the set of
+   name errors, update errors, attribute errors, security errors,
+   service errors, and general errors.
+
+   The remaining errors listed in this section, are operation-specific.
+   An operation may also result in the return of any of the common
+   errors, as listed in Section 6.1.
+
+6.5.1 Name Errors
+
+   noSuchObject: One or more superiors to the target entry do not exist.
+
+   invalidDNSyntax: the DN provided does not have the correct syntax,
+
+6.5.2 Update Errors
+
+   namingViolation: Either the target entry cannot be created under the
+   specified superior due to DIT structure rules, or the target entry is
+   named by an RDN not permitted by the DIT name form rule for its
+   object class.
+
+   objectClassViolation: An attempt was made to add an entry and one of
+   the following conditions existed: A required attribute was not
+   specified; an attribute was specified which is not permitted by the
+   current object class set in the entry; a structural object class
+   value was not specified; an object class value was specified that
+   doesn∆t exist in the schema.
+
+   entryAlreadyExists: The target entry already exists.
+
+6.5.3 Attribute Errors
+
+   undefinedAttributeType: The attribute specified does not exist in the
+   server's defined schema.
+
+   constraintViolation: The attribute value falls outside the bounds
+   specified by the attribute syntax.
+
+   attributeOrValueExists: A duplicate attribute value appears in the
+   list of attributes for the entry.
+
+   invalidAttributeSyntax: The value specified doesn∆t adhere to the
+   syntax definition for that attribute.
+
+6.5.4 Security Errors
+
+   As stated in Section 6.1.2, strongAuthRequired(8) and
+   confidentialityRequired(13) may be returned for any operation.
+
+
+
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    20
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+   insufficientAccessRights: The requestor does not have sufficient
+   permissions to either add the entry or to add one or more of the
+   attributes specified.
+
+6.6 Delete Operation Errors
+
+   If the delete operation succeeds, a result code of success will be
+   returned to the client. If the server does not hold the target entry
+   of the request, a referral(10) may be returned.  If the operation
+   fails, the result code will be one of the following from the set of
+   name errors, update errors, security errors, service errors, and
+   general errors.
+
+   The remaining errors listed in this section, are operation-specific.
+   An operation may also result in the return of any of the common
+   errors, as listed in Section 6.1.
+
+6.6.1 Name Errors
+
+   noSuchObject: The target entry does not exist.
+
+   invalidDNSyntax: the DN provided does not have the correct syntax,
+
+6.6.2 Update Errors
+
+   notAllowedOnNonLeaf: The target entry is not a leaf object. Only
+   objects having no subordinate objects in the tree may be deleted.
+
+6.6.3 Security Errors
+
+   As stated in Section 6.1.2, strongAuthRequired(8) and
+   confidentialityRequired(13) may be returned for any operation.
+
+   insufficientAccessRights: The requestor does not have sufficient
+   permissions to delete the entry.
+
+6.7 ModifyDN Operation Errors
+
+   Note that X.500 restricts the ModifyDN operation to only affect
+   entries that are contained within a single server. If the LDAP server
+   is mapped onto DAP, then this restriction will apply, and the
+   resultCode affectsMultipleDSAs will be returned if this error
+   occurred. In general clients MUST NOT expect to be able to perform
+   arbitrary movements of entries and subtrees between servers.
+   [RFC2251, Section 4.9]
+
+   If the Modify DN operation succeeds then a result code of success
+   will be returned to the client. If the server does not hold the
+   target entry of the request, a referral(10) may be returned.  If the
+   operation fails then the result code will be one of the following
+   from the set of name errors, update errors, attribute errors,
+   security errors, service errors, and general errors.
+
+
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    21
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+   The remaining errors listed in this section, are operation-specific.
+   An operation may also result in the return of any of the common
+   errors, as listed in Section 6.1.
+
+6.7.1 Name Errors
+
+   noSuchObject: the target object does not exist or a new superior
+   object was specified that does not exist.
+
+   invalidDNSyntax: the DN provided does not have the correct syntax.
+
+6.7.2 Update Errors
+
+   namingViolation: Either the target entry cannot be moved to the
+   specified superior due to DIT structure rules, or the target entry is
+   named by an RDN not permitted by the DIT name form rule for its
+   object class.
+
+   objectClassViolation: The client has specified that the old RDN
+   values should be removed from the entry (using the 'deleteOldRdn'
+   parameter) but the removal of these values would violate the entry's
+   schema. [RFC 2251 Section 4.9]
+
+   notAllowedOnNonLeaf: If the server does not permit the ModifyDN
+   operation on non-leaf entries this error will be returned if the
+   client attempts to rename a non-leaf entry
+
+   entryAlreadyExists: The target entry already exists.
+
+   AffectsMultipleDSAs:  X.500 restricts the ModifyDN operation to only
+   affect entries that are contained within a single server. If the LDAP
+   server is mapped onto DAP, then this restriction will apply, and the
+   resultCode affectsMultipleDSAs will be returned if this error
+   occurred. In general clients MUST NOT expect to be able to perform
+   arbitrary movements of entries and sub-trees between servers.
+   [RFC2251, Section 4.9]
+
+6.7.3 Attribute Errors
+
+   constraintViolation: The operation would create an attribute value
+   outside the normal bounds.
+
+6.7.4 Security Errors
+
+   As stated in Section 6.1.2, strongAuthRequired(8) and
+   confidentialityRequired(13) may be returned for any operation.
+
+   insufficientAccessRights: The requestor does not have sufficient
+   permissions to either add the entry or to add one or more of the
+   attributes specified.
+
+6.8 Compare Operation Errors
+
+
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    22
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+   If there exists a value within the attribute being compared that
+   matches the purported argument and for which compare permissions is
+   granted, the operation returns the value compareTrue in the result,
+   otherwise, the operation returns compareFalse. [X511, Section 9.2.4]
+   If the server does not hold the target entry of the request, a
+   referral(10) may be returned.
+
+   If the compare operation can not be completed, then the server may
+   return one of the following results from the set of name errors,
+   attribute errors, security errors, service errors, and general
+   errors.
+
+   The remaining errors listed in this section are operation-specific.
+   An operation may also result in the return of any of the common
+   errors, as listed in Section 6.1.
+
+6.8.1 Name Errors
+
+   noSuchObject: the entry to be compared does not exist in the
+   directory.
+
+   invalidDNSyntax: the DN provided for the entry to be compared does
+   not have the correct syntax.
+
+6.8.2 Attribute Errors
+
+   noSuchAttribute: the attribute to be compared does not exist in the
+   target entry.
+
+   invalidAttributeSyntax: The value specified doesn∆t adhere to the
+   syntax definition for that attribute.
+
+6.8.3 Security Errors
+
+   As stated in Section 6.1.2, strongAuthRequired(8) and
+   confidentialityRequired(13) may be returned for any operation.
+
+   insufficientAccessRights: If the client does not have read permission
+   for the entry to be compared, or for the attribute then
+   insufficientAccessRights should be returned, [X511, Section 9.2.4]
+
+6.8.4 Example
+
+   The following example is included to demonstrate the expected
+   responses for the compare operation.
+   Given the following entry:
+
+   dn: cn=Foo
+   objectClass: top
+   objectClass: person
+   sn: bar
+   userPassword: xyz
+
+
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    23
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+   i) Compare with userPassword=xyz results in a compareTrue because the
+   requested value exists in the entry.
+
+   ii) Compare with userPassword=abc results in a compareFalse because
+   the entry contains a userPassword attribute but the value abc is not
+   present.
+
+   iii) Compare with telephoneNumber=123-456-7890 results in a
+   noSuchAttribute. The attribute telephoneNumber is permissible in the
+   entry based on the schema defined in the server but because it is
+   empty it does not exist in the target entry.
+
+   iv) Compare with ou=myOrg results in noSuchAttribute. The requested
+   attribute is a recognized attribute but it is neither present nor is
+   it valid for the target entry.
+
+   v) Compare with bogusAttr=abc results in noSuchAttribute. The
+   requested attribute is not a recognized attribute nor is it present
+   in the target entry.
+
+   Note that the response for scenarios 3 through 5 is always
+   noSuchAttribute. The semantics of the compare operation is simply
+   "does the target entry contain the specified value?" and so no
+   distinction is made between a request for an unknown, invalid, or,
+   valid but empty attribute. In all cases if the attribute is not
+   present in the entry then the result is noSuchAttribute.
+
+6.9 Extended Operation Errors
+
+   The results returned for an extended operation vary, depending on the
+   particular operation. In any case, extended Operations MAY return any
+   result code (excepting 81-90).
+
+   If the server does not recognize the request name, it MUST return
+   only the response fields from LDAPResult, containing the
+   protocolError result code [RFC2251, Section 4.12]
+
+6.10 Operations with no Server Response
+
+   The LDAP v3 protocol has two client operations for which no server
+   response is returned.  Specifically, these are unbindRequest, and
+   abandonRequest.  Since no response is returned, there is no need to
+   consider possible result codes for these operations.
+
+6.11 Unsolicited Notification
+
+   In some situations, a server may issue a "response" to a client for
+   which there was no client request.   This notification "is used to
+   signal an extraordinary condition in the server or in the connection
+   between the client and the server.  The notification is of an
+   advisory nature, and the server will not expect any response to be
+   returned from the client." [RFC2251, Section 4.4]
+
+
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    24
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+   RFC 2251 [RFC2251] describes a notice of disconnection in which a
+   protocolError, strongAuthRequired, or unavailable result code may be
+   returned.  The reader is directed there for further information.
+
+6.12 Controls
+
+   Section 4.1.12 of [RFC2251] specifies the syntax for controls that
+   may be sent as part of a request.  [RFC2251] defines no specific
+   controls. It should be noted that the semantics of a control may
+   alter the result code that might otherwise have been returned for the
+   requested operation (see Section 5.2.2.4.6 for example).
+
+7. Security Considerations
+
+   This draft is meant to complement and enhance the coverage of result
+   codes for LDAP v3, as described in RFC 2251 [RFC2251].  Section 7 of
+   RFC 2251 [RFC2251] lists a number of security considerations specific
+   to LDAP v3.
+
+   Note that in X.500 if the discloseOnError permission is not granted
+   then many operations will return noSuchObject instead of a more
+   specific error. As there is currently no equivalent for this
+   permission in LDAP, LDAP-only servers should return the appropriate
+   error code in the event of an error.
+
+8. References
+
+   [RFC2026]    S. Bradner, "The Internet Standards Process - Revision
+                3", RFC 2026, October 1996.
+
+   [RFC2119]    S. Bradner, "Key words for use in RFCs to Indicate
+                Requirement Levels", RFC 2119, March 1997.
+
+   [RFC2251]    M. Wahl, T. Howes, S. Kille, "Lightweight Directory
+                Access Protocol", RFC 2251, December 1997.
+
+   [X511]       ITU-T Recommendation X.511, "The Directory: Abstract
+                Service Definition", 1993.
+
+   [TLS]        J. Hodges, R.L. Morgan, M. Wahl, "Lightweight Directory
+                Access Protocol (v3): Extension for Transport Layer
+                Security", June 1999. <draft-ietf-ldapext-ldapv3-tls-
+                05.txt> "work in progress"
+
+   [Net]        Netscape Directory SDK 3.0 for C Programmer∆s Guide,
+                Chapter 19: Result Codes. Available at Error! Bookmark
+                not defined.
+
+
+9. Acknowledgments
+
+   The production of this document relied heavily on the information
+   available from RFC 2251 [RFC2251] and ITU-T Recommendation X.511
+   [X511].
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    25
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+
+10. Author's Addresses
+
+   Mike Just
+   Entrust Technologies
+   750 Heron Rd, Tower E
+   Ottawa, Ontario, Canada
+   mike.just@entrust.com
+
+   Kristianne Leclair
+   Entrust Technologies
+   750 Heron Rd, Tower E
+   Ottawa, Ontario, Canada
+   kristianne.leclair@entrust.com
+
+   Jim Sermersheim
+   Novell
+   122 East 1700 South
+   Provo, Utah 84606, USA
+   Error! Bookmark not defined.
+
+   Mark Smith
+   Netscape
+   501 Ellis Street
+   Mountain View, CA 94043
+   Error! Bookmark not defined.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    26
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+
+11 Appendix A: Operation/Response Matrix
+
+
+   Result Codes                  Operations
+
+                                 B    S    M    A    D    M     C
+                                 i    e    o    d    e    o     o
+                                 n    a    d    d    l    d     m
+                                 d    r    i         e    D     p
+                                      c    f         t    N     a
+                                      h    y         e          r
+                                                                e
+
+                                 Non-erroneous results
+
+   success (0)                   X    X    X    X    X    X
+
+   compareFalse (5)                                             X
+
+   compareTrue (6)                                              X
+
+   referral (10)                 X    X    X    X    X    X     X
+
+   saslBindInProgress (14)       X
+
+                                 Name errors
+
+   noSuchObject (32)                  X    X    X    X    X     X
+
+   aliasProblem (33)                  X
+
+   invalidDNSyntax (34)          X    X    X    X    X    X     X
+
+                                 Update errors
+
+   namingViolation (64)                         X          X
+
+   objectClassViolation (65)               X    X          X
+
+   notAllowedOnNonLeaf (66)                           X    X
+
+   notAllowedonRDN (67)                    X
+
+   entryAlreadyExists (68)                      X          X
+
+   objectClassModesProhibite               X
+   d (69)
+
+   affectsMultipleDSAs (71)                                 X
+
+                                 Attribute errors
+
+   noSuchAttribute(16)                     X                    X
+
+   undefinedAttributeType                  X    X
+   (17)
+
+   inappropriateMatching              X
+   (18)
+
+   constraintViolation (19)                X    X          X
+
+   attributeOrValueExists                  X    X
+   (20)
+
+   invalidAttributeSyntax                  X    X
+   (21)
+
+                                 Security errors
+
+   authMethodNotSupported        X
+   (7)
+
+   strongAuthRequired (8)        X    X    X    X    X    X     X
+
+   confidentialityRequred(13     X    X    X    X    X    X     X
+   )
+
+   aliasDereferencingProblem          X
+   (36)
+
+   inappropriateAuthenticati     X
+   on (48)
+
+
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    27
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+
+   invalidCredentials (49)       X
+
+   insufficientAccessRights           X    X    X    X    X     X
+   (50)
+
+                                 Service errors
+
+   operationsError (1)                X    X    X    X    X     X
+
+   protocolError (2)             X    X    X    X    X    X     X
+
+   timeLimitExceeded (3)         X    X    X    X    X    X     X
+
+   sizeLimitExceeded (4)              X
+
+   adminLimitExceeded (11)       X    X    X    X    X    X     X
+
+   unavailableCriticialExten     X    X    X    X    X    X     X
+   sion (12)
+
+   busy (51)                     X    X    X    X    X    X     X
+
+   unavailable (52)              X    X    X    X    X    X     X
+
+   unwillingToPerform (53)       X    X    X    X    X    X     X
+
+   loopDetect (54)               X    X    X    X    X    X     X
+
+                                 General errors
+
+   other (80)                    X    X    X    X    X    X     X
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    28
+
+
+    LDAPv3 Result Codes: Definitions and Appropriate Use Apr, 2000
+
+
+12 Full Copyright Statement
+
+   Copyright (C) The Internet Society (Oct 1999). All Rights Reserved.
+   This document and translations of it may be copied and furnished to
+   others, and derivative works that comment on or otherwise explain it
+   or assist in its implementation may be prepared, copied, published
+   and distributed, in whole or in part, without restriction of any
+   kind, provided that the above copyright notice and this paragraph are
+   included on all such copies and derivative works. However, this
+   document itself may not be modified in any way, such as by removing
+   the copyright notice or references to the Internet Society or other
+   Internet organizations, except as needed for the purpose of
+   developing Internet standards in which case the procedures for
+   copyrights defined in the Internet Standards process must be
+   followed, or as required to translate it into languages other than
+   English.
+
+   The limited permissions granted above are perpetual and will not be
+   revoked by the Internet Society or its successors or assigns.
+
+   This document and the information contained herein is provided on an
+   "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET
+   ENGINEERINGTASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED,
+   INCLUDINGBUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+   INFORMATIONHEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Just, Leclair, Sermersheim, Smith INTERNET-DRAFT                    29
+

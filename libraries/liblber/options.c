@@ -36,6 +36,20 @@ ber_get_option(
 		if(option == LBER_OPT_BER_DEBUG) {
 			* (int *) outvalue = ber_int_debug;
 			return LBER_OPT_SUCCESS;
+		} else if(option == LBER_OPT_MEMORY_INUSE) {
+			/* The memory inuse is a global variable on kernal implementations.
+			 * This means that memory debug is shared by all LDAP processes
+			 * so for this variable to have much meaning, only one LDAP process
+			 * should be running and memory inuse should be initialized to zero
+			 * using the lber_set_option() function during startup.
+			 * The counter is not accurate for multithreaded ldap applications.
+			 */
+#ifdef LDAP_MEMORY_DEBUG
+			* (int *) outvalue = ber_int_options.lbo_meminuse;
+			return LBER_OPT_SUCCESS;
+#else
+			return LBER_OPT_ERROR;
+#endif
 		}
 
 		ber_errno = LBER_ERROR_PARAM;
@@ -135,6 +149,20 @@ ber_set_option(
 		} else if(option == LBER_OPT_LOG_PRINT_FILE) {
 			ber_pvt_err_file = (void *) invalue;
 			return LBER_OPT_SUCCESS;
+		} else if(option == LBER_OPT_MEMORY_INUSE) {
+			/* The memory inuse is a global variable on kernal implementations.
+			 * This means that memory debug is shared by all LDAP processes
+			 * so for this variable to have much meaning, only one LDAP process
+			 * should be running and memory inuse should be initialized to zero
+			 * using the lber_set_option() function during startup.
+			 * The counter is not accurate for multithreaded applications.
+			 */
+#ifdef LDAP_MEMORY_DEBUG
+			ber_int_options.lbo_meminuse = * (int *) invalue;
+			return LBER_OPT_SUCCESS;
+#else
+			return LBER_OPT_ERROR;
+#endif
 		}
 
 		ber_errno = LBER_ERROR_PARAM;

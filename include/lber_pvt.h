@@ -30,9 +30,9 @@ typedef struct sockbuf_buf {
 /*
  * bprint.c
  */
-LIBLBER_F( BER_LOG_PRINT_FN ) ber_pvt_log_print;
+LBER_F( BER_LOG_PRINT_FN ) ber_pvt_log_print;
 
-LIBLBER_F( int )
+LBER_F( int )
 ber_pvt_log_printf LDAP_P((
 	int errlvl,
 	int loglvl,
@@ -42,22 +42,22 @@ ber_pvt_log_printf LDAP_P((
 /*
  * sockbuf.c
  */
-LIBLBER_F( ber_slen_t )
+LBER_F( ber_slen_t )
 ber_pvt_sb_do_write LDAP_P(( Sockbuf_IO_Desc *sbiod, Sockbuf_Buf *buf_out ));
 
-LIBLBER_F( void )
+LBER_F( void )
 ber_pvt_sb_buf_init LDAP_P(( Sockbuf_Buf *buf ));
 
-LIBLBER_F( void )
+LBER_F( void )
 ber_pvt_sb_buf_destroy LDAP_P(( Sockbuf_Buf *buf ));
 
-LIBLBER_F( int )
+LBER_F( int )
 ber_pvt_sb_grow_buffer LDAP_P(( Sockbuf_Buf *buf, ber_len_t minsize ));
 
-LIBLBER_F( ber_len_t )
+LBER_F( ber_len_t )
 ber_pvt_sb_copy_out LDAP_P(( Sockbuf_Buf *sbb, char *buf, ber_len_t len ));
 
-LIBLBER_F( int )
+LBER_F( int )
 ber_pvt_socket_set_nonblock LDAP_P(( ber_socket_t sd, int nb ));
 
 LDAP_END_DECL

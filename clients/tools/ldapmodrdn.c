@@ -28,7 +28,6 @@
 #include <ac/string.h>
 #include <ac/unistd.h>
 
-#include <lber.h>
 #include <ldap.h>
 
 static char	*binddn = NULL;
@@ -64,6 +63,7 @@ usage( const char *s )
 "		from the file specified by \"-f file\" (see man page).\n"
 "options:\n"
 "	-c\t\tcontinuous operation mode (do not stop on errors)\n"
+"	-C\t\tchase referrals\n"
 "	-d level\tset LDAP debugging level to `level'\n"
 "	-D binddn\tbind DN\n"
 "	-E\t\trequest SASL privacy (-EE to make it critical)\n"
@@ -76,7 +76,7 @@ usage( const char *s )
 "	-M\t\tenable Manage DSA IT control (-MM to make it critical)\n"
 "	-n\t\tshow what would be done but don't actually do it\n"
 "	-p port\t\tport on LDAP server\n"
-"	-P version\tprocotol version (2 or 3)\n"
+"	-P version\tprocotol version (default: 3)\n"
 "	-r\t\tremove old RDN\n"
 "	-s newsuperior\tnew superior entry\n"
 "	-U user\t\tSASL authentication identity (username)\n"
@@ -85,7 +85,7 @@ usage( const char *s )
 "	-W\t\tprompt for bind passwd\n"
 "	-X id\t\tSASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
 "	-Y mech\t\tSASL mechanism\n"
-"	-Z\t\trequest the use of TLS (-ZZ to make it critical)\n"
+"	-Z\t\tissue Start TLS request (-ZZ to require successful response)\n"
 ,		s );
 
 	exit( EXIT_FAILURE );
@@ -97,16 +97,18 @@ main(int argc, char **argv)
     char		*myname,*infile, *entrydn = NULL, *rdn = NULL, buf[ 4096 ];
     FILE		*fp;
 	int		rc, i, remove, havedn, authmethod, version, want_bindpw, debug, manageDSAit;
+	int		referrals;
     char	*newSuperior=NULL;
 
     infile = NULL;
-    not = contoper = verbose = remove = want_bindpw = debug = manageDSAit = 0;
+    not = contoper = verbose = remove = want_bindpw =
+		debug = manageDSAit = referrals = 0;
     authmethod = LDAP_AUTH_SIMPLE;
 	version = -1;
 
     myname = (myname = strrchr(argv[0], '/')) == NULL ? argv[0] : ++myname;
 
-    while (( i = getopt( argc, argv, "cD:d:Ef:h:IKkMnP:p:rs:U:vWw:X:Y:Z" )) != EOF ) {
+    while (( i = getopt( argc, argv, "cCD:d:Ef:h:IKkMnP:p:rs:U:vWw:X:Y:Z" )) != EOF ) {
 	switch( i ) {
 	case 'k':	/* kerberos bind */
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
@@ -127,6 +129,9 @@ main(int argc, char **argv)
 	case 'c':	/* continuous operation mode */
 	    ++contoper;
 	    break;
+	case 'C':
+		referrals++;
+		break;
 	case 'h':	/* ldap host */
 	    ldaphost = strdup( optarg );
 	    break;
@@ -342,19 +347,25 @@ main(int argc, char **argv)
 	return( EXIT_FAILURE );
     }
 
-	/* this seems prudent */
+	/* referrals */
+	if( ldap_set_option( ld, LDAP_OPT_REFERRALS,
+		referrals ? LDAP_OPT_ON : LDAP_OPT_OFF ) != LDAP_OPT_SUCCESS )
 	{
-		int deref = LDAP_DEREF_NEVER;
-		ldap_set_option( ld, LDAP_OPT_DEREF, &deref);
+		fprintf( stderr, "Could not set LDAP_OPT_REFERRALS %s\n",
+			referrals ? "on" : "off" );
+		return EXIT_FAILURE;
 	}
-	/* don't chase referrals */
-	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
 
+	if (version == -1 ) {
+		version = 3;
+	}
 
-	if (version != -1 &&
-		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) != LDAP_OPT_SUCCESS)
+	if( ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version )
+		!= LDAP_OPT_SUCCESS )
 	{
-		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n", version );
+		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n",
+			version );
+		return EXIT_FAILURE;
 	}
 
 	if ( use_tls && ldap_start_tls_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {
@@ -362,11 +373,12 @@ main(int argc, char **argv)
 			ldap_perror( ld, "ldap_start_tls" );
 			return( EXIT_FAILURE );
 		}
+		fprintf( stderr, "WARNING: could not start TLS\n" );
 	}
 
 	if (want_bindpw) {
 		passwd.bv_val = getpassphrase("Enter LDAP Password: ");
-		passwd.bv_len = strlen( passwd.bv_val );
+		passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
 	}
 
 	if ( authmethod == LDAP_AUTH_SASL ) {
@@ -433,7 +445,8 @@ main(int argc, char **argv)
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, &ctrls );
 
 		if( err != LDAP_OPT_SUCCESS ) {
-			fprintf( stderr, "Could not set Manage DSA IT Control\n" );
+			fprintf( stderr, "Could not set ManageDSAit %scontrol\n",
+				c.ldctl_iscritical ? "critical " : "" );
 			if( c.ldctl_iscritical ) {
 				exit( EXIT_FAILURE );
 			}
@@ -477,7 +490,9 @@ static int domodrdn(
     char	*newSuperior,
     int		remove ) /* flag: remove old RDN */
 {
-    int	i;
+	int rc, code, id;
+	char *matcheddn=NULL, *text=NULL, **refs=NULL;
+	LDAPMessage *res;
 
     if ( verbose ) {
 		printf( "Renaming \"%s\"\n", dn );
@@ -488,16 +503,51 @@ static int domodrdn(
 		}
 	}
 
-    if ( !not ) {
-	i = ldap_rename2_s( ld, dn, rdn, newSuperior, remove );
-	if ( i != LDAP_SUCCESS ) {
-	    ldap_perror( ld, "ldap_rename2_s" );
-	} else if ( verbose ) {
-	    printf( "modrdn complete\n" );
-	}
-    } else {
-	i = LDAP_SUCCESS;
-    }
+	if( not ) return LDAP_SUCCESS;
 
-    return( i );
+	rc = ldap_rename( ld, dn, rdn, newSuperior, remove,
+		NULL, NULL, &id );
+
+	if ( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_rename" );
+		return rc;
+	}
+
+	rc = ldap_result( ld, LDAP_RES_ANY, 0, NULL, &res );
+	if ( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_result" );
+		return rc;
+	}
+
+	rc = ldap_parse_result( ld, res, &code, &matcheddn, &text, &refs, NULL, 1 );
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_parse_result" );
+		return rc;
+	}
+
+	if( verbose || code != LDAP_SUCCESS || matcheddn || text || refs ) {
+		printf( "Result: %s (%d)\n", ldap_err2string( code ), code );
+
+		if( text && *text ) {
+			printf( "Additional info: %s\n", text );
+		}
+
+		if( matcheddn && *matcheddn ) {
+			printf( "Matched DN: %s\n", matcheddn );
+		}
+
+		if( refs ) {
+			int i;
+			for( i=0; refs[i]; i++ ) {
+				printf("Referral: %s\n", refs[i] );
+			}
+		}
+	}
+
+	ber_memfree( text );
+	ber_memfree( matcheddn );
+	ber_memvfree( refs );
+
+	return code;
 }

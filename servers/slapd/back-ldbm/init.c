@@ -67,6 +67,7 @@ ldbm_back_initialize(
 
 	bi->bi_entry_release_rw = ldbm_back_entry_release_rw;
 	bi->bi_acl_group = ldbm_back_group;
+	bi->bi_acl_attribute = ldbm_back_attribute;
 	bi->bi_chk_referrals = ldbm_back_referrals;
 
 	/*

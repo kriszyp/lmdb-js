@@ -68,13 +68,13 @@ ldap_extended_operation(
 	}
 
 	if ( reqdata != NULL ) {
-		rc = ber_printf( ber, "{it{tstO}", /* '}' */
+		rc = ber_printf( ber, "{it{tstON}", /* '}' */
 			++ld->ld_msgid, LDAP_REQ_EXTENDED,
 			LDAP_TAG_EXOP_REQ_OID, reqoid,
 			LDAP_TAG_EXOP_REQ_VALUE, reqdata );
 
 	} else {
-		rc = ber_printf( ber, "{it{ts}", /* '}' */
+		rc = ber_printf( ber, "{it{tsN}", /* '}' */
 			++ld->ld_msgid, LDAP_REQ_EXTENDED,
 			LDAP_TAG_EXOP_REQ_OID, reqoid );
 	}
@@ -91,7 +91,7 @@ ldap_extended_operation(
 		return ld->ld_errno;
 	}
 
-	if ( ber_printf( ber, /*{*/ "}" ) == -1 ) {
+	if ( ber_printf( ber, /*{*/ "N}" ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return( ld->ld_errno );
@@ -267,6 +267,118 @@ ldap_parse_extended_result (
 	}
 
 	ld->ld_errno = errcode;
+
+	if( freeit ) {
+		ldap_msgfree( res );
+	}
+
+	return LDAP_SUCCESS;
+}
+
+
+/* Parse an extended partial */
+int
+ldap_parse_extended_partial (
+	LDAP			*ld,
+	LDAPMessage		*res,
+	char			**retoidp,
+	struct berval	**retdatap,
+	LDAPControl		***serverctrls,
+	int				freeit )
+{
+	BerElement *ber;
+	ber_tag_t rc;
+	ber_tag_t tag;
+	ber_len_t len;
+	struct berval *resdata;
+	char *resoid;
+
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+	assert( res != NULL );
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_parse_extended_result\n", 0, 0, 0 );
+
+	if( ld->ld_version < LDAP_VERSION3 ) {
+		ld->ld_errno = LDAP_NOT_SUPPORTED;
+		return ld->ld_errno;
+	}
+
+	if( res->lm_msgtype != LDAP_RES_EXTENDED_PARTIAL ) {
+		ld->ld_errno = LDAP_PARAM_ERROR;
+		return ld->ld_errno;
+	}
+
+	if( retoidp != NULL ) *retoidp = NULL;
+	if( retdatap != NULL ) *retdatap = NULL;
+
+	ber = ber_dup( res->lm_ber );
+
+	if ( ber == NULL ) {
+		ld->ld_errno = LDAP_NO_MEMORY;
+		return ld->ld_errno;
+	}
+
+	rc = ber_scanf( ber, "{" /*}*/ );
+
+	if( rc == LBER_ERROR ) {
+		ld->ld_errno = LDAP_DECODING_ERROR;
+		ber_free( ber, 0 );
+		return ld->ld_errno;
+	}
+
+	resoid = NULL;
+	resdata = NULL;
+
+	tag = ber_peek_tag( ber, &len );
+
+	if( tag == LDAP_TAG_EXOP_RES_OID ) {
+		/* we have a resoid */
+		if( ber_scanf( ber, "a", &resoid ) == LBER_ERROR ) {
+			ld->ld_errno = LDAP_DECODING_ERROR;
+			ber_free( ber, 0 );
+			return ld->ld_errno;
+		}
+
+		tag = ber_peek_tag( ber, &len );
+	}
+
+	if( tag == LDAP_TAG_EXOP_RES_VALUE ) {
+		/* we have a resdata */
+		if( ber_scanf( ber, "O", &resdata ) == LBER_ERROR ) {
+			ld->ld_errno = LDAP_DECODING_ERROR;
+			ber_free( ber, 0 );
+			if( resoid != NULL ) LDAP_FREE( resoid );
+			return ld->ld_errno;
+		}
+	}
+
+	if ( serverctrls == NULL ) {
+		rc = LDAP_SUCCESS;
+		goto free_and_return;
+	}
+
+	if ( ber_scanf( ber, /*{*/ "}" ) == LBER_ERROR ) {
+		rc = LDAP_DECODING_ERROR;
+		goto free_and_return;
+	}
+
+	rc = ldap_int_get_controls( ber, serverctrls );
+
+free_and_return:
+	ber_free( ber, 0 );
+
+	if( retoidp != NULL ) {
+		*retoidp = resoid;
+	} else {
+		LDAP_FREE( resoid );
+	}
+
+	if( retdatap != NULL ) {
+		*retdatap = resdata;
+	} else {
+		ber_bvfree( resdata );
+	}
 
 	if( freeit ) {
 		ldap_msgfree( res );

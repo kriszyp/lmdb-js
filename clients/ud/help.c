@@ -23,7 +23,6 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include <lber.h>
 #include <ldap.h>
 
 #include "ud.h"

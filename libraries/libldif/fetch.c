@@ -59,7 +59,7 @@ ldif_fetch_url(
 		p = ber_strdup( p );
 		ldap_pvt_hex_unescape( p );
 
-		url = fopen( p, "r" );
+		url = fopen( p, "rb" );
 
 	} else {
 		return -1;
@@ -79,7 +79,7 @@ ldif_fetch_url(
 			fclose( url );
 			return -1;
 		}
-		newp = p;
+		p = newp;
 		SAFEMEMCPY( &p[total], buffer, bytes );
 		total += bytes;
 	}

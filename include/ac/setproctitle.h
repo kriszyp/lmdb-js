@@ -19,10 +19,10 @@
 #	include <libutil.h>
 #else
 	/* use lutil version */
-	LIBLUTIL_F (void) (setproctitle) LDAP_P((const char *fmt, ...)) \
-	                            LDAP_GCCATTR((format(printf, 1, 2)));
-	LIBLUTIL_F (int) Argc;
-	LIBLUTIL_F (char) **Argv;
+	LDAP_LUTIL_F (void) (setproctitle) LDAP_P((const char *fmt, ...)) \
+		LDAP_GCCATTR((format(printf, 1, 2)));
+	LDAP_LUTIL_V (int) Argc;
+	LDAP_LUTIL_V (char) **Argv;
 #endif
 
 #endif /* LDAP_PROCTITLE */

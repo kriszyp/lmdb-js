@@ -66,6 +66,11 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind1\n", 0, 0, 0 );
 
+	if( ld->ld_version > LDAP_VERSION2 ) {
+		ld->ld_errno = LDAP_NOT_SUPPORTED;
+		return -1;
+	}
+
 	if ( dn == NULL )
 		dn = "";
 
@@ -81,7 +86,7 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 	}
 
 	/* fill it in */
-	rc = ber_printf( ber, "{it{isto}}", ++ld->ld_msgid, LDAP_REQ_BIND,
+	rc = ber_printf( ber, "{it{istoN}N}", ++ld->ld_msgid, LDAP_REQ_BIND,
 	    ld->ld_version, dn, LDAP_AUTH_KRBV41, cred, credlen );
 
 	if ( rc == -1 ) {
@@ -144,6 +149,11 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind2\n", 0, 0, 0 );
 
+	if( ld->ld_version > LDAP_VERSION2 ) {
+		ld->ld_errno = LDAP_NOT_SUPPORTED;
+		return -1;
+	}
+
 	if ( dn == NULL )
 		dn = "";
 
@@ -159,7 +169,7 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 	}
 
 	/* fill it in */
-	rc = ber_printf( ber, "{it{isto}}", ++ld->ld_msgid, LDAP_REQ_BIND,
+	rc = ber_printf( ber, "{it{istoN}N}", ++ld->ld_msgid, LDAP_REQ_BIND,
 	    ld->ld_version, dn, LDAP_AUTH_KRBV42, cred, credlen );
 
 

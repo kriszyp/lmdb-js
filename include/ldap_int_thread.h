@@ -187,10 +187,10 @@ LDAP_END_DECL
 
 LDAP_BEGIN_DECL
 
-LIBLDAP_F(int) ldap_int_thread_initialize LDAP_P(( void ));
-LIBLDAP_F(int) ldap_int_thread_destroy LDAP_P(( void ));
-LIBLDAP_F(int) ldap_int_thread_pool_startup ( void );
-LIBLDAP_F(int) ldap_int_thread_pool_shutdown ( void );
+LDAP_F(int) ldap_int_thread_initialize LDAP_P(( void ));
+LDAP_F(int) ldap_int_thread_destroy LDAP_P(( void ));
+LDAP_F(int) ldap_int_thread_pool_startup ( void );
+LDAP_F(int) ldap_int_thread_pool_shutdown ( void );
 
 #ifndef LDAP_THREAD_HAVE_TPOOL
 typedef struct ldap_int_thread_pool_s * ldap_int_thread_pool_t;

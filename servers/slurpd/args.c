@@ -24,7 +24,6 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
-#include <lber.h>
 #include <ldap.h>
 
 #include "slurp.h"
@@ -64,7 +63,7 @@ doargs(
 	g->myname = strdup( g->myname + 1 );
     }
 
-    while ( (i = getopt( argc, argv, "hd:f:r:t:k:o" )) != EOF ) {
+    while ( (i = getopt( argc, argv, "hd:f:r:t:o" )) != EOF ) {
 	switch ( i ) {
 	case 'd':	/* set debug level and 'do not detach' flag */
 	    g->no_detach = 1;
@@ -113,13 +112,6 @@ doargs(
 	case 't':	/* dir to use for our copies of replogs */
 	    g->slurpd_rdir = (char *)malloc (strlen(optarg) + strlen("/replica") + 1);
 	    sprintf(g->slurpd_rdir, "%s/replica", optarg);
-	    break;
-	case 'k':	/* name of kerberos srvtab file */
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	    g->default_srvtab = strdup( optarg );
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
-	    fprintf( stderr, "must compile with KERBEROS to use -k option\n" );
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 	    break;
 	case 'h':
 	    usage( g->myname );

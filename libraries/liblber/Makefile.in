@@ -27,7 +27,7 @@ XXLIBS =
 
 LINKAGE = @LT_LIB_LINKAGE@
 
-NT_DYN_TEST_DEFS = -DLIBLBER_DECL=dllimport
+NT_DYN_TEST_DEFS = -DLBER_DECL=dllimport
 
 # Extras for building the library
 EXTRA_DEFS = $(@PLAT@_@LIB_LINKAGE@_LIB_DEFS)

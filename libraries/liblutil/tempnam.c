@@ -17,7 +17,7 @@ char *
     char	*s;
 
     if ( dir == NULL ) {
-	dir = "/tmp";
+	dir = LDAP_TMPDIR;
     }
 
 /*

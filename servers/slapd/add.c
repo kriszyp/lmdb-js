@@ -285,8 +285,34 @@ static int slap_mods2entry(
 		attr = attr_find( (*e)->e_attrs, mods->sml_desc );
 
 		if( attr != NULL ) {
+#define SLURPD_FRIENDLY
+#ifdef SLURPD_FRIENDLY
+			ber_len_t i,j;
+
+			for( i=0; attr->a_vals[i]; i++ ) {
+				/* count them */
+			}
+			for( j=0; mods->sml_bvalues[j]; j++ ) {
+				/* count them */
+			}
+			j++;	/* NULL */
+			
+			attr->a_vals = ch_realloc( attr->a_vals,
+				sizeof( struct berval * ) * (i+j) );
+
+			/* should check for duplicates */
+			memcpy( &attr->a_vals[i], mods->sml_bvalues,
+				sizeof( struct berval * ) * j );
+
+			/* trim the mods array */
+			ch_free( mods->sml_bvalues );
+			mods->sml_bvalues = NULL;
+
+			continue;
+#else
 			*text = "attribute provided more than once";
-			return LDAP_OPERATIONS_ERROR;
+			return LDAP_TYPE_OR_VALUE_EXISTS;
+#endif
 		}
 
 		attr = ch_calloc( 1, sizeof(Attribute) );

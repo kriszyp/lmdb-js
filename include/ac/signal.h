@@ -36,11 +36,10 @@
 
 #	else
 		/*
-		LinuxThreads implemented unfortunately uses the only
-		two signals reserved for user applications.  This forces
-		OpenLDAP to use, hopefullly unused, signals reserved
-		for other uses.
-		*/
+		 * Some versions of LinuxThreads unfortunately uses the only
+		 * two signals reserved for user applications.  This forces
+		 * OpenLDAP to use other signals reserved for other uses.
+		 */
 	    
 #		if defined( SIGSTKFLT )
 #			define LDAP_SIGUSR1	SIGSTKFLT

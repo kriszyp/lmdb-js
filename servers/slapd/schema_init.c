@@ -17,10 +17,78 @@
 #include "ldap_pvt.h"
 #include "lutil_md5.h"
 
+/* recycled validatation routines */
+#define berValidate						blobValidate
+
+/* unimplemented validators */
+#define bitStringValidate				NULL
+
+/* recycled normalization routines */
+#define faxNumberNormalize				numericStringNormalize
+#define phoneNumberNormalize			numericStringNormalize
+#define telexNumberNormalize			numericStringNormalize
+#define integerNormalize				numericStringNormalize
+
+/* unimplemented normalizers */
+#define bitStringNormalize				NULL
+
+/* unimplemented pretters */
+#define dnPretty						NULL
+#define integerPretty					NULL
+
+/* recycled matching routines */
+#define caseIgnoreMatch					caseIgnoreIA5Match
+#define caseIgnoreOrderingMatch			caseIgnoreMatch
+#define caseIgnoreSubstringsMatch		caseIgnoreIA5SubstringsMatch
+
+#define caseExactMatch					caseExactIA5Match
+#define caseExactOrderingMatch			caseExactMatch
+#define caseExactSubstringsMatch		caseExactIA5SubstringsMatch
+
+#define numericStringMatch				caseIgnoreMatch
+#define objectIdentifierMatch			numericStringMatch
+#define integerMatch					numericStringMatch
+#define telephoneNumberMatch			numericStringMatch
+#define telephoneNumberSubstringsMatch	caseIgnoreIA5SubstringsMatch
+#define generalizedTimeMatch			numericStringMatch
+#define generalizedTimeOrderingMatch	numericStringMatch
+
+/* unimplemented matching routines */
+#define caseIgnoreListMatch				NULL
+#define caseIgnoreListSubstringsMatch	NULL
+#define bitStringMatch					NULL
+#define presentationAddressMatch		NULL
+#define uniqueMemberMatch				NULL
+#define protocolInformationMatch		NULL
+#define integerFirstComponentMatch		NULL
+
+#define OpenLDAPaciMatch				NULL
+#define authPasswordMatch				NULL
+
+/* unimplied indexer/filter routines */
+#define caseIgnoreIA5SubstringsIndexer	NULL
+#define caseIgnoreIA5SubstringsFilter	NULL
+
+/* recycled indexing/filtering routines */
+#define caseIgnoreIndexer				caseIgnoreIA5Indexer
+#define caseIgnoreFilter				caseIgnoreIA5Filter
+#define caseExactIndexer				caseExactIA5Indexer
+#define caseExactFilter					caseExactIA5Filter
+#define dnIndexer						caseIgnoreIndexer
+#define dnFilter						caseIgnoreFilter
+
+#define caseIgnoreSubstringsIndexer		caseIgnoreIA5SubstringsIndexer
+#define caseIgnoreSubstringsFilter		caseIgnoreIA5SubstringsFilter
+#define caseExactSubstringsIndexer		caseExactIA5SubstringsIndexer
+#define caseExactSubstringsFilter		caseExactIA5SubstringsFilter
+#define caseExactIA5SubstringsFilter	caseIgnoreIA5SubstringsFilter
+#define caseExactIA5SubstringsIndexer	caseIgnoreIA5SubstringsIndexer
+
+
 static int
 octetStringMatch(
 	int *matchp,
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -40,7 +108,7 @@ octetStringMatch(
 
 /* Index generation function */
 int octetStringIndexer(
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -93,7 +161,7 @@ int octetStringIndexer(
 
 /* Index generation function */
 int octetStringFilter(
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -186,7 +254,7 @@ dnNormalize(
 static int
 dnMatch(
 	int *matchp,
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -211,7 +279,7 @@ dnMatch(
 	*matchp = match;
 	return LDAP_SUCCESS;
 }
-	
+
 static int
 inValidate(
 	Syntax *syntax,
@@ -230,7 +298,48 @@ blobValidate(
 	return LDAP_SUCCESS;
 }
 
-#define berValidate blobValidate
+/*
+ * Handling boolean syntax and matching is quite rigid.
+ * A more flexible approach would be to allow a variety
+ * of strings to be normalized and prettied into TRUE
+ * and FALSE.
+ */
+static int
+booleanValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	/* very unforgiving validation, requires no normalization
+	 * before simplistic matching
+	 */
+
+	if( in->bv_len == 4 ) {
+		if( !memcmp( in->bv_val, "TRUE", 4 ) ) {
+			return LDAP_SUCCESS;
+		}
+	} else if( in->bv_len == 5 ) {
+		if( !memcmp( in->bv_val, "FALSE", 5 ) ) {
+			return LDAP_SUCCESS;
+		}
+	}
+
+	return LDAP_INVALID_SYNTAX;
+}
+
+static int
+booleanMatch(
+	int *matchp,
+	unsigned flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	/* simplistic matching allowed by rigid validation */
+	struct berval *asserted = (struct berval *) assertedValue;
+	*matchp = value->bv_len != asserted->bv_len;
+	return LDAP_SUCCESS;
+}
 
 static int
 UTF8StringValidate(
@@ -240,6 +349,8 @@ UTF8StringValidate(
 	ber_len_t count;
 	int len;
 	unsigned char *u = in->bv_val;
+
+	if( !in->bv_len ) return LDAP_INVALID_SYNTAX;
 
 	for( count = in->bv_len; count > 0; count-=len, u+=len ) {
 		/* get the length indicated by the first byte */
@@ -308,7 +419,7 @@ UTF8StringNormalize(
 
 	assert( *newval->bv_val );
 	assert( newval->bv_val < p );
-	assert( p <= q );
+	assert( p >= q );
 
 	/* cannot start with a space */
 	assert( !ldap_utf8_isspace(newval->bv_val) );
@@ -344,12 +455,12 @@ oidValidate(
 
 	if( val->bv_len == 0 ) return 0;
 
-	if( isdigit(val->bv_val[0]) ) {
+	if( OID_LEADCHAR(val->bv_val[0]) ) {
 		int dot = 0;
 		for(i=1; i < val->bv_len; i++) {
-			if( val->bv_val[i] == '.' ) {
+			if( OID_SEPARATOR( val->bv_val[i] ) ) {
 				if( dot++ ) return 1;
-			} else if ( isdigit(val->bv_val[i]) ) {
+			} else if ( OID_CHAR( val->bv_val[i] ) ) {
 				dot = 0;
 			} else {
 				return LDAP_INVALID_SYNTAX;
@@ -358,9 +469,9 @@ oidValidate(
 
 		return !dot ? LDAP_SUCCESS : LDAP_INVALID_SYNTAX;
 
-	} else if( isalpha(val->bv_val[0]) ) {
+	} else if( DESC_LEADCHAR(val->bv_val[0]) ) {
 		for(i=1; i < val->bv_len; i++) {
-			if( !isalpha(val->bv_val[i] ) ) {
+			if( !DESC_CHAR(val->bv_val[i] ) ) {
 				return LDAP_INVALID_SYNTAX;
 			}
 		}
@@ -378,8 +489,10 @@ integerValidate(
 {
 	ber_len_t i;
 
+	if( !val->bv_len ) return LDAP_INVALID_SYNTAX;
+
 	for(i=0; i < val->bv_len; i++) {
-		if( !isdigit(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
+		if( !ASCII_DIGIT(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
 	}
 
 	return LDAP_SUCCESS;
@@ -391,6 +504,8 @@ printableStringValidate(
 	struct berval *val )
 {
 	ber_len_t i;
+
+	if( !val->bv_len ) return LDAP_INVALID_SYNTAX;
 
 	for(i=0; i < val->bv_len; i++) {
 		if( !isprint(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
@@ -405,6 +520,8 @@ IA5StringValidate(
 	struct berval *val )
 {
 	ber_len_t i;
+
+	if( !val->bv_len ) return LDAP_INVALID_SYNTAX;
 
 	for(i=0; i < val->bv_len; i++) {
 		if( !isascii(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
@@ -424,7 +541,7 @@ IA5StringConvert(
 	struct berval *bv = ch_malloc( sizeof(struct berval) );
 
 	bv->bv_len = len * sizeof( ldap_unicode_t );
-	bv->bv_val = (char *) u = ch_malloc( bv->bv_len + sizeof( ldap_unicode_t ) );;
+	bv->bv_val = (char *) u = ch_malloc( bv->bv_len + sizeof(ldap_unicode_t) );
 
 	for(i=0; i < len; i++ ) {
 		/*
@@ -453,11 +570,11 @@ IA5StringNormalize(
 	p = val->bv_val;
 
 	/* Ignore initial whitespace */
-	while ( isspace( *p ) ) {
+	while ( ASCII_SPACE( *p ) ) {
 		p++;
 	}
 
-	if( *p != '\0' ) {
+	if( *p == '\0' ) {
 		ch_free( newval );
 		return LDAP_INVALID_SYNTAX;
 	}
@@ -466,11 +583,11 @@ IA5StringNormalize(
 	p = q = newval->bv_val;
 
 	while ( *p ) {
-		if ( isspace( *p ) ) {
+		if ( ASCII_SPACE( *p ) ) {
 			*q++ = *p++;
 
 			/* Ignore the extra whitespace */
-			while ( isspace( *p ) ) {
+			while ( ASCII_SPACE( *p ) ) {
 				p++;
 			}
 		} else {
@@ -483,7 +600,7 @@ IA5StringNormalize(
 	assert( p <= q );
 
 	/* cannot start with a space */
-	assert( !isspace(*newval->bv_val) );
+	assert( !ASCII_SPACE(*newval->bv_val) );
 
 	/*
 	 * If the string ended in space, backup the pointer one
@@ -491,12 +608,12 @@ IA5StringNormalize(
 	 * all whitespace to a single space.
 	 */
 
-	if ( isspace( q[-1] ) ) {
+	if ( ASCII_SPACE( q[-1] ) ) {
 		--q;
 	}
 
 	/* cannot end with a space */
-	assert( !isspace( q[-1] ) );
+	assert( !ASCII_SPACE( q[-1] ) );
 
 	/* null terminate */
 	*q = '\0';
@@ -509,22 +626,29 @@ IA5StringNormalize(
 
 static int
 caseExactIA5Match(
-	int *match,
-	unsigned use,
+	int *matchp,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
 	void *assertedValue )
 {
-	*match = strcmp( value->bv_val,
-		((struct berval *) assertedValue)->bv_val );
+	int match = value->bv_len - ((struct berval *) assertedValue)->bv_len;
+
+	if( match == 0 ) {
+		match = strncmp( value->bv_val,
+			((struct berval *) assertedValue)->bv_val,
+			value->bv_len );
+	}
+
+	*matchp = match;
 	return LDAP_SUCCESS;
 }
 
 static int
 caseExactIA5SubstringsMatch(
 	int *matchp,
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -646,17 +770,122 @@ done:
 	return LDAP_SUCCESS;
 }
 
+/* Index generation function */
+int caseExactIA5Indexer(
+	unsigned flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	struct berval **values,
+	struct berval ***keysp )
+{
+	int i;
+	size_t slen, mlen;
+	struct berval **keys;
+	lutil_MD5_CTX   MD5context;
+	unsigned char   MD5digest[16];
+	struct berval digest;
+	digest.bv_val = MD5digest;
+	digest.bv_len = sizeof(MD5digest);
+
+	for( i=0; values[i] != NULL; i++ ) {
+		/* just count them */
+	}
+
+	assert( i > 0 );
+
+	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
+
+	slen = strlen( syntax->ssyn_oid );
+	mlen = strlen( mr->smr_oid );
+
+	for( i=0; values[i] != NULL; i++ ) {
+		struct berval *value = values[i];
+
+		lutil_MD5Init( &MD5context );
+		if( prefix != NULL && prefix->bv_len > 0 ) {
+			lutil_MD5Update( &MD5context,
+				prefix->bv_val, prefix->bv_len );
+		}
+		lutil_MD5Update( &MD5context,
+			syntax->ssyn_oid, slen );
+		lutil_MD5Update( &MD5context,
+			mr->smr_oid, mlen );
+		lutil_MD5Update( &MD5context,
+			value->bv_val, value->bv_len );
+		lutil_MD5Final( MD5digest, &MD5context );
+
+		keys[i] = ber_bvdup( &digest );
+	}
+
+	keys[i] = NULL;
+	*keysp = keys;
+	return LDAP_SUCCESS;
+}
+
+/* Index generation function */
+int caseExactIA5Filter(
+	unsigned flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	void * assertValue,
+	struct berval ***keysp )
+{
+	size_t slen, mlen;
+	struct berval **keys;
+	lutil_MD5_CTX   MD5context;
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	struct berval *value;
+	struct berval digest;
+	digest.bv_val = MD5digest;
+	digest.bv_len = sizeof(MD5digest);
+
+	slen = strlen( syntax->ssyn_oid );
+	mlen = strlen( mr->smr_oid );
+
+	value = (struct berval *) assertValue;
+
+	keys = ch_malloc( sizeof( struct berval * ) * 2 );
+
+	lutil_MD5Init( &MD5context );
+	if( prefix != NULL && prefix->bv_len > 0 ) {
+		lutil_MD5Update( &MD5context,
+			prefix->bv_val, prefix->bv_len );
+	}
+	lutil_MD5Update( &MD5context,
+		syntax->ssyn_oid, slen );
+	lutil_MD5Update( &MD5context,
+		mr->smr_oid, mlen );
+	lutil_MD5Update( &MD5context,
+		value->bv_val, value->bv_len );
+	lutil_MD5Final( MD5digest, &MD5context );
+
+	keys[0] = ber_bvdup( &digest );
+	keys[1] = NULL;
+
+	*keysp = keys;
+	return LDAP_SUCCESS;
+}
+
 static int
 caseIgnoreIA5Match(
-	int *match,
-	unsigned use,
+	int *matchp,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
 	void *assertedValue )
 {
-	*match = strcasecmp( value->bv_val,
-		((struct berval *) assertedValue)->bv_val );
+	int match = value->bv_len - ((struct berval *) assertedValue)->bv_len;
+
+	if( match == 0 ) {
+		match = strncasecmp( value->bv_val,
+			((struct berval *) assertedValue)->bv_val,
+			value->bv_len );
+	}
+
+	*matchp = match;
 	return LDAP_SUCCESS;
 }
 
@@ -677,7 +906,7 @@ static char *strcasechr( const char *str, int c )
 static int
 caseIgnoreIA5SubstringsMatch(
 	int *matchp,
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -802,7 +1031,7 @@ done:
 
 /* Index generation function */
 int caseIgnoreIA5Indexer(
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -858,7 +1087,7 @@ int caseIgnoreIA5Indexer(
 
 /* Index generation function */
 int caseIgnoreIA5Filter(
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -919,11 +1148,11 @@ numericStringNormalize(
 	p = val->bv_val;
 
 	/* Ignore initial whitespace */
-	while ( isspace( *p ) ) {
+	while ( ASCII_SPACE( *p ) ) {
 		p++;
 	}
 
-	if( *p != '\0' ) {
+	if( *p == '\0' ) {
 		ch_free( newval );
 		return LDAP_INVALID_SYNTAX;
 	}
@@ -932,7 +1161,7 @@ numericStringNormalize(
 	p = q = newval->bv_val;
 
 	while ( *p ) {
-		if ( isspace( *p ) ) {
+		if ( ASCII_SPACE( *p ) ) {
 			/* Ignore whitespace */
 			p++;
 		} else {
@@ -945,10 +1174,10 @@ numericStringNormalize(
 	assert( p <= q );
 
 	/* cannot start with a space */
-	assert( !isspace(*newval->bv_val) );
+	assert( !ASCII_SPACE(*newval->bv_val) );
 
 	/* cannot end with a space */
-	assert( !isspace( q[-1] ) );
+	assert( !ASCII_SPACE( q[-1] ) );
 
 	/* null terminate */
 	*q = '\0';
@@ -957,6 +1186,93 @@ numericStringNormalize(
 	*normalized = newval;
 
 	return LDAP_SUCCESS;
+}
+
+static int
+objectIdentifierFirstComponentMatch(
+	int *matchp,
+	unsigned flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	int rc = LDAP_SUCCESS;
+	int match;
+	struct berval *asserted = (struct berval *) assertedValue;
+	ber_len_t i;
+	struct berval oid;
+
+	if( value->bv_len == 0 || value->bv_val[0] != '(' /*')'*/ ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	/* trim leading white space */
+	for( i=1; ASCII_SPACE(value->bv_val[i]) && i < value->bv_len; i++ ) {
+		/* empty */
+	}
+
+	/* grab next word */
+	oid.bv_val = &value->bv_val[i];
+	oid.bv_len = value->bv_len - i;
+	for( i=1; ASCII_SPACE(value->bv_val[i]) && i < oid.bv_len; i++ ) {
+		/* empty */
+	}
+	oid.bv_len = i;
+
+	/* insert attributeTypes, objectclass check here */
+	if( OID_LEADCHAR(asserted->bv_val[0]) ) {
+		rc = objectIdentifierMatch( &match, flags, syntax, mr, &oid, asserted );
+
+	} else {
+		char *stored = ch_malloc( oid.bv_len + 1 );
+		memcpy( stored, oid.bv_val, oid.bv_len );
+		stored[oid.bv_len] = '\0';
+
+		if ( !strcmp( syntax->ssyn_oid, SLAP_SYNTAX_MATCHINGRULES_OID ) ) {
+			MatchingRule *asserted_mr = mr_find( asserted->bv_val );
+			MatchingRule *stored_mr = mr_find( stored );
+
+			if( asserted_mr == NULL ) {
+				rc = SLAPD_COMPARE_UNDEFINED;
+			} else {
+				match = asserted_mr != stored_mr;
+			}
+
+		} else if ( !strcmp( syntax->ssyn_oid,
+			SLAP_SYNTAX_ATTRIBUTETYPES_OID ) )
+		{
+			AttributeType *asserted_at = at_find( asserted->bv_val );
+			AttributeType *stored_at = at_find( stored );
+
+			if( asserted_at == NULL ) {
+				rc = SLAPD_COMPARE_UNDEFINED;
+			} else {
+				match = asserted_at != stored_at;
+			}
+
+		} else if ( !strcmp( syntax->ssyn_oid,
+			SLAP_SYNTAX_OBJECTCLASSES_OID ) )
+		{
+			ObjectClass *asserted_oc = oc_find( asserted->bv_val );
+			ObjectClass *stored_oc = oc_find( stored );
+
+			if( asserted_oc == NULL ) {
+				rc = SLAPD_COMPARE_UNDEFINED;
+			} else {
+				match = asserted_oc != stored_oc;
+			}
+		}
+
+		ch_free( stored );
+	}
+
+	Debug( LDAP_DEBUG_ARGS, "objectIdentifierFirstComponentMatch "
+		"%d\n\t\"%s\"\n\t\"%s\"\n",
+	    match, value->bv_val, asserted->bv_val );
+
+	if( rc == LDAP_SUCCESS ) *matchp = match;
+	return rc;
 }
 
 static int
@@ -976,7 +1292,7 @@ check_time_syntax (struct berval *val,
 	e = p + val->bv_len;
 
 	/* Ignore initial whitespace */
-	while ( ( p < e ) && isspace( *p ) ) {
+	while ( ( p < e ) && ASCII_SPACE( *p ) ) {
 		p++;
 	}
 
@@ -1058,7 +1374,7 @@ check_time_syntax (struct berval *val,
 	}
 
 	/* Ignore trailing whitespace */
-	while ( ( p < e ) && isspace( *p ) ) {
+	while ( ( p < e ) && ASCII_SPACE( *p ) ) {
 		p++;
 	}
 	if (p != e)
@@ -1154,6 +1470,16 @@ utcTimeValidate(
 }
 
 static int
+generalizedTimeValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int parts[9];
+
+	return check_time_syntax(in, 0, parts);
+}
+
+static int
 generalizedTimeNormalize(
 	Syntax *syntax,
 	struct berval *val,
@@ -1187,16 +1513,6 @@ generalizedTimeNormalize(
 	return LDAP_SUCCESS;
 }
 
-static int
-generalizedTimeValidate(
-	Syntax *syntax,
-	struct berval *in )
-{
-	int parts[9];
-
-	return check_time_syntax(in, 0, parts);
-}
-
 struct syntax_defs_rec {
 	char *sd_desc;
 	int sd_flags;
@@ -1213,10 +1529,6 @@ struct syntax_defs_rec {
 #define X_BINARY "X-BINARY-TRANSFER-REQUIRED 'TRUE' "
 #define X_NOT_H_R "X-NOT-HUMAN-READABLE 'TRUE' "
 
-#define faxNumberNormalize numericStringNormalize
-#define phoneNumberNormalize numericStringNormalize
-#define telexNumberNormalize numericStringNormalize
-
 struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.1 DESC 'ACI Item' " X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, NULL, NULL, NULL},
@@ -1229,9 +1541,9 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.5 DESC 'Binary' " X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )",
-		0, NULL, NULL, NULL},
+		0, bitStringValidate, bitStringNormalize, NULL },
 	{"( 1.3.6.1.4.1.1466.115.121.1.7 DESC 'Boolean' )",
-		0, NULL, NULL, NULL},
+		0, booleanValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' "
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
@@ -1244,7 +1556,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.11 DESC 'Country String' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'Distinguished Name' )",
-		0, dnValidate, dnNormalize, NULL},
+		0, dnValidate, dnNormalize, dnPretty},
 	{"( 1.3.6.1.4.1.1466.115.121.1.13 DESC 'Data Quality' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'Delivery Method' )",
@@ -1272,7 +1584,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5 String' )",
 		0, IA5StringValidate, IA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'Integer' )",
-		0, integerValidate, NULL, NULL},
+		0, integerValidate, integerNormalize, integerPretty},
 	{"( 1.3.6.1.4.1.1466.115.121.1.28 DESC 'JPEG' " X_NOT_H_R ")",
 		SLAP_SYNTAX_BLOB, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.29 DESC 'Master And Shadow Access Points' )",
@@ -1355,7 +1667,7 @@ struct mrule_defs_rec {
 };
 
 /*
- * Other matching rules in X.520 that we do not use:
+ * Other matching rules in X.520 that we do not use (yet):
  *
  * 2.5.13.9		numericStringOrderingMatch
  * 2.5.13.13	booleanMatch
@@ -1379,46 +1691,6 @@ struct mrule_defs_rec {
  * 2.5.13.43	readerAndKeyIDMatch
  * 2.5.13.44	attributeIntegrityMatch
  */
-
-
-/* recycled matching functions */
-#define caseIgnoreMatch caseIgnoreIA5Match
-#define caseIgnoreOrderingMatch caseIgnoreMatch
-#define caseIgnoreSubstringsMatch caseIgnoreIA5SubstringsMatch
-#define caseExactMatch caseExactIA5Match
-#define caseExactOrderingMatch caseExactMatch
-#define caseExactSubstringsMatch caseExactIA5SubstringsMatch
-
-/* unimplemented matching functions */
-#define objectIdentifierMatch NULL
-#define caseIgnoreListMatch NULL
-#define caseIgnoreListSubstringsMatch NULL
-#define integerMatch NULL
-#define bitStringMatch NULL
-#define octetStringMatch NULL
-#define telephoneNumberMatch NULL
-#define telephoneNumberSubstringsMatch NULL
-#define presentationAddressMatch NULL
-#define uniqueMemberMatch NULL
-#define protocolInformationMatch NULL
-#define generalizedTimeMatch caseExactIA5Match
-#define generalizedTimeOrderingMatch caseExactIA5Match
-#define integerFirstComponentMatch NULL
-#define objectIdentifierFirstComponentMatch NULL
-
-#define OpenLDAPaciMatch NULL
-#define authPasswordMatch NULL
-
-/* unimplied indexer/filter routines */
-#define dnIndexer NULL
-#define dnFilter NULL
-
-#define caseIgnoreIndexer		caseIgnoreIA5Indexer
-#define caseIgnoreFilter		caseIgnoreIA5Filter
-#define caseExactIndexer		caseExactIA5Indexer
-#define caseExactFilter			caseExactIA5Filter
-#define caseExactIA5Indexer		caseIgnoreIA5Indexer
-#define caseExactIA5Filter		caseIgnoreIA5Filter
 
 struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' "
@@ -1445,9 +1717,9 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreSubstringsMatch, NULL, NULL},
+		NULL, NULL, caseIgnoreSubstringsMatch,
+		caseIgnoreSubstringsIndexer, caseIgnoreSubstringsFilter},
 
-	/* Next three are not in the RFC's, but are needed for compatibility */
 	{"( 2.5.13.5 NAME 'caseExactMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
@@ -1461,7 +1733,8 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, caseExactSubstringsMatch, NULL, NULL},
+		NULL, NULL, caseExactSubstringsMatch,
+		caseExactSubstringsIndexer, caseExactSubstringsFilter},
 
 	{"( 2.5.13.8 NAME 'numericStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
@@ -1471,7 +1744,8 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreIA5SubstringsMatch, NULL, NULL},
+		NULL, NULL, caseIgnoreIA5SubstringsMatch,
+		caseIgnoreIA5SubstringsIndexer, caseIgnoreIA5SubstringsFilter},
 
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )",
@@ -1483,14 +1757,19 @@ struct mrule_defs_rec mrule_defs[] = {
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
 		NULL, NULL, caseIgnoreListSubstringsMatch, NULL, NULL},
 
+	{"( 2.5.13.13 NAME 'booleanMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 )",
+		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		NULL, NULL, booleanMatch, NULL, NULL},
+
 	{"( 2.5.13.14 NAME 'integerMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		SLAP_MR_NONE | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL, integerMatch, NULL, NULL},
 
 	{"( 2.5.13.16 NAME 'bitStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 )",
-		SLAP_MR_NONE | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL, bitStringMatch, NULL, NULL},
 
 	{"( 2.5.13.17 NAME 'octetStringMatch' "
@@ -1510,17 +1789,17 @@ struct mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.22 NAME 'presentationAddressMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.43 )",
-		SLAP_MR_NONE | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL, presentationAddressMatch, NULL, NULL},
 
 	{"( 2.5.13.23 NAME 'uniqueMemberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 )",
-		SLAP_MR_NONE | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL, uniqueMemberMatch, NULL, NULL},
 
 	{"( 2.5.13.24 NAME 'protocolInformationMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.42 )",
-		SLAP_MR_NONE | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL, protocolInformationMatch, NULL, NULL},
 
 	{"( 2.5.13.27 NAME 'generalizedTimeMatch' "
@@ -1546,17 +1825,26 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, caseExactIA5Match, caseExactIA5Indexer, caseExactIA5Filter},
+		NULL, NULL,
+		caseExactIA5Match, caseExactIA5Indexer, caseExactIA5Filter},
 
 	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreIA5Match, caseExactIA5Indexer, caseExactIA5Filter},
+		NULL, NULL,
+		caseIgnoreIA5Match, caseExactIA5Indexer, caseExactIA5Filter},
 
 	{"( 1.3.6.1.4.1.1466.109.114.3 NAME 'caseIgnoreIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_SUBSTR,
-		NULL, NULL, caseIgnoreIA5SubstringsMatch, NULL, NULL},
+		NULL, NULL, caseIgnoreIA5SubstringsMatch,
+		caseIgnoreIA5SubstringsIndexer, caseIgnoreIA5SubstringsFilter},
+
+	{"( 1.3.6.1.4.1.4203.666.4.3 NAME 'caseExactIA5SubstringsMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
+		SLAP_MR_SUBSTR,
+		NULL, NULL, caseExactIA5SubstringsMatch,
+		caseExactIA5SubstringsIndexer, caseExactIA5SubstringsFilter},
 
 	{"( 1.3.6.1.4.1.4203.666.4.1 NAME 'authPasswordMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",

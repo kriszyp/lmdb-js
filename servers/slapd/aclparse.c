@@ -279,7 +279,7 @@ parse_acl(
 				{
 					sty = ACL_STYLE_REGEX;
 				} else if ( strcasecmp( style, "exact" ) == 0 ) {
-					sty = ACL_STYLE_BASE;
+					sty = ACL_STYLE_EXACT;
 				} else if ( strcasecmp( style, "base" ) == 0 ) {
 					sty = ACL_STYLE_BASE;
 				} else if ( strcasecmp( style, "one" ) == 0 ) {
@@ -466,7 +466,6 @@ parse_acl(
 						}
 					}
 
-#if 0
 					if( is_object_subclass( b->a_group_oc,
 						slap_schema.si_oc_referral ) )
 					{
@@ -486,7 +485,6 @@ parse_acl(
 							fname, lineno, value );
 						acl_usage();
 					}
-#endif
 
 					if (name && *name) {
 						rc = slap_str2ad( right, &b->a_group_at, &text );
@@ -606,6 +604,27 @@ parse_acl(
 						regtest(fname, lineno, right);
 					}
 					b->a_sockurl_pat = ch_strdup( right );
+					continue;
+				}
+
+				if ( strcasecmp( left, "set" ) == 0 ) {
+					if( b->a_set_pat != NULL ) {
+						fprintf( stderr,
+							"%s: line %d: set attribute already specified.\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					if ( right == NULL || *right == '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: no set is defined\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					b->a_set_style = sty;
+					b->a_set_pat = ch_strdup(right);
+
 					continue;
 				}
 
@@ -866,7 +885,7 @@ str2accessmask( const char *str )
 {
 	slap_access_mask_t	mask;
 
-	if( !isalpha(str[0]) ) {
+	if( !ASCII_ALPHA(str[0]) ) {
 		int i;
 
 		if ( str[0] == '=' ) {

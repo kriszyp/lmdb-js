@@ -78,7 +78,7 @@ find_oidm(char *oid)
 	OidMacro *om;
 
 	/* OID macros must start alpha */
-	if ( isdigit( *oid ) )	{
+	if ( OID_LEADCHAR( *oid ) )	{
 		return oid;
 	}
 
@@ -178,7 +178,7 @@ parse_oc(
 		oc_usage();
 	}
 	if ( oc->oc_oid ) {
-		if ( !isdigit( oc->oc_oid[0] )) {
+		if ( !OID_LEADCHAR( oc->oc_oid[0] )) {
 			/* Expand OID macros */
 			oid = find_oidm( oc->oc_oid );
 			if ( !oid ) {
@@ -272,7 +272,7 @@ parse_at(
 	for (; argv[3]; argv++)
 	{
 		if (!strcasecmp(argv[3], "syntax") &&
-		    !isdigit(*argv[4]))
+		    !OID_LEADCHAR(*argv[4]))
 		{
 			int slen;
 			Syntax *syn;
@@ -295,7 +295,7 @@ parse_at(
 		at_usage();
 	}
 	if ( at->at_oid ) {
-		if ( !isdigit( at->at_oid[0] )) {
+		if ( !OID_LEADCHAR( at->at_oid[0] )) {
 			/* Expand OID macros */
 			oid = find_oidm( at->at_oid );
 			if ( !oid ) {
@@ -311,8 +311,7 @@ parse_at(
 		}
 	}
 	/* at->at_oid == NULL will be an error someday */
-	if (soid)
-	{
+	if (soid) {
 		ldap_memfree(at->at_syntax_oid);
 		at->at_syntax_oid = soid;
 	}

@@ -44,6 +44,7 @@ struct ldap_int_thread_pool_s {
 	long ltp_pending_count;
 	long ltp_active_count;
 	long ltp_open_count;
+	long ltp_starting;
 };
 
 typedef struct ldap_int_thread_ctx_s {
@@ -87,9 +88,8 @@ ldap_pvt_thread_pool_init (
 	int max_concurrency,
 	int max_pending )
 {
-	int rc;
 	ldap_pvt_thread_pool_t pool;
-	ldap_pvt_thread_t thr;
+	int rc;
 
 	*tpool = NULL;
 	pool = (ldap_pvt_thread_pool_t) LDAP_CALLOC(1,
@@ -97,8 +97,12 @@ ldap_pvt_thread_pool_init (
 
 	if (pool == NULL) return(-1);
 
-	ldap_pvt_thread_mutex_init(&pool->ltp_mutex);
-	ldap_pvt_thread_cond_init(&pool->ltp_cond);
+	rc = ldap_pvt_thread_mutex_init(&pool->ltp_mutex);
+	if (rc != 0)
+		return(rc);
+	rc = ldap_pvt_thread_cond_init(&pool->ltp_cond);
+	if (rc != 0)
+		return(rc);
 	pool->ltp_state = LDAP_INT_THREAD_POOL_RUNNING;
 	pool->ltp_max_count = max_concurrency;
 	pool->ltp_max_pending = max_pending;
@@ -106,9 +110,24 @@ ldap_pvt_thread_pool_init (
 	ldap_int_thread_enlist(&ldap_int_thread_pool_list, pool);
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 
-	/* start up one thread, just so there is one */
+#if 0
+	/* THIS WILL NOT WORK on some systems.  If the process
+	 * forks after starting a thread, there is no guarantee
+	 * that the thread will survive the fork.  For example,
+	 * slapd forks in order to daemonize, and does so after
+	 * calling ldap_pvt_thread_pool_init.  On some systems,
+	 * this initial thread does not run in the child process,
+	 * but ltp_open_count == 1, so two things happen: 
+	 * 1) the first client connection fails, and 2) when
+	 * slapd is kill'ed, it never terminates since it waits
+	 * for all worker threads to exit.
+
+	/* start up one thread, just so there is one. no need to
+	 * lock the mutex right now, since no threads are running.
+	 */
 	pool->ltp_open_count++;
 
+	ldap_pvt_thread_t thr;
 	rc = ldap_pvt_thread_create( &thr, 1,
 		(void *) ldap_int_thread_pool_wrapper, pool );
 
@@ -122,6 +141,7 @@ ldap_pvt_thread_pool_init (
 		free(pool);
 		return(-1);
 	}
+#endif
 
 	*tpool = pool;
 	return(0);
@@ -172,6 +192,7 @@ ldap_pvt_thread_pool_submit (
 			|| pool->ltp_open_count < pool->ltp_max_count))
 	{
 		pool->ltp_open_count++;
+		pool->ltp_starting++;
 		need_thread = 1;
 	}
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
@@ -179,15 +200,17 @@ ldap_pvt_thread_pool_submit (
 	if (need_thread) {
 		int rc = ldap_pvt_thread_create( &thr, 1,
 			(void *)ldap_int_thread_pool_wrapper, pool );
-		if (rc != 0) {
+		ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
+		if (rc == 0) {
+			pool->ltp_starting--;
+		} else {
 			/* couldn't create thread.  back out of
 			 * ltp_open_count and check for even worse things.
 			 */
-			ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 			pool->ltp_open_count--;
+			pool->ltp_starting--;
 			if (pool->ltp_open_count == 0) {
-				/* no open threads at all?!?  this will never happen
-				 * because we always leave at least one thread open.
+				/* no open threads at all?!?
 				 */
 				if (ldap_int_thread_delist(&pool->ltp_pending_list, ctx)) {
 					/* no open threads, context not handled, so
@@ -200,13 +223,13 @@ ldap_pvt_thread_pool_submit (
 					return(-1);
 				}
 			}
-			ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 			/* there is another open thread, so this
 			 * context will be handled eventually.
 			 * continue on and signal that the context
 			 * is waiting.
 			 */
 		}
+		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 	}
 
 	return(0);
@@ -305,7 +328,10 @@ ldap_int_thread_pool_wrapper (
 			/* we could check an idle timer here, and let the
 			 * thread die if it has been inactive for a while.
 			 * only die if there are other open threads (i.e.,
-			 * always have at least one thread open).
+			 * always have at least one thread open).  the check
+			 * should be like this:
+			 *   if (pool->ltp_open_count > 1 && pool->ltp_starting == 0)
+			 *       check timer, leave thread (break;)
 			 */
 
 			if (pool->ltp_state == LDAP_INT_THREAD_POOL_RUNNING)

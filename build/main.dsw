@@ -273,30 +273,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "ldif"=..\servers\slapd\tools\ldif.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name liblber
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldif
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldap
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblutil
-    End Project Dependency
-}}}
-
-###############################################################################
-
 Project: "libavl"=..\libraries\libavl\libavl.dsp - Package Owner=<4>
 
 Package=<5>

@@ -23,7 +23,6 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/time.h>
-#include <ac/ctype.h>
 
 #include "ldap-int.h"
 
@@ -48,7 +47,7 @@ static int countKeys(char *keyString)
 
 	for (;;)
 	{
-		while (isspace(*p))		 /* Skip leading whitespace */
+		while (LDAP_SPACE(*p))		 /* Skip leading whitespace */
 			p++;
 
 		if (*p == '\0')			/* End of string? */
@@ -56,7 +55,7 @@ static int countKeys(char *keyString)
 
 		count++;				/* Found start of a key */
 
-		while (!isspace(*p))	/* Skip till next space or end of string. */
+		while (!LDAP_SPACE(*p))	/* Skip till next space or end of string. */
 			if (*p++ == '\0')
 				return count;
 	}
@@ -92,7 +91,7 @@ static int readNextKey( char **pNextKey, LDAPSortKey **key)
 	int oidLen = 0;
 
 	/* Skip leading white space. */
-	while (isspace(*p))
+	while (LDAP_SPACE(*p))
 		p++;
 
 	if (*p == '-')		 /* Check if the reverse flag is present. */
@@ -171,7 +170,7 @@ static int readNextKey( char **pNextKey, LDAPSortKey **key)
    
    ---------------------------------------------------------------------------*/
 
-LIBLDAP_F(int)
+int
 ldap_create_sort_keylist ( LDAPSortKey ***sortKeyList, char *keyString )
 {
 	int         numKeys, rc, i;
@@ -221,7 +220,7 @@ ldap_create_sort_keylist ( LDAPSortKey ***sortKeyList, char *keyString )
    keyList     (IN) Points to an array of pointers to LDAPSortKey structures.
    ---------------------------------------------------------------------------*/
 
-LIBLDAP_F(void)
+void
 ldap_free_sort_keylist ( LDAPSortKey **keyList )
 {
 	int i;
@@ -276,7 +275,7 @@ ldap_free_sort_keylist ( LDAPSortKey **keyList )
    
    ---------------------------------------------------------------------------*/
 
-LIBLDAP_F( int )
+int
 ldap_create_sort_control (
 	LDAP *ld,
 	LDAPSortKey **keyList,
@@ -321,11 +320,11 @@ ldap_create_sort_control (
 			if( tag == LBER_ERROR ) goto exit;
 		}
 
-		tag = ber_printf(ber, /*{*/ "}");
+		tag = ber_printf(ber, /*{*/ "N}");
 		if( tag == LBER_ERROR ) goto exit;
 	}
 
-	tag = ber_printf(ber, /*{*/ "}");
+	tag = ber_printf(ber, /*{*/ "N}");
 	if( tag == LBER_ERROR ) goto exit;
 
 	ld->ld_errno = ldap_int_create_control( LDAP_CONTROL_SORTREQUEST,
@@ -391,7 +390,7 @@ exit:
 	  attributeType [0] AttributeDescription OPTIONAL }
    ---------------------------------------------------------------------------*/
 
-LIBLDAP_F( int )
+int
 ldap_parse_sort_control(
 	LDAP           *ld,
 	LDAPControl    **ctrls,

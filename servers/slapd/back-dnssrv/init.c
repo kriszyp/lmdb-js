@@ -66,6 +66,7 @@ dnssrv_back_initialize(
 
 	bi->bi_extended = 0;
 	bi->bi_acl_group = 0;
+	bi->bi_acl_attribute = 0;
 
 #ifdef HAVE_CYRUS_SASL
 	bi->bi_sasl_authorize = 0;

@@ -29,7 +29,6 @@
 #include <io.h>
 #endif
 
-#include <lber.h>
 #include <ldap.h>
 
 #include "ldap_defaults.h"

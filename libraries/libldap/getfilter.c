@@ -16,7 +16,6 @@
 
 #include <ac/stdlib.h>
 
-#include <ac/ctype.h>
 #include <ac/errno.h>
 #include <ac/regex.h>
 #include <ac/string.h>
@@ -347,12 +346,12 @@ ldap_build_filter(
 	    if ( *p == '%' ) {
 		++p;
 		if ( *p == 'v' ) {
-		    if ( isdigit( (unsigned char) p[1] )) {
+		    if ( LDAP_DIGIT( (unsigned char) p[1] )) {
 			++p;
 			wordnum = *p - '1';
 			if ( *(p+1) == '-' ) {
 			    ++p;
-			    if ( isdigit( (unsigned char) p[1] )) {
+			    if ( LDAP_DIGIT( (unsigned char) p[1] )) {
 				++p;
 				endwordnum = *p - '1';	/* e.g., "%v2-4" */
 				if ( endwordnum > wordcount - 1 ) {

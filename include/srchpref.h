@@ -78,22 +78,22 @@ struct ldap_searchobj {
 #define LDAP_SEARCHPREF_ERR_FILE	4
 
 
-LIBLDAP_F( int )
+LDAP_F( int )
 ldap_init_searchprefs LDAP_P(( char *file,
 	struct ldap_searchobj **solistp ));
 
-LIBLDAP_F( int )
+LDAP_F( int )
 ldap_init_searchprefs_buf LDAP_P(( char *buf,
 	ber_len_t buflen,
 	struct ldap_searchobj **solistp ));
 
-LIBLDAP_F( void )
+LDAP_F( void )
 ldap_free_searchprefs LDAP_P(( struct ldap_searchobj *solist ));
 
-LIBLDAP_F( struct ldap_searchobj * )
+LDAP_F( struct ldap_searchobj * )
 ldap_first_searchobj LDAP_P(( struct ldap_searchobj *solist ));
 
-LIBLDAP_F( struct ldap_searchobj * )
+LDAP_F( struct ldap_searchobj * )
 ldap_next_searchobj LDAP_P(( struct ldap_searchobj *sollist,
 	struct ldap_searchobj *so ));
 

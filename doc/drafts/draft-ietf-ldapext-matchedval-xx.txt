@@ -1,0 +1,307 @@
+Internet-Draft                                      David Chadwick
+LDAPExt WG                                         University of Salford
+Intended Category: Standards Track                     Sean Mullan
+                                                                  Sun
+Microsystems
+Expires: 8 March 2000                             8 September 1999
+
+Returning Matched Values with LDAPv3
+<draft-ietf-ldapext-matchedval-01.txt>
+
+STATUS OF THIS MEMO
+
+This document is an Internet-Draft and is in full conformance with
+all the provisions of Section 10 of RFC2026.
+
+Internet-Drafts are working documents of the Internet Engineering
+Task Force (IETF), its areas, and its working groups. Note that other
+groups may also distribute working documents as Internet-Drafts.
+
+Internet-Drafts are draft documents valid for a maximum of six months
+and may be updated, replaced, or obsoleted by other documents at any
+time. It is inappropriate to use Internet-Drafts as reference
+material or to cite them other than as "work in progress."
+
+The list of current Internet-Drafts can be accessed at
+http://www.ietf.org/ietf/1id-abstracts.txt.
+
+The list of Internet-Draft Shadow Directories can be accessed at
+http://www.ietf.org/shadow.html.
+
+This Internet-Draft expires on 8 March 2000. Comments and suggestions
+on this document are encouraged. Comments on this document should be
+sent to the LDAPExt working group discussion list:
+                ietf-ldapext@netscape.com
+or directly to the authors.
+
+ABSTRACT
+
+This document describes a control for the Lightweight Directory
+Access Protocol v3 that is used to return a subset of attribute
+values from an entry, specifically, only those values that
+contributed to the search filter evaluating to TRUE. Without support
+for this control, a client must retrieve all of an attribute's values
+and search for specific values locally.
+
+1. Introduction
+
+When reading an attribute from an entry using LDAP v2 [1] or LDAPv3
+[2], it is normally only possible to read either the attribute type,
+or the attribute type and all its values. It is not possible to
+selectively read just a few of the attribute values. If an attribute
+holds many values, for example, the userCertificate attribute, or the
+subschema publishing operational attributes objectClasses and
+attributeTypes [3], then it may be desirable for the user to be able
+to selectively retrieve a subset of the values, specifically, those
+attribute values that match the selection criteria as specified by
+the user in the filter. Without the control specified in this
+[ID/standard] a client must read all of the attribute's values and
+filter out the unwanted values, necessitating the client to implement
+the matching rules. It also requires the client to potentially read
+and process many irrelevant values, which can be inefficient if the
+values are large or complex, or there are many values stored per
+attribute.
+
+This Internet Draft specifies an LDAPv3 control to enable a user to
+return only those values that matched (i.e. returned TRUE to) one or
+more elements of the Search filter. This control can be especially
+useful when used in conjunction with extensible matching rules that
+match on one or more components of complex binary attribute values.
+
+The control has been described in such a way as to be fully
+compatible with the matchedValuesOnly boolean of the X.500 DAP [4]
+Search argument, as amended in the latest version [6].
+
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and "OPTIONAL" in this
+document are to be interpreted as described in RFC 2119 [5].
+
+2. The matchedValuesOnly Control
+
+The matchedValuesOnly control MAY be critical or non-critical as
+determined by the user. It is only applicable to the Search
+operation, and SHALL be ignored by the server if it is present on any
+other LDAP operation (even if marked critical on such operations).
+
+The object identifier for this control is 1.2.826.0.1.3344810.2.2
+
+The controlValue is absent.
+
+If the server supports this control, the server MUST make use of the
+control as follows:
+
+(1) If the typesOnly parameter of the Search Request is TRUE,
+the control has no effect and the Search Request SHOULD be
+processed as if the control had not been specified.
+
+(2) If the attributes parameter of the Search Request consists
+of a list containing only the attribute with OID "1.1"
+(specifying that no attributes are to be returned), the control
+has no effect and the Search Request SHOULD be processed as if
+the control had not been specified.
+
+(3) For each attribute listed in the attributes parameter of the
+Search Request, the server MUST apply the control as follows:
+
+i) Every attribute value that evaluates TRUE against one or
+more filters, excluding the ignored filters (see below),
+is logically marked by the server as contributing to the
+filter matching.
+ii) Attributes that have no values marked as contributing,
+have all their values returned to the user.
+iii) Attributes that have one or more values marked as
+contributing have only the contributing values returned to
+the user, whilst the other values of the same attribute
+(if there are any) are not returned.
+
+Certain filters are ignored for the purposes of marking the attribute
+values as contributing. These are:
+
+the ôpresentö filter, since this filter does not test against
+any attribute values;
+the ônotö filter, since this would have the effect of marking
+all the attribute values except the one(s) that matched the
+non-negated filter.
+
+3. Relationship to X.500
+
+The matchedValuesOnly control defined in this document is derived
+from the matchedValuesOnly boolean parameter of the X.511 (93) DAP
+Search operation [4]. Note however that in X.511 (93), the
+matchedValuesOnly parameter is ignored when used with an "equality"
+match FilterItem, and so the user must use the extensibleMatch filter
+along with the equality matching rule if only matched values are
+wanted with equality matching. This slightly spurious equality match
+restriction has been removed from the 2000 version of X.511 [6]. For
+LDAP servers acting as a gateway to an X.500 directory, the matched
+valuesOnly control can be directly mapped onto the X.511
+matchedValuesOnly Search parameter as follows:
+
+(1) If the matchedValuesOnly control is specified, the
+matchedValuesOnly DAP parameter MUST be set to true. If the
+control criticality value is TRUE then bit 17 of the DAP
+criticalExtensions MUST be set.
+
+(2) If an equality matching rule is specified in the filter of
+the LDAPv3 search operation, then if operating with a pre-2000
+edition DSA, the corresponding equality FilterItem contained in
+the X.511 filter parameter MUST NOT be used, but rather the
+extensibleMatch filter item MUST be used instead (the assertion
+consisting of the equality matching rule, the attribute type to
+match on, and the asserted value). When operating with DSAs
+that support the 2000 DAP enhancement, the equality FilterItem
+MAY be used.
+
+4. Examples
+
+(1) The first example simply shows how the control can be used to
+selectively read a subset of attribute values.
+
+The entry below represents a groupOfNames object class containing
+several members from different organizations.
+
+cn: Cross Organizational Standards Body
+member: cn=joe, o=acme
+member: cn=alice, o=acme
+member: cn=bob, o=foo
+member: cn=sue, o=bar
+
+An LDAP search operation is specified with a baseObject set to the
+DN of the entry, a baseObject scope, a filter set to
+"member=*o=acme", and the list of attributes to be returned set to
+"member". In addition, a matchedValuesOnly control is attached to the
+search request.
+
+The search results returned by the server would consist of the
+following entry:
+
+cn: Cross Organizational Standards Body
+member: cn=joe, o=acme
+member: cn=alice, o=acme
+
+(2) The second example shows how the control has no effect on
+attributes that do not participate in the search filter.
+
+The entries below represent inetOrgPerson [7] object classes located
+below some distinguished name in the directory.
+
+cn: Sean Mullan
+mail: sean.mullan@sun.com
+mail: mullan@east.sun.com
+telephoneNumber: +1 781 442 0926
+telephoneNumber: 555-9999
+
+cn: David Chadwick
+mail: d.w.chadwick@salford.ac.uk
+
+An LDAP search operation is specified with a baseObject set to the
+DN of the entry, a subtree scope, a filter set to
+"(|(mail=sean.mullan@sun.com)(mail=d.w.chadwick@salford.ac.uk))", and
+the list of attributes to be returned set to "mail telephoneNumber".
+In addition, a matchedValuesOnly control is attached to the search
+request.
+
+The search results returned by the server would consist of the
+following entries:
+
+cn: Sean Mullan
+mail: sean.mullan@sun.com
+telephoneNumber: +1 781 442 0926
+telephoneNumber: 555-9999
+
+cn: David Chadwick
+mail: d.w.chadwick@salford.ac.uk
+
+Note that the control has no effect on the values returned for the
+"telephoneNumber" attribute (all of the values are returned), since
+it did not participate in the search filter.
+
+5. Security Considerations
+
+This Internet Draft does not discuss security issues at all.
+
+Note that attribute values MUST only be returned if the access
+controls applied by the LDAP server allow them to be returned, and in
+this respect the effect of the matchedValuesOnly control is of no
+consequence.
+
+Note that the matchedValuesOnly control may have a positive effect on
+the deployment of public key infrastructures. Certain PKI operations,
+like searching for specific certificates, become more practical (when
+combined with X.509 certificate matching rules at the server) and
+more scalable, since the control avoids the downloading of
+potentially large numbers of irrelevant certificates which would have
+to be processed and filtered locally (which in some cases is very
+difficult to perform).
+
+6. Copyright
+
+Copyright (C) The Internet Society (date). All Rights Reserved.
+
+This document and translations of it may be copied and furnished to
+others, and derivative works that comment on or otherwise explain it
+or assist in its implementation may be prepared, copied, published
+and distributed, in whole or in part, without restriction of any
+kind, provided that the above copyright notice and this paragraph are
+included on all such copies and derivative works.  However, this
+document itself may not be modified in any way, such as by removing
+the copyright notice or references to the Internet Society or other
+Internet organizations, except as needed for the purpose of
+developing Internet standards in which case the procedures for
+copyrights defined in the Internet Standards process must be
+followed, or as required to translate it into languages other than
+English.
+
+The limited permissions granted above are perpetual and will not be
+revoked by the Internet Society or its successors or assigns.
+
+This document and the information contained herein is provided on an
+"AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING
+TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION
+HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
+MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+7. References
+
+[1] Yeong, W., Howes, T., and Kille, S. "Lightweight Directory Access
+Protocol", RFC 1777, March 1995.
+[2] M. Wahl, T. Howes, S. Kille, "Lightweight Directory Access
+Protocol (v3)", Dec. 1997, RFC 2251
+[3] M. Wahl, A. Coulbeck, T. Howes, S. Kille, ôLightweight Directory
+Access Protocol (v3): Attribute Syntax Definitionsö, RFC 2252, Dec
+1997
+[4] ITU-T Rec. X.511, "The Directory: Abstract Service Definition",
+1993.
+[5] S.Bradner. "Key words for use in RFCs to Indicate Requirement
+Levels", RFC 2119, March 1997.
+[6] ôFPDAMs to ISO/IEC 9594 Parts 1, 2, 3, 4, 5, 6, 7 and 9 to
+support the ITU-T Rec. F.510 "Automated Directory Assistance, White
+Pages Service Definitions"ö, Collaborative ITU-T/SG7/Q15 and
+JTC1/SC6/WG7 OSI Directory Meeting 7-15 April 1999, Orlando, USA
+[7] M. Smith. "Definition of the inetOrgPerson LDAP Object Class",
+Internet Draft <draft-smith-ldap-inetorgperson-03.txt>, April 1999.
+
+8. Authors Addresses
+
+David Chadwick
+IS Institute
+University of Salford
+Salford M5 4WT
+England
+
+Email: d.w.chadwick@salford.ac.uk
+
+Sean Mullan
+Sun Microsystems Laboratories
+One Network Drive
+Burlington
+MA 01803-0902
+USA
+
+Tel:  +1 781 442-0926           Fax:  +1 781 442-1692
+Email: sean.mullan@sun.com
+
+Internet-Draft  Returning Matched Values with LDAPv3 8 September 1999
+
+5

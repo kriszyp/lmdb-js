@@ -23,7 +23,7 @@ define([AC_INIT_BINSH],
 # in file LICENSE in the top-level directory of the distribution.
 
 echo "Copyright 1998-2000 The OpenLDAP Foundation,  All Rights Reserved."
-echo "Copying restrictions apply, see COPYRIGHT file."
+echo "Restrictions apply, see COPYRIGHT and LICENSE files."
 ])dnl
 dnl ----------------------------------------------------------------
 dnl Disable config.cache!
@@ -146,7 +146,6 @@ OL_ARG_ENABLE(spasswd,[    --enable-spasswd	enable (Cyrus) SASL password verific
 OL_ARG_ENABLE(modules,[    --enable-modules	enable dynamic module support], no)dnl
 OL_ARG_ENABLE(multimaster,[    --enable-multimaster	enable multimaster replication], no)dnl
 OL_ARG_ENABLE(phonetic,[    --enable-phonetic	enable phonetic/soundex], no)dnl
-OL_ARG_ENABLE(quipu,[    --enable-quipu	build quipu migration tools], no)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	enable reverse lookups], auto)dnl
 OL_ARG_ENABLE(aci,[    --enable-aci	enable per-object ACIs], no)dnl
 OL_ARG_ENABLE(wrappers,[    --enable-wrappers	enable tcp wrapper support], no)dnl
@@ -217,9 +216,6 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_phonetic = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-phonetic argument])
 	fi
-	if test $ol_enable_quipu = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-quipu argument])
-	fi
 	if test $ol_enable_rlookups = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-rlookups argument])
 	fi
@@ -261,7 +257,6 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_modules=no
 	ol_enable_multimaster=no
 	ol_enable_phonetic=no
-	ol_enable_quipu=no
 	ol_enable_rlookups=no
 	ol_enable_aci=no
 	ol_enable_wrappers=no
@@ -357,14 +352,12 @@ LDBM_LIBS=
 LTHREAD_LIBS=
 LUTIL_LIBS=
 
-QUIPU_LIBS=
 SLAPD_LIBS=
 SLURPD_LIBS=
 
 BUILD_SLAPD=no
 BUILD_SLURPD=no
 
-BUILD_QUIPU=no
 BUILD_THREAD=no
 
 BUILD_DNSSRV=no
@@ -736,20 +729,6 @@ fi
 
 if test "$ol_enable_dnssrv" = yes -a "$ol_link_dnssrv" = no ; then
 	AC_MSG_ERROR([DNSSRV requires res_query()])
-fi
-
-dnl ----------------------------------------------------------------
-dnl QUIPU
-if test $ol_enable_quipu != no ; then
-	AC_CHECK_HEADERS(quipu/commonarg.h)
-
-	if test $ac_cv_header_quipu_commonarg_h = yes ; then
-		BUILD_QUIPU=yes
-	elif test $ol_enable_quipu = auto ; then
-		AC_MSG_WARN([no quipu for --enable-quipu=auto, disabling])
-	else
-		AC_MSG_ERROR(no quipu for --enable-quipu=$ol_enable_quipu)
-	fi
 fi
 
 dnl ----------------------------------------------------------------
@@ -2171,7 +2150,6 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_LDAP)
   AC_SUBST(BUILD_LDBM)
   AC_SUBST(BUILD_PASSWD)
-  AC_SUBST(BUILD_QUIPU)
   AC_SUBST(BUILD_SHELL)
   AC_SUBST(BUILD_DNSSRV_DYNAMIC)
   AC_SUBST(BUILD_LDAP_DYNAMIC)
@@ -2183,7 +2161,6 @@ AC_SUBST(BUILD_SLURPD)
 AC_SUBST(LDAP_LIBS)
 AC_SUBST(LDIF_LIBS)
 AC_SUBST(SLAPD_LIBS)
-AC_SUBST(QUIPU_LIBS)
 AC_SUBST(SLURPD_LIBS)
 AC_SUBST(LDBM_LIBS)
 AC_SUBST(LTHREAD_LIBS)

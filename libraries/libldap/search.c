@@ -16,7 +16,6 @@
 
 #include <ac/stdlib.h>
 
-#include <ac/ctype.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
@@ -173,7 +172,7 @@ ldap_search_ext_s(
 		return( ld->ld_errno );
 	}
 
-	if( rc == LDAP_RES_SEARCH_REFERENCE) {
+	if( rc == LDAP_RES_SEARCH_REFERENCE || rc == LDAP_RES_EXTENDED_PARTIAL ) {
 		return( ld->ld_errno );
 	}
 
@@ -325,7 +324,7 @@ ldap_build_search_req(
 		return( NULL );
 	}
 
-	if ( ber_printf( ber, /*{*/ "{v}}", attrs ) == -1 ) {
+	if ( ber_printf( ber, /*{*/ "{v}N}", attrs ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return( NULL );
@@ -337,7 +336,7 @@ ldap_build_search_req(
 		return( NULL );
 	}
 
-	if ( ber_printf( ber, /*{*/ "}", attrs ) == -1 ) {
+	if ( ber_printf( ber, /*{*/ "N}" ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return( NULL );
@@ -523,7 +522,7 @@ put_complex_filter( BerElement *ber, char *str, ber_tag_t tag, int not )
 	*next++ = ')';
 
 	/* flush explicit tagged thang */
-	if ( ber_printf( ber, /*{*/ "}" ) == -1 )
+	if ( ber_printf( ber, /*{*/ "N}" ) == -1 )
 		return( NULL );
 
 	return( next );
@@ -578,7 +577,7 @@ put_filter( BerElement *ber, char *str )
 			parens++;
 
 			/* skip spaces */
-			while( isspace( *str ) ) str++;
+			while( LDAP_SPACE( *str ) ) str++;
 
 			switch ( *str ) {
 			case '&':
@@ -690,7 +689,7 @@ put_filter_list( BerElement *ber, char *str )
 	Debug( LDAP_DEBUG_TRACE, "put_filter_list \"%s\"\n", str, 0, 0 );
 
 	while ( *str ) {
-		while ( *str && isspace( (unsigned char) *str ) )
+		while ( *str && LDAP_SPACE( (unsigned char) *str ) )
 			str++;
 		if ( *str == '\0' )
 			break;
@@ -823,7 +822,7 @@ put_simple_filter(
 				ber_slen_t len = ldap_pvt_filter_value_unescape( value );
 
 				if( len >= 0 ) {
-					rc = ber_printf( ber, "totb}",
+					rc = ber_printf( ber, "totbN}",
 						LDAP_FILTER_EXT_VALUE, value, len,
 						LDAP_FILTER_EXT_DNATTRS, dn != NULL);
 				} else {
@@ -852,7 +851,7 @@ put_simple_filter(
 		ber_slen_t len = ldap_pvt_filter_value_unescape( value );
 
 		if( len >= 0 ) {
-			rc = ber_printf( ber, "t{so}",
+			rc = ber_printf( ber, "t{soN}",
 				ftype, str, value, len );
 		}
 	}
@@ -903,7 +902,7 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 		gotstar = 1;
 	}
 
-	if ( ber_printf( ber, /* {{ */ "}}" ) == -1 )
+	if ( ber_printf( ber, /* {{ */ "N}N}" ) == -1 )
 		return( -1 );
 
 	return( 0 );

@@ -34,6 +34,7 @@ usage(const char *s)
 "	-a secret\told password\n"
 "	-A\t\tprompt for old password\n"
 "	-d level\tdebugging level\n"
+"	-C\t\tchase referrals\n"
 "	-D binddn\tbind DN\n"
 "	-E\t\trequest SASL privacy (-EE to make it critical)\n"
 "	-h host\t\tLDAP server (default: localhost)\n"
@@ -49,7 +50,7 @@ usage(const char *s)
 "	-W\t\tprompt for bind password\n"
 "	-X id\t\tSASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
 "	-Y mech\t\tSASL mechanism\n"
-"	-Z\t\trequest the use of TLS (-ZZ to make it critical)\n"
+"	-Z\t\tissue Start TLS request (-ZZ to require successful response)\n"
 		, s );
 
 	exit( EXIT_FAILURE );
@@ -86,17 +87,21 @@ main( int argc, char *argv[] )
 	int		sasl_privacy = 0;
 #endif
 	int		use_tls = 0;
+	int		referrals = 0;
 	LDAP	       *ld;
 	struct berval *bv = NULL;
 
-	char	*retoid;
-	struct berval *retdata;
+	int id, code;
+	LDAPMessage *res;
+	char *matcheddn = NULL, *text = NULL, **refs = NULL;
+	char	*retoid = NULL;
+	struct berval *retdata = NULL;
 
 	if (argc == 1)
 		usage (argv[0]);
 
 	while( (i = getopt( argc, argv,
-		"Aa:D:d:EIh:np:Ss:U:vWw:X:Y:Z" )) != EOF )
+		"Aa:CD:d:EIh:np:Ss:U:vWw:X:Y:Z" )) != EOF )
 	{
 		switch (i) {
 		case 'A':	/* prompt for oldr password */
@@ -112,6 +117,9 @@ main( int argc, char *argv[] )
 					*p = '*';
 				}
 			}
+			break;
+		case 'C':
+			referrals++;
 			break;
 		case 'D':	/* bind distinguished name */
 			binddn = strdup (optarg);
@@ -139,7 +147,6 @@ main( int argc, char *argv[] )
 
 		case 's':	/* new password (secret) */
 			newpw = strdup (optarg);
-
 			{
 				char* p;
 
@@ -249,7 +256,9 @@ main( int argc, char *argv[] )
 		newpw = strdup(getpassphrase("Old password: "));
 		ckoldpw = getpassphrase("Re-enter old password: ");
 
-		if( strncmp( oldpw, ckoldpw, strlen(oldpw) )) {
+		if( newpw== NULL || ckoldpw == NULL ||
+			strncmp( oldpw, ckoldpw, strlen(oldpw) ))
+		{
 			fprintf( stderr, "passwords do not match\n" );
 			return EXIT_FAILURE;
 		}
@@ -261,7 +270,9 @@ main( int argc, char *argv[] )
 		newpw = strdup(getpassphrase("New password: "));
 		cknewpw = getpassphrase("Re-enter new password: ");
 
-		if( strncmp( newpw, cknewpw, strlen(newpw) )) {
+		if( newpw== NULL || cknewpw == NULL ||
+			strncmp( newpw, cknewpw, strlen(newpw) ))
+		{
 			fprintf( stderr, "passwords do not match\n" );
 			return EXIT_FAILURE;
 		}
@@ -281,7 +292,7 @@ main( int argc, char *argv[] )
 		/* handle bind password */
 		fprintf( stderr, "Bind DN: %s\n", binddn );
 		passwd.bv_val = strdup( getpassphrase("Enter bind password: "));
-		passwd.bv_len = strlen( passwd.bv_val );
+		passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
 	}
 
 	if ( debug ) {
@@ -303,8 +314,14 @@ main( int argc, char *argv[] )
 		return EXIT_FAILURE;
 	}
 
-	/* don't chase referrals */
-	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
+	/* referrals */
+	if (ldap_set_option( ld, LDAP_OPT_REFERRALS,
+		referrals ? LDAP_OPT_ON : LDAP_OPT_OFF ) != LDAP_OPT_SUCCESS )
+	{
+		fprintf( stderr, "Could not set LDAP_OPT_REFERRALS %s\n",
+			referrals ? "on" : "off" );
+		return EXIT_FAILURE;
+	}
 
 	/* LDAPv3 only */
 	version = 3;
@@ -312,6 +329,7 @@ main( int argc, char *argv[] )
 
 	if(rc != LDAP_OPT_SUCCESS ) {
 		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n", version );
+		return EXIT_FAILURE;
 	}
 
 	if ( use_tls && ldap_start_tls_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {
@@ -319,6 +337,7 @@ main( int argc, char *argv[] )
 			ldap_perror( ld, "ldap_start_tls" );
 			return( EXIT_FAILURE );
 		}
+		fprintf( stderr, "WARNING: could not start TLS\n" );
 	}
 
 	if ( authmethod == LDAP_AUTH_SASL ) {
@@ -400,7 +419,7 @@ main( int argc, char *argv[] )
 			free(newpw);
 		}
 
-		ber_printf( ber, /*{*/ "}" );
+		ber_printf( ber, /*{*/ "N}" );
 
 		rc = ber_flatten( ber, &bv );
 
@@ -413,12 +432,42 @@ main( int argc, char *argv[] )
 		ber_free( ber, 1 );
 	}
 
-	rc = ldap_extended_operation_s( ld,
+	if ( noupdates ) {
+		rc = LDAP_SUCCESS;
+		goto skip;
+	}
+
+	rc = ldap_extended_operation( ld,
 		LDAP_EXOP_X_MODIFY_PASSWD, bv, 
-		NULL, NULL,
-		&retoid, &retdata );
+		NULL, NULL, &id );
 
 	ber_bvfree( bv );
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_extended_operation" );
+		ldap_unbind( ld );
+		return EXIT_FAILURE;
+	}
+
+	rc = ldap_result( ld, LDAP_RES_ANY, 0, NULL, &res );
+	if ( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_result" );
+		return rc;
+	}
+
+	rc = ldap_parse_result( ld, res, &code, &matcheddn, &text, &refs, NULL, 0 );
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_parse_result" );
+		return rc;
+	}
+
+	rc = ldap_parse_extended_result( ld, res, &retoid, &retdata, 1 );
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_parse_result" );
+		return rc;
+	}
 
 	if( retdata != NULL ) {
 		ber_tag_t tag;
@@ -444,15 +493,32 @@ main( int argc, char *argv[] )
 		ber_free( ber, 1 );
 	}
 
-	if ( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_extended_operation" );
-		ldap_unbind( ld );
-		return EXIT_FAILURE;
+	if( verbose || code != LDAP_SUCCESS || matcheddn || text || refs ) {
+		printf( "Result: %s (%d)\n", ldap_err2string( code ), code );
+
+		if( text && *text ) {
+			printf( "Additional info: %s\n", text );
+		}
+
+		if( matcheddn && *matcheddn ) {
+			printf( "Matched DN: %s\n", matcheddn );
+		}
+
+		if( refs ) {
+			int i;
+			for( i=0; refs[i]; i++ ) {
+				printf("Referral: %s\n", refs[i] );
+			}
+		}
 	}
 
-	ldap_memfree( retoid );
+	ber_memfree( text );
+	ber_memfree( matcheddn );
+	ber_memvfree( refs );
+	ber_memfree( retoid );
 	ber_bvfree( retdata );
 
+skip:
 	/* disconnect from server */
 	ldap_unbind (ld);
 

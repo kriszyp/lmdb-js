@@ -107,83 +107,83 @@ typedef struct ldap_objectclass {
 #define LDAP_SCHEMA_ALLOW_DESCR_PREFIX	0x08 /* Allow descr as OID prefix    */
 #define LDAP_SCHEMA_ALLOW_ALL		0x0f /* Be very liberal in parsing   */
 
-LIBLDAP_F( LDAP_CONST char * )
+LDAP_F( LDAP_CONST char * )
 ldap_syntax2name LDAP_P((
 	LDAP_SYNTAX * syn ));
 
-LIBLDAP_F( LDAP_CONST char * )
+LDAP_F( LDAP_CONST char * )
 ldap_matchingrule2name LDAP_P((
 	LDAP_MATCHING_RULE * mr ));
 
-LIBLDAP_F( LDAP_CONST char * )
+LDAP_F( LDAP_CONST char * )
 ldap_attributetype2name LDAP_P((
 	LDAP_ATTRIBUTE_TYPE * at ));
 
-LIBLDAP_F( LDAP_CONST char * )
+LDAP_F( LDAP_CONST char * )
 ldap_objectclass2name LDAP_P((
 	LDAP_OBJECT_CLASS * oc ));
 
-LIBLDAP_F( void )
+LDAP_F( void )
 ldap_syntax_free LDAP_P((
 	LDAP_SYNTAX * syn ));
 
-LIBLDAP_F( void )
+LDAP_F( void )
 ldap_matchingrule_free LDAP_P((
 	LDAP_MATCHING_RULE * mr ));
 
-LIBLDAP_F( void )
+LDAP_F( void )
 ldap_attributetype_free LDAP_P((
 	LDAP_ATTRIBUTE_TYPE * at ));
 
-LIBLDAP_F( void )
+LDAP_F( void )
 ldap_objectclass_free LDAP_P((
 	LDAP_OBJECT_CLASS * oc ));
 
-LIBLDAP_F( LDAP_OBJECT_CLASS * )
+LDAP_F( LDAP_OBJECT_CLASS * )
 ldap_str2objectclass LDAP_P((
 	LDAP_CONST char * s,
 	int * code,
 	LDAP_CONST char ** errp,
 	LDAP_CONST int flags ));
 
-LIBLDAP_F( LDAP_ATTRIBUTE_TYPE * )
+LDAP_F( LDAP_ATTRIBUTE_TYPE * )
 ldap_str2attributetype LDAP_P((
 	LDAP_CONST char * s,
 	int * code,
 	LDAP_CONST char ** errp,
 	LDAP_CONST int flags ));
 
-LIBLDAP_F( LDAP_SYNTAX * )
+LDAP_F( LDAP_SYNTAX * )
 ldap_str2syntax LDAP_P((
 	LDAP_CONST char * s,
 	int * code,
 	LDAP_CONST char ** errp,
 	LDAP_CONST int flags ));
 
-LIBLDAP_F( LDAP_MATCHING_RULE * )
+LDAP_F( LDAP_MATCHING_RULE * )
 ldap_str2matchingrule LDAP_P((
 	LDAP_CONST char * s,
 	int * code,
 	LDAP_CONST char ** errp,
 	LDAP_CONST int flags ));
 
-LIBLDAP_F( char *)
+LDAP_F( char *)
 ldap_objectclass2str LDAP_P((
 	LDAP_CONST LDAP_OBJECT_CLASS * oc ));
 
-LIBLDAP_F( char *)
+LDAP_F( char *)
 ldap_attributetype2str LDAP_P((
 	LDAP_CONST LDAP_ATTRIBUTE_TYPE * at ));
 
-LIBLDAP_F( char *)
+LDAP_F( char *)
 ldap_syntax2str LDAP_P((
 	LDAP_CONST LDAP_SYNTAX * syn ));
 
-LIBLDAP_F( char *)
+LDAP_F( char *)
 ldap_matchingrule2str LDAP_P((
 	LDAP_CONST LDAP_MATCHING_RULE * mr ));
 
-LIBLDAP_F( char *)
+LDAP_F( char *)
 ldap_scherr2str LDAP_P((
 	int code )) LDAP_GCCATTR((const));
 

@@ -30,7 +30,6 @@
 #include <sys/resource.h>
 #endif
 
-#include <lber.h>
 #include <ldap.h>
 
 #include "fax500.h"

@@ -10,6 +10,9 @@ ldappasswd \- change the password of an LDAP entry
 .BR \-A ]
 [\c
 .BI \-a \ oldPasswd\fR]
+[\c
+.BR \-C ]
+[\c
 .BI \-D \ binddn\fR
 [\c
 .BI \-d \ debuglevel\fR]
@@ -61,6 +64,9 @@ This is used instead of specifying the password on the command line.
 .TP
 .BI \-a \ oldPasswd
 Set the old password to \fIoldPasswd\fP.
+.TP
+.B \-C
+Automatically chase referrals.
 .TP
 .BI \-D \ binddn
 Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should

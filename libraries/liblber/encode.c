@@ -649,6 +649,9 @@ ber_put_set( BerElement *ber )
 	return( ber_put_seqorset( ber ) );
 }
 
+/* N tag */
+static ber_tag_t lber_int_null = 0;
+
 /* VARARGS */
 int
 ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
@@ -696,6 +699,15 @@ ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 
 		case 'n':	/* null */
 			rc = ber_put_null( ber, ber->ber_tag );
+			break;
+
+		case 'N':	/* Debug NULL */
+			if( lber_int_null != 0 ) {
+				/* Insert NULL to ensure peer ignores unknown tags */
+				rc = ber_put_null( ber, lber_int_null );
+			} else {
+				rc = 0;
+			}
 			break;
 
 		case 'o':	/* octet string (non-null terminated) */

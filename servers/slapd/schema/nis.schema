@@ -28,7 +28,7 @@ attributetype ( 1.3.6.1.1.1.1.1 NAME 'gidNumber'
 attributetype ( 1.3.6.1.1.1.1.2 NAME 'gecos'
 	DESC 'The GECOS field; the common name'
 	EQUALITY caseIgnoreIA5Match
-	SUBSTRINGS caseIgnoreIA5SubstringsMatch
+	SUBSTR caseIgnoreIA5SubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.1.1.1.3 NAME 'homeDirectory'
@@ -71,12 +71,12 @@ attributetype ( 1.3.6.1.1.1.1.11 NAME 'shadowFlag'
 
 attributetype ( 1.3.6.1.1.1.1.12 NAME 'memberUid'
 	EQUALITY caseExactIA5Match
-	SUBSTRINGS caseExactIA5SubstringsMatch
+	SUBSTR caseExactIA5SubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
 attributetype ( 1.3.6.1.1.1.1.13 NAME 'memberNisNetgroup'
 	EQUALITY caseExactIA5Match
-	SUBSTRINGS caseExactIA5SubstringsMatch
+	SUBSTR caseExactIA5SubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
 attributetype ( 1.3.6.1.1.1.1.14 NAME 'nisNetgroupTriple'

@@ -22,6 +22,13 @@ int is_object_subclass(
 {
 	int i;
 
+	if( sub == NULL || sup == NULL ) return 0;
+
+#if 0
+	Debug( LDAP_DEBUG_TRACE, "is_object_subclass(%s,%s) %d\n",
+		sub->soc_oid, sup->soc_oid, sup == sub );
+#endif
+
 	if( sup == sub ) {
 		return 1;
 	}
@@ -31,7 +38,7 @@ int is_object_subclass(
 	}
 
 	for( i=0; sup->soc_sups[i] != NULL; i++ ) {
-		if( is_object_subclass( sup->soc_sups[i], sup ) ) {
+		if( is_object_subclass( sub, sup->soc_sups[i] ) ) {
 			return 1;
 		}
 	}
@@ -41,8 +48,7 @@ int is_object_subclass(
 
 int is_entry_objectclass(
 	Entry*	e,
-	ObjectClass *oc
-)
+	ObjectClass *oc )
 {
 	Attribute *attr;
 	int i;
@@ -81,8 +87,6 @@ int is_entry_objectclass(
 }
 
 
-
-
 struct oindexrec {
 	char		*oir_name;
 	ObjectClass	*oir_oc;
@@ -94,8 +98,7 @@ static ObjectClass *oc_list = NULL;
 static int
 oc_index_cmp(
     struct oindexrec	*oir1,
-    struct oindexrec	*oir2
-)
+    struct oindexrec	*oir2 )
 {
 	assert( oir1->oir_name );
 	assert( oir1->oir_oc );
@@ -108,8 +111,7 @@ oc_index_cmp(
 static int
 oc_index_name_cmp(
     char 		*name,
-    struct oindexrec	*oir
-)
+    struct oindexrec	*oir )
 {
 	assert( oir->oir_name );
 	assert( oir->oir_oc );
@@ -139,8 +141,7 @@ static int
 oc_create_required(
     ObjectClass		*soc,
     char		**attrs,
-    const char		**err
-)
+    const char		**err )
 {
 	char		**attrs1;
 	AttributeType	*sat;
@@ -178,8 +179,7 @@ static int
 oc_create_allowed(
     ObjectClass		*soc,
     char		**attrs,
-    const char		**err
-)
+    const char		**err )
 {
 	char		**attrs1;
 	AttributeType	*sat;
@@ -208,9 +208,8 @@ oc_create_allowed(
 static int
 oc_add_sups(
     ObjectClass		*soc,
-    char		**sups,
-    const char		**err
-)
+    char			**sups,
+    const char		**err )
 {
 	int		code;
 	ObjectClass	*soc1;
@@ -244,16 +243,14 @@ oc_add_sups(
 			if ( add_sups )
 				soc->soc_sups[nsups] = soc1;
 
-			code = oc_add_sups(soc,soc1->soc_sup_oids, err);
-			if ( code )
-				return code;
+			code = oc_add_sups( soc, soc1->soc_sup_oids, err );
+			if ( code ) return code;
 
-			code = oc_create_required(soc,soc1->soc_at_oids_must,err);
-			if ( code )
-				return code;
-			code = oc_create_allowed(soc,soc1->soc_at_oids_may,err);
-			if ( code )
-				return code;
+			code = oc_create_required( soc, soc1->soc_at_oids_must, err );
+			if ( code ) return code;
+
+			code = oc_create_allowed( soc, soc1->soc_at_oids_may, err );
+			if ( code ) return code;
 
 			nsups++;
 			sups1++;
@@ -341,13 +338,25 @@ oc_add(
 	int		code;
 
 	soc = (ObjectClass *) ch_calloc( 1, sizeof(ObjectClass) );
-	memcpy( &soc->soc_oclass, oc, sizeof(LDAP_OBJECT_CLASS));
-	if ( (code = oc_add_sups(soc,soc->soc_sup_oids,err)) != 0 )
-		return code;
-	if ( (code = oc_create_required(soc,soc->soc_at_oids_must,err)) != 0 )
-		return code;
-	if ( (code = oc_create_allowed(soc,soc->soc_at_oids_may,err)) != 0 )
-		return code;
+	memcpy( &soc->soc_oclass, oc, sizeof(LDAP_OBJECT_CLASS) );
+
+	if( soc->soc_sup_oids == NULL &&
+		soc->soc_kind == LDAP_SCHEMA_STRUCTURAL )
+	{
+		/* structural object classes implicitly inherit from 'top' */
+		static char *top_oids[] = { SLAPD_TOP_OID, NULL };
+		code = oc_add_sups( soc, top_oids, err );
+	} else {
+		code = oc_add_sups( soc, soc->soc_sup_oids, err );
+	}
+	if ( code != 0 ) return code;
+
+	code = oc_create_required( soc, soc->soc_at_oids_must, err );
+	if ( code != 0 ) return code;
+
+	code = oc_create_allowed( soc, soc->soc_at_oids_may, err );
+	if ( code != 0 ) return code;
+
 	code = oc_insert(soc,err);
 	return code;
 }

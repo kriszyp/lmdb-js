@@ -30,27 +30,27 @@ LDAP_BEGIN_DECL
 /* ISC Base64 Routines */
 /* base64.c */
 
-LIBLUTIL_F( int )
+LDAP_LUTIL_F( int )
 lutil_b64_ntop LDAP_P((
 	unsigned char const *,
 	size_t,
 	char *,
 	size_t));
 
-LIBLUTIL_F( int )
+LDAP_LUTIL_F( int )
 lutil_b64_pton LDAP_P((
 	char const *,
 	unsigned char *,
 	size_t));
 
 /* detach.c */
-LIBLUTIL_F( void )
+LDAP_LUTIL_F( void )
 lutil_detach LDAP_P((
 	int debug,
 	int do_close));
 
 /* entropy.c */
-LIBLUTIL_F( int )
+LDAP_LUTIL_F( int )
 lutil_entropy LDAP_P((
 	char *buf,
 	ber_len_t nbytes ));
@@ -58,13 +58,13 @@ lutil_entropy LDAP_P((
 /* passwd.c */
 struct berval; /* avoid pulling in lber.h */
 
-LIBLUTIL_F( int )
+LDAP_LUTIL_F( int )
 lutil_authpasswd LDAP_P((
 	const struct berval *passwd,	/* stored password */
 	const struct berval *cred,	/* user supplied value */
 	const char **methods ));
 
-LIBLUTIL_F( int )
+LDAP_LUTIL_F( int )
 lutil_authpasswd_hash LDAP_P((
 	const struct berval *cred,
 	struct berval **passwd,	/* password to store */
@@ -73,36 +73,36 @@ lutil_authpasswd_hash LDAP_P((
 
 #if defined( SLAPD_SPASSWD ) && defined( HAVE_CYRUS_SASL )
 	/* cheat to avoid pulling in <sasl.h> */
-LIBLUTIL_F( struct sasl_conn * ) lutil_passwd_sasl_conn;
+LDAP_LUTIL_F( struct sasl_conn * ) lutil_passwd_sasl_conn;
 #endif
 
-LIBLUTIL_F( int )
+LDAP_LUTIL_F( int )
 lutil_passwd LDAP_P((
 	const struct berval *passwd,	/* stored password */
 	const struct berval *cred,	/* user supplied value */
 	const char **methods ));
 
-LIBLUTIL_F( struct berval * )
+LDAP_LUTIL_F( struct berval * )
 lutil_passwd_generate LDAP_P(( ber_len_t ));
 
-LIBLUTIL_F( struct berval * )
+LDAP_LUTIL_F( struct berval * )
 lutil_passwd_hash LDAP_P((
 	const struct berval *passwd,
 	const char *method ));
 
-LIBLUTIL_F( int )
+LDAP_LUTIL_F( int )
 lutil_passwd_scheme LDAP_P((
 	const char *scheme ));
 
 /* utils.c */
-LIBLUTIL_F( char* )
+LDAP_LUTIL_F( char* )
 lutil_progname LDAP_P((
 	const char* name,
 	int argc,
 	char *argv[] ));
 
 /* sockpair.c */
-LIBLUTIL_F( int )
+LDAP_LUTIL_F( int )
 lutil_pair( LBER_SOCKET_T sd[2] );
 
 LDAP_END_DECL

@@ -22,7 +22,6 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/time.h>
-#include <ac/ctype.h>
 
 #include "ldap-int.h"
 
@@ -72,7 +71,7 @@
 
  ---*/
 
-LIBLDAP_F( int )
+int
 ldap_create_vlv_control( LDAP *ld,
 						 LDAPVLVInfo *vlvinfop,
 						 LDAPControl **ctrlp )
@@ -96,7 +95,7 @@ ldap_create_vlv_control( LDAP *ld,
 	if( tag == LBER_ERROR ) goto exit;
 
 	if (vlvinfop->ldvlv_attrvalue == NULL) {
-		tag = ber_printf(ber, "t{ii}",
+		tag = ber_printf(ber, "t{iiN}",
 			LDAP_VLVBYINDEX_IDENTIFIER,
 			vlvinfop->ldvlv_offset,
 			vlvinfop->ldvlv_count);
@@ -116,7 +115,7 @@ ldap_create_vlv_control( LDAP *ld,
 		if( tag == LBER_ERROR ) goto exit;
 	}
 
-	tag = ber_printf(ber, /*{*/ "}"); 
+	tag = ber_printf(ber, /*{*/ "N}"); 
 	if( tag == LBER_ERROR ) goto exit;
 
 	ld->ld_errno = ldap_int_create_control(
@@ -188,7 +187,7 @@ exit:
    
 ---*/
 
-LIBLDAP_F( int )
+int
 ldap_parse_vlv_control(
 	LDAP           *ld,
 	LDAPControl    **ctrls,

@@ -163,7 +163,7 @@ do_abandon(
 
 				} else {
 					/* close '{' */
-					err = ber_printf( ber, /*{*/ "}" );
+					err = ber_printf( ber, /*{*/ "N}" );
 
 					if( err == -1 ) {
 						/* encoding error */

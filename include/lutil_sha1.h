@@ -35,31 +35,31 @@ typedef struct {
     unsigned char buffer[64];
 } lutil_SHA1_CTX;
   
-LIBLUTIL_F( void )
+LDAP_LUTIL_F( void )
 lutil_SHA1Transform
 	LDAP_P((uint32 state[5], const unsigned char buffer[64]));
 
-LIBLUTIL_F( void  )
+LDAP_LUTIL_F( void  )
 lutil_SHA1Init
 	LDAP_P((lutil_SHA1_CTX *context));
 
-LIBLUTIL_F( void  )
+LDAP_LUTIL_F( void  )
 lutil_SHA1Update
 	LDAP_P((lutil_SHA1_CTX *context, const unsigned char *data, uint32 len));
 
-LIBLUTIL_F( void  )
+LDAP_LUTIL_F( void  )
 lutil_SHA1Final
 	LDAP_P((unsigned char digest[20], lutil_SHA1_CTX *context));
 
-LIBLUTIL_F( char * )
+LDAP_LUTIL_F( char * )
 lutil_SHA1End
 	LDAP_P((lutil_SHA1_CTX *, char *));
 
-LIBLUTIL_F( char * )
+LDAP_LUTIL_F( char * )
 lutil_SHA1File
 	LDAP_P((char *, char *));
 
-LIBLUTIL_F( char * )
+LDAP_LUTIL_F( char * )
 lutil_SHA1Data
 	LDAP_P((const unsigned char *, size_t, char *));
 

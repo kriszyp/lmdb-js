@@ -88,11 +88,11 @@ ldap_modify_ext( LDAP *ld,
 	/* for each modification to be performed... */
 	for ( i = 0; mods[i] != NULL; i++ ) {
 		if (( mods[i]->mod_op & LDAP_MOD_BVALUES) != 0 ) {
-			rc = ber_printf( ber, "{e{s[V]}}",
+			rc = ber_printf( ber, "{e{s[V]N}N}",
 			    (ber_int_t) ( mods[i]->mod_op & ~LDAP_MOD_BVALUES ),
 			    mods[i]->mod_type, mods[i]->mod_bvalues );
 		} else {
-			rc = ber_printf( ber, "{e{s[v]}}",
+			rc = ber_printf( ber, "{e{s[v]N}N}",
 				(ber_int_t) mods[i]->mod_op,
 			    mods[i]->mod_type, mods[i]->mod_values );
 		}
@@ -104,7 +104,7 @@ ldap_modify_ext( LDAP *ld,
 		}
 	}
 
-	if ( ber_printf( ber, /*{{*/ "}}" ) == -1 ) {
+	if ( ber_printf( ber, /*{{*/ "N}N}" ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return( ld->ld_errno );
@@ -116,7 +116,7 @@ ldap_modify_ext( LDAP *ld,
 		return ld->ld_errno;
 	}
 
-	if ( ber_printf( ber, /*{*/ "}" ) == -1 ) {
+	if ( ber_printf( ber, /*{*/ "N}" ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return( ld->ld_errno );

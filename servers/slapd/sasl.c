@@ -132,7 +132,7 @@ int sasl_init( void )
 		return -1;
 	}
 
-#ifdef RESTRICT_SASL
+#ifndef SLAPD_IGNORE_RFC2829
 	{
 		sasl_security_properties_t secprops;
 		memset(&secprops, '\0', sizeof(secprops));

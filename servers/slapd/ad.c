@@ -243,3 +243,54 @@ int ad_inlist(
 }
 
 
+int slap_str2undef_ad(
+	const char *str,
+	AttributeDescription **ad,
+	const char **text )
+{
+	struct berval bv;
+	bv.bv_val = (char *) str;
+	bv.bv_len = strlen( str );
+
+	return slap_bv2undef_ad( &bv, ad, text );
+}
+
+int slap_bv2undef_ad(
+	struct berval *bv,
+	AttributeDescription **ad,
+	const char **text )
+{
+	AttributeDescription desc;
+
+	assert( ad != NULL );
+	assert( *ad == NULL ); /* temporary */
+
+	if( bv == NULL || bv->bv_len == 0 ) {
+		*text = "empty attribute description";
+		return LDAP_UNDEFINED_TYPE;
+	}
+
+	/* make sure description is IA5 */
+	if( ad_keystring( bv ) ) {
+		*text = "attribute description contains inappropriate characters";
+		return LDAP_UNDEFINED_TYPE;
+	}
+
+	desc.ad_type = slap_schema.si_at_undefined;
+	desc.ad_flags = SLAP_DESC_NONE;
+	desc.ad_lang = NULL;
+
+	desc.ad_cname = ber_bvdup( bv );
+
+	/* canoncial to upper case */
+	ldap_pvt_str2upper( bv->bv_val );
+
+	if( *ad == NULL ) {
+		*ad = ch_malloc( sizeof( AttributeDescription ) );
+	}
+
+	**ad = desc;
+
+	return LDAP_SUCCESS;
+}
+

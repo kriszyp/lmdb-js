@@ -17,6 +17,8 @@ ldapdelete \- LDAP delete entry tool
 [\c
 .BR \-c ]
 [\c
+.BR \-C ]
+[\c
 .BR \-M[M] ]
 [\c
 .BI \-d \ debuglevel\fR]
@@ -81,6 +83,9 @@ is compiled with KERBEROS defined.
 Same as \-k, but only does step 1 of the kerberos bind.  This is useful
 when connecting to a slapd and there is no x500dsa.hostname principal
 registered with your kerberos servers.
+.TP
+.B \-C
+Automatically chase referrals.
 .TP
 .B \-c
 Continuous operation mode.  Errors  are  reported,  but

@@ -247,9 +247,9 @@ static Listener * open_listener( const char* url )
 #  ifdef LDAP_PF_UNIX
 	if ( ldap_pvt_url_scheme2proto(lud->lud_scheme) == LDAP_PROTO_IPC ) {
 		if ( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) {
-			err = getaddrinfo(NULL, "/tmp/.ldap-sock", &hints, &res);
+			err = getaddrinfo(NULL, LDAPI_SOCK, &hints, &res);
 			if (!err)
-				unlink( "/tmp/.ldap-sock" );
+				unlink( LDAPI_SOCK );
 		} else {
 			err = getaddrinfo(NULL, lud->lud_host, &hints, &res);
 			if (!err)
@@ -279,6 +279,7 @@ static Listener * open_listener( const char* url )
 	do {
 		l.sl_sd = socket( sai->ai_family, sai->ai_socktype, sai->ai_protocol);
 		if ( l.sl_sd == AC_SOCKET_INVALID ) {
+			int err = sock_errno();
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: socket() failed errno=%d (%s)\n", err,
 				sock_errstr(err), 0 );
@@ -297,7 +298,7 @@ static Listener * open_listener( const char* url )
 
 		/* hack: overload the host to be the path */
 		if ( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) {
-			strcpy( l.sl_sa.sa_un_addr.sun_path, "/tmp/.ldap-sock" );
+			strcpy( l.sl_sa.sa_un_addr.sun_path, LDAPI_SOCK );
 		} else {
 			if ( strlen(lud->lud_host) > (sizeof(l.sl_sa.sa_un_addr.sun_path) - 1) ) {
 				Debug( LDAP_DEBUG_ANY,
@@ -437,7 +438,7 @@ static Listener * open_listener( const char* url )
 #  ifdef LDAP_PF_UNIX
 	case AF_UNIX:
 		if ( chmod( (char *)sai->ai_addr, S_IRWXU ) < 0 ) {
-			err = sock_errno();
+			int err = sock_errno();
 			Debug( LDAP_DEBUG_ANY, "daemon: fchmod(%ld) failed errno=%d (%s)",
 				(long) l.sl_sd, err, sock_errstr(err) );
 			tcp_close( l.sl_sd );

@@ -237,10 +237,11 @@ ldbm_back_bind(
 		break;
 
 	case LDAP_AUTH_KRBV42:
-		send_ldap_result( conn, op, LDAP_SUCCESS,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+			NULL, "Kerberos bind step 2 not supported",
+			NULL, NULL );
 		/* stop front end from sending result */
-		rc = 1;
+		rc = LDAP_UNWILLING_TO_PERFORM;
 		goto return_results;
 #endif
 

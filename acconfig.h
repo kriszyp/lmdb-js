@@ -13,11 +13,6 @@
 
 /* end of preamble */
 
-#if !defined(SLAPD_SCHEMA_COMPAT) && !defined(SLAPD_SCHEMA_NOT_COMPAT)
-	/* define SLAPD_SCHEMA_COMPAT if you want old schema codes */
-#define SLAPD_SCHEMA_NOT_COMPAT 1
-#endif
-
 @TOP@
 
 /* define this if needed to get reentrant functions */
@@ -83,9 +78,9 @@
 #	define WIN32_LEAN_AND_MEAN 1
 #endif
 
-#ifndef __NEED_PROTOTYPES
+#ifndef LDAP_NEEDS_PROTOTYPES
 /* force LDAP_P to always include prototypes */
-#define __NEED_PROTOTYPES 1
+#define LDAP_NEEDS_PROTOTYPES 1
 #endif
 
 #ifdef HAVE_STDDEF_H

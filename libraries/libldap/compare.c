@@ -66,7 +66,7 @@ ldap_compare_ext(
 		return( LDAP_NO_MEMORY );
 	}
 
-	if ( ber_printf( ber, "{it{s{sO}}", /* '}' */
+	if ( ber_printf( ber, "{it{s{sON}N}", /* '}' */
 		++ld->ld_msgid,
 		LDAP_REQ_COMPARE, dn, attr, bvalue ) == -1 )
 	{
@@ -81,7 +81,7 @@ ldap_compare_ext(
 		return ld->ld_errno;
 	}
 
-	if( ber_printf( ber, /*{*/ "}" ) == -1 ) {
+	if( ber_printf( ber, /*{*/ "N}" ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return( ld->ld_errno );

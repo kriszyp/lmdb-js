@@ -19,10 +19,10 @@
 
 LDAP_BEGIN_DECL
 
-LIBLUTIL_F( int )
+LDAP_LUTIL_F( int )
 lutil_lockf LDAP_P(( int fd ));
 
-LIBLUTIL_F( int )
+LDAP_LUTIL_F( int )
 lutil_unlockf LDAP_P(( int fd ));
 
 LDAP_END_DECL
