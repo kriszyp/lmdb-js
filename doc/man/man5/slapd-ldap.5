@@ -281,13 +281,20 @@ These lines map cn, sn, manager, and description to themselves, and
 any other attribute gets "removed" from the object before it is sent 
 to the client (or sent up to the LDAP server).  This is obviously a 
 simplistic example, but you get the point.
+.SH PROXY CACHE OVERLAY
+The proxy cache overlay 
+allows caching of LDAP search requests (queries) in a local database.
+See 
+.BR slapo-pcache (5)
+for details.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
 default slapd configuration file
 .SH SEE ALSO
 .BR slapd.conf (5),
-.BR slapd-meta (5),
+.BR slapd\-meta (5),
+.BR slapo\-pcache (5),
 .BR slapd (8),
 .BR ldap (3).
 .SH AUTHOR

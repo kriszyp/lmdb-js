@@ -1,0 +1,106 @@
+.TH SLAPO-PCACHE 5 "RELEASEDATE" "OpenLDAP LDVERSION"
+.\" Copyright 1998-2004 The OpenLDAP Foundation, All Rights Reserved.
+.\" Copying restrictions apply.  See the COPYRIGHT file.
+.\" Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
+.\" $OpenLDAP$
+.SH NAME
+slapo-pcache \- proxycache overlay
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The
+.B pcache
+overlay to
+.BR slapd (8)
+allows caching of LDAP search requests (queries) in a local database.
+For an incoming query, the
+proxy cache determines its corresponding \fBtemplate\fP. If the template
+was specified as cacheable using the \fBproxytemplate\fP directive
+and the request is contained in a cached request, it is answered from 
+the proxy cache.
+Otherwise, the search is performed as usual and cacheable search results 
+are saved in the cache for use in future queries.
+.LP
+
+A template is defined by a filter string and an index identifying a set of
+attributes. The \fBtemplate string\fP for a query can be obtained by
+removing assertion values from the RFC 2254 representation of its search
+filter. A query belongs to a template if its template string and set of
+projected attributes correspond to a cacheable template. Examples of template strings are (mail=), (|(sn=)(cn=)), (&(sn=)(givenName=)).    
+
+.LP 
+The following cache specific directives can be used to configure the proxy
+cache: 
+.TP
+.B overlay proxycache
+This directive adds the proxycache overlay to the current backend. The
+proxycache overlay may be used with any backend but is intended for use
+with the
+.BR ldap ,
+.BR meta ,
+and
+.BR sql
+backends.
+.TP
+.B proxycache <database> <max_entries> <numattrsets> <entry_limit> <cc_period> 
+The directive enables proxy caching in the current backend and sets general
+cache parameters. A <database> backend will be used internally to maintain
+the cached entries. The chosen database will need to be configured as well,
+as shown below. Cache replacement is invoked when the cache size grows to 
+<max_entries> entries and continues till the cache size drops below this size.
+<numattrsets> should be equal to the number of following \fBproxyattrset\fP
+directives. Queries are cached only if they correspond to a cacheable template
+(specified by the \fBproxytemplate\fP directive) and the number of entries
+returned is less than <entry_limit>. Consistency check is performed every
+<cc_period> duration (specified in secs). In each cycle queries with expired
+"time to live(\fBTTL\fP)" are removed. A sample cache configuration is: 
+.LP
+.RS
+proxycache \fBbdb 10000 1 50 100\fP
+.RE
+.TP
+.B proxyattrset <index> <attrs...>
+Used to associate a set of attributes <attrs..> with an <index>. Each attribute
+set is associated with an integer from 0 to <numattrsets>-1. These indices are
+used by the \fBproxytemplate\fP directive to define cacheable templates. 
+
+.TP
+.B proxytemplate <template_string> <attrset_index> <ttl> 
+Specifies a cacheable template and "time to live" (in sec) <ttl> of queries 
+belonging to the template. 
+
+.LP
+The following adds a template with filter string (&sn=)(givenName=)) and attributes mail, postaladdress, telephonenumber and a TTL of 1 hour. 
+.LP
+.RS
+.nf
+proxyattrset \fB0 mail postaladdress telephonenumber\fP
+proxytemplate \fB(&(sn=)(givenName=)) 0 3600\fP
+.fi
+.RE
+.LP
+Directives for configuring the underlying database must also be given, as
+shown here:
+.LP
+.RS
+.nf
+directory /var/tmp/cache
+cachesize 100
+.fi
+.RE
+.LP
+Any valid directives for the chosen database type may be used.
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd.conf (5),
+.BR slapd\-ldap (5),
+.BR slapd\-meta (5),
+.BR slapd\-sql (5),
+.BR slapd (8),
+.BR regex (7).
+.SH AUTHOR
+Originally implemented by Apurva Kumar as an extension to back-meta;
+turned into an overlay by Howard Chu.
