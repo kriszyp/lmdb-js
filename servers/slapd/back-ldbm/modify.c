@@ -369,7 +369,8 @@ delete_values(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 			int match;
 			const char *text;
-			int rc = value_match( &match, mod->sm_desc, NULL,
+			int rc = value_match( &match, mod->sm_desc,
+				mod->sm_desc->ad_type->sat_equality,
 				mod->sm_bvalues[i], a->a_vals[j], &text );
 
 			if( rc == LDAP_SUCCESS && match == 0 )

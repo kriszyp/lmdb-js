@@ -410,7 +410,7 @@ ldbm_back_modrdn(
 				const char *text;
 
 				mod[1].sml_desc = NULL;
-				rc = slap_str2ad( old_rdn_type, &mod[0].sml_desc, &text );
+				rc = slap_str2ad( old_rdn_type, &mod[1].sml_desc, &text );
 
 				if( rc != LDAP_SUCCESS ) {
 					Debug( LDAP_DEBUG_TRACE,
