@@ -823,9 +823,6 @@ try_again:
 			goto try_again;
 		}
 
-		/* free cache read lock */
-		ldap_pvt_thread_rdwr_runlock( &cache->c_rwlock );
-
 		/* set lru mutex */
 		ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
 
@@ -835,6 +832,9 @@ try_again:
 		
 		/* free lru mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
+
+		/* free cache read lock */
+		ldap_pvt_thread_rdwr_runlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( CACHE, DETAIL1, 
@@ -955,8 +955,6 @@ try_again:
 		/* Mark entry in-use */
 		BEI(ep)->bei_refcnt++;
 
-		/* free cache read lock */
-		ldap_pvt_thread_rdwr_runlock( &cache->c_rwlock );
 		/* set lru mutex */
 		ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
 		/* lru */
@@ -965,6 +963,8 @@ try_again:
 
 		/* free lru mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
+		/* free cache read lock */
+		ldap_pvt_thread_rdwr_runlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( CACHE, DETAIL1, 
