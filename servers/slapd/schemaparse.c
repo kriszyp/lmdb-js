@@ -56,6 +56,9 @@ parse_oc_old(
 	oc->oc_names = ch_calloc( 2, sizeof(char *) );
 	oc->oc_names[0] = ch_strdup( argv[1] );
 	oc->oc_names[1] = NULL;
+	if ( strcasecmp( oc->oc_names[0], "top" ) ) {
+		oc->oc_kind = LDAP_SCHEMA_STRUCTURAL;
+	}
 	for ( i = 2; i < argc; i++ ) {
 		/* required attributes */
 		if ( strcasecmp( argv[i], "requires" ) == 0 ) {
