@@ -22,7 +22,7 @@ ldap_pvt_thread_mutex_t tcl_interpreter_mutex;
 
 #ifdef SLAPD_TCL_DYNAMIC
 
-void back_tcl_LTX_init_module(int argc, char *argv[]) {
+void init_module(int argc, char *argv[]) {
    BackendInfo bi;
 
    memset( &bi, '\0', sizeof(bi) );

@@ -38,7 +38,7 @@ ldap_pvt_thread_mutex_t	perl_interpreter_mutex;
 
 #ifdef SLAPD_PERL_DYNAMIC
 
-int back_perl_LTX_init_module(int argc, char *argv[])
+int init_module(int argc, char *argv[])
 {
 	BackendInfo bi;
 

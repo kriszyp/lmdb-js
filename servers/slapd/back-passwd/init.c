@@ -18,7 +18,7 @@ ldap_pvt_thread_mutex_t passwd_mutex;
 
 #ifdef SLAPD_PASSWD_DYNAMIC
 
-int back_passwd_LTX_init_module(int argc, char *argv[]) {
+int init_module(int argc, char *argv[]) {
     BackendInfo bi;
 
     memset( &bi, '\0', sizeof(bi) );

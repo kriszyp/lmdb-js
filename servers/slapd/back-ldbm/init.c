@@ -17,7 +17,7 @@
 
 #ifdef SLAPD_LDBM_DYNAMIC
 
-int back_ldbm_LTX_init_module(int argc, char *argv[]) {
+int init_module(int argc, char *argv[]) {
     BackendInfo bi;
 
     memset( &bi, '\0', sizeof(bi) );

@@ -154,7 +154,7 @@ struct monitorsubsys monitor_subsys[] = {
 #ifdef SLAPD_MONITOR_DYNAMIC
 
 int
-back_monitor_LTX_init_module( int argc, char *argv[] )
+init_module( int argc, char *argv[] )
 {
 	BackendInfo bi;
 

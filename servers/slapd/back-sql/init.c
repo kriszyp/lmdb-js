@@ -23,7 +23,7 @@
 #ifdef SLAPD_SQL_DYNAMIC
 
 int
-backsql_LTX_init_module(
+init_module(
 	int 		argc, 
 	char 		*argv[] )
 {

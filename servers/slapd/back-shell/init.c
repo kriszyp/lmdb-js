@@ -16,7 +16,7 @@
 
 #ifdef SLAPD_SHELL_DYNAMIC
 
-int back_shell_LTX_init_module(int argc, char *argv[]) {
+int init_module(int argc, char *argv[]) {
     BackendInfo bi;
 
     memset( &bi, '\0', sizeof(bi) );

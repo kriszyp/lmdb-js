@@ -78,7 +78,7 @@
 #ifdef SLAPD_META_DYNAMIC
 
 int
-back_meta_LTX_init_module( int argc, char *argv[] ) {
+init_module( int argc, char *argv[] ) {
     BackendInfo bi;
 
     memset( &bi, '\0', sizeof( bi ) );
