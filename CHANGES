@@ -1,5 +1,9 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.21 Engineering
+	Build environment
+		Fix back-shell tools make depend bug (ITS#1518)
+
 OpenLDAP 2.0.20 Release
 	Fixed slapd ACL empty replace bug (ITS#1530)
 	Fixed slapd ACL peername/sockname exact match bug (ITS#1516)
