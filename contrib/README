@@ -8,13 +8,14 @@ as documented within the package.
 
 Current contributions:
 	ldapc++
-		The OpenLDAP LDAP C++ API
+		LDAP C++ API
 		Contributed by SuSE Gmbh.
 
 	ldaptcl
-		TCL API from NeoSoft
+		LDAP TCL API
+		Contributed by NeoSoft
 
-Please submit your contributions using the OpenLDAP Issue
-Tracking System <http://www.openldap.org/>.
+Please submit your contributions using the OpenLDAP Issue Tracking
+System <http://www.openldap.org/>.
 
 $OpenLDAP$
