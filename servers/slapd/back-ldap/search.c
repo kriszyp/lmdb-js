@@ -443,6 +443,7 @@ ldap_build_entry(
 	
 	ent->e_id = 0;
 	ent->e_attrs = 0;
+	ent->e_ocflags = 0;
 	ent->e_private = 0;
 	attrp = &ent->e_attrs;
 
