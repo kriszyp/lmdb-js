@@ -246,6 +246,8 @@ main( int argc, char *argv[] )
 			return EXIT_FAILURE;
 		}
 
+		ber_printf( ber, "{" /*}*/ );
+
 		if( dn != NULL ) {
 			ber_printf( ber, "ts",
 				LDAP_TAG_EXOP_X_MODIFY_PASSWD_ID, dn );
@@ -263,6 +265,8 @@ main( int argc, char *argv[] )
 				LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW, newpw );
 			free(newpw);
 		}
+
+		ber_printf( ber, /*{*/ "}" );
 
 		rc = ber_flatten( ber, &bv );
 
@@ -294,7 +298,7 @@ main( int argc, char *argv[] )
 		}
 
 		/* we should check the tag */
-		tag = ber_scanf( ber, "a", &s);
+		tag = ber_scanf( ber, "{a}", &s);
 
 		if( tag == LBER_ERROR ) {
 			perror( "ber_scanf" );

@@ -184,6 +184,7 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_EXOP_X_MODIFY_PASSWD_ID	((ber_tag_t) 0x80U)
 #define LDAP_TAG_EXOP_X_MODIFY_PASSWD_OLD	((ber_tag_t) 0x81U)
 #define LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW	((ber_tag_t) 0x82U)
+#define LDAP_TAG_EXOP_X_MODIFY_PASSWD_GEN	((ber_tag_t) 0x80U)
 
 /* 
  * specific LDAP instantiations of BER types we know about

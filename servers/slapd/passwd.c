@@ -75,7 +75,11 @@ int slap_passwd_parse( struct berval *reqdata,
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	tag = ber_peek_tag( ber, &len );
+	tag = ber_scanf( ber, "{" /*}*/ );
+
+	if( tag != LBER_ERROR ) {
+		tag = ber_peek_tag( ber, &len );
+	}
 
 	if( tag == LDAP_TAG_EXOP_X_MODIFY_PASSWD_ID ) {
 		if( id == NULL ) {
@@ -183,8 +187,8 @@ struct berval * slap_passwd_return(
 
 	if( ber == NULL ) return NULL;
 	
-	rc = ber_printf( ber, "tO",
-		LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW, cred );
+	rc = ber_printf( ber, "{tO}",
+		LDAP_TAG_EXOP_X_MODIFY_PASSWD_GEN, cred );
 
 	if( rc == -1 ) {
 		ber_free( ber, 1 );
@@ -226,6 +230,11 @@ slap_passwd_check(
 struct berval * slap_passwd_generate( void )
 {
 	Debug( LDAP_DEBUG_TRACE, "slap_passwd_generate\n", 0, 0, 0 );
+
+	/*
+	 * generate passwords of only 8 characters as some getpass(3)
+	 * implementations truncate at 8 characters.
+	 */
 	return lutil_passwd_generate( 8 );
 }
 
