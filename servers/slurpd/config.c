@@ -34,7 +34,7 @@
 #include "slurp.h"
 #include "globals.h"
 
-#define MAXARGS	100
+#define MAXARGS	500
 
 /* Forward declarations */
 static void	add_replica LDAP_P(( char **, int ));
