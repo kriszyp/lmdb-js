@@ -66,7 +66,7 @@ LIBVERSION = @OPENLDAP_LIBVERSION@
 LTVERSION = -version-info $(LIBVERSION)
 
 # libtool --only flag for libraries: platform specific
-NT_LTONLY_LIB = --only-$(BUILD_LIBS_DYNAMIC)
+NT_LTONLY_LIB = # --only-$(BUILD_LIBS_DYNAMIC)
 LTONLY_LIB = $(@PLAT@_LTONLY_LIB)
 
 # libtool --only flag for modules: depends on linkage of module
@@ -170,7 +170,6 @@ AC_CFLAGS = @CFLAGS@
 AC_DEFS = @CPPFLAGS@ # @DEFS@
 AC_LDFLAGS = @LDFLAGS@
 AC_LIBS = @LIBS@
-CWD_DEF = -D_OLV_CWD=\"`pwd`\"
 
 KRB4_LIBS = @KRB4_LIBS@
 KRB5_LIBS = @KRB5_LIBS@
