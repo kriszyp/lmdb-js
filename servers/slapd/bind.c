@@ -550,22 +550,10 @@ fe_op_bind( Operation *op, SlapReply *rs )
 	 */
 
 	if ( (op->o_bd = select_backend( &op->o_req_ndn, 0, 0 )) == NULL ) {
-		if ( default_referral ) {
-			rs->sr_ref = referral_rewrite( default_referral,
-				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
-			if (!rs->sr_ref) rs->sr_ref = default_referral;
-
-			rs->sr_err = LDAP_REFERRAL;
-			send_ldap_result( op, rs );
-
-			if (rs->sr_ref != default_referral) ber_bvarray_free( rs->sr_ref );
-
-		} else {
-			/* noSuchObject is not allowed to be returned by bind */
-			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-			send_ldap_result( op, rs );
-		}
-
+		/* don't return referral for bind requests */
+		/* noSuchObject is not allowed to be returned by bind */
+		rs->sr_err = LDAP_INVALID_CREDENTIALS;
+		send_ldap_result( op, rs );
 		goto cleanup;
 	}
 
