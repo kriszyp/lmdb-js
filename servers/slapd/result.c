@@ -40,6 +40,9 @@ send_ldap_result2(
 	int		rc, sd;
 	unsigned long	tag, bytes;
 
+	if ( err == LDAP_PARTIAL_RESULTS && (text == NULL || *text == '\0') )
+		err = LDAP_NO_SUCH_OBJECT;
+
 	Debug( LDAP_DEBUG_TRACE, "send_ldap_result %d:%s:%s\n", err, matched ?
 	    matched : "", text ? text : "" );
 
