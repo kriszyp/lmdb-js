@@ -1126,7 +1126,7 @@ dnl		#ifdef LDAP_R_COMPILE
 dnl		#	include LDAP_R_COMPILE
 dnl		#endif
 dnl
-dnl LDAP_R_COMIPLE is defined by libldap_r/Makefile.in
+dnl LDAP_R_COMPILE is defined by libldap_r/Makefile.in
 dnl specifically for compiling the threadsafe version of
 dnl	the ldap library (-lldap_r).
 dnl		

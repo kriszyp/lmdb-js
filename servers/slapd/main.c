@@ -210,7 +210,7 @@ main( int argc, char **argv )
 			break;
 #endif
 
-#if defined(HAVE_SETUID) && defined(HAVE_GETUID)
+#if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		case 'u':	/* user name */
 			if( username ) free(username);
 			username = ch_strdup( optarg );
