@@ -33,6 +33,8 @@
 #include "slap.h"
 #include "../back-ldap/back-ldap.h"
 
+static BackendInfo *lback;
+
 static int
 ldap_chain_chk_referrals( Operation *op, SlapReply *rs )
 {
@@ -139,25 +141,25 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 		op->o_req_ndn = slap_empty_bv;
 
 		op->o_conn = NULL;
-		rc = ldap_back_bind( op, rs );
+		rc = lback->bi_op_bind( op, rs );
 		op->o_req_ndn = rndn;
 		op->o_conn = conn;
 		}
 		break;
 	case LDAP_REQ_ADD:
-		rc = ldap_back_add( op, rs );
+		rc = lback->bi_op_add( op, rs );
 		break;
 	case LDAP_REQ_DELETE:
-		rc = ldap_back_delete( op, rs );
+		rc = lback->bi_op_delete( op, rs );
 		break;
 	case LDAP_REQ_MODRDN:
-		rc = ldap_back_modrdn( op, rs );
+		rc = lback->bi_op_modrdn( op, rs );
 	    	break;
 	case LDAP_REQ_MODIFY:
-		rc = ldap_back_modify( op, rs );
+		rc = lback->bi_op_modify( op, rs );
 		break;
 	case LDAP_REQ_COMPARE:
-		rc = ldap_back_compare( op, rs );
+		rc = lback->bi_op_compare( op, rs );
 		break;
 	case LDAP_REQ_SEARCH:
 		if ( rs->sr_type == REP_SEARCHREF ) {
@@ -198,7 +200,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 				/* FIXME: should we also copy filter and scope?
 				 * according to RFC3296, no */
 
-				rc = ldap_back_search( op, rs );
+				rc = lback->bi_op_search( op, rs );
 
 				ldap_memfree( li.url );
 				li.url = NULL;
@@ -219,11 +221,11 @@ end_of_searchref:;
 			rs->sr_type = REP_SEARCHREF;
 			
 		} else {
-			rc = ldap_back_search( op, rs );
+			rc = lback->bi_op_search( op, rs );
 		}
 	    	break;
 	case LDAP_REQ_EXTENDED:
-		rc = ldap_back_extended( op, rs );
+		rc = lback->bi_extended( op, rs );
 		break;
 	default:
 		rc = SLAP_CB_CONTINUE;
@@ -262,7 +264,7 @@ static int ldap_chain_config(
 		argv0 = argv[ 0 ];
 		argv[ 0 ] = &argv[ 0 ][ sizeof( "chain-" ) - 1 ];
 	}
-	rc = ldap_back_db_config( be, fname, lineno, argc, argv );
+	rc = lback->bi_db_config( be, fname, lineno, argc, argv );
 	if ( argv0 ) {
 		argv[ 0 ] = argv0;
 	}
@@ -280,7 +282,7 @@ static int ldap_chain_init(
 	int rc;
 
 	be->be_private = NULL;
-	rc = ldap_back_db_init( be );
+	rc = lback->bi_db_init( be );
 	on->on_bi.bi_private = be->be_private;
 	be->be_private = private;
 
@@ -296,7 +298,7 @@ static int ldap_chain_destroy(
 	int rc;
 
 	be->be_private = on->on_bi.bi_private;
-	rc = ldap_back_db_destroy( be );
+	rc = lback->bi_db_destroy( be );
 	on->on_bi.bi_private = be->be_private;
 	be->be_private = private;
 	return rc;
@@ -306,6 +308,10 @@ static slap_overinst ldapchain;
 
 int chain_init()
 {
+	lback = backend_info("ldap");
+
+	if ( !lback ) return -1;
+
 	ldapchain.on_bi.bi_type = "chain";
 	ldapchain.on_bi.bi_db_init = ldap_chain_init;
 	ldapchain.on_bi.bi_db_config = ldap_chain_config;
