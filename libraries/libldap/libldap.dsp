@@ -171,10 +171,6 @@ SOURCE=.\dnssrv.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\dsparse.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\error.c
 # End Source File
 # Begin Source File
@@ -200,10 +196,6 @@ SOURCE=.\getdn.c
 # Begin Source File
 
 SOURCE=.\getentry.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\getfilter.c
 # End Source File
 # Begin Source File
 

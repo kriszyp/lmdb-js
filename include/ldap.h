@@ -474,42 +474,6 @@ typedef struct ldapmod {
 } LDAPMod;
 
 /*
- * structures for ldap getfilter routines
- */
-
-typedef struct ldap_filt_info {
-	char			*lfi_filter;
-	char			*lfi_desc;
-	int			lfi_scope;
-	int			lfi_isexact;
-	struct ldap_filt_info	*lfi_next;
-} LDAPFiltInfo;
-
-typedef struct ldap_filt_list {
-    char			*lfl_tag;
-    char			*lfl_pattern;
-    char			*lfl_delims;
-    LDAPFiltInfo		*lfl_ilist;
-    struct ldap_filt_list	*lfl_next;
-} LDAPFiltList;
-
-
-#define LDAP_FILT_MAXSIZ	1024
-
-typedef struct ldap_filt_desc {
-	LDAPFiltList		*lfd_filtlist;
-	LDAPFiltInfo		*lfd_curfip;
-	LDAPFiltInfo		lfd_retfi;
-	char			lfd_filter[ LDAP_FILT_MAXSIZ ];
-	char			*lfd_curval;
-	char			*lfd_curvalcopy;
-	char			**lfd_curvalwords;
-	char			*lfd_filtprefix;
-	char			*lfd_filtsuffix;
-} LDAPFiltDesc;
-
-
-/*
  * structure representing an ldap session which can
  * encompass connections to multiple servers (in the
  * face of referrals).
@@ -1463,23 +1427,8 @@ ldap_unbind_ext_s LDAP_P((
 	LDAPControl		**clientctrls));
 
 /*
- * in getfilter.c
- *	(deprecated)
+ * in filter.c
  */
-LDAP_F( LDAPFiltDesc * )
-ldap_init_getfilter LDAP_P(( /* deprecated */
-	LDAP_CONST char *fname ));
-
-LDAP_F( LDAPFiltInfo * )
-ldap_getfirstfilter LDAP_P(( /* deprecated */
-	LDAPFiltDesc *lfdp,
-	/* LDAP_CONST */ char *tagpat,
-	/* LDAP_CONST */ char *value ));
-
-LDAP_F( LDAPFiltInfo * )
-ldap_getnextfilter LDAP_P(( /* deprecated */
-	LDAPFiltDesc *lfdp ));
-
 LDAP_F( int )
 ldap_put_vrFilter LDAP_P((
 	BerElement *ber,
@@ -1514,10 +1463,6 @@ ldap_memvfree LDAP_P((
 LDAP_F( char * )
 ldap_strdup LDAP_P((
 	LDAP_CONST char * ));
-
-LDAP_F( void )
-ldap_getfilter_free LDAP_P((
-	LDAPFiltDesc *lfdp ));
 
 LDAP_F( void )
 ldap_mods_free LDAP_P((

@@ -60,42 +60,6 @@ ldap_strdup( LDAP_CONST char *p )
 	return LDAP_STRDUP( p );
 }
 
-void
-ldap_getfilter_free( LDAPFiltDesc *lfdp )
-{
-    LDAPFiltList	*flp, *nextflp;
-    LDAPFiltInfo	*fip, *nextfip;
-
-    for ( flp = lfdp->lfd_filtlist; flp != NULL; flp = nextflp ) {
-	for ( fip = flp->lfl_ilist; fip != NULL; fip = nextfip ) {
-	    nextfip = fip->lfi_next;
-	    LDAP_FREE( fip->lfi_filter );
-	    LDAP_FREE( fip->lfi_desc );
-	    LDAP_FREE( fip );
-	}
-	nextflp = flp->lfl_next;
-	LDAP_FREE( flp->lfl_pattern );
-	LDAP_FREE( flp->lfl_delims );
-	LDAP_FREE( flp->lfl_tag );
-	LDAP_FREE( flp );
-    }
-
-    if ( lfdp->lfd_curvalcopy != NULL ) {
-	LDAP_FREE( lfdp->lfd_curvalcopy );
-    }
-    if ( lfdp->lfd_curvalwords != NULL ) {
-	LDAP_FREE( lfdp->lfd_curvalwords );
-    }
-    if ( lfdp->lfd_filtprefix != NULL ) {
-	LDAP_FREE( lfdp->lfd_filtprefix );
-    }
-    if ( lfdp->lfd_filtsuffix != NULL ) {
-	LDAP_FREE( lfdp->lfd_filtsuffix );
-    }
-
-    LDAP_FREE( lfdp );
-}
-
 /*
  * free a null-terminated array of pointers to mod structures. the
  * structures are freed, not the array itself, unless the freemods

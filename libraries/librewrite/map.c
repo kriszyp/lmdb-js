@@ -632,7 +632,7 @@ rewrite_xmap_apply(
 
 	case REWRITE_MAP_XLDAPMAP: {
 		LDAP *ld;
-		char filter[ LDAP_FILT_MAXSIZ ];
+		char filter[1024];
 		LDAPMessage *res = NULL, *entry;
 		LDAPURLDesc *lud = ( LDAPURLDesc * )map->lm_args;
 		int attrsonly = 0;
