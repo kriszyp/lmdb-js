@@ -161,12 +161,16 @@ sb_sasl_pkt_length( const unsigned char *buf, unsigned max, int debuglevel )
 		| buf[2] << 8
 		| buf[3];
    
-	if ( size > max ) {
+	if ( size > SASL_MAX_BUFF_SIZE ) {
 		/* somebody is trying to mess me up. */
 		ber_log_printf( LDAP_DEBUG_ANY, debuglevel,
 			"sb_sasl_pkt_length: received illegal packet length "
 			"of %lu bytes\n", (unsigned long)size );      
 		size = 16; /* this should lead to an error. */
+	} else if ( size > max ) {
+		ber_log_printf( LDAP_DEBUG_ANY, debuglevel,
+			"sb_sasl_pkt_length: received packet length "
+			"of %lu exceeds negotiated max of %lu bytes\n", (unsigned long)size, (unsigned long)max );
 	}
 
 	return size + 4; /* include the size !!! */
