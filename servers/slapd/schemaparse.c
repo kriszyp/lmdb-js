@@ -25,7 +25,7 @@ static void		oc_usage(void)     LDAP_GCCATTR((noreturn));
 static void		at_usage(void)     LDAP_GCCATTR((noreturn));
 
 static char *const err2text[] = {
-	"",
+	"Unknown Error",
 	"Out of memory",
 	"ObjectClass not found",
 	"AttributeType not found",
@@ -44,7 +44,7 @@ char *
 scherr2str(int code)
 {
 	if ( code < 1 || code >= (sizeof(err2text)/sizeof(char *)) ) {
-		return "Unknown error";
+		return err2text[0];
 	} else {
 		return err2text[code];
 	}
