@@ -1,6 +1,19 @@
-Changes to OpenLDAP 2.0
+OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.0
+OpenLDAP 2.0.X Engineering
+	Fixed StartTLS & ldaps:// client SDK
+	Fixed slapd session close deadlock (ITS#704)
+	Updated slapd MAXARGS to 200
+	Updated slapd nisNetgroupTriple validation routine (ITS#705)
+	Updated slapd bootParameter validation routine (ITS#706)
+	Build Environment
+		Fixed MSC tcp_close redefine
+	Documentation
+		Updated manual pages references
+		Updated release documents
+		Updated "to do" list
+
+OpenLDAP 2.0.0 Release
 	Initial release of OpenLDAP 2.0
 
 ---
