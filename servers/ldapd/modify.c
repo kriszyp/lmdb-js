@@ -51,7 +51,7 @@ do_modify(
 	char			*last;
 	int			rc;
 	unsigned long		tag, len;
-	LDAPMod			*mods, *modtail;
+	LDAPModList		*mods, *modtail;
 	struct ds_read_arg	ra;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modify\n", 0, 0, 0 );
@@ -108,17 +108,17 @@ do_modify(
 	mods = modtail = NULL;
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) ) {
-		LDAPMod	*tmp;
+		LDAPModList	*tmp;
 
-		if ( (tmp = (LDAPMod *) calloc( 1, sizeof(LDAPMod) ))
+		if ( (tmp = (LDAPModList *) calloc( 1, sizeof(LDAPModList) ))
 		    == NULL ) {
 			send_ldap_msgresult( clientsb, MODTAG, m,
 			    LDAP_OPERATIONS_ERROR, NULL, "Malloc error" );
 			return( 0 );
 		}
 			
-		if ( ber_scanf( ber, "{i{a[V]}}", &tmp->mod_op, &tmp->mod_type,
-		    &tmp->mod_bvalues ) == LBER_ERROR ) {
+		if ( ber_scanf( ber, "{i{a[V]}}", &tmp->m.mod_op,
+		    &tmp->m.mod_type, &tmp->m.mod_bvalues ) == LBER_ERROR ) {
 			send_ldap_msgresult( clientsb, MODTAG, m,
 			    LDAP_PROTOCOL_ERROR, NULL, "" );
 			return( 0 );
@@ -157,7 +157,7 @@ do_modify2(
 	struct ds_modifyentry_arg	ma;
 	struct entrymod			*changetail = NULLMOD;
 	int				rc;
-	LDAPMod				*mods;
+	LDAPModList			*mods;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modify2\n", 0, 0, 0 );
 
@@ -181,7 +181,7 @@ do_modify2(
 		em->em_next = NULLMOD;
 
 		if ( (new = get_as( clientsb, MODTAG, m,
-		    mods->mod_type, mods->mod_bvalues )) == NULLATTR )
+		    mods->m.mod_type, mods->m.mod_bvalues )) == NULLATTR )
 			return( 0 );
 		em->em_what = new;
 
@@ -192,13 +192,13 @@ do_modify2(
 		}
 
 		if ( new->attr_value == NULLAV &&
-		    mods->mod_op != LDAP_MOD_DELETE ) {
+		    mods->m.mod_op != LDAP_MOD_DELETE ) {
 			send_ldap_msgresult( clientsb, MODTAG, m,
 			    LDAP_INVALID_SYNTAX, NULL, "No values specified" );
 			return( 0 );
 		}
 
-		switch ( mods->mod_op ) {
+		switch ( mods->m.mod_op ) {
 		case LDAP_MOD_ADD:
 			Debug( LDAP_DEBUG_ARGS, "ADD:\n", 0, 0, 0 );
 
@@ -490,14 +490,15 @@ modify_result( Sockbuf *sb, struct msg *m )
 }
 
 void
-modlist_free( LDAPMod *mods )
+modlist_free( LDAPModList *mods )
 {
-	LDAPMod	*next = NULL;
+	LDAPModList	*next;
 
 	for ( ; mods != NULL; mods = next ) {
-		free( mods->mod_type );
-		if ( mods->mod_bvalues != NULL )
-			ber_bvecfree( mods->mod_bvalues );
+		free( mods->m.mod_type );
+		if ( mods->m.mod_bvalues != NULL )
+			ber_bvecfree( mods->m.mod_bvalues );
+		next = mods->mod_next;
 		free( mods );
 	}
 }

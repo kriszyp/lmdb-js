@@ -109,7 +109,7 @@ int do_modify2 LDAP_P((Sockbuf *sb, struct msg *m, struct ds_read_result *rr));
 Attr_Sequence get_as LDAP_P(( Sockbuf *clientsb, unsigned long op, struct msg *m,
 			      char *type, struct berval **bvals ));
 void modify_result LDAP_P(( Sockbuf *sb, struct msg *m ));
-void modlist_free LDAP_P(( LDAPMod *mods ));
+void modlist_free LDAP_P(( LDAPModList *mods ));
 
 /*
  * modrdn.c

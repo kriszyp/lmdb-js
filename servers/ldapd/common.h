@@ -32,6 +32,15 @@ struct conn {
 };
 
 /*
+ * This structure represents a sequence of LDAPMod elements.
+ */
+typedef struct LDAPModList {
+	LDAPMod			m;
+	struct LDAPModList	*mod_next;
+} LDAPModList;
+
+
+/*
  * This structure represents an outstanding request.  There is one of
  * these for each client request for which we have not yet received a
  * response from a dsa.
@@ -41,7 +50,7 @@ struct msg {
 	int		m_msgid;	/* the message id */
 	int		m_uniqid;	/* unique id for this message */
 	int		m_msgtype;	/* the ldap operation type */
-	LDAPMod		*m_mods;	/* for modify operations only */
+	LDAPModList	*m_mods;	/* for modify operations only */
 	BerElement	*m_ber;		/* the unparsed ber for the op */
 	struct conn	*m_conn;	/* connection structure */
 #ifdef LDAP_CONNECTIONLESS
