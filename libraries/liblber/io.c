@@ -25,7 +25,9 @@
 #if defined(NeXT) || defined(VMS)
 #include <stdlib.h>
 #else /* next || vms */
+#ifndef __FreeBSD__
 #include <malloc.h>
+#endif
 #endif /* next || vms */
 #include <errno.h>
 #include <sys/types.h>

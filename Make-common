@@ -28,8 +28,9 @@
 # man pages are put under MANDIR
 # programs end-users will run are put in BINDIR
 #
-INSTROOT=/usr/local
-ETCDIR= $(INSTROOT)/etc
+PREFIX?=/usr/local
+INSTROOT=${PREFIX}
+ETCDIR= $(INSTROOT)/etc/ldap
 INCLUDEDIR= $(INSTROOT)/include
 LIBDIR= $(INSTROOT)/lib
 MANDIR= $(INSTROOT)/man
@@ -45,6 +46,7 @@ RUNTIMEETCDIR= $(ETCDIR)
 #############################################################################
 # Passed to every compile (cc or gcc).  This is where you put -O or -g, etc.
 #EXTRACFLAGS=-g
+EXTRACFLAGS=-O
 # Passed to every link (ld).  Include -g here if you did in EXTRACFLAGS.
 #EXTRALDFLAGS=-g
 
@@ -122,8 +124,8 @@ SLAPD_BACKENDS= -DLDAP_LDBM -DLDAP_SHELL -DLDAP_PASSWD
 # four choices: Berkeley db b-tree, Berkeley db hash, GNU dbm, or ndbm.
 #
 # berkeley db btree package
-#LDBMBACKEND=-DLDBM_USE_DBBTREE
-#LDBMINCLUDE=-I/usr/local/db/include
+LDBMBACKEND=-DLDBM_USE_DBBTREE
+LDBMINCLUDE=-I/usr/include
 #LDBMLIB=-ldb
 # berkeley db hash package
 #LDBMBACKEND=-DLDBM_USE_DBHASH
@@ -134,7 +136,7 @@ SLAPD_BACKENDS= -DLDAP_LDBM -DLDAP_SHELL -DLDAP_PASSWD
 #LDBMINCLUDE=-I/usr/local/gdbm/include
 #LDBMLIB=-lgdbm
 # standard unix ndbm
-LDBMBACKEND=-DLDBM_USE_NDBM
+#LDBMBACKEND=-DLDBM_USE_NDBM
 #
 # if you want to use a non-default threads package change these lines
 #THREADS=-DNO_THREADS

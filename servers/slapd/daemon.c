@@ -68,7 +68,12 @@ daemon(
 #else /* USE_SYSCONF */
         dtblsize = getdtablesize();
 #endif /* USE_SYSCONF */
-
+	/*
+	 * Add greg@greg.rim.or.jp
+	 */
+	if(dtblsize > FD_SETSIZE) {
+		dtblsize = FD_SETSIZE;
+	}
 	c = (Connection *) ch_calloc( 1, dtblsize * sizeof(Connection) );
 
 	for ( i = 0; i < dtblsize; i++ ) {
@@ -130,6 +135,7 @@ daemon(
 	(void) SIGNAL( SIGUSR1, (void *) do_nothing );
 	(void) SIGNAL( SIGUSR2, (void *) set_shutdown );
 	(void) SIGNAL( SIGTERM, (void *) set_shutdown );
+	(void) SIGNAL( SIGINT, (void *) set_shutdown );
 	(void) SIGNAL( SIGHUP, (void *) set_shutdown );
 
 	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
@@ -352,6 +358,7 @@ set_shutdown()
 	pthread_kill( listener_tid, SIGUSR1 );
 	(void) SIGNAL( SIGUSR2, (void *) set_shutdown );
 	(void) SIGNAL( SIGTERM, (void *) set_shutdown );
+	(void) SIGNAL( SIGINT, (void *) set_shutdown );
 	(void) SIGNAL( SIGHUP, (void *) set_shutdown );
 }
 

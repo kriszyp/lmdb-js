@@ -31,10 +31,8 @@ install:	FORCE
 	    $(INSTALL) $(INSTALLFLAGS) -m 644 $$TMPMAN $(INSTDIR)/$$page; \
 	    if [ -f "$$page.links" ]; then \
 		for link in `$(CAT) $$page.links`; do \
-		    echo ".so man$(SECT)/$$page" > $$TMPMAN; \
 		    echo "installing $(INSTDIR)/$$link as link to $$page"; \
-		    $(INSTALL) $(INSTALLFLAGS) -m 644 $$TMPMAN \
-			    $(INSTDIR)/$$link; \
+		    ln -sf $$page.gz $(INSTDIR)/$$link.gz; \
 		done; \
 	    fi; \
 	done; \

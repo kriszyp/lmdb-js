@@ -20,7 +20,9 @@
 #if defined(NeXT) || defined(VMS)
 #include <stdlib.h>
 #else /* next || vms */
+#ifndef __FreeBSD__
 #include <malloc.h>
+#endif
 #endif /* next || vms */
 #if defined( BC31 ) || defined( _WIN32 )
 #include <stdarg.h>
