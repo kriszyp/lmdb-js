@@ -1536,7 +1536,7 @@ syncprov_detach_op( Operation *op, syncops *so )
 	} else {
 		ptr = (char *)(op2->o_hdr + 1);
 	}
-	op2->o_ndn.bv_len = op->o_ndn.bv_len;
+	op2->o_authz = op->o_authz;
 	op2->o_ndn.bv_val = ptr;
 	ptr = lutil_strcopy(ptr, op->o_ndn.bv_val) + 1;
 	op2->o_dn = op2->o_ndn;
@@ -1546,7 +1546,6 @@ syncprov_detach_op( Operation *op, syncops *so )
 	op2->o_req_ndn.bv_len = op->o_req_ndn.bv_len;
 	op2->o_req_ndn.bv_val = ptr;
 	ptr = lutil_strcopy(ptr, op->o_req_ndn.bv_val) + 1;
-	op2->ors_filterstr.bv_len = op->ors_filterstr.bv_len;
 	op2->ors_filterstr.bv_val = ptr;
 	strcpy( ptr, so->s_filterstr.bv_val );
 	op2->ors_filterstr.bv_len = so->s_filterstr.bv_len;
@@ -1620,7 +1619,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 		} else {
 			int locked = 0;
 		/* It's RefreshAndPersist, transition to Persist phase */
-			syncprov_sendinfo( op, rs, ss->ss_present ?
+			syncprov_sendinfo( op, rs, ( ss->ss_present && rs->sr_nentries ) ?
 	 			LDAP_TAG_SYNC_REFRESH_PRESENT : LDAP_TAG_SYNC_REFRESH_DELETE,
 				&cookie, 1, NULL, 0 );
 			/* Flush any queued persist messages */
@@ -1823,6 +1822,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		}
 	}
 
+shortcut:
 	/* Append CSN range to search filter, save original filter
 	 * for persistent search evaluation
 	 */
@@ -1851,7 +1851,6 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	op->ors_filter = fand;
 	filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
 
-shortcut:
 	/* Let our callback add needed info to returned entries */
 	cb = op->o_tmpcalloc(1, sizeof(slap_callback)+sizeof(searchstate), op->o_tmpmemctx);
 	ss = (searchstate *)(cb+1);
