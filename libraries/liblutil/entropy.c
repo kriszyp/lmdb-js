@@ -24,10 +24,14 @@
 /*
  * lutil_entropy() provides nbytes of entropy in buf.
  * Quality offerred is suitable for one-time uses, such as "once" keys.
+ * Values may not be suitable for multi-time uses.
  *
  * Note:  Callers are encouraged to provide additional bytes of
  * of entropy in the buf argument.  This information is used in
  * fallback mode to improve the quality of bytes returned.
+ *
+ * This routinue should be extended to support additional sources
+ * of entropy.
  */
 int lutil_entropy( char *buf, int nbytes )
 {
@@ -74,10 +78,11 @@ int lutil_entropy( char *buf, int nbytes )
 #else
 	{
 		/* based upon Phil Karn's "practical randomness" idea
-		 * but implementation 100% OpenLDAP.  So don't blame Phil. */
-		/* worse case is this is a MD5 hash of a counter, if
-		 *	MD5 is a strong cryptographic hash, this should
-		 *	be fairly resistant to attack
+		 * but implementation 100% OpenLDAP.  So don't blame Phil.
+		 *
+		 * Worse case is that this is a MD5 hash of a counter, if
+		 * MD5 is a strong cryptographic hash, this should be fairly
+		 * resistant to attack
 		 */
 
 		/*
