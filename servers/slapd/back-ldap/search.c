@@ -260,7 +260,7 @@ fail:;
 		} else {
 			rc = ldap_parse_result( lc->ld, res, &rs->sr_err,
 					&match.bv_val, (char **)&rs->sr_text,
-					NULL, NULL, 1 );
+					NULL, &rs->sr_ctrls, 1 );
 			if (rc != LDAP_SUCCESS ) {
 				rs->sr_err = rc;
 			}
@@ -306,6 +306,11 @@ finish:;
 		free( ctrls );
 	}
 #endif /* LDAP_BACK_PROXY_AUTHZ */
+
+	if ( rs->sr_ctrls ) {
+		ldap_controls_free( rs->sr_ctrls );
+		rs->sr_ctrls = NULL;
+	}
 
 	if ( match.bv_val ) {
 		if ( rs->sr_matched != match.bv_val ) {

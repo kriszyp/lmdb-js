@@ -37,6 +37,8 @@ static int search_candidates(
 	ID	*ids,
 	ID	*scopes );
 
+static int parse_paged_cookie( Operation *op, SlapReply *rs );
+
 static void send_paged_response( 
 	Operation *op,
 	SlapReply *rs,
@@ -786,7 +788,14 @@ dn2entry_retry:
 		tentries = BDB_IDL_N(candidates);
 	}
 
-	if ( get_pagedresults(sop) > SLAP_NO_CONTROL ) {
+	if ( get_pagedresults( sop ) > SLAP_NO_CONTROL ) {
+		/* deferred cookie parsing */
+		rs->sr_err = parse_paged_cookie( sop, rs );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			send_ldap_result( sop, rs );
+			goto done;
+		}
+
 		if ( (ID)( sop->o_pagedresults_state.ps_cookie ) == 0 ) {
 			id = bdb_idl_first( candidates, &cursor );
 
@@ -1735,6 +1744,125 @@ static int search_candidates(
 			(long) BDB_IDL_LAST(ids) );
 #endif
 	}
+
+	return rc;
+}
+
+static int
+parse_paged_cookie( Operation *op, SlapReply *rs )
+{
+	LDAPControl	**c;
+	int		rc = LDAP_SUCCESS;
+	ber_tag_t	tag;
+	ber_int_t	size;
+	BerElement	*ber;
+	struct berval	cookie = BER_BVNULL;
+
+	/* this function must be invoked only if the pagedResults
+	 * control has been detected, parsed and partially checked
+	 * by the frontend */
+	assert( get_pagedresults( op ) > SLAP_NO_CONTROL );
+
+	/* look for the appropriate ctrl structure */
+	for ( c = op->o_ctrls; c[0] != NULL; c++ ) {
+		if ( strcmp( c[0]->ldctl_oid, LDAP_CONTROL_PAGEDRESULTS ) == 0 )
+		{
+			break;
+		}
+	}
+
+	if ( c[0] == NULL ) {
+		rs->sr_text = "missing pagedResults control";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	/* Already tested by frontend */
+	assert( c[0]->ldctl_value.bv_len > 0 );
+#if 0
+	if ( c[0]->ldctl_value.bv_len == 0 ) {
+		rs->sr_text = "paged results control value is empty (or absent)";
+		return LDAP_PROTOCOL_ERROR;
+	}
+#endif
+
+	/* Parse the control value
+	 *	realSearchControlValue ::= SEQUENCE {
+	 *		size	INTEGER (0..maxInt),
+	 *				-- requested page size from client
+	 *				-- result set size estimate from server
+	 *		cookie	OCTET STRING
+	 * }
+	 */
+	ber = ber_init( &c[0]->ldctl_value );
+	if ( ber == NULL ) {
+		rs->sr_text = "internal error";
+		return LDAP_OTHER;
+	}
+
+	tag = ber_scanf( ber, "{im}", &size, &cookie );
+
+	/* Already tested by frontend */
+	assert( tag != LBER_ERROR );
+#if 0
+	if ( tag == LBER_ERROR ) {
+		rs->sr_text = "paged results control could not be decoded";
+		rc = LDAP_PROTOCOL_ERROR;
+		goto done;
+	}
+#endif
+
+	/* Already tested by frontend */
+	assert( size >= 0 );
+#if 0
+	if ( size < 0 ) {
+		rs->sr_text = "paged results control size invalid";
+		rc = LDAP_PROTOCOL_ERROR;
+		goto done;
+	}
+#endif
+
+	/* cookie decoding/checks deferred to backend... */
+	if ( cookie.bv_len ) {
+		PagedResultsCookie reqcookie;
+		if( cookie.bv_len != sizeof( reqcookie ) ) {
+			/* bad cookie */
+			rs->sr_text = "paged results cookie is invalid";
+			rc = LDAP_PROTOCOL_ERROR;
+			goto done;
+		}
+
+		AC_MEMCPY( &reqcookie, cookie.bv_val, sizeof( reqcookie ));
+
+		if ( reqcookie > op->o_pagedresults_state.ps_cookie ) {
+			/* bad cookie */
+			rs->sr_text = "paged results cookie is invalid";
+			rc = LDAP_PROTOCOL_ERROR;
+			goto done;
+
+		} else if ( reqcookie < op->o_pagedresults_state.ps_cookie ) {
+			rs->sr_text = "paged results cookie is invalid or old";
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			goto done;
+		}
+
+	} else {
+		/* Initial request.  Initialize state. */
+#if 0
+		if ( op->o_conn->c_pagedresults_state.ps_cookie != 0 ) {
+			/* There's another pagedResults control on the
+			 * same connection; reject new pagedResults controls 
+			 * (allowed by RFC2696) */
+			rs->sr_text = "paged results cookie unavailable; try later";
+			rc = LDAP_UNWILLING_TO_PERFORM;
+			goto done;
+		}
+#endif
+		op->o_pagedresults_state.ps_cookie = 0;
+		op->o_pagedresults_state.ps_count = 0;
+	}
+
+done:;
+	(void)ber_free( ber, 1 );
 
 	return rc;
 }

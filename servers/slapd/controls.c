@@ -873,26 +873,28 @@ static int parsePagedResults (
 	 * }
 	 */
 	ber = ber_init( &ctrl->ldctl_value );
-	if( ber == NULL ) {
+	if ( ber == NULL ) {
 		rs->sr_text = "internal error";
 		return LDAP_OTHER;
 	}
 
 	tag = ber_scanf( ber, "{im}", &size, &cookie );
 
-	if( tag == LBER_ERROR ) {
+	if ( tag == LBER_ERROR ) {
 		rs->sr_text = "paged results control could not be decoded";
 		rc = LDAP_PROTOCOL_ERROR;
 		goto done;
 	}
 
-	if( size < 0 ) {
+	if ( size < 0 ) {
 		rs->sr_text = "paged results control size invalid";
 		rc = LDAP_PROTOCOL_ERROR;
 		goto done;
 	}
 
-	if( cookie.bv_len ) {
+#if 0
+	/* defer cookie decoding/checks to backend... */
+	if ( cookie.bv_len ) {
 		PagedResultsCookie reqcookie;
 		if( cookie.bv_len != sizeof( reqcookie ) ) {
 			/* bad cookie */
@@ -930,6 +932,7 @@ static int parsePagedResults (
 		op->o_pagedresults_state.ps_cookie = 0;
 		op->o_pagedresults_state.ps_count = 0;
 	}
+#endif
 
 	op->o_pagedresults_size = size;
 
