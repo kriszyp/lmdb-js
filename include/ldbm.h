@@ -56,10 +56,17 @@ typedef DB	*LDBM;
 /* for ldbm_open */
 #ifdef HAVE_BERKELEY_DB2
 typedef DBC	LDBMCursor;
+
 #	define LDBM_READER	DB_RDONLY
 #	define LDBM_WRITER	0x00000      /* hopefully */
+# ifdef HAVE_BERKELEY_DB2_DB_THREAD
 #	define LDBM_WRCREAT	(DB_NOMMAP|DB_CREATE|DB_THREAD)
 #	define LDBM_NEWDB	(DB_TRUNCATE|DB_CREATE|DB_THREAD)
+# else
+#	define LDBM_WRCREAT	(DB_NOMMAP|DB_CREATE|DB_THREAD)
+#	define LDBM_NEWDB	(DB_TRUNCATE|DB_CREATE|DB_THREAD)
+# endif
+
 #else
 typedef int LDBMCursor;
 #	define LDBM_READER	O_RDONLY
