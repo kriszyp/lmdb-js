@@ -46,6 +46,7 @@ Update to latest autoconf and friends
 
 Small projects
 --------------
+Add dumpasn1 logging support
 Add LDIFv1 control support
 Populate matchingRuleUse attribute in the subschema
 Implement -V version options
