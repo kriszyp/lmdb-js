@@ -631,6 +631,12 @@ read_config( char *fname )
 						      cargv[1] );
 			if ( rc )
 				return rc;
+		} else if ( !strcasecmp( cargv[0], "TLSVerifyClient" ) ) {
+			rc = ldap_pvt_tls_set_option( NULL,
+						      LDAP_OPT_X_TLS_REQUIRE_CERT,
+						      cargv[1] );
+			if ( rc )
+				return rc;
 
 #endif
 
