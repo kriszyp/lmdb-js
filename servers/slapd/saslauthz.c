@@ -334,14 +334,14 @@ static int slap_sasl_regexp( struct berval *in, struct berval *out )
 }
 
 /* Two empty callback functions to avoid sending results */
-static void sasl_sc_r( Connection *conn, Operation *o, ber_tag_t tag,
+void slap_cb_null_response( Connection *conn, Operation *o, ber_tag_t tag,
 	ber_int_t msgid, ber_int_t err, const char *matched,
 	const char *text, BerVarray ref, const char *resoid,
 	struct berval *resdata, struct berval *sasldata, LDAPControl **c)
 {
 }
 
-static void sasl_sc_s( Connection *conn, Operation *o, ber_int_t err,
+void slap_cb_null_sresult( Connection *conn, Operation *o, ber_int_t err,
 	const char *matched, const char *text, BerVarray refs, LDAPControl **c,
 	int nentries)
 {
@@ -389,7 +389,7 @@ void slap_sasl2dn( Connection *conn,
 	struct berval dn = { 0, NULL };
 	int scope = LDAP_SCOPE_BASE;
 	Filter *filter = NULL;
-	slap_callback cb = {sasl_sc_r, sasl_sc_s, sasl_sc_sasl2dn, NULL};
+	slap_callback cb = {slap_cb_null_response, slap_cb_null_sresult, sasl_sc_sasl2dn, NULL};
 	Operation op = {0};
 	struct berval regout = { 0, NULL };
 
@@ -509,7 +509,7 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 	Filter *filter=NULL;
 	regex_t reg;
 	smatch_info sm;
-	slap_callback cb = { sasl_sc_r, sasl_sc_s, sasl_sc_smatch, NULL };
+	slap_callback cb = { slap_cb_null_response, slap_cb_null_sresult, sasl_sc_smatch, NULL };
 	Operation op = {0};
 
 #ifdef NEW_LOGGING
