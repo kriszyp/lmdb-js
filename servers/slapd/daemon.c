@@ -295,6 +295,8 @@ slapd_daemon_task(
 	while ( !slapd_shutdown ) {
 		unsigned int i;
 		int ns, nfds;
+		int ebadf = 0;
+#define SLAPD_EBADF_LIMIT 10
 
 		fd_set			readfds;
 		fd_set			writefds;
@@ -360,7 +362,11 @@ slapd_daemon_task(
 		case -1: {	/* failure - try again */
 				int err = errno;
 
-				if( err != EINTR || err != EBADF) {
+				if( err == EBADF && ++ebadf < SLAPD_EBADF_LIMIT) {
+					continue;
+				}
+
+				if( err != EINTR ) {
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: select failed (%d): %s\n",
 						err,
@@ -374,12 +380,14 @@ slapd_daemon_task(
 			continue;
 
 		case 0:		/* timeout - let threads run */
+			ebadf = 0;
 			Debug( LDAP_DEBUG_CONNS, "daemon: select timeout - yielding\n",
 			    0, 0, 0 );
 	     	ldap_pvt_thread_yield();
 			continue;
 
 		default:	/* something happened - deal with it */
+			ebadf = 0;
 			Debug( LDAP_DEBUG_CONNS, "daemon: activity on %d descriptors\n",
 				ns, 0, 0 );
 			/* FALL THRU */
