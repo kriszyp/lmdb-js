@@ -930,7 +930,7 @@ ldap_url_parselist_ext (LDAPURLDesc **ludlist, const char *url, const char *sep 
 
 	urls = ldap_str2charray(url, sep);
 	if (urls == NULL)
-		return LDAP_NO_MEMORY;
+		return LDAP_URL_ERR_MEM;
 
 	/* count the URLs... */
 	for (i = 0; urls[i] != NULL; i++) ;
@@ -947,7 +947,7 @@ ldap_url_parselist_ext (LDAPURLDesc **ludlist, const char *url, const char *sep 
 		*ludlist = ludp;
 	}
 	ldap_charray_free(urls);
-	return LDAP_SUCCESS;
+	return LDAP_URL_SUCCESS;
 }
 
 int
