@@ -158,6 +158,17 @@ extern char ber_pvt_opt_on;
 #define LBER_OPT_ERROR		(-1)
 
 #define LBER_ELEMENT_SIZEOF (256) /* must be >= sizeof(BerElement) */
+typedef union ber_buffer_u {
+	char charbuf[LBER_ELEMENT_SIZEOF];
+
+	/* force alignment */
+	int intbuf;
+	long longbuf;
+	float floatbuf;
+	double doublebuf;
+	char* ptrbuf;
+} BerElementBuffer;
+
 typedef struct berelement BerElement;
 typedef struct sockbuf Sockbuf;
 typedef struct seqorset Seqorset;

@@ -83,8 +83,8 @@ int slap_passwd_parse( struct berval *reqdata,
 	int rc = LDAP_SUCCESS;
 	ber_tag_t tag;
 	ber_len_t len;
-	char berbuf[LBER_ELEMENT_SIZEOF];
-	BerElement *ber = (BerElement *)berbuf;
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
 
 	if( reqdata == NULL ) {
 		return LDAP_SUCCESS;
@@ -224,9 +224,9 @@ struct berval * slap_passwd_return(
 {
 	int rc;
 	struct berval *bv = NULL;
-	char berbuf[LBER_ELEMENT_SIZEOF];
+	BerElementBuffer berbuf;
 	/* opaque structure, size unknown but smaller than berbuf */
-	BerElement *ber = (BerElement *)berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
 
 	assert( cred != NULL );
 
