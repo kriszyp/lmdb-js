@@ -219,6 +219,10 @@ search criteria.
 	controlArray(attributes) is a list of attributes to be fetched.
 	    If not specified, all attributes are fetched.
 
+	controlArray(timeout) a timeout value in seconds (may contain
+	    fractional values -- extremely very small values are useful
+	    for forcing timeout conditions to test timeouts).
+
         For each matching record, destArray is populated with none,
 	some or all attribute-value pairs.
 
@@ -241,7 +245,7 @@ To enable caching of data received from an LDAP connection,
     foo cache enable timeout maxmem
 
 	...where timeout is specified in seconds, and maxmem is the
-	maximum memory to be used fo caching, in bytes.
+	maximum memory to be used for caching, in bytes.
 
 	If maxmem is 0, the cache size is restricted only by the timeout.
 

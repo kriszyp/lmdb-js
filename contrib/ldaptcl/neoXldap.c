@@ -23,7 +23,7 @@
  * Requests for permission may be sent to NeoSoft Inc, 1770 St. James Place,
  * Suite 500, Houston, TX, 77056.
  *
- * $Id: neoXldap.c,v 1.2 1999/04/29 22:14:57 hallvard Exp $
+ * $Id$
  *
  */
 
@@ -37,11 +37,18 @@
  * Current support is by Randy Kunkee.
  */
 
+/*
+ * Add timeout to controlArray to set timeout for ldap_result.
+ * 4/14/99 - Randy
+ */
+
 #include "tclExtend.h"
 
 #include <lber.h>
 #include <ldap.h>
 #include <string.h>
+#include <sys/time.h>
+#include <math.h>
 
 /*
  * Macros to do string compares.  They pre-check the first character before
@@ -58,8 +65,8 @@
  * against the Netscape LDAP server and the much more reliable SDK,
  * and then again backported to the Umich-3.3 client code.
  */
-
-#if defined(LDAP_API_VERSION)
+#define OPEN_LDAP 1
+#if defined(OPEN_LDAP)
        /* LDAP_API_VERSION must be defined per the current draft spec
        ** it's value will be assigned RFC number.  However, as
        ** no RFC is defined, it's value is currently implementation
@@ -68,37 +75,26 @@
        ** This section is for OPENLDAP.
        */
 #define ldap_attributefree(p) ldap_memfree(p)
+#define ldap_memfree(p) free(p)
 #define LDAP_ERR_STRING(ld)  \
-	ldap_err2string(ldap_get_lderrno(ld))
+	ldap_err2string(ldap->ld_errno)
 #elif defined( LDAP_OPT_SIZELIMIT )
        /*
        ** Netscape SDK w/ ldap_set_option, ldap_get_option
        */
 #define ldap_attributefree(p) ldap_memfree(p)
 #define LDAP_ERR_STRING(ld)  \
-	ldap_err2string(ldap_get_lderrno(ld, (char**)NULL, (char**)NULL))
+	ldap_err2string(ldap_get_lderrno(ldap))
 #else
        /* U-Mich/OpenLDAP 1.x API */
        /* RFC-1823 w/ changes */
-#define UMICH_LDAP
+#define UMICH_LDAP 1
 #define ldap_memfree(p) free(p)
 #define ldap_ber_free(p, n) ber_free(p, n)
-#define ldap_get_lderrno(ld, dummy1, dummy2) ((ld)->ld_errno)
 #define ldap_value_free_len(bvals) ber_bvecfree(bvals)
 #define ldap_attributefree(p) 
 #define LDAP_ERR_STRING(ld)  \
-	ldap_err2string(ldap_get_lderrno(ld))
-#endif
-
-#if defined(LDAP_API_VERSION)
-#ifdef LDAP_OPT_ERROR_NUMBER
-static int ldap_get_lderrno(LDAP *ld)
-{
-    int ld_errno = 0;
-    ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, (void*)&ld_errno);
-    return ld_errno;
-}
-#endif
+	ldap_err2string(ld->ld_errno)
 #endif
 
 
@@ -214,7 +210,7 @@ LDAP_ProcessOneSearchResult (interp, ldap, entry, destArrayNameObj, evalCodeObj)
  *-----------------------------------------------------------------------------
  */
 static int 
-LDAP_PerformSearch (interp, ldap, base, scope, attrs, filtpatt, value, destArrayNameObj, evalCodeObj)
+LDAP_PerformSearch (interp, ldap, base, scope, attrs, filtpatt, value, destArrayNameObj, evalCodeObj, timeout_p)
     Tcl_Interp     *interp;
     LDAP           *ldap;
     char           *base;
@@ -224,6 +220,7 @@ LDAP_PerformSearch (interp, ldap, base, scope, attrs, filtpatt, value, destArray
     char           *value;
     Tcl_Obj        *destArrayNameObj;
     Tcl_Obj        *evalCodeObj;
+    struct timeval *timeout_p;
 {
     char          filter[BUFSIZ];
     int           resultCode;
@@ -253,7 +250,7 @@ LDAP_PerformSearch (interp, ldap, base, scope, attrs, filtpatt, value, destArray
     while ((resultCode = ldap_result (ldap, 
 			      msgid, 
 			      0,
-			      NULL,
+			      timeout_p,
 			      &resultMessage)) == LDAP_RES_SEARCH_ENTRY) {
 
 	entryMessage = ldap_first_entry(ldap, resultMessage);
@@ -284,9 +281,13 @@ LDAP_PerformSearch (interp, ldap, base, scope, attrs, filtpatt, value, destArray
 	    }
 	}
     }
-
-    if (abandon) {
+    if (abandon || resultCode == 0) {
 	ldap_abandon(ldap, msgid);
+	if (resultCode == 0) {
+	    Tcl_SetErrorCode (interp, "TIMEOUT", (char*) NULL);
+	    Tcl_SetStringObj (resultObj, "LDAP timeout retrieving results", -1);
+	    return TCL_ERROR;
+	}
     } else {
 	if (resultCode == LDAP_RES_SEARCH_RESULT) {
 	    if ((errorCode = ldap_result2error (ldap, resultMessage, 0))
@@ -555,7 +556,7 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 		return TCL_ERROR;
 	    }
 
-	    valPtrs = mod->mod_vals.modv_strvals =
+	    valPtrs = mod->mod_vals.modv_strvals = \
 	        (char **)ckalloc (sizeof (char *) * (valuesObjc + 1));
 	    valPtrs[valuesObjc] = (char *)NULL;
 
@@ -616,6 +617,10 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	int          attributesArgc;
 
 	char        *filterPatternString;
+
+	char	    *timeoutString;
+	double 	     timeoutTime;
+	struct timeval timeout, *timeout_p;
 
 	Tcl_Obj     *destArrayNameObj;
 	Tcl_Obj     *evalCodeObj;
@@ -735,6 +740,24 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	    }
 	}
 
+	/* Fetch timeout value if there is one
+	 */
+	timeoutString = Tcl_GetVar2 (interp,
+				        controlArrayName,
+				        "timeout", 
+				        0);
+	timeout.tv_usec = 0;
+	if (timeoutString == (char *)NULL) {
+	    timeout_p = NULL;
+	    timeout.tv_sec = 0;
+	} else {
+	    if (Tcl_GetDouble(interp, timeoutString, &timeoutTime) != TCL_OK)
+		return TCL_ERROR;
+	    timeout.tv_sec = floor(timeoutTime);
+	    timeout.tv_usec = (timeoutTime-timeout.tv_sec) * 1000000;
+	    timeout_p = &timeout;
+	}
+
 #ifdef UMICH_LDAP
 	ldap->ld_deref = deref; 
 	ldap->ld_timelimit = 0;
@@ -750,7 +773,8 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 			            filterPatternString, 
 			            "",
 			            destArrayNameObj,
-			            evalCodeObj);
+			            evalCodeObj,
+				    timeout_p);
     }
 
 #if UMICH_LDAP
