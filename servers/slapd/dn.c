@@ -605,7 +605,7 @@ dn_parent(
 
 int
 dnExtractRdn( 
-	const char	*dn, 
+	struct berval	*dn, 
 	struct berval 	**rdn )
 {
 	LDAPRDN		*tmpRDN;
@@ -616,7 +616,11 @@ dnExtractRdn(
 	assert( dn );
 	assert( rdn );
 
-	rc = ldap_str2rdn( dn, &tmpRDN, &p, LDAP_DN_FORMAT_LDAP );
+	if( dn->bv_len == 0 ) {
+		return LDAP_OTHER;
+	}
+
+	rc = ldap_str2rdn( dn->bv_val, &tmpRDN, &p, LDAP_DN_FORMAT_LDAP );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
@@ -644,6 +648,7 @@ dn_rdnlen(
 	Backend		*be,
 	const char	*dn_in )
 {
+	struct berval bv;
 	struct berval	*rdn = NULL;
 	int		retval = 0;
 
@@ -665,7 +670,10 @@ dn_rdnlen(
 		return 0;
 	}
 
-	if ( dnExtractRdn( dn_in, &rdn ) != LDAP_SUCCESS ) {
+	bv.bv_val = (char *) dn_in;
+	bv.bv_len = strlen( bv.bv_val );
+
+	if ( dnExtractRdn( &bv, &rdn ) != LDAP_SUCCESS ) {
 		ber_bvfree( rdn );
 		return 0;
 	}
@@ -683,6 +691,7 @@ char * dn_rdn(
 	Backend	*be,
 	const char	*dn_in )
 {
+	struct berval	bv;
 	struct berval	*rdn = NULL;
 	char		*retval;
 
@@ -704,7 +713,10 @@ char * dn_rdn(
 		return NULL;
 	}
 
-	if ( dnExtractRdn( dn_in, &rdn ) != LDAP_SUCCESS ) {
+	bv.bv_val = (char *) dn_in;
+	bv.bv_len = strlen( bv.bv_val );
+
+	if ( dnExtractRdn( &bv, &rdn ) != LDAP_SUCCESS ) {
 		ber_bvfree( rdn );
 		return NULL;
 	}

@@ -405,7 +405,7 @@ monitor_subsys_conn_create(
 	       
 		/* create exactly the required entry */
 
-		if ( dnExtractRdn( ndn->bv_val, &rdn ) != LDAP_SUCCESS ) {
+		if ( dnExtractRdn( ndn, &rdn ) != LDAP_SUCCESS ) {
 			return( -1 );
 		}
 
