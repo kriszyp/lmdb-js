@@ -119,7 +119,7 @@ send_ldap_result2(
 		conn->c_writewaiter = 0;
 	}
 
-	ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
+	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 	ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
 
 #ifdef LDAP_COUNTERS
