@@ -142,18 +142,22 @@ ldap_get_option(
 		return 0;
 
 	case LDAP_OPT_SERVER_CONTROLS:
-		/* not yet supported */
-		break;
+		* (LDAPControl ***) outvalue =
+			ldap_controls_dup( lo->ldo_server_controls );
+
+		return 0;
 
 	case LDAP_OPT_CLIENT_CONTROLS:
-		/* not yet supported */
-		break;
+		* (LDAPControl ***) outvalue =
+			ldap_controls_dup( lo->ldo_client_controls );
+
+		return 0;
 
 	case LDAP_OPT_HOST_NAME:
 		/*
 		 * draft-ietf-ldapext-ldap-c-api-01 doesn't state
-		 * whether client to have to free host names or no,
-		 * we do
+		 * whether caller has to free host names or not,
+		 * we do.
 		 */
 
 		* (char **) outvalue = ldap_strdup(lo->ldo_defhost);
@@ -183,6 +187,7 @@ ldap_get_option(
 		} else {
 			* (char **) outvalue = ldap_strdup(ld->ld_error);
 		}
+
 		return 0;
 
 	case LDAP_OPT_API_FEATURE_INFO: {
@@ -281,12 +286,42 @@ ldap_set_option(
 		} return 0;
 
 	case LDAP_OPT_SERVER_CONTROLS: {
-			/* not yet supported */
-		} break;
+			LDAPControl **controls = (LDAPControl **) invalue;
+
+			ldap_controls_free( lo->ldo_server_controls );
+
+			if( controls == NULL || *controls == NULL ) {
+				lo->ldo_server_controls = NULL;
+				return 0;
+			}
+				
+			lo->ldo_server_controls =
+				ldap_controls_dup( (LDAPControl **) invalue );
+
+			if(lo->ldo_server_controls == NULL) {
+				/* memory allocation error ? */
+				break;
+			}
+		} return 0;
 
 	case LDAP_OPT_CLIENT_CONTROLS: {
-			/* not yet supported */
-		} break;
+			LDAPControl **controls = (LDAPControl **) invalue;
+
+			ldap_controls_free( lo->ldo_client_controls );
+
+			if( controls == NULL || *controls == NULL ) {
+				lo->ldo_client_controls = NULL;
+				return 0;
+			}
+				
+			lo->ldo_client_controls =
+				ldap_controls_dup( (LDAPControl **) invalue );
+
+			if(lo->ldo_client_controls == NULL) {
+				/* memory allocation error ? */
+				break;
+			}
+		} return 0;
 
 	case LDAP_OPT_HOST_NAME: {
 			char* host = (char *) invalue;
@@ -341,7 +376,7 @@ ldap_set_option(
 				free(ld->ld_error);
 			}
 
-			ld->ld_error = strdup(err);
+			ld->ld_error = ldap_strdup(err);
 		} return 0;
 
 	case LDAP_OPT_API_FEATURE_INFO:

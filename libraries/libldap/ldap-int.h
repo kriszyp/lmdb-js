@@ -77,14 +77,18 @@ struct ldapoptions {
 
 	int		ldo_debug;
 
+	int		ldo_defport;
 	char*	ldo_defbase;
 	char*	ldo_defhost;
-	int		ldo_defport;
 
 	int		ldo_cldaptries;	/* connectionless search retry count */
 	int		ldo_cldaptimeout;/* time between retries */
 	int		ldo_refhoplimit;	/* limit on referral nesting */
 
+	/* LDAPv3 server and client controls */
+	LDAPControl	**ldo_server_controls;
+	LDAPControl **ldo_client_controls;
+	
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
 };
 
@@ -236,6 +240,12 @@ void ldap_add_request_to_cache LDAP_P(( LDAP *ld, unsigned long msgtype,
         BerElement *request ));
 void ldap_add_result_to_cache LDAP_P(( LDAP *ld, LDAPMessage *result ));
 int ldap_check_cache LDAP_P(( LDAP *ld, unsigned long msgtype, BerElement *request ));
+
+/*
+ * in controls.c
+ */
+LDAPControl *ldap_control_dup LDAP_P(( LDAPControl *ctrl ));
+LDAPControl **ldap_controls_dup LDAP_P(( LDAPControl **ctrl ));
 
 /*
  * in dsparse.c

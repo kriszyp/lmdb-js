@@ -463,7 +463,7 @@ struct timeval;
 LDAP_F int ldap_get_option LDAP_P((LDAP *ld, int option, void *outvalue));
 LDAP_F int ldap_set_option LDAP_P((LDAP *ld, int option, void *invalue));
 
-/* Not yet */
+/* in controls.c */
 LDAP_F void ldap_control_free LDAP_P(( LDAPControl *ctrl ));
 LDAP_F void ldap_controls_free LDAP_P(( LDAPControl **ctrls ));
   
