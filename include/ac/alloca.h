@@ -13,6 +13,9 @@
 #ifndef _AC_ALLOCA_H
 #define _AC_ALLOCA_H
 
+/*
+ * use of alloca is disallowed as it is machine dependent
+ */
 #error  "alloca() not supported, use malloc()"
 
 /* AIX requires this to be the first thing in the file.  */
