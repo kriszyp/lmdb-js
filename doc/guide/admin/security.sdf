@@ -79,13 +79,12 @@ See the {{SECT:Using SASL}} chapter for more information.
 
 H3: Security Strength Factors
 
-The server uses {{TERM[expand]Security Strength Factors}} (SSF) to
-indicate the relative strength of protection.  A SSF of zero (0)
-indicates no protections are in place.  A SSF of one (1) indicates
-integrity protection are in place.  A SSF greater than one (>1)
-roughly correlates to the effective encryption key length.  For
-example, {{TERM:DES}} is 56, {{TERM:3DES}} is 112, and {{TERM:AES}}
-128, 192, or 256.
+The server uses {{TERM[expand]SSF}}s (SSF) to indicate the relative
+strength of protection.  A SSF of zero (0) indicates no protections
+are in place.  A SSF of one (1) indicates integrity protection are
+in place.  A SSF greater than one (>1) roughly correlates to the
+effective encryption key length.  For example, {{TERM:DES}} is 56,
+{{TERM:3DES}} is 112, and {{TERM:AES}} 128, 192, or 256.
 
 A number of administrative controls rely on SSFs associated with
 TLS and SASL protection in place on an LDAP session.
