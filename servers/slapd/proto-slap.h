@@ -151,7 +151,8 @@ LDAP_SLAPD_F (BackendDB *) select_backend LDAP_P(( const char * dn ));
 
 LDAP_SLAPD_F (int) be_issuffix LDAP_P(( Backend *be, const char *suffix ));
 LDAP_SLAPD_F (int) be_isroot LDAP_P(( Backend *be, const char *ndn ));
-LDAP_SLAPD_F (int) be_isroot_pw LDAP_P(( Backend *be, const char *ndn, struct berval *cred ));
+LDAP_SLAPD_F (int) be_isroot_pw LDAP_P(( Backend *be,
+	Connection *conn, const char *ndn, struct berval *cred ));
 LDAP_SLAPD_F (char *) be_root_dn LDAP_P(( Backend *be ));
 LDAP_SLAPD_F (int) be_entry_release_rw LDAP_P(( Backend *be, Entry *e, int rw ));
 #define be_entry_release_r( be, e ) be_entry_release_rw( be, e, 0 )

@@ -504,7 +504,10 @@ be_root_dn( Backend *be )
 }
 
 int
-be_isroot_pw( Backend *be, const char *ndn, struct berval *cred )
+be_isroot_pw( Backend *be,
+	Connection *conn,
+	const char *ndn,
+	struct berval *cred )
 {
 	int result;
 
@@ -526,6 +529,9 @@ be_isroot_pw( Backend *be, const char *ndn, struct berval *cred )
 	result = lutil_passwd( &be->be_root_pw, cred, NULL );
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_PASSWD )
+#ifdef SLAPD_SPASSWD
+	lutil_passwd_sasl_conn = NULL;
+#endif
 	ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 #endif
 
