@@ -37,7 +37,7 @@ static int search_candidates(
 	ID	*ids,
 	ID	*scopes );
 
-static void send_pagerequest_response( 
+static void send_paged_response( 
 	Operation *op,
 	SlapReply *rs,
 	ID  lastid,
@@ -736,9 +736,9 @@ dn2entry_retry:
 	}
 
 	/* if not root and candidates exceed to-be-checked entries, abort */
-	if ( sop->ors_limit	/* isroot == TRUE */
-			&& sop->ors_limit->lms_s_unchecked != -1
-			&& BDB_IDL_N(candidates) > (unsigned) sop->ors_limit->lms_s_unchecked )
+	if ( sop->ors_limit	/* isroot == TRUE */ &&
+		sop->ors_limit->lms_s_unchecked != -1 &&
+		BDB_IDL_N(candidates) > (unsigned) sop->ors_limit->lms_s_unchecked )
 	{
 		rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 		send_ldap_result( sop, rs );
@@ -746,8 +746,9 @@ dn2entry_retry:
 		goto done;
 	}
 
-	if ( sop->ors_limit == NULL	/* isroot == FALSE */
-			|| !sop->ors_limit->lms_s_pr_hide ) {
+	if ( sop->ors_limit == NULL	/* isroot == FALSE */ ||
+		!sop->ors_limit->lms_s_pr_hide )
+	{
 		tentries = BDB_IDL_N(candidates);
 	}
 
@@ -763,20 +764,25 @@ dn2entry_retry:
 				goto done;
 			}
 			for ( id = bdb_idl_first( candidates, &cursor );
-				id != NOID && id <= (ID)( sop->o_pagedresults_state.ps_cookie );
-				id = bdb_idl_next( candidates, &cursor ) ) /* empty */;
+				id != NOID &&
+					id <= (ID)( sop->o_pagedresults_state.ps_cookie );
+				id = bdb_idl_next( candidates, &cursor ) )
+			{
+				/* empty */;
+			}
 		}
+
 		if ( cursor == NOID ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, RESULTS, 
 				"bdb_search: no paged results candidates\n", 
-			0, 0, 0 );
+				0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, 
 				"bdb_search: no paged results candidates\n",
 				0, 0, 0 );
 #endif
-			send_pagerequest_response( sop, rs, lastid, 0 );
+			send_paged_response( sop, rs, lastid, 0 );
 
 			rs->sr_err = LDAP_OTHER;
 			goto done;
@@ -1071,6 +1077,7 @@ id2entry_retry:
 			} else {
 				rs->sr_err = LDAP_COMPARE_TRUE;
 			}
+
 		} else {
 			if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
 				rc_sync = test_filter( sop, rs->sr_entry, &cookief );
@@ -1089,6 +1096,7 @@ id2entry_retry:
 #endif
 						}
 						entry_sync_state = LDAP_SYNC_ADD;
+
 					} else {
 						if ( no_sync_state_change ) {
 							goto loop_continue;
@@ -1096,6 +1104,7 @@ id2entry_retry:
 						entry_sync_state = LDAP_SYNC_PRESENT;
 					}
 				}
+
 			} else {
 				rs->sr_err = test_filter( sop,
 					rs->sr_entry, sop->oq_search.rs_filter );
@@ -1105,7 +1114,7 @@ id2entry_retry:
 		if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
 			/* check size limit */
 			if ( --sop->ors_slimit == -1 &&
-					sop->o_sync_slog_size == -1 )
+				sop->o_sync_slog_size == -1 )
 			{
 				if (!IS_PSEARCH) {
 					bdb_cache_return_entry_r( bdb->bi_dbenv,
@@ -1122,8 +1131,7 @@ id2entry_retry:
 
 			if ( get_pagedresults(sop) ) {
 				if ( rs->sr_nentries >= sop->o_pagedresults_size ) {
-					send_pagerequest_response( sop, rs,
-						lastid, tentries );
+					send_paged_response( sop, rs, lastid, tentries );
 					goto done;
 				}
 				lastid = id;
@@ -1155,6 +1163,7 @@ id2entry_retry:
 							}
 							if (psid_e != NULL) free (psid_e);
 						}
+
 						if ( ps_type == LDAP_PSEARCH_BY_ADD ) {
 							entry_sync_state = LDAP_SYNC_ADD;
 						} else if ( ps_type == LDAP_PSEARCH_BY_DELETE ) {
@@ -1171,6 +1180,7 @@ id2entry_retry:
 							rs->sr_err = LDAP_OTHER;
 							goto done;
 						}
+
 						if ( sop->o_sync_slog_size != -1 ) {
 							if ( entry_sync_state == LDAP_SYNC_DELETE ) {
 								result = slap_add_session_log( op, sop, e );
@@ -1192,12 +1202,15 @@ id2entry_retry:
 							rs->sr_flags = 0;
 							result = send_search_entry( sop, rs );
 							if ( cookie.bv_val ) ch_free( cookie.bv_val );	
-							slap_sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val,
-								 sop->o_tmpmemctx );
-							slap_sl_free( ctrls[--num_ctrls], sop->o_tmpmemctx );
+							slap_sl_free(
+								ctrls[num_ctrls-1]->ldctl_value.bv_val,
+								sop->o_tmpmemctx );
+							slap_sl_free( ctrls[--num_ctrls],
+								sop->o_tmpmemctx );
 							ctrls[num_ctrls] = NULL;
 							rs->sr_ctrls = NULL;
 						}
+
 					} else if ( ps_type == LDAP_PSEARCH_BY_PREMODIFY ) {
 						struct psid_entry* psid_e;
 						psid_e = (struct psid_entry *) ch_calloc(1,
@@ -1217,6 +1230,7 @@ id2entry_retry:
 							ps_type, 0, 0);
 #endif
 					}
+
 				} else {
 					if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
 						if ( rc_sync == LDAP_COMPARE_TRUE ) { /* ADD */
@@ -1228,11 +1242,14 @@ id2entry_retry:
 							rs->sr_attrs = sop->oq_search.rs_attrs;
 							rs->sr_flags = 0;
 							result = send_search_entry( sop, rs );
-							slap_sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val,
-								 sop->o_tmpmemctx );
-							slap_sl_free( ctrls[--num_ctrls], sop->o_tmpmemctx );
+							slap_sl_free(
+								ctrls[num_ctrls-1]->ldctl_value.bv_val,
+								sop->o_tmpmemctx );
+							slap_sl_free( ctrls[--num_ctrls],
+								sop->o_tmpmemctx );
 							ctrls[num_ctrls] = NULL;
 							rs->sr_ctrls = NULL;
+
 						} else { /* PRESENT */
 							if ( sync_send_present_mode ) {
 								result = slap_build_syncUUID_set( sop,
@@ -1259,10 +1276,12 @@ id2entry_retry:
 										syncUUID_set_cnt = 0;
 									}
 								}
+
 							} else {
 								result = 1;
 							}
 						}
+
 					} else {
 						rs->sr_attrs = sop->oq_search.rs_attrs;
 						rs->sr_ctrls = NULL;
@@ -1278,15 +1297,17 @@ id2entry_retry:
 				case 1:		/* entry not sent */
 					break;
 				case -1:	/* connection closed */
-					if (!IS_PSEARCH)
-					bdb_cache_return_entry_r(bdb->bi_dbenv,
-						&bdb->bi_cache, e, &lock);
+					if (!IS_PSEARCH) {
+						bdb_cache_return_entry_r(bdb->bi_dbenv,
+							&bdb->bi_cache, e, &lock);
+					}
 					e = NULL;
 					rs->sr_entry = NULL;
 					rs->sr_err = LDAP_OTHER;
 					goto done;
 				}
 			}
+
 		} else {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, RESULTS,
@@ -1339,6 +1360,7 @@ nochange:
 					rs->sr_ctrls = NULL;
 					slap_send_syncinfo( sop, rs,
 						LDAP_TAG_SYNC_REFRESH_PRESENT, &cookie, 1, NULL, 0 );
+
 				} else {
 					if ( !no_sync_state_change ) {
 						int slog_found = 0;
@@ -1348,7 +1370,8 @@ nochange:
 						{
 							if ( ps_list->o_sync_slog_size > 0 ) {
 								if ( ps_list->o_sync_state.sid ==
-									sop->o_sync_state.sid ) {
+									sop->o_sync_state.sid )
+								{
 									slog_found = 1;
 									break;
 								}
@@ -1363,6 +1386,7 @@ nochange:
 						}
 						ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
 					}
+
 					rs->sr_err = LDAP_SUCCESS;
 					rs->sr_rspoid = LDAP_SYNC_INFO;
 					rs->sr_ctrls = NULL;
@@ -1370,9 +1394,8 @@ nochange:
 						LDAP_TAG_SYNC_REFRESH_DELETE, &cookie, 1, NULL, 0 );
 				}
 
-				if ( cookie.bv_val ) {
-					ch_free( cookie.bv_val );
-				}
+				if ( cookie.bv_val ) ch_free( cookie.bv_val );
+
 			} else {
 				/* refreshOnly mode */
 				struct berval cookie;
@@ -1382,6 +1405,7 @@ nochange:
 				if ( sync_send_present_mode ) {
 					slap_build_sync_done_ctrl( sop, rs, ctrls,
 						num_ctrls++, 1, &cookie, LDAP_SYNC_REFRESH_PRESENTS );
+
 				} else {
 					if ( !no_sync_state_change ) {
 						int slog_found = 0;
@@ -1403,6 +1427,7 @@ nochange:
 						}
 						ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
 					}
+
 					slap_build_sync_done_ctrl( sop, rs, ctrls,
 						num_ctrls++, 1, &cookie, LDAP_SYNC_REFRESH_DELETES );
 				}
@@ -1421,6 +1446,7 @@ nochange:
 				ctrls[num_ctrls] = NULL;
 				if ( cookie.bv_val ) ch_free( cookie.bv_val );	
 			}
+
 		} else {
 			rs->sr_ctrls = NULL;
 			rs->sr_ref = rs->sr_v2ref;
@@ -1670,7 +1696,7 @@ static int search_candidates(
 }
 
 static void
-send_pagerequest_response( 
+send_paged_response( 
 	Operation	*op,
 	SlapReply	*rs,
 	ID		lastid,
@@ -1684,11 +1710,11 @@ send_pagerequest_response(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY,
-		"send_pagerequest_response: lastid: (0x%08lx) "
+		"send_paged_response: lastid: (0x%08lx) "
 		"nentries: (0x%081x)\n", 
 		lastid, rs->sr_nentries, NULL );
 #else
-	Debug(LDAP_DEBUG_ARGS, "send_pagerequest_response: lastid: (0x%08lx) "
+	Debug(LDAP_DEBUG_ARGS, "send_paged_response: lastid: (0x%08lx) "
 		"nentries: (0x%081x)\n", lastid, rs->sr_nentries, NULL );
 #endif
 
@@ -1700,7 +1726,8 @@ send_pagerequest_response(
 
 	respcookie = ( PagedResultsCookie )lastid;
 	op->o_conn->c_pagedresults_state.ps_cookie = respcookie;
-	op->o_conn->c_pagedresults_state.ps_count = op->o_pagedresults_state.ps_count + rs->sr_nentries;
+	op->o_conn->c_pagedresults_state.ps_count =
+		op->o_pagedresults_state.ps_count + rs->sr_nentries;
 	cookie.bv_len = sizeof( respcookie );
 	cookie.bv_val = (char *)&respcookie;
 
