@@ -16,7 +16,14 @@ static int base_candidate(
     Backend	*be,
 	Entry	*e,
 	ID		*ids );
-int search_candidates();
+static int search_candidates(
+	Backend *be,
+	Entry *e,
+	Filter *filter,
+    int scope,
+	int deref,
+	int manageDSAit,
+	ID	*ids );
 
 static ID idl_first( ID *ids, ID *cursor );
 static ID idl_next( ID *ids, ID *cursor );
@@ -39,7 +46,7 @@ bdb_search(
 {
 	int abandon;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int		rc, err;
+	int		rc;
 	const char *text = NULL;
 	time_t		stoptime;
 	ID		candidates[BDB_IDL_SIZE];
@@ -53,8 +60,17 @@ bdb_search(
 
 	Debug(LDAP_DEBUG_TRACE, "=> ldbm_back_search\n", 0, 0, 0);
 
-	/* obtain entry */
-	rc = dn2entry_r( be, NULL, nbase, &e, &matched );
+#ifdef BDB_ALIASES
+	/* get entry with reader lock */
+	if ( deref & LDAP_DEREF_FINDING ) {
+		e = deref_dn_r( be, nbase, &err, &matched, &text );
+
+	} else
+#endif
+	{
+		/* obtain entry */
+		rc = dn2entry_r( be, NULL, nbase, &e, &matched );
+	}
 
 	switch(rc) {
 	case DB_NOTFOUND:
@@ -81,7 +97,7 @@ bdb_search(
 			refs = default_referral;
 		}
 
-		send_ldap_result( conn, op, err,
+		send_ldap_result( conn, op,	rc=LDAP_REFERRAL ,
 			matched_dn, text, refs, NULL );
 
 		if( matched != NULL ) {
@@ -90,7 +106,7 @@ bdb_search(
 			bdb_entry_return( be, matched );
 		}
 
-		return 1;
+		return rc;
 	}
 
 	if (!manageDSAit && is_entry_referral( e ) ) {
@@ -111,11 +127,6 @@ bdb_search(
 		free( matched_dn );
 
 		return 1;
-	}
-
-	if ( is_entry_alias( e ) ) {
-		/* don't deref */
-		deref = LDAP_DEREF_NEVER;
 	}
 
 	if ( tlimit == 0 && be_isroot( be, op->o_ndn ) ) {
@@ -179,9 +190,8 @@ bdb_search(
 
 		/* check time limit */
 		if ( tlimit != -1 && slap_get_time() > stoptime ) {
-			send_search_result( conn, op, LDAP_TIMELIMIT_EXCEEDED,
+			send_search_result( conn, op, rc = LDAP_TIMELIMIT_EXCEEDED,
 				NULL, NULL, v2refs, NULL, nentries );
-			rc = 0;
 			goto done;
 		}
 
@@ -196,6 +206,7 @@ bdb_search(
 			goto loop_continue;
 		}
 
+#ifdef BDB_ALIASES
 		if ( deref & LDAP_DEREF_SEARCHING && is_entry_alias( e ) ) {
 			Entry *matched;
 			int err;
@@ -234,6 +245,7 @@ bdb_search(
 
 			scopeok = 1;
 		}
+#endif
 
 		/*
 		 * if it's a referral, add it to the list of referrals. only do
@@ -255,7 +267,8 @@ bdb_search(
 		}
 
 		/* if it matches the filter and scope, send it */
-		if ( test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE ) {
+		rc = test_filter( be, conn, op, e, filter );
+		if ( rc == LDAP_COMPARE_TRUE ) {
 			char	*dn;
 
 			/* check scope */
@@ -285,9 +298,8 @@ bdb_search(
 				if ( --slimit == -1 ) {
 					bdb_entry_return( be, e );
 					send_search_result( conn, op,
-						LDAP_SIZELIMIT_EXCEEDED, NULL, NULL,
+						rc = LDAP_SIZELIMIT_EXCEEDED, NULL, NULL,
 						v2refs, NULL, nentries );
-					rc = 0;
 					goto done;
 				}
 
@@ -303,7 +315,7 @@ bdb_search(
 						break;
 					case -1:	/* connection closed */
 						bdb_entry_return( be, e );
-						rc = 0;
+						rc = LDAP_OTHER;
 						goto done;
 					}
 				}
@@ -334,7 +346,7 @@ loop_continue:
 
 done:
 	ber_bvecfree( v2refs );
-	if( realbase ) free( realbase );
+	if( realbase ) ch_free( realbase );
 
 	return rc;
 }
@@ -350,6 +362,22 @@ static int base_candidate(
 
 	ids[0] = 1;
 	ids[1] = e->e_id;
+	return 0;
+}
+
+static int search_candidates(
+	Backend *be,
+	Entry *e,
+	Filter *filter,
+    int scope,
+	int deref,
+	int manageDSAit,
+	ID	*ids )
+{
+	Debug(LDAP_DEBUG_TRACE, "subtree_candidates: base: \"%s\" (0x08lx)\n",
+		e->e_dn, (long) e->e_id, 0);
+
+	ids[0] = NOID;
 	return 0;
 }
 

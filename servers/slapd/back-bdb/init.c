@@ -277,20 +277,22 @@ bdb_initialize(
 	bi->bi_op_add = bdb_add;
 	bi->bi_op_compare = bdb_compare;
 	bi->bi_op_delete = bdb_delete;
+	bi->bi_op_search = bdb_search;
+
 #if 0
-	bi->bi_op_bind = bi_back_bind;
-	bi->bi_op_unbind = bi_back_unbind;
-	bi->bi_op_search = bi_back_search;
-	bi->bi_op_modify = bi_back_modify;
-	bi->bi_op_modrdn = bi_back_modrdn;
-	bi->bi_op_abandon = bi_back_abandon;
+	bi->bi_op_bind = bdb_bind;
+	bi->bi_op_unbind = bdb_unbind;
+	bi->bi_op_modify = bdb_modify;
+	bi->bi_op_modrdn = bdb_modrdn;
+	bi->bi_op_abandon = bdb_abandon;
 
-	bi->bi_extended = bi_back_extended;
+	bi->bi_extended = bdb_extended;
 
-	bi->bi_acl_group = bi_back_group;
-	bi->bi_acl_attribute = bi_back_attribute;
-	bi->bi_chk_referrals = bi_back_referrals;
+	bi->bi_acl_group = bdb_group;
+	bi->bi_acl_attribute = bdb_attribute;
+	bi->bi_chk_referrals = bdb_referrals;
 #endif
+
 	bi->bi_entry_release_rw = 0;
 
 	/*
