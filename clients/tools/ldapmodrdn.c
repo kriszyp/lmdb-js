@@ -32,7 +32,7 @@
 #include <ldap.h>
 
 static char	*binddn = NULL;
-static char	*passwd = NULL;
+static struct berval passwd = { 0, NULL};
 static char	*ldaphost = NULL;
 static int	ldapport = 0;
 #ifdef HAVE_CYRUS_SASL
@@ -138,7 +138,7 @@ main(int argc, char **argv)
 	    version = LDAP_VERSION3;	/* This option => force V3 */
 	    break;
 	case 'w':	/* password */
-	    passwd = strdup( optarg );
+	    passwd.bv_val = strdup( optarg );
 		{
 			char* p;
 
@@ -146,6 +146,7 @@ main(int argc, char **argv)
 				*p = '*';
 			}
 		}
+		passwd.bv_len = strlen( passwd.bv_val );
 	    break;
 	case 'd':
 	    debug |= atoi( optarg );
@@ -364,7 +365,8 @@ main(int argc, char **argv)
 	}
 
 	if (want_bindpw)
-		passwd = getpass("Enter LDAP Password: ");
+		passwd.bv_val = getpass("Enter LDAP Password: ");
+		passwd.bv_len = strlen( passwd.bv_val );
 
 	if ( authmethod == LDAP_AUTH_SASL ) {
 #ifdef HAVE_CYRUS_SASL
@@ -392,10 +394,13 @@ main(int argc, char **argv)
 			return( EXIT_FAILURE );
 		}
 		
-		if ( ldap_negotiated_sasl_bind_s( ld, binddn, sasl_authc_id,
-				sasl_authz_id, sasl_mech, NULL, NULL, NULL )
-					!= LDAP_SUCCESS ) {
-			ldap_perror( ld, "ldap_sasl_bind" );
+		rc = ldap_negotiated_sasl_bind_s( ld, binddn, sasl_authc_id,
+				sasl_authz_id, sasl_mech,
+				passwd.bv_len ? &passwd : NULL,
+				NULL, NULL );
+
+		if( rc != LDAP_SUCCESS ) {
+			ldap_perror( ld, "ldap_negotiated_sasl_bind_s" );
 			return( EXIT_FAILURE );
 		}
 #else
@@ -405,7 +410,7 @@ main(int argc, char **argv)
 #endif
 	}
 	else {
-		if ( ldap_bind_s( ld, binddn, passwd, authmethod )
+		if ( ldap_bind_s( ld, binddn, passwd.bv_val, authmethod )
 				!= LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_bind" );
 			return( EXIT_FAILURE );

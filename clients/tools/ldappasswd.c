@@ -64,7 +64,7 @@ main( int argc, char *argv[] )
 	char	*dn = NULL;
 	char	*binddn = NULL;
 
-	char	*bindpw = NULL;
+	struct berval passwd = { 0, NULL};
 	char	*newpw = NULL;
 	char	*oldpw = NULL;
 
@@ -158,8 +158,7 @@ main( int argc, char *argv[] )
 			break;
 
 		case 'w':	/* bind password */
-			bindpw = strdup (optarg);
-
+			passwd.bv_val = strdup (optarg);
 			{
 				char* p;
 
@@ -167,6 +166,7 @@ main( int argc, char *argv[] )
 					*p = '*';
 				}
 			}
+			passwd.bv_len = strlen( passwd.bv_val );
 			break;
 
 		case 'I':
@@ -271,13 +271,17 @@ main( int argc, char *argv[] )
 		binddn = dn;
 		dn = NULL;
 
-		if( bindpw == NULL ) bindpw = oldpw;
+		if( passwd.bv_val == NULL ) {
+			passwd.bv_val = oldpw;
+			passwd.bv_len = oldpw == NULL ? 0 : strlen( oldpw );
+		}
 	}
 
-	if (want_bindpw && bindpw == NULL ) {
+	if (want_bindpw && passwd.bv_val == NULL ) {
 		/* handle bind password */
 		fprintf( stderr, "Bind DN: %s\n", binddn );
-		bindpw = strdup( getpass("Enter bind password: "));
+		passwd.bv_val = strdup( getpass("Enter bind password: "));
+		passwd.bv_len = strlen( passwd.bv_val );
 	}
 
 	if ( debug ) {
@@ -343,10 +347,13 @@ main( int argc, char *argv[] )
 			return( EXIT_FAILURE );
 		}
 		
-		if ( ldap_negotiated_sasl_bind_s( ld, binddn, sasl_authc_id,
-				sasl_authz_id, sasl_mech, NULL, NULL, NULL )
-					!= LDAP_SUCCESS ) {
-			ldap_perror( ld, "ldap_sasl_bind" );
+		rc = ldap_negotiated_sasl_bind_s( ld, binddn, sasl_authc_id,
+				sasl_authz_id, sasl_mech,
+				bindpw.bv_len ? &bindpw : NULL,
+				NULL, NULL );
+
+		if( rc != LDAP_SUCCESS ) {
+			ldap_perror( ld, "ldap_negotiated_sasl_bind_s" );
 			return( EXIT_FAILURE );
 		}
 #else
@@ -356,7 +363,7 @@ main( int argc, char *argv[] )
 #endif
 	}
 	else {
-		if ( ldap_bind_s( ld, binddn, bindpw, authmethod )
+		if ( ldap_bind_s( ld, binddn, passwd.bv_val, authmethod )
 				!= LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_bind" );
 			return( EXIT_FAILURE );
