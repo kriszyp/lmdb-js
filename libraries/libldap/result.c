@@ -540,9 +540,11 @@ build_result_ber( LDAP *ld, BerElement **bp, LDAPRequest *lr )
 	long		along;
 	BerElement *ber;
 
-	ber = *bp = ldap_alloc_ber_with_options( ld );
+	*bp = NULL;
+	ber = ldap_alloc_ber_with_options( ld );
 
 	if( ber == NULL ) {
+		ld->ld_errno = LDAP_NO_MEMORY;
 		return LBER_ERROR;
 	}
 
@@ -552,6 +554,7 @@ build_result_ber( LDAP *ld, BerElement **bp, LDAPRequest *lr )
 	    lr->lr_res_error ? lr->lr_res_error : "" ) == -1 ) {
 
 		ld->ld_errno = LDAP_ENCODING_ERROR;
+		ber_free(ber, 1);
 		return( LBER_ERROR );
 	}
 
@@ -559,11 +562,13 @@ build_result_ber( LDAP *ld, BerElement **bp, LDAPRequest *lr )
 
 	if ( ber_skip_tag( ber, &len ) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
+		ber_free(ber, 1);
 		return( LBER_ERROR );
 	}
 
 	if ( ber_get_int( ber, &along ) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
+		ber_free(ber, 1);
 		return( LBER_ERROR );
 	}
 
@@ -571,9 +576,11 @@ build_result_ber( LDAP *ld, BerElement **bp, LDAPRequest *lr )
 
 	if ( tag == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
+		ber_free(ber, 1);
 		return( LBER_ERROR );
 	}
 
+	*bp = ber;
 	return tag;
 }
 
