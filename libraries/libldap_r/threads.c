@@ -306,6 +306,8 @@ ldap_pvt_thread_pool_submit ( ldap_pvt_thread_pool_t pool, void *(*start_routine
 	int need_thread = 0;
 	ldap_pvt_thread_t thr;
 
+	return ldap_pvt_thread_create( &thr, 1, (void *)start_routine, arg );
+
 	if (pool == NULL)
 		return(-1);
 
