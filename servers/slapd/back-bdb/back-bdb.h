@@ -11,6 +11,7 @@
 #include <portable.h>
 #include "slap.h"
 #include <db.h>
+#undef const	/* db.h defines this?? */
 
 LDAP_BEGIN_DECL
 
