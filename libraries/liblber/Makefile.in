@@ -17,7 +17,7 @@ LIB_DEFS = -DLBER_LIBRARY
 
 SRCS= assert.c decode.c encode.c io.c bprint.c debug.c \
 	memory.c options.c sockbuf.c $(@PLAT@_SRCS)
-OBJS= assert.lo decode.lo encode.lo io.lo bprint.lo debug.lo\
+OBJS= assert.lo decode.lo encode.lo io.lo bprint.lo debug.lo \
 	memory.lo options.lo sockbuf.lo $(@PLAT@_OBJS)
 XSRCS= version.c
 
