@@ -4,6 +4,12 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
+#include "portable.h"
+
+#include <fcntl.h>
+
+#include <lutil.h>
+
 /*
  * lutil_entropy() provides nbyptes of entropy in buf.
  * Quality offerred is suitable for one-time uses, such as "once" keys.
