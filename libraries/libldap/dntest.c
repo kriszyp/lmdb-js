@@ -33,7 +33,7 @@ int
 main( int argc, char *argv[] )
 {
 	int 		rc, i, debug = 0, f2 = 0;
-	unsigned 	flags[ 2 ] = { 0U, 0U };
+	unsigned 	flags[ 2 ] = { 0U, LDAP_DN_FORMAT_LDAPV3 };
 	char		*strin, *str, *str2, buf[ 1024 ];
 	LDAPDN		*dn, *dn2 = NULL;
 
@@ -57,9 +57,9 @@ main( int argc, char *argv[] )
 
 	if ( argc < 2 ) {
 		fprintf( stderr, "usage: dntest <dn> [flags-in[,...]] [flags-out[,...]]\n\n" );
-		fprintf( stderr, "\tflags-in:   V3,V2,DCE,<pedantic>\n" );
-		fprintf( stderr, "\tflags-out:  V3,V2,UFN,DCE,AD,<pedantic>\n\n" );
-		fprintf( stderr, "\t<pedantic>: PEDANTIC,NOSPACES,NOONESPACE\n\n" );
+		fprintf( stderr, "\tflags-in:   V3,V2,DCE,<flags>\n" );
+		fprintf( stderr, "\tflags-out:  V3,V2,UFN,DCE,AD,<flags>\n\n" );
+		fprintf( stderr, "\t<flags>: PRETTY,PEDANTIC,NOSPACES,NOONESPACE\n\n" );
 		return( 0 );
 	}
 
@@ -116,7 +116,7 @@ main( int argc, char *argv[] )
 		}
 	}
 
-	f2 = argc > 3 ? 1 : 0;
+	f2 = 1;
 
 	rc = ldap_str2dn( strin, &dn, flags[ 0 ] );
 

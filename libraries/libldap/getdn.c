@@ -165,7 +165,7 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 #else /* USE_LDAP_DN_PARSING */
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ufn\n", 0, 0, 0 );
 
-	return dn2dn( dn, LDAP_DN_FORMAT_LDAPV3, LDAP_DN_FORMAT_UFN );
+	return dn2dn( dn, LDAP_DN_FORMAT_LDAP, LDAP_DN_FORMAT_UFN );
 #endif /* USE_LDAP_DN_PARSING */
 }
 
@@ -187,7 +187,7 @@ ldap_explode_dn( LDAP_CONST char *dn, int notypes )
 	
 	Debug( LDAP_DEBUG_TRACE, "ldap_explode_dn\n", 0, 0, 0 );
 
-	if ( ldap_str2dn( dn, &tmpDN, LDAP_DN_FORMAT_LDAPV3 ) 
+	if ( ldap_str2dn( dn, &tmpDN, LDAP_DN_FORMAT_LDAP ) 
 			!= LDAP_SUCCESS ) {
 		return( NULL );
 	}
@@ -230,7 +230,7 @@ ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 	/*
 	 * we assume this dn is made of one rdn only
 	 */
-	if ( ldap_str2dn( rdn, &tmpDN, LDAP_DN_FORMAT_LDAPV3 ) 
+	if ( ldap_str2dn( rdn, &tmpDN, LDAP_DN_FORMAT_LDAP ) 
 			!= LDAP_SUCCESS ) {
 		return( NULL );
 	}
@@ -339,7 +339,7 @@ ldap_dn2dcedn( LDAP_CONST char *dn )
 #else /* USE_LDAP_DN_PARSING */
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2dcedn\n", 0, 0, 0 );
 
-	return dn2dn( dn, LDAP_DN_FORMAT_LDAPV3, LDAP_DN_FORMAT_DCE );
+	return dn2dn( dn, LDAP_DN_FORMAT_LDAP, LDAP_DN_FORMAT_DCE );
 #endif /* USE_LDAP_DN_PARSING */
 }
 
@@ -400,7 +400,7 @@ ldap_dn2ad_canonical( LDAP_CONST char *dn )
 {
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ad_canonical\n", 0, 0, 0 );
 
-	return dn2dn( dn, LDAP_DN_FORMAT_LDAPV3, LDAP_DN_FORMAT_AD_CANONICAL );
+	return dn2dn( dn, LDAP_DN_FORMAT_LDAP, LDAP_DN_FORMAT_AD_CANONICAL );
 }
 
 #ifndef USE_LDAP_DN_PARSING	/* deprecated */
@@ -542,11 +542,15 @@ explode_name( const char *name, int notypes, int is_type )
  * from ( fin & LDAP_DN_FORMAT_MASK ) to ( fout & LDAP_DN_FORMAT_MASK )
  * 
  * fin can be one of:
+ * 	LDAP_DN_FORMAT_LDAP		(rfc 2253 and ldapbis liberal, 
+ * 					plus some rfc 1779)
  * 	LDAP_DN_FORMAT_LDAPV3		(rfc 2253 and ldapbis)
  * 	LDAP_DN_FORMAT_LDAPV2		(rfc 1779)
  * 	LDAP_DN_FORMAT_DCE		(?)
  *
- * fout can be any of the above plus:
+ * fout can be any of the above except
+ * 	LDAP_DN_FORMAT_LDAP
+ * plus:
  * 	LDAP_DN_FORMAT_UFN		(rfc 1781, partial and with extensions)
  * 	LDAP_DN_FORMAT_AD_CANONICAL	(?)
  */
@@ -706,11 +710,13 @@ dn2dn( const char *dnin, unsigned fin, unsigned fout )
 
 /* Composite rules */
 #define LDAP_DN_ALLOW_ONE_SPACE(f) \
-	( ( (f) & LDAP_DN_FORMAT_LDAPV2 ) \
+	( LDAP_DN_LDAPV2(f) \
 	  || !( (f) & LDAP_DN_P_NOSPACEAFTERRDN ) )
 #define LDAP_DN_ALLOW_SPACES(f) \
-	( ( (f) & LDAP_DN_FORMAT_LDAPV2 ) \
+	( LDAP_DN_LDAPV2(f) \
 	  || !( (f) & ( LDAP_DN_P_NOLEADTRAILSPACES | LDAP_DN_P_NOSPACEAFTERRDN ) ) )
+#define LDAP_DN_LDAP(f) \
+	( ( (f) & LDAP_DN_FORMAT_MASK ) == LDAP_DN_FORMAT_LDAP )
 #define LDAP_DN_LDAPV3(f) \
 	( ( (f) & LDAP_DN_FORMAT_MASK ) == LDAP_DN_FORMAT_LDAPV3 )
 #define LDAP_DN_LDAPV2(f) \
@@ -905,7 +911,7 @@ ldapava_free_dn( LDAPDN *dn )
 
 /*
  * Converts a string representation of a DN (in LDAPv3, LDAPv2 or DCE)
- * into a structured representation of the DN, by separating attribute
+ * into a structural representation of the DN, by separating attribute
  * types and values encoded in the more appropriate form, which is
  * string or OID for attribute types and binary form of the BER encoded
  * value or Unicode string. Formats different from LDAPv3 are parsed
@@ -934,6 +940,7 @@ ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
 	*dn = NULL;
 
 	switch ( LDAP_DN_FORMAT( flags ) ) {
+	case LDAP_DN_FORMAT_LDAP:
 	case LDAP_DN_FORMAT_LDAPV3:
 	case LDAP_DN_FORMAT_LDAPV2:
 	case LDAP_DN_FORMAT_DCE:
@@ -963,6 +970,15 @@ ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
 			goto parsing_error;
 		}
 		p++;
+		
+	} else if ( LDAP_DN_LDAP( flags ) ) {
+		/*
+		 * if dn starts with '/' let's make it a DCE dn
+		 */
+		if ( LDAP_DN_RDN_SEP_DCE( p[ 0 ] ) ) {
+			flags |= LDAP_DN_FORMAT_DCE;
+			p++;
+		}
 	}
 
 	for ( ; p[ 0 ]; p++ ) {
@@ -985,6 +1001,7 @@ ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
 				}
 				break;
 	
+			case LDAP_DN_FORMAT_LDAP:
 			case LDAP_DN_FORMAT_LDAPV2:
 				if ( !LDAP_DN_RDN_SEP_V2( p[ 0 ] ) ) {
 					rc = LDAP_OTHER;
@@ -1077,6 +1094,7 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 	*n = NULL;
 
 	switch ( LDAP_DN_FORMAT( flags ) ) {
+	case LDAP_DN_FORMAT_LDAP:
 	case LDAP_DN_FORMAT_LDAPV3:
 	case LDAP_DN_FORMAT_LDAPV2:
 	case LDAP_DN_FORMAT_DCE:
@@ -1332,15 +1350,17 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 			 * LDAPv2 allows the attribute value to be quoted;
 			 * also, IA5 values are expected, in principle
 			 */
-			if ( LDAP_DN_LDAPV2( flags ) ) {
+			if ( LDAP_DN_LDAPV2( flags ) || LDAP_DN_LDAP( flags ) ) {
 				if ( LDAP_DN_QUOTES( p[ 0 ] ) ) {
 					p++;
 					state = B4IA5VALUEQUOTED;
 					break;
 				}
 
-				state = B4IA5VALUE;
-				break;
+				if ( LDAP_DN_LDAPV2( flags ) ) {
+					state = B4IA5VALUE;
+					break;
+				}
 			}
 
 			/*
@@ -1360,6 +1380,7 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 
 		case B4STRINGVALUE:
 			switch ( LDAP_DN_FORMAT( flags ) ) {
+			case LDAP_DN_FORMAT_LDAP:
 			case LDAP_DN_FORMAT_LDAPV3:
 				if ( str2strval( p, &attrValue, &p, flags, 
 							&attrValueEncoding ) ) {
@@ -1427,6 +1448,7 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 			 * we add the RDN to the DN
 			 */
 			switch ( LDAP_DN_FORMAT( flags ) ) {
+			case LDAP_DN_FORMAT_LDAP:
 			case LDAP_DN_FORMAT_LDAPV3:
 			case LDAP_DN_FORMAT_LDAPV2:
 				if ( !LDAP_DN_AVA_SEP( p[ 0 ] ) ) {
@@ -1477,6 +1499,7 @@ parsing_error:;
 
 	if ( newRDN ) {
 		ldapava_free_rdn( newRDN );
+		newRDN = NULL;
 	}
 
 return_result:;
@@ -1550,7 +1573,8 @@ str2strval( const char *str, struct berval **val, const char **next, unsigned fl
 			 */
 			unescapes++;
 
-		} else if ( LDAP_DN_VALUE_END( p[ 0 ] ) ) {
+		} else if ( ( LDAP_DN_LDAP( flags ) && LDAP_DN_VALUE_END_V2( p[ 0 ] ) ) 
+				|| ( LDAP_DN_LDAPV3( flags ) && LDAP_DN_VALUE_END( p[ 0 ] ) ) ) {
 			break;
 
 		} else if ( LDAP_DN_NEEDESCAPE( p[ 0 ] ) ) {
@@ -1945,6 +1969,7 @@ hexstr2binval( const char *str, struct berval **val, const char **next, unsigned
 			}
 			break;
 
+		case LDAP_DN_FORMAT_LDAP:
 		case LDAP_DN_FORMAT_LDAPV2:
 			if ( LDAP_DN_VALUE_END_V2( p[ 0 ] ) ) {
 				goto end_of_value;
@@ -1972,6 +1997,7 @@ hexstr2binval( const char *str, struct berval **val, const char **next, unsigned
 					}
 					break;
 
+				case LDAP_DN_FORMAT_LDAP:
 				case LDAP_DN_FORMAT_LDAPV2:
 					if ( LDAP_DN_VALUE_END_V2( p[ 0 ] ) ) {
 						goto end_of_value;
@@ -2892,7 +2918,7 @@ ldap_rdn2str( LDAPRDN *rdn, char **str, unsigned flags )
 		break;
 
 	default:
-		return( LDAP_OTHER );
+		return( LDAP_INVALID_DN_SYNTAX );
 	}
 
 	*str = LDAP_MALLOC( l + 1 );
@@ -3268,7 +3294,7 @@ got_funcs:
 	}
 
 	default:
-		assert( 0 );
+		return( LDAP_INVALID_DN_SYNTAX );
 
 	}
 

@@ -235,7 +235,11 @@ dnValidate(
 		return( LDAP_SUCCESS );
 	}
 
-	rc = ldap_str2dn( in->bv_val, &dn, LDAP_DN_FORMAT_LDAPV3 );
+	rc = ldap_str2dn( in->bv_val, &dn, LDAP_DN_FORMAT_LDAP );
+
+	/*
+	 * Fixme: should we also validate each DN component?
+	 */
 	ldapava_free_dn( dn );
 	
 	if ( rc != LDAP_SUCCESS ) {
@@ -400,7 +404,7 @@ dnNormalize(
 		/*
 		 * Go to structural representation
 		 */
-		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAPV3 );
+		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAP );
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
 		}
@@ -453,7 +457,7 @@ dnPretty(
 		int		rc;
 
 		/* FIXME: should be liberal in what we accept */
-		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAPV3 );
+		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAP );
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
 		}
@@ -504,13 +508,7 @@ dnMatch(
 	match = value->bv_len - asserted->bv_len;
 
 	if ( match == 0 ) {
-#ifdef USE_DN_NORMALIZE
 		match = strcmp( value->bv_val, asserted->bv_val );
-		fprintf(stderr, "USE_DN_NORMALIZE :(\n");
-#else
-		match = strcasecmp( value->bv_val, asserted->bv_val );
-		fprintf(stderr, "!USE_DN_NORMALIZE :)\n");
-#endif
 	}
 
 #ifdef NEW_LOGGING

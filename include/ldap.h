@@ -1177,11 +1177,12 @@ typedef LDAPAVA** LDAPRDN;
 typedef LDAPRDN** LDAPDN;
 
 /* DN formats */
-#define LDAP_DN_FORMAT_LDAPV3	0x0000U
-#define LDAP_DN_FORMAT_LDAPV2	0x0010U
-#define LDAP_DN_FORMAT_DCE		0x0020U
-#define LDAP_DN_FORMAT_UFN		0x0030U	/* dn2str only */
-#define LDAP_DN_FORMAT_AD_CANONICAL	0x0040U	/* dn2str only */
+#define LDAP_DN_FORMAT_LDAP		0x0000U
+#define LDAP_DN_FORMAT_LDAPV3		0x0010U
+#define LDAP_DN_FORMAT_LDAPV2		0x0020U
+#define LDAP_DN_FORMAT_DCE		0x0030U
+#define LDAP_DN_FORMAT_UFN		0x0040U	/* dn2str only */
+#define LDAP_DN_FORMAT_AD_CANONICAL	0x0050U	/* dn2str only */
 #define LDAP_DN_FORMAT_MASK		0x00F0U
 
 /* str2dn flags */
