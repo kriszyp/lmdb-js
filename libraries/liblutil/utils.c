@@ -136,7 +136,7 @@ size_t lutil_localtime( char *s, size_t smax, const struct tm *tm, long delta )
 	return ret + 5;
 }
 
-int lutil_tm2time( struct slap_tm *tm, struct slap_timet *tt )
+int lutil_tm2time( struct lutil_tm *tm, struct lutil_timet *tt )
 {
 	static int moffset[12] = {
 		0, 31, 59, 90, 120,
@@ -196,7 +196,7 @@ int lutil_tm2time( struct slap_tm *tm, struct slap_timet *tt )
 	return 0; 
 }
 
-int lutil_parsetime( char *atm, struct slap_tm *tm )
+int lutil_parsetime( char *atm, struct lutil_tm *tm )
 {
 	while (atm && tm) {
 		char *ptr = atm;
