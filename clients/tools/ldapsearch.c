@@ -232,8 +232,8 @@ const char options[] = "a:Ab:E:F:l:Ls:S:tT:uz:"
 int
 handle_private_option( int i )
 {
-	int crit;
-	char *control, *cvalue;
+	int crit, ival;
+	char *control, *cvalue, *next;
 	switch ( i ) {
 	case 'a':	/* set alias deref option */
 		if ( strcasecmp( optarg, "never" ) == 0 ) {
@@ -408,8 +408,14 @@ handle_private_option( int i )
 				}
 				if ( cookiep != NULL && *cookiep != '\0' )
 					ber_str2bv( cookiep, 0, 0, &sync_cookie );
-				if ( slimitp != NULL && *slimitp != '\0' )
-					sync_slimit = atoi( slimitp );
+				if ( slimitp != NULL && *slimitp != '\0' ) {
+					ival = strtol( slimitp, &next, 10 );
+					if ( next == NULL || next[0] != '\0' ) {
+						fprintf( stderr, _("Unable to parse sync control value \"%s\"\n"), slimitp );
+						exit( EXIT_FAILURE );
+					}
+					sync_slimit = ival;
+				}
 			} else {
 				fprintf( stderr, _("sync control value \"%s\" invalid\n"),
 					cvalue );
@@ -431,7 +437,12 @@ handle_private_option( int i )
 		if ( strcasecmp( optarg, "none" ) == 0 ) {
 			timelimit = 0;
 		} else {
-			timelimit = atoi( optarg );
+			ival = strtol( optarg, &next, 10 );
+			if ( next == NULL || next[0] != '\0' ) {
+				fprintf( stderr, _("Unable to parse time limit \"%s\"\n"), optarg );
+				exit( EXIT_FAILURE );
+			}
+			timelimit = ival;
 		}
 		if( timelimit < 0 ) {
 			fprintf( stderr, _("%s: invalid timelimit (%d) specified\n"),
@@ -477,7 +488,12 @@ handle_private_option( int i )
 		if ( strcasecmp( optarg, "none" ) == 0 ) {
 			sizelimit = 0;
 		} else {
-			sizelimit = atoi( optarg );
+			ival = strtol( optarg, &next, 10 );
+			if ( next == NULL || next[0] != '\0' ) {
+				fprintf( stderr, _("Unable to parse size limit \"%s\"\n"), optarg );
+				exit( EXIT_FAILURE );
+			}
+			sizelimit = ival;
 		}
 		if( sizelimit < 0 ) {
 			fprintf( stderr, _("%s: invalid sizelimit (%d) specified\n"),

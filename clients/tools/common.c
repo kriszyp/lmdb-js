@@ -151,8 +151,8 @@ tool_args( int argc, char **argv )
 	int i;
 
 	while (( i = getopt( argc, argv, options )) != EOF ) {
-		int crit;
-		char *control, *cvalue;
+		int crit, ival;
+		char *control, *cvalue, *next;
 		switch( i ) {
 		case 'c':	/* continuous operation mode */
 			contoper++;
@@ -161,7 +161,12 @@ tool_args( int argc, char **argv )
 			referrals++;
 			break;
 		case 'd':
-			debug |= atoi( optarg );
+			ival = strtol( optarg, &next, 10 );
+			if (next == NULL || next[0] != '\0') {
+				fprintf( stderr, "%s: unable to parse debug value \"%s\"\n", prog, optarg);
+				exit(EXIT_FAILURE);
+			}
+			debug |= ival;
 			break;
 		case 'D':	/* bind DN */
 			if( binddn != NULL ) {
@@ -380,10 +385,20 @@ tool_args( int argc, char **argv )
 				fprintf( stderr, "%s: -p previously specified\n", prog );
 				exit( EXIT_FAILURE );
 			}
-			ldapport = atoi( optarg );
+			ival = strtol( optarg, &next, 10 );
+			if ( next == NULL || next[0] != '\0' ) {
+				fprintf( stderr, "%s: unable to parse port number \"%s\"\n", prog, optarg );
+				exit( EXIT_FAILURE );
+			}
+			ldapport = ival;
 			break;
 		case 'P':
-			switch( atoi(optarg) ) {
+			ival = strtol( optarg, &next, 10 );
+			if ( next == NULL || next[0] != '\0' ) {
+				fprintf( stderr, "%s: unabel to parse protocol version \"%s\"\n", prog, optarg );
+				exit( EXIT_FAILURE );
+			}
+			switch( ival ) {
 			case 2:
 				if( protocol == LDAP_VERSION3 ) {
 					fprintf( stderr, "%s: -P 2 incompatible with version %d\n",
