@@ -2343,12 +2343,12 @@ read_config( const char *fname, int depth )
 #endif
 				return( 1 );
 			}
+#endif /* notdef */
 
 			if ( netscape_plugin( be, fname, lineno, cargc, cargv ) 
 					!= LDAP_SUCCESS ) {
 				return( 1 );
 			}
-#endif /* notdef */
 
 #else /* !defined( LDAP_SLAPI ) */
 #ifdef NEW_LOGGING
