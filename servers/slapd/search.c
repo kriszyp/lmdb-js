@@ -363,9 +363,11 @@ do_search(
 		 * FIXME: is this correct?
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_search: search preOps failed\n"));
+		LDAP_LOG( OPERATION, INFO, "do_search: search preOps "
+				"failed\n", 0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "search preOps failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "do_search: search preOps "
+				"failed.\n", 0, 0, 0);
 #endif
     }
 #endif /* defined( LDAP_SLAPI ) */
@@ -391,9 +393,11 @@ do_search(
 		 * FIXME: is this correct?
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_search: search postOps failed\n"));
+		LDAP_LOG( OPERATION, INFO, "do_search: search postOps "
+				"failed\n", 0, 0, 0 );
 #else
-		Debug (LDAP_DEBUG_TRACE, " search postOps failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "do_search: search postOps "
+				"failed.\n", 0, 0, 0);
 #endif
     }
 #endif /* defined( LDAP_SLAPI ) */

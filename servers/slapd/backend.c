@@ -710,9 +710,11 @@ backend_unbind(
 			 * FIXME: is this correct?
 			 */
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_bind: Unbind preOps failed\n"));
+			LDAP_LOG( OPERATION, INFO, "do_bind: Unbind preOps "
+					"failed\n", 0, 0, 0);
 #else
-			Debug (LDAP_DEBUG_TRACE, " Unbind preOps failed.\n", 0, 0, 0);
+			Debug(LDAP_DEBUG_TRACE, "do_bind: Unbind preOps "
+					"failed.\n", 0, 0, 0);
 #endif
 		}
 #endif /* defined( LDAP_SLAPI ) */
@@ -732,9 +734,11 @@ backend_unbind(
 			 * FIXME: is this correct?
 			 */
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_unbind: Unbind postOps failed\n"));
+			LDAP_LOG( OPERATION, INFO, "do_unbind: Unbind postOps "
+					"failed\n", 0, 0, 0);
 #else
-			Debug (LDAP_DEBUG_TRACE, " Unbind postOps failed.\n", 0, 0, 0);
+			Debug(LDAP_DEBUG_TRACE, "do_unbind: Unbind postOps "
+					"failed.\n", 0, 0, 0);
 #endif
 		}
 #endif /* defined( LDAP_SLAPI ) */

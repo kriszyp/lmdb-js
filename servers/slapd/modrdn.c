@@ -349,9 +349,11 @@ do_modrdn(
 		 * FIXME: is this correct?
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_modrdn: modrdn preOps failed\n"));
+		LDAP_LOG( OPERATION, INFO, "do_modrdn: modrdn preOps "
+				"failed\n", 0, 0, 0 );
 #else
-		Debug (LDAP_DEBUG_TRACE, " modrdn preOps failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "do_modrdn: modrdn preOps "
+				"failed.\n", 0, 0, 0);
 #endif
 	}
 #endif /* defined( LDAP_SLAPI ) */
@@ -412,9 +414,11 @@ do_modrdn(
 		 * FIXME: is this correct?
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_modrdn: modrdn postOps failed\n"));
+		LDAP_LOG( OPERATION, INFO, "do_modrdn: modrdn postOps "
+				"failed\n", 0, 0, 0 );
 #else
-		Debug (LDAP_DEBUG_TRACE, " modrdn postOps failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "do_modrdn: modrdn postOps "
+				"failed.\n", 0, 0, 0);
 #endif
 	}
 #endif /* defined( LDAP_SLAPI ) */

@@ -290,9 +290,11 @@ do_compare(
 		 * FIXME: is this correct?
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_compare: compare preOps failed\n"));
+		LDAP_LOG( OPERATION, INFO, "do_compare: compare preOps "
+				"failed\n", 0, 0, 0);
 #else
-		Debug (LDAP_DEBUG_TRACE, " compare preOps failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "do_compare: compare preOps "
+				"failed.\n", 0, 0, 0);
 #endif
 	}
 #endif /* defined( LDAP_SLAPI ) */
@@ -315,9 +317,11 @@ do_compare(
 		 * FIXME: is this correct?
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_compare: compare postOps failed\n"));
+		LDAP_LOG( OPERATION, INFO, "do_compare: compare postOps "
+				"failed\n", 0, 0, 0 );
 #else
-		Debug (LDAP_DEBUG_TRACE, " compare postOps failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "do_compare: compare postOps "
+				"failed.\n", 0, 0, 0);
 #endif
 	}
 #endif /* defined( LDAP_SLAPI ) */

@@ -547,9 +547,11 @@ do_bind(
 		 * FIXME: is this correct?
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_bind: Bind preOps  failed\n"));
+		LDAP_LOG( OPERATION, INFO, "do_bind: Bind preOps failed\n",
+				0, 0, 0);
 #else
-		Debug(LDAP_DEBUG_TRACE, " Bind preOps failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "do_bind: Bind preOps failed.\n",
+				0, 0, 0);
 #endif
 	}
 #endif /* defined( LDAP_SLAPI ) */
@@ -630,9 +632,11 @@ do_bind(
 		 * FIXME: is this correct?
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_bind: Bind postOps failed\n"));
+		LDAP_LOG( OPERATION, INFO, "do_bind: Bind postOps failed\n",
+				0, 0, 0);
 #else
-		Debug (LDAP_DEBUG_TRACE, " Bind postOps failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "do_bind: Bind postOps failed.\n",
+				0, 0, 0);
 #endif
 	}
 #endif /* defined( LDAP_SLAPI ) */

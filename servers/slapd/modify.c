@@ -348,9 +348,11 @@ do_modify(
 		 * FIXME: is this correct?
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_modify: modify preOps failed\n"));
+		LDAP_LOG( OPERATION, INFO, "do_modify: modify preOps "
+				"failed\n", 0, 0, 0 );
 #else
-		Debug (LDAP_DEBUG_TRACE, " modify preOps failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "do_modify: modify preOps failed.\n",
+				0, 0, 0);
 #endif
 	}
 #endif /* defined( LDAP_SLAPI ) */
@@ -442,9 +444,11 @@ do_modify(
 		 * FIXME: is this correct?
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_modify: modify postOps failed\n"));
+		LDAP_LOG( OPERATION, INFO, "do_modify: modify postOps "
+				"failed\n", 0, 0, 0 );
 #else
-		Debug (LDAP_DEBUG_TRACE, " modify postOps failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "do_modify: modify postOps "
+				"failed.\n", 0, 0, 0);
 #endif
 	}
 #endif /* defined( LDAP_SLAPI ) */

@@ -243,9 +243,11 @@ do_add( Connection *conn, Operation *op )
 		 * FIXME: is this correct?
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_add: add preOps failed\n"));
+		LDAP_LOG( OPERATION, INFO, "do_add: add preOps failed\n",
+				0, 0, 0);
 #else
-		Debug (LDAP_DEBUG_TRACE, " add preOps failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "do_add: add preOps failed.\n",
+				0, 0, 0);
 #endif
 	}
 #endif /* defined( LDAP_SLAPI ) */
@@ -346,9 +348,11 @@ do_add( Connection *conn, Operation *op )
 		 * FIXME: is this correct?
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_add: Add postOps failed\n"));
+		LDAP_LOG( OPERATION, INFO, "do_add: Add postOps failed\n",
+				0, 0, 0);
 #else
-		Debug (LDAP_DEBUG_TRACE, " Add postOps failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "do_add: Add postOps failed.\n",
+				0, 0, 0);
 #endif
 	}
 #endif /* defined( LDAP_SLAPI ) */
