@@ -151,10 +151,6 @@ SOURCE=.\charray.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\charset.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\cldap.c
 # End Source File
 # Begin Source File
@@ -168,10 +164,6 @@ SOURCE=.\controls.c
 # Begin Source File
 
 SOURCE=.\delete.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\digest.c
 # End Source File
 # Begin Source File
 
@@ -216,10 +208,6 @@ SOURCE=.\getattr.c
 # Begin Source File
 
 SOURCE=.\getdn.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\getdxbyname.c
 # End Source File
 # Begin Source File
 

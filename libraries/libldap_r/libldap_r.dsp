@@ -152,10 +152,6 @@ SOURCE=..\libldap\charray.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\libldap\charset.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\libldap\cldap.c
 # End Source File
 # Begin Source File
@@ -169,10 +165,6 @@ SOURCE=..\libldap\controls.c
 # Begin Source File
 
 SOURCE=..\libldap\delete.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\libldap\digest.c
 # End Source File
 # Begin Source File
 
@@ -213,10 +205,6 @@ SOURCE=..\libldap\getattr.c
 # Begin Source File
 
 SOURCE=..\libldap\getdn.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\libldap\getdxbyname.c
 # End Source File
 # Begin Source File
 
