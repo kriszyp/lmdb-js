@@ -557,6 +557,8 @@ initialize_client( void )
 				config = config_file;
 		}
 	}
+#else
+	config = config_file;
 #endif /* getpwduid() */
 #ifdef DEBUG
 	if (debug & D_INITIALIZE)

@@ -39,13 +39,13 @@ CPP=cl.exe
 # PROP Intermediate_Dir "Release\liblutil"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo
+# ADD LIB32 /nologo /out:"..\Release\olutil32.lib"
 
 !ELSEIF  "$(CFG)" == "liblutil - Win32 Debug"
 
@@ -88,6 +88,18 @@ SOURCE=.\getopt.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\getpass.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap_cdefs.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap_features.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\lutil.h
 # End Source File
 # Begin Source File
@@ -101,6 +113,10 @@ SOURCE=..\..\include\lutil_sha1.h
 # Begin Source File
 
 SOURCE=.\md5.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\portable.h
 # End Source File
 # Begin Source File
 
