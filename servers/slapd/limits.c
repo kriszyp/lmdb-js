@@ -23,6 +23,10 @@ get_limits(
 {
 	struct slap_limits **lm;
 
+	assert( be );
+	assert( timelimit );
+	assert( sizelimit );
+
 	/*
 	 * default values
 	 */
@@ -106,16 +110,15 @@ add_limits(
 	lm->lm_timelimit = timelimit;
 	lm->lm_sizelimit = sizelimit;
 
-	if ( be->be_limits == NULL ) {
-		i = 1;
-		be->be_limits = ( struct slap_limits ** )ch_calloc( sizeof( struct slap_limits * ), 2 );
-	} else {
-		for ( i = 0; be->be_limits[i]; i++ );
-		
-		be->be_limits = ( struct slap_limits ** )ch_realloc( be->be_limits,
-			sizeof( struct slap_limits * ) * ( i + 1 ) );
+	i = 0;
+	if ( be->be_limits != NULL ) {
+		for ( ; be->be_limits[i]; i++ );
 	}
+
+	be->be_limits = ( struct slap_limits ** )ch_realloc( be->be_limits,
+			sizeof( struct slap_limits * ) * ( i + 2 ) );
 	be->be_limits[i] = lm;
+	be->be_limits[i+1] = NULL;
 	
 	return( 0 );
 }
