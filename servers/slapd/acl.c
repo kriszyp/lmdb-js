@@ -544,8 +544,8 @@ acl_mask(
 
 			/* see if asker is listed in dnattr */
 			for( at = attrs_find( e->e_attrs, b->a_dn_at );
-				at == NULL;
-				at = attrs_find( e->e_attrs->a_next, b->a_dn_at ) )
+				at != NULL;
+				at = attrs_find( at->a_next, b->a_dn_at ) )
 			{
 				if( value_find( b->a_dn_at, at->a_vals, &bv ) == 0 ) {
 					/* found it */
