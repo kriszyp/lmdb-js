@@ -35,7 +35,9 @@
 #include "ldap_pvt_thread.h"
 #include "ldap_queue.h"
 
+#ifdef LDAP_DEVEL
 #define SLAP_EXTENDED_SCHEMA 1
+#endif
 
 LDAP_BEGIN_DECL
 /*

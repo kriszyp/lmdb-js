@@ -92,9 +92,10 @@ meta_back_delete(
 
 	lc = meta_back_getconn( li, conn, op, META_OP_REQUIRE_SINGLE,
 			ndn, &candidate );
-	if ( !lc || !meta_back_dobind( lc, op ) || !meta_back_is_valid( lc, candidate ) ) {
-		send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, NULL, NULL, NULL );
+	if ( !lc || !meta_back_dobind( lc, op )
+			|| !meta_back_is_valid( lc, candidate ) ) {
+ 		send_ldap_result( conn, op, LDAP_OTHER,
+ 				NULL, NULL, NULL, NULL );
 		return -1;
 	}
 
