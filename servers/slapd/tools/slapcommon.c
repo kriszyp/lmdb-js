@@ -25,6 +25,7 @@ int		truncatemode = 0;
 int		verbose		= 0;
 int		continuemode = 0;
 int		nosubordinates = 0;
+int		dryrun = 0;
 
 char	*ldiffile	= NULL;
 FILE	*ldiffp		= NULL;
@@ -97,7 +98,7 @@ slap_tool_init(
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "b:cd:f:l:n:tv";
+		options = "b:cd:f:l:n:tuv";
 		break;
 
 	case SLAPINDEX:
@@ -146,6 +147,10 @@ slap_tool_init(
 		case 't':	/* turn on truncate */
 			truncatemode++;
 			mode |= SLAP_TRUNCATE_MODE;
+			break;
+
+		case 'u':	/* dry run */
+			dryrun++;
 			break;
 
 		case 'v':	/* turn on verbose */

@@ -52,7 +52,6 @@ main( int argc, char **argv )
 	}
 
 	while( ldif_read_record( ldiffp, &lineno, &buf, &lmax ) ) {
-		ID id;
 		Entry *e = str2entry( buf );
 		struct berval bvtext = { textlen, textbuf };
 
@@ -146,20 +145,25 @@ main( int argc, char **argv )
 			}
 		}
 
-		id = be->be_entry_put( be, e, &bvtext );
-		if( id == NOID ) {
-			fprintf( stderr, "%s: could not add entry dn=\"%s\" (line=%d): %s\n",
-				progname, e->e_dn, lineno, bvtext.bv_val );
-			rc = EXIT_FAILURE;
-			entry_free( e );
-			if( continuemode ) continue;
-			break;
-
-		}
+		if (!dryrun) {
+			ID id = be->be_entry_put( be, e, &bvtext );
+			if( id == NOID ) {
+				fprintf( stderr, "%s: could not add entry dn=\"%s\" (line=%d): %s\n",
+					progname, e->e_dn, lineno, bvtext.bv_val );
+				rc = EXIT_FAILURE;
+				entry_free( e );
+				if( continuemode ) continue;
+				break;
+			}
 		
-		if ( verbose ) {
-			fprintf( stderr, "added: \"%s\" (%08lx)\n",
-				e->e_dn, (long) id );
+			if ( verbose ) {
+				fprintf( stderr, "added: \"%s\" (%08lx)\n",
+					e->e_dn, (long) id );
+			}
+		} else {
+			if ( verbose ) {
+				fprintf( stderr, "(dry) added: \"%s\"\n", e->e_dn );
+			}
 		}
 
 		entry_free( e );

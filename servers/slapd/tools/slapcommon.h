@@ -26,6 +26,7 @@ extern	int		appendmode;
 extern	int		verbose;
 extern	int		continuemode;
 extern	int		nosubordinates;
+extern	int		dryrun;
 
 extern	char	*ldiffile;
 extern	FILE	*ldiffp;
