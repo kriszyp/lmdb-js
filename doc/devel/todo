@@ -23,7 +23,6 @@ OpenLDAP 2.0 Projects
 	client API update
 		Implement LDAP errno draft (deferred)
 	SLAPD
-		Complete schema codes <kurt@openldap.org>
 		Update back-perl
 		Update back-sql
 		Update back-tcl
@@ -34,8 +33,6 @@ OpenLDAP 2.0 Projects
 	SLAPD/SLURD Admin Guide
 	Update manual pages
 
-
-Other projects:
 
 Large projects
 --------------
@@ -55,16 +52,15 @@ Modify -lldap to be reentrant/threadsafe
 Modify libraries to use application specified logging routines
 Modify servers to use reentrant library functions
 Extend slapd to support identd (RFC1413) information in ACLs
-Port slapd (incl back-ldbm & tools) to NT <gwilliams@openldap.org>
+Extend slapd to support per-backend schema
 Port slurpd to NT
 
 
 Small projects
 --------------
-Add IPv6 support
 Add IPSEC SASL/EXTERNAL support
-Add tests to test suite (ACI, moddn, manageDSAit, subtyping, subclassing, etc)
-Add compare of RootDSE, cn=schema, etc.
+Add tests to test suite (ACI, moddn, manageDSAit, subtyping, etc.)
+Add compare of RootDSE, cn=subschema, etc.
 Add user configurable attributes to RootDSE
 Create ldapquery (from ldapsearch?) to support searching using ldap_getfilter(3)
 Extend gateways to support tcp_wrappers
