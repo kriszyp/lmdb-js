@@ -63,6 +63,7 @@ ldbm_back_init(
 	free( argv[ 1 ] );
 
 	/* initialize various mutex locks & condition variables */
+	pthread_mutex_init( &li->li_root_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &li->li_add_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &li->li_cache.c_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &li->li_nextid_mutex, pthread_mutexattr_default );

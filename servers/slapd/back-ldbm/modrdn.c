@@ -22,12 +22,12 @@ ldbm_back_modrdn(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char		*matched;
-	char		*pdn, *newdn, *p;
+	char		*matched = NULL;
+	char		*pdn = NULL, *newdn = NULL;
 	char		sep[2];
-	Entry		*e;
-
-	matched = NULL;
+	Entry		*e, *p = NULL;
+	int			rootlock = 0;
+	int			rc = -1;
 
 	/* get entry with writer lock */
 	if ( (e = dn2entry_w( be, dn, &matched )) == NULL ) {
@@ -38,8 +38,42 @@ ldbm_back_modrdn(
 		return( -1 );
 	}
 
+#ifdef SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL
+		/* check parent for "children" acl */
+	if ( ! access_allowed( be, conn, op, e, "entry", NULL,
+		op->o_dn, ACL_WRITE ) )
+	{
+		Debug( LDAP_DEBUG_TRACE, "no access to entry\n", 0,
+			0, 0 );
+		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+			"", "" );
+		goto return_results;
+	}
+#endif
+
 	if ( (pdn = dn_parent( be, dn )) != NULL ) {
 		/* parent + rdn + separator(s) + null */
+		if( (p = dn2entry_w( be, pdn, &matched )) == NULL) {
+			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
+				0, 0, 0);
+			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+				"", "");
+			goto return_results;
+		}
+
+#ifndef SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL
+		/* check parent for "children" acl */
+		if ( ! access_allowed( be, conn, op, p, "children", NULL,
+			op->o_dn, ACL_WRITE ) )
+		{
+			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
+				0, 0 );
+			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+				"", "" );
+			goto return_results;
+		}
+#endif
+
 		newdn = (char *) ch_malloc( strlen( pdn ) + strlen( newrdn )
 		    + 3 );
 		if ( dn_type( dn ) == DN_X500 ) {
@@ -47,12 +81,13 @@ ldbm_back_modrdn(
 			strcat( newdn, ", " );
 			strcat( newdn, pdn );
 		} else {
+			char *s;
 			strcpy( newdn, newrdn );
-			p = strchr( newrdn, '\0' );
-			p--;
-			if ( *p != '.' && *p != '@' ) {
-				if ( (p = strpbrk( dn, ".@" )) != NULL ) {
-					sep[0] = *p;
+			s = strchr( newrdn, '\0' );
+			s--;
+			if ( *s != '.' && *s != '@' ) {
+				if ( (s = strpbrk( dn, ".@" )) != NULL ) {
+					sep[0] = *s;
 					sep[1] = '\0';
 					strcat( newdn, sep );
 				}
@@ -60,42 +95,46 @@ ldbm_back_modrdn(
 			strcat( newdn, pdn );
 		}
 	} else {
+		/* no parent, modrdn entry directly under root */
+		if( ! be_isroot( be, op->o_dn ) ) {
+			Debug( LDAP_DEBUG_TRACE, "no parent & not root\n",
+				0, 0, 0);
+			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+				"", "");
+			goto return_results;
+		}
+
+		pthread_mutex_lock(&li->li_root_mutex);
+		rootlock = 1;
+
 		newdn = ch_strdup( newrdn );
 	}
+
 	(void) dn_normalize( newdn );
 
-	/* get entry with writer lock */
 	if ( (dn2id ( be, newdn ) ) != NOID ) {
-		free( newdn );
-		free( pdn );
 		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, NULL, NULL );
-		goto error_return;
+		goto return_results;
 	}
 
 	/* check for abandon */
 	pthread_mutex_lock( &op->o_abandonmutex );
 	if ( op->o_abandon ) {
 		pthread_mutex_unlock( &op->o_abandonmutex );
-		free( newdn );
-		free( pdn );
-		goto error_return;
+		goto return_results;
 	}
 	pthread_mutex_unlock( &op->o_abandonmutex );
 
 	/* add new one */
 	if ( dn2id_add( be, newdn, e->e_id ) != 0 ) {
-		free( newdn );
-		free( pdn );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
-		goto error_return;
+		goto return_results;
 	}
 
 	/* delete old one */
 	if ( dn2id_delete( be, dn ) != 0 ) {
-		free( newdn );
-		free( pdn );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
-		goto error_return;
+		goto return_results;
 	}
 
 	(void) cache_delete_entry( &li->li_cache, e );
@@ -115,18 +154,27 @@ ldbm_back_modrdn(
 	if ( id2entry_add( be, e ) != 0 ) {
 		entry_free( e );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
-		goto error_return;
+		goto return_results;
 	}
-	free( pdn );
 
-	/* free entry and writer lock */
-	cache_return_entry_w( &li->li_cache, e );
 	send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
+	rc = 0;
 
-	return( 0 );
+return_results:
+	if( newdn != NULL ) free( newdn );
+	if( pdn != NULL ) free( pdn );
+	if( matched != NULL ) free( matched );
 
-error_return:
+	if( p != NULL ) {
+		/* free parent and writer lock */
+		cache_return_entry_w( &li->li_cache, p );
+
+	} else if ( rootlock ) {
+		/* release root writer lock */
+		pthread_mutex_unlock(&li->li_root_mutex);
+	}
+
 	/* free entry and writer lock */
 	cache_return_entry_w( &li->li_cache, e );
-	return( -1 );
+	return( rc );
 }

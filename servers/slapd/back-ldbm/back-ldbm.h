@@ -9,6 +9,9 @@ LDAP_BEGIN_DECL
 
 #define DEFAULT_CACHE_SIZE	1000
 
+/* SHOULD BE REMOVED IN NEXT RELEASE */
+#define SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL 1
+
 #ifdef HAVE_BERKELEY_DB2
 #	define DEFAULT_DBCACHE_SIZE (100 * DEFAULT_DB_PAGE_SIZE)
 #else
@@ -106,6 +109,7 @@ struct attrinfo {
 
 struct ldbminfo {
 	ID			li_nextid;
+	pthread_mutex_t		li_root_mutex;
 	pthread_mutex_t		li_add_mutex;
 	pthread_mutex_t		li_nextid_mutex;
 	int			li_mode;
