@@ -1,6 +1,7 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.6 Engineering
+	Fixed slapd unsupported non-criticial control handling
 	Updated libldap_r Pth support (ITS#724) (ITS#1033)
 	Updated slapd adlist support
 	Build Environment
