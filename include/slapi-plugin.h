@@ -21,7 +21,7 @@ typedef struct slapi_entry	Slapi_Entry;
 typedef struct slapi_attr	Slapi_Attr;
 typedef struct berval		Slapi_Value;
 typedef struct BerVarray	Slapi_ValueSet;
-typedef Slapi_Filter	Slapi_Filter;
+typedef struct slapi_filter	Slapi_Filter;
 
 /* pblock routines */
 int slapi_pblock_get( Slapi_PBlock *pb, int arg, void *value );
