@@ -101,7 +101,7 @@ typedef struct syncprov_info_t {
 	Avlnode	*si_mods;	/* entries being modified */
 	ldap_pvt_thread_mutex_t	si_csn_mutex;
 	ldap_pvt_thread_mutex_t	si_ops_mutex;
-	ldap_pvt_thread_mutex_t	si_mods_mutex;
+	ldap_pvt_thread_rdwr_t	si_mods_rwlock;
 	char		si_ctxcsnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 } syncprov_info_t;
 
@@ -903,9 +903,9 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 
 	/* Remove op from lock table */
 	mtdummy.mt_op = op;
-	ldap_pvt_thread_mutex_lock( &si->si_mods_mutex );
+	ldap_pvt_thread_rdwr_rlock( &si->si_mods_rwlock );
 	mt = avl_find( si->si_mods, &mtdummy, sp_avl_cmp );
-	ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
+	ldap_pvt_thread_rdwr_runlock( &si->si_mods_rwlock );
 	if ( mt ) {
 		modinst *mi = mt->mt_mods;
 		
@@ -916,9 +916,9 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 			mt->mt_op = mt->mt_mods->mi_op;
 			ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
 		} else {
-			ldap_pvt_thread_mutex_lock( &si->si_mods_mutex );
+			ldap_pvt_thread_rdwr_wlock( &si->si_mods_rwlock );
 			avl_delete( &si->si_mods, mt, sp_avl_cmp );
-			ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
+			ldap_pvt_thread_rdwr_wunlock( &si->si_mods_rwlock );
 			ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
 			ldap_pvt_thread_mutex_destroy( &mt->mt_mutex );
 			ch_free( mt );
@@ -1133,11 +1133,11 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 
 		/* See if we're already modifying this entry... */
 		mtdummy.mt_op = op;
-		ldap_pvt_thread_mutex_lock( &si->si_mods_mutex );
+		ldap_pvt_thread_rdwr_wlock( &si->si_mods_rwlock );
 		mt = avl_find( si->si_mods, &mtdummy, sp_avl_cmp );
 		if ( mt ) {
 			ldap_pvt_thread_mutex_lock( &mt->mt_mutex );
-			ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
+			ldap_pvt_thread_rdwr_wunlock( &si->si_mods_rwlock );
 			mt->mt_tail->mi_next = mi;
 			mt->mt_tail = mi;
 			/* wait for this op to get to head of list */
@@ -1148,13 +1148,13 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 			}
 		} else {
 			/* Record that we're modifying this entry now */
-			mt = malloc( sizeof(modtarget) );
+			mt = ch_malloc( sizeof(modtarget) );
 			mt->mt_mods = mi;
 			mt->mt_tail = mi;
 			mt->mt_op = mi->mi_op;
 			ldap_pvt_thread_mutex_init( &mt->mt_mutex );
 			avl_insert( &si->si_mods, mt, sp_avl_cmp, avl_dup_error );
-			ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
+			ldap_pvt_thread_rdwr_wunlock( &si->si_mods_rwlock );
 		}
 
 		if ( op->o_tag != LDAP_REQ_ADD )
@@ -1684,7 +1684,7 @@ syncprov_db_init(
 	on->on_bi.bi_private = si;
 	ldap_pvt_thread_mutex_init( &si->si_csn_mutex );
 	ldap_pvt_thread_mutex_init( &si->si_ops_mutex );
-	ldap_pvt_thread_mutex_init( &si->si_mods_mutex );
+	ldap_pvt_thread_rdwr_init( &si->si_mods_rwlock );
 	si->si_ctxcsn.bv_val = si->si_ctxcsnbuf;
 
 	csn_anlist[0].an_desc = slap_schema.si_ad_entryCSN;
@@ -1705,7 +1705,7 @@ syncprov_db_destroy(
 	syncprov_info_t	*si = (syncprov_info_t *)on->on_bi.bi_private;
 
 	if ( si ) {
-		ldap_pvt_thread_mutex_destroy( &si->si_mods_mutex );
+		ldap_pvt_thread_rdwr_destroy( &si->si_mods_rwlock );
 		ldap_pvt_thread_mutex_destroy( &si->si_ops_mutex );
 		ldap_pvt_thread_mutex_destroy( &si->si_csn_mutex );
 		ch_free( si );
