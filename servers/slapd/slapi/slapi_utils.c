@@ -132,6 +132,16 @@ slapi_entry_get_dn( Slapi_Entry *e )
 #endif /* !defined(LDAP_SLAPI) */
 }
 
+int
+slapi_x_entry_get_id( Slapi_Entry *e )
+{
+#if defined(LDAP_SLAPI)
+	return e->e_id;
+#else
+	return NOID;
+#endif /* !defined(LDAP_SLAPI) */
+}
+
 void 
 slapi_entry_set_dn(
 	Slapi_Entry	*e, 
