@@ -192,19 +192,21 @@ map_attr_value(
 	{
 		dncookie fdc = *dc;
 
+#ifdef ENABLE_REWRITE
 		fdc.ctx = "searchFilter";
+#endif
 
 		switch ( ldap_back_dn_massage( &fdc, value, &vtmp ) ) {
-		case REWRITE_REGEXEC_OK:
+		case LDAP_SUCCESS:
 			if ( vtmp.bv_val != value->bv_val ) {
 				freeval = 1;
 			}
 			break;
 		
-		case REWRITE_REGEXEC_UNWILLING:
+		case LDAP_UNWILLING_TO_PERFORM:
 			return -1;
 
-		case REWRITE_REGEXEC_ERR:
+		case LDAP_OTHER:
 			return -1;
 		}
 
