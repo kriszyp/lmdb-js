@@ -567,7 +567,7 @@ rwm_destroy(
 			rewrite_info_delete( &rwmap->rwm_rw );
 		}
 #else /* !ENABLE_REWRITE */
-		if ( rwmap->lrwm_suffix_massage ) {
+		if ( rwmap->rwm_suffix_massage ) {
   			ber_bvarray_free( rwmap->rwm_suffix_massage );
  		}
 #endif /* !ENABLE_REWRITE */
