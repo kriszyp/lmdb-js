@@ -25,7 +25,7 @@ define([AC_INIT_BINSH],
 # top-level directory of the distribution.
 
 echo "Copyright 1998-2002 The OpenLDAP Foundation,  All Rights Reserved."
-echo "Restrictions apply, see COPYRIGHT and LICENSE files."
+echo "	Restrictions apply, see COPYRIGHT and LICENSE files."
 ])dnl
 dnl ----------------------------------------------------------------
 dnl Disable config.cache!
@@ -159,7 +159,8 @@ dnl ----------------------------------------------------------------
 
 dnl ----------------------------------------------------------------
 dnl SLAPD OPTIONS
-AC_ARG_WITH(xxslapdoptions,[SLAPD (Standalone LDAP Daemon) Options:])
+AC_ARG_WITH(xxslapdoptions,[
+SLAPD (Standalone LDAP Daemon) Options:])
 OL_ARG_ENABLE(slapd,[  --enable-slapd	  enable building slapd], yes)dnl
 OL_ARG_ENABLE(aci,[    --enable-aci	  enable per-object ACIs (experimental)], no)dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	  enable cleartext passwords], yes)dnl
@@ -216,11 +217,13 @@ OL_ARG_WITH(tcl_module,[    --with-tcl-module	  module type], static,
 
 dnl ----------------------------------------------------------------
 dnl SLURPD OPTIONS
-AC_ARG_WITH(xxslurpdoptions,[SLURPD (Replication Daemon) Options:])
+AC_ARG_WITH(xxslurpdoptions,[
+SLURPD (Replication Daemon) Options:])
 OL_ARG_ENABLE(slurpd,[  --enable-slurpd	  enable building slurpd], auto)dnl
 
 dnl ----------------------------------------------------------------
-AC_ARG_WITH(xxliboptions,[Library Generation & Linking Options])
+AC_ARG_WITH(xxliboptions,[
+Library Generation & Linking Options])
 AC_ENABLE_STATIC
 dnl AC_DISABLE_SHARED
 AC_ENABLE_SHARED
@@ -2748,6 +2751,11 @@ AC_SUBST(SLAPD_SQL_LIBS)
 AC_SUBST(SLAPD_SQL_INCLUDES)
 
 dnl ----------------------------------------------------------------
+dnl final help output
+AC_ARG_WITH(xxinstall,[
+See INSTALL file for further details.])
+
+dnl ----------------------------------------------------------------
 dnl final output
 dnl
 
@@ -2796,5 +2804,5 @@ tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
 tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
 ,[
 date > stamp-h
-echo Please \"make depend\" to build dependencies
+echo Please run \"make depend\" to build dependencies
 ])
