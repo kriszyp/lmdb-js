@@ -24,10 +24,10 @@ main( int argc, char **argv )
 
 	slap_tool_init( "slapindex", SLAPINDEX, argc, argv );
 
-	if( !be->be_entry_open &&
-		!be->be_entry_close &&
-		!be->be_entry_first &&
-		!be->be_entry_next &&
+	if( !be->be_entry_open ||
+		!be->be_entry_close ||
+		!be->be_entry_first ||
+		!be->be_entry_next  ||
 		!be->be_entry_reindex )
 	{
 		fprintf( stderr, "%s: database doesn't support necessary operations.\n",
