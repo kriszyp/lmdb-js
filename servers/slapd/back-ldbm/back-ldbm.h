@@ -77,6 +77,8 @@ typedef ID ID_BLOCK;
 #define ID_BLOCK_INDIRECT_VALUE	0
 #define ID_BLOCK_INDIRECT(b)	(ID_BLOCK_NIDS(b) == ID_BLOCK_INDIRECT_VALUE)
 
+#define	USE_INDIRECT_NIDS	1
+
 #ifdef USE_INDIRECT_NIDS
 /*
  * Use the high bit of ID_BLOCK_NMAX to indicate an INDIRECT block, thus
