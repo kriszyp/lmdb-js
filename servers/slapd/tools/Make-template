@@ -39,7 +39,7 @@ all:	build-edb2ldif ldif2index ldif2ldbm ldbmcat ldif2id2entry \
 
 build-edb2ldif:	FORCE
 	@if [ "$(HAVEISODE)" = "yes" ]; then \
-	    $(MAKE) $(MFLAGS) CC=$(CC) EXINCLUDES="$(ISODEINCLUDEFLAG)" \
+	    $(MAKE) $(MFLAGS) CC="$(CC)" EXINCLUDES="$(ISODEINCLUDEFLAG)" \
 		EXLDFLAGS="$(ISODELIBFLAG)" EXLIBS="$(ISODELIBS)" edb2ldif; \
         else \
             echo "uncomment the HAVEISODE=yes line in the Make-common file to build edb2ldif"; \
@@ -59,7 +59,7 @@ edb2-vers.c: $(EDB2LDIFOBJS)
 
 build-chlog2replog: FORCE
 	@if [ "$(HAVEISODE)" = "yes" ]; then \
-	    $(MAKE) $(MFLAGS) CC=$(CC) EXINCLUDES="$(ISODEINCLUDEFLAG)" \
+	    $(MAKE) $(MFLAGS) CC="$(CC)" EXINCLUDES="$(ISODEINCLUDEFLAG)" \
 		EXLDFLAGS="$(ISODELIBFLAG)" EXLIBS="$(ISODELIBS)" chlog2replog; \
         else \
             echo "uncomment the HAVEISODE=yes line in the Make-common file to build chlog2replog"; \

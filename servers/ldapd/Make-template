@@ -33,7 +33,7 @@ LIBS	= -llber $(ISODELIBS) $(KRBLIBS) $(ALIBS)
 
 all:	FORCE
 	@if [ "$(HAVEISODE)" = "yes" ]; then \
-            $(MAKE) $(MFLAGS) CC=$(CC) ldapd; \
+            $(MAKE) $(MFLAGS) CC="$(CC)" ldapd; \
 	else \
 	    echo "uncomment the HAVEISODE=yes line in the Make-common file to build ldapd"; \
         fi
@@ -66,15 +66,15 @@ LDAP-types.h: LDAP_tables.c
 
 install:	FORCE
 	@if [ "$(HAVEISODE)" = "yes" ]; then \
-            $(MAKE) $(MFLAGS) CC=$(CC) install-ldapd; \
+            $(MAKE) $(MFLAGS) CC="$(CC)" install-ldapd; \
 	else \
 	    echo "uncomment the HAVEISODE=yes line in the Make-common file to build and install ldapd"; \
         fi
 
-install-ldapd: $(ETCDIR) $(ETCDIR)/ldapd
+install-ldapd: $(LDAP_LIBEXECDIR) $(LDAP_LIBEXECDIR)/ldapd
 
-$(ETCDIR)/ldapd:	ldapd
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapd $(ETCDIR)
+$(LDAP_LIBEXECDIR)/ldapd:	ldapd
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapd $(LDAP_LIBEXECDIR)
 
 lint:	FORCE
 	$(LINT) $(INCLUDES) $(DEFINES) $(SRCS)
@@ -94,29 +94,4 @@ depend:	FORCE
 
 links:
 	@$(LN) .src/*.py .src/*.[ch] .
-# DO NOT DELETE THIS LINE -- mkdep uses it.
-# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-main.o: main.c ../../include/portable.h ../../include/lber.h
-main.o: ../../include/ldap.h common.h
-detach.o: detach.c ../../include/portable.h
-setproctitle.o: setproctitle.c
-request.o: request.c ../../include/lber.h ../../include/ldap.h common.h
-bind.o: bind.c ../../include/lber.h ../../include/ldap.h common.h
-result.o: result.c ../../include/lber.h ../../include/ldap.h common.h
-error.o: error.c ../../include/lber.h ../../include/ldap.h
-search.o: search.c ../../include/lber.h ../../include/ldap.h common.h
-util.o: util.c ../../include/lber.h ../../include/ldap.h common.h
-compare.o: compare.c ../../include/lber.h ../../include/ldap.h common.h
-message.o: message.c ../../include/lber.h ../../include/ldap.h common.h
-add.o: add.c ../../include/lber.h ../../include/ldap.h common.h
-delete.o: delete.c ../../include/lber.h ../../include/ldap.h common.h
-modrdn.o: modrdn.c ../../include/lber.h ../../include/ldap.h common.h
-modify.o: modify.c ../../include/lber.h ../../include/ldap.h common.h
-abandon.o: abandon.c ../../include/lber.h ../../include/ldap.h common.h
-syntax.o: syntax.c ../../include/lber.h ../../include/ldap.h common.h
-association.o: association.c ../../include/lber.h ../../include/ldap.h common.h
-kerberos.o: kerberos.c ../../include/lber.h ../../include/ldap.h common.h
-certificate.o: certificate.c ../../include/lber.h ../../include/ldap.h common.h
-
-# IF YOU PUT ANYTHING HERE IT WILL GO AWAY

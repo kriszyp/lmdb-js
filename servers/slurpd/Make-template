@@ -39,7 +39,7 @@ all: 	FORCE
 		echo "uncomment the MAKESLAPD line in Make-common to make slurpd"; \
 		exit 0; \
 	else \
-		make slurpd; \
+		$(MAKE) slurpd; \
 	fi
 
 slurpd:	version.o
