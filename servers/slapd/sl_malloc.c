@@ -79,7 +79,7 @@ sl_mem_detach(
 )
 {
 	struct slab_heap *sh = memctx;
-	int size = sh->h_end - sh->h_base;
+	int size = (char *) sh->h_end - (char *) sh->h_base;
 
 	sh->h_base = ch_realloc( sh->h_base, size );
 
