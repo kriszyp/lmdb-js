@@ -1,13 +1,14 @@
 OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2 Release Engineering
-	CVS Tag: OPENLDAP_REL_ENG_1_2_1
+	CVS Tag: OPENLDAP_REL_ENG_1_2
 	Fixed ud cp == NULL bug (ITS#48)
 	Fixed ldbm Berkeley DB 2.4 mp_pool init problem (ITS#156)
 	Fixed slapd modrdn (ITS#78, #153)
 	Fixed slapd command line usage and log level option (ITS#145)
 	Fixed slapd acl group extended format parsing (ITS#123)
 	Fixed slurpd ldap_pvt_thread_create argument typo
+	Fixed ldapsearch null ldaphost bug (ITS#159)
 	Added modrdn test.
 	Updated slapd modify (and modrdn) attribute normalization bugs.
 	Build environment
