@@ -388,14 +388,11 @@ backsql_db_open(
 			backsql_strcat( &bb, backsql_id_query,
 					"dn_ru=?", NULL );
 		} else {
-#if 0
 			if ( BACKSQL_USE_REVERSE_DN( si ) ) {
-#endif 
 				backsql_strfcat( &bb, "sbl",
 						backsql_id_query,
 						&si->upper_func, 
 						(ber_len_t)sizeof( "(dn)=?" ) - 1, "(dn)=?" );
-#if 0
 			} else {
 				backsql_strfcat( &bb, "sblbcb",
 						backsql_id_query,
@@ -405,7 +402,6 @@ backsql_db_open(
 						'?', 
 						&si->upper_func_close );
 			}
-#endif
 		}
 	}
 	si->id_query = bb.bb_val.bv_val;
