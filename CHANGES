@@ -4,13 +4,28 @@ Changes included in OpenLDAP 1.1.x
 	CVS Tag: OPENLDAP_REL_ENG_1_1
 	Fixed slapd/ldbm/delete initialization bug (ITS#31)
 	Fixed slapd/ldif2ldbm MAXARGS bug (ITS#34)
+	Fixed slapd/delete bugs (ITS#39)
 	Fixed slapd/strtok needs mutex bug
-	Fixed salpd/tcpd DoS bug
+	Fixed slapd/tcpd DoS bug
+	Fixed ud bogus msgfree bug (ITS#43)
+	Fixed slapd/add,delete,modrdn parent lock bug
+	Updated slapd/modrdn ACL handling
+	Updated slapd/search deallocation
+	Updated slapd to use pthread_detach()
+	Updated slapd thread initialization
+	Updated lthread to provide sched_yield() if missing
+	Updated slapd shutdown code to use condition wait
 	Build environment
 		Added DB2 patch information
+		Added distclean target
 		Fixed doc/man reinstall bug
 		Fixed make clean
 		Fixed --disable-slurpd
+		Fixed VPATH support
+		Fixed REENTRANT multiple definition issue
+		Updated pthread checking
+		Updated res_search check
+		Updated library linking
 
 Changes included in OpenLDAP 1.1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_1_2
