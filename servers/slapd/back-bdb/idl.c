@@ -248,7 +248,13 @@ bdb_idl_fetch_key(
 #ifdef BDB_IDL_MULTI
 	{
 		DBC *cursor;
-		ID buf[BDB_PAGESIZE*4];
+		/* buf must be large enough to grab the entire IDL in one
+		 * get(), otherwise BDB 4 will leak resources on subsequent
+		 * get's. We can safely call get() twice - once for the data,
+		 * and once to get the DB_NOTFOUND result meaning there's
+		 * no more data. See ITS#2040 for details.
+		 */
+		ID buf[BDB_IDL_DB_SIZE*5];
 		ID *i;
 		void *ptr;
 		size_t len;
@@ -444,7 +450,7 @@ bdb_idl_insert_key(
 					err = "c_count";
 					goto fail;
 				}
-				if ( count >= BDB_IDL_DB_SIZE ) {
+				if ( count >= BDB_IDL_DB_MAX ) {
 				/* No room, convert to a range */
 					DBT key2 = *key;
 
