@@ -4,9 +4,9 @@ dnl	to configure the system for the local environment.
 AC_INIT(neoXldap.c)
 # $OpenLDAP$
 
-NEO_VERSION=1.2
-NEO_MAJOR_VERSION=1
-NEO_MINOR_VERSION=2
+NEO_VERSION=2.0
+NEO_MAJOR_VERSION=2
+NEO_MINOR_VERSION=0
 VERSION=${NEO_VERSION}
 
 if test "${prefix}" = "NONE"; then

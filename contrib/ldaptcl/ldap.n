@@ -13,7 +13,7 @@ ldap \- connect to and query an LDAP server
 .SH SYNOPSIS
 \fBldap \fBopen \fR \fIcommand\fR \fIhostlist\fR
 .br
-\fBldap \fBinit \fR \fIcommand\fR \fIhostlist\fR
+\fBldap \fBinit \fR \fIcommand\fR \fIhostlist\fR ?protocol_version [2|3]?
 .br
 \fBldap \fBexplode ?-nonames|-list?\fR \fIdn\fR
 .br
@@ -60,6 +60,11 @@ and make queries to the remote LDAP server.
 
 Same as above, foo is created, but for "init", opening the connection is 
 deferred until we actually try to do something.
+
+The init command also allows some optional values to be set for the connection.
+Currently, the only useful option is \fBprotocol_version\fR which take a
+single argument to specify to use LDAP protocol 2 or 3.  This may be required
+when connecting to older LDAP server.
 
 For the purposes of this example, we're going to assume that "foo" is the
 command created by opening a connection using "ldap open".
@@ -189,6 +194,12 @@ value list {bar snap}, and you delete using the attributePairList "foo bar",
 If you provide an empty string ("") for the value list,
 the entire attribute will be deleted.
 
+In Ldaptcl version 2.0, multiple operations may be combined into a single
+transaction, ie. as in:
+
+    foo add_attributes dn attributePairList replace attributePairList \
+	delete attributePairList
+
 .SH SEARCHING
 
 The Tcl interface to searching takes a control array, which contains
@@ -200,6 +211,7 @@ of matching DNs if none are specified) and values are stored.
 The "code" part is executed repeatedly, once for each DN matching the
 search criteria.
 
+.nf
     foo search controlArray destArray code
 
 	Using data in the control array, a search is performed of the
@@ -222,14 +234,25 @@ search criteria.
 	controlArray(timeout) a timeout value in seconds (may contain
 	    fractional values -- extremely very small values are useful
 	    for forcing timeout conditions to test timeouts).
+.fi
 
-        For each matching record, destArray is populated with none,
-	some or all attribute-value pairs.
+For each matching record, destArray is populated with none,
+some or all attribute-value pairs as determined by the request and
+access control lists on the server.
 
 Note:  There are some additional parameters that can be set, such as
 how long the synchronous version of the routines should wait before
 timing out, the interfaces for which are not available in the current
 version.
+
+.SH COMPARE
+
+    foo compare dn attribute value
+
+Interface to the ldap_compare_s() command.
+Compares the value of \fIattribute\fR in the object at \fIdn\fR to the
+\fIvalue\fR given in the command line.  Returns an error if \fIdn\fR
+does not exist.  Otherwise, a 
 
 .SH CACHING (Note: Netscape clients do not have caching interfaces).
 

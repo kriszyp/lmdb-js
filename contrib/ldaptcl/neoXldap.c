@@ -76,7 +76,9 @@
        ** In OpenLDAP 2.x-devel, its 2000 + the draft number, ie 2002.
        ** This section is for OPENLDAP.
        */
+#ifndef LDAP_API_FEATURE_X_OPENLDAP
 #define ldap_memfree(p) free(p)
+#endif
 #ifdef LDAP_OPT_ERROR_NUMBER
 #define ldap_get_lderrno(ld)	(ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &lderrno), lderrno)
 #else
@@ -429,13 +431,14 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
     char	 *m, *s, *errmsg;
     int		 errcode;
     int		 tclResult;
+    int		 lderrno;	/* might be used by LDAP_ERR_STRING macro */
 
     Tcl_Obj      *resultObj = Tcl_GetObjResult (interp);
 
-    if (objc < 2)
-       return TclX_WrongArgs (interp,
-			      objv [0],
-			      "subcommand [args...]");
+    if (objc < 2) {
+	Tcl_WrongNumArgs (interp, 1, objv, "subcommand [args...]");
+	return TCL_ERROR;
+    }
 
     command = Tcl_GetStringFromObj (objv[0], NULL);
     subCommand = Tcl_GetStringFromObj (objv[1], NULL);
@@ -448,8 +451,10 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	char     *ldap_authString;
 	int       ldap_authInt;
 
-	if (objc != 5)
-	    return TclX_WrongArgs (interp, objv [0], "bind authtype dn passwd");
+	if (objc != 5) {
+	    Tcl_WrongNumArgs (interp, 2, objv, "authtype dn passwd");
+	    return TCL_ERROR;
+	}
 
 	ldap_authString = Tcl_GetStringFromObj (objv[2], NULL);
 
@@ -515,16 +520,20 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
     }
 
     if (STREQU (subCommand, "unbind")) {
-	if (objc != 2)
-	    return TclX_WrongArgs (interp, objv [0], "unbind");
+	if (objc != 2) {
+	    Tcl_WrongNumArgs (interp, 2, objv, "");
+	    return TCL_ERROR;
+	}
 
        return Tcl_DeleteCommand(interp, Tcl_GetStringFromObj(objv[0], NULL));
     }
 
     /* object delete dn */
     if (STREQU (subCommand, "delete")) {
-	if (objc != 3)
-	    return TclX_WrongArgs (interp, objv [0], "delete dn");
+	if (objc != 3) {
+	    Tcl_WrongNumArgs (interp, 2, objv, "dn");
+	    return TCL_ERROR;
+	}
 
        dn = Tcl_GetStringFromObj (objv [2], NULL);
        if ((errcode = ldap_delete_s(ldap, dn)) != LDAP_SUCCESS) {
@@ -544,10 +553,10 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	char    *rdn;
 	int      deleteOldRdn;
 
-	if (objc != 4)
-	    return TclX_WrongArgs (interp, 
-				   objv [0], 
-				   "delete_rdn|modify_rdn dn rdn");
+	if (objc != 4) {
+	    Tcl_WrongNumArgs (interp, 2, objv, "dn rdn");
+	    return TCL_ERROR;
+	}
 
 	dn = Tcl_GetStringFromObj (objv [2], NULL);
 	rdn = Tcl_GetStringFromObj (objv [3], NULL);
@@ -598,13 +607,15 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	Tcl_Obj    **attribObjv;
 	int          valuesObjc;
 	Tcl_Obj    **valuesObjv;
-	int          nPairs;
+	int          nPairs, allPairs;
 	int          i;
 	int          j;
+	int	     pairIndex;
+	int	     modIndex;
 
 	Tcl_Obj      *resultObj = Tcl_GetObjResult (interp);
 
-	if (objc != 4) {
+	if (objc < 4 || objc > 4 && is_add || is_add == 0 && objc&1) {
 	    Tcl_AppendStringsToObj (resultObj,
 				    "wrong # args: ",
 				    Tcl_GetStringFromObj (objv [0], NULL),
@@ -612,37 +623,52 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 				    subCommand,
 				    " dn attributePairList",
 				    (char *)NULL);
+	    if (!is_add)
+		Tcl_AppendStringsToObj (resultObj,
+		    " ?[add|delete|replace] attributePairList ...?", (char *)NULL);
 	    return TCL_ERROR;
 	}
 
 	dn = Tcl_GetStringFromObj (objv [2], NULL);
 
-	if (Tcl_ListObjGetElements (interp, objv [3], &attribObjc, &attribObjv)
-	  == TCL_ERROR) {
-	   return TCL_ERROR;
+	allPairs = 0;
+	for (i = 3; i < objc; i += 2) {
+	    if (Tcl_ListObjLength (interp, objv[i], &j) == TCL_ERROR)
+		return TCL_ERROR;
+	    if (j & 1) {
+		Tcl_AppendStringsToObj (resultObj,
+					"attribute list does not contain an ",
+					"even number of key-value elements",
+					(char *)NULL);
+		return TCL_ERROR;
+	    }
+	    allPairs += j / 2;
 	}
 
-        if (attribObjc & 1) {
-	    Tcl_AppendStringsToObj (resultObj,
-				    "attribute list does not contain an ",
-				    "even number of key-value elements",
-				    (char *)NULL);
-	    return TCL_ERROR;
+	modArray = (LDAPMod **)malloc (sizeof(LDAPMod *) * (allPairs + 1));
+
+	pairIndex = 3;
+	modIndex = 0;
+
+	do {
+
+	if (Tcl_ListObjGetElements (interp, objv [pairIndex], &attribObjc, &attribObjv)
+	  == TCL_ERROR) {
+	   mod_op = -1;
+	   goto badop;
 	}
 
 	nPairs = attribObjc / 2;
 
-	modArray = (LDAPMod **)malloc (sizeof(LDAPMod *) * (nPairs + 1));
-	modArray[nPairs] = (LDAPMod *) NULL;
-
 	for (i = 0; i < nPairs; i++) {
-	    mod = modArray[i] = (LDAPMod *) malloc (sizeof(LDAPMod));
+	    mod = modArray[modIndex++] = (LDAPMod *) malloc (sizeof(LDAPMod));
 	    mod->mod_op = mod_op;
 	    mod->mod_type = Tcl_GetStringFromObj (attribObjv [i * 2], NULL);
 
 	    if (Tcl_ListObjGetElements (interp, attribObjv [i * 2 + 1], &valuesObjc, &valuesObjv) == TCL_ERROR) {
 		/* FIX: cleanup memory here */
-		return TCL_ERROR;
+		mod_op = -1;
+		goto badop;
 	    }
 
 	    valPtrs = mod->mod_vals.modv_strvals = \
@@ -662,7 +688,30 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	    }
 	}
 
-        if (is_add) {
+	pairIndex += 2;
+	if (mod_op != -1 && pairIndex < objc) {
+	    subCommand = Tcl_GetStringFromObj (objv[pairIndex - 1], NULL);
+	    mod_op = -1;
+	    if (STREQU (subCommand, "add")) {
+		mod_op = LDAP_MOD_ADD;
+	    } else if (STREQU (subCommand, "replace")) {
+		mod_op = LDAP_MOD_REPLACE;
+	    } else if (STREQU (subCommand, "delete")) {
+		mod_op = LDAP_MOD_DELETE;
+	    }
+	    if (mod_op == -1) {
+		Tcl_SetStringObj (resultObj,
+			"Additional operators must be one of"
+			" add, replace, or delete", -1);
+		mod_op = -1;
+		goto badop;
+	    }
+	}
+
+	} while (mod_op != -1 && pairIndex < objc);
+	modArray[modIndex] = (LDAPMod *) NULL;
+
+	if (is_add) {
 	    result = ldap_add_s (ldap, dn, modArray);
 	} else {
 	    result = ldap_modify_s (ldap, dn, modArray);
@@ -671,11 +720,16 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	}
 
         /* free the modArray elements, then the modArray itself. */
-	for (i = 0; i < nPairs; i++) {
+badop:
+	for (i = 0; i < modIndex; i++) {
 	    free ((char *) modArray[i]->mod_vals.modv_strvals);
 	    free ((char *) modArray[i]);
 	}
 	free ((char *) modArray);
+
+	/* after modArray is allocated, mod_op = -1 upon error for cleanup */
+	if (mod_op == -1)
+	    return TCL_ERROR;
 
 	/* FIX: memory cleanup required all over the place here */
         if (result != LDAP_SUCCESS) {
@@ -723,10 +777,11 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	Tcl_Obj     *destArrayNameObj;
 	Tcl_Obj     *evalCodeObj;
 
-	if (objc != 5)
-	    return TclX_WrongArgs (interp, 
-				   objv [0],
-				   "search controlArray destArray code");
+	if (objc != 5) {
+	    Tcl_WrongNumArgs (interp, 2, objv,
+				   "controlArray destArray code");
+	    return TCL_ERROR;
+	}
 
         controlArrayNameObj = objv [2];
 	controlArrayName = Tcl_GetStringFromObj (controlArrayNameObj, NULL);
@@ -783,13 +838,13 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	    }
 	}
 
+#ifdef LDAP_OPT_DEREF				      
 	/* Fetch dereference control setting from control array.
 	 * If it doesn't exist, default to never dereference. */
 	derefString = Tcl_GetVar2 (interp,
 				   controlArrayName,
 				   "deref",
 				   0);
-				      
 	if (derefString == (char *)NULL) {
 	    deref = LDAP_DEREF_NEVER;
 	} else {
@@ -812,6 +867,7 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 		return TCL_ERROR;
 	    }
 	}
+#endif
 
 	/* Fetch list of attribute names from control array.
 	 * If entry doesn't exist, default to NULL (all).
@@ -887,7 +943,9 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	}
 #endif
 
+#ifdef LDAP_OPT_DEREF
 	ldap_set_option(ldap, LDAP_OPT_DEREF, &deref);
+#endif
 
 	tclResult = LDAP_PerformSearch (interp, 
 			            ldaptcl, 
@@ -910,8 +968,10 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	    else
 		ldap_enable_cache(ldap, ldaptcl->timeout, ldaptcl->maxmem);
 	}
+#ifdef LDAP_OPT_DEREF
 	deref = LDAP_DEREF_NEVER;
 	ldap_set_option(ldap, LDAP_OPT_DEREF, &deref);
+#endif
 #endif
 	return tclResult;
     }
@@ -924,10 +984,12 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	int	     result;
 	int	     lderrno;
 
-	if (objc != 5)
-	    return TclX_WrongArgs (interp, 
-				   objv [0],
-				   "compare dn attribute value");
+	if (objc != 5) {
+	    Tcl_WrongNumArgs (interp, 
+				   2, objv,
+				   "dn attribute value");
+	    return TCL_ERROR;
+	}
 
 	dn = Tcl_GetStringFromObj (objv[2], NULL);
 	attr = Tcl_GetStringFromObj (objv[3], NULL);
@@ -935,7 +997,7 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	
 	result = ldap_compare_s (ldap, dn, attr, value);
 	if (result == LDAP_COMPARE_TRUE || result == LDAP_COMPARE_FALSE) {
-	    Tcl_SetIntObj(resultObj, result == LDAP_COMPARE_TRUE);
+	    Tcl_SetBooleanObj(resultObj, result == LDAP_COMPARE_TRUE);
 	    return TCL_OK;
 	}
 	LDAP_SetErrorCode(ldaptcl, result, interp);
@@ -946,25 +1008,27 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	return TCL_ERROR;
     }
 
-#if defined(UMICH_LDAP) || (defined(OPEN_LDAP) && !defined(LDAP_API_VERSION))
     if (STREQU (subCommand, "cache")) {
+#if defined(UMICH_LDAP) || (defined(OPEN_LDAP) && !defined(LDAP_API_VERSION))
 	char *cacheCommand;
 
-	if (objc < 3)
+	if (objc < 3) {
 	  badargs:
-	    return TclX_WrongArgs (interp, 
-				   objv [0],
-				   "cache command [args...]");
+	    Tcl_WrongNumArgs (interp, 2, objv [0], "command [args...]");
+	    return TCL_ERROR;
+	}
 
 	cacheCommand = Tcl_GetStringFromObj (objv [2], NULL);
 
 	if (STREQU (cacheCommand, "uncache")) {
 	    char *dn;
 
-	    if (objc != 4)
-		return TclX_WrongArgs (interp, 
-				       objv [0],
-				       "cache uncache dn");
+	    if (objc != 4) {
+		Tcl_WrongNumArgs (interp, 
+				       3, objv,
+				       "dn");
+		return TCL_ERROR;
+	    }
 
             dn = Tcl_GetStringFromObj (objv [3], NULL);
 	    ldap_uncache_entry (ldap, dn);
@@ -975,10 +1039,10 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	    long   timeout = ldaptcl->timeout;
 	    long   maxmem = ldaptcl->maxmem;
 
-	    if (objc > 5)
-		return TclX_WrongArgs (interp, 
-				       objv [0],
-				       "cache enable ?timeout? ?maxmem?");
+	    if (objc > 5) {
+		Tcl_WrongNumArgs (interp, 3, objv, "?timeout? ?maxmem?");
+		return TCL_ERROR;
+	    }
 
 	    if (objc > 3) {
 		if (Tcl_GetLongFromObj (interp, objv [3], &timeout) == TCL_ERROR)
@@ -1055,15 +1119,19 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 				" or \"all_errors\"",
 				(char *)NULL);
 	return TCL_ERROR;
-    }
+#else
+	return TCL_OK;
 #endif
+    }
     if (STREQU (subCommand, "trap")) {
 	Tcl_Obj *listObj, *resultObj;
 	int *p, l, i, code;
 
-	if (objc > 4) 
-	    return TclX_WrongArgs (interp, objv [0],
-				   "trap command ?errorCode-list?");
+	if (objc > 4) {
+	    Tcl_WrongNumArgs (interp, 2, objv,
+				   "command ?errorCode-list?");
+	    return TCL_ERROR;
+	}
 	if (objc == 2) {
 	    if (!ldaptcl->trapCmdObj)
 		return TCL_OK;
@@ -1196,15 +1264,17 @@ NeoX_LdapObjCmd (clientData, interp, objc, objv)
     char         *subCommand;
     char         *newCommand;
     char         *ldapHost;
-    int           ldapPort = 389;
+    int           ldapPort = LDAP_PORT;
     LDAP         *ldap;
     LDAPTCL	 *ldaptcl;
 
     Tcl_Obj      *resultObj = Tcl_GetObjResult (interp);
 
-    if (objc < 3 || objc > 5)
-	return TclX_WrongArgs (interp, objv [0],
+    if (objc < 3) {
+	Tcl_WrongNumArgs (interp, 1, objv,
 			       "(open|init) new_command host [port]|explode dn");
+	return TCL_ERROR;
+    }
 
     subCommand = Tcl_GetStringFromObj (objv[1], NULL);
 
@@ -1221,7 +1291,8 @@ NeoX_LdapObjCmd (clientData, interp, objc, objv)
 	    } else if (STREQU(param, "-list")) {
 		list = 1;
 	    } else {
-		return TclX_WrongArgs (interp, objv [0], "explode ?-nonames|-list? dn");
+		Tcl_WrongNumArgs (interp, 1, objv, "explode ?-nonames|-list? dn");
+		return TCL_ERROR;
 	    }
 	}
 	if (nonames || list)
@@ -1281,7 +1352,58 @@ NeoX_LdapObjCmd (clientData, interp, objc, objv)
     if (STREQU (subCommand, "open")) {
 	ldap = ldap_open (ldapHost, ldapPort);
     } else if (STREQU (subCommand, "init")) {
+	int version = -1;
+	int i;
+	int value;
+	char *subOption;
+	char *subValue;
+
+#if LDAPTCL_PROTOCOL_VERSION_DEFAULT
+	version = LDAPTCL_PROTOCOL_VERSION_DEFAULT;
+#endif
+
+	for (i = 6; i < objc; i += 2)  {
+	    subOption =  Tcl_GetStringFromObj(objv[i-1], NULL);
+	    if (STREQU (subOption, "protocol_version")) {
+#ifdef LDAP_OPT_PROTOCOL_VERSION
+		subValue = Tcl_GetStringFromObj(objv[i], NULL);
+		if (STREQU (subValue, "2")) {
+		    version = LDAP_VERSION2;
+		}
+		else if (STREQU (subValue, "3")) {
+#ifdef LDAP_VERSION3
+		    version = LDAP_VERSION3;
+#else
+		    Tcl_SetStringObj (resultObj, "protocol_version 3 not supported", -1);
+		    return TCL_ERROR;
+#endif
+		}
+		else {
+		    Tcl_SetStringObj (resultObj, "protocol_version must be '2' or '3'", -1);
+		    return TCL_ERROR;
+		}
+#else
+		Tcl_SetStringObj (resultObj, "protocol_version not supported", -1);
+		return TCL_ERROR;
+#endif
+	    } else if (STREQU (subOption, "port")) {
+		if (Tcl_GetIntFromObj (interp, objv [i], &ldapPort) == TCL_ERROR) {
+		    Tcl_AppendStringsToObj (resultObj,
+					    "LDAP port number is non-numeric",
+					    (char *)NULL);
+		    return TCL_ERROR;
+		}
+	    } else {
+		Tcl_SetStringObj (resultObj, "valid options: protocol_version, port", -1);
+		return TCL_ERROR;
+	    }
+	}
 	ldap = ldap_init (ldapHost, ldapPort);
+
+#if LDAP_OPT_PROTOCOL_VERSION
+	if (version != -1)
+	    ldap_set_option(ldap, LDAP_OPT_PROTOCOL_VERSION, &version);
+#endif
     } else {
 	Tcl_AppendStringsToObj (resultObj, 
 				"option was not \"open\" or \"init\"");
@@ -1331,6 +1453,10 @@ Tcl_Interp   *interp;
                           NeoX_LdapObjCmd,
                           (ClientData) NULL,
                           (Tcl_CmdDeleteProc*) NULL);
+    /*
+    if (Neo_initLDAPX(interp) != TCL_OK)
+	return TCL_ERROR;
+    */
     Tcl_PkgProvide(interp, "Ldaptcl", VERSION);
     return TCL_OK;
 }
