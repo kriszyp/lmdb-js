@@ -89,4 +89,6 @@ int (strncasecmp)();
 		else AC_MEMCPY( (d), (s), (n) ); \
 	} while(0)
 
+#define STRLENOF(s)	(sizeof(s)-1)
+
 #endif /* _AC_STRING_H */
