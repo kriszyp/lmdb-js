@@ -75,8 +75,12 @@ bdb_compare(
 		BerVarray refs = get_entry_referrals( be,
 			conn, op, e );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "compare", LDAP_LEVEL_DETAIL1,"bdb_compare: entry is referral\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 			0, 0 );
+#endif
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			e->e_dn, NULL, refs, NULL );
