@@ -189,7 +189,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
                                 (void) dn_normalize( aliased_dn );
 
 
-								if ( strcasecmp( alias, aliased_dn) ) {
+								if ( strcasecmp( alias, aliased_dn) == 0 ) {
                                 	Debug( LDAP_DEBUG_ANY,
 "%s: line %d: suffixAlias %s is not different from aliased dn (ignored)\n",
                                     fname, lineno, alias );
