@@ -51,6 +51,7 @@ Small projects
 Implement -E/-e extensions options
 Implement -V version options
 Implement simple paged results control
+Add no-op control support to ldap client tools
 Add tests to test suite (ACI, moddn, manageDSAit, etc.)
 Add support for Cyrus SASL v2
 Add support for Cyrus pwcheckd/saslauthd
