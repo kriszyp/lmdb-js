@@ -180,7 +180,7 @@ Rq_add(
 
     /* set the sequence number */
     re->re_seq = 0;
-    if ( !wasempty && !strcmp(rq->rq_tail->re_timestamp, re->re_timestamp )) {
+    if ( !wasempty && ( rq->rq_tail->re_timestamp == re->re_timestamp )) {
 	/*
 	 * Our new re has the same timestamp as the tail's timestamp.
 	 * Increment the seq number in the tail and use it as our seq number.

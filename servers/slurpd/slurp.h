@@ -217,7 +217,7 @@ struct re {
     ldap_pvt_thread_mutex_t
 		re_mutex;		/* mutex for this Re */
     int		re_refcnt;		/* ref count, 0 = done */
-    char	*re_timestamp;		/* timestamp of this re */
+    time_t	re_timestamp;		/* timestamp of this re */
     int		re_seq;			/* sequence number */
     Rh    	*re_replicas;		/* array of replica info */
     char	*re_dn;			/* dn of entry being modified */
@@ -288,7 +288,7 @@ struct rq {
 typedef struct stel {
     char	*hostname;		/* host name of replica */
     int		port;			/* port number of replica */
-    char	last[ 64 ];		/* timestamp of last successful repl */
+    time_t	last;			/* timestamp of last successful repl */
     int		seq;			/* Sequence number of last repl */
 } Stel;
 

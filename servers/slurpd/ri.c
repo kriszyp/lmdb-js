@@ -226,12 +226,12 @@ isnew(
     Re	*re
 )
 {
-    int	x;
+    long x;
     int	ret;
 
     /* Lock the St struct to avoid a race */
     sglob->st->st_lock( sglob->st );
-    x = strcmp( re->re_timestamp, ri->ri_stel->last );
+    x = re->re_timestamp - ri->ri_stel->last;
     if ( x > 0 ) {
 	/* re timestamp is newer */
 	ret = 1;

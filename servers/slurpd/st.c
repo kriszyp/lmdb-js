@@ -61,7 +61,7 @@ St_add(
 
     st->st_data[ ind ]->hostname = strdup( ri->ri_hostname );
     st->st_data[ ind ]->port = ri->ri_port;
-    memset( st->st_data[ ind ]->last, 0, sizeof( st->st_data[ ind ]->last )); 
+    st->st_data[ ind ]->last = 0L; 
     st->st_data[ ind ]->seq = 0;
 
     ldap_pvt_thread_mutex_unlock( &(st->st_mutex ));
@@ -108,8 +108,8 @@ St_write (
     fseek( st->st_fp, 0L, 0 );
     for ( i = 0; i < st->st_nreplicas; i++ ) {
 	stel = st->st_data[ i ];
-	fprintf( st->st_fp, "%s:%d:%s:%d\n", stel->hostname, stel->port,
-		stel->last, stel->seq );
+	fprintf( st->st_fp, "%s:%d:%ld:%d\n", stel->hostname, stel->port,
+		(long) stel->last, stel->seq );
     }
     fflush( st->st_fp );
 
@@ -136,7 +136,7 @@ St_update(
     }
 
     ldap_pvt_thread_mutex_lock( &(st->st_mutex ));
-    strcpy( stel->last, re->re_timestamp );
+    stel->last = re->re_timestamp;
     stel->seq = re->re_seq;
     ldap_pvt_thread_mutex_unlock( &(st->st_mutex ));
     return 0;
@@ -214,7 +214,7 @@ St_read(
 	    if ( !strcmp( hostname, sglob->st->st_data[ i ]->hostname ) &&
 		    atoi( port ) == sglob->st->st_data[ i ]->port ) {
 		found = 1;
-		strcpy( sglob->st->st_data[ i ]->last, timestamp );
+		sglob->st->st_data[ i ]->last = atol( timestamp );
 		sglob->st->st_data[ i ]->seq = atoi( seq );
 		break;
 	    }
