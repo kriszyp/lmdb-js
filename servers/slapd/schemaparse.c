@@ -274,7 +274,7 @@ parse_at(
 		return 1;
 	}
 
-	code = at_add(at,&err);
+	code = at_add(at,1,&err);
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);

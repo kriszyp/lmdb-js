@@ -1925,7 +1925,7 @@ int pcache_init()
 			ldap_scherr2str(code), err );
 		return code;
 	}
-	code = at_add( at, &err );
+	code = at_add( at, 0, &err );
 	if ( !code ) {
 		slap_str2ad( at->at_names[0], &ad_queryid, &err );
 	}

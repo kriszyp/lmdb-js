@@ -404,7 +404,7 @@ init_config_attrs(ConfigTable *ct) {
 				ct[i].attribute, ldap_scherr2str(code), err );
 			return code;
 		}
-		code = at_add( at, &err );
+		code = at_add( at, 0, &err );
 		if ( code && code != SLAP_SCHERR_ATTR_DUP ) {
 			fprintf( stderr, "init_config_attrs: AttributeType \"%s\": %s, %s\n",
 				ct[i].attribute, scherr2str(code), err );

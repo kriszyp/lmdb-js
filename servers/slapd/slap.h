@@ -323,6 +323,8 @@ typedef struct slap_oid_macro {
 	struct berval som_oid;
 	BerVarray som_names;
 	BerVarray som_subs;
+#define	SLAP_OM_HARDCODE	0x10000U	/* This is hardcoded schema */
+	int som_flags;
 	LDAP_SLIST_ENTRY(slap_oid_macro) som_next;
 } OidMacro;
 
@@ -649,6 +651,7 @@ typedef struct slap_attribute_type {
 #define	SLAP_AT_DYNAMIC		0x0400U	/* dynamically generated */
 
 #define	SLAP_AT_ORDERED		0x0001U /* values are ordered */
+#define	SLAP_AT_HARDCODE	0x10000U	/* This is hardcoded schema */
 
 	slap_mask_t					sat_flags;
 
@@ -725,6 +728,7 @@ typedef struct slap_object_class {
 #else
 #define SLAP_OC_HIDE		0x8000
 #endif
+#define	SLAP_OC_HARDCODE	0x10000U	/* This is hardcoded schema */
 
 /*
  * DIT content rule

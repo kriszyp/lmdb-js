@@ -161,7 +161,7 @@ LDAP_SLAPD_F (int) at_delete_from_list LDAP_P((
 	int pos, AttributeType ***listp ));
 LDAP_SLAPD_F (int) at_schema_info LDAP_P(( Entry *e ));
 LDAP_SLAPD_F (int) at_add LDAP_P((
-	LDAPAttributeType *at, const char **err ));
+	LDAPAttributeType *at, int user, const char **err ));
 LDAP_SLAPD_F (void) at_destroy LDAP_P(( void ));
 
 LDAP_SLAPD_F (int) is_at_subtype LDAP_P((
@@ -1008,7 +1008,7 @@ LDAP_SLAPD_F(char *) oidm_find(char *oid);
 LDAP_SLAPD_F (void) oidm_destroy LDAP_P(( void ));
 LDAP_SLAPD_F (void) oidm_unparse LDAP_P(( BerVarray *bva ));
 LDAP_SLAPD_F (int) parse_oidm LDAP_P((
-	const char *fname, int lineno, int argc, char **argv ));
+	const char *fname, int lineno, int argc, char **argv, int user ));
 
 /*
  * operation.c

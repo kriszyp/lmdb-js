@@ -899,7 +899,7 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_OID:
-			if(parse_oidm(c->fname, c->lineno, c->argc, c->argv)) return(0);
+			if(parse_oidm(c->fname, c->lineno, c->argc, c->argv, 1)) return(0);
 			break;
 
 		case CFG_OC:
@@ -3547,7 +3547,7 @@ config_back_initialize( BackendInfo *bi )
 	for (i=0; OidMacros[i].name; i++ ) {
 		argv[1] = OidMacros[i].name;
 		argv[2] = OidMacros[i].oid;
-		parse_oidm( "slapd", i, 3, argv );
+		parse_oidm( "slapd", i, 3, argv, 0 );
 	}
 
 	bi->bi_cf_table = ct;

@@ -781,7 +781,7 @@ lastmod_db_init(
 				return -1;
 			}
 	
-			code = at_add(at, &err);
+			code = at_add(at, 0, &err);
 			if ( code ) {
 				Debug( LDAP_DEBUG_ANY, "lastmod_init: "
 					"%s in attributeType '%s'\n",
