@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.347 2001/01/16 21:18:42 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.348 2001/01/18 17:40:26 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -14206,7 +14206,7 @@ fi
 done
 
 
-	if test ac_cv_header_slp_h = yes ; then
+	if test $ac_cv_header_slp_h = yes ; then
 		echo $ac_n "checking for SLPOpen in -lslp""... $ac_c" 1>&6
 echo "configure:14212: checking for SLPOpen in -lslp" >&5
 ac_lib_var=`echo slp'_'SLPOpen | sed 'y%./+-:%__p__%'`

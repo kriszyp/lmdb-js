@@ -2069,7 +2069,7 @@ dnl Check for SLPv2 Compliant API Library
 if test $ol_enable_slp != no ; then
 	AC_CHECK_HEADERS( slp.h )
 
-	if test ac_cv_header_slp_h = yes ; then
+	if test $ac_cv_header_slp_h = yes ; then
 		AC_CHECK_LIB(slp, SLPOpen, [have_slp=yes], [have_slp=no])
 		if test $have_slp = yes ; then
 			AC_DEFINE(HAVE_SLP, 1, [define if you have -lslp])
