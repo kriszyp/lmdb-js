@@ -57,8 +57,8 @@ write_reject(
     int		rc;
 
     ldap_pvt_thread_mutex_lock( &sglob->rej_mutex );
-    sprintf( rejfile, "%s" LDAP_DIRSEP "%s:%d.rej", sglob->slurpd_rdir,
-	    ri->ri_hostname, ri->ri_port );
+    snprintf( rejfile, sizeof rejfile, "%s" LDAP_DIRSEP "%s:%d.rej",
+		sglob->slurpd_rdir, ri->ri_hostname, ri->ri_port );
 
     if ( access( rejfile, F_OK ) < 0 ) {
 	/* Doesn't exist - try to create */
