@@ -1,6 +1,8 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.24 Engineering
+	Added libldap fast synchronous search result processing
+	Fixed libldap fdset re-init for restart (ITS#3524)
 
 OpenLDAP 2.2.23 Release
 	Updated slapd extensibleMatch empty DN bug fix (ITS#3506)
