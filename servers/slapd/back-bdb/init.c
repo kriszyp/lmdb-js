@@ -114,6 +114,32 @@ bdb_db_init( BackendDB *be )
 	return 0;
 }
 
+int
+bdb_bt_compare(
+	DB *db, 
+	const DBT *usrkey,
+	const DBT *curkey
+)
+{
+	unsigned char *u, *c;
+	int i, x;
+
+	u = usrkey->data;
+	c = curkey->data;
+
+#ifdef WORDS_BIGENDIAN
+	for( i = 0; i < (int)sizeof(ID); i++)
+#else
+	for( i = sizeof(ID)-1; i >= 0; i--)
+#endif
+	{
+		x = u[i] - c[i];
+		if( x ) return x;
+	}
+
+	return 0;
+}
+
 static int
 bdb_db_open( BackendDB *be )
 {
@@ -182,16 +208,14 @@ bdb_db_open( BackendDB *be )
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
 	bdb->bi_dbenv->set_lk_detect( bdb->bi_dbenv, bdb->bi_lock_detect );
 
-	/* default IDL cache to 10x entry cache */
-	if ( bdb->bi_idl_cache_max_size == 0 )
-		bdb->bi_idl_cache_max_size = 10 * bdb->bi_cache.c_maxsize;
-
+#ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_max_size ) {
 		bdb->bi_idl_tree = NULL;
 		ldap_pvt_thread_rdwr_init( &bdb->bi_idl_tree_rwlock );
 		ldap_pvt_thread_mutex_init( &bdb->bi_idl_tree_lrulock );
 		bdb->bi_idl_cache_size = 0;
 	}
+#endif
 
 #ifdef BDB_SUBDIRS
 	{
@@ -346,6 +370,8 @@ bdb_db_open( BackendDB *be )
 		}
 
 		if( i == BDB_ID2ENTRY ) {
+			rc = db->bdi_db->set_bt_compare( db->bdi_db,
+				bdb_bt_compare );
 			rc = db->bdi_db->set_pagesize( db->bdi_db,
 				BDB_ID2ENTRY_PAGESIZE );
 			if ( slapMode & SLAP_TOOL_READMAIN ) {
@@ -357,6 +383,8 @@ bdb_db_open( BackendDB *be )
 			rc = db->bdi_db->set_flags( db->bdi_db, 
 				DB_DUP | DB_DUPSORT );
 #ifndef BDB_HIER
+			rc = db->bdi_db->set_dup_compare( db->bdi_db,
+				bdb_bt_compare );
 			if ( slapMode & SLAP_TOOL_READONLY ) {
 				flags |= DB_RDONLY;
 			} else {
@@ -365,6 +393,8 @@ bdb_db_open( BackendDB *be )
 #else
 			rc = db->bdi_db->set_dup_compare( db->bdi_db,
 				bdb_dup_compare );
+			rc = db->bdi_db->set_bt_compare( db->bdi_db,
+				bdb_bt_compare );
 			if ( slapMode & (SLAP_TOOL_READONLY|SLAP_TOOL_READMAIN) ) {
 				flags |= DB_RDONLY;
 			} else {
@@ -439,7 +469,9 @@ bdb_db_close( BackendDB *be )
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct bdb_db_info *db;
+#ifdef SLAP_IDL_CACHE
 	bdb_idl_cache_entry_t *entry, *next_entry;
+#endif
 
 	while( bdb->bi_ndatabases-- ) {
 		db = bdb->bi_databases[bdb->bi_ndatabases];
@@ -454,6 +486,7 @@ bdb_db_close( BackendDB *be )
 
 	bdb_cache_release_all (&bdb->bi_cache);
 
+#ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_max_size ) {
 		ldap_pvt_thread_rdwr_wlock ( &bdb->bi_idl_tree_rwlock );
 		avl_free( bdb->bi_idl_tree, NULL );
@@ -468,6 +501,7 @@ bdb_db_close( BackendDB *be )
 		}
 		ldap_pvt_thread_rdwr_wunlock ( &bdb->bi_idl_tree_rwlock );
 	}
+#endif
 
 	return 0;
 }
@@ -518,11 +552,12 @@ bdb_db_destroy( BackendDB *be )
 	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_pslist_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_database_mutex );
-
+#ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_max_size ) {
 		ldap_pvt_thread_rdwr_destroy( &bdb->bi_idl_tree_rwlock );
 		ldap_pvt_thread_mutex_destroy( &bdb->bi_idl_tree_lrulock );
 	}
+#endif
 
 	ch_free( bdb );
 	be->be_private = NULL;

@@ -203,6 +203,7 @@ BI_entry_get_rw bdb_entry_get;
 /*
  * idl.c
  */
+#ifdef SLAP_IDL_CACHE
 
 #define bdb_idl_cache_get			BDB_SYMBOL(idl_cache_get)
 #define bdb_idl_cache_put			BDB_SYMBOL(idl_cache_put)
@@ -227,6 +228,7 @@ bdb_idl_cache_del(
 	struct bdb_info	*bdb,
 	DB		*db,
 	DBT		*key );
+#endif
 
 #define bdb_idl_first				BDB_SYMBOL(idl_first)
 #define bdb_idl_next				BDB_SYMBOL(idl_next)
