@@ -419,15 +419,16 @@ glue_open (
 {
 	slap_overinst *on = glue_tool_inst( bi );
 	glueinfo		*gi = on->on_bi.bi_private;
+	static int glueOpened = 0;
 	int i, rc = 0;
+
+	if (glueOpened) return 0;
+
+	glueOpened = 1;
 
 	/* If we were invoked in tool mode, open all the underlying backends */
 	if (slapMode & SLAP_TOOL_MODE) {
-		for ( i=0; i<gi->gi_nodes; i++ ) {
-			gi->gi_n[i].gn_be = backendDB + gi->gi_n[i].gn_bx;
-			rc = backend_startup( gi->gi_n[i].gn_be );
-			if ( rc ) break;
-		}
+		rc = backend_startup( NULL );
 	} /* other case is impossible */
 	return rc;
 }
@@ -440,14 +441,35 @@ glue_close (
 {
 	slap_overinst *on = glue_tool_inst( bi );
 	glueinfo		*gi = on->on_bi.bi_private;
+	static int glueClosed = 0;
 	int i, rc = 0;
 
+	if (glueClosed) return 0;
+
+	glueClosed = 1;
+
 	if (slapMode & SLAP_TOOL_MODE) {
-		for ( i=0; i<gi->gi_nodes; i++ ) {
-			rc = backend_shutdown( gi->gi_n[i].gn_be );
-			if ( rc ) break;
-		}
+		rc = backend_shutdown( NULL );
 	}
+	return rc;
+}
+
+static int
+glue_entry_release_rw (
+	Operation *op,
+	Entry *e,
+	int rw
+)
+{
+	BackendDB *b0, b2;
+	int rc;
+
+	b0 = op->o_bd;
+	b2.bd_info = (BackendInfo *)glue_tool_inst( op->o_bd->bd_info );
+	op->o_bd = glue_back_select (&b2, &e->e_nname);
+
+	rc = op->o_bd->be_release( op, e, rw );
+	op->o_bd = b0;
 	return rc;
 }
 
@@ -609,6 +631,8 @@ glue_db_init(
 	 */
 	oi->oi_bi.bi_open = glue_open;
 	oi->oi_bi.bi_close = glue_close;
+
+	oi->oi_bi.bi_entry_release_rw = glue_entry_release_rw;
 
 	oi->oi_bi.bi_tool_entry_open = glue_tool_entry_open;
 	oi->oi_bi.bi_tool_entry_close = glue_tool_entry_close;
