@@ -428,6 +428,7 @@ searchit:
 				if ( --op->ors_slimit == -1 ) {
 					cache_return_entry_r( &li->li_cache, e );
 					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+					rs->sr_entry = NULL;
 					send_ldap_result( op, rs );
 					rc = LDAP_SUCCESS;
 					goto done;
