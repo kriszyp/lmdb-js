@@ -68,10 +68,10 @@ userCertificate;binary:: MIIDazCCAtSgAwIBAgIBAjANBgkqhkiG9w0BAQQFADB3MQswCQYDV
 
 # (cAcertificate=*)
 dn: dc=example,dc=com
-objectclass: dcobject
 dc: example
 objectClass: organization
 objectClass: domainRelatedObject
+objectclass: dcobject
 objectClass: extensibleObject
 l: Anytown, Michigan
 st: Michigan
