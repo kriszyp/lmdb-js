@@ -693,8 +693,9 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	
 	rs->sr_type = REP_SEARCH;
 
-	/* eventually will loop through generated operational attributes */
-	/* only subschemaSubentry and numSubordinates are implemented */
+	/* eventually will loop through generated operational attribute types
+	 * currently implemented types include:
+	 *	entryDN, subschemaSubentry, and hasSubordinates */
 	/* NOTE: moved before overlays callback circling because
 	 * they may modify entry and other stuff in rs */
 	/* check for special all operational attributes ("+") type */

@@ -352,6 +352,36 @@ test_ava_filter(
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
 
+	if ( ava->aa_desc == slap_schema.si_ad_hasSubordinates 
+		&& op && op->o_bd && op->o_bd->be_has_subordinates )
+	{
+		int	hasSubordinates;
+		struct berval	hs;
+
+		/* No other match is allowed */
+		if( type != LDAP_FILTER_EQUALITY ) return LDAP_OTHER;
+		
+		if ( op->o_bd->be_has_subordinates( op, e, &hasSubordinates ) !=
+			LDAP_SUCCESS )
+		{
+			return LDAP_OTHER;
+		}
+
+		if ( hasSubordinates == LDAP_COMPARE_TRUE ) {
+			hs = slap_true_bv;
+
+		} else if ( hasSubordinates == LDAP_COMPARE_FALSE ) {
+			hs = slap_false_bv;
+
+		} else {
+			return LDAP_OTHER;
+		}
+
+		if ( bvmatch( &ava->aa_value, &hs ) ) return LDAP_COMPARE_TRUE;
+		return LDAP_COMPARE_FALSE;
+	}
+
+
 	for(a = attrs_find( e->e_attrs, ava->aa_desc );
 		a != NULL;
 		a = attrs_find( a->a_next, ava->aa_desc ) )
@@ -379,9 +409,7 @@ test_ava_filter(
 			mr = NULL;
 		}
 
-		if( mr == NULL ) {
-			continue;
-		}
+		if( mr == NULL ) continue;
 
 		for ( bv = a->a_nvals; bv->bv_val != NULL; bv++ ) {
 			int ret;
@@ -410,38 +438,7 @@ test_ava_filter(
 		}
 	}
 
-	if ( ava->aa_desc == slap_schema.si_ad_hasSubordinates 
-		&& op && op->o_bd && op->o_bd->be_has_subordinates )
-	{
-		int		hasSubordinates;
-		struct berval	hs;
-
-		/*
-		 * No other match should be allowed ...
-		 */
-		assert( type == LDAP_FILTER_EQUALITY );
-		
-		if ( op->o_bd->be_has_subordinates( op, e, &hasSubordinates ) !=
-			LDAP_SUCCESS )
-		{
-			return LDAP_OTHER;
-		}
-
-		if ( hasSubordinates == LDAP_COMPARE_TRUE ) {
-			hs = slap_true_bv;
-
-		} else if ( hasSubordinates == LDAP_COMPARE_FALSE ) {
-			hs = slap_false_bv;
-
-		} else {
-			return LDAP_OTHER;
-		}
-
-		if ( bvmatch( &ava->aa_value, &hs ) ) return LDAP_COMPARE_TRUE;
-		return LDAP_COMPARE_FALSE;
-	}
-
-	return( LDAP_COMPARE_FALSE );
+	return LDAP_COMPARE_FALSE;
 }
 
 

@@ -265,16 +265,23 @@ fe_op_compare( Operation *op, SlapReply *rs )
 #endif /* defined( LDAP_SLAPI ) */
 
 	op->orc_ava = &ava;
-	if ( ava.aa_desc == slap_schema.si_ad_hasSubordinates
-			&& op->o_bd->be_has_subordinates )
+	if ( ava.aa_desc == slap_schema.si_ad_entryDN ) {
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"entryDN compare not supported" );
+
+	} else if ( ava.aa_desc == slap_schema.si_ad_subschemaSubentry ) {
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"subschemaSubentry compare not supported" );
+
+	} else if ( ava.aa_desc == slap_schema.si_ad_hasSubordinates
+		&& op->o_bd->be_has_subordinates )
 	{
 		int	rc, hasSubordinates = LDAP_SUCCESS;
 
-		rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL,
-				0, &entry );
+		rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &entry );
 		if ( rc == 0 && entry ) {
 			rc = op->o_bd->be_has_subordinates( op, entry,
-					&hasSubordinates );
+				&hasSubordinates );
 			be_entry_release_r( op, entry );
 		}
 
@@ -292,11 +299,11 @@ fe_op_compare( Operation *op, SlapReply *rs )
 		send_ldap_result( op, rs );
 
 		if ( rs->sr_err == LDAP_COMPARE_TRUE ||
-				rs->sr_err == LDAP_COMPARE_FALSE )
+			rs->sr_err == LDAP_COMPARE_FALSE )
 		{
 			rs->sr_err = LDAP_SUCCESS;
 		}
-	
+
 	} else if ( op->o_bd->be_compare ) {
 		op->o_bd->be_compare( op, rs );
 

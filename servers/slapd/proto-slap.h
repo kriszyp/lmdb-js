@@ -907,6 +907,7 @@ LDAP_SLAPD_F (Operation *) slap_op_pop LDAP_P(( Operation **olist ));
  * operational.c
  */
 LDAP_SLAPD_F (Attribute *) slap_operational_subschemaSubentry( Backend *be );
+LDAP_SLAPD_F (Attribute *) slap_operational_entryDN( Entry *e );
 LDAP_SLAPD_F (Attribute *) slap_operational_hasSubordinate( int has );
 
 /*

@@ -1573,14 +1573,21 @@ int backend_operational(
 	 * add them to the attribute list
 	 */
 	if ( SLAP_OPATTRS( rs->sr_attr_flags ) || ( op->ors_attrs &&
-		ad_inlist( slap_schema.si_ad_subschemaSubentry, op->ors_attrs )) ) {
-		*ap = slap_operational_subschemaSubentry( op->o_bd );
-
+		ad_inlist( slap_schema.si_ad_entryDN, op->ors_attrs )))
+	{
+		*ap = slap_operational_entryDN( rs->sr_entry );
 		ap = &(*ap)->a_next;
 	}
 
-	if ( ( SLAP_OPATTRS( rs->sr_attr_flags ) || op->ors_attrs ) && op->o_bd &&
-		op->o_bd->be_operational != NULL )
+	if ( SLAP_OPATTRS( rs->sr_attr_flags ) || ( op->ors_attrs &&
+		ad_inlist( slap_schema.si_ad_subschemaSubentry, op->ors_attrs )))
+	{
+		*ap = slap_operational_subschemaSubentry( op->o_bd );
+		ap = &(*ap)->a_next;
+	}
+
+	if (( SLAP_OPATTRS( rs->sr_attr_flags ) || op->ors_attrs ) &&
+		op->o_bd && op->o_bd->be_operational != NULL )
 	{
 		Attribute	*a;
 		
@@ -1604,17 +1611,23 @@ static void init_group_pblock( Operation *op, Entry *target,
 	Entry *e, struct berval *op_ndn, AttributeDescription *group_at )
 {
 	slapi_int_pblock_set_operation( op->o_pb, op );
-	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_ENTRY, (void *)e );
-	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_OPERATION_DN, (void *)op_ndn->bv_val );
-	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_ATTRIBUTE, (void *)group_at->ad_cname.bv_val );
-	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_TARGET_ENTRY, (void *)target );
+
+	slapi_pblock_set( op->o_pb,
+		SLAPI_X_GROUP_ENTRY, (void *)e );
+	slapi_pblock_set( op->o_pb,
+		SLAPI_X_GROUP_OPERATION_DN, (void *)op_ndn->bv_val );
+	slapi_pblock_set( op->o_pb,
+		SLAPI_X_GROUP_ATTRIBUTE, (void *)group_at->ad_cname.bv_val );
+	slapi_pblock_set( op->o_pb,
+		SLAPI_X_GROUP_TARGET_ENTRY, (void *)target );
 }
 
 static int call_group_preop_plugins( Operation *op )
 {
 	int rc;
 
-	rc = slapi_int_call_plugins( op->o_bd, SLAPI_X_PLUGIN_PRE_GROUP_FN, op->o_pb );
+	rc = slapi_int_call_plugins( op->o_bd,
+		SLAPI_X_PLUGIN_PRE_GROUP_FN, op->o_pb );
 	if ( rc < 0 ) {
 		if (( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,
 			(void *)&rc ) != 0 ) || rc == LDAP_SUCCESS )

@@ -49,17 +49,36 @@ slap_operational_subschemaSubentry( Backend *be )
 }
 
 Attribute *
+slap_operational_entryDN( Entry *e )
+{
+	Attribute	*a;
+
+	a = ch_malloc( sizeof( Attribute ) );
+	a->a_desc = slap_schema.si_ad_entryDN;
+
+	a->a_vals = ch_malloc( 2 * sizeof( struct berval ) );
+	ber_dupbv( a->a_vals, &e->e_name );
+	a->a_vals[1].bv_len = 0;
+	a->a_vals[1].bv_val = NULL;
+
+	a->a_nvals = ch_malloc( 2 * sizeof( struct berval ) );
+	ber_dupbv( a->a_nvals, &e->e_nname );
+	a->a_nvals[1].bv_len = 0;
+	a->a_nvals[1].bv_val = NULL;
+
+	a->a_next = NULL;
+	a->a_flags = 0;
+
+	return a;
+}
+
+Attribute *
 slap_operational_hasSubordinate( int hs )
 {
 	Attribute	*a;
 	struct berval	val;
 
-	if ( hs ) {
-		val = slap_true_bv;
-
-	} else {
-		val = slap_false_bv;
-	}
+	val = hs ? slap_true_bv : slap_false_bv;
 
 	a = ch_malloc( sizeof( Attribute ) );
 	a->a_desc = slap_schema.si_ad_hasSubordinates;

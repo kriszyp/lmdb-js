@@ -528,6 +528,15 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_collectiveExclusions) },
 #endif
 
+	{ "entryDN", "( 1.3.6.1.4.1.4203.666.1.33 NAME 'entryDN' "   
+			"DESC 'DN of the entry' "
+			"EQUALITY distinguishedNameMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
+			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
+		NULL, SLAP_AT_HIDE,
+		NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_entryDN) },
 	{ "entryUUID", "( 1.3.6.1.4.1.4203.666.1.6 NAME 'entryUUID' "   
 			"DESC 'UUID of the entry' "
 			"EQUALITY UUIDMatch "
@@ -559,6 +568,7 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_namingCSN) },
 
+#if 0
 	{ "superiorUUID", "( 1.3.6.1.4.1.4203.666.1.11 NAME 'superiorUUID' "   
 			"DESC 'UUID of the superior entry' "
 			"EQUALITY octetStringMatch "
@@ -568,6 +578,7 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_superiorUUID) },
+#endif
 
 	{ "syncreplCookie", "( 1.3.6.1.4.1.4203.666.1.23 "
 			"NAME 'syncreplCookie' "
