@@ -800,7 +800,7 @@ monitor_back_db_init(
 			"DESC 'monitor managed entity class' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_managedObject) },
-		{ "monitoredObject", "( 1.3.6.1.4.1.4203.666.3.13 "
+		{ "monitoredObject", "( 1.3.6.1.4.1.4203.666.3.14 "
 			"NAME 'monitoredObject' "
 			"DESC 'monitor monitored entity class' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
