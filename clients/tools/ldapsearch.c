@@ -6,6 +6,7 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/unistd.h>
 
 #include <lber.h>
 #include <ldap.h>

@@ -70,9 +70,7 @@ static int fromfile LDAP_P(( char *path, struct berval *bv ));
 static char *read_one_record LDAP_P(( FILE *fp ));
 
 
-main( argc, argv )
-    int		argc;
-    char	**argv;
+main( int argc, char **argv )
 {
     char		*infile, *rbuf, *start, *p, *q;
     FILE		*fp;

@@ -14,6 +14,14 @@
 #include <ac/string.h>
 #include <ac/unistd.h>
 
+#ifdef HAVE_IO_H
+#include <io.h>
+#endif
+
+#ifndef STDERR_FILENO
+#define STDERR_FILENO 2
+#endif
+
 int opterr = 1;
 int optind = 1;
 int optopt;
