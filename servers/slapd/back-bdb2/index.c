@@ -271,6 +271,9 @@ bdb2i_index_add_values(
 
 		value_normalize( val, syntax );
 
+		/* value_normalize could change the length of val */
+		len = strlen( val );
+
 		/*
 		 * equality index entry
 		 */
