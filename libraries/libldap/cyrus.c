@@ -306,10 +306,14 @@ sb_sasl_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
    	}
 
 	/* Decode the packet */
-	ret = sasl_decode( p->sasl_context, p->sec_buf_in.buf_base,
-		p->sec_buf_in.buf_end,
-		(SASL_CONST char **)&p->buf_in.buf_base,
-		(unsigned *)&p->buf_in.buf_end );
+	{
+		unsigned tmpsize = p->buf_in.buf_end;
+		ret = sasl_decode( p->sasl_context, p->sec_buf_in.buf_base,
+			p->sec_buf_in.buf_end,
+			(SASL_CONST char **)&p->buf_in.buf_base,
+			(unsigned *)&tmpsize );
+		p->buf_in.buf_end = tmpsize;
+	}
 
 	/* Drop the packet from the input buffer */
 	sb_sasl_drop_packet( &p->sec_buf_in, sbiod->sbiod_sb->sb_debug );
@@ -359,10 +363,12 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	ber_pvt_sb_buf_destroy( &p->buf_out );
 #endif
 	if ( len > *p->sasl_maxbuf - 100 )
+		unsigned tmpsize = p->buf_out.buf_size;
 		len = *p->sasl_maxbuf - 100;	/* For safety margin */
-	ret = sasl_encode( p->sasl_context, buf, len,
-		(SASL_CONST char **)&p->buf_out.buf_base,
-		(unsigned *)&p->buf_out.buf_size );
+		ret = sasl_encode( p->sasl_context, buf, len,
+			(SASL_CONST char **)&p->buf_out.buf_base,
+			&tmpsize );
+		p->buf_out.buf_size = tmpsize;
 	if ( ret != SASL_OK ) {
 		ber_log_printf( LDAP_DEBUG_ANY, sbiod->sbiod_sb->sb_debug,
 			"sb_sasl_write: failed to encode packet: %s\n",
