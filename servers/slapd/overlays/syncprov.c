@@ -612,7 +612,7 @@ syncprov_findcsn( Operation *op, int mode )
 	if ( mode != FIND_MAXCSN ) {
 		srs = op->o_controls[slap_cids.sc_LDAPsync];
 
-		if ( srs->sr_state.ctxcsn->bv_len >= LDAP_LUTIL_CSNSTR_BUFSIZE ) {
+		if ( srs->sr_state.ctxcsn.bv_len >= LDAP_LUTIL_CSNSTR_BUFSIZE ) {
 			return LDAP_OTHER;
 		}
 	}
@@ -648,7 +648,7 @@ syncprov_findcsn( Operation *op, int mode )
 		break;
 	case FIND_CSN:
 		cf.f_choice = LDAP_FILTER_LE;
-		cf.f_av_value = *srs->sr_state.ctxcsn;
+		cf.f_av_value = srs->sr_state.ctxcsn;
 		fbuf.bv_len = sprintf( buf, "(entryCSN<=%s)",
 			cf.f_av_value.bv_val );
 		fop.ors_attrsonly = 1;
@@ -662,7 +662,7 @@ syncprov_findcsn( Operation *op, int mode )
 		af.f_next = NULL;
 		af.f_and = &cf;
 		cf.f_choice = LDAP_FILTER_LE;
-		cf.f_av_value = *srs->sr_state.ctxcsn;
+		cf.f_av_value = srs->sr_state.ctxcsn;
 		cf.f_next = op->ors_filter;
 		fop.ors_filter = &af;
 		filter2bv_x( &fop, fop.ors_filter, &fop.ors_filterstr );
@@ -921,10 +921,6 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		e = op->ora_e;
 	}
 
-	/* Never replicate these */
-	if ( is_entry_syncConsumerSubentry( e )) {
-		goto done;
-	}
 	if ( saveit ) {
 		ber_dupbv_x( &opc->sdn, &e->e_name, op->o_tmpmemctx );
 		ber_dupbv_x( &opc->sndn, &e->e_nname, op->o_tmpmemctx );
@@ -1294,6 +1290,13 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			}
 		}
 
+		/* Don't do any processing for consumer contextCSN updates */
+		if ( SLAP_SYNC_SHADOW( op->o_bd ) && 
+			op->o_msgid == SLAP_SYNC_UPDATE_MSGID ) {
+			ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
+			return SLAP_CB_CONTINUE;
+		}
+
 		si->si_numops++;
 		if ( si->si_chkops || si->si_chktime ) {
 			int do_check=0;
@@ -1605,12 +1608,12 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 			Debug( LDAP_DEBUG_ANY, "bogus referral in context\n",0,0,0 );
 			return SLAP_CB_CONTINUE;
 		}
-		if ( srs->sr_state.ctxcsn ) {
+		if ( !BER_BVISNULL( &srs->sr_state.ctxcsn )) {
 			Attribute *a = attr_find( rs->sr_entry->e_attrs,
 				slap_schema.si_ad_entryCSN );
 			
 			/* Don't send the ctx entry twice */
-			if ( a && bvmatch( &a->a_nvals[0], srs->sr_state.ctxcsn ) )
+			if ( a && bvmatch( &a->a_nvals[0], &srs->sr_state.ctxcsn ) )
 				return LDAP_SUCCESS;
 		}
 		rs->sr_ctrls = op->o_tmpalloc( sizeof(LDAPControl *)*2,
@@ -1760,13 +1763,13 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	ctxcsn.bv_val = csnbuf;
 	
 	/* If we have a cookie, handle the PRESENT lookups */
-	if ( srs->sr_state.ctxcsn ) {
+	if ( !BER_BVISNULL( &srs->sr_state.ctxcsn )) {
 		sessionlog *sl;
 
 		/* The cookie was validated when it was parsed, just use it */
 
 		/* If just Refreshing and nothing has changed, shortcut it */
-		if ( bvmatch( srs->sr_state.ctxcsn, &ctxcsn )) {
+		if ( bvmatch( &srs->sr_state.ctxcsn, &ctxcsn )) {
 			nochange = 1;
 			if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 				LDAPControl	*ctrls[2];
@@ -1787,10 +1790,10 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		sl=si->si_logs;
 		if ( sl ) {
 			ldap_pvt_thread_mutex_lock( &sl->sl_mutex );
-			if ( ber_bvcmp( srs->sr_state.ctxcsn, &sl->sl_mincsn ) >= 0 ) {
+			if ( ber_bvcmp( &srs->sr_state.ctxcsn, &sl->sl_mincsn ) >= 0 ) {
 				do_present = 0;
 				/* mutex is unlocked in playlog */
-				syncprov_playlog( op, rs, sl, srs->sr_state.ctxcsn, &ctxcsn );
+				syncprov_playlog( op, rs, sl, &srs->sr_state.ctxcsn, &ctxcsn );
 			} else {
 				ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
 			}
@@ -1838,7 +1841,7 @@ shortcut:
 		fava->f_choice = LDAP_FILTER_GE;
 		fava->f_ava = op->o_tmpalloc( sizeof(AttributeAssertion), op->o_tmpmemctx );
 		fava->f_ava->aa_desc = slap_schema.si_ad_entryCSN;
-		ber_dupbv_x( &fava->f_ava->aa_value, srs->sr_state.ctxcsn, op->o_tmpmemctx );
+		ber_dupbv_x( &fava->f_ava->aa_value, &srs->sr_state.ctxcsn, op->o_tmpmemctx );
 	}
 	fava->f_next = op->ors_filter;
 	op->ors_filter = fand;
@@ -2210,7 +2213,7 @@ static int syncprov_parseCtrl (
 	sr = op->o_tmpcalloc( 1, sizeof(struct sync_control), op->o_tmpmemctx );
 	sr->sr_rhint = rhint;
 	if (!BER_BVISNULL(&cookie)) {
-		ber_bvarray_add( &sr->sr_state.octet_str, &cookie );
+		ber_dupbv( &sr->sr_state.octet_str, &cookie );
 		slap_parse_sync_cookie( &sr->sr_state );
 	}
 

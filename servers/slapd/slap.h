@@ -1457,6 +1457,8 @@ typedef BackendDB Backend;
 #define SLAP_SYNC_RID_SIZE	3
 #define SLAP_SYNCUUID_SET_SIZE 256
 
+#define	SLAP_SYNC_UPDATE_MSGID	2
+
 struct nonpresent_entry {
 	struct berval *npe_name;
 	struct berval *npe_nname;
@@ -1464,8 +1466,8 @@ struct nonpresent_entry {
 };
 
 struct sync_cookie {
-	struct berval *ctxcsn;
-	struct berval *octet_str;
+	struct berval ctxcsn;
+	struct berval octet_str;
 	long rid;
 	LDAP_STAILQ_ENTRY(sync_cookie) sc_next;
 };

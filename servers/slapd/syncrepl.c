@@ -33,12 +33,6 @@
 #undef ldap_debug
 #include "../../libraries/libldap/ldap-int.h"
 
-#define SYNCREPL_STR	"syncreplxxx"
-#define CN_STR	"cn="
-
-static const struct berval slap_syncrepl_bvc = BER_BVC(SYNCREPL_STR);
-static const struct berval slap_syncrepl_cn_bvc = BER_BVC(CN_STR SYNCREPL_STR);
-
 static int syncuuid_cmp( const void *, const void * );
 static void avl_ber_bvfree( void * );
 static void syncrepl_del_nonpresent( Operation *, syncinfo_t *, BerVarray );
@@ -231,12 +225,11 @@ ldap_sync_search(
 	ber_init2( ber, NULL, LBER_USE_DER );
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &ctx );
 
-	if ( si->si_syncCookie.octet_str &&
-		!BER_BVISNULL( &si->si_syncCookie.octet_str[0] ) )
+	if ( !BER_BVISNULL( &si->si_syncCookie.octet_str ) )
 	{
 		ber_printf( ber, "{eO}",
 			abs(si->si_type),
-			&si->si_syncCookie.octet_str[0] );
+			&si->si_syncCookie.octet_str );
 	} else {
 		ber_printf( ber, "{e}",
 			abs(si->si_type) );
@@ -280,8 +273,6 @@ do_syncrep1(
 	int	rc;
 	int cmdline_cookie_found = 0;
 
-	char syncrepl_cbuf[sizeof(CN_STR SYNCREPL_STR)];
-	struct berval syncrepl_cn_bv;
 	struct sync_cookie	*sc = NULL;
 	struct berval	*psub;
 #ifdef HAVE_TLS
@@ -396,89 +387,52 @@ do_syncrep1(
 	op->o_ssf = ( op->o_sasl_ssf > op->o_tls_ssf )
 		?  op->o_sasl_ssf : op->o_tls_ssf;
 
-	/* get syncrepl cookie of shadow replica from subentry */
-	assert( si->si_rid < 1000 );
-	syncrepl_cn_bv.bv_val = syncrepl_cbuf;
-	syncrepl_cn_bv.bv_len = snprintf( syncrepl_cbuf, sizeof(syncrepl_cbuf),
-		CN_STR "syncrepl%ld", si->si_rid );
-	build_new_dn( &op->o_req_ndn, psub, &syncrepl_cn_bv, op->o_tmpmemctx );
-	op->o_req_dn = op->o_req_ndn;
 
-	LDAP_STAILQ_FOREACH( sc, &slap_sync_cookie, sc_next ) {
-		if ( si->si_rid == sc->rid ) {
-			cmdline_cookie_found = 1;
-			break;
-		}
-	}
+	if ( BER_BVISNULL( &si->si_syncCookie.octet_str )) {
+		/* get contextCSN shadow replica from database */
+		BerVarray csn = NULL;
+		struct berval newcookie;
 
-	if ( cmdline_cookie_found ) {
-		/* cookie is supplied in the command line */
-		BerVarray cookie = NULL;
-		struct berval cookie_bv;
+		assert( si->si_rid < 1000 );
+		op->o_req_ndn = op->o_bd->be_nsuffix[0];
+		op->o_req_dn = op->o_req_ndn;
 
-		LDAP_STAILQ_REMOVE( &slap_sync_cookie, sc, sync_cookie, sc_next );
-		slap_sync_cookie_free( &si->si_syncCookie, 0 );
-
-		/* read stored cookie if it exists */
+		/* try to read stored contextCSN */
 		backend_attribute( op, NULL, &op->o_req_ndn,
-			slap_schema.si_ad_syncreplCookie, &cookie, ACL_READ );
+			slap_schema.si_ad_contextCSN, &csn, ACL_READ );
+		if ( csn ) {
+			ch_free( si->si_syncCookie.ctxcsn.bv_val );
+			ber_dupbv( &si->si_syncCookie.ctxcsn, csn );
+			ber_bvarray_free_x( csn, op->o_tmpmemctx );
+		}
 
-		if ( !cookie ) {
-			/* no stored cookie */
-			if ( sc->ctxcsn == NULL ||
-				 BER_BVISNULL( sc->ctxcsn ) ) {
+		si->si_syncCookie.rid = si->si_rid;
+
+		LDAP_STAILQ_FOREACH( sc, &slap_sync_cookie, sc_next ) {
+			if ( si->si_rid == sc->rid ) {
+				cmdline_cookie_found = 1;
+				break;
+			}
+		}
+
+		if ( cmdline_cookie_found ) {
+			/* cookie is supplied in the command line */
+
+			LDAP_STAILQ_REMOVE( &slap_sync_cookie, sc, sync_cookie, sc_next );
+
+			if ( BER_BVISNULL( &sc->ctxcsn ) ) {
 				/* if cmdline cookie does not have ctxcsn */
 				/* component, set it to an initial value */
 				slap_init_sync_cookie_ctxcsn( sc );
 			}
+			slap_sync_cookie_free( &si->si_syncCookie, 0 );
 			slap_dup_sync_cookie( &si->si_syncCookie, sc );
 			slap_sync_cookie_free( sc, 1 );
-			sc = NULL;
-
-		} else {
-			/* stored cookie */
-			struct berval newcookie = BER_BVNULL;
-			ber_dupbv( &cookie_bv, &cookie[0] );
-			ber_bvarray_add( &si->si_syncCookie.octet_str, &cookie_bv );
-			slap_parse_sync_cookie( &si->si_syncCookie );
-			ber_bvarray_free( si->si_syncCookie.octet_str );
-			si->si_syncCookie.octet_str = NULL;
-			ber_bvarray_free_x( cookie, op->o_tmpmemctx );
-			if ( sc->ctxcsn != NULL ) {
-				/* command line cookie wins */
-				if ( si->si_syncCookie.ctxcsn ) {
-					ber_bvarray_free( si->si_syncCookie.ctxcsn );
-					si->si_syncCookie.ctxcsn = NULL;
-				}
-				ber_dupbv( &cookie_bv, &sc->ctxcsn[0] );
-				ber_bvarray_add( &si->si_syncCookie.ctxcsn, &cookie_bv );
-			}
-			if ( sc->rid != -1 ) {
-				/* command line cookie wins */
-				si->si_syncCookie.rid = sc->rid;
-			}
-			slap_sync_cookie_free( sc, 1 );
-			sc = NULL;
-			slap_compose_sync_cookie( NULL, &newcookie,
-					&si->si_syncCookie.ctxcsn[0],
-					si->si_syncCookie.rid );
-			ber_bvarray_add( &si->si_syncCookie.octet_str, &newcookie );
 		}
 
-	} else {
-		/* no command line cookie is specified */
-		if ( si->si_syncCookie.octet_str == NULL ) {
-			BerVarray cookie = NULL;
-			struct berval cookie_bv;
-			/* try to read stored cookie */
-			backend_attribute( op, NULL, &op->o_req_ndn,
-				slap_schema.si_ad_syncreplCookie, &cookie, ACL_READ );
-			if ( cookie ) {
-				ber_dupbv( &cookie_bv, &cookie[0] );
-				ber_bvarray_add( &si->si_syncCookie.octet_str, &cookie_bv );
-				slap_parse_sync_cookie( &si->si_syncCookie );
-				ber_bvarray_free_x( cookie, op->o_tmpmemctx );
-			}
+		if ( !BER_BVISNULL( &si->si_syncCookie.ctxcsn )) {
+			slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
+				&si->si_syncCookie.ctxcsn, si->si_syncCookie.rid );
 		}
 	}
 
@@ -496,8 +450,6 @@ done:
 			si->si_ld = NULL;
 		}
 	}
-
-	slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
 	return rc;
 }
@@ -523,8 +475,8 @@ do_syncrep2(
 
 	int		syncstate;
 	struct berval	syncUUID = BER_BVNULL;
-	struct sync_cookie	syncCookie = { NULL };
-	struct sync_cookie	syncCookie_req = { NULL };
+	struct sync_cookie	syncCookie = { 0 };
+	struct sync_cookie	syncCookie_req = { 0 };
 	struct berval		cookie = BER_BVNULL;
 
 	int	rc, err, i;
@@ -594,12 +546,10 @@ do_syncrep2(
 				if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE ) {
 					ber_scanf( ber, /*"{"*/ "m}", &cookie );
 					if ( !BER_BVISNULL( &cookie ) ) {
-						struct berval tmp_bv;
-						ber_dupbv( &tmp_bv, &cookie );
-						ber_bvarray_add( &syncCookie.octet_str, &tmp_bv );
+						ch_free( syncCookie.octet_str.bv_val );
+						ber_dupbv( &syncCookie.octet_str, &cookie );
 					}
-					if ( syncCookie.octet_str &&
-							!BER_BVISNULL( &syncCookie.octet_str[0] ) )
+					if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 					{
 						slap_parse_sync_cookie( &syncCookie );
 					}
@@ -607,9 +557,8 @@ do_syncrep2(
 				if ( syncrepl_message_to_entry( si, op, msg,
 					&modlist, &entry, syncstate ) == LDAP_SUCCESS ) {
 					rc_efree = syncrepl_entry( si, op, entry, &modlist,
-						syncstate, &syncUUID, &syncCookie_req, syncCookie.ctxcsn );
-					if ( syncCookie.octet_str &&
-						!BER_BVISNULL( &syncCookie.octet_str[0] ) )
+						syncstate, &syncUUID, &syncCookie_req, &syncCookie.ctxcsn );
+					if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 					{
 						syncrepl_updateCookie( si, op, psub, &syncCookie );
 					}
@@ -642,12 +591,10 @@ do_syncrep2(
 					if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE ) {
 						ber_scanf( ber, "m", &cookie );
 						if ( !BER_BVISNULL( &cookie ) ) {
-							struct berval tmp_bv;
-							ber_dupbv( &tmp_bv, &cookie );
-							ber_bvarray_add( &syncCookie.octet_str, &tmp_bv);
+							ch_free( syncCookie.octet_str.bv_val );
+							ber_dupbv( &syncCookie.octet_str, &cookie);
 						}
-						if ( syncCookie.octet_str &&
-							!BER_BVISNULL( &syncCookie.octet_str[0] ) )
+						if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 						{
 							slap_parse_sync_cookie( &syncCookie );
 						}
@@ -658,18 +605,18 @@ do_syncrep2(
 					}
 					ber_scanf( ber, /*"{"*/ "}" );
 				}
-				if ( syncCookie_req.ctxcsn == NULL ) {
+				if ( BER_BVISNULL( &syncCookie_req.ctxcsn )) {
 					match = -1;
-				} else if ( syncCookie.ctxcsn == NULL ) {
+				} else if ( BER_BVISNULL( &syncCookie.ctxcsn )) {
 					match = 1;
 				} else {
 					value_match( &match, slap_schema.si_ad_entryCSN,
 						slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
 						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-						&syncCookie_req.ctxcsn[0], &syncCookie.ctxcsn[0],
+						&syncCookie_req.ctxcsn, &syncCookie.ctxcsn,
 						&text );
 				}
-				if ( syncCookie.octet_str && !BER_BVISNULL( syncCookie.octet_str ) &&
+				if ( !BER_BVISNULL( &syncCookie.octet_str ) &&
 					match < 0 && err == LDAP_SUCCESS )
 				{
 					syncrepl_updateCookie( si, op, psub, &syncCookie );
@@ -728,13 +675,10 @@ do_syncrep2(
 						{
 							ber_scanf( ber, "m", &cookie );
 							if ( !BER_BVISNULL( &cookie ) ) {
-								struct berval tmp_bv;
-								ber_dupbv( &tmp_bv, &cookie );
-								ber_bvarray_add( &syncCookie.octet_str,
-									&tmp_bv);
+								ch_free( syncCookie.octet_str.bv_val );
+								ber_dupbv( &syncCookie.octet_str, &cookie );
 							}
-							if ( syncCookie.octet_str &&
-								!BER_BVISNULL( &syncCookie.octet_str[0] ) )
+							if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 							{
 								slap_parse_sync_cookie( &syncCookie );
 							}
@@ -758,13 +702,10 @@ do_syncrep2(
 						{
 							ber_scanf( ber, "m", &cookie );
 							if ( !BER_BVISNULL( &cookie ) ) {
-								struct berval tmp_bv;
-								ber_dupbv( &tmp_bv, &cookie );
-								ber_bvarray_add( &syncCookie.octet_str,
-									&tmp_bv );
+								ch_free( syncCookie.octet_str.bv_val );
+								ber_dupbv( &syncCookie.octet_str, &cookie );
 							}
-							if ( syncCookie.octet_str &&
-									!BER_BVISNULL( &syncCookie.octet_str[0] ) )
+							if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 							{
 								slap_parse_sync_cookie( &syncCookie );
 							}
@@ -800,19 +741,19 @@ do_syncrep2(
 						continue;
 					}
 
-					if ( syncCookie_req.ctxcsn == NULL ) {
+					if ( BER_BVISNULL( &syncCookie_req.ctxcsn )) {
 						match = -1;
-					} else if ( syncCookie.ctxcsn == NULL ) {
+					} else if ( BER_BVISNULL( &syncCookie.ctxcsn )) {
 						match = 1;
 					} else {
 						value_match( &match, slap_schema.si_ad_entryCSN,
 							slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
 							SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-							&syncCookie_req.ctxcsn[0],
-							&syncCookie.ctxcsn[0], &text );
+							&syncCookie_req.ctxcsn,
+							&syncCookie.ctxcsn, &text );
 					}
 
-					if ( syncCookie.ctxcsn && !BER_BVISNULL( &syncCookie.ctxcsn[0] ) &&
+					if ( !BER_BVISNULL( &syncCookie.ctxcsn ) &&
 						match < 0 )
 					{
 						syncrepl_updateCookie( si, op, psub, &syncCookie);
@@ -844,7 +785,7 @@ do_syncrep2(
 				break;
 
 			}
-			if ( syncCookie.octet_str ) {
+			if ( !BER_BVISNULL( &syncCookie.octet_str )) {
 				slap_sync_cookie_free( &syncCookie_req, 0 );
 				slap_dup_sync_cookie( &syncCookie_req, &syncCookie );
 				slap_sync_cookie_free( &syncCookie, 0 );
@@ -1848,28 +1789,6 @@ syncrepl_add_glue(
 	return;
 }
 
-static struct berval ocbva[] = {
-	BER_BVC("top"),
-	BER_BVC("subentry"),
-	BER_BVC("syncConsumerSubentry"),
-	BER_BVNULL
-};
-
-static struct berval cnbva[] = {
-	BER_BVNULL,
-	BER_BVNULL
-};
-
-static struct berval ssbva[] = {
-	BER_BVC("{}"),
-	BER_BVNULL
-};
-
-static struct berval scbva[] = {
-	BER_BVNULL,
-	BER_BVNULL
-};
-
 void
 syncrepl_updateCookie(
 	syncinfo_t *si,
@@ -1878,182 +1797,55 @@ syncrepl_updateCookie(
 	struct sync_cookie *syncCookie )
 {
 	Backend *be = op->o_bd;
-	Modifications *ml;
-	Modifications *mlnext;
-	Modifications *mod;
-	Modifications *modlist = NULL;
-	Modifications **modtail = &modlist;
+	Modifications mod = {0};
+	struct berval vals[2];
 
 	const char	*text;
 	char txtbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof txtbuf;
 
-	Entry* e = NULL;
 	int rc;
 
-	char syncrepl_cbuf[sizeof(CN_STR SYNCREPL_STR)];
-	struct berval slap_syncrepl_dn_bv = BER_BVNULL;
-	struct berval slap_syncrepl_cn_bv = BER_BVNULL;
-	
 	slap_callback cb = { NULL };
-	SlapReply	rs_add = {REP_RESULT};
 	SlapReply	rs_modify = {REP_RESULT};
 
 	slap_sync_cookie_free( &si->si_syncCookie, 0 );
 	slap_dup_sync_cookie( &si->si_syncCookie, syncCookie );
 
-	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
-	mod->sml_op = LDAP_MOD_REPLACE;
-	mod->sml_desc = slap_schema.si_ad_objectClass;
-	mod->sml_type = mod->sml_desc->ad_cname;
-	mod->sml_values = ocbva;
-	*modtail = mod;
-	modtail = &mod->sml_next;
+	mod.sml_op = LDAP_MOD_REPLACE;
+	mod.sml_desc = slap_schema.si_ad_contextCSN;
+	mod.sml_type = mod.sml_desc->ad_cname;
+	mod.sml_values = vals;
+	vals[0] = si->si_syncCookie.ctxcsn;
+	vals[1].bv_val = NULL;
+	vals[1].bv_len = 0;
 
-	ber_dupbv( &cnbva[0], (struct berval *) &slap_syncrepl_bvc );
+	slap_queue_csn( op, &si->si_syncCookie.ctxcsn );
+
+	op->o_tag = LDAP_REQ_MODIFY;
+
 	assert( si->si_rid < 1000 );
-	cnbva[0].bv_len = snprintf( cnbva[0].bv_val,
-		slap_syncrepl_bvc.bv_len + 1,
-		"syncrepl%ld", si->si_rid );
-	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
-	mod->sml_op = LDAP_MOD_REPLACE;
-	mod->sml_desc = slap_schema.si_ad_cn;
-	mod->sml_type = mod->sml_desc->ad_cname;
-	mod->sml_values = cnbva;
-	*modtail = mod;
-	modtail = &mod->sml_next;
-
-	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
-	mod->sml_op = LDAP_MOD_REPLACE;
-	mod->sml_desc = slap_schema.si_ad_subtreeSpecification;
-	mod->sml_type = mod->sml_desc->ad_cname;
-	mod->sml_values = ssbva;
-	*modtail = mod;
-	modtail = &mod->sml_next;
-
-	/* Keep this last, so we can avoid touching the previous
-	 * attributes unnecessarily.
-	 */
-	if ( scbva[0].bv_val ) ch_free( scbva[0].bv_val );
-	ber_dupbv( &scbva[0], &si->si_syncCookie.octet_str[0] );
-	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
-	mod->sml_op = LDAP_MOD_REPLACE;
-	mod->sml_desc = slap_schema.si_ad_syncreplCookie;
-	mod->sml_type = mod->sml_desc->ad_cname;
-	mod->sml_values = scbva;
-	*modtail = mod;
-	modtail = &mod->sml_next;
-
-	slap_queue_csn( op, si->si_syncCookie.ctxcsn );
-
-	mlnext = mod;
-
-	op->o_tag = LDAP_REQ_ADD;
-	rc = slap_mods_opattrs( op, modlist, modtail,
-		 &text, txtbuf, textlen, 0 );
-
-	for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
-		ml->sml_op = LDAP_MOD_REPLACE;
-	}
-
-	if( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "syncrepl_updateCookie: mods opattrs (%s)\n",
-			 text, 0, 0 );
-	}
-
-	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
-
-	slap_syncrepl_cn_bv.bv_val = syncrepl_cbuf;
-	assert( si->si_rid < 1000 );
-	slap_syncrepl_cn_bv.bv_len = snprintf( slap_syncrepl_cn_bv.bv_val,
-		slap_syncrepl_cn_bvc.bv_len + 1,
-		"cn=syncrepl%ld", si->si_rid );
-
-	build_new_dn( &slap_syncrepl_dn_bv, pdn, &slap_syncrepl_cn_bv,
-		op->o_tmpmemctx );
-	ber_dupbv( &e->e_name, &slap_syncrepl_dn_bv );
-	ber_dupbv( &e->e_nname, &slap_syncrepl_dn_bv );
-
-	if ( !BER_BVISNULL( &slap_syncrepl_dn_bv ) ) {
-		slap_sl_free( slap_syncrepl_dn_bv.bv_val, op->o_tmpmemctx );
-	}
-
-	e->e_attrs = NULL;
-
-	rc = slap_mods2entry( modlist, &e, 1, 1, &text, txtbuf, textlen );
-
-	if( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "syncrepl_updateCookie: mods2entry (%s)\n",
-			 text, 0, 0 );
-	}
 
 	cb.sc_response = null_callback;
 	cb.sc_private = si;
 
 	op->o_callback = &cb;
-	op->o_req_dn = e->e_name;
-	op->o_req_ndn = e->e_nname;
+	op->o_req_dn = op->o_bd->be_suffix[0];
+	op->o_req_ndn = op->o_bd->be_nsuffix[0];
 
-	/* update persistent cookie */
-update_cookie_retry:
-	op->o_tag = LDAP_REQ_MODIFY;
-	/* Just modify the cookie value, not the entire entry */
-	op->orm_modlist = mod;
+	/* update contextCSN */
+	op->o_msgid = SLAP_SYNC_UPDATE_MSGID;
+	op->orm_modlist = &mod;
 	rc = be->be_modify( op, &rs_modify );
+	op->o_msgid = 0;
 
 	if ( rs_modify.sr_err != LDAP_SUCCESS ) {
-		if ( rs_modify.sr_err == LDAP_REFERRAL ||
-			 rs_modify.sr_err == LDAP_NO_SUCH_OBJECT ) {
-			op->o_tag = LDAP_REQ_ADD;
-			op->ora_e = e;
-			rc = be->be_add( op, &rs_add );
-			if ( rs_add.sr_err != LDAP_SUCCESS ) {
-				if ( rs_add.sr_err == LDAP_ALREADY_EXISTS ) {
-					goto update_cookie_retry;
-				} else if ( rs_add.sr_err == LDAP_REFERRAL ||
-							rs_add.sr_err == LDAP_NO_SUCH_OBJECT ) {
-					Debug( LDAP_DEBUG_ANY,
-						"cookie will be non-persistent\n",
-						0, 0, 0 );
-				} else {
-					Debug( LDAP_DEBUG_ANY,
-						"be_add failed (%d)\n", rs_add.sr_err, 0, 0 );
-				}
-			} else {
-				be_entry_release_w( op, e );
-				goto done;
-			}
-		} else {
-			Debug( LDAP_DEBUG_ANY,
-				"be_modify failed (%d)\n", rs_modify.sr_err, 0, 0 );
-		}
-	}
-	if ( e != NULL ) {
-		entry_free( e );
+		Debug( LDAP_DEBUG_ANY,
+			"be_modify failed (%d)\n", rs_modify.sr_err, 0, 0 );
 	}
 
 done :
 	slap_graduate_commit_csn( op );
-
-
-	if ( !BER_BVISNULL( &cnbva[0] ) ) {
-		ch_free( cnbva[0].bv_val );
-		BER_BVZERO( &cnbva[0] );
-	}
-	if ( !BER_BVISNULL( &scbva[0] ) ) {
-		ch_free( scbva[0].bv_val );
-		BER_BVZERO( &scbva[0] );
-	}
-
-	if ( mlnext->sml_next ) {
-		slap_mods_free( mlnext->sml_next );
-		mlnext->sml_next = NULL;
-	}
-
-	for (ml = modlist ; ml != NULL; ml = mlnext ) {
-		mlnext = ml->sml_next;
-		free( ml );
-	}
 
 	return;
 }
@@ -2214,40 +2006,6 @@ null_callback(
 			rs->sr_err, 0, 0 );
 	}
 	return LDAP_SUCCESS;
-}
-
-Entry *
-slap_create_syncrepl_entry(
-	Backend *be,
-	struct berval *context_csn,
-	struct berval *rdn,
-	struct berval *cn )
-{
-	Entry* e;
-
-	struct berval bv;
-
-	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
-
-	attr_merge( e, slap_schema.si_ad_objectClass, ocbva, NULL );
-
-	attr_merge_one( e, slap_schema.si_ad_structuralObjectClass,
-		&ocbva[1], NULL );
-
-	attr_merge_one( e, slap_schema.si_ad_cn, cn, NULL );
-
-	if ( context_csn ) {
-		attr_merge_one( e, slap_schema.si_ad_syncreplCookie,
-			context_csn, NULL );
-	}
-
-	BER_BVSTR( &bv, "{}" );
-	attr_merge_one( e, slap_schema.si_ad_subtreeSpecification, &bv, NULL );
-
-	build_new_dn( &e->e_name, &be->be_nsuffix[0], rdn, NULL );
-	ber_dupbv( &e->e_nname, &e->e_name );
-
-	return e;
 }
 
 struct berval *

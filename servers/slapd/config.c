@@ -1665,8 +1665,6 @@ add_syncrepl(
 	si->si_retryinterval = NULL;
 	si->si_retrynum_init = NULL;
 	si->si_retrynum = NULL;
-	si->si_syncCookie.ctxcsn = NULL;
-	si->si_syncCookie.octet_str = NULL;
 	si->si_manageDSAit = 0;
 	si->si_tlimit = 0;
 	si->si_slimit = 0;
