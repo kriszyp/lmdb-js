@@ -1,7 +1,10 @@
 /* modrdn.c - ldbm backend modrdn routine */
 
 /*
- * LDAP v3 newSuperior support.
+ * LDAP v3 newSuperior support. Add new rdn as an attribute.
+ * (Full support for v2 also used software/ideas contributed
+ * by Roy Hooper rhooper@cyberus.ca, thanks to him for his
+ * submission!.)
  *
  * Copyright 1999, Juan C. Gomez, All rights reserved.
  * This software is not subject to any license of Silicon Graphics 
@@ -43,6 +46,12 @@ ldbm_back_modrdn(
 	Entry		*e, *p = NULL;
 	int			rootlock = 0;
 	int			rc = -1;
+	/* Added to support LDAP v2 correctly (deleteoldrdn thing) */
+	char		*new_rdn_val = NULL;	/* Val of new rdn */
+	char		*new_rdn_type = NULL;	/* Type of new rdn */
+	char		*old_rdn;		/* Old rdn's attr type & val */
+	struct berval	bv;			/* Stores new rdn att */
+	struct berval	*bvals[2];		/* Stores new rdn att */
 
 	/* get entry with writer lock */
 	if ( (e = dn2entry_w( be, dn, &matched )) == NULL ) {
@@ -159,16 +168,83 @@ ldbm_back_modrdn(
 	free( e->e_ndn );
 	e->e_dn = new_dn;
 	e->e_ndn = new_ndn;
-	(void) cache_update_entry( &li->li_cache, e );
 
-	/* 
-	 * At some point here we need to update the attribute values in
-	 * the entry itself that were effected by this RDN change
-	 * (respecting the value of the deleteoldrdn parameter).
-	 *
-	 * Since the code to do this has not yet been written, treat this
-	 * omission as a (documented) bug.
+	/* Get attribute type and attribute value of our new rdn, we will
+	 * need to add that to our new entry
 	 */
+
+	if ( (new_rdn_type = rdn_attr_type( newrdn )) == NULL ) {
+	    
+		Debug( LDAP_DEBUG_TRACE,
+		       "ldbm_back_modrdn: can't figure out type of newrdn\n",
+		       0, 0, 0 );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		goto return_results;		
+
+	}
+
+	if ( (new_rdn_val = rdn_attr_value( newrdn )) == NULL ) {
+	    
+		Debug( LDAP_DEBUG_TRACE,
+		       "ldbm_back_modrdn: can't figure out val of newrdn\n",
+		       0, 0, 0 );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		goto return_results;		
+
+	}
+
+	Debug( LDAP_DEBUG_TRACE,\
+	       "ldbm_back_modrdn: new_rdn_val=%s, new_rdn_type=%s\n",\
+	       new_rdn_val, new_rdn_type, 0 );
+
+	/* Retrieve the old rdn from the entry's dn */
+
+	if ( (old_rdn = dn_rdn( be, dn )) == NULL ) {
+
+		Debug( LDAP_DEBUG_TRACE,
+		       "ldbm_back_modrdn: can't figure out old_rdn from dn\n",
+		       0, 0, 0 );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		goto return_results;		
+
+	}
+
+	if ( dn_type( old_rdn ) == DN_X500 ) {
+
+		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DN_X500\n",
+		       0, 0, 0 );
+
+		bvals[0] = &bv;		/* Array of bervals */
+		bvals[1] = NULL;
+
+		/* XXX: MUST DO DELETEOLDRDN IF REQUESTED HERE */
+
+		/* Add new attribute value to the entry.
+		 */
+
+		bv.bv_val = new_rdn_val;
+		bv.bv_len = strlen(new_rdn_val);
+		
+		
+		Debug( LDAP_DEBUG_TRACE,
+		       "ldbm_back_modrdn: adding new rdn attr val =%s\n",
+		       new_rdn_val, 0, 0 );
+
+		attr_merge( e, rdn_type, bvals );
+	
+	} else {
+	    
+
+		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DNS DN\n",
+		       0, 0, 0 );
+		/* XXXV3: not sure of what to do here */
+		Debug( LDAP_DEBUG_TRACE,\
+		       "ldbm_back_modrdn: not fully implemented...\n",
+		       0, 0, 0 );  
+
+	}
+
+	(void) cache_update_entry( &li->li_cache, e );
 
 	/* id2entry index */
 	if ( id2entry_add( be, e ) != 0 ) {
@@ -187,6 +263,11 @@ return_results:
 	if( p_ndn != NULL ) free( p_ndn );
 
 	if( matched != NULL ) free( matched );
+
+	/* LDAP v2 supporting correct attribute handling. */
+	if( new_rdn_type != NULL ) free(new_rdn_type);
+	if( new_rdn_val != NULL ) free(new_rdn_val);
+	if( old_rdn != NULL ) free(old_rdn);
 
 	if( p != NULL ) {
 		/* free parent and writer lock */
