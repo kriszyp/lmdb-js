@@ -750,8 +750,11 @@ fi
 if test $ol_with_threads != no ; then  
 	dnl needed to get reentrant/threadsafe versions
 	dnl
+	AC_DEFINE(REENTRANT,1)
 	AC_DEFINE(_REENTRANT,1)
+	AC_DEFINE(THREAD_SAFE,1)
 	AC_DEFINE(_THREAD_SAFE,1)
+	AC_DEFINE(THREADSAFE,1)
 	AC_DEFINE(_THREADSAFE,1)
 
 	dnl this might cause the errno symbol to be
