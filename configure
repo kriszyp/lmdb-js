@@ -41,6 +41,8 @@ ac_help="$ac_help
 ac_help="$ac_help
   --enable-cldap	enable connectionless ldap (no)"
 ac_help="$ac_help
+  --enable-ldapi	enable domain socket (PF_LOCAL) transport (no)"
+ac_help="$ac_help
   --enable-x-compile	enable cross compiling (no)"
 ac_help="$ac_help
   --enable-dmalloc	enable debug malloc support (no)"
@@ -1305,6 +1307,26 @@ else
   	ol_enable_cldap="no"
 fi
 # end --enable-cldap
+# OpenLDAP --enable-ldapi
+	# Check whether --enable-ldapi or --disable-ldapi was given.
+if test "${enable_ldapi+set}" = set; then
+  enableval="$enable_ldapi"
+  
+	ol_arg=invalid
+	for ol_val in auto yes no ; do
+		if test "$enableval" = "$ol_val" ; then
+			ol_arg="$ol_val"
+		fi
+	done
+	if test "$ol_arg" = "invalid" ; then
+		{ echo "configure: error: bad value $enableval for --enable-ldapi" 1>&2; exit 1; }
+	fi
+	ol_enable_ldapi="$ol_arg"
+
+else
+  	ol_enable_ldapi="no"
+fi
+# end --enable-ldapi
 # OpenLDAP --enable-x_compile
 	# Check whether --enable-x_compile or --disable-x_compile was given.
 if test "${enable_x_compile+set}" = set; then
@@ -1347,8 +1369,8 @@ else
 fi
 # end --enable-dmalloc
 
-# OpenLDAP --with-cyrus_sasl
-	# Check whether --with-cyrus_sasl or --without-cyrus_sasl was given.
+# OpenLDAP --with-cyrus-sasl
+	# Check whether --with-cyrus-sasl or --without-cyrus_sasl was given.
 if test "${with_cyrus_sasl+set}" = set; then
   withval="$with_cyrus_sasl"
   
@@ -1359,14 +1381,14 @@ if test "${with_cyrus_sasl+set}" = set; then
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ echo "configure: error: bad value $withval for --with-cyrus_sasl" 1>&2; exit 1; }
+		{ echo "configure: error: bad value $withval for --with-cyrus-sasl" 1>&2; exit 1; }
 	fi
 	ol_with_cyrus_sasl="$ol_arg"
 
 else
   	ol_with_cyrus_sasl="auto"
 fi
-# end --with-cyrus_sasl
+# end --with-cyrus-sasl
 
 # OpenLDAP --with-fetch
 	# Check whether --with-fetch or --without-fetch was given.
@@ -4601,6 +4623,7 @@ for ac_hdr in \
 	sys/resource.h	\
 	sys/select.h	\
 	sys/socket.h	\
+	sys/un.h	\
 	sys/syslog.h	\
 	sys/time.h		\
 	sys/types.h		\
@@ -14909,7 +14932,12 @@ if test "$ol_enable_cldap" != no ; then
 EOF
 
 fi
+if test "$ol_enable_ldapi" != no ; then
+	cat >> confdefs.h <<\EOF
+#define LDAP_PF_LOCAL 1
+EOF
 
+fi
 if test "$ol_enable_crypt" != no ; then
 	cat >> confdefs.h <<\EOF
 #define SLAPD_CRYPT 1

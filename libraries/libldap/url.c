@@ -40,48 +40,51 @@
 static const char* skip_url_prefix LDAP_P((
 	const char *url,
 	int *enclosedp,
-	int *ldaps ));
+	unsigned long *properties,
+	int *protocol));
 
 
 int
 ldap_is_ldap_url( LDAP_CONST char *url )
 {
-	int	enclosed;
-	int ldaps;
+	int	enclosed, protocol;
+	unsigned long properties;
 
 	if( url == NULL ) {
 		return 0;
 	}
 
-	if( skip_url_prefix( url, &enclosed, &ldaps) == NULL ) {
+	if( skip_url_prefix( url, &enclosed, &properties, &protocol) == NULL ) {
 		return 0;
 	}
 
-	return !ldaps;
+	return !(properties & LDAP_URL_USE_SSL);
 }
 
 int
 ldap_is_ldaps_url( LDAP_CONST char *url )
 {
-	int	enclosed;
-	int ldaps;
+	int	enclosed, protocol;
+	unsigned long properties;
 
 	if( url == NULL ) {
 		return 0;
 	}
 
-	if( skip_url_prefix( url, &enclosed, &ldaps) == NULL ) {
+	if( skip_url_prefix( url, &enclosed, &properties, &protocol) == NULL ) {
 		return 0;
 	}
 
-	return ldaps;
+	return (properties & LDAP_URL_USE_SSL);
 }
 
 static const char*
 skip_url_prefix(
 	const char *url,
 	int *enclosedp,
-	int *ldaps )
+	unsigned long *properties,
+	int *protocol
+	)
 {
 /*
  * return non-zero if this looks like a LDAP URL; zero if not
@@ -109,11 +112,13 @@ skip_url_prefix(
 		p += LDAP_URL_URLCOLON_LEN;
 	}
 
+	*properties = 0;
+
 	/* check for "ldap://" prefix */
 	if ( strncasecmp( p, LDAP_URL_PREFIX, LDAP_URL_PREFIX_LEN ) == 0 ) {
 		/* skip over "ldap://" prefix and return success */
 		p += LDAP_URL_PREFIX_LEN;
-		*ldaps = 0;
+		*protocol = LDAP_PROTO_TCP;
 		return( p );
 	}
 
@@ -121,7 +126,25 @@ skip_url_prefix(
 	if ( strncasecmp( p, LDAPS_URL_PREFIX, LDAPS_URL_PREFIX_LEN ) == 0 ) {
 		/* skip over "ldaps://" prefix and return success */
 		p += LDAPS_URL_PREFIX_LEN;
-		*ldaps = 1;
+		*protocol = LDAP_PROTO_TCP;
+		*properties |= LDAP_URL_USE_SSL;
+		return( p );
+	}
+
+	/* check for "ldapi://" prefix */
+	if ( strncasecmp( p, LDAPI_URL_PREFIX, LDAPI_URL_PREFIX_LEN ) == 0 ) {
+		/* skip over "ldapi://" prefix and return success */
+		p += LDAPI_URL_PREFIX_LEN;
+		*protocol = LDAP_PROTO_LOCAL;
+		return( p );
+	}
+
+	/* check for "ldapis://" prefix: should this be legal? */
+	if ( strncasecmp( p, LDAPIS_URL_PREFIX, LDAPIS_URL_PREFIX_LEN ) == 0 ) {
+		/* skip over "ldapis://" prefix and return success */
+		p += LDAPIS_URL_PREFIX_LEN;
+		*protocol = LDAP_PROTO_LOCAL;
+		*properties |= LDAP_URL_USE_SSL;
 		return( p );
 	}
 
@@ -160,7 +183,8 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 
 	LDAPURLDesc	*ludp;
 	char	*p, *q;
-	int		i, enclosed, ldaps;
+	int		i, enclosed, protocol;
+	unsigned long properties;
 	const char *url_tmp;
 	char *url;
 
@@ -172,7 +196,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 
 	*ludpp = NULL;	/* pessimistic */
 
-	url_tmp = skip_url_prefix( url_in, &enclosed, &ldaps );
+	url_tmp = skip_url_prefix( url_in, &enclosed, &properties, &protocol );
 
 	if ( url_tmp == NULL ) {
 		return LDAP_URL_ERR_NOTLDAP;
@@ -205,10 +229,11 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	ludp->lud_next = NULL;
 	ludp->lud_host = NULL;
 	ludp->lud_port = 0;
-    ludp->lud_dn = NULL;
-    ludp->lud_attrs = NULL;
-    ludp->lud_filter = NULL;
-	ludp->lud_ldaps = ldaps;
+	ludp->lud_dn = NULL;
+	ludp->lud_attrs = NULL;
+	ludp->lud_filter = NULL;
+	ludp->lud_properties = properties;
+	ludp->lud_protocol = protocol;
 	ludp->lud_scope = LDAP_SCOPE_BASE;
 
 	ludp->lud_filter = LDAP_STRDUP("(objectClass=*)");
@@ -468,7 +493,6 @@ ldap_url_dup ( LDAPURLDesc *ludp )
 		}
 	}
 
-	dest->lud_ldaps = ludp->lud_ldaps;
 	dest->lud_port = ludp->lud_port;
 	dest->lud_scope = ludp->lud_scope;
 
@@ -567,7 +591,8 @@ ldap_url_parsehosts (LDAPURLDesc **ludlist, const char *hosts )
 			ludp->lud_port = atoi(p);
 		}
 		ldap_pvt_hex_unescape(ludp->lud_host);
-		ludp->lud_ldaps = -1;	/* unknown (use TLS default) */
+		ludp->lud_protocol = LDAP_PROTO_TCP;
+		ludp->lud_properties = LDAP_URL_USE_SSL_UNSPECIFIED;
 		ludp->lud_next = *ludlist;
 		*ludlist = ludp;
 	}
@@ -635,7 +660,7 @@ ldap_url_list2urls (LDAPURLDesc *ludlist)
 
 	p = s;
 	for (ludp = ludlist; ludp != NULL; ludp = ludp->lud_next) {
-		p += sprintf(p, "ldap%s://%s", (ludp->lud_ldaps == 1) ? "s" : "", ludp->lud_host);
+		p += sprintf(p, "ldap%s://%s", (ludp->lud_properties & LDAP_URL_USE_SSL) ? "s" : "", ludp->lud_host);
 		if (ludp->lud_port != 0)
 			p += sprintf(p, ":%d", ludp->lud_port);
 		*p++ = '/';
@@ -767,9 +792,9 @@ void
 ldap_pvt_hex_unescape( char *s )
 {
 /*
- * Remove URL hex escapes from s... done in place.  The basic concept for
- * this routine is borrowed from the WWW library HTUnEscape() routine.
- */
+* Remove URL hex escapes from s... done in place.  The basic concept for
+* this routine is borrowed from the WWW library HTUnEscape() routine.
+*/
 	char	*p;
 
 	for ( p = s; *s != '\0'; ++s ) {

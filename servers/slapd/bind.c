@@ -226,7 +226,6 @@ do_bind(
 			assert( conn->c_authstate == NULL );
 #endif
 		}
-
 	} else {
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
@@ -305,6 +304,10 @@ do_bind(
 			method, mech, &cred, &edn );
 
 		if ( ret == 0 ) {
+#ifdef HAVE_CYRUS_SASL
+			int ssf = 0;
+#endif
+
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 			conn->c_cdn = dn;
@@ -326,6 +329,14 @@ do_bind(
 			send_ldap_result( conn, op, LDAP_SUCCESS,
 				NULL, NULL, NULL, NULL );
 
+#ifdef HAVE_CYRUS_SASL
+			if ( conn->c_sasl_context != NULL && 
+				sasl_getprop( conn->c_sasl_context, SASL_SSF, (void **)&ssf )
+					== SASL_OK && ssf ) {
+				/* Enable encode/decode */
+				ldap_pvt_sasl_install( conn->c_sb, conn->c_sasl_context );
+			}
+#endif
 		} else if (edn != NULL) {
 			free( edn );
 		}

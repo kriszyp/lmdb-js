@@ -100,6 +100,13 @@ LIBLDAP_F (int) ldap_pvt_unhex( int c );
 
 #define LDAP_NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
 
+#ifdef HAVE_CYRUS_SASL
+/* sasl.c */
+LIBLDAP_F (int) ldap_pvt_sasl_init LDAP_P(( void )); /* clientside init */
+LIBLDAP_F (int) ldap_pvt_sasl_install LDAP_P(( Sockbuf *, void * ));
+LIBLDAP_F (int) ldap_pvt_sasl_err2ldap LDAP_P(( int ));
+#endif /* HAVE_CYRUS_SASL */
+
 /* search.c */
 LIBLDAP_F( char * )
 ldap_pvt_find_wildcard LDAP_P((	char *s ));

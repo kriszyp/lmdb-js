@@ -502,6 +502,12 @@ struct slap_backend_db {
 #define		be_sync bd_info->bi_tool_sync
 #endif
 
+#ifdef HAVE_CYRUS_SASL
+#define		be_sasl_authorize bd_info->bi_sasl_authorize
+#define		be_sasl_getsecret bd_info->bi_sasl_getsecret
+#define		be_sasl_putsecret bd_info->bi_sasl_putsecret
+#endif
+
 	/* these should be renamed from be_ to bd_ */
 	char	**be_suffix;	/* the DN suffixes of data in this backend */
 	char	**be_nsuffix;	/* the normalized DN suffixes in this backend */
@@ -655,6 +661,18 @@ struct slap_backend_info {
 	int (*bi_tool_index_change) LDAP_P(( BackendDB *be, char* type,
 		struct berval **bv, ID id, int op ));
 	int (*bi_tool_sync) LDAP_P(( BackendDB *be ));
+
+#ifdef HAVE_CYRUS_SASL
+	int (*bi_sasl_authorize) LDAP_P(( BackendDB *be,
+		const char *authnid, const char *authzid,
+		const char **canon_authzid, const char **errstr ));
+	int (*bi_sasl_getsecret) LDAP_P(( BackendDB *be,
+		const char *mechanism, const char *authzid,
+		const char *realm, sasl_secret_t **secret ));
+	int (*bi_sasl_putsecret) LDAP_P(( BackendDB *be,
+		const char *mechanism, const char *auth_identity,
+		const char *realm, const sasl_secret_t *secret ));
+#endif /* HAVE_CYRUS_SASL */
 
 #define SLAP_INDEX_ADD_OP		0x0001
 #define SLAP_INDEX_DELETE_OP	0x0002

@@ -18,9 +18,32 @@
 char **supportedSASLMechanisms = NULL;
 
 #ifdef HAVE_CYRUS_SASL
-static sasl_callback_t callbacks[] = {
-	{ SASL_CB_LIST_END, NULL, NULL }
-};
+static void *sasl_pvt_mutex_new(void)
+{
+	ldap_pvt_thread_mutex_t *mutex;
+
+	mutex = (ldap_pvt_thread_mutex_t *)ch_malloc( sizeof(ldap_pvt_thread_mutex_t) );
+	if ( ldap_pvt_thread_mutex_init( mutex ) == 0 ) {
+		return mutex;
+	}
+	return NULL;
+}
+
+static int sasl_pvt_mutex_lock(void *mutex)
+{
+	return ldap_pvt_thread_mutex_lock( (ldap_pvt_thread_mutex_t *)mutex );
+}
+
+static int sasl_pvt_mutex_unlock(void *mutex)
+{
+	return ldap_pvt_thread_mutex_unlock( (ldap_pvt_thread_mutex_t *)mutex );
+}
+
+static void sasl_pvt_mutex_dispose(void *mutex)
+{
+	(void) ldap_pvt_thread_mutex_destroy( (ldap_pvt_thread_mutex_t *)mutex );
+	free( mutex );
+}
 
 int sasl_init( void )
 {
@@ -28,7 +51,12 @@ int sasl_init( void )
 	char *mechs;
 	sasl_conn_t *server = NULL;
 
-	rc = sasl_server_init( callbacks, "slapd" );
+	sasl_set_alloc( ch_malloc, ch_calloc, ch_realloc, ch_free ); 
+
+	sasl_set_mutex( sasl_pvt_mutex_new, sasl_pvt_mutex_lock,
+		sasl_pvt_mutex_unlock, sasl_pvt_mutex_dispose );
+
+	rc = sasl_server_init( NULL, "slapd" );
 
 	if( rc != SASL_OK ) {
 		Debug( LDAP_DEBUG_ANY, "sasl_server_init failed\n",
@@ -87,6 +115,113 @@ int sasl_destroy( void )
 	charray_free( supportedSASLMechanisms );
 	return 0;
 }
+
+#ifdef HAVE_CYRUS_SASL
+int sasl_bind(
+    Backend             *be,
+    Connection          *conn,
+    Operation           *op,  
+    char                *dn,  
+    char                *ndn,
+    char                *mech,
+    struct berval       *cred,
+    char                **edn)
+{
+	struct berval response;
+	const char *errstr;
+	int sc;
+	int rc = 1;
+
+	Debug(LDAP_DEBUG_ARGS, "==> sasl_bind: dn=%s, mech=%s, cred->bv_len=%d\n",
+		dn, mech, cred ? cred->bv_len : 0 );
+
+	if ( conn->c_sasl_context == NULL ) {
+		sasl_callback_t callbacks[4];
+		int cbnum = 0;
+
+		if (be->be_sasl_authorize) {
+			callbacks[cbnum].id = SASL_CB_PROXY_POLICY;
+			callbacks[cbnum].proc = be->be_sasl_authorize;
+			callbacks[cbnum].context = be;
+			++cbnum;
+		}
+
+		if (be->be_sasl_getsecret) {
+			callbacks[cbnum].id = SASL_CB_SERVER_GETSECRET;
+			callbacks[cbnum].proc = be->be_sasl_getsecret;
+			callbacks[cbnum].context = be;
+			++cbnum;
+		}
+
+		if (be->be_sasl_putsecret) {
+			callbacks[cbnum].id = SASL_CB_SERVER_PUTSECRET;
+			callbacks[cbnum].proc = be->be_sasl_putsecret;
+			callbacks[cbnum].context = be;
+			++cbnum;
+		}
+		callbacks[cbnum].id = SASL_CB_LIST_END;
+		callbacks[cbnum].proc = NULL;
+		callbacks[cbnum].context = NULL;
+	
+		if ( sasl_server_new( "ldap", NULL, be->be_realm,
+			callbacks, SASL_SECURITY_LAYER, &conn->c_sasl_context ) != SASL_OK ) {
+			send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
+				NULL, NULL, NULL, NULL );
+		} else {
+			conn->c_authmech = ch_strdup( mech );
+			sc = sasl_server_start( conn->c_sasl_context, conn->c_authmech,
+				cred->bv_val, cred->bv_len, (char **)&response.bv_val,
+				(unsigned *)&response.bv_len, &errstr );
+			if ( (sc != SASL_OK) && (sc != SASL_CONTINUE) ) {
+				send_ldap_result( conn, op, ldap_pvt_sasl_err2ldap( sc ),
+					NULL, errstr, NULL, NULL );
+			}
+		}
+	} else {
+		sc = sasl_server_step( conn->c_sasl_context, cred->bv_val, cred->bv_len,
+			(char **)&response.bv_val, (unsigned *)&response.bv_len, &errstr );
+		if ( (sc != SASL_OK) && (sc != SASL_CONTINUE) ) {
+			send_ldap_result( conn, op, ldap_pvt_sasl_err2ldap( sc ),
+				NULL, errstr, NULL, NULL );
+		}
+	}
+	if ( sc == SASL_OK ) {
+		char *authzid;
+
+		if ( ( sc = sasl_getprop( conn->c_sasl_context, SASL_USERNAME,
+			(void **)&authzid ) ) != SASL_OK ) {
+			send_ldap_result( conn, op, ldap_pvt_sasl_err2ldap( sc ),
+				NULL, NULL, NULL, NULL );
+		} else {
+			if ( *edn != NULL ) {
+				free( *edn );
+			}
+			if ( strcasecmp( authzid, "anonymous" ) == 0 ) {
+				*edn = ch_strdup( "" );
+			} else {
+				*edn = ch_malloc( strlen( authzid ) + sizeof( "authzid=" ) );
+				strcpy( *edn, "authzid=" );
+				strcat( *edn, authzid );
+			}
+			/* let FE send result */
+			rc = 0;
+		}
+	} else if ( sc == SASL_CONTINUE ) {
+		/*
+		 * We set c_bind_in_progress because it doesn't appear
+		 * that connection.c sets this (unless do_bind() itself
+		 * returns LDAP_SASL_BIND_IN_PROGRESS).
+		 */
+		conn->c_bind_in_progress = 1;
+		send_ldap_sasl( conn, op, LDAP_SASL_BIND_IN_PROGRESS,
+			/* matched */ NULL, /* text */ NULL, /* refs */ NULL, /* controls */ NULL,  &response );
+	} 
+
+	Debug(LDAP_DEBUG_TRACE, "<== sasl_bind: rc=%d\n", rc, 0, 0);
+
+	return rc;
+}
+#endif /* HAVE_CYRUS_SASL */
 
 #else
 /* no SASL support */

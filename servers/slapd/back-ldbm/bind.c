@@ -85,6 +85,10 @@ ldbm_back_bind(
 			}
 
 		} else if ( method == LDAP_AUTH_SASL ) {
+#ifdef HAVE_CYRUS_SASL
+			rc = sasl_bind( be, conn, op, 
+				dn, ndn, mech, cred, edn );
+#else
 			if( mech != NULL && strcasecmp(mech,"DIGEST-MD5") == 0 ) {
 				/* insert DIGEST calls here */
 				send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
@@ -94,7 +98,7 @@ ldbm_back_bind(
 				send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
 					NULL, NULL, NULL, NULL );
 			}
-
+#endif /* HAVE_CYRUS_SASL */
 		} else if ( refs != NULL ) {
 			send_ldap_result( conn, op, LDAP_REFERRAL,
 				matched_dn, NULL, refs, NULL );
@@ -241,7 +245,7 @@ ldbm_back_bind(
 
 		if ( (a = attr_find( e->e_attrs, "krbname" )) == NULL ) {
 			/*
-			 * no krbName values present:  check against DN
+			 * no krbname values present:  check against DN
 			 */
 			if ( strcasecmp( dn, krbname ) == 0 ) {
 				rc = 0;
@@ -252,7 +256,7 @@ ldbm_back_bind(
 			rc = 1;
 			goto return_results;
 
-		} else {	/* look for krbName match */
+		} else {	/* look for krbname match */
 			struct berval	krbval;
 
 			krbval.bv_val = krbname;
@@ -279,7 +283,12 @@ ldbm_back_bind(
 
 	case LDAP_AUTH_SASL:
 		/* insert SASL code here */
-
+#ifdef HAVE_CYRUS_SASL
+		/* this may discard edn as we always prefer the SASL authzid
+		 * because it may be sealed.
+		 */
+		rc = sasl_bind( be, conn, op, dn, ndn, mech, cred, edn );
+#endif /* HAVE_CYRUS_SASL */
 	default:
 		send_ldap_result( conn, op, LDAP_STRONG_AUTH_NOT_SUPPORTED,
 		    NULL, "auth method not supported", NULL, NULL );

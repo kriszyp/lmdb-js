@@ -97,6 +97,7 @@ OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
 OL_ARG_ENABLE(dns,[  --enable-dns		enable V2 DX Referrals extension], no)dnl
 OL_ARG_ENABLE(referrals,[  --enable-referrals	enable V2 Referrals extension], yes)dnl
 OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
+OL_ARG_ENABLE(ldapi,[  --enable-ldapi	enable domain socket (PF_LOCAL) ldap], no)dnl
 OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
 	no, [yes no])dnl
 
@@ -2078,6 +2079,9 @@ if test "$ol_enable_referrals" != no ; then
 fi
 if test "$ol_enable_cldap" != no ; then
 	AC_DEFINE(LDAP_CONNECTIONLESS,1,[define to support CLDAP])
+fi
+if test "$ol_enable_ldapi" != no; then
+	AC_DEFINE(USE_PF_LOCAL,1,[define to support PF_LOCAL transport])
 fi
 
 if test "$ol_enable_crypt" != no ; then

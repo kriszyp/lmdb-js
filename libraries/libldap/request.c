@@ -96,7 +96,6 @@ ldap_send_initial_request(
 			( ld->ld_host == NULL ) ? "(null)" : ld->ld_host, 0, 0 );
 	}
 
-
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 	if ( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_DNS )
 		&& ldap_is_dns_dn( dn ) )
@@ -253,7 +252,6 @@ ldap_send_server_request(
 	ld->ld_errno = LDAP_SUCCESS;
 	return( msgid );
 }
-
 
 LDAPConn *
 ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,

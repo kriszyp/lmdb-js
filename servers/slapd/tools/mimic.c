@@ -143,3 +143,18 @@ int sasl_init(void) {
 int sasl_destroy(void) {
 	return 0;
 }
+
+#ifdef HAVE_CYRUS_SASL
+int sasl_bind(
+    Backend             *be,
+    Connection          *conn,
+    Operation           *op,
+    char                *dn,
+    char                *ndn,
+    char                *mech,
+    struct berval       *cred,
+    char                **edn)
+{
+	return -1;
+}
+#endif

@@ -23,6 +23,10 @@
 
 #include "ldap-int.h"
 
+#define DN_TYPE_LDAP_RDN	0
+#define DN_TYPE_LDAP_DN		1
+#define DN_TYPE_DCE_DN		2
+
 static char **explode_name( const char *name, int notypes, int is_dn );
 
 char *
@@ -180,14 +184,98 @@ ldap_explode_dn( LDAP_CONST char *dn, int notypes )
 	if ( ldap_is_dns_dn( dn ) ) {
 		return( ldap_explode_dns( dn ) );
 	}
-	return explode_name( dn, notypes, 1 );
+	return explode_name( dn, notypes, DN_TYPE_LDAP_DN );
 }
 
 char **
 ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 {
 	Debug( LDAP_DEBUG_TRACE, "ldap_explode_rdn\n", 0, 0, 0 );
-	return explode_name( rdn, notypes, 0 );
+	return explode_name( rdn, notypes, DN_TYPE_LDAP_RDN );
+}
+
+char *
+ldap_dn2dcedn( LDAP_CONST char *dn )
+{
+	char *dce, *q, **rdns, **p;
+	int len = 0;
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_dn2dcedn\n", 0, 0, 0 );
+
+	rdns = explode_name( dn, 0, DN_TYPE_LDAP_DN );
+	if ( rdns == NULL ) {
+		return NULL;
+	}
+	
+	for ( p = rdns; *p != NULL; p++ ) {
+		len += strlen( *p ) + 1;
+	}
+
+	q = dce = LDAP_MALLOC( len + 1 );
+	if ( dce == NULL ) {
+		return NULL;
+	}
+
+	p--; /* get back past NULL */
+
+	for ( ; p != rdns; p-- ) {
+		strcpy( q, "/" );
+		q++;
+		strcpy( q, *p );
+		q += strlen( *p );
+	}
+
+	strcpy( q, "/" );
+	q++;
+	strcpy( q, *p );
+	
+	return dce;
+}
+
+char *
+ldap_dcedn2dn( LDAP_CONST char *dce )
+{
+	char *dn, *q, **rdns, **p;
+	int len;
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_dcedn2dn\n", 0, 0, 0 );
+
+	rdns = explode_name( dce, 0, DN_TYPE_DCE_DN );
+	if ( rdns == NULL ) {
+		return NULL;
+	}
+
+	len = 0;
+
+	for ( p = rdns; *p != NULL; p++ ) {
+		len += strlen( *p ) + 1;
+	}
+
+	q = dn = LDAP_MALLOC( len );
+	if ( dn == NULL ) {
+		return NULL;
+	}
+
+	p--;
+
+	for ( ; p != rdns; p-- ) {
+		strcpy( q, *p );
+		q += strlen( *p );
+		strcpy( q, "," );
+		q++;
+	}
+
+	if ( *dce == '/' ) {
+		/* the name was fully qualified, thus the most-significant
+		 * RDN was empty. trash the last comma */
+		q--;
+		*q = '\0';
+	} else {
+		/* the name was relative. copy the most significant RDN */
+		strcpy( q, *p );
+	}
+
+	return dn;
 }
 
 static char **
@@ -215,14 +303,18 @@ explode_name( const char *name, int notypes, int is_dn )
 				state = INQUOTE;
 			break;
 		case '+':
-			if (!is_dn)
+			if (is_dn == DN_TYPE_LDAP_RDN)
+				goto end_part;
+			break;
+		case '/':
+			if (is_dn == DN_TYPE_DCE_DN)
 				goto end_part;
 			break;
 		case ';':
 		case ',':
-			if (!is_dn)
-				break;
-			goto end_part;
+			if (is_dn == DN_TYPE_LDAP_DN)
+				goto end_part;
+			break;
 		case '\0':
 		end_part:
 			if ( state == OUTQUOTE ) {

@@ -531,6 +531,9 @@
 /* Define if you have the <sys/types.h> header file.  */
 #undef HAVE_SYS_TYPES_H
 
+/* Define if you have the <sys/un.h> header file.  */
+#undef HAVE_SYS_UN_H
+
 /* Define if you have the <sysexits.h> header file.  */
 #undef HAVE_SYSEXITS_H
 
@@ -833,6 +836,9 @@
 
 /* define to support CLDAP */
 #undef LDAP_CONNECTIONLESS
+
+/* define to support domain sockets */
+#undef LDAP_PF_LOCAL
 
 /* define to support crypt(3) passwords */
 #undef SLAPD_CRYPT

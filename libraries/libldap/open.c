@@ -287,7 +287,19 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 	if ( srv->lud_host == NULL || *srv->lud_host == 0 )
 		addr = htonl( INADDR_LOOPBACK );
 
-	rc = ldap_connect_to_host( ld, sb, srv->lud_host, addr, port, async );
+	switch ( srv->lud_protocol ) {
+		case LDAP_PROTO_TCP:
+		case LDAP_PROTO_UDP:
+			rc = ldap_connect_to_host( ld, sb, srv->lud_host, addr, port, async );
+			break;
+		case LDAP_PROTO_LOCAL:
+			rc = ldap_connect_to_path( ld, sb, srv->lud_host, async );
+			break;
+		default:
+			rc = -1;
+			break;
+	}
+
 	if ( rc == -1 ) {
 		return( rc );
 	}
@@ -295,9 +307,10 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
    	ber_pvt_sb_set_io( sb, &ber_pvt_sb_io_tcp, NULL );
 
 #ifdef HAVE_TLS
-	tls = srv->lud_ldaps;
-	if (tls == -1)
-		tls = ld->ld_options.ldo_tls_mode;
+	tls = (srv->lud_properties & LDAP_URL_USE_SSL);
+	if (tls == 0)
+		tls = (srv->lud_properties & LDAP_URL_USE_SSL_UNSPECIFIED);
+
 	if ( tls != 0 ) {
 		rc = ldap_pvt_tls_start( sb, ld->ld_options.ldo_tls_ctx );
 		if (rc != LDAP_SUCCESS)

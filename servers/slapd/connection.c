@@ -368,7 +368,7 @@ long connection_init(
 
 #ifdef HAVE_CYRUS_SASL
 		c->c_sasl_context = NULL;
-#endif
+#endif /* HAVE_CYRUS_SASL */
 
         c->c_sb = ber_sockbuf_alloc( );
 		c->c_currentber = NULL;
@@ -485,6 +485,19 @@ connection_destroy( Connection *c )
 		c->c_peer_domain = NULL;
 	}
 	if(c->c_peer_name != NULL) {
+#ifdef LDAP_PF_LOCAL
+		/*
+		 * If peer was a domain socket, unlink. Mind you,
+		 * they may be un-named. Should we leave this to
+		 * the client?
+		 */
+		if (strncmp(c->c_peer_name, "PATH=", 5) == 0) {
+			char *path = c->c_peer_name + 5;
+			if (path != '\0') {
+				(void)unlink(path);
+			}
+		}
+#endif /* LDAP_PF_LOCAL */
 		free(c->c_peer_name);
 		c->c_peer_name = NULL;
 	}
@@ -506,7 +519,9 @@ connection_destroy( Connection *c )
 		sasl_dispose( &c->c_sasl_context );
 		c->c_sasl_context = NULL;
 	}
-#endif
+#endif /* HAVE_CYRUS_SASL */
+
+	c->c_bind_in_progress = 0;
 
 	if ( c->c_currentber != NULL ) {
 		ber_free( c->c_currentber, 1 );
@@ -795,7 +810,13 @@ connection_operation( void *arg_v )
 		if( conn->c_conn_state == SLAP_C_BINDING) {
 			conn->c_conn_state = SLAP_C_ACTIVE;
 		}
-		conn->c_bind_in_progress = ( rc == LDAP_SASL_BIND_IN_PROGRESS );
+		/*
+		 * Is this ever the case? For now, rely on
+		 * the backend to set this.
+		 */
+		if ( rc == LDAP_SASL_BIND_IN_PROGRESS ) {
+			conn->c_bind_in_progress = 1;
+		}
 	}
 
 	ldap_pvt_thread_mutex_lock( &active_threads_mutex );

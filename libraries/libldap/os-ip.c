@@ -333,7 +333,7 @@ ldap_close_connection( Sockbuf *sb )
 }
 
 
-#if defined( HAVE_KERBEROS ) || defined( HAVE_TLS )
+#if defined( HAVE_KERBEROS ) || defined( HAVE_TLS ) || defined( HAVE_CYRUS_SASL )
 char *
 ldap_host_connected_to( Sockbuf *sb )
 {

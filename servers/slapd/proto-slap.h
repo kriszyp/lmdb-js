@@ -264,6 +264,9 @@ typedef int (*SLAP_EXTOP_MAIN_FN) LDAP_P((
 typedef int (*SLAP_EXTOP_GETOID_FN) LDAP_P((
 	int index, char *oid, int blen ));
 
+LIBSLAPD_F (int) load_extension LDAP_P((const void *module, const char *file_name));
+LIBSLAPD_F (char *) get_supported_extension LDAP_P((int index));
+
 LIBSLAPD_F (int) load_extop LDAP_P((
 	const char *ext_oid,
 	SLAP_EXTOP_MAIN_FN ext_main ));
@@ -424,6 +427,12 @@ LIBSLAPD_F (char **) supportedSASLMechanisms;
 
 LIBSLAPD_F (int) sasl_init(void);
 LIBSLAPD_F (int) sasl_destroy(void);
+#ifdef HAVE_CYRUS_SASL
+LIBSLAPD_F (int) sasl_errldap LDAP_P(( int ));
+LIBSLAPD_F (int) sasl_bind LDAP_P((Backend *, 
+	Connection *, Operation *, 
+	char *, char *, char *, struct berval *, char **));
+#endif
 
 /*
  * schema.c

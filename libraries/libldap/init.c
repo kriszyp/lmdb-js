@@ -343,6 +343,10 @@ void ldap_int_initialize( void )
    	ldap_pvt_tls_init();
 #endif
 
+#ifdef HAVE_CYRUS_SASL
+	ldap_pvt_sasl_init();
+#endif
+
 	if ( ldap_int_tblsize == 0 )
 		ldap_int_ip_init();
 

@@ -30,12 +30,20 @@
 
 #include "ldap_pvt.h"
 
+#ifdef HAVE_CYRUS_SASL
+#include <sasl.h>
+#endif /* HAVE_CYRUS_SASL */
+
 LDAP_BEGIN_DECL
 
 #define LDAP_URL_PREFIX         "ldap://"
 #define LDAP_URL_PREFIX_LEN     (sizeof(LDAP_URL_PREFIX)-1)
 #define LDAPS_URL_PREFIX		"ldaps://"
 #define LDAPS_URL_PREFIX_LEN	(sizeof(LDAPS_URL_PREFIX)-1)
+#define LDAPI_URL_PREFIX	"ldapi://"
+#define LDAPI_URL_PREFIX_LEN	(sizeof(LDAPI_URL_PREFIX)-1)
+#define LDAPIS_URL_PREFIX	"ldapis://"
+#define LDAPIS_URL_PREFIX_LEN	(sizeof(LDAPIS_URL_PREFIX)-1)
 #define LDAP_URL_URLCOLON		"URL:"
 #define LDAP_URL_URLCOLON_LEN	(sizeof(LDAP_URL_URLCOLON)-1)
 #define NULLLDAPURLDESC ((LDAPURLDesc *)NULL)
@@ -132,6 +140,7 @@ typedef struct ldap_server {
 	char			*lsrv_host;
 	char			*lsrv_dn;	/* if NULL, use default */
 	int			lsrv_port;
+/*	int			lsrv_protocol; */
 	struct ldap_server	*lsrv_next;
 } LDAPServer;
 
@@ -266,6 +275,9 @@ struct ldap {
 	int		(*ld_rebindproc)( struct ldap *ld, char **dnp,
 				char **passwdp, int *authmethodp, int freeit );
 				/* routine to get info needed for re-bind */
+#ifdef HAVE_CYRUS_SASL
+	sasl_conn_t		*ld_sasl_context;
+#endif /* HAVE_CYRUS_SASL */
 };
 #define LDAP_VALID(ld)	( (ld)->ld_valid == LDAP_VALID_SESSION )
 
@@ -355,7 +367,6 @@ LIBLDAP_F (char *) ldap_get_kerberosv4_credentials LDAP_P((
 LIBLDAP_F (int) ldap_open_defconn( LDAP *ld );
 LIBLDAP_F (int) open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srvlist, char **krbinstancep, int async );
 
-
 /*
  * in os-ip.c
  */
@@ -365,7 +376,7 @@ LIBLDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb, const char *host, u
 
 LIBLDAP_F (void) ldap_close_connection( Sockbuf *sb );
 
-#ifdef HAVE_KERBEROS
+#if defined(HAVE_KERBEROS) || defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 LIBLDAP_F (char *) ldap_host_connected_to( Sockbuf *sb );
 #endif /* HAVE_KERBEROS */
 
@@ -379,6 +390,12 @@ LIBLDAP_F (void) ldap_mark_select_clear( LDAP *ld, Sockbuf *sb );
 LIBLDAP_F (int) ldap_is_read_ready( LDAP *ld, Sockbuf *sb );
 LIBLDAP_F (int) ldap_is_write_ready( LDAP *ld, Sockbuf *sb );
 
+#ifdef LDAP_PF_LOCAL 
+/*
+ * in os-local.c
+ */
+LIBLDAP_F (int) ldap_connect_to_path( LDAP *ld, Sockbuf *sb, const char *path, int async );
+#endif /* LDAP_PF_LOCAL */
 
 /*
  * in request.c
@@ -395,7 +412,6 @@ LIBLDAP_F (void) ldap_free_request( LDAP *ld, LDAPRequest *lr );
 LIBLDAP_F (void) ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind );
 LIBLDAP_F (void) ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all );
 LIBLDAP_F (void) ldap_dump_requests_and_responses( LDAP *ld );
-
 LIBLDAP_F (int) ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp );
 LIBLDAP_F (int) ldap_append_referral( LDAP *ld, char **referralsp, char *s );
 

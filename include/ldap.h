@@ -487,16 +487,26 @@ typedef struct ldap_friendly {
  * types for ldap URL handling
  */
 typedef struct ldap_url_desc {
-	struct ldap_url_desc *lud_next;
-	int		lud_ldaps;
+    struct ldap_url_desc *lud_next;
+    unsigned long lud_properties;
+    int		lud_protocol;
     char	*lud_host;
     int		lud_port;
     char	*lud_dn;
     char	**lud_attrs;
     int		lud_scope;
     char	*lud_filter;
-	char	**lud_exts;
+    char	**lud_exts;
 } LDAPURLDesc;
+
+/* lud_properties */
+#define	LDAP_URL_USE_SSL		0x00000001
+#define LDAP_URL_USE_SSL_UNSPECIFIED	0x00000002
+
+/* lud_protocol */
+#define LDAP_PROTO_TCP			0x00
+#define LDAP_PROTO_UDP			0x01	
+#define LDAP_PROTO_LOCAL		0x02
 
 #define LDAP_URL_SUCCESS		0x00	/* Success */
 #define LDAP_URL_ERR_MEM		0x01	/* can't allocate memory space */
@@ -636,6 +646,17 @@ ldap_sasl_bind LDAP_P((
 	LDAPControl		**serverctrls,
 	LDAPControl		**clientctrls,
 	int				*msgidp ));
+
+LIBLDAP_F( int )
+ldap_negotiated_sasl_bind_s LDAP_P((
+	LDAP *ld,
+	LDAP_CONST char *dn, /* usually NULL */
+	LDAP_CONST char *authorizationId,
+	LDAP_CONST char *authenticationId, /* usually NULL */
+	LDAP_CONST char *saslMechanism,
+	struct berval *passPhrase,
+	LDAPControl **serverControls,
+	LDAPControl **clientControls ));
 
 LIBLDAP_F( int )
 ldap_sasl_bind_s LDAP_P((
@@ -1126,6 +1147,11 @@ LIBLDAP_F( int )
 ldap_is_dns_dn LDAP_P((	/* deprecated */
 	LDAP_CONST char *dn ));
 
+LIBLDAP_F( char * )
+ldap_dn2dcedn LDAP_P(( LDAP_CONST char *dn ));
+
+LIBLDAP_F( char * )
+ldap_dcedn2dn LDAP_P(( LDAP_CONST char *dce ));
 
 /*
  * in getattr.c

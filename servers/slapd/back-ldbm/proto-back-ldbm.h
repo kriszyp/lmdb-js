@@ -178,6 +178,30 @@ int ldbm_modify_internal LDAP_P((Backend *be,
 	Connection *conn, Operation *op,
 	char *dn, LDAPModList *mods, Entry *e ));
 
+#ifdef HAVE_CYRUS_SASL
+/*
+ * sasl.c
+ */
+int ldbm_sasl_authorize LDAP_P((
+        BackendDB *be,
+        const char *auth_identity,
+        const char *requested_user,
+        const char **user,
+        const char **errstring ));
+int ldbm_sasl_getsecret LDAP_P((
+        Backend *be,
+        const char *mechanism,
+        const char *auth_identity,
+        const char *realm,
+        sasl_secret_t **secret ));
+int ldbm_sasl_putsecret LDAP_P((
+        Backend *be,
+        const char *mechanism,
+        const char *auth_identity,
+        const char *realm,
+        const sasl_secret_t *secret ));
+#endif /* HAVE_CYRUS_SASL */
+
 /*
  * nextid.c
  */
