@@ -3,20 +3,16 @@
 
 
 
-
-INTERNET-DRAFT                                      Kurt D. Zeilenga
+INTERNET-DRAFT                                   Kurt D. Zeilenga
 Intended Category: Standard Track                OpenLDAP Foundation
-Expires in six months                                25 October 2003
+Expires in six months                            18 July 2004
 
 
                         The LDAP Assertion Control
-                   <draft-zeilenga-ldap-assert-01.txt>
+                   <draft-zeilenga-ldap-assert-03.txt>
 
 
 Status of this Memo
-
-  This document is an Internet-Draft and is in full conformance with all
-  provisions of Section 10 of RFC2026.
 
   This document is intended to be, after appropriate review and
   revision, submitted to the IESG for consideration as a Standard Track
@@ -25,20 +21,27 @@ Status of this Memo
   Extensions mailing list <ldapext@ietf.org>.  Please send editorial
   comments directly to the author <Kurt@OpenLDAP.org>.
 
+  By submitting this Internet-Draft, I accept the provisions of Section
+  4 of RFC 3667.  By submitting this Internet-Draft, I certify that any
+  applicable patent or other IPR claims of which I am aware have been
+  disclosed, or will be disclosed, and any of which I become aware will
+  be disclosed, in accordance with RFC 3668.
+
   Internet-Drafts are working documents of the Internet Engineering Task
-  Force (IETF), its areas, and its working groups.  Note that other
+  Force (IETF), its areas, and its working groups. Note that other
   groups may also distribute working documents as Internet-Drafts.
+
   Internet-Drafts are draft documents valid for a maximum of six months
   and may be updated, replaced, or obsoleted by other documents at any
-  time.  It is inappropriate to use Internet-Drafts as reference
-  material or to cite them other than as ``work in progress.''
+  time. It is inappropriate to use Internet-Drafts as reference material
+  or to cite them other than as "work in progress."
 
   The list of current Internet-Drafts can be accessed at
-  <http://www.ietf.org/ietf/1id-abstracts.txt>. The list of
+  <http://www.ietf.org/ietf/1id-abstracts.txt>.  The list of
   Internet-Draft Shadow Directories can be accessed at
   <http://www.ietf.org/shadow.html>.
 
-  Copyright (C) The Internet Society (2003).  All Rights Reserved.
+  Copyright (C) The Internet Society (2004).  All Rights Reserved.
 
   Please see the Full Copyright section near the end of this document
   for more information.
@@ -48,16 +51,17 @@ Abstract
 
   This document defines the Lightweight Directory Access Protocol (LDAP)
   Assertion Control which allows a client to specify that a directory
-  operation should only be processed if an assertion applied to the
-  target entry of the operation is true.  It can be used to construct
-  "test and set" and "test and clear" and other conditional operations.
-
 
 
 
 Zeilenga                 LDAP Assertion Control                 [Page 1]
 
-INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
+INTERNET-DRAFT        draft-zeilenga-ldap-assert-03         18 July 2004
+
+
+  operation should only be processed if an assertion applied to the
+  target entry of the operation is true.  It can be used to construct
+  "test and set" and "test and clear" and other conditional operations.
 
 
 1.  Overview
@@ -70,8 +74,8 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
   The control can be used with the Modify operation [RFC2251] to perform
   atomic "test and set" and "test and clear" operations as the asserted
   condition is evaluated as an integral part the operation.  The control
-  may be attached to other update operations to support conditional add,
-  delete, and renaming of objects.
+  may be attached to other update operations to support conditional
+  addition, deletion, and renaming of objects.
 
   The control may also be used with the search operation.  Here the
   assertion is applied to the base object of the search before searching
@@ -103,18 +107,19 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
   [RFC2251, Section 4.5.1].  The criticality may be TRUE or FALSE.
   There is no corresponding response control.
 
-  The control is appropriate for both LDAP interrogation and update
-  operations [RFC2251] including Add, Compare, Delete, Modify, ModifyDN
-  (rename), and Search.  It is inappropriate for Abandon, Bind nor
-  Unbind operations.  It is also inappropriate for the Start TLS
-  [RFC2830] operation.
 
 
 
 Zeilenga                 LDAP Assertion Control                 [Page 2]
 
-INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
+INTERNET-DRAFT        draft-zeilenga-ldap-assert-03         18 July 2004
 
+
+  The control is appropriate for both LDAP interrogation and update
+  operations [RFC2251] including Add, Compare, Delete, Modify, ModifyDN
+  (rename), and Search.  It is inappropriate for Abandon, Bind nor
+  Unbind operations.  It is also inappropriate for the Start TLS
+  [RFC2830] operation.
 
   When the control is attached to an LDAP request, the processing of the
   request is conditional on the evaluation of the Filter as applied
@@ -133,8 +138,8 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
 
   For search operation, the target is indicated by the baseObject field
   and the evaluation is done after "finding" but before "searching"
-  [RFC2251].  Hence, if the evaluation fails, no entries or
-  continuations references are returned.
+  [RFC2251].  Hence, no entries or continuations references are returned
+  if the assertion fails.
 
   Servers implementing this technical specification SHOULD publish the
   object identifier IANA-ASSIGNED-OID as a value of the
@@ -154,22 +159,24 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
   appropriately protected.
 
   As with any general assertion mechanism, the mechanism can be used to
-  determine directory content.  Hence, the mechanism SHOULD be subject
+  determine directory content.  Hence, this mechanism SHOULD be subject
   to appropriate access controls.
 
   Some assertions may be very complex, requiring significant time and
-  resources to evaluate.  Hence, the mechanism SHOULD be subject to
-  appropriate administrative controls.
-
-  All security considerations for the base operations [RFC2251] to which
-  this control is attached to apply, as do general LDAP security
-  considerations [RFC3377].
 
 
 
 Zeilenga                 LDAP Assertion Control                 [Page 3]
 
-INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
+INTERNET-DRAFT        draft-zeilenga-ldap-assert-03         18 July 2004
+
+
+  resources to evaluate.  Hence, this mechanism SHOULD be subject to
+  appropriate administrative controls.
+
+  All security considerations for the base operations [RFC2251] to which
+  this control is attached to apply, as do general LDAP security
+  considerations [RFC3377].
 
 
 5.  IANA Considerations
@@ -212,6 +219,14 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
       Person & email address to contact for further information:
           Kurt Zeilenga <kurt@OpenLDAP.org>
       Result Code Name: assertionFailed
+
+
+
+Zeilenga                 LDAP Assertion Control                 [Page 4]
+
+INTERNET-DRAFT        draft-zeilenga-ldap-assert-03         18 July 2004
+
+
       Specification: RFC XXXX
       Author/Change Controller: IESG
       Comments:  none
@@ -222,17 +237,12 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
   The assertion control concept is attributed to Morteza Ansari.
 
 
-
-Zeilenga                 LDAP Assertion Control                 [Page 4]
-
-INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
-
-
 7.  Author's Address
 
   Kurt D. Zeilenga
   OpenLDAP Foundation
-  <Kurt@OpenLDAP.org>
+
+  Email: Kurt@OpenLDAP.org
 
 
 8. Normative References
@@ -262,61 +272,50 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
 Intellectual Property Rights
 
   The IETF takes no position regarding the validity or scope of any
-  intellectual property or other rights that might be claimed to pertain
-  to the implementation or use of the technology described in this
-  document or the extent to which any license under such rights might or
-  might not be available; neither does it represent that it has made any
-  effort to identify any such rights.  Information on the IETF's
-  procedures with respect to rights in standards-track and
-  standards-related documentation can be found in BCP-11.  Copies of
-  claims of rights made available for publication and any assurances of
-  licenses to be made available, or the result of an attempt made to
-  obtain a general license or permission for the use of such proprietary
-  rights by implementors or users of this specification can be obtained
-  from the IETF Secretariat.
-
-  The IETF invites any interested party to bring to its attention any
+  Intellectual Property Rights or other rights that might be claimed to
+  pertain to the implementation or use of the technology described in
+  this document or the extent to which any license under such rights
 
 
 
 Zeilenga                 LDAP Assertion Control                 [Page 5]
 
-INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
+INTERNET-DRAFT        draft-zeilenga-ldap-assert-03         18 July 2004
 
 
+  might or might not be available; nor does it represent that it has
+  made any independent effort to identify any such rights.  Information
+  on the procedures with respect to rights in RFC documents can be found
+  in BCP 78 and BCP 79.
+
+  Copies of IPR disclosures made to the IETF Secretariat and any
+  assurances of licenses to be made available, or the result of an
+  attempt made to obtain a general license or permission for the use of
+  such proprietary rights by implementers or users of this specification
+  can be obtained from the IETF on-line IPR repository at
+  http://www.ietf.org/ipr.
+
+  The IETF invites any interested party to bring to its attention any
   copyrights, patents or patent applications, or other proprietary
-  rights which may cover technology that may be required to practice
-  this standard.  Please address the information to the IETF Executive
-  Director.
+  rights that may cover technology that may be required to implement
+  this standard.  Please address the information to the IETF at
+  ietf-ipr@ietf.org.
 
 
 
 Full Copyright
 
-  Copyright (C) The Internet Society (2003). All Rights Reserved.
+  Copyright (C) The Internet Society (2004).  This document is subject
+  to the rights, licenses and restrictions contained in BCP 78, and
+  except as set forth therein, the authors retain all their rights.
 
-  This document and translations of it may be copied and furnished to
-  others, and derivative works that comment on or otherwise explain it
-  or assist in its implmentation may be prepared, copied, published and
-  distributed, in whole or in part, without restriction of any kind,
-  provided that the above copyright notice and this paragraph are
-  included on all such copies and derivative works.  However, this
-  document itself may not be modified in any way, such as by removing
-  the copyright notice or references to the Internet Society or other
-  Internet organizations, except as needed for the  purpose of
-  developing Internet standards in which case the procedures for
-  copyrights defined in the Internet Standards process must be followed,
-  or as required to translate it into languages other than English.
-
-
-
-
-
-
-
-
-
-
+  This document and the information contained herein are provided on an
+  "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+  OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
+  ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
+  INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+  INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+  WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 
 
@@ -337,3 +336,5 @@ Full Copyright
 
 Zeilenga                 LDAP Assertion Control                 [Page 6]
 
+
+
