@@ -1,5 +1,9 @@
 /* $OpenLDAP$ */
 /*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -43,6 +47,13 @@ main(
 
     /* initialize thread package */
     ldap_pvt_thread_initialize();
+
+#ifdef HAVE_TLS
+	if( ldap_pvt_tls_init() || ldap_pvt_tls_init_def_ctx() ) {
+		fprintf( stderr, "TLS Initialization failed.\n" );
+		exit( EXIT_FAILURE);
+	}
+#endif
 
     /* 
      * Create and initialize globals.  init_globals() also initializes
