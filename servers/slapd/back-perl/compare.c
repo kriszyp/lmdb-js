@@ -39,7 +39,7 @@ perl_back_compare(
 
 	PerlBackend *perl_back = (PerlBackend *)be->be_private;
 
-	send_ldap_result( conn, op, LDAP_NOT_SUPPORTED,
+	send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
 		"", "not yet implemented" );
 
 #ifdef notdef
