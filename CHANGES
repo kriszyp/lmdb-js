@@ -5,6 +5,7 @@ OpenLDAP 2.2.15 Engineering
 	Fixed back-bdb dbcache locking bug (ITS#3201)
 	Fixed back-bdb ctxcsn locking bug
 	Fixed back-ldap validate/pretty values (ITS#3218)
+	Fixed back-ldap shared connections failover (ITS#3217)
 	Fixed slapd oidValidate 0 bug (ITS#3211)
 	Fixed slapd uniqueMember/nameUID bugs (ITS#3210)
 	Fixed slapd operational attribute log message bug (ITS#3205)
