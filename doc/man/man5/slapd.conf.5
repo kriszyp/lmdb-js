@@ -529,9 +529,9 @@ in place of the numeric OID in objectclass and attribute definitions. The
 name can also be used with a suffix of the form ":xx" in which case the
 value "oid.xx" will be used.
 .TP
-.B password-hash <hash>
-This option sets the hash to be used in generation of user
-passwords, stored in userPassword, during processing of
+.B password-hash <hash> [<hash>...]
+This option configures one or more hashes to be used in generation of user
+passwords stored in the userPassword attribute during processing of
 LDAP Password Modify Extended Operations (RFC 3062).
 The <hash> must be one of
 .BR {SSHA} ,
