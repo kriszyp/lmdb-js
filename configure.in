@@ -67,9 +67,8 @@ dnl SLAPD OPTIONS
 AC_ARG_WITH(xxslapdoptions,[SLAPD Options:])
 OL_ARG_ENABLE(slapd,[  --enable-slapd	enable building slapd], yes)dnl
 OL_ARG_ENABLE(aclgroups,[    --enable-aclgroups	enable ACL group support], auto)dnl
+OL_ARG_ENABLE(cleartext,[    --enable-cleartext	enable cleartext passwords], yes)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	enable crypt(3) passwords], auto)dnl
-OL_ARG_ENABLE(md5,[    --enable-md5	enable MD5 passwords], auto)dnl
-OL_ARG_ENABLE(sha1,[    --enable-sha1	enable SHA1 passwords], auto)dnl
 OL_ARG_ENABLE(wrappers,[    --enable-wrappers	enable tcp wrapper support], no)dnl
 OL_ARG_ENABLE(phonetic,[    --enable-phonetic	enable phonetic/soundex], no)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	enable reverse lookups], auto)dnl
@@ -116,15 +115,6 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_aclgroups = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable_aclgroups argument])
 	fi
-	if test $ol_enable_crypt = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_crypt argument])
-	fi
-	if test $ol_enable_md5 = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_md5 argument])
-	fi
-	if test $ol_enable_sha1 = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_sha1 argument])
-	fi
 	if test $ol_enable_wrappers = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable_wrappers argument])
 	fi
@@ -149,9 +139,6 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_shell=no
 	ol_enable_passwd=no
 	ol_enable_aclgroups=no
-	ol_enable_crypt=no
-	ol_enable_md5=no
-	ol_enable_sha1=no
 	ol_enable_wrappers=no
 	ol_enable_phonetic=no
 	ol_enable_rlookups=no
@@ -1134,11 +1121,8 @@ fi
 if test $ol_enable_crypt != no ; then
 	AC_DEFINE(SLAPD_CRYPT,1)
 fi
-if test $ol_enable_md5 != no ; then
-	AC_DEFINE(SLAPD_MD5,1)
-fi
-if test $ol_enable_sha1 != no ; then
-	AC_DEFINE(SLAPD_SHA1,1)
+if test $ol_enable_cleartext != no ; then
+	AC_DEFINE(SLAPD_CLEARTEXT,1)
 fi
 if test $ol_enable_phonetic != no ; then
 	AC_DEFINE(SLAPD_PHONETIC,1)

@@ -208,11 +208,11 @@ be_isroot( Backend *be, char *dn )
 int
 be_isroot_pw( Backend *be, char *dn, struct berval *cred )
 {
-	if ( ! be_isroot( be, dn ) || be->be_rootpw == NULL ) {
+	if ( ! be_isroot( be, dn ) ) {
 		return( 0 );
 	}
 
-	return( strcmp( be->be_rootpw, cred->bv_val ) == 0 );
+	return( lutil_passwd( cred->bv_val, be->be_rootpw ) == 0 );
 }
 
 void
