@@ -47,7 +47,7 @@ char *slapi_dn_ignore_case( char *dn );
 
 /* char routines */
 char *slapi_ch_malloc( unsigned long size );
-void slapi_ch_free( void *ptr );
+void slapi_ch_free( void **ptr );
 char *slapi_ch_calloc( unsigned long nelem, unsigned long size );
 char *slapi_ch_realloc( char *block, unsigned long size );
 char *slapi_ch_strdup( char *s );
