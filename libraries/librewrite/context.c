@@ -218,10 +218,10 @@ rewrite_context_apply(
 	assert( op->lo_depth > 0 );
 
 	Debug( LDAP_DEBUG_TRACE, "==> rewrite_context_apply"
-			" [depth=%d] string='%s'\n%s",
-			op->lo_depth, string, "" );
+			" [depth=%d] string='%s'\n",
+			op->lo_depth, string, 0 );
 	
-	s = strdup( string );
+	s = (char *)string;
 	
 	for ( rule = context->lc_rule->lr_next;
 			rule != NULL && op->lo_num_passes < info->li_max_passes;
@@ -296,7 +296,7 @@ rewrite_context_apply(
 
 				if ( do_continue ) {
 					if ( rule->lr_next == NULL ) {
-						res = s;
+						res = ( s == string ? strdup( s ) : s );
 					}
 					goto rc_continue;
 				}
@@ -321,7 +321,9 @@ rewrite_context_apply(
 			if ( res != NULL ) {
 				struct rewrite_action *action;
 				
-				free( s );
+				if (s != string ) {
+					free( s );
+				}
 				s = res;
 
 				for ( action = rule->lr_action;
@@ -379,7 +381,7 @@ rewrite_context_apply(
 			 * result back to the string
 			 */
 			} else if ( rule->lr_next == NULL ) {
-				res = s;
+				res = ( s == string ? strdup( s ) : s );
 			}
 			
 			break;

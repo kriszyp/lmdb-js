@@ -24,6 +24,7 @@ OpenLDAP 2.2.15 Engineering
 	Fixed libldap DN '=' handling
 	Fixed libldap_r runqueue bug
 	Updated libldap_r read/writer locks
+	Fixed librewrite empty rewriteContext leak (ITS#3256)
 	Build environments
 		Added additional res_query detection for MacOS X
 		Added default ldapi:// SSF build setting
