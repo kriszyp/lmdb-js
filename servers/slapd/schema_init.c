@@ -3196,6 +3196,11 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.4203.666.2.6 DESC 'UUID' )",
 		SLAP_SYNTAX_HIDE, UUIDValidate, NULL},
 
+	{"( 1.3.6.1.4.1.4203.666.11.2.1 DESC 'CSN' )",
+		SLAP_SYNTAX_HIDE,
+		blobValidate,	/* THIS WILL CHANGE */
+		NULL},
+
 	/* OpenLDAP Void Syntax */
 	{"( 1.3.6.1.4.1.4203.1.1.1 DESC 'OpenLDAP void' )" ,
 		SLAP_SYNTAX_HIDE, inValidate, NULL},
@@ -3629,6 +3634,20 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL, UUIDNormalize, octetStringOrderingMatch,
 		octetStringIndexer, octetStringFilter,
 		"UUIDMatch"},
+
+	{"( 1.3.6.1.4.1.4203.666.11.2.2 NAME 'CSNMatch' "
+		"SYNTAX 1.3.6.1.4.1.4203.666.11.2.1 )",
+		SLAP_MR_HIDE | SLAP_MR_EQUALITY | SLAP_MR_ORDERED_INDEX, NULL,
+		NULL, NULL, octetStringMatch,
+		generalizedTimeIndexer, generalizedTimeFilter,
+		NULL},
+
+	{"( 1.3.6.1.4.1.4203.666.11.2.3 NAME 'CSNOrderingMatch' "
+		"SYNTAX 1.3.6.1.4.1.4203.666.11.2.1 )",
+		SLAP_MR_HIDE | SLAP_MR_ORDERING | SLAP_MR_ORDERED_INDEX, NULL,
+		NULL, NULL, octetStringOrderingMatch,
+		NULL, NULL,
+		"CSNMatch" },
 
 	{NULL, SLAP_MR_NONE, NULL,
 		NULL, NULL, NULL, NULL, NULL,

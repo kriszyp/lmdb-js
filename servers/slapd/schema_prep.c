@@ -547,9 +547,9 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_entryUUID) },
 	{ "entryCSN", "( 1.3.6.1.4.1.4203.666.1.7 NAME 'entryCSN' "
 			"DESC 'change sequence number of the entry content' "
-			"EQUALITY octetStringMatch "
-			"ORDERING octetStringOrderingMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
+			"EQUALITY CSNMatch "
+			"ORDERING CSNOrderingMatch "
+			"SYNTAX 1.3.6.1.4.1.4203.666.11.2.1{64} "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL,
@@ -557,9 +557,9 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_entryCSN) },
 	{ "namingCSN", "( 1.3.6.1.4.1.4203.666.1.13 NAME 'namingCSN' "
 			"DESC 'change sequence number of the entry naming (RDN)' "
-			"EQUALITY octetStringMatch "
-			"ORDERING octetStringOrderingMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
+			"EQUALITY CSNMatch "
+			"ORDERING CSNOrderingMatch "
+			"SYNTAX 1.3.6.1.4.1.4203.666.11.2.1{64} "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL,
@@ -593,9 +593,9 @@ static struct slap_schema_ad_map {
 	{ "contextCSN", "( 1.3.6.1.4.1.4203.666.1.25 "
 			"NAME 'contextCSN' "
 			"DESC 'the largest committed CSN of a context' "
-			"EQUALITY octetStringMatch "
-			"ORDERING octetStringOrderingMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 "
+			"EQUALITY CSNMatch "
+			"ORDERING CSNOrderingMatch "
+			"SYNTAX 1.3.6.1.4.1.4203.666.11.2.1{64} "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL,
