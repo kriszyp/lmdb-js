@@ -395,34 +395,18 @@ pager: +1 313 555 7671
 facsimiletelephonenumber: +1 313 555 7762
 telephonenumber: +1 313 555 4177
 
-dn: cn=sangseoklim,ou=Alumni Association,ou=People,dc=example,dc=com
+dn: uid=sangseoklim,ou=Alumni Association,ou=People,dc=example,dc=com
 objectclass: OpenLDAPperson
-cn: sangseoklim
-sn: Hampster
-uid: uham
-title: Secretary, UM Alumni Association
-postaladdress: Alumni Association $ 111 Maple St $ Anytown, MI 48109
-seealso: cn=All Staff,ou=Groups,dc=example,dc=com
-homepostaladdress: 123 Anystreet $ Anytown, MI 48104
-mail: uham@mail.alumni.example.com
-homephone: +1 313 555 8421
-pager: +1 313 555 2844
-facsimiletelephonenumber: +1 313 555 9700
-telephonenumber: +1 313 555 5331
+objectclass: extensibleObject
+uid: sangseoklim
+cn: Sang Seok Lim
+sn: Lim
 componentTest: component1
 
-dn: cn=seotaejee,ou=Alumni Association,ou=People,dc=example,dc=com
+dn: uid=seotaejee,ou=Alumni Association,ou=People,dc=example,dc=com
 objectclass: OpenLDAPperson
-cn: seotaejee
-sn: Hampster
-uid: uham
-title: Secretary, UM Alumni Association
-postaladdress: Alumni Association $ 111 Maple St $ Anytown, MI 48109
-seealso: cn=All Staff,ou=Groups,dc=example,dc=com
-homepostaladdress: 123 Anystreet $ Anytown, MI 48104
-mail: uham@mail.alumni.example.com
-homephone: +1 313 555 8421
-pager: +1 313 555 2844
-facsimiletelephonenumber: +1 313 555 9700
-telephonenumber: +1 313 555 5331
+objectclass: extensibleObject
+uid: seotaejee
+cn: Seo Tae Jee
+sn: Jee
 componentTest: component2

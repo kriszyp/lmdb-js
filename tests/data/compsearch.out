@@ -1,128 +1,64 @@
-dn: cn=sangseoklim,ou=Alumni Association,ou=People,dc=example,dc=com
+dn: uid=sangseoklim,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
-cn: sangseoklim
-sn: Hampster
-uid: uham
-title: Secretary, UM Alumni Association
-postalAddress: Alumni Association $ 111 Maple St $ Anytown, MI 48109
-seeAlso: cn=All Staff,ou=Groups,dc=example,dc=com
-homePostalAddress: 123 Anystreet $ Anytown, MI 48104
-mail: uham@mail.alumni.example.com
-homePhone: +1 313 555 8421
-pager: +1 313 555 2844
-facsimileTelephoneNumber: +1 313 555 9700
-telephoneNumber: +1 313 555 5331
+objectClass: extensibleObject
+uid: sangseoklim
+cn: Sang Seok Lim
+sn: Lim
 componentTest: component1
 
-dn: cn=seotaejee,ou=Alumni Association,ou=People,dc=example,dc=com
+dn: uid=seotaejee,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
-cn: seotaejee
-sn: Hampster
-uid: uham
-title: Secretary, UM Alumni Association
-postalAddress: Alumni Association $ 111 Maple St $ Anytown, MI 48109
-seeAlso: cn=All Staff,ou=Groups,dc=example,dc=com
-homePostalAddress: 123 Anystreet $ Anytown, MI 48104
-mail: uham@mail.alumni.example.com
-homePhone: +1 313 555 8421
-pager: +1 313 555 2844
-facsimileTelephoneNumber: +1 313 555 9700
-telephoneNumber: +1 313 555 5331
+objectClass: extensibleObject
+uid: seotaejee
+cn: Seo Tae Jee
+sn: Jee
 componentTest: component2
 
-dn: cn=sangseoklim,ou=Alumni Association,ou=People,dc=example,dc=com
+dn: uid=sangseoklim,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
-cn: sangseoklim
-sn: Hampster
-uid: uham
-title: Secretary, UM Alumni Association
-postalAddress: Alumni Association $ 111 Maple St $ Anytown, MI 48109
-seeAlso: cn=All Staff,ou=Groups,dc=example,dc=com
-homePostalAddress: 123 Anystreet $ Anytown, MI 48104
-mail: uham@mail.alumni.example.com
-homePhone: +1 313 555 8421
-pager: +1 313 555 2844
-facsimileTelephoneNumber: +1 313 555 9700
-telephoneNumber: +1 313 555 5331
+objectClass: extensibleObject
+uid: sangseoklim
+cn: Sang Seok Lim
+sn: Lim
 componentTest: component1
 
-dn: cn=seotaejee,ou=Alumni Association,ou=People,dc=example,dc=com
+dn: uid=seotaejee,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
-cn: seotaejee
-sn: Hampster
-uid: uham
-title: Secretary, UM Alumni Association
-postalAddress: Alumni Association $ 111 Maple St $ Anytown, MI 48109
-seeAlso: cn=All Staff,ou=Groups,dc=example,dc=com
-homePostalAddress: 123 Anystreet $ Anytown, MI 48104
-mail: uham@mail.alumni.example.com
-homePhone: +1 313 555 8421
-pager: +1 313 555 2844
-facsimileTelephoneNumber: +1 313 555 9700
-telephoneNumber: +1 313 555 5331
+objectClass: extensibleObject
+uid: seotaejee
+cn: Seo Tae Jee
+sn: Jee
 componentTest: component2
 
-dn: cn=sangseoklim,ou=Alumni Association,ou=People,dc=example,dc=com
+dn: uid=sangseoklim,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
-cn: sangseoklim
-sn: Hampster
-uid: uham
-title: Secretary, UM Alumni Association
-postalAddress: Alumni Association $ 111 Maple St $ Anytown, MI 48109
-seeAlso: cn=All Staff,ou=Groups,dc=example,dc=com
-homePostalAddress: 123 Anystreet $ Anytown, MI 48104
-mail: uham@mail.alumni.example.com
-homePhone: +1 313 555 8421
-pager: +1 313 555 2844
-facsimileTelephoneNumber: +1 313 555 9700
-telephoneNumber: +1 313 555 5331
+objectClass: extensibleObject
+uid: sangseoklim
+cn: Sang Seok Lim
+sn: Lim
 componentTest: component1
 
-dn: cn=seotaejee,ou=Alumni Association,ou=People,dc=example,dc=com
+dn: uid=seotaejee,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
-cn: seotaejee
-sn: Hampster
-uid: uham
-title: Secretary, UM Alumni Association
-postalAddress: Alumni Association $ 111 Maple St $ Anytown, MI 48109
-seeAlso: cn=All Staff,ou=Groups,dc=example,dc=com
-homePostalAddress: 123 Anystreet $ Anytown, MI 48104
-mail: uham@mail.alumni.example.com
-homePhone: +1 313 555 8421
-pager: +1 313 555 2844
-facsimileTelephoneNumber: +1 313 555 9700
-telephoneNumber: +1 313 555 5331
+objectClass: extensibleObject
+uid: seotaejee
+cn: Seo Tae Jee
+sn: Jee
 componentTest: component2
 
-dn: cn=sangseoklim,ou=Alumni Association,ou=People,dc=example,dc=com
+dn: uid=sangseoklim,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
-cn: sangseoklim
-sn: Hampster
-uid: uham
-title: Secretary, UM Alumni Association
-postalAddress: Alumni Association $ 111 Maple St $ Anytown, MI 48109
-seeAlso: cn=All Staff,ou=Groups,dc=example,dc=com
-homePostalAddress: 123 Anystreet $ Anytown, MI 48104
-mail: uham@mail.alumni.example.com
-homePhone: +1 313 555 8421
-pager: +1 313 555 2844
-facsimileTelephoneNumber: +1 313 555 9700
-telephoneNumber: +1 313 555 5331
+objectClass: extensibleObject
+uid: sangseoklim
+cn: Sang Seok Lim
+sn: Lim
 componentTest: component1
 
-dn: cn=seotaejee,ou=Alumni Association,ou=People,dc=example,dc=com
+dn: uid=seotaejee,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
-cn: seotaejee
-sn: Hampster
-uid: uham
-title: Secretary, UM Alumni Association
-postalAddress: Alumni Association $ 111 Maple St $ Anytown, MI 48109
-seeAlso: cn=All Staff,ou=Groups,dc=example,dc=com
-homePostalAddress: 123 Anystreet $ Anytown, MI 48104
-mail: uham@mail.alumni.example.com
-homePhone: +1 313 555 8421
-pager: +1 313 555 2844
-facsimileTelephoneNumber: +1 313 555 9700
-telephoneNumber: +1 313 555 5331
+objectClass: extensibleObject
+uid: seotaejee
+cn: Seo Tae Jee
+sn: Jee
 componentTest: component2
 

@@ -19,6 +19,7 @@ nadf.schema             North American Directory Forum (obsolete)
 nis.schema              Network Information Service
 openldap.schema         OpenLDAP Project (FYI)
 ppolicy.schema          Password Policy Schema (experimental)
+test.schema				Test Schema
 
 Additional "generally useful" schema definitions can be submitted
 using the OpenLDAP Issue Tracking System <http://www.openldap.org/its/>.
