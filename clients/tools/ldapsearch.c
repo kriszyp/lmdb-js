@@ -548,17 +548,18 @@ main( int argc, char **argv )
 	tool_bind( ld );
 
 getNextPage:
-	if ( manageDSAit || noop || subentries || valuesReturnFilter
+	if ( assertion || authzid || manageDSAit || noop
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
-			|| domainScope
+		|| domainScope
 #endif
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-			|| pageSize
+		|| pageSize
 #endif
 #ifdef LDAP_SYNC
-			|| ldapsync
+		|| ldapsync
 #endif
-			) {
+		|| subentries || valuesReturnFilter )
+	{
 		int err;
 		int i=0;
 		LDAPControl c[6];

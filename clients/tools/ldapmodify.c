@@ -58,6 +58,7 @@ static LDAP	*ld = NULL;
 #define T_MODOPADDSTR		"add"
 #define T_MODOPREPLACESTR	"replace"
 #define T_MODOPDELETESTR	"delete"
+#define T_MODOPINCREMENTSTR	"increment"
 #define T_MODSEPSTR		"-"
 #define T_NEWRDNSTR		"newrdn"
 #define T_DELETEOLDRDNSTR	"deleteoldrdn"
@@ -168,123 +169,123 @@ handle_private_option( int i )
 int
 main( int argc, char **argv )
 {
-    char		*rbuf, *start, *rejbuf = NULL;
-    FILE		*fp, *rejfp;
+	char		*rbuf, *start, *rejbuf = NULL;
+	FILE		*fp, *rejfp;
 	char		*matched_msg, *error_msg;
 	int		rc, retval;
 	int count, len;
 
-    tool_init();
-    prog = lutil_progname( "ldapmodify", argc, argv );
+	tool_init();
+	prog = lutil_progname( "ldapmodify", argc, argv );
 
 	/* strncmp instead of strcmp since NT binaries carry .exe extension */
-    ldapadd = ( strncasecmp( prog, "ldapadd", sizeof("ldapadd")-1 ) == 0 );
+	ldapadd = ( strncasecmp( prog, "ldapadd", sizeof("ldapadd")-1 ) == 0 );
 
-    /* Print usage when no parameters */
-    if( argc < 2 ) usage();
+	/* Print usage when no parameters */
+	if( argc < 2 ) usage();
 
 	tool_args( argc, argv );
 
-	if ( argc != optind )
-	usage();
+	if ( argc != optind ) usage();
 
-    if ( rejfile != NULL ) {
-	if (( rejfp = fopen( rejfile, "w" )) == NULL ) {
-	    perror( rejfile );
-	    return( EXIT_FAILURE );
+	if ( rejfile != NULL ) {
+		if (( rejfp = fopen( rejfile, "w" )) == NULL ) {
+			perror( rejfile );
+			return( EXIT_FAILURE );
+		}
+	} else {
+		rejfp = NULL;
 	}
-    } else {
-	rejfp = NULL;
-    }
 
-    if ( infile != NULL ) {
-	if (( fp = fopen( infile, "r" )) == NULL ) {
-	    perror( infile );
-	    return( EXIT_FAILURE );
+	if ( infile != NULL ) {
+		if (( fp = fopen( infile, "r" )) == NULL ) {
+			perror( infile );
+			return( EXIT_FAILURE );
+		}
+	} else {
+		fp = stdin;
 	}
-    } else {
-	fp = stdin;
-    }
 
-	if ( debug )
-		ldif_debug = debug;
+	if ( debug ) ldif_debug = debug;
 
 	ld = tool_conn_setup( not, 0 );
 
-    if ( !not ) {
-	if ( pw_file || want_bindpw ) {
-		if ( pw_file ) {
-			rc = lutil_get_filed_password( pw_file, &passwd );
-			if( rc ) return EXIT_FAILURE;
-		} else {
-			passwd.bv_val = getpassphrase( _("Enter LDAP Password: ") );
-			passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
+	if ( !not ) {
+		if ( pw_file || want_bindpw ) {
+			if ( pw_file ) {
+				rc = lutil_get_filed_password( pw_file, &passwd );
+				if( rc ) return EXIT_FAILURE;
+			} else {
+				passwd.bv_val = getpassphrase( _("Enter LDAP Password: ") );
+				passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
+			}
 		}
+		tool_bind( ld );
 	}
-
-	tool_bind( ld );
-    }
 
     rc = 0;
 
-	if ( authzid || manageDSAit || noop )
+	if ( assertion || authzid || manageDSAit || noop ) {
 		tool_server_controls( ld, NULL, 0 );
+	}
 
 	count = 0;
 	retval = 0;
-    while (( rc == 0 || contoper ) &&
-		( rbuf = read_one_record( fp )) != NULL ) {
-	count++;
+	while (( rc == 0 || contoper ) &&
+		( rbuf = read_one_record( fp )) != NULL )
+	{
+		count++;
 
-	start = rbuf;
+		start = rbuf;
 
-	if ( rejfp ) {
-		len = strlen( rbuf );
-		if (( rejbuf = (char *)ber_memalloc( len+1 )) == NULL ) {
-			perror( "malloc" );
-			exit( EXIT_FAILURE );
-		}
-		memcpy( rejbuf, rbuf, len+1 );
-	}
-
-    rc = process_ldif_rec( start, count );
-
-	if ( rc )
-		retval = rc;
-	if ( rc && rejfp ) {
-		fprintf(rejfp, _("# Error: %s (%d)"), ldap_err2string(rc), rc);
-
-		matched_msg = NULL;
-		ldap_get_option(ld, LDAP_OPT_MATCHED_DN, &matched_msg);
-		if ( matched_msg != NULL ) {
-			if ( *matched_msg != '\0' )
-				fprintf( rejfp, _(", matched DN: %s"), matched_msg );
-			ldap_memfree( matched_msg );
+		if ( rejfp ) {
+			len = strlen( rbuf );
+			if (( rejbuf = (char *)ber_memalloc( len+1 )) == NULL ) {
+				perror( "malloc" );
+				exit( EXIT_FAILURE );
+			}
+			memcpy( rejbuf, rbuf, len+1 );
 		}
 
-		error_msg = NULL;
-		ldap_get_option(ld, LDAP_OPT_ERROR_STRING, &error_msg);
-		if ( error_msg != NULL ) {
-			if ( *error_msg != '\0' )
-				fprintf( rejfp, _(", additional info: %s"), error_msg );
-			ldap_memfree( error_msg );
+		rc = process_ldif_rec( start, count );
+
+		if ( rc ) retval = rc;
+		if ( rc && rejfp ) {
+			fprintf(rejfp, _("# Error: %s (%d)"), ldap_err2string(rc), rc);
+
+			matched_msg = NULL;
+			ldap_get_option(ld, LDAP_OPT_MATCHED_DN, &matched_msg);
+			if ( matched_msg != NULL ) {
+				if ( *matched_msg != '\0' ) {
+					fprintf( rejfp, _(", matched DN: %s"), matched_msg );
+				}
+				ldap_memfree( matched_msg );
+			}
+
+			error_msg = NULL;
+			ldap_get_option(ld, LDAP_OPT_ERROR_STRING, &error_msg);
+			if ( error_msg != NULL ) {
+				if ( *error_msg != '\0' ) {
+					fprintf( rejfp, _(", additional info: %s"), error_msg );
+				}
+				ldap_memfree( error_msg );
+			}
+			fprintf( rejfp, "\n%s\n", rejbuf );
 		}
-		fprintf( rejfp, "\n%s\n", rejbuf );
-	}
-		if (rejfp) 
-			free( rejbuf );
+
+		if (rejfp) free( rejbuf );
 		free( rbuf );
-    }
+	}
 
-    if ( !not ) {
+	if ( !not ) {
 		ldap_unbind( ld );
-    }
+	}
 
-    if ( rejfp != NULL ) {
-	    fclose( rejfp );
-    }
+	if ( rejfp != NULL ) {
+		fclose( rejfp );
+	}
 
-    return( retval );
+	return( retval );
 }
 
 
@@ -459,6 +460,10 @@ process_ldif_rec( char *rbuf, int count )
 		goto end_line;
 	    } else if ( strcasecmp( type, T_MODOPDELETESTR ) == 0 ) {
 		modop = LDAP_MOD_DELETE;
+		addmodifyop( &pmods, modop, val.bv_val, NULL );
+		goto end_line;
+	    } else if ( strcasecmp( type, T_MODOPINCREMENTSTR ) == 0 ) {
+		modop = LDAP_MOD_INCREMENT;
 		addmodifyop( &pmods, modop, val.bv_val, NULL );
 		goto end_line;
 	    } else {	/* no modify op:  use default */
@@ -829,8 +834,11 @@ domodify(
 	for ( i = 0; pmods[ i ] != NULL; ++i ) {
 	    op = pmods[ i ]->mod_op & ~LDAP_MOD_BVALUES;
 	    printf( "%s %s:\n",
-			op == LDAP_MOD_REPLACE ? _("replace") : op == LDAP_MOD_ADD
-				?  _("add") : _("delete"),
+			op == LDAP_MOD_REPLACE ? _("replace") :
+				op == LDAP_MOD_ADD ?  _("add") :
+					op == LDAP_MOD_INCREMENT ?  _("increment") :
+						op == LDAP_MOD_DELETE ?  _("delete") :
+							_("unknown"),
 			pmods[ i ]->mod_type );
 	    if ( pmods[ i ]->mod_bvalues != NULL ) {
 		for ( j = 0; pmods[ i ]->mod_bvalues[ j ] != NULL; ++j ) {

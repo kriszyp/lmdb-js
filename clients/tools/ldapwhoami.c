@@ -124,8 +124,9 @@ main( int argc, char *argv[] )
 		goto skip;
 	}
 
-	if ( authzid || manageDSAit || noop )
+	if ( assertion || authzid || manageDSAit || noop ) {
 		tool_server_controls( ld, NULL, 0 );
+	}
 
 	rc = ldap_whoami_s( ld, &retdata, NULL, NULL ); 
 

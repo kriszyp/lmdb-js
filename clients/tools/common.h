@@ -29,6 +29,7 @@ extern char	*sasl_secprops;
 #endif
 extern int   use_tls;
 
+extern char *assertion;
 extern char *authzid;
 extern int   manageDSAit;
 extern int   noop;
