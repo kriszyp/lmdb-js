@@ -103,8 +103,10 @@ N_("  -e [!]<ext>[=<extparam>] general extensions (! indicates criticality)\n")
 N_("             [!]assert=<filter>     (an RFC 2254 Filter)\n")
 N_("             [!]authzid=<authzid>   (\"dn:<dn>\" or \"u:<user>\")\n")
 N_("             [!]manageDSAit\n")
-N_("             [!]noop\n")
+N_("             [!]noop\n"),
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 N_("             ppolicy\n"),
+#endif
 N_("             [!]postread[=<attrs>]  (a comma-separated attribute list)\n"),
 N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n"),
 N_("  -f file    read operations from `file'\n"),
@@ -136,7 +138,7 @@ NULL
 
 	fputs( _("Common options:\n"), stderr );
 	for( cpp = descriptions; *cpp != NULL; cpp++ ) {
-		if( strchr( options, (*cpp)[3] ) ) {
+		if( strchr( options, (*cpp)[3] ) || (*cpp)[3] == ' ' ) {
 			fputs( _(*cpp), stderr );
 		}
 	}
@@ -243,6 +245,7 @@ tool_args( int argc, char **argv )
 
 				noop = 1 + crit;
 
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 			} else if ( strcasecmp( control, "ppolicy" ) == 0 ) {
 				if( ppolicy ) {
 					fprintf( stderr, "ppolicy control previously specified\n");
@@ -258,6 +261,7 @@ tool_args( int argc, char **argv )
 				}
 
 				ppolicy = 1;
+#endif
 
 			} else if ( strcasecmp( control, "preread" ) == 0 ) {
 				if( preread ) {
@@ -731,6 +735,7 @@ tool_conn_setup( int not, void (*private_setup)( LDAP * ) )
 void
 tool_bind( LDAP *ld )
 {
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 	if ( ppolicy ) {
 		LDAPControl *ctrls[2], c;
 		c.ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYREQUEST;
@@ -741,6 +746,7 @@ tool_bind( LDAP *ld )
 		ctrls[1] = NULL;
 		ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
 	}
+#endif
 
 	if ( authmethod == LDAP_AUTH_SASL ) {
 #ifdef HAVE_CYRUS_SASL
@@ -802,6 +808,7 @@ tool_bind( LDAP *ld )
 			exit( EXIT_FAILURE );
 		}
 
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 		if ( ctrls && ppolicy ) {
 			LDAPControl *ctrl;
 			int expire, grace;
@@ -820,8 +827,9 @@ tool_bind( LDAP *ld )
 				}
 			}
 		}
+#endif
 		if ( err != LDAP_SUCCESS ) {
-			fprintf( stderr, "ldap_bind result: %s\n", ldap_err2string( err ));
+			fprintf( stderr, "ldap_bind: %s\n", ldap_err2string( err ));
 			exit( EXIT_FAILURE );
 		}
 	}
@@ -897,6 +905,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		i++;
 	}
 
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 	if ( ppolicy ) {
 		c[i].ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYREQUEST;
 		c[i].ldctl_value.bv_val = NULL;
@@ -905,6 +914,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		ctrls[i] = &c[i];
 		i++;
 	}
+#endif
 	
 	if ( preread ) {
 		char berbuf[LBER_ELEMENT_SIZEOF];
