@@ -1,0 +1,43 @@
+This is an index of RFC contained in this directory:
+
+rfc1274.txt COSINE and Internet X.500 Schema (PS)
+rfc2079.txt X.500 Attribute Type and an Object Class to Hold URIs (PS)
+rfc2247.txt Using Domains in LDAP DNs (PS)
+rfc2251.txt LDAPv3 Protocol (PS)
+rfc2252.txt LDAPv3 Attribute Types (PS)
+rfc2253.txt LDAPv3 Disinguished Name (PS)
+rfc2254.txt LDAPv3 Search Filters (PS)
+rfc2255.txt LDAPv3 URL Format (PS)
+rfc2256.txt X.500(96) Schema for LDAPv3 (PS)
+rfc2293.txt Tables and Subtrees in the X.500 Directory (PS)
+rfc2294.txt O/R Address hierarchy in the X.500 DIT (PS)
+rfc2307.txt LDAP Network Information Services Schema (E)
+rfc2377.txt LDAP Naming Plan (I)
+rfc2587.txt Internet X.509 PKI LDAPv2 Schema (PS)
+rfc2589.txt LDAPv3: Dynamic Directory Services Extensions (PS)
+rfc2596.txt Use of Language Codes in LDAP (PS)
+rfc2649.txt LDAPv3 Operational Signatures (E)
+rfc2696.txt LDAP Simple Paged Result Control (I)
+rfc2713.txt LDAP Java schema (I)
+rfc2714.txt LDAP CORBA schema (I)
+rfc2798.txt LDAP inetOrgPerson schema (I)
+rfc2829.txt LDAPv3: Authentication Method (PS)
+rfc2830.txt LDAPv3: StartTLS (PS)
+rfc2849.txt LDIFv1 (PS)
+rfc2891.txt LDAPv3: Server Side Sorting of Search Results (PS)
+rfc3045.txt Storing Vendor Information in the LDAP root DSE (I)
+rfc3062.txt LDAP Password Modify Extended Operation (PS)
+rfc3088.txt OpenLDAP Root Service (E)
+rfc3112.txt LDAP Authentication Password Schema (I)
+rfc3296.txt Named Subordinate References in LDAP (PS)
+
+Legend:
+STD	Standard
+DS	Draft Standard
+PS	Proposed Standard
+I	Information
+E	Experimental
+FYI	For Your Information 
+BCP	Best Common Practice
+
+$OpenLDAP$
