@@ -155,12 +155,12 @@ ldap_sync_search(
 		ctrls[1] = NULL;
 	}
 
-	timeout.tv_sec = si->si_tlimit > 0 ? si->si_tlimit : 1;
+	timeout.tv_sec = si->si_tlimit;
 	timeout.tv_usec = 0;
 
 	rc = ldap_search_ext( si->si_ld, si->si_base.bv_val, si->si_scope,
 		si->si_filterstr.bv_val, si->si_attrs, si->si_attrsonly,
-		ctrls, NULL, si->si_tlimit < 0 ? NULL : &timeout,
+		ctrls, NULL, si->si_tlimit > 0 ? &timeout : NULL,
 		si->si_slimit, &msgid );
 	ber_free_buf( ber );
 	return rc;
