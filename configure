@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.408.2.1 2002/02/18 19:49:46 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.408.2.2 2002/02/18 20:48:12 kurt Exp  
 
 # Copyright 1998-2002 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -17077,13 +17077,13 @@ echo "$ac_t""$ol_cv_db_none" 1>&6
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb)""... $ac_c" 1>&6
-echo "configure:17082: checking for Berkeley DB link (-ldb)" >&5
-if eval "test \"\${ol_cv_db_db+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb4)""... $ac_c" 1>&6
+echo "configure:17082: checking for Berkeley DB link (-ldb4)" >&5
+if eval "test \"\${ol_cv_db_db4+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb
+	ol_DB_LIB=-ldb4
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LIBS"
 
@@ -17137,12 +17137,12 @@ int main() {
 EOF
 if { (eval echo configure:17139: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db=yes
+  ol_cv_db_db4=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db=no
+  ol_cv_db_db4=no
 fi
 rm -f conftest*
 
@@ -17150,21 +17150,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db" 1>&6
+echo "$ac_t""$ol_cv_db_db4" 1>&6
 
-	if test $ol_cv_db_db = yes ; then
-		ol_cv_lib_db=-ldb
+	if test $ol_cv_db_db4 = yes ; then
+		ol_cv_lib_db=-ldb4
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb4)""... $ac_c" 1>&6
-echo "configure:17163: checking for Berkeley DB link (-ldb4)" >&5
-if eval "test \"\${ol_cv_db_db4+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb)""... $ac_c" 1>&6
+echo "configure:17163: checking for Berkeley DB link (-ldb)" >&5
+if eval "test \"\${ol_cv_db_db+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb4
+	ol_DB_LIB=-ldb
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LIBS"
 
@@ -17218,12 +17218,12 @@ int main() {
 EOF
 if { (eval echo configure:17220: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db4=yes
+  ol_cv_db_db=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db4=no
+  ol_cv_db_db=no
 fi
 rm -f conftest*
 
@@ -17231,10 +17231,10 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db4" 1>&6
+echo "$ac_t""$ol_cv_db_db" 1>&6
 
-	if test $ol_cv_db_db4 = yes ; then
-		ol_cv_lib_db=-ldb4
+	if test $ol_cv_db_db = yes ; then
+		ol_cv_lib_db=-ldb
 	fi
 fi
 
@@ -17614,13 +17614,13 @@ echo "$ac_t""$ol_cv_db_none" 1>&6
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb)""... $ac_c" 1>&6
-echo "configure:17619: checking for Berkeley DB link (-ldb)" >&5
-if eval "test \"\${ol_cv_db_db+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb4)""... $ac_c" 1>&6
+echo "configure:17619: checking for Berkeley DB link (-ldb4)" >&5
+if eval "test \"\${ol_cv_db_db4+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb
+	ol_DB_LIB=-ldb4
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LIBS"
 
@@ -17674,12 +17674,12 @@ int main() {
 EOF
 if { (eval echo configure:17676: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db=yes
+  ol_cv_db_db4=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db=no
+  ol_cv_db_db4=no
 fi
 rm -f conftest*
 
@@ -17687,21 +17687,21 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db" 1>&6
+echo "$ac_t""$ol_cv_db_db4" 1>&6
 
-	if test $ol_cv_db_db = yes ; then
-		ol_cv_lib_db=-ldb
+	if test $ol_cv_db_db4 = yes ; then
+		ol_cv_lib_db=-ldb4
 	fi
 fi
 
 if test $ol_cv_lib_db = no ; then
-	echo $ac_n "checking for Berkeley DB link (-ldb4)""... $ac_c" 1>&6
-echo "configure:17700: checking for Berkeley DB link (-ldb4)" >&5
-if eval "test \"\${ol_cv_db_db4+set}\" = set"; then
+	echo $ac_n "checking for Berkeley DB link (-ldb)""... $ac_c" 1>&6
+echo "configure:17700: checking for Berkeley DB link (-ldb)" >&5
+if eval "test \"\${ol_cv_db_db+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_DB_LIB=-ldb4
+	ol_DB_LIB=-ldb
 	ol_LIBS=$LIBS
 	LIBS="$ol_DB_LIB $LIBS"
 
@@ -17755,12 +17755,12 @@ int main() {
 EOF
 if { (eval echo configure:17757: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  ol_cv_db_db4=yes
+  ol_cv_db_db=yes
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  ol_cv_db_db4=no
+  ol_cv_db_db=no
 fi
 rm -f conftest*
 
@@ -17768,10 +17768,10 @@ rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_db_db4" 1>&6
+echo "$ac_t""$ol_cv_db_db" 1>&6
 
-	if test $ol_cv_db_db4 = yes ; then
-		ol_cv_lib_db=-ldb4
+	if test $ol_cv_db_db = yes ; then
+		ol_cv_lib_db=-ldb
 	fi
 fi
 
