@@ -18,13 +18,13 @@ REQUIRED SOFTWARE
 
 	Base system (libraries and tools):
 		Standard C compiler (required)
-		Cyrus SASL software (recommended)
-		OpenSSL TLS software (recommended)
+		Cyrus SASL 1.5 (recommended)
+		OpenSSL 0.9 (recommended)
 		POSIX REGEX software (required)
 
 	SLAPD:
 		LDBM compatible datastore (required)
-			[Sleepycat Berkeley DB 3.1 (recommended) or GDBM]
+			[Sleepycat Berkeley DB 3.2 (recommended) or GDBM]
 
 	SLURPD:
 		LTHREAD compatible thread package
