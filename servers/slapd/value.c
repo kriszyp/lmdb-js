@@ -215,8 +215,6 @@ value_match(
 	const char ** text )
 {
 	int rc;
-	struct berval nv1 = BER_BVNULL;
-	struct berval nv2 = BER_BVNULL;
 
 	assert( mr != NULL );
 
@@ -225,13 +223,8 @@ value_match(
 	}
 
 	rc = (mr->smr_match)( match, flags,
-		ad->ad_type->sat_syntax,
-		mr,
-		nv1.bv_val != NULL ? &nv1 : v1,
-		nv2.bv_val != NULL ? &nv2 : v2 );
+		ad->ad_type->sat_syntax, mr, v1, v2 );
 	
-	if (nv1.bv_val ) free( nv1.bv_val );
-	if (nv2.bv_val ) free( nv2.bv_val );
 	return rc;
 }
 
