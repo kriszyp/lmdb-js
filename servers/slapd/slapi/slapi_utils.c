@@ -348,7 +348,7 @@ slapi_entry_attr_get_int( const Slapi_Entry *e, const char *type )
 #endif
 }
 
-int
+long
 slapi_entry_attr_get_long( const Slapi_Entry *e, const char *type )
 {
 #ifdef LDAP_SLAPI
@@ -373,7 +373,7 @@ slapi_entry_attr_get_long( const Slapi_Entry *e, const char *type )
 #endif
 }
 
-int
+unsigned int
 slapi_entry_attr_get_uint( const Slapi_Entry *e, const char *type )
 {
 #ifdef LDAP_SLAPI
@@ -398,7 +398,7 @@ slapi_entry_attr_get_uint( const Slapi_Entry *e, const char *type )
 #endif
 }
 
-int
+unsigned long
 slapi_entry_attr_get_ulong( const Slapi_Entry *e, const char *type )
 {
 #ifdef LDAP_SLAPI
