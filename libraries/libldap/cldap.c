@@ -482,7 +482,7 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 	} else {
 	    Debug( LDAP_DEBUG_TRACE, "cldap_parsemsg got unknown tag %lu\n",
 		    tag, 0, 0 );
-	    rc = LDAP_PROTOCOL_ERROR;
+	    rc = LDAP_DECODING_ERROR;
 	    break;	/* return w/error */
 	}
 

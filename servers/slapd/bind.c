@@ -38,6 +38,11 @@ do_bind(
 
 	Debug( LDAP_DEBUG_TRACE, "do_bind\n", 0, 0, 0 );
 
+	cdn = NULL;
+	ndn = NULL;
+	mech = NULL;
+	cred.bv_val = NULL;
+
 	/*
 	 * Parse the bind request.  It looks like this:
 	 *
@@ -58,11 +63,8 @@ do_bind(
 		Debug( LDAP_DEBUG_ANY, "bind: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
 		    "decoding error" );
-		return;
+		goto cleanup;
 	}
-
-	mech = NULL;
-	cred.bv_val = NULL;
 
 	if( method != LDAP_AUTH_SASL ) {
 		rc = ber_scanf( ber, /*{*/ "o}", &cred );
@@ -85,41 +87,25 @@ do_bind(
 	}
 
 	if ( rc == LBER_ERROR ) {
-		if ( cdn != NULL ) {
-			free( cdn );
-		}
-		if ( mech != NULL ) {
-			free( mech );
-		}
-		if ( cred.bv_val != NULL ) {
-			free( cred.bv_val );
-		}
-
-		Debug( LDAP_DEBUG_ANY, "bind: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
     		"decoding error" );
-
-		return;
+		goto cleanup;
 	}
 
 #ifdef GET_CTRLS
 	if( get_ctrls( conn, op, 1 ) == -1 ) {
-		if ( cdn != NULL ) {
-			free( cdn );
-		}
-		if ( mech != NULL ) {
-			free( mech );
-		}
-		if ( cred.bv_val != NULL ) {
-			free( cred.bv_val );
-		}
-		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
-		return;
+		Debug( LDAP_DEBUG_ANY, "do_bind: get_ctrls failed\n", 0, 0, 0 );
+		goto cleanup;
 	} 
 #endif
 
-	Debug( LDAP_DEBUG_TRACE, "do_bind: version %d dn (%s) method %d\n",
-	    version, cdn, method );
+	if( method == LDAP_AUTH_SASL ) {
+		Debug( LDAP_DEBUG_TRACE, "do_sasl_bind: dn (%s) mech %s\n",
+			cdn, mech, NULL );
+	} else {
+		Debug( LDAP_DEBUG_TRACE, "do_bind: version %d dn (%s) method %d\n",
+			version, cdn, method );
+	}
 
 	ndn = dn_normalize_case( ch_strdup( cdn ) );
 
@@ -127,40 +113,44 @@ do_bind(
 	    conn->c_connid, op->o_opid, ndn, method, 0 );
 
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
-		if ( cdn != NULL ) {
-			free( cdn );
-		}
-		if ( ndn != NULL ) {
-			free( ndn );
-		}
-		if ( mech != NULL ) {
-			free( mech );
-		}
-		if ( cred.bv_val != NULL ) {
-			free( cred.bv_val );
-		}
-
 		Debug( LDAP_DEBUG_ANY, "unknown version %d\n", version, 0, 0 );
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
 		    "version not supported" );
-		return;
+		goto cleanup;
+	}
+
+	if ( method == LDAP_AUTH_SASL ) {
+		if ( version < LDAP_VERSION3 ) {
+			Debug( LDAP_DEBUG_ANY, "do_bind: sasl with LDAPv%d\n",
+				version, 0, 0 );
+			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
+				"sasl bind requires LDAPv3" );
+			goto cleanup;
+		}
+
+		if( mech == NULL || *mech == '\0' ) {
+			Debug( LDAP_DEBUG_ANY,
+				"do_bind: no sasl mechanism provided\n",
+				version, 0, 0 );
+			/* XXYYZ need to check this return code */
+			send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
+				NULL, "no sasl mechanism provided." );
+			goto cleanup;
+		}
+
+		if( 1 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"do_bind: sasl mechanism \"%s\" not supported.\n",
+				mech, 0, 0 );
+			/* XXYYZ need to check this return code */
+			send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
+				NULL, "no sasl mechanism provided." );
+			goto cleanup;
+		}
 	}
 
 	/* accept null binds */
 	if ( ndn == NULL || *ndn == '\0' ) {
-		if ( cdn != NULL ) {
-			free( cdn );
-		}
-		if ( ndn != NULL ) {
-			free( ndn );
-		}
-		if ( mech != NULL ) {
-			free( mech );
-		}
-		if ( cred.bv_val != NULL ) {
-			free( cred.bv_val );
-		}
-
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 		conn->c_protocol = version;
@@ -178,7 +168,7 @@ do_bind(
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 		send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
-		return;
+		goto cleanup;
 	}
 
 	/*
@@ -188,11 +178,6 @@ do_bind(
 	 */
 
 	if ( (be = select_backend( ndn )) == NULL ) {
-		free( cdn );
-		free( ndn );
-		if ( cred.bv_val != NULL ) {
-			free( cred.bv_val );
-		}
 		if ( cred.bv_len == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
@@ -219,7 +204,7 @@ do_bind(
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
 				NULL, default_referral );
 		}
-		return;
+		goto cleanup;
 	}
 
 	if ( be->be_bind ) {
@@ -268,6 +253,7 @@ do_bind(
 		    "Function not implemented" );
 	}
 
+cleanup:
 	if( cdn != NULL ) {
 		free( cdn );
 	}

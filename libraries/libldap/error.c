@@ -28,7 +28,7 @@ static const struct ldaperror ldap_errlist[] = {
 	{LDAP_SIZELIMIT_EXCEEDED, 		"Size limit exceeded" },
 	{LDAP_COMPARE_FALSE, 			"Compare false" },
 	{LDAP_COMPARE_TRUE, 			"Compare true" },
-	{LDAP_STRONG_AUTH_NOT_SUPPORTED, "Strong authentication not supported" },
+	{LDAP_STRONG_AUTH_NOT_SUPPORTED, "Authentication method not supported" },
 	{LDAP_STRONG_AUTH_REQUIRED, 	"Strong authentication required" },
 	{LDAP_PARTIAL_RESULTS, 			"Partial results and referral received" },
 
