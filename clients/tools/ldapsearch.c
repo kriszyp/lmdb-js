@@ -93,13 +93,13 @@ main( int argc, char **argv )
     LDAP		*ld;
 
     infile = NULL;
-    deref = verbose = allow_binary = not = vals2tmp =
+    debug = verbose = allow_binary = not = vals2tmp =
 	    attrsonly = ldif = want_bindpw = 0;
-    referrals = (int) LDAP_OPT_ON;
-    sizelimit = timelimit = debug = 0;
-    scope = LDAP_SCOPE_SUBTREE;
+
+	deref = referrals = sizelimit = timelimit =
+    	scope = version = -1;
+
     authmethod = LDAP_AUTH_SIMPLE;
-	version = LDAP_VERSION2;
 
     while (( i = getopt( argc, argv, "WKknuvtRABLD:s:f:h:b:d:P:p:F:a:w:l:z:S:")) != EOF ) {
 	switch( i ) {
@@ -268,20 +268,30 @@ main( int argc, char **argv )
 	exit( 1 );
     }
 
-	if (ldap_set_option( ld, LDAP_OPT_DEREF, (void *) &deref ) == -1 ) {
+	if (deref != -1 &&
+		ldap_set_option( ld, LDAP_OPT_DEREF, (void *) &deref ) == -1 )
+	{
 		/* set option error */
 	}
-	if (ldap_set_option( ld, LDAP_OPT_TIMELIMIT, (void *) &timelimit ) == -1 ) {
+	if (timelimit != -1 &&
+		ldap_set_option( ld, LDAP_OPT_TIMELIMIT, (void *) &timelimit ) == -1 )
+	{
 		/* set option error */
 	}
-	if (ldap_set_option( ld, LDAP_OPT_SIZELIMIT, (void *) &sizelimit ) == -1 ) {
+	if (sizelimit != -1 &&
+		ldap_set_option( ld, LDAP_OPT_SIZELIMIT, (void *) &sizelimit ) == -1 )
+	{
 		/* set option error */
 	}
-	if (ldap_set_option( ld, LDAP_OPT_REFERRALS, (void *) referrals ) == -1 ) {
+	if (referrals != -1 &&
+		ldap_set_option( ld, LDAP_OPT_REFERRALS, (void *) referrals ) == -1 )
+	{
 		/* set option error */
 	}
 
-	if (ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) == -1) {
+	if (version != -1 &&
+		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) == -1)
+	{
 		/* set option error */
 	}
 

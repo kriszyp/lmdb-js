@@ -38,7 +38,7 @@ main( int argc, char **argv )
     not = verbose = contoper = want_bindpw = debug = 0;
     fp = NULL;
     authmethod = LDAP_AUTH_SIMPLE;
-	version = LDAP_VERSION2;
+	version = -1;
 
     while (( i = getopt( argc, argv, "WnvkKch:P:p:D:w:d:f:" )) != EOF ) {
 	switch( i ) {
@@ -131,7 +131,9 @@ main( int argc, char **argv )
 	if (want_bindpw)
 		passwd = getpass("Enter LDAP Password: ");
 
-	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+	if( version != -1 ) {
+		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+	}
 
     if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	ldap_perror( ld, "ldap_bind" );

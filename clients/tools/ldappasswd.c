@@ -360,10 +360,10 @@ main (int argc, char *argv[])
 	int		i, j;
 	int		ldapport = 0;
 	int		debug = 0;
-	int		scope = LDAP_SCOPE_SUBTREE;
-	int		sizelimit = LDAP_NO_LIMIT;
-	int		timelimit = LDAP_NO_LIMIT;
-	int		version = LDAP_VERSION2;
+	int		scope = -1;
+	int		sizelimit = -1;
+	int		timelimit = -1;
+	int		version = -1;
 	int		want_bindpw = 0;
 	int		want_newpw = 0;
 	LDAP	       *ld;
@@ -559,8 +559,12 @@ main (int argc, char *argv[])
 	}
 
 	/* set options */
-	ldap_set_option (ld, LDAP_OPT_TIMELIMIT, (void *)&timelimit);
-	ldap_set_option (ld, LDAP_OPT_SIZELIMIT, (void *)&sizelimit);
+	if( timelimit != -1 ) {
+		ldap_set_option (ld, LDAP_OPT_TIMELIMIT, (void *)&timelimit);
+	}
+	if( sizelimit != -1 ) {
+		ldap_set_option (ld, LDAP_OPT_SIZELIMIT, (void *)&sizelimit);
+	}
 
 	/* this seems prudent */
 	{
@@ -568,7 +572,9 @@ main (int argc, char *argv[])
 		ldap_set_option( ld, LDAP_OPT_DEREF, &deref);
 	}
 
-	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+	if( version != -1 ) {
+		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+	}
 
 	/* authenticate to server */
 	if (ldap_bind_s (ld, binddn, bindpw, authmethod) != LDAP_SUCCESS)

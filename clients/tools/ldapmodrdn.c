@@ -40,7 +40,7 @@ main(int argc, char **argv)
     infile = NULL;
     not = contoper = verbose = remove = want_bindpw = debug = 0;
     authmethod = LDAP_AUTH_SIMPLE;
-	version = LDAP_VERSION2;
+	version = -1;
 
     myname = (myname = strrchr(argv[0], '/')) == NULL ? argv[0] : ++myname;
 
@@ -155,7 +155,9 @@ main(int argc, char **argv)
 	if (want_bindpw)
 		passwd = getpass("Enter LDAP Password: ");
 
-	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+	if( version != -1) {
+		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+	}
 
     if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	ldap_perror( ld, "ldap_bind" );
