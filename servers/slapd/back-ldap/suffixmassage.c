@@ -47,7 +47,7 @@ ldap_back_dn_massage(
 {
 	int rc = 0;
 
-	switch (rewrite_session( dc->rwmap->rwm_rw, dc->ctx, dn->bv_val, dc->conn, 
+	switch (rewrite_session( dc->rwmap->rwm_rw, dc->ctx, (dn->bv_len ? dn->bv_val : ""), dc->conn, 
 				&res->bv_val )) {
 	case REWRITE_REGEXEC_OK:
 		if ( res->bv_val != NULL ) {
