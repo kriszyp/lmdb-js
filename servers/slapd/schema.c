@@ -155,7 +155,7 @@ oc_check_allowed( char *type, struct berval **ocl )
 		return( 0 );
 	}
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	/* Treat any attribute type with option as an unknown attribute type */
 	/*
 	 * The "type" we have received is actually an AttributeDescription.
@@ -252,7 +252,7 @@ oc_check_allowed( char *type, struct berval **ocl )
 }
 
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	/* these shouldn't be hardcoded */
 
 static char *oc_op_usermod_attrs[] = {
@@ -334,7 +334,7 @@ oc_check_op_attr( const char *type )
 int
 oc_check_op_usermod_attr( const char *type )
 {
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	return charray_inlist( oc_op_usermod_attrs, type );
 #else
 	/* not (yet) in schema */
@@ -348,7 +348,7 @@ oc_check_op_usermod_attr( const char *type )
 int
 oc_check_op_no_usermod_attr( const char *type )
 {
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	return charray_inlist( oc_op_no_usermod_attrs, type );
 #else
 	AttributeType *at = at_find( type );
@@ -1097,7 +1097,9 @@ int is_entry_objectclass(
 	bv.bv_val = (char *) oc;
 	bv.bv_len = strlen( bv.bv_val );
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 	if( value_find(attr->a_vals, &bv, attr->a_syntax, 1) != 0) {
 		/* entry is not of this objectclass */
 		return 0;

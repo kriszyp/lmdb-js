@@ -75,7 +75,7 @@ Attribute *attr_dup( Attribute *a )
 	}
 
 	tmp->a_type = ch_strdup( a->a_type );
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	tmp->a_syntax = a->a_syntax;
 #endif
 	tmp->a_next = NULL;
@@ -144,7 +144,7 @@ attr_merge_fast(
 		**a = (Attribute *) ch_malloc( sizeof(Attribute) );
 		(**a)->a_type = attr_normalize( ch_strdup( type ) );
 		(**a)->a_vals = NULL;
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		(**a)->a_syntax = attr_syntax( type );
 #endif
 		(**a)->a_next = NULL;
@@ -180,7 +180,7 @@ attr_merge(
 		*a = (Attribute *) ch_malloc( sizeof(Attribute) );
 		(*a)->a_type = attr_normalize( ch_strdup( type ) );
 		(*a)->a_vals = NULL;
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		(*a)->a_syntax = attr_syntax( type );
 #endif
 		(*a)->a_next = NULL;
@@ -241,7 +241,7 @@ attr_delete(
 	return( 0 );
 }
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 
 #define DEFAULT_SYNTAX	SYNTAX_CIS
 
@@ -408,7 +408,7 @@ at_find(
 	struct aindexrec	*air;
 	char			*tmpname;
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	/*
 	 * The name may actually be an AttributeDescription, i.e. it may
 	 * contain options.
@@ -638,7 +638,7 @@ at_add(
 			return SLAP_SCHERR_SYN_NOT_FOUND;
 		}
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		if ( !strcmp(at->at_syntax_oid, SYNTAX_DS_OID) ) {
 			if ( at->at_equality_oid && (
 				!strcmp(at->at_equality_oid, SYNTAX_DSCE_OID) ) )
@@ -709,23 +709,23 @@ at_add(
 
 
 char *
-#ifdef SLAPD_SCHEMA_COMPAT
-at_canonical_name( const char * a_type )
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 at_canonical_name( AttributeType * atp )
+#else
+at_canonical_name( const char * a_type )
 #endif
 {
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeType	*atp;
 
 	atp=at_find(a_type);
 #endif
 
 	if ( atp == NULL ) {
-#ifdef SLAPD_SCHEMA_COMPAT
-		return (char *) a_type;
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		return NULL;
+#else
+		return (char *) a_type;
 #endif
 
 	} else if ( atp->sat_names
@@ -737,10 +737,10 @@ at_canonical_name( AttributeType * atp )
 		return atp->sat_oid;
 	}
 
-#ifdef SLAPD_SCHEMA_COMPAT
-	return (char *) a_type;
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	return NULL;
+#else
+	return (char *) a_type;
 #endif
 }
 

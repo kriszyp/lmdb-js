@@ -199,22 +199,13 @@ int ldbm_tool_index_attr(
 	static DBCache *db = NULL;
 	int indexmask;
 	char * at_cn;
-#ifndef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeType *at;
 #endif
 
 	assert( slapMode & SLAP_TOOL_MODE );
 
-#ifdef SLAPD_SCHEMA_COMPAT
-	attr_normalize( type );
-	at_cn = at_canonical_name( type );
-
-	if( at_cn ) {
-		Debug( LDAP_DEBUG_ANY, "<= index_attr NULL (attribute type %s has no canonical name)\n",
-			type, 0, 0 );
-		return 0;
-	}
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	at = at_find( type );
 
 	if( at == NULL ) {
@@ -227,8 +218,19 @@ int ldbm_tool_index_attr(
 	at_cn = at_canonical_name( at );
 
 	if( at_cn ) {
-		Debug( LDAP_DEBUG_ANY, "<= index_attr NULL (attribute type %s (%s) has no canonical name)\n",
+		Debug( LDAP_DEBUG_ANY,
+			"<= index_attr NULL (attribute type %s (%s) has no canonical name)\n",
 			at->sat_oid, type, 0 );
+		return 0;
+	}
+#else
+	attr_normalize( type );
+	at_cn = at_canonical_name( type );
+
+	if( at_cn ) {
+		Debug( LDAP_DEBUG_ANY,
+			"<= index_attr NULL (attribute type %s has no canonical name)\n",
+			type, 0, 0 );
 		return 0;
 	}
 #endif

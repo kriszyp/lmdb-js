@@ -70,10 +70,10 @@ LIBSLAPD_F (int) at_fake_if_needed LDAP_P(( const char *name ));
 LIBSLAPD_F (int) at_schema_info LDAP_P(( Entry *e ));
 LIBSLAPD_F (int) at_add LDAP_P(( LDAP_ATTRIBUTE_TYPE *at, const char **err ));
 
-#ifdef SLAPD_SCHEMA_COMPAT
-LIBSLAPD_F (char *) at_canonical_name LDAP_P(( const char * a_type ));
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F (char *) at_canonical_name LDAP_P(( AttributeType *a_type ));
+#else
+LIBSLAPD_F (char *) at_canonical_name LDAP_P(( const char * a_type ));
 #endif
 
 LIBSLAPD_F (void) attrs_free LDAP_P(( Attribute *a ));
@@ -120,13 +120,13 @@ LIBSLAPD_F( int )	backend_check_controls LDAP_P((
 LIBSLAPD_F (int) backend_connection_init LDAP_P((Connection *conn));
 LIBSLAPD_F (int) backend_connection_destroy LDAP_P((Connection *conn));
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F (int) backend_group LDAP_P((Backend *be,
 	Entry *target,
 	const char *gr_ndn,
 	const char *op_ndn,
 	const char *objectclassValue,
-	const char *groupattrName
+	AttributeType *groupAttrType
 ));
 #else
 LIBSLAPD_F (int) backend_group LDAP_P((Backend *be,
@@ -134,7 +134,7 @@ LIBSLAPD_F (int) backend_group LDAP_P((Backend *be,
 	const char *gr_ndn,
 	const char *op_ndn,
 	const char *objectclassValue,
-	AttributeType *groupAttrType
+	const char *groupattrName
 ));
 #endif
 

@@ -28,10 +28,10 @@ ldbm_back_group(
 	const char	*gr_ndn,
 	const char	*op_ndn,
 	const char	*objectclassValue,
-#ifdef SLAPD_SCHEMA_COMPAT
-	const char	*groupattrName
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeType *group_at
+#else
+	const char	*groupattrName
 #endif
 )
 {
@@ -42,7 +42,7 @@ ldbm_back_group(
 	Attribute   *attr;
 	struct berval bv;
 
-#ifndef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	char *groupattrName = at_canonical_name( group_at );
 #endif
 
@@ -88,7 +88,9 @@ ldbm_back_group(
         
 	rc = 1;
         
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 
 	if ((attr = attr_find(e->e_attrs, "objectclass")) == NULL)  {
 		Debug( LDAP_DEBUG_ACL,

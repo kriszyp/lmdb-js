@@ -462,12 +462,12 @@ read_config( const char *fname )
 				p = strchr(saveline,'(');
 				parse_oc( fname, lineno, p, cargv );
 			} else {
-#ifdef SLAPD_SCHEMA_COMPAT
-				parse_oc_old( be, fname, lineno, cargc, cargv );
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 				Debug( LDAP_DEBUG_ANY,
     "%s: line %d: old objectclass format not supported.\n",
 				    fname, lineno, 0 );
+#else
+				parse_oc_old( be, fname, lineno, cargc, cargv );
 #endif
 			}
 
@@ -480,13 +480,13 @@ read_config( const char *fname )
 				p = strchr(saveline,'(');
 				parse_at( fname, lineno, p, cargv );
 			} else {
-#ifdef SLAPD_SCHEMA_COMPAT
-				attr_syntax_config( fname, lineno, cargc - 1,
-				    &cargv[1] );
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 				Debug( LDAP_DEBUG_ANY,
     "%s: line %d: old attribute type format not supported.\n",
 				    fname, lineno, 0 );
+#else
+				attr_syntax_config( fname, lineno, cargc - 1,
+				    &cargv[1] );
 #endif
 			}
 

@@ -83,7 +83,9 @@ value_add(
 	return( 0 );
 }
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 void
 value_normalize(
     char	*s,

@@ -92,7 +92,9 @@ ldbm_back_compare(
 		goto return_results;
 	}
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 	if ( value_find( a->a_vals, &ava->ava_value, a->a_syntax, 1 ) == 0 ) 
 		send_ldap_result( conn, op, LDAP_COMPARE_TRUE,
 			NULL, NULL, NULL, NULL );

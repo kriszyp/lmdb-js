@@ -8,10 +8,6 @@
 #ifndef _SLDAPD_H_
 #define _SLDAPD_H_
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-#define SLAPD_SCHEMA_COMPAT 1
-#endif
-
 #include "ldap_defaults.h"
 
 #include <ac/stdlib.h>
@@ -339,13 +335,13 @@ typedef struct slap_filter {
 typedef struct slap_attr {
 	char		*a_type;	/* description */
 	struct berval	**a_vals;
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	int		a_syntax;
 #endif
 	struct slap_attr	*a_next;
 } Attribute;
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 /*
  * the attr_syntax() routine returns one of these values
  * telling what kind of syntax an attribute supports.
@@ -469,10 +465,10 @@ typedef struct slap_access {
 	slap_access_mask_t	a_mask;
 
 	char		*a_dn_pat;
-#ifdef SLAPD_SCHEMA_COMPAT
-	char		*a_dn_at;
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeType	*a_dn_at;
+#else
+	char		*a_dn_at;
 #endif
 	int			a_dn_self;
 
@@ -483,20 +479,20 @@ typedef struct slap_access {
 	char		*a_sockurl_pat;
 
 #ifdef SLAPD_ACI_ENABLED
-#ifdef SLAPD_SCHEMA_COMPAT
-	char		*a_aci_at;
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeType	*a_aci_at;
+#else
+	char		*a_aci_at;
 #endif
 #endif
 
 	/* ACL Groups */
 	char		*a_group_pat;
 	char		*a_group_oc;
-#ifdef SLAPD_SCHEMA_COMPAT
-	char		*a_group_at;
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeType	*a_group_at;
+#else
+	char		*a_group_at;
 #endif
 
 	struct slap_access	*a_next;

@@ -320,9 +320,7 @@ parse_acl(
 						acl_usage();
 					}
 
-#ifdef SLAPD_SCHEMA_COMPAT
-					b->a_dn_at = ch_strdup( right );
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 					b->a_dn_at = at_find( right );
 
 					if( b->a_dn_at == NULL ) {
@@ -342,6 +340,8 @@ parse_acl(
 						acl_usage();
 					}
 #endif
+#else
+					b->a_dn_at = ch_strdup( right );
 #endif
 					continue;
 				}
@@ -378,22 +378,22 @@ parse_acl(
 					}
 
 					if (name && *name) {
-#ifdef SLAPD_SCHEMA_COMPAT
-						b->a_group_at = ch_strdup(name);
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 						b->a_group_at = at_find( name );
+#else
+						b->a_group_at = ch_strdup(name);
 #endif
 						*--name = '/';
 
 					} else {
-#ifdef SLAPD_SCHEMA_COMPAT
-						b->a_group_at = ch_strdup("member");
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 						b->a_group_at = at_find("member");
+#else
+						b->a_group_at = ch_strdup("member");
 #endif
 					}
 
-#ifndef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 					if( b->a_group_at == NULL ) {
 						fprintf( stderr,
 							"%s: line %d: group attribute type undefined.\n",
@@ -411,7 +411,7 @@ parse_acl(
 						acl_usage();
 					}
 #endif /* SLAPD_OID_DN_SYNTAX */
-#endif /* !SLAPD_SCHEMA_COMPAT */
+#endif /* SLAPD_SCHEMA_NOT_COMPAT */
 					continue;
 				}
 
@@ -476,13 +476,7 @@ parse_acl(
 						acl_usage();
 					}
 
-#ifdef SLAPD_SCHEMA_COMPAT
-					if ( right != NULL && *right != '\0' ) {
-						b->a_aci_at = ch_strdup( right );
-					} else {
-						b->a_aci_at = ch_strdup( SLAPD_ACI_DEFAULT_ATTR );
-					}
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 					if ( right != NULL && *right != '\0' ) {
 						b->a_aci_at = at_find( right );
 					} else {
@@ -503,6 +497,12 @@ parse_acl(
 							"%s: line %d: aci attribute type not of DN syntax.\n",
 							fname, lineno );
 						acl_usage();
+					}
+#else
+					if ( right != NULL && *right != '\0' ) {
+						b->a_aci_at = ch_strdup( right );
+					} else {
+						b->a_aci_at = ch_strdup( SLAPD_ACI_DEFAULT_ATTR );
 					}
 #endif
 					continue;

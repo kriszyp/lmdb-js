@@ -11,19 +11,33 @@
 
 #include <ac/socket.h>
 #include <ac/string.h>
+
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 #include <ac/regex.h>
+#endif
 
 #include "slap.h"
 
-static int	test_filter_list(Backend *be, Connection *conn, Operation *op, Entry *e, Filter *flist, int ftype);
-static int	test_substring_filter(Backend *be, Connection *conn, Operation *op, Entry *e, Filter *f);
-static int	test_ava_filter(Backend *be, Connection *conn, Operation *op, Entry *e, Ava *ava, int type);
-static int	test_approx_filter(Backend *be, Connection *conn, Operation *op, Entry *e, Ava *ava);
-static int	test_presence_filter(Backend *be, Connection *conn, Operation *op, Entry *e, char *type);
+static int	test_filter_list(Backend *be,
+	Connection *conn, Operation *op,
+	Entry *e, Filter *flist, int ftype);
+static int	test_substring_filter(Backend *be,
+	Connection *conn, Operation *op,
+	Entry *e, Filter *f);
+static int	test_ava_filter(Backend *be,
+	Connection *conn, Operation *op,
+	Entry *e, Ava *ava, int type);
+static int	test_approx_filter(Backend *be,
+	Connection *conn, Operation *op,
+	Entry *e, Ava *ava);
+static int	test_presence_filter(Backend *be,
+	Connection *conn, Operation *op,
+	Entry *e, char *type);
 
 /*
  * test_filter - test a filter against a single entry.
- * returns	0	filter matched
+ * returns:
+ *		0	filter matched
  *		-1	filter did not match
  *		>0	an ldap error code
  */
@@ -125,18 +139,20 @@ test_ava_filter(
 		return( -1 );
 	}
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 	if ( a->a_syntax == 0 ) {
 		a->a_syntax = attr_syntax( ava->ava_type );
 	}
 #endif
 
 	for ( i = 0; a->a_vals[i] != NULL; i++ ) {
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		/* not yet implemented */
+#else
 		rc = value_cmp( a->a_vals[i], &ava->ava_value, a->a_syntax,
 		    3 );
-#else
-		rc = 0;
 #endif
 
 		switch ( type ) {
@@ -290,6 +306,7 @@ test_filter_list(
 	return( nomatch );
 }
 
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 static void
 strcpy_regex( char *d, char *s )
 {
@@ -317,6 +334,7 @@ strcpy_regex( char *d, char *s )
 	}
 	*d = '\0';
 }
+#endif
 
 static int
 test_substring_filter(
@@ -327,6 +345,9 @@ test_substring_filter(
     Filter	*f
 )
 {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 	Attribute	*a;
 	int		i, rc;
 	char		*p, *end, *realval, *tmp;
@@ -347,13 +368,11 @@ test_substring_filter(
 		return( -1 );
 	}
 
-#ifdef SLAPD_SCHEMA_COMPAT
 	if ( a->a_syntax & SYNTAX_BIN ) {
 		Debug( LDAP_DEBUG_FILTER, "test_substring_filter bin attr\n",
 		    0, 0, 0 );
 		return( -1 );
 	}
-#endif
 
 	/*
 	 * construct a regular expression corresponding to the
@@ -428,9 +447,7 @@ test_substring_filter(
 			realval = tmp;
 		}
 
-#ifdef SLAPD_SCHEMA_COMPAT
 		value_normalize( realval, a->a_syntax );
-#endif
 
 		rc = !regexec(&re, realval, 0, NULL, 0);
 
@@ -444,6 +461,7 @@ test_substring_filter(
 	}
 
 	regfree(&re);
+#endif
 
 	Debug( LDAP_DEBUG_FILTER, "end test_substring_filter 1\n", 0, 0, 0 );
 	return( 1 );

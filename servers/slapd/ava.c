@@ -28,7 +28,7 @@ get_ava(
 
 	attr_normalize( ava->ava_type );
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	value_normalize( ava->ava_value.bv_val, attr_syntax( ava->ava_type ) );
 #endif
 

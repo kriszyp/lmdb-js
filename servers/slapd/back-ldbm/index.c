@@ -145,11 +145,11 @@ index_read(
 		return( idl );
 	}
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	at_cn = at_canonical_name( at_find( type ) );
+#else
 	attr_normalize( type );
 	at_cn = at_canonical_name( type );
-#else
-	at_cn = at_canonical_name( at_find( type ) );
 #endif
 
 	if ( at_cn == NULL ) {
@@ -316,11 +316,11 @@ index_change_values(
 		return( 0 );
 	}
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	at_cn = at_canonical_name( at_find( type ) );
+#else
 	syntax = attr_syntax( type );
 	at_cn = at_canonical_name( type );
-#else
-	at_cn = at_canonical_name( at_find( type ) );
 #endif
 
 	if ( at_cn == NULL ) {
@@ -340,7 +340,9 @@ index_change_values(
 	}
 
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 	for ( i = 0; vals[i] != NULL; i++ ) {
 		/*
 		 * presence index entry

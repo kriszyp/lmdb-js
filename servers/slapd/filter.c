@@ -241,7 +241,9 @@ get_substring_filter(
 
 	attr_normalize( f->f_sub_type );
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 	/* should get real syntax and see if we have a substring matching rule */
 	syntax = attr_syntax( f->f_sub_type );
 #endif
@@ -272,7 +274,9 @@ get_substring_filter(
 
 		rc = LDAP_PROTOCOL_ERROR;
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		/* not yet implemented */
+#else
 		/* we should call a substring syntax normalization routine */
 		value_normalize( val->bv_val, syntax );
 #endif

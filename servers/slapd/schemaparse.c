@@ -18,7 +18,7 @@
 
 int	global_schemacheck = 1; /* schemacheck on is default */
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 static void		oc_usage_old(void) LDAP_GCCATTR((noreturn));
 #endif
 static void		oc_usage(void)     LDAP_GCCATTR((noreturn));
@@ -50,7 +50,7 @@ scherr2str(int code)
 	}
 }
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 void
 parse_oc_old(
     Backend	*be,
@@ -301,7 +301,7 @@ oc_usage( void )
 	exit( EXIT_FAILURE );
 }
 
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 static void
 oc_usage_old( void )
 {

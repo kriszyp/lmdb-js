@@ -403,22 +403,26 @@ acl_mask(
 			bv.bv_val = op->o_ndn;
 			bv.bv_len = strlen( bv.bv_val );
 
-#ifdef SLAPD_SCHEMA_COMPAT
-			dn_at = b->a_dn_at;
-#else
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			dn_at = at_canonical_name( b->a_dn_at );
+#else
+			dn_at = b->a_dn_at;
 #endif
 
 			/* see if asker is listed in dnattr */ 
 			if ( (at = attr_find( e->e_attrs, dn_at )) != NULL
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				/* not yet implemented */
+#else
 				&& value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0
 #endif
 			)
 			{
 				if ( b->a_dn_self && 
 					(val == NULL
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+					/* not yet implemented */
+#else
 					|| value_cmp( &bv, val, at->a_syntax, 2 )
 #endif
 					) )
@@ -428,7 +432,9 @@ acl_mask(
 
 			/* asker not listed in dnattr - check for self access */
 			} else if ( ! b->a_dn_self || val == NULL
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+					/* not yet implemented */
+#else
 				|| value_cmp( &bv, val, at->a_syntax, 2 ) != 0
 #endif
 			)
