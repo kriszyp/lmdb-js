@@ -721,7 +721,7 @@ syncrepl_message_to_entry(
         }
 
 	ber_free( ber, 0 );
-	tmpber = get_ldapmsg_ber( msg );
+	tmpber = ldap_get_message_ber( msg );
 	ber = ber_dup( tmpber );
 
 	ber_scanf( ber, "{xx" );

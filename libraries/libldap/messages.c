@@ -55,7 +55,7 @@ ldap_count_messages( LDAP *ld, LDAPMessage *chain )
 }
 
 BerElement*
-get_ldapmsg_ber( LDAPMessage *ld )
+ldap_get_message_ber( LDAPMessage *ld )
 {
 	return ld->lm_ber;
 }

@@ -1151,7 +1151,7 @@ ldap_count_messages LDAP_P((
 	LDAPMessage *chain ));
 
 LDAP_F( BerElement * )
-get_ldapmsg_ber LDAP_P((
+ldap_get_message_ber LDAP_P((
 	LDAPMessage * ));
 
 
