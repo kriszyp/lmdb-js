@@ -183,7 +183,7 @@ ldap_pvt_tls_init_def_ctx( void )
 				ERR_peek_error() ));
 #else
 			Debug( LDAP_DEBUG_ANY,
-		       "TLS: could not allocate default ctx (%d).\n",
+		       "TLS: could not allocate default ctx (%lu).\n",
 				ERR_peek_error(),0,0);
 #endif
 			goto error_exit;

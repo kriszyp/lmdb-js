@@ -182,10 +182,10 @@ bdb_attr_index_config(
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			"attr_index_config: index %s 0x%04x\n",
+			"attr_index_config: index %s 0x%04lx\n",
 			ad->ad_cname.bv_val, mask ));
 #else
-		Debug( LDAP_DEBUG_CONFIG, "index %s 0x%04x\n",
+		Debug( LDAP_DEBUG_CONFIG, "index %s 0x%04lx\n",
 			ad->ad_cname.bv_val, mask, 0 ); 
 #endif
 

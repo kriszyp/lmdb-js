@@ -165,8 +165,8 @@ bdb_filter_candidates(
 #ifdef NEW_LOGGING
 		LDAP_LOG (( "filterindex", LDAP_LEVEL_ARGS, "=> bdb_filter_candidates: \tUNKNOWN\n"));
 #else
-		Debug( LDAP_DEBUG_FILTER, "\tUNKNOWN %d\n",
-			f->f_choice, 0, 0 );
+		Debug( LDAP_DEBUG_FILTER, "\tUNKNOWN %lu\n",
+			(unsigned long) f->f_choice, 0, 0 );
 #endif
 	}
 

@@ -299,7 +299,7 @@ bdb_idl_fetch_key(
 					LDAP_LOG(( "idl", LDAP_LEVEL_ERR, "=> bdb_idl_fetch_key: range size mismatch: expected %ld, got %ld\n", BDB_IDL_RANGE_SIZE, ids[0] ));
 #else
 					Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
-						"range size mismatch: expected %ld, got %ld\n",
+						"range size mismatch: expected %d, got %ld\n",
 						BDB_IDL_RANGE_SIZE, ids[0], 0 );
 #endif
 					cursor->c_close( cursor );
