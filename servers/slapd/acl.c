@@ -633,45 +633,83 @@ acl_mask(
 				}
 
 			} else {
+				struct berval pat;
+				int got_match = 0;
+
 				if ( e->e_dn == NULL )
 					continue;
 
-				patlen = b->a_dn_pat.bv_len;
+				if ( b->a_dn_expand ) {
+					struct berval bv;
+					char buf[1024];
+
+					bv.bv_len = sizeof( buf ) - 1;
+					bv.bv_val = buf;
+
+					string_expand(&bv, &b->a_dn_pat, 
+							e->e_ndn, matches);
+					if ( dnNormalize2(NULL, &bv, &pat) != LDAP_SUCCESS ) {
+						/* did not expand to a valid dn */
+						continue;
+					}
+				} else {
+					pat = b->a_dn_pat;
+				}
+
+				patlen = pat.bv_len;
 				odnlen = op->o_ndn.bv_len;
-				if ( odnlen < patlen )
-					continue;
+				if ( odnlen < patlen ) {
+					goto dn_match_cleanup;
+
+				}
 
 				if ( b->a_dn_style == ACL_STYLE_BASE ) {
 					/* base dn -- entire object DN must match */
-					if ( odnlen != patlen )
-						continue;
+					if ( odnlen != patlen ) {
+						goto dn_match_cleanup;
+					}
 
 				} else if ( b->a_dn_style == ACL_STYLE_ONE ) {
 					int rdnlen = -1;
 
-					if ( odnlen <= patlen )
-						continue;
+					if ( odnlen <= patlen ) {
+						goto dn_match_cleanup;
+					}
 
-					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) )
-						continue;
+					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) ) {
+						goto dn_match_cleanup;
+					}
 
 					rdnlen = dn_rdnlen( NULL, &op->o_ndn );
-					if ( rdnlen != odnlen - patlen - 1 )
-						continue;
+					if ( rdnlen != odnlen - patlen - 1 ) {
+						goto dn_match_cleanup;
+					}
 
 				} else if ( b->a_dn_style == ACL_STYLE_SUBTREE ) {
-					if ( odnlen > patlen && !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) )
-						continue;
+					if ( odnlen > patlen && !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) ) {
+						goto dn_match_cleanup;
+					}
 
 				} else if ( b->a_dn_style == ACL_STYLE_CHILDREN ) {
-					if ( odnlen <= patlen )
-						continue;
-					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) )
-						continue;
+					if ( odnlen <= patlen ) {
+						goto dn_match_cleanup;
+					}
+
+					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) ) {
+						goto dn_match_cleanup;
+					}
 				}
 
-				if ( strcmp( b->a_dn_pat.bv_val, op->o_ndn.bv_val + odnlen - patlen ) != 0 )
+				got_match = !strcmp( pat.bv_val, op->o_ndn.bv_val + odnlen - patlen );
+
+dn_match_cleanup:;
+				if ( pat.bv_val != b->a_dn_pat.bv_val ) {
+					free( pat.bv_val );
+				}
+
+				if ( !got_match ) {
 					continue;
+				}
 			}
 		}
 
@@ -716,8 +754,39 @@ acl_mask(
 						continue;
 					}
 				} else {
-					if ( ber_bvstrcasecmp( &b->a_domain_pat, &conn->c_peer_domain ) != 0 )
+					char buf[1024];
+
+					struct berval 	cmp = conn->c_peer_domain;
+					struct berval 	pat = b->a_domain_pat;
+
+					if ( b->a_domain_expand ) {
+						struct berval bv;
+
+						bv.bv_len = sizeof(buf);
+						bv.bv_val = buf;
+
+						string_expand(&bv, &b->a_domain_pat, e->e_ndn, matches);
+						pat = bv;
+					}
+
+					if ( b->a_domain_style == ACL_STYLE_SUBTREE ) {
+						int offset = cmp.bv_len - pat.bv_len;
+						if ( offset < 0 ) {
+							continue;
+						}
+
+						if ( offset == 1 || ( offset > 1 && cmp.bv_val[ offset - 1 ] != '.' ) ) {
+							continue;
+						}
+
+						/* trim the domain */
+						cmp.bv_val = &cmp.bv_val[ offset ];
+						cmp.bv_len -= offset;
+					}
+					
+					if ( ber_bvstrcasecmp( &pat, &cmp ) != 0 ) {
 						continue;
+					}
 				}
 			}
 		}
@@ -1776,16 +1845,38 @@ string_expand(
 	for ( dp = bv->bv_val, sp = pat->bv_val; size < bv->bv_len &&
 		sp < pat->bv_val + pat->bv_len ; sp++) {
 		/* did we previously see a $ */
-		if (flag) {
-			if (*sp == '$') {
+		if ( flag ) {
+			if ( flag == 1 && *sp == '$' ) {
 				*dp++ = '$';
 				size++;
-			} else if (*sp >= '0' && *sp <= '9' ) {
+				flag = 0;
+
+			} else if ( flag == 1 && *sp == '{') {
+				flag = 2;
+
+			} else if ( *sp >= '0' && *sp <= '9' ) {
 				int	n;
 				int	i;
 				int	l;
 
 				n = *sp - '0';
+
+				if ( flag == 2 ) {
+					for ( sp++; *sp != '\0' && *sp != /* { */ '}'; sp++ ) {
+						if ( *sp >= '0' && *sp <= '9' ) {
+							n = 10*n + ( *sp - '0' );
+						}
+					}
+
+					if ( *sp != /* { */ '}' ) {
+						/* error */
+					}
+				}
+
+				if ( n >= MAXREMATCHES ) {
+				
+				}
+				
 				*dp = '\0';
 				i = matches[n].rm_so;
 				l = matches[n].rm_eo; 
@@ -1793,8 +1884,9 @@ string_expand(
 					*dp++ = match[i];
 				}
 				*dp = '\0';
+
+				flag = 0;
 			}
-			flag = 0;
 		} else {
 			if (*sp == '$') {
 				flag = 1;
@@ -1805,7 +1897,7 @@ string_expand(
 		}
 	}
 
-	if (flag) {
+	if ( flag ) {
 		/* must have ended with a single $ */
 		*dp++ = '$';
 		size++;

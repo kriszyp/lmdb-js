@@ -69,7 +69,7 @@ LDAP_BEGIN_DECL
  */
 #define SLAP_MOD_SOFTADD	0x1000
 
-#define MAXREMATCHES (10)
+#define MAXREMATCHES (100)
 
 #define SLAP_MAX_WORKER_THREADS		(32)
 
@@ -911,6 +911,7 @@ typedef struct slap_access {
 	slap_style_t a_dn_style;
 	AttributeDescription	*a_dn_at;
 	int			a_dn_self;
+	int 			a_dn_expand;
 
 	slap_style_t a_peername_style;
 	struct berval	a_peername_pat;
@@ -919,6 +920,8 @@ typedef struct slap_access {
 
 	slap_style_t a_domain_style;
 	struct berval	a_domain_pat;
+	int		a_domain_expand;
+
 	slap_style_t a_sockurl_style;
 	struct berval	a_sockurl_pat;
 	slap_style_t a_set_style;

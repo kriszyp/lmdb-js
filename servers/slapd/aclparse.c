@@ -280,9 +280,14 @@ parse_acl(
 			/* get <who> */
 			for ( ; i < argc; i++ ) {
 				slap_style_t sty = ACL_STYLE_REGEX;
+				char *style_modifier = NULL;
+				int expand = 0;
 
 				split( argv[i], '=', &left, &right );
 				split( left, '.', &left, &style );
+				if ( style ) {
+					split( style, ',', &style, &style_modifier);
+				}
 				if ( style == NULL || *style == '\0'
 					|| strcasecmp( style, "regex" ) == 0 )
 				{
@@ -302,6 +307,10 @@ parse_acl(
 						"%s: line %d: unknown style \"%s\" in by clause\n",
 					    fname, lineno, style );
 					acl_usage();
+				}
+
+				if ( style_modifier && strcasecmp( style_modifier, "expand" ) == 0 ) {
+					expand = 1;
 				}
 
 				if ( strcasecmp( argv[i], "*" ) == 0 ) {
@@ -392,13 +401,14 @@ parse_acl(
 						acl_usage();
 					}
 
-					if ( sty != ACL_STYLE_REGEX ) {
+					if ( sty != ACL_STYLE_REGEX && expand == 0 ) {
 						dnNormalize2(NULL, &bv, &b->a_dn_pat);
 						free(bv.bv_val);
 					} else {
 						b->a_dn_pat = bv;
 					}
 					b->a_dn_style = sty;
+					b->a_dn_expand = expand;
 					continue;
 				}
 
@@ -443,16 +453,16 @@ parse_acl(
 					continue;
 				}
 
-				if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
-					fprintf( stderr,
-						"%s: line %d: inappropriate style \"%s\" in by clause\n",
-					    fname, lineno, style );
-					acl_usage();
-				}
-
 				if ( strncasecmp( left, "group", sizeof("group")-1 ) == 0 ) {
 					char *name = NULL;
 					char *value = NULL;
+
+					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
+						fprintf( stderr,
+							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						    fname, lineno, style );
+						acl_usage();
+					}
 
 					if ( right == NULL || right[ 0 ] == '\0' ) {
 						fprintf( stderr,
@@ -592,6 +602,13 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "peername" ) == 0 ) {
+					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
+						fprintf( stderr,
+							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						    fname, lineno, style );
+						acl_usage();
+					}
+
 					if ( right == NULL || right[ 0 ] == '\0' ) {
 						fprintf( stderr,
 							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
@@ -621,6 +638,13 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "sockname" ) == 0 ) {
+					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
+						fprintf( stderr,
+							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						    fname, lineno, style );
+						acl_usage();
+					}
+
 					if ( right == NULL || right[ 0 ] == '\0' ) {
 						fprintf( stderr,
 							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
@@ -650,6 +674,19 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "domain" ) == 0 ) {
+					switch ( sty ) {
+					case ACL_STYLE_REGEX:
+					case ACL_STYLE_BASE:
+					case ACL_STYLE_SUBTREE:
+						break;
+
+					default:
+						fprintf( stderr,
+							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						    fname, lineno, style );
+						acl_usage();
+					}
+
 					if ( right == NULL || right[ 0 ] == '\0' ) {
 						fprintf( stderr,
 							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
@@ -665,6 +702,7 @@ parse_acl(
 					}
 
 					b->a_domain_style = sty;
+					b->a_domain_expand = expand;
 					if (sty == ACL_STYLE_REGEX) {
 						bv.bv_val = right;
 						acl_regex_normalized_dn( &bv );
@@ -679,6 +717,13 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "sockurl" ) == 0 ) {
+					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
+						fprintf( stderr,
+							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						    fname, lineno, style );
+						acl_usage();
+					}
+
 					if ( right == NULL || right[ 0 ] == '\0' ) {
 						fprintf( stderr,
 							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
@@ -708,6 +753,13 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "set" ) == 0 ) {
+					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
+						fprintf( stderr,
+							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						    fname, lineno, style );
+						acl_usage();
+					}
+
 					if( b->a_set_pat.bv_len != 0 ) {
 						fprintf( stderr,
 							"%s: line %d: set attribute already specified.\n",
@@ -730,6 +782,13 @@ parse_acl(
 
 #ifdef SLAPD_ACI_ENABLED
 				if ( strcasecmp( left, "aci" ) == 0 ) {
+					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
+						fprintf( stderr,
+							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						    fname, lineno, style );
+						acl_usage();
+					}
+
 					if( b->a_aci_at != NULL ) {
 						fprintf( stderr,
 							"%s: line %d: aci attribute already specified.\n",
@@ -766,6 +825,13 @@ parse_acl(
 #endif /* SLAPD_ACI_ENABLED */
 
 				if ( strcasecmp( left, "ssf" ) == 0 ) {
+					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
+						fprintf( stderr,
+							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						    fname, lineno, style );
+						acl_usage();
+					}
+
 					if( b->a_authz.sai_ssf ) {
 						fprintf( stderr,
 							"%s: line %d: ssf attribute already specified.\n",
@@ -792,6 +858,13 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "transport_ssf" ) == 0 ) {
+					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
+						fprintf( stderr,
+							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						    fname, lineno, style );
+						acl_usage();
+					}
+
 					if( b->a_authz.sai_transport_ssf ) {
 						fprintf( stderr,
 							"%s: line %d: transport_ssf attribute already specified.\n",
@@ -818,6 +891,13 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "tls_ssf" ) == 0 ) {
+					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
+						fprintf( stderr,
+							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						    fname, lineno, style );
+						acl_usage();
+					}
+
 					if( b->a_authz.sai_tls_ssf ) {
 						fprintf( stderr,
 							"%s: line %d: tls_ssf attribute already specified.\n",
@@ -844,6 +924,13 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "sasl_ssf" ) == 0 ) {
+					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
+						fprintf( stderr,
+							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+						    fname, lineno, style );
+						acl_usage();
+					}
+
 					if( b->a_authz.sai_sasl_ssf ) {
 						fprintf( stderr,
 							"%s: line %d: sasl_ssf attribute already specified.\n",
