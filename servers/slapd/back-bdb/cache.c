@@ -679,10 +679,10 @@ load1:		if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
 					/* We don't wrap entire read operations in txn's, but
 					 * we need our cache entry lock and any DB page locks
 					 * to be associated, in order for deadlock detection
-					 * to work properly. So we use a long-lived per-thread
-					 * txn for this step.
+					 * to work properly. So if we need to read from the DB,
+					 * we use a long-lived per-thread txn for this step.
 					 */
-					if ( !tid ) {
+					if ( !ep && !tid ) {
 						rc = bdb_txn_get( op, bdb->bi_dbenv, &ltid );
 						if ( ltid )
 							locker2 = TXN_ID( ltid );
@@ -714,7 +714,7 @@ load1:		if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
 						/* Otherwise, release the lock. */
 						bdb_cache_entry_db_unlock( bdb->bi_dbenv, lock );
 					}
-					if ( !tid ) {
+					if ( locker2 != locker ) {
 						/* If we're using the per-thread txn, release all
 						 * of its page locks now.
 						 */
