@@ -1,16 +1,12 @@
 #!/bin/sh
-# $OpenLDAP$
-# This file is distributed with OpenLDAP Software, but is an
-# an independently licensed program.
-
 ##
 ##  GNU shtool -- The GNU Portable Shell Tool
-##  Copyright (c) 1994-2002 Ralf S. Engelschall <rse@engelschall.com>
+##  Copyright (c) 1994-2004 Ralf S. Engelschall <rse@engelschall.com>
 ##
 ##  See http://www.gnu.org/software/shtool/ for more information.
 ##  See ftp://ftp.gnu.org/gnu/shtool/ for latest version.
 ##
-##  Version:  1.6.2 (02-Nov-2002)
+##  Version:  2.0.1 (11-Aug-2004)
 ##  Contents: 6/19 available modules
 ##
 
@@ -57,7 +53,7 @@
 ##    fixperm    Fix file permissions inside a source tree
 ##    rotate     Logfile rotation
 ##    tarball    Roll distribution tarballs
-##    guessos    Simple operating system guesser
+##    platform   Platform Identification Utility
 ##    arx        Extended archive command
 ##    slo        Separate linker options by library class
 ##    scpp       Sharing C Pre-Processor
@@ -70,9 +66,9 @@ if [ $# -eq 0 ]; then
     echo "$0:Hint:  run \`$0 -h' for usage" 1>&2
     exit 1
 fi
-if [ ".$1" = ".-h" -o ".$1" = ".--help" ]; then
-    echo "This is GNU shtool, version 1.6.2 (02-Nov-2002)"
-    echo "Copyright (c) 1994-2002 Ralf S. Engelschall <rse@engelschall.com>"
+if [ ".$1" = ".-h" ] || [ ".$1" = ".--help" ]; then
+    echo "This is GNU shtool, version 2.0.1 (11-Aug-2004)"
+    echo "Copyright (c) 1994-2004 Ralf S. Engelschall <rse@engelschall.com>"
     echo "Report bugs to <bug-shtool@gnu.org>"
     echo ''
     echo "Usage: shtool [<options>] [<cmd-name> [<cmd-options>] [<cmd-args>]]"
@@ -84,7 +80,7 @@ if [ ".$1" = ".-h" -o ".$1" = ".--help" ]; then
     echo '  -r, --recreate  recreate this shtool script via shtoolize'
     echo ''
     echo 'Available <cmd-name> [<cmd-options>] [<cmd-args>]:'
-    echo '  echo     [-n|--newline] [-e|--expand] [<str> ...]'
+    echo '  echo     [-n|--newline] [-e|--expand] [<string> ...]'
     echo '  move     [-v|--verbose] [-t|--trace] [-e|--expand] [-p|--preserve]'
     echo '           <src-file> <dst-file>'
     echo '  install  [-v|--verbose] [-t|--trace] [-d|--mkdir] [-c|--copy]'
@@ -96,9 +92,10 @@ if [ ".$1" = ".-h" -o ".$1" = ".--help" ]; then
     echo '           [<dir> ...]'
     echo '  mkln     [-t|--trace] [-f|--force] [-s|--symbolic] <src-path>'
     echo '           [<src-path> ...] <dst-path>'
-    echo '  subst    [-v|--verbose] [-t|--trace] [-n|--nop] [-s|--stealth]'
-    echo '           [-i|--interactive] [-b|--backup <ext>] [-e|--exec <cmd>]'
-    echo '           [-f|--file <cmd-file>] [<file>] [...]'
+    echo '  subst    [-v|--verbose] [-t|--trace] [-n|--nop] [-w|--warning]'
+    echo '           [-q|--quiet] [-s|--stealth] [-i|--interactive] [-b|--backup'
+    echo '           <ext>] [-e|--exec <cmd>] [-f|--file <cmd-file>] [<file>]'
+    echo '           [...]'
     echo ''
     echo 'Not available <cmd-name> (because module was not built-in):'
     echo '  mdate    [-n|--newline] [-z|--zero] [-s|--shorten] [-d|--digits]'
@@ -111,14 +108,17 @@ if [ ".$1" = ".-h" -o ".$1" = ".--help" ]; then
     echo '  rotate   [-v|--verbose] [-t|--trace] [-f|--force] [-n|--num-files'
     echo '           <count>] [-s|--size <size>] [-c|--copy] [-r|--remove]'
     echo '           [-a|--archive-dir <dir>] [-z|--compress [<tool>:]<level>]'
-    echo '           [-b|--background] [-d|--delay] [-p|--pad <len>] [-o|--owner'
-    echo '           <owner>] [-g|--group <group>] [-m|--mode <mode>] [-M|--migrate'
+    echo '           [-b|--background] [-d|--delay] [-p|--pad <len>] [-m|--mode'
+    echo '           <mode>] [-o|--owner <owner>] [-g|--group <group>] [-M|--migrate'
     echo '           <cmd>] [-P|--prolog <cmd>] [-E|--epilog <cmd>] <file> [...]'
     echo '  tarball  [-t|--trace] [-v|--verbose] [-o|--output <tarball>]'
     echo '           [-c|--compress <prog>] [-d|--directory <dir>] [-u|--user'
     echo '           <user>] [-g|--group <group>] [-e|--exclude <pattern>]'
     echo '           <path> [<path> ...]'
-    echo '  guessos  '
+    echo '  platform [-F|--format <format>] [-S|--sep <string>] [-C|--conc'
+    echo '           <string>] [-L|--lower] [-U|--upper] [-v|--verbose]'
+    echo '           [-c|--concise] [-n|--no-newline] [-t|--type <type>]'
+    echo '           [-V|--version] [-h|--help]'
     echo '  arx      [-t|--trace] [-C|--command <cmd>] <op> <archive> [<file>'
     echo '           ...]'
     echo '  slo      [-p|--prefix <str>] -- -L<dir> -l<lib> [-L<dir> -l<lib>'
@@ -135,15 +135,15 @@ if [ ".$1" = ".-h" -o ".$1" = ".--help" ]; then
     echo ''
     exit 0
 fi
-if [ ".$1" = ".-v" -o ".$1" = ."--version" ]; then
-    echo "GNU shtool 1.6.2 (02-Nov-2002)"
+if [ ".$1" = ".-v" ] || [ ".$1" = ".--version" ]; then
+    echo "GNU shtool 2.0.1 (11-Aug-2004)"
     exit 0
 fi
-if [ ".$1" = ".-r" -o ".$1" = ."--recreate" ]; then
+if [ ".$1" = ".-r" ] || [ ".$1" = ".--recreate" ]; then
     shtoolize -obuild/shtool echo move install mkdir mkln subst
     exit 0
 fi
-if [ ".$1" = ".-d" -o ".$1" = ."--debug" ]; then
+if [ ".$1" = ".-d" ] || [ ".$1" = ".--debug" ]; then
     shift
     set -x
 fi
@@ -170,7 +170,7 @@ gen_tmpfile=no
 case $tool in
     echo )
         str_tool="echo"
-        str_usage="[-n|--newline] [-e|--expand] [<str> ...]"
+        str_usage="[-n|--newline] [-e|--expand] [<string> ...]"
         arg_spec="0+"
         opt_spec="n.e."
         opt_alias="n:newline,e:expand"
@@ -230,14 +230,16 @@ case $tool in
         ;;
     subst )
         str_tool="subst"
-        str_usage="[-v|--verbose] [-t|--trace] [-n|--nop] [-s|--stealth] [-i|--interactive] [-b|--backup <ext>] [-e|--exec <cmd>] [-f|--file <cmd-file>] [<file>] [...]"
+        str_usage="[-v|--verbose] [-t|--trace] [-n|--nop] [-w|--warning] [-q|--quiet] [-s|--stealth] [-i|--interactive] [-b|--backup <ext>] [-e|--exec <cmd>] [-f|--file <cmd-file>] [<file>] [...]"
         gen_tmpfile=yes
         arg_spec="0+"
-        opt_spec="v.t.n.s.i.b:e+f:"
-        opt_alias="v:verbose,t:trace,n:nop,s:stealth,i:interactive,b:backup,e:exec,f:file"
+        opt_spec="v.t.n.w.q.s.i.b:e+f:"
+        opt_alias="v:verbose,t:trace,n:nop,w:warning,q:quiet,s:stealth,i:interactive,b:backup,e:exec,f:file"
         opt_v=no
         opt_t=no
         opt_n=no
+        opt_w=no
+        opt_q=no
         opt_s=no
         opt_i=no
         opt_b=""
@@ -288,7 +290,7 @@ eval `echo h.$opt_spec |\
 
 #   parse option alias string
 eval `echo h:help,$opt_alias |\
-      tr 'x-' 'x_' | sed -e 's/\([a-zA-Z0-9]\):\([^,]*\),*/opt_ALIAS_\2=\1;/g'`
+      sed -e 's/-/_/g' -e 's/\([a-zA-Z0-9]\):\([^,]*\),*/opt_ALIAS_\2=\1;/g'`
 
 #   interate over argument line
 opt_PREV=''
@@ -313,12 +315,12 @@ while [ $# -gt 0 ]; do
             --[a-zA-Z0-9]*=*)
                 eval `echo "x$1" |\
                       sed -e 's/^x--\([a-zA-Z0-9-]*\)=\(.*\)$/opt_OPT="\1";opt_ARG="\2"/'`
-                opt_STR=`echo $opt_OPT | tr 'x-' 'x_'`
+                opt_STR=`echo $opt_OPT | sed -e 's/-/_/g'`
                 eval "opt_OPT=\${opt_ALIAS_${opt_STR}-${opt_OPT}}"
                 ;;
             --[a-zA-Z0-9]*)
                 opt_OPT=`echo "x$1" | cut -c4-`
-                opt_STR=`echo $opt_OPT | tr 'x-' 'x_'`
+                opt_STR=`echo $opt_OPT | sed -e 's/-/_/g'`
                 eval "opt_OPT=\${opt_ALIAS_${opt_STR}-${opt_OPT}}"
                 opt_ARG=''
                 ;;
@@ -342,8 +344,8 @@ while [ $# -gt 0 ]; do
 
     #   determine whether option needs an argument
     eval "opt_MODE=\$opt_MODE_${opt_OPT}"
-    if [ ".$opt_ARG" = . -a ".$opt_ARG_OK" != .yes ]; then
-        if [ ".$opt_MODE" = ".:" -o ".$opt_MODE" = ".+" ]; then
+    if [ ".$opt_ARG" = . ] && [ ".$opt_ARG_OK" != .yes ]; then
+        if [ ".$opt_MODE" = ".:" ] || [ ".$opt_MODE" = ".+" ]; then
             opt_PREV="$opt_OPT"
             continue
         fi
@@ -415,6 +417,25 @@ if [ ".$gen_tmpfile" = .yes ]; then
     chmod 600 $tmpfile
 fi
 
+#   utility function: map string to lower case
+util_lower () {
+    echo "$1" | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz'
+}
+
+#   utility function: map string to upper case
+util_upper () {
+    echo "$1" | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+}
+
+#   cleanup procedure
+shtool_exit () {
+    rc="$1"
+    if [ ".$gen_tmpfile" = .yes ]; then
+        rm -f $tmpfile >/dev/null 2>&1 || true
+    fi
+    exit $rc
+}
+
 ##
 ##  DISPATCH INTO SCRIPT BODY
 ##
@@ -424,12 +445,11 @@ case $tool in
 echo )
     ##
     ##  echo -- Print string with optional construct expansion
-    ##  Copyright (c) 1998-2002 Ralf S. Engelschall <rse@engelschall.com>
-    ##  Originally written for WML as buildinfo
+    ##  Copyright (c) 1998-2004 Ralf S. Engelschall <rse@engelschall.com>
     ##
-    
+
     text="$*"
-    
+
     #   check for broken escape sequence expansion
     seo=''
     bytes=`echo '\1' | wc -c | awk '{ printf("%s", $1); }'`
@@ -439,18 +459,18 @@ echo )
             seo='-E'
         fi
     fi
-    
+
     #   check for existing -n option (to suppress newline)
     minusn=''
     bytes=`echo -n 123 2>/dev/null | wc -c | awk '{ printf("%s", $1); }'`
     if [ ".$bytes" = .3 ]; then
         minusn='-n'
     fi
-    
+
     #   determine terminal bold sequence
     term_bold=''
     term_norm=''
-    if [ ".$opt_e" = .yes -a ".`echo $text | egrep '%[Bb]'`" != . ]; then
+    if [ ".$opt_e" = .yes ] && [ ".`echo $text | grep '%[Bb]'`" != . ]; then
         case $TERM in
             #   for the most important terminal types we directly know the sequences
             xterm|xterm*|vt220|vt220*)
@@ -486,96 +506,139 @@ echo )
                             break
                         fi
                     done
-                    if [ ".$term_bold" != . -a ".$term_norm" != . ]; then
+                    if [ ".$term_bold" != . ] && [ ".$term_norm" != . ]; then
                         break;
                     fi
                 done
                 ;;
         esac
-        if [ ".$term_bold" = . -o ".$term_norm" = . ]; then
+        if [ ".$term_bold" = . ] || [ ".$term_norm" = . ]; then
             echo "$msgprefix:Warning: unable to determine terminal sequence for bold mode" 1>&2
             term_bold=''
             term_norm=''
         fi
     fi
-    
+
     #   determine user name
     username=''
-    if [ ".$opt_e" = .yes -a ".`echo $text | egrep '%[uUgG]'`" != . ]; then
-        username="$LOGNAME"
+    if [ ".$opt_e" = .yes ] && [ ".`echo $text | grep '%[uUgG]'`" != . ]; then
+        username="`(id -un) 2>/dev/null`"
         if [ ".$username" = . ]; then
-            username="$USER"
-            if [ ".$username" = . ]; then
-                username="`(whoami) 2>/dev/null |\
-                           awk '{ printf("%s", $1); }'`"
-                if [ ".$username" = . ]; then
-                    username="`(who am i) 2>/dev/null |\
-                               awk '{ printf("%s", $1); }'`"
-                    if [ ".$username" = . ]; then
-                        username='unknown'
-                    fi
-                fi
-            fi
-        fi
-    fi
-    
-    #   determine user id
-    userid=''
-    if [ ".$opt_e" = .yes -a ".`echo $text | egrep '%U'`" != . ]; then
-        userid="`(id -u) 2>/dev/null`"
-        if [ ".$userid" = . ]; then
             str="`(id) 2>/dev/null`"
             if [ ".`echo $str | grep '^uid[ 	]*=[ 	]*[0-9]*('`" != . ]; then
-                userid=`echo $str | sed -e 's/^uid[ 	]*=[ 	]*//' -e 's/(.*//'`
+                username=`echo $str | sed -e 's/^uid[ 	]*=[ 	]*[0-9]*(//' -e 's/).*$//'`
             fi
-            if [ ".$userid" = . ]; then
-                userid=`egrep "^${username}:" /etc/passwd 2>/dev/null | \
-                        sed -e 's/[^:]*:[^:]*://' -e 's/:.*$//'`
-                if [ ".$userid" = . ]; then
-                    userid=`(ypcat passwd) 2>/dev/null |
-                            egrep "^${username}:" | \
-                            sed -e 's/[^:]*:[^:]*://' -e 's/:.*$//'`
-                    if [ ".$userid" = . ]; then
-                        userid='?'
+            if [ ".$username" = . ]; then
+                username="$LOGNAME"
+                if [ ".$username" = . ]; then
+                    username="$USER"
+                    if [ ".$username" = . ]; then
+                        username="`(whoami) 2>/dev/null |\
+                                   awk '{ printf("%s", $1); }'`"
+                        if [ ".$username" = . ]; then
+                            username="`(who am i) 2>/dev/null |\
+                                       awk '{ printf("%s", $1); }'`"
+                            if [ ".$username" = . ]; then
+                                username='unknown'
+                            fi
+                        fi
                     fi
                 fi
             fi
         fi
     fi
-    
+
+    #   determine user id
+    userid=''
+    if [ ".$opt_e" = .yes ] && [ ".`echo $text | grep '%U'`" != . ]; then
+        userid="`(id -u) 2>/dev/null`"
+        if [ ".$userid" = . ]; then
+            userid="`(id -u ${username}) 2>/dev/null`"
+            if [ ".$userid" = . ]; then
+                str="`(id) 2>/dev/null`"
+                if [ ".`echo $str | grep '^uid[ 	]*=[ 	]*[0-9]*('`" != . ]; then
+                    userid=`echo $str | sed -e 's/^uid[ 	]*=[ 	]*//' -e 's/(.*$//'`
+                fi
+                if [ ".$userid" = . ]; then
+                    userid=`(getent passwd ${username}) 2>/dev/null | \
+                            sed -e 's/[^:]*:[^:]*://' -e 's/:.*$//'`
+                    if [ ".$userid" = . ]; then
+                        userid=`grep "^${username}:" /etc/passwd 2>/dev/null | \
+                                sed -e 's/[^:]*:[^:]*://' -e 's/:.*$//'`
+                        if [ ".$userid" = . ]; then
+                            userid=`(ypcat passwd) 2>/dev/null |
+                                    grep "^${username}:" | \
+                                    sed -e 's/[^:]*:[^:]*://' -e 's/:.*$//'`
+                            if [ ".$userid" = . ]; then
+                                userid='?'
+                            fi
+                        fi
+                    fi
+                fi
+            fi
+        fi
+    fi
+
     #   determine (primary) group id
     groupid=''
-    if [ ".$opt_e" = .yes -a ".`echo $text | egrep '%[gG]'`" != . ]; then
-        groupid=`egrep "^${username}:" /etc/passwd 2>/dev/null | \
-                 sed -e 's/[^:]*:[^:]*:[^:]*://' -e 's/:.*$//'`
+    if [ ".$opt_e" = .yes ] && [ ".`echo $text | grep '%[gG]'`" != . ]; then
+        groupid="`(id -g ${username}) 2>/dev/null`"
         if [ ".$groupid" = . ]; then
-            groupid=`(ypcat passwd) 2>/dev/null | egrep "^${username}:" | \
-                     sed -e 's/[^:]*:[^:]*:[^:]*://' -e 's/:.*$//'`
+            str="`(id) 2>/dev/null`"
+            if [ ".`echo $str | grep 'gid[ 	]*=[ 	]*[0-9]*('`" != . ]; then
+                groupid=`echo $str | sed -e 's/^.*gid[ 	]*=[ 	]*//' -e 's/(.*$//'`
+            fi
             if [ ".$groupid" = . ]; then
-                groupid='?'
+                groupid=`(getent passwd ${username}) 2>/dev/null | \
+                         sed -e 's/[^:]*:[^:]*:[^:]*://' -e 's/:.*$//'`
+                if [ ".$groupid" = . ]; then
+                    groupid=`grep "^${username}:" /etc/passwd 2>/dev/null | \
+                             sed -e 's/[^:]*:[^:]*:[^:]*://' -e 's/:.*$//'`
+                    if [ ".$groupid" = . ]; then
+                        groupid=`(ypcat passwd) 2>/dev/null | grep "^${username}:" | \
+                                 sed -e 's/[^:]*:[^:]*:[^:]*://' -e 's/:.*$//'`
+                        if [ ".$groupid" = . ]; then
+                            groupid='?'
+                        fi
+                    fi
+                fi
             fi
         fi
     fi
-    
+
     #   determine (primary) group name
     groupname=''
-    if [ ".$opt_e" = .yes -a ".`echo $text | egrep '%g'`" != . ]; then
-        groupname=`egrep "^[^:]*:[^:]*:${groupid}:" /etc/group 2>/dev/null | \
-                   sed -e 's/:.*$//'`
+    if [ ".$opt_e" = .yes ] && [ ".`echo $text | grep '%g'`" != . ]; then
+        groupname="`(id -gn ${username}) 2>/dev/null`"
         if [ ".$groupname" = . ]; then
-            groupname=`(ypcat group) 2>/dev/null | \
-                       egrep "^[^:]*:[^:]*:${groupid}:" | \
-                       sed -e 's/:.*$//'`
+            str="`(id) 2>/dev/null`"
+            if [ ".`echo $str | grep 'gid[ 	]*=[ 	]*[0-9]*('`" != . ]; then
+                groupname=`echo $str | sed -e 's/^.*gid[ 	]*=[ 	]*[0-9]*(//' -e 's/).*$//'`
+            fi
             if [ ".$groupname" = . ]; then
-                groupname='?'
+                groupname=`(getent group) 2>/dev/null | \
+                           grep "^[^:]*:[^:]*:${groupid}:" | \
+                           sed -e 's/:.*$//'`
+                if [ ".$groupname" = . ]; then
+                    groupname=`grep "^[^:]*:[^:]*:${groupid}:" /etc/group 2>/dev/null | \
+                               sed -e 's/:.*$//'`
+                    if [ ".$groupname" = . ]; then
+                        groupname=`(ypcat group) 2>/dev/null | \
+                                   grep "^[^:]*:[^:]*:${groupid}:" | \
+                                   sed -e 's/:.*$//'`
+                        if [ ".$groupname" = . ]; then
+                            groupname='?'
+                        fi
+                    fi
+                fi
             fi
         fi
     fi
-    
+
     #   determine host and domain name
     hostname=''
     domainname=''
-    if [ ".$opt_e" = .yes -a ".`echo $text | egrep '%h'`" != . ]; then
+    if [ ".$opt_e" = .yes ] && [ ".`echo $text | grep '%h'`" != . ]; then
         hostname="`(uname -n) 2>/dev/null |\
                    awk '{ printf("%s", $1); }'`"
         if [ ".$hostname" = . ]; then
@@ -592,16 +655,16 @@ echo )
                 ;;
         esac
     fi
-    if [ ".$opt_e" = .yes -a ".`echo $text | egrep '%d'`" != . ]; then
+    if [ ".$opt_e" = .yes ] && [ ".`echo $text | grep '%d'`" != . ]; then
         if [ ".$domainname" = . ]; then
             if [ -f /etc/resolv.conf ]; then
-                domainname="`egrep '^[ 	]*domain' /etc/resolv.conf | sed -e 'q' |\
+                domainname="`grep '^[ 	]*domain' /etc/resolv.conf | sed -e 'q' |\
                              sed -e 's/.*domain//' \
                                  -e 's/^[ 	]*//' -e 's/^ *//' -e 's/^	*//' \
                                  -e 's/^\.//' -e 's/^/./' |\
                              awk '{ printf("%s", $1); }'`"
                 if [ ".$domainname" = . ]; then
-                    domainname="`egrep '^[ 	]*search' /etc/resolv.conf | sed -e 'q' |\
+                    domainname="`grep '^[ 	]*search' /etc/resolv.conf | sed -e 'q' |\
                                  sed -e 's/.*search//' \
                                      -e 's/^[ 	]*//' -e 's/^ *//' -e 's/^	*//' \
                                      -e 's/ .*//' -e 's/	.*//' \
@@ -611,13 +674,13 @@ echo )
             fi
         fi
     fi
-    
+
     #   determine current time
     time_day=''
     time_month=''
     time_year=''
     time_monthname=''
-    if [ ".$opt_e" = .yes -a ".`echo $text | egrep '%[DMYm]'`" != . ]; then
+    if [ ".$opt_e" = .yes ] && [ ".`echo $text | grep '%[DMYm]'`" != . ]; then
         time_day=`date '+%d'`
         time_month=`date '+%m'`
         time_year=`date '+%Y' 2>/dev/null`
@@ -643,7 +706,7 @@ echo )
               12) time_monthname='Dec' ;;
         esac
     fi
-    
+
     #   expand special ``%x'' constructs
     if [ ".$opt_e" = .yes ]; then
         text=`echo $seo "$text" |\
@@ -660,7 +723,7 @@ echo )
                   -e "s/%Y/${time_year}/g" \
                   -e "s/%m/${time_monthname}/g" 2>/dev/null`
     fi
-    
+
     #   create output
     if [ .$opt_n = .no ]; then
         echo $seo "$text"
@@ -673,26 +736,27 @@ echo )
             echo dummy | awk '{ printf("%s", TEXT); }' TEXT="$text"
         fi
     fi
+
+    shtool_exit 0
     ;;
 
 move )
     ##
     ##  move -- Move files with simultaneous substitution
-    ##  Copyright (c) 1999-2002 Ralf S. Engelschall <rse@engelschall.com>
-    ##  Originally written for shtool
+    ##  Copyright (c) 1999-2004 Ralf S. Engelschall <rse@engelschall.com>
     ##
-    
+
     src="$1"
     dst="$2"
-    
+
     #   consistency checks
-    if [ ".$src" = . -o ".$dst" = . ]; then
+    if [ ".$src" = . ] || [ ".$dst" = . ]; then
         echo "$msgprefix:Error: Invalid arguments" 1>&2
-        exit 1
+        shtool_exit 1
     fi
     if [ ".$src" = ".$dst" ]; then
         echo "$msgprefix:Error: Source and destination files are the same" 1>&2
-        exit 1
+        shtool_exit 1
     fi
     expsrc="$src"
     if [ ".$opt_e" = .yes ]; then
@@ -701,29 +765,29 @@ move )
     if [ ".$opt_e" = .yes ]; then
         if [ ".`echo "$src" | sed -e 's;^.*\\*.*$;;'`" = ".$src" ]; then
             echo "$msgprefix:Error: Source doesn't contain wildcard ('*'): $dst" 1>&2
-            exit 1
+            shtool_exit 1
         fi
         if [ ".`echo "$dst" | sed -e 's;^.*%[1-9].*$;;'`" = ".$dst" ]; then
             echo "$msgprefix:Error: Destination doesn't contain substitution ('%N'): $dst" 1>&2
-            exit 1
+            shtool_exit 1
         fi
         if [ ".$expsrc" = ".$src" ]; then
             echo "$msgprefix:Error: Sources not found or no asterisk : $src" 1>&2
-            exit 1
+            shtool_exit 1
         fi
     else
         if [ ! -r "$src" ]; then
             echo "$msgprefix:Error: Source not found: $src" 1>&2
-            exit 1
+            shtool_exit 1
         fi
     fi
-    
+
     #   determine substitution patterns
     if [ ".$opt_e" = .yes ]; then
         srcpat=`echo "$src" | sed -e 's/\\./\\\\./g' -e 's/;/\\;/g' -e 's;\\*;\\\\(.*\\\\);g'`
         dstpat=`echo "$dst" | sed -e 's;%\([1-9]\);\\\\\1;g'`
     fi
-    
+
     #   iterate over source(s)
     for onesrc in $expsrc; do
         if [ .$opt_e = .yes ]; then
@@ -764,16 +828,16 @@ move )
             break;
         fi
     done
-    exit $errorstatus
+
+    shtool_exit $errorstatus
     ;;
 
 install )
     ##
     ##  install -- Install a program, script or datafile
-    ##  Copyright (c) 1997-2002 Ralf S. Engelschall <rse@engelschall.com>
-    ##  Originally written for shtool
+    ##  Copyright (c) 1997-2004 Ralf S. Engelschall <rse@engelschall.com>
     ##
-    
+
     #   special case: "shtool install -d <dir> [...]" internally
     #   maps to "shtool mkdir -f -p -m 755 <dir> [...]"
     if [ "$opt_d" = yes ]; then
@@ -791,11 +855,11 @@ install )
             cmd="$cmd -t"
         fi
         for dir in "$@"; do
-            eval "$cmd $dir" || exit $?
+            eval "$cmd $dir" || shtool_exit $?
         done
-        exit 0
+        shtool_exit 0
     fi
-    
+
     #   determine source(s) and destination
     argc=$#
     srcs=""
@@ -804,30 +868,30 @@ install )
         shift
     done
     dstpath="$1"
-    
+
     #   type check for destination
     dstisdir=0
     if [ -d $dstpath ]; then
         dstpath=`echo "$dstpath" | sed -e 's:/$::'`
         dstisdir=1
     fi
-    
+
     #   consistency check for destination
-    if [ $argc -gt 2 -a $dstisdir = 0 ]; then
+    if [ $argc -gt 2 ] && [ $dstisdir = 0 ]; then
         echo "$msgprefix:Error: multiple sources require destination to be directory" 1>&2
-        exit 1
+        shtool_exit 1
     fi
-    
+
     #   iterate over all source(s)
     for src in $srcs; do
         dst=$dstpath
-    
+
         #   if destination is a directory, append the input filename
         if [ $dstisdir = 1 ]; then
             dstfile=`echo "$src" | sed -e 's;.*/\([^/]*\)$;\1;'`
             dst="$dst/$dstfile"
         fi
-    
+
         #   check for correct arguments
         if [ ".$src" = ".$dst" ]; then
             echo "$msgprefix:Warning: source and destination are the same - skipped" 1>&2
@@ -837,17 +901,17 @@ install )
             echo "$msgprefix:Warning: source \`$src' is a directory - skipped" 1>&2
             continue
         fi
-    
+
         #   make a temp file name in the destination directory
         dsttmp=`echo $dst |\
                 sed -e 's;[^/]*$;;' -e 's;\(.\)/$;\1;' -e 's;^$;.;' \
                     -e "s;\$;/#INST@$$#;"`
-    
+
         #   verbosity
         if [ ".$opt_v" = .yes ]; then
             echo "$src -> $dst" 1>&2
         fi
-    
+
         #   copy or move the file name to the temp name
         #   (because we might be not allowed to change the source)
         if [ ".$opt_C" = .yes ]; then
@@ -857,14 +921,14 @@ install )
             if [ ".$opt_t" = .yes ]; then
                 echo "cp $src $dsttmp" 1>&2
             fi
-            cp $src $dsttmp || exit $?
+            cp $src $dsttmp || shtool_exit $?
         else
             if [ ".$opt_t" = .yes ]; then
                 echo "mv $src $dsttmp" 1>&2
             fi
-            mv $src $dsttmp || exit $?
+            mv $src $dsttmp || shtool_exit $?
         fi
-    
+
         #   adjust the target file
         if [ ".$opt_e" != . ]; then
             sed='sed'
@@ -874,34 +938,35 @@ install )
                 sed="$sed -e '$e'"
             done
             cp $dsttmp $dsttmp.old
-            eval "$sed <$dsttmp.old >$dsttmp" || exit $?
+            chmod u+w $dsttmp
+            eval "$sed <$dsttmp.old >$dsttmp" || shtool_exit $?
             rm -f $dsttmp.old
         fi
         if [ ".$opt_s" = .yes ]; then
             if [ ".$opt_t" = .yes ]; then
                 echo "strip $dsttmp" 1>&2
             fi
-            strip $dsttmp || exit $?
+            strip $dsttmp || shtool_exit $?
         fi
         if [ ".$opt_o" != . ]; then
             if [ ".$opt_t" = .yes ]; then
                 echo "chown $opt_o $dsttmp" 1>&2
             fi
-            chown $opt_o $dsttmp || exit $?
+            chown $opt_o $dsttmp || shtool_exit $?
         fi
         if [ ".$opt_g" != . ]; then
             if [ ".$opt_t" = .yes ]; then
                 echo "chgrp $opt_g $dsttmp" 1>&2
             fi
-            chgrp $opt_g $dsttmp || exit $?
+            chgrp $opt_g $dsttmp || shtool_exit $?
         fi
         if [ ".$opt_m" != ".-" ]; then
             if [ ".$opt_t" = .yes ]; then
                 echo "chmod $opt_m $dsttmp" 1>&2
             fi
-            chmod $opt_m $dsttmp || exit $?
+            chmod $opt_m $dsttmp || shtool_exit $?
         fi
-    
+
         #   determine whether to do a quick install
         #   (has to be done _after_ the strip was already done)
         quick=no
@@ -912,7 +977,7 @@ install )
                 fi
             fi
         fi
-    
+
         #   finally, install the file to the real destination
         if [ $quick = yes ]; then
             if [ ".$opt_t" = .yes ]; then
@@ -926,21 +991,21 @@ install )
             rm -f $dst && mv $dsttmp $dst
         fi
     done
+
+    shtool_exit 0
     ;;
 
 mkdir )
     ##
     ##  mkdir -- Make one or more directories
-    ##  Copyright (c) 1996-2002 Ralf S. Engelschall <rse@engelschall.com>
-    ##  Originally written for public domain by Noah Friedman <friedman@prep.ai.mit.edu>
-    ##  Cleaned up and enhanced for shtool
+    ##  Copyright (c) 1996-2004 Ralf S. Engelschall <rse@engelschall.com>
     ##
-    
+
     errstatus=0
     for p in ${1+"$@"}; do
         #   if the directory already exists...
         if [ -d "$p" ]; then
-            if [ ".$opt_f" = .no -a ".$opt_p" = .no ]; then
+            if [ ".$opt_f" = .no ] && [ ".$opt_p" = .no ]; then
                 echo "$msgprefix:Error: directory already exists: $p" 1>&2
                 errstatus=1
                 break
@@ -1014,16 +1079,17 @@ mkdir )
             done
         fi
     done
-    exit $errstatus
+
+    shtool_exit $errstatus
     ;;
 
 mkln )
     ##
     ##  mkln -- Make link with calculation of relative paths
-    ##  Copyright (c) 1999-2002 Ralf S. Engelschall <rse@engelschall.com>
-    ##  Originally written for shtool
+    ##  Copyright (c) 1998-2004 Ralf S. Engelschall <rse@engelschall.com>
     ##
-    
+
+    #   determine source(s) and destination
     args=$?
     srcs=""
     while [ $# -gt 1 ]; do
@@ -1034,10 +1100,10 @@ mkln )
     if [ ! -d $dst ]; then
         if [ $args -gt 2 ]; then
             echo "$msgprefix:Error: multiple sources not allowed when target isn't a directory" 1>&2
-            exit 1
+            shtool_exit 1
         fi
     fi
-    
+
     #   determine link options
     lnopt=""
     if [ ".$opt_f" = .yes ]; then
@@ -1046,7 +1112,7 @@ mkln )
     if [ ".$opt_s" = .yes ]; then
         lnopt="$lnopt -s"
     fi
-    
+
     #   iterate over sources
     for src in $srcs; do
         #   determine if one of the paths is an absolute path,
@@ -1060,7 +1126,7 @@ mkln )
         case $dst in
             /* ) oneisabs=1; dstisabs=1 ;;
         esac
-    
+
         #   split source and destination into dir and base name
         if [ -d $src ]; then
             srcdir=`echo $src | sed -e 's;/*$;;'`
@@ -1076,34 +1142,38 @@ mkln )
             dstdir=`echo  $dst | sed -e 's;^[^/]*$;;' -e 's;^\(.*/\)[^/]*$;\1;' -e 's;\(.\)/$;\1;'`
             dstbase=`echo $dst | sed -e 's;.*/\([^/]*\)$;\1;'`
         fi
-    
+
         #   consistency check
         if [ ".$dstdir" != . ]; then
             if [ ! -d $dstdir ]; then
                 echo "$msgprefix:Error: destination directory not found: $dstdir" 1>&2
-                exit 1
+                shtool_exit 1
             fi
         fi
-    
+
         #   make sure the source is reachable from the destination
         if [ $dstisabs = 1 ]; then
             if [ $srcisabs = 0 ]; then
-                if [ -d $srcdir ]; then
+                if [ ".$srcdir" = . ]; then
+                    srcdir="`pwd | sed -e 's;/*$;;'`"
+                    srcisabs=1
+                    oneisabs=1
+                elif [ -d $srcdir ]; then
                     srcdir="`cd $srcdir; pwd | sed -e 's;/*$;;'`"
                     srcisabs=1
                     oneisabs=1
                 fi
             fi
         fi
-    
+
         #   split away a common prefix
         prefix=""
-        if [ ".$srcdir" = ".$dstdir" -a ".$srcdir" != . ]; then
+        if [ ".$srcdir" = ".$dstdir" ] && [ ".$srcdir" != . ]; then
             prefix="$srcdir/"
             srcdir=""
             dstdir=""
         else
-            while [ ".$srcdir" != . -a ".$dstdir" != . ]; do
+            while [ ".$srcdir" != . ] && [ ".$dstdir" != . ]; do
                 presrc=`echo $srcdir | sed -e 's;^\([^/]*\)/.*;\1;'`
                 predst=`echo $dstdir | sed -e 's;^\([^/]*\)/.*;\1;'`
                 if [ ".$presrc" != ".$predst" ]; then
@@ -1114,18 +1184,24 @@ mkln )
                 dstdir=`echo $dstdir | sed -e 's;^[^/]*/*;;'`
             done
         fi
-    
+
         #   destination prefix is just the common prefix
         dstpre="$prefix"
-    
+
         #   determine source prefix which is the reverse directory
         #   step-up corresponding to the destination directory
         srcpre=""
-        if [ $oneisabs = 0 ] || [ ".$prefix" != . -a ".$prefix" != ./ ]; then
+
+        isroot=0
+        if [ ".$prefix" = . ] || [ ".$prefix" = ./ ]; then
+            isroot=1
+        fi
+        if [ $oneisabs = 0 ] || [ $isroot = 0 ]; then
             pl="$dstdir/"
             OIFS="$IFS"; IFS='/'
             for pe in $pl; do
-                [ ".$pe" = . ] && continue
+                [ ".$pe" = .  ] && continue
+                [ ".$pe" = .. ] && continue
                 srcpre="../$srcpre"
             done
             IFS="$OIFS"
@@ -1134,7 +1210,7 @@ mkln )
                 srcpre="$prefix"
             fi
         fi
-    
+
         #   determine destination symlink name
         if [ ".$dstbase" = . ]; then
             if [ ".$srcbase" != . ]; then
@@ -1143,74 +1219,77 @@ mkln )
                 dstbase=`echo "$prefix$srcdir" | sed -e 's;/*$;;' -e 's;.*/\([^/]*\)$;\1;'`
             fi
         fi
-    
+
         #   now finalize source and destination directory paths
         srcdir=`echo $srcdir | sed -e 's;\([^/]\)$;\1/;'`
         dstdir=`echo $dstdir | sed -e 's;\([^/]\)$;\1/;'`
-    
+
         #   run the final link command
         if [ ".$opt_t" = .yes ]; then
             echo "ln$lnopt $srcpre$srcdir$srcbase $dstpre$dstdir$dstbase"
         fi
         eval ln$lnopt $srcpre$srcdir$srcbase $dstpre$dstdir$dstbase
     done
+
+    shtool_exit 0
     ;;
 
 subst )
     ##
     ##  subst -- Apply sed(1) substitution operations
-    ##  Copyright (c) 2001-2002 Ralf S. Engelschall <rse@engelschall.com>
-    ##  Originally written for OpenPKG's rpmtool
+    ##  Copyright (c) 2001-2004 Ralf S. Engelschall <rse@engelschall.com>
     ##
-    
+
     #   remember optional list of file(s)
     files="$*"
-    
+    files_num="$#"
+
     #   parameter consistency check
-    if [ $# -eq 0 -a ".$opt_b" != . ]; then
+    if [ $# -eq 0 ] && [ ".$opt_b" != . ]; then
         echo "$msgprefix:Error: option -b cannot be applied to stdin" 1>&2
-        exit 1
+        shtool_exit 1
     fi
-    if [ $# -eq 0 -a ".$opt_s" = .yes ]; then
+    if [ $# -eq 0 ] && [ ".$opt_s" = .yes ]; then
         echo "$msgprefix:Error: option -s cannot be applied to stdin" 1>&2
-        exit 1
+        shtool_exit 1
     fi
-    
+
     #   build underlying sed(1) command
     sedcmd='sed'
     if [ ".$opt_e" != . ]; then
         OIFS="$IFS"; IFS="$ASC_NL"; set -- $opt_e; IFS="$OIFS"
         for e
         do
-            sedcmd="$sedcmd -e '$e'" 
+            sedcmd="$sedcmd -e '$e'"
         done
     elif [ ".$opt_f" != . ]; then
         if [ ! -f $opt_f ]; then
             echo "$msgprefix:Error: command file \`$opt_f' not found or not a regular file" 1>&2
-            exit 1
+            shtool_exit 1
         fi
         sedcmd="$sedcmd -f '$opt_f'"
     else
         echo "$msgprefix:Error: either -e option(s) or -f option required" 1>&2
-        exit 1
+        shtool_exit 1
     fi
-    
+
     #   determine extension for original file
     orig=".orig"
     if [ ".$opt_b" != . ]; then
         orig="$opt_b"
     fi
-    
+
     #   apply sed(1) operation(s)
     if [ ".$files" != . ]; then
         #   apply operation(s) to files
+        substdone=no
         for file in $files; do
             test ".$file" = . && continue
             if [ ! -f $file ]; then
                 echo "$msgprefix:Warning: file \`$file' not found or not a regular file" 1>&2
                 continue
             fi
-    
+
             #   handle interactive mode
             if [ ".$opt_i" = .yes ]; then
                 eval "$sedcmd <$file >$file.new"
@@ -1244,20 +1323,22 @@ subst )
                     continue
                 fi
             fi
-    
+
             #   apply sed(1) operation(s)
             if [ ".$opt_v" = .yes ]; then
                 echo "patching \`$file'" 1>&2
             fi
             if [ ".$opt_t" = .yes ]; then
                 echo "\$ cp -p $file $file$orig"
+                echo "\$ chmod u+w $file"
                 echo "\$ $sedcmd <$file$orig >$file"
             fi
             if [ ".$opt_n" = .no ]; then
                 cp -p $file $file$orig
+                chmod u+w $file >/dev/null 2>&1 || true
                 eval "$sedcmd <$file$orig >$file"
             fi
-    
+
             #   optionally fix timestamp
             if [ ".$opt_s" = .yes ]; then
                 if [ ".$opt_t" = .yes ]; then
@@ -1267,7 +1348,18 @@ subst )
                     touch -r $file$orig $file
                 fi
             fi
-    
+
+            #   optionally check whether any content change actually occurred 
+            if [ ".$opt_q" = .no ]; then
+                if cmp $file$orig $file >/dev/null 2>&1; then
+                    if [ ".$opt_w" = .yes ]; then
+                        echo "$msgprefix:Warning: substitution resulted in no content change on file \"$file\"" 1>&2
+                    fi
+                else
+                    substdone=yes
+                fi
+            fi
+
             #   optionally remove preserved original file
             if [ ".$opt_b" = . ]; then
                 if [ ".$opt_t" = .yes ]; then
@@ -1278,6 +1370,15 @@ subst )
                 fi
             fi
         done
+        if [ ".$opt_q" = .no ] && [ ".$opt_w" = .no ]; then
+            if [ ".$substdone" = .no ]; then
+                if [ ".$files_num" = .1 ]; then
+                    echo "$msgprefix:Warning: substitution resulted in no content change on file \"$file\"" 1>&2
+                else
+                    echo "$msgprefix:Warning: substitution resulted in no content change on any file" 1>&2
+                fi
+            fi
+        fi
     else
         #   apply operation(s) to stdin/stdout
         if [ ".$opt_v" = .yes ]; then
@@ -1290,10 +1391,11 @@ subst )
             eval "$sedcmd"
         fi
     fi
+
+    shtool_exit 0
     ;;
 
 esac
 
-exit 0
+shtool_exit 0
 
-##EOF##
