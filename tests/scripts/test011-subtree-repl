@@ -41,6 +41,14 @@ if test ! -x $SLURPD ; then
 	exit 0
 fi
 
+# quick hack to check for awk
+echo "looking for a POSIX compliant awk"
+awk -W version >/dev/null 2>&1
+if test $? != 0 ; then
+	echo "This test requires awk"
+	exit 0
+fi
+
 echo "Cleaning up in $DBDIR..."
 rm -f $DBDIR/[!C]*
 echo "Cleaning up in $REPLDIR..."
