@@ -929,6 +929,9 @@ limits_unparse( struct slap_limits *lim, struct berval *bv )
 		ptr = lutil_strcopy( ptr, lim->lm_group_oc->soc_cname.bv_val );
 		*ptr++ = '/';
 		ptr = lutil_strcopy( ptr, lim->lm_group_ad->ad_cname.bv_val );
+		ptr = lutil_strcopy( ptr, "=\"" );
+		ptr = lutil_strcopy( ptr, lim->lm_pat.bv_val );
+		*ptr++ = '"';
 	} else {
 		lm = lim->lm_flags & SLAP_LIMITS_MASK;
 		switch( lm ) {
@@ -973,24 +976,25 @@ limits_unparse_one( struct slap_limits_set *lim, int which, struct berval *bv )
 	if ( which & SLAP_LIMIT_SIZE ) {
 		if ( lim->lms_s_soft != SLAPD_DEFAULT_SIZELIMIT ) {
 
+			/* If same as global limit, drop it */
+			if ( lim != &frontendDB->be_def_limit &&
+				lim->lms_s_soft == frontendDB->be_def_limit.lms_s_soft )
+				goto s_hard;
 			/* If there's also a hard limit, fully qualify this one */
-			if ( lim->lms_s_hard )
+			else if ( lim->lms_s_hard )
 				ptr = lutil_strcopy( ptr, " size.soft=" );
 
 			/* If doing both size & time, qualify this */
 			else if ( which & SLAP_LIMIT_TIME )
 				ptr = lutil_strcopy( ptr, " size=" );
 
-			/* Otherwise if same as global limit, drop it */
-			else if ( lim != &frontendDB->be_def_limit &&
-				lim->lms_s_soft == frontendDB->be_def_limit.lms_s_soft )
-				return;
 			if ( lim->lms_s_soft == -1 )
 				ptr = lutil_strcopy( ptr, "unlimited" );
 			else
 				ptr += sprintf( ptr, "%d", lim->lms_s_soft );
 			*ptr++ = ' ';
 		}
+s_hard:
 		if ( lim->lms_s_hard ) {
 			ptr = lutil_strcopy( ptr, " size.hard=" );
 			if ( lim->lms_s_hard == -1 )
@@ -1032,18 +1036,18 @@ limits_unparse_one( struct slap_limits_set *lim, int which, struct berval *bv )
 	if ( which & SLAP_LIMIT_TIME ) {
 		if ( lim->lms_t_soft != SLAPD_DEFAULT_TIMELIMIT ) {
 
+			/* If same as global limit, drop it */
+			if ( lim != &frontendDB->be_def_limit &&
+				lim->lms_t_soft == frontendDB->be_def_limit.lms_t_soft )
+				goto t_hard;
+
 			/* If there's also a hard limit, fully qualify this one */
-			if ( lim->lms_t_hard ) 
+			else if ( lim->lms_t_hard ) 
 				ptr = lutil_strcopy( ptr, " time.soft=" );
 
 			/* If doing both size & time, qualify this */
 			else if ( which & SLAP_LIMIT_SIZE )
 				ptr = lutil_strcopy( ptr, " time=" );
-
-			/* Otherwise, if same as global limit, drop it */
-			else if ( lim != &frontendDB->be_def_limit &&
-				lim->lms_t_soft == frontendDB->be_def_limit.lms_t_soft )
-				return;
 
 			if ( lim->lms_t_soft == -1 )
 				ptr = lutil_strcopy( ptr, "unlimited" );
@@ -1051,6 +1055,7 @@ limits_unparse_one( struct slap_limits_set *lim, int which, struct berval *bv )
 				ptr += sprintf( ptr, "%d", lim->lms_t_soft );
 			*ptr++ = ' ';
 		}
+t_hard:
 		if ( lim->lms_t_hard ) {
 			ptr = lutil_strcopy( ptr, " time.hard=" );
 			if ( lim->lms_t_hard == -1 )
