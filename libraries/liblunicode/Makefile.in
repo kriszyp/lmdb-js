@@ -31,6 +31,9 @@ ucgendat: $(LIBRARY) ucgendat.o
 $(XXSRCS) : .links
 
 clean-local: FORCE
+	@for i in $(XXSRCS) $(XXHEADERS); do \
+		$(RM) $$i ; \
+	done
 	@$(RM) .links
 
 depend-common: .links
