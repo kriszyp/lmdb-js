@@ -5,6 +5,7 @@ objectclass: top
 objectclass: organization
 objectclass: domainRelatedObject
 objectclass: dcobject
+objectClass: simpleSecurityObject
 dc: example
 l: Anytown, Michigan
 st: Michigan
@@ -15,6 +16,8 @@ description: The Example, Inc. at Anytown
 postaladdress: Example, Inc. $ 535 W. William St. $ Anytown, MI 48109 $ US
 telephonenumber: +1 313 764-1817
 associateddomain: example.com
+userpassword:: ZXhhbXBsZQ==
+authzTo: dn:
 
 dn: ou=People,dc=example,dc=com
 objectclass: organizationalUnit
