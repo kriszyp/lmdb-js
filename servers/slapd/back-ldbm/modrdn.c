@@ -315,9 +315,9 @@ ldbm_back_modrdn(
 		add_bv.bv_val = new_rdn_val;
 		add_bv.bv_len = strlen(new_rdn_val);
 		
-		mod[0].ml_type = old_rdn_type;	
+		mod[0].ml_type = new_rdn_type;	
 		mod[0].ml_bvalues = add_bvals;
-		mod[0].ml_op = LDAP_MOD_ADD | LDAP_MOD_BVALUES;
+		mod[0].ml_op = LDAP_MOD_SOFTADD;
 		mod[0].ml_next = NULL;
 
 		/* Remove old rdn value if required */
@@ -354,7 +354,7 @@ ldbm_back_modrdn(
 			mod[0].ml_next = &mod[1];
 			mod[1].ml_type = old_rdn_type;	
 			mod[1].ml_bvalues = del_bvals;
-			mod[1].ml_op = LDAP_MOD_DELETE | LDAP_MOD_BVALUES;
+			mod[1].ml_op = LDAP_MOD_DELETE;
 			mod[1].ml_next = NULL;
 
 			Debug( LDAP_DEBUG_TRACE,
