@@ -465,7 +465,7 @@ do_syncrepl(
 				if ( modlist ) {
 					slap_mods_free( modlist );
 				}
-				if ( rc_efree ) {
+				if ( rc_efree && entry ) {
 					entry_free( entry );
 				}
 				break;
