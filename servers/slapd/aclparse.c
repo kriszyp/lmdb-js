@@ -650,7 +650,8 @@ parse_acl(
 					if( !is_at_syntax( b->a_group_at->ad_type,
 						SLAPD_DN_SYNTAX ) &&
 					    !is_at_syntax( b->a_group_at->ad_type,
-						SLAPD_NAMEUID_SYNTAX ) )
+						SLAPD_NAMEUID_SYNTAX ) &&
+						!is_at_subtype( b->a_group_at->ad_type, slap_schema.si_ad_labeledURI->ad_type ))
 					{
 						fprintf( stderr,
 							"%s: line %d: group \"%s\": inappropriate syntax: %s\n",

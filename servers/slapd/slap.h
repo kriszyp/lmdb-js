@@ -791,6 +791,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_name;
 	AttributeDescription *si_ad_cn;
 	AttributeDescription *si_ad_userPassword;
+	AttributeDescription *si_ad_labeledURI;
 #ifdef SLAPD_AUTHPASSWD
 	AttributeDescription *si_ad_authPassword;
 #endif

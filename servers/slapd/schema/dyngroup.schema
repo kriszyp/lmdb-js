@@ -1,0 +1,24 @@
+# $OpenLDAP$
+#
+# Dynamic Group schema, as defined by Netscape
+#
+# depends upon:
+#	core.schema
+
+objectIdentifier NetscapeRoot 2.16.840.1.113730
+
+objectIdentifier NetscapeLDAP NetscapeRoot:3
+objectIdentifier NetscapeLDAPattributeType NetscapeLDAP:1
+objectIdentifier NetscapeLDAPobjectClass NetscapeLDAP:2
+
+attributetype ( NetscapeLDAPattributeType:198
+	NAME 'memberURL'
+	DESC 'Identifies an URL associated with each member of a group. Any type of labeled URL can be used.'
+	SUP labeledURI )
+
+objectClass ( NetscapeLDAPobjectClass:33
+	NAME 'groupOfURLs'
+	SUP top STRUCTURAL
+	MUST cn
+	MAY ( memberURL $ businessCategory $ description $ o $ ou $
+		owner $ seeAlso ) )
