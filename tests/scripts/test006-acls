@@ -4,28 +4,29 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-mkdir $DBDIR
+mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $ACLCONF > $DBCONF
-$SLAPADD -f $DBCONF -l $LDIFORDERED
+. $CONFFILTER $BACKEND $MONITORDB < $ACLCONF > $CONF1
+$SLAPADD -f $CONF1 -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
 	exit $RC
 fi
 
-echo "Starting slapd on TCP/IP port $PORT..."
-$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+echo "Starting slapd on TCP/IP port $PORT1..."
+$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
+KILLPIDS="$PID"
 
 echo "Testing slapd access control..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -37,7 +38,7 @@ done
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
@@ -48,10 +49,10 @@ cat /dev/null > $SEARCHOUT
 # give us nothing if we're not bound, and should return all attributes
 # if we're bound as anyone under UM.
 #
-$LDAPSEARCH -b "$JAJDN" -h $LOCALHOST -p $PORT "objectclass=*" \
+$LDAPSEARCH -b "$JAJDN" -h $LOCALHOST -p $PORT1 "objectclass=*" \
 	>> $SEARCHOUT 2>&1
 
-$LDAPSEARCH -b "$JAJDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -b "$JAJDN" -h $LOCALHOST -p $PORT1 \
 	-D "$BABSDN" -w bjensen "objectclass=*"  >> $SEARCHOUT 2>&1
 
 #
@@ -59,7 +60,7 @@ $LDAPSEARCH -b "$JAJDN" -h $LOCALHOST -p $PORT \
 # 1) bound as "James A Jones 1" - should fail
 # 2) bound as "Bjorn Jensen" - should succeed
 
-$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT -w jaj >> \
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
 	$TESTOUT 2>&1 << EOMODS5
 dn: $BABSDN
 changetype: modify
@@ -69,7 +70,7 @@ drink: wine
 EOMODS5
 
 
-$LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT -w bjorn >> \
+$LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT1 -w bjorn >> \
 	$TESTOUT 2>&1 << EOMODS6
 dn: $BABSDN
 changetype: modify
@@ -83,7 +84,7 @@ EOMODS6
 # fail when we add some DN other than our own, and should succeed when
 # we add our own DN.
 # bjensen
-$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT -w jaj > \
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj > \
 	$TESTOUT 2>&1 << EOMODS1
 version: 1
 dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
@@ -93,7 +94,7 @@ uniquemember: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=U
 
 EOMODS1
 
-$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT -w jaj >> \
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
 	$TESTOUT 2>&1 << EOMODS2
 version: 1
 
@@ -108,7 +109,7 @@ EOMODS2
 # 1) bound as "James A Jones 1" - should fail
 # 2) bound as "Barbara Jensen" - should succeed
 #
-$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT -w jaj >> \
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
 	$TESTOUT 2>&1 << EOMODS3
 
 dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
@@ -117,7 +118,7 @@ delete: description
 
 EOMODS3
 
-$LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT -w bjorn >> \
+$LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT1 -w bjorn >> \
 	$TESTOUT 2>&1 << EOMODS4
 # COMMENT
 version: 1
@@ -133,10 +134,10 @@ ou: Groups
 EOMODS4
 
 echo "Using ldapsearch to retrieve all the entries..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	    'objectClass=*' >> $SEARCHOUT 2>&1
 RC=$?
-kill -HUP $PID
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
 	exit $RC

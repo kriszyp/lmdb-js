@@ -4,29 +4,30 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-mkdir $DBDIR
+mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $CONF > $DBCONF
-$SLAPADD -f $DBCONF -l $LDIFORDERED
+. $CONFFILTER $BACKEND $MONITORDB < $CONF > $CONF1
+$SLAPADD -f $CONF1 -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
 	exit $RC
 fi
 
-echo "Starting slapd on TCP/IP port $PORT..."
-$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+echo "Starting slapd on TCP/IP port $PORT1..."
+$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
+KILLPIDS="$PID"
 
 echo "Testing certificate handling..."
 
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -38,12 +39,12 @@ done
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo "Add certificates..."
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD > \
+$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
 version: 1
 
@@ -180,29 +181,29 @@ EOMODS
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapmodify failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo 'Using ldapsearch to retrieve (userCertificate;binary=*) ...'
 echo "# (userCertificate;binary=*)" > $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
     '(userCertificate;binary=*)' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo 'Using ldapsearch to retrieve (cAcertificate=*) ...'
 echo "# (cAcertificate=*)" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
     '(cAcertificate=*)' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
@@ -210,12 +211,12 @@ SNAI='2$EMAIL=ca@example.com,CN=Example CA,O=Openldap Example\5C, Ltd.,ST=Califo
 
 echo 'Using ldapsearch to retrieve (userCertificate=serialNumberAndIssuer) ...'
 echo "# (userCertificate=$SNAI)" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
     "(userCertificate=$SNAI)" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
@@ -223,12 +224,12 @@ SNAI='3$EMAIL=ca@example.com,CN=Example CA,O=Openldap Example\5C, Ltd.,ST=Califo
 
 echo 'Using ldapsearch to retrieve (userCertificate:certificateExactMatch:=serialNumberAndIssuer) ...'
 echo "# (userCertificate:certificateExactMatch:=$SNAI)" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
     "(userCertificate:certificateExactMatch:=$SNAI)" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
@@ -236,16 +237,16 @@ CERT='\30\82\03\54\30\82\02\bd\a0\03\02\01\02\02\01\00\30\0d\06\09\2a\86\48\86\f
 
 echo 'Using ldapsearch to retrieve (cAcertificate;binary:certificateMatch:=certificate) ...'
 echo "# (cAcertificate;binary:certificateMatch:=$CERT)" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
     "(cAcertificate;binary:certificateMatch:=$CERT)" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
-kill -HUP $PID
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 if test "$WITHTLS" = no ; then 
 	echo "Certificate matching not suported without TLS"

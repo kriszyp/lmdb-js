@@ -4,20 +4,21 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-mkdir $DBDIR
+mkdir -p $TESTRUN $DBDIR1
 
-echo "Starting slapd on TCP/IP port $PORT..."
-. $CONFFILTER $BACKEND $MONITORDB < $SCHEMACONF > $DBCONF
-$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+echo "Starting slapd on TCP/IP port $PORT1..."
+. $CONFFILTER $BACKEND $MONITORDB < $SCHEMACONF > $CONF1
+$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
+KILLPIDS="$PID"
 
 echo "Using ldapsearch to retrieve the root DSE..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -b "" -s base -h $LOCALHOST -p $PORT '+extensibleObject' > $SEARCHOUT 2>&1
+	$LDAPSEARCH -b "" -s base -h $LOCALHOST -p $PORT1 '+extensibleObject' > $SEARCHOUT 2>&1
 	RC=$?
 	if test $RC = 0 ; then
 		break
@@ -28,11 +29,11 @@ done
 
 if test $RC = 0 -a $MONITORDB = yes ; then
 	echo "Using ldapsearch to retrieve the cn=Monitor..."
-	$LDAPSEARCH -b "cn=Monitor" -s base -h $LOCALHOST -p $PORT '+extensibleObject' >> $SEARCHOUT 2>&1
+	$LDAPSEARCH -b "cn=Monitor" -s base -h $LOCALHOST -p $PORT1 '+extensibleObject' >> $SEARCHOUT 2>&1
 	RC=$?
 fi
 
-kill -HUP $PID
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 cat $SEARCHOUT
 

@@ -9,8 +9,11 @@ echo ">>>>> Executing all LDAP tests for $BACKEND"
 
 for CMD in $SRCDIR/scripts/test*; do
 	# remove cruft from prior test
-	/bin/rm -rf test-db test-db1 test-db2
-	/bin/rm -rf test-repl test-repl1 test-repl2
+	if test $PRESERVE = yes ; then
+		/bin/rm -rf testrun/db.*
+	else
+		/bin/rm -rf testrun
+	fi
 
 	echo ">>>>> Starting ${TB}`basename $CMD`${TN} ..."
 	$CMD

@@ -4,7 +4,7 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-mkdir $DBDIR
+mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $MCONF > $ADDCONF
@@ -16,25 +16,26 @@ if test $RC != 0 ; then
 fi
 
 echo "Running slapindex to index slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $CONF > $DBCONF
-$SLAPINDEX -f $DBCONF
+. $CONFFILTER $BACKEND $MONITORDB < $CONF > $CONF1
+$SLAPINDEX -f $CONF1
 RC=$?
 if test $RC != 0 ; then
 	echo "warning: slapindex failed ($RC)"
 	echo "  assuming no indexing support"
 fi
 
-echo "Starting slapd on TCP/IP port $PORT..."
-$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+echo "Starting slapd on TCP/IP port $PORT1..."
+$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
+KILLPIDS="$PID"
 
 echo "Testing slapd searching..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -46,87 +47,86 @@ done
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 cat /dev/null > $SEARCHOUT
 
 echo "Testing exact searching..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	'(sn:=jensen)' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo "Testing OR searching..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	'(|(givenName=XX*YY*Z)(cn=)(undef=*)(objectclass=groupofnames)(objectclass=groupofuniquenames)(sn:caseExactMatch:=Jones))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo "Testing AND matching and ends-with searching..."
-$LDAPSEARCH -S "" -b "ou=groups,$BASEDN" -s one -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "ou=groups,$BASEDN" -s one -h $LOCALHOST -p $PORT1 \
 	'(&(|(objectclass=groupofnames)(objectclass=groupofuniquenames))(cn=A*))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo "Testing NOT searching..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	'(!(objectclass=pilotPerson))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo "Testing objectClass/attributeType inheritance ..."
-$LDAPSEARCH -M -a never -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -M -a never -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	'(&(objectClass=inetorgperson)(userid=uham))' \
 	"2.5.4.0" "userid" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo "Testing extended RFC2254 searching..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	'(:dn:caseExactMatch:=University of Michigan)' >> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo "Testing values return filter searching..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	-E '!mv=(o=University of Michigan)' \
 	'(o=University of Michigan)' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
-
-kill -HUP $PID
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 LDIF=$SEARCHOUTMASTER
 LDIF2=$SEARCHOUTX

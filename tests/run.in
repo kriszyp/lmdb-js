@@ -1,6 +1,6 @@
 #!/bin/sh
 
-USAGE="$0 [-b <backend>] <script>"
+USAGE="$0 [-b <backend>] [-c] [-k] [-p] [-u] [-w] <script>"
 
 # configure generated
 SRCDIR="@srcdir@"
@@ -36,6 +36,9 @@ fi
 
 CLEAN=no
 WAIT=0
+KILLSERVERS=yes
+PRESERVE=no
+USERDATA=no
 
 while test $# -gt 0 ; do
 	case "$1" in
@@ -46,6 +49,18 @@ while test $# -gt 0 ; do
 		-c | -clean)
 			CLEAN=yes
 			shift; shift ;;
+
+		-k | -kill)
+			KILLSERVERS=no
+			shift ;;
+
+		-p | -preserve)
+			PRESERVE=yes
+			shift ;;
+
+		-u | -userdata)
+			USERDATA=yes
+			shift ;;
 
 		-w | -wait)
 			WAIT=1
@@ -64,12 +79,13 @@ while test $# -gt 0 ; do
 	esac
 done
 
-export BACKEND WAIT
+export BACKEND WAIT KILLSERVERS PRESERVE USERDATA
 
 if test $# = 0 ; then
 	echo "$USAGE"; exit 1
 fi
-SCRIPT="${SRCDIR}/scripts/$1"
+SCRIPTNAME="$1"
+SCRIPT="${SRCDIR}/scripts/${SCRIPTNAME}"
 shift
 
 if test ! -x "${SCRIPT}" ; then
@@ -87,8 +103,24 @@ if test ! -e ucdata/UnicodeData.txt ; then
 	${LN_S} ${TOPSRCDIR}/libraries/liblunicode ucdata
 fi
 
-echo "Cleaning up directories leftover from previous run."
-/bin/rm -rf test-db test-repl test-db2 test-repl2 test-db3 test-repl3
+if test -d testrun ; then
+	if test $PRESERVE = no ; then
+		echo "Cleaning up test run directory leftover from previous run."
+		/bin/rm -rf testrun
+	else
+		echo "Cleaning up only database directories leftover from previous run."
+		/bin/rm -rf testrun/db.*
+	fi
+fi
+
+if test $USERDATA = yes ; then
+	if test ! -d userdata ; then
+		echo "User data directory (userdata) does not exist."
+		exit 1
+	fi
+	mkdir -p testrun
+	cp -R userdata/* testrun
+fi
 
 # disable LDAP initialization
 LDAPNOINIT=true; export LDAPNOINIT
@@ -98,8 +130,8 @@ $SCRIPT $*
 RC=$?
 
 if test $CLEAN = yes ; then
-	echo "Cleaning up directories leftover from this run."
-	/bin/rm -rf test-db test-repl test-db2 test-repl2 test-db3 test-repl3
+	echo "Cleaning up test run directory from this run."
+	/bin/rm -rf testrun
 	echo "Cleaning up symlinks."
 	/bin/rm -f testdata schema ucdata
 fi

@@ -4,29 +4,31 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-mkdir $DBDIR
+mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $CONF > $DBCONF
-$SLAPADD -f $DBCONF -l $LDIFORDERED
+. $CONFFILTER $BACKEND $MONITORDB < $CONF > $CONF1
+$SLAPADD -f $CONF1 -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
 	exit $RC
 fi
 
-echo "Starting slapd on TCP/IP port $PORT..."
-$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+echo "Starting slapd on TCP/IP port $PORT1..."
+$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
+KILLPIDS="$PID"
+
 echo "Testing slapd modrdn operations..."
 
 # Make sure we can search the database
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	    'objectClass=*' > $INITOUT 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -45,7 +47,7 @@ fi
 # -r used to do remove of old rdn
 
 echo "Testing modrdn(deleteoldrdn=0)..."
-$LDAPMODRDN -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD > \
+$LDAPMODRDN -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 	$TESTOUT 2>&1 'cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US' 'cn=James A Jones III'
 
 RC=$?
@@ -56,7 +58,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing modrdn(deleteoldrdn=1)..."
-$LDAPMODRDN -D "$MANAGERDN" -r -h $LOCALHOST -p $PORT -w $PASSWD >> \
+$LDAPMODRDN -D "$MANAGERDN" -r -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
 	$TESTOUT 2>&1 'cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US' 'cn=James A Jones II'
 
 RC=$?
@@ -69,12 +71,12 @@ fi
 # Ensure the new rdn's can be found
 
 echo "Using ldapsearch to retrieve entries using new rdn (cn=James A Jones III)..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	    'cn=James A Jones III' > $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
@@ -90,18 +92,18 @@ $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "comparison failed - modrdn operations did not complete correctly"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
 
 
 echo "Using ldapsearch to retrieve entries using new rdn (cn=James A Jones II)..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	    'cn=James A Jones II' > $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
@@ -117,7 +119,7 @@ $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "comparison failed - modrdn operations did not complete correctly"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
 
@@ -125,27 +127,27 @@ fi
 # an attribute.
 
 echo "Using ldapsearch to retrieve entries using removed rdn (cn=James A Jones 2)..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	    'cn=James A Jones 2' > $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	echo "ldapsearch failed ($RC)!"
 	exit $RC
 fi
 $CMP $SEARCHOUT - < /dev/null > $CMPOUT
 if test $? != 0 ; then
 	echo "failure: ldapsearch found attribute that was to be removed!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
 
 echo "Using ldapsearch to retrieve all the entries..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	    'objectClass=*' > $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	echo "ldapsearch failed ($RC)!"
 	exit $RC
 fi
@@ -161,19 +163,19 @@ $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "comparison failed - modrdn operations did not complete correctly"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
 
 
 echo "Testing modrdn(deleteoldrdn=1), modrdn with new rdn already an att val..."
-$LDAPMODRDN -D "$MANAGERDN" -r -h $LOCALHOST -p $PORT -w $PASSWD > \
+$LDAPMODRDN -D "$MANAGERDN" -r -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 	/dev/null 2>&1 'cn=James A Jones III, ou=Alumni Association, ou=People, o=University of Michigan, c=US' 'cn=James A Jones 1'
 
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapmodrdn failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
@@ -181,11 +183,11 @@ fi
 # present
 
 echo "Using ldapsearch to retrieve entries using new rdn (cn=James A Jones 1)..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	    'cn=James A Jones 1' > $SEARCHOUT 2>&1
 RC=$?
 
-kill -HUP $PID
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"

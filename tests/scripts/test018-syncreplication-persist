@@ -4,7 +4,7 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-mkdir $DBDIR $REPLDIR $REPLDIR/p1
+mkdir -p $TESTDIR $DBDIR1 $DBDIR4
 
 #
 # Test replication:
@@ -15,18 +15,19 @@ mkdir $DBDIR $REPLDIR $REPLDIR/p1
 # - retrieve database over ldap and compare against expected results
 #
 
-echo "Starting master slapd on TCP/IP port $PORT..."
-. $CONFFILTER $BACKEND $MONITORDB < $SRMASTERCONF > $DBCONF
-$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+echo "Starting master slapd on TCP/IP port $PORT1..."
+. $CONFFILTER $BACKEND $MONITORDB < $SRMASTERCONF > $CONF1
+$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
+KILLPIDS="$PID"
 
 echo "Using ldapsearch to check that master slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -38,32 +39,33 @@ done
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo "Using ldapadd to create the context prefix entry in the master..."
-$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD < \
+$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
 	$LDIFORDEREDCP > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapadd failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
-echo "Starting slave slapd on TCP/IP port $P1SLAVEPORT..."
-. $CONFFILTER $BACKEND $MONITORDB < $P1SRSLAVECONF > $P1REPLCONF
-$SLAPD -f $P1REPLCONF -h $P1SLAVEURI -d $LVL $TIMING > $P1SLAVELOG 2>&1 &
+echo "Starting slave slapd on TCP/IP port $PORT4..."
+. $CONFFILTER $BACKEND $MONITORDB < $P1SRSLAVECONF > $CONF4
+$SLAPD -f $CONF4 -h $URI4 -d $LVL $TIMING > $LOG4 2>&1 &
 SLAVEPID=$!
 if test $WAIT != 0 ; then
     echo SLAVEPID $SLAVEPID
     read foo
 fi
+KILLPIDS="$KILLPIDS $SLAVEPID"
 
 echo "Using ldapsearch to check that slave slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $P1SLAVEPORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT4 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -75,17 +77,17 @@ done
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID $SLAVEPID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo "Using ldapadd to populate the master directory..."
-$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD < \
+$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
 	$LDIFORDEREDNOCP > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapadd failed ($RC)!"
-	kill -HUP $PID $SLAVEPID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
@@ -98,7 +100,7 @@ echo "Using ldapmodify to modify master directory..."
 # Do some modifications
 #
 
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD > \
+$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
 dn: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
 changetype: modify
@@ -175,39 +177,36 @@ echo "Waiting 20 seconds for syncrepl to receive changes..."
 sleep 20
 
 echo "Using ldapsearch to read all the entries from the master..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	'objectclass=*' > $MASTEROUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed at master ($RC)!"
-	kill -HUP $PID $SLAVEPID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo "Using ldapsearch to read all the entries from the slave..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $P1SLAVEPORT \
-	'objectclass=*' > $P1SLAVEOUT 2>&1
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT4 \
+	'objectclass=*' > $SLAVEOUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed at slave ($RC)!"
-	kill -HUP $PID $SLAVEPID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
-kill -HUP $PID $SLAVEPID
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
-SEARCHOUT=$MASTEROUT
-LDIF=$P1SLAVEOUT
-
-echo "Filtering ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
-echo "Filtering original ldif used to create database..."
-. $LDIFFILTER < $LDIF > $P1LDIFFLT
+echo "Filtering master results..."
+. $LDIFFILTER < $MASTEROUT > $MASTERFLT
+echo "Filtering slave results..."
+. $LDIFFILTER < $SLAVEOUT > $SLAVEFLT
 
 echo "Comparing retrieved entries from master and slave..."
-$CMP $SEARCHFLT $P1LDIFFLT > $CMPOUT
+$CMP $MASTERFLT $SLAVEFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - master and slave databases differ"

@@ -8,119 +8,121 @@ echo "running defines.sh"
 # Test default referral
 #
 
-mkdir $DBDIR $REPLDIR
+mkdir $TESTDIR $DBDIR1 $DBDIR2
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $CONF > $DBCONF
-$SLAPADD -f $DBCONF -l $LDIFORDERED
+. $CONFFILTER $BACKEND $MONITORDB < $CONF > $CONF1
+$SLAPADD -f $CONF1 -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
 	exit $RC
 fi
 
-echo "Starting master slapd on TCP/IP port $PORT..."
-$SLAPD -n master -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+echo "Starting master slapd on TCP/IP port $PORT1..."
+$SLAPD -n master -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
 
-echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
-. $CONFFILTER $BACKEND $MONITORDB < $REFSLAVECONF > $REPLCONF
-$SLAPD -n slave -f $REPLCONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
+echo "Starting slave slapd on TCP/IP port $PORT2..."
+. $CONFFILTER $BACKEND $MONITORDB < $REFSLAVECONF > $CONF2
+$SLAPD -n slave -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
 SLAVEPID=$!
 if test $WAIT != 0 ; then
     echo SLAVEPID $SLAVEPID
     read foo
 fi
 
+KILLPIDS="$PID $SLAVEPID"
+
 echo "Testing for master slapd..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
 		break
 	fi
-	echo "Waiting 5 seconds for slapd to start..."
+	echo "Waiting 5 seconds for master slapd to start..."
 	sleep 5
 done
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo "Testing for slave slapd..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $SLAVEPORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
 		break
 	fi
-	echo "Waiting 5 seconds for slapd to start..."
+	echo "Waiting 5 seconds for slave slapd to start..."
 	sleep 5
 done
 
 cat /dev/null > $SEARCHOUT
 
 echo "Testing exact searching..."
-$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $SLAVEPORT \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'sn=jensen' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID $SLAVEPID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo "Testing OR searching..."
-$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $SLAVEPORT \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'(|(objectclass=groupofnames)(objectClass=groupofuniquenames)(sn=jones))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID $SLAVEPID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo "Testing AND matching and ends-with searching..."
-$LDAPSEARCH -C -S "" -b "ou=groups,$BASEDN" -s one -h $LOCALHOST -p $SLAVEPORT \
+$LDAPSEARCH -C -S "" -b "ou=groups,$BASEDN" -s one -h $LOCALHOST -p $PORT2 \
 	'(&(objectclass=groupofnames)(cn=A*))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID $SLAVEPID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo "Testing NOT searching..."
-$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $SLAVEPORT \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'(!(objectclass=pilotPerson))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID $SLAVEPID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 echo "Testing objectClass/attributeType inheritance ..."
-$LDAPSEARCH -M -a never -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+$LDAPSEARCH -M -a never -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	'(&(objectClass=inetorgperson)(userid=uham))' \
 	"2.5.4.0" "userid" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
 
 
-kill -HUP $PID $SLAVEPID
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 LDIF=$SEARCHOUTMASTER
 

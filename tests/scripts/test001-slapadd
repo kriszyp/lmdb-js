@@ -4,7 +4,7 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-mkdir $DBDIR
+mkdir -p $TESTRUN $DBDIR1
 
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $CONF > $ADDCONF
@@ -15,18 +15,19 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Starting slapd on TCP/IP port $PORT..."
-. $CONFFILTER $BACKEND $MONITORDB < $CONF > $DBCONF
-$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+echo "Starting slapd on TCP/IP port $PORT1..."
+. $CONFFILTER $BACKEND $MONITORDB < $CONF > $CONF1
+$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
+KILLPIDS="$PID"
 
 echo "Using ldapsearch to retrieve all the entries..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT > $SEARCHOUT 2>&1
+	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 > $SEARCHOUT 2>&1
 	RC=$?
 	if test $RC = 0 ; then
 		break
@@ -35,7 +36,7 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 
-kill -HUP $PID
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"

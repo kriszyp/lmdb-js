@@ -1,21 +1,27 @@
 #! /bin/sh
 # $OpenLDAP$
 
-DATADIR=./testdata
-PROGDIR=./progs
-DBDIR=./test-db
-CACHEDIR=./test-db2
-REPLDIR=./test-repl
-
-R1REPLDIR=${REPLDIR}/r1
-R2REPLDIR=${REPLDIR}/r2
-P1REPLDIR=${REPLDIR}/p1
-P2REPLDIR=${REPLDIR}/p2
-P3REPLDIR=${REPLDIR}/p3
-
 MONITORDB=${AC_MONITOR-no}
 PROXYCACHE=${AC_CACHE-no}
 WITHTLS=${AC_WITHTLS-yes}
+
+DATADIR=./testdata
+PROGDIR=./progs
+TESTDIR=./testrun
+
+DBDIR1A=$TESTDIR/db.1.a
+DBDIR1B=$TESTDIR/db.1.b
+DBDIR1C=$TESTDIR/db.1.c
+DBDIR1=$DBDIR1A
+DBDIR2=$TESTDIR/db.2.a
+DBDIR3=$TESTDIR/db.3.a
+DBDIR4=$TESTDIR/db.4.a
+DBDIR5=$TESTDIR/db.5.a
+DBDIR6=$TESTDIR/db.6.a
+
+DBDIR=./test-db
+CACHEDIR=./test-db2
+REPLDIR=./test-repl
 
 CONF=$DATADIR/slapd.conf
 MCONF=$DATADIR/slapd-master.conf
@@ -33,20 +39,16 @@ P1SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist1.conf
 P2SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist2.conf
 P3SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist3.conf
 REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
-SUBMASTERCONF=$DATADIR/slapd-repl-submaster.conf
-SUBSLAVECONF=$DATADIR/slapd-repl-subslave.conf
 SCHEMACONF=$DATADIR/slapd-schema.conf
 GLUECONF=$DATADIR/slapd-glue.conf
 
-DBCONF=$DBDIR/slapd.conf
-ADDCONF=$DBDIR/slapadd.conf
-REPLCONF=$REPLDIR/slapd.conf
-R1REPLCONF=$R1REPLDIR/slapd.conf
-R2REPLCONF=$R2REPLDIR/slapd.conf
-P1REPLCONF=$P1REPLDIR/slapd.conf
-P2REPLCONF=$P2REPLDIR/slapd.conf
-P3REPLCONF=$P3REPLDIR/slapd.conf
-CACHECONF=$CACHEDIR/slapd.conf
+CONF1=$TESTDIR/slapd.1.conf
+CONF2=$TESTDIR/slapd.2.conf
+CONF3=$TESTDIR/slapd.3.conf
+CONF4=$TESTDIR/slapd.4.conf
+CONF5=$TESTDIR/slapd.5.conf
+CONF6=$TESTDIR/slapd.6.conf
+ADDCONF=$TESTDIR/slapadd.conf
 
 TOOLARGS="-x $LDAP_TOOLARGS"
 TOOLPROTO="-P 3"
@@ -57,10 +59,7 @@ CLIENTDIR=../clients/tools
 #CLIENTDIR=/usr/local/bin
 
 LDIFFILTER=$SRCDIR/scripts/acfilter.sh
-SUBFILTER=$SRCDIR/scripts/subfilter.sh
-UNDIFFFILTER=$SRCDIR/scripts/undiff.sh
 CONFFILTER=$SRCDIR/scripts/conf.sh
-STRIPATTR=$SRCDIR/scripts/stripattr.sh
 
 SLAPADD="../servers/slapd/tools/slapadd $LDAP_VERBOSE"
 SLAPCAT="../servers/slapd/tools/slapcat $LDAP_VERBOSE"
@@ -83,20 +82,18 @@ LDAPWHOAMI="$CLIENTDIR/ldapwhoami $TOOLARGS"
 SLAPDTESTER=$PROGDIR/slapd-tester
 LVL=${SLAPD_DEBUG-261}
 LOCALHOST=localhost
-PORT=9009
-SLAVEPORT=9010
-R1SLAVEPORT=9011
-R2SLAVEPORT=9012
-P1SLAVEPORT=9013
-P2SLAVEPORT=9014
-P3SLAVEPORT=9015
-MASTERURI="ldap://${LOCALHOST}:$PORT/"
-SLAVEURI="ldap://${LOCALHOST}:$SLAVEPORT/"
-R1SLAVEURI="ldap://${LOCALHOST}:$R1SLAVEPORT/"
-R2SLAVEURI="ldap://${LOCALHOST}:$R2SLAVEPORT/"
-P1SLAVEURI="ldap://${LOCALHOST}:$P1SLAVEPORT/"
-P2SLAVEURI="ldap://${LOCALHOST}:$P2SLAVEPORT/"
-P3SLAVEURI="ldap://${LOCALHOST}:$P3SLAVEPORT/"
+PORT1=9011
+PORT2=9012
+PORT3=9013
+PORT4=9014
+PORT5=9015
+PORT6=9016
+URI1="ldap://${LOCALHOST}:$PORT1/"
+URI2="ldap://${LOCALHOST}:$PORT2"
+URI3="ldap://${LOCALHOST}:$PORT3/"
+URI4="ldap://${LOCALHOST}:$PORT4/"
+URI5="ldap://${LOCALHOST}:$PORT5/"
+URI6="ldap://${LOCALHOST}:$PORT6/"
 LDIF=$DATADIR/test.ldif
 LDIFGLUED=$DATADIR/test-glued.ldif
 LDIFORDERED=$DATADIR/test-ordered.ldif
@@ -117,35 +114,40 @@ PASSWD=secret
 BABSDN="cn=Barbara Jensen,ou=Information Technology DivisioN,OU=People,o=University of Michigan,c=us"
 BJORNSDN="cn=Bjorn Jensen,ou=Information Technology DivisioN,OU=People,o=University of Michigan,c=us"
 JAJDN="cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Michigan,c=US"
-MASTERLOG=$DBDIR/master.log
-SLAVELOG=$DBDIR/slave.log
-R1SLAVELOG=$DBDIR/r1.log
-R2SLAVELOG=$DBDIR/r2.log
-P1SLAVELOG=$DBDIR/p1.log
-P2SLAVELOG=$DBDIR/p2.log
-P3SLAVELOG=$DBDIR/p3.log
-SLURPLOG=$DBDIR/slurp.log
-SEARCHOUT=$DBDIR/ldapsearch.out
-SEARCHFLT=$DBDIR/ldapsearch.flt
-LDIFFLT=$DBDIR/ldif.flt
-R1LDIFFLT=$DBDIR/r1ldif.flt
-R2LDIFFLT=$DBDIR/r2ldif.flt
-P1LDIFFLT=$DBDIR/p1ldif.flt
-P2LDIFFLT=$DBDIR/p2ldif.flt
-P3LDIFFLT=$DBDIR/p3ldif.flt
-SUBFLT0=$DBDIR/sub0.flt
-SUBFLT1=$DBDIR/sub1.flt
-SUBFLT2=$DBDIR/sub2.flt
-MASTEROUT=$DBDIR/master.out
-SLAVEOUT=$DBDIR/slave.out
-R1SLAVEOUT=$DBDIR/r1.out
-R2SLAVEOUT=$DBDIR/r2.out
-P1SLAVEOUT=$DBDIR/p1.out
-P2SLAVEOUT=$DBDIR/p2.out
-P3SLAVEOUT=$DBDIR/p3.out
-SUBMASTEROUT=$DBDIR/submaster.out
-TESTOUT=$DBDIR/test.out
-INITOUT=$DBDIR/init.out
+
+LOG1=$TESTDIR/slapd.1.log
+LOG2=$TESTDIR/slapd.2.log
+LOG3=$TESTDIR/slapd.3.log
+LOG4=$TESTDIR/slapd.4.log
+LOG5=$TESTDIR/slapd.5.log
+LOG6=$TESTDIR/slapd.6.log
+SLAPADDLOG1=$TESTDIR/slapadd.1.log
+SLURPLOG=$TESTDIR/slurp.log
+
+SEARCHOUT=$TESTDIR/ldapsearch.out
+SEARCHFLT=$TESTDIR/ldapsearch.flt
+LDIFFLT=$TESTDIR/ldif.flt
+TESTOUT=$TESTDIR/test.out
+INITOUT=$TESTDIR/init.out
+
+SERVER1OUT=$TESTDIR/server1.out
+SERVER1FLT=$TESTDIR/server2.flt
+SERVER2OUT=$TESTDIR/server2.out
+SERVER2FLT=$TESTDIR/server2.flt
+SERVER3OUT=$TESTDIR/server3.out
+SERVER3FLT=$TESTDIR/server3.flt
+SERVER4OUT=$TESTDIR/server4.out
+SERVER4FLT=$TESTDIR/server4.flt
+SERVER5OUT=$TESTDIR/server5.out
+SERVER5FLT=$TESTDIR/server5.flt
+SERVER6OUT=$TESTDIR/server6.out
+SERVER6FLT=$TESTDIR/server6.flt
+
+MASTEROUT=$SERVER1OUT
+MASTERFLT=$SERVER1FLT
+SLAVEOUT=$SERVER2OUT
+SLAVEFLT=$SERVER2FLT
+
 REFERRALOUT=$DATADIR/referrals.out
 SEARCHOUTMASTER=$DATADIR/search.out.master
 SEARCHOUTX=$DATADIR/search.out.xsearch

@@ -40,7 +40,7 @@ ldbm-yes ldbm-mod:	FORCE
 	@$(RUN) -b ldbm all
 
 clean-local:	FORCE
-	-$(RM) -r test-db* test-repl* *leak *gmon *core
+	-$(RM) -r testrun *leak *gmon *core
 
 veryclean-local: FORCE
 	@-$(RM) data schema ucdata
