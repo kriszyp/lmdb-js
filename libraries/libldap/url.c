@@ -64,7 +64,7 @@ int ldap_pvt_url_scheme2proto( const char *scheme )
 	return -1;
 }
 
-int ldap_pvt_url_scheme2tls( const char *scheme )
+LDAP_F(int) ldap_pvt_url_scheme2tls( const char *scheme )
 {
 	assert( scheme );
 
@@ -206,6 +206,184 @@ static int str2scope( const char *p )
 	return( -1 );
 }
 
+static int hex_escape( char *buf, const char *s, int list )
+{
+	int i;
+	int pos;
+	static const char hex[] = "0123456789ABCDEF";
+
+	if( s == NULL ) return 0;
+
+	for( pos=0,i=0; s[i]; i++ ) {
+		int escape = 0;
+		switch( s[i] ) {
+			case ',':
+				escape = list;
+				break;
+			case '%':
+			case '?':
+			case ' ':
+			case '<':
+			case '>':
+			case '"':
+			case '#':
+			case '{':
+			case '}':
+			case '|':
+			case '\\':
+			case '^':
+			case '~':
+			case '`':
+			case '[':
+			case ']':
+				escape = 1;
+				break;
+
+			default:
+				escape = s[i] < 0x20 || 0x1f >= s[i];
+		}
+
+		if( escape ) {
+			buf[pos++] = '%';
+			buf[pos++] = hex[ (s[i] >> 4) & 0x0f ];
+			buf[pos++] = hex[ s[i] & 0x0f ];
+		} else {
+			buf[pos++] = s[i];
+		}
+	}
+
+	return pos;
+}
+
+static int hex_escape_args( char *buf, char **s )
+{
+	int pos;
+	int i;
+
+	if( s == NULL ) return 0;
+
+	pos = 0;
+	for( i=0; s[i] != NULL; i++ ) {
+		if( pos ) {
+			buf[pos++] = ',';
+		}
+		pos += hex_escape( &buf[pos], s[i], 1 );
+	}
+
+	return pos;
+}
+
+char * ldap_url_desc2str( LDAPURLDesc *u )
+{
+	char *s;
+	int i;
+	int sep = 0;
+	int sofar;
+	size_t len = 0;
+	if( u == NULL ) return NULL;
+
+	if( u->lud_exts ) {
+		for( i=0; u->lud_exts[i]; i++ ) {
+			len += strlen( u->lud_exts[i] ) + 1;
+		}
+		if( !sep ) sep = 5;
+	}
+
+	if( u->lud_filter ) {
+		len += strlen( u->lud_filter );
+		if( !sep ) sep = 4;
+	}
+	if ( len ) len++; /* ? */
+
+	switch( u->lud_scope ) {
+		case LDAP_SCOPE_ONELEVEL:
+		case LDAP_SCOPE_SUBTREE:
+		case LDAP_SCOPE_BASE:
+			len += sizeof("base");
+			if( !sep ) sep = 3;
+			break;
+
+		default:
+			if ( len ) len++; /* ? */
+	}
+
+	if( u->lud_attrs ) {
+		for( i=0; u->lud_attrs[i]; i++ ) {
+			len += strlen( u->lud_attrs[i] ) + 1;
+		}
+		if( !sep ) sep = 2;
+	} else if ( len ) len++; /* ? */
+
+	if( u->lud_dn ) {
+		len += strlen( u->lud_dn ) + 1;
+		if( !sep ) sep = 1;
+	};
+
+	if( u->lud_port ) {
+		len+=6;
+	}
+
+	if( u->lud_host ) {
+		len+=strlen( u->lud_host );
+	}
+
+	len += strlen( u->lud_scheme ) + sizeof("://");
+
+	/* allocate enough to hex escape everything -- overkill */
+	s = LDAP_MALLOC( 3*len );
+
+	if( s == NULL ) return NULL;
+
+	if( u->lud_port ) {
+		sprintf( s,	"%s://%s:%d%n", u->lud_scheme,
+			u->lud_host, u->lud_port, &sofar );
+	} else {
+		sprintf( s,	"%s://%s%n", u->lud_scheme,
+			u->lud_host, &sofar );
+	}
+	
+	if( sep < 1 ) goto done;
+	s[sofar++] = '/';
+
+	sofar += hex_escape( &s[sofar], u->lud_dn, 0 );
+
+	if( sep < 2 ) goto done;
+	s[sofar++] = '?';
+
+	sofar += hex_escape_args( &s[sofar], u->lud_attrs );
+
+	if( sep < 3 ) goto done;
+	s[sofar++] = '?';
+
+	switch( u->lud_scope ) {
+	case LDAP_SCOPE_BASE:
+		strcpy( &s[sofar], "base" );
+		sofar += sizeof("base") - 1;
+		break;
+	case LDAP_SCOPE_ONELEVEL:
+		strcpy( &s[sofar], "one" );
+		sofar += sizeof("one") - 1;
+		break;
+	case LDAP_SCOPE_SUBTREE:
+		strcpy( &s[sofar], "sub" );
+		sofar += sizeof("sub") - 1;
+		break;
+	}
+
+	if( sep < 4 ) goto done;
+	s[sofar++] = '?';
+
+	sofar += hex_escape( &s[sofar], u->lud_filter, 0 );
+
+	if( sep < 5 ) goto done;
+	s[sofar++] = '?';
+
+	sofar += hex_escape_args( &s[sofar], u->lud_exts );
+
+done:
+	s[sofar] = '\0';
+	return s;
+}
 
 int
 ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
@@ -271,7 +449,7 @@ ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 
 	ludp->lud_next = NULL;
 	ludp->lud_host = NULL;
-	ludp->lud_port = LDAP_PORT;
+	ludp->lud_port = 0;
 	ludp->lud_dn = NULL;
 	ludp->lud_attrs = NULL;
 	ludp->lud_filter = NULL;
@@ -285,10 +463,6 @@ ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 		LDAP_FREE( url );
 		ldap_free_urldesc( ludp );
 		return LDAP_URL_ERR_MEM;
-	}
-
-	if( strcasecmp( ludp->lud_scheme, "ldaps" ) == 0 ) {
-		ludp->lud_port = LDAPS_PORT;
 	}
 
 	/* scan forward for '/' that marks end of hostport and begin. of dn */
@@ -553,6 +727,14 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	if ((*ludpp)->lud_host != NULL && *(*ludpp)->lud_host == '\0') {
 		LDAP_FREE( (*ludpp)->lud_host );
 		(*ludpp)->lud_host = NULL;
+	}
+
+	if ((*ludpp)->lud_port == 0) {
+		if( strcmp((*ludpp)->lud_scheme, "ldap") == 0 ) {
+			(*ludpp)->lud_port = LDAP_PORT;
+		} else if( strcmp((*ludpp)->lud_scheme, "ldaps") == 0 ) {
+			(*ludpp)->lud_port = LDAPS_PORT;
+		}
 	}
 
 	return rc;
