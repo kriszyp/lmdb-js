@@ -70,6 +70,7 @@ OpenLDAP 2.1.16 Release
 	Fixed slurpd TLS failure handling (ITS#2253)
 	Fixed back-meta NULL deref bug (ITS#2359)
 	Fixed back-ldap memory corruption (ITS#2362)
+	Fixed back-ldbm IDL corruption (ITS#2348)
 	Fixed back-bdb IDL cache leak (ITS#2367)
 	Fixed slapd index large db files bug (ITS#2368)
 	Updated back-perl (ITS#2356)
