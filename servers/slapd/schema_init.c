@@ -329,6 +329,20 @@ caseIgnoreIA5Match(
 		((struct berval *) assertedValue)->bv_val );
 }
 
+static int
+objectClassMatch(
+	unsigned use,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	ObjectClass *oc = oc_find( value->bv_val );
+	ObjectClass *asserted = oc_find( ((struct berval *) assertedValue)->bv_val );
+
+	return oc == NULL || oc != asserted;
+}
+
 struct syntax_defs_rec {
 	char *sd_desc;
 	int sd_flags;
@@ -731,66 +745,67 @@ struct slap_schema_oc_map {
 
 struct slap_schema_ad_map {
 	char *ssam_name;
+	slap_mr_match_func *ssam_match;
 	size_t ssam_offset;
 } ad_map[] = {
-	{ "objectClass",
+	{ "objectClass", objectClassMatch,
 		offsetof(struct slap_internal_schema, si_ad_objectClass) },
 
-	{ "creatorsName",
+	{ "creatorsName", NULL,
 		offsetof(struct slap_internal_schema, si_ad_creatorsName) },
-	{ "createTimestamp",
+	{ "createTimestamp", NULL,
 		offsetof(struct slap_internal_schema, si_ad_createTimestamp) },
-	{ "modifiersName",
+	{ "modifiersName", NULL,
 		offsetof(struct slap_internal_schema, si_ad_modifiersName) },
-	{ "modifyTimestamp",
+	{ "modifyTimestamp", NULL,
 		offsetof(struct slap_internal_schema, si_ad_modifyTimestamp) },
 
-	{ "subschemaSubentry",
+	{ "subschemaSubentry", NULL,
 		offsetof(struct slap_internal_schema, si_ad_subschemaSubentry) },
 
-	{ "namingContexts",
+	{ "namingContexts", NULL,
 		offsetof(struct slap_internal_schema, si_ad_namingContexts) },
-	{ "supportedControl",
+	{ "supportedControl", NULL,
 		offsetof(struct slap_internal_schema, si_ad_supportedControl) },
-	{ "supportedExtension",
+	{ "supportedExtension", NULL,
 		offsetof(struct slap_internal_schema, si_ad_supportedExtension) },
-	{ "supportedLDAPVersion",
+	{ "supportedLDAPVersion", NULL,
 		offsetof(struct slap_internal_schema, si_ad_supportedLDAPVersion) },
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	{ "supportedACIMechanisms",
+	{ "supportedACIMechanisms", NULL,
 		offsetof(struct slap_internal_schema, si_ad_supportedACIMechanisms) },
 
 #endif
-	{ "supportedSASLMechanisms",
+	{ "supportedSASLMechanisms", NULL,
 		offsetof(struct slap_internal_schema, si_ad_supportedSASLMechanisms) },
 
-	{ "attributeTypes",
+	{ "attributeTypes", NULL,
 		offsetof(struct slap_internal_schema, si_ad_attributeTypes) },
-	{ "ldapSyntaxes",
+	{ "ldapSyntaxes", NULL,
 		offsetof(struct slap_internal_schema, si_ad_ldapSyntaxes) },
-	{ "matchingRules",
+	{ "matchingRules", NULL,
 		offsetof(struct slap_internal_schema, si_ad_matchingRules) },
-	{ "objectClasses",
+	{ "objectClasses", NULL,
 		offsetof(struct slap_internal_schema, si_ad_objectClasses) },
 
-	{ "ref",
+	{ "ref", NULL,
 		offsetof(struct slap_internal_schema, si_ad_ref) },
 
-	{ "entry",
+	{ "entry", NULL,
 		offsetof(struct slap_internal_schema, si_ad_entry) },
-	{ "children",
+	{ "children", NULL,
 		offsetof(struct slap_internal_schema, si_ad_children) },
 
-	{ "userPassword",
+	{ "userPassword", NULL,
 		offsetof(struct slap_internal_schema, si_ad_userPassword) },
-	{ "authPassword",
+	{ "authPassword", NULL,
 		offsetof(struct slap_internal_schema, si_ad_authPassword) },
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	{ "krbName",
+	{ "krbName", NULL,
 		offsetof(struct slap_internal_schema, si_ad_krbName) },
 #endif
 
-	{ NULL, 0 }
+	{ NULL, NULL, 0 }
 };
 
 #endif
@@ -835,6 +850,11 @@ schema_prep( void )
 				"No attribute \"%s\" defined in schema\n",
 				ad_map[i].ssam_name );
 			return rc;
+		}
+
+		if( ad_map[i].ssam_match ) {
+			/* install custom matching routine */
+			(*adp)->ad_type->sat_equality->smr_match = ad_map[i].ssam_match;
 		}
 	}
 #endif
