@@ -65,6 +65,15 @@ ext_candidates(
         ID *ids,
         ID *tmp,
         ID *stack);
+
+static int
+comp_candidates (
+	Operation *op,
+	MatchingRuleAssertion *mra,
+	ComponentFilter *f,
+	ID *ids,
+	ID *tmp,
+	ID *stack);
 #endif
 
 int
