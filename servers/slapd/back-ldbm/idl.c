@@ -23,6 +23,8 @@ static void cont_alloc( Datum cont, Datum key )
 	cont.dsize = 1 + sizeof(ID) + key.dsize;
 	cont.dptr = ch_malloc( cont.dsize );
 
+	* (unsigned char *) cont.dptr = SLAP_INDEX_CONT_PREFIX;
+
 	memcpy( &((unsigned char *)cont.dptr)[1 + sizeof(ID)],
 		key.dptr, key.dsize );
 }
