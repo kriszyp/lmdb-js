@@ -35,6 +35,7 @@ LDAPADD=../clients/tools/ldapadd
 LDAPMODRDN=../clients/tools/ldapmodrdn
 SLAPDTESTER=$PROGDIR/slapd-tester
 LVL=5
+ADDR=127.0.0.1
 PORT=9009
 SLAVEPORT=9010
 DBDIR=./test-db

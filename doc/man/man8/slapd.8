@@ -3,7 +3,7 @@
 slapd \- Stand-alone LDAP Daemon
 .SH SYNOPSIS
 .B LIBEXECDIR/slapd [\-d debug\-level]
-.B [\-f slapd\-config\-file] [\-p port\-number]
+.B [\-f slapd\-config\-file] [\-a address] [\-p port\-number]
 .B [\-s syslog\-level] [\-l syslog\-local\-user] [\-i]
 .B 
 .SH DESCRIPTION
@@ -87,10 +87,16 @@ facility.
 Specifies the slapd configuration file. The default is
 .BR ETCDIR/slapd.conf .
 .TP
+.BI \-a " address"
+.B slapd
+will listen on all addresses (INADDR_ANY) unless this option
+is given to override the default.  The address is expected in 
+Internet standard '.' format.
+.TP
 .BI \-p " port\-number"
 .B slapd
 will listen on the default LDAP port (389) unless this option is given
-to override the default.
+to override the default.  A numeric port number is expected.
 .TP
 .B \-i
 This option tells

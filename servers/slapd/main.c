@@ -62,7 +62,7 @@ main( int argc, char **argv )
 	int		i;
 	int		inetd = 0;
 	int		rc = 0;
-	int		port;
+	struct sockaddr_in	bind_addr;
 	int		udp;
 #ifdef LOG_LOCAL4
     int     syslogUser = DEFAULT_SYSLOG_USER;
@@ -72,16 +72,27 @@ main( int argc, char **argv )
 	int         serverMode = SLAP_SERVER_MODE;
 
 	configfile = SLAPD_DEFAULT_CONFIGFILE;
-	port = LDAP_PORT;
+
+	(void) memset( (void*) &bind_addr, '\0', sizeof(bind_addr));
+	bind_addr.sin_family = AF_INET;
+	bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	bind_addr.sin_port = htons(LDAP_PORT);
+
 	g_argc = argc;
 	g_argv = argv;
 
 #ifdef SLAPD_BDB2
-	while ( (i = getopt( argc, argv, "d:f:ip:s:ut" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "d:f:ia:p:s:ut" )) != EOF ) {
 #else
-	while ( (i = getopt( argc, argv, "d:f:ip:s:u" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "d:f:ia:p:s:u" )) != EOF ) {
 #endif
 		switch ( i ) {
+		case 'a':	/* bind address */
+			if(!inet_aton(optarg, &bind_addr.sin_addr)) {
+				fprintf(stderr, "invalid address (%s) for -a option", optarg);
+			}
+            break;
+
 #ifdef LDAP_DEBUG
 		case 'd':	/* turn on debugging */
 			if ( optarg[0] == '?' ) {
@@ -132,21 +143,24 @@ main( int argc, char **argv )
 			inetd = 1;
 			break;
 
-		case 'p':	/* port on which to listen */
-			port = atoi( optarg );
-			break;
+		case 'p': {	/* port on which to listen */
+				int port = atoi( optarg );
+				if(! port ) {
+					fprintf(stderr, "-p %s must be numeric\n", optarg);
+				} else {
+					bind_addr.sin_port = htons(port);
+				}
+			} break;
 
 		case 's':	/* set syslog level */
 			ldap_syslog = atoi( optarg );
 			break;
 
 #ifdef LOG_LOCAL4
-
 		case 'l':	/* set syslog local user */
 			syslogUser = cnvt_str2int( optarg, syslog_types,
                                            DEFAULT_SYSLOG_USER );
 			break;
-
 #endif
 
 		case 'u':	/* do udp */
@@ -221,7 +235,7 @@ main( int argc, char **argv )
 		time( &starttime );
 
 		status = ldap_pvt_thread_create( &listener_tid, 0,
-						 slapd_daemon, (void *) port );
+						 slapd_daemon, &bind_addr );
 		if ( status != 0 )
 		{
 			Debug( LDAP_DEBUG_ANY,

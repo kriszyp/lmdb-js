@@ -50,12 +50,12 @@ extern char *slapd_args_file;
 
 void *
 slapd_daemon(
-    void *port
+	void *ptr
 )
 {
+	struct sockaddr_in *addr = ptr;
 	int			i;
 	int			tcps, ns;
-	struct sockaddr_in	addr;
 	fd_set			readfds;
 	fd_set			writefds;
 	FILE			*fp;
@@ -104,11 +104,7 @@ slapd_daemon(
 		    "unknown", 0 );
 	}
 
-	(void) memset( (void *) &addr, '\0', sizeof(addr) );
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = INADDR_ANY;
-	addr.sin_port = htons( (int)port );
-	if ( bind( tcps, (struct sockaddr *) &addr, sizeof(addr) ) == -1 ) {
+	if ( bind( tcps, (struct sockaddr *) addr, sizeof(*addr) ) == -1 ) {
 		Debug( LDAP_DEBUG_ANY, "bind() failed errno %d (%s)\n",
 		    errno, errno > -1 && errno < sys_nerr ? sys_errlist[errno] :
 		    "unknown", 0 );
