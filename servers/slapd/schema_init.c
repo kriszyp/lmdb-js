@@ -3679,7 +3679,7 @@ numericStringNormalize(
 		}
 	}
 
-	assert( newval->bv_val =< p );
+	assert( newval->bv_val <= p );
 	assert( q <= p );
 
 	/* null terminate */
