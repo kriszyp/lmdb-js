@@ -118,7 +118,7 @@ echo "Filtering ldapsearch results..."
 echo "Filtering original ldif used to create database..."
 . $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
-cmp $SEARCHFLT $LDIFFLT
+$CMP $SEARCHFLT $LDIFFLT
 
 if test $? != 0 ; then
 	echo "comparison failed - modrdn operations did not complete correctly"
@@ -138,7 +138,7 @@ if test $RC != 0 ; then
 	echo "ldapsearch failed!"
 	exit $RC
 fi
-cmp $SEARCHOUT /dev/null
+$CMP $SEARCHOUT /dev/null
 if test $? != 0 ; then
 	echo "failure: ldapsearch found attribute that was to be removed!"
 	kill -HUP $PID
@@ -162,7 +162,7 @@ echo "Filtering ldapsearch results..."
 echo "Filtering original ldif used to create database..."
 . $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
-cmp $SEARCHFLT $LDIFFLT
+$CMP $SEARCHFLT $LDIFFLT
 
 if test $? != 0 ; then
 	echo "comparison failed - modrdn operations did not complete correctly"
@@ -203,7 +203,7 @@ echo "Filtering ldapsearch results..."
 echo "Filtering original ldif used to create database..."
 . $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
-cmp $SEARCHFLT $LDIFFLT
+$CMP $SEARCHFLT $LDIFFLT
 
 kill -HUP $PID
 if test $? != 0 ; then

@@ -97,7 +97,7 @@ kill -HUP $PID
 
 echo "Assuming everything is fine."
 #echo "Comparing results"
-#cmp $TESTOUT $SEARCHOUTMASTER
+#$CMP $TESTOUT $SEARCHOUTMASTER
 #if test $? != 0 ; then
 #	echo "Comparison failed"
 #	exit 1
