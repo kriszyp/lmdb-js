@@ -277,7 +277,7 @@ do_bind(
 
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 		if ( conn->c_sasl_bind_in_progress ) {
-			if((ber_bvcmp(&conn->c_sasl_bind_mech, &mech) != 0)) {
+			if( !bvmatch( &conn->c_sasl_bind_mech, &mech ) ) {
 				/* mechanism changed between bind steps */
 				slap_sasl_reset(conn);
 			}

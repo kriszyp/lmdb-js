@@ -177,7 +177,7 @@ static int objectSubClassIndexer(
 					k, ocvalues[k].bv_val, sup->soc_cname.bv_val );
 #endif
 #endif
-				if( ber_bvcmp( &ocvalues[k], &sup->soc_cname ) == 0 ) {
+				if( bvmatch( &ocvalues[k], &sup->soc_cname ) ) {
 					found++;
 					break;
 				}
