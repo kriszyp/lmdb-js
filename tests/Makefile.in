@@ -6,6 +6,10 @@ SUBDIRS= progs
 
 BUILD_BDB2 = @BUILD_BDB2@
 
+test: tests
+tests: bdb2 ldbm
+
+bdb2: test-bdb2
 test-bdb2:	FORCE
 	@-$(LN_S) $(srcdir)/data . 
 	@if test "$(BUILD_BDB2)" = "yes" ; then \
@@ -16,8 +20,7 @@ test-bdb2:	FORCE
 		echo "run configure with --enable-bdb2" ; \
 	fi
 
-tests:		test-ldbm
-test:		test-ldbm
+ldbm: test-ldbm
 test-ldbm:	FORCE
 	@-$(LN_S) $(srcdir)/data .
 	@echo "Initiating LDAP tests..."

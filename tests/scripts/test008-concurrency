@@ -6,10 +6,10 @@ else
 	SRCDIR=$1; shift
 fi
 if [ $# -eq 1 ]; then
-	BDB2=$1; shift
+	BACKEND=$1; shift
 fi
 
-echo "running defines.sh $SRCDIR $BDB2"
+echo "running defines.sh $SRCDIR $BACKEND"
 
 . $SRCDIR/scripts/defines.sh
 
