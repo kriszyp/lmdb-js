@@ -454,6 +454,8 @@ done:
 		e->e_id = NOID;
 	}
 	bdb_entry_release( &op, e, 0 );
+	TXN_CHECKPOINT( bi->bi_dbenv,
+			bi->bi_txn_cp_kbyte, bi->bi_txn_cp_min, 0 );
 
 	return rc;
 }

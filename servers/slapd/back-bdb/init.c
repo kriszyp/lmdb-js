@@ -333,7 +333,7 @@ bdb_db_open( BackendDB *be )
 		}
 	}
 
-	flags = DB_THREAD | DB_CREATE | bdb->bi_db_opflags;
+	flags = DB_THREAD | bdb->bi_db_opflags;
 
 	bdb->bi_databases = (struct bdb_db_info **) ch_malloc(
 		BDB_INDICES * sizeof(struct bdb_db_info *) );
@@ -363,17 +363,32 @@ bdb_db_open( BackendDB *be )
 				bdb_bt_compare );
 			rc = db->bdi_db->set_pagesize( db->bdi_db,
 				BDB_ID2ENTRY_PAGESIZE );
+			if ( slapMode & SLAP_TOOL_READMAIN ) {
+				flags |= DB_RDONLY;
+			} else {
+				flags |= DB_CREATE;
+			}
 		} else {
 			rc = db->bdi_db->set_flags( db->bdi_db, 
 				DB_DUP | DB_DUPSORT );
 #ifndef BDB_HIER
 			rc = db->bdi_db->set_dup_compare( db->bdi_db,
 				bdb_bt_compare );
+			if ( slapMode & SLAP_TOOL_READONLY ) {
+				flags |= DB_RDONLY;
+			} else {
+				flags |= DB_CREATE;
+			}
 #else
 			rc = db->bdi_db->set_dup_compare( db->bdi_db,
 				bdb_dup_compare );
 			rc = db->bdi_db->set_bt_compare( db->bdi_db,
 				bdb_bt_compare );
+			if ( slapMode & (SLAP_TOOL_READONLY|SLAP_TOOL_READMAIN) ) {
+				flags |= DB_RDONLY;
+			} else {
+				flags |= DB_CREATE;
+			}
 #endif
 			rc = db->bdi_db->set_pagesize( db->bdi_db,
 				BDB_PAGESIZE );
@@ -410,6 +425,7 @@ bdb_db_open( BackendDB *be )
 			return rc;
 		}
 
+		flags &= ~(DB_CREATE | DB_RDONLY);
 		db->bdi_name = bdbi_databases[i].name;
 		bdb->bi_databases[i] = db;
 	}

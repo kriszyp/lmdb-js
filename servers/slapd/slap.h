@@ -1219,6 +1219,8 @@ LDAP_SLAPD_V (int) slapMode;
 #define SLAP_MODE			0x0003
 
 #define SLAP_TRUNCATE_MODE	0x0100
+#define	SLAP_TOOL_READMAIN	0x0200
+#define	SLAP_TOOL_READONLY	0x0400
 
 struct slap_replica_info {
 	char *ri_host;				/* supersedes be_replica */

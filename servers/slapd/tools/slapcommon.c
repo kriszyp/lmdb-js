@@ -105,10 +105,12 @@ slap_tool_init(
 
 	case SLAPINDEX:
 		options = "b:cd:f:n:v";
+		mode |= SLAP_TOOL_READMAIN;
 		break;
 
 	case SLAPCAT:
 		options = "b:cd:f:l:n:s:v";
+		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
 	default:
