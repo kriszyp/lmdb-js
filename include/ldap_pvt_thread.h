@@ -203,6 +203,9 @@ LDAP_F int
 ldap_pvt_thread_cond_init LDAP_P(( ldap_pvt_thread_cond_t *cond ));
 
 LDAP_F int 
+ldap_pvt_thread_cond_destroy LDAP_P(( ldap_pvt_thread_cond_t *cond ));
+
+LDAP_F int 
 ldap_pvt_thread_cond_signal LDAP_P(( ldap_pvt_thread_cond_t *cond ));
 
 LDAP_F int 
@@ -240,6 +243,8 @@ typedef struct ldap_pvt_thread_rdwr_var {
 
 LDAP_F int 
 ldap_pvt_thread_rdwr_init LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
+LDAP_F int 
+ldap_pvt_thread_rdwr_destroy LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 LDAP_F int 
 ldap_pvt_thread_rdwr_rlock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 LDAP_F int 
