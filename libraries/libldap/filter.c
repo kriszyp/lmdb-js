@@ -591,17 +591,22 @@ put_simple_filter(
 			if( rc != -1 && *str != '\0' ) {
 				rc = ber_printf( ber, "ts", LDAP_FILTER_EXT_TYPE, str );
 			}
-
 			if( rc != -1 ) {
 				ber_slen_t len = ldap_pvt_filter_value_unescape( value );
 
 				if( len >= 0 ) {
-					rc = ber_printf( ber, /*"{"*/ "totbN}",
-						LDAP_FILTER_EXT_VALUE, value, len,
-						LDAP_FILTER_EXT_DNATTRS, dn != NULL);
+					rc = ber_printf( ber, "to",
+						LDAP_FILTER_EXT_VALUE, value, len );
 				} else {
 					rc = -1;
 				}
+			}
+			if( rc != -1 && dn ) {
+				rc = ber_printf( ber, "tb",
+					LDAP_FILTER_EXT_DNATTRS, (ber_int_t) 1 );
+			}
+			if( rc != -1 ) { 
+				rc = ber_printf( ber, /*"{"*/ "N}" );
 			}
 		}
 		goto done;
