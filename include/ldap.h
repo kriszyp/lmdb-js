@@ -1480,8 +1480,6 @@ ldap_sort_strcasecmp LDAP_P((
 
 /*
  * in url.c
- *
- * need _ext varients
  */
 LDAP_F( int )
 ldap_is_ldap_url LDAP_P((
@@ -1499,6 +1497,10 @@ LDAP_F( int )
 ldap_url_parse LDAP_P((
 	LDAP_CONST char *url,
 	LDAPURLDesc **ludpp ));
+
+LDAP_F( char * )
+ldap_url_desc2str LDAP_P((
+	LDAPURLDesc *ludp ));
 
 LDAP_F( void )
 ldap_free_urldesc LDAP_P((
