@@ -559,10 +559,10 @@ done:;
 
 		for ( i = 0; replica_id_list[i] > -1 ; i++ ) {
 			slap_syncrepl_bv.bv_len = snprintf( slap_syncrepl_bv.bv_val,
-									slap_syncrepl_bvc.bv_len,
+									slap_syncrepl_bvc.bv_len+1,
 									"syncrepl%d", replica_id_list[i] );
 			slap_syncrepl_cn_bv.bv_len = snprintf( slap_syncrepl_cn_bv.bv_val,
-										slap_syncrepl_cn_bvc.bv_len,
+										slap_syncrepl_cn_bvc.bv_len+1,
 										"cn=syncrepl%d", replica_id_list[i] );
 			build_new_dn( &ctxcsn_ndn, &be->be_nsuffix[0],
 						  (struct berval *)&slap_syncrepl_cn_bv, NULL );
