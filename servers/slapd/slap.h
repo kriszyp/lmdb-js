@@ -205,12 +205,21 @@ typedef int slap_mr_filter_func LDAP_P((
 typedef struct slap_matching_rule {
 	LDAP_MATCHING_RULE		smr_mrule;
 	unsigned				smr_usage;
-#define SLAP_MR_NONE		0x00U
-#define SLAP_MR_EQUALITY	0x01U
-#define SLAP_MR_APPROX		0x02U
-#define SLAP_MR_ORDERING	0x04U
-#define SLAP_MR_SUBSTR		0x08U
-#define SLAP_MR_EXT			0x10U
+
+#define SLAP_MR_TYPE_MASK		0xFF00U
+#define SLAP_MR_SUBTYPE_MASK	0x00FFU
+
+#define SLAP_MR_NONE			0x0000U
+#define SLAP_MR_EQUALITY		0x0100U
+#define SLAP_MR_APPROX			0x0200U
+#define SLAP_MR_ORDERING		0x0400U
+#define SLAP_MR_SUBSTR			0x0800U
+#define SLAP_MR_EXT				0x1000U
+
+#define SLAP_MR_SUBSTR_INITIAL	(SLAP_MR_SUBSTR | 0x0001U )
+#define SLAP_MR_SUBSTR_ANY		(SLAP_MR_SUBSTR | 0x0002U )
+#define SLAP_MR_SUBSTR_FINAL	(SLAP_MR_SUBSTR | 0x0004U )
+
 	Syntax					*smr_syntax;
 	slap_mr_convert_func	*smr_convert;
 	slap_mr_normalize_func	*smr_normalize;

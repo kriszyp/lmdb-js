@@ -429,6 +429,8 @@ get_substring_filter(
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) )
 	{
+		unsigned usage;
+
 		rc = ber_scanf( ber, "O", &val );
 		if ( rc == LBER_ERROR ) {
 			rc = SLAPD_DISCONNECT;
@@ -441,14 +443,46 @@ get_substring_filter(
 			goto return_error;
 		} 
 
-		rc = LDAP_PROTOCOL_ERROR;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		switch ( tag ) {
+		case LDAP_SUBSTRING_INITIAL:
+			usage = SLAP_MR_SUBSTR_INITIAL;
+			break;
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
+		case LDAP_SUBSTRING_ANY:
+			usage = SLAP_MR_SUBSTR_ANY;
+			break;
+
+		case LDAP_SUBSTRING_FINAL:
+			usage = SLAP_MR_SUBSTR_FINAL;
+			break;
+
+		default:
+			rc = LDAP_PROTOCOL_ERROR;
+
+			Debug( LDAP_DEBUG_FILTER,
+				"  unknown substring choice=%ld\n",
+				(long) tag, 0, 0 );
+
+			ber_bvfree( val );
+			goto return_error;
+		}
+
+		rc = value_normalize( f->f_sub_desc, usage, val, text );
+
+		if( rc != LDAP_SUCCESS ) {
+			ber_bvfree( val );
+			goto return_error;
+		}
+#else
+
 		/* we should call a substring syntax normalization routine */
 		value_normalize( val->bv_val, syntax );
 		/* this is bogus, value_normalize should take a berval */
 		val->bv_len = strlen( val->bv_val );
 #endif
+
+		rc = LDAP_PROTOCOL_ERROR;
 
 		switch ( tag ) {
 		case LDAP_SUBSTRING_INITIAL:
@@ -457,6 +491,8 @@ get_substring_filter(
 				ber_bvfree( val );
 				goto return_error;
 			}
+
+
 			f->f_sub_initial = val;
 
 			if( fstr ) {
