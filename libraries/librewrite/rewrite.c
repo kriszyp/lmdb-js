@@ -76,7 +76,7 @@ apply(
 			sep[ 0 ] = '\0';
 			sep++;
 		}
-		// rc = rewrite( info, rewriteContext, string, &result );
+		/* rc = rewrite( info, rewriteContext, string, &result ); */
 		rc = rewrite_session( info, rewriteContext, string,
 				cookie, &result );
 		

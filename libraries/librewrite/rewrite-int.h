@@ -58,7 +58,8 @@
 /*
  * Submatch escape char
  */
-//#define REWRITE_SUBMATCH_ESCAPE			'\\'
+/* the '\' conflicts with slapd.conf parsing */
+/* #define REWRITE_SUBMATCH_ESCAPE			'\\' */
 #define REWRITE_SUBMATCH_ESCAPE                 '%'
 
 /*
