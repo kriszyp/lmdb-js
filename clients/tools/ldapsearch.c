@@ -976,8 +976,8 @@ main( int argc, char **argv )
 	if ( manageDSAit || noop || valuesReturnFilter ) {
 		int err;
 		int i=0;
-		LDAPControl c1,c2,c3;
-		LDAPControl *ctrls[4];
+		LDAPControl c1,c2,c3,c4;
+		LDAPControl *ctrls[5];
 		
 		if ( manageDSAit ) {
 			ctrls[i++]=&c1;
@@ -999,12 +999,39 @@ main( int argc, char **argv )
 			c2.ldctl_iscritical = noop > 1;
 		}
 
-		if ( valuesReturnFilter ) {
+#ifdef LDAP_CONTROL_SUBENTRIES
+		if ( subentries ) {
 			ctrls[i++]=&c3;
 			ctrls[i] = NULL;
 
-			c3.ldctl_oid = LDAP_CONTROL_VALUESRETURNFILTER;
-			c3.ldctl_iscritical = valuesReturnFilter > 1;
+			c3.ldctl_oid = LDAP_CONTROL_SUBENTRIES;
+			c3.ldctl_iscritical = subentries < 1;
+		    
+	        if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+				return EXIT_FAILURE;
+			}
+
+			err = ber_printf( ber, "{b}", abs(subentries) == 1 ? 0 : 1 );
+	    	if ( err == LBER_ERROR ) {
+				ber_free( ber, 1 );
+				fprintf( stderr, "Subentries control encoding error!\n" );
+				return EXIT_FAILURE;
+			}
+
+			if ( ber_flatten( ber, &bvalp ) == LBER_ERROR ) {
+				return EXIT_FAILURE;
+			}
+
+			c3.ldctl_value=(*bvalp);
+		}
+#endif
+
+		if ( valuesReturnFilter ) {
+			ctrls[i++]=&c4;
+			ctrls[i] = NULL;
+
+			c4.ldctl_oid = LDAP_CONTROL_VALUESRETURNFILTER;
+			c4.ldctl_iscritical = valuesReturnFilter > 1;
 		    
 	        if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
@@ -1020,7 +1047,7 @@ main( int argc, char **argv )
 				return EXIT_FAILURE;
 			}
 
-			c3.ldctl_value=(*bvalp);
+			c4.ldctl_value=(*bvalp);
 		}
 
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
