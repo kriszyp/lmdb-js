@@ -10,14 +10,23 @@
  *	 in file LICENSE in the top-level directory of the distribution.
  */
 
-
 typedef struct {
+	/*
+	 * FIXME: we explicitly keep the objectClass name because
+	 * the ObjectClass structure does not use bervals (yet?)
+	 */
 	struct berval	name;
+	/*
+	 * Structure of corresponding LDAP objectClass definition
+	 */
 	ObjectClass	*oc;
-	char		*keytbl;
-	char		*keycol;
+	struct berval	keytbl;
+	struct berval	keycol;
 	/* expected to return keyval of newly created entry */
 	char		*create_proc;
+	/* in case create_proc does not return the keyval of the newly
+	 * created row */
+	char		*create_keyval;
 	/* supposed to expect keyval as parameter and delete 
 	 * all the attributes as well */
 	char		*delete_proc;
@@ -29,12 +38,11 @@ typedef struct {
 } backsql_oc_map_rec;
 
 typedef struct {
-	/* literal name of corresponding LDAP attribute type */
-	struct berval	name;
+	/* Description of corresponding LDAP attribute type */
 	AttributeDescription	*ad;
-	char		*from_tbls;
-	char		*join_where;
-	char		*sel_expr;
+	struct berval	from_tbls;
+	struct berval	join_where;
+	struct berval	sel_expr;
 	/* supposed to expect 2 binded values: entry keyval 
 	 * and attr. value to add, like "add_name(?,?,?)" */
 	char		*add_proc;
@@ -45,7 +53,7 @@ typedef struct {
 	 * is preconstructed from parts on schemamap load time */
 	char		*query;
 	/* following flags are bitmasks (first bit used for add_proc, 
-	 * second - for modify, third - for delete_proc) */
+	 * second - for delete_proc) */
 	/* order of parameters for procedures above; 
 	 * 1 means "data then keyval", 0 means "keyval then data" */
 	int 		param_order;
@@ -54,7 +62,7 @@ typedef struct {
 	 * for return code) */
 	int 		expect_return;
 	/* TimesTen */
-	char		*sel_expr_u;
+	struct berval	sel_expr_u;
 } backsql_at_map_rec;
 
 /* defines to support bitmasks above */

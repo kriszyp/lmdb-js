@@ -21,6 +21,8 @@ typedef struct backsql_entryID {
 
 int backsql_dn2id( backsql_info *bi, backsql_entryID *id,
 		SQLHDBC dbh, struct berval *dn );
+int backsql_has_children( backsql_info *bi, SQLHDBC dbh, struct berval *dn );
+
 /* returns next */
 backsql_entryID *backsql_free_entryID( backsql_entryID *id, int freeit );
 

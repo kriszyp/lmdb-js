@@ -14,21 +14,16 @@
 #include "entry-id.h"
 #include "schema-map.h"
 
-#define BACKSQL_MAX(a,b) ((a)>(b)?(a):(b))
-#define BACKSQL_MIN(a,b) ((a)<(b)?(a):(b))
+#define BACKSQL_CONCAT
 
-#define BACKSQL_STR_GROW 64
-
-extern struct berval 
-	bv_n_objectclass,
-	bv_n_0_10;
-
-struct berval *backsql_strcat( struct berval *dest, int *buflen, ... );
+struct berval * backsql_strcat( struct berval *dest, ber_len_t *buflen, ... );
+struct berval * backsql_strfcat( struct berval *dest, ber_len_t *buflen,
+		const char *fmt, ... );
 
 int backsql_entry_addattr( Entry *e, struct berval *at_name, 
 		struct berval *at_val );
 
-typedef struct __backsql_srch_info {
+typedef struct backsql_srch_info {
 	struct berval		*base_dn;
 	int			scope;
 	Filter			*filter;
@@ -40,16 +35,18 @@ typedef struct __backsql_srch_info {
 	backsql_info		*bi;
 	backsql_oc_map_rec	*oc;
 	struct berval		sel, from, join_where, flt_where;
-	int			sel_len, from_len, jwhere_len, fwhere_len;
+	ber_len_t		sel_len, from_len, jwhere_len, fwhere_len;
 	SQLHDBC			dbh;
 	int			status;
 	Backend			*be;
 	Connection		*conn;
 	Operation		*op;
 	AttributeName		*attrs;
+	int			attr_flags;
+#define	BSQL_SF_ALL_OPER	0x0001
 	Entry			*e;
 	/* 1 if the db is TimesTen; 0 if it's not */
-	int			isTimesTen; 
+	int			use_reverse_dn; 
 } backsql_srch_info;
 
 int backsql_process_filter( backsql_srch_info *bsi, Filter *f );
@@ -63,18 +60,24 @@ Entry *backsql_id2entry( backsql_srch_info *bsi, Entry *e,
 
 extern char 
 	backsql_def_oc_query[],
+	backsql_def_needs_select_oc_query[],
 	backsql_def_at_query[],
 	backsql_def_delentry_query[],
 	backsql_def_insentry_query[],
 	backsql_def_subtree_cond[],
 	backsql_def_upper_subtree_cond[],
-	backsql_id_query[];
+	backsql_id_query[],
+	backsql_def_concat_func[];
 extern char 
 	backsql_check_dn_ru_query[];
 
-int backsql_merge_from_clause( char **dest_from, int *dest_len, 
-		char *src_from );
+int backsql_merge_from_clause( struct berval *dest_from, ber_len_t *dest_len, 
+		struct berval *src_from );
 
+int backsql_split_pattern( const char *pattern, BerVarray *split_pattern,
+		int expected );
+int backsql_prepare_pattern( BerVarray split_pattern, BerVarray values,
+		struct berval *res );
 
 #endif /* __BACKSQL_UTIL_H__ */
 
