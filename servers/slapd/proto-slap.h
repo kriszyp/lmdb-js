@@ -283,6 +283,7 @@ LDAP_SLAPD_F (int) glue_sub_init( void );
 
 LDAP_SLAPD_F (int) overlay_register( slap_overinst *on );
 LDAP_SLAPD_F (int) overlay_config( BackendDB *be, const char *ov );
+LDAP_SLAPD_F (slap_overinst *) overlay_next( slap_overinst *on );
 
 /*
  * ch_malloc.c
