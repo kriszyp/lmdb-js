@@ -78,6 +78,9 @@ LDAPFiltDesc *lfdp;		/* LDAP filter descriptor */
 int debug;			/* debug flag */
 #endif
 
+extern void initialize_client();
+extern void initialize_attribute_strings();
+
 main(argc, argv)
 int argc;
 char *argv[];
@@ -86,7 +89,6 @@ char *argv[];
 	extern char *optarg;			/* for parsing argv */
 	register int c;				/* for parsing argv */
 	register char *cp;			/* for parsing Version */
-	extern void initialize_attribute_strings();
 
 	verbose = 1;
 
@@ -539,7 +541,7 @@ char **base, *s;
 	}
 }
 
-initialize_client()
+void initialize_client()
 {
 	FILE *fp;				/* for config file */
 	static char buffer[MED_BUF_SIZE];	/* for input */
@@ -689,11 +691,13 @@ initialize_client()
 	if (((term = getenv("TERM")) == NULL) || (tgetent(bp, term) <= 0))
 		return;
 	else {
+#ifdef TIOCGWINSZ
 		if (ioctl(fileno(stdout), TIOCGWINSZ, &win) < 0) {
 			lpp = tgetnum("li");
 			col_size = tgetnum("co");
-		}
-		else {
+		} else
+#endif
+		{
 			if ((lpp = win.ws_row) == 0)
 				lpp = tgetnum("li");
 			if ((col_size = win.ws_col) == 0)
