@@ -26,8 +26,6 @@
 #define DC_IN_UFN
 /* #define PRETTY_ESCAPE */
 
-static int dn2dn( const char *dnin, unsigned fin, char **dnout, unsigned fout );
-
 /* from libraries/libldap/schema.c */
 extern char * parse_numericoid(const char **sp, int *code, const int flags);
 
@@ -120,7 +118,8 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ufn\n", 0, 0, 0 );
 
-	( void )dn2dn( dn, LDAP_DN_FORMAT_LDAP, &out, LDAP_DN_FORMAT_UFN );
+	( void )ldap_dn_normalize( dn, LDAP_DN_FORMAT_LDAP, 
+				   &out, LDAP_DN_FORMAT_UFN );
 	
 	return( out );
 }
@@ -259,7 +258,8 @@ ldap_dn2dcedn( LDAP_CONST char *dn )
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2dcedn\n", 0, 0, 0 );
 
-	( void )dn2dn( dn, LDAP_DN_FORMAT_LDAP, &out, LDAP_DN_FORMAT_DCE );
+	( void )ldap_dn_normalize( dn, LDAP_DN_FORMAT_LDAP, 
+				   &out, LDAP_DN_FORMAT_DCE );
 
 	return( out );
 }
@@ -271,7 +271,7 @@ ldap_dcedn2dn( LDAP_CONST char *dce )
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_dcedn2dn\n", 0, 0, 0 );
 
-	( void )dn2dn( dce, LDAP_DN_FORMAT_DCE, &out, LDAP_DN_FORMAT_LDAPV3 );
+	( void )ldap_dn_normalize( dce, LDAP_DN_FORMAT_DCE, &out, LDAP_DN_FORMAT_LDAPV3 );
 
 	return( out );
 }
@@ -283,24 +283,14 @@ ldap_dn2ad_canonical( LDAP_CONST char *dn )
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ad_canonical\n", 0, 0, 0 );
 
-	( void )dn2dn( dn, LDAP_DN_FORMAT_LDAP, 
+	( void )ldap_dn_normalize( dn, LDAP_DN_FORMAT_LDAP, 
 		       &out, LDAP_DN_FORMAT_AD_CANONICAL );
 
 	return( out );
 }
 
-int
-ldap_dn_normalize( const char *in, unsigned iflags, char **out, unsigned oflags ) 
-{
-	assert( out );
-
-	Debug( LDAP_DEBUG_TRACE, "ldap_dn_normalize\n", 0, 0, 0 );
-
-	return dn2dn( in, iflags, out, oflags);
-}
-
 /*
- * helper that changes the string representation of dnin
+ * function that changes the string representation of dnin
  * from ( fin & LDAP_DN_FORMAT_MASK ) to ( fout & LDAP_DN_FORMAT_MASK )
  * 
  * fin can be one of:
@@ -316,11 +306,13 @@ ldap_dn_normalize( const char *in, unsigned iflags, char **out, unsigned oflags 
  * 	LDAP_DN_FORMAT_UFN		(rfc 1781, partial and with extensions)
  * 	LDAP_DN_FORMAT_AD_CANONICAL	(?)
  */
-static int
-dn2dn( const char *dnin, unsigned fin, char **dnout, unsigned fout )
+int
+ldap_dn_normalize( const char *dnin, unsigned fin, char **dnout, unsigned fout )
 {
 	int	rc;
 	LDAPDN	*tmpDN = NULL;
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_dn_normalize\n", 0, 0, 0 );
 
 	assert( dnout );
 
