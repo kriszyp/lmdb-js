@@ -24,9 +24,10 @@ OpenLDAP 2.0 Projects
 		Update back-perl
 		Update back-sql
 		Update back-tcl
+	SLURPD v3 update
 	clients
 		use _ext API, avoid deprecated routines
-		-C/-CC/-R referral chasing options
+		referral chasing options/rebind proc
 	client API update
 		Implement LDAP errno draft (deferred)
 		Implement per referral callback
