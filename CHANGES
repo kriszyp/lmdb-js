@@ -1,5 +1,9 @@
 OpenLDAP Change Log
 
+Changes included in OpenLDAP 1.2 Release Engineering
+	CVS Tag: OPENLDAP_REL_ENG_1_2
+	<insert here>
+
 Changes included in OpenLDAP 1.2.5
 	CVS Tag: OPENLDAP_REL_ENG_1_2_5
 	Fixed slapd substring_comp_candidates null intersection bug (ITS#228)
