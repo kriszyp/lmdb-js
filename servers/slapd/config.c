@@ -2752,7 +2752,7 @@ parse_syncrepl_line(
 		} else if ( !strncasecmp( cargv[ i ], MASTERSTR,
 					sizeof( MASTERSTR ) - 1 )) {
 			val = cargv[ i ] + sizeof( MASTERSTR );
-			si->masteruri = strdup( val );
+			si->masteruri = ch_strdup( val );
 			if (( hp = strchr( val, ':' )) != NULL ) {
 				if ( *( hp + 1 ) == '/' ) {
 					if ( *( hp + 2 ) == '/' ) {
@@ -2772,7 +2772,7 @@ parse_syncrepl_line(
 			if ( si->masterport <= 0 ) {
 				si->masterport = 0;
 			}
-			si->mastername = strdup( val );
+			si->mastername = ch_strdup( val );
 			si->master_bv = (BerVarray) ch_calloc( 2, sizeof (struct berval ));
 			ber_str2bv( si->masteruri, strlen(si->masteruri), 0,
 							&si->master_bv[0] );
@@ -2791,7 +2791,7 @@ parse_syncrepl_line(
 			char *str;
 			struct berval updatedn = {0, NULL};
 			val = cargv[ i ] + sizeof( UPDATEDNSTR );
-			str = strdup( val );
+			str = ch_strdup( val );
 			ber_str2bv( str, strlen(str), 1, &updatedn );
 			dnNormalize( 0, NULL, NULL, &updatedn, &si->updatedn, NULL );
 			ch_free( str );
@@ -2800,7 +2800,7 @@ parse_syncrepl_line(
 		} else if ( !strncasecmp( cargv[ i ],
 				BINDDNSTR, sizeof( BINDDNSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( BINDDNSTR );
-			si->binddn = strdup( val );
+			si->binddn = ch_strdup( val );
 			gots |= GOT_DN;
 		} else if ( !strncasecmp( cargv[ i ], BINDMETHSTR,
 				sizeof( BINDMETHSTR ) - 1 ) ) {
@@ -2833,49 +2833,49 @@ parse_syncrepl_line(
 				SASLMECHSTR, sizeof( SASLMECHSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( SASLMECHSTR );
 			gots |= GOT_MECH;
-			si->saslmech = strdup( val );
+			si->saslmech = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				CREDSTR, sizeof( CREDSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( CREDSTR );
-			si->passwd = strdup( val );
+			si->passwd = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				SECPROPSSTR, sizeof( SECPROPSSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( SECPROPSSTR );
-			si->secprops = strdup( val );
+			si->secprops = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				REALMSTR, sizeof( REALMSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( REALMSTR );
-			si->realm = strdup( val );
+			si->realm = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				AUTHCSTR, sizeof( AUTHCSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( AUTHCSTR );
-			si->authcId = strdup( val );
+			si->authcId = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				OLDAUTHCSTR, sizeof( OLDAUTHCSTR ) - 1 ) ) {
 			/* Old authcID is provided for some backwards compatibility */
 			val = cargv[ i ] + sizeof( OLDAUTHCSTR );
-			si->authcId = strdup( val );
+			si->authcId = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				AUTHZSTR, sizeof( AUTHZSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( AUTHZSTR );
-			si->authzId = strdup( val );
+			si->authzId = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				SRVTABSTR, sizeof( SRVTABSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( SRVTABSTR );
 			if ( si->srvtab != NULL ) {
 				free( si->srvtab );
 			}
-			si->srvtab = strdup( val );
+			si->srvtab = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				FILTERSTR, sizeof( FILTERSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( FILTERSTR );
 			gots |= GOT_FILTER;
-			si->filterstr = strdup( val );
+			si->filterstr = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				SEARCHBASESTR, sizeof( SEARCHBASESTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( SEARCHBASESTR );
 			gots |= GOT_SEARCHBASE;
-			si->base = strdup( val );
+			si->base = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				SCOPESTR, sizeof( SCOPESTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( SCOPESTR );
@@ -2912,7 +2912,7 @@ parse_syncrepl_line(
 						return -1;
 					}
 					si->attrs = tmp;
-					si->attrs[ nr_attr - 1 ] = strdup( val );
+					si->attrs[ nr_attr - 1 ] = ch_strdup( val );
 				}
 			}
 			if ( *val != '\0' ) {
@@ -2927,7 +2927,7 @@ parse_syncrepl_line(
 					return -1;
 				}
 				si->attrs = tmp;
-				si->attrs[ nr_attr - 1 ] = strdup( val );
+				si->attrs[ nr_attr - 1 ] = ch_strdup( val );
 			}
 			nr_attr++;
 			tmp = (char **) ch_realloc( si->attrs, nr_attr * sizeof( char * ));

@@ -459,8 +459,7 @@ do_syncrepl(
 #endif
 		}
 		si->attrs = tmp;
-		si->attrs[ n++ ] = ( char * ) strndup( descs[i]->ad_cname.bv_val,
-						       descs[i]->ad_cname.bv_len );
+		si->attrs[ n++ ] = ch_strdup ( descs[i]->ad_cname.bv_val );
 		si->attrs[ n ] = NULL;
 	}
 
@@ -724,7 +723,7 @@ syncrepl_message_to_entry(
 	{
 		if ( tmp.sml_type.bv_val == NULL ) break;
 
-		mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
+		mod  = (Modifications *) ch_malloc( sizeof( Modifications ));
 
 		mod->sml_op = LDAP_MOD_REPLACE;
 		mod->sml_next = NULL;
@@ -907,7 +906,7 @@ syncrepl_entry(
 	}
 
 #if 0 /* FIXME : UUID search required first */
-	filterstr = (char *) ch_malloc( strlen("entryUUID=") + syncUUID->bv_len + 1 ); 
+	filterstr = (char *) sl_malloc( strlen("entryUUID=") + syncUUID->bv_len + 1, op->o_tmpmemctx ); 
 	strcpy( filterstr, "entryUUID=" );
 	strcat( filterstr, syncUUID->bv_val );
 #endif
