@@ -37,16 +37,14 @@ Implement LCUP
 
 Medium projects
 ---------------
-Add LDIFv1 control: support
-Add support for in-directory SASL secrets
-Implement dNSReferral <draft-zeilenga-ldap-dnsref-xx.txt>
+Implement LDAP Transactions
 Implement authPassword (RFC 3112)
 Implement localization
-Implement LDAP Transactions
 Implement Proxy Authorization Group extension
 Implement Proxy Authorization Control extension
+Add LDIFv1 control support
 Update to latest autoconf and friends
-Use GNU shtool to improve portability
+
 
 Small projects
 --------------
@@ -55,9 +53,9 @@ Implement -V version options
 Implement simple paged results control
 Add no-op control support to ldap client tools
 Add tests to test suite (ACI, moddn, manageDSAit, etc.)
-Add support for Cyrus SASL v2
 Add support for Cyrus pwcheckd/saslauthd
 Create ldapbind (from ldapcompare?) to support bind operations
+Convert utfconv.txt into man page(s).
 Update any manual page
 
 
