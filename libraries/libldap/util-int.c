@@ -405,6 +405,10 @@ void ldap_int_utils_init( void )
 	ldap_pvt_thread_mutex_init( &ldap_int_ctime_mutex );
 #endif
 	ldap_pvt_thread_mutex_init( &ldap_int_resolv_mutex );
+
+#ifdef HAVE_CYRUS_SASL
+	ldap_pvt_thread_mutex_init( &ldap_int_sasl_mutex );
+#endif
 #endif
 
 	/* call other module init functions here... */
