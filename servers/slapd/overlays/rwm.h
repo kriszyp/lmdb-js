@@ -39,8 +39,25 @@ struct ldapmap {
 };
 
 struct ldapmapping {
-	struct berval src;
-	struct berval dst;
+	int			m_flags;
+#define	RWMMAP_F_NONE		0x00
+#define	RWMMAP_F_IS_OC		0x01
+#define RWMMAP_F_FREE_SRC	0x10
+#define RWMMAP_F_FREE_DST	0x20
+	struct berval		m_src;
+	union {
+		AttributeDescription	*m_s_ad;
+		ObjectClass		*m_s_oc;
+	} m_src_ref;
+#define m_src_ad	m_src_ref.m_s_ad
+#define m_src_oc	m_src_ref.m_s_oc
+	struct berval		m_dst;
+	union {
+		AttributeDescription	*m_d_ad;
+		ObjectClass		*m_d_oc;
+	} m_dst_ref;
+#define m_dst_ad	m_dst_ref.m_d_ad
+#define m_dst_oc	m_dst_ref.m_d_oc
 };
 
 struct ldaprwmap {
@@ -85,8 +102,8 @@ int rwm_mapping_dup (void *, void *);
 void rwm_map_init ( struct ldapmap *lm, struct ldapmapping ** );
 void rwm_map ( struct ldapmap *map, struct berval *s, struct berval *m,
 	int remap );
-#define BACKLDAP_MAP	0
-#define BACKLDAP_REMAP	1
+#define RWM_MAP	0
+#define RWM_REMAP	1
 char *
 rwm_map_filter(
 		struct ldapmap *at_map,
@@ -126,7 +143,12 @@ extern int rwm_suffix_massage_config( struct rewrite_info *info,
 		struct berval *pvnc, struct berval *nvnc,
 		struct berval *prnc, struct berval *nrnc);
 #endif /* ENABLE_REWRITE */
-extern int rwm_dnattr_rewrite( dncookie *dc, BerVarray a_vals );
+extern int rwm_dnattr_rewrite(
+	Operation		*op,
+	SlapReply		*rs,
+	void			*cookie,
+	BerVarray		a_vals
+	);
 extern int rwm_dnattr_result_rewrite( dncookie *dc, BerVarray a_vals );
 
 LDAP_END_DECL

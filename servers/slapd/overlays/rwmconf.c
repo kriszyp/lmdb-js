@@ -93,6 +93,7 @@ rwm_map_config(
 		fprintf( stderr,
 			"%s: line %d: objectclass attribute cannot be mapped\n",
 			fname, lineno );
+		return 1;
 	}
 
 	mapping = (struct ldapmapping *)ch_calloc( 2,
@@ -103,17 +104,21 @@ rwm_map_config(
 			fname, lineno );
 		return 1;
 	}
-	ber_str2bv( src, 0, 1, &mapping->src );
-	ber_str2bv( dst, 0, 1, &mapping->dst );
-	mapping[1].src = mapping->dst;
-	mapping[1].dst = mapping->src;
+	ber_str2bv( src, 0, 1, &mapping[0].m_src );
+	ber_str2bv( dst, 0, 1, &mapping[0].m_dst );
+	mapping[1].m_src = mapping[0].m_dst;
+	mapping[1].m_dst = mapping[0].m_src;
+
+	mapping[0].m_flags = RWMMAP_F_NONE;
+	mapping[1].m_flags = RWMMAP_F_NONE;
 
 	/*
 	 * schema check
 	 */
 	if ( is_oc ) {
 		if ( src[0] != '\0' ) {
-			if ( oc_bvfind( &mapping->src ) == NULL ) {
+			mapping[0].m_src_oc = oc_bvfind( &mapping[0].m_src );
+			if ( mapping[0].m_src_oc == NULL ) {
 				fprintf( stderr,
 	"%s: line %d: warning, source objectClass '%s' "
 	"should be defined in schema\n",
@@ -122,22 +127,38 @@ rwm_map_config(
 				/*
 				 * FIXME: this should become an err
 				 */
+				mapping[0].m_src_oc = ch_malloc( sizeof( ObjectClass ) );
+				memset( mapping[0].m_src_oc, 0, sizeof( ObjectClass ) );
+				mapping[0].m_src_oc->soc_cname = mapping[0].m_src;
+				mapping[0].m_flags |= RWMMAP_F_FREE_SRC;
 			}
+			mapping[1].m_dst_oc = mapping[0].m_src_oc;
 		}
 
-		if ( oc_bvfind( &mapping->dst ) == NULL ) {
+		mapping[0].m_dst_oc = oc_bvfind( &mapping[0].m_dst );
+		if ( mapping[0].m_dst_oc == NULL ) {
 			fprintf( stderr,
 	"%s: line %d: warning, destination objectClass '%s' "
 	"is not defined in schema\n",
 				fname, lineno, dst );
+
+			mapping[0].m_dst_oc = ch_malloc( sizeof( ObjectClass ) );
+			memset( mapping[0].m_dst_oc, 0, sizeof( ObjectClass ) );
+			mapping[0].m_dst_oc->soc_cname = mapping[0].m_dst;
+			mapping[0].m_flags |= RWMMAP_F_FREE_DST;
 		}
+		mapping[1].m_src_oc = mapping[0].m_dst_oc;
+
+		mapping[0].m_flags |= RWMMAP_F_IS_OC;
+		mapping[1].m_flags |= RWMMAP_F_IS_OC;
+
 	} else {
 		int			rc;
 		const char		*text = NULL;
-		AttributeDescription	*ad = NULL;
 
 		if ( src[0] != '\0' ) {
-			rc = slap_bv2ad( &mapping->src, &ad, &text );
+			rc = slap_bv2ad( &mapping[0].m_src,
+					&mapping[0].m_src_ad, &text );
 			if ( rc != LDAP_SUCCESS ) {
 				fprintf( stderr,
 	"%s: line %d: warning, source attributeType '%s' "
@@ -146,19 +167,32 @@ rwm_map_config(
 
 				/*
 				 * FIXME: this should become an err
+				 *
+				 * FIXME: or, we should create a fake ad
+				 * and add it here.
 				 */
-			}
 
-			ad = NULL;
+				mapping[0].m_src_ad = ch_malloc( sizeof( AttributeDescription ) );
+				memset( mapping[0].m_src_ad, 0, sizeof( AttributeDescription ) );
+				mapping[0].m_src_ad->ad_cname = mapping[0].m_src;
+				mapping[1].m_flags |= RWMMAP_F_FREE_SRC;
+			}
+			mapping[1].m_dst_ad = mapping[0].m_src_ad;
 		}
 
-		rc = slap_bv2ad( &mapping->dst, &ad, &text );
+		rc = slap_bv2ad( &mapping[0].m_dst, &mapping[0].m_dst_ad, &text );
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr,
 	"%s: line %d: warning, destination attributeType '%s' "
 	"is not defined in schema\n",
 				fname, lineno, dst );
+
+			mapping[0].m_dst_ad = ch_malloc( sizeof( AttributeDescription ) );
+			memset( mapping[0].m_dst_ad, 0, sizeof( AttributeDescription ) );
+			mapping[0].m_dst_ad->ad_cname = mapping[0].m_dst;
+			mapping[1].m_flags |= RWMMAP_F_FREE_SRC;
 		}
+		mapping[1].m_src_ad = mapping[0].m_dst_ad;
 	}
 
 	if ( (src[0] != '\0' && avl_find( map->map, (caddr_t)mapping, rwm_mapping_cmp ) != NULL)
@@ -172,7 +206,7 @@ rwm_map_config(
 	}
 
 	if ( src[0] != '\0' ) {
-		avl_insert( &map->map, (caddr_t)mapping,
+		avl_insert( &map->map, (caddr_t)&mapping[0],
 					rwm_mapping_cmp, rwm_mapping_dup );
 	}
 	avl_insert( &map->remap, (caddr_t)&mapping[1],
@@ -182,9 +216,7 @@ rwm_map_config(
 
 error_return:;
 	if ( mapping ) {
-		ch_free( mapping->src.bv_val );
-		ch_free( mapping->dst.bv_val );
-		ch_free( mapping );
+		mapping_free( mapping );
 	}
 
 	return 1;

@@ -37,26 +37,33 @@
 #include "../../../libraries/libldap/ldap-int.h"
 
 int
-rwm_mapping_cmp ( const void *c1, const void *c2 )
+rwm_mapping_cmp( const void *c1, const void *c2 )
 {
 	struct ldapmapping *map1 = (struct ldapmapping *)c1;
 	struct ldapmapping *map2 = (struct ldapmapping *)c2;
-	int rc = map1->src.bv_len - map2->src.bv_len;
-	if (rc) return rc;
-	return ( strcasecmp(map1->src.bv_val, map2->src.bv_val) );
+	int rc = map1->m_src.bv_len - map2->m_src.bv_len;
+	if ( rc ) {
+		return rc;
+	}
+	return strcasecmp( map1->m_src.bv_val, map2->m_src.bv_val );
 }
 
 int
-rwm_mapping_dup ( void *c1, void *c2 )
+rwm_mapping_dup( void *c1, void *c2 )
 {
 	struct ldapmapping *map1 = (struct ldapmapping *)c1;
 	struct ldapmapping *map2 = (struct ldapmapping *)c2;
+	int rc = map1->m_src.bv_len - map2->m_src.bv_len;
 
-	return( ( strcasecmp(map1->src.bv_val, map2->src.bv_val) == 0 ) ? -1 : 0 );
+	if ( rc ) {
+		return 0;
+	}
+
+	return ( ( strcasecmp( map1->m_src.bv_val, map2->m_src.bv_val ) == 0 ) ? -1 : 0 );
 }
 
 void
-rwm_map_init ( struct ldapmap *lm, struct ldapmapping **m )
+rwm_map_init( struct ldapmap *lm, struct ldapmapping **m )
 {
 	struct ldapmapping *mapping;
 
@@ -70,10 +77,11 @@ rwm_map_init ( struct ldapmap *lm, struct ldapmapping **m )
 		return;
 	}
 
-	ber_str2bv( "objectclass", sizeof("objectclass")-1, 1, &mapping->src);
-	ber_dupbv( &mapping->dst, &mapping->src );
-	mapping[1].src = mapping->src;
-	mapping[1].dst = mapping->dst;
+	ber_str2bv( "objectClass", sizeof("objectClass") - 1, 1,
+			&mapping->m_src);
+	ber_dupbv( &mapping->m_dst, &mapping->m_src );
+	mapping[1].m_src = mapping->m_src;
+	mapping[1].m_dst = mapping->m_dst;
 
 	avl_insert( &lm->map, (caddr_t)mapping, 
 			rwm_mapping_cmp, rwm_mapping_dup );
@@ -83,29 +91,32 @@ rwm_map_init ( struct ldapmap *lm, struct ldapmapping **m )
 }
 
 void
-rwm_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
-	int remap )
+rwm_map( struct ldapmap *map, struct berval *s, struct berval *bv, int remap )
 {
 	Avlnode *tree;
 	struct ldapmapping *mapping, fmapping;
 
-	if (remap == BACKLDAP_REMAP)
+	if (remap == RWM_REMAP) {
 		tree = map->remap;
-	else
+	} else {
 		tree = map->map;
+	}
 
 	bv->bv_len = 0;
 	bv->bv_val = NULL;
-	fmapping.src = *s;
-	mapping = (struct ldapmapping *)avl_find( tree, (caddr_t)&fmapping, rwm_mapping_cmp );
-	if (mapping != NULL) {
-		if ( mapping->dst.bv_val )
-			*bv = mapping->dst;
+	fmapping.m_src = *s;
+	mapping = (struct ldapmapping *)avl_find( tree, (caddr_t)&fmapping,
+			rwm_mapping_cmp );
+	if ( mapping != NULL ) {
+		if ( mapping->m_dst.bv_val ) {
+			*bv = mapping->m_dst;
+		}
 		return;
 	}
 
-	if (!map->drop_missing)
+	if ( !map->drop_missing ) {
 		*bv = *s;
+	}
 
 	return;
 }
@@ -122,28 +133,30 @@ rwm_map_attrs(
 	char **na;
 	struct berval mapped;
 
-	if (an == NULL) {
+	if ( an == NULL ) {
 		*mapped_attrs = NULL;
 		return LDAP_SUCCESS;
 	}
 
-	for (i = 0; an[i].an_name.bv_val; i++) {
+	for ( i = 0; an[i].an_name.bv_val; i++ ) {
 		/*  */
 	}
 
-	na = (char **)ch_calloc( i + 1, sizeof(char *) );
+	na = (char **)ch_calloc( i + 1, sizeof( char * ) );
 	if (na == NULL) {
 		*mapped_attrs = NULL;
 		return LDAP_NO_MEMORY;
 	}
 
-	for (i = j = 0; an[i].an_name.bv_val; i++) {
-		rwm_map(at_map, &an[i].an_name, &mapped, remap);
-		if (mapped.bv_val != NULL && mapped.bv_val != '\0')
+	for ( i = j = 0; an[i].an_name.bv_val; i++ ) {
+		rwm_map( at_map, &an[i].an_name, &mapped, remap );
+		if ( mapped.bv_val != NULL && mapped.bv_val != '\0' ) {
 			na[j++] = mapped.bv_val;
+		}
 	}
-	if (j == 0 && i != 0)
+	if ( j == 0 && i != 0 ) {
 		na[j++] = LDAP_NO_ATTRS;
+	}
 	na[j] = NULL;
 
 	*mapped_attrs = na;
@@ -167,8 +180,11 @@ map_attr_value(
 		/*
 		 * FIXME: are we sure we need to search oc_map if at_map fails?
 		 */
-		rwm_map( &dc->rwmap->rwm_oc, &ad->ad_cname, mapped_attr, remap );
-		if ( mapped_attr->bv_val == NULL || mapped_attr->bv_val[0] == '\0' ) {
+		rwm_map( &dc->rwmap->rwm_oc, &ad->ad_cname, mapped_attr,
+				remap );
+		if ( mapped_attr->bv_val == NULL
+				|| mapped_attr->bv_val[0] == '\0' )
+		{
 			*mapped_attr = ad->ad_cname;
 		}
 	}
@@ -199,7 +215,9 @@ map_attr_value(
 			return -1;
 		}
 
-	} else if ( ad == slap_schema.si_ad_objectClass || ad == slap_schema.si_ad_structuralObjectClass ) {
+	} else if ( ad == slap_schema.si_ad_objectClass
+			|| ad == slap_schema.si_ad_structuralObjectClass )
+	{
 		rwm_map( &dc->rwmap->rwm_oc, value, &vtmp, remap );
 		if ( vtmp.bv_val == NULL || vtmp.bv_val[0] == '\0' ) {
 			vtmp = *value;
@@ -227,12 +245,20 @@ rwm_filter_map_rewrite(
 {
 	int		i;
 	Filter		*p;
-	struct berval	atmp;
-	struct berval	vtmp;
+	struct berval	atmp,
+			vtmp,
+			tmp;
+	static struct berval
+			ber_bvfalse = BER_BVC( "(?=false)" ),
+			ber_bvtrue = BER_BVC( "(?=true)" ),
+			ber_bvundefined = BER_BVC( "(?=undefined)" ),
+			ber_bverror = BER_BVC( "(?=error)" ),
+			ber_bvunknown = BER_BVC( "(?=unknown)" ),
+			ber_bvnone = BER_BVC( "(?=none)" );
 	ber_len_t	len;
 
 	if ( f == NULL ) {
-		ber_str2bv( "No filter!", sizeof("No filter!")-1, 1, fstr );
+		ber_dupbv( fstr, &ber_bvnone );
 		return -1;
 	}
 
@@ -245,7 +271,7 @@ rwm_filter_map_rewrite(
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
-			+ ( sizeof("(=)") - 1 );
+			+ ( sizeof( "(=)" ) - 1 );
 		fstr->bv_val = malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=%s)",
@@ -262,7 +288,7 @@ rwm_filter_map_rewrite(
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
-			+ ( sizeof("(>=)") - 1 );
+			+ ( sizeof( "(>=)" ) - 1 );
 		fstr->bv_val = malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s>=%s)",
@@ -279,7 +305,7 @@ rwm_filter_map_rewrite(
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
-			+ ( sizeof("(<=)") - 1 );
+			+ ( sizeof( "(<=)" ) - 1 );
 		fstr->bv_val = malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s<=%s)",
@@ -296,7 +322,7 @@ rwm_filter_map_rewrite(
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
-			+ ( sizeof("(~=)") - 1 );
+			+ ( sizeof( "(~=)" ) - 1 );
 		fstr->bv_val = malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s~=%s)",
@@ -314,7 +340,7 @@ rwm_filter_map_rewrite(
 
 		/* cannot be a DN ... */
 
-		fstr->bv_len = atmp.bv_len + ( sizeof("(=*)") - 1 );
+		fstr->bv_len = atmp.bv_len + ( sizeof( "(=*)" ) - 1 );
 		fstr->bv_val = malloc( fstr->bv_len + 128 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
@@ -374,7 +400,7 @@ rwm_filter_map_rewrite(
 			return -1;
 		}
 
-		fstr->bv_len = atmp.bv_len + ( sizeof("(=*)") - 1 );
+		fstr->bv_len = atmp.bv_len + ( sizeof( "(=*)" ) - 1 );
 		fstr->bv_val = malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
@@ -384,7 +410,7 @@ rwm_filter_map_rewrite(
 	case LDAP_FILTER_AND:
 	case LDAP_FILTER_OR:
 	case LDAP_FILTER_NOT:
-		fstr->bv_len = sizeof("(%)") - 1;
+		fstr->bv_len = sizeof( "(%)" ) - 1;
 		fstr->bv_val = malloc( fstr->bv_len + 128 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%c)",
@@ -427,9 +453,9 @@ rwm_filter_map_rewrite(
 			
 
 		fstr->bv_len = atmp.bv_len +
-			( f->f_mr_dnattrs ? sizeof(":dn")-1 : 0 ) +
-			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len+1 : 0 ) +
-			vtmp.bv_len + ( sizeof("(:=)") - 1 );
+			( f->f_mr_dnattrs ? sizeof( ":dn" ) - 1 : 0 ) +
+			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len + 1 : 0 ) +
+			vtmp.bv_len + ( sizeof( "(:=)" ) - 1 );
 		fstr->bv_val = malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
@@ -442,20 +468,29 @@ rwm_filter_map_rewrite(
 		} break;
 
 	case SLAPD_FILTER_COMPUTED:
-		ber_str2bv(
-			f->f_result == LDAP_COMPARE_FALSE ? "(?=false)" :
-			f->f_result == LDAP_COMPARE_TRUE ? "(?=true)" :
-			f->f_result == SLAPD_COMPARE_UNDEFINED ? "(?=undefined)" :
-			"(?=error)",
-			f->f_result == LDAP_COMPARE_FALSE ? sizeof("(?=false)")-1 :
-			f->f_result == LDAP_COMPARE_TRUE ? sizeof("(?=true)")-1 :
-			f->f_result == SLAPD_COMPARE_UNDEFINED ? sizeof("(?=undefined)")-1 :
-			sizeof("(?=error)")-1,
-			1, fstr );
-		break;
+		switch ( f->f_result ) {
+		case LDAP_COMPARE_FALSE:
+			tmp = ber_bvfalse;
+			break;
 
+		case LDAP_COMPARE_TRUE:
+			tmp = ber_bvtrue;
+			break;
+			
+		case SLAPD_COMPARE_UNDEFINED:
+			tmp = ber_bvundefined;
+			break;
+			
+		default:
+			tmp = ber_bverror;
+			break;
+		}
+
+		ber_dupbv( fstr, &tmp );
+		break;
+		
 	default:
-		ber_str2bv( "(?=unknown)", sizeof("(?=unknown)")-1, 1, fstr );
+		ber_dupbv( fstr, &ber_bvunknown );
 		break;
 	}
 
@@ -471,18 +506,39 @@ rwm_filter_map_rewrite(
  */
 int
 rwm_dnattr_rewrite(
-	dncookie		*dc,
+	Operation		*op,
+	SlapReply		*rs,
+	void			*cookie,
 	BerVarray		a_vals
-)
+	)
 {
-	struct berval	bv;
-	int		i, last;
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+	struct ldaprwmap	*rwmap = 
+			(struct ldaprwmap *)on->on_bi.bi_private;
+
+	struct berval		bv;
+	int			i, last;
+
+	dncookie		dc;
+
+	/*
+	 * Rewrite the bind dn if needed
+	 */
+	dc.rwmap = rwmap;
+#ifdef ENABLE_REWRITE
+	dc.conn = op->o_conn;
+	dc.rs = rs;
+	dc.ctx = (char *)cookie;
+#else
+	dc.tofrom = ((int *)cookie)[0];
+	dc.normalized = 0;
+#endif
 
 	for ( last = 0; a_vals[last].bv_val != NULL; last++ );
 	last--;
 
 	for ( i = 0; a_vals[i].bv_val != NULL; i++ ) {
-		switch ( rwm_dn_massage( dc, &a_vals[i], &bv ) ) {
+		switch ( rwm_dn_massage( &dc, &a_vals[i], &bv ) ) {
 		case LDAP_UNWILLING_TO_PERFORM:
 			/*
 			 * FIXME: need to check if it may be considered 
@@ -557,9 +613,43 @@ void
 rwm_mapping_free( void *v_mapping )
 {
 	struct ldapmapping *mapping = v_mapping;
-	ch_free( mapping->src.bv_val );
-	ch_free( mapping->dst.bv_val );
+
+	if ( mapping[0].m_src.bv_val ) {
+		ch_free( mapping[0].m_src.bv_val );
+	}
+
+	if ( mapping[0].m_flags & RWMMAP_F_FREE_SRC ) {
+		if ( mapping[0].m_flags & RWMMAP_F_IS_OC ) {
+			if ( mapping[0].m_src_oc ) {
+				ch_free( mapping[0].m_src_oc );
+			}
+
+		} else {
+			if ( mapping[0].m_src_ad ) {
+				ch_free( mapping[0].m_src_ad );
+			}
+		}
+	}
+
+	if ( mapping[0].m_dst.bv_val ) {
+		ch_free( mapping[0].m_dst.bv_val );
+	}
+
+	if ( mapping[0].m_flags & RWMMAP_F_FREE_DST ) {
+		if ( mapping[0].m_flags & RWMMAP_F_IS_OC ) {
+			if ( mapping[0].m_dst_oc ) {
+				ch_free( mapping[0].m_dst_oc );
+			}
+
+		} else {
+			if ( mapping[0].m_dst_ad ) {
+				ch_free( mapping[0].m_dst_ad );
+			}
+		}
+	}
+
 	ch_free( mapping );
+
 }
 
 #endif /* SLAPD_OVER_RWM */
