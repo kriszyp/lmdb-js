@@ -32,11 +32,7 @@
 
 /* unimplemented pretters */
 #define integerPretty					NULL
-#ifndef USE_LDAP_DN_PARSING
-#	define dnPretty						NULL
-#else
-#	define SLAP_LDAPDN_PRETTY 0x1
-#endif /* !USE_LDAP_DN_PARSING */
+#define SLAP_LDAPDN_PRETTY 0x1
 
 /* recycled matching routines */
 #define bitStringMatch					octetStringMatch
@@ -221,8 +217,6 @@ int octetStringFilter(
 	return LDAP_SUCCESS;
 }
 
-#ifdef USE_LDAP_DN_PARSING
-
 /*
  * The DN syntax-related functions take advantage of the dn representation
  * handling functions ldap_str2dn/ldap_dn2str.  The latter are not schema-
@@ -304,7 +298,7 @@ LDAPDN_validate( LDAPDN *dn )
 /*
  * dn validate routine
  */
-static int
+int
 dnValidate(
 	Syntax *syntax,
 	struct berval *in )
@@ -661,103 +655,6 @@ dnMatch(
 	return( LDAP_SUCCESS );
 }
 
-#else /* !USE_LDAP_DN_PARSING */
-
-static int
-dnValidate(
-	Syntax *syntax,
-	struct berval *in )
-{
-	int rc;
-	char *dn;
-
-	if( in->bv_len == 0 ) return LDAP_SUCCESS;
-
-	dn = ch_strdup( in->bv_val );
-
-	if( dn == NULL ) {
-		return LDAP_INVALID_SYNTAX;
-
-	} else if ( strlen( in->bv_val ) != in->bv_len ) {
-		rc = LDAP_INVALID_SYNTAX;
-
-	} else if ( dn_validate( dn ) == NULL ) {
-		rc = LDAP_INVALID_SYNTAX;
-
-	} else {
-		rc = LDAP_SUCCESS;
-	}
-
-	ch_free( dn );
-	return rc;
-}
-
-int
-dnNormalize(
-	Syntax *syntax,
-	struct berval *val,
-	struct berval **normalized )
-{
-	struct berval *out;
-
-	if ( val->bv_len != 0 ) {
-		char *dn;
-		out = ber_bvstr( UTF8normalize( val, UTF8_CASEFOLD ) );
-
-		dn = dn_validate( out->bv_val );
-
-		if( dn == NULL ) {
-			ber_bvfree( out );
-			return LDAP_INVALID_SYNTAX;
-		}
-
-		out->bv_val = dn;
-		out->bv_len = strlen( dn );
-	} else {
-		out = ber_bvdup( val );
-	}
-
-	*normalized = out;
-	return LDAP_SUCCESS;
-}
-
-int
-dnMatch(
-	int *matchp,
-	slap_mask_t flags,
-	Syntax *syntax,
-	MatchingRule *mr,
-	struct berval *value,
-	void *assertedValue )
-{
-	int match;
-	struct berval *asserted = (struct berval *) assertedValue;
-	
-	match = value->bv_len - asserted->bv_len;
-
-	if( match == 0 ) {
-#ifdef USE_DN_NORMALIZE
-		match = strcmp( value->bv_val, asserted->bv_val );
-#else
-		match = strcasecmp( value->bv_val, asserted->bv_val );
-#endif
-	}
-
-#ifdef NEW_LOGGING
-	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-		"dnMatch: %d\n    %s\n    %s\n", match,
-		value->bv_val, asserted->bv_val ));
-#else
-	Debug( LDAP_DEBUG_ARGS, "dnMatch %d\n\t\"%s\"\n\t\"%s\"\n",
-		match, value->bv_val, asserted->bv_val );
-#endif
-
-
-	*matchp = match;
-	return LDAP_SUCCESS;
-}
-
-#endif /* !USE_LDAP_DN_PARSING */
 
 static int
 nameUIDValidate(

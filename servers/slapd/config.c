@@ -953,9 +953,6 @@ read_config( const char *fname )
 
 				}
 				charray_add( &be->be_suffix, dn );
-#ifndef USE_LDAP_DN_PARSING
-				(void) ldap_pvt_str2upper( dn );
-#else /* USE_LDAP_DN_PARSING */
 				if ( dn_normalize( dn ) == NULL ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
@@ -970,7 +967,6 @@ read_config( const char *fname )
 					free( dn );
 					return 1;
 				}
-#endif /* USE_LDAP_DN_PARSING */
 				ber_bvecadd( &be->be_nsuffix, ber_bvstr( dn ) );
 			}
 

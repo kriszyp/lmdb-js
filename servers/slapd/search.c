@@ -34,7 +34,9 @@ do_search(
 	ber_int_t	scope, deref, attrsonly;
 	ber_int_t	sizelimit, timelimit;
 	struct berval base = { 0, NULL };
-	char		*nbase = NULL, *fstr = NULL;
+	struct berval *pbase = NULL;
+	struct berval *nbase = NULL;
+	char		*fstr = NULL;
 	Filter		*filter = NULL;
 	char		**attrs = NULL;
 	Backend		*be;
@@ -107,13 +109,36 @@ do_search(
 		goto return_results;
 	}
 
-	nbase = ch_strdup( base.bv_val );
-
-	if( dn_normalize( nbase ) == NULL ) {
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX,
-			NULL, "invalid DN", NULL, NULL );
+	rc = dnPretty( NULL, &base, &pbase );
+	if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			"do_search: conn %d  invalid dn (%s)\n",
+			conn->c_connid, base.bv_val ));
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"do_search: invalid dn (%s)\n", base.bv_val, 0, 0 );
+#endif
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
 		goto return_results;
 	}
+
+	rc = dnNormalize( NULL, &base, &nbase );
+	if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			"do_searc: conn %d  invalid dn (%s)\n",
+			conn->c_connid, base.bv_val ));
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"do_search: invalid dn (%s)\n", base.bv_val, 0, 0 );
+#endif
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		goto return_results;
+	}
+
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
@@ -196,14 +221,14 @@ do_search(
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
-	    op->o_connid, op->o_opid, base.bv_val, scope, fstr );
+	    op->o_connid, op->o_opid, pbase->bv_val, scope, fstr );
 
 	manageDSAit = get_manageDSAit( op );
 
 	if ( scope == LDAP_SCOPE_BASE ) {
 		Entry *entry = NULL;
 
-		if ( strcasecmp( nbase, LDAP_ROOT_DSE ) == 0 ) {
+		if ( strcasecmp( nbase->bv_val, LDAP_ROOT_DSE ) == 0 ) {
 #ifdef LDAP_CONNECTIONLESS
 			/* Ignore LDAPv2 CLDAP DSE queries */
 			if (op->o_protocol==LDAP_VERSION2 && conn->c_is_udp) {
@@ -222,7 +247,7 @@ do_search(
 		}
 
 #if defined( SLAPD_SCHEMA_DN )
-		else if ( strcasecmp( nbase, SLAPD_SCHEMA_DN ) == 0 ) {
+		else if ( strcasecmp( nbase->bv_val, SLAPD_SCHEMA_DN ) == 0 ) {
 			/* check restrictions */
 			rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
 			if( rc != LDAP_SUCCESS ) {
@@ -257,12 +282,13 @@ do_search(
 		}
 	}
 
-	if( nbase[0] == '\0' && default_search_nbase != NULL ) {
+	if( nbase->bv_len == 0 && default_search_nbase != NULL ) {
 		ch_free( base.bv_val );
-		ch_free( nbase );
+		ch_free( nbase->bv_val );
 		base.bv_val = ch_strdup( default_search_base );
 		base.bv_len = strlen( default_search_nbase );
-		nbase = ch_strdup( default_search_nbase );
+		nbase->bv_val = ch_strdup( default_search_nbase );
+		nbase->bv_len = strlen( default_search_nbase );
 	}
 
 	/*
@@ -270,9 +296,9 @@ do_search(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( nbase, manageDSAit, 1 )) == NULL ) {
+	if ( (be = select_backend( nbase->bv_val, manageDSAit, 1 )) == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
-			NULL, base.bv_val, scope );
+			NULL, pbase->bv_val, scope );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
@@ -290,17 +316,18 @@ do_search(
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, base.bv_val, nbase );
+	rc = backend_check_referrals( be, conn, op, pbase->bv_val, nbase->bv_val );
 	if ( rc != LDAP_SUCCESS ) {
 		goto return_results;
 	}
 
 	/* deref the base if needed */
-	nbase = suffix_alias( be, nbase );
+	nbase->bv_val = suffix_alias( be, nbase->bv_val );
+	nbase->bv_len = strlen( nbase->bv_val );
 
 	/* actually do the search and send the result(s) */
 	if ( be->be_search ) {
-		(*be->be_search)( be, conn, op, base.bv_val, nbase,
+		(*be->be_search)( be, conn, op, pbase->bv_val, nbase->bv_val,
 			scope, deref, sizelimit,
 		    timelimit, filter, fstr, attrs, attrsonly );
 	} else {
@@ -310,7 +337,9 @@ do_search(
 
 return_results:;
 	free( base.bv_val );
-	if( nbase != NULL) free( nbase );
+	if( pbase != NULL) ber_bvfree( pbase );
+	if( nbase != NULL) ber_bvfree( nbase );
+
 	if( fstr != NULL) free( fstr );
 	if( filter != NULL) filter_free( filter );
 	if ( attrs != NULL ) {

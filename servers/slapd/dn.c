@@ -28,6 +28,7 @@
 #define INQUOTEDVALUE	7
 #define B4SEPARATOR		8
 
+#if 0
 /*
  * dn_pretty - "pretty" the DN
  */
@@ -44,6 +45,7 @@ char *dn_pretty( const char *dn_in )
 	if( dn_out == NULL ) free( dn );
 	return dn_out;
 }
+#endif
 
 /*
  * dn_validate - validate and compress dn.  the dn is
@@ -53,7 +55,6 @@ char *dn_pretty( const char *dn_in )
 char *
 dn_validate( char *dn_in )
 {
-#ifdef USE_LDAP_DN_PARSING
 	struct berval	val, *normalized;
 	int		rc;
 
@@ -78,164 +79,6 @@ dn_validate( char *dn_in )
 	ber_bvfree( normalized );
 
 	return( dn_in );
-	
-#else /* !USE_LDAP_DN_PARSING */
-	char	*d, *s;
-	int	state, gotesc;
-	char	*dn = dn_in;
-
-	gotesc = 0;
-	state = B4LEADTYPE;
-	for ( d = s = dn; *s; s++ ) {
-		switch ( state ) {
-		case B4LEADTYPE:
-		case B4TYPE:
-			if ( OID_LEADCHAR(*s) ) {
-				state = INOIDTYPE;
-				*d++ = *s;
-			} else if ( ATTR_LEADCHAR(*s) ) {
-				state = INKEYTYPE;
-				*d++ = *s;
-			} else if ( ! ASCII_SPACE( *s ) ) {
-				dn = NULL;
-				state = INKEYTYPE;
-				*d++ = *s;
-			}
-			break;
-
-		case INOIDTYPE:
-			if ( OID_CHAR(*s) ) {
-				*d++ = *s;
-			} else if ( *s == '=' ) {
-				state = B4VALUE;
-				*d++ = *s;
-			} else if ( ASCII_SPACE( *s ) ) {
-				state = B4EQUAL;
-			} else {
-				dn = NULL;
-				*d++ = *s;
-			}
-			break;
-
-		case INKEYTYPE:
-			if ( ATTR_CHAR(*s) ) {
-				*d++ = *s;
-			} else if ( *s == '=' ) {
-				state = B4VALUE;
-				*d++ = *s;
-			} else if ( ASCII_SPACE( *s ) ) {
-				state = B4EQUAL;
-			} else {
-				dn = NULL;
-				*d++ = *s;
-			}
-			break;
-
-		case B4EQUAL:
-			if ( *s == '=' ) {
-				state = B4VALUE;
-				*d++ = *s;
-			} else if ( ! ASCII_SPACE( *s ) ) {
-				/* not a valid dn - but what can we do here? */
-				*d++ = *s;
-				dn = NULL;
-			}
-			break;
-
-		case B4VALUE:
-			if ( *s == '"' ) {
-				state = INQUOTEDVALUE;
-				*d++ = *s;
-			} else if ( ! ASCII_SPACE( *s ) ) {
-				state = INVALUE;
-				*d++ = *s;
-			}
-			break;
-
-		case INVALUE:
-			if ( !gotesc && RDN_SEPARATOR( *s ) ) {
-				while ( ASCII_SPACE( *(d - 1) ) )
-					d--;
-				state = B4TYPE;
-				if ( *s == '+' ) {
-					*d++ = *s;
-				} else {
-					*d++ = ',';
-				}
-			} else if ( gotesc && !RDN_NEEDSESCAPE( *s ) &&
-				!RDN_SEPARATOR( *s ) )
-			{
-				*--d = *s;
-				d++;
-			} else if( !ASCII_SPACE( *s ) || !ASCII_SPACE( *(d - 1) ) ) {
-				*d++ = *s;
-			}
-			break;
-
-		case INQUOTEDVALUE:
-			if ( !gotesc && *s == '"' ) {
-				state = B4SEPARATOR;
-				*d++ = *s;
-			} else if ( gotesc && !RDN_NEEDSESCAPE( *s ) ) {
-				*--d = *s;
-				d++;
-			} else if( !ASCII_SPACE( *s ) || !ASCII_SPACE( *(d - 1) ) ) {
-				*d++ = *s;
-			}
-			break;
-
-		case B4SEPARATOR:
-			if ( RDN_SEPARATOR( *s ) ) {
-				state = B4TYPE;
-				*d++ = *s;
-			} else if ( !ASCII_SPACE( *s ) ) {
-				dn = NULL;
-			}
-			break;
-
-		default:
-			dn = NULL;
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				"dn_validate: unknown state %d for dn \"%s\".\n",
-				state, dn_in ));
-#else
-			Debug( LDAP_DEBUG_ANY,
-				"dn_validate - unknown state %d\n", state, 0, 0 );
-#endif
-			break;
-		}
-
-		if ( *s == '\\' ) {
-			gotesc = 1;
-		} else {
-			gotesc = 0;
-		}
-	}
-
-	/* trim trailing spaces */
-	while( d > dn_in && ASCII_SPACE( *(d-1) ) ) {
-		--d;
-	}
-	*d = '\0';
-
-	if( gotesc ) {
-		/* shouldn't be left in escape */
-		dn = NULL;
-	}
-
-	/* check end state */
-	switch( state ) {
-	case B4LEADTYPE:	/* looking for first type */
-	case B4SEPARATOR:	/* looking for separator */
-	case INVALUE:		/* inside value */
-		break;
-	default:
-		dn = NULL;
-	}
-
-	return( dn );
-#endif /* !USE_LDAP_DN_PARSING */
 }
 
 /*
@@ -247,7 +90,6 @@ dn_validate( char *dn_in )
 char *
 dn_normalize( char *dn )
 {
-#ifdef USE_LDAP_DN_PARSING
 	struct berval	val, *normalized;
 	int		rc;
 
@@ -272,26 +114,6 @@ dn_normalize( char *dn )
 	ber_bvfree( normalized );
 
 	return( dn );
-	
-#else /* !USE_LDAP_DN_PARSING */
-	char *out;
-	struct berval *bvdn, *nbvdn;
-
-	out = NULL;
-	bvdn = ber_bvstr( dn );
-	
-	if ( dnNormalize( NULL, bvdn, &nbvdn ) == LDAP_SUCCESS ) {
-		if ( nbvdn->bv_len <= bvdn->bv_len ) {
-			out = dn;
-			strcpy( out, nbvdn->bv_val );
-		}
-		ber_bvfree( nbvdn );
-	}
-	bvdn->bv_val = NULL; /* prevent bvfree from freeing dn */
-	ber_bvfree( bvdn );
-
-	return( out );
-#endif /* !USE_LDAP_DN_PARSING */
 }
 
 int

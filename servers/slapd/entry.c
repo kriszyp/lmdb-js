@@ -41,6 +41,7 @@ str2entry( char *s )
 {
 	int rc;
 	Entry		*e;
+	ber_len_t	dnlen;
 	char		*type;
 	struct berval value;
 	struct berval	*vals[2];
@@ -115,26 +116,48 @@ str2entry( char *s )
 		}
 
 		if ( strcasecmp( type, "dn" ) == 0 ) {
+			struct berval *pdn;
+
 			free( type );
 
 			if ( e->e_dn != NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1, "str2entry: "
-					"entry %ld has multiple dns \"%s\" and \"%s\" "
-					"(second ignored)\n",
-					(long) e->e_id, e->e_dn, value.bv_val != NULL ? value.bv_val : "" ));
+					"entry %ld has multiple dns \"%s\" and \"%s\"\n",
+					(long) e->e_id, e->e_dn,
+					value.bv_val != NULL ? value.bv_val : "" ));
 #else
 				Debug( LDAP_DEBUG_ANY, "str2entry: "
-					"entry %ld has multiple dns \"%s\" and \"%s\" "
-					"(second ignored)\n",
+					"entry %ld has multiple dns \"%s\" and \"%s\"\n",
 				    (long) e->e_id, e->e_dn,
 					value.bv_val != NULL ? value.bv_val : "" );
 #endif
 				if( value.bv_val != NULL ) free( value.bv_val );
-				continue;
+				entry_free( e );
+				return NULL;
 			}
 
-			e->e_dn = value.bv_val != NULL ? value.bv_val : ch_strdup( "" );
+			rc = dnPretty( NULL, &value, &pdn );
+			if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1, "str2entry: "
+					"entry %ld has invalid DN \"%s\"\n",
+					(long) e->e_id,
+					pdn->bv_val ? pdn->bv_val : "" ));
+#else
+				Debug( LDAP_DEBUG_ANY, "str2entry: "
+					"entry %ld has invalid DN \"%s\"\n",
+					(long) e->e_id,
+					pdn->bv_val ? pdn->bv_val : "", 0 );
+#endif
+				if( value.bv_val != NULL ) free( value.bv_val );
+				entry_free( e );
+				return NULL;
+			}
+
+			e->e_dn = pdn->bv_val != NULL ? pdn->bv_val : ch_strdup( "" );
+			dnlen = pdn->bv_len;
+			free( pdn );
 			continue;
 		}
 
@@ -158,7 +181,6 @@ str2entry( char *s )
 			}
 
 			rc = slap_str2undef_ad( type, &ad, &text );
-
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
@@ -266,24 +288,32 @@ str2entry( char *s )
 	}
 
 	/* generate normalized dn */
-	e->e_ndn = e->e_dn;
-	e->e_dn = dn_pretty( e->e_dn );
+	{
+		struct berval dn;
+		struct berval *ndn;
 
-	if( e->e_dn == NULL ) {
+		dn.bv_val = e->e_dn;
+		dn.bv_len = dnlen;
+
+		rc = dnNormalize( NULL, &dn, &ndn );
+
+		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			   "str2entry:  entry %ld has invalid dn: %s\n",
-				(long) e->e_id, e->e_ndn ));
+			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+				   "str2entry:  entry %ld has invalid dn: %s\n",
+					(long) e->e_id, e->e_ndn ));
 #else
-		Debug( LDAP_DEBUG_ANY,
-			"str2entry: entry %ld has invalid dn: %s\n",
-		    (long) e->e_id, e->e_ndn, 0 );
+			Debug( LDAP_DEBUG_ANY,
+				"str2entry: entry %ld has invalid dn: %s\n",
+			    (long) e->e_id, e->e_ndn, 0 );
 #endif
-		entry_free( e );
-		return( NULL );
-	}
+			entry_free( e );
+			return NULL;
+		}
 
-	(void) dn_normalize( e->e_ndn );
+		e->e_ndn = ndn->bv_val;
+		free( ndn );
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL2,

@@ -8,8 +8,6 @@
 #ifndef _SLAP_H_
 #define _SLAP_H_
 
-#define USE_LDAP_DN_PARSING
-
 #include "ldap_defaults.h"
 
 #include <stdio.h>

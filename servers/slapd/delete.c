@@ -32,7 +32,8 @@ do_delete(
 )
 {
 	struct berval dn = { 0, NULL };
-	char *ndn = NULL;
+	struct berval *ndn = NULL;
+	struct berval *pdn = NULL;
 	const char *text;
 	Backend	*be;
 	int rc;
@@ -73,23 +74,37 @@ do_delete(
 		goto cleanup;
 	} 
 
-	ndn = ch_strdup( dn.bv_val );
-
-	if(	dn_normalize( ndn ) == NULL ) {
+	rc = dnPretty( NULL, &dn, &pdn );
+	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_delete: conn %d  invalid dn (%s).\n",
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			"do_delete: conn %d  invalid dn (%s)\n",
 			conn->c_connid, dn.bv_val ));
 #else
-		Debug( LDAP_DEBUG_ANY, "do_delete: invalid dn (%s)\n",
-			dn.bv_val, 0, 0 );
+		Debug( LDAP_DEBUG_ANY,
+			"do_delete: invalid dn (%s)\n", dn.bv_val, 0, 0 );
 #endif
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
 		goto cleanup;
 	}
 
-	if( *ndn == '\0' ) {
+	rc = dnNormalize( NULL, &dn, &ndn );
+	if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			"do_delete: conn %d  invalid dn (%s)\n",
+			conn->c_connid, dn.bv_val ));
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"do_delete: invalid dn (%s)\n", dn.bv_val, 0, 0 );
+#endif
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		goto cleanup;
+	}
+
+	if( ndn->bv_len == 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_delete: conn %d: "
 			"Attempt to delete root DSE.\n", conn->c_connid ));
@@ -102,7 +117,8 @@ do_delete(
 		goto cleanup;
 
 #ifdef SLAPD_SCHEMA_DN
-	} else if ( strcasecmp( ndn, SLAPD_SCHEMA_DN ) == 0 ) {
+
+	} else if ( strcasecmp( ndn->bv_val, SLAPD_SCHEMA_DN ) == 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_delete: conn %d: "
 			"Attempt to delete subschema subentry.\n", conn->c_connid ));
@@ -118,7 +134,7 @@ do_delete(
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d DEL dn=\"%s\"\n",
-		op->o_connid, op->o_opid, dn.bv_val, 0, 0 );
+		op->o_connid, op->o_opid, pdn->bv_val, 0, 0 );
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -127,9 +143,9 @@ do_delete(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( ndn, manageDSAit, 0 )) == NULL ) {
+	if ( (be = select_backend( ndn->bv_val, manageDSAit, 0 )) == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
-			NULL, dn.bv_val, LDAP_SCOPE_DEFAULT );
+			NULL, pdn->bv_val, LDAP_SCOPE_DEFAULT );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
@@ -147,13 +163,14 @@ do_delete(
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, dn.bv_val, ndn );
+	rc = backend_check_referrals( be, conn, op, pdn->bv_val, ndn->bv_val );
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
 
 	/* deref suffix alias if appropriate */
-	ndn = suffix_alias( be, ndn );
+	ndn->bv_val = suffix_alias( be, ndn->bv_val );
+	ndn->bv_len = strlen( ndn->bv_val );
 
 	/*
 	 * do the delete if 1 && (2 || 3)
@@ -168,12 +185,12 @@ do_delete(
 		if ( be->be_update_ndn == NULL || repl_user )
 #endif
 		{
-			if ( (*be->be_delete)( be, conn, op, dn.bv_val, ndn ) == 0 ) {
+			if ( (*be->be_delete)( be, conn, op, pdn->bv_val, ndn->bv_val ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
 				if (be->be_update_ndn == NULL || !repl_user )
 #endif
 				{
-					replog( be, op, dn.bv_val, ndn, NULL );
+					replog( be, op, pdn->bv_val, ndn->bv_val, NULL );
 				}
 			}
 #ifndef SLAPD_MULTIMASTER
@@ -181,7 +198,7 @@ do_delete(
 			struct berval **defref = be->be_update_refs
 				? be->be_update_refs : default_referral;
 			struct berval **ref = referral_rewrite( default_referral,
-				NULL, dn.bv_val, LDAP_SCOPE_DEFAULT );
+				NULL, pdn->bv_val, LDAP_SCOPE_DEFAULT );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				ref ? ref : defref, NULL );
@@ -196,7 +213,8 @@ do_delete(
 	}
 
 cleanup:
-	if( ndn != NULL ) free( ndn );
 	free( dn.bv_val );
+	if( pdn != NULL ) ber_bvfree( pdn );
+	if( ndn != NULL ) ber_bvfree( ndn );
 	return rc;
 }

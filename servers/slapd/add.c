@@ -35,7 +35,7 @@ do_add( Connection *conn, Operation *op )
 {
 	BerElement	*ber = op->o_ber;
 	char		*last;
-	struct berval dn;
+	struct berval dn = { 0, NULL };
 	ber_len_t	len;
 	ber_tag_t	tag;
 	Entry		*e;
@@ -79,30 +79,58 @@ do_add( Connection *conn, Operation *op )
 	}
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
-
-	e->e_dn = dn_pretty( dn.bv_val );
-	e->e_ndn = dn_normalize( dn.bv_val );
+	e->e_dn = NULL;
+	e->e_ndn = NULL;
 	e->e_attrs = NULL;
 	e->e_private = NULL;
 
-	if ( e->e_ndn == NULL ) {
+	{
+		struct berval *pdn;
+		rc = dnPretty( NULL, &dn, &pdn );
+
+		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_add: conn %d	 invalid dn (%s)\n", conn->c_connid,
-			dn.bv_val ));
+			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+				"do_add: conn %d invalid dn (%s)\n", conn->c_connid,
+				dn.bv_val ));
 #else
-		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn.bv_val, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn.bv_val, 0, 0 );
 #endif
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
-		goto done;
+			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+			    "invalid DN", NULL, NULL );
+			goto done;
+		}
+
+		e->e_dn = pdn->bv_val;
+		free( pdn );
+	}
+
+	{
+		struct berval *ndn;
+		rc = dnNormalize( NULL, &dn, &ndn );
+
+		if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+				"do_add: conn %d invalid dn (%s)\n", conn->c_connid,
+				dn.bv_val ));
+#else
+			Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn.bv_val, 0, 0 );
+#endif
+			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+			    "invalid DN", NULL, NULL );
+			goto done;
+		}
+
+		e->e_ndn = ndn->bv_val;
+		free( ndn );
 	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		"do_add: conn %d  ndn (%s)\n", conn->c_connid, e->e_ndn ));
+		"do_add: conn %d  dn (%s)\n", conn->c_connid, e->e_dn ));
 #else
-	Debug( LDAP_DEBUG_ARGS, "do_add: ndn (%s)\n", e->e_ndn, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "do_add: dn (%s)\n", e->e_dn, 0, 0 );
 #endif
 
 	/* get the attrs */
@@ -132,8 +160,8 @@ do_add( Connection *conn, Operation *op )
 		if ( mod->ml_bvalues == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-				   "do_add: conn %d	 no values for type %s\n",
-				   conn->c_connid, mod->ml_type ));
+				"do_add: conn %d	 no values for type %s\n",
+				conn->c_connid, mod->ml_type ));
 #else
 			Debug( LDAP_DEBUG_ANY, "no values for type %s\n",
 				mod->ml_type, 0, 0 );
@@ -152,7 +180,7 @@ do_add( Connection *conn, Operation *op )
 	if ( ber_scanf( ber, /*{*/ "}") == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_add: conn %d	 ber_scanf failed\n", conn->c_connid ));
+			"do_add: conn %d ber_scanf failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -165,7 +193,7 @@ do_add( Connection *conn, Operation *op )
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			   "do_add: conn %d	 get_ctrls failed\n", conn->c_connid ));
+			"do_add: conn %d get_ctrls failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
 #endif
@@ -179,7 +207,7 @@ do_add( Connection *conn, Operation *op )
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d ADD dn=\"%s\"\n",
-	    op->o_connid, op->o_opid, e->e_ndn, 0, 0 );
+	    op->o_connid, op->o_opid, e->e_dn, 0, 0 );
 
 	if( e->e_ndn == NULL || *e->e_ndn == '\0' ) {
 		/* protocolError may be a more appropriate error */
@@ -190,7 +218,6 @@ do_add( Connection *conn, Operation *op )
 
 #if defined( SLAPD_SCHEMA_DN )
 	} else if ( strcasecmp( e->e_ndn, SLAPD_SCHEMA_DN ) == 0 ) {
-		/* protocolError may be a more appropriate error */
 		send_ldap_result( conn, op, rc = LDAP_ALREADY_EXISTS,
 			NULL, "subschema subentry already exists",
 			NULL, NULL );
@@ -320,6 +347,8 @@ do_add( Connection *conn, Operation *op )
 	}
 
 done:
+	free( dn.bv_val );
+
 	if( modlist != NULL ) {
 		slap_modlist_free( modlist );
 	}
