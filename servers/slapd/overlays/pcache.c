@@ -1726,6 +1726,12 @@ proxy_cache_open(
 		}
 	}
 
+	/* need to inherit something from the original database... */
+	cm->db.be_def_limit = be->be_def_limit;
+	cm->db.be_limits = be->be_limits;
+	cm->db.be_acl = be->be_acl;
+	cm->db.be_dfltaccess = be->be_dfltaccess;
+
 	rc = backend_startup_one( &cm->db );
 
 	/* There is no runqueue in TOOL mode */
@@ -1761,6 +1767,10 @@ proxy_cache_close(
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager *qm = cm->qm;
 	int i, j, rc = 0;
+
+	/* cleanup stuff inherited from the original database... */
+	cm->db.be_limits = NULL;
+	cm->db.be_acl = NULL;
 
 	if ( cm->db.bd_info->bi_db_close ) {
 		rc = cm->db.bd_info->bi_db_close( &cm->db );
