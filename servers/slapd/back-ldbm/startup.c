@@ -14,6 +14,16 @@
 
 #include "db.h"
 
+#ifdef HAVE_BERKELEY_DB2
+
+void
+ldbm_db_errcall( const char *prefix, const char *message )
+{
+	Debug( LDAP_DEBUG_ANY, "ldbm_db_errcall(): %s %s", prefix, message, 0 );
+}
+
+#endif  /*  HAVE_BERKELEY_DB2  */
+
 
 void
 ldbm_back_startup(
@@ -83,15 +93,3 @@ ldbm_back_shutdown(
 	(void) db_appexit( &li->li_db_env );
 #endif
 }
-
-
-#ifdef HAVE_BERKELEY_DB2
-
-void
-ldbm_db_errcall( const char *prefix, const char *message )
-{
-	Debug( LDAP_DEBUG_ANY, "ldbm_db_errcall(): %s %s", prefix, message, 0 );
-}
-
-#endif  /*  HAVE_BERKELEY_DB2  */
-
