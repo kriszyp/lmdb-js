@@ -89,6 +89,9 @@ typedef pth_t		ldap_int_thread_t;
 typedef pth_mutex_t	ldap_int_thread_mutex_t;
 typedef pth_cond_t	ldap_int_thread_cond_t;
 
+#define LDAP_THREAD_HAVE_RDWR 1
+typedef pth_rwlock_t ldap_pvt_thread_rdwr_t;
+
 LDAP_END_DECL
 
 

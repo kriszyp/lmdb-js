@@ -140,4 +140,48 @@ ldap_int_thread_mutex_trylock( ldap_int_thread_mutex_t *mutex )
 	return( pth_mutex_acquire( mutex, 1, NULL ) );
 }
 
+#ifdef LDAP_THREAD_HAVE_RDWR
+int 
+ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pth_rwlock_init( rw );
+}
+
+int 
+ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rw )
+{
+	return 0;
+}
+
+int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pth_rwlock_acquire( rw, PTH_RWLOCK_RD, 0, NULL );
+}
+
+int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pth_rwlock_acquire( rw, PTH_RWLOCK_RD, 1, NULL );
+}
+
+int ldap_pvt_thread_rdwr_runlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pth_rwlock_release( rw );
+}
+
+int ldap_pvt_thread_rdwr_wlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pth_rwlock_acquire( rw, PTH_RWLOCK_RW, 0, NULL );
+}
+
+int ldap_pvt_thread_rdwr_wtrylock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pth_rwlock_acquire( rw, PTH_RWLOCK_RW, 1, NULL );
+}
+
+int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pth_rwlock_release( rw );
+}
+
+#endif /* LDAP_THREAD_HAVE_RDWR */
 #endif /* HAVE_GNU_PTH */
