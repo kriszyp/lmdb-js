@@ -116,7 +116,8 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	if ( !lc ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, NOTICE,
-				"meta_back_bind: no target for dn %s.\n", dn->bv_val, 0, 0 );
+				"meta_back_bind: no target for dn %s.\n",
+				op->o_req_dn.bv_val, 0, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ANY,
 				"meta_back_bind: no target for dn %s.\n%s%s",
