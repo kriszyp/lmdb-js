@@ -144,7 +144,7 @@ monitor_subsys_log_init(
 
 int 
 monitor_subsys_log_modify( 
-	struct monitorinfo 	*mi,
+	Operation		*op,
 	Entry 			*e,
 	Modifications		*modlist
 )
@@ -211,14 +211,12 @@ monitor_subsys_log_modify(
 		const char *text;
 		static char textbuf[1024];
 
-#if 0 	/* need op */
 		/* check for abandon */
 		if ( op->o_abandon ) {
 			rc = SLAPD_ABANDON;
 
 			goto cleanup;
 		}
-#endif
 
 		/* check that the entry still obeys the schema */
 		rc = entry_schema_check( be_monitor, e, save_attrs, 

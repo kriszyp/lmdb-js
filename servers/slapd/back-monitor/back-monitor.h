@@ -191,12 +191,12 @@ struct monitorsubsys {
 	/* initialize entry and subentries */
 	int		( *mss_init )( BackendDB * );
 	/* update existing dynamic entry and subentries */
-	int		( *mss_update )( struct monitorinfo *, Entry * );
+	int		( *mss_update )( Operation *, Entry * );
 	/* create new dynamic subentries */
-	int		( *mss_create )( struct monitorinfo *, 
+	int		( *mss_create )( Operation *,
 				struct berval *ndn, Entry *, Entry ** );
 	/* modify entry and subentries */
-	int		( *mss_modify )( struct monitorinfo *, Entry *, 
+	int		( *mss_modify )( Operation *, Entry *, 
 				Modifications *modlist );
 };
 
@@ -221,9 +221,9 @@ extern int monitor_cache_release LDAP_P(( struct monitorinfo *mi, Entry *e ));
  * update
  */
 
-extern int monitor_entry_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
-extern int monitor_entry_create LDAP_P(( struct monitorinfo *mi, struct berval *ndn, Entry *e_parent, Entry **ep ));
-extern int monitor_entry_modify LDAP_P(( struct monitorinfo *mi, Entry *e, Modifications *modlist ));
+extern int monitor_entry_update LDAP_P(( Operation *op, Entry *e ));
+extern int monitor_entry_create LDAP_P(( Operation *op, struct berval *ndn, Entry *e_parent, Entry **ep ));
+extern int monitor_entry_modify LDAP_P(( Operation *op, Entry *e, Modifications *modlist ));
 
 LDAP_END_DECL
 

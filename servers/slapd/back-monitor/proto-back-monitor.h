@@ -58,42 +58,44 @@ int monitor_subsys_database_init LDAP_P(( BackendDB *be ));
  * threads
  */
 int monitor_subsys_thread_init LDAP_P(( BackendDB *be ));
-int monitor_subsys_thread_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
+int monitor_subsys_thread_update LDAP_P(( Operation *op, Entry *e ));
 
 /*
  * connections
  */
 int monitor_subsys_conn_init LDAP_P(( BackendDB *be ));
-int monitor_subsys_conn_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
-int monitor_subsys_conn_create LDAP_P(( struct monitorinfo *mi, struct berval *ndn, Entry *e_parent, Entry **ep ));
+int monitor_subsys_conn_update LDAP_P(( Operation *op, Entry *e ));
+int monitor_subsys_conn_create LDAP_P(( Operation *op, struct berval *ndn,
+			Entry *e_parent, Entry **ep ));
 
 /*
  * read waiters
  */
-int monitor_subsys_readw_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
+int monitor_subsys_readw_update LDAP_P(( Operation *op, Entry *e ));
 
 /*
  * write waiters
  */
-int monitor_subsys_writew_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
+int monitor_subsys_writew_update LDAP_P(( Operation *op, Entry *e ));
 
 /*
  * log
  */
 int monitor_subsys_log_init LDAP_P(( BackendDB *be ));
-int monitor_subsys_log_modify LDAP_P(( struct monitorinfo *mi, Entry *e, Modifications *modlist	));
+int monitor_subsys_log_modify LDAP_P(( Operation *op, Entry *e,
+			Modifications *modlist	));
 
 /*
  * operations
  */
 int monitor_subsys_ops_init LDAP_P(( BackendDB *be ));
-int monitor_subsys_ops_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
+int monitor_subsys_ops_update LDAP_P(( Operation *op, Entry *e ));
 
 /*
  * sent
  */
 int monitor_subsys_sent_init LDAP_P(( BackendDB *be ));
-int monitor_subsys_sent_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
+int monitor_subsys_sent_update LDAP_P(( Operation *op, Entry *e ));
 
 /*
  * listener
@@ -104,8 +106,9 @@ int monitor_subsys_listener_init LDAP_P(( BackendDB *be ));
  * time
  */
 int monitor_subsys_time_init LDAP_P(( BackendDB *be ));
-int monitor_subsys_time_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
+int monitor_subsys_time_update LDAP_P(( Operation *op, Entry *e ));
 
 LDAP_END_DECL
 
-#endif
+#endif /* _PROTO_BACK_LDBM */
+

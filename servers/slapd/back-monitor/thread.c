@@ -84,13 +84,16 @@ monitor_subsys_thread_init(
 
 int 
 monitor_subsys_thread_update( 
-	struct monitorinfo 	*mi,
+	Operation		*op,
 	Entry 			*e
 )
 {
+	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
 	Attribute		*a;
 	struct berval           *b = NULL;
 	char 			buf[1024];
+
+	assert( mi != NULL );
 
 	snprintf( buf, sizeof( buf ), "backload=%d", 
 			ldap_pvt_thread_pool_backload( &connection_pool ) );

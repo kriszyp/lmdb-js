@@ -200,10 +200,11 @@ monitor_subsys_conn_init(
 
 int
 monitor_subsys_conn_update(
-	struct monitorinfo      *mi,
+	Operation		*op,
 	Entry                   *e
 )
 {
+	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
 	long 		n = -1;
 
 	assert( mi );
@@ -348,12 +349,13 @@ conn_create(
 
 int 
 monitor_subsys_conn_create( 
-	struct monitorinfo 	*mi,
+	Operation		*op,
 	struct berval		*ndn,
 	Entry 			*e_parent,
 	Entry			**ep
 )
 {
+	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
 	Connection		*c;
 	int			connindex;
 	struct monitorentrypriv *mp;

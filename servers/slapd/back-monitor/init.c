@@ -268,7 +268,7 @@ monitor_back_db_init(
 	dn.bv_val = SLAPD_MONITOR_DN;
 	dn.bv_len = sizeof( SLAPD_MONITOR_DN ) - 1;
 
-	rc = dnNormalize2( NULL, &dn, &ndn );
+	rc = dnNormalize2( NULL, &dn, &ndn, NULL );
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, CRIT,
@@ -313,7 +313,7 @@ monitor_back_db_init(
 		dn.bv_val = ch_calloc( sizeof( char ), dn.bv_len + 1 );
 		strcpy( dn.bv_val, "cn=" );
 		strcat( dn.bv_val, monitor_subsys[ i ].mss_name );
-		rc = dnPretty2( NULL, &dn, &monitor_subsys[ i ].mss_rdn );
+		rc = dnPretty2( NULL, &dn, &monitor_subsys[ i ].mss_rdn, NULL );
 		free( dn.bv_val );
 		if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -333,7 +333,7 @@ monitor_back_db_init(
 		strcpy( dn.bv_val , monitor_subsys[ i ].mss_rdn.bv_val );
 		strcat( dn.bv_val, "," SLAPD_MONITOR_DN );
 		rc = dnPrettyNormal( NULL, &dn, &monitor_subsys[ i ].mss_dn,
-			&monitor_subsys[ i ].mss_ndn );
+			&monitor_subsys[ i ].mss_ndn, NULL );
 		free( dn.bv_val );
 		if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -424,7 +424,7 @@ monitor_back_db_init(
 	} else {
 		bv.bv_len = strlen( Versionstr );
 	}
-	if ( attr_merge_normalize_one( e, monitor_ad_desc, &bv ) ) {
+	if ( attr_merge_normalize_one( e, monitor_ad_desc, &bv, NULL ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, CRIT,
 			"unable to add description to '%s' entry\n",

@@ -38,10 +38,11 @@
 
 int
 monitor_entry_update(
-	struct monitorinfo 	*mi, 
+	Operation		*op,
 	Entry 			*e
 )
 {
+	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
 	struct monitorentrypriv *mp;
 
 	assert( mi != NULL );
@@ -52,7 +53,7 @@ monitor_entry_update(
 
 
 	if ( mp->mp_info && mp->mp_info->mss_update ) {
-		return ( *mp->mp_info->mss_update )( mi, e );
+		return ( *mp->mp_info->mss_update )( op, e );
 	}
 
 	return( 0 );
@@ -60,12 +61,13 @@ monitor_entry_update(
 
 int
 monitor_entry_create(
-	struct monitorinfo 	*mi,
+	Operation		*op,
 	struct berval		*ndn,
 	Entry			*e_parent,
 	Entry			**ep
 )
 {
+	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
 	struct monitorentrypriv *mp;
 
 	assert( mi != NULL );
@@ -76,7 +78,7 @@ monitor_entry_create(
 	mp = ( struct monitorentrypriv * )e_parent->e_private;
 
 	if ( mp->mp_info && mp->mp_info->mss_create ) {
-		return ( *mp->mp_info->mss_create )( mi, ndn, e_parent, ep );
+		return ( *mp->mp_info->mss_create )( op, ndn, e_parent, ep );
 	}
 	
 	return( 0 );
@@ -84,11 +86,12 @@ monitor_entry_create(
 
 int
 monitor_entry_modify(
-	struct monitorinfo 	*mi, 
+	Operation		*op,
 	Entry 			*e,
 	Modifications		*modlist
 )
 {
+	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
 	struct monitorentrypriv *mp;
 
 	assert( mi != NULL );
@@ -98,7 +101,7 @@ monitor_entry_modify(
 	mp = ( struct monitorentrypriv * )e->e_private;
 
 	if ( mp->mp_info && mp->mp_info->mss_modify ) {
-		return ( *mp->mp_info->mss_modify )( mi, e, modlist );
+		return ( *mp->mp_info->mss_modify )( op, e, modlist );
 	}
 
 	return( 0 );

@@ -216,10 +216,11 @@ monitor_subsys_time_init(
 
 int
 monitor_subsys_time_update(
-	struct monitorinfo      *mi,
+	Operation		*op,
 	Entry                   *e
 )
 {
+	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
 	char		stmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ],
 			ctmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 	struct tm	*stm, *ctm;

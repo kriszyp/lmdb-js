@@ -44,14 +44,6 @@
 
 static int
 monitor_send_children(
-	/*
-	Backend		*be,
-    	Connection	*conn,
-    	Operation	*op,
-    	Filter		*filter,
-    	AttributeName	*attrs,
-    	int		attrsonly,
-	*/
 	Operation	*op,
 	SlapReply	*rs,
 	Entry		*e_parent,
@@ -69,7 +61,7 @@ monitor_send_children(
 
 	e_ch = NULL;
 	if ( MONITOR_HAS_VOLATILE_CH( mp ) ) {
-		monitor_entry_create( mi, NULL, e_parent, &e_ch );
+		monitor_entry_create( op, NULL, e_parent, &e_ch );
 	}
 	monitor_cache_release( mi, e_parent );
 
@@ -107,7 +99,7 @@ monitor_send_children(
 	for ( ; e != NULL; ) {
 		mp = ( struct monitorentrypriv * )e->e_private;
 
-		monitor_entry_update( mi, e );
+		monitor_entry_update( op, e );
 		
 		rc = test_filter( op, e, op->oq_search.rs_filter );
 		if ( rc == LDAP_COMPARE_TRUE ) {
@@ -171,7 +163,7 @@ monitor_back_search( Operation *op, SlapReply *rs )
 	rs->sr_attrs = op->oq_search.rs_attrs;
 	switch ( op->oq_search.rs_scope ) {
 	case LDAP_SCOPE_BASE:
-		monitor_entry_update( mi, e );
+		monitor_entry_update( op, e );
 		rc = test_filter( op, e, op->oq_search.rs_filter );
  		if ( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
@@ -191,7 +183,7 @@ monitor_back_search( Operation *op, SlapReply *rs )
 		break;
 
 	case LDAP_SCOPE_SUBTREE:
-		monitor_entry_update( mi, e );
+		monitor_entry_update( op, e );
 		rc = test_filter( op, e, op->oq_search.rs_filter );
 		if ( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;

@@ -38,33 +38,34 @@
 #include "slap.h"
 #include "back-monitor.h"
 
-static int monitor_subsys_readw_update_internal( struct monitorinfo *mi, Entry *e, int rw );
+static int monitor_subsys_readw_update_internal( Operation *op, Entry *e, int rw );
 
 int 
 monitor_subsys_readw_update( 
-	struct monitorinfo 	*mi,
+	Operation		*op,
 	Entry 			*e
 )
 {
-	return monitor_subsys_readw_update_internal( mi, e, 0 );
+	return monitor_subsys_readw_update_internal( op, e, 0 );
 }
 
 int 
 monitor_subsys_writew_update( 
-	struct monitorinfo 	*mi,
+	Operation		*op,
 	Entry 			*e
 )
 {
-	return monitor_subsys_readw_update_internal( mi, e, 1 );
+	return monitor_subsys_readw_update_internal( op, e, 1 );
 }
 
 static int 
 monitor_subsys_readw_update_internal( 
-	struct monitorinfo 	*mi,
+	Operation		*op,
 	Entry 			*e,
 	int			rw
 )
 {
+	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
 	Connection              *c;
 	int                     connindex;
 	int                     nconns, nwritewaiters, nreadwaiters;
