@@ -1318,6 +1318,10 @@ int connection_internal_open( Connection **conn, LDAP **ldp, const char *id )
 
 void connection_internal_close( Connection *conn )
 {
+	Operation *op = conn->c_ops;
+
+	slap_op_remove( &conn->c_ops, op );
+	slap_op_free( op );
 	connection_closing( conn );
 	connection_close( conn );
 }
