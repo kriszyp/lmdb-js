@@ -51,7 +51,11 @@ if test -z "$OL_STRING"; then
 	AC_MSG_ERROR([could not determine version])
 fi
 
-echo "Configuring $OL_STRING ..."
+ac_cv_shtool=$ac_aux_dir/shtool
+SHTOOL=$ac_cv_shtool
+AC_SUBST(SHTOOL)
+
+$SHTOOL echo -e "Configuring %B${OL_STRING}%b ..."
 
 dnl Determine host platform
 dnl		we try not to use this for much
