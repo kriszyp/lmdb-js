@@ -40,7 +40,7 @@ bdb_search(
 	int		tlimit,
 	Filter	*filter,
 	const char	*filterstr,
-	char	**attrs,
+	struct berval	**attrs,
 	int		attrsonly )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;

@@ -38,7 +38,7 @@ do_search(
 	struct berval *nbase = NULL;
 	char		*fstr = NULL;
 	Filter		*filter = NULL;
-	char		**attrs = NULL;
+	struct berval	**attrs = NULL;
 	Backend		*be;
 	int			rc;
 	const char	*text;
@@ -172,7 +172,7 @@ do_search(
 
 
 	/* attributes */
-	if ( ber_scanf( op->o_ber, /*{*/ "{v}}", &attrs ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, /*{*/ "{V}}", &attrs ) == LBER_ERROR ) {
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding attrs error" );
 		rc = SLAPD_DISCONNECT;
@@ -205,9 +205,9 @@ do_search(
 		for ( i = 0; attrs[i] != NULL; i++ ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-				"do_search:	   %s", attrs[i] ));
+				"do_search:	   %s", attrs[i]->bv_val ));
 #else
-			Debug( LDAP_DEBUG_ARGS, " %s", attrs[i], 0, 0 );
+			Debug( LDAP_DEBUG_ARGS, " %s", attrs[i]->bv_val, 0, 0 );
 #endif
 
 		}
@@ -343,7 +343,7 @@ return_results:;
 	if( fstr != NULL) free( fstr );
 	if( filter != NULL) filter_free( filter );
 	if ( attrs != NULL ) {
-		charray_free( attrs );
+		ber_bvecfree( attrs );
 	}
 
 	return rc;

@@ -47,7 +47,7 @@
 #include "back-ldap.h"
 
 static void ldap_send_entry( Backend *be, Operation *op, struct ldapconn *lc,
-                             LDAPMessage *e, char **attrs, int attrsonly );
+                             LDAPMessage *e, struct berval **attrs, int attrsonly );
 
 int
 ldap_back_search(
@@ -62,7 +62,7 @@ ldap_back_search(
     int		tlimit,
     Filter	*filter,
     const char	*filterstr,
-    char	**attrs,
+    struct berval	**attrs,
     int		attrsonly
 )
 {
@@ -363,7 +363,7 @@ ldap_send_entry(
 	Operation *op,
 	struct ldapconn *lc,
 	LDAPMessage *e,
-	char **attrs,
+	struct berval **attrs,
 	int attrsonly
 )
 {

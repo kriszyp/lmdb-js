@@ -43,10 +43,7 @@ void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
  * attribute.c
  */
 
-int
-bdb_attribute LDAP_P(( Backend *be, Connection *conn, Operation *op,
-	Entry *target, const char *entry_ndn, AttributeDescription *entry_at,
-	struct berval ***vals ));
+BI_acl_attribute bdb_attribute;
 
 /*
  * dbcache.c
@@ -107,7 +104,7 @@ bdb_dn2idl(
  * entry.c
  */
 int bdb_entry_return( BackendDB *be, Entry *e );
-int bdb_entry_release( BackendDB *, Connection *, Operation *, Entry *, int );
+BI_entry_release_rw bdb_entry_release;
 
 /*
  * error.c
@@ -127,15 +124,7 @@ int bdb_filter_candidates(
  * group.c
  */
 
-int bdb_group(
-	Backend	*be,
-	Connection *conn,
-	Operation *op,
-	Entry	*target,
-	const char	*gr_ndn,
-	const char	*op_ndn,
-	ObjectClass *group_oc,
-	AttributeDescription *group_at);
+BI_acl_group bdb_group;
 
 /*
  * id2entry
@@ -286,28 +275,17 @@ int bdb_modify_internal(
 /*
  * passwd.c
  */
-int
-bdb_exop_passwd(
-	Backend		*be,
-	Connection		*conn,
-	Operation		*op,
-	const char		*reqoid,
-	struct berval	*reqdata,
-	char			**rspoid,
-	struct berval	**rspdata,
-	LDAPControl		*** rspctrls,
-	const char		**text,
-	struct berval	*** refs );
+BI_op_extended bdb_exop_passwd;
 
 /*
  * tools.c
  */
-int bdb_tool_entry_open( BackendDB *be, int mode );
-int bdb_tool_entry_close( BackendDB *be );
-ID bdb_tool_entry_next( BackendDB *be );
-Entry* bdb_tool_entry_get( BackendDB *be, ID id );
-ID bdb_tool_entry_put( BackendDB *be, Entry *e );
-int bdb_tool_entry_reindex( BackendDB *be, ID id );
+BI_tool_entry_open	bdb_tool_entry_open;
+BI_tool_entry_close	bdb_tool_entry_close;
+BI_tool_entry_next	bdb_tool_entry_next;
+BI_tool_entry_get	bdb_tool_entry_get;
+BI_tool_entry_put	bdb_tool_entry_put;
+BI_tool_entry_reindex	bdb_tool_entry_reindex;
 
 
 LDAP_END_DECL

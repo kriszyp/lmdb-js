@@ -34,7 +34,7 @@ passwd_back_search(
     int		tlimit,
     Filter	*filter,
     const char	*filterstr,
-    char	**attrs,
+    struct berval	**attrs,
     int		attrsonly
 )
 {

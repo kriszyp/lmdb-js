@@ -28,7 +28,7 @@ shell_back_search(
     int		time,
     Filter	*filter,
     const char	*filterstr,
-    char	**attrs,
+    struct berval	**attrs,
     int		attrsonly
 )
 {
@@ -62,7 +62,7 @@ shell_back_search(
 	fprintf( wfp, "attrsonly: %d\n", attrsonly ? 1 : 0 );
 	fprintf( wfp, "attrs:%s", attrs == NULL ? " all" : "" );
 	for ( i = 0; attrs != NULL && attrs[i] != NULL; i++ ) {
-		fprintf( wfp, " %s", attrs[i] );
+		fprintf( wfp, " %s", attrs[i]->bv_val );
 	}
 	fprintf( wfp, "\n" );
 	fclose( wfp );

@@ -30,7 +30,7 @@ dnssrv_back_search(
     int		time,
     Filter	*filter,
     const char	*filterstr,
-    char	**attrs,
+    struct berval	**attrs,
     int		attrsonly )
 {
 	int i;

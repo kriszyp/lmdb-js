@@ -618,6 +618,10 @@ send_search_result(
 	}
 }
 
+static struct berval AllUser = { sizeof(LDAP_ALL_USER_ATTRIBUTES)-1,
+	LDAP_ALL_USER_ATTRIBUTES };
+static struct berval AllOper = { sizeof(LDAP_ALL_OPERATIONAL_ATTRIBUTES)-1,
+	LDAP_ALL_OPERATIONAL_ATTRIBUTES };
 
 int
 send_search_entry(
@@ -625,7 +629,7 @@ send_search_entry(
     Connection	*conn,
     Operation	*op,
     Entry	*e,
-    char	**attrs,
+    struct berval	**attrs,
     int		attrsonly,
 	LDAPControl **ctrls
 )
@@ -701,13 +705,13 @@ send_search_entry(
 	    }
 	}
 	if (conn->c_is_udp && op->o_protocol == LDAP_VERSION2) {
-	    rc = ber_printf( ber, "{is{t{s{" /*}}}*/,
-		op->o_msgid, "", LDAP_RES_SEARCH_ENTRY, e->e_dn );
+	    rc = ber_printf( ber, "{is{t{O{" /*}}}*/,
+		op->o_msgid, "", LDAP_RES_SEARCH_ENTRY, &e->e_name );
 	} else
 #endif
 	{
-	    rc = ber_printf( ber, "{it{s{" /*}}}*/, op->o_msgid,
-		LDAP_RES_SEARCH_ENTRY, e->e_dn );
+	    rc = ber_printf( ber, "{it{O{" /*}}}*/, op->o_msgid,
+		LDAP_RES_SEARCH_ENTRY, &e->e_name );
 	}
 
 	if ( rc == -1 ) {
@@ -727,24 +731,23 @@ send_search_entry(
 
 	/* check for special all user attributes ("*") type */
 	userattrs = ( attrs == NULL ) ? 1
-		: charray_inlist( attrs, LDAP_ALL_USER_ATTRIBUTES );
+		: bvec_inlist( attrs, &AllUser );
 
 	/* check for special all operational attributes ("+") type */
 	opattrs = ( attrs == NULL ) ? 0
-		: charray_inlist( attrs, LDAP_ALL_OPERATIONAL_ATTRIBUTES );
+		: bvec_inlist( attrs, &AllOper );
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		AttributeDescription *desc = a->a_desc;
-		char *type = desc->ad_cname.bv_val;
 
 		if ( attrs == NULL ) {
-			/* all addrs request, skip operational attributes */
+			/* all attrs request, skip operational attributes */
 			if( is_at_operational( desc->ad_type ) ) {
 				continue;
 			}
 
 		} else {
-			/* specific addrs requested */
+			/* specific attrs requested */
 			if ( is_at_operational( desc->ad_type ) ) {
 				if( !opattrs && !ad_inlist( desc, attrs ) ) {
 					continue;
@@ -770,7 +773,7 @@ send_search_entry(
 			continue;
 		}
 
-		if (( rc = ber_printf( ber, "{s[" /*]}*/ , type )) == -1 ) {
+		if (( rc = ber_printf( ber, "{O[" /*]}*/ , &desc->ad_cname )) == -1 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 				   "send_search_entry: conn %d  ber_printf failed\n",
@@ -845,13 +848,13 @@ send_search_entry(
 		AttributeDescription *desc = a->a_desc;
 
 		if ( attrs == NULL ) {
-			/* all addrs request, skip operational attributes */
+			/* all attrs request, skip operational attributes */
 			if( is_at_operational( desc->ad_type ) ) {
 				continue;
 			}
 
 		} else {
-			/* specific addrs requested */
+			/* specific attrs requested */
 			if( is_at_operational( desc->ad_type ) ) {
 				if( !opattrs && !ad_inlist( desc, attrs ) ) {
 					continue;
@@ -877,7 +880,7 @@ send_search_entry(
 			continue;
 		}
 
-		rc = ber_printf( ber, "{s[" /*]}*/ , desc->ad_cname.bv_val );
+		rc = ber_printf( ber, "{O[" /*]}*/ , &desc->ad_cname );
 		if ( rc == -1 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,

@@ -46,9 +46,9 @@ int backsql_attrlist_add(backsql_srch_info *bsi,char *at_name)
 
 void backsql_init_search(backsql_srch_info *bsi,backsql_info *bi,char *nbase,int scope,
 						 int slimit,int tlimit,time_t stoptime,Filter *filter,
-						 SQLHDBC dbh,BackendDB *be,Connection *conn,Operation *op,char **attrs)
+						 SQLHDBC dbh,BackendDB *be,Connection *conn,Operation *op,struct berval **attrs)
 {
- char **p;
+ struct berval **p;
  bsi->base_dn=nbase;
  bsi->scope=scope;
  bsi->slimit=slimit;
@@ -63,7 +63,7 @@ void backsql_init_search(backsql_srch_info *bsi,backsql_info *bi,char *nbase,int
   bsi->attrs=(char**)ch_calloc(1,sizeof(char*));
   bsi->attrs[0]=NULL;
   for(p=attrs;*p!=NULL;p++)
-   backsql_attrlist_add(bsi,*p);
+   backsql_attrlist_add(bsi,(*p)->bv_val);
  }
  else
   bsi->attrs=attrs;
@@ -518,7 +518,7 @@ SQL_SUCCESS)
 
 int backsql_search(BackendDB *be,Connection *conn,Operation *op,
 	const char *base, const char *nbase, int scope,int deref,int slimit,int tlimit,
-	Filter *filter, const char *filterstr,char **attrs,int attrsonly)
+	Filter *filter, const char *filterstr,struct berval **attrs,int attrsonly)
 {
  backsql_info *bi=(backsql_info*)be->be_private;
  SQLHDBC dbh;

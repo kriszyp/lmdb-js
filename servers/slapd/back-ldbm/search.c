@@ -37,7 +37,7 @@ ldbm_back_search(
     int		tlimit,
     Filter	*filter,
     const char	*filterstr,
-    char	**attrs,
+    struct berval	**attrs,
     int		attrsonly )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;

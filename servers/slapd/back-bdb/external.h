@@ -9,59 +9,29 @@
 
 LDAP_BEGIN_DECL
 
-extern int	bdb_initialize LDAP_P(( BackendInfo *bi ));
+extern BI_init	bdb_initialize;
 
-extern int	bdb_db_config LDAP_P(( BackendDB *bd,
-	const char *fname, int lineno,
-	int argc, char **argv ));
+extern BI_db_config	bdb_db_config;
 
-extern int	bdb_add LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op, Entry *e ));
+extern BI_op_add	bdb_add;
 
-extern int bdb_bind LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn, int method,
-	struct berval *cred, char** edn ));
+extern BI_op_bind	bdb_bind;
 
-extern int	bdb_compare LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn,
-	AttributeAssertion *ava ));
+extern BI_op_compare	bdb_compare;
 
-extern int	bdb_delete LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn ));
+extern BI_op_delete	bdb_delete;
 
-extern int	bdb_abandon LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op, ber_int_t msgid ));
+extern BI_op_abandon	bdb_abandon;
 
-extern int	bdb_modify LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn, Modifications *ml ));
+extern BI_op_modify	bdb_modify;
 
-extern int	bdb_modrdn LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn,
-	const char* newrdn, int deleteoldrdn,
-	const char *newSuperior ));
+extern BI_op_modrdn	bdb_modrdn;
 
-extern int	bdb_search LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *base, const char *nbase,
-	int scope, int deref, int sizelimit, int timelimit,
-	Filter *filter, const char *filterstr,
-	char **attrs, int attrsonly ));
+extern BI_op_search	bdb_search;
 
-extern int	bdb_unbind LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op ));
+extern BI_op_unbind	bdb_unbind;
 
-extern int bdb_referrals(
-	BackendDB	*be,
-	Connection	*conn,
-	Operation	*op,
-	const char *dn,
-	const char *ndn,
-	const char **text );
+extern BI_chk_referrals	bdb_referrals;
 
 LDAP_END_DECL
 

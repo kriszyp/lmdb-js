@@ -65,29 +65,28 @@ schema_info( Entry **entry, const char **text )
 	{
 		int rc;
 		AttributeDescription *desc = NULL;
-		char *rdn = ch_strdup( SLAPD_SCHEMA_DN );
-		val.bv_val = strchr( rdn, '=' );
+		struct berval rdn = { sizeof(SLAPD_SCHEMA_DN)-1,
+			SLAPD_SCHEMA_DN };
+		val.bv_val = strchr( rdn.bv_val, '=' );
 
 		if( val.bv_val == NULL ) {
-			free( rdn );
 			*text = "improperly configured subschema subentry";
 			return LDAP_OTHER;
 		}
 
-		*val.bv_val = '\0';
-		val.bv_len = strlen( ++val.bv_val );
+		val.bv_val++;
+		val.bv_len = rdn.bv_len - (val.bv_val - rdn.bv_val);
+		rdn.bv_len -= val.bv_len + 1;
 
-		rc = slap_str2ad( rdn, &desc, text );
+		rc = slap_bv2ad( &rdn, &desc, text );
 
 		if( rc != LDAP_SUCCESS ) {
-			free( rdn );
 			entry_free( e );
 			*text = "improperly configured subschema subentry";
 			return LDAP_OTHER;
 		}
 
 		attr_merge( e, desc, vals );
-		free( rdn );
 	}
 
 	if ( syn_schema_info( e ) 

@@ -266,7 +266,7 @@ int is_ad_subtype(
 
 int ad_inlist(
 	AttributeDescription *desc,
-	char **attrs )
+	struct berval **attrs )
 {
 	int i;
 	for( i=0; attrs[i] != NULL; i++ ) {
@@ -275,7 +275,7 @@ int ad_inlist(
 		const char *text;
 		int rc;
 		
-		rc = slap_str2ad( attrs[i], &ad, &text );
+		rc = slap_bv2ad( attrs[i], &ad, &text );
 		if( rc == LDAP_SUCCESS ) {
 			rc = is_ad_subtype( desc, ad );
 			if( rc ) return 1;
@@ -286,7 +286,7 @@ int ad_inlist(
 		 * EXTENSION: see if requested description is an object class
 		 * if so, return attributes which the class requires/allows
 		 */
-		oc = oc_find( attrs[i] );
+		oc = oc_bvfind( attrs[i] );
 		if( oc != NULL ) {
 			if ( oc == slap_schema.si_oc_extensibleObject ) {
 				/* extensibleObject allows the return of anything */

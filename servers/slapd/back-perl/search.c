@@ -39,7 +39,7 @@ perl_back_search(
 	int timelimit,
 	Filter *filter,
 	const char *filterstr,
-	char **attrs,
+	struct berval **attrs,
 	int attrsonly
 	)
 {
@@ -66,7 +66,7 @@ perl_back_search(
 		XPUSHs(sv_2mortal(newSViv( attrsonly )));
 
 		for ( i = 0; attrs != NULL && attrs[i] != NULL; i++ ) {
-			XPUSHs(sv_2mortal(newSVpv( attrs[i] , 0)));
+			XPUSHs(sv_2mortal(newSVpv( attrs[i]->bv_val , 0)));
 		}
 		PUTBACK;
 

@@ -124,6 +124,26 @@ charray_inlist(
 	return( 0 );
 }
 
+int
+bvec_inlist(
+    struct berval **a,
+    struct berval *s
+)
+{
+	int	i;
+
+	if( a == NULL ) return 0;
+
+	for ( i = 0; a[i] != NULL; i++ ) {
+		if ( a[i]->bv_len != s->bv_len) continue;
+		if ( strcasecmp( s->bv_val, a[i]->bv_val ) == 0 ) {
+			return( 1 );
+		}
+	}
+
+	return( 0 );
+}
+
 char **
 charray_dup( char **a )
 {
@@ -174,6 +194,52 @@ str2charray( const char *str_in, const char *brkstr )
 	}
 
 	res[i] = NULL;
+
+	free( str );
+	return( res );
+}
+
+/* Convert a delimited string into an array of bervals; Add on
+ * to an existing array if it was given.
+ */
+struct berval **
+str2bvec( struct berval **vec, const char *in, const char *brkstr )
+{
+	char	*str;
+	struct berval **res;
+	char	*s;
+	char	*lasts;
+	int	i, old;
+
+	/* protect the input string from strtok */
+	str = ch_strdup( in );
+
+	for (old = 0; vec && vec[old]; old++);
+	
+	i = 1;
+	for ( s = str; *s; s++ ) {
+		if ( strchr( brkstr, *s ) != NULL ) {
+			i++;
+		}
+	}
+
+	if (vec) {
+		res = (struct berval **) ch_realloc( vec, (old + i + 1) * sizeof(struct berval *) );
+		vec = res + old;
+	} else {
+		res = (struct berval **) ch_malloc( (i + 1) * sizeof(struct berval *) );
+		vec = res;
+	}
+	i = 0;
+
+	for ( s = ldap_pvt_strtok( str, brkstr, &lasts );
+		s != NULL;
+		s = ldap_pvt_strtok( NULL, brkstr, &lasts ) )
+	{
+		vec[i++] = ber_bvstrdup( s );
+	}
+
+	vec[i] = NULL;
 
 	free( str );
 	return( res );

@@ -84,7 +84,7 @@ meta_send_entry(
 		struct metaconn	*lc,
 		int 		i,
 		LDAPMessage 	*e,
-		char 		**attrs,
+		struct berval 		**attrs,
 		int 		attrsonly
 );
 
@@ -107,7 +107,7 @@ meta_back_search(
 		int		tlimit,
 		Filter		*filter,
 		const char	*filterstr,
-		char		**attrs,
+		struct berval		**attrs,
 		int		attrsonly
 )
 {
@@ -569,7 +569,7 @@ meta_send_entry(
 		struct metaconn *lc,
 		int target,
 		LDAPMessage *e,
-		char **attrs,
+		struct berval **attrs,
 		int attrsonly
 )
 {

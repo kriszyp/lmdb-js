@@ -210,12 +210,8 @@ parse_acl(
 					}
 
 				} else if ( strncasecmp( left, "attr", 4 ) == 0 ) {
-					char	**alist;
-
-					alist = str2charray( right, "," );
-					charray_merge( &a->acl_attrs, alist );
-					charray_free( alist );
-
+					a->acl_attrs = str2bvec( a->acl_attrs,
+						right, "," );
 				} else {
 					fprintf( stderr,
 						"%s: line %d: expecting <what> got \"%s\"\n",
@@ -1281,7 +1277,7 @@ acl_free( AccessControl *a )
 	if ( a->acl_dn_pat.bv_len )
 		free ( a->acl_dn_pat.bv_val );
 	if ( a->acl_attrs )
-		charray_free( a->acl_attrs );
+		ber_bvecfree( a->acl_attrs );
 	for (; a->acl_access; a->acl_access = n) {
 		n = a->acl_access->a_next;
 		access_free( a->acl_access );
@@ -1494,7 +1490,7 @@ print_acl( Backend *be, AccessControl *a )
 			if ( ! first ) {
 				fprintf( stderr, "," );
 			}
-			fprintf( stderr, a->acl_attrs[i] );
+			fputs( a->acl_attrs[i]->bv_val, stderr );
 			first = 0;
 		}
 		fprintf(  stderr, "\n" );

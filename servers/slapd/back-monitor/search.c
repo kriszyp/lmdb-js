@@ -51,7 +51,7 @@ monitor_send_children(
     	Connection	*conn,
     	Operation	*op,
     	Filter		*filter,
-    	char		**attrs,
+    	struct berval		**attrs,
     	int		attrsonly,
 	Entry		*e_parent,
 	int		sub,
@@ -149,7 +149,7 @@ monitor_back_search(
     	int		tlimit,
     	Filter		*filter,
     	const char	*filterstr,
-    	char		**attrs,
+    	struct berval		**attrs,
     	int		attrsonly 
 )
 {
