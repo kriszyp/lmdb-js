@@ -40,10 +40,6 @@
 #define LDAP_DEBUG 1
 #endif
 
-/* MSVC5 doesn't define _STDC_ but supports _STDC_ features */
-#define __NEED_PROTOTYPES 1
-#define HAVE_STDARG 1
-
 /* we installed Henry Spencer's REGEX */
 #define HAVE_REGEX_H 1
 
@@ -737,6 +733,11 @@ typedef char * caddr_t;
 /* #undef CROSS_COMPILING */
 
 /* begin of postamble */
+
+#ifndef __NEEDS_PROTOTYPES
+/* force LDAP_P to always include prototypes */
+#define __NEEDS_PROTOTYPES 1 
+#endif
 
 #ifdef HAVE_STDDEF_H
 #	include <stddef.h>

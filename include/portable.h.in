@@ -465,9 +465,6 @@
 /* Define if you have the <ssl.h> header file.  */
 #undef HAVE_SSL_H
 
-/* Define if you have the <stdarg.h> header file.  */
-#undef HAVE_STDARG_H
-
 /* Define if you have the <stddef.h> header file.  */
 #undef HAVE_STDDEF_H
 
@@ -847,6 +844,11 @@
 #undef SLAPD_TCL_DYNAMIC
 
 /* begin of postamble */
+
+#ifndef __NEEDS_PROTOTYPES
+/* force LDAP_P to always include prototypes */
+#define __NEEDS_PROTOTYPES 1
+#endif
 
 #ifdef HAVE_STDDEF_H
 #	include <stddef.h>

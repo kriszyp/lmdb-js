@@ -619,39 +619,21 @@ ber_put_set( BerElement *ber )
 
 /* VARARGS */
 int
-ber_printf
-#ifdef HAVE_STDARG
-	( BerElement *ber,
-	LDAP_CONST char *fmt,
-	... )
-#else
-	( va_alist )
-va_dcl
-#endif
+ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 {
 	va_list		ap;
-#ifndef HAVE_STDARG
-	BerElement	*ber;
-	char		*fmt;
-#endif
 	char		*s, **ss;
 	struct berval	*bv, **bvp;
 	int		rc;
 	ber_int_t	i;
 	ber_len_t	len;
 
-#ifdef HAVE_STDARG
-	va_start( ap, fmt );
-#else
-	va_start( ap );
-	ber = va_arg( ap, BerElement * );
-	fmt = va_arg( ap, char * );
-#endif
-
 	assert( ber != NULL );
 	assert( fmt != NULL );
 
 	assert( BER_VALID( ber ) );
+
+	va_start( ap, fmt );
 
 	for ( rc = 0; *fmt && rc != -1; fmt++ ) {
 		switch ( *fmt ) {

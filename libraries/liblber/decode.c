@@ -486,21 +486,11 @@ ber_next_element(
 
 /* VARARGS */
 ber_tag_t
-ber_scanf
-#if HAVE_STDARG
-	( BerElement *ber,
+ber_scanf ( BerElement *ber,
 	LDAP_CONST char *fmt,
 	... )
-#else
-	( va_alist )
-va_dcl
-#endif
 {
 	va_list		ap;
-#ifndef HAVE_STDARG
-	BerElement	*ber;
-	char		*fmt;
-#endif
 	LDAP_CONST char		*fmt_reset;
 	char		*last;
 	char		*s, **ss, ***sss;
@@ -512,13 +502,7 @@ va_dcl
 	ber_tag_t	rc, tag;
 	ber_len_t	len;
 
-#ifdef HAVE_STDARG
 	va_start( ap, fmt );
-#else
-	va_start( ap );
-	ber = va_arg( ap, BerElement * );
-	fmt = va_arg( ap, char * );
-#endif
 
 	assert( ber != NULL );
 	assert( fmt != NULL );
@@ -672,13 +656,7 @@ va_dcl
 	     * Error.  Reclaim malloced memory that was given to the caller.
 	     * Set allocated pointers to NULL, "data length" outvalues to 0.
 	     */
-#ifdef HAVE_STDARG
 	    va_start( ap, fmt );
-#else
-	    va_start( ap );
-	    (void) va_arg( ap, BerElement * );
-	    (void) va_arg( ap, char * );
-#endif
 
 	    for ( ; fmt_reset < fmt; fmt_reset++ ) {
 		switch ( *fmt_reset ) {

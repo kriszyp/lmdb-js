@@ -31,13 +31,7 @@ int	Argc;		/* original argc */
  */
 
 /* VARARGS */
-void setproctitle
-#if defined( HAVE_STDARG )
-	( const char *fmt, ... )
-#else
-	( va_alist )
-va_dcl
-#endif
+void setproctitle( const char *fmt, ... )
 {
 	static char *endargv = (char *)0;
 	char	*s;
@@ -45,14 +39,7 @@ va_dcl
 	char	buf[ 1024 ];
 	va_list	ap;
 
-#if defined( HAVE_STDARG )
 	va_start(ap, fmt);
-#else
-	const char *fmt;
-
-	va_start(ap);
-	fmt = va_arg(ap, const char *);
-#endif
 
 #ifdef HAVE_VSNPRINTF
 	buf[sizeof(buf) - 1] = '\0';

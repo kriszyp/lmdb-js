@@ -599,7 +599,6 @@ AC_CHECK_HEADERS(	\
 	resolv.h		\
 	sgtty.h			\
 	shadow.h		\
-	stdarg.h		\
 	stddef.h		\
 	string.h		\
 	strings.h		\

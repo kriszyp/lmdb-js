@@ -39,35 +39,18 @@ static int ber_log_check( int errlvl, int loglvl )
 	return errlvl & loglvl ? 1 : 0;
 }
 
-int ber_pvt_log_printf
-#ifdef HAVE_STDARG
-	(int errlvl, int loglvl, const char *fmt, ...)
-#else
-	( va_alist )
-va_dcl
-#endif
+int ber_pvt_log_printf( int errlvl, int loglvl, const char *fmt, ... )
 {
 	char buf[ 1024 ];
 	va_list ap;
-
-#ifdef HAVE_STDARG
-	va_start( ap, fmt );
-#else
-	int errlvl, loglvl;
-	char *fmt;
-
-	va_start( ap );
-
-	errlvl = va_arg( ap, int );
-	loglvl = va_arg( ap, int );
-	fmt = va_arg( ap, char * );
-#endif
 
 	assert( fmt != NULL );
 
 	if ( !ber_log_check( errlvl, loglvl )) {
 		return 0;
 	}
+
+	va_start( ap, fmt );
 
 #ifdef HAVE_VSNPRINTF
 	buf[sizeof(buf) - 1] = '\0';

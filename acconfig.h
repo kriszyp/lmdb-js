@@ -65,6 +65,11 @@
 @BOTTOM@
 /* begin of postamble */
 
+#ifndef __NEEDS_PROTOTYPES
+/* force LDAP_P to always include prototypes */
+#define __NEEDS_PROTOTYPES 1
+#endif
+
 #ifdef HAVE_STDDEF_H
 #	include <stddef.h>
 #endif
