@@ -310,10 +310,11 @@ replog1(
 						for ( an = ri->ri_attrs; an->an_name.bv_val; an++ ) {
 							if ( an->an_oc ) {
 								ocs = 1;
+								match |= an->an_oc_exclude;
 								if ( ml->sml_bvalues[i].bv_len == an->an_name.bv_len
 									&& !strcasecmp(ml->sml_bvalues[i].bv_val,
 										an->an_name.bv_val ) ) {
-									match = 1 ^ an->an_oc_exclude;
+									match = !an->an_oc_exclude;
 									break;
 								}
 							}
@@ -385,10 +386,11 @@ replog1(
 						for ( an = ri->ri_attrs; an->an_name.bv_val; an++ ) {
 							if ( an->an_oc ) {
 								ocs = 1;
+								match |= an->an_oc_exclude;
 								if ( a->a_vals[i].bv_len == an->an_name.bv_len
 									&& !strcasecmp(a->a_vals[i].bv_val,
 										an->an_name.bv_val ) ) {
-									match = 1 ^ an->an_oc_exclude;
+									match = !an->an_oc_exclude;
 									break;
 								}
 							}
