@@ -72,7 +72,7 @@ arguments that should be replaced by actual text are shown
 in brackets <>.
 
 
-H4: access to <what> [ by <who> <accesslevel> ]+
+H4: access to <what> [ by <who> <accesslevel> <control> ]+
 
 This option grants access (specified by <accesslevel>) to a
 set of entries and/or attributes (specified by <what>) by one or
@@ -549,18 +549,30 @@ access configuration file directive. The general form of an
 access line is:
 
 E: <access directive> ::= access to <what>
-E: [ by <who> <access> ]+
-E: <what> ::= * | [ dn=<regex> ] [ filter=<ldapfilter> ]
-E: [ attrs=<attrlist> ]
-E: <who> ::= * | self | dn=<regex> | addr=<regex> |
-E: domain=<regex> | dnattr=<dn attribute>
-E: <access> ::= [self]none | [self]compare | [self]search
-E: | [self]read | [self]write
+E: 	[ by <who> <access> <control> ]+
+E: <what> ::= * | [ dn[.<target style>]=<regex> ] [ filter=<ldapfilter> ]
+E:	[ attrs=<attrlist> ]
+E: <target style> ::= regex | base | one | subtree | children
+E: <attrlist> ::= <attr> | <attr> , <attrlist>
+E: <attr> ::= <attrname> | entry | children
+E: <who> ::= [ * | anonymous | users | self | dn[.<subject style>]=<regex> ]
+E:	[ dnattr=<attrname> ]
+E:	[ group[/<objectclass>[/<attrname>][.<basic style>]]=<regex> ]
+E:	[ peername[.<basic style>]=<regex> ] [ sockname[.<basic style>]=<regex> ]
+E:	[ domain[.<basic style>]=<regex> ] [ sockurl[.<basic style>]=<regex> ]
+E:	[ set=<setspec> ]
+E:	[ aci=<attrname> ]
+E: <subject style> ::= regex | exact | base | one | subtree | children
+E: <basic style> ::= regex | exact
+E: <access> ::= [self]{<level>|<priv>}
+E: <level> ::= none | auth | compare | search | read | write
+E: <priv> ::= {=|+|-}{w|r|s|c|x}+
+E: <control> ::= [ stop | continue | break ]
 
 where the <what> part selects the entries and/or attributes to
 which the access applies, the <who> part specifies which
 entities are granted access, and the <access> part specifies
-the access granted. Multiple <who> <access> pairs are
+the access granted. Multiple <who> <access> <control> triplets are
 supported, allowing many entities to be granted different
 access to the same set of entries and attributes.
 
