@@ -51,16 +51,17 @@ int slap_sasl_setpolicy( const char *arg )
 {
 	int rc = LDAP_SUCCESS;
 
-	if ( strcasecmp( arg, "none" ) == 0 )
+	if ( strcasecmp( arg, "none" ) == 0 ) {
 		authz_policy = SASL_AUTHZ_NONE;
-	else if ( strcasecmp( arg, "from" ) == 0 )
+	} else if ( strcasecmp( arg, "from" ) == 0 ) {
 		authz_policy = SASL_AUTHZ_FROM;
-	else if ( strcasecmp( arg, "to" ) == 0 )
+	} else if ( strcasecmp( arg, "to" ) == 0 ) {
 		authz_policy = SASL_AUTHZ_TO;
-	else if ( strcasecmp( arg, "both" ) == 0 )
+	} else if ( strcasecmp( arg, "both" ) == 0 ) {
 		authz_policy = SASL_AUTHZ_FROM | SASL_AUTHZ_TO;
-	else
+	} else {
 		rc = LDAP_OTHER;
+	}
 	return rc;
 }
 
@@ -292,8 +293,9 @@ static int slap_sasl_regexp( struct berval *in, struct berval *out )
 	   saslname, 0, 0 );
 #endif
 
-	if (( saslname == NULL ) || ( nSaslRegexp == 0 ))
+	if (( saslname == NULL ) || ( nSaslRegexp == 0 )) {
 		return( 0 );
+	}
 
 	/* Match the normalized SASL name to the saslregexp patterns */
 	for( reg = SaslRegexp,i=0;  i<nSaslRegexp;  i++,reg++ ) {
@@ -302,8 +304,7 @@ static int slap_sasl_regexp( struct berval *in, struct berval *out )
 			break;
 	}
 
-	if( i >= nSaslRegexp )
-		return( 0 );
+	if( i >= nSaslRegexp ) return( 0 );
 
 	/*
 	 * The match pattern may have been of the form "a(b.*)c(d.*)e" and the
@@ -379,9 +380,9 @@ static int sasl_sc_smatch( BackendDB *be, Connection *conn, Operation *o,
 	if (dn_match(sm->dn, &e->e_nname)) {
 		sm->match = 1;
 		return -1;	/* short-circuit the search */
-	} else {
-		return 1;
 	}
+
+	return 1;
 }
 
 /*
@@ -411,12 +412,12 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 		assertDN->bv_val, rule->bv_val,0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
-	   "===>slap_sasl_match: comparing DN %s to rule %s\n", assertDN->bv_val, rule->bv_val, 0 );
+	   "===>slap_sasl_match: comparing DN %s to rule %s\n",
+		assertDN->bv_val, rule->bv_val, 0 );
 #endif
 
 	rc = slap_parseURI( rule, &searchbase, &scope, &filter );
-	if( rc != LDAP_SUCCESS )
-		goto CONCLUDED;
+	if( rc != LDAP_SUCCESS ) goto CONCLUDED;
 
 	/* Massive shortcut: search scope == base */
 	if( scope == LDAP_SCOPE_BASE ) {
@@ -426,10 +427,11 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 			rc = regexec(&reg, assertDN->bv_val, 0, NULL, 0);
 			regfree( &reg );
 		}
-		if ( rc == 0 )
+		if ( rc == 0 ) {
 			rc = LDAP_SUCCESS;
-		else
+		} else {
 			rc = LDAP_INAPPROPRIATE_AUTH;
+		}
 		goto CONCLUDED;
 	}
 
@@ -468,14 +470,16 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 	   scope, /*deref=*/1, /*sizelimit=*/0, /*time=*/0, filter, /*fstr=*/NULL,
 	   /*attrs=*/NULL, /*attrsonly=*/0 );
 
-	if (sm.match)
+	if (sm.match) {
 		rc = LDAP_SUCCESS;
-	else
+	} else {
 		rc = LDAP_INAPPROPRIATE_AUTH;
+	}
 
 CONCLUDED:
 	if( searchbase.bv_len ) ch_free( searchbase.bv_val );
 	if( filter ) filter_free( filter );
+
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
 		"slap_sasl_match: comparison returned %d\n", rc, 0, 0 );
@@ -518,14 +522,12 @@ slap_sasl_check_authz( Connection *conn,
 
 	rc = backend_attribute( NULL, NULL, conn->c_sasl_bindop, NULL,
 		searchDN, ad, &vals );
-	if( rc != LDAP_SUCCESS )
-		goto COMPLETE;
+	if( rc != LDAP_SUCCESS ) goto COMPLETE;
 
 	/* Check if the *assertDN matches any **vals */
 	for( i=0; vals[i].bv_val != NULL; i++ ) {
 		rc = slap_sasl_match( conn, &vals[i], assertDN, authc );
-		if ( rc == LDAP_SUCCESS )
-			goto COMPLETE;
+		if ( rc == LDAP_SUCCESS ) goto COMPLETE;
 	}
 	rc = LDAP_INAPPROPRIATE_AUTH;
 

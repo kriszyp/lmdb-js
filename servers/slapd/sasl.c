@@ -1562,8 +1562,7 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 			is_dn = SET_DN;
 			ber_str2bv( id, len, 1, dn );
 
-		} else
-		{
+		} else {
 			/* convert to u:<username> form */
 			is_dn = SET_U;
 			dn->bv_val = id;
