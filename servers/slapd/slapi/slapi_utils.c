@@ -1209,6 +1209,163 @@ slapi_filter_list_next(
 #endif /* !defined(LDAP_SLAPI) */
 }
 
+int
+slapi_filter_get_attribute_type( Slapi_Filter *f, char **type )
+{
+#ifdef LDAP_SLAPI
+	if ( f == NULL ) {
+		return -1;
+	}
+
+	switch ( f->f_choice ) {
+	case LDAP_FILTER_GE:
+	case LDAP_FILTER_LE:
+	case LDAP_FILTER_EQUALITY:
+	case LDAP_FILTER_APPROX:
+		*type = f->f_av_desc->ad_cname.bv_val;
+		break;
+	case LDAP_FILTER_SUBSTRINGS:
+		*type = f->f_sub_desc->ad_cname.bv_val;
+		break;
+	case LDAP_FILTER_PRESENT:
+		*type = f->f_desc->ad_cname.bv_val;
+		break;
+	case LDAP_FILTER_EXT:
+		*type = f->f_mr_desc->ad_cname.bv_val;
+		break;
+	default:
+		/* Complex filters need not apply. */
+		*type = NULL;
+		return -1;
+	}
+
+	return 0;
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
+int
+slapi_filter_get_subfilt( Slapi_Filter *f, char **type, char **initial,
+	char ***any, char **final )
+{
+#ifdef LDAP_SLAPI
+	int i;
+
+	if ( f->f_choice != LDAP_FILTER_SUBSTRINGS ) {
+		return -1;
+	}
+
+	/*
+	 * The caller shouldn't free but we can't return an
+	 * array of char *s from an array of bervals without
+	 * allocating memory, so we may as well be consistent.
+	 * XXX
+	 */
+	*type = f->f_sub_desc->ad_cname.bv_val;
+	*initial = f->f_sub_initial.bv_val ? slapi_ch_strdup(f->f_sub_initial.bv_val) : NULL;
+	for ( i = 0; f->f_sub_any[i].bv_val != NULL; i++ )
+		;
+	*any = (char **)slapi_ch_malloc( (i + 1) * sizeof(char *) );
+	for ( i = 0; f->f_sub_any[i].bv_val != NULL; i++ ) {
+		(*any)[i] = slapi_ch_strdup(f->f_sub_any[i].bv_val);
+	}
+	(*any)[i] = NULL;
+	*final = f->f_sub_final.bv_val ? slapi_ch_strdup(f->f_sub_final.bv_val) : NULL;
+
+	return 0;
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
+Slapi_Filter *
+slapi_filter_join( int ftype, Slapi_Filter *f1, Slapi_Filter *f2)
+{
+#ifdef LDAP_SLAPI
+	Slapi_Filter *f = NULL;
+
+	if ( ftype == LDAP_FILTER_AND ||
+	     ftype == LDAP_FILTER_OR ||
+	     ftype == LDAP_FILTER_NOT )
+	{
+		f = (Slapi_Filter *)slapi_ch_malloc( sizeof(*f) );
+		f->f_choice = ftype;
+		f->f_and = f1;
+		f->f_next = f2;
+	}
+
+	return f;
+#else
+	return NULL;
+#endif /* LDAP_SLAPI */
+}
+
+int
+slapi_filter_test( Slapi_PBlock *pb, Slapi_Entry *e, Slapi_Filter *f,
+	int verify_access )
+{
+#ifdef LDAP_SLAPI
+	Backend *be = NULL;
+	Connection *conn;
+	Operation *op;
+	int rc;
+
+	if ( f == NULL ) {
+		/* spec says return zero if no filter. */
+		return 0;
+	}
+
+	if ( verify_access ) {
+		(void) slapi_pblock_get(pb, SLAPI_BACKEND, (void *)&be);
+		rc = slapi_pblock_get(pb, SLAPI_CONNECTION, (void *)&conn);
+		if ( rc != 0 ) {
+			return LDAP_PARAM_ERROR;
+		}
+		rc = slapi_pblock_get(pb, SLAPI_OPERATION, (void *)&op);
+		if ( rc != 0 ) {
+			return LDAP_PARAM_ERROR;
+		}
+	} else {
+		conn = NULL;
+		op = NULL;
+	}
+	/*
+	 * According to acl.c it is safe to call test_filter() with
+	 * NULL arguments...
+	 */
+	rc = test_filter( be, conn, op, e, f );
+	switch (rc) {
+	case LDAP_COMPARE_TRUE:
+		rc = 0;
+		break;
+	case LDAP_COMPARE_FALSE:
+		break;
+	case SLAPD_COMPARE_UNDEFINED:
+		rc = LDAP_OTHER;
+		break;
+	case LDAP_PROTOCOL_ERROR:
+		/* filter type unknown: spec says return -1 */
+		rc = -1;
+		break;
+	}
+
+	return rc;
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
+int
+slapi_filter_test_simple( Slapi_Entry *e, Slapi_Filter *f)
+{
+#ifdef LDAP_SLAPI
+	return slapi_filter_test( NULL, e, f, 0 );
+#else
+	return -1;
+#endif
+}
+
 int 
 slapi_send_ldap_extended_response(
 	Connection	*conn, 

@@ -184,6 +184,13 @@ int slapi_filter_get_choice( Slapi_Filter *f);
 int slapi_filter_get_ava( Slapi_Filter *f, char **type, struct berval **bval );
 Slapi_Filter *slapi_filter_list_first( Slapi_Filter *f );
 Slapi_Filter *slapi_filter_list_next( Slapi_Filter *f, Slapi_Filter *fprev );
+int slapi_filter_get_attribute_type( Slapi_Filter *f, char **type ); 
+int slapi_filter_get_subfilt( Slapi_Filter *f, char **type, char **initial,
+	char ***any, char **final );
+Slapi_Filter *slapi_filter_join( int ftype, Slapi_Filter *f1, Slapi_Filter *f2);
+int slapi_filter_test( Slapi_PBlock *pb, Slapi_Entry *e, Slapi_Filter *f,
+	int verify_access );
+int slapi_filter_test_simple( Slapi_Entry *e, Slapi_Filter *f);
 void slapi_free_search_results_internal(Slapi_PBlock *pb);
 int slapi_is_connection_ssl(Slapi_PBlock *pPB, int *isSSL);
 int slapi_get_client_port(Slapi_PBlock *pPB, int *fromPort);
