@@ -479,6 +479,7 @@ long connection_init(
 	if (tls_udp_option == 2)
 	{
 		c->c_is_udp = 1;
+		c->c_protocol = LDAP_VERSION2;
 #ifdef LDAP_DEBUG
 	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
 		LBER_SBIOD_LEVEL_PROVIDER, (void*)"udp_" );
