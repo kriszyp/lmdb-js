@@ -98,7 +98,7 @@ ldap_init_templates( char *file, struct ldap_disptmpl **tmpllistp )
     long	rlen, len;
     int		rc, eof;
 
-    *tmpllistp = NULLDISPTMPL;
+    *tmpllistp = NULL;
 
     if (( fp = fopen( file, "r" )) == NULL ) {
 	return( LDAP_TMPL_ERR_FILE );
@@ -145,7 +145,7 @@ ldap_init_templates_buf( char *buf, long buflen,
     char			**toks;
     struct ldap_disptmpl	*prevtmpl, *tmpl;
 
-    *tmpllistp = prevtmpl = NULLDISPTMPL;
+    *tmpllistp = prevtmpl = NULL;
 
     if ( next_line_tokens( &buf, &buflen, &toks ) != 2 ||
 	    strcasecmp( toks[ 0 ], "version" ) != 0 ) {
@@ -159,8 +159,8 @@ ldap_init_templates_buf( char *buf, long buflen,
     }
 
     while ( buflen > 0 && ( rc = read_next_tmpl( &buf, &buflen, &tmpl,
-	    version )) == 0 && tmpl != NULLDISPTMPL ) {
-	if ( prevtmpl == NULLDISPTMPL ) {
+	    version )) == 0 && tmpl != NULL ) {
+	if ( prevtmpl == NULL ) {
 	    *tmpllistp = tmpl;
 	} else {
 	    prevtmpl->dt_next = tmpl;
@@ -281,7 +281,7 @@ struct ldap_disptmpl *
 ldap_next_disptmpl( struct ldap_disptmpl *tmpllist,
 	struct ldap_disptmpl *tmpl )
 {
-    return( tmpl == NULLDISPTMPL ? tmpl : tmpl->dt_next );
+    return( tmpl == NULL ? tmpl : tmpl->dt_next );
 }
 
 
@@ -290,14 +290,14 @@ ldap_name2template( char *name, struct ldap_disptmpl *tmpllist )
 {
     struct ldap_disptmpl	*dtp;
 
-    for ( dtp = ldap_first_disptmpl( tmpllist ); dtp != NULLDISPTMPL;
+    for ( dtp = ldap_first_disptmpl( tmpllist ); dtp != NULL;
 	    dtp = ldap_next_disptmpl( tmpllist, dtp )) {
 	if ( strcasecmp( name, dtp->dt_name ) == 0 ) {
 	    return( dtp );
 	}
     }
 
-    return( NULLDISPTMPL );
+    return( NULL );
 }
 
 
@@ -309,12 +309,12 @@ ldap_oc2template( char **oclist, struct ldap_disptmpl *tmpllist )
     int				i, j, needcnt, matchcnt;
 
     if ( tmpllist == NULL || oclist == NULL || oclist[ 0 ] == NULL ) {
-	return( NULLDISPTMPL );
+	return( NULL );
     }
 
-    for ( dtp = ldap_first_disptmpl( tmpllist ); dtp != NULLDISPTMPL;
+    for ( dtp = ldap_first_disptmpl( tmpllist ); dtp != NULL;
 		dtp = ldap_next_disptmpl( tmpllist, dtp )) {
-	for ( oclp = dtp->dt_oclist; oclp != NULLOCLIST;
+	for ( oclp = dtp->dt_oclist; oclp != NULL;
 		oclp = oclp->oc_next ) {
 	    needcnt = matchcnt = 0;
 	    for ( i = 0; oclp->oc_objclasses[ i ] != NULL; ++i ) {
@@ -333,7 +333,7 @@ ldap_oc2template( char **oclist, struct ldap_disptmpl *tmpllist )
 	}
     }
 
-    return( NULLDISPTMPL );
+    return( NULL );
 }
 
 
@@ -347,7 +347,7 @@ ldap_first_tmplrow( struct ldap_disptmpl *tmpl )
 struct ldap_tmplitem *
 ldap_next_tmplrow( struct ldap_disptmpl *tmpl, struct ldap_tmplitem *row )
 {
-    return( row == NULLTMPLITEM ? row : row->ti_next_in_col );
+    return( row == NULL ? row : row->ti_next_in_col );
 }
 
 
@@ -362,7 +362,7 @@ struct ldap_tmplitem *
 ldap_next_tmplcol( struct ldap_disptmpl *tmpl, struct ldap_tmplitem *row,
 	struct ldap_tmplitem *col )
 {
-    return( col == NULLTMPLITEM ? col : col->ti_next_in_row );
+    return( col == NULL ? col : col->ti_next_in_row );
 }
 
 
@@ -397,10 +397,10 @@ ldap_tmplattrs( struct ldap_disptmpl *tmpl, char **includeattrs,
     }
 
     for ( tirowp = ldap_first_tmplrow( tmpl );
-	    !memerr && tirowp != NULLTMPLITEM;
+	    !memerr && tirowp != NULL;
 	    tirowp = ldap_next_tmplrow( tmpl, tirowp )) {
 	for ( ticolp = ldap_first_tmplcol( tmpl, tirowp );
-		ticolp != NULLTMPLITEM;
+		ticolp != NULL;
 		ticolp = ldap_next_tmplcol( tmpl, tirowp, ticolp )) {
 
 	    if ( syntaxmask != 0 ) {

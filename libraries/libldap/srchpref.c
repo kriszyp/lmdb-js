@@ -105,7 +105,7 @@ ldap_init_searchprefs_buf( char *buf, long buflen,
     char			**toks;
     struct ldap_searchobj	*prevso, *so;
 
-    *solistp = prevso = NULLSEARCHOBJ;
+    *solistp = prevso = NULL;
 
     if ( next_line_tokens( &buf, &buflen, &toks ) != 2 ||
 	    strcasecmp( toks[ 0 ], "version" ) != 0 ) {
@@ -120,8 +120,8 @@ ldap_init_searchprefs_buf( char *buf, long buflen,
     }
 
     while ( buflen > 0 && ( rc = read_next_searchobj( &buf, &buflen, &so,
-	    version )) == 0 && so != NULLSEARCHOBJ ) {
-	if ( prevso == NULLSEARCHOBJ ) {
+	    version )) == 0 && so != NULL ) {
+	if ( prevso == NULL ) {
 	    *solistp = so;
 	} else {
 	    prevso->so_next = so;
@@ -223,7 +223,7 @@ ldap_first_searchobj( struct ldap_searchobj *solist )
 struct ldap_searchobj *
 ldap_next_searchobj( struct ldap_searchobj *solist, struct ldap_searchobj *so )
 {
-    return( so == NULLSEARCHOBJ ? so : so->so_next );
+    return( so == NULL ? so : so->so_next );
 }
 
 
