@@ -27,7 +27,7 @@ static int filter2ber( char *filter );
 int usage()
 {
 	fprintf( stderr, "usage:\n"
-		"\tftest [-d n] filter" );
+		"\tftest [-d n] filter\n" );
 	return EXIT_FAILURE;
 }
 
@@ -90,8 +90,8 @@ static int filter2ber( char *filter )
 	}
 
 	rc = ldap_int_put_filter( ber, filter );
-	if( rc ) {
-		perror( "ber_flatten" );
+	if( rc < 0 ) {
+		fprintf( stderr, "Filter error!\n");
 		return EXIT_FAILURE;
 	}
 
@@ -101,6 +101,7 @@ static int filter2ber( char *filter )
 		return EXIT_FAILURE;
 	}
 
+	printf( "BER encoding (len=%ld):\n", (long) bv->bv_len );
 	ber_bprint( bv->bv_val, bv->bv_len );
 
 	ber_free( ber, 0 );

@@ -201,7 +201,7 @@ ldap_pvt_find_wildcard( const char *s )
 		}
 	}
 
-	return NULL;
+	return s;
 }
 
 /* unescape filter value */
@@ -222,7 +222,6 @@ ldap_pvt_filter_value_unescape( char *fval )
 			if ( fval[v] == '\0' ) {
 				/* escape at end of string */
 				return -1;
-
 			}
 
 			if (( v1 = hex2value( fval[v] )) >= 0 ) {
@@ -350,9 +349,9 @@ ldap_int_put_filter( BerElement *ber, char *str )
 				Debug( LDAP_DEBUG_TRACE, "put_filter: AND\n",
 				    0, 0, 0 );
 
-				if ( (str = put_complex_filter( ber, str,
-				    LDAP_FILTER_AND, 0 )) == NULL )
-					return( -1 );
+				str = put_complex_filter( ber, str,
+				    LDAP_FILTER_AND, 0 );
+				if( str == NULL ) return( -1 );
 
 				parens--;
 				break;
@@ -361,9 +360,9 @@ ldap_int_put_filter( BerElement *ber, char *str )
 				Debug( LDAP_DEBUG_TRACE, "put_filter: OR\n",
 				    0, 0, 0 );
 
-				if ( (str = put_complex_filter( ber, str,
-				    LDAP_FILTER_OR, 0 )) == NULL )
-					return( -1 );
+				str = put_complex_filter( ber, str,
+				    LDAP_FILTER_OR, 0 );
+				if( str == NULL ) return( -1 );
 
 				parens--;
 				break;
@@ -372,9 +371,9 @@ ldap_int_put_filter( BerElement *ber, char *str )
 				Debug( LDAP_DEBUG_TRACE, "put_filter: NOT\n",
 				    0, 0, 0 );
 
-				if ( (str = put_complex_filter( ber, str,
-				    LDAP_FILTER_NOT, 1 )) == NULL )
-					return( -1 );
+				str = put_complex_filter( ber, str,
+				    LDAP_FILTER_NOT, 0 );
+				if( str == NULL ) return( -1 );
 
 				parens--;
 				break;
@@ -597,7 +596,7 @@ put_simple_filter(
 				ber_slen_t len = ldap_pvt_filter_value_unescape( value );
 
 				if( len >= 0 ) {
-					rc = ber_printf( ber, "totbN}",
+					rc = ber_printf( ber, /*"{"*/ "totbN}",
 						LDAP_FILTER_EXT_VALUE, value, len,
 						LDAP_FILTER_EXT_DNATTRS, dn != NULL);
 				} else {
@@ -611,7 +610,6 @@ put_simple_filter(
 		{
 			char *nextstar = ldap_pvt_find_wildcard( value );
 			if ( nextstar == NULL ) {
-				rc = -1;
 				goto done;
 			} else if ( *nextstar == '\0' ) {
 				ftype = LDAP_FILTER_EQUALITY;
@@ -636,9 +634,8 @@ put_simple_filter(
 		}
 	}
 
-	if( rc != -1 ) rc = 0;
-
 done:
+	if( rc != -1 ) rc = 0;
 	LDAP_FREE( str );
 	return rc;
 }
@@ -687,7 +684,7 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 	}
 
 	if ( ber_printf( ber, /*"{{"*/ "N}N}" ) == -1 )
-		return( -1 );
+		return -1;
 
 	return 0;
 }
