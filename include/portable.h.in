@@ -1035,9 +1035,6 @@
 #undef SLAPD_SQL
 
 /* define for Dynamic Group overlay */
-#undef SLAPD_OVER_CHAIN
-
-/* define for Dynamic Group overlay */
 #undef SLAPD_OVER_DENYOP
 
 /* define for Dynamic Group overlay */
