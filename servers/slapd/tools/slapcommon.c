@@ -28,6 +28,11 @@ int		continuemode = 0;
 char	*ldiffile	= NULL;
 FILE	*ldiffp		= NULL;
 
+#ifdef CSRIMALLOC
+	char *leakfilename;
+	FILE *leakfile;
+#endif
+
 Backend *be = NULL;
 
 static void
@@ -79,6 +84,15 @@ slap_tool_init(
 	int mode = SLAP_TOOL_MODE;
 
 	progname = lutil_progname( name, argc, argv );
+
+#ifdef CSRIMALLOC
+	leakfilename = malloc( strlen( progname ) + sizeof(".leak") );
+	sprintf( leakfilename, "%s.leak", progname );
+	if( ( leakfile = fopen( leakfilename, "w" )) == NULL ) {
+		leakfile = stderr;
+	}
+	free( leakfilename );
+#endif
 
 	switch( tool ) {
 	case SLAPADD:
@@ -212,6 +226,10 @@ slap_tool_init(
 		be = &backends[dbnum];
 	}
 
+#ifdef CSRIMALLOC
+	mal_leaktrace(1);
+#endif
+
 	slap_startup( be );
 }
 
@@ -219,4 +237,8 @@ void slap_tool_destroy( void )
 {
 	slap_shutdown( be );
 	slap_destroy();
+
+#ifdef CSRIMALLOC
+	mal_dumpleaktrace( leakfile );
+#endif
 }
