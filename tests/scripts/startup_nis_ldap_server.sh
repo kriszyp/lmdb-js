@@ -26,11 +26,11 @@ echo "Cleaning up in $DBDIR..."
 
 rm -f $DBDIR/[!C]*
 
-echo "Running ldif2ldbm to build slapd database..."
+echo "Running slapadd to build slapd database..."
 $LDIF2LDBM -f $NIS_CONF -l $NIS_LDIF
 RC=$?
 if [ $RC != 0 ]; then
-	echo "ldif2ldbm failed!"
+	echo "slapadd failed!"
 	exit $RC
 fi
 
