@@ -1162,7 +1162,7 @@ slapd_daemon_task(
 						"daemon: select failed (%d): %s\n",
 						err, sock_errstr(err), 0 );
 #endif
-					slapd_shutdown = -1;
+					slapd_shutdown = 2;
 				}
 			}
 			continue;
@@ -1676,7 +1676,7 @@ slapd_daemon_task(
 		ldap_pvt_thread_yield();
 	}
 
-	if( slapd_shutdown > 0 ) {
+	if( slapd_shutdown == 1 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
 			   "slapd_daemon_task: shutdown requested and initiated.\n"));
@@ -1686,10 +1686,8 @@ slapd_daemon_task(
 			0, 0, 0 );
 #endif
 
-	} else if ( slapd_shutdown < 0 ) {
+	} else if ( slapd_shutdown == 2 ) {
 #ifdef HAVE_NT_SERVICE_MANAGER
-		if (slapd_shutdown == -1)
-		{
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
 				   "slapd_daemon_task: shutdown initiated by Service Manager.\n"));
@@ -1698,10 +1696,7 @@ slapd_daemon_task(
 			       "daemon: shutdown initiated by Service Manager.\n",
 			       0, 0, 0);
 #endif
-		}
-		else
-#endif
-		{
+#else /* !HAVE_NT_SERVICE_MANAGER */
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
 				   "slapd_daemon_task: abnormal condition, shutdown initiated.\n" ));
@@ -1710,7 +1705,7 @@ slapd_daemon_task(
 			       "daemon: abnormal condition, shutdown initiated.\n",
 			       0, 0, 0 );
 #endif
-		}
+#endif /* !HAVE_NT_SERVICE_MANAGER */
 	} else {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
@@ -1869,7 +1864,7 @@ slap_sig_shutdown( int sig )
 #endif
 	else
 #endif
-	slapd_shutdown = sig;
+	slapd_shutdown = 1;
 
 	WAKE_LISTENER(1);
 
