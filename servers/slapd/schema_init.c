@@ -120,11 +120,12 @@ int octetStringIndexer(
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
 
+	/* we should have at least one value at this point */
+	assert( values != NULL && values[0] != NULL );
+
 	for( i=0; values[i] != NULL; i++ ) {
 		/* just count them */
 	}
-
-	assert( i > 0 );
 
 	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
 
@@ -791,11 +792,12 @@ int caseExactIndexer(
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
 
+	/* we should have at least one value at this point */
+	assert( values != NULL && values[0] != NULL );
+
 	for( i=0; values[i] != NULL; i++ ) {
 		/* just count them */
 	}
-
-	assert( i > 0 );
 
 	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
 
@@ -891,6 +893,9 @@ int caseExactSubstringsIndexer(
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
 
+	/* we should have at least one value at this point */
+	assert( values != NULL && values[0] != NULL );
+
 	nkeys=0;
 	for( i=0; values[i] != NULL; i++ ) {
 		/* count number of indices to generate */
@@ -922,7 +927,6 @@ int caseExactSubstringsIndexer(
 			}
 		}
 	}
-	assert( i > 0 );
 
 	if( nkeys == 0 ) {
 		/* no keys to generate */
@@ -1358,11 +1362,12 @@ int caseIgnoreIndexer(
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
 
+	/* we should have at least one value at this point */
+	assert( values != NULL && values[0] != NULL );
+
 	for( i=0; values[i] != NULL; i++ ) {
 		/* just count them */
 	}
-
-	assert( i > 0 );
 
 	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
 
@@ -1465,6 +1470,9 @@ int caseIgnoreSubstringsIndexer(
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
 
+	/* we should have at least one value at this point */
+	assert( values != NULL && values[0] != NULL );
+
 	nkeys=0;
 	for( i=0; values[i] != NULL; i++ ) {
 		/* count number of indices to generate */
@@ -1496,7 +1504,6 @@ int caseIgnoreSubstringsIndexer(
 			}
 		}
 	}
-	assert( i > 0 );
 
 	if( nkeys == 0 ) {
 		/* no keys to generate */
@@ -2139,11 +2146,12 @@ int caseExactIA5Indexer(
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
 
+	/* we should have at least one value at this point */
+	assert( values != NULL && values[0] != NULL );
+
 	for( i=0; values[i] != NULL; i++ ) {
 		/* just count them */
 	}
-
-	assert( i > 0 );
 
 	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
 
@@ -2239,6 +2247,9 @@ int caseExactIA5SubstringsIndexer(
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
 
+	/* we should have at least one value at this point */
+	assert( values != NULL && values[0] != NULL );
+
 	nkeys=0;
 	for( i=0; values[i] != NULL; i++ ) {
 		/* count number of indices to generate */
@@ -2270,7 +2281,6 @@ int caseExactIA5SubstringsIndexer(
 			}
 		}
 	}
-	assert( i > 0 );
 
 	if( nkeys == 0 ) {
 		/* no keys to generate */
@@ -2702,11 +2712,12 @@ int caseIgnoreIA5Indexer(
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
 
+	/* we should have at least one value at this point */
+	assert( values != NULL && values[0] != NULL );
+
 	for( i=0; values[i] != NULL; i++ ) {
 		/* just count them */
 	}
-
-	assert( i > 0 );
 
 	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
 
@@ -2809,6 +2820,9 @@ int caseIgnoreIA5SubstringsIndexer(
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
 
+	/* we should have at least one value at this point */
+	assert( values != NULL && values[0] != NULL );
+
 	nkeys=0;
 	for( i=0; values[i] != NULL; i++ ) {
 		/* count number of indices to generate */
@@ -2840,7 +2854,6 @@ int caseIgnoreIA5SubstringsIndexer(
 			}
 		}
 	}
-	assert( i > 0 );
 
 	if( nkeys == 0 ) {
 		/* no keys to generate */
