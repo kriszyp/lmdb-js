@@ -1497,6 +1497,57 @@ done:
 	return rc;
 }
 
+#ifdef LDAP_SLAPI
+static int backend_compute_output_attr(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e)
+{
+	BerVarray v;
+	int rc;
+	BerVarray *vals = (BerVarray *)c->cac_private;
+	Operation *op = NULL;
+	int i, j;
+
+	slapi_pblock_get( c->cac_pb, SLAPI_OPERATION, &op );
+	if ( op == NULL ) {
+		return 1;
+	}
+
+	if ( op->o_conn && access_allowed( op,
+		e, c->cac_attrs->an_desc, NULL, ACL_AUTH,
+		&c->cac_acl_state ) == 0 ) {
+		return 1;
+	}
+
+	for ( i=0; a->a_vals[i].bv_val; i++ ) ;
+			
+	v = op->o_tmpalloc( sizeof(struct berval) * (i+1),
+		op->o_tmpmemctx );
+	for ( i=0,j=0; a->a_vals[i].bv_val; i++ ) {
+		if ( op->o_conn && access_allowed( op,
+			e, c->cac_attrs->an_desc,
+			&a->a_nvals[i],
+			ACL_AUTH, &c->cac_acl_state ) == 0 ) {
+			continue;
+		}
+		ber_dupbv_x( &v[j],
+			&a->a_nvals[i], op->o_tmpmemctx );
+		if (v[j].bv_val ) j++;
+	}
+
+	if (j == 0) {
+		op->o_tmpfree( v, op->o_tmpmemctx );
+		*vals = NULL;
+		rc = 1;
+	} else {
+		v[j].bv_val = NULL;
+		v[j].bv_len = 0;
+		*vals = v;
+		rc = 0;
+	}
+
+	return rc;
+}
+#endif /* LDAP_SLAPI */
+
 int 
 backend_attribute(
 	Operation *op,
@@ -1558,6 +1609,33 @@ backend_attribute(
 				rc = LDAP_SUCCESS;
 			}
 		}
+#ifdef LDAP_SLAPI
+		else if ( op->o_pb ) {
+			/* try any computed attributes */
+			computed_attr_context ctx;
+			AttributeName aname;
+
+			/* only an_desc is needed by backend_compute_output_attr() */
+			aname.an_name = entry_at->ad_cname;
+			aname.an_desc = entry_at;
+			aname.an_oc_exclude = 0;
+			aname.an_oc = NULL;
+
+			slapi_int_pblock_set_operation( op->o_pb, op );
+
+			ctx.cac_pb = op->o_pb;
+			ctx.cac_attrs = &aname;
+			ctx.cac_userattrs = 0;
+			ctx.cac_opattrs = 0;
+			ctx.cac_acl_state = acl_state;
+			ctx.cac_private = (void *)vals;
+
+			if ( compute_evaluator( &ctx, entry_at->ad_cname.bv_val, e, backend_compute_output_attr ) == 1)
+				rc = LDAP_INSUFFICIENT_ACCESS;
+			else
+				rc = LDAP_SUCCESS;
+		}
+#endif /* LDAP_SLAPI */
 freeit:		if (e != target ) {
 			be_entry_release_r( op, e );
 		}
