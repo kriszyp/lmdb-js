@@ -782,7 +782,10 @@ AC_DEFUN([OL_SYS_ERRLIST],
 	AC_TRY_COMPILE([
 #include <stdio.h>
 #include <sys/types.h>
-#include <errno.h> ],
+#include <errno.h>
+#ifdef WINNT
+#include <stdlib.h>
+#endif ],
 	[char *c = (char *) *sys_errlist],
 	[ol_cv_dcl_sys_errlist=yes
 	ol_cv_have_sys_errlist=yes],
