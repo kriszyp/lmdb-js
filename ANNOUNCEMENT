@@ -1,16 +1,10 @@
-    A N N O U N C E M E N T
-
-    OpenLDAP 2.0-Gamma
+    A N N O U N C E M E N T	-- OpenLDAP 2.0
 
     The OpenLDAP Project is pleased to announce the availability
-    of OpenLDAP 2.0-Gamma, a suite of the Lightweight Weight
-    Directory Protocol servers, clients, utilities, and development
-    tools.
+    of OpenLDAP 2.0, a suite of the Lightweight Weight Directory
+    Protocol servers, clients, utilities, and development tools.
 
-    This gamma release is for TESTING PURPOSES ONLY.
-    This gamma release is NOT for GENERAL USE.
-
-    This gamma release contains the following major enhancements:
+    This release contains the following major enhancements:
 
         * LDAPv3 support
             + RFC 2251-2256
@@ -72,9 +66,13 @@ AVAILABILITY
 
 SUPPORT
 
-    OpenLDAP software is user supported
+    OpenLDAP software is user supported:
 
         http://www.openldap.org/support/
+
+	The OpenLDAP Administrator's Guide, which includes quick
+	start instructions, is available at:
+		http://www.openldap.org/doc/admin/
 
     The project maintains a FAQ which you may find useful:
 

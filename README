@@ -1,11 +1,12 @@
-OpenLDAP 2.0 Gamma README
-	This is an gamma release of OpenLDAP 2.0.  It is provided
-	for testing purposes only.  It is not for general use.
+OpenLDAP 2.0 README
+	
+	For a description of what this distribution contains, see the
+	ANNOUNCEMENT file in this directory.  For a description of
+	changes from previous releases, see the CHANGES file in this
+	directory.
 
-	Testers should provide feedback regarding this release using
-	the OpenLDAP Issue Tracking System <http://www.openldap.org/its/>.
-	Developer's wishing to contribute changes should work with latest
-	devel codes.
+    This is the first release of 2.0 and may not be as stable as
+	prior 1.2 releases.
 
 	For a more detailed description of how to make an install the
 	distribution, see the INSTALL file in this directory.  Additional
@@ -17,18 +18,18 @@ REQUIRED SOFTWARE
 	Build OpenLDAP requires the following software components:
 
 	Base system (libraries and tools):
-		Standard C compiler, headers, and libraries (required)
+		Standard C compiler (required)
 		Cryus SASL software (recommended)
 		OpenSSL TLS software (recommended)
 		POSIX REGEX software (required)
 
 	SLAPD:
 		LDBM compatible datastore (required)
-			e.g. Sleepycat Berkeley DB 3.1 (recommended) or GDBM
+			[Sleepycat Berkeley DB 3.1 (recommended) or GDBM]
 
 	SLURPD:
 		LTHREAD compatible thread package
-			(POSIX threads, Mach Cthreads, Sun LWP, or GNU Pth)
+			[POSIX threads, Mach Cthreads, Sun LWP, or GNU Pth]
 
 	CLIENTS/CONTRIB ware:
 		Depends on package.  See per package README.
@@ -42,19 +43,13 @@ DOCUMENTATION
 	There are man pages for most programs in the distribution and
 	routines in the various libraries.  See ldap(3) for details.
 
-	Additional documentation can be found in the doc directory.
-		doc/devel   Developer Information
-		doc/install Installation and Integration
-		doc/man     Raw man(1) pages
-		doc/rfcs    LDAP-related Request for Comments
-
-	There is an OpenLDAP home page available that contains the latest
-	LDAP news, releases announcements, pointers to other LDAP resources,
+	The OpenLDAP website is available and contains the latest LDAP
+	news, releases announcements, pointers to other LDAP resources,
 	etc..  It is located at:
 		http://www.OpenLDAP.org/
 
-	A draft of the "OpenLDAP Administrator's Guide" is available at:
-		http://www.openldap.org/devel/admin/
+	The OpenLDAP Administrator's Guide is available at:
+		http://www.openldap.org/doc/admin/
 
 	The OpenLDAP Software FAQ is available at:
 		http://www.openldap.org/faq/index.cgi
@@ -64,13 +59,14 @@ SUPPORT / FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
 	OpenLDAP is user supported.  If you have problems, please
 	review the OpenLDAP FAQ <http://www.openldap.org/faq/> and
 	archives of the OpenLDAP-software and OpenLDAP-bugs mailing
-	lists <http://www.openldap.org/lists/>.
+	lists <http://www.openldap.org/lists/>.  If you cannot find
+	the answer, please enquire on the OpenLDAP-software list.
 
 	Issues, such as bug reports, should be reported using our
 	our Issue Tracking System <http://www.OpenLDAP.com/its/> or
 	by sending mail to OpenLDAP-its@OpenLDAP.org.  Do not use
-	this system for general or software enquiries.  Please direct
-	these to the appropriate mailing list.
+	this system for software enquiries.  Please direct these
+	to an appropriate mailing list.
 
 ---
 $OpenLDAP$
