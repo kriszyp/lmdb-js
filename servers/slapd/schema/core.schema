@@ -46,8 +46,8 @@ attributetype ( 2.5.18.4 NAME 'modifiersName'
 
 attributetype ( 2.5.18.10 NAME 'subschemaSubentry'
 	EQUALITY distinguishedNameMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 NO-USER-MODIFICATION
-	SINGLE-VALUE USAGE directoryOperation )
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
+	SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
 
 attributetype ( 2.5.21.1 NAME 'dITStructureRules'
 	EQUALITY integerFirstComponentMatch
@@ -82,7 +82,7 @@ attributetype ( 2.5.21.9 NAME 'structuralObjectClass'
 	DESC 'X.500(93) structural object class'
 	EQUALITY objectIdentifierMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38
-	NO-USER-MODIFICATION SINGLE-VALUE USAGE directoryOperation )
+	SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
 
 # LDAP Operational Attributes from RFC2252
 attributetype ( 1.3.6.1.4.1.1466.101.120.5 NAME 'namingContexts'

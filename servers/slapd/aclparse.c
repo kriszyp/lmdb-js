@@ -1310,7 +1310,7 @@ print_acl( Backend *be, AccessControl *a )
 			if ( ! first ) {
 				fprintf( stderr, "," );
 			}
-			fprintf( stderr, a->acl_attrs[i] );
+			fputs( a->acl_attrs[i], stderr );
 			first = 0;
 		}
 		fprintf(  stderr, "\n" );
