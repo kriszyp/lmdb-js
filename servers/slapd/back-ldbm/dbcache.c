@@ -27,7 +27,7 @@ ldbm_cache_open(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	int		i, lru;
+	int		i, lru, empty;
 	time_t		oldtime, curtime;
 	char		buf[MAXPATHLEN];
 #ifdef HAVE_ST_BLKSIZE
@@ -52,58 +52,84 @@ ldbm_cache_open(
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_cache_open( \"%s\", %d, %o )\n", buf,
 	    flags, li->li_mode );
 
-	lru = 0;
 	curtime = slap_get_time();
-	oldtime = curtime;
+	empty = MAXDBCACHE;
 
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
-	for ( i = 0; i < MAXDBCACHE && li->li_dbcache[i].dbc_name != NULL;
-	    i++ ) {
-		/* already open - return it */
-		if ( strcmp( li->li_dbcache[i].dbc_name, buf ) == 0 ) {
-			li->li_dbcache[i].dbc_refcnt++;
-			Debug( LDAP_DEBUG_TRACE,
-			    "<= ldbm_cache_open (cache %d)\n", i, 0, 0 );
-			ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
-			return( &li->li_dbcache[i] );
-		}
-
-		/* keep track of lru db */
-		if ( li->li_dbcache[i].dbc_lastref < oldtime &&
-		    li->li_dbcache[i].dbc_refcnt == 0 ) {
-			lru = i;
-			oldtime = li->li_dbcache[i].dbc_lastref;
-		}
-	}
-
-	/* no empty slots, not already open - close lru and use that slot */
-	if ( i == MAXDBCACHE ) {
-		i = lru;
-		if ( li->li_dbcache[i].dbc_refcnt != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-			    "ldbm_cache_open no unused db to close - waiting\n",
-			    0, 0, 0 );
-			lru = -1;
-			while ( lru == -1 ) {
-				ldap_pvt_thread_cond_wait( &li->li_dbcache_cv,
-				    &li->li_dbcache_mutex );
-				for ( i = 0; i < MAXDBCACHE; i++ ) {
-					if ( li->li_dbcache[i].dbc_refcnt
-					    == 0 ) {
-						lru = i;
-						break;
-					}
-				}
+	do {
+		lru = 0;
+		oldtime = curtime;
+		for ( i = 0; i < MAXDBCACHE; i++ ) {
+			/* see if this slot is free */
+			if ( li->li_dbcache[i].dbc_name == NULL) {
+				empty = i;
+				continue;
 			}
-			i = lru;
+
+			if ( strcmp( li->li_dbcache[i].dbc_name, buf ) == 0 ) {
+				/* already open - return it */
+				if (li->li_dbcache[i].dbc_flags != flags
+					&& li->li_dbcache[i].dbc_refcnt == 0)
+				{
+					/* we don't want to use an open cache with different
+					 * permissions (esp. if we need write but the open
+					 * cache is read-only).  So close this one if
+					 * possible, and re-open below.
+					 *
+					 * FIXME:  what about the case where the refcount
+					 * is > 0?  right now, we're using it anyway and
+					 * just praying.  Can there be more than one open
+					 * cache to the same db?
+					 *
+					 * Also, it's really only necessary to compare the
+					 * read-only flag, instead of all of the flags,
+					 * but for now I'm checking all of them.
+					 */
+					lru = i;
+					empty = MAXDBCACHE;
+					break;
+				}
+				li->li_dbcache[i].dbc_refcnt++;
+				Debug( LDAP_DEBUG_TRACE,
+				    "<= ldbm_cache_open (cache %d)\n", i, 0, 0 );
+				ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
+				return( &li->li_dbcache[i] );
+			}
+
+			/* keep track of lru db */
+			if ( li->li_dbcache[i].dbc_lastref < oldtime
+				&& li->li_dbcache[i].dbc_refcnt == 0 )
+			{
+				lru = i;
+				oldtime = li->li_dbcache[i].dbc_lastref;
+			}
 		}
-		ldbm_close( li->li_dbcache[i].dbc_db );
-		free( li->li_dbcache[i].dbc_name );
-		li->li_dbcache[i].dbc_name = NULL;
-	}
+
+		i = empty;
+		if ( i == MAXDBCACHE ) {
+			/* no empty slots, not already open - close lru and use that slot */
+			if ( li->li_dbcache[lru].dbc_refcnt == 0 ) {
+				i = lru;
+				ldbm_close( li->li_dbcache[i].dbc_db );
+				free( li->li_dbcache[i].dbc_name );
+				li->li_dbcache[i].dbc_name = NULL;
+			} else {
+				Debug( LDAP_DEBUG_ANY,
+				    "ldbm_cache_open no unused db to close - waiting\n",
+				    0, 0, 0 );
+				ldap_pvt_thread_cond_wait( &li->li_dbcache_cv,
+					    &li->li_dbcache_mutex );
+				/* after waiting for a free slot, go back to square
+				 * one: look for an open cache for this db, or an
+				 * empty slot, or an unref'ed cache, or wait again.
+				 */
+			}
+		}
+	} while (i == MAXDBCACHE);
 
 	if ( (li->li_dbcache[i].dbc_db = ldbm_open( buf, flags, li->li_mode,
-	    li->li_dbcachesize )) == NULL ) {
+	    li->li_dbcachesize )) == NULL )
+	{
 		int err = errno;
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= ldbm_cache_open NULL \"%s\" errno=%d reason=\"%s\")\n",
@@ -115,6 +141,7 @@ ldbm_cache_open(
 	li->li_dbcache[i].dbc_name = ch_strdup( buf );
 	li->li_dbcache[i].dbc_refcnt = 1;
 	li->li_dbcache[i].dbc_lastref = curtime;
+	li->li_dbcache[i].dbc_flags = flags;
 	li->li_dbcache[i].dbc_dirty = 0;
 #ifdef HAVE_ST_BLKSIZE
 	if ( stat( buf, &st ) == 0 ) {
@@ -151,7 +178,8 @@ ldbm_cache_close( Backend *be, DBCache *db )
 	}
 
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
-	if ( --db->dbc_refcnt == 0 ) {
+	if ( --db->dbc_refcnt <= 0 ) {
+		db->dbc_refcnt = 0;
 		ldap_pvt_thread_cond_signal( &li->li_dbcache_cv );
 	}
 	ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
@@ -163,7 +191,8 @@ ldbm_cache_really_close( Backend *be, DBCache *db )
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
-	if ( --db->dbc_refcnt == 0 ) {
+	if ( --db->dbc_refcnt <= 0 ) {
+		db->dbc_refcnt = 0;
 		ldap_pvt_thread_cond_signal( &li->li_dbcache_cv );
 		ldbm_close( db->dbc_db );
 		free( db->dbc_name );
