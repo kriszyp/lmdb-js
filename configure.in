@@ -63,7 +63,12 @@ dnl AC_SUBST(SHTOOL)dnl
 TB="`$SHTOOL echo -e '%B' 2>/dev/null`"
 TN="`$SHTOOL echo -e '%b' 2>/dev/null`"
 
-echo "Configuring ${TB}${OL_STRING}${TN} ..."
+OPENLDAP_CVS=""
+if test -d $ac_aux_dir/CVS; then
+	OPENLDAP_CVS="(from CVS sources) "
+fi
+
+echo "Configuring ${TB}${OL_STRING}${TN} ${OPENLDAP_CVS}..."
 
 dnl Determine host platform
 dnl		we try not to use this for much
@@ -640,6 +645,12 @@ fi
 AC_LIBTOOL_WIN32_DLL
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
+
+LTSTATIC=""
+if test "${OPENLDAP_CVS}"; then
+	LTSTATIC="-static"
+fi
+AC_SUBST(LTSTATIC)dnl
 
 OL_PROG_LN_H
 AC_PROG_LN_S

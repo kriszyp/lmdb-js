@@ -91,8 +91,10 @@ LTFLAGS_MOD = $(@PLAT@_LTFLAGS_MOD)
 # LINK_LIBS referenced in library and module link commands.
 LINK_LIBS = $(@PLAT@_LINK_LIBS)
 
+LTSTATIC = @LTSTATIC@
+
 LTLINK   = $(LIBTOOL) --mode=link \
-	$(CC) -static $(LT_CFLAGS) $(LDFLAGS) $(LTFLAGS)
+	$(CC) $(LTSTATIC) $(LT_CFLAGS) $(LDFLAGS) $(LTFLAGS)
 
 LTCOMPILE_LIB = $(LIBTOOL) $(LTONLY_LIB) --mode=compile \
 	$(CC) $(LT_CFLAGS) $(LT_CPPFLAGS) $(LIB_DEFS) -c
