@@ -20,11 +20,13 @@ struct shellinfo {
 };
 
 struct backend;
-struct conn;
-struct op;
+struct slap_conn;
+struct slap_op;
 extern int forkandexec LDAP_P((char **args, FILE **rfp, FILE **wfp));
 extern void print_suffixes LDAP_P((FILE *fp, struct backend *be));
-extern int read_and_send_results LDAP_P((struct backend *be, struct conn *conn, struct op *op, FILE *fp, char **attrs, int attrsonly));
+extern int read_and_send_results LDAP_P((struct backend *be,
+	struct slap_conn *conn, struct slap_op *op,
+	FILE *fp, char **attrs, int attrsonly));
 
 LDAP_END_DECL
 
