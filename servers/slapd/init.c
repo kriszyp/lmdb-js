@@ -89,8 +89,9 @@ slap_init( int mode, char *name )
 		case SLAP_SERVER_MODE:
 		case SLAP_TOOL_MODE:
 			Debug( LDAP_DEBUG_TRACE,
-				"%s init: initiated %s.\n",
-				name, ( mode & SLAP_TOOL_MODE ) ? "tool" : "server", 0 );
+				"%s init: initiated %s.\n",	name,
+				(mode & SLAP_MODE) == SLAPD_TOOL_MODE ? "tool" : "server",
+				0 );
 
 			slap_name = name;
 	

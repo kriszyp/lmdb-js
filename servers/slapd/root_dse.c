@@ -99,6 +99,7 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 
 	send_search_entry( &backends[0], conn, op,
 		e, attrs, attrsonly, NULL );
+
 	send_search_result( conn, op, LDAP_SUCCESS,
 		NULL, NULL, NULL, NULL, 1 );
 
