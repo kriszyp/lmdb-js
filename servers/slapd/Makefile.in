@@ -225,10 +225,10 @@ slapd.exp: libslapd.a
 		--base-file slapd.base --output-exp $@
 
 .slapi: FORCE
+	$(AR) ruv slapi/libtmpslapd.a $(OBJS)
 	(cd slapi; $(MAKE) $(MFLAGS) all)
 
 libslapi.a: .slapi
-	$(AR) ruv slapi/libtmpslapd.a $(OBJS)
 	cp slapi/.libs/libslapi.a .
 
 slapd: $(SLAPD_DEPENDS)
