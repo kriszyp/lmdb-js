@@ -404,6 +404,8 @@ ldap_back_dobind_int(
 
 	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
 	if ( !lc->lc_bound ) {
+		struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
+
 		/*
 		 * FIXME: we need to let clients use proxyAuthz
 		 * otherwise we cannot do symmetric pools of servers;
@@ -419,11 +421,17 @@ ldap_back_dobind_int(
 		/*
 		 * if no bind took place yet, but the connection is bound
 		 * and the "idassert-authcDN" (or other ID) is set, 
-		 * then bind as the asserting ideintity and explicitly 
+		 * then bind as the asserting identity and explicitly 
 		 * add the proxyAuthz control to every operation with the
 		 * dn bound to the connection as control value.
+		 * This is done also if this is the authrizing backend,
+		 * but the "override" flag is given to idassert.
+		 * It allows to use SASL bind and yet proxyAuthz users
 		 */
-		if ( op->o_conn != NULL && BER_BVISNULL( &lc->lc_bound_ndn ) ) {
+		if ( op->o_conn != NULL &&
+				( BER_BVISNULL( &lc->lc_bound_ndn ) ||
+				  ( li->idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
+		{
 			(void)ldap_back_proxy_authz_bind( lc, op, rs );
 			goto done;
 		}
