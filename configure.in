@@ -234,7 +234,7 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_meta = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-meta argument])
 	fi
-	if test $ol_enable_module = yes ; then
+	if test $ol_enable_monitor = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-monitor argument])
 	fi
 	if test $ol_enable_passwd = yes ; then
