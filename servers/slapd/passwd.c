@@ -45,8 +45,13 @@ int passwd_extop(
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
-	ber_dupbv_x( &tmpbv, op->oq_extended.rs_reqdata, op->o_tmpmemctx );
-	rs->sr_err = slap_passwd_parse( &tmpbv, &id, &old, &new, &rs->sr_text );
+	if( op->oq_extended.rs_reqdata ) {
+		ber_dupbv_x( &tmpbv, op->oq_extended.rs_reqdata, op->o_tmpmemctx );
+	}
+	rs->sr_err = slap_passwd_parse(
+		op->oq_extended.rs_reqdata ? &tmpbv : NULL,
+		&id, &old, &new, &rs->sr_text );
+
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		return rs->sr_err;
 	}
@@ -183,7 +188,7 @@ int slap_passwd_parse( struct berval *reqdata,
 {
 	int rc = LDAP_SUCCESS;
 	ber_tag_t tag;
-	ber_len_t len;
+	ber_len_t len = -1;
 	BerElementBuffer berbuf;
 	BerElement *ber = (BerElement *)&berbuf;
 
@@ -201,10 +206,19 @@ int slap_passwd_parse( struct berval *reqdata,
 
 	tag = ber_scanf( ber, "{" /*}*/ );
 
-	if( tag != LBER_ERROR ) {
-		tag = ber_peek_tag( ber, &len );
+	if( tag == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, ERR, 
+			"slap_passwd_parse: decoding error\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"slap_passwd_parse: decoding error\n", 0, 0, 0 );
+#endif
+		rc = LDAP_PROTOCOL_ERROR;
+		goto done;
 	}
 
+	tag = ber_peek_tag( ber, &len );
 	if( tag == LDAP_TAG_EXOP_MODIFY_PASSWD_ID ) {
 		if( id == NULL ) {
 #ifdef NEW_LOGGING
