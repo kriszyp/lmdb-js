@@ -14,7 +14,15 @@ Copyright 1998-2000, The {{ORG[expand]OLF}}, {{All Rights Reserved}}.
 Copyright 1992-1996, Regents of the {{ORG[expand]UM}}, {{All Rights Reserved}}.
 
 
-P2[notoc] Acknowledgements
+P2[notoc] Scope of this Document
+
+This document provides a guide for installing OpenLDAP 2.0 Software
+on UNIX (and UNIX-like) systems.  The document is aimed at experienced
+system administrators but who may not have prior experience operating
+LDAP-based directory software.
+
+
+P2[notoc] Acknowledgments
 
 The {{ORG[expand]OLP}} is comprised of a team of volunteers.  This document
 would not be possible without their contribution of time and energy.
