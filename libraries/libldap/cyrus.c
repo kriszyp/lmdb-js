@@ -327,8 +327,10 @@ int ldap_pvt_sasl_install( Sockbuf *sb, void *ctx_arg )
 
 	if ( !ber_sockbuf_ctrl( sb, LBER_SB_OPT_HAS_IO,
 			&ldap_pvt_sockbuf_io_sasl ) )
+	{
 		ber_sockbuf_add_io( sb, &ldap_pvt_sockbuf_io_sasl,
 			LBER_SBIOD_LEVEL_APPLICATION, ctx_arg );
+	}
 
 	return LDAP_SUCCESS;
 }
@@ -437,9 +439,8 @@ ldap_int_sasl_open(
 int ldap_int_sasl_close( LDAP *ld, LDAPConn *lc )
 {
 	sasl_conn_t *ctx = lc->lconn_sasl_ctx;
-	assert( ctx != NULL );
 
-	if( ctx ) {
+	if( ctx != NULL ) {
 		sasl_dispose( &ctx );
 		lc->lconn_sasl_ctx = NULL;
 	}
