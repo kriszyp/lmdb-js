@@ -271,8 +271,8 @@ slapd_daemon(
 
 #if defined(SLAPD_RLOOKUPS) || defined(HAVE_TCPD)
 				hp = gethostbyaddr( (char *)
-				    &(from.sin_addr.s_addr),
-				    sizeof(from.sin_addr.s_addr), AF_INET );
+				    &(from.sin_addr),
+				    sizeof(from.sin_addr), AF_INET );
 
 				if(hp) {
 					client_name = hp->h_name;

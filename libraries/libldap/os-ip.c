@@ -103,9 +103,9 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 		(void)memset( (char *)&sin, 0, sizeof( struct sockaddr_in ));
 		sin.sin_family = AF_INET;
 		sin.sin_port = port;
-		SAFEMEMCPY( (char *) &sin.sin_addr.s_addr,
+		SAFEMEMCPY( (char *) &sin.sin_addr,
 		    ( use_hp ? (char *) hp->h_addr_list[ i ] :
-		    (char *) &address ), sizeof( sin.sin_addr.s_addr) );
+		    (char *) &address ), sizeof( sin.sin_addr ) );
 
 		if ( connect( s, (struct sockaddr *)&sin,
 		    sizeof( struct sockaddr_in )) >= 0 ) {

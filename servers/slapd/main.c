@@ -250,8 +250,8 @@ main( int argc, char **argv )
 		flen = sizeof(from);
 		if ( getpeername( 0, (struct sockaddr *) &from, &flen ) == 0 ) {
 #ifdef SLAPD_RLOOKUPS
-			hp = gethostbyaddr( (char *) &(from.sin_addr.s_addr),
-			    sizeof(from.sin_addr.s_addr), AF_INET );
+			hp = gethostbyaddr( (char *) &(from.sin_addr),
+			    sizeof(from.sin_addr), AF_INET );
 #else
 			hp = NULL;
 #endif
