@@ -105,10 +105,24 @@ endif
 # uncomment and change the various KRB* lines to point to where the
 # kerberos libraries and include files are installed at your site.
 #
+# *** NOTE ***
+# If you have an MIT Kerberos V distribution and you compiled it with -krb4
+# flag which enables Kerberos IV compatibility, uncomment KERBEROS_V -
+# this will make sure all your includes can be found where they actually are -
+# in this case /usr/local/kerberos/include/kerberosIV - simple change of
+# KRBINCLUDEFLAG will _not_ work. Also uncomment the correct KRBLIBS define.
+# 
+# For Kerberos V with Kerberos IV compatibility uncomment the following line
+#KERBEROS=-DKERBEROS -DKERBEROS_V
+# For Kerberos IV uncomment the following line
 #KERBEROS=-DKERBEROS
+#
 #AFSKERBEROS=-DAFSKERBEROS
 #KRBINCLUDEFLAG	= -I/usr/local/kerberos/include
 #KRBLIBFLAG	= -L/usr/local/kerberos/lib
+# For Kerberos V with Kerberos IV compatibility uncomment the following line
+#KRBLIBS = -lkrb4 -lkrb5 -ldes425
+# For Kerberos IV uncomment the following line
 #KRBLIBS		= -lkrb -ldes
 
 #############################################################################

@@ -17,8 +17,12 @@
 #include <ctype.h>
 #ifdef KERBEROS
 #include <sys/types.h>
+#ifdef KERBEROS_V
+#include <kerberosIV/krb.h>
+#else
 #include <krb.h>
-#endif
+#endif /* KERBEROS_V */
+#endif /* KERBEROS */
 
 #include <lber.h>
 #include <ldap.h>

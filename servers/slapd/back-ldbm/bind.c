@@ -7,8 +7,12 @@
 #include "slap.h"
 #include "back-ldbm.h"
 #ifdef KERBEROS
-#include "krb.h"
-#endif
+#ifdef KERBEROS_V
+#include <kerberosIV/krb.h>
+#else
+#include <krb.h>
+#endif /* KERBEROS_V */
+#endif /* KERBEROS */
 
 #ifdef LDAP_CRYPT
 /* change for crypted passwords -- lukeh */

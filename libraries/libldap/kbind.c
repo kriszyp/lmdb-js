@@ -21,7 +21,13 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
 #ifdef DOS
 #include "msdos.h"
 #endif /* DOS */
+
+#ifdef KERBEROS_V
+#include <kerberosIV/krb.h>
+#else
 #include <krb.h>
+#endif /* KERBEROS_V */
+
 #include <stdlib.h>
 #if !defined(DOS) && !defined( _WIN32 )
 #include <sys/types.h>

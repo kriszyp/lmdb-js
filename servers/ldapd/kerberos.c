@@ -14,7 +14,11 @@
 
 #include <stdio.h>
 #include <sys/types.h>
-#include "krb.h"
+#ifdef KERBEROS_V
+#include <kerberosIV/krb.h>
+#else
+#include <krb.h>
+#endif /* KERBEROS_V */
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>

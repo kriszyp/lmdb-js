@@ -20,7 +20,11 @@
 #include <sys/time.h>
 
 #ifdef KERBEROS
+#ifdef KERBEROS_V
+#include <kerberosIV/krb.h>
+#else
 #include <krb.h>
+#endif /* KERBEROS_V */
 #endif /* KERBEROS */
 
 #include <lber.h>

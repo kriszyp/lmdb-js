@@ -26,16 +26,27 @@
 
 #ifndef	lint
 static char rcsid_string_to_key_c[] =
-"$Id: string_to_key.c,v 1.1.3.1 1998/08/08 22:43:17 kurt Exp $";
+"$Id: string_to_key.c,v 1.2 1998/08/31 18:49:27 kurt Exp $";
 #endif
 
+#ifdef KERBEROS_V
+#include <kerberosIV/mit-copyright.h>
+#include <kerberosIV/des.h>
+#else
 #include <mit-copyright.h>
-#include <stdio.h>
 #include <des.h>
+#endif /* KERBEROS_V */
+
+#include <stdio.h>
+
 /* #include "des_internal.h" */
 #if 1
+#ifdef KERBEROS_V
+#include <kerberosIV/krb.h>
+#else
 #include <krb.h>
-#endif
+#endif /* KERBEROS_V */
+#endif /* 1 */
 
 extern int des_debug;
 extern int des_debug_print();
