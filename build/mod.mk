@@ -26,7 +26,7 @@ version.c: Makefile
 	$(RM) $@
 	$(MKVERSION) $(LIBBASE) > $@
 
-version.o: version.c $(OBJS)
+version.lo: version.c $(OBJS)
 
 $(LIBRARY): version.lo
 	$(LTLINK_MOD) -module -o $@ $(OBJS) version.lo $(LINK_LIBS)

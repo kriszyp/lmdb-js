@@ -13,7 +13,7 @@ version.c: Makefile
 	$(RM) $@
 	$(MKVERSION) $(LIBRARY) > $@
 
-version.o: version.c $(OBJS)
+version.o version.lo: version.c $(OBJS)
 
 install-common: FORCE
 
