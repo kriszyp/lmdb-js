@@ -304,16 +304,16 @@ parse_acl(
 					continue;
 				}
 
-				if ( strcasecmp( left, "url" ) == 0 ) {
-					if( b->a_url_pat != NULL ) {
+				if ( strcasecmp( left, "sockurl" ) == 0 ) {
+					if( b->a_sockurl_pat != NULL ) {
 						fprintf( stderr,
-							"%s: line %d: url pattern already specified.\n",
+							"%s: line %d: sockurl pattern already specified.\n",
 							fname, lineno );
 						acl_usage();
 					}
 
 					regtest(fname, lineno, right);
-					b->a_url_pat = ch_strdup( right );
+					b->a_sockurl_pat = ch_strdup( right );
 					continue;
 				}
 
@@ -433,7 +433,7 @@ acl_usage( void )
 		"<attrlist> ::= <attr> | <attr> , <attrlist>\n"
 		"<attr> ::= <attrname> | entry | children\n"
 		"<who> ::= [ * | anonymous | self | dn=<regex> ]\n"
-			"\t[dnattr=<attrname>]\t"
+			"\t[dnattr=<attrname>]\n"
 			"\t[group[/<objectclass>[/<attrname>]]=<regex>]\n"
 			"\t[peername=<regex>] [sockname=<regex>]\n"
 			"\t[domain=<regex>] [sockurl=<regex>]\n"
@@ -520,8 +520,8 @@ print_access( Access *b )
 		fprintf( stderr, " domain=%s", b->a_domain_pat );
 	}
 
-	if ( b->a_url_pat != NULL ) {
-		fprintf( stderr, " url=%s", b->a_url_pat );
+	if ( b->a_sockurl_pat != NULL ) {
+		fprintf( stderr, " sockurl=%s", b->a_sockurl_pat );
 	}
 
 	fprintf( stderr, "\n" );

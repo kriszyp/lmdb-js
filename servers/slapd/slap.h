@@ -237,7 +237,7 @@ typedef struct slap_access {
 	char		*a_sockname_pat;
 
 	char		*a_domain_pat;
-	char		*a_url_pat;
+	char		*a_sockurl_pat;
 
 	/* ACL Groups */
 	char		*a_group_pat;

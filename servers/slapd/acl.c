@@ -275,12 +275,12 @@ acl_access_allowed(
 			}
 		}
 
-		if ( b->a_url_pat != NULL ) {
-			Debug( LDAP_DEBUG_ARGS, "<= check a_url_pat: %s\n",
-				b->a_url_pat, 0, 0 );
+		if ( b->a_sockurl_pat != NULL ) {
+			Debug( LDAP_DEBUG_ARGS, "<= check a_sockurl_pat: %s\n",
+				b->a_sockurl_pat, 0, 0 );
 
-			if ( strcmp( b->a_url_pat, ".*" ) != 0 &&
-				!regex_matches( b->a_url_pat, conn->c_listener_url,
+			if ( strcmp( b->a_sockurl_pat, ".*" ) != 0 &&
+				!regex_matches( b->a_sockurl_pat, conn->c_listener_url,
 				edn, matches ) ) 
 			{
 				continue;
