@@ -11,7 +11,7 @@ fi
 
 echo "running defines.sh $SRCDIR $BDB2"
 
-. $SRCDIR/scripts/defines.sh $SRCDIR $BDB2
+. $SRCDIR/scripts/defines.sh
 
 echo "Datadir is $DATADIR"
 

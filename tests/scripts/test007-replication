@@ -19,7 +19,7 @@ if [ $# -eq 1 ]; then
 	BDB2=$1; shift
 fi
 
-. $SRCDIR/scripts/defines.sh $SRCDIR $BDB2
+. $SRCDIR/scripts/defines.sh
 
 if test ! -x $SLURPD ; then
 	echo ">>>>> $SLURPD is not executable or do not exist."

@@ -1,16 +1,6 @@
-if test $# -eq 0 ; then
-	SRCDIR="."
-else
-	SRCDIR=$1; shift
-fi
-if test $# -eq 0 ; then
-	BACKEND=ldbm
-else
-	BACKEND=$1; shift
-fi
 
 DATADIR=$SRCDIR/data
-PROGDIR=$SRCDIR/progs
+PROGDIR=./progs
 
 if test "$BACKEND" = "bdb2" ; then
 	LDIF2LDBM=../servers/slapd/tools/ldif2ldbm-bdb2
