@@ -1,0 +1,72 @@
+.TH LDAP.CONF 5 "29 November 1998" "OpenLDAP LDVERSION"
+.UC 6
+.SH NAME
+ldap.conf \- ldap configuration file
+.SH SYNOPSIS
+ETCDIR/ldap.conf
+.SH DESCRIPTION
+The
+.I ldap.conf
+configuration file is used to set system-wide defaults to be applied when
+running
+.I ldap
+clients.
+Note that each user may specify an optional configuration file,
+.IR .ldaprc ,
+in his/her home directory which will be used to override system-wide
+defaults file.  The user may also provide a local configuration
+file
+.I ldaprc
+which will be used to override per-user and system-wide defaults.
+Environmental variables may be used to file based defaults.
+.SH OPTIONS
+The different configuration options are:
+.TP 1i
+.TP 1i
+\fBBASE <base>\fP
+Used to specify the default base dn to use when performing ldap operations.
+The base must be specified as a Distinguished Name in LDAP format.
+\fBHOST <name[:port] ...>\fP
+Used to specify the name(s) of an LDAP server(s) to which 
+.I ldap 
+library should connect to.  Each server's name can be specified as a
+domain-style name or an IP address and optionally followed a ':' and
+the port number the ldap server is listening on.  A space separated
+listed of host may be provided.
+.TP 1i
+\fBPORT <port>\fP
+Used to specify the port used with connecting to LDAP servers(s).
+The port may be specified as a number.
+.TP 1i
+\fBSIZELIMIT <integer>\fP
+Used to specify a size limit to use when performing searches.  The
+number should be an non-negative integer.  \fISIZELIMIT\fP of zero (0)
+specifies unlimited search size.
+.TP 1i
+\fBTIMELIMIT <integer>\fP
+Used to specify a time limit to use when performing searches.  The
+number should be an non-negative integer.  \fITIMELIMIT\fP of zero (0)
+specifies unlimited search time to be used.
+.TP 1i
+\fBDEREF <never|searching|finding|always>\fP
+Specify how aliases dereferencing is done.  \fIDEREF\fP should
+be set to one of
+.B never,
+.B always,
+.B search,
+or 
+.B find 
+to specify that aliases are never dereferenced, always dereferenced,
+dereferenced when searching, or dereferenced only when locating the
+base object for the search.  The default is to never dereference aliases.
+.SH FILES
+.I  ETCDIR/ldap.conf
+.SH "SEE ALSO"
+ldap(3)
+.SH AUTHOR
+Kurt Zeilenga, The OpenLDAP Project
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  
