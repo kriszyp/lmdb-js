@@ -229,7 +229,7 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 	}
 	
 	/* Internal searches are privileged and shared. So is root. */
-	if ( op->o_do_not_cache || be_isroot( li->be, &op->o_ndn ) ) {
+	if ( op->o_do_not_cache || be_isroot_dn( li->be, &op->o_ndn ) ) {
 		lc_curr.local_dn = li->be->be_rootndn;
 		lc_curr.conn = NULL;
 		is_priv = 1;

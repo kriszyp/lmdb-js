@@ -146,7 +146,7 @@ ldap_back_db_init(
 
 	li->be = be;
 	be->be_private = li;
-	SLAP_DBFLAGS(be) |= SLAP_BFLAG_NOLASTMOD;
+	SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NOLASTMOD;
 
 	return 0;
 }
