@@ -73,6 +73,7 @@
 
 #include "slap.h"
 #include "../back-ldap/back-ldap.h"
+#undef ldap_debug	/* silence a warning in ldap-int.h */
 #include "../../../libraries/libldap/ldap-int.h"
 #include "back-meta.h"
 
