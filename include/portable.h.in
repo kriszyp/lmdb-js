@@ -788,6 +788,9 @@
 /* define if you have Cyrus SASL */
 #undef HAVE_CYRUS_SASL
 
+/* define if your SASL library has sasl_version() */
+#undef HAVE_SASL_VERSION
+
 /* set to urandom device */
 #undef URANDOM_DEVICE
 
