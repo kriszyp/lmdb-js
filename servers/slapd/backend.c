@@ -803,25 +803,24 @@ backend_check_controls(
 
 	if( ctrls ) {
 		for( ; *ctrls != NULL ; ctrls++ ) {
-			if( (*ctrls)->ldctl_iscritical && !ldap_charray_inlist(
-				op->o_bd->be_controls, (*ctrls)->ldctl_oid ) )
+			if( !ldap_charray_inlist( op->o_bd->be_controls,
+				(*ctrls)->ldctl_oid ) )
 			{
-				/* FIXME: standards compliance issue
-				 *
-				 * Per RFC 2251 (and LDAPBIS discussions), if the control
+				/* Per RFC 2251 (and LDAPBIS discussions), if the control
 				 * is recognized and appropriate for the operation (which
 				 * we've already verified), then the server should make
 				 * use of the control when performing the operation
-				 * (without regard to criticality).  This code is incorrect
-				 * on two counts.
-				 * 1) a service error (e.g., unwillingToPerform) should be
-				 * returned where a particular backend cannot service the
-				 * operation,
-				 * 2) this error should be returned irregardless of the
-				 * criticality of the control.
+				 * (without regard to criticality).
+				 * 
+				 * Here we find that operation extended by the control
+				 * is not unavailable in a particular context, hence the
+				 * return of unwillingToPerform.
+				 *
+				 * Note that criticality of the control is irrelevant to
+				 * this condition.
 				 */
 				rs->sr_text = "control unavailable in context";
-				rs->sr_err = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
+				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 				break;
 			}
 		}
