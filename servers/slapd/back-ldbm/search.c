@@ -46,7 +46,7 @@ ldbm_back_search(
 	ID		id, cursor;
 	Entry		*e;
 	Entry	*matched = NULL;
-	struct berval	realbase = { 0, NULL };
+	struct berval	realbase = BER_BVNULL;
 	int		manageDSAit = get_manageDSAit( op );
 
 #ifdef NEW_LOGGING
@@ -86,7 +86,7 @@ ldbm_back_search(
 	}
 
 	if ( e == NULL ) {
-		struct berval matched_dn = { 0, NULL };
+		struct berval matched_dn = BER_BVNULL;
 
 		if ( matched != NULL ) {
 			BerVarray erefs;

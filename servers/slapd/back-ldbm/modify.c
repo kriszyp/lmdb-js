@@ -37,8 +37,7 @@ int ldbm_modify_internal(
     Entry	*e,
 	const char **text,
 	char *textbuf,
-	size_t textlen
-)
+	size_t textlen )
 {
 	int rc = LDAP_SUCCESS;
 	Modification	*mod;
@@ -47,11 +46,18 @@ int ldbm_modify_internal(
 	Attribute 	*ap;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY,  "ldbm_modify_internal: %s\n", e->e_name.bv_val, 0, 0 );
+	LDAP_LOG( BACK_LDBM, ENTRY,
+		"ldbm_modify_internal: %s\n",
+		e->e_name.bv_val,
+		get_permissiveModify(op) ? " (permissive)" : "",
+		0 );
 #else
-	Debug(LDAP_DEBUG_TRACE, "ldbm_modify_internal: %s\n", e->e_name.bv_val, 0, 0);
+	Debug(LDAP_DEBUG_TRACE,
+		"ldbm_modify_internal: %s\n",
+		e->e_name.bv_val,
+		get_permissiveModify(op) ? " (permissive)" : "",
+		0 );
 #endif
-
 
 	if ( !acl_check_modlist( op, e, modlist )) {
 		return LDAP_INSUFFICIENT_ACCESS;
@@ -66,13 +72,15 @@ int ldbm_modify_internal(
 		switch ( mod->sm_op ) {
 		case LDAP_MOD_ADD:
 #ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, DETAIL1, "ldbm_modify_internal: add\n", 0, 0, 0);
+			LDAP_LOG( BACK_LDBM, DETAIL1,
+				"ldbm_modify_internal: add\n", 0, 0, 0);
 #else
-			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: add\n", 0, 0, 0);
+			Debug(LDAP_DEBUG_ARGS,
+				"ldbm_modify_internal: add\n", 0, 0, 0);
 #endif
 
 			rc = modify_add_values( e, mod, get_permissiveModify( op ),
-						text, textbuf, textlen );
+				text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_LDBM, INFO, 
@@ -86,13 +94,15 @@ int ldbm_modify_internal(
 
 		case LDAP_MOD_DELETE:
 #ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, DETAIL1, "ldbm_modify_internal: delete\n", 0,0,0);
+			LDAP_LOG( BACK_LDBM, DETAIL1,
+				"ldbm_modify_internal: delete\n", 0,0,0);
 #else
-			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: delete\n", 0, 0, 0);
+			Debug(LDAP_DEBUG_ARGS,
+				"ldbm_modify_internal: delete\n", 0, 0, 0);
 #endif
 
 			rc = modify_delete_values( e, mod, get_permissiveModify( op ),
-							text, textbuf, textlen );
+				text, textbuf, textlen );
 			assert( rc != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -107,13 +117,15 @@ int ldbm_modify_internal(
 
 		case LDAP_MOD_REPLACE:
 #ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, DETAIL1, "ldbm_modify_internal:  replace\n",0,0,0);
+			LDAP_LOG( BACK_LDBM, DETAIL1,
+				"ldbm_modify_internal:  replace\n",0,0,0);
 #else
-			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: replace\n", 0, 0, 0);
+			Debug(LDAP_DEBUG_ARGS,
+				"ldbm_modify_internal: replace\n", 0, 0, 0);
 #endif
 
 			rc = modify_replace_values( e, mod, get_permissiveModify( op ),
-							text, textbuf, textlen );
+				text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_LDBM, INFO, 
@@ -152,7 +164,8 @@ int ldbm_modify_internal(
 			LDAP_LOG( BACK_LDBM, DETAIL1, 
 				"ldbm_modify_internal: softadd\n", 0, 0, 0 );
 #else
-			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: softadd\n", 0, 0, 0);
+			Debug(LDAP_DEBUG_ARGS,
+				"ldbm_modify_internal: softadd\n", 0, 0, 0);
 #endif
 
 			/* Avoid problems in index_add_mods()
@@ -161,7 +174,7 @@ int ldbm_modify_internal(
 			mod->sm_op = LDAP_MOD_ADD;
 
 			rc = modify_add_values( e, mod, get_permissiveModify( op ),
-						text, textbuf, textlen );
+				text, textbuf, textlen );
 			mod->sm_op = SLAP_MOD_SOFTADD;
 			if ( rc == LDAP_TYPE_OR_VALUE_EXISTS ) {
 				rc = LDAP_SUCCESS;
@@ -170,7 +183,7 @@ int ldbm_modify_internal(
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_LDBM, INFO, 
-					   "ldbm_modify_internal: failed %d (%s)\n", rc, *text, 0 );
+				   "ldbm_modify_internal: failed %d (%s)\n", rc, *text, 0 );
 #else
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 					rc, *text, 0);
@@ -255,8 +268,8 @@ int ldbm_modify_internal(
 					0, 0, 0	);
 #else
 				Debug( LDAP_DEBUG_ANY,
-				       "Attribute index delete failure",
-			               0, 0, 0 );
+					"ldbm_modify_internal: Attribute index delete failure\n",
+					0, 0, 0 );
 #endif
 				goto exit;
 			}
@@ -277,8 +290,8 @@ int ldbm_modify_internal(
 					0, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
-				       "Attribute index add failure",
-			               0, 0, 0 );
+					"ldbm_modify_internal: Attribute index add failure\n",
+					0, 0, 0 );
 #endif
 				goto exit;
 			}
