@@ -32,8 +32,20 @@ forkandexec(
 	 *	parent *rfp <- c2p[0] | c2p[1] <- stdout child
 	 */
 
-	switch ( (pid = fork()) ) {
+#ifdef HAVE_THR
+	switch ( (pid = fork1()) )
+#else
+	switch ( (pid = fork()) )
+#endif
+	{
 	case 0:		/* child */
+		/*
+		 * child could deadlock here due to resources locked
+		 * by our parent
+		 *
+		 * If so, configure --without-threads or implement forking
+		 * via a surrogate parent.
+		 */
 		close( p2c[1] );
 		close( c2p[0] );
 		if ( dup2( p2c[0], 0 ) == -1 || dup2( c2p[1], 1 ) == -1 ) {
