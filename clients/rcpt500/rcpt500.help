@@ -35,10 +35,14 @@ including: "whois", "search", "look up", "show."  You can also send
 a message with the word "help" in it to get this text returned to you.
 
 Note that this service is entirely automated -- no humans will respond
-to requests or other email sent here.  If you have questions or
-comments on the X.500 Directory service in general, or about this
-service in particular, please send electronic mail to:
+to requests or other email sent here.
 
-        OpenLDAP-general@OpenLDAP.org
+We would appreciate any feedback you can provide.
+If you have problems, report them using our Issue Tracking System:
+	http://www.OpenLDAP.com/its/
+or by sending e-mail to:
+	OpenLDAP-its@OpenLDAP.org
+Additional mailing lists are available.  Please see:
+	http://www.OpenLDAP.com/lists/
 
 This is the end of the help text.

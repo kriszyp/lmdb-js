@@ -94,18 +94,18 @@ The search and display behavior is defined in the ldapfilter.conf and
 ldaptemplates.conf files.
 
 
-SUPPORT
+FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
 
     The software is provided as is without any express or implied
-    warranty, but you can send questions and suggestions to the
-    mailinglist
+    warranty, but you can report problems using our Issue Tracking
+    System:
 
-	    OpenLDAP-general@OpenLDAP.org
+	    http://www.OpenLDAP.com/its/
 
+    or by sending e-mail to:
 
-BUG REPORTING
+	    OpenLDAP-its@OpenLDAP.org
 
-    Bug reports should be sent to OpenLDAP-its@OpenLDAP.org.
+    Additional mailing lists are available.  Please see:
 
-
-README Last updated August 1999 by Hallvard Furuseth
+	    http://www.OpenLDAP.com/lists/
