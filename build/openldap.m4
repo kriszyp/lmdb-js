@@ -315,14 +315,14 @@ AC_DEFUN([OL_BERKELEY_DB_THREAD],
 main()
 {
 	int rc;
-	u_int32_t flags = DB_CREATE | DB_THREAD | DB_INIT_CDB | DB_INIT_MPOOL;
-
+	u_int32_t flags = DB_CREATE | DB_INIT_CDB | DB_INIT_MPOOL |
 #ifdef DB_PRIVATE
-	flags |= DB_PRIVATE;
+		DB_PRIVATE |
 #endif
 #ifdef DB_MPOOL_PRIVATE
-	flags |= DB_MPOOL_PRIVATE;
+		DB_MPOOL_PRIVATE |
 #endif
+		DB_THREAD;
 
 #if DB_VERSION_MAJOR > 2
 	DB_ENV *env = NULL;
