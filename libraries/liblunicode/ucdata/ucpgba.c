@@ -1,5 +1,5 @@
 /*
- * Copyright 1999 Computing Research Labs, New Mexico State University
+ * Copyright 2001 Computing Research Labs, New Mexico State University
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -21,9 +21,9 @@
  */
 #ifndef lint
 #ifdef __GNUC__
-static char rcsid[] __attribute__ ((unused)) = "$Id: ucpgba.c,v 1.4 1999/11/29 16:41:06 mleisher Exp $";
+static char rcsid[] __attribute__ ((unused)) = "$Id: ucpgba.c,v 1.5 2001/01/02 18:46:20 mleisher Exp $";
 #else
-static char rcsid[] = "$Id: ucpgba.c,v 1.4 1999/11/29 16:41:06 mleisher Exp $";
+static char rcsid[] = "$Id: ucpgba.c,v 1.5 2001/01/02 18:46:20 mleisher Exp $";
 #endif
 #endif
 
@@ -61,7 +61,7 @@ static char rcsid[] = "$Id: ucpgba.c,v 1.4 1999/11/29 16:41:06 mleisher Exp $";
  * ISWEAK_NEUTRAL - Test for weak or neutral characters.
  */
 #define ISLTR_LTR(cc) ucisprop(cc, UC_L|UC_MN|UC_EN|UC_ES,\
-                               UC_ET|UC_AN|UC_CS|UC_B|UC_S|UC_WS|UC_ON)
+                               UC_ET|UC_CS|UC_B|UC_S|UC_WS|UC_ON)
 
 #define ISRTL_RTL(cc) ucisprop(cc, UC_R|UC_MN|UC_EN|UC_ES,\
                                UC_ET|UC_AN|UC_CS|UC_B|UC_S|UC_WS|UC_ON)
@@ -211,8 +211,9 @@ _ucadd_rtl_segment(ucstring_t *str, unsigned long *source, unsigned long start,
         }
 
         /*
-         * Now handle the weak sequences such that multiple non-digit groups
-         * are kept together appropriately and added as RTL sequences.
+         * Handle digits in a special way.  This makes sure the weakly
+         * directional characters appear on the expected sides of a number
+         * depending on whether that number is Arabic or not.
          */
         for (s = e; e < end && ISWEAKSPECIAL(source[e]); e++) {
             if (!ISDIGITSPECIAL(source[e]) &&
@@ -312,7 +313,7 @@ ucstring_create(unsigned long *source, unsigned long start, unsigned long end,
                 int default_direction, int cursor_motion)
 {
     int rtl_first;
-    unsigned long s, e;
+    unsigned long s, e, ld;
     ucstring_t *str;
 
     str = (ucstring_t *) malloc(sizeof(ucstring_t));
@@ -369,10 +370,15 @@ ucstring_create(unsigned long *source, unsigned long start, unsigned long end,
              * Determine the next run of LTR text.
              */
 
-            while (e < end && ISLTR_LTR(source[e]))
-              e++;
+            ld = s;
+            while (e < end && ISLTR_LTR(source[e])) {
+                if (ucisdigit(source[e]) &&
+                    !(0x660 <= source[e] && source[e] <= 0x669))
+                  ld = e;
+                e++;
+            }
             if (str->direction != UCPGBA_LTR) {
-                while (e > s && ISWEAK_NEUTRAL(source[e - 1]))
+                while (e > ld && ISWEAK_NEUTRAL(source[e - 1]))
                   e--;
             }
 
@@ -386,11 +392,15 @@ ucstring_create(unsigned long *source, unsigned long start, unsigned long end,
         /*
          * Determine the next run of RTL text.
          */
-        s = e;
-        while (e < end && ISRTL_RTL(source[e]))
-          e++;
+        ld = s = e;
+        while (e < end && ISRTL_RTL(source[e])) {
+            if (ucisdigit(source[e]) &&
+                !(0x660 <= source[e] && source[e] <= 0x669))
+              ld = e;
+            e++;
+        }
         if (str->direction != UCPGBA_RTL) {
-            while (e > s && ISWEAK_NEUTRAL(source[e - 1]))
+            while (e > ld && ISWEAK_NEUTRAL(source[e - 1]))
               e--;
         }
 
