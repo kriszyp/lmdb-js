@@ -45,11 +45,17 @@ entry_schema_check(
 	AttributeDescription *ad_objectClass
 		= slap_schema.si_ad_objectClass;
 	int extensible = 0;
+	int subentry = is_entry_subentry( e );
+	int collective = 0;
+
+	if( subentry) collective = is_entry_collectiveAttributes( e );
 
 	*text = textbuf;
 
 	/* misc attribute checks */
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+		const char *type = a->a_desc->ad_cname.bv_val;
+
 		/* there should be at least one value */
 		assert( a->a_vals );
 		assert( a->a_vals[0].bv_val != NULL ); 
@@ -62,12 +68,17 @@ entry_schema_check(
 			}
 		}
 
+		if( !collective && is_at_collective( a->a_desc->ad_type ) ) {
+			snprintf( textbuf, textlen, "attribute '%s' "
+				"may only appear in collectiveAttributes subentry",
+				type );
+			return LDAP_OBJECT_CLASS_VIOLATION;
+		}
+
 		/* if single value type, check for multiple values */
 		if( is_at_single_value( a->a_desc->ad_type ) &&
 			a->a_vals[1].bv_val != NULL )
 		{
-			char *type = a->a_desc->ad_cname.bv_val;
-
 			snprintf( textbuf, textlen, 
 				"attribute '%s' cannot have multiple values",
 				type );

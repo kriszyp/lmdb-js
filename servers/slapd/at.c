@@ -332,18 +332,15 @@ at_add(
 	}
 
 	if ( at->at_collective ) {
-#ifdef SLAP_COLLECTIVE
 		if( at->at_usage ) {
 			/* collective attributes cannot be operational */
 			return SLAP_SCHERR_NOT_SUPPORTED;
 		}
+
 		if( at->at_single_value ) {
 			/* collective attributes cannot be single-valued */
 			return SLAP_SCHERR_NOT_SUPPORTED;
 		}
-#else
-		return SLAP_SCHERR_NOT_SUPPORTED;
-#endif
 	}
 
 	sat = (AttributeType *) ch_calloc( 1, sizeof(AttributeType) );

@@ -50,7 +50,7 @@
 #  The c-l attribute type specifies a locality name for a collection of
 #  entries.
 #
-objectClass      ( 2.5.4.7.1 NAME 'c-l'
+attributeType      ( 2.5.4.7.1 NAME 'c-l'
 	SUP l COLLECTIVE )
 #
 #
@@ -59,7 +59,7 @@ objectClass      ( 2.5.4.7.1 NAME 'c-l'
 #  The c-st attribute type specifies a state or province name for a
 #  collection of entries.
 #
-objectClass      ( 2.5.4.8.1 NAME 'c-st'
+attributeType      ( 2.5.4.8.1 NAME 'c-st'
 	SUP st COLLECTIVE )
 #
 #
@@ -68,7 +68,7 @@ objectClass      ( 2.5.4.8.1 NAME 'c-st'
 #  The c-street attribute type specifies a street address for a
 #  collection of entries.
 #
-objectClass      ( 2.5.4.9.1 NAME 'c-street'
+attributeType      ( 2.5.4.9.1 NAME 'c-street'
 	SUP street COLLECTIVE )
 #
 #
@@ -77,7 +77,7 @@ objectClass      ( 2.5.4.9.1 NAME 'c-street'
 #  The c-o attribute type specifies an organization name for a collection
 #  of entries.
 #
-objectClass      ( 2.5.4.10.1 NAME 'c-o'
+attributeType      ( 2.5.4.10.1 NAME 'c-o'
 	SUP o COLLECTIVE )
 #
 #
@@ -86,7 +86,7 @@ objectClass      ( 2.5.4.10.1 NAME 'c-o'
 #  The c-ou attribute type specifies an organizational unit name for a
 #  collection of entries.
 #
-objectClass      ( 2.5.4.11.1 NAME 'c-ou'
+attributeType      ( 2.5.4.11.1 NAME 'c-ou'
 	SUP ou COLLECTIVE )
 #
 #
@@ -95,7 +95,7 @@ objectClass      ( 2.5.4.11.1 NAME 'c-ou'
 #  The c-PostalAddress attribute type specifies a postal address for a
 #  collection of entries.
 #
-objectClass      ( 2.5.4.16.1 NAME 'c-PostalAddress'
+attributeType      ( 2.5.4.16.1 NAME 'c-PostalAddress'
 	SUP postalAddress COLLECTIVE )
 #
 #
@@ -104,7 +104,7 @@ objectClass      ( 2.5.4.16.1 NAME 'c-PostalAddress'
 #  The c-PostalCode attribute type specifies a postal code for a
 #  collection of entries.
 #
-objectClass      ( 2.5.4.17.1 NAME 'c-PostalCode'
+attributeType      ( 2.5.4.17.1 NAME 'c-PostalCode'
 	SUP postalCode COLLECTIVE )
 #
 #
@@ -113,7 +113,7 @@ objectClass      ( 2.5.4.17.1 NAME 'c-PostalCode'
 #  The c-PostOfficeBox attribute type specifies a post office box for a
 #  collection of entries.
 #
-objectClass ( 2.5.4.18.1 NAME 'c-PostOfficeBox'
+attributeType ( 2.5.4.18.1 NAME 'c-PostOfficeBox'
 	SUP postOfficeBox COLLECTIVE )
 #
 #
@@ -122,7 +122,7 @@ objectClass ( 2.5.4.18.1 NAME 'c-PostOfficeBox'
 #  The c-PhysicalDeliveryOfficeName attribute type specifies a physical
 #  delivery office name for a collection of entries.
 #
-objectClass ( 2.5.4.19.1 NAME 'c-PhysicalDeliveryOfficeName'
+attributeType ( 2.5.4.19.1 NAME 'c-PhysicalDeliveryOfficeName'
 	SUP physicalDeliveryOfficeName COLLECTIVE )
 #
 #
@@ -131,7 +131,7 @@ objectClass ( 2.5.4.19.1 NAME 'c-PhysicalDeliveryOfficeName'
 #  The c-TelephoneNumber attribute type specifies a telephone number for
 #  a collection of entries.
 #
-objectClass ( 2.5.4.20.1 NAME 'c-TelephoneNumber'
+attributeType ( 2.5.4.20.1 NAME 'c-TelephoneNumber'
 	SUP telephoneNumber COLLECTIVE )
 #
 #
@@ -140,7 +140,7 @@ objectClass ( 2.5.4.20.1 NAME 'c-TelephoneNumber'
 #  The c-TelexNumber attribute type specifies a telex number for a
 #  collection of entries.
 #
-objectClass ( 2.5.4.19.1 NAME 'c-TelexNumber'
+attributeType ( 2.5.4.21.1 NAME 'c-TelexNumber'
 	SUP telexNumber COLLECTIVE )
 #
 #
@@ -149,7 +149,7 @@ objectClass ( 2.5.4.19.1 NAME 'c-TelexNumber'
 #  The c-FacsimileTelephoneNumber attribute type specifies a facsimile
 #  telephone number for a collection of entries.
 #
-objectClass ( 2.5.4.23.1 NAME 'c-FacsimileTelephoneNumber'
+attributeType ( 2.5.4.23.1 NAME 'c-FacsimileTelephoneNumber'
 	SUP facsimileTelephoneNumber COLLECTIVE )
 #
 #
@@ -158,5 +158,5 @@ objectClass ( 2.5.4.23.1 NAME 'c-FacsimileTelephoneNumber'
 #  The c-InternationalISDNNumber attribute type specifies an
 #  international ISDN number for a collection of entries.
 #
-objectClass ( 2.5.4.25.1 NAME 'c-InternationalISDNNumber'
+attributeType ( 2.5.4.25.1 NAME 'c-InternationalISDNNumber'
 	SUP internationalISDNNumber COLLECTIVE )

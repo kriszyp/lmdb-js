@@ -809,6 +809,8 @@ LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
 	is_entry_objectclass((e), slap_schema.si_oc_referral)
 #define is_entry_subentry(e)	\
 	is_entry_objectclass((e), slap_schema.si_oc_subentry)
+#define is_entry_collectiveAttributes(e)	\
+	is_entry_objectclass((e), slap_schema.si_oc_collectiveAttributes)
 #define is_entry_dynamicObject(e)	\
 	is_entry_objectclass((e), slap_schema.si_oc_dynamicObject)
 
