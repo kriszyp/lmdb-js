@@ -45,6 +45,7 @@ DBDIR6=$TESTDIR/db.6.a
 CONF=$DATADIR/slapd.conf
 CONFTWO=$DATADIR/slapd2.conf
 MCONF=$DATADIR/slapd-master.conf
+COMPCONF=$DATADIR/slapd-component.conf
 PWCONF=$DATADIR/slapd-pw.conf
 WHOAMICONF=$DATADIR/slapd-whoami.conf
 ACLCONF=$DATADIR/slapd-acl.conf
