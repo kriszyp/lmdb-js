@@ -1067,6 +1067,9 @@ idl_intersection(
 #endif
 
 	for ( ni = 0, ai = 0, bi = 0; ai < ID_BLOCK_NIDS(a); ai++ ) {
+		if ( ID_BLOCK_ID(a, ai) < ID_BLOCK_ID(b, bi) ) {
+			continue;
+		}
 		for ( ;
 			bi < ID_BLOCK_NIDS(b) && ID_BLOCK_ID(b, bi) < ID_BLOCK_ID(a, ai);
 			bi++ )
@@ -1080,6 +1083,7 @@ idl_intersection(
 
 		if ( ID_BLOCK_ID(b, bi) == ID_BLOCK_ID(a, ai) ) {
 			ID_BLOCK_ID(n, ni++) = ID_BLOCK_ID(a, ai);
+			bi++;
 		}
 	}
 
