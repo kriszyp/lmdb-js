@@ -171,6 +171,11 @@ meta_back_bind(
 			realndn = &li->targets[ i ]->pseudorootdn;
 			realcred = &li->targets[ i ]->pseudorootpw;
 			realmethod = LDAP_AUTH_SIMPLE;
+		} else {
+			realdn = dn;
+			realndn = ndn;
+			realcred = cred;
+			realmethod = method;
 		}
 		
 		lerr = meta_back_do_single_bind( li, lc,
@@ -197,6 +202,15 @@ meta_back_bind(
 		/*
 		 * deal with bind failure ...
 		 */
+
+		/*
+		 * no target was found within the naming context, 
+		 * so bind must fail with invalid credentials
+		 */
+		if ( err == LDAP_SUCCESS && gotit == 0 ) {
+			err = LDAP_INVALID_CREDENTIALS;
+		}
+
 		err = ldap_back_map_result( err );
 		send_ldap_result( conn, op, err, NULL, NULL, NULL, NULL );
 		return -1;
@@ -311,8 +325,12 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 		 * (note: if the target was already bound, the anonymous
 		 * bind clears the previous bind).
 		 */
-		rc = ldap_bind_s( lsc[ 0 ]->ld, lsc[ 0 ]->bound_dn.bv_val,
-				NULL, LDAP_AUTH_SIMPLE );
+		if ( lsc[ 0 ]->bound_dn.bv_val ) {
+			ch_free( lsc[ 0 ]->bound_dn.bv_val );
+			lsc[ 0 ]->bound_dn.bv_val = NULL;
+			lsc[ 0 ]->bound_dn.bv_len = 0;
+		}
+		rc = ldap_bind_s( lsc[ 0 ]->ld, 0, NULL, LDAP_AUTH_SIMPLE );
 		if ( rc != LDAP_SUCCESS ) {
 			
 #ifdef NEW_LOGGING
