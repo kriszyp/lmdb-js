@@ -73,6 +73,12 @@ int ldap_int_sasl_init( void )
 		return 0;
 	}
 
+	/* This function is a no-op in Cyrus 1.5.x and does not exist
+	 * in Cyrus 2.x. This reference ensures that we can't pick up
+	 * the wrong version of a dynamic library.
+	 */
+	sasl_client_auth(NULL, NULL, NULL, 0, NULL, NULL);
+
 	return -1;
 }
 
