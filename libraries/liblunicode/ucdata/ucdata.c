@@ -350,6 +350,7 @@ _uccase_load(char *paths, int reload)
         for (i = 0; i < _uccase_size; i++)
           _uccase_map[i] = endian_long(_uccase_map[i]);
     }
+    fclose(in);
     return 0;
 }
 
@@ -542,6 +543,7 @@ _uccomp_load(char *paths, int reload)
         break;
     _uccomp_size = i - 1;
 
+    fclose(in);
     return 0;
 }
 
@@ -721,6 +723,7 @@ _ucdcmp_load(char *paths, int reload)
         for (i = 0; i < size; i++)
             _ucdcmp_nodes[i] = endian_long(_ucdcmp_nodes[i]);
     }
+    fclose(in);
     return 0;
 }
 
@@ -907,6 +910,7 @@ _uccmcl_load(char *paths, int reload)
         for (i = 0; i < _uccmcl_size; i++)
             _uccmcl_nodes[i] = endian_long(_uccmcl_nodes[i]);
     }
+    fclose(in);
     return 0;
 }
 
@@ -1011,6 +1015,7 @@ _ucnumb_load(char *paths, int reload)
         for (i = 0; i < size; i++)
           _ucnum_vals[i] = endian_short(_ucnum_vals[i]);
     }
+    fclose(in);
     return 0;
 }
 
