@@ -132,7 +132,7 @@ ldap_init( char *defhost, int defport )
 }	/* The WinSock DLL is acceptable. Proceed. */
 
 #elif HAVE_WINSOCK
-{	WSADATA wsaData
+{	WSADATA wsaData;
 	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) {
 	    return( NULL );
 	}
