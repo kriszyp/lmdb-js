@@ -232,7 +232,7 @@ ldbm_back_add(
 #endif
 
 	} else {
-		assert( pdn.bv_val == NULL || *pdn.bv_val != '\0' );
+		assert( pdn.bv_val == NULL || *pdn.bv_val == '\0' );
 
 		if ( !be_isroot( op->o_bd, &op->o_ndn )
 			&& !is_entry_glue( op->oq_add.rs_e ))
