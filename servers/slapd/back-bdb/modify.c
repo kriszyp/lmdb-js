@@ -127,7 +127,7 @@ int bdb_modify_internal(
 		return rc;
 	}
 
-#if BDB_INDEX
+#ifdef BDB_INDEX
 	/* delete indices for old attributes */
 	rc = bdb_index_entry_del( be, tid, e, save_attrs);
 	if ( rc != LDAP_SUCCESS ) {

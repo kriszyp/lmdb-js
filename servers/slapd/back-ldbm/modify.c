@@ -48,7 +48,7 @@ int ldbm_modify_internal(
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
 		   "ldbm_modify_internal: %s\n", dn ));
 #else
-	Debug(LDAP_DEBUG_TRACE, "ldbm_modify_internal:\n", 0, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "ldbm_modify_internal: %s\n", dn, 0, 0);
 #endif
 
 

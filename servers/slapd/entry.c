@@ -377,21 +377,20 @@ entry_id_cmp( Entry *e1, Entry *e2 )
 	return( e1->e_id < e2->e_id ? -1 : (e1->e_id > e2->e_id ? 1 : 0) );
 }
 
-#define SLAPD_SLEEPY 1
-#ifdef SLAPD_SLEEPY
+#ifdef SLAPD_BDB
 
-/* a DER encoded entry looks like:
+/* a LBER encoded entry looks like:
  *
- * entry :== SEQUENCE {
- *		dn		DistinguishedName,
- *		ndn		NormalizedDistinguishedName,
- *		attrs	SEQUENCE OF SEQUENCE {
- *			type	AttributeType,
- *			values	SET OF AttributeValue
- *		}
- * }
+ *	 entry :== SEQUENCE {
+ *			dn		DistinguishedName,
+ *			ndn		NormalizedDistinguishedName,
+ *			attrs	SEQUENCE OF SEQUENCE {
+ *				type	AttributeType,
+ *				values	SET OF AttributeValue
+ *			}
+ *	 }
  *
- * Encoding/Decoding of DER should be much faster than LDIF
+ * Encoding/Decoding of LBER should be much faster than LDIF
  */
 
 int entry_decode( struct berval *bv, Entry **entry )
@@ -403,8 +402,13 @@ int entry_decode( struct berval *bv, Entry **entry )
 	ber_len_t	len;
 	char *last;
 
+	assert( bv != NULL );
+	assert( entry != NULL );
+
 	ber = ber_init( bv );
 	if( ber == NULL ) {
+		assert( 0 );	/* XXYYZ: Temporary assert */
+
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			   "entry_decode: ber_init failed\n" ));

@@ -15,7 +15,7 @@
 #include "slap.h"
 #include "back-bdb.h"
 
-#if BDB_INDEX
+#ifdef BDB_INDEX
 
 static slap_mask_t index_mask(
 	Backend *be,
@@ -173,7 +173,7 @@ static int indexer(
 	}
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
-		key_change( be, db, &prefix, id, op );
+		rc = bdb_key_change( be, db, txn, &prefix, id, op );
 	}
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_EQUALITY ) ) {
@@ -186,7 +186,7 @@ static int indexer(
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i] != NULL; i++ ) {
-				key_change( be, db, keys[i], id, op );
+				rc = bdb_key_change( be, db, txn, keys[i], id, op );
 			}
 			ber_bvecfree( keys );
 		}
@@ -202,7 +202,7 @@ static int indexer(
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i] != NULL; i++ ) {
-				key_change( be, db, keys[i], id, op );
+				rc = bdb_key_change( be, db, txn, keys[i], id, op );
 			}
 			ber_bvecfree( keys );
 		}
@@ -218,7 +218,7 @@ static int indexer(
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i] != NULL; i++ ) {
-				key_change( be, db, keys[i], id, op );
+				bdb_key_change( be, db, txn, keys[i], id, op );
 			}
 			ber_bvecfree( keys );
 		}
@@ -327,8 +327,7 @@ bdb_index_entry(
 	DB_TXN *txn,
 	int op,
 	Entry	*e,
-	Attribute *ap
-)
+	Attribute *ap )
 {
 	int rc;
 
@@ -345,7 +344,7 @@ bdb_index_entry(
 
 	/* add each attribute to the indexes */
 	for ( ; ap != NULL; ap = ap->a_next ) {
-		rc = index_values( be, txn,
+		rc = bdb_index_values( be, txn,
 			ap->a_desc, ap->a_vals, e->e_id, op );
 
 		if( rc != LDAP_SUCCESS ) {

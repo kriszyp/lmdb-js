@@ -194,9 +194,9 @@ int bdb_index_entry LDAP_P(( Backend *be, DB_TXN *t,
 	int r, Entry *e, Attribute *ap ));
 
 #define bdb_index_entry_add(be,t,e,ap) \
-	index_entry((be),(t),SLAP_INDEX_ADD_OP,(e),(ap))
+	bdb_index_entry((be),(t),SLAP_INDEX_ADD_OP,(e),(ap))
 #define bdb_index_entry_del(be,t,e,ap) \
-	index_entry((be),(t),SLAP_INDEX_DELETE_OP,(e),(ap))
+	bdb_index_entry((be),(t),SLAP_INDEX_DELETE_OP,(e),(ap))
 
 /*
  * key.c

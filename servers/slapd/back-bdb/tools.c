@@ -156,7 +156,7 @@ ID bdb_tool_entry_put(
 		goto done;
 	}
 
-#if BDB_INDEX
+#ifdef BDB_INDEX
 	rc = bdb_index_entry_add( be, tid, e, e->e_attrs );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,

@@ -127,12 +127,12 @@ int backend_init(void)
 		if(rc != 0) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				   "backend_init:  initialized for type \"%s\"\n",
-				   binfo[nBackendInfo].bi_type ));
+				"backend_init:  initialized for type \"%s\"\n",
+				binfo[nBackendInfo].bi_type ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"backend_init: initialized for type \"%s\"\n",
-					binfo[nBackendInfo].bi_type, 0, 0 );
+				binfo[nBackendInfo].bi_type, 0, 0 );
 #endif
 			/* destroy those we've already inited */
 			for( nBackendInfo--;
@@ -158,10 +158,10 @@ int backend_init(void)
 #else
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
-                   "backend_init: failed\n" ));
+	LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+		"backend_init: failed\n" ));
 #else
-        Debug( LDAP_DEBUG_ANY,
+	Debug( LDAP_DEBUG_ANY,
 		"backend_init: failed\n",
 		0, 0, 0 );
 #endif

@@ -220,9 +220,7 @@ bdb_db_open( BackendDB *be )
 		return rc;
 	}
 
-
 	/* <insert> open (and create) index databases */
-
 
 #ifndef NO_THREADS
 	if( bdb->bi_lock_detect != DB_LOCK_NORUN ) {
@@ -324,6 +322,7 @@ bdb_initialize(
 	db_env_set_func_realloc( ch_realloc );
 	db_env_set_func_free( ch_free );
 #endif
+
 	db_env_set_func_yield( ldap_pvt_thread_yield );
 
 	bi->bi_controls = controls;

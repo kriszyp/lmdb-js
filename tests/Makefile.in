@@ -5,6 +5,7 @@
 ## tests Makefile.in for OpenLDAP
 SUBDIRS= progs
 BUILD_LDBM=@BUILD_LDBM@
+BUILD_BDB=@BUILD_BDB@
 
 test: tests
 tests: ldbm
@@ -14,7 +15,7 @@ test-bdb:	FORCE
 	@-$(LN_S) $(srcdir)/data .
 	@-$(LN_S) $(top_srcdir)/servers/slapd/schema .
 	@-$(LN_S) ../libraries/liblunicode ucdata
-	@if test "$(BUILD_LDBM)" = "yes" ; then \
+	@if test "$(BUILD_BDB)" = "yes" ; then \
 		echo "Initiating LDAP tests for BDB..." ; \
 		$(MKDIR) test-db test-repl || true; \
 		$(srcdir)/scripts/all $(srcdir) bdb ; \
