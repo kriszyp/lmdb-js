@@ -57,7 +57,7 @@ char *suffixAlias (char *dn, Operation *op, Backend *be)
 			dn = ch_malloc( diff + strlen(be->be_suffixAlias[i+1]) + 1 );
 			strncpy( dn, oldDN, diff );
 			strcpy( &dn[diff], be->be_suffixAlias[i+1] );
-			Debug( LDAP_DEBUG_ARGS, "SuffixAlias: converted \"%s\" to \"%s\"",
+			Debug( LDAP_DEBUG_ARGS, "SuffixAlias: converted \"%s\" to \"%s\"\n",
 				oldDN, dn, 0);
                         free (oldDN);
 			break;

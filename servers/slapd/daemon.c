@@ -179,7 +179,7 @@ set_socket( struct sockaddr_in *addr )
 
 		if ( (tcps = socket( AF_INET, SOCK_STREAM, 0 )) == -1 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"daemon: socket() failed errno %d (%s)", errno,
+				"daemon: socket() failed errno %d (%s)\n", errno,
 		    	errno > -1 && errno < sys_nerr ? sys_errlist[errno] :
 		    	"unknown", 0 );
 			exit( 1 );
@@ -188,7 +188,7 @@ set_socket( struct sockaddr_in *addr )
 #ifndef HAVE_WINSOCK
 		if ( tcps >= dtblsize ) {
 			Debug( LDAP_DEBUG_ANY,
-				"daemon: listener descriptor %d is too great",
+				"daemon: listener descriptor %d is too great\n",
 				tcps, dtblsize, 0 );
 			exit( 1 );
 		}
@@ -199,7 +199,7 @@ set_socket( struct sockaddr_in *addr )
 			(char *) &tmp, sizeof(tmp) ) == -1 )
 		{
 			Debug( LDAP_DEBUG_ANY,
-				"slapd(%d): setsockopt() failed errno %d (%s)",
+			       "slapd(%d): setsockopt() failed errno %d (%s)\n",
 		    	tcps, errno,
 				errno > -1 && errno < sys_nerr
 					? sys_errlist[errno] : "unknown" );
@@ -356,7 +356,7 @@ slapd_daemon_task(
 				(struct sockaddr *) &from, &len )) == -1 )
 			{
 				Debug( LDAP_DEBUG_ANY,
-				    "daemon: accept(%d) failed errno %d (%s)", errno,
+				    "daemon: accept(%d) failed errno %d (%s)\n", errno,
 				    tcps, errno >= 0 && errno < sys_nerr ?
 				    sys_errlist[errno] : "unknown");
 				continue;
