@@ -286,6 +286,15 @@ typedef char * caddr_t;
  LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 */
 
+/* The number of bytes in a int.  */ 
+#define SIZEOF_INT 4
+
+/* The number of bytes in a long.  */ 
+#define SIZEOF_LONG 4
+  
+/* The number of bytes in a short.  */
+#define SIZEOF_SHORT 2
+
 /* Define if you have the bcopy function.  */
 /* #undef HAVE_BCOPY */
 
