@@ -98,7 +98,7 @@ do_abandon( LDAP *ld, int origid, int msgid )
 			ld->ld_errno = LDAP_NO_MEMORY;
 		} else {
 #ifdef LDAP_CONNECTIONLESS
-			if ( ld->ld_sb.sb_naddr > 0 ) {
+			if ( ld->ld_cldapnaddr > 0 ) {
 				err = ber_printf( ber, "{isti}",
 				    ++ld->ld_msgid, ld->ld_cldapdn,
 				    LDAP_REQ_ABANDON, msgid );

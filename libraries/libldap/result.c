@@ -166,7 +166,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 	while ( rc == -2 ) {
 #ifndef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 		/* hack attack */
-		if ( ld->ld_sb.sb_ber.ber_ptr >= ld->ld_sb.sb_ber.ber_end ) {
+		if ( ! lber_pvt_sb_data_ready(&ld->ld_sb) ) {
 			rc = ldap_select1( ld, tvp );
 
 			if ( rc == 0 || ( rc == -1 && (
@@ -192,8 +192,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 		}
 #endif /* LDAP_DEBUG */
 		for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
-			if ( lc->lconn_sb->sb_ber.ber_ptr <
-			    lc->lconn_sb->sb_ber.ber_end ) {
+			if ( lber_pvt_sb_data_ready(lc->lconn_sb) ) {
 				rc = read1msg( ld, msgid, all, lc->lconn_sb,
 				    lc, result );
 				break;
@@ -610,7 +609,7 @@ ldap_select1( LDAP *ld, struct timeval *timeout )
 	}
 
 	FD_ZERO( &readfds );
-	FD_SET( ld->ld_sb.sb_sd, &readfds );
+	FD_SET( lber_pvt_sb_get_desc(&ld->ld_sb), &readfds );
 
 	return( select( tblsize, &readfds, 0, 0, timeout ) );
 }
@@ -732,7 +731,7 @@ cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber )
 	int		rc;
 	unsigned long	tag, len;
 
-	if ( ld->ld_sb.sb_ber.ber_ptr >= ld->ld_sb.sb_ber.ber_end ) {
+	if ( ! lber_pvt_sb_data_ready(&ld->ld_sb) ) {
 		rc = ldap_select1( ld, timeout );
 		if ( rc == -1 || rc == 0 ) {
 			ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :

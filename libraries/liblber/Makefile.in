@@ -7,8 +7,8 @@
 LIBRARY = liblber.la
 XLIBRARY = ../liblber.a
 
-SRCS= decode.c encode.c io.c bprint.c options.c
-OBJS= decode.lo encode.lo io.lo bprint.lo options.lo
+SRCS= decode.c encode.c io.c bprint.c options.c sockbuf.c
+OBJS= decode.lo encode.lo io.lo bprint.lo options.lo sockbuf.lo
 XSRCS= version.c
 
 PROGRAMS= dtest etest idtest

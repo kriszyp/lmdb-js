@@ -24,6 +24,7 @@
 
 #include "ldap-int.h"
 
+
 /*
  * ldap_open - initialize and connect to an ldap server.  A magic cookie to
  * be used for future communication is returned on success, NULL on failure.
@@ -143,7 +144,7 @@ ldap_init( char *defhost, int defport )
 	    WSACleanup( );
 		return( NULL );
 	}
-
+   
 	/* copy the global options */
 	memcpy(&ld->ld_options, &openldap_ldap_global_options,
 		sizeof(ld->ld_options));
@@ -198,7 +199,8 @@ ldap_init( char *defhost, int defport )
 	/* we'll assume we're talking version 2 for now */
 	ld->ld_version = LDAP_VERSION2;
 
-	ld->ld_sb.sb_sd = -1;
+	lber_pvt_sb_init( &(ld->ld_sb) );
+
 	return( ld );
 }
 
@@ -255,6 +257,8 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
 	if ( rc == -1 ) {
 		return( rc );
 	}
+   
+   	lber_pvt_sb_set_io( sb, &lber_pvt_sb_io_tcp, NULL );
 
 	if ( krbinstancep != NULL ) {
 #ifdef HAVE_KERBEROS

@@ -68,12 +68,15 @@ client_request(
 	BerElement	ber, *copyofber;
 	struct msg	*m;
 	static int	bound;
-
+#ifdef LDAP_CONNECTIONLESS
+	struct sockaddr_in *sai;
+#endif   
 	Debug( LDAP_DEBUG_TRACE, "client_request%s\n",
 	    udp ? " udp" : "", 0, 0 );
 
 	/*
 	 * Get the ldap message, which is a sequence of message id
+
 	 * and then the actual request choice.
 	 */
 
@@ -85,9 +88,9 @@ client_request(
 
 #ifdef LDAP_CONNECTIONLESS
 	if ( udp && dosyslog ) {
+	   	sai = (struct sockaddr_in *)lber_pvt_sb_udp_get_src( &clientsb );
 		syslog( LOG_INFO, "UDP request from unknown (%s)",
-		    inet_ntoa( ((struct sockaddr_in *)
-		    clientsb->sb_fromaddr)->sin_addr ));
+			inet_ntoa( sai->sin_addr ) );
 	}
 #endif
 
@@ -189,16 +192,17 @@ client_request(
 		free( ber.ber_buf );
 		return;
 	}
-
+	sai = (struct sockaddr_in *) lber_pvt_sb_udp_get_src( &clientsb );
+   
 	if ( get_cldap_msg( msgid, tag,
-	    (struct sockaddr *)clientsb->sb_fromaddr ) != NULL ) {
+	    (struct sockaddr *)sai ) != NULL ) {
 		/*
 		 * duplicate request: toss this one
 		 */
 		Debug( LDAP_DEBUG_TRACE,
 		    "client_request tossing dup request id %ld from %s\n",
-		    msgid, inet_ntoa( ((struct sockaddr_in *)
-		    clientsb->sb_fromaddr)->sin_addr ), 0 );
+		    msgid, inet_ntoa( sai->sin_addr ), 0 );
+	   
 		free( ber.ber_buf );
 		return;
 	}
@@ -208,7 +212,7 @@ client_request(
 
 	m = add_msg( msgid, tag, copyofber, dsaconn, udp,
 #ifdef LDAP_CONNECTIONLESS
-		(struct sockaddr *)clientsb->sb_fromaddr );
+		(struct sockaddr *)sai );
 #else
 		NULL );
 #endif

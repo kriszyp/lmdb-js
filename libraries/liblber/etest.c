@@ -58,7 +58,7 @@ main( int argc, char **argv )
 	fd = fileno(stdout);
 #endif /* MACOS */
 
-	sb = lber_sockbuf_alloc_fd( fd );
+	sb = lber_pvt_sb_alloc_fd( fd );
 
 	if ( (ber = ber_alloc()) == NULLBER ) {
 		perror( "ber_alloc" );
@@ -171,6 +171,6 @@ main( int argc, char **argv )
 
 #endif
 
-	lber_sockbuf_free( sb );
+	lber_pvt_sb_free( sb );
 	return( 0 );
 }

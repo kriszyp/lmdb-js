@@ -700,8 +700,8 @@ search_result(
 			    LDAP_OPERATIONS_ERROR, NULL, "ber_printf" );
 			return;
 		}
-		SAFEMEMCPY( (char *)sb->sb_useaddr, &m->m_clientaddr,
-		    sizeof( struct sockaddr ));
+	   	lber_pvt_sb_udp_set_dst( sb, &m->m_clientaddr );
+
 		if ( ber_flush( sb, ber, 1 ) != 0 ) {
 		    send_ldap_msgresult( sb, SEARCHRESTAG, m, 
 			LDAP_RESULTS_TOO_LARGE, NULL, "ber_flush" );

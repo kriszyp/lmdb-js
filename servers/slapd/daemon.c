@@ -26,6 +26,12 @@
 #include <sys/ioctl.h>
 #endif
 
+#ifdef LDAP_DEBUG
+#include <assert.h>
+#else
+#define assert( cond )
+#endif
+
 #ifdef HAVE_TCPD
 #include <tcpd.h>
 
@@ -80,12 +86,7 @@ slapd_daemon(
 		c[i].c_addr = NULL;
 		c[i].c_domain = NULL;
 		c[i].c_ops = NULL;
-		c[i].c_sb.sb_sd = -1;
-		c[i].c_sb.sb_options = LBER_NO_READ_AHEAD;
-		c[i].c_sb.sb_naddr = 0;
-		c[i].c_sb.sb_ber.ber_buf = NULL;
-		c[i].c_sb.sb_ber.ber_ptr = NULL;
-		c[i].c_sb.sb_ber.ber_end = NULL;
+		lber_pvt_sb_init( &c[i].c_sb );
 		c[i].c_writewaiter = 0;
 		c[i].c_connid = 0;
 		ldap_pvt_thread_mutex_init( &c[i].c_dnmutex );
@@ -150,6 +151,7 @@ slapd_daemon(
 		struct timeval		zero;
 		struct timeval		*tvp;
 		int			len, pid;
+	   	int			data_ready;
 
 		char	*client_name;
 		char	*client_addr;
@@ -165,14 +167,19 @@ slapd_daemon(
 		Debug( LDAP_DEBUG_CONNS,
 		    "listening for connections on %d, activity on:",
 		    tcps, 0, 0 );
+	   
+	   	data_ready = 0;
 
 		ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 		for ( i = 0; i < dtblsize; i++ ) {
-			if ( c[i].c_sb.sb_sd != -1 ) {
-				FD_SET( c[i].c_sb.sb_sd, &readfds );
-
+			if ( lber_pvt_sb_in_use( &c[i].c_sb )) {
+				FD_SET( lber_pvt_sb_get_desc(&c[i].c_sb),
+					&readfds );
+				if (lber_pvt_sb_data_ready(&c[i].c_sb))
+			     		data_ready = 1;
 				if ( c[i].c_writewaiter ) {
-					FD_SET( c[i].c_sb.sb_sd, &writefds );
+					FD_SET( lber_pvt_sb_get_desc(&c[i].c_sb),
+						&writefds );
 				}
 				Debug( LDAP_DEBUG_CONNS, " %dr%s", i,
 				    c[i].c_writewaiter ? "w" : "", 0 );
@@ -184,9 +191,9 @@ slapd_daemon(
 		Debug( LDAP_DEBUG_CONNS, "before select active_threads %d\n",
 		    active_threads, 0, 0 );
 #if defined( HAVE_YIELDING_SELECT ) || defined( NO_THREADS )
-		tvp = NULL;
+		tvp = (data_ready) ? &zero : NULL;
 #else
-		tvp = active_threads ? &zero : NULL;
+		tvp = (active_threads || data_ready) ? &zero : NULL;
 #endif
 		ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 
@@ -201,7 +208,8 @@ slapd_daemon(
 		case 0:		/* timeout - let threads run */
 			Debug( LDAP_DEBUG_CONNS, "select timeout - yielding\n",
 			    0, 0, 0 );
-			ldap_pvt_thread_yield();
+		   	if (!data_ready)
+		     		ldap_pvt_thread_yield();
 			continue;
 
 		default:	/* something happened - deal with it */
@@ -225,7 +233,11 @@ slapd_daemon(
 				ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 				continue;
 			}
-			if ( ioctl( ns, FIONBIO, (caddr_t) &on ) == -1 ) {
+		   
+			lber_pvt_sb_set_desc( &c[ns].c_sb, ns );
+			lber_pvt_sb_set_io( &c[ns].c_sb, &lber_pvt_sb_io_tcp, NULL );
+		   
+			if (lber_pvt_sb_set_nonblock( &c[ns].c_sb, 1)<0) {			   
 				Debug( LDAP_DEBUG_ANY,
 				    "FIONBIO ioctl on %d failed\n", ns, 0, 0 );
 			}
@@ -279,13 +291,14 @@ slapd_daemon(
 						client_addr == NULL ? "unknown" : client_addr,
 			   	  0, 0 );
 
-				close(ns);
+				lber_pvt_sb_close( &c[ns].c_sb );
+			   	lber_pvt_sb_destroy( &c[ns].c_sb );
 				ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 				continue;
 			}
 #endif /* HAVE_TCPD */
 
-			c[ns].c_sb.sb_sd = ns;
+
 			ldap_pvt_thread_mutex_lock( &ops_mutex );
 			c[ns].c_connid = num_conns++;
 			ldap_pvt_thread_mutex_unlock( &ops_mutex );
@@ -355,7 +368,8 @@ slapd_daemon(
 				ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 			}
 
-			if ( FD_ISSET( i, &readfds ) ) {
+			if ( FD_ISSET( i, &readfds ) || 
+				lber_pvt_sb_data_ready( &c[i].c_sb ) ) {
 				Debug( LDAP_DEBUG_CONNS,
 				    "read activity on %d\n", i, 0, 0 );
 

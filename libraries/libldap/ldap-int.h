@@ -173,6 +173,11 @@ typedef struct ldapcache {
 }  LDAPCache;
 #define NULLLDCACHE ((LDAPCache *)NULL)
 
+/*
+ * handy macro for checking if handle is connectionless
+ */
+
+#define LDAP_IS_CLDAP(ld) ((ld)->ld_cldapnaddr>0)
 
 /*
  * structure representing an ldap connection
@@ -219,8 +224,11 @@ struct ldap {
 	int		*ld_abandoned;	/* array of abandoned requests */
 	char		ld_attrbuffer[LDAP_MAX_ATTR_LEN];
 	LDAPCache	*ld_cache;	/* non-null if cache is initialized */
-	char		*ld_cldapdn;	/* DN used in connectionless search */
-
+	/* stuff used by connectionless searches. */
+   	char		*ld_cldapdn;	/* DN used in connectionless search */
+	int		ld_cldapnaddr; /* number of addresses */
+   	void		**ld_cldapaddrs;/* addresses to send request to */	
+	
 	/* do not mess with the rest though */
 	BERTranslateProc ld_lber_encode_translate_proc;
 	BERTranslateProc ld_lber_decode_translate_proc;

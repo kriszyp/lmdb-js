@@ -443,13 +443,6 @@ typedef struct ldap_friendly {
 	char	*lf_friendly;
 } LDAPFriendlyMap;
 
-
-/*
- * handy macro to check whether LDAP struct is set up for CLDAP or not
- */
-#define LDAP_IS_CLDAP( ld )	( (ld)->ld_sb.sb_naddr > 0 )
-
-
 /*
  * types for ldap URL handling
  */

@@ -205,9 +205,9 @@ lber_set_option LDAP_P((void *item, int option, void *invalue));
 /*
  * LBER Sockbuf functions
  */
-LDAP_F Sockbuf *lber_sockbuf_alloc LDAP_P((void));
-LDAP_F Sockbuf *lber_sockbuf_alloc_fd LDAP_P((int fd));
-LDAP_F void lber_sockbuf_free LDAP_P((Sockbuf *sb));
+LDAP_F Sockbuf *lber_pvt_sockbuf_alloc LDAP_P((void));
+LDAP_F Sockbuf *lber_pvt_sockbuf_alloc_fd LDAP_P((int fd));
+LDAP_F void lber_pvt_sockbuf_free LDAP_P((Sockbuf *sb));
 
 LDAP_END_DECL
 

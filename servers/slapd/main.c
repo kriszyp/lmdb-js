@@ -246,12 +246,14 @@ main( int argc, char **argv )
 		c.c_dn = NULL;
 		c.c_cdn = NULL;
 		c.c_ops = NULL;
-		c.c_sb.sb_sd = 0;
-		c.c_sb.sb_options = 0;
-		c.c_sb.sb_naddr = udp ? 1 : 0;
-		c.c_sb.sb_ber.ber_buf = NULL;
-		c.c_sb.sb_ber.ber_ptr = NULL;
-		c.c_sb.sb_ber.ber_end = NULL;
+	   
+		lber_pvt_sb_init( &c.c_sb );
+		lber_pvt_sb_set_desc( &c.c_sb, 0 );
+		lber_pvt_sb_set_io( &c.c_sb, 
+			(udp) ? &lber_pvt_sb_io_udp : &lber_pvt_sb_io_tcp, 
+			NULL );
+	   	/* FIXME: handle udp here */
+
 		ldap_pvt_thread_mutex_init( &c.c_dnmutex );
 		ldap_pvt_thread_mutex_init( &c.c_opsmutex );
 		ldap_pvt_thread_mutex_init( &c.c_pdumutex );
@@ -303,8 +305,8 @@ main( int argc, char **argv )
 				Debug( LDAP_DEBUG_ANY,
 				   "ber_peek_tag returns 0x%lx\n", tag, 0, 0 );
 				ber_free( &ber, 1 );
-				close( c.c_sb.sb_sd );
-				c.c_sb.sb_sd = -1;
+			   	lber_pvt_sb_close( &c.c_sb );
+			   	lber_pvt_sb_destroy( &c.c_sb );
 				return 1;
 			}
 

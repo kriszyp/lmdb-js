@@ -150,12 +150,11 @@ send_ldap_result(
 {
 #ifdef LDAP_CONNECTIONLESS
 	if ( op->o_cldap ) {
-		SAFEMEMCPY( (char *)conn->c_sb.sb_useaddr, &op->o_clientaddr,
-		    sizeof( struct sockaddr ));
+		lber_pvt_sb_udp_set_dst( &conn->c_sb, &op->o_clientaddr );
 		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
 		    inet_ntoa(((struct sockaddr_in *)
-		    conn->c_sb.sb_useaddr)->sin_addr ),
-		    ((struct sockaddr_in *) conn->c_sb.sb_useaddr)->sin_port,
+		    &op->o_clientaddr)->sin_addr ),
+		    ((struct sockaddr_in *) &op->o_clientaddr)->sin_port,
 		    0 );
 	}
 #endif
@@ -448,12 +447,12 @@ void
 close_connection( Connection *conn, int opconnid, int opid )
 {
 	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
-	if ( conn->c_sb.sb_sd != -1 && conn->c_connid == opconnid ) {
+	if ( lber_pvt_sb_in_use(&conn->c_sb) && conn->c_connid == opconnid ) {
 		Statslog( LDAP_DEBUG_STATS,
 		    "conn=%d op=%d fd=%d closed errno=%d\n", conn->c_connid,
-		    opid, conn->c_sb.sb_sd, errno, 0 );
-		close( conn->c_sb.sb_sd );
-		conn->c_sb.sb_sd = -1;
+		    opid, lber_pvt_sb_get_desc(&conn->c_sb), errno, 0 );
+	   	lber_pvt_sb_close( &conn->c_sb );
+	   	lber_pvt_sb_destroy( &conn->c_sb );
 		conn->c_version = 0;
 		conn->c_protocol = 0;
 	}

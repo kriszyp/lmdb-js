@@ -111,7 +111,7 @@ ldap_get_option(
 			break;
 		} 
 
-		* (int *) outvalue = ld->ld_sb.sb_sd;
+		* (int *) outvalue = lber_pvt_sb_get_desc( &(ld->ld_sb) );
 		return 0;
 
 	case LDAP_OPT_DEREF:

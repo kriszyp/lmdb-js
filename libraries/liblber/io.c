@@ -32,129 +32,10 @@
 
 #include "lber-int.h"
 
-static int ber_realloc LDAP_P(( BerElement *ber, unsigned long len ));
-static int ber_filbuf LDAP_P(( Sockbuf *sb, long len ));
 static long BerRead LDAP_P(( Sockbuf *sb, char *buf, long len ));
-#ifdef PCNFS
-static int BerWrite LDAP_P(( Sockbuf *sb, char *buf, long len ));
-#endif /* PCNFS */
-
-#define bergetc( sb, len )    ( sb->sb_ber.ber_end > sb->sb_ber.ber_ptr ? \
-			  (unsigned char)*sb->sb_ber.ber_ptr++ : \
-			  ber_filbuf( sb, len ))
-
-#ifdef MACOS
-/*
- * MacTCP/OpenTransport
- */
-#define read( s, b, l ) tcpread( s, 0, (unsigned char *)b, l, NULL )
-#define MAX_WRITE	65535
-#define BerWrite( sb, b, l )   tcpwrite( sb->sb_sd, (unsigned char *)(b), (l<MAX_WRITE)? l : MAX_WRITE )
-#else /* MACOS */
-#ifdef DOS
-#ifdef PCNFS
-/*
- * PCNFS (under DOS)
- */
-#define read( s, b, l ) recv( s, b, l, 0 )
-#define BerWrite( s, b, l ) send( s->sb_sd, b, (int) l, 0 )
-#endif /* PCNFS */
-#ifdef NCSA
-/*
- * NCSA Telnet TCP/IP stack (under DOS)
- */
-#define read( s, b, l ) nread( s, b, l )
-#define BerWrite( s, b, l ) netwrite( s->sb_sd, b, l )
-#endif /* NCSA */
-#ifdef WINSOCK
-/*
- * Windows Socket API (under DOS/Windows 3.x)
- */
-#define read( s, b, l ) recv( s, b, l, 0 )
-#define BerWrite( s, b, l ) send( s->sb_sd, b, l, 0 )
-#endif /* WINSOCK */
-#else /* DOS */
-#ifdef _WIN32
-/*
- * 32-bit Windows Socket API (under Windows NT or Windows 95)
- */
-#define read( s, b, l )		recv( s, b, l, 0 )
-#define BerWrite( s, b, l )	send( s->sb_sd, b, l, 0 )
-#else /* _WIN32 */
-#ifdef VMS
-/*
- * VMS -- each write must be 64K or smaller
- */
-#define MAX_WRITE 65535
-#define BerWrite( sb, b, l ) write( sb->sb_sd, b, (l<MAX_WRITE)? l : MAX_WRITE)
-#else /* VMS */
-/*
- * everything else (Unix/BSD 4.3 socket API)
- */
-#define BerWrite( sb, b, l )	write( sb->sb_sd, b, l )
-#endif /* VMS */
-#define udp_read( sb, b, l, al ) recvfrom(sb->sb_sd, (char *)b, l, 0, \
-		(struct sockaddr *)sb->sb_fromaddr, \
-		(al = sizeof(struct sockaddr), &al))
-#define udp_write( sb, b, l ) sendto(sb->sb_sd, (char *)(b), l, 0, \
-		(struct sockaddr *)sb->sb_useaddr, sizeof(struct sockaddr))
-#endif /* _WIN32 */
-#endif /* DOS */
-#endif /* MACOS */
-
-#ifndef udp_read
-#define udp_read( sb, b, l, al )	CLDAP NOT SUPPORTED
-#define udp_write( sb, b, l )		CLDAP NOT SUPPORTED
-#endif /* udp_read */
+static int ber_realloc LDAP_P(( BerElement *ber, unsigned long len ));
 
 #define EXBUFSIZ	1024
-
-static int
-ber_filbuf( Sockbuf *sb, long len )
-{
-	short	rc;
-#ifdef LDAP_CONNECTIONLESS
-	int	addrlen;
-#endif /* LDAP_CONNECTIONLESS */
-
-	if ( sb->sb_ber.ber_buf == NULL ) {
-		if ( (sb->sb_ber.ber_buf = (char *) malloc( READBUFSIZ )) ==
-		    NULL )
-			return( -1 );
-		sb->sb_ber.ber_ptr = sb->sb_ber.ber_buf;
-		sb->sb_ber.ber_end = sb->sb_ber.ber_buf;
-	}
-
-	if ( sb->sb_naddr > 0 ) {
-#ifdef LDAP_CONNECTIONLESS
-		rc = udp_read(sb, sb->sb_ber.ber_buf, READBUFSIZ, addrlen );
-
-		if ( sb->sb_debug ) {
-			lber_log_printf( LDAP_DEBUG_ANY, sb->sb_debug,
-				"ber_filbuf udp_read %d bytes\n",
-					rc );
-			if ( rc > 0 )
-				lber_log_bprint( LDAP_DEBUG_PACKETS, sb->sb_debug,
-					sb->sb_ber.ber_buf, rc );
-		}
-#else /* LDAP_CONNECTIONLESS */
-		rc = -1;
-#endif /* LDAP_CONNECTIONLESS */
-	} else {
-		rc = read( sb->sb_sd, sb->sb_ber.ber_buf,
-			((sb->sb_options & LBER_NO_READ_AHEAD) && (len < READBUFSIZ)) ?
-				len : READBUFSIZ );
-	}
-
-	if ( rc > 0 ) {
-		sb->sb_ber.ber_ptr = sb->sb_ber.ber_buf + 1;
-		sb->sb_ber.ber_end = sb->sb_ber.ber_buf + rc;
-		return( (unsigned char)*sb->sb_ber.ber_buf );
-	}
-
-	return( -1 );
-}
-
 
 static long
 BerRead( Sockbuf *sb, char *buf, long len )
@@ -163,19 +44,18 @@ BerRead( Sockbuf *sb, char *buf, long len )
 	long	nread = 0;
 
 	while ( len > 0 ) {
-		if ( (c = bergetc( sb, len )) < 0 ) {
+		if ( (c = lber_pvt_sb_read( sb, buf, len )) <= 0 ) {
 			if ( nread > 0 )
 				break;
 			return( c );
 		}
-		*buf++ = (char) c;
-		nread++;
-		len--;
+		buf+= c;
+		nread+=c;
+		len-=c;
 	}
 
 	return( nread );
 }
-
 
 long
 ber_read( BerElement *ber, char *buf, unsigned long len )
@@ -271,7 +151,7 @@ ber_free( BerElement *ber, int freebuf )
 int
 ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 {
-	long	nwritten, towrite, rc;
+	long	nwritten, towrite, rc;	
 
 	if ( ber->ber_rwptr == NULL ) {
 		ber->ber_rwptr = ber->ber_buf;
@@ -289,37 +169,18 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 
 #if !defined(MACOS) && !defined(DOS)
 	if ( sb->sb_options & (LBER_TO_FILE | LBER_TO_FILE_ONLY) ) {
-		rc = write( sb->sb_fd, ber->ber_buf, towrite );
+		rc = write( sb->sb_fd, ber->ber_rwptr, towrite );
 		if ( sb->sb_options & LBER_TO_FILE_ONLY ) {
 			return( (int)rc );
 		}
 	}
 #endif
-
+	
 	nwritten = 0;
 	do {
-		if (sb->sb_naddr > 0) {
-#ifdef LDAP_CONNECTIONLESS
-			rc = udp_write( sb, ber->ber_buf + nwritten,
-			    (size_t)towrite );
-#else /* LDAP_CONNECTIONLESS */
-			rc = -1;
-#endif /* LDAP_CONNECTIONLESS */
-			if ( rc <= 0 )
-				return( -1 );
-
-			/* fake error if write was not atomic */
-			if (rc < towrite) {
-#ifdef EMSGSIZE
-			    errno = EMSGSIZE;
-#endif
-			    return( -1 );
-			}
-		} else {
-			if ( (rc = BerWrite( sb, ber->ber_rwptr,
-			    (size_t) towrite )) <= 0 ) {
-				return( -1 );
-			}
+		rc = lber_pvt_sb_write( sb, ber->ber_rwptr, towrite );
+		if (rc<=0) {
+			return -1;
 		}
 		towrite -= rc;
 		nwritten += rc;
@@ -477,7 +338,7 @@ get_tag( Sockbuf *sb )
 	char		*tagp;
 	unsigned int	i;
 
-	if ( BerRead( sb, (char *) &xbyte, 1 ) != 1 )
+	if ( lber_pvt_sb_read( sb, (char *) &xbyte, 1 ) != 1 )
 		return( LBER_DEFAULT );
 
 	if ( (xbyte & LBER_BIG_TAG_MASK) != LBER_BIG_TAG_MASK )
@@ -486,7 +347,7 @@ get_tag( Sockbuf *sb )
 	tagp = (char *) &tag;
 	tagp[0] = xbyte;
 	for ( i = 1; i < sizeof(long); i++ ) {
-		if ( BerRead( sb, (char *) &xbyte, 1 ) != 1 )
+		if ( lber_pvt_sb_read( sb, (char *) &xbyte, 1 ) != 1 )
 			return( LBER_DEFAULT );
 
 		tagp[i] = xbyte;
@@ -553,7 +414,7 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 		 */
 
 		*len = netlen = 0;
-		if ( BerRead( sb, (char *) &lc, 1 ) != 1 ) {
+		if ( lber_pvt_sb_read( sb, (char *) &lc, 1 ) != 1 ) {
 			return( LBER_DEFAULT );
 		}
 		if ( lc & 0x80 ) {
@@ -582,12 +443,12 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 		    return( LBER_DEFAULT );
 		}
 #endif /* DOS && !_WIN32 */
-
+#ifdef DEADWOOD
 		if ( ( sb->sb_options & LBER_MAX_INCOMING_SIZE ) &&
 		    *len > (unsigned long) sb->sb_max_incoming ) {
 			return( LBER_DEFAULT );
 		}
-
+#endif
 		if ( (ber->ber_buf = (char *) malloc( (size_t)*len )) == NULL ) {
 			return( LBER_DEFAULT );
 		}
@@ -598,7 +459,7 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 
 	toread = (unsigned long)ber->ber_end - (unsigned long)ber->ber_rwptr;
 	do {
-		if ( (rc = BerRead( sb, ber->ber_rwptr, (long)toread )) <= 0 ) {
+		if ( (rc = lber_pvt_sb_read( sb, ber->ber_rwptr, (long)toread )) <= 0 ) {
 			return( LBER_DEFAULT );
 		}
 
@@ -619,34 +480,34 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 	return( ber->ber_tag );
 }
 
-Sockbuf *lber_sockbuf_alloc( void )
+Sockbuf *lber_pvt_sb_alloc( void )
 {
 	Sockbuf *sb = calloc(1, sizeof(Sockbuf));
-	sb->sb_debug = lber_int_debug;
+	lber_pvt_sb_init( sb );
 	return sb;
 }
 
-Sockbuf *lber_sockbuf_alloc_fd( int fd )
+Sockbuf *lber_pvt_sb_alloc_fd( int fd )
 {
-	Sockbuf *sb = lber_sockbuf_alloc();
-	sb->sb_sd = fd;
-
+	Sockbuf *sb = lber_pvt_sb_alloc();
+	lber_pvt_sb_set_desc( sb, fd );
+   	lber_pvt_sb_set_io( sb, &lber_pvt_sb_io_tcp, NULL );
 	return sb;
 }
 
-void lber_sockbuf_free( Sockbuf *sb )
+void lber_pvt_sb_free( Sockbuf *sb )
 {
 	if(sb == NULL) return;
-
+	lber_pvt_sb_destroy( sb );
 	free(sb);
 }
 
-int lber_sockbuf_get_option( Sockbuf *sb, int opt, void *outvalue )
+int lber_pvt_sb_get_option( Sockbuf *sb, int opt, void *outvalue )
 {
 	return LBER_OPT_ERROR;
 }
 
-int lber_sockbuf_set_option( Sockbuf *sb, int opt, void *invalue )
+int lber_pvt_sb_set_option( Sockbuf *sb, int opt, void *invalue )
 {
 	return LBER_OPT_ERROR;
 }

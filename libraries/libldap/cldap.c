@@ -84,19 +84,19 @@ cldap_open( char *host, int port )
 	close( s );
 	return( NULL );
     }
-
     if (( ld = ldap_init( host, port )) == NULL ) {
 	close( s );
 	return( NULL );
     }
-    if ( (ld->ld_sb.sb_fromaddr = (void *) calloc( 1,
-	    sizeof( struct sockaddr ))) == NULL ) {
+	
+    ld->ld_cldapnaddr = 0;
+    ld->ld_cldapaddrs = NULL;
 
-	ldap_ld_free(ld, 1);
-	return( NULL );
-    }	
-    ld->ld_sb.sb_sd = s;
-    ld->ld_sb.sb_naddr = 0;
+    if (lber_pvt_sb_set_io( &(ld->ld_sb), &lber_pvt_sb_io_udp, NULL )<0) {
+       ldap_ld_free(ld, 1 );
+       return NULL;
+    }
+	
     ld->ld_version = LDAP_VERSION;
 
     sock.sin_family = AF_INET;
@@ -155,7 +155,7 @@ cldap_open( char *host, int port )
 	}
     }
 
-    if ( ld->ld_sb.sb_addrs == NULL
+    if ( ld->ld_cldapaddrs == NULL
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	    || ( ld->ld_defconn = ldap_new_connection( ld, NULL, 1,0,0 )) == NULL
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
@@ -164,15 +164,16 @@ cldap_open( char *host, int port )
 	DO_RETURN( NULL );
     }
 
-    ld->ld_sb.sb_useaddr = ld->ld_sb.sb_addrs[ 0 ];
+    lber_pvt_sb_udp_set_dst( &ld->ld_sb, ld->ld_cldapaddrs[0] );
+
     cldap_setretryinfo( ld, 0, 0 );
 
 #ifdef LDAP_DEBUG
     putchar( '\n' );
-    for ( i = 0; i < ld->ld_sb.sb_naddr; ++i ) {
+    for ( i = 0; i < ld->ld_cldapnaddr; ++i ) {
 	Debug( LDAP_DEBUG_TRACE, "end of cldap_open address %d is %s\n",
 		i, inet_ntoa( ((struct sockaddr_in *)
-		ld->ld_sb.sb_addrs[ i ])->sin_addr ), 0 );
+		ld->ld_cldapaddrs[ i ])->sin_addr ), 0 );
     }
 #endif
 
@@ -217,11 +218,13 @@ cldap_search_s( LDAP *ld, char *base, int scope, char *filter, char **attrs,
 	if ( cri.cri_try != 0 ) {
 		--ld->ld_msgid;	/* use same id as before */
 	}
-	ld->ld_sb.sb_useaddr = ld->ld_sb.sb_addrs[ cri.cri_useaddr ];
+	    
+	lber_pvt_sb_udp_set_dst( &(ld->ld_sb), 
+			ld->ld_cldapaddrs[ cri.cri_useaddr ] );
 
 	Debug( LDAP_DEBUG_TRACE, "cldap_search_s try %d (to %s)\n",
 	    cri.cri_try, inet_ntoa( ((struct sockaddr_in *)
-	    ld->ld_sb.sb_useaddr)->sin_addr ), 0 );
+	    ld->ld_cldapaddrs[ cri.cri_useaddr ])->sin_addr), 0 );
 
 	    if ( (msgid = ldap_search( ld, base, scope, filter, attrs,
 		attrsonly )) == -1 ) {
@@ -253,12 +256,12 @@ add_addr( LDAP *ld, struct sockaddr *sap )
 	ld->ld_errno = LDAP_NO_MEMORY;
 	return( -1 );
     }
-
-    if ( ld->ld_sb.sb_naddr == 0 ) {
+	
+    if ( ld->ld_cldapnaddr == 0 ) {	
 	addrs = (struct sockaddr **)malloc( sizeof(struct sockaddr *));
     } else {
-	addrs = (struct sockaddr **)realloc( ld->ld_sb.sb_addrs,
-		( ld->ld_sb.sb_naddr + 1 ) * sizeof(struct sockaddr *));
+	addrs = (struct sockaddr **)realloc( ld->ld_cldapaddrs,
+		( ld->ld_cldapnaddr + 1 ) * sizeof(struct sockaddr *));
     }
 
     if ( addrs == NULL ) {
@@ -268,8 +271,8 @@ add_addr( LDAP *ld, struct sockaddr *sap )
     }
 
     SAFEMEMCPY( (char *)newsap, (char *)sap, sizeof( struct sockaddr ));
-    addrs[ ld->ld_sb.sb_naddr++ ] = newsap;
-    ld->ld_sb.sb_addrs = (void **)addrs;
+    addrs[ ld->ld_cldapnaddr++ ] = newsap;
+    ld->ld_cldapaddrs = (void **)addrs;
     return( 0 );
 }
 
@@ -287,14 +290,14 @@ cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
     fromaddr = -1;
 
     if ( crip->cri_try == 0 ) {
-	crip->cri_maxtries = ld->ld_cldaptries * sb->sb_naddr;
+	crip->cri_maxtries = ld->ld_cldaptries * ld->ld_cldapnaddr;
 	crip->cri_timeout = ld->ld_cldaptimeout;
 	crip->cri_useaddr = 0;
 	Debug( LDAP_DEBUG_TRACE, "cldap_result tries %d timeout %d\n",
 		ld->ld_cldaptries, ld->ld_cldaptimeout, 0 );
     }
 
-    if ((tv.tv_sec = crip->cri_timeout / sb->sb_naddr) < 1 ) {
+    if ((tv.tv_sec = crip->cri_timeout / ld->ld_cldapnaddr) < 1 ) {
 	tv.tv_sec = 1;
     }
     tv.tv_usec = 0;
@@ -319,7 +322,7 @@ cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
 	    ret = LDAP_TIMEOUT;
 	    --crip->cri_try;
 	} else {
-	    if ( ++crip->cri_useaddr >= sb->sb_naddr ) {
+	    if ( ++crip->cri_useaddr >= ld->ld_cldapnaddr ) {
 		/*
 		 * new round: reset address to first one and
 		 * double the timeout
@@ -350,14 +353,17 @@ cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
 		    msgid, id, 0 );
 	    ret = -1;	/* ignore and keep looking */
 	} else {
+	    struct sockaddr_in * src;
 	    /*
 	     * got a result: determine which server it came from
 	     * decode into ldap message chain
 	     */
-	    for ( fromaddr = 0; fromaddr < sb->sb_naddr; ++fromaddr ) {
+	    src = (struct sockaddr_in *) lber_pvt_sb_udp_get_src( sb );
+		
+	    for ( fromaddr = 0; fromaddr < ld->ld_cldapnaddr; ++fromaddr ) {
 		    if ( memcmp( &((struct sockaddr_in *)
-			    sb->sb_addrs[ fromaddr ])->sin_addr,
-			    &((struct sockaddr_in *)sb->sb_fromaddr)->sin_addr,
+			    ld->ld_cldapaddrs[ fromaddr ])->sin_addr,
+			    &(src->sin_addr),
 			    sizeof( struct in_addr )) == 0 ) {
 			break;
 		    }
@@ -380,18 +386,19 @@ cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
      */
     if ( ret != -1 ) {
 	i = crip->cri_try;
-	if ( i >= sb->sb_naddr ) {
-	    i = sb->sb_naddr - 1;
+	if ( i >= ld->ld_cldapnaddr ) {
+	    i = ld->ld_cldapnaddr - 1;
 	}
 
 	for ( ; i >= 0; --i ) {
 	    if ( i == fromaddr ) {
 		continue;
 	    }
-	    sb->sb_useaddr = sb->sb_addrs[ i ];
+	    lber_pvt_sb_udp_set_dst( sb, ld->ld_cldapaddrs[i] );
+
 	    Debug( LDAP_DEBUG_TRACE, "cldap_result abandoning id %d (to %s)\n",
 		msgid, inet_ntoa( ((struct sockaddr_in *)
-		sb->sb_useaddr)->sin_addr ), 0 );
+		ld->ld_cldapaddrs[i])->sin_addr ), 0 );
 	    (void) ldap_abandon( ld, msgid );
 	}
     }

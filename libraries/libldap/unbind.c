@@ -39,7 +39,7 @@ ldap_ld_free( LDAP *ld, int close )
 	LDAPRequest	*lr, *nextlr;
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
-	if ( ld->ld_sb.sb_naddr == 0 ) {
+	if ( ld->ld_cldapnaddr == 0 ) {
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 		/* free LDAP structure and outstanding requests/responses */
 		for ( lr = ld->ld_requests; lr != NULL; lr = nextlr ) {
@@ -60,11 +60,10 @@ ldap_ld_free( LDAP *ld, int close )
 	} else {
 		int	i;
 
-		for ( i = 0; i < ld->ld_sb.sb_naddr; ++i ) {
-			free( ld->ld_sb.sb_addrs[ i ] );
+		for ( i = 0; i < ld->ld_cldapnaddr; ++i ) {
+			free( ld->ld_cldapaddrs[ i ] );
 		}
-		free( ld->ld_sb.sb_addrs );
-		free( ld->ld_sb.sb_fromaddr );
+		free( ld->ld_cldapaddrs );
 	}
 
 	for ( lm = ld->ld_responses; lm != NULL; lm = next ) {
@@ -86,10 +85,6 @@ ldap_ld_free( LDAP *ld, int close )
 		free( ld->ld_ufnprefix );
 	if ( ld->ld_filtd != NULL )
 		ldap_getfilter_free( ld->ld_filtd );
-#ifndef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
-	if ( ld->ld_sb.sb_ber.ber_buf != NULL )
-		free( ld->ld_sb.sb_ber.ber_buf );
-#endif /* !LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 	if ( ld->ld_abandoned != NULL )
 		free( ld->ld_abandoned );
 
@@ -104,8 +99,10 @@ ldap_ld_free( LDAP *ld, int close )
 	if ( ld->ld_options.ldo_defhost != NULL )
 		free( ld->ld_options.ldo_defhost );
 
+	lber_pvt_sb_destroy( &(ld->ld_sb) );   
+   
 	free( (char *) ld );
-
+   
 	WSACleanup();
 
 	return( err );

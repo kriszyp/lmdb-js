@@ -70,7 +70,7 @@ monitor_info( Connection *conn, Operation *op )
 
 	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 	for ( i = 0; i < dtblsize; i++ ) {
-		if ( c[i].c_sb.sb_sd != -1 ) {
+		if ( lber_pvt_sb_in_use(&(c[i].c_sb)) ) {
 			nconns++;
 			if ( c[i].c_writewaiter ) {
 				nwritewaiters++;

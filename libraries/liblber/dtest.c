@@ -49,7 +49,7 @@ main( int argc, char **argv )
 	cshow( stdout );
 #endif /* MACOS */
 
-	sb = lber_sockbuf_alloc_fd( fileno(stdin) );
+	sb = lber_pvt_sb_alloc_fd( fileno(stdin) );
 
 	if( (ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 		perror( "ber_alloc_t" );
@@ -68,6 +68,6 @@ main( int argc, char **argv )
 	}
 	printf( "got int %ld\n", i );
 
-	lber_sockbuf_free( sb );
+	lber_pvt_sb_free( sb );
 	return( 0 );
 }

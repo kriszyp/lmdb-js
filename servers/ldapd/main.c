@@ -515,18 +515,10 @@ do_queries(
 		conn_init();
 	}
 
-	(void) memset( (void *) &sb, '\0', sizeof( sb ) );
-	sb.sb_sd = clientsock;
-	sb.sb_naddr = ( udp ) ? 1 : 0;
-#ifdef LDAP_CONNECTIONLESS
-	sb.sb_addrs = (void **)saddrlist;
-	sb.sb_fromaddr = &faddr;
-	sb.sb_useaddr = saddrlist[ 0 ] = &saddr;
-#endif
-	sb.sb_ber.ber_buf = NULL;
-	sb.sb_ber.ber_ptr = NULL;
-	sb.sb_ber.ber_end = NULL;
-
+   	lber_pvt_sb_init( &sb );
+   	lber_pvt_sb_set_desc( &sb, clientsock );
+	lber_pvt_sb_set_io( &sb, (udp) ? &lber_pvt_sb_io_udp :
+					&lber_pvt_sb_io_tcp, NULL );
 	timeout.tv_sec = idletime;
 	timeout.tv_usec = 0;
 	for ( ;; ) {
@@ -555,7 +547,7 @@ do_queries(
 		 * already waiting for us on the client sock.
 		 */
 
-		if ( sb.sb_ber.ber_ptr >= sb.sb_ber.ber_end ) {
+		if ( ! lber_pvt_sb_data_ready( &sb ) ) {
 			if ( (rc = select( dtblsize, &readfds, 0, 0,
 			    udp ? 0 : &timeout )) < 1 ) {
 #ifdef LDAP_DEBUG
@@ -581,7 +573,7 @@ do_queries(
 			}
 		}
 
-		if ( sb.sb_ber.ber_ptr < sb.sb_ber.ber_end ||
+		if ( lber_pvt_sb_data_ready( &sb ) ||
 		    FD_ISSET( clientsock, &readfds ) ) {
 			client_request( &sb, conns, udp );
 		} else {

@@ -133,7 +133,7 @@ connection_activity(
 	    != LDAP_TAG_MESSAGE ) {
 		Debug( LDAP_DEBUG_TRACE,
 		    "ber_get_next on fd %d failed errno %d (%s)\n",
-		    conn->c_sb.sb_sd, errno, errno > -1 && errno < sys_nerr ?
+		    lber_pvt_sb_get_desc(&conn->c_sb), errno, errno > -1 && errno < sys_nerr ?
 		    sys_errlist[errno] : "unknown" );
 		Debug( LDAP_DEBUG_TRACE, "*** got %ld of %lu so far\n",
 		    (long)(conn->c_currentber->ber_rwptr - conn->c_currentber->ber_buf),
