@@ -428,6 +428,7 @@ get_substring_filter(
 				"  unknown substring choice=%ld\n",
 				(long) tag, 0, 0 );
 #endif
+
 			free( value.bv_val );
 			goto return_error;
 		}
@@ -529,6 +530,7 @@ get_substring_filter(
 				(long) tag, 0, 0 );
 #endif
 
+			assert( 0 );
 			free( nvalue.bv_val );
 
 return_error:

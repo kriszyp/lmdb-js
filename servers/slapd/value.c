@@ -167,6 +167,8 @@ int asserted_value_validate_normalize(
 	} else {
 		ber_dupbv( out, in );
 	}
+
+	return LDAP_SUCCESS;
 }
 
 #else
