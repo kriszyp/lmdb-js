@@ -13,3 +13,4 @@ LIBRARY = libavl.a
 PROGRAMS	= testavl
 
 testavl:	$(LIBRARY) testavl.o
+	$(LTLINK) $(LDFLAGS) -o $@ testavl.o $(LDAP_LIBPATH) -lavl
