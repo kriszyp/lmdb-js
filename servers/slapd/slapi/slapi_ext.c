@@ -3,11 +3,10 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
- * (C) Copyright PADL Software Pty Ltd. 2003
+ * Portions Copyright IBM Corp. 1997,2002-2003
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that this notice is preserved
- * and that due credit is given to PADL Software Pty Ltd. This software
- * is provided ``as is'' without express or implied warranty.
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License, version 2.7 or later.
  */
 
 #include "portable.h"

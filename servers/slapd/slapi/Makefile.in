@@ -1,12 +1,10 @@
 ## Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
 ## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 
-## Copyright IBM Corp. 1997,2002
-## Use of this source code is subject to the terms of The OpenLDAP Public 
-## License Version 2.7, 7 September 2001.
-## No trademarks of the IBM Corporation are to be used to identify, endorse 
-## or promote  any products derived from this code without the prior 
-## written consent of IBM 
+## Copyright IBM Corp. 1997,2002,2003
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted only as authorized by the OpenLDAP
+## Public License.
 
 LIBRARY = libslapi.la
 
