@@ -1624,12 +1624,13 @@ int main(argc, argv)
 	pthread_create(&t, NULL, task, NULL);
 #endif
 
-#if HAVE_SCHED_YIELD
-	sched_yield();	/* make sure task runs first */
-#else
-#ifdef HAVE_PTHREAD_YIELD
-	pthread_yield();	/* make sure task runs first */
-#endif
+	/* make sure task runs first */
+#if HAVE_THR_YIELD
+	thr_yield();
+#elif defined( HAVE_SCHED_YIELD )
+	sched_yield();
+#elif defined( HAVE_PTHREAD_YIELD )
+	pthread_yield();
 #endif
 
 	exit(2);
