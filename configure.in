@@ -1958,32 +1958,46 @@ fi
 
 dnl ----------------------------------------------------------------
 if test $ol_enable_wrappers != no ; then
-	AC_CHECK_HEADERS(tcpd.h)
-
-	if test $ac_cv_header_tcpd_h != yes ; then
-		have_wrappers=no
-	else
-		AC_TRY_COMPILE([
+	AC_CHECK_HEADERS(tcpd.h,[
+		AC_MSG_CHECKING([for TCP wrappers library])
+		save_LIBS="$LIBS"
+		LIBS="$LIBS -lwrap"
+		AC_TRY_LINK([
+#include <tcpd.h>
 int allow_severity = 0;
 int deny_severity  = 0;
-		],[hosts_access()],[have_wrappers=yes],[have_wrappers=no])
-	fi
+
+struct request_info *req;
+		],[
+hosts_access(req)
+		],[AC_MSG_RESULT([-lwrap])
+		have_wrappers=yes
+		LIBS="$save_LIBS"],[
+		dnl try with -lnsl
+		LIBS="$LIBS -lnsl"
+		AC_TRY_LINK([
+#include <tcpd.h>
+int allow_severity = 0;
+int deny_severity  = 0;
+
+struct request_info *req;
+		],[
+hosts_access(req)
+		],[AC_MSG_RESULT([-lwrap -lnsl])
+		have_wrappers=yes
+		LIBS="$save_LIBS -lnsl"],[
+		AC_MSG_RESULT(no)
+		have_wrappers=no
+		LIBS=$save_LIBS])],[
+		have_wrappers=no])],[have_wrappers=no])
 
 	if test $have_wrappers = yes ; then
 		AC_DEFINE(HAVE_TCPD,1, [define if you have -lwrap])
 		WRAP_LIBS="-lwrap"
-
-		dnl We add another check for -lnsl since some libwrap's
-		dnl need it, but it isn't always included from above
-		AC_CHECK_LIB(nsl, main)
+	elif test $ol_enable_wrappers = yes ; then
+		AC_MSG_ERROR([could not find TCP wrappers, select apppropriate options ore disable])
 	else
-		AC_MSG_WARN(could not find -lwrap)
-		if test $ol_enable_wrappers = yes ; then
-			AC_MSG_ERROR(could not find wrappers, select appropriate options or disable)
-		fi
-
-		AC_MSG_WARN(disabling wrappers support)
-		ol_enable_wrappers=no
+		AC_MSG_WARN([could not find TCP wrappers, support disabled])
 		WRAP_LIBS=""
 	fi
 fi
