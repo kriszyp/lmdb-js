@@ -40,9 +40,11 @@ NT_DYN_LIB_LIBS  = -llber $(AC_LIBS)
 NT_DYN_LIB_DEFS  = -DLIBLBER_DECL=dllimport
 NT_DYN_TEST_DEFS = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport
 
+NT_XXLIBS = $(SECURITY_LIBS)
+
 # Extras for building the library
 EXTRA_DEFS = $(@PLAT@_@LIB_LINKAGE@_LIB_DEFS)
-EXTRA_LIBS = $(@PLAT@_@LIB_LINKAGE@_LIB_LIBS)
+EXTRA_LIBS = $(@PLAT@_@LIB_LINKAGE@_LIB_LIBS) $(@PLAT@_XXLIBS)
 
 # Only the test programs will pick up these defs.
 CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_TEST_DEFS)
