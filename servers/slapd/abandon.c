@@ -83,7 +83,6 @@ do_abandon(
 		return LDAP_SUCCESS;
 	}
 
-	notfound = 1; /* not found */
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 	/*
 	 * find the operation being abandoned and set the o_abandon
@@ -96,21 +95,16 @@ do_abandon(
 			ldap_pvt_thread_mutex_lock( &o->o_abandonmutex );
 			o->o_abandon = 1;
 			ldap_pvt_thread_mutex_unlock( &o->o_abandonmutex );
-
-			notfound = 0;
 			goto done;
 		}
 	}
 
 	LDAP_STAILQ_FOREACH( o, &conn->c_pending_ops, o_next ) {
-		if ( o->o_msgid == id )
-			break;
-	}
-
-	if( o != NULL ) {
-		LDAP_STAILQ_REMOVE( &conn->c_pending_ops, o, slap_op, o_next );
-		slap_op_free( o );
-		notfound = 0;
+		if ( o->o_msgid == id ) {
+			LDAP_STAILQ_REMOVE( &conn->c_pending_ops, o, slap_op, o_next );
+			slap_op_free( o );
+			goto done;
+		}
 	}
 
 done:
@@ -119,10 +113,10 @@ done:
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
 		"do_abandon: conn: %d op=%ld %sfound\n",
-		conn->c_connid, (long)id, notfound ? "not " : "" ));
+		conn->c_connid, (long)id, o ? "" : "not " ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_abandon: op=%ld %sfound\n",
-		(long) id, notfound ? "not " : "", 0 );
+		(long) id, o ? "" : "not ", 0 );
 #endif
 	return LDAP_SUCCESS;
 }
