@@ -103,13 +103,13 @@ fail:		return( ldap_back_op_result(lc, op) );
 			e = ldap_first_entry(lc->ld,res);
 			ldap_send_entry(be, op, lc, e, attrs, attrsonly);
 			i++;
+			ldap_msgfree(res);
 		} else {
 			sres = ldap_result2error(lc->ld, res, 1);
 			ldap_get_option(lc->ld, LDAP_OPT_ERROR_STRING, &err);
 			ldap_get_option(lc->ld, LDAP_OPT_MATCHED_DN, &match);
 			rc = 0;
 		}
-		ldap_msgfree(res);
 		if (ab)
 			return (0);
 		else if (rc == 0)
