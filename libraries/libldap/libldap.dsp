@@ -156,6 +156,10 @@ SOURCE=.\getvalues.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\init.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\kbind.c
 # End Source File
 # Begin Source File
@@ -201,6 +205,10 @@ SOURCE=.\sort.c
 # Begin Source File
 
 SOURCE=.\srchpref.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\strdup.c
 # End Source File
 # Begin Source File
 
