@@ -37,7 +37,7 @@ bdb_add(Operation *op, SlapReply *rs )
 
 	Operation* ps_list;
 	int		rc;
-	EntryInfo	*suffix_ei;
+	EntryInfo	*suffix_ei = NULL;
 	Entry		*ctxcsn_e;
 	int			ctxcsn_added = 0;
 

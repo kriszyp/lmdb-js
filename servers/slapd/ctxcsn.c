@@ -33,12 +33,17 @@
 #include "slap.h"
 #include "lutil_ldap.h"
 
-struct berval *
-slap_get_commit_csn( Operation *op )
+const struct berval slap_ldapsync_bv = BER_BVC("ldapsync");
+const struct berval slap_ldapsync_cn_bv = BER_BVC("cn=ldapsync");
+
+void
+slap_get_commit_csn( Operation *op, struct berval *csn )
 {
-	struct berval *max_committed_csn = NULL;
 	struct slap_csn_entry *csne = NULL, *committed_csne = NULL;
 	int i = 0;
+
+	csn->bv_val = NULL;
+	csn->bv_len = 0;
 
 	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
 
@@ -61,10 +66,8 @@ slap_get_commit_csn( Operation *op )
 	ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
 
 	if ( committed_csne ) {
-		max_committed_csn = ber_dupbv( NULL, committed_csne->csn );
+		ber_dupbv( csn, committed_csne->csn );
 	}
-
-	return max_committed_csn;
 }
 
 void
@@ -132,10 +135,7 @@ slap_create_context_csn_entry(
 
 	attr_merge( e, slap_schema.si_ad_objectClass, ocbva, NULL );
 
-	bv.bv_val = "subentry";
-	bv.bv_len = sizeof("subentry")-1;
-
-	attr_merge_one( e, slap_schema.si_ad_structuralObjectClass, &bv, NULL );
+	attr_merge_one( e, slap_schema.si_ad_structuralObjectClass, &ocbva[1], NULL );
 
 	attr_merge_one( e, slap_schema.si_ad_cn, &slap_ldapsync_bv, NULL );
 

@@ -44,10 +44,9 @@ bdb_csn_commit(
 )
 {
 	struct bdb_info	*bdb = (struct bdb_info *) op->o_bd->be_private;
-	struct berval	ctxcsn_ndn = { 0, NULL };
 	EntryInfo		*ctxcsn_ei = NULL;
 	DB_LOCK			ctxcsn_lock;
-	struct berval	*max_committed_csn = NULL;
+	struct berval	max_committed_csn;
 	DB_LOCK			suffix_lock;
 	int				rc, ret;
 	ID				ctxcsn_id;
@@ -60,17 +59,20 @@ bdb_csn_commit(
 		e = ei->bei_e;
 	}
 
-	build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0],
-		(struct berval *)&slap_ldapsync_cn_bv );
+	bdb_cache_find_ndn( op, tid, op->o_bd->be_nsuffix, &ctxcsn_ei );
+	bdb_cache_entryinfo_unlock( ctxcsn_ei );
+	rc = bdb_cache_find_ndn( op, tid, &slap_ldapsync_cn_bv, &ctxcsn_ei );
+	if ( rc == 0 ) {
+		rc = bdb_cache_find_id( op, tid, ctxcsn_ei->bei_id, &ctxcsn_ei, 1,
+			locker, &ctxcsn_lock );
+		*ctxcsn_e = ctxcsn_ei->bei_e;
+	} else {
+		bdb_cache_entryinfo_unlock( ctxcsn_ei );
+	}
 
-	rc = bdb_dn2entry( op, tid, &ctxcsn_ndn, &ctxcsn_ei,
-							   1, locker, &ctxcsn_lock );
+	slap_get_commit_csn( op, &max_committed_csn );
 
-	*ctxcsn_e = ctxcsn_ei->bei_e;
-
-	max_committed_csn = slap_get_commit_csn( op );
-
-	if ( max_committed_csn == NULL ) {
+	if ( max_committed_csn.bv_val == NULL ) {
 		return BDB_CSN_COMMIT;
 	}
 
@@ -81,13 +83,14 @@ bdb_csn_commit(
 		if ( !*ctxcsn_e ) {
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "context csn not present";
-			ber_bvfree( max_committed_csn );
+			ch_free( max_committed_csn.bv_val );
 			return BDB_CSN_ABORT;
 		} else {
 			Modifications mod;
 			struct berval modvals[2];
+			Entry dummy;
 
-			modvals[0] = *max_committed_csn;
+			modvals[0] = max_committed_csn;
 			modvals[1].bv_val = NULL;
 			modvals[1].bv_len = 0;
 
@@ -98,11 +101,10 @@ bdb_csn_commit(
 			mod.sml_type = mod.sml_desc->ad_cname;
 			mod.sml_next = NULL;
 
-			bdb_cache_entry_db_relock( bdb->bi_dbenv, locker, ctxcsn_ei, 1, 0, &ctxcsn_lock );
-
-			ret = bdb_modify_internal( op, tid, &mod, *ctxcsn_e,
-									&rs->sr_text, textbuf, textlen );								
-			ber_bvfree( max_committed_csn );
+			dummy = **ctxcsn_e;
+			ret = bdb_modify_internal( op, tid, &mod, &dummy,
+									&rs->sr_text, textbuf, textlen );						       
+			ch_free( max_committed_csn.bv_val );
 			if ( ret != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR,
@@ -120,7 +122,7 @@ bdb_csn_commit(
 				}
 			}
 
-			ret = bdb_id2entry_update( op->o_bd, tid, *ctxcsn_e );
+			ret = bdb_id2entry_update( op->o_bd, tid, &dummy );
 			switch ( ret ) {
 			case 0 :
 				break;
@@ -132,6 +134,7 @@ bdb_csn_commit(
 				rs->sr_text = "context csn update failed";
 				return BDB_CSN_ABORT;
 			}
+			bdb_cache_modify( *ctxcsn_e, dummy.e_attrs, bdb->bi_dbenv, locker, &ctxcsn_lock );
 		}
 		break;
 	case DB_NOTFOUND:
@@ -159,8 +162,8 @@ bdb_csn_commit(
 			return BDB_CSN_ABORT;
 		}
 
-		*ctxcsn_e = slap_create_context_csn_entry( op->o_bd, max_committed_csn );
-		ber_bvfree( max_committed_csn );
+		*ctxcsn_e = slap_create_context_csn_entry( op->o_bd, &max_committed_csn );
+		ch_free( max_committed_csn.bv_val );
 		(*ctxcsn_e)->e_id = ctxcsn_id;
 		*ctxcsn_added = 1;
 
