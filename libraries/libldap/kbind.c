@@ -35,7 +35,7 @@
  *	ldap_kerberos_bind1( ld, "cn=manager, o=university of michigan, c=us" )
  */
 int
-ldap_kerberos_bind1( LDAP *ld, char *dn )
+ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 {
 	BerElement	*ber;
 	char		*cred;
@@ -110,7 +110,7 @@ ldap_kerberos_bind1( LDAP *ld, char *dn )
 }
 
 int
-ldap_kerberos_bind1_s( LDAP *ld, char *dn )
+ldap_kerberos_bind1_s( LDAP *ld, LDAP_CONST char *dn )
 {
 	int		msgid;
 	LDAPMessage	*res;
@@ -141,7 +141,7 @@ ldap_kerberos_bind1_s( LDAP *ld, char *dn )
  *	ldap_kerberos_bind2( ld, "cn=manager, o=university of michigan, c=us" )
  */
 int
-ldap_kerberos_bind2( LDAP *ld, char *dn )
+ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 {
 	BerElement	*ber;
 	char		*cred;
@@ -198,7 +198,7 @@ ldap_kerberos_bind2( LDAP *ld, char *dn )
 
 /* synchronous bind to DSA using kerberos */
 int
-ldap_kerberos_bind2_s( LDAP *ld, char *dn )
+ldap_kerberos_bind2_s( LDAP *ld, LDAP_CONST char *dn )
 {
 	int		msgid;
 	LDAPMessage	*res;
@@ -220,7 +220,7 @@ ldap_kerberos_bind2_s( LDAP *ld, char *dn )
 
 /* synchronous bind to ldap and DSA using kerberos */
 int
-ldap_kerberos_bind_s( LDAP *ld, char *dn )
+ldap_kerberos_bind_s( LDAP *ld, LDAP_CONST char *dn )
 {
 	int	err;
 
@@ -241,7 +241,11 @@ ldap_kerberos_bind_s( LDAP *ld, char *dn )
  */
 
 char *
-ldap_get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
+ldap_get_kerberosv4_credentials(
+	LDAP *ld,
+	LDAP_CONST char *who,
+	LDAP_CONST char *service,
+	int *len )
 {
 	KTEXT_ST	ktxt;
 	int		err;

@@ -296,8 +296,11 @@ void free_strarray LDAP_P(( char **sap ));
 /*
  * in kerberos.c
  */
-char *ldap_get_kerberosv4_credentials LDAP_P(( LDAP *ld, char *who, char *service,
-        int *len ));
+char *ldap_get_kerberosv4_credentials LDAP_P((
+	LDAP *ld,
+	LDAP_CONST char *who,
+	LDAP_CONST char *service,
+	int *len ));
 
 #endif /* HAVE_KERBEROS */
 
