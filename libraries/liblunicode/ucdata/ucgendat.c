@@ -140,7 +140,7 @@ static ac_uint4 kdecomps_size;
  */
 #define COMPEX_SET(c) (compexs[(c) >> 5] |= (1 << ((c) & 31)))
 #define COMPEX_TEST(c) (compexs[(c) >> 5] & (1 << ((c) & 31)))
-static ac_uint4 compexs[2048];
+static ac_uint4 compexs[8192];
 
 /*
  * Struct for holding a composition pair, and array of composition pairs
@@ -1204,10 +1204,11 @@ cmpcomps(const void *v_comp1, const void *v_comp2)
 static void
 read_compexdata(FILE *in)
 {
-    ac_uint2 i, code;
+    ac_uint2 i;
+    ac_uint4 code;
     char line[512], *s;
 
-    (void) memset((char *) compexs, 0, sizeof(ac_uint4) << 11);
+    (void) memset((char *) compexs, 0, sizeof(compexs));
 
     while (fgets(line, sizeof(line), in)) {
 	if( (s=strchr(line, '\n')) ) *s = '\0';
@@ -1218,10 +1219,11 @@ read_compexdata(FILE *in)
 	    continue;
 
 	/*
-         * Collect the code.  Assume max 4 digits
+         * Collect the code.  Assume max 6 digits
          */
 
-	for (s = line, i = code = 0; *s != '#' && i < 4; i++, s++) {
+	for (s = line, i = code = 0; *s != '#' && i < 6; i++, s++) {
+	    if (isspace(*s)) break;
             code <<= 4;
             if (*s >= '0' && *s <= '9')
 		code += *s - '0';
