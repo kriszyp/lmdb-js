@@ -81,7 +81,7 @@ H3: Global Directives
 
 Directives described in this section apply to all backends
 and databases unless specifically overridden in a backend or
-database definition. Arguments that should be replaced
+database definition.  Arguments that should be replaced
 by actual text are shown in brackets {{EX:<>}}.
 
 
@@ -229,17 +229,30 @@ exceeded timelimit will be returned.
 
 H3: General Backend Directives
 
+Directives in this section apply only to the backend in which
+they are defined. They are supported by every type of backend.
+Backend directives apply to all databases instances of the
+same type and, depending on the directive, may be overridden
+by database directives.
+
+H4: backend <type>
+
+This directive marks the beginning of a backend definition.
+{{EX:<type>}} should be one of {{EX:ldbm}}, {{EX:shell}},
+{{EX:passwd}}, or other supported backend type.
+
+
 H3: General Database Directives
 
-Directives in this section only apply to the database in which
+Directives in this section apply only to the database in which
 they are defined. They are supported by every type of database.
 
-H4: database <databasetype>
+H4: database <type>
 
 This directive marks the beginning of a new database instance
-definition. <databasetype> should be one of ldbm, shell, or
-passwd, depending on which backend will serve the
-database.
+definition.
+{{EX:<type>}} should be one of {{EX:ldbm}}, {{EX:shell}},
+{{EX:passwd}}, or other supported database type.
 
 \Example:
 
