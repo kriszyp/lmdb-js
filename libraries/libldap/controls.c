@@ -300,7 +300,7 @@ LDAPControl *ldap_control_dup( const LDAPControl *c )
 	}
 
 	if( c->ldctl_oid != NULL ) {
-		new->ldctl_oid = strdup( c->ldctl_oid );
+		new->ldctl_oid = LDAP_STRDUP( c->ldctl_oid );
 
 		if(new->ldctl_oid == NULL) {
 			LDAP_FREE( new );

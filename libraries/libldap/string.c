@@ -103,17 +103,3 @@ char *
 	memcpy( p, s, len );
 	return( p );
 }
-
-char *
-(ldap_int_strdup)( const char *s )
-{
-	char    *p;
-	size_t	len = strlen( s ) + 1;
-
-	if ( (p = (char *) LDAP_MALLOC( len )) == NULL ) {
-		return( NULL );
-	}
-
-	memcpy( p, s, len );
-	return( p );
-}

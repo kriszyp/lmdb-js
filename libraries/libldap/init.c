@@ -166,7 +166,7 @@ static void openldap_ldap_init_w_conf(const char *file)
 			case ATTR_STRING:
 				p = &((char *) &gopts)[attrs[i].offset];
 				if (* (char**) p != NULL) LDAP_FREE(* (char**) p);
-				* (char**) p = strdup(opt);
+				* (char**) p = LDAP_STRDUP(opt);
 				break;
 			}
 		}
@@ -276,7 +276,7 @@ static void openldap_ldap_init_w_env(const char *prefix)
 			if (*value == '\0') {
 				* (char**) p = NULL;
 			} else {
-				* (char**) p = strdup(value);
+				* (char**) p = LDAP_STRDUP(value);
 			}
 			break;
 		}
@@ -298,7 +298,7 @@ void ldap_int_initialize( void )
 
 	gopts.ldo_debug = 0;
 
-	gopts.ldo_defhost = strdup("localhost");
+	gopts.ldo_defhost = LDAP_STRDUP("localhost");
 	gopts.ldo_defport = LDAP_PORT;
 
 	gopts.ldo_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;

@@ -256,7 +256,7 @@ ldap_syntax2str( LDAP_SYNTAX * syn )
 	print_whsp(ss);
 	print_literal(ss,")");
 
-	retstring = strdup(safe_string_val(ss));
+	retstring = LDAP_STRDUP(safe_string_val(ss));
 	safe_string_free(ss);
 	return(retstring);
 }
@@ -330,7 +330,7 @@ ldap_objectclass2str( LDAP_OBJECT_CLASS * oc )
 	print_whsp(ss);
 	print_literal(ss,")");
 
-	retstring = strdup(safe_string_val(ss));
+	retstring = LDAP_STRDUP(safe_string_val(ss));
 	safe_string_free(ss);
 	return(retstring);
 }
@@ -429,7 +429,7 @@ ldap_attributetype2str( LDAP_ATTRIBUTE_TYPE * at )
 	print_whsp(ss);
 	print_literal(ss,")");
 
-	retstring = strdup(safe_string_val(ss));
+	retstring = LDAP_STRDUP(safe_string_val(ss));
 	safe_string_free(ss);
 	return(retstring);
 }

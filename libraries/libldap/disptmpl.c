@@ -388,7 +388,7 @@ ldap_tmplattrs( struct ldap_disptmpl *tmpl, char **includeattrs,
 	for ( i = 0; !memerr && includeattrs[ i ] != NULL; ++i ) {
 	    if (( attrs = (char **)LDAP_REALLOC( attrs, ( attrcnt + 2 ) *
 		    sizeof( char * ))) == NULL || ( attrs[ attrcnt++ ] =
-		    strdup( includeattrs[ i ] )) == NULL ) {
+		    LDAP_STRDUP( includeattrs[ i ] )) == NULL ) {
 		memerr = 1;
 	    } else {
 		attrs[ attrcnt ] = NULL;
@@ -415,7 +415,7 @@ ldap_tmplattrs( struct ldap_disptmpl *tmpl, char **includeattrs,
 	    if ( ticolp->ti_attrname != NULL ) {
 		if (( attrs = (char **)LDAP_REALLOC( attrs, ( attrcnt + 2 ) *
 			sizeof( char * ))) == NULL || ( attrs[ attrcnt++ ] =
-			strdup( ticolp->ti_attrname )) == NULL ) {
+			LDAP_STRDUP( ticolp->ti_attrname )) == NULL ) {
 		    memerr = 1;
 		} else {
 		    attrs[ attrcnt ] = NULL;

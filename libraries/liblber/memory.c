@@ -241,3 +241,17 @@ ber_bvdup(
 
 	return( new );
 }
+
+char *
+(ber_strdup)( LDAP_CONST char *s )
+{
+	char    *p;
+	size_t	len = strlen( s ) + 1;
+
+	if ( (p = (char *) LBER_MALLOC( len )) == NULL ) {
+		return( NULL );
+	}
+
+	SAFEMEMCPY( p, s, len );
+	return( p );
+}

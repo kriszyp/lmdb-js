@@ -268,7 +268,7 @@ ldap_build_search_req(
 		return( NULLBER );
 	}
 
-	filter = strdup( filter_in );
+	filter = LDAP_STRDUP( filter_in );
 	err = put_filter( ber, filter );
 	LDAP_FREE( filter );
 
@@ -464,7 +464,7 @@ put_filter( BerElement *ber, char *str )
 					return( -1 );
 
 				*next = '\0';
-				tmp = strdup( str );
+				tmp = LDAP_STRDUP( str );
 				if ( gotescape ) {
 					escape = 0;
 					for ( s = d = tmp; *s; s++ ) {
@@ -506,7 +506,7 @@ put_filter( BerElement *ber, char *str )
 			Debug( LDAP_DEBUG_TRACE, "put_filter: default\n", 0, 0,
 			    0 );
 			next = strchr( str, '\0' );
-			tmp = strdup( str );
+			tmp = LDAP_STRDUP( str );
 			if ( strchr( tmp, '\\' ) != NULL ) {
 				escape = 0;
 				for ( s = d = tmp; *s; s++ ) {

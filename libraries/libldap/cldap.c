@@ -143,7 +143,7 @@ cldap_open( char *host, int port )
 	    }
 
 	    if ( ld->ld_host == NULL ) {
-		    ld->ld_host = strdup( host );
+		    ld->ld_host = LDAP_STRDUP( host );
 	    }
 	}
     } else {

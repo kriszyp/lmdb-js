@@ -49,7 +49,7 @@ ldap_open( LDAP_CONST char *host, int port )
 
 	if (( srv = (LDAPServer *)LDAP_CALLOC( 1, sizeof( LDAPServer ))) ==
 	    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
-	    strdup( ld->ld_defhost )) == NULL )) {
+	    LDAP_STRDUP( ld->ld_defhost )) == NULL )) {
 		if(srv != NULL) LDAP_FREE( (char*) srv );
 		ldap_ld_free( ld, 0, NULL, NULL );
 		return( NULL );
@@ -147,9 +147,9 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 	ld->ld_options.ldo_cctrls = NULL;
 
 	if ( defhost != NULL ) {
-		ld->ld_options.ldo_defhost = strdup( defhost );
+		ld->ld_options.ldo_defhost = LDAP_STRDUP( defhost );
 	} else {
-		ld->ld_options.ldo_defhost = strdup(
+		ld->ld_options.ldo_defhost = LDAP_STRDUP(
 			ldap_int_global_options.ldo_defhost);
 	}
 
@@ -160,7 +160,7 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 	}
 
 	if ( ldap_int_global_options.ldo_defbase != NULL ) {
-		ld->ld_options.ldo_defbase = strdup(
+		ld->ld_options.ldo_defbase = LDAP_STRDUP(
 			ldap_int_global_options.ldo_defbase);
 	}
 

@@ -118,7 +118,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 		ldap_getfilter_free( lfdp );
 		return( NULL );
 	    }
-	    nextflp->lfl_tag = strdup( tag );
+	    nextflp->lfl_tag = LDAP_STRDUP( tag );
 	    nextflp->lfl_pattern = tok[ 0 ];
 	    if ( (rc = regcomp( &re, nextflp->lfl_pattern, 0 )) != 0 ) {
 #ifdef LDAP_LIBUI
@@ -213,12 +213,12 @@ ldap_setfilteraffixes( LDAPFiltDesc *lfdp, LDAP_CONST char *prefix, LDAP_CONST c
     if ( lfdp->lfd_filtprefix != NULL ) {
 	LDAP_FREE( lfdp->lfd_filtprefix );
     }
-    lfdp->lfd_filtprefix = ( prefix == NULL ) ? NULL : strdup( prefix );
+    lfdp->lfd_filtprefix = ( prefix == NULL ) ? NULL : LDAP_STRDUP( prefix );
 
     if ( lfdp->lfd_filtsuffix != NULL ) {
 	LDAP_FREE( lfdp->lfd_filtsuffix );
     }
-    lfdp->lfd_filtsuffix = ( suffix == NULL ) ? NULL : strdup( suffix );
+    lfdp->lfd_filtsuffix = ( suffix == NULL ) ? NULL : LDAP_STRDUP( suffix );
 }
 
 
@@ -270,7 +270,7 @@ ldap_getfirstfilter(
 	return( NULL );
     }
 
-    if (( lfdp->lfd_curvalcopy = strdup( value )) == NULL ) {
+    if (( lfdp->lfd_curvalcopy = LDAP_STRDUP( value )) == NULL ) {
 	return( NULL );
     }
 

@@ -49,7 +49,7 @@ ldap_getdxbyname( char *domain )
 	 * punt:  return list conisting of the original domain name only
 	 */
 	if (( dxs = (char **)LDAP_MALLOC( 2 * sizeof( char * ))) == NULL ||
-		( dxs[ 0 ] = strdup( domain )) == NULL ) {
+		( dxs[ 0 ] = LDAP_STRDUP( domain )) == NULL ) {
 	    if ( dxs != NULL ) {
 		LDAP_FREE( dxs );
 	    }

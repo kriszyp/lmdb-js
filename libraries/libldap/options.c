@@ -133,13 +133,13 @@ ldap_get_option(
 
 				for(i=0; features[i].ldapaif_name != NULL; i++) {
 					info->ldapai_extensions[i] =
-						strdup(features[i].ldapaif_name);
+						LDAP_STRDUP(features[i].ldapaif_name);
 				}
 
 				info->ldapai_extensions[i] = NULL;
 			}
 
-			info->ldapai_vendor_name = strdup(LDAP_VENDOR_NAME);
+			info->ldapai_vendor_name = LDAP_STRDUP(LDAP_VENDOR_NAME);
 			info->ldapai_vendor_version = LDAP_VENDOR_VERSION;
 
 			return LDAP_OPT_SUCCESS;
@@ -205,7 +205,7 @@ ldap_get_option(
 		 * we do.
 		 */
 
-		* (char **) outvalue = strdup(lo->ldo_defhost);
+		* (char **) outvalue = LDAP_STRDUP(lo->ldo_defhost);
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_ERROR_NUMBER:
@@ -230,7 +230,7 @@ ldap_get_option(
 		if( ld->ld_error == NULL ) {
 			* (char **) outvalue = NULL;
 		} else {
-			* (char **) outvalue = strdup(ld->ld_error);
+			* (char **) outvalue = LDAP_STRDUP(ld->ld_error);
 		}
 
 		return LDAP_OPT_SUCCESS;
@@ -249,7 +249,7 @@ ldap_get_option(
 		if( ld->ld_matched == NULL ) {
 			* (char **) outvalue = NULL;
 		} else {
-			* (char **) outvalue = strdup(ld->ld_matched);
+			* (char **) outvalue = LDAP_STRDUP(ld->ld_matched);
 		}
 
 		return 0;
@@ -412,7 +412,7 @@ ldap_set_option(
 			}
 
 			if(host != NULL) {
-				lo->ldo_defhost = strdup(host);
+				lo->ldo_defhost = LDAP_STRDUP(host);
 				return LDAP_OPT_SUCCESS;
 			}
 
@@ -421,14 +421,14 @@ ldap_set_option(
 				 * must want global default returned
 				 * to initial condition.
 				 */
-				lo->ldo_defhost = strdup("localhost");
+				lo->ldo_defhost = LDAP_STRDUP("localhost");
 
 			} else {
 				/*
 				 * must want the session default
 				 *   updated to the current global default
 				 */
-				lo->ldo_defhost = strdup(
+				lo->ldo_defhost = LDAP_STRDUP(
 					ldap_int_global_options.ldo_defhost);
 			}
 		} return LDAP_OPT_SUCCESS;
@@ -456,7 +456,7 @@ ldap_set_option(
 				LDAP_FREE(ld->ld_error);
 			}
 
-			ld->ld_error = strdup(err);
+			ld->ld_error = LDAP_STRDUP(err);
 		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_API_FEATURE_INFO:

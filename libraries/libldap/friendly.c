@@ -86,8 +86,8 @@ ldap_friendly_name(
 				}
 			}
 
-			(*map)[i].lf_unfriendly = strdup( buf );
-			(*map)[i].lf_friendly   = strdup( s );
+			(*map)[i].lf_unfriendly = LDAP_STRDUP( buf );
+			(*map)[i].lf_friendly   = LDAP_STRDUP( s );
 			i++;
 		}
 

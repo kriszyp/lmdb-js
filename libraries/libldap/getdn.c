@@ -54,9 +54,9 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ufn\n", 0, 0, 0 );
 
 	if ( ldap_is_dns_dn( dn ) || ( p = strchr( dn, '=' )) == NULL )
-		return( strdup( dn ) );
+		return( LDAP_STRDUP( dn ) );
 
-	ufn = strdup( ++p );
+	ufn = LDAP_STRDUP( ++p );
 
 #define INQUOTE		1
 #define OUTQUOTE	2
@@ -129,7 +129,7 @@ ldap_explode_dns( LDAP_CONST char *dn_in )
 	int ncomps;
 	int maxcomps = 8;
 
-	if ( (dn = strdup( dn_in )) == NULL ) {
+	if ( (dn = LDAP_STRDUP( dn_in )) == NULL ) {
 		return( NULL );
 	}
 
@@ -151,7 +151,7 @@ ldap_explode_dns( LDAP_CONST char *dn_in )
 				return NULL;
 			}
 		}
-		rdns[ncomps++] = strdup( s );
+		rdns[ncomps++] = LDAP_STRDUP( s );
 	}
 	LDAP_FREE(dn);
 

@@ -116,7 +116,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	}
 
 	/* make working copy of the remainder of the URL */
-	if (( url = strdup( url_tmp )) == NULL ) {
+	if (( url = LDAP_STRDUP( url_tmp )) == NULL ) {
 		return( LDAP_URL_ERR_MEM );
 	}
 
@@ -274,7 +274,7 @@ ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 
 	if ( ludp->lud_host != NULL || ludp->lud_port != 0 ) {
 		if (( srv = (LDAPServer *)LDAP_CALLOC( 1, sizeof( LDAPServer )))
-		    == NULL || ( srv->lsrv_host = strdup( ludp->lud_host ==
+		    == NULL || ( srv->lsrv_host = LDAP_STRDUP( ludp->lud_host ==
 		    NULL ? ld->ld_defhost : ludp->lud_host )) == NULL ) {
 			if ( srv != NULL ) {
 				LDAP_FREE( srv );

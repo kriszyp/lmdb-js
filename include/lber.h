@@ -458,6 +458,10 @@ LDAP_F( struct berval * )
 ber_bvdup LDAP_P((
 	LDAP_CONST struct berval *bv ));
 
+LDAP_F( char * )
+ber_strdup LDAP_P((
+	LDAP_CONST char * ));
+
 LDAP_END_DECL
 
 #endif /* _LBER_H */

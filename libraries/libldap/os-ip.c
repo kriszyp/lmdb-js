@@ -196,7 +196,7 @@ ldap_host_connected_to( Sockbuf *sb )
 		&hp,&local_h_errno ) ==0 ) && (hp != NULL) )
 	{
 		if ( hp->h_name != NULL ) {
-			char *host = strdup( hp->h_name );   
+			char *host = LDAP_STRDUP( hp->h_name );   
 			DO_RETURN( host );
 		}
 	}

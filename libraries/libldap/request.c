@@ -82,7 +82,7 @@ ldap_send_initial_request(
 
 		if (( srv = (LDAPServer *)LDAP_CALLOC( 1, sizeof( LDAPServer ))) ==
 		    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
-		    strdup( ld->ld_defhost )) == NULL ))
+		    LDAP_STRDUP( ld->ld_defhost )) == NULL ))
 		{
 			if (srv != NULL) LDAP_FREE( srv );
 			ber_free( ber, 1 );
@@ -700,7 +700,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 				return( -1 );
 			}
 
-			if (( srv->lsrv_host = strdup( tmpref )) == NULL ) {
+			if (( srv->lsrv_host = LDAP_STRDUP( tmpref )) == NULL ) {
 				LDAP_FREE( (char *)srv );
 				ber_free( ber, 1 );
 				ld->ld_errno = LDAP_NO_MEMORY;
@@ -933,9 +933,9 @@ dn2servers( LDAP *ld, char *dn )	/* dn can also be a domain.... */
 			prevsrv = srv;
 			
 			/* copy in info. */
-			if (( srv->lsrv_host = strdup( host )) == NULL ||
+			if (( srv->lsrv_host = LDAP_STRDUP( host )) == NULL ||
 			    ( server_dn != NULL && ( srv->lsrv_dn =
-			    strdup( server_dn )) == NULL )) {
+			    LDAP_STRDUP( server_dn )) == NULL )) {
 				free_servers( srvlist );
 				srvlist = NULL;
 				break;		/* exit loop & return */
