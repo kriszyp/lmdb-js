@@ -1,8 +1,10 @@
 /* $OpenLDAP$ */
 // nt_main.c
 #include "portable.h"
-#include <stdio.h>
 
+#ifdef HAVE_NT_SERVICE_MANAGER
+
+#include <stdio.h>
 #include <ac/string.h>
 
 #include "slap.h"
@@ -107,3 +109,5 @@ int main( int argc, LPTSTR *argv )
 
 	return EXIT_SUCCESS;
 }
+
+#endif

@@ -26,13 +26,16 @@
 /* don't suck in all of the win32 api */
 #define WIN32_LEAN_AND_MEAN
 
-#ifdef _WINNT
-/* WindowsNT specific features */
+#ifdef _MT
+#define HAVE_NT_THREADS 1
+#else
+#define NO_THREADS 1
+#endif
+
+#ifdef HAVE_NT_THREADS
+/* enable WINNT specific features only if we have NT THREADS */
 #define HAVE_NT_SERVICE_MANAGER 1
 #define HAVE_NT_EVENT_LOG 1
-
-#elif _WIN95
-/* Windows95 specific features */
 #endif
 
 #if defined( _DEBUG ) && !defined( LDAP_DEBUG )
@@ -58,13 +61,6 @@ typedef char * caddr_t;
 
 /* define type for ssize_t */
 typedef signed int ssize_t;
-
-/* we have NT threads */
-#ifdef _MT
-#define HAVE_NT_THREADS 1
-#else
-#define NO_THREADS 1
-#endif
 
 /* we have spawnlp instead of fork/execlp */
 #define HAVE_SPAWNLP 1

@@ -43,8 +43,8 @@ RSC=rc.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "..\SDebug"
-# PROP Intermediate_Dir "SDebug\ldapmodify"
+# PROP Output_Dir "..\..\SDebug"
+# PROP Intermediate_Dir "..\..\SDebug\ldapmodify"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
@@ -56,7 +56,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 oldap32.lib olber32.lib oldif32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\libraries\Debug"
-# ADD LINK32 ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /out:"SDebug/ldapmodify.exe" /pdbtype:sept /libpath:"..\..\libraries\Debug"
+# ADD LINK32 ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /out:"SDebug/ldapmodify.exe" /pdbtype:sept /libpath:"..\..\SDebug"
 
 !ELSEIF  "$(CFG)" == "ldapmodify - Win32 Single Release"
 
@@ -68,8 +68,8 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "..\SRelease"
-# PROP Intermediate_Dir "SRelease\ldapmodify"
+# PROP Output_Dir "..\..\SRelease"
+# PROP Intermediate_Dir "..\..\SRelease\ldapmodify"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
@@ -81,7 +81,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 oldap32.lib olber32.lib oldif32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\libraries\Release"
-# ADD LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"SRelease/ldapmodify.exe" /libpath:"..\..\libraries\Release"
+# ADD LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"SRelease/ldapmodify.exe" /libpath:"..\..\SRelease"
 
 !ELSEIF  "$(CFG)" == "ldapmodify - Win32 Debug"
 
@@ -106,7 +106,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /out:"Release/ldapmodify.exe" /pdbtype:sept /libpath:"..\..\libraries\Debug"
-# ADD LINK32 ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /out:"Debug/ldapmodify.exe" /pdbtype:sept /libpath:"..\..\libraries\Debug"
+# ADD LINK32 ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /out:"Debug/ldapmodify.exe" /pdbtype:sept /libpath:"..\..\Debug"
 
 !ELSEIF  "$(CFG)" == "ldapmodify - Win32 Release"
 
@@ -131,7 +131,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapmodify.exe" /libpath:"..\..\libraries\Release"
-# ADD LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapmodify.exe" /libpath:"..\..\libraries\Release"
+# ADD LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapmodify.exe" /libpath:"..\..\Release"
 
 !ENDIF 
 

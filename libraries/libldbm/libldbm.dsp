@@ -48,7 +48,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"..\Release\oldbm32.lib"
+# ADD LIB32 /nologo /out:"..\..\Release\oldbm32.lib"
 
 !ELSEIF  "$(CFG)" == "libldbm - Win32 Debug"
 
@@ -69,7 +69,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"..\Debug\oldbm32.lib"
+# ADD LIB32 /nologo /out:"..\..\Debug\oldbm32.lib"
 
 !ELSEIF  "$(CFG)" == "libldbm - Win32 Single Debug"
 
@@ -80,8 +80,8 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "..\SDebug"
-# PROP Intermediate_Dir "SDebug\libldbm"
+# PROP Output_Dir "..\..\SDebug"
+# PROP Intermediate_Dir "..\..\SDebug\libldbm"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
@@ -90,7 +90,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Debug\oldbm32.lib"
-# ADD LIB32 /nologo /out:"..\SDebug\oldbm32.lib"
+# ADD LIB32 /nologo /out:"..\..\SDebug\oldbm32.lib"
 
 !ELSEIF  "$(CFG)" == "libldbm - Win32 Single Release"
 
@@ -101,8 +101,8 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "..\SRelease"
-# PROP Intermediate_Dir "SRelease\libldbm"
+# PROP Output_Dir "..\..\SRelease"
+# PROP Intermediate_Dir "..\..\SRelease\libldbm"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
@@ -111,7 +111,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Release\oldbm32.lib"
-# ADD LIB32 /nologo /out:"..\SRelease\oldbm32.lib"
+# ADD LIB32 /nologo /out:"..\..\SRelease\oldbm32.lib"
 
 !ENDIF 
 

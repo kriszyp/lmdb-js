@@ -14,7 +14,7 @@
  * software for any purpose.  It is provided "as is" without express or
  * implied warranty.
  *-----------------------------------------------------------------------------
- * $Id: tkAppInit.c,v 1.1 1997/10/20 09:10:29 kunkee Exp $
+ * $Id: tkAppInit.c,v 1.1 1999/02/10 22:56:49 kunkee Exp $
  *-----------------------------------------------------------------------------
  */
 

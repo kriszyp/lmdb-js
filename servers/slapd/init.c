@@ -27,7 +27,10 @@ int		ldap_syslog = LDAP_DEBUG_STATS;
 int		ldap_syslog;
 #endif
 
+#ifdef LOG_DEBUG
 int		ldap_syslog_level = LOG_DEBUG;
+#endif
+
 struct berval **default_referral = NULL;
 int		g_argc;
 char		**g_argv;

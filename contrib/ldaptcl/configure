@@ -539,7 +539,7 @@ else
 fi
 
 
-# $Id: configure.in,v 1.2 1999/07/27 05:29:27 kunkee Exp $
+# $Id: configure,v 1.3 1999/08/03 05:23:03 kunkee Exp $
 
 NEO_VERSION=1.2
 NEO_MAJOR_VERSION=1

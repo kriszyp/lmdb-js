@@ -23,7 +23,7 @@
 static RETSIGTYPE wait4child( int sig );
 #endif
 
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_NT_SERVICE_MANAGER
 #define MAIN_RETURN(x) return
 struct sockaddr_in	bind_addr;
 
@@ -32,9 +32,6 @@ extern SERVICE_STATUS			SLAPDServiceStatus;
 extern SERVICE_STATUS_HANDLE	hSLAPDServiceStatus;
 extern ldap_pvt_thread_cond_t	started_event,		stopped_event;
 extern int	  is_NT_Service;
-
-void LogSlapdStartedEvent( char *svc, int slap_debug, char *configfile, char *urls );
-void LogSlapdStoppedEvent( char *svc );
 
 void CommenceStartupProcessing( LPCTSTR serviceName,
 							   void(*stopper)(int));
@@ -50,6 +47,11 @@ void *getRegParam( char *svc, char *value );
 #else
 #define SERVICE_EXIT( e, n )
 #define MAIN_RETURN(x) return(x)
+#endif
+
+#ifdef HAVE_NT_EVENT_MANAGER
+void LogSlapdStartedEvent( char *svc, int slap_debug, char *configfile, char *urls );
+void LogSlapdStoppedEvent( char *svc );
 #endif
 
 /*
@@ -127,7 +129,7 @@ usage( char *name )
     );
 }
 
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_NT_SERVICE_MANAGER
 void WINAPI ServiceMain( DWORD argc, LPTSTR *argv )
 #else
 int main( int argc, char **argv )
@@ -169,7 +171,7 @@ int main( int argc, char **argv )
 	g_argc = argc;
 	g_argv = argv;
 
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_NT_SERVICE_MANAGER
 	{
 		int *i;
 		char *newConfigFile;
@@ -426,13 +428,13 @@ int main( int argc, char **argv )
 		}
 	}
 
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_NT_EVENT_MANAGER
 	LogSlapdStartedEvent( NTservice, slap_debug, configfile, urls );
 #endif
 
 	rc = slapd_daemon();
 
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_NT_SERVICE_MANAGER
 	/* Throw away the event that we used during the startup process. */
 	if ( is_NT_Service )
 		ldap_pvt_thread_cond_destroy( &started_event );
@@ -447,13 +449,13 @@ destroy:
 	rc |= slap_destroy();
 
 stop:
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_NT_EVENT_MANAGER
 	LogSlapdStoppedEvent( NTservice );
 #endif
 
 	Debug( LDAP_DEBUG_ANY, "slapd stopped.\n", 0, 0, 0 );
 
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_NT_SERVICE_MANAGER
 	ReportSlapdShutdownComplete();
 #endif
 

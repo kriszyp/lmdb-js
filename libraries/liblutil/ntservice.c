@@ -6,6 +6,8 @@
 /* ntservice.c */
 #include "portable.h"
 
+#ifdef HAVE_NT_SERVICE_MANAGER
+
 #include <ac/stdlib.h>
 #include <ac/string.h>
 
@@ -425,3 +427,5 @@ void ReportSlapdShutdownComplete(  )
 		SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
 	}
 }
+
+#endif

@@ -48,7 +48,7 @@ static ber_socket_t wake_sds[2];
 #define WAKE_LISTENER(w) \
 do { if (w) tcp_write( wake_sds[1], "0", 1 ); } while(0)
 
-#ifdef HAVE_WINSOCK2
+#ifdef HAVE_NT_SERVICE_MANAGER
 /* in nt_main.c */
 extern ldap_pvt_thread_cond_t			started_event;
 #endif
@@ -454,7 +454,7 @@ slapd_daemon_task(
 		slapd_add( slap_listeners[l]->sl_sd );
 	}
 
-#ifdef HAVE_WINSOCK2
+#ifdef HAVE_NT_SERVICE_MANAGER
 	if ( started_event != NULL ) {
 		ldap_pvt_thread_cond_signal( &started_event );
 	}
