@@ -111,10 +111,8 @@ Set the LDAP debugging level to \fIdebuglevel\fP.
 must be compiled with LDAP_DEBUG defined for this option to have any effect.
 .TP
 .BI \-f \ file
-Read a series of lines from \fIfile\fP, performing one LDAP search for
-each line.  In this case, the \fIfilter\fP given on the command line
-is treated as a pattern where the first occurrence of \fB%s\fP is
-replaced with a line from \fIfile\fP.
+Read a series of DNs from \fIfile\fP, one per line, performing an
+LDAP delete for each.
 .TP
 .B \-x 
 Use simple authentication instead of SASL.
