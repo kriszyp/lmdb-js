@@ -11239,7 +11239,7 @@ else
 
 #include <string.h> 
 int main() {
-extern char *strdup();
+extern char *(strdup)();
 ; return 0; }
 EOF
 if { (eval echo configure:11246: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then

@@ -635,7 +635,7 @@ AC_MSG_CHECKING([strdup declaration])
 AC_CACHE_VAL(ol_cv_dcl_strdup,[
 	AC_TRY_COMPILE([
 #include <string.h> ],
-	[extern char *strdup();],
+	[extern char *(strdup)();],
 	[ol_cv_dcl_strdup=yes],
 	[ol_cv_dcl_strdup=no])])
 AC_MSG_RESULT($ol_cv_dcl_strdup)
@@ -695,7 +695,7 @@ dnl check return type of ctime_r()
 AC_DEFUN(OL_FUNC_CTIME_R_TYPE,
  [AC_CACHE_CHECK(return type of ctime_r, ol_cv_func_ctime_r_type,
    [AC_TRY_COMPILE([#include <time.h>],
-		[int ctime_r();],
+		[extern int (ctime_r)();],
 			ol_cv_func_ctime_r_type="int", ol_cv_func_ctime_r_type="charp")
 	])
   if test $ol_cv_func_ctime_r_type = "int" ; then
