@@ -536,7 +536,8 @@ done:
 			/* empty */
 		}
 
-		rs->sr_err = slap_mods_opattrs( op, mod, modtail, &rs->sr_text, textbuf, textlen );
+		rs->sr_err = slap_mods_opattrs( op, mod, modtail,
+						&rs->sr_text, textbuf, textlen, 1 );
 	}
 
 	/* LDAP v2 supporting correct attribute handling. */

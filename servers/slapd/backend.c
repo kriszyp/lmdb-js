@@ -469,11 +469,19 @@ int backend_destroy(void)
 {
 	int i;
 	BackendDB *bd;
+	syncinfo_t *si_entry;
 
 	ldap_pvt_thread_pool_destroy( &syncrepl_pool, 1 );
 
 	/* destroy each backend database */
 	for( i = 0, bd = backendDB; i < nBackendDB; i++, bd++ ) {
+
+		while ( !LDAP_STAILQ_EMPTY( &bd->be_syncinfo )) {
+			si_entry = LDAP_STAILQ_FIRST( &bd->be_syncinfo );
+			LDAP_STAILQ_REMOVE_HEAD( &bd->be_syncinfo, si_next );
+			syncinfo_free( si_entry );
+		}
+		
 		if ( bd->bd_info->bi_db_destroy ) {
 			bd->bd_info->bi_db_destroy( bd );
 		}

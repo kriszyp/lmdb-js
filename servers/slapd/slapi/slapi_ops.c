@@ -463,7 +463,7 @@ slapi_int_ldapmod_to_entry(
 			if ( !repl_user ) {
 				rc = slap_mods_opattrs( op,
 						modlist, modtail, &text, 
-						textbuf, textlen );
+						textbuf, textlen, 1 );
 				if ( rc != LDAP_SUCCESS) {
 					goto cleanup;
 				}
@@ -1029,7 +1029,7 @@ slapi_modify_internal(
 			if ( !repl_user ) {
 				rs.sr_err = slap_mods_opattrs( op, modlist,
 						modtail, &text, textbuf, 
-						textlen );
+						textlen, 1 );
 				if ( rs.sr_err != LDAP_SUCCESS ) {
 					goto cleanup;
 				}

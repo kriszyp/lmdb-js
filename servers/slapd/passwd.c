@@ -210,7 +210,7 @@ int passwd_extop(
 					 * if it cares... */
 
 		rs->sr_err = slap_mods_opattrs( &op2, ml, qpw->rs_modtail, &rs->sr_text,
-			NULL, 0 );
+			NULL, 0, 1 );
 		
 		if ( rs->sr_err == LDAP_SUCCESS ) {
 			rs->sr_err = op2.o_bd->be_modify( &op2, rs );

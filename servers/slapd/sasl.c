@@ -502,7 +502,7 @@ slap_auxprop_store(
 
 	if ( rc == LDAP_SUCCESS ) {
 		rc = slap_mods_opattrs( &op, modlist, modtail, &text, textbuf,
-			textlen );
+			textlen, 1 );
 	}
 
 	if ( rc == LDAP_SUCCESS ) {

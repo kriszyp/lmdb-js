@@ -2272,7 +2272,7 @@ add_syncrepl(
 	}
 	si->si_bindmethod = LDAP_AUTH_SIMPLE;
 	si->si_schemachecking = 0;
-	ber_str2bv( "(objectclass=*)", STRLENOF("(objectclass=*)"), 0,
+	ber_str2bv( "(objectclass=*)", STRLENOF("(objectclass=*)"), 1,
 		&si->si_filterstr );
 	si->si_base.bv_val = NULL;
 	si->si_scope = LDAP_SCOPE_SUBTREE;
@@ -2283,9 +2283,9 @@ add_syncrepl(
 	si->si_exattrs[0] = NULL;
 	si->si_type = LDAP_SYNC_REFRESH_ONLY;
 	si->si_interval = 86400;
-	si->si_retryinterval = 0;
-	si->si_retrynum_init = 0;
-	si->si_retrynum = 0;
+	si->si_retryinterval = NULL;
+	si->si_retrynum_init = NULL;
+	si->si_retrynum = NULL;
 	si->si_syncCookie.ctxcsn = NULL;
 	si->si_syncCookie.octet_str = NULL;
 	si->si_syncCookie.sid = -1;
@@ -2310,42 +2310,7 @@ add_syncrepl(
 	}
 
 	if ( rc < 0 || duplicated_replica_id ) {
-		syncinfo_t *si_entry;
-		/* Something bad happened - back out */
 		Debug( LDAP_DEBUG_ANY, "failed to add syncinfo\n", 0, 0, 0 );
-
-		/* If error, remove all syncinfo */
-		LDAP_STAILQ_FOREACH( si_entry, &be->be_syncinfo, si_next ) {
-			if ( si_entry->si_updatedn.bv_val ) {
-				ch_free( si->si_updatedn.bv_val );
-			}
-			if ( si_entry->si_filterstr.bv_val ) {
-				ch_free( si->si_filterstr.bv_val );
-			}
-			if ( si_entry->si_attrs ) {
-				int i = 0;
-				while ( si_entry->si_attrs[i] != NULL ) {
-					ch_free( si_entry->si_attrs[i] );
-					i++;
-				}
-				ch_free( si_entry->si_attrs );
-			}
-			if ( si_entry->si_exattrs ) {
-				int i = 0;
-				while ( si_entry->si_exattrs[i] != NULL ) {
-					ch_free( si_entry->si_exattrs[i] );
-					i++;
-				}
-				ch_free( si_entry->si_exattrs );
-			}
-		}
-
-		while ( !LDAP_STAILQ_EMPTY( &be->be_syncinfo )) {
-			si_entry = LDAP_STAILQ_FIRST( &be->be_syncinfo );
-			LDAP_STAILQ_REMOVE_HEAD( &be->be_syncinfo, si_next );
-			ch_free( si_entry );
-		}
-		LDAP_STAILQ_INIT( &be->be_syncinfo );
 		return 1;
 	} else {
 		Debug( LDAP_DEBUG_CONFIG,
@@ -2435,7 +2400,7 @@ parse_syncrepl_line(
 			si->si_provideruri_bv = (BerVarray)
 				ch_calloc( 2, sizeof( struct berval ));
 			ber_str2bv( si->si_provideruri, strlen( si->si_provideruri ),
-				0, &si->si_provideruri_bv[0] );
+				1, &si->si_provideruri_bv[0] );
 			si->si_provideruri_bv[1].bv_len = 0;
 			si->si_provideruri_bv[1].bv_val = NULL;
 			gots |= GOT_PROVIDER;
@@ -2498,11 +2463,15 @@ parse_syncrepl_line(
 		} else if ( !strncasecmp( cargv[ i ],
 				AUTHCSTR, sizeof( AUTHCSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( AUTHCSTR );
+			if ( si->si_authcId )
+				ch_free( si->si_authcId );
 			si->si_authcId = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				OLDAUTHCSTR, sizeof( OLDAUTHCSTR ) - 1 ) ) {
 			/* Old authcID is provided for some backwards compatibility */
 			val = cargv[ i ] + sizeof( OLDAUTHCSTR );
+			if ( si->si_authcId )
+				ch_free( si->si_authcId );
 			si->si_authcId = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				AUTHZSTR, sizeof( AUTHZSTR ) - 1 ) ) {

@@ -631,7 +631,7 @@ refint_response(
 		nop.o_dn = refint_dn;
 		nop.o_ndn = refint_dn;
 		rs->sr_err = slap_mods_opattrs( &nop, nop.orm_modlist,
-			tail, &rs->sr_text, NULL, 0 );
+			tail, &rs->sr_text, NULL, 0, 1 );
 		nop.o_dn = nop.o_bd->be_rootdn;
 		nop.o_ndn = nop.o_bd->be_rootndn;
 		if(rs->sr_err != LDAP_SUCCESS) goto done;

@@ -427,7 +427,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 				}
 
 				rs->sr_err = slap_mods_opattrs( op, modlist, modtail,
-					&rs->sr_text, textbuf, textlen );
+					&rs->sr_text, textbuf, textlen, 1 );
 				if( rs->sr_err != LDAP_SUCCESS ) {
 					send_ldap_result( op, rs );
 					goto cleanup;
@@ -755,7 +755,8 @@ int slap_mods_opattrs(
 	Modifications *mods,
 	Modifications **modtail,
 	const char **text,
-	char *textbuf, size_t textlen )
+	char *textbuf, size_t textlen,
+	int manage_ctxcsn )
 {
 	struct berval name, timestamp, csn;
 	struct berval nname;
@@ -784,7 +785,7 @@ int slap_mods_opattrs(
 #endif /* HAVE_GMTIME_R */
 		lutil_gentime( timebuf, sizeof(timebuf), ltm );
 
-		slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
+		slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, manage_ctxcsn );
 
 #ifndef HAVE_GMTIME_R
 		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );

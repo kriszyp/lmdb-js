@@ -407,6 +407,8 @@ done:
 		}
 	}
 
+	slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+
 	return rc;
 }
 
@@ -664,11 +666,12 @@ do_syncrep2(
 						for ( i = 0; syncUUIDs[i].bv_val; i++ ) {
 							struct berval *syncuuid_bv;
 							syncuuid_bv = ber_dupbv( NULL, &syncUUIDs[i] );
+							slap_sl_free( syncUUIDs[i].bv_val,op->o_tmpmemctx );
 							avl_insert( &si->si_presentlist,
 								(caddr_t) syncuuid_bv,
 								syncuuid_cmp, avl_dup_error );
 						}
-						ber_memfree_x( syncUUIDs, op->o_tmpmemctx );
+						slap_sl_free( syncUUIDs, op->o_tmpmemctx );
 						break;
 					default:
 					Debug( LDAP_DEBUG_ANY,
@@ -746,9 +749,6 @@ do_syncrep2(
 done:
 	slap_sync_cookie_free( &syncCookie, 0 );
 	slap_sync_cookie_free( &syncCookie_req, 0 );
-
-	avl_free( si->si_presentlist, avl_ber_bvfree );
-	si->si_presentlist = NULL;
 
 	if ( res ) ldap_msgfree( res );
 
@@ -832,8 +832,7 @@ do_syncrepl(
 			 */
 			if ( rc == LDAP_SUCCESS ) {
 				if ( first ) {
-					rc = connection_client_setup( s, do_syncrepl,
-						arg );
+					rc = connection_client_setup( s, do_syncrepl, arg );
 				} else {
 					connection_client_enable( s );
 				} 
@@ -1274,10 +1273,10 @@ syncrepl_entry(
 done :
 
 	if ( syncUUID_strrep.bv_val ) {
-		ber_memfree_x( syncUUID_strrep.bv_val, op->o_tmpmemctx );
+		slap_sl_free( syncUUID_strrep.bv_val, op->o_tmpmemctx );
 	}
 	if ( si->si_syncUUID_ndn.bv_val ) {
-		ber_memfree_x( si->si_syncUUID_ndn.bv_val, op->o_tmpmemctx );
+		ch_free( si->si_syncUUID_ndn.bv_val );
 	}
 	return ret;
 }
@@ -1664,7 +1663,7 @@ syncrepl_updateCookie(
 
 	op->o_tag = LDAP_REQ_ADD;
 	rc = slap_mods_opattrs( op, modlist, modtail,
-		 &text, txtbuf, textlen );
+		 &text, txtbuf, textlen, 0 );
 
 	for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
 		ml->sml_op = LDAP_MOD_REPLACE;
@@ -1807,7 +1806,7 @@ dn_callback(
 			Debug( LDAP_DEBUG_ANY,
 				"dn_callback : consistency error - entryUUID is not unique\n", 0, 0, 0 );
 		} else {
-			ber_dupbv_x( &si->si_syncUUID_ndn, &rs->sr_entry->e_nname, op->o_tmpmemctx );
+			ber_dupbv_x( &si->si_syncUUID_ndn, &rs->sr_entry->e_nname, NULL );
 		}
 	} else if ( rs->sr_type == REP_RESULT ) {
 		if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED ) {
@@ -1981,4 +1980,99 @@ avl_ber_bvfree( void *bv )
 		ch_free( ((struct berval *)bv)->bv_val );
 	}
 	ch_free( (char *) bv );
+}
+
+void
+syncinfo_free( syncinfo_t *sie )
+{
+	if ( sie->si_provideruri ) {
+		ch_free( sie->si_provideruri );
+	}
+	if ( sie->si_provideruri_bv ) {
+		ber_bvarray_free( sie->si_provideruri_bv );
+	}
+	if ( sie->si_updatedn.bv_val ) {
+		ch_free( sie->si_updatedn.bv_val );
+	}
+	if ( sie->si_binddn ) {
+		ch_free( sie->si_binddn );
+	}
+	if ( sie->si_passwd ) {
+		ch_free( sie->si_passwd );
+	}
+	if ( sie->si_saslmech ) {
+		ch_free( sie->si_saslmech );
+	}
+	if ( sie->si_secprops ) {
+		ch_free( sie->si_secprops );
+	}
+	if ( sie->si_realm ) {
+		ch_free( sie->si_realm );
+	}
+	if ( sie->si_authcId ) {
+		ch_free( sie->si_authcId );
+	}
+	if ( sie->si_authzId ) {
+		ch_free( sie->si_authzId );
+	}
+	if ( sie->si_filterstr.bv_val ) {
+		ch_free( sie->si_filterstr.bv_val );
+	}
+	if ( sie->si_base.bv_val ) {
+		ch_free( sie->si_base.bv_val );
+	}
+	if ( sie->si_attrs ) {
+		int i = 0;
+		while ( sie->si_attrs[i] != NULL ) {
+			ch_free( sie->si_attrs[i] );
+			i++;
+		}
+		ch_free( sie->si_attrs );
+	}
+	if ( sie->si_exattrs ) {
+		int i = 0;
+		while ( sie->si_exattrs[i] != NULL ) {
+			ch_free( sie->si_exattrs[i] );
+			i++;
+		}
+		ch_free( sie->si_exattrs );
+	}
+	if ( sie->si_retryinterval ) {
+		ch_free( sie->si_retryinterval );
+	}
+	if ( sie->si_retrynum ) {
+		ch_free( sie->si_retrynum );
+	}
+	if ( sie->si_retrynum_init ) {
+		ch_free( sie->si_retrynum_init );
+	}
+	slap_sync_cookie_free( &sie->si_syncCookie, 0 );
+	if ( sie->si_syncUUID_ndn.bv_val ) {
+		ch_free( sie->si_syncUUID_ndn.bv_val );
+	}
+	if ( sie->si_presentlist ) {
+	    avl_free( sie->si_presentlist, avl_ber_bvfree );
+	}
+	if ( sie->si_ld ) {
+		ldap_ld_free( sie->si_ld, 1, NULL, NULL );
+	}
+	while ( !LDAP_LIST_EMPTY( &sie->si_nonpresentlist )) {
+		struct nonpresent_entry* npe;
+		npe = LDAP_LIST_FIRST( &sie->si_nonpresentlist );
+		LDAP_LIST_REMOVE( npe, npe_link );
+		if ( npe->npe_name ) {
+			if ( npe->npe_name->bv_val ) {
+				ch_free( npe->npe_name->bv_val );
+			}
+			ch_free( npe->npe_name );
+		}
+		if ( npe->npe_nname ) {
+			if ( npe->npe_nname->bv_val ) {
+				ch_free( npe->npe_nname->bv_val );
+			}
+			ch_free( npe->npe_nname );
+		}
+		ch_free( npe );
+	}
+	ch_free( sie );
 }

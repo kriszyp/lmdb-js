@@ -1435,7 +1435,6 @@ typedef struct syncinfo_s {
         char				*si_authcId;
         char				*si_authzId;
 		int					si_schemachecking;
-        Filter				*si_filter;
         struct berval		si_filterstr;
         struct berval		si_base;
         int					si_scope;

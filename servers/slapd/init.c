@@ -222,7 +222,7 @@ int slap_destroy(void)
 	int rc;
 
 	Debug( LDAP_DEBUG_TRACE,
-		"%s shutdown: freeing system resources.\n",
+		"%s destroy: freeing system resources.\n",
 		slap_name, 0, 0 );
 
 
