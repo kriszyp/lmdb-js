@@ -380,7 +380,7 @@ bdb_dn2id_children(
 	if ( bdb->bi_idl_cache_size ) {
 		rc = bdb_idl_cache_get( bdb, db, &key, NULL );
 		if ( rc != LDAP_NO_SUCH_OBJECT ) {
-			sl_free( key.data, o->o_tmpmemctx );
+			sl_free( key.data, op->o_tmpmemctx );
 			return rc;
 		}
 	}
