@@ -39,11 +39,6 @@
 /* recycled validatation routines */
 #define berValidate						blobValidate
 
-/* recycled normalization routines */
-#define faxNumberNormalize				numericStringNormalize
-#define phoneNumberNormalize			numericStringNormalize
-#define telexNumberNormalize			numericStringNormalize
-
 /* unimplemented pretters */
 #define dnPretty						NULL
 #define integerPretty					NULL
@@ -2316,6 +2311,25 @@ done:
 }
 
 static int
+countryStringValidate(
+	Syntax *syntax,
+	struct berval *val )
+{
+	ber_len_t i;
+
+	if( val->bv_len != 2 ) return LDAP_INVALID_SYNTAX;
+
+	if( !SLAP_PRINTABLE(val->bv_val[0]) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+	if( !SLAP_PRINTABLE(val->bv_val[1]) ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+static int
 printableStringValidate(
 	Syntax *syntax,
 	struct berval *val )
@@ -2326,6 +2340,24 @@ printableStringValidate(
 
 	for(i=0; i < val->bv_len; i++) {
 		if( !SLAP_PRINTABLE(val->bv_val[i]) ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
+static int
+printablesStringValidate(
+	Syntax *syntax,
+	struct berval *val )
+{
+	ber_len_t i;
+
+	if( !val->bv_len ) return LDAP_INVALID_SYNTAX;
+
+	for(i=0; i < val->bv_len; i++) {
+		if( !SLAP_PRINTABLES(val->bv_val[i]) ) {
 			return LDAP_INVALID_SYNTAX;
 		}
 	}
@@ -4109,7 +4141,7 @@ struct syntax_defs_rec syntax_defs[] = {
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.11 DESC 'Country String' )",
-		0, NULL, NULL, NULL},
+		0, countryStringValidate, IA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'Distinguished Name' )",
 		0, dnValidate, dnNormalize, dnPretty},
 	{"( 1.3.6.1.4.1.1466.115.121.1.13 DESC 'Data Quality' )",
@@ -4129,7 +4161,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.21 DESC 'Enhanced Guide' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.22 DESC 'Facsimile Telephone Number' )",
-		0, IA5StringValidate, faxNumberNormalize, NULL},
+		0, printablesStringValidate, IA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.23 DESC 'Fax' " X_NOT_H_R ")",
 		SLAP_SYNTAX_BLOB, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.24 DESC 'Generalized Time' )",
@@ -4163,7 +4195,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.38 DESC 'OID' )",
 		0, oidValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.39 DESC 'Other Mailbox' )",
-		0, NULL, NULL, NULL},
+		0, IA5StringValidate, IA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.40 DESC 'Octet String' )",
 		0, blobValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.41 DESC 'Postal Address' )",
@@ -4173,16 +4205,16 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.43 DESC 'Presentation Address' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.44 DESC 'Printable String' )",
-		0, printableStringValidate, NULL, NULL},
+		0, printableStringValidate, IA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.49 DESC 'Supported Algorithm' "
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.50 DESC 'Telephone Number' )",
-		0, IA5StringValidate, phoneNumberNormalize, NULL},
+		0, printableStringValidate, IA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'Teletex Terminal Identifier' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'Telex Number' )",
-		0, IA5StringValidate, telexNumberNormalize, NULL},
+		0, printableStringValidate, IA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.53 DESC 'UTC Time' )",
 		0, utcTimeValidate, utcTimeNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.54 DESC 'LDAP Syntax Description' )",

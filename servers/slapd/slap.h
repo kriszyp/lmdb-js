@@ -106,6 +106,8 @@ LDAP_BEGIN_DECL
 	(c) == '-' || (c) == '.' || (c) == '/' || (c) == ':' || \
 	(c) == '?' || (c) == ' ' )
 
+#define SLAP_PRINTABLES(c)	( SLAP_PRINTABLE(c) || (c) == '$' )
+
 /* must match in schema_init.c */
 #define SLAPD_DN_SYNTAX			"1.3.6.1.4.1.1466.115.121.1.12"
 #define SLAPD_NAMEUID_SYNTAX		"1.3.6.1.4.1.1466.115.121.1.34"
