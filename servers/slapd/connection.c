@@ -1865,20 +1865,20 @@ connection_fake_init(
 	Operation *op,
 	void *ctx )
 {
-        conn->c_connid = -1;
-        conn->c_send_ldap_result = slap_send_ldap_result;
-        conn->c_send_search_entry = slap_send_search_entry;
-        conn->c_send_search_reference = slap_send_search_reference;
-        conn->c_listener = (Listener *)&dummy_list;
-        conn->c_peer_name = slap_empty_bv;
+	conn->c_connid = -1;
+	conn->c_send_ldap_result = slap_send_ldap_result;
+	conn->c_send_search_entry = slap_send_search_entry;
+	conn->c_send_search_reference = slap_send_search_reference;
+	conn->c_listener = (Listener *)&dummy_list;
+	conn->c_peer_name = slap_empty_bv;
 
-        /* set memory context */
-        op->o_tmpmemctx = sl_mem_create( SLMALLOC_SLAB_SIZE, ctx );
-        op->o_tmpmfuncs = &sl_mfuncs;
+	/* set memory context */
+	op->o_tmpmemctx = sl_mem_create( SLMALLOC_SLAB_SIZE, ctx );
+	op->o_tmpmfuncs = &sl_mfuncs;
 	op->o_threadctx = ctx;
 
-        op->o_conn = conn;
-        op->o_connid = op->o_conn->c_connid;
+	op->o_conn = conn;
+	op->o_connid = op->o_conn->c_connid;
 
 	op->o_time = slap_get_time();
 }
