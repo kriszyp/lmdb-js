@@ -520,6 +520,7 @@ typedef struct ldap_url_desc {
     int		lud_scope;
     char	*lud_filter;
     char	**lud_exts;
+	int		lud_crit_exts;
 } LDAPURLDesc;
 
 #define LDAP_URL_SUCCESS		0x00	/* Success */

@@ -277,6 +277,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	ludp->lud_filter = NULL;
 	ludp->lud_scope = LDAP_SCOPE_BASE;
 	ludp->lud_filter = NULL;
+	ludp->lud_exts = NULL;
 
 	ludp->lud_scheme = LDAP_STRDUP( scheme );
 
@@ -516,6 +517,11 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 
 	for( i=0; ludp->lud_exts[i] != NULL; i++ ) {
 		ldap_pvt_hex_unescape( ludp->lud_exts[i] );
+
+		if( *ludp->lud_exts[i] == '!' ) {
+			/* count the number of critical extensions */
+			ludp->lud_crit_exts++;
+		}
 	}
 
 	if( i == 0 ) {
@@ -882,6 +888,12 @@ ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 
 	if ( ldap_url_parse( url, &ludp ) != 0 ) {
 		ld->ld_errno = LDAP_PARAM_ERROR;
+		return( -1 );
+	}
+
+	if( ludp->lud_crit_exts ) {
+		/* we don't support any extension (yet) */
+		ld->ld_errno = LDAP_NOT_SUPPORTED;
 		return( -1 );
 	}
 

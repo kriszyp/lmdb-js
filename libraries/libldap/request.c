@@ -634,6 +634,13 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 			goto done;
 		}
 
+		if( srv->lud_crit_exts ) {
+			/* we do not support any extensions */
+			ld->ld_errno = LDAP_NOT_SUPPORTED;
+			rc = -1;
+			goto done;
+		}
+
 		/* treat ldap://hostpart and ldap://hostpart/ the same */
 		if ( srv->lud_dn && srv->lud_dn[0] == '\0' ) {
 			LDAP_FREE( srv->lud_dn );
