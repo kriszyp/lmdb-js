@@ -6,8 +6,10 @@ OBJS=	main.o
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
+READLINE_LIBS = @READLINE_LIBS@
+
 XLIBS =  -lldap -llber -llutil
-XXLIBS	= $(KRB_LIBS) $(LUTIL_LIBS)
+XXLIBS	= $(KRB_LIBS) $(LUTIL_LIBS) $(READLINE_LIBS) $(TERMCAP_LIBS)
 
 saucer:	${OBJS} $(LDAP_LIBDEPEND)
 	$(LTLINK) -o $@ $(OBJS) $(LIBS)

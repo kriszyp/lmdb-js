@@ -13,12 +13,21 @@
  * 'saucer' LDAP command-line client source code.
  *
  * Author: Eric Rosenquist, 1994.
+ *
+ * 07-Mar-1999 readline support added: O. Steffensen (oddbjorn@tricknology.org)
  */
 
 #include "portable.h"
 
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef HAVE_READLINE
+#  include <readline/readline.h>
+#  ifdef HAVE_READLINE_HISTORY_H
+#    include <readline/history.h>
+#  endif
+#endif
 
 #include <ac/ctype.h>
 #include <ac/string.h>
@@ -528,13 +537,39 @@ void do_commands(FILE *file)
 {
 	char	cmd_buf[BUFSIZ];
 	int		tty = isatty(fileno(file));
+	char	*buf = cmd_buf;
+	int	status;
 
 	for (;;) {
 		if (tty)
-			printf("Cmd? ");
-		if (!fgets(cmd_buf, sizeof(cmd_buf), file))
-			break;
-		if (do_command(cmd_buf))
+		{
+			char 	prompt[40];
+			sprintf(prompt, (strlen(default_dn) < 18
+					 ? "saucer dn=%s> "
+					 : "saucer dn=%.15s..> "), default_dn);
+#ifndef HAVE_READLINE
+			fputs (prompt, stdout);
+#else
+			buf = readline (prompt);
+			if (!buf)
+				break;
+			add_history (buf);
+#endif
+		}
+#ifdef HAVE_READLINE
+		else
+#endif
+		{
+			if (!fgets(cmd_buf, sizeof(cmd_buf), file))
+				break;
+		}
+
+		status = do_command(buf);
+#ifdef HAVE_READLINE
+		if (tty)
+			free(buf);
+#endif
+		if (status)
 			break;
 	}
 }
