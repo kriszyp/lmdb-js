@@ -1067,8 +1067,8 @@ syn_schema_info( Entry *e )
 		val.bv_val = ldap_syntax2str( &syn->ssyn_syn );
 		if ( val.bv_val ) {
 			val.bv_len = strlen( val.bv_val );
-			Debug( LDAP_DEBUG_TRACE, "Merging syn [%d] %s\n",
-			       val.bv_len, val.bv_val, 0 );
+			Debug( LDAP_DEBUG_TRACE, "Merging syn [%ld] %s\n",
+			       (long) val.bv_len, val.bv_val, 0 );
 			attr_merge( e, "ldapSyntaxes", vals );
 			ldap_memfree( val.bv_val );
 		} else {
@@ -1092,8 +1092,8 @@ mr_schema_info( Entry *e )
 		val.bv_val = ldap_matchingrule2str( &mr->smr_mrule );
 		if ( val.bv_val ) {
 			val.bv_len = strlen( val.bv_val );
-			Debug( LDAP_DEBUG_TRACE, "Merging mr [%d] %s\n",
-			       val.bv_len, val.bv_val, 0 );
+			Debug( LDAP_DEBUG_TRACE, "Merging mr [%ld] %s\n",
+			       (long) val.bv_len, val.bv_val, 0 );
 			attr_merge( e, "matchingRules", vals );
 			ldap_memfree( val.bv_val );
 		} else {
@@ -1117,8 +1117,8 @@ oc_schema_info( Entry *e )
 		val.bv_val = ldap_objectclass2str( &oc->soc_oclass );
 		if ( val.bv_val ) {
 			val.bv_len = strlen( val.bv_val );
-			Debug( LDAP_DEBUG_TRACE, "Merging oc [%d] %s\n",
-			       val.bv_len, val.bv_val, 0 );
+			Debug( LDAP_DEBUG_TRACE, "Merging oc [%ld] %s\n",
+			       (long) val.bv_len, val.bv_val, 0 );
 			attr_merge( e, "objectClasses", vals );
 			ldap_memfree( val.bv_val );
 		} else {

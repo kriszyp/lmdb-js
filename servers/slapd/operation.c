@@ -96,7 +96,7 @@ slap_op_remove( Operation **olist, Operation *op )
 
 	if ( *tmp == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "op_delete: can't find op %ld\n",
-		    op->o_msgid, 0, 0 );
+		       (long) op->o_msgid, 0, 0 );
 		return -1; 
 	}
 

@@ -120,13 +120,13 @@ slap_init_user( char *user, char *group )
     if ( got_gid ) {
 	if ( setgid( gid ) != 0 ) {
 	    Debug( LDAP_DEBUG_ANY, "Could not set real group id to %d\n",
-		   gid, 0, 0 );
+		       (int) gid, 0, 0 );
 	    exit( EXIT_FAILURE );
 	}
 #ifdef HAVE_SETEGID
 	if ( setegid( gid ) != 0 ) {
 	    Debug( LDAP_DEBUG_ANY, "Could not set effective group id to %d\n",
-		   gid, 0, 0 );
+		       (int) gid, 0, 0 );
 	    exit( EXIT_FAILURE );
 	}
 #endif
@@ -135,13 +135,13 @@ slap_init_user( char *user, char *group )
     if ( got_uid ) {
 	if ( setuid( uid ) != 0 ) {
 	    Debug( LDAP_DEBUG_ANY, "Could not set real user id to %d\n",
-		   uid, 0, 0 );
+		       (int) uid, 0, 0 );
 	    exit( EXIT_FAILURE );
 	}
 #ifdef HAVE_SETEUID
 	if ( seteuid( uid ) != 0 ) {
 	    Debug( LDAP_DEBUG_ANY, "Could not set effective user id to %d\n",
-		   uid, 0, 0 );
+		       (int) uid, 0, 0 );
 	    exit( EXIT_FAILURE );
 	}
 #endif

@@ -696,8 +696,8 @@ at_schema_info( Entry *e )
 		val.bv_val = ldap_attributetype2str( &at->sat_atype );
 		if ( val.bv_val ) {
 			val.bv_len = strlen( val.bv_val );
-			Debug( LDAP_DEBUG_TRACE, "Merging at [%d] %s\n",
-			       val.bv_len, val.bv_val, 0 );
+			Debug( LDAP_DEBUG_TRACE, "Merging at [%ld] %s\n",
+			       (long) val.bv_len, val.bv_val, 0 );
 			attr_merge( e, "attributeTypes", vals );
 			ldap_memfree( val.bv_val );
 		} else {

@@ -99,7 +99,7 @@ done:
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 	Debug( LDAP_DEBUG_TRACE, "do_abandon: op=%ld %sfound\n",
-		id, notfound ? "not " : "", 0 );
+	       (long) id, notfound ? "not " : "", 0 );
 
 	return LDAP_SUCCESS;
 }

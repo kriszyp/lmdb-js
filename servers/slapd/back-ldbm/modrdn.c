@@ -205,7 +205,7 @@ ldbm_back_modrdn(
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: wr to new parent OK np=%p, id=%d\n",
+		       "ldbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
 		       np, np->e_id, 0 );
 	    
 		/* check newSuperior for "children" acl */

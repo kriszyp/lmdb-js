@@ -45,8 +45,8 @@ shell_back_abandon(
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 		if ( pid != -1 ) {
-			Debug( LDAP_DEBUG_ARGS, "shell killing pid %d\n", pid,
-			    0, 0 );
+			Debug( LDAP_DEBUG_ARGS, "shell killing pid %d\n",
+			       (int) pid, 0, 0 );
 			kill( pid, SIGTERM );
 		} else {
 			Debug( LDAP_DEBUG_ARGS, "shell could not find op %d\n",
