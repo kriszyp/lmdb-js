@@ -128,7 +128,7 @@ char	*sendmailargs[] = { MAIL500_SENDMAIL, "-oMrLDAP", "-odi", "-oi", "-f", NULL
 typedef struct attr_semantics {
 	char	*as_name;
 	int	as_m_valued;	/* Is multivalued? */
-	int	as_final;	/* If true, no further expansion is tried. */
+	int	as_priority;	/* Priority level of this attribut type */
 	int	as_syntax;	/* How to interpret values */
 	int	as_m_entries;	/* Can resolve to several entries? */
 	int	as_kind;	/* Recipient, sender, etc. */
@@ -149,11 +149,13 @@ typedef struct attr_semantics {
 #define AS_KIND_ERRORS		2	/* For ErrorsTo and similar */
 #define AS_KIND_REQUEST		3
 #define AS_KIND_OWNER		4
-#define AS_KIND_FORWARD_TO_HOST	5	/* Expand at some other host */
+#define AS_KIND_ROUTE_TO_HOST	5	/* Expand at some other host */
 #define AS_KIND_ALLOWED_SENDER	6	/* Can send to group */
 #define AS_KIND_MODERATOR	7
+#define AS_KIND_ROUTE_TO_ADDR	8	/* Rewrite recipient address as */
 
 AttrSemantics **attr_semantics = NULL;
+int current_priority = 0;
 
 typedef struct subst {
 	char	sub_char;
@@ -162,6 +164,7 @@ typedef struct subst {
 
 char	**groupclasses = NULL;
 char	**def_attr = NULL;
+char	**mydomains = NULL;		/* FQDNs not to route elsewhere */
 
 static void load_config( char *filespec );
 static void split_address( char *address, char **localpart, char **domainpart);
@@ -519,6 +522,7 @@ add_attr_semantics( char *s )
 	AttrSemantics *as;
 
 	as = calloc( 1, sizeof( AttrSemantics ) );
+	as->as_priority = current_priority;
 	p = s;
 	while ( isspace ( *p ) )
 		p++;
@@ -540,8 +544,6 @@ add_attr_semantics( char *s )
 			as->as_m_valued = 1;
 		} else if ( !strcasecmp( p, "multiple-entries" ) ) {
 			as->as_m_entries = 1;
-		} else if ( !strcasecmp( p, "final" ) ) {
-			as->as_final = 1;
 		} else if ( !strcasecmp( p, "local-native-mailbox" ) ) {
 			as->as_syntax = AS_SYNTAX_NATIVE_MB;
 		} else if ( !strcasecmp( p, "rfc822" ) ) {
@@ -575,8 +577,10 @@ add_attr_semantics( char *s )
 			}
 		} else if ( !strcasecmp( p, "host" ) ) {
 			as->as_kind = AS_SYNTAX_HOST;
-		} else if ( !strcasecmp( p, "forward-to-host" ) ) {
-			as->as_kind = AS_KIND_FORWARD_TO_HOST;
+		} else if ( !strcasecmp( p, "route-to-host" ) ) {
+			as->as_kind = AS_KIND_ROUTE_TO_HOST;
+		} else if ( !strcasecmp( p, "route-to-address" ) ) {
+			as->as_kind = AS_KIND_ROUTE_TO_ADDR;
 		} else if ( !strcasecmp( p, "recipient" ) ) {
 			as->as_kind = AS_KIND_RECIPIENT;
 		} else if ( !strcasecmp( p, "errors" ) ) {
@@ -655,6 +659,12 @@ load_config( char *filespec )
 		} else if ( !strncmp(line, "group-classes", p-line) ) {
 			p += strspn(p, " \t");
 			add_single_to( &groupclasses, p );
+		} else if ( !strncmp(line, "priority", p-line) ) {
+			p += strspn(p, " \t");
+			current_priority = atoi(p);
+		} else if ( !strncmp(line, "domain", p-line) ) {
+			p += strspn(p, " \t");
+			add_single_to( &mydomains, p );
 		} else {
 			syslog( LOG_ALERT,
 				"Unparseable config definition at line %d",
@@ -812,7 +822,6 @@ search_ldap_url(
 	char		*p, *s, *d;
 	int		i;
 	char		filter[1024];
-	char		realfilter[1024];
 	LDAPMessage	*e, *res;
 	int		rc;
 	char		**attrlist;
@@ -911,14 +920,6 @@ search_ldap_url(
 		filter[ sizeof( filter ) - 1 ] = '\0';
 	}
 
-	for ( s = filter, d = realfilter; *s; s++, d++ ) {
-		if ( *s == '*' ) {
-			*d++ = '\\';
-		}
-		*d = *s;
-	}
-	*d = '\0';
-
 	if ( ludp->lud_attrs ) {
 		attrlist = ludp->lud_attrs;
 	} else {
@@ -927,7 +928,7 @@ search_ldap_url(
 	res = NULL;
 	/* TBC: we don't read the host, dammit */
 	rc = ldap_search_st( ld, ludp->lud_dn, ludp->lud_scope,
-			     realfilter, attrlist, 0,
+			     filter, attrlist, 0,
 			     &timeout, &res );
 
 	/* some other trouble - try again later */
@@ -1075,6 +1076,23 @@ url_list_search(
 	return( resolved );
 }
 
+static int
+is_my_domain(
+	char * domain
+)
+{
+	char **d;
+
+	if ( d == NULL )
+		return 0;
+	for ( d = mydomains; *d; d++ ) {
+		if ( !strcmp(*d,domain) ) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
 /*
  * The entry engine processes an entry.  Normally, each entry will resolve
  * to one or more values that will be added to the 'to' argument.  This
@@ -1106,11 +1124,22 @@ entry_engine(
 	char	buf[1024];
 	char	*localpart, *domainpart;
 	Subst	substs[2];
+	int	cur_priority = 0;
+	char	*route_to_host = NULL;
+	char	*route_to_address = NULL;
+	char	*nvals[2];
 
 	for ( i=0; attr_semantics[i] != NULL; i++ ) {
 		AttrSemantics	*as = attr_semantics[i];
 		int		nent;
 
+		if ( as->as_priority < cur_priority ) {
+			/*
+			 * We already got higher priority information,
+			 * so no further work to do, ignore the rest.
+			 */
+			break;
+		}
 		vals = ldap_get_values( ld, e, as->as_name );
 		if ( !vals || vals[0] == NULL ) {
 			continue;
@@ -1122,6 +1151,7 @@ entry_engine(
 		}
 		switch ( as->as_kind ) {
 		case AS_KIND_RECIPIENT:
+			cur_priority = as->as_priority;
 			if ( ! ( type & ( USER | GROUP_MEMBERS ) ) )
 				break;
 			switch ( as->as_syntax ) {
@@ -1188,6 +1218,7 @@ entry_engine(
 			break;
 
 		case AS_KIND_ERRORS:
+			cur_priority = as->as_priority;
 			/* This is a group with special processing */
 			if ( type & GROUP_ERRORS ) {
 				switch (as->as_kind) {
@@ -1225,6 +1256,7 @@ entry_engine(
 			break;
 
 		case AS_KIND_REQUEST:
+			cur_priority = as->as_priority;
 			/* This is a group with special processing */
 			if ( type & GROUP_REQUEST ) {
 				add_to( current_to, current_nto, vals );
@@ -1233,10 +1265,25 @@ entry_engine(
 			break;
 
 		case AS_KIND_OWNER:
+			cur_priority = as->as_priority;
 			/* This is a group with special processing */
 			if ( type & GROUP_REQUEST ) {
 				add_to( current_to, current_nto, vals );
 				resolved = 1;
+			}
+			break;
+
+		case AS_KIND_ROUTE_TO_HOST:
+			if ( !is_my_domain( vals[0] ) ) {
+				cur_priority = as->as_priority;
+				route_to_host = strdup( vals[0] );
+			}
+			break;
+
+		case AS_KIND_ROUTE_TO_ADDR:
+			if ( strcmp( vals[0], address ) ) {
+				cur_priority = as->as_priority;
+				route_to_address = strdup( vals[0] );
 			}
 			break;
 
@@ -1246,10 +1293,32 @@ entry_engine(
 			/* Error, TBC */
 		}
 		ldap_value_free( vals );
-		if ( as->as_final ) {
-			return( resolved );
-		}
 	}
+	if ( route_to_host ) {
+		char *p;
+		if ( !route_to_address ) {
+			route_to_address = strdup( address );
+		}
+		/* This makes use of the percent hack, but there's no choice */
+		p = strchr( route_to_address, '@' );
+		if ( p ) {
+			*p = '%';
+		}
+		sprintf( buf, "%s@%s", route_to_address, route_to_host );
+		nvals[0] = buf;
+		nvals[1] = NULL;
+		add_to( current_to, current_nto, nvals );
+		resolved = 1;
+		free( route_to_host );
+		free( route_to_address );
+	} else if ( route_to_address ) {
+		nvals[0] = route_to_address;
+		nvals[1] = NULL;
+		add_to( current_to, current_nto, nvals );
+		resolved = 1;
+		free( route_to_address );
+	}
+		  
 	return( resolved );
 }
 
