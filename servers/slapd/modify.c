@@ -348,8 +348,9 @@ do_modify(
 				{
 					/* empty */
 				}
-				rc = slap_mods_opattrs( op, mods, modstail, &text );
 
+				rc = slap_mods_opattrs( op, mods, modstail, &text,
+					textbuf, textlen );
 				if( rc != LDAP_SUCCESS ) {
 					send_ldap_result( conn, op, rc,
 						NULL, text,
@@ -565,7 +566,8 @@ int slap_mods_opattrs(
 	Operation *op,
 	Modifications *mods,
 	Modifications **modtail,
-	const char **text )
+	const char **text,
+	char *textbuf, size_t textlen )
 {
 	struct berval name, timestamp, csn;
 	time_t now = slap_get_time();
@@ -604,7 +606,7 @@ int slap_mods_opattrs(
 		char uuidbuf[40];
 		int rc;
 
-		rc = mods_structural_class( mods, &tmpval, text );
+		rc = mods_structural_class( mods, &tmpval, text, textbuf, textlen );
 		if( rc != LDAP_SUCCESS ) {
 			return rc;
 		}

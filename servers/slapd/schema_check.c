@@ -27,12 +27,13 @@ static char * oc_check_required(
 int structural_class(
 	struct berval **ocs,
 	struct berval *scbv,
-	const char **text )
+	const char **text,
+	char *textbuf, size_t textlen )
 {
 	int i;
 	ObjectClass *oc;
 	ObjectClass *sc = NULL;
-	int scn = 0;
+	int scn = -1;
 
 	*text = "structural_class: internal error";
 	scbv->bv_len = 0;
@@ -41,7 +42,10 @@ int structural_class(
 		oc = oc_find( ocs[i]->bv_val );
 
 		if( oc == NULL ) {
-			*text = "unrecongized objectClass attribute";
+			snprintf( textbuf, textlen,
+				"unrecongized objectClass '%s'",
+				ocs[i]->bv_val );
+			*text = textbuf;
 			return LDAP_OBJECT_CLASS_VIOLATION;
 		}
 
@@ -51,15 +55,50 @@ int structural_class(
 				scn = i;
 
 			} else if ( !is_object_subclass( oc, sc ) ) {
-				/* FIXME: multiple inheritance possible! */
-				*text = "invalid strucutural object class chain";
-				return LDAP_OBJECT_CLASS_VIOLATION;
+				int j;
+				ObjectClass *xc = NULL;
+
+				/* find common superior */
+				for( j=i+1; ocs[j]; j++ ) {
+					xc = oc_find( ocs[j]->bv_val );
+
+					if( xc == NULL ) {
+						snprintf( textbuf, textlen,
+							"unrecongized objectClass '%s'",
+							ocs[i]->bv_val );
+						*text = textbuf;
+						return LDAP_OBJECT_CLASS_VIOLATION;
+					}
+
+					if( xc->soc_kind != LDAP_SCHEMA_STRUCTURAL ) {
+						xc = NULL;
+						continue;
+					}
+
+					if( is_object_subclass( sc, xc ) &&
+						is_object_subclass( oc, xc ) )
+					{
+						/* found common subclass */
+						break;
+					}
+
+					xc = NULL;
+				}
+
+				if( xc == NULL ) {
+					/* no common subclass */
+					snprintf( textbuf, textlen,
+						"invalid structural object class chain (%s/%s)",
+						ocs[scn]->bv_val, ocs[i]->bv_val );
+					*text = textbuf;
+					return LDAP_OBJECT_CLASS_VIOLATION;
+				}
 			}
 		}
 	}
 
 	if( sc == NULL ) {
-		*text = "no strucutural object classes";
+		*text = "no structural object classes provided";
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
 
@@ -73,7 +112,8 @@ int structural_class(
 int mods_structural_class(
 	Modifications *mods,
 	struct berval *sc,
-	const char **text )
+	const char **text,
+	char *textbuf, size_t textlen )
 {
 	Modifications *ocmod = NULL;
 
@@ -97,7 +137,8 @@ int mods_structural_class(
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
 
-	return structural_class( ocmod->sml_bvalues, sc, text );
+	return structural_class( ocmod->sml_bvalues, sc,
+		text, textbuf, textlen );
 }
 
 /*
@@ -233,7 +274,7 @@ entry_schema_check(
 	assert( aoc->a_vals != NULL );
 	assert( aoc->a_vals[0] != NULL );
 
-	rc = structural_class( aoc->a_vals, &nsc, text );
+	rc = structural_class( aoc->a_vals, &nsc, text, textbuf, textlen );
 	if( rc != LDAP_SUCCESS ) {
 		return rc;
 	} else if ( nsc.bv_len == 0 ) {

@@ -27,6 +27,10 @@ main( int argc, char **argv )
 	int         lmax;
 	int			rc = EXIT_SUCCESS;
 
+	const char *text;
+	char textbuf[SLAP_TEXT_BUFLEN];
+	size_t textlen = sizeof textbuf;
+
 	slap_tool_init( "slapadd", SLAPADD, argc, argv );
 
 	if( !be->be_entry_open ||
@@ -112,9 +116,9 @@ main( int argc, char **argv )
 			if( sc == NULL ) {
 				struct berval *vals[2];
 				struct berval scbv;
-				const char *text;
+
 				int ret = structural_class(
-					oc->a_vals, &scbv, &text );
+					oc->a_vals, &scbv, &text, textbuf, textlen );
 
 				if( scbv.bv_len == 0 ) {
 					fprintf( stderr, "%s: dn=\"%s\" (line=%d): %s\n",
@@ -134,9 +138,6 @@ main( int argc, char **argv )
 
 		if( global_schemacheck ) {
 			/* check schema */
-			const char *text;
-			char textbuf[SLAP_TEXT_BUFLEN];
-			size_t textlen = sizeof textbuf;
 
 			rc = entry_schema_check( e, NULL, &text, textbuf, textlen );
 

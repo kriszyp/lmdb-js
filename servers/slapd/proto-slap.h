@@ -437,9 +437,9 @@ LDAP_SLAPD_F (int) lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
  * modify.c
  *	should be relocated to separate file
  */
-LDAP_SLAPD_F( void ) slap_mod_free LDAP_P(( Modification *mod, int freeit ));
-LDAP_SLAPD_F( void ) slap_mods_free LDAP_P(( Modifications *mods ));
-LDAP_SLAPD_F( void ) slap_modlist_free LDAP_P(( LDAPModList *ml ));
+LDAP_SLAPD_F( void ) slap_mod_free( Modification *mod, int freeit );
+LDAP_SLAPD_F( void ) slap_mods_free( Modifications *mods );
+LDAP_SLAPD_F( void ) slap_modlist_free( LDAPModList *ml );
 
 LDAP_SLAPD_F( int ) slap_modlist2mods(
 	LDAPModList *ml,
@@ -452,7 +452,8 @@ LDAP_SLAPD_F( int ) slap_mods_opattrs(
 	Operation *op,
 	Modifications *mods,
 	Modifications **modlist,
-	const char **text );
+	const char **text,
+	char *textbuf, size_t textlen );
 
 /*
  * module.c
@@ -721,18 +722,26 @@ LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
 /*
  * schema_check.c
  */
-int oc_check_allowed(
+LDAP_SLAPD_F( int ) oc_check_allowed(
 	AttributeType *type,
 	struct berval **oclist );
-LDAP_SLAPD_F (int) entry_schema_check LDAP_P((
+
+LDAP_SLAPD_F( int ) structural_class(
+	struct berval **ocs,
+	struct berval *scbv,
+	const char **text,
+	char *textbuf, size_t textlen );
+
+LDAP_SLAPD_F( int ) entry_schema_check(
 	Entry *e, Attribute *attrs,
 	const char** text,
-	char *textbuf, size_t textlen ));
-LDAP_SLAPD_F (int) mods_structural_class LDAP_P((
+	char *textbuf, size_t textlen );
+
+LDAP_SLAPD_F( int ) mods_structural_class(
 	Modifications *mods,
 	struct berval *oc,
-	const char** text ));
-
+	const char** text,
+	char *textbuf, size_t textlen );
 
 /*
  * schema_init.c
