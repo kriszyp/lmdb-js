@@ -42,14 +42,14 @@ typedef struct backsql_srch_info {
 	Connection		*conn;
 	Operation		*op;
 	AttributeName		*attrs;
-	int			attr_flags;
-#define	BSQL_SF_ALL_OPER	0x0001
+	int			bsi_flags;
+#define	BSQL_SF_ALL_OPER		0x0001
+#define BSQL_SF_FILTER_HASSUBORDINATE	0x0002
 	Entry			*e;
 	/* 1 if the db is TimesTen; 0 if it's not */
 	int			use_reverse_dn; 
 } backsql_srch_info;
 
-int backsql_process_filter( backsql_srch_info *bsi, Filter *f );
 void backsql_init_search( backsql_srch_info *bsi, backsql_info *bi,
 		struct berval *nbase, int scope, int slimit, int tlimit,
 		time_t stoptime, Filter *filter, SQLHDBC dbh,

@@ -23,6 +23,8 @@
 #include "entry-id.h"
 #include "util.h"
 
+static int backsql_process_filter( backsql_srch_info *bsi, Filter *f );
+
 static int
 backsql_attrlist_add( backsql_srch_info *bsi, AttributeDescription *ad )
 {
@@ -30,6 +32,15 @@ backsql_attrlist_add( backsql_srch_info *bsi, AttributeDescription *ad )
 	AttributeName	*an = NULL;
 
 	if ( bsi->attrs == NULL ) {
+		return 1;
+	}
+
+	/*
+	 * clear the list (retrieve all attrs)
+	 */
+	if ( ad == NULL ) {
+		ch_free( bsi->attrs );
+		bsi->attrs = NULL;
 		return 1;
 	}
 
@@ -94,12 +105,8 @@ backsql_init_search(
 	bsi->be = be;
 	bsi->conn = conn;
 	bsi->op = op;
-	bsi->attr_flags = 0;
+	bsi->bsi_flags = 0;
 
-	/*
-	 * FIXME: need to discover how to deal with 1.1 (NoAttrs)
-	 */
-	
 	/*
 	 * handle "*"
 	 */
@@ -114,13 +121,13 @@ backsql_init_search(
 		
 		for ( p = attrs; p->an_name.bv_val; p++ ) {
 			/*
-			 * ignore "+"
+			 * ignore "1.1"; handle "+"
 			 */
 			if ( BACKSQL_NCMP( &p->an_name, &AllOper ) == 0 ) {
+				bsi->bsi_flags |= BSQL_SF_ALL_OPER;
 				continue;
 
 			} else if ( BACKSQL_NCMP( &p->an_name, &NoAttrs ) == 0 ) {
-				bsi->attr_flags |= BSQL_SF_ALL_OPER;
 				continue;
 			}
 
@@ -149,7 +156,7 @@ backsql_init_search(
 	bsi->status = LDAP_SUCCESS;
 }
 
-int
+static int
 backsql_process_filter_list( backsql_srch_info *bsi, Filter *f, int op )
 {
 	int		res;
@@ -195,7 +202,7 @@ backsql_process_filter_list( backsql_srch_info *bsi, Filter *f, int op )
 	return 1;
 }
 
-int
+static int
 backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f )
 {
 	int			i;
@@ -301,13 +308,13 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f )
 	return 1;
 }
 
-int
+static int
 backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 {
 	backsql_at_map_rec	*at;
 	backsql_at_map_rec 	oc_attr = {
 		slap_schema.si_ad_objectClass, BER_BVC(""), BER_BVC(""), 
-		{ 0, NULL }, NULL, NULL, NULL };
+		BER_BVNULL, NULL, NULL, NULL };
 	AttributeDescription	*ad = NULL;
 	int 			done = 0;
 	ber_len_t		len = 0;
@@ -328,7 +335,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		
 	case LDAP_FILTER_AND:
 		rc = backsql_process_filter_list( bsi, f->f_and,
-				LDAP_FILTER_AND);
+				LDAP_FILTER_AND );
 		done = 1;
 		break;
 
@@ -346,6 +353,10 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		ad = f->f_desc;
 		break;
 		
+	case LDAP_FILTER_EXT:
+		ad = f->f_mra->ma_desc;
+		break;
+		
 	default:
 		ad = f->f_av_desc;
 		break;
@@ -360,23 +371,58 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		goto done;
 	}
 
-	if ( ad != slap_schema.si_ad_objectClass ) {
-		at = backsql_ad2at( bsi->oc, ad );
-
-	} else {
+	/*
+	 * Turn structuralObjectClass into objectClass
+	 */
+	if ( ad == slap_schema.si_ad_objectClass 
+			|| ad == slap_schema.si_ad_structuralObjectClass ) {
 		at = &oc_attr;
 		backsql_strfcat( &at->sel_expr, &len, "cbc",
 				'\'', 
-				&bsi->oc->name, 
+				&bsi->oc->oc->soc_cname, 
 				'\'' );
+
+#if defined(SLAP_X_FILTER_HASSUBORDINATES) || defined(SLAP_X_MRA_MATCH_DNATTRS)
+	} else if ( ad == slap_schema.si_ad_hasSubordinates || ad == NULL ) {
+		/*
+		 * FIXME: this is not robust; e.g. a filter
+		 * '(!(hasSubordinates=TRUE))' fails because
+		 * in SQL it would read 'NOT (1=1)' instead 
+		 * of no condition.  
+		 * Note however that hasSubordinates is boolean, 
+		 * so a more appropriate filter would be 
+		 * '(hasSubordinates=FALSE)'
+		 */
+		backsql_strfcat( &bsi->flt_where, &bsi->fwhere_len, "l",
+				(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
+		if ( ad != NULL ) {
+			/*
+			 * We use this flag since we need to parse
+			 * the filter anyway; we should have used
+			 * the frontend API function
+			 * filter_has_subordinates()
+			 */
+			bsi->bsi_flags |= BSQL_SF_FILTER_HASSUBORDINATE;
+		} else {
+			/*
+			 * clear attributes to fetch, to require ALL
+			 * and try extended match on all attributes
+			 */
+			backsql_attrlist_add( bsi, NULL );
+		}
+		goto done;
+#endif /* SLAP_X_FILTER_HASSUBORDINATES || SLAP_X_MRA_MATCH_DNATTRS */
+		
+	} else {
+		at = backsql_ad2at( bsi->oc, ad );
 	}
 
 	if ( at == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_process_filter(): "
 			"attribute '%s' is not defined for objectclass '%s'\n",
-			ad->ad_cname.bv_val, bsi->oc->name.bv_val, 0 );
+			ad->ad_cname.bv_val, BACKSQL_OC_NAME( bsi->oc ), 0 );
 		backsql_strfcat( &bsi->flt_where, &bsi->fwhere_len, "l",
-				(ber_len_t)sizeof( " 1=0 " ) - 1, " 1=0 " );
+				(ber_len_t)sizeof( "1=0" ) - 1, "1=0" );
 		goto impossible;
 	}
 
@@ -461,6 +507,9 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		break;
 
 	case LDAP_FILTER_GE:
+		/*
+		 * FIXME: should we uppercase the operands?
+		 */
 		backsql_strfcat( &bsi->flt_where, &bsi->fwhere_len, "cblbc",
 				'(' /* ) */ ,
 				&at->sel_expr,
@@ -470,6 +519,9 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		break;
 		
 	case LDAP_FILTER_LE:
+		/*
+		 * FIXME: should we uppercase the operands?
+		 */
 		backsql_strfcat( &bsi->flt_where, &bsi->fwhere_len, "cblbc",
 				'(' /* ) */ ,
 				&at->sel_expr,
@@ -558,13 +610,13 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 				&bi->strcast_func, 
 				(ber_len_t)sizeof( "('" /* ') */ ) - 1,
 					"('" /* ') */ ,
-				&bsi->oc->name,
+				&bsi->oc->oc->soc_cname,
 				(ber_len_t)sizeof( /* (' */ "')" ) - 1,
 					/* (' */ "')" );
 	} else {
 		backsql_strfcat( &bsi->sel, &bsi->sel_len, "cbc",
 				'\'',
-				&bsi->oc->name,
+				&bsi->oc->oc->soc_cname,
 				'\'' );
 	}
 	backsql_strfcat( &bsi->sel, &bsi->sel_len, "l",
@@ -669,7 +721,7 @@ backsql_oc_get_candidates( backsql_oc_map_rec *oc, backsql_srch_info *bsi )
 	int			j;
  
 	Debug(	LDAP_DEBUG_TRACE, "==>backsql_oc_get_candidates(): oc='%s'\n",
-			oc->name.bv_val, 0, 0 );
+			BACKSQL_OC_NAME( oc ), 0, 0 );
 
 	if ( bsi->n_candidates == -1 ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
@@ -998,6 +1050,10 @@ backsql_search(
 	 */
 	for ( eid = srch_info.id_list; eid != NULL; 
 			eid = backsql_free_entryID( eid, 1 ) ) {
+#ifdef SLAP_X_FILTER_HASSUBORDINATES
+		Attribute	*hasSubordinate = NULL,
+				*a = NULL;
+#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 		/* check for abandon */
 		if ( op->o_abandon ) {
@@ -1035,10 +1091,68 @@ backsql_search(
 			continue;
 		}
 
+#ifdef SLAP_X_FILTER_HASSUBORDINATES
+		/*
+		 * We use this flag since we need to parse the filter
+		 * anyway; we should have used the frontend API function
+		 * filter_has_subordinates()
+		 */
+		if ( srch_info.bsi_flags & BSQL_SF_FILTER_HASSUBORDINATE ) {
+			int		rc;
+
+			rc = backsql_has_children( bi, dbh, &entry->e_nname );
+
+			switch( rc ) {
+			case LDAP_COMPARE_TRUE:
+			case LDAP_COMPARE_FALSE:
+				hasSubordinate = slap_operational_hasSubordinate( rc == LDAP_COMPARE_TRUE );
+				if ( hasSubordinate != NULL ) {
+					for ( a = entry->e_attrs; 
+							a && a->a_next; 
+							a = a->a_next );
+
+					a->a_next = hasSubordinate;
+				}
+				rc = 0;
+				break;
+
+			default:
+				Debug(LDAP_DEBUG_TRACE, 
+					"backsql_search(): "
+					"has_children failed( %d)\n", 
+					rc, 0, 0 );
+				rc = 1;
+				break;
+			}
+
+			if ( rc ) {
+				continue;
+			}
+		}
+#endif /* SLAP_X_FILTER_HASSUBORDINATES */
+
 		if ( test_filter( be, conn, op, entry, filter ) 
 				== LDAP_COMPARE_TRUE ) {
-			sres = send_search_entry( be, conn, op, entry,
-					attrs, attrsonly, NULL );
+#ifdef SLAP_X_FILTER_HASSUBORDINATES
+			if ( hasSubordinate && !( srch_info.bsi_flags & BSQL_SF_ALL_OPER ) 
+					&& !ad_inlist( slap_schema.si_ad_hasSubordinates, attrs ) ) {
+				a->a_next = NULL;
+				attr_free( hasSubordinate );
+				hasSubordinate = NULL;
+			}
+#endif /* SLAP_X_FILTER_HASSUBORDINATES */
+
+#if 0	/* noop is masked SLAP_CTRL_UPDATE */
+			if ( op->o_noop ) {
+				sres = 0;
+			} else {
+#endif
+				sres = send_search_entry( be, conn, op, entry,
+						attrs, attrsonly, NULL );
+#if 0
+			}
+#endif
+
 			switch ( sres ) {
 			case 0:
 				nentries++;

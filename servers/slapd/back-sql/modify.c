@@ -549,9 +549,10 @@ backsql_modify(
 		 * or if a single operation on an attribute fails 
 		 * for any reason
 		 */
-		SQLTransact( SQL_NULL_HENV, dbh, SQL_COMMIT );
+		SQLTransact( SQL_NULL_HENV, dbh, 
+				op->o_noop ? SQL_ROLLBACK : SQL_COMMIT );
 	}
-	send_ldap_result( conn, op, res, "", text, NULL, NULL );
+	send_ldap_result( conn, op, res, NULL, text, NULL, NULL );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_modify()\n", 0, 0, 0 );
 
 	return 0;
@@ -865,7 +866,8 @@ backsql_modrdn(
 		 * or if a single operation on an attribute fails for any
 		 * reason
 		 */
-		SQLTransact( SQL_NULL_HENV, dbh, SQL_COMMIT );
+		SQLTransact( SQL_NULL_HENV, dbh,
+				op->o_noop ? SQL_ROLLBACK : SQL_COMMIT );
 	}
 
 modrdn_return:
@@ -1239,7 +1241,7 @@ backsql_add(
 				"attribute '%s' is not registered "
 				"in objectclass '%s'\n",
 				at->a_desc->ad_cname.bv_val,
-				oc->name.bv_val, 0 );
+				BACKSQL_OC_NAME( oc ), 0 );
 
 			if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
 				send_ldap_result( conn, op, 
@@ -1312,7 +1314,7 @@ backsql_add(
 			 * to build the entry
 			 */
 			if ( at->a_desc == slap_schema.si_ad_objectClass ) {
-				if ( ber_bvcmp( at_val, &oc->name ) == 0 ) {
+				if ( bvmatch( at_val, &oc->oc->soc_cname ) ) {
 					continue;
 				}
 			}
@@ -1411,7 +1413,8 @@ backsql_add(
 	 * or if a single operation on an attribute fails 
 	 * for any reason
 	 */
-	SQLTransact( SQL_NULL_HENV, dbh, SQL_COMMIT );
+	SQLTransact( SQL_NULL_HENV, dbh, 
+				op->o_noop ? SQL_ROLLBACK : SQL_COMMIT );
 
 	send_ldap_result( conn, op, LDAP_SUCCESS, "",
 			NULL, NULL, NULL );
@@ -1570,7 +1573,8 @@ backsql_delete(
 	 * or if a single operation on an attribute fails 
 	 * for any reason
 	 */
-	SQLTransact( SQL_NULL_HENV, dbh, SQL_COMMIT );
+	SQLTransact( SQL_NULL_HENV, dbh, 
+				op->o_noop ? SQL_ROLLBACK : SQL_COMMIT );
 
 	send_ldap_result( conn, op, LDAP_SUCCESS, "", NULL, NULL, NULL );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_delete()\n", 0, 0, 0 );

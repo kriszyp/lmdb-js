@@ -49,6 +49,10 @@
  *				statements (needed by PostgreSQL)
  *       - upper_needs_cast	cast the argument of upper when required
  * 				(basically when building dn substring queries)
+ *   - added noop control
+ *   - added values return filter control
+ *   - hasSubordinate can be used in search filters (with limitations)
+ *   - eliminated oc->name; use oc->oc->soc_cname instead
  * 
  * Todo:
  *   - add security checks for SQL statements that can be injected (?)
@@ -79,7 +83,6 @@
  * define to enable very extensive trace logging (debug only)
  */
 #undef BACKSQL_TRACE
-
 
 typedef struct {
 	char		*dbhost;

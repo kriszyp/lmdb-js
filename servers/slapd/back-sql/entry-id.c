@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include "ac/string.h"
+#include "lber_pvt.h"
 #include "ldap_pvt.h"
 #include "slap.h"
 #include "back-sql.h"
@@ -255,8 +256,7 @@ backsql_get_attr_vals( backsql_at_map_rec *at, backsql_srch_info *bsi )
  
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_get_attr_vals(): "
 		"oc='%s' attr='%s' keyval=%ld\n",
-		// bsi->oc->name.bv_val, at->name.bv_val, 
-		bsi->oc->oc->soc_names[0], at->ad->ad_cname.bv_val, 
+		BACKSQL_OC_NAME( bsi->oc ), at->ad->ad_cname.bv_val, 
 		bsi->c_eid->keyval );
 
 	rc = backsql_Prepare( bsi->dbh, &sth, at->query, 0 );
@@ -363,7 +363,7 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 #if 0
 				backsql_entry_addattr( bsi->e, 
 						&bv_n_objectclass,
-						&bsi->oc->name );
+						BACKSQL_OC_NAME( bsi->oc ) );
 #endif
 				continue;
 			}
@@ -376,7 +376,7 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 					"attribute '%s' is not defined "
 					"for objectlass '%s'\n",
 					attr->an_name.bv_val, 
-					bsi->oc->name.bv_val, 0 );
+					BACKSQL_OC_NAME( bsi->oc ), 0 );
 			}
 		}
 
@@ -387,7 +387,7 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 				bsi, 0, AVL_INORDER );
 	}
 
-	if ( attr_merge_one( bsi->e, ad_oc, &bsi->oc->name ) ) {
+	if ( attr_merge_one( bsi->e, ad_oc, &bsi->oc->oc->soc_cname ) ) {
 		entry_free( e );
 		return NULL;
 	}
@@ -396,7 +396,7 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 		const char	*text = NULL;
 		char		textbuf[ 1024 ];
 		size_t		textlen = sizeof( textbuf );
-		struct berval	bv[ 2 ] = { bsi->oc->name, { 0, NULL } };
+		struct berval	bv[ 2 ] = { bsi->oc->oc->soc_cname, BER_BVNULL };
 		struct berval	soc;
 		AttributeDescription	*ad_soc
 			= slap_schema.si_ad_structuralObjectClass;
@@ -408,7 +408,7 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 			return NULL;
 		}
 
-		if ( bsi->attr_flags | BSQL_SF_ALL_OPER 
+		if ( bsi->bsi_flags | BSQL_SF_ALL_OPER 
 				|| an_find( bsi->attrs, &AllOper ) ) {
 			if ( attr_merge_one( bsi->e, ad_soc, &soc ) ) {
 				entry_free( e );

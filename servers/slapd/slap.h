@@ -1683,6 +1683,12 @@ enum {
 };
 #endif /* SLAPD_MONITOR */
 
+/*
+ * Better know these all around slapd
+ */
+#define SLAP_LDAPDN_PRETTY 0x1
+#define SLAP_LDAPDN_MAXLEN 8192
+
 LDAP_END_DECL
 
 #include "proto-slap.h"

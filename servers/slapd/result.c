@@ -770,6 +770,7 @@ send_search_entry(
 		}
 		e_flags = ch_calloc ( 1, i * sizeof(char *) + k );
 		a_flags = (char *)(e_flags + i);
+		memset( a_flags, 0, k );
 		for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
 			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ );
 			e_flags[i] = a_flags;
@@ -909,25 +910,45 @@ send_search_entry(
 		}
 	}
 
-	/* free e_flags */
-	if ( e_flags ) {
-		free( e_flags );
-		e_flags = NULL;
-	}
-
 	/* eventually will loop through generated operational attributes */
 	/* only have subschemaSubentry implemented */
 	aa = backend_operational( be, conn, op, e, attrs, opattrs );
 
 	if ( aa != NULL && op->vrFilter != NULL ) {
 		int k = 0;
-		char *a_flags;
+		char *a_flags, **tmp;
 
 		for ( a = aa, i=0; a != NULL; a = a->a_next, i++ ) {
 			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) k++;
 		}
-		e_flags = ch_calloc ( 1, i * sizeof(char *) + k );
+		/*
+		 * Reuse previous memory - we likely need less space
+		 * for operational attributes
+		 */
+		tmp = ch_realloc ( e_flags, i * sizeof(char *) + k );
+		if ( tmp == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, ERR, 
+				"send_search_entry: conn %lu "
+				"not enough memory "
+				"for matched values filtering\n", 
+				conn ? conn->c_connid : 0, 0, 0);
+#else
+		    	Debug( LDAP_DEBUG_ANY,
+				"send_search_entry: conn %lu "
+				"not enough memory "
+				"for matched values filtering\n",
+				conn ? conn->c_connid : 0, 0, 0 );
+#endif
+			ber_free( ber, 1 );
+
+			send_ldap_result( conn, op, LDAP_NO_MEMORY,
+				NULL, NULL, NULL, NULL );
+			goto error_return;
+		}
+		e_flags = tmp;
 		a_flags = (char *)(e_flags + i);
+		memset( a_flags, 0, k );
 		for ( a = aa, i=0; a != NULL; a = a->a_next, i++ ) {
 			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ );
 			e_flags[i] = a_flags;
@@ -942,7 +963,7 @@ send_search_entry(
 				"matched values filtering failed\n", 
 				conn ? conn->c_connid : 0, 0, 0);
 #else
-	    	Debug( LDAP_DEBUG_ANY,
+		    	Debug( LDAP_DEBUG_ANY,
 				"matched values filtering failed\n", 0, 0, 0 );
 #endif
 			ber_free( ber, 1 );

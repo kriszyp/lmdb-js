@@ -395,6 +395,13 @@ LDAP_SLAPD_F (int) dnX509normalize LDAP_P(( void *x509_name, struct berval *out 
 
 LDAP_SLAPD_F (int) dnX509peerNormalize LDAP_P(( void *ssl, struct berval *dn ));
 
+LDAP_SLAPD_F (int) dnPrettyNormalDN LDAP_P(( Syntax *syntax, struct berval *val, LDAPDN **dn, int flags ));
+#define dnPrettyDN(syntax, val, dn) \
+	dnPrettyNormalDN((syntax),(val),(dn), SLAP_LDAPDN_PRETTY)
+#define dnNormalDN(syntax, val, dn) \
+	dnPrettyNormalDN((syntax),(val),(dn), 0)
+
+
 /*
  * entry.c
  */
@@ -451,17 +458,31 @@ LDAP_SLAPD_F (int) get_filter LDAP_P((
 LDAP_SLAPD_F (void) filter_free LDAP_P(( Filter *f ));
 LDAP_SLAPD_F (void) filter2bv LDAP_P(( Filter *f, struct berval *bv ));
 
-LDAP_SLAPD_F (int) get_vrFilter( Connection *conn, BerElement *ber,
+LDAP_SLAPD_F (int) get_vrFilter LDAP_P(( Connection *conn, BerElement *ber,
 	ValuesReturnFilter **f,
-	const char **text );
+	const char **text ));
 
-LDAP_SLAPD_F (void) vrFilter_free( ValuesReturnFilter *f );
-LDAP_SLAPD_F (void) vrFilter2bv( ValuesReturnFilter *f, struct berval *fstr );
+LDAP_SLAPD_F (void) vrFilter_free LDAP_P(( ValuesReturnFilter *f ));
+LDAP_SLAPD_F (void) vrFilter2bv LDAP_P(( ValuesReturnFilter *f, struct berval *fstr ));
 
+/*
+ * define to honor hasSubordinates operational attribute in search filters
+ */
+#define SLAP_X_FILTER_HASSUBORDINATES
+
+#ifdef SLAP_X_FILTER_HASSUBORDINATES
+LDAP_SLAPD_F (int) filter_has_subordinates LDAP_P(( Filter *filter ));
+#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 /*
  * filterentry.c
  */
+
+/*
+ * define to enable dn components match in extended filter matching
+ */
+#define SLAP_X_MRA_MATCH_DNATTRS
+
 LDAP_SLAPD_F (int) test_filter LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
 	Entry *e, Filter *f ));

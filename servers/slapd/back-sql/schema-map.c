@@ -15,22 +15,12 @@
 #include <sys/types.h>
 #include <string.h>
 #include "slap.h"
+#include "lber_pvt.h"
 #include "ldap_pvt.h"
 #include "back-sql.h"
 #include "sql-wrap.h"
 #include "schema-map.h"
 #include "util.h"
-
-/*
- * Deprecated
- */
-#if 0
-static int
-backsql_cmp_oc_name( backsql_oc_map_rec *m1, backsql_oc_map_rec *m2 )
-{
-	return BACKSQL_NCMP( &m1->name, &m2->name );
-}
-#endif
 
 /*
  * Uses the pointer to the ObjectClass structure
@@ -48,17 +38,6 @@ backsql_cmp_oc_id( backsql_oc_map_rec *m1, backsql_oc_map_rec *m2 )
 }
 
 /*
- * Deprecated
- */
-#if 0
-static int
-backsql_cmp_attr_name( backsql_at_map_rec *m1, backsql_at_map_rec *m2 )
-{
-	return BACKSQL_NCMP( &m1->name, &m2->name );
-}
-#endif
-
-/*
  * Uses the pointer to the AttributeDescription structure
  */
 static int
@@ -72,7 +51,7 @@ backsql_make_attr_query(
 	backsql_oc_map_rec 	*oc_map,
 	backsql_at_map_rec 	*at_map )
 {
-	struct berval	tmps = { 0, NULL };
+	struct berval	tmps = BER_BVNULL;
 	ber_len_t	tmpslen = 0;
 
 	backsql_strfcat( &tmps, &tmpslen, "lblblblbcbl", 
@@ -250,12 +229,11 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 
 		oc_map->id = strtol( oc_row.cols[ 0 ], NULL, 0 );
 
-		ber_str2bv( oc_row.cols[ 1 ], 0, 1, &oc_map->name );
-		oc_map->oc = oc_bvfind( &oc_map->name );
+		oc_map->oc = oc_find( oc_row.cols[ 1 ] );
 		if ( oc_map->oc == NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "load_schema_map(): "
 				"objectClass '%s' is not defined in schema\n", 
-				oc_map->name.bv_val, 0, 0 );
+				oc_row.cols[ 1 ], 0, 0 );
 			return LDAP_OTHER;	/* undefined objectClass ? */
 		}
 		
@@ -288,7 +266,7 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 		oc_id = oc_map->id;
 		Debug( LDAP_DEBUG_TRACE, "load_schema_map(): "
 			"objectClass '%s': keytbl='%s' keycol='%s'\n",
-			oc_map->name.bv_val, 
+			BACKSQL_OC_NAME( oc_map ),
 			oc_map->keytbl.bv_val, oc_map->keycol.bv_val );
 		if ( oc_map->create_proc ) {
 			Debug( LDAP_DEBUG_TRACE, "create_proc='%s'\n",
@@ -349,7 +327,7 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 					"attribute '%s' for objectClass '%s' "
 					"is not defined in schema: %s\n", 
 					at_map->ad->ad_cname.bv_val, 
-					oc_map->name.bv_val, text );
+					BACKSQL_OC_NAME( oc_map ), text );
 				return LDAP_CONSTRAINT_VIOLATION;
 			}
 				
@@ -415,7 +393,8 @@ backsql_oc2oc( backsql_info *si, ObjectClass *oc )
 #ifdef BACKSQL_TRACE
 	if ( res != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_oc2oc(): "
-			"found name='%s', id=%d\n", res->name, res->id, 0 );
+			"found name='%s', id=%d\n", 
+			BACKSQL_OC_NAME( res ), res->id, 0 );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_oc2oc(): "
 			"not found\n", 0, 0, 0 );
@@ -425,9 +404,6 @@ backsql_oc2oc( backsql_info *si, ObjectClass *oc )
 	return res;
 }
 
-/*
- * Deprecated
- */
 backsql_oc_map_rec *
 backsql_name2oc( backsql_info *si, struct berval *oc_name )
 {
@@ -449,7 +425,8 @@ backsql_name2oc( backsql_info *si, struct berval *oc_name )
 #ifdef BACKSQL_TRACE
 	if ( res != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<==oc_with_name(): "
-			"found name='%s', id=%d\n", res->name, res->id, 0 );
+			"found name='%s', id=%d\n", 
+			BACKSQL_OC_NAME( res ), res->id, 0 );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "<==oc_with_name(): "
 			"not found\n", 0, 0, 0 );
@@ -476,7 +453,8 @@ backsql_id2oc( backsql_info *si, unsigned long id )
 #ifdef BACKSQL_TRACE
 	if ( res != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<==oc_with_name(): "
-			"found name='%s', id=%d\n", res->name, res->id, 0 );
+			"found name='%s', id=%d\n",
+			BACKSQL_OC_NAME( res ), res->id, 0 );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "<==oc_with_name(): "
 			"not found\n", 0, 0, 0 );
@@ -494,7 +472,7 @@ backsql_ad2at( backsql_oc_map_rec* objclass, AttributeDescription *ad )
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_ad2at(): "
 		"searching for attribute '%s' for objectclass '%s'\n",
-		attr, objclass->name, 0 );
+		attr, BACKSQL_OC_NAME( objclass ), 0 );
 #endif /* BACKSQL_TRACE */
 
 	tmp.ad = ad;
@@ -505,7 +483,7 @@ backsql_ad2at( backsql_oc_map_rec* objclass, AttributeDescription *ad )
 	if ( res != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_ad2at(): "
 			"found name='%s', sel_expr='%s'\n",
-			res->name, res->sel_expr.bv_val, 0 );
+			res->ad->ad_cname.bv_val, res->sel_expr.bv_val, 0 );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_ad2at(): "
 			"not found\n", 0, 0, 0 );
@@ -527,7 +505,7 @@ backsql_name2at( backsql_oc_map_rec* objclass, struct berval *attr )
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_name2at(): "
 		"searching for attribute '%s' for objectclass '%s'\n",
-		attr, objclass->name, 0 );
+		attr, BACKSQL_OC_NAME( objclass ), 0 );
 #endif /* BACKSQL_TRACE */
 
 	if ( slap_bv2ad( attr, &tmp.ad, &text ) != LDAP_SUCCESS ) {
@@ -587,9 +565,8 @@ static void
 backsql_free_oc( backsql_oc_map_rec *oc )
 {
 	Debug( LDAP_DEBUG_TRACE, "==>free_oc(): '%s'\n", 
-			oc->name.bv_val, 0, 0 );
+			BACKSQL_OC_NAME( oc ), 0, 0 );
 	avl_free( oc->attrs, (AVL_FREE)backsql_free_attr );
-	ch_free( oc->name.bv_val );
 	ch_free( oc->keytbl.bv_val );
 	ch_free( oc->keycol.bv_val );
 	if ( oc->create_proc != NULL ) {

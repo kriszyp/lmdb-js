@@ -744,7 +744,7 @@ filter2bv( Filter *f, struct berval *fstr )
 
 	case LDAP_FILTER_EXT:
 		filter_escape_value( &f->f_mr_value, &tmp );
-
+#ifndef SLAP_X_MRA_MATCH_DNATTRS
 		fstr->bv_len = f->f_mr_desc->ad_cname.bv_len +
 			( f->f_mr_dnattrs ? sizeof(":dn")-1 : 0 ) +
 			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len+1 : 0 ) +
@@ -757,6 +757,31 @@ filter2bv( Filter *f, struct berval *fstr )
 			f->f_mr_rule_text.bv_len ? ":" : "",
 			f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_val : "",
 			tmp.bv_val );
+#else /* SLAP_X_MRA_MATCH_DNATTRS */
+		{
+		struct berval ad;
+
+		if ( f->f_mr_desc ) {
+			ad = f->f_mr_desc->ad_cname;
+		} else {
+			ad.bv_len = 0;
+			ad.bv_val = "";
+		}
+			
+		fstr->bv_len = ad.bv_len +
+			( f->f_mr_dnattrs ? sizeof(":dn")-1 : 0 ) +
+			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len+1 : 0 ) +
+			tmp.bv_len + ( sizeof("(:=)") - 1 );
+		fstr->bv_val = malloc( fstr->bv_len + 1 );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
+			ad.bv_val,
+			f->f_mr_dnattrs ? ":dn" : "",
+			f->f_mr_rule_text.bv_len ? ":" : "",
+			f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_val : "",
+			tmp.bv_val );
+		}
+#endif /* SLAP_X_MRA_MATCH_DNATTRS */
 		ber_memfree( tmp.bv_val );
 		break;
 
@@ -1286,6 +1311,7 @@ simple_vrFilter2bv( ValuesReturnFilter *f, struct berval *fstr )
 	case LDAP_FILTER_EXT:
 		filter_escape_value( &f->f_mr_value, &tmp );
 
+#ifndef SLAP_X_MRA_MATCH_DNATTRS
 		fstr->bv_len = f->f_mr_desc->ad_cname.bv_len +
 			( f->f_mr_dnattrs ? sizeof(":dn")-1 : 0 ) +
 			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len+1 : 0 ) +
@@ -1298,6 +1324,32 @@ simple_vrFilter2bv( ValuesReturnFilter *f, struct berval *fstr )
 			f->f_mr_rule_text.bv_len ? ":" : "",
 			f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_val : "",
 			tmp.bv_val );
+#else /* SLAP_X_MRA_MATCH_DNATTRS */
+		{
+		struct berval ad;
+
+		if ( f->f_mr_desc ) {
+			ad = f->f_mr_desc->ad_cname;
+		} else {
+			ad.bv_len = 0;
+			ad.bv_val = "";
+		}
+			
+		fstr->bv_len = ad.bv_len +
+			( f->f_mr_dnattrs ? sizeof(":dn")-1 : 0 ) +
+			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len+1 : 0 ) +
+			tmp.bv_len + ( sizeof("(:=)") - 1 );
+		fstr->bv_val = malloc( fstr->bv_len + 1 );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
+			ad.bv_val,
+			f->f_mr_dnattrs ? ":dn" : "",
+			f->f_mr_rule_text.bv_len ? ":" : "",
+			f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_val : "",
+			tmp.bv_val );
+		}
+#endif /* SLAP_X_MRA_MATCH_DNATTRS */
+
 		ber_memfree( tmp.bv_val );
 		break;
 
@@ -1513,4 +1565,93 @@ return_error:
 #endif
 	return( LDAP_SUCCESS );
 }
+
+#ifdef SLAP_X_FILTER_HASSUBORDINATES
+static int filter_has_subordinates_list(
+	Filter		*filter );
+
+/*
+ * FIXME: we could detect the need to filter
+ * for hasSubordinates when parsing the filter ...
+ */
+
+static int
+filter_has_subordinates_list(
+	Filter		*fl )
+{
+	Filter			*f;
+
+	for ( f = fl; f != NULL; f = f->f_next ) {
+		int	rc;
+
+		rc = filter_has_subordinates( f );
+
+		if ( rc ) {
+			return rc;
+		}
+	}
+
+	return 0;
+}
+
+int
+filter_has_subordinates(
+	Filter		*f )
+{
+	AttributeDescription	*ad = NULL;
+
+	switch ( f->f_choice ) {
+	case LDAP_FILTER_PRESENT:
+		ad = f->f_desc;
+		break;
+
+	case LDAP_FILTER_EQUALITY:
+	case LDAP_FILTER_APPROX:
+	case LDAP_FILTER_GE:
+	case LDAP_FILTER_LE:
+		ad = f->f_ava->aa_desc;
+		break;
+
+	case LDAP_FILTER_SUBSTRINGS:
+		ad = f->f_sub_desc;
+		break;
+
+	case LDAP_FILTER_EXT:
+		/* could be null; however here it is harmless */
+		ad = f->f_mra->ma_desc;
+		break;
+
+	case LDAP_FILTER_NOT:
+		return filter_has_subordinates( f->f_not );
+
+	case LDAP_FILTER_AND:
+		return filter_has_subordinates_list( f->f_and );
+
+	case LDAP_FILTER_OR:
+		return filter_has_subordinates_list( f->f_or );
+
+	case SLAPD_FILTER_COMPUTED:
+		/*
+		 * something wrong?
+		 */
+		return 0;
+
+	default:
+		/*
+		 * this means a new type of filter has been implemented,
+		 * which is not handled yet in this function; we should
+		 * issue a developer's warning, e.g. an assertion
+		 */
+		assert( 0 );
+		return -1;
+	}
+
+	if ( ad == slap_schema.si_ad_hasSubordinates ) {
+		return 1;
+	}
+
+	return 0;
+}
+
+#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 

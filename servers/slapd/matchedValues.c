@@ -19,7 +19,8 @@
 
 #include "../../libraries/liblber/lber-int.h"
 
-static int test_mra_vrFilter(
+static int
+test_mra_vrFilter(
 	Backend 	*be,
 	Connection 	*conn,
 	Operation	*op,
@@ -342,7 +343,8 @@ test_substrings_vrFilter(
 	return LDAP_SUCCESS;
 }
 
-static int test_mra_vrFilter(
+static int
+test_mra_vrFilter(
 	Backend 	*be,
 	Connection 	*conn,
 	Operation	*op,
@@ -354,11 +356,40 @@ static int test_mra_vrFilter(
 	int i, j;
 
 	for ( i=0; a != NULL; a = a->a_next, i++ ) {
-		struct berval *bv;
-	
+		struct berval *bv, value;
+
+#ifndef SLAP_X_MRA_MATCH_DNATTRS
 		if ( !is_ad_subtype( a->a_desc, mra->ma_desc ) ) {
 			return( LDAP_SUCCESS );
 		}
+		value = mra->ma_value;
+
+#else /* SLAP_X_MRA_MATCH_DNATTRS */
+		if ( mra->ma_desc ) {
+			if ( !is_ad_subtype( a->a_desc, mra->ma_desc ) ) {
+				return( LDAP_SUCCESS );
+			}
+			value = mra->ma_value;
+
+		} else {
+			const char	*text = NULL;
+
+			/* check if matching is appropriate */
+			if ( strcmp( mra->ma_rule->smr_syntax->ssyn_oid,
+				a->a_desc->ad_type->sat_syntax->ssyn_oid ) != 0 ) {
+				continue;
+			}
+
+			/* normalize for equality */
+			if ( value_validate_normalize( a->a_desc, 
+				SLAP_MR_EQUALITY,
+				&mra->ma_value, &value,
+				&text ) != LDAP_SUCCESS ) {
+				continue;
+			}
+
+		}
+#endif /* SLAP_X_MRA_MATCH_DNATTRS */
 
 		for ( bv = a->a_vals, j = 0; bv->bv_val != NULL; bv++, j++ ) {
 			int ret;
@@ -367,7 +398,7 @@ static int test_mra_vrFilter(
 
 			rc = value_match( &ret, a->a_desc, mra->ma_rule,
 				SLAP_MR_ASSERTION_SYNTAX_MATCH,
-				bv, &mra->ma_value,
+				bv, &value,
 				&text );
 
 			if( rc != LDAP_SUCCESS ) {

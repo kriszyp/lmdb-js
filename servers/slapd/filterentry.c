@@ -215,36 +215,174 @@ static int test_mra_filter(
 {
 	Attribute	*a;
 
+#ifndef SLAP_X_MRA_MATCH_DNATTRS
 	if( !access_allowed( be, conn, op, e,
 		mra->ma_desc, &mra->ma_value, ACL_SEARCH, NULL ) )
 	{
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
+#else /* SLAP_X_MRA_MATCH_DNATTRS */
+	if ( mra->ma_desc ) {
+		/*
+		 * if ma_desc is available, then we're filtering for
+		 * one attribute, and SEARCH permissions can be checked
+		 * directly.
+		 */
+		if( !access_allowed( be, conn, op, e,
+			mra->ma_desc, &mra->ma_value, ACL_SEARCH, NULL ) )
+		{
+			return LDAP_INSUFFICIENT_ACCESS;
+		}
+#endif /* SLAP_X_MRA_MATCH_DNATTRS */
 
-	for(a = attrs_find( e->e_attrs, mra->ma_desc );
-		a != NULL;
-		a = attrs_find( a->a_next, mra->ma_desc ) )
-	{
-		struct berval *bv;
-		for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
-			int ret;
-			int rc;
-			const char *text;
+		for(a = attrs_find( e->e_attrs, mra->ma_desc );
+			a != NULL;
+			a = attrs_find( a->a_next, mra->ma_desc ) )
+		{
+			struct berval *bv;
+			for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
+				int ret;
+				int rc;
+				const char *text;
+	
+				rc = value_match( &ret, a->a_desc, mra->ma_rule,
+					SLAP_MR_ASSERTION_SYNTAX_MATCH,
+					bv, &mra->ma_value, &text );
+	
+				if( rc != LDAP_SUCCESS ) {
+					return rc;
+				}
+	
+				if ( ret == 0 ) {
+					return LDAP_COMPARE_TRUE;
+				}
+			}
+		}
+#ifdef SLAP_X_MRA_MATCH_DNATTRS
+	} else {
 
-			rc = value_match( &ret, a->a_desc, mra->ma_rule,
-				SLAP_MR_ASSERTION_SYNTAX_MATCH,
-				bv, &mra->ma_value,
-				&text );
+		/*
+		 * No attribute description: test all
+		 */
+		for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+			struct berval	*bv, value;
+			const char	*text = NULL;
+			int		rc;
 
-			if( rc != LDAP_SUCCESS ) {
-				return rc;
+			/* check if matching is appropriate */
+			if ( strcmp( mra->ma_rule->smr_syntax->ssyn_oid,
+				a->a_desc->ad_type->sat_syntax->ssyn_oid ) != 0 ) {
+				continue;
 			}
 
-			if ( ret == 0 ) {
-				return LDAP_COMPARE_TRUE;
+			/* normalize for equality */
+			rc = value_validate_normalize( a->a_desc, 
+				SLAP_MR_EQUALITY,
+				&mra->ma_value, &value, &text );
+			if ( rc != LDAP_SUCCESS ) {
+				continue;
+			}
+
+			/* check search access */
+			if ( !access_allowed( be, conn, op, e,
+				a->a_desc, &value, ACL_SEARCH, NULL ) ) {
+				continue;
+			}
+
+			/* check match */
+			for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
+				int ret;
+				int rc;
+	
+				rc = value_match( &ret, a->a_desc, mra->ma_rule,
+					SLAP_MR_ASSERTION_SYNTAX_MATCH,
+					bv, &value, &text );
+	
+				if( rc != LDAP_SUCCESS ) {
+					return rc;
+				}
+	
+				if ( ret == 0 ) {
+					return LDAP_COMPARE_TRUE;
+				}
 			}
 		}
 	}
+
+	/* check attrs in DN AVAs if required */
+	if ( mra->ma_dnattrs ) {
+		LDAPDN		*dn = NULL;
+		int		iRDN, iAVA;
+		int		rc;
+
+		/* parse and pretty the dn */
+		rc = dnPrettyDN( NULL, &e->e_name, &dn );
+		if ( rc != LDAP_SUCCESS ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		/* for each AVA of each RDN ... */
+		for ( iRDN = 0; dn[ 0 ][ iRDN ]; iRDN++ ) {
+			LDAPRDN		*rdn = dn[ 0 ][ iRDN ];
+
+			for ( iAVA = 0; rdn[ 0 ][ iAVA ]; iAVA++ ) {
+				LDAPAVA		*ava = rdn[ 0 ][ iAVA ];
+				struct berval	*bv = &ava->la_value, value;
+				AttributeDescription *ad = (AttributeDescription *)ava->la_private;
+				int ret;
+				int rc;
+				const char *text;
+
+				assert( ad );
+
+				if ( mra->ma_desc ) {
+					/* have a mra type? check for subtype */
+					if ( !is_ad_subtype( ad, mra->ma_desc ) ) {
+						continue;
+					}
+					value = mra->ma_value;
+
+				} else {
+					const char	*text = NULL;
+
+					/* check if matching is appropriate */
+					if ( strcmp( mra->ma_rule->smr_syntax->ssyn_oid,
+						ad->ad_type->sat_syntax->ssyn_oid ) != 0 ) {
+						continue;
+					}
+
+					/* normalize for equality */
+					rc = value_validate_normalize( ad, SLAP_MR_EQUALITY,
+						&mra->ma_value, &value, &text );
+					if ( rc != LDAP_SUCCESS ) {
+						continue;
+					}
+
+					/* check search access */
+					if ( !access_allowed( be, conn, op, e,
+						ad, &value, ACL_SEARCH, NULL ) ) {
+						continue;
+					}
+				}
+
+				/* check match */
+				rc = value_match( &ret, ad, mra->ma_rule,
+					SLAP_MR_ASSERTION_SYNTAX_MATCH,
+					bv, &value, &text );
+
+				if( rc != LDAP_SUCCESS ) {
+					ldap_dnfree( dn );
+					return rc;
+				}
+
+				if ( ret == 0 ) {
+					ldap_dnfree( dn );
+					return LDAP_COMPARE_TRUE;
+				}
+			}
+		}
+	}
+#endif /* SLAP_X_MRA_MATCH_DNATTRS */
 
 	return LDAP_COMPARE_FALSE;
 }
