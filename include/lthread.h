@@ -19,13 +19,23 @@
 
 LDAP_BEGIN_DECL
 
-#if defined( HAVE_DCE )
+#if !defined( HAVE_FUNC_PTHREAD_ATTR_INIT ) && \
+	defined( HAVE_FUNC_PTHREAD_ATTR_CREATE )
 #define pthread_attr_init( a )		pthread_attr_create( a )
+#endif
+
+#if !defined( HAVE_FUNC_PTHREAD_ATTR_DESTROY ) && \
+	defined( HAVE_FUNC_PTHREAD_ATTR_DELETE )
 #define pthread_attr_destroy( a )	pthread_attr_delete( a )
+#endif
+
+#if !defined( HAVE_FUNC_PTHREAD_ATTR_SETDETACHSTATE ) && \
+	defined( HAVE_FUNC_PTHREAD_ATTR_SETDETACHSTATE_NP )
 #define pthread_attr_setdetachstate( a, b ) \
 					pthread_attr_setdetach_np( a, b )
+#endif
 
-#elif !defined(HAVE_PTHREADS_D4)
+#ifndef HAVE_PTHREADS_D4
 #define pthread_mutexattr_default	NULL
 #define pthread_condattr_default	NULL
 

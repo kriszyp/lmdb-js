@@ -436,11 +436,11 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 
 			dnl Check functions for compatibility
 			AC_CHECK_FUNCS(pthread_kill)
-dnl			AC_CHECK_FUNCS( \
-dnl				pthread_attr_create pthread_attr_init \
-dnl				pthread_attr_destroy pthread_attr_delete \
-dnl				pthread_attr_setdetachstate pthread_attr_setdetach_np \
-dnl			)
+			AC_CHECK_FUNCS( \
+				pthread_attr_create pthread_attr_init \
+				pthread_attr_destroy pthread_attr_delete \
+				pthread_attr_setdetachstate pthread_attr_setdetach_np \
+			)
 
 			dnl Check for setconcurreny functions
 			AC_CHECK_FUNCS(	\
@@ -483,9 +483,11 @@ int argc; char **argv;
 
 #ifdef HAVE_PTHREAD_SETCONCURRENCY
 	(void) pthread_setconcurrency(2);
-#elif HAVE_THR_SETCONCURRENCY
+#else
+#ifdef HAVE_THR_SETCONCURRENCY
 	/* Set Solaris LWP concurrency to 2 */
 	thr_setconcurrency(2);
+#endif
 #endif
 
 	pthread_create(&t, NULL, (void *) task, NULL);
@@ -493,7 +495,7 @@ int argc; char **argv;
 #if HAVE_SCHED_YIELD
 	sched_yield();	/* make sure task runs first */
 #else
-#if defined(HAVE_PTHREAD_YIELD)
+#ifdef HAVE_PTHREAD_YIELD
 	pthread_yield();	/* make sure task runs first */
 #endif
 #endif
@@ -627,7 +629,7 @@ if test $ol_with_threads = manual ; then
 	AC_CHECK_HEADERS(thread.h synch.h)
 fi
 
-if test $ol_with_threads = yes ; then
+if test $ol_with_threads != no ; then
 	dnl needed to get reentrant/threadsafe versions
 	dnl
 	dnl hopefully this will not cause problems with

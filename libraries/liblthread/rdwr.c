@@ -18,7 +18,6 @@
  * Library of functions implementing reader/writer locks
  */
 
-#define DISABLE_BRIDGE
 #include <portable.h>
 
 #include <stdlib.h>
@@ -29,8 +28,8 @@ int pthread_rdwr_init_np(pthread_rdwr_t *rdwrp, pthread_rdwrattr_t *attrp)
 {
 	rdwrp->readers_reading = 0;
 	rdwrp->writer_writing = 0;
-	pthread_mutex_init(&(rdwrp->mutex), NULL);
-	pthread_cond_init(&(rdwrp->lock_free), NULL);
+	pthread_mutex_init(&(rdwrp->mutex), pthread_mutexattr_default);
+	pthread_cond_init(&(rdwrp->lock_free), pthread_condattr_default);
 	return 0;
 }
 

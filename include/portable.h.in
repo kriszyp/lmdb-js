@@ -289,6 +289,24 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the mktime function.  */
 #undef HAVE_MKTIME
 
+/* Define if you have the pthread_attr_create function.  */
+#undef HAVE_PTHREAD_ATTR_CREATE
+
+/* Define if you have the pthread_attr_delete function.  */
+#undef HAVE_PTHREAD_ATTR_DELETE
+
+/* Define if you have the pthread_attr_destroy function.  */
+#undef HAVE_PTHREAD_ATTR_DESTROY
+
+/* Define if you have the pthread_attr_init function.  */
+#undef HAVE_PTHREAD_ATTR_INIT
+
+/* Define if you have the pthread_attr_setdetach_np function.  */
+#undef HAVE_PTHREAD_ATTR_SETDETACH_NP
+
+/* Define if you have the pthread_attr_setdetachstate function.  */
+#undef HAVE_PTHREAD_ATTR_SETDETACHSTATE
+
 /* Define if you have the pthread_kill function.  */
 #undef HAVE_PTHREAD_KILL
 
