@@ -91,7 +91,7 @@ these steps:
  7. install the binaries and man pages.  You may need to be superuser to
     do this (depending on where you are installing things):
 
-	% su -c make install
+	% su root -c make install
 
     That's it!
 
