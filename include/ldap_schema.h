@@ -198,21 +198,41 @@ LDAP_F( char * )
 ldap_objectclass2str LDAP_P((
 	LDAPObjectClass * oc ));
 
+LDAP_F( struct berval * )
+ldap_objectclass2bv LDAP_P((
+	LDAPObjectClass * oc, struct berval *bv ));
+
 LDAP_F( char * )
 ldap_attributetype2str LDAP_P((
 	LDAPAttributeType * at ));
+
+LDAP_F( struct berval * )
+ldap_attributetype2bv LDAP_P((
+	LDAPAttributeType * at, struct berval *bv ));
 
 LDAP_F( char * )
 ldap_syntax2str LDAP_P((
 	LDAPSyntax * syn ));
 
+LDAP_F( struct berval * )
+ldap_syntax2bv LDAP_P((
+	LDAPSyntax * syn, struct berval *bv ));
+
 LDAP_F( char * )
 ldap_matchingrule2str LDAP_P((
 	LDAPMatchingRule * mr ));
 
+LDAP_F( struct berval * )
+ldap_matchingrule2bv LDAP_P((
+	LDAPMatchingRule * mr, struct berval *bv ));
+
 LDAP_F( char * )
 ldap_matchingruleuse2str LDAP_P((
 	LDAPMatchingRuleUse * mru ));
+
+LDAP_F( struct berval * )
+ldap_matchingruleuse2bv LDAP_P((
+	LDAPMatchingRuleUse * mru, struct berval *bv ));
 
 LDAP_F( char * )
 ldap_scherr2str LDAP_P((

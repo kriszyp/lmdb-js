@@ -218,11 +218,9 @@ syn_schema_info( Entry *e )
 			continue;
 		}
 
-		val.bv_val = ldap_syntax2str( &syn->ssyn_syn );
-		if ( val.bv_val == NULL ) {
+		if ( ldap_syntax2bv( &syn->ssyn_syn, &val ) == NULL ) {
 			return -1;
 		}
-		val.bv_len = strlen( val.bv_val );
 #if 0
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,

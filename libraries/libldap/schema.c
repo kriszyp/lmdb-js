@@ -110,6 +110,17 @@ safe_string_val(safe_string * ss)
 	return(ss->val);
 }
 
+static char *
+safe_strdup(safe_string * ss)
+{
+	char *ret = LDAP_MALLOC(ss->pos+1);
+	if (!ret)
+		return NULL;
+	AC_MEMCPY(ret, ss->val, ss->pos);
+	ret[ss->pos] = '\0';
+	return ret;
+}
+
 static int
 append_to_safe_string(safe_string * ss, char * s)
 {
@@ -298,8 +309,17 @@ print_extensions(safe_string *ss, LDAPSchemaExtensionItem **extensions)
 char *
 ldap_syntax2str( LDAPSyntax * syn )
 {
+	struct berval bv;
+	if (ldap_syntax2bv( syn, &bv ))
+		return(bv.bv_val);
+	else
+		return NULL;
+}
+
+struct berval *
+ldap_syntax2bv( LDAPSyntax * syn, struct berval *bv )
+{
 	safe_string * ss;
-	char * retstring;
 	
 	ss = new_safe_string(256);
 	if ( !ss )
@@ -322,16 +342,26 @@ ldap_syntax2str( LDAPSyntax * syn )
 
 	print_literal(ss,/*(*/ ")");
 
-	retstring = LDAP_STRDUP(safe_string_val(ss));
+	bv->bv_val = safe_strdup(ss);
+	bv->bv_len = ss->pos;
 	safe_string_free(ss);
-	return(retstring);
+	return(bv);
 }
 
 char *
 ldap_matchingrule2str( LDAPMatchingRule * mr )
 {
+	struct berval bv;
+	if (ldap_matchingrule2bv( mr, &bv ))
+		return(bv.bv_val);
+	else
+		return NULL;
+}
+
+struct berval *
+ldap_matchingrule2bv( LDAPMatchingRule * mr, struct berval *bv )
+{
 	safe_string * ss;
-	char * retstring;
 	
 	ss = new_safe_string(256);
 	if ( !ss )
@@ -371,16 +401,26 @@ ldap_matchingrule2str( LDAPMatchingRule * mr )
 
 	print_literal(ss,/*(*/")");
 
-	retstring = LDAP_STRDUP(safe_string_val(ss));
+	bv->bv_val = safe_strdup(ss);
+	bv->bv_len = ss->pos;
 	safe_string_free(ss);
-	return(retstring);
+	return(bv);
 }
 
 char *
 ldap_matchingruleuse2str( LDAPMatchingRuleUse * mru )
 {
+	struct berval bv;
+	if (ldap_matchingruleuse2bv( mru, &bv ))
+		return(bv.bv_val);
+	else
+		return NULL;
+}
+
+struct berval *
+ldap_matchingruleuse2bv( LDAPMatchingRuleUse * mru, struct berval *bv )
+{
 	safe_string * ss;
-	char * retstring;
 	
 	ss = new_safe_string(256);
 	if ( !ss )
@@ -420,16 +460,26 @@ ldap_matchingruleuse2str( LDAPMatchingRuleUse * mru )
 
 	print_literal(ss,/*(*/")");
 
-	retstring = LDAP_STRDUP(safe_string_val(ss));
+	bv->bv_val = safe_strdup(ss);
+	bv->bv_len = ss->pos;
 	safe_string_free(ss);
-	return(retstring);
+	return(bv);
 }
 
 char *
 ldap_objectclass2str( LDAPObjectClass * oc )
 {
+	struct berval bv;
+	if (ldap_objectclass2bv( oc, &bv ))
+		return(bv.bv_val);
+	else
+		return NULL;
+}
+
+struct berval *
+ldap_objectclass2bv( LDAPObjectClass * oc, struct berval *bv )
+{
 	safe_string * ss;
-	char * retstring;
 	
 	ss = new_safe_string(256);
 	if ( !ss )
@@ -499,16 +549,26 @@ ldap_objectclass2str( LDAPObjectClass * oc )
 
 	print_literal(ss, /*(*/")");
 
-	retstring = LDAP_STRDUP(safe_string_val(ss));
+	bv->bv_val = safe_strdup(ss);
+	bv->bv_len = ss->pos;
 	safe_string_free(ss);
-	return(retstring);
+	return(bv);
 }
 
 char *
-ldap_attributetype2str(  LDAPAttributeType * at )
+ldap_attributetype2str( LDAPAttributeType * at )
+{
+	struct berval bv;
+	if (ldap_attributetype2bv( at, &bv ))
+		return(bv.bv_val);
+	else
+		return NULL;
+}
+
+struct berval *
+ldap_attributetype2bv(  LDAPAttributeType * at, struct berval *bv )
 {
 	safe_string * ss;
-	char * retstring;
 	
 	ss = new_safe_string(256);
 	if ( !ss )
@@ -602,9 +662,10 @@ ldap_attributetype2str(  LDAPAttributeType * at )
 
 	print_literal(ss,/*(*/")");
 
-	retstring = LDAP_STRDUP(safe_string_val(ss));
+	bv->bv_val = safe_strdup(ss);
+	bv->bv_len = ss->pos;
 	safe_string_free(ss);
-	return(retstring);
+	return(bv);
 }
 
 /*

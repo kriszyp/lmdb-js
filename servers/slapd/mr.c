@@ -270,13 +270,9 @@ int mr_schema_info( Entry *e )
 			continue;
 		}
 
-		val.bv_val = ldap_matchingrule2str( &mr->smr_mrule );
-
-		if ( val.bv_val == NULL ) {
+		if ( ldap_matchingrule2bv( &mr->smr_mrule, &val ) == NULL ) {
 			return -1;
 		}
-
-		val.bv_len = strlen( val.bv_val );
 #if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging mr [%ld] %s\n",
 	       (long) val.bv_len, val.bv_val, 0 );

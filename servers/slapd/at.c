@@ -415,11 +415,9 @@ at_schema_info( Entry *e )
 	vals[1] = NULL;
 
 	for ( at = attr_list; at; at = at->sat_next ) {
-		val.bv_val = ldap_attributetype2str( &at->sat_atype );
-		if ( val.bv_val == NULL ) {
+		if ( ldap_attributetype2bv( &at->sat_atype, &val ) == NULL ) {
 			return -1;
 		}
-		val.bv_len = strlen( val.bv_val );
 #if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging at [%ld] %s\n",
 		       (long) val.bv_len, val.bv_val, 0 );

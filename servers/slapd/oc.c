@@ -482,11 +482,9 @@ oc_schema_info( Entry *e )
 	vals[1] = NULL;
 
 	for ( oc = oc_list; oc; oc = oc->soc_next ) {
-		val.bv_val = ldap_objectclass2str( &oc->soc_oclass );
-		if ( val.bv_val == NULL ) {
+		if ( ldap_objectclass2bv( &oc->soc_oclass, &val ) == NULL ) {
 			return -1;
 		}
-		val.bv_len = strlen( val.bv_val );
 #if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging oc [%ld] %s\n",
 	       (long) val.bv_len, val.bv_val, 0 );
