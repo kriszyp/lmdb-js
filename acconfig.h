@@ -1,13 +1,18 @@
-/* acconfig.h
-  Copyright 1998 The OpenLDAP Foundation,  All Rights Reserved.
-  COPYING RESTRICTIONS APPLY, See COPYRIGHT file
+/*
+ * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms are permitted only
+ * as authorized by the OpenLDAP Public License.  A copy of this
+ * license is available at http://www.OpenLDAP.org/license.html or
+ * in file LICENSE in the top-level directory of the distribution.
+ */
 
-   Descriptive text for the C preprocessor macros that
-   the distributed Autoconf macros can define.
+#ifndef _LDAP_PORTABLE_H
+#define _LDAP_PORTABLE_H
 
-   Leave the following blank line there!!  Autoheader needs it.  */
-
-
+/* end of preamble */
+@TOP@
 
 /* define this if needed to get reentrant functions */
 #ifndef REENTRANT
@@ -198,3 +203,15 @@
 
 
 /* Leave that blank line there!!  Autoheader needs it. */
+
+@BOTTOM@
+/* begin of postamble */
+
+#ifdef HAVE_STDDEF_H
+#	include <stddef.h>
+#endif
+
+#include "ldap_cdefs.h"
+#include "ldap_features.h"
+
+#endif /* _LDAP_PORTABLE_H */
