@@ -193,7 +193,6 @@ if test $RC != 0 ; then
 fi
 
 kill -HUP $PID $SLAVEPID
-kill -HUP $SLURPPID
 
 SEARCHOUT=$MASTEROUT
 LDIF=$SLAVEOUT
