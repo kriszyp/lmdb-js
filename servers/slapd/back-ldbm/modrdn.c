@@ -496,7 +496,7 @@ ldbm_back_modrdn(
 	/* Get attribute types and values of our new rdn, we will
 	 * need to add that to our new entry
 	 */
-	if ( ldap_str2rdn( newrdn->bv_val, &new_rdn, &(char *)text,
+	if ( ldap_str2rdn( newrdn->bv_val, &new_rdn, (char **)&text,
 		LDAP_DN_FORMAT_LDAP ) )
 	{
 #ifdef NEW_LOGGING
@@ -524,7 +524,7 @@ ldbm_back_modrdn(
 #endif
 
 	/* Retrieve the old rdn from the entry's dn */
-	if ( ldap_str2rdn( dn->bv_val, &old_rdn, &(char *)text,
+	if ( ldap_str2rdn( dn->bv_val, &old_rdn, (char **)&text,
 		LDAP_DN_FORMAT_LDAP ) )
 	{
 #ifdef NEW_LOGGING

@@ -90,8 +90,9 @@ passwd_back_search(
 			/* Use the first attribute of the DN
 		 	* as an attribute within the entry itself.
 		 	*/
-			if( ldap_str2rdn( base->bv_val, &rdn, &text, 
-				LDAP_DN_FORMAT_LDAP ) ) {
+			if( ldap_str2rdn( base->bv_val, &rdn, (char **)&text, 
+				LDAP_DN_FORMAT_LDAP ) )
+			{
 				err = LDAP_INVALID_DN_SYNTAX;
 				goto done;
 			}
@@ -194,7 +195,9 @@ passwd_back_search(
 			goto done;
 		}
 
-		if ( ldap_str2rdn( base->bv_val, &rdn, &text, LDAP_DN_FORMAT_LDAP )) { 
+		if ( ldap_str2rdn( base->bv_val, &rdn, (char **)&text,
+			LDAP_DN_FORMAT_LDAP ))
+		{ 
 			err = LDAP_OPERATIONS_ERROR;
 			goto done;
 		}

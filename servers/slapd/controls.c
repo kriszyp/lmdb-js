@@ -90,7 +90,7 @@ int get_ctrls(
 	LDAPControl ***ctrls = &op->o_ctrls;
 	struct slap_control *c;
 	int rc = LDAP_SUCCESS;
-	char *errmsg = NULL;
+	const char *errmsg = NULL;
 
 	len = ber_pvt_ber_remaining(ber);
 
