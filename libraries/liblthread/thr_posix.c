@@ -107,7 +107,8 @@ ldap_pvt_thread_yield( void )
 #ifdef HAVE_SCHED_YIELD
 	return sched_yield();
 #elif HAVE_PTHREAD_YIELD
-	return pthread_yield();
+	pthread_yield();
+	return 0;
 #elif HAVE_THR_YIELD
 	return thr_yield();
 #else
