@@ -4,24 +4,24 @@ OpenLDAP 2.1.6 Engineering
 	Fixed slapd unsupported non-critical control handling
 	Fixed slapd value_find() uninitialized variable bug (ITS#2097)
 	Fixed back-dnssrv default referral handling (ITS#2116)
-	Fixed liblunicode memory leak
+	Fixed liblunicode memory leak (ITS#2126)
 	Fixed slapd listener crash (ITS#2132)
 	Fixed slapd modify mod_add_values crash (ITS#2136)
 	Updated slapd adlist support
 	Updated slapd disallow bind_simple_unprotected
 	Updated back-bdb/ldbm add/delete/rename ACLs
 	Updated libldap_r Pth support (ITS#724) (ITS#1033)
-	Added libldap get referral option
+	Added libldap get referral option (ITS#2121)
 	Added libldap DIT content rule routines
 	Added back-shell "entry" ACLs
 	Added slapd obsolete checks
-	Disable suffixAlias feature
+	Disable suffixAlias feature (ITS#2117)
 	Removed lint
 	Build Environment
 		Fixed back-bdb module linking problem
 		Fixed misc. portability bugs
-		Updated DB_THREAD detection
-		Updated pthreads detection
+		Updated DB_THREAD detection (ITS#2127)
+		Updated pthreads detection 
 		Updated shtool
 		Updated test suite
 	Documentation
