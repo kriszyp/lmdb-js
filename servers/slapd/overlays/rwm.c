@@ -455,6 +455,19 @@ rwm_swap_attrs( Operation *op, SlapReply *rs )
 }
 
 static int
+rwm_mentry_free( Operation *op, SlapReply *rs )
+{
+	slap_callback	*cb = op->o_callback;
+
+	if ( rs->sr_mentry ) {
+		entry_free( rs->sr_mentry );
+		rs->sr_mentry = NULL;
+	}
+	
+	return SLAP_CB_CONTINUE;
+}
+
+static int
 rwm_search( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
@@ -535,14 +548,13 @@ rwm_search( Operation *op, SlapReply *rs )
 	}
 
 	cb->sc_response = rwm_swap_attrs;
-	cb->sc_cleanup = NULL;
+	cb->sc_cleanup = rwm_mentry_free;
 	cb->sc_private = (void *)op->ors_attrs;
 	cb->sc_next = op->o_callback;
 
 	op->o_callback = cb;
 	op->ors_attrs = an;
 
-	/* TODO: rewrite/map filter & attrs */
 	return SLAP_CB_CONTINUE;
 
 error_return:;
@@ -649,8 +661,6 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 
 	assert( rs->sr_entry );
 
-	e = rs->sr_entry;
-
 	/*
 	 * Rewrite the dn of the result, if needed
 	 */
@@ -666,21 +676,28 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 
 	flags = rs->sr_flags;
 
-	if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
-		/* FIXME: all we need to duplicate are:
-		 * - dn
-		 * - ndn
-		 * - attributes that are requested
-		 * - no values if attrsonly is set
-		 */
+	if ( rs->sr_mentry != NULL ) {
+		e = rs->sr_mentry;
 
-		e = entry_dup( e );
-		if ( e == NULL ) {
-			rc = LDAP_NO_MEMORY;
-			goto fail;
+	} else {
+		e = rs->sr_entry;
+
+		if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
+			/* FIXME: all we need to duplicate are:
+			 * - dn
+			 * - ndn
+			 * - attributes that are requested
+			 * - no values if attrsonly is set
+			 */
+
+			e = entry_dup( e );
+			if ( e == NULL ) {
+				rc = LDAP_NO_MEMORY;
+				goto fail;
+			}
+
+			// flags |= ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
 		}
-
-		flags |= ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
 	}
 
 	/*
@@ -830,7 +847,7 @@ next_attr:;
 	}
 
 
-	rs->sr_entry = e;
+	rs->sr_mentry = e;
 	rs->sr_flags = flags;
 
 	return SLAP_CB_CONTINUE;
@@ -844,7 +861,7 @@ fail:;
 		ch_free( ndn.bv_val );
 	}
 
-	if ( e != NULL && e != rs->sr_entry ) {
+	if ( e != NULL && e != rs->sr_mentry ) {
 		entry_free( e );
 	}
 

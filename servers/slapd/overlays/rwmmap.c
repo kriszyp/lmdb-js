@@ -81,6 +81,7 @@ rwm_map_init( struct ldapmap *lm, struct ldapmapping **m )
 		return LDAP_NO_MEMORY;
 	}
 
+	/* FIXME: I don't think this is needed any more... */
 	rc = slap_str2ad( "objectClass", &mapping->m_src_ad, &text );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
@@ -169,6 +170,9 @@ rwm_map_attrnames(
 	for ( i = 0; !BER_BVISNULL( &an[i].an_name ); i++ )
 		/* just count */ ;
 	*anp = ch_malloc( ( i + 1 )* sizeof( AttributeName ) );
+	if ( *anp == NULL ) {
+		return LDAP_NO_MEMORY;
+	}
 
 	for ( i = 0, j = 0; !BER_BVISNULL( &an[i].an_name ); i++ ) {
 		struct ldapmapping	*m;

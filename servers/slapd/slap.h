@@ -1687,6 +1687,7 @@ typedef struct rep_extended_s {
 
 typedef struct rep_search_s {
 	Entry *r_entry;
+	Entry *r_mentry;
 	AttributeName *r_attrs;
 	int r_nentries;
 	BerVarray r_v2ref;
@@ -1716,6 +1717,7 @@ typedef struct slap_rep {
 /* short hands for response members */
 #define	sr_attrs sr_un.sru_search.r_attrs
 #define	sr_entry sr_un.sru_search.r_entry
+#define	sr_mentry sr_un.sru_search.r_mentry
 #define	sr_v2ref sr_un.sru_search.r_v2ref
 #define	sr_nentries sr_un.sru_search.r_nentries
 #define	sr_rspoid sr_un.sru_extended.r_rspoid
