@@ -838,6 +838,13 @@ parse_idassert(
 					}
 					ber_str2bv( val, 0, 1, &li->idassert_sasl_mech );
 
+#ifdef LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ
+					/* mechs that are known to support native authz... */
+					if ( strcasecmp( li->idassert_sasl_mech.bv_val, "DIGEST-MD5" ) == 0 ) {
+						li->idassert_flags |= LDAP_BACK_AUTH_NATIVE_AUTHZ;
+					}
+#endif /* LDAP_BACK_HOW_TO_DETECT_SASL_NATIVE_AUTHZ */
+
 				} else if ( strncasecmp( argv[arg], "realm=", STRLENOF( "realm=" ) ) == 0 ) {
 					char	*val = argv[arg] + STRLENOF( "realm=" );
 
