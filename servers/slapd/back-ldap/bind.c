@@ -28,10 +28,11 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 
-
 #define AVL_INTERNAL
 #include "slap.h"
 #include "back-ldap.h"
+
+#include <lutil_ldap.h>
 
 #define PRINT_CONNTREE 0
 
@@ -408,11 +409,13 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 			 * or if the client's identity is authorized */
 			switch ( li->idassert_mode ) {
 			case LDAP_BACK_IDASSERT_LEGACY:
-	      			if ( !BER_BVISNULL( &op->o_conn->c_dn ) && !BER_BVISEMPTY( &op->o_conn->c_dn )
-	      					&& !BER_BVISNULL( &li->proxyauthzdn ) && !BER_BVISEMPTY( &li->proxyauthzdn ) )
-				{
-					binddn = li->proxyauthzdn;
-					bindcred = li->proxyauthzpw;
+				if ( !BER_BVISNULL( &op->o_conn->c_dn ) && !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
+					if ( li->idassert_authmethod != LDAP_AUTH_SASL
+							&& !BER_BVISNULL( &li->idassert_authcDN ) && !BER_BVISEMPTY( &li->idassert_authcDN ) )
+					{
+						binddn = li->idassert_authcDN;
+						bindcred = li->idassert_passwd;
+					}
 				}
 				break;
 
@@ -428,13 +431,85 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 						goto done;
 					}
 				}
-				binddn = li->proxyauthzdn;
-				bindcred = li->proxyauthzpw;
+
+				if ( li->idassert_authmethod != LDAP_AUTH_SASL ) {
+					binddn = li->idassert_authcDN;
+				}
+				bindcred = li->idassert_passwd;
 				break;
 			}
 
-			rs->sr_err = ldap_sasl_bind(lc->ld, binddn.bv_val,
-				LDAP_SASL_SIMPLE, &bindcred, NULL, NULL, &msgid);
+			/* NOTE: essentially copied from clients/tools/common.c :) */
+			switch ( li->idassert_authmethod ) {
+#ifdef HAVE_CYRUS_SASL
+			case LDAP_AUTH_SASL:
+				{
+				void		*defaults = NULL;
+				struct berval	authzID = BER_BVNULL;
+
+#if 0	/* will deal with this later... */
+				if ( sasl_secprops != NULL ) {
+					rs->sr_err = ldap_set_option( lc->ld, LDAP_OPT_X_SASL_SECPROPS,
+						(void *) sasl_secprops );
+
+					if ( rs->sr_err != LDAP_OPT_SUCCESS ) {
+						send_ldap_result( op, rs );
+						lc->bound = 0;
+						goto done;
+						
+					}
+				}
+#endif
+
+				switch ( li->idassert_mode ) {
+				case LDAP_BACK_IDASSERT_OTHERID:
+				case LDAP_BACK_IDASSERT_OTHERDN:
+					authzID = li->idassert_authzID;
+				}
+
+				defaults = lutil_sasl_defaults( lc->ld,
+						li->idassert_sasl_mech.bv_val,
+						li->idassert_sasl_realm.bv_val,
+						li->idassert_authcID.bv_val,
+						li->idassert_passwd.bv_val,
+						authzID.bv_val );
+
+				rs->sr_err = ldap_sasl_interactive_bind_s( lc->ld, NULL,
+						li->idassert_sasl_mech.bv_val, NULL, NULL,
+						li->idassert_sasl_flags, lutil_sasl_interact,
+						defaults );
+
+				lutil_sasl_freedefs( defaults );
+
+				rs->sr_err = slap_map_api2result( rs );
+				if ( rs->sr_err != LDAP_SUCCESS ) {
+					lc->bound = 0;
+					send_ldap_result( op, rs );
+
+				} else {
+					lc->bound = 1;
+				}
+				goto done;
+				}
+#endif /* HAVE_CYRUS_SASL */
+
+			case LDAP_AUTH_SIMPLE:
+				rs->sr_err = ldap_sasl_bind(lc->ld,
+						binddn.bv_val, LDAP_SASL_SIMPLE,
+						&bindcred, NULL, NULL, &msgid);
+				break;
+
+			case LDAP_AUTH_NONE:
+				lc->bound = 1;
+				goto done;
+
+			default:
+				/* unsupported! */
+				lc->bound = 0;
+				rs->sr_err = LDAP_AUTH_METHOD_NOT_SUPPORTED;
+				send_ldap_result( op, rs );
+				goto done;
+			}
 
 		} else
 #endif /* LDAP_BACK_PROXY_AUTHZ */
@@ -639,7 +714,7 @@ ldap_back_proxy_authz_ctrl(
 
 	*pctrls = NULL;
 
-	if ( BER_BVISNULL( &li->proxyauthzdn ) ) {
+	if ( BER_BVISNULL( &li->idassert_authcID ) ) {
 		goto done;
 	}
 
@@ -674,9 +749,13 @@ ldap_back_proxy_authz_ctrl(
 			goto done;
 		}
 
-		if ( BER_BVISEMPTY( &li->proxyauthzdn ) ) {
+		if ( BER_BVISEMPTY( &li->idassert_authcID ) ) {
 			goto done;
 		}
+
+	} else if ( li->idassert_mode == LDAP_BACK_IDASSERT_OTHERID && li->idassert_authmethod == LDAP_AUTH_SASL ) {
+		/* already asserted in SASL */
+		goto done;
 
 	} else if ( li->idassert_authz ) {
 		int		rc;
@@ -712,7 +791,7 @@ ldap_back_proxy_authz_ctrl(
 	case LDAP_BACK_IDASSERT_OTHERID:
 	case LDAP_BACK_IDASSERT_OTHERDN:
 		/* assert idassert DN */
-		assertedID = li->idassert_id;
+		assertedID = li->idassert_authzID;
 		break;
 
 	default:
@@ -729,17 +808,21 @@ ldap_back_proxy_authz_ctrl(
 	ctrls[ 0 ]->ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
 	ctrls[ 0 ]->ldctl_iscritical = 1;
 
-	/* already in u:ID form */
-	if ( li->idassert_mode == LDAP_BACK_IDASSERT_OTHERID ) {
+	switch ( li->idassert_mode ) {
+	/* already in u:ID or dn:DN form */
+	case LDAP_BACK_IDASSERT_OTHERID:
+	case LDAP_BACK_IDASSERT_OTHERDN:
 		ber_dupbv( &ctrls[ 0 ]->ldctl_value, &assertedID );
+		break;
 
 	/* needs the dn: prefix */
-	} else {
+	default:
 		ctrls[ 0 ]->ldctl_value.bv_len = assertedID.bv_len + STRLENOF( "dn:" );
 		ctrls[ 0 ]->ldctl_value.bv_val = ch_malloc( ctrls[ 0 ]->ldctl_value.bv_len + 1 );
 		AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val, "dn:", STRLENOF( "dn:" ) );
 		AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val + STRLENOF( "dn:" ),
 				assertedID.bv_val, assertedID.bv_len + 1 );
+		break;
 	}
 
 	if ( op->o_ctrls ) {

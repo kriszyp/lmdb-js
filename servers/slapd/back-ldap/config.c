@@ -153,28 +153,9 @@ ldap_back_db_config(
 		ber_str2bv( argv[1], 0, 1, &li->bindpw );
 
 #ifdef LDAP_BACK_PROXY_AUTHZ
-	/* name to use for proxyAuthz propagation */
-	} else if ( strcasecmp( argv[0], "proxyauthzdn" ) == 0 ) {
-		if (argc != 2) {
-			fprintf( stderr,
-	"%s: line %d: missing name in \"proxyauthzdn <name>\" line\n",
-			    fname, lineno );
-			return( 1 );
-		}
-		ber_str2bv( argv[1], 0, 1, &li->proxyauthzdn );
-
-	/* password to use for proxyAuthz propagation */
-	} else if ( strcasecmp( argv[0], "proxyauthzpw" ) == 0 ) {
-		if (argc != 2) {
-			fprintf( stderr,
-	"%s: line %d: missing password in \"proxyauthzpw <password>\" line\n",
-			    fname, lineno );
-			return( 1 );
-		}
-		ber_str2bv( argv[1], 0, 1, &li->proxyauthzpw );
-
 	/* identity assertion stuff... */
-	} else if ( strncasecmp( argv[0], "idassert-", STRLENOF( "idassert-" ) ) == 0 ) {
+	} else if ( strncasecmp( argv[0], "idassert-", STRLENOF( "idassert-" ) ) == 0
+			|| strncasecmp( argv[0], "proxyauthz", STRLENOF( "proxyauthz" ) ) == 0 ) {
 		return parse_idassert( be, fname, lineno, argc, argv );
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
@@ -673,6 +654,7 @@ parse_idassert(
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 
+	/* identity assertion mode */
 	if ( strcasecmp( argv[0], "idassert-mode" ) == 0 ) {
 		if ( argc != 2 ) {
 #ifdef NEW_LOGGING
@@ -714,16 +696,18 @@ parse_idassert(
 				/* force lowercase... */
 				id.bv_val[0] = 'u';
 				li->idassert_mode = LDAP_BACK_IDASSERT_OTHERID;
-				ber_dupbv( &li->idassert_id, &id );
+				ber_dupbv( &li->idassert_authzID, &id );
 
 			} else {
+				struct berval	dn;
+
 				/* default is DN? */
 				if ( strncasecmp( id.bv_val, "dn:", STRLENOF( "dn:" ) ) == 0 ) {
 					id.bv_val += STRLENOF( "dn:" );
 					id.bv_len -= STRLENOF( "dn:" );
 				}
 
-				rc = dnNormalize( 0, NULL, NULL, &id, &li->idassert_id, NULL );
+				rc = dnNormalize( 0, NULL, NULL, &id, &dn, NULL );
 				if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG( CONFIG, CRIT, 
@@ -737,16 +721,177 @@ parse_idassert(
 					return 1;
 				}
 
+				li->idassert_authzID.bv_val = ch_malloc( STRLENOF( "dn:" ) + dn.bv_len + 1 );
+				AC_MEMCPY( li->idassert_authzID.bv_val, "dn:", STRLENOF( "dn:" ) );
+				AC_MEMCPY( &li->idassert_authzID.bv_val[ STRLENOF( "dn:" ) ], dn.bv_val, dn.bv_len + 1 );
+				ch_free( dn.bv_val );
+
 				li->idassert_mode = LDAP_BACK_IDASSERT_OTHERDN;
 			}
 		}
 
+	/* name to use for proxyAuthz propagation */
+	} else if ( strcasecmp( argv[0], "idassert-authcdn" ) == 0
+			|| strcasecmp( argv[0], "proxyauthzdn" ) == 0 ) {
+		if ( argc != 2 ) {
+			fprintf( stderr,
+	"%s: line %d: missing name in \"%s <name>\" line\n",
+			    fname, lineno, argv[0] );
+			return( 1 );
+		}
+
+		if ( !BER_BVISNULL( &li->idassert_authcID ) ) {
+			fprintf( stderr,
+	"%s: line %d: authcDN incompatible with previously defined authcID\n",
+			    fname, lineno );
+			return( 1 );
+		}
+
+		if ( !BER_BVISNULL( &li->idassert_authcDN ) ) {
+			fprintf( stderr, "%s: line %d: "
+					"authcDN already defined; replacing...\n",
+					fname, lineno );
+			ch_free( li->idassert_authcDN.bv_val );
+		}
+		
+		ber_str2bv( argv[1], 0, 1, &li->idassert_authcDN );
+
+	/* password to use for proxyAuthz propagation */
+	} else if ( strcasecmp( argv[0], "idassert-passwd" ) == 0
+			|| strcasecmp( argv[0], "proxyauthzpw" ) == 0 ) {
+		if ( argc != 2 ) {
+			fprintf( stderr,
+	"%s: line %d: missing password in \"%s <password>\" line\n",
+			    fname, lineno, argv[0] );
+			return( 1 );
+		}
+
+		if ( !BER_BVISNULL( &li->idassert_passwd ) ) {
+			fprintf( stderr, "%s: line %d: "
+					"passwd already defined; replacing...\n",
+					fname, lineno );
+			ch_free( li->idassert_passwd.bv_val );
+		}
+		
+		ber_str2bv( argv[1], 0, 1, &li->idassert_passwd );
+
+	/* rules to accept identity assertion... */
 	} else if ( strcasecmp( argv[0], "idassert-authz" ) == 0 ) {
 		struct berval	rule;
 
 		ber_str2bv( argv[1], 0, 1, &rule );
 
 		ber_bvarray_add( &li->idassert_authz, &rule );
+
+	} else if ( strcasecmp( argv[0], "idassert-method" ) == 0 ) {
+		if ( argc < 2 ) {
+			fprintf( stderr,
+	"%s: line %d: missing method in \"%s <method>\" line\n",
+			    fname, lineno, argv[0] );
+			return( 1 );
+		}
+
+		if ( strcasecmp( argv[1], "none" ) == 0 ) {
+			/* FIXME: is this useful? */
+			li->idassert_authmethod = LDAP_AUTH_NONE;
+
+			if ( argc != 2 ) {
+				fprintf( stderr,
+	"%s: line %d: trailing args in \"%s %s ...\" line ignored\"\n",
+					fname, lineno, argv[0], argv[1] );
+			}
+
+		} else if ( strcasecmp( argv[1], "simple" ) == 0 ) {
+			li->idassert_authmethod = LDAP_AUTH_SIMPLE;
+
+			if ( argc != 2 ) {
+				fprintf( stderr,
+	"%s: line %d: trailing args in \"%s %s ...\" line ignored\"\n",
+					fname, lineno, argv[0], argv[1] );
+			}
+
+		} else if ( strcasecmp( argv[1], "sasl" ) == 0 ) {
+#ifdef HAVE_CYRUS_SASL
+			int	arg;
+
+			for ( arg = 2; arg < argc; arg++ ) {
+				if ( strncasecmp( argv[arg], "mech=", STRLENOF( "mech=" ) ) == 0 ) {
+					char	*val = argv[arg] + STRLENOF( "mech=" );
+
+					if ( !BER_BVISNULL( &li->idassert_sasl_mech ) ) {
+						fprintf( stderr, "%s: line %d: "
+								"SASL mech already defined; replacing...\n",
+			    					fname, lineno );
+						ch_free( li->idassert_sasl_mech.bv_val );
+					}
+					ber_str2bv( val, 0, 1, &li->idassert_sasl_mech );
+
+				} else if ( strncasecmp( argv[arg], "realm=", STRLENOF( "realm=" ) ) == 0 ) {
+					char	*val = argv[arg] + STRLENOF( "realm=" );
+
+					if ( !BER_BVISNULL( &li->idassert_sasl_realm ) ) {
+						fprintf( stderr, "%s: line %d: "
+								"SASL realm already defined; replacing...\n",
+			    					fname, lineno );
+						ch_free( li->idassert_sasl_realm.bv_val );
+					}
+					ber_str2bv( val, 0, 1, &li->idassert_sasl_realm );
+
+				} else if ( strncasecmp( argv[arg], "authcid=", STRLENOF( "authcid=" ) ) == 0 ) {
+					char	*val = argv[arg] + STRLENOF( "authcid=" );
+
+					if ( !BER_BVISNULL( &li->idassert_authcDN ) ) {
+						fprintf( stderr,
+				"%s: line %d: SASL authcID incompatible with previously defined authcDN\n",
+								fname, lineno );
+						return( 1 );
+					}
+
+					if ( !BER_BVISNULL( &li->idassert_authcID ) ) {
+						fprintf( stderr, "%s: line %d: "
+								"SASL authcID already defined; replacing...\n",
+			    					fname, lineno );
+						ch_free( li->idassert_authcID.bv_val );
+					}
+					if ( strncasecmp( argv[arg], "u:", STRLENOF( "u:" ) ) == 0 ) {
+						val += STRLENOF( "u:" );
+					}
+					ber_str2bv( val, 0, 1, &li->idassert_authcID );
+
+				} else if ( strncasecmp( argv[arg], "cred=", STRLENOF( "cred=" ) ) == 0 ) {
+					char	*val = argv[arg] + STRLENOF( "cred=" );
+
+					if ( !BER_BVISNULL( &li->idassert_passwd ) ) {
+						fprintf( stderr, "%s: line %d: "
+								"SASL cred already defined; replacing...\n",
+			    					fname, lineno );
+						ch_free( li->idassert_passwd.bv_val );
+					}
+					ber_str2bv( val, 0, 1, &li->idassert_passwd );
+
+				} else {
+					fprintf( stderr, "%s: line %d: "
+							"unknown SASL parameter %s\n",
+		    					fname, lineno, argv[arg] );
+					return 1;
+				}
+			}
+
+			li->idassert_authmethod = LDAP_AUTH_SASL;
+
+#else /* !HAVE_CYRUS_SASL */
+			fprintf( stderr, "%s: line %d: "
+					"compile --with-cyrus-sasl to enable SASL auth\n",
+					fname, lineno );
+			return 1;
+#endif /* !HAVE_CYRUS_SASL */
+
+		} else {
+			fprintf( stderr, "%s: line %d: "
+					"unhandled auth method %s\n",
+					fname, lineno );
+			return 1;
+		}
 
 	} else {
 		return SLAP_CONF_UNKNOWN;

@@ -89,9 +89,6 @@ struct ldapinfo {
 	struct berval binddn;
 	struct berval bindpw;
 #ifdef LDAP_BACK_PROXY_AUTHZ
-	struct berval proxyauthzdn;
-	struct berval proxyauthzpw;
-
 	/* ID assert stuff */
 	int		idassert_mode;
 #define	LDAP_BACK_IDASSERT_LEGACY	0
@@ -100,8 +97,20 @@ struct ldapinfo {
 #define	LDAP_BACK_IDASSERT_SELF		3
 #define	LDAP_BACK_IDASSERT_OTHERDN	4
 #define	LDAP_BACK_IDASSERT_OTHERID	5
-	struct berval	idassert_id;
+
+	struct berval idassert_authcID;
+	struct berval idassert_authcDN;
+	struct berval idassert_passwd;
+
+	struct berval	idassert_authzID;
 	BerVarray	idassert_authz;
+	
+	int		idassert_authmethod;
+	int		idassert_sasl_flags;
+	struct berval	idassert_sasl_mech;
+	struct berval	idassert_sasl_realm;
+
+	int		idassert_ppolicy;
 	/* end of ID assert stuff */
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 

@@ -102,11 +102,21 @@ ldap_back_db_init(
 	BER_BVZERO( &li->bindpw );
 
 #ifdef LDAP_BACK_PROXY_AUTHZ
-	BER_BVZERO( &li->proxyauthzdn );
-	BER_BVZERO( &li->proxyauthzpw );
-
 	li->idassert_mode = LDAP_BACK_IDASSERT_LEGACY;
-	BER_BVZERO( &li->idassert_id );
+
+	BER_BVZERO( &li->idassert_authcID );
+	BER_BVZERO( &li->idassert_authcDN );
+	BER_BVZERO( &li->idassert_passwd );
+
+	BER_BVZERO( &li->idassert_authzID );
+	li->idassert_authz = NULL;
+
+	li->idassert_authmethod = LDAP_AUTH_SIMPLE;
+	li->idassert_sasl_flags = LDAP_SASL_QUIET;
+	BER_BVZERO( &li->idassert_sasl_mech );
+	BER_BVZERO( &li->idassert_sasl_realm );
+
+	li->idassert_ppolicy = 0;
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
 #ifdef ENABLE_REWRITE
@@ -209,17 +219,29 @@ ldap_back_db_destroy(
 			BER_BVZERO( &li->bindpw );
 		}
 #ifdef LDAP_BACK_PROXY_AUTHZ
-		if ( !BER_BVISNULL( &li->proxyauthzdn ) ) {
-			ch_free( li->proxyauthzdn.bv_val );
-			BER_BVZERO( &li->proxyauthzdn );
+		if ( !BER_BVISNULL( &li->idassert_authcID ) ) {
+			ch_free( li->idassert_authcID.bv_val );
+			BER_BVZERO( &li->idassert_authcID );
 		}
-		if ( !BER_BVISNULL( &li->proxyauthzpw ) ) {
-			ch_free( li->proxyauthzpw.bv_val );
-			BER_BVZERO( &li->proxyauthzpw );
+		if ( !BER_BVISNULL( &li->idassert_authcDN ) ) {
+			ch_free( li->idassert_authcDN.bv_val );
+			BER_BVZERO( &li->idassert_authcDN );
 		}
-		if ( !BER_BVISNULL( &li->idassert_id ) ) {
-			ch_free( li->idassert_id.bv_val );
-			BER_BVZERO( &li->idassert_id );
+		if ( !BER_BVISNULL( &li->idassert_passwd ) ) {
+			ch_free( li->idassert_passwd.bv_val );
+			BER_BVZERO( &li->idassert_passwd );
+		}
+		if ( !BER_BVISNULL( &li->idassert_authzID ) ) {
+			ch_free( li->idassert_authzID.bv_val );
+			BER_BVZERO( &li->idassert_authzID );
+		}
+		if ( !BER_BVISNULL( &li->idassert_sasl_mech ) ) {
+			ch_free( li->idassert_sasl_mech.bv_val );
+			BER_BVZERO( &li->idassert_sasl_mech );
+		}
+		if ( !BER_BVISNULL( &li->idassert_sasl_realm ) ) {
+			ch_free( li->idassert_sasl_realm.bv_val );
+			BER_BVZERO( &li->idassert_sasl_realm );
 		}
 #endif /* LDAP_BACK_PROXY_AUTHZ */
                 if (li->conntree) {
