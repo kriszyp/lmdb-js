@@ -221,11 +221,11 @@ ldap_back_db_config(
 		return( rc );
 
 #else /* !ENABLE_REWRITE */
-		ber_bvarray_add( &li->suffix_massage, &pvnc );
-		ber_bvarray_add( &li->suffix_massage, &nvnc );
+		ber_bvarray_add( &li->rwmap.rwm_suffix_massage, &pvnc );
+		ber_bvarray_add( &li->rwmap.rwm_suffix_massage, &nvnc );
 		
-		ber_bvarray_add( &li->suffix_massage, &prnc );
-		ber_bvarray_add( &li->suffix_massage, &nrnc );
+		ber_bvarray_add( &li->rwmap.rwm_suffix_massage, &prnc );
+		ber_bvarray_add( &li->rwmap.rwm_suffix_massage, &nrnc );
 #endif /* !ENABLE_REWRITE */
 
 	/* rewrite stuff ... */

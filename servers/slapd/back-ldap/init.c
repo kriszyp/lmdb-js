@@ -197,8 +197,8 @@ ldap_back_db_destroy(
 			rewrite_info_delete( li->rwmap.rwm_rw );
 		}
 #else /* !ENABLE_REWRITE */
-		if (li->suffix_massage) {
-  			ber_bvarray_free( li->suffix_massage );
+		if (li->rwmap.rwm_suffix_massage) {
+  			ber_bvarray_free( li->rwmap.rwm_suffix_massage );
  		}
 #endif /* !ENABLE_REWRITE */
 

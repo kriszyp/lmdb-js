@@ -107,7 +107,7 @@ ldap_back_dn_massage(
 		res->bv_len = 0;
 		return 0;
 	}
-	if ( dc->li == NULL || dc->li->suffix_massage == NULL ) {
+	if ( dc->rwmap == NULL || dc->rwmap->rwm_suffix_massage == NULL ) {
 		*res = *dn;
 		return 0;
 	}
@@ -126,9 +126,9 @@ ldap_back_dn_massage(
 	}
 
 	for ( i = 0;
-		dc->li->suffix_massage[i].bv_val != NULL;
+		dc->rwmap->rwm_suffix_massage[i].bv_val != NULL;
 		i += 4 ) {
-		int aliasLength = dc->li->suffix_massage[i+src].bv_len;
+		int aliasLength = dc->rwmap->rwm_suffix_massage[i+src].bv_len;
 		int diff = dn->bv_len - aliasLength;
 
 		if ( diff < 0 ) {
@@ -140,11 +140,11 @@ ldap_back_dn_massage(
 			/* At a DN Separator */
 		}
 
-		if ( !strcmp( dc->li->suffix_massage[i+src].bv_val, &dn->bv_val[diff] ) ) {
-			res->bv_len = diff + dc->li->suffix_massage[i+dst].bv_len;
+		if ( !strcmp( dc->rwmap->rwm_suffix_massage[i+src].bv_val, &dn->bv_val[diff] ) ) {
+			res->bv_len = diff + dc->rwmap->rwm_suffix_massage[i+dst].bv_len;
 			res->bv_val = ch_malloc( res->bv_len + 1 );
 			strncpy( res->bv_val, dn->bv_val, diff );
-			strcpy( &res->bv_val[diff], dc->li->suffix_massage[i+dst].bv_val );
+			strcpy( &res->bv_val[diff], dc->rwmap->rwm_suffix_massage[i+dst].bv_val );
 #ifdef NEW_LOGGING
 					LDAP_LOG ( BACK_LDAP, ARGS, 
 						"ldap_back_dn_massage: converted \"%s\" to \"%s\"\n",
