@@ -153,7 +153,6 @@ ldap_back_db_init(
 	ldap_back_map_init( &li->rwmap.rwm_oc, &mapping );
 	ldap_back_map_init( &li->rwmap.rwm_at, &mapping );
 
-	li->be = be;
 	be->be_private = li;
 	SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NOLASTMOD;
 

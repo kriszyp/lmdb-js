@@ -96,7 +96,6 @@ struct ldapauth {
 };
 
 struct ldapinfo {
-	struct slap_backend_db	*be;
 	char		*url;
 	LDAPURLDesc	*lud;
 	struct ldapauth acl_la;
