@@ -196,6 +196,7 @@ static int test_mra_filter(
 	MatchingRuleAssertion *mra )
 {
 	Attribute	*a;
+	void *memctx = op ? op->o_tmpmemctx : NULL;
 
 	if ( mra->ma_desc ) {
 		/*
@@ -257,7 +258,7 @@ static int test_mra_filter(
 			/* normalize for equality */
 			rc = asserted_value_validate_normalize( a->a_desc, mra->ma_rule,
 				SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
-				&mra->ma_value, &value, &text, op->o_tmpmemctx );
+				&mra->ma_value, &value, &text, memctx );
 			if ( rc != LDAP_SUCCESS ) {
 				continue;
 			}
@@ -299,7 +300,7 @@ static int test_mra_filter(
 		int		rc;
 
 		/* parse and pretty the dn */
-		rc = dnPrettyDN( NULL, &e->e_name, &dn, op->o_tmpmemctx );
+		rc = dnPrettyDN( NULL, &e->e_name, &dn, memctx );
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
 		}
@@ -337,7 +338,7 @@ static int test_mra_filter(
 					rc = asserted_value_validate_normalize( ad,
 						mra->ma_rule,
 						SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
-						&mra->ma_value, &value, &text, op->o_tmpmemctx );
+						&mra->ma_value, &value, &text, memctx );
 					if ( rc != LDAP_SUCCESS ) {
 						continue;
 					}
@@ -354,12 +355,12 @@ static int test_mra_filter(
 					bv, &value, &text );
 
 				if( rc != LDAP_SUCCESS ) {
-					ldap_dnfree_x( dn, op->o_tmpmemctx );
+					ldap_dnfree_x( dn, memctx );
 					return rc;
 				}
 
 				if ( ret == 0 ) {
-					ldap_dnfree_x( dn, op->o_tmpmemctx );
+					ldap_dnfree_x( dn, memctx );
 					return LDAP_COMPARE_TRUE;
 				}
 			}
@@ -453,7 +454,7 @@ test_ava_filter(
 	}
 
 	if ( ava->aa_desc == slap_schema.si_ad_hasSubordinates 
-			&& op->o_bd && op->o_bd->be_has_subordinates ) {
+			&& op && op->o_bd && op->o_bd->be_has_subordinates ) {
 		int		hasSubordinates;
 		struct berval	hs;
 
@@ -511,7 +512,7 @@ test_presence_filter(
 		 * is boolean-valued; I think we may live with this 
 		 * simplification by now
 		 */
-		if ( op->o_bd && op->o_bd->be_has_subordinates ) {
+		if ( op && op->o_bd && op->o_bd->be_has_subordinates ) {
 			return LDAP_COMPARE_TRUE;
 		}
 
