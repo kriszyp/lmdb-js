@@ -38,7 +38,7 @@
 #include "ldap-int.h"
 
 static void free_searchobj LDAP_P(( struct ldap_searchobj *so ));
-static int read_next_searchobj LDAP_P(( char **bufp, long *blenp,
+static int read_next_searchobj LDAP_P(( char **bufp, ber_len_t *blenp,
 	struct ldap_searchobj **sop, int soversion ));
 
 
@@ -232,7 +232,10 @@ ldap_next_searchobj( struct ldap_searchobj *solist, struct ldap_searchobj *so )
 
 
 static int
-read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
+read_next_searchobj(
+	char **bufp,
+	ber_len_t *blenp,
+	struct ldap_searchobj **sop,
 	int soversion )
 {
     int				i, j, tokcnt;
