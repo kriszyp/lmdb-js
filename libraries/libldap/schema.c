@@ -1240,4 +1240,25 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 	}
 }
 
+static char *err2text[] = {
+	"",
+	"Out of memory",
+	"Unexpected token",
+	"Missing opening parenthesis",
+	"Missing closing parenthesis",
+	"Expecting digit",
+	"Expecting a name",
+	"Bad description",
+	"Bad superiors",
+	"Duplicate option"
+};
 
+char *
+ldap_scherr2str(int code)
+{
+	if ( code < 1 || code >= (sizeof(err2text)/sizeof(char *)) ) {
+		return "Unknown error";
+	} else {
+		return err2text[code];
+	}
+}
