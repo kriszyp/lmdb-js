@@ -724,7 +724,8 @@ LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
  */
 LDAP_SLAPD_F( int ) oc_check_allowed(
 	AttributeType *type,
-	struct berval **oclist );
+	struct berval **oclist,
+	ObjectClass *sc );
 
 LDAP_SLAPD_F( int ) structural_class(
 	struct berval **ocs,

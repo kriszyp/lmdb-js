@@ -550,7 +550,7 @@ parse_acl(
 						vals[1] = NULL;
 
 
-						rc = oc_check_allowed( b->a_group_at->ad_type, vals );
+						rc = oc_check_allowed( b->a_group_at->ad_type, vals, NULL );
 
 						if( rc != 0 ) {
 							fprintf( stderr,

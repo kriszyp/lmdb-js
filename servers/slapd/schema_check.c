@@ -22,126 +22,6 @@ static char * oc_check_required(
 	struct berval *ocname );
 
 /*
- * Determine the structural object class from a set of OIDs
- */
-int structural_class(
-	struct berval **ocs,
-	struct berval *scbv,
-	const char **text,
-	char *textbuf, size_t textlen )
-{
-	int i;
-	ObjectClass *oc;
-	ObjectClass *sc = NULL;
-	int scn = -1;
-
-	*text = "structural_class: internal error";
-	scbv->bv_len = 0;
-
-	for( i=0; ocs[i]; i++ ) {
-		oc = oc_find( ocs[i]->bv_val );
-
-		if( oc == NULL ) {
-			snprintf( textbuf, textlen,
-				"unrecongized objectClass '%s'",
-				ocs[i]->bv_val );
-			*text = textbuf;
-			return LDAP_OBJECT_CLASS_VIOLATION;
-		}
-
-		if( oc->soc_kind == LDAP_SCHEMA_STRUCTURAL ) {
-			if( sc == NULL || is_object_subclass( sc, oc ) ) {
-				sc = oc;
-				scn = i;
-
-			} else if ( !is_object_subclass( oc, sc ) ) {
-				int j;
-				ObjectClass *xc = NULL;
-
-				/* find common superior */
-				for( j=i+1; ocs[j]; j++ ) {
-					xc = oc_find( ocs[j]->bv_val );
-
-					if( xc == NULL ) {
-						snprintf( textbuf, textlen,
-							"unrecongized objectClass '%s'",
-							ocs[i]->bv_val );
-						*text = textbuf;
-						return LDAP_OBJECT_CLASS_VIOLATION;
-					}
-
-					if( xc->soc_kind != LDAP_SCHEMA_STRUCTURAL ) {
-						xc = NULL;
-						continue;
-					}
-
-					if( is_object_subclass( sc, xc ) &&
-						is_object_subclass( oc, xc ) )
-					{
-						/* found common subclass */
-						break;
-					}
-
-					xc = NULL;
-				}
-
-				if( xc == NULL ) {
-					/* no common subclass */
-					snprintf( textbuf, textlen,
-						"invalid structural object class chain (%s/%s)",
-						ocs[scn]->bv_val, ocs[i]->bv_val );
-					*text = textbuf;
-					return LDAP_OBJECT_CLASS_VIOLATION;
-				}
-			}
-		}
-	}
-
-	if( sc == NULL ) {
-		*text = "no structural object classes provided";
-		return LDAP_OBJECT_CLASS_VIOLATION;
-	}
-
-	*scbv = *ocs[scn];
-	return LDAP_SUCCESS;
-}
-
-/*
- * Return structural object class from list of modifications
- */
-int mods_structural_class(
-	Modifications *mods,
-	struct berval *sc,
-	const char **text,
-	char *textbuf, size_t textlen )
-{
-	Modifications *ocmod = NULL;
-
-	for( ; mods != NULL; mods = mods->sml_next ) {
-		if( mods->sml_desc == slap_schema.si_ad_objectClass ) {
-			if( ocmod != NULL ) {
-				*text = "entry has multiple objectClass attributes";
-				return LDAP_OBJECT_CLASS_VIOLATION;
-			}
-			ocmod = mods;
-		}
-	}
-
-	if( ocmod == NULL ) {
-		*text = "entry has no objectClass attribute";
-		return LDAP_OBJECT_CLASS_VIOLATION;
-	}
-
-	if( ocmod->sml_bvalues == NULL || ocmod->sml_bvalues[0] == NULL ) {
-		*text = "objectClass attribute has no values";
-		return LDAP_OBJECT_CLASS_VIOLATION;
-	}
-
-	return structural_class( ocmod->sml_bvalues, sc,
-		text, textbuf, textlen );
-}
-
-/*
  * entry_schema_check - check that entry e conforms to the schema required
  * by its object class(es).
  *
@@ -261,7 +141,8 @@ entry_schema_check(
 	if ( aoc == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
-			"entry_schema_check: No objectClass for entry (%s).\n", e->e_dn ));
+			"entry_schema_check: No objectClass for entry (%s).\n"
+			e->e_dn ));
 #else
 		Debug( LDAP_DEBUG_ANY, "No objectClass for entry (%s)\n",
 		    e->e_dn, 0, 0 );
@@ -310,7 +191,7 @@ entry_schema_check(
 				e->e_dn, textbuf ));
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"entry_check_schema(%s): \"%s\" not recognized\n",
+				"entry_check_schema(%s): %s\n",
 				e->e_dn, textbuf, 0 );
 #endif
 
@@ -318,13 +199,68 @@ entry_schema_check(
 
 		} else if ( oc->soc_kind == LDAP_SCHEMA_ABSTRACT ) {
 			/* object class is abstract */
-			/* FIXME: need to check that is is a superclass of something */
+			if ( oc != slap_schema.si_oc_top &&
+				!is_object_subclass( oc, sc ))
+			{
+				int j;
+				ObjectClass *xc = NULL;
+				for( j=0; aoc->a_vals[j]; j++ ) {
+					if( i != j ) {
+						xc = oc_find( aoc->a_vals[i]->bv_val );
+						if( xc == NULL ) {
+							snprintf( textbuf, textlen, 
+								"unrecognized objectClass '%s'",
+								aoc->a_vals[i]->bv_val );
 
-		} else if ( oc->soc_kind == LDAP_SCHEMA_STRUCTURAL && oc != sc ) {
-			/* object class is a superclass of the structural class */
-			/* nothing in particular to check */
+#ifdef NEW_LOGGING
+							LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
+								"entry_schema_check: dn (%s), %s\n",
+								e->e_dn, textbuf ));
+#else
+							Debug( LDAP_DEBUG_ANY,
+								"entry_check_schema(%s): %s\n",
+								e->e_dn, textbuf, 0 );
+#endif
 
-		} else {
+							return LDAP_OBJECT_CLASS_VIOLATION;
+						}
+
+						/* since we previous check against the
+						 * structural object of this entry, the
+						 * abstract class must be a (direct or indirect)
+						 * superclass of one of the auxiliary classes of
+						 * the entry.
+						 */
+						if ( xc->soc_kind == LDAP_SCHEMA_AUXILIARY &&
+							is_object_subclass( oc, xc ) )
+						{
+							break;;
+						}
+
+						xc = NULL;
+					}
+				}
+
+				if( xc == NULL ) {
+					snprintf( textbuf, textlen, "instanstantiation of "
+						"abstract objectClass '%s' not allowed",
+						aoc->a_vals[i]->bv_val );
+
+#ifdef NEW_LOGGING
+					LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
+						"entry_schema_check: dn (%s), %s\n",
+						e->e_dn, textbuf ));
+#else
+					Debug( LDAP_DEBUG_ANY,
+						"entry_check_schema(%s): %s\n",
+						e->e_dn, textbuf, 0 );
+#endif
+
+					return LDAP_OBJECT_CLASS_VIOLATION;
+				}
+			}
+
+		} else if ( oc->soc_kind != LDAP_SCHEMA_STRUCTURAL || oc == sc ) {
 			char *s = oc_check_required( e, oc, aoc->a_vals[i] );
 
 			if (s != NULL) {
@@ -357,7 +293,7 @@ entry_schema_check(
 
 	/* check that each attr in the entry is allowed by some oc */
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		int ret = oc_check_allowed( a->a_desc->ad_type, aoc->a_vals );
+		int ret = oc_check_allowed( a->a_desc->ad_type, aoc->a_vals, sc );
 		if ( ret != LDAP_SUCCESS ) {
 			char *type = a->a_desc->ad_cname.bv_val;
 
@@ -428,9 +364,9 @@ oc_check_required(
 
 int oc_check_allowed(
 	AttributeType *at,
-	struct berval **ocl )
+	struct berval **ocl,
+	ObjectClass *sc )
 {
-	ObjectClass	*oc;
 	int		i, j;
 
 #ifdef NEW_LOGGING
@@ -454,10 +390,34 @@ int oc_check_allowed(
 		return LDAP_SUCCESS;
 	}
 
+	/* check to see if its allowed by the structuralObjectClass */
+	if( sc ) {
+		/* does it require the type? */
+		for ( j = 0; sc->soc_required != NULL && 
+			sc->soc_required[j] != NULL; j++ )
+		{
+			if( at == sc->soc_required[j] ) {
+				return LDAP_SUCCESS;
+			}
+		}
+
+		/* does it allow the type? */
+		for ( j = 0; sc->soc_allowed != NULL && 
+			sc->soc_allowed[j] != NULL; j++ )
+		{
+			if( at == sc->soc_allowed[j] ) {
+				return LDAP_SUCCESS;
+			}
+		}
+	}
+
 	/* check that the type appears as req or opt in at least one oc */
 	for ( i = 0; ocl[i] != NULL; i++ ) {
 		/* if we know about the oc */
-		if ( (oc = oc_find( ocl[i]->bv_val )) != NULL ) {
+		ObjectClass	*oc = oc_find( ocl[i]->bv_val );
+		if ( oc != NULL && oc->soc_kind != LDAP_SCHEMA_ABSTRACT &&
+			( sc == NULL || oc->soc_kind == LDAP_SCHEMA_AUXILIARY ))
+		{
 			/* does it require the type? */
 			for ( j = 0; oc->soc_required != NULL && 
 				oc->soc_required[j] != NULL; j++ )
@@ -474,10 +434,129 @@ int oc_check_allowed(
 					return LDAP_SUCCESS;
 				}
 			}
-			/* maybe the next oc allows it */
 		}
 	}
 
 	/* not allowed by any oc */
 	return LDAP_OBJECT_CLASS_VIOLATION;
+}
+
+/*
+ * Determine the structural object class from a set of OIDs
+ */
+int structural_class(
+	struct berval **ocs,
+	struct berval *scbv,
+	const char **text,
+	char *textbuf, size_t textlen )
+{
+	int i;
+	ObjectClass *oc;
+	ObjectClass *sc = NULL;
+	int scn = -1;
+
+	*text = "structural_class: internal error";
+	scbv->bv_len = 0;
+
+	for( i=0; ocs[i]; i++ ) {
+		oc = oc_find( ocs[i]->bv_val );
+
+		if( oc == NULL ) {
+			snprintf( textbuf, textlen,
+				"unrecongized objectClass '%s'",
+				ocs[i]->bv_val );
+			*text = textbuf;
+			return LDAP_OBJECT_CLASS_VIOLATION;
+		}
+
+		if( oc->soc_kind == LDAP_SCHEMA_STRUCTURAL ) {
+			if( sc == NULL || is_object_subclass( sc, oc ) ) {
+				sc = oc;
+				scn = i;
+
+			} else if ( !is_object_subclass( oc, sc ) ) {
+				int j;
+				ObjectClass *xc = NULL;
+
+				/* find common superior */
+				for( j=i+1; ocs[j]; j++ ) {
+					xc = oc_find( ocs[j]->bv_val );
+
+					if( xc == NULL ) {
+						snprintf( textbuf, textlen,
+							"unrecongized objectClass '%s'",
+							ocs[i]->bv_val );
+						*text = textbuf;
+						return LDAP_OBJECT_CLASS_VIOLATION;
+					}
+
+					if( xc->soc_kind != LDAP_SCHEMA_STRUCTURAL ) {
+						xc = NULL;
+						continue;
+					}
+
+					if( is_object_subclass( sc, xc ) &&
+						is_object_subclass( oc, xc ) )
+					{
+						/* found common subclass */
+						break;
+					}
+
+					xc = NULL;
+				}
+
+				if( xc == NULL ) {
+					/* no common subclass */
+					snprintf( textbuf, textlen,
+						"invalid structural object class chain (%s/%s)",
+						ocs[scn]->bv_val, ocs[i]->bv_val );
+					*text = textbuf;
+					return LDAP_OBJECT_CLASS_VIOLATION;
+				}
+			}
+		}
+	}
+
+	if( sc == NULL ) {
+		*text = "no structural object classes provided";
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
+	*scbv = *ocs[scn];
+	return LDAP_SUCCESS;
+}
+
+/*
+ * Return structural object class from list of modifications
+ */
+int mods_structural_class(
+	Modifications *mods,
+	struct berval *sc,
+	const char **text,
+	char *textbuf, size_t textlen )
+{
+	Modifications *ocmod = NULL;
+
+	for( ; mods != NULL; mods = mods->sml_next ) {
+		if( mods->sml_desc == slap_schema.si_ad_objectClass ) {
+			if( ocmod != NULL ) {
+				*text = "entry has multiple objectClass attributes";
+				return LDAP_OBJECT_CLASS_VIOLATION;
+			}
+			ocmod = mods;
+		}
+	}
+
+	if( ocmod == NULL ) {
+		*text = "entry has no objectClass attribute";
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
+	if( ocmod->sml_bvalues == NULL || ocmod->sml_bvalues[0] == NULL ) {
+		*text = "objectClass attribute has no values";
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
+	return structural_class( ocmod->sml_bvalues, sc,
+		text, textbuf, textlen );
 }
