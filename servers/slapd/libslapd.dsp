@@ -188,10 +188,6 @@ SOURCE=.\config.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\configinfo.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\connection.c
 # End Source File
 # Begin Source File
