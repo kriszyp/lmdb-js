@@ -293,9 +293,10 @@ parse_acl(
 
 	} else {
 
-                if (ldap_debug&LDAP_DEBUG_ACL)
+#ifdef LDAP_DEBUG
+                if (ldap_debug & LDAP_DEBUG_ACL)
                     print_acl(a);
-
+#endif
 	
 		if ( a->acl_access == NULL ) {
 			fprintf( stderr,

@@ -74,7 +74,9 @@ id2entry_delete( Backend *be, Entry *e )
 	    e->e_dn, 0 );
 
 	/* XXX - check for writer lock - should also check no reader pending */
+#ifdef LDAP_DEBUG
 	assert(pthread_rdwr_wchk_np(&e->e_rdwr));
+#endif
 
 #ifdef HAVE_BERKELEY_DB2
 	memset( &key, 0, sizeof( key ) );

@@ -198,7 +198,9 @@ cache_add_entry_lock(
 			e = cache->c_lrutail;
 
 			/* XXX check for writer lock - should also check no readers pending */
+#ifdef LDAP_DEBUG
 			assert(pthread_rdwr_wchk_np(&e->e_rdwr));
+#endif
 
 			/* delete from cache and lru q */
 			rc = cache_delete_entry_internal( cache, e );
@@ -394,7 +396,9 @@ cache_delete_entry(
 	Debug( LDAP_DEBUG_TRACE, "====> cache_delete_entry:\n", 0, 0, 0 );
 
 	/* XXX check for writer lock - should also check no readers pending */
+#ifdef LDAP_DEBUG
 	assert(pthread_rdwr_wchk_np(&e->e_rdwr));
+#endif
 
 	/* set cache mutex */
 	pthread_mutex_lock( &cache->c_mutex );

@@ -67,7 +67,9 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_SUCCESS	0
 #define	LDAP_OPT_ERROR		(-1)
 
+#ifdef LDAP_DEBUG
 extern int ldap_debug;
+#endif
 
 #define LDAP_API_INFO_VERSION	1
 typedef struct ldapapiinfo {

@@ -195,8 +195,10 @@ entry_free( Entry *e )
 	Attribute	*a, *next;
 
 	/* XXX check that no reader/writer locks exist */
+#ifdef LDAP_DEBUG
 	assert( !pthread_rdwr_wchk_np(&e->e_rdwr) &&
 		!pthread_rdwr_rchk_np(&e->e_rdwr) );
+#endif
 
 	if ( e->e_dn != NULL ) {
 		free( e->e_dn );
