@@ -384,9 +384,9 @@ retry:	/* transaction retry */
 			goto return_results;
 		default:
 			rs->sr_err = LDAP_OTHER;
+			rs->sr_text = "internal error";
+			goto return_results;
 		}
-		rs->sr_text = "internal error";
-		goto return_results;
 	}
 
 	/* acquire and lock entry */
