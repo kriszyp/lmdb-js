@@ -31,6 +31,7 @@
  * (as part of U-MICH LDAP).  Additional significant contributors
  * include:
  *   Kurt D. Zeilenga
+ *   Norbert Klasen
  */
 
 #include "portable.h"

@@ -4,8 +4,6 @@
  *
  * Copyright 1998-2003 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
- * Portions Copyright 1998-2001 Net Boolean Incorporated.
- * Portions Copyright 2001-2003 IBM Corporation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
