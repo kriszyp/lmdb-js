@@ -45,8 +45,7 @@ LDAP_SLAPD_V (int) slap_debug;
 #define SCM_NOTIFICATION_INTERVAL	5000
 #define THIRTY_SECONDS				(30 * 1000)
 
-int	  is_NT_Service = 1;	/* assume this is an NT service until determined that */
-							/* startup was from the command line */
+int	  is_NT_Service;	/* is this is an NT service? */
 
 SERVICE_STATUS			SLAPDServiceStatus;
 SERVICE_STATUS_HANDLE	hSLAPDServiceStatus;
