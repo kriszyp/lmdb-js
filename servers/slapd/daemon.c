@@ -1203,9 +1203,6 @@ slapd_daemon_task(
 		fd_set			writefds;
 		Sockaddr		from;
 
-#if defined(SLAPD_RLOOKUPS)
-		struct hostent		*hp;
-#endif
 		struct timeval		zero;
 		struct timeval		*tvp;
 
