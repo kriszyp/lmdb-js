@@ -187,13 +187,14 @@ ldif_getline( char **next )
 
 		while ( (*next = strchr( *next, '\n' )) != NULL ) {
 			unsigned char c = *(*next + 1);
-			if ( isspace( c ) && c != '\n' ) {
-				**next = CONTINUED_LINE_MARKER;
-				*(*next+1) = CONTINUED_LINE_MARKER;
-			} else {
+
+			if ( !isspace( c ) || c == '\n' ) {
 				*(*next)++ = '\0';
 				break;
 			}
+
+			**next = CONTINUED_LINE_MARKER;
+			*(*next+1) = CONTINUED_LINE_MARKER;
 			(*next)++;
 		}
 	} while( *line == '#' );
