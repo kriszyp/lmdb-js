@@ -110,7 +110,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing AND matching and ends-with searching..."
-$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $SLAVEPORT \
+$LDAPSEARCH -C -S "" -b "ou=groups,$BASEDN" -s one -h $LOCALHOST -p $SLAVEPORT \
 	'(&(objectclass=groupofnames)(cn=A*))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
