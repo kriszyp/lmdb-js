@@ -1432,7 +1432,7 @@ main(void)
       printf("0x10000 NOT DEFINED\n");
 
     if (ucnumber_lookup(0x30, &num)) {
-        if (num.numerator != num.denominator)
+        if (num.denominator != 1)
           printf("UCNUMBER: 0x30 = %d/%d\n", num.numerator, num.denominator);
         else
           printf("UCNUMBER: 0x30 = %d\n", num.numerator);
@@ -1440,7 +1440,7 @@ main(void)
       printf("UCNUMBER: 0x30 NOT A NUMBER\n");
 
     if (ucnumber_lookup(0xbc, &num)) {
-        if (num.numerator != num.denominator)
+        if (num.denominator != 1)
           printf("UCNUMBER: 0xbc = %d/%d\n", num.numerator, num.denominator);
         else
           printf("UCNUMBER: 0xbc = %d\n", num.numerator);
@@ -1449,7 +1449,7 @@ main(void)
 
 
     if (ucnumber_lookup(0xff19, &num)) {
-        if (num.numerator != num.denominator)
+        if (num.denominator != 1)
           printf("UCNUMBER: 0xff19 = %d/%d\n", num.numerator, num.denominator);
         else
           printf("UCNUMBER: 0xff19 = %d\n", num.numerator);
@@ -1457,7 +1457,7 @@ main(void)
       printf("UCNUMBER: 0xff19 NOT A NUMBER\n");
 
     if (ucnumber_lookup(0x4e00, &num)) {
-        if (num.numerator != num.denominator)
+        if (num.denominator != 1)
           printf("UCNUMBER: 0x4e00 = %d/%d\n", num.numerator, num.denominator);
         else
           printf("UCNUMBER: 0x4e00 = %d\n", num.numerator);
@@ -1473,19 +1473,19 @@ main(void)
     printf("UCGETDIGIT: 0x969 = %d\n", dig);
 
     num = ucgetnumber(0x30);
-    if (num.numerator != num.denominator)
+    if (num.denominator != 1)
       printf("UCGETNUMBER: 0x30 = %d/%d\n", num.numerator, num.denominator);
     else
       printf("UCGETNUMBER: 0x30 = %d\n", num.numerator);
 
     num = ucgetnumber(0xbc);
-    if (num.numerator != num.denominator)
+    if (num.denominator != 1)
       printf("UCGETNUMBER: 0xbc = %d/%d\n", num.numerator, num.denominator);
     else
       printf("UCGETNUMBER: 0xbc = %d\n", num.numerator);
 
     num = ucgetnumber(0xff19);
-    if (num.numerator != num.denominator)
+    if (num.denominator != 1)
       printf("UCGETNUMBER: 0xff19 = %d/%d\n", num.numerator, num.denominator);
     else
       printf("UCGETNUMBER: 0xff19 = %d\n", num.numerator);

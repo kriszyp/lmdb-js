@@ -6,6 +6,18 @@
                              -------------------
 
 
+####
+NOTE: This library has been customized for use with OpenLDAP. The character
+data tables are hardcoded into the library and the load/unload/reload
+functions are no-ops. Also, the MUTT API claimed to be compatible with
+John Cowan's library but its ucnumber behavior was broken. This has been
+fixed in the OpenLDAP release.
+
+By default, the implementation specific properties in MUTTUCData.txt are
+not incorporated into the OpenLDAP build. You can supply them to ucgendat
+and recreate uctable.h if you need them.
+  -- hyc@openldap.org
+####
 
 
 -----------------------------------------------------------------------------
@@ -153,7 +165,15 @@ int ucnumber_lookup(unsigned long code, struct ucnumber *num)
 
   This function determines if the code is a number and fills in the `num'
   field with the numerator and denominator.  If the code happens to be a
-  single digit, the numerator and denominator fields will be the same.
+  single digit, the denominator field will be 1.
+
+####
+The original code would set numerator = denominator for regular digits.
+However, the Readme also claimed to be compatible with John Cowan's uctype
+library, but this behavior is both nonsensical and incompatible with the
+Cowan library. As such, it has been fixed here as described above.
+  -- hyc@openldap.org
+####
 
   If the function returns 0, the code is not a number.  Any other return
   value means the code is a number.

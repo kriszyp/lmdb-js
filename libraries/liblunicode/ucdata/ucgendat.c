@@ -1077,7 +1077,7 @@ read_cdata(FILE *in)
              * Adjust the denominator in case of integers and add the number.
              */
             if (wnum == 0)
-              number[1] = number[0];
+              number[1] = 1;
 
             add_number(code, number[0], number[1]);
         }
