@@ -81,6 +81,7 @@ main( int argc, char **argv )
 		fmt[1] = '\0';
 
 		printf("decode: format %s\n", fmt );
+		len = sizeof(buf);
 		rc = ber_scanf( ber, fmt, &buf[0], &len );
 
 		if( rc == LBER_ERROR ) {
