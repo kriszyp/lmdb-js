@@ -32,6 +32,9 @@
 
 LDAP_BEGIN_DECL
 
+#define LDAP_CLIENT_UPDATE	1
+#undef LDAP_CLIENT_UPDATE
+
 #define LDAP_VERSION1	1
 #define LDAP_VERSION2	2
 #define LDAP_VERSION3	3
@@ -201,6 +204,12 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_PAGEDRESULTS	"1.2.840.113556.1.4.319"
 #endif
 
+#if LDAP_CLIENT_UPDATE
+#define LDAP_CONTROL_CLIENT_UPDATE	"1.3.6.1.4.1.4203.666.7.1"
+#define LDAP_CONTROL_ENTRY_UPDATE	"1.3.6.1.4.1.4203.666.7.2"
+#define LDAP_CONTROL_CLIENT_UPDATE_DONE	"1.3.6.1.4.1.4203.666.7.3"
+#endif
+
 #define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473"
 #define LDAP_CONTROL_SORTRESPONSE	"1.2.840.113556.1.4.474"
 #define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"
@@ -254,8 +263,18 @@ typedef struct ldapcontrol {
 /* general stuff */
 #define LDAP_TAG_MESSAGE	((ber_tag_t) 0x30U)	/* constructed + 16 */
 #define LDAP_TAG_MSGID		((ber_tag_t) 0x02U)	/* integer */
+
+#ifdef LDAP_CLIENT_UPDATE
+#define LDAP_TAG_INTERVAL	((ber_tag_t) 0x02U)	/* integer */
+#endif /* LDAP_CLIENT_UPDATE */
+
 #define LDAP_TAG_LDAPDN		((ber_tag_t) 0x04U)	/* octet string */
 #define LDAP_TAG_LDAPCRED	((ber_tag_t) 0x04U)	/* octet string */
+
+#ifdef LDAP_CLIENT_UPDATE
+#define LDAP_TAG_COOKIE		((ber_tag_t) 0x30U)	/* sequence */
+#endif /* LDAP_CLIENT_UPDATE */
+
 #define LDAP_TAG_CONTROLS	((ber_tag_t) 0xa0U)	/* context specific + constructed + 0 */
 #define LDAP_TAG_REFERRAL	((ber_tag_t) 0xa3U)	/* context specific + constructed + 3 */
 
@@ -441,6 +460,26 @@ typedef struct ldapcontrol {
 #define LDAP_MORE_RESULTS_TO_RETURN		0x5f	/* draft-ietf-ldap-c-api-xx */
 #define LDAP_CLIENT_LOOP				0x60	/* draft-ietf-ldap-c-api-xx */
 #define LDAP_REFERRAL_LIMIT_EXCEEDED	0x61	/* draft-ietf-ldap-c-api-xx */
+
+#ifdef LDAP_CLIENT_UPDATE
+/* resultCode for LCUP */
+#define LCUP_RESOURCES_EXHAUSTED	0x62
+#define LCUP_SECURITY_VIOLATION		0x63
+#define LCUP_INVALID_COOKIE		0x64
+#define LCUP_UNSUPPORTED_SCHEME		0x65
+#define LCUP_CLIENT_DISCONNECT		0x66
+#define LCUP_RELOAD_REQUIRED		0x67
+#endif /* LDAP_CLIENT_UPDATE */
+
+#ifdef LDAP_CLIENT_UPDATE
+#define SYNCHRONIZE_ONLY	0x00
+#define SYNCHRONIZE_AND_PERSIST	0x01
+#define PERSIST_ONLY		0x02
+#endif /* LDAP_CLIENT_UPDATE */
+
+#ifdef LDAP_CLIENT_UPDATE
+#define LDAP_LCUP_DEFAULT_SEND_COOKIE_INTERVAL	0x01
+#endif /* LDAP_CLIENT_UPDATE */
 
 /*
  * This structure represents both ldap messages and ldap responses.

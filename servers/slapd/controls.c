@@ -50,6 +50,10 @@ static SLAP_CTRL_PARSE_FN parseNoOp;
 static SLAP_CTRL_PARSE_FN parsePagedResults;
 static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
 
+#ifdef LDAP_CLIENT_UPDATE
+static SLAP_CTRL_PARSE_FN parseClientUpdate;
+#endif /* LDAP_CLIENT_UPDATE */
+
 #undef sc_mask /* avoid conflict with Irix 6.5 <sys/signal.h> */
 
 static struct slap_control {
@@ -81,6 +85,11 @@ static struct slap_control {
  	{ LDAP_CONTROL_VALUESRETURNFILTER,
  		SLAP_CTRL_SEARCH, NULL,
  		parseValuesReturnFilter },
+#endif
+#ifdef LDAP_CLIENT_UPDATE
+	{ LDAP_CONTROL_CLIENT_UPDATE,
+		SLAP_CTRL_SEARCH, NULL,
+		parseClientUpdate },
 #endif
 	{ NULL }
 };
@@ -116,6 +125,10 @@ int get_ctrls(
 	struct slap_control *sc;
 	int rc = LDAP_SUCCESS;
 	const char *errmsg = NULL;
+
+#ifdef LDAP_CLIENT_UPDATE
+	op->o_clientupdatetype = -1;
+#endif
 
 	len = ber_pvt_ber_remaining(ber);
 
@@ -589,6 +602,122 @@ int parseValuesReturnFilter (
 #endif
 
 	op->o_valuesreturnfilter = ctrl->ldctl_iscritical
+		? SLAP_CRITICAL_CONTROL
+		: SLAP_NONCRITICAL_CONTROL;
+
+	return LDAP_SUCCESS;
+}
+#endif
+
+#ifdef LDAP_CLIENT_UPDATE
+static int parseClientUpdate (
+	Connection *conn,
+	Operation *op,
+	LDAPControl *ctrl,
+	const char **text )
+{
+	ber_tag_t tag;
+	BerElement *ber;
+	ber_int_t type;
+	ber_int_t interval;
+	ber_len_t len;
+	struct berval scheme = { 0, NULL };
+	struct berval cookie = { 0, NULL };
+
+	if ( op->o_noop != SLAP_NO_CONTROL ) {
+		*text = "LCUP client update control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( ctrl->ldctl_value.bv_len == 0 ) {
+		*text = "LCUP client update control value is empty";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	/* Parse the control value
+	 *	ClientUpdateControlValue ::= SEQUENCE {
+	 *		updateType	ENUMERATED {
+	 *					synchronizeOnly	{0},
+	 *					synchronizeAndPersist {1},
+	 *					persistOnly {2} },
+	 *		sendCookieInterval INTEGER OPTIONAL,
+	 *		cookie		LCUPCookie OPTIONAL
+	 *	}
+	 */
+
+	ber = ber_init( &ctrl->ldctl_value );
+	if( ber == NULL ) {
+		*text = "internal error";
+		return LDAP_OTHER;
+	}
+
+	if ( (tag = ber_scanf( ber, "{i" /*}*/, &type )) == LBER_ERROR ) {
+		*text = "LCUP client update control : decoding error";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( type != SYNCHRONIZE_ONLY &&
+	     type != SYNCHRONIZE_AND_PERSIST &&
+	     type != PERSIST_ONLY ) {
+		*text = "LCUP client update control : unknown update type";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( (tag = ber_peek_tag( ber, &len )) == LBER_DEFAULT ) {
+		*text = "LCUP client update control : decoding error";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( tag == LDAP_TAG_INTERVAL ) {
+		if ( (tag = ber_scanf( ber, "i", &interval )) == LBER_ERROR ) {
+			*text = "LCUP client update control : decoding error";
+			return LDAP_PROTOCOL_ERROR;
+		}
+		
+		if ( interval <= 0 ) {
+			/* server chooses interval */
+			interval = LDAP_LCUP_DEFAULT_SEND_COOKIE_INTERVAL;
+		}
+	}
+	else {
+		/* server chooses interval */
+		interval = LDAP_LCUP_DEFAULT_SEND_COOKIE_INTERVAL;
+	}
+
+	if ( (tag = ber_peek_tag( ber, &len )) == LBER_DEFAULT ) {
+		*text = "LCUP client update control : decoding error";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( tag == LDAP_TAG_COOKIE ) {
+		if ( (tag = ber_scanf( ber, /*{*/ "{mm}}",
+					&scheme, &cookie )) == LBER_ERROR ) {
+			*text = "LCUP client update control : decoding error";
+			return LDAP_PROTOCOL_ERROR;
+		}
+	}
+
+	/* TODO : Cookie Scheme Validation */
+#if 0
+	if ( lcup_cookie_validate(scheme, cookie) != LDAP_SUCCESS ) {
+		*text = "Invalid LCUP cookie";
+		return LCUP_INVALID_COOKIE;
+	}
+
+	if ( lcup_cookie_scheme_validate(scheme) != LDAP_SUCCESS ) {
+		*text = "Unsupported LCUP cookie scheme";
+		return LCUP_UNSUPPORTED_SCHEME;
+	}
+#endif
+
+	op->o_clientupdatestate = ber_dupbv(NULL, &cookie);
+
+	(void) ber_free( ber, 1 );
+
+	op->o_clientupdatetype = type;
+	op->o_clientupdateinterval = interval;
+
+	op->o_clientupdate = ctrl->ldctl_iscritical
 		? SLAP_CRITICAL_CONTROL
 		: SLAP_NONCRITICAL_CONTROL;
 

@@ -60,6 +60,10 @@
 #define caseExactOrderingMatch			caseExactMatch
 #define integerOrderingMatch			integerMatch
 
+#ifdef LDAP_CLIENT_UPDATE
+#define	octetStringOrderingMatch		octetStringMatch
+#endif /* LDAP_CLIENT_UPDATE */
+
 /* unimplemented matching routines */
 #define caseIgnoreListMatch				NULL
 #define caseIgnoreListSubstringsMatch	NULL
@@ -4630,6 +4634,15 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL, NULL,
 		octetStringMatch, octetStringIndexer, octetStringFilter,
 		NULL},
+
+#ifdef LDAP_CLIENT_UPDATE
+	{"( 2.5.13.18 NAME 'octetStringOrderingMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
+		SLAP_MR_ORDERING, NULL,
+		NULL, NULL,
+		octetStringOrderingMatch, NULL, NULL,
+		NULL},
+#endif /* LDAP_CLIENT_UPDATE */
 
 	{"( 2.5.13.20 NAME 'telephoneNumberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )",

@@ -56,6 +56,13 @@ bdb_search(
 	int		nentries = 0;
 	int		manageDSAit;
 
+#ifdef LDAP_CLIENT_UPDATE
+	Filter          lcupf, csnfnot, csnfeq, csnfand, csnfge;
+	AttributeAssertion aa_ge, aa_eq;
+	LDAPControl     ctrl;
+	int		entry_count = 0;
+#endif /* LDAP_CLIENT_UPDATE */
+
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 
@@ -334,6 +341,34 @@ dn2entry_retry:
 	filter_hasSubordinates = filter_has_subordinates( filter );
 #endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
+#ifdef LDAP_CLIENT_UPDATE
+       if ( op->o_clientupdatetype == SYNCHRONIZE_ONLY ||
+            op->o_clientupdatetype == SYNCHRONIZE_AND_PERSIST ) {
+               lcupf.f_choice = LDAP_FILTER_AND;
+               lcupf.f_and = &csnfnot;
+               lcupf.f_next = NULL;
+
+               csnfnot.f_choice = LDAP_FILTER_NOT;
+               csnfnot.f_not = &csnfeq;
+               csnfnot.f_next = &csnfand;
+
+               csnfeq.f_choice = LDAP_FILTER_EQUALITY;
+               csnfeq.f_ava = &aa_eq;
+               csnfeq.f_av_desc = slap_schema.si_ad_entryCSN;
+               ber_dupbv(&csnfeq.f_av_value, op->o_clientupdatestate);
+
+               csnfand.f_choice = LDAP_FILTER_AND;
+               csnfand.f_and = &csnfge;
+               csnfand.f_next = NULL;
+
+               csnfge.f_choice = LDAP_FILTER_GE;
+               csnfge.f_ava = &aa_ge;
+               csnfge.f_av_desc = slap_schema.si_ad_entryCSN;
+               ber_dupbv(&csnfge.f_av_value, op->o_clientupdatestate);
+               csnfge.f_next = filter;
+       }
+#endif /* LDAP_CLIENT_UPDATE */
+
 	for ( id = bdb_idl_first( candidates, &cursor );
 		id != NOID;
 		id = bdb_idl_next( candidates, &cursor ) )
@@ -529,7 +564,17 @@ id2entry_retry:
 #endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 		/* if it matches the filter and scope, send it */
+#ifdef LDAP_CLIENT_UPDATE
+               if ( op->o_clientupdatetype == SYNCHRONIZE_ONLY ||
+                    op->o_clientupdatetype == SYNCHRONIZE_AND_PERSIST ) {
+                       rc = test_filter( be, conn, op, e, &lcupf );
+               }
+               else {
+                       rc = test_filter( be, conn, op, e, filter );
+               }
+#else /* LDAP_CLIENT_UPDATE */
 		rc = test_filter( be, conn, op, e, filter );
+#endif /* LDAP_CLIENT_UPDATE */
 
 #ifdef SLAP_X_FILTER_HASSUBORDINATES
 		if ( hasSubordinates ) {
@@ -586,6 +631,7 @@ id2entry_retry:
 #endif
 						result = send_search_entry( be, conn, op,
 							e, attrs, attrsonly, NULL);
+
 #if 0
 					}
 #endif
@@ -633,6 +679,7 @@ loop_continue:
 
 		ldap_pvt_thread_yield();
 	}
+
 	send_search_result( conn, op,
 		v2refs == NULL ? LDAP_SUCCESS : LDAP_REFERRAL,
 		NULL, NULL, v2refs, NULL, nentries );

@@ -450,6 +450,9 @@ static struct slap_schema_ad_map {
 	{ "entryCSN", "( 1.3.6.1.4.1.4203.666.1.7 NAME 'entryCSN' "
 			"DESC 'LCUP/LDUP: change sequence number' "
 			"EQUALITY octetStringMatch "
+#ifdef LDAP_CLIENT_UPDATE
+			"ORDERING octetStringOrderingMatch "
+#endif /* LDAP_CLIENT_UPDATE */
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, SLAP_AT_HIDE,

@@ -1585,6 +1585,13 @@ typedef struct slap_op {
 	ber_int_t o_pagedresults_size;
 	PagedResultsState o_pagedresults_state;
 
+#ifdef LDAP_CLIENT_UPDATE
+	char o_clientupdate;
+	ber_int_t o_clientupdatetype;
+	ber_int_t o_clientupdateinterval;
+	struct berval* o_clientupdatestate;
+#endif
+
 #ifdef LDAP_CONNECTIONLESS
 	Sockaddr	o_peeraddr;	/* UDP peer address		  */
 #endif
