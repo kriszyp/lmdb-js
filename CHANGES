@@ -14,6 +14,7 @@ OpenLDAP 2.2.15 Engineering
 	Fixed slapd group ACL locking bug (ITS#3173)
 	Fixed slapd abandon/cancel pending bug
 	Fixed slapd attribute description syntax bug
+	Fixed slapd ACI caching bug (caching disabled, ITS#3215)
 	Fixed libldap SASL re-encode bug
 	Fixed libldap sasl_encode 64-bit bug (ITS#3054,3212)
 	Fixed libldap matchedValues parsing bug (ITS#3208,3216)
