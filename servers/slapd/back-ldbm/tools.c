@@ -236,6 +236,7 @@ int ldbm_tool_entry_reindex(
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_tool_entry_reindex( %ld, \"%s\" )\n",
 		id, e->e_dn, 0 );
 
+	dn2id_add( be, e->e_ndn, e->e_id );
 	rc = index_entry_add( be, e, e->e_attrs );
 
 	entry_free( e );
