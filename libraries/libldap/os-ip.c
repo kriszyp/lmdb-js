@@ -284,11 +284,9 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	unsigned long address, int port, int async)
 {
 	struct sockaddr_in	sin;
-	struct in_addr		in;
 	ber_socket_t		s = AC_SOCKET_INVALID;
 	int			rc, i, use_hp = 0;
-	struct hostent		*hp, he_buf;
-   	int			local_h_errno;
+	struct hostent		*hp = NULL;
 	char   			*ha_buf=NULL, *p, *q;
 
 	osip_debug(ld, "ldap_connect_to_host\n",0,0,0);
@@ -352,7 +350,10 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 		freeaddrinfo(res);
 		return rc;
 #else
+		struct in_addr in;
 		if (! inet_aton( host, &in) ) {
+			int local_h_errno;
+			struct hostent he_buf;
 			rc = ldap_pvt_gethostbyname_a(host, &he_buf, &ha_buf,
 					&hp, &local_h_errno);
 
