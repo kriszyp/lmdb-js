@@ -1528,8 +1528,9 @@ done:
    -Howard Chu, Symas Corp.
 */
 
-#define	SET_DN	1
-#define	SET_U	2
+#define SET_NONE	0
+#define	SET_DN		1
+#define	SET_U		2
 
 static struct berval ext_bv = BER_BVC( "EXTERNAL" );
 
@@ -1537,16 +1538,16 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 	char *user_realm, struct berval *dn, int flags )
 {
 	char *c1;
-	int rc, is_dn = 0, do_norm = 1;
+	int rc, is_dn = SET_NONE, do_norm = 1;
 	struct berval dn2;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
-		"slap_sasl_getdn: conn %d id=%s\n",
-		conn ? conn->c_connid : -1, id ? (*id ? id : "<empty>") : "NULL", 0 );
+		"slap_sasl_getdn: conn %d id=%s [len=%d]\n",
+		conn ? conn->c_connid : -1, id ? (*id ? id : "<empty>") : "NULL", len );
 #else
-	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: id=%s\n", 
-      id?(*id?id:"<empty>"):"NULL",0,0 );
+	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: id=%s [len=%d]\n", 
+		id ? ( *id ? id : "<empty>" ) : "NULL", len, 0 );
 #endif
 
 	dn->bv_val = NULL;
@@ -1585,7 +1586,7 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 			dn->bv_len = len;
 		}
 	}
-	if( !is_dn ) {
+	if( is_dn == SET_NONE ) {
 		if( !strncasecmp( id, "u:", sizeof("u:")-1 )) {
 			is_dn = SET_U;
 			dn->bv_val = id+2;
@@ -1598,7 +1599,7 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 	}
 
 	/* No other possibilities from here */
-	if( !is_dn ) {
+	if( is_dn == SET_NONE ) {
 		dn->bv_val = NULL;
 		dn->bv_len = 0;
 		return( LDAP_INAPPROPRIATE_AUTH );
@@ -1660,16 +1661,17 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 #else
 		Debug( LDAP_DEBUG_TRACE, "getdn: u:id converted to %s\n", dn->bv_val,0,0 );
 #endif
+	} else {
+		
+		/* Dup the DN in any case, so we don't risk 
+		 * leaks or dangling pointers later,
+		 * and the DN value is '\0' terminated */
+		ber_dupbv( &dn2, dn );
+		dn->bv_val = dn2.bv_val;
 	}
 
 	/* All strings are in DN form now. Normalize if needed. */
 	if ( do_norm ) {
-		if ( is_dn != SET_U ) {
-			struct berval dntmp;
-			
-			ber_dupbv( &dntmp, dn );
-			dn->bv_val = dntmp.bv_val;
-		}
 		rc = dnNormalize2( NULL, dn, &dn2 );
 
 		/* User DNs were constructed above and must be freed now */
