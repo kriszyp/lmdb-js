@@ -230,7 +230,7 @@ int slap_sasl_authorized( Connection *conn,
 }
 
 int slap_mods_check( Modifications *ml, int update, const char **text,
-	char *textbuf, size_t textlen )
+	char *textbuf, size_t textlen, void *ctx )
 {
 	return -1;
 }

@@ -478,7 +478,7 @@ equality_candidates(
 		if( idl == NULL ) break;
 	}
 
-	ber_bvarray_free( keys );
+	ber_bvarray_free_x( keys, op->o_tmpmemctx );
 
 	ldbm_cache_close( op->o_bd, db );
 
@@ -657,7 +657,7 @@ approx_candidates(
 		if( idl == NULL ) break;
 	}
 
-	ber_bvarray_free( keys );
+	ber_bvarray_free_x( keys, op->o_tmpmemctx );
 
 	ldbm_cache_close( op->o_bd, db );
 
@@ -888,7 +888,7 @@ substring_candidates(
 		if( idl == NULL ) break;
 	}
 
-	ber_bvarray_free( keys );
+	ber_bvarray_free_x( keys, op->o_tmpmemctx );
 
 	ldbm_cache_close( op->o_bd, db );
 
