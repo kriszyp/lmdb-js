@@ -2233,7 +2233,7 @@ dn2domain( LDAPDN *dn, struct berval *bv, int pos, int *iRDN )
 			l += ava->la_value.bv_len;
 
 		} else {
-			AC_MEMCPY( str + ava->la_value.bv_len + 1, bv->bv_val, l);
+			AC_MEMCPY( str + ava->la_value.bv_len + 1, bv->bv_val + pos, l);
 			AC_MEMCPY( str, ava->la_value.bv_val, 
 					ava->la_value.bv_len );
 			str[ ava->la_value.bv_len ] = '.';
