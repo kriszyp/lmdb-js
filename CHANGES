@@ -12,6 +12,8 @@ OpenLDAP 2.2.14 Engineering
 	Added slapd -l USER/DAEMON options (ITS#3187)
 	Build environments
 		Fixed back-sql trace builds
+	Documentation
+		Fixed slapd.access(5) to dn.regex $$ bug
 
 OpenLDAP 2.2.13 Release
 	Fixed pcache CSN pending segfault (ITS#3180)
