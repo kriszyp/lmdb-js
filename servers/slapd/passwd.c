@@ -110,7 +110,8 @@ int passwd_extop(
 
 #ifndef SLAPD_MULTIMASTER
 	/* This does not apply to multi-master case */
-	if( op->o_bd->be_update_ndn.bv_len ) {
+	if( op->o_bd->be_update_ndn.bv_len ||
+		!LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 		/* we SHOULD return a referral in this case */
 		BerVarray defref = NULL;
 		if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
