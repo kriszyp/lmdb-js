@@ -271,16 +271,12 @@ open_listener(
 			}
 
 #ifdef HAVE_WINSOCK
-			if(!(l.sl_addr.sin_addr.S_un.S_addr = inet_addr(he->h_addr)))
+			memcpy( &l.sl_addr.sin_addr.S_un.S_addr, he->h_addr,
+			       sizeof( l.sl_addr.sin_addr.S_un.S_addr ) );
 #else
-			if(!inet_aton(he->h_addr, &l.sl_addr.sin_addr))
+			memcpy( &l.sl_addr.sin_addr, he->h_addr,
+			       sizeof( l.sl_addr.sin_addr ) );
 #endif  
-			{
-				Debug( LDAP_DEBUG_ANY, "%s has invalid address (%s) in URL: %s",
-					lud->lud_host, he->h_addr, url );
-				ldap_free_urldesc( lud );
-				return NULL;
-			}
 		}
 	}
 
