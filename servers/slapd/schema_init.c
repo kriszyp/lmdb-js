@@ -29,22 +29,33 @@ Directory String -
 NumericString
   In ASN.1, numeric string is just a string of digits and spaces and
   could be empty.  However, in X.500, all attribute values of numeric
-  string carry a non-empty constraint.  Unfornately, some assertion
-  values are don't carry this constraint (but its unclear how such
-  an assertion could ever be true).  In LDAP, there is one syntax
-  (numericString) not two (numericString with constraint, numericString
-  without constraint).  This should be treated as numericString with
-  non-empty constraint.
+  string carry a non-empty constraint.  For example:
+
+	internationalISDNNumber ATTRIBUTE ::= {
+		WITH SYNTAX InternationalISDNNumber
+		EQUALITY MATCHING RULE numericStringMatch
+		SUBSTRINGS MATCHING RULE numericStringSubstringsMatch
+		ID id-at-internationalISDNNumber }
+	InternationalISDNNumber ::= NumericString (SIZE(1..ub-international-isdn-number))
+
+  Unfornately, some assertion values are don't carry the same constraint
+  (but its unclear how such an assertion could ever be true). In LDAP,
+  there is one syntax (numericString) not two (numericString with constraint,
+  numericString without constraint).  This should be treated as numericString
+  with non-empty constraint.  Note that while someone may have no
+  ISDN number, there are no ISDN numbers which are zero length.
 
   In matching, spaces are ignored.
 
 PrintableString
   In ASN.1, Printable string is just a string of printable characters and
-  can be empty.  In X.500, semantics much like NumericString excepting
-  uses insignificant space handling instead of ingore all spaces.
+  can be empty.  In X.500, semantics much like NumericString (see serialNumber
+  for a like example) excepting uses insignificant space handling instead of
+  ignore all spaces.  
 
 IA5String
-  Basically same as PrintableString.
+  Basically same as PrintableString.  There are no examples in X.500, but
+  same logic applies.  So we require them to be non-empty as well.
 
 ****/
 
