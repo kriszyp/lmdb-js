@@ -84,6 +84,7 @@ typedef struct sync_control {
 #define SLAP_SYNC_REFRESH_AND_PERSIST	(LDAP_SYNC_REFRESH_AND_PERSIST<<SLAP_CONTROL_SHIFT)
 
 #define	PS_IS_REFRESHING	0x01
+#define	PS_IS_DETACHED		0x02
 
 /* Record of which searches matched at premodify step */
 typedef struct syncmatches {
@@ -828,12 +829,14 @@ syncprov_free_syncop( syncops *so )
 		return;
 	}
 	ldap_pvt_thread_mutex_unlock( &so->s_mutex );
-	filter_free( so->s_op->ors_filter );
-	for ( ga = so->s_op->o_groups; ga; ga=gnext ) {
-		gnext = ga->ga_next;
-		ch_free( ga );
+	if ( so->s_flags & PS_IS_DETACHED ) {
+		filter_free( so->s_op->ors_filter );
+		for ( ga = so->s_op->o_groups; ga; ga=gnext ) {
+			gnext = ga->ga_next;
+			ch_free( ga );
+		}
+		ch_free( so->s_op );
 	}
-	ch_free( so->s_op );
 	ch_free( so->s_base.bv_val );
 	for ( sr=so->s_res; sr; sr=srnext ) {
 		srnext = sr->s_next;
@@ -846,14 +849,16 @@ syncprov_free_syncop( syncops *so )
 static int
 syncprov_drop_psearch( syncops *so, int lock )
 {
-	if ( lock )
-		ldap_pvt_thread_mutex_lock( &so->s_op->o_conn->c_mutex );
-	so->s_op->o_conn->c_n_ops_executing--;
-	so->s_op->o_conn->c_n_ops_completed++;
-	LDAP_STAILQ_REMOVE( &so->s_op->o_conn->c_ops, so->s_op, slap_op,
-		o_next );
-	if ( lock )
-		ldap_pvt_thread_mutex_unlock( &so->s_op->o_conn->c_mutex );
+	if ( so->s_flags & PS_IS_DETACHED ) {
+		if ( lock )
+			ldap_pvt_thread_mutex_lock( &so->s_op->o_conn->c_mutex );
+		so->s_op->o_conn->c_n_ops_executing--;
+		so->s_op->o_conn->c_n_ops_completed++;
+		LDAP_STAILQ_REMOVE( &so->s_op->o_conn->c_ops, so->s_op, slap_op,
+			o_next );
+		if ( lock )
+			ldap_pvt_thread_mutex_unlock( &so->s_op->o_conn->c_mutex );
+	}
 	syncprov_free_syncop( so );
 }
 
@@ -1584,6 +1589,7 @@ syncprov_detach_op( Operation *op, syncops *so )
 	op->o_conn->c_n_ops_executing++;
 	op->o_conn->c_n_ops_completed--;
 	LDAP_STAILQ_INSERT_TAIL( &op->o_conn->c_ops, op2, o_next );
+	so->s_flags |= PS_IS_DETACHED;
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 }
 
