@@ -807,8 +807,6 @@ e.g. ldapi:// (and eventually IPSEC).  It is not normally used.
 Specify the maximum number of entries to return from a search operation.
 The default size limit is 500.
 Use
-.B -1
-or 
 .B unlimited
 to specify no limits.
 The second format allows a fine grain setting of the size limits.
@@ -841,8 +839,6 @@ Specify the maximum number of seconds (in real time)
 .B slapd
 will spend answering a search request.  The default time limit is 3600.
 Use
-.B -1
-or 
 .B unlimited
 to specify no limits.
 The second format allows a fine grain setting of the time limits.
@@ -1070,21 +1066,22 @@ and
 The syntax for time limits is 
 .BR time[.{soft|hard}]=<integer> ,
 where 
-.BR integer
+.I integer
 is the number of seconds slapd will spend answering a search request.
 If no time limit is explicitly requested by the client, the 
 .BR soft
 limit is used; if the requested time limit exceeds the
 .BR hard
-limit, an
-.I "Administrative limit exceeded"
-error is returned.
+.\"limit, an
+.\".I "Administrative limit exceeded"
+.\"error is returned.
+limit, the value of the limit is used instead.
 If the
 .BR hard
 limit is set to the keyword 
 .IR soft ,
 the soft limit is used in either case; if it is set to the keyword 
-.IR none , 
+.IR unlimited , 
 no hard limit is enforced.
 Explicit requests for time limits smaller or equal to the
 .BR hard 
@@ -1093,27 +1090,30 @@ If no limit specifier is set, the value is assigned to the
 .BR soft 
 limit, and the
 .BR hard
-limit is set to soft, to preserve the original behavior.
+limit is set to
+.IR soft ,
+to preserve the original behavior.
 
 The syntax for size limits is
 .BR size[.{soft|hard|unchecked}]=<integer> ,
 where
-.BR integer
+.I integer
 is the maximum number of entries slapd will return answering a search 
 request.
 If no size limit is explicitly requested by the client, the
 .BR soft
 limit is used; if the requested size limit exceeds the
 .BR hard
-limit, an 
-.I "Administrative limit exceeded"
-error is returned.
+.\"limit, an 
+.\".I "Administrative limit exceeded"
+.\"error is returned.
+limit, the value of the limit is used instead.
 If the 
 .BR hard
 limit is set to the keyword 
 .IR soft , 
 the soft limit is used in either case; if it is set to the keyword
-.IR none , 
+.IR unlimited , 
 no hard limit is enforced.
 Explicit requests for size limits smaller or equal to the
 .BR hard
@@ -1122,12 +1122,21 @@ The
 .BR unchecked
 specifier sets a limit on the number of candidates a search request is allowed
 to examine.
+The rationale behind it is that searches for non-properly indicized
+attributes may result in large sets of candidates, which must be 
+examined by
+.BR slapd (8)
+to determine whether they match the search filter or not.
+The
+.B unckeched
+limit provides a means to drop such operations before they are even 
+started.
 If the selected candidates exceed the 
 .BR unchecked
 limit, the search will abort with 
 .IR "Unwilling to perform" .
 If it is set to the keyword 
-.IR none , 
+.IR unlimited , 
 no limit is applied (the default).
 If it is set to
 .IR disable ,
@@ -1137,7 +1146,9 @@ If no limit specifier is set, the value is assigned to the
 .BR soft 
 limit, and the
 .BR hard
-limit is set to soft, to preserve the original behavior.
+limit is set to
+.IR soft ,
+to preserve the original behavior.
 
 In case of no match, the global limits are used.
 The default values are the same of
@@ -1157,31 +1168,33 @@ of entries to be returned.
 However, the size limit applies to the total count of entries returned within
 the search, and not to a single page.
 Additional size limits may be enforced; the syntax is
-.BR size.pr={<integer>|noEstimate|none} ,
+.BR size.pr={<integer>|noEstimate|unlimited} ,
 where
-.B integer
+.I integer
 is the max page size if no explicit limit is set; the keyword
 .I noEstimate
 inhibits the server from returning an estimate of the total number
-of entries that might be returned; the keyword
-.I none
+of entries that might be returned
+(note: the current implementation does not return any estimate).
+The keyword
+.I unlimited
 indicates that no limit is applied to the pagedResults control page size.
 The syntax
-.B size.prtotal={<integer>|none|disabled}
+.B size.prtotal={<integer>|unlimited|disabled}
 allows to set a limit on the total number of entries that a pagedResults
 control allows to return.
 By default it is set to the 
 .B hard
 limit.
 When set, 
-.B integer
+.I integer
 is the max number of entries that the whole search with pagedResults control
 can return.
 Use 
-.B none
-to allow unlimited number of entries to be returned, i.e. to use 
-pagedResults as a means to allow clients to circumvent size limitations 
-on regular searches; the keyword
+.I unlimited
+to allow unlimited number of entries to be returned, e.g. to allow
+the use of the pagedResults control as a means to circumvent size 
+limitations on regular searches; the keyword
 .I disabled
 disables the control, i.e. no paged results can be returned.
 Note that the total number of entries returned when the pagedResults control 

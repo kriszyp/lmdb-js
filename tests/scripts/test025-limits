@@ -406,13 +406,23 @@ case $RC in
 		fi
 	;;
 	4)
-		echo "...error: bumped into server-side size limit instead of hard size administrative limit"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
+		if test x"$COUNT" != x ; then
+			if test "$COUNT" = "$SIZELIMIT" ; then
+				echo "...error: bumped into requested ($SIZELIMIT) size limit"
+                		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                		exit $RC
+			else
+				echo "...got size limit $COUNT instead of requested $SIZELIMIT entries"
+			fi
+		else
+			echo "...error: bumped into server-side size limit, but got no entries!"
+                	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                	exit $RC
+		fi
 	;;
-	11)
-		echo "...bumped into server-side hard size administrative limit"
-	;;
+#	11)
+#		echo "...bumped into server-side hard size administrative limit"
+#	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
@@ -446,9 +456,9 @@ case $RC in
                         exit $RC
 		fi
 	;;
-	11)
-		echo "...bumped into server-side hard size administrative limit"
-	;;
+#	11)
+#		echo "...bumped into server-side hard size administrative limit"
+#	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
@@ -1037,18 +1047,20 @@ case $RC in
 		if test x"$COUNT" != x ; then
 			if test "$COUNT" = "$SIZELIMIT" ; then
 				echo "...error: bumped into requested ($SIZELIMIT) size limit"
+                		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                		exit $RC
 			else
-				echo "...error: got size limit $SIZELIMIT but $COUNT entries"
+				echo "...got size limit $COUNT instead of requested $SIZELIMIT entries"
 			fi
 		else
 			echo "...error: bumped into server-side size limit, but got no entries!"
+                	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+                	exit $RC
 		fi
-                test $KILLSERVERS != no && kill -HUP $KILLPIDS
-                exit $RC
 	;;
-	11)
-		echo "...bumped into hard size administrative limit"
-	;;
+#	11)
+#		echo "...bumped into hard size administrative limit"
+#	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
@@ -1074,11 +1086,17 @@ case $RC in
                 fi
 	;;
 	4)
-		echo "...bumped into requested ($SIZELIMIT=$COUNT) size limit"
+		if test x"$COUNT" != x ; then
+			echo "...bumped into requested ($SIZELIMIT=$COUNT) size limit"
+		else
+			echo "...error: bumped into size limit but got no entries!"
+			test $KILLSERVERS != no && kill -HUP $KILLPIDS
+			exit $RC
+		fi
 	;;
-	11)
-		echo "...bumped into hard size administrative limit"
-	;;
+#	11)
+#		echo "...bumped into hard size administrative limit"
+#	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
@@ -1102,9 +1120,9 @@ case $RC in
                         exit $RC
                 fi
 	;;
-	11)
-		echo "...bumped into unchecked administrative limit"
-	;;
+#	11)
+#		echo "...bumped into unchecked administrative limit"
+#	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
