@@ -320,6 +320,17 @@ read_config( const char *fname )
 				default_passwd_hash = ch_strdup( cargv[1] );
 			}
 
+		} else if ( strcasecmp( cargv[0], "password-crypt-salt-format" ) == 0 ) 
+		{
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: missing format in "
+					"\"password-crypt-salt-format <format>\" line\n",
+				    fname, lineno, 0 );
+				return 1;
+			}
+
+			lutil_salt_format( cargv[1] );
+
 		/* set SASL host */
 		} else if ( strcasecmp( cargv[0], "sasl-host" ) == 0 ) {
 			if ( cargc < 2 ) {

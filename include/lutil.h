@@ -95,6 +95,10 @@ LDAP_LUTIL_F( int )
 lutil_passwd_scheme LDAP_P((
 	const char *scheme ));
 
+LDAP_LUTIL_F( int )
+lutil_salt_format LDAP_P((
+	const char *format ));
+
 /* utils.c */
 LDAP_LUTIL_F( char* )
 lutil_progname LDAP_P((

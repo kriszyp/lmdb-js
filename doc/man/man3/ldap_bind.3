@@ -3,7 +3,7 @@
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldap_bind, ldap_bind_s, ldap_simple_bind, ldap_simple_bind_s, ldap_kerberos_bind_s, ldap_kerberos_bind1, ldap_kerberos_bind1_s, ldap_kerberos_bind2, ldap_kerberos_bind2_s, ldap_unbind, ldap_unbind_s, ldap_set_rebind_proc \- LDAP bind routines
+ldap_bind, ldap_bind_s, ldap_simple_bind, ldap_simple_bind_s, ldap_kerberos_bind_s, ldap_kerberos_bind1, ldap_kerberos_bind1_s, ldap_kerberos_bind2, ldap_kerberos_bind2_s, ldap_unbind, ldap_unbind_s \- LDAP bind routines
 .SH SYNOPSIS
 .nf
 .ft B
@@ -74,12 +74,12 @@ LDAP *ld;
 int ldap_unbind_s(ld)
 .ft
 LDAP *ld;
-.LP
-.ft B
-void ldap_set_rebind_proc( ld, rebindproc )
-.ft
-LDAP *ld;
-int (*rebindproc)();
+.\" .LP
+.\" .ft B
+.\" void ldap_set_rebind_proc( ld, rebindproc )
+.\" .ft
+.\" LDAP *ld;
+.\" int (*rebindproc)();
 .SH DESCRIPTION
 .LP
 These routines provide various interfaces to the LDAP bind operation.
@@ -154,38 +154,38 @@ The
 call is just another name for
 .BR ldap_unbind() ;
 both of these calls are synchronous in nature.
-.SH RE-BINDING WHILE FOLLOWING REFERRALS
-The
-.B ldap_set_rebind_proc()
-call is used to set a routine that will be called back to obtain bind
-credentials used when a new server is contacted during the following of
-an LDAP referral.  Note that this function is only available when the
-LDAP libraries are compiled with LDAP_REFERRALS defined and is only
-used when the ld_options field in the LDAP structure has
-LDAP_OPT_REFERRALS set (this is the default).  If
-.B ldap_set_rebind_proc()
-is never called, or if it is called with a NULL \fIrebindproc\fP
-parameter, an unauthenticated simple LDAP bind will always be done
-when chasing referrals.
-.LP
-\fIrebindproc\fP should be a function that is declared like this:
-.LP
-.nf
-int rebindproc( LDAP *ld, char **whop, char **credp,
-    int *methodp, int freeit );
-.fi
-.LP
-The LDAP library will first call the rebindproc to obtain the
-referral bind credentials, and the \fIfreeit\fP parameter will be
-zero.  The \fIwhop\fP, \fIcredp\fP, and \fImethodp\fP should be
-set as appropriate.  If the rebindproc returns LDAP_SUCCESS, referral
-processing continues, and the rebindproc will be called a second
-time with \fIfreeit\fP non-zero to give your application a chance to
-free any memory allocated in the previous call.
-.LP
-If anything but LDAP_SUCCESS is returned by the first call to
-the rebindproc, then referral processing is stopped and that error code
-is returned for the original LDAP operation.
+.\" .SH RE-BINDING WHILE FOLLOWING REFERRALS
+.\" The
+.\" .B ldap_set_rebind_proc()
+.\" call is used to set a routine that will be called back to obtain bind
+.\" credentials used when a new server is contacted during the following of
+.\" an LDAP referral.  Note that this function is only available when the
+.\" LDAP libraries are compiled with LDAP_REFERRALS defined and is only
+.\" used when the ld_options field in the LDAP structure has
+.\" LDAP_OPT_REFERRALS set (this is the default).  If
+.\" .B ldap_set_rebind_proc()
+.\" is never called, or if it is called with a NULL \fIrebindproc\fP
+.\" parameter, an unauthenticated simple LDAP bind will always be done
+.\" when chasing referrals.
+.\" .LP
+.\" \fIrebindproc\fP should be a function that is declared like this:
+.\" .LP
+.\" .nf
+.\" int rebindproc( LDAP *ld, char **whop, char **credp,
+.\" int *methodp, int freeit );
+.\" .fi
+.\" .LP
+.\" The LDAP library will first call the rebindproc to obtain the
+.\" referral bind credentials, and the \fIfreeit\fP parameter will be
+.\" zero.  The \fIwhop\fP, \fIcredp\fP, and \fImethodp\fP should be
+.\" set as appropriate.  If the rebindproc returns LDAP_SUCCESS, referral
+.\" processing continues, and the rebindproc will be called a second
+.\" time with \fIfreeit\fP non-zero to give your application a chance to
+.\" free any memory allocated in the previous call.
+.\" .LP
+.\" If anything but LDAP_SUCCESS is returned by the first call to
+.\" the rebindproc, then referral processing is stopped and that error code
+.\" is returned for the original LDAP operation.
 .SH ERRORS
 Asynchronous routines will return -1 in case of error, setting the
 \fIld_errno\fP parameter of the \fIld\fP structure.  Synchronous
