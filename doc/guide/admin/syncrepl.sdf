@@ -13,17 +13,16 @@ to perform the initial DIT content load followed either by
 periodic content polling or by timely updates upon content changes.
 
 Syncrepl uses the LDAP Content Synchronization (or LDAP Sync for short)
-protocol as the replica synchronization protocol.
-
-Syncrepl provides a stateful replication which supports both the
-pull-based and the push-based synchronizations and does not mandate
-the use of the history store.
+protocol as the replica synchronization protocol.  It provides a stateful
+replication which supports both 
+pull-based and push-based synchronization and does not mandate
+the use of a history store.
 
 Syncrepl keeps track of the status of the replication content by
 maintaining and exchanging synchronization cookies. Because the
 syncrepl consumer and provider maintain their content status,
 the consumer can poll the provider content to perform incremental
-synchronization by asking the entries required to make the consumer
+synchronization by asking for the entries required to make the consumer
 replica up-to-date with the provider content. Syncrepl also enables
 convenient management of replicas by maintaining replica status.
 The consumer replica can be constructed from a consumer-side or a
@@ -31,9 +30,9 @@ provider-side backup at any synchronization status. Syncrepl can
 automatically resynchronize the consumer replica up-to-date with the
 current provider content.
 
-Syncrepl supports both the pull-based and the
-push-based synchronization. In its basic refreshOnly mode synchronization,
-the provider uses a pull-based synchronization where the consumer servers
+Syncrepl supports both pull-based and 
+push-based synchronization. In its basic refreshOnly synchronization mode,
+the provider uses pull-based synchronization where the consumer servers
 need not be tracked and no history information is maintained.
 The information required for the provider to process periodic polling
 requests is contained in the synchronization cookie of the request itself.
@@ -41,14 +40,14 @@ To optimize the pull-based synchronization, syncrepl utilizes the present
 phase of the LDAP Sync protocol as well as its delete phase, instead of
 falling back on frequent full reloads. To further optimize the pull-based
 synchronization, the provider can maintain a per-scope session log
-as the history store. In its refreshAndPersist mode of synchronization,
+as a history store. In its refreshAndPersist mode of synchronization,
 the provider uses a push-based synchronization. The provider keeps
-track of the consumer servers that have requested the persistent search
+track of the consumer servers that have requested a persistent search
 and sends them necessary updates as the provider replication content
 gets modified.
 
 With syncrepl, a consumer server can create a replica without changing
-provider's configurations and without restarting the provider server,
+the provider's configurations and without restarting the provider server,
 if the consumer server has appropriate access privileges for the
 DIT fragment to be replicated. The consumer server can stop the
 replication also without the need for provider-side changes and restart.
@@ -73,7 +72,7 @@ only briefly. For more information, refer to the Internet Draft
 The LDAP Sync protocol supports both polling and listening for
 changes by defining two respective synchronization operations:
 {{refreshOnly}} and {{refreshAndPersist}}.
-The polling is implemented by the {{refreshOnly}} operation.
+Polling is implemented by the {{refreshOnly}} operation.
 The client copy is synchronized to the server copy at the time of polling.
 The server finishes the search operation by returning {{SearchResultDone}}
 at the end of the search operation as in the normal search.
@@ -81,10 +80,10 @@ The listening is implemented by the {{refreshAndPersist}} operation.
 Instead of finishing the search after returning all entries currently
 matching the search criteria, the synchronization search remains
 persistent in the server. Subsequent updates to the synchronization content
-in the server have additional entry updates be sent to the client.
+in the server cause additional entry updates to be sent to the client.
 
 The {{refreshOnly}} operation and the refresh stage of the
-{{refreshAndPersist}} operation can be performed by 
+{{refreshAndPersist}} operation can be performed with 
 a present phase or a delete phase.
 
 In the present phase, the server sends the client the entries updated
@@ -124,7 +123,7 @@ content reload in terms of the synchronization traffic.
 To reduce the synchronization traffic further,
 the LDAP Sync protocol also provides several optimizations
 such as the transmission of the normalized {{EX:entryUUID}}s and the
-transmission of the multiple {{EX:entryUUIDs}} in a single
+transmission of multiple {{EX:entryUUIDs}} in a single
 {{syncIdSet}} message.
 
 At the end of the {{refreshOnly}} synchronization,
@@ -168,7 +167,7 @@ from the provider.
 The syncrepl engine utilizes both the present phase and the
 delete phase of the refresh synchronization. It is possible to
 configure a per-scope session log in the provider server
-which stores the {{EX:entryUUID}}s and the names of a finite
+which stores the {{EX:entryUUID}}s of a finite
 number of entries deleted from a replication content.
 Multiple replicas of single provider content share the same
 per-scope session log. The syncrepl engine uses the delete phase
@@ -189,25 +188,48 @@ is not associated with any session log, no entries will be transmitted
 to the consumer server when there has been no update in the replication
 context.
 
-While {{slapd}} (8) can function as the LDAP Sync provider only
-when it is configured with either {{back-bdb}} or {{back-hdb}} backend,
-the syncrepl engine, which is a consumer-side replication engine,
-can work with any backends.
+The syncrepl engine, which is a consumer-side replication engine,
+can work with any backends. The LDAP Sync provider can be configured
+as an overlay on any backend, but works best with the {{back-bdb}} or
+{{back-hdb}} backend. The provider can not support refreshAndPersist
+mode on {{back-ldbm}} due to limits in that backend's locking architecture.
 
-The LDAP Sync provider maintains {{EX:contextCSN}} for each
+The LDAP Sync provider maintains a {{EX:contextCSN}} for each
 database as the current synchronization state indicator of the
 provider content.  It is the largest {{EX:entryCSN}} in the provider
 context such that no transactions for an entry having
 smaller {{EX:entryCSN}} value remains outstanding.
-{{EX:contextCSN}} could not just be set to the largest issued
+The {{EX:contextCSN}} could not just be set to the largest issued
 {{EX:entryCSN}} because {{EX:entryCSN}} is obtained before
 a transaction starts and transactions are not committed in the
 issue order.
 
 The provider stores the {{EX:contextCSN}} of a context in the
-{{EX:syncreplCookie}} attribute of the immediate child entry of
-the context suffix whose DN is {{cn=ldapsync,<suffix>}} and
-object class is {{EX:syncProviderSubentry}}.
+{{EX:contextCSN}} attribute of the context suffix entry. The attribute
+is not written to the database after every update operation though;
+instead it is maintained primarily in memory. At database start time
+the provider reads the last saved {{EX:contextCSN}} into memory and
+uses the in-memory copy exclusively thereafter. By default, changes
+to the {{EX:contextCSN}} as a result of database updates will not be
+written to the database until the server is cleanly shut down. A
+checkpoint facility exists to cause the contextCSN to be written
+out more frequently if desired.
+
+Note that at startup time, if the
+provider is unable to read a {{EX:contextCSN}} from the suffix entry,
+it will scan the entire database to determine the value, and this
+scan may take quite a long time on a large database. When a {{EX:contextCSN}}
+value is read, the database will still be scanned for any {{EX:entryCSN}}
+values greater than it, to make sure the {{EX:contextCSN}} value truly
+reflects the greatest committed {{EX:entryCSN}} in the database. On
+databases which support inequality indexing, setting an eq index
+on the {{EX:entryCSN}} attribute will greatly speed up this scanning step.
+
+If no {{EX:contextCSN}} can be determined by reading and scanning the
+database, a new value will be generated. Also, if scanning the database
+yielded a greater {{EX:entryCSN}} than was previously recorded in the
+suffix entry's {{EX:contextCSN}} attribute, a checkpoint will be immediately
+written with the new value.
 
 The consumer stores its replica state, which is the provider's
 {{EX:contextCSN}} received as a synchronization cookie,
@@ -223,17 +245,23 @@ a secondary provider server in a cascading replication configuration.
 syncrepl consumer server. <rid> is an integer which has no more than
 three decimal digits.
 
+It is possible to retrieve the
+{{EX:syncConsumerSubentry}} by performing an LDAP search with
+the respective entry as the base object and with the base scope.
+
 Because a general search filter can be used in the syncrepl specification,
-not all entries in the context will be returned as the synchronization content.
+some entries in the context may be omitted from the synchronization content.
 The syncrepl engine creates a glue entry to fill in the holes
 in the replica context if any part of the replica content is
 subordinate to the holes. The glue entries will not be returned
 as the search result unless {{ManageDsaIT}} control is provided.
 
-It is possible to retrieve {{EX:syncProviderSubentry}} and
-{{EX:syncConsumerSubentry}} by performing an LDAP search with
-the respective entries as the base object and with the base scope.
-
+Also as a consequence of the search filter used in the syncrepl
+specification, it is possible for a modification to remove an
+entry from the replication scope even though the entry has not
+been deleted on the provider. Logically the entry must be deleted on the
+consumer but in {{refreshOnly}} mode the provider cannot detect
+and propagate this change without the use of the session log.
 
 H2: Configuring Syncrepl
 
@@ -260,36 +288,49 @@ from a backup instead of performing a full initial load using syncrepl.
 
 H3: Set up the provider slapd
 
-There is no special {{slapd.conf}} (5) directive for the provider
-syncrepl server except for the session log directive.  Because the
+The provider is implemented as an overlay, so the overlay itself must
+first be configured in {{slapd.conf}} (5) before it can be used. The
+provider has only two configuration directives, for setting checkpoints
+on the {{EX:contextCSN}} and for configuring the session log.
+Because the
 LDAP Sync search is subject to access control, proper access control
 privileges should be set up for the replicated content.
 
-When creating a provider database from the {{TERM:LDIF}} file using
-{{slapadd}} (8), {{EX:contextCSN}} and the {{EX:syncProviderSubentry}}
-entry must be created. {{slapadd -p -w}} will create
-a new {{EX:contextCSN}} from the {{EX:entryCSN}}s of the added entries.
-It is also possible to create the {{EX:syncProviderSubentry}} with
-an appropriate {{EX:contextCSN}} value by directly including it
-in the ldif file. {{slapadd -p}} will preserve the provider's
-contextCSN or will change it to the consumer's contextCSN
-if it is to promote a replica to the provider's content.
-The {{EX:syncProviderSubentry}} can be included in the ldif output
-when {{slapcat}} (8) is given the {{-m}} flag;
-the {{EX:syncConsumerSubentry}} can be retrieved by the {{-k}}
-flag of {{slapcat}} (8).
+The {{EX:contextCSN}} checkpoint is configured by the
 
-The session log is configured by
+>	syncprov-checkpoint <ops> <minutes>
 
->	sessionlog <sid> <limit>
+directive. Checkpoints are tested after successful write operations.
+If {{<ops>}} operations or more than {{<minutes>}} time has passed
+since the last checkpoint, a new checkpoint is performed.
+
+The session log is configured by the
+
+>	syncprov-sessionlog <sid> <size>
 
 directive, where {{<sid>}} is the ID of the per-scope session log
-in the provider server and {{<limit>}} is the maximum number of
-session log entries the session log store can record. {{<sid>}}
+in the provider server and {{<size>}} is the maximum number of
+session log entries the session log can record. {{<sid>}}
 is an integer no longer than 3 decimal digits. If the consumer
 server sends a synchronization cookie containing {{sid=<sid>}}
 where {{<sid>}} matches the session log ID specified in the directive,
-the LDAP Sync search is to utilize the session log store.
+the LDAP Sync search is to utilize the session log.
+
+Note that using the session log requires searching on the {{entryUUID}}
+attribute. Setting an eq index on this attribute will greatly
+benefit the performance of the session log on the provider.
+
+A more complete example of the {{slapd.conf}} content is thus:
+
+>	database bdb
+>	suffix dc=Example,dc=com
+>	directory /var/ldap/db
+>	index objectclass,entryCSN,entryUUID eq
+>
+>	overlay syncprov
+>	syncprov-checkpoint 100 10
+>	syncprov-sessionlog 0 100
+
 
 H3: Set up the consumer slapd
 
