@@ -134,6 +134,8 @@
 #define telephoneNumberSubstringsIndexer	caseExactIA5SubstringsIndexer
 #define telephoneNumberSubstringsFilter		caseExactIA5SubstringsFilter
 
+#define booleanIndexer					octetStringIndexer
+#define booleanFilter					octetStringFilter
 #endif
 
 /* validatation routines */
@@ -225,6 +227,9 @@
 #define telephoneNumberFilter				caseIgnoreIA5Filter
 #define telephoneNumberSubstringsIndexer	caseIgnoreIA5SubstringsIndexer
 #define telephoneNumberSubstringsFilter		caseIgnoreIA5SubstringsFilter
+
+#define booleanIndexer					octetStringIndexer
+#define booleanFilter					octetStringFilter
 #endif
 
 
@@ -4917,7 +4922,10 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.13 NAME 'booleanMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
-		NULL, NULL, booleanMatch, NULL, NULL, NULL},
+		NULL,
+		NULL, booleanMatch,
+		booleanIndexer, booleanFilter,
+		NULL},
 
 	{"( 2.5.13.14 NAME 'integerMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
