@@ -16,6 +16,7 @@
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
+#include <ac/param.h>
 
 #include "ldap-int.h"
 
