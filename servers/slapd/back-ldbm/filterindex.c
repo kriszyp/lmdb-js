@@ -36,7 +36,7 @@ filter_candidates(
     Filter	*f
 )
 {
-	ID_BLOCK	*result, *tmp1, *tmp2;
+	ID_BLOCK	*result;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY, "filter_candidates: enter\n"));
