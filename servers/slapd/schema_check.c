@@ -33,27 +33,33 @@ static char *	oc_check_required(Entry *e, struct berval *ocname);
  */
 
 int
-schema_check_entry( Entry *e )
+entry_schema_check( 
+	Entry *e, Attribute *oldattrs, char** text )
 {
 	Attribute	*a, *aoc;
 	ObjectClass *oc;
 	int		i;
-	int		ret = 0;
+	int		ret;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	static AttributeDescription *objectClass = NULL;
 #else
 	static const char *objectClass = "objectclass";
 #endif
 
-
-	if( !global_schemacheck ) return 0;
+	if( !global_schemacheck ) return LDAP_SUCCESS;
 
 	/* find the object class attribute - could error out here */
 	if ( (aoc = attr_find( e->e_attrs, objectClass )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "No object class for entry (%s)\n",
 		    e->e_dn, 0, 0 );
-		return( 1 );
+
+		*text = "no objectclass attribute";
+		return oldattrs != NULL
+			? LDAP_OBJECT_CLASS_VIOLATION
+			: LDAP_NO_OBJECT_CLASS_MODS;
 	}
+
+	ret = LDAP_SUCCESS;
 
 	/* check that the entry has required attrs for each oc */
 	for ( i = 0; aoc->a_vals[i] != NULL; i++ ) {
@@ -61,41 +67,44 @@ schema_check_entry( Entry *e )
 			Debug( LDAP_DEBUG_ANY,
 				"Objectclass \"%s\" not defined\n",
 				aoc->a_vals[i]->bv_val, 0, 0 );
-		}
-		else
-		{
+
+		} else {
 			char *s = oc_check_required( e, aoc->a_vals[i] );
 
 			if (s != NULL) {
 				Debug( LDAP_DEBUG_ANY,
 					"Entry (%s), oc \"%s\" requires attr \"%s\"\n",
 					e->e_dn, aoc->a_vals[i]->bv_val, s );
-				ret = 1;
+				*text = "missing required attribute";
+				ret = LDAP_OBJECT_CLASS_VIOLATION;
+				break;
 			}
 		}
 	}
 
-	if ( ret != 0 ) {
-	    return( ret );
+	if ( ret != LDAP_SUCCESS ) {
+	    return ret;
 	}
 
 	/* check that each attr in the entry is allowed by some oc */
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		if ( oc_check_allowed( a->a_desc->ad_type, aoc->a_vals ) != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-			    "Entry (%s), attr \"%s\" not allowed\n",
-			    e->e_dn, a->a_desc->ad_cname->bv_val, 0 );
-			ret = 1;
-		}
+		ret = oc_check_allowed( a->a_desc->ad_type, aoc->a_vals );
 #else
-		if ( oc_check_allowed( a->a_type, aoc->a_vals ) != 0 ) {
+		ret = oc_check_allowed( a->a_type, aoc->a_vals );
+#endif
+		if ( ret != 0 ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			char *type = a->a_desc->ad_cname->bv_val;
+#else
+			char *type = a->a_type;
+#endif
 			Debug( LDAP_DEBUG_ANY,
 			    "Entry (%s), attr \"%s\" not allowed\n",
-			    e->e_dn, a->a_type, 0 );
-			ret = 1;
+			    e->e_dn, type, 0 );
+			*text = "attribute not allowed";
+			break;
 		}
-#endif
 	}
 
 	return( ret );
@@ -115,12 +124,12 @@ oc_check_required( Entry *e, struct berval *ocname )
 
 	/* find global oc defn. it we don't know about it assume it's ok */
 	if ( (oc = oc_find( ocname->bv_val )) == NULL ) {
-		return( 0 );
+		return NULL;
 	}
 
 	/* check for empty oc_required */
 	if(oc->soc_required == NULL) {
-		return( 0 );
+		return NULL;
 	}
 
 	/* for each required attribute */
@@ -192,7 +201,7 @@ oc_check_allowed(
 
 	/* always allow objectclass attribute */
 	if ( strcasecmp( at->sat_cname, "objectclass" ) == 0 ) {
-		return( 0 );
+		return LDAP_SUCCESS;
 	}
 
 #else
@@ -206,13 +215,13 @@ oc_check_allowed(
 
 	/* always allow objectclass attribute */
 	if ( strcasecmp( type, "objectclass" ) == 0 ) {
-		return( 0 );
+		return LDAP_SUCCESS;
 	}
 #endif
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	if( is_at_operational(at) ) {
-		return 0;
+		return LDAP_SUCCESS;
 	}
 #else
 	/*
@@ -237,7 +246,7 @@ oc_check_allowed(
 	 * All operational attributions are allowed by schema rules.
 	 */
 	if ( oc_check_op_attr( t ) ) {
-		return( 0 );
+		return LDAP_SUCCESS;
 	}
 #endif
 
@@ -251,7 +260,7 @@ oc_check_allowed(
 			{
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 				if( at == oc->soc_required[j] ) {
-					return 0;
+					return LDAP_SUCCESS;
 				}
 #else
 				at = oc->soc_required[j];
@@ -259,7 +268,7 @@ oc_check_allowed(
 				     strcmp(at->sat_oid, t ) == 0 ) {
 					if ( t != type )
 						ldap_memfree( t );
-					return( 0 );
+					return LDAP_SUCCESS;
 				}
 				pp = at->sat_names;
 				if ( pp == NULL )
@@ -268,7 +277,7 @@ oc_check_allowed(
 					if ( strcasecmp( *pp, t ) == 0 ) {
 						if ( t != type )
 							ldap_memfree( t );
-						return( 0 );
+						return LDAP_SUCCESS;
 					}
 					pp++;
 				}
@@ -280,7 +289,7 @@ oc_check_allowed(
 			{
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 				if( at == oc->soc_allowed[j] ) {
-					return 0;
+					return LDAP_SUCCESS;
 				}
 #else
 				at = oc->soc_allowed[j];
@@ -288,7 +297,7 @@ oc_check_allowed(
 				     strcmp( at->sat_oid, t ) == 0 ) {
 					if ( t != type )
 						ldap_memfree( t );
-					return( 0 );
+					return LDAP_SUCCESS;
 				}
 				pp = at->sat_names;
 				if ( pp == NULL )
@@ -298,7 +307,7 @@ oc_check_allowed(
 					     strcmp( *pp, "*" ) == 0 ) {
 						if ( t != type )
 							ldap_memfree( t );
-						return( 0 );
+						return LDAP_SUCCESS;
 					}
 					pp++;
 				}
@@ -311,7 +320,7 @@ oc_check_allowed(
 		} else {
 			if ( t != type )
 				ldap_memfree( t );
-			return( 0 );
+			return LDAP_SUCCESS;
 #endif
 		}
 	}
@@ -322,5 +331,5 @@ oc_check_allowed(
 #endif
 
 	/* not allowed by any oc */
-	return( 1 );
+	return LDAP_OBJECT_CLASS_VIOLATION;
 }
