@@ -1255,6 +1255,9 @@ str2strval( const char *str, struct berval *val, const char **next, unsigned fla
 			 */
 			unescapes++;
 
+		} else if (!LDAP_DN_ASCII_PRINTABLE( p[ 0 ] ) ) {
+			*retFlags = LDAP_AVA_NONPRINTABLE;
+
 		} else if ( ( LDAP_DN_LDAP( flags ) && LDAP_DN_VALUE_END_V2( p[ 0 ] ) ) 
 				|| ( LDAP_DN_LDAPV3( flags ) && LDAP_DN_VALUE_END( p[ 0 ] ) ) ) {
 			break;
