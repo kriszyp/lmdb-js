@@ -2,33 +2,24 @@
 	getopt.c
 
 	modified public-domain AT&T getopt(3)
+	modified by Kurt Zeilenga for inclusion into OpenLDAP
 */
 
-#include <stdio.h>
-#include <string.h>
+#include "portable.h"
 
-#ifdef _POSIX_SOURCE
-#	include <unistd.h>
-#else
-#	define STDERR_FILENO 2
-#	ifdef __STDC__
-		extern int write (int fildes, char * buf, unsigned nbyte);
-#	else
-		extern int write ();
-#	endif
-#endif
+#ifndef HAVE_GETOPT
+
+#include <stdio.h>
+
+#include <ac/string.h>
+#include <ac/unistd.h>
 
 int opterr = 1;
 int optind = 1;
 int optopt;
 char * optarg;
 
-#ifdef __STDC__
-	static void ERR (char ** argv, char * s, char c)
-#else
-	static void ERR (argv, s, c)
-	char ** argv, * s, c;
-#endif
+static void ERR (char ** argv, char * s, char c)
 {
 	char errbuf[2];
 
@@ -45,13 +36,7 @@ printf("DF_TRACE_DEBUG: 	static void ERR () in getopt.c\n");
 	}
 }
 
-#ifdef __STDC__
-	int getopt (int argc, char ** argv, char * opts)
-#else
-	int getopt (argc, argv, opts)
-	int argc;
-	char ** argv, * opts;
-#endif
+int getopt (int argc, char ** argv, char * opts)
 {
 	static int sp = 1, error = (int) '?';
 	static char sw = '-', eos = '\0', arg = ':';
@@ -106,3 +91,4 @@ printf("DF_TRACE_DEBUG: 	int getopt () in getopt.c\n");
 	}
 	return (int) c;
 }
+#endif /* HAVE_GETOPT */
