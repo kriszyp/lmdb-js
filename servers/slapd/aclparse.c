@@ -464,6 +464,15 @@ parse_acl(
 						acl_usage();
 					}
 
+					if( b->a_dn_at->ad_type->sat_equality == NULL )
+					{
+						fprintf( stderr,
+							"%s: line %d: dnattr \"%s\": "
+							"inappropriate matching (no EQUALITY)\n",
+							fname, lineno, right );
+						acl_usage();
+					}
+
 					continue;
 				}
 

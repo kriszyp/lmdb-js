@@ -324,10 +324,9 @@ value_match(
 	struct berval nv1 = { 0, NULL };
 	struct berval nv2 = { 0, NULL };
 
-	/*
-	 * FIXME: mr should NOT be NULL ...
-	 */
-	if( !mr || !mr->smr_match ) {
+	assert( mr != NULL );
+
+	if( !mr->smr_match ) {
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
