@@ -37,9 +37,9 @@ H3: IP Firewall
 to restrict access based upon the client's IP address and/or network
 interface used to communicate with the client.
 
-Generally, {{slapd}}(8) listens on port 389/tcp for LDAP over {{TERM:TCP}}
-(e.g.  ldap://) and port 636/tcp for LDAP over {{TERM:SSL}} (e.g.
-ldaps://).
+Generally, {{slapd}}(8) listens on port 389/tcp for LDAP over
+{{TERM:TCP}} (e.g.  {{F:ldap://}}) and port 636/tcp for LDAP over
+{{TERM:SSL}} (e.g.  {{F:ldaps://}}).
 
 As specifics of how to configure IP firewall are dependent on the
 particular kind of IP firewall used, no examples are provided here.
@@ -70,11 +70,12 @@ H2: Integrity and Confidentiality Protection
 
 {{TERM[expand]TLS}} (TLS) can be used to provide integrity and
 confidentiality protection.  OpenLDAP supports both StartTLS and
-ldaps://.  See the {{SECT:Using TLS}} chapter for more information.
+{{F:ldaps://}}.  See the {{SECT:Using TLS}} chapter for more
+information.
 
 A number of {{TERM[expand]SASL}} (SASL) mechanisms, such as DIGEST-MD5
-and {{TERM:GSSAPI}}, provide integrity and confidentiality protection.
-See the {{SECT:Using SASL}} chapter for more information.
+and {{TERM:GSSAPI}}, also provide integrity and confidentiality
+protection.  See the {{SECT:Using SASL}} chapter for more information.
 
 
 H3: Security Strength Factors
@@ -95,10 +96,60 @@ protections are not in place.  For example:
 >	security ssf=1 update_ssf=112
 
 requires integrity protection for all operations and encryption
-protection, 3DES equivalent, for update operations (e.g. add,
-delete, modify, etc.).  See {{slapd.conf}}(5) for details.
+protection, 3DES equivalent, for update operations (e.g. add, delete,
+modify, etc.).  See {{slapd.conf}}(5) for details.
 
-For finer grained control, SSFs may be used in access controls.
-See {{SECT:Access Control}} section of the {{SECT:The slapd
-Configuration File}} for more information.
+For fine-grained control, SSFs may be used in access controls.  See
+{{SECT:Access Control}} section of the {{SECT:The slapd Configuration
+File}} for more information.
+
+
+H2: Authentication Methods
+
+H3: "simple" method
+
+The LDAP "simple" method has three modes of operation:
+
+* anonymous,
+* unauthenticated, and
+* user/password authenticated.
+
+Anonymous access is obtained by providing no name and no password
+to the "simple" bind operation.  Unauthenticated access is obtained
+by providing a name but no password.  Authenticated access is obtain
+by providing a valid name and password.
+
+An anonymous bind results in an {{anonymous}} authorization.
+Anonymous bind mechanism is enabled by default, but can be disabled
+by specifying "{{EX:disallow bind_anon}}" in {{slapd.conf}}(5).
+
+An unauthenticated bind results in an {{anonymous}} authorization.
+Unauthenticated bind mechanism is disabled by default, but can be
+enabled by specifying "{{EX:allow bind_anon_cred}}" in {{slapd.conf}}(5).
+As a number of LDAP applications mistakenly generate unauthenticated
+bind request when authenticated access was intended (that is, they
+do not ensure a password was provided), this mechanism should
+generally not be enabled.
+
+A successful authenticated bind results in a user authorization
+identity, the provided name, being associated with the session.
+Authenticated bind is enabled by default.  However, as this mechanism
+offers no evesdropping protection (e.g., the password is set in the
+clear), it is generally recommended that it be used only in tightly
+controlled systems or when the LDAP session is protected by other
+means (e.g., TLS, {{TERM:IPSEC}}).  Where the administrator relies
+on TLS to protect the password, it is recommended that unprotected
+authentication be disabled.  This is done by setting "{{EX:disallow
+bind_simple_unprotected}} in {{slapd.conf}}(5).   The authenticated
+bind mechanism can be completely disabled by setting "{{EX:disallow
+bind_simple}}".
+
+Note:  An unsuccessful bind always results in the session having
+an {{anonymous}} authorization state.
+
+
+H3: SASL method
+
+The LDAP SASL method allows use of any SASL authentication
+mechanism.  The {{SECT:Using SASL}} discusses use of SASL.
 
