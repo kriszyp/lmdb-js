@@ -117,9 +117,11 @@ do_modify(
 		}
 
 		mod = (Modifications *) ch_malloc( sizeof(Modifications) );
+		mod->sml_op = mop;
 		mod->sml_type = tmp.sml_type;
 		mod->sml_bvalues = tmp.sml_bvalues;
 		mod->sml_desc = NULL;
+		mod->sml_next =NULL;
 		*modtail = mod;
 
 		switch( mop ) {
@@ -166,7 +168,6 @@ do_modify(
 			}
 		}
 
-		mod->sml_op = mop;
 		modtail = &mod->sml_next;
 	}
 	*modtail = NULL;
