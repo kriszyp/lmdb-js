@@ -325,7 +325,7 @@ explode_name( const char *name, int notypes, int is_type )
 				state = INQUOTE;
 			break;
 		case '=':
-			if( state = OUTQUOTE ) have_equals++;
+			if( state == OUTQUOTE ) have_equals++;
 			break;
 		case '+':
 			if (is_type == NAME_TYPE_LDAP_RDN)
