@@ -9,6 +9,27 @@
  *  kbind.c
  */
 
+/*
+ *	BindRequest ::= SEQUENCE {
+ *		version		INTEGER,
+ *		name		DistinguishedName,	 -- who
+ *		authentication	CHOICE {
+ *			simple		[0] OCTET STRING -- passwd
+#ifdef HAVE_KERBEROS
+ *			krbv42ldap	[1] OCTET STRING
+ *			krbv42dsa	[2] OCTET STRING
+#endif
+ *			sasl		[3] SaslCredentials	-- LDAPv3
+ *		}
+ *	}
+ *
+ *	BindResponse ::= SEQUENCE {
+ *		COMPONENTS OF LDAPResult,
+ *		serverSaslCreds		OCTET STRING OPTIONAL -- LDAPv3
+ *	}
+ *
+ */
+
 #include "portable.h"
 
 #ifdef HAVE_KERBEROS
@@ -43,19 +64,6 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 #ifdef STR_TRANSLATION
 	int		str_translation_on;
 #endif /* STR_TRANSLATION */
-
-	/*
-	 * The bind request looks like this:
-	 *	BindRequest ::= SEQUENCE {
-	 *		version		INTEGER,
-	 *		name		DistinguishedName,
-	 *		authentication	CHOICE {
-	 *			krbv42ldap	[1] OCTET STRING
-	 *			krbv42dsa	[2] OCTET STRING
-	 *		}
-	 *	}
-	 * all wrapped up in an LDAPMessage sequence.
-	 */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind1\n", 0, 0, 0 );
 

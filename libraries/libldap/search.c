@@ -383,8 +383,9 @@ put_filter( BerElement *ber, char *str )
 	 *              substrings      [4]     SubstringFilter,
 	 *              greaterOrEqual  [5]     AttributeValueAssertion,
 	 *              lessOrEqual     [6]     AttributeValueAssertion,
-	 *              present         [7]     AttributeType,,
-	 *              approxMatch     [8]     AttributeValueAssertion
+	 *              present         [7]     AttributeType,
+	 *              approxMatch     [8]     AttributeValueAssertion,
+	 *				extensibleMatch [9]		MatchingRuleAssertion -- LDAPv3
 	 *      }
 	 *
 	 *      SubstringFilter ::= SEQUENCE {
@@ -395,6 +396,13 @@ put_filter( BerElement *ber, char *str )
 	 *                      final            [2] IA5String
 	 *              }
 	 *      }
+	 *
+	 *		MatchingRuleAssertion ::= SEQUENCE {	-- LDAPv3
+	 *			matchingRule    [1] MatchingRuleId OPTIONAL,
+	 *			type            [2] AttributeDescription OPTIONAL,
+	 *			matchValue      [3] AssertionValue,
+	 *			dnAttributes    [4] BOOLEAN DEFAULT FALSE }
+	 *
 	 * Note: tags in a choice are always explicit
 	 */
 

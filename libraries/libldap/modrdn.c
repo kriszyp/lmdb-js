@@ -8,7 +8,6 @@
  *
  *  modrdn.c
  */
-
 /*
  * Support for MODIFYDN REQUEST V3 (newSuperior) by:
  *
@@ -19,7 +18,16 @@
  * Redistribution and use in source and binary forms are permitted
  * without restriction or fee of any kind as long as this notice
  * is preserved.
- *
+ */
+
+/*
+ * A modify rdn request looks like this:
+ *	ModifyRDNRequest ::= SEQUENCE {
+ *		entry		DistinguishedName,
+ *		newrdn		RelativeDistinguishedName,
+ *		deleteoldrdn	BOOLEAN
+ *		newSuperior	[0] DistinguishedName	[v3 only]
+ *	}
  */
 
 #include "portable.h"
@@ -56,16 +64,6 @@ ldap_rename(
 	LDAPControl **cctrls,
 	int *msgidp )
 {
-	/*
-	 * A modify rdn request looks like this:
-	 *	ModifyRDNRequest ::= SEQUENCE {
-	 *		entry		DistinguishedName,
-	 *		newrdn		RelativeDistinguishedName,
-	 *		deleteoldrdn	BOOLEAN
-	 *		newSuperior	[0] DistinguishedName	[v3 only]
-	 *	}
-	 */
-
 	BerElement	*ber;
 	int rc;
 

@@ -2,8 +2,16 @@
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
-/*
- * LDAP controls
+
+/* LDAPv3 Controls (RFC2251)
+ *
+ *	Controls ::= SEQUENCE OF Control  
+ *
+ *	Control ::= SEQUENCE { 
+ *		controlType		LDAPOID,
+ *		criticality		BOOLEAN DEFAULT FALSE,
+ *		controlValue	OCTET STRING OPTIONAL
+ *	}
  */
 
 #include "portable.h"

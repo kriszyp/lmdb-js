@@ -9,6 +9,27 @@
  *  bind.c
  */
 
+/*
+ *	BindRequest ::= SEQUENCE {
+ *		version		INTEGER,
+ *		name		DistinguishedName,	 -- who
+ *		authentication	CHOICE {
+ *			simple		[0] OCTET STRING -- passwd
+#ifdef HAVE_KERBEROS
+ *			krbv42ldap	[1] OCTET STRING
+ *			krbv42dsa	[2] OCTET STRING
+#endif
+ *			sasl		[3] SaslCredentials	-- LDAPv3
+ *		}
+ *	}
+ *
+ *	BindResponse ::= SEQUENCE {
+ *		COMPONENTS OF LDAPResult,
+ *		serverSaslCreds		OCTET STRING OPTIONAL -- LDAPv3
+ *	}
+ *
+ */
+
 #include "portable.h"
 
 #include <stdio.h>
@@ -38,22 +59,6 @@
 int
 ldap_bind( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd, int authmethod )
 {
-	/*
-	 * The bind request looks like this:
-	 *	BindRequest ::= SEQUENCE {
-	 *		version		INTEGER,
-	 *		name		DistinguishedName,	 -- who
-	 *		authentication	CHOICE {
-	 *			simple		[0] OCTET STRING -- passwd
-#ifdef HAVE_KERBEROS
-	 *			krbv42ldap	[1] OCTET STRING
-	 *			krbv42dsa	[2] OCTET STRING
-#endif
-	 *		}
-	 *	}
-	 * all wrapped up in an LDAPMessage sequence.
-	 */
-
 	Debug( LDAP_DEBUG_TRACE, "ldap_bind\n", 0, 0, 0 );
 
 	switch ( authmethod ) {
@@ -67,6 +72,10 @@ ldap_bind( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd, int authmetho
 	case LDAP_AUTH_KRBV42:
 		return( ldap_kerberos_bind2( ld, dn ) );
 #endif
+
+	case LDAP_AUTH_SASL:
+		/* user must use ldap_sasl_bind */
+		/* FALL-THRU */
 
 	default:
 		ld->ld_errno = LDAP_AUTH_UNKNOWN;
@@ -111,6 +120,10 @@ ldap_bind_s(
 	case LDAP_AUTH_KRBV42:
 		return( ldap_kerberos_bind2_s( ld, dn ) );
 #endif
+
+	case LDAP_AUTH_SASL:
+		/* user must use ldap_sasl_bind */
+		/* FALL-THRU */
 
 	default:
 		return( ld->ld_errno = LDAP_AUTH_UNKNOWN );

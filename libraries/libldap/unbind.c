@@ -9,6 +9,13 @@
  *  unbind.c
  */
 
+/* An Unbind Request looks like this:
+ *
+ *	UnbindRequest ::= NULL
+ *
+ * and has no response.
+ */
+
 #include "portable.h"
 
 #include <stdio.h>

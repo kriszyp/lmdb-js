@@ -9,6 +9,17 @@
  *  add.c
  */
 
+/*
+ * An add request looks like this:
+ *	AddRequest ::= SEQUENCE {
+ *		entry	DistinguishedName,
+ *		attrs	SEQUENCE OF SEQUENCE {
+ *			type	AttributeType,
+ *			values	SET OF AttributeValue
+ *		}
+ *	}
+ */
+
 #include "portable.h"
 
 #include <stdio.h>
@@ -83,17 +94,6 @@ ldap_add_ext( LDAP *ld, LDAP_CONST char *dn, LDAPMod **attrs,
 {
 	BerElement	*ber;
 	int		i, rc;
-
-	/*
-	 * An add request looks like this:
-	 *	AddRequest ::= SEQUENCE {
-	 *		entry	DistinguishedName,
-	 *		attrs	SEQUENCE OF SEQUENCE {
-	 *			type	AttributeType,
-	 *			values	SET OF AttributeValue
-	 *		}
-	 *	}
-	 */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_add\n", 0, 0, 0 );
 

@@ -9,6 +9,11 @@
  *  abandon.c
  */
 
+/*
+ * An abandon request looks like this:
+ *	AbandonRequest ::= MessageID
+ */
+
 #include "portable.h"
 
 #include <stdio.h>
@@ -89,11 +94,6 @@ do_abandon(
 	unsigned int *old_abandon;
 	Sockbuf		*sb;
 	LDAPRequest	*lr;
-
-	/*
-	 * An abandon request looks like this:
-	 *	AbandonRequest ::= MessageID
-	 */
 
 	Debug( LDAP_DEBUG_TRACE, "do_abandon origid %d, msgid %d\n",
 		origid, msgid, 0 );

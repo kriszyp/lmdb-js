@@ -9,6 +9,18 @@
  *  result.c - wait for an ldap result
  */
 
+/*
+ * LDAPv3 (RFC2251)
+ *	LDAPResult ::= SEQUENCE {
+ *		resultCode		ENUMERATED { ... },
+ *		matchedDN		LDAPDN,
+ *		errorMessage	LDAPString,
+ *		referral		Referral OPTIONAL
+ *	}
+ *	Referral ::= SEQUENCE OF LDAPURL	(one or more)
+ *	LDAPURL ::= LDAPString				(limited to URL chars)
+ */
+
 #include "portable.h"
 
 #include <stdio.h>

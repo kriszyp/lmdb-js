@@ -3,6 +3,22 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
+/*
+ * LDAPv3 Extended Operation Request
+ *	ExtendedRequest ::= [APPLICATION 23] SEQUENCE {
+ *		requestName      [0] LDAPOID,
+ *		requestValue     [1] OCTET STRING OPTIONAL
+ *	}
+ *
+ * LDAPv3 Extended Operation Response
+ *	ExtendedResponse ::= [APPLICATION 24] SEQUENCE {
+ *		COMPONENTS OF LDAPResult,
+ *		responseName     [10] LDAPOID OPTIONAL,
+ *		response         [11] OCTET STRING OPTIONAL
+ *	}
+ *
+ */
+
 #include "portable.h"
 
 #include <stdio.h>

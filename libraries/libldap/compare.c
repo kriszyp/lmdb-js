@@ -9,6 +9,16 @@
  *  compare.c
  */
 
+/* The compare request looks like this:
+ *	CompareRequest ::= SEQUENCE {
+ *		entry	DistinguishedName,
+ *		ava	SEQUENCE {
+ *			type	AttributeType,
+ *			value	AttributeValue
+ *		}
+ *	}
+ */
+
 #include "portable.h"
 
 #include <stdio.h>
@@ -41,17 +51,6 @@ ldap_compare_ext(
 	int	*msgidp )
 {
 	BerElement	*ber;
-
-	/* The compare request looks like this:
-	 *	CompareRequest ::= SEQUENCE {
-	 *		entry	DistinguishedName,
-	 *		ava	SEQUENCE {
-	 *			type	AttributeType,
-	 *			value	AttributeValue
-	 *		}
-	 *	}
-	 * and must be wrapped in an LDAPMessage.
-	 */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_compare\n", 0, 0, 0 );
 

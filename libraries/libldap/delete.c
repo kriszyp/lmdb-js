@@ -9,6 +9,11 @@
  *  delete.c
  */
 
+/*
+ * A delete request looks like this:
+ *	DelRequet ::= DistinguishedName,
+ */
+
 #include "portable.h"
 
 #include <stdio.h>
@@ -40,11 +45,6 @@ ldap_delete_ext(
 	int *msgidp )
 {
 	BerElement	*ber;
-
-	/*
-	 * A delete request looks like this:
-	 *	DelRequet ::= DistinguishedName,
-	 */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_delete\n", 0, 0, 0 );
 

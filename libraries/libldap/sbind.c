@@ -9,6 +9,27 @@
  *  sbind.c
  */
 
+/*
+ *	BindRequest ::= SEQUENCE {
+ *		version		INTEGER,
+ *		name		DistinguishedName,	 -- who
+ *		authentication	CHOICE {
+ *			simple		[0] OCTET STRING -- passwd
+#ifdef HAVE_KERBEROS
+ *			krbv42ldap	[1] OCTET STRING
+ *			krbv42dsa	[2] OCTET STRING
+#endif
+ *			sasl		[3] SaslCredentials	-- LDAPv3
+ *		}
+ *	}
+ *
+ *	BindResponse ::= SEQUENCE {
+ *		COMPONENTS OF LDAPResult,
+ *		serverSaslCreds		OCTET STRING OPTIONAL -- LDAPv3
+ *	}
+ *
+ */
+
 #include "portable.h"
 
 #include <stdio.h>
@@ -34,18 +55,6 @@ int
 ldap_simple_bind( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd )
 {
 	BerElement	*ber;
-
-	/*
-	 * The bind request looks like this:
-	 *	BindRequest ::= SEQUENCE {
-	 *		version		INTEGER,
-	 *		name		DistinguishedName,	 -- who
-	 *		authentication	CHOICE {
-	 *			simple		[0] OCTET STRING -- passwd
-	 *		}
-	 *	}
-	 * all wrapped up in an LDAPMessage sequence.
-	 */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_simple_bind\n", 0, 0, 0 );
 
