@@ -591,6 +591,7 @@ LDAP_SLAPD_F (int) register_matching_rule LDAP_P((
 	const char *associated ));
 
 LDAP_SLAPD_F (int) mr_schema_info( Entry *e );
+LDAP_SLAPD_F (int) mru_schema_info( Entry *e );
 
 /*
  * mra.c

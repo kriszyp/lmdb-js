@@ -303,4 +303,9 @@ int mr_schema_info( Entry *e )
 	return 0;
 }
 
+int mru_schema_info( Entry *e )
+{
+	return 0;
+}
+
 #endif
