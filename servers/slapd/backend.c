@@ -910,7 +910,9 @@ backend_check_restrictions(
 				return LDAP_CONFIDENTIALITY_REQUIRED;
 			}
 
-			if( op->o_ndn.bv_len == 0 ) {
+			if( !( global_allows & SLAP_ALLOW_UPDATE_ANON ) &&
+				op->o_ndn.bv_len == 0 )
+			{
 				*text = "modifications require authentication";
 				return LDAP_STRONG_AUTH_REQUIRED;
 			}

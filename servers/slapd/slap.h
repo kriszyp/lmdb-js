@@ -1261,7 +1261,9 @@ struct slap_backend_db {
 
 #define SLAP_ALLOW_BIND_V2			0x0001U	/* LDAPv2 bind */
 #define SLAP_ALLOW_BIND_ANON_CRED	0x0002U /* cred should be empty */
-#define SLAP_ALLOW_BIND_ANON_DN		0x0003U /* dn should be empty */
+#define SLAP_ALLOW_BIND_ANON_DN		0x0004U /* dn should be empty */
+
+#define SLAP_ALLOW_UPDATE_ANON		0x0008U /* allow anonymous updates */
 
 #define SLAP_DISALLOW_BIND_ANON		0x0001U /* no anonymous */
 #define SLAP_DISALLOW_BIND_SIMPLE	0x0002U	/* simple authentication */
@@ -1767,9 +1769,7 @@ typedef struct slap_conn {
 struct slap_listener {
 	struct berval sl_url;
 	struct berval sl_name;
-#ifdef SLAP_X_LISTENER_MOD
-	mode_t		sl_perms;
-#endif /* SLAP_X_LISTENER_MOD */
+	mode_t	sl_perms;
 #ifdef HAVE_TLS
 	int		sl_is_tls;
 #endif

@@ -1257,16 +1257,18 @@ read_config( const char *fname, int depth )
 				} else if( strcasecmp( cargv[i], "bind_anon_dn" ) == 0 ) {
 					allows |= SLAP_ALLOW_BIND_ANON_DN;
 
+				} else if( strcasecmp( cargv[i], "update_anon" ) == 0 ) {
+					allows |= SLAP_ALLOW_UPDATE_ANON;
+
 				} else if( strcasecmp( cargv[i], "none" ) != 0 ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG( CONFIG, CRIT, 
-						   "%s: line %d: unknown feature %s in "
-						   "\"allow <features>\" line.\n",
-						   fname, lineno, cargv[1] );
+					LDAP_LOG( CONFIG, CRIT, "%s: line %d: "
+						"unknown feature %s in \"allow <features>\" line.\n",
+						fname, lineno, cargv[1] );
 #else
-					Debug( LDAP_DEBUG_ANY,
-		    "%s: line %d: unknown feature %s in \"allow <features>\" line\n",
-					    fname, lineno, cargv[i] );
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+						"unknown feature %s in \"allow <features>\" line\n",
+						fname, lineno, cargv[i] );
 #endif
 
 					return( 1 );
