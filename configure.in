@@ -223,7 +223,8 @@ OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend no|yes|mod], no, [no ye
 
 dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
-Overlays="chain denyop dyngroup lastmod ppolicy proxycache rwm"
+Overlays="chain denyop dyngroup lastmod ppolicy proxycache rwm \
+	refint unique"
 
 AC_ARG_WITH(xxslapoverlays,[
 SLAPD Overlay Options:])
@@ -239,8 +240,10 @@ OL_ARG_ENABLE(lastmod,[    --enable-lastmod	  Last Modification overlay no|yes|m
 OL_ARG_ENABLE(ppolicy,[    --enable-ppolicy	  Password Policy overlay no|yes|mod], no,
 	[no yes mod])
 OL_ARG_ENABLE(proxycache,[    --enable-proxycache	  Proxy Cache overlay no|yes|mod], no,
+OL_ARG_ENABLE(refint,[    --enable-refint	  Referential Integrity overlay no|yes|mod], no,
 	[no yes mod])
 OL_ARG_ENABLE(rwm,[    --enable-rwm       	  Rewrite/Remap overlay no|yes|mod], no,
+OL_ARG_ENABLE(unique,[    --enable-unique       	  Attribute Uniqueness overlay no|yes|mod], no,
 	[no yes mod])
 
 dnl ----------------------------------------------------------------
@@ -478,7 +481,9 @@ BUILD_DYNGROUP=no
 BUILD_LASTMOD=no
 BUILD_PPOLICY=no
 BUILD_PROXYCACHE=no
+BUILD_REFINT=no
 BUILD_RWM=no
+BUILD_UNIQUE=no
 
 SLAPD_DYNAMIC_OVERLAYS=
 
@@ -2661,6 +2666,17 @@ if test "$ol_enable_proxycache" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_PROXYCACHE,$MFLAG,[define for Proxy Cache overlay])
 fi
 
+if test "$ol_enable_refint" != no ; then
+	BUILD_REFINT=$ol_enable_refint
+	if test "$ol_enable_refint" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS refint.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_REFINT,$MFLAG,[define for Referential Integrity overlay])
+fi
+
 if test "$ol_enable_rwm" != no ; then
 	BUILD_REWRITE=yes
 	BUILD_RWM=$ol_enable_rwm
@@ -2671,6 +2687,17 @@ if test "$ol_enable_rwm" != no ; then
 		MFLAG=SLAPD_MOD_STATIC
 	fi
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_RWM,$MFLAG,[define for Rewrite/Remap overlay])
+fi
+
+if test "$ol_enable_unique" != no ; then
+	BUILD_UNIQUE=$ol_enable_unique
+	if test "$ol_enable_unique" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS unique.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_UNIQUE,$MFLAG,[define for Attribute Uniqueness overlay])
 fi
 
 if test "$ol_enable_slurpd" != no -a "$ol_link_threads" != no -a \
@@ -2739,7 +2766,9 @@ dnl overlays
   AC_SUBST(BUILD_LASTMOD)
   AC_SUBST(BUILD_PPOLICY)
   AC_SUBST(BUILD_PROXYCACHE)
+  AC_SUBST(BUILD_REFINT)
   AC_SUBST(BUILD_RWM)
+  AC_SUBST(BUILD_UNIQUE)
 AC_SUBST(BUILD_SLURPD)
 
 AC_SUBST(LDAP_LIBS)

@@ -1001,8 +1001,14 @@
 /* define for Proxy Cache overlay */
 #undef SLAPD_OVER_PROXYCACHE
 
+/* define for Referential Integrity overlay */
+#undef SLAPD_OVER_REFINT
+
 /* define for Rewrite/Remap overlay */
 #undef SLAPD_OVER_RWM
+
+/* define for Attribute Uniqueness overlay */
+#undef SLAPD_OVER_UNIQUE
 
 /* define to enable rewriting in back-ldap and back-meta */
 #undef ENABLE_REWRITE
