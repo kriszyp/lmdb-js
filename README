@@ -12,8 +12,8 @@ OpenLDAP Devel README
 	should use -stable.
 
 
-OpenLDAP 1.1 Alpha README
-	This is the OpenLDAP version 1.1 Alpha.
+OpenLDAP 1.1 Beta README
+	This is the OpenLDAP version 1.1 Beta.
 
 	For a description of what this distribution contains, see the
 	ANNOUNCEMENT file in this directory.  For a description of
@@ -54,7 +54,7 @@ MAKING AND INSTALLING THE DISTRIBUTION
 	This is a quick guide.  For details, see the INSTALL file.
 
 	% ./configure
-		autoconf OpenLDAP for current platform
+		configure OpenLDAP for current platform
 
 	% make depend
 		this will create dependency information
@@ -67,13 +67,6 @@ MAKING AND INSTALLING THE DISTRIBUTION
 
     in this directory.  This should produce something that basically
     works.  You can "cd tests; make" to verify the build.
-
-    You will probably want to do a little configuration to suit your
-    site, though.  There are one file you might want to edit:
-
-	include/ldapconfig.h.edit
-		This file contains #defines used by many parts of the
-		distribution.  You'll at least want to change DEFAULT_BASE.
 
     See the INSTALL file in this directory for more information.
 
