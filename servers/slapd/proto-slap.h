@@ -375,7 +375,6 @@ LDAP_SLAPD_F (int) componentFilterValidate LDAP_P((
 LDAP_SLAPD_F (int) allComponentsValidate LDAP_P((
         Syntax *syntax,
         struct berval* bv ));
-
 #endif
 
 /*

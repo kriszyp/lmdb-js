@@ -31,8 +31,9 @@ mra_free(
 {
 #ifdef LDAP_COMP_MATCH
 	/* free component assertion */
-	if ( mra->ma_rule->smr_usage & SLAP_MR_COMPONENT )
+	if ( mra->ma_rule->smr_usage & SLAP_MR_COMPONENT ) {
 		component_free( mra->ma_cf );
+	}
 #endif
 	/* op->o_tmpfree( mra->ma_value.bv_val, op->o_tmpmemctx ); */
 	ch_free( mra->ma_value.bv_val );

@@ -208,18 +208,19 @@ static int test_mra_filter(
 				const char *text;
 	
 #ifdef LDAP_COMP_MATCH
-	/* Component Matching */
-		if( mra->ma_cf && mra->ma_rule->smr_usage & SLAP_MR_COMPONENT ) {
-				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-					(struct berval *)a,(void*) mra , &text );
-		}
-		else {
+				/* Component Matching */
+				if( mra->ma_cf &&
+					mra->ma_rule->smr_usage & SLAP_MR_COMPONENT )
+				{
+					rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+						(struct berval *)a,(void*) mra , &text );
+				} else
 #endif
-				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-					bv, &mra->ma_value, &text );
-#ifdef LDAP_COMP_MATCH
-		}
-#endif
+				{
+					rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+						bv, &mra->ma_value, &text );
+				}
+
 				if( rc != LDAP_SUCCESS ) return rc;
 				if ( ret == 0 ) return LDAP_COMPARE_TRUE;
 			}
@@ -263,20 +264,19 @@ static int test_mra_filter(
 				int ret;
 	
 #ifdef LDAP_COMP_MATCH
-	/* Component Matching */
-			if( mra->ma_cf &&
-					mra->ma_rule->smr_usage & SLAP_MR_COMPONENT) {
-				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-					(struct berval*)a, (void*)mra, &text );
-			}
-			else {
+				/* Component Matching */
+				if( mra->ma_cf &&
+					mra->ma_rule->smr_usage & SLAP_MR_COMPONENT)
+				{
+					rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+						(struct berval*)a, (void*)mra, &text );
+				} else
 #endif
-				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-					bv, &value, &text );
-	
-#ifdef LDAP_COMP_MATCH
-			}
-#endif
+				{
+					rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+						bv, &value, &text );
+				}
+
 				if( rc != LDAP_SUCCESS ) break;
 	
 				if ( ret == 0 ) {

@@ -93,8 +93,8 @@ str2entry( char *s )
 
 	if( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-		    "<= str2entry NULL (entry allocation failed)\n",
-		    0, 0, 0 );
+			"<= str2entry NULL (entry allocation failed)\n",
+			0, 0, 0 );
 		return( NULL );
 	}
 
@@ -116,7 +116,7 @@ str2entry( char *s )
 
 		if ( ldif_parse_line( s, &type, &vals[0].bv_val, &vals[0].bv_len ) != 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
-			    "<= str2entry NULL (parse_line)\n", 0, 0, 0 );
+				"<= str2entry NULL (parse_line)\n", 0, 0, 0 );
 			continue;
 		}
 
@@ -126,7 +126,7 @@ str2entry( char *s )
 			if ( e->e_dn != NULL ) {
 				Debug( LDAP_DEBUG_ANY, "str2entry: "
 					"entry %ld has multiple DNs \"%s\" and \"%s\"\n",
-				    (long) e->e_id, e->e_dn, vals[0].bv_val );
+					(long) e->e_id, e->e_dn, vals[0].bv_val );
 				free( vals[0].bv_val );
 				entry_free( e );
 				return NULL;
@@ -254,7 +254,7 @@ str2entry( char *s )
 		rc = attr_merge( e, ad, vals, nvalsp );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-			    "<= str2entry NULL (attr_merge)\n", 0, 0, 0 );
+				"<= str2entry NULL (attr_merge)\n", 0, 0, 0 );
 			entry_free( e );
 			free( vals[0].bv_val );
 			free( type );
@@ -271,7 +271,7 @@ str2entry( char *s )
 	/* check to make sure there was a dn: line */
 	if ( e->e_dn == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "str2entry: entry %ld has no dn\n",
-		    (long) e->e_id, 0, 0 );
+			(long) e->e_id, 0, 0 );
 		entry_free( e );
 		return NULL;
 	}
@@ -289,7 +289,7 @@ str2entry( char *s )
 			ptrdiff_t	offset; \
 			offset = (int) (ecur - ebuf); \
 			ebuf = (unsigned char *) ch_realloc( (char *) ebuf, \
-			    emaxsize + GRABSIZE ); \
+				emaxsize + GRABSIZE ); \
 			emaxsize += GRABSIZE; \
 			ecur = ebuf + offset; \
 		} \
@@ -297,8 +297,8 @@ str2entry( char *s )
 
 char *
 entry2str(
-    Entry	*e,
-    int		*len )
+	Entry	*e,
+	int		*len )
 {
 	Attribute	*a;
 	struct berval	*bv;
@@ -332,7 +332,7 @@ entry2str(
 			MAKE_SPACE( LDIF_SIZE_NEEDED( tmplen, bv->bv_len ));
 			ldif_sput( (char **) &ecur, LDIF_PUT_VALUE,
 				a->a_desc->ad_cname.bv_val,
-			    bv->bv_val, bv->bv_len );
+				bv->bv_val, bv->bv_len );
 		}
 	}
 	MAKE_SPACE( 1 );
@@ -558,27 +558,27 @@ int entry_encode(Entry *e, struct berval *bv)
 		ptr += a->a_desc->ad_cname.bv_len;
 		*ptr++ = '\0';
 		if (a->a_vals) {
-		    for (i=0; a->a_vals[i].bv_val; i++);
-		    entry_putlen(&ptr, i);
-		    for (i=0; a->a_vals[i].bv_val; i++) {
+			for (i=0; a->a_vals[i].bv_val; i++);
+			entry_putlen(&ptr, i);
+			for (i=0; a->a_vals[i].bv_val; i++) {
 			entry_putlen(&ptr, a->a_vals[i].bv_len);
 			AC_MEMCPY(ptr, a->a_vals[i].bv_val,
 				a->a_vals[i].bv_len);
 			ptr += a->a_vals[i].bv_len;
 			*ptr++ = '\0';
-		    }
-		    if (a->a_nvals != a->a_vals) {
-		    	entry_putlen(&ptr, i);
-			for (i=0; a->a_nvals[i].bv_val; i++) {
-			    entry_putlen(&ptr, a->a_nvals[i].bv_len);
-			    AC_MEMCPY(ptr, a->a_nvals[i].bv_val,
-				a->a_nvals[i].bv_len);
-			    ptr += a->a_nvals[i].bv_len;
-			    *ptr++ = '\0';
 			}
-		    } else {
-		    	entry_putlen(&ptr, 0);
-		    }
+			if (a->a_nvals != a->a_vals) {
+				entry_putlen(&ptr, i);
+			for (i=0; a->a_nvals[i].bv_val; i++) {
+				entry_putlen(&ptr, a->a_nvals[i].bv_len);
+				AC_MEMCPY(ptr, a->a_nvals[i].bv_val,
+				a->a_nvals[i].bv_len);
+				ptr += a->a_nvals[i].bv_len;
+				*ptr++ = '\0';
+			}
+			} else {
+				entry_putlen(&ptr, 0);
+			}
 		}
 	}
 	*ptr = '\0';
@@ -623,8 +623,8 @@ int entry_decode(struct berval *bv, Entry **e)
 	x->e_nname.bv_len = i;
 	ptr += i+1;
 	Debug( LDAP_DEBUG_TRACE,
-	    "entry_decode: \"%s\"\n",
-	    x->e_dn, 0, 0 );
+		"entry_decode: \"%s\"\n",
+		x->e_dn, 0, 0 );
 	x->e_bv = *bv;
 
 	/* A valid entry must have at least one attr, so this

@@ -1029,7 +1029,6 @@ static struct slap_schema_syn_map {
 		offsetof(struct slap_internal_schema, si_syn_integer) },
 	{ "1.3.6.1.4.1.1466.115.121.1.40",
 		offsetof(struct slap_internal_schema, si_syn_octetString) },
-
 	{ "1.3.6.1.4.1.1466.115.121.1.3",
 		offsetof(struct slap_internal_schema, si_syn_attributeTypeDesc) },
 	{ "1.3.6.1.4.1.1466.115.121.1.16",
@@ -1044,10 +1043,8 @@ static struct slap_schema_syn_map {
 		offsetof(struct slap_internal_schema, si_syn_nameFormDesc) },
 	{ "1.3.6.1.4.1.1466.115.121.1.37",
 		offsetof(struct slap_internal_schema, si_syn_objectClassDesc) },
-
 	{ "1.3.6.1.4.1.1466.115.121.1.17",
 		offsetof(struct slap_internal_schema, si_syn_ditStructureRuleDesc) },
-
 	{ NULL, 0 }
 };
 

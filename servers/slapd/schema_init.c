@@ -3078,8 +3078,8 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.2.36.79672281.1.5.0 DESC 'RDN' )",
 		0, rdnValidate, rdnPretty},
 #ifdef LDAP_COMP_MATCH
-        {"( 1.2.36.79672281.1.5.3 DESC 'allComponents' )",
-                0, allComponentsValidate, NULL},
+	{"( 1.2.36.79672281.1.5.3 DESC 'allComponents' )",
+		0, allComponentsValidate, NULL},
  	{"( 1.2.36.79672281.1.5.2 DESC 'componentFilterMatch assertion') ",
 		0, componentFilterValidate, NULL},
 #endif

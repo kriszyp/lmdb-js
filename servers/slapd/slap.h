@@ -476,7 +476,7 @@ typedef struct slap_matching_rule {
 #define SLAP_MR_ORDERING		0x0200U
 #define SLAP_MR_SUBSTR			0x0400U
 #define SLAP_MR_EXT				0x0800U /* implicitly extensible */
-#define	SLAP_MR_ORDERED_INDEX		0x1000U
+#define	SLAP_MR_ORDERED_INDEX	0x1000U
 #ifdef LDAP_COMP_MATCH
 #define SLAP_MR_COMPONENT		0x2000U
 #endif
@@ -2675,7 +2675,7 @@ typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
 #define LDAP_COMP_FILTER_ITEM		((ber_tag_t) 0xa3U)
 #define LDAP_COMP_FILTER_UNDEFINED	((ber_tag_t) 0xa4U)
 
-typedef struct slap_component_id{
+typedef struct slap_component_id {
 	int	ci_type;
 	struct slap_component_id *ci_next;
 
@@ -2730,10 +2730,12 @@ typedef struct slap_component_assertion_value {
 	char* cav_ptr;
 	char* cav_end;
 } ComponentAssertionValue;
-/*
+
+#if 0
 typedef int encoder_func LDAP_P((
 	void* b,
-	void* comp));*/
+	void* comp));
+#endif
 
 struct slap_component_syntax_info;
 
