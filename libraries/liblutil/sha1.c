@@ -34,6 +34,7 @@
 
 #include "lutil_sha1.h"
 
+/* undefining this will cause pointer alignment errors */
 #define SHA1HANDSOFF		/* Copies data before messing with it. */
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
 
