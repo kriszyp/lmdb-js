@@ -232,8 +232,65 @@ If specified multiple times, each url is provided.
 .B sasl-realm <string>
 Used to specify Cyrus SASL realm.
 .TP
-.B sasl-secprops <string>
+.B sasl-secprops <properties>
 Used to specify Cyrus SASL security properties.
+The
+.B none
+flag (without any other properities) causes the flag properites
+defaults ("noanonymous,noplain") to be cleared.
+The
+.B noplain
+flag disables mechanisms susceptible to simple passive attacks.
+The
+.B noactive
+flag disables mechanisms susceptible to active attacks.
+The
+.B nodict
+flag disables mechanisms susceptible to passive dictionary attacks.
+The
+.B noanonyous
+flag disables mechanisms which support anonymous login.
+The
+.B forwardsec
+flag require forward secrecy between sessions.
+The
+.B passcred
+require mechanisms which pass client credentials (and allow
+mechanisms which can pass credentials to do so).
+The
+.B minssf=<factor> 
+property specifies the minimum acceptable
+.I security strength factor
+as an integer approximate to effective key length used for
+encryption.  0 (zero) implies no protection, 1 implies integrity
+protection only, 56 allows DES or other weak ciphers, 112
+allows triple DES and other strong ciphers, 128 allows RC4,
+Blowfish and other modern strong ciphers.  The default is 0.
+The
+.B maxssf=<factor> 
+property specifies the maximum acceptable
+.I security strength factor
+as an integer (see minssf description).  The default is INT_MAX.
+The
+.B maxbufsize=<factor> 
+property specifies the maximum security layer receive buffer
+size allowed.  0 disables security layers.  The default is 65536.
+.TP
+.B schemacheck { on | off }
+Turn schema checking on or off. The default is on.
+.TP
+.B sizelimit <integer>
+Specify the maximum number of entries to return from a search operation.
+The default size limit is 500.
+.TP
+.B srvtab <filename>
+Specify the srvtab file in which the kerberos keys necessary for
+authenticating clients using kerberos can be found. This option is only
+meaningful if you are using Kerberos authentication.
+.TP
+.B timelimit <integer>
+Specify the maximum number of seconds (in real time)
+require forward secrecy between sessions.
 .TP
 .B schemacheck { on | off }
 Turn schema checking on or off. The default is on.
