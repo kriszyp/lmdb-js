@@ -46,7 +46,7 @@ mr_index_cmp(
 	const struct mindexrec	*mir2 = v_mir2;
 	int i = mir1->mir_name.bv_len - mir2->mir_name.bv_len;
 	if (i) return i;
-	return (strcmp( mir1->mir_name.bv_val, mir2->mir_name.bv_val ));
+	return (strcasecmp( mir1->mir_name.bv_val, mir2->mir_name.bv_val ));
 }
 
 static int
@@ -59,7 +59,7 @@ mr_index_name_cmp(
 	const struct mindexrec *mir  = v_mir;
 	int i = name->bv_len - mir->mir_name.bv_len;
 	if (i) return i;
-	return (strncmp( name->bv_val, mir->mir_name.bv_val, name->bv_len ));
+	return (strncasecmp( name->bv_val, mir->mir_name.bv_val, name->bv_len ));
 }
 
 MatchingRule *

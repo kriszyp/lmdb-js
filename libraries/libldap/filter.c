@@ -639,7 +639,7 @@ put_simple_filter(
 
 				if( rule == NULL ) {
 					/* one colon */
-					if ( strcmp(dn, "dn") == 0 ) {
+					if ( strcasecmp(dn, "dn") == 0 ) {
 						/* must have attribute */
 						if( !ldap_is_desc( str ) ) {
 							goto done;
@@ -656,7 +656,7 @@ put_simple_filter(
 					/* two colons */
 					*rule++ = '\0';
 
-					if ( strcmp(dn, "dn") != 0 ) {
+					if ( strcasecmp(dn, "dn") != 0 ) {
 						/* must have "dn" */
 						goto done;
 					}
