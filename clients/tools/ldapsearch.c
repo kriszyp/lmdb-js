@@ -663,27 +663,31 @@ main( int argc, char **argv )
 	(void) SIGNAL( SIGPIPE, SIG_IGN );
 #endif
 
-
 	if( ( ldaphost != NULL || ldapport ) && ( ldapuri == NULL ) ) {
 		if ( verbose ) {
 			fprintf( stderr, "ldap_init( %s, %d )\n",
 				ldaphost != NULL ? ldaphost : "<DEFAULT>",
 				ldapport );
 		}
+
 		ld = ldap_init( ldaphost, ldapport );
+		if( ld == NULL ) {
+			perror("ldapsearch: ldap_init");
+			return EXIT_FAILURE;
+		}
 
 	} else {
 		if ( verbose ) {
 			fprintf( stderr, "ldap_initialize( %s )\n",
 				ldapuri != NULL ? ldapuri : "<DEFAULT>" );
 		}
-		(void) ldap_initialize( &ld, ldapuri );
-	}
 
-	if( ld == NULL ) {
-		fprintf( stderr, "Could not create LDAP session handle (%d): %s\n",
-			rc, ldap_err2string(rc) );
-		return EXIT_FAILURE;
+		rc = ldap_initialize( &ld, ldapuri );
+		if( rc != LDAP_SUCCESS ) {
+			fprintf( stderr, "Could not create LDAP session handle (%d): %s\n",
+				rc, ldap_err2string(rc) );
+			return EXIT_FAILURE;
+		}
 	}
 
 	if (deref != -1 &&
