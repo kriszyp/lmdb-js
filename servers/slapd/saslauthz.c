@@ -12,9 +12,9 @@
 
 #include "portable.h"
 
-#include <ac/stdlib.h>
 #include <stdio.h>
 
+#include <ac/stdlib.h>
 #include <ac/string.h>
 
 #include "slap.h"
@@ -25,9 +25,10 @@
 #include <ldap_pvt.h>
 #endif
 
-/* URI format:	ldap://<host>/<base>[?[<attrs>][?[<scope>][?[<filter>]]]]   */
+/* URI format: ldap://<host>/<base>[?[<attrs>][?[<scope>][?[<filter>]]]] */
 
-int slap_parseURI( char *uri, struct berval *searchbase, int *scope, Filter **filter )
+static int slap_parseURI( char *uri,
+	struct berval *searchbase, int *scope, Filter **filter )
 {
 	char *start, *end;
 	struct berval bv;
@@ -42,15 +43,14 @@ int slap_parseURI( char *uri, struct berval *searchbase, int *scope, Filter **fi
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_parseURI: parsing %s\n", uri ));
+		"slap_parseURI: parsing %s\n", uri ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "slap_parseURI: parsing %s\n", uri, 0, 0 );
 #endif
 
-
 	/* If it does not look like a URI, assume it is a DN */
-	if( !strncasecmp( uri, "dn:", 3 ) ) {
-		uri += 3;
+	if( !strncasecmp( uri, "dn:", sizeof("dn:")-1 ) ) {
+		uri += sizeof("dn:")-1;
 		uri += strspn( uri, " " );
 		bv.bv_val = uri;
 		/* FIXME: if dnNormalize actually uses input bv_len we
@@ -63,12 +63,14 @@ is_dn:		bv.bv_len = 1;
 		}
 		return( rc );
 	}
-	if( strncasecmp( uri, "ldap://", 7 ) ) {
+
+	/* FIXME: should use ldap_url_parse() */
+	if( strncasecmp( uri, "ldap://", sizeof("ldap://")-1 ) ) {
 		bv.bv_val = uri;
 		goto is_dn;
 	}
 
-	end = strchr( uri + 7, '/' );
+	end = strchr( uri + (sizeof("ldap://")-1), '/' );
 	if ( end == NULL )
 		return( LDAP_PROTOCOL_ERROR );
 
@@ -98,17 +100,17 @@ is_dn:		bv.bv_len = 1;
 
 	/* Grab the scope */
 	start = end+1;
-	if( !strncasecmp( start, "base?", 5 )) {
+	if( !strncasecmp( start, "base?", sizeof("base?")-1 )) {
 		*scope = LDAP_SCOPE_BASE;
-		start += 5;
+		start += sizeof("base?")-1;
 	}
-	else if( !strncasecmp( start, "one?", 4 )) {
+	else if( !strncasecmp( start, "one?", sizeof("one?")-1 )) {
 		*scope = LDAP_SCOPE_ONELEVEL;
-		start += 4;
+		start += sizeof("one?")-1;
 	}
-	else if( !strncasecmp( start, "sub?", 3 )) {
+	else if( !strncasecmp( start, "sub?", sizeof("sub?")-1 )) {
 		*scope = LDAP_SCOPE_SUBTREE;
-		start += 4;
+		start += sizeof("sub?")-1;
 	}
 	else {
 		free( searchbase->bv_val );
@@ -121,9 +123,6 @@ is_dn:		bv.bv_len = 1;
 
 	return( LDAP_SUCCESS );
 }
-
-
-
 
 
 int slap_sasl_regexp_config( const char *match, const char *replace )
@@ -195,12 +194,7 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 }
 
 
-
-
-
 #ifdef HAVE_CYRUS_SASL
-
-
 
 /* Take the passed in SASL name and attempt to convert it into an
    LDAP URI to find the matching LDAP entry, using the pattern matching
@@ -212,10 +206,9 @@ char *slap_sasl_regexp( char *saslname )
 	int i, n, len, insert;
 	SaslRegexp_t *reg;
 
-
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_sasl_regexp: converting SASL name %s\n", saslname ));
+		"slap_sasl_regexp: converting SASL name %s\n", saslname ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "slap_sasl_regexp: converting SASL name %s\n",
 	   saslname, 0, 0 );
@@ -281,7 +274,7 @@ char *slap_sasl_regexp( char *saslname )
 	uri[insert] = '\0';
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_sasl_regexp: converted SASL name to %s\n", uri ));
+		"slap_sasl_regexp: converted SASL name to %s\n", uri ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl_regexp: converted SASL name to %s\n", uri, 0, 0 );
@@ -544,9 +537,6 @@ CONCLUDED:
 }
 
 
-
-
-
 /*
  * This function answers the question, "Can this ID authorize to that ID?",
  * based on authorization rules. The rules are stored in the *searchDN, in the
@@ -555,7 +545,6 @@ CONCLUDED:
  *
  * DN's passed in should have a dn: prefix
  */
-
 static int
 slap_sasl_check_authz(char *searchDN, char *assertDN, char *attr, char *authc)
 {
@@ -564,7 +553,6 @@ slap_sasl_check_authz(char *searchDN, char *assertDN, char *attr, char *authc)
 	BVarray vals=NULL;
 	AttributeDescription *ad=NULL;
 	struct berval bv;
-
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -607,13 +595,7 @@ COMPLETE:
 
 	return( rc );
 }
-
-
-
 #endif	/* HAVE_CYRUS_SASL */
-
-
-
 
 
 /* Check if a bind can SASL authorize to another identity.
@@ -632,12 +614,11 @@ int slap_sasl_authorized( char *authcDN, char *authzDN )
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_sasl_authorized: can %s become %s?\n", authcDN, authzDN ));
+		"slap_sasl_authorized: can %s become %s?\n", authcDN, authzDN ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "==>slap_sasl_authorized: can %s become %s?\n", authcDN, authzDN, 0 );
 #endif
-
 
 	/* If person is authorizing to self, succeed */
 	if ( !strcmp( authcDN, authzDN ) ) {
@@ -666,9 +647,10 @@ DONE:
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_sasl_authorized: return %d\n", rc ));
+		"slap_sasl_authorized: return %d\n", rc ));
 #else
-	Debug( LDAP_DEBUG_TRACE, "<== slap_sasl_authorized: return %d\n",rc,0,0 );
+	Debug( LDAP_DEBUG_TRACE,
+		"<== slap_sasl_authorized: return %d\n", rc, 0, 0 );
 #endif
 
 	return( rc );

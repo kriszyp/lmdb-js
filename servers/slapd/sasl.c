@@ -6,8 +6,9 @@
 
 #include "portable.h"
 
-#include <ac/stdlib.h>
 #include <stdio.h>
+#include <ac/stdlib.h>
+#include <ac/string.h>
 
 #include <lber.h>
 #include <ldap_log.h>
@@ -99,9 +100,10 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 
 
 	/* Blatantly anonymous ID */
-	len = sizeof( "anonymous" ) - 1;
-	if( id && ( id[len] == '\0' || id[len] == '@' ) &&
-		!strncasecmp( id, "anonymous", len) ) {
+	if( id &&
+		( id[sizeof( "anonymous" )-1] == '\0'
+			|| id[sizeof( "anonymous" )-1] == '@' ) &&
+		!strncasecmp( id, "anonymous", sizeof( "anonymous" )-1) ) {
 		*dnptr = NULL;
 		return( LDAP_SUCCESS );
 	}
@@ -123,7 +125,7 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 			dn[0] = 'd';
 			dn[1] = 'n';
 			dn[2] = ':';
-			memmove( &dn[3], tmpdn, len+1 );
+			AC_MEMCPY( &dn[3], tmpdn, len+1 );
 			len += 3;
 
 		} else {
@@ -131,7 +133,7 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 			dn = ch_malloc( len+3 );
 			dn[0] = 'u';
 			dn[1] = ':';
-			memmove( &dn[2], id, len+1 );
+			AC_MEMCPY( &dn[2], id, len+1 );
 			len += 2;
 		}
 	} else {
@@ -140,8 +142,8 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 
 	/* An authzID must be properly prefixed */
 	if( flags & FLAG_GETDN_AUTHZID
-		&& strncasecmp( dn, "u:", 2 )
-		&& strncasecmp( dn, "dn:", 3 ) )
+		&& strncasecmp( dn, "u:", sizeof("u:")-1 )
+		&& strncasecmp( dn, "dn:", sizeof("dn:")-1 ) )
 	{
 		ch_free( dn );
 		*dnptr = NULL;
@@ -149,9 +151,8 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 	}
 
 	/* Username strings */
-	if( !strncasecmp( dn, "u:", 2 ) ) {
-		int len1  = strlen( ",cn=auth" );
-		len += strlen( "dn:uid=" ) + len1;
+	if( !strncasecmp( dn, "u:", sizeof("u:")-1 ) ) {
+		len += (sizeof("dn:uid=")-1) + (sizeof(",cn=auth")-1);
 
 		/* Figure out how much data we have for the dn */
 		rc = sasl_getprop( ctx,	SASL_REALM, (void **)&c );
@@ -170,11 +171,11 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 		}
 
 		if( c && *c ) {
-			len += strlen( c ) + strlen(",cn=" );
+			len += strlen( c ) + (sizeof(",cn=")-1);
 		}
 
 		if( conn->c_sasl_bind_mech ) {
-			len += strlen( conn->c_sasl_bind_mech ) + strlen( ",cn=" );
+			len += strlen( conn->c_sasl_bind_mech ) + (sizeof(",cn=")-1);
 		}
 
 		/* Build the new dn */
@@ -190,7 +191,7 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 			len += sprintf( dn+len, ",cn=%s", conn->c_sasl_bind_mech );
 		}
 		strcpy(	dn+len, ",cn=auth" );
-		len += len1;
+		len += (sizeof(",cn=auth")-1);
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -201,17 +202,17 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 	}
 
 	/* DN strings that are a cn=auth identity to run through regexp */
-	if( !strncasecmp( dn, "dn:", 3) &&
+	if( !strncasecmp( dn, "dn:", sizeof("dn:")-1) &&
 		( ( flags & FLAG_GETDN_FINAL ) == 0 ) )
 	{
-		c1 = slap_sasl2dn( dn + 3 );
+		c1 = slap_sasl2dn( dn + (sizeof("dn:")-1) );
 		if( c1 ) {
 			ch_free( dn );
 			dn = c1;
 			/* Reaffix the dn: prefix if it was removed */
-			if( strncasecmp( dn, "dn:", 3) ) {
+			if( strncasecmp( dn, "dn:", sizeof("dn:")-1) ) {
 				c1 = dn;
-				dn = ch_malloc( strlen( c1 ) + 4 );
+				dn = ch_malloc( strlen( c1 ) + sizeof("dn:") );
 				sprintf( dn, "dn:%s", c1 );
 				ch_free( c1 );
 			}
@@ -227,7 +228,7 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 	}
 
 	if( ( flags & FLAG_GETDN_FINAL ) == 0 )	 {
-		dn_normalize( dn+3 );
+		dn_normalize( dn+(sizeof("dn:")-1) );
 	}
 
 	*dnptr = dn;
@@ -567,7 +568,7 @@ char ** slap_sasl_mechs( Connection *conn )
 		if( sc != SASL_OK ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-				   "slap_sasl_mechs: sasl_listmech failed: %d\n", sc ));
+				"slap_sasl_mechs: sasl_listmech failed: %d\n", sc ));
 #else
 			Debug( LDAP_DEBUG_ANY, "slap_sasl_listmech failed: %d\n",
 				sc, 0, 0 );
