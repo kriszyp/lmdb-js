@@ -947,6 +947,22 @@ if test $ol_link_threads = no ; then
 		ol_with_threads=no
 	fi
 
+	AC_CACHE_CHECK([for misplaced posix thread in headers],
+		[ol_cv_header_misplaced_pthreads], [
+		AC_TRY_COMPILE([
+#include <sys/types.h>
+typedef double pthread_t;
+			], [
+				pthread_t thread = 0.0;
+			],
+			[ol_cv_header_misplaced_pthreads=no],
+			[ol_cv_header_misplaced_pthreads=yes])
+	])
+
+	if test "$ol_cv_header_misplaced_pthreads" = yes ; then
+		AC_MSG_ERROR([pthread types are misplaced.]);
+	fi
+
 	AC_DEFINE(NO_THREADS,1)
 	LTHREAD_LIBS=""
 fi
