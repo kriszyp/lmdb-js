@@ -1,6 +1,6 @@
 dnl $OpenLDAP$
 dnl
-dnl Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
+dnl Copyright 1998-2001 The OpenLDAP Foundation.  All Rights Reserved.
 dnl 
 dnl Redistribution and use in source and binary forms are permitted only
 dnl as authorized by the OpenLDAP Public License.  A copy of this
@@ -15,14 +15,14 @@ define([AC_INIT_BINSH],
 # $]OpenLDAP[$
 # from] translit([$OpenLDAP$], $")] [
 
-# Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
+# Copyright 1998-2001 The OpenLDAP Foundation.  All Rights Reserved.
 # 
 # Redistribution and use in source and binary forms are permitted only
 # as authorized by the OpenLDAP Public License.  A copy of this
 # license is available at http://www.OpenLDAP.org/license.html or
 # in file LICENSE in the top-level directory of the distribution.
 
-echo "Copyright 1998-2000 The OpenLDAP Foundation,  All Rights Reserved."
+echo "Copyright 1998-2001 The OpenLDAP Foundation,  All Rights Reserved."
 echo "Restrictions apply, see COPYRIGHT and LICENSE files."
 ])dnl
 dnl ----------------------------------------------------------------
@@ -635,6 +635,9 @@ AC_CHECK_HEADERS(	\
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
 
+dnl SASL and SSL need dlopen on some platforms
+AC_CHECK_FUNC(dlopen, :, [AC_CHECK_LIB(dl, dlopen)])
+
 dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)
 
@@ -733,12 +736,12 @@ fi
 dnl ----------------------------------------------------------------
 dnl PF_INET6 support requires getaddrinfo and INET6_ADDRSTRLEN
 dnl PF_LOCAL may use getaddrinfo in available
-AC_CHECK_FUNCS( getaddrinfo )
+AC_CHECK_FUNCS( getaddrinfo inet_ntop )
 
 ol_link_ipv6=no
-if test $ac_cv_func_getaddrinfo = no ; then
+if test $ac_cv_func_getaddrinfo = no -o $ac_cv_func_inet_ntop ; then
 	if test $ol_enable_ipv6 = yes ; then
-		AC_MSG_ERROR([IPv6 support requires getaddrinfo()])
+		AC_MSG_ERROR([IPv6 support requires getaddrinfo() and inet_ntop()])
 	fi
 else
 	AC_CHECK_FUNCS( gai_strerror )
@@ -808,7 +811,7 @@ if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
 				[define if you have HEIMDAL Kerberos])
 		else
 			have_krb5=no
-			AC_MSG_WARN([Unrecongized Kerberos5 Implementation])
+			AC_MSG_WARN([Unrecongized Kerberos V Implementation])
 		fi
 
 		if test $have_krb5 = yes ; then
@@ -2013,6 +2016,7 @@ AC_CHECK_FUNCS(		\
 	chroot			\
 	endgrent		\
 	endpwent		\
+	fcntl			\
 	flock			\
 	getdtablesize	\
 	getgrgid		\
@@ -2084,10 +2088,6 @@ fi
 if test "$ol_enable_syslog" = yes ; then
 	AC_DEFINE(LDAP_SYSLOG,1,
 		[define this to add syslog code])
-fi
-if test "$ol_enable_libui" = yes ; then
-	AC_DEFINE(LDAP_LIBUI,1,
-		[define this for LDAP User Interface support])
 fi
 if test "$ol_enable_cache" = no ; then
 	AC_DEFINE(LDAP_NOCACHE,1,
