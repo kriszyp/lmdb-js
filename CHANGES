@@ -1,11 +1,16 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.9 Engineering
-	Build Enviroment
+	Fixed back-bdb moddn newSuperior bug
+	Fixed libldap try_read1msg drain bug (ITS#2153)
+	Fixed slapd unix socket unlink bug (ITS#2157)
+	Added "allow update_anon" feature (ITS#2155)
+	Build Environment
+		Add subordinate referral test
 		Fix configure shtool no bold handling
 
 OpenLDAP 2.1.8 Release
-	Build Enviroment
+	Build Environment
 		Update configure script
 
 OpenLDAP 2.1.7 Release

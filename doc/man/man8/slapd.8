@@ -115,7 +115,7 @@ will by default serve
 it will bind using INADDR_ANY and port 389.
 The
 .B \-h
-option may be used to specify LDAP (and LDAPS) URLs to serve.
+option may be used to specify LDAP (and other scheme) URLs to serve.
 For example, if slapd is given
 .B \-h " ldap://127.0.0.1:9009/ ldaps:/// ldapi:///", 
 It will bind 127.0.0.1:9009 for LDAP, 0.0.0.0:636 for LDAP over TLS,
@@ -123,11 +123,18 @@ and LDAP over IPC (Unix domain sockets).  Host 0.0.0.0 represents
 INADDR_ANY.
 A space separated list of URLs is expected.  The URLs should be of
 LDAP (ldap://) or LDAP over TLS (ldaps://) or LDAP over IPC (ldapi://)
-scheme without a DN or other optional parameters.  Support for the
+scheme without a DN or other optional parameters, except an experimental
+extension to indicate the permissions of the underlying socket, on those
+OSes that honor them.  Support for the
 latter two schemes depends on selected configuration options.  Hosts
 may be specified by name or IPv4 and IPv6 address formats.
 Ports, if specfied, must be numeric.  The default ldap:// port is 389
 and the default ldaps:// port is 636.
+The socket permissions for LDAP over IPC are indicated by
+"x-mod=-rwxrwxrwx", "x-mod=0777" or "x-mod=777", where any 
+of the "rwx" can be "-" to suppress the related permission (note, 
+however, that sockets only honor the "w" permission), while any 
+of the "7" can be any legal octal digit, according to chmod(1).
 .TP
 .BI \-r " directory"
 Specifies a chroot "jail" directory.  slapd will
