@@ -33,14 +33,14 @@ dnl ================================================================
 dnl Configure.in for OpenLDAP
 AC_INIT(build/version)dnl
 
-# set unset (borrowed from autoconf 2.14a)
-if (unset FOO) >/dev/null 2>&1; then
+# set unset (borrowed from autoconf 2.49c)
+if (OL_FOO=OL_FOO; unset OL_FOO) >/dev/null 2>&1; then
   ol_unset=unset
 else
   ol_unset=false
 fi
 # unset CDPATH
-$ol_unset CDPATH || test "${CDPATH+set}" != set || CDPATH=: && export CDPATH
+$ol_unset CDPATH || test "${CDPATH+set}" != set || { CDPATH=:; export CDPATH; }
 
 AC_CONFIG_AUX_DIR(build)dnl
 
@@ -56,8 +56,8 @@ dnl		we try not to use this for much
 AC_CANONICAL_SYSTEM
 
 AM_INIT_AUTOMAKE(OpenLDAP,[$OL_VERSION], [no defines])dnl
-AC_SUBST(PACKAGE)
-AC_SUBST(VERSION)
+AC_SUBST(PACKAGE)dnl
+AC_SUBST(VERSION)dnl
 AC_DEFINE_UNQUOTED(OPENLDAP_PACKAGE,"$PACKAGE",Package)
 AC_DEFINE_UNQUOTED(OPENLDAP_VERSION,"$VERSION",Version)
 

@@ -11,6 +11,7 @@ OpenLDAP 2.0.8 Release Engineering
 	Updated ldaptcl
 	Build Environment
 		Updated top.mk
+		Added MacOS support
 	Documentation
 		Updated ldapdelete(1)
 		Updated ldapsearch(1)
