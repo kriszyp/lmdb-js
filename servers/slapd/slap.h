@@ -51,10 +51,6 @@ LDAP_BEGIN_DECL
 
 extern int slap_debug;
 
-#ifdef SLAPD_BDB2
-extern int bdb2i_do_timing;
-#endif
-
 struct slap_op;
 struct slap_conn;
 
@@ -137,18 +133,30 @@ typedef unsigned long	ID;
  * represents an entry in core
  */
 typedef struct entry {
+	ldap_pvt_thread_rdwr_t	e_rdwr;	/* reader/writer lock */
+
 	char		*e_dn;		/* DN of this entry 		  */
 	char		*e_ndn;		/* normalized DN of this entry	  */
 	Attribute	*e_attrs;	/* list of attributes + values    */
 
+
+	/*
+	 * The ID field should only be changed before entry is
+	 * inserted into a cache.  The ID value is backend
+	 * specific.
+	 */
 	ID		e_id;		/* id of this entry - this should */
 					/* really be private to back-ldbm */
+
+	/*
+	 * remaining fields require backend cache lock to access
+	 * These items are specific to the LDBM backend and should
+	 * and should be hidden.
+	 */
 	char		e_state;	/* for the cache		  */
-
-	ldap_pvt_thread_rdwr_t	e_rdwr;	/* reader/writer lock             */
-
-#define ENTRY_STATE_DELETED	1
+#define ENTRY_STATE_DELETED		1
 #define ENTRY_STATE_CREATING	2
+
 	int		e_refcnt;	/* # threads ref'ing this entry   */
 	struct entry	*e_lrunext;	/* for cache lru list		  */
 	struct entry	*e_lruprev;
@@ -275,8 +283,6 @@ struct backend {
 	void	(*be_config) LDAP_P((Backend *be,
 		char *fname, int lineno, int argc, char **argv ));
 	void	(*be_init)   LDAP_P((Backend *be));
-	void	(*be_startup)   LDAP_P((Backend *be));
-	void	(*be_shutdown)  LDAP_P((Backend *be));
 	void	(*be_close)  LDAP_P((Backend *be));
 
 #ifdef SLAPD_ACLGROUPS

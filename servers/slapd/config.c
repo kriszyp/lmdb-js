@@ -33,16 +33,8 @@ static void	fp_parse_line(char *line, int *argcp, char **argv);
 
 static char	*strtok_quote(char *line, char *sep);
 
-/*  the old interface for tools  */
 void
 read_config( char *fname, Backend **bep, FILE *pfp )
-{
-	read_config_env( fname, bep, pfp, 0 );
-}
-
-/*  the new interface for slapd  */
-void
-read_config_env( char *fname, Backend **bep, FILE *pfp, int startup )
 {
 	FILE	*fp;
 	char	*line, *savefname;
@@ -479,8 +471,6 @@ read_config_env( char *fname, Backend **bep, FILE *pfp, int startup )
 		}
 	}
 	fclose( fp );
-
-	if ( startup ) be_startup();
 }
 
 static void

@@ -65,8 +65,6 @@ int be_isroot LDAP_P(( Backend *be, char *ndn ));
 int be_isroot_pw LDAP_P(( Backend *be, char *ndn, struct berval *cred ));
 char* be_root_dn LDAP_P(( Backend *be ));
 void be_close LDAP_P(( void ));
-void be_startup LDAP_P(( void ));
-void be_shutdown LDAP_P(( void ));
 
 /*
  * ch_malloc.c
@@ -93,7 +91,6 @@ char ** str2charray LDAP_P(( char *str, char *brkstr ));
  */
 
 void read_config LDAP_P(( char *fname, Backend **bep, FILE *pfp ));
-void read_config_env LDAP_P(( char *fname, Backend **bep, FILE *pfp, int up ));
 
 /*
  * connection.c
@@ -124,6 +121,7 @@ void entry_free LDAP_P(( Entry *e ));
 int entry_rdwr_lock LDAP_P(( Entry *e, int rw ));
 int entry_rdwr_rlock LDAP_P(( Entry *e ));
 int entry_rdwr_wlock LDAP_P(( Entry *e ));
+int entry_rdwr_trylock LDAP_P(( Entry *e, int rw ));
 int entry_rdwr_unlock LDAP_P(( Entry *e, int rw ));
 int entry_rdwr_runlock LDAP_P(( Entry *e ));
 int entry_rdwr_wunlock LDAP_P(( Entry *e ));
@@ -314,8 +312,6 @@ extern void ldbm_back_close  LDAP_P((Backend *be));
 extern int  ldbm_back_group  LDAP_P((Backend *be, Entry *target,
 	char *gr_ndn, char *op_ndn,
 	char *objectclassValue, char *groupattrName ));
-extern void ldbm_back_startup   LDAP_P((Backend *be));
-extern void ldbm_back_shutdown  LDAP_P((Backend *be));
 #endif
 
 #ifdef SLAPD_PASSWD
