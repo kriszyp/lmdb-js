@@ -154,7 +154,7 @@ parse_acl(
 					}
 
 					if( *right == '\0' ) {
-						a->acl_dn_pat = ch_strdup("^$");
+						a->acl_dn_pat = ch_strdup("anonymous");
 
 					} else if ( strcmp(right, "*") == 0 
 						|| strcmp(right, ".*") == 0 
@@ -274,7 +274,7 @@ parse_acl(
 
 					} else if ( strcmp( right, "*" ) == 0 ) {
 						/* dn=* */
-						/* any or users?  any for now */
+						/* any or users?  users for now */
 						pat = ch_strdup( "users" );
 
 					} else if ( strcmp( right, ".+" ) == 0
