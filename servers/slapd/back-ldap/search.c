@@ -218,12 +218,13 @@ fail:;
 		} else if (rc == LDAP_RES_SEARCH_ENTRY) {
 			Entry ent = {0};
 			struct berval bdn;
+			int abort = 0;
 			e = ldap_first_entry(lc->ld,res);
-			if ( ldap_build_entry(op, e, &ent, &bdn,
-						LDAP_BUILD_ENTRY_PRIVATE) == LDAP_SUCCESS ) {
+			if ( ( rc = ldap_build_entry(op, e, &ent, &bdn,
+						LDAP_BUILD_ENTRY_PRIVATE)) == LDAP_SUCCESS ) {
 				rs->sr_entry = &ent;
 				rs->sr_attrs = op->oq_search.rs_attrs;
-				send_search_entry( op, rs );
+				abort = send_search_entry( op, rs );
 				while (ent.e_attrs) {
 					Attribute *a;
 					BerVarray v;
@@ -245,6 +246,10 @@ fail:;
 					free( ent.e_ndn );
 			}
 			ldap_msgfree(res);
+			if ( abort ) {
+				ldap_abandon(lc->ld, msgid);
+				goto finish;
+			}
 
 		} else if ( rc == LDAP_RES_SEARCH_REFERENCE ) {
 			char		**references = NULL;
