@@ -970,8 +970,11 @@ acl_mask(
 		}
 	}
 
+	/* implicit "by * none" clause */
+	ACL_INIT(*mask);
+
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "aci", LDAP_LEVEL_RESULTS,
+	LDAP_LOG(( "acl", LDAP_LEVEL_RESULTS,
 		   "acl_mask: conn %d  no more <who> clauses, returning %d (stop)\n",
 		   conn->c_connid, accessmask2str( *mask, accessmaskbuf) ));
 #else
