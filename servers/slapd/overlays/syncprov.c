@@ -1587,11 +1587,12 @@ syncprov_db_config(
 typedef struct thread_keys {
 	void *key;
 	void *data;
-	ldap_pvt_thread_pool_keyfree_t *free;
+	ldap_pvt_thread_pool_keyfree_t *xfree;
 } thread_keys;
 
+#define MAXKEYS	32
 /* A fake thread context */
-static thread_keys thrctx[8];
+static thread_keys thrctx[MAXKEYS];
 
 /* Read any existing contextCSN from the underlying db.
  * Then search for any entries newer than that. If no value exists,
@@ -1663,8 +1664,9 @@ syncprov_db_close(
 		syncprov_checkpoint( op, &rs, on );
 	}
 	for ( i=0; thrctx[i].key; i++) {
-		if ( thrctx[i].free )
-			thrctx[i].free( thrctx[i].key, thrctx[i].data );
+		if ( thrctx[i].xfree )
+			thrctx[i].xfree( thrctx[i].key, thrctx[i].data );
+		thrctx[i].key = NULL;
 	}
 
     return 0;
