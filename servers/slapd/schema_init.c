@@ -874,7 +874,10 @@ uniqueMemberNormalize(
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ));
 
 	ber_dupbv( &out, val );
-	if( out.bv_len != 0 ) {
+	if( BER_BVISEMPTY( &out ) ) {
+		*normalized = out;
+
+	} else {
 		struct berval uid = BER_BVNULL;
 
 		if( out.bv_val[out.bv_len-1] == 'B'
