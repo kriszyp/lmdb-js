@@ -534,7 +534,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 		}
 	}
 
-	if ( opinfo ) {
+	if ( opinfo && opinfo->boi_txn ) {
 		ltid = opinfo->boi_txn;
 		locker = TXN_ID( ltid );
 	} else {
