@@ -190,9 +190,8 @@ replication.
 
 H2: What the difference between LDAPv2 and LDAPv3?
 
-There are two versions of LDAP in use today on the Internet.
-LDAPv3 was developed in late 1990's to replace LDAPv2.  LDAPv3
-adds the following features to LDAP:
+LDAPv3 was developed in late 1990's to replace LDAPv2.
+LDAPv3 adds the following features to LDAP:
 
  - Strong Authentication via {{TERM:SASL}}
  - Integrity and Confidential Protections via {{TERM:TLS}} (SSL)
@@ -201,10 +200,9 @@ adds the following features to LDAP:
  - Extensibility (controls and extended operations)
  - Schema Discovery
 
-Supporting both LDAPv2 and LDAPv3 simultaneously can be problematic
-and generally should be avoided.  As LDAPv3 is more consistenly
-implemented and supports all the features of LDAPv2, use of LDAPv3
-is highly recommended.
+LDAPv2 is considered historical.  As deploying both LDAPv2 and
+LDAPv3 simultaneously can be quite problematic, LDAPv2 should should
+be avoided.
 
 
 H2: What is slapd and what can it do?

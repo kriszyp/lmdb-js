@@ -4,7 +4,7 @@
 
 H1: Schema Specification
 
-This chapter describes how to extend the schema used by {{slapd}}(8).
+This chapter describes how to extend the user schema used by {{slapd}}(8).
 The first section, {{SECT:Distributed Schema Files}} details optional
 schema definitions provided in the distribution and where to obtain
 other definitions.
@@ -31,7 +31,6 @@ core.schema		OpenLDAP {{core}} (required)
 cosine.schema		Cosine and Internet X.500 (useful)
 inetorgperson.schema	InetOrgPerson (useful)
 misc.schema		Assorted (experimental)
-nadf.schema		North American Directory Forum (FYI)
 nis.schema		Network Information Services (FYI)
 openldap.schema		OpenLDAP Project (experimental)
 !endblock
@@ -51,15 +50,16 @@ FAQ ({{URL:http://www.openldap.org/faq/}}).
 Note: You should not modify any of the schema items defined
 in provided files.
 
+
 H2: Extending Schema
 
 Schema used by {{slapd}}(8) may be extended to support additional
-syntaxes, matching rules, attribute types, and object classes.
-This chapter details how to add attribute types and object classes
-using the syntaxes and matching rules already supported by slapd.
-slapd can also be extended to support additional syntaxes
-and matching rules, but this requires some programming and hence
-is not discussed here.
+syntaxes, matching rules, attribute types, and object classes.  This
+chapter details how to add user application attribute types and
+object classes using the syntaxes and matching rules already supported
+by slapd.  slapd can also be extended to support additional syntaxes,
+matching rules and system schema, but this requires some programming
+and hence is not discussed here.
 
 There are five steps to defining new schema:
 ^	obtain Object Identifer
@@ -67,6 +67,7 @@ There are five steps to defining new schema:
 +	create local schema file
 +	define custom attribute types (if necessary)
 +	define custom object classes
+
 
 H3: Object Identifiers
 
@@ -196,7 +197,7 @@ where Attribute Type Description is defined by the following
 >
 
 where whsp is a space ('{{EX: }}'), numericoid is a globally unique
-OID in dotted-decimal form (e.g. {{EX:1.2.3}}), qdescrs is one or
+OID in dotted-decimal form (e.g. {{EX:1.1.0}}), qdescrs is one or
 more names, woid is either the name or OID optionally followed
 length specifier (e.g {{EX:{10}}}).
 
@@ -219,7 +220,7 @@ and a brief description.  Each name is an alias for the OID.
 The first attribute, {{EX:name}}, holds values of {{EX:directoryString}}
 (UTF-8 encoded Unicode) syntax.  The syntax are specified by OID
 (1.3.6.1.4.1.1466.115.121.1.15 identifies the directoryString
-syntax).  An length recommendation of 32768 is specified.  Servers
+syntax).  A length recommendation of 32768 is specified.  Servers
 should support values of this length, but may support longer values
 The field does NOT specify a size constraint, so is ignored on
 servers (such as slapd) which don't impose such size limits.  In
@@ -230,7 +231,6 @@ matching rules (OpenLDAP supports these and many more).
 !block table; align=Center; coltags="EX,EX,N"; \
 	title="Table 6.3: Commonly Used Syntaxes"
 Name			OID				Description
-binary			1.3.6.1.4.1.1466.115.121.1.5	BER/DER data
 boolean			1.3.6.1.4.1.1466.115.121.1.7	boolean value
 distinguishedName	1.3.6.1.4.1.1466.115.121.1.12	DN
 directoryString		1.3.6.1.4.1.1466.115.121.1.15	UTF-8 string
@@ -249,9 +249,10 @@ Printable String	1.3.6.1.4.1.1466.115.121.1.44	printable string
 	title="Table 6.4: Commonly Used Matching Rules"
 Name				Type		Description
 booleanMatch			equality	boolean
+octetStringMatch		equality	octet string
 objectIdentiferMatch		equality	OID
 distinguishedNameMatch		equality	DN
-uniqueMemberMatch		equality	DN with optional UID
+uniqueMemberMatch		equality	Name with optional UID
 numericStringMatch		equality	numerical
 numericStringOrderingMatch	ordering	numerical
 numericStringSubstringsMatch	substrings	numerical
@@ -319,9 +320,9 @@ syntax can be defined, e.g.:
 >		SYNTAX 1.3.6.1.4.1.1466.115.121.1.40
 >		SINGLE-VALUE )
 
-As noted in the description, LDAP has no knowledge of the
-format of the photo.  It's assumed that all applications
-accessing this attribute agree on the handling of values.
+In this case, the syntax doesn't specify the format of the photo.
+It's assumed (maybe incorrectly) that all applications accessing
+this attribute agree on the handling of values.
 
 If you wanted to support multiple photo formats, you could define
 a separate attribute type for each format, prefix the photo
@@ -330,7 +331,12 @@ with some typing information, or describe the value using
 
 Another alternative is for the attribute to hold a {{TERM:URI}}
 pointing to the photo.  You can model such an attribute after
-{{EX:labeledURI}} ({{REF:RFC2079}}).
+{{EX:labeledURI}} ({{REF:RFC2079}}) or simply create a subtype,
+e.g.:
+
+>	attributetype ( 1.1.2.1.3 NAME 'myPhotoURI'
+>		DESC 'URI and optional label referring to a photo' 
+>		SUP labeledURI )
 
 
 H3: Object Class Specification
@@ -358,7 +364,7 @@ where Object Class Description is defined by the following
 >		whsp ")"
 
 where whsp is a space ('{{EX: }}'), numericoid is a globally unique
-OID in numeric form (e.g. {{EX:1.2.3}}), qdescrs is one or more
+OID in numeric form (e.g. {{EX:1.1.0}}), qdescrs is one or more
 names, and oids is one or more names and/or OIDs.
 
 
@@ -454,5 +460,33 @@ result in a file with contains of:
 >		MAY 'myPhoto' )
 
 Save in an appropriately named file (e.g. {{F:my.schema}}).
-You may now include this file in your {{slapd.conf}}(8) file.
+You may now include this file in your {{slapd.conf}}(5) file.
 !endif
+
+
+H3: OID Macros
+
+To ease the management and use of OIDs, {{slapd}}(8) supports
+{{Object Identifier}} macros.  The {{EX:objectIdentifier}} is used
+to equate a macro (name) with a OID.  The OID may possibly be derived
+from a previously defined OID macro.   The {{slapd.conf(5)}} syntax
+is:
+
+E:	objectIdentifier <name> { <oid> | <name>[:<suffix>] }
+
+The following demonstrates definition of a set of OID macros
+and their use in defining schema elements:
+
+>	objectIdentifier myOID	1.1
+>	objectIdentifier mySNMP	myOrgOID:1
+>	objectIdentifier myLDAP	myOrgOID:2
+>	objectIdentifier myAttributeType	myOrgLDAP:1
+>	objectIdentifier myObjectClass	myOrgLDAP:2
+>	attributetype ( myAttributeType:3 NAME 'myPhotoURI'
+>		DESC 'URI and optional label referring to a photo' 
+>		SUP labeledURI )
+>	objectclass ( myObjectClass:1 NAME 'myPhotoObject'
+>		DESC 'mixin myPhoto'
+>		AUXILIARY
+>		MAY myPhoto )
+
