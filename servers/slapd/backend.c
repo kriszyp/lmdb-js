@@ -525,7 +525,7 @@ select_backend(
 		for ( j = 0; backends[i].be_nsuffix != NULL &&
 		    backends[i].be_nsuffix[j] != NULL; j++ )
 		{
-			len = strlen( backends[i].be_nsuffix[j] );
+			len = backends[i].be_nsuffix[j]->bv_len;
 
 			if ( len > dnlen ) {
 				/* suffix is longer than DN */
@@ -539,7 +539,7 @@ select_backend(
 			}
 		        
 
-			if ( strcmp( backends[i].be_nsuffix[j], &dn[dnlen-len] ) == 0 ) {
+			if ( strcmp( backends[i].be_nsuffix[j]->bv_val, &dn[dnlen-len] ) == 0 ) {
 				if( be == NULL ) {
 					be = &backends[i];
 
@@ -564,9 +564,13 @@ be_issuffix(
 )
 {
 	int	i;
+	int	len = strlen(suffix);
 
 	for ( i = 0; be->be_nsuffix != NULL && be->be_nsuffix[i] != NULL; i++ ) {
-		if ( strcmp( be->be_nsuffix[i], suffix ) == 0 ) {
+		if ( len != be->be_nsuffix[i]->bv_len ) {
+			continue;
+		}
+		if ( strcmp( be->be_nsuffix[i]->bv_val, suffix ) == 0 ) {
 			return( 1 );
 		}
 	}

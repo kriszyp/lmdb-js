@@ -206,7 +206,7 @@ monitor_back_db_init(
 	monitor_defined++;
 
 	charray_add( &be->be_suffix, SLAPD_MONITOR_DN );
-	charray_add( &be->be_nsuffix, SLAPD_MONITOR_NDN );
+	ber_bvecadd( &be->be_nsuffix, ber_bvstr( SLAPD_MONITOR_NDN ));
 
 	mi = ( struct monitorinfo * )ch_calloc( sizeof( struct monitorinfo ), 1 );
 	ldap_pvt_thread_mutex_init( &mi->mi_cache_mutex );

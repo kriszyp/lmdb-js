@@ -190,7 +190,7 @@ passwd_back_search(
 		if( !be_issuffix( be, parent ) ) {
 			int i;
 			for( i=0; be->be_nsuffix[i] != NULL; i++ ) {
-				if( dn_issuffix( nbase, be->be_nsuffix[i] ) ) {
+				if( dn_issuffix( nbase, be->be_nsuffix[i]->bv_val ) ) {
 					matched = ch_strdup( be->be_suffix[i] );
 					break;
 				}

@@ -899,6 +899,7 @@ read_config( const char *fname )
 
 			} else {
 				char *dn = ch_strdup( cargv[1] );
+
 				if ( load_ucdata( NULL ) < 0 ) {
 					return( 1 );
 				}
@@ -947,8 +948,7 @@ read_config( const char *fname )
 					return 1;
 				}
 #endif /* USE_LDAP_DN_PARSING */
-				charray_add( &be->be_nsuffix, dn );
-				free( dn );
+				ber_bvecadd( &be->be_nsuffix, ber_bvstr( dn ));
 			}
 
 		/* set database suffixAlias */
