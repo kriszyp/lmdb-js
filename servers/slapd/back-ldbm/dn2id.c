@@ -80,7 +80,7 @@ dn2id_add(
 	}
 
 	if ( rc != -1 ) {
-		char **subtree = dn_subtree( NULL, dn );
+		char **subtree = dn_subtree( be, dn );
 
 		if( subtree != NULL ) {
 			int i;
@@ -225,6 +225,12 @@ dn2idl(
 	assert( idlp != NULL );
 	*idlp = NULL;
 
+	if ( prefix == DN_SUBTREE_PREFIX && be_issuffix(be, dn) ) {
+		*idlp = ch_malloc( sizeof(ID) );
+		**idlp = ID_BLOCK_ALLIDS_VALUE;
+		return 0;
+	}
+
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
 		== NULL ) {
 #ifdef NEW_LOGGING
@@ -309,7 +315,7 @@ dn2id_delete(
 	}
 
 	{
-		char **subtree = dn_subtree( NULL, dn );
+		char **subtree = dn_subtree( be, dn );
 
 		if( subtree != NULL ) {
 			int i;
