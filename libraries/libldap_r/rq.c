@@ -9,9 +9,10 @@
 
 #include <ac/stdarg.h>
 #include <ac/stdlib.h>
+#include <ac/errno.h>
+#include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
-#include <ac/errno.h>
 
 #include "ldap-int.h"
 #include "ldap_pvt_thread.h"
