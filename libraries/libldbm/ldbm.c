@@ -51,7 +51,7 @@ static ldap_pvt_thread_mutex_t ldbm_big_mutex;
 
 
 /*  we need a dummy definition for pre-2.0 DB */
-typedef  void  DB_ENV
+typedef  void  DB_ENV;
 
 #endif
 
