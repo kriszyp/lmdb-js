@@ -113,7 +113,7 @@ static int aci_mask(
 	slap_access_t *grant,
 	slap_access_t *deny,
 	slap_aci_scope_t scope);
-#endif
+#endif /* SLAPD_ACI_ENABLED */
 
 static int	regex_matches(
 	struct berval *pat, char *str, char *buf,
@@ -1030,7 +1030,7 @@ acl_mask(
 	char accessmaskbuf[ACCESSMASK_MAXLEN];
 #if !defined( SLAP_DYNACL ) && defined( SLAPD_ACI_ENABLED )
 	char accessmaskbuf1[ACCESSMASK_MAXLEN];
-#endif /* SLAPD_ACI_ENABLED */
+#endif /* !SLAP_DYNACL && SLAPD_ACI_ENABLED */
 #endif /* DEBUG */
 	const char *attr;
 
@@ -1109,7 +1109,8 @@ acl_mask(
 			 * is maintaned in a_dn_pat.
 			 */
 
-			if ( op->o_conn && !BER_BVISNULL( &op->o_conn->c_ndn ) ) {
+			if ( op->o_conn && !BER_BVISNULL( &op->o_conn->c_ndn ) )
+			{
 				ndn = op->o_conn->c_ndn;
 			} else {
 				ndn = op->o_ndn;
@@ -1376,7 +1377,8 @@ acl_mask(
 		if ( b->a_realdn_at != NULL ) {
 			struct berval	ndn;
 
-			if ( op->o_conn && !BER_BVISNULL( &op->o_conn->c_ndn ) ) {
+			if ( op->o_conn && !BER_BVISNULL( &op->o_conn->c_ndn ) )
+			{
 				ndn = op->o_conn->c_ndn;
 			} else {
 				ndn = op->o_ndn;
@@ -1389,87 +1391,6 @@ acl_mask(
 				continue;
 			}
 		}
-
-#if 0
-		if ( b->a_dn_at != NULL ) {
-			Attribute	*at;
-			struct berval	bv;
-			int rc, match = 0;
-			const char *text;
-			const char *attr = b->a_dn_at->ad_cname.bv_val;
-
-			assert( attr != NULL );
-
-			if ( op->o_ndn.bv_len == 0 ) {
-				continue;
-			}
-
-			Debug( LDAP_DEBUG_ACL, "<= check a_dn_at: %s\n",
-				attr, 0, 0);
-			bv = op->o_ndn;
-
-			/* see if asker is listed in dnattr */
-			for( at = attrs_find( e->e_attrs, b->a_dn_at );
-				at != NULL;
-				at = attrs_find( at->a_next, b->a_dn_at ) )
-			{
-				if( value_find_ex( b->a_dn_at,
-					SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
-						SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-					at->a_nvals,
-					&bv, op->o_tmpmemctx ) == 0 )
-				{
-					/* found it */
-					match = 1;
-					break;
-				}
-			}
-
-			if ( match ) {
-				/* have a dnattr match. if this is a self clause then
-				 * the target must also match the op dn.
-				 */
-				if ( b->a_dn_self ) {
-					/* check if the target is an attribute. */
-					if ( val == NULL ) continue;
-
-					/* target is attribute, check if the attribute value
-					 * is the op dn.
-					 */
-					rc = value_match( &match, b->a_dn_at,
-						b->a_dn_at->ad_type->sat_equality, 0,
-						val, &bv, &text );
-					/* on match error or no match, fail the ACL clause */
-					if (rc != LDAP_SUCCESS || match != 0 )
-						continue;
-				}
-
-			} else {
-				/* no dnattr match, check if this is a self clause */
-				if ( ! b->a_dn_self )
-					continue;
-
-				ACL_RECORD_VALUE_STATE;
-				
-				/* this is a self clause, check if the target is an
-				 * attribute.
-				 */
-				if ( val == NULL )
-					continue;
-
-				/* target is attribute, check if the attribute value
-				 * is the op dn.
-				 */
-				rc = value_match( &match, b->a_dn_at,
-					b->a_dn_at->ad_type->sat_equality, 0,
-					val, &bv, &text );
-
-				/* on match error or no match, fail the ACL clause */
-				if (rc != LDAP_SUCCESS || match != 0 )
-					continue;
-			}
-		}
-#endif
 
 		if ( !BER_BVISEMPTY( &b->a_group_pat ) ) {
 			struct berval bv;
@@ -2878,6 +2799,11 @@ aci_mask(
 }
 
 #ifdef SLAP_DYNACL
+/*
+ * FIXME: there is a silly dependence that makes it difficult
+ * to move ACIs in a run-time loadable module under the "dynacl" 
+ * umbrella, because sets share some helpers with ACIs.
+ */
 static int
 dynacl_aci_parse( const char *fname, int lineno, slap_style_t sty, const char *right, void **privp )
 {

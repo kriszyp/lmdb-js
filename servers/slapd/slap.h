@@ -191,7 +191,7 @@ LDAP_BEGIN_DECL
 
 #ifdef SLAPD_ACI_ENABLED
 #define SLAPD_ACI_SYNTAX		"1.3.6.1.4.1.4203.666.2.1"
-#endif
+#endif /* SLAPD_ACI_ENABLED */
 
 /* change this to "OpenLDAPset" */
 #define SLAPD_ACI_SET_ATTR		"template"
@@ -862,7 +862,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_saslAuthzFrom;
 #ifdef SLAPD_ACI_ENABLED
 	AttributeDescription *si_ad_aci;
-#endif
+#endif /* SLAPD_ACI_ENABLED */
 
 	/* dynamic entries */
 	AttributeDescription *si_ad_entryTtl;
@@ -1232,6 +1232,7 @@ typedef struct slap_dynacl_t {
 typedef struct slap_dn_access {
 	/* DN pattern */
 	AuthorizationInformation	a_dnauthz;
+#define	a_pat			a_dnauthz.sai_dn
 
 	slap_style_t		a_style;
 	int			a_level;
@@ -1315,25 +1316,18 @@ typedef struct slap_access {
 	/* DN pattern */
 	slap_dn_access		a_dn;
 #define a_dn_pat		a_dn.a_dnauthz.sai_dn
-#define	a_dn_style		a_dn.a_style
-#define	a_dn_level		a_dn.a_level
-#define	a_dn_self_level		a_dn.a_self_level
 #define	a_dn_at			a_dn.a_at
 #define	a_dn_self		a_dn.a_self
-#define	a_dn_expand		a_dn.a_expand
 
 	/* real DN pattern */
 	slap_dn_access		a_realdn;
 #define a_realdn_pat		a_realdn.a_dnauthz.sai_dn
-#define	a_realdn_style		a_realdn.a_style
-#define	a_realdn_level		a_realdn.a_level
-#define	a_realdn_self_level	a_realdn.a_self_level
 #define	a_realdn_at		a_realdn.a_at
 #define	a_realdn_self		a_realdn.a_self
-#define	a_realdn_expand		a_realdn.a_expand
 
+	/* used for ssf stuff
+	 * NOTE: the ssf stuff in a_realdn is ignored */
 #define	a_authz			a_dn.a_dnauthz
-#define	a_pat			a_dnauthz.sai_dn
 
 	/* connection related stuff */
 	slap_style_t a_peername_style;
@@ -1358,8 +1352,14 @@ typedef struct slap_access {
 	slap_dynacl_t		*a_dynacl;
 #else /* ! SLAP_DYNACL */
 #ifdef SLAPD_ACI_ENABLED
+	/* NOTE: ACIs have been moved under the "dynacl" interface,
+	 * which is currently built only when LDAP_DEVEL is defined.
+	 *
+	 * In any case, SLAPD_ACI_ENABLED, set by --enable-aci,
+	 * is required to enable ACI support.
+	 */
 	AttributeDescription	*a_aci_at;
-#endif
+#endif /* SLAPD_ACI_ENABLED */
 #endif /* SLAP_DYNACL */
 
 	/* ACL Groups */
