@@ -8,6 +8,7 @@ Changes included in OpenLDAP 1.2 Release Engineering
 	Import password security fix from -devel (ITS#232)
 	Provided slapd workaround for "*" attribute type specifier (ITS#236)
 	Fixed slapd attribute type list/only specifier on cn=monitor/config 
+	Enable slapd keep alives.
 	Build environment
 		Updated to latest Autoconf (AnonCVS)
 		Updated to latest aclocal from Automake (AnonCVS)

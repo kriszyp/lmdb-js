@@ -104,10 +104,20 @@ slapd_daemon(
 	i = 1;
 	if ( setsockopt( tcps, SOL_SOCKET, SO_REUSEADDR, (char *) &i,
 	    sizeof(i) ) == -1 ) {
-		Debug( LDAP_DEBUG_ANY, "setsockopt() failed errno %d (%s)",
+		Debug( LDAP_DEBUG_ANY, "setsockopt(reuse) failed errno %d (%s)",
 		    errno, errno > -1 && errno < sys_nerr ? sys_errlist[errno] :
 		    "unknown", 0 );
 	}
+
+#ifdef SO_KEEPALIVE
+	i = 1;
+	if ( setsockopt( tcps, SOL_SOCKET, SO_KEEPALIVE, (char *) &i,
+	    sizeof(i) ) == -1 ) {
+		Debug( LDAP_DEBUG_ANY, "setsockopt(keepalive) failed errno %d (%s)",
+		    errno, errno > -1 && errno < sys_nerr ? sys_errlist[errno] :
+		    "unknown", 0 );
+	}
+#endif
 
 	(void) memset( (void *) &addr, '\0', sizeof(addr) );
 	addr.sin_family = AF_INET;
