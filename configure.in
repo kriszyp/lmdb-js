@@ -914,7 +914,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		dnl 	pthread_create() in $LIBS
 		dnl
 		dnl Check special pthread (final) flags
-		dnl 	pthread_create() with -mt (Solaris)
+		dnl 	[skipped] pthread_create() with -mt (Solaris) [disabled]
 		dnl 	pthread_create() with -kthread (FreeBSD)
 		dnl 	pthread_create() with -pthread (FreeBSD/Digital Unix)
 		dnl 	pthread_create() with -pthreads (?)
@@ -924,7 +924,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		dnl Check pthread (final) libraries
 		dnl 	pthread_mutex_unlock() in -lpthread -lmach -lexc -lc_r (OSF/1)
 		dnl 	pthread_mutex_lock() in -lpthread -lmach -lexc (OSF/1)
-		dnl 	(skipped) pthread_mutex_trylock() in -lpthread -lexc (OSF/1)
+		dnl 	[skipped] pthread_mutex_trylock() in -lpthread -lexc (OSF/1)
 		dnl 	pthread_join() -Wl,-woff,85 -lpthread (IRIX)
 		dnl 	pthread_create() in -lpthread (many)
 		dnl 	pthread_create() in -lc_r (FreeBSD)
@@ -954,7 +954,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			ol_link_pthreads=""
 		fi
 		
-		OL_PTHREAD_TRY([-mt],		[ol_cv_pthread_mt])
+dnl		OL_PTHREAD_TRY([-mt],		[ol_cv_pthread_mt])
 		OL_PTHREAD_TRY([-kthread],	[ol_cv_pthread_kthread])
 		OL_PTHREAD_TRY([-pthread],	[ol_cv_pthread_pthread])
 		OL_PTHREAD_TRY([-pthreads],	[ol_cv_pthread_pthreads])
