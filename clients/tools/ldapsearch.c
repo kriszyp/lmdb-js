@@ -54,6 +54,9 @@ usage( const char *s )
 "  -a deref   one of never (default), always, search, or find\n"
 "  -A         retrieve attribute names only (no values)\n"
 "  -b basedn  base dn for search\n"
+"  -E <ctrl>[=<ctrlparam>] controls\n"
+"             manageDSAit[={no|yes|critical}]   (alternate form, see -M)\n"
+"             mv=<filter>                       (matched values filter)\n"
 "  -F prefix  URL prefix for files (default: %s)\n"
 "  -l limit   time limit (in seconds) for search\n"
 "  -L         print responses in LDIFv1 format\n"
@@ -252,13 +255,6 @@ main( int argc, char **argv )
 	case 'b': /* search base */
 		base = strdup( optarg );
 		break;
-	case 'f':	/* input file */
-		if( infile != NULL ) {
-			fprintf( stderr, "%s: -f previously specified\n", prog );
-			return EXIT_FAILURE;
-		}
-		infile = strdup( optarg );
-		break;
 	case 'E': /* controls */
 		if( version == LDAP_VERSION2 ) {
 			fprintf( stderr, "%s: -C incompatible with LDAPv%d\n",
@@ -271,15 +267,43 @@ main( int argc, char **argv )
 		 */
 
 		control = strdup( optarg );
-		if ( (s = strchr( control, '=' )) == NULL ) {
-			return EXIT_FAILURE;
+		if ( (s = strchr( control, '=' )) != NULL ) {
+			*s++ = '\0';
 		}
 
-		*s++ = '\0';
-		if ( strcasecmp( control, "mv" ) == 0 ) {
+		if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
+			if ( s == NULL ) {
+				manageDSAit = 1;
+
+			} else if ( strcasecmp( s, "no" ) == 0 ) {
+				manageDSAit = 0;
+				
+			} else if ( strcasecmp( s, "yes" ) == 0 ) {
+				manageDSAit = 1;
+				
+			} else if ( strcasecmp( s, "critical" ) == 0 ) {
+				manageDSAit = 2;
+
+			} else {
+				fprintf( stderr, "unknown manageDSAit control "
+						"value: %s (accepts \"no\", "
+						"\"yes\", \"critical\")\n", 
+						s );
+				usage(prog);
+				return EXIT_FAILURE;
+			}
+			free( control );
+			break;
+			
+		} else if ( strcasecmp( control, "mv" ) == 0 ) {
 			/* ValuesReturnFilter control */
 			if (valuesReturnFilter!=0) {
 				fprintf( stderr, "ValuesReturnFilter previously specified");
+				return EXIT_FAILURE;
+			}
+
+			if ( s == NULL ) {
+				fprintf( stderr, "missing filter in ValuesReturnFilter control\n");
 				return EXIT_FAILURE;
 			}
 
@@ -299,7 +323,13 @@ main( int argc, char **argv )
 			usage(prog);
 			return EXIT_FAILURE;
 		}
-
+	case 'f':	/* input file */
+		if( infile != NULL ) {
+			fprintf( stderr, "%s: -f previously specified\n", prog );
+			return EXIT_FAILURE;
+		}
+		infile = strdup( optarg );
+		break;
 	case 'F':	/* uri prefix */
 		if( urlpre ) free( urlpre );
 		urlpre = strdup( optarg );
@@ -922,7 +952,7 @@ main( int argc, char **argv )
 
 			c2.ldctl_value=(*bvalp);
 		}
-	
+
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
 
 		ber_bvfree(bvalp);
