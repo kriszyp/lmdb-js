@@ -870,8 +870,8 @@ do_read( LDAP *ld, FILE *fp, char *dn )
 		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
 
 		fprintf(fp,
-		    "0An error occurred (explanation)\t@%d\t%s\t%d\r\n",
-		    ld_errno, myhost, myport );
+		    "0An error occurred (explanation)\t@%s\t%s\t%d\r\n",
+		    ldap_err2string( ld_errno ), myhost, myport );
 	}
 
 	if ( tmpllist != NULL ) {
