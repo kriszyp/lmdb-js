@@ -19,7 +19,6 @@
 #include <ac/stdlib.h>
 
 #include <ac/ctype.h>
-#include <ac/errno.h>
 #include <ac/signal.h>
 #include <ac/string.h>
 #include <ac/termios.h>
@@ -147,7 +146,7 @@ getpass( const char *prompt )
 	if (no_pass)
 		return(NULL);
 	return(pbuf);
-#endif /* DOS */
+#endif
 }
 
 #endif /* !HAVE_GETPASS */
