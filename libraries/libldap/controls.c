@@ -413,9 +413,8 @@ ldap_create_control(
 	LDAPControl *ctrl;
 	struct berval *bvalp;
 
-	if ( requestOID == NULL || ctrlp == NULL ) {
-		return LDAP_PARAM_ERROR;
-	}
+	assert( requestOID != NULL );
+	assert( ctrlp != NULL );
 
 	ctrl = (LDAPControl *) LDAP_MALLOC( sizeof(LDAPControl) );
 	if ( ctrl == NULL ) {

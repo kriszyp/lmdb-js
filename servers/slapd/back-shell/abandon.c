@@ -38,24 +38,11 @@ shell_back_abandon(
 				break;
 			}
 		}
-		if( pid == -1 ) {
-			LDAP_STAILQ_FOREACH( o, &conn->c_pending_ops, o_next ) {
-				if ( o->o_msgid == msgid ) {
-					pid = (pid_t) o->o_private;
-					break;
-				}
-			}
-		}
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+	}
 
-		if ( pid != -1 ) {
-			Debug( LDAP_DEBUG_ARGS, "shell killing pid %d\n",
-			       (int) pid, 0, 0 );
-			kill( pid, SIGTERM );
-		} else {
-			Debug( LDAP_DEBUG_ARGS, "shell could not find op %d\n",
-			    msgid, 0, 0 );
-		}
+	if ( pid == -1 ) {
+		Debug( LDAP_DEBUG_ARGS, "shell could not find op %d\n", msgid, 0, 0 );
 		return 0;
 	}
 
@@ -65,10 +52,9 @@ shell_back_abandon(
 
 	/* write out the request to the abandon process */
 	fprintf( wfp, "ABANDON\n" );
-	fprintf( wfp, "opid: %ld/%ld\n", op->o_connid, (long) op->o_msgid );
 	fprintf( wfp, "msgid: %d\n", msgid );
 	print_suffixes( wfp, be );
-	fprintf( wfp, "abandonid: %ld/%d\n", op->o_connid, msgid );
+	fprintf( wfp, "pid: %ld\n", (long) pid );
 	fclose( wfp );
 
 	/* no result from abandon */

@@ -21,22 +21,23 @@ int	global_schemacheck = 1; /* schemacheck ON is default */
 static void		oc_usage(void); 
 static void		at_usage(void);
 
-static char *const err2text[SLAP_SCHERR_LAST+1] = {
-	"Success",
+static char *const err2text[] = {
 	"Out of memory",
 	"ObjectClass not found",
 	"ObjectClass inappropriate SUPerior",
+	"ObjectClass operational",
+	"Duplicate objectClass",
 	"AttributeType not found",
 	"AttributeType inappropriate USAGE",
-	"Duplicate objectClass",
+	"AttributeType inappropriate SUPerior",
+	"AttributeType SYNTAX or SUPerior required",
 	"Duplicate attributeType",
-	"Duplicate ldapSyntax",
-	"Duplicate matchingRule",
-	"OID or name required",
-	"SYNTAX or SUPerior required",
 	"MatchingRule not found",
+	"Duplicate matchingRule",
 	"Syntax not found",
 	"Syntax required",
+	"Duplicate ldapSyntax",
+	"OID or name required",
 	"Qualifier not supported",
 	"Invalid NAME",
 	"OID could not be expanded"
@@ -45,7 +46,7 @@ static char *const err2text[SLAP_SCHERR_LAST+1] = {
 char *
 scherr2str(int code)
 {
-	if ( code < 0 || code >= (int)(sizeof(err2text)/sizeof(char *)) ) {
+	if ( code < 0 || SLAP_SCHERR_LAST < code ) {
 		return "Unknown error";
 	} else {
 		return err2text[code];
@@ -118,7 +119,7 @@ parse_oc(
 		return 1;
 	}
 
-	code = oc_add(oc,&err);
+	code = oc_add(oc,1,&err);
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);

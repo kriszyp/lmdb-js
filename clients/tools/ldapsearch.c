@@ -186,9 +186,14 @@ main( int argc, char **argv )
 	int			referrals, timelimit, sizelimit, debug;
 	int		authmethod, version, want_bindpw;
 	LDAP		*ld = NULL;
+	int		valuesReturnFilter;
+	BerElement	*ber;
+	struct berval 	*bvalp;
+	char	*vrFilter  = NULL, *control  = NULL, *s;
+
 
 	infile = NULL;
-	debug = verbose = not = vals2tmp = referrals =
+	debug = verbose = not = vals2tmp = referrals = valuesReturnFilter =
 		attrsonly = manageDSAit = ldif = want_bindpw = 0;
 
 	lutil_log_initialize(argc, argv);
@@ -222,7 +227,7 @@ main( int argc, char **argv )
 
     prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : prog + 1;
 
-	while (( i = getopt( argc, argv, "Aa:b:F:f:Ll:S:s:T:tuz:"
+	while (( i = getopt( argc, argv, "Aa:b:E:F:f:Ll:S:s:T:tuz:"
 		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:Y:Z")) != EOF )
 	{
 	switch( i ) {
@@ -254,6 +259,47 @@ main( int argc, char **argv )
 		}
 		infile = strdup( optarg );
 		break;
+	case 'E': /* controls */
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -C incompatible with LDAPv%d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+
+		/* should be extended to support comma separated list of
+		 *	key/value pairs:  -E foo=123,bar=567
+		 */
+
+		control = strdup( optarg );
+		if ( (s = strchr( control, '=' )) == NULL ) {
+			return EXIT_FAILURE;
+		}
+
+		*s++ = '\0';
+		if ( strcasecmp( control, "mv" ) == 0 ) {
+			/* ValuesReturnFilter control */
+			if (valuesReturnFilter!=0) {
+				fprintf( stderr, "ValuesReturnFilter previously specified");
+				return EXIT_FAILURE;
+			}
+
+			if ( *s == '!' ){
+				s++;
+				valuesReturnFilter=2;
+			} else {
+				valuesReturnFilter=1;
+			}
+
+			vrFilter = s;
+			version = LDAP_VERSION3;
+			break;
+
+		} else {
+			fprintf( stderr, "Invalid control name: %s\n", control );
+			usage(prog);
+			return EXIT_FAILURE;
+		}
+
 	case 'F':	/* uri prefix */
 		if( urlpre ) free( urlpre );
 		urlpre = strdup( optarg );
@@ -829,24 +875,56 @@ main( int argc, char **argv )
 		}
 	}
 
-	if ( manageDSAit ) {
+	if ( manageDSAit || valuesReturnFilter ) {
 		int err;
-		LDAPControl c;
-		LDAPControl *ctrls[2];
-		ctrls[0] = &c;
-		ctrls[1] = NULL;
+		int i=0;
+		LDAPControl c1,c2;
+		LDAPControl *ctrls[3];
+		
+		if ( manageDSAit ) {
+			ctrls[i++]=&c1;
+			ctrls[i] = NULL;
 
-		c.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
-		c.ldctl_value.bv_val = NULL;
-		c.ldctl_value.bv_len = 0;
-		c.ldctl_iscritical = manageDSAit > 1;
+			c1.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+			c1.ldctl_value.bv_val = NULL;
+			c1.ldctl_value.bv_len = 0;
+			c1.ldctl_iscritical = manageDSAit > 1;
+		}
 
+		if ( valuesReturnFilter ) {
+			struct berval *bvalp;
+			ctrls[i++]=&c2;
+			ctrls[i] = NULL;
+
+			c2.ldctl_oid = LDAP_CONTROL_VALUESRETURNFILTER;
+			c2.ldctl_iscritical = valuesReturnFilter > 1;
+		    
+		        if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) 
+				exit( EXIT_FAILURE );
+
+		    	if ( err = put_vrFilter(ber, vrFilter)==-1 ) {
+				ber_free( ber, 1 );
+				fprintf( stderr, "Bad ValuesReturnFilter: %s\n", vrFilter );
+				exit( EXIT_FAILURE );
+			}
+
+			if ( ber_flatten( ber, &bvalp ) == LBER_ERROR ) 
+				return LDAP_NO_MEMORY;
+
+			c2.ldctl_value=(*bvalp);
+
+		}
+	
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
 
+		ber_bvfree(bvalp);
+		ber_free( ber, 1 );
+
 		if( err != LDAP_OPT_SUCCESS ) {
-			fprintf( stderr, "Could not set ManageDSAit %scontrol\n",
-				c.ldctl_iscritical ? "critical " : "" );
-			if( c.ldctl_iscritical ) {
+			fprintf( stderr, "Could not set %scontrols\n",
+				(c1.ldctl_iscritical || c2.ldctl_iscritical)
+				? "critical " : "" );
+			if( c1.ldctl_iscritical && c2.ldctl_iscritical ) {
 				exit( EXIT_FAILURE );
 			}
 		}

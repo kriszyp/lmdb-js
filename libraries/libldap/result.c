@@ -103,15 +103,6 @@ ldap_result(
 	Debug( LDAP_DEBUG_TRACE, "ldap_result msgid %d\n", msgid, 0, 0 );
 #endif
 
-	if( ld == NULL ) {
-		return -1;
-	}
-
-	if( result == NULL ) {
-		ld->ld_errno = LDAP_PARAM_ERROR;
-		return -1;
-	}
-
     lm = chkResponseList(ld, msgid, all);
 
 	if ( lm == NULL ) {

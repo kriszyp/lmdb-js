@@ -75,11 +75,6 @@ ldap_sasl_bind(
 	rc = ldap_int_client_controls( ld, cctrls );
 	if( rc != LDAP_SUCCESS ) return rc;
 
-	if( msgidp == NULL ) {
-		ld->ld_errno = LDAP_PARAM_ERROR;
-		return ld->ld_errno;
-	}
-
 	if( mechanism == LDAP_SASL_SIMPLE ) {
 		if( dn == NULL && cred != NULL ) {
 			/* use default binddn */
@@ -268,10 +263,6 @@ ldap_parse_sasl_bind_result(
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
 	assert( res != NULL );
-
-	if ( ld == NULL || res == NULL ) {
-		return LDAP_PARAM_ERROR;
-	}
 
 	if( servercredp != NULL ) {
 		if( ld->ld_version < LDAP_VERSION2 ) {

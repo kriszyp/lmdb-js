@@ -1,20 +1,61 @@
-.TH LDAPDELETE 1 "13 November 1995" "U-M LDAP LDVERSION"
+.TH LDAPDELETE 1 "20 August 2001" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldapdelete \- ldap delete entry tool
+ldapdelete \- LDAP delete entry tool
 .SH SYNOPSIS
 .B ldapdelete
-.B [\-n]
-.B [\-v]
-.B [\-k]
-.B [\-K]
-.B [\-c]
-.B [\-d debuglevel]
-.B [\-f file]
-.B [\-D binddn]
-.B [\-w passwd]
-.B [\-h ldaphost]
-.B [\-p ldapport]
-.B [dn]...
+[\c
+.BR \-n ]
+[\c
+.BR \-v ]
+[\c
+.BR \-k ]
+[\c
+.BR \-K ]
+[\c
+.BR \-c ]
+[\c
+.BR \-C ]
+[\c
+.BR \-M[M] ]
+[\c
+.BI \-d \ debuglevel\fR]
+[\c
+.BI \-f \ file\fR]
+[\c
+.BI \-D \ binddn\fR]
+[\c
+.BR \-W ]
+[\c
+.BI \-w \ passwd\fR]
+[\c
+.BI \-H \ ldapuri\fR]
+[\c
+.BI \-h \ ldaphost\fR]
+[\c
+.BI \-P \ 2\fR\||\|\fI3\fR]
+[\c
+.BI \-p \ ldapport\fR]
+[\c
+.BR \-O \ security-properties ]
+[\c
+.BI \-U \ authcid\fR]
+[\c
+.BR \-x ]
+[\c
+.BR \-I ]
+[\c
+.BR \-Q ]
+[\c
+.BI \-X \ authzid\fR]
+[\c
+.BI \-Y \ mech\fR]
+[\c
+.BR \-Z[Z] ]
+[\c
+.IR dn ]...
 .SH DESCRIPTION
 .I ldapdelete
 is a shell-accessible interface to the
@@ -23,9 +64,10 @@ library call.
 .LP
 .B ldapdelete
 opens a connection to an LDAP server, binds, and deletes one or more
-entries.  If one or more \fIdn\fP arguments are provided, entries with
-those Distinguished Names are deleted.  Each \fIdn\fP should be a
-string-represented DN as defined in RFC 1779.  If no \fIdn\fP arguments
+entries.  If one or more \fIDN\fP arguments are provided, entries with
+those Distinguished Names are deleted.  Each \fIDN\fP should be provided
+using the LDAPv3 string representation as defined in RFC 2253.
+If no \fIdn\fP arguments
 are provided, a list of DNs is read from standard input (or from
 \fIfile\fP if the -f flag is used).
 .SH OPTIONS
@@ -38,16 +80,19 @@ debugging in conjunction with -v.
 Use verbose mode, with many diagnostics written to standard output.
 .TP
 .B \-k
-Use Kerberos authentication instead of simple authentication.  It is
+Use Kerberos IV authentication instead of simple authentication.  It is
 assumed that you already have a valid ticket granting ticket. This option
 only has effect if
 . B ldapdelete
-is compiled with KERBEROS defined.
+is compiled with Kerberos support.
 .TP
 .B \-K
-Same as \-k, but only does step 1 of the kerberos bind.  This is useful
+Same as \-k, but only does step 1 of the Kerberos IV bind.  This is useful
 when connecting to a slapd and there is no x500dsa.hostname principal
-registered with your kerberos servers.
+registered with your Kerberos Domain Controller(s).
+.TP
+.B \-C
+Automatically chase referrals.
 .TP
 .B \-c
 Continuous operation mode.  Errors  are  reported,  but
@@ -55,55 +100,110 @@ Continuous operation mode.  Errors  are  reported,  but
 will  continue  with  deletions.   The default is to exit after
 reporting an error.
 .TP
-.B \-d debuglevel
+.B \-M[M]
+Enable manage DSA IT control.
+.B \-MM
+makes control critical.
+.TP
+.BI \-d \ debuglevel
 Set the LDAP debugging level to \fIdebuglevel\fP.
 .B ldapdelete
 must be compiled with LDAP_DEBUG defined for this option to have any effect.
 .TP
-.B \-f file
-Read a series of lines from \fIfile\fP, performing one LDAP search for
-each line.  In this case, the \fIfilter\fP given on the command line
-is treated as a pattern where the first occurrence of \fB%s\fP is
-replaced with a line from \fIfile\fP.
+.BI \-f \ file
+Read a series of DNs from \fIfile\fP, one per line, performing an
+LDAP delete for each.
 .TP
-.B \-D binddn
-Use \fIbinddn\fP to bind to the X.500 directory. \fIbinddn\fP should be
-a string-represented DN as defined in RFC 1779.
+.B \-x 
+Use simple authentication instead of SASL.
 .TP
-.B \-w passwd
+.BI \-D \ binddn
+Use the Distinguished Name \fIbinddn\fP to bind to the LDAP directory.
+.TP
+.B \-W
+Prompt for simple authentication.
+This is used instead of specifying the password on the command line.
+.TP
+.BI \-w \ passwd
 Use \fIpasswd\fP as the password for simple authentication.
 .TP
-.B \-h ldaphost
-Specify an alternate host on which the ldap server is running.
+.BI \-H \ ldapuri
+Specify URI(s) referring to the ldap server(s).
 .TP
-.B \-p ldapport
+.BI \-h \ ldaphost
+Specify an alternate host on which the ldap server is running.
+Deprecated in favor of -H.
+.TP
+.BI \-p \ ldapport
 Specify an alternate TCP port where the ldap server is listening.
+Deprecated in favor of -H.
+.TP
+.BI \-P \ 2\fR\||\|\fI3
+Specify the LDAP protocol version to use.
+.TP
+.B \-r
+Do a recursive delete.  If the DN specified isn't a leaf, its
+children, and all their children are deleted down the tree.  No
+verification is done, so if you add this switch, ldapdelete will
+happily delete large portions of your tree.  Use with care.
+.TP
+.BI \-O \ security-properties
+Specify SASL security properties.
+.TP
+.B \-I
+Enable SASL Interactive mode.  Always prompt.  Default is to prompt
+only as needed.
+.TP
+.B \-Q
+Enable SASL Quiet mode.  Never prompt.
+.TP
+.BI \-U \ authcid
+Specify the authentication ID for SASL bind. The form of the identity depends on the
+actual SASL mechanism used.
+.TP
+.BI \-X \ authzid
+Specify the requested authorization ID for SASL bind.
+.I authzid
+must be one of the following formats:
+.B dn:\c
+.I <distinguished name>
+or
+.B u:\c
+.I <username>
+.TP
+.BI \-Y \ mech
+Specify the SASL mechanism to be used for authentication. If it's not
+specified, the program will choose the best mechanism the server knows.
+.TP
+.B \-Z[Z]
+Issue StartTLS (Transport Layer Security) extended operation. If you use
+.B \-ZZ\c
+, the command will require the operation to be successful.
 .SH EXAMPLE
 The following command:
 .LP
 .nf
-    ldapdelete "cn=Delete Me, o=University of Michigan, c=US"
+    ldapdelete "cn=Delete Me,dc=example,dc=com"
 .fi
 .LP
-will attempt to delete the entry named with commonName "Delete Me"
-directly below the University of Michigan organizational entry.  Of
-course it would probably be necessary to supply a \fIbinddn\fP and
-\fIpasswd\fP for deletion to be allowed (see the -D and -w options).
+will attempt to delete the entry named "cn=Delete Me,dc=example,dc=com".
+Of course it would probably be necessary to supply authentication
+credentials.
 .SH DIAGNOSTICS
 Exit status is 0 if no errors occur.  Errors result in a non-zero exit
 status and a diagnostic message being written to standard error.
 .SH "SEE ALSO"
+.BR ldap.conf (5),
 .BR ldapadd (1),
 .BR ldapmodify (1),
 .BR ldapmodrdn (1),
 .BR ldapsearch (1),
 .BR ldap (3),
 .BR ldap_delete (3)
-.LP
-Kille, S.,
-.IR "A String Representation of Distinguished Names",
-.SM RFC
-1779,
-ISODE Consortium, March 1995.
-.SH BUGS
-There is no interactive mode, but there probably should be.
+.SH AUTHOR
+The OpenLDAP Project <http://www.openldap.org/>
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

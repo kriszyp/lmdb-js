@@ -321,13 +321,17 @@ slap_passwd_hash(
 #endif
 
 	tmp = lutil_passwd_hash( cred , hash );
-	assert( tmp != NULL );
 	
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 	ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 #endif
+
+	if( tmp == NULL ) {
+		new->bv_len = 0;
+		new->bv_val = NULL;
+	}
+
 	*new = *tmp;
 	free( tmp );
-
 	return;
 }

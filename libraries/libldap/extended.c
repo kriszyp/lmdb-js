@@ -60,11 +60,6 @@ ldap_extended_operation(
 		return( ld->ld_errno );
 	}
 
-	if( reqoid == NULL || *reqoid == '\0' || msgidp == NULL ) {
-		ld->ld_errno = LDAP_PARAM_ERROR;
-		return( ld->ld_errno );
-	}
-
 	/* create a message to send */
 	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
@@ -131,11 +126,6 @@ ldap_extended_operation_s(
 	assert( LDAP_VALID( ld ) );
 	assert( reqoid != NULL || *reqoid == '\0' );
 	assert( retoidp != NULL || retdatap != NULL );
-
-	if( retoidp == NULL || retdatap == NULL ) {
-		ld->ld_errno = LDAP_PARAM_ERROR;
-		return( ld->ld_errno );
-	}
 
     rc = ldap_extended_operation( ld, reqoid, reqdata,
 		sctrls, cctrls, &msgid );

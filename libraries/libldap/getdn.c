@@ -90,10 +90,9 @@ ldap_get_dn( LDAP *ld, LDAPMessage *entry )
 	Debug( LDAP_DEBUG_TRACE, "ldap_get_dn\n", 0, 0, 0 );
 #endif
 
-	if ( entry == NULL ) {
-		ld->ld_errno = LDAP_PARAM_ERROR;
-		return( NULL );
-	}
+	assert( ld != NULL );
+	assert( LDAP_VALID(ld) );
+	assert( entry != NULL );
 
 	tmp = *entry->lm_ber;	/* struct copy */
 	if ( ber_scanf( &tmp, "{a" /*}*/, &dn ) == LBER_ERROR ) {
@@ -2878,7 +2877,7 @@ ldap_rdn2bv( LDAPRDN *rdn, struct berval *bv, unsigned flags )
 		break;
 
 	default:
-		return( LDAP_PARAM_ERROR );
+		return LDAP_PARAM_ERROR;
 	}
 
 	bv->bv_val = LDAP_MALLOC( l + 1 );

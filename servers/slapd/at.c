@@ -235,7 +235,7 @@ at_insert(
 				 (AVL_DUP) avl_dup_error ) ) {
 			*err = sat->sat_oid;
 			ldap_memfree(air);
-			return SLAP_SCHERR_DUP_ATTR;
+			return SLAP_SCHERR_ATTR_DUP;
 		}
 		/* FIX: temporal consistency check */
 		at_bvfind(&air->air_name);
@@ -253,7 +253,7 @@ at_insert(
 					 (AVL_DUP) avl_dup_error ) ) {
 				*err = *names;
 				ldap_memfree(air);
-				return SLAP_SCHERR_DUP_ATTR;
+				return SLAP_SCHERR_ATTR_DUP;
 			}
 			/* FIX: temporal consistency check */
 			at_bvfind(&air->air_name);
@@ -371,6 +371,11 @@ at_add(
 			/* subtypes must have same usage as their SUP */
 			return SLAP_SCHERR_ATTR_BAD_USAGE;
 		}
+
+		if ( sat->sat_flags & SLAP_AT_FINAL ) {
+			/* cannot subtype a "final" attribute type */
+			return SLAP_SCHERR_ATTR_BAD_SUP;
+		}
 	}
 
 	/*
@@ -467,6 +472,9 @@ at_schema_info( Entry *e )
 		if ( ldap_attributetype2bv( &at->sat_atype, vals ) == NULL ) {
 			return -1;
 		}
+
+		if( at->sat_flags & SLAP_AT_HIDE ) continue;
+
 #if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging at [%ld] %s\n",
 		       (long) vals[0].bv_len, vals[0].bv_val, 0 );

@@ -36,7 +36,6 @@ shell_back_unbind(
 
 	/* write out the request to the unbind process */
 	fprintf( wfp, "UNBIND\n" );
-	fprintf( wfp, "opid: %ld/%ld\n", op->o_connid, (long) op->o_msgid );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
 	fprintf( wfp, "dn: %s\n", (conn->c_dn.bv_len ? conn->c_dn.bv_val : "") );

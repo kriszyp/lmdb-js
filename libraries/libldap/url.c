@@ -886,10 +886,10 @@ ldap_url_parselist (LDAPURLDesc **ludlist, const char *url )
 	LDAPURLDesc *ludp;
 	char **urls;
 
-	*ludlist = NULL;
+	assert( ludlist != NULL );
+	assert( url != NULL );
 
-	if (url == NULL)
-		return LDAP_PARAM_ERROR;
+	*ludlist = NULL;
 
 	urls = ldap_str2charray(url, ", ");
 	if (urls == NULL)
@@ -923,10 +923,10 @@ ldap_url_parsehosts(
 	LDAPURLDesc *ludp;
 	char **specs, *p;
 
-	*ludlist = NULL;
+	assert( ludlist != NULL );
+	assert( hosts != NULL );
 
-	if (hosts == NULL)
-		return LDAP_PARAM_ERROR;
+	*ludlist = NULL;
 
 	specs = ldap_str2charray(hosts, ", ");
 	if (specs == NULL)

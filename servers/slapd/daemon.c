@@ -55,12 +55,12 @@ do { if (w) tcp_write( wake_sds[1], "0", 1 ); } while(0)
 #ifndef HAVE_WINSOCK
 static
 #endif
-volatile sig_atomic_t slapd_shutdown = 0;
+volatile sig_atomic_t slapd_shutdown = 0, slapd_gentle_shutdown = 0;
 
 static struct slap_daemon {
 	ldap_pvt_thread_mutex_t	sd_mutex;
 
-	int sd_nactives;
+	ber_socket_t sd_nactives;
 
 #ifndef HAVE_WINSOCK
 	/* In winsock, accept() returns values higher than dtblsize
@@ -192,6 +192,8 @@ static void slapd_add(ber_socket_t s) {
 	}
 #endif
 
+	slap_daemon.sd_nactives++;
+
 	FD_SET( s, &slap_daemon.sd_actives );
 	FD_SET( s, &slap_daemon.sd_readers );
 
@@ -216,6 +218,8 @@ static void slapd_add(ber_socket_t s) {
 void slapd_remove(ber_socket_t s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
+	slap_daemon.sd_nactives--;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
 		   "slapd_remove: removing %ld%s%s\n",
@@ -233,7 +237,7 @@ void slapd_remove(ber_socket_t s, int wake) {
 	FD_CLR( s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-	WAKE_LISTENER(wake);
+	WAKE_LISTENER(wake || slapd_gentle_shutdown < 0);
 }
 
 void slapd_clr_write(ber_socket_t s, int wake) {
@@ -980,6 +984,34 @@ slapd_daemon_destroy(void)
 }
 
 
+static void
+close_listeners(
+	int remove
+)
+{
+	int l;
+
+	for ( l = 0; slap_listeners[l] != NULL; l++ ) {
+		if ( remove )
+			slapd_remove( slap_listeners[l]->sl_sd, 0 );
+		if ( slap_listeners[l]->sl_sd != AC_SOCKET_INVALID ) {
+#ifdef LDAP_PF_LOCAL
+			if ( slap_listeners[l]->sl_sa.sa_addr.sa_family == AF_LOCAL ) {
+				unlink( slap_listeners[l]->sl_sa.sa_un_addr.sun_path );
+			}
+#endif /* LDAP_PF_LOCAL */
+			slapd_close( slap_listeners[l]->sl_sd );
+		}
+		if ( slap_listeners[l]->sl_url )
+			free ( slap_listeners[l]->sl_url );
+		if ( slap_listeners[l]->sl_name )
+			free ( slap_listeners[l]->sl_name );
+		free ( slap_listeners[l] );
+		slap_listeners[l] = NULL;
+	}
+}
+
+
 static void *
 slapd_daemon_task(
 	void *ptr
@@ -1065,6 +1097,26 @@ slapd_daemon_task(
 				connections_timeout_idle( now );
 			}
 		}
+
+#ifdef SIGHUP
+		if( slapd_gentle_shutdown ) {
+			ber_socket_t active;
+
+			if( slapd_gentle_shutdown > 0 ) {
+				Debug( LDAP_DEBUG_ANY, "slapd gentle shutdown\n", 0, 0, 0 );
+				close_listeners( 1 );
+				slapd_gentle_shutdown = -1;
+			}
+
+			ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+			active = slap_daemon.sd_nactives;
+			ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
+			if( active == 0 ) {
+				slapd_shutdown = -1;
+				break;
+			}
+		}
+#endif
 
 		FD_ZERO( &writefds );
 		FD_ZERO( &readfds );
@@ -1716,21 +1768,8 @@ slapd_daemon_task(
 #endif
 	}
 
-	for ( l = 0; slap_listeners[l] != NULL; l++ ) {
-		if ( slap_listeners[l]->sl_sd != AC_SOCKET_INVALID ) {
-#ifdef LDAP_PF_LOCAL
-			if ( slap_listeners[l]->sl_sa.sa_addr.sa_family == AF_LOCAL ) {
-				unlink( slap_listeners[l]->sl_sa.sa_un_addr.sun_path );
-			}
-#endif /* LDAP_PF_LOCAL */
-			slapd_close( slap_listeners[l]->sl_sd );
-		}
-		if ( slap_listeners[l]->sl_url )
-			free ( slap_listeners[l]->sl_url );
-		if ( slap_listeners[l]->sl_name )
-			free ( slap_listeners[l]->sl_name );
-		free ( slap_listeners[l] );
-	}
+	if( slapd_gentle_shutdown >= 0 )
+		close_listeners ( 0 );
 	free ( slap_listeners );
 	slap_listeners = NULL;
 
@@ -1861,6 +1900,11 @@ slap_sig_shutdown( int sig )
 	    Debug(LDAP_DEBUG_TRACE, "slap_sig_shutdown: SIGBREAK ignored.\n",
 		  0, 0, 0);
 #endif
+	else
+#endif
+#ifdef SIGHUP
+	if (sig == SIGHUP && global_gentlehup && slapd_gentle_shutdown == 0)
+		slapd_gentle_shutdown = 1;
 	else
 #endif
 	slapd_shutdown = 1;

@@ -399,7 +399,11 @@ ldap_int_thread_pool_wrapper (
 		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
 		(ctx->ltc_start_routine)(ctx->ltc_arg);
+
+		ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 		LDAP_SLIST_INSERT_HEAD(&pool->ltp_free_list, ctx, ltc_next.l);
+		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+
 		ldap_pvt_thread_yield();
 
 		/* if we use an idle timer, here's

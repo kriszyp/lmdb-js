@@ -526,7 +526,7 @@ LDAP_SLAPD_F (int) filter_matched_values(
 	Backend		*be,
 	Connection	*conn,
 	Operation	*op,
-	Entry		*e,
+	Attribute	*a,
 	char		***e_flags );
 
 /*
@@ -626,6 +626,7 @@ LDAP_SLAPD_F (void) mra_free LDAP_P((
 /* oc.c */
 LDAP_SLAPD_F (int) oc_add LDAP_P((
 	LDAPObjectClass *oc,
+	int user,
 	const char **err));
 LDAP_SLAPD_F (void) oc_destroy LDAP_P(( void ));
 
@@ -1016,6 +1017,7 @@ LDAP_SLAPD_V (const char) 	Versionstr[];
 LDAP_SLAPD_V (struct slap_limits_set)		deflimit;
 
 LDAP_SLAPD_V (slap_access_t)	global_default_access;
+LDAP_SLAPD_V (int)		global_gentlehup;
 LDAP_SLAPD_V (int)		global_idletimeout;
 LDAP_SLAPD_V (int)		global_schemacheck;
 LDAP_SLAPD_V (char *)	global_host;
