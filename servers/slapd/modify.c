@@ -609,7 +609,6 @@ int slap_mods_opattrs(
 			tmpval.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
 			tmpval.bv_val = uuidbuf;
 		
-#if 0
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;
 			mod->sml_type.bv_val = NULL;
@@ -620,7 +619,6 @@ int slap_mods_opattrs(
 			assert( mod->sml_bvalues[0].bv_val );
 			*modtail = mod;
 			modtail = &mod->sml_next;
-#endif
 
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;
@@ -647,7 +645,6 @@ int slap_mods_opattrs(
 	}
 
 	if( SLAP_LASTMOD(be) ) {
-#if 0
 		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		mod->sml_op = mop;
 		mod->sml_type.bv_val = NULL;
@@ -658,7 +655,6 @@ int slap_mods_opattrs(
 		assert( mod->sml_bvalues[0].bv_val );
 		*modtail = mod;
 		modtail = &mod->sml_next;
-#endif
 
 		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		mod->sml_op = mop;
