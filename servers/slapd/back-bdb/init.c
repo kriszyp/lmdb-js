@@ -93,6 +93,7 @@ bdb_db_init( BackendDB *be )
 
 	LDAP_LIST_INIT (&bdb->bi_psearch_list);
 
+	ldap_pvt_thread_mutex_init( &bdb->bi_database_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_dntree.bei_kids_mutex );
@@ -397,14 +398,14 @@ bdb_db_open( BackendDB *be )
 #ifdef HAVE_EBCDIC
 		strcpy( path, bdbi_databases[i].file );
 		__atoe( path );
-		rc = DB_OPEN( db->bdi_db, NULL,
+		rc = DB_OPEN( db->bdi_db,
 			path,
 		/*	bdbi_databases[i].name, */ NULL,
 			bdbi_databases[i].type,
 			bdbi_databases[i].flags | flags | DB_AUTO_COMMIT,
 			bdb->bi_dbenv_mode );
 #else
-		rc = DB_OPEN( db->bdi_db, NULL,
+		rc = DB_OPEN( db->bdi_db,
 			bdbi_databases[i].file,
 		/*	bdbi_databases[i].name, */ NULL,
 			bdbi_databases[i].type,
@@ -539,6 +540,7 @@ bdb_db_destroy( BackendDB *be )
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.c_dntree.bei_kids_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_lastid_mutex );
+	ldap_pvt_thread_mutex_destroy( &bdb->bi_database_mutex );
 #ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_max_size ) {
 		ldap_pvt_thread_rdwr_destroy( &bdb->bi_idl_tree_rwlock );

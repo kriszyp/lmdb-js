@@ -55,7 +55,6 @@ int bdb_get_commit_csn LDAP_P(( Operation *op, SlapReply *rs,
 int
 bdb_db_cache(
     Backend	*be,
-    DB_TXN *tid,
     const char *name,
 	DB **db );
 
