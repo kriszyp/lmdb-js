@@ -242,11 +242,22 @@ ldap_back_getconn(struct ldapinfo *li, Operation *op, SlapReply *rs)
 	LDAP *ld;
 	int is_priv = 0;
 
+	/*
+	 * The local DN is the op->o_req_ndn if binding, otherwise
+	 * it's the op->o_conn->c_ndn
+	 */
+	struct berval *cdn	= &op->o_conn->c_ndn;
+
 	/* Searches for a ldapconn in the avl tree */
 
 	/* Explicit binds must not be shared */
 	if ( op->o_tag == LDAP_REQ_BIND ) {
 		lc_curr.conn = op->o_conn;
+		cdn = &op->o_req_ndn;
+		
+	} else if ( op->o_conn->c_ndn.bv_len ) {
+		lc_curr.conn = op->o_conn;
+
 	} else {
 		lc_curr.conn = NULL;
 	}
@@ -256,7 +267,7 @@ ldap_back_getconn(struct ldapinfo *li, Operation *op, SlapReply *rs)
 		lc_curr.local_dn = li->be->be_rootndn;
 		is_priv = 1;
 	} else {
-		lc_curr.local_dn = op->o_ndn;
+		lc_curr.local_dn = *cdn;
 	}
 	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 	lc = (struct ldapconn *)avl_find( li->conntree, 
@@ -277,7 +288,10 @@ ldap_back_getconn(struct ldapinfo *li, Operation *op, SlapReply *rs)
 		/* Set LDAP version. This will always succeed: If the client
 		 * bound with a particular version, then so can we.
 		 */
-		ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &vers);
+		ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION,
+				(const void *)&vers);
+		/* FIXME: configurable? */
+		ldap_set_option(ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON);
 
 		lc = (struct ldapconn *)ch_malloc(sizeof(struct ldapconn));
 		lc->conn = lc_curr.conn;
@@ -296,11 +310,15 @@ ldap_back_getconn(struct ldapinfo *li, Operation *op, SlapReply *rs)
 #ifdef ENABLE_REWRITE
 		/*
 		 * Sets a cookie for the rewrite session
+		 *
+		 * FIXME: the o_conn might be no longer valid,
+		 * since we may have different entries
+		 * for the same connection
 		 */
 		( void )rewrite_session_init( li->rwinfo, op->o_conn );
 #endif /* ENABLE_REWRITE */
 
-		if ( op->o_conn->c_dn.bv_len != 0 ) {
+		if ( !is_priv && op->o_conn->c_dn.bv_len != 0 ) {
 			
 			/*
 			 * Rewrite the bind dn if needed
