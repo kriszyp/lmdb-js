@@ -22,7 +22,6 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/time.h>
-#include <ac/ctype.h>
 
 #include "ldap-int.h"
 

@@ -16,7 +16,6 @@
 
 #include <ac/stdlib.h>
 
-#include <ac/ctype.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
@@ -578,7 +577,7 @@ put_filter( BerElement *ber, char *str )
 			parens++;
 
 			/* skip spaces */
-			while( isspace( *str ) ) str++;
+			while( LDAP_SPACE( *str ) ) str++;
 
 			switch ( *str ) {
 			case '&':
@@ -690,7 +689,7 @@ put_filter_list( BerElement *ber, char *str )
 	Debug( LDAP_DEBUG_TRACE, "put_filter_list \"%s\"\n", str, 0, 0 );
 
 	while ( *str ) {
-		while ( *str && isspace( (unsigned char) *str ) )
+		while ( *str && LDAP_SPACE( (unsigned char) *str ) )
 			str++;
 		if ( *str == '\0' )
 			break;

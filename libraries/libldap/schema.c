@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include <ac/stdlib.h>
 
-#include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/time.h>
 
@@ -131,7 +130,7 @@ append_to_safe_string(safe_string * ss, char * s)
 	}
 	strncpy(&ss->val[ss->pos], s, l);
 	ss->pos += l;
-	if ( ss->pos > 0 && isspace(ss->val[ss->pos-1]) )
+	if ( ss->pos > 0 && LDAP_SPACE(ss->val[ss->pos-1]) )
 		ss->at_whsp = 1;
 	else
 		ss->at_whsp = 0;
@@ -637,7 +636,7 @@ get_token(const char ** sp, char ** token_val)
 	default:
 		kind = TK_BAREWORD;
 		p = *sp;
-		while ( !isspace(**sp) &&
+		while ( !LDAP_SPACE(**sp) &&
 			**sp != '(' &&
 			**sp != ')' &&
 			**sp != '$' &&
@@ -665,7 +664,7 @@ get_token(const char ** sp, char ** token_val)
 static void
 parse_whsp(const char **sp)
 {
-	while (isspace(**sp))
+	while (LDAP_SPACE(**sp))
 		(*sp)++;
 }
 
@@ -694,7 +693,7 @@ parse_numericoid(const char **sp, int *code, const int flags)
 	}
 	/* Each iteration of this loop gets one decimal string */
 	while (**sp) {
-		if ( !isdigit(**sp) ) {
+		if ( !LDAP_DIGIT(**sp) ) {
 			/*
 			 * Initial char is not a digit or char after dot is
 			 * not a digit
@@ -703,7 +702,7 @@ parse_numericoid(const char **sp, int *code, const int flags)
 			return NULL;
 		}
 		(*sp)++;
-		while ( isdigit(**sp) )
+		while ( LDAP_DIGIT(**sp) )
 			(*sp)++;
 		if ( **sp != '.' )
 			break;
@@ -838,7 +837,7 @@ parse_noidlen(const char **sp, int *code, int *len, int allow_quoted)
 	if ( **sp == '{' /*}*/ ) {
 		(*sp)++;
 		*len = atoi(*sp);
-		while ( isdigit(**sp) )
+		while ( LDAP_DIGIT(**sp) )
 			(*sp)++;
 		if ( **sp != /*{*/ '}' ) {
 			*code = LDAP_SCHERR_UNEXPTOKEN;

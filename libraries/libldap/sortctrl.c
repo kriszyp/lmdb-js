@@ -23,7 +23,6 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/time.h>
-#include <ac/ctype.h>
 
 #include "ldap-int.h"
 
@@ -48,7 +47,7 @@ static int countKeys(char *keyString)
 
 	for (;;)
 	{
-		while (isspace(*p))		 /* Skip leading whitespace */
+		while (LDAP_SPACE(*p))		 /* Skip leading whitespace */
 			p++;
 
 		if (*p == '\0')			/* End of string? */
@@ -56,7 +55,7 @@ static int countKeys(char *keyString)
 
 		count++;				/* Found start of a key */
 
-		while (!isspace(*p))	/* Skip till next space or end of string. */
+		while (!LDAP_SPACE(*p))	/* Skip till next space or end of string. */
 			if (*p++ == '\0')
 				return count;
 	}
@@ -92,7 +91,7 @@ static int readNextKey( char **pNextKey, LDAPSortKey **key)
 	int oidLen = 0;
 
 	/* Skip leading white space. */
-	while (isspace(*p))
+	while (LDAP_SPACE(*p))
 		p++;
 
 	if (*p == '-')		 /* Check if the reverse flag is present. */
