@@ -4049,7 +4049,7 @@ struct mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
-		caseIgnoreIA5Match, caseExactIA5Indexer, caseExactIA5Filter,
+		caseIgnoreIA5Match, caseIgnoreIA5Indexer, caseIgnoreIA5Filter,
 		IA5StringApproxMatchOID },
 
 	{"( 1.3.6.1.4.1.1466.109.114.3 NAME 'caseIgnoreIA5SubstringsMatch' "
