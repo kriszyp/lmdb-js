@@ -465,7 +465,8 @@ ldap_set_option(
 			int rc = LDAP_OPT_SUCCESS;
 
 			if(host != NULL) {
-				rc = ldap_url_parsehosts(&ludlist, host);
+				rc = ldap_url_parsehosts( &ludlist, host,
+					lo->ldo_defport ? lo->ldo_defport : LDAP_PORT );
 
 			} else if(ld == NULL) {
 				/*

@@ -272,7 +272,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 
 	ludp->lud_next = NULL;
 	ludp->lud_host = NULL;
-	ludp->lud_port = 0;
+	ludp->lud_port = LDAP_PORT;
 	ludp->lud_dn = NULL;
 	ludp->lud_attrs = NULL;
 	ludp->lud_filter = NULL;
@@ -285,6 +285,10 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 		LDAP_FREE( url );
 		ldap_free_urldesc( ludp );
 		return LDAP_URL_ERR_MEM;
+	}
+
+	if( strcasecmp( ludp->lud_scheme, "ldaps" ) == 0 ) {
+		ludp->lud_port = LDAPS_PORT;
 	}
 
 	/* scan forward for '/' that marks end of hostport and begin. of dn */
@@ -659,7 +663,10 @@ ldap_url_parselist (LDAPURLDesc **ludlist, const char *url )
 }
 
 int
-ldap_url_parsehosts (LDAPURLDesc **ludlist, const char *hosts )
+ldap_url_parsehosts(
+	LDAPURLDesc **ludlist,
+	const char *hosts,
+	int port )
 {
 	int i;
 	LDAPURLDesc *ludp;
@@ -686,6 +693,7 @@ ldap_url_parsehosts (LDAPURLDesc **ludlist, const char *hosts )
 			*ludlist = NULL;
 			return LDAP_NO_MEMORY;
 		}
+		ludp->lud_port = port;
 		ludp->lud_host = specs[i];
 		specs[i] = NULL;
 		p = strchr(ludp->lud_host, ':');

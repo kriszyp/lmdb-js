@@ -257,19 +257,17 @@ ldap_int_open_connection(
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_int_open_connection\n", 0, 0, 0 );
 
-	port = srv->lud_port;
-	if (port == 0)
-		port = ld->ld_options.ldo_defport;
-	port = htons( (short) port );
-
-	addr = 0;
-	if ( srv->lud_host == NULL || *srv->lud_host == 0 )
-		addr = htonl( INADDR_LOOPBACK );
-
 	switch ( ldap_pvt_url_scheme2proto( srv->lud_scheme ) ) {
 		case LDAP_PROTO_TCP:
+			port = htons( (short) srv->lud_port );
+
+			addr = 0;
+			if ( srv->lud_host == NULL || *srv->lud_host == 0 )
+				addr = htonl( INADDR_LOOPBACK );
+
 			rc = ldap_connect_to_host( ld, conn->lconn_sb, 0,
 				srv->lud_host, addr, port, async );
+
 			if ( rc == -1 ) return rc;
 			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_tcp,
 				LBER_SBIOD_LEVEL_PROVIDER, NULL );
