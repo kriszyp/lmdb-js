@@ -135,7 +135,7 @@ int get_ctrls(
 		if( tctrl->ldctl_iscritical &&
 			!charray_inlist( supportedControls, tctrl->ldctl_oid ) )
 		{
-			rc = LDAP_UNAVAILABLE_CRITICIAL_EXTENSION;
+			rc = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
 			goto return_results;
 		}
 
