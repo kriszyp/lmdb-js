@@ -35,9 +35,16 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	void *(*start_routine)( void *),
 	void *arg)
 {
-	*thread = (ldap_pvt_thread_t)_beginthread( (void *) start_routine, 
-						0, arg );
-	 return ( (unsigned long)*thread == -1 ? -1 : 0 );
+	unsigned long tid
+	HANDLE thd;
+
+	thd = _beginthreadex( NULL, 0,
+		(LPTHREAD_START_ROUTINE) start_routine, arg,
+		0, &tid );
+
+	*thread = (ldap_pvt_thread_t) thd;
+
+	 return thd == NULL ? -1 : 0;
 }
 	
 void 
