@@ -7,6 +7,7 @@ OpenLDAP 2.1.16 Engineering
 	Fixed slapd sasl internal search "auth" issue
 	Fixed back-meta NULL deref bug (ITS#2359)
 	Fixed back-ldap memory corruption (ITS#2362)
+	Updated back-perl
 	Removed ldaptcl from distribution
 	Removed lint
 	Build Environment
