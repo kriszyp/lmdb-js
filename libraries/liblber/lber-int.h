@@ -163,29 +163,15 @@ LBER_F (char *)	ber_strndup( LDAP_CONST char *, ber_len_t );
 LBER_F (char *)	ber_strndup__( LDAP_CONST char *, size_t );
 
 #ifdef CSRIMALLOC
-#define LBER_INT_MALLOC		malloc
-#define LBER_INT_CALLOC		calloc
-#define LBER_INT_REALLOC	realloc
-#define LBER_INT_FREE		free
-#define LBER_INT_VFREE		ber_memvfree
-#define LBER_INT_STRDUP		strdup
-
 #define LBER_MALLOC			malloc
 #define LBER_CALLOC			calloc
 #define LBER_REALLOC		realloc
 #define LBER_FREE			free
 #define LBER_VFREE			ber_memvfree
 #define LBER_STRDUP			strdup
-#define LBER_STRNDUP			ber_strndup__
+#define LBER_STRNDUP		ber_strndup__
 
 #else
-#define LBER_INT_MALLOC(s)		ber_memalloc((s))
-#define LBER_INT_CALLOC(n,s)	ber_memcalloc((n),(s))
-#define LBER_INT_REALLOC(p,s)	ber_memrealloc((p),(s))
-#define LBER_INT_FREE(p)		ber_memfree((p))
-#define LBER_INT_VFREE(v)		ber_memvfree((void**)(v))
-#define LBER_INT_STRDUP(s)		ber_strdup((s))
-
 #define LBER_MALLOC(s)		ber_memalloc((s))
 #define LBER_CALLOC(n,s)	ber_memcalloc((n),(s))
 #define LBER_REALLOC(p,s)	ber_memrealloc((p),(s))

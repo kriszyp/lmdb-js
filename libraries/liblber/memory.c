@@ -112,19 +112,6 @@ static unsigned char endpattern[4] = { 0xd1, 0xed, 0xde, 0xca };
 
 BerMemoryFunctions *ber_int_memory_fns = NULL;
 
-#if 0 && defined( LDAP_MEMORY_DEBUG )
-void
-ber_int_memfree( void **p )
-{
-	assert( p != NULL );
-	BER_MEM_VALID( *p );
-
-	ber_memfree( p );
-
-	*p = BER_MEM_BADADDR;
-}
-#endif
-
 void
 ber_memfree( void *p )
 {
@@ -294,12 +281,12 @@ ber_memrealloc( void* p, ber_len_t s )
 
 	/* realloc(NULL,s) -> malloc(s) */
 	if( p == NULL ) {
-		return ber_memalloc( s );
+		return LBER_MALLOC( s );
 	}
 	
 	/* realloc(p,0) -> free(p) */
 	if( s == 0 ) {
-		ber_memfree( p );
+		LBER_FREE( p );
 		return NULL;
 	}
 
@@ -407,7 +394,7 @@ ber_bvecadd( struct berval ***bvec, struct berval *bv )
 			return 0;
 		}
 
-		*bvec = ber_memalloc( 2 * sizeof(struct berval *) );
+		*bvec = LBER_MALLOC( 2 * sizeof(struct berval *) );
 
 		if( *bvec == NULL ) {
 			return -1;
@@ -430,7 +417,7 @@ ber_bvecadd( struct berval ***bvec, struct berval *bv )
 		return i;
 	}
 
-	new = ber_memrealloc( *bvec, (i+2) * sizeof(struct berval *));
+	new = LBER_REALLOC( *bvec, (i+2) * sizeof(struct berval *));
 
 	if( new == NULL ) {
 		return -1;
