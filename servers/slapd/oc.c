@@ -286,7 +286,7 @@ oc_add_sups(
 				&& soc1->soc_kind != LDAP_SCHEMA_ABSTRACT )
 			{
 				*err = *sups1;
-				return SLAP_SCHERR_CLASS_BAD_USAGE;
+				return SLAP_SCHERR_CLASS_BAD_SUP;
 			}
 
 			if( soc->soc_flags & SLAP_OC_OPERATIONAL ) (*op)++;
