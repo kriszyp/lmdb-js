@@ -41,8 +41,8 @@ ldbm_back_bind(
 #endif
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	static AttributeDescription *password = NULL;
-	static AttributeDescription *entry = NULL;
+	AttributeDescription *password = slap_schema.si_ad_userPassword;
+	AttributeDescription *entry = slap_schema.si_ad_entry;
 #else
 	static const char *password = "userpassword";
 	static const char *entry = "entry";
