@@ -112,6 +112,16 @@ monitor_subsys_backend_init(
 
 		attr_merge( e, monitor_ad_desc, bv );
 		attr_merge( e_backend, monitor_ad_desc, bv );
+
+		if ( bi->bi_controls ) {
+			int j;
+
+			for ( j = 0; bi->bi_controls[ j ]; j++ ) {
+				bv[0].bv_val = bi->bi_controls[ j ];
+				bv[0].bv_len = strlen( bv[0].bv_val );
+				attr_merge( e, slap_schema.si_ad_supportedControl, bv );
+			}
+		}
 		
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 		e->e_private = ( void * )mp;
