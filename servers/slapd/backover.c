@@ -160,7 +160,7 @@ over_db_close(
 		}
 	}
 
-	if ( be->bd_info->bi_db_close ) {
+	if ( oi->oi_orig->bi_db_close ) {
 		be->bd_info = oi->oi_orig;
 		rc = be->bd_info->bi_db_close( be );
 	}
