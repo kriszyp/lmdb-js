@@ -36,8 +36,8 @@
 #ifdef LDAP_SYNCREPL
 
 static Entry*
-syncrepl_message_to_entry ( LDAP *, Operation *, LDAPMessage *, Modifications *,
-			    int*, struct berval *, struct berval * );
+syncrepl_message_to_entry ( LDAP *, Operation *, LDAPMessage *,
+		Modifications **, int*, struct berval *, struct berval * );
 
 static int
 syncrepl_entry( LDAP *, Operation*, Entry*, Modifications*,
@@ -119,15 +119,19 @@ do_syncrepl(
 
 	SlapReply	rs = {REP_RESULT};
 
-	LDAPControl	c[2], **sctrls = NULL, **rctrls = NULL, *rctrlp;
-	BerElement	*sync_ber;
-	struct berval	*sync_bvalp;
+	LDAPControl	c[2];
+	LDAPControl	**sctrls = NULL;
+	LDAPControl	**rctrls = NULL;
+	LDAPControl	*rctrlp = NULL;
+	BerElement	*sync_ber = NULL;
+	struct berval	*sync_bvalp = NULL;
 
-	BerElement	*ctrl_ber;
-	BerElement	*res_ber;
+	BerElement	*ctrl_ber = NULL;
+	BerElement	*res_ber = NULL;
 
 	LDAP	*ld = NULL;
-	LDAPMessage	*res = NULL, *msg;
+	LDAPMessage	*res = NULL;
+	LDAPMessage	*msg = NULL;
 
 	ber_int_t	msgid;
 
@@ -139,7 +143,7 @@ do_syncrepl(
 	struct berval	*retdata = NULL;
 
 	int		sync_info_arrived = 0;
-	Entry		*entry;
+	Entry		*entry = NULL;
 
 	int		syncstate;
 	struct berval	syncUUID;
@@ -151,14 +155,14 @@ do_syncrepl(
 	int	syncinfo_arrived = 0;
 	int	cancel_response = 0;
 
-	char **tmp;
-	AttributeDescription** descs;
+	char **tmp = NULL;
+	AttributeDescription** descs = NULL;
 
 	Connection conn;
 	Operation op = {0};
 	slap_callback	cb;
 
-	void *memctx;
+	void *memctx = NULL;
 	ber_len_t memsiz;
 	
 	int i, j, k, n;
@@ -173,8 +177,9 @@ do_syncrepl(
 	struct berval psub = { 0, NULL };
 	struct berval nsub = { 0, NULL };
 	char substr[64];
-	Modifications	*modlist;
-	char *def_filter_str;
+	Modifications	*modlist = NULL;
+	Modifications	*ml, *mlnext;
+	char *def_filter_str = NULL;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, DETAIL1, "do_syncrepl\n", 0, 0, 0 );
@@ -480,19 +485,20 @@ do_syncrepl(
 			switch( ldap_msgtype( msg ) ) {
 			case LDAP_RES_SEARCH_ENTRY:
 				entry = syncrepl_message_to_entry( ld, &op, msg,
-					modlist, &syncstate, &syncUUID, &syncCookie );
+					&modlist, &syncstate, &syncUUID, &syncCookie );
 				rc_efree = syncrepl_entry( ld, &op, entry, modlist,
 						syncstate, &syncUUID,
 						&syncCookie,
 						!syncinfo_arrived );
 				if ( syncCookie.bv_len ) {
-					syncrepl_updateCookie( ld, &op, &psub,
-							       &syncCookie );
+					syncrepl_updateCookie( ld, &op, &psub, &syncCookie );
 				}
-				if ( modlist != NULL )
-					slap_mods_free( modlist );
 				if ( rc_efree )
 					entry_free( entry );
+				for ( ml = modlist; ml != NULL; ml = mlnext ) {
+					mlnext = ml->sml_next;
+					free( ml );
+				}
 				break;
 
 			case LDAP_RES_SEARCH_REFERENCE:
@@ -519,7 +525,6 @@ do_syncrepl(
 						== LDAP_SYNC_TAG_COOKIE ) {
 						ber_scanf( ctrl_ber, "m", &syncCookie );
 					}
-					ber_free( ctrl_ber, 1 );
 				}
 				if (si->type == LDAP_SYNC_REFRESH_AND_PERSIST) {
 					if ( cancel_response ) {
@@ -527,16 +532,21 @@ do_syncrepl(
 							ber_bvfree( si->syncCookie );
 							si->syncCookie = ber_dupbv( NULL, &syncCookie );
 						}
+						if ( ctrl_ber )
+							ber_free( ctrl_ber, 1 );
 						goto done;
 					}
-					else 
+					else {
+						if ( ctrl_ber )
+							ber_free( ctrl_ber, 1 );
 						break;
+					}
 				} else {
 					if ( syncCookie.bv_len ) {
-						syncrepl_updateCookie( ld,
-								&op, &psub,
-							       &syncCookie );
+						syncrepl_updateCookie( ld, &op, &psub, &syncCookie );
 					}
+					if ( ctrl_ber )
+						ber_free( ctrl_ber, 1 );
 					goto restart;
 				}
 restart_loop:
@@ -645,7 +655,7 @@ syncrepl_message_to_entry(
 	LDAP		*ld,
 	Operation	*op,
 	LDAPMessage	*msg,
-	Modifications	*modlist,
+	Modifications	**modlist,
 	int		*syncstate,
 	struct berval	*syncUUID,
 	struct berval	*syncCookie
@@ -657,7 +667,7 @@ syncrepl_message_to_entry(
 	struct berval	bv;
 	Modifications	tmp;
 	Modifications	*mod;
-	Modifications	**modtail = &modlist;
+	Modifications	**modtail = modlist;
 	Backend		*be = op->o_bd;
 
 	const char	*text;
@@ -679,7 +689,7 @@ syncrepl_message_to_entry(
 	LDAPControl**	rctrls = NULL;
 	BerElement*	ctrl_ber;
 
-	modlist = NULL;
+	*modlist = NULL;
 
 	if ( ldap_msgtype( msg ) != LDAP_RES_SEARCH_ENTRY ) {
 #ifdef NEW_LOGGING
@@ -787,7 +797,7 @@ syncrepl_message_to_entry(
 		goto done;
 	}
 
-        if ( modlist == NULL ) {
+        if ( *modlist == NULL ) {
 #ifdef NEW_LOGGING
                 LDAP_LOG( OPERATION, ERR,
                         "syncrepl_message_to_entry: no attributes\n", 0, 0, 0 );
@@ -797,7 +807,7 @@ syncrepl_message_to_entry(
 #endif
         }
 
-	rc = slap_mods_check_syncrepl( op, &modlist, &text, txtbuf, textlen, NULL );
+	rc = slap_mods_check_syncrepl( op, modlist, &text, txtbuf, textlen, NULL );
 
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -810,7 +820,7 @@ syncrepl_message_to_entry(
 		return NULL;
 	}
 	
-	rc = slap_mods_opattrs_syncrepl( op, modlist, modtail,
+	rc = slap_mods_opattrs_syncrepl( op, *modlist, modtail,
 					 &text,txtbuf, textlen );
 	
 	if( rc != LDAP_SUCCESS ) {
@@ -824,7 +834,7 @@ syncrepl_message_to_entry(
 		return NULL;
 	}
 
-	rc = slap_mods2entry_syncrepl( modlist, &e, 1, &text, txtbuf, textlen );
+	rc = slap_mods2entry_syncrepl( *modlist, &e, 1, &text, txtbuf, textlen );
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
                 LDAP_LOG( OPERATION, ERR,
@@ -886,7 +896,10 @@ syncrepl_entry(
 		syncuuid_bv = ber_dupbv( NULL, syncUUID );
 		avl_insert( &si->presentlist, (caddr_t) syncuuid_bv,
 				syncuuid_cmp, avl_dup_error );
-		return 1;
+		if ( e )
+			return 1;
+		else
+			return 0;
 	}
 
 	if ( !attr_find( e->e_attrs, slap_schema.si_ad_entryUUID )) {
@@ -1144,6 +1157,8 @@ syncrepl_updateCookie(
 {
 	Backend *be = op->o_bd;
 	syncinfo_t *si = ( syncinfo_t * ) be->syncinfo;
+	Modifications *ml;
+	Modifications *mlnext;
 	Modifications *mod;
 	Modifications *modlist;
 	Modifications **modtail = &modlist;
@@ -1225,7 +1240,7 @@ syncrepl_updateCookie(
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
-	ber_str2bv( " ", 1, 1, &ssbva[0] );
+	ber_str2bv( "{}", strlen("{}"), 1, &ssbva[0] );
 	ssbva[1].bv_len = 0;
 	ssbva[1].bv_val = NULL;
 	mod = (Modifications *) ch_malloc( sizeof( Modifications ));
@@ -1331,7 +1346,7 @@ update_cookie_retry:
 #endif
 				}
 			} else {
-				return;
+				goto done;
 			}
 		} else {
 #ifdef NEW_LOGGING
@@ -1343,10 +1358,18 @@ update_cookie_retry:
 #endif
 		}
 	}
+
 	if ( e != NULL )
 		entry_free( e );
-	if ( modlist != NULL )
-		slap_mods_free( modlist );
+
+done :
+
+	for ( ml = modlist; ml != NULL; ml = mlnext ) {
+		mlnext = ml->sml_next;
+		free( ml );
+	}
+
+	return;
 }
 
 
@@ -1369,19 +1392,19 @@ int slap_mods_check_syncrepl(
 	Modifications *ml = *mlp;
 
 	while ( ml != NULL ) {
-                AttributeDescription *ad = NULL;
+		AttributeDescription *ad = NULL;
 
-                /* convert to attribute description */
-                rc = slap_bv2ad( &ml->sml_type, &ml->sml_desc, text );
+		/* convert to attribute description */
+		rc = slap_bv2ad( &ml->sml_type, &ml->sml_desc, text );
 
-                if( rc != LDAP_SUCCESS ) {
-                        snprintf( textbuf, textlen, "%s: %s",
-                                ml->sml_type.bv_val, *text );
-                        *text = textbuf;
-                        return rc;
-                }
+		if( rc != LDAP_SUCCESS ) {
+			snprintf( textbuf, textlen, "%s: %s",
+						ml->sml_type.bv_val, *text );
+			*text = textbuf;
+			return rc;
+		}
 
-                ad = ml->sml_desc;
+		ad = ml->sml_desc;
 
 		if ( si->lastmod == LASTMOD_REQ ) {
 			descs = del_descs_lastmod;
