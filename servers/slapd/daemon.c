@@ -1120,7 +1120,7 @@ slapd_daemon_task(
 			Debug( LDAP_DEBUG_CONNS, "daemon: select timeout - yielding\n",
 			    0, 0, 0 );
 #endif
-		ldap_pvt_thread_yield();
+			ldap_pvt_thread_yield();
 			continue;
 
 		default:	/* something happened - deal with it */
@@ -1185,6 +1185,7 @@ slapd_daemon_task(
 				    (long) slap_listeners[l]->sl_sd, err,
 				    sock_errstr(err) );
 #endif
+				ldap_pvt_thread_yield();
 				continue;
 			}
 
@@ -1201,6 +1202,7 @@ slapd_daemon_task(
 					(long) s, (long) dtblsize, 0 );
 #endif
 				slapd_close(s);
+				ldap_pvt_thread_yield();
 				continue;
 			}
 #endif
