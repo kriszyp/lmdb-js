@@ -627,7 +627,9 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 			p = NULL;
 		}
 
+		ldap_pvt_hex_unescape( ref );
 		len = strlen( ref );
+
 		if ( len > LDAP_LDAP_REF_STR_LEN && strncasecmp( ref,
 		    LDAP_LDAP_REF_STR, LDAP_LDAP_REF_STR_LEN ) == 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
