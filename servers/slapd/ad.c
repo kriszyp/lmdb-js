@@ -98,7 +98,7 @@ int slap_bv2ad(
 	if (options != NULL)
 		desc.ad_cname.bv_len = options - name;
 	else
-		desc.ad_cname.bv_len = strlen(name);
+		desc.ad_cname.bv_len = bv->bv_len;
 
 	desc.ad_flags = SLAP_DESC_NONE;
 	desc.ad_lang.bv_len = 0;
