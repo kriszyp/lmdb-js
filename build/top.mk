@@ -129,7 +129,6 @@ SED = sed
 
 # Misc UNIX commands used in programs
 EDITOR = @EDITOR@
-FINGER = @FINGER@
 SENDMAIL = @SENDMAIL@
 
 # For manual pages

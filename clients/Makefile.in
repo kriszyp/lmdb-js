@@ -5,5 +5,5 @@
 ## Clients Makefile.in for OpenLDAP
 
 SUBDIRS = tools ud
-CLEANDIRS = finger mail500 maildap
+CLEANDIRS = mail500 maildap
 
