@@ -154,7 +154,8 @@ bdb_db_config(
                              fname, lineno );
                          return( 1 );
                  }
-                 bdb->bi_idl_cache_max_size = atoi( argv[1] );
+		 if ( !( slapMode & SLAP_TOOL_MODE ) )
+	                 bdb->bi_idl_cache_max_size = atoi( argv[1] );
 #endif
 
 	/* anything else */
