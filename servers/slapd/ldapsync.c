@@ -245,27 +245,3 @@ slap_dup_sync_cookie(
 	return new;
 }
 
-int
-slap_build_syncUUID_set(
-	Operation *op,
-	BerVarray *set,
-	Entry *e
-)
-{
-	int ret;
-	Attribute* a;
-
-	struct berval entryuuid_bv	= BER_BVNULL;
-
-	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		AttributeDescription *desc = a->a_desc;
-		if ( desc == slap_schema.si_ad_entryUUID ) {
-			ber_dupbv_x( &entryuuid_bv, &a->a_nvals[0], op->o_tmpmemctx );
-			break;
-		}
-	}
-
-	ret = ber_bvarray_add_x( set, &entryuuid_bv, op->o_tmpmemctx );
-
-	return ret;
-}
