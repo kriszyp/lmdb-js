@@ -1748,6 +1748,7 @@ AC_CHECK_FUNCS(		\
 	memcpy			\
 	memmove			\
 	mkstemp			\
+	read			\
 	recv			\
 	recvfrom		\
 	setpwfile		\
@@ -1771,6 +1772,9 @@ AC_CHECK_FUNCS(		\
 	sysconf			\
 	waitpid			\
 	wait4			\
+	write			\
+	send			\
+	sendto			\
 )
 
 dnl We actually may need to replace more than this.

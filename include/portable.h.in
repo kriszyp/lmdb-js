@@ -332,6 +332,9 @@
 /* Define if you have the pthread_yield function.  */
 #undef HAVE_PTHREAD_YIELD
 
+/* Define if you have the read function.  */
+#undef HAVE_READ
+
 /* Define if you have the recv function.  */
 #undef HAVE_RECV
 
@@ -343,6 +346,12 @@
 
 /* Define if you have the sched_yield function.  */
 #undef HAVE_SCHED_YIELD
+
+/* Define if you have the send function.  */
+#undef HAVE_SEND
+
+/* Define if you have the sendto function.  */
+#undef HAVE_SENDTO
 
 /* Define if you have the setegid function.  */
 #undef HAVE_SETEGID
@@ -424,6 +433,9 @@
 
 /* Define if you have the waitpid function.  */
 #undef HAVE_WAITPID
+
+/* Define if you have the write function.  */
+#undef HAVE_WRITE
 
 /* Define if you have the <arpa/inet.h> header file.  */
 #undef HAVE_ARPA_INET_H

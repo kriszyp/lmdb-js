@@ -236,7 +236,7 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 			ber->ber_rwptr, towrite );
 	}
 
-#if HAVE_WRITE || (!defined(MACOS) && !(defined(DOS) && !defined(_WIN32)))
+#if HAVE_WRITE
 	if ( sb->sb_options & (LBER_TO_FILE | LBER_TO_FILE_ONLY) ) {
 		rc = write( sb->sb_fd, ber->ber_rwptr, towrite );
 		if ( sb->sb_options & LBER_TO_FILE_ONLY ) {
