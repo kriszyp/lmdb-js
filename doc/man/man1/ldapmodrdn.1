@@ -97,7 +97,7 @@ when connecting to a slapd and there is no x500dsa.hostname principal
 registered with your Kerberos Domain Controller(s).
 .TP
 .B \-c
-Continuous operation mode.  Errors  are  reported,  but ldapmodify
+Continuous operation mode.  Errors  are  reported,  but ldapmodrdn
 will  continue  with  modifications.   The default is to exit after
 reporting an error.
 .TP
@@ -211,7 +211,7 @@ exists and has the contents:
 the command:
 .LP
 .nf
-    ldapmodify -r -f /tmp/entrymods
+    ldapmodrdn -r -f /tmp/entrymods
 .fi
 .LP
 will change the RDN of the "Modify Me" entry from "Modify Me" to
