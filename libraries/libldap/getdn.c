@@ -2060,7 +2060,7 @@ end_of_value:;
 
 	len = ( ( endPos ? endPos : p ) - startPos ) / 2;
 	/* must be even! */
-	assert( 2 * len == ( endPos ? endPos : p ) - startPos );
+	assert( 2 * len == (ber_len_t) (( endPos ? endPos : p ) - startPos ));
 
 	*val = LDAP_MALLOC( sizeof( struct berval ) );
 	if ( *val == NULL ) {

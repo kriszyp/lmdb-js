@@ -10,9 +10,6 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
-#ifdef HAVE_WINCRYPT_H
-#include <wincrypt.h>
-#endif
 #ifdef HAVE_PROCESS_H
 #include <process.h>
 #endif

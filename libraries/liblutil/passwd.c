@@ -373,6 +373,8 @@ struct berval * lutil_passwd_hash(
 	return (sc->hash_fn)( sc, passwd );
 }
 
+/* pw_string is only called when SLAPD_LMHASH or SLAPD_CRYPT is defined */
+#if defined(SLAPD_LMHASH) || defined(SLAPD_CRYPT)
 static struct berval * pw_string(
 	const struct pw_scheme *sc,
 	const struct berval *passwd )
@@ -394,6 +396,7 @@ static struct berval * pw_string(
 	pw->bv_val[pw->bv_len] = '\0';
 	return pw;
 }
+#endif /* SLAPD_LMHASH || SLAPD_CRYPT */
 
 static struct berval * pw_string64(
 	const struct pw_scheme *sc,

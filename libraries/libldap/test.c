@@ -237,7 +237,7 @@ bind_prompt( LDAP *ld,
 	static char	dn[256], passwd[256];
 	int	authmethod;
 
-	printf("rebind for request=%d msgid=%ld url=%s\n",
+	printf("rebind for request=%ld msgid=%ld url=%s\n",
 		request, (long) msgid, url );
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND

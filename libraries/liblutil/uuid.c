@@ -42,7 +42,8 @@
 
 #include <lutil.h>
 
-#ifndef HAVE_SYS_UUID_H
+/* not needed for Windows */
+#if !defined(HAVE_SYS_UUID_H) && !defined(_WIN32)
 static unsigned char *
 lutil_eaddr( void )
 {

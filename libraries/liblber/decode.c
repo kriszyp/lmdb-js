@@ -143,7 +143,7 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 	}
 
 	/* BER element should have enough data left */
-	if( *len > ber_pvt_ber_remaining( ber ) ) {
+	if( *len > (ber_len_t) ber_pvt_ber_remaining( ber ) ) {
 		return LBER_DEFAULT;
 	}
 

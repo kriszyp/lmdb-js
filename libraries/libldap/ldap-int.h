@@ -18,6 +18,14 @@
 
 #include "../liblber/lber-int.h"
 
+/*
+ * Windows does not preprocess correctly unless
+ * this #include precedes queue.h
+ */
+#ifdef LDAP_R_COMPILE
+#include <ldap_pvt_thread.h>
+#endif
+
 #include <ac/queue.h>
 
 #ifdef HAVE_CYRUS_SASL
@@ -306,8 +314,6 @@ struct ldap {
 #define LDAP_VALID(ld)	( (ld)->ld_valid == LDAP_VALID_SESSION )
 
 #ifdef LDAP_R_COMPILE
-#include <ldap_pvt_thread.h>
-
 #ifdef HAVE_RES_QUERY
 LDAP_V ( ldap_pvt_thread_mutex_t ) ldap_int_resolv_mutex;
 #endif
