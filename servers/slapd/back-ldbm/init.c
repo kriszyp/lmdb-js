@@ -173,7 +173,6 @@ ldbm_back_db_destroy(
 	/* should free/destroy every in be_private */
 #ifdef SLAP_CLEANUP
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	free( li->li_nextid_file );
 	free( li->li_directory );
 	attr_index_destroy( li->li_attrs );
 
