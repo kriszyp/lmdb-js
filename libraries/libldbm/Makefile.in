@@ -1,0 +1,11 @@
+##
+## Makefile for -lldbm
+##
+LIBRARY		= libldbm.a
+XPROGRAMS	= testldbm
+SRCS		= ldbm.c
+OBJS		= ldbm.o
+
+LIBS = -L$(LDAP_LIBDIR) -lavl $(AC_LIBS)
+testldbm:	libldbm.a testldbm.o
+	$(CC) $(LDFLAGS) -o $@ testldbm.o $(LIBS)

@@ -1,0 +1,12 @@
+##
+## LIBAVL
+##
+
+SRCS = avl.c testavl.c
+XSRCS = version.c
+OBJS = avl.o
+
+LIBRARY = libavl.a
+XPROGRAMS	= testavl
+
+testavl:	$(LIBRARY) testavl.o

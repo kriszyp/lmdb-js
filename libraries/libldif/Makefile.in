@@ -1,0 +1,6 @@
+##
+## Makefile for -lldif
+##
+LIBRARY	= libldif.a
+SRCS	= line64.c
+OBJS	= line64.o

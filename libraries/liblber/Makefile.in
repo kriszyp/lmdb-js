@@ -1,0 +1,15 @@
+##
+## LIBLBER
+##
+
+SRCS = decode.c encode.c io.c bprint.c
+OBJS = decode.o encode.o io.o bprint.o
+XSRCS = version.c
+
+LIBRARY = liblber.a
+
+install: $(LIBRARY) FORCE
+	-$(MKDIR) -p $(libdir)
+	$(INSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(libdir)
+	@(cd /tmp; $(RANLIB) $(libdir)/$(LIBRARY))
+	
