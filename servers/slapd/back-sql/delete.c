@@ -37,8 +37,6 @@ typedef struct backsql_delete_attr_t {
 	backsql_entryID		*e_id;
 } backsql_delete_attr_t;
 
-#define	DELETE_ATTR_STOP	(-6)
-
 static int
 backsql_delete_attr_f( void *v_at, void *v_bda )
 {
