@@ -28,27 +28,20 @@
 #define HASH_Update(c,buf,len)	lutil_HASHUpdate(c,buf,len)
 #define HASH_Final(d,c)			lutil_HASHFinal(d,c)
 
-#define SLAP_NVALUES 1
-
 /* not yet implemented */
 #define uniqueMemberMatch NULL
 
 #define	OpenLDAPaciMatch			NULL
 
 /* approx matching rules */
-#ifdef SLAP_NVALUES
-#define directoryStringApproxMatchOID	NULL
-#define IA5StringApproxMatchOID			NULL
-#else
 #define directoryStringApproxMatchOID	"1.3.6.1.4.1.4203.666.4.4"
-#define directoryStringApproxMatch	approxMatch
+#define directoryStringApproxMatch		approxMatch
 #define directoryStringApproxIndexer	approxIndexer
-#define directoryStringApproxFilter	approxFilter
+#define directoryStringApproxFilter		approxFilter
 #define IA5StringApproxMatchOID			"1.3.6.1.4.1.4203.666.4.5"
 #define IA5StringApproxMatch			approxMatch
 #define IA5StringApproxIndexer			approxIndexer
 #define IA5StringApproxFilter			approxFilter
-#endif
 
 static int
 inValidate(
@@ -1043,15 +1036,12 @@ UTF8StringNormalize(
 	return LDAP_SUCCESS;
 }
 
-#ifndef SLAP_NVALUES
-
-#ifndef SLAPD_APPROX_OLDSINGLESTRING
 #if defined(SLAPD_APPROX_INITIALS)
-#define SLAPD_APPROX_DELIMITER "._ "
-#define SLAPD_APPROX_WORDLEN 2
+#	define SLAPD_APPROX_DELIMITER "._ "
+#	define SLAPD_APPROX_WORDLEN 2
 #else
-#define SLAPD_APPROX_DELIMITER " "
-#define SLAPD_APPROX_WORDLEN 1
+#	define SLAPD_APPROX_DELIMITER " "
+#	define SLAPD_APPROX_WORDLEN 1
 #endif
 
 static int
@@ -1068,7 +1058,7 @@ approxMatch(
 	int i, count, len, nextchunk=0, nextavail=0;
 
 	/* Yes, this is necessary */
-	nval = UTF8bvnormalize( value, NULL, LDAP_UTF8_APPROX );
+	nval = UTF8bvnormalize( value, NULL, LDAP_UTF8_APPROX, NULL );
 	if( nval == NULL ) {
 		*matchp = 1;
 		return LDAP_SUCCESS;
@@ -1076,7 +1066,7 @@ approxMatch(
 
 	/* Yes, this is necessary */
 	assertv = UTF8bvnormalize( ((struct berval *)assertedValue),
-		NULL, LDAP_UTF8_APPROX );
+		NULL, LDAP_UTF8_APPROX, NULL );
 	if( assertv == NULL ) {
 		ber_bvfree( nval );
 		*matchp = 1;
@@ -1171,7 +1161,8 @@ approxIndexer(
 	MatchingRule *mr,
 	struct berval *prefix,
 	BerVarray values,
-	BerVarray *keysp )
+	BerVarray *keysp,
+	void *ctx )
 {
 	char *c;
 	int i,j, len, wordcount, keycount=0;
@@ -1181,7 +1172,7 @@ approxIndexer(
 	for( j=0; values[j].bv_val != NULL; j++ ) {
 		struct berval val = { 0, NULL };
 		/* Yes, this is necessary */
-		UTF8bvnormalize( &values[j], &val, LDAP_UTF8_APPROX );
+		UTF8bvnormalize( &values[j], &val, LDAP_UTF8_APPROX, NULL );
 		assert( val.bv_val != NULL );
 
 		/* Isolate how many words there are. There will be a key for each */
@@ -1225,7 +1216,8 @@ approxFilter(
 	MatchingRule *mr,
 	struct berval *prefix,
 	void * assertedValue,
-	BerVarray *keysp )
+	BerVarray *keysp,
+	void *ctx )
 {
 	char *c;
 	int i, count, len;
@@ -1234,7 +1226,7 @@ approxFilter(
 
 	/* Yes, this is necessary */
 	val = UTF8bvnormalize( ((struct berval *)assertedValue),
-		NULL, LDAP_UTF8_APPROX );
+		NULL, LDAP_UTF8_APPROX, NULL );
 	if( val == NULL || val->bv_val == NULL ) {
 		keys = (struct berval *)ch_malloc( sizeof(struct berval) );
 		keys[0].bv_val = NULL;
@@ -1270,122 +1262,6 @@ approxFilter(
 
 	return LDAP_SUCCESS;
 }
-
-#else
-/* No other form of Approximate Matching is defined */
-
-static int
-approxMatch(
-	int *matchp,
-	slap_mask_t flags,
-	Syntax *syntax,
-	MatchingRule *mr,
-	struct berval *value,
-	void *assertedValue )
-{
-	char *vapprox, *avapprox;
-	char *s, *t;
-
-	/* Yes, this is necessary */
-	s = UTF8normalize( value, UTF8_NOCASEFOLD );
-	if( s == NULL ) {
-		*matchp = 1;
-		return LDAP_SUCCESS;
-	}
-
-	/* Yes, this is necessary */
-	t = UTF8normalize( ((struct berval *)assertedValue),
-			   UTF8_NOCASEFOLD );
-	if( t == NULL ) {
-		free( s );
-		*matchp = -1;
-		return LDAP_SUCCESS;
-	}
-
-	vapprox = phonetic( strip8bitChars( s ) );
-	avapprox = phonetic( strip8bitChars( t ) );
-
-	free( s );
-	free( t );
-
-	*matchp = strcmp( vapprox, avapprox );
-
-	ch_free( vapprox );
-	ch_free( avapprox );
-
-	return LDAP_SUCCESS;
-}
-
-static int 
-approxIndexer(
-	slap_mask_t use,
-	slap_mask_t flags,
-	Syntax *syntax,
-	MatchingRule *mr,
-	struct berval *prefix,
-	BerVarray values,
-	BerVarray *keysp )
-{
-	int i;
-	BerVarray *keys;
-	char *s;
-
-	for( i=0; values[i].bv_val != NULL; i++ ) {
-		/* empty - just count them */
-	}
-
-	/* we should have at least one value at this point */
-	assert( i > 0 );
-
-	keys = (struct berval *)ch_malloc( sizeof( struct berval ) * (i+1) );
-
-	/* Copy each value and run it through phonetic() */
-	for( i=0; values[i].bv_val != NULL; i++ ) {
-		/* Yes, this is necessary */
-		s = UTF8normalize( &values[i], UTF8_NOCASEFOLD );
-
-		/* strip 8-bit chars and run through phonetic() */
-		ber_str2bv( phonetic( strip8bitChars( s ) ), 0, 0, &keys[i] );
-		free( s );
-	}
-	keys[i].bv_val = NULL;
-
-	*keysp = keys;
-	return LDAP_SUCCESS;
-}
-
-static int 
-approxFilter(
-	slap_mask_t use,
-	slap_mask_t flags,
-	Syntax *syntax,
-	MatchingRule *mr,
-	struct berval *prefix,
-	void * assertedValue,
-	BerVarray *keysp )
-{
-	BerVarray keys;
-	char *s;
-
-	keys = (struct berval *)ch_malloc( sizeof( struct berval * ) * 2 );
-
-	/* Yes, this is necessary */
-	s = UTF8normalize( ((struct berval *)assertedValue),
-			     UTF8_NOCASEFOLD );
-	if( s == NULL ) {
-		keys[0] = NULL;
-	} else {
-		/* strip 8-bit chars and run through phonetic() */
-		keys[0] = ber_bvstr( phonetic( strip8bitChars( s ) ) );
-		free( s );
-		keys[1] = NULL;
-	}
-
-	*keysp = keys;
-	return LDAP_SUCCESS;
-}
-#endif
-#endif /* !SLAP_NVALUES */
 
 /* Remove all spaces and '-' characters */
 static int
@@ -2646,7 +2522,6 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	 * EQUALITY matching rules must be listed after associated APPROX
 	 * matching rules.  So, we list all APPROX matching rules first.
 	 */
-#ifndef SLAP_NVALUES
 	{"( " directoryStringApproxMatchOID " NAME 'directoryStringApproxMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_HIDE | SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT, NULL,
@@ -2660,7 +2535,6 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL, NULL, IA5StringApproxMatch,
 		IA5StringApproxIndexer, IA5StringApproxFilter,
 		NULL},
-#endif
 
 	/*
 	 * Other matching rules
