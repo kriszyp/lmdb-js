@@ -230,7 +230,7 @@ void status	LDAP_P(( void ));
 void change_base	LDAP_P(( int type, char **base, char *s ));
 void initialize_client	LDAP_P(( void ));
 RETSIGTYPE  attn	LDAP_P(( int sig ));
-#ifndef NO_TERMCAP
+#if !defined(NO_TERMCAP) && defined(TIOCGWINSZ)
 RETSIGTYPE  chwinsz	LDAP_P(( int sig ));
 #endif
 

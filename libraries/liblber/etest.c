@@ -23,6 +23,7 @@ static void usage( char *name )
 	fprintf( stderr, "usage: %s fmtstring\n", name );
 }
 
+int
 main( int argc, char **argv )
 {
 #ifdef notdef

@@ -187,7 +187,7 @@ load_editor( void )
 	}
 	else if (pid > 0) {
 		/* parent - wait until the child proc is done editing */
-		void (*handler)();
+		RETSIGTYPE (*handler)();
 		handler = SIGNAL(SIGINT, SIG_IGN);
 		(void) wait(&status);
 		(void) SIGNAL(SIGINT, handler);
