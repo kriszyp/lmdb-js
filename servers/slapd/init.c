@@ -145,17 +145,6 @@ slap_init( int mode, const char *name )
 				rc = backend_init( );
 			}
 
-#ifdef LDAP_SLAPI
-			if( rc == 0 ) {
-				Slapi_PBlock *pb = slapi_pblock_new();
-
-				if ( doPluginFNs( NULL, SLAPI_PLUGIN_START_FN, pb ) < 0 ) {
-					rc = -1;
-				}
-				slapi_pblock_destroy( pb );
-			}
-#endif /* LDAP_SLAPI */
-
 			break;
 
 		default:
@@ -188,6 +177,17 @@ int slap_startup( Backend *be )
 
 
 	rc = backend_startup( be );
+
+#ifdef LDAP_SLAPI
+	if( rc == 0 ) {
+		Slapi_PBlock *pb = slapi_pblock_new();
+
+		if ( doPluginFNs( NULL, SLAPI_PLUGIN_START_FN, pb ) < 0 ) {
+			rc = -1;
+		}
+		slapi_pblock_destroy( pb );
+	}
+#endif /* LDAP_SLAPI */
 
 	return rc;
 }
