@@ -8,6 +8,8 @@ XSRCS = version.c
 
 PROGRAMS= dtest etest idtest
 
+LIBS = -L$(LDAP_LIBDIR) -llber $(AC_LIBS)
+
 dtest:    $(LIBRARY) dtest.o
 	$(CC) $(LDFLAGS) -o $@ dtest.o $(LIBS)
 etest:  $(LIBRARY) etest.o
