@@ -209,7 +209,12 @@ int parse_limits( Backend *be, const char *fname, int lineno, int argc, char **a
 	return 0;
 }
 
-int get_limits( Backend *be, const char *ndn, int *timelimit, int *sizelimit )
+int parse_limit( const char *arg, struct slap_limits_set *limit )
+{
+	return 0;
+}
+
+int get_limits( Backend *be, const char *ndn, struct slap_limits_set **limit )
 {
 	return 0;
 }

@@ -814,6 +814,17 @@ struct slap_replica_info {
 	char  **ri_nsuffix;	/* array of suffixes this replica accepts */
 };
 
+struct slap_limits_set {
+	/* time limits */
+	int	lms_t_soft;
+	int	lms_t_hard;
+
+	/* size limits */
+	int	lms_s_soft;
+	int	lms_s_hard;
+	int	lms_s_unchecked;
+};
+
 struct slap_limits {
 	int     lm_type;	/* type of pattern */
 #define SLAP_LIMITS_UNDEFINED	0x0000
@@ -821,8 +832,7 @@ struct slap_limits {
 #define SLAP_LIMITS_REGEX	0x0002
 	regex_t	lm_dn_regex;	/* regex-based size and time limits */
 	char   *lm_dn_pat;	/* ndn for EXACT; pattern for REGEX */
-	int     lm_timelimit;
-	int     lm_sizelimit;
+	struct slap_limits_set	lm_limits;
 };
 
 /* temporary aliases */
@@ -920,8 +930,9 @@ struct slap_backend_db {
 	char	*be_root_ndn;	/* the magic "root" normalized dn for this db	*/
 	struct berval be_root_pw;	/* the magic "root" password for this db	*/
 	unsigned int be_max_deref_depth;       /* limit for depth of an alias deref  */
-	int	be_sizelimit;	/* size limit for this backend   	   */
-	int	be_timelimit;	/* time limit for this backend       	   */
+#define be_sizelimit	be_def_limit.lms_s_soft
+#define be_timelimit	be_def_limit.lms_t_soft
+	struct slap_limits_set be_def_limit; /* default limits */
 	struct slap_limits **be_limits; /* regex-based size and time limits */
 	AccessControl *be_acl;	/* access control list for this backend	   */
 	slap_access_t	be_dfltaccess;	/* access given if no acl matches	   */

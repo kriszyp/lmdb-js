@@ -400,12 +400,14 @@ LDAP_SLAPD_F (int) test_filter LDAP_P((
  * limits.c
  */
 LDAP_SLAPD_F (int) get_limits LDAP_P((
-	Backend *be, const char *ndn, int *timelimit, int *sizelimit ));
+	Backend *be, const char *ndn, struct slap_limits_set **limit ));
 LDAP_SLAPD_F (int) add_limits LDAP_P((
 	Backend *be, int type, const char *pattern, 
-	int timelimit, int sizelimit ));
+	struct slap_limits_set *limit ));
 LDAP_SLAPD_F (int) parse_limits LDAP_P((
         Backend *be, const char *fname, int lineno, int argc, char **argv ));
+LDAP_SLAPD_F (int) parse_limit LDAP_P(( const char *arg, 
+	struct slap_limits_set *limit ));
 
 /*
  * lock.c
@@ -830,8 +832,7 @@ LDAP_SLAPD_F (slap_ssf_set_t)	global_ssf_set;
 LDAP_SLAPD_F (struct berval **)	default_referral;
 LDAP_SLAPD_F (char *)		replogfile;
 LDAP_SLAPD_F (const char) 	Versionstr[];
-LDAP_SLAPD_F (int)		defsize;
-LDAP_SLAPD_F (int)		deftime;
+LDAP_SLAPD_F (struct slap_limits_set)		deflimit;
 LDAP_SLAPD_F (int)		g_argc;
 LDAP_SLAPD_F (slap_access_t)	global_default_access;
 LDAP_SLAPD_F (int)		global_lastmod;

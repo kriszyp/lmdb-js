@@ -15,23 +15,20 @@
 
 int
 get_limits( 
-	Backend		*be, 
-	const char	*ndn, 
-	int		*timelimit, 
-	int		*sizelimit 
+	Backend			*be, 
+	const char		*ndn, 
+	struct slap_limits_set 	**limit
 )
 {
 	struct slap_limits **lm;
 
 	assert( be );
-	assert( timelimit );
-	assert( sizelimit );
+	assert( limit );
 
 	/*
 	 * default values
 	 */
-	*timelimit = be->be_timelimit;
-	*sizelimit = be->be_sizelimit;
+	*limit = &be->be_def_limit;
 
 	/*
 	 * anonymous or no regex-based limits? 
@@ -44,16 +41,14 @@ get_limits(
 		switch ( lm[0]->lm_type) {
 		case SLAP_LIMITS_EXACT:
 			if ( strcmp( lm[0]->lm_dn_pat, ndn ) == 0 ) {
-				*timelimit = lm[0]->lm_timelimit;
-				*sizelimit = lm[0]->lm_sizelimit;
+				*limit = &lm[0]->lm_limits;
 				return( 0 );
 			}
 			break;
 
 		case SLAP_LIMITS_REGEX:
 			if ( regexec( &lm[0]->lm_dn_regex, ndn, 0, NULL, 0) == 0 ) {
-				*timelimit = lm[0]->lm_timelimit;
-				*sizelimit = lm[0]->lm_sizelimit;
+				*limit = &lm[0]->lm_limits;
 				return( 0 );
 			}
 			break;
@@ -69,18 +64,18 @@ get_limits(
 
 int
 add_limits(
-	Backend         *be,
-	int		type,
-	const char	*pattern,
-	int		timelimit,
-	int		sizelimit
+	Backend 	        *be,
+	int			type,
+	const char		*pattern,
+	struct slap_limits_set	*limit
 )
 {
 	int 			i;
 	struct slap_limits	*lm;
 	
 	assert( be );
-	assert( pattern);
+	assert( pattern );
+	assert( limit );
 
 	lm = ( struct slap_limits * )ch_calloc( sizeof( struct slap_limits ), 1 );
 
@@ -107,8 +102,7 @@ add_limits(
 		break;
 	}
 
-	lm->lm_timelimit = timelimit;
-	lm->lm_sizelimit = sizelimit;
+	lm->lm_limits = *limit;
 
 	i = 0;
 	if ( be->be_limits != NULL ) {
@@ -134,8 +128,7 @@ parse_limits(
 {
 	int 	type = SLAP_LIMITS_UNDEFINED;
 	char 	*pattern;
-	int	timelimit;
-	int 	sizelimit;
+	struct slap_limits_set limit;
 	int 	i;
 
 	assert( be );
@@ -155,13 +148,12 @@ parse_limits(
 		return( -1 );
 	}
 
-	timelimit = be->be_timelimit;
-	sizelimit = be->be_sizelimit;
+	limit = be->be_def_limit;
 
 	/*
 	 * syntax:
 	 *
-	 * "limits" <pattern> <limit> [ <limit> [ ... ] ]
+	 * "limits" <pattern> <limit> [ ... ]
 	 * 
 	 * 
 	 * <pattern>:
@@ -171,7 +163,9 @@ parse_limits(
 	 * 
 	 * <limit>:
 	 *
-	 * { "time" | "size" } "=" <value>
+	 * "time" [ "." { "soft" | "hard" } ] "=" <integer>
+	 *
+	 * "size" [ "." { "soft" | "hard" | "unchecked" } ] "=" <integer>
 	 */
 	
 	pattern = argv[1];
@@ -210,27 +204,122 @@ parse_limits(
 	}
 
 	for ( i = 2; i < argc; i++ ) {
-		if ( strncasecmp( argv[i], "time=", 5) == 0 ) {
-			timelimit = atoi( argv[i]+5 );
-		} else if ( strncasecmp( argv[i], "size=", 5) == 0 ) {
-			sizelimit = atoi( argv[i]+5 );
-		} else {
+		if ( parse_limit( argv[i], &limit ) ) {
+
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
 				"%s : line %d: unknown limit type \"%s\" in "
-				"\"limits <pattern> <limits>\" line "
-				"(ignored).\n",
+				"\"limits <pattern> <limits>\" line.\n",
 			fname, lineno, argv[i] ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"%s : line %d: unknown limit type \"%s\" in "
-				"\"limits <pattern> <limits>\" line "
-				"(ignored).\n",
+				"\"limits <pattern> <limits>\" line.\n",
 			fname, lineno, argv[i] );
 #endif
+
+			return( 1 );
 		}
 	}
+
+	/*
+	 * sanity checks ...
+	 */
+	if ( limit.lms_t_hard > 0 && limit.lms_t_hard < limit.lms_t_soft ) {
+		limit.lms_t_hard = limit.lms_t_soft;
+	}
 	
-	return( add_limits( be, type, pattern, timelimit, sizelimit ) );
+	if ( limit.lms_s_hard > 0 && limit.lms_s_hard < limit.lms_s_soft ) {
+		limit.lms_s_hard = limit.lms_s_soft;
+	}
+	
+	return( add_limits( be, type, pattern, &limit ) );
+}
+
+int
+parse_limit(
+	const char 		*arg,
+	struct slap_limits_set 	*limit
+)
+{
+	assert( arg );
+	assert( limit );
+
+	if ( strncasecmp( arg, "time", 4 ) == 0 ) {
+		arg += 4;
+
+		if ( arg[0] == '.' ) {
+			arg++;
+			if ( strncasecmp( arg, "soft", 4 ) == 0 ) {
+				arg += 4;
+				if ( arg[0] != '=' ) {
+					return( 1 );
+				}
+				arg++;
+				limit->lms_t_soft = atoi( arg );
+				
+			} else if ( strncasecmp( arg, "hard", 4 ) == 0 ) {
+				arg += 4;
+				if ( arg[0] != '=' ) {
+					return( 1 );
+				}
+				arg++;
+				limit->lms_t_hard = atoi( arg );
+				
+			} else {
+				return( 1 );
+			}
+			
+		} else if ( arg[0] == '=' ) {
+			limit->lms_t_soft = atoi( arg );
+			limit->lms_t_hard = 0;
+			
+		} else {
+			return( 1 );
+		}
+
+	} else if ( strncasecmp( arg, "size", 4 ) == 0 ) {
+		arg += 4;
+		
+		if ( arg[0] == '.' ) {
+			arg++;
+			if ( strncasecmp( arg, "soft", 4 ) == 0 ) {
+				arg += 4;
+				if ( arg[0] != '=' ) {
+					return( 1 );
+				}
+				arg++;
+				limit->lms_s_soft = atoi( arg );
+				
+			} else if ( strncasecmp( arg, "hard", 4 ) == 0 ) {
+				arg += 4;
+				if ( arg[0] != '=' ) {
+					return( 1 );
+				}
+				arg++;
+				limit->lms_s_hard = atoi( arg );
+				
+			} else if ( strncasecmp( arg, "unchecked", 9 ) == 0 ) {
+				arg += 9;
+				if ( arg[0] != '=' ) {
+					return( 1 );
+				}
+				arg++;
+				limit->lms_s_unchecked = atoi( arg );
+				
+			} else {
+				return( 1 );
+			}
+			
+		} else if ( arg[0] == '=' ) {
+			limit->lms_s_soft = atoi( arg );
+			limit->lms_s_hard = 0;
+			
+		} else {
+			return( 1 );
+		}
+	}
+
+	return 0;
 }
 

@@ -158,7 +158,7 @@ feature.  The default is 0.
 Read additional configuration information from the given file before
 continuing with the next line of the current file.
 .TP
-.B limits [dn[.{exact|regex}]=]<pattern> <limit> [<limit> [...]]
+.B limits [dn[.{exact|regex}]=]<pattern> <limit> [...]
 Specify time and size limits based on the distinguished name that
 initiated an operation.
 The argument
@@ -169,14 +169,69 @@ It is a distinguished name in case of
 match, or an Extended Regex pattern in case of
 .BR regex
 match (the default).
+The currently supported limits are "size" and "time".
+
+The syntax for time limits is 
+.BR time[.{soft|hard}]=<integer> ,
+where 
+.BR integer
+is the number of seconds slapd will spend answering a search request.
+If no time limit is explicitly requested by the client, the 
+.BR soft
+limit is used; if the requested time limit exceedes the
+.BR hard
+limit, an "Unwilling to perform" is returned.
+If the
+.BR hard
+limit is set to zero, the soft limit is used in either case;
+if it is set to -1, no hard limit is enforced.
+Explicit requests for time limits smaller or equal to the
+.BR hard 
+limit are honored.
+If no flag is set, the value is assigned to the 
+.BR soft 
+limit, and the
+.BR hard
+limit is set to zero, to preserve the original behavior.
+
+The syntax for size limits is
+.BR size[.{soft|hard|unchecked}]=<integer> ,
+where
+.BR integer
+is the maximum number of entries slapd will return answering a search 
+request.
+If no size limit is explicitly requested by the client, the
+.BR soft
+limit is used; if the requested size limit exceedes the
+.BR hard
+limit, an "Unwilling to perform" is returned.
+If the 
+.BR hard
+limit is set to zero, the soft limit is used in either case;
+if it is set to -1, no hard limit is enforced.
+Explicit requests for size limits smaller or equal to the
+.BR hard
+limit are honored.
 The
-.BR limit
-argument(s) take the form
-.BR <name>=<value>
-where the currently supported names are "size" and "time", whose values
-are the maximum number of entries that are returned by a search
-and the number of seconds slapd will spend answering a search request.  
+.BR unchecked
+flag sets a limit on the number of candidates a search request is allowed
+to examine.
+If the selected candidates exceed the 
+.BR unchecked
+limit, the search will abort with "Unwilling to perform".
+If no flag is set, the value is assigned to the
+.BR soft 
+limit, and the
+.BR hard
+limit is set to zero, to preserve the original behavior.
+
 In case of no match, the global limits are used.
+The default values are the same of
+.BR sizelimit
+and
+.BR timelimit ;
+no limit is set on 
+.BR unchecked .
 This feature is currently exploited by the ldbm backend only.
 .TP
 .B loglevel <integer>
@@ -455,9 +510,15 @@ e.g. ldapi:// (and eventually IPSEC).  It is not normally used.
 .B schemacheck { on | off }
 Turn schema checking on or off. The default is on.
 .TP
-.B sizelimit <integer>
+.B sizelimit <integer> 
+.TP
+.B sizelimit size[.{soft|hard|unchecked}]=<integer>
 Specify the maximum number of entries to return from a search operation.
 The default size limit is 500.
+The second format allows a fine grain setting of the size limits.
+See
+.BR limits
+for an explanation of the different flags.
 .TP
 .B sockbuf_max_incoming <integer>
 Specify the maximum incoming LDAP PDU size for anonymous sessions.
@@ -477,9 +538,15 @@ Specify the maximum size of the primary thread pool.
 The default is 32.
 .TP
 .B timelimit <integer>
+.TP
+.B sizelimit size[.{soft|hard}]=<integer>
 Specify the maximum number of seconds (in real time)
 .B slapd
 will spend answering a search request.  The default time limit is 3600.
+The second format allows a fine grain setting of the time limits.
+See
+.BR limits
+for an explanation of the different flags.
 .SH TLS OPTIONS
 If
 .B slapd

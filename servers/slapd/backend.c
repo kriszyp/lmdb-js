@@ -469,8 +469,7 @@ backend_db_init(
 	be = &backends[nbackends++];
 
 	be->bd_info = bi;
-	be->be_sizelimit = defsize;
-	be->be_timelimit = deftime;
+	be->be_def_limit = deflimit;
 	be->be_dfltaccess = global_default_access;
 
 	be->be_restrictops = global_restrictops;

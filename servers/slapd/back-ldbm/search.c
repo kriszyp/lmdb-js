@@ -53,7 +53,7 @@ ldbm_back_search(
 	int		nentries = 0;
 	int		manageDSAit = get_manageDSAit( op );
 
-	int timelimit = -1, sizelimit = -1;
+	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 		
 #ifdef NEW_LOGGING
@@ -184,28 +184,74 @@ searchit:
 		goto done;
 	}
 
+	/* if not root, get appropriate limits */
 	if ( be_isroot( be, op->o_ndn ) ) {
 		isroot = 1;
 	} else {
-		if ( get_limits( be, op->o_ndn, &timelimit, &sizelimit) ) {
-			timelimit = be->be_timelimit;
-			sizelimit = be->be_sizelimit;
+		( void ) get_limits( be, op->o_ndn, &limit );
+	}
+
+	/* if candidates exceed to-be-checked entries, abort */
+	if ( !isroot && limit->lms_s_unchecked != -1 ) {
+		if ( ID_BLOCK_NIDS( candidates ) > limit->lms_s_unchecked ) {
+			send_search_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+					NULL, NULL, NULL, NULL, 0 );
+			rc = 0;
+			goto done;
 		}
 	}
+	
+	/* if no time limit requested, use soft limit (unless root!) */
+	if ( tlimit <= 0 ) {
+		if ( isroot ) {
+			tlimit = -1;	/* allow root to set no limit */
+		} else {
+			tlimit = limit->lms_t_soft;
+		}
+		
+	/* if requested limit higher than hard limit, abort */
+	} else if ( tlimit > limit->lms_t_hard ) {
+		/* no hard limit means use soft instead */
+		if ( limit->lms_t_hard == 0 ) {
+			tlimit = limit->lms_t_soft;
+			
+		/* positive hard limit means abort */
+		} else if ( limit->lms_t_hard > 0 ) {
+			send_search_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+					NULL, NULL, NULL, NULL, 0 );
+			rc = 0; 
+			goto done;
+		}
 
-	if ( tlimit == 0 && isroot ) {
-		tlimit = -1;	/* allow root to set no limit */
-	} else {
-		tlimit = (tlimit > timelimit || tlimit < 1) ?
-		    timelimit : tlimit;
-		stoptime = op->o_time + tlimit;
+		/* negative hard limit means no limit */
 	}
 
-	if ( slimit == 0 && isroot ) {
-		slimit = -1;	/* allow root to set no limit */
-	} else {
-		slimit = (slimit > sizelimit || slimit < 1) ?
-		    sizelimit : slimit;
+	/* compute it anyway; root does not use it */
+	stoptime = op->o_time + tlimit;
+
+	/* if no size limit requested, use soft limit (unless root!) */
+	if ( slimit == 0 ) {
+		if ( isroot ) {
+			slimit = -1;	/* allow root to set no limit */
+		} else {
+			slimit = limit->lms_s_soft;
+		}
+	
+	/* if requested limit higher than hard limit, abort */
+	} else if ( slimit > limit->lms_s_hard ) {
+		/* no hard limit means use soft instead */
+		if ( limit->lms_s_hard == 0 ) {
+			slimit = limit->lms_s_soft;
+
+		/* positive hard limit means abort */
+		} else if ( limit->lms_s_hard > 0 ) {
+			send_search_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+					NULL, NULL, NULL, NULL, 0 );
+			rc = 0;
+			goto done;
+		}
+
+		/* negative hard limit means no limit */
 	}
 
 	for ( id = idl_firstid( candidates, &cursor ); id != NOID;
