@@ -275,7 +275,7 @@ parse_acl(
 						pat = ch_strdup( "anonymous" );
 
 					} else if ( strcmp( right, "*" ) == 0 ) {
-						/* dn=* /
+						/* dn=* */
 						/* any or users?  any for now */
 						pat = ch_strdup( "users" );
 
