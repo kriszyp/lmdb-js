@@ -1794,6 +1794,13 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 		len = dn->bv_len + sizeof("uid=")-1 + sizeof(",cn=auth")-1;
 
 		/* username may have embedded realm name */
+		/* FIXME:
+		 * 1) userids can legally have embedded '@' chars
+		 * 2) we're mucking with memory we do not possess
+		 * 3) this should not be required, since we're 
+		 *    mostly doing strncpy's so we know how much
+		 *    memory to copy ...
+		 */
 		if( ( realm = strchr( dn->bv_val, '@') ) ) {
 			*realm++ = '\0';
 			len += sizeof(",cn=")-2;
@@ -1842,7 +1849,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 		LDAP_LOG( TRANSPORT, ENTRY, 
 			"slap_sasl_getdn: u:id converted to %s.\n", dn->bv_val, 0, 0 );
 #else
-		Debug( LDAP_DEBUG_TRACE, "getdn: u:id converted to %s\n", dn->bv_val,0,0 );
+		Debug( LDAP_DEBUG_TRACE, "slap_sasl_getdn: u:id converted to %s\n", dn->bv_val,0,0 );
 #endif
 	} else {
 		
