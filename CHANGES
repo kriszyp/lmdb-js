@@ -5,6 +5,7 @@ OpenLDAP 2.2.20 Engineering
 	Fixed slapd ID to DN mapping when values need DN escaping (ITS#3419)
 	Fixed slapd sl_realloc memory overrun (ITS#3420, #3404, #3296)
 	Fixed slapd syncrepl bugs (ITS#3423, #3425, #3443, #3448)
+	Fixed slapd bad tag handling
 	Fixed back-bdb locks in backend_group (ITS#3263, #3365)
 	Fixed back-bdb/back-hdb listing of permissive control (ITS#3453)
 	Fixed back-ldap failed connection retry (ITS#3217)

@@ -1140,8 +1140,11 @@ operations_error:
 		num_ops_completed_[SLAP_OP_EXTENDED]++;
 		break;
 	default:
+		/* this is reachable */
+#if 0
 		/* not reachable */
 		assert( 0 );
+#endif
 	}
 #endif /* SLAPD_MONITOR */
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
