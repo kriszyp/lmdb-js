@@ -20,7 +20,7 @@
 #if defined( HAVE_SIGACTION )
 #define SIGNAL lutil_sigaction
 typedef void (*lutil_sig_t)(int);
-LDAP_LUTIL_F(lutil_sig_t) lutil_sigaction( int sig, sig_t func );
+LDAP_LUTIL_F(lutil_sig_t) lutil_sigaction( int sig, lutil_sig_t func );
 #define SIGNAL_REINSTALL(sig,act)	(void)0
 #elif defined( HAVE_SIGSET )
 #define SIGNAL sigset
