@@ -217,7 +217,7 @@ return_results:;
 		bdb2i_cache_return_entry_w( &li->li_cache, p ); 
 	}
 
-	if ( rc ) {
+	if ( 1 || rc ) {
 		/* free entry and writer lock */
 		bdb2i_cache_return_entry_w( &li->li_cache, e );
 	}
