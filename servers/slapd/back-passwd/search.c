@@ -65,7 +65,7 @@ passwd_back_search(
 	time_t		stoptime;
 
 	LDAPRDN rdn = NULL;
-	struct berval parent = { 0, NULL };
+	struct berval parent = BER_BVNULL;
 
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 
