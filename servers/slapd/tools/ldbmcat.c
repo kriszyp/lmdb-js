@@ -19,7 +19,7 @@ usage( char *name )
 int
 main( int argc, char **argv )
 {
-        Datum                key, last, data;
+        Datum               key, data;
         LDBM                dbp;
         char                *file, *s;
         int                printid = 1;
@@ -29,7 +29,6 @@ main( int argc, char **argv )
 #endif
 
         ldbm_datum_init( key );
-        ldbm_datum_init( last );
         ldbm_datum_init( data );
 
         if ( argc < 2 || argc > 3 || ( argc == 3 && strcmp( argv[1], "-n" )
@@ -48,14 +47,12 @@ main( int argc, char **argv )
                 exit ( 1 );
         }
 
-        last.dptr = NULL;
-
 #ifdef HAVE_BERKELEY_DB2
         for ( key = ldbm_firstkey( dbp, &cursorp ); key.dptr != NULL;
-            key = ldbm_nextkey( dbp, last, cursorp ) )
+            key = ldbm_nextkey( dbp, key, cursorp ) )
 #else
         for ( key = ldbm_firstkey( dbp ); key.dptr != NULL;
-            key = ldbm_nextkey( dbp, last ) )
+            key = ldbm_nextkey( dbp, key ) )
 #endif
         {
                 data = ldbm_fetch( dbp, key );
@@ -76,12 +73,7 @@ main( int argc, char **argv )
                 } else {
 
 				}
-
-                ldbm_datum_free( dbp, last );
-                last = key;
-
         }
-        ldbm_datum_free( dbp, last );
         ldbm_close( dbp );
 
         exit( 0 );
