@@ -1,7 +1,9 @@
 LOADS!!!
 
 Priorities:
-	Make it useful!
+	Now that we have cn=config we can start using ldap_get_option propperly
+	and be able to run/stop server from the gtk-tool. Other things like
+	new entries would now come in handy.
 	Implement searches
 	port to autoconf (anyone? it should be easy)
 

@@ -7,23 +7,18 @@ read TODO!
 Just type 'make' to compile and if you have all the necessary stuff it'll do so.
 You do need the latest version of Gtk+ and Gtk-- (which may be tricky to build).
 After that, hopefully all goes well, you start the thing by doing:
-./main
+./main -s localhost
 
-It will default to base of o=University of Michigan, c=US", localhost, and 
-LDAP_PORT (389). This is because OpenLDAP comes with the UMICH ldif and the 
-assumption is that many of you have actually created a test db with that data 
-(to see that people don't lie when they say OpenLDAP actually works or 
-something). If you want to change any of these do ./main -h and it will give 
-you a list of supported parameters. 
+It no longer has a default base, instead it reads cn=config off your slapd
+and accordignly inserts all available databases under "localhost". If you are
+not running slapd on your local machine, then supply it with a "-s hostname"
+i.e.:
+	./main -s server02.nowhere.net
 
-In short this is what you can do:
-
-./main -h ldap-server.somewhere.net -p 28345 -b "o=OpenLDAP Foundation, c=US"
-
-I really couldn't think of anything else to put here (at the moment
-that is). But please feel free to add whatever else you consider
-neccessary to understanding how this thing works. Enjoy, and I hope
-this can be useful to you in some miniscule way.
+It does not accept -b switch as it no longer needs it to aquire databases.
+But please feel free to add whatever else you consider neccessary to 
+understanding how this thing works. Enjoy, and I hope this can be useful to 
+you in some miniscule way.
 
 All emails to -devel list, and plase make sure you put "GTK-TOOL"
 in the subject line, so other people who are not interested don't
