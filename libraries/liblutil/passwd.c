@@ -104,15 +104,20 @@ static int chk_kerberos(
 	const struct berval *cred );
 #endif
 
+#ifdef SLAPD_CRYPT
 static int chk_crypt(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
 
+#if defined( HAVE_GETSPNAM ) \
+  || ( defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD ) )
 static int chk_unix(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
+#endif
+#endif
 
 
 /* password hash routines */
@@ -132,9 +137,11 @@ static struct berval *hash_md5(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd );
 
+#ifdef SLAPD_CRYPT
 static struct berval *hash_crypt(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd );
+#endif
 
 
 static const struct pw_scheme pw_schemes[] =
@@ -155,10 +162,10 @@ static const struct pw_scheme pw_schemes[] =
 
 #ifdef SLAPD_CRYPT
 	{ {sizeof("{CRYPT}")-1, "{CRYPT}"},	chk_crypt, hash_crypt },
-#endif
 # if defined( HAVE_GETSPNAM ) \
   || ( defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD ) )
 	{ {sizeof("{UNIX}")-1, "{UNIX}"},	chk_unix, NULL },
+# endif
 #endif
 
 #ifdef SLAPD_CLEARTEXT
