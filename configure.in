@@ -31,7 +31,7 @@ define([AC_CACHE_LOAD], )dnl
 define([AC_CACHE_SAVE], )dnl
 dnl ================================================================
 dnl Configure.in for OpenLDAP
-AC_INIT(build/version)dnl
+AC_INIT(build/version.sh)dnl
 
 # set unset (borrowed from autoconf 2.14a)
 if (unset FOO) >/dev/null 2>&1; then
@@ -44,12 +44,12 @@ $ol_unset CDPATH || test "${CDPATH+set}" != set || CDPATH=: && export CDPATH
 
 AC_CONFIG_AUX_DIR(build)dnl
 
-OL_VERSION=`cat $ac_aux_dir/version`
-if test -z "$OL_VERSION"; then
+eval `$ac_aux_dir/version.sh`
+if test -z "$OL_STRING"; then
 	AC_MSG_ERROR([could not determine version])
 fi
 
-echo "Configuring OpenLDAP $OL_VERSION ..."
+echo "Configuring $OL_STRING ..."
 
 dnl Determine host platform
 dnl		we try not to use this for much

@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.327 2000/09/14 05:22:10 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.328 2000/09/14 05:26:29 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -576,7 +576,7 @@ echo > confdefs.h
 
 # A filename unique to this package, relative to the directory that
 # configure is in, which we can look for to find out if srcdir is correct.
-ac_unique_file=build/version
+ac_unique_file=build/version.sh
 
 # Find the source files, if location was not specified.
 if test -z "$srcdir"; then
@@ -671,12 +671,12 @@ ac_config_guess="$SHELL $ac_aux_dir/config.guess"
 ac_config_sub="$SHELL $ac_aux_dir/config.sub"
 ac_configure="$SHELL $ac_aux_dir/configure" # This should be Cygnus configure.
 
-OL_VERSION=`cat $ac_aux_dir/version`
-if test -z "$OL_VERSION"; then
+eval `$ac_aux_dir/version.sh`
+if test -z "$OL_STRING"; then
 	{ echo "configure: error: could not determine version" 1>&2; exit 1; }
 fi
 
-echo "Configuring OpenLDAP $OL_VERSION ..."
+echo "Configuring $OL_STRING ..."
 
 
 echo $ac_n "checking host system type""... $ac_c" 1>&6
