@@ -635,11 +635,27 @@ int main(argc, argv)
 	char **argv;
 {
 	pthread_t t;
+	int status;
+
+	/* make sure pthread_create() isn't just a stub */
 #if HAVE_PTHREADS_D4
-	exit(pthread_create(&t, pthread_attr_default, task, NULL));
+	status = pthread_create(&t, pthread_attr_default, task, NULL));
 #else
-	exit(pthread_create(&t, NULL, task, NULL));
+	status = pthread_create(&t, NULL, task, NULL);
 #endif
+
+	if( status ) return status;
+
+	/* make sure pthread_detach() isn't just a stub */
+#if HAVE_PTHREADS_D4
+	status = pthread_detach( &t );
+#else
+	status = pthread_detach( t );
+#endif
+
+	if( status ) return status;
+
+	return status;
 }
 ],
 			[ol_cv_pthread_create=yes],
