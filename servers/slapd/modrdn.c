@@ -150,6 +150,13 @@ do_modrdn(
 		goto cleanup;
 	}
 
+	if( ndn == '\0' ) {
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: root dse!\n", 0, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+			NULL, "cannot rename the root DSE", NULL, NULL );
+		goto cleanup;
+	}
+
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MODRDN dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, dn, 0, 0 );
 
