@@ -23,7 +23,7 @@ ac_help="$ac_help
 ac_help="$ac_help
   --enable-cache	enable caching (yes)"
 ac_help="$ac_help
-  --enable-dns		enable V2 DNS  extension (no)"
+  --enable-dns		enable V2 DX Referrals extension (no)"
 ac_help="$ac_help
   --enable-referrals	enable V2 Referrals extension (yes)"
 ac_help="$ac_help
@@ -47,11 +47,11 @@ ac_help="$ac_help
 ac_help="$ac_help
   --with-yielding-select	with implicitly yielding select (auto)"
 ac_help="$ac_help
-LDAPD Options:"
+LDAPD (X.500-to-LDAP Gateway) Options:"
 ac_help="$ac_help
   --enable-ldapd	enable building ldapd (no)"
 ac_help="$ac_help
-SLAPD Options:"
+SLAPD (Standalone LDAP Daemon) Options:"
 ac_help="$ac_help
   --enable-slapd	enable building slapd (yes)"
 ac_help="$ac_help

@@ -71,7 +71,7 @@ dnl ol_enable_syslog=no
 OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl
 OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
-OL_ARG_ENABLE(dns,[  --enable-dns		enable V2 DNS  extension], no)dnl
+OL_ARG_ENABLE(dns,[  --enable-dns		enable V2 DX Referrals extension], no)dnl
 OL_ARG_ENABLE(referrals,[  --enable-referrals	enable V2 Referrals extension], yes)dnl
 OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
 OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
@@ -98,11 +98,11 @@ OL_ARG_WITH(yielding_select,[  --with-yielding-select	with implicitly yielding s
 dnl Server options
 
 dnl LDAPD OPTIONS
-AC_ARG_WITH(xxldapdoptions,[LDAPD Options:])
+AC_ARG_WITH(xxldapdoptions,[LDAPD (X.500-to-LDAP Gateway) Options:])
 OL_ARG_ENABLE(ldapd,[  --enable-ldapd	enable building ldapd], no)dnl
 
 dnl SLAPD OPTIONS
-AC_ARG_WITH(xxslapdoptions,[SLAPD Options:])
+AC_ARG_WITH(xxslapdoptions,[SLAPD (Standalone LDAP Daemon) Options:])
 OL_ARG_ENABLE(slapd,[  --enable-slapd	enable building slapd], yes)dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	enable cleartext passwords], yes)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	enable crypt(3) passwords], auto)dnl
