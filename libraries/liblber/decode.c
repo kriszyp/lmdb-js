@@ -141,11 +141,6 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 		*len = lc;
 	}
 
-	/* BER length should be non-negative */
-	if( *len < 0 ) {
-		return LBER_DEFAULT;
-	}
-
 	/* BER element should have enough data left */
 	if( *len > (ber_len_t) ber_pvt_ber_remaining( ber ) ) {
 		return LBER_DEFAULT;
@@ -603,7 +598,7 @@ ber_next_element(
 
 	assert( LBER_VALID( ber ) );
 
-	if ( ber->ber_ptr == last ) {
+	if ( ber->ber_ptr >= last ) {
 		return LBER_DEFAULT;
 	}
 

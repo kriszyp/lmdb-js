@@ -53,7 +53,7 @@ struct ber_mem_hdr {
 };
 
 /* Pattern at top of allocated space */
-#define LLBER_MEM_JUNK 0xdeaddadaU
+#define LBER_MEM_JUNK 0xdeaddadaU
 
 static const struct ber_mem_hdr ber_int_mem_hdr = { LBER_MEM_JUNK, 0, 0 };
 
