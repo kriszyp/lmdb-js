@@ -194,7 +194,7 @@ glue_back_response ( Operation *op, SlapReply *rs )
 	switch(rs->sr_type) {
 	case REP_SEARCH:
 		if ( gs->slimit && rs->sr_nentries >= gs->slimit ) {
-			gs->err = LDAP_SIZELIMIT_EXCEEDED;
+			rs->sr_err = gs->err = LDAP_SIZELIMIT_EXCEEDED;
 			return -1;
 		}
 		/* fallthru */

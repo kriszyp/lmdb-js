@@ -628,7 +628,7 @@ LDAP_SLAPD_F (int) slap_build_syncUUID_set LDAP_P((
  * limits.c
  */
 LDAP_SLAPD_F (int) get_limits LDAP_P((
-	Backend *be, struct berval *ndn,
+	Operation *op, struct berval *ndn,
 	struct slap_limits_set **limit ));
 LDAP_SLAPD_F (int) parse_limits LDAP_P((
 	Backend *be, const char *fname, int lineno,
@@ -1105,9 +1105,9 @@ LDAP_SLAPD_V (struct runqueue_s) syncrepl_rq;
 
 LDAP_SLAPD_F (void) init_syncrepl LDAP_P((syncinfo_t *));
 LDAP_SLAPD_F (void*) do_syncrepl LDAP_P((void *, void *));
-LDAP_SLAPD_F (Entry*) syncrepl_message_to_entry LDAP_P((
+LDAP_SLAPD_F (int) syncrepl_message_to_entry LDAP_P((
 					syncinfo_t *, Operation *, LDAPMessage *,
-					Modifications **, int ));
+					Modifications **, Entry **, int ));
 LDAP_SLAPD_F (int) syncrepl_entry LDAP_P((
 					syncinfo_t *, Operation*, Entry*,
 					Modifications*,int, struct berval*,

@@ -1,9 +1,27 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.6 Engineering
+	Fixed slapd SASL callback handling
+	Fixed slapd backglue sizelimit bug
+	Fixed slapd numericStringMatch bug
 	Fixed numericStringsMatch mis-definition bug (ITS#2938)
+	Fixed libldap reference handling
+	Fixed libldap_r abandon msgid mutex bug 
+	Fixed liblutil NS MTA MD5 passwd len bug
+	Fixed slapd pcache DB init bug
+	Updated slapd syncrepl support
+	Updated slapd connection deferred logging
+	Updated slapd filter logging
+	Updated slapd back-ldap
+	Added slapd limit groups
 	Build Environment
 		Fixed test021 portable echo bug (ITS#2933, ITS#2879)
+		Fixed EBCDIC conversion bugs
+	Documentation
+		Misc. man page updates
+	Contributed Software
+		Added slapd passwd modules
+		Updated libcldap++
 
 OpenLDAP 2.2.5 Release
 	Fixed slapd filter bug (ITS#2901)

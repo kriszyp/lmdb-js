@@ -17,5 +17,5 @@ ol_major=2
 ol_minor=2
 ol_patch=X
 ol_api_inc=20204
-ol_api_lib=202:4:1
-ol_release_date="2004/01/22"
+ol_api_lib=202:4:2
+ol_release_date="2004/01/29"

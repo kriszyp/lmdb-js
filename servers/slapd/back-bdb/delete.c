@@ -51,6 +51,9 @@ bdb_delete( Operation *op, SlapReply *rs )
 	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
 	int num_ctrls = 0;
 
+	int	parent_is_glue = 0;
+	int parent_is_leaf = 0;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ARGS,  "==> bdb_delete: %s\n", op->o_req_dn.bv_val, 0, 0 );
 #else
@@ -80,6 +83,8 @@ retry:	/* transaction retry */
 			rs->sr_text = "internal error";
 			goto return_results;
 		}
+		parent_is_glue = 0;
+		parent_is_leaf = 0;
 		ldap_pvt_thread_yield();
 		bdb_trans_backoff( ++num_retries );
 	}
@@ -474,6 +479,39 @@ retry:	/* transaction retry */
 		rs->sr_err = LDAP_OTHER;
 		goto return_results;
 	}
+
+	bdb_cache_find_id( op, lt2, eip->bei_id, &eip, 0, locker, &plock );
+	if ( eip ) p = eip->bei_e;
+	if ( pdn.bv_len != 0 ) {
+		parent_is_glue = is_entry_glue(p);
+		rs->sr_err = bdb_cache_children( op, lt2, p );
+		if ( rs->sr_err != DB_NOTFOUND ) {
+			switch( rs->sr_err ) {
+			case DB_LOCK_DEADLOCK:
+			case DB_LOCK_NOTGRANTED:
+				goto retry;
+			case 0:
+				break;
+			default:
+#ifdef NEW_LOGGING
+				LDAP_LOG ( OPERATION, ERR, 
+					"<=- bdb_delete: has_children failed %s (%d)\n",
+					db_strerror(rs->sr_err), rs->sr_err, 0 );
+#else
+				Debug(LDAP_DEBUG_ARGS,
+					"<=- bdb_delete: has_children failed: %s (%d)\n",
+					db_strerror(rs->sr_err), rs->sr_err, 0 );
+#endif
+				rs->sr_err = LDAP_OTHER;
+				rs->sr_text = "internal error";
+				goto return_results;
+			}
+			parent_is_leaf = 1;
+		}
+		bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
+		p = NULL;
+	}
+
 	if ( TXN_COMMIT( lt2, 0 ) != 0 ) {
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "txn_commit(2) failed";
@@ -570,6 +608,10 @@ return_results:
 		ldap_pvt_thread_yield();
 		TXN_CHECKPOINT( bdb->bi_dbenv,
 			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );
+	}
+
+	if ( rs->sr_err == LDAP_SUCCESS && parent_is_glue && parent_is_leaf ) {
+		op->o_delete_glue_parent = 1;
 	}
 
 done:

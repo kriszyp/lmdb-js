@@ -152,8 +152,16 @@ int ldbm_initialize( const char* home )
 
 	{
 		char *version;
+#ifdef HAVE_EBCDIC
+		char v2[1024];
+#endif
 		int major, minor, patch;
 		version = db_version( &major, &minor, &patch );
+#ifdef HAVE_EBCDIC
+		strcpy( v2, version );
+		__etoa( v2 );
+		version = v2;
+#endif
 
 		if( major != DB_VERSION_MAJOR ||
 			minor < DB_VERSION_MINOR )

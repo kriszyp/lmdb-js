@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.478.2.11 2004/01/01 18:16:25 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.478.2.12 2004/01/17 18:36:41 kurt Exp  
 
 # This work is part of OpenLDAP Software <http://www.openldap.org/>.
 #
@@ -8509,11 +8509,11 @@ else
 	ol_with_sql_module=static
 	if test $ol_with_dyngroup = mod ; then
 		echo "configure: warning: building static dyngroup overlay" 1>&2
-		ol_with_dyngroup = yes
+		ol_with_dyngroup=yes
 	fi
 	if test $ol_with_proxycache = mod ; then
 		echo "configure: warning: building static proxycache overlay" 1>&2
-		ol_with_proxycache = yes
+		ol_with_proxycache=yes
 	fi
 fi
 

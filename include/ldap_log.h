@@ -114,6 +114,12 @@ LDAP_BEGIN_DECL
 #   ifdef LDAP_SYSLOG
     extern int	ldap_syslog;
     extern int	ldap_syslog_level;
+
+#	ifdef HAVE_EBCDIC
+#	define syslog	eb_syslog
+	extern void eb_syslog(int pri, const char *fmt, ...);
+#	endif
+
 #   endif /* LDAP_SYSLOG */
 
 /* this doesn't below as part of ldap.h */

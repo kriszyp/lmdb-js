@@ -49,22 +49,22 @@ ldap_pvt_thread_mutex_t ldap_int_sasl_mutex;
 * Various Cyrus SASL related stuff.
 */
 
+static const sasl_callback_t client_callbacks[] = {
+#ifdef SASL_CB_GETREALM
+	{ SASL_CB_GETREALM, NULL, NULL },
+#endif
+	{ SASL_CB_USER, NULL, NULL },
+	{ SASL_CB_AUTHNAME, NULL, NULL },
+	{ SASL_CB_PASS, NULL, NULL },
+	{ SASL_CB_ECHOPROMPT, NULL, NULL },
+	{ SASL_CB_NOECHOPROMPT, NULL, NULL },
+	{ SASL_CB_LIST_END, NULL, NULL }
+};
+
 int ldap_int_sasl_init( void )
 {
 	/* XXX not threadsafe */
 	static int sasl_initialized = 0;
-
-	static sasl_callback_t client_callbacks[] = {
-#ifdef SASL_CB_GETREALM
-		{ SASL_CB_GETREALM, NULL, NULL },
-#endif
-		{ SASL_CB_USER, NULL, NULL },
-		{ SASL_CB_AUTHNAME, NULL, NULL },
-		{ SASL_CB_PASS, NULL, NULL },
-		{ SASL_CB_ECHOPROMPT, NULL, NULL },
-		{ SASL_CB_NOECHOPROMPT, NULL, NULL },
-		{ SASL_CB_LIST_END, NULL, NULL }
-	};
 
 #ifdef HAVE_SASL_VERSION
 	/* stringify the version number, sasl.h doesn't do it for us */
@@ -118,7 +118,7 @@ int ldap_int_sasl_init( void )
 	ldap_pvt_thread_mutex_init( &ldap_int_sasl_mutex );
 #endif
 
-	if ( sasl_client_init( client_callbacks ) == SASL_OK ) {
+	if ( sasl_client_init( NULL ) == SASL_OK ) {
 		sasl_initialized = 1;
 		return 0;
 	}
@@ -506,9 +506,9 @@ ldap_int_sasl_open(
 
 #if SASL_VERSION_MAJOR >= 2
 	rc = sasl_client_new( "ldap", host, NULL, NULL,
-		NULL, 0, &ctx );
+		client_callbacks, 0, &ctx );
 #else
-	rc = sasl_client_new( "ldap", host, NULL,
+	rc = sasl_client_new( "ldap", host, client_callbacks,
 		SASL_SECURITY_LAYER, &ctx );
 #endif
 

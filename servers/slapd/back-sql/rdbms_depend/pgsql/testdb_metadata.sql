@@ -30,17 +30,17 @@ insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (2,1,'telephoneNumber','phones.phone','persons,phones','phones.pers_id=persons.id','select add_phone(?,?)','select delete_phone(?,?)',3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (3,1,'givenName','persons.name','persons',NULL,'update persons set name=? where id=?',NULL,3,0);
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (6,1,'sn','persons.surname','persons',NULL,'update persons set surname=? where id=?',NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (4,1,'sn','persons.surname','persons',NULL,'update persons set surname=? where id=?',NULL,3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (4,2,'description','documents.abstract','documents',NULL,NULL,NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (5,2,'description','documents.abstract','documents',NULL,NULL,NULL,3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (5,2,'documentTitle','documents.title','documents',NULL,NULL,NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (6,2,'documentTitle','documents.title','documents',NULL,NULL,NULL,3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (6,2,'documentAuthor','documentAuthor.dn','ldap_entries AS documentAuthor,documents,authors_docs,persons','documentAuthor.keyval=persons.id AND documentAuthor.oc_map_id=1 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id',NULL,NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (7,2,'documentAuthor','documentAuthor.dn','ldap_entries AS documentAuthor,documents,authors_docs,persons','documentAuthor.keyval=persons.id AND documentAuthor.oc_map_id=1 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id',NULL,NULL,3,0);
 	
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (7,3,'o','institutes.name','institutes',NULL,NULL,NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (8,3,'o','institutes.name','institutes',NULL,NULL,NULL,3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (8,1,'documentIdentifier','documentIdentifier.dn','ldap_entries AS documentIdentifier,documents,authors_docs,persons','documentIdentifier.keyval=documents.id AND documentIdentifier.oc_map_id=2 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id',NULL,NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (9,1,'documentIdentifier','documentIdentifier.dn','ldap_entries AS documentIdentifier,documents,authors_docs,persons','documentIdentifier.keyval=documents.id AND documentIdentifier.oc_map_id=2 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id',NULL,NULL,3,0);
 
 
 -- entries mapping: each entry must appear in this table, with a unique DN rooted at the database naming context

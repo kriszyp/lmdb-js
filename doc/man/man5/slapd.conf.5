@@ -292,7 +292,7 @@ can be any of
 .RS
 .RS
 .TP
-anonymous | users | [dn[.<style>]=]<pattern>
+anonymous | users | [dn[.<style>]=]<pattern> | group[/oc[/at]]=<pattern>
 
 .RE
 with
@@ -304,11 +304,11 @@ with
 The term
 .B anonymous
 matches all unauthenticated clients.
-the term
+The term
 .B users
 matches all authenticated clients;
-otherwise a
-.B regex
+otherwise an
+.B exact
 dn pattern is assumed unless otherwise specified by qualifying 
 the (optional) key string
 .B dn
@@ -337,6 +337,24 @@ The same behavior is obtained by using the
 form of the
 .B who
 clause.
+The term
+.BR group ,
+with the optional objectClass
+.B oc
+and attributeType
+.B at
+fields, followed by
+.BR pattern ,
+sets the limits for any DN listed in the values of the
+.B at
+attribute (default
+.BR member )
+of the 
+.B oc
+group objectClass (default
+.BR groupOfNames )
+whose DN exactly matches
+.BR pattern .
 
 The currently supported limits are 
 .B size

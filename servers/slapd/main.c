@@ -382,11 +382,24 @@ int main( int argc, char **argv )
 		}
 	}
 
-#ifdef LOG_LOCAL4
-	openlog( serverName, OPENLOG_OPTIONS, syslogUser );
-#elif LOG_DEBUG
-	openlog( serverName, OPENLOG_OPTIONS );
+	{
+		char *logName;
+#ifdef HAVE_EBCDIC
+		logName = ch_strdup( serverName );
+		__atoe( logName );
+#else
+		logName = serverName;
 #endif
+
+#ifdef LOG_LOCAL4
+		openlog( logName, OPENLOG_OPTIONS, syslogUser );
+#elif LOG_DEBUG
+		openlog( logName, OPENLOG_OPTIONS );
+#endif
+#ifdef HAVE_EBCDIC
+		free( logName );
+#endif
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( SLAPD, INFO, "%s", Versionstr, 0, 0 );

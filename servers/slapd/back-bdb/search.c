@@ -655,7 +655,7 @@ dn2entry_retry:
 	if ( be_isroot( op->o_bd, &sop->o_ndn ) ) {
 		isroot = 1;
 	} else {
-		( void ) get_limits( op->o_bd, &sop->o_ndn, &limit );
+		( void ) get_limits( op, &sop->o_ndn, &limit );
 	}
 
 	/* The time/size limits come first because they require very little
@@ -809,10 +809,7 @@ dn2entry_retry:
 			0, 0, 0 );
 #endif
 
-		rs->sr_err = LDAP_SUCCESS;
-		rs->sr_entry = NULL;
-		send_ldap_result( sop, rs );
-		goto done;
+		goto nochange;
 	}
 
 	/* if not root and candidates exceed to-be-checked entries, abort */
