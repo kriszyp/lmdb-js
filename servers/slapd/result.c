@@ -274,12 +274,6 @@ send_ldap_response(
 		return;
 	}
 
-#ifdef LDAP_CONNECTIONLESS
-	if ( op->o_cldap ) {
-		rc = ber_printf( ber, "{is{t{essN}N}N}", msgid, "", tag,
-		    err, matched ? matched : "", text ? text : "" );
-	} else
-#endif
 	{
 		rc = ber_printf( ber, "{it{ess",
 			msgid, tag, err,
@@ -375,18 +369,6 @@ send_ldap_disconnect(
 		msgid = 0;
 	}
 
-#ifdef LDAP_CONNECTIONLESS
-	if ( op->o_cldap ) {
-		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_UDP_SET_DST,
-		    (void *)&op->o_clientaddr );
-		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
-		    inet_ntoa(((struct sockaddr_in *)
-		    &op->o_clientaddr)->sin_addr ),
-		    ((struct sockaddr_in *) &op->o_clientaddr)->sin_port,
-		    0 );
-	}
-#endif
-
 	send_ldap_response( conn, op, tag, msgid,
 		err, NULL, text, NULL,
 		reqoid, NULL, NULL, NULL );
@@ -447,18 +429,6 @@ send_ldap_result(
 	tag = req2res( op->o_tag );
 	msgid = (tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
-#ifdef LDAP_CONNECTIONLESS
-	if ( op->o_cldap ) {
-		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_UDP_SET_DST,
-		    (void *)&op->o_clientaddr );
-		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
-		    inet_ntoa(((struct sockaddr_in *)
-		    &op->o_clientaddr)->sin_addr ),
-		    ((struct sockaddr_in *) &op->o_clientaddr)->sin_port,
-		    0 );
-	}
-#endif
-
 	send_ldap_response( conn, op, tag, msgid,
 		err, matched, text, ref,
 		NULL, NULL, NULL, ctrls );
@@ -494,18 +464,6 @@ send_ldap_sasl(
 	tag = req2res( op->o_tag );
 	msgid = (tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
-#ifdef LDAP_CONNECTIONLESS
-	if ( op->o_cldap ) {
-		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_UDP_SET_DST,
-		    (void *)&op->o_clientaddr );
-		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
-		    inet_ntoa(((struct sockaddr_in *)
-		    &op->o_clientaddr)->sin_addr ),
-		    ((struct sockaddr_in *) &op->o_clientaddr)->sin_port,
-		    0 );
-	}
-#endif
-
 	send_ldap_response( conn, op, tag, msgid,
 		err, matched, text, ref,
 		NULL, NULL, cred, ctrls  );
@@ -535,18 +493,6 @@ send_ldap_extended(
 
 	tag = req2res( op->o_tag );
 	msgid = (tag != LBER_SEQUENCE) ? op->o_msgid : 0;
-
-#ifdef LDAP_CONNECTIONLESS
-	if ( op->o_cldap ) {
-		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_UDP_SET_DST,
-		    (void *)&op->o_clientaddr );
-		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
-		    inet_ntoa(((struct sockaddr_in *)
-		    &op->o_clientaddr)->sin_addr ),
-		    ((struct sockaddr_in *) &op->o_clientaddr)->sin_port,
-		    0 );
-	}
-#endif
 
 	send_ldap_response( conn, op, tag, msgid,
 		err, matched, text, refs,
@@ -599,18 +545,6 @@ send_search_result(
 
 	tag = req2res( op->o_tag );
 	msgid = (tag != LBER_SEQUENCE) ? op->o_msgid : 0;
-
-#ifdef LDAP_CONNECTIONLESS
-	if ( op->o_cldap ) {
-		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_UDP_SET_DST,
-		    (void *)&op->o_clientaddr );
-		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
-		    inet_ntoa(((struct sockaddr_in *)
-		    &op->o_clientaddr)->sin_addr ),
-		    ((struct sockaddr_in *) &op->o_clientaddr)->sin_port,
-		    0 );
-	}
-#endif
 
 	send_ldap_response( conn, op, tag, msgid,
 		err, matched, text, refs,

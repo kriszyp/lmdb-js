@@ -99,9 +99,6 @@ usage( char *name )
 	fprintf( stderr,
 		"usage: %s options\n", name );
 	fprintf( stderr,
-#if LDAP_CONNECTIONLESS
-		"\t-c\t\tEnable (experimental) Connectionless LDAP\n"
-#endif
 		"\t-d level\tDebug Level" "\n"
 		"\t-f filename\tConfiguration File\n"
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
@@ -218,9 +215,6 @@ int main( int argc, char **argv )
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 			     "u:g:"
 #endif
-#ifdef LDAP_CONNECTIONLESS
-				 "c"
-#endif
 			     )) != EOF ) {
 		switch ( i ) {
 		case 'h':	/* listen URLs */
@@ -251,14 +245,6 @@ int main( int argc, char **argv )
 		case 'l':	/* set syslog local user */
 			syslogUser = cnvt_str2int( optarg,
 				syslog_types, DEFAULT_SYSLOG_USER );
-			break;
-#endif
-
-#ifdef LDAP_CONNECTIONLESS
-		case 'c':	/* do connectionless (udp) */
-			/* udp = 1; */
-			fprintf( stderr, "connectionless support not supported");
-			exit( EXIT_FAILURE );
 			break;
 #endif
 
