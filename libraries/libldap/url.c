@@ -286,6 +286,7 @@ static int hex_escape( char *buf, const char *s, int list )
 		}
 	}
 
+	buf[pos] = '\0';
 	return pos;
 }
 
