@@ -378,7 +378,6 @@ struct mrule_defs_rec {
  * Other matching rules in X.520 that we do not use:
  *
  * 2.5.13.9		numericStringOrderingMatch
- * 2.5.13.12	caseIgnoreListSubstringsMatch
  * 2.5.13.13	booleanMatch
  * 2.5.13.15	integerOrderingMatch
  * 2.5.13.18	octetStringOrderingMatch
@@ -415,6 +414,7 @@ struct mrule_defs_rec {
 #define numericStringMatch NULL
 #define numericStringSubstringsMatch NULL
 #define caseIgnoreListMatch NULL
+#define caseIgnoreListSubstringsMatch NULL
 #define integerMatch NULL
 #define bitStringMatch NULL
 #define octetStringMatch NULL
@@ -485,6 +485,11 @@ struct mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL, caseIgnoreListMatch, NULL, NULL},
+
+	{"( 2.5.13.12 NAME 'caseIgnoreListSubstringsMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
+		SLAP_MR_SUBSTR | SLAP_MR_EXT,
+		NULL, NULL, caseIgnoreListSubstringsMatch, NULL, NULL},
 
 	{"( 2.5.13.14 NAME 'integerMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",

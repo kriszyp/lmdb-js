@@ -29,6 +29,7 @@ objectclass ( 2.16.840.1.113730.3.2.3 NAME 'mailRecipient'
 	SUP top AUXILIARY
 	MAY	( cn $ mail $ mailAlternateAddress $ mailHost $ mailRoutingAddress ))
 
+# Needs an OID
 #objectclass ( 2.16.840.1.113730.3.2.[[TBD]] NAME 'inetLocalMailRecipient'
 #	SUP top AUXILIARY
 #	MAY	( mail $ mailAlternateAddress $ mailHost $ mailRoutingAddress )
