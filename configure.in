@@ -131,6 +131,7 @@ AC_SUBST(ldap_subdir)dnl
 dnl ----------------------------------------------------------------
 dnl General "enable" options
 OL_ARG_ENABLE(debug,[  --enable-debug 	  enable debugging], yes)dnl
+OL_ARG_ENABLE(dynamic,[    --enable-dynamic	  enable linking built binaries with dynamic libs], no)dnl
 OL_ARG_ENABLE(syslog,[  --enable-syslog	  enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	  enable proctitle support], yes)dnl
 dnl OL_ARG_ENABLE(referrals,[  --enable-referrals	  enable LDAPv2+ Referrals (experimental)], no)dnl
@@ -173,7 +174,6 @@ OL_ARG_ENABLE(slapd,[  --enable-slapd	  enable building slapd], yes)dnl
 OL_ARG_ENABLE(aci,[    --enable-aci	  enable per-object ACIs (experimental)], no)dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	  enable cleartext passwords], yes)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	  enable crypt(3) passwords], no)dnl
-OL_ARG_ENABLE(dynamic,[    --enable-dynamic	  enable linking built binaries with dynamic libs], no)dnl
 OL_ARG_ENABLE(kpasswd,[    --enable-kpasswd	  enable Kerberos password verification], no)dnl
 OL_ARG_ENABLE(lmpasswd,[    --enable-lmpasswd	  enable LAN Manager passwords], no)dnl
 OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verification], no)dnl
@@ -240,7 +240,6 @@ dnl ----------------------------------------------------------------
 AC_ARG_WITH(xxliboptions,[
 Library Generation & Linking Options])
 AC_ENABLE_STATIC
-dnl AC_DISABLE_SHARED
 AC_ENABLE_SHARED
 
 dnl ----------------------------------------------------------------
@@ -657,12 +656,6 @@ fi
 AC_LIBTOOL_WIN32_DLL
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
-
-LTSTATIC=""
-if test -z "$LTDYNAMIC"; then
-	LTSTATIC="-static"
-fi
-AC_SUBST(LTSTATIC)dnl
 
 OL_PROG_LN_H
 AC_PROG_LN_S
@@ -2025,12 +2018,16 @@ if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
 fi
 
 dnl ----------------------------------------------------------------
+
 if test $ol_enable_dynamic = yes -a $enable_shared = yes ; then
 	BUILD_LIBS_DYNAMIC=shared
 	AC_DEFINE(LDAP_LIBS_DYNAMIC, 1, [define if LDAP libs are dynamic])
+	LTSTATIC=""
 else
 	BUILD_LIBS_DYNAMIC=static
+	LTSTATIC="-static"
 fi
+AC_SUBST(LTSTATIC)dnl
 
 dnl ----------------------------------------------------------------
 if test $ol_enable_wrappers != no ; then
