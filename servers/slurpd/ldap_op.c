@@ -563,10 +563,13 @@ op_ldap_modrdn(
     if ( ldap_debug & LDAP_DEBUG_ARGS ) {
 	char buf[ 256 ];
 	char *buf2;
-	sprintf( buf, "%s:%d", ri->ri_hostname, ri->ri_port );
-	buf2 = (char *) ch_malloc( strlen( re->re_dn ) + strlen( mi->mi_val )
-		+ 10 );
-	sprintf( buf2, "(\"%s\" -> \"%s\")", re->re_dn, mi->mi_val );
+	int buf2len = strlen( re->re_dn ) + strlen( mi->mi_val ) + 11;
+
+	snprintf( buf, sizeof(buf), "%s:%d", ri->ri_hostname, ri->ri_port );
+
+	buf2 = (char *) ch_malloc( buf2len );
+	snprintf( buf2, buf2len, "(\"%s\" -> \"%s\")", re->re_dn, mi->mi_val );
+
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "ldap_op", LDAP_LEVEL_ARGS, 
 		"op_ldap_modrdn: replica %s - modify rdn %s (flag: %d)\n",
