@@ -42,7 +42,7 @@ Modify -llthread to hide thread implementation <bart@openldap.org>
 Modify libraries to use application specified logging routines
 Modify libraries to use application specified memory allocation routines
 Modify servers to use reentrant library functions
-Extend slapd schema support
+Extend slapd schema support, add "superior" support
 Extend slapd to support identd (RFC1413) information in ACLs
 Extend configure.in to support autodetect of ISODE features
 Remove ldapconfig.h.edit dependencies
