@@ -314,6 +314,7 @@ LDAP_SLAPD_F (void) connection_internal_close( Connection *conn );
  * dn.c
  */
 
+LDAP_SLAPD_F (char *) dn_pretty LDAP_P(( const char *dn ));
 LDAP_SLAPD_F (char *) dn_validate LDAP_P(( char *dn ));
 LDAP_SLAPD_F (char *) dn_normalize LDAP_P(( char *dn ));
 LDAP_SLAPD_F (int) dn_match LDAP_P(( const char *val, const char *asserted ));

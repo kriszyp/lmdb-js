@@ -29,6 +29,23 @@
 #define B4SEPARATOR		8
 
 /*
+ * dn_pretty - "pretty" the DN
+ */
+char *dn_pretty( const char *dn_in )
+{
+	/*
+	 * dn_validate based implementation (for now)
+	 *	likely better just to zap this, dn_validate, dn_normalize
+	 */
+	char *dn, *dn_out;
+
+	dn = ch_strdup( dn_in );
+	dn_out = dn_validate( dn );
+	if( dn_out == NULL ) free( dn );
+	return dn_out;
+}
+
+/*
  * dn_validate - validate and compress dn.  the dn is
  * compressed in place are returned if valid.
  */
@@ -302,8 +319,7 @@ dn_match( const char *val, const char *asserted )
 char *
 dn_parent(
 	Backend	*be,
-	const char	*dn
-)
+	const char	*dn )
 {
 	const char	*s;
 	int	inquote;

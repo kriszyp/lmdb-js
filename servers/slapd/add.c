@@ -34,7 +34,7 @@ int
 do_add( Connection *conn, Operation *op )
 {
 	BerElement	*ber = op->o_ber;
-	char		*dn, *ndn, *last;
+	char		*dn, *last;
 	ber_len_t	len;
 	ber_tag_t	tag;
 	Entry		*e;
@@ -68,7 +68,7 @@ do_add( Connection *conn, Operation *op )
 	if ( ber_scanf( ber, "{a", /*}*/ &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_add: conn %d ber_scanf failed\n", conn->c_connid ));
+			"do_add: conn %d ber_scanf failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -77,32 +77,28 @@ do_add( Connection *conn, Operation *op )
 		return -1;
 	}
 
-	ndn = ch_strdup( dn );
-
-	if ( dn_normalize( ndn ) == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "do_add: conn %d	 invalid dn (%s)\n", conn->c_connid, dn ));
-#else
-		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn, 0, 0 );
-#endif
-		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
-		free( dn );
-		free( ndn );
-		return LDAP_INVALID_DN_SYNTAX;
-	}
-
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 
-	e->e_dn = dn;
-	e->e_ndn = ndn;
+	e->e_dn = dn_pretty( dn );
+	e->e_ndn = dn_normalize( dn );
 	e->e_attrs = NULL;
 	e->e_private = NULL;
 
+	if ( e->e_ndn == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			"do_add: conn %d	 invalid dn (%s)\n", conn->c_connid, dn ));
+#else
+		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn, 0, 0 );
+#endif
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		goto done;
+	}
+
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		   "do_add: conn %d  ndn (%s)\n", conn->c_connid, e->e_ndn ));
+		"do_add: conn %d  ndn (%s)\n", conn->c_connid, e->e_ndn ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "do_add: ndn (%s)\n", e->e_ndn, 0, 0 );
 #endif
@@ -191,7 +187,7 @@ do_add( Connection *conn, Operation *op )
 		goto done;
 
 #if defined( SLAPD_SCHEMA_DN )
-	} else if ( strcasecmp( ndn, SLAPD_SCHEMA_DN ) == 0 ) {
+	} else if ( strcasecmp( e->e_ndn, SLAPD_SCHEMA_DN ) == 0 ) {
 		/* protocolError may be a more appropriate error */
 		send_ldap_result( conn, op, rc = LDAP_ALREADY_EXISTS,
 			NULL, "subschema subentry already exists",

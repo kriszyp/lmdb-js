@@ -266,12 +266,28 @@ str2entry( char *s )
 	}
 
 	/* generate normalized dn */
-	e->e_ndn = ch_strdup( e->e_dn );
+	e->e_ndn = e->e_dn;
+	e->e_dn = dn_pretty( e->e_dn );
+
+	if( e->e_dn == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			   "str2entry:  entry %ld has invalid dn: %s\n",
+				(long) e->e_id, e->e_ndn ));
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"str2entry: entry %ld has invalid dn: %s\n",
+		    (long) e->e_id, e->e_ndn, 0 );
+#endif
+		entry_free( e );
+		return( NULL );
+	}
+
 	(void) dn_normalize( e->e_ndn );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL2,
-		   "str2entry(%s) -> 0x%lx\n", e->e_dn, (unsigned long)e ));
+		"str2entry(%s) -> 0x%lx\n", e->e_dn, (unsigned long)e ));
 #else
 	Debug(LDAP_DEBUG_TRACE, "<= str2entry(%s) -> 0x%lx\n",
 		e->e_dn, (unsigned long) e, 0 );
