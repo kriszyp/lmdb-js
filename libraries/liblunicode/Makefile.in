@@ -23,9 +23,12 @@ ucgendat: $(LIBRARY) ucgendat.o
 	$(LTLINK) $(LDFLAGS) -o $@ ucgendat.o $(LIBS)
 	./ucgendat $(srcdir)/UnicodeData.txt
 
+DATFILES = case.dat cmbcl.dat ctype.dat decomp.dat num.dat
+
 install-local: $(PROGRAMS) FORCE
 	-$(MKDIR) $(DESTDIR)$(datadir)/ucdata
-	@for i $(DATFILES); do \
+	@for i in $(DATFILES); do \
+		echo $(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(DESTDIR)$(datadir)/ucdata; \
 		$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(DESTDIR)$(datadir)/ucdata; \
 	done
 
