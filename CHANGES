@@ -8,8 +8,10 @@ OpenLDAP 2.1.14 Engineering
 	Fixed back-bdb group/atttribute txn code (ITS#2122)
 	Fixed back-bdb modrdn subtree rename bug (ITS#2336)
 	Fixed client tools krb4 handling
+	Fixed (historic) CLDAP support (ITS#2335)
 	Updated slapadd to complain about holes in the DIT
 	Build Environment
+		Look harder for BDB 4.1 (ITS#2339)
 	Documentation
 		Misc man page updates
 

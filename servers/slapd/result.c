@@ -277,7 +277,7 @@ send_ldap_response(
 	}
 
 #ifdef LDAP_CONNECTIONLESS
-	if (conn->c_is_udp && conn->c_protocol == LDAP_VERSION2) {
+	if (conn->c_is_udp && op->o_protocol == LDAP_VERSION2) {
 		rc = ber_printf( ber, "t{ess" /*"}}"*/,
 			tag, err,
 		matched == NULL ? "" : matched,
@@ -328,6 +328,12 @@ send_ldap_response(
 		rc = ber_printf( ber, /*"{"*/ "N}" );
 	}
 
+#ifdef LDAP_CONNECTIONLESS
+	if( conn->c_is_udp && op->o_protocol == LDAP_VERSION2 && rc != -1 ) {
+		rc = ber_printf( ber, /*"{"*/ "N}" );
+	}
+#endif
+		
 	if ( rc == -1 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
@@ -774,8 +780,8 @@ slap_send_search_entry(
 	ber_init_w_nullc( ber, LBER_USE_DER );
 
 #ifdef LDAP_CONNECTIONLESS
-	if (conn->c_is_udp && conn->c_protocol == LDAP_VERSION2) {
-	    rc = ber_printf(ber, "t{0{" /*}}*/,
+	if (conn->c_is_udp && op->o_protocol == LDAP_VERSION2) {
+	    rc = ber_printf(ber, "t{O{" /*}}*/,
 		LDAP_RES_SEARCH_ENTRY, &e->e_name);
 	} else
 #endif
@@ -1250,6 +1256,11 @@ slap_send_search_entry(
 		rc = send_ldap_controls( ber, ctrls );
 	}
 
+#ifdef LDAP_CONNECTIONLESS
+	if( conn->c_is_udp && op->o_protocol == LDAP_VERSION2 ) {
+		; /* empty, skip following if */
+	} else
+#endif
 	if( rc != -1 ) {
 		rc = ber_printf( ber, /*{*/ "N}" );
 	}
