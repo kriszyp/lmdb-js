@@ -1,0 +1,176 @@
+Individual Submission to LDAPExt Working Group              R. Harrison
+Internet Draft                                             Novell, Inc.
+Document: draft-rharrison-ldap-extpartresp-00.txt         October, 1999
+Category: Proposed Standard
+
+
+                       Extended Partial Response
+                    Protocol Enhancement to LDAP v3
+
+
+Status of this Memo
+
+   This document is an Internet-Draft and is in full conformance with
+   all provisions of Section 10 of RFC2026 [1].
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups. Note that
+   other groups may also distribute working documents as Internet-
+   Drafts. Internet-Drafts are draft documents valid for a maximum of
+   six months and may be updated, replaced, or obsoleted by other
+   documents at any time. It is inappropriate to use Internet- Drafts
+   as reference material or to cite them other than as "work in
+   progress."
+   The list of current Internet-Drafts can be accessed at
+   http://www.ietf.org/ietf/1id-abstracts.txt
+   The list of Internet-Draft Shadow Directories can be accessed at
+   http://www.ietf.org/shadow.html.
+
+
+1. Abstract
+
+   This document describes the ExtendedPartialResponse, an element of
+   LDAP v3 protocol which allows multiple responses to LDAP v3 extended
+   requests.  Extended partial responses are backward compatible with
+   the existing LDAP v3 Extended Operation defined in [LDAPv3].
+
+2. Conventions used in this document
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and "OPTIONAL" in
+   this document are to be interpreted as described in [RFC2119].
+
+
+3. Motivation for the Extended Partial Response
+
+   The Extended Operation ([LDAPv3] Section 4.12) was defined in LDAP
+   v3 to allow additional operations to be defined as part of the
+   protocol without requiring a new revision of the protocol.
+
+   The LDAP v3 Extended Operation allows for a single extended response
+   to each extended request, but this paradigm may not be efficient
+   enough for some directory operations.  For instance, the LDAP search
+   operation is a directory operation that is much more efficient when
+   multiple partial responses are used to service a single request. The
+
+Harrison    Individual Submission û Expires April 14, 2000           1
+
+                  LDAP v3 Extended Partial Response     October, 1999
+
+
+   extended partial response generalizes the current extended operation
+   definition to give LDAP server implementers the ability to make use
+   of a single-request-multiple-response paradigm for extended LDAP
+   operations that would benefit from it.
+
+4. Element of Protocol
+
+   The ExtendedPartialResponse is defined as
+
+   ExtendedPartialResponse ::= [APPLICATION 25] SEQUENCE {
+           responseName     [0] LDAPOID,
+           response         [1] OCTET STRING OPTIONAL }
+
+   An LDAP server responds to an LDAP v3 ExtendedRequest with zero or
+   more ExtendedPartialResponses followed by one ExtendedResponse. This
+   ensures backward compatibility with existing LDAP extensions which
+   do not make use of the ExtendedPartialResponse.  As with all LDAP
+   extensions, LDAP extensions that make use of the
+   ExtendedPartialResponse have predefined syntax and semantics that
+   are defined in RFCs or are private to a particular implementation.
+
+5. Security Considerations
+
+   This draft describes an enhancement to the LDAP v3 protocol
+   [LDAPv3].  All security considerations of [LDAPv3] apply to this
+   draft, however it does not introduce any new security considerations
+   to the LDAP v3 protocol.
+
+6. References
+
+    [LDAPv3]
+        Wahl, M., Howes, T., and S. Kille, "Lightweight Directory
+        Access Protocol (v3)", RFC 2251, December 1997.
+
+   [ReqsKeywords]
+        Scott Bradner. "Key Words for use in RFCs to Indicate
+        Requirement Levels". RFC 2119.
+
+
+7. Acknowledgments
+
+   The author would like to acknowledge the readers of the LDAP
+   Extensions working group mail list who responded to the suggestion
+   that a multiple-response paradigm might be useful for LDAP extended
+   requests.  Special thanks go to two individuals: David Wilbur who
+   first introduced the idea on the working group list, and Thomas
+   Salter, who succinctly summarized the discussion and suggested the
+   name ExtendedPartialResponse in his summary.
+
+8. Author's Addresses
+
+   Roger Harrison
+   Novell, Inc.
+
+Harrison    Individual Submission û Expires April 14, 2000           2
+
+                  LDAP v3 Extended Partial Response     October, 1999
+
+
+   122 E. 1700 S.
+   Provo, UT 84606
+   +1 801 861 2642
+   roger_harrison@novell.com
+
+Full Copyright Statement
+
+   "Copyright (C) The Internet Society (date). All Rights Reserved.
+   This document and translations of it may be copied and furnished to
+   others, and derivative works that comment on or otherwise explain it
+   or assist in its implmentation may be prepared, copied, published
+   and distributed, in whole or in part, without restriction of any
+   kind, provided that the above copyright notice and this paragraph
+   are included on all such copies and derivative works. However, this
+   document itself may not be modified in any way, such as by removing
+   the copyright notice or references to the Internet Society or other
+   Internet organizations, except as needed for the purpose of
+   developing Internet standards in which case the procedures for
+   copyrights defined in the Internet Standards process must be
+   followed, or as required to translate it into languages other than
+   English.
+
+   The limited permissions granted above are perpetual and will not be
+   revoked by the Internet Society or its successors or assigns.
+
+   This document and the information contained herein is provided on an
+   "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING
+   TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING
+   BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION
+   HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Harrison    Individual Submission û Expires April 14, 2000           3
+
