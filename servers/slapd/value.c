@@ -112,7 +112,6 @@ value_cmp(
 )
 {
 	int		rc;
-	struct stat	st1, st2;
 
 	if ( normalize & 1 ) {
 		v1 = ber_bvdup( v1 );

@@ -28,7 +28,7 @@ ldbm_back_modify(
 	char		*matched;
 	LDAPModList	*ml;
 	Entry		*e;
-	int		i, err;
+	int		err;
 
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
 

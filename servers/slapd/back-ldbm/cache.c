@@ -89,8 +89,6 @@ cache_entry_rdwr_destroy(Entry *e)
 static int
 cache_entry_private_init( Entry*e )
 {
-	struct ldbm_entry_info *lei;
-
 #ifdef LDAP_DEBUG
 	assert( e->e_private == NULL );
 #endif
@@ -114,8 +112,6 @@ cache_entry_private_init( Entry*e )
 static int
 cache_entry_private_destroy( Entry*e )
 {
-	struct ldbm_entry_info *lei;
-
 #ifdef LDAP_DEBUG
 	assert( e->e_private );
 #endif

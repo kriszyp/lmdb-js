@@ -201,12 +201,16 @@ main( int argc, char **argv )
 	if ( ! inetd ) {
 		int		status;
 
-		(void) SIGNAL( SIGPIPE, SIG_IGN );
 		(void) SIGNAL( LDAP_SIGUSR1, slap_do_nothing );
 		(void) SIGNAL( LDAP_SIGUSR2, slap_set_shutdown );
-		(void) SIGNAL( SIGTERM, slap_set_shutdown );
-		(void) SIGNAL( SIGINT, slap_set_shutdown );
+#ifdef SIGPIPE
+		(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
+#ifdef SIGHUP
 		(void) SIGNAL( SIGHUP, slap_set_shutdown );
+#endif
+		(void) SIGNAL( SIGINT, slap_set_shutdown );
+		(void) SIGNAL( SIGTERM, slap_set_shutdown );
 
 #ifdef LDAP_DEBUG
 		lutil_detach( ldap_debug, 0 );

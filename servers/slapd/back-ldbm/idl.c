@@ -15,7 +15,7 @@ static ID_BLOCK* idl_dup( ID_BLOCK *idl );
 
 /* Allocate an ID_BLOCK with room for nids ids */
 ID_BLOCK *
-idl_alloc( int nids )
+idl_alloc( unsigned int nids )
 {
 	ID_BLOCK	*new;
 
@@ -615,7 +615,7 @@ idl_insert_key(
  *		3	id not inserted, block must be split
  */
 int
-idl_insert( ID_BLOCK **idl, ID id, int maxids )
+idl_insert( ID_BLOCK **idl, ID id, unsigned int maxids )
 {
 	unsigned int	i, j;
 

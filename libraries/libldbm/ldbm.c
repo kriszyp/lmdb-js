@@ -9,8 +9,6 @@
 
 #include "portable.h"
 
-#include "syslog.h"
-
 #ifdef SLAPD_LDBM
 
 #include <stdio.h>
@@ -77,6 +75,14 @@ int ldbm_shutdown( void )
 
 #else
 
+#ifdef HAVE_SYSLOG
+#include "syslog.h"
+#else
+/* quick hack */
+#define LOG_INFO 1
+extern int syslog(int, char*, ...);
+#endif
+
 void *
 ldbm_malloc( size_t size )
 {
@@ -86,9 +92,7 @@ ldbm_malloc( size_t size )
 static void
 ldbm_db_errcall( const char *prefix, char *message )
 {
-
 	syslog( LOG_INFO, "ldbm_db_errcall(): %s %s", prefix, message );
-
 }
 
 /*  a dbEnv for BERKELEYv2  */
@@ -294,7 +298,6 @@ ldbm_firstkey( LDBM ldbm )
 #endif
 {
 	Datum	key, data;
-	int	rc;
 
 #ifdef HAVE_BERKELEY_DB2
 	DBC  *dbci;
@@ -326,6 +329,7 @@ ldbm_firstkey( LDBM ldbm )
 			}	
 		}
 #else
+	int	rc;
 
 	LDBM_LOCK;
 
@@ -355,7 +359,6 @@ ldbm_nextkey( LDBM ldbm, Datum key )
 #endif
 {
 	Datum	data;
-	int	rc;
 
 #ifdef HAVE_BERKELEY_DB2
 	void *oldKey = key.dptr;
@@ -370,6 +373,7 @@ ldbm_nextkey( LDBM ldbm, Datum key )
 		if ( data.dptr ) free( data.dptr );
 	}
 #else
+	int	rc;
 
 	LDBM_LOCK;
 

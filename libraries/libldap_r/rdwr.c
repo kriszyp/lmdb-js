@@ -20,6 +20,8 @@
 #include <stdlib.h>
 
 #include <ac/errno.h>
+#include <ac/string.h>
+
 #include "ldap_pvt_thread.h"
 
 int 

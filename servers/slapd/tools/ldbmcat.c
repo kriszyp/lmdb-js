@@ -21,8 +21,6 @@ main( int argc, char **argv )
 {
         Datum                key, last, data;
         LDBM                dbp;
-        int                rc, type;
-        long                id;
         char                *file, *s;
         int                printid = 1;
 
@@ -88,4 +86,6 @@ main( int argc, char **argv )
         ldbm_close( dbp );
 
         exit( 0 );
+
+		return 0; /* NOT REACHED */
 }

@@ -11,12 +11,20 @@
 #include <ac/unistd.h>
 #include <ac/wait.h>
 
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
+#endif
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
 #include <sys/stat.h>
 
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
+
+#ifdef HAVE_IO_H
+#include <io.h>
 #endif
 
 #include "ldapconfig.h"
@@ -393,10 +401,10 @@ static void
 get_idlist( FILE *fp, Datum *data )
 {
 	char	buf[20];
-	int	i, j, fd, tty;
+	int	i, fd, tty;
 	ID_BLOCK	*p;
-	int	psize, pmax;
-	int	nmax, nids;
+	unsigned int	psize, pmax;
+	unsigned int	nmax, nids;
 
 	fd = fileno( fp );
 	tty = isatty( fd );
@@ -464,7 +472,7 @@ get_entry( FILE *fp, Datum *data )
 {
 	char	buf[BUFSIZ];
 	char	*p;
-	int	pmax, psize, len;
+	unsigned int	pmax, psize, len;
 	int	fd;
 
 	fd = fileno( fp );
@@ -635,7 +643,7 @@ print_entry(
 {
 	ID	id;
 	ID_BLOCK	*idl;
-	int	i;
+	unsigned int	i;
 	char	msg[2];
 
 	if ( data != NULL && data->dptr == NULL ) {

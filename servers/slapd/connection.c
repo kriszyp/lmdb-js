@@ -25,7 +25,6 @@ static void *
 connection_operation( void *arg_v )
 {
 	struct co_arg	*arg = arg_v;
-	unsigned long	len;
 
 	ldap_pvt_thread_mutex_lock( &arg->co_conn->c_opsmutex );
 	arg->co_conn->c_opsinitiated++;

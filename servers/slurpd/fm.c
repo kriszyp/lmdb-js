@@ -52,14 +52,15 @@ fm(
     /* Set up our signal handlers:
      * SIG{TERM,INT,HUP} causes a shutdown
      * LDAP_SIGUSR1 - does nothing, used to wake up sleeping threads.
-     * LDAP_SIGUSR2 - causes slurpd to read its administrative interface file.
-     *           (not yet implemented).
+	 * LDAP_SIGUSR2 - causes a shutdown
      */
     (void) SIGNAL( LDAP_SIGUSR1, do_nothing );
-    (void) SIGNAL( LDAP_SIGUSR2, do_admin );
+    (void) SIGNAL( LDAP_SIGUSR2, set_shutdown );
     (void) SIGNAL( SIGTERM, set_shutdown );
     (void) SIGNAL( SIGINT, set_shutdown );
+#ifdef SIGHUP
     (void) SIGNAL( SIGHUP, set_shutdown );
+#endif
 
     if ( sglob->one_shot_mode ) {
 	if ( file_nonempty( sglob->slapd_replogfile )) {
@@ -130,7 +131,7 @@ fm(
  * Set a global flag which signals that we're shutting down.
  */
 static RETSIGTYPE
-set_shutdown(int x)
+set_shutdown(int sig)
 {
     int	i;
 
@@ -142,9 +143,7 @@ set_shutdown(int x)
 	(sglob->replicas[ i ])->ri_wake( sglob->replicas[ i ]);
     }
     sglob->rq->rq_unlock( sglob->rq );			/* unlock queue */
-    (void) SIGNAL( SIGTERM, set_shutdown );	/* reinstall handlers */
-    (void) SIGNAL( SIGINT, set_shutdown );
-    (void) SIGNAL( SIGHUP, set_shutdown );
+    (void) SIGNAL( sig, set_shutdown );	/* reinstall handlers */
 }
 
 
@@ -154,9 +153,9 @@ set_shutdown(int x)
  * A do-nothing signal handler.
  */
 RETSIGTYPE
-do_nothing(int i)
+do_nothing(int sig)
 {
-    (void) SIGNAL( LDAP_SIGUSR1, do_nothing );
+    (void) SIGNAL( sig, do_nothing );
 }
 
 

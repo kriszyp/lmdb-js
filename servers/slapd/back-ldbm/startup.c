@@ -3,6 +3,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <direct.h>
 
 #include <ac/string.h>
 #include <ac/socket.h>
@@ -87,7 +88,7 @@ ldbm_back_shutdown(
 #ifdef HAVE_BERKELEY_DB2
 
 void
-ldbm_db_errcall( const char *prefix, char *message )
+ldbm_db_errcall( const char *prefix, const char *message )
 {
 	Debug( LDAP_DEBUG_ANY, "ldbm_db_errcall(): %s %s", prefix, message, 0 );
 }

@@ -14,6 +14,7 @@
 #include "ldap_pvt_thread.h"
 
 #if defined( HAVE_NT_THREADS )
+#include <process.h>
 
 int
 ldap_pvt_thread_initialize( void )

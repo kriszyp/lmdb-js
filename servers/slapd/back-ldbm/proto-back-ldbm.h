@@ -98,12 +98,12 @@ Entry * id2entry_rw LDAP_P(( Backend *be, ID id, int rw ));
  * idl.c
  */
 
-ID_BLOCK * idl_alloc LDAP_P(( int nids ));
+ID_BLOCK * idl_alloc LDAP_P(( unsigned int nids ));
 ID_BLOCK * idl_allids LDAP_P(( Backend *be ));
 void idl_free LDAP_P(( ID_BLOCK *idl ));
 ID_BLOCK * idl_fetch LDAP_P(( Backend *be, struct dbcache *db, Datum key ));
 int idl_insert_key LDAP_P(( Backend *be, struct dbcache *db, Datum key, ID id ));
-int idl_insert LDAP_P(( ID_BLOCK **idl, ID id, int maxids ));
+int idl_insert LDAP_P(( ID_BLOCK **idl, ID id, unsigned int maxids ));
 int idl_delete_key LDAP_P(( Backend *be, struct dbcache *db, Datum key, ID id ));
 ID_BLOCK * idl_intersection LDAP_P(( Backend *be, ID_BLOCK *a, ID_BLOCK *b ));
 ID_BLOCK * idl_union LDAP_P(( Backend *be, ID_BLOCK *a, ID_BLOCK *b ));

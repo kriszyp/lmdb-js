@@ -31,8 +31,9 @@ ldbm_cache_open(
 	int		i, lru;
 	time_t		oldtime, curtime;
 	char		buf[MAXPATHLEN];
-	LDBM		db;
+#ifdef HAVE_ST_BLKSIZE
 	struct stat	st;
+#endif
 
 	sprintf( buf, "%s%s%s%s", li->li_directory, DEFAULT_DIRSEP, name, suffix );
 
@@ -103,9 +104,12 @@ ldbm_cache_open(
 	li->li_dbcache[i].dbc_name = ch_strdup( buf );
 	li->li_dbcache[i].dbc_refcnt = 1;
 	li->li_dbcache[i].dbc_lastref = curtime;
+#ifdef HAVE_ST_BLKSIZE
 	if ( stat( buf, &st ) == 0 ) {
 		li->li_dbcache[i].dbc_blksize = st.st_blksize;
-	} else {
+	} else
+#endif
+	{
 		li->li_dbcache[i].dbc_blksize = DEFAULT_BLOCKSIZE;
 	}
 	li->li_dbcache[i].dbc_maxids = (li->li_dbcache[i].dbc_blksize /

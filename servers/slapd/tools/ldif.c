@@ -7,6 +7,10 @@
 #include <ac/socket.h>
 #include <ac/unistd.h>			/* Get read() */
 
+#ifdef HAVE_IO_H
+#include <io.h>
+#endif
+
 #include "lber.h"
 #include "ldap.h"
 #include "ldif.h"
@@ -91,4 +95,5 @@ main( int argc, char **argv )
 	}
 
 	exit( 0 );
+	return( 0 ); /* NOT REACHED */
 }

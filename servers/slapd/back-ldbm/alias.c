@@ -31,7 +31,6 @@ Entry *derefAlias_r ( Backend     *be,
   struct ldbminfo *li = (struct ldbminfo *) be->be_private; /* to free cache entries */
   Attribute *a;
   int       depth;
-  char      **pastAliases;
   char      *matched;
   Entry     *origDN = e;
 
