@@ -35,7 +35,7 @@ THREADSLIB= -pthread
 
 # if you built/installed with -DNOLIBC_R, you'll need uncomment
 # out the following
-#THREADS= -DNO_THREADS -DPTHREAD_PREEMPTIVE
+#THREADS= -DNO_THREADS
 #THREADSLIB=
 
 # crypt(3) is in a separate library
