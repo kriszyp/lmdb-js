@@ -34,16 +34,23 @@ dnssrv_back_request(
 			NULL, NULL, default_referral, NULL );
 		goto done;
 	}
+
+	Debug( LDAP_DEBUG_TRACE, "DNSSRV: dn=\"%s\" -> domain=\"%s\"\n",
+		dn == NULL ? "" : dn,
+		domain == NULL ? "" : domain,
+		0 );
 	
 	if( ldap_domain2hostlist( dn, &domain ) ) {
+		Debug( LDAP_DEBUG_TRACE, "DNSSRV: no such object\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
-			NULL, NULL, NULL, NULL );
+			NULL, "could not locate DNS SRV records", NULL, NULL );
 		goto done;
 	}
 
 	hosts = str2charray( hostlist, " " );
 
 	if( hosts == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "DNSSRV: str2charrary error\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, NULL, NULL, NULL );
 		goto done;

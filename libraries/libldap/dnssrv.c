@@ -64,7 +64,7 @@ int ldap_dn2domain(
 #define LDAP_DC "dc="
 #define LDAP_DCOID "0.9.2342.19200300.100.1.25="
 
-		if( *rdn[1] == NULL ) {
+		if( rdn[1] == NULL ) {
 			char *dc;
 			/* single RDN */
 
@@ -94,8 +94,9 @@ int ldap_dn2domain(
 					return -4;
 				}
 
-				ndomain = realloc( domain,
-					strlen(domain) + strlen(dc) + 2 );
+				ndomain = LDAP_REALLOC( domain,
+					( domain == NULL ? 0 : strlen(domain) )
+					+ strlen(dc) + 2 );
 
 				if( ndomain == NULL ) {
 					LDAP_FREE( rdn );
