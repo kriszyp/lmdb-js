@@ -1191,9 +1191,8 @@ LDAP_SLAPD_F (int) syncrepl_entry LDAP_P((
 LDAP_SLAPD_F (void) syncrepl_updateCookie LDAP_P((
 					syncinfo_t *, LDAP *, Operation *, struct berval *,
 					struct berval * ));
-LDAP_SLAPD_F (void)  syncrepl_add_glue LDAP_P(( syncinfo_t *, LDAP *,
-					Operation*, Entry*, Modifications*, int,
-					struct berval*, struct berval* ));
+LDAP_SLAPD_F (void)  syncrepl_add_glue LDAP_P(( 
+					Operation*, Entry* ));
 LDAP_SLAPD_F (Entry*) slap_create_syncrepl_entry LDAP_P((
 					Backend *, struct berval *,
 					struct berval *, struct berval * ));

@@ -183,8 +183,7 @@ merge_entry(
 			result->rc = info.added;
 		} else if ( rc == LDAP_REFERRAL ||
 					rc == LDAP_NO_SUCH_OBJECT ) {
-			slap_entry2mods( e, &modlist, &text );
-			syncrepl_add_glue( NULL, NULL, &op_tmp, e, modlist, 0, NULL, NULL );
+			syncrepl_add_glue( &op_tmp, e );
 			result->rc = info.added;
 		} else {
 			result->rc = 0;

@@ -959,9 +959,7 @@ syncrepl_entry(
 					ret = 1;
 					goto done;
 				} else if ( rc == LDAP_REFERRAL || rc == LDAP_NO_SUCH_OBJECT ) {
-					syncrepl_add_glue( si, ld, op, e,
-						modlist, syncstate,
-						syncUUID, syncCookie);
+					syncrepl_add_glue( op, e );
 					si->si_e = NULL;
 					ret = 0;
 					goto done;
@@ -1098,14 +1096,8 @@ static struct berval gcbva[] = {
 
 void
 syncrepl_add_glue(
-	syncinfo_t *si,
-	LDAP *ld,
 	Operation* op,
-	Entry *e,
-	Modifications* modlist,
-	int syncstate,
-	struct berval* syncUUID,
-	struct berval* syncCookie
+	Entry *e
 )
 {
 	Backend *be = op->o_bd;
@@ -1123,7 +1115,7 @@ syncrepl_add_glue(
 	op->o_tag = LDAP_REQ_ADD;
 	op->o_callback = &cb;
 	cb.sc_response = null_callback;
-	cb.sc_private = si;
+	cb.sc_private = NULL;
 
 	dn = e->e_name;
 	ndn = e->e_nname;
