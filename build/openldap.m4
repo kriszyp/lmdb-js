@@ -528,43 +528,80 @@ AC_DEFUN([OL_POSIX_THREAD_VERSION],
 ])dnl
 dnl
 dnl --------------------------------------------------------------------
-AC_DEFUN([OL_PTHREAD_TRY_LINK], [# Pthread try link: $1 ($2)
-	if test "$ol_link_threads" = no ; then
-		# try $1
-		AC_CACHE_CHECK([for pthread link with $1], [$2], [
-			# save the flags
-			ol_LIBS="$LIBS"
-			LIBS="$1 $LIBS"
-
-			AC_TRY_LINK([
+AC_DEFUN([OL_PTHREAD_TEST_INCLUDES],
+[/* pthread test headers */
 #include <pthread.h>
 #ifndef NULL
 #define NULL (void*)0
 #endif
-],[
-	pthread_t t;
 
+static void *task(p)
+	void *p;
+{
+	return (void *) (p == NULL);
+}
+])
+AC_DEFUN([OL_PTHREAD_TEST_FUNCTION],[
+	/* pthread test function */
+	pthread_t t;
+	int status;
+
+	/* make sure pthread_create() isn't just a stub */
 #if HAVE_PTHREADS_D4
-	pthread_create(&t, pthread_attr_default, NULL, NULL);
-	pthread_detach( &t );
+	status = pthread_create(&t, pthread_attr_default, task, NULL);
 #else
-	pthread_create(&t, NULL, NULL, NULL);
-	pthread_detach( t );
+	status = pthread_create(&t, NULL, task, NULL);
 #endif
+
+	if( status ) exit( status );
+
+	/* make sure pthread_detach() isn't just a stub */
+#if HAVE_PTHREADS_D4
+	status = pthread_detach( &t );
+#else
+	status = pthread_detach( t );
+#endif
+
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
-], [$2=yes], [$2=no])
+
+	exit( status );
+])
+
+AC_DEFUN([OL_PTHREAD_TEST_PROGRAM],
+[OL_PTHREAD_TEST_INCLUDES
+
+int main(argc, argv)
+	int argc;
+	char **argv;
+{
+OL_PTHREAD_TEST_FUNCTION
+}
+])
+dnl --------------------------------------------------------------------
+AC_DEFUN([OL_PTHREAD_TRY], [# Pthread try link: $1 ($2)
+if test "$ol_link_threads" = no ; then
+	# try $1
+	AC_CACHE_CHECK([for pthread link with $1], [$2], [
+		# save the flags
+		ol_LIBS="$LIBS"
+		LIBS="$1 $LIBS"
+
+		AC_TRY_RUN(OL_PTHREAD_TEST_PROGRAM,
+			[$2=yes], [$2=no],
+			[AC_TRY_LINK(OL_PTHREAD_TEST_INCLUDES,OL_PTHREAD_TEST_FUNCTION,
+				[$2=yes], [$2=no])])
 
 		# restore the LIBS
 		LIBS="$ol_LIBS"
-		])
+	])
 
-		if test $$2 = yes ; then
-			ol_link_pthreads="$1"
-			ol_link_threads=posix
-		fi
+	if test $$2 = yes ; then
+		ol_link_pthreads="$1"
+		ol_link_threads=posix
 	fi
+fi
 ])
 dnl
 dnl ====================================================================
