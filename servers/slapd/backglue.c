@@ -40,7 +40,8 @@ typedef struct gluenode {
 } gluenode;
 
 typedef struct glueinfo {
-	BackendDB *be;
+	BackendInfo bi;
+	BackendDB bd;
 	int nodes;
 	gluenode n[1];
 } glueinfo;
@@ -55,7 +56,7 @@ glue_back_select (
 	const char *dn
 )
 {
-	glueinfo *gi = (glueinfo *) be->be_private;
+	glueinfo *gi = (glueinfo *) be->bd_info;
 	struct berval bv;
 	int i;
 
@@ -114,7 +115,7 @@ glue_back_db_open (
 	BackendDB *be
 )
 {
-	glueinfo *gi = (glueinfo *)be->be_private;
+	glueinfo *gi = (glueinfo *) be->bd_info;
 	static int glueOpened = 0;
 	int rc = 0;
 
@@ -122,10 +123,10 @@ glue_back_db_open (
 
 	glueOpened = 1;
 
-	gi->be->be_acl = be->be_acl;
+	gi->bd.be_acl = be->be_acl;
 
-	if (gi->be->bd_info->bi_db_open)
-		rc = gi->be->bd_info->bi_db_open(gi->be);
+	if (gi->bd.bd_info->bi_db_open)
+		rc = gi->bd.bd_info->bi_db_open(&gi->bd);
 
 	return rc;
 }
@@ -135,7 +136,7 @@ glue_back_db_close (
 	BackendDB *be
 )
 {
-	glueinfo *gi = (glueinfo *)be->be_private;
+	glueinfo *gi = (glueinfo *) be->bd_info;
 	static int glueClosed = 0;
 
 	if (glueClosed) return 0;
@@ -143,8 +144,8 @@ glue_back_db_close (
 	glueClosed = 1;
 
 	/* Close the master */
-	if (gi->be->bd_info->bi_db_close)
-		gi->be->bd_info->bi_db_close( gi->be );
+	if (gi->bd.bd_info->bi_db_close)
+		gi->bd.bd_info->bi_db_close( &gi->bd );
 
 	return 0;
 }
@@ -154,11 +155,10 @@ glue_back_db_destroy (
 	BackendDB *be
 )
 {
-	glueinfo *gi = (glueinfo *)be->be_private;
+	glueinfo *gi = (glueinfo *) be->bd_info;
 
-	if (gi->be->bd_info->bi_db_destroy)
-		gi->be->bd_info->bi_db_destroy( gi->be );
-	free (gi->be);
+	if (gi->bd.bd_info->bi_db_destroy)
+		gi->bd.bd_info->bi_db_destroy( &gi->bd );
 	free (gi);
 	return 0;
 }
@@ -195,6 +195,7 @@ glue_back_response (
 		gs->err = err;
 	if (gs->err == LDAP_SUCCESS && gs->matched) {
 		free (gs->matched);
+		gs->matched = NULL;
 		gs->matchlen = 0;
 	}
 	if (gs->err != LDAP_SUCCESS && matched) {
@@ -290,7 +291,7 @@ glue_back_search (
 	int attrsonly
 )
 {
-	glueinfo *gi = (glueinfo *)b0->be_private;
+	glueinfo *gi = (glueinfo *) b0->bd_info;
 	BackendDB *be;
 	int i, rc = 0, t2limit = 0, s2limit = 0;
 	long stoptime = 0;
@@ -394,262 +395,6 @@ done:
 	return rc;
 }
 
-static int
-glue_back_bind (
-	BackendDB *b0,
-	Connection *conn,
-	Operation *op,
-	struct berval *dn,
-	struct berval *ndn,
-	int method,
-	struct berval *cred,
-	struct berval *edn
-)
-{
-	BackendDB *be;
-	int rc;
- 
-	be = glue_back_select (b0, ndn->bv_val);
-
-	if (be && be->be_bind) {
-		rc = be->be_bind (be, conn, op, dn, ndn, method, cred, edn);
-
-		if( rc == LDAP_SUCCESS ) {
-			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-			if( conn->c_authz_backend == NULL ) {
-				conn->c_authz_backend = be;
-			}
-			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-		}
-	} else {
-		rc = LDAP_UNWILLING_TO_PERFORM;
-		send_ldap_result (conn, op, rc, NULL, "No bind target found",
-				  NULL, NULL);
-	}
-	return rc;
-}
-
-static int
-glue_back_compare (
-	BackendDB *b0,
-	Connection *conn,
-	Operation *op,
-	struct berval *dn,
-	struct berval *ndn,
-	AttributeAssertion *ava
-)
-{
-	BackendDB *be;
-	int rc;
-
-	be = glue_back_select (b0, ndn->bv_val);
-
-	if (be && be->be_compare) {
-		rc = be->be_compare (be, conn, op, dn, ndn, ava);
-	} else {
-		rc = LDAP_UNWILLING_TO_PERFORM;
-		send_ldap_result (conn, op, rc, NULL, "No compare target found",
-			NULL, NULL);
-	}
-	return rc;
-}
-
-static int
-glue_back_modify (
-	BackendDB *b0,
-	Connection *conn,
-	Operation *op,
-	struct berval *dn,
-	struct berval *ndn,
-	Modifications *mod
-)
-{
-	BackendDB *be;
-	int rc;
-
-	be = glue_back_select (b0, ndn->bv_val);
-
-	if (be && be->be_modify) {
-		rc = be->be_modify (be, conn, op, dn, ndn, mod);
-	} else {
-		rc = LDAP_UNWILLING_TO_PERFORM;
-		send_ldap_result (conn, op, rc, NULL,
-			"No modify target found", NULL, NULL);
-	}
-	return rc;
-}
-
-static int
-glue_back_modrdn (
-	BackendDB *b0,
-	Connection *conn,
-	Operation *op,
-	struct berval *dn,
-	struct berval *ndn,
-	struct berval *newrdn,
-	struct berval *nnewrdn,
-	int del,
-	struct berval *newsup,
-	struct berval *nnewsup
-)
-{
-	BackendDB *be;
-	int rc;
-
-	be = glue_back_select (b0, ndn->bv_val);
-
-	if (be && be->be_modrdn) {
-		rc = be->be_modrdn (be, conn, op, dn, ndn,
-			newrdn, nnewrdn, del, newsup, nnewsup );
-	} else {
-		rc = LDAP_UNWILLING_TO_PERFORM;
-		send_ldap_result (conn, op, rc, NULL,
-			"No modrdn target found", NULL, NULL);
-	}
-	return rc;
-}
-
-static int
-glue_back_add (
-	BackendDB *b0,
-	Connection *conn,
-	Operation *op,
-	Entry *e
-)
-{
-	BackendDB *be;
-	int rc;
-
-	be = glue_back_select (b0, e->e_ndn);
-
-	if (be && be->be_add) {
-		rc = be->be_add (be, conn, op, e);
-	} else {
-		rc = LDAP_UNWILLING_TO_PERFORM;
-		send_ldap_result (conn, op, rc, NULL, "No add target found",
-				  NULL, NULL);
-	}
-	return rc;
-}
-
-static int
-glue_back_delete (
-	BackendDB *b0,
-	Connection *conn,
-	Operation *op,
-	struct berval *dn,
-	struct berval *ndn
-)
-{
-	BackendDB *be;
-	int rc;
-
-	be = glue_back_select (b0, ndn->bv_val);
-
-	if (be && be->be_delete) {
-		rc = be->be_delete (be, conn, op, dn, ndn);
-	} else {
-		rc = LDAP_UNWILLING_TO_PERFORM;
-		send_ldap_result (conn, op, rc, NULL, "No delete target found",
-				  NULL, NULL);
-	}
-	return rc;
-}
-
-static int
-glue_back_release_rw (
-	BackendDB *b0,
-	Connection *conn,
-	Operation *op,
-	Entry *e,
-	int rw
-)
-{
-	BackendDB *be;
-	int rc;
-
-	be = glue_back_select (b0, e->e_ndn);
-
-	if (be && be->be_release) {
-		rc = be->be_release (be, conn, op, e, rw);
-	} else {
-		entry_free (e);
-		rc = 0;
-	}
-	return rc;
-}
-
-static int
-glue_back_group (
-	BackendDB *b0,
-	Connection *conn,
-	Operation *op,
-	Entry *target,
-	struct berval *ndn,
-	struct berval *ondn,
-	ObjectClass *oc,
-	AttributeDescription * ad
-)
-{
-	BackendDB *be;
-	int rc;
-
-	be = glue_back_select (b0, ndn->bv_val);
-
-	if (be && be->be_group) {
-		rc = be->be_group (be, conn, op, target, ndn, ondn, oc, ad);
-	} else {
-		rc = LDAP_UNWILLING_TO_PERFORM;
-	}
-	return rc;
-}
-
-static int
-glue_back_attribute (
-	BackendDB *b0,
-	Connection *conn,
-	Operation *op,
-	Entry *target,
-	struct berval *ndn,
-	AttributeDescription *ad,
-	BerVarray *vals
-)
-{
-	BackendDB *be;
-	int rc;
-
-	be = glue_back_select (b0, ndn->bv_val);
-
-	if (be && be->be_attribute) {
-		rc = be->be_attribute (be, conn, op, target, ndn, ad, vals);
-	} else {
-		rc = LDAP_UNWILLING_TO_PERFORM;
-	}
-	return rc;
-}
-
-static int
-glue_back_referrals (
-	BackendDB *b0,
-	Connection *conn,
-	Operation *op,
-	struct berval *dn,
-	struct berval *ndn,
-	const char **text
-)
-{
-	BackendDB *be;
-	int rc;
-
-	be = glue_back_select (b0, ndn->bv_val);
-
-	if (be && be->be_chk_referrals) {
-		rc = be->be_chk_referrals (be, conn, op, dn, ndn, text);
-	} else {
-		rc = LDAP_SUCCESS;;
-	}
-	return rc;
-}
 
 static int
 glue_tool_entry_open (
@@ -687,7 +432,7 @@ glue_tool_entry_first (
 	BackendDB *b0
 )
 {
-	glueinfo *gi = (glueinfo *) b0->be_private;
+	glueinfo *gi = (glueinfo *) b0->bd_info;
 	int i;
 
 	/* If we're starting from scratch, start at the most general */
@@ -712,7 +457,7 @@ glue_tool_entry_next (
 	BackendDB *b0
 )
 {
-	glueinfo *gi = (glueinfo *) b0->be_private;
+	glueinfo *gi = (glueinfo *) b0->bd_info;
 	int i;
 	ID rc;
 
@@ -800,7 +545,7 @@ glue_tool_sync (
 	BackendDB *b0
 )
 {
-	glueinfo *gi = (glueinfo *) b0->be_private;
+	glueinfo *gi = (glueinfo *) b0->bd_info;
 	int i;
 
 	/* just sync everyone */
@@ -854,30 +599,17 @@ glue_sub_init( )
 				 */
 				b1->be_flags |= SLAP_BFLAG_GLUE_INSTANCE;
 				gi = (glueinfo *)ch_malloc(sizeof(glueinfo));
-				gi->be = (BackendDB *)ch_malloc(
-					sizeof(BackendDB) + sizeof(BackendInfo));
-				bi = (BackendInfo *)(gi->be+1);
-				*gi->be = *b1;
 				gi->nodes = 0;
-				*bi = *b1->bd_info;
+				gi->bd = *b1;
+				gi->bi = *b1->bd_info;
+				bi = (BackendInfo *)gi;
 				bi->bi_open = glue_back_open;
 				bi->bi_close = glue_back_close;
 				bi->bi_db_open = glue_back_db_open;
 				bi->bi_db_close = glue_back_db_close;
 				bi->bi_db_destroy = glue_back_db_destroy;
 
-				bi->bi_op_bind = glue_back_bind;
 				bi->bi_op_search = glue_back_search;
-				bi->bi_op_compare = glue_back_compare;
-				bi->bi_op_modify = glue_back_modify;
-				bi->bi_op_modrdn = glue_back_modrdn;
-				bi->bi_op_add = glue_back_add;
-				bi->bi_op_delete = glue_back_delete;
-
-				bi->bi_entry_release_rw = glue_back_release_rw;
-				bi->bi_acl_group = glue_back_group;
-				bi->bi_acl_attribute = glue_back_attribute;
-				bi->bi_chk_referrals = glue_back_referrals;
 
 				/*
 				 * hooks for slap tools
@@ -903,10 +635,9 @@ glue_sub_init( )
 			/* One more node for the master */
 			gi = (glueinfo *)ch_realloc(gi,
 				sizeof(glueinfo) + gi->nodes * sizeof(gluenode));
-			gi->n[gi->nodes].be = gi->be;
+			gi->n[gi->nodes].be = &gi->bd;
 			dnParent( &b1->be_nsuffix[0], &gi->n[gi->nodes].pdn );
 			gi->nodes++;
-			b1->be_private = gi;
 			b1->bd_info = bi;
 		}
 	}

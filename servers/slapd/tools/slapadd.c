@@ -59,8 +59,12 @@ main( int argc, char **argv )
 		Entry *e = str2entry( buf );
 		struct berval bvtext;
 
+		/*
+		 * Initialize text buffer
+		 */
 		bvtext.bv_len = textlen;
 		bvtext.bv_val = textbuf;
+		bvtext.bv_val[0] = '\0';
 
 		if( e == NULL ) {
 			fprintf( stderr, "%s: could not parse entry (line=%d)\n",

@@ -179,7 +179,7 @@ ID ldbm_tool_entry_put(
 
 	assert( text );
 	assert( text->bv_val );
-	assert( text->bv_val[0] == '\0' );
+	assert( text->bv_val[0] == '\0' );	/* overconservative? */
 
 	if ( next_id_get( be, &id ) || id == NOID ) {
 		strncpy( text->bv_val, "unable to get nextid", text->bv_len );

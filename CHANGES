@@ -4,21 +4,24 @@ OpenLDAP 2.1.9 Engineering
 	Fixed back-bdb moddn newSuperior bug
 	Fixed back-ldap/meta modify bug (ITS#2158)
 	Fixed libldap try_read1msg drain bug (ITS#2153)
-	Fixed slapd unix socket unlink bug (ITS#2157)
-	Fixed slapd empty SASL cred bug
-	Fixed slapd referral/alias normalization bug
+	Fixed libldap SASL bugs (ITS#2184)
+	Fixed libldap referral bug (ITS#2187)
 	Added slapd allow update_anon feature (ITS#2155)
 	Added slapd authz stats logging feature (ITS#2165)
+	Fixed slapd unix socket unlink bug (ITS#2157)
+	Fixed slapd referral/alias normalization bug
 	Fixed slapd logging bugs (ITS#2170)
 	Fixed slapd rootdse entry_free bug (ITS#2172)
 	Fixed slapd multimaster passwd bug (ITS#2176)
 	Fixed slapd bad acl DN bug (ITS#2196)
+	Fixed slapd SASL bugs (ITS#2200) (ITS#2202)
 	Removed lint
 	Build Environment
 		Add subordinate referral test
 		Updated other misc other tests
 		Updated back-sql checks (ITS#2163)
-		Fix configure shtool no bold handling
+		Fixed liblber snprintf issues (ITS#2128) (ITS#2129) (ITS#2203)
+		Fixed configure shtool no bold handling
 
 OpenLDAP 2.1.8 Release
 	Build Environment
