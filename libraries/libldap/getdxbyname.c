@@ -1,6 +1,3 @@
-#include "portable.h"
-
-#ifdef LDAP_DNS
 /*
  *  Copyright (c) 1995 Regents of the University of Michigan.
  *  All rights reserved.
@@ -8,10 +5,14 @@
  * ldap_getdxbyname - retrieve DX records from the DNS (from TXT records for now)
  */
 
+#include "portable.h"
+
+#ifdef LDAP_DNS
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 
+#include <ac/ctype.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
@@ -21,10 +22,6 @@
 #include "ldap-int.h"
 
 static char ** decode_answer LDAP_P(( unsigned char *answer, int len ));
-
-extern int h_errno;
-extern char *h_errlist[];
-
 
 #define MAX_TO_SORT	32
 
