@@ -2,7 +2,157 @@
 #include <stdio.h>
 #include "lthread.h"
 
-#if defined( THREAD_SUNOS4_LWP )
+#if defined( THREAD_NEXT_CTHREADS )
+
+/***********************************************************************
+ *                                                                     *
+ * under NEXTSTEP or OPENSTEP use CThreads                             *
+ * lukeh@xedoc.com.au                                                  *
+ *                                                                     *
+ ***********************************************************************/
+
+int
+pthread_attr_init( pthread_attr_t *attr )
+{
+	*attr = 0;
+	return( 0 );
+}
+
+int
+pthread_attr_destroy( pthread_attr_t *attr )
+{
+	return( 0 );
+}
+
+int
+pthread_attr_getdetachstate( pthread_attr_t *attr, int *detachstate )
+{
+	*detachstate = *attr;
+	return( 0 );
+}
+
+int
+pthread_attr_setdetachstate( pthread_attr_t *attr, int detachstate )
+{
+	*attr = detachstate;
+	return( 0 );
+}
+
+/* ARGSUSED */
+int
+pthread_create(
+    pthread_t		*tid,
+    pthread_attr_t	*attr,
+    VFP			func,
+    void		*arg
+)
+{
+	*tid = cthread_fork(func, arg);
+	 return ( *tid == NULL ? -1 : 0 );
+}
+
+void
+pthread_yield()
+{
+	cthread_yield();
+}
+
+void
+pthread_exit( any_t a )
+{
+	cthread_exit( a );
+}
+
+void
+pthread_join( pthread_t tid, int *pStatus )
+{
+	int status;
+	status = (int) cthread_join ( tid );
+	if (pStatus != NULL)
+		{
+		*pStatus = status;
+		}
+}
+
+/* ARGSUSED */
+void
+pthread_kill( pthread_t tid, int sig )
+{
+	return;
+}
+
+/* ARGSUSED */
+int
+pthread_mutex_init( pthread_mutex_t *mp, pthread_mutexattr_t *attr )
+{
+	mutex_init( mp );
+	mp->name = NULL;
+	return ( 0 );
+}
+
+int
+pthread_mutex_destroy( pthread_mutex_t *mp )
+{
+	mutex_clear( mp );
+	return ( 0 );
+}
+
+int
+pthread_mutex_lock( pthread_mutex_t *mp )
+{
+	mutex_lock( mp );
+	return ( 0 );
+}
+
+int
+pthread_mutex_unlock( pthread_mutex_t *mp )
+{
+	mutex_unlock( mp );
+	return ( 0 );
+}
+
+int
+pthread_mutex_trylock( pthread_mutex_t *mp )
+{
+	return mutex_try_lock( mp );
+}
+
+int
+pthread_cond_init( pthread_cond_t *cv, pthread_condattr_t *attr )
+{
+	condition_init( cv );
+	return( 0 );
+}
+
+int
+pthread_cond_destroy( pthread_cond_t *cv )
+{
+	condition_clear( cv );
+	return( 0 );
+}
+
+int
+pthread_cond_wait( pthread_cond_t *cv, pthread_mutex_t *mp )
+{
+	condition_wait( cv, mp );
+	return( 0 );
+}
+
+int
+pthread_cond_signal( pthread_cond_t *cv )
+{
+	condition_signal( cv );
+	return( 0 );
+}
+
+int
+pthread_cond_broadcast( pthread_cond_t *cv )
+{
+	condition_broadcast( cv );
+	return( 0 );
+}
+
+#elif defined( THREAD_SUNOS4_LWP )
 
 /***********************************************************************
  *                                                                     *
@@ -44,7 +194,7 @@ pthread_attr_setdetachstate( pthread_attr_t *attr, int detachstate )
 int
 pthread_create(
     pthread_t		*tid,
-    pthread_attr_t	attr,
+    pthread_attr_t	*attr,
     VFP			func,
     void		*arg
 )
@@ -178,6 +328,7 @@ pthread_cond_broadcast( pthread_cond_t *cv )
  *                                                                     *
  ***********************************************************************/
 
+#if !defined(__SunOS_5_6)
 int
 pthread_attr_init( pthread_attr_t *attr )
 {
@@ -210,13 +361,14 @@ pthread_attr_setdetachstate( pthread_attr_t *attr, int detachstate )
 int
 pthread_create(
     pthread_t		*tid,
-    pthread_attr_t	attr,
+    pthread_attr_t	*attr,
     VFP			func,
     void		*arg
 )
 {
-	return( thr_create( NULL, 0, func, arg, attr, tid ) );
+	return( thr_create( NULL, 0, func, arg, *attr, tid ) );
 }
+#endif /* ! sunos56 */
 
 void
 pthread_yield()
@@ -224,6 +376,7 @@ pthread_yield()
 	thr_yield();
 }
 
+#if !defined(__SunOS_5_6)
 void
 pthread_exit()
 {
@@ -302,6 +455,7 @@ pthread_cond_broadcast( pthread_cond_t *cv )
 {
 	return( cond_broadcast( cv ) );
 }
+#endif /* ! sunos56 */
 
 
 #else /* end sunos5 threads */
@@ -333,6 +487,20 @@ pthread_kill( pthread_t tid, int sig )
 	kill( getpid(), sig );
 }
 
+#else
+
+#if defined ( POSIX_THREADS )
+
+#ifndef SCHED_YIELD_MISSING
+#include <sched.h>
+
+void pthread_yield( void )
+{
+	sched_yield();
+}
+#endif
+
+#endif /* posix threads */
 #endif /* dce pthreads */
 #endif /* mit pthreads */
 #endif /* sunos5 lwp */
@@ -379,7 +547,7 @@ pthread_attr_setdetachstate( pthread_attr_t *attr, int detachstate )
 int
 pthread_create(
     pthread_t		*tid,
-    pthread_attr_t	attr,
+    pthread_attr_t	*attr,
     VFP			func,
     void		*arg
 )

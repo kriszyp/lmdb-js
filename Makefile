@@ -1,7 +1,19 @@
-#
 # You will usually NOT need to edit this file at all:  instead, edit the
 # Make-common file.  See the LDAP INSTALL file for more information.
-#
+#-----------------------------------------------------------------------------
+# Copyright 1998 The OpenLDAP Foundation, Redwood City, California, USA
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms are permitted only
+# as authorized by the OpenLDAP Public License.  A copy of this
+# license is available at http://www.OpenLDAP.org/license.html or
+# in file LICENSE in the top-level directory of the distribution.
+# 
+# This work is derived from the University of Michigan LDAP v3.3
+# distribution.  Information concerning is available at
+#	http://www.umich.edu/~dirsvcs/ldap/ldap.html.
+# 
+# This work also contains materials derived from public sources.
 #-----------------------------------------------------------------------------
 # Copyright (c) 1994 Regents of the University of Michigan.
 # All rights reserved.
@@ -12,10 +24,8 @@
 # may not be used to endorse or promote products derived from this
 # software without specific prior written permission. This software
 # is provided ``as is'' without express or implied warranty.
-#
-#       LDAP lightweight X.500 Directory access top level makefile
-#
 #-----------------------------------------------------------------------------
+# LDAP lightweight X.500 Directory access top level makefile
 #
 ############################################################################
 #                                                                          #
@@ -161,8 +171,8 @@ depend:	makeconfig
 	for i in $(SRCDIRS); do \
 	    echo; echo "cd $$i; $(MAKE) $(MFLAGS) depend"; \
 	    ( cd $$i; $(MAKE) $(MFLAGS) depend ); \
-	done; \
-	$(MAKE) $(MFLAGS) makefiles
+	done; 
+	@echo " "; echo Remember to \"make depend\" after each \"make makefiles\"
 
 #
 # rules to check out and in Make-template files
@@ -202,16 +212,17 @@ checkin:	FORCE
 	    done
 
 tar:	veryclean
+#	$(RM) ./Make-common;  \
+#	$(CP) ./Make-common.dist ./Make-common; \
+#	$(CHMOD) 644 ./Make-common; \
+#	$(RM) ./include/ldapconfig.h.edit; \
+#	$(CP) ./include/ldapconfig.h.dist ./include/ldapconfig.h.edit; \
+#	$(CHMOD) 644 ./include/ldapconfig.h.edit; 
 	@PWD=`pwd`; \
-	$(RM) ./Make-common;  \
-	$(CP) ./Make-common.dist ./Make-common; \
-	$(CHMOD) 644 ./Make-common; \
-	$(RM) ./include/ldapconfig.h.edit; \
-	$(CP) ./include/ldapconfig.h.dist ./include/ldapconfig.h.edit; \
-	$(CHMOD) 644 ./include/ldapconfig.h.edit; \
 	BASE=`$(BASENAME) $$PWD`; XFILE=/tmp/ldap-x.$$$$; \
 	( cd .. ; $(CAT) $$BASE/exclude >$$XFILE; \
 	  $(FIND) $$BASE -name RCS -print >> $$XFILE ; \
+	  $(FIND) $$BASE -name CVS -print >> $$XFILE ; \
 	  $(FIND) $$BASE -name obj-\* -print >> $$XFILE ; \
 	  $(FIND) $$BASE -name tags -print >> $$XFILE ; \
 	  $(TAR) cvfX ./$$BASE.tar $$XFILE $$BASE; \
@@ -256,7 +267,12 @@ makeconfig:	.makefiles buildtools
 		    echo "SunOS release $$OSRELEASE unknown..."; exit 1; \
 		fi; \
 		if [ $$OSRELEASE -ge "5" ]; then \
-		    PLATFORM="sunos5"; \
+			MINORVER=`echo $$OSRELEASE|sed 's/^.*\.//'` ; \
+			if [ $$MINORVER -ge "6" ]; then \
+				PLATFORM="sunos56" ; \
+			else \
+		    	PLATFORM="sunos5"; \
+			fi; \
 		else \
 		    PLATFORM="sunos4"; \
 		fi; \
@@ -279,8 +295,16 @@ makeconfig:	.makefiles buildtools
 	    NetBSD) \
 		PLATFORM="netbsd" \
 		;; \
+	    OpenBSD) \
+		PLATFORM="openbsd" \
+		;; \
 	    FreeBSD) \
-		PLATFORM="freebsd" \
+		MAJRELEASE=`echo $$OSRELEASE | sed 's/\..*//'` ; \
+		if [ $$MAJRELEASE -lt 3 ]; then \
+			PLATFORM="freebsd2" ; \
+		else \
+			PLATFORM="freebsd3" ; \
+		fi; \
 		;; \
 	    NeXTSTEP) \
 		PLATFORM="nextstep" \
@@ -312,6 +336,15 @@ makeconfig:	.makefiles buildtools
 	echo "** Set platform to $$PLATFORM with compiler $$CC..."; \
 	echo ""
 
+Make-common: Make-common.dist
+	@if [ -f Make-common ]; then \
+		echo "Make-common.dist newer than Make-common, check for new options" ;\
+		echo "or touch Make-common to ignore."; \
+		exit 1; \
+	fi; \
+	echo "Copy Make-common.dist or Make-common.gmake to Make-common"; \
+	echo "  Edit as needed before making!"	; \
+	exit 1
 #
 # rule to build Makefiles by concatenating Make-template file in each
 # subdirectory with global Make-common, .make-platform, and
@@ -334,7 +367,6 @@ makeconfig:	.makefiles buildtools
 		echo "  creating $$i/Makefile"; \
 		$(RM) $$i/Makefile; \
 		$(CAT) $$HDRFILE $$i/Make-template $$DEFSFILE > $$i/Makefile; \
-		$(CHMOD) 444 $$i/Makefile; \
 	    fi; \
 	done; \
 	$(RM) .makefiles; \
@@ -347,6 +379,7 @@ makeconfig:	.makefiles buildtools
 makefiles:	FORCE
 	$(RM) .makefiles
 	$(MAKE) $(MFLAGS) .makefiles
+	@echo "Please \"make depend\" before building."
 
 #
 # rule to create any tools we need to build everything else
