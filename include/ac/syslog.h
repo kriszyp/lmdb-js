@@ -7,7 +7,9 @@
 #ifdef HAVE_SYSLOG_H
 #include <syslog.h>
 
-#if defined( LOG_NDELAY )
+#if defined( LOG_NDELAY ) && defined( LOG_NOWAIT )
+#	define OPENLOG_OPTIONS ( LOG_PID | LOG_NDELAY | LOG_NOWAIT )
+#elif defined( LOG_NDELAY )
 #	define OPENLOG_OPTIONS ( LOG_PID | LOG_NDELAY )
 #elif defined( LOG_NOWAIT )
 #	define OPENLOG_OPTIONS ( LOG_PID | LOG_NOWAIT )
