@@ -285,9 +285,6 @@ typedef signed int ssize_t;
 /* define this for per-object ACIs */
 /* #undef SLAPD_ACI_ENABLED */
 
-/* define this for discrete rights in ACIs */
-/* #undef SLAPD_ACI_DISCRETE_RIGHTS */
-
 /* define this to use SLAPD shell backend */
 /* #undef SLAPD_SHELL */
 
