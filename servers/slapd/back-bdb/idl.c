@@ -478,14 +478,15 @@ bdb_idl_fetch_key(
 	if ( tid ) flags |= DB_RMW;
 
 	/* If we're not reusing an existing cursor, get a new one */
-	if( opflag != DB_NEXT )
+	if( opflag != DB_NEXT ) {
 		rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
-	else
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
+				"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
+			return rc;
+		}
+	} else {
 		cursor = *saved_cursor;
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
-			"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
-		return rc;
 	}
 	
 	/* If this is a LE lookup, save original key so we can determine
