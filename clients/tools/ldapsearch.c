@@ -1367,7 +1367,7 @@ print_entry(
 						bvals[ i ].bv_val, bvals[ i ].bv_len );
 				}
 			}
-			ber_bvarray_free( bvals );
+			ber_memfree( bvals );
 		}
 	}
 
