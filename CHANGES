@@ -3,10 +3,12 @@ OpenLDAP 2.2 Change Log
 OpenLDAP 2.2.15 Engineering
 	Fixed back-bdb DB_DEADLOCK memory leak bug (ITS#3213)
 	Fixed back-bdb dbcache locking bug (ITS#3201)
+	Fixed back-bdb ctxcsn locking bug
 	Fixed slapd oidValidate 0 bug (ITS#3211)
 	Fixed slapd uniqueMember/nameUID bugs (ITS#3210)
 	Fixed slapd operational attribute log message bug (ITS#3205)
 	Fixed slapd invalid cookie in pagedResults control (ITS#3089)
+	Fixed slapd group ACL locking bug (ITS#3173)
 	Fixed slapi slapi_int_compute_output_ber attrs bug
 	Fixed libldap sasl_encode 64-bit bug (ITS#3054,3212)
 	Fixed libldap matchedValues parsing bug (ITS#3208)
