@@ -619,6 +619,8 @@ AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 
 AC_PROG_AWK
+OL_PROG_LN_H
+AC_PROG_LN_S
 
 AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
@@ -2114,9 +2116,9 @@ dnl
 ol_link_sasl=no
 ol_link_spasswd=no
 if test $ol_with_cyrus_sasl != no ; then
-	AC_CHECK_HEADERS(sasl.h)
+	AC_CHECK_HEADERS(sasl/sasl.h sasl.h)
 
-	if test $ac_cv_header_sasl_h ; then
+	if test $ac_cv_header_sasl_sasl_h = yes -o $ac_cv_header_sasl_h = yes; then
 		AC_CHECK_LIB(sasl2, sasl_client_init,
 			[ol_link_sasl="-lsasl2"],
 			[AC_CHECK_LIB(sasl, sasl_client_init,

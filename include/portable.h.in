@@ -464,6 +464,9 @@
 /* Define if you have the <sasl.h> header file.  */
 #undef HAVE_SASL_H
 
+/* Define if you have the <sasl/sasl.h> header file.  */
+#undef HAVE_SASL_SASL_H
+
 /* Define if you have the <sched.h> header file.  */
 #undef HAVE_SCHED_H
 

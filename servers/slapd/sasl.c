@@ -18,7 +18,11 @@
 #ifdef HAVE_CYRUS_SASL
 #include <limits.h>
 
+#ifdef HAVE_SASL_SASL_H
+#include <sasl/sasl.h>
+#else
 #include <sasl.h>
+#endif
 
 #if SASL_VERSION_MAJOR >= 2
 #include <lutil.h>
