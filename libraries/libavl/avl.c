@@ -27,7 +27,7 @@ static char avl_version[] = "AVL library version 1.0\n";
 #define ROTATERIGHT(x)	{ \
 	Avlnode *tmp;\
 	if ( *(x) == NULL || (*(x))->avl_left == NULL ) {\
-		(void) printf("RR error\n"); exit(1); \
+		(void) fputs("RR error\n", stderr); exit(1); \
 	}\
 	tmp = (*(x))->avl_left;\
 	(*(x))->avl_left = tmp->avl_right;\
@@ -37,7 +37,7 @@ static char avl_version[] = "AVL library version 1.0\n";
 #define ROTATELEFT(x)	{ \
 	Avlnode *tmp;\
 	if ( *(x) == NULL || (*(x))->avl_right == NULL ) {\
-		(void) printf("RL error\n"); exit(1); \
+		(void) fputs("RL error\n", stderr); exit(1); \
 	}\
 	tmp = (*(x))->avl_right;\
 	(*(x))->avl_right = tmp->avl_left;\
