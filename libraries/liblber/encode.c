@@ -131,9 +131,8 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 	 */
 
 	if ( len <= 127 ) {
-		netlen = LBER_LEN_HTON( len );
-		return( ber_write( ber, (char *) &netlen + sizeof(long) - 1,
-		    1, nosos ) );
+		char length_byte = (char) len;
+		return( ber_write( ber, &length_byte, 1, nosos ) );
 	}
 
 	/*
@@ -293,7 +292,7 @@ ber_put_ostring(
 #endif /* STR_TRANSLATION */
 
 	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 ||
-		(unsigned long) ber_write( ber, str, len, 0 ) != len ) {
+		(ber_len_t) ber_write( ber, str, len, 0 ) != len ) {
 		rc = -1;
 	} else {
 		/* return length of tag + length + contents */
@@ -539,7 +538,7 @@ ber_put_seqorset( BerElement *ber )
 				return( -1 );
 
 			/* the length itself */
-			if ( ber_write( ber, (char *) &netlen + sizeof(long)
+			if ( ber_write( ber, (char *) (&netlen + 1)
 			    - (FOUR_BYTE_LEN - 1), FOUR_BYTE_LEN - 1, 1 )
 			    != FOUR_BYTE_LEN - 1 )
 				return( -1 );

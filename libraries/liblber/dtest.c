@@ -41,7 +41,8 @@ main( int argc, char **argv )
 	char *s;
 	int rc;
 
-	unsigned long tag, len;
+	ber_tag_t	tag;
+	ber_len_t	len;
 
 	BerElement	*ber;
 	Sockbuf		*sb;
@@ -73,7 +74,7 @@ main( int argc, char **argv )
 	}
 
 	printf("decode: message tag 0x%lx and length %ld\n",
-		tag, len );
+	        (unsigned long) tag, (long) len );
 
 	for( s = argv[1]; *s; s++ ) {
 		char buf[128];

@@ -30,7 +30,7 @@
 
 #include "lber-int.h"
 
-static ber_tag_t ber_getnint LDAP_P((
+static ber_len_t ber_getnint LDAP_P((
 	BerElement *ber,
 	ber_int_t *num,
 	ber_len_t len ));
@@ -107,7 +107,7 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 	 * Next, read the length.  The first byte contains the length of
 	 * the length.  If bit 8 is set, the length is the long form,
 	 * otherwise it's the short form.  We don't allow a length that's
-	 * greater than what we can hold in an unsigned long.
+	 * greater than what we can hold in a ber_len_t.
 	 */
 
 	*len = netlen = 0;
@@ -154,7 +154,7 @@ ber_peek_tag(
 	return( tag );
 }
 
-static ber_tag_t
+static ber_len_t
 ber_getnint(
 	BerElement *ber,
 	ber_int_t *num,
@@ -215,7 +215,7 @@ ber_get_int(
 	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT )
 		return( LBER_DEFAULT );
 
-	if ( (unsigned long) ber_getnint( ber, num, len ) != len )
+	if ( ber_getnint( ber, num, len ) != len )
 		return( LBER_DEFAULT );
 	else
 		return( tag );
@@ -242,7 +242,7 @@ ber_get_stringb(
 	if ( datalen > (*len - 1) )
 		return( LBER_DEFAULT );
 
-	if ( (unsigned long) ber_read( ber, buf, datalen ) != datalen )
+	if ( (ber_len_t) ber_read( ber, buf, datalen ) != datalen )
 		return( LBER_DEFAULT );
 
 	buf[datalen] = '\0';
@@ -289,7 +289,7 @@ ber_get_stringa( BerElement *ber, char **buf )
 	if ( (*buf = (char *) LBER_MALLOC( datalen + 1 )) == NULL )
 		return( LBER_DEFAULT );
 
-	if ( (unsigned long) ber_read( ber, *buf, datalen ) != datalen ) {
+	if ( (ber_len_t) ber_read( ber, *buf, datalen ) != datalen ) {
 		LBER_FREE( *buf );
 		*buf = NULL;
 		return( LBER_DEFAULT );
@@ -393,7 +393,7 @@ ber_get_bitstringa(
 		return( LBER_DEFAULT );
 	}
 
-	if ( (unsigned long) ber_read( ber, *buf, datalen ) != datalen ) {
+	if ( (ber_len_t) ber_read( ber, *buf, datalen ) != datalen ) {
 		LBER_FREE( buf );
 		*buf = NULL;
 		return( LBER_DEFAULT );
