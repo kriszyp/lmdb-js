@@ -694,7 +694,7 @@ read_config( const char *fname )
 
 		/* set size limit */
 		} else if ( strcasecmp( cargv[0], "sizelimit" ) == 0 ) {
-			int rc = 0;
+			int rc = 0, i;
 			struct slap_limits_set *lim;
 			
 			if ( cargc < 2 ) {
@@ -717,30 +717,36 @@ read_config( const char *fname )
 				lim = &be->be_def_limit;
 			}
 
-			if ( strncasecmp( cargv[1], "size", 4 ) == 0 ) {
-				rc = parse_limit( cargv[1], lim );
-			} else {
-				lim->lms_s_soft = atoi( cargv[1] );
-				lim->lms_s_hard = 0;
-			}
+			for ( i = 1; i < cargc; i++ ) {
+				if ( strncasecmp( cargv[i], "size", 4 ) == 0 ) {
+					rc = parse_limit( cargv[i], lim );
+				} else {
+					lim->lms_s_soft = atoi( cargv[i] );
+					lim->lms_s_hard = 0;
+				}
 
-			if ( rc ) {
+				if ( rc ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: unable to parse value"
-					   " \"%s\" in \"sizelimit <limit>\""
-					   " line.\n",
-					   fname, lineno, cargv[1] ));
+					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+						   "%s: line %d: unable "
+						   "to parse value \"%s\" "
+						   "in \"sizelimit "
+						   "<limit>\" line.\n",
+						   fname, lineno, cargv[i] ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: unable to parse value \"%s\" in \"sizelimit <limit>\" line\n",
-				    fname, lineno, cargv[1] );
+					Debug( LDAP_DEBUG_ANY,
+					    	"%s: line %d: unable "
+						"to parse value \"%s\" "
+						"in \"sizelimit "
+						"<limit>\" line\n",
+    						fname, lineno, cargv[i] );
 #endif
+				}
 			}
 
 		/* set time limit */
 		} else if ( strcasecmp( cargv[0], "timelimit" ) == 0 ) {
-			int rc = 0;
+			int rc = 0, i;
 			struct slap_limits_set *lim;
 			
 			if ( cargc < 2 ) {
@@ -763,25 +769,31 @@ read_config( const char *fname )
 				lim = &be->be_def_limit;
 			}
 
-			if ( strncasecmp( cargv[1], "time", 4 ) == 0 ) {
-				rc = parse_limit( cargv[1], lim );
-			} else {
-				lim->lms_t_soft = atoi( cargv[1] );
-				lim->lms_t_hard = 0;
-			}
+			for ( i = 1; i < cargc; i++ ) {
+				if ( strncasecmp( cargv[i], "time", 4 ) == 0 ) {
+					rc = parse_limit( cargv[i], lim );
+				} else {
+					lim->lms_t_soft = atoi( cargv[i] );
+					lim->lms_t_hard = 0;
+				}
 
-			if ( rc ) {
+				if ( rc ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: unable to parse value"
-					   " \"%s\" in \"timelimit <limit>\""
-					   " line.\n",
-					   fname, lineno, cargv[1] ));
+					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+						   "%s: line %d: unable "
+						   "to parse value \"%s\" "
+						   "in \"timelimit "
+						   "<limit>\" line.\n",
+						   fname, lineno, cargv[i] ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: unable to parse value \"%s\" in \"timelimit <limit>\" line\n",
-				    fname, lineno, cargv[1] );
+					Debug( LDAP_DEBUG_ANY,
+						"%s: line %d: unable "
+						"to parse value \"%s\" "
+						"in \"timelimit "
+						"<limit>\" line\n",
+						fname, lineno, cargv[i] );
 #endif
+				}
 			}
 
 		/* set regex-based limits */
