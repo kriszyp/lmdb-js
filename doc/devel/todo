@@ -37,6 +37,7 @@ Implement LCUP
 
 Medium projects
 ---------------
+Add LDIFv1 control: support
 Add support for in-directory SASL secrets
 Implement dNSReferral <draft-zeilenga-ldap-dnsref-xx.txt>
 Implement authPassword (RFC 3112)
