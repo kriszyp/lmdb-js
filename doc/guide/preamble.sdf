@@ -114,7 +114,7 @@ ITU|International Telephone Union|http://www.itu.int/
 RFC|RFC Editor|http://www.rfc-editor.org/
 OpenSSL|OpenSSL|http://www.openssl.org/
 Cyrus|Cyrus Electronic Mail Project|http://asg.web.cmu.edu/cyrus/
-Sleepy|Sleepycat Software|http://www.sleepycat.com/
+Sleepycat|Sleepycat Software|http://www.sleepycat.com/
 FSF|Free Software Foundation|http://www.fsf.org/
 GNU|GNU Not Unix|http://www.gnu.org/
 !endblock
@@ -143,6 +143,7 @@ API|Application Program Interface
 ASN|Abstract Syntax Notation
 ASN.1|Abstract Syntax Notation 1
 BCP|Best Common Practice
+BDB|Berkeley DB
 BER|Basic Encoding Rules
 BNF|BNF
 C|The C Programming Language
