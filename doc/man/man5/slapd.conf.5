@@ -684,6 +684,87 @@ In general the
 .I saslAuthzTo
 attribute must be protected with ACLs such that
 only privileged users can modify it.
+The value of
+.I saslAuthzFrom
+and
+.I saslAuthzTo
+describes an 
+.B identity 
+or a set of identities; it can take three forms:
+.RS
+.RS
+.TP
+.B ldap:///<base>??[<scope>]?<filter>
+.RE
+.RS
+.B dn[.<dnstyle>]:<pattern>
+.RE
+.RS
+.B u[<mech>[<realm>]]:<pattern>
+.RE
+.RS
+.B <pattern>
+.RE
+.RS
+
+.B <dnstyle>:={exact|onelevel|children|subtree|regex}
+
+.RE
+The first form is a valid LDAP
+.B uri
+where the 
+.IR <host>:<port> ,
+the
+.I <attrs>
+and the
+.I <extensions>
+portions must be absent, so that the search occurs locally on either
+.I saslAuthzFrom
+or 
+.IR saslAuthzTo .
+The second form is a 
+.BR DN ,
+with the optional style modifiers
+.IR exact ,
+.IR onelevel ,
+.IR children ,
+and
+.I subtree
+for exact, onelevel, children and subtree matches, which cause 
+.I <pattern>
+to be normalized according to the DN normalization rules, or the special
+.I regex
+style, which causes
+.I <pattern>
+to be compiled according to 
+.BR regex (7).
+The third form is a SASL
+.BR id ,
+with the optional fields
+.I <mech>
+and
+.I <realm>
+that allow to specify a SASL
+.BR mechanism ,
+and eventually a SASL
+.BR realm ,
+for those mechanisms that support one.
+The need to allow the specification of a mechanism is still debated, 
+and users are strongly discouraged to rely on this possibility.
+For backwards compatibility, if no identity type is provided, i.e. only
+.B <pattern>
+is present, an
+.I exact DN
+is assumed; as a consequence, 
+.B <pattern>
+is subjected to DN normalization.
+Since the interpretation of
+.I saslAuthzFrom
+and
+.I saslAuthzTo
+can impact security, users are strongly encouraged 
+to explicitly set the type of identity specification that is being used.
+.RE
 .TP
 .B sasl-host <fqdn>
 Used to specify the fully qualified domain name used for SASL processing.
