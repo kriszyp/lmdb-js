@@ -344,10 +344,6 @@ LDAP_SLAPD_F (void) connection_done LDAP_P((Connection *));
 
 LDAP_SLAPD_F (void) connection2anonymous LDAP_P((Connection *));
 
-LDAP_SLAPD_F (int) connection_internal_open(
-	Connection **conn, LDAP **ldp, const char *id );
-LDAP_SLAPD_F (void) connection_internal_close( Connection *conn );
-
 /*
  * dn.c
  */
