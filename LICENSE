@@ -1,31 +1,32 @@
 The OpenLDAP Public License
-  Version 2.2.1, 1 March 2000
+  Version 2.2.2, 28 July 2000
 
 Redistribution and use of this software and associated documentation
 ("Software"), with or without modification, are permitted provided
 that the following conditions are met:
 
 1. Redistributions of source code must retain copyright statements
-and notices.  Redistributions must also contain a copy of this
-document.
+and notices.
 
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in
-the documentation and/or other materials provided with the
-distribution.
+2. Redistributions in binary form must reproduce applicable copyright
+statements and notices, this list of conditions, and the following
+disclaimer in the documentation and/or other materials provided
+with the distribution.
 
-3. The name "OpenLDAP" must not be used to endorse or promote
+3. Redistributions must contain a verbatim copy of this document.
+
+4. The name "OpenLDAP" must not be used to endorse or promote
 products derived from this Software without prior written permission
 of the OpenLDAP Foundation.
 
-4. Products derived from this Software may not be called "OpenLDAP"
+5. Products derived from this Software may not be called "OpenLDAP"
 nor may "OpenLDAP" appear in their names without prior written
 permission of the OpenLDAP Foundation.
 
-5. Due credit should be given to the OpenLDAP Project
+6. Due credit should be given to the OpenLDAP Project
 (http://www.openldap.org/).
 
-6. The OpenLDAP Foundation may revise this license from time to
+7. The OpenLDAP Foundation may revise this license from time to
 time.  Each revision is distinguished by a version number.  You
 may use the Software under terms of this license revision or under
 the terms of any subsequent revision of the license.
