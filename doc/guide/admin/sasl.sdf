@@ -483,10 +483,10 @@ statements of the form:
 >	   uid=(.*),cn=digest-md5,cn=auth
 >	   ldap:///dc=customers,dc=example,dc=com??sub?(&(uid=$1)(objectClass=person))
 
-Note that the explicitly-named realms are handled first, to avoid the
-realm name becoming part of the UID. Note also the limitation of
-matches to those entries with objectClass=person to avoid matching
-other entries that happen to refer to the UID.
+Note that the explicitly-named realms are handled first, to avoid
+the realm name becoming part of the UID. Note also the limitation
+of matches to those entries with {{EX:(objectClass=person)}} to
+avoid matching other entries that happen to refer to the UID.
 
 See {{slapd.conf}}(5) for more detailed information.
 
@@ -657,13 +657,14 @@ source rule like
 would allow that authenticated user to authorize to any DN that
 matches the regular expression pattern given. This regular expression
 comparison can be evaluated much faster than an LDAP search for
-"uid=*".
+{{EX:(uid=*)}}.
 
 Also note that the values in an authorization rule must be one of
 the two forms: an LDAP URL or a DN (with or without regular expression
 characters). Anything that does not begin with "ldap://" is taken
 as a DN. It is not permissable to enter another authorization
 identity of the form "u:<username>" as an authorization rule.
+
 
 H4: Policy Configuration
 
