@@ -46,6 +46,7 @@ ldap_back_modify(
 	struct berval mdn = { 0, NULL };
 	ber_int_t msgid;
 	dncookie dc;
+	int update;
 #ifdef LDAP_BACK_PROXY_AUTHZ 
 	LDAPControl **ctrls = NULL;
 #endif /* LDAP_BACK_PROXY_AUTHZ */
@@ -89,10 +90,12 @@ ldap_back_modify(
 #ifdef ENABLE_REWRITE
 	dc.ctx = "modifyAttrDN";
 #endif
+
+	update = op->o_bd->be_update_ndn.bv_len;
 	for (i=0, ml=op->oq_modify.rs_modlist; ml; ml=ml->sml_next) {
 		int	is_oc = 0;
 
-		if ( ml->sml_desc->ad_type->sat_no_user_mod  ) {
+		if ( !update && ml->sml_desc->ad_type->sat_no_user_mod  ) {
 			continue;
 		}
 
