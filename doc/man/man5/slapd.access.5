@@ -75,44 +75,64 @@ specifies the entity the access control directive applies to.
 It can have the forms
 .LP
 .nf
-	*
-	[dn[.<dnstyle>]=<DN>] 
-	[filter=<ldapfilter>]
-	[attrs=<attrlist>[ val[.<style>]=<attrval>]]
+	[dn[.<dnstyle>]=]<dnpattern>
+	filter=<ldapfilter>
+	attrs=<attrlist>[ val[.<style>]=<attrval>]
 .fi
 .LP
+The statement
+.B dn=<dnpattern>
+selects the entries based on their naming context.
+The 
+.B dn=
+part is optional
+The
+.B <dnpattern>
+is a string representation of the entry's DN.
 The wildcard
 .B *
-stands for all the entries.
+stands for all the entries, and it is implied if no
+.B dn
+form is given.
 .LP
-The statement
-.B dn=<DN>
-selects the entries based on their naming context.
-The pattern is a string representation of the entry's DN.
-.BR base ,
+The 
+.B <dnstyle> 
+is also optional; however, it is recommended to specify both the 
+.B dn=
+and the
+.B <dnstyle>
+to avoid ambiguities.
+.B Base 
+(synonym of
+.BR baseObject ),
 the default,
 or
 .B exact 
 (an alias of 
 .BR base )
-indicates the entry whose DN is equal to the pattern;
+indicates the entry whose DN is equal to the
+.BR <dnpattern> ;
 .B one
 (synonym of
 .BR onelevel )
 indicates all the entries immediately below the
-.BR pattern ,
+.BR <dnpattern> ,
 .B sub
 (synonym of
 .BR subtree )
-indicates all entries in the subtree at the pattern,
+indicates all entries in the subtree at the
+.BR <dnpattern> ,
 .B children
-indicates all the entries below (subordinate to) the pattern.
+indicates all the entries below (subordinate to) the 
+.BR <dnpattern> .
 .LP
 If the
 .B <dnstyle>
 qualifier is
 .BR regex ,
-then the value is a regular expression pattern,
+then 
+.B <dnpattern>
+is a regular expression pattern,
 as detailed in
 .BR regex (7),
 matching a normalized string representation of the entry's DN.
@@ -121,6 +141,11 @@ The regex form of the pattern does not (yet) support UTF-8.
 The statement
 .B filter=<ldapfilter>
 selects the entries based on a valid LDAP filter as described in RFC 2254.
+A filter of
+.B (objectClass=*)
+is implied if no
+.B filter
+form is given.
 .LP
 The statement
 .B attrs=<attrlist>
@@ -141,9 +166,14 @@ are directly treated as objectClass names.  A name prefixed by
 is also treated as an objectClass, but in this case the access rule
 affects the attributes that are not required nor allowed 
 by that objectClass.
+If no
+.B attrs
+form is given, 
+.B attrs=@extensibleObject
+is implied, i.e. all attributes are addressed.
 .LP
 Using the form
-.B attrs=<attr> val[.<style>]=<value>
+.B attrs=<attr> val[.<style>]=<attrval>
 specifies access to a particular value of a single attribute.
 In this case, only a single attribute type may be given. A value
 .B <style>
@@ -276,12 +306,12 @@ even if
 is not 
 .BR regex .
 Note that the 
-.I regex 
+.B regex 
 dnstyle in the above example may be of use only if the 
 .B by
 clause needs to be a regex; otherwise, if the
 value of the second (from the right)
-.I dc=
+.B dc=
 portion of the DN in the above example were fixed, the form
 .LP
 .nf
@@ -418,7 +448,7 @@ portion of the pattern after masking with
 .BR <mask> .
 As an example, 
 .B peername.ip=127.0.0.1
-alows connections only from localhost,
+allows connections only from localhost,
 .B peername.ip=192.168.1.0%255.255.255.0 
 allows connections from any IP in the 192.168.1 class C domain, and
 .B peername.ip=192.168.1.16%255.255.255.240{9009}
@@ -784,7 +814,7 @@ clause, one could use
 .LP
 .nf
 	access to dn.regex="^(.+,)?uid=([^,]+),dc=example,dc=com$"
-		by dn.regex="^uid=$1,dc=example,dc=com$$" write
+		by dn.regex="^uid=$2,dc=example,dc=com$$" write
 		by ...
 .fi
 .LP
@@ -794,7 +824,7 @@ clause is substring expansion, a more efficient solution is
 .LP
 .nf
 	access to dn.regex="^(.+,)?uid=([^,]+),dc=example,dc=com$"
-		by dn.exact,expand="uid=$1,dc=example,dc=com" write
+		by dn.exact,expand="uid=$2,dc=example,dc=com" write
 		by ...
 .fi
 .LP
