@@ -64,6 +64,11 @@ bdb_db_config(
 	} else if ( strcasecmp( argv[0], "dbnosync" ) == 0 ) {
 		bdb->bi_dbenv_xflags |= DB_TXN_NOSYNC;
 
+	/* slapadd/slapindex logging configuration */
+	} else if ( strcasecmp( argv[0], "fasttool" ) == 0 &&
+		slapMode & SLAP_TOOL_MODE ) {
+		bdb->bi_dbenv_xflags |= DB_TXN_NOT_DURABLE;
+
 	/* transaction checkpoint configuration */
 	} else if ( strcasecmp( argv[0], "checkpoint" ) == 0 ) {
 		if ( argc < 3 ) {

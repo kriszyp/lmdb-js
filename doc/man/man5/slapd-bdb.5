@@ -71,6 +71,12 @@ results if the data comes from a transaction that is later aborted.
 In this case, the modified data is discarded and a subsequent search
 will return a different result.
 .TP
+.B fasttool
+Disables transaction logging when using the slapadd/slapindex tools,
+using the DB_TXN_NOT_DURABLE flag. Does not affect normal slapd operation,
+but will improve the performance of slapadd/slapindex.
+See the Berkeley DB reference guide for more details.
+.TP
 .B idlcachesize <integer>
 Specify the size of the in-memory index cache, in index slots. The
 default is zero. A larger value will speed up frequent searches of
