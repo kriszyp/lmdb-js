@@ -95,6 +95,11 @@ int monitor_subsys_ops_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
 int monitor_subsys_sent_init LDAP_P(( BackendDB *be ));
 int monitor_subsys_sent_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
 
+/*
+ * listener
+ */
+int monitor_subsys_listener_init LDAP_P(( BackendDB *be ));
+
 LDAP_END_DECL
 
 #endif

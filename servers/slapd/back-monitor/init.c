@@ -52,8 +52,8 @@ struct monitorsubsys monitor_subsys[] = {
 	{ 
 		SLAPD_MONITOR_LISTENER, SLAPD_MONITOR_LISTENER_NAME, 	
 		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
-		MONITOR_F_NONE,
-		NULL,	/* init */
+		MONITOR_F_PERSISTENT_CH,
+		monitor_subsys_listener_init,
 		NULL,	/* update */
 		NULL,	/* create */
 		NULL	/* modify */

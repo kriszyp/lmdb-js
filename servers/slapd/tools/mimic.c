@@ -239,3 +239,9 @@ slap_operational_hasSubordinate( int hs )
 	return NULL;
 }
 
+Listener **
+slapd_get_listeners(void)
+{
+	return NULL;
+}
+

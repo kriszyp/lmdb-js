@@ -1032,6 +1032,7 @@ LDAP_SLAPD_F (void) slapd_add_internal(ber_socket_t s);
 LDAP_SLAPD_F (int) slapd_daemon_init( const char *urls );
 LDAP_SLAPD_F (int) slapd_daemon_destroy(void);
 LDAP_SLAPD_F (int) slapd_daemon(void);
+LDAP_SLAPD_F (Listener **)	slapd_get_listeners LDAP_P((void));
 
 LDAP_SLAPD_F (void) slapd_set_write LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_F (void) slapd_clr_write LDAP_P((ber_socket_t s, int wake));
@@ -1064,7 +1065,7 @@ LDAP_SLAPD_F (int) do_extended LDAP_P((Connection *conn, Operation *op));
 
 
 LDAP_SLAPD_V (ber_socket_t)	dtblsize;
-LDAP_SLAPD_V (Listener **)	slap_listeners;
+
 
 LDAP_END_DECL
 

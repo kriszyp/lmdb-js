@@ -1820,3 +1820,7 @@ slap_sig_wake( int sig )
 void slapd_add_internal(ber_socket_t s) {
 	slapd_add(s);
 }
+
+Listener ** slapd_get_listeners(void) {
+	return slap_listeners;
+}
