@@ -32,19 +32,64 @@ int schema_init_done = 0;
 
 struct slap_internal_schema slap_schema;
 
-static int objectClassValidate(
+static int
+oidValidate(
 	Syntax *syntax,
 	struct berval *in )
 {
-	ObjectClass *oc;
-	int rc = numericoidValidate( syntax, in );
-	if ( rc ) return rc;
+	struct berval val = *in;
 
-	oc = oc_bvfind( in );
-	if( oc == NULL ) return LDAP_INVALID_SYNTAX;
+	if( val.bv_len == 0 ) {
+		/* disallow empty strings */
+		return LDAP_INVALID_SYNTAX;
+	}
 
-	return LDAP_SUCCESS;
+	if( DESC_LEADCHAR( val.bv_val[0] ) ) {
+		val.bv_val++;
+		val.bv_len--;
+		if ( val.bv_len == 0 ) return LDAP_SUCCESS;
+
+		while( DESC_CHAR( val.bv_val[0] ) ) {
+			val.bv_val++;
+			val.bv_len--;
+
+			if ( val.bv_len == 0 ) return LDAP_SUCCESS;
+		}
+
+	} else {
+		while( OID_LEADCHAR( val.bv_val[0] ) ) {
+			if ( val.bv_len == 1 ) {
+				return LDAP_SUCCESS;
+			}
+
+			if ( val.bv_val[0] == '0' ) {
+				break;
+			}
+
+			val.bv_val++;
+			val.bv_len--;
+
+			while ( OID_LEADCHAR( val.bv_val[0] )) {
+				val.bv_val++;
+				val.bv_len--;
+
+				if ( val.bv_len == 0 ) {
+					return LDAP_SUCCESS;
+				}
+			}
+
+			if( !OID_SEPARATOR( val.bv_val[0] )) {
+				break;
+			}
+
+			val.bv_val++;
+			val.bv_len--;
+		}
+	}
+
+	return LDAP_INVALID_SYNTAX;
 }
+
 
 static int objectClassPretty(
 	struct slap_syntax *syntax,
@@ -52,10 +97,113 @@ static int objectClassPretty(
 	struct berval * out,
 	void *ctx )
 {
-	ObjectClass *oc = oc_bvfind( in );
+	ObjectClass *oc;
+
+	if( oidValidate( NULL, in )) return LDAP_INVALID_SYNTAX;
+
+	oc = oc_bvfind( in );
 	if( oc == NULL ) return LDAP_INVALID_SYNTAX;
 
 	ber_dupbv_x( out, &oc->soc_cname, ctx );
+	return LDAP_SUCCESS;
+}
+
+static int
+attributeTypeMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	struct berval *a = (struct berval *) assertedValue;
+	AttributeType *at = at_bvfind( value );
+	AttributeType *asserted = at_bvfind( a );
+
+	if( asserted == NULL ) {
+		if( OID_LEADCHAR( *a->bv_val ) ) {
+			/* OID form, return FALSE */
+			*matchp = 1;
+			return LDAP_SUCCESS;
+		}
+
+		/* desc form, return undefined */
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	if ( at == NULL ) {
+		/* unrecognized stored value */
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	*matchp = ( asserted != at );
+	return LDAP_SUCCESS;
+}
+
+static int
+matchingRuleMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	struct berval *a = (struct berval *) assertedValue;
+	MatchingRule *mrv = mr_bvfind( value );
+	MatchingRule *asserted = mr_bvfind( a );
+
+	if( asserted == NULL ) {
+		if( OID_LEADCHAR( *a->bv_val ) ) {
+			/* OID form, return FALSE */
+			*matchp = 1;
+			return LDAP_SUCCESS;
+		}
+
+		/* desc form, return undefined */
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	if ( mrv == NULL ) {
+		/* unrecognized stored value */
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	*matchp = ( asserted != mrv );
+	return LDAP_SUCCESS;
+}
+
+static int
+objectClassMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	struct berval *a = (struct berval *) assertedValue;
+	ObjectClass *oc = oc_bvfind( value );
+	ObjectClass *asserted = oc_bvfind( a );
+
+	if( asserted == NULL ) {
+		if( OID_LEADCHAR( *a->bv_val ) ) {
+			/* OID form, return FALSE */
+			*matchp = 1;
+			return LDAP_SUCCESS;
+		}
+
+		/* desc form, return undefined */
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	if ( oc == NULL ) {
+		/* unrecognized stored value */
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	*matchp = ( asserted != oc );
 	return LDAP_SUCCESS;
 }
 
@@ -293,7 +441,7 @@ static struct slap_schema_ad_map {
 			"EQUALITY objectIdentifierMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
 		NULL, SLAP_AT_FINAL,
-		objectClassValidate, objectClassPretty,
+		oidValidate, objectClassPretty,
 		NULL, NULL, objectSubClassMatch,
 			objectSubClassIndexer, objectSubClassFilter,
 		offsetof(struct slap_internal_schema, si_ad_objectClass) },
@@ -305,7 +453,7 @@ static struct slap_schema_ad_map {
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, 0,
-		objectClassValidate, objectClassPretty,
+		oidValidate, objectClassPretty,
 		NULL, NULL, objectSubClassMatch,
 			objectSubClassIndexer, objectSubClassFilter,
 		offsetof(struct slap_internal_schema, si_ad_structuralObjectClass) },
@@ -585,32 +733,32 @@ static struct slap_schema_ad_map {
 			"EQUALITY objectIdentifierFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.16 USAGE directoryOperation )",
 		subentryAttribute, SLAP_AT_HIDE,
-		NULL, NULL,
-		NULL, NULL, NULL, NULL, NULL,
+		oidValidate, NULL,
+		NULL, NULL, objectClassMatch, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_ditContentRules) },
 	{ "matchingRules", "( 2.5.21.4 NAME 'matchingRules' "
 			"DESC 'RFC2252: matching rules' "
 			"EQUALITY objectIdentifierFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.30 USAGE directoryOperation )",
 		subentryAttribute, 0,
-		NULL, NULL,
-		NULL, NULL, NULL, NULL, NULL,
+		oidValidate, NULL,
+		NULL, NULL, matchingRuleMatch, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_matchingRules) },
 	{ "attributeTypes", "( 2.5.21.5 NAME 'attributeTypes' "
 			"DESC 'RFC2252: attribute types' "
 			"EQUALITY objectIdentifierFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.3 USAGE directoryOperation )",
 		subentryAttribute, 0,
-		NULL, NULL,
-		NULL, NULL, NULL, NULL, NULL,
+		oidValidate, NULL,
+		NULL, NULL, attributeTypeMatch, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_attributeTypes) },
 	{ "objectClasses", "( 2.5.21.6 NAME 'objectClasses' "
 			"DESC 'RFC2252: object classes' "
 			"EQUALITY objectIdentifierFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.37 USAGE directoryOperation )",
 		subentryAttribute, 0,
-		NULL, NULL,
-		NULL, NULL, NULL, NULL, NULL,
+		oidValidate, NULL,
+		NULL, NULL, objectClassMatch, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_objectClasses) },
 	{ "nameForms", "( 2.5.21.7 NAME 'nameForms' "
 			"DESC 'RFC2252: name forms ' "
@@ -625,8 +773,8 @@ static struct slap_schema_ad_map {
 			"EQUALITY objectIdentifierFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.31 USAGE directoryOperation )",
 		subentryAttribute, 0,
-		NULL, NULL,
-		NULL, NULL, NULL, NULL, NULL,
+		oidValidate, NULL,
+		NULL, NULL, matchingRuleMatch, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_matchingRuleUse) },
 
 	{ "ldapSyntaxes", "( 1.3.6.1.4.1.1466.101.120.16 NAME 'ldapSyntaxes' "
@@ -860,6 +1008,25 @@ static struct slap_schema_syn_map {
 		offsetof(struct slap_internal_schema, si_syn_integer) },
 	{ "1.3.6.1.4.1.1466.115.121.1.40",
 		offsetof(struct slap_internal_schema, si_syn_octetString) },
+
+	{ "1.3.6.1.4.1.1466.115.121.1.3",
+		offsetof(struct slap_internal_schema, si_syn_attributeTypeDesc) },
+	{ "1.3.6.1.4.1.1466.115.121.1.16",
+		offsetof(struct slap_internal_schema, si_syn_ditContentRuleDesc) },
+	{ "1.3.6.1.4.1.1466.115.121.1.54",
+		offsetof(struct slap_internal_schema, si_syn_ldapSyntaxDesc) },
+	{ "1.3.6.1.4.1.1466.115.121.1.30",
+		offsetof(struct slap_internal_schema, si_syn_matchingRuleDesc) },
+	{ "1.3.6.1.4.1.1466.115.121.1.31",
+		offsetof(struct slap_internal_schema, si_syn_matchingRuleUseDesc) },
+	{ "1.3.6.1.4.1.1466.115.121.1.35",
+		offsetof(struct slap_internal_schema, si_syn_nameFormDesc) },
+	{ "1.3.6.1.4.1.1466.115.121.1.37",
+		offsetof(struct slap_internal_schema, si_syn_objectClassDesc) },
+
+	{ "1.3.6.1.4.1.1466.115.121.1.17",
+		offsetof(struct slap_internal_schema, si_syn_ditStructureRuleDesc) },
+
 	{ NULL, 0 }
 };
 
@@ -979,8 +1146,7 @@ slap_schema_load( void )
 			}
 
 			/* install custom rule routines */
-			if( ( (*adp)->ad_type->sat_equality != NULL &&
-					syntax == (*adp)->ad_type->sat_equality->smr_syntax ) ||
+			if( syntax != NULL ||
 				ad_map[i].ssam_mr_convert ||
 				ad_map[i].ssam_mr_normalize ||
 				ad_map[i].ssam_mr_match ||
@@ -990,7 +1156,7 @@ slap_schema_load( void )
 				MatchingRule *mr = ch_malloc( sizeof( MatchingRule ) );
 				*mr = *(*adp)->ad_type->sat_equality;
 
-				if ( syntax == mr->smr_syntax ) {
+				if ( syntax != NULL ) {
 					mr->smr_syntax = (*adp)->ad_type->sat_syntax;
 				}
 				if ( ad_map[i].ssam_mr_convert ) {

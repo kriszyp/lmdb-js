@@ -789,14 +789,14 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_subtreeSpecification;
 
 	/* subschema subentry attribute descriptions */
-	AttributeDescription *si_ad_ditStructureRules;
-	AttributeDescription *si_ad_ditContentRules;
-	AttributeDescription *si_ad_nameForms;
-	AttributeDescription *si_ad_objectClasses;
 	AttributeDescription *si_ad_attributeTypes;
+	AttributeDescription *si_ad_ditContentRules;
+	AttributeDescription *si_ad_ditStructureRules;
 	AttributeDescription *si_ad_ldapSyntaxes;
 	AttributeDescription *si_ad_matchingRules;
 	AttributeDescription *si_ad_matchingRuleUse;
+	AttributeDescription *si_ad_nameForms;
+	AttributeDescription *si_ad_objectClasses;
 
 	/* Aliases & Referrals */
 	AttributeDescription *si_ad_aliasedObjectName;
@@ -845,6 +845,16 @@ struct slap_internal_schema {
 	Syntax		*si_syn_distinguishedName;
 	Syntax		*si_syn_integer;
 	Syntax		*si_syn_octetString;
+
+	/* Schema Syntaxes */
+	Syntax		*si_syn_attributeTypeDesc;
+	Syntax		*si_syn_ditContentRuleDesc;
+	Syntax		*si_syn_ditStructureRuleDesc;
+	Syntax		*si_syn_ldapSyntaxDesc;
+	Syntax		*si_syn_matchingRuleDesc;
+	Syntax		*si_syn_matchingRuleUseDesc;
+	Syntax		*si_syn_nameFormDesc;
+	Syntax		*si_syn_objectClassDesc;
 };
 
 typedef struct slap_attr_assertion {

@@ -33,7 +33,7 @@ int is_object_subclass(
 
 	if( sub == NULL || sup == NULL ) return 0;
 
-#if 1
+#if 0
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ARGS, 
 		"is_object_subclass(%s,%s) %d\n",
@@ -143,8 +143,7 @@ oc_index_cmp(
 {
 	const struct oindexrec *oir1 = v_oir1, *oir2 = v_oir2;
 	int i = oir1->oir_name.bv_len - oir2->oir_name.bv_len;
-	if (i)
-		return i;
+	if (i) return i;
 	return strcasecmp( oir1->oir_name.bv_val, oir2->oir_name.bv_val );
 }
 
@@ -156,8 +155,7 @@ oc_index_name_cmp(
 	const struct berval    *name = v_name;
 	const struct oindexrec *oir  = v_oir;
 	int i = name->bv_len - oir->oir_name.bv_len;
-	if (i)
-		return i;
+	if (i) return i;
 	return strncasecmp( name->bv_val, oir->oir_name.bv_val, name->bv_len );
 }
 
@@ -358,8 +356,7 @@ oc_destroy( void )
 static int
 oc_insert(
     ObjectClass		*soc,
-    const char		**err
-)
+    const char		**err )
 {
 	struct oindexrec	*oir;
 	char			**names;
@@ -378,7 +375,7 @@ oc_insert(
 		assert( oir->oir_oc );
 
 		if ( avl_insert( &oc_index, (caddr_t) oir,
-		                 oc_index_cmp, avl_dup_error ) )
+			oc_index_cmp, avl_dup_error ) )
 		{
 			*err = soc->soc_oid;
 			ldap_memfree(oir);
@@ -401,7 +398,7 @@ oc_insert(
 			assert( oir->oir_oc );
 
 			if ( avl_insert( &oc_index, (caddr_t) oir,
-			                 oc_index_cmp, avl_dup_error ) )
+				oc_index_cmp, avl_dup_error ) )
 			{
 				*err = *names;
 				ldap_memfree(oir);
@@ -422,8 +419,7 @@ int
 oc_add(
     LDAPObjectClass	*oc,
 	int user,
-    const char		**err
-)
+    const char		**err )
 {
 	ObjectClass	*soc;
 	int		code;
@@ -501,16 +497,14 @@ oc_schema_info( Entry *e )
 			return -1;
 		}
 
-		nval.bv_val = oc->soc_oid;
-		nval.bv_len = strlen(oc->soc_oid);
+		nval = oc->soc_cname;
 
 #if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging oc [%ld] %s (%s)\n",
 	       (long) val.bv_len, val.bv_val, nval.bv_val );
 #endif
 
-		if( attr_merge_one( e, ad_objectClasses, &val, &nval ) )
-		{
+		if( attr_merge_one( e, ad_objectClasses, &val, &nval ) ) {
 			return -1;
 		}
 		ldap_memfree( val.bv_val );

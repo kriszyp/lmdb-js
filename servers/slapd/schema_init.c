@@ -1502,7 +1502,7 @@ telephoneNumberNormalize(
 	return LDAP_SUCCESS;
 }
 
-int
+static int
 numericoidValidate(
 	Syntax *syntax,
 	struct berval *in )

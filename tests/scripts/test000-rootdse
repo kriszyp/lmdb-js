@@ -43,7 +43,8 @@ done
 if test $RC = 0 ; then
 	echo "Using ldapsearch to retrieve the cn=Subschema..."
 	$LDAPSEARCH -b "cn=Subschema" -s base -h $LOCALHOST -p $PORT1 \
-		 '(objectClasses=2.5.6.0)' cn objectClass >> $SEARCHOUT  2>&1
+		'(&(objectClasses=top)(objectClasses=2.5.6.0))' cn objectClass \
+		>> $SEARCHOUT  2>&1
 	RC=$?
 
 fi
