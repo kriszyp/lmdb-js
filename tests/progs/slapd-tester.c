@@ -37,7 +37,7 @@ static int      nkids;
 static void
 usage( char *name )
 {
-	fprintf( stderr, "usage: %s [-h <host>] -p <port> -D <manager> -w <passwd> -d <datadir> -b <baseDN> [-j <maxchild>] [-l <loops>]\n", name );
+	fprintf( stderr, "usage: %s [-h <host>] -p <port> -D <manager> -w <passwd> -d <datadir> -b <baseDN> [-j <maxchild>] [-l <loops>] -P <progdir>\n", name );
 	exit( 1 );
 }
 
@@ -51,6 +51,7 @@ main( int argc, char **argv )
 	char		*passwd = NULL;
 	char		*dirname = NULL;
 	char        *sbase = NULL;
+	char		*progdir = NULL;
 	char		*loops = LOOPS;
 	DIR			*datadir;
 	struct dirent	*file;
@@ -72,7 +73,7 @@ main( int argc, char **argv )
 	int			aanum;
 	char		acmd[MAXPATHLEN];
 
-	while ( (i = getopt( argc, argv, "h:p:D:w:b:d:j:l:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "h:p:D:w:b:d:j:l:P:" )) != EOF ) {
 		switch( i ) {
 			case 'h':		/* slapd host */
 				host = strdup( optarg );
@@ -98,6 +99,10 @@ main( int argc, char **argv )
 				dirname = strdup( optarg );
 			break;
 
+			case 'P':		/* prog directory */
+				progdir = strdup( optarg );
+			break;
+
 			case 'j':		/* the number of parallel clients */
 				maxkids = atoi( optarg );
 				break;
@@ -113,7 +118,7 @@ main( int argc, char **argv )
 	}
 
 	if (( dirname == NULL ) || ( sbase == NULL ) || ( port == NULL ) ||
-			( manager == NULL ) || ( passwd == NULL ))
+			( manager == NULL ) || ( passwd == NULL ) || ( progdir == NULL ))
 		usage( argv[0] );
 
 	/* get the file list */
@@ -156,7 +161,7 @@ main( int argc, char **argv )
 	 */
 
 	sanum = 0;
-	sprintf( scmd, "%s", SEARCHCMD );
+	sprintf( scmd, "%s%s%s", progdir, DEFAULT_DIRSEP, SEARCHCMD );
 	sargs[sanum++] = scmd;
 	sargs[sanum++] = "-h";
 	sargs[sanum++] = host;
@@ -175,7 +180,7 @@ main( int argc, char **argv )
 	 */
 
 	ranum = 0;
-	sprintf( rcmd, "%s", READCMD );
+	sprintf( rcmd, "%s%s%s", progdir, DEFAULT_DIRSEP, READCMD );
 	rargs[ranum++] = rcmd;
 	rargs[ranum++] = "-h";
 	rargs[ranum++] = host;
@@ -192,7 +197,7 @@ main( int argc, char **argv )
 	 */
 
 	aanum = 0;
-	sprintf( acmd, "%s", ADDCMD );
+	sprintf( acmd, "%s%s%s", progdir, DEFAULT_DIRSEP, ADDCMD );
 	aargs[aanum++] = acmd;
 	aargs[aanum++] = "-h";
 	aargs[aanum++] = host;

@@ -1691,7 +1691,8 @@ servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:
 servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
-tests/Makefile:build/top.mk:tests/Makefile.in \
+tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
+tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
 ,[
 date > stamp-h
 echo Please \"make depend\" to build dependencies

@@ -10,6 +10,7 @@ else
 fi
 
 DATADIR=$SRCDIR/data
+PROGDIR=$SRCDIR/progs
 
 if test "$BACKEND" = "bdb2" ; then
 	LDIF2LDBM=../servers/slapd/tools/ldif2ldbm-bdb2
@@ -31,7 +32,7 @@ SLURPD=../servers/slurpd/slurpd
 LDAPSEARCH=../clients/tools/ldapsearch
 LDAPMODIFY=../clients/tools/ldapmodify
 LDAPADD=../clients/tools/ldapadd
-SLAPDTESTER=./slapd-tester
+SLAPDTESTER=$PROGDIR/slapd-tester
 LVL=5
 PORT=9009
 SLAVEPORT=9010
