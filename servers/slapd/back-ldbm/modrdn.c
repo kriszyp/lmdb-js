@@ -396,17 +396,25 @@ ldbm_back_modrdn(
 
 	(void) cache_update_entry( &li->li_cache, e );
 
+	/* NOTE: after this you must not free new_dn or new_ndn!
+	 * They are used by cache.
+	 */
+
 	/* id2entry index */
 	if ( id2entry_add( be, e ) != 0 ) {
 		entry_free( e );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
-		goto return_results;
+		goto return_results_after;
 	}
 
 	send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
 	rc = 0;
+	goto return_results_after;	
 
 return_results:
+	if( new_dn != NULL ) free( new_dn );
+	if( new_ndn != NULL ) free( new_ndn );
+return_results_after:
 	/* NOTE:
 	 * new_dn and new_ndn are not deallocated because they are used by
 	 * the cache entry.

@@ -201,12 +201,6 @@ bdb2i_back_modrdn_internal(
 	}
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
-	/* add new one */
-	if ( bdb2i_dn2id_add( be, new_ndn, e->e_id ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
-		goto return_results;
-	}
-
 	/* delete old one */
 	if ( bdb2i_dn2id_delete( be, e->e_ndn ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
@@ -218,6 +212,13 @@ bdb2i_back_modrdn_internal(
 	free( e->e_ndn );
 	e->e_dn = new_dn;
 	e->e_ndn = new_ndn;
+
+
+	/* add new one */
+	if ( bdb2i_dn2id_add( be,  e->e_ndn, e->e_id ) != 0 ) {
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
+		goto return_results;
+	}
 
 	/* Get attribute type and attribute value of our new rdn, we will
 	 * need to add that to our new entry
@@ -376,17 +377,25 @@ bdb2i_back_modrdn_internal(
 
 	(void) bdb2i_cache_update_entry( &li->li_cache, e );
 
+	/* NOTE: after this you must not free new_dn or new_ndn!
+	 * They are used by cache.
+	 */
+
 	/* id2entry index */
 	if ( bdb2i_id2entry_add( be, e ) != 0 ) {
 		entry_free( e );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
-		goto return_results;
+		goto return_results_after;
 	}
 
 	send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
 	rc = 0;
+	goto return_results_after;	
 
 return_results:
+	if( new_dn != NULL ) free( new_dn );
+	if( new_ndn != NULL ) free( new_ndn );
+return_results_after:
 	/* NOTE:
 	 * new_dn and new_ndn are not deallocated because they are used by
 	 * the cache entry.

@@ -12,31 +12,100 @@
 #include "proto-back-bdb2.h"
 
 
+static void	add_lastmods(Operation *op, LDAPModList **ml);
+
+
+static void
+add_lastmods( Operation *op, LDAPModList **modlist )
+{
+	char		buf[22];
+	struct berval	bv;
+	struct berval	*bvals[2];
+	LDAPModList		**m;
+	LDAPModList		*tmp;
+	struct tm	*ltm;
+	time_t		currenttime;
+
+	Debug( LDAP_DEBUG_TRACE, "add_lastmods\n", 0, 0, 0 );
+
+	bvals[0] = &bv;
+	bvals[1] = NULL;
+
+	/* remove any attempts by the user to modify these attrs */
+	for ( m = modlist; *m != NULL; m = &(*m)->ml_next ) {
+            if ( strcasecmp( (*m)->ml_type, "modifytimestamp" ) == 0 || 
+				strcasecmp( (*m)->ml_type, "modifiersname" ) == 0 ||
+				strcasecmp( (*m)->ml_type, "createtimestamp" ) == 0 || 
+				strcasecmp( (*m)->ml_type, "creatorsname" ) == 0 ) {
+
+                Debug( LDAP_DEBUG_TRACE,
+					"add_lastmods: found lastmod attr: %s\n",
+					(*m)->ml_type, 0, 0 );
+                tmp = *m;
+                *m = (*m)->ml_next;
+                free( tmp->ml_type );
+                if ( tmp->ml_bvalues != NULL ) {
+                    ber_bvecfree( tmp->ml_bvalues );
+                }
+                free( tmp );
+                if (!*m)
+                    break;
+            }
+        }
+
+	if ( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
+		bv.bv_val = "NULLDN";
+		bv.bv_len = strlen( bv.bv_val );
+	} else {
+		bv.bv_val = op->o_dn;
+		bv.bv_len = strlen( bv.bv_val );
+	}
+	tmp = (LDAPModList *) ch_calloc( 1, sizeof(LDAPModList) );
+	tmp->ml_type = ch_strdup( "modifiersname" );
+	tmp->ml_op = LDAP_MOD_REPLACE;
+	tmp->ml_bvalues = (struct berval **) ch_calloc(2, sizeof(struct berval *));
+	tmp->ml_bvalues[0] = ber_bvdup( &bv );
+	tmp->ml_next = *modlist;
+	*modlist = tmp;
+
+	currenttime = slap_get_time();
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+#ifndef LDAP_LOCALTIME
+	ltm = gmtime( &currenttime );
+	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
+#else
+	ltm = localtime( &currenttime );
+	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+#endif
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+
+	bv.bv_val = buf;
+	bv.bv_len = strlen( bv.bv_val );
+	tmp = (LDAPModList *) ch_calloc( 1, sizeof(LDAPModList) );
+	tmp->ml_type = ch_strdup( "modifytimestamp" );
+	tmp->ml_op = LDAP_MOD_REPLACE;
+	tmp->ml_bvalues = (struct berval **) ch_calloc(2, sizeof(struct berval *));
+	tmp->ml_bvalues[0] = ber_bvdup( &bv );
+	tmp->ml_next = *modlist;
+	*modlist = tmp;
+
+}
+
 static int
 bdb2i_back_modify_internal(
     BackendDB	*be,
     Connection	*conn,
     Operation	*op,
     char	*dn,
-    LDAPModList	*modlist
+    LDAPModList	*modlist,
+    Entry	 *e
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char		*matched;
 	LDAPModList	*ml;
-	Entry		*e;
 	int		err;
 
 	Debug(LDAP_DEBUG_ARGS, "bdb2i_back_modify:\n", 0, 0, 0);
-
-	if ( (e = bdb2i_dn2entry_w( be, dn, &matched )) == NULL ) {
-		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched,
-		    NULL );
-		if ( matched != NULL ) {
-			free( matched );
-		}
-		return( -1 );
-	}
 
 	if ( (err = acl_check_modlist( be, conn, op, e, modlist )) != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, err, NULL, NULL );
@@ -125,6 +194,7 @@ bdb2_back_modify(
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	struct timeval  time1;
 	int             ret;
+	char		*matched;
 
 	bdb2i_start_timing( be->bd_info, &time1 );
 
@@ -146,7 +216,16 @@ bdb2_back_modify(
 			break;
 	}
 
-	 ret = bdb2i_back_modify_internal( be, conn, op, dn, modlist );
+	if ( (e = bdb2i_dn2entry_w( be, dn, &matched )) == NULL ) {
+		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched,
+		    NULL );
+		if ( matched != NULL ) {
+			free( matched );
+		}
+		return( -1 );
+	}
+
+	 ret = bdb2i_back_modify_internal( be, conn, op, dn, modlist, e );
 	(void) bdb2i_leave_backend_w( lock );
 	bdb2i_stop_timing( be->bd_info, time1, "MOD", conn, op );
 
