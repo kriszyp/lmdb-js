@@ -236,6 +236,9 @@
 /* Define if you have the send function.  */
 #undef HAVE_SEND
 
+/* Define if you have the sendmsg function.  */
+#undef HAVE_SENDMSG
+
 /* Define if you have the sendto function.  */
 #undef HAVE_SENDTO
 
@@ -890,6 +893,12 @@
 /* define if you actually have sys_errlist in your libs */
 #undef HAVE_SYS_ERRLIST
 
+/* define if you have libtool -ltdl */
+#undef HAVE_LIBLTDL
+
+/* define this to add SLAPI code */
+#undef LDAP_SLAPI
+
 /* define this to add debugging code */
 #undef LDAP_DEBUG
 
@@ -1009,6 +1018,9 @@
 
 /* define to enable rewriting in back-ldap and back-meta */
 #undef ENABLE_REWRITE
+
+/* define to enable slapi library */
+#undef ENABLE_SLAPI
 
 
 /* begin of postamble */
