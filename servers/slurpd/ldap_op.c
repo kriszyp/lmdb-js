@@ -27,14 +27,6 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
-#include <ac/krb.h>
-
-#if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
-/* Get LDAP->ld_lberoptions.  Must precede slurp.h, both define ldap_debug. */
-#include "../../libraries/libldap/ldap-int.h"
-#endif
-
-#include <lber.h>
 #include <ldap.h>
 
 #include "slurp.h"
@@ -50,17 +42,8 @@ static void free_ldapmod LDAP_P(( LDAPMod * ));
 static void free_ldmarr LDAP_P(( LDAPMod ** ));
 static int getmodtype LDAP_P(( char * ));
 static void dump_ldm_array LDAP_P(( LDAPMod ** ));
-static char **read_krbnames LDAP_P(( Ri * ));
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-static void upcase LDAP_P(( char * ));
-#endif
 static int do_bind LDAP_P(( Ri *, int * ));
 static int do_unbind LDAP_P(( Ri * ));
-
-
-static char *kattrs[] = {"kerberosName", NULL };
-static struct timeval kst = {30L, 0L};
-
 
 
 /*
@@ -431,7 +414,7 @@ op_ldap_modrdn(
 		Debug( LDAP_DEBUG_ANY,
 			"Error: op_ldap_modrdn: multiple newsuperior arg \"%s\"\n",
 			mi[ i ].mi_val, 0, 0 );
-		*errmsg = "Multiple newrdn argument";
+		*errmsg = "Multiple newsuperior argument";
 		return -1;
 		}
 
@@ -784,81 +767,3 @@ dump_ldm_array(
 	}
     }
 }
-
-
-/*
- * Get the kerberos names from the binddn for "replica" via an ldap search.
- * Returns a null-terminated array of char *, or NULL if the entry could
- * not be found or there were no kerberosName attributes.  The caller is
- * responsible for freeing the returned array and strings it points to.
- */
-static char **
-read_krbnames(
-    Ri	*ri
-)
-{
-    int rc;
-    char **krbnames;
-    int ne;
-    LDAPMessage *result, *entry;
-
-    /* First need to bind as NULL */
-    rc = ldap_simple_bind_s( ri->ri_ldp, NULL, NULL );
-    if ( rc != LDAP_SUCCESS ) {
-	Debug( LDAP_DEBUG_ANY,
-		"Error: null bind failed getting krbnames for %s:%d: %s\n",
-		ri->ri_hostname, ri->ri_port, ldap_err2string( rc ));
-	return( NULL );
-    }
-    rc = ldap_search_st( ri->ri_ldp, ri->ri_bind_dn, LDAP_SCOPE_BASE,
-	    NULL, kattrs, 0, &kst, &result );
-    if ( rc != LDAP_SUCCESS ) {
-	Debug( LDAP_DEBUG_ANY,
-		"Error: search failed getting krbnames for %s:%d: %s\n",
-		ri->ri_hostname, ri->ri_port, ldap_err2string( rc ));
-	return( NULL );
-    }
-    ne = ldap_count_entries( ri->ri_ldp, result );
-    if ( ne == 0 ) {
-	Debug( LDAP_DEBUG_ANY,
-		"Error: Can't find entry \"%s\" for %s:%d kerberos bind\n",
-		ri->ri_bind_dn, ri->ri_hostname, ri->ri_port );
-	    return( NULL );
-    }
-    if ( ne > 1 ) {
-	Debug( LDAP_DEBUG_ANY,
-		"Error: Kerberos binddn \"%s\" for %s:%dis ambiguous\n",
-		ri->ri_bind_dn, ri->ri_hostname, ri->ri_port );
-	    return( NULL );
-    }
-    entry = ldap_first_entry( ri->ri_ldp, result );
-    if ( entry == NULL ) {
-	Debug( LDAP_DEBUG_ANY,
-		"Error: Can't find \"%s\" for kerberos binddn for %s:%d\n",
-		    ri->ri_bind_dn, ri->ri_hostname, ri->ri_port );
-	return( NULL );
-    }
-    krbnames = ldap_get_values( ri->ri_ldp, entry, "kerberosName" );
-    ldap_msgfree( result );
-    return( krbnames );
-}
-
-
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-
-/*
- * upcase a string
- */
-static void
-upcase(
-    char *s
-)
-{
-    char *p;
-
-    for ( p = s; ( p != NULL ) && ( *p != '\0' ); p++ ) {
-	    *p = TOUPPER( (unsigned char) *p );
-    }
-}
-
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */

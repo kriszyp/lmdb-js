@@ -25,7 +25,6 @@
 #include <ac/socket.h>
 #include <ac/ctype.h>
 
-#include <lber.h>
 #include <ldap.h>
 
 #include "slurp.h"
@@ -299,7 +298,7 @@ add_replica(
  * Parse a "replica" line from the config file.  replica lines should be
  * in the following format:
  * replica    host=<hostname:portnumber> binddn=<binddn>
- *            bindmethod="simple|kerberos" credentials=<creds>
+ *            bindmethod="simple" credentials=<creds>
  *
  * where:
  * <hostname:portnumber> describes the host name and port number where the
@@ -307,12 +306,10 @@ add_replica(
  *
  * <binddn> is the DN to bind to the replica slapd as,
  *
- * bindmethod is either "simple" or "kerberos", and
+ * bindmethod is "simple", and
  *
  * <creds> are the credentials (e.g. password) for binddn.  <creds> are
- * only used for bindmethod=simple.  For bindmethod=kerberos, the
- * credentials= option should be omitted.  Credentials for kerberos
- * authentication are in the system srvtab file.
+ * only used for bindmethod=simple.  
  *
  * The "replica" config file line may be split across multiple lines.  If
  * a line begins with whitespace, it is considered a continuation of the
@@ -355,21 +352,10 @@ parse_replica_line(
 		strlen( BINDMETHSTR ))) {
 	    val = cargv[ i ] + strlen( BINDMETHSTR ) + 1;
 	    if ( !strcasecmp( val, KERBEROSSTR )) {
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-		ri->ri_bind_method = AUTH_KERBEROS;
-		if ( ri->ri_srvtab == NULL ) {
-		    ri->ri_srvtab = strdup( sglob->default_srvtab );
-		}
-		gots |= GOT_METHOD;
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 	    fprintf( stderr, "Error: a bind method of \"kerberos\" was\n" );
-	    fprintf( stderr, "specified in the slapd configuration file,\n" );
-	    fprintf( stderr, "but slurpd was not built with kerberos.\n" );
-	    fprintf( stderr, "You must rebuild the LDAP release with\n" );
-	    fprintf( stderr, "kerberos support if you wish to use\n" );
-	    fprintf( stderr, "bindmethod=kerberos\n" );
+	    fprintf( stderr, "specified in the slapd configuration file.\n" );
+	    fprintf( stderr, "slurpd no longer supports Kerberos.\n" );
 	    exit( EXIT_FAILURE );
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 	    } else if ( !strcasecmp( val, SIMPLESTR )) {
 		ri->ri_bind_method = AUTH_SIMPLE;
 		gots |= GOT_METHOD;
