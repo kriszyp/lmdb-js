@@ -106,7 +106,9 @@ int ldbm_initialize( const char* home )
 
 	if(ldbm_initialized++) return 1;
 
+#ifndef HAVE_BERKELEY_DB_THREAD
 	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
+#endif
 
 #if DB_VERSION_MAJOR < 3
 	ldbm_Env = calloc( 1, sizeof( DB_ENV ));
@@ -199,7 +201,9 @@ int ldbm_shutdown( void )
 	db_appexit( ldbm_Env );
 #endif
 
+#ifndef HAVE_BERKELEY_DB_THREAD
 	ldap_pvt_thread_mutex_destroy( &ldbm_big_mutex );
+#endif
 
 	return 0;
 }
