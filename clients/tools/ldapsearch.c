@@ -75,13 +75,6 @@ usage( void )
 #ifdef LDAP_CONTROL_SUBENTRIES
 	fprintf( stderr, _("             [!]subentries[=true|false]  (subentries)\n"));
 #endif
-#ifdef LDAP_CLIENT_UPDATE
-	fprintf( stderr, _("             [!]lcup=p/<cint>/<cookie>/<slimit> (LDAP client update)\n"));
-/*
- * "                      s/<cint>/<cookie>  (LDAP client update)\n"
- * "                     sp/<cint>/<cookie>/<slimit>\n"
- * */
-#endif
 #ifdef LDAP_SYNC
 	fprintf( stderr, _("             [!]sync=ro[/<cookie>]            (LDAP Sync refreshOnly)\n"));
 	fprintf( stderr, _("                     rp[/<cookie>][/<slimit>] (LDAP Sync refreshAndPersist)\n"));
@@ -160,18 +153,8 @@ static char	*vrFilter = NULL;
 static int domainScope = 0;
 #endif
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
-static int lcup = 0;
-static int ldapsync = 0;
-#endif
-
-#ifdef LDAP_CLIENT_UPDATE
-static int lcup_cint = 0;
-static struct berval lcup_cookie = { 0, NULL };
-static int lcup_slimit = -1;
-#endif
-
 #ifdef LDAP_SYNC
+static int ldapsync = 0;
 static struct berval sync_cookie = { 0, NULL };
 static int sync_slimit = -1;
 #endif
@@ -330,76 +313,12 @@ handle_private_option( int i )
 			if( crit ) subentries *= -1;
 #endif
 
-#ifdef LDAP_CLIENT_UPDATE
-                } else if ( strcasecmp( control, "lcup" ) == 0 ) {
-                        char *cookiep;
-                        char *slimitp;
-                        if ( lcup ) {
-                                fprintf( stderr, _("client update control previously specified\n"));
-                                exit( EXIT_FAILURE );
-                        }
-                        if ( ldapsync != -1 ) {
-                                fprintf( stderr, _("ldap sync control previously specified\n"));
-                                exit( EXIT_FAILURE );
-                        }
-                        if ( cvalue == NULL ) {
-                                fprintf( stderr,
-                                        _("missing specification of client update control\n"));
-                                exit( EXIT_FAILURE );
-                        }
-                        if ( strncasecmp( cvalue, "p", 1 ) == 0 ) {
-                                lcup = LDAP_CUP_PERSIST_ONLY;
-                                cvalue = strchr( cvalue, '/' );
-                                cvalue++;
-                                cookiep = strchr( cvalue, '/' );
-                                *cookiep++ = '\0';
-                                lcup_cint = atoi( cvalue );
-                                cvalue = cookiep;
-                                slimitp = strchr( cvalue, '/' );
-                                *slimitp++ = '\0';
-                                while ( isspace( (unsigned char) *cookiep ) )
-                                    cookiep++;
-                                ber_str2bv( cookiep, 0, 0, &lcup_cookie );
-                                lcup_slimit = atoi( slimitp );
-/*
-			} else if ( strncasecmp( cvalue, "s", 1 ) == 0 ) {
-				lcup = LDAP_CUP_SYNC_ONLY;
-				cvalue += 2;
-				cookiep = strchr( cvalue, '/' );
-				*cookiep++ = '\0';
-				lcup_cint = atoi( cvalue );
-				ber_str2bv( cookiep, 0, 0, &lcup_cookie );
-			} else if ( strncasecmp( cvalue, "sp", 2 ) == 0 ) {
-				lcup = LDAP_CUP_SYNC_AND_PERSIST;
-				cvalue += 3;
-				cookiep = strchr( cvalue, '/' );
-				*cookiep++ = '\0';
-				lcup_cint = atoi( cvalue );
-				cvalue = cookiep;
-				slimitp = strchr( cvalue, '/' );
-				*slimitp++ = '\0';
-				ber_str2bv( cookiep, 0, 0, &lcup_cookie );
-				lcup_slimit = atoi( slimitp );
-*/
-			} else {
-				fprintf( stderr,
-					_("client update control value \"%s\" invalid\n"),
-					cvalue );
-				exit( EXIT_FAILURE );
-			}
-			if ( crit ) lcup *= -1;
-#endif
-
 #ifdef LDAP_SYNC
 	} else if ( strcasecmp( control, "sync" ) == 0 ) {
 			char *cookiep;
 			char *slimitp;
 			if ( ldapsync ) {
 				fprintf( stderr, _("ldap sync control previously specified\n") );
-				exit( EXIT_FAILURE );
-			}
-			if ( lcup ) {
-				fprintf( stderr, _("client update control previously specified\n") );
 				exit( EXIT_FAILURE );
 			}
 			if ( cvalue == NULL ) {
@@ -527,10 +446,6 @@ main( int argc, char **argv )
 	int			rc, i, first;
 	LDAP		*ld = NULL;
 	BerElement	*seber = NULL, *vrber = NULL, *prber = NULL;
-#ifdef LDAP_CLIENT_UPDATE
-	BerElement	*cuber = NULL;
-        struct berval   *cubvalp = NULL;
-#endif
 
 #ifdef LDAP_SYNC
 	BerElement      *syncber = NULL;
@@ -640,9 +555,6 @@ getNextPage:
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 			|| pageSize
 #endif
-#ifdef LDAP_CLIENT_UPDATE
-			|| lcup
-#endif
 #ifdef LDAP_SYNC
 			|| ldapsync
 #endif
@@ -682,36 +594,6 @@ getNextPage:
 			c[i].ldctl_iscritical = subentries < 1;
 			i++;
 		}
-#endif
-
-#ifdef LDAP_CLIENT_UPDATE
-                if ( lcup ) {
-                        if (( cuber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
-                                return EXIT_FAILURE;
-                        }
-
-                        if ( lcup_cookie.bv_len == 0 ) {
-                                err = ber_printf( cuber, "{ei}", abs(lcup), lcup_cint );
-                        } else {
-                                err = ber_printf( cuber, "{ei{sO}}", abs(lcup), lcup_cint,
-                                    LDAP_CUP_COOKIE_OID, &lcup_cookie );
-                        }
-
-                        if ( err == LBER_ERROR ) {
-                                ber_free( cuber, 1 );
-                                fprintf( stderr, _("client update control encoding error!\n") );
-                                return EXIT_FAILURE;
-                        }
-
-                        if ( ber_flatten( cuber, &cubvalp ) == LBER_ERROR ) {
-                                return EXIT_FAILURE;
-                        }
-
-                        c[i].ldctl_oid = LDAP_CONTROL_CLIENT_UPDATE;
-                        c[i].ldctl_value = (*cubvalp);
-                        c[i].ldctl_iscritical = lcup < 0;
-                        i++;
-                }
 #endif
 
 #ifdef LDAP_SYNC
@@ -1054,15 +936,6 @@ static int dosearch(
 				}
 #endif
 
-#ifdef LDAP_CLIENT_UPDATE
-				if ( lcup == LDAP_CUP_PERSIST_ONLY ||
-				     lcup == LDAP_CUP_SYNC_AND_PERSIST ) {
-					break;
-				}
-#endif
-#if defined(LDAP_CLIENT_UPDATE) && defined(LDAP_SYNC)
-				else
-#endif
 #ifdef LDAP_SYNC
 				if ( ldapsync == LDAP_SYNC_REFRESH_AND_PERSIST ) {
 					break;
@@ -1095,12 +968,6 @@ static int dosearch(
 #endif
 			}
 
-#ifdef LDAP_CLIENT_UPDATE
-			if ( lcup && lcup_slimit != -1 && nresponses >= lcup_slimit ) {
-				ldap_abandon (ld, ldap_msgid(msg));
-				goto done;
-			}
-#endif
 #ifdef LDAP_SYNC
 			if ( ldapsync && sync_slimit != -1 &&
 					nresponses_psearch >= sync_slimit ) {

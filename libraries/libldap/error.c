@@ -95,13 +95,13 @@ static struct ldaperror ldap_builtin_errlist[] = {
 
 	{LDAP_ASSERTION_FAILED,			N_("Assertion Failed")},
 
-#ifdef LDAP_CLIENT_UPDATE
-	{LDAP_CUP_RESOURCES_EXHAUSTED,	N_("Client Update Resource Exhausted")},
-	{LDAP_CUP_SECURITY_VIOLATION,	N_("Client Update Security Violation")},
-	{LDAP_CUP_INVALID_COOKIE,		N_("Client Update Invalid Cookie")},
-	{LDAP_CUP_UNSUPPORTED_SCHEME,	N_("Client Update Unsupported Scheme")},
-	{LDAP_CUP_CLIENT_DISCONNECT,	N_("Client Update Client Disconnect")},
-	{LDAP_CUP_RELOAD_REQUIRED,		N_("Client Update Reload Required")},
+#ifdef LDAP_SYNC
+	{LDAP_SYNC_RESOURCES_EXHAUSTED,	N_("Content Sync Resource Exhausted")},
+	{LDAP_SYNC_SECURITY_VIOLATION,	N_("Content Sync Security Violation")},
+	{LDAP_SYNC_INVALID_COOKIE,		N_("Content Sync Invalid Cookie")},
+	{LDAP_SYNC_UNSUPPORTED_SCHEME,	N_("Content Sync Unsupported Scheme")},
+	{LDAP_SYNC_CLIENT_DISCONNECT,	N_("Content Sync Client Disconnect")},
+	{LDAP_SYNC_RELOAD_REQUIRED,		N_("Content Sync Reload Required")},
 #endif
 
 #ifdef LDAP_EXOP_X_CANCEL

@@ -51,7 +51,7 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 
 	int		noop = 0;
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+#ifdef LDAP_SYNC
         Operation *ps_list;
 	struct psid_entry *pm_list, *pm_prev;
 #endif
@@ -86,7 +86,7 @@ retry:	/* transaction retry */
 		Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn: retrying...\n", 0, 0, 0 );
 #endif
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+#ifdef LDAP_SYNC
                 pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
                 while ( pm_list != NULL ) {
                         LDAP_LIST_REMOVE ( pm_list, ps_link );
@@ -838,7 +838,7 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+#ifdef LDAP_SYNC
 	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
 		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 			bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_PREMODIFY );
@@ -953,7 +953,7 @@ retry:	/* transaction retry */
 return_results:
 	send_ldap_result( op, rs );
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+#ifdef LDAP_SYNC
 	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
 		/* Loop through in-scope entries for each psearch spec */
 		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
@@ -1014,7 +1014,7 @@ done:
 	}
 
 	if( ltid != NULL ) {
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+#ifdef LDAP_SYNC
                 pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
                 while ( pm_list != NULL ) {
                         LDAP_LIST_REMOVE ( pm_list, ps_link );

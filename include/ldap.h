@@ -199,13 +199,6 @@ typedef struct ldapcontrol {
 
 #define LDAP_CONTROL_PAGEDRESULTS	"1.2.840.113556.1.4.319"
 
-#ifdef LDAP_CLIENT_UPDATE
-#define LDAP_CONTROL_CLIENT_UPDATE		"1.3.6.1.4.1.4203.666.5.3"
-#define LDAP_CONTROL_ENTRY_UPDATE		"1.3.6.1.4.1.4203.666.5.4"
-#define LDAP_CONTROL_CLIENT_UPDATE_DONE	"1.3.6.1.4.1.4203.666.5.5"
-#define LDAP_CUP_COOKIE_OID				"1.3.6.1.4.1.4203.666.10.1"
-#endif
-
 #define LDAP_SYNC 2
 #ifdef LDAP_SYNC
 #define LDAP_SYNCREPL 1
@@ -294,11 +287,6 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_EXOP_RES_VALUE ((ber_tag_t) 0x8bU)	/* context specific + primitive */
 
 #define LDAP_TAG_SASL_RES_CREDS	((ber_tag_t) 0x87U)	/* context specific + primitive */
-
-#ifdef LDAP_CLIENT_UPDATE
-#define LDAP_CUP_TAG_INTERVAL	((ber_tag_t) 0x02U)	/* integer */
-#define LDAP_CUP_TAG_COOKIE		((ber_tag_t) 0x30U)	/* sequence */
-#endif
 
 #ifdef LDAP_SYNC
 #define LDAP_SYNC_TAG_COOKIE	((ber_tag_t) 0x04U)	/* octet string */
@@ -479,14 +467,13 @@ typedef struct ldapcontrol {
 #define LDAP_CLIENT_LOOP				0x60	/* draft-ietf-ldap-c-api-xx */
 #define LDAP_REFERRAL_LIMIT_EXCEEDED	0x61	/* draft-ietf-ldap-c-api-xx */
 
-#ifdef LDAP_CLIENT_UPDATE
-/* resultCode for LCUP */
-#define LDAP_CUP_RESOURCES_EXHAUSTED	0x100
-#define LDAP_CUP_SECURITY_VIOLATION		0x101
-#define LDAP_CUP_INVALID_COOKIE			0x102
-#define LDAP_CUP_UNSUPPORTED_SCHEME		0x103
-#define LDAP_CUP_CLIENT_DISCONNECT		0x104
-#define LDAP_CUP_RELOAD_REQUIRED		0x105
+#ifdef LDAP_SYNC
+#define LDAP_SYNC_RESOURCES_EXHAUSTED	0x100
+#define LDAP_SYNC_SECURITY_VIOLATION	0x101
+#define LDAP_SYNC_INVALID_COOKIE		0x102
+#define LDAP_SYNC_UNSUPPORTED_SCHEME	0x103
+#define LDAP_SYNC_CLIENT_DISCONNECT		0x104
+#define LDAP_SYNC_RELOAD_REQUIRED		0x105
 #endif
 
 #define LDAP_ASSERTION_FAILED			0x10f
@@ -498,17 +485,6 @@ typedef struct ldapcontrol {
 #define LDAP_TOO_LATE					0x112
 #define LDAP_CANNOT_CANCEL				0x113
 #endif
-
-#ifdef LDAP_CLIENT_UPDATE
-/* LCUP update type */
-#define LDAP_CUP_NONE					0x00
-#define LDAP_CUP_SYNC_ONLY				0x01
-#define LDAP_CUP_PERSIST_ONLY			0x02
-#define LDAP_CUP_SYNC_AND_PERSIST		0x03
-
-/* LCUP default cookie interval */
-#define LDAP_CUP_DEFAULT_SEND_COOKIE_INTERVAL	0x01
-#endif /* LDAP_CLIENT_UPDATE */
 
 /* LDAP SYNC request type */
 #ifdef LDAP_SYNC

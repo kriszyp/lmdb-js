@@ -229,10 +229,6 @@ typedef struct slap_ssf_set {
 #define SLAP_SYNTAX_MATCHINGRULEUSES_OID "1.3.6.1.4.1.1466.115.121.1.31"
 #define SLAP_SYNTAX_CONTENTRULE_OID		 "1.3.6.1.4.1.1466.115.121.1.16"
 
-#ifdef LDAP_CLIENT_UPDATE
-#define LCUP_COOKIE_OID "1.3.6.1.4.1.4203.666.10.1"
-#endif /* LDAP_CLIENT_UPDATE */
-
 /*
  * represents schema information for a database
  */
@@ -1795,7 +1791,7 @@ typedef struct slap_paged_state {
 } PagedResultsState;
 
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+#ifdef LDAP_SYNC
 #define LDAP_PSEARCH_BY_ADD		0x01
 #define LDAP_PSEARCH_BY_DELETE		0x02
 #define LDAP_PSEARCH_BY_PREMODIFY	0x03
@@ -1932,17 +1928,6 @@ typedef struct slap_op {
 #define get_pagedresults(op)			(0)
 #endif
 
-#ifdef LDAP_CLIENT_UPDATE
-	char o_clientupdate;
-	char o_clientupdate_type;
-#define SLAP_LCUP_NONE				(0x0)
-#define SLAP_LCUP_SYNC 				(0x1)
-#define SLAP_LCUP_PERSIST			(0x2)
-#define SLAP_LCUP_SYNC_AND_PERSIST		(0x3)
-	ber_int_t o_clientupdate_interval;
-	struct berval o_clientupdate_state;
-#endif
-
 #ifdef LDAP_SYNC
 	char o_sync;
 	char o_sync_mode;
@@ -1951,9 +1936,7 @@ typedef struct slap_op {
 #define SLAP_SYNC_PERSIST			(0x2)
 #define SLAP_SYNC_REFRESH_AND_PERSIST		(0x3)
 	struct berval o_sync_state;
-#endif
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 	int o_ps_protocol;
 	int o_ps_entries;
 	LDAP_LIST_ENTRY(slap_op) o_ps_link;
@@ -2190,17 +2173,7 @@ enum {
 #define SLAP_LDAPDN_PRETTY 0x1
 #define SLAP_LDAPDN_MAXLEN 8192
 
-/*
- * Macros for LCUP
- */
-#ifdef LDAP_CLIENT_UPDATE
-#define SLAP_LCUP_STATE_UPDATE_TRUE	1
-#define SLAP_LCUP_STATE_UPDATE_FALSE	0
-#define SLAP_LCUP_ENTRY_DELETED_TRUE	1
-#define SLAP_LCUP_ENTRY_DELETED_FALSE	0
-#endif /* LDAP_CLIENT_UPDATE */
-
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+#ifdef LDAP_SYNC
 #define SLAP_SEARCH_MAX_CTRLS   10
 #endif
 

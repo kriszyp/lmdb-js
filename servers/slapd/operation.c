@@ -65,11 +65,6 @@ slap_op_free( Operation *op )
 		ber_free( op->o_res_ber, 1 );
 	}
 #endif
-#ifdef LDAP_CLIENT_UPDATE
-	if ( op->o_clientupdate_state.bv_val != NULL ) {
-		free( op->o_clientupdate_state.bv_val );
-	}
-#endif
 #ifdef LDAP_SYNC
 	if ( op->o_sync_state.bv_val != NULL ) {
 		free( op->o_sync_state.bv_val );

@@ -33,7 +33,7 @@ bdb_add(Operation *op, SlapReply *rs )
 	DB_LOCK		lock;
 	int		noop = 0;
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+#ifdef LDAP_SYNC
 	Operation* ps_list;
 #endif
 
@@ -526,13 +526,13 @@ retry:	/* transaction retry */
 return_results:
 	send_ldap_result( op, rs );
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+#ifdef LDAP_SYNC
 	if ( rs->sr_err == LDAP_SUCCESS && !noop ) {
 		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 			bdb_psearch( op, rs, ps_list, op->oq_add.rs_e, LDAP_PSEARCH_BY_ADD );
 		}
 	}
-#endif /* LDAP_CLIENT_UPDATE */
+#endif
 
 	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();

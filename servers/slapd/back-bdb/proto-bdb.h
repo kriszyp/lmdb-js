@@ -487,7 +487,7 @@ int bdb_locker_id( Operation *op, DB_ENV *env, int *locker );
  * search.c
  */
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+#ifdef LDAP_SYNC
 
 #define bdb_abandon					BDB_SYMBOL(abandon)
 #define bdb_cancel					BDB_SYMBOL(cancel)
@@ -506,30 +506,6 @@ int bdb_do_search(
 #define	bdb_psearch(op, rs, sop, e, ps_type)	bdb_do_search(op, rs, sop, e, ps_type)
 #endif
 
-
-#ifdef LDAP_CLIENT_UPDATE
-#define bdb_build_lcup_update_ctrl	BDB_SYMBOL(build_lcup_update_ctrl)
-#define bdb_build_lcup_done_ctrl	BDB_SYMBOL(build_lcup_done_ctrl)
-
-int
-bdb_build_lcup_update_ctrl(
-	Operation       *op,
-	SlapReply	*rs,
-	Entry           *e,
-	int             entry_count,
-	LDAPControl     **ctrls,
-	int             num_ctrls,
-	struct berval   *latest_entrycsn_bv,
-	int             isdeleted       );
-
-int
-bdb_build_lcup_done_ctrl(
-	Operation       *op,
-	SlapReply	*rs,
-	LDAPControl     **ctrls,
-	int             num_ctrls,
-	struct berval   *latest_entrycsn_bv     );
-#endif
 
 #ifdef LDAP_SYNC
 #define bdb_build_sync_state_ctrl	BDB_SYMBOL(build_sync_state_ctrl)

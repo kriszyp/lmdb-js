@@ -90,7 +90,7 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_search_stack_depth = DEFAULT_SEARCH_STACK_DEPTH;
 	bdb->bi_search_stack = NULL;
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+#ifdef LDAP_SYNC
 	LDAP_LIST_INIT (&bdb->bi_psearch_list);
 #endif
 
@@ -573,9 +573,6 @@ bdb_initialize(
 {
 	static char *controls[] = {
 		LDAP_CONTROL_ASSERT,
-#ifdef LDAP_CLIENT_UPDATE
-		LDAP_CONTROL_CLIENT_UPDATE,
-#endif
 		LDAP_CONTROL_MANAGEDSAIT,
 		LDAP_CONTROL_NOOP,
 #ifdef LDAP_CONTROL_PAGEDRESULTS
@@ -676,7 +673,7 @@ bdb_initialize(
 
 	bi->bi_op_unbind = 0;
 
-#ifdef LDAP_CLIENT_UPDATE
+#ifdef LDAP_SYNC
 	bi->bi_op_abandon = bdb_abandon;
 	bi->bi_op_cancel = bdb_cancel;
 #else

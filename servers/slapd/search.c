@@ -334,14 +334,9 @@ do_search(
 	 * if we don't hold it.
 	 */
 
-	/* Sync / LCUP controls override manageDSAit */
+	/* Sync control overrides manageDSAit */
 
 	if ( manageDSAit != SLAP_NO_CONTROL ) {
-#ifdef LDAP_CLIENT_UPDATE
-		if ( op->o_clientupdate_type & SLAP_LCUP_SYNC ) {
-			be_manageDSAit = SLAP_NO_CONTROL;
-		} else
-#endif
 #ifdef LDAP_SYNC
 		if ( op->o_sync_mode & SLAP_SYNC_REFRESH ) {
 			be_manageDSAit = SLAP_NO_CONTROL;
@@ -404,13 +399,6 @@ do_search(
 
 return_results:;
 
-#ifdef LDAP_CLIENT_UPDATE
-	if ( ( op->o_clientupdate_type & SLAP_LCUP_PERSIST ) )
-		return rs->sr_err;
-#endif
-#if defined(LDAP_CLIENT_UPDATE) && defined(LDAP_SYNC)
-	else
-#endif
 #ifdef LDAP_SYNC
 	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) )
 		return rs->sr_err;
