@@ -352,6 +352,10 @@ LDAP_SLAPD_F (void) connection_internal_close( Connection *conn );
  * dn.c
  */
 
+#define dn_cmp(dn1, dn2) \
+	(((dn1)->bv_len == (dn2)->bv_len) \
+	 && (strcmp((dn1)->bv_val, (dn2)->bv_val) == 0))
+
 LDAP_SLAPD_F (int) dnValidate LDAP_P((
 	Syntax *syntax, 
 	struct berval *val ));

@@ -183,16 +183,18 @@ ldap_back_map_filter(
 				plen = m.bv_len;
 				extra -= plen;
 				if (extra < 0) {
+					char *tmpnf;
 					while (extra < 0) {
 						extra += len;
 						len *= 2;
 					}
 					s -= (long)nf;
-					nf = ch_realloc(nf, len + 1);
-					if (nf == NULL) {
-						free(nf);
+					tmpnf = ch_realloc(nf, len + 1);
+					if (tmpnf == NULL) {
+						ch_free(nf);
 						return(NULL);
 					}
+					nf = tmpnf;
 					s += (long)nf;
 				}
 				AC_MEMCPY(s, m.bv_val, plen);

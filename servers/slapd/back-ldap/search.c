@@ -228,7 +228,7 @@ ldap_back_search(
 
 #ifdef ENABLE_REWRITE
 	if ( mfilter.bv_val != filterstr->bv_val ) {
-		ldap_memfree( mfilter.bv_val );
+		free( mfilter.bv_val );
 	}
 #endif /* ENABLE_REWRITE */
 
@@ -342,16 +342,16 @@ finish:;
 			free( mmatch );
 		}
 #endif /* ENABLE_REWRITE */
-		free(match);
+		LDAP_FREE(match);
 	}
 	if ( err ) {
-		free( err );
+		LDAP_FREE( err );
 	}
 	if ( mapped_attrs ) {
-		free( mapped_attrs );
+		ch_free( mapped_attrs );
 	}
 	if ( mapped_filter != filterstr->bv_val ) {
-		free( mapped_filter );
+		ch_free( mapped_filter );
 	}
 	if ( mbase.bv_val != base->bv_val ) {
 		free( mbase.bv_val );
@@ -460,7 +460,7 @@ ldap_send_entry(
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
 				ldap_back_map(&li->oc_map, bv, &mapped, 1);
 				if (mapped.bv_val == NULL) {
-					free(bv->bv_val);
+					LBER_FREE(bv->bv_val);
 					bv->bv_val = NULL;
 					if (--last < 0)
 						break;
@@ -468,7 +468,12 @@ ldap_send_entry(
 					attr->a_vals[last].bv_val = NULL;
 					i--;
 				} else if ( mapped.bv_val != bv->bv_val ) {
-					free(bv->bv_val);
+					/*
+					 * FIXME: after LBER_FREEing
+					 * the value is replaced by
+					 * ch_alloc'ed memory
+					 */
+					LBER_FREE(bv->bv_val);
 					ber_dupbv( bv, &mapped );
 				}
 			}
@@ -543,7 +548,7 @@ ldap_send_entry(
 		ent.e_attrs = attr->a_next;
 		if (attr->a_vals != &dummy)
 			bvarray_free(attr->a_vals);
-		free(attr);
+		ch_free(attr);
 	}
 	
 	if ( ent.e_dn && ent.e_dn != bdn.bv_val )

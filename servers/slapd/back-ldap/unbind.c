@@ -89,9 +89,9 @@ ldap_back_conn_destroy(
 		 */
 		ldap_unbind(lc->ld);
 		if ( lc->bound_dn.bv_val ) {
-			free( lc->bound_dn.bv_val );
+			ch_free( lc->bound_dn.bv_val );
 		}
-		free( lc );
+		ch_free( lc );
 	}
 
 	/* no response to unbind */

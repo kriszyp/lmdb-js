@@ -132,9 +132,11 @@ conn_free(
 	struct ldapconn *lc
 )
 {
-	ldap_unbind(lc->ld);
-	if ( lc->bound_dn.bv_val) free( lc->bound_dn.bv_val );
-	free( lc );
+	ldap_unbind( lc->ld );
+	if ( lc->bound_dn.bv_val ) {
+		ch_free( lc->bound_dn.bv_val );
+	}
+	ch_free( lc );
 }
 
 void
@@ -158,15 +160,15 @@ ldap_back_db_destroy(
 		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 
 		if (li->url) {
-			free(li->url);
+			ch_free(li->url);
 			li->url = NULL;
 		}
 		if (li->binddn) {
-			free(li->binddn);
+			ch_free(li->binddn);
 			li->binddn = NULL;
 		}
 		if (li->bindpw) {
-			free(li->bindpw);
+			ch_free(li->bindpw);
 			li->bindpw = NULL;
 		}
                 if (li->conntree) {
@@ -191,6 +193,6 @@ ldap_back_db_destroy(
 		ldap_pvt_thread_mutex_destroy( &li->conn_mutex );
 	}
 
-	free( be->be_private );
+	ch_free( be->be_private );
 	return 0;
 }

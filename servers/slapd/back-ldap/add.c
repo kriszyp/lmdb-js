@@ -77,7 +77,8 @@ ldap_back_add(
 	 * Rewrite the add dn, if needed
 	 */
 #ifdef ENABLE_REWRITE
-	switch (rewrite_session( li->rwinfo, "addDn", e->e_dn, conn, &mdn.bv_val )) {
+	switch (rewrite_session( li->rwinfo, "addDn", e->e_dn, conn, 
+				&mdn.bv_val )) {
 	case REWRITE_REGEXEC_OK:
 		if ( mdn.bv_val != NULL && mdn.bv_val[ 0 ] != '\0' ) {
 			mdn.bv_len = strlen( mdn.bv_val );
@@ -171,10 +172,10 @@ ldap_back_add(
 
 	ldap_add_s(lc->ld, mdn.bv_val, attrs);
 	for (--i; i>= 0; --i) {
-		free(attrs[i]->mod_vals.modv_bvals);
-		free(attrs[i]);
+		ch_free(attrs[i]->mod_vals.modv_bvals);
+		ch_free(attrs[i]);
 	}
-	free(attrs);
+	ch_free(attrs);
 	if ( mdn.bv_val != e->e_dn ) {
 		free( mdn.bv_val );
 	}
@@ -212,7 +213,12 @@ ldap_dnattr_rewrite(
 					a_vals->bv_val, mattr, "" );
 #endif /* !NEW_LOGGING */
 
-			free( a_vals->bv_val );
+			/*
+			 * FIXME: replacing server-allocated memory 
+			 * (ch_malloc) with librewrite allocated memory
+			 * (malloc)
+			 */
+			ch_free( a_vals->bv_val );
 			a_vals->bv_val = mattr;
 			a_vals->bv_len = strlen( mattr );
 			

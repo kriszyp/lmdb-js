@@ -157,9 +157,9 @@ cleanup:;
 	}
 #endif /* ENABLE_REWRITE */
 	for (i=0; modv[i]; i++)
-		free(modv[i]->mod_bvalues);
-	free(mods);
-	free(modv);
+		ch_free(modv[i]->mod_bvalues);
+	ch_free(mods);
+	ch_free(modv);
 	return( ldap_back_op_result( lc, op ));
 }
 
