@@ -52,8 +52,6 @@ typedef struct pw_conn {
 
 static pw_conn *pwcons;
 
-static long gmtoff;	/* Offset of local time from GMT */
-
 typedef struct pass_policy {
 	AttributeDescription *ad; /* attribute to which the policy applies */
 	int pwdMinAge; /* minimum time (seconds) until passwd can change */
@@ -196,7 +194,8 @@ static ldap_pvt_thread_mutex_t chk_syntax_mutex;
 static time_t
 parse_time( char *atm )
 {
-	struct tm tm;
+	struct tm tml, tmg;
+	time_t t;
 
 	if (!atm) return (time_t)-1;
 
@@ -210,9 +209,27 @@ parse_time( char *atm )
 	 * else parse the time and return it's time_t value. This will be -1 if the
 	 * text isn't a valid time string.
 	 */
-	strptime( atm, "%Y%m%d%H%M%SZ", &tm );
-	tm.tm_isdst = 0;
-	return mktime(&tm) - gmtoff;
+	strptime( atm, "%Y%m%d%H%M%SZ", &tml );
+	tml.tm_isdst = -1;
+	t = mktime( &tml );
+	if ( t == (time_t)-1 ) return t;
+
+	/* mktime() assumes localtime. Compute the offset to GMT.
+	 */
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+	tmg = *gmtime( &t );
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+
+	tmg.tm_mday -= tml.tm_mday;
+	tmg.tm_hour -= tml.tm_hour;
+	if ( tmg.tm_mday ) tmg.tm_hour += tmg.tm_mday > 0 ? 24 : -24;
+	if ( tmg.tm_hour ) t -= tmg.tm_hour * 3600;
+	tmg.tm_min -= tml.tm_min;
+	if ( tmg.tm_min ) t -= tmg.tm_min * 60;
+	tmg.tm_sec -= tml.tm_sec;
+	if ( tmg.tm_sec ) t -= tmg.tm_sec;
+
+	return t;
 }
 
 static int
@@ -1836,23 +1853,6 @@ int ppolicy_init()
 	if ( code != LDAP_SUCCESS ) {
 		fprintf( stderr, "Failed to register control %d\n", code );
 		return code;
-	}
-
-	/* Find out our offset from GMT since mktime() always assumes
-	 * its input is local time
-	 */
-	{
-		time_t gmt, lcl, now = slap_get_time();
-		struct tm *tmp;
-
-		tmp = gmtime( &now );
-		gmt = mktime( tmp );
-
-		tmp = localtime( &now );
-		tmp->tm_isdst = 0;
-		lcl = mktime( tmp );
-
-		gmtoff = gmt - lcl;
 	}
 
 	ldap_pvt_thread_mutex_init( &chk_syntax_mutex );
