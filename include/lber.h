@@ -24,6 +24,10 @@
 
 #include <ldap_cdefs.h>
 
+#ifndef LBER_SIZE_T_DEFINED
+#include <stddef.h>
+#endif
+
 LDAP_BEGIN_DECL
 
 /* Overview of LBER tag construction
@@ -322,6 +326,8 @@ ber_printf LDAP_P((
 	BerElement *ber,
 	LDAP_CONST char *fmt,
 	... ));
+
+
 /*
  * in io.c:
  */
@@ -378,9 +384,6 @@ ber_reset LDAP_P((
 	BerElement *ber,
 	int was_writing ));
 
-/*
- * LBER draft-ietf-ldapext-ldap-c-api-01 routines
- */
 LDAP_F( BerElement * )
 ber_init LDAP_P((
 	struct berval *bv ));

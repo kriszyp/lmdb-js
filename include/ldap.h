@@ -24,6 +24,9 @@
 
 #include <ldap_cdefs.h>
 
+/* draft spec requires ldap.h include lber declarations */
+#include <lber.h>
+
 LDAP_BEGIN_DECL
 
 #define LDAP_VERSION1	1
@@ -176,9 +179,18 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_LDAPDN		0x04UL	/* octect string */
 #define LDAP_TAG_CONTROLS	0xa0UL	/* context specific + constructed + 0 */
 #define LDAP_TAG_REFERRAL	0xa3UL	/* context specific + constructed + 3 */
+
 #define LDAP_TAG_NEWSUPERIOR	0x80UL	/* context-specific + primitive + 0 */
 
+#define LDAP_TAG_EXOP_REQ_OID   0x80UL	/* context specific + primitive */
+#define LDAP_TAG_EXOP_REQ_VALUE 0x81UL	/* context specific + primitive */
+#define LDAP_TAG_EXOP_RES_OID   0x8aUL	/* context specific + primitive */
+#define LDAP_TAG_EXOP_RES_VALUE 0x8bUL	/* context specific + primitive */
+
 #define LDAP_TAG_SASL_RES_CREDS	0x87UL	/* context specific + primitive */
+
+
+
 
 /* possible operations a client can invoke */
 #define LDAP_REQ_BIND			0x60UL	/* application + constructed */
