@@ -1075,11 +1075,11 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	    return TCL_ERROR;
 	if (l == 0)
 	    return TCL_OK;		/* empty code list */
-	ldaptcl->traplist = malloc(sizeof(int) * (l + 1));
+	ldaptcl->traplist = (int*)malloc(sizeof(int) * (l + 1));
 	ldaptcl->traplist[l] = 0;
 	for (i = 0; i < l; i++) {
 	    Tcl_ListObjIndex(interp, objv[3], i, &resultObj);
-	    code = LDAP_ErrorStringToCode(interp, Tcl_GetStringFromObj(resultObj));
+	    code = LDAP_ErrorStringToCode(interp, Tcl_GetStringFromObj(resultObj, NULL));
 	    if (code == -1) {
 		free(ldaptcl->traplist);
 		ldaptcl->traplist = NULL;
