@@ -62,6 +62,7 @@ entry_schema_check(
 			    e->e_dn, textbuf, 0 );
 #endif
 
+			*text = textbuf;
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
 	}
