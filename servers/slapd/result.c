@@ -57,11 +57,8 @@ send_ldap_result2(
 	}
 
 
-#ifdef LDAP_COMPAT30
-	ber = ber_alloc_t( conn->c_version == 30 ? 0 : LBER_USE_DER );
-#else
-	ber = der_alloc();
-#endif
+	ber = ber_alloc_t( LBER_USE_DER );
+
 	if ( ber == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n", 0, 0, 0 );
 		return;
@@ -73,14 +70,10 @@ send_ldap_result2(
 		    err, matched ? matched : "", text ? text : "" );
 	} else
 #endif
-#ifdef LDAP_COMPAT30
-	if ( conn->c_version == 30 ) {
-		rc = ber_printf( ber, "{it{{ess}}}", op->o_msgid, tag, err,
-		    matched ? matched : "", text ? text : "" );
-	} else
-#endif
+	{
 		rc = ber_printf( ber, "{it{ess}}", op->o_msgid, tag, err,
 		    matched ? matched : "", text ? text : "" );
+	}
 
 	if ( rc == -1 ) {
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
@@ -215,11 +208,7 @@ send_search_entry(
 
 	edn = e->e_ndn;
 
-#ifdef LDAP_COMPAT30
-	ber = ber_alloc_t( conn->c_version == 30 ? 0 : LBER_USE_DER );
-#else
-	ber = der_alloc();
-#endif
+	ber = ber_alloc_t( LBER_USE_DER );
 
 	if ( ber == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n", 0, 0, 0 );
@@ -228,16 +217,8 @@ send_search_entry(
 		goto error_return;
 	}
 
-#ifdef LDAP_COMPAT30
-	if ( conn->c_version == 30 ) {
-		rc = ber_printf( ber, "{it{{s{", op->o_msgid,
-		    LDAP_RES_SEARCH_ENTRY, e->e_dn );
-	} else
-#endif
-	{
-		rc = ber_printf( ber, "{it{s{", op->o_msgid,
-			LDAP_RES_SEARCH_ENTRY, e->e_dn );
-	}
+	rc = ber_printf( ber, "{it{s{", op->o_msgid,
+		LDAP_RES_SEARCH_ENTRY, e->e_dn );
 
 	if ( rc == -1 ) {
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
@@ -312,12 +293,7 @@ send_search_entry(
 		}
 	}
 
-#ifdef LDAP_COMPAT30
-	if ( conn->c_version == 30 ) {
-		rc = ber_printf( ber, /*{{{{{*/ "}}}}" );
-	} else
-#endif
-		rc = ber_printf( ber, /*{{{{*/ "}}}" );
+	rc = ber_printf( ber, /*{{{*/ "}}}" );
 
 	if ( rc == -1 ) {
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );

@@ -51,32 +51,7 @@ do_bind(
 	 *	}
 	 */
 
-#ifdef LDAP_COMPAT30
-	/*
-	 * in version 3.0 there is an extra SEQUENCE tag after the
-	 * BindRequest SEQUENCE tag.
-	 */
-
-	{
-	BerElement	*tber;
-	ber_len_t	tlen;
-	ber_tag_t	ttag;
-
-	tber = ber_dup( op->o_ber );
-	ttag = ber_skip_tag( tber, &tlen );
-	if ( ber_peek_tag( tber, &tlen ) == LBER_SEQUENCE ) {
-		Debug( LDAP_DEBUG_ANY, "bind: u-mich v3.0 detected\n", 0, 0, 0 );
-		conn->c_version = 30;
-		rc = ber_scanf(ber, "{{iato}}", &version, &cdn, &method, &cred);
-	} else {
-		rc = ber_scanf( ber, "{iato}", &version, &cdn, &method, &cred );
-	}
-
-	ber_free( tber, 0 );
-	}
-#else
 	rc = ber_scanf( ber, "{iato}", &version, &cdn, &method, &cred );
-#endif
 
 	if ( rc == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "bind: ber_scanf failed\n", 0, 0, 0 );
@@ -84,24 +59,6 @@ do_bind(
 		    "decoding error" );
 		return;
 	}
-
-#ifdef LDAP_COMPAT30
-	if ( conn->c_version == 30 ) {
-		switch ( method ) {
-		case LDAP_AUTH_SIMPLE_30:
-			method = LDAP_AUTH_SIMPLE;
-			break;
-#ifdef HAVE_KERBEROS
-		case LDAP_AUTH_KRBV41_30:
-			method = LDAP_AUTH_KRBV41;
-			break;
-		case LDAP_AUTH_KRBV42_30:
-			method = LDAP_AUTH_KRBV42;
-			break;
-#endif
-		}
-	}
-#endif /* compat30 */
 
 	Debug( LDAP_DEBUG_TRACE, "do_bind: version %d dn (%s) method %d\n",
 	    version, cdn, method );

@@ -52,25 +52,7 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 	err = 0;
 	*fstr = NULL;
 	f->f_choice = ber_peek_tag( ber, &len );
-#ifdef LDAP_COMPAT30
-	if ( conn->c_version == 30 ) {
-		switch ( f->f_choice ) {
-		case LDAP_FILTER_EQUALITY:
-		case LDAP_FILTER_GE:
-		case LDAP_FILTER_LE:
-		case LDAP_FILTER_PRESENT:
-		case LDAP_FILTER_PRESENT_30:
-		case LDAP_FILTER_APPROX:
-			(void) ber_skip_tag( ber, &len );
-			if ( f->f_choice == LDAP_FILTER_PRESENT_30 ) {
-				f->f_choice = LDAP_FILTER_PRESENT;
-			}
-			break;
-		default:
-			break;
-		}
-	}
-#endif
+
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "EQUALITY\n", 0, 0, 0 );
@@ -193,11 +175,6 @@ get_filter_list( Connection *conn, BerElement *ber, Filter **f, char **fstr )
 
 	Debug( LDAP_DEBUG_FILTER, "begin get_filter_list\n", 0, 0, 0 );
 
-#ifdef LDAP_COMPAT30
-	if ( conn->c_version == 30 ) {
-		(void) ber_skip_tag( ber, &len );
-	}
-#endif
 	*fstr = NULL;
 	new = f;
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
@@ -236,11 +213,6 @@ get_substring_filter(
 
 	Debug( LDAP_DEBUG_FILTER, "begin get_substring_filter\n", 0, 0, 0 );
 
-#ifdef LDAP_COMPAT30
-	if ( conn->c_version == 30 ) {
-		(void) ber_skip_tag( ber, &len );
-	}
-#endif
 	if ( ber_scanf( ber, "{a" /*}*/, &f->f_sub_type ) == LBER_ERROR ) {
 		return( LDAP_PROTOCOL_ERROR );
 	}
@@ -254,11 +226,6 @@ get_substring_filter(
 	sprintf( *fstr, "(%s=", f->f_sub_type );
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) ) {
-#ifdef LDAP_COMPAT30
-		if ( conn->c_version == 30 ) {
-			rc = ber_scanf( ber, "{a}", &val );
-		} else
-#endif
 			rc = ber_scanf( ber, "a", &val );
 		if ( rc == LBER_ERROR ) {
 			return( LDAP_PROTOCOL_ERROR );
@@ -272,9 +239,6 @@ get_substring_filter(
 		value_normalize( val, syntax );
 
 		switch ( tag ) {
-#ifdef LDAP_COMPAT30
-		case LDAP_SUBSTRING_INITIAL_30:
-#endif
 		case LDAP_SUBSTRING_INITIAL:
 			Debug( LDAP_DEBUG_FILTER, "  INITIAL\n", 0, 0, 0 );
 			if ( f->f_sub_initial != NULL ) {
@@ -286,9 +250,6 @@ get_substring_filter(
 			strcat( *fstr, val );
 			break;
 
-#ifdef LDAP_COMPAT30
-		case LDAP_SUBSTRING_ANY_30:
-#endif
 		case LDAP_SUBSTRING_ANY:
 			Debug( LDAP_DEBUG_FILTER, "  ANY\n", 0, 0, 0 );
 			charray_add( &f->f_sub_any, val );
@@ -298,9 +259,6 @@ get_substring_filter(
 			strcat( *fstr, val );
 			break;
 
-#ifdef LDAP_COMPAT30
-		case LDAP_SUBSTRING_FINAL_30:
-#endif
 		case LDAP_SUBSTRING_FINAL:
 			Debug( LDAP_DEBUG_FILTER, "  FINAL\n", 0, 0, 0 );
 			if ( f->f_sub_final != NULL ) {

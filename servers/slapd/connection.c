@@ -392,9 +392,6 @@ connection_destroy( Connection *c )
 
     backend_connection_destroy(c);
 
-#ifdef LDAP_COMPAT30
-    c->c_version = 0;
-#endif
     c->c_protocol = 0;
 
     c->c_activitytime = c->c_starttime = 0;
@@ -616,9 +613,6 @@ connection_operation( void *arg_v )
 		do_bind( conn, arg->co_op );
 		break;
 
-#ifdef LDAP_COMPAT30
-	case LDAP_REQ_UNBIND_30:
-#endif
 	case LDAP_REQ_UNBIND:
 		do_unbind( conn, arg->co_op );
 		break;
@@ -627,9 +621,6 @@ connection_operation( void *arg_v )
 		do_add( conn, arg->co_op );
 		break;
 
-#ifdef LDAP_COMPAT30
-	case LDAP_REQ_DELETE_30:
-#endif
 	case LDAP_REQ_DELETE:
 		do_delete( conn, arg->co_op );
 		break;
@@ -650,9 +641,6 @@ connection_operation( void *arg_v )
 		do_search( conn, arg->co_op );
 		break;
 
-#ifdef LDAP_COMPAT30
-	case LDAP_REQ_ABANDON_30:
-#endif
 	case LDAP_REQ_ABANDON:
 		do_abandon( conn, arg->co_op );
 		break;
@@ -683,9 +671,6 @@ connection_operation( void *arg_v )
 	arg = NULL;
 
 	switch( tag ) {
-#ifdef LDAP_COMPAT30
-	case LDAP_REQ_UNBIND_30:
-#endif
 	case LDAP_REQ_UNBIND:
 		/* c_mutex is locked */
 		connection_closing( conn );
@@ -834,12 +819,6 @@ connection_input(
 
 		return -1;
 	}
-
-#ifdef LDAP_COMPAT30
-	if ( conn->c_version == 30 ) {
-		(void) ber_skip_tag( ber, &len );
-	}
-#endif
 
 	op = slap_op_alloc( ber, msgid, tag, conn->c_n_ops_received++ );
 

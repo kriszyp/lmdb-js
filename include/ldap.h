@@ -176,7 +176,6 @@ typedef struct ldapcontrol {
 
 /* general stuff */
 #define LDAP_TAG_MESSAGE	(ber_tag_t) 0x30U	/* constructed + 16 */
-#define OLD_LDAP_TAG_MESSAGE	(ber_tag_t) 0x10U	/* forgot the constructed bit  */
 #define LDAP_TAG_MSGID		(ber_tag_t) 0x02U	/* integer */
 #define LDAP_TAG_LDAPDN		(ber_tag_t) 0x04U	/* octect string */
 #define LDAP_TAG_CONTROLS	(ber_tag_t) 0xa0U	/* context specific + constructed + 0 */
@@ -208,25 +207,6 @@ typedef struct ldapcontrol {
 #define LDAP_REQ_ABANDON		(ber_tag_t) 0x50U	/* application + primitive   */
 #define LDAP_REQ_EXTENDED		(ber_tag_t) 0x77U	/* application + constructed */
 
-/* U-Mich version 3.0 compatibility stuff */
-#define LDAP_REQ_UNBIND_30		(ber_tag_t) 0x62U
-#define LDAP_REQ_DELETE_30		(ber_tag_t) 0x6aU
-#define LDAP_REQ_ABANDON_30		(ber_tag_t) 0x70U
-
-/* 
- * old broken stuff for backwards compatibility - forgot application tag
- * and constructed/primitive bit
- */
-#define OLD_LDAP_REQ_BIND		(ber_tag_t) 0x00U
-#define OLD_LDAP_REQ_UNBIND		(ber_tag_t) 0x02U
-#define OLD_LDAP_REQ_SEARCH		(ber_tag_t) 0x03U
-#define OLD_LDAP_REQ_MODIFY		(ber_tag_t) 0x06U
-#define OLD_LDAP_REQ_ADD		(ber_tag_t) 0x08U
-#define OLD_LDAP_REQ_DELETE		(ber_tag_t) 0x0aU
-#define OLD_LDAP_REQ_MODRDN		(ber_tag_t) 0x0cU
-#define OLD_LDAP_REQ_COMPARE		(ber_tag_t) 0x0eU
-#define OLD_LDAP_REQ_ABANDON		(ber_tag_t) 0x10U
-
 /* possible result types a server can return */
 #define LDAP_RES_BIND			(ber_tag_t) 0x61U	/* application + constructed */
 #define LDAP_RES_SEARCH_ENTRY		(ber_tag_t) 0x64U	/* application + constructed */
@@ -242,16 +222,6 @@ typedef struct ldapcontrol {
 #define LDAP_RES_EXTENDED		(ber_tag_t) 0x78U	/* V3: application + constructed */
 #define LDAP_RES_ANY			((ber_tag_t)(~0))
 
-/* old broken stuff for backwards compatibility */
-#define OLD_LDAP_RES_BIND		(ber_tag_t) 0x01UL
-#define OLD_LDAP_RES_SEARCH_ENTRY	(ber_tag_t) 0x04UL
-#define OLD_LDAP_RES_SEARCH_RESULT	(ber_tag_t) 0x05U
-#define OLD_LDAP_RES_MODIFY		(ber_tag_t) 0x07U
-#define OLD_LDAP_RES_ADD		(ber_tag_t) 0x09U
-#define OLD_LDAP_RES_DELETE		(ber_tag_t) 0x0bU
-#define OLD_LDAP_RES_MODRDN		(ber_tag_t) 0x0dU
-#define OLD_LDAP_RES_MODDN		OLD_LDAP_RES_MODRDN
-#define OLD_LDAP_RES_COMPARE	(ber_tag_t) 0x0fU
 
 /* sasl methods */
 #define LDAP_SASL_SIMPLE			NULL
@@ -264,15 +234,6 @@ typedef struct ldapcontrol {
 #define LDAP_AUTH_KRBV41	(ber_tag_t) 0x81U	/* context specific + primitive   */
 #define LDAP_AUTH_KRBV42	(ber_tag_t) 0x82U	/* context specific + primitive   */
 
-/* U-Mich version 3.0 compatibility auth methods */
-#define LDAP_AUTH_SIMPLE_30	(ber_tag_t) 0xa0U	/* context specific + constructed */
-#define LDAP_AUTH_KRBV41_30	(ber_tag_t) 0xa1U	/* context specific + constructed */
-#define LDAP_AUTH_KRBV42_30	(ber_tag_t) 0xa2U	/* context specific + constructed */
-
-/* old broken stuff */
-#define OLD_LDAP_AUTH_SIMPLE	(ber_tag_t) 0x00U
-#define OLD_LDAP_AUTH_KRBV4	(ber_tag_t) 0x01U
-#define OLD_LDAP_AUTH_KRBV42	(ber_tag_t) 0x02U
 
 /* filter types */
 #define LDAP_FILTER_AND		(ber_tag_t) 0xa0U	/* context specific + constructed */
@@ -286,20 +247,6 @@ typedef struct ldapcontrol {
 #define LDAP_FILTER_APPROX	(ber_tag_t) 0xa8U	/* context specific + constructed */
 #define LDAP_FILTER_EXTENDED	(ber_tag_t) 0xa9U	/* context specific + constructed */
 
-/* U-Mich version 3.0 compatibility filter types */
-#define LDAP_FILTER_PRESENT_30	(ber_tag_t) 0xa7U	/* context specific + constructed */
-
-/* old broken stuff */
-#define OLD_LDAP_FILTER_AND		(ber_tag_t) 0x00U
-#define OLD_LDAP_FILTER_OR		(ber_tag_t) 0x01U
-#define OLD_LDAP_FILTER_NOT		(ber_tag_t) 0x02U
-#define OLD_LDAP_FILTER_EQUALITY	(ber_tag_t) 0x03U
-#define OLD_LDAP_FILTER_SUBSTRINGS	(ber_tag_t) 0x04U
-#define OLD_LDAP_FILTER_GE		(ber_tag_t) 0x05U
-#define OLD_LDAP_FILTER_LE		(ber_tag_t) 0x06U
-#define OLD_LDAP_FILTER_PRESENT		(ber_tag_t) 0x07U
-#define OLD_LDAP_FILTER_APPROX		(ber_tag_t) 0x08U
-
 /* extended filter component types */
 #define LDAP_FILTER_EXTENDED_OID	(ber_tag_t) 0x81U	/* context specific */
 #define LDAP_FILTER_EXTENDED_TYPE	(ber_tag_t) 0x82U	/* context specific */
@@ -310,16 +257,6 @@ typedef struct ldapcontrol {
 #define LDAP_SUBSTRING_INITIAL	(ber_tag_t) 0x80U	/* context specific */
 #define LDAP_SUBSTRING_ANY	(ber_tag_t) 0x81U	/* context specific */
 #define LDAP_SUBSTRING_FINAL	(ber_tag_t) 0x82U	/* context specific */
-
-/* U-Mich version 3.0 compatibility substring filter component types */
-#define LDAP_SUBSTRING_INITIAL_30	(ber_tag_t) 0xa0U	/* context specific */
-#define LDAP_SUBSTRING_ANY_30		(ber_tag_t) 0xa1U	/* context specific */
-#define LDAP_SUBSTRING_FINAL_30		(ber_tag_t) 0xa2U	/* context specific */
-
-/* old broken stuff */
-#define OLD_LDAP_SUBSTRING_INITIAL	(ber_tag_t) 0x00U
-#define OLD_LDAP_SUBSTRING_ANY		(ber_tag_t) 0x01U
-#define OLD_LDAP_SUBSTRING_FINAL	(ber_tag_t) 0x02U
 
 /* search scopes */
 #define LDAP_SCOPE_BASE		(ber_int_t) 0x0000
