@@ -406,7 +406,7 @@ int slap_sasl_bind(
 
 		} else {
 			char *realm = NULL;
-			sasl_ssf_t ssf = 0;
+			sasl_ssf_t *ssf = NULL;
 
 			(void) sasl_getprop( ctx,
 				SASL_REALM, (void **)&realm );
@@ -418,7 +418,7 @@ int slap_sasl_bind(
 				"slap_sasl_bind: username=\"%s\" realm=\"%s\" ssf=%lu\n",
 				username ? username : "",
 				realm ? realm : "",
-				(unsigned long) ssf );
+				(unsigned long) ( ssf ? *ssf : 0 ) );
 
 			if( !strncasecmp( username, "anonymous", sizeof("anonyous")-1 ) &&
 				( ( username[sizeof("anonymous")] == '\0' ) ||
