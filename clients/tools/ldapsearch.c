@@ -48,6 +48,10 @@
 #include <ac/errno.h>
 #include <sys/stat.h>
 
+#if defined(TEST_ABANDON) || defined(TEST_CANCEL)
+#include <ac/signal.h>
+#endif
+
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
@@ -550,6 +554,15 @@ private_conn_setup( LDAP *ld )
 	}
 }
 
+#if defined(TEST_ABANDON) || defined(TEST_CANCEL)
+static int gotintr;
+
+RETSIGTYPE
+do_sig( int sig )
+{
+	gotintr = 1;
+}
+#endif
 
 int
 main( int argc, char **argv )
@@ -608,6 +621,10 @@ main( int argc, char **argv )
 	if ( argv[optind] != NULL ) {
 		attrs = &argv[optind];
 	}
+
+#if defined(TEST_ABANDON) || defined(TEST_CANCEL)
+	SIGNAL( SIGINT, do_sig );
+#endif
 
 	if ( infile != NULL ) {
 		if ( infile[0] == '-' && infile[1] == '\0' ) {
@@ -1105,6 +1122,20 @@ static int dosearch(
 
 		ldap_msgfree( res );
 	}
+#if defined(TEST_ABANDON) || defined(TEST_CANCEL)
+	if ( gotintr ) {
+#ifdef TEST_CANCEL
+		rc = ldap_cancel_s( ld, msgid, NULL, NULL );
+		fprintf( stderr, "got interrupt, cancel got %d\n", rc );
+		return -1;
+#endif
+#ifdef TEST_ABANDON
+		rc = ldap_abandon( ld, msgid );
+		fprintf( stderr, "got interrupt, abandon got %d\n", rc );
+		return -1;
+#endif
+	}
+#endif
 
 	if ( rc == -1 ) {
 		ldap_perror( ld, "ldap_result" );
