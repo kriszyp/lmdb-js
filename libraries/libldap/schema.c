@@ -126,6 +126,8 @@ print_numericoid(safe_string *ss, char *s)
 {
 	if ( s )
 		return(append_to_safe_string(ss,s));
+	else
+		return(append_to_safe_string(ss,""));
 }
 
 /* This one is identical to print_qdescr */
@@ -747,7 +749,6 @@ static char *
 parse_noidlen(const char **sp, int *code, int *len, int allow_quoted)
 {
 	char * sval;
-	int kind;
 	int quoted = 0;
 
 	*len = 0;
