@@ -247,7 +247,7 @@ static int indexer(
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
-				bdb_key_change( op->o_bd, db, txn, &keys[i], id, opid );
+				rc = bdb_key_change( op->o_bd, db, txn, &keys[i], id, opid );
 				if( rc ) {
 					ber_bvarray_free_x( keys, op->o_tmpmemctx );
 					goto done;
