@@ -3506,8 +3506,15 @@ dn_openssl2ldap(X509_NAME *name)
 
 	bio = BIO_new(BIO_s_mem());
 	if ( !bio ) {
-		fprintf(stderr, ERR_error_string(ERR_get_error(),NULL));
-		/* ERR_print_errors(bio_err); */
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+			   "dn_openssl2ldap: error creating BIO_s_mem: %s\n",
+			   ERR_error_string(ERR_get_error(),NULL)));
+#else
+		Debug( LDAP_DEBUG_ARGS, "dn_openssl2ldap: "
+		       "error creating BIO: %s\n",
+		       ERR_error_string(ERR_get_error(),NULL), NULL, NULL );
+#endif
 		return NULL;
 	}
 	X509_NAME_print_ex(bio, name, 0, XN_FLAG_RFC2253);
@@ -3536,7 +3543,15 @@ certificateExactConvert(
 
 	xcert = d2i_X509(NULL, &p, in->bv_len);
 	if ( !xcert ) {
-		ERR_error_string(ERR_get_error(),NULL);
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+			   "certificateExactConvert: error parsing cert: %s\n",
+			   ERR_error_string(ERR_get_error(),NULL)));
+#else
+		Debug( LDAP_DEBUG_ARGS, "certificateExactConvert: "
+		       "error parsing cert: %s\n",
+		       ERR_error_string(ERR_get_error(),NULL), NULL, NULL );
+#endif
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -3639,7 +3654,15 @@ certificateExactMatch(
 
 	xcert = d2i_X509(NULL, &p, value->bv_len);
 	if ( !xcert ) {
-		ERR_error_string(ERR_get_error(),NULL);
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+			   "certificateExactMatch: error parsing cert: %s\n",
+			   ERR_error_string(ERR_get_error(),NULL)));
+#else
+		Debug( LDAP_DEBUG_ARGS, "certificateExactMatch: "
+		       "error parsing cert: %s\n",
+		       ERR_error_string(ERR_get_error(),NULL), NULL, NULL );
+#endif
 		return LDAP_INVALID_SYNTAX;
 	}
 
