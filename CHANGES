@@ -3,12 +3,18 @@ OpenLDAP 2.0 Change Log
 OpenLDAP 2.0.X Engineering
 	Fixed clients & -lldap KBIND (ITS#717)
 	Fixed clients/tools -R handling
+	Fixed ldappasswd -A -S crash (ITS#714)
+	Fixed ldappasswd user argument usage
+	Fixed slapd disallow bind_anon (ITS#721)
 	Fixed slapd IPv6 issues (ITS#716)
 	Fixed slapd MIT KPASSWD Compatibility (ITS#715)
 	Fixed slapd time syntax routines (ITS#713)
-	Fixed ldappasswd -A -S crash (ITS#714)
-	Fixed ldappasswd user argument usage and man page
-	Fixed ldapmodify man page
+	Build Environment
+		Fixed Kerberos detection (ITS#717)
+	Documentation
+		Fixed ldappasswd(1) user argument usage
+		Fixed ldapmodify(1) (ITS#719)
+		Updated release documents (ITS#720)
 
 OpenLDAP 2.0.1 Release
 	Fixed StartTLS & ldaps:// client SDK
