@@ -77,6 +77,7 @@ retry:	/* transaction retry */
 
 	opinfo.boi_bdb = be;
 	opinfo.boi_txn = ltid;
+	opinfo.boi_locker = TXN_ID ( ltid );
 	opinfo.boi_err = 0;
 	op->o_private = &opinfo;
 

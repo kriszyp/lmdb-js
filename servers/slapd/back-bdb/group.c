@@ -42,14 +42,17 @@ bdb_group(
 	const char *group_oc_name = NULL;
 	const char *group_at_name = group_at->ad_cname.bv_val;
 
-	u_int32_t	locker;
+	u_int32_t	locker = 0;
 	DB_LOCK		lock;
+	int		free_lock_id = 0;
 
 	if( group_oc->soc_names && group_oc->soc_names[0] ) {
 		group_oc_name = group_oc->soc_names[0];
 	} else {
 		group_oc_name = group_oc->soc_oid;
 	}
+
+	printf("KKK\n");
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_BDB, ENTRY, 
@@ -76,12 +79,14 @@ bdb_group(
 	if( op ) boi = (struct bdb_op_info *) op->o_private;
 	if( boi != NULL && be == boi->boi_bdb ) {
 		txn = boi->boi_txn;
+		locker = boi->boi_locker;
 	}
 
 	if ( txn ) {
 		locker = TXN_ID( txn );
-	} else {
+	} else if ( !locker ) {
 		rc = LOCK_ID ( bdb->bi_dbenv, &locker );
+		free_lock_id = 1;
 		switch(rc) {
 		case 0:
 			break;
@@ -108,10 +113,8 @@ dn2entry_retry:
 		if( rc ) {
 			if ( rc == DB_LOCK_DEADLOCK || rc == DB_LOCK_NOTGRANTED )
 				goto dn2entry_retry;
-			if( txn ) {
-				boi->boi_err = rc;
-			}
-			else {
+			boi->boi_err = rc;
+			if ( free_lock_id ) {
 				LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 			}
 			return( 1 );
@@ -125,7 +128,7 @@ dn2entry_retry:
 				"=> bdb_group: cannot find group: \"%s\"\n",
 					gr_ndn->bv_val, 0, 0 ); 
 #endif
-			if ( txn == NULL ) {
+			if ( free_lock_id ) {
 				LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 			}
 			return( 1 );
@@ -236,7 +239,7 @@ return_results:
 		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 	}
 
-	if ( txn == NULL ) {
+	if ( free_lock_id ) {
 		LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 	}
 

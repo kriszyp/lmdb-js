@@ -155,7 +155,8 @@ struct bdb_info {
 struct bdb_op_info {
 	BackendDB*	boi_bdb;
 	DB_TXN*		boi_txn;
-	int			boi_err;
+	u_int32_t	boi_err;
+	u_int32_t	boi_locker;
 };
 
 #define	DB_OPEN(db, file, name, type, flags, mode) \

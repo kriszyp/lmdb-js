@@ -35,7 +35,7 @@ bdb_delete(
 	DB_TXN		*ltid = NULL;
 	struct bdb_op_info opinfo;
 
-	u_int32_t	locker;
+	u_int32_t	locker = 0;
 	DB_LOCK		lock;
 #if 0
 	u_int32_t	lockid;
@@ -104,6 +104,7 @@ retry:	/* transaction retry */
 
 	opinfo.boi_bdb = be;
 	opinfo.boi_txn = ltid;
+	opinfo.boi_locker = locker;
 	opinfo.boi_err = 0;
 	op->o_private = &opinfo;
 
