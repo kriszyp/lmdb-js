@@ -1655,8 +1655,6 @@ int connection_write(ber_socket_t s)
 
 	c = connection_get( s );
 
-	slapd_clr_write( s, 0);
-
 	if( c == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"connection_write(%ld): no connection!\n",
@@ -1665,6 +1663,8 @@ int connection_write(ber_socket_t s)
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		return -1;
 	}
+
+	slapd_clr_write( s, 0);
 
 	c->c_n_write++;
 
