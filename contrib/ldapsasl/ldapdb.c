@@ -70,10 +70,7 @@ static int ldapdb_interact(LDAP *ld, unsigned flags __attribute__((unused)),
 		}
 		if (p.bv_val)
 		{
-			in->result = gc->lp->utils->malloc(p.bv_len+1);
-			if (!in->result)
-				return LDAP_NO_MEMORY;
-			strcpy((char *)in->result, p.bv_val);
+			in->result = p.bv_val;
 			in->len = p.bv_len;
 		}
 	}
