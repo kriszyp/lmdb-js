@@ -207,6 +207,13 @@ if test -n "$prevopt"; then
   exit 1
 fi
 
+case "$show $MFLAGS -$MAKEFLAGS" in
+  :\ *) : ;;
+  *\ -*s*)
+	# Be silent inside 'make -s'
+	expr " $MFLAGS -$MAKEFLAGS" : '.* -[a-zA-Z]*s' >/dev/null && show=: ;;
+esac
+
 if test -z "$show_help"; then
 
   # Infer the operation mode.
