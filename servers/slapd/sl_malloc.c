@@ -552,6 +552,8 @@ slap_sl_context( void *ptr )
 	struct slab_heap *sh = NULL;
 	void *ctx;
 
+	if ( slapMode & SLAP_TOOL_MODE ) return NULL;
+
 #ifdef NO_THREADS
 	sh = slheap;
 #else
