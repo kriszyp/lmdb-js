@@ -57,9 +57,11 @@ static struct slap_control {
 	{ LDAP_CONTROL_MANAGEDSAIT,
 		SLAP_CTRL_ACCESS, NULL,
 		parseManageDSAit },
+#ifdef LDAP_CONTROL_SUBENTRIES
 	{ LDAP_CONTROL_SUBENTRIES,
 		SLAP_CTRL_SEARCH, NULL,
 		parseSubentries },
+#endif
 #ifdef LDAP_CONTROL_NOOP
 	{ LDAP_CONTROL_NOOP,
 		SLAP_CTRL_UPDATE, NULL,
@@ -384,6 +386,7 @@ static int parseManageDSAit (
 	return LDAP_SUCCESS;
 }
 
+#ifdef LDAP_CONTROL_SUBENTRIES
 static int parseSubentries (
 	Connection *conn,
 	Operation *op,
@@ -412,7 +415,9 @@ static int parseSubentries (
 
 	return LDAP_SUCCESS;
 }
+#endif
 
+#ifdef LDAP_CONTROL_NOOP
 static int parseNoOp (
 	Connection *conn,
 	Operation *op,
@@ -435,4 +440,5 @@ static int parseNoOp (
 
 	return LDAP_SUCCESS;
 }
+#endif
 

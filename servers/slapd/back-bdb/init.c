@@ -405,8 +405,12 @@ bdb_initialize(
 {
 	static char *controls[] = {
 		LDAP_CONTROL_MANAGEDSAIT,
+#ifdef LDAP_CONTROL_SUBENTRIES
 		LDAP_CONTROL_SUBENTRIES,
+#endif
+#ifdef LDAP_CONTROL_NOOP
 		LDAP_CONTROL_NOOP,
+#endif
 		NULL
 	};
 
