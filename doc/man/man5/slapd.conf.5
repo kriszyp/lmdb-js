@@ -629,8 +629,10 @@ Used to specify the fully qualified domain name used for SASL processing.
 Specify SASL realm.  Default is empty.
 .TP
 .B sasl-regexp <match> <replace>
-Used by the SASL authorization mechanism to convert a SASL authenticated 
-username to an LDAP DN. When an authorization request is received, the SASL 
+Used by the SASL mechanism to convert a SASL authenticated 
+username to an LDAP DN used for authorization purposes.  Note that
+the resultant DN need not refer to an existing entry to be considered
+valid.  When an authorization request is received, the SASL 
 .B USERNAME, REALM, 
 and
 .B MECHANISM
