@@ -587,7 +587,7 @@ ber_get_next(
 				tlen <<=8;
 				tlen |= *p++;
 			}
-			ber->ber_ptr = p;
+			ber->ber_ptr = (char *)p;
 		} else {
 			tlen = *(unsigned char *)ber->ber_ptr++;
 		}
