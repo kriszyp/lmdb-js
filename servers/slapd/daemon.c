@@ -149,7 +149,7 @@ static void slapd_close(int s) {
 	slapd_remove(s);
 
 	Debug( LDAP_DEBUG_CONNS, "daemon: closing %d\n", s, 0, 0 );
-	close(s);
+	tcp_close(s);
 }
 
 static void *
@@ -357,7 +357,7 @@ slapd_daemon_task(
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: %d beyond descriptor table size %d\n",
 					s, dtblsize, 0 );
-				close(s);
+				tcp_close(s);
 				continue;
 			}
 #endif
@@ -409,7 +409,7 @@ slapd_daemon_task(
 					client_addr == NULL ? "unknown" : client_addr,
 			   	  0, 0 );
 
-				close(s);
+				tcp_close(s);
 				continue;
 			}
 #endif /* HAVE_TCPD */
@@ -420,7 +420,7 @@ slapd_daemon_task(
 					s,
 					client_name == NULL ? "unknown" : client_name,
 					client_addr == NULL ? "unknown" : client_addr);
-				close(s);
+				tcp_close(s);
 				continue;
 			}
 
@@ -510,7 +510,7 @@ slapd_daemon_task(
 	}
 
 	if( tcps >= 0 ) {
-		close( tcps );
+		tcp_close( tcps );
 	}
 
 	ldap_pvt_thread_mutex_lock( &active_threads_mutex );

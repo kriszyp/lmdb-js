@@ -254,7 +254,7 @@ main( int argc, char **argv )
 
 		switch( pid = fork() ) {
 		case 0:		/* child */
-			close( s );
+			tcp_close( s );
 			do_queries( ns );
 			break;
 
@@ -263,7 +263,7 @@ main( int argc, char **argv )
 			break;
 
 		default:	/* parent */
-			close( ns );
+			tcp_close( ns );
 			if ( debug )
 				fprintf( stderr, "forked child %d\n", pid );
 			break;

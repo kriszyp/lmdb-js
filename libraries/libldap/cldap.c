@@ -81,11 +81,11 @@ cldap_open( char *host, int port )
     sock.sin_family = AF_INET;
     sock.sin_port = 0;
     if ( bind(s, (struct sockaddr *) &sock, sizeof(sock)) < 0)  {
-	close( s );
+	tcp_close( s );
 	return( NULL );
     }
     if (( ld = ldap_init( host, port )) == NULL ) {
-	close( s );
+	tcp_close( s );
 	return( NULL );
     }
 	

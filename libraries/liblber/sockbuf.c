@@ -579,8 +579,9 @@ int lber_pvt_sb_set_nonblock( Sockbuf *sb, int nb )
    }
 #ifdef FIONBIO
    if (lber_pvt_sb_in_use(sb)) {
-      int status = (nb!=0);
-      if (ioctl( lber_pvt_sb_get_desc(sb), FIONBIO, (caddr_t)&status ) == -1 ) {
+	   /* WINSOCK requires the status to be a long */
+		u_long status = (nb!=0);
+		if (ioctl( lber_pvt_sb_get_desc(sb), FIONBIO, &status ) == -1 ) {
 	 return -1;
       }
    }

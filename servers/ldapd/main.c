@@ -418,7 +418,7 @@ main( int argc, char **argv )
 				    inet_ntoa( from.sin_addr ) );
 			}
 
-			close(ns);
+			tcp_close(ns);
 			continue;
 		}
 #endif /* TCP_WRAPPERS */
@@ -436,7 +436,7 @@ main( int argc, char **argv )
 
 #ifdef VMS
 		/* This is for debug on terminal on VMS */
-		close( tcps );
+		tcp_close( tcps );
 #ifdef LDAP_PROCTITLE
 		setproctitle( hp == NULL ? inet_ntoa( from.sin_addr ) :
 		    hp->h_name );
@@ -450,7 +450,7 @@ main( int argc, char **argv )
 
 		switch( pid = fork() ) {
 		case 0:         /* child */
-			close( tcps );
+			tcp_close( tcps );
 #ifdef LDAP_PROCTITLE
                         sprintf( title, "%s (%d)\n", hp == NULL ?
 				inet_ntoa( from.sin_addr ) : hp->h_name,
@@ -467,14 +467,14 @@ main( int argc, char **argv )
 #ifdef LDAP_DEBUG
 			if ( ldap_debug ) perror( "fork" );
 #endif
-			close( ns );
+			tcp_close( ns );
 			syslog( LOG_ERR, "fork failed %m" );
 			/* let things cool off */
 			sleep( 15 );
 			break;
 
 		default:        /* parent */
-			close( ns );
+			tcp_close( ns );
 			Debug( LDAP_DEBUG_TRACE, "forked child %d\n", pid, 0,
 			    0 );
 			break;
