@@ -3,26 +3,11 @@
  * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
-/*
- * Copyright (c) 1996, 1998 by Internet Software Consortium.
- *
- * Permission to use, copy, modify, and distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND INTERNET SOFTWARE CONSORTIUM DISCLAIMS
- * ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL INTERNET SOFTWARE
- * CONSORTIUM BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
- * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
- * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
- * ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
- * SOFTWARE.
- */
 
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <ac/stdarg.h>
 #include <ac/string.h>
@@ -31,8 +16,6 @@
 #include "ldap_log.h"
 #include "ldap_defaults.h"
 #include "lber.h"
-
-static FILE *log_file;
 
 struct M2S
 {
@@ -49,7 +32,22 @@ struct DEBUGLEVEL
 static struct DEBUGLEVEL **levelArray;
 static long   numLevels = 0;
 
-int global_level = 0;
+static FILE *log_file = NULL;
+static int global_level = 0;
+
+#if 0
+#ifdef LDAP_SYSLOG
+static int use_syslog = 0;
+
+static int debug2syslog(int l) {
+	switch (l) {
+	/* insert mapping cases here */
+	default:
+	}
+	return LOG_DEBUG
+}
+#endif
+#endif
 
 static char *lutil_levels[] = {"emergency", "alert", "critical",
                            "error", "warning", "notice",
@@ -122,24 +120,63 @@ void lutil_log_int(FILE* file, char *subsys, int level, const char *fmt, va_list
 	struct tm *today;
 	int i;
 
-        if ( levelArray == NULL ) return; /* logging isn't set up */
-        /*
-         * Look for the subsystem in the level array.  When we find it, break out of the
-         * loop.
-         */
-	for( i = 0; i < numLevels; i++ )
-	{
+	if ( levelArray == NULL ) return; /* logging isn't set up */
+
+	/*
+	 * Look for the subsystem in the level array.  When we find it,
+	 * break out of the loop.
+	 */
+	for( i = 0; i < numLevels; i++ ) {
 		if ( levelArray[i] == NULL ) return; 
 		if ( ! strcasecmp( levelArray[i]->subsystem, subsys ) ) break;
 	}
 
-        /*
-         * If we didn't find the subsystem, or the set level is less than
-         * the requested output level, don't output it.
-         */
-	if ( (level > global_level) && 
-             ((i > numLevels ) || ( level > levelArray[i]->level )) )
+	/*
+	 * If we didn't find the subsystem, or the set level is less than
+	 * the requested output level, don't output it.
+	 */
+	if ( (level > global_level) &&
+		((i > numLevels ) || ( level > levelArray[i]->level )) )
+	{
 		return;
+	}
+
+#ifdef HAVE_WINSOCK
+#define BUFOFFSET 18
+	/*
+	 * Stick the time in the buffer to output when using Winsock
+	 * as NT can't pipe to a timestamp program like Unix can.
+	 * This, of course, makes some logs hard to read.
+     */
+	time( &now );
+	today = localtime( &now );
+	sprintf( buffer, "%4d%02d%02d:%02d:%02d:%02d ",
+		today->tm_year + 1900, today->tm_mon + 1,
+		today->tm_mday, today->tm_hour,
+		today->tm_min, today->tm_sec );
+#else
+#define BUFOFFSET 0
+#endif
+
+	/*
+	 * format the output data.
+	 */
+#ifdef HAVE_VSNPRINTF
+	vsnprintf( &buffer[BUFOFFSET], sizeof(buffer)-BUFOFFSET, fmt, vl );
+#else
+	vsprintf( &buffer[BUFOFFSET], fmt, vl );
+#endif
+	buffer[sizeof(buffer)-1] = '\0';
+
+#if 0
+#ifdef LDAP_SYSLOG
+	/* we're configured to use syslog */
+	if( use_syslog ) {
+		syslog( debug2syslog(level), buffer );
+		return;
+	}
+#endif
+#endif
 
 #if 0
 #ifdef HAVE_WINSOCK
@@ -157,56 +194,15 @@ void lutil_log_int(FILE* file, char *subsys, int level, const char *fmt, va_list
 #endif
 #endif
 
-        /*
-         * Stick the time in the buffer to output.  Kurt doesn't like
-         * doing this here, but NT can't pipe to a timestamp program
-         * like Unix can, and I don't think it costs much.
-         */
-	time( &now );
-	today = localtime( &now );
-	sprintf( buffer, "%4d%02d%02d:%02d:%02d:%02d ",
-		today->tm_year + 1900, today->tm_mon + 1,
-		today->tm_mday, today->tm_hour,
-		today->tm_min, today->tm_sec );
-
-        /*
-         * format the output data.
-         */
-#ifdef HAVE_VSNPRINTF
-	vsnprintf( &buffer[18], sizeof(buffer)-18, fmt, vl );
-#else
-	vsprintf( &buffer[18], fmt, vl );
-#endif
-	buffer[sizeof(buffer)-1] = '\0';
-
-        /*
-         * If the user set up a file using 
-         * ber_set_option( NULL, LBER_OPT_LOG_PRINT_FILE, file), use
-         * it.  Otherwise, just output to stderr.
-         */
 	if( file != NULL ) {
-		fputs( buffer, file );
-		fflush( file );
+		/*
+		 * Use stderr unless file was specified via:
+		 *   ber_set_option( NULL, LBER_OPT_LOG_PRINT_FILE, file)
+		 */
+		file = stderr;
 	}
-        else
-        {
-            fputs( buffer, stderr );
-        }
 
-/*
- * Kurt or someone needs to decide what to do about this.  This
- * code will log to syslog if the level is less than a normal
- * debug level (meaning a warning or error of some kind).  However,
- * having the code here means that ldap_syslog has to be defined.
- */
-#if 0
-#ifdef LDAP_SYSLOG
-	if ( level < LDAP_LEVEL_ENTRY && level >= ldap_syslog )
-	{
-		syslog( level, buffer );
-	}
-#endif
-#endif
+    fputs( buffer, file );
 }
 
 /*

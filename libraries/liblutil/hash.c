@@ -5,15 +5,11 @@
  */
 
 #include "portable.h"
-#include <ac/string.h>
-
-/* include socket.h to get sys/types.h and/or winsock2.h */
-#include <ac/socket.h>
 
 #include <lutil_hash.h>
 
 /* offset and prime for 32-bit FNV-1 */
-#define HASH_OFFSET	0x811c9dc5
+#define HASH_OFFSET	0x811c9dc5U
 #define HASH_PRIME	16777619
 
 
@@ -60,8 +56,8 @@ lutil_HASHFinal( unsigned char *digest, struct lutil_HASHContext *ctx )
 {
 	ber_uint_t h = ctx->hash;
 
-	digest[0] = h & 0xff;
-	digest[1] = (h>>8) & 0xff;
-	digest[2] = (h>>16) & 0xff;
-	digest[3] = (h>>24) & 0xff;
+	digest[0] = h & 0xffU;
+	digest[1] = (h>>8) & 0xffU;
+	digest[2] = (h>>16) & 0xffU;
+	digest[3] = (h>>24) & 0xffU;
 }

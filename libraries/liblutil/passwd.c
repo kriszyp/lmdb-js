@@ -521,9 +521,10 @@ static int chk_smd5(
 	/* hash credentials with salt */
 	lutil_MD5Init(&MD5context);
 	lutil_MD5Update(&MD5context,
-		(const unsigned char *) cred->bv_val, cred->bv_len );
+		(const unsigned char *) cred->bv_val,
+		cred->bv_len );
 	lutil_MD5Update(&MD5context,
-		(const unsigned char *) &orig_pass[sizeof(MD5digest)],
+		&orig_pass[sizeof(MD5digest)],
 		rc - sizeof(MD5digest));
 	lutil_MD5Final(MD5digest, &MD5context);
 
@@ -558,7 +559,8 @@ static int chk_md5(
 	/* hash credentials with salt */
 	lutil_MD5Init(&MD5context);
 	lutil_MD5Update(&MD5context,
-		(const unsigned char *) cred->bv_val, cred->bv_len );
+		(const unsigned char *) cred->bv_val,
+		cred->bv_len );
 	lutil_MD5Final(MD5digest, &MD5context);
 
 	/* compare */
