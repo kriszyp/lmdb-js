@@ -215,7 +215,8 @@ elif test $cross_compiling = yes -a $ol_enable_x_compile = no; then
 	AC_ERROR([  if cross compiling,  add --enable-x-compile.])
 fi
 
-AC_PROG_GCC_TRADITIONAL
+dnl OpenLDAP requires STDC features
+dnl AC_PROG_GCC_TRADITIONAL
 AC_PROG_CPP
 
 
@@ -241,6 +242,23 @@ dnl
 	AC_CHECK_LIB(inet, socket)
 	AC_CHECK_LIB(gen, main)
 ])
+
+# LDAPD tests
+if test $ol_enable_ldapd != no ; then
+	dnl look for ISODE libraries
+	AC_CHECK_LIB(dsap, main, [
+		AC_DEFINE(HAVE_DSAP,1)
+		LDAPD_LIBS="$LDAPD_LIBS -ldsap"
+		],:)
+	AC_CHECK_LIB(isode, main, [
+		AC_DEFINE(HAVE_ISODE,1)
+		LDAPD_LIBS="$LDAPD_LIBS -lisode"
+		],:)
+	AC_CHECK_LIB(xtpp, main, [
+		AC_DEFINE(HAVE_XTPP,1)
+		LDAPD_LIBS="$LDAPD_LIBS -lxtpp"
+		],:)
+fi
 
 dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)

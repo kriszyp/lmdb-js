@@ -30,8 +30,14 @@
 /* define if you have DCE */
 #undef HAVE_DCE
 
+/* define if you have DSAP */
+#undef HAVE_DSAP
+
 /* define if you have GDBM */
 #undef HAVE_GDBM
+
+/* define if you have ISODE */
+#undef HAVE_ISODE
 
 /* define if you have Kerberos */
 #undef HAVE_KERBEROS
@@ -80,6 +86,9 @@
 
 /* define if you have Sun LWP (Solaris style) */
 #undef HAVE_THR
+
+/* define if you have XTPP */
+#undef HAVE_XTPP
 
 /* define this for connectionless LDAP support */
 #undef LDAP_CONNECTIONLESS
