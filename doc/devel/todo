@@ -31,9 +31,9 @@ OpenLDAP 2.x Projects
 Large projects
 --------------
 Localize slapd
-Implement X.500 administrative models (e.g. subentries, etc.)
-Implement LDAP component matching
-Implement LDAP sorted search results control
+Implement X.500 administrative models (e.g. subentries (RFC 3672), etc.)
+Implement LDAP component matching (RFC 3687)
+Implement LDAP sorted search results control (RFC 2891)
 
 
 Medium projects
@@ -49,8 +49,9 @@ Localize tools
 
 Small projects
 --------------
-Add dumpasn1 logging support
+Implement additional matching rules (RFC 3698)
 Implement LDAPprep and SASLprep
+Add dumpasn1 logging support
 Add tests to test suite
 Convert utfconv.txt into man page(s).
 Recode linked-list structs to use <ldap_queue.h> macros
