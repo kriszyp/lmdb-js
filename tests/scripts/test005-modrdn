@@ -214,11 +214,12 @@ echo "Filtering original ldif used to create database..."
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
-kill -HUP $PID
 if test $? != 0 ; then
 	echo "comparison failed - modrdn operations did not complete correctly"
+	kill -HUP $PID
 	exit 1
 fi
+kill -HUP $PID
 
 echo ">>>>> Test succeeded"
 
