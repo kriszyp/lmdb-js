@@ -387,12 +387,18 @@ config_back_db_open( BackendDB *be )
 
 	/* Create database nodes... */
 	for (i=0; i<nBackendDB; i++) {
+		slap_overinfo *oi = NULL;
 		if ( i == 0 ) {
 			bptr = frontendDB;
 		} else {
 			bptr = &backendDB[i];
 		}
-		bi = bptr->bd_info;
+		if ( overlay_is_over( bptr )) {
+			oi = bptr->bd_info->bi_private;
+			bi = oi->oi_orig;
+		} else {
+			bi = bptr->bd_info;
+		}
 		rdn.bv_val = c.log;
 		rdn.bv_len = sprintf(rdn.bv_val, "%s={%0x}%s", cfAd_database->ad_cname.bv_val,
 			i, bi->bi_type);
@@ -410,6 +416,31 @@ config_back_db_open( BackendDB *be )
 		}
 		ceprev = ce;
 		/* Iterate through overlays */
+		if ( oi ) {
+			slap_overinst *on;
+			Entry *oe;
+			CfEntryInfo *opar = ce, *oprev = NULL;
+			int j;
+
+			for (j=0,on=oi->oi_list; on; j++,on=on->on_next) {
+				rdn.bv_val = c.log;
+				rdn.bv_len = sprintf(rdn.bv_val, "%s={%0x}%s",
+					cfAd_overlay->ad_cname.bv_val, j, on->on_bi.bi_type );
+				oe = config_alloc_entry( &e->e_nname, &rdn );
+				ce = oe->e_private;
+				c.be = bptr;
+				c.bi = &on->on_bi;
+				ce->ce_be = c.be;
+				ce->ce_bi = c.bi;
+				config_build_entry( &c, oe, cfOc_overlay, &rdn, ct, BI_TABLE );
+				if ( !opar->ce_kids ) {
+					opar->ce_kids = ce;
+				} else {
+					oprev->ce_sibs = ce;
+				}
+				oprev = ce;
+			}
+		}
 	}
 
 	return 0;
