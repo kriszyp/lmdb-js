@@ -605,10 +605,9 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		dnl 	pthread_mutex_unlock() in -lpthread -lmach -lexc -lc_r (OSF/1)
 		dnl 	pthread_mutex_lock() in -lpthread -lmach -lexc (OSF/1)
 		dnl 	pthread_mutex_trylock() in -lpthread -lexc (OSF/1)
+		dnl 	pthread_join() -Wl,-woff,85 -lpthread (IRIX)
 		dnl 	pthread_create() in -lpthread (many)
 		dnl 	pthread_create() in -lc_r (FreeBSD)
-		dnl 	pthread_create() in -lpthreads (many)
-		dnl 	pthread_join() -Wl,-woff,85 -lpthreads (IRIX)
 		dnl
 		dnl Check pthread (draft4) flags (depreciated)
 		dnl 	pthread_create() with -threads (OSF/1)
@@ -617,6 +616,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		dnl 	pthread_mutex_unlock() in -lpthreads -lmach -lexc -lc_r (OSF/1)
 		dnl 	pthread_mutex_lock() in -lpthreads -lmach -lexc (OSF/1)
 		dnl 	pthread_mutex_trylock() in -lpthreads -lexc (OSF/1)
+		dnl 	pthread_create() in -lpthreads (many)
 		dnl
 
 		dnl pthread_create in $LIBS
@@ -828,6 +828,17 @@ int main(argc, argv)
 			LIBS="$save_LIBS"
 		fi
 
+		dnl IRIX Pthread check
+		if test $ol_link_threads = no ; then
+			dnl try IRIX Pthreads -Wl,-woff,85 -lpthread
+			save_LIBS="$LIBS"
+			AC_CHECK_LIB(pthread, pthread_join, [
+				ol_link_threads=posix
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread"
+				],:,[-Wl,-woff,85])
+			LIBS="$save_LIBS"
+		fi
+
 		if test $ol_link_threads = no ; then
 			dnl try -lpthread
 			save_LIBS="$LIBS"
@@ -843,26 +854,6 @@ int main(argc, argv)
 			AC_CHECK_LIB(c_r, pthread_create, [
 				ol_link_threads=posix
 				LTHREAD_LIBS="$LTHREAD_LIBS -lc_r"],:)
-			LIBS="$save_LIBS"
-		fi
-
-		if test $ol_link_threads = no ; then
-			dnl try -lpthreads
-			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthreads, pthread_create, [
-				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads"],:)
-			LIBS="$save_LIBS"
-		fi
-
-		dnl IRIX Pthread check
-		if test $ol_link_threads = no ; then
-			dnl try IRIX Pthreads -Wl,-woff,85 -lpthreads
-			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthreads, pthread_join, [
-				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads"
-				],:,[-Wl,-woff,85])
 			LIBS="$save_LIBS"
 		fi
 
@@ -922,6 +913,15 @@ int main(argc, argv)
 					ol_with_yielding_select=yes
 				fi
 				],:,[-lexc])
+			LIBS="$save_LIBS"
+		fi
+
+		if test $ol_link_threads = no ; then
+			dnl try -lpthreads
+			save_LIBS="$LIBS"
+			AC_CHECK_LIB(pthreads, pthread_create, [
+				ol_link_threads=posix
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads"],:)
 			LIBS="$save_LIBS"
 		fi
 
