@@ -449,7 +449,7 @@ retry:	rc = txn_abort( ltid );
 	}
 
 	/* modify entry */
-	rc = bdb_modify_internal( be, conn, op, ltid, dn, &mod[0], e, &text );
+	rc = bdb_modify_internal( be, conn, op, ltid, &mod[0], e, &text );
 
 	if( rc != LDAP_SUCCESS ) {
 		goto return_results;

@@ -318,8 +318,8 @@ bdb_initialize(
 	bi->bi_acl_group = bdb_group;
 	bi->bi_acl_attribute = bdb_attribute;
 
-#endif
 	bi->bi_chk_referrals = bdb_referrals;
+#endif
 
 	bi->bi_entry_release_rw = 0;
 

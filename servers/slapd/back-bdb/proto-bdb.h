@@ -130,7 +130,6 @@ int bdb_modify_internal(
 	Connection *conn,
 	Operation *op,
 	DB_TXN *tid,
-	const char *dn,
 	Modifications *modlist,
 	Entry *e,
 	const char **text );

@@ -23,7 +23,6 @@ int bdb_modify_internal(
 	Connection *conn,
 	Operation *op,
 	DB_TXN *tid,
-	const char *dn,
 	Modifications *modlist,
 	Entry *e,
 	const char **text )
@@ -33,7 +32,8 @@ int bdb_modify_internal(
 	Modifications	*ml;
 	Attribute	*save_attrs;
 
-	Debug(LDAP_DEBUG_TRACE, "bdb_modify_internal: %s\n", dn, 0, 0);
+	Debug( LDAP_DEBUG_TRACE, "bdb_modify_internal: 0x%08lx: %s\n",
+		e->e_id, e->e_dn, 0);
 
 	if ( !acl_check_modlist( be, conn, op, e, modlist )) {
 		return LDAP_INSUFFICIENT_ACCESS;
@@ -146,8 +146,7 @@ bdb_modify(
 	Operation	*op,
 	const char	*dn,
 	const char	*ndn,
-	Modifications	*modlist
-)
+	Modifications	*modlist )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc;
@@ -158,11 +157,13 @@ bdb_modify(
 	DB_TXN	*ltid;
 	struct bdb_op_info opinfo;
 
-	Debug(LDAP_DEBUG_ARGS, "bdb_back_modify: %s\n", dn, 0, 0);
+	Debug( LDAP_DEBUG_ARGS, "bdb_modify: %s\n", dn, 0, 0 );
 
 	if (0) {
-		/* transaction retry */
-retry:	rc = txn_abort( ltid );
+retry:	/* transaction retry */
+		Debug(LDAP_DEBUG_TRACE,
+			"bdb_modify: retrying...\n", 0, 0, 0);
+		rc = txn_abort( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
 		if( rc != 0 ) {
@@ -253,7 +254,7 @@ retry:	rc = txn_abort( ltid );
 	}
 	
 	/* Modify the entry */
-	rc = bdb_modify_internal( be, conn, op, ltid, ndn, modlist, e, &text );
+	rc = bdb_modify_internal( be, conn, op, ltid, modlist, e, &text );
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -294,7 +295,7 @@ retry:	rc = txn_abort( ltid );
 		text = "commit failed";
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modify: added id=%08x dn=\"%s\"\n",
+			"bdb_modify: updated id=%08x dn=\"%s\"\n",
 			e->e_id, e->e_dn, 0 );
 		rc = LDAP_SUCCESS;
 		text = NULL;

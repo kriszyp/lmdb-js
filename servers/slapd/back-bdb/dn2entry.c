@@ -30,7 +30,7 @@ bdb_dn2entry(
 	ID		id;
 	char	*matchedDN = NULL;
 
-	Debug(LDAP_DEBUG_TRACE, "bdb_dn2entry: dn: \"%s\"\n",
+	Debug(LDAP_DEBUG_TRACE, "bdb_dn2entry(\"%s\")\n",
 		dn, 0, 0 );
 
 	*e = NULL;

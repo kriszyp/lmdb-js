@@ -160,7 +160,7 @@ retry:	rc = txn_abort( ltid );
 		ml.sml_next = NULL;
 
 		rc = bdb_modify_internal( be, conn, op, ltid,
-			op->o_ndn, &ml, e, text );
+			&ml, e, text );
 
 		switch(rc) {
 		case DB_LOCK_DEADLOCK:
