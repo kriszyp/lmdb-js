@@ -181,7 +181,8 @@ main( int argc, char **argv )
 	 */
 
 	sanum = 0;
-	sprintf( scmd, "%s%s%s", progdir, LDAP_DIRSEP, SEARCHCMD );
+	snprintf( scmd, sizeof scmd, "%s" LDAP_DIRSEP SEARCHCMD,
+		progdir );
 	sargs[sanum++] = scmd;
 	sargs[sanum++] = "-h";
 	sargs[sanum++] = host;
@@ -200,7 +201,8 @@ main( int argc, char **argv )
 	 */
 
 	ranum = 0;
-	sprintf( rcmd, "%s%s%s", progdir, LDAP_DIRSEP, READCMD );
+	snprintf( rcmd, sizeof rcmd, "%s" LDAP_DIRSEP READCMD,
+		progdir );
 	rargs[ranum++] = rcmd;
 	rargs[ranum++] = "-h";
 	rargs[ranum++] = host;
@@ -217,7 +219,8 @@ main( int argc, char **argv )
 	 */
 
 	aanum = 0;
-	sprintf( acmd, "%s%s%s", progdir, LDAP_DIRSEP, ADDCMD );
+	snprintf( acmd, sizeof acmd, "%s" LDAP_DIRSEP ADDCMD,
+		progdir );
 	aargs[aanum++] = acmd;
 	aargs[aanum++] = "-h";
 	aargs[aanum++] = host;
@@ -268,7 +271,8 @@ get_file_name( char *dirname, char *filename )
 {
 	char buf[MAXPATHLEN];
 
-	sprintf( buf, "%s%s%s", dirname, LDAP_DIRSEP, filename );
+	snprintf( buf, sizeof buf, "%s" LDAP_DIRSEP "%s",
+		dirname, filename );
 	return( strdup( buf ));
 }
 

@@ -167,10 +167,8 @@ urlize(char *url)
 {
 	char *p;
 
-	if (*LDAP_DIRSEP != '/')
-	{
-		for (p = url; *p; p++)
-		{
+	if (*LDAP_DIRSEP != '/') {
+		for (p = url; *p; p++) {
 			if (*p == *LDAP_DIRSEP)
 				*p = '/';
 		}
@@ -1193,7 +1191,8 @@ print_entry(
 				{
 					int tmpfd;
 					/* write value to file */
-					sprintf( tmpfname, "%s" LDAP_DIRSEP "ldapsearch-%s-XXXXXX",
+					snprintf( tmpfname, sizeof tmpfname,
+						"%s" LDAP_DIRSEP "ldapsearch-%s-XXXXXX",
 						tmpdir, a );
 					tmpfp = NULL;
 
@@ -1219,7 +1218,7 @@ print_entry(
 
 					fclose( tmpfp );
 
-					sprintf( url, "%s%s", urlpre,
+					snprintf( url, sizeof url, "%s%s", urlpre,
 						&tmpfname[strlen(tmpdir) + sizeof(LDAP_DIRSEP) - 1] );
 
 					urlize( url );
