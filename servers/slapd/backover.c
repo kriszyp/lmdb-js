@@ -162,6 +162,25 @@ enum op_which {
 	op_last
 };
 
+/*
+ * default return code in case of missing backend function
+ * and overlay stack returning SLAP_CB_CONTINUE
+ */
+static int op_rc[] = {
+	LDAP_UNWILLING_TO_PERFORM,	/* bind */
+	LDAP_UNWILLING_TO_PERFORM,	/* unbind */
+	LDAP_UNWILLING_TO_PERFORM,	/* search */
+	LDAP_UNWILLING_TO_PERFORM,	/* compare */
+	LDAP_UNWILLING_TO_PERFORM,	/* modify */
+	LDAP_UNWILLING_TO_PERFORM,	/* modrdn */
+	LDAP_UNWILLING_TO_PERFORM,	/* add */
+	LDAP_UNWILLING_TO_PERFORM,	/* delete */
+	LDAP_UNWILLING_TO_PERFORM,	/* abandon */
+	LDAP_UNWILLING_TO_PERFORM,	/* cancel */
+	LDAP_UNWILLING_TO_PERFORM,	/* extended */
+	LDAP_SUCCESS			/* aux_chk_referrals */
+};
+
 static int
 over_op_func(
 	Operation *op,
@@ -197,7 +216,7 @@ over_op_func(
 	}
 	/* should not fall thru this far without anything happening... */
 	if ( rc == SLAP_CB_CONTINUE ) {
-		rc = LDAP_UNWILLING_TO_PERFORM;
+		rc = op_rc[ which ];
 	}
 	op->o_callback = cb.sc_next;
 	return rc;
