@@ -210,6 +210,13 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 #endif
 
 	rc = LDAP_PROTOCOL_ERROR;
+	/*
+	 * dn[.<dnstyle>]:<dnpattern>
+	 * <dnstyle> ::= {exact|regex|children|subtree|onelevel}
+	 *
+	 * <dnstyle> defaults to "exact"
+	 * if <dnstyle> is not "regex", <dnpattern> must pass DN normalization
+	 */
 	if ( !strncasecmp( uri->bv_val, "dn", STRLENOF( "dn" ) ) ) {
 		bv.bv_val = uri->bv_val + STRLENOF( "dn" );
 
@@ -224,7 +231,7 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 				bv.bv_val += STRLENOF( "regex:" );
 				*scope = LDAP_X_SCOPE_REGEX;
 
-			} else if ( !strncasecmp( bv.bv_val, "children:", STRLENOF( "chldren:" ) ) ) {
+			} else if ( !strncasecmp( bv.bv_val, "children:", STRLENOF( "children:" ) ) ) {
 				bv.bv_val += STRLENOF( "children:" );
 				*scope = LDAP_X_SCOPE_CHILDREN;
 
@@ -248,7 +255,7 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 
 		bv.bv_val += strspn( bv.bv_val, " " );
 		/* jump here in case no type specification was present
-		 * and uir was not an URI... HEADS-UP: assuming EXACT */
+		 * and uri was not an URI... HEADS-UP: assuming EXACT */
 is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 		switch ( *scope ) {
@@ -274,6 +281,9 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 		return rc;
 
+	/*
+	 * u:<uid>
+	 */
 	} else if ( ( uri->bv_val[ 0 ] == 'u' || uri->bv_val[ 0 ] == 'U' )
 			&& ( uri->bv_val[ 1 ] == ':' 
 				|| uri->bv_val[ 1 ] == '/' 
@@ -314,6 +324,14 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 		return rc;
 
+	/*
+	 * group[/<groupoc>[/<groupat>]]:<groupdn>
+	 *
+	 * groupoc defaults to "groupOfNames"
+	 * groupat defaults to "member"
+	 * 
+	 * <groupdn> must pass DN normalization
+	 */
 	} else if ( strncasecmp( uri->bv_val, "group", STRLENOF( "group" ) ) == 0 )
 	{
 		struct berval	group_dn = BER_BVNULL,
@@ -367,10 +385,22 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 		}
 		return rc;
 	}
-		
+
+	/*
+	 * ldap:///<base>??<scope>?<filter>
+	 * <scope> ::= {base|one|subtree}
+	 *
+	 * <scope> defaults to "base"
+	 * <base> must pass DN normalization
+	 * <filter> must pass str2filter()
+	 */
 	rc = ldap_url_parse( uri->bv_val, &ludp );
 	if ( rc == LDAP_URL_ERR_BADSCHEME ) {
-		/* last chance: assume it's a(n exact) DN ... */
+		/*
+		 * last chance: assume it's a(n exact) DN ...
+		 *
+		 * NOTE: must pass DN normalization
+		 */
 		bv.bv_val = uri->bv_val;
 		*scope = LDAP_X_SCOPE_EXACT;
 		goto is_dn;
@@ -772,14 +802,26 @@ static int sasl_sc_smatch( Operation *o, SlapReply *rs )
 {
 	smatch_info *sm = o->o_callback->sc_private;
 
-	if (rs->sr_type != REP_SEARCH) return 0;
+	if ( rs->sr_type != REP_SEARCH ) {
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			sm->match = -1;
+		}
+		return 0;
+	}
+
+	if ( sm->match == 1 ) {
+		sm->match = -1;
+		return 0;
+	}
 
 	if (dn_match(sm->dn, &rs->sr_entry->e_nname)) {
 		sm->match = 1;
-		return -1;	/* short-circuit the search */
+
+	} else {
+		sm->match = -1;
 	}
 
-	return 1;
+	return 0;
 }
 
 /*
@@ -984,7 +1026,7 @@ exact_match:
 
 	op.o_bd->be_search( &op, &rs );
 
-	if (sm.match) {
+	if (sm.match == 1) {
 		rc = LDAP_SUCCESS;
 	} else {
 		rc = LDAP_INAPPROPRIATE_AUTH;
