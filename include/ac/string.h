@@ -3,7 +3,7 @@
 #ifndef _AC_STRING_H
 #define _AC_STRING_H
 
-#if STDC_HEADERS
+#ifdef STDC_HEADERS
 #	include <string.h>
 #else
 #	ifndef HAVE_STRCHR
@@ -18,18 +18,15 @@
 #	endif
 #endif
 
-#ifdef HAVE_MEMMOVE
-#	define SAFEMEMCPY( d, s, n )		 	memmove((s), (d), (n))
+#if defined( HAVE_MEMMOVE )
+#define SAFEMEMCPY( d, s, n )		 	memmove((s), (d), (n))
+#elif defined( HAVE_BCOPY )
+#define SAFEMEMCPY( d, s, n ) 		bcopy((s), (d), (n))
+#elif defined( MACOS )
+#define SAFEMEMCPY( d, s, n ) 	BlockMoveData((Ptr)(s), (Ptr)(d), (n))
 #else
-#	ifdef HAVE_BCOPY
-#		define SAFEMEMCPY( d, s, n ) 		bcopy((s), (d), (n))
-#	else
-#		ifdef MACOS
-#			define SAFEMEMCPY( d, s, n ) 	BlockMoveData((Ptr)(s), (Ptr)(d), (n))
-#		else
-#			define SAFEMEMCPY( d, s, n )	memmove((s), (d), (n))
-#		endif
-#	endif
+/* nothing left but memcpy() */
+#define SAFEMEMCPY( d, s, n )	memcpy((s), (d), (n))
 #endif
 
 #endif /* _AC_STRING_H */

@@ -88,6 +88,7 @@
 #define PDP_ENDIAN  3412		/* LSB first in word, MSW first in long */
 
 /* assume autoconf's AC_C_BIGENDIAN has been run */
+/* if it hasn't, we assume (maybe falsely) the order is LITTLE ENDIAN */
 #ifdef WORDS_BIGENDIAN
 #define BYTE_ORDER  BIG_ENDIAN
 #else
