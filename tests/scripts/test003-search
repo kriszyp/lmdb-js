@@ -77,7 +77,7 @@ fi
 
 echo "Testing OR searching..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
-	'(|(undefined=fubar)(objectclass=groupofnames)(sn=jones))' >> $SEARCHOUT 2>&1
+	'(|(cn=)(undef=*)(objectclass=groupofnames)(sn=jones))' >> $SEARCHOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID
