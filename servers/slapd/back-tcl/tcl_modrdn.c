@@ -1,6 +1,6 @@
 /* modrdn.c - tcl modify rdn routines
  *
- * $Id: tcl_modrdn.c,v 1.5 1999/02/28 04:55:49 bcollins Exp $
+ * $Id: tcl_modrdn.c,v 1.6 1999/03/05 02:42:46 gomez Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -55,10 +55,17 @@ tcl_back_modrdn (
 	suf_tcl = Tcl_Merge (i, be->be_suffix);
 
 	command = (char *) ch_malloc (strlen (ti->ti_modrdn) + strlen (suf_tcl)
-		+ strlen (dn) + strlen (newrdn) + 64);
-	sprintf (command, "%s MODRDN {%ld} {%s} {%s} {%s} %d",
-		ti->ti_add, op->o_msgid, suf_tcl, dn, newrdn, deleteoldrdn
-		? 1 : 0);
+		+ strlen (dn) + strlen (newrdn)
+		+ (newSuperior ? strlen(newSuperior) : 0) + 64);
+	if ( newSuperior ) {
+		sprintf (command, "%s MODRDN {%ld} {%s} {%s} {%s} %d {%s}",
+			 ti->ti_add, op->o_msgid, suf_tcl, dn, newrdn,
+			 deleteoldrdn ? 1 : 0, newSuperior );
+	} else {
+		sprintf (command, "%s MODRDN {%ld} {%s} {%s} {%s} %d",
+			 ti->ti_add, op->o_msgid, suf_tcl, dn, newrdn,
+			 deleteoldrdn ? 1 : 0 );
+	}	
 	Tcl_Free (suf_tcl);
 
 	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);

@@ -57,6 +57,9 @@ shell_back_modrdn(
 	fprintf( wfp, "dn: %s\n", dn );
 	fprintf( wfp, "newrdn: %s\n", newrdn );
 	fprintf( wfp, "deleteoldrdn: %d\n", deleteoldrdn ? 1 : 0 );
+	if (newSuperior != NULL) {
+		fprintf( wfp, "newSuperior: %s\n", newSuperior );
+	}
 	fclose( wfp );
 
 	/* read in the results and send them along */

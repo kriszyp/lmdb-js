@@ -60,6 +60,9 @@ perl_back_modrdn(
 		XPUSHs(sv_2mortal(newSVpv( dn , 0 )));
 		XPUSHs(sv_2mortal(newSVpv( newrdn , 0 )));
 		XPUSHs(sv_2mortal(newSViv( deleteoldrdn )));
+		if ( newSuperior != NULL ) {
+			XPUSHs(sv_2mortal(newSVpv( newSuperior , 0 )));
+		}
 		PUTBACK ;
 
 		count = perl_call_method("modrdn", G_SCALAR);
