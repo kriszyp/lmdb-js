@@ -118,39 +118,35 @@ ldbm_back_bind(
 			/* stop front end from sending result */
 			rc = 1;
 			goto return_results;
-		} else if ( be_isroot_pw( be, dn, cred ) ) {
+		} 
+
+		/* check for root dn/passwd */
+		if ( be_isroot_pw( be, dn, cred ) ) {
 			/* front end will send result */
+			if(*edn != NULL) free( edn );
 			*edn = ch_strdup( be_root_dn( be ) );
 			rc = 0;
 			goto return_results;
 		}
 
 		if ( (a = attr_find( e->e_attrs, "userpassword" )) == NULL ) {
-			if ( be_isroot_pw( be, dn, cred ) ) {
-				/* front end will send result */
-				*edn = ch_strdup( be_root_dn( be ) );
-				rc = 0;
-				goto return_results;
-			}
 			send_ldap_result( conn, op, LDAP_INAPPROPRIATE_AUTH,
 			    NULL, NULL );
+
+			/* stop front end from sending result */
 			rc = 1;
 			goto return_results;
 		}
 
 		if ( crypted_value_find( a->a_vals, cred, a->a_syntax, 0, cred ) != 0 )
 		{
-			if ( be_isroot_pw( be, dn, cred ) ) {
-				/* front end will send result */
-				*edn = ch_strdup( be_root_dn( be ) );
-				rc = 0;
-				goto return_results;
-			}
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
 				NULL, NULL );
+			/* stop front end from sending result */
 			rc = 1;
 			goto return_results;
 		}
+
 		rc = 0;
 		break;
 
@@ -176,6 +172,7 @@ ldbm_back_bind(
 			    NULL, NULL );
 			rc = 1;
 			goto return_results;
+
 		} else {	/* look for krbName match */
 			struct berval	krbval;
 
