@@ -110,19 +110,19 @@ do_search(
 	if ( scope == LDAP_SCOPE_BASE ) {
 #if defined( SLAPD_MONITOR_DN )
 		if ( strcmp( base, SLAPD_MONITOR_DN ) == 0 ) {
-			monitor_info( conn, op );
+			monitor_info( conn, op, attrs, attrsonly );
 			goto return_results;
 		}
 #endif
 #if defined( SLAPD_CONFIG_DN )
 		if ( strcmp( base, SLAPD_CONFIG_DN ) == 0 ) {
-			config_info( conn, op );
+			config_info( conn, op, attrs, attrsonly );
 			goto return_results;
 		}
 #endif
 #if defined( SLAPD_SCHEMA_DN )
 		if ( strcmp( base, SLAPD_SCHEMA_DN ) == 0 ) {
-			schema_info( conn, op );
+			schema_info( conn, op, attrs, attrsonly );
 			goto return_results;
 		}
 #endif

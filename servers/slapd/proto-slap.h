@@ -152,7 +152,9 @@ int lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
  * monitor.c
  */
 
-void monitor_info LDAP_P(( Connection *conn, Operation *op ));
+void monitor_info LDAP_P((
+	Connection *conn, Operation *op, 
+	char ** attrs, int attrsonly ));
 
 /*
  * operation.c
@@ -278,7 +280,10 @@ extern void * slapd_daemon LDAP_P((void *port));
 extern void	slap_set_shutdown LDAP_P((int sig));
 extern void	slap_do_nothing   LDAP_P((int sig));
 
-extern void	config_info LDAP_P((Connection *conn, Operation *op));
+extern void	config_info LDAP_P((
+	Connection *conn, Operation *op,
+	char ** attrs, int attrsonly ));
+
 extern void	do_abandon LDAP_P((Connection *conn, Operation *op));
 extern void	do_add LDAP_P((Connection *conn, Operation *op));
 extern void	do_bind LDAP_P((Connection *conn, Operation *op));
