@@ -24,7 +24,7 @@ echo "Running slapadd to build slapd database..."
 $LDIF2LDBM -f $CONF -l $LDIF
 RC=$?
 if test $RC != 0 ; then
-	echo "slapadd failed!"
+	echo "slapadd failed ($RC)!"
 	exit $RC
 fi
 
@@ -51,7 +51,7 @@ $SLAPDTESTER -b "$BASEDN" -P "$PROGDIR" -d "$DATADIR" -h localhost -p $PORT -D "
 RC=$?
 
 if test $RC != 0 ; then
-	echo "slapd-tester failed!"
+	echo "slapd-tester failed ($RC)!"
 	exit $RC
 fi 
 
@@ -63,7 +63,7 @@ RC=$?
 kill -HUP $PID
 
 if test $RC != 0 ; then
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	exit $RC
 fi
 

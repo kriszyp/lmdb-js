@@ -713,15 +713,18 @@ static int dosearch(
 		sctrls, cctrls, timelimit, sizelimit, &msgid );
 
 	if( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_search" );
+		fprintf( stderr, "ldapsearch: ldap_search_ext: %s (%d)",
+			ldap_err2string( rc ), rc );
 		return( rc );
 	}
 
 	nresponses = nentries = nreferences = nextended = npartial = 0;
 
 	res = NULL;
+
 	while ((rc = ldap_result( ld, LDAP_RES_ANY,
-		sortattr ? 1 : 0, NULL, &res )) > 0 )
+		sortattr ? LDAP_MSG_ALL : LDAP_MSG_ONE,
+		NULL, &res )) > 0 )
 	{
 		if( sortattr ) {
 			(void) ldap_sort_entries( ld, &res,

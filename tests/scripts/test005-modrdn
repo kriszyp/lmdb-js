@@ -21,7 +21,7 @@ echo "Running slapadd to build slapd database..."
 $LDIF2LDBM -f $CONF -l $LDIF
 RC=$?
 if test $RC != 0 ; then
-	echo "slapadd failed!"
+	echo "slapadd failed ($RC)!"
 	exit $RC
 fi
 
@@ -42,7 +42,7 @@ for i in 0 1 2 3 4 5; do
 done
 
 if test $RC != 0 ; then
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -50,23 +50,23 @@ fi
 # -r used to do remove of old rdn
 
 echo "Testing modrdn(deleteoldrdn=0)..."
-$LDAPMODRDN -v -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD > \
+$LDAPMODRDN -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD > \
 	$TESTOUT 2>&1 'cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US' 'cn=James A Jones III'
 
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapmodrdn failed!"
+	echo "ldapmodrdn failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
 
 echo "Testing modrdn(deleteoldrdn=1)..."
-$LDAPMODRDN -v -D "$MANAGERDN" -r -h localhost -p $PORT -w $PASSWD >> \
+$LDAPMODRDN -D "$MANAGERDN" -r -h localhost -p $PORT -w $PASSWD >> \
 	$TESTOUT 2>&1 'cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US' 'cn=James A Jones II'
 
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapmodrdn failed!"
+	echo "ldapmodrdn failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -78,7 +78,7 @@ $LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
 	    'cn=James A Jones III' > $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -105,7 +105,7 @@ $LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
 	    'cn=James A Jones II' > $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -135,7 +135,7 @@ $LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
 RC=$?
 if test $RC != 0 ; then
 	kill -HUP $PID
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	exit $RC
 fi
 $CMP $SEARCHOUT /dev/null
@@ -151,7 +151,7 @@ $LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
 RC=$?
 if test $RC != 0 ; then
 	kill -HUP $PID
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	exit $RC
 fi
 
@@ -172,12 +172,12 @@ fi
 
 
 echo "Testing modrdn(deleteoldrdn=1), modrdn with new rdn already an att val..."
-$LDAPMODRDN -v -D "$MANAGERDN" -r -h localhost -p $PORT -w $PASSWD > \
+$LDAPMODRDN -D "$MANAGERDN" -r -h localhost -p $PORT -w $PASSWD > \
 	/dev/null 2>&1 'cn=James A Jones III, ou=Alumni Association, ou=People, o=University of Michigan, c=US' 'cn=James A Jones 1'
 
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapmodrdn failed!"
+	echo "ldapmodrdn failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -190,7 +190,7 @@ $LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
 	    'cn=James A Jones 1' > $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi

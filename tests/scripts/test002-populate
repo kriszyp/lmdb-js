@@ -37,7 +37,7 @@ $LDAPADD -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD < \
 	$LDIFORDERED > $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapadd failed!"
+	echo "ldapadd failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -49,7 +49,7 @@ $LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
 kill -HUP $PID
 
 if test $RC != 0 ; then
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	exit $RC
 fi
 

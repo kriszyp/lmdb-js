@@ -456,25 +456,29 @@ static int dodelete(
 
 	rc = ldap_delete_ext( ld, dn, NULL, NULL, &id );
 	if ( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_delete_ext" );
+		fprintf( stderr, "ldapdelete: ldap_delete_ext: %s (%d)\n",
+			ldap_err2string( rc ), rc );
 		return rc;
 	}
 
-	rc = ldap_result( ld, LDAP_RES_ANY, 0, NULL, &res );
-	if ( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_result" );
+	rc = ldap_result( ld, LDAP_RES_ANY, LDAP_MSG_ALL, NULL, &res );
+	if ( rc < 0 ) {
+		ldap_perror( ld, "ldapdelete: ldap_result" );
 		return rc;
 	}
 
 	rc = ldap_parse_result( ld, res, &code, &matcheddn, &text, &refs, NULL, 1 );
 
 	if( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_parse_result" );
+		fprintf( stderr, "ldapdelete: ldap_parse_result: %s (%d)\n",
+			ldap_err2string( rc ), rc );
 		return rc;
 	}
 
-	if( verbose || code != LDAP_SUCCESS || matcheddn || text || refs ) {
-		printf( "Result: %s (%d)\n", ldap_err2string( code ), code );
+	if( verbose || code != LDAP_SUCCESS ||
+		(matcheddn && *matcheddn) || (text && *text) || (refs && *refs) )
+	{
+		printf( "Delete Result: %s (%d)\n", ldap_err2string( code ), code );
 
 		if( text && *text ) {
 			printf( "Additional info: %s\n", text );
@@ -494,7 +498,7 @@ static int dodelete(
 
 	ber_memfree( text );
 	ber_memfree( matcheddn );
-	ber_memvfree( refs );
+	ber_memvfree( (void **) refs );
 
 	return code;
 }
