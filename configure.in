@@ -1857,7 +1857,7 @@ dnl
 ol_link_sasl=no
 ol_link_spasswd=no
 if test $ol_with_cyrus_sasl != no ; then
-	AC_CHECK_HEADER(sasl.h)
+	AC_CHECK_HEADERS(sasl.h)
 
 	if test $ac_cv_header_sasl_h = yes ; then
 		AC_CHECK_LIB(sasl, sasl_client_init,
