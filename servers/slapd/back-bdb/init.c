@@ -36,8 +36,6 @@ static const struct bdbi_database {
 	{ NULL, NULL, 0, 0 }
 };
 
-struct berval bdb_uuid = BER_BVNULL;
-
 typedef void * db_malloc(size_t);
 typedef void * db_realloc(void *, size_t);
 
@@ -71,6 +69,7 @@ bdb_db_init( BackendDB *be )
 	ldap_pvt_thread_rdwr_init ( &bdb->bi_cache.c_rwlock );
 
 	be->be_private = bdb;
+	be->be_cf_table = be->bd_info->bi_cf_table;
 
 	return 0;
 }
@@ -461,6 +460,8 @@ int
 bdb_back_initialize(
 	BackendInfo	*bi )
 {
+	int rc;
+
 	static char *controls[] = {
 		LDAP_CONTROL_ASSERT,
 		LDAP_CONTROL_MANAGEDSAIT,
@@ -529,20 +530,13 @@ bdb_back_initialize(
 	db_env_set_func_yield( ldap_pvt_thread_yield );
 #endif
 
-	{
-		static char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
-
-		bdb_uuid.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ));
-		bdb_uuid.bv_val = uuidbuf;
-	}
-
 	bi->bi_open = 0;
 	bi->bi_close = 0;
 	bi->bi_config = 0;
 	bi->bi_destroy = 0;
 
 	bi->bi_db_init = bdb_db_init;
-	bi->bi_db_config = bdb_db_config;
+	bi->bi_db_config = 0;
 	bi->bi_db_open = bdb_db_open;
 	bi->bi_db_close = bdb_db_close;
 	bi->bi_db_destroy = bdb_db_destroy;
@@ -583,7 +577,9 @@ bdb_back_initialize(
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
 
-	return 0;
+	rc = bdb_back_init_cf(bi);
+
+	return rc;
 }
 
 #if	(SLAPD_BDB == SLAPD_MOD_DYNAMIC && !defined(BDB_HIER)) || \

@@ -56,6 +56,13 @@ typedef struct ConfigTable {
 #define ARG_BAD_CONF	0xdead0000	/* overload return values */
 #define ARG_UNKNOWN	0xc0de0000
 
+extern ConfigTable config_back_cf_table[];
+
+typedef struct ConfigOCs {
+	char *def;
+	ObjectClass **oc;
+} ConfigOCs;
+
 typedef struct config_args_s {
 	int argc;
 	char **argv;
@@ -94,24 +101,6 @@ typedef struct config_args_s {
 
 typedef int (ConfigDriver)(ConfigArgs *c);
 
-#ifdef SLAPD_MODULES
-typedef struct modpath_s {
-	struct modpath_s *mp_next;
-	struct berval mp_path;
-	BerVarray mp_loads;
-} ModPaths;
-#endif
+struct verb_mask_list { char *word; int mask; };
 
-typedef struct ConfigFile {
-	struct ConfigFile *c_sibs;
-	struct ConfigFile *c_kids;
-	struct berval c_file;
-#ifdef SLAPD_MODULES
-	ModPaths c_modpaths;
-	ModPaths *c_modlast;
-#endif
-	BerVarray c_dseFiles;
-} ConfigFile;
-
-int config_back_init( ConfigFile *cfp, ConfigTable *ct );
 int config_get_vals(ConfigTable *ct, ConfigArgs *c);

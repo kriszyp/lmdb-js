@@ -57,6 +57,14 @@ int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
 
 /*
+ * config.c
+ */
+
+#define bdb_back_init_cf				BDB_SYMBOL(back_init_cf)
+
+int bdb_back_init_cf( BackendInfo *bi );
+
+/*
  * dbcache.c
  */
 #define bdb_db_cache				BDB_SYMBOL(db_cache)
@@ -323,13 +331,6 @@ int bdb_index_entry LDAP_P(( Operation *op, DB_TXN *t, int r, Entry *e ));
 	bdb_index_entry((op),(t),SLAP_INDEX_ADD_OP,(e))
 #define bdb_index_entry_del(op,t,e) \
 	bdb_index_entry((op),(t),SLAP_INDEX_DELETE_OP,(e))
-
-/*
- * init.c
- */
-#define bdb_uuid					BDB_SYMBOL(uuid)
-
-extern struct berval bdb_uuid;
 
 /*
  * key.c
