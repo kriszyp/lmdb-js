@@ -34,16 +34,25 @@ int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *out )
 retry:	if( tid != NULL ) {
 			/* nested transaction, abort and return */
 			(void) txn_abort( ltid );
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_next_id: aborted!\n",
+				0, 0, 0 );
 			return rc;
 		}
 		rc = txn_abort( ltid );
 		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_next_id: txn_abort failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
 			return rc;
 		}
 	}
 
 	rc = txn_begin( bdb->bi_dbenv, tid, &ltid, 0 );
 	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_next_id: txn_begin failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
 		return rc;
 	}
 
@@ -62,13 +71,18 @@ retry:	if( tid != NULL ) {
 
 	case 0:
 		if ( data.size != sizeof(ID) ) {
-			/* size mismatch! */
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_next_id: get size mismatch: expected %ld, got %ld\n",
+				(long) sizeof( ID ), (long) data.size, 0 );
 			rc = -1;
 			goto done;
 		}
 		break;
 
 	default:
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_next_id: get failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
 		goto done;
 	}
 
@@ -86,9 +100,18 @@ retry:	if( tid != NULL ) {
 	case 0:
 		*out = id;
 		rc = txn_commit( ltid, 0 );
+
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_next_id: commit failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
+		}
 		break;
 
 	default:
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_next_id: put failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
 done:	(void) txn_abort( ltid );
 	}
 
