@@ -1098,29 +1098,35 @@ connection_resched( Connection *conn )
 	Operation *op;
 
 	if( conn->c_conn_state == SLAP_C_CLOSING ) {
+		int rc;
 		ber_socket_t	sd;
 		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_GET_FD, &sd );
 
-		Debug( LDAP_DEBUG_TRACE,
-			"connection_resched: reaquiring locks conn=%ld sd=%d\n",
-			conn->c_connid, sd, 0 );
+		/* us trylock to avoid possible deadlock */
+		rc = ldap_pvt_thread_mutex_trylock( &connections_mutex );
 
-		/* reaquire locks in the right order... this may
-		 * allow another thread to close this connection,
-		 * so recheck state
-		 */
-		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-		ldap_pvt_thread_mutex_lock( &connections_mutex );
-		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+		if( rc ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"connection_resched: reaquiring locks conn=%ld sd=%d\n",
+				conn->c_connid, sd, 0 );
+			/*
+			 * reaquire locks in the right order...
+			 * this may allow another thread to close this connection,
+			 * so recheck state below.
+			 */
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+			ldap_pvt_thread_mutex_lock( &connections_mutex );
+			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+		}
 
 		if( conn->c_conn_state != SLAP_C_CLOSING ) {
-			Debug( LDAP_DEBUG_TRACE,
-				"connection_resched: closed by other thread conn=%ld sd=%d\n",
+			Debug( LDAP_DEBUG_TRACE, "connection_resched: "
+				"closed by other thread conn=%ld sd=%d\n",
 				conn->c_connid, sd, 0 );
 
 		} else {
-			Debug( LDAP_DEBUG_TRACE,
-				"connection_resched: attempting closing conn=%ld sd=%d\n",
+			Debug( LDAP_DEBUG_TRACE, "connection_resched: "
+				"attempting closing conn=%ld sd=%d\n",
 				conn->c_connid, sd, 0 );
 
 			connection_close( conn );
@@ -1168,18 +1174,18 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	arg->co_conn = conn;
 	arg->co_op = op;
 
+	arg->co_op->o_authz = conn->c_authz;
 	arg->co_op->o_dn = ch_strdup( conn->c_dn != NULL ? conn->c_dn : "" );
 	arg->co_op->o_ndn = ch_strdup( arg->co_op->o_dn );
 	(void) dn_normalize( arg->co_op->o_ndn );
-
-	arg->co_op->o_protocol = conn->c_protocol
-		? conn->c_protocol : LDAP_VERSION3;
-	arg->co_op->o_connid = conn->c_connid;
-
 	arg->co_op->o_authtype = conn->c_authtype;
 	arg->co_op->o_authmech = conn->c_authmech != NULL
 		?  ch_strdup( conn->c_authmech ) : NULL;
 	
+	arg->co_op->o_protocol = conn->c_protocol
+		? conn->c_protocol : LDAP_VERSION3;
+	arg->co_op->o_connid = conn->c_connid;
+
 	slap_op_add( &conn->c_ops, arg->co_op );
 
 	status = ldap_pvt_thread_pool_submit( &connection_pool,

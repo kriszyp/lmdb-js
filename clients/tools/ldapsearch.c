@@ -70,6 +70,7 @@ usage( const char *s )
 "  -D binddn  bind DN\n"
 "  -f file    read operations from `file'\n"
 "  -h host    LDAP server\n"
+"  -H URI     LDAP Uniform Resource Indentifier(s)\n"
 "  -I         use SASL Interactive mode\n"
 "  -k         use Kerberos authentication\n"
 "  -K         like -k, but do only step 1 of the Kerberos bind\n"
