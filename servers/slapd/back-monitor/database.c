@@ -217,11 +217,22 @@ monitor_subsys_database_init(
 		(void)init_restrictedOperation( mi, e, be->be_restrictops );
 
 		if ( oi != NULL ) {
-			slap_overinst *on = oi->oi_list;
+			slap_overinst	*on = oi->oi_list,
+					*on1 = on;
 
 			for ( ; on; on = on->on_next ) {
 				struct berval		bv;
 				slap_overinst		*on2;
+
+				for ( on2 = on1; on2 != on; on2 = on2->on_next ) {
+					if ( on2->on_bi.bi_type == on->on_bi.bi_type ) {
+						break;
+					}
+				}
+
+				if ( on2 != on ) {
+					break;
+				}
 				
 				bv.bv_val = on->on_bi.bi_type;
 				bv.bv_len = strlen( bv.bv_val );
@@ -246,7 +257,7 @@ monitor_subsys_database_init(
 			}
 		}
 
-#if defined(SLAPD_LDAP) 
+#if 0 // defined(SLAPD_LDAP) 
 		if ( strcmp( bi->bi_type, "ldap" ) == 0 ) {
 			struct ldapinfo		*li = (struct ldapinfo *)be->be_private;
 			struct berval		bv;
