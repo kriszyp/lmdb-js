@@ -35,7 +35,7 @@
 static char *get_file_name( char *dirname, char *filename );
 static int  get_search_filters( char *filename, char *filters[] );
 static int  get_read_entries( char *filename, char *entries[] );
-static void fork_child( char *prog, char *args[] );
+static void fork_child( char *prog, char **args );
 static void	wait4kids( int nkidval );
 
 static int      maxkids = 20;
@@ -326,7 +326,7 @@ get_read_entries( char *filename, char *entries[] )
 
 #ifndef HAVE_WINSOCK
 static void
-fork_child( char *prog, char *args[] )
+fork_child( char *prog, char **args )
 {
 	pid_t	pid;
 
@@ -334,6 +334,20 @@ fork_child( char *prog, char *args[] )
 
 	switch ( pid = fork() ) {
 	case 0:		/* child */
+#ifdef HAVE_EBCDIC
+		/* The __LIBASCII execvp only handles ASCII "prog",
+		 * we still need to translate the arg vec ourselves.
+		 */
+		{ char *arg2[MAXREQS];
+		int i;
+
+		for (i=0; args[i]; i++) {
+			arg2[i] = ArgDup(args[i]);
+			__atoe(arg2[i]);
+		}
+		arg2[i] = NULL;
+		args = arg2; }
+#endif
 		execvp( prog, args );
 		fprintf( stderr, "%s: ", prog );
 		perror( "execv" );
@@ -403,7 +417,7 @@ wait4kids( int nkidval )
 }
 
 static void
-fork_child( char *prog, char *args[] )
+fork_child( char *prog, char **args )
 {
 	int rc;
 
