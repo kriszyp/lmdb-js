@@ -4506,7 +4506,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		SLAP_MR_SUBSTR | SLAP_MR_EXT,
+		SLAP_MR_SUBSTR,
 		NULL, NULL,
 		caseExactIgnoreSubstringsMatch,
 		caseExactIgnoreSubstringsIndexer,
@@ -4529,7 +4529,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		SLAP_MR_SUBSTR | SLAP_MR_EXT,
+		SLAP_MR_SUBSTR,
 		NULL, NULL,
 		caseExactIgnoreSubstringsMatch,
 		caseExactIgnoreSubstringsIndexer,
@@ -4547,7 +4547,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		SLAP_MR_SUBSTR | SLAP_MR_EXT,
+		SLAP_MR_SUBSTR,
 		NULL, NULL,
 		caseIgnoreIA5SubstringsMatch,
 		caseIgnoreIA5SubstringsIndexer,
@@ -4563,7 +4563,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.12 NAME 'caseIgnoreListSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		SLAP_MR_SUBSTR | SLAP_MR_EXT,
+		SLAP_MR_SUBSTR,
 		NULL, NULL,
 		caseIgnoreListSubstringsMatch, NULL, NULL,
 		NULL},
@@ -4614,7 +4614,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.21 NAME 'telephoneNumberSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		SLAP_MR_SUBSTR | SLAP_MR_EXT,
+		SLAP_MR_SUBSTR,
 		NULL, NULL,
 		telephoneNumberSubstringsMatch,
 		telephoneNumberSubstringsIndexer,
