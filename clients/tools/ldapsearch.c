@@ -464,7 +464,11 @@ main( int argc, char **argv )
 		version = LDAP_VERSION3;
 	}
 	if (authmethod == -1 && version > LDAP_VERSION2) {
+#ifdef HAVE_CYRUS_SASL
 		authmethod = LDAP_AUTH_SASL;
+#else
+		authmethod = LDAP_AUTH_SIMPLE;
+#endif
 	}
 
 	if (( argc - optind < 1 ) ||
@@ -606,7 +610,7 @@ main( int argc, char **argv )
 		}
 		
 		rc = ldap_sasl_interactive_bind_s( ld, binddn,
-				sasl_mech, NULL, NULL, lutil_sasl_interact );
+			sasl_mech, NULL, NULL, lutil_sasl_interact );
 
 		if( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_sasl_interactive_bind_s" );
