@@ -135,7 +135,7 @@ Ri_process(
 
 /*
  * Wake a replication thread which may be sleeping.
- * Send it a SIG(STKFLT|USR1).
+ * Send it a LDAP_SIGUSR1.
  */
 static void
 Ri_wake(

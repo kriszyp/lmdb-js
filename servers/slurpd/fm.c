@@ -51,8 +51,8 @@ fm(
 
     /* Set up our signal handlers:
      * SIG{TERM,INT,HUP} causes a shutdown
-     * SIG(STKFLT|USR1) - does nothing, used to wake up sleeping threads.
-     * SIG(UNUSED|USR2) - causes slurpd to read its administrative interface file.
+     * LDAP_SIGUSR1 - does nothing, used to wake up sleeping threads.
+     * LDAP_SIGUSR2 - causes slurpd to read its administrative interface file.
      *           (not yet implemented).
      */
     (void) SIGNAL( LDAP_SIGUSR1, do_nothing );
