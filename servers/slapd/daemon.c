@@ -1231,6 +1231,7 @@ slapd_daemon_task(
 		} else if ( global_idletimeout > 0 ) {
 			if ( difftime( last_idle_check+global_idletimeout/SLAPD_IDLE_CHECK_LIMIT, now ) < 0 ) {
 				connections_timeout_idle( now );
+				last_idle_check = now;
 			}
 		}
 
