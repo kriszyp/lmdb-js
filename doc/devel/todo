@@ -24,9 +24,9 @@ OpenLDAP 2.0 Projects
 	SASL support <kurt@openldap.org>
 		DIGEST-MD5/Cyrus SASL Integration
 	SLAPD
-		RootDSE/cn=schema support <jsanchez@openldap.org>
+		schema rules <jsanchez@openldap.org>
 	clients
-		rewrite to use ldap_*_ext routines
+		update to use ldap_*_ext routines
 	SLAPD/SLURD Admin Guide <willb@openldap.org>
 
 Other projects:
