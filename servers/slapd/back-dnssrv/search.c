@@ -22,8 +22,8 @@ dnssrv_back_search(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    const char	*dn,
-    const char	*ndn,
+    struct berval	*dn,
+    struct berval	*ndn,
     int		scope,
     int		deref,
     int		size,
@@ -43,14 +43,14 @@ dnssrv_back_search(
 
 	assert( get_manageDSAit( op ) );
 
-	if( ldap_dn2domain( dn, &domain ) ) {
+	if( ldap_dn2domain( dn->bv_val, &domain ) ) {
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
 		goto done;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "DNSSRV: dn=\"%s\" -> domain=\"%s\"\n",
-		dn == NULL ? "" : dn,
+		dn->bv_len ? dn->bv_val : "",
 		domain == NULL ? "" : domain,
 		0 );
 
@@ -91,12 +91,13 @@ dnssrv_back_search(
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%d DNSSRV p=%d dn=\"%s\" url=\"%s\"\n",
-	    op->o_connid, op->o_opid, op->o_protocol, dn, urls[0]->bv_val );
+	    op->o_connid, op->o_opid, op->o_protocol,
+		dn->bv_len ? dn->bv_val : "", urls[0]->bv_val );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"DNSSRV: ManageDSAit scope=%d dn=\"%s\" -> url=\"%s\"\n",
 		scope,
-		dn == NULL ? "" : dn,
+		dn->bv_len ? dn->bv_val : "",
 		urls[0]->bv_val );
 
 	rc = ldap_domain2dn(domain, &refdn);
@@ -111,14 +112,14 @@ dnssrv_back_search(
 	nrefdn = ch_strdup( refdn );
 	dn_normalize(nrefdn);
 
-	if( strcmp( nrefdn, ndn ) != 0 ) {
+	if( strcmp( nrefdn, ndn->bv_val ) != 0 ) {
 		/* requested dn is subordinate */
 
 		Debug( LDAP_DEBUG_TRACE,
-				"DNSSRV: dn=\"%s\" subordindate to refdn=\"%s\"\n",
-				dn == NULL ? "" : dn,
-				refdn == NULL ? "" : refdn,
-				NULL );
+			"DNSSRV: dn=\"%s\" subordindate to refdn=\"%s\"\n",
+			dn->bv_len ? dn->bv_val : "",
+			refdn == NULL ? "" : refdn,
+			NULL );
 
 		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
 			refdn, NULL,
@@ -135,8 +136,10 @@ dnssrv_back_search(
 		AttributeDescription *ad_objectClass
 			= slap_schema.si_ad_objectClass;
 		AttributeDescription *ad_ref = slap_schema.si_ad_ref;
-		e->e_dn = strdup( dn );
-		e->e_ndn = strdup( ndn );
+		e->e_dn = strdup( dn->bv_val );
+		e->e_name.bv_len = dn->bv_len;
+		e->e_ndn = strdup( ndn->bv_val );
+		e->e_nname.bv_len = ndn->bv_len;
 
 		e->e_attrs = NULL;
 		e->e_private = NULL;
