@@ -48,9 +48,7 @@ ldap_connect_to_host( Sockbuf *sb, const char *host, unsigned long address,
 	struct sockaddr_in	sin;
 	struct hostent		*hp = NULL;
 #ifdef notyet
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	ioctl_t			status;	/* for ioctl call */
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 #endif /* notyet */
    
    	/* buffers for ldap_pvt_gethostbyname_a */
@@ -89,13 +87,11 @@ ldap_connect_to_host( Sockbuf *sb, const char *host, unsigned long address,
 			DO_RETURN( -1 );
 		}
 #ifdef notyet
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 		status = 1;
 		if ( async && ioctl( s, FIONBIO, (caddr_t)&status ) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "FIONBIO ioctl failed on %d\n",
 			    s, 0, 0 );
 		}
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 #endif /* notyet */
 		(void)memset( (char *)&sin, 0, sizeof( struct sockaddr_in ));
 		sin.sin_family = AF_INET;
@@ -114,7 +110,6 @@ ldap_connect_to_host( Sockbuf *sb, const char *host, unsigned long address,
 		        errno = WSAGetLastError();
 #endif
 #ifdef notyet
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 #ifdef EAGAIN
 			if ( errno == EINPROGRESS || errno == EAGAIN ) {
 #else /* EAGAIN */
@@ -125,7 +120,6 @@ ldap_connect_to_host( Sockbuf *sb, const char *host, unsigned long address,
 				rc = -2;
 				break;
 			}
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 #endif /* notyet */
 
 #ifdef LDAP_DEBUG		
@@ -145,13 +139,11 @@ ldap_connect_to_host( Sockbuf *sb, const char *host, unsigned long address,
 	if ( connected ) {
 	   
 #ifdef notyet
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 		status = 0;
 		if ( !async && ioctl( s, FIONBIO, (caddr_t)&on ) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "FIONBIO ioctl failed on %d\n",
 			    s, 0, 0 );
 		}
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 #endif /* notyet */
 
 		Debug( LDAP_DEBUG_TRACE, "sd %d connected to: %s\n",
@@ -216,7 +208,6 @@ ldap_host_connected_to( Sockbuf *sb )
 #endif /* HAVE_KERBEROS || HAVE_TLS */
 
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 /* for UNIX */
 struct selectinfo {
 	fd_set	si_readfds;
@@ -339,4 +330,3 @@ do_ldap_select( LDAP *ld, struct timeval *timeout )
 	return( select( tblsize, &sip->si_use_readfds, &sip->si_use_writefds,
 	    NULL, timeout ));
 }
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */

@@ -117,11 +117,9 @@ ldap_bind_s(
 }
 
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 void
 ldap_set_rebind_proc( LDAP *ld, int (*rebindproc)( LDAP *ld, char **dnp,
 	char **passwdp, int *authmethodp, int freeit ))
 {
 	ld->ld_rebindproc = rebindproc;
 }
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */

@@ -432,7 +432,7 @@ typedef struct slap_conn {
 	int		c_protocol;	/* version of the LDAP protocol used by client */
 	int		c_authtype;	/* auth method used to bind c_dn  */
 #ifdef LDAP_COMPAT
-	int		c_version;	/* for compatibility w/2.0, 3.0	  */
+	int		c_version;	/* for compatibility w/ U-Mich 2.0 & 3.0 */
 #endif
 
 	Operation	*c_ops;			/* list of operations being processed */

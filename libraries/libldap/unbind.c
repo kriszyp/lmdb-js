@@ -47,12 +47,9 @@ ldap_ld_free(
 {
 	LDAPMessage	*lm, *next;
 	int		err = LDAP_SUCCESS;
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	LDAPRequest	*lr, *nextlr;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	if ( ld->ld_cldapnaddr == 0 ) {
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 		/* free LDAP structure and outstanding requests/responses */
 		for ( lr = ld->ld_requests; lr != NULL; lr = nextlr ) {
 			nextlr = lr->lr_next;
@@ -63,12 +60,6 @@ ldap_ld_free(
 		while ( ld->ld_conns != NULL ) {
 			ldap_free_connection( ld, ld->ld_conns, 1, close );
 		}
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-		if ( close ) {
-			err = ldap_send_unbind( ld, &ld->ld_sb, sctrls, cctrls );
-			ldap_close_connection( &ld->ld_sb );
-		}
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 	} else {
 		int	i;
 
@@ -120,14 +111,10 @@ ldap_ld_free(
 		ld->ld_abandoned = NULL;
 	}
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	if ( ld->ld_selectinfo != NULL ) {
 		ldap_free_select_info( ld->ld_selectinfo );
 		ld->ld_selectinfo = NULL;
 	}
-#else
-	ber_clear( &(ld->ld_ber), 1 );
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	if ( ld->ld_options.ldo_defbase != NULL ) {
 		free( ld->ld_options.ldo_defbase );

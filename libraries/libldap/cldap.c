@@ -156,9 +156,7 @@ cldap_open( char *host, int port )
     }
 
     if ( ld->ld_cldapaddrs == NULL
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	    || ( ld->ld_defconn = ldap_new_connection( ld, NULL, 1,0,0 )) == NULL
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 	    ) {
 	ldap_ld_free( ld, 0 );
 	DO_RETURN( NULL );

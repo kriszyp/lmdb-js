@@ -255,9 +255,7 @@ ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 	int		err;
 	LDAPURLDesc	*ludp;
 	BerElement	*ber;
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	LDAPServer	*srv = NULL;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	if ( ldap_url_parse( url, &ludp ) != 0 ) {
 		ld->ld_errno = LDAP_PARAM_ERROR;
@@ -275,7 +273,6 @@ ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 	err = 0;
 
 	if ( ludp->lud_host != NULL || ludp->lud_port != 0 ) {
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 		if (( srv = (LDAPServer *)calloc( 1, sizeof( LDAPServer )))
 		    == NULL || ( srv->lsrv_host = strdup( ludp->lud_host ==
 		    NULL ? ld->ld_defhost : ludp->lud_host )) == NULL ) {
@@ -291,22 +288,13 @@ ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 				srv->lsrv_port = ludp->lud_port;
 			}
 		}
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-		ld->ld_errno = LDAP_LOCAL_ERROR;
-		err = -1;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 	}
 
 	if ( err != 0 ) {
 		ber_free( ber, 1 );
 	} else {
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 		err = ldap_send_server_request( ld, ber, ld->ld_msgid, NULL, srv,
 		    NULL, 1 );
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-		err = ldap_send_initial_request( ld, LDAP_REQ_SEARCH,
-		    ludp->lud_dn, ber );
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 	}
 
 	ldap_free_urldesc( ludp );

@@ -69,13 +69,12 @@ LDAP_BEGIN_DECL
 #define LDAP_NO_ATTRS				"1.1"
 #define LDAP_ALL_USER_ATTRIBUTES	"*"
 
-#define LDAP_COMPAT20
-#define LDAP_COMPAT30
-#if defined(LDAP_COMPAT20) || defined(LDAP_COMPAT30)
-#define LDAP_COMPAT
-#endif
-
-/* LDAP_OPTions defined by draft-ldapext-ldap-c-api-02 */
+/*
+ * LDAP_OPTions defined by draft-ldapext-ldap-c-api-02
+ * 0x0000 - 0x0fff reserved for api options
+ * 0x1000 - 0x3fff reserved for api extended options
+ * 0x4000 - 0x7fff reserved for private and experimental options
+ */
 #define LDAP_OPT_API_INFO			0x0000
 #define LDAP_OPT_DESC				0x0001
 #define LDAP_OPT_DEREF				0x0002
@@ -96,12 +95,17 @@ LDAP_BEGIN_DECL
 #define	LDAP_OPT_ERROR_NUMBER		0x0031
 #define LDAP_OPT_ERROR_STRING		0x0032
 
-/* not defined by current draft */
-/*	for LDAPv2 compatibility */
-#define LDAP_OPT_DNS				0x1001	/* use DN & DNS */
+/* 0x33 - 0x0fff not defined by current draft */
+
+/* extended options - none */
+
+/* private and experimental options */
+#define LDAP_OPT_DNS				0x4001	/* use DN & DNS */
 
 /* OpenLDAP specific options */
-#define LDAP_OPT_DEBUG_LEVEL		0x4001	/* OpenLDAP - debug level */
+#define LDAP_OPT_DEBUG_LEVEL		0x5001	/* debug level */
+#define LDAP_OPT_TIMEOUT			0x5002	/* default timeout */
+#define LDAP_OPT_REFHOPLIMIT		0x5003	/* ref hop limit */
 
 /* on/off values */
 #define LDAP_OPT_ON		((void *) 1)
@@ -120,7 +124,7 @@ typedef struct ldapapiinfo {
 	int		ldapai_vendor_version;		/* supplier-specific version * 100 */
 } LDAPAPIInfo;
 
-#define LDAP_FEATURE_INFO_VERSION 1 /* version of api feature structure */
+#define LDAP_FEATURE_INFO_VERSION (1) /* version of api feature structure */
 typedef struct ldap_apifeature_info {
 	int		ldapaif_info_version; /* version of this struct (1) */
 	char*	ldapaif_name;    /* matches LDAP_API_FEATURE_... less the prefix */
@@ -133,7 +137,15 @@ typedef struct ldapcontrol {
 	char			ldctl_iscritical;
 } LDAPControl, *PLDAPControl;
 
-#define LDAP_MAX_ATTR_LEN	100
+/* LDAP "Standard" Controls */
+#define LDAP_CONTROL_REFERRALS	"1.2.840.113666.1.4.616"
+#define LDAP_CHASE_SUBORDINATE_REFERRALS	0x0020
+#define LDAP_CHASE_EXTERNAL_REFERRALS	0x0040
+
+/* LDAP "Extension" Controls */
+
+/* LDAP "Private/Experiemental" Controls */
+
 
 /* 
  * specific LDAP instantiations of BER types we know about
@@ -350,7 +362,7 @@ typedef struct ldapmod {
 #define LDAP_IS_LEAF			0x23 /* not LDAPv3 */
 #define LDAP_ALIAS_DEREF_PROBLEM	0x24
 
-#define LDAP_NAME_ERROR(n)	(((n) & 0x00f0) == 0x0020)
+#define LDAP_NAME_ERROR(n)	(((int)(n) & 0x00f0) == 0x0020)
 
 #define LDAP_INAPPROPRIATE_AUTH		0x30
 #define LDAP_INVALID_CREDENTIALS	0x31
@@ -388,9 +400,6 @@ typedef struct ldapmod {
 #define LDAP_MORE_RESULTS_TO_RETURN		0x5f	/* new */
 #define LDAP_CLIENT_LOOP				0x60	/* new */
 #define LDAP_REFERRAL_LIMIT_EXCEEDED	0x61	/* new */
-
-/* default limit on nesting of referrals */
-#define LDAP_DEFAULT_REFHOPLIMIT	5
 
 /*
  * This structure represents both ldap messages and ldap responses.
@@ -477,11 +486,14 @@ typedef struct ldap_url_desc {
 } LDAPURLDesc;
 
 #define LDAP_URL_ERR_NOTLDAP	0x01	/* URL doesn't begin with "ldap://" */
-#define LDAP_URL_ERR_NODN	0x02	/* URL has no DN (required) */
+#define LDAP_URL_ERR_NODN		0x02	/* URL has no DN (required) */
 #define LDAP_URL_ERR_BADSCOPE	0x03	/* URL scope string is invalid */
-#define LDAP_URL_ERR_MEM	0x04	/* can't allocate memory space */
+#define LDAP_URL_ERR_MEM		0x04	/* can't allocate memory space */
 
-/* avoid pulling in headers */
+/*
+ * The API draft spec says we should declare (or cause to be declared)
+ * 'struct timeval'.   We don't.  See LDAPext discussions.
+ */
 struct timeval;
 
 /*
@@ -791,11 +803,17 @@ ldap_delete_s LDAP_P((
  * in error.c:
  */
 LDAP_F( int )
-ldap_result2error LDAP_P(( LDAP *ld, LDAPMessage *r, int freeit ));
+ldap_result2error LDAP_P((	/* deprecated */
+	LDAP *ld,
+	LDAPMessage *r,
+	int freeit ));
+
 LDAP_F( char *)
-ldap_err2string LDAP_P(( int err ));
+ldap_err2string LDAP_P((
+	int err ));
+
 LDAP_F( void )
-ldap_perror LDAP_P((
+ldap_perror LDAP_P((	/* deprecated */
 	LDAP *ld,
 	LDAP_CONST char *s ));
 

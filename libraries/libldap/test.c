@@ -226,7 +226,6 @@ get_modlist( char *prompt1, char *prompt2, char *prompt3 )
 }
 
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 static int
 bind_prompt( LDAP *ld, char **dnp, char **passwdp, int *authmethodp,
 	int freeit )
@@ -261,7 +260,6 @@ bind_prompt( LDAP *ld, char **dnp, char **passwdp, int *authmethodp,
 
 	return( LDAP_SUCCESS );
 }
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 
 int
@@ -545,12 +543,10 @@ main( int argc, char **argv )
 			if ( cldapflg )
 				cldap_close( ld );
 #endif /* LDAP_CONNECTIONLESS */
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
-			if ( !cldapflg )
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-			if ( !cldapflg && bound )
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
+
+			if ( !cldapflg ) {
 				ldap_unbind( ld );
+			}
 			exit( 0 );
 			break;
 
@@ -792,7 +788,6 @@ main( int argc, char **argv )
 			}
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 			getline( line, sizeof(line), stdin,
 				"Recognize and chase referrals (0=no, 1=yes)?" );
 			if ( atoi( line ) != 0 ) {
@@ -803,7 +798,6 @@ main( int argc, char **argv )
 					ldap_set_rebind_proc( ld, bind_prompt );
 				}
 			}
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 			break;
 
 		case 'O':	/* set cache options */

@@ -39,9 +39,7 @@ LDAP *
 ldap_open( LDAP_CONST char *host, int port )
 {
 	LDAP		*ld;
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	LDAPServer	*srv;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_open\n", 0, 0, 0 );
 
@@ -49,7 +47,6 @@ ldap_open( LDAP_CONST char *host, int port )
 		return( NULL );
 	}
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	if (( srv = (LDAPServer *)calloc( 1, sizeof( LDAPServer ))) ==
 	    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
 	    strdup( ld->ld_defhost )) == NULL )) {
@@ -66,14 +63,6 @@ ldap_open( LDAP_CONST char *host, int port )
 		return( NULL );
 	}
 	++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
-
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-	if ( open_ldap_connection( ld, &ld->ld_sb, ld->ld_defhost,
-	    ld->ld_defport, &ld->ld_host, 0 ) < 0 ) {
-		ldap_ld_free( ld, 0, NULL, NULL );
-		return( NULL );
-	}
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_open successful, ld_host is %s\n",
 		( ld->ld_host == NULL ) ? "(null)" : ld->ld_host, 0, 0 );
@@ -173,7 +162,6 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 			openldap_ldap_global_options.ldo_defbase);
 	}
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
 		free( (char*) ld->ld_options.ldo_defhost );
 		if ( ld->ld_options.ldo_defbase == NULL ) {
@@ -183,7 +171,6 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 	    WSACleanup( );
 		return( NULL );
 	}
-#endif
 
 	if(defport != 0) {
 		ld->ld_defport = defport;

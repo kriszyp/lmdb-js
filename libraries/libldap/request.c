@@ -23,21 +23,16 @@
 #include "ldap-int.h"
 #include "lber.h"
 
-#if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS ) || defined( LDAP_API_FEATURE_X_OPENLDAP_V2_DNS )
 static LDAPConn *find_connection LDAP_P(( LDAP *ld, LDAPServer *srv, int any ));
 static void use_connection LDAP_P(( LDAP *ld, LDAPConn *lc ));
 static void free_servers LDAP_P(( LDAPServer *srvlist ));
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS || LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
-
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 static LDAPServer *dn2servers LDAP_P(( LDAP *ld, char *dn ));
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 static BerElement *re_encode_request LDAP_P(( LDAP *ld, BerElement *origber,
     int msgid, char **dnp ));
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 
 BerElement *
@@ -78,16 +73,13 @@ ldap_send_initial_request(
 	const char *dn,
 	BerElement *ber )
 {
-#if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS ) || defined( LDAP_API_FEATURE_X_OPENLDAP_V2_DNS )
 	LDAPServer	*servers, *srv;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS || LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_initial_request\n", 0, 0, 0 );
 
 	if ( ! ber_pvt_sb_in_use(&ld->ld_sb ) ) {
 		/* not connected yet */
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 		if (( srv = (LDAPServer *)calloc( 1, sizeof( LDAPServer ))) ==
 		    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
 		    strdup( ld->ld_defhost )) == NULL ))
@@ -111,33 +103,11 @@ ldap_send_initial_request(
 		}
 		++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
 
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-		if ( open_ldap_connection( ld, &ld->ld_sb, ld->ld_defhost,
-		    ld->ld_defport, &ld->ld_host, 0 ) < 0 )
-		{
-			ldap_ld_free( ld, 0 );
-			ber_free( ber, 1 );
-			ld->ld_errno = LDAP_SERVER_DOWN;
-			return( -1 );
-		}
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_delayed_open successful, ld_host is %s\n",
 			( ld->ld_host == NULL ) ? "(null)" : ld->ld_host, 0, 0 );
 	}
 
-
-#if !defined( LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS ) && !defined( LDAP_API_FEATURE_X_OPENLDAP_V2_DNS )
-
-	if ( ber_flush( &ld->ld_sb, ber, 1 ) != 0 ) {
-		ld->ld_errno = LDAP_SERVER_DOWN;
-		return( -1 );
-	}
-
-	ld->ld_errno = LDAP_SUCCESS;
-	return( ld->ld_msgid );
-#else /* !LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS && !LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 	if (( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_DNS ) == LDAP_OPT_ON )
@@ -162,25 +132,22 @@ ldap_send_initial_request(
 			}
 		}
 #endif /* LDAP_DEBUG */
-	} else {
+	} else
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
+	{
 		/*
 		 * use of DNS is turned off or this is an X.500 DN...
 		 * use our default connection
 		 */
 		servers = NULL;
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 	}	
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
 	return( ldap_send_server_request( ld, ber, ld->ld_msgid, NULL, servers,
 	    NULL, 0 ));
-#endif /* !LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS && !LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 }
 
 
 
-#if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS ) || defined( LDAP_API_FEATURE_X_OPENLDAP_V2_DNS )
 int
 ldap_send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 	*parentreq, LDAPServer *srvlist, LDAPConn *lc, int bind )
@@ -615,10 +582,8 @@ free_servers( LDAPServer *srvlist )
 	srvlist = nextsrv;
     }
 }
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS || LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 /*
  * XXX merging of errors in this routine needs to be improved
  */
@@ -828,7 +793,7 @@ re_encode_request( LDAP *ld, BerElement *origber, int msgid, char **dnp )
 	 * all LDAP requests are sequences that start with a message id,
 	 * followed by a sequence that is tagged with the operation code
 	 */
-	if ( ber_scanf( &tmpber, "{i", &along ) != LDAP_TAG_MSGID ||
+	if ( ber_scanf( &tmpber, "{i", /*}*/ &along ) != LDAP_TAG_MSGID ||
 	    ( tag = ber_skip_tag( &tmpber, &along )) == LBER_DEFAULT ) {
                 ld->ld_errno = LDAP_DECODING_ERROR;
 		return( NULL );
@@ -859,9 +824,9 @@ re_encode_request( LDAP *ld, BerElement *origber, int msgid, char **dnp )
 	}
 
 	if ( tag == LDAP_REQ_BIND ) {
-		rc = ber_printf( ber, "{it{is", msgid, tag, ver, *dnp );
+		rc = ber_printf( ber, "{it{is" /*}}*/, msgid, tag, ver, *dnp );
 	} else {
-		rc = ber_printf( ber, "{it{s", msgid, tag, *dnp );
+		rc = ber_printf( ber, "{it{s" /*}}*/, msgid, tag, *dnp );
 	}
 
 	if ( rc == -1 ) {
@@ -871,7 +836,7 @@ re_encode_request( LDAP *ld, BerElement *origber, int msgid, char **dnp )
 
 	if ( ber_write( ber, tmpber.ber_ptr, ( tmpber.ber_end -
 	    tmpber.ber_ptr ), 0 ) != ( tmpber.ber_end - tmpber.ber_ptr ) ||
-	    ber_printf( ber, "}}" ) == -1 ) {
+	    ber_printf( ber, /*{{*/ "}}" ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return( NULL );
@@ -902,7 +867,6 @@ ldap_find_request_by_msgid( LDAP *ld, int msgid )
 
 	return( lr );
 }
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS

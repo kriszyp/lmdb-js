@@ -328,7 +328,9 @@ connection_destroy( Connection *c )
     c->c_struct_state = SLAP_C_UNUSED;
     c->c_conn_state = SLAP_C_INVALID;
 
+#ifdef LDAP_COMPAT30
     c->c_version = 0;
+#endif
     c->c_protocol = 0;
 
     c->c_starttime = 0;

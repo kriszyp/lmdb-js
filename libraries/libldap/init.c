@@ -306,10 +306,7 @@ void openldap_ldap_initialize( void )
 
 	LDAP_BOOL_ZERO(&gopts);
 
-#if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS ) || \
-	LDAP_VERSION_MAX > LDAP_VERSION2
 	LDAP_BOOL_SET(&gopts, LDAP_BOOL_REFERRALS);
-#endif
 
 	openldap_ldap_initialized = 1;
 

@@ -64,7 +64,7 @@ do_bind(
 	tber = ber_dup( op->o_ber );
 	ttag = ber_skip_tag( tber, &tlen );
 	if ( ber_peek_tag( tber, &tlen ) == LBER_SEQUENCE ) {
-		Debug( LDAP_DEBUG_ANY, "bind: version 3.0 detected\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "bind: u-mich v3.0 detected\n", 0, 0, 0 );
 		conn->c_version = 30;
 		rc = ber_scanf(ber, "{{iato}}", &version, &cdn, &method, &cred);
 	} else {
@@ -83,6 +83,7 @@ do_bind(
 		    "decoding error" );
 		return;
 	}
+
 #ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		switch ( method ) {

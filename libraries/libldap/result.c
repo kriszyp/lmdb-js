@@ -27,18 +27,10 @@ static int ldap_abandoned LDAP_P(( LDAP *ld, int msgid ));
 static int ldap_mark_abandoned LDAP_P(( LDAP *ld, int msgid ));
 static int wait4msg LDAP_P(( LDAP *ld, int msgid, int all, struct timeval *timeout,
 	LDAPMessage **result ));
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 static int try_read1msg LDAP_P(( LDAP *ld, int msgid, int all, Sockbuf *sb, LDAPConn *lc,
 	LDAPMessage **result ));
 static unsigned long build_result_ber LDAP_P(( LDAP *ld, BerElement *ber, LDAPRequest *lr ));
 static void merge_error_info LDAP_P(( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr ));
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-static int try_read1msg LDAP_P(( LDAP *ld, int msgid, int all, Sockbuf *sb,
-	LDAPMessage **result ));
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-#if defined( LDAP_CONNECTIONLESS ) || !defined( LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS )
-static int ldap_select1 LDAP_P(( LDAP *ld, struct timeval *timeout ));
-#endif
 
 
 /*
@@ -152,9 +144,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 	struct timeval	tv, *tvp;
 	time_t		start_time = 0;
 	time_t		tmp_time;
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	LDAPConn	*lc, *nextlc;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	assert( ld != NULL );
 	assert( result != NULL );
@@ -179,27 +169,6 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 		    
 	rc = -2;
 	while ( rc == -2 ) {
-#ifndef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
-		/* hack attack */
-		if ( ! ber_pvt_sb_data_ready(&ld->ld_sb) ) {
-			rc = ldap_select1( ld, tvp );
-
-			if ( rc == 0 || ( rc == -1 && (
-				( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART)
-					== LDAP_OPT_OFF )
-			    || errno != EINTR ))) {
-				ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
-				    LDAP_TIMEOUT);
-				return( rc );
-			}
-
-		}
-		if ( rc == -1 ) {
-			rc = -2;	/* select interrupted: loop */
-		} else {
-			rc = try_read1msg( ld, msgid, all, &ld->ld_sb, result );
-		}
-#else /* !LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 #ifdef LDAP_DEBUG
 		if ( ldap_debug & LDAP_DEBUG_TRACE ) {
 			ldap_dump_connection( ld, ld->ld_conns, 1 );
@@ -253,7 +222,6 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 				}
 			}
 		}
-#endif /* !LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 		if ( rc == -2 && tvp != NULL ) {
 			tmp_time = time( NULL );
@@ -275,17 +243,13 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 
 static int
 try_read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
-    LDAPConn *lc,
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-    LDAPMessage **result )
+    LDAPConn *lc, LDAPMessage **result )
 {
 	BerElement	*ber;
 	LDAPMessage	*new, *l, *prev, *tmp;
 	long		id;
 	unsigned long	tag, len;
 	int		foundit = 0;
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	LDAPRequest	*lr;
 	BerElement	tmpber;
 	int		rc, refer_cnt, hadref, simple_request;
@@ -296,18 +260,13 @@ try_read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 	
 	ber = &lc->lconn_ber;
 
-#else
-	assert( ld != NULL );
-
-	ber = &ld->ld_ber;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-
 	Debug( LDAP_DEBUG_TRACE, "read1msg\n", 0, 0, 0 );
 
 #if 0
 	ber_init_w_nullc( &ber, 0 );
 	ldap_set_ber_options( ld, &ber );
 #endif
+
 	/* get the next message */
 	if ( (tag = ber_get_next( sb, &len, ber ))
 	    != LDAP_TAG_MESSAGE ) {
@@ -341,7 +300,6 @@ try_read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 		return( -2 );	/* continue looking */
 	}
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	if (( lr = ldap_find_request_by_msgid( ld, id )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "no request for response with msgid %ld (tossing)\n",
@@ -354,7 +312,6 @@ try_read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 		( tag == LDAP_RES_SEARCH_REFERENCE ) ? "reference" : "result",
 		id, lr->lr_origid );
 	id = lr->lr_origid;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	/* the message type */
 	if ( (tag = ber_peek_tag( ber, &len )) == LBER_ERROR ) {
@@ -362,7 +319,6 @@ try_read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 		return( -1 );
 	}
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	refer_cnt = 0;
 	hadref = simple_request = 0;
 	rc = -2;	/* default is to keep looking (no response found) */
@@ -459,7 +415,6 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 		return( rc );
 	}
 
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 	/* make a new ldap message */
 	if ( (new = (LDAPMessage *) calloc( 1, sizeof(LDAPMessage) ))
 	    == NULL ) {
@@ -552,7 +507,6 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 }
 
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 static unsigned long
 build_result_ber( LDAP *ld, BerElement *ber, LDAPRequest *lr )
 {
@@ -617,42 +571,7 @@ merge_error_info( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr )
 	    parentr->lr_res_error : "", parentr->lr_res_matched ?
 	    parentr->lr_res_matched : "" );
 }
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
-
-
-#if defined( LDAP_CONNECTIONLESS ) || !defined( LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS )
-
-static int
-ldap_select1( LDAP *ld, struct timeval *timeout )
-{
-	fd_set		readfds;
-	static int	tblsize;
-
-	assert( ld != NULL );
-
-	if ( tblsize == 0 ) {
-#ifdef HAVE_SYSCONF
-		tblsize = sysconf( _SC_OPEN_MAX );
-#elif HAVE_GETDTABLESIZE
-		tblsize = getdtablesize();
-#else
-		tblsize = FD_SETSIZE;
-#endif
-#ifdef FD_SETSIZE
-		if ( tblsize > FD_SETSIZE ) {
-			tblsize = FD_SETSIZE;
-		}
-#endif	/* FD_SETSIZE */
-	}
-
-	FD_ZERO( &readfds );
-	FD_SET( ber_pvt_sb_get_desc(&ld->ld_sb), &readfds );
-
-	return( select( tblsize, &readfds, 0, 0, timeout ) );
-}
-
-#endif /* !LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 
 int

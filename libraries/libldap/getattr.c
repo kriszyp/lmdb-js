@@ -24,7 +24,11 @@
 char *
 ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **ber )
 {
-	long	len;
+	char *attr;
+
+	assert( ld != NULL );
+	assert( entry != NULL );
+	assert( ber != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_first_attribute\n", 0, 0, 0 );
 
@@ -41,8 +45,7 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **ber )
 	 * positioned right before the next attribute type/value sequence.
 	 */
 
-	len = LDAP_MAX_ATTR_LEN;
-	if ( ber_scanf( *ber, "{x{{sx}", ld->ld_attrbuffer, &len )
+	if ( ber_scanf( *ber, "{x{{ax}", &attr )
 	    == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		ber_free( *ber, 0 );
@@ -50,25 +53,27 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **ber )
 		return( NULL );
 	}
 
-	return( ld->ld_attrbuffer );
+	return( attr );
 }
 
 /* ARGSUSED */
 char *
 ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 {
-	long	len;
+	char *attr;
+
+	assert( ld != NULL );
+	assert( entry != NULL );
+	assert( ber != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_next_attribute\n", 0, 0, 0 );
 
 	/* skip sequence, snarf attribute type, skip values */
-	len = LDAP_MAX_ATTR_LEN;
-	if ( ber_scanf( ber, "{sx}", ld->ld_attrbuffer, &len ) 
+	if ( ber_scanf( ber, "{ax}", &attr ) 
 	    == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
-		/* ber_free( ber, 0 ); *//* don't free the BerElement */
 		return( NULL );
 	}
 
-	return( ld->ld_attrbuffer );
+	return( attr );
 }

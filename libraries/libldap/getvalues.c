@@ -25,9 +25,8 @@ char **
 ldap_get_values( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 {
 	BerElement	ber;
-	char		attr[LDAP_MAX_ATTR_LEN];
+	char		*attr;
 	int		found = 0;
-	long		len;
 	char		**vals;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_get_values\n", 0, 0, 0 );
@@ -35,8 +34,7 @@ ldap_get_values( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 	ber = *entry->lm_ber;
 
 	/* skip sequence, dn, sequence of, and snag the first attr */
-	len = sizeof(attr);
-	if ( ber_scanf( &ber, "{x{{s", attr, &len ) == LBER_ERROR ) {
+	if ( ber_scanf( &ber, "{x{{a", &attr ) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		return( NULL );
 	}
@@ -46,15 +44,21 @@ ldap_get_values( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 
 	/* break out on success, return out on error */
 	while ( ! found ) {
-		len = sizeof(attr);
-		if ( ber_scanf( &ber, "x}{s", attr, &len ) == LBER_ERROR ) {
+		free(attr);
+		attr = NULL;
+
+		if ( ber_scanf( &ber, "x}{a", &attr ) == LBER_ERROR ) {
 			ld->ld_errno = LDAP_DECODING_ERROR;
 			return( NULL );
 		}
 
 		if ( strcasecmp( target, attr ) == 0 )
 			break;
+
 	}
+
+	free(attr);
+	attr = NULL;
 
 	/* 
 	 * if we get this far, we've found the attribute and are sitting
@@ -73,9 +77,8 @@ struct berval **
 ldap_get_values_len( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 {
 	BerElement	ber;
-	char		attr[LDAP_MAX_ATTR_LEN];
+	char		*attr;
 	int		found = 0;
-	long		len;
 	struct berval	**vals;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_get_values_len\n", 0, 0, 0 );
@@ -83,8 +86,7 @@ ldap_get_values_len( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 	ber = *entry->lm_ber;
 
 	/* skip sequence, dn, sequence of, and snag the first attr */
-	len = sizeof(attr);
-	if ( ber_scanf( &ber, "{x{{s", attr, &len ) == LBER_ERROR ) {
+	if ( ber_scanf( &ber, "{x{{a", &attr ) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		return( NULL );
 	}
@@ -94,8 +96,10 @@ ldap_get_values_len( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 
 	/* break out on success, return out on error */
 	while ( ! found ) {
-		len = sizeof(attr);
-		if ( ber_scanf( &ber, "x}{s", attr, &len ) == LBER_ERROR ) {
+		free( attr );
+		attr = NULL;
+
+		if ( ber_scanf( &ber, "x}{a", &attr ) == LBER_ERROR ) {
 			ld->ld_errno = LDAP_DECODING_ERROR;
 			return( NULL );
 		}
@@ -103,6 +107,9 @@ ldap_get_values_len( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 		if ( strcasecmp( target, attr ) == 0 )
 			break;
 	}
+
+	free( attr );
+	attr = NULL;
 
 	/* 
 	 * if we get this far, we've found the attribute and are sitting

@@ -37,16 +37,17 @@ LDAP_BEGIN_DECL
 #define LDAP_URL_URLCOLON_LEN	4
 #define NULLLDAPURLDESC ((LDAPURLDesc *)NULL)
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 #define LDAP_REF_STR		"Referral:\n"
 #define LDAP_REF_STR_LEN	10
 #define LDAP_LDAP_REF_STR	LDAP_URL_PREFIX
 #define LDAP_LDAP_REF_STR_LEN	LDAP_URL_PREFIX_LEN
+
+#define LDAP_DEFAULT_REFHOPLIMIT 5
+
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 #define LDAP_DX_REF_STR		"dx://"
 #define LDAP_DX_REF_STR_LEN	5
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 #define LDAP_BOOL_REFERRALS		0
 #define LDAP_BOOL_RESTART		1
@@ -102,7 +103,6 @@ struct ldapoptions {
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
 };
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 /*
  * structure for tracking LDAP server host, ports, DNs, etc.
  */
@@ -156,7 +156,6 @@ typedef struct ldapreq {
 	struct ldapreq	*lr_prev;	/* previous request */
 	struct ldapreq	*lr_next;	/* next request */
 } LDAPRequest;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 /*
  * structure for client cache
@@ -220,35 +219,27 @@ struct ldap {
 	int		ld_msgid;
 
 	/* do not mess with these */
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	LDAPRequest	*ld_requests;	/* list of outstanding requests */
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-	LDAPMessage	*ld_requests;	/* list of outstanding requests */
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 	LDAPMessage	*ld_responses;	/* list of outstanding responses */
+
 	int		*ld_abandoned;	/* array of abandoned requests */
-	char		ld_attrbuffer[LDAP_MAX_ATTR_LEN];
+
 	LDAPCache	*ld_cache;	/* non-null if cache is initialized */
 	/* stuff used by connectionless searches. */
    	char		*ld_cldapdn;	/* DN used in connectionless search */
 	int		ld_cldapnaddr; /* number of addresses */
    	void		**ld_cldapaddrs;/* addresses to send request to */
-#ifndef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS	
-	/* BerElement that this connection is receiving. */
-	BerElement	ld_ber;
-#endif	
+
 	/* do not mess with the rest though */
 	BERTranslateProc ld_lber_encode_translate_proc;
 	BERTranslateProc ld_lber_decode_translate_proc;
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	LDAPConn	*ld_defconn;	/* default connection */
 	LDAPConn	*ld_conns;	/* list of server connections */
 	void		*ld_selectinfo;	/* platform specifics for select */
 	int		(*ld_rebindproc)( struct ldap *ld, char **dnp,
 				char **passwdp, int *authmethodp, int freeit );
 				/* routine to get info needed for re-bind */
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 };
 
 /*
@@ -326,7 +317,6 @@ void ldap_close_connection( Sockbuf *sb );
 char *ldap_host_connected_to( Sockbuf *sb );
 #endif /* HAVE_KERBEROS */
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 int do_ldap_select( LDAP *ld, struct timeval *timeout );
 void *ldap_new_select_info( void );
 void ldap_free_select_info( void *sip );
@@ -335,7 +325,6 @@ void ldap_mark_select_read( LDAP *ld, Sockbuf *sb );
 void ldap_mark_select_clear( LDAP *ld, Sockbuf *sb );
 int ldap_is_read_ready( LDAP *ld, Sockbuf *sb );
 int ldap_is_write_ready( LDAP *ld, Sockbuf *sb );
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 
 /*
@@ -346,8 +335,6 @@ int ldap_send_initial_request( LDAP *ld, unsigned long msgtype,
 BerElement *ldap_alloc_ber_with_options( LDAP *ld );
 void ldap_set_ber_options( LDAP *ld, BerElement *ber );
 
-#if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS ) \
-	|| defined( LDAP_API_FEATURE_X_OPENLDAP_V2_DNS )
 int ldap_send_server_request( LDAP *ld, BerElement *ber, int msgid,
 	LDAPRequest *parentreq, LDAPServer *srvlist, LDAPConn *lc,
 	int bind );
@@ -358,12 +345,9 @@ void ldap_free_request( LDAP *ld, LDAPRequest *lr );
 void ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind );
 void ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all );
 void ldap_dump_requests_and_responses( LDAP *ld );
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS || LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 int ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp );
 int ldap_append_referral( LDAP *ld, char **referralsp, char *s );
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 /*
  * in result.c:

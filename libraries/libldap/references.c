@@ -22,6 +22,9 @@
 LDAPMessage *
 ldap_first_reference( LDAP *ld, LDAPMessage *chain )
 {
+	assert( ld != NULL );
+	assert( chain !=  NULL );
+
 	if ( ld == NULL || chain == NULLMSG ) {
 		return NULLMSG;
 	}
@@ -31,10 +34,12 @@ ldap_first_reference( LDAP *ld, LDAPMessage *chain )
 		: ldap_next_reference( ld, chain );
 }
 
-/* ARGSUSED */
 LDAPMessage *
 ldap_next_reference( LDAP *ld, LDAPMessage *ref )
 {
+	assert( ld != NULL );
+	assert( ref !=  NULL );
+
 	if ( ld == NULL || ref == NULLMSG ) {
 		return NULLMSG;
 	}
@@ -52,11 +57,13 @@ ldap_next_reference( LDAP *ld, LDAPMessage *ref )
 	return( NULLMSG );
 }
 
-/* ARGSUSED */
 int
 ldap_count_references( LDAP *ld, LDAPMessage *chain )
 {
 	int	i;
+
+	assert( ld != NULL );
+	assert( chain !=  NULL );
 
 	if ( ld == NULL ) {
 		return -1;
@@ -82,6 +89,9 @@ ldap_parse_reference(
 	BerElement be;
 	char **refs = NULL;
 	int rc;
+
+	assert( ld != NULL );
+	assert( ref !=  NULL );
 
 	if( ld == NULL || ref == NULL ||
 		ref->lm_msgtype != LDAP_RES_SEARCH_REFERENCE )
