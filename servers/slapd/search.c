@@ -228,14 +228,18 @@ do_search(
 
 	if ( StatslogTest( LDAP_DEBUG_STATS ) ) {
 		char abuf[BUFSIZ/2], *ptr = abuf;
-		int len = 0;
+		int len = 0, alen;
 
 		Statslog( LDAP_DEBUG_STATS,
 	    		"conn=%lu op=%lu SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
 	    		op->o_connid, op->o_opid, pbase.bv_val, scope, fstr.bv_val );
 
 		for ( i = 0; i<siz; i++ ) {
-			if (len + 1 + an[i].an_name.bv_len > sizeof(abuf)) {
+			alen = an[i].an_name.bv_len;
+			if (alen >= sizeof(abuf)) {
+				alen = sizeof(abuf)-1;
+			}
+			if (len && (len + 1 + alen >= sizeof(abuf))) {
 				Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu SRCH attr=%s\n",
 				    op->o_connid, op->o_opid, abuf, 0, 0 );
 	    			len = 0;
@@ -245,8 +249,9 @@ do_search(
 				*ptr++ = ' ';
 				len++;
 			}
-			ptr = lutil_strcopy(ptr, an[i].an_name.bv_val);
-			len += an[i].an_name.bv_len;
+			ptr = lutil_strncopy(ptr, an[i].an_name.bv_val, alen);
+			len += alen;
+			*ptr = '\0';
 		}
 		if (len) {
 			Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu SRCH attr=%s\n",
