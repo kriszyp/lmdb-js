@@ -488,6 +488,8 @@ LDAP_SLAPD_F (int) rdnMatch LDAP_P((
 LDAP_SLAPD_F (int) dnIsSuffix LDAP_P((
 	const struct berval *dn, const struct berval *suffix ));
 
+LDAP_SLAPD_F (int) dnIsOneLevelRDN LDAP_P(( struct berval *rdn ));
+
 LDAP_SLAPD_F (int) dnExtractRdn LDAP_P((
 	struct berval *dn, struct berval *rdn, void *ctx ));
 

@@ -45,12 +45,6 @@ meta_send_entry(
 		LDAPMessage 	*e
 );
 
-static int
-is_one_level_rdn(
-		const char	*rdn,
-		int		from
-);
-
 int
 meta_back_search( Operation *op, SlapReply *rs )
 {
@@ -163,9 +157,12 @@ meta_back_search( Operation *op, SlapReply *rs )
 				break;
 
 			case LDAP_SCOPE_ONELEVEL:
-				if ( is_one_level_rdn( li->targets[ i ]->suffix.bv_val,
-						suffixlen - op->o_req_ndn.bv_len - 1 ) 
-			&& dnIsSuffix( &li->targets[ i ]->suffix, &op->o_req_ndn ) ) {
+			{
+				struct berval	rdn = li->targets[ i ]->suffix;
+				rdn.bv_len -= op->o_req_ndn.bv_len + STRLENOF( "," );
+				if ( dnIsOneLevelRDN( &rdn )
+						&& dnIsSuffix( &li->targets[ i ]->suffix, &op->o_req_ndn ) )
+				{
 					/*
 					 * if there is exactly one level,
 					 * make the target suffix the new
@@ -176,6 +173,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 					is_scope++;
 					break;
 				} /* else continue with the next case */
+			}
 
 			case LDAP_SCOPE_BASE:
 				/*
@@ -739,18 +737,4 @@ meta_send_entry(
 	return LDAP_SUCCESS;
 }
 
-static int
-is_one_level_rdn(
-		const char 	*rdn,
-		int 		from
-)
-{
-	for ( ; from--; ) {
-		if ( DN_SEPARATOR( rdn[ from ] ) ) {
-			return 0;
-		}
-	}
-
-	return 1;
-}
 
