@@ -442,7 +442,7 @@ if test $ac_cv_header_db_185_h = yes -o $ac_cv_header_db_h = yes; then
 #endif
 ],	[ol_cv_header_db1=yes], [ol_cv_header_db1=no])])
 
-	if test ol_cv_header_db1=yes ; then
+	if test $ol_cv_header_db1 = yes ; then
 		OL_BERKELEY_DB_LINK
 		if test "$ol_cv_lib_db" != no ; then
 			ol_cv_berkeley_db=yes
