@@ -654,32 +654,30 @@ fi
 dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)
 
+dnl Check for resolver routines
+AC_CHECK_FUNC(res_search,:)
+if test $ac_cv_func_res_search = no ; then 
+	AC_CHECK_LIB(bind, res_search)
+	ac_cv_func_res_search=$ac_cv_lib_bind_res_search
+fi
 
-# find res_search
-if test $ol_enable_dns != no ; then
-	dnl Check for resolver routines
-	AC_CHECK_FUNC(res_search,:)
-	if test $ac_cv_func_res_search = no ; then 
-		AC_CHECK_LIB(bind, res_search)
-		ac_cv_func_res_search=$ac_cv_lib_bind_res_search
-	fi
-	if test $ac_cv_func_res_search = no ; then 
-		AC_CHECK_LIB(bind, __res_search)
-		ac_cv_func_res_search=$ac_cv_lib_bind___res_search
-	fi
-	if test $ac_cv_func_res_search = no ; then 
-		AC_CHECK_LIB(resolv, res_search)
-		ac_cv_func_res_search=$ac_cv_lib_resolv_res_search
-	fi
+if test $ac_cv_func_res_search = no ; then 
+	AC_CHECK_LIB(bind, __res_search)
+	ac_cv_func_res_search=$ac_cv_lib_bind___res_search
+fi
 
-	if test "$ac_cv_func_res_search" = yes ; then
-		AC_DEFINE(HAVE_RES_SEARCH,1,
-			[define if you have res_search()])
-	elif test $ol_enable_dns = yes ; then
-		AC_MSG_ERROR([--enable-dns requires res_search])
-	else
-		AC_MSG_WARN([no res_search, disabling DNS support])
-	fi
+if test $ac_cv_func_res_search = no ; then 
+	AC_CHECK_LIB(resolv, res_search)
+	ac_cv_func_res_search=$ac_cv_lib_resolv_res_search
+fi
+
+if test "$ac_cv_func_res_search" = yes ; then
+	AC_DEFINE(HAVE_RES_SEARCH,1,
+		[define if you have res_search()])
+elif test $ol_enable_dns = yes ; then
+	AC_MSG_ERROR([--enable-dns requires res_search])
+elif test $ol_enable_dns != no ; then
+	AC_MSG_WARN([no res_search, disabling DNS support])
 fi
 
 

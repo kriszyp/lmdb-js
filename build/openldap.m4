@@ -813,7 +813,7 @@ dnl ====================================================================
 dnl Define inet_aton is available
 AC_DEFUN(OL_FUNC_INET_ATON,
  [AC_CACHE_CHECK([for inet_aton()], ol_cv_func_inet_aton,
-    [AC_TRY_COMPILE([
+    [AC_TRY_LINK([
 #ifdef HAVE_SYS_TYPES_H
 #	include <sys/types.h>
 #endif
