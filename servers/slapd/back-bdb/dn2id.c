@@ -382,7 +382,6 @@ bdb_dn2id_children(
 	((char *)key.data)[0] = DN_ONE_PREFIX;
 	AC_MEMCPY( &((char *)key.data)[1], e->e_nname.bv_val, key.size - 1 );
 
-#ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_size ) {
 		rc = bdb_idl_cache_get( bdb, db, &key, NULL );
 		if ( rc != LDAP_NO_SUCH_OBJECT ) {
@@ -390,7 +389,7 @@ bdb_dn2id_children(
 			return rc;
 		}
 	}
-#endif
+
 	/* we actually could do a empty get... */
 	DBTzero( &data );
 	data.data = &id;
@@ -630,11 +629,10 @@ hdb_dn2id_add(
 	key.size = sizeof(ID);
 	key.flags = DB_DBT_USERMEM;
 
-#ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_size ) {
 		bdb_idl_cache_del( bdb, db, &key );
 	}
-#endif
+
 	data.data = d;
 	data.size = sizeof(diskNode) + rlen + nrlen;
 	data.flags = DB_DBT_USERMEM;
@@ -680,11 +678,10 @@ hdb_dn2id_delete(
 	data.dlen = data.size;
 	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 
-#ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_size ) {
 		bdb_idl_cache_del( bdb, db, &key );
 	}
-#endif
+
 	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
 	if ( rc ) return rc;
 
@@ -851,14 +848,13 @@ hdb_dn2id_children(
 	key.data = &e->e_id;
 	key.flags = DB_DBT_USERMEM;
 
-#ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_size ) {
 		rc = bdb_idl_cache_get( bdb, db, &key, NULL );
 		if ( rc != LDAP_NO_SUCH_OBJECT ) {
 			return rc;
 		}
 	}
-#endif
+
 	DBTzero(&data);
 	data.data = &d;
 	data.ulen = sizeof(d);
@@ -926,7 +922,6 @@ hdb_dn2idl_internal(
 	struct dn2id_cookie *cx
 )
 {
-#ifdef SLAP_IDL_CACHE
 	if ( cx->bdb->bi_idl_cache_size ) {
 		cx->rc = bdb_idl_cache_get(cx->bdb, cx->db, &cx->key, cx->tmp);
 		if ( cx->rc == DB_NOTFOUND ) {
@@ -936,7 +931,7 @@ hdb_dn2idl_internal(
 			goto gotit;
 		}
 	}
-#endif
+
 	BDB_IDL_ZERO( cx->tmp );
 
 	if ( !cx->ei ) {
@@ -1032,11 +1027,10 @@ hdb_dn2idl_internal(
 	}
 
 saveit:
-#ifdef SLAP_IDL_CACHE
 	if ( cx->bdb->bi_idl_cache_max_size ) {
 		bdb_idl_cache_put( cx->bdb, cx->db, &cx->key, cx->tmp, cx->rc );
 	}
-#endif
+
 	;
 gotit:
 	if ( !BDB_IDL_IS_ZERO( cx->tmp )) {

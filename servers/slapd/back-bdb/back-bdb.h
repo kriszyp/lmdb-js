@@ -73,10 +73,6 @@ LDAP_BEGIN_DECL
 /* The minimum we can function with */
 #define MINIMUM_SEARCH_STACK_DEPTH	8
 
-/* for the IDL cache */
-#define SLAP_IDL_CACHE	1
-
-#ifdef SLAP_IDL_CACHE
 typedef struct bdb_idl_cache_entry_s {
 	struct berval kstr;
 	ldap_pvt_thread_rdwr_t idl_entry_rwlock;
@@ -85,7 +81,6 @@ typedef struct bdb_idl_cache_entry_s {
 	struct bdb_idl_cache_entry_s* idl_lru_prev;
 	struct bdb_idl_cache_entry_s* idl_lru_next;
 } bdb_idl_cache_entry_t;
-#endif
 
 /* BDB backend specific entry info */
 typedef struct bdb_entry_info {
@@ -173,7 +168,6 @@ struct bdb_info {
 	LDAP_LIST_HEAD(pl, slap_op) bi_psearch_list;
 	ldap_pvt_thread_rdwr_t bi_pslist_rwlock;
 	LDAP_LIST_HEAD(se, slap_session_entry) bi_session_list;
-#ifdef SLAP_IDL_CACHE
 	int		bi_idl_cache_max_size;
 	int		bi_idl_cache_size;
 	Avlnode		*bi_idl_tree;
@@ -181,7 +175,6 @@ struct bdb_info {
 	bdb_idl_cache_entry_t	*bi_idl_lru_tail;
 	ldap_pvt_thread_rdwr_t bi_idl_tree_rwlock;
 	ldap_pvt_thread_mutex_t bi_idl_tree_lrulock;
-#endif
 };
 
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]

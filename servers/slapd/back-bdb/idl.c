@@ -27,7 +27,6 @@
 
 #define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
 
-#ifdef SLAP_IDL_CACHE
 #define IDL_LRU_DELETE( bdb, e ) do { 					\
 	if ( e->idl_lru_prev != NULL ) {				\
 		e->idl_lru_prev->idl_lru_next = e->idl_lru_next; 	\
@@ -63,7 +62,6 @@ bdb_idl_entry_cmp( const void *v_idl1, const void *v_idl2 )
 	if ((rc = idl1->kstr.bv_len - idl2->kstr.bv_len )) return rc;
 	return ( memcmp ( idl1->kstr.bv_val, idl2->kstr.bv_val , idl1->kstr.bv_len ) );
 }
-#endif
 
 #if IDL_DEBUG > 0
 static void idl_check( ID *ids )
@@ -304,8 +302,6 @@ bdb_show_key(
 	}
 }
 
-#ifdef SLAP_IDL_CACHE
-
 /* Find a db/key pair in the IDL cache. If ids is non-NULL,
  * copy the cached IDL into it, otherwise just return the status.
  */
@@ -444,7 +440,6 @@ bdb_idl_cache_del(
 	}
 	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
 }
-#endif
 
 int
 bdb_idl_fetch_key(
@@ -495,12 +490,10 @@ bdb_idl_fetch_key(
 
 	assert( ids != NULL );
 
-#ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_size ) {
 		rc = bdb_idl_cache_get( bdb, db, key, ids );
 		if ( rc != LDAP_NO_SUCH_OBJECT ) return rc;
 	}
-#endif
 
 	DBTzero( &data );
 
@@ -575,12 +568,7 @@ bdb_idl_fetch_key(
 		return rc2;
 	}
 
-	if( rc == DB_NOTFOUND ) {
-#ifndef SLAP_IDL_CACHE
-		return rc;
-#endif
-
-	} else if( rc != 0 ) {
+	if( rc != 0 && rc != DB_NOTFOUND ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( INDEX, ERR, 
 			"bdb_idl_fetch_key: get failed: %s (%d)\n", 
@@ -619,11 +607,9 @@ bdb_idl_fetch_key(
 		return -1;
 	}
 
-#ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_max_size ) {
 		bdb_idl_cache_put( bdb, db, key, ids, rc );
 	}
-#endif
 
 	return rc;
 }
@@ -659,11 +645,9 @@ bdb_idl_insert_key(
 
 	assert( id != NOID );
 
-#ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_size ) {
 		bdb_idl_cache_del( bdb, db, key );
 	}
-#endif
 
 	DBTzero( &data );
 	data.size = sizeof( ID );
@@ -856,11 +840,9 @@ bdb_idl_delete_key(
 	}
 	assert( id != NOID );
 
-#ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_max_size ) {
 		bdb_idl_cache_del( bdb, db, key );
 	}
-#endif
 
 	DBTzero( &data );
 	data.data = &tmp;
