@@ -302,12 +302,16 @@ handle_private_option( int i )
 				fprintf( stderr, _("PagedResultsControl previously specified\n") );
 				exit( EXIT_FAILURE );
 			}
-			
-			num = sscanf( cvalue, "%d", &tmp );
-			if ( num != 1 ) {
-				fprintf( stderr, _("Invalid value for PagedResultsControl, %s.\n"), cvalue);
-				exit( EXIT_FAILURE );
 
+			if( cvalue != NULL ) {
+				num = sscanf( cvalue, "%d", &tmp );
+				if ( num != 1 ) {
+					fprintf( stderr, _("Invalid value for PagedResultsControl, %s.\n"), cvalue);
+					exit( EXIT_FAILURE );
+				}
+			} else {
+				fprintf( stderr, _("Invalid value for PagedResultsControl.\n"), cvalue);
+				exit( EXIT_FAILURE );
 			}
 			pageSize = (ber_int_t) tmp;
 			pagedResults = 1 + crit;
