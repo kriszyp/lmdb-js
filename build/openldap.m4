@@ -619,17 +619,21 @@ AC_DEFUN([OL_PTHREAD_TEST_FUNCTION],[
 	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
 	if( status ) exit( status );
 
-#define	ATTR	&attr
+#	define	ATTR	&attr
+#elif defined( HAVE_PTHREADS_D4 )
+#	define	ATTR	pthread_attr_default
 #else
-#if HAVE_PTHREADS_D4
-#define	ATTR	pthread_attr_default
-#else
-#define	ATTR	NULL
+#	define	ATTR	NULL
 #endif
-#endif
+
 	/* make sure pthread_create() isn't just a stub */
 	status = pthread_create(&t, ATTR, task, NULL);
 	if( status ) exit( status );
+
+	/* give the thread a chance to complete...
+     * it should remain joinable and hence detachable
+	 */
+	sleep( 1 );
 
 	/* make sure pthread_detach() isn't just a stub */
 #if HAVE_PTHREADS_D4
