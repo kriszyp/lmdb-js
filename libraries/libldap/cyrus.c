@@ -15,6 +15,9 @@
 #include <ac/errno.h>
 
 #include "ldap-int.h"
+#ifdef LDAP_R_COMPILE
+#include "ldap_pvt_thread.h"
+#endif
 
 #ifdef HAVE_CYRUS_SASL
 #include <sasl.h>

@@ -164,6 +164,10 @@ SOURCE=..\libldap\controls.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\libldap\cyrus.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\libldap\delete.c
 # End Source File
 # Begin Source File

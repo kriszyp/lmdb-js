@@ -138,12 +138,12 @@ struct berval **get_entry_referrals(
 
 int slap_sasl_init(void)
 {
-	return;
+	return LDAP_SUCCESS;
 }
 
 int slap_sasl_destroy(void)
 {
-	return;
+	return LDAP_SUCCESS;
 }
 
 char * slap_sasl_secprops( const char *in )

@@ -163,6 +163,10 @@ SOURCE=.\controls.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\cyrus.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\delete.c
 # End Source File
 # Begin Source File
