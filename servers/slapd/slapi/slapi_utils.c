@@ -1400,7 +1400,7 @@ slapi_send_ldap_search_entry(
 	}
 
 	if ( i > 0 ) {
-		an = (AttributeName *) ch_malloc( i * sizeof(AttributeName) );
+		an = (AttributeName *) ch_malloc( (i+1) * sizeof(AttributeName) );
 		for ( i = 0; attrs[i] != NULL; i++ ) {
 			an[i].an_name.bv_val = ch_strdup( attrs[i] );
 			an[i].an_name.bv_len = strlen( attrs[i] );
@@ -1408,6 +1408,8 @@ slapi_send_ldap_search_entry(
 			if( slap_bv2ad( &an[i].an_name, &an[i].an_desc, &text ) != LDAP_SUCCESS)
 				return -1;
 		}
+		an[i].an_name.bv_len = 0;
+		an[i].an_name.bv_val = NULL;
 	}
 
 	if ( ( rc = slapi_pblock_get( pb, SLAPI_BACKEND, (void *)&be ) != 0 ) ||
