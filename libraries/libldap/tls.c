@@ -27,6 +27,8 @@
 
 #ifdef HAVE_OPENSSL_SSL_H
 #include <openssl/ssl.h>
+#include <openssl/x509v3.h>
+#include <openssl/err.h>
 #elif defined( HAVE_SSL_H )
 #include <ssl.h>
 #endif
@@ -46,7 +48,7 @@ static int tls_remove( Sockbuf *sb );
 static ber_slen_t tls_read( Sockbuf *sb, void *buf, ber_len_t len );
 static ber_slen_t tls_write( Sockbuf *sb, void *buf, ber_len_t len );
 static int tls_close( Sockbuf *sb );
-static int tls_report_error( void );
+static void tls_report_error( void );
 
 static Sockbuf_IO tls_io=
 {
@@ -60,8 +62,11 @@ static Sockbuf_IO tls_io=
 static void tls_info_cb( SSL *ssl, int where, int ret );
 static int tls_verify_cb( int ok, X509_STORE_CTX *ctx );
 static RSA * tls_tmp_rsa_cb( SSL *ssl, int is_export, int key_length );
-static DH * tls_tmp_dh_cb( SSL *ssl, int is_export, int key_length );
 static STACK_OF(X509_NAME) * get_ca_list( char * bundle, char * dir );
+
+#if 0	/* Currently this is not used by anyone */
+static DH * tls_tmp_dh_cb( SSL *ssl, int is_export, int key_length );
+#endif
 
 static SSL_CTX *tls_def_ctx = NULL;
 
@@ -302,7 +307,7 @@ update_flags( Sockbuf *sb, SSL * ssl, int rc )
  */
 
 int
-ldap_pvt_tls_connect( Sockbuf *sb, void *ctx_arg )
+ldap_pvt_tls_connect( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 {
 	int	err;
 	SSL	*ssl;
@@ -319,9 +324,16 @@ ldap_pvt_tls_connect( Sockbuf *sb, void *ctx_arg )
 
 	err = SSL_connect( ssl );
 
+#ifdef HAVE_WINSOCK
+	errno = WSAGetLastError();
+#endif
 	if ( err <= 0 ) {
 		if ( update_flags( sb, ssl, err ))
 			return 1;
+		if ((err = ERR_peek_error())) {
+			char buf[256];
+			ld->ld_error = ldap_strdup(ERR_error_string(err, buf));
+		}
 		Debug( LDAP_DEBUG_ANY,"TLS: can't connect.\n",0,0,0);
 		ber_pvt_sb_clear_io( sb );
 		ber_pvt_sb_set_io( sb, &ber_pvt_sb_io_tcp, NULL );
@@ -352,6 +364,9 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 
 	err = SSL_accept( ssl );
 
+#ifdef HAVE_WINSOCK
+	errno = WSAGetLastError();
+#endif
 	if ( err <= 0 ) {
 		if ( update_flags( sb, ssl, err ))
 			return 1;
@@ -372,14 +387,31 @@ ldap_pvt_tls_inplace ( Sockbuf *sb )
 	return(0);
 }
 
+void *
+ldap_pvt_tls_sb_handle( Sockbuf *sb )
+{
+	if (HAS_TLS( sb ))
+		return sb->sb_iodata;
+	else
+		return NULL;
+}
+
+void *
+ldap_pvt_tls_get_handle( LDAP *ld )
+{
+	return ldap_pvt_tls_sb_handle(&ld->ld_sb);
+}
+
 const char *
 ldap_pvt_tls_get_peer( LDAP *ld )
 {
+    return NULL;
 }
 
 const char *
 ldap_pvt_tls_get_peer_issuer( LDAP *ld )
 {
+    return NULL;
 }
 
 int
@@ -427,9 +459,9 @@ ldap_pvt_tls_get_option( struct ldapoptions *lo, int option, void *arg )
 		break;
 	case LDAP_OPT_X_TLS_CERT:
 		if ( lo == NULL )
-			arg = (void *) tls_def_ctx;
+			*(void **)arg = (void *) tls_def_ctx;
 		else
-			arg = lo->ldo_tls_ctx;
+			*(void **)arg = lo->ldo_tls_ctx;
 		break;
 	case LDAP_OPT_X_TLS_CACERTFILE:
 		*(char **)arg = tls_opt_cacertfile ?
@@ -520,12 +552,12 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 }
 
 int
-ldap_pvt_tls_start ( Sockbuf *sb, void *ctx_arg )
+ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 {
 	/*
 	 * Fortunately, the lib uses blocking io...
 	 */
-	if ( ldap_pvt_tls_connect( sb, ctx_arg ) < 0 ) {
+	if ( ldap_pvt_tls_connect( ld, sb, ctx_arg ) < 0 ) {
 		return LDAP_CONNECT_ERROR;
 	}
 
@@ -556,6 +588,9 @@ tls_write( Sockbuf *sb, void *buf, ber_len_t sz )
 {
 	int ret = SSL_write( (SSL *)sb->sb_iodata, buf, sz );
 
+#ifdef HAVE_WINSOCK
+	errno = WSAGetLastError();
+#endif
 	update_flags(sb, (SSL *)sb->sb_iodata, ret );
 #ifdef WIN32
 	if (sb->sb_trans_needs_write)
@@ -569,6 +604,9 @@ tls_read( Sockbuf *sb, void *buf, ber_len_t sz )
 {
 	int ret = SSL_read( (SSL *)sb->sb_iodata, buf, sz );
 
+#ifdef HAVE_WINSOCK
+	errno = WSAGetLastError();
+#endif
 	update_flags(sb, (SSL *)sb->sb_iodata, ret );
 #ifdef WIN32
 	if (sb->sb_trans_needs_read)
@@ -658,11 +696,11 @@ tls_verify_cb( int ok, X509_STORE_CTX *ctx )
 	if ( iname )
 		CRYPTO_free ( iname );
 
-	return 1;
+	return ok;
 }
 
 /* Inspired by ERR_print_errors in OpenSSL */
-static int
+static void
 tls_report_error( void )
 {
         unsigned long l;
@@ -693,11 +731,13 @@ tls_tmp_rsa_cb( SSL *ssl, int is_export, int key_length )
 	return tmp_rsa;
 }
 
+#if 0
 static DH *
 tls_tmp_dh_cb( SSL *ssl, int is_export, int key_length )
 {
 	return NULL;
 }
+#endif
 
 #else
 static int dummy;

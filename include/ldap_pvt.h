@@ -138,15 +138,18 @@ ldap_pvt_str2lower LDAP_P(( char *str ));
 
 /* tls.c */
 struct ldapoptions;
+struct ldap;
 
 LIBLDAP_F (int) ldap_pvt_tls_init LDAP_P(( void ));
 LIBLDAP_F (int) ldap_pvt_tls_config LDAP_P(( struct ldapoptions *lo, int option, const char *arg ));
-LIBLDAP_F (int) ldap_pvt_tls_connect LDAP_P(( Sockbuf *sb, void *ctx_arg ));
+LIBLDAP_F (int) ldap_pvt_tls_connect LDAP_P(( struct ldap *ld, Sockbuf *sb, void *ctx_arg ));
 LIBLDAP_F (int) ldap_pvt_tls_accept LDAP_P(( Sockbuf *sb, void *ctx_arg ));
 LIBLDAP_F (int) ldap_pvt_tls_get_option LDAP_P(( struct ldapoptions *lo, int option, void *arg ));
 LIBLDAP_F (int) ldap_pvt_tls_set_option LDAP_P(( struct ldapoptions *lo, int option, void *arg ));
+LIBLDAP_F (void *) ldap_pvt_tls_sb_handle LDAP_P(( Sockbuf *sb ));
+LIBLDAP_F (void *) ldap_pvt_tls_get_handle LDAP_P(( struct ldap *ld ));
 LIBLDAP_F (int) ldap_pvt_tls_inplace LDAP_P(( Sockbuf *sb ));
-LIBLDAP_F (int) ldap_pvt_tls_start LDAP_P(( Sockbuf *sb, void *ctx_arg ));
+LIBLDAP_F (int) ldap_pvt_tls_start LDAP_P(( struct ldap *ld, Sockbuf *sb, void *ctx_arg ));
 
 /*  
  * UTF-8 (in utf-8.c)

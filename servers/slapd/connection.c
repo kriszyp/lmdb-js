@@ -881,6 +881,9 @@ int connection_read(ber_socket_t s)
 	if ( c->c_is_tls && c->c_needs_tls_accept ) {
 		rc = ldap_pvt_tls_accept( c->c_sb, NULL );
 		if ( rc < 0 ) {
+			struct timeval tv;
+			fd_set rfd;
+
 			Debug( LDAP_DEBUG_TRACE,
 			       "connection_read(%d): TLS accept error error=%d id=%ld, closing\n",
 			       s, rc, c->c_connid );
@@ -888,6 +891,21 @@ int connection_read(ber_socket_t s)
 			c->c_needs_tls_accept = 0;
 			/* connections_mutex and c_mutex are locked */
 			connection_closing( c );
+
+			/* Drain input before close, to allow SSL error codes
+			 * to propagate to client. */
+			FD_ZERO(&rfd);
+			FD_SET(s, &rfd);
+			ber_pvt_sb_set_readahead(c->c_sb, 0);
+			for (rc=1; rc>0;)
+			{
+			    char buf[4096];
+			    tv.tv_sec = 1;
+			    tv.tv_usec = 0;
+			    rc = select(s+1, &rfd, NULL, NULL, &tv);
+			    if (rc == 1)
+				rc = ber_pvt_sb_read(c->c_sb, buf, sizeof(buf));
+			}
 			connection_close( c );
 		} else if ( rc == 0 ) {
 			c->c_needs_tls_accept = 0;
@@ -954,7 +972,7 @@ connection_input(
 
 		Debug( LDAP_DEBUG_TRACE,
 			"ber_get_next on fd %d failed errno=%d (%s)\n",
-			ber_pvt_sb_get_desc( conn->c_sb ), err, STRERROR(err) );
+			ber_pvt_sb_get_desc( conn->c_sb ), err, sock_errstr(err) );
 		Debug( LDAP_DEBUG_TRACE,
 			"\t*** got %ld of %lu so far\n",
 			(long) ( conn->c_currentber->ber_buf
