@@ -322,12 +322,17 @@ do_search(
 	}
 
 return_results:;
-	if( pbase.bv_val != NULL) free( pbase.bv_val );
-	if( nbase.bv_val != NULL) free( nbase.bv_val );
+#ifdef LDAP_CLIENT_UPDATE
+	if ( !( op->o_clientupdate_type & SLAP_LCUP_PERSIST ) )
+#endif /* LDAP_CLIENT_UPDATE */
+	{
+		if( pbase.bv_val != NULL) free( pbase.bv_val );
+		if( nbase.bv_val != NULL) free( nbase.bv_val );
 
-	if( fstr.bv_val != NULL) free( fstr.bv_val );
-	if( filter != NULL) filter_free( filter );
-	if( an != NULL ) free( an );
+		if( fstr.bv_val != NULL) free( fstr.bv_val );
+		if( filter != NULL) filter_free( filter );
+		if( an != NULL ) free( an );
+	}
 
 	return rc;
 }

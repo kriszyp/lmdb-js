@@ -910,10 +910,20 @@ backend_check_restrictions(
 				return LDAP_CONFIDENTIALITY_REQUIRED;
 			}
 
-			if( op->o_ndn.bv_len == 0 ) {
+			if( !( global_allows & SLAP_ALLOW_UPDATE_ANON ) &&
+				op->o_ndn.bv_len == 0 )
+			{
 				*text = "modifications require authentication";
 				return LDAP_STRONG_AUTH_REQUIRED;
 			}
+
+#ifdef SLAP_X_LISTENER_MOD
+			if ( ! ( conn->c_listener->sl_perms & S_IWUSR ) ) {
+				/* no "w" mode means readonly */
+				*text = "modifications not allowed on this listener";
+				return LDAP_UNWILLING_TO_PERFORM;
+			}
+#endif /* SLAP_X_LISTENER_MOD */
 		}
 	}
 
@@ -964,6 +974,25 @@ backend_check_restrictions(
 				return LDAP_OPERATIONS_ERROR;
 			}
 		}
+
+#ifdef SLAP_X_LISTENER_MOD
+		if ( !starttls && op->o_dn.bv_len == 0 ) {
+			if ( ! ( conn->c_listener->sl_perms & S_IXUSR ) ) {
+				/* no "x" mode means bind required */
+				*text = "bind required on this listener";
+				return LDAP_STRONG_AUTH_REQUIRED;
+			}
+		}
+
+		if ( !starttls && !updateop ) {
+			if ( ! ( conn->c_listener->sl_perms & S_IRUSR ) ) {
+				/* no "r" mode means no read */
+				*text = "read not allowed on this listener";
+				return LDAP_UNWILLING_TO_PERFORM;
+			}
+		}
+#endif /* SLAP_X_LISTENER_MOD */
+
 	}
 
 	if( restrictops & opflag ) {

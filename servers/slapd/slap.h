@@ -674,6 +674,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_subschemaSubentry;
 	AttributeDescription *si_ad_entryUUID;
 	AttributeDescription *si_ad_entryCSN;
+	AttributeDescription *si_ad_superiorUUID;
 
 	/* root DSE attribute descriptions */
 	AttributeDescription *si_ad_altServer;
@@ -1199,6 +1200,15 @@ struct slap_backend_db {
 #define		be_attribute	bd_info->bi_acl_attribute
 #define		be_operational	bd_info->bi_operational
 
+/*
+ * define to honor hasSubordinates operational attribute in search filters
+ * (in previous use there was a flaw with back-bdb and back-ldbm; now it 
+ * is fixed).
+ */
+#ifdef SLAP_X_FILTER_HASSUBORDINATES
+#define		be_has_subordinates bd_info->bi_has_subordinates
+#endif /* SLAP_X_FILTER_HASSUBORDINATES */
+
 #define		be_controls	bd_info->bi_controls
 
 #define		be_connection_init	bd_info->bi_connection_init
@@ -1253,7 +1263,9 @@ struct slap_backend_db {
 
 #define SLAP_ALLOW_BIND_V2			0x0001U	/* LDAPv2 bind */
 #define SLAP_ALLOW_BIND_ANON_CRED	0x0002U /* cred should be empty */
-#define SLAP_ALLOW_BIND_ANON_DN		0x0003U /* dn should be empty */
+#define SLAP_ALLOW_BIND_ANON_DN		0x0004U /* dn should be empty */
+
+#define SLAP_ALLOW_UPDATE_ANON		0x0008U /* allow anonymous updates */
 
 #define SLAP_DISALLOW_BIND_ANON		0x0001U /* no anonymous */
 #define SLAP_DISALLOW_BIND_SIMPLE	0x0002U	/* simple authentication */
@@ -1396,6 +1408,12 @@ typedef int (BI_operational)  LDAP_P((Backend *bd,
 		struct slap_conn *c, struct slap_op *o,
 		Entry *e, AttributeName *attrs, int opattrs, Attribute **a ));
 
+#ifdef SLAP_X_FILTER_HASSUBORDINATES
+typedef int (BI_has_subordinates) LDAP_P((Backend *bd,
+		struct slap_conn *c, struct slap_op *o,
+	        Entry *e, int *has_subordinates ));
+#endif /* SLAP_X_FILTER_HASSUBORDINATES */
+
 typedef int (BI_connection_init) LDAP_P((BackendDB *bd,
 		struct slap_conn *c));
 typedef int (BI_connection_destroy) LDAP_P((BackendDB *bd,
@@ -1489,6 +1507,9 @@ struct slap_backend_info {
 	BI_acl_attribute	*bi_acl_attribute;
 
 	BI_operational	*bi_operational;
+#ifdef SLAP_X_FILTER_HASSUBORDINATES
+	BI_has_subordinates	*bi_has_subordinates;
+#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 	BI_connection_init	*bi_connection_init;
 	BI_connection_destroy	*bi_connection_destroy;
@@ -1559,6 +1580,39 @@ typedef struct slap_paged_state {
 	ID ps_id;
 } PagedResultsState;
 
+
+#ifdef LDAP_CLIENT_UPDATE
+#define LCUP_PSEARCH_BY_ADD 0x01
+#define LCUP_PSEARCH_BY_DELETE 0x02
+#define LCUP_PSEARCH_BY_PREMODIFY 0x03
+#define LCUP_PSEARCH_BY_MODIFY 0x04
+#define LCUP_PSEARCH_BY_SCOPEOUT 0x05
+
+struct lcup_search_spec {
+	struct slap_op  *op;
+	struct berval   *base;
+	struct berval   *nbase;
+	int             scope;
+	int             deref;
+	int             slimit;
+	int             tlimit;
+	Filter          *filter;
+	struct berval   *filterstr;
+	AttributeName   *attrs;
+	int             attrsonly;
+	struct lcup_entry *elist;
+	ldap_pvt_thread_mutex_t elist_mutex;
+	int             entry_count;
+	LDAP_LIST_ENTRY(lcup_search_spec) link;
+};
+
+struct psid_entry {
+	struct lcup_search_spec* ps;
+	LDAP_LIST_ENTRY(psid_entry) link;
+};
+#endif /* LDAP_CLIENT_UPDATE */
+
+
 /*
  * represents an operation pending from an ldap client
  */
@@ -1600,6 +1654,9 @@ typedef struct slap_op {
 #define SLAP_LCUP_SYNC_AND_PERSIST	(0x3)
 	ber_int_t o_clientupdate_interval;
 	struct berval o_clientupdate_state;
+	LDAP_LIST_HEAD(lss, lcup_search_spec) psearch_spec;
+	LDAP_LIST_HEAD(pe, psid_entry) premodify_list;
+	LDAP_LIST_ENTRY(slap_op) link;
 #endif /* LDAP_CLIENT_UPDATE */
 
 #ifdef LDAP_CONNECTIONLESS
@@ -1635,6 +1692,8 @@ typedef struct slap_gacl {
 	char ga_ndn[1];
 } GroupAssertion;
 
+typedef struct slap_listener Listener;
+
 /*
  * represents a connection from an ldap client
  */
@@ -1650,10 +1709,11 @@ typedef struct slap_conn {
 	time_t		c_activitytime;	/* when the connection was last used */
 	unsigned long		c_connid;	/* id of this connection for stats*/
 
-	struct berval	c_listener_url;	/* listener URL */
 	struct berval	c_peer_domain;	/* DNS name of client */
 	struct berval	c_peer_name;	/* peer name (trans=addr:port) */
-	struct berval	c_sock_name;	/* sock name (trans=addr:port) */
+	Listener	*c_listener;
+#define c_listener_url c_listener->sl_url	/* listener URL */
+#define c_sock_name c_listener->sl_name	/* sock name (trans=addr:port) */
 
 	/* only can be changed by binding thread */
 	int		c_sasl_bind_in_progress;	/* multi-op bind in progress */
@@ -1717,9 +1777,10 @@ typedef struct slap_conn {
 /*
  * listener; need to access it from monitor backend
  */
-typedef struct slap_listener {
-	char* sl_url;
-	char* sl_name;
+struct slap_listener {
+	struct berval sl_url;
+	struct berval sl_name;
+	mode_t	sl_perms;
 #ifdef HAVE_TLS
 	int		sl_is_tls;
 #endif
@@ -1729,7 +1790,7 @@ typedef struct slap_listener {
 	ber_socket_t sl_sd;
 	Sockaddr sl_sa;
 #define sl_addr	sl_sa.sa_in_addr
-} Listener;
+};
 
 #ifdef SLAPD_MONITOR
 /*

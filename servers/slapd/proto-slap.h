@@ -287,10 +287,9 @@ LDAP_SLAPD_F (int) connections_timeout_idle LDAP_P((time_t));
 
 LDAP_SLAPD_F (long) connection_init LDAP_P((
 	ber_socket_t s,
-	const char* url,
+	Listener* url,
 	const char* dnsname,
 	const char* peername,
-	const char* sockname,
 	int use_tls,
 	slap_ssf_t ssf,
 	const char *id ));
@@ -483,11 +482,6 @@ LDAP_SLAPD_F (int) get_vrFilter LDAP_P(( Connection *conn, BerElement *ber,
 
 LDAP_SLAPD_F (void) vrFilter_free LDAP_P(( ValuesReturnFilter *f ));
 LDAP_SLAPD_F (void) vrFilter2bv LDAP_P(( ValuesReturnFilter *f, struct berval *fstr ));
-
-/*
- * define to honor hasSubordinates operational attribute in search filters
- */
-#undef SLAP_X_FILTER_HASSUBORDINATES
 
 #ifdef SLAP_X_FILTER_HASSUBORDINATES
 LDAP_SLAPD_F (int) filter_has_subordinates LDAP_P(( Filter *filter ));

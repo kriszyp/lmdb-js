@@ -318,6 +318,9 @@ int get_ctrls(
 			case LDAP_REQ_UNBIND:
 				tagmask = SLAP_CTRL_UNBIND;
 				break;
+			case LDAP_REQ_ABANDON:
+				tagmask = SLAP_CTRL_ABANDON;
+				break;
 			case LDAP_REQ_EXTENDED:
 				/* FIXME: check list of extended operations */
 				tagmask = ~0U;
