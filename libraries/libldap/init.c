@@ -459,8 +459,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 		if( user == NULL ) user = getenv("LOGNAME");
 
 		if( user != NULL ) {
-			/* this value is leaked, need at_exit() handler */
-			gopts->ldo_def_sasl_authcid = LDAP_STRDUP( user );
+			gopts->ldo_def_sasl_authcid = user;
 		}
     }
 #endif
