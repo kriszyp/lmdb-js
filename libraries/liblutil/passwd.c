@@ -125,8 +125,8 @@ static int chk_lanman(
 	const struct berval *cred );
 #endif
 
-#ifdef SLAPD_NT_MTA_MD5
-static int chk_nt_mta_md5(
+#ifdef SLAPD_NS_MTA_MD5
+static int chk_ns_mta_md5(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
@@ -212,9 +212,9 @@ static const struct pw_scheme pw_schemes[] =
 	{ BER_BVC("{LANMAN}"),		chk_lanman, hash_lanman },
 #endif /* SLAPD_LMHASH */
 
-#ifdef SLAPD_NT_MTA_MD5
-	{ BER_BVC("{NT-MTA-MD5}"),	chk_nt_mta_md5, NULL },
-#endif /* SLAPD_NT_MTA_MD5 */
+#ifdef SLAPD_NS_MTA_MD5
+	{ BER_BVC("{NS-MTA-MD5}"),	chk_ns_mta_md5, NULL },
+#endif /* SLAPD_NS_MTA_MD5 */
 
 #ifdef SLAPD_SPASSWD
 	{ BER_BVC("{SASL}"),		chk_sasl, NULL },
@@ -637,8 +637,8 @@ static int chk_lanman(
 }
 #endif /* SLAPD_LMHASH */
 
-#ifdef SLAPD_NT_MTA_MD5
-static int chk_nt_mta_md5(
+#ifdef SLAPD_NS_MTA_MD5
+static int chk_ns_mta_md5(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred )
