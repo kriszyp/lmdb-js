@@ -90,8 +90,8 @@
 #define caseIgnoreFilter	octetStringFilter
 
 #define caseIgnoreSubstringsMatch		octetStringSubstringsMatch
-#define caseIgnoreSubstringsIndexer		NULL
-#define caseIgnoreSubstringsFilter		NULL
+#define caseIgnoreSubstringsIndexer		octetStringSubstringsIndexer
+#define caseIgnoreSubstringsFilter		octetStringSubstringsFilter
 
 #define caseExactMatch		octetStringMatch
 #define caseExactOrderingMatch		octetStringOrderingMatch
@@ -99,16 +99,16 @@
 #define caseExactFilter		octetStringFilter
 
 #define caseExactSubstringsMatch		octetStringSubstringsMatch
-#define caseExactSubstringsIndexer		NULL
-#define caseExactSubstringsFilter		NULL
+#define caseExactSubstringsIndexer		octetStringSubstringsIndexer
+#define caseExactSubstringsFilter		octetStringSubstringsFilter
 
 #define caseExactIA5Match		octetStringMatch
 #define caseExactIA5Indexer		octetStringIndexer
 #define caseExactIA5Filter		octetStringFilter
 
 #define caseExactIA5SubstringsMatch			octetStringSubstringsMatch
-#define caseExactIA5SubstringsIndexer		NULL
-#define caseExactIA5SubstringsFilter		NULL
+#define caseExactIA5SubstringsIndexer		octetStringSubstringsIndexer
+#define caseExactIA5SubstringsFilter		octetStringSubstringsFilter
 
 #define caseIgnoreIA5Match		octetStringMatch
 #define caseIgnoreIA5Indexer	octetStringIndexer
@@ -1596,10 +1596,16 @@ static int caseExactIgnoreFilter(
 	*keysp = keys;
 	return LDAP_SUCCESS;
 }
+#endif
 
 /* Substrings Index generation function */
-static int caseExactIgnoreSubstringsIndexer(
-	slap_mask_t use,
+static int
+#ifdef SLAP_NVALUES
+octetStringSubstringsIndexer
+#else
+caseExactIgnoreSubstringsIndexer
+#endif
+	( slap_mask_t use,
 	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
@@ -1607,11 +1613,13 @@ static int caseExactIgnoreSubstringsIndexer(
 	BerVarray values,
 	BerVarray *keysp )
 {
-	unsigned casefold, wasspace;
 	ber_len_t i, j, nkeys;
 	size_t slen, mlen;
 	BerVarray keys;
+#ifndef SLAP_NVALUES
 	BerVarray tvalues, nvalues;
+	unsigned casefold, wasspace;
+#endif
 
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
@@ -1619,8 +1627,7 @@ static int caseExactIgnoreSubstringsIndexer(
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	nkeys=0;
-
+#ifndef SLAP_NVALUES
 	for( i=0; values[i].bv_val != NULL; i++ ) {
 		/* empty - just count them */
 	}
@@ -1666,6 +1673,9 @@ static int caseExactIgnoreSubstringsIndexer(
 	tvalues[i].bv_val = NULL;
 	nvalues[i].bv_val = NULL;
 	values = nvalues;
+#endif
+
+	nkeys=0;
 
 	for( i=0; values[i].bv_val != NULL; i++ ) {
 		/* count number of indices to generate */
@@ -1701,8 +1711,10 @@ static int caseExactIgnoreSubstringsIndexer(
 	if( nkeys == 0 ) {
 		/* no keys to generate */
 		*keysp = NULL;
+#ifndef SLAP_NVALUES
 		ber_bvarray_free( tvalues );
 		ch_free( nvalues );
+#endif
 		return LDAP_SUCCESS;
 	}
 
@@ -1803,14 +1815,21 @@ static int caseExactIgnoreSubstringsIndexer(
 		*keysp = NULL;
 	}
 
+#ifndef SLAP_NVALUES
 	ber_bvarray_free( tvalues );
 	ch_free( nvalues );
+#endif
 
 	return LDAP_SUCCESS;
 }
 
-static int caseExactIgnoreSubstringsFilter(
-	slap_mask_t use,
+static int
+#ifdef SLAP_NVALUES
+octetStringSubstringsFilter
+#else
+caseExactIgnoreSubstringsFilter
+#endif
+	( slap_mask_t use,
 	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
@@ -1829,6 +1848,7 @@ static int caseExactIgnoreSubstringsFilter(
 	struct berval *value;
 	struct berval digest;
 
+#ifndef SLAP_NVALUES
 	casefold = ( mr != slap_schema.si_mr_caseExactSubstringsMatch )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
@@ -1837,6 +1857,9 @@ static int caseExactIgnoreSubstringsFilter(
 		*keysp = NULL;
 		return LDAP_SUCCESS;
 	}
+#else
+	sa = (SubstringsAssertion *) assertedValue;
+#endif
 
 	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial.bv_val != NULL &&
 		sa->sa_initial.bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
@@ -1984,6 +2007,8 @@ static int caseExactIgnoreSubstringsFilter(
 
 	return LDAP_SUCCESS;
 }
+
+#ifndef SLAP_NVALUES
 
 static int
 caseIgnoreMatch(
