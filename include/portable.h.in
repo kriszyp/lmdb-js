@@ -710,11 +710,17 @@
 /* if you have NT Event Log */
 #undef HAVE_NT_EVENT_LOG
 
-/* define to pthreads API spec revision */
-#undef HAVE_PTHREADS
+/* define if pthreads API compatible with final spec */
+#undef HAVE_PTHREADS_FINAL
+
+/* define if pthreads API compatible with draft4 spec */
+#undef HAVE_PTHREADS_D4
 
 /* if you have LinuxThreads */
 #undef HAVE_LINUX_THREADS
+
+/* define if you have POSIX Threads */
+#undef HAVE_PTHREADS
 
 /* Define if you have the sched_yield function. */
 #undef HAVE_SCHED_YIELD
