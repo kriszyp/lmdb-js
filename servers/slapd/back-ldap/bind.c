@@ -77,7 +77,7 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 	if (!lc) {
 		ld = ldap_init(li->host, li->port);
 		if (!ld) {
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			send_ldap_result( conn, op, LDAP_OTHER,
 				NULL, "ldap_init failed", NULL, NULL );
 			return( NULL );
 		}
