@@ -106,13 +106,17 @@ unsigned bdb_idl_search( ID *ids, ID id )
 
 #else
 	/* (reverse) linear search */
-	int i;
-	for( i=ids[0]; i; i-- ) {
-		if( id > ids[i] ) {
-			break;
+	{
+		int i;
+
+		for( i=ids[0]; i; i-- ) {
+			if( id > ids[i] ) {
+				break;
+			}
 		}
+
+		return i+1;
 	}
-	return i+1;
 #endif
 }
 

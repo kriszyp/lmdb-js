@@ -83,7 +83,9 @@ static void *lock_detect_task( void *arg )
 		int rc;
 		sleep( bdb->bi_lock_detect_seconds );
 
-		rc = lock_detect( bdb->bi_dbenv, DB_LOCK_CONFLICT, bdb->bi_lock_detect, NULL );
+		rc = lock_detect( bdb->bi_dbenv, 0,
+			bdb->bi_lock_detect, NULL );
+
 		if( rc != 0 ) {
 			break;
 		}
