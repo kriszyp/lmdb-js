@@ -91,4 +91,17 @@ int (strncasecmp)();
 
 #define STRLENOF(s)	(sizeof(s)-1)
 
+#if defined( HAVE_NONPOSIX_STRERROR_R )
+#	define AC_STRERROR_R(e,b,l)		(strerror_r((e), (b), (l)))
+#elif defined( HAVE_STRERROR_R )
+#	define AC_STRERROR_R(e,b,l)		(strerror_r((e), (b), (l)) ? (b) : NULL)
+#elif defined( HAVE_SYS_ERRLIST )
+#	define AC_STRERROR_R(e,b,l)		((e) > -1 && (e) < sys_nerr \
+										? sys_errlist[(e)] : NULL )
+#elif defined( HAVE_STRERROR )
+#	define AC_STRERROR_R(e,b,l)		(strerror(e))
+#else
+#	define AC_STRERROR_R(e,b,l)		(NULL)
+#endif
+
 #endif /* _AC_STRING_H */
