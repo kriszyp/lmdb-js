@@ -171,6 +171,13 @@ struct bdb_op_info {
 #define XLOCK_ID(env, locker)		(env)->lock_id(env, locker)
 #define XLOCK_ID_FREE(env, locker)	(env)->lock_id_free(env, locker)
 
+/* BDB 4.1.17 adds txn arg to db->open */
+#if DB_VERSION_MINOR > 1 || DB_VERSION_PATCH >= 17
+#undef DB_OPEN
+#define	DB_OPEN(db, file, name, type, flags, mode) \
+	(db)->open(db, NULL, file, name, type, (flags)|DB_AUTO_COMMIT, mode)
+#endif
+
 #define BDB_REUSE_LOCKERS
 
 #ifdef BDB_REUSE_LOCKERS
@@ -179,12 +186,6 @@ struct bdb_op_info {
 #else
 #define	LOCK_ID_FREE(env, locker)	XLOCK_ID_FREE(env, locker)
 #define	LOCK_ID(env, locker)		XLOCK_ID(env, locker)
-#endif
-
-#if DB_VERSION_MINOR > 1 || DB_VERSION_PATCH >= 17
-#undef DB_OPEN
-#define	DB_OPEN(db, file, name, type, flags, mode) \
-	(db)->open(db, NULL, file, name, type, (flags)|DB_AUTO_COMMIT, mode)
 #endif
 
 #endif
