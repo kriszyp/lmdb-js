@@ -21,8 +21,9 @@ filter_candidates(
     Backend	*be,
     Filter	*f )
 {
-	return NULL;
+	return idl_allids( be );
 }
+
 #else
 
 static ID_BLOCK	*ava_candidates( Backend *be, Ava *ava, int type );

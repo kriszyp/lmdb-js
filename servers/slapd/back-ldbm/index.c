@@ -15,6 +15,7 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 
 static int	change_value(Backend *be,
 			  DBCache *db,
@@ -25,6 +26,7 @@ static int	change_value(Backend *be,
 			  int
 			  (*idl_func)(Backend *, DBCache *, Datum, ID));
 static int	index2prefix(int indextype);
+#endif
 
 int
 index_add_entry(
@@ -32,6 +34,7 @@ index_add_entry(
     Entry	*e
 )
 {
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	Attribute	*ap;
 	struct berval	bv;
 	struct berval	*bvals[2];
@@ -74,10 +77,11 @@ index_add_entry(
 
 	Debug( LDAP_DEBUG_TRACE, "<= index_add( %ld, \"%s\" ) 0\n", e->e_id,
 	    e->e_ndn, 0 );
+#endif
 	return( 0 );
 }
 
-
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 ID_BLOCK *
 index_read(
     Backend	*be,
@@ -221,8 +225,8 @@ change_value(
 
 	return( rc );
 
-}/* static int change_value() */
-
+}
+#endif
 
 int
 index_change_values(
@@ -418,6 +422,7 @@ done:
 	return( 0 );
 }
 
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 static int
 index2prefix( int indextype )
 {
@@ -440,3 +445,4 @@ index2prefix( int indextype )
 
 	return( prefix );
 }
+#endif
