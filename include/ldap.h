@@ -111,6 +111,21 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_REFHOPLIMIT		0x5003	/* ref hop limit */
 #define LDAP_OPT_MATCHED_DN			0x5004	/* should have been in draft */
 
+/* TLS options */
+#define LDAP_OPT_X_TLS_CACERTFILE	0x6001
+#define LDAP_OPT_X_TLS_CACERTDIR	0x6002
+#define LDAP_OPT_X_TLS_CERT		0x6003
+#define LDAP_OPT_X_TLS_CERTFILE		0x6004
+#define LDAP_OPT_X_TLS_KEYFILE		0x6005
+#define LDAP_OPT_X_TLS_REQUIRE_CERT	0x6006
+#define LDAP_OPT_X_TLS			0x6007
+
+#define LDAP_OPT_X_TLS_NEVER		0
+#define LDAP_OPT_X_TLS_HARD		1
+#define LDAP_OPT_X_TLS_DEMAND		2
+#define LDAP_OPT_X_TLS_ALLOW		3
+#define LDAP_OPT_X_TLS_TRY		4
+
 /* on/off values */
 #define LDAP_OPT_ON		((void *) 1)
 #define LDAP_OPT_OFF	((void *) 0)
