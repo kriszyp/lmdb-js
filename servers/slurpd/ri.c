@@ -45,11 +45,7 @@ Ri_process(
     int		rc ;
     char	*errmsg;
 
-#ifdef HAVE_LINUX_THREADS
-    (void) SIGNAL( SIGSTKFLT, do_nothing );
-#else
-    (void) SIGNAL( SIGUSR1, do_nothing );
-#endif
+    (void) SIGNAL( LDAP_SIGUSR1, do_nothing );
     (void) SIGNAL( SIGPIPE, SIG_IGN );
     if ( ri == NULL ) {
 	Debug( LDAP_DEBUG_ANY, "Error: Ri_process: ri == NULL!\n", 0, 0, 0 );
@@ -137,7 +133,7 @@ Ri_process(
 
 /*
  * Wake a replication thread which may be sleeping.
- * Send it a SIG(STKFLT|USR1).
+ * Send it a LDAP_SIGUSR1.
  */
 static void
 Ri_wake(
@@ -147,13 +143,8 @@ Ri_wake(
     if ( ri == NULL ) {
 	return;
     }
-#ifdef HAVE_LINUX_THREADS
-    pthread_kill( ri->ri_tid, SIGSTKFLT );
-    (void) SIGNAL( SIGSTKFLT, do_nothing );
-#else
-    pthread_kill( ri->ri_tid, SIGUSR1 );
-    (void) SIGNAL( SIGUSR1, do_nothing );
-#endif
+    pthread_kill( ri->ri_tid, LDAP_SIGUSR1 );
+    (void) SIGNAL( LDAP_SIGUSR1, do_nothing );
 }
 
 
