@@ -555,6 +555,42 @@ int ad_inlist(
 			attrs->an_oc = oc;
 		}
 		if( oc != NULL ) {
+			if ( attrs->an_oc_exclude ) {
+				int gotit = 0;
+
+				if ( oc == slap_schema.si_oc_extensibleObject ) {
+					/* extensibleObject allows the return of anything */
+					return 0;
+				}
+
+				if( oc->soc_required ) {
+					/* allow return of required attributes */
+					int i;
+				
+   					for ( i = 0; oc->soc_required[i] != NULL; i++ ) {
+						for (a = desc->ad_type; a; a=a->sat_sup) {
+							if ( a == oc->soc_required[i] ) {
+								return 0;
+							}
+						}
+					}
+				}
+
+				if( oc->soc_allowed ) {
+					/* allow return of allowed attributes */
+					int i;
+   					for ( i = 0; oc->soc_allowed[i] != NULL; i++ ) {
+						for (a = desc->ad_type; a; a=a->sat_sup) {
+							if ( a == oc->soc_allowed[i] ) {
+								return 0;
+							}
+						}
+					}
+				}
+
+				return 1;
+			}
+			
 			if ( oc == slap_schema.si_oc_extensibleObject ) {
 				/* extensibleObject allows the return of anything */
 				return 1;
@@ -563,6 +599,7 @@ int ad_inlist(
 			if( oc->soc_required ) {
 				/* allow return of required attributes */
 				int i;
+				
    				for ( i = 0; oc->soc_required[i] != NULL; i++ ) {
 					for (a = desc->ad_type; a; a=a->sat_sup) {
 						if ( a == oc->soc_required[i] ) {
