@@ -1030,7 +1030,7 @@ AC_DEFUN([OL_NONPOSIX_STRERROR_R],
 				strerror_r( 1, buf, sizeof buf );
 				exit( buf[0] == 0 );
 			}
-			], ol_cv_nonposix_strerror_r=yes, ol_cv_nonposix_strerror=no)
+			], ol_cv_nonposix_strerror_r=yes, ol_cv_nonposix_strerror=no, ol_cv_nonposix_strerror=no)
 	fi
 	])
 if test $ol_cv_nonposix_strerror_r = yes ; then
