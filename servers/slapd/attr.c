@@ -130,7 +130,7 @@ attr_normalize( char *s )
  */
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
+	/* not used */
 #else
 int
 attr_merge_fast(
@@ -145,23 +145,17 @@ attr_merge_fast(
 {
 	if ( *a == NULL ) {
 		for ( *a = &e->e_attrs; **a != NULL; *a = &(**a)->a_next ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-			/* not yet implemented */
-#else
 			if ( strcasecmp( (**a)->a_type, type ) == 0 ) {
 				break;
 			}
-#endif
 		}
 	}
 
 	if ( **a == NULL ) {
 		**a = (Attribute *) ch_malloc( sizeof(Attribute) );
 		(**a)->a_vals = NULL;
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		(**a)->a_type = attr_normalize( ch_strdup( type ) );
 		(**a)->a_syntax = attr_syntax( type );
-#endif
 		(**a)->a_next = NULL;
 	}
 

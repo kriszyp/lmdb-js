@@ -28,8 +28,11 @@ int is_entry_objectclass(
 	static const char *objectClass = "objectclass";
 #endif
 
-	if( e == NULL || oc == NULL || *oc == '\0' )
+	assert(!( e == NULL || oc == NULL || *oc == '\0' ));
+
+	if( e == NULL || oc == NULL || *oc == '\0' ) {
 		return 0;
+	}
 
 	/*
 	 * find objectClass attribute
@@ -38,6 +41,10 @@ int is_entry_objectclass(
 
 	if( attr == NULL ) {
 		/* no objectClass attribute */
+		Debug( LDAP_DEBUG_ANY, "is_entry_objectclass(\"%s\", \"%s\") "
+			"no objectClass attribute\n",
+			e->e_dn == NULL ? "" : e->e_dn, oc, 0 );
+
 		return 0;
 	}
 
