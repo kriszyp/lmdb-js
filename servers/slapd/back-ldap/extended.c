@@ -48,7 +48,40 @@ ldap_back_extended(
 
 	for( i=0; exop_table[i].extended != NULL; i++ ) {
 		if( ber_bvcmp( exop_table[i].oid, &op->oq_extended.rs_reqoid ) == 0 ) {
+#ifdef LDAP_BACK_PROXY_AUTHZ 
+			struct ldapconn *lc;
+			LDAPControl **oldctrls = NULL;
+			int rc;
+
+			/* FIXME: this needs to be called here, so it is
+			 * called twice; maybe we could avoid the 
+			 * ldap_back_dobind() call inside each extended()
+			 * call ... */
+			lc = ldap_back_getconn(op, rs);
+			if (!lc || !ldap_back_dobind(lc, op, rs) ) {
+				return -1;
+			}
+
+			oldctrls = op->o_ctrls;
+			if ( ldap_back_proxy_authz_ctrl( lc, op, rs, &op->o_ctrls ) ) {
+				op->o_ctrls = oldctrls;
+				send_ldap_result( op, rs );
+				rs->sr_text = NULL;
+				return rs->sr_err;
+			}
+
+			rc = (exop_table[i].extended)( op, rs );
+
+			if ( op->o_ctrls && op->o_ctrls != oldctrls ) {
+				free( op->o_ctrls[ 0 ] );
+				free( op->o_ctrls );
+			}
+			op->o_ctrls = oldctrls;
+
+			return rc;
+#else /* ! LDAP_BACK_PROXY_AUTHZ */
 			return (exop_table[i].extended)( op, rs );
+#endif /* ! LDAP_BACK_PROXY_AUTHZ */
 		}
 	}
 

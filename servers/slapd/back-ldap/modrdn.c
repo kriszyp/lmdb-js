@@ -68,6 +68,10 @@ ldap_back_modrdn(
 	struct ldapconn *lc;
 	ber_int_t msgid;
 	dncookie dc;
+#ifdef LDAP_BACK_PROXY_AUTHZ 
+	LDAPControl **ctrls = NULL;
+	int rc = LDAP_SUCCESS;
+#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	struct berval mdn = { 0, NULL }, mnewSuperior = { 0, NULL };
 
@@ -112,10 +116,30 @@ ldap_back_modrdn(
 		return -1;
 	}
 
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
+	if ( rc != LDAP_SUCCESS ) {
+		goto cleanup;
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+
 	rs->sr_err = ldap_rename( lc->ld, mdn.bv_val,
 			op->orr_newrdn.bv_val, mnewSuperior.bv_val,
-			op->orr_deleteoldrdn, op->o_ctrls,
+			op->orr_deleteoldrdn,
+#ifdef LDAP_BACK_PROXY_AUTHZ
+			ctrls,
+#else /* ! LDAP_BACK_PROXY_AUTHZ */
+			op->o_ctrls,
+#endif /* ! LDAP_BACK_PROXY_AUTHZ */
 			NULL, &msgid );
+
+#ifdef LDAP_BACK_PROXY_AUTHZ
+cleanup:
+	if ( ctrls && ctrls != op->o_ctrls ) {
+		free( ctrls[ 0 ] );
+		free( ctrls );
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
@@ -124,7 +148,14 @@ ldap_back_modrdn(
 		&& mnewSuperior.bv_val != op->oq_modrdn.rs_newSup->bv_val ) {
 		free( mnewSuperior.bv_val );
 	}
-	
+
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	if ( rc != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		return -1;
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+
 	return( ldap_back_op_result( lc, op, rs, msgid, 1 ) );
 }
 

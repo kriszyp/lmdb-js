@@ -74,6 +74,9 @@ ldap_back_modify(
 	struct berval mdn = { 0, NULL };
 	ber_int_t msgid;
 	dncookie dc;
+#ifdef LDAP_BACK_PROXY_AUTHZ 
+	LDAPControl **ctrls = NULL;
+#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	lc = ldap_back_getconn(op, rs);
 	if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
@@ -181,10 +184,29 @@ ldap_back_modify(
 	}
 	modv[i] = 0;
 
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
+	if ( rc != LDAP_SUCCESS ) {
+		goto cleanup;
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+
 	rs->sr_err = ldap_modify_ext( lc->ld, mdn.bv_val, modv,
-			op->o_ctrls, NULL, &msgid );
+#ifdef LDAP_BACK_PROXY_AUTHZ
+			ctrls,
+#else /* ! LDAP_BACK_PROXY_AUTHZ */
+			op->o_ctrls,
+#endif /* ! LDAP_BACK_PROXY_AUTHZ */
+			NULL, &msgid );
 
 cleanup:;
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	if ( ctrls && ctrls != op->o_ctrls ) {
+		free( ctrls[ 0 ] );
+		free( ctrls );
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
 	}
@@ -193,6 +215,13 @@ cleanup:;
 	}
 	ch_free( mods );
 	ch_free( modv );
+
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	if ( rc != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		return -1;
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	return ldap_back_op_result( lc, op, rs, msgid, 1 );
 }

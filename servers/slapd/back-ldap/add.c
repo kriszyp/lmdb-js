@@ -73,6 +73,10 @@ ldap_back_add(
 	struct berval mdn = { 0, NULL };
 	ber_int_t msgid;
 	dncookie dc;
+#ifdef LDAP_BACK_PROXY_AUTHZ 
+	LDAPControl **ctrls = NULL;
+	int rc = LDAP_SUCCESS;
+#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDAP, ENTRY, "ldap_back_add: %s\n", op->o_req_dn.bv_val, 0, 0 );
@@ -149,8 +153,29 @@ ldap_back_add(
 	}
 	attrs[i] = NULL;
 
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
+	if ( rc != LDAP_SUCCESS ) {
+		goto cleanup;
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+
 	rs->sr_err = ldap_add_ext(lc->ld, mdn.bv_val, attrs,
-			op->o_ctrls, NULL, &msgid);
+#ifdef LDAP_BACK_PROXY_AUTHZ
+			ctrls,
+#else /* ! LDAP_BACK_PROXY_AUTHZ */
+			op->o_ctrls,
+#endif /* ! LDAP_BACK_PROXY_AUTHZ */
+			NULL, &msgid);
+
+#ifdef LDAP_BACK_PROXY_AUTHZ
+cleanup:
+	if ( ctrls && ctrls != op->o_ctrls ) {
+		free( ctrls[ 0 ] );
+		free( ctrls );
+	} 
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+
 	for (--i; i>= 0; --i) {
 		ch_free(attrs[i]->mod_vals.modv_bvals);
 		ch_free(attrs[i]);
@@ -159,7 +184,12 @@ ldap_back_add(
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
 	}
-	
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	if ( rc != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		return -1;
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
 	return ldap_back_op_result( lc, op, rs, msgid, 1 ) != LDAP_SUCCESS;
 }
 

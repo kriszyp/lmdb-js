@@ -88,7 +88,11 @@ ldap_back_search(
 	struct berval mfilter = { 0, NULL };
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
+	int dontfreetext = 0;
 	dncookie dc;
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	LDAPControl **ctrls = NULL;
+#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	lc = ldap_back_getconn(op, rs);
 	if ( !lc ) {
@@ -181,6 +185,7 @@ ldap_back_search(
 	if ( rc ) {
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "Rewrite error";
+		dontfreetext = 1;
 		rc = -1;
 		goto finish;
 	}
@@ -193,27 +198,26 @@ ldap_back_search(
 		goto finish;
 	}
 
-#if 0
-	if ( mapped_attrs == NULL && op->oq_search.rs_attrs) {
-		int count;
-
-		/* this can happen only if ch_calloc() fails
-		 * in ldap_back_map_attrs() */
-		for (count=0; op->oq_search.rs_attrs[count].an_name.bv_val; count++);
-		mapped_attrs = ch_malloc( (count+1) * sizeof(char *));
-		for (count=0; op->oq_search.rs_attrs[count].an_name.bv_val; count++) {
-			mapped_attrs[count] = op->oq_search.rs_attrs[count].an_name.bv_val;
-		}
-		mapped_attrs[count] = NULL;
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
+	if ( rc != LDAP_SUCCESS ) {
+		dontfreetext = 1;
+		goto finish;
 	}
-#endif
-
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+	
 	rs->sr_err = ldap_search_ext(lc->ld, mbase.bv_val,
 			op->oq_search.rs_scope, mfilter.bv_val,
 			mapped_attrs, op->oq_search.rs_attrsonly,
-			op->o_ctrls, NULL,
+#ifdef LDAP_BACK_PROXY_AUTHZ
+			ctrls,
+#else /* ! LDAP_BACK_PROXY_AUTHZ */
+			op->o_ctrls,
+#endif /* ! LDAP_BACK_PROXY_AUTHZ */
+			NULL,
 			tv.tv_sec ? &tv : NULL, op->oq_search.rs_slimit,
-			&msgid);
+			&msgid );
+
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 fail:;
 		rc = ldap_back_op_result(lc, op, rs, msgid, 0);
@@ -347,6 +351,13 @@ fail:;
 finish:;
 	send_ldap_result( op, rs );
 
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	if ( ctrls && ctrls != op->o_ctrls ) {
+		free( ctrls[ 0 ] );
+		free( ctrls );
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+
 	if ( match.bv_val ) {
 		if ( rs->sr_matched != match.bv_val ) {
 			free( (char *)rs->sr_matched );
@@ -355,7 +366,9 @@ finish:;
 		LDAP_FREE( match.bv_val );
 	}
 	if ( rs->sr_text ) {
-		LDAP_FREE( (char *)rs->sr_text );
+		if ( !dontfreetext ) {
+			LDAP_FREE( (char *)rs->sr_text );
+		}
 		rs->sr_text = NULL;
 	}
 	if ( mapped_attrs ) {
@@ -536,7 +549,6 @@ ldap_build_entry(
 		} else if ( attr->a_desc->ad_type->sat_syntax ==
 				slap_schema.si_syn_distinguishedName ) {
 			ldap_dnattr_result_rewrite( &dc, attr->a_vals );
-
 		}
 
 		if ( normalize && last && attr->a_desc->ad_type->sat_equality &&
@@ -560,6 +572,7 @@ ldap_build_entry(
 		*attrp = attr;
 		attrp = &attr->a_next;
 	}
+
 	/* make sure it's free'able */
 	if (!private && ent->e_name.bv_val == bdn->bv_val)
 		ber_dupbv( &ent->e_name, bdn );
@@ -646,7 +659,7 @@ ldap_back_entry_get(
 		*ptr++ = ')';
 		*ptr++ = '\0';
 	}
-		
+
 	if (ldap_search_ext_s(lc->ld, mdn.bv_val, LDAP_SCOPE_BASE, filter,
 				gattr, 0, NULL, NULL, LDAP_NO_LIMIT,
 				LDAP_NO_LIMIT, &result) != LDAP_SUCCESS)

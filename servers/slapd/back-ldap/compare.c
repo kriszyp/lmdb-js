@@ -66,11 +66,15 @@ ldap_back_compare(
 {
 	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
 	struct ldapconn *lc;
-	struct berval mapped_at, mapped_val;
+	struct berval mapped_at = { 0, NULL }, mapped_val = { 0, NULL };
 	struct berval mdn = { 0, NULL };
 	ber_int_t msgid;
 	int freeval = 0;
 	dncookie dc;
+#ifdef LDAP_BACK_PROXY_AUTHZ 
+	LDAPControl **ctrls = NULL;
+	int rc = LDAP_SUCCESS;
+#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	lc = ldap_back_getconn(op, rs);
 	if (!lc || !ldap_back_dobind( lc, op, rs ) ) {
@@ -119,18 +123,47 @@ ldap_back_compare(
 			} else if (mapped_val.bv_val != op->orc_ava->aa_value.bv_val) {
 				freeval = 1;
 			}
+		} else {
+			mapped_val = op->orc_ava->aa_value;
 		}
 	}
 
-	rs->sr_err = ldap_compare_ext( lc->ld, mdn.bv_val, mapped_at.bv_val,
-		&mapped_val, op->o_ctrls, NULL, &msgid );
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
+	if ( rc != LDAP_SUCCESS ) {
+		goto cleanup;
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
 
+	rs->sr_err = ldap_compare_ext( lc->ld, mdn.bv_val,
+			mapped_at.bv_val, &mapped_val, 
+#ifdef LDAP_BACK_PROXY_AUTHZ
+			ctrls,
+#else /* ! LDAP_BACK_PROXY_AUTHZ */
+			op->o_ctrls,
+#endif /* ! LDAP_BACK_PROXY_AUTHZ */
+			NULL, &msgid );
+
+#ifdef LDAP_BACK_PROXY_AUTHZ
+cleanup:
+	if ( ctrls && ctrls != op->o_ctrls ) {
+		free( ctrls[ 0 ] );
+		free( ctrls );
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+	
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
 	}
 	if ( freeval ) {
 		free( mapped_val.bv_val );
 	}
-	
+
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	if ( rc != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		return -1;
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
 	return( ldap_back_op_result( lc, op, rs, msgid, 1 ) );
 }
