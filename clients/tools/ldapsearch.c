@@ -493,7 +493,8 @@ private_conn_setup( LDAP *ld )
 		ldap_set_option( ld, LDAP_OPT_TIMELIMIT, (void *) &timelimit )
 			!= LDAP_OPT_SUCCESS )
 	{
-		fprintf( stderr, _("Could not set LDAP_OPT_TIMELIMIT %d\n"), timelimit );
+		fprintf( stderr,
+			_("Could not set LDAP_OPT_TIMELIMIT %d\n"), timelimit );
 		exit( EXIT_FAILURE );
 	}
 	if (sizelimit != -1 &&
