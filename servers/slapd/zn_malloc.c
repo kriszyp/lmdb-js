@@ -29,12 +29,13 @@
 #include <stdio.h>
 #include <ac/string.h>
 #include <sys/types.h>
-#include <sys/mman.h>
 #include <fcntl.h>
 
 #include "slap.h"
 
 #ifdef SLAP_ZONE_ALLOC
+
+#include <sys/mman.h>
 
 static int slap_zone_cmp(const void *v1, const void *v2);
 void * slap_replenish_zopool(void *ctx);
@@ -928,7 +929,7 @@ slap_measure_timing(struct timeval *tv_set, struct timeval *tv_measure)
 int
 slap_zn_latency_history(void* ctx, int ea_latency)
 {
-/* TODO: monitor /proc/swap as well */
+/* TODO: monitor /proc/stat (swap) as well */
 	struct zone_heap* zh = ctx;
 	double t_diff = 0.0;
 
