@@ -980,6 +980,7 @@ exact_match:
 	ber_dupbv_x( &op.o_req_dn, &op.o_req_ndn, op.o_tmpmemctx );
 	op.oq_search.rs_slimit = 1;
 	op.oq_search.rs_tlimit = -1;
+	op.o_sync_slog_size = -1;
 
 	op.o_bd->be_search( &op, &rs );
 
