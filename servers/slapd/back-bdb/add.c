@@ -30,6 +30,7 @@ bdb_add(
 	AttributeDescription *children = slap_schema.si_ad_children;
 	DB_TXN		*ltid = NULL;
 	struct bdb_op_info opinfo;
+	int subentry;
 
 	Debug(LDAP_DEBUG_ARGS, "==> bdb_add: %s\n", e->e_dn, 0, 0);
 
@@ -41,6 +42,8 @@ bdb_add(
 			text, rc, 0 );
 		goto return_results;
 	}
+
+	subentry = is_entry_subentry( e );
 
 	/*
 	 * acquire an ID outside of the operation transaction
@@ -94,10 +97,11 @@ retry:	rc = txn_abort( ltid );
 	 * add the entry.
 	 */
 	pdn.bv_val = dn_parent( be, e->e_ndn );
-	if (pdn.bv_val && *pdn.bv_val)
+	if (pdn.bv_val && *pdn.bv_val) {
 		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_ndn);
-	else
+	} else {
 		pdn.bv_len = 0;
+	}
 
 	if( pdn.bv_len != 0 ) {
 		Entry *matched = NULL;
@@ -157,6 +161,15 @@ retry:	rc = txn_abort( ltid );
 			goto return_results;;
 		}
 
+		if ( is_entry_subentry( p ) ) {
+			/* parent is a subentry, don't allow add */
+			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent is subentry\n",
+				0, 0, 0 );
+			rc = LDAP_OBJECT_CLASS_VIOLATION;
+			text = "parent is a subentry";
+			goto return_results;;
+		}
+
 		if ( is_entry_alias( p ) ) {
 			/* parent is an alias, don't allow add */
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent is alias\n",
@@ -184,6 +197,11 @@ retry:	rc = txn_abort( ltid );
 			goto done;
 		}
 
+		if ( subentry ) {
+			/* FIXME: */
+			/* parent must be an administrative point of the required kind */
+		}
+
 		/* free parent and writer lock */
 		bdb_entry_return( be, p );
 		p = NULL;
@@ -191,8 +209,7 @@ retry:	rc = txn_abort( ltid );
 	} else {
 		/*
 		 * no parent!
-		 *	must be adding entry to at suffix
-		 *  or with parent ""
+		 *	must be adding entry at suffix or with parent ""
 		 */
 		if ( !be_isroot( be, &op->o_ndn )) {
 			if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
@@ -219,6 +236,15 @@ retry:	rc = txn_abort( ltid );
 				rc = LDAP_INSUFFICIENT_ACCESS;
 				goto return_results;
 			}
+		}
+
+		if( subentry ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"bdb_add: no parent, cannot add subentry\n",
+				0, 0, 0 );
+			rc = LDAP_INSUFFICIENT_ACCESS;
+			text = "no parent, cannot add subentry";
+			goto return_results;;
 		}
 	}
 
