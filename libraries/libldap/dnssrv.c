@@ -28,11 +28,6 @@
 #include <resolv.h>
 #endif
 
-/* Sometimes this is not defined. */
-#ifndef T_SRV
-#define T_SRV            33
-#endif				/* T_SRV */
-
 int ldap_dn2domain(
 	LDAP_CONST char *dn_in,
 	char **domainp)
@@ -203,7 +198,16 @@ int ldap_domain2hostlist(
 #endif
 
     rc = LDAP_UNAVAILABLE;
+#ifdef NS_HFIXEDSZ
+	/* Bind 8/9 interface */
     len = res_query(request, ns_c_in, ns_t_srv, reply, sizeof(reply));
+#else
+	/* Bind 4 interface */
+#	ifndef T_SRV
+#		define T_SRV 33
+#	endif
+    len = res_query(request, C_IN, T_SRV, reply, sizeof(reply));
+#endif
     if (len >= 0) {
 	unsigned char *p;
 	char host[DNSBUFSIZ];
@@ -213,7 +217,13 @@ int ldap_domain2hostlist(
 
 	/* Parse out query */
 	p = reply;
+#ifdef NS_HFIXEDSZ
+	/* Bind 8/9 interface */
 	p += NS_HFIXEDSZ;
+#else
+	/* Bind 4 interface */
+	p += HFIXEDSZ;
+#endif
 	status = dn_expand(reply, reply + len, p, host, sizeof(host));
 	if (status < 0) {
 	    goto out;
