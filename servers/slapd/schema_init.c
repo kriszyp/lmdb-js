@@ -3216,8 +3216,8 @@ numericStringNormalize(
 		}
 	}
 
-	assert( newval->bv_val <= p );
-	assert( q <= p );
+	/* we should have copied no more then is in val */
+	assert( (q - newval->bv_val) <= (p - val->bv_val) );
 
 	/* null terminate */
 	*q = '\0';
