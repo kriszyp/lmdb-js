@@ -762,7 +762,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "ucgendat"=..\libraries\liblunicode\ucgetdat.dsp - Package Owner=<4>
+Project: "ucgendat"=..\libraries\liblunicode\ucgendat.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
