@@ -898,7 +898,7 @@ hdb_dn2idl_internal(
 			return cx->rc;
 		}
 		if ( cx->rc == LDAP_SUCCESS ) {
-			goto saveit;
+			goto gotit;
 		}
 	}
 #endif
@@ -949,6 +949,8 @@ saveit:
 		bdb_idl_cache_put( cx->bdb, cx->db, &cx->key, cx->tmp, cx->rc );
 	}
 #endif
+	;
+gotit:
 	if ( cx->rc == 0 ) {
 		if ( cx->prefix == DN_SUBTREE_PREFIX ) {
 			ID *save, idcurs;
