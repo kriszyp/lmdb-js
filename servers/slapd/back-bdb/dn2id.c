@@ -995,9 +995,11 @@ hdb_dn2idl_internal(
 				if (j) {
 					EntryInfo *ei2;
 					diskNode *d = (diskNode *)j;
+					short nrlen;
 
 					AC_MEMCPY( &ei.bei_id, &d->entryID, sizeof(ID) );
-					AC_MEMCPY( &ei.bei_nrdn.bv_len, &d->nrdnlen, sizeof(d->nrdnlen) );
+					AC_MEMCPY( &nrlen, &d->nrdnlen, sizeof(d->nrdnlen) );
+					ei.bei_nrdn.bv_len = nrlen;
 					/* nrdn/rdn are set in-place.
 					 * hdb_cache_load will copy them as needed
 					 */
