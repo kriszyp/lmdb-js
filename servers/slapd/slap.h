@@ -206,7 +206,6 @@ typedef struct slap_ssf_set {
 #define SLAP_INDEX_SUBSTR_INITIAL_PREFIX '^'
 #define SLAP_INDEX_SUBSTR_FINAL_PREFIX '$'
 #define SLAP_INDEX_CONT_PREFIX		'.'		/* prefix for continuation keys */
-#define SLAP_INDEX_UNKNOWN_PREFIX	'?'		/* prefix for unknown keys */
 
 #define SLAP_SYNTAX_MATCHINGRULES_OID	"1.3.6.1.4.1.1466.115.121.1.30"
 #define SLAP_SYNTAX_ATTRIBUTETYPES_OID	"1.3.6.1.4.1.1466.115.121.1.3"

@@ -11,29 +11,6 @@
 
 #include "slap.h"
 
-int
-slap_index2prefix( int indextype )
-{
-	int	prefix;
-
-	switch ( indextype ) {
-	case SLAP_INDEX_EQUALITY:
-		prefix = SLAP_INDEX_EQUALITY_PREFIX;
-		break;
-	case SLAP_INDEX_APPROX:
-		prefix = SLAP_INDEX_APPROX_PREFIX;
-		break;
-	case SLAP_INDEX_SUBSTR:
-		prefix = SLAP_INDEX_SUBSTR_PREFIX;
-		break;
-	default:
-		prefix = SLAP_INDEX_UNKNOWN_PREFIX;
-		break;
-	}
-
-	return( prefix );
-}
-
 int slap_str2index( const char *str, slap_mask_t *idx )
 {
 	if ( strcasecmp( str, "pres" ) == 0 ) {
