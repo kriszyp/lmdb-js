@@ -199,8 +199,10 @@ bdb_rdn_cmp( const void *v_e1, const void *v_e2 )
 {
 	const EntryInfo *e1 = v_e1, *e2 = v_e2;
 	int rc = e1->bei_nrdn.bv_len - e2->bei_nrdn.bv_len;
-	if (rc == 0) rc = strncmp( e1->bei_nrdn.bv_val, e2->bei_nrdn.bv_val,
-		e1->bei_nrdn.bv_len );
+	if (rc == 0) {
+		rc = strncmp( e1->bei_nrdn.bv_val, e2->bei_nrdn.bv_val,
+			e1->bei_nrdn.bv_len );
+	}
 	return rc;
 }
 
@@ -217,8 +219,7 @@ static int
 bdb_entryinfo_add_internal(
 	struct bdb_info *bdb,
 	EntryInfo *ei,
-	EntryInfo **res
-)
+	EntryInfo **res )
 {
 	EntryInfo *ei2 = NULL;
 
@@ -271,8 +272,7 @@ bdb_cache_find_ndn(
 	Operation	*op,
 	DB_TXN		*txn,
 	struct berval	*ndn,
-	EntryInfo	**res
-)
+	EntryInfo	**res )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	EntryInfo	ei, *eip, *ei2;
@@ -299,7 +299,8 @@ bdb_cache_find_ndn(
 		if ( !ei2 ) {
 			int len = ei.bei_nrdn.bv_len;
 				
-			ei.bei_nrdn.bv_len = ndn->bv_len - (ei.bei_nrdn.bv_val - ndn->bv_val);
+			ei.bei_nrdn.bv_len = ndn->bv_len -
+				(ei.bei_nrdn.bv_val - ndn->bv_val);
 			bdb_cache_entryinfo_unlock( eip );
 
 			rc = bdb_dn2id( op, txn, &ei.bei_nrdn, &ei );
@@ -335,7 +336,7 @@ bdb_cache_find_ndn(
 
 		/* Advance to next lower RDN */
 		for (ptr = ei.bei_nrdn.bv_val - 2; ptr > ndn->bv_val
-			&& !DN_SEPARATOR(*ptr); ptr--);
+			&& !DN_SEPARATOR(*ptr); ptr--) /* empty */;
 		if ( ptr >= ndn->bv_val ) {
 			if (DN_SEPARATOR(*ptr)) ptr++;
 			ei.bei_nrdn.bv_len = ei.bei_nrdn.bv_val - ptr - 1;
@@ -760,6 +761,7 @@ bdb_cache_add(
 	ber_dupbv( &ei.bei_rdn, &rdn );
 	if ( eip->bei_dkids ) eip->bei_dkids++;
 #endif
+
 	rc = bdb_entryinfo_add_internal( bdb, &ei, &new );
 	/* bdb_csn_commit can cause this when adding the database root entry */
 	if ( new->bei_e ) bdb_entry_return( new->bei_e );
@@ -767,7 +769,9 @@ bdb_cache_add(
 	e->e_private = new;
 	new->bei_state = CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS;
 	eip->bei_state &= ~CACHE_ENTRY_NO_KIDS;
-	if (eip->bei_parent) eip->bei_parent->bei_state &= ~CACHE_ENTRY_NO_GRANDKIDS;
+	if (eip->bei_parent) {
+		eip->bei_parent->bei_state &= ~CACHE_ENTRY_NO_GRANDKIDS;
+	}
 
 	/* set lru mutex */
 	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_mutex );

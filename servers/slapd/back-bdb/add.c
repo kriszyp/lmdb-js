@@ -363,7 +363,8 @@ retry:	/* transaction retry */
 	if( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
-			"bdb_add: txn_begin(2) failed: %s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
+			"bdb_add: txn_begin(2) failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_add: txn_begin(2) failed: %s (%d)\n",
@@ -379,7 +380,8 @@ retry:	/* transaction retry */
 	if ( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
-			"bdb_add: dn2id_add failed: %s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
+			"bdb_add: dn2id_add failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: dn2id_add failed: %s (%d)\n",
 			db_strerror(rs->sr_err), rs->sr_err, 0 );
@@ -477,13 +479,13 @@ retry:	/* transaction retry */
 		bdb_cache_add( bdb, ei, e, &nrdn, locker );
 
 		if ( suffix_ei == NULL ) {
-			suffix_ei = e->e_private;
+			suffix_ei = BEI(e);
 		}
 
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 			if ( ctxcsn_added ) {
 				bdb_cache_add( bdb, suffix_ei, ctxcsn_e,
-						(struct berval *)&slap_ldapsync_cn_bv, locker );
+					(struct berval *)&slap_ldapsync_cn_bv, locker );
 			}
 		}
 
