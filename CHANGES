@@ -4,18 +4,24 @@ OpenLDAP 2.0.X Engineering
 	Fixed slapd spasswd mutex bug
 	Fixed slapd ACL nameuid bug
 	Fixed slapd SASL layerring bug
+	Fixed slapd unknown authc method bug (ITS#831)
 	Updated -lldap SASL error reporting
 	Updated -lldap TLS error reporting
+	Updated -llber large element handling
 	Updated slapadd error reporting
 	Updated slapd chroot handling (ITS#810)
 	Added slapd numericString indexing
+	Removed lint
 	Build Environment
 		Fixed make comment bug (ITS#811)
 		Fixed $(DESTDIR) install (ITS#806)
 		Added proxy check to passwd test
 	Documentation
-		Updated slapd(8)
+		Updated ldappasswd(1)
+		Updated ldap_url(3)
 		Updated slapd.conf(5)
+		Updated slapd(8)
+		Updated slurpd(8)
 
 OpenLDAP 2.0.6 Release
 	Build Environment
