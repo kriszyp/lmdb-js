@@ -1510,7 +1510,7 @@ int slap_read_controls(
 		*ctrl = (LDAPControl *) slap_sl_calloc( 1, sizeof(LDAPControl), NULL );
 	} else {
 		/* retry: free previous try */
-		slap_sl_free( (*ctrl)->ldctl_value.bv_val, &op->o_tmpmemctx );
+		slap_sl_free( (*ctrl)->ldctl_value.bv_val, op->o_tmpmemctx );
 	}
 
 	**ctrl = c;

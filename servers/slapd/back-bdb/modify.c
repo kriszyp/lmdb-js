@@ -662,12 +662,12 @@ done:
 	}
 
 	if( preread_ctrl != NULL ) {
-		slap_sl_free( (*preread_ctrl)->ldctl_value.bv_val, &op->o_tmpmemctx );
-		slap_sl_free( *preread_ctrl, &op->o_tmpmemctx );
+		slap_sl_free( (*preread_ctrl)->ldctl_value.bv_val, op->o_tmpmemctx );
+		slap_sl_free( *preread_ctrl, op->o_tmpmemctx );
 	}
 	if( postread_ctrl != NULL ) {
-		slap_sl_free( (*postread_ctrl)->ldctl_value.bv_val, &op->o_tmpmemctx );
-		slap_sl_free( *postread_ctrl, &op->o_tmpmemctx );
+		slap_sl_free( (*postread_ctrl)->ldctl_value.bv_val, op->o_tmpmemctx );
+		slap_sl_free( *postread_ctrl, op->o_tmpmemctx );
 	}
 	return rs->sr_err;
 }
