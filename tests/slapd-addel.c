@@ -207,7 +207,7 @@ get_add_entry( char *filename, LDAPMod ***mods )
 			if ( !( value = strchr( line, ':' ))) break;
 
 			*value++ = '\0'; 
-			while ( *value && isblank( *value )) value++;
+			while ( *value && isspace( *value )) value++;
 
 			addmodifyop( mods, LDAP_MOD_ADD, line, value, strlen( value ));
 
