@@ -86,6 +86,7 @@ dn2id_add(
 	}
 
 	while ( rc != -1 && pdn != NULL ) {
+		/* FIXME: dn_parent returns NULL if dn is suffix of be */
 		if ( be_issuffix( be, pdn ))
 			break;
 
@@ -327,6 +328,7 @@ dn2id_delete(
 	}
 
 	while ( pdn != NULL ) {
+		/* FIXME: dn_parent returns NULL if dn is suffix of be */
 		if ( be_issuffix( be, pdn ))
 			break;
 
