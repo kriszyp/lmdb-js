@@ -427,7 +427,7 @@ monitor_back_db_init(
 	} else {
 		bv[0].bv_len = strlen( Versionstr );
 	}
-	if ( attr_merge( e, monitor_ad_desc, bv ) ) {
+	if ( attr_mergeit( e, monitor_ad_desc, bv ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, CRIT,
 			"unable to add description to '%s' entry\n",

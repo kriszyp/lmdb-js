@@ -110,8 +110,8 @@ monitor_subsys_backend_init(
 		bv[0].bv_len = strlen( bv[0].bv_val );
 		bv[1].bv_val = NULL;
 
-		attr_merge( e, monitor_ad_desc, bv );
-		attr_merge( e_backend, monitor_ad_desc, bv );
+		attr_mergeit( e, monitor_ad_desc, bv );
+		attr_mergeit( e_backend, monitor_ad_desc, bv );
 
 		if ( bi->bi_controls ) {
 			int j;
@@ -119,7 +119,7 @@ monitor_subsys_backend_init(
 			for ( j = 0; bi->bi_controls[ j ]; j++ ) {
 				bv[0].bv_val = bi->bi_controls[ j ];
 				bv[0].bv_len = strlen( bv[0].bv_val );
-				attr_merge( e, slap_schema.si_ad_supportedControl, bv );
+				attr_mergeit( e, slap_schema.si_ad_supportedControl, bv );
 			}
 		}
 		

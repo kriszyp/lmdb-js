@@ -76,7 +76,7 @@ monitor_subsys_thread_init(
 	bv[0].bv_val = buf;
 	bv[0].bv_len = strlen( bv[0].bv_val );
 
-	attr_merge( e, monitor_ad_desc, bv );
+	attr_mergeit( e, monitor_ad_desc, bv );
 
 	monitor_cache_release( mi, e );
 
@@ -113,7 +113,7 @@ monitor_subsys_thread_update(
 	if ( b == NULL || b[0].bv_val == NULL ) {
 		bv[0].bv_val = buf;
 		bv[0].bv_len = strlen( buf );
-		attr_merge( e, monitor_ad_desc, bv );
+		attr_mergeit( e, monitor_ad_desc, bv );
 	}
 
 	return( 0 );

@@ -136,11 +136,11 @@ monitor_subsys_database_init(
 		}
 		
 		if ( be->be_flags & SLAP_BFLAG_MONITOR ) {
-			attr_merge( e, ad_mc, be->be_suffix );
-			attr_merge( e_database, ad_mc, be->be_suffix );
+			attr_mergeit( e, ad_mc, be->be_suffix );
+			attr_mergeit( e_database, ad_mc, be->be_suffix );
 		} else {
-			attr_merge( e, ad_nc, be->be_suffix );
-			attr_merge( e_database, ad_nc, be->be_suffix );
+			attr_mergeit( e, ad_nc, be->be_suffix );
+			attr_mergeit( e_database, ad_nc, be->be_suffix );
 		}
 
 		for ( j = nBackendInfo; j--; ) {
@@ -152,7 +152,7 @@ monitor_subsys_database_init(
 					j, monitor_subsys[SLAPD_MONITOR_BACKEND].mss_dn.bv_val );
 				bv.bv_val = buf;
 				bv.bv_len = strlen( buf );
-				attr_merge_one( e, ad_seeAlso, &bv );
+				attr_mergeit_one( e, ad_seeAlso, &bv );
 				break;
 			}
 		}
@@ -239,7 +239,7 @@ monitor_back_add_plugin( Backend *be, Entry *e_database )
 
 		bv.bv_val = buf;
 		bv.bv_len = strlen( buf );
-		attr_merge_one( e_database, monitor_ad_desc, &bv );
+		attr_mergeit_one( e_database, monitor_ad_desc, &bv );
 
 		i++;
 

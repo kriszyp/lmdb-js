@@ -119,7 +119,7 @@ monitor_subsys_readw_update_internal(
 	if ( b == NULL || b[0].bv_val == NULL ) {
 		bv[0].bv_val = buf;
 		bv[0].bv_len = strlen( buf );
-		attr_merge( e, monitor_ad_desc, bv );
+		attr_mergeit( e, monitor_ad_desc, bv );
 	}
 
 	return( 0 );

@@ -117,7 +117,7 @@ monitor_subsys_log_init(
 			bv[0].bv_val = ( char * )int_2_level[ i ].s;
 			bv[0].bv_len = strlen( bv[0].bv_val );
 
-			attr_merge( e, monitor_ad_desc, bv );
+			attr_mergeit( e, monitor_ad_desc, bv );
 		}
 	}
 
@@ -151,7 +151,7 @@ monitor_subsys_log_modify(
 		 */
 		if ( is_at_operational( mod->sm_desc->ad_type ) ) {
 			( void ) attr_delete( &e->e_attrs, mod->sm_desc );
-			rc = attr_merge( e, mod->sm_desc, mod->sm_bvalues );
+			rc = attr_mergeit( e, mod->sm_desc, mod->sm_bvalues );
 			if ( rc != 0 ) {
 				rc = LDAP_OTHER;
 				break;
@@ -347,8 +347,8 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 	}
 
 	/* no - add them */
-	if ( attr_merge( e, mod->sm_desc, mod->sm_bvalues ) != 0 ) {
-		/* this should return result of attr_merge */
+	if ( attr_mergeit( e, mod->sm_desc, mod->sm_bvalues ) != 0 ) {
+		/* this should return result of attr_mergeit */
 		return LDAP_OTHER;
 	}
 
@@ -471,7 +471,7 @@ replace_values( Entry *e, Modification *mod, int *newlevel )
 	}
 
 	if ( mod->sm_bvalues != NULL &&
-		attr_merge( e, mod->sm_desc, mod->sm_bvalues ) != 0 ) {
+		attr_mergeit( e, mod->sm_desc, mod->sm_bvalues ) != 0 ) {
 		return LDAP_OTHER;
 	}
 
