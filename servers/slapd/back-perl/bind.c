@@ -77,7 +77,9 @@ perl_back_bind(
 
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
-	Debug( LDAP_DEBUG_ANY, "Perl BIND\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ANY, "Perl BIND returned 0x%04x\n", return_code, 0, 0 );
+
+	send_ldap_result( conn, op, return_code, NULL, NULL, NULL, NULL );
 
 	return ( return_code );
 }
