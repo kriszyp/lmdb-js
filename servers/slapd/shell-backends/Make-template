@@ -60,7 +60,3 @@ depend:	FORCE
 links:
 	@$(LN) .src/*.[ch] .
 
-# DO NOT DELETE THIS LINE -- mkdep uses it.
-# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
-
-# IF YOU PUT ANYTHING HERE IT WILL GO AWAY

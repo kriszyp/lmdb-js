@@ -632,7 +632,7 @@ initialize_client()
 		exit(0);
 		/* NOTREACHED */
 	}
-	if (ldap_bind_s(ld, (char *) default_bind_object, (char *) UD_PASSWD,
+	if (ldap_bind_s(ld, (char *) default_bind_object, (char *) UD_BIND_CRED,
 	    LDAP_AUTH_SIMPLE) != LDAP_SUCCESS) {
 		fprintf(stderr, "  The X.500 Directory is temporarily unavailable.  Please try again later.\n");
 		if (ld->ld_errno != LDAP_UNAVAILABLE)

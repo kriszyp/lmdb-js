@@ -12,8 +12,8 @@
 #include "ldapconfig.h"
 
 static char	*binddn = LDAPDELETE_BINDDN;
+static char	*passwd = LDAPDELETE_BIND_CRED;
 static char	*base = LDAPDELETE_BASE;
-static char	*passwd = NULL;
 static char	*ldaphost = LDAPHOST;
 static int	ldapport = LDAP_PORT;
 static int	not, verbose, contoper;

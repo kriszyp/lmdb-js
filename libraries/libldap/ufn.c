@@ -29,6 +29,8 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
 #include "lber.h"
 #include "ldap.h"
 
+#include "ldapconfig.h"
+
 #ifdef NEEDPROTOS
 typedef int (*cancelptype)( void *cancelparm );
 #else /* NEEDPROTOS */

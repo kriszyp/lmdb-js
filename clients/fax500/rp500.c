@@ -22,16 +22,18 @@
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <signal.h>
+
+#include <lber.h>
+#include <ldap.h>
+
 #include <ldapconfig.h>
-#include "lber.h"
-#include "ldap.h"
 
 #define DEFAULT_PORT		79
 #define DEFAULT_SIZELIMIT	50
 
 int		debug;
-char		*ldaphost = LDAPHOST;
-char		*base = DEFAULT_BASE;
+char	*ldaphost = LDAPHOST;
+char	*base = RP_BASE;
 int		deref;
 int		sizelimit;
 LDAPFiltDesc	*filtd;
@@ -114,7 +116,7 @@ main (argc, argv)
 	ld->ld_sizelimit = sizelimit ? sizelimit : DEFAULT_SIZELIMIT;
 	ld->ld_deref = deref;
 
-	if ( ldap_simple_bind_s( ld, RP_BINDDN, NULL ) != LDAP_SUCCESS ) {
+	if ( ldap_simple_bind_s( ld, RP_BINDDN, RP_BIND_CRED ) != LDAP_SUCCESS ) {
 		fprintf( stderr, "X.500 is temporarily unavailable.\n" );
 		ldap_perror( ld, "ldap_simple_bind_s" );
 		exit( -1 );

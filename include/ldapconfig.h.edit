@@ -22,15 +22,28 @@
 /*
  * SHARED DEFINITIONS - things you should change
  */
-	/* default ldap host */
-#define LDAPHOST	"localhost"
-	/* default place to start searching */
-#define DEFAULT_BASE	"o=Your Organization Name, c=US"
-
 #define DEFAULT_BINDIR		"%BINDIR%"
 #define DEFAULT_SBINDIR		"%SBINDIR%"
 #define DEFAULT_ETCDIR		"%ETCDIR%"
 #define DEFAULT_LIBEXECDIR	"%LIBEXECDIR%"
+
+/* default ldap host */
+#define LDAPHOST	"localhost"
+
+#define DEFAULT_LDAPHOST_FILE "%ETCDIR%/ldaphost"
+/* default place to start searching */
+#define DEFAULT_BASE	"o=Your Organization Name, c=US"
+#define DEFAULT_BASE_FILE "%ETCDIR%/ldapbase"
+
+/*
+ * default binddn and creditials
+ *  use files, make sure they are not generally readable
+ */
+#define DEFAULT_BINDDN		NULL
+#define DEFAULT_BINDDN_FILE "%ETCDIR%/ldapbinddn"
+
+#define DEFAULT_BIND_CRED	NULL
+#define DEFAULT_BIND_CRED_FILE "%ETCDIR%/ldapbindcred"
 
 /*********************************************************************
  *                                                                   *
@@ -55,18 +68,19 @@
  * FINGER DEFINITIONS
  */
 	/* who to bind as */
-#define FINGER_BINDDN		NULL
+#define FINGER_BINDDN			NULL
+#define FINGER_BIND_CRED		NULL
 	/* where to search */
-#define FINGER_BASE		DEFAULT_BASE
+#define FINGER_BASE				DEFAULT_BASE
 	/* banner to print */
 #define FINGER_BANNER		"X.500 Finger Service...\r\n"
 	/* who to report errors to */
-#define FINGER_ERRORS		"your local system administrator"
+#define FINGER_ERRORS		"System Administrator"
 	/* what to say if no matches are found */
 #define FINGER_NOMATCH		"Search failed to find anything.\r\n"
 	/* what to say if the service may be unavailable */
 #define FINGER_UNAVAILABLE	\
-"The X.500 service may be temporarily unavailable.\r\n\
+"The directory service may be temporarily unavailable.\r\n\
 Please try again later.\r\n"
 	/* printed if a match has no email address - for disptmp default */
 #define FINGER_NOEMAIL1	"None registered in this service."
@@ -94,6 +108,7 @@ Please try again later.\r\n"
  */
 	/* who to bind as */
 #define GO500_BINDDN	NULL
+#define GO500_BIND_CRED	NULL
 	/* where to search */
 #define GO500_BASE	DEFAULT_BASE
 	/* port on which to listen */
@@ -118,7 +133,8 @@ Please try again later.\r\n"
  * GO500GW GOPHER GATEWAY DEFINITIONS
  */
 	/* who to bind as */
-#define GO500GW_BINDDN		NULL
+#define GO500GW_BINDDN			NULL
+#define GO500GW_BIND_CRED		NULL
 	/* where the helpfile lives */
 #define GO500GW_HELPFILE	"%ETCDIR%/go500gw.help"
 	/* port on which to listen */
@@ -142,12 +158,13 @@ Please try again later.\r\n"
  */
 	/* who to bind as */
 #define RCPT500_BINDDN		NULL
+#define RCPT500_BIND_CRED	NULL
 	/* where the helpfile lives */
 #define RCPT500_HELPFILE	"%ETCDIR%/rcpt500.help"
 	/* maximum number of matches returned */
 #define RCPT500_SIZELIMIT	50
 	/* address replies will appear to come from */
-#define RCPT500_FROM		"\"X.500 Query Program\" <X500-Query>"
+#define RCPT500_FROM		"\"Directory Query Program\" <Dir-Query>"
 	/* command that will accept an RFC822 message text on standard
 	   input, and send it.  sendmail -t does this nicely. */
 #define RCPT500_PIPEMAILCMD	"%SENDMAIL% -t"
@@ -166,7 +183,8 @@ Please try again later.\r\n"
  * LDAPSEARCH TOOL
  */
 	/* who to bind as */
-#define LDAPSEARCH_BINDDN	NULL
+#define LDAPSEARCH_BINDDN		NULL
+#define LDAPSEARCH_BIND_CRED	NULL
 	/* search base */
 #define LDAPSEARCH_BASE		DEFAULT_BASE
 
@@ -174,7 +192,8 @@ Please try again later.\r\n"
  * LDAPMODIFY TOOL
  */
 	/* who to bind as */
-#define LDAPMODIFY_BINDDN	NULL
+#define LDAPMODIFY_BINDDN		NULL
+#define LDAPMODIFY_BIND_CRED	NULL
 	/* search base */
 #define LDAPMODIFY_BASE		DEFAULT_BASE
 
@@ -182,7 +201,8 @@ Please try again later.\r\n"
  * LDAPDELETE TOOL
  */
 	/* who to bind as */
-#define LDAPDELETE_BINDDN	NULL
+#define LDAPDELETE_BINDDN		NULL
+#define LDAPDELETE_BIND_CRED	NULL
 	/* search base */
 #define LDAPDELETE_BASE		DEFAULT_BASE
 
@@ -190,7 +210,8 @@ Please try again later.\r\n"
  * LDAPMODRDN TOOL
  */
 	/* who to bind as */
-#define LDAPMODRDN_BINDDN	NULL
+#define LDAPMODRDN_BINDDN		NULL
+#define LDAPMODRDN_BIND_CRED	NULL
 	/* search base */
 #define LDAPMODRDN_BASE		DEFAULT_BASE
 
@@ -198,7 +219,8 @@ Please try again later.\r\n"
  * MAIL500 MAILER DEFINITIONS
  */
 	/* who to bind as */
-#define MAIL500_BINDDN		NULL
+#define MAIL500_BINDDN			NULL
+#define MAIL500_BIND_CRED			NULL
 	/* max number of ambiguous matches reported */
 #define MAIL500_MAXAMBIGUOUS	10
 	/* max subscribers allowed (size limit when searching for them ) */
@@ -220,9 +242,9 @@ Please try again later.\r\n"
 	/* default user to bind as */
 #define UD_BINDDN		NULL
 	/* default password to bind with */
-#define UD_PASSWD		NULL
+#define UD_BIND_CRED	NULL
 	/* default search base */
-#define UD_BASE			DEFAULT_BASE
+#define UD_BASE		DEFAULT_BASE
 	/* default base where groups are created */
 #define UD_WHERE_GROUPS_ARE_CREATED	""
 	/* default base below which all groups live */
@@ -232,7 +254,10 @@ Please try again later.\r\n"
  * FAX500 DEFINITIONS
  */
 	/* what to bind as */
-#define FAX_BINDDN	NULL
+#define FAX_BINDDN		NULL
+#define FAX_BIND_CRED	NULL
+	/* default search base */
+#define FAX_BASE		DEFAULT_BASE
 	/* how long to wait for searches */
 #define FAX_TIMEOUT		180
 	/* maximum number of ambiguous matches reported */
@@ -246,7 +271,11 @@ Please try again later.\r\n"
  * RP500 DEFINITIONS
  */
 	/* what to bind as */
-#define RP_BINDDN	NULL
+#define RP_BINDDN		NULL
+#define RP_BIND_CRED	NULL
+	/* default search base */
+#define RP_BASE			DEFAULT_BASE
+
 	/* prefix to add to non-fully-qualified numbers */
 #define RP_PHONEPREFIX	""
 

@@ -54,7 +54,7 @@ char	*s;
 }
 
 static char	*binddn = LDAPSEARCH_BINDDN;
-static char	*passwd = NULL;
+static char	*passwd = LDAPSEARCH_BIND_CRED;
 static char	*base = LDAPSEARCH_BASE;
 static char	*ldaphost = LDAPHOST;
 static int	ldapport = LDAP_PORT;

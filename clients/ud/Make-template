@@ -29,8 +29,7 @@ OBJS=	main.o find.o mod.o print.o auth.o util.o help.o\
 HDRS=	ud.h
 
 INCLUDES= -I$(HDIR) $(KRBINCLUDEFLAG)
-DEFINES= $(DEFS) -DDEBUG -DCONFIG_FILE=\"$(LDAP_ETCDIR)/ud.conf\" \
-		-DLDAP_FRIENDLY_MAP_FILE=\"$(LDAP_ETCDIR)/ldapfriendly\"
+DEFINES= $(DEFS) -DDEBUG
 TERMLIB= -ltermcap
 
 CFLAGS= ${INCLUDES} ${DEFINES} ${ACFLAGS}
@@ -77,20 +76,3 @@ lint: FORCE
 links:
 	@$(LN) .src/README .src/etc.ud.conf .src/*.[ch] .
 
-# DO NOT DELETE THIS LINE -- mkdep uses it.
-# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
-
-main.o: main.c ../../include/lber.h ../../include/proto-ldap.h
-main.o: ../../include/portable.h
-find.o: find.c ../../include/proto-lber.h ../../include/proto-ldap.h
-mod.o: mod.c ../../include/proto-lber.h ../../include/proto-ldap.h
-print.o: print.c ../../include/proto-lber.h ../../include/proto-ldap.h
-auth.o: auth.c ../../include/proto-lber.h ../../include/proto-ldap.h
-util.o: util.c ../../include/proto-lber.h ../../include/ldapconfig.h
-help.o: help.c ../../include/proto-lber.h ../../include/proto-ldap.h
-string_to_key.o: string_to_key.c
-group.o: group.c ../../include/lber.h ../../include/proto-ldap.h
-edit.o: edit.c ../../include/lber.h ../../include/proto-ldap.h
-globals.o: globals.c
-
-# IF YOU PUT ANYTHING HERE IT WILL GO AWAY

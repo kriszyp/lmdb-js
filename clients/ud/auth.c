@@ -251,7 +251,7 @@ int implicit;
 		else
 			ldap_perror(ld, "ldap_bind_s" );
 		(void) ldap_bind_s(ld, default_bind_object,
-			 (char *) UD_PASSWD, LDAP_AUTH_SIMPLE);
+			 (char *) UD_BIND_CRED, LDAP_AUTH_SIMPLE);
 		if (default_bind_object == NULL)
 			set_bound_dn(NULL);
 		else

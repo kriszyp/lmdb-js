@@ -75,13 +75,3 @@ depend:	FORCE
 links:
 	@$(LN) .src/README .src/xrpcomp .src/*.[ch] .
 
-# DO NOT DELETE THIS LINE -- mkdep uses it.
-# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
-
-rp500.o: rp500.c ../../include/ldapconfig.h ../../include/proto-lber.h
-rp500.o: ../../include/proto-ldap.h
-main.o: main.c ../../include/portable.h ../../include/proto-lber.h
-main.o: ../../include/proto-ldap.h
-faxtotpc.o: faxtotpc.c
-
-# IF YOU PUT ANYTHING HERE IT WILL GO AWAY

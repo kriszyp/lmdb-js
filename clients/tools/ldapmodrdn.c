@@ -12,8 +12,8 @@
 #include "ldapconfig.h"
 
 static char	*binddn = LDAPMODRDN_BINDDN;
+static char	*passwd = LDAPMODRDN_BIND_CRED;
 static char	*base = LDAPMODRDN_BASE;
-static char	*passwd = NULL;
 static char	*ldaphost = LDAPHOST;
 static int	ldapport = LDAP_PORT;
 static int	not, verbose, contoper;

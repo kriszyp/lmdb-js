@@ -29,6 +29,8 @@
 #include "ldap.h"
 #include "disptmpl.h"
 
+#include "ldapconfig.h"
+
 #ifdef NEEDPROTOS
 static int do_entry2text( LDAP *ld, char *buf, char *base, LDAPMessage *entry,
 	struct ldap_disptmpl *tmpl, char **defattrs, char ***defvals,

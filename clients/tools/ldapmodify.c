@@ -19,7 +19,7 @@
 
 static char	*prog;
 static char	*binddn = LDAPMODIFY_BINDDN;
-static char	*passwd = NULL;
+static char	*passwd = LDAPMODIFY_BIND_CRED;
 static char	*ldaphost = LDAPHOST;
 static int	ldapport = LDAP_PORT;
 static int	new, replace, not, verbose, contoper, force, valsfromfiles;

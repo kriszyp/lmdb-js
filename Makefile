@@ -161,8 +161,7 @@ depend:	makeconfig
 	for i in $(SRCDIRS); do \
 	    echo; echo "cd $$i; $(MAKE) $(MFLAGS) depend"; \
 	    ( cd $$i; $(MAKE) $(MFLAGS) depend ); \
-	done; \
-	$(MAKE) $(MFLAGS) makefiles
+	done;
 
 #
 # rules to check out and in Make-template files
@@ -350,12 +349,13 @@ Make-common: Make-common.dist
 		echo "  creating $$i/Makefile"; \
 		$(RM) $$i/Makefile; \
 		$(CAT) $$HDRFILE $$i/Make-template $$DEFSFILE > $$i/Makefile; \
-		$(CHMOD) 444 $$i/Makefile; \
 	    fi; \
 	done; \
 	$(RM) .makefiles; \
 	touch .makefiles; \
-	$(RM) $$HDRFILE $$DEFSFILE
+	$(RM) $$HDRFILE $$DEFSFILE \
+	echo "Please \"make depend\" before building."
+	
 
 #
 # rule to always build makefiles

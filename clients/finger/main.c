@@ -168,7 +168,9 @@ static do_query()
 	ld->ld_sizelimit = FINGER_SIZELIMIT;
 	ld->ld_deref = deref;
 
-	if ( ldap_simple_bind_s( ld, FINGER_BINDDN, NULL ) != LDAP_SUCCESS ) {
+	if ( ldap_simple_bind_s( ld, FINGER_BINDDN, FINGER_BIND_CRED )
+		!= LDAP_SUCCESS )
+	{
 		fprintf( stderr, FINGER_UNAVAILABLE );
 		ldap_perror( ld, "ldap_simple_bind_s" );
 		exit( 1 );

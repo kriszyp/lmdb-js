@@ -60,10 +60,3 @@ depend:	FORCE
 links:
 	@$(LN) .src/README .src/*.[ch] .
 
-# DO NOT DELETE THIS LINE -- mkdep uses it.
-# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
-
-main.o: main.c ../../include/ldap.h ../../include/proto-ldap.h
-main.o: ../../include/portable.h
-
-# IF YOU PUT ANYTHING HERE IT WILL GO AWAY

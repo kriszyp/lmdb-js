@@ -379,7 +379,7 @@ int	s;
 		}
 
 		ld->ld_deref = GO500_DEREF;
-		if ( (rc = ldap_simple_bind_s( ld, GO500_BINDDN, NULL ))
+		if ( (rc = ldap_simple_bind_s( ld, GO500_BINDDN, GO500_BIND_CRED ))
 		    != LDAP_SUCCESS ) {
 			fprintf(fp,
 			    "0An error occurred (explanation)\t@%d\t%s\t%d\r\n",

@@ -59,10 +59,3 @@ depend:	FORCE
 links:
 	@$(LN) .src/README .src/sendmail.cf .src/*.[ch] .
 
-# DO NOT DELETE THIS LINE -- mkdep uses it.
-# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
-
-main.o: main.c ../../include/portable.h ../../include/proto-lber.h
-main.o: ../../include/proto-ldap.h
-
-# IF YOU PUT ANYTHING HERE IT WILL GO AWAY

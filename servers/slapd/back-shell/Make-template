@@ -67,34 +67,4 @@ depend:	FORCE
 
 links:
 	@$(LN) .src/*.[ch] .
-# DO NOT DELETE THIS LINE -- mkdep uses it.
-# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-init.o: init.c ../../../include/avl.h ../../../include/proto-lber.h
-init.o: ../../../include/proto-ldap.h ../../../include/ldif.h
-config.o: config.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
-config.o: ../../../include/ldif.h
-fork.o: fork.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
-fork.o: ../../../include/ldif.h
-search.o: search.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
-search.o: ../../../include/ldif.h
-bind.o: bind.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
-bind.o: ../../../include/ldif.h
-unbind.o: unbind.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
-unbind.o: ../../../include/ldif.h
-add.o: add.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
-add.o: ../../../include/ldif.h
-delete.o: delete.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
-delete.o: ../../../include/ldif.h
-modify.o: modify.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
-modify.o: ../../../include/ldif.h
-modrdn.o: modrdn.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
-modrdn.o: ../../../include/ldif.h
-compare.o: compare.c ../../../include/proto-lber.h
-compare.o: ../../../include/proto-ldap.h ../../../include/ldif.h
-abandon.o: abandon.c ../../../include/avl.h ../../../include/proto-lber.h
-abandon.o: ../../../include/proto-ldap.h ../../../include/ldif.h
-result.o: result.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
-result.o: ../../../include/ldif.h
-
-# IF YOU PUT ANYTHING HERE IT WILL GO AWAY

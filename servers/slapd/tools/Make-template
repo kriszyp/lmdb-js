@@ -157,48 +157,17 @@ clean:	FORCE
 	@echo "making clean in `$(PWD)`"
 	$(RM) edb2ldif ldif2index *.o core a.out edb2-vers.c \
 		ldif2ldbm ldif2id2entry ldif2id2children ldbmcat ldif \
-		centipede chlog2replog sizecount ldif2ldbm.sed.c ldbmtest
+		centipede chlog2replog sizecount ldbmtest
 
-depend:	ldif2ldbm.sed.c FORCE
+depend:	FORCE
 	@if [ ! -z "$(HAVEISODE)" ]; then \
 	    DEPENDEXTRAS="$(ISODEINCLUDEFLAG) chlog2replog.c $(EDB2LDIFSRCS)"; \
 	fi; \
 	$(MKDEP) $(INCLUDES) $(DEFINES) $$DEPENDEXTRAS ldif2index.c \
 	    ldif2ldbm.c ldif2id2entry.c ldif2id2children.c ldbmcat.c \
-	    centipede.c sizecount.c ldif2ldbm.sed.c ldbmtest.c ldif.c
+	    centipede.c sizecount.c ldbmtest.c ldif.c
 
 links:
 	@echo "making links in `$(PWD)`"
 	@$(LN) .src/*.[ch] .
 
-
-# DO NOT DELETE THIS LINE -- mkdep uses it.
-# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
-
-ldif2index.o: ldif2index.c ../../../include/avl.h ../../../include/proto-lber.h
-ldif2index.o: ../../../include/proto-ldap.h ../../../include/ldif.h
-ldif2ldbm.o: ldif2ldbm.c ../../../include/proto-lber.h
-ldif2ldbm.o: ../../../include/proto-ldap.h ../../../include/ldif.h
-ldif2ldbm.o: ../../../include/ldbm.h
-ldif2id2entry.o: ldif2id2entry.c ../../../include/avl.h
-ldif2id2entry.o: ../../../include/proto-lber.h ../../../include/proto-ldap.h
-ldif2id2entry.o: ../../../include/ldif.h ../../../include/ldbm.h
-ldif2id2children.o: ldif2id2children.c ../../../include/avl.h
-ldif2id2children.o: ../../../include/proto-lber.h ../../../include/proto-ldap.h
-ldif2id2children.o: ../../../include/ldif.h ../../../include/ldbm.h
-ldbmcat.o: ldbmcat.c ../../../include/proto-lber.h
-ldbmcat.o: ../../../include/proto-ldap.h ../../../include/ldif.h
-centipede.o: centipede.c ../../../include/proto-lber.h
-centipede.o: ../../../include/proto-ldap.h ../../../include/ldbm.h
-sizecount.o: sizecount.c ../../../include/lber.h ../../../include/ldap.h
-sizecount.o: ../../../include/proto-ldap.h
-ldif2ldbm.sed.o: ldif2ldbm.sed.c ../../../include/avl.h
-ldif2ldbm.sed.o: ../../../include/proto-lber.h ../../../include/proto-ldap.h
-ldif2ldbm.sed.o: ../../../include/ldif.h ../../../include/ldbm.h
-ldbmtest.o: ldbmtest.c ../../../include/ldapconfig.h ../../../include/avl.h
-ldbmtest.o: ../../../include/proto-lber.h ../../../include/proto-ldap.h
-ldbmtest.o: ../../../include/ldif.h ../../../include/ldbm.h
-ldbmtest.o: ../back-ldbm/proto-back-ldbm.h
-ldif.o: ldif.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
-
-# IF YOU PUT ANYTHING HERE IT WILL GO AWAY
