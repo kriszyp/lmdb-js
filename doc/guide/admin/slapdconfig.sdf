@@ -92,10 +92,15 @@ set of entries and/or attributes (specified by <what>) by one or
 more requesters (specified by <who>).
 See the {{SECT:Access Control}} section of this chapter for a
 summary of basic usage.
+
 !if 0
 More details discussion of this directive can be found in the
 {{SECT:Advanced Access Control}} chapter.
 !endif
+
+Note: If no {{EX:access}} directives are specified, the default
+access control policy, {{EX:access to * by * read}}, allows all
+both authenticated and anonymous users read access.
 
 
 H4: attributetype <{{REF:RFC2252}} Attribute Type Description>
@@ -103,23 +108,6 @@ H4: attributetype <{{REF:RFC2252}} Attribute Type Description>
 This directive defines an attribute type.
 Please see the {{SECT:Schema Specification}} chapter
 for information regarding how to use this directive.
-
-H4: defaultaccess { none | compare | search | read | write }
-
-This directive specifies the default access to grant requesters
-when no {{EX:access}} directives have been specified.  Any given
-access level implies all lesser access levels (e.g., read access
-implies search and compare but not write).
-
-Note: It is recommend that the {{EX:access}} directive be used
-to specify access control.  See the {{SECT:Access Control}}
-section of this chapter for information regarding the {{EX:access}}
-directive.
-
-\Default:
-
-E: defaultaccess read
-
 
 H4: idletimeout <integer>
 
@@ -246,15 +234,14 @@ supported backend types listed in Table 5.2.
 Types	Description
 bdb	Berkeley DB transactional backend
 dnssrv	DNS SRV backend
-ldbm	Lightweight DBM backend
 ldap	Lightweight Directory Access Protocol (Proxy) backend
+ldbm	Lightweight DBM backend
 meta	Meta Directory backend
 monitor	Monitor backend
 passwd	Provides read-only access to {{passwd}}(5)
 perl	Perl Programmable backend
 shell	Shell (extern program) backend
 sql	SQL Programmable backend
-tcl	TCL Programmable backend
 !endblock
 
 \Example:
@@ -566,64 +553,93 @@ access line is:
 
 >	<access directive> ::= access to <what>
 >		[by <who> <access> <control>]+
->	<what> ::= * | [ dn[.<dn style>]=<regex>]
+>	<what> ::= * |
+>		[dn[.<basic-style>]=<regex> | dn.<scope-style>=<DN>]
 >		[filter=<ldapfilter>] [attrs=<attrlist>]
->	<dn style> ::= regex | exact | base | one | subtree | children
+>	<basic-style> ::= regex | exact
+>	<scope-style> ::= base | one | subtree | children
 >	<attrlist> ::= <attr> | <attr> , <attrlist>
 >	<attr> ::= <attrname> | entry | children
->	<who> ::= [* | anonymous | users | self |
->		dn[.<dn style>]=<regex>]
->		[dnattr=<attrname> ]
->		[group[/<objectclass>[/<attrname>][.<basic style>]]=<regex> ]
->		[peername[.<basic style>]=<regex>]
->		[sockname[.<basic style>]=<regex>]
->		[domain[.<basic style>]=<regex>]
->		[sockurl[.<basic style>]=<regex>]
+>	<who> ::= * | [anonymous | users | self
+>			| dn[.<basic-style>]=<regex> | dn.<scope-style>=<DN>] 
+>		[dnattr=<attrname>]
+>		[group[/<objectclass>[/<attrname>][.<basic-style>]]=<regex>]
+>		[peername[.<basic-style>]=<regex>]
+>		[sockname[.<basic-style>]=<regex>]
+>		[domain[.<basic-style>]=<regex>]
+>		[sockurl[.<basic-style>]=<regex>]
 >		[set=<setspec>]
 >		[aci=<attrname>]
->	<basic style> ::= regex | exact
 >	<access> ::= [self]{<level>|<priv>}
 >	<level> ::= none | auth | compare | search | read | write
 >	<priv> ::= {=|+|-}{w|r|s|c|x}+
 >	<control> ::= [stop | continue | break]
 
-where the <what> part selects the entries and/or attributes to
-which the access applies, the {{EX:<who>}} part specifies which
-entities are granted access, and the {{EX:<access>}} part specifies
-the access granted. Multiple {{EX:<who> <access> <control>}} triplets
-are supported, allowing many entities to be granted different
-access to the same set of entries and attributes. Not all of these
-access control options are described here; for more details see
-the {{slapd.access}}(5) man page.
+where the <what> part selects the entries and/or attributes to which
+the access applies, the {{EX:<who>}} part specifies which entities
+are granted access, and the {{EX:<access>}} part specifies the
+access granted. Multiple {{EX:<who> <access> <control>}} triplets
+are supported, allowing many entities to be granted different access
+to the same set of entries and attributes. Not all of these access
+control options are described here; for more details see the
+{{slapd.access}}(5) man page.
 
 
 H3: What to control access to
 
-The <what> part of an access specification determines the
-entries and attributes to which the access control applies.
-Entries can be selected in two ways: by a regular expression
-matching the entry's distinguished name:
+The <what> part of an access specification determines the entries
+and attributes to which the access control applies.  Entries are
+commonly selected in two ways: by DN and by filter.
 
->	dn=<regular expression>
+>	by *
+>	by dn[.<basic-style>]=<regex>
+>	by dn.<scope-style>=<DN>
 
-Note: The DN pattern specified should be "normalized" to the RFC2253
-restricted DN form.  In particular, there should be no extra spaces
-and commas should be used to separate components.  An example
-normalized DN is "{{EX:cn=Babs Jensen,dc=example,dc=com}}".  An
-example of a non-normalized DN is "{{EX:cn=Babs Jensen; dc=example;
-dc=com}}".
+The first form is used to select all entries.  The second form may
+be used to select entries by matching a regular expression against
+the target entry's {{normalized DN}}.   (The second form is not
+discussed further in this document.)  The third form is used to
+select entries which are within the requested scope of DN.
 
-Or, entries may be selected by a filter matching some
-attribute(s) in the entry:
+The scope can be either {{EX:base}}, {{EX:one}}, {{EX:subtree}},
+or {{EX:children}}.  Where {{EX:base}} matches only the entry with
+provided DN, {{EX:one}} matches the entries whose parent is the
+provided DN, {{EX:subtree}} matches all entries in the subtree whose
+root is the provided DN, and {{EX:children}} matches all entries
+under the DN (but not the entry named by the DN).
 
->	filter=<ldap filter>
+For example, if the directory contained entries named:
+
+>	0: o=suffix
+>	1: cn=Manager,o=suffix
+>	2: ou=people,o=suffix
+>	3: uid=kdz,ou=people,o=suffix
+>	4: cn=addresses,uid=kdz,ou=people,o=suffix
+>	5: uid=hyc,ou=people,o=suffix
+
+\Then:
+. {{EX:dn.base="ou=people,o=suffix"}} match 2;
+. {{EX:dn.one="ou=people,o=suffix"}} match 3, and 5;
+. {{EX:dn.subtree="ou=people,o=suffix"}} match 2, 3, 4, and 5; and
+. {{EX:dn.children="ou=people,o=suffix"}} match 3, 4, and 5.
+
+
+Entries may also be selected using a filter:
+
+>	by filter=<ldap filter>
 
 where <ldap filter> is a string representation of an LDAP
-search filter, as described in {{REF:RFC2254}}.
+search filter, as described in {{REF:RFC2254}}.  For example:
 
-Attributes within an entry are selected by including a
-comma-separated list of attribute names in the <what>
-selector:
+>	by filter=(objectClass=person)
+
+Note that entries by be select by both DN and filter by
+include both qualifiers in the <what> clause.
+
+>	by dn.one="ou=people,o=suffix" filter=(objectClass=person)
+
+Attributes within an entry are selected by including a comma-separated
+list of attribute names in the <what> selector:
 
 >	attrs=<attribute list>
 
@@ -650,25 +666,19 @@ The following table summarizes entity specifiers:
 
 !block table; align=Center; coltags="EX,N"; \
 	title="Table 5.3: Access Entity Specifiers"
-Specifier	Entities
-*		All, including anonymous and authenticated users
-anonymous	Anonymous (non-authenticated) users
-users		Authenticated users
-self		User associated with target entry
-dn=<regex>	Users matching regular expression
+Specifier|Entities
+*|All, including anonymous and authenticated users
+anonymous|Anonymous (non-authenticated) users
+users|Authenticated users
+self|User associated with target entry
+dn[.<basic-style>]=<regex>|Users matching a regular expression
+dn.<scope-style>=<DN>|Users within scope of a DN
 !endblock
 
-The DN specifier takes a regular expression which is used
-to match against the "normalized" DN of the current entity.
-
->	dn=<regular expression>
-
-By "normalized", we mean that all extra spaces have been
-removed from the entity's DN and commas are used to
-separate RDN components.
+The DN specifier behaves much like <what> clause DN specifiers.
 
 Other control factors are also supported.
-For example, a {{EX:<what>}} can be restricted by a
+For example, a {{EX:<who>}} can be restricted by a
 regular expression matching the client's domain name:
 
 >	domain=<regular expression>
@@ -781,50 +791,49 @@ The following example shows the use of a regular expression
 to select the entries by DN in two access directives where
 ordering is significant.
 
->	access to dn=".*,dc=example,dc=com"
+>	access to dn.children="dc=example,dc=com"
 > 		by * search
->	access to dn=".*,dc=com"
+>	access to dn.children="dc=com"
 > 		by * read
 
-Read access is granted to entries under the {{EX:dc=com}}
-subtree, except for those entries under the {{EX:dc=example,dc=com}}
-subtree, to which search access is granted.  No access is granted to
-{{EX:dc=com}} as neither access directive matches this DN.
-If the order of these access directives was reversed, the
-trailing directive would never be reached, since all
-{{EX:dc=example,dc=com}} entries are also {{EX:dc=com}} entries.
+Read access is granted to entries under the {{EX:dc=com}} subtree,
+except for those entries under the {{EX:dc=example,dc=com}} subtree,
+to which search access is granted.  No access is granted to
+{{EX:dc=com}} as neither access directive matches this DN.  If the
+order of these access directives was reversed, the trailing directive
+would never be reached, since all entries under {{EX:dc=example,dc=com}}
+are also under {{EX:dc=com}} entries.
 
-Also note that if no {{EX:access to}} directive matches or
-no {{EX:by <who>}} clause, {{B:access is denied}}.  That is, every
-{{EX:access to}} directive ends with an implicit {{EX:by * none}}
-clause and every access list ends with an implicit
-{{EX:access to * by * none}} directive.  Only if no access controls
-are specified is the {{EX:defaultaccess}} granted.
+Also note that if no {{EX:access to}} directive matches or no {{EX:by
+<who>}} clause, {{B:access is denied}}.  That is, every {{EX:access
+to}} directive ends with an implicit {{EX:by * none}} clause and
+every access list ends with an implicit {{EX:access to * by * none}}
+directive.
 
-The next example again shows the importance of ordering,
-both of the access directives and the {{EX:by <who>}} clauses.
-It also shows the use of an attribute selector to grant access
-to a specific attribute and various {{EX:<who>}} selectors.
+The next example again shows the importance of ordering, both of
+the access directives and the {{EX:by <who>}} clauses.  It also
+shows the use of an attribute selector to grant access to a specific
+attribute and various {{EX:<who>}} selectors.
 
->	access to dn="(.*,)?dc=example,dc=com" attr=homePhone
+>	access to dn.subtree="dc=example,dc=com" attr=homePhone
 >		by self write
->		by dn="(.*,)?dc=example,dc=com" search
+>		by dn.children=dc=example,dc=com" search
 >		by domain=.*\.example\.com read
->	access to dn="(.*,)?dc=example,dc=com"
+>	access to dn.subtree="dc=example,dc=com"
 >		by self write
->		by dn=".*,dc=example,dc=com" search
+>		by dn.children="dc=example,dc=com" search
 >		by anonymous auth
 
 This example applies to entries in the "{{EX:dc=example,dc=com}}"
-subtree. To all attributes except {{EX:homePhone}}, the entry itself
-can write them, other {{EX:example.com}} entries can search by them,
-anybody else has no access (implicit {{EX:by * none}}) excepting for
-authentication/authorization (which is always done anonymously).
-The {{EX:homePhone}} attribute is writable by the entry, searchable
-by other {{EX:example.com}} entries, readable by clients connecting
-from somewhere in the {{EX:example.com}} domain, and otherwise not
-readable (implicit {{EX:by * none}}).  All other access
-is denied by the implicit {{EX:access to * by * none}}.
+subtree. To all attributes except {{EX:homePhone}}, an entry can
+write to itself, entries under {{EX:example.com}} entries can search
+by them, anybody else has no access (implicit {{EX:by * none}})
+excepting for authentication/authorization (which is always done
+anonymously).  The {{EX:homePhone}} attribute is writable by the
+entry, searchable by entries under {{EX:example.com}}, readable by
+clients connecting from somewhere in the {{EX:example.com}} domain,
+and otherwise not readable (implicit {{EX:by * none}}).  All other
+access is denied by the implicit {{EX:access to * by * none}}.
 
 Sometimes it is useful to permit a particular DN to add or
 remove itself from an attribute. For example, if you would like to
@@ -903,11 +912,11 @@ E: 23.	# database access control definitions
 E: 24.	access to attr=userPassword
 E: 25.		by self write
 E: 26.		by anonymous auth
-E: 27.		by dn="cn=Admin,dc=example,dc=com" write
+E: 27.		by dn.base="cn=Admin,dc=example,dc=com" write
 E: 28.		by * none
 E: 29.	access to *
 E: 30.		by self write
-E: 31.		by dn="cn=Admin,dc=example,dc=com" write
+E: 31.		by dn.base="cn=Admin,dc=example,dc=com" write
 E: 32.		by * read
 
 Line 5 is a comment. The start of the database definition is marked
