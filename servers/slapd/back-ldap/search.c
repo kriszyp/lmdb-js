@@ -164,6 +164,7 @@ ldap_send_entry(
 		if (attr == NULL)
 			continue;
 		attr->a_next = 0;
+		attr->a_desc = NULL;
 		slap_str2ad(a, &attr->a_desc, &text);
 		attr->a_vals = ldap_get_values_len(lc->ld, e, a);
 		if (!attr->a_vals)
