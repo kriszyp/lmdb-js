@@ -924,6 +924,9 @@ ldap_int_sasl_bind(
 	const char		*dn,
 	const char		*mechs,
 	LDAPControl		**sctrls,
-	LDAPControl		**cctrls )
+	LDAPControl		**cctrls,
+	unsigned		flags,
+	LDAP_SASL_INTERACT_PROC *interact,
+	void * defaults )
 { return LDAP_NOT_SUPPORTED; }
 #endif /* HAVE_CYRUS_SASL */
