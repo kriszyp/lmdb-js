@@ -400,6 +400,7 @@ slapi_pblock_destroy( Slapi_PBlock* pb )
 {
 #if defined(LDAP_SLAPI)
 	char *str = NULL;
+	LDAPControl **rescontrols = NULL;
 
 	get( pb, SLAPI_CONN_DN,(void **)&str );
 	if ( str != NULL ) {
@@ -434,6 +435,12 @@ slapi_pblock_destroy( Slapi_PBlock* pb )
 	if ( str != NULL ) {
 		ch_free( str );
 		str = NULL;
+	}
+
+	get( pb, SLAPI_RESCONTROLS, (void **)&rescontrols );
+	if ( rescontrols != NULL ) {
+		ldap_controls_free( rescontrols );
+		rescontrols = NULL;
 	}
 
 	ldap_pvt_thread_mutex_destroy( &pb->pblockMutex );
