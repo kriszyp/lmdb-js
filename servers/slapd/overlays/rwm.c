@@ -60,6 +60,10 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 		return rc;
 	}
 
+	if ( mdn.bv_val == op->o_req_dn.bv_val ) {
+		return LDAP_SUCCESS;
+	}
+
 	rc = dnPrettyNormal( NULL, &mdn, &dn, &ndn, op->o_tmpmemctx );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
@@ -121,7 +125,7 @@ rwm_delete( Operation *op, SlapReply *rs )
 	int	rc;
 
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "addDn" );
+	rc = rwm_op_dn_massage( op, rs, "deleteDn" );
 #else
 	rc = 1;
 	rc = rwm_op_dn_massage( op, rs, &rc );
@@ -139,7 +143,7 @@ rwm_modrdn( Operation *op, SlapReply *rs )
 	int	rc;
 
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "addDn" );
+	rc = rwm_op_dn_massage( op, rs, "renameDn" );
 #else
 	rc = 1;
 	rc = rwm_op_dn_massage( op, rs, &rc );
@@ -158,7 +162,7 @@ rwm_modify( Operation *op, SlapReply *rs )
 	int	rc;
 
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "addDn" );
+	rc = rwm_op_dn_massage( op, rs, "modifyDn" );
 #else
 	rc = 1;
 	rc = rwm_op_dn_massage( op, rs, &rc );
@@ -177,7 +181,7 @@ rwm_compare( Operation *op, SlapReply *rs )
 	int	rc;
 
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "addDn" );
+	rc = rwm_op_dn_massage( op, rs, "compareDn" );
 #else
 	rc = 1;
 	rc = rwm_op_dn_massage( op, rs, &rc );
@@ -196,7 +200,7 @@ rwm_search( Operation *op, SlapReply *rs )
 	int	rc;
 
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "addDn" );
+	rc = rwm_op_dn_massage( op, rs, "searchDn" );
 #else
 	rc = 1;
 	rc = rwm_op_dn_massage( op, rs, &rc );
@@ -215,7 +219,7 @@ rwm_extended( Operation *op, SlapReply *rs )
 	int	rc;
 
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "addDn" );
+	rc = rwm_op_dn_massage( op, rs, "extendedDn" );
 #else
 	rc = 1;
 	rc = rwm_op_dn_massage( op, rs, &rc );
@@ -256,7 +260,7 @@ rwm_matched( Operation *op, SlapReply *rs )
 
 	if ( mdn.bv_val != dn.bv_val ) {
 		if ( rs->sr_flags & REP_MATCHED_MUSTBEFREED ) {
-			free( rs->sr_matched );
+			ch_free( (void *)rs->sr_matched );
 		} else {
 			rs->sr_flags |= REP_MATCHED_MUSTBEFREED;
 		}
@@ -289,13 +293,17 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 #ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = NULL; 
-	dc.ctx = "searchResult";
+	dc.ctx = "searchResultDN";
 #else
 	dc.tofrom = 0;
 	dc.normalized = 0;
 #endif
 	if ( rwm_dn_massage( &dc, &e->e_name, &dn ) ) {
 		return LDAP_OTHER;
+	}
+
+	if ( e->e_name.bv_val == dn.bv_val ) {
+		return SLAP_CB_CONTINUE;
 	}
 
 	/*
@@ -311,7 +319,7 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 		goto fail;
 	}
 
-	if ( !rs->sr_flags & REP_ENTRY_MODIFIABLE ) {
+	if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
 		e = entry_dup( e );
 		if ( e == NULL ) {
 			goto fail;

@@ -298,7 +298,7 @@ suffix_massage_config(
 	ch_free( rargv[ 2 ] );
 	
 	rargv[ 0 ] = "rewriteContext";
-	rargv[ 1 ] = "searchResult";
+	rargv[ 1 ] = "searchResultDN";
 	rargv[ 2 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 2, rargv );
 	
@@ -314,14 +314,14 @@ suffix_massage_config(
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "matchedDN";
 	rargv[ 2 ] = "alias";
-	rargv[ 3 ] = "searchResult";
+	rargv[ 3 ] = "searchResultDN";
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "searchAttrDN";
 	rargv[ 2 ] = "alias";
-	rargv[ 3 ] = "searchResult";
+	rargv[ 3 ] = "searchResultDN";
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 
