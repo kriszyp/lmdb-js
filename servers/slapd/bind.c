@@ -33,7 +33,8 @@ do_bind(
 )
 {
 	BerElement	*ber = op->o_ber;
-	int		version, method, len, rc;
+	int		version, method, len;
+	unsigned long	rc;
 	char		*dn;
 	struct berval	cred;
 	Backend		*be;
