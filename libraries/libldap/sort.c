@@ -92,20 +92,36 @@ ldap_sort_entries(
     int		(*cmp) (LDAP_CONST  char *, LDAP_CONST char *)
 )
 {
-	int			i, count;
+	int			i, count = 0;
 	struct entrything	*et;
-	LDAPMessage		*e, *last;
+	LDAPMessage		*e, *ehead = NULL, *etail = NULL;
+	LDAPMessage		*ohead = NULL, *otail = NULL;
 	LDAPMessage		**ep;
 
 	assert( ld != NULL );
 
-	count = ldap_count_entries( ld, *chain );
+	/* Separate entries from non-entries */
+	for ( e = *chain; e; e=e->lm_chain ) {
+		if ( e->lm_msgtype == LDAP_RES_SEARCH_ENTRY ) {
+			count++;
+			if ( !ehead ) ehead = e;
+			if ( etail ) etail->lm_chain = e;
+			etail = e;
+		} else {
+			if ( !ohead ) ohead = e;
+			if ( otail ) otail->lm_chain = e;
+			otail = e;
+		}
+	}
 
-	if ( count < 0 ) {
-		return -1;
-
-	} else if ( count < 2 ) {
+	if ( count < 2 ) {
 		/* zero or one entries -- already sorted! */
+		if ( ehead ) {
+			etail->lm_chain = ohead;
+			*chain = ehead;
+		} else {
+			*chain = ohead;
+		}
 		return 0;
 	}
 
@@ -115,7 +131,7 @@ ldap_sort_entries(
 		return( -1 );
 	}
 
-	e = *chain;
+	e = ehead;
 	for ( i = 0; i < count; i++ ) {
 		et[i].et_cmp_fn = cmp;
 		et[i].et_msg = e;
@@ -131,7 +147,6 @@ ldap_sort_entries(
 
 		e = e->lm_chain;
 	}
-	last = e;
 
 	qsort( et, count, sizeof(struct entrything), et_cmp );
 
@@ -142,7 +157,8 @@ ldap_sort_entries(
 
 		LDAP_VFREE( et[i].et_vals );
 	}
-	*ep = last;
+	*ep = ohead;
+		
 	LDAP_FREE( (char *) et );
 
 	return( 0 );

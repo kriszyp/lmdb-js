@@ -93,15 +93,15 @@ result: 0 Success
 # requesting: 1.1 
 #
 
+# University of Michigan, US
+dn: o=University of Michigan,c=US
+
 # search reference
 ref: ldap://hostA/o=abc,c=us??base
 ref: ldap://hostB/o=ABC,c=US??base
 
 # search reference
 ref: ldap://hostC/o=xyz,c=us??base
-
-# University of Michigan, US
-dn: o=University of Michigan,c=US
 
 # search result
 search: 2
@@ -118,21 +118,21 @@ result: 0 Success
 # requesting: 1.1 
 #
 
+# Manager, University of Michigan, US
+dn: cn=Manager,o=University of Michigan,c=US
+
+# University of Michigan, US
+dn: o=University of Michigan,c=US
+
+# US
+dn: c=US
+
 # search reference
 ref: ldap://hostA/o=abc,c=us??sub
 ref: ldap://hostB/o=ABC,c=US??sub
 
 # search reference
 ref: ldap://hostC/o=xyz,c=us??sub
-
-# US
-dn: c=US
-
-# University of Michigan, US
-dn: o=University of Michigan,c=US
-
-# Manager, University of Michigan, US
-dn: cn=Manager,o=University of Michigan,c=US
 
 # search result
 search: 2
