@@ -603,8 +603,8 @@ field will have.
 Its component are defined as
 .LP
 .nf
-	<level> ::= none|auth|compare|search|read|write
-	<priv> ::= {=|+|-}{w|r|s|c|x|0}+
+	<level> ::= none|disclose|auth|compare|search|read|write
+	<priv> ::= {=|+|-}{w|r|s|c|x|d|0}+
 .fi
 .LP
 The modifier
@@ -624,6 +624,7 @@ access model relies on an incremental interpretation of the access
 privileges.
 The possible levels are
 .BR none ,
+.BR disclose ,
 .BR auth ,
 .BR compare ,
 .BR search ,
@@ -633,11 +634,18 @@ and
 Each access level implies all the preceding ones, thus 
 .B write
 access will imply all accesses.
-While
-.B none
-is trivial, 
+.LP
+The
+.B none 
+access level disallows all access including disclosure on error.
+.LP
+The
+.B disclose
+access level allows disclorure of information on error.
+.LP
+The 
 .B auth
-access means that one is allowed access to an attribute to perform
+access level means that one is allowed access to an attribute to perform
 authentication/authorization operations (e.g.
 .BR bind )
 with no other access.
@@ -665,9 +673,11 @@ for read,
 .B s 
 for search,
 .B c 
-for compare, and
+for compare,
 .B x
-for authentication.
+for authentication, and
+.B d
+for disclose.
 More than one of the above privileges can be added in one statement.
 .B 0
 indicates no privileges and is used only by itself (e.g., +0).
