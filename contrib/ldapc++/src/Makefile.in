@@ -1,6 +1,6 @@
-# Makefile.in generated automatically by automake 1.4 from Makefile.am
+# Makefile.in generated automatically by automake 1.4-p5 from Makefile.am
 
-# Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
+# Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -66,12 +66,16 @@ AS = @AS@
 CC = @CC@
 CXX = @CXX@
 DLLTOOL = @DLLTOOL@
+ECHO = @ECHO@
+EXEEXT = @EXEEXT@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 MAKEINFO = @MAKEINFO@
 OBJDUMP = @OBJDUMP@
+OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
+STRIP = @STRIP@
 VERSION = @VERSION@
 
 lib_LTLIBRARIES = libldapcpp.la
@@ -114,9 +118,10 @@ LDAPRebindAuth.lo LDAPReferralException.lo LDAPReferenceList.lo \
 LDAPRequest.lo LDAPResult.lo LDAPSearchReference.lo \
 LDAPSearchRequest.lo LDAPSearchResult.lo LDAPSearchResults.lo \
 LDAPUrl.lo LDAPUrlList.lo StringList.lo
+noinst_PROGRAMS =  main$(EXEEXT)
 PROGRAMS =  $(noinst_PROGRAMS)
 
-main_OBJECTS =  main.o
+main_OBJECTS =  main.$(OBJEXT)
 main_DEPENDENCIES =  ./libldapcpp.la
 main_LDFLAGS = 
 CXXFLAGS = @CXXFLAGS@
@@ -151,7 +156,7 @@ OBJECTS = $(libldapcpp_la_OBJECTS) $(main_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
-.SUFFIXES: .S .c .cpp .lo .o .s
+.SUFFIXES: .S .c .cpp .lo .o .obj .s
 $(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOMAKE) --foreign src/Makefile
 
@@ -213,6 +218,11 @@ uninstall-libLTLIBRARIES:
 	  $(LIBTOOL)  --mode=uninstall rm -f $(DESTDIR)$(libdir)/$$p; \
 	done
 
+# FIXME: We should only use cygpath when building on Windows,
+# and only if it is available.
+.c.obj:
+	$(COMPILE) -c `cygpath -w $<`
+
 .s.o:
 	$(COMPILE) -c $<
 
@@ -221,6 +231,7 @@ uninstall-libLTLIBRARIES:
 
 mostlyclean-compile:
 	-rm -f *.o core *.core
+	-rm -f *.$(OBJEXT)
 
 clean-compile:
 
@@ -257,11 +268,13 @@ distclean-noinstPROGRAMS:
 
 maintainer-clean-noinstPROGRAMS:
 
-main: $(main_OBJECTS) $(main_DEPENDENCIES)
-	@rm -f main
+main$(EXEEXT): $(main_OBJECTS) $(main_DEPENDENCIES)
+	@rm -f main$(EXEEXT)
 	$(CXXLINK) $(main_LDFLAGS) $(main_OBJECTS) $(main_LDADD) $(LIBS)
 .cpp.o:
 	$(CXXCOMPILE) -c $<
+.cpp.obj:
+	$(CXXCOMPILE) -c `cygpath -w $<`
 .cpp.lo:
 	$(LTCXXCOMPILE) -c $<
 
