@@ -6,6 +6,7 @@ OpenLDAP 2.2.7 Engineering
 	Fixed massaged base free in back-ldap (ITS#2999)
 	Fixed (undocumented) AD canonical DN (ITS#3000)
 	Fixed undefined attribute name request in back-sql search (ITS#3005)
+	Fixed ldapmodrdn(1) manpage (ITS#3003)
 
 OpenLDAP 2.2.6 Release
 	Fixed slapd SASL callback handling (ITS#2926)
