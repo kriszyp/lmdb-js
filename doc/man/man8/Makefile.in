@@ -1,6 +1,6 @@
 ## Copyright 1998 The OpenLDAP Foundation, All Rights Reserved.
 ## COPYING RESTRICTIONS APPLY, See COPYRIGHT file
 ##
-## man1 Makefile.in for OpenLDAP
+## man8 Makefile.in for OpenLDAP
 
-MANSECT=1
+MANSECT=8
