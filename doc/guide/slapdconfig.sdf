@@ -175,14 +175,14 @@ contain a host part and optionally a distinguished name part.
 H4: schemacheck { on | off }
 
 This option turns schema checking on or off. If schema
-checking is on, entries added or modified will be checked to
-ensure they obey the schema rules implied by their object
-class(es) as defined by the corresponding objectclass
+checking is on, entries added or modified through LDAP operations
+will be checked to ensure they obey the schema rules implied
+by their object class(es) as defined by the corresponding objectclass
 option(s). If schema checking is off this check is not done.
 
 \Default:
 
-E: schemacheck off
+E: schemacheck on
 
 H4: sizelimit <integer>
 

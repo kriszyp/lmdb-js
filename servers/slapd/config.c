@@ -359,10 +359,10 @@ read_config( char *fname )
 				    fname, lineno, 0 );
 				return( 1 );
 			}
-			if ( strcasecmp( cargv[1], "on" ) == 0 ) {
-				global_schemacheck = 1;
-			} else {
+			if ( strcasecmp( cargv[1], "off" ) == 0 ) {
 				global_schemacheck = 0;
+			} else {
+				global_schemacheck = 1;
 			}
 
 		/* specify access control info */

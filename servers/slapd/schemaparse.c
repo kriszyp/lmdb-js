@@ -10,7 +10,7 @@
 #include "slap.h"
 
 struct objclass		*global_oc;
-int			global_schemacheck;
+int	global_schemacheck = 1; /* schemacheck on is default */
 
 static void		oc_usage(void);
 
