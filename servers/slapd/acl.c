@@ -971,8 +971,8 @@ aci_list_get_rights(
 static int
 aci_group_member (
 	struct berval *subj,
-	char *grpoc,
-	char *grpat,
+	const char *defgrpoc,
+	const char *defgrpat,
     Backend		*be,
     Entry		*e,
     Operation		*op,
@@ -980,38 +980,66 @@ aci_group_member (
 )
 {
 	struct berval bv;
-	char *subjdn, *grpdn;
-	int rc = 0;
+	char *subjdn, *grpdn = NULL;
+	char *grpoc;
+	char *grpat;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription *grpad;
+	char *text;
+#else
+	char *grpad;
+#endif
+	int rc;
 
 	/* format of string is "group/objectClassValue/groupAttrName" */
-	if (aci_get_part(subj, 0, '/', &bv) < 0)
+	if (aci_get_part(subj, 0, '/', &bv) < 0) {
 		return(0);
+	}
+
 	subjdn = aci_bvstrdup(&bv);
-	if (subjdn == NULL)
+	if (subjdn == NULL) {
 		return(0);
+	}
 
-	if (aci_get_part(subj, 1, '/', &bv) < 0)
-		grpoc = ch_strdup(grpoc);
-	else
+	if (aci_get_part(subj, 1, '/', &bv) < 0) {
+		grpoc = ch_strdup( defgrpoc );
+	} else {
 		grpoc = aci_bvstrdup(&bv);
+	}
 
-	if (aci_get_part(subj, 2, '/', &bv) < 0)
-		grpat = ch_strdup(grpat);
-	else
+	if (aci_get_part(subj, 2, '/', &bv) < 0) {
+		grpat = ch_strdup( defgrpat );
+	} else {
 		grpat = aci_bvstrdup(&bv);
+	}
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	rc = slap_str2ad( grpat, &grpad, &text );
+	if( rc != LDAP_SUCCESS ) {
+		rc = 0;
+		goto done;
+	}
+#else
+	grpad = grpat;
+#endif
+	rc = 0;
 
 	grpdn = (char *)ch_malloc(1024);
-	if (grpoc != NULL && grpat != NULL && grpdn != NULL) {
+
+	if (grpoc != NULL && grpad != NULL && grpdn != NULL) {
 		string_expand(grpdn, 1024, subjdn, e->e_ndn, matches);
 		if ( dn_normalize(grpdn) != NULL ) {
-			rc = (backend_group(be, e, grpdn, op->o_ndn, grpoc, grpat) == 0);
+			rc = (backend_group(be, e, grpdn, op->o_ndn, grpoc, grpad) == 0);
 		}
-		ch_free(grpdn);
 	}
-	if (grpat != NULL)
-		ch_free(grpat);
-	if (grpoc != NULL)
-		ch_free(grpoc);
+
+done:
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	if( grpad != NULL ) ad_free( grpad, 1 );
+#endif
+	ch_free(grpdn);
+	ch_free(grpat);
+	ch_free(grpoc);
 	ch_free(subjdn);
 	return(rc);
 }
@@ -1036,6 +1064,9 @@ aci_mask(
     struct berval bv, perms, sdn;
     char *subjdn;
 	int rc, i;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	char *attr;
+#endif
 
 	/* parse an aci of the form:
 		oid#scope#action;rights;attr;rights;attr$action;rights;attr;rights;attr#dnType#subjectDN
@@ -1100,19 +1131,37 @@ aci_mask(
 
 	} else if (aci_strbvcmp( "dnattr", &bv ) == 0) {
 		Attribute *at;
-		char *attrname = aci_bvstrdup(&sdn);
-		at = attr_find(e->e_attrs, attrname);
-		ch_free(attrname);
+		char *dnattr = aci_bvstrdup(&sdn);
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		AttributeDescription *dnad;
+		char *text;
+		rc = slap_str2ad( dnattr, &dnad, &text );
+		ch_free( dnattr );
 
-		if (at != NULL) {
-			bv.bv_val = op->o_ndn;
-			bv.bv_len = strlen( bv.bv_val );
+		if ( rc == LDAP_SUCCESS ) {
+#else
+			char *dnad = dnattr;
+#endif
+			at = attr_find( e->e_attrs, dnad );
+#ifdef SLAPD_SCHEMA_NOT_COMAT
+			ad_free( dnad, 1 );
+#else
+			ch_free( dnad );
+#endif
+			if (at != NULL) {
+				bv.bv_val = op->o_ndn;
+				bv.bv_len = strlen( bv.bv_val );
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-			/* not yet implemented */
+				/* not yet implemented */
 #else
-			if (value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0 )
-				return(1);
+				if (value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0 )
+					return(1);
+#endif
+			}
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		} else {
+			ad_free( dnad, 1 );
 #endif
 		}
 
