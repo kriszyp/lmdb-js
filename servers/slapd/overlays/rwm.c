@@ -527,7 +527,8 @@ rwm_search( Operation *op, SlapReply *rs )
 		goto error_return;
 	}
 
-	cb = (slap_callback *)ch_malloc( sizeof( slap_callback ) );
+	cb = (slap_callback *) op->o_tmpcalloc( sizeof( slap_callback ),
+			1, op->o_tmpmemctx );
 	if ( cb == NULL ) {
 		rc = LDAP_NO_MEMORY;
 		goto error_return;
