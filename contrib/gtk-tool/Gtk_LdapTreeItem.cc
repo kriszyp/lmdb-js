@@ -50,6 +50,11 @@ Gtk_LdapTree* Gtk_LdapTreeItem::getSubtree(LDAP *ld, int counter) {
 		tree->set_view_mode(GTK_TREE_VIEW_ITEM);
 		tree->set_view_lines(false);
 		entry = ldap_first_entry(this->ld, r_i);
+	//	float i = 1;
+	//	float percent = 100/entriesCount;
+	//	cout << "percent is " << percent << endl;
+	//	this->par->progress.update(0);
+	//	this->par->progress.show();
 		while (entry != NULL) {
 			subtreeitem = new Gtk_LdapTreeItem(ldap_get_dn(this->ld, entry), this->par, this->ld);
 			subtree = subtreeitem->getSubtree(this->ld, counter);
@@ -59,8 +64,15 @@ Gtk_LdapTree* Gtk_LdapTreeItem::getSubtree(LDAP *ld, int counter) {
 			if (subtree != NULL) subtreeitem->set_subtree(*subtree);
 			debug("done\n");
 			entry = ldap_next_entry(this->ld, entry);
+		//	gfloat pvalue = (i*percent)/100;
+		//	cout << pvalue << " %" << endl;
+		//	this->par->progress.update(pvalue);
+		//	this->par->progress.show();
+		//	i++;
 		}
 	//	this->set_subtree(*tree);
+	//	this->par->progress.update(0);
+	//	this->par->progress->show();
 	}
 //	this->getDetails();
 	debug("done\n");
@@ -83,6 +95,8 @@ void Gtk_LdapTreeItem::setType(int t) {
 		xpm_icon=new Gtk_Pixmap(*xpm_label, branch_node);
 	else if (strcasecmp(this->objectClass,"person") == 0)
 		xpm_icon=new Gtk_Pixmap(*xpm_label, leaf_node);
+	else if (strcasecmp(this->objectClass,"alias") == 0)
+		xpm_icon=new Gtk_Pixmap(*xpm_label, alias_node);
 	else xpm_icon=new Gtk_Pixmap(*xpm_label, general_node);
 	label = new Gtk_Label(this->rdn);
 	xpm_label->pack_start(*xpm_icon, false, false, 1);
@@ -142,6 +156,8 @@ int Gtk_LdapTreeItem::getDetails() {
 			}
 			ldap_value_free(values);
 			label = new Gtk_Label(attribute);
+			label->set_alignment(0, 0);
+			label->set_justify(GTK_JUSTIFY_LEFT);
 			notebook->append_page(*table, *label);
 			table->show();
 			label->show();

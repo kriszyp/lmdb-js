@@ -9,6 +9,7 @@
 #include "icons/root_node.h"
 #include "icons/branch_node.h"
 #include "icons/leaf_node.h"
+#include "icons/alias_node.h"
 #include "icons/general_node.h"
 
 #define ROOT_NODE 1

@@ -18,6 +18,11 @@ not running slapd on your local machine, then supply it with a "-s hostname"
 i.e.:
 	./main -s server02.nowhere.net
 
+or if you feel like having an adventure try multiple servers
+i.e.:
+	./main -s server02.nowhere.net -s server03.nowhere.com:322
+
+etc...
 It does not accept -b switch as it no longer needs it to aquire databases.
 But please feel free to add whatever else you consider neccessary to 
 understanding how this thing works. Enjoy, and I hope this can be useful to 

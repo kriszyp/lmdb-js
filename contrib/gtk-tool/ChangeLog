@@ -1,5 +1,18 @@
 ChangeLog for gtk-tool
 
+03/12/1998 - Pele
+	* Added support for multiple servers (via multiple -s options)
+	* More testing
+	* Started experimenting with status bar for display of various info
+	* Got rid of many warning and error messages generate by gtk
+	* Added a new icon for objectclass=alias;
+	* Display of some ldap options aquired with ldap_get_option when
+	server selected.
+	* Traversing set to only 1 subtree (then 1 by 1);
+	* Started experimenting with a progress bar for traversal
+	(so users don't get bored while waiting for subtrees to be aquired and
+	constructed)
+
 02/12/1998 - Pele
 	* Added Gtk_LdapTree class
 	* Added utils (with debug only)

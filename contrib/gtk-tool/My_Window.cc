@@ -4,6 +4,7 @@ My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
 	cout << "My_Window(t)" << endl;
 	Gtk_VBox *main_hbox;
 	Gtk_HBox *top_hbox;
+	Gtk_VBox *bottom_hbox;
 	Gtk_Menu *menu;
 	Gtk_MenuItem *file_menu, *menuitem;
 
@@ -43,12 +44,20 @@ My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
 	top_hbox->pack_end(*this->display_button, FALSE, FALSE, 1);
 	this->display_button->show();
 
+	this->status = new Gtk_Statusbar();
+
+	bottom_hbox = new Gtk_VBox();
+	bottom_hbox->pack_start(*pane, TRUE, TRUE, 1);
+	bottom_hbox->pack_end(*status, FALSE, TRUE, 1);
+	pane->show();
+	status->show();
+
 	main_hbox = new Gtk_VBox();
 	main_hbox->pack_start(*this->menubar, FALSE, FALSE, 1);
 	main_hbox->pack_start(*top_hbox, FALSE, TRUE, 1);
-	main_hbox->pack_end(*pane, TRUE, TRUE, 1);
+	main_hbox->pack_end(*bottom_hbox, TRUE, TRUE, 1);
 	top_hbox->show();
-	pane->show();
+	bottom_hbox->show();
 	this->add(main_hbox);
 	main_hbox->show();
 }
@@ -58,75 +67,31 @@ My_Window::~My_Window() {
 	delete this;
 }
 
+int My_Window::debug(const char *format,...) {
+#ifdef DEBUG
+	va_list args;
+	int ret;
+	char *c;
+	char buff[50];
+	unsigned int m_context_id;
+	va_start(args, format);
+	ret = vprintf(format, args);
+/*	if (this->status != NULL) {
+		m_context_id = this->status->get_context_id("gtk-tool");
+		ret = vsprintf(c, format, args);
+		g_snprintf(buff, 50, "Action: %s", c);
+		this->status->push(m_context_id, buff);
+	}
+*/	va_end(args);
+	return ret;
+#endif
+}
+
 void My_Window::do_display() {
 	cout << this->urlfield->get_text() << endl;
-}
-void My_Window::expand(Gtk_TreeItem *t) {
-	gchar *name;
-	GtkLabel *label;
-	label = GTK_LABEL (GTK_BIN (t->gtkobj())->child);
-	gtk_label_get (label, &name);
-	g_print("%s selected\n", name);
 }
 
 gint My_Window::delete_event_impl(GdkEventAny*) {
 	Gtk_Main::instance()->quit();
 	return 0;
-}
-
-Gtk_LdapItem* My_Window::make_tree(My_Window *p, LDAP* l_i, char* b_d) {
-//	printf("make_tree(%s)\n", b_d);
-	Gtk_LdapItem *treeresult, *subtreeresult;
-	Gtk_Tree *tree, *subtree, *subsubtree;
-	Gtk_LdapTreeItem *treeitem, *subtreeitem;
-	LDAPMessage *r_i, *entry;
-	gchar *c;
-	char **s;
-	char *c_num;
-	int entriesCount = 0;
-	int error;
-	int r_e_i;
-
-	error = ldap_search_s(l_i, b_d, LDAP_SCOPE_ONELEVEL, "objectclass=*", NULL, 0, &r_i);
-//	printf("%s\n", ldap_err2string(error));
-	entriesCount = ldap_count_entries(l_i, r_i);
-//	printf("%i results\n", entriesCount);
-	s = ldap_explode_dn(b_d, 1);
-	c = g_strdup_printf("%s", s[0]);
-	treeitem = new Gtk_LdapTreeItem(c, p, l_i);
-	treeitem->dn = b_d; treeitem->ld = l_i;
-	treeresult = new Gtk_LdapItem();
-	treeitem->getDetails();
-	if (entriesCount == 0) { 
-	//	treeitem->setType(LEAF_NODE);
-		treeresult->treeitem = new Gtk_LdapTreeItem(*treeitem);
-		treeresult->tree = NULL;
-		return treeresult;
-	}
-	subtree = new Gtk_Tree();
-	subtree->set_selection_mode(GTK_SELECTION_BROWSE);
-	subtree->set_view_mode(GTK_TREE_VIEW_ITEM);
-	subtree->set_view_lines(false);
-	entry = ldap_first_entry(l_i, r_i);
-	while (entry != NULL) {
-		s = ldap_explode_dn(ldap_get_dn(l_i, entry), 1);
-		subtreeresult = make_tree(p, l_i, ldap_get_dn(l_i, entry));
-		subtreeitem = new Gtk_LdapTreeItem(*subtreeresult->treeitem);
-	//	printf("inserting %s into %s", s[0], c);
-		subtree->append(*subtreeitem);
-		if (subtreeresult->tree != NULL) {
-	//		printf(".");
-			subsubtree = new Gtk_Tree(*subtreeresult->tree);
-	//		printf(".");
-			subtreeitem->set_subtree(*subsubtree);
-	//		printf(".");
-		}
-		subtreeitem->show();
-	//	printf("\n");
-		entry = ldap_next_entry(l_i, entry);
-	}
-//	treeitem->setType(BRANCH_NODE);
-	treeresult->treeitem = new Gtk_LdapTreeItem(*treeitem);
-	treeresult->tree = new Gtk_Tree(*subtree);
-	return treeresult;
 }

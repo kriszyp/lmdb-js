@@ -26,9 +26,10 @@ public:
 	int c, port;
 	My_Window *par;
 //	Gtk_Notebook *notebook;
-	Gtk_Viewport *notebook;
+	Gtk_Frame *notebook;
 	Gtk_HBox *xpm_label;
 //	Gtk_Tree *subtree;
+	Gtk_Menu *popup;
 	G_List<char> *databases;
 	Gtk_LdapServer();
 	Gtk_LdapServer(My_Window *w, char *c, int p);
@@ -37,8 +38,11 @@ public:
 	void setType(int t);
 	int getConfig();
 	Gtk_Tree* getSubtree();
-	int getDetails();
+	char* getOptDescription(int option);
+	int getOptType(int option);
+	int getOptions();
 	int showDetails();
+	void show_impl();
 	void select_impl();
 	void collapse_impl();
 	void expand_impl();
