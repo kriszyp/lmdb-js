@@ -101,6 +101,7 @@ bdb_db_init( BackendDB *be )
 	return 0;
 }
 
+#if 0
 int
 bdb_bt_compare(
 	DB *db, 
@@ -125,6 +126,7 @@ bdb_bt_compare(
 
 	return 0;
 }
+#endif
 
 static void *
 bdb_checkpoint( void *ctx, void *arg )
@@ -348,8 +350,10 @@ bdb_db_open( BackendDB *be )
 #else
 			rc = db->bdi_db->set_dup_compare( db->bdi_db,
 				bdb_dup_compare );
+#if 0
 			rc = db->bdi_db->set_bt_compare( db->bdi_db,
 				bdb_bt_compare );
+#endif
 			if ( slapMode & (SLAP_TOOL_READONLY|SLAP_TOOL_READMAIN) ) {
 				flags |= DB_RDONLY;
 			} else {

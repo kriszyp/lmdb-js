@@ -300,12 +300,14 @@ ID bdb_idl_first( ID *ids, ID *cursor );
 ID bdb_idl_next( ID *ids, ID *cursor );
 
 
+#if 0
 #define bdb_bt_compare				BDB_SYMBOL(bt_compare)
 
 int bdb_bt_compare(
 	DB *db,
 	const DBT *a,
 	const DBT *b );
+#endif
 
 
 /*

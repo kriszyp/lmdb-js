@@ -497,6 +497,7 @@ hdb_dn2id_add(
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 	DBT		key, data;
+	ID		nid;
 	int		rc, rlen, nrlen;
 	diskNode *d;
 	char *ptr;
@@ -510,7 +511,7 @@ hdb_dn2id_add(
 	}
 
 	d = op->o_tmpalloc(sizeof(diskNode) + rlen + nrlen, op->o_tmpmemctx);
-	d->entryID = e->e_id;
+	BDB_ID2DISK( e->e_id, &d->entryID );
 	d->nrdnlen = nrlen;
 	ptr = lutil_strncopy( d->nrdn, e->e_nname.bv_val, nrlen );
 	*ptr++ = '\0';
@@ -519,9 +520,10 @@ hdb_dn2id_add(
 
 	DBTzero(&key);
 	DBTzero(&data);
-	key.data = &eip->bei_id;
+	key.data = &nid;
 	key.size = sizeof(ID);
 	key.flags = DB_DBT_USERMEM;
+	BDB_ID2DISK( eip->bei_id, &nid );
 
 	/* Need to make dummy root node once. Subsequent attempts
 	 * will fail harmlessly.
@@ -545,8 +547,9 @@ hdb_dn2id_add(
 	rc = db->put( db, txn, &key, &data, DB_NODUPDATA );
 
 	if (rc == 0) {
-		key.data = &e->e_id;
-		d->entryID = eip->bei_id;
+		ID tmp = nid;
+		nid = d->entryID;
+		d->entryID = tmp;
 		d->nrdnlen = 0 - nrlen;
 
 		rc = db->put( db, txn, &key, &data, DB_NODUPDATA );
@@ -570,12 +573,14 @@ hdb_dn2id_delete(
 	DBC	*cursor;
 	diskNode *d;
 	int rc, nrlen;
+	ID	nid;
 
 	DBTzero(&key);
 	key.size = sizeof(ID);
 	key.ulen = key.size;
-	key.data = &eip->bei_id;
+	key.data = &nid;
 	key.flags = DB_DBT_USERMEM;
+	BDB_ID2DISK( eip->bei_id, &nid );
 
 	DBTzero(&data);
 	data.size = sizeof(diskNode) + BEI(e)->bei_nrdn.bv_len;
@@ -590,7 +595,7 @@ hdb_dn2id_delete(
 	if ( rc ) return rc;
 
 	d = op->o_tmpalloc( data.size, op->o_tmpmemctx );
-	d->entryID = e->e_id;
+	BDB_ID2DISK( e->e_id, &d->entryID );
 	d->nrdnlen = BEI(e)->bei_nrdn.bv_len;
 	strcpy( d->nrdn, BEI(e)->bei_nrdn.bv_val );
 	data.data = d;
@@ -605,7 +610,7 @@ hdb_dn2id_delete(
 	 * for modrdn, which will add our info back in later.
 	 */
 	if ( rc == 0 ) {
-		key.data = &e->e_id;
+		BDB_ID2DISK( e->e_id, &nid );
 		rc = cursor->c_get( cursor, &key, &data, DB_SET | DB_RMW );
 		if ( rc == 0 )
 			rc = cursor->c_del( cursor, 0 );
@@ -631,7 +636,7 @@ hdb_dn2id(
 	int		rc = 0, nrlen;
 	diskNode *d;
 	char	*ptr;
-	ID idp = ei->bei_parent->bei_id;
+	ID idp;
 
 	nrlen = dn_rdnlen( op->o_bd, in );
 	if (!nrlen) nrlen = in->bv_len;
@@ -641,6 +646,7 @@ hdb_dn2id(
 	key.data = &idp;
 	key.ulen = sizeof(ID);
 	key.flags = DB_DBT_USERMEM;
+	BDB_ID2DISK( ei->bei_parent->bei_id, &idp );
 
 	DBTzero(&data);
 	data.size = sizeof(diskNode) + nrlen;
@@ -658,7 +664,7 @@ hdb_dn2id(
 
 	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH );
 	if ( rc == 0 ) {
-		ei->bei_id = d->entryID;
+		BDB_DISK2ID( &d->entryID, &ei->bei_id );
 		ei->bei_rdn.bv_len = data.size - sizeof(diskNode) - nrlen;
 		ptr = d->nrdn + nrlen + 1;
 		ber_str2bv( ptr, ei->bei_rdn.bv_len, 1, &ei->bei_rdn );
@@ -693,12 +699,14 @@ hdb_dn2id_parent(
 	diskNode *d;
 	char	*ptr;
 	unsigned char *pt2;
+	ID	nid;
 
 	DBTzero(&key);
 	key.size = sizeof(ID);
-	key.data = &ei->bei_id;
+	key.data = &nid;
 	key.ulen = sizeof(ID);
 	key.flags = DB_DBT_USERMEM;
+	BDB_ID2DISK( ei->bei_id, &nid );
 
 	DBTzero(&data);
 	data.flags = DB_DBT_USERMEM;
@@ -716,7 +724,7 @@ hdb_dn2id_parent(
 			rc = LDAP_OTHER;
 		} else {
 			db_recno_t dkids;
-			*idp = d->entryID;
+			BDB_DISK2ID( &d->entryID, idp );
 			ei->bei_nrdn.bv_len = 0 - d->nrdnlen;
 			ber_str2bv( d->nrdn, ei->bei_nrdn.bv_len, 1, &ei->bei_nrdn );
 			ei->bei_rdn.bv_len = data.size - sizeof(diskNode) -
@@ -751,13 +759,17 @@ hdb_dn2id_children(
 	key.size = sizeof(ID);
 	key.data = &e->e_id;
 	key.flags = DB_DBT_USERMEM;
+	BDB_ID2DISK( e->e_id, &id );
 
+	/* IDL cache is in host byte order */
 	if ( bdb->bi_idl_cache_size ) {
 		rc = bdb_idl_cache_get( bdb, db, &key, NULL );
 		if ( rc != LDAP_NO_SUCH_OBJECT ) {
 			return rc;
 		}
 	}
+
+	key.data = &id;
 	DBTzero(&data);
 	data.data = &d;
 	data.ulen = sizeof(d);
@@ -797,6 +809,7 @@ struct dn2id_cookie {
 	int rc;
 	EntryInfo *ei;
 	ID id;
+	ID nid;
 	ID dbuf;
 	ID *ids;
 	void *ptr;
@@ -826,6 +839,7 @@ hdb_dn2idl_internal(
 )
 {
 	if ( cx->bdb->bi_idl_cache_size ) {
+		cx->key.data = &cx->id;
 		cx->rc = bdb_idl_cache_get(cx->bdb, cx->db, &cx->key, cx->tmp);
 		if ( cx->rc == DB_NOTFOUND ) {
 			return cx->rc;
@@ -866,6 +880,7 @@ hdb_dn2idl_internal(
 		cx->data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 
 		/* The first item holds the parent ID. Ignore it. */
+		cx->key.data = &cx->nid;
 		cx->rc = cx->dbc->c_get( cx->dbc, &cx->key, &cx->data, DB_SET );
 		if ( cx->rc ) {
 			cx->dbc->c_close( cx->dbc );
@@ -898,7 +913,7 @@ hdb_dn2idl_internal(
 					diskNode *d = (diskNode *)j;
 					short nrlen;
 
-					AC_MEMCPY( &ei.bei_id, &d->entryID, sizeof(ID) );
+					BDB_DISK2ID( &d->entryID, &ei.bei_id );
 					AC_MEMCPY( &nrlen, &d->nrdnlen, sizeof(d->nrdnlen) );
 					ei.bei_nrdn.bv_len = nrlen;
 					/* nrdn/rdn are set in-place.
@@ -931,6 +946,7 @@ hdb_dn2idl_internal(
 
 saveit:
 	if ( cx->bdb->bi_idl_cache_max_size ) {
+		cx->key.data = &cx->id;
 		bdb_idl_cache_put( cx->bdb, cx->db, &cx->key, cx->tmp, cx->rc );
 	}
 	;
@@ -952,6 +968,7 @@ gotit:
 				for ( cx->id = bdb_idl_first( save, &idcurs );
 					cx->id != NOID;
 					cx->id = bdb_idl_next( save, &idcurs )) {
+					BDB_ID2DISK( cx->id, &cx->nid );
 					cx->ei = NULL;
 					hdb_dn2idl_internal( cx );
 					if ( !BDB_IDL_IS_ZERO( cx->tmp ))
@@ -994,6 +1011,7 @@ hdb_dn2idl(
 #endif
 
 	cx.id = e->e_id;
+	BDB_ID2DISK( cx.id, &cx.nid );
 	cx.ei = e->e_id ? BEI(e) : &bdb->bi_cache.c_dntree;
 	cx.bdb = bdb;
 	cx.db = cx.bdb->bi_dn2id->bdi_db;
@@ -1009,7 +1027,6 @@ hdb_dn2idl(
 	}
 
 	DBTzero(&cx.key);
-	cx.key.data = &cx.id;
 	cx.key.ulen = sizeof(ID);
 	cx.key.size = sizeof(ID);
 	cx.key.flags = DB_DBT_USERMEM;
