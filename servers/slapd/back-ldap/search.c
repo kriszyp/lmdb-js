@@ -406,7 +406,17 @@ ldap_send_entry(
 	ldap_back_dn_massage( li, &bdn, &ent.e_name, 0, 0 );
 #endif /* !ENABLE_REWRITE */
 
-	dnNormalize2( NULL, &ent.e_name, &ent.e_nname );
+	/*
+	 * Note: this may fail if the target host(s) schema differs
+	 * from the one known to the meta, and a DN with unknown
+	 * attributes is returned.
+	 * 
+	 * FIXME: should we log anything, or delegate to dnNormalize2?
+	 */
+	if ( dnNormalize2( NULL, &ent.e_name, &ent.e_nname ) != LDAP_SUCCESS ) {
+		return;
+	}
+	
 	ent.e_id = 0;
 	ent.e_attrs = 0;
 	ent.e_private = 0;
