@@ -464,6 +464,11 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 		SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS;
 #endif
 
+#ifdef HAVE_TLS
+	gopts->ldo_tls_connect_cb = NULL;
+	gopts->ldo_tls_connect_arg = NULL;
+#endif
+
 	gopts->ldo_valid = LDAP_INITIALIZED;
    	return;
 }
