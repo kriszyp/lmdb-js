@@ -1870,10 +1870,13 @@ proxy_cache_open(
 		rc = cm->db.bd_info->bi_db_open( &cm->db );
 	}
 
-	ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
-	ldap_pvt_runqueue_insert( &syncrepl_rq, cm->cc_period,
-		consistency_check, on );
-	ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+	/* There is no runqueue in TOOL mode */
+	if ( slapMode & SLAP_SERVER_MODE ) {
+		ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+		ldap_pvt_runqueue_insert( &syncrepl_rq, cm->cc_period,
+			consistency_check, on );
+		ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+	}
 
 	return rc;
 }
