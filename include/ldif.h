@@ -61,11 +61,10 @@ ldif_parse_line LDAP_P((
 
 LDAP_LDIF_F( int )
 ldif_parse_line2 LDAP_P((
-	LDAP_CONST char *line,
-	char **name,
-	char **value,
-	ber_len_t *vlen,
-	int *alloc ));
+	char *line,
+	struct berval *type,
+	struct berval *value,
+	int *freeval ));
 
 LDAP_LDIF_F( int )
 ldif_fetch_url LDAP_P((

@@ -47,6 +47,8 @@ const Entry slap_entry_root = {
 	NOID, { 0, "" }, { 0, "" }, NULL, 0, { 0, "" }, NULL
 };
 
+static const struct berval dn_bv = BER_BVC("dn");
+
 int entry_destroy(void)
 {
 	if ( ebuf ) free( ebuf );
@@ -62,7 +64,7 @@ str2entry( char *s )
 {
 	int rc;
 	Entry		*e;
-	char		*type;
+	struct berval	type;
 	struct berval	vals[2];
 	struct berval	nvals[2], *nvalsp;
 	AttributeDescription *ad, *ad_prev;
@@ -115,14 +117,14 @@ str2entry( char *s )
 			break;
 		}
 
-		if ( ldif_parse_line2( s, &type, &vals[0].bv_val, &vals[0].bv_len,
-			&freeval ) != 0 ) {
+		if ( ldif_parse_line2( s, &type, vals, &freeval ) != 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<= str2entry NULL (parse_line)\n", 0, 0, 0 );
 			continue;
 		}
 
-		if ( strcasecmp( type, "dn" ) == 0 ) {
+		if ( type.bv_len == dn_bv.bv_len &&
+			strcasecmp( type.bv_val, dn_bv.bv_val ) == 0 ) {
 
 			if ( e->e_dn != NULL ) {
 				Debug( LDAP_DEBUG_ANY, "str2entry: "
@@ -147,23 +149,23 @@ str2entry( char *s )
 
 		ad_prev = ad;
 		ad = NULL;
-		rc = slap_str2ad( type, &ad, &text );
+		rc = slap_bv2ad( &type, &ad, &text );
 
 		if( rc != LDAP_SUCCESS ) {
 			Debug( slapMode & SLAP_TOOL_MODE
 				? LDAP_DEBUG_ANY : LDAP_DEBUG_TRACE,
-				"<= str2entry: str2ad(%s): %s\n", type, text, 0 );
+				"<= str2entry: str2ad(%s): %s\n", type.bv_val, text, 0 );
 			if( slapMode & SLAP_TOOL_MODE ) {
 				entry_free( e );
 				if ( freeval ) free( vals[0].bv_val );
 				return NULL;
 			}
 
-			rc = slap_str2undef_ad( type, &ad, &text );
+			rc = slap_bv2undef_ad( &type, &ad, &text );
 			if( rc != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY,
 					"<= str2entry: str2undef_ad(%s): %s\n",
-						type, text, 0 );
+						type.bv_val, text, 0 );
 				entry_free( e );
 				if ( freeval ) free( vals[0].bv_val );
 				return NULL;
