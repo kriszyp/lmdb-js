@@ -58,10 +58,11 @@
 
 LDAP_BEGIN_DECL
 
-#ifdef LDAP_DEVEL
 #define SLAP_ACL_HONOR_DISCLOSE	/* partially implemented */
+
+#ifdef LDAP_DEVEL
 #define SLAP_DYNACL
-#define LDAP_COMP_MATCH			/* experimental */
+#define LDAP_COMP_MATCH
 #define LDAP_DYNAMIC_OBJECTS
 #define LDAP_SYNC_TIMESTAMP
 #define LDAP_COLLECTIVE_ATTRIBUTES
