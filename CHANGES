@@ -9,12 +9,13 @@ CVS Tag: OPENLDAP_STABLE_980929
 	Updated Linux platform defaults
 	Updated FreeBSD 2 & 3 platform defaults
 	Updated PORTS doc to clarify content
+	Updated slapd/tools to use ldapconfig.h slapd.conf constant
 	Added SCHED_YIELD_MISSING flag
 	Added LDAP_ALLOW_NULL_SEARCH_BASE flag
 	Added core removal to tests/Make-template
 	Fixed slapd/acl debug trace problem
 	Fixed ud/auth.c bound_dn problem 
-	Fixed back-ldbm/idl.c CLDAP include <sys/socket.h> problem.
+	Fixed back-ldbm/idl.c CLDAP include <sys/socket.h> problem
 	Fixed Makefile $(CC) problem
 	Fixed LIBEXEC/SBIN creation problem
 	Fixed gmake RUNDIR not defaulting problem 
