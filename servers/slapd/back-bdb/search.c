@@ -306,7 +306,7 @@ sameido:
 #define IS_PSEARCH (op != sop)
 
 static Operation *
-bdb_drop_psearch( Operation *op, ber_int_t msgid )
+bdb_drop_psearch( Operation *op, ber_int_t msgid, int lock )
 {
 	Operation	*ps_list;
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
@@ -316,13 +316,15 @@ bdb_drop_psearch( Operation *op, ber_int_t msgid )
 			if ( ps_list->o_msgid == msgid ) {
 				ps_list->o_abandon = 1;
 				LDAP_LIST_REMOVE( ps_list, o_ps_link );
-				ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+				if ( lock )
+					ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 				LDAP_STAILQ_REMOVE( &op->o_conn->c_ops, ps_list,
 					slap_op, o_next );
 				LDAP_STAILQ_NEXT( ps_list, o_next ) = NULL;
 				op->o_conn->c_n_ops_executing--;
 				op->o_conn->c_n_ops_completed++;
-				ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+				if ( lock )
+					ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 				return ps_list;
 			}
 		}
@@ -337,7 +339,7 @@ bdb_abandon( Operation *op, SlapReply *rs )
 	Operation	*ps;
 	void		*saved_tmpmemctx;
 
-	ps = bdb_drop_psearch( op, op->oq_abandon.rs_msgid );
+	ps = bdb_drop_psearch( op, op->oq_abandon.rs_msgid, (op->o_tag != LDAP_REQ_ABANDON) );
 	if ( ps ) {
 		if ( ps->o_savmemctx ) {
 			ps->o_tmpmemctx = ps->o_savmemctx;
@@ -345,50 +347,10 @@ bdb_abandon( Operation *op, SlapReply *rs )
 			ber_set_option(ps->o_ber, LBER_OPT_BER_MEMCTX, &ps->o_savmemctx);
 		}
 		saved_tmpmemctx = ps->o_tmpmemctx;
-
-		if (!BER_BVISNULL(&ps->o_req_dn)) {
-			slap_sl_free( ps->o_req_dn.bv_val, ps->o_tmpmemctx );
+		if ( op->o_tag != LDAP_REQ_ABANDON ) {
+			rs->sr_err = LDAP_CANCELLED;
+			send_ldap_result( ps, rs );
 		}
-		if (!BER_BVISNULL(&ps->o_req_ndn)) {
-			slap_sl_free( ps->o_req_ndn.bv_val, ps->o_tmpmemctx );
-		}
-		if (!BER_BVISNULL(&ps->ors_filterstr)) {
-			ps->o_tmpfree(ps->ors_filterstr.bv_val, ps->o_tmpmemctx);
-		}
-		if (ps->ors_filter != NULL) {
-			filter_free_x(ps, ps->ors_filter);
-		}
-		if (ps->ors_attrs != NULL) {
-			ps->o_tmpfree(ps->ors_attrs, ps->o_tmpmemctx);
-		}
-
-		slap_op_free ( ps );
-
-		if ( saved_tmpmemctx ) {
-			sl_mem_destroy( NULL, saved_tmpmemctx );
-		}
-
-		return LDAP_SUCCESS;
-	}
-	return LDAP_UNAVAILABLE;
-}
-
-int
-bdb_cancel( Operation *op, SlapReply *rs )
-{
-	Operation	*ps;
-	void		*saved_tmpmemctx;
-
-	ps = bdb_drop_psearch( op, op->oq_cancel.rs_msgid );
-	if ( ps ) {
-		if ( ps->o_savmemctx ) {
-			ps->o_tmpmemctx = ps->o_savmemctx;
-			ps->o_tmpmfuncs = &sl_mfuncs;
-			ber_set_option(ps->o_ber, LBER_OPT_BER_MEMCTX, &ps->o_savmemctx);
-		}
-		saved_tmpmemctx = ps->o_tmpmemctx;
-		rs->sr_err = LDAP_CANCELLED;
-		send_ldap_result( ps, rs );
 
 		if (!BER_BVISNULL(&ps->o_req_dn)) {
 			slap_sl_free( ps->o_req_dn.bv_val, ps->o_tmpmemctx );
@@ -940,7 +902,7 @@ loop_begin:
 		/* check for abandon */
 		if ( sop->o_abandon ) {
 			if ( sop != op ) {
-				bdb_drop_psearch( sop, sop->o_msgid );
+				bdb_drop_psearch( sop, sop->o_msgid, 1 );
 			}
 			rs->sr_err = LDAP_SUCCESS;
 			goto done;

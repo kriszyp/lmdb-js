@@ -655,7 +655,7 @@ bdb_initialize(
 	bi->bi_op_unbind = 0;
 
 	bi->bi_op_abandon = bdb_abandon;
-	bi->bi_op_cancel = bdb_cancel;
+	bi->bi_op_cancel = bdb_abandon;
 
 	bi->bi_extended = bdb_extended;
 
