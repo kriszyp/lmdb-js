@@ -59,7 +59,7 @@ seqmod_op_cleanup( Operation *op, SlapReply *rs )
 
 	/* This op is done, remove it */
 	ldap_pvt_thread_mutex_lock( &sm->sm_mutex );
-	av = avl_find( sm->sm_mods, mt, sm_avl_cmp );
+	av = avl_find2( sm->sm_mods, mt, sm_avl_cmp );
 	assert(av);
 
 	mt = av->avl_data;
@@ -98,7 +98,7 @@ seqmod_op_mod( Operation *op, SlapReply *rs )
 	 * near-simultaneous mods of the same entry
 	 */
 	ldap_pvt_thread_mutex_lock( &sm->sm_mutex );
-	av = avl_find( sm->sm_mods, mt, sm_avl_cmp );
+	av = avl_find2( sm->sm_mods, mt, sm_avl_cmp );
 	if ( av ) {
 		modtarget *mtp = av->avl_data;
 		mtp->mt_tail->mt_next = mt;
