@@ -33,8 +33,7 @@ int passwd_extop(
 	SlapReply *rs )
 {
 	struct berval id = {0, NULL}, old = {0, NULL}, new = {0, NULL},
-		dn, ndn, hash, vals[2], tmpbv;
-	int freenew = 0;
+		dn, ndn, hash, vals[2], tmpbv, *rsp = NULL;
 	Modifications ml, **modtail;
 	Operation op2;
 	slap_callback cb = { slap_null_cb, NULL };
@@ -126,14 +125,14 @@ int passwd_extop(
 
 	if ( new.bv_len == 0 ) {
 		slap_passwd_generate( &new );
-		freenew = 1;
+		rsp = slap_passwd_return( &new );
 	}
 	if ( new.bv_len == 0 ) {
 		rs->sr_text = "password generation failed";
 		return LDAP_OTHER;
 	}
 	slap_passwd_hash( &new, &hash, &rs->sr_text );
-	if ( freenew ) {
+	if ( rsp ) {
 		free( new.bv_val );
 	}
 	if ( hash.bv_len == 0 ) {
@@ -163,9 +162,12 @@ int passwd_extop(
 	
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		rs->sr_err = op2.o_bd->be_modify( &op2, rs );
-		if ( rs->sr_err == LDAP_SUCCESS ) {
-			replog( &op2 );
-		}
+	}
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		replog( &op2 );
+		rs->sr_rspdata = rsp;
+	} else if ( rsp ) {
+		ber_bvfree( rsp );
 	}
 	slap_mods_free( ml.sml_next );
 	free( hash.bv_val );
