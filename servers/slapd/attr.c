@@ -230,6 +230,7 @@ attr_merge_normalize_one(
 	void		*memctx
 ) {
 	struct berval	nval;
+	struct berval	*nvalp;
 	int		rc;
 
 	if ( desc->ad_type->sat_equality->smr_normalize ) {
@@ -242,10 +243,15 @@ attr_merge_normalize_one(
 		if ( rc != LDAP_SUCCESS ) {
 			return rc;
 		}
+		nvalp = &nval;
+	} else {
+		nvalp = NULL;
 	}
 
-	rc = attr_merge_one( e, desc, val, &nval );
-	ch_free( nval.bv_val );
+	rc = attr_merge_one( e, desc, val, nvalp );
+	if ( nvalp != NULL ) {
+		ch_free( nval.bv_val );
+	}
 	return rc;
 }
 
