@@ -22,10 +22,9 @@
 LDAP_BEGIN_DECL
 
 /* for allocating aligned buffers (on the stack) */
-#define LBER_ALIGN_BUFFER(uname,size) \
-	union LDAP_CONCAT(lber_,uname) { \
+#define LBER_ALIGNED_BUFFER(uname,size) \
+	union uname { \
 		char buffer[size]; \
-		\
 		/* force alignment */ \
 		int ialign; \
 		long lalign; \
@@ -35,7 +34,8 @@ LDAP_BEGIN_DECL
 	}
 
 #define LBER_ELEMENT_SIZEOF (256) /* must be >= sizeof(BerElement) */
-typedef LBER_ALIGN_BUFFER(berelement_u,LBER_ELEMENT_SIZEOF) BerElementBuffer;
+typedef LBER_ALIGNED_BUFFER(lber_berelement_u,LBER_ELEMENT_SIZEOF)
+	BerElementBuffer;
 
 typedef struct sockbuf_buf {
 	ber_len_t		buf_size;
