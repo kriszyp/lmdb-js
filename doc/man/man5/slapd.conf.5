@@ -1098,9 +1098,72 @@ is asked to modify a replicated local database.
 If specified multiple times, each url is provided.
 .SH DATABASE-SPECIFIC OPTIONS
 Each database may allow specific configuration options; they are
-documented separately in the
+documented separately in the backends' manual pages.
+.SH BACKENDS
+The following backends can be compiled into slapd.
+They are documented in the
 .BR slapd-<backend> (5)
 manual pages.
+.TP
+.B bdb
+This is the recommended backend for a normal slapd database.
+However, it takes more care than with the LDBM backend to configure
+it properly.
+It uses the Sleepycat Berkeley DB (BDB) package to store data.
+.TP
+.B ldbm
+This is the database backend which is easiest to configure.
+However, it does not offer the data durability features of the BDB
+backend.
+It uses Berkeley DB or GDBM to store data.
+.TP
+.B dnssrv
+This backend is experimental.
+It serves up referrals based upon SRV resource records held in the
+Domain Name System.
+.TP
+.B ldap
+This backend acts as a proxy to forward incoming requests to another
+LDAP server.
+.TP
+.B meta
+This backend performs basic LDAP proxying with respect to a set of
+remote LDAP servers.
+It is an enhancement of the ldap backend.
+.TP
+.B monitor
+This backend provides information about the running status of the slapd
+daemon.
+.TP
+.B null
+Operations in this backend succeed but do nothing.
+.TP
+.B passwd
+This backend is provided for demonstration purposes only.
+It serves up user account information from the system
+.BR passwd (5)
+file.
+.TP
+.B perl
+This backend embeds a
+.BR perl (1)
+interpreter into slapd.
+It runs Perl subroutines to implement LDAP operations.
+.TP
+.B shell
+This backend executes external programs to implement LDAP operations.
+It is is primarily intended to be used in prototypes.
+.TP
+.B sql
+This backend is experimental.
+It services LDAP requests from an SQL database.
+.TP
+.B tcl
+This backend is experimental.
+It embeds a
+.BR Tcl (3tcl)
+interpreter into slapd.
+It runs Tcl commands to implement LDAP operations.
 .SH EXAMPLES
 .LP
 Here is a short example of a configuration file:
@@ -1120,7 +1183,7 @@ database  bdb
 suffix    "dc=our-domain,dc=com"
 # The database directory MUST exist prior to
 # running slapd AND should only be accessible
-# by the slapd/tools. Mode 700 recommended.
+# by the slapd/tools. Mode 0700 recommended.
 directory LOCALSTATEDIR/openldap-data
 # Indices to maintain
 index     objectClass  eq
@@ -1149,6 +1212,7 @@ default slapd configuration file
 .BR slapd-ldap (5),
 .BR slapd-ldbm (5),
 .BR slapd-meta (5),
+.BR slapd-monitor (5),
 .BR slapd-null (5),
 .BR slapd-passwd (5),
 .BR slapd-perl (5),
