@@ -29,7 +29,89 @@
 #define HASH_Final(d,c)			lutil_HASHFinal(d,c)
 
 #ifdef SLAP_NVALUES
-#define SLAP_MR_DN_FOLD (0) /* TO BE DELETED */
+/* TO BE DELETED */
+#define SLAP_MR_DN_FOLD (0)
+
+#define xUTF8StringNormalize NULL
+#define xIA5StringNormalize NULL
+#define xtelephoneNumberNormalize NULL
+#define xgeneralizedTimeNormalize NULL
+#define xintegerNormalize NULL
+#define xnumericStringNormalize NULL
+#define xnameUIDNormalize NULL
+
+#define distinguishedNameMatch  	dnMatch
+#define distinguishedNameIndexer	octetStringIndexer
+#define distinguishedNameFilter		octetStringFilter
+
+#define uniqueMemberMatch				dnMatch
+
+#define objectIdentifierMatch	octetStringMatch
+#define objectIdentifierIndexer	octetStringIndexer
+#define objectIdentifierFilter	octetStringFilter
+
+#define bitStringMatch			octetStringMatch
+#define bitStringIndexer		octetStringIndexer
+#define bitStringFilter			octetStringFilter
+
+#define integerMatch NULL
+#define integerOrderingMatch NULL
+#define integerIndexer NULL
+#define integerFilter NULL
+
+#define generalizedTimeMatch	NULL
+#define generalizedTimeOrderingMatch	NULL
+
+#define caseIgnoreMatch		octetStringMatch
+#define caseIgnoreOrderingMatch		octetStringOrderingMatch
+#define caseIgnoreIndexer	octetStringIndexer
+#define caseIgnoreFilter	octetStringFilter
+
+#define caseIgnoreSubstringsMatch		NULL
+#define caseIgnoreSubstringsIndexer		NULL
+#define caseIgnoreSubstringsFilter		NULL
+
+#define caseExactMatch		octetStringMatch
+#define caseExactOrderingMatch		octetStringOrderingMatch
+#define caseExactIndexer	octetStringIndexer
+#define caseExactFilter		octetStringFilter
+
+#define caseExactSubstringsMatch		NULL
+#define caseExactSubstringsIndexer		NULL
+#define caseExactSubstringsFilter		NULL
+
+#define caseExactIA5Match		octetStringMatch
+#define caseExactIA5Indexer		octetStringIndexer
+#define caseExactIA5Filter		octetStringFilter
+
+#define caseExactIA5SubstringsMatch			NULL
+#define caseExactIA5SubstringsIndexer		NULL
+#define caseExactIA5SubstringsFilter		NULL
+
+#define caseIgnoreIA5Match		octetStringMatch
+#define caseIgnoreIA5Indexer	octetStringIndexer
+#define caseIgnoreIA5Filter		octetStringFilter
+
+#define caseIgnoreIA5SubstringsMatch		caseExactIA5SubstringsMatch
+#define caseIgnoreIA5SubstringsIndexer		caseExactIA5SubstringsIndexer
+#define caseIgnoreIA5SubstringsFilter		caseExactIA5SubstringsFilter
+
+#define numericStringMatch		octetStringMatch
+#define numericStringIndexer	octetStringIndexer
+#define numericStringFilter		octetStringFilter
+
+#define numericStringSubstringsMatch		caseExactIA5SubstringsMatch
+#define numericStringSubstringsIndexer		caseExactIA5SubstringsIndexer
+#define numericStringSubstringsFilter		caseExactIA5SubstringsFilter
+
+#define telephoneNumberMatch		octetStringMatch
+#define telephoneNumberIndexer		octetStringIndexer
+#define telephoneNumberFilter		octetStringFilter
+
+#define telephoneNumberSubstringsMatch		caseExactIA5SubstringsMatch
+#define telephoneNumberSubstringsIndexer	caseExactIA5SubstringsIndexer
+#define telephoneNumberSubstringsFilter		caseExactIA5SubstringsFilter
+
 #endif
 
 /* validatation routines */
@@ -65,6 +147,8 @@
 #define IA5StringApproxIndexer			approxIndexer
 #define IA5StringApproxFilter			approxFilter
 #endif
+
+#ifndef SLAP_NVALUES
 
 /* matching routines */
 #define bitStringMatch					octetStringMatch
@@ -113,6 +197,7 @@
 #define telephoneNumberFilter				caseIgnoreIA5Filter
 #define telephoneNumberSubstringsIndexer	caseIgnoreIA5SubstringsIndexer
 #define telephoneNumberSubstringsFilter		caseIgnoreIA5SubstringsFilter
+#endif
 
 
 static char *bvcasechr( struct berval *bv, unsigned char c, ber_len_t *len )
@@ -373,6 +458,8 @@ nameUIDValidate(
 	return rc;
 }
 
+#ifndef SLAP_NVALUES
+
 static int
 xnameUIDNormalize(
 	Syntax *syntax,
@@ -433,6 +520,7 @@ xnameUIDNormalize(
 	return LDAP_SUCCESS;
 }
 
+#endif
 /*
  * Handling boolean syntax and matching is quite rigid.
  * A more flexible approach would be to allow a variety
@@ -599,6 +687,8 @@ UTF8StringValidate(
 
 	return LDAP_SUCCESS;
 }
+
+#ifndef SLAP_NVALUES
 
 static int
 xUTF8StringNormalize(
@@ -1832,6 +1922,7 @@ xtelephoneNumberNormalize(
 
 	return LDAP_SUCCESS;
 }
+#endif
 
 static int
 oidValidate(
@@ -1871,6 +1962,8 @@ oidValidate(
 	
 	return LDAP_INVALID_SYNTAX;
 }
+
+#ifndef SLAP_NVALUES
 
 static int
 integerMatch(
@@ -1926,6 +2019,7 @@ integerMatch(
 	return LDAP_SUCCESS;
 }
 	
+#endif
 static int
 integerValidate(
 	Syntax *syntax,
@@ -1948,6 +2042,7 @@ integerValidate(
 	return LDAP_SUCCESS;
 }
 
+#ifndef SLAP_NVALUES
 static int
 xintegerNormalize(
 	Syntax *syntax,
@@ -2106,6 +2201,7 @@ static int integerFilter(
 	return LDAP_SUCCESS;
 }
 
+#endif
 
 static int
 countryStringValidate(
@@ -2191,6 +2287,8 @@ IA5StringValidate(
 
 	return LDAP_SUCCESS;
 }
+
+#ifndef SLAP_NVALUES
 
 static int
 xIA5StringNormalize(
@@ -3421,6 +3519,8 @@ static int caseIgnoreIA5SubstringsFilter(
 	return LDAP_SUCCESS;
 }
 	
+#endif
+
 static int
 numericStringValidate(
 	Syntax *syntax,
@@ -3438,6 +3538,8 @@ numericStringValidate(
 
 	return LDAP_SUCCESS;
 }
+
+#ifndef SLAP_NVALUES
 
 static int
 xnumericStringNormalize(
@@ -3569,6 +3671,8 @@ objectIdentifierFirstComponentMatch(
 	return rc;
 }
 
+#endif
+
 static int
 integerBitAndMatch(
 	int *matchp,
@@ -3624,6 +3728,8 @@ integerBitOrMatch(
 	*matchp = (lValue | lAssertedValue) ? 0 : -1;
 	return LDAP_SUCCESS;
 }
+
+#ifndef SLAP_NVALUES
 
 #ifdef HAVE_TLS
 #include <openssl/x509.h>
@@ -3989,6 +4095,7 @@ static int certificateExactFilter(
 	return LDAP_SUCCESS;
 }
 #endif
+#endif
 
 static int
 check_time_syntax (struct berval *val,
@@ -4205,6 +4312,8 @@ generalizedTimeValidate(
 	return check_time_syntax(in, 0, parts);
 }
 
+#ifndef SLAP_NVALUES
+
 static int
 xgeneralizedTimeNormalize(
 	Syntax *syntax,
@@ -4231,6 +4340,7 @@ xgeneralizedTimeNormalize(
 	return LDAP_SUCCESS;
 }
 
+#endif
 static int
 nisNetgroupTripleValidate(
 	Syntax *syntax,
@@ -4588,8 +4698,8 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR, NULL,
 		NULL, NULL,
-		caseExactIgnoreSubstringsMatch,
-		caseExactIgnoreSubstringsIndexer, caseExactIgnoreSubstringsFilter,
+		caseIgnoreSubstringsMatch,
+		caseIgnoreSubstringsIndexer, caseIgnoreSubstringsFilter,
 		NULL},
 
 	{"( 2.5.13.5 NAME 'caseExactMatch' "
@@ -4750,7 +4860,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL, NULL,
 		NULL},
 
-#ifdef SLAP_NVALUES
+#ifndef SLAP_NVALUES
 #ifdef HAVE_TLS
 	{"( 2.5.13.34 NAME 'certificateExactMatch' "
 		"SYNTAX 1.2.826.0.1.3344810.7.1 )",
