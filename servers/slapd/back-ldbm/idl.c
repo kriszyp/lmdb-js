@@ -936,11 +936,10 @@ idl_delete_key (
 	/* We have to go through an indirect block and find the ID
 	   in the list of IDL's
 	   */
+	cont_alloc( &data, &key );
 #ifndef USE_INDIRECT_NIDS
 	for ( nids = 0; !ID_BLOCK_NOID(idl, nids); nids++ )
 		;	/* NULL */
-
-	cont_alloc( &data, &key );
 
 	for ( j = 0; j<nids; j++ ) 
 #else
