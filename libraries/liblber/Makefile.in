@@ -6,6 +6,15 @@ SRCS = decode.c encode.c io.c bprint.c
 OBJS = decode.o encode.o io.o bprint.o
 XSRCS = version.c
 
+PROGRAMS= dtest etest idtest
+
+dtest:    $(LIBRARY) dtest.o
+	$(CC) $(LDFLAGS) -o $@ dtest.o $(LIBS)
+etest:  $(LIBRARY) etest.o
+	$(CC) $(LDFLAGS) -o $@ etest.o $(LIBS)
+idtest:  $(LIBRARY) idtest.o
+	$(CC) $(LDFLAGS) -o $@ idtest.o $(LIBS)
+
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 

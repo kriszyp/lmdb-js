@@ -16,7 +16,7 @@
 #include <console.h>
 #endif /* HAVE_CONSOLE_H */
 
-#include "lber.h"
+#include "lber-int.h"
 
 static void usage( char *name )
 {

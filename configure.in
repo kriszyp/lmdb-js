@@ -348,7 +348,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 
 		dnl Now the hard part, how to link
 
-		dnl A few platforms have pthread support in standard libraries
+		dnl Check for pthread support in current $LIBS
 		AC_CHECK_FUNC(pthread_create,[ol_link_threads=yes])
 
 		if test $ol_link_threads = no ; then
@@ -582,7 +582,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = mach ; then
 	if test $ac_cv_header_mach_cthreads_h = yes ; then
 		ol_with_threads=found
 
-		dnl A few platforms have cthread support in standard libraries
+		dnl check for cthread support in current $LIBS
 		AC_CHECK_FUNC(cthread_fork,[ol_link_threads=yes])
 
 		if test $ol_link_threads = no ; then
@@ -898,7 +898,7 @@ dnl Checks for header files.
 AC_HEADER_STDC
 
 if test $ac_cv_header_stdc != yes; then
-	AC_MSG_WARN([could not locate Standard C headers])
+	AC_MSG_WARN([could not Standard C compliant headers])
 fi
 
 AC_HEADER_DIRENT
@@ -914,6 +914,7 @@ AC_CHECK_HEADERS(	\
 	malloc.h		\
 	memory.h		\
 	regex.h			\
+	psap.h			\
 	pwd.h			\
 	sgtty.h			\
 	stdarg.h		\

@@ -473,6 +473,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the <ndir.h> header file.  */
 #undef HAVE_NDIR_H
 
+/* Define if you have the <psap.h> header file.  */
+#undef HAVE_PSAP_H
+
 /* Define if you have the <pthread.h> header file.  */
 #undef HAVE_PTHREAD_H
 

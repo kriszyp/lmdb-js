@@ -14,8 +14,11 @@
 #include "portable.h"
 
 #include <stdio.h>
+
+#ifdef HAVE_PSAP_H
 #include <psap.h>
 #include <quipu/attr.h>
+#endif
 
 static usage( char *name )
 {
@@ -24,6 +27,7 @@ static usage( char *name )
 
 main( int argc, char **argv )
 {
+#ifdef HAVE_PSAP_H
 	PE	pe;
 	PS	psin, psout, pserr;
 
@@ -61,4 +65,8 @@ main( int argc, char **argv )
 	}
 
 	exit( 0 );
+#else
+	fprintf(stderr, "requires ISODE X.500 distribution.\n");
+	exit( 1 );
+#endif
 }
