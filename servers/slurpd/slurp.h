@@ -66,9 +66,10 @@
 /* Maximum line length we can read from replication log */
 #define	REPLBUFLEN			256
 
-/* We support simple (plaintext password) and kerberos authentication */
+/* We support simple (plaintext password) and SASL authentication */
 #define	AUTH_SIMPLE	1
 #define	AUTH_KERBEROS	2
+#define	AUTH_SASL 3
 
 /* Rejection records are prefaced with this string */
 #define	ERROR_STR	"ERROR"
@@ -113,9 +114,12 @@
 #define	BINDMETHSTR		"bindmethod"
 #define	KERBEROSSTR		"kerberos"
 #define	SIMPLESTR		"simple"
+#define	SASLSTR			"sasl"
 #define	CREDSTR			"credentials"
-#define BINDPSTR		"bindprincipal"
+#define	OLDAUTHCSTR		"bindprincipal"
+#define	AUTHCSTR			"authcID"
 #define	SRVTABSTR		"srvtab"
+#define	SASLMECHSTR		"saslmech"
 
 #define	REPLICA_SLEEP_TIME	( 10 )
 
@@ -130,6 +134,7 @@
 #define	BIND_ERR_VERSION		7
 #define	BIND_ERR_REFERRALS		8
 #define	BIND_ERR_MANAGEDSAIT	9
+#define	BIND_ERR_SASL_FAILED	10
 
 /* Return codes for do_ldap() */
 #define	DO_LDAP_OK			0
@@ -187,8 +192,9 @@ struct ri {
     int		ri_bind_method;		/* AUTH_SIMPLE or AUTH_KERBEROS */
     char	*ri_bind_dn;		/* DN to bind as when replicating */
     char	*ri_password;		/* Password for AUTH_SIMPLE */
-    char	*ri_principal;		/* principal for kerberos bind */
+    char	*ri_authcId;		/* authentication ID for any mechanism */
     char	*ri_srvtab;		/* srvtab file for kerberos bind */
+    char	*ri_saslmech;		/* SASL mechanism to use */
     struct re	*ri_curr;		/* current repl entry being processed */
     struct stel	*ri_stel;		/* pointer to Stel for this replica */
     unsigned long

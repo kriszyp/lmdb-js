@@ -319,6 +319,8 @@ add_replica(
 #define	GOT_DN		2
 #define	GOT_METHOD	4
 #define	GOT_ALL		( GOT_HOST | GOT_DN | GOT_METHOD )
+#define	GOT_MECH	8
+
 static int
 parse_replica_line( 
     char	**cargv,
@@ -359,15 +361,26 @@ parse_replica_line(
 	    } else if ( !strcasecmp( val, SIMPLESTR )) {
 		ri->ri_bind_method = AUTH_SIMPLE;
 		gots |= GOT_METHOD;
+	    } else if ( !strcasecmp( val, SASLSTR )) {
+		ri->ri_bind_method = AUTH_SASL;
+		gots |= GOT_METHOD;
 	    } else {
 		ri->ri_bind_method = -1;
 	    }
+	} else if ( !strncasecmp( cargv[ i ], SASLMECHSTR, strlen( SASLMECHSTR ))) {
+	    val = cargv[ i ] + strlen( SASLMECHSTR ) + 1;
+	    gots |= GOT_MECH;
+	    ri->ri_saslmech = strdup( val );
 	} else if ( !strncasecmp( cargv[ i ], CREDSTR, strlen( CREDSTR ))) {
 	    val = cargv[ i ] + strlen( CREDSTR ) + 1;
 	    ri->ri_password = strdup( val );
-	} else if ( !strncasecmp( cargv[ i ], BINDPSTR, strlen( BINDPSTR ))) {
-	    val = cargv[ i ] + strlen( BINDPSTR ) + 1;
-	    ri->ri_principal = strdup( val );
+	} else if ( !strncasecmp( cargv[ i ], AUTHCSTR, strlen( AUTHCSTR ))) {
+	    val = cargv[ i ] + strlen( AUTHCSTR ) + 1;
+	    ri->ri_authcId = strdup( val );
+	} else if ( !strncasecmp( cargv[ i ], OLDAUTHCSTR, strlen( OLDAUTHCSTR ))) {
+	    /* Old authcID is provided for some backwards compatibility */
+	    val = cargv[ i ] + strlen( OLDAUTHCSTR ) + 1;
+	    ri->ri_authcId = strdup( val );
 	} else if ( !strncasecmp( cargv[ i ], SRVTABSTR, strlen( SRVTABSTR ))) {
 	    val = cargv[ i ] + strlen( SRVTABSTR ) + 1;
 	    if ( ri->ri_srvtab != NULL ) {
@@ -380,11 +393,19 @@ parse_replica_line(
 		    cargv[ i ] );
 	}
     }
-    if ( gots != GOT_ALL ) {
-	    fprintf( stderr, "Error: Malformed \"replica\" line in slapd " );
-	    fprintf( stderr, "config file, line %d\n", lineno );
-	return -1;
-    }
+    
+	if ( ri->ri_bind_method == AUTH_SASL) {
+		if ((gots & GOT_MECH) == 0) {
+			fprintf( stderr, "Error: \"replica\" line needs SASLmech flag in " );
+			fprintf( stderr, "slapd config file, line %d\n", lineno );
+			return -1;
+		}
+	}
+	else if ( gots != GOT_ALL ) {
+		fprintf( stderr, "Error: Malformed \"replica\" line in slapd " );
+		fprintf( stderr, "config file, line %d\n", lineno );
+		return -1;
+	}
     return 0;
 }
 

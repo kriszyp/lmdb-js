@@ -285,14 +285,32 @@ This option puts the database into "read-only" mode.  Any attempts to
 modify the database will return an "unwilling to perform" error.  By
 default, readonly is off.
 .HP
-.B replica host=<hostname>[:port] "binddn=<DN>" bindmethod=simple |\
- kerberos [credentials=<password>] [srvtab=<filename> ]
+.B replica host=<hostname>[:port] bindmethod=simple|sasl
+.B [binddn=<simple DN>] [credentials=<simple password>]
+.B [saslmech=<SASL mech>] [authcId=<authentication ID>]
 .RS
-Specify a replication site for this database.  Refer to "The SLAPD and
-SLURPD Administrator's Guide" for detailed information on setting up
-a replicated
+Specify a replication site for this database.  Refer to "The OpenLDAP 
+Administrator's Guide" for detailed information on setting up a replicated
 .B slapd
-directory service.
+directory service. A
+.B bindmethod
+of
+.B simple
+requires the options
+.B binddn 
+and
+.B credentials  
+and should only be used when adequate security services 
+(e.g TLS or IPSEC) are in place. A
+.B bindmethod 
+of
+.B sasl 
+requires the option
+.B saslmech. 
+If the 
+.B mechanism
+will use Kerberos, a kerberos instance should be given in 
+.B authcId.
 .RE
 .TP
 .B replogfile <filename>

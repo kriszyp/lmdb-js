@@ -28,7 +28,7 @@
 #include <ac/unistd.h>
 
 #include <ldap.h>
-
+#include "lutil_ldap.h"
 #include "slurp.h"
 
 /* Forward references */
@@ -609,6 +609,8 @@ do_bind(
 )
 {
     int		ldrc;
+	void *defaults;
+
 
     *lderr = 0;
 
@@ -689,6 +691,25 @@ do_bind(
 		ldap_unbind( ri->ri_ldp );
 		ri->ri_ldp = NULL;
 	    return( BIND_ERR_SIMPLE_FAILED );
+	}
+	break;
+
+	case AUTH_SASL:
+	Debug( LDAP_DEBUG_ARGS, "bind to %s as %s via %s (SASL)\n",
+		ri->ri_hostname, ri->ri_authcId, ri->ri_saslmech );
+
+	defaults = lutil_sasl_defaults( ri->ri_ldp, ri->ri_saslmech,
+	    NULL, ri->ri_authcId, NULL, NULL );
+	ldrc = ldap_sasl_interactive_bind_s( ri->ri_ldp, ri->ri_bind_dn,
+	    ri->ri_saslmech, NULL, NULL,
+	    LDAP_SASL_AUTOMATIC, lutil_sasl_interact, defaults );
+	if ( ldrc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "Error: LDAP SASL for %s:%d failed: %s\n",
+		    ri->ri_hostname, ri->ri_port, ldap_err2string( ldrc ));
+		*lderr = ldrc;
+		ldap_unbind( ri->ri_ldp );
+		ri->ri_ldp = NULL;
+		return( BIND_ERR_SASL_FAILED );
 	}
 	break;
     default:
