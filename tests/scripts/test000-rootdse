@@ -49,11 +49,13 @@ if test $RC = 0 ; then
 
 fi
 
-if test $RC = 0 -a $MONITORDB = yes ; then
-	echo "Using ldapsearch to retrieve the cn=Monitor..."
-	$LDAPSEARCH -b "cn=Monitor" -s base -h $LOCALHOST -p $PORT1 \
-		'+extensibleObject' >> $SEARCHOUT 2>&1
-	RC=$?
+if test $RC = 0 ; then
+	if test $MONITORDB = yes -o $MONITORDB = mod ; then
+		echo "Using ldapsearch to retrieve the cn=Monitor..."
+		$LDAPSEARCH -b "cn=Monitor" -s base -h $LOCALHOST -p $PORT1 \
+			'+extensibleObject' >> $SEARCHOUT 2>&1
+		RC=$?
+	fi
 fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
