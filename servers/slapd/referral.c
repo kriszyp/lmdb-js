@@ -225,7 +225,7 @@ BerVarray referral_rewrite(
 
 	for ( iv = in, jv = refs; !BER_BVISNULL( iv ); iv++ ) {
 		LDAPURLDesc	*url;
-		char		*dn = url->lud_dn;
+		char		*dn;
 		int		rc;
 		
 		rc = ldap_url_parse_ext( iv->bv_val, &url );
