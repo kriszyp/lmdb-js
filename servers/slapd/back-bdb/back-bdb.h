@@ -157,6 +157,7 @@ struct bdb_info {
 	u_int32_t	bi_txn_cp_kbyte;
 
 	int			bi_lock_detect;
+	long		bi_shm_key;
 
 	ID			bi_lastid;
 	ldap_pvt_thread_mutex_t	bi_lastid_mutex;

@@ -194,6 +194,12 @@ bdb_db_open( BackendDB *be )
 	if( !(slapMode & SLAP_TOOL_MODE) ) flags |= DB_RECOVER;
 #endif
 
+	/* If a key was set, use shared memory for the BDB environment */
+	if ( bdb->bi_shm_key ) {
+		bdb->bi_dbenv->set_shm_key( bdb->bi_dbenv, bdb->bi_shm_key );
+		flags |= DB_SYSTEM_MEM;
+	}
+
 	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0].bv_val );
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
 	bdb->bi_dbenv->set_lk_detect( bdb->bi_dbenv, bdb->bi_lock_detect );

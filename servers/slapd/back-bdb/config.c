@@ -50,7 +50,7 @@ bdb_db_config(
 	} else if ( strcasecmp( argv[0], "dirtyread" ) == 0 ) {
 		bdb->bi_db_opflags |= DB_DIRTY_READ;
 #endif
-	/* transaction checkpoint configuration */
+	/* transaction logging configuration */
 	} else if ( strcasecmp( argv[0], "dbnosync" ) == 0 ) {
 		bdb->bi_dbenv_xflags |= DB_TXN_NOSYNC;
 
@@ -124,6 +124,16 @@ bdb_db_config(
 		rc = bdb_attr_index_config( bdb, fname, lineno, argc - 1, &argv[1] );
 
 		if( rc != LDAP_SUCCESS ) return 1;
+
+	/* unique key for shared memory regions */
+        } else if ( strcasecmp( argv[0], "shm_key" ) == 0 ) {
+                 if ( argc < 2 ) {
+                         fprintf( stderr,
+                 "%s: line %d: missing key in \"shm_key <key>\" line\n",
+                             fname, lineno );
+                         return( 1 );
+                 }
+                 bdb->bi_shm_key = atoi( argv[1] );
 
 	/* size of the cache in entries */
         } else if ( strcasecmp( argv[0], "cachesize" ) == 0 ) {
