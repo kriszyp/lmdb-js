@@ -450,16 +450,32 @@ char **dn_subtree(
 }
 
 
+int
 dn_issuffixbv(
 	const struct berval *dn,
 	const struct berval *suffix
 )
 {
-	if (suffix->bv_len > dn->bv_len)
-		return 0;
+	int	d = dn->bv_len - suffix->bv_len;
 
-	return( strcmp( dn->bv_val + dn->bv_len - suffix->bv_len,
-		suffix->bv_val ) == 0 );
+	/* suffix longer than dn */
+	if ( d < 0 ) {
+		return 0;
+	}
+
+	/* no rdn separator or escaped rdn separator */
+	if ( d > 1 && ( !DN_SEPARATOR( dn->bv_val[ d - 1 ] ) 
+				|| DN_ESCAPE( dn->bv_val[ d - 2 ] ) ) ) {
+		return 0;
+	}
+
+	/* no possible match or malformed dn */
+	if ( d == 1 ) {
+		return 0;
+	}
+
+	/* compare */
+	return( strcmp( dn->bv_val + d, suffix->bv_val ) == 0 );
 }
 
 /*
@@ -473,20 +489,14 @@ dn_issuffix(
 	const char	*suffix
 )
 {
-	int	dnlen, suffixlen;
+	struct berval	bvdn, bvsuffix;
 
-	if ( dn == NULL ) {
-		return( 0 );
-	}
+	bvdn.bv_val = (char *) dn;
+	bvdn.bv_len = strlen( dn );
+	bvsuffix.bv_val = (char *) suffix;
+	bvsuffix.bv_len = strlen( suffix );
 
-	suffixlen = strlen( suffix );
-	dnlen = strlen( dn );
-
-	if ( suffixlen > dnlen ) {
-		return( 0 );
-	}
-
-	return( strcmp( dn + dnlen - suffixlen, suffix ) == 0 );
+	return dn_issuffixbv( &bvdn, &bvsuffix );
 }
 
 /*
