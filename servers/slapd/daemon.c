@@ -588,8 +588,8 @@ slapd_daemon_task(
 		}
 
 		if( FD_ISSET( wake_sds[0], &readfds ) ) {
-			char c;
-			tcp_read( wake_sds[0], &c, 1 );
+			char c[BUFSIZ];
+			tcp_read( wake_sds[0], c, sizeof(c) );
 			continue;
 		}
 
