@@ -328,7 +328,9 @@ bvarray_free(
 {
 	int i;
 
-	for (i=0; a[i].bv_val; i++)
-		free(a[i].bv_val);
-	free(a);
+	if (a) {
+		for (i=0; a[i].bv_val; i++)
+			free(a[i].bv_val);
+		free(a);
+	}
 }

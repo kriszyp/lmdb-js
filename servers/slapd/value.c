@@ -131,8 +131,8 @@ value_match(
 	const char ** text )
 {
 	int rc;
-	struct berval nv1;
-	struct berval nv2;
+	struct berval nv1 = { 0, NULL };
+	struct berval nv2 = { 0, NULL };
 
 	if( !mr->smr_match ) {
 		return LDAP_INAPPROPRIATE_MATCHING;
@@ -165,8 +165,8 @@ value_match(
 		nv1.bv_val != NULL ? &nv1 : v1,
 		nv2.bv_val != NULL ? &nv2 : v2 );
 	
-	free( nv1.bv_val );
-	free( nv2.bv_val );
+	if (nv1.bv_val ) free( nv1.bv_val );
+	if (nv2.bv_val ) free( nv2.bv_val );
 	return rc;
 }
 

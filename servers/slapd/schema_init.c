@@ -609,9 +609,9 @@ UTF8SubstringsassertionNormalize(
 	return nsa;
 
 err:
-	free( nsa->sa_final.bv_val );
-	bvarray_free( nsa->sa_any );
-	free( nsa->sa_initial.bv_val );
+	if ( nsa->sa_final.bv_val ) free( nsa->sa_final.bv_val );
+	if ( nsa->sa_any )bvarray_free( nsa->sa_any );
+	if ( nsa->sa_initial.bv_val ) free( nsa->sa_initial.bv_val );
 	ch_free( nsa );
 	return NULL;
 }
@@ -1111,9 +1111,12 @@ retry:
 			if( idx >= left.bv_len ) {
 				/* this shouldn't happen */
 				free( nav );
-				ch_free( sub->sa_final.bv_val );
-				bvarray_free( sub->sa_any );
-				ch_free( sub->sa_initial.bv_val );
+				if ( sub->sa_final.bv_val )
+					ch_free( sub->sa_final.bv_val );
+				if ( sub->sa_any )
+					bvarray_free( sub->sa_any );
+				if ( sub->sa_initial.bv_val )
+					ch_free( sub->sa_initial.bv_val );
 				ch_free( sub );
 				return LDAP_OTHER;
 			}
@@ -1146,9 +1149,9 @@ retry:
 done:
 	free( nav );
 	if( sub != NULL ) {
-		free( sub->sa_final.bv_val );
-		bvarray_free( sub->sa_any );
-		free( sub->sa_initial.bv_val );
+		if ( sub->sa_final.bv_val ) free( sub->sa_final.bv_val );
+		if ( sub->sa_any ) bvarray_free( sub->sa_any );
+		if ( sub->sa_initial.bv_val ) free( sub->sa_initial.bv_val );
 		ch_free( sub );
 	}
 	*matchp = match;
@@ -1511,9 +1514,9 @@ static int caseExactIgnoreSubstringsFilter(
 	}
 
 	if( nkeys == 0 ) {
-		free( sa->sa_final.bv_val );
-		bvarray_free( sa->sa_any );
-		free( sa->sa_initial.bv_val );
+		if ( sa->sa_final.bv_val ) free( sa->sa_final.bv_val );
+		if ( sa->sa_any ) bvarray_free( sa->sa_any );
+		if ( sa->sa_initial.bv_val ) free( sa->sa_initial.bv_val );
 		ch_free( sa );
 		*keysp = NULL;
 		return LDAP_SUCCESS;
@@ -1626,9 +1629,9 @@ static int caseExactIgnoreSubstringsFilter(
 		ch_free( keys );
 		*keysp = NULL;
 	}
-	free( sa->sa_final.bv_val );
-	bvarray_free( sa->sa_any );
-	free( sa->sa_initial.bv_val );
+	if ( sa->sa_final.bv_val ) free( sa->sa_final.bv_val );
+	if ( sa->sa_any ) bvarray_free( sa->sa_any );
+	if ( sa->sa_initial.bv_val ) free( sa->sa_initial.bv_val );
 	ch_free( sa );
 
 	return LDAP_SUCCESS;
