@@ -11,7 +11,7 @@ It is recommended that you read, or at least skim through, ALL of
 the instructions in this file before attempting to build the
 software.
 
-It is also recommended your review
+It is also recommended you review
 {{The OpenLDAP Administrator's Guide}}
 ({{URL:http://www.openldap.org/doc/admin/}}) and
 the {{Frequently Asked Questions}} ({{URL:http://www.openldap.org/faq/}})
