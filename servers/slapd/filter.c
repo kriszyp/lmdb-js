@@ -435,7 +435,7 @@ get_substring_filter(
 #ifdef SLAP_NVALUES
 		/* validate/normalize using equality matching rule validator! */
 		rc = asserted_value_validate_normalize(
-			f->f_sub_desc, f->f_sub_desc->ad_type->sat_equality,
+			ssa.sa_desc, ssa.sa_desc->ad_type->sat_equality,
 			usage, &value, &nvalue, text );
 
 		if( rc != LDAP_SUCCESS ) {
@@ -444,14 +444,14 @@ get_substring_filter(
 		}
 #else
 		/* validate using equality matching rule validator! */
-		rc = value_validate( f->f_sub_desc->ad_type->sat_equality,
+		rc = value_validate( ssa.sa_desc->ad_type->sat_equality,
 			&value, text );
 		if( rc != LDAP_SUCCESS ) {
 			free( value.bv_val );
 			goto return_error;
 		}
 
-		rc = value_normalize( f->f_sub_desc, usage,
+		rc = value_normalize( ssa.sa_desc, usage,
 			&value, &nvalue, text );
 
 		free( value.bv_val );
