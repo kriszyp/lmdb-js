@@ -179,6 +179,7 @@ bdb_cache_entryinfo_destroy( EntryInfo *e )
 	} else { \
 		(cache)->c_lrutail = (ei)->bei_lruprev; \
 	} \
+	(ei)->bei_lrunext = (ei)->bei_lruprev = NULL; \
 } while(0)
 
 #define LRU_ADD( cache, ei ) do { \
