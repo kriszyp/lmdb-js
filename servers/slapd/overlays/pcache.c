@@ -910,7 +910,7 @@ remove_query_data (
 			mod.sml_op = LDAP_MOD_DELETE;
 			mod.sml_desc = ad_queryid;
 			mod.sml_type = ad_queryid->ad_cname;
-			mod.sml_bvalues = vals;
+			mod.sml_values = vals;
 			mod.sml_next = NULL;
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
