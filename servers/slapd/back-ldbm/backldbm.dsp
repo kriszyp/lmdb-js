@@ -212,10 +212,6 @@ SOURCE=.\init.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\kerberos.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\modify.c
 # End Source File
 # Begin Source File

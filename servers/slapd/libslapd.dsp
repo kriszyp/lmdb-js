@@ -216,6 +216,10 @@ SOURCE=.\init.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\kerberos.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\lock.c
 # End Source File
 # Begin Source File
@@ -233,6 +237,10 @@ SOURCE=.\monitor.c
 # Begin Source File
 
 SOURCE=.\operation.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\passwd.c
 # End Source File
 # Begin Source File
 
