@@ -2044,7 +2044,6 @@ AC_CHECK_FUNCS(		\
 	sigaction		\
 	signal			\
 	sigset			\
-	snprintf		\
 	strdup			\
 	strerror		\
 	strpbrk			\
