@@ -388,7 +388,7 @@ slap_parse_sync_cookie(
 
 	if (( csn_ptr = strstr( cookie->octet_str[0].bv_val, "csn=" )) != NULL ) {
 		csn_str = SLAP_STRNDUP( csn_ptr, LDAP_LUTIL_CSNSTR_BUFSIZE );
-		if ( cval = strchr( csn_str, ',' )) {
+		if ( (cval = strchr( csn_str, ',' )) != NULL ) {
 			*cval = '\0';
 			csn_str_len = cval - csn_str - (sizeof("csn=") - 1);
 		} else {
@@ -408,7 +408,7 @@ slap_parse_sync_cookie(
 	if (( sid_ptr = strstr( cookie->octet_str->bv_val, "sid=" )) != NULL ) {
 		sid_str = SLAP_STRNDUP( sid_ptr,
 							SLAP_SYNC_SID_SIZE + sizeof("sid=") - 1 );
-		if ( cval = strchr( sid_str, ',' )) {
+		if ( (cval = strchr( sid_str, ',' )) != NULL ) {
 			*cval = '\0';
 		}
 		cookie->sid = atoi( sid_str + sizeof("sid=") - 1 );
@@ -420,7 +420,7 @@ slap_parse_sync_cookie(
 	if (( rid_ptr = strstr( cookie->octet_str->bv_val, "rid=" )) != NULL ) {
 		rid_str = SLAP_STRNDUP( rid_ptr,
 							SLAP_SYNC_RID_SIZE + sizeof("rid=") - 1 );
-		if ( cval = strchr( rid_str, ',' )) {
+		if ( (cval = strchr( rid_str, ',' )) != NULL ) {
 			*cval = '\0';
 		}
 		cookie->rid = atoi( rid_str + sizeof("rid=") - 1 );
