@@ -76,7 +76,7 @@ replog(
 				buf = (char *) ch_malloc( len );
 
 				bufp = buf;
-				put_type_and_value( &bufp, mods->mod_type,
+				ldif_put_type_and_value( &bufp, mods->mod_type,
 				    mods->mod_bvalues[i]->bv_val,
 				    mods->mod_bvalues[i]->bv_len );
 				*bufp = '\0';

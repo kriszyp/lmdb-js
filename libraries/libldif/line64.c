@@ -41,14 +41,14 @@ static unsigned char b642nib[0x80] = {
 };
 
 /*
- * str_parse_line - takes a line of the form "type:[:] value" and splits it
+ * ldif_parse_line - takes a line of the form "type:[:] value" and splits it
  * into components "type" and "value".  if a double colon separates type from
  * value, then value is encoded in base 64, and parse_line un-decodes it
  * (in place) before returning.
  */
 
 int
-str_parse_line(
+ldif_parse_line(
     char	*line,
     char	**type,
     char	**value,
@@ -155,7 +155,7 @@ str_parse_line(
 }
 
 /*
- * str_getline - return the next "line" (minus newline) of input from a
+ * ldif_getline - return the next "line" (minus newline) of input from a
  * string buffer of lines separated by newlines, terminated by \n\n
  * or \0.  this routine handles continued lines, bundling them into
  * a single big line before returning.  if a line begins with a white
@@ -169,7 +169,7 @@ str_parse_line(
  */
 
 char *
-str_getline( char **next )
+ldif_getline( char **next )
 {
 	char	*l;
 	char	c;
@@ -195,7 +195,7 @@ str_getline( char **next )
 }
 
 void
-put_type_and_value( char **out, char *t, char *val, int vlen )
+ldif_put_type_and_value( char **out, char *t, char *val, int vlen )
 {
 	unsigned char	*byte, *p, *stop;
 	unsigned char	buf[3];
@@ -305,7 +305,7 @@ ldif_type_and_value( char *type, char *val, int vlen )
     }
 
     p = buf;
-    put_type_and_value( &p, type, val, vlen );
+    ldif_put_type_and_value( &p, type, val, vlen );
     *p = '\0';
 
     return( buf );

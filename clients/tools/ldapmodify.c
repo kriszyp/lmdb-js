@@ -251,7 +251,7 @@ process_ldif_rec( char *rbuf )
     pmods = NULL;
     dn = newrdn = NULL;
 
-    while ( rc == 0 && ( line = str_getline( &rbuf )) != NULL ) {
+    while ( rc == 0 && ( line = ldif_getline( &rbuf )) != NULL ) {
 	++linenum;
 	if ( expect_sep && strcasecmp( line, T_MODSEPSTR ) == 0 ) {
 	    expect_sep = 0;
@@ -259,7 +259,7 @@ process_ldif_rec( char *rbuf )
 	    continue;
 	}
 	
-	if ( str_parse_line( line, &type, &value, &vlen ) < 0 ) {
+	if ( ldif_parse_line( line, &type, &value, &vlen ) < 0 ) {
 	    fprintf( stderr, "%s: invalid format (line %d of entry: %s\n",
 		    prog, linenum, dn == NULL ? "" : dn );
 	    rc = LDAP_PARAM_ERROR;

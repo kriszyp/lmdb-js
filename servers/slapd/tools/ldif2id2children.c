@@ -180,9 +180,9 @@ main( int argc, char **argv )
 				}
 				s = buf;
 				elineno = 0;
-				while ( (linep = str_getline( &s )) != NULL ) {
+				while ( (linep = ldif_getline( &s )) != NULL ) {
 					elineno++;
-					if ( str_parse_line( linep, &type, &val,
+					if ( ldif_parse_line( linep, &type, &val,
 					    &vlen ) != 0 ) {
 						Debug( LDAP_DEBUG_PARSE,
 			    "bad line %d in entry ending at line %d ignored\n",
@@ -260,8 +260,8 @@ main( int argc, char **argv )
 			if ( * buf != '\n' ) {
 				id++;
 				s = buf;
-				while ( (linep = str_getline( &s )) != NULL ) {
-					if ( str_parse_line( linep, &type, &val,
+				while ( (linep = ldif_getline( &s )) != NULL ) {
+					if ( ldif_parse_line( linep, &type, &val,
 					    &vlen ) != 0 ) {
 						Debug( LDAP_DEBUG_PARSE,
 						    "bad line %d ignored\n",

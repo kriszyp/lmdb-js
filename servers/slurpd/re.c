@@ -147,7 +147,7 @@ Re_parse(
     re->re_refcnt = sglob->num_replicas;
 
     for (;;) {
-	if (( state == GOT_ALL ) || ( buf = str_getline( &rp )) == NULL ) {
+	if (( state == GOT_ALL ) || ( buf = ldif_getline( &rp )) == NULL ) {
 	    break;
 	}
 	/*
@@ -159,7 +159,7 @@ Re_parse(
 	    continue;
 	}
 	buflen = ( long ) strlen( buf );
-	if ( str_parse_line( buf, &type, &value, &len ) < 0 ) {
+	if ( ldif_parse_line( buf, &type, &value, &len ) < 0 ) {
 	    Debug( LDAP_DEBUG_ANY,
 		    "Error: Re_parse: malformed replog file\n",
 		    0, 0, 0 );
@@ -205,7 +205,7 @@ Re_parse(
     }
 
     for (;;) {
-	if (( buf = str_getline( &rp )) == NULL ) {
+	if (( buf = ldif_getline( &rp )) == NULL ) {
 	    break;
 	}
 	buflen = ( long ) strlen( buf );
@@ -213,7 +213,7 @@ Re_parse(
 	    type = "-";
 	    value = NULL;
 	} else {
-	    if ( str_parse_line( buf, &type, &value, &len ) < 0 ) {
+	    if ( ldif_parse_line( buf, &type, &value, &len ) < 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"Error: malformed replog line \"%s\"\n",
 			buf, 0, 0 );
@@ -278,7 +278,7 @@ get_repl_hosts(
     for (;;) {
 	/* If this is a reject log, we need to skip over the ERROR: line */
 	if ( !strncmp( *r_rp, ERROR_STR, strlen( ERROR_STR ))) {
-	    line = str_getline( r_rp );
+	    line = ldif_getline( r_rp );
 	    if ( line == NULL ) {
 		break;
 	    }
@@ -286,11 +286,11 @@ get_repl_hosts(
 	if ( strncasecmp( *r_rp, "replica:", 7 )) {
 	    break;
 	}
-	line = str_getline( r_rp );
+	line = ldif_getline( r_rp );
 	if ( line == NULL ) {
 	    break;
 	}
-	if ( str_parse_line( line, &type, &value, &len ) < 0 ) {
+	if ( ldif_parse_line( line, &type, &value, &len ) < 0 ) {
 	    return( NULL );
 	}
 	port = 0;

@@ -54,7 +54,7 @@ str2entry( char	*s )
 	next = s;
 	if ( isdigit( *s ) ) {
 		e->e_id = atoi( s );
-		if ( (s = str_getline( &next )) == NULL ) {
+		if ( (s = ldif_getline( &next )) == NULL ) {
 			Debug( LDAP_DEBUG_TRACE,
 			    "<= str2entry NULL (missing newline after id)\n",
 			    0, 0, 0 );
@@ -67,12 +67,12 @@ str2entry( char	*s )
 	vals[0] = &bval;
 	vals[1] = NULL;
 	ptype[0] = '\0';
-	while ( (s = str_getline( &next )) != NULL ) {
+	while ( (s = ldif_getline( &next )) != NULL ) {
 		if ( *s == '\n' || *s == '\0' ) {
 			break;
 		}
 
-		if ( str_parse_line( s, &type, &value, &vlen ) != 0 ) {
+		if ( ldif_parse_line( s, &type, &value, &vlen ) != 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
 			    "<= str2entry NULL (parse_line)\n", 0, 0, 0 );
 			continue;
@@ -164,7 +164,7 @@ entry2str(
 		/* put "dn: <dn>" */
 		tmplen = strlen( e->e_dn );
 		MAKE_SPACE( LDIF_SIZE_NEEDED( 2, tmplen ));
-		put_type_and_value( (char **) &ecur, "dn", e->e_dn, tmplen );
+		ldif_put_type_and_value( (char **) &ecur, "dn", e->e_dn, tmplen );
 	}
 
 	/* put the attributes */
@@ -174,7 +174,7 @@ entry2str(
 			bv = a->a_vals[i];
 			tmplen = strlen( a->a_type );
 			MAKE_SPACE( LDIF_SIZE_NEEDED( tmplen, bv->bv_len ));
-			put_type_and_value( (char **) &ecur, a->a_type,
+			ldif_put_type_and_value( (char **) &ecur, a->a_type,
 			    bv->bv_val, bv->bv_len );
 		}
 	}
