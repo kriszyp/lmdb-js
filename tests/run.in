@@ -51,6 +51,8 @@ if test ! -x "${SCRIPT}" ; then
 	exit 1;
 fi
 
+export BACKEND AC_MONITOR AC_CACHE AC_WITH_TLS
+
 echo "Running ${SCRIPT}..."
 $SCRIPT
 exit 0
