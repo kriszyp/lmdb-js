@@ -90,7 +90,7 @@ static struct slap_control {
 	{ LDAP_CONTROL_CLIENT_UPDATE,
 		SLAP_CTRL_SEARCH, NULL,
 		parseClientUpdate },
-#endif
+#endif /* LDAP_CLIENT_UPDATE */
 	{ NULL }
 };
 
@@ -714,7 +714,7 @@ static int parseClientUpdate (
 	}
 #endif
 
-	op->o_clientupdate_state = ber_dupbv(NULL, &cookie);
+	ber_dupbv( &op->o_clientupdate_state, &cookie );
 
 	(void) ber_free( ber, 1 );
 
@@ -727,4 +727,4 @@ static int parseClientUpdate (
 
 	return LDAP_SUCCESS;
 }
-#endif
+#endif /* LDAP_CLIENT_UPDATE */

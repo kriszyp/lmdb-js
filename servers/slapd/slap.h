@@ -215,6 +215,10 @@ typedef struct slap_ssf_set {
 #define SLAP_SYNTAX_ATTRIBUTETYPES_OID	"1.3.6.1.4.1.1466.115.121.1.3"
 #define SLAP_SYNTAX_OBJECTCLASSES_OID	"1.3.6.1.4.1.1466.115.121.1.37"
 
+#ifdef LDAP_CLIENT_UPDATE
+#define LCUP_COOKIE_OID "1.3.6.1.4.1.4203.666.10.1"
+#endif /* LDAP_CLIENT_UPDATE */
+
 /*
  * represents schema information for a database
  */
@@ -1593,8 +1597,8 @@ typedef struct slap_op {
 #define SLAP_LCUP_PERSIST			(0x2)
 #define SLAP_LCUP_SYNC_AND_PERSIST	(0x3)
 	ber_int_t o_clientupdate_interval;
-	struct berval* o_clientupdate_state;
-#endif
+	struct berval o_clientupdate_state;
+#endif /* LDAP_CLIENT_UPDATE */
 
 #ifdef LDAP_CONNECTIONLESS
 	Sockaddr	o_peeraddr;	/* UDP peer address		  */
@@ -1749,6 +1753,16 @@ enum {
  */
 #define SLAP_LDAPDN_PRETTY 0x1
 #define SLAP_LDAPDN_MAXLEN 8192
+
+/*
+ * Macros for LCUP
+ */
+#ifdef LDAP_CLIENT_UPDATE
+#define SLAP_LCUP_STATE_UPDATE_TRUE	1
+#define SLAP_LCUP_STATE_UPDATE_FALSE	0
+#define SLAP_LCUP_ENTRY_DELETED_TRUE	1
+#define SLAP_LCUP_ENTRY_DELETED_FALSE	0
+#endif /* LDAP_CLIENT_UPDATE */
 
 LDAP_END_DECL
 

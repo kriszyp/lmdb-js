@@ -224,7 +224,9 @@ send_ldap_response(
 		return;
 	}
 		
+#ifndef LDAP_CLIENT_UPDATE
 	assert( ctrls == NULL ); /* ctrls not implemented */
+#endif /* LDAP_CLIENT_UPDATE */
 
 	ber_init_w_nullc( ber, LBER_USE_DER );
 
