@@ -488,9 +488,11 @@ retry:	/* transaction retry */
 	}
 
 	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop && !op->o_no_psearch ) {
+		ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
 		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 			bdb_psearch(op, rs, ps_list, e, LDAP_PSEARCH_BY_PREMODIFY );
 		}
+		ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
 	}
 
 	if( op->o_preread ) {
@@ -626,6 +628,24 @@ retry:	/* transaction retry */
 			}
 		}
 
+		if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
+			/* Loop through in-scope entries for each psearch spec */
+			ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
+			LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
+				bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_MODIFY );
+			}
+			ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
+			pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
+			while ( pm_list != NULL ) {
+				bdb_psearch(op, rs, pm_list->ps_op,
+							e, LDAP_PSEARCH_BY_SCOPEOUT);
+				LDAP_LIST_REMOVE ( pm_list, ps_link );
+				pm_prev = pm_list;
+				pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
+				ch_free( pm_prev );
+			}
+		}
+
 		rs->sr_err = TXN_COMMIT( ltid, 0 );
 	}
 	ltid = NULL;
@@ -666,22 +686,6 @@ retry:	/* transaction retry */
 
 return_results:
 	send_ldap_result( op, rs );
-
-	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
-		/* Loop through in-scope entries for each psearch spec */
-		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-			bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_MODIFY );
-		}
-		pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
-		while ( pm_list != NULL ) {
-			bdb_psearch(op, rs, pm_list->ps_op,
-						e, LDAP_PSEARCH_BY_SCOPEOUT);
-			LDAP_LIST_REMOVE ( pm_list, ps_link );
-			pm_prev = pm_list;
-			pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
-			ch_free( pm_prev );
-		}
-	}
 
 	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();

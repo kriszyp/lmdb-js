@@ -104,6 +104,7 @@ bdb_db_init( BackendDB *be )
 
 	ldap_pvt_thread_mutex_init( &bdb->bi_database_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
+	ldap_pvt_thread_rdwr_init ( &bdb->bi_pslist_rwlock );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_dntree.bei_kids_mutex );
 	ldap_pvt_thread_rdwr_init ( &bdb->bi_cache.c_rwlock );
@@ -548,6 +549,7 @@ bdb_db_destroy( BackendDB *be )
 	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_cache.c_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.c_dntree.bei_kids_mutex );
+	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_pslist_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_database_mutex );
 #ifdef SLAP_IDL_CACHE

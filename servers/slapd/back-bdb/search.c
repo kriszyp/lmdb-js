@@ -437,12 +437,12 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	/* psearch needs to be registered before refresh begins */
 	/* psearch and refresh transmission is serialized in send_ldap_ber() */
 	if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_PERSIST ) {
-		ldap_pvt_thread_mutex_lock( &bdb->bi_pslist_mutex );
+		ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 		LDAP_LIST_INSERT_HEAD( &bdb->bi_psearch_list, sop, o_ps_link );
-		ldap_pvt_thread_mutex_unlock( &bdb->bi_pslist_mutex );
+		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
 	} else if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_REFRESH_AND_PERSIST
 				&& sop->o_sync_slog_size >= 0 ) {
-		ldap_pvt_thread_mutex_lock( &bdb->bi_pslist_mutex );
+		ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 		LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 			if ( ps_list->o_sync_slog_size >= 0 ) {
 				if ( ps_list->o_sync_state.sid == sop->o_sync_state.sid ) {
@@ -476,7 +476,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 		} else {
 			sop->o_sync_state.sid = -1;
 		}
-		ldap_pvt_thread_mutex_unlock( &bdb->bi_pslist_mutex );
+		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
 	}
 
 	null_attr.an_desc = NULL;
@@ -733,19 +733,23 @@ dn2entry_retry:
 	}
 	e = NULL;
 
-	rs->sr_err = bdb_get_commit_csn( sop, rs, &search_context_csn, locker, &ctxcsn_lock );
+	if ( !IS_PSEARCH ) {
+		rs->sr_err = bdb_get_commit_csn( sop, rs, &search_context_csn, locker, &ctxcsn_lock );
 
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		send_ldap_error( sop, rs, rs->sr_err, "error in csn management in search" );
-		goto done;
-	}
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			send_ldap_error( sop, rs, rs->sr_err, "error in csn management in search" );
+			goto done;
+		}
 
-	if ( sop->o_sync_mode != SLAP_SYNC_NONE && sop->o_sync_state.ctxcsn &&
-		 sop->o_sync_state.ctxcsn->bv_val &&
-		 ber_bvcmp( &sop->o_sync_state.ctxcsn[0], search_context_csn ) == 0 )
-	{
-		bdb_cache_entry_db_unlock( bdb->bi_dbenv, &ctxcsn_lock );
-		goto nochange;
+		if ( sop->o_sync_mode != SLAP_SYNC_NONE && sop->o_sync_state.ctxcsn &&
+			 sop->o_sync_state.ctxcsn->bv_val &&
+			 ber_bvcmp( &sop->o_sync_state.ctxcsn[0], search_context_csn ) == 0 )
+		{
+			bdb_cache_entry_db_unlock( bdb->bi_dbenv, &ctxcsn_lock );
+			goto nochange;
+		}
+	} else {
+		search_context_csn = ber_dupbv( NULL, &op->o_sync_csn );	
 	}
 
 	/* select candidates */
@@ -758,8 +762,10 @@ dn2entry_retry:
 		rs->sr_err = search_candidates( op, sop, rs, &base, locker, candidates, scopes );
 	}
 
-	if ( sop->o_sync_mode != SLAP_SYNC_NONE ) {
-		bdb_cache_entry_db_unlock( bdb->bi_dbenv, &ctxcsn_lock );
+	if ( !IS_PSEARCH ) {
+		if ( sop->o_sync_mode != SLAP_SYNC_NONE ) {
+			bdb_cache_entry_db_unlock( bdb->bi_dbenv, &ctxcsn_lock );
+		}
 	}
 
 	/* start cursor at beginning of candidates.
@@ -1406,7 +1412,7 @@ nochange:
 				} else {
 					if ( !no_sync_state_change ) {
 						int slog_found = 0;
-						ldap_pvt_thread_mutex_lock( &bdb->bi_pslist_mutex );
+						ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
 						LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 							if ( ps_list->o_sync_slog_size > 0 ) {
 								if ( ps_list->o_sync_state.sid == sop->o_sync_state.sid ) {
@@ -1422,7 +1428,7 @@ nochange:
 							rs->sr_ctrls = NULL;
 							slap_send_session_log( op, ps_list, rs );
 						}
-						ldap_pvt_thread_mutex_unlock( &bdb->bi_pslist_mutex );
+						ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
 					}
 					rs->sr_err = LDAP_SUCCESS;
 					rs->sr_rspoid = LDAP_SYNC_INFO;
@@ -1448,7 +1454,7 @@ nochange:
 				} else {
 					if ( !no_sync_state_change ) {
 						int slog_found = 0;
-						ldap_pvt_thread_mutex_lock( &bdb->bi_pslist_mutex );
+						ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
 						LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list,
 								o_ps_link ) {
 							if ( ps_list->o_sync_slog_size > 0 ) {
@@ -1463,7 +1469,7 @@ nochange:
 						if ( slog_found ) {
 							slap_send_session_log( op, ps_list, rs );
 						}
-						ldap_pvt_thread_mutex_unlock( &bdb->bi_pslist_mutex );
+						ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
 					}
 					slap_build_sync_done_ctrl( sop, rs, ctrls,
 						num_ctrls++, 1, &cookie, LDAP_SYNC_REFRESH_DELETES );
