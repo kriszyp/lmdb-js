@@ -10,6 +10,7 @@ OpenLDAP 2.0.16 Engineering
 	Build environment
 		Updated slapd.conf with ACL example
 		Updated pthread detection
+		Adjust test 7 read/write ratio
 
 OpenLDAP 2.0.15 Release
 	Fixed -lldap TLS external handling

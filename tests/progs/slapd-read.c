@@ -75,8 +75,7 @@ main( int argc, char **argv )
 
 	}
 
-	do_read( host, port, entry, ( 4 * loops ));
-
+	do_read( host, port, entry, ( 10 * loops ));
 	exit( EXIT_SUCCESS );
 }
 
