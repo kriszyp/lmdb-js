@@ -200,7 +200,7 @@ cache_add_entry_lock(
 
 			/* XXX check for writer lock - should also check no readers pending */
 #ifdef LDAP_DEBUG
-			assert(pthread_rdwr_wchk_np(&e->e_rdwr));
+			assert(!pthread_rdwr_rwchk_np(&e->e_rdwr));
 #endif
 
 			/* delete from cache and lru q */
