@@ -109,6 +109,7 @@ void lutil_log_int(FILE* file, char *subsys, int level, const char *fmt, va_list
          */
 	for( i = 0; i < numLevels; i++ )
 	{
+		if ( levelArray[i] == NULL ) return; 
 		if ( ! strcasecmp( levelArray[i]->subsystem, subsys ) ) break;
 	}
 
