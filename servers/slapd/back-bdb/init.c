@@ -41,27 +41,6 @@ struct berval bdb_uuid = BER_BVNULL;
 typedef void * db_malloc(size_t);
 typedef void * db_realloc(void *, size_t);
 
-#if 0
-static int
-bdb_open( BackendInfo *bi )
-{
-	return 0;
-}
-
-static int
-bdb_destroy( BackendInfo *bi )
-{
-	return 0;
-}
-
-static int
-bdb_close( BackendInfo *bi )
-{
-	/* terminate the underlying database system */
-	return 0;
-}
-#endif
-
 static int
 bdb_db_init( BackendDB *be )
 {
@@ -140,7 +119,7 @@ bdb_db_open( BackendDB *be )
 
 	flags = DB_INIT_MPOOL | DB_THREAD | DB_CREATE;
 
-if ( !( slapMode & SLAP_TOOL_QUICK ))
+	if ( !( slapMode & SLAP_TOOL_QUICK ))
 		flags |= DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN;
 	
 #if 0
@@ -386,7 +365,6 @@ if ( !( slapMode & SLAP_TOOL_QUICK ))
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	}
 
-	/* <insert> open (and create) index databases */
 	return 0;
 }
 
@@ -582,11 +560,6 @@ bdb_back_initialize(
 	bi->bi_op_search = bdb_search;
 
 	bi->bi_op_unbind = 0;
-
-#if 0	/* DELETE ME */
-	bi->bi_op_abandon = bdb_abandon;
-	bi->bi_op_cancel = bdb_cancel;
-#endif
 
 	bi->bi_extended = bdb_extended;
 
