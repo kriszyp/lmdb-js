@@ -120,22 +120,27 @@ main( int argc, char *argv[] )
 
 	if ( rc == LDAP_SUCCESS ) {
 		int i;
-		for ( i = 0; dn[ i ]; i++ ) {
-			LDAPRDN		*rdn = dn[ i ][ 0 ];
-			char		*rstr;
+		if( dn ) {
+			for ( i = 0; dn[i]; i++ ) {
+				LDAPRDN		*rdn = dn[ i ][ 0 ];
+				char		*rstr;
 
-			if ( ldap_rdn2str( rdn, &rstr, flags[ f2 ] ) ) {
-				fprintf( stdout, "\tldap_rdn2str() failed\n" );
-				continue;
+				if ( ldap_rdn2str( rdn, &rstr, flags[ f2 ] ) ) {
+					fprintf( stdout, "\tldap_rdn2str() failed\n" );
+					continue;
+				}
+
+				fprintf( stdout, "\tldap_rdn2str() = \"%s\"\n", rstr );
+				ldap_memfree( rstr );
 			}
-
-			fprintf( stdout, "\tldap_rdn2str() = \"%s\"\n", rstr );
-			ldap_memfree( rstr );
+		} else {
+			fprintf( stdout, "\tempty DN\n" );
 		}
 	}
 
-	if ( rc == LDAP_SUCCESS && 
-			ldap_dn2str( dn, &str, flags[ f2 ] ) == LDAP_SUCCESS ) {
+	if ( rc == LDAP_SUCCESS &&
+		ldap_dn2str( dn, &str, flags[ f2 ] ) == LDAP_SUCCESS )
+	{
 		char	**values, *tmp, *tmp2;
 		int	n;
 		
@@ -216,7 +221,13 @@ main( int argc, char *argv[] )
 				str, str2, 
 				strcmp( str, str2 ) == 0 ? "yes" : "no" );
 
-			for ( iRDN = 0; dn[ iRDN ] && dn2[ iRDN ]; iRDN++ ) {
+			if(( dn != NULL && dn2 == NULL )
+				|| ( dn != NULL && dn2 == NULL ))
+			{
+				fprintf( stdout, "mismatch\n" );
+			} else if (( dn != NULL ) && (dn2 != NULL))
+				for ( iRDN = 0; dn[ iRDN ] && dn2[ iRDN ]; iRDN++ )
+			{
 				LDAPRDN 	*r = dn[ iRDN ][ 0 ];
 				LDAPRDN 	*r2 = dn2[ iRDN ][ 0 ];
 				int 		iAVA;
@@ -226,12 +237,14 @@ main( int argc, char *argv[] )
 					LDAPAVA		*a2 = r2[ iAVA ][ 0 ];
 
 					if ( a->la_attr->bv_len != a2->la_attr->bv_len
-							|| memcmp( a->la_attr->bv_val, a2->la_attr->bv_val, a->la_attr->bv_len )
-							|| a->la_flags != a2->la_flags
-							|| a->la_value->bv_len != a2->la_value->bv_len
-							|| memcmp( a->la_value->bv_val, a2->la_value->bv_val, a->la_value->bv_len ) ) {
+						|| memcmp( a->la_attr->bv_val, a2->la_attr->bv_val,
+							a->la_attr->bv_len )
+						|| a->la_flags != a2->la_flags
+						|| a->la_value->bv_len != a2->la_value->bv_len
+						|| memcmp( a->la_value->bv_val, a2->la_value->bv_val,
+							a->la_value->bv_len ) )
+					{
 						fprintf( stdout, "mismatch\n" );
-						
 					}
 				}
 			}

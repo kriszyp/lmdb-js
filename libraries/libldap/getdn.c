@@ -141,7 +141,15 @@ ldap_explode_dn( LDAP_CONST char *dn, int notypes )
 
 	if ( ldap_str2dn( dn, &tmpDN, LDAP_DN_FORMAT_LDAP ) 
 			!= LDAP_SUCCESS ) {
-		return( NULL );
+		return NULL;
+	}
+
+	if( tmpDN == NULL ) {
+		values = LDAP_MALLOC( sizeof( char * ) );
+		if( values == NULL ) return NULL;
+
+		values[0] = NULL;
+		return values;
 	}
 
 	for ( iRDN = 0; tmpDN[ iRDN ]; iRDN++ ) {
@@ -149,18 +157,18 @@ ldap_explode_dn( LDAP_CONST char *dn, int notypes )
 		
 		ldap_rdn2str( tmpDN[ iRDN ][ 0 ], &str, flag );
 
-		v = LDAP_REALLOC( values, sizeof( char * ) * ( 2 + iRDN ) );
+		v = LDAP_REALLOC( values, sizeof( char * ) * ( iRDN + 1 ) );
 		if ( v == NULL ) {
 			LBER_VFREE( values );
 			ldap_dnfree( tmpDN );
-			return( NULL );
+			return NULL;
 		}
 		values = v;
 		values[ iRDN ] = str;
 	}
-	values[ iRDN ] = NULL;
 
-	return( values );
+	values[ iRDN ] = NULL;
+	return values;
 }
 
 char **
