@@ -15,7 +15,97 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libavl"=..\..\libraries\libavl\libavl.dsp - Package Owner=<4>
+Project: "ldapdelete"="..\..\clients\tools\ldapdelete.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldap
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "ldapmodify"="..\..\clients\tools\ldapmodify.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldap
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldif
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "ldapmodrdn"="..\..\clients\tools\ldapmodrdn.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldap
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "ldapsearch"="..\..\clients\tools\ldapsearch.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldap
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldif
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "libavl"="..\..\libraries\libavl\libavl.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -27,7 +117,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "liblber"=..\..\libraries\liblber\liblber.dsp - Package Owner=<4>
+Project: "liblber"="..\..\libraries\liblber\liblber.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -39,7 +129,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libldap"=..\..\libraries\libldap\libldap.dsp - Package Owner=<4>
+Project: "libldap"="..\..\libraries\libldap\libldap.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -51,7 +141,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libldap_r"=..\..\libraries\libldap_r\libldap_r.dsp - Package Owner=<4>
+Project: "libldap_r"="..\..\libraries\libldap_r\libldap_r.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -63,7 +153,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libldbm"=..\..\libraries\libldbm\libldbm.dsp - Package Owner=<4>
+Project: "libldbm"="..\..\libraries\libldbm\libldbm.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -75,7 +165,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libldif"=..\..\libraries\libldif\libldif.dsp - Package Owner=<4>
+Project: "libldif"="..\..\libraries\libldif\libldif.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -87,7 +177,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "liblutil"=..\..\libraries\liblutil\liblutil.dsp - Package Owner=<4>
+Project: "liblutil"="..\..\libraries\liblutil\liblutil.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -99,7 +189,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "slapd"=.\slapd.dsp - Package Owner=<4>
+Project: "slapd"=".\slapd.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
