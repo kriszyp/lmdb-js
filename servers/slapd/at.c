@@ -441,6 +441,7 @@ at_add(
 	 */
 	if ( sat->sat_sup ) {
 		sat->sat_syntax = sat->sat_sup->sat_syntax;
+		sat->sat_syntax_compat = sat->sat_sup->sat_syntax_compat;
 
 		sat->sat_equality = sat->sat_sup->sat_equality;
 		sat->sat_ordering = sat->sat_sup->sat_ordering;
