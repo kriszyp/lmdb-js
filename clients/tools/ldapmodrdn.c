@@ -32,7 +32,6 @@
 
 static char	*binddn = NULL;
 static char	*passwd = NULL;
-static char	*base = NULL;
 static char	*ldaphost = NULL;
 static int	ldapport = 0;
 static int	not, verbose, contoper;

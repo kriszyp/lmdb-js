@@ -353,7 +353,6 @@ search_candidates(
 	int		manageDSAit
 )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	ID_BLOCK		*candidates;
 	Filter		*f, *rf, *af, *lf;
 

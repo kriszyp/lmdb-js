@@ -278,7 +278,6 @@ dn2entry_rw(
     int         rw
 )
 {
-	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 	ID		id;
 	Entry		*e = NULL;
 	char		*pdn;

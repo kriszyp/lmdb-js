@@ -261,8 +261,8 @@ ldap_add_result_to_cache( LDAP *ld, LDAPMessage *result )
 	LDAPMessage	*m, **mp, *req, *new, *prev;
 	int		err, keep;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_add_result_to_cache: id %d, type %d\n", 
-		result->lm_msgid, result->lm_msgtype, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_add_result_to_cache: id %ld, type %ld\n", 
+		(long) result->lm_msgid, (long) result->lm_msgtype, 0 );
 
 	if ( ld->ld_cache == NULL ||
 	    ( ld->ld_cache->lc_enabled == 0 )) {
@@ -394,8 +394,8 @@ ldap_check_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 	prev = NULL;
 	hash = cache_hash( &reqber );
 	for ( m = ld->ld_cache->lc_buckets[ hash ]; m != NULL; m = next ) {
-		Debug( LDAP_DEBUG_TRACE,"cc: examining id %d,type %d\n",
-		    m->lm_msgid, m->lm_msgtype, 0 );
+		Debug( LDAP_DEBUG_TRACE,"cc: examining id %ld,type %ld\n",
+		    (long) m->lm_msgid, (long) m->lm_msgtype, 0 );
 		if ( difftime(c_time, m->lm_time) > ld->ld_cache->lc_timeout ) {
 			/* delete expired message */
 			next = m->lm_next;
@@ -441,8 +441,8 @@ ldap_check_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 			prev->lm_chain = new;
 		}
 		prev = new;
-		Debug( LDAP_DEBUG_TRACE, "cc: added type %d\n",
-		    new->lm_msgtype, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "cc: added type %ld\n",
+		    (long) new->lm_msgtype, 0, 0 );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "cc: result returned from cache\n", 0, 0, 0 );

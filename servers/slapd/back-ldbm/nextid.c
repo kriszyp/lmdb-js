@@ -21,7 +21,6 @@
 static ID
 next_id_read( Backend *be )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	ID id = NOID;
 	Datum key, data;
 	DBCache *db;

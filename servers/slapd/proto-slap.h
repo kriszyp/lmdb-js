@@ -368,6 +368,9 @@ Syntax *syn_find_desc LDAP_P((const char *syndesc, int *slen));
 int syn_add LDAP_P((LDAP_SYNTAX *syn, slap_syntax_check_func *check, const char **err));
 MatchingRule *mr_find LDAP_P((const char *mrname));
 int mr_add LDAP_P((LDAP_MATCHING_RULE *mr, slap_mr_normalize_func *normalize, slap_mr_compare_func *compare, const char **err));
+int case_ignore_normalize LDAP_P((struct berval *val, struct berval **normalized));
+int register_syntax LDAP_P((char *desc,	slap_syntax_check_func *check ));
+int register_matching_rule LDAP_P((char * desc,	slap_mr_normalize_func *normalize, slap_mr_compare_func *compare));
 void schema_info LDAP_P((Connection *conn, Operation *op, char **attrs, int attrsonly));
 int schema_init LDAP_P((void));
 

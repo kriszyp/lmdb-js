@@ -517,7 +517,7 @@ acl_check_modlist(
 }
 
 #ifdef SLAPD_ACI_ENABLED
-char *
+static char *
 aci_bvstrdup (struct berval *bv)
 {
 	char *s;
@@ -530,7 +530,7 @@ aci_bvstrdup (struct berval *bv)
 	return(s);
 }
 
-int
+static int
 aci_strbvcmp (char *s, struct berval *bv)
 {
 	int res, len;
@@ -546,7 +546,7 @@ aci_strbvcmp (char *s, struct berval *bv)
 	return(0);
 }
 
-int
+static int
 aci_get_part (struct berval *list, int ix, char sep, struct berval *bv)
 {
 	int len;
@@ -581,7 +581,7 @@ aci_get_part (struct berval *list, int ix, char sep, struct berval *bv)
 	return(bv->bv_len);
 }
 
-int
+static int
 aci_list_has_right (struct berval *list, int access, int action)
 {
 	struct berval bv;
@@ -640,7 +640,7 @@ aci_list_has_right (struct berval *list, int access, int action)
 #endif
 }
 
-int
+static int
 aci_list_has_attr (struct berval *list, char *attr)
 {
 	struct berval bv;
@@ -654,10 +654,10 @@ aci_list_has_attr (struct berval *list, char *attr)
 	return(0);
 }
 
-int
+static int
 aci_list_has_attr_right (struct berval *list, char *attr, int access, int action)
 {
-    struct berval bv, entry;
+    struct berval bv;
     int i, found;
 
 	/* loop through each rights/attr pair, skip first part (action) */
@@ -674,7 +674,7 @@ aci_list_has_attr_right (struct berval *list, char *attr, int access, int action
 	return(found);
 }
 
-int
+static int
 aci_list_has_permission (struct berval *list, char *attr, int access)
 {
     struct berval perm, actn;
@@ -707,7 +707,7 @@ aci_list_has_permission (struct berval *list, char *attr, int access)
 	return(0);
 }
 
-int
+static int
 aci_group_member (
 	struct berval *subj,
 	char *grpoc,

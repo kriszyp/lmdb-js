@@ -1260,9 +1260,6 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp )
 	int seen_substr = 0;
 	int seen_syntax = 0;
 	int seen_usage = 0;
-	int seen_kind = 0;
-	int seen_must = 0;
-	int seen_may = 0;
 	LDAP_ATTRIBUTE_TYPE * at;
 	char ** ssdummy;
 	const char * savepos;

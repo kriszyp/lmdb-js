@@ -68,7 +68,7 @@ Salt;
 
 typedef struct hash_t
 {
-	char           *name;
+	const char     *name;
 	unsigned int    namesz;
 	char           *(*func) (const char *, Salt *);
 	unsigned char   takes_salt;
@@ -89,7 +89,7 @@ static int	auto_gen_pw = 0;
  * pw_encode() essentially base64 encodes a password and its salt
  */
 
-char *
+static char *
 pw_encode (unsigned char *passwd, Salt * salt, unsigned int len)
 {
 	int		salted = salt && salt->salt && salt->len;
@@ -123,7 +123,7 @@ pw_encode (unsigned char *passwd, Salt * salt, unsigned int len)
  * if you'd like to write a better salt generator, please, be my guest.
  */
 
-void
+static void
 make_salt (Salt * salt, unsigned int len)
 {
 
@@ -141,7 +141,7 @@ make_salt (Salt * salt, unsigned int len)
  * password generator
  */
 
-char *
+static char *
 gen_pass (unsigned int len)
 {
 	static const unsigned char autogen[] =
@@ -160,7 +160,7 @@ gen_pass (unsigned int len)
 }
 
 #ifdef SLAPD_CLEARTEXT
-char *
+static char *
 hash_none (const char *pw_in, Salt * salt)
 {
 	return (strdup (pw_in));
@@ -168,7 +168,7 @@ hash_none (const char *pw_in, Salt * salt)
 #endif
 
 #ifdef SLAPD_CRYPT
-char *
+static char *
 hash_crypt (const char *pw_in, Salt * salt)
 {
 	static const unsigned char crypt64[] =
@@ -198,7 +198,7 @@ hash_crypt (const char *pw_in, Salt * salt)
 }
 #endif
 
-char *
+static char *
 hash_md5 (const char *pw_in, Salt * salt)
 {
 	lutil_MD5_CTX	MD5context;
@@ -214,7 +214,7 @@ hash_md5 (const char *pw_in, Salt * salt)
 	return (pw_encode (MD5digest, salt, sizeof (MD5digest)));
 }
 
-char *
+static char *
 hash_sha1 (const char *pw_in, Salt * salt)
 {
 	lutil_SHA1_CTX	SHA1context;
@@ -230,7 +230,7 @@ hash_sha1 (const char *pw_in, Salt * salt)
 	return (pw_encode (SHA1digest, salt, sizeof (SHA1digest)));
 }
 
-static Hash hashes[] =
+static const Hash hashes[] =
 {
 #ifdef SLAPD_CLEARTEXT
 	{"none",  4, hash_none,  0, HASHTYPE_NONE,  HASHTYPE_NONE,  0},
@@ -245,7 +245,7 @@ static Hash hashes[] =
 	{NULL,    0, NULL,       0, HASHTYPE_NONE,  HASHTYPE_NONE,  0}
 };
 
-int
+static int
 modify_dn (LDAP * ld, char *targetdn, char *pwattr, char *oldpw,
 	   char *newpw, HashTypes htype, Salt * salt)
 {
@@ -325,8 +325,8 @@ modify_dn (LDAP * ld, char *targetdn, char *pwattr, char *oldpw,
 	return (ret);
 }
 
-void
-usage (char *s)
+static void
+usage(const char *s)
 {
 	fprintf (stderr, "Usage: %s [options] [filter]\n", s);
 	fprintf (stderr, "  -a attrib\tpassword attribute (default: " LDAP_PASSWD_ATTRIB ")\n");

@@ -556,8 +556,10 @@ diff_centroids(
     int		nentries
 )
 {
+#ifdef LDBM_ORDERED
 	Datum	okey, nkey;
 	Datum	olast, nlast;
+#endif
 	Datum	lastkey, key;
 	Datum	data;
 	LDAPMod	**mods;
@@ -573,10 +575,6 @@ diff_centroids(
 		fflush( stdout );
 	}
 
-	ldbm_datum_init( okey );
-	ldbm_datum_init( nkey );
-	ldbm_datum_init( olast );
-	ldbm_datum_init( nlast );
 	ldbm_datum_init( lastkey );
 	ldbm_datum_init( key );
 	ldbm_datum_init( data );
@@ -617,6 +615,11 @@ diff_centroids(
 	 * if the underlying database is ordered, we can do a more efficient
 	 * dual traversal, yielding O(N) performance.
 	 */
+
+	ldbm_datum_init( okey );
+	ldbm_datum_init( nkey );
+	ldbm_datum_init( olast );
+	ldbm_datum_init( nlast );
 
 	olast.dptr = NULL;
 	nlast.dptr = NULL;

@@ -187,8 +187,8 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_in *sin, int async)
 		tv.tv_sec = opt_tv->tv_sec;
 	}
 
-	osip_debug(ld, "ldap_connect_timeout: fd: %d tm: %d async: %d\n",
-			s, opt_tv ? tv.tv_sec : -1, async);
+	osip_debug(ld, "ldap_connect_timeout: fd: %d tm: %ld async: %d\n",
+			s, opt_tv ? tv.tv_sec : -1L, async);
 
 	if ( ldap_pvt_ndelay_on(ld, s) == -1 )
 		return ( -1 );

@@ -32,6 +32,9 @@
 #include "slap.h"
 #include "back-ldap.h"
 
+static void ldap_send_entry( Backend *be, Operation *op, struct ldapconn *lc,
+                             LDAPMessage *e, char **attrs, int attrsonly );
+
 int
 ldap_back_search(
     Backend	*be,
@@ -125,6 +128,7 @@ fail:		return( ldap_back_op_result(lc, op) );
 	return( 0 );
 }
 
+static void
 ldap_send_entry(
 	Backend *be,
 	Operation *op,

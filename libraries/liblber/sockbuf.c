@@ -1026,8 +1026,8 @@ dgram_read( Sockbuf *sb, void *buf, ber_len_t len )
    
    if ( sb->sb_debug ) {
       ber_log_printf( LDAP_DEBUG_ANY, sb->sb_debug,
-		      "dgram_read udp_read %d bytes\n",
-		      rc );
+		      "dgram_read udp_read %ld bytes\n",
+		      (long) rc );
       if ( rc > 0 )
 	ber_log_bprint( LDAP_DEBUG_PACKETS, sb->sb_debug,
 			buf, rc );

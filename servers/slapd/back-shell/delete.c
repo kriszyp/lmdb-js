@@ -36,7 +36,7 @@ shell_back_delete(
 
 	/* write out the request to the delete process */
 	fprintf( wfp, "DELETE\n" );
-	fprintf( wfp, "msgid: %ld\n", op->o_msgid );
+	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
 	fprintf( wfp, "dn: %s\n", dn );
 	fclose( wfp );

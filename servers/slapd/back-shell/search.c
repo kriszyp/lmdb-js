@@ -27,9 +27,7 @@ shell_back_search(
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
-	int			i, rc, bsize, len;
-	int			err;
-	char			*matched, *info;
+	int 			i;
 	FILE			*rfp, *wfp;
 
 	if ( si->si_search == NULL ) {
@@ -47,7 +45,7 @@ shell_back_search(
 
 	/* write out the request to the search process */
 	fprintf( wfp, "SEARCH\n" );
-	fprintf( wfp, "msgid: %ld\n", op->o_msgid );
+	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
 	fprintf( wfp, "base: %s\n", base );
 	fprintf( wfp, "scope: %d\n", scope );

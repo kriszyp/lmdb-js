@@ -91,6 +91,7 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 	return( lc );
 }
 
+void
 ldap_back_dobind(struct ldapconn *lc, Operation *op)
 {
 	if (lc->bound)
@@ -103,6 +104,7 @@ ldap_back_dobind(struct ldapconn *lc, Operation *op)
 		lc->bound = 1;
 }
 
+int
 ldap_back_op_result(struct ldapconn *lc, Operation *op)
 {
 	int err;

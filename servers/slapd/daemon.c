@@ -59,7 +59,6 @@ static
 volatile sig_atomic_t slapd_shutdown = 0;
 
 static ldap_pvt_thread_t	listener_tid;
-static volatile sig_atomic_t slapd_listener = 0;
 
 static struct slap_daemon {
 	ldap_pvt_thread_mutex_t	sd_mutex;
@@ -170,7 +169,7 @@ static void slapd_close(ber_socket_t s) {
 }
 
 
-Listener *
+static Listener *
 open_listener(
 	const char* url,
 	int port,
@@ -447,7 +446,7 @@ slapd_daemon_task(
 			int err = sock_errno();
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: listen(%s, 5) failed errno=%d (%s)\n",
-					(long) slap_listeners[l]->sl_url, err,
+					slap_listeners[l]->sl_url, err,
 					sock_errstr(err) );
 			return( (void*)-1 );
 		}
@@ -742,7 +741,7 @@ slapd_daemon_task(
 		}
 #else
 		for ( i = 0; i < nfds; i++ ) {
-			int	a, r, w;
+			int	r, w;
 			int	is_listener = 0;
 
 			for ( l = 0; slap_listeners[l] != NULL; l++ ) {

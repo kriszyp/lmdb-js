@@ -340,7 +340,7 @@ try_read1msg(
 	if (( lr = ldap_find_request_by_msgid( ld, id )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "no request for response with msgid %ld (tossing)\n",
-		    id, 0, 0 );
+		    (long) id, 0, 0 );
 		ber_free( ber, 1 );
 		return( -2 );	/* continue looking */
 	}
@@ -352,10 +352,10 @@ try_read1msg(
 		return( -1 );
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_read: %s msgid %ld, original id %d\n",
+	Debug( LDAP_DEBUG_TRACE, "ldap_read: %s msgid %ld, original id %ld\n",
 	    ( tag == LDAP_RES_SEARCH_ENTRY ) ? "entry" : 
 		( tag == LDAP_RES_SEARCH_REFERENCE ) ? "reference" : "result",
-		id, lr->lr_origid );
+		(long) id, (long) lr->lr_origid );
 
 	id = lr->lr_origid;
 	refer_cnt = 0;
@@ -428,7 +428,7 @@ Debug( LDAP_DEBUG_TRACE,
 				id = lr->lr_msgid;
 				tag = lr->lr_res_msgtype;
 				Debug( LDAP_DEBUG_ANY, "request %ld done\n",
-				    id, 0, 0 );
+				    (long) id, 0, 0 );
 Debug( LDAP_DEBUG_TRACE,
 "res_errno: %d, res_error: <%s>, res_matched: <%s>\n",
 lr->lr_res_errno, lr->lr_res_error ? lr->lr_res_error : "",
@@ -510,8 +510,8 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 		return( -2 );	/* continue looking */
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "adding response id %d type %d:\n",
-	    new->lm_msgid, new->lm_msgtype, 0 );
+	Debug( LDAP_DEBUG_TRACE, "adding response id %ld type %ld:\n",
+	    (long) new->lm_msgid, (long) new->lm_msgtype, 0 );
 
 	/* part of a search response - add to end of list of entries */
 	for ( tmp = l; tmp->lm_chain != NULL &&

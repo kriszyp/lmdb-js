@@ -38,7 +38,7 @@ shell_back_modify(
 
 	/* write out the request to the modify process */
 	fprintf( wfp, "MODIFY\n" );
-	fprintf( wfp, "msgid: %ld\n", op->o_msgid );
+	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
 	fprintf( wfp, "dn: %s\n", dn );
 	for ( ; ml != NULL; ml = ml->ml_next ) {

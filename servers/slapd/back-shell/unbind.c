@@ -35,7 +35,7 @@ shell_back_unbind(
 
 	/* write out the request to the unbind process */
 	fprintf( wfp, "UNBIND\n" );
-	fprintf( wfp, "msgid: %ld\n", op->o_msgid );
+	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
 	fprintf( wfp, "dn: %s\n", (conn->c_dn ? conn->c_dn : "") );
 	fclose( wfp );

@@ -37,7 +37,7 @@ shell_back_compare(
 
 	/* write out the request to the compare process */
 	fprintf( wfp, "COMPARE\n" );
-	fprintf( wfp, "msgid: %ld\n", op->o_msgid );
+	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
 	fprintf( wfp, "dn: %s\n", dn );
 	fprintf( wfp, "%s: %s\n", ava->ava_type, ava->ava_value.bv_val );

@@ -89,11 +89,7 @@ main( int argc, char **argv )
 			scount = 0; ssize = 0;
 			if ( (bvals = ldap_get_values_len( ld, e, attrs[i] )) != NULL ) {
 				for ( j = 0; bvals[j] != NULL; j++ ) {
-					Datum	key, data;
 					char	*w;
-
-					ldbm_datum_init( key );
-					ldbm_datum_init( data );
 
 					/* update value count */
 					vcount++;

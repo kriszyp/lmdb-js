@@ -43,7 +43,7 @@ shell_back_bind(
 
 	/* write out the request to the bind process */
 	fprintf( wfp, "BIND\n" );
-	fprintf( wfp, "msgid: %ld\n", op->o_msgid );
+	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
 	fprintf( wfp, "dn: %s\n", dn );
 	fprintf( wfp, "method: %d\n", method );
