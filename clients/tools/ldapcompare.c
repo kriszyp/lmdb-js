@@ -241,18 +241,11 @@ static int docompare(
 	rc = ldap_compare_ext_s( ld, dn, attr, bvalue,
 		sctrls, cctrls );
 
-	if ( rc == -1 ) {
-		ldap_perror( ld, "ldap_result" );
-		return( rc );
-	}
-
 	/* if we were told to be quiet, use the return value. */
 	if ( !quiet ) {
 		if ( rc == LDAP_COMPARE_TRUE ) {
-			rc = 0;
 			printf(_("TRUE\n"));
 		} else if ( rc == LDAP_COMPARE_FALSE ) {
-			rc = 0;
 			printf(_("FALSE\n"));
 		} else {
 			ldap_perror( ld, "ldap_compare" );
