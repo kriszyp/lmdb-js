@@ -1470,6 +1470,16 @@ utcTimeValidate(
 }
 
 static int
+generalizedTimeValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int parts[9];
+
+	return check_time_syntax(in, 0, parts);
+}
+
+static int
 generalizedTimeNormalize(
 	Syntax *syntax,
 	struct berval *val,
@@ -1501,16 +1511,6 @@ generalizedTimeNormalize(
 	*normalized = out;
 
 	return LDAP_SUCCESS;
-}
-
-static int
-generalizedTimeValidate(
-	Syntax *syntax,
-	struct berval *in )
-{
-	int parts[9];
-
-	return check_time_syntax(in, 0, parts);
 }
 
 struct syntax_defs_rec {
