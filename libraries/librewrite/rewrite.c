@@ -25,6 +25,7 @@
 #include <portable.h>
 
 #include <ac/stdlib.h>
+#include <ac/string.h>
 #include <ac/syslog.h>
 #include <ac/regex.h>
 #include <ac/socket.h>

@@ -24,7 +24,6 @@
 
 #include <portable.h>
 
-#include <ac/string.h>
 #include <pwd.h>
 
 #include "rewrite-int.h"

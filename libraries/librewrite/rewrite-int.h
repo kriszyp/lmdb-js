@@ -29,6 +29,7 @@
  * These are required by every file of the library, so they're included here
  */
 #include <ac/stdlib.h>
+#include <ac/string.h>
 #include <ac/syslog.h>
 #include <ac/regex.h>
 #include <ac/socket.h>
