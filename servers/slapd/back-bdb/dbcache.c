@@ -68,6 +68,8 @@ bdb_db_cache(
 		return rc;
 	}
 
+	rc = db->bdi_db->set_pagesize( db->bdi_db, BDB_PAGESIZE );
+
 	file = ch_malloc( strlen( name ) + sizeof(BDB_SUFFIX) );
 	sprintf( file, "%s" BDB_SUFFIX, name );
 

@@ -102,14 +102,26 @@ static void *lock_detect_task( void *arg )
 int
 bdb_bt_compare(
 	DB *db, 
-	DBT *usrkey,
-	DBT *curkey
+	const DBT *usrkey,
+	const DBT *curkey
 )
 {
-	ID usr, cur;
-	memcpy(&usr, usrkey->data, sizeof(ID));
-	memcpy(&cur, curkey->data, sizeof(ID));
-	return usr - cur;
+	unsigned char *u, *c;
+	int i;
+
+	u = usrkey->data;
+	c = curkey->data;
+
+#ifdef WORDS_BIGENDIAN
+	for( i = 0; i < sizeof(ID); i++)
+#else
+	for( i = sizeof(ID)-1; i >= 0; i--)
+#endif
+	{
+		if( u[i] - c[i] )
+			return u[i] - c[i];
+	}
+	return 0;
 }
 
 static int
@@ -232,9 +244,9 @@ bdb_db_open( BackendDB *be )
 		if( i == BDB_ID2ENTRY ) {
 			rc = db->bdi_db->set_bt_compare( db->bdi_db,
 				bdb_bt_compare );
-			rc = db->bdi_db->set_pagesize( db->bdi_db,
-				BDB_ID2ENTRY_PAGESIZE );
 		}
+		rc = db->bdi_db->set_pagesize( db->bdi_db, BDB_PAGESIZE );
+
 		rc = db->bdi_db->open( db->bdi_db,
 			bdbi_databases[i].file,
 		/*	bdbi_databases[i].name, */ NULL,
@@ -283,17 +295,6 @@ bdb_db_close( BackendDB *be )
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 
-	/* force a checkpoint */
-	if( bdb->bi_txn ) {
-		rc = txn_checkpoint( bdb->bi_dbenv, 0, 0, DB_FORCE );
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",
-				db_strerror(rc), rc, 0 );
-			return rc;
-		}
-	}
-
 	while( bdb->bi_ndatabases-- ) {
 		rc = bdb->bi_databases[bdb->bi_ndatabases]->bdi_db->close(
 			bdb->bi_databases[bdb->bi_ndatabases]->bdi_db, 0 );
@@ -307,6 +308,16 @@ bdb_db_destroy( BackendDB *be )
 {
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+
+	/* force a checkpoint */
+	if( bdb->bi_txn ) {
+		rc = txn_checkpoint( bdb->bi_dbenv, 0, 0, DB_FORCE );
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
+		}
+	}
 
 	/* close db environment */
 	if( bdb->bi_dbenv ) {
