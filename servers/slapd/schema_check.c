@@ -48,7 +48,7 @@ entry_schema_check(
 	int subentry = is_entry_subentry( e );
 	int collectiveSubentry = 0;
 
-	if( subentry) collectiveSubentry = is_entry_collectiveAttributes( e );
+	if( subentry) collectiveSubentry = is_entry_collectiveAttributeSubentry( e );
 
 	*text = textbuf;
 
@@ -70,7 +70,7 @@ entry_schema_check(
 
 		if( !collectiveSubentry && is_at_collective( a->a_desc->ad_type ) ) {
 			snprintf( textbuf, textlen,
-				"'%s' can only appear in collectiveAttributes subentry",
+				"'%s' can only appear in collectiveAttributeSubentry",
 				type );
 			return LDAP_OBJECT_CLASS_VIOLATION;
 		}

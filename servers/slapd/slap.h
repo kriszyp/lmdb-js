@@ -490,7 +490,7 @@ typedef struct slap_object_class {
 #define	SLAP_OC_REFERRAL	0x02
 #define	SLAP_OC_SUBENTRY	0x04
 #define	SLAP_OC_DYNAMICOBJECT	0x08
-#define	SLAP_OC_COLLECTIVEATTRIBUTES	0x10
+#define	SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY	0x10
 #define	SLAP_OC__MASK		0x1F
 #define	SLAP_OC__END		0x20
 
@@ -551,7 +551,7 @@ struct slap_internal_schema {
 	ObjectClass *si_oc_subentry;
 	ObjectClass *si_oc_subschema;
 	ObjectClass *si_oc_monitor;
-	ObjectClass *si_oc_collectiveAttributes;
+	ObjectClass *si_oc_collectiveAttributeSubentry;
 	ObjectClass *si_oc_dynamicObject;
 
 	/* objectClass attribute descriptions */
@@ -565,7 +565,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_modifyTimestamp;
 	AttributeDescription *si_ad_hasSubordinates;
 	AttributeDescription *si_ad_subschemaSubentry;
-	AttributeDescription *si_ad_collectiveSubentry;
+	AttributeDescription *si_ad_collectiveSubentries;
 	AttributeDescription *si_ad_collectiveExclusions;
 	AttributeDescription *si_ad_entryUUID;
 	AttributeDescription *si_ad_entryCSN;

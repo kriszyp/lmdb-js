@@ -172,11 +172,11 @@ static struct slap_schema_oc_map {
 		"STRUCTURAL "
 		"MUST cn )",
 		0, 0, offsetof(struct slap_internal_schema, si_oc_monitor) },
-	{ "collectiveAttributes", "( 2.5.20.2 "
-			"NAME 'collectiveAttributes' "
+	{ "collectiveAttributeSubentry", "( 2.5.20.2 "
+			"NAME 'collectiveAttributeSubentry' "
 			"AUXILIARY )",
-		subentryObjectClass, SLAP_OC_COLLECTIVEATTRIBUTES,
-		offsetof(struct slap_internal_schema, si_oc_collectiveAttributes) },
+		subentryObjectClass, SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY,
+		offsetof(struct slap_internal_schema, si_oc_collectiveAttributeSubentry) },
 	{ "dynamicObject", "( 1.3.6.1.4.1.1466.101.119.2 "
 			"NAME 'dynamicObject' "
 			"DESC 'RFC2589: Dynamic Object' "
@@ -263,13 +263,13 @@ static struct slap_schema_ad_map {
 			"SINGLE-VALUE USAGE directoryOperation )",
 		NULL, 0, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_subschemaSubentry) },
-	{ "collectiveAttributeSubentry", "( 2.5.18.12 "
-			"NAME 'collectiveAttributeSubentry' "
+	{ "collectiveAttributeSubentries", "( 2.5.18.12 "
+			"NAME 'collectiveAttributeSubentries' "
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
 			"USAGE directoryOperation NO-USER-MODIFICATION )",
 		NULL, 0, NULL, NULL, NULL,
-		offsetof(struct slap_internal_schema, si_ad_collectiveSubentry) },
+		offsetof(struct slap_internal_schema, si_ad_collectiveSubentries) },
 	{ "collectiveExclusions", "( 2.5.18.7 NAME 'collectiveExclusions' "
 			"EQUALITY objectIdentifierMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 "

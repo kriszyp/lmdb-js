@@ -638,9 +638,9 @@ LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
 #define is_entry_subentry(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) ? ((e)->e_ocflags & SLAP_OC_SUBENTRY) : \
 	is_entry_objectclass((e), slap_schema.si_oc_subentry, 1))
-#define is_entry_collectiveAttributes(e)	\
-	(((e)->e_ocflags & SLAP_OC__END) ? ((e)->e_ocflags & SLAP_OC_COLLECTIVEATTRIBUTES) : \
-	is_entry_objectclass((e), slap_schema.si_oc_collectiveAttributes, 1))
+#define is_entry_collectiveAttributeSubentry(e)	\
+	(((e)->e_ocflags & SLAP_OC__END) ? ((e)->e_ocflags & SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY) : \
+	is_entry_objectclass((e), slap_schema.si_oc_collectiveAttributeSubentry, 1))
 #define is_entry_dynamicObject(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) ? ((e)->e_ocflags & SLAP_OC_DYNAMICOBJECT) : \
 	is_entry_objectclass((e), slap_schema.si_oc_dynamicObject, 1))
