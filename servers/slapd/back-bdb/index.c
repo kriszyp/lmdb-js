@@ -24,9 +24,6 @@ static slap_mask_t index_mask(
 	AttributeType *at;
 	slap_mask_t mask = 0;
 
-	/* we do not support indexing of binary attributes */
-	if( slap_ad_is_binary( desc ) ) return 0;
-
 	bdb_attr_mask( be->be_private, desc->ad_cname.bv_val, &mask );
 
 	if( mask ) {
@@ -339,11 +336,6 @@ int bdb_index_values(
 	int rc;
 	char *dbname = NULL;
 	slap_mask_t mask;
-
-	if( slap_ad_is_binary( desc ) ) {
-		/* binary attributes have no index capabilities */
-		return LDAP_SUCCESS;
-	}
 
 	rc = index_at_values( be, txn,
 		desc->ad_type, &desc->ad_lang,
