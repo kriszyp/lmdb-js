@@ -24,6 +24,7 @@
 #include <ldap_pvt_thread.h>
 #include <slap.h>
 #include <slapi.h>
+#include <lutil.h>
 
 /*
  * Note: if ltdl.h is not available, slapi should not be compiled
@@ -778,13 +779,13 @@ slapi_int_plugin_unparse(
 		slapi_pblock_get( pp, SLAPI_X_CONFIG_ARGV, &argv );
 		idx.bv_len = sprintf( idx.bv_val, "{%d}", i );
 		bv.bv_len = idx.bv_len;
-		for (j=0; argv[j]; j++) {
+		for (j=1; argv[j]; j++) {
 			bv.bv_len += strlen(argv[j]);
 			if ( j ) bv.bv_len++;
 		}
 		bv.bv_val = ch_malloc( bv.bv_len + 1 );
 		ptr = lutil_strcopy( bv.bv_val, ibuf );
-		for (j=0; argv[j]; j++) {
+		for (j=1; argv[j]; j++) {
 			if ( j ) *ptr++ = ' ';
 			ptr = lutil_strcopy( ptr, argv[j] );
 		}
