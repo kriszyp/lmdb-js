@@ -563,12 +563,12 @@ matching the entry's distinguished name:
 
 >	dn=<regular expression>
 
-Note: The DN pattern specified should be "normalized",
-meaning that there should be no extra spaces, and commas
-should be used to separate components. An example
-normalized DN is "cn=Babs Jensen,dc=example,dc=com".
-An example of a non-normalized DN is
-"cn=Babs Jensen,dc=example,dc=com".
+Note: The DN pattern specified should be "normalized" to the RFC2253
+restricted DN form.  In particular, there should be no extra spaces
+and commas should be used to separate components.  An example
+normalized DN is "{{EX:cn=Babs Jensen,dc=example,dc=com}}".  An
+example of a non-normalized DN is "{{EX:cn=Babs Jensen; dc=example;
+dc=com}}".
 
 Or, entries may be selected by a filter matching some
 attribute(s) in the entry:
