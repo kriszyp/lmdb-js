@@ -444,10 +444,6 @@ do_syncrep1(
 			ber_bvarray_free( si->si_syncCookie.octet_str );
 			si->si_syncCookie.octet_str = NULL;
 			ber_bvarray_free_x( cookie, op->o_tmpmemctx );
-			if ( sc->sid != -1 ) {
-				/* command line cookie wins */
-				si->si_syncCookie.sid = sc->sid;
-			}
 			if ( sc->ctxcsn != NULL ) {
 				/* command line cookie wins */
 				if ( si->si_syncCookie.ctxcsn ) {
@@ -465,7 +461,7 @@ do_syncrep1(
 			sc = NULL;
 			slap_compose_sync_cookie( NULL, &newcookie,
 					&si->si_syncCookie.ctxcsn[0],
-					si->si_syncCookie.sid, si->si_syncCookie.rid );
+					si->si_syncCookie.rid );
 			ber_bvarray_add( &si->si_syncCookie.octet_str, &newcookie );
 		}
 
@@ -527,8 +523,8 @@ do_syncrep2(
 
 	int		syncstate;
 	struct berval	syncUUID = BER_BVNULL;
-	struct sync_cookie	syncCookie = { NULL, -1, NULL };
-	struct sync_cookie	syncCookie_req = { NULL, -1, NULL };
+	struct sync_cookie	syncCookie = { NULL };
+	struct sync_cookie	syncCookie_req = { NULL };
 	struct berval		cookie = BER_BVNULL;
 
 	int	rc, err, i;

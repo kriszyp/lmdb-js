@@ -472,7 +472,7 @@ done:;
 		}
 	}
 
-	slap_compose_sync_cookie( NULL, &mc, &maxcsn, -1, -1 );
+	slap_compose_sync_cookie( NULL, &mc, &maxcsn, -1 );
 
 	if ( SLAP_LASTMOD(be) && replica_promotion ) {
 		if ( provider_subentry || update_ctxcsn == SLAP_TOOL_CTXCSN_BATCH ||

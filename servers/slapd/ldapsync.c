@@ -39,45 +39,24 @@ slap_compose_sync_cookie(
 	Operation *op,
 	struct berval *cookie,
 	struct berval *csn,
-	int sid,
 	int rid )
 {
 	char cookiestr[ LDAP_LUTIL_CSNSTR_BUFSIZE + 20 ];
 
 	if ( csn->bv_val == NULL ) {
-		if ( sid == -1 ) {
-			if ( rid == -1 ) {
-				cookiestr[0] = '\0';
-			} else {
-				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
-						"rid=%03d", rid );
-			}
+		if ( rid == -1 ) {
+			cookiestr[0] = '\0';
 		} else {
-			if ( rid == -1 ) {
-				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
-						"sid=%03d", sid );
-			} else {
-				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
-						"sid=%03d,rid=%03d", sid, rid );
-			}
+			snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+					"rid=%03d", rid );
 		}
 	} else {
-		if ( sid == -1 ) {
-			if ( rid == -1 ) {
-				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
-						"csn=%s", csn->bv_val );
-			} else {
-				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
-						"csn=%s,rid=%03d", csn->bv_val, rid );
-			}
+		if ( rid == -1 ) {
+			snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+					"csn=%s", csn->bv_val );
 		} else {
-			if ( rid == -1 ) {
-				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
-						"csn=%s,sid=%03d", csn->bv_val, sid );
-			} else {
-				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
-						"csn=%s,sid=%03d,rid=%03d", csn->bv_val, sid, rid );
-			}
+			snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+					"csn=%s,rid=%03d", csn->bv_val, rid );
 		}
 	}
 	ber_str2bv( cookiestr, strlen(cookiestr), 1, cookie );
@@ -118,8 +97,6 @@ slap_parse_sync_cookie(
 	char *csn_str;
 	int csn_str_len;
 	int valid = 0;
-	char *sid_ptr;
-	char *sid_str;
 	char *rid_ptr;
 	char *rid_str;
 	char *cval;
@@ -157,18 +134,6 @@ slap_parse_sync_cookie(
 		ber_bvarray_add( &cookie->ctxcsn, &ctxcsn );
 	} else {
 		cookie->ctxcsn = NULL;
-	}
-
-	if (( sid_ptr = strstr( cookie->octet_str->bv_val, "sid=" )) != NULL ) {
-		sid_str = SLAP_STRNDUP( sid_ptr,
-							SLAP_SYNC_SID_SIZE + sizeof("sid=") - 1 );
-		if ( (cval = strchr( sid_str, ',' )) != NULL ) {
-			*cval = '\0';
-		}
-		cookie->sid = atoi( sid_str + sizeof("sid=") - 1 );
-		ch_free( sid_str );
-	} else {
-		cookie->sid = -1;
 	}
 
 	if (( rid_ptr = strstr( cookie->octet_str->bv_val, "rid=" )) != NULL ) {
@@ -238,7 +203,6 @@ slap_dup_sync_cookie(
 				ch_calloc( 1, sizeof( struct sync_cookie ));
 	}
 
-	new->sid = src->sid;
 	new->rid = src->rid;
 
 	if ( src->ctxcsn ) {

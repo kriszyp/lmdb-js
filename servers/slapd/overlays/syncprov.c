@@ -56,7 +56,6 @@ typedef struct syncops {
 	struct berval	s_base;		/* ndn of search base */
 	ID		s_eid;		/* entryID of search base */
 	Operation	*s_op;		/* search op */
-	int		s_sid;
 	int		s_rid;
 	struct berval s_filterstr;
 	int		s_flags;	/* search status */
@@ -101,8 +100,6 @@ typedef struct slog_entry {
 } slog_entry;
 
 typedef struct sessionlog {
-	struct sessionlog *sl_next;
-	int		sl_sid;
 	struct berval	sl_mincsn;
 	int		sl_num;
 	int		sl_size;
@@ -771,8 +768,7 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry *e, int mode
 	}
 
 	ctrls[1] = NULL;
-	slap_compose_sync_cookie( op, &cookie, &opc->sctxcsn,
-		so->s_sid, so->s_rid );
+	slap_compose_sync_cookie( op, &cookie, &opc->sctxcsn, so->s_rid );
 
 	e_uuid.e_attrs = &a_uuid;
 	a_uuid.a_desc = slap_schema.si_ad_entryUUID;
@@ -1097,7 +1093,7 @@ syncprov_add_slog( Operation *op, struct berval *csn )
 	sessionlog *sl;
 	slog_entry *se;
 
-	for ( sl = si->si_logs; sl; sl=sl->sl_next ) {
+	for ( sl = si->si_logs; sl; ) {
 		/* Allocate a record. UUIDs are not NUL-terminated. */
 		se = ch_malloc( sizeof( slog_entry ) + opc->suuid.bv_len + 
 			csn->bv_len + 1 );
@@ -1626,7 +1622,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 
 		slap_compose_sync_cookie( op, &cookie,
 			&op->ors_filter->f_and->f_ava->aa_value,
-			srs->sr_state.sid, srs->sr_state.rid );
+			srs->sr_state.rid );
 
 		/* Is this a regular refresh? */
 		if ( !ss->ss_so ) {
@@ -1746,7 +1742,6 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		sop = ch_malloc( sizeof( syncops ));
 		*sop = so;
 		ldap_pvt_thread_mutex_init( &sop->s_mutex );
-		sop->s_sid = srs->sr_state.sid;
 		sop->s_rid = srs->sr_state.rid;
 		sop->s_inuse = 1;
 
@@ -1788,8 +1783,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 			goto shortcut;
 		}
 		/* Do we have a sessionlog for this search? */
-		for ( sl=si->si_logs; sl; sl=sl->sl_next )
-			if ( sl->sl_sid == srs->sr_state.sid ) break;
+		sl=si->si_logs;
 		if ( sl ) {
 			ldap_pvt_thread_mutex_lock( &sl->sl_mutex );
 			if ( ber_bvcmp( srs->sr_state.ctxcsn, &sl->sl_mincsn ) >= 0 ) {
@@ -1947,44 +1941,30 @@ syncprov_db_config(
 
 	} else if ( strcasecmp( argv[0], "syncprov-sessionlog" ) == 0 ) {
 		sessionlog *sl;
-		int sid, size;
-		if ( argc != 3 ) {
+		int size;
+		if ( argc != 2 ) {
 			fprintf( stderr, "%s: line %d: wrong number of arguments in "
-				"\"syncprov-sessionlog <sid> <size>\"\n", fname, lineno );
+				"\"syncprov-sessionlog <size>\"\n", fname, lineno );
 			return -1;
 		}
-		sid = atoi( argv[1] );
-		if ( sid < 0 || sid > 999 ) {
-			fprintf( stderr,
-				"%s: line %d: session log id %d is out of range [0..999]\n",
-				fname, lineno, sid );
-			return -1;
-		}
-		size = atoi( argv[2] );
+		size = atoi( argv[1] );
 		if ( size < 0 ) {
 			fprintf( stderr,
 				"%s: line %d: session log size %d is negative\n",
 				fname, lineno, size );
 			return -1;
 		}
-		for ( sl = si->si_logs; sl; sl=sl->sl_next ) {
-			if ( sl->sl_sid == sid ) {
-				sl->sl_size = size;
-				break;
-			}
-		}
+		sl = si->si_logs;
 		if ( !sl ) {
 			sl = ch_malloc( sizeof( sessionlog ) + LDAP_LUTIL_CSNSTR_BUFSIZE );
 			sl->sl_mincsn.bv_val = (char *)(sl+1);
 			sl->sl_mincsn.bv_len = 0;
-			sl->sl_sid = sid;
-			sl->sl_size = size;
 			sl->sl_num = 0;
 			sl->sl_head = sl->sl_tail = NULL;
-			sl->sl_next = si->si_logs;
 			ldap_pvt_thread_mutex_init( &sl->sl_mutex );
 			si->si_logs = sl;
 		}
+		sl->sl_size = size;
 		return 0;
 	}
 

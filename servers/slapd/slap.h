@@ -1465,7 +1465,6 @@ struct nonpresent_entry {
 
 struct sync_cookie {
 	struct berval *ctxcsn;
-	long sid;
 	struct berval *octet_str;
 	long rid;
 	LDAP_STAILQ_ENTRY(sync_cookie) sc_next;
