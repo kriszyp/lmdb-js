@@ -679,6 +679,61 @@ been written:
 .fi
 .LP
 with the advantage of saving one rewrite pass ...)
+.SH PROXY CACHE EXTENSION
+The proxy cache extension to 
+.B meta 
+backend allows caching of LDAP search requests (queries). For an incoming query, the
+proxy cache determines its corresponding \fBtemplate\fP. If the template was
+specified as cacheable using the \fBaddtemplate\fP directive and the request is
+contained in a cached request, it is answered from the proxy cache. Otherwise,
+the proxy cache obtains and caches results from target(s) specified by the
+\fBuri\fP directive. 
+.LP
+
+A template is defined by a filter string and an index identifying a set of
+attributes. The \fBtemplate string\fP for a query can be obtained by
+removing assertion values from the RFC 2254 representation of its search
+filter. A query belongs to a template if its template string and set of
+projected attributes correspond to a cacheable template. Examples of template strings are (mail=), (|(sn=)(cn=)), (&(sn=)(givenName=)).    
+
+.LP 
+The following cache specific directives can be used to configure the proxy
+cache: 
+.TP
+.B cacheparams <lo_thresh> <hi_thresh> <numattrsets> <max_entries> <cc_period> 
+The directive enables proxy caching in the \fBmeta\fP backend and sets general
+cache parameters. Cache replacement is invoked when the cache size crosses the 
+<hi_thresh> bytes and continues till the cache size is greater than <lo_thresh>
+bytes. <numattrsets> should be equal to the number of following \fBattrset\fP
+directives. Queries are cached only if they correspond to a cacheable template
+(specified by the \fBaddtemplate\fP directive) and the number of entries
+returned is less than <max_entries>. Consistency check is performed every
+<cc_period> duration (specified in secs). In each cycle queries with expired
+"time to live(\fBTTL\fP)" are removed. A sample cache configuration is: 
+.LP
+.RS
+cacheparams 	\fB10000 150000 1 50 100\fP
+.RE
+.TP
+.B attrset <index> <attrs...>
+Used to associate a set of attributes <attrs..> with an <index>. Each attribute
+set is associated with an integer from 0 to <numattrsets>-1. These indices are
+used by the \fBaddtemplate\fP directive to define cacheable templates. 
+
+.TP
+.B addtemplate <template_string> <attrset_index> <ttl> 
+Specifies a cacheable template and "time to live" (in sec) <ttl> of queries 
+belonging to the template. 
+
+.LP
+The following adds a template with filter string (&sn=)(givenName=)) and attributes mail, postaladdress, telephonenumber and a TTL of 1 hour. 
+.LP
+.RS
+.nf
+attrset	\fB0 mail postaladdress telephonenumber\fP
+addtemplate \fB(&(sn=)(givenName=)) 0 3600\fP
+.fi
+.RE
 .SH FILES
 .TP
 ETCDIR/slapd.conf
