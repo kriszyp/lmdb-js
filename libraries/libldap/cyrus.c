@@ -620,7 +620,7 @@ ldap_int_sasl_bind(
 	if ( (saslrc != SASL_OK) && (saslrc != SASL_CONTINUE) ) {
 		ld->ld_errno = sasl_err2ldap( saslrc );
 #if SASL_VERSION_MAJOR >= 2
-		ld->ld_error = sasl_errdetail( ctx );
+		ld->ld_error = (char *)sasl_errdetail( ctx );
 #endif
 		return ld->ld_errno;
 	}
@@ -716,7 +716,7 @@ ldap_int_sasl_bind(
 		if ( (saslrc != SASL_OK) && (saslrc != SASL_CONTINUE) ) {
 			ld->ld_errno = sasl_err2ldap( saslrc );
 #if SASL_VERSION_MAJOR >= 2
-			ld->ld_error = sasl_errdetail( ctx );
+			ld->ld_error = (char *)sasl_errdetail( ctx );
 #endif
 			return ld->ld_errno;
 		}
@@ -728,7 +728,7 @@ ldap_int_sasl_bind(
 
 	if ( saslrc != SASL_OK ) {
 #if SASL_VERSION_MAJOR >= 2
-		ld->ld_error = sasl_errdetail( ctx );
+		ld->ld_error = (char *)sasl_errdetail( ctx );
 #endif
 		return ld->ld_errno = sasl_err2ldap( saslrc );
 	}
