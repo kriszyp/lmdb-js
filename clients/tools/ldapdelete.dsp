@@ -55,7 +55,7 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 oldap32.lib olber32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\libraries\Debug"
+# ADD BASE LINK32 oldap32.lib olber32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 libsasl.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\SDebug"
 
 !ELSEIF  "$(CFG)" == "ldapdelete - Win32 Single Release"
@@ -80,8 +80,8 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 oldap32.lib olber32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\libraries\Release"
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib sasl.lib libsasl.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"SRelease/ldapdelete.exe" /libpath:"..\..\SRelease"
+# ADD BASE LINK32 oldap32.lib olber32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /machine:I386
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib sasl.lib libsasl.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\SRelease"
 
 !ELSEIF  "$(CFG)" == "ldapdelete - Win32 Debug"
 
@@ -105,7 +105,7 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\libraries\Debug"
+# ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 libsasl.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\Debug"
 
 !ELSEIF  "$(CFG)" == "ldapdelete - Win32 Release"
@@ -130,8 +130,8 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapdelete.exe" /libpath:"..\..\libraries\Release"
-# ADD LINK32 sasl.lib libsasl.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapdelete.exe" /libpath:"..\..\Release"
+# ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386
+# ADD LINK32 sasl.lib libsasl.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\Release"
 
 !ENDIF 
 
@@ -148,6 +148,57 @@ SOURCE=.\common.c
 # Begin Source File
 
 SOURCE=.\ldapdelete.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\lddversion.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\build\version.h
+
+USERDEP__VERSI="common.c"	"ldapdelete.c"	"$(OUTDIR)\oldap32.lib"	"$(OUTDIR)\olber32.lib"	"$(OUTDIR)\olutil32.lib"
+InputDir=..\..\build
+InputPath=..\..\build\version.h
+
+!IF  "$(CFG)" == "ldapdelete - Win32 Single Debug"
+
+# Begin Custom Build
+
+"lddversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) lddversion.c ldapdelete /**/
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "ldapdelete - Win32 Single Release"
+
+# Begin Custom Build
+
+"lddversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) lddversion.c ldapdelete /**/
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "ldapdelete - Win32 Release"
+
+# Begin Custom Build
+
+"lddversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) lddversion.c ldapdelete /**/
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "ldapdelete - Win32 Debug"
+
+# Begin Custom Build
+
+"lddversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) lddversion.c ldapdelete /**/
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # End Target
 # End Project
