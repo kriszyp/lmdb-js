@@ -75,7 +75,7 @@
 
 #ifdef _WIN32
 	/* don't suck in all of the win32 api */
-#	define WIN32_LEAN_AND_MEAN
+#	define WIN32_LEAN_AND_MEAN 1
 #endif
 
 #ifndef __NEED_PROTOTYPES

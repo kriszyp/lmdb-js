@@ -1001,6 +1001,9 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
     	AC_MSG_CHECKING(for NT threads)
     	AC_MSG_RESULT(yes)
     	AC_DEFINE(HAVE_NT_THREADS,1,[if you have NT threads])
+
+		AC_DEFINE(HAVE_NT_SERVICE_MANAGER,1,[if you have NT Service Manager])
+		AC_DEFINE(HAVE_NT_EVENT_LOG,1,[if you have NT Event Log])
 	fi
 fi
 

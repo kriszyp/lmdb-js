@@ -664,6 +664,12 @@
 /* if you have NT threads */
 #undef HAVE_NT_THREADS
 
+/* if you have NT Service Manager */
+#undef HAVE_NT_SERVICE_MANAGER
+
+/* if you have NT Event Log */
+#undef HAVE_NT_EVENT_LOG
+
 /* define if pthreads API compatible with final spec */
 #undef HAVE_PTHREADS_FINAL
 
