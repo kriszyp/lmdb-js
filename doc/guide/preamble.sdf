@@ -50,7 +50,7 @@ FSF	 Free Software Foundation		http://www.fsf.org/
 
 !block products; data
 Name		Jump
-BerkeleyDB	http://www.sleepycat.org/
+BerkeleyDB	http://www.sleepycat.com/
 CVS		http://www.cyclic.com/
 Cyrus		http://asg.cmu.edu/cyrus/sasl/
 GNU		http://www.gnu.org/software/
