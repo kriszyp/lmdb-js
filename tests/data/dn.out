@@ -100,3 +100,65 @@ description: dc=example,dc=com#0'B // malformed UID?
 description: dc=example,dc=com#'0B // malformed UID?
 description: dc=example,dc=com '0'B // malformed UID?
 
+dn: cn=Must Succeed,ou=LDAPv3,dc=example,dc=com
+objectClass: groupOfNames
+cn: Must Succeed
+member: cn=Must Succeed,ou=LDAPv3,dc=example,dc=com
+member:
+member: uid=jsmith,dc=example,dc=net
+member: cn=J. Smith+ou=Sales,dc=example,dc=net
+member: cn=John Smith\2C III,dc=example,dc=net
+member: ou=Sales\3B Data\2BAlgorithms,dc=example,dc=net
+member:: Y249QmVmb3JlDUFmdGVyLGRjPWV4YW1wbGUsZGM9bmV0
+member: cn=\23John Smith\20,dc=example,dc=net
+member:: Y249THXEjWnEhw==
+seeAlso: cn=John Smith\2C III,dc=example,dc=net
+seeAlso: ou=Sales\3B Data\2BAlgorithms,dc=example,dc=net
+seeAlso: cn=\23John Smith\20,dc=example,dc=net
+description: "member" values contain specific DN forms;
+description: "seeAlso" values contain DN forms already defined as "member",
+description: but in a different string representation;
+description: the following "description" values contain the "member" and
+description: "seeAlso" DN string representations used above.
+description: ""
+description: UID=jsmith,DC=example,DC=net
+description: OU=Sales+CN=J. Smith,DC=example,DC=net
+description: CN=John Smith\, III,DC=example,DC=net
+description: CN=John Smith\2C III,DC=example,DC=net
+description: OU=Sales\; Data\+Algorithms,DC=example,DC=net
+description: OU=Sales\3B Data\2BAlgorithms,DC=example,DC=net
+description: CN=Before\0dAfter,DC=example,DC=net
+description: CN=\23John Smith\20,DC=example,DC=net
+description: CN=\#John Smith\ ,DC=example,DC=net
+description: CN=Lu\C4\8Di\C4\87
+
+dn: cn=Name and Optional UID,ou=Related Syntaxes,dc=example,dc=com
+objectClass: groupOfUniqueNames
+cn: Name and Optional UID
+uniqueMember: cn=Name and Optional UID,ou=Related Syntaxes,dc=example,dc=com
+uniqueMember: #'1'B
+uniqueMember: #'10'B
+uniqueMember: dc=example,dc=com#'1000'B
+uniqueMember: dc=example,dc=com#'0'B
+description: cn=Name and Optional UID,ou=Related Syntaxes,dc=example,dc=com //
+  only DN portion
+description: #'1'B // empty "" DN
+description: #'0010'B // empty "" DN with leading '0's
+description: dc=example,dc=com#'1000'B // with DN portion
+description: dc=example,dc=com#'0'B // with DN portion and just one '0'
+
+dn: cn=Name and Optional UID,ou=Related Syntaxes,dc=example,dc=com
+objectClass: groupOfUniqueNames
+cn: Name and Optional UID
+uniqueMember: cn=Name and Optional UID,ou=Related Syntaxes,dc=example,dc=com
+uniqueMember: #'1'B
+uniqueMember: #'10'B
+uniqueMember: dc=example,dc=com#'1000'B
+uniqueMember: dc=example,dc=com#'0'B
+description: cn=Name and Optional UID,ou=Related Syntaxes,dc=example,dc=com //
+  only DN portion
+description: #'1'B // empty "" DN
+description: #'0010'B // empty "" DN with leading '0's
+description: dc=example,dc=com#'1000'B // with DN portion
+description: dc=example,dc=com#'0'B // with DN portion and just one '0'
+
