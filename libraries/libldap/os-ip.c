@@ -338,7 +338,6 @@ char *
 ldap_host_connected_to( Sockbuf *sb )
 {
 	struct hostent		*hp;
-	char			*p;
 	socklen_t         	len;
 	struct sockaddr_in	sin;
 
