@@ -286,9 +286,6 @@ static void slap_sasl_rx_exp(
 static int slap_sasl_regexp( struct berval *in, struct berval *out )
 {
 	char *saslname = in->bv_val;
-#if 0
-	char *scope[] = { "base", "one", "sub" };
-#endif
 	SaslRegexp_t *reg;
 	int i;
 
