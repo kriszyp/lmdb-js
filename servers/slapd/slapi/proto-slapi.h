@@ -61,6 +61,10 @@ extern int slapi_entry_add_string(Slapi_Entry *e, const char *type, const char *
 extern int slapi_entry_delete_string(Slapi_Entry *e, const char *type, const char *value);
 extern int slapi_entry_first_attr( const Slapi_Entry *e, Slapi_Attr **attr );
 extern int slapi_entry_next_attr( const Slapi_Entry *e, Slapi_Attr *prevattr, Slapi_Attr **attr );
+extern int slapi_entry_schema_check( Slapi_PBlock *pb, Slapi_Entry *e );
+extern int slapi_entry_rdn_values_present( const Slapi_Entry *e );
+extern int slapi_entry_add_rdn_values( Slapi_Entry *e );
+
 extern char *slapi_entry_get_dn( Slapi_Entry *e );
 extern int slapi_x_entry_get_id( Slapi_Entry *e );
 extern void slapi_entry_set_dn( Slapi_Entry *e, char *dn );

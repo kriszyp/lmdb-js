@@ -4071,3 +4071,98 @@ char *slapi_dn_plus_rdn( const char *dn, const char *rdn )
 #endif /* LDAP_SLAPI */
 }
 
+int slapi_entry_schema_check( Slapi_PBlock *pb, Slapi_Entry *e )
+{
+#ifdef LDAP_SLAPI
+	Backend *be;
+	const char *text;
+	char textbuf[SLAP_TEXT_BUFLEN] = { '\0' };
+	size_t textlen = sizeof textbuf;
+	int rc;
+
+	if ( slapi_pblock_get( pb, SLAPI_BACKEND, (void **)&be ) != 0 )
+		return -1;
+
+	rc = entry_schema_check( be, e, NULL, &text, textbuf, textlen );
+
+	return ( rc == LDAP_SUCCESS ) ? 0 : 1;
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
+int slapi_entry_rdn_values_present( const Slapi_Entry *e )
+{
+#ifdef LDAP_SLAPI
+	LDAPDN dn;
+	int rc;
+	int i = 0, match = 0;
+	char *dn_str;
+
+	dn_str = slapi_entry_get_dn( (Slapi_Entry *) e );
+	rc = ldap_str2dn( dn_str, &dn, LDAP_DN_FORMAT_LDAPV3 );
+	if ( rc != LDAP_SUCCESS ) {
+		return 0;
+	}
+
+	if ( dn[0] != NULL ) {
+		LDAPRDN rdn = dn[0];
+
+		for ( i = 0; rdn[i] != NULL; i++ ) {
+			LDAPAVA *ava = &rdn[0][i];
+			Slapi_Attr *a = NULL;
+
+			if ( slapi_attr_entry_attr_find( e, ava->la_attr.bv_val, &a ) == 0 &&
+			     slapi_attr_value_find( a, &ava->la_value ) == 0 )
+				match++;
+		}
+	}
+
+	ldap_dnfree( dn );
+
+	return ( i == match );
+#else
+	return 0;
+#endif /* LDAP_SLAPI */
+}
+
+int slapi_entry_add_rdn_values( Slapi_Entry *e )
+{
+#ifdef LDAP_SLAPI
+	LDAPDN dn;
+	int i, rc;
+	char *dn_str;
+
+	dn_str = slapi_entry_get_dn( e );
+	rc = ldap_str2dn( dn_str, &dn, LDAP_DN_FORMAT_LDAPV3 );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	if ( dn[0] != NULL ) {
+		LDAPRDN rdn = dn[0];
+		struct berval *vals[2];
+
+		for ( i = 0; rdn[i] != NULL; i++ ) {
+			LDAPAVA *ava = &rdn[0][i];
+			Slapi_Attr *a = NULL;
+
+			if ( slapi_attr_entry_attr_find( e, ava->la_attr.bv_val, &a ) == 0 &&
+			     slapi_attr_value_find( a, &ava->la_value ) == 0 )
+				continue;
+
+			vals[0] = &ava->la_value;
+			vals[1] = NULL;
+
+			slapi_entry_attr_merge( e, ava->la_attr.bv_val, vals );
+		}
+	}
+
+	ldap_dnfree( dn );
+
+	return LDAP_SUCCESS;
+#else
+	return LDAP_OTHER;
+#endif /* LDAP_SLAPI */
+}
+
