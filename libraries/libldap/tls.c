@@ -862,7 +862,7 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 int
 ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 {
-	ldap_pvt_tls_init();
+	(void) ldap_pvt_tls_init();
 
 	/*
 	 * Fortunately, the lib uses blocking io...
