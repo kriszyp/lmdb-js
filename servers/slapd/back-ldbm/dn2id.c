@@ -177,6 +177,14 @@ dn2entry(
 		return( e );
 	}
 
+	if ( id != NOID ) {
+		Debug(LDAP_DEBUG_ANY,
+			"dn2entry_%s: no entry for valid id (%lu), dn \"%s\"\n",
+			rw ? "w" : "r", id, dn);
+		/* must have been deleted from underneath us */
+		/* treat as if NOID was found */
+	}
+
 	/* stop when we get to the suffix */
 	if ( be_issuffix( be, dn ) ) {
 		return( NULL );
