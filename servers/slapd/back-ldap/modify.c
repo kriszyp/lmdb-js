@@ -154,7 +154,8 @@ ldap_back_modify(
 	}
 	modv[i] = 0;
 
-	rc = ldap_modify_ext( lc->ld, mdn.bv_val, modv, op->o_ctrls, NULL, &msgid );
+	rs->sr_err = ldap_modify_ext( lc->ld, mdn.bv_val, modv,
+			op->o_ctrls, NULL, &msgid );
 
 cleanup:;
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
@@ -166,6 +167,6 @@ cleanup:;
 	ch_free( mods );
 	ch_free( modv );
 
-	return ldap_back_op_result( lc, op, rs, msgid, rc, 1 );
+	return ldap_back_op_result( lc, op, rs, msgid, 1 );
 }
 

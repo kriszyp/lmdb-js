@@ -113,9 +113,9 @@ ldap_back_bind(
 	}
 	lc->bound = 0;
 	/* method is always LDAP_AUTH_SIMPLE if we got here */
-	rc = ldap_sasl_bind(lc->ld, mdn.bv_val, LDAP_SASL_SIMPLE,
+	rs->sr_err = ldap_sasl_bind(lc->ld, mdn.bv_val, LDAP_SASL_SIMPLE,
 		&op->oq_bind.rb_cred, op->o_ctrls, NULL, &msgid);
-	rc = ldap_back_op_result( lc, op, rs, msgid, rc, 1 );
+	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
 	if (rc == LDAP_SUCCESS) {
 		lc->bound = 1;
 		if ( mdn.bv_val != op->o_req_dn.bv_val ) {
@@ -273,8 +273,10 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 		rs->sr_err = ldap_initialize(&ld, li->url);
 		
 		if (rs->sr_err != LDAP_SUCCESS) {
-			rs->sr_err = ldap_back_map_result(rs->sr_err);
-			rs->sr_text = "ldap_initialize() failed";
+			rs->sr_err = ldap_back_map_result(rs);
+			if (rs->sr_text == NULL) {
+				rs->sr_text = "ldap_initialize() failed";
+			}
 			send_ldap_result( op, rs );
 			return( NULL );
 		}
@@ -430,9 +432,9 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 
 	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
 	if ( !lc->bound ) {
-		rc = ldap_sasl_bind(lc->ld, lc->bound_dn.bv_val,
+		rs->sr_err = ldap_sasl_bind(lc->ld, lc->bound_dn.bv_val,
 			LDAP_SASL_SIMPLE, &lc->cred, NULL, NULL, &msgid);
-		rc = ldap_back_op_result( lc, op, rs, msgid, rc, 0 );
+		rc = ldap_back_op_result( lc, op, rs, msgid, 0 );
 		if (rc == LDAP_SUCCESS) {
 			lc->bound = 1;
 		}
@@ -460,9 +462,9 @@ ldap_back_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
 /* Map API errors to protocol errors... */
 
 int
-ldap_back_map_result(int err)
+ldap_back_map_result(SlapReply *rs)
 {
-	switch(err)
+	switch(rs->sr_err)
 	{
 	case LDAP_SERVER_DOWN:
 		return LDAP_UNAVAILABLE;
@@ -476,8 +478,10 @@ ldap_back_map_result(int err)
 	case LDAP_AUTH_UNKNOWN:
 		return LDAP_AUTH_METHOD_NOT_SUPPORTED;
 	case LDAP_FILTER_ERROR:
+		rs->sr_text = "Filter error";
 		return LDAP_OTHER;
 	case LDAP_USER_CANCELLED:
+		rs->sr_text = "User cancelled";
 		return LDAP_OTHER;
 	case LDAP_PARAM_ERROR:
 		return LDAP_PROTOCOL_ERROR;
@@ -492,41 +496,46 @@ ldap_back_map_result(int err)
 	case LDAP_NO_RESULTS_RETURNED:
 		return LDAP_NO_SUCH_OBJECT;
 	case LDAP_MORE_RESULTS_TO_RETURN:
+		rs->sr_text = "More results to return";
 		return LDAP_OTHER;
 	case LDAP_CLIENT_LOOP:
 	case LDAP_REFERRAL_LIMIT_EXCEEDED:
 		return LDAP_LOOP_DETECT;
 	default:
-		if LDAP_API_ERROR(err)
+		if LDAP_API_ERROR(rs->sr_err)
 			return LDAP_OTHER;
 		else
-			return err;
+			return rs->sr_err;
 	}
 }
 
 int
 ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
-	ber_int_t msgid, int err, int sendok)
+	ber_int_t msgid, int sendok)
 {
 	struct ldapinfo *li = (struct ldapinfo *)op->o_bd->be_private;
 	char *match = NULL;
 	LDAPMessage *res;
 	int rc;
+	char *text = NULL;
 
 	rs->sr_text = NULL;
 	rs->sr_matched = NULL;
 
-	if (err == LDAP_SUCCESS) {
+	if (rs->sr_err == LDAP_SUCCESS) {
 		if (ldap_result(lc->ld, msgid, 1, NULL, &res) == -1) {
-			ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER, &err);
+			ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER,
+					&rs->sr_err);
 		} else {
-			rc = ldap_parse_result(lc->ld, res, &err, &match,
-				(char **)&rs->sr_text, NULL, NULL, 1);
-			if (rc != LDAP_SUCCESS) err = rc;
+			rc = ldap_parse_result(lc->ld, res, &rs->sr_err, &match,
+				&text, NULL, NULL, 1);
+			rs->sr_text = text;
+			if (rc != LDAP_SUCCESS) rs->sr_err = rc;
 		}
 	}
-	if (err != LDAP_SUCCESS) {
-		err = ldap_back_map_result(err);
+
+	if (rs->sr_err != LDAP_SUCCESS) {
+		rs->sr_err = ldap_back_map_result(rs);
 
 		/* internal ops must not reply to client */
 		if ( op->o_conn && !op->o_do_not_cache ) {
@@ -552,17 +561,16 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 #endif
 		}
 	}
-	if (op->o_conn && (sendok || err != LDAP_SUCCESS)) {
-		rs->sr_err = err;
+	if (op->o_conn && (sendok || rs->sr_err != LDAP_SUCCESS)) {
 		send_ldap_result( op, rs );
 	}
 	if (rs->sr_matched != match) free((char *)rs->sr_matched);
 	rs->sr_matched = NULL;
 	if ( match ) ldap_memfree( match );
-	if ( rs->sr_text ) {
-		ldap_memfree( (char *)rs->sr_text );
-		rs->sr_text = NULL;
+	if ( text ) {
+		ldap_memfree( text );
 	}
-	return( (err==LDAP_SUCCESS) ? 0 : -1 );
+	rs->sr_text = NULL;
+	return( (rs->sr_err == LDAP_SUCCESS) ? 0 : -1 );
 }
 

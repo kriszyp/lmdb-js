@@ -112,12 +112,12 @@ ldap_back_compare(
 		}
 	}
 
-	rc = ldap_compare_ext( lc->ld, mdn.bv_val, mapped_oc.bv_val,
+	rs->sr_err = ldap_compare_ext( lc->ld, mdn.bv_val, mapped_oc.bv_val,
 		&mapped_at, op->o_ctrls, NULL, &msgid );
 
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
 	}
 	
-	return( ldap_back_op_result( lc, op, rs, msgid, rc, 1 ) );
+	return( ldap_back_op_result( lc, op, rs, msgid, 1 ) );
 }

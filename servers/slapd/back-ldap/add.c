@@ -174,7 +174,8 @@ ldap_back_add(
 	}
 	attrs[i] = NULL;
 
-	j = ldap_add_ext(lc->ld, mdn.bv_val, attrs, op->o_ctrls, NULL, &msgid);
+	rs->sr_err = ldap_add_ext(lc->ld, mdn.bv_val, attrs,
+			op->o_ctrls, NULL, &msgid);
 	for (--i; i>= 0; --i) {
 		ch_free(attrs[i]->mod_vals.modv_bvals);
 		ch_free(attrs[i]);
@@ -184,7 +185,7 @@ ldap_back_add(
 		free( mdn.bv_val );
 	}
 	
-	return( ldap_back_op_result( lc, op, rs, msgid, j, 1 ) );
+	return ldap_back_op_result( lc, op, rs, msgid, 1 ) != LDAP_SUCCESS;
 }
 
 #ifdef ENABLE_REWRITE

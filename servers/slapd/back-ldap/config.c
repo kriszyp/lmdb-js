@@ -462,7 +462,7 @@ ldap_back_exop_whoami(
 		}
 		ch_free(c.ldctl_value.bv_val);
 		if (rs->sr_err != LDAP_SUCCESS) {
-			rs->sr_err = ldap_back_map_result(rs->sr_err);
+			rs->sr_err = ldap_back_map_result(rs);
 		}
 	} else {
 	/* else just do the same as before */

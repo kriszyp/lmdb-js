@@ -93,9 +93,9 @@ struct ldapinfo {
 
 struct ldapconn *ldap_back_getconn(struct slap_op *op, struct slap_rep *rs);
 int ldap_back_dobind(struct ldapconn *lc, Operation *op, SlapReply *rs);
-int ldap_back_map_result(int err);
+int ldap_back_map_result(SlapReply *rs);
 int ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
-	ber_int_t msgid, int rc, int sendok);
+	ber_int_t msgid, int sendok);
 int	back_ldap_LTX_init_module(int argc, char *argv[]);
 
 void ldap_back_dn_massage(struct ldapinfo *li, struct berval *dn,

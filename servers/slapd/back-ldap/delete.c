@@ -95,11 +95,12 @@ ldap_back_delete(
 	ldap_back_dn_massage( li, &op->o_req_dn, &mdn, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 	
-	rc = ldap_delete_ext( lc->ld, mdn.bv_val, op->o_ctrls, NULL, &msgid );
+	rs->sr_err = ldap_delete_ext( lc->ld, mdn.bv_val, op->o_ctrls,
+			NULL, &msgid );
 
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
 	}
 	
-	return( ldap_back_op_result( lc, op, rs, msgid, rc, 1 ) );
+	return( ldap_back_op_result( lc, op, rs, msgid, 1 ) );
 }

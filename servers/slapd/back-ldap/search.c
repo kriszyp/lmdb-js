@@ -208,12 +208,12 @@ ldap_back_search(
 		mapped_attrs[count] = NULL;
 	}
 
-	rc = ldap_search_ext(lc->ld, mbase.bv_val, op->oq_search.rs_scope, mfilter.bv_val,
+	rs->sr_err = ldap_search_ext(lc->ld, mbase.bv_val, op->oq_search.rs_scope, mfilter.bv_val,
 			mapped_attrs, op->oq_search.rs_attrsonly, op->o_ctrls, NULL, tv.tv_sec ? &tv
 			: NULL, op->oq_search.rs_slimit, &msgid);
-	if ( rc != LDAP_SUCCESS ) {
+	if ( rs->sr_err != LDAP_SUCCESS ) {
 fail:;
-		rc = ldap_back_op_result(lc, op, rs, msgid, rc, 0);
+		rc = ldap_back_op_result(lc, op, rs, msgid, 0);
 		goto finish;
 	}
 
@@ -309,7 +309,7 @@ fail:;
 			rc = ldap_parse_result(lc->ld, res, &rs->sr_err, &match,
 				(char **)&rs->sr_text, NULL, NULL, 1);
 			if (rc != LDAP_SUCCESS ) rs->sr_err = rc;
-			rs->sr_err = ldap_back_map_result(rs->sr_err);
+			rs->sr_err = ldap_back_map_result(rs);
 			rc = 0;
 			break;
 		}

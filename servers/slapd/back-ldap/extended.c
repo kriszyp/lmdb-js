@@ -147,7 +147,7 @@ ldap_back_exop_passwd(
 		}
 	}
 	if (rc != LDAP_SUCCESS) {
-		rs->sr_err = ldap_back_map_result(rc);
+		rs->sr_err = ldap_back_map_result(rs);
 		send_ldap_result(op, rs);
 		if (rs->sr_matched) free((char *)rs->sr_matched);
 		if (rs->sr_text) free((char *)rs->sr_text);

@@ -137,8 +137,10 @@ ldap_back_modrdn(
 	ldap_back_dn_massage( li, &op->o_req_dn, &mdn, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 
-	rc = ldap_rename( lc->ld, mdn.bv_val, op->oq_modrdn.rs_newrdn.bv_val, mnewSuperior.bv_val,
-		op->oq_modrdn.rs_deleteoldrdn, op->o_ctrls, NULL, &msgid );
+	rs->sr_err = ldap_rename( lc->ld, mdn.bv_val,
+			op->oq_modrdn.rs_newrdn.bv_val, mnewSuperior.bv_val,
+			op->oq_modrdn.rs_deleteoldrdn, op->o_ctrls,
+			NULL, &msgid );
 
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
@@ -148,5 +150,6 @@ ldap_back_modrdn(
 		free( mnewSuperior.bv_val );
 	}
 	
-	return( ldap_back_op_result( lc, op, rs, msgid, rc, 1 ) );
+	return( ldap_back_op_result( lc, op, rs, msgid, 1 ) );
 }
+
