@@ -35,7 +35,7 @@
 static char *get_file_name( char *dirname, char *filename );
 static int  get_search_filters( char *filename, char *filters[] );
 static int  get_read_entries( char *filename, char *entries[] );
-static void fork_child( char *prog, char *args[] );
+static void fork_child( char *prog, char **args );
 static void	wait4kids( int nkidval );
 
 static int      maxkids = 20;
@@ -181,7 +181,8 @@ main( int argc, char **argv )
 	 */
 
 	sanum = 0;
-	sprintf( scmd, "%s%s%s", progdir, LDAP_DIRSEP, SEARCHCMD );
+	snprintf( scmd, sizeof scmd, "%s" LDAP_DIRSEP SEARCHCMD,
+		progdir );
 	sargs[sanum++] = scmd;
 	sargs[sanum++] = "-h";
 	sargs[sanum++] = host;
@@ -200,7 +201,8 @@ main( int argc, char **argv )
 	 */
 
 	ranum = 0;
-	sprintf( rcmd, "%s%s%s", progdir, LDAP_DIRSEP, READCMD );
+	snprintf( rcmd, sizeof rcmd, "%s" LDAP_DIRSEP READCMD,
+		progdir );
 	rargs[ranum++] = rcmd;
 	rargs[ranum++] = "-h";
 	rargs[ranum++] = host;
@@ -217,7 +219,8 @@ main( int argc, char **argv )
 	 */
 
 	aanum = 0;
-	sprintf( acmd, "%s%s%s", progdir, LDAP_DIRSEP, ADDCMD );
+	snprintf( acmd, sizeof acmd, "%s" LDAP_DIRSEP ADDCMD,
+		progdir );
 	aargs[aanum++] = acmd;
 	aargs[aanum++] = "-h";
 	aargs[aanum++] = host;
@@ -268,7 +271,8 @@ get_file_name( char *dirname, char *filename )
 {
 	char buf[MAXPATHLEN];
 
-	sprintf( buf, "%s%s%s", dirname, LDAP_DIRSEP, filename );
+	snprintf( buf, sizeof buf, "%s" LDAP_DIRSEP "%s",
+		dirname, filename );
 	return( strdup( buf ));
 }
 
@@ -322,7 +326,7 @@ get_read_entries( char *filename, char *entries[] )
 
 #ifndef HAVE_WINSOCK
 static void
-fork_child( char *prog, char *args[] )
+fork_child( char *prog, char **args )
 {
 	pid_t	pid;
 
@@ -330,6 +334,20 @@ fork_child( char *prog, char *args[] )
 
 	switch ( pid = fork() ) {
 	case 0:		/* child */
+#ifdef HAVE_EBCDIC
+		/* The __LIBASCII execvp only handles ASCII "prog",
+		 * we still need to translate the arg vec ourselves.
+		 */
+		{ char *arg2[MAXREQS];
+		int i;
+
+		for (i=0; args[i]; i++) {
+			arg2[i] = ArgDup(args[i]);
+			__atoe(arg2[i]);
+		}
+		arg2[i] = NULL;
+		args = arg2; }
+#endif
 		execvp( prog, args );
 		fprintf( stderr, "%s: ", prog );
 		perror( "execv" );
@@ -399,7 +417,7 @@ wait4kids( int nkidval )
 }
 
 static void
-fork_child( char *prog, char *args[] )
+fork_child( char *prog, char **args )
 {
 	int rc;
 
