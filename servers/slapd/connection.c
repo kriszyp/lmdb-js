@@ -318,6 +318,8 @@ long connection_init(
 static void
 connection_destroy( Connection *c )
 {
+	/* note: connections_mutex should be locked by caller */
+
     assert( connections != NULL );
     assert( c != NULL );
     assert( c->c_struct_state != SLAP_C_UNUSED );
@@ -428,6 +430,8 @@ static void connection_close( Connection *c )
 	assert( c != NULL );
 	assert( c->c_struct_state == SLAP_C_USED );
 	assert( c->c_conn_state == SLAP_C_CLOSING );
+
+	/* note: connections_mutex should be locked by caller */
 
 	if( c->c_ops != NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
