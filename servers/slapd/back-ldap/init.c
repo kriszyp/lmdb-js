@@ -197,6 +197,10 @@ ldap_back_db_destroy(
 			ch_free(li->url);
 			li->url = NULL;
 		}
+		if ( li->lud ) {
+			ldap_free_urldesc( li->lud );
+			li->lud = NULL;
+		}
 		if (li->binddn.bv_val) {
 			ch_free(li->binddn.bv_val);
 			li->binddn.bv_val = NULL;

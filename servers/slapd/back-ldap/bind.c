@@ -248,7 +248,7 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 		rs->sr_err = ldap_initialize(&ld, li->url);
 		
 		if (rs->sr_err != LDAP_SUCCESS) {
-			rs->sr_err = ldap_back_map_result(rs);
+			rs->sr_err = slap_map_api2result( rs );
 			if (rs->sr_text == NULL) {
 				rs->sr_text = "ldap_initialize() failed";
 			}
@@ -446,10 +446,10 @@ ldap_back_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
 	return ldap_bind_s( ld, lc->bound_dn.bv_val, lc->cred.bv_val, LDAP_AUTH_SIMPLE );
 }
 
+#if 0 /* deprecated in favour of slap_map_api2result() */
 /* Map API errors to protocol errors... */
-
 int
-ldap_back_map_result(SlapReply *rs)
+ldap_back_map_result( SlapReply *rs )
 {
 	switch(rs->sr_err)
 	{
@@ -489,12 +489,12 @@ ldap_back_map_result(SlapReply *rs)
 	case LDAP_REFERRAL_LIMIT_EXCEEDED:
 		return LDAP_LOOP_DETECT;
 	default:
-		if LDAP_API_ERROR(rs->sr_err)
+		if ( LDAP_API_ERROR(rs->sr_err) )
 			return LDAP_OTHER;
-		else
-			return rs->sr_err;
+		return rs->sr_err;
 	}
 }
+#endif
 
 int
 ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
@@ -502,28 +502,43 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 {
 	struct ldapinfo *li = (struct ldapinfo *)op->o_bd->be_private;
 	char *match = NULL;
-	LDAPMessage *res;
+	LDAPMessage *res = NULL;
 	char *text = NULL;
+
+#define	ERR_OK(err) ((err) == LDAP_SUCCESS || (err) == LDAP_COMPARE_FALSE || (err) == LDAP_COMPARE_TRUE)
 
 	rs->sr_text = NULL;
 	rs->sr_matched = NULL;
 
-	if (rs->sr_err == LDAP_SUCCESS) {
-		if (ldap_result(lc->ld, msgid, 1, NULL, &res) == -1) {
+	/* if the error recorded in the reply corresponds
+	 * to a successful state, get the error from the
+	 * remote server response */
+	if ( ERR_OK( rs->sr_err ) ) {
+		/* if result parsing fails, note the failure reason */
+		if ( ldap_result( lc->ld, msgid, 1, NULL, &res ) == -1 ) {
 			ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER,
 					&rs->sr_err);
+
+		/* otherwise get the result; if it is not
+		 * LDAP_SUCCESS, record it in the reply
+		 * structure (this includes 
+		 * LDAP_COMPARE_{TRUE|FALSE}) */
 		} else {
 			int rc = ldap_parse_result(lc->ld, res, &rs->sr_err,
 					&match, &text, NULL, NULL, 1);
 			rs->sr_text = text;
-			if (rc != LDAP_SUCCESS) rs->sr_err = rc;
+			if ( rc != LDAP_SUCCESS ) rs->sr_err = rc;
 		}
 	}
 
-	if (rs->sr_err != LDAP_SUCCESS) {
-		rs->sr_err = ldap_back_map_result(rs);
+	/* if the error in the reply structure is not
+	 * LDAP_SUCCESS, try to map it from client 
+	 * to server error */
+	if ( !ERR_OK( rs->sr_err ) ) {
+		rs->sr_err = slap_map_api2result( rs );
 
-		/* internal ops must not reply to client */
+		/* internal ops ( op->o_conn == NULL ) 
+		 * must not reply to client */
 		if ( op->o_conn && !op->o_do_not_cache && match ) {
 			struct berval dn, mdn;
 			dncookie dc;
@@ -539,11 +554,14 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 #endif
 			ber_str2bv(match, 0, 0, &dn);
 			ldap_back_dn_massage(&dc, &dn, &mdn);
+
+			/* record the (massaged) matched
+			 * DN into the reply structure */
 			rs->sr_matched = mdn.bv_val;
 				
 		}
 	}
-	if (op->o_conn && (sendok || rs->sr_err != LDAP_SUCCESS)) {
+	if ( op->o_conn && ( sendok || rs->sr_err != LDAP_SUCCESS ) ) {
 		send_ldap_result( op, rs );
 	}
 	if ( match ) {
@@ -557,7 +575,7 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 		ldap_memfree( text );
 	}
 	rs->sr_text = NULL;
-	return( (rs->sr_err == LDAP_SUCCESS) ? 0 : -1 );
+	return( ERR_OK( rs->sr_err ) ? 0 : -1 );
 }
 
 #ifdef LDAP_BACK_PROXY_AUTHZ

@@ -80,7 +80,8 @@ struct ldaprwmap {
 
 struct ldapinfo {
 	struct slap_backend_db	*be;
-	char *url;
+	char		*url;
+	LDAPURLDesc	*lud;
 	struct berval binddn;
 	struct berval bindpw;
 #ifdef LDAP_BACK_PROXY_AUTHZ
