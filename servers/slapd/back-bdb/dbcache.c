@@ -90,6 +90,7 @@ bdb_db_cache(
 
 	bdb->bi_databases[i+1] = NULL;
 	bdb->bi_databases[i] = db;
+	bdb->bi_ndatabases = i+1;
 
 	*dbout = db->bdi_db;
 
