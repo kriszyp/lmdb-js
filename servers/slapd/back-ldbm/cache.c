@@ -430,11 +430,12 @@ cache_find_entry_dn2id(
 	Entry		e, *ep;
 	ID			id;
 
-	/* set cache mutex */
-	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
-
 	e.e_dn = dn;
 	e.e_ndn = dn_normalize_case( ch_strdup( dn ) );
+
+try_again:
+	/* set cache mutex */
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
 	if ( (ep = (Entry *) avl_find( cache->c_dntree, (caddr_t) &e,
 		(AVL_CMP) entry_dn_cmp )) != NULL )
@@ -462,7 +463,8 @@ cache_find_entry_dn2id(
 
 			/* free cache mutex */
 			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
-			return( NOID );
+			ldap_pvt_thread_yield();
+			goto try_again;
 		}
 
 		Debug(LDAP_DEBUG_TRACE,
@@ -529,7 +531,8 @@ try_again:
 
 			/* free cache mutex */
 			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
-			return( NULL );
+			ldap_pvt_thread_yield();
+			goto try_again;
 		}
 
 		Debug(LDAP_DEBUG_TRACE,

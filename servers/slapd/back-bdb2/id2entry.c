@@ -159,10 +159,19 @@ bdb2i_id2entry_rw( BackendDB *be, ID id, int rw )
 	}
 
 	if ( bdb2i_cache_add_entry_rw( &li->li_cache, e, rw ) != 0 ) {
+		entry_free( e );
+
+		/* see if it got added underneath us */
+		if((e = bdb2i_cache_find_entry_id( &li->li_cache, id, rw )) != NULL ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<= bdb2i_id2entry_%s( %ld ) 0x%lx (cache)\n",
+				rw ? "w" : "r", id, (unsigned long)e );
+			return( e );
+		}
+
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb2i_id2entry_%s( %ld ) (cache add failed)\n",
 			rw ? "w" : "r", id, 0 );
-		entry_free( e );
 		return( NULL );
 	}
 
