@@ -676,11 +676,22 @@ suffix_massage_config(
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 #else /* normalize "matched" */
-	rargv[ 0 ] = "rewriteContext";
-	rargv[ 1 ] = "matchedDn";
-	rargv[ 2 ] = NULL;
-	rewrite_parse( info, "<suffix massage>", ++line, 2, rargv );
 
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "matchedDN";
+	rargv[ 2 ] = "alias";
+	rargv[ 3 ] = "searchResult";
+	rargv[ 4 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
+
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "searchAttrDN";
+	rargv[ 2 ] = "alias";
+	rargv[ 3 ] = "searchResult";
+	rargv[ 4 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
+
+#if 0
 	rargv[ 0 ] = "rewriteRule";
 	rargv[ 1 ] = suffix_massage_regexize( prnc->bv_val );
 	rargv[ 2 ] = suffix_massage_patternize( nvnc->bv_val );
@@ -689,6 +700,7 @@ suffix_massage_config(
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 	ch_free( rargv[ 1 ] );
 	ch_free( rargv[ 2 ] );
+#endif /* 0 */
 #endif /* normalize "matched" */
 
 	return 0;
