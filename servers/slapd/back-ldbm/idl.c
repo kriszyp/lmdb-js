@@ -630,7 +630,6 @@ idl_insert_key(
 		if ( !first && (unsigned long)(i + 1) < ID_BLOCK_NIDS(idl) ) {
 #endif
 			/* read it in */
-			cont_alloc( &k2, &key );
 			cont_id( &k2, ID_BLOCK_ID(idl, i + 1) );
 			if ( (tmp2 = idl_fetch_one( be, db, k2 )) == NULL ) {
 #ifdef NEW_LOGGING
@@ -643,7 +642,6 @@ idl_insert_key(
 #endif
 
 				/* split the original block */
-				cont_free( &k2 );
 				goto split;
 			}
 
@@ -707,6 +705,7 @@ idl_insert_key(
 
 				idl_free( tmp );
 				idl_free( tmp2 );
+				cont_free( &k2 );
 				idl_free( idl );
 				return( 0 );
 
