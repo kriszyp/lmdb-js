@@ -80,7 +80,7 @@ libbackends.a: .backend
 
 version.c: libbackends.a $(OBJS) $(SLAPD_LIBDEPEND) 
 	@-$(RM) $@
-	$(MKVERSION) slapd > $@
+	$(MKVERSION) -c -s -n Versionstr slapd > $@
 	
 depend-local-srv: FORCE
 	@for i in back-* shell-backends tools; do \
