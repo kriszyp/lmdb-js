@@ -112,7 +112,7 @@ ber_skip_tag( BerElement *ber, unsigned long *len )
 		if ( ber_read( ber, (char *) &netlen + diff, noctets )
 		    != noctets )
 			return( LBER_DEFAULT );
-		*len = NTOHL( netlen );
+		*len = AC_NTOHL( netlen );
 	} else {
 		*len = lc;
 	}
@@ -164,7 +164,7 @@ ber_getnint( BerElement *ber, long *num, int len )
                         *(p+i) = (char) 0xff;
 		}
 	}
-	*num = NTOHL( netnum );
+	*num = AC_NTOHL( netnum );
 
 	return( len );
 }

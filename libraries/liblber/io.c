@@ -524,7 +524,7 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 			    noctets ) {
 				return( LBER_DEFAULT );
 			}
-			*len = NTOHL( netlen );
+			*len = AC_NTOHL( netlen );
 		} else {
 			*len = lc;
 		}
