@@ -1,5 +1,9 @@
 #!/bin/sh -
+# Copyright 1998,1999 The OpenLDAP Foundation
+# COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
+# of this package for details.
 #
+# Portions
 # Copyright (c) 1987 Regents of the University of California.
 # All rights reserved.
 #
@@ -26,6 +30,7 @@ set -e				# exit immediately if any errors occur
 MAKE=Makefile			# default makefile name is "Makefile"
 NOSLASH="no"			# by default, / dependencies are included
 CC=${CC-cc}				# default compiler is cc
+: ${CC_MKDEP_FLAGS="-M"}	# cc -M usually produces dependencies
 SRCDIR=""
 SED=cat
 
@@ -122,12 +127,12 @@ cat << _EOF_ >> $TMP
 
 #
 # files: $*
-# command: $CC -M $files
+# command: $CC $CC_MKDEP_FLAGS $files
 #
 
 _EOF_
 
-$CC -M $files | \
+$CC $CC_MKDEP_FLAGS $files | \
 	sed -e 's; \./; ;g' | \
 	$SED | \
 awk '
