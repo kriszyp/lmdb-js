@@ -3127,21 +3127,25 @@ Modifications *slapi_x_ldapmods2modifications (LDAPMod **mods)
 				;
 		}
 
-		mod->sml_bvalues = (BerVarray) ch_malloc( (i + 1) * sizeof(struct berval) );
-
-		/* NB: This implicitly trusts a plugin to return valid modifications. */
-		if ( (*modp)->mod_op & LDAP_MOD_BVALUES ) {
-			for( i = 0, bvp = (*modp)->mod_bvalues; bvp != NULL && *bvp != NULL; bvp++, i++ ) {
-				mod->sml_bvalues[i].bv_val = (*bvp)->bv_val;
-				mod->sml_bvalues[i].bv_len = (*bvp)->bv_len;
-			}
+		if ( i == 0 ) {
+			 mod->sml_bvalues = NULL;
 		} else {
-			for( i = 0, p = (*modp)->mod_values; p != NULL && *p != NULL; p++, i++ ) {
-				mod->sml_bvalues[i].bv_val = *p;
-				mod->sml_bvalues[i].bv_len = strlen( *p );
+			mod->sml_bvalues = (BerVarray) ch_malloc( (i + 1) * sizeof(struct berval) );
+
+			/* NB: This implicitly trusts a plugin to return valid modifications. */
+			if ( (*modp)->mod_op & LDAP_MOD_BVALUES ) {
+				for( i = 0, bvp = (*modp)->mod_bvalues; bvp != NULL && *bvp != NULL; bvp++, i++ ) {
+					mod->sml_bvalues[i].bv_val = (*bvp)->bv_val;
+					mod->sml_bvalues[i].bv_len = (*bvp)->bv_len;
+				}
+			} else {
+				for( i = 0, p = (*modp)->mod_values; p != NULL && *p != NULL; p++, i++ ) {
+					mod->sml_bvalues[i].bv_val = *p;
+					mod->sml_bvalues[i].bv_len = strlen( *p );
+				}
 			}
+			mod->sml_bvalues[i].bv_val = NULL;
 		}
-		mod->sml_bvalues[i].bv_val = NULL;
 
 		*modtail = mod;
 		modtail = &mod->sml_next;
