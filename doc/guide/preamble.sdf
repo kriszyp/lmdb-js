@@ -1,0 +1,11 @@
+# file: guide.sdf
+# 
+
+!define DOC_NAME           "OpenLDAP Administrators Guide"
+!define DOC_AUTHOR         "OpenLDAP"
+!define DOC_LOGO           "LDAPwww.gif"
+!define DOC_LOF_TITLE      "Figures"
+!define DOC_LOF
+!build_title
+
+

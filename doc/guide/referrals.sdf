@@ -1,0 +1,41 @@
+H1: Distributing {{I: slapd}} DATA
+
+For many sites, running one or more {{I: slapds}} that hold an
+entire subtree of data is sufficient. But sometimes it may be
+desirable to have one slapd refer to other {{I: slapds}} for a
+certain part of the tree. This can be accomplished by
+creating a referral entry in one {{I:slapd}}'s database pointing
+to another {{I: slapd}}. For those familiar with X.500, a {{I:slapd}}
+{{I: referral}} entry is similar to an X.500 knowledge reference.
+
+The referral entry acts as a mount point, glueing two slapd
+databases together. A referral entry has an {{I: objectclass}} of
+"referral" and is named by a {{I: ref}} attribute containing a URL
+pointing to the slapd holding the data below the mount
+point. This mechanism is very general and allows slapd
+databases that are not normally hierarchical to be grafted
+together.
+
+An example should help illustrate things. Suppose your
+company is running a slapd and just purchased a new
+company, also running a slapd. You can easily connect
+the two databases by creating an entry like this in your
+slapd's database.
+
+E: dn: ref="ldap://new.host/o=New Company,c=US", o=Your 
+
+company, c=US
+
+E: objectclass: referral
+
+Now any subtree search that has this entry in its scope
+will return a referral to the new company, in addition to any
+entries matched in your database. Referral-aware clients
+will continue the search at the new company's server.
+
+A mechanism similar to this is used to support distributed
+indexing, described in Appendix C.
+
+
+PB:
+

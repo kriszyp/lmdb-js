@@ -1,0 +1,862 @@
+H1: The {{I: slapd}} Configuration File
+
+Once the software has been built and installed, you are ready to configure it
+for use at your site. All slapd runtime configuration is accomplished through
+the {{EX: slapd.conf}} file, installed in the {{EX: ETCDIR}} 
+directory you specified in the {{EX: Make-common}} file. 
+
+An alternate configuration file can be specified via a
+command-line option to slapd or slurpd (see Sections 5 and 8,
+respectively). This section describes the general format of the config file,
+followed by a detailed description of each config file option.
+
+
+
+H2: Configuration File Format
+
+The {{EX: slapd.conf}} file consists of a series of global configuration options
+that apply to slapd as a whole (including all backends), followed by
+zero or more database backend definitions that contain information
+specific to a backend instance.
+
+Global options can be overridden in a backend (for options that
+appear more than once, the last appearance in the slapd.conf file is
+used). Blank lines and comment lines beginning with a `#' character
+are ignored. If a line begins with white space, it is considered a
+continuation of the previous line. The general format of slapd.conf is
+as follows:
+
+E: # comment - these options apply to every database
+E: <global config options>
+E: # first database definition & config options
+E: database <backend 1 type>
+E: <config options specific to backend 1>
+E: # second database definition & config options
+E: database <backend 2 type>
+E: <config options specific to backend 2>
+E: # subsequent database definitions & config options
+E: ...
+
+Configuration line arguments are separated by white space. If
+an argument contains white space, the argument should be
+enclosed in double quotes "like this". If an argument contains
+a double quote or a backslash character `\', the character
+should be preceded by a backslash character `\'.
+
+The distribution contains an example configuration file that will
+be installed in the {{EX: ETCDIR}} directory. Also provided are
+{{EX: slapd.at.conf}}, which contains many commonly used attribute
+definitions, and {{EX: slapd.oc.conf}}, which contains many commonly
+used object class definitions. These files can be included from
+the slapd configuration file (see below).
+
+
+
+H2: Configuration File Options
+
+This section separates the configuration file options into
+global and backend-specific categories, describing each
+option and its default value (if any), and giving an example of
+its use.
+
+
+
+H3: Global Options
+
+Options described in this section apply to all backends,
+unless specifically overridden in a backend definition. Option
+arguments that should be replaced by actual text are shown
+in brackets <>.
+
+
+H4: access to <what> [ by <who> <accesslevel> ]+
+
+This option grants access (specified by <accesslevel>) to a
+set of entries and/or attributes (specified by <what>) by one or
+more requesters (specified by <who>). See Section 5.3 on
+access control for more details and examples.
+
+
+H4: attribute <name> [<name2>] { bin | ces | cis | tel | dn }
+
+This option associates a syntax with an attribute name. By
+default, an attribute is assumed to have syntax cis. An
+optional alternate name can be given for an attribute. The
+possible syntaxes and their meanings are
+
+* {{EX: bin}} binary
+* {{EX: ces}} case exact string (case must match during comparisons)
+* {{EX: cis}} case ignore string (case is ignored during comparisons)
+* {{EX: tel}} telephone number string (like cis but blanks and dashes ` '
+are ignored during comparisons)
+* {{EX: dn}} distinguished name
+
+
+H4: defaultaccess { none | compare | search | read | write }
+
+This option specifies the default access to grant requesters
+not matched by any other access line (see Section 5.3). Note
+that an access level implies all lesser access levels (e.g.,
+write access implies read, search and compare).
+
+\Default:
+
+E: defaultaccess read
+
+H4: include <filename>
+
+This option specifies that slapd should read additional
+configuration information from the given file before continuing
+with the next line of the current file. The included file should
+follow the normal slapd config file format.
+
+Note: You should be careful when using this option - there is
+no small limit on the number of nested include options, and no
+loop detection is done.
+
+H4: loglevel <integer>
+
+This option specifies the level at which debugging statements
+and operation statistics should be syslogged (currently
+logged to the syslogd(8) LOG_LOCAL4 facility). You must
+have compiled slapd with  DLDAP_DEBUG for this to work
+(except for the two stats levels, which are always enabled).
+Log levels are additive. To display what numbers correspond
+to what kind of debugging, invoke slapd with the  ? flag or
+consult the table below. The possible values for <integer> are:
+
+*1 trace function calls
+*2 debug packet handling
+*4 heavy trace debugging
+*8 connection management
+*16 print out packets sent and received
+*32 search filter processing
+*64 configuration file processing
+*128 access control list processing
+*256 stats log connections/operations/results
+*512 stats log entries sent
+*1024 print communication with shell backends
+*2048 print entry parsing debugging
+
+\Example:
+
+E: loglevel 255
+
+This will cause lots and lots of debugging information to be
+syslogged.
+
+\Default:
+
+E: loglevel 256
+
+H4: objectclass <name> [ requires <attrs> ] [ allows <attrs> ]
+
+This option defines the schema rules for the given object
+class. Used in conjunction with the schemacheck option. See
+Section 5.4 for more details.
+
+H4: referral <url>
+
+This option specifies the referral to pass back when slapd
+cannot find a local database to handle a request.
+
+\Example:
+
+E: referral ldap://ldap.itd.umich.edu
+
+This will refer non-local queries to the LDAP server at the
+University of Michigan. Smart LDAP clients can re-ask their
+query at that server, but note that most of these clients are
+only going to know how to handle simple LDAP URLs that
+contain a host part and optionally a distinguished name part.
+
+H4: schemacheck { on | off }
+
+This option turns schema checking on or off. If schema
+checking is on, entries added or modified will be checked to
+ensure they obey the schema rules implied by their object
+class(es) as defined by the corresponding objectclass
+option(s). If schema checking is off this check is not done.
+
+\Default:
+
+E: schemacheck off
+
+H4: sizelimit <integer>
+
+This option specifies the maximum number of entries to return
+from a search operation.
+
+\Default:
+
+E: sizelimit 500
+
+
+H4: srvtab <filename>
+
+This option specifies the srvtab file in which slapd can find the
+kerberos keys necessary for authenticating clients using
+kerberos. This option is only meaningful if you are using
+kerberos authentication, which must be enabled at compile
+time by including the appropriate definitions in the
+{{EX: Make-common}} file.
+
+\Default:
+
+E: srvtab /etc/srvtab
+
+H4: timelimit <integer>
+
+This option specifies the maximum number of seconds (in real
+time) slapd will spend answering a search request. If a
+request is not finished in this time, a result indicating an
+exceeded timelimit will be returned.
+
+\Default:
+
+E: timelimit 3600
+
+
+
+H3: General Backend Options
+
+Options in this section only apply to the backend in which
+they are defined. They are supported by every type of
+backend.
+
+H4: database <databasetype>
+
+This option marks the beginning of a new database instance
+definition. <databasetype> should be one of ldbm, shell, or
+passwd, depending on which backend will serve the
+database.
+
+\Example:
+
+E: database ldbm
+
+This marks the beginning of a new LDBM backend database
+instance definition.
+
+H4: lastmod { on | off }
+
+This option controls whether slapd will automatically maintain
+the modifiersName, modifyTimestamp, creatorsName, and
+createTimestamp attributes for entries.
+
+\Default:
+
+E: lastmod off
+
+H4: readonly { on | off }
+
+This option puts the database into "read-only" mode. Any
+attempts to modify the database will return an "unwilling to
+perform" error.
+
+\Default:
+
+E: readonly off
+
+H4: replica
+E: replica host=<hostname>[:<port>] 
+E: "binddn=<DN>"
+E: bindmethod={ simple | kerberos }
+E: \[credentials=<password>]
+E: \[srvtab=<filename>]
+
+This option specifies a replication site for this database. The
+{{EX: host=}} parameter specifies a host and optionally a port where
+the slave slapd instance can be found. Either a domain name
+or IP address may be used for <hostname>. If <port> is not
+given, the standard LDAP port number (389) is used. 
+
+The {{EX: binddn=}} parameter gives the DN to bind as for updates to
+the slave slapd. It should be a DN which has read/write
+access to the slave slapd's database, typically given as a
+"rootdn" in the slave's config file. It must also match the
+updatedn option in the slave slapd's config file. Since DNs are
+likely to contain embedded spaces, the entire "{{EX: binddn=<DN>}}"
+string should be enclosed in quotes. 
+
+{{EX: bindmethod}} is either simple or kerberos, depending on
+whether simple password-based authentication or kerberos
+authentication is to be used when connecting to the slave
+slapd. Simple authentication requires a valid password be
+given. Kerberos authentication requires a valid srvtab file. 
+
+The {{EX: credentials=}} parameter, which is only required if using
+simple authentication, gives the password for binddn on the
+slave slapd.
+
+The {{EX: srvtab=}} parameter, which is only required if using
+kerberos, specifies the filename which holds the kerberos key
+for the slave slapd. If omitted, {{EX: /etc/srvtab}} is used.
+
+See Section 10 for more details on replication.
+
+H4: replogfile <filename>
+
+This option specifies the name of the replication log file to
+which slapd will log changes. The replication log is typically
+written by slapd and read by slurpd. Normally, this option is
+only used if slurpd is being used to replicate the database.
+However, you can also use it to generate a transaction log, if
+slurpd is not running. In this case, you will need to periodically
+truncate the file, since it will grow indefinitely otherwise.
+
+See Section 10 for more details on replication.
+
+H4: rootdn <dn>
+
+This option specifies the DN of an entry that is not subject to
+access control or administrative limit restrictions for
+operations on this database.
+
+\Example:
+
+E: rootdn "cn=Manager, o=U of M, c=US"
+
+H4: rootkrbname <kerberosname>
+
+This option specifies a kerberos name for the DN given above
+that will always work, regardless of whether an entry with the
+given DN exists or has a {{EX: krbName}} attribute. This option is
+useful when creating a database and also when using slurpd
+to provide replication service (see Section 10).
+
+\Example:
+
+E: rootkrbname admin@umich.edu
+
+H4: rootpw <password>
+
+This option specifies a password for the DN given above that
+will always work, regardless of whether an entry with the given
+DN exists or has a password. This option is useful when
+creating a database and also when using slurpd to provide
+replication service (see Section 10).
+
+\Example:
+
+E: rootpw secret
+
+H4: suffix <dn suffix>
+
+This option specifies the DN suffix of queries that will be
+passed to this backend database. Multiple suffix lines can be
+given, and at least one is required for each database
+definition.
+
+\Example:
+
+E: suffix "o=University of Michigan, c=US"
+
+Queries with a DN ending in "o=University of Michigan, c=US"
+will be passed to this backend.
+
+Note: when the backend to pass a query to is selected, slapd
+looks at the suffix line(s) in each database definition in the
+order they appear in the file. Thus, if one database suffix is a
+prefix of another, it must appear after it in the config file.
+
+H4: updatedn <dn>
+
+This option is only applicable in a slave slapd. It specifies the
+DN allowed to make changes to the replica (typically, this is
+the DN slurpd binds as when making changes to the replica).
+
+
+
+H3: LDBM Backend-Specific Options
+
+Options in this category only apply to the LDBM backend
+database. That is, they must follow a "database ldbm" line and
+come before any other "database" line.
+
+H4: cachesize <integer>
+
+This option specifies the size in entries of the in-memory
+cache maintained by the LDBM backend database instance.
+
+\Default:
+
+E: cachesize 1000
+
+
+H4: dbcachesize <integer>
+
+This option specifies the size in bytes of the in-memory cache
+associated with each open index file. If not supported by the
+underlying database method, this option is ignored without
+comment. Increasing this number uses more memory but can
+cause a dramatic performance increase, especially during
+modifies or when building indexes.
+
+\Default:
+
+E: dbcachesize 100000
+
+
+H4: directory <directory>
+
+This option specifies the directory where the LDBM files
+containing the database and associated indexes live.
+
+\Default:
+
+E: directory /usr/tmp
+
+
+H4: index {<attrlist> | default} [pres,eq,approx,sub,none]
+
+This option specifies the indexes to maintain for the given
+attribute. If only an <attrlist> is given, all possible indexes are
+maintained.
+
+\Example:
+
+E: index cn
+
+E: index sn,uid eq,sub,approx
+
+E: index default none
+
+This example causes all indexes to be maintained for the cn
+attribute; equality, substring, and approximate indexes for the
+sn and uid attributes; and no indexes for all other attributes.
+
+
+H4: mode <integer>
+
+This option specifies the file protection mode that newly
+created database index files should have.
+
+\Default:
+
+E: mode 0600
+
+
+
+H3: Shell Backend-Specific Options
+
+E: bind <pathname>
+
+E: unbind <pathname>
+
+E: search <pathname>
+
+E: compare <pathname>
+
+E: modify <pathname>
+
+E: modrdn <pathname>
+
+E: add <pathname>
+
+E: delete <pathname>
+
+E: abandon <pathname>
+
+These options specify the pathname of the command to
+execute in response to the given LDAP operation. The
+command given should understand and follow the input/output
+conventions described in Appendix B.
+
+\Example:
+
+E: search /usr/local/bin/search.sh
+
+Note that you need only supply those commands you want the
+backend to handle. Operations for which a command is not
+supplied will be refused with an "unwilling to perform" error.
+
+
+
+H3: Password Backend-Specific Options
+
+Options in this category only apply to the PASSWD backend
+database. That is, they must follow a "database passwd" line
+and come before any other "database" line.
+
+H4: file <filename>
+
+This option specifies an alternate passwd file to use.
+
+\Default:
+
+E: file /etc/passwd
+
+
+
+H2: Access Control
+
+Access to slapd entries and attributes is controlled by the
+access configuration file directive. The general form of an
+access line is:
+
+E: <access directive> ::= access to <what>
+E: [ by <who> <access> ]+
+E: <what> ::= * | [ dn=<regex> ] [ filter=<ldapfilter> ]
+E: [ attrs=<attrlist> ]
+E: <who> ::= * | self | dn=<regex> | addr=<regex> |
+E: domain=<regex> | dnattr=<dn attribute>
+E: <access> ::= [self]none | [self]compare | [self]search
+E: | [self]read | [self]write
+
+where the <what> part selects the entries and/or attributes to
+which the access applies, the <who> part specifies which
+entities are granted access, and the <access> part specifies
+the access granted. Multiple <who> <access> pairs are
+supported, allowing many entities to be granted different
+access to the same set of entries and attributes.
+
+
+H3: What to control access to
+
+The <what> part of an access specification determines the
+entries and attributes to which the access control applies.
+Entries can be selected in two ways: by a regular expression
+matching the entry's distinguished name:
+
+E: dn=<regular expression>
+
+Note: The DN pattern specified should be "normalized",
+meaning that there should be no extra spaces, and commas
+should be used to separate components. An example
+normalized DN is "cn=Babs Jensen,o=University of
+Michigan,c=US". An example of a non-normalized DN is
+"cn=Babs Jensen; o=University of Michigan, c=US".
+
+Or, entries may be selected by a filter matching some
+attribute(s) in the entry:
+
+E: filter=<ldap filter>
+
+where <ldap filter> is a string representation of an LDAP
+search filter, as described in RFC 1588. The special entry
+selector "*" is used to select any entry, and is a convenient
+shorthand for the equivalent "dn=.*" selector.
+
+Attributes within an entry are selected by including a
+comma-separated list of attribute names in the <what>
+selector:
+
+E: attrs=<attribute list>
+
+Access to the entry itself must be granted or denied using the
+special attribute name "entry". Note that giving access to an
+attribute is not enough; access to the entry itself through the
+"entry" attribute is also required. The complete examples at
+the end of this section should help clear things up.
+
+
+
+H2: Who to grant access to
+
+The <who> part identifies the entity or entities being granted
+access. Note that access is granted to "entities" not "entries."
+Entities can be specified by the special "*" identifier, matching
+any entry, the keyword "self" matching the entry protected by
+the access, or by a regular expression matching an entry's
+distinguished name:
+
+E: dn=<regular expression>
+
+Note:  The DN pattern specified should be "normalized",
+meaning that there should be no extra spaces, and commas
+should be used to separate components.
+
+Or entities can be specified by a regular expression matching
+the client's IP address or domain name:
+
+E: addr=<regular expression>
+E: domain=<regular expression>
+
+or by an entry listed in a DN-valued attribute in the entry to
+which the access applies:
+
+E: dnattr=<dn-valued attribute name>
+
+The dnattr specification is used to give access to an entry
+whose DN is listed in an attribute of the entry (e.g., give
+access to a group entry to whoever is listed as the owner of
+the group entry).
+
+
+
+H3: The access to grant
+
+
+The kind of <access> granted can be one of the following:
+
+E: none | compare | search | read | write
+
+Note that each level implies all lower levels of access. So, for
+example, granting someone write access to an entry also
+grants them read, search, and compare access.
+
+
+
+H3: Access Control Evaluation
+
+When evaluating whether some requester should be given
+access to an entry and/or attribute, slapd compares the entry
+and/or attribute to the {{EX: <what>}} selectors given in the
+configuration file. Access directives local to the current
+database are examined first, followed by global access
+directives. Within this priority, access directives are
+examined in the order in which they appear in the config file.
+Slapd stops with the first {{EX: <what>}} selector that matches the
+entry and/or attribute. The corresponding access directive is
+the one slapd will use to evaluate access.
+
+Next, slapd compares the entity requesting access to the
+{{EX: <who>}} selectors within the access directive selected above,
+in the order in which they appear. It stops with the first {{EX: <who>}}
+selector that matches the requester. This determines the
+access the entity requesting access has to the entry and/or
+attribute.
+
+Finally, slapd compares the access granted in the selected
+{{EX: <access>}} clause to the access requested by the client. If it
+allows greater or equal access, access is granted. Otherwise,
+access is denied.
+
+The order of evaluation of access directives makes their
+placement in the configuration file important. If one access
+directive is more specific than another in terms of the entries
+it selects, it should appear first in the config file. Similarly, if
+one {{EX: <who>}} selector is more specific than another it should
+come first in the access directive. The access control
+examples given below should help make this clear.
+
+
+
+H3: Access Control Examples
+
+
+
+The access control facility described above is quite powerful.
+This section shows some examples of its use. First, some
+simple examples:
+
+E: access to * by * read
+
+This access directive grants read access to everyone. If it
+appears alone it is the same as the following defaultaccess
+line.
+
+E: defaultaccess read
+
+The following example shows the use of a regular expression
+to select the entries by DN in two access directives where
+ordering is significant.
+
+E: access to dn=".*, o=U of M, c=US"
+E: 	by * search
+E: access to dn=".*, c=US"
+E: 	by * read
+
+Read access is granted to entries under the c=US subtree,
+except for those entries under the "o=University of Michigan,
+c=US" subtree, to which search access is granted. If the
+order of these access directives was reversed, the
+U-M-specific directive would never be matched, since all
+U-M entries are also c=US entries.
+
+The next example again shows the importance of ordering,
+both of the access directives and the "by" clauses. It also
+shows the use of an attribute selector to grant access to a
+specific attribute and various <who> selectors.
+
+E:access to dn=".*, o=U of M, c=US" attr=homePhone
+E:	by self write
+E:	by dn=".*, o=U of M, c=US" search
+E:	by domain=.*\.umich\.edu read
+E:	by * compare
+E:access to dn=".*, o=U of M, c=US"
+E:	by self write
+E:	by dn=".*, o=U of M, c=US" search
+E:	by * none
+
+This example applies to entries in the "o=U of M, c=US"
+subtree. To all attributes except homePhone, the entry itself
+can write them, other U-M entries can search by them,
+anybody else has no access. The homePhone attribute is
+writable by the entry, searchable by other U-M entries,
+readable by clients connecting from somewhere in the
+umich.edu domain, and comparable by everybody else.
+
+Sometimes it is useful to permit a particular DN to add or
+remove itself from an attribute. For example, if you would like to
+create a group and allow people too add and remove only
+their own DN from the member attribute, you could accomplish
+it with an access directive like this:
+
+E: access to attr=member,entry
+E: 	by dnattr=member selfwrite
+
+The dnattr {{EX: <who>}} selector says that the access applies to
+entries listed in the member attribute. The selfwrite access
+selector says that such members can only add or delete their
+own DN from the attribute, not other values. The addition of
+the entry attribute is required because access to the entry is
+required to access any of the entry's attributes.
+
+Note that the attr=member construct in the {{EX: <what>}} clause is a
+shorthand for the clause "dn=* attr=member" (i.e., it matches
+the member attribute in all entries).
+
+
+
+H2: Schema Enforcement
+
+
+
+The {{EX: objectclass}} and schemacheck configuration file options
+can be used to enforce schema rules on entries in the
+directory. The schema rules are defined by one or more
+objectclass lines, and enforcement is turned on or off via the
+schemacheck option. The format of an {{EX: objectclass}} line is:
+
+E: objectclass <name>
+E: 	[ requires <attrs> ] 
+E: 	[ allows <attrs> ]
+
+This option defines the schema rules for the object class
+given by {{EX: <name>}}. Schema rules consist of the attributes the
+entry is required to have (given by the requires {{EX: <attrs>}}
+clause) and those attributes that it may optionally have (given
+by the allows {{EX: <attrs>}} clause). In both clauses, {{EX: <attrs>}} is a
+comma-separated list of attribute names.
+
+Note that object class inheritance (that is, defining one object
+class in terms of another) is not supported directly. All of an
+object class's required and allowed attributes must be listed
+in the objectclass definition.
+
+For example, to define an objectclass called myPerson, you
+might include a definition like this:
+
+E: objectclass myperson
+E: 	requires cn, sn, objectclass
+E: 	allows mail, phone, fax
+
+To then enforce this rule (i.e., to make sure an entry with an
+objectclass of myperson contains the cn, sn and objectclass
+attributes, and that it contains no other attributes besides
+mail, phone, and fax), turn on schema checking with a line like
+this:
+
+E: schemacheck on
+
+
+
+H2: Configuration File Example
+
+
+
+The following is an example configuration file, interspersed
+with explanatory text. It defines two databases to handle
+different parts of the X.500 tree; both are LDBM database
+instances. The line numbers shown are provided for
+reference only and are not included in the actual file. First, the
+global configuration section:
+
+E: 1. # example config file - global configuration section
+E: 2. include /usr/local/etc/slapd.at.conf
+E: 3. include /usr/local/etc/slapd.oc.conf
+E: 4. schemacheck on
+E: 5. referral ldap://ldap.itd.umich.edu
+
+Line 1 is a comment. Lines 2 and 3 include other config files
+containing attribute and object class definitions, respectively.
+Line 4 turns on schema checking. The {{EX: referral}} option on line 5
+means that queries not local to one of the databases defined
+below will be referred to the LDAP server running on the
+standard port (389) at the host {{EX: ldap.itd.umich.edu}}.
+
+The next section of the configuration file defines an LDBM
+backend that will handle queries for things in the
+"o=University of Michigan, c=US" portion of the tree. The
+database is to be replicated to two slave slapds, one on
+truelies, the other on judgmentday. Indexes are to be
+maintained for several attributes, and the {{EX: userPassword}}
+attribute is to be protected from unauthorized access.
+
+E: 1. # ldbm definition for the U-M database
+E: 2. database ldbm
+E: 3. suffix "o=University of Michigan, c=US"
+E: 4. directory /usr/local/ldbm-umich
+E: 6. rootdn "cn=Manager, o=University of Michigan, c=US"
+E: 7. rootpw secret
+E: 8. replogfile /usr/local/ldbm-umich/slapd.replog
+E: 9. replica host=truelies.rs.itd.umich.edu:389
+E: 10. binddn="cn=Replicator, o=U of M, c=US"
+E: 11. bindmethod=simple credentials=secret
+E: 12.replica host=judgmentday.rs.itd.umich.edu
+E: 13. binddn="cn=Replicator, o=U of M, c=US"
+E: 14. bindmethod=kerberos
+E: 15. srvtab=/etc/srvtab.judgmentday
+E: 16.# ldbm indexed attribute definitions
+E: 17.index cn,sn,uid pres,eq,approx,sub
+E: 18.index objectclass pres,eq
+E: 19.index default none
+E: 20.# ldbm access control definitions
+E: 21.defaultaccess read
+E: 22.access to attr=userpassword
+E: 23. by self write
+E: 24. by dn="cn=Admin, o=University of Michigan, c=US" write
+E: 25. by * compare
+
+Line 1 is a comment. The start of the database definition is
+marked by the database keyword on line 2. Line 3 specifies
+the DN suffix for queries to pass to this database. Line 4
+specifies the directory in which the database files will live
+
+Lines 6 and 7 identify the database "super user" entry and
+associated password. This entry is not subject to access
+control or size or time limit restrictions.
+
+Lines 8 through 15 are for replication. Line 8 specifies the
+replication log file (where changes to the database are logged
+\- this file is written by slapd and read by slurpd). Lines 9
+through 11 specify the hostname and port for a replicated
+host, the DN to bind as when performing updates, the bind
+method (simple) and the credentials (password) for the
+binddn. Lines 12 through 15 specify a second replication site,
+using kerberos instead of simple authentication. See Section
+10 on slurpd for more information on these options.
+
+Lines 16 through 19 indicate the indexes to maintain for
+various attributes. The default is not to maintain any indexes
+(line 19).
+
+Lines 20 through 25 specify access control for entries in the
+database. For all entries, the {{EX: userPassword}} attribute is
+writable by the entry and the "admin" entry, comparable by
+everyone else. All other attributes allow read access by
+default (line 21). Note that the special "entry" attribute is not
+required in the access directive beginning on line 22. This is
+because the default access is read.
+
+The next section of the example configuration file defines
+another LDBM database. This one handles queries involving
+the "o="Babs, Inc.", c=US" subtree.
+
+E: 1. # ldbm definition for Babs, Inc. database
+E: 2. database ldbm
+E: 3. suffix "o=\"Babs, Inc.\", c=US"
+E: 4. directory /usr/local/ldbm-babs
+E: 5. rootdn "cn=Babs, o=\"Babs, Inc.\", c=US"
+E: 6. index default
+
+Note the use of `\' to escape the quotes necessary in the
+distinguished names given on lines 3 and 5. By default, all
+indexes are maintained for every attribute in an entry.
+
+
+PB:
+
+

@@ -1,0 +1,268 @@
+H1: Building and Installing slapd & slurpd
+
+Building and installing slapd requires three simple steps: configuring;
+making; and installing. The following sections describe each step in
+detail. If you are reading this guide, chances are you have already
+obtained the software, but just in case, here's where you can get the
+latest version of the OpenLDAP package, which includes all of the
+software discussed in this guide:
+
+{{CMD[jump="ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release.tgz"]ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release.tgz}}
+
+There is also an OpenLDAP homepage accessible from the World
+Wide Web. This page contains the latest OpenLDAP news, release
+announcements, and pointers to other resources. You can access it
+at:
+
+{{CMD[jump="http://www.OpenLDAP.org/"]http://www.OpenLDAP.org/}}
+
+
+H2: Pre-Build Configuration
+
+Before building slapd, be sure to take a look at the README file in the
+top level directory in the distribution so that you are familiar with the
+general configuration and make process.
+
+Briefly, you should edit the include/ldapconfig.h.edit and
+Make-common files to contain the site-specific configuration your site
+requires before making. The next sections discuss these steps in
+more detail.
+
+
+
+H3: Editing the {{EX: Make-common}} file
+
+All of the general Make-common configuration variables (e.g.,
+ETCDIR, BINDIR, etc.) apply to both slapd and slurpd. There are
+additional Make-common configuration variables that also affect how
+slapd and slurpd are built. They are:
+
+H4: MAKE_SLAPD
+
+This option controls whether slapd and slurpd get built at all. You
+should set it to yes, like this:
+
+E: MAKE_SLAPD = yes
+
+H4: SLAPD_BACKENDS
+
+This option controls which slapd backend databases get built. You
+should set it to one or more of the following:
+
+*{{EX: DLDAP_LDBM}} This is the main backend. It is a high-performance
+disk-based database suitable for handling up to a million entries or so.
+See the LDBMBACKEND and LDBMLIB options below.
+
+*{{EX: DLDAP_PASSWD}} This is a simple search-only backend that can be
+pointed at an {{EX: /etc/passwd}} file. It is intended more as an example than
+as a real backend.
+
+*{{EX: DLDAP_SHELL}} This backend allows the execution of arbitrary
+system administrator-defined commands in response to LDAP
+queries. The commands to execute are defined in the configuration file.
+See Appendix B for more information on writing shell backend
+programs.
+
+Example to enable the LDBM and SHELL backends only:
+
+E: SLAPD_BACKENDS= -DLDAP_LDBM -DLDAP_SHELL
+
+The default is to build all three backends. Note that building a backend
+only means that it can be enabled through the configuration file, not
+that it will automatically be enabled.
+
+H4: LDBMBACKEND
+
+This option should only be defined if you have enabled the LDBM
+backend as described above. The LDBM backend relies on a
+low-level hash or B-tree package for its underlying database. This
+option selects which package it will use. The currently supported
+options in order of preference are:
+
+*{{EX: DLDBM_USE_DBBTREE}}
+.
+.This option enables the Berkeley DB package btree database as the
+.LDBM backend. You can get this package from
+.
+.{{CMD[jump="ftp://ftp.cs.berkeley.edu/ucb/4bsd/db.tar.Z"]ftp://ftp.cs.berkeley.edu/ucb/4bsd/db.tar.Z}}
+.
+
+*{{EX: DLDBM_USE_DBHASH}}
+.
+.This option enables the Berkeley DB package hash database as the
+.LDBM backend. You can get this package from
+.
+.{{CMD[jump="ftp://ftp.cs.berkeley.edu/ucb/4bsd/db.tar.Z"]ftp://ftp.cs.berkeley.edu/ucb/4bsd/db.tar.Z}}
+.
+
+*{{EX: DLDBM_USE_GDBM}}
+.
+.This option enables GNU dbm as the LDBM backend. You can get this
+.package from
+.
+.{{CMD[jump="ftp://prep.ai.mit.edu/pub/gnu/gdbm-1.7.3.tar.gz"]ftp://prep.ai.mit.edu/pub/gnu/gdbm-1.7.3.tar.gz}}
+.
+
+*{{EX: DLDBM_USE_NDBM}}
+.
+.This option enables the standard UNIX ndbm(3) package as the
+.LDBM backend. This package should come standard on your UNIX
+.system. man ndbm for details.
+.
+
+Example to enable the Berkeley DB Btree backend:
+
+E: LDBMBACKEND= -DLDBM_USE_DBBTREE
+
+The default is -DLDBM_USE_NDBM, since it is the only one available
+on all UNIX systems. NDBM has some serious limitations, though (not
+thread-safe, severe size limits), and you are strongly encouraged to
+use one of the other packages if you can.
+
+Note[label='Note to Solaris users: '] If you are running under Solaris 2.x
+and linking in an external database package (e.g., db or gdbm) it is
+very important that you compile the package with the {{EX: D_REENTRANT}}
+flag. If you do not, bad things will happen.
+
+If you are using version 1.85 or earlier of the Berkeley db package, you
+will need to apply the patch found in build/db.1.85.patch to the db
+source before compiling it. You can do this with a command like this
+from the db source area:
+
+E: patch -p < ldap-source-directory/build/db.1.85.patch
+
+H4: LDBMLIB
+
+This option should only be defined if you have enabled the LDBM
+backend as described above, and the necessary library for the
+LDBMBACKEND option you chose above is not part of the standard C
+library (i.e., anything other than NDBM). This option specifies the library
+to link containing the package you selected, and optionally, its location.
+
+Example to link with {{EX: libdb.a}}, contained in {{EX: /usr/local/lib}}:
+
+E: LDBMLIB= -L/usr/local/lib -ldb
+
+H4: THREADS
+
+This option is normally set automatically in the {{EX: Make-platform}} file,
+based on the platform on which you are building. You do not normally
+need to set it. If you want to use a non-default threads package, you
+can specify the appropriate {{EX: -Ddefine}} to enable it here.
+
+H4: THREADSLIB
+
+This option is normally set automatically in the {{EX: Make-platform}} file,
+based on the platform on which you are building. You do not normally
+need to set it. If you have set {{EX: THREADS}} to a non-default threads
+package as described above, you can specify the appropriate
+ {{EX: -Ldirectory}} flag and  {{EX: -llibname}} flag needed to link the package here.
+
+H4: PHONETIC
+
+This option controls the phonetic algorithm used by {{I: slapd}} when doing
+approximate searches. The default is to use the metaphone algorithm.
+You can have {{I: slapd}} use the soundex algorithm by setting this variable
+to  {{EX: -DSOUNDEX}}.
+
+
+H3: Editing the {{EX: include/ldapconfig.h}} file
+
+In addition to setting the {{EX: LDAPHOST}} and {{EX: DEFAULT_BASE}} defines
+near the top of this file, there are some slapd-specific defines near the
+bottom of the file you may want to change. The defaults should be just
+fine, unless you have special needs.
+
+H4: SLAPD_DEFAULT_CONFIGFILE
+
+This define sets the location of the default slapd configuration file.
+Normally, it is set to {{EX: $(ETCDIR)/slapd.conf}}, where 
+{{EX: ETCDIR}} comes from Make-common.
+
+H4: SLAPD_DEFAULT_SIZELIMIT
+
+This define sets the default size limit on the number of entries returned
+from a search. This option is configurable via the tailor file, but if you
+want to change the default, do it here.
+
+H4: SLAPD_DEFAULT_TIMELIMIT
+
+This define sets the default time limit for a search. This option is
+configurable via the tailor file, but if you want to change the default, do it
+here.
+
+H4: SLAPD_PIDFILE
+
+This define sets the location of the file to which slapd will write its
+process ID when it starts up.
+
+H4: SLAPD_ARGSFILE
+
+This define sets the location of the file to which slapd will write its
+argument vector when it starts up.
+
+H4: SLAPD_MONITOR_DN
+
+This define sets the distinguished name used to retrieve monitoring
+information from {{I: slapd}}. See section 7 for more details.
+
+H4: SLAPD_LDBM_MIN_MAXIDS
+
+This define is only relevant to the LDBM backend. It sets the minimum
+number of entry IDs that an index entry will contain before it becomes
+an allIDs entry. See Section 9.1 for more details.
+
+
+
+H2: Making the Software
+
+Once you have edited the {{EX: include/ldapconfig.h.edit}} file and the
+Make-common file (see the top level {{EX: README}} file in the distribution),
+you are ready to make the software. From the top level LDAP source
+directory, type
+
+E: make
+
+You should examine the output of this command carefully to make sure
+everything is built correctly. Note that this command builds the LDAP
+libraries and associated clients as well as slapd and slurpd.
+
+Note that the LDAP distribution can support making for multiple
+platforms from a single source tree. If you want to do this, consult the
+{{EX: INSTALL}} file in the top level distribution directory.
+
+
+
+H2: Installing the Software
+
+Once the software has been properly configured and successfully
+made, you are ready to install it. You will need to have write permission
+to the installation directories you specified in the {{EX: Make-common}} file.
+Typically, the installation is done as root. From the top level LDAP
+source directory, type
+
+E: make install
+
+You should examine the output of this command carefully to make sure
+everything is installed correctly. Slapd, slurpd, and their configuration
+files, {{EX: slapd.conf}}, {{EX: slapd.at.conf}}, and {{EX: slapd.oc.conf}}
+ will be installed in the {{EX: ETCDIR}} directory you specified 
+in the {{EX: Make-common}} file.
+
+This command will install the entire LDAP distribution. If you only want
+to install slapd and slurpd, you could do something like this:
+
+E: (cd servers/slapd; make install)
+
+E: (cd servers/slurpd; make install)
+
+Note: The installation process installs configuration files as well as
+binaries. Existing configuration files are first moved to a name with a
+dash '-' appended, e.g., {{EX: slapd.conf}} is moved to {{EX: slapd.conf-}}. 
+If you install things twice, however, you can lose your existing configuration
+files.
+
+
+PB:
+
+

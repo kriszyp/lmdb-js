@@ -1,0 +1,123 @@
+H1: Running slapd
+
+Slapd can be run in two different modes, stand-alone or from
+inetd(8). Stand-alone operation is recommended, especially if you
+are using the LDBM backend. This allows the backend to take
+advantage of caching and avoids concurrency problems with the
+LDBM index files. If you are running only a PASSWD or SHELL
+backend, running from inetd is an option. How to do this is
+described in the next section, after the command-line options and
+stand-alone daemon operation are described.
+
+
+
+H2: Command-Line Options
+
+{{I:Slapd}} supports the following command-line options.
+
+E: -d <level> | ?
+
+This option sets the slapd debug level to <level>. When level is a
+`?' character, the various debugging levels are printed and slapd
+exits, regardless of any other options you give it. Current
+debugging levels are
+
+E:     1 trace function calls
+E:     2 debug packet handling
+E:     4 heavy trace debugging
+E:     8 connection management
+E:    16 print out packets sent and received
+E:    32 search filter processing
+E:    64 configuration file processing
+E:   128 access control list processing
+E:   256 stats log connections/operations/results
+E:   512 stats log entries sent
+E:  1024 print communication with shell backends
+E:  2048 print entry parsing debugging
+E: 65535 enable all debugging
+
+Debugging levels are additive. That is, if you want to trace function
+calls and watch the config file being processed, you would set
+level to the sum of those two levels (in this case, 65). Consult
+{{EX: <ldap.h>}} for more details.
+
+Note: slapd must have been compiled with {{EX:-DLDAP_DEBUG}}
+defined for any debugging information beyond the two stats levels
+to be available.
+
+E: -f <filename>
+
+This option specifies an alternate configuration file for slapd.
+
+E: -i
+
+This option tells slapd that it is running from inetd instead of as a
+stand-alone server. See the next section on running slapd from
+inetd for more details.
+
+E: -p <port>
+
+This option specifies an alternate TCP port on which slapd should
+listen for connections. The default port is 389.
+
+
+
+H2: Running slapd as a Stand-Alone Daemon
+
+In general, slapd is run like this:
+
+E: 	$(ETCDIR)/slapd [<option>]*
+
+where ETCDIR has the value you gave in the Make-common file
+during the pre-build configuration, and <option> is one of the
+options described below. Unless you have specified a debugging
+level, slapd will automatically fork and detach itself from its
+controlling terminal and run in the background. Any of the options
+given above can be given to slapd to point it at a different
+configuration file, listen on another port, etc.
+
+To kill off slapd safely, you should give a command like this
+
+E: 	kill -TERM `cat $(ETCDIR)/slapd.pid`
+
+Killing slapd by a more drastic method may cause its LDBM
+databases to be corrupted, as it may need to flush various buffers
+before it exits. Note that slapd writes its pid to a file called 
+{{EX: slapd.pid}} in the {{EX: ETCDIR}} you configured in 
+{{EX: Make-common}}. You can change
+the location of this pid file by changing the {{EX: SLAPD_PIDFILE}}
+variable in {{EX: include/ldapconfig.h.edit}}.
+
+{{I: Slapd}} will also write its arguments to a file called 
+{{EX: slapd.args}} in the {{EX: ETCDIR}} you configured 
+in {{EX: Make-common}}. You can change the
+location of the args file by changing the {{EX: SLAPD_ARGSFILE}}
+variable in {{EX: include/ldapconfig.h.edit}}.
+
+
+
+H2: Running slapd from inetd
+
+First, make sure that running from {{I: inetd}}(8) is a good idea. If you
+are using the LDBM backend, it is not. If you are in a high-volume
+environment, the overhead of running from inetd also makes it a
+bad idea. Otherwise, you may proceed with the two steps
+necessary.
+
+Step 1 is to add a line like this to your {{EX: /etc/services}} file:
+
+E: 	ldap 389 # ldap directory service
+
+Step 2 is to add a line like this to your /etc/inetd.conf file:
+
+E: 	ldap stream tcp nowait nobody $(ETCDIR)/slapd slapd -i
+
+where {{EX: ETCDIR}} has the value you gave it in the 
+{{EX: Make-common}} file
+during pre-build configuration. Finally, send inetd a HUP signal,
+and you should be all set.
+
+PB:
+
+
+

@@ -1,0 +1,702 @@
+H1: Database Creation and Maintenance Tools
+
+This section tells you how to create a slapd database from
+scratch, and how to do trouble shooting if you run into
+problems. There are two ways to create a database. First,
+you can create the database on-line using LDAP. With this
+method, you simply start up slapd and add entries using the
+LDAP client of your choice. This method is fine for relatively
+small databases (a few hundred or thousand entries,
+depending on your requirements).
+
+The second method of database creation is to do it off-line,
+using the index generation tools. This method is best if you
+have many thousands of entries to create, which would take
+an unacceptably long time using the LDAP method, or if you
+want to ensure the database is not accessed while it is
+being created.
+
+
+
+H2: Creating a database over LDAP
+
+
+
+With this method, you use the LDAP client of your choice
+(e.g., the ldapadd(1) tool) to add entries, just like you would
+once the database is created. You should be sure to set the
+following configuration options before starting slapd:
+
+E:	suffix <dn>
+
+As described in the preceding section, this option says what
+entries are to be held by this database. You should set this
+to the DN of the root of the subtree you are trying to create.
+For example
+
+E: 	suffix "o=University of Michigan, c=US"
+
+You should be sure to specify a directory where the index
+files should be created:
+
+E:	directory <directory>
+
+For example:
+
+E:	directory /usr/local/openldap/slapd
+
+You need to make it so you can connect to slapd as
+somebody with permission to add entries. This is done
+through the following two options in the database definition:
+
+E:	rootdn <dn>
+E:	rootpw <passwd>
+
+These options specify a DN and password that can be used
+to authenticate as the "superuser" entry of the database (i.e.,
+the entry allowed to do anything). The DN and password
+specified here will always work, regardless of whether the
+entry named actually exists or has the password given. This
+solves the chicken-and-egg problem of how to authenticate
+and add entries before any entries yet exist.
+
+Finally, you should make sure that the database definition
+contains the index definitions you want:
+
+E: 	index {<attrlist> | default} [pres,eq,approx,sub,none]
+
+For example, to index the cn, sn, uid and objectclass
+attributes the following index configuration lines could be
+used.
+
+E:	index cn,sn,uid
+E:	index objectclass pres,eq
+E:	index default none
+
+See Section 4 on the configuration file for more details on
+this option. Once you have configured things to your liking,
+start up slapd, connect with your LDAP client, and start
+adding entries. For example, to add a the U of M entry
+followed by a Postmaster entry using the {{I:ldapadd}} tool, you
+could create a file called {{EX:/tmp/newentry}} with the contents:
+
+
+E: o=University of Michigan, c=US
+E: objectClass=organization
+E: o=University of Michigan
+E: description=University of Michigan at Ann Arbor
+E: cn=Postmaster, o=University of Michigan, c=US
+E: objectClass=organizationalRole
+E: cn=Postmaster
+E: description=U of M postmaster - postmaster@umich.edu
+
+and then use a command like this to actually create the
+entry:
+
+E: ldapadd -f /tmp/newentry -D "cn=Manager, o=University of
+E:	Michigan, c=US" -w secret
+
+The above command assumes that you have set {{EX: rootdn}} to
+"cn=Manager, o=University of Michigan, c=US" and {{EX: rootpw}}
+to "secret".
+
+H2: Creating a database off-line
+
+The second method of database creation is to do it off-line,
+using the index generation tools described below. This
+method is best if you have many thousands of entries to
+create, which would take an unacceptably long time using
+the LDAP method described above. These tools read the
+slapd configuration file and an input file containing a text
+representation of the entries to add. They produce the LDBM
+index files directly. There are several important configuration
+options you will want to be sure and set in the config file
+database definition first:
+
+E:	suffix <dn>
+
+As described in the preceding section, this option says what
+entries are to be held by this database. You should set this
+to the DN of the root of the subtree you are trying to create.
+For example
+
+E:	suffix "o=University of Michigan, c=US"
+
+You should be sure to specify a directory where the index
+files should be created:
+
+E:	directory <directory>
+
+For example:
+
+E:	directory /usr/local/openldap-slapd
+
+Next, you probably want to increase the size of the in-core
+cache used by each open index file. For best performance
+during index creation, the entire index should fit in memory. If
+your data is too big for this, or your memory too small, you
+can still make it pretty big and let the paging system do the
+work. This size is set with the following option:
+
+E:	dbcachesize <integer>
+
+For example:
+
+E:	dbcachesize 50000000
+
+This would create a cache 50 MB big, which is pretty big (at
+U-M, our database has about 125K entries, and our biggest
+index file is about 45 MB). Experiment with this number a bit,
+and the degree of parallelism (explained below), to see what
+works best for your system. Remember to turn this number
+back down once your index files are created and before you
+run slapd.
+
+Finally, you need to specify which indexes you want to build.
+This is done by one or more index options.
+
+E:	index {<attrlist> | default} [pres,eq,approx,sub,none]
+
+For example:
+
+E:	index cn,sn,uid pres,eq,approx
+E:	index default none
+
+This would create presence, equality and approximate
+indexes for the cn, sn, and uid attributes, and no indexes for
+any other attributes. See the configuration file section for
+more information on this option.
+
+H3: The {{EX: ldif2ldbm}} program
+
+Once you've configured things to your liking, you create the
+indexes by running the ldif2ldbm program:
+
+E:	ldif2ldbm -i <inputfile> -f <slapdconfigfile>
+E:		[-d <debuglevel>] [-j <integer>]
+E:		[-n <databasenumber>] [-e <etcdir>]
+
+The arguments have the following meanings:
+
+E:	-i <inputfile>
+
+Specifies the LDIF input file containing the entries to add in
+text form (described below in Section 8.3).
+
+E:	-f <slapdconfigfile>
+
+Specifies the slapd configuration file that tells where to
+create the indexes, what indexes to create, etc.
+
+E:	-d <debuglevel>
+
+Turn on debugging, as specified by {{EX: <debuglevel>}}. The
+debug levels are the same as for slapd (see Section 6.1).
+
+E:	-j <integer>
+
+An optional argument that specifies that at most {{EX: <integer>}}
+processes should be started in parallel when building the
+indexes. The default is 1. If set to a value greater than one,
+{{I: ldif2ldbm}} will create at most that many subprocesses at a
+time when building the indexes. A separate subprocess is
+created to build each attribute index. Running these
+processes in parallel can speed things up greatly, but
+beware of creating too many processes, all competing for
+memory and disk resources.
+
+E: 	-n <databasenumber>
+
+An optional argument that specifies the configuration file
+database for which to build indices. The first database listed
+is "1", the second "2", etc. By default, the first ldbm database
+in the configuration file is used.
+
+E:	-e <etcdir>
+
+An optional argument that specifies the directory where
+{{EX: ldif2ldbm}} can find the other database conversion tools it
+needs to execute ({{EX: ldif2index}} and friends). The default is the
+installation {{EX: ETCDIR}}.
+
+The next sections describe the programs invoked by
+{{I: ldif2ldbm}} when it is building indexes. Normally, these
+programs are invoked for you, but occasionally you may
+want to invoke them yourself.
+
+
+
+H3: The {{EX: ldif2index}} program
+
+Sometimes it may be necessary to create a new attribute
+index file without disturbing the rest of the database. This is
+possible using the {{EX: ldif2index}} program. {{EX: ldif2index}} is invoked
+like this
+
+E: 	ldif2index -i <inputfile> -f <slapdconfigfile>
+E:		[-d <debuglevel>] [-n <databasenumber>] <attr>
+
+Where the -i, -f, -d, and -n options are the same as for the
+{{I: ldif2ldbm}} program. {{EX: <attr>}} is the attribute to build an index for.
+Which indexes are built (e.g., equality, substring, etc.) is
+controlled by the corresponding index line in the slapd
+configuration file.
+
+You can use the ldbmcat program to create a suitable LDIF
+input file from an existing LDBM database.
+
+
+
+H3: The {{EX: ldif2id2entry}} program
+
+The {{EX: ldif2id2entry}} program is normally invoked from {{EX: ldif2ldbm}}.
+It is used to convert an LDIF text file into an {{EX: id2entry}} index.
+It is unlikely that you would need to invoke it yourself, but if
+you do it works like this
+
+E: 	ldif2id2entry -i <inputfile> -f <slapdconfigfile>
+E:		[-d <debuglevel>] [-n <databasenumber>]
+
+The arguments are the same as for the {{EX: ldif2ldbm}} program.
+
+
+
+H3: The {{EX: ldif2id2children}} program
+
+The {{EX: ldif2id2children}} program is normally invoked from
+{{EX: ldif2ldbm}}. It is used to convert an LDIF text file into
+{{EX: id2children}} and {{EX: dn2id}} indexes. Occasionally, it may be
+necessary to run this program yourself, for example if one of
+these indexes has become corrupted. {{EX: ldif2id2children}} is
+invoked like this
+
+E: 	ldif2id2children -i <inputfile> -f <slapdconfigfile>
+E: 		[-d <debuglevel>] [-n <databasenumber>]
+
+The arguments are the same as for the {{EX: ldif2ldbm}} program.
+You can use the ldbmcat program to create a suitable LDIF
+input file from an existing LDBM database.
+
+
+
+H3: The {{EX: ldbmcat}} program
+
+The {{EX: ldbmcat}} program is used to convert an {{EX: id2entry}} index
+back into its LDIF text format. This can be useful when you
+want to make a human-readable backup of your database,
+or as an intermediate step in creating a new index using the
+{{EX: ldif2index}} program. The program is invoked like this:
+
+E: 	ldbmcat [-n] <filename>
+
+where {{EX: <filename>}} is the name of the {{EX: id2entry}} index file. The
+corresponding LDIF output is written to standard output.
+
+The -n option can be used to prevent the printing of entry
+IDs in the LDIF format. If you are creating an LDIF format for
+use as input to {{EX: ldif2index}} or anything by {{EX: ldif2ldbm}}, you
+should not use the -n option (because the entry IDs must
+match those already in the id2entry file). If you are just
+making a backup of your data, you can use the -n option to
+save space.
+
+
+
+H3: The {{EX: ldif}} program
+
+The ldif program is used to convert arbitrary data values to
+LDIF format. This can be useful when writing a program or
+script to create the LDIF file you will feed into the ldif2ldbm
+program, or when writing a SHELL backend. ldif takes an
+attribute name as an argument, and reads the attribute
+value(s) from standard input. It produces the LDIF formatted
+attribute line(s) on standard output. The usage is:
+
+E: 	ldif [-b] <attrname>
+
+where {{EX: <attrname>}} is the name of the attribute. Without the
+-b option, ldif considers each line of standard input to be a
+separate value of the attribute.
+
+The -b option can be used to force ldif to interpret its input
+as a single raw binary value. This option is useful when
+converting binary data such as a {{EX: jpegPhoto}} or {{EX: audio}}
+attribute.
+
+
+H2: The LDIF text entry format
+
+The LDAP Data Interchange Format (LDIF) is used to
+represent LDAP entries in a simple text format. The basic
+form of an entry is:
+
+E:	[<id>]
+E:	dn: <distinguished name>
+E:	<attrtype>: <attrvalue>
+E:	<attrtype>: <attrvalue>
+E:
+E: 	...
+
+where {{EX: <id>}} is the optional entry ID (a positive decimal
+number). Normally, you would not supply the {{EX: <id>}}, allowing
+the database creation tools to do that for you. The ldbmcat
+program, however, produces an LDIF format that includes
+{{EX: <id>}} so that new indexes created will be consistent.
+
+A line may be continued by starting the next line with a
+single space or tab character. e.g.,
+
+E:	dn: cn=Barbara J Jensen, o=University of Michigan, c=US
+
+Multiple attribute values are specified on separate lines. e.g.,
+
+E:	cn: Barbara J Jensen
+E:	cn: Babs Jensen
+
+If an {{EX: <attrvalue>}} contains a non-printing character, or
+begins with a space or a colon `:', the {{EX: <attrtype>}} is followed
+by a double colon and the value is encoded in base 64
+notation. e.g., the value " begins with a space" would be
+encoded like this:
+
+E:	cn:: IGJlZ2lucyB3aXRoIGEgc3BhY2U=
+
+Multiple entries within the same LDIF file are separated by
+blank lines. Here's an example of an LDIF file containing
+three entries.
+
+E:	dn: cn=Barbara J Jensen, o=University of Michigan, c=US
+E:	cn: Barbara J Jensen
+E:	cn: Babs Jensen
+E:	objectclass: person
+E:	sn: Jensen
+E:
+E:
+E:	dn: cn=Bjorn J Jensen, o=University of Michigan, c=US
+E:	cn: Bjorn J Jensen
+E:	cn: Bjorn Jensen
+E:	objectclass: person
+E:	sn: Jensen
+E:
+E:	dn: cn=Jennifer J Jensen, o=University of Michigan, c=US
+E:	cn: Jennifer J Jensen
+E:	cn: Jennifer Jensen
+E:	objectclass: person
+E:	sn: Jensen
+E:	jpegPhoto:: /9j/4AAQSkZJRgABAAAAAQABAAD/2wBDABALD
+E:	A4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQ
+E:	ERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVG
+E:	
+E:	...
+
+Notice that the {{EX: jpegPhoto}} in Jennifer Jensen's entry is
+encoded using base 64. The {{EX: ldif}} program (described in
+Section 8.2.6) can be used to produce the LDIF format.
+
+Note: Trailing spaces are not trimmed from values in an
+LDIF file. Nor are multiple internal spaces compressed. If
+you don't want them in your data, don't put them there.
+
+
+H2: Converting from QUIPU EDB format to LDIF format
+
+If you have directory data that is or was held in a QUIPU
+DSA (available as part of the ISODE package), you will want
+to convert the EDB files used by QUIPU into an LDIF file.
+The edb2ldif program is provided to do most of the
+conversion for you. Once you have an LDIF file, you should
+follow the steps outlined in section 6.2 above to build an
+LDBM database for slapd.
+
+
+
+H3: The {{EX: edb2ldif}} program
+
+The edb2ldif program is invoked like this:
+
+E: edb2ldif [-d] [-v] [-r] [-o] [-b <basedn>]
+E: 	[-a <addvalsfile>] [-f <fileattrdir>]
+E: 	[-i <ignoreattr...>] [<edbfile...>]
+
+The LDIF data is written to standard output. The arguments
+have the following meanings:
+
+E: -d
+
+This option enables some debugging output on standard
+error.
+
+E: -v
+
+Enable verbose mode that writes status information to
+standard error, such as which EDB file is being processed,
+how many entries have been converted so far, etc.
+
+E: -r
+
+Recurse through child directories, processing all EDB files
+found.
+
+E: -o
+
+Cause local .add file definitions to override the global addfile
+(see -a below)
+
+E: -b <basedn>
+
+Specify the Distinguished Name that all EDB file entries
+appear below.
+
+E: -a <addvalsfile>
+
+The LDIF information contained in this file will be appended
+to each entry.
+
+E: -f <fileattrdir>
+
+Specify a single directory where all file-based attributes
+(typically sounds and images) can be found. If this option is
+not given, file attributes are assumed to be located in the
+same directory as the EDB file that refers to them.
+
+E: -i <ignoreattr>
+
+Specify an attribute that should not be converted. You can
+include as many -i flags as necessary. 
+
+E: <edbfile>
+
+Specify a particular EDB file (or files) to read data from. By
+default, the EDB.root (if it exists) and EDB files in the current
+directory are used.
+
+When {{EX: edb2ldif}} is invoked, it will also look for files named
+.add in the directories where EDB files are found and append
+the contents of the .add file to each entry. Typically, this
+feature is used to include inherited attribute values (e.g.,
+{{EX: objectClass}}) that do not appear in the EDB files.
+
+
+
+H3: Step-by-step EDB to LDIF conversion
+
+The basic steps to follow when converting your EDB format
+data to an LDIF file are:
+
+^ Locate the directory at the top of the EDB file hierarchy
+.that your QUIPU DSA masters. The EDB file located there
+.should contain the entries for the first level of your
+.organization or organizational unit. If you are using an
+.indexed database with QUIPU, you may need to create EDB
+.files from your index files (using the synctree or qb2edb
+.tools).
+.
+
++If you do not have a file named EDB.root in the same
+.directory that contains your organizational or organizational
+.unit entry, create it now by hand. Its contents should look
+.something like this:
+.
+.{{EX:	MASTER}}
+.{{EX:	000001}}
+.{{EX:	}}
+.{{EX:	o=University of Michigan}}
+.{{EX:	objectClass= top & organization & domainRelatedObject &\}}
+.{{EX:	quipuObject & quipuNonLeafObject}}
+.{{EX:	l= Ann Arbor, Michigan}}
+.{{EX:	st= Michigan}}
+.{{EX:	o= University of Michigan & UMICH & UM & U-M & U of M}}
+.{{EX:	description= The University of Michigan at Ann Arbor}}
+.{{EX:	associatedDomain= umich.edu}}
+.{{EX:	masterDSA= c=US@cn=Woolly Monkey}}
+.{{EX:	}}
+
++ (Optional) Create a global add file and/or local .add files to
+.take care of adding any attribute values that do not appear in
+.the EDB files. For example, if all entries in a particular EDB
+.are person entries and you want to add the appropriate
+.objectClass attribute value for them, create a file called .add
+.in the same directory as the person EDB that contains the
+.single line:
+.
+.{{EX: 	objectClass: person }}
+.
+
++ Run the edb2ldif program to do the actual conversion.
+.Make sure you are in the directory that contains the root of
+.the EDB hierarchy (the one where the EDB.root file resides).
+.Include a -b flag with a base DN one level above your
+.organizational entry, and include -i flags to ignore any
+.attributes that are not useful to slapd. E.g., the command:
+. 
+.{{EX:	edb2ldif -v -r -b "c=US" -i iattr -i acl -i xacl -i sacl}}
+.{{EX:		-i lacl -i masterDSA -i slaveDSA > ldif}}
+.
+.will convert the entire EDB hierarchy to LDIF format and
+.write the result to a file named ldif. Some attributes that are
+.not useful when running slapd are ignored. The EDB
+.hierarchy is assumed to reside logically below the base DN
+."c=US".
+.
+
++ Follow the steps outlined in section 8.2 above to produce
+.an LDBM database from your new LDIF file.
+
+
+
+H2: The ldbmtest program
+
+Occasionally you may find it useful to look at the LDBM
+database and index files directly (i.e., without going through
+slapd). The {{EX: ldbmtest}} program is provided for this purpose. It
+gives you raw access to the database itself. {{EX: ldbmtest}} should
+be run line this:
+
+E: 	ldbmtest [-d <debuglevel>] [-f <slapdconfigfile>]
+
+The default configuration file in the {{EX: ETCDIR}} is used if you
+don't supply one. By default, ldbmtest operates on the last
+database listed in the config file. You can specify an
+alternate database, or see the current database with the
+following commands.
+
+E:	b specify an alternate backend database
+E:	B print out the current backend database
+
+The {{EX: b}} command will prompt you for the suffix associated with
+the database you want. The database you select can be
+viewed and modified using a set of two-letter commands.
+The first letter selects the command function to perform.
+Possible commands and their meanings are as follows.
+
+E:	l lookup (do not follow indirection)
+E:	L lookup (follow indirection)
+E:	t traverse and print keys and data
+E:	T traverse and print keys only
+E:	x delete an index item
+E:	e edit an index item
+E:	a add an index item
+E:	c create an index file
+E:	i insert an entry into an index item
+
+The second letter indicates which index the command
+applies to. The possible index selections are as follows.
+
+E:	c id2children index
+E:	d dn2id index
+E:	e id2entry index
+E:	f arbitrary file name
+E:	i attribute index
+
+Each command may require additional arguments which
+ldbmtest will prompt you for.
+
+To exit {{EX: ldbmtest}}, type {{EX: control-D}} or {{EX: control-C}}.
+
+Note that this is a very raw interface originally developed
+when testing the database format. It is provided and
+minimally documented here for interested parties, but it is not
+meant to be used by the inexperienced. See the next section
+for a brief description of the LDBM database format.
+
+
+
+H2: The LDBM database format
+
+In normal operation, it is not necessary for you to know much
+about the LDBM database format. If you are going to use the
+ldbmtest program to look at or alter the database, or if you
+want a deeper understanding of how indexes are maintained,
+some knowledge of how it works could be useful. This
+section gives an overview of the database format and how
+slapd makes use of it.
+
+
+
+H3: Overview
+
+The LDBM database works by assigning a compact
+four-byte unique identifier to each entry in the database. It
+uses this identifier to refer to entries in indexes. The
+database consists of one main index file, called id2entry,
+which maps from an entry's unique identifier (EID) to a text
+representation of the entry itself. Other index files are
+maintained, for each indexed attribute for example, that map
+values people are likely to search on to lists of EIDs.
+
+Using this simple scheme, many LDAP queries can be
+answered efficiently. For example, to answer a search for
+entries with a surname of "Jensen", slapd would first consult
+the surname attribute index, look up the value "Jensen" and
+retrieve the corresponding list of EIDs. Next, slapd would
+look up each EID in the id2entry index, retrieve the
+corresponding entry, convert it from text to LDAP format, and
+return it to the client.
+
+The following sections give a very brief overview of each
+type of index and what it contains. For more detailed
+information see the paper "An X.500 and LDAP Database:
+Design and Implementation," available in postscript format
+from
+
+{{CMD[jump="ftp://terminator.rs.itd.umich.edu/ldap/papers/xldbm.ps"]ftp://terminator.rs.itd.umich.edu/ldap/papers/xldbm.ps}}
+
+
+
+H3: Attribute index format
+
+The LDBM backend will maintain one index file for each
+attribute it is asked to index. Several sets of keys must
+coexist in this file (e.g., keys for equality and approximate
+equality), so the keys are prefixed with a character to ensure
+uniqueness. The prefixes are given in the table below
+
+E:	= equality keys
+E:	~ approximate equality keys
+E:	* substring equality keys
+E:	\ continuation keys
+
+Key values are also normalized (e.g., converted to upper
+case for case ignore attributes). So, for example, to look up
+the surname equality value in the example above using the
+ldbmtest program, you would look up the value "{{EX: =JENSEN}}".
+
+Substring indexes are maintained by generating all possible
+N-character substrings for a value (N is 3 by default). These
+substrings are then stored in the attribute index, prefixed by
+"*". Additional anchors of "^" and "$" are added at the
+beginning and end of words. So, for example the surname of
+Jensen would cause the following keys to be entered in the
+index: {{EX: ^JE, JEN, ENS, NSE, SEN, EN$}}.
+
+Approximate values are handled in a similar way, with
+phonetic codes being generated for each word in a value
+and then stored in the index, prefixed by "~".
+
+Large blocks in the index are split into smaller ones. The
+smaller blocks are accessed through a level of indirection
+provided by the original block. They are stored in the index
+using the continuation key prefix of "\".
+
+
+
+H3: Other indexes
+
+In addition to the {{EX: id2entry}} and attribute indexes, LDBM
+maintains a number of other indexes, including the {{EX: dn2id}}
+index and the {{EX: id2children}} index. These indexes provide the
+mapping between a DN and the corresponding EID, and the
+mapping between an EID and the EIDs of the corresponding
+entry's children, respectively.
+
+The {{EX: dn2id}} index stores normalized DNs as keys. The data
+stored is the corresponding EID.
+
+The {{EX: id2children}} index stores EIDs as keys. The data stored
+is a list of EIDs, just as for the attribute indexes.
+
+
+PB:
+
+
+

@@ -1,0 +1,20 @@
+# master.sdf 
+# SDF master file for the OpenLDAP Administrator's guide
+#
+
+!include "preamble.sdf"
+
+!include "intro.sdf"
+!include "quickstart.sdf"
+!include "config.sdf"
+!include "install.sdf"
+!include "slapdconfig.sdf"
+!include "runningslapd.sdf"
+!include "monitoringslapd.sdf"
+!include "dbtools.sdf"
+!include "tuning.sdf"
+!include "referrals.sdf"
+!include "replication.sdf"
+
+
+

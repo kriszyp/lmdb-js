@@ -1,0 +1,112 @@
+H1: Monitoring Slapd
+
+Slapd supports a monitoring interface you can use to find out
+many useful bits of information about what slapd is currently
+doing, how many connections it has, how many threads are
+working, etc. You can access the monitor feature by doing a
+base object search of the SLAPD_MONITOR_DN from
+include/ldapconfig.h with any kind of valid filter (e.g.,
+"(objectclass=*)"). By default, this DN is set to "cn=monitor".
+You will get one entry returned to you, with the following
+attributes:
+
+E: version: slapd <version> (<date>)
+
+This attribute identifies the slapd server software by name,
+version, and build date, e.g., {{EX: slapd 3.3 (Thu May 21 14:19:03
+EDT 1996)}}
+
+E: threads: <integer>
+
+This attribute indicates the number of threads (operations)
+currently outstanding in slapd.
+
+E: connection: <fd> : <opentime> : <opsinitiated> :
+E: 	<opscompleted> : <binddn> : [ <rw> ]
+
+This multi-valued attribute summarizes information for each
+open connection. The information given is {{EX: <fd>}}, the file
+descriptor; {{EX: <opentime>}}, the time the connection was opened
+in UTC format; {{EX: <opsinitiated>}}, the number of operations
+initiated over the connection; {{EX: <opscompleted>}}, the number
+of operations completed over the connection; {{EX: <binddn>}}, the
+DN currently bound to the connection; and optionally {{EX: <rw>}},
+indicating whether the connection is currently blocked for
+read or write..
+
+E: currentconnections: <integer>
+
+The current number of connections.
+
+E: totalconnections: <integer>
+
+The total number of connections handled by slapd since it
+started.
+
+E: dtablesize: <integer>
+
+The size of slapd's file descriptor table.
+
+E: writewaiters: <integer>
+
+The number of threads blocked waiting to write data to a
+client.
+
+E: readwaiters: <integer>
+
+The number of threads blocked waiting to read data from a
+client.
+
+E: opsinitiated: <integer>
+
+The total number of operations initiated by slapd since it
+started.
+
+E: opscompleted: <integer>
+
+The total number of operations completed by slapd since it
+started.
+
+E: entriessent: <integer>
+
+The total number of entries sent to clients by slapd since it
+started.
+
+E: bytessent: <integer>
+
+The total number of bytes sent to clients by slapd since it
+started.
+
+E: currenttime: <UTC time>
+
+Slapd's idea of the current time.
+
+E: starttime: <integer>
+
+The time slapd was started.
+
+E: nbackends: <integer>
+
+The number of backends currently being served by slapd.
+
+E: concurrency: <integer>
+
+Under Solaris 2.x only, an indication of the current level of
+thread concurrency.
+
+Note that slapd takes a snapshot of this information and
+returns it to you. No attempt is made to ensure that the
+information is consistent (i.e., if an operation thread is
+modifying one of these things when the monitor thread is
+reading it, strange results could be returned).
+
+You should be able to use any LDAP client to retrieve this
+information. Here's how you might do it using the
+{{I: ldapsearch}}(1) client:
+
+E: ldapsearch -s base -b cn=monitor 'objectclass=*'
+
+PB:
+
+
+
