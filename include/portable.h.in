@@ -574,6 +574,9 @@
 /* Define if you have the <winsock.h> header file.  */
 #undef HAVE_WINSOCK_H
 
+/* Define if you have the <winsock2.h> header file.  */
+#undef HAVE_WINSOCK2_H
+
 /* Define if you have the V3 library (-lV3).  */
 #undef HAVE_LIBV3
 
@@ -645,6 +648,9 @@
 
 /* define if you have winsock */
 #undef HAVE_WINSOCK
+
+/* define if you have winsock2 */
+#undef HAVE_WINSOCK2
 
 /* define if you have res_query() */
 #undef HAVE_RES_QUERY
@@ -762,6 +768,9 @@
 
 /* define if NDBM is available */
 #undef HAVE_NDBM
+
+/* define if LDAP libs are dynamic */
+#undef LDAP_LIBS_DYNAMIC
 
 /* define if you have -lwrap */
 #undef HAVE_TCPD
