@@ -12,4 +12,5 @@
     - it works with any other driver I tried
 4) ldapsearch sometimes refuses to show some attributes ("NOT PRINTABLE" diags)
    on Win32 (on linux everything's fine)
+5) back-sql crashes on invalid filters (to be fixed ASAP)
    

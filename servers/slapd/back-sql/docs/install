@@ -1,18 +1,22 @@
+PLEASE READ THIS WHOLE FILE AND CONCEPT, BECAUSE THEY COVER SEVERAL STICKY
+ISSUES THAT YOU WILL PROBABLY STUMBLE ACROSS ANYWAY
+
 1. Build
 To build slapd with back-sql under Unix you need to build and install
-iODBC 2.50.3 (later versions should probably work, but not earlier). 
+iODBC 2.50.3 (later versions should probably work, but not earlier),
+or unixODBC (you will have to change -liodbc to -lodbc then).
 Then, at top of OpenLDAP source tree, run
 "configure <other options you need> --enable-sql", then "make" -
-this should build back-sql-enabled slapd, provided that you have iODBC 
+this should build back-sql-enabled slapd, provided that you have iODBC/unixODBC
 libraries and include files in include/library paths, "make install"...
 In other words, follow installation procedure described in OpenLDAP 
 Administrators Guide, adding --enbale-sql option to configure, and
-having iODBC libraries installed an accessible by compiler.
+having iODBC/unixODBC libraries installed an accessible by compiler.
 
 Under Win32/MSVC++, I modified the workspace so that back-sql is built into
-slapd automatically, since MS odbc32.dll is included in standard library pack,
-and it does no bad even if you don't plan to use it. I also could provide
-precompiled executables for those who don't have MSVC.
+slapd automatically, since MS ODBC manager, odbc32.dll, is included in
+standard library pack, and it does no bad even if you don't plan to use it.
+I also could provide precompiled executables for those who don't have MSVC.
 Note that Win32 port of OpenLDAP itself is experimental, and thus doesn't
 provide very convenient build environment (yet).
 
@@ -20,7 +24,7 @@ provide very convenient build environment (yet).
 Next, you need to define ODBC datasource with data you want to publish
 with help of back-sql. Assuming that you have your data in some SQL-compliant
 RDBMS, and have installed proper ODBC driver for this RDBMS, this is as simple
-as adding a record into odbc.ini (for iODBC), or using ODBC wizard in
+as adding a record into odbc.ini (for iODBC/unixODBC), or using ODBC wizard in
 Control Panel (for odbc32).
 Next, you need to add appropriate "database" record to your slapd.conf.
 See samples provided in "back-sql/RDBMS_DEPENDENT/" subdirectory. 
@@ -34,10 +38,16 @@ Several things worth noting about ODBC:
   different platforms, proxying and other connectivity and integration issues.
   They also support iODBC, and have good free customer service through
   newsserver (at news.openlinksw.com).
+  Also worth noting are: ODBC-ODBC bridge by EasySoft (which was claimed
+   by several people to be far more effective and stable than OpenLink),
+   OpenRDA package etc.
 - be carefull defining RDBMS connection parameters, you'll probably need only
-  "dbname" directive - all the rest can be defined in datasource. maybe you
-  will want to use dbuser/dbpasswd to override credentials defined in datasource
-- full list of configuration directives supported is available in file "guide"
+  "dbname" directive - all the rest can be defined in datasource. Every other
+  directive is used to override value stored in datasource definition.
+  Maybe you will want to use dbuser/dbpasswd to override credentials defined in datasource
+- full list of configuration directives supported is available in file "guide",
+  you may also analyze output of 'slapd -d 5' to find out some useful 
+  directives for redefining default queries 
 
 3. Creating and using back-sql metatables
 Read the file "concept" to understand, what metainformation you need to add,

@@ -2,7 +2,7 @@ CONTENT
 1. Purpose
 2. Metainformation used
 3. Typical back-sql operation
-4. Several important common techniques
+4. Several important common techniques (referrals, multiclassing)
 
 1. Purpose
 Primary purpose of this backend is to PRESENT information stored in some RDBMS
@@ -184,6 +184,21 @@ delete instance in relational schema. Those can use a view instead of real
 table, something like this:
 
 
+Robin Elfrink wrote:
+
+> About using a view for ldap_entries...
+>
+> This is what I came up with this morning:
+>
+> CREATE VIEW ldap_entries (id, dn, oc_map_id, parent, keyval) AS
+>         SELECT (1000000000+userid),
+> UPPER(CONCAT(CONCAT('cn=',gecos),',o=MyCompany,c=NL'))
+> , 1, 0, userid FROM unixusers UNION
+>         SELECT (2000000000+groupnummer),
+> UPPER(CONCAT(CONCAT('cn=',groupnaam),',o=MyCompany,c=NL')), 2, 0,
+> groupnummer FROM groups;
+>
+
 
 3. Typical back-sql operation
 Having metainformation loaded, back-sql uses these tables to determine a set
@@ -219,7 +234,7 @@ Please see samples to find out what are the parameters passed, and other
 information on this matter - they are self-explanatory for those familiar
 with concept expressed above.
 
-4. Several common techniques
+4. Several common techniques (referrals, multiclassing etc.)
 First of all, lets remember that among other major differences to complete
 LDAP data model, the concept above does not directly support such things
 as multiple objectclasses for entry, and referrals.
