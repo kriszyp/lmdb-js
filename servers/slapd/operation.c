@@ -68,13 +68,13 @@ slap_op_free( Operation *op )
 	if ( op->o_ber != NULL ) {
 		ber_free( op->o_ber, 1 );
 	}
-	if ( op->o_dn.bv_val != NULL ) {
+	if ( !BER_BVISNULL( &op->o_dn ) ) {
 		free( op->o_dn.bv_val );
 	}
-	if ( op->o_ndn.bv_val != NULL ) {
+	if ( !BER_BVISNULL( &op->o_ndn ) ) {
 		free( op->o_ndn.bv_val );
 	}
-	if ( op->o_authmech.bv_val != NULL ) {
+	if ( !BER_BVISNULL( &op->o_authmech ) ) {
 		free( op->o_authmech.bv_val );
 	}
 	if ( op->o_ctrls != NULL ) {
@@ -89,9 +89,9 @@ slap_op_free( Operation *op )
 
 	{
 		GroupAssertion *g, *n;
-		for (g = op->o_groups; g; g=n) {
+		for ( g = op->o_groups; g; g = n ) {
 			n = g->ga_next;
-			slap_sl_free(g, op->o_tmpmemctx);
+			slap_sl_free( g, op->o_tmpmemctx );
 		}
 		op->o_groups = NULL;
 	}

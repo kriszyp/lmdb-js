@@ -618,6 +618,281 @@ acl_get(
 	return( NULL );
 }
 
+static int
+acl_mask_dn(
+	Operation		*op,
+	Entry			*e,
+	AccessControl		*a,
+	int			nmatch,
+	regmatch_t		*matches,
+	slap_dn_access		*b,
+	struct berval		*opndn )
+{
+	/*
+	 * if access applies to the entry itself, and the
+	 * user is bound as somebody in the same namespace as
+	 * the entry, OR the given dn matches the dn pattern
+	 */
+	/*
+	 * NOTE: styles "anonymous", "users" and "self" 
+	 * have been moved to enum slap_style_t, whose 
+	 * value is set in a_dn_style; however, the string
+	 * is maintaned in a_dn_pat.
+	 */
+	if ( b->a_style == ACL_STYLE_ANONYMOUS ) {
+		if ( !BER_BVISEMPTY( opndn ) ) {
+			return 1;
+		}
+
+	} else if ( b->a_style == ACL_STYLE_USERS ) {
+		if ( BER_BVISEMPTY( opndn ) ) {
+			return 1;
+		}
+
+	} else if ( b->a_style == ACL_STYLE_SELF ) {
+		struct berval	ndn, selfndn;
+		int		level;
+
+		if ( BER_BVISEMPTY( opndn ) || BER_BVISNULL( &e->e_nname ) ) {
+			return 1;
+		}
+
+		level = b->a_self_level;
+		if ( level < 0 ) {
+			selfndn = *opndn;
+			ndn = e->e_nname;
+			level = -level;
+
+		} else {
+			ndn = *opndn;
+			selfndn = e->e_nname;
+		}
+
+		for ( ; level > 0; level-- ) {
+			if ( BER_BVISEMPTY( &ndn ) ) {
+				break;
+			}
+			dnParent( &ndn, &ndn );
+		}
+			
+		if ( BER_BVISEMPTY( &ndn ) || !dn_match( &ndn, &selfndn ) )
+		{
+			return 1;
+		}
+
+	} else if ( b->a_style == ACL_STYLE_REGEX ) {
+		if ( !ber_bvccmp( &b->a_pat, '*' ) ) {
+			int		tmp_nmatch;
+			regmatch_t	tmp_matches[2],
+					*tmp_matchesp = tmp_matches;
+
+			int		rc = 0;
+
+			switch ( a->acl_dn_style ) {
+			case ACL_STYLE_REGEX:
+				if ( !BER_BVISNULL( &a->acl_dn_pat ) ) {
+					tmp_matchesp = matches;
+					tmp_nmatch = nmatch;
+					break;
+				}
+			/* FALLTHRU: applies also to ACL_STYLE_REGEX when pattern is "*" */
+
+			case ACL_STYLE_BASE:
+				tmp_matches[0].rm_so = 0;
+				tmp_matches[0].rm_eo = e->e_nname.bv_len;
+				tmp_nmatch = 1;
+				break;
+
+			case ACL_STYLE_ONE:
+			case ACL_STYLE_SUBTREE:
+			case ACL_STYLE_CHILDREN:
+				tmp_matches[0].rm_so = 0;
+				tmp_matches[0].rm_eo = e->e_nname.bv_len;
+				tmp_matches[1].rm_so = e->e_nname.bv_len - a->acl_dn_pat.bv_len;
+				tmp_matches[1].rm_eo = e->e_nname.bv_len;
+				tmp_nmatch = 2;
+				break;
+
+			default:
+				/* error */
+				rc = 1;
+				break;
+			}
+
+			if ( rc ) {
+				return 1;
+			}
+
+			if ( !regex_matches( &b->a_pat, opndn->bv_val,
+				e->e_ndn, tmp_nmatch, tmp_matchesp ) )
+			{
+				return 1;
+			}
+		}
+
+	} else {
+		struct berval	pat;
+		ber_len_t	patlen, odnlen;
+		int		got_match = 0;
+
+		if ( e->e_dn == NULL )
+			return 1;
+
+		if ( b->a_expand ) {
+			struct berval	bv;
+			char		buf[ACL_BUF_SIZE];
+			
+			int		tmp_nmatch;
+			regmatch_t	tmp_matches[2],
+					*tmp_matchesp = tmp_matches;
+
+			int		rc = 0;
+
+			bv.bv_len = sizeof( buf ) - 1;
+			bv.bv_val = buf;
+
+			switch ( a->acl_dn_style ) {
+			case ACL_STYLE_REGEX:
+				if ( !BER_BVISNULL( &a->acl_dn_pat ) ) {
+					tmp_matchesp = matches;
+					tmp_nmatch = nmatch;
+					break;
+				}
+			/* FALLTHRU: applies also to ACL_STYLE_REGEX when pattern is "*" */
+
+			case ACL_STYLE_BASE:
+				tmp_matches[0].rm_so = 0;
+				tmp_matches[0].rm_eo = e->e_nname.bv_len;
+				tmp_nmatch = 1;
+				break;
+
+			case ACL_STYLE_ONE:
+			case ACL_STYLE_SUBTREE:
+			case ACL_STYLE_CHILDREN:
+				tmp_matches[0].rm_so = 0;
+				tmp_matches[0].rm_eo = e->e_nname.bv_len;
+				tmp_matches[1].rm_so = e->e_nname.bv_len - a->acl_dn_pat.bv_len;
+				tmp_matches[1].rm_eo = e->e_nname.bv_len;
+				tmp_nmatch = 2;
+				break;
+
+			default:
+				/* error */
+				rc = 1;
+				break;
+			}
+
+			if ( rc ) {
+				return 1;
+			}
+
+			if ( string_expand( &bv, &b->a_pat, 
+					e->e_nname.bv_val,
+					tmp_nmatch, tmp_matchesp ) )
+			{
+				return 1;
+			}
+			
+			if ( dnNormalize(0, NULL, NULL, &bv,
+					&pat, op->o_tmpmemctx )
+					!= LDAP_SUCCESS )
+			{
+				/* did not expand to a valid dn */
+				return 1;
+			}
+
+		} else {
+			pat = b->a_pat;
+		}
+
+		patlen = pat.bv_len;
+		odnlen = opndn->bv_len;
+		if ( odnlen < patlen ) {
+			goto dn_match_cleanup;
+
+		}
+
+		if ( b->a_style == ACL_STYLE_BASE ) {
+			/* base dn -- entire object DN must match */
+			if ( odnlen != patlen ) {
+				goto dn_match_cleanup;
+			}
+
+		} else if ( b->a_style == ACL_STYLE_ONE ) {
+			int rdnlen = -1;
+
+			if ( odnlen <= patlen ) {
+				goto dn_match_cleanup;
+			}
+
+			if ( !DN_SEPARATOR( opndn->bv_val[odnlen - patlen - 1] ) ) {
+				goto dn_match_cleanup;
+			}
+
+			rdnlen = dn_rdnlen( NULL, opndn );
+			if ( rdnlen != odnlen - patlen - 1 ) {
+				goto dn_match_cleanup;
+			}
+
+		} else if ( b->a_style == ACL_STYLE_SUBTREE ) {
+			if ( odnlen > patlen && !DN_SEPARATOR( opndn->bv_val[odnlen - patlen - 1] ) ) {
+				goto dn_match_cleanup;
+			}
+
+		} else if ( b->a_style == ACL_STYLE_CHILDREN ) {
+			if ( odnlen <= patlen ) {
+				goto dn_match_cleanup;
+			}
+
+			if ( !DN_SEPARATOR( opndn->bv_val[odnlen - patlen - 1] ) ) {
+				goto dn_match_cleanup;
+			}
+
+		} else if ( b->a_style == ACL_STYLE_LEVEL ) {
+			int level;
+			struct berval ndn;
+
+			if ( odnlen <= patlen ) {
+				goto dn_match_cleanup;
+			}
+
+			if ( level > 0 && !DN_SEPARATOR( opndn->bv_val[odnlen - patlen - 1] ) )
+			{
+				goto dn_match_cleanup;
+			}
+			
+			level = b->a_level;
+			ndn = *opndn;
+			for ( ; level > 0; level-- ) {
+				if ( BER_BVISEMPTY( &ndn ) ) {
+					goto dn_match_cleanup;
+				}
+				dnParent( &ndn, &ndn );
+				if ( ndn.bv_len < patlen ) {
+					goto dn_match_cleanup;
+				}
+			}
+			
+			if ( ndn.bv_len != patlen ) {
+				goto dn_match_cleanup;
+			}
+		}
+
+		got_match = !strcmp( pat.bv_val, &opndn->bv_val[ odnlen - patlen ] );
+
+dn_match_cleanup:;
+		if ( pat.bv_val != b->a_pat.bv_val ) {
+			slap_sl_free( pat.bv_val, op->o_tmpmemctx );
+		}
+
+		if ( !got_match ) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 /*
  * Record value-dependent access control state
  */
@@ -632,6 +907,100 @@ acl_get(
 			state->as_vd_access_count = i; \
 		} \
 	} while( 0 )
+
+static int
+acl_mask_dnattr(
+	Operation		*op,
+	Entry			*e,
+	struct berval		*val,
+	AccessControl		*a,
+	Access			*b,
+	int			i,
+	regmatch_t		*matches,
+	int			count,
+	AccessControlState	*state,
+	slap_dn_access		*bdn,
+	struct berval		*opndn )
+{
+	Attribute	*at;
+	struct berval	bv;
+	int		rc, match = 0;
+	const char	*text;
+	const char	*attr = bdn->a_at->ad_cname.bv_val;
+
+	assert( attr != NULL );
+
+	if ( BER_BVISEMPTY( opndn ) ) {
+		return 1;
+	}
+
+	Debug( LDAP_DEBUG_ACL, "<= check a_dn_at: %s\n", attr, 0, 0 );
+	bv = *opndn;
+
+	/* see if asker is listed in dnattr */
+	for ( at = attrs_find( e->e_attrs, bdn->a_at );
+		at != NULL;
+		at = attrs_find( at->a_next, bdn->a_at ) )
+	{
+		if ( value_find_ex( bdn->a_at,
+			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
+				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
+			at->a_nvals,
+			&bv, op->o_tmpmemctx ) == 0 )
+		{
+			/* found it */
+			match = 1;
+			break;
+		}
+	}
+
+	if ( match ) {
+		/* have a dnattr match. if this is a self clause then
+		 * the target must also match the op dn.
+		 */
+		if ( bdn->a_self ) {
+			/* check if the target is an attribute. */
+			if ( val == NULL ) return 1;
+
+			/* target is attribute, check if the attribute value
+			 * is the op dn.
+			 */
+			rc = value_match( &match, bdn->a_at,
+				bdn->a_at->ad_type->sat_equality, 0,
+				val, &bv, &text );
+			/* on match error or no match, fail the ACL clause */
+			if ( rc != LDAP_SUCCESS || match != 0 )
+				return 1;
+		}
+
+	} else {
+		/* no dnattr match, check if this is a self clause */
+		if ( ! bdn->a_self )
+			return 1;
+
+		ACL_RECORD_VALUE_STATE;
+		
+		/* this is a self clause, check if the target is an
+		 * attribute.
+		 */
+		if ( val == NULL )
+			return 1;
+
+		/* target is attribute, check if the attribute value
+		 * is the op dn.
+		 */
+		rc = value_match( &match, bdn->a_at,
+			bdn->a_at->ad_type->sat_equality, 0,
+			val, &bv, &text );
+
+		/* on match error or no match, fail the ACL clause */
+		if ( rc != LDAP_SUCCESS || match != 0 )
+			return 1;
+	}
+
+	return 0;
+}
+
 
 /*
  * acl_mask - modifies mask based upon the given acl and the
@@ -655,7 +1024,7 @@ acl_mask(
 	int			count,
 	AccessControlState	*state )
 {
-	int		i, odnlen, patlen;
+	int		i;
 	Access	*b;
 #ifdef LDAP_DEBUG
 	char accessmaskbuf[ACCESSMASK_MAXLEN];
@@ -715,255 +1084,41 @@ acl_mask(
 			 * value is set in a_dn_style; however, the string
 			 * is maintaned in a_dn_pat.
 			 */
-			if ( b->a_dn_style == ACL_STYLE_ANONYMOUS ) {
-				if ( !BER_BVISEMPTY( &op->o_ndn ) ) {
-					continue;
-				}
 
-			} else if ( b->a_dn_style == ACL_STYLE_USERS ) {
-				if ( BER_BVISEMPTY( &op->o_ndn ) ) {
-					continue;
-				}
+			if ( acl_mask_dn( op, e, a, nmatch, matches,
+				&b->a_dn, &op->o_ndn ) )
+			{
+				continue;
+			}
+		}
 
-			} else if ( b->a_dn_style == ACL_STYLE_SELF ) {
-				struct berval	ndn, selfndn;
-				int		level;
+		if ( !BER_BVISEMPTY( &b->a_realdn_pat ) ) {
+			struct berval	ndn;
 
-				if ( BER_BVISEMPTY( &op->o_ndn ) || BER_BVISNULL( &e->e_nname ) ) {
-					continue;
-				}
+			Debug( LDAP_DEBUG_ACL, "<= check a_realdn_pat: %s\n",
+				b->a_realdn_pat.bv_val, 0, 0);
+			/*
+			 * if access applies to the entry itself, and the
+			 * user is bound as somebody in the same namespace as
+			 * the entry, OR the given dn matches the dn pattern
+			 */
+			/*
+			 * NOTE: styles "anonymous", "users" and "self" 
+			 * have been moved to enum slap_style_t, whose 
+			 * value is set in a_dn_style; however, the string
+			 * is maintaned in a_dn_pat.
+			 */
 
-				level = b->a_dn_self_level;
-				if ( level < 0 ) {
-					selfndn = op->o_ndn;
-					ndn = e->e_nname;
-					level = -level;
-
-				} else {
-					ndn = op->o_ndn;
-					selfndn = e->e_nname;
-				}
-
-				for ( ; level > 0; level-- ) {
-					if ( BER_BVISEMPTY( &ndn ) ) {
-						break;
-					}
-					dnParent( &ndn, &ndn );
-				}
-				
-				if ( BER_BVISEMPTY( &ndn ) || !dn_match( &ndn, &selfndn ) )
-				{
-					continue;
-				}
-
-			} else if ( b->a_dn_style == ACL_STYLE_REGEX ) {
-				if ( !ber_bvccmp( &b->a_dn_pat, '*' ) ) {
-					int		tmp_nmatch;
-					regmatch_t	tmp_matches[2],
-							*tmp_matchesp = tmp_matches;
-
-					int		rc = 0;
-
-					switch ( a->acl_dn_style ) {
-					case ACL_STYLE_REGEX:
-						if ( !BER_BVISNULL( &a->acl_dn_pat ) ) {
-							tmp_matchesp = matches;
-							tmp_nmatch = nmatch;
-							break;
-						}
-					/* FALLTHRU: applies also to ACL_STYLE_REGEX when pattern is "*" */
-
-					case ACL_STYLE_BASE:
-						tmp_matches[0].rm_so = 0;
-						tmp_matches[0].rm_eo = e->e_nname.bv_len;
-						tmp_nmatch = 1;
-						break;
-
-					case ACL_STYLE_ONE:
-					case ACL_STYLE_SUBTREE:
-					case ACL_STYLE_CHILDREN:
-						tmp_matches[0].rm_so = 0;
-						tmp_matches[0].rm_eo = e->e_nname.bv_len;
-						tmp_matches[1].rm_so = e->e_nname.bv_len - a->acl_dn_pat.bv_len;
-						tmp_matches[1].rm_eo = e->e_nname.bv_len;
-						tmp_nmatch = 2;
-						break;
-
-					default:
-						/* error */
-						rc = 1;
-						break;
-					}
-
-					if ( rc ) {
-						continue;
-					}
-
-					if ( !regex_matches( &b->a_dn_pat,
-						op->o_ndn.bv_val, e->e_ndn,
-						tmp_nmatch, tmp_matchesp ) )
-					{
-						continue;
-					}
-				}
-
+			if ( op->o_conn && !BER_BVISNULL( &op->o_conn->c_ndn ) ) {
+				ndn = op->o_conn->c_ndn;
 			} else {
-				struct berval pat;
-				int got_match = 0;
+				ndn = op->o_ndn;
+			}
 
-				if ( e->e_dn == NULL )
-					continue;
-
-				if ( b->a_dn_expand ) {
-					struct berval	bv;
-					char		buf[ACL_BUF_SIZE];
-					
-					int		tmp_nmatch;
-					regmatch_t	tmp_matches[2],
-							*tmp_matchesp = tmp_matches;
-
-					int		rc = 0;
-
-					bv.bv_len = sizeof( buf ) - 1;
-					bv.bv_val = buf;
-
-					switch ( a->acl_dn_style ) {
-					case ACL_STYLE_REGEX:
-						if ( !BER_BVISNULL( &a->acl_dn_pat ) ) {
-							tmp_matchesp = matches;
-							tmp_nmatch = nmatch;
-							break;
-						}
-					/* FALLTHRU: applies also to ACL_STYLE_REGEX when pattern is "*" */
-
-					case ACL_STYLE_BASE:
-						tmp_matches[0].rm_so = 0;
-						tmp_matches[0].rm_eo = e->e_nname.bv_len;
-						tmp_nmatch = 1;
-						break;
-
-					case ACL_STYLE_ONE:
-					case ACL_STYLE_SUBTREE:
-					case ACL_STYLE_CHILDREN:
-						tmp_matches[0].rm_so = 0;
-						tmp_matches[0].rm_eo = e->e_nname.bv_len;
-						tmp_matches[1].rm_so = e->e_nname.bv_len - a->acl_dn_pat.bv_len;
-						tmp_matches[1].rm_eo = e->e_nname.bv_len;
-						tmp_nmatch = 2;
-						break;
-
-					default:
-						/* error */
-						rc = 1;
-						break;
-					}
-
-					if ( rc ) {
-						continue;
-					}
-
-					if ( string_expand( &bv, &b->a_dn_pat, 
-							e->e_nname.bv_val,
-							tmp_nmatch, tmp_matchesp ) )
-					{
-						continue;
-					}
-					
-					if ( dnNormalize(0, NULL, NULL, &bv,
-							&pat, op->o_tmpmemctx )
-							!= LDAP_SUCCESS )
-					{
-						/* did not expand to a valid dn */
-						continue;
-					}
-
-				} else {
-					pat = b->a_dn_pat;
-				}
-
-				patlen = pat.bv_len;
-				odnlen = op->o_ndn.bv_len;
-				if ( odnlen < patlen ) {
-					goto dn_match_cleanup;
-
-				}
-
-				if ( b->a_dn_style == ACL_STYLE_BASE ) {
-					/* base dn -- entire object DN must match */
-					if ( odnlen != patlen ) {
-						goto dn_match_cleanup;
-					}
-
-				} else if ( b->a_dn_style == ACL_STYLE_ONE ) {
-					int rdnlen = -1;
-
-					if ( odnlen <= patlen ) {
-						goto dn_match_cleanup;
-					}
-
-					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) ) {
-						goto dn_match_cleanup;
-					}
-
-					rdnlen = dn_rdnlen( NULL, &op->o_ndn );
-					if ( rdnlen != odnlen - patlen - 1 ) {
-						goto dn_match_cleanup;
-					}
-
-				} else if ( b->a_dn_style == ACL_STYLE_SUBTREE ) {
-					if ( odnlen > patlen && !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) ) {
-						goto dn_match_cleanup;
-					}
-
-				} else if ( b->a_dn_style == ACL_STYLE_CHILDREN ) {
-					if ( odnlen <= patlen ) {
-						goto dn_match_cleanup;
-					}
-
-					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) ) {
-						goto dn_match_cleanup;
-					}
-
-				} else if ( b->a_dn_style == ACL_STYLE_LEVEL ) {
-					int level;
-					struct berval ndn;
-
-					if ( odnlen <= patlen ) {
-						goto dn_match_cleanup;
-					}
-
-					if ( level > 0 && !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) )
-					{
-						goto dn_match_cleanup;
-					}
-					
-					level = b->a_dn_level;
-					ndn = op->o_ndn;
-					for ( ; level > 0; level-- ) {
-						if ( BER_BVISEMPTY( &ndn ) ) {
-							goto dn_match_cleanup;
-						}
-						dnParent( &ndn, &ndn );
-						if ( ndn.bv_len < patlen ) {
-							goto dn_match_cleanup;
-						}
-					}
-					
-					if ( ndn.bv_len != patlen ) {
-						goto dn_match_cleanup;
-					}
-				}
-
-				got_match = !strcmp( pat.bv_val, &op->o_ndn.bv_val[ odnlen - patlen ] );
-
-dn_match_cleanup:;
-				if ( pat.bv_val != b->a_dn_pat.bv_val ) {
-					slap_sl_free( pat.bv_val, op->o_tmpmemctx );
-				}
-
-				if ( !got_match ) {
-					continue;
-				}
+			if ( acl_mask_dn( op, e, a, nmatch, matches,
+				&b->a_realdn, &ndn ) )
+			{
+				continue;
 			}
 		}
 
@@ -1210,6 +1365,33 @@ dn_match_cleanup:;
 		}
 
 		if ( b->a_dn_at != NULL ) {
+			if ( acl_mask_dnattr( op, e, val, a, b, i,
+					matches, count, state,
+					&b->a_dn, &op->o_ndn ) )
+			{
+				continue;
+			}
+		}
+
+		if ( b->a_realdn_at != NULL ) {
+			struct berval	ndn;
+
+			if ( op->o_conn && !BER_BVISNULL( &op->o_conn->c_ndn ) ) {
+				ndn = op->o_conn->c_ndn;
+			} else {
+				ndn = op->o_ndn;
+			}
+
+			if ( acl_mask_dnattr( op, e, val, a, b, i,
+					matches, count, state,
+					&b->a_realdn, &ndn ) )
+			{
+				continue;
+			}
+		}
+
+#if 0
+		if ( b->a_dn_at != NULL ) {
 			Attribute	*at;
 			struct berval	bv;
 			int rc, match = 0;
@@ -1243,7 +1425,7 @@ dn_match_cleanup:;
 				}
 			}
 
-			if( match ) {
+			if ( match ) {
 				/* have a dnattr match. if this is a self clause then
 				 * the target must also match the op dn.
 				 */
@@ -1261,6 +1443,7 @@ dn_match_cleanup:;
 					if (rc != LDAP_SUCCESS || match != 0 )
 						continue;
 				}
+
 			} else {
 				/* no dnattr match, check if this is a self clause */
 				if ( ! b->a_dn_self )
@@ -1286,6 +1469,7 @@ dn_match_cleanup:;
 					continue;
 			}
 		}
+#endif
 
 		if ( !BER_BVISEMPTY( &b->a_group_pat ) ) {
 			struct berval bv;

@@ -1228,6 +1228,19 @@ typedef struct slap_dynacl_t {
 } slap_dynacl_t;
 #endif /* SLAP_DYNACL */
 
+/* the DN portion of the "by" part */
+typedef struct slap_dn_access {
+	/* DN pattern */
+	AuthorizationInformation	a_dnauthz;
+
+	slap_style_t		a_style;
+	int			a_level;
+	int			a_self_level;
+	AttributeDescription	*a_at;
+	int			a_self;
+	int 			a_expand;
+} slap_dn_access;
+
 /* the "by" part */
 typedef struct slap_access {
 	slap_control_t a_type;
@@ -1299,16 +1312,30 @@ typedef struct slap_access {
 
 	slap_mask_t	a_access_mask;
 
-	AuthorizationInformation	a_authz;
-#define a_dn_pat	a_authz.sai_dn
+	/* DN pattern */
+	slap_dn_access		a_dn;
+#define a_dn_pat		a_dn.a_dnauthz.sai_dn
+#define	a_dn_style		a_dn.a_style
+#define	a_dn_level		a_dn.a_level
+#define	a_dn_self_level		a_dn.a_self_level
+#define	a_dn_at			a_dn.a_at
+#define	a_dn_self		a_dn.a_self
+#define	a_dn_expand		a_dn.a_expand
 
-	slap_style_t a_dn_style;
-	int			a_dn_level;
-	int			a_dn_self_level;
-	AttributeDescription	*a_dn_at;
-	int			a_dn_self;
-	int 			a_dn_expand;
+	/* real DN pattern */
+	slap_dn_access		a_realdn;
+#define a_realdn_pat		a_realdn.a_dnauthz.sai_dn
+#define	a_realdn_style		a_realdn.a_style
+#define	a_realdn_level		a_realdn.a_level
+#define	a_realdn_self_level	a_realdn.a_self_level
+#define	a_realdn_at		a_realdn.a_at
+#define	a_realdn_self		a_realdn.a_self
+#define	a_realdn_expand		a_realdn.a_expand
 
+#define	a_authz			a_dn.a_dnauthz
+#define	a_pat			a_dnauthz.sai_dn
+
+	/* connection related stuff */
 	slap_style_t a_peername_style;
 	struct berval	a_peername_pat;
 	unsigned long	a_peername_addr,
