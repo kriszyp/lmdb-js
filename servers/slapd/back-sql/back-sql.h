@@ -369,7 +369,7 @@ typedef struct {
 #ifdef BACKSQL_ARBITRARY_KEY
 #define BACKSQL_BASEOBJECT_IDSTR	"baseObject"
 #define BACKSQL_BASEOBJECT_KEYVAL	BACKSQL_BASEOBJECT_IDSTR
-#define	BACKSQL_IS_BASEOBJECT_ID(id)	(bvmatch((id), &backsql_baseObject_bv)
+#define	BACKSQL_IS_BASEOBJECT_ID(id)	(bvmatch((id), &backsql_baseObject_bv))
 #else /* ! BACKSQL_ARBITRARY_KEY */
 #define BACKSQL_BASEOBJECT_ID		0
 #define BACKSQL_BASEOBJECT_IDSTR	"0"
