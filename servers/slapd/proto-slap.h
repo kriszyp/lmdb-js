@@ -277,7 +277,7 @@ char * phonetic LDAP_P(( char *s ));
  * repl.c
  */
 
-void replog LDAP_P(( Backend *be, int optype, char *dn, void *change, int flag ));
+void replog LDAP_P(( Backend *be, Operation *op, char *dn, void *change ));
 
 /*
  * result.c

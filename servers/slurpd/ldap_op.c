@@ -350,9 +350,12 @@ op_ldap_delete(
 /*
  * Perform an ldap modrdn operation.
  */
-#define	GOT_NEWRDN		1
-#define	GOT_DRDNFLAGSTR		2
-#define	GOT_ALLNEWRDNFLAGS	( GOT_NEWRDN | GOT_DRDNFLAGSTR )
+#define	GOT_NEWRDN		0x1
+#define	GOT_DELOLDRDN	0x2
+#define GOT_NEWSUP		0x4
+
+#define GOT_MODDN_REQ	(GOT_NEWRDN|GOT_DELOLDRDN)
+#define	GOT_ALL_MODDN(f)	(((f) & GOT_MODDN_REQ) == GOT_MODDN_REQ)
 static int
 op_ldap_modrdn(
     Ri		*ri,
@@ -367,6 +370,7 @@ op_ldap_modrdn(
     int		state = 0;
     int		drdnflag = -1;
     char	*newrdn;
+	char	*newsup = NULL;
 
     if ( re->re_mods == NULL ) {
 	*errmsg = "No arguments given";
@@ -380,10 +384,27 @@ op_ldap_modrdn(
      */
     for ( mi = re->re_mods, i = 0; mi[ i ].mi_type != NULL; i++ ) {
 	if ( !strcmp( mi[ i ].mi_type, T_NEWRDNSTR )) {
+		if( state & GOT_NEWRDN ) {
+		Debug( LDAP_DEBUG_ANY,
+			"Error: op_ldap_modrdn: multiple newrdn arg \"%s\"\n",
+			mi[ i ].mi_val, 0, 0 );
+		*errmsg = "Multiple newrdn argument";
+		return -1;
+		}
+
 	    newrdn = mi[ i ].mi_val;
 	    state |= GOT_NEWRDN;
-	} else if ( !strcmp( mi[ i ].mi_type, T_DRDNFLAGSTR )) {
-	    state |= GOT_DRDNFLAGSTR;
+
+	} else if ( !strcmp( mi[ i ].mi_type, T_DELOLDRDNSTR )) {
+		if( state & GOT_DELOLDRDN ) {
+		Debug( LDAP_DEBUG_ANY,
+			"Error: op_ldap_modrdn: multiple deleteoldrdn arg \"%s\"\n",
+			mi[ i ].mi_val, 0, 0 );
+		*errmsg = "Multiple newrdn argument";
+		return -1;
+		}
+
+	    state |= GOT_DELOLDRDN;
 	    if ( !strcmp( mi[ i ].mi_val, "0" )) {
 		drdnflag = 0;
 	    } else if ( !strcmp( mi[ i ].mi_val, "1" )) {
@@ -395,6 +416,19 @@ op_ldap_modrdn(
 		*errmsg = "Incorrect argument to deleteoldrdn";
 		return -1;
 	    }
+
+	} else if ( !strcmp( mi[ i ].mi_type, T_NEWSUPSTR )) {
+		if( state & GOT_NEWSUP ) {
+		Debug( LDAP_DEBUG_ANY,
+			"Error: op_ldap_modrdn: multiple newsuperior arg \"%s\"\n",
+			mi[ i ].mi_val, 0, 0 );
+		*errmsg = "Multiple newrdn argument";
+		return -1;
+		}
+
+		newrdn = mi[ i ].mi_val;
+	    state |= GOT_NEWSUP;
+
 	} else {
 	    Debug( LDAP_DEBUG_ANY, "Error: op_ldap_modrdn: bad type \"%s\"\n",
 		    mi[ i ].mi_type, 0, 0 );
@@ -406,7 +440,7 @@ op_ldap_modrdn(
     /*
      * Punt if we don't have all the args.
      */
-    if ( state != GOT_ALLNEWRDNFLAGS ) {
+    if ( GOT_ALL_MODDN(state) ) {
 	Debug( LDAP_DEBUG_ANY, "Error: op_ldap_modrdn: missing arguments\n",
 		0, 0, 0 );
 	*errmsg = "Missing argument: requires \"newrdn\" and \"deleteoldrdn\"";
@@ -429,7 +463,7 @@ op_ldap_modrdn(
 #endif /* LDAP_DEBUG */
 
     /* Do the modrdn */
-    rc = ldap_modrdn2_s( ri->ri_ldp, re->re_dn, mi->mi_val, drdnflag );
+    rc = ldap_rename2_s( ri->ri_ldp, re->re_dn, mi->mi_val, drdnflag, newsup );
 
 	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &lderr);
     return( lderr );

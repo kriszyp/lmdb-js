@@ -229,12 +229,13 @@ get_record(
 
     while (( fgets( line, sizeof(line), fp ) != NULL ) &&
 	    (( len = strlen( line )) > 1 )) {
-	while ( lcur + len + 1 > lmax ) {
-	    lmax += BUFSIZ;
-	    buf = (char *) ch_realloc( buf, lmax );
-	}
-	strcpy( buf + lcur, line );
-	lcur += len;
+
+		while ( lcur + len + 1 > lmax ) {
+		    lmax += BUFSIZ;
+		    buf = (char *) ch_realloc( buf, lmax );
+		}
+		strcpy( buf + lcur, line );
+		lcur += len;
     }
     return( buf );
 }

@@ -46,14 +46,11 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-cat /dev/null > $TESTOUT
-
-
 # -r used to do remove of old rdn
 
 echo "Testing modrdn(deleteoldrdn=0)..."
 $LDAPMODRDN -v -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD > \
-	/dev/null 2>&1 'cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US' 'cn=James A Jones III'
+	$TESTOUT 2>&1 'cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US' 'cn=James A Jones III'
 
 RC=$?
 if test $RC != 0 ; then
@@ -63,8 +60,8 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing modrdn(deleteoldrdn=1)..."
-$LDAPMODRDN -v -D "$MANAGERDN" -r -h localhost -p $PORT -w $PASSWD > \
-	/dev/null 2>&1 'cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US' 'cn=James A Jones II'
+$LDAPMODRDN -v -D "$MANAGERDN" -r -h localhost -p $PORT -w $PASSWD >> \
+	$TESTOUT 2>&1 'cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US' 'cn=James A Jones II'
 
 RC=$?
 if test $RC != 0 ; then

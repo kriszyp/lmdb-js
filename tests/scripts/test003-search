@@ -85,7 +85,6 @@ fi
 
 kill -HUP $PID
 
-TESTOUT=$SEARCHOUT
 LDIF=$SEARCHOUTMASTER
 
 echo "Filtering ldapsearch results..."

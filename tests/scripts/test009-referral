@@ -105,7 +105,6 @@ fi
 
 kill -HUP $PID $SLAVEPID
 
-TESTOUT=$SEARCHOUT
 LDIF=$SEARCHOUTMASTER
 
 echo "Filtering ldapsearch results..."

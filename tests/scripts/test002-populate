@@ -33,7 +33,7 @@ done
 
 echo "Using ldapadd to populate the database..."
 $LDAPADD -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD < \
-	$LDIFORDERED > /dev/null 2>&1
+	$LDIFORDERED > $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapadd failed!"

@@ -87,7 +87,7 @@ echo "Using ldapmodify to modify slave directory..."
 #
 
 $LDAPMODIFY -v -D "$MANAGERDN" -h localhost -p $SLAVEPORT -w $PASSWD > \
-	/dev/null 2>&1 << EOMODS
+	$TESTOUT 2>&1 << EOMODS
 dn: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
 changetype: modify
 add: drink

@@ -227,10 +227,13 @@ do_modrdn(
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
 		{
 			if ( (*be->be_modrdn)( be, conn, op, ndn, newrdn,
-			    deloldrdn, newSuperior ) == 0 ) {
-			        /* XXX: MAY NEED TO ADD newSuperior HERE */
-				replog( be, LDAP_REQ_MODRDN, ndn, newrdn,
-				    deloldrdn );
+			    deloldrdn, newSuperior ) == 0 )
+			{
+				struct replog_moddn moddn;
+			    moddn.newrdn = newrdn;
+				moddn.deloldrdn = deloldrdn;
+				moddn.newsup = newSuperior;
+				replog( be, op, ndn, &moddn );
 			}
 		} else {
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,

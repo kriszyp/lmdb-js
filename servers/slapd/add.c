@@ -169,7 +169,7 @@ do_add( Connection *conn, Operation *op )
 			}
 
 			if ( (*be->be_add)( be, conn, op, e ) == 0 ) {
-				replog( be, LDAP_REQ_ADD, e->e_dn, e, 0 );
+				replog( be, op, e->e_dn, e );
 				be_entry_release_w( be, e );
 			}
 

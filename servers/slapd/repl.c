@@ -18,15 +18,15 @@
 void
 replog(
     Backend	*be,
-    int		optype,
+    Operation *op,
     char	*dn,
-    void	*change,
-    int		flag
+    void	*change
 )
 {
 	LDAPModList	*ml;
 	Entry	*e;
-	char	*newrdn, *tmp;
+	struct replog_moddn *moddn;
+	char *tmp;
 	FILE	*fp, *lfp;
 	int	len, i;
 
@@ -48,7 +48,7 @@ replog(
 	fprintf( fp, "time: %ld\n", (long) slap_get_time() );
 	fprintf( fp, "dn: %s\n", dn );
 
-	switch ( optype ) {
+	switch ( op->o_tag ) {
 	case LDAP_REQ_MODIFY:
 		fprintf( fp, "changetype: modify\n" );
 		ml = change;
@@ -109,10 +109,13 @@ replog(
 		break;
 
 	case LDAP_REQ_MODRDN:
-		newrdn = change;
+		moddn = change;
 		fprintf( fp, "changetype: modrdn\n" );
-		fprintf( fp, "newrdn: %s\n", newrdn );
-		fprintf( fp, "deleteoldrdn: %d\n", flag ? 1 : 0 );
+		fprintf( fp, "newrdn: %s\n", moddn->newrdn );
+		fprintf( fp, "deleteoldrdn: %d\n", moddn->deloldrdn ? 1 : 0 );
+		if( moddn->newsup != NULL ) {
+			fprintf( fp, "newsuperior: %s\n", moddn->newsup );
+		}
 	}
 	fprintf( fp, "\n" );
 

@@ -65,7 +65,7 @@ $LDAPSEARCH -L -b "$JAJDN" -h localhost -p $PORT \
 # we add our own DN.
 # bjensen
 $LDAPMODIFY -D "$JAJDN" -h localhost -p $PORT -w jaj > \
-	/dev/null 2>&1 << EOMODS1
+	$TESTOUT 2>&1 << EOMODS1
 dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
 changetype: modify
 add: member
@@ -73,13 +73,13 @@ member: cn=Barbara Jensen, ou=Information Technology Division, ou=People, o=Univ
 
 EOMODS1
 
-$LDAPMODIFY -D "$JAJDN" -h localhost -p $PORT -w jaj > \
-	/dev/null 2>&1 << EOMODS2
+$LDAPMODIFY -D "$JAJDN" -h localhost -p $PORT -w jaj >> \
+	$TESTOUT 2>&1 << EOMODS2
+
 dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
 changetype: modify
 add: member
 member: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
-
 EOMODS2
 
 #
@@ -87,21 +87,21 @@ EOMODS2
 # 1) bound as "James A Jones 1" - should fail
 # 2) bound as "Barbara Jensen" - should succeed
 #
-$LDAPMODIFY -D "$JAJDN" -h localhost -p $PORT -w jaj > \
-	/dev/null 2>&1 << EOMODS3
+$LDAPMODIFY -D "$JAJDN" -h localhost -p $PORT -w jaj >> \
+	$TESTOUT 2>&1 << EOMODS3
+
 dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
 changetype: modify
 delete: member
 
 EOMODS3
 
-$LDAPMODIFY -D "$BJORNSDN" -h localhost -p $PORT -w bjorn > \
-	/dev/null 2>&1 << EOMODS4
+$LDAPMODIFY -D "$BJORNSDN" -h localhost -p $PORT -w bjorn >> \
+	$TESTOUT 2>&1 << EOMODS4
 dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
 changetype: modify
 add: telephonenumber
 telephonenumber: +1 810 555 1212
-
 EOMODS4
 
 echo "Using ldapsearch to retrieve all the entries..."

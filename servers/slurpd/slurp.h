@@ -89,6 +89,8 @@
 #define	T_DELETECTSTR		"delete"
 #define	T_DELETECT		6
 #define	T_MODRDNCTSTR		"modrdn"
+#define	T_MODDNCTSTR		"moddn"
+#define	T_RENAMECTSTR		"rename"
 #define	T_MODRDNCT		7
 
 #define	T_MODOPADDSTR		"add"
@@ -101,7 +103,8 @@
 #define	T_MODSEP		11
 
 #define	T_NEWRDNSTR		"newrdn"
-#define	T_DRDNFLAGSTR		"deleteoldrdn"
+#define	T_DELOLDRDNSTR	"deleteoldrdn"
+#define T_NEWSUPSTR		"newsuperior"
 
 #define	T_ERR			-1
 

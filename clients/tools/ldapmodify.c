@@ -48,12 +48,15 @@ static LDAP	*ld;
 #define T_MODIFYCTSTR		"modify"
 #define T_DELETECTSTR		"delete"
 #define T_MODRDNCTSTR		"modrdn"
+#define T_MODDNCTSTR		"moddn"
+#define T_RENAMECTSTR		"rename"
 #define T_MODOPADDSTR		"add"
 #define T_MODOPREPLACESTR	"replace"
 #define T_MODOPDELETESTR	"delete"
 #define T_MODSEPSTR		"-"
 #define T_NEWRDNSTR		"newrdn"
 #define T_DELETEOLDRDNSTR	"deleteoldrdn"
+#define T_NEWSUPSTR		"newsuperior"
 
 
 static void usage LDAP_P(( const char *prog ));
@@ -293,9 +296,10 @@ main( int argc, char **argv )
 	 * has a colon that appears to the left of any equal signs, OR
 	 * if the first line consists entirely of digits (an entry id)
 	 */
-	use_ldif = ( p = strchr( rbuf, ':' )) != NULL &&
-		( q = strchr( rbuf, '\n' )) != NULL && p < q &&
-		(( q = strchr( rbuf, '=' )) == NULL || p < q );
+	use_ldif = ( *rbuf == '#' ) ||
+		(( p = strchr( rbuf, ':' )) != NULL &&
+		(  q = strchr( rbuf, '\n' )) != NULL && p < q &&
+		(( q = strchr( rbuf, '=' )) == NULL || p < q ));
 
 	start = rbuf;
 
@@ -335,9 +339,9 @@ main( int argc, char **argv )
 static int
 process_ldif_rec( char *rbuf )
 {
-    char	*line, *dn, *type, *value, *newrdn, *p;
+    char	*line, *dn, *type, *value, *newrdn, *newsup, *p;
     int		rc, linenum, vlen, modop, replicaport;
-    int		expect_modop, expect_sep, expect_ct, expect_newrdn;
+    int		expect_modop, expect_sep, expect_ct, expect_newrdn, expect_newsup;
     int		expect_deleteoldrdn, deleteoldrdn;
     int		saw_replica, use_record, new_entry, delete_entry, got_all;
     LDAPMod	**pmods;
@@ -345,12 +349,13 @@ process_ldif_rec( char *rbuf )
     new_entry = new;
 
     rc = got_all = saw_replica = delete_entry = expect_modop = 0;
-    expect_deleteoldrdn = expect_newrdn = expect_sep = expect_ct = 0;
+    expect_deleteoldrdn = expect_newrdn = expect_newsup = 0;
+	expect_sep = expect_ct = 0;
     linenum = 0;
     deleteoldrdn = 1;
     use_record = force;
     pmods = NULL;
-    dn = newrdn = NULL;
+    dn = newrdn = newsup = NULL;
 
     while ( rc == 0 && ( line = ldif_getline( &rbuf )) != NULL ) {
 	++linenum;
@@ -405,7 +410,10 @@ process_ldif_rec( char *rbuf )
 			expect_modop = 1;
 		} else if ( strcasecmp( value, T_ADDCTSTR ) == 0 ) {
 			new_entry = 1;
-		} else if ( strcasecmp( value, T_MODRDNCTSTR ) == 0 ) {
+		} else if ( strcasecmp( value, T_MODRDNCTSTR ) == 0
+			|| strcasecmp( value, T_MODDNCTSTR ) == 0
+			|| strcasecmp( value, T_RENAMECTSTR ) == 0)
+		{
 		    expect_newrdn = 1;
 		} else if ( strcasecmp( value, T_DELETECTSTR ) == 0 ) {
 		    got_all = delete_entry = 1;
@@ -458,10 +466,24 @@ process_ldif_rec( char *rbuf )
 	} else if ( expect_deleteoldrdn ) {
 	    if ( strcasecmp( type, T_DELETEOLDRDNSTR ) == 0 ) {
 		deleteoldrdn = ( *value == '0' ) ? 0 : 1;
+		expect_deleteoldrdn = 0;
+		expect_newsup = 1;
 		got_all = 1;
 	    } else {
 		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry %s)\n",
 			prog, T_DELETEOLDRDNSTR, type, linenum, dn );
+		rc = LDAP_PARAM_ERROR;
+	    }
+	} else if ( expect_newsup ) {
+	    if ( strcasecmp( type, T_NEWSUPSTR ) == 0 ) {
+		if (( newsup = strdup( value )) == NULL ) {
+		    perror( "strdup" );
+		    exit( 1 );
+		}
+		expect_newsup = 0;
+	    } else {
+		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry %s)\n",
+			prog, T_NEWSUPSTR, type, linenum, dn );
 		rc = LDAP_PARAM_ERROR;
 	    }
 	} else if ( got_all ) {
@@ -473,6 +495,10 @@ process_ldif_rec( char *rbuf )
 	    addmodifyop( &pmods, modop, type, value, vlen );
 	}
     }
+
+	if( linenum == 0 ) {
+		return 0;
+	}
 
     if ( rc == 0 ) {
 	if ( delete_entry ) {
@@ -856,25 +882,35 @@ fromfile( char *path, struct berval *bv )
 static char *
 read_one_record( FILE *fp )
 {
-    int         len;
     char        *buf, line[ LDAPMOD_MAXLINE ];
     int		lcur, lmax;
 
     lcur = lmax = 0;
     buf = NULL;
 
-    while (( fgets( line, sizeof(line), fp ) != NULL ) &&
-            (( len = strlen( line )) > 1 )) {
-        if ( lcur + len + 1 > lmax ) {
-            lmax = LDAPMOD_MAXLINE
-		    * (( lcur + len + 1 ) / LDAPMOD_MAXLINE + 1 );
-	    if (( buf = (char *)realloc( buf, lmax )) == NULL ) {
-		perror( "realloc" );
-		exit( 1 );
-	    }
-        }
-        strcpy( buf + lcur, line );
-        lcur += len;
+    while ( fgets( line, sizeof(line), fp ) != NULL ) {
+    	int len = strlen( line );
+
+		if( len < 2 ) {
+			if( buf == NULL ) {
+				continue;
+			} else {
+				break;
+			}
+		}
+
+		if ( lcur + len + 1 > lmax ) {
+			lmax = LDAPMOD_MAXLINE
+				* (( lcur + len + 1 ) / LDAPMOD_MAXLINE + 1 );
+
+			if (( buf = (char *)realloc( buf, lmax )) == NULL ) {
+				perror( "realloc" );
+				exit( 1 );
+			}
+		}
+
+		strcpy( buf + lcur, line );
+		lcur += len;
     }
 
     return( buf );

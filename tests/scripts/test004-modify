@@ -45,12 +45,14 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-cat /dev/null > $TESTOUT
-
 echo "Testing modify, add, and delete..."
 $LDAPMODIFY -v -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD > \
-	/dev/null 2>&1 << EOMODS
+	$TESTOUT 2>&1 << EOMODS
+
+# LEADING COMMENT AND WHITE SPACE
+
 dn: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+# EMBEDDED COMMENT
 changetype: modify
 add: drink
 drink: Orange Juice
@@ -102,6 +104,7 @@ homephone: +1 313 555 8844
 
 dn: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
 changetype: delete
+# TRAILING COMMENT AND WHITE SPACE
 
 EOMODS
 
@@ -137,6 +140,5 @@ if test $? != 0 ; then
 fi
 
 echo ">>>>> Test succeeded"
-
 
 exit 0

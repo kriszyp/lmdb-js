@@ -95,6 +95,12 @@ extern int slap_debug;
 struct slap_op;
 struct slap_conn;
 
+struct replog_moddn {
+	char *newrdn;
+	int	deloldrdn;
+	char *newsup;
+};
+
 /*
  * represents an attribute value assertion (i.e., attr=value)
  */

@@ -204,7 +204,7 @@ do_modify(
 			}
 
 			if ( (*be->be_modify)( be, conn, op, ndn, modlist ) == 0 ) {
-				replog( be, LDAP_REQ_MODIFY, ndn, modlist, 0 );
+				replog( be, op, ndn, modlist );
 			}
 
 		/* send a referral */

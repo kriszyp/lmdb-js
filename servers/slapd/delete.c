@@ -96,7 +96,7 @@ do_delete(
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
 		{
 			if ( (*be->be_delete)( be, conn, op, ndn ) == 0 ) {
-				replog( be, LDAP_REQ_DELETE, ndn, NULL, 0 );
+				replog( be, op, ndn, NULL );
 			}
 		} else {
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
