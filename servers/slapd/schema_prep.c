@@ -1,4 +1,4 @@
-/* schema_init.c - init builtin schema */
+/* schema_prep.c - load builtin schema */
 /* $OpenLDAP$ */
 /*
  * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
