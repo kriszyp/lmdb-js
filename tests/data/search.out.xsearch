@@ -115,6 +115,19 @@ dn: ou=Information Technology Division,ou=People,o=University of Michigan,c=US
 objectClass: organizationalUnit
 ou: Information Technology Division
 
+dn: cn=ITD Staff,ou=Groups,o=University of Michigan,c=US
+owner: cn=Manager,o=University of Michigan,c=US
+description: All ITD Staff
+cn: ITD Staff
+objectClass: groupOfUniqueNames
+uniqueMember: cn=Manager,o=University of Michigan,c=US
+uniqueMember: cn=Bjorn Jensen,ou=Information Technology Division,ou=PEOPLE,o=U
+ niversity of Michigan,c=US
+uniqueMember: cn=James A Jones 2,ou=Information Technology Division,ou=PEOPLE,
+ o=University of Michigan,c=US
+uniqueMember: cn=John Doe,ou=Information Technology Division,ou=People,o=Unive
+ rsity of Michigan,c=US
+
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Michiga
  n,c=US
 objectClass: OpenLDAPperson
