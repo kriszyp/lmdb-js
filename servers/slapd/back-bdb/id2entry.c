@@ -291,7 +291,7 @@ dn2entry_retry:
 		ldap_pvt_thread_yield();
 		goto dn2entry_retry;
 	default:
-		boi->boi_err = rc;
+		if ( boi ) boi->boi_err = rc;
 		if ( free_lock_id ) {
 			LOCK_ID_FREE( bdb->bi_dbenv, locker );
 		}
