@@ -112,7 +112,7 @@ bdb_exop_passwd(
 retry:	/* transaction retry */
 		if ( e != NULL ) {
 			bdb_cache_delete_entry(&bdb->bi_cache, e);
-			bdb_cache_return_entry_w(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG ( ACL, DETAIL1, "bdb_exop_passwd: retrying...\n", 0, 0, 0 );
@@ -264,7 +264,7 @@ retry:	/* transaction retry */
 
 done:
 	if( e != NULL ) {
-		bdb_cache_return_entry_w( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
+		bdb_unlocked_cache_return_entry_w( &bdb->bi_cache, e );
 	}
 		
 	if( hash.bv_val != NULL ) {

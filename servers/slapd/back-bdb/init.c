@@ -635,7 +635,14 @@ bdb_initialize(
 	bi->bi_op_search = bdb_search;
 
 	bi->bi_op_unbind = 0;
+
+#ifdef LDAP_CLIENT_UPDATE
+	bi->bi_op_abandon = bdb_abandon;
+	bi->bi_op_cancel = bdb_cancel;
+#else
 	bi->bi_op_abandon = 0;
+	bi->bi_op_cancel = 0;
+#endif
 
 	bi->bi_extended = bdb_extended;
 
