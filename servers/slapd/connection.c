@@ -1203,6 +1203,7 @@ int connection_read(ber_socket_t s)
 
 			authid = dnX509peerNormalize( ssl );
 			slap_sasl_external( c, c->c_tls_ssf, authid );
+			if ( authid )	free( authid );
 		}
 		connection_return( c );
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
