@@ -301,7 +301,7 @@ main( int argc, char **argv )
 
 	ch_free( buf );
 
-	be->be_entry_close( be );
+	if( be->be_entry_close( be )) rc = EXIT_FAILURE;
 
 	if( be->be_sync ) {
 		be->be_sync( be );

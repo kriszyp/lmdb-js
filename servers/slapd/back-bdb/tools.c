@@ -15,6 +15,16 @@
 static DBC *cursor = NULL;
 static DBT key, data;
 
+typedef struct dn_id {
+	ID id;
+	struct berval dn;
+} dn_id;
+
+#define	HOLE_SIZE	4096
+dn_id hbuf[HOLE_SIZE], *holes = hbuf;
+unsigned nhmax = HOLE_SIZE;
+unsigned nholes;
+
 int bdb_tool_entry_open(
 	BackendDB *be, int mode )
 {
@@ -46,6 +56,16 @@ int bdb_tool_entry_close(
 		cursor = NULL;
 	}
 
+	if( nholes ) {
+		unsigned i;
+		fprintf( stderr, "Error, entries missing!\n");
+		for (i=0; i<nholes; i++) {
+			fprintf(stderr, "  entry %d: %s\n",
+				holes[i].id, holes[i].dn.bv_val, 0);
+		}
+		return -1;
+	}
+			
 	return 0;
 }
 
@@ -112,7 +132,8 @@ int bdb_tool_next_id(
 	BackendDB *be,
 	DB_TXN *tid,
 	Entry *e,
-	struct berval *text )
+	struct berval *text,
+	int hole )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct berval dn = e->e_nname;
@@ -126,7 +147,7 @@ int bdb_tool_next_id(
 		} else {
 			dnParent( &dn, &pdn );
 			e->e_nname = pdn;
-			rc = bdb_tool_next_id( be, tid, e, text );
+			rc = bdb_tool_next_id( be, tid, e, text, 1 );
 			if ( rc ) {
 				return rc;
 			}
@@ -158,6 +179,33 @@ int bdb_tool_next_id(
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
 #endif
+		} else if ( hole ) {
+			if ( nholes == nhmax - 1 ) {
+				if ( holes == hbuf ) {
+					holes = malloc( nhmax * sizeof(ID) * 2 );
+					AC_MEMCPY( holes, hbuf, sizeof(hbuf) );
+				} else {
+					holes = realloc( holes, nhmax * sizeof(ID) * 2 );
+				}
+				nhmax *= 2;
+			}
+			ber_dupbv( &holes[nholes].dn, &dn );
+			holes[nholes++].id = e->e_id;
+		}
+	} else if ( !hole ) {
+		unsigned i;
+
+		for ( i=0; i<nholes; i++) {
+			if ( holes[i].id == e->e_id ) {
+				int j;
+				free(holes[i].dn.bv_val);
+				for (j=i;j<nholes;j++) holes[j] = holes[j+1];
+				holes[j].id = 0;
+				nholes--;
+				break;
+			} else if ( holes[i].id > e->e_id ) {
+				break;
+			}
 		}
 	}
 	return rc;
@@ -205,7 +253,7 @@ ID bdb_tool_entry_put(
 	}
 
 	/* add dn2id indices */
-	rc = bdb_tool_next_id( be, tid, e, text );
+	rc = bdb_tool_next_id( be, tid, e, text, 0 );
 	if( rc != 0 ) {
 		goto done;
 	}
