@@ -378,7 +378,7 @@ Rq_getcount(
 	for ( re = rq->rq_gethead( rq ); re != NULL;
 		re = rq->rq_getnext( re )) {
 	    if ( type == RQ_COUNT_NZRC ) {
-		if ( re->re_getrefcnt( re ) > 1 ) {
+		if ( re->re_getrefcnt( re ) > 0 ) {
 		    count++;
 		}
 	    }
