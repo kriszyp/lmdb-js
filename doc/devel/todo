@@ -28,7 +28,6 @@ OpenLDAP 2.0 Projects
 	client API update
 		Implement LDAP errno draft (deferred)
 		Implement per referral callback
-		Update SASL API to support callbacks and/or prompting
 	clients
 		Update clients to use above SASL API
 		use _ext API, avoid deprecated routines
@@ -40,11 +39,9 @@ OpenLDAP 2.0 Projects
 
 Large projects
 --------------
-Redesign slapd threading (thread pooling)
-Redesign slapd caching
-Redesign slapd memory allocation fault handling
-Modify -lldap to be session-level thread support (ldap_dup)
 Implement slapd backend w/ transaction support
+Modify -lldap to be session-level thread support (ldap_dup)
+Redesign slapd memory allocation fault handling
 Perform a security audit (and fix any hole found)
 
 
@@ -55,20 +52,17 @@ Modify -lldap to be reentrant/threadsafe
 	implement LDAP concurrency draft
 Modify libraries to use application specified logging routines
 Modify servers to use reentrant library functions
-Extend slapd to support identd (RFC1413) information in ACLs
 Extend slapd to support per-backend schema
 Port slurpd to NT
 
 
 Small projects
 --------------
-Add IPSEC SASL/EXTERNAL support
 Add tests to test suite (ACI, moddn, manageDSAit, subtyping, etc.)
 Add compare of RootDSE, cn=subschema, etc.
 Add user configurable attributes to RootDSE
+Create ldapcompare (from ldapsearch) to support compare operations
 Create ldapquery (from ldapsearch?) to support searching using ldap_getfilter(3)
-Extend gateways to support tcp_wrappers
-Extend slapd/tcp_wrapper to support identd
 Extend mail500 (and other daemons) to use ldap_getfilter(3)
 Add useful information to our FAQ http://www.openldap.org/faq/
 Update any manual page
