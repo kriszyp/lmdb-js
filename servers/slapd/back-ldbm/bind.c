@@ -103,6 +103,11 @@ ldbm_back_bind(
 #endif
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		send_ldap_result( op, rs );
+#ifdef LDAP_SYNCREPL
+		rc = LDAP_INVALID_CREDENTIALS;
+#else
+		rc = 1;
+#endif
 		goto return_results;
 	}
 #endif
