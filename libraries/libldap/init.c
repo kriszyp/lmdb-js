@@ -267,6 +267,8 @@ void openldap_ldap_initialize( void )
 	gopts.ldo_timelimit = LDAP_NO_LIMIT;
 	gopts.ldo_sizelimit = LDAP_NO_LIMIT;
 
+	/* we leak this string... we should have an at_exit()
+	 * handler to free this */
 	gopts.ldo_defhost = ldap_strdup("localhost");
 	gopts.ldo_defport = LDAP_PORT;
 
