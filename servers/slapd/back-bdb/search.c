@@ -741,11 +741,11 @@ static int search_candidates(
 #endif
 
 	/* Allocate IDL stack, plus 1 more for former tmp */
-	stack = malloc( (depth + 1) * BDB_IDL_UM_SIZE * sizeof( ID ) );
+	stack = ch_malloc( (depth + 1) * BDB_IDL_UM_SIZE * sizeof( ID ) );
 
 	rc = bdb_filter_candidates( be, &f, ids, stack, stack+BDB_IDL_UM_SIZE );
 
-	free( stack );
+	ch_free( stack );
 
 	if( rc ) {
 #ifdef NEW_LOGGING
