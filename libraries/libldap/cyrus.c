@@ -650,7 +650,7 @@ ldap_int_sasl_bind(
 				(SASL_CONST char **)&ccred.bv_val,
 				&credlen );
 
-			Debug( LDAP_DEBUG_TRACE, "sasl_client_start: %d\n",
+			Debug( LDAP_DEBUG_TRACE, "sasl_client_step: %d\n",
 				saslrc, 0, 0 );
 
 #if SASL_VERSION_MAJOR >= 2
