@@ -517,6 +517,33 @@ if test "${ol_cv_mkdep}" = no ; then
 	AC_MSG_WARN([do not know how to generate dependencies])
 fi
 
+dnl
+dnl Check for module support
+dnl
+ol_link_modules=no
+if test $ol_enable_modules != no ; then
+	AC_CHECK_HEADERS(ltdl.h)
+
+	if test $ac_cv_header_ltdl_h = no ; then
+		AC_MSG_ERROR([could not locate libtool ltdl.h])
+
+	fi
+
+	AC_CHECK_LIB(ltdl, lt_dlinit)
+	if test "$ac_cv_lib_ltdl_lt_dlinit" = no ; then
+		AC_MSG_ERROR([could not locate libtool -lltdl])
+	fi
+	ol_link_modules=yes
+else
+	ol_with_bdb2_module=static
+	ol_with_ldap_module=static
+	ol_with_ldbm_module=static
+	ol_with_passwd_module=static
+	ol_with_perl_module=static
+	ol_with_shell_module=static
+	ol_with_tcl_module=static
+fi
+
 dnl ----------------------------------------------------------------
 dnl Checks for header files.
 OL_HEADER_STDC
@@ -1914,7 +1941,7 @@ if test "$ol_enable_rlookups" != no ; then
 	AC_DEFINE(SLAPD_RLOOKUPS,1,[define to support reverse lookups])
 fi
 
-if test "$ol_enable_modules" != no ; then
+if test "$ol_link_modules" != no ; then
 	AC_DEFINE(SLAPD_MODULES,1,[define to support modules])
 	BUILD_SLAPD=yes
 	MODULES_LIBS=-lltdl
