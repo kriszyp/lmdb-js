@@ -251,9 +251,10 @@ retry:	/* transaction retry */
 			matched = NULL;
 
 		} else {
-			BerVarray deref = op->o_bd->syncinfo ?
-							  op->o_bd->syncinfo->provideruri_bv : default_referral;
-			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
+			BerVarray deref = op->o_bd->be_syncinfo ?
+				op->o_bd->be_syncinfo->si_provideruri_bv : default_referral;
+			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn,
+				LDAP_SCOPE_DEFAULT );
 		}
 
 		rs->sr_err = LDAP_REFERRAL;
@@ -471,8 +472,9 @@ retry:	/* transaction retry */
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_lastid_mutex );
 #endif
 
-	if ( !op->o_bd->syncinfo ) {
-		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei, &ctxcsn_e, &ctxcsn_added, locker );
+	if ( !op->o_bd->be_syncinfo ) {
+		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei,
+			&ctxcsn_e, &ctxcsn_added, locker );
 		switch ( rc ) {
 		case BDB_CSN_ABORT :
 			goto return_results;
@@ -492,9 +494,10 @@ retry:	/* transaction retry */
 		bdb_cache_delete( &bdb->bi_cache, e, bdb->bi_dbenv,
 			locker, &lock );
 
-		if ( !op->o_bd->syncinfo ) {
+		if ( !op->o_bd->be_syncinfo ) {
 			if ( ctxcsn_added ) {
-				bdb_cache_add( bdb, suffix_ei, ctxcsn_e, (struct berval *)&slap_ldapsync_cn_bv, locker );
+				bdb_cache_add( bdb, suffix_ei,
+					ctxcsn_e, (struct berval *)&slap_ldapsync_cn_bv, locker );
 			}
 		}
 

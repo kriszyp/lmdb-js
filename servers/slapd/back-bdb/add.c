@@ -436,7 +436,7 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	if ( !op->o_bd->syncinfo ) {
+	if ( !op->o_bd->be_syncinfo ) {
 		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei,
 			&ctxcsn_e, &ctxcsn_added, locker );
 		switch ( rc ) {
@@ -481,7 +481,7 @@ retry:	/* transaction retry */
 				suffix_ei = op->oq_add.rs_e->e_private;
 			}
 
-			if ( !op->o_bd->syncinfo ) {
+			if ( !op->o_bd->be_syncinfo ) {
 				if ( ctxcsn_added ) {
 					bdb_cache_add( bdb, suffix_ei, ctxcsn_e, (struct berval *)&slap_ldapsync_cn_bv, locker );
 				}

@@ -453,10 +453,10 @@ do_modify(
 		 * because it accepts each modify request
 		 */
 #ifndef SLAPD_MULTIMASTER
-		if ( !op->o_bd->syncinfo &&
+		if ( !op->o_bd->be_syncinfo &&
 			( !op->o_bd->be_update_ndn.bv_len || repl_user ))
 #else
-		if ( !op->o_bd->syncinfo )
+		if ( !op->o_bd->be_syncinfo )
 #endif
 		{
 			int update = op->o_bd->be_update_ndn.bv_len;
@@ -501,8 +501,8 @@ do_modify(
 		/* send a referral */
 		} else {
 			BerVarray defref = NULL;
-			if ( op->o_bd->syncinfo ) {
-				defref = op->o_bd->syncinfo->provideruri_bv;
+			if ( op->o_bd->be_syncinfo ) {
+				defref = op->o_bd->be_syncinfo->si_provideruri_bv;
 			} else {
 				defref = op->o_bd->be_update_refs
 						? op->o_bd->be_update_refs : default_referral;

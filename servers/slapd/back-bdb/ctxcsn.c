@@ -264,10 +264,10 @@ bdb_get_commit_csn(
 	int			rc;
 
 	if ( op->o_sync_mode != SLAP_SYNC_NONE ) {
-		if ( op->o_bd->syncinfo ) {
+		if ( op->o_bd->be_syncinfo ) {
 			char substr[67];
 			struct berval bv;
-			sprintf( substr, "cn=syncrepl%d", op->o_bd->syncinfo->id );
+			sprintf( substr, "cn=syncrepl%d", op->o_bd->be_syncinfo->si_id );
 			ber_str2bv( substr, 0, 0, &bv );
 			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &bv, NULL );
 		} else {
@@ -292,9 +292,9 @@ ctxcsn_retry :
         case DB_LOCK_NOTGRANTED:
 			goto ctxcsn_retry;
         case DB_NOTFOUND:
-			if ( !op->o_bd->syncinfo ) {
+			if ( !op->o_bd->be_syncinfo ) {
 				snprintf( gid, sizeof( gid ), "%s-%08lx-%08lx",
-							bdb_uuid.bv_val, (long) op->o_connid, (long) op->o_opid );
+					bdb_uuid.bv_val, (long) op->o_connid, (long) op->o_opid );
 
 				slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
 
@@ -358,10 +358,12 @@ txn_retry:
 		}
 
 		if ( ctxcsn_e ) {
-			if ( op->o_bd->syncinfo ) {
-				csn_a = attr_find( ctxcsn_e->e_attrs, slap_schema.si_ad_syncreplCookie );
+			if ( op->o_bd->be_syncinfo ) {
+				csn_a = attr_find( ctxcsn_e->e_attrs,
+					slap_schema.si_ad_syncreplCookie );
 			} else {
-				csn_a = attr_find( ctxcsn_e->e_attrs, slap_schema.si_ad_contextCSN );
+				csn_a = attr_find( ctxcsn_e->e_attrs,
+					slap_schema.si_ad_contextCSN );
 			}
 			if ( csn_a ) {
 				*search_context_csn = ber_dupbv( NULL, &csn_a->a_vals[0] );

@@ -244,10 +244,10 @@ do_add( Operation *op, SlapReply *rs )
 		/* do the update here */
 		int repl_user = be_isupdate(op->o_bd, &op->o_ndn );
 #ifndef SLAPD_MULTIMASTER
-		if ( !op->o_bd->syncinfo &&
-						( !op->o_bd->be_update_ndn.bv_len || repl_user ))
+		if ( !op->o_bd->be_syncinfo &&
+			( !op->o_bd->be_update_ndn.bv_len || repl_user ))
 #else
-		if ( !op->o_bd->syncinfo )
+		if ( !op->o_bd->be_syncinfo )
 #endif
 		{
 			int update = op->o_bd->be_update_ndn.bv_len;
@@ -324,11 +324,11 @@ do_add( Operation *op, SlapReply *rs )
 			}
 #endif /* LDAP_SLAPI */
 
-			if ( op->o_bd->syncinfo ) {
-				defref = op->o_bd->syncinfo->provideruri_bv;
+			if ( op->o_bd->be_syncinfo ) {
+				defref = op->o_bd->be_syncinfo->si_provideruri_bv;
 			} else {
 				defref = op->o_bd->be_update_refs
-							? op->o_bd->be_update_refs : default_referral;
+					? op->o_bd->be_update_refs : default_referral;
 			}
 
 			if ( defref != NULL ) {

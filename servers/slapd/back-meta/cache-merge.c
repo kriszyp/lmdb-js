@@ -256,7 +256,7 @@ normalize_values( Attribute* attr )
 	{
 		for ( i = 0; i < nvals; i++ ) {
 			rc = attr->a_desc->ad_type->sat_equality->smr_normalize(
-				0,
+				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 				attr->a_desc->ad_type->sat_syntax,
 				attr->a_desc->ad_type->sat_equality,
 				&attr->a_vals[i], &attr->a_nvals[i], NULL );

@@ -1286,54 +1286,53 @@ typedef BackendDB Backend;
 #define backends backendDB
 
 struct nonpresent_entry {
-	struct berval *dn;
-	struct berval *ndn;
-	LDAP_LIST_ENTRY(nonpresent_entry) np_link;
+	struct berval *npe_name;
+	struct berval *npe_nname;
+	LDAP_LIST_ENTRY(nonpresent_entry) npe_link;
 };
 
- /*
-  * syncinfo structure for syncrepl
-  */
+/*
+ * syncinfo structure for syncrepl
+ */
 typedef struct syncinfo_s {
-        struct slap_conn *conn;
-        struct slap_backend_db *be;
-        struct slap_entry *e;
-        void			*ctx;
-        int				id;
-        char			*provideruri;
-        BerVarray		provideruri_bv;
-#define TLS_OFF			0
-#define TLS_ON			1
-#define TLS_CRITICAL	2
-        int				tls;
-		struct berval	updatedn;	
-        int				bindmethod;
-        char			*binddn;
-        char			*passwd;
-        char			*saslmech;
-        char			*secprops;
-        char			*realm;
-        char			*authcId;
-        char			*authzId;
-        char			*srvtab;
-		int				schemachecking;
-        Filter			*filter;
-        struct berval		filterstr;
-        struct berval		base;
-        int				scope;
-        int				attrsonly;
-        char			**attrs;
-        int				type;
-        time_t			interval;
-        struct berval	*syncCookie;
-        int				manageDSAit;
-        int				slimit;
-		int				tlimit;
-        struct berval	*syncUUID;
-		struct berval	*syncUUID_ndn;
-        Avlnode			*presentlist;
-		int				sync_mode;
-		LDAP_LIST_HEAD(np, nonpresent_entry) nonpresentlist;
+        struct slap_conn *si_conn;
+        struct slap_backend_db *si_be;
+        struct slap_entry *si_e;
+        void			*si_ctx;
+        unsigned int	si_id;
+        char			*si_provideruri;
+        BerVarray		si_provideruri_bv;
+#define SYNCINFO_TLS_OFF		0
+#define SYNCINFO_TLS_ON			1
+#define SYNCINFO_TLS_CRITICAL	2
+        int				si_tls;
+		struct berval	si_updatedn;	
+        int				si_bindmethod;
+        char			*si_binddn;
+        char			*si_passwd;
+        char			*si_saslmech;
+        char			*si_secprops;
+        char			*si_realm;
+        char			*si_authcId;
+        char			*si_authzId;
+		int				si_schemachecking;
+        Filter			*si_filter;
+        struct berval		si_filterstr;
+        struct berval		si_base;
+        int				si_scope;
+        int				si_attrsonly;
+        char			**si_attrs;
+        int				si_type;
+        time_t			si_interval;
+        struct berval	*si_syncCookie;
+        int				si_manageDSAit;
+        int				si_slimit;
+		int				si_tlimit;
+        struct berval	*si_syncUUID;
+		struct berval	*si_syncUUID_ndn;
+        Avlnode			*si_presentlist;
+		int				si_sync_mode;
+		LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
 } syncinfo_t;
 
 struct slap_backend_db {
@@ -1488,7 +1487,7 @@ struct slap_backend_db {
 	ldap_pvt_thread_mutex_t					be_pcl_mutex;
 	struct berval							be_context_csn;
 	ldap_pvt_thread_mutex_t					be_context_csn_mutex;
-	syncinfo_t	*syncinfo;	/* For syncrepl */
+	syncinfo_t	*be_syncinfo;	/* For syncrepl */
 };
 
 struct slap_conn;

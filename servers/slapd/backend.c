@@ -336,8 +336,9 @@ int backend_startup(Backend *be)
 	for( i = 0; i < nBackendDB; i++ ) {
 		if ( backendDB[i].be_update_ndn.bv_val && (
 			!backendDB[i].be_update_refs &&
-			!backendDB[i].syncinfo &&
-			!default_referral ) ) {
+			!backendDB[i].be_syncinfo &&
+			!default_referral ) )
+		{
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACKEND, CRIT, 
 				"backend_startup: slave \"%s\" updateref missing\n",
@@ -372,13 +373,13 @@ int backend_startup(Backend *be)
 			}
 		}
 
-		if ( backendDB[i].syncinfo != NULL ) {
-			syncinfo_t *si = ( syncinfo_t * ) backendDB[i].syncinfo;
-			si->be = &backendDB[i];
+		if ( backendDB[i].be_syncinfo != NULL ) {
+			syncinfo_t *si = ( syncinfo_t * ) backendDB[i].be_syncinfo;
+			si->si_be = &backendDB[i];
 			init_syncrepl(si);
 			ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
-			ldap_pvt_runqueue_insert( &syncrepl_rq, si->interval,
-							do_syncrepl, (void *) backendDB[i].syncinfo );
+			ldap_pvt_runqueue_insert( &syncrepl_rq, si->si_interval,
+				do_syncrepl, (void *) backendDB[i].be_syncinfo );
 			ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 		}
 	}
@@ -549,7 +550,7 @@ backend_db_init(
 	ldap_pvt_thread_mutex_init( &be->be_pcl_mutex );
 	ldap_pvt_thread_mutex_init( &be->be_context_csn_mutex );
 
-	be->syncinfo = NULL;
+	be->be_syncinfo = NULL;
 
  	/* assign a default depth limit for alias deref */
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
