@@ -605,7 +605,10 @@ ldap_int_sasl_bind(
 #if SASL_VERSION_MAJOR >= 2
 			/* XXX the application should free interact results.
 			 * FIXME: this should happen only 
-			 * if saslrc == SASL_INTERACT */
+			 * if saslrc == SASL_INTERACT
+			 *
+			 * I assume that prompts->result is not needed
+			 * by the subsequent call to (interact)() */
 			if ( prompts != NULL && prompts->result != NULL ) {
 				LDAP_FREE( (void *)prompts->result );
 				prompts->result = NULL;
