@@ -190,6 +190,7 @@ send_search_entry(
 	int		i, rc, bytes, sd;
 	struct acl	*acl;
 	char            *edn;
+	int allattrs;
 
 	Debug( LDAP_DEBUG_TRACE, "=> send_search_entry (%s)\n", e->e_dn, 0, 0 );
 
@@ -235,10 +236,12 @@ send_search_entry(
 		goto error_return;
 	}
 
+	allattrs = ( (attrs == NULL) || charray_inlist( attrs, "*" ) );
+
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		regmatch_t       matches[MAXREMATCHES];
 
-		if ( attrs != NULL && ! charray_inlist( attrs, a->a_type ) ) {
+		if ( !allattrs && !charray_inlist( attrs, a->a_type ) ) {
 			continue;
 		}
 
