@@ -416,17 +416,6 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_superiorUUID) },
 
-	/* LDAP cache specific operational attribute */
-	{ "queryid", "( 1.3.6.1.4.1.4203.666.1.12 NAME 'queryid' "
-			"DESC 'list of queries the entry belongs to' "
-			"EQUALITY octetStringMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
-			"NO-USER-MODIFICATION USAGE directoryOperation )",
-		NULL, SLAP_AT_HIDE,
-		NULL, NULL,
-		NULL, NULL, NULL, NULL, NULL, 
-		offsetof(struct slap_internal_schema, si_ad_queryid) },
-
 	{ "syncreplCookie", "( 1.3.6.1.4.1.4203.666.1.23 "
 			"NAME 'syncreplCookie' "
 			"DESC 'syncrepl Cookie for shadow copy' "

@@ -14,7 +14,7 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 PROGRAMS=slapd
-XPROGRAMS=sslapd libbackends.a .backend
+XPROGRAMS=sslapd libbackends.a .backend liboverlays.a
 XSRCS=version.c
 
 NT_SRCS = nt_svc.c
@@ -52,7 +52,7 @@ LDAP_INCDIR= ../../include -I$(srcdir)/slapi
 LDAP_LIBDIR= ../../libraries
 
 SLAP_DIR=
-SLAPD_STATIC_DEPENDS=@SLAPD_NO_STATIC@ libbackends.a
+SLAPD_STATIC_DEPENDS=@SLAPD_NO_STATIC@ libbackends.a liboverlays.a
 SLAPD_STATIC_BACKENDS=@SLAPD_STATIC_BACKENDS@
 SLAPD_DYNAMIC_BACKENDS=@SLAPD_DYNAMIC_BACKENDS@
 
@@ -296,6 +296,9 @@ libbackends.a: .backend
 		$(RANLIB) libbackends.a; \
 	fi
 	@ls -l libbackends.a; echo ""
+
+liboverlays.a: FORCE
+	@cd overlays; $(MAKE) $(MFLAGS) all
 
 version.c: Makefile
 	@-$(RM) $@

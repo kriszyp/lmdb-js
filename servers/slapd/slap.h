@@ -764,9 +764,6 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_namingCSN;
 	AttributeDescription *si_ad_superiorUUID;
 
-	/* LDAP cache specific operational attribute */
-	AttributeDescription *si_ad_queryid;
-
 	AttributeDescription *si_ad_dseType;
 	AttributeDescription *si_ad_syncreplCookie;
 	AttributeDescription *si_ad_contextCSN;

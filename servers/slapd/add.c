@@ -598,20 +598,15 @@ slap_entry2mods(
 	AttributeDescription	*a_new_desc;
 	int				i, count;
 
-	*text = textbuf;
-
 	a_new = e->e_attrs;
 
 	while ( a_new != NULL ) {
 		a_new_desc = a_new->a_desc;
 		mod = (Modifications *) malloc( sizeof( Modifications ));
 		
-		if ( a_new_desc != slap_schema.si_ad_queryid )
-			mod->sml_op = LDAP_MOD_REPLACE;
-		else
-			mod->sml_op = LDAP_MOD_ADD;
+		mod->sml_op = LDAP_MOD_REPLACE;
 
-		ber_dupbv( &mod->sml_type, &a_new_desc->ad_cname );
+		mod->sml_type = a_new_desc->ad_cname;
 
 		for ( count = 0; a_new->a_vals[count].bv_val; count++ );
 

@@ -487,6 +487,10 @@ int main( int argc, char **argv )
 	}
 #endif /* LDAP_SLAPI */
 
+	if ( overlay_init() ) {
+		goto destroy;
+	}
+
 	if ( read_config( configfile, 0 ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 19 );
