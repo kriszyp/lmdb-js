@@ -232,8 +232,8 @@ send_ldap_response(
 
 	ber = ber_alloc_t( LBER_USE_DER );
 
-	Debug( LDAP_DEBUG_TRACE, "send_ldap_response: tag=%ld msgid=%ld err=%ld\n",
-		(long) tag, (long) msgid, (long) err );
+	Debug( LDAP_DEBUG_TRACE, "send_ldap_response: msgid=%ld tag=%ld err=%ld\n",
+		(long) msgid, (long) tag, (long) err );
 
 	if ( ber == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n", 0, 0, 0 );
@@ -404,9 +404,9 @@ send_ldap_result(
 		NULL, NULL, ctrls );
 
 	Statslog( LDAP_DEBUG_STATS,
-	    "conn=%ld op=%ld RESULT err=%ld tag=%lu text=%s\n",
+	    "conn=%ld op=%ld RESULT tag=%lu err=%ld text=%s\n",
 		(long) op->o_connid, (long) op->o_opid,
-		(long) err, (long) tag, text );
+		(long) tag, (long) err, text );
 
 	if( tmp != NULL ) {
 		free(tmp);
@@ -476,9 +476,9 @@ send_search_result(
 		NULL, NULL, ctrls );
 
 	Statslog( LDAP_DEBUG_STATS,
-	    "conn=%ld op=%ld SEARCH RESULT err=%ld tag=%lu text=%s\n",
+	    "conn=%ld op=%ld SEARCH RESULT tag=%lu err=%ld text=%s\n",
 		(long) op->o_connid, (long) op->o_opid,
-		(long) err, (long) tag, text );
+		(long) tag, (long) err, text );
 
 }
 
