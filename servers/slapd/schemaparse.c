@@ -126,8 +126,7 @@ parse_cr(
     const char	*fname,
     int		lineno,
     char	*line,
-    char	**argv
-)
+    char	**argv )
 {
 	LDAPContentRule *cr;
 	int		code;
@@ -165,8 +164,7 @@ parse_oc(
     const char	*fname,
     int		lineno,
     char	*line,
-    char	**argv
-)
+    char	**argv )
 {
 	LDAPObjectClass *oc;
 	int		code;
@@ -247,8 +245,7 @@ parse_at(
     const char	*fname,
     int		lineno,
     char	*line,
-    char	**argv
-)
+    char	**argv )
 {
 	LDAPAttributeType *at;
 	int		code;

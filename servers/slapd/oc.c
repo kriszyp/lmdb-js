@@ -469,6 +469,7 @@ oc_add(
 	}
 
 	if ( code != 0 ) return code;
+	if( user && op ) return SLAP_SCHERR_CLASS_BAD_SUP;
 
 	code = oc_create_required( soc, soc->soc_at_oids_must, &op, err );
 	if ( code != 0 ) return code;
@@ -476,7 +477,7 @@ oc_add(
 	code = oc_create_allowed( soc, soc->soc_at_oids_may, &op, err );
 	if ( code != 0 ) return code;
 
-	if( user && op ) return SLAP_SCHERR_CLASS_BAD_SUP;
+	if( user && op ) return SLAP_SCHERR_CLASS_BAD_USAGE;
 
 	code = oc_insert(soc,err);
 	return code;
