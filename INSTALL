@@ -24,7 +24,8 @@ these steps:
 	% tar xfz openldap-VERSION.tgz
 	% cd openldap-VERSION
 
-    If you are reading this file, you probably have already done this!
+	replacing VERSION to match the version you downloaded.  If you are
+	reading this file, you probably have already done this!
 
  2. Type:
 	% ./configure --help
