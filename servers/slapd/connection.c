@@ -1522,12 +1522,14 @@ connection_input(
 	 * use up all the available threads, and don't execute if we're
 	 * currently blocked on output. And don't execute if there are
 	 * already pending ops, let them go first.
+	 *
+	 * But always allow Abandon through; it won't cost much.
 	 */
-	if ( conn->c_conn_state == SLAP_C_BINDING
+	if ( tag != LDAP_REQ_ABANDON && (conn->c_conn_state == SLAP_C_BINDING
 		|| conn->c_conn_state == SLAP_C_CLOSING
 		|| conn->c_n_ops_executing >= connection_pool_max/2
 		|| conn->c_n_ops_pending
-		|| conn->c_writewaiter)
+		|| conn->c_writewaiter))
 	{
 		int max = conn->c_dn.bv_len ? slap_conn_max_pending_auth
 			 : slap_conn_max_pending;
