@@ -149,7 +149,7 @@ slap_create_context_csn_entry(
 	attr_merge_one( e, slap_schema.si_ad_subtreeSpecification, &bv, NULL );
 
 	build_new_dn( &e->e_name, &be->be_nsuffix[0], &slap_ldapsync_cn_bv );
-	ber_dupbv( &e->e_name, &e->e_nname );
+	ber_dupbv( &e->e_nname, &e->e_name );
 
 	return e;
 }
