@@ -723,7 +723,10 @@ LDAP_F int ldap_modrdn2 LDAP_P(( LDAP *ld, char *dn, char *newrdn,
 	int deleteoldrdn ));
 LDAP_F int ldap_modrdn2_s LDAP_P(( LDAP *ld, char *dn, char *newrdn,
 	int deleteoldrdn));
-
+LDAP_F int ldap_rename2 LDAP_P(( LDAP *ld, char *dn, char *newrdn,
+	int deleteoldrdn, char *newSuperior ));
+LDAP_F int ldap_rename2_s LDAP_P(( LDAP *ld, char *dn, char *newrdn,
+	int deleteoldrdn, char *newSuperior));
 
 /*
  * in open.c:
