@@ -32,20 +32,19 @@ AC_DEFINE_UNQUOTED(OPENLDAP_PACKAGE,"$PACKAGE",Package)
 AC_DEFINE_UNQUOTED(OPENLDAP_VERSION,"$VERSION",Version)
 
 dnl We use autoconf features new to 2.13.
-dnl 	aclocal.m4 should be built using aclocal from automake 1.4
+dnl aclocal.m4 should be built using aclocal from automake 1.4
+dnl libtool 1.3.3 should be installed.
 AC_PREREQ(2.13)dnl Required Autoconf version
 
 AC_CONFIG_HEADER(include/portable.h include/ldap_features.h include/lber_types.h)dnl
 
-dnl
+dnl ----------------------------------------------------------------
 dnl Start Args
 AC_MSG_CHECKING(configure arguments)
 AC_PREFIX_DEFAULT(/usr/local)
 
 top_builddir=`pwd`
 AC_SUBST(top_builddir)dnl
-
-AC_DEFINE(HAVE_MKVERSION, 1, [define this if you have mkversion])
 
 ldap_subdir="openldap"
 
@@ -365,6 +364,13 @@ dnl Checks for programs
 
 dnl AC_PROG_INSTALL
 
+AC_DEFINE(HAVE_MKVERSION, 1, [define this if you have mkversion])
+
+
+dnl
+dnl Determine which C translator to use
+dnl
+
 dnl AIX Thread requires we use cc_r or xlc_r.
 dnl But only do this IF AIX and CC is not set
 dnl and threads are auto|yes|posix.
@@ -430,36 +436,6 @@ AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
 AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
 
-dnl
-dnl Check for module support
-dnl
-ol_link_modules=no
-if test $ol_enable_modules != no ; then
-	AC_PATH_PROG(GLIBCONFIG, glib-config)
-
-	if test "no$GLIBCONFIG" = "no" ; then
-		if test $ol_enable_modules = yes ; then
-			AC_MSG_ERROR([could not locate glib-config])
-		fi
-
-	else
-		SLAPD_MODULES_VERSION="`$GLIBCONFIG --version gmodule`"
-		SLAPD_MODULES_CPPFLAGS="`$GLIBCONFIG --cflags gmodule`"
-		SLAPD_MODULES_LDFLAGS="`$GLIBCONFIG --libs gmodule`"
-
-		dnl should check glib version
-		ol_link_modules=yes
-	fi
-else
-	ol_with_bdb2_module=static
-	ol_with_ldap_module=static
-	ol_with_ldbm_module=static
-	ol_with_passwd_module=static
-	ol_with_perl_module=static
-	ol_with_shell_module=static
-	ol_with_tcl_module=static
-fi
-
 ol_link_perl=no
 if test $ol_enable_perl != no ; then
 	AC_PATH_PROG(PERLBIN, perl, /usr/bin/perl)
@@ -514,13 +490,41 @@ if test "X${am_cv_prog_cc_stdc}" = "Xno" ; then
 	AC_MSG_ERROR([OpenLDAP requires compiler to support STDC constructs.])
 fi
 
-dnl AM_C_PROTOTYPES
-
 dnl Check cc depend flags
 OL_MKDEPEND
 if test "${ol_cv_mkdep}" = no ; then
 	# this will soon become an error
 	AC_MSG_WARN([do not know how to generate dependencies])
+fi
+
+dnl
+dnl Check for module support
+dnl
+ol_link_modules=no
+if test $ol_enable_modules != no ; then
+	AC_PATH_PROG(GLIBCONFIG, glib-config)
+
+	if test "no$GLIBCONFIG" = "no" ; then
+		if test $ol_enable_modules = yes ; then
+			AC_MSG_ERROR([could not locate glib-config])
+		fi
+
+	else
+		SLAPD_MODULES_VERSION="`$GLIBCONFIG --version gmodule`"
+		SLAPD_MODULES_CPPFLAGS="`$GLIBCONFIG --cflags gmodule`"
+		SLAPD_MODULES_LDFLAGS="`$GLIBCONFIG --libs gmodule`"
+
+		dnl should check glib version
+		ol_link_modules=yes
+	fi
+else
+	ol_with_bdb2_module=static
+	ol_with_ldap_module=static
+	ol_with_ldbm_module=static
+	ol_with_passwd_module=static
+	ol_with_perl_module=static
+	ol_with_shell_module=static
+	ol_with_tcl_module=static
 fi
 
 dnl ----------------------------------------------------------------
