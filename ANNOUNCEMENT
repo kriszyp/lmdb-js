@@ -45,7 +45,7 @@ CHANGES
 
 	Changes from U. Mich release 3.3
 	- TCP Wrappers support added to slapd,
-	- Berkely DB2 compatibility added to slapd,
+	- Berkeley DB2 compatibility added to slapd,
 	- ACL enhancements including Access by Group and POSIX regex(3) support,
 	- platforms updates, and
 	- numerous bug fixes and build changes.
@@ -56,7 +56,7 @@ AVAILABILITY
 
 	This software is available under the OpenLDAP Public License.
 	For download information is available at:
-		http://www.OpenLDAP.org/download.html
+		http://www.OpenLDAP.org/software/download/
 
 SUPPORT
 
@@ -66,11 +66,10 @@ SUPPORT
 
 	OpenLDAP-bugs@OpenLDAP.org
 
-    In addition, there is a discussion list for issues relating to this
-    implementation of ldap:
+    In addition, there are also a number of discussion lists
+	related OpenLDAP.  A list of mailing lists is available at:
+        http://www.OpenLDAP.org/lists/
 
-	OpenLDAP-devel@OpenLDAP.org			-- discussion list
-	OpenLDAP-devel-request@OpenLDAP.org	-- to join the list
 
     The OpenLDAP home page containing lots of interesting information
 	and online documentation is available at this URL:
@@ -79,11 +78,10 @@ SUPPORT
 
 SUPPORTED PLATFORMS
 
-    This release has been ported to many UNIX platforms, including
-    SunOS 4.1.x, Solaris 2.x, Ultrix 4.3, HP-UX 9.05, AIX 3.2.5,
-    SCO, FreeBSD, NetBSD, Linux, IRIX, Digital Unix (OSF/1), and
-    NeXTSTEP 3.2.  This release has also been ported to VMS.
+    This release has been ported to many UNIX (and UNIX-like) platforms
+	including AIX, Digital UNIX (OSF/1), FreeBSD, HP-UX, IRIX, Linux,
+	NetBSD, NexTSTEP, OpenBSD, SCO, Solaris, SunOS, and Ultrix.
 
     The client libraries and some clients have also been ported to
-    MacOS 7.x, MSDOS (some TCP stacks), and MS Windows 3.1/95/NT.
+    MS Windows 95/NT.
 

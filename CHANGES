@@ -1,6 +1,19 @@
 OpenLDAP Change Log
 
-Changes included in OpenLDAP 1.1-Alpha (from -devel)
+Changes included in OpenLDAP 1.1-Beta (from -devel)
+	Updated ANNOUNCEMENT, INSTALL, README for release
+	Updated doc for release
+	Updated slapd.conf to use dc style BaseDN
+	Fixed aclparse debug print
+	Fixed slapd/add memory leak bug
+	Autoconf
+		Fixed --with-threads=yes bug
+		Added -pthreads check for OSF/1
+		Updated LDBM auto check to skip NDBM
+		Updated libtool for FreeBSD3 elf
+		Fixed pthread version test 
+
+Changes included in OpenLDAP 1.1-Beta (from -devel)
 	CVS Tag: OPENLDAP_REL_ENG_1_1_BETA
 	Added ldap.conf support
 	Added configuration preservation support
