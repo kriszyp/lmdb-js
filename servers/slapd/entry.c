@@ -29,20 +29,25 @@ int entry_destroy(void)
 	return 0;
 }
 
+
 Entry *
 str2entry( char *s )
 {
+	int rc;
 	Entry		*e;
 	Attribute	**a = NULL;
 	char		*type;
-	char		*value;
-	char		*next;
-	ber_len_t	vlen;
+	struct berval value;
+	struct berval	*vals[2];
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription *ad;
+	char *text;
+#else
 	int		nvals = 0;
 	int		maxvals = 0;
-	struct berval	bval;
-	struct berval	*vals[2];
-	char		ptype[64];
+	char	ptype[64];	/* fixed size buffer */
+#endif
+	char	*next;
 
 	/*
 	 * LDIF is used as the string format.
@@ -62,8 +67,6 @@ str2entry( char *s )
 	Debug( LDAP_DEBUG_TRACE, "=> str2entry\n",
 		s ? s : "NULL", 0, 0 );
 
-	next = s;
-
 	/* initialize reader/writer lock */
 	e = (Entry *) ch_malloc( sizeof(Entry) );
 
@@ -82,27 +85,32 @@ str2entry( char *s )
 	e->e_private = NULL;
 
 	/* dn + attributes */
-	vals[0] = &bval;
+	vals[0] = &value;
 	vals[1] = NULL;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	ptype[0] = '\0';
+#endif
 
+	next = s;
 	while ( (s = ldif_getline( &next )) != NULL ) {
 		if ( *s == '\n' || *s == '\0' ) {
 			break;
 		}
 
-		if ( ldif_parse_line( s, &type, &value, &vlen ) != 0 ) {
+		if ( ldif_parse_line( s, &type, &value.bv_val, &value.bv_len ) != 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
 			    "<= str2entry NULL (parse_line)\n", 0, 0, 0 );
 			continue;
 		}
 
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		if ( strcasecmp( type, ptype ) != 0 ) {
 			strncpy( ptype, type, sizeof(ptype) - 1 );
 			nvals = 0;
 			maxvals = 0;
 			a = NULL;
 		}
+#endif
 
 		if ( strcasecmp( type, "dn" ) == 0 ) {
 			free( type );
@@ -111,34 +119,49 @@ str2entry( char *s )
 				Debug( LDAP_DEBUG_ANY,
  "str2entry: entry %ld has multiple dns \"%s\" and \"%s\" (second ignored)\n",
 				    e->e_id, e->e_dn,
-					value != NULL ? value : NULL );
-				if( value != NULL ) free( value );
+					value.bv_val != NULL ? value.bv_val : "" );
+				if( value.bv_val != NULL ) free( value.bv_val );
 				continue;
 			}
-			e->e_dn = value != NULL ? value : ch_strdup( "" );
+
+			e->e_dn = value.bv_val != NULL ? value.bv_val : ch_strdup( "" );
 			continue;
 		}
 
-		bval.bv_val = value;
-		bval.bv_len = vlen;
-
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
-#else
-		if ( attr_merge_fast( e, type, vals, nvals, 1, &maxvals, &a )
-		    != 0 ) {
+		ad = NULL;
+		rc = slap_str2ad( type, &ad, &text );
+
+		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
-			    "<= str2entry NULL (attr_merge)\n", 0, 0, 0 );
+				"<= str2entry NULL (str2ad=%s)\n", text, 0, 0 );
 			entry_free( e );
-			free( value );
+			free( value.bv_val );
 			free( type );
 			return( NULL );
 		}
+
+		rc = attr_merge( e, ad, vals );
+
+		ad_free( ad, 1 );
+#else
+		rc = attr_merge_fast( e, type, vals, nvals, 1, &maxvals, &a )
 #endif
 
-		free( value );
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_TRACE,
+			    "<= str2entry NULL (attr_merge)\n", 0, 0, 0 );
+			entry_free( e );
+			free( value.bv_val );
+			free( type );
+			return( NULL );
+		}
+
 		free( type );
+		free( value.bv_val );
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		nvals++;
+#endif
 	}
 
 	/* check to make sure there was a dn: line */
@@ -158,6 +181,7 @@ str2entry( char *s )
 
 	return( e );
 }
+
 
 #define GRABSIZE	BUFSIZ
 

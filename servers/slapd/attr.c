@@ -121,7 +121,6 @@ attr_normalize( char *s )
 }
 #endif
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
 /*
  * attr_merge_fast - merge the given type and value with the list of
  * attributes in attrs. called from str2entry(), where we can make some
@@ -130,6 +129,9 @@ attr_normalize( char *s )
  *		-1	trouble
  */
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 int
 attr_merge_fast(
     Entry		*e,
@@ -167,6 +169,7 @@ attr_merge_fast(
 	    maxvals ) );
 }
 #endif
+
 
 /*
  * attr_merge - merge the given type and value with the list of
