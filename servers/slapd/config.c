@@ -78,6 +78,12 @@ char   *strtok_quote_ptr;
 
 int use_reverse_lookup = 0;
 
+/* These do nothing in slapd, they're kept only to make them
+ * editable in back-config
+ */
+static char *replica_pidFile, *replica_argsFile;
+static int replicationInterval;
+
 #ifdef LDAP_SLAPI
 int slapi_plugins_used = 0;
 #endif
@@ -87,9 +93,6 @@ static void fp_getline_init(ConfigArgs *c);
 static int fp_parse_line(ConfigArgs *c);
 
 static char	*strtok_quote(char *line, char *sep);
-#if 0
-static int load_ucdata(char *path);
-#endif
 
 
 int read_config_file(const char *fname, int depth, ConfigArgs *cf);
@@ -372,14 +375,14 @@ static ConfigTable SystemConfiguration[] = {
 	{ "replica", "host or uri", 2, 0, 0, ARG_DB|ARG_MAGIC,
 		&config_replica, "( OLcfgAt:42 NAME 'olcReplica' "
 			"SUP labeledURI )", NULL, NULL },
-	{ "replica-pidfile", NULL, 0, 0, 0, ARG_IGNORED,
-		NULL, "( OLcfgAt:43 NAME 'olcReplicaPidFile' "
+	{ "replica-argsfile", NULL, 0, 0, 0, ARG_STRING,
+		&replica_argsFile, "( OLcfgAt:43 NAME 'olcReplicaArgsFile' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "replica-argsfile", NULL, 0, 0, 0, ARG_IGNORED,
-		NULL, "( OLcfgAt:44 NAME 'olcReplicaArgsFile' "
+	{ "replica-pidfile", NULL, 0, 0, 0, ARG_STRING,
+		&replica_pidFile, "( OLcfgAt:44 NAME 'olcReplicaPidFile' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "replicationInterval", NULL, 0, 0, 0, ARG_IGNORED,
-		NULL, "( OLcfgAt:45 NAME 'olcReplicationInterval' "
+	{ "replicationInterval", NULL, 0, 0, 0, ARG_INT,
+		&replicationInterval, "( OLcfgAt:45 NAME 'olcReplicationInterval' "
 			"SYNTAX OMsInteger )", NULL, NULL },
 	{ "replogfile", "filename", 2, 2, 0, ARG_MAY_DB|ARG_MAGIC|ARG_STRING|CFG_REPLOG,
 		&config_generic, "( OLcfgAt:46 NAME 'olcReplogFile' "
