@@ -76,7 +76,7 @@ VERSION = @VERSION@
 
 lib_LTLIBRARIES = libldapcpp.la
 
-libldapcpp_la_SOURCES = LDAPAddRequest.cpp 			LDAPAsynConnection.cpp 			LDAPAttribute.cpp 			LDAPAttributeList.cpp 			LDAPBindRequest.cpp 			LDAPCompareRequest.cpp             LDAPConnection.cpp 			LDAPConstraints.cpp 			LDAPControl.cpp 			LDAPControlSet.cpp 			LDAPDeleteRequest.cpp 			LDAPEntry.cpp 			LDAPEntryList.cpp 			LDAPException.cpp 			LDAPExtRequest.cpp 			LDAPExtResult.cpp 			LDAPMessage.cpp 			LDAPMessageQueue.cpp 			LDAPModDNRequest.cpp 			LDAPModification.cpp 			LDAPModifyRequest.cpp 			LDAPModList.cpp 			LDAPRebind.cpp 			LDAPRebindAuth.cpp 			LDAPReferralException.cpp             LDAPReferenceList.cpp             LDAPRequest.cpp 			LDAPResult.cpp 			LDAPSearchReference.cpp 			LDAPSearchRequest.cpp 			LDAPSearchResult.cpp 			LDAPSearchResults.cpp 			LDAPUrl.cpp 			LDAPUrlList.cpp 			StringList.cpp 			RebindTest.cpp
+libldapcpp_la_SOURCES = LDAPAddRequest.cpp             LDAPAsynConnection.cpp             LDAPAttribute.cpp             LDAPAttributeList.cpp             LDAPBindRequest.cpp             LDAPCompareRequest.cpp             LDAPConnection.cpp             LDAPConstraints.cpp             LDAPControl.cpp             LDAPControlSet.cpp             LDAPDeleteRequest.cpp             LDAPEntry.cpp             LDAPEntryList.cpp             LDAPException.cpp             LDAPExtRequest.cpp             LDAPExtResult.cpp             LDAPMessage.cpp             LDAPMessageQueue.cpp             LDAPModDNRequest.cpp             LDAPModification.cpp             LDAPModifyRequest.cpp             LDAPModList.cpp             LDAPRebind.cpp             LDAPRebindAuth.cpp             LDAPReferralException.cpp             LDAPReferenceList.cpp             LDAPRequest.cpp             LDAPResult.cpp             LDAPSearchReference.cpp             LDAPSearchRequest.cpp             LDAPSearchResult.cpp             LDAPSearchResults.cpp             LDAPUrl.cpp             LDAPUrlList.cpp             StringList.cpp 
 
 
 include_HEADERS = LDAPAsynConnection.h                         LDAPAttribute.h                         LDAPAttributeList.h                         LDAPConnection.h                         LDAPConstraints.h                         LDAPControl.h                         LDAPEntry.h                         LDAPEntryList.h                         LDAPException.h                         LDAPExtResult.h                         LDAPMessage.h                         LDAPMessageQueue.h                         LDAPModification.h                         LDAPModList.h                         LDAPRebind.h                         LDAPRebindAuth.h                         LDAPReferralException.h                         LDAPReferenceList.h                         LDAPResult.h                         LDAPSearchReference.h                         LDAPSearchResult.h                         LDAPUrl.h                         LDAPUrlList.h                         StringList.h 
@@ -113,7 +113,7 @@ LDAPModification.lo LDAPModifyRequest.lo LDAPModList.lo LDAPRebind.lo \
 LDAPRebindAuth.lo LDAPReferralException.lo LDAPReferenceList.lo \
 LDAPRequest.lo LDAPResult.lo LDAPSearchReference.lo \
 LDAPSearchRequest.lo LDAPSearchResult.lo LDAPSearchResults.lo \
-LDAPUrl.lo LDAPUrlList.lo StringList.lo RebindTest.lo
+LDAPUrl.lo LDAPUrlList.lo StringList.lo
 PROGRAMS =  $(noinst_PROGRAMS)
 
 main_OBJECTS =  main.o
@@ -145,7 +145,7 @@ DEP_FILES =  .deps/LDAPAddRequest.P .deps/LDAPAsynConnection.P \
 .deps/LDAPReferralException.P .deps/LDAPRequest.P .deps/LDAPResult.P \
 .deps/LDAPSearchReference.P .deps/LDAPSearchRequest.P \
 .deps/LDAPSearchResult.P .deps/LDAPSearchResults.P .deps/LDAPUrl.P \
-.deps/LDAPUrlList.P .deps/RebindTest.P .deps/StringList.P .deps/main.P
+.deps/LDAPUrlList.P .deps/StringList.P .deps/main.P
 SOURCES = $(libldapcpp_la_SOURCES) $(main_SOURCES)
 OBJECTS = $(libldapcpp_la_OBJECTS) $(main_OBJECTS)
 

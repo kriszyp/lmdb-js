@@ -15,7 +15,6 @@
 #include "LDAPException.h"
 #include "LDAPModification.h"
 #include "LDAPReferralException.h"
-#include "RebindTest.h"
 
 #include"debug.h"
 
