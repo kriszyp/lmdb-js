@@ -36,7 +36,7 @@ passwd_back_initialize(
 	bi->bi_destroy = 0;
 
 	bi->bi_db_init = 0;
-	bi->bi_db_config = 0;
+	bi->bi_db_config = passwd_back_db_config;
 	bi->bi_db_open = 0;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = 0;
