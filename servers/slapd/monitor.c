@@ -89,11 +89,14 @@ monitor_info( Connection *conn, Operation *op )
 			ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 
 			ldap_pvt_thread_mutex_lock( &c[i].c_dnmutex );
-			sprintf( buf, "%d : %s : %d : %d : %s : %s%s", i,
-			    buf2, c[i].c_opsinitiated, c[i].c_opscompleted,
+			sprintf( buf, "%d : %s : %d : %d : %s : %s%s%s%s", i,
+			    buf2, c[i].c_ops_received, c[i].c_ops_completed,
 			    c[i].c_cdn ? c[i].c_cdn : "NULLDN",
 			    c[i].c_gettingber ? "r" : "",
-			    c[i].c_writewaiter ? "w" : "" );
+			    c[i].c_writewaiter ? "w" : "",
+			    c[i].c_ops_executing ? "x" : "",
+			    c[i].c_ops_pending ? "p" : ""
+			);
 			ldap_pvt_thread_mutex_unlock( &c[i].c_dnmutex );
 			val.bv_val = buf;
 			val.bv_len = strlen( buf );

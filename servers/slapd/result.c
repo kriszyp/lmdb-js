@@ -455,6 +455,7 @@ close_connection( Connection *conn, int opconnid, int opid )
 	   	lber_pvt_sb_destroy( &conn->c_sb );
 		conn->c_version = 0;
 		conn->c_protocol = 0;
+		conn->c_state = SLAP_C_INACTIVE;
 	}
 	ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 }

@@ -282,6 +282,8 @@ main( int argc, char **argv )
 			    0, 0, 0 );
 		}
 
+		c.c_state = SLAP_C_ACTIVE;
+
 		ber_init_w_nullc( &ber, 0 );
 
 		while ( (tag = ber_get_next( &c.c_sb, &len, &ber ))

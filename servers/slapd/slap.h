@@ -411,7 +411,13 @@ typedef struct slap_op {
  * represents a connection from an ldap client
  */
 
+#define SLAP_C_INACTIVE	0x0
+#define SLAP_C_ACTIVE	0x1
+#define SLAP_C_BINDING	0x2
+#define SLAP_C_CLOSING	0x3
+
 typedef struct slap_conn {
+	int			c_state;	/* connection state */
 	Sockbuf		c_sb;		/* ber connection stuff		  */
 	char		*c_cdn;		/* DN provided by the client */
 	char		*c_dn;		/* DN bound to this conn  */
@@ -423,7 +429,8 @@ typedef struct slap_conn {
 #endif
 	char		*c_addr;	/* address of client on this conn */
 	char		*c_domain;	/* domain of client on this conn  */
-	Operation	*c_ops;		/* list of pending operations	  */
+	Operation	*c_ops;			/* list of operations being processed */
+	Operation	*c_pending_ops;	/* list of pending operations */
 	ldap_pvt_thread_mutex_t	c_opsmutex;	/* mutex for c_ops list & stats	  */
 	ldap_pvt_thread_mutex_t	c_pdumutex;	/* only one pdu written at a time */
 	ldap_pvt_thread_cond_t	c_wcv;		/* used to wait for sd write-ready*/
@@ -432,9 +439,13 @@ typedef struct slap_conn {
 	int		c_writewaiter;	/* signals write-ready sd waiter  */
 	int		c_pduwaiters;	/* signals threads waiting 4 pdu  */
 	time_t		c_starttime;	/* when the connection was opened */
-	int		c_connid;	/* id of this connection for stats*/
-	int		c_opsinitiated;	/* # ops initiated/next op id	  */
-	int		c_opscompleted;	/* # ops completed		  */
+
+	long	c_connid;	/* id of this connection for stats*/
+
+	long	c_ops_received;		/* num of ops received (next op_id) */
+	long	c_ops_executing;	/* num of ops currently executing */
+	long	c_ops_pending;		/* num of ops pending execution */
+	long	c_ops_completed;	/* num of ops completed */
 } Connection;
 
 #if defined(LDAP_SYSLOG) && defined(LDAP_DEBUG)

@@ -27,7 +27,7 @@ connection_operation( void *arg_v )
 	struct co_arg	*arg = arg_v;
 
 	ldap_pvt_thread_mutex_lock( &arg->co_conn->c_opsmutex );
-	arg->co_conn->c_opsinitiated++;
+	arg->co_conn->c_ops_received++;
 	ldap_pvt_thread_mutex_unlock( &arg->co_conn->c_opsmutex );
 
 	ldap_pvt_thread_mutex_lock( &ops_mutex );
@@ -87,7 +87,7 @@ connection_operation( void *arg_v )
 	}
 
 	ldap_pvt_thread_mutex_lock( &arg->co_conn->c_opsmutex );
-	arg->co_conn->c_opscompleted++;
+	arg->co_conn->c_ops_completed++;
 
 	slap_op_delete( &arg->co_conn->c_ops, arg->co_op );
 	arg->co_op = NULL;
@@ -191,7 +191,7 @@ connection_activity(
 
 	ldap_pvt_thread_mutex_lock( &conn->c_opsmutex );
 	arg->co_op = slap_op_add( &conn->c_ops, ber, msgid, tag, tmpdn,
-	    conn->c_opsinitiated, conn->c_connid );
+	    conn->c_ops_received, conn->c_connid );
 	ldap_pvt_thread_mutex_unlock( &conn->c_opsmutex );
 
 	if ( tmpdn != NULL ) {

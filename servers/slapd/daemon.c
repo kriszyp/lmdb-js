@@ -83,8 +83,6 @@ slapd_daemon(
 		c[i].c_domain = NULL;
 		c[i].c_ops = NULL;
 		lber_pvt_sb_init( &c[i].c_sb );
-		c[i].c_writewaiter = 0;
-		c[i].c_connid = 0;
 		ldap_pvt_thread_mutex_init( &c[i].c_dnmutex );
 		ldap_pvt_thread_mutex_init( &c[i].c_opsmutex );
 		ldap_pvt_thread_mutex_init( &c[i].c_pdumutex );
@@ -168,7 +166,12 @@ slapd_daemon(
 
 		ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 		for ( i = 0; i < dtblsize; i++ ) {
-			if ( lber_pvt_sb_in_use( &c[i].c_sb )) {
+			if ( (c[i].c_state != SLAP_C_INACTIVE)  
+				&& (c[i].c_state != SLAP_C_CLOSING) )
+			{
+#ifdef LDAP_DEBUG
+				assert(lber_pvt_sb_in_use( &c[i].c_sb ));
+#endif
 				FD_SET( lber_pvt_sb_get_desc(&c[i].c_sb),
 					&readfds );
 				if (lber_pvt_sb_data_ready(&c[i].c_sb))
@@ -181,6 +184,7 @@ slapd_daemon(
 				    c[i].c_writewaiter ? "w" : "", 0 );
 			}
 		}
+
 		Debug( LDAP_DEBUG_CONNS, "\n", 0, 0, 0 );
 		ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 
@@ -240,14 +244,6 @@ slapd_daemon(
 				continue;
 			}
 		   
-			lber_pvt_sb_set_desc( &c[ns].c_sb, ns );
-			lber_pvt_sb_set_io( &c[ns].c_sb, &lber_pvt_sb_io_tcp, NULL );
-		   
-			if (lber_pvt_sb_set_nonblock( &c[ns].c_sb, 1)<0) {			   
-				Debug( LDAP_DEBUG_ANY,
-				    "FIONBIO ioctl on %d failed\n", ns, 0, 0 );
-			}
-
 			Debug( LDAP_DEBUG_CONNS, "new connection on %d\n", ns,
 			    0, 0 );
 
@@ -297,8 +293,6 @@ slapd_daemon(
 						client_addr == NULL ? "unknown" : client_addr,
 			   	  0, 0 );
 
-				lber_pvt_sb_close( &c[ns].c_sb );
-			   	lber_pvt_sb_destroy( &c[ns].c_sb );
 				ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 				continue;
 			}
@@ -338,9 +332,22 @@ slapd_daemon(
 				c[ns].c_cdn = NULL;
 			}
 			ldap_pvt_thread_mutex_unlock( &c[ns].c_dnmutex );
+
 			c[ns].c_starttime = currenttime;
-			c[ns].c_opsinitiated = 0;
-			c[ns].c_opscompleted = 0;
+			c[ns].c_ops_received = 0;
+			c[ns].c_ops_executing = 0;
+			c[ns].c_ops_pending = 0;
+			c[ns].c_ops_completed = 0;
+
+			lber_pvt_sb_set_desc( &c[ns].c_sb, ns );
+			lber_pvt_sb_set_io( &c[ns].c_sb, &lber_pvt_sb_io_tcp, NULL );
+		   
+			if (lber_pvt_sb_set_nonblock( &c[ns].c_sb, 1)<0) {			   
+				Debug( LDAP_DEBUG_ANY,
+				    "FIONBIO ioctl on %d failed\n", ns, 0, 0 );
+			}
+
+			c[ns].c_state = SLAP_C_ACTIVE;
 		}
 		ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 
