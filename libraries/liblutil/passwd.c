@@ -29,7 +29,7 @@ lutil_passwd(
 	const char *passwd)
 {
 
-	if (cred == NULL || passwd == NULL) {
+	if (cred == NULL || !cred[0] || passwd == NULL || !passwd[0] ) {
 		return -1;
 	}
 
@@ -134,10 +134,22 @@ lutil_passwd(
 
 #ifdef SLAPD_CRYPT
 	} else if (strncasecmp(passwd, "{CRYPT}", sizeof("{CRYPT}") - 1) == 0 ) {
-		const char *p = passwd + (sizeof("{CRYPT}") - 1);
+		const char *p;
+		char *cr;
 
-		return( strcmp(p, crypt(cred, p)) );
+		p = passwd + (sizeof("{CRYPT}") - 1);
 
+		if( !p[0] || !p[1] ) {
+			return 1;
+		}
+
+		cr = crypt( cred, p );
+
+		if( !cr || !cr[0] ) {
+			return 1;
+		}
+
+		return strcmp(p, cr);
 #endif
 	}
 
