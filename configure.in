@@ -571,7 +571,7 @@ dnl Checks for programs
 
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
-AM_GNU_GETTEXT([external])
+dnl AM_GNU_GETTEXT([external])
 
 AC_DEFINE(HAVE_MKVERSION, 1, [define this if you have mkversion])
 
