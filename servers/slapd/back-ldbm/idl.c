@@ -471,7 +471,8 @@ idl_insert_key(
 		rc = idl_change_first( be, db, key, idl, i, k2, tmp );
 		break;
 
-	case 2:		/* id not inserted - already there */
+	case 2:		/* id not inserted - already there, do nothing */
+		rc = 0;
 		break;
 
 	case 3:		/* id not inserted - block is full */
@@ -492,7 +493,8 @@ idl_insert_key(
 				Debug( LDAP_DEBUG_ANY,
 				    "idl_fetch_one (%s) returns NULL\n",
 				    k2.dptr, 0, 0 );
-				break;
+				/* split the original block */
+				goto split;
 			}
 
 			switch ( (rc = idl_insert( &tmp2, id,
@@ -518,13 +520,18 @@ idl_insert_key(
 			case 3:		/* split the original block */
 				break;
 			}
+
 			idl_free( tmp2 );
 		}
 
+split:
 		/*
 		 * must split the block, write both new blocks + update
 		 * and write the indirect header block.
 		 */
+
+		rc = 0;	/* optimistic */
+
 
 		/* count how many indirect blocks *//* XXX linear count XXX */
 		for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ )
