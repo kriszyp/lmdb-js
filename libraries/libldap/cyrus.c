@@ -418,6 +418,7 @@ ldap_int_sasl_open(
 
 	rc = sasl_client_new( "ldap", host, session_callbacks,
 		SASL_SECURITY_LAYER, &ctx );
+	ber_memfree( session_callbacks );
 
 	if ( rc != SASL_OK ) {
 		ld->ld_errno = sasl_err2ldap( rc );

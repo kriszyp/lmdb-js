@@ -128,6 +128,26 @@ ldap_ld_free(
 		ld->ld_options.ldo_tm_net = NULL;
 	}
 
+	if ( ld->ld_options.ldo_def_sasl_mech != NULL ) {
+		LDAP_FREE( ld->ld_options.ldo_def_sasl_mech );
+		ld->ld_options.ldo_def_sasl_mech = NULL;
+	}
+
+	if ( ld->ld_options.ldo_def_sasl_realm != NULL ) {
+		LDAP_FREE( ld->ld_options.ldo_def_sasl_realm );
+		ld->ld_options.ldo_def_sasl_realm = NULL;
+	}
+
+	if ( ld->ld_options.ldo_def_sasl_authcid != NULL ) {
+		LDAP_FREE( ld->ld_options.ldo_def_sasl_authcid );
+		ld->ld_options.ldo_def_sasl_authcid = NULL;
+	}
+
+	if ( ld->ld_options.ldo_def_sasl_authzid != NULL ) {
+		LDAP_FREE( ld->ld_options.ldo_def_sasl_authzid );
+		ld->ld_options.ldo_def_sasl_authzid = NULL;
+	}
+
 	ber_sockbuf_free( ld->ld_sb );   
    
 	LDAP_FREE( (char *) ld );

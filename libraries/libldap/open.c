@@ -324,6 +324,7 @@ ldap_int_open_connection(
 #ifdef HAVE_CYRUS_SASL
 	if( sasl_host != NULL ) {
 		ldap_int_sasl_open( ld, conn, sasl_host, sasl_ssf );
+		LDAP_FREE( sasl_host );
 	}
 #endif
 
