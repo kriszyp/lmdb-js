@@ -1229,7 +1229,9 @@ re_encode_request( LDAP *ld,
 				scope = LDAP_SCOPE_BASE;
 				break;
 			case LDAP_SCOPE_SUBTREE:
+#ifdef LDAP_FEATURE_SUBORDINATE_SCOPE
 			case LDAP_SCOPE_SUBORDINATE:
+#endif
 				scope = LDAP_SCOPE_SUBTREE;
 				break;
 			}
