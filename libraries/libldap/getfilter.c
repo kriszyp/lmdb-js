@@ -398,15 +398,14 @@ ldap_build_filter(
 		*f++ = *p;
 	    }
 		
-	    if ( (unsigned long) (f - filtbuf) > buflen ) {
+	    if ( (size_t) (f - filtbuf) > buflen ) {
 		/* sanity check */
 		--f;
 		break;
 	    }
 	}
 
-	if ( suffix != NULL && (
-		(unsigned long) ( f - filtbuf ) < buflen ) )
+	if ( suffix != NULL && ( (size_t) (f - filtbuf) < buflen ) )
 	{
 	    strcpy( f, suffix );
 	} else {
