@@ -75,6 +75,7 @@ LDAP_END_DECL
  *                                 *
  ***********************************/
 
+#define PTH_SYSCALL_SOFT 1
 #include <pth.h>
 
 LDAP_BEGIN_DECL
