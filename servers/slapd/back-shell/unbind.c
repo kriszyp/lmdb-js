@@ -26,15 +26,11 @@ shell_back_unbind(
 	FILE			*rfp, *wfp;
 
 	if ( si->si_unbind == NULL ) {
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-		    "unbind not implemented", NULL, NULL );
 		return 0;
 	}
 
 	if ( (op->o_private = (void *) forkandexec( si->si_unbind, &rfp, &wfp ))
 	    == (void *) -1 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
-		    "could not fork/exec", NULL, NULL );
 		return 0;
 	}
 
