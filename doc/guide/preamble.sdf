@@ -17,6 +17,7 @@
 !define DOC_TYPE    "Guide"
 
 !define DOC_LOGO	"../images/LDAPlogo.gif"
+!define DOC_LOGO_BASE "../images/"
 !define DOC_HTML_LOGO ""
 
 !define DOC_LOF_TITLE	"Figures"
