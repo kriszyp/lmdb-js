@@ -1,5 +1,8 @@
 OpenLDAP 2.2 Change Log
 
+OpenLDAP 2.2.15 Engineering
+	Fixed invalid cookie in pagedResults control (ITS#3089)
+
 OpenLDAP 2.2.14 Release
 	Fixed back-bdb ignore deadlock bug (ITS#3188)
 	Fixed back-bdb pagedResults no end cookie bug (ITS#3161)
