@@ -42,7 +42,7 @@ ldap_build_entry( Operation *op, LDAPMessage *e, Entry *ent,
 #define LDAP_BUILD_ENTRY_PRIVATE	0x01
 #define LDAP_BUILD_ENTRY_NORMALIZE	0x02
 
-static struct berval dummy = { 0, NULL };
+static struct berval dummy = BER_BVNULL;
 
 int
 ldap_back_search(
@@ -54,10 +54,10 @@ ldap_back_search(
 	struct timeval	tv;
 	LDAPMessage		*res, *e;
 	int	rc = 0, msgid; 
-	struct berval match = { 0, NULL };
+	struct berval match = BER_BVNULL;
 	char **mapped_attrs = NULL;
 	struct berval mbase;
-	struct berval mfilter = { 0, NULL };
+	struct berval mfilter = BER_BVNULL;
 	int dontfreetext = 0;
 	dncookie dc;
 #ifdef LDAP_BACK_PROXY_AUTHZ
@@ -532,7 +532,7 @@ ldap_back_entry_get(
 	struct ldapinfo *li = (struct ldapinfo *) op->o_bd->be_private;    
 	struct ldapconn *lc;
 	int rc = 1, is_oc;
-	struct berval mapped = { 0, NULL }, bdn, mdn;
+	struct berval mapped = BER_BVNULL, bdn, mdn;
 	LDAPMessage	*result = NULL, *e = NULL;
 	char *gattr[3];
 	char *filter = NULL;

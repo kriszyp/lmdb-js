@@ -45,7 +45,7 @@ ldap_back_delete(
 	int rc = LDAP_SUCCESS;
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
-	struct berval mdn = { 0, NULL };
+	struct berval mdn = BER_BVNULL;
 
 	lc = ldap_back_getconn( op, rs );
 	

@@ -45,7 +45,7 @@ ldap_back_bind(
 	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
 	struct ldapconn *lc;
 
-	struct berval mdn = { 0, NULL };
+	struct berval mdn = BER_BVNULL;
 	int rc = 0;
 	ber_int_t msgid;
 	dncookie dc;

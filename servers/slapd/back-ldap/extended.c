@@ -96,7 +96,7 @@ ldap_back_exop_passwd(
 	struct ldapinfo *li = (struct ldapinfo *) op->o_bd->be_private;
 	struct ldapconn *lc;
 	req_pwdexop_s *qpw = &op->oq_pwdexop;
-	struct berval mdn = { 0, NULL }, newpw;
+	struct berval mdn = BER_BVNULL, newpw;
 	LDAPMessage *res;
 	ber_int_t msgid;
 	int rc, isproxy;
