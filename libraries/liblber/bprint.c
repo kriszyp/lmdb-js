@@ -16,6 +16,7 @@
 
 typedef void (*BER_LOG_FN) LDAP_P((FILE *file, char *subsys, int level, const char *fmt, va_list vl));
 
+static int ber_log_check( int errlvl, int loglvl );
 
 BER_LOG_FN ber_int_log_proc = NULL;
 
@@ -82,17 +83,20 @@ int ber_pvt_log_output( char *subsystem, int level, const char *fmt, ... )
 	}
 	else
 	{
+            int level;
+            ber_get_option( NULL, LBER_OPT_BER_DEBUG, &level );
 #ifdef HAVE_VSNPRINTF
-		buf[sizeof(buf) - 1] = '\0';
-		vsnprintf( buf, sizeof(buf)-1, fmt, vl );
+            buf[sizeof(buf) - 1] = '\0';
+            vsnprintf( buf, sizeof(buf)-1, fmt, vl );
 #elif HAVE_VSPRINTF
-		vsprintf( buf, fmt, vl ); /* hope it's not too long */
+            vsprintf( buf, fmt, vl ); /* hope it's not too long */
 #else
-	/* use doprnt() */
-#error "vsprintf() required."
+                /* use doprnt() */
+#error "vsprintf() required.";
 #endif
-		(*ber_pvt_log_print)( buf );
-	}
+            if ( ber_log_check( LDAP_DEBUG_BER, level ) )
+                (*ber_pvt_log_print)( buf );
+        }
 	va_end(vl);
 
 	return 1;
@@ -218,6 +222,80 @@ ber_bprint(
 
 	(*ber_pvt_log_print)( line );
 }
+
+#ifdef NEW_LOGGING
+int ber_output_dump(
+                    char *subsys,
+                    int level,
+                    BerElement *ber,
+                    int inout )
+{
+    static const char	hexdig[] = "0123456789abcdef";
+    char buf[132];
+    ber_len_t len;
+    char	line[ BP_LEN ];
+    ber_len_t i;
+    char *data = ber->ber_ptr;
+
+    if ( inout == 1 ) {
+        len = ber_pvt_ber_remaining(ber);
+    } else {
+        len = ber_pvt_ber_write(ber);
+    }
+
+    sprintf( buf, "ber_dump: buf=0x%08lx ptr=0x%08lx end=0x%08lx len=%ld\n",
+             (long) ber->ber_buf,
+             (long) ber->ber_ptr,
+             (long) ber->ber_end,
+             (long) len );
+
+    ber_pvt_log_output( subsys, level, "%s", buf );
+
+#define BP_OFFSET 9
+#define BP_GRAPH 60
+#define BP_LEN	80
+
+    assert( data != NULL );
+        
+    /* in case len is zero */
+    line[0] = '\n';
+    line[1] = '\0';
+	
+    for ( i = 0 ; i < len ; i++ ) {
+        int n = i % 16;
+        unsigned off;
+        
+        if( !n ) {
+            if( i ) ber_pvt_log_output( subsys, level, "%s", line );
+            memset( line, ' ', sizeof(line)-2 );
+            line[sizeof(line)-2] = '\n';
+            line[sizeof(line)-1] = '\0';
+            
+            off = i % 0x0ffffU;
+
+            line[ 2 ] = hexdig[ 0x0f & (off >> 12) ];
+            line[ 3 ] = hexdig[ 0x0f & (off >>  8) ];
+            line[ 4 ] = hexdig[ 0x0f & (off >>  4) ];
+            line[ 5 ] = hexdig[ 0x0f & off ];
+            line[ 6 ] = ':';
+        }
+
+        off = BP_OFFSET + n*3 + ((n >= 8)?1:0);
+        line[ off   ] = hexdig[ 0x0f & ( data[i] >> 4 ) ];
+        line[ off+1 ] = hexdig[ 0x0f & data[i] ];
+        
+        off = BP_GRAPH + n + ((n >= 8)?1:0);
+        
+        if ( isprint( data[i] )) {
+            line[ BP_GRAPH + n ] = data[i];
+        } else {
+            line[ BP_GRAPH + n ] = '.';
+        }
+    }
+
+    ber_pvt_log_output( subsys, level, "%s", line );
+}
+#endif
 
 int
 ber_log_dump(
