@@ -176,10 +176,23 @@ str2entry( char *s )
 		}
 
 		if( slapMode & SLAP_TOOL_MODE ) {
+			struct berval *pval;
 			slap_syntax_validate_func *validate =
 				ad->ad_type->sat_syntax->ssyn_validate;
+			slap_syntax_transform_func *pretty =
+				ad->ad_type->sat_syntax->ssyn_pretty;
 
-			if( !validate ) {
+			if( pretty ) {
+				rc = pretty( ad->ad_type->sat_syntax,
+					&value, &pval );
+
+			} else if( validate ) {
+				/*
+			 	 * validate value per syntax
+			 	 */
+				rc = validate( ad->ad_type->sat_syntax, &value );
+
+			} else {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
 					   "str2entry: no validator for syntax %s\n", 
@@ -195,11 +208,6 @@ str2entry( char *s )
 				return NULL;
 			}
 
-			/*
-			 * validate value per syntax
-			 */
-			rc = validate( ad->ad_type->sat_syntax, &value );
-
 			if( rc != 0 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
@@ -214,6 +222,12 @@ str2entry( char *s )
 				free( value.bv_val );
 				free( type );
 				return NULL;
+			}
+
+			if( pretty ) {
+				free( value.bv_val );
+				value = *pval;
+				free( pval );
 			}
 		}
 

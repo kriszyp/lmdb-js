@@ -436,7 +436,7 @@ int
 dnPretty(
 	Syntax *syntax,
 	struct berval *val,
-	struct berval **normalized)
+	struct berval **pretty)
 {
 	struct berval *out = NULL;
 
@@ -479,7 +479,7 @@ dnPretty(
 		out = ber_bvdup( val );
 	}
 
-	*normalized = out;
+	*pretty = out;
 
 	return( LDAP_SUCCESS );
 }

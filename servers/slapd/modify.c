@@ -490,8 +490,10 @@ int slap_modlist2mods(
 			ber_len_t nvals;
 			slap_syntax_validate_func *validate =
 				ad->ad_type->sat_syntax->ssyn_validate;
-
-			if( !validate ) {
+			slap_syntax_transform_func *pretty =
+				ad->ad_type->sat_syntax->ssyn_pretty;
+ 
+			if( !pretty && !validate ) {
 				slap_mods_free( mod );
 				*text = "no validator for syntax";
 				snprintf( textbuf, textlen,
@@ -504,9 +506,17 @@ int slap_modlist2mods(
 
 			/*
 			 * check that each value is valid per syntax
+			 *	and pretty if appropriate
 			 */
 			for( nvals = 0; ml->ml_bvalues[nvals]; nvals++ ) {
-				rc = validate( ad->ad_type->sat_syntax, ml->ml_bvalues[nvals] );
+				struct berval *pval;
+				if( pretty ) {
+					rc = pretty( ad->ad_type->sat_syntax,
+						ml->ml_bvalues[nvals], &pval );
+				} else {
+					rc = validate( ad->ad_type->sat_syntax,
+						ml->ml_bvalues[nvals] );
+				}
 
 				if( rc != 0 ) {
 					slap_mods_free( mod );
@@ -515,6 +525,12 @@ int slap_modlist2mods(
 						ml->ml_type, (long) nvals );
 					*text = textbuf;
 					return LDAP_INVALID_SYNTAX;
+				}
+
+				if( pretty ) {
+					ber_memfree( ml->ml_bvalues[nvals]->bv_val );
+					*ml->ml_bvalues[nvals] = *pval;
+					free( pval );
 				}
 			}
 
