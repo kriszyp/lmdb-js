@@ -2888,6 +2888,11 @@ parse_syncrepl_line(
 			/* '\0' string terminator accounts for '=' */
 			val = cargv[ i ] + sizeof( IDSTR );
 			si->id = atoi( val );
+			if ( si->id >= 1000 ) {
+				fprintf( stderr, "Error: parse_syncrepl_line: "
+						 "syncrepl id %d is out of range [0..999]\n", si->id );
+				return -1;
+			}
 			gots |= GOT_ID;
 		} else if ( !strncasecmp( cargv[ i ], PROVIDERSTR,
 					sizeof( PROVIDERSTR ) - 1 )) {

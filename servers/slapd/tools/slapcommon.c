@@ -160,6 +160,12 @@ slap_tool_init(
 			replica_id_list = ch_calloc( i + 1, sizeof( int ) );
 			for ( i = 0; replica_id_strlist && replica_id_strlist[i]; i++ ) {
 				replica_id_list[i] = atoi( replica_id_strlist[i] );
+				if ( replica_id_list[i] >= 1000 ) {
+					fprintf(stderr,
+						"%s: syncrepl id %d is out of range [0..999]\n",
+						progname, replica_id_list[i] );
+					exit( EXIT_FAILURE );
+				}
 			}
 			replica_id_list[i] = -1;
 			break;
