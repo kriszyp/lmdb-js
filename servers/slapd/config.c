@@ -858,33 +858,6 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "access" ) == 0 ) {
 			parse_acl( be, fname, lineno, cargc, cargv );
 
-		/* specify default access control info */
-		} else if ( strcasecmp( cargv[0], "defaultaccess" ) == 0 ) {
-			slap_access_t access;
-
-			if ( cargc < 2 ) {
-				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing limit in \"defaultaccess <access>\" line\n",
-				    fname, lineno, 0 );
-				return( 1 );
-			}
-
-			access = str2access( cargv[1] );
-
-			if ( access == ACL_INVALID_ACCESS ) {
-				Debug( LDAP_DEBUG_ANY,
-					"%s: line %d: bad access level \"%s\", "
-					"expecting none|auth|compare|search|read|write\n",
-				    fname, lineno, cargv[1] );
-				return( 1 );
-			}
-
-			if ( be == NULL ) {
-				global_default_access = access;
-			} else {
-				be->be_dfltaccess = access;
-			}
-
 		/* debug level to log things to syslog */
 		} else if ( strcasecmp( cargv[0], "loglevel" ) == 0 ) {
 			if ( cargc < 2 ) {
