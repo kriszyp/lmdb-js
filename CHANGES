@@ -1,28 +1,28 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.8 Release Engineering
-	Fixed slapd empty OID value bug
-	Fixed slapd waitpid() bug
-	Fixed slapd gai_strerror() bug
+	Fixed slapd empty OID value bug (ITS#882)
+	Fixed slapd waitpid() bug (ITS#900)
+	Fixed slapd gai_strerror() bug (ITS#895)
 	Fixed slapd unrecognized objectClass bug
 	Fixed back-ldap protocol versioning bug
-	Fixed back-passwd nbase bug
+	Fixed back-ldap str2ad bug (ITS#919)
+	Fixed back-passwd nbase bug (ITS#941)
 	Fixed back-shell unbind response bug
-	Fixed back-ldbm oldSuperior bug
-	Fixed libldap SASL scred handling
-	Fixed libldap TLS crash bug
+	Fixed back-ldbm oldSuperior bug (ITS#951)
+	Fixed libldap SASL GSSAPI interop bug (ITS#884)
+	Fixed libldap TLS/SASL crash bug (ITS#889)
+	Update libldap TLS seeding (ITS#948) 
 	Update libldap TLS certificate handling
-	Update libldap referral/reference handling
+	Update libldap referral/reference handling (ITS#905)
 	Updated maildap
 	Updated ldaptcl
 	Build Environment
-		Updated top.mk
-		Added MacOS support
+		Added MacOS support (ITS#943)
+		Update schema files (ITS#955)
 		Trim experimental options
-		Update schema files
 	Documentation
-		Updated ldapdelete(1)
-		Updated ldapsearch(1)
+		Update tool pages (ITS#938)
 
 OpenLDAP 2.0.7 Release
 	Fixed -lldap TLS data ready bug (ITS#821)
