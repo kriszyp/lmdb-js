@@ -147,8 +147,6 @@ slapd_ber2cav( struct berval* bv, ComponentAssertionValue* cav)
 	cav->cav_ptr = cav->cav_buf = bv->bv_val;
 	cav->cav_end = bv->bv_val + len;
 
-	/* FIXME: should it check return value 
-	 * of ldap_pvt_filter_value_unescape? */
 	return LDAP_SUCCESS;
 }
 
