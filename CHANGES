@@ -4,6 +4,8 @@ OpenLDAP 2.1.30 Engineering
 	Fixed slapd userdb checkpass bug (ITS#3048)
 	Fixed back-ldbm IDL delete bug (ITS#3046)
 	Fixed liblutil NS MTA MD5 passwd len bug (ITS#2899)
+	Documentation
+		Updated slapd.conf(5) manpage (ITS#2525)
 
 OpenLDAP 2.1.29 Release
 	Fixed slapd SASL invalid authcID crash (ITS#2961)
