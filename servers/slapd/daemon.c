@@ -58,9 +58,11 @@ static void slapd_add(int s) {
 	assert( !FD_ISSET( s, &slap_daemon.sd_readers ));
 	assert( !FD_ISSET( s, &slap_daemon.sd_writers ));
 
+#ifndef HAVE_WINSOCK
 	if (s >= slap_daemon.sd_nfds) {
 		slap_daemon.sd_nfds = s + 1;
 	}
+#endif
 
 	FD_SET( s, &slap_daemon.sd_actives );
 	FD_SET( s, &slap_daemon.sd_readers );
@@ -78,7 +80,6 @@ static void slapd_add(int s) {
 void slapd_remove(int s) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
-	assert( s < slap_daemon.sd_nfds );
 	assert( FD_ISSET( s, &slap_daemon.sd_actives ));
 
 	Debug( LDAP_DEBUG_CONNS, "daemon: removing %d%s%s\n", s,
@@ -95,10 +96,8 @@ void slapd_remove(int s) {
 void slapd_clr_write(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
-	assert( s < slap_daemon.sd_nfds );
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
-	assert( FD_ISSET( s, &slap_daemon.sd_writers) );
-	FD_SET( s, &slap_daemon.sd_writers );
+	FD_CLR( s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
@@ -110,7 +109,34 @@ void slapd_clr_write(int s, int wake) {
 void slapd_set_write(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
+	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
 	FD_SET( s, &slap_daemon.sd_writers );
+
+	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
+
+	if( wake ) {
+		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
+	}
+}
+
+void slapd_clr_read(int s, int wake) {
+	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+
+	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
+	FD_CLR( s, &slap_daemon.sd_readers );
+
+	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
+
+	if( wake ) {
+		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
+	}
+}
+
+void slapd_set_read(int s, int wake) {
+	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+
+	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
+	FD_SET( s, &slap_daemon.sd_readers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 

@@ -104,7 +104,7 @@ send_ldap_result2(
 		    : "unknown", 0 );
 
 		if ( errno != EWOULDBLOCK && errno != EAGAIN ) {
-			conn->c_conn_state = SLAP_C_CLOSING;
+			connection_closing( conn );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 			ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
@@ -334,7 +334,7 @@ send_search_entry(
 		    : "unknown", 0 );
 
 		if ( errno != EWOULDBLOCK && errno != EAGAIN ) {
-			conn->c_conn_state = SLAP_C_CLOSING;
+			connection_closing( conn );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 			ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );

@@ -115,6 +115,8 @@ long connection_init LDAP_P((
 	int s,
 	const char* name, const char* addr));
 
+void connection_closing LDAP_P(( Connection *c ));
+
 int connection_write LDAP_P((int s));
 int connection_read LDAP_P((int s));
 
@@ -309,6 +311,11 @@ extern int	slap_destroy LDAP_P((void));
 
 struct sockaddr_in;
 extern int slapd_daemon LDAP_P((struct sockaddr_in *addr));
+
+extern void slapd_set_write LDAP_P((int s, int wake));
+extern void slapd_clr_write LDAP_P((int s, int wake));
+extern void slapd_set_read LDAP_P((int s, int wake));
+extern void slapd_clr_read LDAP_P((int s, int wake));
 
 extern void	slap_set_shutdown LDAP_P((int sig));
 extern void	slap_do_nothing   LDAP_P((int sig));

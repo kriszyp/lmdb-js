@@ -414,19 +414,6 @@ typedef struct slap_op {
  * represents a connection from an ldap client
  */
 
- 
-/* structure state (protected by connections_mutex) */
-#define SLAP_C_UNINITIALIZED	0x0	/* MUST BE ZERO (0) */
-#define SLAP_C_UNUSED			0x1
-#define SLAP_C_USED				0x2
-
-/* connection state (protected by c_mutex ) */
-#define SLAP_C_INVALID			0x0	/* MUST BE ZERO (0) */
-#define SLAP_C_INACTIVE			0x1	/* zero threads */
-#define SLAP_C_ACTIVE			0x2 /* one or more threads */
-#define SLAP_C_BINDING			0x3	/* binding */
-#define SLAP_C_CLOSING			0x4	/* closing */
-
 typedef struct slap_conn {
 	int			c_struct_state; /* structure management state */
 	int			c_conn_state;	/* connection state */

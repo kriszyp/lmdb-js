@@ -16,6 +16,18 @@ static Connection *connections = NULL;
 static int conn_index = -1;
 static long conn_nextid = 0;
 
+/* structure state (protected by connections_mutex) */
+#define SLAP_C_UNINITIALIZED	0x0	/* MUST BE ZERO (0) */
+#define SLAP_C_UNUSED			0x1
+#define SLAP_C_USED				0x2
+
+/* connection state (protected by c_mutex ) */
+#define SLAP_C_INVALID			0x0	/* MUST BE ZERO (0) */
+#define SLAP_C_INACTIVE			0x1	/* zero threads */
+#define SLAP_C_ACTIVE			0x2 /* one or more threads */
+#define SLAP_C_BINDING			0x3	/* binding */
+#define SLAP_C_CLOSING			0x4	/* closing */
+
 static Connection* connection_get( int s );
 
 static int connection_input( Connection *c );
@@ -288,6 +300,20 @@ connection_destroy( Connection *c )
    	lber_pvt_sb_destroy( &c->c_sb );
 }
 
+void connection_closing( Connection *c )
+{
+	assert( connections != NULL );
+	assert( c != NULL );
+	assert( c->c_struct_state == SLAP_C_USED );
+	assert( c->c_conn_state != SLAP_C_INVALID );
+
+	if( c->c_conn_state != SLAP_C_CLOSING ) {
+		/* don't listen on this port anymore */
+		slapd_clr_read( c->c_sb.sb_sd, 1 );
+		c->c_conn_state = SLAP_C_CLOSING;
+	}
+}
+
 static void connection_close( Connection *c )
 {
 	assert( connections != NULL );
@@ -483,7 +509,7 @@ connection_operation( void *arg_v )
 	case LDAP_REQ_UNBIND_30:
 #endif
 	case LDAP_REQ_UNBIND:
-		conn->c_conn_state = SLAP_C_CLOSING;
+		connection_closing( conn );
 		break;
 
 	case LDAP_REQ_BIND:
@@ -550,7 +576,7 @@ int connection_read(int s)
 			"connection_read(%d): input error id=%ld, closing.\n",
 			s, c->c_connid, 0 );
 
-		c->c_conn_state = SLAP_C_CLOSING;
+		connection_closing( c );
 		connection_close( c );
 	}
 
@@ -583,7 +609,8 @@ connection_input(
 			"ber_get_next on fd %d failed errno %d (%s)\n",
 			lber_pvt_sb_get_desc(&conn->c_sb), errno,
 			errno > -1 && errno < sys_nerr ?  sys_errlist[errno] : "unknown" );
-		Debug( LDAP_DEBUG_TRACE, "\t*** got %ld of %lu so far\n",
+		Debug( LDAP_DEBUG_TRACE,
+			"\t*** got %ld of %lu so far\n",
 			(long)(conn->c_currentber->ber_rwptr - conn->c_currentber->ber_buf),
 			conn->c_currentber->ber_len, 0 );
 
