@@ -27,7 +27,6 @@ ldbm_back_add(
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	struct berval	pdn;
 	Entry		*p = NULL;
-	int			rootlock = 0;
 	int			rc;
 	ID               id = NOID;
 	const char	*text = NULL;
@@ -42,12 +41,12 @@ ldbm_back_add(
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", e->e_dn, 0, 0);
 #endif
 
-	/* nobody else can add until we lock our parent */
-	ldap_pvt_thread_mutex_lock(&li->li_add_mutex);
+	/* grab giant lock for writing */
+	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
 
 	if ( ( rc = dn2id( be, &e->e_nname, &id ) ) || id != NOID ) {
 		/* if (rc) something bad happened to ldbm cache */
-		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
+		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 		send_ldap_result( conn, op, 
 			rc ? LDAP_OPERATIONS_ERROR : LDAP_ALREADY_EXISTS,
 			NULL, NULL, NULL, NULL );
@@ -57,7 +56,7 @@ ldbm_back_add(
 	rc = entry_schema_check( be, e, NULL, &text, textbuf, textlen );
 
 	if ( rc != LDAP_SUCCESS ) {
-		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
+		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
@@ -67,7 +66,6 @@ ldbm_back_add(
 		Debug( LDAP_DEBUG_TRACE, "entry failed schema check: %s\n",
 			text, 0, 0 );
 #endif
-
 
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );
@@ -94,8 +92,6 @@ ldbm_back_add(
 			char *matched_dn = NULL;
 			BerVarray refs;
 
-			ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
-
 			if ( matched != NULL ) {
 				matched_dn = ch_strdup( matched->e_dn );
 				refs = is_entry_referral( matched )
@@ -107,6 +103,8 @@ ldbm_back_add(
 				refs = referral_rewrite( default_referral,
 					NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
 			}
+
+			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
@@ -127,14 +125,12 @@ ldbm_back_add(
 			return -1;
 		}
 
-		/* don't need the add lock anymore */
-		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
-
 		if ( ! access_allowed( be, conn, op, p,
 			children, NULL, ACL_WRITE ) )
 		{
 			/* free parent and writer lock */
 			cache_return_entry_w( &li->li_cache, p ); 
+			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
@@ -148,7 +144,6 @@ ldbm_back_add(
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			    NULL, "no write access to parent", NULL, NULL );
 
-
 			return -1;
 		}
 
@@ -157,6 +152,7 @@ ldbm_back_add(
 
 			/* free parent and writer lock */
 			cache_return_entry_w( &li->li_cache, p );
+			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
@@ -182,6 +178,7 @@ ldbm_back_add(
 
 			/* free parent and writer lock */
 			cache_return_entry_w( &li->li_cache, p );
+			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
@@ -214,7 +211,7 @@ ldbm_back_add(
 				p = NULL;
 				
 				if ( ! rc ) {
-					ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
+					ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
@@ -236,7 +233,7 @@ ldbm_back_add(
 				}
 
 			} else {
-				ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
+				ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
@@ -256,14 +253,6 @@ ldbm_back_add(
 				return -1;
 			}
 		}
-
-		/*
-		 * no parent, acquire the root write lock
-		 * and release the add lock.
-		 */
-		ldap_pvt_thread_mutex_lock(&li->li_root_mutex);
-		rootlock = 1;
-		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 	}
 
 	if ( next_id( be, &e->e_id ) ) {
@@ -272,19 +261,15 @@ ldbm_back_add(
 			cache_return_entry_w( &li->li_cache, p ); 
 		}
 
-		if ( rootlock ) {
-			/* release root lock */
-			ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
-		}
+		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
-			   "ldbm_back_add: next_id failed.\n" ));
+			"ldbm_back_add: next_id failed.\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY, "ldbm_add: next_id failed\n",
 			0, 0, 0 );
 #endif
-
 
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "next_id add failed", NULL, NULL );
@@ -303,10 +288,7 @@ ldbm_back_add(
 			cache_return_entry_w( &li->li_cache, p ); 
 		}
 
-		if ( rootlock ) {
-			/* release root lock */
-			ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
-		}
+		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
@@ -392,16 +374,13 @@ return_results:;
 		cache_return_entry_w( &li->li_cache, p ); 
 	}
 
-	if ( rootlock ) {
-		/* release root lock */
-		ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
-	}
-
 	if ( rc ) {
 		/* in case of error, writer lock is freed 
 		 * and entry's private data is destroyed */
 		cache_return_entry_w( &li->li_cache, e );
 	}
+
+	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 	return( rc );
 }

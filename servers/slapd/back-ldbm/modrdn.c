@@ -88,6 +88,9 @@ ldbm_back_modrdn(
 			? newSuperior->bv_val : "NULL", 0 );
 #endif
 
+	/* grab giant lock for writing */
+	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
+
 	/* get entry with writer lock */
 	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char* matched_dn = NULL;
@@ -103,6 +106,8 @@ ldbm_back_modrdn(
 			refs = referral_rewrite( default_referral,
 				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
+
+		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
@@ -262,9 +267,6 @@ ldbm_back_modrdn(
 			}
 		}
 
-		ldap_pvt_thread_mutex_lock(&li->li_root_mutex);
-		rootlock = 1;
-		
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 			   "ldbm_back_modrdn: (%s) no parent, locked root.\n", e->e_dn ));
@@ -804,11 +806,6 @@ return_results:
 		cache_return_entry_w( &li->li_cache, p );
 	}
 
-	if ( rootlock ) {
-		/* release root writer lock */
-		ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
-	}
-
 	/* free entry and writer lock */
 	cache_return_entry_w( &li->li_cache, e );
 	if ( rc == MUST_DESTROY ) {
@@ -817,5 +814,6 @@ return_results:
 		 * the entry must be freed */
 		entry_free( e );
 	}
+	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 	return( rc );
 }

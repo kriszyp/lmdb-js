@@ -50,8 +50,10 @@ ldbm_back_bind(
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_bind: dn: %s\n", dn->bv_val, 0, 0);
 #endif
 
-
 	dn = ndn;
+
+	/* grab giant lock for reading */
+	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
 
 	/* get entry with reader lock */
 	if ( (e = dn2entry_r( be, dn, &matched )) == NULL ) {
@@ -71,6 +73,8 @@ ldbm_back_bind(
 			refs = referral_rewrite( default_referral,
 				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
+
+		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 		/* allow noauth binds */
 		rc = 1;
@@ -263,6 +267,7 @@ ldbm_back_bind(
 return_results:;
 	/* free entry and reader lock */
 	cache_return_entry_r( &li->li_cache, e );
+	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 	/* front end with send result on success (rc==0) */
 	return( rc );
