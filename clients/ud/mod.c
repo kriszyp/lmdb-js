@@ -574,7 +574,7 @@ set_boolean(
 	printf("  Please enter Y for yes, N for no, or RETURN to cancel:  ");
 	fflush(stdout);
 	(void) fetch_buffer(response, sizeof(response), stdin);
-	for (s = response; isspace(*s); s++)
+	for (s = response; isspace((unsigned char)*s); s++)
 			;
 	if ((*s == 'y') || (*s == 'Y')) {
 		if (ldap_modify_s(ld, who, mods)) {
@@ -639,7 +639,7 @@ set_updates( char *who, int dummy )
 	printf("\n  Change this setting [no]? ");
 	fflush(stdout);
 	(void) fetch_buffer(response, sizeof(response), stdin);
-	for (s = response; isspace(*s); s++)
+	for (s = response; isspace((unsigned char)*s); s++)
 			;
 	if ((*s == 'y') || (*s == 'Y')) {
 		if (!strcmp(cp, "TRUE"))
@@ -770,7 +770,7 @@ check_URL( char *url )
 	register char *cp;
 
 	for (cp = url; *cp != '\n' && *cp != '\0'; cp++) {
-		if (isspace(*cp))
+		if (isspace((unsigned char)*cp))
 			return(-1);
 			/*NOTREACHED*/
 	}

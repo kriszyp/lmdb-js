@@ -53,8 +53,8 @@ lowerCase( char *string )
 	char	*s;
 
 	for ( s = string; s != NULL && *s != '\0'; s++ )
-		if ( isupper( *s ) )
-			*s = tolower( *s );
+		if ( isupper( (unsigned char) *s ) )
+			*s = tolower( (unsigned char) *s );
 	return string;
 }
 

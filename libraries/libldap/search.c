@@ -404,7 +404,7 @@ put_filter_list( BerElement *ber, char *str )
 	Debug( LDAP_DEBUG_TRACE, "put_filter_list \"%s\"\n", str, 0, 0 );
 
 	while ( *str ) {
-		while ( *str && isspace( *str ) )
+		while ( *str && isspace( (unsigned char) *str ) )
 			str++;
 		if ( *str == '\0' )
 			break;

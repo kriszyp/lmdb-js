@@ -558,7 +558,7 @@ void upcase_string(char *array,
 		   char *uparray) {
    int  i;
    for (i=0; i < strlen(array); i++) {
-      uparray[i] = toupper(array[i]);
+      uparray[i] = toupper((unsigned char) array[i]);
       uparray[i + 1] = 0;
    }
    return;

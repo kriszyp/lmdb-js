@@ -1147,7 +1147,7 @@ do_noemailorfax( FILE *fp, Error *err, int namelen, int errtype )
 		    != NULL ) {
 			for ( i = 0; vals[i]; i++ ) {
 				last = strlen( vals[i] ) - 1;
-				if ( isdigit( vals[i][last] ) ) {
+				if ( isdigit((unsigned char) vals[i][last]) ) {
 					rdn = strdup( vals[i] );
 					break;
 				}
@@ -1185,7 +1185,7 @@ do_noemailorfax( FILE *fp, Error *err, int namelen, int errtype )
 		for ( i = 0; vals[0][i] != '\0'; i++ ) {
 			if ( vals[0][i] == '$' ) {
 				fprintf( fp, "\n%*s  ", namelen, " " );
-				while ( isspace( vals[0][i+1] ) )
+				while ( isspace((unsigned char) vals[0][i+1]) )
 					i++;
 			} else {
 				fprintf( fp, "%c", vals[0][i] );
@@ -1234,7 +1234,7 @@ do_ambiguous( FILE *fp, Error *err, int namelen )
 			if ( (vals = ldap_get_values( ld, e, "cn" )) != NULL ) {
 				for ( i = 0; vals[i]; i++ ) {
 					last = strlen( vals[i] ) - 1;
-					if ( isdigit( vals[i][last] ) ) {
+					if ( isdigit((unsigned char) vals[i][last]) ) {
 						rdn = strdup( vals[i] );
 						break;
 					}

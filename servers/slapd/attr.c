@@ -40,7 +40,7 @@ attr_normalize( char *s )
 	char	*save;
 
 	for ( save = s; *s; s++ ) {
-		*s = TOLOWER( *s );
+		*s = TOLOWER( (unsigned char) *s );
 	}
 
 	return( save );

@@ -623,7 +623,7 @@ fp_getline( FILE *fp, int *lineno )
 		if ( (p = strchr( buf, '\n' )) != NULL ) {
 			*p = '\0';
 		}
-		if ( ! isspace( buf[0] ) ) {
+		if ( ! isspace( (unsigned char) buf[0] ) ) {
 			return( line );
 		}
 

@@ -137,7 +137,7 @@ main( int argc, char **argv )
 
 			len = strlen( line );
 			if ( buf == NULL || *buf == '\0' ) {
-				if (!isdigit(line[0])) {
+				if (!isdigit((unsigned char) line[0])) {
 					sprintf( idbuf, "%d\n", id + 1 );
 					idlen = strlen( idbuf );
 				} else {

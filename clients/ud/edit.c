@@ -265,8 +265,8 @@ write_entry( void )
 		cp = line;
 		if (*cp == '#')
 			continue;
-		if (isspace(*cp)) {	/* value */
-			while (isspace(*cp))
+		if (isspace((unsigned char)*cp)) {	/* value */
+			while (isspace((unsigned char)*cp))
 				cp++;
 			values[number_of_values++] = strdup(cp);
 			if ( number_of_values >= MAX_VALUES ) {
@@ -276,7 +276,7 @@ write_entry( void )
 			continue;
 		}
 		/* attribute */
-		while (isspace(*cp))
+		while (isspace((unsigned char)*cp))
 			cp++;
 		/*
 		 *  If the number of values is greater than zero, then we

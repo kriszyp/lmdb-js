@@ -873,7 +873,7 @@ mod_addrDN( char *group, int offset )
 			char *cp;
 			if (strchr(s, '<') == NULL) {
 				for (cp = s; *cp != '@'; cp++)
-					if (isspace(*cp))
+					if (isspace((unsigned char)*cp))
 						*cp = '.';
 			}
 			new_value = s;

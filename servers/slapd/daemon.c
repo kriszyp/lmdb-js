@@ -250,7 +250,7 @@ slapd_daemon(
 
 					/* normalize the domain */
 					for ( s = client_name; *s; s++ ) {
-						*s = TOLOWER( *s );
+						*s = TOLOWER( (unsigned char) *s );
 					}
 
 				} else {

@@ -248,7 +248,8 @@ char	*s;
 int	t61mark;
 {
 	char	*next = s;
-	int	c, hex;
+	unsigned char	c;
+	unsigned int	hex;
 
 	while ( *s ) {
 		switch ( *s ) {

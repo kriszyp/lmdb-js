@@ -66,7 +66,7 @@ main( int argc, char **argv )
 
                 if (( s = data.dptr ) != NULL ) {
 
-                    if ( !printid && isdigit( *s )) {
+                    if ( !printid && isdigit( (unsigned char) *s )) {
                         if (( s = strchr( s, '\n' )) != NULL ) {
                                 ++s;
                         }

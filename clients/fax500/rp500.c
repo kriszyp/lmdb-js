@@ -188,7 +188,7 @@ main( int argc, char **argv )
 				cn = ldap_get_values( ld, e, "cn" );
 				for ( i = 0; cn[i] != NULL; i++ ) {
 					last = strlen( cn[i] ) - 1;
-					if ( isdigit( cn[i][last] ) ) {
+					if ( isdigit((unsigned char) cn[i][last]) ) {
 						rdn = strdup( cn[i] );
 						break;
 					}

@@ -198,12 +198,13 @@ fetch_buffer( char *buffer, int length, FILE *where )
 			errno = 0;	 /* so fatal() doesn't bitch */
 		fatal("fgets");
 	}
-	for (i = strlen(buffer) - 1; i >= 0 && !isprint(buffer[i]); i--)
+	for (i = strlen(buffer) - 1;
+	     i >= 0 && !isprint((unsigned char) buffer[i]); i--)
 		buffer[i] = '\0';
 
 	p = buffer;
 	while ( *p != '\0' ) {
-		if ( isprint( *p )) {
+		if ( isprint( (unsigned char) *p )) {
 			++p;
 		} else {
 			SAFEMEMCPY( p, p + 1, strlen( p + 1 ) + 1 ); 
@@ -289,10 +290,10 @@ format( char *str, int width, int lead )
 			/*NOTREACHED*/
 		}
 		cp = s + width - lead;
-		while (!isspace(*cp) && (cp != s))
+		while (!isspace((unsigned char)*cp) && (cp != s))
 			cp--;
 		*cp = '\0';
-		while (isspace(*s))
+		while (isspace((unsigned char)*s))
 			s++;
 		printf("%s%s\n", leader, s);
 		s = cp + 1;
@@ -368,7 +369,7 @@ format2(
 	 *  back it up to the first space character.
 	 */
 	cp = s + width - first_indent - strlen(first_tag);
-	while (!isspace(*cp) && (cp != s))
+	while (!isspace((unsigned char)*cp) && (cp != s))
 		cp--;
 
 	/*
@@ -386,7 +387,7 @@ format2(
 	 *  as well.  We should gobble up all of these since we don't want
 	 *  unexpected leading blanks.
 	 */  
-	for (s = cp + 1; isspace(*s); s++)
+	for (s = cp + 1; isspace((unsigned char)*s); s++)
 		;
 
 	/* now do all of the other lines */
@@ -399,7 +400,7 @@ format2(
 			/*NOTREACHED*/
 		}
 		cp = s + width - indent - strlen(tag);
-		while (!isspace(*cp) && (cp != s))
+		while (!isspace((unsigned char)*cp) && (cp != s))
 			cp--;
 		c = *cp;
 		*cp = '\0';
@@ -496,10 +497,10 @@ isauniqname( char *s )
 
 	if ((i < 3) || (i > 8))		/* uniqnames are 3-8 chars */
 		return(FALSE);
-	if (!isalpha(*s))		/* uniqnames begin with a letter */
+	if (!isalpha((unsigned char)*s)) /* uniqnames begin with a letter */
 		return(FALSE);
 	for ( ; *s != '\0'; s++)	/* uniqnames are alphanumeric */
-		if (!isalnum(*s))
+		if (!isalnum((unsigned char)*s))
 			return(FALSE);
 	return(TRUE);
 }
@@ -593,7 +594,7 @@ Free( void *ptr )
 char *
 nextstr( char *s )
 {
-	while (isspace(*s) && (*s != '\0'))
+	while (isspace((unsigned char) *s) && (*s != '\0'))
 		s++;
 	if (s == NULL)
 		return(NULL);

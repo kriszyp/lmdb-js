@@ -279,7 +279,7 @@ char* lower_case_string(char* inputbuf)
 
   while(inputbuf[pos])
   {
-    inputbuf[pos] = (char)tolower(inputbuf[pos]);
+    inputbuf[pos] = (char)tolower((unsigned char) inputbuf[pos]);
     pos++;
   }
   return(inputbuf);
@@ -295,7 +295,7 @@ char* upper_case_string(char* inputbuf)
 
   while(inputbuf[pos])
   {
-    inputbuf[pos] = (char)toupper(inputbuf[pos]);
+    inputbuf[pos] = (char)toupper((unsigned char) inputbuf[pos]);
     pos++;
   }
   return(inputbuf);
@@ -420,7 +420,7 @@ long unformat_cost(char* cost)
   {
     if(*spos == '.')
       break;
-    if(isdigit(*spos))
+    if(isdigit((unsigned char) *spos))
       *dpos++ = *spos;
     spos++;
     if(buf_siz++ == 98) /* make sure we don't overrun buf */
@@ -440,7 +440,7 @@ int digits_only(char* str)
   pos = str;
   while(*pos)
   {
-    if(!isdigit(*pos))
+    if(!isdigit((unsigned char) *pos))
       return(0);    /* non-digit found */
     pos++;
   } 

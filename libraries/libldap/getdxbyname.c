@@ -131,12 +131,12 @@ decode_answer( unsigned char *answer, int len )
 		if ( *q >= 3 && strncasecmp( q + 1, "dx:", 3 ) == 0 ) {
 		    txt_len = *q - 3;
 		    r = q + 4;
-		    while ( isspace( *r )) { 
+		    while ( isspace( (unsigned char) *r )) { 
 			++r;
 			--txt_len;
 		    }
 		    pref = 0;
-		    while ( isdigit( *r )) {
+		    while ( isdigit( (unsigned char) *r )) {
 			pref *= 10;
 			pref += ( *r - '0' );
 			++r;
@@ -145,7 +145,7 @@ decode_answer( unsigned char *answer, int len )
 		    if ( dx_count < MAX_TO_SORT - 1 ) {
 			dx_pref[ dx_count ] = pref;
 		    }
-		    while ( isspace( *r )) { 
+		    while ( isspace( (unsigned char) *r )) { 
 			++r;
 			--txt_len;
 		    }

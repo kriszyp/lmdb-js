@@ -140,7 +140,7 @@ main( int argc, char **argv )
 		}
 		if ( line[0] == '\n' || stop && buf && *buf ) {
 			if ( *buf != '\n' ) {
-				if (isdigit(*buf)) {
+				if (isdigit((unsigned char) *buf)) {
 					id = atol(buf);
 				} else {
 					id++;

@@ -194,19 +194,19 @@ do_commands( void )
 			putchar('\n');
 			continue;
 		}
-		while (isspace(*cp))
+		while (isspace((unsigned char)*cp))
 			cp++;	
 		ap = cmd;
 		if (memset(cmd, '\0', sizeof(cmd)) == NULL)
 			fatal("memset");
-		while (!isspace(*cp) && (*cp != '\0'))
+		while (!isspace((unsigned char)*cp) && (*cp != '\0'))
 			*ap++ = *cp++;
 		if (iscom("status"))
 			status();
 		else if (iscom("stop") || iscom("quit"))
 			break;
 		else if (iscom("cb") || iscom("cd") || iscom("moveto")) {
-			while (isspace(*cp) && (*cp != '\0')) 
+			while (isspace((unsigned char)*cp) && (*cp != '\0'))
 				cp++;
 			if (!strncasecmp(cp, "base", 4))
 				cp += 4;
@@ -402,7 +402,7 @@ change_base( int type, char **base, char *s )
 			 *
 			 *  sequence now that 'cp' is pointing to the '='.
 			 */
-			while(!isspace(*cp))
+			while(!isspace((unsigned char)*cp))
 				cp--;
 			cp++;
 			/*
@@ -601,7 +601,7 @@ initialize_client( void )
 				if (server != NULL)
 					continue;
 				cp = buffer + 6;
-				while (isspace(*cp))
+				while (isspace((unsigned char)*cp))
 					cp++;
 				if ((*cp == '\0') || (*cp == '\n'))
 					continue;
@@ -611,7 +611,7 @@ initialize_client( void )
 				if (server != NULL)
 					continue;
 				cp = buffer + 4;
-				while (isspace(*cp))
+				while (isspace((unsigned char)*cp))
 					cp++;
 				if ((*cp == '\0') || (*cp == '\n'))
 					continue;
@@ -619,7 +619,7 @@ initialize_client( void )
 			}
 			else if (!strncasecmp(buffer, "base", 4)) {
 				cp = buffer + 4;
-				while (isspace(*cp))
+				while (isspace((unsigned char)*cp))
 					cp++;
 				if ((*cp == '\0') || (*cp == '\n'))
 					continue;
@@ -627,7 +627,7 @@ initialize_client( void )
 			}
 			else if (!strncasecmp(buffer, "groupbase", 9)) {
 				cp = buffer + 9;
-				while (isspace(*cp))
+				while (isspace((unsigned char)*cp))
 					cp++;
 				if ((*cp == '\0') || (*cp == '\n'))
 					continue;

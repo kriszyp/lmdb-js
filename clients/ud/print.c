@@ -345,7 +345,7 @@ print_values( struct attribute A )
 					putchar('\n');
 					for (k = lead; k > 0; k--)
 						putchar(' ');
-					while (isspace(*(cp + 1)))
+					while (isspace((unsigned char) cp[1]))
 						cp++;
 				}
 				else
@@ -516,14 +516,14 @@ print_one_URL( char *s, int label_lead, char *tag, int url_lead )
 	register int i;
 	char c, *cp, *url;
 
-	for (cp = s; !isspace(*cp) && (*cp != '\0'); cp++)
+	for (cp = s; !isspace((unsigned char)*cp) && (*cp != '\0'); cp++)
 		;
 	c = *cp;
 	*cp = '\0';
 	url = strdup(s);
 	*cp = c;
 	if (*cp != '\0') {
-		for (cp++; isspace(*cp); cp++)
+		for (cp++; isspace((unsigned char)*cp); cp++)
 			;
 	}
 	else
@@ -551,7 +551,7 @@ time2text( char *ldtimestr, int dateonly )
     }
 
     for ( p = ldtimestr; p - ldtimestr < 12; ++p ) {
-	if ( !isdigit( *p )) {
+	if ( !isdigit( (unsigned char) *p )) {
 	    return( fmterr );
 	}
     }
