@@ -1005,7 +1005,7 @@ slapd_daemon_task(
 						sizeof(from.sa_in6_addr.sin6_addr),
 						AF_INET6 );
 				else
-#  endif LDAP_PF_INET6
+#  endif /* LDAP_PF_INET6 */
 				hp = gethostbyaddr(
 					(char *) &(from.sa_in_addr.sin_addr),
 					sizeof(from.sa_in_addr.sin_addr),
