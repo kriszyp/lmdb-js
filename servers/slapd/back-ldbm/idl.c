@@ -2,6 +2,9 @@
 
 #include <stdio.h>
 #include <sys/types.h>
+#ifdef CLDAP
+#include <sys/socket.h>
+#endif
 #include "slap.h"
 #include "ldapconfig.h"
 #include "back-ldbm.h"
