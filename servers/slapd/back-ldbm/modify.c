@@ -106,6 +106,7 @@ int ldbm_modify_internal(
     Entry	*e 
 )
 {
+	int err;
 	LDAPMod		*mod;
 	LDAPModList	*ml;
 
