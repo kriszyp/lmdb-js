@@ -288,7 +288,7 @@ find_extop( struct extop_list *list, struct berval *oid )
 	struct extop_list *ext;
 
 	for (ext = list; ext; ext = ext->next) {
-		if (ber_bvcmp(&ext->oid, oid) == 0)
+		if (bvmatch(&ext->oid, oid))
 			return(ext);
 	}
 	return(NULL);
