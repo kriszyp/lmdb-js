@@ -659,6 +659,16 @@ int entry_decode(struct berval *bv, Entry **e)
 	BerVarray bptr;
 
 	i = entry_getlen(&ptr);
+	if (!i) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, INFO, 
+			"entry_decode: entry length was zero\n", 0, 0, 0);
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"entry_decode: entry length was zero\n", 0, 0, 0);
+#endif
+		return LDAP_OTHER;
+	}
 	x = ch_calloc(1, i);
 	i = entry_getlen(&ptr);
 	x->e_name.bv_val = (char *) ptr;
