@@ -6,10 +6,10 @@
 
 #include "portable.h"
 
-#include <stdlib.h>
 #include <stdio.h>
 
 #include <ac/socket.h>
+#include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/errno.h>
@@ -162,7 +162,7 @@ sb_sasl_drop_packet ( Sockbuf_Buf *sec_buf_in, unsigned max, int debuglevel )
 
 	len = sec_buf_in->buf_ptr - sec_buf_in->buf_end;
 	if ( len > 0 )
-		memmove( sec_buf_in->buf_base, sec_buf_in->buf_base +
+		AC_MEMCPY( sec_buf_in->buf_base, sec_buf_in->buf_base +
 			sec_buf_in->buf_end, len );
    
 	if ( len >= 4 ) {
@@ -215,7 +215,7 @@ sb_sasl_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 		*p->sasl_maxbuf, sbiod->sbiod_sb->sb_debug );
 
 	/* Grow the packet buffer if neccessary */
-	if ( ( p->sec_buf_in.buf_size < ret ) && 
+	if ( ( p->sec_buf_in.buf_size < (ber_len_t) ret ) && 
 			ber_pvt_sb_grow_buffer( &p->sec_buf_in, ret ) < 0 ) {
 		errno = ENOMEM;
 		return -1;
@@ -400,19 +400,6 @@ ldap_int_sasl_open(
 	int rc;
 	sasl_conn_t *ctx;
 
-	sasl_callback_t *session_callbacks =
-		ber_memcalloc( 2, sizeof( sasl_callback_t ) );
-
-	if( session_callbacks == NULL ) return LDAP_NO_MEMORY;
-
-	session_callbacks[0].id = SASL_CB_USER;
-	session_callbacks[0].proc = NULL;
-	session_callbacks[0].context = ld;
-
-	session_callbacks[1].id = SASL_CB_LIST_END;
-	session_callbacks[1].proc = NULL;
-	session_callbacks[1].context = NULL;
-
 	assert( lc->lconn_sasl_ctx == NULL );
 
 	if ( host == NULL ) {
@@ -420,9 +407,8 @@ ldap_int_sasl_open(
 		return ld->ld_errno;
 	}
 
-	rc = sasl_client_new( "ldap", host, session_callbacks,
+	rc = sasl_client_new( "ldap", host, NULL,
 		SASL_SECURITY_LAYER, &ctx );
-	ber_memfree( session_callbacks );
 
 	if ( rc != SASL_OK ) {
 		ld->ld_errno = sasl_err2ldap( rc );
@@ -604,7 +590,7 @@ ldap_int_sasl_bind(
 				&ccred.bv_val,
 				&credlen );
 
-			Debug( LDAP_DEBUG_TRACE, "sasl_client_start: %d\n",
+			Debug( LDAP_DEBUG_TRACE, "sasl_client_step: %d\n",
 				saslrc, 0, 0 );
 
 			if( saslrc == SASL_INTERACT ) {
@@ -746,7 +732,7 @@ int ldap_pvt_sasl_secprops(
 		} else if( !strncasecmp(props[i],
 			"minssf=", sizeof("minssf")) )
 		{
-			if( isdigit( props[i][sizeof("minssf")] ) ) {
+			if( isdigit( (unsigned char) props[i][sizeof("minssf")] ) ) {
 				got_min_ssf++;
 				min_ssf = atoi( &props[i][sizeof("minssf")] );
 			} else {
@@ -756,7 +742,7 @@ int ldap_pvt_sasl_secprops(
 		} else if( !strncasecmp(props[i],
 			"maxssf=", sizeof("maxssf")) )
 		{
-			if( isdigit( props[i][sizeof("maxssf")] ) ) {
+			if( isdigit( (unsigned char) props[i][sizeof("maxssf")] ) ) {
 				got_max_ssf++;
 				max_ssf = atoi( &props[i][sizeof("maxssf")] );
 			} else {
@@ -766,7 +752,7 @@ int ldap_pvt_sasl_secprops(
 		} else if( !strncasecmp(props[i],
 			"maxbufsize=", sizeof("maxbufsize")) )
 		{
-			if( isdigit( props[i][sizeof("maxbufsize")] ) ) {
+			if( isdigit( (unsigned char) props[i][sizeof("maxbufsize")] ) ) {
 				got_maxbufsize++;
 				maxbufsize = atoi( &props[i][sizeof("maxbufsize")] );
 			} else {
