@@ -112,7 +112,7 @@ dnssrv_back_search(
 		bv.bv_val = refdn;
 		bv.bv_len = strlen( refdn );
 
-		rc = dnNormalize2( NULL, &bv, &nrefdn, op->o_tmpmemctx );
+		rc = dnNormalize( 0, NULL, NULL, &bv, &nrefdn, op->o_tmpmemctx );
 		if( rc != LDAP_SUCCESS ) {
 			send_ldap_error( op, rs, LDAP_OTHER,
 				"DNS SRV problem processing manageDSAit control" );

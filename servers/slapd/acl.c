@@ -671,7 +671,7 @@ acl_mask(
 
 					string_expand(&bv, &b->a_dn_pat, 
 							e->e_ndn, matches);
-					if ( dnNormalize2(NULL, &bv, &pat, op->o_tmpmemctx ) != LDAP_SUCCESS ) {
+					if ( dnNormalize(0, NULL, NULL, &bv, &pat, op->o_tmpmemctx ) != LDAP_SUCCESS ) {
 						/* did not expand to a valid dn */
 						continue;
 					}
@@ -976,7 +976,7 @@ dn_match_cleanup:;
 				bv.bv_val = buf; 
 
 				string_expand( &bv, &b->a_group_pat, e->e_ndn, matches );
-				if ( dnNormalize2( NULL, &bv, &ndn, op->o_tmpmemctx ) != LDAP_SUCCESS ) {
+				if ( dnNormalize( 0, NULL, NULL, &bv, &ndn, op->o_tmpmemctx ) != LDAP_SUCCESS ) {
 					/* did not expand to a valid dn */
 					continue;
 				}
@@ -1436,7 +1436,7 @@ aci_set_gather (SetCookie *cookie, struct berval *name, struct berval *attr)
 	 * also return the syntax or some "comparison cookie".
 	 */
 
-	if (dnNormalize2(NULL, name, &ndn, cp->op->o_tmpmemctx) == LDAP_SUCCESS) {
+	if (dnNormalize(0, NULL, NULL, name, &ndn, cp->op->o_tmpmemctx) == LDAP_SUCCESS) {
 		const char *text;
 		AttributeDescription *desc = NULL;
 		if (slap_bv2ad(attr, &desc, &text) == LDAP_SUCCESS) {
@@ -1481,10 +1481,10 @@ aci_match_set (
 
 		if ( setat.bv_val != NULL ) {
 			/*
-			 * NOTE: dnNormalize2 honors the ber_len field
+			 * NOTE: dnNormalize honors the ber_len field
 			 * as the length of the dn to be normalized
 			 */
-			if ( dnNormalize2(NULL, &subjdn, &ndn, op->o_tmpmemctx) == LDAP_SUCCESS
+			if ( dnNormalize(0, NULL, NULL, &subjdn, &ndn, op->o_tmpmemctx) == LDAP_SUCCESS
 				&& slap_bv2ad(&setat, &desc, &text) == LDAP_SUCCESS )
 			{
 				backend_attribute(op, e,
@@ -1718,7 +1718,7 @@ aci_group_member (
 		bv.bv_len = sizeof( buf ) - 1;
 		bv.bv_val = (char *)&buf;
 		string_expand(&bv, &subjdn, e->e_ndn, matches);
-		if ( dnNormalize2(NULL, &bv, &ndn, op->o_tmpmemctx) == LDAP_SUCCESS ) {
+		if ( dnNormalize(0, NULL, NULL, &bv, &ndn, op->o_tmpmemctx) == LDAP_SUCCESS ) {
 			rc = (backend_group(op, e, &ndn, &op->o_ndn,
 				grp_oc, grp_ad) == 0);
 			free( ndn.bv_val );
@@ -1791,7 +1791,7 @@ aci_mask(
 	if (ber_bvstrcasecmp( &aci_bv_access_id, &bv ) == 0) {
 		struct berval ndn;
 		rc = 0;
-		if ( dnNormalize2(NULL, &sdn, &ndn, op->o_tmpmemctx) == LDAP_SUCCESS ) {
+		if ( dnNormalize(0, NULL, NULL, &sdn, &ndn, op->o_tmpmemctx) == LDAP_SUCCESS ) {
 			if (dn_match( &op->o_ndn, &ndn))
 				rc = 1;
 			free(ndn.bv_val);

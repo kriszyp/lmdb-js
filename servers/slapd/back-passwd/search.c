@@ -269,7 +269,7 @@ pw2entry( Backend *be, struct passwd *pw, const char **text )
 	sprintf( vals[0].bv_val, "uid=%s,%s",
 		pw->pw_name, be->be_suffix[0].bv_val );
 
-	rc = dnNormalize2( NULL, vals, &bv );
+	rc = dnNormalize( 0, NULL, NULL, vals, &bv );
 	if( rc != LDAP_SUCCESS ) {
 		free( vals[0].bv_val );
 		return NULL;

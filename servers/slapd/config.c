@@ -1897,7 +1897,7 @@ read_config( const char *fname, int depth )
 				dn.bv_val = cargv[1];
 				dn.bv_len = strlen( cargv[1] );
 
-				rc = dnNormalize2( NULL, &dn, &be->be_update_ndn, NULL );
+				rc = dnNormalize( 0, NULL, NULL, &dn, &be->be_update_ndn, NULL );
 				if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG( CONFIG, CRIT, 
@@ -2434,7 +2434,7 @@ read_config( const char *fname, int depth )
 	if ( !global_schemadn.bv_val ) {
 		ber_str2bv( SLAPD_SCHEMA_DN, sizeof(SLAPD_SCHEMA_DN)-1, 1,
 			&global_schemadn );
-		dnNormalize2( NULL, &global_schemadn, &global_schemandn, NULL );
+		dnNormalize( 0, NULL, NULL, &global_schemadn, &global_schemandn, NULL );
 	}
 
 	if ( load_ucdata( NULL ) < 0 ) return 1;

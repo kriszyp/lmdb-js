@@ -773,7 +773,7 @@ uniqueMemberNormalize(
 			*(uid.bv_val++) = '\0';
 		}
 
-		rc = dnNormalize2( NULL, &out, normalized, ctx );
+		rc = dnNormalize( 0, NULL, NULL, &out, normalized, ctx );
 
 		if( rc != LDAP_SUCCESS ) {
 			free( out.bv_val );
@@ -1997,7 +1997,7 @@ serial_and_issuer_parse(
 		bv.bv_len = end-begin+1;
 		bv.bv_val = begin;
 
-		dnNormalize2( NULL, &bv, issuer_dn );
+		return dnNormalize( 0, NULL, NULL, &bv, issuer_dn );
 	}
 
 	return LDAP_SUCCESS;

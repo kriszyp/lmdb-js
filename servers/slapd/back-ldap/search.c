@@ -406,9 +406,11 @@ ldap_build_entry(
 	 * from the one known to the meta, and a DN with unknown
 	 * attributes is returned.
 	 * 
-	 * FIXME: should we log anything, or delegate to dnNormalize2?
+	 * FIXME: should we log anything, or delegate to dnNormalize?
 	 */
-	if ( dnNormalize2( NULL, &ent->e_name, &ent->e_nname, op->o_tmpmemctx ) != LDAP_SUCCESS ) {
+	if ( dnNormalize( 0, NULL, NULL, &ent->e_name, &ent->e_nname,
+		op->o_tmpmemctx ) != LDAP_SUCCESS )
+	{
 		return LDAP_INVALID_DN_SYNTAX;
 	}
 	

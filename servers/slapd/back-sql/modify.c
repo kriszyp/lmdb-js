@@ -680,7 +680,8 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	}
 
 	build_new_dn( &new_dn, new_pdn, &op->oq_modrdn.rs_newrdn );
-	rs->sr_err = dnNormalize2( NULL, &new_dn, &new_ndn, op->o_tmpmemctx );
+	rs->sr_err = dnNormalize( 0, NULL, NULL, &new_dn, &new_ndn,
+		op->o_tmpmemctx );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_modrdn(): "
 			"new dn is invalid ('%s') - aborting\n",

@@ -94,7 +94,7 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 
 is_dn:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
-		rc = dnNormalize2( NULL, &bv, searchbase, op->o_tmpmemctx );
+		rc = dnNormalize( 0, NULL, NULL, &bv, searchbase, op->o_tmpmemctx );
 		if( rc == LDAP_SUCCESS ) {
 			*scope = LDAP_SCOPE_BASE;
 		}
@@ -134,7 +134,7 @@ is_dn:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 	/* Grab the searchbase */
 	bv.bv_val = ludp->lud_dn;
 	bv.bv_len = strlen( bv.bv_val );
-	rc = dnNormalize2( NULL, &bv, searchbase, op->o_tmpmemctx );
+	rc = dnNormalize( 0, NULL, NULL, &bv, searchbase, op->o_tmpmemctx );
 
 done:
 	if( rc != LDAP_SUCCESS ) {

@@ -92,7 +92,7 @@ ldbm_back_exop_passwd(
 		goto done;
 	}
 
-	rc = dnNormalize2( NULL, &dn, &ndn, op->o_tmpmemctx );
+	rc = dnNormalize( 0, NULL, NULL, &dn, &ndn, op->o_tmpmemctx );
 	if( rc != LDAP_SUCCESS ) {
 		rs->sr_text = "Invalid DN";
 		goto done;

@@ -333,7 +333,9 @@ meta_back_db_config(
 
 		dn.bv_val = argv[ 1 ];
 		dn.bv_len = strlen( argv[ 1 ] );
-		if ( dnNormalize2( NULL, &dn, &li->targets[ i ]->binddn, NULL ) != LDAP_SUCCESS ) {
+		if ( dnNormalize( 0, NULL, NULL, &dn, &li->targets[ i ]->binddn,
+			NULL ) != LDAP_SUCCESS )
+		{
 			fprintf( stderr, "%s: line %d: "
 					"bind DN '%s' is invalid\n",
 					fname, lineno, argv[ 1 ] );
@@ -390,7 +392,9 @@ meta_back_db_config(
 
 		dn.bv_val = argv[ 1 ];
 		dn.bv_len = strlen( argv[ 1 ] );
-		if ( dnNormalize2( NULL, &dn, &li->targets[ i ]->pseudorootdn, NULL ) != LDAP_SUCCESS ) {
+		if ( dnNormalize( 0, NULL, NULL, &dn,
+			&li->targets[ i ]->pseudorootdn, NULL ) != LDAP_SUCCESS )
+		{
 			fprintf( stderr, "%s: line %d: "
 					"pseudoroot DN '%s' is invalid\n",
 					fname, lineno, argv[ 1 ] );

@@ -273,8 +273,8 @@ int base_scope_compare(
 	if (scope_stored < scope_incoming)
 		return 0;
 
-	dnNormalize2(NULL, dn_incoming, &ndn_incoming);
-	dnNormalize2(NULL, dn_stored, &ndn_stored);
+	dnNormalize(0, NULL, NULL, dn_incoming, &ndn_incoming);
+	dnNormalize(0, NULL, NULL, dn_stored, &ndn_stored);
 	
 	i = dnIsSuffix(&ndn_incoming, &ndn_stored);
 	

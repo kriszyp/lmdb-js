@@ -655,7 +655,7 @@ retry:	/* transaction retry */
 
 	if (!new_ndn.bv_val) {
 		struct berval bv = {0, NULL};
-		dnNormalize2( NULL, &new_dn, &bv, op->o_tmpmemctx );
+		dnNormalize( 0, NULL, NULL, &new_dn, &bv, op->o_tmpmemctx );
 		ber_dupbv( &new_ndn, &bv );
 	}
 

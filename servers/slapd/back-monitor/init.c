@@ -254,7 +254,7 @@ monitor_back_db_init(
 	dn.bv_val = SLAPD_MONITOR_DN;
 	dn.bv_len = sizeof( SLAPD_MONITOR_DN ) - 1;
 
-	rc = dnNormalize2( NULL, &dn, &ndn, NULL );
+	rc = dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL );
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, CRIT,

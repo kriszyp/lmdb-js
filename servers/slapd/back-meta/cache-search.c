@@ -838,12 +838,14 @@ meta_create_entry (
 	 * from the one known to the meta, and a DN with unknown
 	 * attributes is returned.
 	 * 
-	 * FIXME: should we log anything, or delegate to dnNormalize2?
+	 * FIXME: should we log anything, or delegate to dnNormalize?
 	 */
-	dnNormalize2( NULL, &ent->e_name, &ent->e_nname ); 
+	dnNormalize( 0, NULL, NULL, &ent->e_name, &ent->e_nname ); 
 
 	/*
-	if ( dnNormalize2( NULL, &ent->e_name, &ent->e_nname ) != LDAP_SUCCESS ) {
+	if ( dnNormalize( 0, NULL, NULL, &ent->e_name, &ent->e_nname )
+		!= LDAP_SUCCESS )
+	{
 		return LDAP_INVALID_DN_SYNTAX;
 	}
 	*/

@@ -61,7 +61,7 @@ add_replica_suffix(
 	dn.bv_val = (char *) suffix;
 	dn.bv_len = strlen( dn.bv_val );
 
-	rc = dnNormalize2( NULL, &dn, &ndn, NULL );
+	rc = dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL );
 	if( rc != LDAP_SUCCESS ) {
 		return 2;
 	}

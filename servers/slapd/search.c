@@ -493,7 +493,8 @@ static int doSearchRewriteFNs( Operation *op )
 		if( op->o_req_ndn.bv_val != NULL) {
 			sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 		}
-		rc = dnNormalize2( NULL, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
+		rc = dnNormalize( 0, NULL, NULL, &op->o_req_dn, &op->o_req_ndn,
+			op->o_tmpmemctx );
 		if ( rc != LDAP_SUCCESS ) {
 			return rc;
 		}

@@ -1658,7 +1658,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 
 	/* All strings are in DN form now. Normalize if needed. */
 	if ( do_norm ) {
-		rc = dnNormalize2( NULL, dn, &dn2, op->o_tmpmemctx );
+		rc = dnNormalize( 0, NULL, NULL, dn, &dn2, op->o_tmpmemctx );
 
 		/* User DNs were constructed above and must be freed now */
 		sl_free( dn->bv_val, op->o_tmpmemctx );

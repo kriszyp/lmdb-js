@@ -879,7 +879,7 @@ slapi_dn_normalize_case( char *dn )
 	bdn.bv_val = dn;
 	bdn.bv_len = strlen( dn );
 
-	if ( dnNormalize2( NULL, &bdn, &ndn, NULL ) != LDAP_SUCCESS ) {
+	if ( dnNormalize( 0, NULL, NULL, &bdn, &ndn, NULL ) != LDAP_SUCCESS ) {
 		return NULL;
 	}
 
@@ -908,11 +908,13 @@ slapi_dn_issuffix(
 	bsuffix.bv_val = suffix;
 	bsuffix.bv_len = strlen( suffix );
 
-	if ( dnNormalize2( NULL, &bdn, &ndn, NULL ) != LDAP_SUCCESS ) {
+	if ( dnNormalize( 0, NULL, NULL, &bdn, &ndn, NULL ) != LDAP_SUCCESS ) {
 		return 0;
 	}
 
-	if ( dnNormalize2( NULL, &bsuffix, &nsuffix, NULL ) != LDAP_SUCCESS ) {
+	if ( dnNormalize( 0, NULL, NULL, &bsuffix, &nsuffix, NULL )
+		!= LDAP_SUCCESS )
+	{
 		slapi_ch_free( (void **)&ndn.bv_val );
 		return 0;
 	}
