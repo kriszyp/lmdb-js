@@ -81,6 +81,8 @@ ldbm_back_bind(
 
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
 		if ( rs->sr_matched ) free( (char *)rs->sr_matched );
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
 		return rs->sr_err;
 	}
 
@@ -145,7 +147,8 @@ ldbm_back_bind(
 		send_ldap_result( op, rs );
 
 		ber_bvarray_free( rs->sr_ref );
-
+		rs->sr_matched = NULL;
+		rs->sr_ref = NULL;
 		rc = rs->sr_err;
 		goto return_results;
 	}

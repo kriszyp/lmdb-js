@@ -111,6 +111,8 @@ ldbm_back_search(
 
 		ber_bvarray_free( rs->sr_ref );
 		ber_memfree( matched_dn.bv_val );
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
 		return LDAP_REFERRAL;
 	}
 
@@ -155,6 +157,8 @@ ldbm_back_search(
 		}
 
 		ber_memfree( matched_dn.bv_val );
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
 		return LDAP_OTHER;
 	}
 

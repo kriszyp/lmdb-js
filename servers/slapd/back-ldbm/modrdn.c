@@ -104,7 +104,8 @@ ldbm_back_modrdn(
 
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
 		free( (char *)rs->sr_matched );
-
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
 		return rs->sr_err;
 	}
 
@@ -146,6 +147,8 @@ ldbm_back_modrdn(
 		send_ldap_result( op, rs );
 
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
 		goto return_results;
 	}
 
@@ -633,6 +636,7 @@ ldbm_back_modrdn(
 	}
 
 	rs->sr_err = LDAP_SUCCESS;
+	rs->sr_text = NULL;
 	send_ldap_result( op, rs );
 	rc = 0;
 	cache_entry_commit( e );
@@ -677,5 +681,6 @@ return_results:
 		entry_free( e );
 	}
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
+	rs->sr_text = NULL;
 	return( rc );
 }
