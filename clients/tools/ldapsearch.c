@@ -176,7 +176,7 @@ main( int argc, char **argv )
 		attrsonly = manageDSAit = ldif = want_bindpw = 0;
 
 	lutil_log_initialize(argc, argv);
-	lutil_set_debug_level( "LIBLBER", 8 );
+	/* lutil_set_debug_level( "LIBLBER", 8 ); */
 	/* log = fopen( "ldapsearch.log", "w" ); */
 	/* ber_set_option( NULL, LBER_OPT_LOG_PRINT_FILE, log ); */
 
