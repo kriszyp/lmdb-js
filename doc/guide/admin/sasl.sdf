@@ -124,19 +124,19 @@ command option.
 For the purposes of authentication and authorization, {{slapd}}(8)
 associates a non-mapped authentication DN of the form:
 
->	uid=principal,cn=GSSAPI,cn=authzid
+>	uid=principal,cn=GSSAPI,cn=auth
 
 If the user principal is within the same realm, the realm is
 trimmed from the principal.  Continuting our example, a user
 with the Kerberos principal {{EX:kurt@EXAMPLE.COM}} would have
 the associated DN:
 
->	uid=kurt,cn=GSSAPI,cn=authzid
+>	uid=kurt,cn=GSSAPI,cn=auth
 
 and the principal {{EX:ursula@@FORIEGN.REALM}} would have the
 associated DN:
 
->	uid=ursula@FOREIGN-REALM,cn=GSSAPI,cn=authzid
+>	uid=ursula@FOREIGN-REALM,cn=GSSAPI,cn=auth
 
 
 H3: KERBEROS_V4
@@ -181,12 +181,12 @@ the identity and realm out of the service ticket using SASL
 library calls, and convert them into an {{authentication request
 DN}} of the form
 
->	uid=<username>,cn=<realm>,cn=<mechanism>,cn=authzid
+>	uid=<username>,cn=<realm>,cn=<mechanism>,cn=auth
 
 So in our above example, if the user's name were "adamson", the
 authentication request DN would be:
 
->	uid=ADAMSON,cn=EXAMPLE.COM,cn=KERBEROS_V4,cn=AUTHZID
+>	uid=ADAMSON,cn=EXAMPLE.COM,cn=KERBEROS_V4,cn=AUTH
 
 This authentication request DN by itself could be placed into ACL's
 and {{EX:groupOfNames}} "member" attributes, since it is of legitimate
@@ -210,11 +210,11 @@ not in the LDAP namespace. As stated in the section above, that
 username is reformatted into an authentication request DN of the
 form
 
->	uid=<username>,cn=<realm>,cn=<mechanism>,cn=authzid
+>	uid=<username>,cn=<realm>,cn=<mechanism>,cn=auth
 
 or
 
->	uid=<username>,cn=<mechanism>,cn=authzid
+>	uid=<username>,cn=<mechanism>,cn=auth
 
 depending on whether or not <mechanism> employs the concept of
 "realms".
@@ -222,7 +222,7 @@ depending on whether or not <mechanism> employs the concept of
 It is not intended that you should add LDAP entries of the above
 form to your LDAP database. Chances are you have an LDAP entry for
 each of the people that will be authenticating to LDAP, laid out
-in your directory tree, and the tree does not start at cn=authzid.
+in your directory tree, and the tree does not start at cn=auth.
 But if your site has a clear mapping between the "username" and an
 LDAP entry for the person, you will be able to configure your LDAP
 server to automatically map a user's authentication username to
@@ -262,7 +262,7 @@ pattern, the variables $2, $3, etc are used.
 For example, suppose the user's authentication identity is written
 as the DN string
 
->	uid=ADAMSON,cn=EXAMPLE.COM,cn=KERBEROS_V4,cn=AUTHZID
+>	uid=ADAMSON,cn=EXAMPLE.COM,cn=KERBEROS_V4,cn=AUTH
 
 and the user's actual LDAP entry is
 
@@ -272,13 +272,13 @@ The {{EX:saslRegexp}} directive in {{slapd.conf}}(5) could be
 written
 
 >	saslRegexp 
->	  uid=(.*),cn=example.com,cn=kerberos_v4,cn=authzid
+>	  uid=(.*),cn=example.com,cn=kerberos_v4,cn=auth
 >	  uid=$1,ou=person,dc=example,dc=com
 
 An even more lenient rule could be written as
 
 >	saslRegexp
->	  uid=(.*),.*cn=authzid 
+>	  uid=(.*),.*cn=auth 
 >	  uid=$1,ou=person,dc=example,dc=com
 
 Be careful about setting the search pattern too leniently, however,
@@ -338,7 +338,7 @@ kept in the attribute "uid" in their LDAP entry. The {{EX:saslRegexp}}
 directive might be written as
 
 >	saslRegexp 
->	  uid=(.*),cn=example.com,cn=kerberos_v4,cn=authzid  
+>	  uid=(.*),cn=example.com,cn=kerberos_v4,cn=auth  
 >	  ldap://localhost/ou=person,dc=example,dc=com??sub?uid=$1
 
 This will initiate an internal search of the LDAP database inside
@@ -448,7 +448,7 @@ Authorization identities of this form are converted into a DN format
 by the same function that the authentication process used, producing
 an {{authorization request DN}} of the form
 
->	uid=<username>,cn=<realm>,cn=authzid
+>	uid=<username>,cn=<realm>,cn=auth
 
 That authorization request DN is then run through the same
 {{EX:saslRegexp}} process to convert it into a legitimate authorization
