@@ -294,9 +294,6 @@ LDAP_SLAPD_F (int) get_ctrls LDAP_P((
 
 LDAP_SLAPD_F (char *) get_supported_ctrl LDAP_P((int index));
 
-LDAP_SLAPD_F (int) get_manageDSAit LDAP_P(( Operation *op ));
-LDAP_SLAPD_F (int) get_subentries LDAP_P(( Operation *op, int *visibility ));
-
 /*
  * config.c
  */

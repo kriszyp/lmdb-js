@@ -1325,7 +1325,9 @@ typedef struct slap_op {
 	char o_subentries_visibility;
 } Operation;
 
-#define get_manageDSAit(op)	((int)(op)->o_managedsait)
+#define get_manageDSAit(op)				((int)(op)->o_managedsait)
+#define get_subentries(op)				((int)(op)->o_subentries)
+#define get_subentries_visibility(op)	((int)(op)->o_subentries_visibility)
 
 /*
  * Caches the result of a backend_group check for ACL evaluation

@@ -20,11 +20,11 @@ static int base_candidate(
 	ID		*ids );
 static int search_candidates(
 	BackendDB *be,
+	Operation *op,
 	Entry *e,
 	Filter *filter,
 	int scope,
 	int deref,
-	int manageDSAit,
 	ID	*ids );
 
 int
@@ -233,8 +233,8 @@ bdb_search(
 
 	} else {
 		BDB_IDL_ALL( bdb, candidates );
-		rc = search_candidates( be, e, filter,
-			scope, deref, manageDSAit, candidates );
+		rc = search_candidates( be, op, e, filter,
+			scope, deref, candidates );
 	}
 
 	/* need normalized dn below */
@@ -503,22 +503,30 @@ static int oc_filter(
 
 static int search_candidates(
 	BackendDB *be,
+	Operation *op,
 	Entry *e,
 	Filter *filter,
 	int scope,
 	int deref,
-	int manageDSAit,
 	ID	*ids )
 {
 	int rc;
-	Filter		f, fand, rf, xf;
+	Filter		f, scopef, sf, rf, xf;
 	ID		tmp[BDB_IDL_UM_SIZE];
 	AttributeAssertion aa_ref;
+	AttributeAssertion aa_subentry;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 #ifdef BDB_ALIASES
 	Filter	af;
 	AttributeAssertion aa_alias;
 #endif
+
+	/*
+	 * This routine takes as input a filter (user-filter)
+	 * and rewrites it as follows:
+	 *	(&(scope=DN)[(objectClass=subentry)]
+	 *		(|[(objectClass=referral)(objectClass=alias)](user-filter))
+	 */
 
 	Debug(LDAP_DEBUG_TRACE,
 		"search_candidates: base=\"%s\" (0x%08lx) scope=%d\n",
@@ -531,8 +539,8 @@ static int search_candidates(
 	/* If the user's filter doesn't mention objectClass, or if
 	 * it just uses objectClass=*, these clauses are redundant.
 	 */
-	if (oc_filter(filter)) {
-		if( !manageDSAit ) { /* match referrals */
+	if (oc_filter(filter) && !get_subentries_visibility(op) ) {
+		if( !get_manageDSAit(op) ) { /* match referrals */
 			struct berval bv_ref = { sizeof("REFERRAL")-1, "REFERRAL" };
 			rf.f_choice = LDAP_FILTER_EQUALITY;
 			rf.f_ava = &aa_ref;
@@ -557,13 +565,22 @@ static int search_candidates(
 
 	f.f_next = NULL;
 	f.f_choice = LDAP_FILTER_AND;
-	f.f_and = &fand;
-	fand.f_choice = scope == LDAP_SCOPE_SUBTREE
+	f.f_and = &scopef;
+	scopef.f_choice = scope == LDAP_SCOPE_SUBTREE
 		? SLAPD_FILTER_DN_SUBTREE
 		: SLAPD_FILTER_DN_ONE;
-	fand.f_dn = &e->e_nname;
-	fand.f_next = xf.f_or == filter ? filter : &xf ;
+	scopef.f_dn = &e->e_nname;
+	scopef.f_next = xf.f_or == filter ? filter : &xf ;
 
+	if( get_subentries_visibility( op ) ) {
+		struct berval bv_subentry = { sizeof("SUBENTRY")-1, "SUBENTRY" };
+		sf.f_choice = LDAP_FILTER_EQUALITY;
+		sf.f_ava = &aa_subentry;
+		sf.f_av_desc = slap_schema.si_ad_objectClass;
+		sf.f_av_value = bv_subentry;
+		sf.f_next = scopef.f_next;
+		scopef.f_next = &sf;
+	}
 
 #ifdef BDB_FILTER_INDICES
 	rc = bdb_filter_candidates( be, &f, ids, tmp );
