@@ -1,4 +1,5 @@
 /* search.c - ldap backend search function */
+/* $OpenLDAP$ */
 
 /*
  * Copyright 1999, Howard Chu, All rights reserved. <hyc@highlandsun.com>

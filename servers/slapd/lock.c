@@ -1,4 +1,5 @@
 /* lock.c - routines to open and apply an advisory lock to a file */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file

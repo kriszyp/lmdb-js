@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  shellutil.c - common routines useful when building shell-based backends
 		 for the standalone ldap server

@@ -1,4 +1,5 @@
 /* bind.c - shell backend bind function */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

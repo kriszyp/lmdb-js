@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 #ifndef _PROTO_SLURP
 #define _PROTO_SLURP
 

@@ -1,4 +1,5 @@
 /* modify.c - ldap backend modify function */
+/* $OpenLDAP$ */
 
 /*
  * Copyright 1999, Howard Chu, All rights reserved. <hyc@highlandsun.com>

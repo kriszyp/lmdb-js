@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 #ifndef _PASSWD_EXTERNAL_H
 #define _PASSWD_EXTERNAL_H
 

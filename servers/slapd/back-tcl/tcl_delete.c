@@ -1,6 +1,5 @@
+/* $OpenLDAP$ */
 /* delete.c - tcl delete routines
- *
- * $Id: tcl_delete.c,v 1.6 1999/07/16 00:45:52 kdz Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *

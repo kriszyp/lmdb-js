@@ -1,6 +1,5 @@
+/* $OpenLDAP$ */
 /* abandon.c - tcl abandon routine
- *
- * $Id: tcl_abandon.c,v 1.4 1999/02/19 06:55:20 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *

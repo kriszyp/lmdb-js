@@ -1,4 +1,5 @@
 /* repl.c - log modifications for replication purposes */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file

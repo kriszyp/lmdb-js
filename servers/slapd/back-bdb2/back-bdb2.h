@@ -1,4 +1,5 @@
 /* back-bdb2.h - ldap bdb2 back-end header file */
+/* $OpenLDAP$ */
 
 #ifndef _BACK_BDB2_H_
 #define _BACK_BDB2_H_

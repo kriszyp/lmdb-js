@@ -1,4 +1,5 @@
 /* ldbmcache.c - maintain a cache of open bdb2 files */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

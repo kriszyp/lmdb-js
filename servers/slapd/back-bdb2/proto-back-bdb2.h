@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 #ifndef _PROTO_BACK_BDB2
 #define _PROTO_BACK_BDB2
 

@@ -1,4 +1,5 @@
 /* abandon.c - shell backend abandon function */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

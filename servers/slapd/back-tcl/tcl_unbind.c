@@ -1,6 +1,5 @@
+/* $OpenLDAP$ */
 /* unbind.c - tcl unbind routines
- *
- * $Id: tcl_unbind.c,v 1.5.6.1 1999/07/09 18:02:59 kdz Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *

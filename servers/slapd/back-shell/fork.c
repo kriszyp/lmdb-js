@@ -1,4 +1,5 @@
 /* fork.c - fork and exec a process, connecting stdin/out w/pipes */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  passwd-shell.h
 

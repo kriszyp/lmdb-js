@@ -1,4 +1,5 @@
 /* centipede.c - generate and install indexing information (view w/tabstop=4) */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 #include "portable.h"
 
 #ifdef HAVE_WINSOCK2

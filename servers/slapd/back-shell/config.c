@@ -1,4 +1,5 @@
 /* config.c - shell backend configuration file routine */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

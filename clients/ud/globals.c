@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright (c) 1992, 1993, 1994  Regents of the University of Michigan.
  * All rights reserved.

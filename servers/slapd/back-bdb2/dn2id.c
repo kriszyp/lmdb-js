@@ -1,4 +1,5 @@
 /* dn2id.c - routines to deal with the dn2id index */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

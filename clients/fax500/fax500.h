@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 #ifndef FAX500_H
 #define FAX500_H 1
 

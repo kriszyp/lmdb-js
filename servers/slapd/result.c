@@ -1,4 +1,5 @@
 /* result.c - routines to send ldap results, errors, and referrals */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

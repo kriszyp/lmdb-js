@@ -1,4 +1,5 @@
 /* entry.c - ldbm backend entry_release routine */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

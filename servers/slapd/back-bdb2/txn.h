@@ -1,4 +1,5 @@
 /* txn.h - Header for TP support functions of the bdb2 backend */
+/* $OpenLDAP$ */
 
 #ifndef _BDB2_TXN_H_
 #define _BDB2_TXN_H_

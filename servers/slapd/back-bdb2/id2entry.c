@@ -1,4 +1,5 @@
 /* id2entry.c - routines to deal with the id2entry index */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  shellutil.h
 

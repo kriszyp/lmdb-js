@@ -1,6 +1,5 @@
+/* $OpenLDAP$ */
 /* config.c - tcl backend configuration file routine
- *
- * $Id: tcl_config.c,v 1.6 1999/02/23 02:51:33 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *

@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 #include "portable.h"
 
 #ifndef HAVE_SETPROCTITLE

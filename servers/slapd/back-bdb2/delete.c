@@ -1,4 +1,5 @@
 /* delete.c - bdb2 backend delete routine */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

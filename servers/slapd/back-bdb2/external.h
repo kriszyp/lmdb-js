@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 #ifndef _BDB2_EXTERNAL_H
 #define _BDB2_EXTERNAL_H
 

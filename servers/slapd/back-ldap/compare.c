@@ -1,4 +1,5 @@
 /* compare.c - ldap backend compare function */
+/* $OpenLDAP$ */
 
 /*
  * Copyright 1999, Howard Chu, All rights reserved. <hyc@highlandsun.com>

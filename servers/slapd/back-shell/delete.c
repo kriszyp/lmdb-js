@@ -1,4 +1,5 @@
 /* delete.c - shell backend delete function */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

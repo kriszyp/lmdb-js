@@ -1,4 +1,5 @@
 /* idl.c - ldap id list handling routines */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file

@@ -1,4 +1,5 @@
 /* idl.c - ldap id list handling routines */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

@@ -1,4 +1,5 @@
 /* kerberos.c - bdb2 backend kerberos bind routines */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

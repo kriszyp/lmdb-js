@@ -1,4 +1,5 @@
 /* result.c - shell backend result reading function */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

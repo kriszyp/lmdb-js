@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1999 The OpenLDAP Foundation, All Rights Reserved.
  *

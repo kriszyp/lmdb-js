@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 // nt_main.c
 #include "portable.h"
 #include <stdio.h>

@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 #ifndef _SHELL_EXTERNAL_H
 #define _SHELL_EXTERNAL_H
 

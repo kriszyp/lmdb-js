@@ -1,6 +1,5 @@
+/* $OpenLDAP$ */
 /* tcl_init.c - tcl backend initialization
- *
- * $Id: tcl_init.c,v 1.10 1999/08/06 11:16:27 hyc Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *

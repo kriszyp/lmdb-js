@@ -1,4 +1,5 @@
 /* init.c - initialize shell backend */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 #ifndef _PROTO_LDAPD_H
 #define _PROTO_LDAPD_H
 

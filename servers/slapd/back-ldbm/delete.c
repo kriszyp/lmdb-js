@@ -1,4 +1,5 @@
 /* delete.c - ldbm backend delete routine */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file

@@ -1,6 +1,5 @@
+/* $OpenLDAP$ */
 /* close.c - tcl close routines
- *
- * $Id: tcl_close.c,v 1.3 1999/02/17 01:02:11 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *

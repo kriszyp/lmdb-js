@@ -1,6 +1,5 @@
+/* $OpenLDAP$ */
 /* modrdn.c - tcl modify rdn routines
- *
- * $Id: tcl_modrdn.c,v 1.8 1999/07/16 00:45:52 kdz Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *

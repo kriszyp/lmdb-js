@@ -1,4 +1,5 @@
 /* config.c - ldap backend configuration file routine */
+/* $OpenLDAP$ */
 
 /*
  * Copyright 1999, Howard Chu, All rights reserved. <hyc@highlandsun.com>

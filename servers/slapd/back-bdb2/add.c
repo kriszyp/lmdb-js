@@ -1,4 +1,5 @@
 /* add.c - ldap bdb2 back-end add routine */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

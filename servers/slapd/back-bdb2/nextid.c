@@ -1,4 +1,5 @@
 /* id.c - keep track of the next id to be given out */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

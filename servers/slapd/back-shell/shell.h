@@ -1,4 +1,5 @@
 /* shell.h - shell backend header file */
+/* $OpenLDAP$ */
 
 #ifndef SLAPD_SHELL_H
 #define SLAPD_SHELL_H

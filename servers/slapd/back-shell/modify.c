@@ -1,4 +1,5 @@
 /* modify.c - shell backend modify function */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

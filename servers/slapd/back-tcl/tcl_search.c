@@ -1,6 +1,5 @@
+/* $OpenLDAP$ */
 /* search.c - tcl search routines
- *
- * $Id: tcl_search.c,v 1.6 1999/07/16 00:45:52 kdz Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *

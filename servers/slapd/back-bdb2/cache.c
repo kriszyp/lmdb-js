@@ -1,4 +1,5 @@
 /* cache.c - routines to maintain an in-core cache of entries */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

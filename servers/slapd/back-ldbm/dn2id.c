@@ -1,4 +1,5 @@
 /* dn2id.c - routines to deal with the dn2id index */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file

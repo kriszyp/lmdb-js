@@ -1,4 +1,5 @@
 /* filterindex.c - generate the list of candidate entries from a filter */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * certificate.c - ldap version of quipu certificate syntax handler
  *		   donated by Eric Rosenquist and BNR

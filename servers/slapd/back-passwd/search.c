@@ -1,4 +1,5 @@
 /* search.c - /etc/passwd backend search function */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

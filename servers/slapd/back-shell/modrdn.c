@@ -1,4 +1,5 @@
 /* modrdn.c - shell backend modrdn function */
+/* $OpenLDAP$ */
 
 /*
  * LDAP v3 newSuperior support.

@@ -1,4 +1,5 @@
 /* group.c - bdb2 backend acl group routine */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

@@ -1,4 +1,5 @@
 /* unbind.c - shell backend unbind function */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

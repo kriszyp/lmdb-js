@@ -1,4 +1,5 @@
 /* unbind.c - ldap backend unbind function */
+/* $OpenLDAP$ */
 
 /*
  * Copyright 1999, Howard Chu, All rights reserved. <hyc@highlandsun.com>

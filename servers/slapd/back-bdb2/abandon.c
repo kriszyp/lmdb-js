@@ -1,4 +1,5 @@
 /* abandon.c - ldbm backend abandon routine */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

@@ -1,4 +1,5 @@
 /* config.c - passwd backend configuration file routine */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

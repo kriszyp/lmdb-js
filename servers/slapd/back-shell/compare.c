@@ -1,4 +1,5 @@
 /* compare.c - shell backend compare function */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

@@ -1,4 +1,5 @@
 /* search.c - shell backend search function */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

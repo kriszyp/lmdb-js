@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * cmds.c: command table for rcpt500 (X.500 email query responder)
  *

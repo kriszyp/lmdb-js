@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /* root_dse.c - Provides the ROOT DSA-Specific Entry
  *
  * Copyright 1999 The OpenLDAP Foundation.

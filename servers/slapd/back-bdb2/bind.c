@@ -1,4 +1,5 @@
 /* bind.c - bdb2 backend bind and unbind routines */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

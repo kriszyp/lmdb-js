@@ -1,4 +1,5 @@
 /* attr.c - backend routines for dealing with attributes */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

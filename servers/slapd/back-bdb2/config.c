@@ -1,4 +1,5 @@
 /* config.c - bdb2 backend configuration file routine */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

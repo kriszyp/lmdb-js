@@ -1,4 +1,5 @@
 /* startup.c - startup/shutdown bdb2 backend */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

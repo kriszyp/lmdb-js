@@ -1,4 +1,5 @@
 /* index.c - routines for dealing with attribute indexes */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

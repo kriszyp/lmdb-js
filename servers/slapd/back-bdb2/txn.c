@@ -1,4 +1,5 @@
 /* txn.c - TP support functions of the bdb2 backend */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 
