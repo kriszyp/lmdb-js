@@ -182,8 +182,7 @@ idl_fetch(
 	Datum	data;
 	ID_BLOCK	*idl;
 	ID_BLOCK	**tmp;
-	int	nids, nblocks;
-	unsigned i;
+	unsigned	i, nids, nblocks;
 
 	idl = idl_fetch_one( be, db, key );
 
