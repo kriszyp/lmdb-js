@@ -1025,13 +1025,13 @@ struct slap_backend_db {
 #define SLAP_BFLAG_ALIASES		0x0100U
 #define SLAP_BFLAG_REFERRALS	0x0200U
 #define SLAP_BFLAG_SUBENTRIES	0x0400U
-#define SLAP_BFLAG_NOMONITOR	0x1000U
+#define SLAP_BFLAG_MONITOR		0x1000U
 	slap_mask_t	be_flags;
 #define SLAP_LASTMOD(be)	(!((be)->be_flags & SLAP_BFLAG_NOLASTMOD))
 #define SLAP_ALIASES(be)	((be)->be_flags & SLAP_BFLAG_ALIASES)
 #define SLAP_REFERRALS(be)	((be)->be_flags & SLAP_BFLAG_REFERRALS)
 #define SLAP_SUBENTRIES(be)	((be)->be_flags & SLAP_BFLAG_SUBENTRIES)
-#define SLAP_MONITOR(be)	(!(be)->be_flags & SLAP_BFLAG_NOMONITOR))
+#define SLAP_MONITOR(be)	((be)->be_flags & SLAP_BFLAG_MONITOR)
 
 	slap_mask_t	be_restrictops;		/* restriction operations */
 #define SLAP_RESTRICT_OP_ADD		0x0001U

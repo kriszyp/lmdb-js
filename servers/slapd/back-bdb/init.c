@@ -64,6 +64,11 @@ bdb_db_init( BackendDB *be )
 		"bdb_db_init: Initializing BDB database\n",
 		0, 0, 0 );
 
+	/* indicate system schema supported */
+	be->be_flags |= SLAP_BFLAG_ALIASES
+			| SLAP_BFLAG_REFERRALS
+			| SLAP_BFLAG_SUBENTRIES;
+
 	/* allocate backend-database-specific stuff */
 	bdb = (struct bdb_info *) ch_calloc( 1, sizeof(struct bdb_info) );
 
