@@ -383,7 +383,7 @@ static int sasl_sc_sasl2dn( BackendDB *be, Connection *conn, Operation *o,
  * entry, return the DN of that one entry.
  */
 
-void slap_sasl2dn( struct berval *saslname, struct berval *dn )
+void slap_sasl2dn( Connection *conn, struct berval *saslname, struct berval *dn )
 {
 	int rc;
 	Backend *be;
@@ -410,11 +410,12 @@ void slap_sasl2dn( struct berval *saslname, struct berval *dn )
 	if ( uri.filter.bv_val )
 		filter = str2filter( uri.filter.bv_val );
 
-	/* FIXME: move this check to after select_backend, and set
-	 * the selected backend in conn->c_authz_backend, to allow
-	 * passwd_extop to be used on in-directory SASL secrets.
-	 *   ... when all of that gets implemented...
-	 */
+	/* Must do an internal search */
+
+	be = select_backend( &uri.dn, 0, 1 );
+
+	conn->c_authz_backend = be;
+
 	/* Massive shortcut: search scope == base */
 	if( uri.scope == LDAP_SCOPE_BASE ) {
 		*dn = uri.dn;
@@ -422,8 +423,6 @@ void slap_sasl2dn( struct berval *saslname, struct berval *dn )
 		uri.dn.bv_val = NULL;
 		goto FINISHED;
 	}
-
-	/* Must do an internal search */
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
@@ -435,7 +434,6 @@ void slap_sasl2dn( struct berval *saslname, struct berval *dn )
 	   uri.dn.bv_val, uri.scope, 0 );
 #endif
 
-	be = select_backend( &uri.dn, 0, 1 );
 	if(( be == NULL ) || ( be->be_search == NULL))
 		goto FINISHED;
 	suffix_alias( be, &uri.dn );

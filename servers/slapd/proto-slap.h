@@ -833,6 +833,7 @@ LDAP_SLAPD_F (int) slap_sasl_bind LDAP_P((
  * saslauthz.c
  */
 LDAP_SLAPD_F (void) slap_sasl2dn LDAP_P((
+	Connection *conn,
 	struct berval *saslname,
 	struct berval *dn ));
 LDAP_SLAPD_F (int) slap_sasl_authorized LDAP_P((
