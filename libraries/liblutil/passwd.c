@@ -632,7 +632,7 @@ static int chk_lanman(
 {
 	struct berval *hash;
 
-	hash = hash_lanman( scheme, cred );
+	hash = hash_lanman( scheme, cred, text );
 	return memcmp( &hash->bv_val[scheme->bv_len], passwd->bv_val, 32);
 }
 #endif /* SLAPD_LMHASH */
