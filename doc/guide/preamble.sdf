@@ -16,10 +16,8 @@
 !define DOC_NAME    "OpenLDAP"
 !define DOC_TYPE    "Guide"
 
-!define DOC_LOGO	"../images/LDAPwww.gif"
-# should create a smaller logo for HTML and TOPIC purposes
-#!define DOC_HTML_LOGO	"../images/LDAPlogo.gif"
-!define DOC_TOPIC_LOGO	"../images/LDAPlogo.gif"
+!define DOC_LOGO	"../images/LDAPlogo.gif"
+!define DOC_HTML_LOGO ""
 
 !define DOC_LOF_TITLE	"Figures"
 !define DOC_LOF
@@ -31,7 +29,19 @@
 	!block inline
 <FONT FACE="Arial,Verdana,Helvetica">
 	!endblock
-	!HTML_NAVIGATE
+	!if DOC_LOGO
+		!block inline
+<A HREF="http://www.OpenLDAP.org/">
+		!endblock
+		!import DOC_LOGO; align="Left"; border="0"; base=$var{'DOC_LOGO_BASE'}
+		!block inline
+</A>
+		!endblock
+		!HTML_NAVIGATE
+		!clear "Left"
+	!else
+		!HTML_NAVIGATE
+	!endif
 !endmacro
 
 !macro HTML_FOOTER
@@ -48,10 +58,24 @@ ______________<BR>
 !endmacro
 
 !macro HTML_TOPIC_HEADER
-	!block inline
+	!block inline; expand
 <FONT FACE="Arial,Verdana,Helvetica">
 	!endblock
-	!HTML_TOPIC_NAVIGATE
+	!define DOC_TOPIC_LOGO $var{'DOC_LOGO'}
+	!if DOC_TOPIC_LOGO
+		!default DOC_TOPIC_LOGO_BASE $var{'DOC_LOGO_BASE'}
+		!block inline
+<A HREF="http://www.OpenLDAP.org/">
+		!endblock
+		!import DOC_TOPIC_LOGO; align="Left"; border="0"; base=$var{'DOC_TOPIC_LOGO_BASE'}
+		!block inline
+</A>
+		!endblock
+		!HTML_TOPIC_NAVIGATE
+		!clear "Left"
+	!else
+		!HTML_TOPIC_NAVIGATE
+	!endif
 !endmacro
 
 !macro HTML_TOPIC_FOOTER
