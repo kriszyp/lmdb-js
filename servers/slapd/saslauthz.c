@@ -411,6 +411,13 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 	rc = ldap_url_parse( uri->bv_val, &ludp );
 	switch ( rc ) {
 	case LDAP_URL_SUCCESS:
+		/* FIXME: the check is pedantic, but I think it's necessary,
+		 * because people tend to use things like ldaps:// which
+		 * gives the idea SSL is being used.  Maybe we could
+		 * accept ldapi:// as well, but the point is that we use
+		 * an URL as an easy means to define bits of a search with
+		 * little parsing.
+		 */
 		if ( strcasecmp( ludp->lud_scheme, "ldap" ) != 0 ) {
 			/*
 			 * must be ldap:///
