@@ -200,6 +200,7 @@ static Connection* connection_get( int s )
 				"connection_get(%d): connection not used.\n",
 				s, c->c_connid, 0 );
 
+			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 			return NULL;
 		}
 
