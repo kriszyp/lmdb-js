@@ -2850,7 +2850,7 @@ add_syncrepl(
 				ch_free( si->si_filterstr.bv_val );
 			}
 			if ( si_entry->si_attrs ) {
-				int i;
+				int i = 0;
 				while ( si_entry->si_attrs[i] != NULL ) {
 					ch_free( si_entry->si_attrs[i] );
 					i++;
