@@ -554,12 +554,17 @@ bdb_db_destroy( BackendDB *be )
 	return 0;
 }
 
-#ifdef SLAPD_BDB_DYNAMIC
+#if	(defined(SLAPD_BDB_DYNAMIC) && !defined(BDB_HIER)) || \
+	(defined(SLAPD_HDB_DYNAMIC) && defined(BDB_HIER))
 int init_module( int argc, char *argv[] ) {
 	BackendInfo bi;
 
 	memset( &bi, '\0', sizeof(bi) );
+#ifdef BDB_HIER
+	bi.bi_type = "hdb";
+#else
 	bi.bi_type = "bdb";
+#endif
 	bi.bi_init = bdb_initialize;
 
 	backend_add( &bi );
