@@ -68,6 +68,7 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **berout )
 
 	if ( ber_pvt_ber_remaining( ber ) == 0 ) {
 		assert( len == 0 );
+		ber_free( ber, 0 );
 		return NULL;
 	}
 	assert( len != 0 );
