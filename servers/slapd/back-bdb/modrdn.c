@@ -884,7 +884,7 @@ retry:	/* transaction retry */
 		if(( rs->sr_err=TXN_PREPARE( ltid, gid )) != 0 ) {
 			rs->sr_text = "txn_prepare failed";
 		} else {
-			bdb_cache_modrdn( save, &op->orr_newrdn, e, neip,
+			bdb_cache_modrdn( save, &op->orr_nnewrdn, e, neip,
 				bdb->bi_dbenv, locker, &lock );
 			if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
 				rs->sr_text = "txn_commit failed";
