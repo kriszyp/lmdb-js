@@ -9,7 +9,6 @@ core.schema             OpenLDAP "core"
 cosine.schema           COSINE Pilot
 inetorgperson.schema    InetOrgPerson
 java.schema             Java Object (RFC 2713)
-krb5-kdc.schema         Kerberos V KDC
 misc.schema             misc (experimental)
 nis.schema              Network Information Service
 openldap.schema         OpenLDAP Project (FYI)
