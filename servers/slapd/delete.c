@@ -160,8 +160,8 @@ do_delete(
 	 */
 	if ( be->be_delete ) {
 		/* do the update here */
-#ifndef SLAPD_MULTIMASTER
 		int repl_user = be_isupdate( be, op->o_ndn );
+#ifndef SLAPD_MULTIMASTER
 		if ( be->be_update_ndn == NULL || repl_user )
 #endif
 		{
