@@ -199,7 +199,9 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 	{
 		EntryInfo *ei = NULL;
 		Operation op = {0};
+		Opheader ohdr = {0};
 
+		op.o_hdr = &ohdr;
 		op.o_bd = be;
 		op.o_tmpmemctx = NULL;
 		op.o_tmpmfuncs = &ch_mfuncs;
@@ -302,6 +304,7 @@ ID bdb_tool_entry_put(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB_TXN *tid = NULL;
 	Operation op = {0};
+	Opheader ohdr = {0};
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
@@ -325,6 +328,7 @@ ID bdb_tool_entry_put(
 		return NOID;
 	}
 
+	op.o_hdr = &ohdr;
 	op.o_bd = be;
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
@@ -395,6 +399,7 @@ int bdb_tool_entry_reindex(
 	Entry *e;
 	DB_TXN *tid = NULL;
 	Operation op = {0};
+	Opheader ohdr = {0};
 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> " LDAP_XSTRING(bdb_tool_entry_reindex) "( %ld )\n",
@@ -444,6 +449,7 @@ int bdb_tool_entry_reindex(
 		"=> " LDAP_XSTRING(bdb_tool_entry_reindex) "( %ld, \"%s\" )\n",
 		(long) id, e->e_dn, 0 );
 
+	op.o_hdr = &ohdr;
 	op.o_bd = be;
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
@@ -495,6 +501,7 @@ ID bdb_tool_entry_modify(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB_TXN *tid = NULL;
 	Operation op = {0};
+	Opheader ohdr = {0};
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
@@ -522,6 +529,7 @@ ID bdb_tool_entry_modify(
 		return NOID;
 	}
 
+	op.o_hdr = &ohdr;
 	op.o_bd = be;
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;

@@ -178,6 +178,7 @@ ID ldbm_tool_entry_put(
 	int rc, len;
 	ID id;
 	Operation op = {0};
+	Opheader ohdr = {0};
 
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( id2entry != NULL );
@@ -210,6 +211,7 @@ ID ldbm_tool_entry_put(
 		return NOID;
 	}
 
+	op.o_hdr = &ohdr;
 	op.o_bd = be;
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
@@ -259,6 +261,7 @@ int ldbm_tool_entry_reindex(
 	int rc;
 	Entry *e;
 	Operation op = {0};
+	Opheader ohdr = {0};
 
 	Debug( LDAP_DEBUG_ARGS, "=> ldbm_tool_entry_reindex( %ld )\n",
 		(long) id, 0, 0 );
@@ -286,6 +289,7 @@ int ldbm_tool_entry_reindex(
 
 	dn2id_add( be, &e->e_nname, e->e_id );
 
+	op.o_hdr = &ohdr;
 	op.o_bd = be;
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
