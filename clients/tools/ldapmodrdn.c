@@ -64,7 +64,8 @@ usage( void )
 }
 
 
-const char options[] = "rs:" "cCd:D:e:f:h:H:IkKMnO:p:P:QR:U:vw:WxX:y:Y:Z";
+const char options[] = "rs:"
+	"cCd:D:e:f:h:H:IkKMnO:p:P:QR:U:vVw:WxX:y:Y:Z";
 
 int
 handle_private_option( int i )
@@ -74,7 +75,7 @@ handle_private_option( int i )
 		int crit;
 		char *control, *cvalue;
 	case 'E': /* modrdn controls */
-		if( version == LDAP_VERSION2 ) {
+		if( protocol == LDAP_VERSION2 ) {
 			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
 				prog, version );
 			exit( EXIT_FAILURE );
@@ -104,13 +105,13 @@ handle_private_option( int i )
 	    break;
 
 	case 's':	/* newSuperior */
-		if( version == LDAP_VERSION2 ) {
+		if( protocol == LDAP_VERSION2 ) {
 			fprintf( stderr, "%s: -X incompatible with LDAPv%d\n",
-				prog, version );
+				prog, protocol );
 			exit( EXIT_FAILURE );
 		}
 	    newSuperior = strdup( optarg );
-	    version = LDAP_VERSION3;
+	    protocol = LDAP_VERSION3;
 	    break;
 
 	default:

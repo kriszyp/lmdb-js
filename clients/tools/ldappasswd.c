@@ -48,7 +48,8 @@ usage( void )
 }
 
 
-const char options[] = "a:As:S" "Cd:D:e:h:H:InO:p:QR:U:vw:WxX:Y:Z";
+const char options[] = "a:As:S"
+	"Cd:D:e:h:H:InO:p:QR:U:vVw:WxX:Y:Z";
 
 int
 handle_private_option( int i )
@@ -58,9 +59,9 @@ handle_private_option( int i )
 		int		crit;
 		char	*control, *cvalue;
 	case 'E': /* passwd controls */
-		if( version == LDAP_VERSION2 ) {
+		if( protocol == LDAP_VERSION2 ) {
 			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
-			         prog, version );
+			         prog, protocol );
 			exit( EXIT_FAILURE );
 		}
 
@@ -138,7 +139,7 @@ main( int argc, char *argv[] )
 	prog = lutil_progname( "ldappasswd", argc, argv );
 
 	/* LDAPv3 only */
-	version = LDAP_VERSION3;
+	protocol = LDAP_VERSION3;
 
 	tool_args( argc, argv );
 

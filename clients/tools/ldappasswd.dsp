@@ -139,6 +139,10 @@ LINK32=link.exe
 # Name "ldappasswd - Win32 Single Release"
 # Begin Source File
 
+SOURCE=.\common.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\ldappasswd.c
 # End Source File
 # End Target

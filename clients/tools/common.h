@@ -8,6 +8,8 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
+LDAP_BEGIN_DECL
+
 /* Defined and set in common.c */
 extern int   authmethod;
 extern char *binddn;
@@ -36,11 +38,12 @@ extern int   want_bindpw;
 extern struct berval passwd;
 extern char *pw_file;
 extern int   referrals;
+extern int   protocol;
 extern int   verbose;
 extern int   version;
 
 /* Defined in common.c, set in main() */
-char *prog;
+extern char *prog;
 
 /* Defined in main program */
 extern const char options[];
@@ -53,5 +56,7 @@ void tool_args LDAP_P(( int, char ** ));
 LDAP *tool_conn_setup LDAP_P(( int dont, void (*private_setup)( LDAP * ) ));
 void tool_bind LDAP_P(( LDAP * ));
 void tool_server_controls LDAP_P(( LDAP *, LDAPControl *, int ));
+
+LDAP_END_DECL
 
 #endif /* _COMMON_H_ */

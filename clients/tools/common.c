@@ -49,12 +49,13 @@ int   want_bindpw = 0;
 struct berval passwd = { 0, NULL };
 char *pw_file = NULL;
 int   referrals = 0;
+int   protocol = -1;
 int   verbose = 0;
-int   version = -1;
-
+int   version = 0;
 
 /* Set in main() */
-char *prog;
+char *prog = NULL;
+char *version_string = NULL;
 
 
 void
@@ -84,6 +85,7 @@ tool_common_usage( void )
 "  -R realm   SASL realm\n",
 "  -U authcid SASL authentication identity\n",
 "  -v         run in verbose mode (diagnostics to standard output)\n",
+"  -V         print version info (-VV only)\n",
 "  -w passwd  bind passwd (for simple authentication)\n",
 "  -W         prompt for bind passwd\n",
 "  -x         Simple authentication\n",
@@ -93,12 +95,14 @@ tool_common_usage( void )
 "  -Z         Start TLS request (-ZZ to require successful response)\n",
 NULL
 	};
-	const char *const *cpp, *cp;
+	const char *const *cpp;
 
 	fputs( "Common options:\n", stderr );
-	for( cpp = descriptions; (cp = *cpp) != NULL; cpp++ )
-		if( strchr( options, cp[3] ) )
-			fputs( cp, stderr );
+	for( cpp = descriptions; *cpp != NULL; cpp++ ) {
+		if( strchr( options, (*cpp)[3] ) ) {
+			fputs( *cpp, stderr );
+		}
+	}
 }
 
 
@@ -292,20 +296,20 @@ tool_args( int argc, char **argv )
 		case 'P':
 			switch( atoi(optarg) ) {
 			case 2:
-				if( version == LDAP_VERSION3 ) {
+				if( protocol == LDAP_VERSION3 ) {
 					fprintf( stderr, "%s: -P 2 incompatible with version %d\n",
-							 prog, version );
+							 prog, protocol );
 					exit( EXIT_FAILURE );
 				}
-				version = LDAP_VERSION2;
+				protocol = LDAP_VERSION2;
 				break;
 			case 3:
-				if( version == LDAP_VERSION2 ) {
+				if( protocol == LDAP_VERSION2 ) {
 					fprintf( stderr, "%s: -P 2 incompatible with version %d\n",
-							 prog, version );
+							 prog, protocol );
 					exit( EXIT_FAILURE );
 				}
-				version = LDAP_VERSION3;
+				protocol = LDAP_VERSION3;
 				break;
 			default:
 				fprintf( stderr, "%s: protocol version should be 2 or 3\n",
@@ -371,6 +375,9 @@ tool_args( int argc, char **argv )
 			break;
 		case 'v':	/* verbose mode */
 			verbose = 1;
+			break;
+		case 'V':	/* version */
+			version++;
 			break;
 		case 'w':	/* password */
 			passwd.bv_val = ber_strdup( optarg );
@@ -450,10 +457,16 @@ tool_args( int argc, char **argv )
 		}
     }
 
-	if (version == -1)
-		version = LDAP_VERSION3;
+	if (version) {
+		fprintf( stderr, "%s: %s\n", prog,
+			version_string ? version_string : "version unknown" );
+		if (version > 1) exit( EXIT_SUCCESS );
+	}
 
-	if (authmethod == -1 && version > LDAP_VERSION2) {
+	if (protocol == -1)
+		protocol = LDAP_VERSION3;
+
+	if (authmethod == -1 && protocol > LDAP_VERSION2) {
 #ifdef HAVE_CYRUS_SASL
 		authmethod = LDAP_AUTH_SASL;
 #else
@@ -471,7 +484,7 @@ tool_args( int argc, char **argv )
 			exit( EXIT_FAILURE );
 		}
 	}
-	if( version == LDAP_VERSION2 ) {
+	if( protocol == LDAP_VERSION2 ) {
 		if( authzid || manageDSAit || noop ) {
 			fprintf( stderr, "%s: -e/-M incompatible with LDAPv2\n", prog );
 			exit( EXIT_FAILURE );
@@ -493,7 +506,7 @@ tool_args( int argc, char **argv )
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		if ( authmethod = LDAP_AUTH_KRBV4 || authmethod == LDAP_AUTH_KRBV41 ) {
 			fprintf( stderr, "%s: -k/-K incompatible with LDAPv%d\n",
-			         prog, version );
+			         prog, protocol );
 			exit( EXIT_FAILURE );
 		}
 #endif
@@ -565,11 +578,11 @@ tool_conn_setup( int not, void (*private_setup)( LDAP * ) )
 			exit( EXIT_FAILURE );
 		}
 
-		if( ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version )
+		if( ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &protocol )
 		    != LDAP_OPT_SUCCESS )
 		{
 			fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n",
-			         version );
+			         protocol );
 			exit( EXIT_FAILURE );
 		}
 

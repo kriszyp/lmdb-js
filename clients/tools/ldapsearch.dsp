@@ -143,6 +143,10 @@ LINK32=link.exe
 # Name "ldapsearch - Win32 Debug"
 # Begin Source File
 
+SOURCE=.\common.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\ldapsearch.c
 # End Source File
 # End Target

@@ -36,7 +36,8 @@ usage( void )
 }
 
 
-const char options[] = "Cd:D:e:h:H:InO:p:QR:U:vw:WxX:y:Y:Z";
+const char options[] = ""
+	"Cd:D:e:h:H:InO:p:QR:U:vVw:WxX:y:Y:Z";
 
 int
 handle_private_option( int i )
@@ -46,9 +47,9 @@ handle_private_option( int i )
 		char	*control, *cvalue;
 		int		crit;
 	case 'E': /* whoami controls */
-		if( version == LDAP_VERSION2 ) {
+		if( protocol == LDAP_VERSION2 ) {
 			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
-				prog, version );
+				prog, protocol );
 			exit( EXIT_FAILURE );
 		}
 
@@ -93,7 +94,7 @@ main( int argc, char *argv[] )
 	prog = lutil_progname( "ldapwhoami", argc, argv );
 
 	/* LDAPv3 only */
-	version = LDAP_VERSION3;
+	protocol = LDAP_VERSION3;
 
 	tool_args( argc, argv );
 

@@ -139,6 +139,10 @@ LINK32=link.exe
 # Name "ldapwhoami - Win32 Single Release"
 # Begin Source File
 
+SOURCE=.\common.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\ldapwhoami.c
 # End Source File
 # End Target

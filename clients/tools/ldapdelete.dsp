@@ -143,6 +143,10 @@ LINK32=link.exe
 # Name "ldapdelete - Win32 Release"
 # Begin Source File
 
+SOURCE=.\common.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\ldapdelete.c
 # End Source File
 # End Target

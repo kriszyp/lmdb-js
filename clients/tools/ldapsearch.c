@@ -185,7 +185,7 @@ urlize(char *url)
 
 
 const char options[] = "a:Ab:E:F:l:Ls:S:tT:uz:"
-                       "Cd:D:e:f:h:H:IkKMnO:p:P:QR:U:vw:WxX:y:Y:Z";
+	"Cd:D:e:f:h:H:IkKMnO:p:P:QR:U:vVw:WxX:y:Y:Z";
 
 int
 handle_private_option( int i )
@@ -214,9 +214,9 @@ handle_private_option( int i )
 		base = strdup( optarg );
 		break;
 	case 'E': /* search controls */
-		if( version == LDAP_VERSION2 ) {
+		if( protocol == LDAP_VERSION2 ) {
 			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
-				prog, version );
+				prog, protocol );
 			exit( EXIT_FAILURE );
 		}
 
@@ -251,7 +251,7 @@ handle_private_option( int i )
 			}
 
 			vrFilter = cvalue;
-			version = LDAP_VERSION3;
+			protocol = LDAP_VERSION3;
 
 		} else if ( strcasecmp( control, "pr" ) == 0 ) {
 			int num, tmp;
@@ -652,7 +652,7 @@ getNextPage:
 			"# base <%s> with scope %s\n"
 			"# filter%s: %s\n"
 			"# requesting: ",
-			version,
+			protocol,
 			base ? base : "", (scope == LDAP_SCOPE_BASE) ? "base"
 				: ((scope == LDAP_SCOPE_ONELEVEL) ? "one" : "sub"),
 			infile != NULL ? " pattern" : "",

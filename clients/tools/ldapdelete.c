@@ -49,7 +49,8 @@ usage( void )
 }
 
 
-const char options[] = "r" "cCd:D:e:f:h:H:IkKMnO:p:P:QR:U:vw:WxX:y:Y:Z";
+const char options[] = "r"
+	"cCd:D:e:f:h:H:IkKMnO:p:P:QR:U:vVw:WxX:y:Y:Z";
 
 int
 handle_private_option( int i )
@@ -59,9 +60,9 @@ handle_private_option( int i )
 		int crit;
 		char *control, *cvalue;
 	case 'E': /* delete controls */
-		if( version == LDAP_VERSION2 ) {
+		if( protocol == LDAP_VERSION2 ) {
 			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
-				prog, version );
+				prog, protocol );
 			exit( EXIT_FAILURE );
 		}
 

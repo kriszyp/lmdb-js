@@ -104,7 +104,8 @@ usage( void )
 }
 
 
-const char options[] = "aFrS:" "cCd:D:e:f:h:H:IkKMnO:p:P:QR:U:vw:WxX:y:Y:Z";
+const char options[] = "aFrS:"
+	"cCd:D:e:f:h:H:IkKMnO:p:P:QR:U:vVw:WxX:y:Y:Z";
 
 int
 handle_private_option( int i )
@@ -114,9 +115,9 @@ handle_private_option( int i )
 		char	*control, *cvalue;
 		int		crit;
 	case 'E': /* modify controls */
-		if( version == LDAP_VERSION2 ) {
+		if( protocol == LDAP_VERSION2 ) {
 			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
-				prog, version );
+				prog, protocol );
 			exit( EXIT_FAILURE );
 		}
 

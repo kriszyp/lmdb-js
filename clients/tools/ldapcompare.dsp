@@ -143,6 +143,10 @@ LINK32=link.exe
 # Name "ldapcompare - Win32 Release"
 # Begin Source File
 
+SOURCE=.\common.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\ldapcompare.c
 # End Source File
 # End Target
