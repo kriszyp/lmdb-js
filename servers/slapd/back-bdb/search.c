@@ -90,7 +90,7 @@ bdb_search(
 		break;
 	default:
 		if (e != NULL) {
-			bdb_cache_return_entry_w(&bdb->bi_cache, e);
+			bdb_cache_return_entry_r(&bdb->bi_cache, e);
 		}
 		if (matched != NULL) {
 			bdb_cache_return_entry_r(&bdb->bi_cache, matched);
