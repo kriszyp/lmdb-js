@@ -1278,7 +1278,7 @@ static int parseSearchOptions (
 
 	(void) ber_free( ber, 1 );
 
-	if ( search_flags & LDAP_SERVER_SEARCH_FLAG_DOMAIN_SCOPE ) {
+	if ( search_flags & LDAP_SEARCH_FLAG_DOMAIN_SCOPE ) {
 		if ( op->o_domain_scope != SLAP_NO_CONTROL ) {
 			rs->sr_text = "searchOptions control specified multiple times or with domainScope control";
 			return LDAP_PROTOCOL_ERROR;
@@ -1289,7 +1289,7 @@ static int parseSearchOptions (
 			: SLAP_NONCRITICAL_CONTROL;
 	}
 
-	if ( search_flags & ~(LDAP_SERVER_SEARCH_FLAG_DOMAIN_SCOPE) ) {
+	if ( search_flags & ~(LDAP_SEARCH_FLAG_DOMAIN_SCOPE) ) {
 		/* Other search flags not recognised so far */
 		rs->sr_text = "searchOptions contained invalid flag";
 		return LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
