@@ -60,6 +60,7 @@ CHMOD = chmod
 DATE = date
 HOSTNAME = uname -n
 LN = ln
+LN_H = @LN_H@
 LN_S = @LN_S@
 MAKEINFO = @MAKEINFO@
 MKDIR = mkdir -p
