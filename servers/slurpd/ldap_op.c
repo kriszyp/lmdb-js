@@ -847,8 +847,7 @@ do_bind(
 	ldap_set_option(ri->ri_ldp, LDAP_OPT_RESTART, LDAP_OPT_ON);
 
 	if( ri->ri_tls ) {
-		int err;
-		err = ldap_start_tls_s(ri->ri_ldp, NULL, NULL);
+		int err = ldap_start_tls_s(ri->ri_ldp, NULL, NULL);
 
 		if( err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -864,6 +863,7 @@ do_bind(
 #endif
 
 			if( ri->ri_tls == TLS_CRITICAL ) {
+				*lderr = err;
 				ldap_unbind( ri->ri_ldp );
 				ri->ri_ldp = NULL;
 				return BIND_ERR_TLS_FAILED;
@@ -919,9 +919,8 @@ do_bind(
 
 #ifdef HAVE_CYRUS_SASL
 	if( ri->ri_secprops != NULL ) {
-		int err;
-		err = ldap_set_option(ri->ri_ldp, LDAP_OPT_X_SASL_SECPROPS,
-			ri->ri_secprops);
+		int err = ldap_set_option(ri->ri_ldp,
+			LDAP_OPT_X_SASL_SECPROPS, ri->ri_secprops);
 
 		if( err != LDAP_OPT_SUCCESS ) {
 #ifdef NEW_LOGGING
