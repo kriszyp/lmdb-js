@@ -717,6 +717,11 @@ e.g. ldapi:// (and eventually IPSEC).  It is not normally used.
 .B sizelimit size[.{soft|hard|unchecked}]=<integer> [...]
 Specify the maximum number of entries to return from a search operation.
 The default size limit is 500.
+Use
+.B -1
+or 
+.B unlimited
+to specify no limits.
 The second format allows a fine grain setting of the size limits.
 Extra args can be added on the same line.
 See
@@ -746,6 +751,11 @@ The default is 32.
 Specify the maximum number of seconds (in real time)
 .B slapd
 will spend answering a search request.  The default time limit is 3600.
+Use
+.B -1
+or 
+.B unlimited
+to specify no limits.
 The second format allows a fine grain setting of the time limits.
 Extra args can be added on the same line.
 See
