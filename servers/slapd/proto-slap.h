@@ -340,7 +340,6 @@ LDAP_SLAPD_F (int) connections_timeout_idle LDAP_P((time_t));
 
 LDAP_SLAPD_F (int) connection_client_setup LDAP_P((
 	ber_socket_t s,
-	Listener *l,
 	ldap_pvt_thread_start_t *func,
 	void *arg ));
 LDAP_SLAPD_F (void) connection_client_enable LDAP_P(( ber_socket_t s ));
@@ -372,6 +371,10 @@ LDAP_SLAPD_F (Connection *) connection_next LDAP_P((
 LDAP_SLAPD_F (void) connection_done LDAP_P((Connection *));
 
 LDAP_SLAPD_F (void) connection2anonymous LDAP_P((Connection *));
+LDAP_SLAPD_F (void) connection_fake_init LDAP_P((
+	Connection *conn,
+	Operation *op,
+	void *threadctx ));
 
 /*
  * cr.c

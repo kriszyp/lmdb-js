@@ -1167,15 +1167,16 @@ operations_error:
 	return NULL;
 }
 
+static const Listener dummy_list = { {0, ""}, {0, ""} };
+
 int connection_client_setup(
 	ber_socket_t s,
-	Listener *l,
 	ldap_pvt_thread_start_t *func,
 	void *arg )
 {
 	Connection *c;
 
-	if ( connection_init( s, l, "", "", CONN_IS_CLIENT, 0, NULL ) < 0 ) {
+	if ( connection_init( s, &dummy_list, "", "", CONN_IS_CLIENT, 0, NULL ) < 0 ) {
 		return -1;
 	}
 
@@ -1858,3 +1859,26 @@ int connection_write(ber_socket_t s)
 	return 0;
 }
 
+void
+connection_fake_init(
+	Connection *conn,
+	Operation *op,
+	void *ctx )
+{
+        conn->c_connid = -1;
+        conn->c_send_ldap_result = slap_send_ldap_result;
+        conn->c_send_search_entry = slap_send_search_entry;
+        conn->c_send_search_reference = slap_send_search_reference;
+        conn->c_listener = (Listener *)&dummy_list;
+        conn->c_peer_name = slap_empty_bv;
+
+        /* set memory context */
+        op->o_tmpmemctx = sl_mem_create( SLMALLOC_SLAB_SIZE, ctx );
+        op->o_tmpmfuncs = &sl_mfuncs;
+	op->o_threadctx = ctx;
+
+        op->o_conn = conn;
+        op->o_connid = op->o_conn->c_connid;
+
+	op->o_time = slap_get_time();
+}
