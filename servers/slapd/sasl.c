@@ -1108,10 +1108,11 @@ int slap_sasl_bind(
 				NULL, "no SASL username", NULL, NULL );
 
 		} else {
+			sasl_ssf_t *ssf = NULL;
+
 			rc = LDAP_SUCCESS;
 			ber_str2bv( username, 0, 1, edn );
 
-			sasl_ssf_t *ssf = NULL;
 			(void) sasl_getprop( ctx, SASL_SSF, (void *)&ssf );
 			*ssfp = ssf ? *ssf : 0;
 
