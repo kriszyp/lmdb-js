@@ -571,6 +571,7 @@ at_add(
 	if ( sat->sat_sup ) {
 		if ( !sat->sat_syntax ) {
 			sat->sat_syntax = sat->sat_sup->sat_syntax;
+			sat->sat_syntax_len = sat->sat_sup->sat_syntax_len;
 		}
 		if ( !sat->sat_equality ) {
 			sat->sat_equality = sat->sat_sup->sat_equality;
