@@ -18,13 +18,15 @@
 #include "slap.h"
 #include <ldif.h>
 
-static char *supportedFeatures[] = {
-	"1.3.6.1.4.1.4203.1.5.1", /* all Operational Attributes ("+") */
-	"1.3.6.1.4.1.4203.1.5.2", /* OCs in Attributes List */
-	"1.3.6.1.4.1.4203.1.5.3", /* (&) and (|) search filters */
-	"1.3.6.1.4.1.4203.1.5.4", /* Language Tag Options */
-	"1.3.6.1.4.1.4203.1.5.5", /* Language Range Options */
-	NULL
+#define BVC(x) {sizeof(x)-1, x}
+
+static struct berval supportedFeatures[] = {
+	BVC("1.3.6.1.4.1.4203.1.5.1"), /* all Operational Attributes ("+") */
+	BVC("1.3.6.1.4.1.4203.1.5.2"), /* OCs in Attributes List */
+	BVC("1.3.6.1.4.1.4203.1.5.3"), /* (&) and (|) search filters */
+	BVC("1.3.6.1.4.1.4203.1.5.4"), /* Language Tag Options */
+	BVC("1.3.6.1.4.1.4203.1.5.5"), /* Language Range Options */
+	{0,NULL}
 };
 
 static Entry	*usr_attr = NULL;
@@ -113,11 +115,7 @@ root_dse_info(
 	}
 
 	/* supportedFeatures */
-	for ( i=0; supportedFeatures[i] != NULL; i++ ) {
-		vals[0].bv_val = supportedFeatures[i];
-		vals[0].bv_len = strlen( vals[0].bv_val );
-		attr_merge( e, ad_supportedFeatures, vals );
-	}
+	attr_merge( e, ad_supportedFeatures, supportedFeatures );
 
 	/* supportedLDAPVersion */
 	for ( i=LDAP_VERSION_MIN; i<=LDAP_VERSION_MAX; i++ ) {
