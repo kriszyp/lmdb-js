@@ -344,6 +344,7 @@ Make-common: Make-common.dist
 	fi; \
 	echo "Copy Make-common.dist or Make-common.gmake to Make-common" ; \
 	echo "  Edit as needed before making!"	; \
+	echo "  then run \"make makefiles\""	; \
 	exit 1
 #
 # rule to build Makefiles by concatenating Make-template file in each
