@@ -873,10 +873,17 @@ struct slap_limits {
 	int     lm_type;	/* type of pattern */
 #define SLAP_LIMITS_UNDEFINED	0x0000
 #define SLAP_LIMITS_EXACT	0x0001
-#define SLAP_LIMITS_REGEX	0x0002
-#define SLAP_LIMITS_ANONYMOUS	0x0003
-	regex_t	lm_dn_regex;	/* regex-based size and time limits */
-	char   *lm_dn_pat;	/* ndn for EXACT; pattern for REGEX */
+#define SLAP_LIMITS_BASE	SLAP_LIMITS_EXACT
+#define SLAP_LIMITS_ONE		0x0002
+#define SLAP_LIMITS_SUBTREE	0x0003
+#define SLAP_LIMITS_CHILDREN	0x0004
+#define SLAP_LIMITS_REGEX	0x0005
+#define SLAP_LIMITS_ANONYMOUS	0x0006
+#define SLAP_LIMITS_USERS	0x0007
+	regex_t	lm_dn_regex;		/* regex data for REGEX */
+	struct berval *lm_dn_pat;	/* ndn for EXACT, BASE, ONE, SUBTREE,
+					 * CHILDREN; pattern for REGEX; NULL
+					 * for ANONYMOUS, USERS */
 	struct slap_limits_set	lm_limits;
 };
 

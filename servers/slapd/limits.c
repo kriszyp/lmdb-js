@@ -35,16 +35,66 @@ get_limits(
 	}
 
 	for ( lm = be->be_limits; lm[0] != NULL; lm++ ) {
-		switch ( lm[0]->lm_type) {
+		switch ( lm[0]->lm_type ) {
 		case SLAP_LIMITS_EXACT:
 			if ( ndn == NULL || ndn[0] == '\0' ) {
 				break;
 			}
-			if ( strcmp( lm[0]->lm_dn_pat, ndn ) == 0 ) {
+			if ( strcmp( lm[0]->lm_dn_pat->bv_val, ndn ) == 0 ) {
 				*limit = &lm[0]->lm_limits;
 				return( 0 );
 			}
 			break;
+
+		case SLAP_LIMITS_ONE:
+		case SLAP_LIMITS_SUBTREE:
+		case SLAP_LIMITS_CHILDREN: {
+			long 	d;
+			
+			if ( ndn == NULL || ndn[0] == '\0' ) {
+				break;
+			}
+
+			d = strlen( ndn ) - lm[0]->lm_dn_pat->bv_len;
+			/* ndn shorter than dn_pat */
+			if ( d < 0 ) {
+				break;
+			}
+
+			/* allow exact match for SUBTREE only */
+			if ( d == 0 ) {
+				if ( lm[0]->lm_type != SLAP_LIMITS_SUBTREE ) {
+					break;
+				}
+			} else {
+				/* check for unescaped rdn separator */
+				if ( !DN_SEPARATOR( ndn[d-1] ) || SLAP_ESCAPE_CHAR == ndn[d-2] ) {
+					break;
+				}
+			}
+
+			/* in case of (sub)match ... */
+			if ( strcmp( lm[0]->lm_dn_pat->bv_val, &ndn[d] ) == 0 ) {
+				/* check for exacctly one rdn in case of ONE */
+				if ( lm[0]->lm_type == SLAP_LIMITS_ONE ) {
+					char *rdn;
+					
+					/*
+					 * if ndn is more that one rdn
+					 * below dn_pat, continue
+					 */
+					rdn = dn_rdn( NULL, ndn );
+					if ( strlen( rdn ) != d - 1 ) {
+						break;
+					}
+				}
+
+				*limit = &lm[0]->lm_limits;
+				return( 0 );
+			}
+
+			break;
+		}
 
 		case SLAP_LIMITS_REGEX:
 			if ( ndn == NULL || ndn[0] == '\0' ) {
@@ -55,12 +105,21 @@ get_limits(
 				return( 0 );
 			}
 			break;
+
 		case SLAP_LIMITS_ANONYMOUS:
 			if ( ndn == NULL || ndn[0] == '\0' ) {
 				*limit = &lm[0]->lm_limits;
 				return( 0 );
 			}
 			break;
+
+		case SLAP_LIMITS_USERS:
+			if ( ndn != NULL && ndn[0] != '\0' ) {
+				*limit = &lm[0]->lm_limits;
+				return( 0 );
+			}
+			break;
+
 		default:
 			assert( 0 );	/* unreachable */
 			return( -1 );
@@ -88,10 +147,13 @@ add_limits(
 
 	switch ( type ) {
 	case SLAP_LIMITS_EXACT:
-		lm->lm_type = SLAP_LIMITS_EXACT;
-		lm->lm_dn_pat = ch_strdup( pattern );
-		if ( dn_normalize( lm->lm_dn_pat ) == NULL ) {
-			ch_free( lm->lm_dn_pat );
+	case SLAP_LIMITS_ONE:
+	case SLAP_LIMITS_SUBTREE:
+	case SLAP_LIMITS_CHILDREN:
+		lm->lm_type = type;
+		lm->lm_dn_pat = ber_bvstrdup( pattern );
+		if ( dn_normalize( lm->lm_dn_pat->bv_val ) == NULL ) {
+			ber_bvfree( lm->lm_dn_pat );
 			ch_free( lm );
 			return( -1 );
 		}
@@ -100,15 +162,18 @@ add_limits(
 	case SLAP_LIMITS_REGEX:
 	case SLAP_LIMITS_UNDEFINED:
 		lm->lm_type = SLAP_LIMITS_REGEX;
-		lm->lm_dn_pat = ch_strdup( pattern );
-		if ( regcomp( &lm->lm_dn_regex, lm->lm_dn_pat, REG_EXTENDED | REG_ICASE ) ) {
-			ch_free( lm->lm_dn_pat );
+		lm->lm_dn_pat = ber_bvstrdup( pattern );
+		if ( regcomp( &lm->lm_dn_regex, lm->lm_dn_pat->bv_val, 
+					REG_EXTENDED | REG_ICASE ) ) {
+			ber_bvfree( lm->lm_dn_pat );
 			ch_free( lm );
 			return( -1 );
 		}
 		break;
+
 	case SLAP_LIMITS_ANONYMOUS:
-		lm->lm_type = SLAP_LIMITS_ANONYMOUS;
+	case SLAP_LIMITS_USERS:
+		lm->lm_type = type;
 		lm->lm_dn_pat = NULL;
 		break;
 	}
@@ -169,9 +234,21 @@ parse_limits(
 	 * 
 	 * <pattern>:
 	 * 
-	 * [ "dn" [ "." { "exact" | "regex" | "anonymous" } ] "=" ] <dn pattern>
+	 * "anonymous"
+	 * "users"
+	 * [ "dn" [ "." { "exact" | "base" | "one" | "sub" | children" 
+	 *	| "regex" | "anonymous" } ] "=" ] <dn pattern>
 	 *
-	 * 
+	 * Note:
+	 *	"exact" and "base" are the same (exact match);
+	 *	"one" means exactly one rdn below, NOT including the pattern
+	 *	"sub" means any rdn below, including the pattern
+	 *	"children" means any rdn below, NOT including the pattern
+	 *	
+	 *	"anonymous" may be deprecated in favour 
+	 *	of the pattern = "anonymous" form
+	 *
+	 *
 	 * <limit>:
 	 *
 	 * "time" [ "." { "soft" | "hard" } ] "=" <integer>
@@ -180,43 +257,88 @@ parse_limits(
 	 */
 	
 	pattern = argv[1];
-	if ( strncasecmp( pattern, "dn", 2 ) == 0 ) {
+	if ( strcasecmp( pattern, "anonymous" ) == 0 ) {
+		type = SLAP_LIMITS_ANONYMOUS;
+
+	} else if ( strcasecmp( pattern, "users" ) == 0 ) {
+		type = SLAP_LIMITS_USERS;
+		
+	} else if ( strncasecmp( pattern, "dn", 2 ) == 0 ) {
 		pattern += 2;
 		if ( pattern[0] == '.' ) {
 			pattern++;
 			if ( strncasecmp( pattern, "exact", 5 ) == 0 ) {
 				type = SLAP_LIMITS_EXACT;
 				pattern += 5;
+
+			} else if ( strncasecmp( pattern, "base", 4 ) == 0 ) {
+				type = SLAP_LIMITS_BASE;
+				pattern += 4;
+
+			} else if ( strncasecmp( pattern, "one", 3 ) == 0 ) {
+				type = SLAP_LIMITS_ONE;
+				pattern += 3;
+
+			} else if ( strncasecmp( pattern, "subtree", 7 ) == 0 ) {
+				type = SLAP_LIMITS_SUBTREE;
+				pattern += 7;
+
+			} else if ( strncasecmp( pattern, "children", 8 ) == 0 ) {
+				type = SLAP_LIMITS_CHILDREN;
+				pattern += 8;
+
 			} else if ( strncasecmp( pattern, "regex", 5 ) == 0 ) {
 				type = SLAP_LIMITS_REGEX;
 				pattern += 5;
+
+			/* 
+			 * this could be deprecated in favour
+			 * of the pattern = "anonymous" form
+			 */
 			} else if ( strncasecmp( pattern, "anonymous", 9 ) == 0 ) {
 				type = SLAP_LIMITS_ANONYMOUS;
 				pattern = NULL;
 			}
 		}
 
-		if (( type != SLAP_LIMITS_ANONYMOUS ) && ( pattern[0] != '=' )) {
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-				"%s : line %d: missing '=' in "
-				"\"dn[.{exact|regex|anonymous}]=<pattern>\" in "
-				"\"limits <pattern> <limits>\" line.\n",
-			fname, lineno ));
-#else
-			Debug( LDAP_DEBUG_ANY,
-				"%s : line %d: missing '=' in "
-				"\"dn[.{exact|regex|anonymous}]=<pattern>\" in "
-				"\"limits <pattern> <limits>\" line.\n%s",
-			fname, lineno, "" );
-#endif
-			return( -1 );
-		}
+		/* pre-check the data */
+		switch ( type ) {
+		case SLAP_LIMITS_ANONYMOUS:
+		case SLAP_LIMITS_USERS:
 
-		/* skip '=' (required) */
-		pattern++;
+			/* no need for pattern */
+			pattern = NULL;
+			break;
+
+		default:
+			if ( pattern[0] != '=' ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					"%s : line %d: missing '=' in "
+					"\"dn[.{exact|base|one|subtree"
+					"|children|regex|anonymous}]"
+					"=<pattern>\" in "
+					"\"limits <pattern> <limits>\" line.\n",
+					fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s : line %d: missing '=' in "
+					"\"dn[.{exact|base|one|subtree"
+					"|children|regex|anonymous}]"
+					"=<pattern>\" in "
+					"\"limits <pattern> <limits>\" "
+					"line.\n%s",
+					fname, lineno, "" );
+#endif
+				return( -1 );
+			}
+
+			/* skip '=' (required) */
+			pattern++;
+		}
 	}
 
+	/* get the limits */
 	for ( i = 2; i < argc; i++ ) {
 		if ( parse_limit( argv[i], &limit ) ) {
 
