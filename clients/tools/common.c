@@ -460,7 +460,9 @@ tool_args( int argc, char **argv )
 		LDAPAPIInfo api;
 		api.ldapai_info_version = LDAP_API_INFO_VERSION;
 
-		if ( ldap_get_option(NULL, LDAP_OPT_API_INFO, &api) != LDAP_SUCCESS ) {
+		if ( ldap_get_option(NULL, LDAP_OPT_API_INFO, &api)
+			!= LDAP_OPT_SUCCESS )
+		{
 			fprintf( stderr, "%s: ldap_get_option(API_INFO) failed\n", prog );
 			exit( EXIT_FAILURE );
 		}
