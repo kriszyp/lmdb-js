@@ -14,10 +14,8 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include "ldap_pvt.h"
-
 #include "slap.h"
-
+#include "ldap_pvt.h" /* must be after slap.h, to get ldap_bv2dn_x() & co */
 #include "lutil.h"
 
 /*
