@@ -12,7 +12,7 @@
 
 #include "slap.h"
 
-#if 0
+#if 1
 	/* larger IDL sizes (which blow thread stacks) */
 #define BDB_IDL_DB_SIZE		(1<<16) /* 64K IDL on disk */
 #define BDB_IDL_SIZE		(1<<17) /* 128K IDL in memory */

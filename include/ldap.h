@@ -1173,17 +1173,50 @@ ldap_get_dn LDAP_P((
 	LDAP *ld,
 	LDAPMessage *entry ));
 
+typedef struct ldap_ava {
+	char *la_attr;
+	struct berval *la_value;
+	unsigned la_flags;
+#define LDAP_AVA_STRING 0x0000U
+#define LDAP_AVA_BINARY 0x0001U
+} LDAPAVA;
+
+typedef LDAPAVA** LDAPRDN;
+typedef LDAPRDN** LDAPDN;
+
+/* DN formats */
+#define LDAP_DN_FORMAT_LDAPV3	0x0000U
+#define LDAP_DN_FORMAT_LDAPV2	0x0001U
+#define LDAP_DN_FORMAT_DCE		0x0002U
+#define LDAP_DN_FORMAT_UFN		0x0003U	/* dn2str only */
+#define LDAP_DN_FORMAT_MASK		0x000FU
+
+/* str2dn flags */ 
+#define LDAP_DN_PEDANTIC		0x1000U
+
+LDAP_F( int )
+ldap_str2dn LDAP_P((
+	LDAP_CONST char *str,
+	LDAPDN **dn,
+	unsigned flags ));
+
+LDAP_F( int )
+ldap_dn2str LDAP_P((
+	LDAPDN *dn,
+	char **str,
+	unsigned flags ));
+
 LDAP_F( char * )
-ldap_dn2ufn LDAP_P((
+ldap_dn2ufn LDAP_P(( /* deprecated */
 	LDAP_CONST char *dn ));
 
 LDAP_F( char ** )
-ldap_explode_dn LDAP_P(( 
+ldap_explode_dn LDAP_P(( /* deprecated */
 	LDAP_CONST char *dn,
 	int notypes ));
 
 LDAP_F( char ** )
-ldap_explode_rdn LDAP_P((
+ldap_explode_rdn LDAP_P(( /* deprecated */
 	LDAP_CONST char *rdn,
 	int notypes ));
 

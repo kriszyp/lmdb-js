@@ -100,6 +100,11 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 #endif
 	}
+
+#if defined(LDAP_PVT_THREAD_STACK_SIZE) && LDAP_PVT_THREAD_STACK_SIZE > 0
+	/* this should be tunable */
+	pthread_attr_setstacksize( &attr, LDAP_PVT_THREAD_STACK_SIZE );
+#endif
 #endif
 
 	rtn = pthread_create( thread, &attr, start_routine, arg );
