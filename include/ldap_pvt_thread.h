@@ -148,6 +148,32 @@ ldap_pvt_thread_rdwr_active LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 #define LDAP_PVT_THREAD_EINVAL EINVAL
 #define LDAP_PVT_THREAD_EBUSY EINVAL
 
+
+typedef struct t_ldap_pvt_thread_pool *ldap_pvt_thread_pool_t;
+
+
+LIBLDAP_F( int )
+ldap_pvt_thread_pool_initialize LDAP_P((
+						ldap_pvt_thread_pool_t *pool_out,
+						int max_concurrency,
+						int max_pending ));
+
+LIBLDAP_F( int )
+ldap_pvt_thread_pool_submit LDAP_P((
+						ldap_pvt_thread_pool_t pool,
+						void *(*start_routine)( void * ),
+						void *arg ));
+
+LIBLDAP_F( int )
+ldap_pvt_thread_pool_backload LDAP_P((
+						ldap_pvt_thread_pool_t pool ));
+
+LIBLDAP_F( int )
+ldap_pvt_thread_pool_destroy LDAP_P((
+						ldap_pvt_thread_pool_t pool,
+						int run_pending ));
+
+
 LDAP_END_DECL
 
 #endif /* _LDAP_THREAD_H */
