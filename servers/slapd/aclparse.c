@@ -626,7 +626,6 @@ parse_acl(
 						fname, lineno );
 				}
 
-
 				if ( strcasecmp( argv[i], "*" ) == 0 ) {
 					bv.bv_val = ch_strdup( "*" );
 					bv.bv_len = 1;
@@ -1108,7 +1107,8 @@ parse_acl(
 						if ( expand ) {
 							fprintf( stderr,
 								"%s: line %d: "
-								"\"expand\" modifier with \"expand\" style\n",
+								"\"expand\" modifier "
+								"with \"expand\" style\n",
 								fname, lineno );
 						}
 						sty = ACL_STYLE_BASE;
