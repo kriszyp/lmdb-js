@@ -888,7 +888,7 @@ static ber_tag_t
 build_result_ber( LDAP *ld, BerElement **bp, LDAPRequest *lr )
 {
 	ber_len_t	len;
-	ber_int_t	tag;
+	ber_tag_t	tag;
 	ber_int_t	along;
 	BerElement *ber;
 

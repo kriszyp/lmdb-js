@@ -514,7 +514,7 @@ ber_get_next(
 		/* Now look for the length */
 		if (*ber->ber_ptr & 0x80) {	/* multi-byte */
 			int llen = *(unsigned char *)ber->ber_ptr++ & 0x7f;
-			if (llen > sizeof(ber_len_t)) {
+			if (llen > (int)sizeof(ber_len_t)) {
 				errno = ERANGE;
 				return LBER_DEFAULT;
 			}

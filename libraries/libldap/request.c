@@ -899,7 +899,8 @@ ldap_chase_referrals( LDAP *ld,
 	int sref,
 	int *hadrefp )
 {
-	int		rc, count, len;
+	int		rc, count;
+	unsigned	len;
 	char		*p, *ref, *unfollowed;
 	LDAPRequest	*origreq;
 	LDAPURLDesc	*srv;

@@ -45,7 +45,7 @@ static int ber_put_int_or_enum LDAP_P((
 	ber_tag_t tag ));
 
 
-static ber_len_t
+static int
 ber_calc_taglen( ber_tag_t tag )
 {
 	int	i;
@@ -68,8 +68,8 @@ ber_put_tag(
 	int nosos )
 {
 	int rc;
-	ber_len_t	taglen;
-	ber_len_t	i;
+	int	taglen;
+	int	i;
 	unsigned char nettag[sizeof(ber_tag_t)];
 
 	assert( ber != NULL );
@@ -178,8 +178,8 @@ ber_put_int_or_enum(
 	ber_tag_t tag )
 {
 	int rc;
-	int	i, j, sign;
-	ber_len_t	len, lenlen, taglen;
+	int	i, j, sign, taglen, lenlen;
+	ber_len_t	len;
 	ber_uint_t	unum, mask;
 	unsigned char netnum[sizeof(ber_uint_t)];
 
@@ -276,8 +276,7 @@ ber_put_ostring(
 	ber_len_t len,
 	ber_tag_t tag )
 {
-	ber_len_t	taglen, lenlen;
-	int rc;
+	int taglen, lenlen, rc;
 
 	assert( ber != NULL );
 	assert( str != NULL );
@@ -339,7 +338,8 @@ ber_put_bitstring(
 	ber_len_t blen /* in bits */,
 	ber_tag_t tag )
 {
-	ber_len_t		taglen, lenlen, len;
+	int				taglen, lenlen;
+	ber_len_t		len;
 	unsigned char	unusedbits;
 
 	assert( ber != NULL );
@@ -376,7 +376,7 @@ ber_put_bitstring(
 int
 ber_put_null( BerElement *ber, ber_tag_t tag )
 {
-	ber_len_t	taglen;
+	int	taglen;
 
 	assert( ber != NULL );
 	assert( LBER_VALID( ber ) );
@@ -402,7 +402,7 @@ ber_put_boolean(
 	ber_int_t boolval,
 	ber_tag_t tag )
 {
-	ber_len_t		taglen;
+	int				taglen;
 	unsigned char	c;
 
 	assert( ber != NULL );
@@ -497,7 +497,8 @@ ber_put_seqorset( BerElement *ber )
 	int rc;
 	ber_len_t	len;
 	unsigned char netlen[sizeof(ber_len_t)];
-	ber_len_t	taglen, lenlen;
+	int			taglen;
+	ber_len_t	lenlen;
 	unsigned char	ltag = 0x80U + FOUR_BYTE_LEN - 1;
 	Seqorset	*next;
 	Seqorset	**sos = &ber->ber_sos;
@@ -579,7 +580,7 @@ ber_put_seqorset( BerElement *ber )
 		(*sos)->sos_ber->ber_ptr += len;
 
 	} else {
-		ber_len_t i;
+		int i;
 		unsigned char nettag[sizeof(ber_tag_t)];
 		ber_tag_t tmptag = (*sos)->sos_tag;
 

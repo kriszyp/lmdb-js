@@ -632,7 +632,7 @@ static int chk_sasl(
 	const struct berval * passwd,
 	const struct berval * cred )
 {
-	int i;
+	unsigned int i;
 	int rtn;
 
 	for( i=0; i<cred->bv_len; i++) {
@@ -681,7 +681,7 @@ static int chk_kerberos(
 	const struct berval * passwd,
 	const struct berval * cred )
 {
-	int i;
+	unsigned int i;
 	int rtn;
 
 	for( i=0; i<cred->bv_len; i++) {
@@ -855,7 +855,7 @@ static int chk_crypt(
 	const struct berval * cred )
 {
 	char *cr;
-	int i;
+	unsigned int i;
 
 	for( i=0; i<cred->bv_len; i++) {
 		if(cred->bv_val[i] == '\0') {
@@ -897,7 +897,7 @@ static int chk_unix(
 	const struct berval * passwd,
 	const struct berval * cred )
 {
-	int i;
+	unsigned int i;
 	char *pw,*cr;
 
 	for( i=0; i<cred->bv_len; i++) {
@@ -1196,7 +1196,7 @@ static struct berval *hash_crypt(
 {
 	struct berval hash;
 	unsigned char salt[32];	/* salt suitable for most anything */
-	int i;
+	unsigned int i;
 
 	for( i=0; i<passwd->bv_len; i++) {
 		if(passwd->bv_val[i] == '\0') {

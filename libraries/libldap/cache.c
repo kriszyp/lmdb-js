@@ -496,7 +496,7 @@ ldap_check_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 			ld->ld_cache->lc_memused -= msg_size( m );
 			ldap_msgfree( m );
 		} else {
-		    if ( m->lm_msgtype == (int)msgtype &&
+		    if ( m->lm_msgtype == msgtype &&
 			request_cmp( m->lm_ber, &reqber ) == 0 ) {
 			    break;
 		    }

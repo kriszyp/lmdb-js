@@ -2044,7 +2044,7 @@ ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
             }
 
             if (matched) {
-                if (ms == ~0)
+                if (ms == ~0UL)
                   ms = lp - text;
                 else
                   me = sp - text;
@@ -2119,5 +2119,5 @@ ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
     *match_start = ms;
     *match_end = me;
 
-    return (ms != ~0) ? 1 : 0;
+    return (ms != ~0UL) ? 1 : 0;
 }
