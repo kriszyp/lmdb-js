@@ -192,8 +192,7 @@ static int bdb_tool_next_id(
 	DB_TXN *tid,
 	Entry *e,
 	struct berval *text,
-	int hole,
-	u_int32_t locker )
+	int hole )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	struct berval dn = e->e_nname;
@@ -201,7 +200,7 @@ static int bdb_tool_next_id(
 	EntryInfo *ei = NULL;
 	int rc;
 
-	rc = bdb_cache_find_ndn( op, tid, &dn, &ei, locker );
+	rc = bdb_cache_find_ndn( op, tid, &dn, &ei );
 	if ( ei ) bdb_cache_entryinfo_unlock( ei );
 	if ( rc == DB_NOTFOUND ) {
 		if ( be_issuffix( op->o_bd, &dn ) ) {
@@ -209,7 +208,7 @@ static int bdb_tool_next_id(
 		} else {
 			dnParent( &dn, &pdn );
 			e->e_nname = pdn;
-			rc = bdb_tool_next_id( op, tid, e, text, 1, locker );
+			rc = bdb_tool_next_id( op, tid, e, text, 1 );
 			if ( rc ) {
 				return rc;
 			}
@@ -282,7 +281,6 @@ ID bdb_tool_entry_put(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB_TXN *tid = NULL;
 	Operation op = {0};
-	u_int32_t locker;
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
@@ -319,9 +317,8 @@ ID bdb_tool_entry_put(
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
 
-	locker = TXN_ID( tid );
 	/* add dn2id indices */
-	rc = bdb_tool_next_id( &op, tid, e, text, 0, locker );
+	rc = bdb_tool_next_id( &op, tid, e, text, 0 );
 	if( rc != 0 ) {
 		goto done;
 	}

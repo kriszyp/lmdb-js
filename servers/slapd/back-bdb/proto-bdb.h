@@ -457,8 +457,7 @@ int bdb_cache_find_ndn(
 	Operation *op,
 	DB_TXN	*txn,
 	struct berval   *ndn,
-	EntryInfo	**res,
-	u_int32_t	locker
+	EntryInfo	**res
 );
 int bdb_cache_find_id(
 	Operation *op,

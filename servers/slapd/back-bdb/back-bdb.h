@@ -94,7 +94,9 @@ typedef struct bdb_entry_info {
 	struct berval bei_nrdn;
 #ifdef BDB_HIER
 	struct berval bei_rdn;
-	int	bei_modrdns;
+	int	bei_modrdns;	/* track renames */
+	int	bei_ckids;	/* number of kids cached */
+	int	bei_dkids;	/* number of kids on-disk, plus 1 */
 #endif
 	Entry	*bei_e;
 	Avlnode	*bei_kids;
