@@ -177,7 +177,7 @@ connection_activity(
 
 	pthread_mutex_lock( &conn->c_dnmutex );
 	if ( conn->c_dn != NULL ) {
-		tmpdn = strdup( conn->c_dn );
+		tmpdn = ch_strdup( conn->c_dn );
 	} else {
 		tmpdn = NULL;
 	}

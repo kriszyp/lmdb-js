@@ -179,7 +179,7 @@ dn_parent(
 		if ( *(s + 1) == '\0' ) {
 			return( NULL );
 		} else {
-			return( strdup( s + 1 ) );
+			return( ch_strdup( s + 1 ) );
 		}
 	}
 
@@ -202,11 +202,11 @@ dn_parent(
 			if ( *s == '"' )
 				inquote = 1;
 			else if ( DNSEPARATOR( *s ) )
-				return( strdup( s + 1 ) );
+				return( ch_strdup( s + 1 ) );
 		}
 	}
 
-	return( strdup("") );
+	return( ch_strdup("") );
 }
 
 /*

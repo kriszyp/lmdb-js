@@ -45,7 +45,7 @@ op_add(
 	(*tmp)->o_msgid = msgid;
 	(*tmp)->o_tag = tag;
 	(*tmp)->o_abandon = 0;
-	(*tmp)->o_dn = strdup( dn != NULL ? dn : "" );
+	(*tmp)->o_dn = ch_strdup( dn != NULL ? dn : "" );
 	pthread_mutex_lock( &currenttime_mutex );
 	(*tmp)->o_time = currenttime;
 	pthread_mutex_unlock( &currenttime_mutex );

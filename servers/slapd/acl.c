@@ -50,7 +50,7 @@ access_allowed(
 		return( 0 );
 	}
 
-	edn = dn_normalize_case( strdup( e->e_dn ) );
+	edn = dn_normalize_case( ch_strdup( e->e_dn ) );
 	Debug( LDAP_DEBUG_ACL, "\n=> access_allowed: entry (%s) attr (%s)\n",
 		e->e_dn, attr, 0 );
 
@@ -250,7 +250,7 @@ acl_access_allowed(
 
 	odn = NULL;
 	if ( op->o_dn != NULL ) {
-		odn = dn_normalize_case( strdup( op->o_dn ) );
+		odn = dn_normalize_case( ch_strdup( op->o_dn ) );
 		bv.bv_val = odn;
 		bv.bv_len = strlen( odn );
 	}
@@ -400,7 +400,7 @@ acl_check_mods(
 	struct acl	*a;
 	char            *edn;
 
-	edn = dn_normalize_case( strdup( e->e_dn ) );
+	edn = dn_normalize_case( ch_strdup( e->e_dn ) );
 
 	for ( ; mods != NULL; mods = mods->mod_next ) {
 		regmatch_t       matches[MAXREMATCHES];

@@ -1,15 +1,17 @@
 /* phonetic.c - routines to do phonetic matching */
 
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/time.h>
+
 #include "slap.h"
 
-#if !defined(METAPHONE) && !defined(SOUNDEX)
+#if !defined(METAPHONE) && !defined(SLAPD_PHONETIC)
 #define METAPHONE
 #endif
 
@@ -67,7 +69,7 @@ word_dup( char *w )
 		;	/* NULL */
 	save = *s;
 	*s = '\0';
-	ret = strdup( w );
+	ret = ch_strdup( w );
 	*s = save;
 
 	return( ret );
@@ -77,7 +79,7 @@ word_dup( char *w )
 #define MAXPHONEMELEN	4
 #endif
 
-#if defined(SOUNDEX)
+#if defined(SLAPD_PHONETIC)
 
 /* lifted from isode-8.0 */
 char *
@@ -152,7 +154,7 @@ phonetic( char *s )
 	if ( i > 0 )
 		phoneme[i] = '\0';
 
-        return( strdup( phoneme ) );
+        return( ch_strdup( phoneme ) );
 }
 
 #else
@@ -203,7 +205,7 @@ phonetic( char *Word )
 	Metaph = buf;
 	*Metaph = '\0';
 	if (n == ntrans + 4) {
-		return( strdup( buf ) );		/* Return if null */
+		return( ch_strdup( buf ) );		/* Return if null */
 	}
 	n_end = n;		/* Set n_end to end of string */
 
@@ -424,8 +426,8 @@ phonetic( char *Word )
 	}
 
 	*Metaph = 0;		/* Null terminate */
-	return( strdup( buf ) );
+	return( ch_strdup( buf ) );
 }
 
 #endif /* metaphone */
-#endif /* soundex */
+#endif /* SLAPD_PHONETIC */

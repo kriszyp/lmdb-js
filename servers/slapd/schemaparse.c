@@ -29,7 +29,7 @@ parse_oc(
 	struct objclass	**ocp;
 
 	oc = (struct objclass *) ch_calloc( 1, sizeof(struct objclass) );
-	oc->oc_name = strdup( argv[1] );
+	oc->oc_name = ch_strdup( argv[1] );
 	for ( i = 2; i < argc; i++ ) {
 		/* required attributes */
 		if ( strcasecmp( argv[i], "requires" ) == 0 ) {

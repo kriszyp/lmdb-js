@@ -32,7 +32,7 @@ index_add_entry(
 	 * with index_add_values() call
 	 */
 
-	bv.bv_val = strdup( e->e_dn );
+	bv.bv_val = ch_strdup( e->e_dn );
 	bv.bv_len = strlen( bv.bv_val );
 	(void) dn_normalize_case( bv.bv_val );
 	bvals[0] = &bv;

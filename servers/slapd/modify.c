@@ -63,7 +63,7 @@ do_modify(
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
 		return;
 	}
-	odn = strdup( dn );
+	odn = ch_strdup( dn );
 	dn_normalize( dn );
 
 	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn, 0, 0 );
@@ -241,7 +241,7 @@ add_lastmods( Operation *op, LDAPMod **mods )
 		bv.bv_len = strlen( bv.bv_val );
 	}
 	tmp = (LDAPMod *) ch_calloc( 1, sizeof(LDAPMod) );
-	tmp->mod_type = strdup( "modifiersname" );
+	tmp->mod_type = ch_strdup( "modifiersname" );
 	tmp->mod_op = LDAP_MOD_REPLACE;
 	tmp->mod_bvalues = (struct berval **) ch_calloc( 1,
 	    2 * sizeof(struct berval *) );
@@ -261,7 +261,7 @@ add_lastmods( Operation *op, LDAPMod **mods )
 	bv.bv_val = buf;
 	bv.bv_len = strlen( bv.bv_val );
 	tmp = (LDAPMod *) ch_calloc( 1, sizeof(LDAPMod) );
-	tmp->mod_type = strdup( "modifytimestamp" );
+	tmp->mod_type = ch_strdup( "modifytimestamp" );
 	tmp->mod_op = LDAP_MOD_REPLACE;
 	tmp->mod_bvalues = (struct berval **) ch_calloc( 1, 2 * sizeof(struct berval *) );
 	tmp->mod_bvalues[0] = ber_bvdup( &bv );

@@ -100,7 +100,7 @@ ldbm_cache_open(
 		pthread_mutex_unlock( &li->li_dbcache_mutex );
 		return( NULL );
 	}
-	li->li_dbcache[i].dbc_name = strdup( buf );
+	li->li_dbcache[i].dbc_name = ch_strdup( buf );
 	li->li_dbcache[i].dbc_refcnt = 1;
 	li->li_dbcache[i].dbc_lastref = curtime;
 	if ( stat( buf, &st ) == 0 ) {

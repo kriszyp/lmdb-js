@@ -304,13 +304,13 @@ slapd_daemon(
 			if ( c[ns].c_addr != NULL ) {
 				free( c[ns].c_addr );
 			}
-			c[ns].c_addr = strdup( client_addr );
+			c[ns].c_addr = ch_strdup( client_addr );
 
 			if ( c[ns].c_domain != NULL ) {
 				free( c[ns].c_domain );
 			}
 
-			c[ns].c_domain = strdup( client_name == NULL
+			c[ns].c_domain = ch_strdup( client_name == NULL
 				? "" : client_name );
 
 			pthread_mutex_lock( &c[ns].c_dnmutex );

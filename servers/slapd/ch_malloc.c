@@ -3,6 +3,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <ac/string.h>
 #include <ac/socket.h>
@@ -60,3 +61,19 @@ ch_calloc(
 
 	return( new );
 }
+
+char *
+ch_strdup(
+    const char *string
+)
+{
+	char	*new;
+
+	if ( (new = strdup( string )) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "strdup(%s) failed\n", string, 0, 0 );
+		exit( 1 );
+	}
+
+	return( new );
+}
+

@@ -91,7 +91,7 @@ str2entry( char	*s )
 				    e->e_id, e->e_dn, value );
 				continue;
 			}
-			e->e_dn = strdup( value );
+			e->e_dn = ch_strdup( value );
 			continue;
 		}
 

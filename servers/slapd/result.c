@@ -196,7 +196,7 @@ send_search_entry(
 		return( 1 );
 	}
 
-	edn = dn_normalize_case( strdup( e->e_dn ) );
+	edn = dn_normalize_case( ch_strdup( e->e_dn ) );
 
 #ifdef LDAP_COMPAT30
 	if ( (ber = ber_alloc_t( conn->c_version == 30 ? 0 : LBER_USE_DER ))

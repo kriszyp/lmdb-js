@@ -37,7 +37,7 @@ dn2id_add(
 		return( -1 );
 	}
 
-	dn = strdup( dn );
+	dn = ch_strdup( dn );
 	dn_normalize_case( dn );
 
 	key.dptr = dn;
@@ -73,7 +73,7 @@ dn2id(
 	memset( &data, 0, sizeof( data ) );
 #endif
 
-	dn = strdup( dn );
+	dn = ch_strdup( dn );
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id( \"%s\" )\n", dn, 0, 0 );
 	dn_normalize_case( dn );
 
