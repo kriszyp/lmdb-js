@@ -640,8 +640,14 @@ tool_bind( LDAP *ld )
 void
 tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 {
-	int i = 0, j, crit, err;
-	LDAPControl c[3], *ctrls[10];
+	int i = 0, j, crit = 0, err;
+	LDAPControl c[3], **ctrls;
+
+	ctrls = (LDAPControl **)malloc( sizeof(c) + (count + 1)*sizeof(LDAPControl *) );
+	if ( ctrls == NULL ) {
+		fprintf( stderr, "No memory\n" );
+		exit( EXIT_FAILURE );
+	}
 
 	if ( authzid ) {
 		c[i].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
@@ -676,14 +682,16 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 
 	err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
 
-	if( err != LDAP_OPT_SUCCESS ) {
-		for ( j = crit = 0; j < i; j++ )
+	if ( err != LDAP_OPT_SUCCESS ) {
+		for ( j = 0; j < i; j++ )
 			if ( ctrls[j]->ldctl_iscritical )
 				crit = 1;
 		fprintf( stderr, "Could not set %scontrols\n",
 				 crit ? "critical " : "" );
-		if ( crit ) {
-			exit( EXIT_FAILURE );
-		}
+	}
+
+ 	free( ctrls );
+	if ( crit ) {
+		exit( EXIT_FAILURE );
 	}
 }
