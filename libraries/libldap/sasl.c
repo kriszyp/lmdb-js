@@ -198,12 +198,14 @@ ldap_sasl_bind_s(
 
 	rc = ldap_result2error( ld, result, 1 );
 
-	if ( rc != LDAP_SUCCESS && rc != LDAP_SASL_BIND_IN_PROGRESS ) {
+	if ( rc == LDAP_SUCCESS || rc == LDAP_SASL_BIND_IN_PROGRESS ) {
 		if( servercredp != NULL ) {
 			*servercredp = scredp;
+			scredp = NULL;
 		}
+	}
 
-	} else if (scredp != NULL ) {
+	if ( scredp != NULL ) {
 		ber_bvfree(scredp);
 	}
 
