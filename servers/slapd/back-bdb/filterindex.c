@@ -65,6 +65,9 @@ bdb_filter_candidates(
 #else
 	Debug( LDAP_DEBUG_FILTER, "=> bdb_filter_candidates\n", 0, 0, 0 );
 #endif
+#if 0
+	char *subtree="SUBTREE";
+#endif
 
 	switch ( f->f_choice ) {
 	case SLAPD_FILTER_COMPUTED:
@@ -73,7 +76,7 @@ bdb_filter_candidates(
 		/* This technically is not the same as FALSE, but it
 		 * certainly will produce no matches.
 		 */
-		/* FALLTHRU */
+		/* FALL THRU */
 		case LDAP_COMPARE_FALSE:
 			BDB_IDL_ZERO( ids );
 			break;
@@ -82,14 +85,15 @@ bdb_filter_candidates(
 			BDB_IDL_ALL( bdb, ids );
 			} break;
 		case LDAP_SUCCESS:
-		/* this is a pre-computed scope, leave it alone */
+			/* this is a pre-computed scope, leave it alone */
 			break;
 		}
 		break;
 #if 0	/* Not used any more, search calls bdb_dn2idl directly */
 	case SLAPD_FILTER_DN_ONE:
 #ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tDN ONE\n", 0, 0, 0 );
+		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tDN ONE\n",
+			0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tDN ONE\n", 0, 0, 0 );
 #endif
@@ -101,11 +105,16 @@ bdb_filter_candidates(
 		}
 		break;
 
+	case SLAPD_FILTER_DN_CHILDREN:
+		subtree="CHILDREN";
+		/* Fall Thru */
 	case SLAPD_FILTER_DN_SUBTREE:
 #ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tDN SUBTREE\n", 0, 0, 0 );
+		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tDN %s\n",
+			subtree, 0, 0 );
 #else
-		Debug( LDAP_DEBUG_FILTER, "\tDN SUBTREE\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_FILTER, "\tDN %s\n",
+			subtree, 0, 0 );
 #endif
 		rc = bdb_dn2idl( op->o_bd, f->f_dn, DN_SUBTREE_PREFIX, ids,
 			stack, op->o_tmpmemctx );
@@ -113,7 +122,8 @@ bdb_filter_candidates(
 #endif
 	case LDAP_FILTER_PRESENT:
 #ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tPRESENT\n", 0, 0, 0 );
+		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tPRESENT\n",
+			0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tPRESENT\n", 0, 0, 0 );
 #endif
@@ -122,7 +132,8 @@ bdb_filter_candidates(
 
 	case LDAP_FILTER_EQUALITY:
 #ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tEQUALITY\n", 0, 0, 0 );
+		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tEQUALITY\n",
+			0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tEQUALITY\n", 0, 0, 0 );
 #endif
@@ -131,7 +142,8 @@ bdb_filter_candidates(
 
 	case LDAP_FILTER_APPROX:
 #ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tAPPROX\n", 0, 0, 0 );
+		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tAPPROX\n",
+			0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tAPPROX\n", 0, 0, 0 );
 #endif
@@ -140,7 +152,8 @@ bdb_filter_candidates(
 
 	case LDAP_FILTER_SUBSTRINGS:
 #ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tSUBSTRINGS\n", 0, 0, 0 );
+		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tSUBSTRINGS\n",
+			0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tSUBSTRINGS\n", 0, 0, 0 );
 #endif
@@ -150,7 +163,8 @@ bdb_filter_candidates(
 	case LDAP_FILTER_GE:
 		/* no GE index, use pres */
 #ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tGE\n", 0, 0, 0 );
+		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tGE\n",
+			0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tGE\n", 0, 0, 0 );
 #endif
@@ -160,7 +174,8 @@ bdb_filter_candidates(
 	case LDAP_FILTER_LE:
 		/* no LE index, use pres */
 #ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tLE\n", 0, 0, 0 );
+		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tLE\n",
+			0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tLE\n", 0, 0, 0 );
 #endif
@@ -170,7 +185,8 @@ bdb_filter_candidates(
 	case LDAP_FILTER_NOT:
 		/* no indexing to support NOT filters */
 #ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tNOT\n",0, 0, 0 );
+		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tNOT\n",
+			0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tNOT\n", 0, 0, 0 );
 #endif
@@ -181,7 +197,8 @@ bdb_filter_candidates(
 
 	case LDAP_FILTER_AND:
 #ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tAND\n", 0, 0, 0 );
+		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tAND\n",
+			0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tAND\n", 0, 0, 0 );
 #endif
@@ -191,7 +208,8 @@ bdb_filter_candidates(
 
 	case LDAP_FILTER_OR:
 #ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tOR\n", 0, 0, 0 );
+		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tOR\n",
+			0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tOR\n", 0, 0, 0 );
 #endif
@@ -201,7 +219,8 @@ bdb_filter_candidates(
 
 	default:
 #ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tUNKNOWN\n", 0, 0, 0 );
+		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tUNKNOWN\n",
+			0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tUNKNOWN %lu\n",
 			(unsigned long) f->f_choice, 0, 0 );

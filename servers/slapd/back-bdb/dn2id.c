@@ -122,10 +122,11 @@ bdb_dn2id_add(
 #ifndef BDB_MULTIPLE_SUFFIXES
 	}
 
-	while( !be_issuffix( op->o_bd, &ptr )) {
+	while( !be_issuffix( op->o_bd, &ptr ))
 #else
-	for (;;) {
+	for (;;)
 #endif
+	{
 		ptr.bv_val[-1] = DN_SUBTREE_PREFIX;
 
 		rc = bdb_idl_insert_key( op->o_bd, db, txn, &key, e->e_id );
@@ -427,19 +428,19 @@ bdb_dn2idl(
 	DBT		key;
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
-	int prefix = op->ors_scope == LDAP_SCOPE_SUBTREE ? DN_SUBTREE_PREFIX :
-			DN_ONE_PREFIX;
+	int prefix = ( op->ors_scope == LDAP_SCOPE_ONELEVEL )
+		? DN_ONE_PREFIX : DN_SUBTREE_PREFIX;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( INDEX, ARGS, 
-		"=> bdb_dn2ididl( \"%s\" )\n", e->e_nname.bv_val, 0, 0 );
+	LDAP_LOG ( INDEX, ARGS, "=> bdb_dn2ididl( \"%s\" )\n",
+		e->e_nname.bv_val, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2idl( \"%s\" )\n", e->e_nname.bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2idl( \"%s\" )\n",
+		e->e_nname.bv_val, 0, 0 );
 #endif
 
 #ifndef	BDB_MULTIPLE_SUFFIXES
-	if (prefix == DN_SUBTREE_PREFIX && BEI(e)->bei_parent->bei_id == 0 )
-	{
+	if ( prefix == DN_SUBTREE_PREFIX && BEI(e)->bei_parent->bei_id == 0 ) {
 		BDB_IDL_ALL(bdb, ids);
 		return 0;
 	}
@@ -1092,8 +1093,9 @@ hdb_dn2idl(
 #endif
 
 #ifndef BDB_MULTIPLE_SUFFIXES
-	if ( op->ors_scope == LDAP_SCOPE_SUBTREE && 
-		BEI(e)->bei_parent->bei_id == 0 ) {
+	if ( op->ors_scope != LDAP_SCOPE_ONELEVEL && 
+		BEI(e)->bei_parent->bei_id == 0 )
+	{
 		BDB_IDL_ALL( bdb, ids );
 		return 0;
 	}
@@ -1103,8 +1105,8 @@ hdb_dn2idl(
 	cx.ei = BEI(e);
 	cx.bdb = bdb;
 	cx.db = cx.bdb->bi_dn2id->bdi_db;
-	cx.prefix = op->ors_scope == LDAP_SCOPE_SUBTREE ? DN_SUBTREE_PREFIX :
-			DN_ONE_PREFIX;
+	cx.prefix = op->ors_scope == LDAP_SCOPE_ONELEVEL
+		? DN_ONE_PREFIX : DN_SUBTREE_PREFIX;
 	cx.ids = ids;
 	cx.buf = stack;
 	cx.op = op;
