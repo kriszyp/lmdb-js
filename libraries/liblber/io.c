@@ -559,7 +559,8 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 		ber->ber_rwptr = ber->ber_buf;
 	}
 
-	toread = (unsigned long)ber->ber_end - (unsigned long)ber->ber_rwptr;
+	toread = ber->ber_end - ber->ber_rwptr;
+
 	do {
 		if ( (rc = BerRead( sb, ber->ber_rwptr, (long)toread )) <= 0 ) {
 			return( LBER_DEFAULT );
