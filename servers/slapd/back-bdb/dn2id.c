@@ -517,8 +517,8 @@ hdb_dup_compare(
 	const DBT *usrkey,
 	const DBT *curkey )
 {
-	char *u = (char *)&(((diskNode *)(usrkey->data))->nrdnlen);
-	char *c = (char *)&(((diskNode *)(curkey->data))->nrdnlen);
+	signed char *u = (signed char *)&(((diskNode *)(usrkey->data))->nrdnlen);
+	signed char *c = (signed char *)&(((diskNode *)(curkey->data))->nrdnlen);
 	int rc, i;
 
 	/* data is not aligned, cannot compare directly */
