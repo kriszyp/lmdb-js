@@ -120,9 +120,5 @@ CFG=build - Win32 Single Debug
 
 !ENDIF 
 
-# Begin Source File
-
-SOURCE=..\libraries\liblutil\sockpair.c
-# End Source File
 # End Target
 # End Project
