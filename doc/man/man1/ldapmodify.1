@@ -11,8 +11,6 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 [\c
 .BR \-c ]
 [\c
-.BR \-C ]
-[\c
 .BR \-r ]
 [\c
 .BR \-n ]
@@ -62,8 +60,6 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 .B ldapadd
 [\c
 .BR \-c ]
-[\c
-.BR \-C ]
 [\c
 .BR \-r ]
 [\c
@@ -132,9 +128,6 @@ Add new entries.  The default for
 is to modify existing entries.  If invoked as
 .BR ldapadd ,
 this flag is always set.
-.TP
-.B \-C
-Automatically chase referrals.
 .TP
 .B \-c
 Continuous operation mode.  Errors are reported, but
