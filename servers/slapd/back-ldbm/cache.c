@@ -19,14 +19,9 @@
 
 /* LDBM backend specific entry info -- visible only to the cache */
 typedef struct ldbm_entry_info {
-#ifdef LDBM_ENTRY_RWLOCK
-	ldap_pvt_thread_rdwr_t	lei_rdwr;	/* reader/writer lock */
-#endif
-
 	/*
-	 * remaining fields require backend cache lock to access
 	 * These items are specific to the LDBM backend and should
-	 * be hidden.
+	 * be hidden.  Backend cache lock required to access.
 	 */
 	int		lei_state;	/* for the cache */
 #define	CACHE_ENTRY_UNDEFINED	0
@@ -47,77 +42,6 @@ static int	cache_delete_entry_internal(Cache *cache, Entry *e);
 static void	lru_print(Cache *cache);
 #endif
 
-#ifdef LDBM_ENTRY_RWLOCK
-static int
-cache_entry_rdwr_lock(Entry *e, int rw)
-{
-#ifdef NEW_LOGGING
-	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
-		   "cache_entry_rdwr_lock: %s lock on ID %ld\n",
-		   rw ? "w" : "r", e->e_id ));
-#else
-	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%slock: ID: %ld\n",
-		rw ? "w" : "r", e->e_id, 0);
-#endif
-
-
-	if (rw)
-		return ldap_pvt_thread_rdwr_wlock(&LEI(e)->lei_rdwr);
-	else
-		return ldap_pvt_thread_rdwr_rlock(&LEI(e)->lei_rdwr);
-}
-
-static int
-cache_entry_rdwr_trylock(Entry *e, int rw)
-{
-#ifdef NEW_LOGGING
-	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
-		   "cache_entry_rdwr_trylock: try %s lock on ID: %ld.\n",
-		   rw ? "w" : "r", e->e_id ));
-#else
-	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%strylock: ID: %ld\n",
-		rw ? "w" : "r", e->e_id, 0);
-#endif
-
-
-	if (rw)
-		return ldap_pvt_thread_rdwr_wtrylock(&LEI(e)->lei_rdwr);
-	else
-		return ldap_pvt_thread_rdwr_rtrylock(&LEI(e)->lei_rdwr);
-}
-
-static int
-cache_entry_rdwr_unlock(Entry *e, int rw)
-{
-#ifdef NEW_LOGGING
-	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
-		   "cache_entry_rdwr_unlock: remove %s lock on ID %ld.\n",
-		   rw ? "w" : "r", e->e_id ));
-#else
-	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%sunlock: ID: %ld\n",
-		rw ? "w" : "r", e->e_id, 0);
-#endif
-
-
-	if (rw)
-		return ldap_pvt_thread_rdwr_wunlock(&LEI(e)->lei_rdwr);
-	else
-		return ldap_pvt_thread_rdwr_runlock(&LEI(e)->lei_rdwr);
-}
-
-static int
-cache_entry_rdwr_init(Entry *e)
-{
-	return ldap_pvt_thread_rdwr_init( &LEI(e)->lei_rdwr );
-}
-
-static int
-cache_entry_rdwr_destroy(Entry *e)
-{
-	return ldap_pvt_thread_rdwr_destroy( &LEI(e)->lei_rdwr );
-}
-#endif
-
 static int
 cache_entry_private_init( Entry*e )
 {
@@ -129,14 +53,6 @@ cache_entry_private_init( Entry*e )
 	}
 
 	e->e_private = ch_calloc(1, sizeof(struct ldbm_entry_info));
-
-#ifdef LDBM_ENTRY_RWLOCK
-	if( cache_entry_rdwr_init( e ) != 0 ) {
-		free( LEI(e) );
-		e->e_private = NULL;
-		return 1;
-	} 
-#endif
 
 	return 0;
 }
@@ -163,10 +79,6 @@ cache_entry_private_destroy( Entry*e )
 {
 	assert( e->e_private );
 
-#ifdef LDBM_ENTRY_RWLOCK
-	cache_entry_rdwr_destroy( e );
-#endif
-
 	free( e->e_private );
 	e->e_private = NULL;
 	return 0;
@@ -182,10 +94,6 @@ cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
 	assert( e->e_private );
-
-#ifdef LDBM_ENTRY_RWLOCK
-	cache_entry_rdwr_unlock(e, rw);
-#endif
 
 	id = e->e_id;
 	refcnt = --LEI(e)->lei_refcnt;
@@ -217,7 +125,6 @@ cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 			rw ? "w" : "r", id, refcnt );
 #endif
 
-
 	} else if ( LEI(e)->lei_state == CACHE_ENTRY_DELETED ) {
 		if( refcnt > 0 ) {
 			/* free cache mutex */
@@ -232,7 +139,6 @@ cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 				"====> cache_return_entry_%s( %ld ): delete pending (%d)\n",
 				rw ? "w" : "r", id, refcnt );
 #endif
-
 
 		} else {
 			cache_entry_private_destroy( e );
@@ -252,7 +158,6 @@ cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 				"====> cache_return_entry_%s( %ld ): deleted (%d)\n",
 				rw ? "w" : "r", id, refcnt );
 #endif
-
 		}
 
 	} else {
@@ -268,7 +173,6 @@ cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 			"====> cache_return_entry_%s( %ld ): returned (%d)\n",
 			rw ? "w" : "r", id, refcnt);
 #endif
-
 	}
 }
 
@@ -337,7 +241,6 @@ cache_add_entry_rw(
 		    e->e_id, e->e_dn, 0 );
 #endif
 
-
 		return( -1 );
 	}
 
@@ -356,7 +259,6 @@ cache_add_entry_rw(
 			"====> cache_add_entry( %ld ): \"%s\": already in dn cache\n",
 		    e->e_id, e->e_dn, 0 );
 #endif
-
 
 		cache_entry_private_destroy(e);
 
@@ -397,10 +299,6 @@ cache_add_entry_rw(
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 		return( -1 );
 	}
-
-#ifdef LDBM_ENTRY_RWLOCK
-	cache_entry_rdwr_lock( e, rw );
-#endif
 
 	/* put the entry into 'CREATING' state */
 	/* will be marked after when entry is returned */
@@ -483,7 +381,6 @@ cache_update_entry(
 		    e->e_id, e->e_dn, 0 );
 #endif
 
-
 		/* free cache mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 		return( 1 );
@@ -503,7 +400,6 @@ cache_update_entry(
 		    e->e_id, e->e_dn, 0 );
 #endif
 
-
 		/* delete from dn tree inserted above */
 		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
 			(AVL_CMP) entry_dn_cmp ) == NULL )
@@ -516,14 +412,12 @@ cache_update_entry(
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
 			    0, 0, 0 );
 #endif
-
 		}
 
 		/* free cache mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 		return( -1 );
 	}
-
 
 	/* put the entry into 'CREATING' state */
 	/* will be marked after when entry is returned */
@@ -601,7 +495,6 @@ try_again:
 		 * we do not need to lock the entry if we only
 		 * check the state, refcnt, LRU, and id.
 		 */
-
 		assert( ep->e_private );
 
 		/* save id */
@@ -627,7 +520,6 @@ try_again:
 				ndn->bv_val, id, state);
 #endif
 
-
 			ldap_pvt_thread_yield();
 			goto try_again;
 		}
@@ -649,11 +541,9 @@ try_again:
 			ndn->bv_val, id, count);
 #endif
 
-
 	} else {
 		/* free cache mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
-
 		id = NOID;
 	}
 
@@ -698,7 +588,6 @@ try_again:
 		 * entry is deleted or not fully created yet
 		 */
 		if ( state != CACHE_ENTRY_READY ) {
-
 			assert(state != CACHE_ENTRY_UNDEFINED);
 
 			/* free cache mutex */
@@ -715,37 +604,9 @@ try_again:
 				id, ep_id, state);
 #endif
 
-
 			ldap_pvt_thread_yield();
 			goto try_again;
 		}
-
-#ifdef LDBM_ENTRY_RWLOCK
-		/* acquire reader lock */
-		if ( cache_entry_rdwr_trylock(ep, rw) == LDAP_PVT_THREAD_EBUSY ) {
-			/* could not acquire entry lock...
-			 * owner cannot free as we have the cache locked.
-			 * so, unlock the cache, yield, and try again.
-			 */
-
-			/* free cache mutex */
-			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
-
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
-				   "cache_find_entry_id: %ld -> %ld (busy) %d.\n",
-				   id, ep_id, state ));
-#else
-			Debug(LDAP_DEBUG_TRACE,
-				"====> cache_find_entry_id( %ld ): %ld (busy) %d\n",
-				id, ep_id, state);
-#endif
-
-
-			ldap_pvt_thread_yield();
-			goto try_again;
-		}
-#endif
 
 		/* lru */
 		LRU_DELETE( cache, ep );
@@ -765,7 +626,6 @@ try_again:
 			"====> cache_find_entry_id( %ld ) \"%s\" (found) (%d tries)\n",
 			ep_id, ep->e_dn, count);
 #endif
-
 
 		return( ep );
 	}
@@ -807,7 +667,6 @@ cache_delete_entry(
 	Debug( LDAP_DEBUG_TRACE, "====> cache_delete_entry( %ld )\n",
 		e->e_id, 0, 0 );
 #endif
-
 
 	rc = cache_delete_entry_internal( cache, e );
 
@@ -872,10 +731,6 @@ cache_release_all( Cache *cache )
 
 
 	while ( (e = cache->c_lrutail) != NULL && LEI(e)->lei_refcnt == 0 ) {
-#ifdef LDAP_RDWR_DEBUG
-		assert(!ldap_pvt_thread_rdwr_active(&LEI(e)->lei_rdwr));
-#endif
-
 		/* delete from cache and lru q */
 		/* XXX do we need rc ? */
 		rc = cache_delete_entry_internal( cache, e );
@@ -890,7 +745,6 @@ cache_release_all( Cache *cache )
 #else
 		Debug( LDAP_DEBUG_TRACE, "Entry-cache could not be emptied\n", 0, 0, 0 );
 #endif
-
 	}
 
 	/* free cache mutex */
@@ -898,7 +752,6 @@ cache_release_all( Cache *cache )
 }
 
 #ifdef LDAP_DEBUG
-
 static void
 lru_print( Cache *cache )
 {
@@ -915,6 +768,4 @@ lru_print( Cache *cache )
 			e->e_dn, e->e_id, LEI(e)->lei_refcnt );
 	}
 }
-
 #endif
-
