@@ -38,7 +38,16 @@ static char *v2ref( BerVarray ref, const char *text )
 		}
 	}
 
-	v2 = ch_malloc( len+i+sizeof("Referral:") );
+	v2 = SLAP_MALLOC( len+i+sizeof("Referral:") );
+	if( v2 == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, ERR, "v2ref: SLAP_MALLOC failed", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY, "v2ref: SLAP_MALLOC failed", 0, 0, 0 );
+#endif
+		return NULL;
+	}
+
 	if( text != NULL ) {
 		strcpy(v2, text);
 		if( i ) {
@@ -49,7 +58,15 @@ static char *v2ref( BerVarray ref, const char *text )
 	len += sizeof("Referral:");
 
 	for( i=0; ref[i].bv_val != NULL; i++ ) {
-		v2 = ch_realloc( v2, len + ref[i].bv_len + 1 );
+		v2 = SLAP_REALLOC( v2, len + ref[i].bv_len + 1 );
+		if( v2 == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, ERR, "v2ref: SLAP_MALLOC failed", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY, "v2ref: SLAP_MALLOC failed", 0, 0, 0 );
+#endif
+			return NULL;
+		}
 		v2[len-1] = '\n';
 		AC_MEMCPY(&v2[len], ref[i].bv_val, ref[i].bv_len );
 		len += ref[i].bv_len;
@@ -772,7 +789,23 @@ send_search_entry(
 		size = i * sizeof(char *) + k;
 		if ( size > 0 ) {
 			char	*a_flags;
-			e_flags = ch_calloc ( 1, i * sizeof(char *) + k );
+			e_flags = SLAP_CALLOC ( 1, i * sizeof(char *) + k );
+			if( e_flags == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, ERR, 
+					"send_search_entry: conn %lu SLAP_CALLOC failed\n",
+					conn ? conn->c_connid : 0, 0, 0 );
+#else
+		    	Debug( LDAP_DEBUG_ANY, 
+					"send_search_entry: SLAP_CALLOC failed\n", 0, 0, 0 );
+#endif
+				ber_free( ber, 1 );
+	
+				send_ldap_result( conn, op, LDAP_OTHER,
+					NULL, "memory error", 
+					NULL, NULL );
+				goto error_return;
+			}
 			a_flags = (char *)(e_flags + i);
 			memset( a_flags, 0, k );
 			for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
@@ -935,7 +968,7 @@ send_search_entry(
 			 * Reuse previous memory - we likely need less space
 			 * for operational attributes
 			 */
-			tmp = ch_realloc ( e_flags, i * sizeof(char *) + k );
+			tmp = SLAP_REALLOC ( e_flags, i * sizeof(char *) + k );
 			if ( tmp == NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, ERR, 
