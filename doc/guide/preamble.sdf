@@ -135,11 +135,13 @@ TCL		http://www.tcl.com/
 # Internet and X.500 terms
 !block terms; data
 Term	Definition
+API	Application Programming Interface
 ASN	Abstract Syntax Notation
 ASN.1	Abstract Syntax Notation 1
 BCP	Best Common Practice
 BER	Basic Encoding Rules
 BNF	BNF
+C	The C Programming Language
 CLDAP	Connection-less LDAP
 DAP	Directory Access Protocol
 DER	Distinguished Encoding Rules
@@ -168,7 +170,7 @@ PS	Proposed Standard
 RDN	Relative Distinguished Name
 RFC	Request for Comments
 TCP	Transmission Control Protocol
-TLS	Transport Security Layer
+TLS	Transport Layer Security
 SASL	Simple Authentication and Security Layer
 SMTP	Simple Mail Transfer Protocol
 SNMP	Simple Network Management Protocol

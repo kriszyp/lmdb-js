@@ -171,8 +171,10 @@ environment variables.
 
 >	[[env] settings] ./configure [options]
 
-As an example, lets assume that we want a copy of OpenLDAP configured to use the
-LDBM backend, and the shell backend.  The LDBM backend is turned on by default, so we don't need to do anything special to enable it.
+As an example, let's assume that we want a copy of OpenLDAP configured
+to use the LDBM backend, and the shell backend.  The LDBM backend
+is turned on by default, so we don't need to do anything special
+to enable it.
 
 Additionally, we've installed the BerkeleyDB database package.  
 {{EX:configure}} is smart enough to use BerkeleyDB automatically

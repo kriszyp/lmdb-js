@@ -115,7 +115,7 @@ H3: Name Prefix
 
 In addition to assign a unique object identifier to each schema
 element, you should provide a least one textual name for each
-element.  The name should be both descriptive and no likely
+element.  The name should be both descriptive and not likely
 to clash with names of other schema elements.  In particular,
 any name you choose should not clash with present or future
 Standard Track names.
@@ -127,11 +127,11 @@ The smaller the organization, the longer your prefix should
 be.
 
 In the examples below, we have choosen a short prefix '{{EX:my}}'
-(to save space).  Such a short would only be suitable for a
-very large, global organization.  For a small, local
-organization, we recommend something like '{{EX:deFirm}}'
-(German company) or '{{EX:comExample}}' (elements associated
-with organization associated with {{EX:example.com}}).
+(to save space).  Such a short prefix would only be suitable for
+a very large, global organization.  For a small, local organization,
+we recommend something like '{{EX:deFirm}}' (German company) or
+'{{EX:comExample}}' (elements associated with organization associated
+with {{EX:example.com}}).
 
 
 H3: Local schema file

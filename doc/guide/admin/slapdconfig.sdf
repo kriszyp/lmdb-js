@@ -712,10 +712,10 @@ ordering is significant.
 >	access to dn=".*,dc=com"
 > 		by * read
 
-Read access is granted to entries under the {{EX:dc=com}}.
+Read access is granted to entries under the {{EX:dc=com}}
 subtree, except for those entries under the {{EX:dc=example,dc=com}}
-subtree, to which search access is granted.  No access to
-{{EX:dc=com}} as the neither access directive matches this DN.
+subtree, to which search access is granted.  No access is granted to
+{{EX:dc=com}} as neither access directive matches this DN.
 If the order of these access directives was reversed, the
 trailing directive would never be reached, since all
 {{EX:dc=example,dc=com}} entries are also {{EX:dc=com}} entries.
@@ -754,7 +754,7 @@ is denied by the implicit {{EX:access to * by * none}}.
 
 Sometimes it is useful to permit a particular DN to add or
 remove itself from an attribute. For example, if you would like to
-create a group and allow people too add and remove only
+create a group and allow people to add and remove only
 their own DN from the member attribute, you could accomplish
 it with an access directive like this:
 
@@ -841,7 +841,7 @@ E: 33.		by * read
 Line 5 is a comment. The start of the database definition is
 marked by the database keyword on line 6. Line 7 specifies
 the DN suffix for queries to pass to this database. Line 8
-specifies the directory in which the database files will live
+specifies the directory in which the database files will live.
 
 Lines 9 and 10 identify the database "super user" entry and
 associated password. This entry is not subject to access

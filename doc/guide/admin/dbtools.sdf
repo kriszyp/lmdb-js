@@ -220,7 +220,7 @@ upon the current database contents.
 
 H3: The {{EX:slapcat}} program
 
-The {{EX:slapcat}} program is dump the database to a {{TERM:LDIF}}
+The {{EX:slapcat}} program is used to dump the database to a {{TERM:LDIF}}
 file. This can be useful when you want to make a human-readable
 backup of your database or for editing your database off-line.
 The program is invoked like this:
@@ -245,9 +245,9 @@ attribute line(s) on standard output. The usage is:
 
 > 	ldif [-b] <attrdesc>
 
-where {{EX:<attrdesc>}} is an attribute description. Without the
--b option, ldif considers each line of standard input to be a
-separate value of the attribute.
+where {{EX:<attrdesc>}} is an attribute description. Without the -b
+option, ldif considers each line of standard input to be a separate
+value of the attribute.
 
 >	ldif description << EOF
 >	 leading space

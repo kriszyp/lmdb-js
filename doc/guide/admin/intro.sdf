@@ -193,7 +193,8 @@ of the LDAP tree, using the same or different backend databases.
 consists of two distinct parts: a front end that handles protocol 
 communication with LDAP clients; and modules which handles specific
 tasks such as database operations. Because these two pieces communicate
-via a well-defined C API, you can write your own customized modules
+via a well-defined {{TERM:C}} {{TERM:API}}, you can write your own
+customized modules
 which extend {{slapd}} in numerous ways.  Also, a number of
 {{programmable database}} modules are provided.  These allowing you
 to expose external data sources to {{slapd}} using popular programming
