@@ -168,6 +168,7 @@ int slapi_valueset_next_value( Slapi_ValueSet *vs, int index, Slapi_Value **v);
 int slapi_valueset_count( const Slapi_ValueSet *vs);
 void slapi_valueset_set_valueset(Slapi_ValueSet *vs1, const Slapi_ValueSet *vs2);
 
+/* locks and synchronization */
 typedef struct slapi_mutex	Slapi_Mutex;
 typedef struct slapi_condvar	Slapi_CondVar;
 Slapi_Mutex *slapi_new_mutex( void );
@@ -178,6 +179,10 @@ Slapi_CondVar *slapi_new_condvar( Slapi_Mutex *mutex );
 void slapi_destroy_condvar( Slapi_CondVar *cvar );
 int slapi_wait_condvar( Slapi_CondVar *cvar, struct timeval *timeout );
 int slapi_notify_condvar( Slapi_CondVar *cvar, int notify_all );
+
+/* thread-safe LDAP connections */
+LDAP *slapi_ldap_init( char *ldaphost, int ldapport, int secure, int shared );
+void slapi_ldap_unbind( LDAP *ld );
 
 char *slapi_ch_malloc( unsigned long size );
 void slapi_ch_free( void **ptr );
@@ -524,12 +529,20 @@ void slapi_set_object_extension(int objecttype, void *object,
 #define SLAPI_RESULT_TEXT                       882
 #define SLAPI_RESULT_MATCHED                    883
 
+/* managedsait control */
+#define SLAPI_MANAGEDSAIT       		1000
+
 /* audit plugin defines */
 #define SLAPI_PLUGIN_AUDIT_DATA                1100
 #define SLAPI_PLUGIN_AUDIT_FN                  1101
 
-/* managedsait control */
-#define SLAPI_MANAGEDSAIT       		1000
+/* backend_group extension */
+#define SLAPI_X_PLUGIN_PRE_GROUP_FN		1202 
+#define SLAPI_X_PLUGIN_POST_GROUP_FN		1203
+
+#define SLAPI_X_GROUP_ENTRY			1250 /* group entry */
+#define SLAPI_X_GROUP_ATTRIBUTE			1251 /* member attribute */
+#define SLAPI_X_GROUP_OPERATION_DN		1252 /* asserted value */
 
 /* config stuff */
 #define SLAPI_CONFIG_FILENAME			40
