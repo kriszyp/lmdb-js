@@ -949,6 +949,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.25 DESC 'Guide' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5String' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'Integer' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.28 DESC 'JPEG' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.30 DESC 'MatchingRuleDescription' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.31 DESC 'MatchingRuleUseDescription' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.32 DESC 'MailPreference' )", NULL},
