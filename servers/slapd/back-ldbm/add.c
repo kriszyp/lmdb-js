@@ -62,7 +62,7 @@ ldbm_back_add(
 
 	pdn = dn_parent( be, e->e_ndn );
 
-	if( pdn != NULL && *pdn != '\0' && !be_issuffix(be, "") ) {
+	if( pdn != NULL && *pdn != '\0' ) {
 		Entry *matched = NULL;
 
 		assert( *pdn != '\0' );
@@ -167,7 +167,7 @@ ldbm_back_add(
 		}
 
 		/* no parent, must be adding entry to root */
-		if ( ! be_isroot( be, op->o_ndn ) ) {
+		if ( !be_isroot( be, op->o_ndn ) && !be_issuffix( be, "" ) ) {
 			ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 
 			Debug( LDAP_DEBUG_TRACE, "%s add denied\n",

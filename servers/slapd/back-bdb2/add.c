@@ -55,7 +55,7 @@ bdb2i_back_add_internal(
 
 	pdn = dn_parent( be, e->e_ndn );
 
-	if( pdn != NULL && *pdn != '\0' && !be_issuffix(be, "") ) {
+	if( pdn != NULL && *pdn != '\0' ) {
 		Entry *matched = NULL;
 
 		assert( *pdn != '\0' );
@@ -155,7 +155,7 @@ bdb2i_back_add_internal(
 		}
 
 		/* no parent, must be adding entry to root */
-		if ( ! be_isroot( be, op->o_ndn ) ) {
+		if ( !be_isroot( be, op->o_ndn ) && !be_issuffix(be, "") ) {
 			Debug( LDAP_DEBUG_TRACE, "%s add denied\n",
 				pdn == NULL ? "suffix" : "entry at root",
 				0, 0 );
