@@ -197,7 +197,7 @@ print_an_entry( void )
 #endif
 
 	if( Entry.name == NULL ) {
-		printf(" No Entry\n");
+		printf(" No Entry found.\n");
 		return;
 	}
 
