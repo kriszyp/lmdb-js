@@ -38,6 +38,9 @@ extern BI_op_compare		dnssrv_back_compare;
 
 extern BI_chk_referrals		dnssrv_back_referrals;
 
+extern AttributeDescription	*ad_dc;
+extern AttributeDescription	*ad_associatedDomain;
+
 LDAP_END_DECL
 
 #endif /* PROTO_DNSSRV_H */
