@@ -15,6 +15,13 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
+/* for the cache of attribute information (which are indexed, etc.) */
+typedef struct ldbm_attrinfo {
+	char	*ai_type;	/* type name (cn, sn, ...)	*/
+	int	ai_indexmask;	/* how the attr is indexed	*/
+	int	ai_syntaxmask;	/* what kind of syntax		*/
+} AttrInfo;
+
 static int
 ainfo_type_cmp(
     char		*type,
@@ -50,7 +57,7 @@ ainfo_dup(
 	 * if the duplicate definition is because we initialized the attr,
 	 * just add what came from the config file. otherwise, complain.
 	 */
-	if ( a->ai_indexmask & INDEX_FROMINIT ) {
+	if ( a->ai_indexmask & SLAP_INDEX_FROMINIT ) {
 		a->ai_indexmask |= b->ai_indexmask;
 
 		return( 1 );
@@ -114,23 +121,24 @@ attr_index_config(
 		a->ai_syntaxmask = attr_syntax( a->ai_type );
 #endif
 		if ( argc == 1 ) {
-			a->ai_indexmask = (INDEX_PRESENCE | INDEX_EQUALITY |
-			    INDEX_APPROX | INDEX_SUB);
+			a->ai_indexmask = (
+				SLAP_INDEX_PRESENCE | SLAP_INDEX_EQUALITY |
+			    SLAP_INDEX_APPROX | SLAP_INDEX_SUB);
 		} else {
 			a->ai_indexmask = 0;
 			for ( j = 0; indexes[j] != NULL; j++ ) {
 				if ( strncasecmp( indexes[j], "pres", 4 )
 				    == 0 ) {
-					a->ai_indexmask |= INDEX_PRESENCE;
+					a->ai_indexmask |= SLAP_INDEX_PRESENCE;
 				} else if ( strncasecmp( indexes[j], "eq", 2 )
 				    == 0 ) {
-					a->ai_indexmask |= INDEX_EQUALITY;
+					a->ai_indexmask |= SLAP_INDEX_EQUALITY;
 				} else if ( strncasecmp( indexes[j], "approx",
 				    6 ) == 0 ) {
-					a->ai_indexmask |= INDEX_APPROX;
+					a->ai_indexmask |= SLAP_INDEX_APPROX;
 				} else if ( strncasecmp( indexes[j], "sub", 3 )
 				    == 0 ) {
-					a->ai_indexmask |= INDEX_SUB;
+					a->ai_indexmask |= SLAP_INDEX_SUB;
 				} else if ( strncasecmp( indexes[j], "none", 4 )
 				    == 0 ) {
 					if ( a->ai_indexmask != 0 ) {
@@ -149,7 +157,7 @@ attr_index_config(
 			}
 		}
 		if ( init ) {
-			a->ai_indexmask |= INDEX_FROMINIT;
+			a->ai_indexmask |= SLAP_INDEX_FROMINIT;
 		}
 
 		switch (avl_insert( &li->li_attrs, (caddr_t) a,

@@ -344,9 +344,9 @@ index_change_values(
 		/*
 		 * presence index entry
 		 */
-		if ( indexmask & INDEX_PRESENCE ) {
+		if ( indexmask & SLAP_INDEX_PRESENCE ) {
 
-			change_value( be, db, at_cn, INDEX_PRESENCE,
+			change_value( be, db, at_cn, SLAP_INDEX_PRESENCE,
 				      "*", id, idl_funct );
 
 		}
@@ -383,9 +383,9 @@ index_change_values(
 		/*
 		 * equality index entry
 		 */
-		if ( indexmask & INDEX_EQUALITY ) {
+		if ( indexmask & SLAP_INDEX_EQUALITY ) {
 		    
-			change_value( be, db, at_cn, INDEX_EQUALITY,
+			change_value( be, db, at_cn, SLAP_INDEX_EQUALITY,
 				      val, id, idl_funct);
 
 		}
@@ -393,14 +393,14 @@ index_change_values(
 		/*
 		 * approximate index entry
 		 */
-		if ( indexmask & INDEX_APPROX ) {
+		if ( indexmask & SLAP_INDEX_APPROX ) {
 			for ( w = first_word( val ); w != NULL;
 			    w = next_word( w ) ) {
 				if ( (code = phonetic( w )) != NULL ) {
 					change_value( be,
 						      db,
 						      at_cn,
-						      INDEX_APPROX,
+						      SLAP_INDEX_APPROX,
 						      code,
 						      id,
 						      idl_funct );
@@ -412,7 +412,7 @@ index_change_values(
 		/*
 		 * substrings index entry
 		 */
-		if ( indexmask & INDEX_SUB ) {
+		if ( indexmask & SLAP_INDEX_SUB ) {
 			/* leading and trailing */
 			if ( len > SUBLEN - 2 ) {
 				buf[0] = '^';
@@ -421,7 +421,7 @@ index_change_values(
 				}
 				buf[SUBLEN] = '\0';
 
-				change_value( be, db, at_cn, INDEX_SUB,
+				change_value( be, db, at_cn, SLAP_INDEX_SUB,
 					      buf, id, idl_funct );
 
 				p = val + len - SUBLEN + 1;
@@ -431,7 +431,7 @@ index_change_values(
 				buf[SUBLEN - 1] = '$';
 				buf[SUBLEN] = '\0';
 
-				change_value( be, db, at_cn, INDEX_SUB,
+				change_value( be, db, at_cn, SLAP_INDEX_SUB,
 					      buf, id, idl_funct );
 			}
 
@@ -442,7 +442,7 @@ index_change_values(
 				}
 				buf[SUBLEN] = '\0';
 
-				change_value( be, db, at_cn, INDEX_SUB,
+				change_value( be, db, at_cn, SLAP_INDEX_SUB,
 					      buf, id, idl_funct );
 			}
 		}
@@ -465,13 +465,13 @@ index2prefix( int indextype )
 	int	prefix;
 
 	switch ( indextype ) {
-	case INDEX_EQUALITY:
+	case SLAP_INDEX_EQUALITY:
 		prefix = EQ_PREFIX;
 		break;
-	case INDEX_APPROX:
+	case SLAP_INDEX_APPROX:
 		prefix = APPROX_PREFIX;
 		break;
-	case INDEX_SUB:
+	case SLAP_INDEX_SUB:
 		prefix = SUB_PREFIX;
 		break;
 	default:

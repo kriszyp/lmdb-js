@@ -120,7 +120,7 @@ ava_candidates(
 
 	switch ( type ) {
 	case LDAP_FILTER_EQUALITY:
-		idl = index_read( be, ava->ava_type, INDEX_EQUALITY,
+		idl = index_read( be, ava->ava_type, SLAP_INDEX_EQUALITY,
 		    ava->ava_value.bv_val );
 		break;
 
@@ -148,7 +148,7 @@ presence_candidates(
 
 	Debug( LDAP_DEBUG_TRACE, "=> presence_candidates\n", 0, 0, 0 );
 
-	idl = index_read( be, type, INDEX_PRESENCE, "*" );
+	idl = index_read( be, type, SLAP_INDEX_PRESENCE, "*" );
 
 	Debug( LDAP_DEBUG_TRACE, "<= presence_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
@@ -170,7 +170,7 @@ approx_candidates(
 	for ( w = first_word( ava->ava_value.bv_val ); w != NULL;
 	    w = next_word( w ) ) {
 		c = phonetic( w );
-		if ( (tmp = index_read( be, ava->ava_type, INDEX_APPROX, c ))
+		if ( (tmp = index_read( be, ava->ava_type, SLAP_INDEX_APPROX, c ))
 		    == NULL ) {
 			free( c );
 			idl_free( idl );
@@ -330,7 +330,7 @@ substring_comp_candidates(
 		}
 		buf[SUBLEN] = '\0';
 
-		if ( (idl = index_read( be, type, INDEX_SUB, buf )) == NULL ) {
+		if ( (idl = index_read( be, type, SLAP_INDEX_SUB, buf )) == NULL ) {
 			return( NULL );
 		}
 	} else if ( prepost == '$' ) {
@@ -341,7 +341,7 @@ substring_comp_candidates(
 		buf[SUBLEN - 1] = '$';
 		buf[SUBLEN] = '\0';
 
-		if ( (idl = index_read( be, type, INDEX_SUB, buf )) == NULL ) {
+		if ( (idl = index_read( be, type, SLAP_INDEX_SUB, buf )) == NULL ) {
 			return( NULL );
 		}
 	}
@@ -352,7 +352,7 @@ substring_comp_candidates(
 		}
 		buf[SUBLEN] = '\0';
 
-		if ( (tmp = index_read( be, type, INDEX_SUB, buf )) == NULL ) {
+		if ( (tmp = index_read( be, type, SLAP_INDEX_SUB, buf )) == NULL ) {
 			idl_free( idl );
 			return( NULL );
 		}

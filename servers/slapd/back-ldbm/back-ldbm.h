@@ -108,25 +108,6 @@ typedef struct ldbm_dbcache {
 	LDBM	dbc_db;
 } DBCache;
 
-/* for the cache of attribute information (which are indexed, etc.) */
-typedef struct ldbm_attrinfo {
-	char	*ai_type;	/* type name (cn, sn, ...)	*/
-	int	ai_indexmask;	/* how the attr is indexed	*/
-#define INDEX_PRESENCE		0x0001
-#define INDEX_EQUALITY		0x0002
-#define INDEX_APPROX		0x0004
-#define INDEX_SUB			0x0008
-#define INDEX_UNKNOWN		0x0010
-#define INDEX_FROMINIT		0x1000
-	int	ai_syntaxmask;	/* what kind of syntax		*/
-/* ...from slap.h...
-#define SYNTAX_CIS      0x01
-#define SYNTAX_CES      0x02
-#define SYNTAX_BIN      0x04
-   ... etc. ...
-*/
-} AttrInfo;
-
 #define MAXDBCACHE	16
 
 struct ldbminfo {

@@ -96,6 +96,16 @@ LDAP_BEGIN_DECL
 
 LIBSLAPD_F (int) slap_debug;
 
+/*
+ * Index types
+ */
+#define SLAP_INDEX_PRESENCE      0x0001U
+#define SLAP_INDEX_EQUALITY      0x0002U
+#define SLAP_INDEX_APPROX        0x0004U
+#define SLAP_INDEX_SUB           0x0008U
+#define SLAP_INDEX_UNKNOWN       0x0010U
+#define SLAP_INDEX_FROMINIT      0x8000U	/* psuedo type */
+
 
 /*
  * represents schema information for a database
