@@ -129,10 +129,11 @@ bdb_search(
 	if (!manageDSAit && e != &slap_entry_root && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		struct berval matched_dn;
+		BVarray erefs, refs;
 		
 		ber_dupbv( &matched_dn, &e->e_name );
-		BVarray erefs = get_entry_referrals( be, conn, op, e );
-		BVarray refs = NULL;
+		erefs = get_entry_referrals( be, conn, op, e );
+		refs = NULL;
 
 		bdb_entry_return( be, e );
 		e = NULL;
