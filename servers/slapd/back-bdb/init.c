@@ -160,10 +160,10 @@ bdb_db_open( BackendDB *be )
 #ifndef BDB_MULTIPLE_SUFFIXES
 	if ( be->be_suffix[1].bv_val ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG( BACK_BDB, ARGS, 
+	LDAP_LOG( BACK_BDB, ERR, 
 		"bdb_db_open: only one suffix allowed\n", 0, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_ARGS,
+	Debug( LDAP_DEBUG_ANY,
 		"bdb_db_open: only one suffix allowed\n", 0, 0, 0 );
 #endif
 		return -1;
