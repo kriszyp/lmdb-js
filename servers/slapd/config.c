@@ -1480,7 +1480,7 @@ restrict_unknown:;
 				} else if( strcasecmp( cargv[i], "update_anon" ) == 0 ) {
 					allows |= SLAP_ALLOW_UPDATE_ANON;
 
-				} else if( strcasecmp( cargv[i], "none" ) != 0 ) {
+				} else {
 #ifdef NEW_LOGGING
 					LDAP_LOG( CONFIG, CRIT, "%s: line %d: "
 						"unknown feature %s in \"allow <features>\" line.\n",
@@ -1491,17 +1491,17 @@ restrict_unknown:;
 						fname, lineno, cargv[i] );
 #endif
 
-					return( 1 );
+					return 1;
 				}
 			}
 
-			global_allows = allows;
+			global_allows |= allows;
 
 		/* disallow these features */
 		} else if ( strcasecmp( cargv[0], "disallows" ) == 0 ||
 			strcasecmp( cargv[0], "disallow" ) == 0 )
 		{
-			slap_mask_t	disallows;
+			slap_mask_t	disallows = 0; 
 
 			if ( be != NULL ) {
 #ifdef NEW_LOGGING
@@ -1530,8 +1530,6 @@ restrict_unknown:;
 				return( 1 );
 			}
 
-			disallows = 0;
-
 			for( i=1; i < cargc; i++ ) {
 				if( strcasecmp( cargv[i], "bind_anon" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_BIND_ANON;
@@ -1548,7 +1546,7 @@ restrict_unknown:;
 				} else if( strcasecmp( cargv[i], "tls_authc" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_TLS_AUTHC;
 
-				} else if( strcasecmp( cargv[i], "none" ) != 0 ) {
+				} else {
 #ifdef NEW_LOGGING
 					LDAP_LOG( CONFIG, CRIT, 
 						"%s: line %d: unknown feature %s in "
@@ -1560,17 +1558,17 @@ restrict_unknown:;
 					    fname, lineno, cargv[i] );
 #endif
 
-					return( 1 );
+					return 1;
 				}
 			}
 
-			global_disallows = disallows;
+			global_disallows |= disallows;
 
 		/* require these features */
 		} else if ( strcasecmp( cargv[0], "requires" ) == 0 ||
 			strcasecmp( cargv[0], "require" ) == 0 )
 		{
-			slap_mask_t	requires;
+			slap_mask_t	requires = 0; 
 
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
@@ -1585,8 +1583,6 @@ restrict_unknown:;
 
 				return( 1 );
 			}
-
-			requires = 0;
 
 			for( i=1; i < cargc; i++ ) {
 				if( strcasecmp( cargv[i], "bind" ) == 0 ) {
