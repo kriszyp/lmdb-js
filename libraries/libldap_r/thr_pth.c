@@ -9,13 +9,14 @@
  * in file LICENSE in the top-level directory of the distribution.
  */
 
-/* thr_thr.c - wrappers around solaris threads */
+/* thr_pth.c - wrappers around GNU Pth */
 
 #include "portable.h"
 
 #if defined( HAVE_GNU_PTH )
 
 #include "ldap_pvt_thread.h"
+#include <errno.h>
 
 /*******************
  *                 *
@@ -24,6 +25,7 @@
  *******************/
 
 static pth_attr_t detach_attr;
+static pth_attr_t joined_attr;
 
 int
 ldap_int_thread_initialize( void )
@@ -32,6 +34,11 @@ ldap_int_thread_initialize( void )
 		return -1;
 	}
 	detach_attr = pth_attr_new();
+	joined_attr = pth_attr_new();
+#if LDAP_PVT_THREAD_STACK_SIZE
+	pth_attr_set( joined_attr, PTH_ATTR_STACK_SIZE, LDAP_PVT_THREAD_STACK_SIZE );
+	pth_attr_set( detach_attr, PTH_ATTR_STACK_SIZE, LDAP_PVT_THREAD_STACK_SIZE );
+#endif
 	return pth_attr_set( detach_attr, PTH_ATTR_JOINABLE, FALSE );
 }
 
@@ -49,10 +56,10 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	void *(*start_routine)( void *),
 	void *arg)
 {
-	*thread = pth_spawn( detach ? detach_attr : PTH_ATTR_DEFAULT,
+	*thread = pth_spawn( detach ? detach_attr : joined_attr,
 		start_routine, arg );
 
-	return *thread == NULL;
+	return *thread == NULL ? errno : 0;
 }
 
 void 
@@ -63,47 +70,44 @@ ldap_pvt_thread_exit( void *retval )
 
 int ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 {
-	pth_join( thread, thread_return );
-	return 0;
+	return pth_join( thread, thread_return ) ? 0 : errno;
 }
 
 int 
 ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 {
-	pth_raise( thread, signo );
-	return 0;
+	return pth_raise( thread, signo ) ? 0 : errno;
 }
 	
 int 
 ldap_pvt_thread_yield( void )
 {
-	pth_yield(NULL);
-	return 0;
+	return pth_yield(NULL) ? 0 : errno;
 }
 
 int 
 ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 {
-	return( pth_cond_init( cond ) );
+	return( pth_cond_init( cond ) ? 0 : errno );
 }
 
 int 
 ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )
 {
-	return( pth_cond_notify( cond, 0 ) );
+	return( pth_cond_notify( cond, 0 ) ? 0 : errno );
 }
 
 int
 ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cond )
 {
-	return( pth_cond_notify( cond, 1 ) );
+	return( pth_cond_notify( cond, 1 ) ? 0 : errno );
 }
 
 int 
 ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond, 
 	ldap_pvt_thread_mutex_t *mutex )
 {
-	return( pth_cond_await( cond, mutex, NULL ) );
+	return( pth_cond_await( cond, mutex, NULL ) ? 0 : errno );
 }
 
 int
@@ -115,7 +119,7 @@ ldap_pvt_thread_cond_destroy( ldap_pvt_thread_cond_t *cv )
 int 
 ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
-	return( pth_mutex_init( mutex ) );
+	return( pth_mutex_init( mutex ) ? 0 : errno );
 }
 
 int 
@@ -127,26 +131,26 @@ ldap_pvt_thread_mutex_destroy( ldap_pvt_thread_mutex_t *mutex )
 int 
 ldap_pvt_thread_mutex_lock( ldap_pvt_thread_mutex_t *mutex )
 {
-	return( pth_mutex_acquire( mutex, 0, NULL ) );
+	return( pth_mutex_acquire( mutex, 0, NULL ) ? 0 : errno );
 }
 
 int 
 ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 {
-	return( pth_mutex_release( mutex ) );
+	return( pth_mutex_release( mutex ) ? 0 : errno );
 }
 
 int
 ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mutex )
 {
-	return( pth_mutex_acquire( mutex, 1, NULL ) );
+	return( pth_mutex_acquire( mutex, 1, NULL ) ? 0 : errno );
 }
 
 #ifdef LDAP_THREAD_HAVE_RDWR
 int 
 ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )
 {
-	return pth_rwlock_init( rw );
+	return pth_rwlock_init( rw ) ? 0 : errno;
 }
 
 int 
@@ -157,32 +161,32 @@ ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rw )
 
 int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
 {
-	return pth_rwlock_acquire( rw, PTH_RWLOCK_RD, 0, NULL );
+	return pth_rwlock_acquire( rw, PTH_RWLOCK_RD, 0, NULL ) ? 0 : errno;
 }
 
 int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rw )
 {
-	return pth_rwlock_acquire( rw, PTH_RWLOCK_RD, 1, NULL );
+	return pth_rwlock_acquire( rw, PTH_RWLOCK_RD, 1, NULL ) ? 0 : errno;
 }
 
 int ldap_pvt_thread_rdwr_runlock( ldap_pvt_thread_rdwr_t *rw )
 {
-	return pth_rwlock_release( rw );
+	return pth_rwlock_release( rw ) ? 0 : errno;
 }
 
 int ldap_pvt_thread_rdwr_wlock( ldap_pvt_thread_rdwr_t *rw )
 {
-	return pth_rwlock_acquire( rw, PTH_RWLOCK_RW, 0, NULL );
+	return pth_rwlock_acquire( rw, PTH_RWLOCK_RW, 0, NULL ) ? 0 : errno;
 }
 
 int ldap_pvt_thread_rdwr_wtrylock( ldap_pvt_thread_rdwr_t *rw )
 {
-	return pth_rwlock_acquire( rw, PTH_RWLOCK_RW, 1, NULL );
+	return pth_rwlock_acquire( rw, PTH_RWLOCK_RW, 1, NULL ) ? 0 : errno;
 }
 
 int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rw )
 {
-	return pth_rwlock_release( rw );
+	return pth_rwlock_release( rw ) ? 0 : errno;
 }
 
 #endif /* LDAP_THREAD_HAVE_RDWR */
