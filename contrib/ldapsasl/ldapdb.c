@@ -74,10 +74,7 @@ static int ldapdb_interact(LDAP *ld, unsigned flags __attribute__((unused)),
 		}
 		if (p.bv_val)
 		{
-			in->result = gc->lp->utils->malloc(p.bv_len+1);
-			if (!in->result)
-				return LDAP_NO_MEMORY;
-			strcpy((char *)in->result, p.bv_val);
+			in->result = p.bv_val;
 			in->len = p.bv_len;
 		}
 	}
@@ -220,7 +217,7 @@ int ldapdb_auxprop_plug_init(const sasl_utils_t *utils,
     if(!tmp.uri) return SASL_BADPARAM;
 
     utils->getopt(utils->getopt_context, ldapdb, "ldapdb_id",
-		(const char **)&tmp.id.bv_val, (unsigned *)tmp.id.bv_len);
+		(const char **)&tmp.id.bv_val, (unsigned *)&tmp.id.bv_len);
     utils->getopt(utils->getopt_context, ldapdb, "ldapdb_pw",
 		(const char **)&tmp.pw.bv_val, (unsigned *)&tmp.pw.bv_len);
     utils->getopt(utils->getopt_context, ldapdb, "ldapdb_mech",
