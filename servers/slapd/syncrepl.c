@@ -805,6 +805,9 @@ done:
 	slap_sync_cookie_free( &syncCookie, 0 );
 	slap_sync_cookie_free( &syncCookie_req, 0 );
 
+	avl_free( si->si_presentlist, avl_ber_bvfree );
+	si->si_presentlist = NULL;
+
 	if ( res ) ldap_msgfree( res );
 
 	if ( rc && si->si_ld ) {
@@ -1743,6 +1746,17 @@ syncrepl_updateCookie(
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
+	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
+	mod->sml_op = LDAP_MOD_REPLACE;
+	mod->sml_desc = slap_schema.si_ad_subtreeSpecification;
+	mod->sml_type = mod->sml_desc->ad_cname;
+	mod->sml_values = ssbva;
+	*modtail = mod;
+	modtail = &mod->sml_next;
+
+	/* Keep this last, so we can avoid touching the previous
+	 * attributes unnecessarily.
+	 */
 	if ( scbva[0].bv_val ) ch_free( scbva[0].bv_val );
 	ber_dupbv( &scbva[0], &si->si_syncCookie.octet_str[0] );
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
@@ -1750,14 +1764,6 @@ syncrepl_updateCookie(
 	mod->sml_desc = slap_schema.si_ad_syncreplCookie;
 	mod->sml_type = mod->sml_desc->ad_cname;
 	mod->sml_values = scbva;
-	*modtail = mod;
-	modtail = &mod->sml_next;
-
-	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
-	mod->sml_op = LDAP_MOD_REPLACE;
-	mod->sml_desc = slap_schema.si_ad_subtreeSpecification;
-	mod->sml_type = mod->sml_desc->ad_cname;
-	mod->sml_values = ssbva;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -1822,7 +1828,8 @@ syncrepl_updateCookie(
 	/* update persistent cookie */
 update_cookie_retry:
 	op->o_tag = LDAP_REQ_MODIFY;
-	op->orm_modlist = modlist;
+	/* Just modify the cookie value, not the entire entry */
+	op->orm_modlist = mod;
 	rc = be->be_modify( op, &rs_modify );
 
 	if ( rs_modify.sr_err != LDAP_SUCCESS ) {

@@ -214,7 +214,9 @@ do_delete(
 			char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 
 			if ( !repl_user ) {
-				slap_get_csn( op, csnbuf, sizeof(csnbuf), &op->ord_csn, 1 );
+				struct berval csn = BER_BVNULL;
+				char csnbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
+				slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
 			}
 
 #ifdef SLAPD_MULTIMASTER
