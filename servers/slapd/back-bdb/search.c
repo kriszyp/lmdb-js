@@ -361,6 +361,18 @@ int bdb_search( Operation *op, SlapReply *rs )
 	return bdb_do_search( op, rs, op, NULL, 0 );
 }
 
+int bdb_psearch( Operation *op, SlapReply *rs, Operation *sop,
+	Entry *ps_e, int ps_type )
+{
+	int	rc;
+
+	sop->o_private = op->o_private;
+	rc = bdb_do_search( op, rs, sop, ps_e, ps_type );
+	sop->o_private = NULL;
+
+	return rc;
+}
+
 /* For persistent searches, op is the currently executing operation,
  * sop is the persistent search. For regular searches, sop = op.
  */
@@ -408,13 +420,17 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	BerVarray	syncUUID_set = NULL;
 	int			syncUUID_set_cnt = 0;
 
+	struct	bdb_op_info	*opinfo = NULL;
+	DB_TXN			*ltid = NULL;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "bdb_search\n", 0, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_search\n",
-		0, 0, 0);
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_search\n", 0, 0, 0);
 #endif
 	attrs = sop->oq_search.rs_attrs;
+
+	opinfo = (struct bdb_op_info *) op->o_private;
 
 	if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_REFRESH_AND_PERSIST ) {
 		struct slap_session_entry *sent;
@@ -509,14 +525,19 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 		}
 	}
 
-	rs->sr_err = LOCK_ID( bdb->bi_dbenv, &locker );
+	if ( opinfo ) {
+		ltid = opinfo->boi_txn;
+		locker = TXN_ID( ltid );
+	} else {
+		rs->sr_err = LOCK_ID( bdb->bi_dbenv, &locker );
 
-	switch(rs->sr_err) {
-	case 0:
-		break;
-	default:
-		send_ldap_error( sop, rs, LDAP_OTHER, "internal error" );
-		return rs->sr_err;
+		switch(rs->sr_err) {
+		case 0:
+			break;
+		default:
+			send_ldap_error( sop, rs, LDAP_OTHER, "internal error" );
+			return rs->sr_err;
+		}
 	}
 
 	if ( sop->o_req_ndn.bv_len == 0 ) {
@@ -532,7 +553,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	} else {
 dn2entry_retry:
 		/* get entry with reader lock */
-		rs->sr_err = bdb_dn2entry( op, NULL, &sop->o_req_ndn, &ei,
+		rs->sr_err = bdb_dn2entry( op, ltid, &sop->o_req_ndn, &ei,
 			1, locker, &lock );
 	}
 
@@ -545,14 +566,16 @@ dn2entry_retry:
 		break;
 	case LDAP_BUSY:
 		send_ldap_error( sop, rs, LDAP_BUSY, "ldap server busy" );
-		LOCK_ID_FREE (bdb->bi_dbenv, locker );
+		if ( !opinfo )
+			LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		return LDAP_BUSY;
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
 		goto dn2entry_retry;
 	default:
 		send_ldap_error( sop, rs, LDAP_OTHER, "internal error" );
-		LOCK_ID_FREE (bdb->bi_dbenv, locker );
+		if ( !opinfo )
+			LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		return rs->sr_err;
 	}
 
@@ -592,7 +615,8 @@ dn2entry_retry:
 		rs->sr_matched = matched_dn.bv_val;
 		send_ldap_result( sop, rs );
 
-		LOCK_ID_FREE (bdb->bi_dbenv, locker );
+		if ( !opinfo )
+			LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		if ( rs->sr_ref ) {
 			ber_bvarray_free( rs->sr_ref );
 			rs->sr_ref = NULL;
@@ -634,7 +658,8 @@ dn2entry_retry:
 		rs->sr_matched = matched_dn.bv_val;
 		send_ldap_result( sop, rs );
 
-		LOCK_ID_FREE (bdb->bi_dbenv, locker );
+		if ( !opinfo )
+			LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		ber_bvarray_free( rs->sr_ref );
 		rs->sr_ref = NULL;
 		ber_memfree( matched_dn.bv_val );
@@ -895,7 +920,7 @@ loop_begin:
 id2entry_retry:
 			/* get the entry with reader lock */
 			ei = NULL;
-			rs->sr_err = bdb_cache_find_id( op, NULL,
+			rs->sr_err = bdb_cache_find_id( op, ltid,
 				id, &ei, 0, locker, &lock );
 
 			if (rs->sr_err == LDAP_BUSY) {
@@ -1468,7 +1493,8 @@ done:
 		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 	}
 
-	LOCK_ID_FREE( bdb->bi_dbenv, locker );
+	if ( !opinfo )
+		LOCK_ID_FREE( bdb->bi_dbenv, locker );
 
 	ber_bvfree( search_context_csn );
 
@@ -1709,17 +1735,17 @@ send_paged_response(
 	LDAPControl	ctrl, *ctrls[2];
 	BerElementBuffer berbuf;
 	BerElement	*ber = (BerElement *)&berbuf;
-	struct berval	cookie = BER_BVC( "" );
 	PagedResultsCookie respcookie;
+	struct berval cookie;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY,
-		"send_paged_response: lastid: (0x%08lx) "
-		"nentries: (0x%081x)\n", 
+		"send_paged_response: lastid=0x%08lx nentries=%d\n", 
 		lastid ? *lastid : 0, rs->sr_nentries, NULL );
 #else
-	Debug(LDAP_DEBUG_ARGS, "send_paged_response: lastid: (0x%08lx) "
-		"nentries: (0x%081x)\n", lastid ? *lastid : 0, rs->sr_nentries, NULL );
+	Debug(LDAP_DEBUG_ARGS,
+		"send_paged_response: lastid=0x%08lx nentries=%d\n", 
+		lastid ? *lastid : 0, rs->sr_nentries, NULL );
 #endif
 
 	ctrl.ldctl_value.bv_val = NULL;
@@ -1735,17 +1761,16 @@ send_paged_response(
 
 	} else {
 		respcookie = ( PagedResultsCookie )0;
+		cookie.bv_val = "";
+		cookie.bv_len = 0;
 	}
 
 	op->o_conn->c_pagedresults_state.ps_cookie = respcookie;
 	op->o_conn->c_pagedresults_state.ps_count =
 		op->o_pagedresults_state.ps_count + rs->sr_nentries;
 
-	/*
-	 * FIXME: we should consider sending an estimate of the entries
-	 * left, after appropriate security check is done
-	 */
-	ber_printf( ber, "{iO}", tentries, &cookie ); 
+	/* return size of 0 -- no estimate */
+	ber_printf( ber, "{iO}", 0, &cookie ); 
 
 	if ( ber_flatten2( ber, &ctrls[0]->ldctl_value, 0 ) == -1 ) {
 		goto done;

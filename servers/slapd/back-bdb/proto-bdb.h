@@ -537,9 +537,18 @@ int bdb_locker_id( Operation *op, DB_ENV *env, int *locker );
 #define bdb_abandon					BDB_SYMBOL(abandon)
 #define bdb_cancel					BDB_SYMBOL(cancel)
 #define bdb_do_search				BDB_SYMBOL(do_search)
+#define bdb_psearch				BDB_SYMBOL(psearch)
 
 BI_op_abandon bdb_abandon;
 BI_op_cancel bdb_cancel;
+
+int bdb_psearch(
+	Operation       *op,
+	SlapReply	*rs,
+	Operation       *ps_op,
+	Entry           *entry,
+	int             psearch_type
+);
 
 int bdb_do_search(
 	Operation       *op,
@@ -548,7 +557,6 @@ int bdb_do_search(
 	Entry           *entry,
 	int             psearch_type
 );
-#define	bdb_psearch(op, rs, sop, e, ps_type)	bdb_do_search(op, rs, sop, e, ps_type)
 
 /*
  * trans.c

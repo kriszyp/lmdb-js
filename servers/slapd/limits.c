@@ -23,6 +23,9 @@
 
 #include "slap.h"
 
+/* define to get an error if requesting limit higher than hard */
+#undef ABOVE_HARD_LIMIT_IS_ERROR
+
 static char *
 limits2str( unsigned i )
 {
@@ -734,7 +737,7 @@ limits_parse_one(
 			arg++;
 			if ( strncasecmp( arg, "soft=", STRLENOF( "soft=" ) ) == 0 ) {
 				arg += STRLENOF( "soft=" );
-				if ( strcasecmp( arg, "none" ) == 0 ) {
+				if ( strcasecmp( arg, "unlimited" ) == 0 || strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_t_soft = -1;
 
 				} else {
@@ -750,7 +753,7 @@ limits_parse_one(
 					}
 
 					if ( soft == -1 ) {
-						/* FIXME: use "none" instead */
+						/* FIXME: use "unlimited" instead; issue warning? */
 					}
 
 					limit->lms_t_soft = soft;
@@ -761,7 +764,7 @@ limits_parse_one(
 				if ( strcasecmp( arg, "soft" ) == 0 ) {
 					limit->lms_t_hard = 0;
 
-				} else if ( strcasecmp( arg, "none" ) == 0 ) {
+				} else if ( strcasecmp( arg, "unlimited" ) == 0 || strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_t_hard = -1;
 
 				} else {
@@ -777,7 +780,7 @@ limits_parse_one(
 					}
 
 					if ( hard == -1 ) {
-						/* FIXME: use "none" instead */
+						/* FIXME: use "unlimited" instead */
 					}
 
 					if ( hard == 0 ) {
@@ -793,7 +796,7 @@ limits_parse_one(
 			
 		} else if ( arg[0] == '=' ) {
 			arg++;
-			if ( strcasecmp( arg, "none" ) == 0 ) {
+			if ( strcasecmp( arg, "unlimited" ) == 0 || strcasecmp( arg, "none" ) == 0 ) {
 				limit->lms_t_soft = -1;
 
 			} else {
@@ -817,7 +820,7 @@ limits_parse_one(
 			arg++;
 			if ( strncasecmp( arg, "soft=", STRLENOF( "soft=" ) ) == 0 ) {
 				arg += STRLENOF( "soft=" );
-				if ( strcasecmp( arg, "none" ) == 0 ) {
+				if ( strcasecmp( arg, "unlimited" ) == 0 || strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_soft = -1;
 
 				} else {
@@ -833,7 +836,7 @@ limits_parse_one(
 					}
 
 					if ( soft == -1 ) {
-						/* FIXME: use "none" instead */
+						/* FIXME: use "unlimited" instead */
 					}
 
 					limit->lms_s_soft = soft;
@@ -844,7 +847,7 @@ limits_parse_one(
 				if ( strcasecmp( arg, "soft" ) == 0 ) {
 					limit->lms_s_hard = 0;
 
-				} else if ( strcasecmp( arg, "none" ) == 0 ) {
+				} else if ( strcasecmp( arg, "unlimited" ) == 0 || strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_hard = -1;
 
 				} else {
@@ -860,7 +863,7 @@ limits_parse_one(
 					}
 
 					if ( hard == -1 ) {
-						/* FIXME: use "none" instead */
+						/* FIXME: use "unlimited" instead */
 					}
 
 					if ( hard == 0 ) {
@@ -872,7 +875,7 @@ limits_parse_one(
 				
 			} else if ( strncasecmp( arg, "unchecked=", STRLENOF( "unchecked=" ) ) == 0 ) {
 				arg += STRLENOF( "unchecked=" );
-				if ( strcasecmp( arg, "none" ) == 0 ) {
+				if ( strcasecmp( arg, "unlimited" ) == 0 || strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_unchecked = -1;
 
 				} else if ( strcasecmp( arg, "disabled" ) == 0 ) {
@@ -891,7 +894,7 @@ limits_parse_one(
 					}
 
 					if ( unchecked == -1 ) {
-						/*  FIXME: use "none" instead */
+						/*  FIXME: use "unlimited" instead */
 					}
 
 					limit->lms_s_unchecked = unchecked;
@@ -902,7 +905,7 @@ limits_parse_one(
 				if ( strcasecmp( arg, "noEstimate" ) == 0 ) {
 					limit->lms_s_pr_hide = 1;
 
-				} else if ( strcasecmp( arg, "none" ) == 0 ) {
+				} else if ( strcasecmp( arg, "unlimited" ) == 0 || strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_pr = -1;
 
 				} else {
@@ -918,7 +921,7 @@ limits_parse_one(
 					}
 
 					if ( pr == -1 ) {
-						/* FIXME: use "none" instead */
+						/* FIXME: use "unlimited" instead */
 					}
 
 					limit->lms_s_pr = pr;
@@ -927,7 +930,7 @@ limits_parse_one(
 			} else if ( strncasecmp( arg, "prtotal=", STRLENOF( "prtotal=" ) ) == 0 ) {
 				arg += STRLENOF( "prtotal=" );
 
-				if ( strcasecmp( arg, "none" ) == 0 ) {
+				if ( strcasecmp( arg, "unlimited" ) == 0 || strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_pr_total = -1;
 
 				} else if ( strcasecmp( arg, "disabled" ) == 0 ) {
@@ -950,7 +953,7 @@ limits_parse_one(
 					}
 
 					if ( total == -1 ) {
-						/* FIXME: use "none" instead */
+						/* FIXME: use "unlimited" instead */
 					}
 
 					if ( total == 0 ) {
@@ -966,7 +969,7 @@ limits_parse_one(
 			
 		} else if ( arg[0] == '=' ) {
 			arg++;
-			if ( strcasecmp( arg, "none" ) == 0 ) {
+			if ( strcasecmp( arg, "unlimited" ) == 0 || strcasecmp( arg, "none" ) == 0 ) {
 				limit->lms_s_soft = -1;
 
 			} else {
@@ -995,7 +998,20 @@ limits_check( Operation *op, SlapReply *rs )
 	assert( rs );
 	/* FIXME: should this be always true? */
 	assert( op->o_tag == LDAP_REQ_SEARCH);
-	
+
+	/* protocol only allows 0..maxInt;
+	 *
+	 * internal searches:
+	 * - may use SLAP_NO_LIMIT ( = -1 ) to indicate no limits;
+	 * - should use slimit = N and tlimit = SLAP_NO_LIMIT to
+	 *   indicate searches that should return exactly N matches,
+	 *   and handle errors thru a callback (see for instance
+	 *   slap_sasl_match() and slap_sasl2dn())
+	 */
+	if ( op->ors_tlimit == SLAP_NO_LIMIT && op->ors_slimit == SLAP_NO_LIMIT ) {
+		return 0;
+	}
+
 	/* allow root to set no limit */
 	if ( be_isroot( op ) ) {
 		op->ors_limit = NULL;
@@ -1022,18 +1038,27 @@ limits_check( Operation *op, SlapReply *rs )
 		} else {
 			if ( op->ors_limit->lms_t_hard == 0 ) {
 				if ( op->ors_limit->lms_t_soft > 0
-						&& ( op->ors_tlimit < 0 || op->ors_tlimit > op->ors_limit->lms_t_soft ) ) {
+						&& ( op->ors_tlimit > op->ors_limit->lms_t_soft ) ) {
 					op->ors_tlimit = op->ors_limit->lms_t_soft;
 				}
 
 			} else if ( op->ors_limit->lms_t_hard > 0 ) {
-				if ( op->ors_tlimit < 0 || op->ors_tlimit > op->ors_limit->lms_t_hard ) {
+#ifdef ABOVE_HARD_LIMIT_IS_ERROR
+				if ( op->ors_tlimit == SLAP_MAX_LIMIT ) {
+					op->ors_tlimit = op->ors_limit->lms_t_hard;
+
+				} else if ( op->ors_tlimit > op->ors_limit->lms_t_hard ) {
 					/* error if exceeding hard limit */
 					rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 					send_ldap_result( op, rs );
 					rs->sr_err = LDAP_SUCCESS;
 					return -1;
 				}
+#else /* ! ABOVE_HARD_LIMIT_IS_ERROR */
+				if ( op->ors_tlimit > op->ors_limit->lms_t_hard ) {
+					op->ors_tlimit = op->ors_limit->lms_t_hard;
+				}
+#endif /* ! ABOVE_HARD_LIMIT_IS_ERROR */
 			}
 		}
 
@@ -1082,13 +1107,22 @@ limits_check( Operation *op, SlapReply *rs )
 			}
 
 			if ( pr_total == -1 ) {
-				slimit = -1;
+				if ( op->ors_slimit == 0 || op->ors_slimit == SLAP_MAX_LIMIT ) {
+					slimit = -1;
 
-			} else if ( pr_total > 0 && ( op->ors_slimit == SLAP_NO_LIMIT || op->ors_slimit > pr_total ) ) {
+				} else {
+					slimit = op->ors_slimit - op->o_pagedresults_state.ps_count;
+				}
+
+#ifdef ABOVE_HARD_LIMIT_IS_ERROR
+			} else if ( pr_total > 0 && op->ors_slimit != SLAP_MAX_LIMIT
+					&& ( op->ors_slimit == SLAP_NO_LIMIT || op->ors_slimit > pr_total ) )
+			{
 				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 				send_ldap_result( op, rs );
 				rs->sr_err = LDAP_SUCCESS;
 				return -1;
+#endif /* ! ABOVE_HARD_LIMIT_IS_ERROR */
 	
 			} else {
 				/* if no limit is required, use soft limit */
@@ -1097,15 +1131,20 @@ limits_check( Operation *op, SlapReply *rs )
 
 				/* first round of pagedResults: set count to any appropriate limit */
 
-				/* if the limit is set, check that it does not violate any limit */
-				if ( op->ors_slimit > 0 ) {
-					slimit2 = op->ors_slimit;
+				/* if the limit is set, check that it does not violate any server-side limit */
+#ifdef ABOVE_HARD_LIMIT_IS_ERROR
+				if ( op->ors_slimit == SLAP_MAX_LIMIT ) {
+					slimit2 = op->ors_slimit = pr_total;
+#else /* ! ABOVE_HARD_LIMIT_IS_ERROR */
+				if ( op->ors_slimit == SLAP_MAX_LIMIT || op->ors_slimit > pr_total ) {
+					slimit2 = op->ors_slimit = pr_total;
+#endif /* ! ABOVE_HARD_LIMIT_IS_ERROR */
 
 				} else if ( op->ors_slimit == 0 ) {
 					slimit2 = pr_total;
 
 				} else {
-					slimit2 = -1;
+					slimit2 = op->ors_slimit;
 				}
 
 				total = slimit2 - op->o_pagedresults_state.ps_count;
@@ -1140,7 +1179,7 @@ limits_check( Operation *op, SlapReply *rs )
 		
 			/* if got any limit, use it */
 			if ( slimit != -2 ) {
-				if ( op->ors_slimit <= 0 ) {
+				if ( op->ors_slimit == 0 ) {
 					op->ors_slimit = slimit;
 
 				} else if ( slimit > 0 ) {
@@ -1173,13 +1212,22 @@ limits_check( Operation *op, SlapReply *rs )
 
 			/* explicit hard limit: error if violated */
 			} else if ( op->ors_limit->lms_s_hard > 0 ) {
-				if ( op->ors_slimit > op->ors_limit->lms_s_hard ) {
+#ifdef ABOVE_HARD_LIMIT_IS_ERROR
+				if ( op->ors_slimit == SLAP_MAX_LIMIT ) {
+					op->ors_slimit = op->ors_limit->lms_s_hard;
+
+				} else if ( op->ors_slimit > op->ors_limit->lms_s_hard ) {
 					/* if limit exceeds hard, error */
 					rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 					send_ldap_result( op, rs );
 					rs->sr_err = LDAP_SUCCESS;
 					return -1;
 				}
+#else /* ! ABOVE_HARD_LIMIT_IS_ERROR */
+				if ( op->ors_slimit > op->ors_limit->lms_s_hard ) {
+					op->ors_slimit = op->ors_limit->lms_s_hard;
+				}
+#endif /* ! ABOVE_HARD_LIMIT_IS_ERROR */
 			}
 		}
 

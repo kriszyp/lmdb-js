@@ -116,8 +116,11 @@ int bdb_modify_internal(
 			break;
 
 		case LDAP_MOD_DELETE:
-			if ( glue_attr_delete )
+			if ( glue_attr_delete ) {
+				err = LDAP_SUCCESS;
 				break;
+			}
+
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1, 
 				"bdb_modify_internal: delete\n", 0, 0, 0 );
@@ -353,6 +356,8 @@ bdb_modify( Operation *op, SlapReply *rs )
 
 	int		num_retries = 0;
 
+	LDAPControl **preread_ctrl = NULL;
+	LDAPControl **postread_ctrl = NULL;
 	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
 	int num_ctrls = 0;
 
@@ -364,10 +369,14 @@ bdb_modify( Operation *op, SlapReply *rs )
 	int			ctxcsn_added = 0;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ENTRY, "bdb_modify: %s\n", op->o_req_dn.bv_val, 0, 0 );
+	LDAP_LOG ( OPERATION, ENTRY, "bdb_modify: %s\n",
+		op->o_req_dn.bv_val, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_ARGS, "bdb_modify: %s\n", op->o_req_dn.bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "bdb_modify: %s\n",
+		op->o_req_dn.bv_val, 0, 0 );
 #endif
+
+	ctrls[num_ctrls] = NULL;
 
 	if( 0 ) {
 retry:	/* transaction retry */
@@ -462,7 +471,9 @@ retry:	/* transaction retry */
 	e = ei->bei_e;
 	/* acquire and lock entry */
 	/* FIXME: dn2entry() should return non-glue entry */
-	if (( rs->sr_err == DB_NOTFOUND ) || ( !manageDSAit && e && is_entry_glue( e ))) {
+	if (( rs->sr_err == DB_NOTFOUND ) ||
+		( !manageDSAit && e && is_entry_glue( e )))
+	{
 		if ( e != NULL ) {
 			rs->sr_matched = ch_strdup( e->e_dn );
 			rs->sr_ref = is_entry_referral( e )
@@ -505,7 +516,9 @@ retry:	/* transaction retry */
 		rs->sr_ref = get_entry_referrals( op, e );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, DETAIL1, "bdb_modify: entry is referral\n", 0, 0, 0 );
+		LDAP_LOG ( OPERATION, DETAIL1,
+			"bdb_modify: entry is referral\n",
+			0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modify: entry is referral\n",
@@ -530,16 +543,31 @@ retry:	/* transaction retry */
 	}
 
 	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop && !op->o_no_psearch ) {
-		ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
+		ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-			bdb_psearch(op, rs, ps_list, e, LDAP_PSEARCH_BY_PREMODIFY );
+			rc = bdb_psearch(op, rs, ps_list, e, LDAP_PSEARCH_BY_PREMODIFY );
+			if ( rc ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG ( OPERATION, ERR,
+					"bdb_modify: persistent search failed (%d,%d)\n",
+					rc, rs->sr_err, 0 );
+#else
+				Debug( LDAP_DEBUG_TRACE,
+					"bdb_modify: persistent search failed (%d,%d)\n",
+					rc, rs->sr_err, 0 );
+#endif
+			}
 		}
-		ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
+		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
 	}
 
 	if( op->o_preread ) {
+		if( preread_ctrl == NULL ) {
+			preread_ctrl = &ctrls[num_ctrls++];
+			ctrls[num_ctrls] = NULL;
+		}
 		if ( slap_read_controls( op, rs, e,
-			&slap_pre_read_bv, &ctrls[num_ctrls] ) )
+			&slap_pre_read_bv, preread_ctrl ) )
 		{
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1,
@@ -550,8 +578,6 @@ retry:	/* transaction retry */
 #endif
 			goto return_results;
 		}
-		ctrls[++num_ctrls] = NULL;
-		op->o_preread = 0; /* prevent redo on retry */
 	}
 
 	/* nested transaction */
@@ -561,7 +587,8 @@ retry:	/* transaction retry */
 	if( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
-			"bdb_modify: txn_begin(2) failed: %s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
+			"bdb_modify: txn_begin(2) failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modify: txn_begin(2) failed: %s (%d)\n",
@@ -591,27 +618,11 @@ retry:	/* transaction retry */
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
+			attrs_free( dummy.e_attrs ); 
+			dummy.e_attrs = NULL;
 			goto retry;
 		}
 		goto return_results;
-	}
-
-	if( op->o_postread ) {
-		if( slap_read_controls( op, rs, e,
-			&slap_post_read_bv, &ctrls[num_ctrls] ) )
-		{
-#ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, DETAIL1,
-				"<=- bdb_modify: post-read failed!\n", 0, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_TRACE,
-				"<=- bdb_modify: post-read failed!\n", 0, 0, 0 );
-#endif
-			goto return_results;
-		}
-		ctrls[++num_ctrls] = NULL;
-		op->o_postread = 0;  /* prevent redo on retry */
-		/* FIXME: should read entry on the last retry */
 	}
 
 	/* change the entry itself */
@@ -628,6 +639,8 @@ retry:	/* transaction retry */
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
+			attrs_free( dummy.e_attrs ); 
+			dummy.e_attrs = NULL;
 			goto retry;
 		}
 		rs->sr_text = "entry update failed";
@@ -647,7 +660,28 @@ retry:	/* transaction retry */
 		case BDB_CSN_ABORT :
 			goto return_results;
 		case BDB_CSN_RETRY :
+			attrs_free( dummy.e_attrs ); 
+			dummy.e_attrs = NULL;
 			goto retry;
+		}
+	}
+
+	if( op->o_postread ) {
+		if( postread_ctrl == NULL ) {
+			postread_ctrl = &ctrls[num_ctrls++];
+			ctrls[num_ctrls] = NULL;
+		}
+		if( slap_read_controls( op, rs, e,
+			&slap_post_read_bv, postread_ctrl ) )
+		{
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, DETAIL1,
+				"<=- bdb_modify: post-read failed!\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE,
+				"<=- bdb_modify: post-read failed!\n", 0, 0, 0 );
+#endif
+			goto return_results;
 		}
 	}
 
@@ -663,6 +697,8 @@ retry:	/* transaction retry */
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
+			attrs_free( dummy.e_attrs ); 
+			dummy.e_attrs = NULL;
 			goto retry;
 		}
 
@@ -675,20 +711,42 @@ retry:	/* transaction retry */
 
 		if ( rs->sr_err == LDAP_SUCCESS ) {
 			/* Loop through in-scope entries for each psearch spec */
-			ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
+			ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 			LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-				bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_MODIFY );
+				rc = bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_MODIFY );
+				if ( rc ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG ( OPERATION, ERR,
+						"bdb_modify: persistent search failed (%d,%d)\n",
+						rc, rs->sr_err, 0 );
+#else
+					Debug( LDAP_DEBUG_TRACE,
+						"bdb_modify: persistent search failed (%d,%d)\n",
+						rc, rs->sr_err, 0 );
+#endif
+				}
 			}
-			ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
 			pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
 			while ( pm_list != NULL ) {
-				bdb_psearch(op, rs, pm_list->ps_op,
+				rc = bdb_psearch(op, rs, pm_list->ps_op,
 							e, LDAP_PSEARCH_BY_SCOPEOUT);
+				if ( rc ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG ( OPERATION, ERR,
+						"bdb_modify: persistent search failed (%d,%d)\n",
+						rc, rs->sr_err, 0 );
+#else
+					Debug( LDAP_DEBUG_TRACE,
+						"bdb_modify: persistent search failed (%d,%d)\n",
+						rc, rs->sr_err, 0 );
+#endif
+				}
 				LDAP_LIST_REMOVE ( pm_list, ps_link );
 				pm_prev = pm_list;
 				pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
 				ch_free( pm_prev );
 			}
+			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
 		}
 
 		rs->sr_err = TXN_COMMIT( ltid, 0 );
@@ -753,6 +811,15 @@ done:
 
 	if( e != NULL ) {
 		bdb_unlocked_cache_return_entry_w (&bdb->bi_cache, e);
+	}
+
+	if( preread_ctrl != NULL ) {
+		slap_sl_free( (*preread_ctrl)->ldctl_value.bv_val, &op->o_tmpmemctx );
+		slap_sl_free( *preread_ctrl, &op->o_tmpmemctx );
+	}
+	if( postread_ctrl != NULL ) {
+		slap_sl_free( (*postread_ctrl)->ldctl_value.bv_val, &op->o_tmpmemctx );
+		slap_sl_free( *postread_ctrl, &op->o_tmpmemctx );
 	}
 	return rs->sr_err;
 }

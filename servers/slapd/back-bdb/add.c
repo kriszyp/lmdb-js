@@ -49,6 +49,7 @@ bdb_add(Operation *op, SlapReply *rs )
 	Entry		*ctxcsn_e;
 	int			ctxcsn_added = 0;
 
+	LDAPControl **postread_ctrl = NULL;
 	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
 	int num_ctrls = 0;
 
@@ -59,6 +60,8 @@ bdb_add(Operation *op, SlapReply *rs )
 	Debug(LDAP_DEBUG_ARGS, "==> bdb_add: %s\n",
 		op->oq_add.rs_e->e_name.bv_val, 0, 0);
 #endif
+
+	ctrls[num_ctrls] = 0;
 
 	/* check entry's schema */
 	rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e,
@@ -344,23 +347,6 @@ retry:	/* transaction retry */
 		goto return_results;;
 	}
 
-	/* post-read */
-	if( op->o_postread ) {
-		if ( slap_read_controls( op, rs, op->oq_add.rs_e,
-			&slap_post_read_bv, &ctrls[num_ctrls] ) )
-		{
-#ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, DETAIL1, 
-				"<=- bdb_add: post-read failed!\n", 0, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_TRACE,
-				"<=- bdb_add: post-read failed!\n", 0, 0, 0 );
-#endif
-			goto return_results;
-		}
-		ctrls[++num_ctrls] = NULL;
-	}
-
 	/* nested transaction */
 	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, 
 		bdb->bi_db_opflags );
@@ -462,6 +448,26 @@ retry:	/* transaction retry */
 		}
 	}
 
+	/* post-read */
+	if( op->o_postread ) {
+		if( postread_ctrl == NULL ) {
+			postread_ctrl = &ctrls[num_ctrls++];
+			ctrls[num_ctrls] = NULL;
+		}
+		if ( slap_read_controls( op, rs, op->oq_add.rs_e,
+			&slap_post_read_bv, postread_ctrl ) )
+		{
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, DETAIL1, 
+				"<=- bdb_add: post-read failed!\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE,
+				"<=- bdb_add: post-read failed!\n", 0, 0, 0 );
+#endif
+			goto return_results;
+		}
+	}
+
 	if ( op->o_noop ) {
 		if (( rs->sr_err=TXN_ABORT( ltid )) != 0 ) {
 			rs->sr_text = "txn_abort (no-op) failed";
@@ -495,13 +501,23 @@ retry:	/* transaction retry */
 		}
 
 		if ( rs->sr_err == LDAP_SUCCESS && !op->o_no_psearch ) {
-			ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
+			ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 			assert( BEI(e) );
 			LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-				bdb_psearch( op, rs, ps_list, e,
-					LDAP_PSEARCH_BY_ADD );
+				rc = bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_ADD );
+				if ( rc ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG ( OPERATION, ERR, 
+						"bdb_add: persistent search failed (%d,%d)\n",
+						rc, rs->sr_err, 0 );
+#else
+					Debug( LDAP_DEBUG_TRACE,
+						"bdb_add: persistent search failed (%d,%d)\n",
+						rc, rs->sr_err, 0 );
+#endif
+				}
 			}
-			ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
+			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
 		}
 
 		if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
@@ -555,5 +571,9 @@ done:
 		op->o_private = NULL;
 	}
 
+	if( postread_ctrl != NULL ) {
+		slap_sl_free( (*postread_ctrl)->ldctl_value.bv_val, &op->o_tmpmemctx );
+		slap_sl_free( *postread_ctrl, &op->o_tmpmemctx );
+	}
 	return rs->sr_err;
 }

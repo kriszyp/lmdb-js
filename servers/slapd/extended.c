@@ -163,7 +163,7 @@ do_extended(
 			op->o_protocol, 0 ,0 );
 #endif
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "requires LDAPv3" );
-		rs->sr_err = -1;
+		rs->sr_err = SLAPD_DISCONNECT;
 		goto done;
 	}
 
@@ -175,7 +175,7 @@ do_extended(
 		Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
 #endif
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
-		rs->sr_err = -1;
+		rs->sr_err = SLAPD_DISCONNECT;
 		goto done;
 	}
 
@@ -211,7 +211,7 @@ do_extended(
 			Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
 #endif
 			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
-			rs->sr_err = -1;
+			rs->sr_err = SLAPD_DISCONNECT;
 			goto done;
 		}
 	}

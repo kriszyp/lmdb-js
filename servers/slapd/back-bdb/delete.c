@@ -48,14 +48,18 @@ bdb_delete( Operation *op, SlapReply *rs )
 	Entry       *ctxcsn_e;
 	int         ctxcsn_added = 0;
 
+	LDAPControl **preread_ctrl = NULL;
 	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
 	int num_ctrls = 0;
 
 	int	parent_is_glue = 0;
 	int parent_is_leaf = 0;
 
+	ctrls[num_ctrls] = 0;
+
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ARGS,  "==> bdb_delete: %s\n", op->o_req_dn.bv_val, 0, 0 );
+	LDAP_LOG ( OPERATION, ARGS, "==> bdb_delete: %s\n",
+		op->o_req_dn.bv_val, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "==> bdb_delete: %s\n",
 		op->o_req_dn.bv_val, 0, 0 );
@@ -66,6 +70,10 @@ retry:	/* transaction retry */
 		if( e != NULL ) {
 			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 			e = NULL;
+		}
+		if( p != NULL ) {
+			bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
+			p = NULL;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, DETAIL1, 
@@ -197,7 +205,19 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
-	bdb_cache_find_id( op, ltid, eip->bei_id, &eip, 0, locker, &plock );
+	rc = bdb_cache_find_id( op, ltid, eip->bei_id, &eip, 0, locker, &plock );
+	switch( rc ) {
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
+	case 0:
+	case DB_NOTFOUND:
+		break;
+	default:
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "internal error";
+		goto return_results;
+	}
 	if ( eip ) p = eip->bei_e;
 
 	if ( pdn.bv_len != 0 ) {
@@ -218,9 +238,6 @@ retry:	/* transaction retry */
 		/* check parent for "children" acl */
 		rs->sr_err = access_allowed( op, p,
 			children, NULL, ACL_WRITE, NULL );
-
-		bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
-		p = NULL;
 
 		if ( !rs->sr_err  ) {
 			switch( opinfo.boi_err ) {
@@ -346,8 +363,12 @@ retry:	/* transaction retry */
 
 	/* pre-read */
 	if( op->o_preread ) {
+		if( preread_ctrl == NULL ) {
+			preread_ctrl = &ctrls[num_ctrls++];
+			ctrls[num_ctrls] = NULL;
+		}
 		if( slap_read_controls( op, rs, e,
-			&slap_pre_read_bv, &ctrls[num_ctrls] ) )
+			&slap_pre_read_bv, preread_ctrl ) )
 		{
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1, 
@@ -358,7 +379,6 @@ retry:	/* transaction retry */
 #endif
 			goto return_results;
 		}
-		ctrls[++num_ctrls] = NULL;
 	}
 
 	/* nested transaction */
@@ -480,8 +500,6 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	bdb_cache_find_id( op, lt2, eip->bei_id, &eip, 0, locker, &plock );
-	if ( eip ) p = eip->bei_e;
 	if ( pdn.bv_len != 0 ) {
 		parent_is_glue = is_entry_glue(p);
 		rs->sr_err = bdb_cache_children( op, lt2, p );
@@ -561,11 +579,22 @@ retry:	/* transaction retry */
 		}
 
 		if ( rs->sr_err == LDAP_SUCCESS && !op->o_no_psearch ) {
-			ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
+			ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 			LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-				bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_DELETE );
+				rc = bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_DELETE );
+				if ( rc ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG ( OPERATION, ERR,
+						"bdb_delete: persistent search failed (%d,%d)\n",
+						rc, rs->sr_err, 0 );
+#else
+					Debug( LDAP_DEBUG_TRACE,
+						"bdb_delete: persistent search failed (%d,%d)\n",
+						rc, rs->sr_err, 0 );
+#endif
+				}
 			}
-			ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
+			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
 		}
 
 		rs->sr_err = TXN_COMMIT( ltid, 0 );
@@ -620,6 +649,9 @@ return_results:
 	}
 
 done:
+	if ( p )
+		bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
+
 	/* free entry */
 	if( e != NULL ) {
 		if ( rs->sr_err == LDAP_SUCCESS ) {
@@ -635,5 +667,9 @@ done:
 		op->o_private = NULL;
 	}
 
+	if( preread_ctrl != NULL ) {
+		slap_sl_free( (*preread_ctrl)->ldctl_value.bv_val, &op->o_tmpmemctx );
+		slap_sl_free( *preread_ctrl, &op->o_tmpmemctx );
+	}
 	return rs->sr_err;
 }

@@ -203,7 +203,16 @@ static int test_mra_filter(
 	MatchingRuleAssertion *mra )
 {
 	Attribute	*a;
-	void *memctx = op ? op->o_tmpmemctx : NULL;
+	void		*memctx;
+	BER_MEMFREE_FN	*memfree;
+
+	if ( op == NULL ) {
+		memctx = NULL;
+		memfree = slap_sl_free;
+	} else {
+		memctx = op->o_tmpmemctx;
+		memfree = op->o_tmpfree;
+	}
 
 	if ( mra->ma_desc ) {
 		/*
@@ -267,7 +276,7 @@ static int test_mra_filter(
 			/* check search access */
 			if ( !access_allowed( op, e,
 				a->a_desc, &value, ACL_SEARCH, NULL ) ) {
-				op->o_tmpfree( value.bv_val, memctx );
+				memfree( value.bv_val, memctx );
 				continue;
 			}
 
@@ -291,7 +300,7 @@ static int test_mra_filter(
 					break;
 				}
 			}
-			op->o_tmpfree( value.bv_val, memctx );
+			memfree( value.bv_val, memctx );
 			if ( rc != LDAP_SUCCESS ) return rc;
 		}
 	}
@@ -348,7 +357,7 @@ static int test_mra_filter(
 					if ( !access_allowed( op, e,
 						ad, &value, ACL_SEARCH, NULL ) )
 					{
-						op->o_tmpfree( value.bv_val, memctx );
+						memfree( value.bv_val, memctx );
 						continue;
 					}
 				}
@@ -358,7 +367,7 @@ static int test_mra_filter(
 					bv, &value, &text );
 
 				if ( value.bv_val != mra->ma_value.bv_val ) {
-					op->o_tmpfree( value.bv_val, memctx );
+					memfree( value.bv_val, memctx );
 				}
 
 				if ( rc == LDAP_SUCCESS && ret == 0 ) rc = LDAP_COMPARE_TRUE;

@@ -47,8 +47,8 @@ static void call_search_postop_plugins( Operation *op );
 int
 do_search(
     Operation	*op,	/* info about the op to which we're responding */
-    SlapReply	*rs	/* all the response data we'll send */
-) {
+    SlapReply	*rs	/* all the response data we'll send */ )
+{
 	struct berval base = BER_BVNULL;
 	ber_len_t	siz, off, i;
 	int			manageDSAit;
@@ -94,6 +94,16 @@ do_search(
 	{
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		rs->sr_err = SLAPD_DISCONNECT;
+		goto return_results;
+	}
+
+	if ( op->ors_tlimit < 0 || op->ors_tlimit > SLAP_MAX_LIMIT ) {
+		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR, "invalid time limit" );
+		goto return_results;
+	}
+
+	if ( op->ors_slimit < 0 || op->ors_slimit > SLAP_MAX_LIMIT ) {
+		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR, "invalid size limit" );
 		goto return_results;
 	}
 
@@ -150,6 +160,7 @@ do_search(
 		if( rs->sr_err == SLAPD_DISCONNECT ) {
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
 			send_ldap_disconnect( op, rs );
+			rs->sr_err = SLAPD_DISCONNECT;
 		} else {
 			send_ldap_result( op, rs );
 		}
@@ -412,19 +423,24 @@ do_search(
 #endif /* LDAP_SLAPI */
 
 return_results:;
+	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) ) return rs->sr_err;
+	if ( ( op->o_sync_slog_size != -1 ) ) return rs->sr_err;
 
-	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) )
-		return rs->sr_err;
+	if( !BER_BVISNULL( &op->o_req_dn ) ) {
+		slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	}
+	if( !BER_BVISNULL( &op->o_req_ndn ) ) {
+		slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	}
 
-	if ( ( op->o_sync_slog_size != -1 ) )
-		return rs->sr_err;
-
-	if( op->o_req_dn.bv_val != NULL) sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
-	if( op->o_req_ndn.bv_val != NULL) sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-
-	if( op->ors_filterstr.bv_val != NULL) op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+	if( !BER_BVISNULL( &op->ors_filterstr ) ) {
+		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+	}
 	if( op->ors_filter != NULL) filter_free_x( op, op->ors_filter );
-	if( op->ors_attrs != NULL ) op->o_tmpfree( op->ors_attrs, op->o_tmpmemctx );
+	if( op->ors_attrs != NULL ) {
+		op->o_tmpfree( op->ors_attrs, op->o_tmpmemctx );
+	}
+
 #ifdef LDAP_SLAPI
 	if( attrs != NULL) op->o_tmpfree( attrs, op->o_tmpmemctx );
 #endif /* LDAP_SLAPI */
