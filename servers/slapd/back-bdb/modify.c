@@ -147,7 +147,10 @@ int bdb_modify_internal(
 		return rc;
 	}
 
+#ifndef BDB_USE_BINARY_RW
+	/* cannot free individual elements of the entry */
 	attrs_free( save_attrs );
+#endif
 	return rc;
 }
 

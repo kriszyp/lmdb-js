@@ -156,7 +156,11 @@ int bdb_encode(Entry *e, struct berval **bv)
 /* Retrieve an Entry that was stored using bdb_encode above.
  * All we have to do is add the buffer address to all of the
  * stored offsets. We also use the stored attribute names to
- * pull AttributeDescriptions from our ad_cache.
+ * pull AttributeDescriptions from our ad_cache. To detect if
+ * the attributes of an Entry are later modified, we also store
+ * the address of the end of this block in e_private. Since
+ * modify_internal always allocs a new list of attrs to work
+ * with, we need to free that separately.
  */
 int bdb_decode(struct berval *bv, Entry **e)
 {
@@ -192,7 +196,6 @@ int bdb_decode(struct berval *bv, Entry **e)
 
 #define	entry_encode(a, b)	bdb_encode(a,b)
 #define	entry_decode(a, b)	bdb_decode(a,b)
-#define	entry_free(e)	ch_free(e)
 
 #endif	/* BDB_USE_BINARY_RW */
 
@@ -321,6 +324,14 @@ int bdb_entry_return(
 	BackendDB *be,
 	Entry *e )
 {
+#ifdef BDB_USE_BINARY_RW
+	/* bdb_modify_internal always operates on a dup'd set of attrs. */
+	if ((void *)e->e_attrs < (void *)e  ||
+		(void *)e->e_attrs > e->e_private)
+	    attrs_free(e->e_attrs);
+	ch_free(e);
+#else
 	entry_free( e );
+#endif
 	return 0;
 }
