@@ -52,6 +52,7 @@ static LDAP	*ld;
 #define T_DELETEOLDRDNSTR	"deleteoldrdn"
 
 
+static void usage LDAP_P(( const char *prog ));
 static int process_ldapmod_rec LDAP_P(( char *rbuf ));
 static int process_ldif_rec LDAP_P(( char *rbuf ));
 static void addmodifyop LDAP_P(( LDAPMod ***pmodsp, int modop, char *attr,
@@ -63,6 +64,29 @@ static void freepmods LDAP_P(( LDAPMod **pmods ));
 static int fromfile LDAP_P(( char *path, struct berval *bv ));
 static char *read_one_record LDAP_P(( FILE *fp ));
 
+static void
+usage( const char *prog )
+{
+    fprintf( stderr, "Add or modify entries from an LDAP server\n\n"
+	     "usage: %s [-abcknrvF] [-d debug-level] [-P version] [-h ldaphost]\n"
+	     "            [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile ]\n"
+	     "       a    - add values (default%s)\n"
+	     "       b    - read values from files (for binary attributes)\n"
+	     "       c    - continuous operation\n"
+	     "       D    - bind DN\n"
+	     "       d    - debug level\n"
+	     "       f    - read from file\n"
+	     "       F    - force all changes records to be used\n"
+	     "       h    - ldap host\n"
+	     "       n    - print adds, don't actually do them\n"
+	     "       p    - LDAP port\n"
+	     "       r    - replace values\n"
+	     "       v    - verbose mode\n"
+	     "       w    - password\n"
+	     , prog, (strcmp( prog, "ldapadd" ) ? " is to replace" : "") );
+    exit( 1 );
+}
+
 
 int
 main( int argc, char **argv )
@@ -70,13 +94,17 @@ main( int argc, char **argv )
     char		*infile, *rbuf, *start, *p, *q;
     FILE		*fp;
 	int		rc, i, use_ldif, authmethod, version, want_bindpw, debug;
-	char		*usage = "usage: %s [-abcknrvWF] [-d debug-level] [-h ldaphost] [-P version] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile ]\n";
 
     if (( prog = strrchr( argv[ 0 ], '/' )) == NULL ) {
 	prog = argv[ 0 ];
     } else {
 	++prog;
     }
+
+    // Print usage when no parameters
+    if( argc < 2 )
+	usage( prog );
+
     new = ( strcmp( prog, "ldapadd" ) == 0 );
 
     infile = NULL;
@@ -154,15 +182,12 @@ main( int argc, char **argv )
 		}
 		break;
 	default:
-	    fprintf( stderr, usage, prog );
-	    exit( 1 );
+	    usage( prog );
 	}
     }
 
-    if ( argc - optind != 0 ) {
-	fprintf( stderr, usage, prog );
-	exit( 1 );
-    }
+    if ( argc != optind )
+	usage( prog );
 
     if ( infile != NULL ) {
 	if (( fp = fopen( infile, "r" )) == NULL ) {
@@ -240,6 +265,10 @@ main( int argc, char **argv )
 	} else {
 	    rc = process_ldapmod_rec( start );
 	}
+
+	if( rc )
+	    fprintf( stderr, "%s() = %d\n",
+		     use_ldif ? "ldif_rec" : "ldapmod_rec" , rc );
 
 	free( rbuf );
     }
