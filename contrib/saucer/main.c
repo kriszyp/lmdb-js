@@ -41,7 +41,7 @@
 
 typedef struct {
 	char	*cmd;
-	int		(*func)();
+	int	(*func) (char **, int);
 	char	*help_msg;
 } CMDTABLE;
 
