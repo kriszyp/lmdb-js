@@ -543,7 +543,7 @@ connection_destroy( Connection *c )
 		c->c_peer_domain = NULL;
 	}
 	if(c->c_peer_name != NULL) {
-#ifdef LDAP_PF_lOCAL
+#ifdef LDAP_PF_LOCAL
 		/*
 		 * If peer was a domain socket, unlink. Mind you,
 		 * they may be un-named. Should we leave this to
