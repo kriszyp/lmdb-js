@@ -22,6 +22,12 @@ if [ x"$MONITORDB" = x"yes" -o x"$MONITORDB" = xmod ] ; then
 else
 	MON=nomonitor
 fi
+USE_SASL=${SLAPD_USE_SASL+yes}
+if [ x"$WITH_SASL" = x"yes" -a x"$USE_SASL" = x"yes" ] ; then
+	SASL="sasl"
+else
+	SASL="nosasl"
+fi
 sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${BACKEND}#//"				\
 	-e "s/^#${BACKENDTYPE}#//"			\
@@ -32,5 +38,6 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${AC_unique}#//"			\
 	-e "s/^#${MON}#//"				\
 	-e "s/^#${MONMOD}#//"				\
+	-e "s/^#${SASL}#//"				\
 	-e "s/@CACHETTL@/${CACHETTL}/"			\
 	-e "s/@ENTRY_LIMIT@/${CACHE_ENTRY_LIMIT}/"   

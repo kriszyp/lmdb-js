@@ -14,10 +14,12 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 MONITORDB=${AC_MONITOR-no}
+BACKLDAP=${AC_ldap-ldapno}
 PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}
 UNIQUE=${AC_unique-uniqueno}
+WITH_SASL=${AC_WITH_SASL-no}
 WITHTLS=${AC_WITHTLS-yes}
 
 DATADIR=./testdata
@@ -60,6 +62,7 @@ UNIQUECONF=$DATADIR/slapd-unique.conf
 LIMITSCONF=$DATADIR/slapd-limits.conf
 DNCONF=$DATADIR/slapd-dn.conf
 EMPTYDNCONF=$DATADIR/slapd-emptydn.conf
+IDASSERTCONF=$DATADIR/slapd-idassert.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
@@ -132,6 +135,8 @@ LDIFLIMITS=$DATADIR/test-limits.ldif
 LDIFDN=$DATADIR/test-dn.ldif
 LDIFEMPTYDN1=$DATADIR/test-emptydn1.ldif
 LDIFEMPTYDN2=$DATADIR/test-emptydn2.ldif
+LDIFIDASSERT1=$DATADIR/test-idassert1.ldif
+LDIFIDASSERT2=$DATADIR/test-idassert2.ldif
 MONITOR=""
 REFDN="c=US"
 BASEDN="dc=example,dc=com"
