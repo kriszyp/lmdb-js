@@ -19,9 +19,6 @@
 int
 main( int argc, char **argv )
 {
-	char		*type;
-	AttributeDescription *desc;
-	const char *text;
 	ID id;
 	int rc = EXIT_SUCCESS;
 
@@ -35,16 +32,6 @@ main( int argc, char **argv )
 	{
 		fprintf( stderr, "%s: database doesn't support necessary operations.\n",
 			progname );
-		exit( EXIT_FAILURE );
-	}
-
-	type = argv[argc - 1];
-
-	rc = slap_str2ad( type, &desc, &text );
-
-	if( rc != LDAP_SUCCESS ) {
-		fprintf( stderr, "%s: unrecognized attribute type: %s\n",
-			progname, text );
 		exit( EXIT_FAILURE );
 	}
 
@@ -76,6 +63,5 @@ main( int argc, char **argv )
 	(void) be->be_entry_close( be );
 
 	slap_tool_destroy();
-
 	return( rc );
 }
