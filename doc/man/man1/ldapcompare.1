@@ -69,7 +69,9 @@ using specified parameters.   The \fIDN\fP should be a distinguished
 name in the directory.  \fIAttr\fP should be a known attribute.  If
 followed by one colon, the assertion \fIvalue\fP should be provided
 as a string.  If followed by two colons, the base64 encoding of the
-value is provided.
+value is provided.  The result code of the compare is provided as
+the exit code and, unless ran with -z, the program prints
+TRUE, FALSE, or UNDEFINED on standard output.
 .LP
 .SH OPTIONS
 .TP
@@ -172,23 +174,17 @@ specified, the program will choose the best mechanism the server knows.
 Issue StartTLS (Transport Layer Security) extended operation. If you use
 .B \-ZZ\c
 , the command will require the operation to be successful.
-.SH EXAMPLE
+.SH EXAMPLES
 .nf
-    ldapcompare "uid=babs,dc=example,dc=com"  sn Jensen
     ldapcompare "uid=babs,dc=example,dc=com"  sn:Jensen
     ldapcompare "uid=babs,dc=example,dc=com"  sn::SmVuc2Vu
 .fi
 are all equivalent.
-.SH DIAGNOSTICS
-When -z is used, exit status is either 5 if the compare is false, or 6
-when the compare is true.  Errors result in other non-zero values.
-.br
-When -z is not used, exit status is zero if no errors occur.
-Errors result in a non-zero exit status and
-a diagnostic message being written to standard error.
-.SH BUGS
-Should have a way to specify a url for options or for large binary
-file compares.
+.SH LIMITATIONS
+Requiring the value be passed on the command line is limiting
+and introduces some security concerns.  The command should support
+a mechanism to specify the location (file name or URL) to read
+the value from.
 .SH "SEE ALSO"
 .BR ldap.conf (5),
 .BR ldif (5),

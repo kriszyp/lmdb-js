@@ -248,6 +248,7 @@ static int docompare(
 		} else if ( rc == LDAP_COMPARE_FALSE ) {
 			printf(_("FALSE\n"));
 		} else {
+			printf(_("UNDEFINED\n"));
 			ldap_perror( ld, "ldap_compare" );
 		}
 	}
