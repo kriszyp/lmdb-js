@@ -71,8 +71,8 @@ main( int argc, char **argv )
 {
     char		*infile, *rbuf, *start, *p, *q;
     FILE		*fp;
-    int			rc, i, use_ldif, authmethod;
-    char		*usage = "usage: %s [-abcknrvF] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile ]\n";
+    int			rc, i, use_ldif, authmethod, want_bindpw;
+    char		*usage = "usage: %s [-abcknrvWF] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile ]\n";
 
     if (( prog = strrchr( argv[ 0 ], '/' )) == NULL ) {
 	prog = argv[ 0 ];
@@ -82,10 +82,10 @@ main( int argc, char **argv )
     new = ( strcmp( prog, "ldapadd" ) == 0 );
 
     infile = NULL;
-    not = verbose = valsfromfiles = 0;
+    not = verbose = valsfromfiles = want_bindpw = 0;
     authmethod = LDAP_AUTH_SIMPLE;
 
-    while (( i = getopt( argc, argv, "FabckKnrtvh:p:D:w:d:f:" )) != EOF ) {
+    while (( i = getopt( argc, argv, "WFabckKnrtvh:p:D:w:d:f:" )) != EOF ) {
 	switch( i ) {
 	case 'a':	/* add */
 	    new = 1;
@@ -145,6 +145,9 @@ main( int argc, char **argv )
 	case 'v':	/* verbose mode */
 	    verbose++;
 	    break;
+	case 'W':
+		want_bindpw++;
+		break;
 	default:
 	    fprintf( stderr, usage, prog );
 	    exit( 1 );
@@ -173,6 +176,9 @@ main( int argc, char **argv )
 	}
 
 	ld->ld_deref = LDAP_DEREF_NEVER;	/* this seems prudent */
+
+	if (want_bindpw)
+		passwd = getpass("Enter LDAP Password: ");
 
 	if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	    ldap_perror( ld, "ldap_bind" );
