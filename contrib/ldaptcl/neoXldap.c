@@ -23,7 +23,7 @@
  * Requests for permission may be sent to NeoSoft Inc, 1770 St. James Place,
  * Suite 500, Houston, TX, 77056.
  *
- * $Id: neoXldap.c,v 1.5 1999/08/03 05:23:03 kunkee Exp $
+ * $OpenLDAP$
  *
  */
 
