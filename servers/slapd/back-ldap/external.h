@@ -62,6 +62,13 @@ extern int	ldap_back_group LDAP_P(( BackendDB *bd,
 	ObjectClass* group_oc,
 	AttributeDescription* group_at));
 
+extern int	ldap_back_attribute LDAP_P(( BackendDB *bd,
+	Connection *conn, Operation *op,
+	Entry *target,
+	const char* e_ndn,
+	AttributeDescription* entry_at,
+	const char ***vals));
+
 LDAP_END_DECL
 
 #endif /* _LDAP_EXTERNAL_H */
