@@ -84,7 +84,7 @@ query_containment(query_manager* qm,
 					}
 					if (mrule) { 
 						rc = value_match(&ret, fs->f_ava->aa_desc, mrule, 
-						 	SLAP_MR_ASSERTION_SYNTAX_MATCH, 
+						 	SLAP_MR_VALUE_OF_ASSERTION_SYNTAX, 
 							&(fi->f_ava->aa_value), 
 							&(fs->f_ava->aa_value), &text); 
 						if (rc != LDAP_SUCCESS) {
@@ -262,26 +262,26 @@ int base_scope_compare(
 	int scope_stored, 
 	int scope_incoming	)
 {
-	struct berval* ndn_incoming = NULL; 
-	struct berval* pdn_incoming = NULL; 
-	struct berval* ndn_stored = NULL; 
+	struct berval ndn_incoming = { 0L, NULL }; 
+	struct berval pdn_incoming = { 0L, NULL };
+	struct berval ndn_stored = { 0L, NULL };
 
 	int i;
 
 	if (scope_stored < scope_incoming)
 		return 0;
 
-	dnNormalize(NULL, dn_incoming, &ndn_incoming);  
-	dnNormalize(NULL, dn_stored, &ndn_stored);  
+	dnNormalize2(NULL, dn_incoming, &ndn_incoming);  
+	dnNormalize2(NULL, dn_stored, &ndn_stored);  
 	
-	i = dnIsSuffix(ndn_incoming, ndn_stored);
+	i = dnIsSuffix(&ndn_incoming, &ndn_stored);
 	
 	if ( i == 0 )
 		return 0;
 	
 	switch(scope_stored) {
 	case LDAP_SCOPE_BASE:
-		if (strlen(ndn_incoming->bv_val) == strlen(ndn_stored->bv_val))
+		if (strlen(ndn_incoming.bv_val) == strlen(ndn_stored.bv_val))
 			return 1;
 		else	
 			return 0;
@@ -289,14 +289,14 @@ int base_scope_compare(
 	case LDAP_SCOPE_ONELEVEL:
 		switch(scope_incoming){
 		case LDAP_SCOPE_BASE:
-			dnParent(ndn_incoming, pdn_incoming); 
-			if(strcmp(pdn_incoming->bv_val,ndn_stored->bv_val) == 0)
+			dnParent(&ndn_incoming, &pdn_incoming); 
+			if(strcmp(pdn_incoming.bv_val, ndn_stored.bv_val) == 0)
 				return 1;
 			else
 				return 0;
 			break;
 		case LDAP_SCOPE_ONELEVEL:
-			if (ndn_incoming->bv_len == ndn_stored->bv_len)
+			if (ndn_incoming.bv_len == ndn_stored.bv_len)
 				return 1;
 			else
 				return 0;
@@ -304,14 +304,14 @@ int base_scope_compare(
 		default:
 			return 0;
 			break;
-		}				
+		}
 	case LDAP_SCOPE_SUBTREE:
 		return 1;
 		break;
 	default:
 		return 0;
 		break;	
-    }		
+    }
 }
 
 /* Add query to query cache */

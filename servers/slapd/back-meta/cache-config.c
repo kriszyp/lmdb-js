@@ -220,7 +220,7 @@ meta_back_cache_config(
 #else
 		Debug( LDAP_DEBUG_ANY, "  attributes: \n", 0, 0, 0 );
 #endif
-		if ( attrarray = qm->attr_sets[i].attrs ) {
+		if ( ( attrarray = qm->attr_sets[i].attrs ) != NULL ) {
 			for ( i=0; attrarray[i].an_name.bv_val; i++ ) 
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_META, DETAIL1, "\t%s\n",
