@@ -984,6 +984,8 @@ if test "$ol_enable_dnssrv" != no -a "$ol_link_dnssrv" = no ; then
 	AC_MSG_ERROR([DNSSRV requires res_query()])
 fi
 
+AC_CHECK_FUNCS( hstrerror )
+
 dnl ----------------------------------------------------------------
 dnl PF_INET6 support requires getaddrinfo and INET6_ADDRSTRLEN
 dnl PF_LOCAL may use getaddrinfo in available
