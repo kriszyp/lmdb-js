@@ -122,7 +122,9 @@ install-conf: FORCE
 		else \
 			mode=644 ; \
 		fi ; \
-		$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' $(srcdir)/$$i > $$tmpcf ; \
+		$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' \
+			-e 's;%LOCALSTATEDIR%;$(localstatedir);' \
+			$(srcdir)/$$i > $$tmpcf ; \
 		if test ! -f $(sysconfdir)/$$i; then \
 			echo "installing $$i in $(sysconfdir)"; \
 			echo "$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(sysconfdir)/$$i"; \
