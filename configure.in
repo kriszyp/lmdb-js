@@ -382,12 +382,22 @@ elif test $ol_enable_ldbm = no ; then
 		$ol_enable_shell = no -a \
 		$ol_enable_sql = no -a \
 		$ol_enable_tcl = no ; then
-		AC_MSG_ERROR([slapd requires a backend])
+
+		if test $ol_enable_slapd = yes ; then
+			AC_MSG_ERROR([slapd requires a backend])
+		else
+			AC_MSG_WARN([skipping slapd, no backend specified])
+			ol_enable_slapd=no
+		fi
 	fi
 
 	ol_with_ldbm_api=no
 	ol_with_ldbm_type=no
 	ol_with_ldbm_module=static
+
+	if test $ol_enable_bdb != no ; then
+		ol_with_ldbm_api=berkeley
+	fi
 
 else
 	dnl SLAPD with LDBM
@@ -402,6 +412,21 @@ else
 	if test $ol_with_ldbm_api = ndbm -a \
 		$ol_with_ldbm_type = btree ; then
 		AC_MSG_ERROR([NDBM only supports LDBM type hash])
+	fi
+
+	if test $ol_enable_bdb = yes ; then
+		if test $ol_with_ldbm_api = auto ; then
+			ol_with_ldbm_api=berkeley
+		elif test $ol_with_ldbm_api != berkeley ; then
+			AC_MSG_ERROR([LDBM API not compatible with BDB])
+		fi
+
+	elif test $ol_enable_bdb = auto ; then
+		if test $ol_with_ldbm_api != berkeley \
+			-o $ol_with_ldbm_api != auto ; then
+			AC_MSG_WARN([LDBM API not compatible with BDB, disabling BDB])
+			ol_enable_bdb=no
+		fi
 	fi
 fi
 
@@ -1752,7 +1777,7 @@ if test $ol_with_ldbm_api = auto \
 			[define this if Berkeley DB is available])
 
 		ol_link_ldbm=berkeley
-		ol_with_ldbm_api=db
+		ol_with_ldbm_api=berkeley
 
 		if test $ol_with_ldbm_type = hash ; then
 			AC_DEFINE(LDBM_USE_DBHASH,1,
@@ -1768,6 +1793,12 @@ if test $ol_with_ldbm_api = auto \
 			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_db"
 		fi
 	fi
+fi
+
+if test $ol_enable_bdb = yes -a $ol_link_ldbm != berkeley ; then
+	AC_MSG_ERROR(BerkeleyDB not availabl)
+elif test $ol_enable_bdb != no -a $ol_link_ldbm != no ; then
+	ol_enable_bdb=yes
 fi
 
 if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then
@@ -2361,7 +2392,7 @@ if test "$ol_enable_ldap" != no ; then
 	fi
 fi
 
-if test "$ol_link_ldbm" != no ; then
+if test "$ol_link_ldbm" != no -a $ol_enable_ldbm != no; then
 	AC_DEFINE(SLAPD_LDBM,1,[define to support LDBM backend])
 	BUILD_SLAPD=yes
 	BUILD_LDBM=yes
