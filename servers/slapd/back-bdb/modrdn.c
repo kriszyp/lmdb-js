@@ -175,7 +175,9 @@ retry:	/* transaction retry */
 
 	e = ei->bei_e;
 	/* FIXME: dn2entry() should return non-glue entry */
-	if (( rs->sr_err == DB_NOTFOUND ) || ( !manageDSAit && e && is_entry_glue( e ))) {
+	if (( rs->sr_err == DB_NOTFOUND ) ||
+		( !manageDSAit && e && is_entry_glue( e )))
+	{
 		if( e != NULL ) {
 			rs->sr_matched = ch_strdup( e->e_dn );
 			rs->sr_ref = is_entry_referral( e )
@@ -275,6 +277,7 @@ retry:	/* transaction retry */
 	}
 	ei->bei_state |= CACHE_ENTRY_NO_KIDS;
 #endif
+
 	if (!manageDSAit && is_entry_referral( e ) ) {
 		/* parent is a referral, don't allow add */
 		rs->sr_ref = get_entry_referrals( op, e );
@@ -633,7 +636,8 @@ retry:	/* transaction retry */
 							"no access to new superior\n", 
 							0, 0, 0 );
 #endif
-						rs->sr_text = "no write access to new superior's children";
+						rs->sr_text =
+							"no write access to new superior's children";
 						goto return_results;
 					}
 
@@ -686,7 +690,9 @@ retry:	/* transaction retry */
 	}
 
 	/* Build target dn and make sure target entry doesn't exist already. */
-	if (!new_dn.bv_val) build_new_dn( &new_dn, new_parent_dn, &op->oq_modrdn.rs_newrdn, NULL ); 
+	if (!new_dn.bv_val) {
+		build_new_dn( &new_dn, new_parent_dn, &op->oq_modrdn.rs_newrdn, NULL ); 
+	}
 
 	if (!new_ndn.bv_val) {
 		struct berval bv = {0, NULL};
@@ -701,7 +707,6 @@ retry:	/* transaction retry */
 	Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: new ndn=%s\n",
 		new_ndn.bv_val, 0, 0 );
 #endif
-
 
 	/* Shortcut the search */
 	nei = neip ? neip : eip;
@@ -725,8 +730,8 @@ retry:	/* transaction retry */
 	/* Get attribute type and attribute value of our new rdn, we will
 	 * need to add that to our new entry
 	 */
-	if ( !new_rdn && ldap_bv2rdn_x( &op->oq_modrdn.rs_newrdn, &new_rdn, (char **)&rs->sr_text,
-		LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ) )
+	if ( !new_rdn && ldap_bv2rdn_x( &op->oq_modrdn.rs_newrdn, &new_rdn,
+		(char **)&rs->sr_text, LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ) )
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
@@ -746,21 +751,17 @@ retry:	/* transaction retry */
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, RESULTS, 
-		"bdb_modrdn: new_rdn_type=\"%s\", "
-		"new_rdn_val=\"%s\"\n",
-		new_rdn[ 0 ]->la_attr.bv_val, 
-		new_rdn[ 0 ]->la_value.bv_val, 0 );
+		"bdb_modrdn: new_rdn_type=\"%s\", new_rdn_val=\"%s\"\n",
+		new_rdn[ 0 ]->la_attr.bv_val, new_rdn[ 0 ]->la_value.bv_val, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
-		"bdb_modrdn: new_rdn_type=\"%s\", "
-		"new_rdn_val=\"%s\"\n",
-		new_rdn[ 0 ]->la_attr.bv_val,
-		new_rdn[ 0 ]->la_value.bv_val, 0 );
+		"bdb_modrdn: new_rdn_type=\"%s\", new_rdn_val=\"%s\"\n",
+		new_rdn[ 0 ]->la_attr.bv_val, new_rdn[ 0 ]->la_value.bv_val, 0 );
 #endif
 
 	if ( op->oq_modrdn.rs_deleteoldrdn ) {
-		if ( !old_rdn && ldap_bv2rdn_x( &op->o_req_dn, &old_rdn, (char **)&rs->sr_text,
-			LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ) )
+		if ( !old_rdn && ldap_bv2rdn_x( &op->o_req_dn, &old_rdn,
+			(char **)&rs->sr_text, LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ) )
 		{
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, ERR, 
@@ -805,13 +806,13 @@ retry:	/* transaction retry */
 	}
 
 	/* nested transaction */
-	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, 
-		bdb->bi_db_opflags );
+	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, bdb->bi_db_opflags );
 	rs->sr_text = NULL;
 	if( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
-			"bdb_modrdn: txn_begin(2) failed: %s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
+			"bdb_modrdn: txn_begin(2) failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: txn_begin(2) failed: %s (%d)\n",
@@ -853,8 +854,9 @@ retry:	/* transaction retry */
 	 * already happened, must free the names. The frees are
 	 * done in bdb_cache_modrdn().
 	 */
-	if( e->e_nname.bv_val < e->e_bv.bv_val || e->e_nname.bv_val >
-		e->e_bv.bv_val + e->e_bv.bv_len ) {
+	if( e->e_nname.bv_val < e->e_bv.bv_val ||
+		e->e_nname.bv_val > e->e_bv.bv_val + e->e_bv.bv_len )
+	{
 		e->e_name.bv_val = NULL;
 		e->e_nname.bv_val = NULL;
 	}
@@ -896,7 +898,6 @@ retry:	/* transaction retry */
 	/* modify entry */
 	rs->sr_err = bdb_modify_internal( op, lt2, &mod[0], e,
 		&rs->sr_text, textbuf, textlen );
-
 	if( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 

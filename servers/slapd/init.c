@@ -138,7 +138,8 @@ slap_init( int mode, const char *name )
 	
 			(void) ldap_pvt_thread_initialize();
 
-			ldap_pvt_thread_pool_init(&connection_pool, connection_pool_max, 0);
+			ldap_pvt_thread_pool_init( &connection_pool,
+				connection_pool_max, 0);
 
 			ldap_pvt_thread_mutex_init( &entry2str_mutex );
 			ldap_pvt_thread_mutex_init( &replog_mutex );

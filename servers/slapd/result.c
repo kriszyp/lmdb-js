@@ -1672,8 +1672,7 @@ int slap_read_controls(
 int
 slap_map_api2result( SlapReply *rs )
 {
-	switch(rs->sr_err)
-	{
+	switch(rs->sr_err) {
 	case LDAP_SERVER_DOWN:
 		return LDAP_UNAVAILABLE;
 	case LDAP_LOCAL_ERROR:
@@ -1710,8 +1709,7 @@ slap_map_api2result( SlapReply *rs )
 	case LDAP_REFERRAL_LIMIT_EXCEEDED:
 		return LDAP_LOOP_DETECT;
 	default:
-		if ( LDAP_API_ERROR(rs->sr_err) )
-			return LDAP_OTHER;
+		if ( LDAP_API_ERROR(rs->sr_err) ) return LDAP_OTHER;
 		return rs->sr_err;
 	}
 }
