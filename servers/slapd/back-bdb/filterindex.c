@@ -238,6 +238,11 @@ list_candidates(
 #endif
 
 	for ( f = flist; f != NULL; f = f->f_next ) {
+		/* ignore precomputed scopes */
+		if ( f->f_choice == SLAPD_FILTER_COMPUTED &&
+		     f->f_result == LDAP_SUCCESS ) {
+			continue;
+		}
 		rc = bdb_filter_candidates( op, f, save, tmp,
 			save+BDB_IDL_UM_SIZE );
 
