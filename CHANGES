@@ -1,7 +1,7 @@
 OpenLDAP Change Log
 
-Changes included in OpenLDAP 1.1.x
-	CVS Tag: OPENLDAP_REL_ENG_1_1
+Changes included in OpenLDAP 1.1.3
+	CVS Tag: OPENLDAP_REL_ENG_1_1_3
 	Updated LICENSE to allow open use of linked software
 	Updated docs
 	Fixed slapd/ldbm/delete initialization bug (ITS#31)
