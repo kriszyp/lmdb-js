@@ -73,13 +73,7 @@ backsql_modify_delete_all_values(
 		return LDAP_SUCCESS;
 	}
 
-#ifdef BACKSQL_ARBITRARY_KEY
-	rc = backsql_BindParamStr( asth, 1,
-			e_id->eid_keyval.bv_val,
-			BACKSQL_MAX_KEY_LEN );
-#else /* ! BACKSQL_ARBITRARY_KEY */
-	rc = backsql_BindParamID( asth, 1, &e_id->eid_keyval );
-#endif /* ! BACKSQL_ARBITRARY_KEY */
+	rc = backsql_BindParamID( asth, 1, SQL_PARAM_INPUT, &e_id->eid_keyval );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_modify_delete_all_values(): "
@@ -143,35 +137,59 @@ backsql_modify_delete_all_values(
 					rs->sr_text = "SQL-backend error";
 					return rs->sr_err = LDAP_OTHER;
 				}
-				return LDAP_SUCCESS;
+
+				continue;
 			}
 
 	   		if ( BACKSQL_IS_DEL( at->bam_expect_return ) ) {
 				pno = 1;
-				SQLBindParameter( sth, 1,
-					SQL_PARAM_OUTPUT,
-					SQL_C_ULONG,
-					SQL_INTEGER,
-					0, 0, &prc, 0, 0 );
+				rc = backsql_BindParamInt( sth, 1,
+						SQL_PARAM_OUTPUT, &prc );
+				if ( rc != SQL_SUCCESS ) {
+					Debug( LDAP_DEBUG_TRACE,
+						"   backsql_modify_delete_all_values(): "
+						"error binding output parameter for %s[%d]\n",
+						at->bam_ad->ad_cname.bv_val, i, 0 );
+					backsql_PrintErrors( bi->db_env, dbh, 
+						sth, rc );
+					SQLFreeStmt( sth, SQL_DROP );
+
+					if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
+						rs->sr_text = "SQL-backend error";
+						return rs->sr_err = LDAP_OTHER;
+					}
+
+					continue;
+				}
+
 			} else {
 				pno = 0;
 			}
 			po = ( BACKSQL_IS_DEL( at->bam_param_order ) ) > 0;
+			rc = backsql_BindParamID( sth, pno + 1 + po,
+				SQL_PARAM_INPUT, &e_id->eid_keyval );
+			if ( rc != SQL_SUCCESS ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"   backsql_modify_delete_all_values(): "
+					"error binding keyval parameter for %s[%d]\n",
+					at->bam_ad->ad_cname.bv_val, i, 0 );
+				backsql_PrintErrors( bi->db_env, dbh, 
+					sth, rc );
+				SQLFreeStmt( sth, SQL_DROP );
+
+				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
+					rs->sr_text = "SQL-backend error";
+					return rs->sr_err = LDAP_OTHER;
+				}
+
+				continue;
+			}
 #ifdef BACKSQL_ARBITRARY_KEY
-			SQLBindParameter( sth, pno + 1 + po,
-				SQL_PARAM_INPUT,
-				SQL_C_CHAR, SQL_VARCHAR,
-				0, 0, e_id->eid_keyval.bv_val, 
-				0, 0 );
 			Debug( LDAP_DEBUG_TRACE,
 				"   backsql_modify_delete_all_values() "
 				"arg%d=%s\n",
 				pno + 1 + po, e_id->eid_keyval.bv_val, 0 );
 #else /* ! BACKSQL_ARBITRARY_KEY */
-			SQLBindParameter( sth, pno + 1 + po,
-				SQL_PARAM_INPUT,
-				SQL_C_ULONG, SQL_INTEGER,
-				0, 0, &e_id->eid_keyval, 0, 0 );
 			Debug( LDAP_DEBUG_TRACE,
 				"   backsql_modify_delete_all_values() "
 				"arg%d=%lu\n",
@@ -183,11 +201,24 @@ backsql_modify_delete_all_values(
 			 * maybe need binary bind?
 			 */
 			col_len = strlen( row.cols[ i ] );
-			SQLBindParameter( sth, pno + 2 - po,
-				SQL_PARAM_INPUT,
-				SQL_C_CHAR, SQL_CHAR,
-				col_len, 0, row.cols[ i ],
-				col_len, 0 );
+			rc = backsql_BindParamStr( sth, pno + 2 - po,
+				SQL_PARAM_INPUT, row.cols[ i ], col_len );
+			if ( rc != SQL_SUCCESS ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"   backsql_modify_delete_all_values(): "
+					"error binding value parameter for %s[%d]\n",
+					at->bam_ad->ad_cname.bv_val, i, 0 );
+				backsql_PrintErrors( bi->db_env, dbh, 
+					sth, rc );
+				SQLFreeStmt( sth, SQL_DROP );
+
+				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
+					rs->sr_text = "SQL-backend error";
+					return rs->sr_err = LDAP_OTHER;
+				}
+
+				continue;
+			}
 	 
 			Debug( LDAP_DEBUG_TRACE, 
 				"   backsql_modify_delete_all_values(): "
@@ -393,28 +424,47 @@ add_only:;
 
 				if ( BACKSQL_IS_ADD( at->bam_expect_return ) ) {
 					pno = 1;
-	      				SQLBindParameter( sth, 1,
-						SQL_PARAM_OUTPUT,
-						SQL_C_ULONG, SQL_INTEGER,
-						0, 0, &prc, 0, 0);
+	      				rc = backsql_BindParamInt( sth, 1,
+						SQL_PARAM_OUTPUT, &prc );
+					if ( rc != SQL_SUCCESS ) {
+						Debug( LDAP_DEBUG_TRACE,
+							"   backsql_modify_internal(): "
+							"error binding output parameter for %s[%d]\n",
+							at->bam_ad->ad_cname.bv_val, i, 0 );
+						backsql_PrintErrors( bi->db_env, dbh, 
+							sth, rc );
+						SQLFreeStmt( sth, SQL_DROP );
+
+						rs->sr_text = "SQL-backend error";
+						rs->sr_err = LDAP_OTHER;
+						goto done;
+					}
+	 
 				} else {
 	      				pno = 0;
 				}
 				po = ( BACKSQL_IS_ADD( at->bam_param_order ) ) > 0;
+				rc = backsql_BindParamID( sth, pno + 1 + po,
+					SQL_PARAM_INPUT, &e_id->eid_keyval );
+				if ( rc != SQL_SUCCESS ) {
+					Debug( LDAP_DEBUG_TRACE,
+						"   backsql_modify_internal(): "
+						"error binding keyval parameter for %s[%d]\n",
+						at->bam_ad->ad_cname.bv_val, i, 0 );
+					backsql_PrintErrors( bi->db_env, dbh, 
+						sth, rc );
+					SQLFreeStmt( sth, SQL_DROP );
+
+					rs->sr_text = "SQL-backend error";
+					rs->sr_err = LDAP_OTHER;
+					goto done;
+				}
 #ifdef BACKSQL_ARBITRARY_KEY
-				SQLBindParameter( sth, pno + 1 + po,
-					SQL_PARAM_INPUT, 
-					SQL_C_CHAR, SQL_VARCHAR,
-					0, 0, e_id->eid_keyval.bv_val, 0, 0 );
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "
 					"arg%d=\"%s\"\n", 
 					pno + 1 + po, e_id->eid_keyval.bv_val, 0 );
 #else /* ! BACKSQL_ARBITRARY_KEY */
-				SQLBindParameter( sth, pno + 1 + po,
-					SQL_PARAM_INPUT, 
-					SQL_C_ULONG, SQL_INTEGER,
-					0, 0, &e_id->eid_keyval, 0, 0 );
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "
 					"arg%d=\"%lu\"\n", 
@@ -425,11 +475,21 @@ add_only:;
 				 * check for syntax needed here
 				 * maybe need binary bind?
 				 */
-				SQLBindParameter( sth, pno + 2 - po,
-					SQL_PARAM_INPUT,
-					SQL_C_CHAR, SQL_CHAR,
-					at_val->bv_len, 0, at_val->bv_val, 
-					at_val->bv_len, 0 );
+				rc = backsql_BindParamBerVal( sth, pno + 2 - po,
+					SQL_PARAM_INPUT, at_val );
+				if ( rc != SQL_SUCCESS ) {
+					Debug( LDAP_DEBUG_TRACE,
+						"   backsql_modify_internal(): "
+						"error binding value parameter for %s[%d]\n",
+						at->bam_ad->ad_cname.bv_val, i, 0 );
+					backsql_PrintErrors( bi->db_env, dbh, 
+						sth, rc );
+					SQLFreeStmt( sth, SQL_DROP );
+
+					rs->sr_text = "SQL-backend error";
+					rs->sr_err = LDAP_OTHER;
+					goto done;
+				}
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "
 					"arg%d=\"%s\"; executing \"%s\"\n", 
@@ -507,34 +567,74 @@ add_only:;
 
 				if ( BACKSQL_IS_DEL( at->bam_expect_return ) ) {
 					pno = 1;
-					SQLBindParameter( sth, 1,
-						SQL_PARAM_OUTPUT,
-						SQL_C_ULONG, SQL_INTEGER,
-						0, 0, &prc, 0, 0 );
+					rc = backsql_BindParamInt( sth, 1,
+						SQL_PARAM_OUTPUT, &prc );
+					if ( rc != SQL_SUCCESS ) {
+						Debug( LDAP_DEBUG_TRACE,
+							"   backsql_modify_internal(): "
+							"error binding output parameter for %s[%d]\n",
+							at->bam_ad->ad_cname.bv_val, i, 0 );
+						backsql_PrintErrors( bi->db_env, dbh, 
+							sth, rc );
+						SQLFreeStmt( sth, SQL_DROP );
+
+						rs->sr_text = "SQL-backend error";
+						rs->sr_err = LDAP_OTHER;
+						goto done;
+					}
+
 				} else {
 					pno = 0;
 				}
 				po = ( BACKSQL_IS_DEL( at->bam_param_order ) ) > 0;
+				rc = backsql_BindParamID( sth, pno + 1 + po,
+					SQL_PARAM_INPUT, &e_id->eid_keyval );
+				if ( rc != SQL_SUCCESS ) {
+					Debug( LDAP_DEBUG_TRACE,
+						"   backsql_modify_internal(): "
+						"error binding keyval parameter for %s[%d]\n",
+						at->bam_ad->ad_cname.bv_val, i, 0 );
+					backsql_PrintErrors( bi->db_env, dbh, 
+						sth, rc );
+					SQLFreeStmt( sth, SQL_DROP );
+
+					rs->sr_text = "SQL-backend error";
+					rs->sr_err = LDAP_OTHER;
+					goto done;
+				}
 #ifdef BACKSQL_ARBITRARY_KEY
-				SQLBindParameter( sth, pno + 1 + po,
-					SQL_PARAM_INPUT, 
-					SQL_C_CHAR, SQL_VARCHAR,
-					0, 0, e_id->eid_keyval.bv_val, 0, 0 );
+				Debug( LDAP_DEBUG_TRACE,
+					"   backsql_modify_internal(): "
+					"arg%d=\"%s\"\n", 
+					pno + 1 + po, e_id->eid_keyval.bv_val, 0 );
 #else /* ! BACKSQL_ARBITRARY_KEY */
-				SQLBindParameter( sth, pno + 1 + po,
-					SQL_PARAM_INPUT, 
-					SQL_C_ULONG, SQL_INTEGER,
-					0, 0, &e_id->eid_keyval, 0, 0 );
+				Debug( LDAP_DEBUG_TRACE,
+					"   backsql_modify_internal(): "
+					"arg%d=\"%lu\"\n", 
+					pno + 1 + po, e_id->eid_keyval, 0 );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
 				/*
 				 * check for syntax needed here 
 				 * maybe need binary bind?
 				 */
-				SQLBindParameter( sth, pno + 2 - po,
-					SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR,
-					at_val->bv_len, 0, at_val->bv_val, 
-					at_val->bv_len, 0 );
+				rc = backsql_BindParamBerVal( sth, pno + 2 - po,
+					SQL_PARAM_INPUT, at_val );
+				if ( rc != SQL_SUCCESS ) {
+					Debug( LDAP_DEBUG_TRACE,
+						"   backsql_modify_internal(): "
+						"error binding value parameter for %s[%d]\n",
+						at->bam_ad->ad_cname.bv_val, i, 0 );
+					backsql_PrintErrors( bi->db_env, dbh, 
+						sth, rc );
+					SQLFreeStmt( sth, SQL_DROP );
+
+					if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
+						rs->sr_text = "SQL-backend error";
+						rs->sr_err = LDAP_OTHER;
+						goto done;
+					}
+				}
 
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "
@@ -672,18 +772,49 @@ backsql_add_attr(
 
 		if ( BACKSQL_IS_ADD( at_rec->bam_expect_return ) ) {
 			pno = 1;
-			SQLBindParameter( sth, 1, SQL_PARAM_OUTPUT,
-					SQL_C_ULONG, SQL_INTEGER,
-					0, 0, &prc, 0, 0 );
+			rc = backsql_BindParamInt( sth, 1, SQL_PARAM_OUTPUT, &prc );
+			if ( rc != SQL_SUCCESS ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"   backsql_add_attr(): "
+					"error binding output parameter for %s[%d]\n",
+					at_rec->bam_ad->ad_cname.bv_val, i, 0 );
+				backsql_PrintErrors( bi->db_env, dbh, 
+					sth, rc );
+				SQLFreeStmt( sth, SQL_DROP );
+
+				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
+					rs->sr_text = "SQL-backend error";
+					return rs->sr_err = LDAP_OTHER;
+				}
+
+				return LDAP_SUCCESS;
+			}
+
 		} else {
 			pno = 0;
 		}
 
 		po = ( BACKSQL_IS_ADD( at_rec->bam_param_order ) ) > 0;
 		currpos = pno + 1 + po;
-		SQLBindParameter( sth, currpos,
-				SQL_PARAM_INPUT, SQL_C_ULONG,
-				SQL_INTEGER, 0, 0, &new_keyval, 0, 0 );
+		rc = backsql_BindParamInt( sth, currpos,
+				SQL_PARAM_INPUT, &new_keyval );
+		if ( rc != SQL_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"   backsql_add_attr(): "
+				"error binding keyval parameter for %s[%d]\n",
+				at_rec->bam_ad->ad_cname.bv_val, i, 0 );
+			backsql_PrintErrors( bi->db_env, dbh, 
+				sth, rc );
+			SQLFreeStmt( sth, SQL_DROP );
+
+			if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
+				rs->sr_text = "SQL-backend error";
+				return rs->sr_err = LDAP_OTHER;
+			}
+
+			return LDAP_SUCCESS;
+		}
+
 		currpos = pno + 2 - po;
 
 		/*
@@ -691,8 +822,23 @@ backsql_add_attr(
 		 * maybe need binary bind?
 		 */
 
-		backsql_BindParamStr( sth, currpos,
-				at_val->bv_val, at_val->bv_len + 1 );
+		rc = backsql_BindParamBerVal( sth, currpos, SQL_PARAM_INPUT, at_val );
+		if ( rc != SQL_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"   backsql_add_attr(): "
+				"error binding value parameter for %s[%d]\n",
+				at_rec->bam_ad->ad_cname.bv_val, i, 0 );
+			backsql_PrintErrors( bi->db_env, dbh, 
+				sth, rc );
+			SQLFreeStmt( sth, SQL_DROP );
+
+			if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
+				rs->sr_text = "SQL-backend error";
+				return rs->sr_err = LDAP_OTHER;
+			}
+
+			return LDAP_SUCCESS;
+		}
 
 #ifdef LDAP_DEBUG
 		snprintf( logbuf, sizeof( logbuf ), "val[%lu], id=%lu",
@@ -958,8 +1104,20 @@ backsql_add( Operation *op, SlapReply *rs )
 	}
 
 	if ( BACKSQL_IS_ADD( oc->bom_expect_return ) ) {
-		SQLBindParameter( sth, 1, SQL_PARAM_OUTPUT, SQL_C_ULONG, 
-				SQL_INTEGER, 0, 0, &new_keyval, 0, 0 );
+		rc = backsql_BindParamInt( sth, 1, SQL_PARAM_OUTPUT, &new_keyval );
+		if ( rc != SQL_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"   backsql_add_attr(): "
+				"error binding keyval parameter for objectClass %s\n",
+				oc->bom_oc->soc_cname.bv_val, 0, 0 );
+			backsql_PrintErrors( bi->db_env, dbh, 
+				sth, rc );
+			SQLFreeStmt( sth, SQL_DROP );
+
+			rs->sr_text = "SQL-backend error";
+			rs->sr_err = LDAP_OTHER;
+			goto done;
+		}
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): executing \"%s\"\n",
@@ -1104,18 +1262,65 @@ backsql_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 	
-	backsql_BindParamStr( sth, 1, realdn.bv_val, BACKSQL_MAX_DN_LEN );
-	SQLBindParameter( sth, 2, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
-			0, 0, &oc->bom_id, 0, 0 );
-#ifdef BACKSQL_ARBITRARY_KEY
-	SQLBindParameter( sth, 3, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR,
-			0, 0, parent_id.eid_id.bv_val, 0, 0 );
-#else /* ! BACKSQL_ARBITRARY_KEY */
-	SQLBindParameter( sth, 3, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
-			0, 0, &parent_id.eid_id, 0, 0 );
-#endif /* ! BACKSQL_ARBITRARY_KEY */
-	SQLBindParameter( sth, 4, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
-			0, 0, &new_keyval, 0, 0 );
+	rc = backsql_BindParamBerVal( sth, 1, SQL_PARAM_INPUT, &realdn );
+	if ( rc != SQL_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"   backsql_add_attr(): "
+			"error binding DN parameter for objectClass %s\n",
+			oc->bom_oc->soc_cname.bv_val, 0, 0 );
+		backsql_PrintErrors( bi->db_env, dbh, 
+			sth, rc );
+		SQLFreeStmt( sth, SQL_DROP );
+
+		rs->sr_text = "SQL-backend error";
+		rs->sr_err = LDAP_OTHER;
+		goto done;
+	}
+
+	rc = backsql_BindParamInt( sth, 2, SQL_PARAM_INPUT, &oc->bom_id );
+	if ( rc != SQL_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"   backsql_add_attr(): "
+			"error binding objectClass ID parameter for objectClass %s\n",
+			oc->bom_oc->soc_cname.bv_val, 0, 0 );
+		backsql_PrintErrors( bi->db_env, dbh, 
+			sth, rc );
+		SQLFreeStmt( sth, SQL_DROP );
+
+		rs->sr_text = "SQL-backend error";
+		rs->sr_err = LDAP_OTHER;
+		goto done;
+	}
+
+	rc = backsql_BindParamID( sth, 3, SQL_PARAM_INPUT, &parent_id.eid_id );
+	if ( rc != SQL_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"   backsql_add_attr(): "
+			"error binding parent ID parameter for objectClass %s\n",
+			oc->bom_oc->soc_cname.bv_val, 0, 0 );
+		backsql_PrintErrors( bi->db_env, dbh, 
+			sth, rc );
+		SQLFreeStmt( sth, SQL_DROP );
+
+		rs->sr_text = "SQL-backend error";
+		rs->sr_err = LDAP_OTHER;
+		goto done;
+	}
+
+	rc = backsql_BindParamInt( sth, 4, SQL_PARAM_INPUT, &new_keyval );
+	if ( rc != SQL_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"   backsql_add_attr(): "
+			"error binding entry ID parameter for objectClass %s\n",
+			oc->bom_oc->soc_cname.bv_val, 0, 0 );
+		backsql_PrintErrors( bi->db_env, dbh, 
+			sth, rc );
+		SQLFreeStmt( sth, SQL_DROP );
+
+		rs->sr_text = "SQL-backend error";
+		rs->sr_err = LDAP_OTHER;
+		goto done;
+	}
 
 	Debug( LDAP_DEBUG_TRACE, "   backsql_add(): executing \"%s\" for dn \"%s\"\n",
 			bi->insentry_query, op->oq_add.rs_e->e_name.bv_val, 0 );

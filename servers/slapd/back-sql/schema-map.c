@@ -633,11 +633,12 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 		return LDAP_OTHER;
 	}
 
-	rc = backsql_BindParamID( sth, 1, &oc_id );
+	rc = backsql_BindParamInt( sth, 1, SQL_PARAM_INPUT, &oc_id );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
 			"error binding param \"oc_id\" for at_query\n", 0, 0, 0 );
 		backsql_PrintErrors( si->db_env, dbh, sth, rc );
+		SQLFreeStmt( sth, SQL_DROP );
 		return LDAP_OTHER;
 	}
 

@@ -160,17 +160,31 @@ void backsql_init_search( backsql_srch_info *bsi,
 
 RETCODE backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char* query, int timeout );
 
-#define backsql_BindParamStr( sth, par_ind, str, maxlen ) 		\
+#define backsql_BindParamStr( sth, par_ind, io, str, maxlen ) 		\
 	SQLBindParameter( (sth), (SQLUSMALLINT)(par_ind), 		\
-			SQL_PARAM_INPUT,				\
-			SQL_C_CHAR, SQL_VARCHAR,			\
+			(io), SQL_C_CHAR, SQL_VARCHAR,			\
          		(SQLUINTEGER)(maxlen), 0, (SQLPOINTER)(str),	\
 			(SQLUINTEGER)(maxlen), NULL )
 
-#define backsql_BindParamID( sth, par_ind, id )				\
+#define backsql_BindParamBerVal( sth, par_ind, io, bv ) 		\
+	SQLBindParameter( (sth), (SQLUSMALLINT)(par_ind), 		\
+			(io), SQL_C_CHAR, SQL_VARCHAR,			\
+         		(SQLUINTEGER)(bv)->bv_len, 0,			\
+			(SQLPOINTER)(bv)->bv_val,			\
+			(SQLUINTEGER)(bv)->bv_len, NULL )
+
+#define backsql_BindParamInt( sth, par_ind, io, val )			\
 	SQLBindParameter( (sth), (SQLUSMALLINT)(par_ind),		\
-			SQL_PARAM_INPUT, SQL_C_ULONG, SQL_INTEGER,	\
-			0, 0, (SQLPOINTER)(id), 0, (SQLINTEGER*)NULL )
+			(io), SQL_C_ULONG, SQL_INTEGER,			\
+			0, 0, (SQLPOINTER)(val), 0, (SQLINTEGER*)NULL )
+
+#ifdef BACKSQL_ARBITRARY_KEY
+#define backsql_BindParamID( sth, par_ind, io, id )			\
+	backsql_BindParamBerVal( (sth), (par_ind), (io), (id) )
+#else /* ! BACKSQL_ARBITRARY_KEY */
+#define backsql_BindParamID( sth, par_ind, io, id )			\
+	backsql_BindParamInt( (sth), (par_ind), (io), (id) )
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 
 RETCODE backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row );
 

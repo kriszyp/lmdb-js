@@ -139,7 +139,7 @@ backsql_dn2id(
 		}
 	}
 
-	rc = backsql_BindParamStr( sth, 1, toBind.bv_val, BACKSQL_MAX_DN_LEN );
+	rc = backsql_BindParamBerVal( sth, 1, SQL_PARAM_INPUT, &toBind );
 	if ( rc != SQL_SUCCESS) {
 		/* end TimesTen */ 
 		Debug( LDAP_DEBUG_TRACE, "backsql_dn2id(): "
@@ -229,7 +229,7 @@ backsql_count_children(
 		return LDAP_OTHER;
 	}
 
-	rc = backsql_BindParamStr( sth, 1, dn->bv_val, BACKSQL_MAX_DN_LEN );
+	rc = backsql_BindParamBerVal( sth, 1, SQL_PARAM_INPUT, dn );
 	if ( rc != SQL_SUCCESS) {
 		/* end TimesTen */ 
 		Debug( LDAP_DEBUG_TRACE, "backsql_count_children(): "
@@ -329,12 +329,8 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		return 1;
 	}
 
-#ifdef BACKSQL_ARBITRARY_KEY
-	rc = backsql_BindParamStr( sth, 1, bsi->bsi_c_eid->eid_keyval.bv_val,
-		       BACKSQL_MAX_KEY_LEN );
-#else /* ! BACKSQL_ARBITRARY_KEY */
-	rc = backsql_BindParamID( sth, 1, &bsi->bsi_c_eid->eid_keyval );
-#endif /* ! BACKSQL_ARBITRARY_KEY */
+	rc = backsql_BindParamID( sth, 1, SQL_PARAM_INPUT,
+			&bsi->bsi_c_eid->eid_keyval );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_values(): "
 			"error binding key value parameter\n", 0, 0, 0 );

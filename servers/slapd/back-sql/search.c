@@ -1241,7 +1241,9 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 	
 	Debug( LDAP_DEBUG_TRACE, "id: '%ld'\n", bsi->bsi_oc->bom_id, 0, 0 );
 
-	if ( backsql_BindParamID( sth, 1, &bsi->bsi_oc->bom_id ) != SQL_SUCCESS ) {
+	rc = backsql_BindParamInt( sth, 1, SQL_PARAM_INPUT,
+			&bsi->bsi_oc->bom_id );
+	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 			"error binding objectclass id parameter\n", 0, 0, 0 );
 		bsi->bsi_status = LDAP_OTHER;
@@ -1272,8 +1274,8 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		Debug( LDAP_DEBUG_TRACE, "(base)dn: \"%s\"\n",
 				temp_base_dn, 0, 0 );
 
-		rc = backsql_BindParamStr( sth, 2, temp_base_dn,
-				BACKSQL_MAX_DN_LEN );
+		rc = backsql_BindParamStr( sth, 2, SQL_PARAM_INPUT,
+				temp_base_dn, BACKSQL_MAX_DN_LEN );
 		if ( rc != SQL_SUCCESS ) {
          		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 				"error binding base_dn parameter\n", 0, 0, 0 );
@@ -1331,8 +1333,8 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		Debug( LDAP_DEBUG_TRACE, "(sub)dn: \"%s\"\n", temp_base_dn,
 				0, 0 );
 
-		rc = backsql_BindParamStr( sth, 2, temp_base_dn, 
-				BACKSQL_MAX_DN_LEN );
+		rc = backsql_BindParamStr( sth, 2, SQL_PARAM_INPUT,
+				temp_base_dn, BACKSQL_MAX_DN_LEN );
 		if ( rc != SQL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 				"error binding base_dn parameter (2)\n",
@@ -1360,15 +1362,12 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 #ifdef BACKSQL_ARBITRARY_KEY
 		Debug( LDAP_DEBUG_TRACE, "(one)id: \"%s\"\n",
 				base_id.eid_id.bv_val, 0, 0 );
-
-		rc = backsql_BindParamStr( sth, 2, base_id.eid_id.bv_val,
-				BACKSQL_MAX_KEY_LEN );
 #else /* ! BACKSQL_ARBITRARY_KEY */
 		Debug( LDAP_DEBUG_TRACE, "(one)id: '%lu'\n", base_id.eid_id,
 				0, 0 );
-
-		rc = backsql_BindParamID( sth, 2, &base_id.eid_id );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
+		rc = backsql_BindParamID( sth, 2, SQL_PARAM_INPUT,
+				&base_id.eid_id );
 		backsql_free_entryID( &base_id, 0 );
 		if ( rc != SQL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
