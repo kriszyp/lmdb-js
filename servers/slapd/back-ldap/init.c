@@ -47,7 +47,7 @@
 
 #ifdef SLAPD_LDAP_DYNAMIC
 
-int back_ldap_LTX_init_module(int argc, char *argv[]) {
+int init_module(int argc, char *argv[]) {
     BackendInfo bi;
 
     memset( &bi, '\0', sizeof(bi) );
@@ -95,6 +95,8 @@ ldap_back_initialize(
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = ldap_back_conn_destroy;
+
+	ldap_chain_setup();
 
 	return 0;
 }

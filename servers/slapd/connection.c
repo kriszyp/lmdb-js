@@ -19,6 +19,10 @@
 #include "lutil.h"
 #include "slap.h"
 
+#ifdef LDAP_SLAPI
+#include "slapi.h"
+#endif
+
 /* protected by connections_mutex */
 static ldap_pvt_thread_mutex_t connections_mutex;
 static Connection *connections = NULL;
@@ -135,6 +139,9 @@ int connections_destroy(void)
 			ldap_pvt_thread_mutex_destroy( &connections[i].c_mutex );
 			ldap_pvt_thread_mutex_destroy( &connections[i].c_write_mutex );
 			ldap_pvt_thread_cond_destroy( &connections[i].c_write_cv );
+#ifdef LDAP_SLAPI
+			slapi_x_free_object_extensions( SLAPI_X_EXT_CONNECTION, &connections[i] );
+#endif
 		}
 	}
 
@@ -453,6 +460,10 @@ long connection_init(
 		ldap_pvt_thread_mutex_init( &c->c_write_mutex );
 		ldap_pvt_thread_cond_init( &c->c_write_cv );
 
+#ifdef LDAP_SLAPI
+		slapi_x_create_object_extensions( SLAPI_X_EXT_CONNECTION, c );
+#endif
+
 		c->c_struct_state = SLAP_C_UNUSED;
 	}
 
@@ -681,6 +692,11 @@ connection_destroy( Connection *c )
 
     c->c_conn_state = SLAP_C_INVALID;
     c->c_struct_state = SLAP_C_UNUSED;
+
+#ifdef LDAP_SLAPI
+	/* call destructors, then constructors; avoids unnecessary allocation */
+	slapi_x_clear_object_extensions( SLAPI_X_EXT_CONNECTION, c );
+#endif
 }
 
 int connection_state_closing( Connection *c )
@@ -1069,22 +1085,12 @@ operations_error:
 	LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
 	LDAP_STAILQ_NEXT(op, o_next) = NULL;
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 	if ( op->o_cancel == SLAP_CANCEL_ACK )
 		goto co_op_free;
-#endif
-#ifdef LDAP_CLIENT_UPDATE
-	if ( ( op->o_clientupdate_type & SLAP_LCUP_PERSIST ) ) {
-		sl_mem_detach( ctx, memctx );
-		goto no_co_op_free;
-	}
-#endif
-#ifdef LDAP_SYNC
 	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) ) {
 		sl_mem_detach( ctx, memctx );
 		goto no_co_op_free;
 	}
-#endif
 
 co_op_free:
 
@@ -1465,22 +1471,29 @@ connection_input(
 	op = slap_op_alloc( ber, msgid, tag, conn->c_n_ops_received++ );
 
 	op->o_conn = conn;
-	op->vrFilter = NULL;
+	op->o_assertion = NULL;
+	op->o_preread_attrs = NULL;
+	op->o_postread_attrs = NULL;
+	op->o_vrFilter = NULL;
+
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 	op->o_pagedresults_state = conn->c_pagedresults_state;
 #endif
+
+	op->o_res_ber = NULL;
+
 #ifdef LDAP_CONNECTIONLESS
 	if (conn->c_is_udp) {
-
 		if ( cdn ) {
 		    ber_str2bv( cdn, 0, 1, &op->o_dn );
 		    op->o_protocol = LDAP_VERSION2;
 		}
 		op->o_res_ber = ber_alloc_t( LBER_USE_DER );
-		if (op->o_res_ber == NULL)
-			return 1;
+		if (op->o_res_ber == NULL) return 1;
 
-		rc = ber_write(op->o_res_ber, (char *)&peeraddr, sizeof(struct sockaddr), 0);
+		rc = ber_write( op->o_res_ber, (char *)&peeraddr,
+			sizeof(struct sockaddr), 0 );
+
 		if (rc != sizeof(struct sockaddr)) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( CONNECTION, INFO, 
@@ -1515,12 +1528,14 @@ connection_input(
 	 * use up all the available threads, and don't execute if we're
 	 * currently blocked on output. And don't execute if there are
 	 * already pending ops, let them go first.
+	 *
+	 * But always allow Abandon through; it won't cost much.
 	 */
-	if ( conn->c_conn_state == SLAP_C_BINDING
+	if ( tag != LDAP_REQ_ABANDON && (conn->c_conn_state == SLAP_C_BINDING
 		|| conn->c_conn_state == SLAP_C_CLOSING
 		|| conn->c_n_ops_executing >= connection_pool_max/2
 		|| conn->c_n_ops_pending
-		|| conn->c_writewaiter)
+		|| conn->c_writewaiter))
 	{
 		int max = conn->c_dn.bv_len ? slap_conn_max_pending_auth
 			 : slap_conn_max_pending;

@@ -40,7 +40,6 @@ Medium projects
 ---------------
 Implement authPassword (RFC 3112)
 Implement DIT Structure Rules and Name Forms
-Implement LDAP Assertion Control
 Implement LDAP Transactions extension
 Redesign slapd memory allocation fault handling
 Localize tools

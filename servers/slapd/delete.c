@@ -25,6 +25,8 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
+#include "lutil.h"
+
 #ifdef LDAP_SLAPI
 #include "slapi.h"
 #endif
@@ -190,14 +192,19 @@ do_delete(
 	if ( op->o_bd->be_delete ) {
 		/* do the update here */
 		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
-#if defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
+#ifndef SLAPD_MULTIMASTER
 		if ( !op->o_bd->syncinfo && ( !op->o_bd->be_update_ndn.bv_len || repl_user ))
-#elif defined(LDAP_SYNCREPL) && defined(SLAPD_MULTIMASTER)
-		if ( !op->o_bd->syncinfo )  /* LDAP_SYNCREPL overrides MM */
-#elif !defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
-		if ( !op->o_bd->be_update_ndn.bv_len || repl_user )
+#else
+		if ( !op->o_bd->syncinfo )
 #endif
 		{
+
+			if ( !repl_user ) {
+				struct berval csn = { 0 , NULL };
+				char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+				slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
+			}
+
 			if ( (op->o_bd->be_delete)( op, rs ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
 				if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
@@ -206,15 +213,12 @@ do_delete(
 					replog( op );
 				}
 			}
-#if defined(LDAP_SYNCREPL) || !defined(SLAPD_MULTIMASTER)
+#ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = NULL;
-#ifdef LDAP_SYNCREPL
 			if ( op->o_bd->syncinfo ) {
-				defref = op->o_bd->syncinfo->master_bv;
-			} else
-#endif
-			{
+				defref = op->o_bd->syncinfo->provideruri_bv;
+			} else {
 				defref = op->o_bd->be_update_refs
 						? op->o_bd->be_update_refs : default_referral;
 			}
@@ -252,6 +256,9 @@ do_delete(
 #endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
+
+	slap_graduate_commit_csn( op );
+
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 	return rs->sr_err;

@@ -6,7 +6,7 @@ if test $# -ge 1 ; then
 	SRCDIR=$1; shift
 fi
 
-. $SRCDIR/scripts/args.sh
+. $SRCDIR/scripts/args.sh $*
 
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
@@ -73,7 +73,7 @@ fi
 
 echo "Testing OR searching..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
-	'(|(givenName=XX*YY*Z)(cn=)(undef=*)(objectclass=groupofnames)(sn:caseExactMatch:=Jones))' >> $SEARCHOUT 2>&1
+	'(|(givenName=XX*YY*Z)(cn=)(undef=*)(objectclass=groupofnames)(objectclass=groupofuniquenames)(sn:caseExactMatch:=Jones))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -83,7 +83,7 @@ fi
 
 echo "Testing AND matching and ends-with searching..."
 $LDAPSEARCH -S "" -b "ou=groups,$BASEDN" -s one -h $LOCALHOST -p $PORT \
-	'(&(objectclass=groupofnames)(cn=A*))' >> $SEARCHOUT 2>&1
+	'(&(|(objectclass=groupofnames)(objectclass=groupofuniquenames))(cn=A*))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"

@@ -35,10 +35,6 @@ LDAPDeleteRequest::LDAPDeleteRequest(const string& dn,
 LDAPDeleteRequest::~LDAPDeleteRequest(){
     DEBUG(LDAP_DEBUG_DESTROY,
           "LDAPDeleteRequest::~LDAPDeleteRequest()" << endl);
-    // TODO -- flush the entire cache here?  or does this invalidate
-    // cached searches that may have found the deleted entry.
-    // m_connection->uncache_entry(m_dn);
-    m_connection->flush_cache();
 }
 
 LDAPMessageQueue* LDAPDeleteRequest::sendRequest(){

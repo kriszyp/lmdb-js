@@ -353,13 +353,11 @@ do_modrdn(
 	if ( op->o_bd->be_modrdn ) {
 		/* do the update here */
 		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
-#if defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
+#ifndef SLAPD_MULTIMASTER
 		if ( !op->o_bd->syncinfo &&
 					( !op->o_bd->be_update_ndn.bv_len || repl_user ))
-#elif defined(LDAP_SYNCREPL) && defined(SLAPD_MULTIMASTER)
-		if ( !op->o_bd->syncinfo )  /* LDAP_SYNCREPL overrides MM */
-#elif !defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
-		if ( !op->o_bd->be_update_ndn.bv_len || repl_user )
+#else
+		if ( !op->o_bd->syncinfo )
 #endif
 		{
 			op->orr_deleteoldrdn = deloldrdn;
@@ -370,15 +368,12 @@ do_modrdn(
 			) {
 				replog( op );
 			}
-#if defined(LDAP_SYNCREPL) || !defined(SLAPD_MULTIMASTER)
+#ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = NULL;
-#ifdef LDAP_SYNCREPL
 			if ( op->o_bd->syncinfo ) {
-				defref = op->o_bd->syncinfo->master_bv;
-			} else
-#endif
-			{
+				defref = op->o_bd->syncinfo->provideruri_bv;
+			} else {
 				defref = op->o_bd->be_update_refs
 						? op->o_bd->be_update_refs : default_referral;
 			}
@@ -416,6 +411,9 @@ do_modrdn(
 #endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
+
+	slap_graduate_commit_csn( op );
+
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
@@ -438,10 +436,14 @@ slap_modrdn2mods(
 	Modifications	**pmod )
 {
 	Modifications	*mod = NULL;
+	Modifications	**modtail = &mod;
 	int		a_cnt, d_cnt;
+	int repl_user;
 
 	assert( new_rdn != NULL );
 	assert( !op->orr_deleteoldrdn || old_rdn != NULL );
+
+	repl_user = be_isupdate( op->o_bd, &op->o_ndn );
 
 	/* Add new attribute values to the entry */
 	for ( a_cnt = 0; new_rdn[a_cnt]; a_cnt++ ) {
@@ -578,6 +580,21 @@ slap_modrdn2mods(
 	}
 	
 done:
+
+	if ( !repl_user ) {
+		char textbuf[ SLAP_TEXT_BUFLEN ];
+		size_t textlen = sizeof textbuf;
+
+		for( modtail = &mod;
+			*modtail != NULL;
+			modtail = &(*modtail)->sml_next )
+		{
+			/* empty */
+		}
+
+		rs->sr_err = slap_mods_opattrs( op, mod, modtail, &rs->sr_text, textbuf, textlen );
+	}
+
 	/* LDAP v2 supporting correct attribute handling. */
 	if ( rs->sr_err != LDAP_SUCCESS && mod != NULL ) {
 		Modifications *tmp;

@@ -815,6 +815,9 @@
 /* define if you have -lslp */
 #undef HAVE_SLP
 
+/* define if you have `long long' */
+#undef HAVE_LONG_LONG
+
 /* Define to `int' if <sys/types.h> does not define. */
 #undef mode_t
 
@@ -1039,9 +1042,6 @@
 #endif
 #if defined(LDAP_DEVEL) && !defined(LDAP_TEST)
 #define LDAP_TEST
-#endif
-#if defined(LDAP_TEST) && !defined(LDAP_DEBUG)
-#define LDAP_DEBUG
 #endif
 #endif
 

@@ -18,6 +18,8 @@
 #include <ldap.h>
 
 #include "lutil_ldap.h"
+#include "ldap_defaults.h"
+#include "ldap_pvt.h"
 
 #include "common.h"
 
@@ -40,9 +42,15 @@ char	*sasl_secprops = NULL;
 #endif
 int   use_tls = 0;
 
+int	  assertctl;
+char *assertion = NULL;
 char *authzid = NULL;
 int   manageDSAit = 0;
 int   noop = 0;
+int   preread = 0;
+char *preread_attrs = NULL;
+int   postread = 0;
+char *postread_attrs = NULL;
 
 int   not = 0;
 int   want_bindpw = 0;
@@ -59,9 +67,9 @@ char *prog = NULL;
 void
 tool_init( void )
 {
-	setlocale(LC_MESSAGES,"");
-	bindtextdomain(OPENLDAP_PACKAGE, LDAP_LOCALEDIR);
-	textdomain(OPENLDAP_PACKAGE);
+	ldap_pvt_setlocale(LC_MESSAGES, "");
+	ldap_pvt_bindtextdomain(OPENLDAP_PACKAGE, LDAP_LOCALEDIR);
+	ldap_pvt_textdomain(OPENLDAP_PACKAGE);
 }
 
 void
@@ -73,9 +81,12 @@ N_("  -C         chase referrals\n"),
 N_("  -d level   set LDAP debugging level to `level'\n"),
 N_("  -D binddn  bind DN\n"),
 N_("  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n")
-N_("             [!]authzid=<authzid> (\"dn:<dn>\" or \"u:<user>\")\n")
-N_("             [!]manageDSAit       (alternate form, see -M)\n")
+N_("             [!]assert=<filter>     (an RFC 2254 Filter)\n")
+N_("             [!]authzid=<authzid>   (\"dn:<dn>\" or \"u:<user>\")\n")
+N_("             [!]manageDSAit\n")
 N_("             [!]noop\n"),
+N_("             [!]postread[=<attrs>]  (a comma-separated attribute list)\n"),
+N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n"),
 N_("  -f file    read operations from `file'\n"),
 N_("  -h host    LDAP server\n"),
 N_("  -H URI     LDAP Uniform Resource Indentifier(s)\n"),
@@ -154,7 +165,22 @@ tool_args( int argc, char **argv )
 				*cvalue++ = '\0';
 			}
 
-			if ( strcasecmp( control, "authzid" ) == 0 ) {
+			if ( strcasecmp( control, "assert" ) == 0 ) {
+				if( assertctl ) {
+					fprintf( stderr, "assert control previously specified\n");
+					exit( EXIT_FAILURE );
+				}
+				if( cvalue == NULL ) {
+					fprintf( stderr, "assert: control value expected\n" );
+					usage();
+				}
+
+				assertctl = 1 + crit;
+
+				assert( assertion == NULL );
+				assertion = cvalue;
+
+			} else if ( strcasecmp( control, "authzid" ) == 0 ) {
 				if( authzid != NULL ) {
 					fprintf( stderr, "authzid control previously specified\n");
 					exit( EXIT_FAILURE );
@@ -196,6 +222,24 @@ tool_args( int argc, char **argv )
 				}
 
 				noop = 1 + crit;
+
+			} else if ( strcasecmp( control, "preread" ) == 0 ) {
+				if( preread ) {
+					fprintf( stderr, "preread control previously specified\n");
+					exit( EXIT_FAILURE );
+				}
+
+				preread = 1 + crit;
+				preread_attrs = cvalue;
+
+			} else if ( strcasecmp( control, "postread" ) == 0 ) {
+				if( postread ) {
+					fprintf( stderr, "postread control previously specified\n");
+					exit( EXIT_FAILURE );
+				}
+
+				postread = 1 + crit;
+				postread_attrs = cvalue;
 
 			} else {
 				fprintf( stderr, "Invalid general control name: %s\n",
@@ -709,12 +753,41 @@ void
 tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 {
 	int i = 0, j, crit = 0, err;
-	LDAPControl c[3], **ctrls;
+	LDAPControl c[6], **ctrls;
 
 	ctrls = (LDAPControl**) malloc(sizeof(c) + (count+1)*sizeof(LDAPControl*));
 	if ( ctrls == NULL ) {
 		fprintf( stderr, "No memory\n" );
 		exit( EXIT_FAILURE );
+	}
+
+	if ( assertctl ) {
+		char berbuf[LBER_ELEMENT_SIZEOF];
+		BerElement *ber = (BerElement *)berbuf;
+		
+		if( assertion == NULL || *assertion == '\0' ) {
+			fprintf( stderr, "Assertion=<empty>\n" );
+			exit( EXIT_FAILURE );
+		}
+
+		ber_init2( ber, NULL, LBER_USE_DER );
+
+		err = ldap_pvt_put_filter( ber, assertion );
+		if( err < 0 ) {
+			fprintf( stderr, "assertion encode failed (%d)\n", err );
+			exit( EXIT_FAILURE );
+		}
+
+		err = ber_flatten2( ber, &c[i].ldctl_value, 0 );
+		if( err < 0 ) {
+			fprintf( stderr, "assertion flatten failed (%d)\n", err );
+			exit( EXIT_FAILURE );
+		}
+
+		c[i].ldctl_oid = LDAP_CONTROL_ASSERT;
+		c[i].ldctl_iscritical = assertctl > 1;
+		ctrls[i] = &c[i];
+		i++;
 	}
 
 	if ( authzid ) {
@@ -744,6 +817,66 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		i++;
 	}
 	
+	if ( preread ) {
+		char berbuf[LBER_ELEMENT_SIZEOF];
+		BerElement *ber = (BerElement *)berbuf;
+		char **attrs;
+
+		if( preread_attrs ) {
+			attrs = ldap_str2charray( preread_attrs, "," );
+		}
+
+		ber_init2( ber, NULL, LBER_USE_DER );
+
+		if( ber_printf( ber, "{v}", attrs ) == -1 ) {
+			fprintf( stderr, "preread attrs encode failed.\n" );
+			exit( EXIT_FAILURE );
+		}
+
+		err = ber_flatten2( ber, &c[i].ldctl_value, 0 );
+		if( err < 0 ) {
+			fprintf( stderr, "preread flatten failed (%d)\n", err );
+			exit( EXIT_FAILURE );
+		}
+
+		c[i].ldctl_oid = LDAP_CONTROL_PRE_READ;
+		c[i].ldctl_iscritical = preread > 1;
+		ctrls[i] = &c[i];
+		i++;
+
+		if( attrs ) ldap_charray_free( attrs );
+	}
+
+	if ( postread ) {
+		char berbuf[LBER_ELEMENT_SIZEOF];
+		BerElement *ber = (BerElement *)berbuf;
+		char **attrs;
+
+		if( postread_attrs ) {
+			attrs = ldap_str2charray( postread_attrs, "," );
+		}
+
+		ber_init2( ber, NULL, LBER_USE_DER );
+
+		if( ber_printf( ber, "{v}", attrs ) == -1 ) {
+			fprintf( stderr, "postread attrs encode failed.\n" );
+			exit( EXIT_FAILURE );
+		}
+
+		err = ber_flatten2( ber, &c[i].ldctl_value, 0 );
+		if( err < 0 ) {
+			fprintf( stderr, "postread flatten failed (%d)\n", err );
+			exit( EXIT_FAILURE );
+		}
+
+		c[i].ldctl_oid = LDAP_CONTROL_POST_READ;
+		c[i].ldctl_iscritical = postread > 1;
+		ctrls[i] = &c[i];
+		i++;
+
+		if( attrs ) ldap_charray_free( attrs );
+	}
+
 	while ( count-- ) {
 		ctrls[i++] = extra_c++;
 	}

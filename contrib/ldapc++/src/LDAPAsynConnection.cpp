@@ -39,9 +39,6 @@ LDAPAsynConnection::LDAPAsynConnection(const string& hostname, int port,
 LDAPAsynConnection::~LDAPAsynConnection(){
     DEBUG(LDAP_DEBUG_DESTROY,
             "LDAPAsynConnection::~LDAPAsynConnection()" << endl);
-    if (cur_session){
-        ldap_destroy_cache(cur_session);
-    }    
     unbind();
     //delete m_constr;        
 }
@@ -295,26 +292,3 @@ LDAPAsynConnection* LDAPAsynConnection::referralConnect(
     return 0;
 }
 
-int LDAPAsynConnection::enableCache(long timeout, long maxmem){
-    int retval = ldap_enable_cache(cur_session, timeout, maxmem);
-    if (!retval)
-        m_cacheEnabled = true;
-    return retval;    
-}    
-
-void LDAPAsynConnection::disableCache(){
-    ldap_disable_cache(cur_session);
-    m_cacheEnabled = false;
-}
-
-void LDAPAsynConnection::uncache_entry(string &dn){
-    if (m_cacheEnabled){
-        ldap_uncache_entry(cur_session, dn.c_str());
-    }
-}
-
-void LDAPAsynConnection::flush_cache(){
-    if (m_cacheEnabled){
-        ldap_flush_cache(cur_session);
-    }
-}

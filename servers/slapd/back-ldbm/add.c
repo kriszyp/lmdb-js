@@ -29,6 +29,9 @@ ldbm_back_add(
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
+#ifdef LDBM_SUBENTRIES
+	int subentry;
+#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_back_add: %s\n", op->o_req_dn.bv_val, 0, 0 );
@@ -36,15 +39,7 @@ ldbm_back_add(
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", op->o_req_dn.bv_val, 0, 0);
 #endif
 	
-#ifndef LDAP_CACHING
 	rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e, NULL, &rs->sr_text, textbuf, textlen );
-#else /* LDAP_CACHING */
-        if ( !op->o_caching_on ) {
-		rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e, NULL, &rs->sr_text, textbuf, textlen );
-	} else {
-		rs->sr_err = LDAP_SUCCESS;
-	}
-#endif /* LDAP_CACHING */
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -56,12 +51,13 @@ ldbm_back_add(
 #endif
 
 		send_ldap_result( op, rs );
-		return( -1 );
+		return rs->sr_err;
 	}
 
-#ifdef LDAP_CACHING
-	if ( !op->o_caching_on ) {
-#endif /* LDAP_CACHING */
+#ifdef LDBM_SUBENTRIES
+	subentry = is_entry_subentry( op->oq_add.rs_e );
+#endif
+
 	if ( !access_allowed( op, op->oq_add.rs_e,
 				entry, NULL, ACL_WRITE, NULL ) )
 	{
@@ -77,11 +73,8 @@ ldbm_back_add(
 		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
 		    "no write access to entry" );
 
-		return -1;
+		return LDAP_INSUFFICIENT_ACCESS;
 	}
-#ifdef LDAP_CACHING
-	}
-#endif /* LDAP_CACHING */
 
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
@@ -91,7 +84,7 @@ ldbm_back_add(
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 		rs->sr_err = rs->sr_err ? LDAP_OTHER : LDAP_ALREADY_EXISTS;
 		send_ldap_result( op, rs );
-		return( -1 );
+		return rs->sr_err;
 	}
 
 	/*
@@ -106,11 +99,7 @@ ldbm_back_add(
 		dnParent( &op->o_req_ndn, &pdn );
 	}
 
-#ifndef LDAP_CACHING
 	if( pdn.bv_len )
-#else /* LDAP_CACHING */
-	if( pdn.bv_len && !op->o_caching_on )
-#endif /* LDAP_CACHING */
 	{
 		Entry *matched = NULL;
 
@@ -146,7 +135,7 @@ ldbm_back_add(
 			ber_bvarray_free( rs->sr_ref );
 			free( (char *)rs->sr_matched );
 
-			return -1;
+			return rs->sr_err;
 		}
 
 		if ( ! access_allowed( op, p,
@@ -168,8 +157,23 @@ ldbm_back_add(
 			send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
 			    "no write access to parent" );
 
-			return -1;
+			return LDAP_INSUFFICIENT_ACCESS;
 		}
+
+#ifdef LDBM_SUBENTRIES
+		if ( is_entry_subentry( p )) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, DETAIL1,
+				"bdb_add: parent is subentry\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent is subentry\n",
+				0, 0, 0 );
+#endif
+			rs->sr_err = LDAP_OBJECT_CLASS_VIOLATION;
+			rs->sr_text = "parent is a subentry";
+			goto return_results;
+		}
+#endif
 
 		if ( is_entry_alias( p ) ) {
 			/* parent is an alias, don't allow add */
@@ -190,7 +194,7 @@ ldbm_back_add(
 			send_ldap_error( op, rs, LDAP_ALIAS_PROBLEM,
 			    "parent is an alias" );
 
-			return -1;
+			return LDAP_ALIAS_PROBLEM;
 		}
 
 		if ( is_entry_referral( p ) ) {
@@ -216,25 +220,24 @@ ldbm_back_add(
 
 			ber_bvarray_free( rs->sr_ref );
 			free( (char *)rs->sr_matched );
-			return -1;
+			return rs->sr_err;
 		}
 
+#ifdef LDBM_SUBENTRIES
+		if ( subentry ) {
+			/* FIXME: */
+			/* parent must be an administrative point of the required kind */
+		}
+#endif
+
 	} else {
-#ifndef LDAP_CACHING
 		if( pdn.bv_val != NULL )
-#else /* LDAP_CACHING */
-	        if( pdn.bv_val != NULL && !op->o_caching_on )
-#endif /* LDAP_CACHING */
 		{
 			assert( *pdn.bv_val == '\0' );
 		}
 
 		/* no parent, must be adding entry to root */
-#ifndef LDAP_CACHING
 		if ( !be_isroot( op->o_bd, &op->o_ndn ) )
-#else /* LDAP_CACHING */
-		if ( !be_isroot( op->o_bd, &op->o_ndn ) && !op->o_caching_on )
-#endif /* LDAP_CACHING */
 		{
 			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv ) || be_isupdate( op->o_bd, &op->o_ndn ) ) {
 				p = (Entry *)&slap_entry_root;
@@ -260,10 +263,9 @@ ldbm_back_add(
 						LDAP_INSUFFICIENT_ACCESS,
 						"no write access to parent" );
 
-					return -1;
+					return LDAP_INSUFFICIENT_ACCESS;
 				}
-
-			} else {
+			} else if ( !is_entry_glue( op->oq_add.rs_e )) {
 				ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
@@ -278,11 +280,27 @@ ldbm_back_add(
 #endif
 
 				send_ldap_error( op, rs,
-						LDAP_INSUFFICIENT_ACCESS, NULL );
+						LDAP_NO_SUCH_OBJECT, NULL );
 
-				return -1;
+					return LDAP_NO_SUCH_OBJECT;
 			}
 		}
+
+#ifdef LDBM_SUBENTRIES
+		        if( subentry ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG ( OPERATION, DETAIL1,
+						"bdb_add: no parent, cannot add subentry\n", 0, 0, 0 );
+#else
+					Debug( LDAP_DEBUG_TRACE,
+						"bdb_add: no parent, cannot add subentry\n", 0, 0, 0 );
+#endif
+					rs->sr_err = LDAP_NO_SUCH_OBJECT;
+					rs->sr_text = "no parent, cannot add subentry";
+					goto return_results;
+				}
+#endif
+
 	}
 
 	if ( next_id( op->o_bd, &op->oq_add.rs_e->e_id ) ) {
@@ -304,7 +322,7 @@ ldbm_back_add(
 		send_ldap_error( op, rs, LDAP_OTHER,
 			"next_id add failed" );
 
-		return( -1 );
+		return LDAP_OTHER;
 	}
 
 	/*
@@ -332,7 +350,7 @@ ldbm_back_add(
 		rs->sr_err = rs->sr_err > 0 ? LDAP_ALREADY_EXISTS : LDAP_OTHER;
 		send_ldap_result( op, rs );
 
-		return( -1 );
+		return rs->sr_err;
 	}
 
 	rs->sr_err = -1;

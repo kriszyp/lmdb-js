@@ -969,7 +969,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			return BACKSQL_CONTINUE;
 		}
 		
-		Debug( LDAP_DEBUG_TRACE, "(one)id: '%s'\n", base_id.id,
+		Debug( LDAP_DEBUG_TRACE, "(one)id: '%lu'\n", base_id.id,
 				0, 0 );
 
 		rc = backsql_BindParamID( sth, 2, &base_id.id );

@@ -36,7 +36,7 @@
 
 #include <ac/bytes.h>
 
-#include <lber.h>
+#include "lber_pvt.h"
 #include "ucdata.h"
 
 /**************************************************************************

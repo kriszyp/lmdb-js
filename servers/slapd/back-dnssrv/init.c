@@ -16,7 +16,7 @@
 
 #ifdef SLAPD_DNSSRV_DYNAMIC
 
-int back_dnssrv_LTX_init_module(int argc, char *argv[])
+int init_module(int argc, char *argv[])
 {
     BackendInfo bi;
 

@@ -128,18 +128,14 @@ BackendInfo	*backendInfo = NULL;
 int			nBackendDB = 0; 
 BackendDB	*backendDB = NULL;
 
-#ifdef LDAP_SYNCREPL
 ldap_pvt_thread_pool_t	syncrepl_pool;
 int			syncrepl_pool_max = SLAP_MAX_SYNCREPL_THREADS;
-#endif
 
 int backend_init(void)
 {
 	int rc = -1;
 
-#ifdef LDAP_SYNCREPL
-        ldap_pvt_thread_pool_init( &syncrepl_pool, syncrepl_pool_max, 0 );
-#endif
+	ldap_pvt_thread_pool_init( &syncrepl_pool, syncrepl_pool_max, 0 );
 
 	if((nBackendInfo != 0) || (backendInfo != NULL)) {
 		/* already initialized */
@@ -248,9 +244,7 @@ int backend_startup(Backend *be)
 	int i;
 	int rc = 0;
 
-#ifdef LDAP_SYNCREPL
 	init_syncrepl();
-#endif
 
 	if( ! ( nBackendDB > 0 ) ) {
 		/* no databases */
@@ -267,6 +261,9 @@ int backend_startup(Backend *be)
 
 	if(be != NULL) {
 		/* startup a specific backend database */
+
+		LDAP_TAILQ_INIT( &be->be_pending_csn_list );
+
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACKEND, DETAIL1, "backend_startup:  starting \"%s\"\n",
 			   be->be_suffix[0].bv_val, 0, 0 );
@@ -333,16 +330,16 @@ int backend_startup(Backend *be)
 		}
 	}
 
-#ifdef LDAP_SYNCREPL
 	ldap_pvt_thread_mutex_init( &syncrepl_rq.rq_mutex );
 	LDAP_STAILQ_INIT( &syncrepl_rq.task_list );
 	LDAP_STAILQ_INIT( &syncrepl_rq.run_list );
-#endif
 
 	/* open each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
 		/* append global access controls */
 		acl_append( &backendDB[i].be_acl, global_acl );
+
+		LDAP_TAILQ_INIT( &backendDB[i].be_pending_csn_list );
 
 		if ( backendDB[i].bd_info->bi_db_open ) {
 			rc = backendDB[i].bd_info->bi_db_open(
@@ -360,15 +357,14 @@ int backend_startup(Backend *be)
 			}
 		}
 
-#ifdef LDAP_SYNCREPL
 		if ( backendDB[i].syncinfo != NULL ) {
 			syncinfo_t *si = ( syncinfo_t * ) backendDB[i].syncinfo;
+			si->be = &backendDB[i];
 			ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
 			ldap_pvt_runqueue_insert( &syncrepl_rq, si->interval,
-							do_syncrepl, (void *) &backendDB[i] );
+							do_syncrepl, (void *) backendDB[i].syncinfo );
 			ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 		}
-#endif
 	}
 
 	return rc;
@@ -451,9 +447,7 @@ int backend_destroy(void)
 	int i;
 	BackendDB *bd;
 
-#ifdef LDAP_SYNCREPL
-        ldap_pvt_thread_pool_destroy( &syncrepl_pool, 1 );
-#endif
+	ldap_pvt_thread_pool_destroy( &syncrepl_pool, 1 );
 
 	/* destroy each backend database */
 	for( i = 0, bd = backendDB; i < nBackendDB; i++, bd++ ) {
@@ -534,9 +528,12 @@ backend_db_init(
 	be->be_requires = global_requires;
 	be->be_ssf_set = global_ssf_set;
 
-#ifdef LDAP_SYNCREPL
-        be->syncinfo = NULL;
-#endif
+	be->be_context_csn.bv_len = 0;
+	be->be_context_csn.bv_val = NULL;
+	ldap_pvt_thread_mutex_init( &be->be_pcl_mutex );
+	ldap_pvt_thread_mutex_init( &be->be_context_csn_mutex );
+
+	be->syncinfo = NULL;
 
  	/* assign a default depth limit for alias deref */
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
@@ -820,8 +817,8 @@ backend_check_controls(
 
 	if( ctrls ) {
 		for( ; *ctrls != NULL ; ctrls++ ) {
-			if( (*ctrls)->ldctl_iscritical &&
-				!ldap_charray_inlist( op->o_bd->be_controls, (*ctrls)->ldctl_oid ) )
+			if( (*ctrls)->ldctl_iscritical && !ldap_charray_inlist(
+				op->o_bd->be_controls, (*ctrls)->ldctl_oid ) )
 			{
 				rs->sr_text = "control unavailable in context";
 				rs->sr_err = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;

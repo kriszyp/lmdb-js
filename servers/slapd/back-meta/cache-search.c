@@ -104,7 +104,6 @@
 #include "ldap_log.h"
 #include "../../../libraries/libldap/ldap-int.h"
 
-#ifdef LDAP_CACHING 
 static Entry* 
 meta_create_entry(
 	Backend 	*be,
@@ -241,6 +240,8 @@ meta_back_cache_search(
 	cache_manager*		cm = li->cm; 
 	query_manager*		qm = cm->qm; 
 
+	Operation		*oper;
+
 	time_t			curr_time; 
 
 	int count, rc = 0, *msgid = NULL; 
@@ -272,8 +273,8 @@ meta_back_cache_search(
 	int 		num_entries = 0;
 	int		curr_limit;
 	int		fattr_cnt=0; 
+	int		oc_attr_absent = 1;
 
-   
 	struct exception result[1]; 
 
 	Filter* filter = str2filter(op->ors_filterstr.bv_val); 
@@ -282,10 +283,12 @@ meta_back_cache_search(
 	cb.sc_private = op->o_bd; 
 
 	if (op->ors_attrs) {
-		for ( count=0; op->ors_attrs[ count ].an_name.bv_val; count++ )
-			;
-		attrs = (AttributeName*)malloc( ( count + 1 ) *
-						sizeof(AttributeName));
+		for ( count=0; op->ors_attrs[ count ].an_name.bv_val; count++ ) {
+			if ( op->ors_attrs[count].an_desc == slap_schema.si_ad_objectClass )
+				oc_attr_absent = 0;
+		}
+		attrs = (AttributeName*)malloc( ( count + 1 + oc_attr_absent )
+								*sizeof(AttributeName));
 		for ( count=0; op->ors_attrs[ count ].an_name.bv_val; count++ ) {
 			ber_dupbv(&attrs[ count ].an_name,
 						&op->ors_attrs[ count ].an_name);
@@ -294,7 +297,6 @@ meta_back_cache_search(
 		attrs[ count ].an_name.bv_val = NULL;
 		attrs[ count ].an_name.bv_len = 0;
 	}
-
 
 	result->type = SUCCESS; 
 	result->rc = 0; 
@@ -306,11 +308,13 @@ meta_back_cache_search(
 	Debug( LDAP_DEBUG_ANY, "Threads++ = %d\n", cm->threads, 0, 0 );
 #endif /* !NEW_LOGGING */
 	ldap_pvt_thread_mutex_unlock(&cm->cache_mutex); 
-    
+	
 	ldap_pvt_thread_mutex_lock(&cm->cc_mutex); 
 	if (!cm->cc_thread_started) {
+		oper = (Operation*)malloc(sizeof(Operation)); 
+		*oper = *op; 
 		cm->cc_thread_started = 1; 
-                ldap_pvt_thread_create(&(cm->cc_thread), 1, consistency_check, (void*)op); 
+                ldap_pvt_thread_create(&(cm->cc_thread), 1, consistency_check, (void*)oper); 
 	}	
 	ldap_pvt_thread_mutex_unlock(&cm->cc_mutex); 
 
@@ -360,6 +364,15 @@ meta_back_cache_search(
 		}
 	}
 
+	if ( attrs && oc_attr_absent ) {
+		for ( count = 0; attrs[count].an_name.bv_val; count++) ;
+		attrs[ count ].an_name.bv_val = "objectClass";
+		attrs[ count ].an_name.bv_len = strlen( "objectClass" );
+		attrs[ count ].an_desc = slap_schema.si_ad_objectClass;
+		attrs[ count + 1 ].an_name.bv_val = NULL;
+		attrs[ count + 1 ].an_name.bv_len = 0;
+	}
+
 	if (answerable) {
 		Operation	op_tmp;
 
@@ -390,7 +403,6 @@ meta_back_cache_search(
 		op_tmp.o_req_dn = cachebase;
 		op_tmp.o_req_ndn = ncachebase;
 
-		op_tmp.o_caching_on = 1; 
 		op_tmp.o_callback = &cb; 
 
 		li->glue_be->be_search(&op_tmp, rs);
@@ -402,8 +414,8 @@ meta_back_cache_search(
 
 		ldap_pvt_thread_rdwr_runlock(&qm->templates[i].t_rwlock); 
 	} else {
-		Operation	op_tmp = *op;
-
+		Operation	op_tmp;
+		op_tmp = *op;
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1, "QUERY NOT ANSWERABLE\n",
 					0, 0, 0 );
@@ -411,14 +423,14 @@ meta_back_cache_search(
 		Debug( LDAP_DEBUG_ANY, "QUERY NOT ANSWERABLE\n", 0, 0, 0 );
 #endif /* !NEW_LOGGING */
 
-		if ( op_tmp.ors_scope == LDAP_SCOPE_BASE ) {
+		if ( op->ors_scope == LDAP_SCOPE_BASE ) {
 			op_type = META_OP_REQUIRE_SINGLE;
 		} else {
 			op_type = META_OP_ALLOW_MULTIPLE;
 		}
 
 		lc = metaConnect(&op_tmp, rs, op_type,
-				&op_tmp.o_req_ndn, result);
+				&op->o_req_ndn, result);
 
 		if (result->type != SUCCESS) 
 			goto Catch; 
@@ -430,14 +442,6 @@ meta_back_cache_search(
 		ldap_pvt_thread_mutex_unlock(&cm->cache_mutex); 
 		
 		if (cacheable) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, DETAIL1,
-					"QUERY TEMPLATE CACHEABLE\n",
-					0, 0, 0);
-#else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ANY, "QUERY TEMPLATE CACHEABLE\n",
-					0, 0, 0);
-#endif /* !NEW_LOGGING */
 			add_filter_attrs(&new_attrs, attrs, filter_attrs);
 		} else {
 			new_attrs = attrs; 
@@ -462,6 +466,7 @@ meta_back_cache_search(
 		/*
 		 * Inits searches
 		 */
+
 		for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
 			char 	*realbase = ( char * )op->o_req_dn.bv_val;
 			int 	realscope = op->ors_scope;
@@ -617,10 +622,15 @@ meta_back_cache_search(
 			 */
 			msgid[ i ] = ldap_search( lsc->ld, mbase, realscope,
 						mapped_filter, mapped_attrs,
-						op->ors_attrsonly ); 
+						op->ors_attrsonly );
+
 			if ( msgid[ i ] == -1 ) {
+				result->type = CONN_ERR; 
+				goto Catch; 
+				/*
 				lsc->candidate = META_NOT_CANDIDATE;
 				continue;
+				*/
 			}
 
 			if ( mapped_attrs ) {
@@ -658,8 +668,7 @@ meta_back_cache_search(
 			Debug( LDAP_DEBUG_ANY, "QUERY CACHEABLE\n", 0, 0, 0 );
 #endif /* !NEW_LOGGING */
 			op_tmp.o_bd = li->glue_be;
-			uuid = cache_entries(&op_tmp, rs, entry_array,
-					cm, result); 
+			uuid = cache_entries(&op_tmp, rs, entry_array, cm, result); 
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
 					"Added query %s UUID %s ENTRIES %d\n",
@@ -679,6 +688,28 @@ meta_back_cache_search(
 				goto Catch; 
 			filter = 0; 
 			attrs = 0; 
+
+			/* FIXME : launch do_syncrepl() threads around here
+			 *
+			 * entryUUID and entryCSN need also to be requested by :
+			 */
+			/*
+ 			msgid[ i ] = ldap_search( lsc->ld, mbase, realscope,
+						mapped_filter, mapped_attrs, op->ors_attrsonly );
+			*/
+			/* Also, mbase, realscope, mapped_filter, mapped_attrs need
+			 * be managed as arrays. Each element needs to be retained by this point.
+			 */
+
+		} else {
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+					"QUERY NOT CACHEABLE no\n",
+					0, 0, 0);
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY, "QUERY NOT CACHEABLE no\n",
+					0, 0, 0);
+#endif /* !NEW_LOGGING */
 		}
 	}
 
@@ -813,11 +844,15 @@ meta_create_entry (
 	struct berval		a, mapped;
 	Entry* 			ent;
 	BerElement 		ber = *e->lm_ber;
-	Attribute 		*attr, **attrp;
-	struct berval 		dummy = { 0, NULL };
-	struct berval 		*bv, bdn;
+	Attribute 		*attr, *soc_attr, **attrp;
+	struct berval	dummy = { 0, NULL };
+	struct berval	*bv, bdn;
 	const char 		*text;
-        char* 			ename = NULL; 
+	char* 			ename = NULL; 
+	struct berval	sc;
+	char*			textbuf;
+	size_t			textlen;
+
 	if ( ber_scanf( &ber, "{m{", &bdn ) == LBER_ERROR ) {
 		result->type = CREATE_ENTRY_ERR;  	
 		return NULL; 
@@ -919,9 +954,13 @@ meta_create_entry (
 		if ( ber_scanf( &ber, "[W]", &attr->a_vals ) == LBER_ERROR 
 				|| attr->a_vals == NULL ) {
 			attr->a_vals = &dummy;
+#if 0
 		} else if ( attr->a_desc == slap_schema.si_ad_objectClass ||
 				attr->a_desc ==
 				slap_schema.si_ad_structuralObjectClass) {
+#else
+		} else if ( attr->a_desc == slap_schema.si_ad_objectClass ) {
+#endif
 			int i, last;
 			for ( last = 0; attr->a_vals[ last ].bv_val; ++last )
 				;
@@ -942,6 +981,22 @@ meta_create_entry (
 					ber_dupbv( bv, &mapped );
 				}
 			}
+
+			structural_class( attr->a_vals, &sc, NULL, &text, textbuf, textlen );
+			soc_attr = (Attribute*) ch_malloc( sizeof( Attribute ));
+			soc_attr->a_desc = slap_schema.si_ad_structuralObjectClass;
+			soc_attr->a_vals = (BerVarray) ch_malloc( 2* sizeof( BerValue ));
+			ber_dupbv( &soc_attr->a_vals[0], &sc );
+			soc_attr->a_vals[1].bv_len = 0;
+			soc_attr->a_vals[1].bv_val = NULL;
+			soc_attr->a_nvals = (BerVarray) ch_malloc( 2* sizeof( BerValue ));
+			ber_dupbv( &soc_attr->a_nvals[0], &sc );
+			soc_attr->a_nvals[1].bv_len = 0;
+			soc_attr->a_nvals[1].bv_val = NULL;
+
+			*attrp = soc_attr;
+			attrp = &soc_attr->a_next;
+
 		/*
 		 * It is necessary to try to rewrite attributes with
 		 * dn syntax because they might be used in ACLs as
@@ -993,6 +1048,7 @@ meta_create_entry (
 		*attrp = attr;
 		attrp = &attr->a_next;
 	}
+
 	return ent; 
 }
 
@@ -1012,7 +1068,7 @@ is_one_level_rdn(
 
 static struct metaconn*  
 metaConnect(
-	Operation		*op, 
+	Operation*		op, 
 	SlapReply		*rs,
 	int			op_type, 
 	struct berval		*nbase, 
@@ -1035,8 +1091,11 @@ add_filter_attrs(
 	AttributeName* attrs, 
 	AttributeName* filter_attrs )
 {
-	struct berval all_user = BER_BVC(LDAP_ALL_USER_ATTRIBUTES);
-	struct berval all_op = BER_BVC(LDAP_ALL_OPERATIONAL_ATTRIBUTES);
+	struct berval all_user = { sizeof(LDAP_ALL_USER_ATTRIBUTES) -1,
+				   LDAP_ALL_USER_ATTRIBUTES };
+
+	struct berval all_op = { sizeof(LDAP_ALL_OPERATIONAL_ATTRIBUTES) -1,
+					LDAP_ALL_OPERATIONAL_ATTRIBUTES}; 
 
 	int alluser = 0; 
 	int allop = 0; 
@@ -1044,29 +1103,27 @@ add_filter_attrs(
 	int count; 
 
 	/* duplicate attrs */
-	for (count=0; attrs[count].an_name.bv_val; count++) 
-		;
-	*new_attrs =  (AttributeName*)(malloc((count+1)*sizeof(AttributeName))); 
-	for (i=0; i<count; i++) {
-		/*
-		ber_dupbv(&((*new_attrs)[i].an_name), &(attrs[i].an_name)); 
-		*/
-		(*new_attrs)[i].an_name = attrs[i].an_name; 
-		(*new_attrs)[i].an_desc = attrs[i].an_desc;  
+        if (attrs == NULL) {
+		count = 1; 
+	} else { 
+		for (count=0; attrs[count].an_name.bv_val; count++) 
+			;
 	}
-	(*new_attrs)[count].an_name.bv_val = NULL; 
-	(*new_attrs)[count].an_name.bv_len = 0; 
-
-
-	if ((*new_attrs)[0].an_name.bv_val == NULL) {
-		*new_attrs = (AttributeName*)(malloc(2*sizeof(AttributeName))); 
+	*new_attrs = (AttributeName*)(malloc((count+1)*sizeof(AttributeName))); 
+	if (attrs == NULL) { 
 		(*new_attrs)[0].an_name.bv_val = "*"; 
 		(*new_attrs)[0].an_name.bv_len = 1; 
-		(*new_attrs)[1].an_name.bv_val = NULL; 
+		(*new_attrs)[1].an_name.bv_val = NULL;
 		(*new_attrs)[1].an_name.bv_len = 0; 
 		alluser = 1; 
-		count = 1; 
-	} else {
+		allop = 0; 
+	} else {  
+		for (i=0; i<count; i++) {
+			(*new_attrs)[i].an_name = attrs[i].an_name; 
+			(*new_attrs)[i].an_desc = attrs[i].an_desc;  
+		}
+		(*new_attrs)[count].an_name.bv_val = NULL; 
+		(*new_attrs)[count].an_name.bv_len = 0; 
 		alluser = an_find(*new_attrs, &all_user); 
 		allop = an_find(*new_attrs, &all_op); 
 	}
@@ -1074,10 +1131,10 @@ add_filter_attrs(
 	for ( i=0; filter_attrs[i].an_name.bv_val; i++ ) {
 		if ( an_find(*new_attrs, &filter_attrs[i].an_name ))
 			continue; 
-		if ( is_at_operational(filter_attrs[i].an_desc->ad_type)
-						&& allop )
-			continue; 
-		else if (alluser) 
+		if ( is_at_operational(filter_attrs[i].an_desc->ad_type) ) {
+			if (allop) 
+				continue; 
+		} else if (alluser) 
 			continue; 
 		*new_attrs = (AttributeName*)(realloc(*new_attrs,
 					(count+2)*sizeof(AttributeName))); 
@@ -1423,8 +1480,12 @@ attrscmp(
 	AttributeName* attrs)
 {
 	int i, count1, count2; 
-	if ((attrs_in==NULL) || (attrs==NULL)) 
-		return 1; 
+	if ( attrs_in == NULL ) {
+		return (attrs ? 0 : 1); 
+	} 
+	if ( attrs == NULL ) 
+		return 0; 
+	
 	for ( count1=0;
 	      attrs_in && attrs_in[count1].an_name.bv_val != NULL;
 	      count1++ )
@@ -1640,12 +1701,11 @@ is_temp_answerable(
 static void* 
 consistency_check(void* operation)
 {
-	Operation* op_tmp = (Operation*)operation; 
+	Operation* op = (Operation*)operation; 
 
-	Operation op = *op_tmp; 
 	SlapReply rs = {REP_RESULT}; 
 
-	struct metainfo *li = ( struct metainfo * )op.o_bd->be_private;
+	struct metainfo *li = ( struct metainfo * )op->o_bd->be_private;
 	cache_manager* 	cm = li->cm; 
 	query_manager* qm = cm->qm; 
 	CachedQuery* query, *query_prev; 
@@ -1656,7 +1716,7 @@ consistency_check(void* operation)
 	QueryTemplate* templ;
 
 
-	op.o_bd = li->glue_be;
+	op->o_bd = li->glue_be;
       
         for(;;) {
 	        ldap_pvt_thread_sleep(cm->cc_period);     
@@ -1696,7 +1756,7 @@ consistency_check(void* operation)
 				ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);  
 				uuid.bv_val = query->q_uuid; 
 				uuid.bv_len = strlen(query->q_uuid); 
-				return_val = remove_query_data(&op, &rs, &uuid, &result); 
+				return_val = remove_query_data(op, &rs, &uuid, &result); 
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_META, DETAIL1,
 						"STALE QUERY REMOVED, SIZE=%d\n",
@@ -1772,14 +1832,10 @@ cache_back_sentry(
 		rs->sr_entry->e_nname = ndn; 
 
 		op->o_callback = cb; 
-		return 0;
-
+		return 0; 
 	} else if (rs->sr_type == REP_RESULT) { 
 		op->o_callback = NULL; 
 		send_ldap_result( op, rs ); 
 		return 0; 
 	}
-
-	return -1;
 }
-#endif

@@ -35,7 +35,6 @@
 #include "slap.h"
 #include "back-meta.h"
 
-#ifdef LDAP_CACHING 
 static char* invert_string(char* string);
 static struct berval* merge_init_final(struct berval*, struct berval*, struct berval*); 
 static int strings_containment(struct berval* stored, struct berval* incoming); 
@@ -287,4 +286,3 @@ final:
 	*/
 	return rc;
 }		
-#endif

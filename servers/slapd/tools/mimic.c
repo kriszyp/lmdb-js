@@ -13,9 +13,7 @@
 
 #include "../slap.h"
 
-#ifdef LDAP_SYNCREPL
 #include "ldap_rq.h"
-#endif
 
 /* needed by WIN32 and back-monitor */
 time_t starttime;
@@ -77,6 +75,17 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 int
 slap_send_search_reference( Operation *op, SlapReply *rs )
+{
+	assert(0);
+	return -1;
+}
+
+int slap_read_controls(
+	Operation *op,
+	SlapReply *rs,
+	Entry *e,
+	const struct berval *oid,
+	LDAPControl **c )
 {
 	assert(0);
 	return -1;
@@ -210,17 +219,6 @@ slap_modrdn2mods(
 	return 0;
 }
 
-int
-slap_mods2entry(
-	Modifications *mods,
-	Entry **e,
-	int repl_user,
-	const char **text,
-	char *textbuf, size_t textlen )
-{
-	return 0;
-}
-
 int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 	char *user_realm, struct berval *dn, int flags )
 {
@@ -233,25 +231,11 @@ int slap_sasl_authorized( Operation *op,
 	return -1;
 }
 
-int slap_mods_check( Modifications *ml, int update, const char **text,
-	char *textbuf, size_t textlen, void *ctx )
-{
-	return -1;
-}
-
-int slap_mods_opattrs( Operation *op, Modifications *mods,
-	Modifications **modtail, const char **text,
-	char *textbuf, size_t textlen )
-{
-	return -1;
-}
-
 int root_dse_info( Connection *conn, Entry **entry, const char **text )
 {
 	return -1;
 }
 
-#ifdef LDAP_SYNCREPL
 struct runqueue_s syncrepl_rq;
 
 void init_syncrepl( )
@@ -264,8 +248,19 @@ void* do_syncrepl( void *ctx, void *arg )
 	return NULL;
 }
 
-char** str2clist( char **out, char *in, const char *brkstr )
+char** str2clist( char ***out, char *in, const char *brkstr )
 {
 	return NULL;
 }
-#endif
+
+void syncrepl_add_glue( syncinfo_t *si, LDAP *ld, Operation *op, Entry *e,
+				Modifications *modlist, int syncstate, struct berval* syncUUID,
+				struct berval* syncCookie )
+{
+	return;
+}
+
+int slap_entry2mods( Entry *e, Modifications **mods, const char **text )
+{
+	return -1;
+}

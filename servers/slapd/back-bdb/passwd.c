@@ -36,6 +36,8 @@ bdb_exop_passwd( Operation *op, SlapReply *rs )
 	u_int32_t	locker = 0;
 	DB_LOCK		lock;
 
+	int		num_retries = 0;
+
 	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->oq_extended.rs_reqoid ) == 0 );
 
 	rc = slap_passwd_parse( op->oq_extended.rs_reqdata,
@@ -118,6 +120,7 @@ retry:	/* transaction retry */
 			rs->sr_text = "internal error";
 			goto done;
 		}
+		bdb_trans_backoff( ++num_retries );
 		ldap_pvt_thread_yield();
 	}
 
@@ -170,7 +173,8 @@ retry:	/* transaction retry */
 
 	if ( ei ) e = ei->bei_e;
 
-	if( e == NULL ) {
+	if ( e == NULL || is_entry_glue( e )) {
+			/* FIXME: dn2entry() should return non-glue entry */
 		rs->sr_text = "could not locate authorization entry";
 		rc = LDAP_NO_SUCH_OBJECT;
 		goto done;
@@ -184,6 +188,7 @@ retry:	/* transaction retry */
 		goto done;
 	}
 #endif
+
 #ifdef BDB_ALIASES
 	if( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow operation */
@@ -207,7 +212,8 @@ retry:	/* transaction retry */
 	if( rc != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
-			"bdb_exop_passwd: txn_begin(2) failed: %s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
+			"bdb_exop_passwd: txn_begin(2) failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_exop_passwd: txn_begin(2) failed: %s (%d)\n",
@@ -217,6 +223,7 @@ retry:	/* transaction retry */
 		rs->sr_text = "internal error";
 		goto done;
 	}
+
 	{
 		Modifications ml;
 		struct berval vals[2];

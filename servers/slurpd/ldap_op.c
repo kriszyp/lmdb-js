@@ -331,6 +331,16 @@ op_ldap_modify(
 	    nvals = 0;
 	    nops++;
 	    break;
+	case T_MODOPINCREMENT:
+	    state = T_MODOPINCREMENT;
+	    ldmarr = ( LDAPMod ** )
+		    ch_realloc(ldmarr, (( nops + 2 ) * ( sizeof( LDAPMod * ))));
+	    ldmarr[ nops ] = ldm = alloc_ldapmod();
+	    ldm->mod_op = LDAP_MOD_INCREMENT | LDAP_MOD_BVALUES;
+	    ldm->mod_type = value;
+	    nvals = 0;
+	    nops++;
+	    break;
 	default:
 	    if ( state == AWAITING_OP ) {
 #ifdef NEW_LOGGING
@@ -696,6 +706,9 @@ char *type )
     if ( !strcmp( type, T_MODOPDELETESTR )) {
 	return( T_MODOPDELETE );
     }
+    if ( !strcmp( type, T_MODOPINCREMENTSTR )) {
+	return( T_MODOPINCREMENT );
+    }
     return( T_ERR );
 }
 
@@ -777,7 +790,31 @@ retry:
 	}
 	ri->ri_ldp = NULL;
     }
+    
+	if ( ri->ri_uri != NULL ) { /* new URI style */
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, ARGS, 
+			"do_bind: Initializing session to %s\n", 
+		    ri->ri_uri, 0, 0);
+#else
+	    Debug( LDAP_DEBUG_ARGS, "Initializing session to %s\n",
+		    ri->ri_uri, 0, 0 );
+#endif
 
+		ldrc = ldap_initialize( &(ri->ri_ldp), ri->ri_uri);
+
+		if (ldrc != LDAP_SUCCESS) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, ERR, 
+			"do_bind: ldap_initalize (0, %s) failed: %s\n",
+			ri->ri_uri, ldap_err2string(ldrc), 0 );
+#else
+		Debug( LDAP_DEBUG_ANY, "Error: ldap_initialize(0, %s) failed: %s\n",
+			ri->ri_uri, ldap_err2string(ldrc), 0 );
+#endif
+		return( BIND_ERR_OPEN );		
+		}
+	} else { /* old HOST style */
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ARGS, 
 		"do_bind: Initializing session to %s:%d\n", 
@@ -798,6 +835,7 @@ retry:
 			ri->ri_hostname, ri->ri_port, sys_errlist[ errno ] );
 #endif
 		return( BIND_ERR_OPEN );
+    }
     }
 
 	{	/* set version 3 */

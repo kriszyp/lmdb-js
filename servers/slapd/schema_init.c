@@ -28,9 +28,6 @@
 #define HASH_Update(c,buf,len)	lutil_HASHUpdate(c,buf,len)
 #define HASH_Final(d,c)			lutil_HASHFinal(d,c)
 
-/* not yet implemented */
-#define uniqueMemberMatch NULL
-
 #define	OpenLDAPaciMatch			NULL
 
 /* approx matching rules */
@@ -732,6 +729,87 @@ nameUIDValidate(
 	return rc;
 }
 
+int
+nameUIDPretty(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *out,
+	void *ctx )
+{
+	assert( val );
+	assert( out );
+
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, ARGS, ">>> nameUIDPretty: <%s>\n", val->bv_val, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, ">>> nameUIDPretty: <%s>\n", val->bv_val, 0, 0 );
+#endif
+
+	if( val->bv_len == 0 ) {
+		ber_dupbv_x( out, val, ctx );
+
+	} else if ( val->bv_len > SLAP_LDAPDN_MAXLEN ) {
+		return LDAP_INVALID_SYNTAX;
+
+	} else {
+		int rc;
+		struct berval dnval = *val;
+		struct berval uidval = { 0, NULL };
+
+		if( val->bv_val[val->bv_len-1] == 'B'
+			&& val->bv_val[val->bv_len-2] == '\'' )
+		{
+			uidval.bv_val=strrchr( val->bv_val, '#' );
+			if( uidval.bv_val ) {
+				dnval.bv_len = uidval.bv_val - dnval.bv_val;
+				uidval.bv_len = val->bv_len - dnval.bv_len;
+
+				uidval.bv_len--;
+				uidval.bv_val++;
+			}
+		}
+
+		rc = dnPretty( syntax, &dnval, out, ctx );
+		if( rc != LDAP_SUCCESS ) return rc;
+
+		if( uidval.bv_val ) {
+			char *tmp = sl_realloc( out->bv_val, out->bv_len + uidval.bv_len + 2, ctx );
+			int i, c, got1;
+			if( tmp == NULL ) {
+				ber_memfree_x( out->bv_val, ctx );
+				return LDAP_OTHER;
+			}
+			out->bv_val = tmp;
+			out->bv_val[out->bv_len++] = '#';
+
+			got1 = uidval.bv_len < sizeof("'0'B"); 
+			for(i=0; i<uidval.bv_len; i++) {
+				c = uidval.bv_val[i];
+				switch(c) {
+					case '0':
+						if( got1 ) out->bv_val[out->bv_len++] = c;
+						break;
+					case '1':
+						got1 = 1;
+					default:
+						out->bv_val[out->bv_len++] = c;
+				}
+			}
+
+			out->bv_val[out->bv_len] = '\0';
+		}
+	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, ARGS, "<<< nameUIDPretty: <%s>\n", out->bv_val, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "<<< nameUIDPretty: <%s>\n", out->bv_val, 0, 0 );
+#endif
+
+	return LDAP_SUCCESS;
+}
+
 static int
 uniqueMemberNormalize(
 	slap_mask_t usage,
@@ -793,6 +871,77 @@ uniqueMemberNormalize(
 	}
 
 	return LDAP_SUCCESS;
+}
+
+static int
+uniqueMemberMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	int match;
+	struct berval *asserted = (struct berval *) assertedValue;
+	struct berval assertedDN = { 0, NULL };
+	struct berval assertedUID = { 0, NULL };
+	struct berval valueDN = { 0, NULL };
+	struct berval valueUID = { 0, NULL };
+
+	if( asserted->bv_len != 0 ) {
+		assertedDN = *asserted;
+
+		if( assertedDN.bv_val[assertedDN.bv_len-1] == 'B'
+			&& assertedDN.bv_val[assertedDN.bv_len-2] == '\'' )
+		{
+			/* assume presence of optional UID */
+			assertedUID.bv_val = strrchr( assertedDN.bv_val, '#' );
+
+			if( assertedUID.bv_val == NULL ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			assertedUID.bv_len = assertedDN.bv_len -
+				(assertedUID.bv_val - assertedDN.bv_val);
+			assertedDN.bv_len -= assertedUID.bv_len--;
+
+			/* trim the separator */
+			assertedUID.bv_val++;
+		}
+	}
+
+	if( value->bv_len != 0 ) {
+		valueDN = *value;
+
+		if( valueDN.bv_val[valueDN.bv_len-1] == 'B'
+			&& valueDN.bv_val[valueDN.bv_len-2] == '\'' )
+		{
+			/* assume presence of optional UID */
+			valueUID.bv_val = strrchr( valueDN.bv_val, '#' );
+
+			if( valueUID.bv_val == NULL ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			valueUID.bv_len = valueDN.bv_len -
+				(assertedUID.bv_val - assertedDN.bv_val);
+			valueDN.bv_len -= valueUID.bv_len--;
+
+			/* trim the separator */
+			valueUID.bv_val++;
+		}
+	}
+
+	if( valueUID.bv_len && assertedUID.bv_len ) {
+		match = memcmp( valueUID.bv_val, assertedUID.bv_val, valueUID.bv_len );
+		if( match ) {
+			*matchp = match;
+			return LDAP_SUCCESS;
+		}
+	}
+
+	return dnMatch( matchp, flags, syntax, mr, &valueDN, &assertedDN );
 }
 
 /*
@@ -1291,6 +1440,7 @@ telephoneNumberNormalize(
 
 	if( normalized->bv_len == 0 ) {
 		sl_free( normalized->bv_val, ctx );
+		normalized->bv_val = NULL;
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -1858,8 +2008,8 @@ certificateExactConvert(
 			ERR_error_string(ERR_get_error(),NULL), 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ARGS, "certificateExactConvert: "
-		       "error parsing cert: %s\n",
-		       ERR_error_string(ERR_get_error(),NULL), NULL, NULL );
+			"error parsing cert: %s\n",
+			ERR_error_string(ERR_get_error(),NULL), NULL, NULL );
 #endif
 		return LDAP_INVALID_SYNTAX;
 	}
@@ -1869,7 +2019,7 @@ certificateExactConvert(
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	rc = dnX509normalize(X509_get_issuer_name(xcert), &issuer_dn );
+	rc = dnX509normalize( X509_get_issuer_name(xcert), &issuer_dn );
 	if( rc != LDAP_SUCCESS ) {
 		X509_free(xcert);
 		ber_memfree(serial.bv_val);
@@ -1890,11 +2040,10 @@ certificateExactConvert(
 	*p++ = '\0';
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( CONFIG, ARGS, 
-		"certificateExactConvert: \n	%s\n", out->bv_val, 0, 0 );
+	LDAP_LOG( CONFIG, ARGS, "certificateExactConvert: %s\n",
+		out->bv_val, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_ARGS, "certificateExactConvert "
-		"\n\t\"%s\"\n",
+	Debug( LDAP_DEBUG_ARGS, "certificateExactConvert: %s\n",
 		out->bv_val, NULL, NULL );
 #endif
 
@@ -1928,172 +2077,189 @@ certificateExactNormalize(
 #endif /* HAVE_TLS */
 
 
+#ifndef SUPPORT_OBSOLETE_UTC_SYNTAX
+/* slight optimization - does not need the start parameter */
+#define check_time_syntax(v, start, p, f) (check_time_syntax)(v, p, f)
+enum { start = 0 };
+#endif
+
 static int
 check_time_syntax (struct berval *val,
 	int start,
-	int *parts)
+	int *parts,
+	struct berval *fraction)
 {
-	static int ceiling[9] = { 99, 99, 11, 30, 23, 59, 59, 12, 59 };
-	static int mdays[2][12] = {
+	/*
+	 * start=0 GeneralizedTime YYYYmmddHH[MM[SS]][(./,)d...](Z|(+/-)HH[MM])
+	 * start=1 UTCTime         YYmmddHHMM[SS][Z|(+/-)HHMM]
+	 * GeneralizedTime supports leap seconds, UTCTime does not.
+	 */
+	static const int ceiling[9] = { 100, 100, 12, 31, 24, 60, 60, 24, 60 };
+	static const int mdays[2][12] = {
 		/* non-leap years */
-		{ 30, 27, 30, 29, 30, 29, 30, 30, 29, 30, 29, 30 },
+		{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
 		/* leap years */
-		{ 30, 28, 30, 29, 30, 29, 30, 30, 29, 30, 29, 30 }
+		{ 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
 	};
 	char *p, *e;
-	int part, c, tzoffset, leapyear = 0 ;
+	int part, c, c1, c2, tzoffset, leapyear = 0;
 
-	if( val->bv_len == 0 ) {
-		return LDAP_INVALID_SYNTAX;
-	}
-
-	p = (char *)val->bv_val;
+	p = val->bv_val;
 	e = p + val->bv_len;
 
-	/* Ignore initial whitespace */
-	while ( ( p < e ) && ASCII_SPACE( *p ) ) {
-		p++;
-	}
-
-	if (e - p < 13 - (2 * start)) {
-		return LDAP_INVALID_SYNTAX;
-	}
-
-	for (part = 0; part < 9; part++) {
-		parts[part] = 0;
-	}
-
-	for (part = start; part < 7; part++) {
-		c = *p;
-		if ((part == 6) && (c == 'Z' || c == '+' || c == '-')) {
-			part++;
+#ifdef SUPPORT_OBSOLETE_UTC_SYNTAX
+	parts[0] = 20; /* century - any multiple of 4 from 04 to 96 */
+#endif
+	for (part = start; part < 7 && p < e; part++) {
+		c1 = *p;
+		if (!ASCII_DIGIT(c1)) {
 			break;
 		}
 		p++;
-		c -= '0';
 		if (p == e) {
 			return LDAP_INVALID_SYNTAX;
 		}
-		if (c < 0 || c > 9) {
+		c = *p++;
+		if (!ASCII_DIGIT(c)) {
 			return LDAP_INVALID_SYNTAX;
+		}
+		c += c1 * 10 - '0' * 11;
+		if ((part | 1) == 3) {
+			--c;
+			if (c < 0) {
+				return LDAP_INVALID_SYNTAX;
+			}
+		}
+		if (c >= ceiling[part]) {
+			if (! (c == 60 && part == 6 && start == 0))
+				return LDAP_INVALID_SYNTAX;
 		}
 		parts[part] = c;
-
-		c = *p++ - '0';
-		if (p == e) {
-			return LDAP_INVALID_SYNTAX;
-		}
-		if (c < 0 || c > 9) {
-			return LDAP_INVALID_SYNTAX;
-		}
-		parts[part] *= 10;
-		parts[part] += c;
-
-		if (part == 2 || part == 3) {
-			parts[part]--;
-		}
-		if (parts[part] < 0) {
-			return LDAP_INVALID_SYNTAX;
-		}
-		if (parts[part] > ceiling[part]) {
-			return LDAP_INVALID_SYNTAX;
-		}
+	}
+	if (part < 5 + start) {
+		return LDAP_INVALID_SYNTAX;
+	}
+	for (; part < 9; part++) {
+		parts[part] = 0;
 	}
 
 	/* leapyear check for the Gregorian calendar (year>1581) */
-	if (((parts[1] % 4 == 0) && (parts[1] != 0)) ||
-		((parts[0] % 4 == 0) && (parts[1] == 0)))
+	if (parts[parts[1] == 0 ? 0 : 1] % 4 == 0)
 	{
 		leapyear = 1;
 	}
 
-	if (parts[3] > mdays[leapyear][parts[2]]) {
+	if (parts[3] >= mdays[leapyear][parts[2]]) {
 		return LDAP_INVALID_SYNTAX;
 	}
-	
-	c = *p++;
-	if (c == 'Z') {
-		tzoffset = 0; /* UTC */
-	} else if (c != '+' && c != '-') {
-		return LDAP_INVALID_SYNTAX;
-	} else {
-		if (c == '-') {
-			tzoffset = -1;
-		} else /* c == '+' */ {
-			tzoffset = 1;
-		}
 
-		if (p > e - 4) {
+	if (start == 0) {
+		fraction->bv_val = p;
+		fraction->bv_len = 0;
+		if (p < e && (*p == '.' || *p == ',')) {
+			char *end_num;
+			while (++p < e && ASCII_DIGIT(*p))
+				;
+			if (p - fraction->bv_val == 1) {
+				return LDAP_INVALID_SYNTAX;
+			}
+			for (end_num = p; end_num[-1] == '0'; --end_num)
+				;
+			c = end_num - fraction->bv_val;
+			if (c != 1)
+				fraction->bv_len = c;
+		}
+	}
+
+	if (p == e) {
+		/* no time zone */
+		return start == 0 ? LDAP_INVALID_SYNTAX : LDAP_SUCCESS;
+	}
+
+	tzoffset = *p++;
+	switch (tzoffset) {
+	default:
+		return LDAP_INVALID_SYNTAX;
+	case 'Z':
+		/* UTC */
+		break;
+	case '+':
+	case '-':
+		for (part = 7; part < 9 && p < e; part++) {
+			c1 = *p;
+			if (!ASCII_DIGIT(c1)) {
+				break;
+			}
+			p++;
+			if (p == e) {
+				return LDAP_INVALID_SYNTAX;
+			}
+			c2 = *p++;
+			if (!ASCII_DIGIT(c2)) {
+				return LDAP_INVALID_SYNTAX;
+			}
+			parts[part] = c1 * 10 + c2 - '0' * 11;
+			if (parts[part] >= ceiling[part]) {
+				return LDAP_INVALID_SYNTAX;
+			}
+		}
+		if (part < 8 + start) {
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		for (part = 7; part < 9; part++) {
-			c = *p++ - '0';
-			if (c < 0 || c > 9) {
-				return LDAP_INVALID_SYNTAX;
+		if (tzoffset == '-') {
+			/* negative offset to UTC, ie west of Greenwich */
+			parts[4] += parts[7];
+			parts[5] += parts[8];
+			/* offset is just hhmm, no seconds */
+			for (part = 6; --part >= 0; ) {
+				if (part != 3) {
+					c = ceiling[part];
+				} else {
+					c = mdays[leapyear][parts[2]];
+				}
+				if (parts[part] >= c) {
+					if (part == 0) {
+						return LDAP_INVALID_SYNTAX;
+					}
+					parts[part] -= c;
+					parts[part - 1]++;
+					continue;
+				} else if (part != 5) {
+					break;
+				}
 			}
-			parts[part] = c;
-
-			c = *p++ - '0';
-			if (c < 0 || c > 9) {
-				return LDAP_INVALID_SYNTAX;
-			}
-			parts[part] *= 10;
-			parts[part] += c;
-			if (parts[part] < 0 || parts[part] > ceiling[part]) {
-				return LDAP_INVALID_SYNTAX;
-			}
-		}
-	}
-
-	/* Ignore trailing whitespace */
-	while ( ( p < e ) && ASCII_SPACE( *p ) ) {
-		p++;
-	}
-	if (p != e) {
-		return LDAP_INVALID_SYNTAX;
-	}
-
-	switch ( tzoffset ) {
-	case -1: /* negativ offset to UTC, ie west of Greenwich	 */
-		parts[4] += parts[7];
-		parts[5] += parts[8];
-		for (part = 6; --part > 0; ) { /* offset is just hhmm, no seconds */
-			if (part != 3) {
-				c = ceiling[part];
-			} else {
-				c = mdays[leapyear][parts[2]];
-			}
-			if (parts[part] > c) {
-				parts[part] -= c + 1;
-				parts[part - 1]++;
-			}
-		}
-		break;
-	case 1: /* positive offset to UTC, ie east of Greenwich */
-		parts[4] -= parts[7];
-		parts[5] -= parts[8];
-		for (part = 6; --part > 0; ) {
-			if (part != 3) {
-				c = ceiling[part];
-			} else {
-				/* first arg to % needs to be non negativ */
-				c = mdays[leapyear][(parts[2] - 1 + 12) % 12];
-			}
-			if (parts[part] < 0) {
-				parts[part] += c + 1;
-				parts[part - 1]--;
+		} else {
+			/* positive offset to UTC, ie east of Greenwich */
+			parts[4] -= parts[7];
+			parts[5] -= parts[8];
+			for (part = 6; --part >= 0; ) {
+				if (parts[part] < 0) {
+					if (part == 0) {
+						return LDAP_INVALID_SYNTAX;
+					}
+					if (part != 3) {
+						c = ceiling[part];
+					} else {
+						/* make first arg to % non-negative */
+						c = mdays[leapyear][(parts[2] - 1 + 12) % 12];
+					}
+					parts[part] += c;
+					parts[part - 1]--;
+					continue;
+				} else if (part != 5) {
+					break;
+				}
 			}
 		}
-		break;
-	case 0: /* already UTC */
-		break;
 	}
 
-	return LDAP_SUCCESS;
+	return p != e ? LDAP_INVALID_SYNTAX : LDAP_SUCCESS;
 }
 
 #ifdef SUPPORT_OBSOLETE_UTC_SYNTAX
+
+#if 0
 static int
 xutcTimeNormalize(
 	Syntax *syntax,
@@ -2102,7 +2268,7 @@ xutcTimeNormalize(
 {
 	int parts[9], rc;
 
-	rc = check_time_syntax(val, 1, parts);
+	rc = check_time_syntax(val, 1, parts, NULL);
 	if (rc != LDAP_SUCCESS) {
 		return rc;
 	}
@@ -2119,6 +2285,7 @@ xutcTimeNormalize(
 
 	return LDAP_SUCCESS;
 }
+#endif /* 0 */
 
 static int
 utcTimeValidate(
@@ -2126,9 +2293,10 @@ utcTimeValidate(
 	struct berval *in )
 {
 	int parts[9];
-	return check_time_syntax(in, 1, parts);
+	return check_time_syntax(in, 1, parts, NULL);
 }
-#endif
+
+#endif /* SUPPORT_OBSOLETE_UTC_SYNTAX */
 
 static int
 generalizedTimeValidate(
@@ -2136,7 +2304,8 @@ generalizedTimeValidate(
 	struct berval *in )
 {
 	int parts[9];
-	return check_time_syntax(in, 0, parts);
+	struct berval fraction;
+	return check_time_syntax(in, 0, parts, &fraction);
 }
 
 static int
@@ -2149,22 +2318,53 @@ generalizedTimeNormalize(
 	void *ctx )
 {
 	int parts[9], rc;
+	unsigned int len;
+	struct berval fraction;
 
-	rc = check_time_syntax(val, 0, parts);
+	rc = check_time_syntax(val, 0, parts, &fraction);
 	if (rc != LDAP_SUCCESS) {
 		return rc;
 	}
 
-	normalized->bv_val = sl_malloc( sizeof("YYYYmmddHHMMSSZ"), ctx );
+	len = sizeof("YYYYmmddHHMMSSZ")-1 + fraction.bv_len;
+	normalized->bv_val = sl_malloc( len + 1, ctx );
 	if ( normalized->bv_val == NULL ) {
 		return LBER_ERROR_MEMORY;
 	}
 
-	sprintf( normalized->bv_val, "%02d%02d%02d%02d%02d%02d%02dZ",
+	sprintf( normalized->bv_val, "%02d%02d%02d%02d%02d%02d%02d",
 		parts[0], parts[1], parts[2] + 1, parts[3] + 1,
 		parts[4], parts[5], parts[6] );
-	normalized->bv_len = 15;
+	if ( fraction.bv_len ) {
+		memcpy( normalized->bv_val + sizeof("YYYYmmddHHMMSSZ")-2,
+			fraction.bv_val, fraction.bv_len );
+		normalized->bv_val[sizeof("YYYYmmddHHMMSSZ")-2] = '.';
+	}
+	strcpy( normalized->bv_val + len-1, "Z" );
+	normalized->bv_len = len;
 
+	return LDAP_SUCCESS;
+}
+
+static int
+generalizedTimeOrderingMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	struct berval *asserted = (struct berval *) assertedValue;
+	ber_len_t v_len  = value->bv_len;
+	ber_len_t av_len = asserted->bv_len;
+
+	/* ignore trailing 'Z' when comparing */
+	int match = memcmp( value->bv_val, asserted->bv_val,
+		(v_len < av_len ? v_len : av_len) - 1 );
+	if ( match == 0 ) match = v_len - av_len;
+
+	*matchp = match;
 	return LDAP_SUCCESS;
 }
 
@@ -2313,6 +2513,7 @@ firstComponentNormalize(
 	return rc;
 }
 
+
 #define X_BINARY "X-BINARY-TRANSFER-REQUIRED 'TRUE' "
 #define X_NOT_H_R "X-NOT-HUMAN-READABLE 'TRUE' "
 
@@ -2388,7 +2589,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.33 DESC 'MHS OR Address' )",
 		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'Name And Optional UID' )",
-		0, nameUIDValidate, NULL},
+		0, nameUIDValidate, nameUIDPretty },
 	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'Name Form Description' )",
 		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'Numeric String' )",
@@ -2712,7 +2913,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.28 NAME 'generalizedTimeOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
 		SLAP_MR_ORDERING, NULL,
-		NULL, generalizedTimeNormalize, octetStringOrderingMatch,
+		NULL, generalizedTimeNormalize, generalizedTimeOrderingMatch,
 		NULL, NULL,
 		"generalizedTimeMatch" },
 

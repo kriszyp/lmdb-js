@@ -56,6 +56,10 @@ entry_schema_check(
 	int subentry = is_entry_subentry( e );
 	int collectiveSubentry = 0;
 
+	if ( SLAP_NO_SCHEMA_CHECK( be )) {
+		return LDAP_SUCCESS;
+	}
+
 	if( subentry ) {
 		collectiveSubentry = is_entry_collectiveAttributeSubentry( e );
 	}
@@ -214,30 +218,25 @@ entry_schema_check(
 			aoc->a_vals[0].bv_val );
 		return LDAP_OBJECT_CLASS_VIOLATION;
 
-	} else if ( sc != oc ) {
+	} else if ( sc != slap_schema.si_oc_glue && sc != oc ) {
 		snprintf( textbuf, textlen, 
 			"structural object class modification "
 			"from '%s' to '%s' not allowed",
 			asc->a_vals[0].bv_val, nsc.bv_val );
 		return LDAP_NO_OBJECT_CLASS_MODS;
+	} else if ( sc == slap_schema.si_oc_glue ) {
+		sc = oc;
 	}
 
 	/* naming check */
-#ifdef LDAP_SYNCREPL
         if ( !is_entry_objectclass ( e, slap_schema.si_oc_glue, 0 ) ) {
                 rc = entry_naming_check( e, text, textbuf, textlen );
                 if( rc != LDAP_SUCCESS ) {
                         return rc;
                 }
         } else {
-                printf("glue !!!\n");
+			/* Glue Entry */
         }
-#else
-        rc = entry_naming_check( e, text, textbuf, textlen );
-        if( rc != LDAP_SUCCESS ) {
-                return rc;
-        }
-#endif
 
 #ifdef SLAP_EXTENDED_SCHEMA
 	/* find the content rule for the structural class */

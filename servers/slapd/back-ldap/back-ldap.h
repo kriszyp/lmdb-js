@@ -194,6 +194,8 @@ extern int suffix_massage_config( struct rewrite_info *info,
 extern int ldap_dnattr_rewrite( dncookie *dc, BerVarray a_vals );
 extern int ldap_dnattr_result_rewrite( dncookie *dc, BerVarray a_vals );
 
+extern int ldap_chain_setup();
+
 LDAP_END_DECL
 
 #endif /* SLAPD_LDAP_H */

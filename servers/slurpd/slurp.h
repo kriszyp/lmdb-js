@@ -117,8 +117,10 @@
 #define	T_MODOPREPLACE		9
 #define	T_MODOPDELETESTR	"delete"
 #define	T_MODOPDELETE		10
+#define	T_MODOPINCREMENTSTR	"increment"
+#define	T_MODOPINCREMENT	11
 #define	T_MODSEPSTR		"-"
-#define	T_MODSEP		11
+#define	T_MODSEP		12
 
 #define	T_NEWRDNSTR		"newrdn"
 #define	T_DELOLDRDNSTR	"deleteoldrdn"
@@ -128,6 +130,7 @@
 
 /* Config file keywords */
 #define	HOSTSTR			"host"
+#define	URISTR			"uri"
 #define	ATTRSTR			"attr"
 #define	SUFFIXSTR		"suffix"
 #define	BINDDNSTR		"binddn"
@@ -143,8 +146,9 @@
 #define	SASLMECHSTR		"saslmech"
 #define	REALMSTR		"realm"
 #define	SECPROPSSTR		"secprops"
+#define STARTTLSSTR		"starttls"
 #define TLSSTR			"tls"
-#define TLSCRITICALSTR	"critical"
+#define CRITICALSTR		"critical"
 
 #define	REPLICA_SLEEP_TIME	( 10 )
 
@@ -213,6 +217,7 @@ struct ri {
     /* Private data */
     char	*ri_hostname;		/* canonical hostname of replica */
     int		ri_port;		/* port where slave slapd running */
+    char	*ri_uri;		/* e.g. "ldaps://ldap-1.example.com:636" */
     LDAP	*ri_ldp;		/* LDAP struct for this replica */
     int		ri_tls;			/* TLS: 0=no, 1=yes, 2=critical */
     int		ri_bind_method;		/* AUTH_SIMPLE or AUTH_KERBEROS */

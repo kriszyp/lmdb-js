@@ -15,6 +15,11 @@ if test $# -ge 1 ; then
         MONITORDB=$1; shift
 fi
 
+PROXYCACHE=no
+if test $# -ge 1 ; then
+        PROXYCACHE=$1; shift
+fi
+
 WAIT=0
 if test $# -ge 1 ; then
         WAIT=1; shift

@@ -112,16 +112,6 @@ shell_back_db_config(
 		}
 		si->si_delete = ldap_charray_dup( &argv[1] );
 
-	/* command + args to exec for abandon */
-	} else if ( strcasecmp( argv[0], "abandon" ) == 0 ) {
-		if ( argc < 2 ) {
-			fprintf( stderr,
-	"%s: line %d: missing executable in \"abandon <executable>\" line\n",
-			    fname, lineno );
-			return( 1 );
-		}
-		si->si_abandon = ldap_charray_dup( &argv[1] );
-
 	/* anything else */
 	} else {
 		fprintf( stderr,

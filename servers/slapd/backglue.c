@@ -187,11 +187,7 @@ glue_back_response ( Operation *op, SlapReply *rs )
 		op->o_callback = gs->prevcb;
 		if (op->o_callback && op->o_callback->sc_response) {
 			rs->sr_err = op->o_callback->sc_response( op, rs );
-		} else if (rs->sr_type == REP_SEARCH) {
-			rs->sr_err = send_search_entry( op, rs );
-		} else {
-			rs->sr_err = send_search_reference( op, rs );
-		}
+		} else rs->sr_err = SLAP_CB_CONTINUE;
 		op->o_callback = tmp;
 		return rs->sr_err;
 
@@ -591,6 +587,10 @@ glue_sub_init( )
 				bi->bi_tool_entry_put = glue_tool_entry_put;
 				bi->bi_tool_entry_reindex = glue_tool_entry_reindex;
 				bi->bi_tool_sync = glue_tool_sync;
+				/* FIXME : will support later */
+				bi->bi_tool_dn2id_get = 0;
+				bi->bi_tool_id2entry_get = 0;
+				bi->bi_tool_entry_modify = 0;
 			} else {
 				gi = (glueinfo *)ch_realloc(gi,
 					sizeof(glueinfo) +

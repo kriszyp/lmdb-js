@@ -229,22 +229,6 @@ class LDAPConnection : private LDAPAsynConnection {
         void setConstraints(LDAPConstraints *cons);
         
         const LDAPConstraints* getConstraints() const ;
-
-        /**
-         * Turn on caching, maxmem is in MB and timeout is in seconds.
-         * maxmem can be zero if you want to restrict caching by timeout only.
-         */
-        int enableCache(long timeout, long maxmem);
-        /// disable caching.
-        void disableCache();
-        /// is cacheEnabled?
-        bool getCacheEnabled();
-        /// uncache a specific dn.  Used internally by methods that write.
-        void uncache_entry(std::string &dn);
-        /// used to clear the cache.  Probably should be used after creating
-        /// an object that a cached search should find.
-        void flush_cache();
-
 };
 
 #endif //LDAP_CONNECTION_H

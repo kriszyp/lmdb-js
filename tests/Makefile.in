@@ -8,9 +8,16 @@ BUILD_BDB=@BUILD_BDB@
 BUILD_HDB=@BUILD_HDB@
 BUILD_LDBM=@BUILD_LDBM@
 BUILD_MONITOR=@BUILD_MONITOR@
+BUILD_CACHE=@BUILD_CACHE@
 
 test: tests
-tests: bdb hdb ldbm
+tests: int-bdb
+
+int-bdb: test-bdb
+	@$(MAKE) int-hdb
+int-hdb: test-hdb
+	@$(MAKE) int-ldbm
+int-ldbm: test-ldbm
 
 bdb: test-bdb
 test-bdb:	FORCE
@@ -20,7 +27,7 @@ test-bdb:	FORCE
 	@if test "$(BUILD_BDB)" != "no"; then \
 		echo "Initiating LDAP tests for BDB..." ; \
 		$(MKDIR) test-db test-repl || true; \
-		$(srcdir)/scripts/all $(srcdir) bdb $(BUILD_BDB) $(BUILD_MONITOR) ; \
+		$(srcdir)/scripts/all $(srcdir) bdb $(BUILD_BDB) $(BUILD_MONITOR) $(BUILD_CACHE) ; \
 	else \
 		echo "run configure with --enable-bdb" ; \
 	fi
@@ -33,7 +40,7 @@ test-hdb:	FORCE
 	@if test "$(BUILD_HDB)" != "no" ; then \
 		echo "Initiating LDAP tests for HDB..." ; \
 		$(MKDIR) test-db test-repl || true; \
-		$(srcdir)/scripts/all $(srcdir) hdb $(BUILD_HDB) $(BUILD_MONITOR) ; \
+		$(srcdir)/scripts/all $(srcdir) hdb $(BUILD_HDB) $(BUILD_MONITOR) $(BUILD_CACHE) ; \
 	else \
 		echo "run configure with --enable-hdb" ; \
 	fi
@@ -46,7 +53,7 @@ test-ldbm:	FORCE
 	@if test "$(BUILD_LDBM)" != "no"; then \
 		echo "Initiating LDAP tests for LDBM..." ; \
 		$(MKDIR) test-db test-repl || true; \
-		$(srcdir)/scripts/all $(srcdir) ldbm $(BUILD_LDBM) $(BUILD_MONITOR); \
+		$(srcdir)/scripts/all $(srcdir) ldbm $(BUILD_LDBM) $(BUILD_MONITOR) $(BUILD_CACHE); \
 	else \
 		echo "run configure with --enable-ldbm" ; \
 	fi
@@ -70,9 +77,9 @@ test-nis-schema-ldbm:
 	$(srcdir)/scripts/startup_nis_ldap_server.sh $(srcdir) ldbm
 
 clean-local:	FORCE
-	-$(RM) -r test-db/[!C]* test-repl/[!C]* *leak *gmon *core
+	-$(RM) -r test-db/[!C]* test-repl/[!C]* test-cache/[!C]* *leak *gmon *core
 
 veryclean-local: FORCE
 	@-$(RM) data schema ucdata
-	-$(RM) -r test-db test-repl
+	-$(RM) -r test-db test-repl test-cache
 

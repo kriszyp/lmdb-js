@@ -220,6 +220,8 @@ extern int compute_evaluator(computed_attr_context *c, char *type, Slapi_Entry *
 extern int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e);
 extern int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
 
+extern int slapi_x_access_allowed(Operation *op, Entry *entry, AttributeDescription *desc, struct berval *val, slap_access_t access, AccessControlState *state);
+
 extern ldap_pvt_thread_mutex_t	slapi_hn_mutex;
 extern ldap_pvt_thread_mutex_t	slapi_time_mutex;
 extern ldap_pvt_thread_mutex_t	slapi_printmessage_mutex; 
@@ -310,6 +312,11 @@ extern int slapi_modify_changelog(char *dn, LDAPMod *mods,char *suffix,
 extern int slapi_modifyrdn_changelog(char *olddn, char *newRdn, int delRdn, 
 		char *suffix, char *chNum, Operation* op);
 extern Backend * slapi_cl_get_be(char *dn);
+
+int slapi_x_init_object_extensions(void);
+int slapi_x_free_object_extensions(int objecttype, void *object);
+int slapi_x_create_object_extensions(int objecttype, void *object);
+int slapi_x_clear_object_extensions(int objecttype, void *object);
 
 LDAP_END_DECL
 

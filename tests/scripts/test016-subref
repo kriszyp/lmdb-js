@@ -7,7 +7,7 @@ if test $# -ge 1 ; then
 	SRCDIR=$1; shift
 fi
 
-. $SRCDIR/scripts/args.sh
+. $SRCDIR/scripts/args.sh $*
 
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh

@@ -102,8 +102,15 @@ dn2entry_retry:
 		goto done;
 	}
 
-	rs->sr_err = access_allowed( op, e,
-		op->oq_compare.rs_ava->aa_desc, &op->oq_compare.rs_ava->aa_value, ACL_COMPARE, NULL );
+	if ( get_assert( op ) &&
+		( test_filter( op, e, get_assertion( op )) != LDAP_COMPARE_TRUE ))
+	{
+		rs->sr_err = LDAP_ASSERTION_FAILED;
+		goto return_results;
+	}
+
+	rs->sr_err = access_allowed( op, e, op->oq_compare.rs_ava->aa_desc,
+		&op->oq_compare.rs_ava->aa_value, ACL_COMPARE, NULL );
 	if ( ! rs->sr_err ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		goto return_results;

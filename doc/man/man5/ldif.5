@@ -16,12 +16,12 @@ The basic form of an LDIF entry is:
 .LP
 .nf
 .ft tt
-	dn: <distinguished name>
-	<attrdesc>: <attrvalue>
-	<attrdesc>: <attrvalue>
-	<attrdesc>:: <base64-encoded-value>
-	<attrdesc>:< <URL>
-	...
+    dn: <distinguished name>
+    <attrdesc>: <attrvalue>
+    <attrdesc>: <attrvalue>
+    <attrdesc>:: <base64-encoded-value>
+    <attrdesc>:< <URL>
+    ...
 .ft
 .fi
 .LP
@@ -33,8 +33,8 @@ or tab, e.g.,
 .LP
 .nf
 .ft tt
-	dn: cn=Barbara J Jensen,dc=exam
-	 ple,dc=com
+    dn: cn=Barbara J Jensen,dc=exam
+     ple,dc=com
 .ft
 .fi
 .LP
@@ -44,8 +44,8 @@ Multiple attribute values are specified on separate lines, e.g.,
 .LP
 .nf
 .ft tt
-	cn: Barbara J Jensen
-	cn: Babs Jensen
+    cn: Barbara J Jensen
+    cn: Babs Jensen
 .ft
 .fi
 .LP
@@ -56,7 +56,7 @@ the value " begins with a space" would be encoded like this:
 .LP
 .nf
 .ft tt
-	cn:: IGJlZ2lucyB3aXRoIGEgc3BhY2U=
+    cn:: IGJlZ2lucyB3aXRoIGEgc3BhY2U=
 .ft
 .fi
 .LP
@@ -66,7 +66,7 @@ in the file /tmp/value would be listed like this:
 .LP
 .nf
 .ft tt
-	cn:< file:///tmp/value
+    cn:< file:///tmp/value
 .ft
 .fi
 Other URI schemes (ftp,http) may be supported as well.
@@ -78,28 +78,28 @@ Here is an example of an LDIF file containing three entries.
 .LP
 .nf
 .ft tt
-	dn: cn=Barbara J Jensen,dc=example,dc=com
-	cn: Barbara J Jensen
-	cn: Babs Jensen
-	objectclass: person
-	description:< file://tmp/babs
-	sn: Jensen
+    dn: cn=Barbara J Jensen,dc=example,dc=com
+    cn: Barbara J Jensen
+    cn: Babs Jensen
+    objectclass: person
+    description:< file://tmp/babs
+    sn: Jensen
 
-	dn: cn=Bjorn J Jensen,dc=example,dc=com
-	cn: Bjorn J Jensen
-	cn: Bjorn Jensen
-	objectclass: person
-	sn: Jensen
+    dn: cn=Bjorn J Jensen,dc=example,dc=com
+    cn: Bjorn J Jensen
+    cn: Bjorn Jensen
+    objectclass: person
+    sn: Jensen
 
-	dn: cn=Jennifer J Jensen,dc=example,dc=com
-	cn: Jennifer J Jensen
-	cn: Jennifer Jensen
-	objectclass: person
-	sn: Jensen
-	jpegPhoto:: /9j/4AAQSkZJRgABAAAAAQABAAD/2wBDABALD
-	 A4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQ
-	 ERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVG
-	...
+    dn: cn=Jennifer J Jensen,dc=example,dc=com
+    cn: Jennifer J Jensen
+    cn: Jennifer Jensen
+    objectclass: person
+    sn: Jensen
+    jpegPhoto:: /9j/4AAQSkZJRgABAAAAAQABAAD/2wBDABALD
+     A4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQ
+     ERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVG
+    ...
 .ft
 .fi
 .LP
@@ -113,7 +113,7 @@ Jensen's entry is encoded using base 64.
 .LP
 "LDAP Data Interchange Format," Good, G., RFC 2849.
 .SH ACKNOWLEDGEMENTS
-.B	OpenLDAP
+.B OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B	OpenLDAP
+.B OpenLDAP
 is derived from University of Michigan LDAP 3.3 Release.  

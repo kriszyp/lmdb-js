@@ -28,8 +28,7 @@ shell_back_unbind(
 		return 0;
 	}
 
-	if ( (op->o_private = (void *) forkandexec( si->si_unbind, &rfp, &wfp ))
-	    == (void *) -1 ) {
+	if ( forkandexec( si->si_unbind, &rfp, &wfp ) == (pid_t)-1 ) {
 		return 0;
 	}
 

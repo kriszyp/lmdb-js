@@ -20,9 +20,7 @@
 #include "lutil.h"
 #include "slap.h"
 
-#ifdef LDAP_SYNCREPL
 #include "ldap_rq.h"
-#endif
 
 #ifdef HAVE_TCPD
 #include <tcpd.h>
@@ -70,6 +68,7 @@ do { if (w) tcp_write( wake_sds[1], "0", 1 ); } while(0)
 static
 #endif
 volatile sig_atomic_t slapd_shutdown = 0, slapd_gentle_shutdown = 0;
+volatile sig_atomic_t slapd_abrupt_shutdown = 0;
 
 static struct slap_daemon {
 	ldap_pvt_thread_mutex_t	sd_mutex;
@@ -731,15 +730,21 @@ static int slap_open_listener(
 
 	psal = sal;
 	while ( *sal != NULL ) {
+		char *af;
 		switch( (*sal)->sa_family ) {
 		case AF_INET:
+			af = "IPv4";
+			break;
 #ifdef LDAP_PF_INET6
 		case AF_INET6:
+			af = "IPv6";
+			break;
 #endif
 #ifdef LDAP_PF_LOCAL
 		case AF_LOCAL:
-#endif
+			af = "Local";
 			break;
+#endif
 		default:
 			sal++;
 			continue;
@@ -752,12 +757,12 @@ static int slap_open_listener(
 			int err = sock_errno();
 #ifdef NEW_LOGGING
 			LDAP_LOG( CONNECTION, ERR, 
-				"slap_open_listener: socket() failed errno=%d (%s)\n",
-				err, sock_errstr(err), 0 );
+				"slap_open_listener: %s socket() failed errno=%d (%s)\n",
+				af, err, sock_errstr(err) );
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"daemon: socket() failed errno=%d (%s)\n", err,
-				sock_errstr(err), 0 );
+				"daemon: %s socket() failed errno=%d (%s)\n",
+				af, err, sock_errstr(err) );
 #endif
 			sal++;
 			continue;
@@ -770,8 +775,8 @@ static int slap_open_listener(
 				"great %ld\n", (long)l.sl_sd, (long)dtblsize, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
-			       "daemon: listener descriptor %ld is too great %ld\n",
-			       (long) l.sl_sd, (long) dtblsize, 0 );
+				"daemon: listener descriptor %ld is too great %ld\n",
+				(long) l.sl_sd, (long) dtblsize, 0 );
 #endif
 			tcp_close( l.sl_sd );
 			sal++;
@@ -788,7 +793,7 @@ static int slap_open_listener(
 			/* enable address reuse */
 			tmp = 1;
 			rc = setsockopt( l.sl_sd, SOL_SOCKET, SO_REUSEADDR,
-					 (char *) &tmp, sizeof(tmp) );
+				(char *) &tmp, sizeof(tmp) );
 			if ( rc == AC_SOCKET_ERROR ) {
 				int err = sock_errno();
 #ifdef NEW_LOGGING
@@ -1250,11 +1255,9 @@ slapd_daemon_task(
 		struct timeval		tv;
 		struct timeval		*tvp;
 
-#ifdef LDAP_SYNCREPL
 		struct timeval		*cat;
 		time_t				tdelta = 1;
 		struct re_s*		rtask;
-#endif
 		now = slap_get_time();
 
 		if( ( global_idletimeout > 0 ) &&
@@ -1334,9 +1337,15 @@ slapd_daemon_task(
 				 ldap_pvt_runqueue_persistent_backload( &syncrepl_rq );
 		}
 
-		tvp = at ? &tv : NULL;
+		if ( at 
+#if defined(HAVE_YIELDING_SELECT) || defined(NO_THREADS)
+			&&  ( tv.tv_sec || tv.tv_usec )
+#endif
+			)
+			tvp = &tv;
+		else
+			tvp = NULL;
 
-#ifdef LDAP_SYNCREPL
 		ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
 		rtask = ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat );
 		while ( cat && cat->tv_sec && cat->tv_sec <= now ) {
@@ -1364,7 +1373,6 @@ slapd_daemon_task(
 				tvp = &tv;
 			}
 		}
-#endif
 
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID ||
@@ -1944,6 +1952,7 @@ slapd_daemon_task(
 	slap_listeners = NULL;
 
 	if( !slapd_gentle_shutdown ) {
+		slapd_abrupt_shutdown = 1;
 		connections_shutdown();
 	}
 
@@ -2068,9 +2077,9 @@ slap_sig_shutdown( int sig )
 	 * SIGBREAK is generated when a user logs out.
 	 */
 
+#if 0
 #if HAVE_NT_SERVICE_MANAGER && SIGBREAK
 	if (is_NT_Service && sig == SIGBREAK)
-#if 0
 #ifdef NEW_LOGGING
 	    LDAP_LOG( CONNECTION, CRIT,
 		    "slap_sig_shutdown: SIGBREAK ignored.\n", 0, 0, 0 );
@@ -2078,8 +2087,8 @@ slap_sig_shutdown( int sig )
 	    Debug(LDAP_DEBUG_TRACE, "slap_sig_shutdown: SIGBREAK ignored.\n",
 		  0, 0, 0);
 #endif
-#endif
 	else
+#endif
 #endif
 #ifdef SIGHUP
 	if (sig == SIGHUP && global_gentlehup && slapd_gentle_shutdown == 0)

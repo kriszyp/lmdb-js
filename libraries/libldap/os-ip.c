@@ -52,10 +52,18 @@ int ldap_int_inet4or6 = AF_INET;
  * ftp://koobera.math.uic.edu/www/docs/connect.html.
  */
 
+#ifdef LDAP_DEBUG
+
 #define osip_debug(ld,fmt,arg1,arg2,arg3) \
 do { \
 	ldap_log_printf(NULL, LDAP_DEBUG_TRACE, fmt, arg1, arg2, arg3); \
 } while(0)
+
+#else
+
+#define osip_debug(ld,fmt,arg1,arg2,arg3) ((void)0)
+
+#endif /* LDAP_DEBUG */
 
 static void
 ldap_pvt_set_errno(int err)

@@ -77,10 +77,14 @@ For example:
 	LDAP *ld;
 	LDAPMessage *res;
 
-	/* ... call to ldap_search_s(), fill in res, retrieve sn attr ... */
+	/*
+	 * ... call to ldap_search_s(), fill in res,
+	 * retrieve sn attr ...
+	 */
 
 	/* now sort the entries on surname attribute */
-	if ( ldap_sort_entries( ld, &res, "sn", ldap_sort_strcasecmp ) != 0 )
+	if ( ldap_sort_entries( ld, &res, "sn",
+			ldap_sort_strcasecmp ) != 0 )
 		ldap_perror( ld, "ldap_sort_entries" );
 .ft
 .fi
@@ -106,7 +110,7 @@ deallocation routines.
 .BR ldap_result (3),
 .BR qsort (3)
 .SH ACKNOWLEDGEMENTS
-.B	OpenLDAP
+.B OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B	OpenLDAP
+.B OpenLDAP
 is derived from University of Michigan LDAP 3.3 Release.  

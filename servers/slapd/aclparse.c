@@ -169,8 +169,14 @@ parse_acl(
 					} else if ( strcasecmp( style, "subtree" ) == 0
 						|| strcasecmp( style, "sub" ) == 0 )
 					{
-						a->acl_dn_style = ACL_STYLE_SUBTREE;
-						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
+						if( *right == '\0' ) {
+							a->acl_dn_pat.bv_val = ch_strdup( "*" );
+							a->acl_dn_pat.bv_len = 1;
+
+						} else {
+							a->acl_dn_style = ACL_STYLE_SUBTREE;
+							ber_str2bv( right, 0, 1, &a->acl_dn_pat );
+						}
 
 					} else if ( strcasecmp( style, "children" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_CHILDREN;
@@ -1288,7 +1294,7 @@ str2accessmask( const char *str )
 static void
 acl_usage( void )
 {
-	fprintf( stderr, "\n"
+	fprintf( stderr, "%s%s\n",
 		"<access clause> ::= access to <what> "
 				"[ by <who> <access> [ <control> ] ]+ \n"
 		"<what> ::= * | [dn[.<dnstyle>]=<DN>] [filter=<filter>] [attrs=<attrlist>]\n"
@@ -1297,7 +1303,7 @@ acl_usage( void )
 		"<who> ::= [ * | anonymous | users | self | dn[.<dnstyle>]=<DN> ]\n"
 			"\t[dnattr=<attrname>]\n"
 			"\t[group[/<objectclass>[/<attrname>]][.<style>]=<group>]\n"
-			"\t[peername[.<style>]=<peer>] [sockname[.<style>]=<name>]\n"
+			"\t[peername[.<style>]=<peer>] [sockname[.<style>]=<name>]\n",
 			"\t[domain[.<style>]=<domain>] [sockurl[.<style>]=<url>]\n"
 #ifdef SLAPD_ACI_ENABLED
 			"\t[aci=<attrname>]\n"

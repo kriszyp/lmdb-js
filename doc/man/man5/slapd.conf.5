@@ -35,7 +35,7 @@ is as follows:
     # comment - these options apply to every database
     <global configuration options>
     # first database definition & configuration options
-    database	<backend 1 type>
+    database <backend 1 type>
     <configuration options specific to backend 1>
     # subsequent database definitions & configuration options
     ...
@@ -629,8 +629,10 @@ Used to specify the fully qualified domain name used for SASL processing.
 Specify SASL realm.  Default is empty.
 .TP
 .B sasl-regexp <match> <replace>
-Used by the SASL authorization mechanism to convert a SASL authenticated 
-username to an LDAP DN. When an authorization request is received, the SASL 
+Used by the SASL mechanism to convert a SASL authenticated 
+username to an LDAP DN used for authorization purposes.  Note that
+the resultant DN need not refer to an existing entry to be considered
+valid.  When an authorization request is received, the SASL 
 .B USERNAME, REALM, 
 and
 .B MECHANISM
@@ -639,7 +641,7 @@ form
 .RS
 .RS
 .TP
-.B uid=<username>[,cn=<realm>],cn=<mechanism>,cn=auth
+.B UID=<username>[[,CN=<realm>],CN=<mechanism>,]CN=auth
 
 .RE
 This SASL name is then compared against the
@@ -651,11 +653,9 @@ string. If there are wildcard strings in the
 .B match
 regular expression that are enclosed in parenthesis, e.g. 
 .RS
-.RS
 .TP
-.B uid=(.*),cn=.*
+.B UID=([^,]*),CN=.*
 
-.RE
 .RE
 then the portion of the SASL name that matched the wildcard will be stored
 in the numbered placeholder variable $1. If there are other wildcard strings
@@ -664,15 +664,20 @@ placeholders can then be used in the
 .B replace
 string, e.g. 
 .RS
-.RS
 .TP
-.B cn=$1,ou=Accounts,dc=$2,dc=$4. 
+.B UID=$1,OU=Accounts,DC=example,DC=com 
 
 .RE
+The replaced SASL name can be either a DN or an LDAP URI. If the
+latter, the server will use the URI to search its own database(s)
+and, if the search returns exactly one entry, the SASL name is
+replaced by the DN of that entry.   The LDAP URI must have no
+hostport, attrs, or extensions components, e.g.
+.RS
+.TP
+.B ldap:///OU=Accounts,DC=example,DC=com??one?(UID=$1)
+
 .RE
-The replaced SASL name can be either a DN or an LDAP URI. If the latter, the slapd
-server will use the URI to search its own database, and if the search returns 
-exactly one entry, the SASL name is replaced by the DN of that entry.
 Multiple 
 .B sasl-regexp 
 options can be given in the configuration file to allow for multiple matching 
@@ -820,7 +825,7 @@ for an explanation of the different flags.
 .TP
 .B ucdata-path <path>
 Specify the path to the directory containing the Unicode character
-tables. The default path is LOCALSTATEDIR/ucdata.
+tables. The default path is DATADIR/ucdata.
 .SH TLS OPTIONS
 If
 .B slapd
@@ -966,7 +971,8 @@ This option puts the database into "read-only" mode.  Any attempts to
 modify the database will return an "unwilling to perform" error.  By
 default, readonly is off.
 .HP
-.B replica host=<hostname>[:port] [tls=yes|critical]
+.B replica uri=ldap[s]://<hostname>[:port]|host=<hostname>[:port] 
+.B [starttls=yes|critical]
 .B [suffix=<suffix> [...]]
 .B bindmethod=simple|sasl [binddn=<simple DN>] [credentials=<simple password>]
 .B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
@@ -979,7 +985,14 @@ Administrator's Guide" for detailed information on setting up a replicated
 directory service. Zero or more
 .B suffix
 instances can be used to select the subtrees that will be replicated
-(defaults to all the database). A
+(defaults to all the database). 
+.B host
+is deprecated in favor of the
+.B uri
+option.
+.B uri
+allows the replica LDAP server to be specified as an LDAP URI. 
+A
 .B bindmethod
 of
 .B simple
@@ -1088,11 +1101,172 @@ Specify the referral to pass back when
 .BR slapd (8)
 is asked to modify a replicated local database.
 If specified multiple times, each url is provided.
+.HP
+.B syncrepl id=<replica ID>
+.B provider=ldap[s]://<hostname>[:port]
+.B [updatedn=<dn>]
+.B [binddn=<dn>]
+.B [bindmethod=simple|sasl] [binddn=<simple DN>] [credentials=<simple passwd>]
+.B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
+.B [authcId=<authentication ID>] [authzId=<authorization ID>]
+.B [searchbase=<base DN>]
+.B [filter=<filter str>]
+.B [attrs=<attr list>]
+.B [schemachecking=on|off]
+.B [scope=sub|one|base]
+.B [type=refreshOnly|refreshAndPersist]
+.B [interval=dd:hh:mm]
+.RS
+Specify an LDAP Sync replication session between the specified replication provider
+site and this database (a replication consumer).
+The replication consumer communicates with the replication provider to perform
+an initial population and the following periodic or persistent synchronizations.
+The LDAP Sync replication engine is based on the LDAP Content Sync protocol :
+a stateful, pull, incremental, and partial synchronization protocol which
+supports both polling and listening modes of operations.
+It currently supports entry-level synchronization.
+A directory server wide
+.B id
+uniquely identifies this LDAP Sync replication specification
+in the directory server instance. The specification of an LDAP Sync replication
+session is based on the search specification which defines the replica content.
+The replicated entries are those directory entries of the subtree under the
+.B searchbase
+with the
+.B scope
+that match the
+.B filter.
+Only the attributes specified in the
+.B attrs 
+are included in the replica content.
+There are two synchronization modes depending on the incremental
+synchronization semantics after the intial content population.
+The incremental synchronization is performed periodically with
+the
+.B interval
+when the sync
+.B type
+is
+.B refreshOnly.
+Alternatively, the provider sends synchronization messages to the consumer
+upon updates to the replicated contents when the sync
+.B type
+is
+.B refreshAndPersist.
+The replication provider site is specified by
+.B provider
+as an LDAP URI.
+If 
+.B schemachecking
+is
+.B on,
+every replicated entry will be checked for its schema
+when it is stored in the consumer replica.
+The consumer slapd should retrieve attributes of an entry
+that are required by the schema definition.
+If 
+.B schemachecking
+is
+.B off,
+entries will be stored without checking the schema conformance.
+A
+.B bindmethod
+of 
+.B simple
+requires the options 
+.B binddn
+and 
+.B credentials
+and should only be used when adequate security services (e.g. TLS or IPSEC) are in place.
+A
+.B bindmethod
+of
+.B sasl
+requires the option
+.B saslmech.
+Specific security properties (as with the
+.B sasl secprops
+keyword above) for a SASL bind can be set with the
+.B secprops
+option. A non default SASL realm can be set with the
+.B realm 
+option.
+If the 
+.B mechanism
+will use Kerberos, a kerberos instance should be given in
+.B authcId.
+.B updatedn
+specifies the DN used to update (subject to access controls) the
+replica at the consumer replica.
 .SH DATABASE-SPECIFIC OPTIONS
 Each database may allow specific configuration options; they are
-documented separately in the
+documented separately in the backends' manual pages.
+.SH BACKENDS
+The following backends can be compiled into slapd.
+They are documented in the
 .BR slapd-<backend> (5)
 manual pages.
+.TP
+.B bdb
+This is the recommended backend for a normal slapd database.
+However, it takes more care than with the LDBM backend to configure
+it properly.
+It uses the Sleepycat Berkeley DB (BDB) package to store data.
+.TP
+.B ldbm
+This is the database backend which is easiest to configure.
+However, it does not offer the data durability features of the BDB
+backend.
+It uses Berkeley DB or GDBM to store data.
+.TP
+.B dnssrv
+This backend is experimental.
+It serves up referrals based upon SRV resource records held in the
+Domain Name System.
+.TP
+.B ldap
+This backend acts as a proxy to forward incoming requests to another
+LDAP server.
+.TP
+.B meta
+This backend performs basic LDAP proxying with respect to a set of
+remote LDAP servers. It is an enhancement of the ldap backend. The
+proxy cache extension of meta backend provides answering of search
+requests from the proxy using results of previously cached requests.
+.TP
+.B monitor
+This backend provides information about the running status of the slapd
+daemon.
+.TP
+.B null
+Operations in this backend succeed but do nothing.
+.TP
+.B passwd
+This backend is provided for demonstration purposes only.
+It serves up user account information from the system
+.BR passwd (5)
+file.
+.TP
+.B perl
+This backend embeds a
+.BR perl (1)
+interpreter into slapd.
+It runs Perl subroutines to implement LDAP operations.
+.TP
+.B shell
+This backend executes external programs to implement LDAP operations.
+It is is primarily intended to be used in prototypes.
+.TP
+.B sql
+This backend is experimental.
+It services LDAP requests from an SQL database.
+.TP
+.B tcl
+This backend is experimental.
+It embeds a
+.BR Tcl (3tcl)
+interpreter into slapd.
+It runs Tcl commands to implement LDAP operations.
 .SH EXAMPLES
 .LP
 Here is a short example of a configuration file:
@@ -1112,7 +1286,7 @@ database  bdb
 suffix    "dc=our-domain,dc=com"
 # The database directory MUST exist prior to
 # running slapd AND should only be accessible
-# by the slapd/tools. Mode 700 recommended.
+# by the slapd/tools. Mode 0700 recommended.
 directory LOCALSTATEDIR/openldap-data
 # Indices to maintain
 index     objectClass  eq
@@ -1141,6 +1315,7 @@ default slapd configuration file
 .BR slapd-ldap (5),
 .BR slapd-ldbm (5),
 .BR slapd-meta (5),
+.BR slapd-monitor (5),
 .BR slapd-null (5),
 .BR slapd-passwd (5),
 .BR slapd-perl (5),
@@ -1149,7 +1324,6 @@ default slapd configuration file
 .BR slapd-tcl (5),
 .BR slapd.replog (5),
 .BR slapd.access (5),
-.BR locale (5),
 .BR slapd (8),
 .BR slapadd (8),
 .BR slapcat (8),
@@ -1159,7 +1333,7 @@ default slapd configuration file
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
 .SH ACKNOWLEDGEMENTS
-.B	OpenLDAP
+.B OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B	OpenLDAP
+.B OpenLDAP
 is derived from University of Michigan LDAP 3.3 Release.  

@@ -65,9 +65,9 @@ int ldbm_back_entry_get(
 	const char *at_name = at->ad_cname.bv_val;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( BACK_BDB, ARGS, 
+	LDAP_LOG( BACK_LDBM, ARGS, 
 		"ldbm_back_entry_get: ndn: \"%s\"\n", ndn->bv_val, 0, 0 );
-	LDAP_LOG( BACK_BDB, ARGS, 
+	LDAP_LOG( BACK_LDBM, ARGS, 
 		"ldbm_back_entry_get: oc: \"%s\", at: \"%s\"\n",
 		oc ? oc->soc_cname.bv_val : "(null)", at_name, 0);
 #else
@@ -84,7 +84,7 @@ int ldbm_back_entry_get(
 	e = dn2entry_rw( op->o_bd, ndn, NULL, rw );
 	if (e == NULL) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( BACK_BDB, INFO, 
+		LDAP_LOG( BACK_LDBM, INFO, 
 			"ldbm_back_entry_get: cannot find entry (%s)\n", 
 			ndn->bv_val, 0, 0 );
 #else
@@ -96,7 +96,7 @@ int ldbm_back_entry_get(
 	}
 	
 #ifdef NEW_LOGGING
-	LDAP_LOG( BACK_BDB, DETAIL1, "ldbm_back_entry_get: found entry (%s)\n",
+	LDAP_LOG( BACK_LDBM, DETAIL1, "ldbm_back_entry_get: found entry (%s)\n",
 		ndn->bv_val, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ACL,
@@ -108,7 +108,7 @@ int ldbm_back_entry_get(
 	/* find attribute values */
 	if( is_entry_alias( e ) ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( BACK_BDB, INFO, 
+		LDAP_LOG( BACK_LDBM, INFO, 
 			"ldbm_back_entry_get: entry (%s) is an alias\n", e->e_name.bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ACL,
@@ -121,7 +121,7 @@ int ldbm_back_entry_get(
 
 	if( is_entry_referral( e ) ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( BACK_BDB, INFO, 
+		LDAP_LOG( BACK_LDBM, INFO, 
 			"ldbm_back_entry_get: entry (%s) is a referral.\n", e->e_name.bv_val, 0, 0);
 #else
 		Debug( LDAP_DEBUG_ACL,
@@ -133,7 +133,7 @@ int ldbm_back_entry_get(
 
 	if ( oc && !is_entry_objectclass( e, oc, 0 )) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( BACK_BDB, INFO, 
+		LDAP_LOG( BACK_LDBM, INFO, 
 			"ldbm_back_entry_get: failed to find objectClass.\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ACL,
@@ -155,7 +155,7 @@ return_results:
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( BACK_BDB, ENTRY, "ldbm_back_entry_get: rc=%d\n", rc, 0, 0 );
+	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_back_entry_get: rc=%d\n", rc, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"ldbm_back_entry_get: rc=%d\n",

@@ -9,8 +9,10 @@ ETCDIR/slapd.conf
 .SH DESCRIPTION
 The LDBM backend to
 .BR slapd (8)
-is a database which uses one of BerkeleyDB, GNU DBM, MDBM or NDBM to
-store data.
+is the database backend which is easiest to configure.
+However, it does not offer the data durability features of the BDB
+backend.
+It uses Berkeley DB or GDBM to store data.
 It makes extensive use of indexing and caching to speed data access.
 .SH CONFIGURATION
 These
@@ -102,8 +104,11 @@ can be decomposed into
 .B subfinal
 indices.
 The special type
-.B nolang
-may be specified to disallow use of this index by language subtypes.
+.B notags
+(or
+.BR nolang )
+may be specified to disallow use of this index by subtypes with tagging
+options (such as language options).
 The special type
 .B nosubtypes
 may be specified to disallow use of this index by named subtypes.

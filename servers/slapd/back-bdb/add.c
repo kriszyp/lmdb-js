@@ -33,9 +33,16 @@ bdb_add(Operation *op, SlapReply *rs )
 	DB_LOCK		lock;
 	int		noop = 0;
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+	int		num_retries = 0;
+
 	Operation* ps_list;
-#endif
+	int		rc;
+	EntryInfo	*suffix_ei;
+	Entry		*ctxcsn_e;
+	int			ctxcsn_added = 0;
+
+	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
+	int num_ctrls = 0;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ARGS, "==> bdb_add: %s\n", op->oq_add.rs_e->e_name.bv_val, 0, 0 );
@@ -72,8 +79,7 @@ bdb_add(Operation *op, SlapReply *rs )
 			"bdb_add: next_id failed (%d)\n", rs->sr_err, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_add: next_id failed (%d)\n",
-			rs->sr_err, 0, 0 );
+			"bdb_add: next_id failed (%d)\n", rs->sr_err, 0, 0 );
 #endif
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
@@ -96,6 +102,7 @@ retry:	/* transaction retry */
 			rs->sr_text = "internal error";
 			goto return_results;
 		}
+		bdb_trans_backoff( ++num_retries );
 		ldap_pvt_thread_yield();
 	}
 
@@ -309,10 +316,9 @@ retry:	/* transaction retry */
 #endif
 					rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 					rs->sr_text = "no write access to parent";
-					goto return_results;;
+					goto return_results;
 				}
-
-			} else {
+			} else if ( !is_entry_glue( op->oq_add.rs_e )) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, DETAIL1, "bdb_add: %s denied\n", 
 					pdn.bv_len == 0 ? "suffix" : "entry at root", 0, 0 );
@@ -321,7 +327,7 @@ retry:	/* transaction retry */
 					pdn.bv_len == 0 ? "suffix" : "entry at root",
 					0, 0 );
 #endif
-				rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 				goto return_results;
 			}
 		}
@@ -336,11 +342,19 @@ retry:	/* transaction retry */
 				"bdb_add: no parent, cannot add subentry\n",
 				0, 0, 0 );
 #endif
-			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
 			rs->sr_text = "no parent, cannot add subentry";
-			goto return_results;;
+			goto return_results;
 		}
 #endif
+	}
+
+	if ( get_assert( op ) &&
+		( test_filter( op, op->oq_add.rs_e, get_assertion( op ))
+			!= LDAP_COMPARE_TRUE ))
+	{
+		rs->sr_err = LDAP_ASSERTION_FAILED;
+		goto return_results;
 	}
 
 	rs->sr_err = access_allowed( op, op->oq_add.rs_e,
@@ -363,6 +377,23 @@ retry:	/* transaction retry */
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		rs->sr_text = "no write access to entry";
 		goto return_results;;
+	}
+
+	/* post-read */
+	if( op->o_postread ) {
+		if ( slap_read_controls( op, rs, op->oq_add.rs_e,
+			&slap_post_read_bv, &ctrls[num_ctrls] ) )
+		{
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, DETAIL1, 
+				"<=- bdb_add: post-read failed!\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE,
+				"<=- bdb_add: post-read failed!\n", 0, 0, 0 );
+#endif
+			goto return_results;
+		}
+		ctrls[++num_ctrls] = NULL;
 	}
 
 	/* nested transaction */
@@ -453,7 +484,18 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	if( op->o_noop ) {
+	if ( !op->o_bd->syncinfo ) {
+		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei,
+			&ctxcsn_e, &ctxcsn_added, locker );
+		switch ( rc ) {
+		case BDB_CSN_ABORT :
+			goto return_results;
+		case BDB_CSN_RETRY :
+			goto retry;
+		}
+	}
+
+	if ( op->o_noop ) {
 		if (( rs->sr_err=TXN_ABORT( ltid )) != 0 ) {
 			rs->sr_text = "txn_abort (no-op) failed";
 		} else {
@@ -472,6 +514,7 @@ retry:	/* transaction retry */
 
 		} else {
 			struct berval nrdn;
+			struct berval ctx_nrdn;
 
 			if (pdn.bv_len) {
 				nrdn.bv_val = op->ora_e->e_nname.bv_val;
@@ -480,7 +523,19 @@ retry:	/* transaction retry */
 				nrdn = op->ora_e->e_nname;
 			}
 
-			bdb_cache_add(bdb, ei, op->oq_add.rs_e, &nrdn, locker );
+			bdb_cache_add( bdb, ei, op->oq_add.rs_e, &nrdn, locker );
+
+			if ( suffix_ei == NULL ) {
+				suffix_ei = op->oq_add.rs_e->e_private;
+			}
+
+			if ( !op->o_bd->syncinfo ) {
+				if ( ctxcsn_added ) {
+					ctx_nrdn.bv_val = "cn=ldapsync";
+					ctx_nrdn.bv_len = strlen( ctx_nrdn.bv_val );
+					bdb_cache_add( bdb, suffix_ei, ctxcsn_e, &ctx_nrdn, locker );
+				}
+			}
 
 			if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
 				rs->sr_text = "txn_commit failed";
@@ -493,38 +548,41 @@ retry:	/* transaction retry */
 	ltid = NULL;
 	op->o_private = NULL;
 
-	if (rs->sr_err == LDAP_SUCCESS) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS, 
-			"bdb_add: added%s id=%08lx dn=\"%s\"\n", 
-			op->o_noop ? " (no-op)" : "", op->oq_add.rs_e->e_id, op->oq_add.rs_e->e_dn );
-#else
-		Debug(LDAP_DEBUG_TRACE, "bdb_add: added%s id=%08lx dn=\"%s\"\n",
-			op->o_noop ? " (no-op)" : "", op->oq_add.rs_e->e_id, op->oq_add.rs_e->e_dn );
-#endif
-		rs->sr_text = NULL;
-	}
-	else {
+	if (rs->sr_err != LDAP_SUCCESS) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
-			"bdb_add: %s : %s (%d)\n",  rs->sr_text, db_strerror(rs->sr_err), rs->sr_err );
+			"bdb_add: %s : %s (%d)\n",  rs->sr_text,
+				db_strerror(rs->sr_err), rs->sr_err );
 #else
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: %s : %s (%d)\n",
 			rs->sr_text, db_strerror(rs->sr_err), rs->sr_err );
 #endif
 		rs->sr_err = LDAP_OTHER;
+		goto return_results;
 	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG ( OPERATION, RESULTS, 
+		"bdb_add: added%s id=%08lx dn=\"%s\"\n", 
+		op->o_noop ? " (no-op)" : "",
+		op->oq_add.rs_e->e_id, op->oq_add.rs_e->e_dn );
+#else
+	Debug(LDAP_DEBUG_TRACE, "bdb_add: added%s id=%08lx dn=\"%s\"\n",
+		op->o_noop ? " (no-op)" : "",
+		op->oq_add.rs_e->e_id, op->oq_add.rs_e->e_dn );
+#endif
+
+	rs->sr_text = NULL;
+	if( num_ctrls ) rs->sr_ctrls = ctrls;
 
 return_results:
 	send_ldap_result( op, rs );
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 	if ( rs->sr_err == LDAP_SUCCESS && !noop ) {
 		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 			bdb_psearch( op, rs, ps_list, op->oq_add.rs_e, LDAP_PSEARCH_BY_ADD );
 		}
 	}
-#endif /* LDAP_CLIENT_UPDATE */
 
 	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();
@@ -533,7 +591,6 @@ return_results:
 	}
 
 done:
-
 	if( ltid != NULL ) {
 		TXN_ABORT( ltid );
 		op->o_private = NULL;
@@ -541,4 +598,3 @@ done:
 
 	return ( ( rs->sr_err == LDAP_SUCCESS ) ? noop : rs->sr_err );
 }
-

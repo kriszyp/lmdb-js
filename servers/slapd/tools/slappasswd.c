@@ -34,7 +34,7 @@ usage(const char *s)
 		"  -c format\tcrypt(3) salt format\n"
 		"  -u\t\tgenerate RFC2307 values (default)\n"
 		"  -v\t\tincrease verbosity\n"
-		"  -T file\tread password from verbosity\n"
+		"  -T file\tread file for new password\n"
 		, s );
 
 	exit( EXIT_FAILURE );

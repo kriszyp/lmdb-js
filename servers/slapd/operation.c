@@ -65,21 +65,15 @@ slap_op_free( Operation *op )
 		ber_free( op->o_res_ber, 1 );
 	}
 #endif
-#ifdef LDAP_CLIENT_UPDATE
-	if ( op->o_clientupdate_state.bv_val != NULL ) {
-		free( op->o_clientupdate_state.bv_val );
-	}
-#endif
-#ifdef LDAP_SYNC
 	if ( op->o_sync_state.bv_val != NULL ) {
 		free( op->o_sync_state.bv_val );
 	}
-#endif
 
 #if defined( LDAP_SLAPI )
 	if ( op->o_pb != NULL ) {
 		slapi_pblock_destroy( (Slapi_PBlock *)op->o_pb );
 	}
+	slapi_x_free_object_extensions( SLAPI_X_EXT_OPERATION, op );
 #endif /* defined( LDAP_SLAPI ) */
 
 	memset( op, 0, sizeof(Operation) );
@@ -113,12 +107,11 @@ slap_op_alloc(
 
 	op->o_time = slap_get_time();
 	op->o_opid = id;
-#ifdef LDAP_CONNECTIONLESS
 	op->o_res_ber = NULL;
-#endif
 
 #if defined( LDAP_SLAPI )
 	op->o_pb = slapi_pblock_new();
+	slapi_x_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
 #endif /* defined( LDAP_SLAPI ) */
 
 	return( op );

@@ -95,7 +95,8 @@ LDAP_BEGIN_DECL
 
 /* 0x16 - 0x2f not defined by current draft */
 #define LDAP_OPT_HOST_NAME			0x0030
-#define	LDAP_OPT_ERROR_NUMBER		0x0031
+#define LDAP_OPT_RESULT_CODE		0x0031
+#define LDAP_OPT_ERROR_NUMBER		LDAP_OPT_RESULT_CODE
 #define LDAP_OPT_ERROR_STRING		0x0032
 #define LDAP_OPT_MATCHED_DN			0x0033
 
@@ -144,7 +145,7 @@ LDAP_BEGIN_DECL
 #define	LDAP_OPT_X_SASL_MAXBUFSIZE		0x6109
 
 /* on/off values */
-#define LDAP_OPT_ON		((void *) 1)
+#define LDAP_OPT_ON		((void *) &ber_pvt_opt_on)
 #define LDAP_OPT_OFF	((void *) 0)
 
 /*
@@ -180,11 +181,16 @@ typedef struct ldapcontrol {
 } LDAPControl;
 
 /* LDAP Controls */
-#define LDAP_CONTROL_VALUESRETURNFILTER "1.2.826.0.1.334810.2.3"
-#define LDAP_CONTROL_SUBENTRIES		"1.3.6.1.4.1.4203.1.10.1"
-#define LDAP_CONTROL_NOOP			"1.3.6.1.4.1.4203.1.10.2"
-#define LDAP_CONTROL_MANAGEDSAIT	"2.16.840.1.113730.3.4.2"
-#define LDAP_CONTROL_PROXY_AUTHZ	"2.16.840.1.113730.3.4.18"
+#define LDAP_CONTROL_ASSERT				"1.3.6.1.4.1.4203.666.5.9"
+#define LDAP_CONTROL_PRE_READ			"1.3.6.1.4.1.4203.666.5.10.1"
+#define LDAP_CONTROL_POST_READ			"1.3.6.1.4.1.4203.666.5.10.2"
+#define LDAP_CONTROL_MODIFY_INCREMENT	"1.3.6.1.4.1.4203.666.5.11"
+
+#define LDAP_CONTROL_VALUESRETURNFILTER	"1.2.826.0.1.334810.2.3"
+#define LDAP_CONTROL_SUBENTRIES			"1.3.6.1.4.1.4203.1.10.1"
+#define LDAP_CONTROL_NOOP				"1.3.6.1.4.1.4203.1.10.2"
+#define LDAP_CONTROL_MANAGEDSAIT		"2.16.840.1.113730.3.4.2"
+#define LDAP_CONTROL_PROXY_AUTHZ		"2.16.840.1.113730.3.4.18"
 
 #if 0
 #define LDAP_CONTROL_DUPENT_REQUEST		"2.16.840.1.113719.1.27.101.1"
@@ -193,31 +199,26 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_DUPENT	LDAP_CONTROL_DUPENT_REQUEST
 #endif
 
-#define LDAP_CONTROL_PAGEDRESULTS	"1.2.840.113556.1.4.319"
+#define LDAP_CONTROL_PAGEDRESULTS		"1.2.840.113556.1.4.319"
 
-#ifdef LDAP_CLIENT_UPDATE
-#define LDAP_CONTROL_CLIENT_UPDATE		"1.3.6.1.4.1.4203.666.5.3"
-#define LDAP_CONTROL_ENTRY_UPDATE		"1.3.6.1.4.1.4203.666.5.4"
-#define LDAP_CONTROL_CLIENT_UPDATE_DONE	"1.3.6.1.4.1.4203.666.5.5"
-#define LDAP_CUP_COOKIE_OID				"1.3.6.1.4.1.4203.666.10.1"
-#endif
-
-#define LDAP_SYNC 2
-#ifdef LDAP_SYNC
-#define LDAP_SYNCREPL 1
 #define LDAP_CONTROL_SYNC		"1.3.6.1.4.1.4203.666.5.6"
 #define LDAP_CONTROL_SYNC_STATE	"1.3.6.1.4.1.4203.666.5.7"
 #define LDAP_CONTROL_SYNC_DONE	"1.3.6.1.4.1.4203.666.5.8"
 #define LDAP_SYNC_INFO			"1.3.6.1.4.1.4203.666.10.2"
 
-#define LDAP_SYNC_REFRESH_DONE	0
-#define LDAP_SYNC_NEW_COOKIE	1
+#define LDAP_SYNC_NEW_COOKIE		0
+#define LDAP_SYNC_STATE_MODE_DONE	1
+#define	LDAP_SYNC_LOG_MODE_DONE		2
+#define LDAP_SYNC_REFRESH_DONE		3
+
+#define LDAP_SYNC_STATE_MODE		0
+#define LDAP_SYNC_LOG_MODE			1
+#define LDAP_SYNC_PERSIST_MODE		2
 
 #define LDAP_SYNC_PRESENT		0
 #define LDAP_SYNC_ADD			1
 #define LDAP_SYNC_MODIFY		2
 #define LDAP_SYNC_DELETE		3
-#endif
 
 #define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473"
 #define LDAP_CONTROL_SORTRESPONSE	"1.2.840.113556.1.4.474"
@@ -250,6 +251,7 @@ typedef struct ldapcontrol {
 #define LDAP_FEATURE_ABSOLUTE_FILTERS "1.3.6.1.4.1.4203.1.5.3"  /* (&) (|) */
 #define LDAP_FEATURE_LANGUAGE_TAG_OPTIONS "1.3.6.1.4.1.4203.1.5.4"
 #define LDAP_FEATURE_LANGUAGE_RANGE_OPTIONS "1.3.6.1.4.1.4203.1.5.5"
+#define LDAP_FEATURE_MODIFY_INCREMENT "1.3.6.1.4.1.4203.666.5.6"
 
 /*
  * specific LDAP instantiations of BER types we know about
@@ -291,14 +293,7 @@ typedef struct ldapcontrol {
 
 #define LDAP_TAG_SASL_RES_CREDS	((ber_tag_t) 0x87U)	/* context specific + primitive */
 
-#ifdef LDAP_CLIENT_UPDATE
-#define LDAP_CUP_TAG_INTERVAL	((ber_tag_t) 0x02U)	/* integer */
-#define LDAP_CUP_TAG_COOKIE		((ber_tag_t) 0x30U)	/* sequence */
-#endif
-
-#ifdef LDAP_SYNC
 #define LDAP_SYNC_TAG_COOKIE	((ber_tag_t) 0x04U)	/* octet string */
-#endif
 
 
 /* possible operations a client can invoke */
@@ -475,15 +470,14 @@ typedef struct ldapcontrol {
 #define LDAP_CLIENT_LOOP				0x60	/* draft-ietf-ldap-c-api-xx */
 #define LDAP_REFERRAL_LIMIT_EXCEEDED	0x61	/* draft-ietf-ldap-c-api-xx */
 
-#ifdef LDAP_CLIENT_UPDATE
-/* resultCode for LCUP */
-#define LDAP_CUP_RESOURCES_EXHAUSTED	0x100
-#define LDAP_CUP_SECURITY_VIOLATION		0x101
-#define LDAP_CUP_INVALID_COOKIE			0x102
-#define LDAP_CUP_UNSUPPORTED_SCHEME		0x103
-#define LDAP_CUP_CLIENT_DISCONNECT		0x104
-#define LDAP_CUP_RELOAD_REQUIRED		0x105
-#endif
+#define LDAP_SYNC_RESOURCES_EXHAUSTED	0x100
+#define LDAP_SYNC_SECURITY_VIOLATION	0x101
+#define LDAP_SYNC_INVALID_COOKIE		0x102
+#define LDAP_SYNC_UNSUPPORTED_SCHEME	0x103
+#define LDAP_SYNC_CLIENT_DISCONNECT		0x104
+#define LDAP_SYNC_RELOAD_REQUIRED		0x105
+
+#define LDAP_ASSERTION_FAILED			0x10f
 
 #ifdef LDAP_EXOP_X_CANCEL
 /* resultCode for Cancel Response */
@@ -493,23 +487,10 @@ typedef struct ldapcontrol {
 #define LDAP_CANNOT_CANCEL				0x113
 #endif
 
-#ifdef LDAP_CLIENT_UPDATE
-/* LCUP update type */
-#define LDAP_CUP_NONE					0x00
-#define LDAP_CUP_SYNC_ONLY				0x01
-#define LDAP_CUP_PERSIST_ONLY			0x02
-#define LDAP_CUP_SYNC_AND_PERSIST		0x03
-
-/* LCUP default cookie interval */
-#define LDAP_CUP_DEFAULT_SEND_COOKIE_INTERVAL	0x01
-#endif /* LDAP_CLIENT_UPDATE */
-
 /* LDAP SYNC request type */
-#ifdef LDAP_SYNC
 #define LDAP_SYNC_NONE					0x00
 #define LDAP_SYNC_REFRESH_ONLY			0x01
 #define LDAP_SYNC_REFRESH_AND_PERSIST	0x03
-#endif
 
 /*
  * This structure represents both ldap messages and ldap responses.
@@ -523,9 +504,11 @@ typedef struct ldapmsg LDAPMessage;
 typedef struct ldapmod {
 	int		mod_op;
 
+#define LDAP_MOD_OP			(0x0007)
 #define LDAP_MOD_ADD		(0x0000)
 #define LDAP_MOD_DELETE		(0x0001)
 #define LDAP_MOD_REPLACE	(0x0002)
+#define LDAP_MOD_INCREMENT	(0x0003)
 #define LDAP_MOD_BVALUES	(0x0080)
 /* IMPORTANT: do not use code 0x1000 (or above),
  * it is used internally by the backends!

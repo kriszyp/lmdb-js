@@ -149,7 +149,8 @@ typedef struct lber_memory_fns {
 #define LBER_OPT_SOCKBUF_DEBUG		0x1002
 
 /* on/off values */
-#define LBER_OPT_ON		((void *) 1)
+extern char ber_pvt_opt_on;
+#define LBER_OPT_ON		((void *) &ber_pvt_opt_on)
 #define LBER_OPT_OFF	((void *) 0)
 
 #define LBER_OPT_SUCCESS	(0)
@@ -531,9 +532,7 @@ LBER_V( Sockbuf_IO ) ber_sockbuf_io_tcp;
 LBER_V( Sockbuf_IO ) ber_sockbuf_io_readahead;
 LBER_V( Sockbuf_IO ) ber_sockbuf_io_fd;
 LBER_V( Sockbuf_IO ) ber_sockbuf_io_debug;
-#ifdef LDAP_CONNECTIONLESS
 LBER_V( Sockbuf_IO ) ber_sockbuf_io_udp;
-#endif
 
 /*
  * LBER memory.c

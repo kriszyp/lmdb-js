@@ -41,10 +41,6 @@ ldbm_back_search(
 	int		manageDSAit = get_manageDSAit( op );
 	int		cscope = LDAP_SCOPE_DEFAULT;
 
-#ifdef LDAP_CACHING
-	Entry 		cache_base_entry; 
-#endif /* LDAP_CACHING */
-
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 		
@@ -57,32 +53,12 @@ ldbm_back_search(
 	/* grab giant lock for reading */
 	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
 
-#ifndef LDAP_CACHING
 	if ( op->o_req_ndn.bv_len == 0 ) {
 		/* DIT root special case */
 		e = (Entry *) &slap_entry_root;
 
 		/* need normalized dn below */
 		ber_dupbv( &realbase, &e->e_nname );
-
-#else /* LDAP_CACHING */
-	if ( op->o_caching_on || op->o_req_ndn.bv_len == 0 ) {
-		if (op->o_req_ndn.bv_len == 0) {
-		    e = (Entry *) &slap_entry_root;
-		    /* need normalized dn below */
-		    ber_dupbv( &realbase, &e->e_nname );
-		} else {
-			if ((op->oq_search.rs_scope == LDAP_SCOPE_BASE) 
-    					&& (e = dn2entry_r( op->o_bd, &op->o_req_ndn, &matched )))
-    			{
-				candidates = base_candidate(op->o_bd, e);
-				cache_return_entry_r( &li->li_cache, e );
-				goto searchit;
-    			}
-    			cache_base_entry.e_nname = op->o_req_ndn;
-    			e = &cache_base_entry;
-		}
-#endif /* LDAP_CACHING */
 
 		candidates = search_candidates( op, e, op->oq_search.rs_filter,
 	    			op->oq_search.rs_scope, op->oq_search.rs_deref,
@@ -135,7 +111,7 @@ ldbm_back_search(
 
 		ber_bvarray_free( rs->sr_ref );
 		ber_memfree( matched_dn.bv_val );
-		return 1;
+		return LDAP_REFERRAL;
 	}
 
 	if (!manageDSAit && is_entry_referral( e ) ) {
@@ -179,7 +155,7 @@ ldbm_back_search(
 		}
 
 		ber_memfree( matched_dn.bv_val );
-		return 1;
+		return LDAP_OTHER;
 	}
 
 	if ( is_entry_alias( e ) ) {
@@ -213,31 +189,16 @@ searchit:
 		Debug( LDAP_DEBUG_TRACE, "ldbm_search: no candidates\n",
 			0, 0, 0 );
 #endif
-#ifdef LDAP_CACHING
-                if ( op->o_caching_on ) {
-			ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
-		}
-#endif /* LDAP_CACHING */
 
 		rs->sr_err = LDAP_SUCCESS;
 		send_ldap_result( op, rs );
 
-#ifdef LDAP_CACHING
-                if ( op->o_caching_on ) {
-			ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
-		}
-#endif /* LDAP_CACHING */
-
-		rc = 1;
+		rc = LDAP_SUCCESS;
 		goto done;
 	}
 
 	/* if not root, get appropriate limits */
-#ifndef LDAP_CACHING
 	if ( be_isroot( op->o_bd, &op->o_ndn ) )
-#else /* LDAP_CACHING */
- 	if ( op->o_caching_on || be_isroot( op->o_bd, &op->o_ndn ) )
-#endif /* LDAP_CACHING */
 	{
 		/*
 		 * FIXME: I'd consider this dangerous if someone
@@ -253,7 +214,7 @@ searchit:
 		if ( ID_BLOCK_NIDS( candidates ) > (unsigned) limit->lms_s_unchecked ) {
 			send_ldap_error( op, rs, LDAP_ADMINLIMIT_EXCEEDED,
 					NULL );
-			rc = 0;
+			rc = LDAP_SUCCESS;
 			goto done;
 		}
 	}
@@ -286,7 +247,7 @@ searchit:
 				send_ldap_error( op, rs,
 						LDAP_ADMINLIMIT_EXCEEDED,
 						NULL );
-				rc = 0; 
+				rc = LDAP_SUCCESS; 
 				goto done;
 			}
 
@@ -310,7 +271,7 @@ searchit:
 				send_ldap_error( op, rs,
 						LDAP_ADMINLIMIT_EXCEEDED,
 						NULL );
-				rc = 0;
+				rc = LDAP_SUCCESS;
 				goto done;
 			}
 
@@ -330,7 +291,7 @@ searchit:
 
 		/* check for abandon */
 		if ( op->o_abandon ) {
-			rc = 0;
+			rc = LDAP_SUCCESS;
 			goto done;
 		}
 
@@ -338,7 +299,7 @@ searchit:
 		if ( op->oq_search.rs_tlimit != -1 && slap_get_time() > stoptime ) {
 			rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
 			send_ldap_result( op, rs );
-			rc = 0;
+			rc = LDAP_SUCCESS;
 			goto done;
 		}
 
@@ -359,9 +320,25 @@ searchit:
 		}
 
 		rs->sr_entry = e;
-#ifdef LDAP_CACHING
-                if ( !op->o_caching_on ) {
-#endif /* LDAP_CACHING */
+
+#ifdef LDBM_SUBENTRIES
+	if ( is_entry_subentry( e ) ) {
+		if( op->oq_search.rs_scope != LDAP_SCOPE_BASE ) {
+			if(!get_subentries_visibility( op )) {
+				/* only subentries are visible */
+				goto loop_continue;
+			}
+		} else if ( get_subentries( op ) &&
+			!get_subentries_visibility( op ))
+		{
+			/* only subentries are visible */
+			goto loop_continue;
+		}
+	} else if ( get_subentries_visibility( op )) {
+		/* only subentries are visible */
+		goto loop_continue;
+	}
+#endif
 
 		if ( op->oq_search.rs_deref & LDAP_DEREF_SEARCHING && is_entry_alias( e ) ) {
 			Entry *matched;
@@ -461,9 +438,9 @@ searchit:
 			goto loop_continue;
 		}
 
-#ifdef LDAP_CACHING
+		if ( !manageDSAit && is_entry_glue( e )) {
+			goto loop_continue;
 		}
-#endif /* LDAP_CACHING */
 
 		/* if it matches the filter and scope, send it */
 		result = test_filter( op, e, op->oq_search.rs_filter );
@@ -493,27 +470,13 @@ searchit:
 					cache_return_entry_r( &li->li_cache, e );
 					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
 					send_ldap_result( op, rs );
-					rc = 0;
+					rc = LDAP_SUCCESS;
 					goto done;
 				}
 
 				if (e) {
 
-#ifdef LDAP_CACHING
- 					if ( op->o_caching_on ) {
- 						ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
- 						cache_return_entry_r( &li->li_cache, e );
- 					}
-#endif /* LDAP_CACHING */
-
 					result = send_search_entry( op, rs );
-
-#ifdef LDAP_CACHING
-					if ( op->o_caching_on ) {
-						ldap_pvt_thread_rdwr_rlock( &li->li_giant_rwlock );
-					}
-#endif /* LDAP_CACHING */
-
 
 					switch (result) {
 					case 0:		/* entry sent ok */
@@ -522,7 +485,7 @@ searchit:
 						break;
 					case -1:	/* connection closed */
 						cache_return_entry_r( &li->li_cache, e );
-						rc = 0;
+						rc = LDAP_SUCCESS;
 						goto done;
 					}
 				}
@@ -553,13 +516,7 @@ searchit:
 loop_continue:
 		if( e != NULL ) {
 			/* free reader lock */
-#ifndef LDAP_CACHING
 			cache_return_entry_r( &li->li_cache, e );
-#else /* LDAP_CACHING */
- 			if ( !op->o_caching_on ) {
-				cache_return_entry_r( &li->li_cache, e );
-			}
-#endif /* LDAP_CACHING */
 		}
 
 		ldap_pvt_thread_yield();
@@ -569,7 +526,7 @@ loop_continue:
 	rs->sr_ref = rs->sr_v2ref;
 	send_ldap_result( op, rs );
 
-	rc = 0;
+	rc = LDAP_SUCCESS;
 
 done:
 	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
@@ -618,6 +575,10 @@ search_candidates(
     AttributeAssertion aa_ref, aa_alias;
 	struct berval bv_ref = { sizeof("referral")-1, "referral" };
 	struct berval bv_alias = { sizeof("alias")-1, "alias" };
+#ifdef LDBM_SUBENTRIES
+	Filter  sf;
+	AttributeAssertion aa_subentry;
+#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDBM, DETAIL1,
@@ -662,6 +623,18 @@ search_candidates(
 		: SLAPD_FILTER_DN_ONE;
 	fand.f_dn = &e->e_nname;
 	fand.f_next = xf.f_or == filter ? filter : &xf ;
+
+#ifdef LDBM_SUBENTRIES
+	if ( get_subentries_visibility( op )) {
+		struct berval bv_subentry = { sizeof("SUBENTRY")-1, "SUBENTRY" };
+		sf.f_choice = LDAP_FILTER_EQUALITY;
+		sf.f_ava = &aa_subentry;
+		sf.f_av_desc = slap_schema.si_ad_objectClass;
+		sf.f_av_value = bv_subentry;
+		sf.f_next = fand.f_next;
+		fand.f_next = &sf;
+	}
+#endif
 
 	candidates = filter_candidates( op, &f );
 

@@ -242,6 +242,7 @@ list_candidates(
 		     f->f_result == LDAP_SUCCESS ) {
 			continue;
 		}
+		BDB_IDL_ZERO( save );
 		rc = bdb_filter_candidates( op, f, save, tmp,
 			save+BDB_IDL_UM_SIZE );
 

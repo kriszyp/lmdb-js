@@ -23,6 +23,9 @@ char	*progname	= NULL;
 char	*conffile	= SLAPD_DEFAULT_CONFIGFILE;
 int		truncatemode = 0;
 int		verbose		= 0;
+int		update_ctxcsn = SLAP_TOOL_CTXCSN_NONE;
+int		retrieve_ctxcsn = 0;
+int		retrieve_synccookie = 0;
 int		continuemode = 0;
 int		nosubordinates = 0;
 int		dryrun = 0;
@@ -48,11 +51,11 @@ usage( int tool )
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "\t[-l ldiffile] [-u]\n";
+		options = "\t[-l ldiffile] [-u] [-W] [-w]\n";
 		break;
 
 	case SLAPCAT:
-		options = "\t[-l ldiffile]\n";
+		options = "\t[-l ldiffile] [-m] [-k]\n";
 		break;
 
 	case SLAPINDEX:
@@ -100,7 +103,7 @@ slap_tool_init(
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "b:cd:f:l:n:tuv";
+		options = "b:cd:f:l:n:tuvWw";
 		break;
 
 	case SLAPINDEX:
@@ -109,7 +112,7 @@ slap_tool_init(
 		break;
 
 	case SLAPCAT:
-		options = "b:cd:f:l:n:s:v";
+		options = "b:cd:f:kl:mn:s:v";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -141,8 +144,16 @@ slap_tool_init(
 			conffile = strdup( optarg );
 			break;
 
+		case 'k':	/* Retrieve sync cookie entry */
+			retrieve_synccookie = 1;
+			break;
+
 		case 'l':	/* LDIF file */
 			ldiffile = strdup( optarg );
+			break;
+
+		case 'm':	/* Retrieve ldapsync entry */
+			retrieve_ctxcsn = 1;
 			break;
 
 		case 'n':	/* which config file db to index */
@@ -164,6 +175,15 @@ slap_tool_init(
 
 		case 'v':	/* turn on verbose */
 			verbose++;
+			break;
+
+		case 'W':	/* write context csn on every entry add */
+			update_ctxcsn = SLAP_TOOL_CTXCSN_BATCH;
+			/* FIXME : update_ctxcsn = SLAP_TOOL_CTXCSN_ENTRY; */
+			break;
+
+		case 'w':	/* write context csn on at the end */
+			update_ctxcsn = SLAP_TOOL_CTXCSN_BATCH;
 			break;
 
 		default:

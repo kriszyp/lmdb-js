@@ -6,7 +6,7 @@ if test $# -ge 1 ; then
 	SRCDIR=$1; shift
 fi
 
-. $SRCDIR/scripts/args.sh
+. $SRCDIR/scripts/args.sh $*
 
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
@@ -73,7 +73,7 @@ fi
 
 echo "Testing OR searching..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
-	'(|(givenname=Xx*yY*Z)(cn=)(undef=*)(objectclass=groupofnames)(sn=jones)(member=cn=Manager,o=University of Michigan,c=US))' >> $SEARCHOUT 2>&1
+	'(|(givenname=Xx*yY*Z)(cn=)(undef=*)(objectclass=groupofnames)(sn=jones)(member=cn=Manager,o=University of Michigan,c=US)(uniqueMember=cn=Manager,o=University of Michigan,c=US))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"

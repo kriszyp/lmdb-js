@@ -243,6 +243,35 @@ int compute_rewrite_search_filter(Slapi_PBlock *pb);
 int compute_evaluator(computed_attr_context *c, char *type, Slapi_Entry *e, slapi_compute_output_t outputfn);
 int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
 
+/* ACL plugins; only SLAPI_PLUGIN_ACL_ALLOW_ACCESS supported now */
+typedef int (*slapi_acl_callback_t)(Slapi_PBlock *pb,
+	Slapi_Entry *e,
+	const char *attr,
+	struct berval *berval,
+	int access,
+	void *state);
+
+/* object extensions */
+typedef void *(*slapi_extension_constructor_fnptr)(void *object, void *parent);
+
+typedef void (*slapi_extension_destructor_fnptr)(void *extension,
+	void *object, void *parent);
+
+int slapi_register_object_extension( const char *pluginname,
+	const char *objectname, slapi_extension_constructor_fnptr constructor,
+	slapi_extension_destructor_fnptr destructor, int *objecttype,
+	int *extensionhandle);
+
+#define SLAPI_EXT_CONNECTION    "Connection"
+#define SLAPI_EXT_OPERATION     "Operation"
+#define SLAPI_EXT_ENTRY         "Entry"
+#define SLAPI_EXT_MTNODE        "Mapping Tree Node"
+
+void *slapi_get_object_extension(int objecttype, void *object,
+	int extensionhandle);
+void slapi_set_object_extension(int objecttype, void *object,
+	int extensionhandle, void *extension);
+
 /* parameters currently supported */
 
 /*
@@ -305,6 +334,8 @@ int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
 #define SLAPI_X_CONN_CLIENTPATH			1300
 #define SLAPI_X_CONN_SERVERPATH			1301
 #define SLAPI_X_CONN_IS_UDP			1302
+#define SLAPI_X_CONN_SSF			1303
+#define SLAPI_X_CONN_SASL_CONTEXT		1304
 
 /*  Authentication types */
 #define SLAPD_AUTH_NONE   "none"
@@ -437,6 +468,12 @@ int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
 
 #define SLAPI_PLUGIN_SYNTAX_FLAG_ORKEYS			1
 #define SLAPI_PLUGIN_SYNTAX_FLAG_ORDERING		2
+
+#define SLAPI_PLUGIN_ACL_INIT			730
+#define SLAPI_PLUGIN_ACL_SYNTAX_CHECK		731
+#define SLAPI_PLUGIN_ACL_ALLOW_ACCESS		732
+#define SLAPI_PLUGIN_ACL_MODS_ALLOWED		733
+#define SLAPI_PLUGIN_ACL_MODS_UPDATE		734
 
 #define SLAPI_OPERATION_AUTHTYPE                741
 #define SLAPI_OPERATION_ID                      742

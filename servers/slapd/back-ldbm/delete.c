@@ -40,7 +40,10 @@ ldbm_back_delete(
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
 
 	/* get entry with writer lock */
-	if ( (e = dn2entry_w( op->o_bd, &op->o_req_ndn, &matched )) == NULL ) {
+	e = dn2entry_w( op->o_bd, &op->o_req_ndn, &matched );
+
+	/* FIXME : dn2entry() should return non-glue entry */
+	if ( e == NULL || ( !manageDSAit && is_entry_glue( e ))) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, INFO, 
 			"ldbm_back_delete: no such object %s\n", op->o_req_dn.bv_val, 0, 0 );
@@ -57,8 +60,9 @@ ldbm_back_delete(
 			cache_return_entry_r( &li->li_cache, matched );
 
 		} else {
-			rs->sr_ref = referral_rewrite( default_referral,
-				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
+			BerVarray deref = op->o_bd->syncinfo ?
+							  op->o_bd->syncinfo->provideruri_bv : default_referral;
+			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
@@ -73,9 +77,6 @@ ldbm_back_delete(
 	}
 
 	/* check entry for "entry" acl */
-#ifdef LDAP_CACHING
-	if( !op->o_caching_on ) {
-#endif /* LDAP_CACHING */
 	if ( ! access_allowed( op, e,
 		entry, NULL, ACL_WRITE, NULL ) )
 	{
@@ -92,7 +93,7 @@ ldbm_back_delete(
 		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
 			"no write access to entry" );
 
-		rc = 1;
+		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto return_results;
 	}
 
@@ -115,7 +116,7 @@ ldbm_back_delete(
 
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
 
-		rc = 1;
+		rc = LDAP_REFERRAL;
 		goto return_results;
 	}
 
@@ -215,9 +216,6 @@ ldbm_back_delete(
 			}
 		}
 	}
-#ifdef LDAP_CACHING
-	}
-#endif /* LDAP_CACHING */
 
 	/* delete from dn2id mapping */
 	if ( dn2id_delete( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {
@@ -256,7 +254,7 @@ ldbm_back_delete(
 
 	rs->sr_err = LDAP_SUCCESS;
 	send_ldap_result( op, rs );
-	rc = 0;
+	rc = LDAP_SUCCESS;
 
 return_results:;
 	if( p != NULL ) {

@@ -114,13 +114,11 @@ meta_back_search( Operation *op, SlapReply *rs )
 	int isroot = 0;
 	dncookie dc;
 
-#ifdef LDAP_CACHING
 	cache_manager*  cm = li->cm;
 
  	if (cm->caching) {
  		return meta_back_cache_search(op, rs);
 	}
-#endif /* LDAP_CACHING */
 	
 	/*
 	 * controls are set in ldap_back_dobind()

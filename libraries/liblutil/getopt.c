@@ -4,11 +4,10 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
-	getopt.c
-
-	modified public-domain AT&T getopt(3)
-	modified by Kurt Zeilenga for inclusion into OpenLDAP
-*/
+ * getopt.c
+ * modified public-domain AT&T getopt(3)
+ * modified by Kurt Zeilenga for inclusion into OpenLDAP
+ */
 
 #include "portable.h"
 

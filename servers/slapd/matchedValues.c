@@ -67,7 +67,7 @@ filter_matched_values(
 	Debug( LDAP_DEBUG_FILTER, "=> filter_matched_values\n", 0, 0, 0 );
 #endif
 
-	for ( vrf = op->vrFilter; vrf != NULL; vrf = vrf->vrf_next ) {
+	for ( vrf = op->o_vrFilter; vrf != NULL; vrf = vrf->vrf_next ) {
 		switch ( vrf->vrf_choice ) {
 		case SLAPD_FILTER_COMPUTED:
 #ifdef NEW_LOGGING

@@ -529,6 +529,7 @@ BUILD_LDAP=no
 BUILD_LDBM=no
 BUILD_META=no
 BUILD_MONITOR=no
+BUILD_CACHE=no
 BUILD_NULL=no
 BUILD_PASSWD=no
 BUILD_PERL=no
@@ -2295,6 +2296,16 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
+
+dnl Checks for long long
+AC_CACHE_CHECK([long long], ol_cv_type_long_long, [
+	AC_TRY_COMPILE([], [long long x;],
+		[ol_cv_type_long_long=yes],
+		[ol_cv_type_long_long=no])])
+if test $ol_cv_type_long_long = yes; then
+	AC_DEFINE(HAVE_LONG_LONG, 1, [define if you have `long long'])
+fi
+
 AC_TYPE_MODE_T
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
@@ -2607,8 +2618,11 @@ if test "$ol_enable_meta" != no ; then
 	AC_DEFINE(SLAPD_META,1,[define to support LDAP Metadirectory backend])
 	BUILD_SLAPD=yes
 	BUILD_META=yes
-	BUILD_LDAP=yes
 	BUILD_REWRITE=yes
+        if test $ol_enable_ldbm = yes -o \
+		$ol_enable_bdb = yes ; then 
+                BUILD_CACHE=yes
+        fi
 	if test "$ol_with_meta_module" != static ; then
 		AC_DEFINE(SLAPD_META_DYNAMIC,1,
 			[define to support dynamic LDAP Metadirectory backend])
@@ -2763,6 +2777,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_LDBM)
   AC_SUBST(BUILD_META)
   AC_SUBST(BUILD_MONITOR)
+  AC_SUBST(BUILD_CACHE)
   AC_SUBST(BUILD_NULL)
   AC_SUBST(BUILD_PASSWD)
   AC_SUBST(BUILD_PERL)

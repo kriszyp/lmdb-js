@@ -243,13 +243,11 @@ do_add( Operation *op, SlapReply *rs )
 	if ( op->o_bd->be_add ) {
 		/* do the update here */
 		int repl_user = be_isupdate(op->o_bd, &op->o_ndn );
-#if defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
+#ifndef SLAPD_MULTIMASTER
 		if ( !op->o_bd->syncinfo &&
 						( !op->o_bd->be_update_ndn.bv_len || repl_user ))
-#elif defined(LDAP_SYNCREPL) && defined(SLAPD_MULTIMASTER)
-		if ( !op->o_bd->syncinfo )	/* LDAP_SYNCREPL overrides MM */
-#elif !defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
-		if ( !op->o_bd->be_update_ndn.bv_len || repl_user )
+#else
+		if ( !op->o_bd->syncinfo )
 #endif
 		{
 			int update = op->o_bd->be_update_ndn.bv_len;
@@ -280,8 +278,8 @@ do_add( Operation *op, SlapReply *rs )
 				}
 			}
 
-			rs->sr_err = slap_mods2entry( modlist, &e, repl_user, &rs->sr_text,
-				textbuf, textlen );
+			rs->sr_err = slap_mods2entry( modlist, &e, repl_user, 0,
+									&rs->sr_text, textbuf, textlen );
 			if( rs->sr_err != LDAP_SUCCESS ) {
 				send_ldap_result( op, rs );
 				goto done;
@@ -311,7 +309,7 @@ do_add( Operation *op, SlapReply *rs )
 				e = NULL;
 			}
 
-#if defined(LDAP_SYNCREPL) || !defined(SLAPD_MULTIMASTER)
+#ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = NULL;
 #ifdef LDAP_SLAPI
@@ -326,12 +324,9 @@ do_add( Operation *op, SlapReply *rs )
 			}
 #endif /* LDAP_SLAPI */
 
-#ifdef LDAP_SYNCREPL
 			if ( op->o_bd->syncinfo ) {
-				defref = op->o_bd->syncinfo->master_bv;
-			} else
-#endif
-			{
+				defref = op->o_bd->syncinfo->provideruri_bv;
+			} else {
 				defref = op->o_bd->be_update_refs
 							? op->o_bd->be_update_refs : default_referral;
 			}
@@ -375,6 +370,9 @@ do_add( Operation *op, SlapReply *rs )
 #endif /* LDAP_SLAPI */
 
 done:
+
+	slap_graduate_commit_csn( op );
+
 	if( modlist != NULL ) {
 		slap_mods_free( modlist );
 	}
@@ -392,6 +390,7 @@ slap_mods2entry(
 	Modifications *mods,
 	Entry **e,
 	int repl_user,
+	int dup,
 	const char **text,
 	char *textbuf, size_t textlen )
 {
@@ -403,7 +402,9 @@ slap_mods2entry(
 	for( ; mods != NULL; mods = mods->sml_next ) {
 		Attribute *attr;
 
-		assert( mods->sml_op == LDAP_MOD_ADD );
+		if ( !repl_user ) {
+			assert( mods->sml_op == LDAP_MOD_ADD );
+		}
 		assert( mods->sml_desc != NULL );
 
 		attr = attr_find( (*e)->e_attrs, mods->sml_desc );
@@ -522,16 +523,37 @@ slap_mods2entry(
 
 		/* move ad to attr structure */
 		attr->a_desc = mods->sml_desc;
-		mods->sml_desc = NULL;
+		if ( !dup )
+			mods->sml_desc = NULL;
 
 		/* move values to attr structure */
 		/*	should check for duplicates */
-		attr->a_vals = mods->sml_values;
-		mods->sml_values = NULL;
+		if ( dup ) { 
+			int i;
+			for ( i = 0; mods->sml_values[i].bv_val; i++ ) ;
+			attr->a_vals = (BerVarray) ch_calloc( i+1, sizeof( BerValue ));
+			for ( i = 0; mods->sml_values[i].bv_val; i++ )
+				ber_dupbv( &attr->a_vals[i], &mods->sml_values[i] );
+			attr->a_vals[i].bv_len = 0;
+			attr->a_vals[i].bv_val = NULL;
+		} else {
+			attr->a_vals = mods->sml_values;
+			mods->sml_values = NULL;
+		}
 
 		if ( mods->sml_nvalues ) {
-			attr->a_nvals = mods->sml_nvalues;
-			mods->sml_nvalues = NULL;
+			if ( dup ) {
+				int i;
+				for ( i = 0; mods->sml_nvalues[i].bv_val; i++ ) ;
+				attr->a_nvals = (BerVarray) ch_calloc( i+1, sizeof( BerValue ));
+				for ( i = 0; mods->sml_nvalues[i].bv_val; i++ )
+					ber_dupbv( &attr->a_nvals[i], &mods->sml_nvalues[i] );
+				attr->a_nvals[i].bv_len = 0;
+				attr->a_nvals[i].bv_val = NULL;
+			} else {
+				attr->a_nvals = mods->sml_nvalues;
+				mods->sml_nvalues = NULL;
+			}
 		} else {
 			attr->a_nvals = attr->a_vals;
 		}
@@ -539,6 +561,77 @@ slap_mods2entry(
 		*tail = attr;
 		tail = &attr->a_next;
 	}
+
+	return LDAP_SUCCESS;
+}
+
+int
+slap_entry2mods(
+	Entry *e,
+	Modifications **mods,
+	const char **text
+)
+{
+	Modifications	*modhead = NULL;
+	Modifications	*mod;
+	Modifications	**modtail = &modhead;
+	Attribute		*a_new;
+	AttributeDescription	*a_new_desc;
+	int				i, count, rc;
+
+	a_new = e->e_attrs;
+
+	while ( a_new != NULL ) {
+		a_new_desc = a_new->a_desc;
+		mod = (Modifications *) malloc( sizeof( Modifications ));
+		
+		if ( a_new_desc != slap_schema.si_ad_queryid )
+			mod->sml_op = LDAP_MOD_REPLACE;
+		else
+			mod->sml_op = LDAP_MOD_ADD;
+
+		ber_dupbv( &mod->sml_type, &a_new_desc->ad_cname );
+
+		for ( count = 0; a_new->a_vals[count].bv_val; count++ );
+
+		mod->sml_bvalues = (struct berval*) malloc(
+				(count+1) * sizeof( struct berval) );
+
+		mod->sml_nvalues = (struct berval*) malloc(
+				(count+1) * sizeof( struct berval) );
+
+		for ( i = 0; i < count; i++ ) {
+			ber_dupbv(mod->sml_bvalues+i, a_new->a_vals+i); 
+			if ( a_new->a_desc->ad_type->sat_equality &&
+				a_new->a_desc->ad_type->sat_equality->smr_normalize ) {
+				rc = a_new->a_desc->ad_type->sat_equality->smr_normalize(
+					0,
+					a_new->a_desc->ad_type->sat_syntax,
+					a_new->a_desc->ad_type->sat_equality,
+					a_new->a_vals+i, mod->sml_nvalues+i, NULL );
+				if (rc) {
+					return rc; 
+				} 
+			}
+			else {	
+				ber_dupbv( mod->sml_nvalues+i, a_new->a_vals+i ); 
+			} 
+		}
+
+		mod->sml_bvalues[count].bv_val = 0; 
+		mod->sml_bvalues[count].bv_len = 0; 
+
+		mod->sml_nvalues[count].bv_val = 0; 
+		mod->sml_nvalues[count].bv_len = 0; 
+
+		mod->sml_desc = a_new_desc;
+		mod->sml_next =NULL;
+		*modtail = mod;
+		modtail = &mod->sml_next;
+		a_new = a_new->a_next; 
+	}
+
+	*mods = modhead;
 
 	return LDAP_SUCCESS;
 }

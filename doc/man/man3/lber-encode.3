@@ -244,7 +244,7 @@ can be achieved like so:
       ber = ber_alloc_t( LBER_USE_DER );
 
       if ( ber == NULL ) {
-		/* error */
+              /* error */
       }
 
       rc = ber_printf( ber, "{siiiib{v}}", dn, scope, ali,
@@ -269,7 +269,7 @@ The return values for all of these functions are declared in the
 .BR lber-sockbuf (3),
 .BR lber-types (3)
 .SH ACKNOWLEDGEMENTS
-.B	OpenLDAP
+.B OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B	OpenLDAP
+.B OpenLDAP
 is derived from University of Michigan LDAP 3.3 Release.  

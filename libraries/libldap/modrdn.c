@@ -20,6 +20,10 @@
  * without restriction or fee of any kind as long as this notice
  * is preserved.
  */
+/*
+ * Portions Copyright (C) The Internet Society (1997)
+ * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
+ */
 
 /*
  * A modify rdn request looks like this:

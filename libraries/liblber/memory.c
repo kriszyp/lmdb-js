@@ -608,8 +608,9 @@ ber_mem2bv_x(
 	if ( dup ) {
 		if ( (new->bv_val = ber_memalloc_x( new->bv_len+1, ctx )) == NULL ) {
 			ber_errno = LBER_ERROR_MEMORY;
-			if ( !bv )
+			if ( !bv ) {
 				ber_memfree_x( new, ctx );
+			}
 			return NULL;
 		}
 
@@ -692,7 +693,7 @@ ber_strndup_x( LDAP_CONST char *s, ber_len_t l, void *ctx )
 	}
 
 	AC_MEMCPY( p, s, len );
-	p[ len ] = '\0';
+	p[len] = '\0';
 	return p;
 }
 

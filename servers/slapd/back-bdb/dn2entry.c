@@ -12,7 +12,6 @@
 
 #include "back-bdb.h"
 
-
 /*
  * dn2entry - look up dn in the cache/indexes and return the corresponding
  * entry. If the requested DN is not found and matched is TRUE, return info

@@ -361,7 +361,7 @@ struct {								\
 #define	LDAP_TAILQ_EMPTY(head) ((head)->tqh_first == NULL)
 
 #define LDAP_TAILQ_FOREACH(var, head, field)				\
-	for (var = LDAP_TAILQ_FIRST(head); var; var = TAILQ_NEXT(var, field))
+	for (var = LDAP_TAILQ_FIRST(head); var; var = LDAP_TAILQ_NEXT(var, field))
 
 #define LDAP_TAILQ_FOREACH_REVERSE(var, head, type, field)		\
 	for ((var) = LDAP_TAILQ_LAST((head), type, field);		\

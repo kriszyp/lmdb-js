@@ -68,6 +68,7 @@ bdb_db_init( BackendDB *be )
 
 	/* indicate system schema supported */
 	be->be_flags |=
+		SLAP_BFLAG_INCREMENT |
 #ifdef BDB_SUBENTRIES
 		SLAP_BFLAG_SUBENTRIES |
 #endif
@@ -90,9 +91,7 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_search_stack_depth = DEFAULT_SEARCH_STACK_DEPTH;
 	bdb->bi_search_stack = NULL;
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 	LDAP_LIST_INIT (&bdb->bi_psearch_list);
-#endif
 
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_mutex );
@@ -200,6 +199,7 @@ bdb_db_open( BackendDB *be )
 
 #ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_max_size ) {
+		bdb->bi_idl_tree = NULL;
 		ldap_pvt_thread_rdwr_init( &bdb->bi_idl_tree_rwlock );
 		ldap_pvt_thread_mutex_init( &bdb->bi_idl_tree_lrulock );
 		bdb->bi_idl_cache_size = 0;
@@ -553,7 +553,7 @@ bdb_db_destroy( BackendDB *be )
 }
 
 #ifdef SLAPD_BDB_DYNAMIC
-int back_bdb_LTX_init_module( int argc, char *argv[] ) {
+int init_module( int argc, char *argv[] ) {
 	BackendInfo bi;
 
 	memset( &bi, '\0', sizeof(bi) );
@@ -571,18 +571,16 @@ bdb_initialize(
 )
 {
 	static char *controls[] = {
+		LDAP_CONTROL_ASSERT,
 		LDAP_CONTROL_MANAGEDSAIT,
 		LDAP_CONTROL_NOOP,
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 		LDAP_CONTROL_PAGEDRESULTS,
 #endif
- 		LDAP_CONTROL_VALUESRETURNFILTER,
 #ifdef LDAP_CONTROL_SUBENTRIES
 		LDAP_CONTROL_SUBENTRIES,
 #endif
-#ifdef LDAP_CLIENT_UPDATE
-		LDAP_CONTROL_CLIENT_UPDATE,
-#endif
+ 		LDAP_CONTROL_VALUESRETURNFILTER,
 		NULL
 	};
 
@@ -617,13 +615,14 @@ bdb_initialize(
 		{
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_BDB, ERR, 
-				"bdb_db_initialize: version mismatch: "
-				"\texpected: %s \tgot: %s\n", DB_VERSION_STRING, version, 0 );
+				"bdb_initialize: BDB library version mismatch:"
+				" expected " DB_VERSION_STRING ","
+				" got %s\n", version, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"bdb_initialize: version mismatch\n"
-				"\texpected: " DB_VERSION_STRING "\n"
-				"\tgot: %s \n", version, 0, 0 );
+				"bdb_initialize: BDB library version mismatch:"
+				" expected " DB_VERSION_STRING ","
+				" got %s\n", version, 0, 0 );
 #endif
 		}
 
@@ -674,13 +673,8 @@ bdb_initialize(
 
 	bi->bi_op_unbind = 0;
 
-#ifdef LDAP_CLIENT_UPDATE
 	bi->bi_op_abandon = bdb_abandon;
 	bi->bi_op_cancel = bdb_cancel;
-#else
-	bi->bi_op_abandon = 0;
-	bi->bi_op_cancel = 0;
-#endif
 
 	bi->bi_extended = bdb_extended;
 
@@ -701,6 +695,9 @@ bdb_initialize(
 	bi->bi_tool_entry_put = bdb_tool_entry_put;
 	bi->bi_tool_entry_reindex = bdb_tool_entry_reindex;
 	bi->bi_tool_sync = 0;
+	bi->bi_tool_dn2id_get = bdb_tool_dn2id_get;
+	bi->bi_tool_id2entry_get = bdb_tool_id2entry_get;
+	bi->bi_tool_entry_modify = bdb_tool_entry_modify;
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;

@@ -212,6 +212,7 @@ Ri_init(
 
     /* Initialize private data */
     (*ri)->ri_hostname = NULL;
+    (*ri)->ri_uri = NULL;
     (*ri)->ri_ldp = NULL;
     (*ri)->ri_bind_dn = NULL;
     (*ri)->ri_password = NULL;

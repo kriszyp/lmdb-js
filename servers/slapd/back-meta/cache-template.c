@@ -30,7 +30,6 @@
 #undef ldap_debug	/* silence a warning in ldap-int.h */
 #include "../../../libraries/libldap/ldap-int.h"
 
-#ifdef LDAP_CACHING
 void 
 filter2template(
 	Filter			*f,
@@ -244,4 +243,3 @@ filter2template(
 		return;
 	}
 }
-#endif /* LDAP_CACHING */

@@ -34,8 +34,6 @@ extern BI_op_add	shell_back_add;
 
 extern BI_op_delete	shell_back_delete;
 
-extern BI_op_abandon	shell_back_abandon;
-
 LDAP_END_DECL
 
 #endif /* _SHELL_EXTERNAL_H */

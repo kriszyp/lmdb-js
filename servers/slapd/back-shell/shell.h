@@ -21,7 +21,6 @@ struct shellinfo {
 	char	**si_modrdn;	/* cmd + args to exec for modrdn  */
 	char	**si_add;		/* cmd + args to exec for add	  */
 	char	**si_delete;	/* cmd + args to exec for delete  */
-	char	**si_abandon;	/* cmd + args to exec for abandon */
 };
 
 struct slap_backend_db;

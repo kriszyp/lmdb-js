@@ -81,12 +81,28 @@ ldbm_back_bind(
 
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
 		if ( rs->sr_matched ) free( (char *)rs->sr_matched );
-		return( rc );
+		return rs->sr_err;
 	}
 
 	ber_dupbv( &op->oq_bind.rb_edn, &e->e_name );
 
 	/* check for deleted */
+#ifdef LDBM_SUBENTRIES
+	if ( is_entry_subentry( e ) ) {
+		/* entry is an subentry, don't allow bind */
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, DETAIL1,
+				"bdb_bind: entry is subentry\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+				"entry is subentry\n", 0, 0, 0 );
+#endif
+		rs->sr_err = LDAP_INVALID_CREDENTIALS;
+		send_ldap_result( op, rs );
+		rc = LDAP_INVALID_CREDENTIALS;
+		goto return_results;
+	}
+#endif
 
 	if ( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow bind */
@@ -102,7 +118,7 @@ ldbm_back_bind(
 		send_ldap_error( op, rs, LDAP_ALIAS_PROBLEM,
 		    "entry is alias" );
 
-		rc = 1;
+		rc = LDAP_ALIAS_PROBLEM;
 		goto return_results;
 	}
 
@@ -130,7 +146,7 @@ ldbm_back_bind(
 
 		ber_bvarray_free( rs->sr_ref );
 
-		rc = 1;
+		rc = rs->sr_err;
 		goto return_results;
 	}
 
@@ -140,7 +156,7 @@ ldbm_back_bind(
 			password, NULL, ACL_AUTH, NULL ) )
 		{
 			send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS, NULL );
-			rc = 1;
+			rc = LDAP_INSUFFICIENT_ACCESS;
 			goto return_results;
 		}
 
@@ -148,14 +164,14 @@ ldbm_back_bind(
 			send_ldap_error( op, rs, LDAP_INAPPROPRIATE_AUTH, NULL );
 
 			/* stop front end from sending result */
-			rc = 1;
+			rc = LDAP_INAPPROPRIATE_AUTH;
 			goto return_results;
 		}
 
 		if ( slap_passwd_check( op->o_conn, a, &op->oq_bind.rb_cred, &rs->sr_text ) != 0 ) {
 			send_ldap_error( op, rs, LDAP_INVALID_CREDENTIALS, NULL );
 			/* stop front end from sending result */
-			rc = 1;
+			rc = LDAP_INVALID_CREDENTIALS;
 			goto return_results;
 		}
 
@@ -166,7 +182,7 @@ ldbm_back_bind(
 	case LDAP_AUTH_KRBV41:
 		if ( krbv4_ldap_auth( op->o_bd, &op->oq_bind.rb_cred, &ad ) != LDAP_SUCCESS ) {
 			send_ldap_error( op, rs, LDAP_INVALID_CREDENTIALS, NULL );
-			rc = 1;
+			rc = LDAP_INVALID_CREDENTIALS;
 			goto return_results;
 		}
 
@@ -175,7 +191,7 @@ ldbm_back_bind(
 		{
 			send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
 				NULL );
-			rc = 1;
+			rc = LDAP_INSUFFICIENT_ACCESS;
 			goto return_results;
 		}
 
@@ -191,7 +207,7 @@ ldbm_back_bind(
 				break;
 			}
 			send_ldap_error( op, rs, LDAP_INAPPROPRIATE_AUTH, NULL );
-			rc = 1;
+			rc = LDAP_INAPPROPRIATE_AUTH;
 			goto return_results;
 
 		} else {	/* look for krbname match */
@@ -203,7 +219,7 @@ ldbm_back_bind(
 			if ( value_find( a->a_desc, a->a_vals, &krbval ) != 0 ) {
 				send_ldap_error( op, rs,
 				    LDAP_INVALID_CREDENTIALS, NULL );
-				rc = 1;
+				rc = LDAP_INVALID_CREDENTIALS;
 				goto return_results;
 			}
 		}
@@ -221,7 +237,7 @@ ldbm_back_bind(
 	default:
 		send_ldap_error( op, rs, LDAP_STRONG_AUTH_NOT_SUPPORTED,
 		    "authentication method not supported" );
-		rc = 1;
+		rc = LDAP_STRONG_AUTH_NOT_SUPPORTED;
 		goto return_results;
 	}
 

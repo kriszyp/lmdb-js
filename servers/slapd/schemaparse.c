@@ -214,20 +214,20 @@ oc_usage( void )
 static void
 at_usage( void )
 {
-	fprintf( stderr,
+	fprintf( stderr, "%s%s%s",
 		"AttributeTypeDescription = \"(\" whsp\n"
 		"  numericoid whsp      ; AttributeType identifier\n"
 		"  [ \"NAME\" qdescrs ]             ; name used in AttributeType\n"
 		"  [ \"DESC\" qdstring ]            ; description\n"
 		"  [ \"OBSOLETE\" whsp ]\n"
 		"  [ \"SUP\" woid ]                 ; derived from this other\n"
-		"                                   ; AttributeType\n"
+		"                                   ; AttributeType\n",
 		"  [ \"EQUALITY\" woid ]            ; Matching Rule name\n"
 		"  [ \"ORDERING\" woid ]            ; Matching Rule name\n"
 		"  [ \"SUBSTR\" woid ]              ; Matching Rule name\n"
 		"  [ \"SYNTAX\" whsp noidlen whsp ] ; see section 4.3\n"
 		"  [ \"SINGLE-VALUE\" whsp ]        ; default multi-valued\n"
-		"  [ \"COLLECTIVE\" whsp ]          ; default not collective\n"
+		"  [ \"COLLECTIVE\" whsp ]          ; default not collective\n",
 		"  [ \"NO-USER-MODIFICATION\" whsp ]; default user modifiable\n"
 		"  [ \"USAGE\" whsp AttributeUsage ]; default userApplications\n"
 		"                                   ; userApplications\n"

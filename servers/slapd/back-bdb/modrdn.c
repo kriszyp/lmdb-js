@@ -51,10 +51,17 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 
 	int		noop = 0;
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
-        Operation *ps_list;
+	int		num_retries = 0;
+
+	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
+	int num_ctrls = 0;
+
+	Operation *ps_list;
 	struct psid_entry *pm_list, *pm_prev;
-#endif
+	int	rc;
+	EntryInfo	*suffix_ei;
+	Entry		*ctxcsn_e;
+	int			ctxcsn_added = 0;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "==>bdb_modrdn(%s,%s,%s)\n", 
@@ -86,15 +93,13 @@ retry:	/* transaction retry */
 		Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn: retrying...\n", 0, 0, 0 );
 #endif
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
-                pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
-                while ( pm_list != NULL ) {
-                        LDAP_LIST_REMOVE ( pm_list, ps_link );
+		pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
+		while ( pm_list != NULL ) {
+			LDAP_LIST_REMOVE ( pm_list, ps_link );
 			pm_prev = pm_list;
-                        pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
+			pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
 			ch_free( pm_prev );
-                }
-#endif
+		}
 
 		rs->sr_err = TXN_ABORT( ltid );
 		ltid = NULL;
@@ -105,6 +110,7 @@ retry:	/* transaction retry */
 			rs->sr_text = "internal error";
 			goto return_results;
 		}
+		bdb_trans_backoff( ++num_retries );
 		ldap_pvt_thread_yield();
 	}
 
@@ -157,7 +163,8 @@ retry:	/* transaction retry */
 	}
 
 	e = ei->bei_e;
-	if ( rs->sr_err == DB_NOTFOUND ) {
+	/* FIXME: dn2entry() should return non-glue entry */
+	if (( rs->sr_err == DB_NOTFOUND ) || ( !manageDSAit && e && is_entry_glue( e ))) {
 		if( e != NULL ) {
 			rs->sr_matched = ch_strdup( e->e_dn );
 			rs->sr_ref = is_entry_referral( e )
@@ -167,8 +174,9 @@ retry:	/* transaction retry */
 			e = NULL;
 
 		} else {
-			rs->sr_ref = referral_rewrite( default_referral,
-				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
+			BerVarray deref = op->o_bd->syncinfo ?
+							  op->o_bd->syncinfo->provideruri_bv : default_referral;
+			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		rs->sr_err = LDAP_REFERRAL;
@@ -182,9 +190,15 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
+	if ( get_assert( op ) &&
+		( test_filter( op, e, get_assertion( op )) != LDAP_COMPARE_TRUE ))
+	{
+		rs->sr_err = LDAP_ASSERTION_FAILED;
+		goto return_results;
+	}
+
 	/* check write on old entry */
 	rs->sr_err = access_allowed( op, e, entry, NULL, ACL_WRITE, NULL );
-
 	if ( ! rs->sr_err ) {
 		switch( opinfo.boi_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -667,6 +681,7 @@ retry:	/* transaction retry */
 		new_ndn.bv_val, 0, 0 );
 #endif
 
+
 	/* Shortcut the search */
 	nei = neip ? neip : eip;
 	rs->sr_err = bdb_cache_find_ndn ( op, ltid, &new_ndn, &nei, locker );
@@ -751,6 +766,23 @@ retry:	/* transaction retry */
 		}
 	}
 
+	if( op->o_preread ) {
+		if( slap_read_controls( op, rs, e,
+			&slap_pre_read_bv, &ctrls[num_ctrls] ) )
+		{
+#ifdef NEW_LOGGING                                   
+			LDAP_LOG ( OPERATION, DETAIL1,
+				"<=- bdb_modrdn: post-read failed!\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE,        
+				"<=- bdb_modrdn: post-read failed!\n", 0, 0, 0 );
+#endif
+			goto return_results;
+		}                   
+		ctrls[++num_ctrls] = NULL;
+		op->o_preread = 0;  /* prevent redo on retry */
+	}
+
 	/* nested transaction */
 	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, 
 		bdb->bi_db_opflags );
@@ -832,13 +864,11 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
 		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 			bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_PREMODIFY );
 		}
 	}
-#endif
 
 	/* modify entry */
 	rs->sr_err = bdb_modify_internal( op, lt2, &mod[0], e,
@@ -864,7 +894,25 @@ retry:	/* transaction retry */
 		}
 		goto return_results;
 	}
-	
+
+	if( op->o_postread ) {
+		if( slap_read_controls( op, rs, e,
+			&slap_post_read_bv, &ctrls[num_ctrls] ) )
+		{
+#ifdef NEW_LOGGING                                   
+			LDAP_LOG ( OPERATION, DETAIL1,
+				"<=- bdb_modrdn: post-read failed!\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE,        
+				"<=- bdb_modrdn: post-read failed!\n", 0, 0, 0 );
+#endif
+			goto return_results;
+		}                   
+		ctrls[++num_ctrls] = NULL;
+		op->o_postread = 0;  /* prevent redo on retry */
+		/* FIXME: should read entry on the last retry */
+	}
+
 	/* id2entry index */
 	rs->sr_err = bdb_id2entry_update( op->o_bd, lt2, e );
 	if ( rs->sr_err != 0 ) {
@@ -892,6 +940,16 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+	if ( !op->o_bd->syncinfo ) {
+		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei, &ctxcsn_e, &ctxcsn_added, locker );
+		switch ( rc ) {
+		case BDB_CSN_ABORT :
+			goto return_results;
+		case BDB_CSN_RETRY :
+			goto retry;
+		}
+	}
+
 	if( op->o_noop ) {
 		if(( rs->sr_err=TXN_ABORT( ltid )) != 0 ) {
 			rs->sr_text = "txn_abort (no-op) failed";
@@ -909,8 +967,19 @@ retry:	/* transaction retry */
 		if(( rs->sr_err=TXN_PREPARE( ltid, gid )) != 0 ) {
 			rs->sr_text = "txn_prepare failed";
 		} else {
+			struct berval ctx_nrdn;
+
 			bdb_cache_modrdn( save, &op->orr_nnewrdn, e, neip,
 				bdb->bi_dbenv, locker, &lock );
+
+			if ( !op->o_bd->syncinfo ) {
+				if ( ctxcsn_added ) {
+					ctx_nrdn.bv_val = "cn=ldapsync";
+					ctx_nrdn.bv_len = strlen( ctx_nrdn.bv_val );
+					bdb_cache_add( bdb, suffix_ei, ctxcsn_e, &ctx_nrdn, locker );
+				}
+			}
+
 			if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
 				rs->sr_text = "txn_commit failed";
 			} else {
@@ -922,18 +991,7 @@ retry:	/* transaction retry */
 	ltid = NULL;
 	op->o_private = NULL;
  
-	if( rs->sr_err == LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS, 
-			"bdb_modrdn: rdn modified%s id=%08lx dn=\"%s\"\n", 
-			op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
-#else
-		Debug(LDAP_DEBUG_TRACE,
-			"bdb_modrdn: rdn modified%s id=%08lx dn=\"%s\"\n",
-			op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
-#endif
-		rs->sr_text = NULL;
-	} else {
+	if( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, RESULTS, "bdb_modrdn: %s : %s (%d)\n", 
 			rs->sr_text, db_strerror(rs->sr_err), rs->sr_err );
@@ -942,12 +1000,25 @@ retry:	/* transaction retry */
 			rs->sr_text, db_strerror(rs->sr_err), rs->sr_err );
 #endif
 		rs->sr_err = LDAP_OTHER;
+
+		goto return_results;
 	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG ( OPERATION, RESULTS, 
+		"bdb_modrdn: rdn modified%s id=%08lx dn=\"%s\"\n", 
+		op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
+#else
+	Debug(LDAP_DEBUG_TRACE,
+		"bdb_modrdn: rdn modified%s id=%08lx dn=\"%s\"\n",
+		op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
+#endif
+	rs->sr_text = NULL;
+	if( num_ctrls ) rs->sr_ctrls = ctrls;
 
 return_results:
 	send_ldap_result( op, rs );
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
 		/* Loop through in-scope entries for each psearch spec */
 		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
@@ -963,7 +1034,6 @@ return_results:
 			ch_free( pm_prev );
 		}
 	}
-#endif
 
 	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();
@@ -1008,15 +1078,13 @@ done:
 	}
 
 	if( ltid != NULL ) {
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
-                pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
-                while ( pm_list != NULL ) {
-                        LDAP_LIST_REMOVE ( pm_list, ps_link );
+		pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
+		while ( pm_list != NULL ) {
+			LDAP_LIST_REMOVE ( pm_list, ps_link );
 			pm_prev = pm_list;
-                        pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
+			pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
 			ch_free( pm_prev );
-                }
-#endif
+		}
 		TXN_ABORT( ltid );
 		op->o_private = NULL;
 	}

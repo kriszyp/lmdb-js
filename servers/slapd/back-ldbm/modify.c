@@ -116,6 +116,28 @@ int ldbm_modify_internal(
 			}
 			break;
 
+		case LDAP_MOD_INCREMENT:
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_LDBM, DETAIL1,
+				"ldbm_modify_internal:  increment\n",0,0,0);
+#else
+			Debug(LDAP_DEBUG_ARGS,
+				"ldbm_modify_internal:  increment\n",0,0,0);
+#endif
+
+			rc = modify_increment_values( e, mod, get_permissiveModify( op ),
+				text, textbuf, textlen );
+			if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( BACK_LDBM, INFO, 
+					"ldbm_modify_internal: failed %d (%s)\n", rc, *text, 0 );
+#else
+				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
+					rc, *text, 0);
+#endif
+			}
+			break;
+
 		case SLAP_MOD_SOFTADD:
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_LDBM, DETAIL1, 
@@ -187,16 +209,7 @@ int ldbm_modify_internal(
 	}
 
 	/* check that the entry still obeys the schema */
-#ifndef LDAP_CACHING
 	rc = entry_schema_check( op->o_bd, e, save_attrs, text, textbuf, textlen );
-#else /* LDAP_CACHING */
-	if ( !op->o_caching_on ) {
-		rc = entry_schema_check( op->o_bd, e, save_attrs,
-				text, textbuf, textlen );
-	} else {
-		rc = LDAP_SUCCESS; 
-	}
-#endif /* LDAP_CACHING */
 
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -299,7 +312,10 @@ ldbm_back_modify(
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
 
 	/* acquire and lock entry */
-	if ( (e = dn2entry_w( op->o_bd, &op->o_req_ndn, &matched )) == NULL ) {
+	e = dn2entry_w( op->o_bd, &op->o_req_ndn, &matched );
+
+	/* FIXME: dn2entry() should return non-glue entry */
+	if (( e == NULL ) || ( !manageDSAit && e && is_entry_glue( e ))) {
 		if ( matched != NULL ) {
 			rs->sr_matched = ch_strdup( matched->e_dn );
 			rs->sr_ref = is_entry_referral( matched )
@@ -307,8 +323,9 @@ ldbm_back_modify(
 				: NULL;
 			cache_return_entry_r( &li->li_cache, matched );
 		} else {
-			rs->sr_ref = referral_rewrite( default_referral,
-				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
+			BerVarray deref = op->o_bd->syncinfo ?
+							  op->o_bd->syncinfo->provideruri_bv : default_referral;
+			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
@@ -318,14 +335,10 @@ ldbm_back_modify(
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
 		free( (char *)rs->sr_matched );
 
-		return( -1 );
+		return rs->sr_err;
 	}
 
-#ifndef LDAP_CACHING
 	if ( !manageDSAit && is_entry_referral( e ) )
-#else /* LDAP_CACHING */
-	if ( !op->o_caching_on && !manageDSAit && is_entry_referral( e ) )
-#endif /* LDAP_CACHING */
 	{
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
@@ -364,6 +377,7 @@ ldbm_back_modify(
 	if ( id2entry_add( op->o_bd, e ) != 0 ) {
 		send_ldap_error( op, rs, LDAP_OTHER,
 			"id2entry failure" );
+		rs->sr_err = LDAP_OTHER;
 		goto error_return;
 	}
 
@@ -372,10 +386,11 @@ ldbm_back_modify(
 
 	cache_return_entry_w( &li->li_cache, e );
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
-	return( 0 );
+
+	return LDAP_SUCCESS;
 
 error_return:;
 	cache_return_entry_w( &li->li_cache, e );
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
-	return( -1 );
+	return rs->sr_err;
 }

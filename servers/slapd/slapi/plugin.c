@@ -637,8 +637,11 @@ doPluginFNs(
 		 * failure (confirmed with SLAPI specification).
 		 */
 		if ( !SLAPI_PLUGIN_IS_POST_FN( funcType ) && rc != 0 ) {
-			/* make sure errors are negative */
-			if ( rc > 0 ) rc = 0 - rc;
+			/*
+			 * Plugins generally return negative error codes
+			 * to indicate failure, although in the case of
+			 * bind plugins they may return SLAPI_BIND_xxx
+			 */
 			break;
 		}
 	}
@@ -741,6 +744,10 @@ slapi_init(void)
 
 	slapi_log_file = ch_strdup( LDAP_RUNDIR LDAP_DIRSEP "errors" );
 	if ( slapi_log_file == NULL ) {
+		return -1;
+	}
+
+	if ( slapi_x_init_object_extensions() != 0 ) {
 		return -1;
 	}
 

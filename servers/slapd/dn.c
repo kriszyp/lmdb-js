@@ -454,7 +454,11 @@ dnPretty(
 		}
 	}
 
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, ARGS, "<<< dnPretty: <%s>\n", out->bv_val, 0, 0 );
+#else
 	Debug( LDAP_DEBUG_TRACE, "<<< dnPretty: <%s>\n", out->bv_val, 0, 0 );
+#endif
 
 	return LDAP_SUCCESS;
 }

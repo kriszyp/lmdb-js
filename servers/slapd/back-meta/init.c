@@ -78,7 +78,7 @@
 #ifdef SLAPD_META_DYNAMIC
 
 int
-back_meta_LTX_init_module( int argc, char *argv[] ) {
+init_module( int argc, char *argv[] ) {
     BackendInfo bi;
 
     memset( &bi, '\0', sizeof( bi ) );
@@ -136,7 +136,6 @@ meta_back_db_init(
 {
 	struct metainfo	*li;
 
-#ifdef LDAP_CACHING
 	struct rewrite_info	*rwinfo;
 	cache_manager		*cm;
 	query_manager		*qm;
@@ -159,11 +158,11 @@ meta_back_db_init(
 		return -1;
 	}
 
-        cm->caching = 0; 
-        cm->qm = qm; 
+	cm->caching = 0; 
+	cm->qm = qm; 
 	cm->numattrsets = 0; 
 	cm->numtemplates = 0; 	
-        cm->num_entries_limit = 5;
+	cm->num_entries_limit = 5;
 	cm->cache_size = 0;
 	cm->thresh_hi = 500000;
 	cm->thresh_lo = 700000;
@@ -182,12 +181,11 @@ meta_back_db_init(
 	qm->qcfunc = query_containment; 
 	qm->crfunc = cache_replacement; 
 	qm->addfunc = add_query; 
-        ldap_pvt_thread_mutex_init(&qm->lru_mutex); 
+	ldap_pvt_thread_mutex_init(&qm->lru_mutex); 
         
-        ldap_pvt_thread_mutex_init(&cm->cache_mutex); 
-        ldap_pvt_thread_mutex_init(&cm->remove_mutex); 
+	ldap_pvt_thread_mutex_init(&cm->cache_mutex); 
+	ldap_pvt_thread_mutex_init(&cm->remove_mutex); 
 	ldap_pvt_thread_mutex_init( &cm->cc_mutex );
-#endif /* LDAP_CACHING */
 
 	li = ch_calloc( 1, sizeof( struct metainfo ) );
 	if ( li == NULL ) {
@@ -199,11 +197,9 @@ meta_back_db_init(
 	 * this may change
 	 */
 	li->defaulttarget = META_DEFAULT_TARGET_NONE;
-#ifdef LDAP_CACHING
 	li->cm = cm; 
 	li->rwinfo = rwinfo;
 	/* FIXME: what about qm ? */
-#endif /* LDAP_CACHING */
 
 	ldap_pvt_thread_mutex_init( &li->conn_mutex );
 	ldap_pvt_thread_mutex_init( &li->cache.mutex );

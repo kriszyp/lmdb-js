@@ -80,10 +80,8 @@ static int	fp_parse_line(int lineno, char *line);
 static char	*strtok_quote(char *line, char *sep);
 static int      load_ucdata(char *path);
 
-#ifdef LDAP_SYNCREPL
-static void     add_syncrepl LDAP_P(( Backend *, char **, int ));
+static int     add_syncrepl LDAP_P(( Backend *, char **, int ));
 static int      parse_syncrepl_line LDAP_P(( char **, int, syncinfo_t *));
-#endif
 
 int
 read_config( const char *fname, int depth )
@@ -94,7 +92,8 @@ read_config( const char *fname, int depth )
 	int	lineno, i;
 	int rc;
 	struct berval vals[2];
-
+	char *replicahost;
+	LDAPURLDesc *ludp;
 	static int lastmod = 1;
 	static BackendInfo *bi = NULL;
 	static BackendDB	*be = NULL;
@@ -910,7 +909,7 @@ read_config( const char *fname, int depth )
 					"subordinate keyword must appear inside a database "
 					"definition.\n", fname, lineno, 0 );
 #else
-				Debug( LDAP_DEBUG_ANY, "%s: line %d: suffix line "
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: subordinate keyword "
 					"must appear inside a database definition.\n",
 				    fname, lineno, 0 );
 #endif
@@ -919,6 +918,24 @@ read_config( const char *fname, int depth )
 			} else {
 				be->be_flags |= SLAP_BFLAG_GLUE_SUBORDINATE;
 				num_subordinates++;
+			}
+
+		/* add an overlay to this backend */
+		} else if ( strcasecmp( cargv[0], "overlay" ) == 0 ) {
+			if ( be == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, "%s: line %d: "
+					"overlay keyword must appear inside a database "
+					"definition.\n", fname, lineno, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: overlay keyword "
+					"must appear inside a database definition.\n",
+				    fname, lineno, 0 );
+#endif
+				return 1;
+
+			} else if ( overlay_config( be, cargv[1] )) {
+				return 1;
 			}
 
 		/* set database suffix */
@@ -1728,23 +1745,36 @@ read_config( const char *fname, int depth )
 				ldap_syslog += atoi( cargv[1] );
 			}
 
-#ifdef LDAP_SYNCREPL
 		/* list of sync replication information in this backend (slave only) */
 		} else if ( strcasecmp( cargv[0], "syncrepl" ) == 0 ) {
 
-			add_syncrepl( be, cargv, cargc );
+			if ( be == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, 
+					    "%s: line %d: syncrepl line must appear inside "
+					    "a database definition.\n", fname, lineno, 0);
+#else
+				Debug( LDAP_DEBUG_ANY,
+					    "%s: line %d: syncrepl line must appear inside "
+					    "a database definition.\n", fname, lineno, 0);
 #endif
+				return 1;
+			} else {
+				if ( add_syncrepl( be, cargv, cargc )) {
+					return 1;
+				}
+			}
 
 		/* list of replicas of the data in this backend (master only) */
 		} else if ( strcasecmp( cargv[0], "replica" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT, 
-					"%s: line %d: missing host in \"replica "
+					"%s: line %d: missing host or uri in \"replica "
 					" <host[:port]\" line\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing host in \"replica <host[:port]>\" line\n",
+	    "%s: line %d: missing host or uri in \"replica <host[:port]>\" line\n",
 				    fname, lineno, 0 );
 #endif
 
@@ -1771,16 +1801,62 @@ read_config( const char *fname, int depth )
 						nr = add_replica_info( be, 
 							cargv[i] + 5 );
 						break;
+					} else if (strncasecmp( cargv[i], "uri=", 4 )
+					    == 0 ) {
+					    if ( ldap_url_parse( cargv[ i ] + 4, &ludp )
+					    	!= LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+							LDAP_LOG( CONFIG, INFO, 
+					    		"%s: line %d: replica line contains invalid "
+					    		"uri definition.\n", fname, lineno, 0);
+#else
+							Debug( LDAP_DEBUG_ANY,
+					    		"%s: line %d: replica line contains invalid "
+					    		"uri definition.\n", fname, lineno, 0);
+#endif
+							return 1;
+						}
+						if (ludp->lud_host == NULL ) {
+#ifdef NEW_LOGGING
+							LDAP_LOG( CONFIG, INFO, 
+					    		"%s: line %d: replica line contains invalid "
+					    		"uri definition - missing hostname.\n", 
+					    		fname, lineno, 0);
+#else
+							Debug( LDAP_DEBUG_ANY,
+					    		"%s: line %d: replica line contains invalid "
+					    		"uri definition - missing hostname.\n", fname, lineno, 0);
+#endif
+							return 1;
+						}
+				    	replicahost = ch_malloc( strlen( cargv[ i ] ) );
+						if ( replicahost == NULL ) {
+#ifdef NEW_LOGGING
+							LDAP_LOG( CONFIG, ERR, 
+							"out of memory in read_config\n", 0, 0,0 );
+#else
+							Debug( LDAP_DEBUG_ANY, 
+							"out of memory in read_config\n", 0, 0, 0 );
+#endif
+							ldap_free_urldesc( ludp );				
+							exit( EXIT_FAILURE );
+						}
+						sprintf(replicahost, "%s:%d", 
+							ludp->lud_host, ludp->lud_port);
+						nr = add_replica_info( be, replicahost );
+						ldap_free_urldesc( ludp );				
+						ch_free(replicahost);
+						break;
 					}
 				}
 				if ( i == cargc ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG( CONFIG, INFO, 
-						"%s: line %d: missing host in \"replica\" line\n", 
+						"%s: line %d: missing host or uri in \"replica\" line\n", 
 						fname, lineno , 0 );
 #else
 					Debug( LDAP_DEBUG_ANY,
-		    "%s: line %d: missing host in \"replica\" line\n",
+		    "%s: line %d: missing host or uri in \"replica\" line\n",
 					    fname, lineno, 0 );
 #endif
 					return 1;
@@ -2315,7 +2391,7 @@ read_config( const char *fname, int depth )
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, INFO, 
 					"%s: line %d: plugin line must appear "
-					"inside a database definition.\n",
+					"insid a database definition.\n",
 					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: plugin "
@@ -2668,8 +2744,7 @@ config_destroy( )
 	acl_destroy( global_acl, NULL );
 }
 
-#ifdef LDAP_SYNCREPL
-static void
+static int
 add_syncrepl(
 	Backend *be,
 	char    **cargv,
@@ -2677,6 +2752,19 @@ add_syncrepl(
 )
 {
 	syncinfo_t *si;
+
+	if ( be->syncinfo ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( CONFIG, INFO, 
+			    "add_syncrepl: multiple syncrepl lines in a database "
+				"definition are yet to be supported.\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+			    "add_syncrepl: multiple syncrepl lines in a database "
+				"definition are yet to be supported.\n", 0, 0, 0 );
+#endif
+		return 1;
+	}
 
 	si = be->syncinfo = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
 
@@ -2686,8 +2774,33 @@ add_syncrepl(
 #else
 		Debug( LDAP_DEBUG_ANY, "out of memory in add_syncrepl\n", 0, 0, 0 );
 #endif
-		exit( EXIT_FAILURE );
+		return 1;
 	}
+
+	si->tls = TLS_OFF;
+	if ( be->be_rootndn.bv_val )
+		ber_dupbv( &si->updatedn, &be->be_rootndn );
+	si->bindmethod = LDAP_AUTH_SIMPLE;
+	si->schemachecking = 0;
+	si->filterstr = "(objectclass=*)";
+	if ( be->be_suffix && be->be_suffix[0].bv_val )
+		si->base = ch_strdup( be->be_suffix[0].bv_val );
+	si->scope = LDAP_SCOPE_SUBTREE;
+	si->attrsonly = 0;
+	si->attrs = (char **) ch_calloc( 1, sizeof( char * ));
+	si->attrs[0] = NULL;
+	si->type = LDAP_SYNC_REFRESH_ONLY;
+	si->interval = 86400;
+	si->syncCookie = NULL;
+	si->manageDSAit = 0;
+	si->tlimit = -1;
+	si->slimit = -1;
+	si->syncUUID = NULL;
+	si->syncUUID_ndn = NULL;
+	si->sync_mode = LDAP_SYNC_STATE_MODE;
+
+	si->presentlist = NULL;
+	LDAP_LIST_INIT( &si->nonpresentlist );
 
 	if ( parse_syncrepl_line( cargv, cargc, si ) < 0 ) {
 		/* Something bad happened - back out */
@@ -2698,37 +2811,65 @@ add_syncrepl(
 #endif
 		free( si );
 		be->syncinfo = NULL;
+		return 1;
 	} else {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( CONFIG, RESULTS,
-			"add_syncrepl: Config: ** successfully added syncrepl \"%s%d\"\n",
-			si->mastername == NULL ? "(null)" : si->mastername,
-			si->masterport, 0 );
+			"add_syncrepl: Config: ** successfully added syncrepl \"%s\"\n",
+			si->provideruri == NULL ? "(null)" : si->provideruri, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_CONFIG,
-			"Config: ** successfully added syncrepl \"%s:%d\"\n",
-			si->mastername == NULL ? "(null)" : si->mastername,
-			si->masterport, 0 );
+			"Config: ** successfully added syncrepl \"%s\"\n",
+			si->provideruri == NULL ? "(null)" : si->provideruri, 0, 0 );
 #endif
+		if ( !si->schemachecking ) {
+			be->be_flags |= SLAP_BFLAG_NO_SCHEMA_CHECK;
+		}
 		si->be = be;
+		return 0;
 	}
 }
 
-#define GOT_ID			0x0001
-#define GOT_HOST		0x0002
-#define GOT_DN			0x0004
-#define GOT_METHOD		0x0008
-#define GOT_MECH		0x0010
-#define GOT_FILTER		0x0020
-#define GOT_SEARCHBASE	0x0040
-#define GOT_SCOPE		0x0080
-#define GOT_ATTRS		0x0100
-#define GOT_TYPE		0x0200
-#define GOT_INTERVAL	0x0400
-#define GOT_LASTMOD		0x0800
-#define GOT_UPDATEDN	0x1000
+#define IDSTR			"id"
+#define PROVIDERSTR		"provider"
+#define SUFFIXSTR		"suffix"
+#define UPDATEDNSTR		"updatedn"
+#define BINDMETHSTR		"bindmethod"
+#define SIMPLESTR		"simple"
+#define SASLSTR			"sasl"
+#define BINDDNSTR		"binddn"
+#define CREDSTR			"credentials"
+#define OLDAUTHCSTR		"bindprincipal"
+#define AUTHCSTR		"authcID"
+#define AUTHZSTR		"authzID"
+#define SRVTABSTR		"srvtab"
+#define SASLMECHSTR		"saslmech"
+#define REALMSTR		"realm"
+#define SECPROPSSTR		"secprops"
+#define STARTTLSSTR		"starttls"
+#define CRITICALSTR		"critical"
 
-#define GOT_ALL			0x1FFF
+#define SCHEMASTR		"schemachecking"
+#define FILTERSTR		"filter"
+#define SEARCHBASESTR	"searchbase"
+#define SCOPESTR		"scope"
+#define ATTRSSTR		"attrs"
+#define ATTRSONLYSTR	"attrsonly"
+#define TYPESTR			"type"
+#define INTERVALSTR		"interval"
+#define COOKIESTR		"cookie"
+#define LASTMODSTR		"lastmod"
+#define LMREQSTR		"req"
+#define LMGENSTR		"gen"
+#define LMNOSTR			"no"
+#define MANAGEDSAITSTR	"manageDSAit"
+#define SLIMITSTR		"sizelimit"
+#define TLIMITSTR		"timelimit"
+
+#define GOT_ID			0x0001
+#define GOT_PROVIDER	0x0002
+#define GOT_METHOD		0x0004
+#define GOT_ALL			0x0007
 
 static int
 parse_syncrepl_line(
@@ -2748,39 +2889,20 @@ parse_syncrepl_line(
 			val = cargv[ i ] + sizeof( IDSTR );
 			si->id = atoi( val );
 			gots |= GOT_ID;
-		} else if ( !strncasecmp( cargv[ i ], MASTERSTR,
-					sizeof( MASTERSTR ) - 1 )) {
-			val = cargv[ i ] + sizeof( MASTERSTR );
-			si->masteruri = ch_strdup( val );
-			if (( hp = strchr( val, ':' )) != NULL ) {
-				if ( *( hp + 1 ) == '/' ) {
-					if ( *( hp + 2 ) == '/' ) {
-						val = hp + 3;
-					}
-					if (( hp = strchr( hp+1, ':' )) != NULL ) {
-						*hp = '\0';
-						hp++;
-						si->masterport = atoi( hp );
-					}
-				} else {
-					*hp = '\0';
-					hp++;
-					si->masterport = atoi( hp );
-				}
-			}
-			if ( si->masterport <= 0 ) {
-				si->masterport = 0;
-			}
-			si->mastername = ch_strdup( val );
-			si->master_bv = (BerVarray) ch_calloc( 2, sizeof (struct berval ));
-			ber_str2bv( si->masteruri, strlen(si->masteruri), 0,
-							&si->master_bv[0] );
-			si->master_bv[1].bv_len = 0;
-			si->master_bv[1].bv_val = NULL;
-			gots |= GOT_HOST;
-		} else if ( !strncasecmp( cargv[ i ], TLSSTR, sizeof( TLSSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( TLSSTR );
-			if( !strcasecmp( val, TLSCRITICALSTR ) ) {
+		} else if ( !strncasecmp( cargv[ i ], PROVIDERSTR,
+					sizeof( PROVIDERSTR ) - 1 )) {
+			val = cargv[ i ] + sizeof( PROVIDERSTR );
+			si->provideruri = ch_strdup( val );
+			si->provideruri_bv = (BerVarray) ch_calloc( 2, sizeof( struct berval ));
+			ber_str2bv( si->provideruri, strlen( si->provideruri ), 0, &si->provideruri_bv[0] );
+			si->provideruri_bv[1].bv_len = 0;
+			si->provideruri_bv[1].bv_val = NULL;
+			gots |= GOT_PROVIDER;
+		} else if ( !strncasecmp( cargv[ i ], STARTTLSSTR,
+			sizeof(STARTTLSSTR) - 1 ) )
+		{
+			val = cargv[ i ] + sizeof( STARTTLSSTR );
+			if( !strcasecmp( val, CRITICALSTR ) ) {
 				si->tls = TLS_CRITICAL;
 			} else {
 				si->tls = TLS_ON;
@@ -2795,12 +2917,6 @@ parse_syncrepl_line(
 			dnNormalize( 0, NULL, NULL, &updatedn, &si->updatedn, NULL );
 			ch_free( str );
 			ch_free( updatedn.bv_val );
-			gots |= GOT_UPDATEDN;
-		} else if ( !strncasecmp( cargv[ i ],
-				BINDDNSTR, sizeof( BINDDNSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( BINDDNSTR );
-			si->binddn = ch_strdup( val );
-			gots |= GOT_DN;
 		} else if ( !strncasecmp( cargv[ i ], BINDMETHSTR,
 				sizeof( BINDMETHSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( BINDMETHSTR );
@@ -2813,30 +2929,18 @@ parse_syncrepl_line(
 			} else {
 				si->bindmethod = -1;
 			}
-		} else if ( !strncasecmp( cargv[ i ], LASTMODSTR,
-				sizeof( LASTMODSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( LASTMODSTR );
-			if ( !strcasecmp( val, LMREQSTR )) {
-				si->lastmod = LASTMOD_REQ;
-				gots |= GOT_LASTMOD;
-			} else if ( !strcasecmp( val, LMGENSTR )) {
-				si->lastmod = LASTMOD_GEN;
-				gots |= GOT_LASTMOD;
-			} else if ( !strcasecmp( val, LMNOSTR )) {
-				si->lastmod = LASTMOD_NO;
-				gots |= GOT_LASTMOD;
-			} else {
-				si->lastmod = -1;
-			}
 		} else if ( !strncasecmp( cargv[ i ],
-				SASLMECHSTR, sizeof( SASLMECHSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( SASLMECHSTR );
-			gots |= GOT_MECH;
-			si->saslmech = ch_strdup( val );
+				BINDDNSTR, sizeof( BINDDNSTR ) - 1 ) ) {
+			val = cargv[ i ] + sizeof( BINDDNSTR );
+			si->binddn = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				CREDSTR, sizeof( CREDSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( CREDSTR );
 			si->passwd = ch_strdup( val );
+		} else if ( !strncasecmp( cargv[ i ],
+				SASLMECHSTR, sizeof( SASLMECHSTR ) - 1 ) ) {
+			val = cargv[ i ] + sizeof( SASLMECHSTR );
+			si->saslmech = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				SECPROPSSTR, sizeof( SECPROPSSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( SECPROPSSTR );
@@ -2866,19 +2970,26 @@ parse_syncrepl_line(
 			}
 			si->srvtab = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
+				SCHEMASTR, sizeof( SCHEMASTR ) - 1 ) ) {
+			val = cargv[ i ] + sizeof( SCHEMASTR );
+			if ( !strncasecmp( val, "on", sizeof( "on" ) - 1 )) {
+				si->schemachecking = 1;
+			} else if ( !strncasecmp( val, "off", sizeof( "off" ) - 1 ) ) {
+				si->schemachecking = 0;
+			} else {
+				si->schemachecking = 1;
+			}
+		} else if ( !strncasecmp( cargv[ i ],
 				FILTERSTR, sizeof( FILTERSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( FILTERSTR );
-			gots |= GOT_FILTER;
 			si->filterstr = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				SEARCHBASESTR, sizeof( SEARCHBASESTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( SEARCHBASESTR );
-			gots |= GOT_SEARCHBASE;
 			si->base = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				SCOPESTR, sizeof( SCOPESTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( SCOPESTR );
-			gots |= GOT_SCOPE;
 			if ( !strncasecmp( val, "base", sizeof( "base" ) - 1 )) {
 				si->scope = LDAP_SCOPE_BASE;
 			} else if ( !strncasecmp( val, "one", sizeof( "one" ) - 1 )) {
@@ -2896,17 +3007,13 @@ parse_syncrepl_line(
 		} else if ( !strncasecmp( cargv[ i ],
 				ATTRSSTR, sizeof( ATTRSSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( ATTRSSTR );
-			si->attrs = NULL;
-			si->attrs = str2clist( si->attrs, val, "," );
-			gots |= GOT_ATTRS;
+			str2clist( &si->attrs, val, "," );
 		} else if ( !strncasecmp( cargv[ i ],
 				TYPESTR, sizeof( TYPESTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( TYPESTR );
-			gots |= GOT_TYPE;
 			if ( !strncasecmp( val, "refreshOnly", sizeof( "refreshOnly" ) - 1 )) {
 				si->type = LDAP_SYNC_REFRESH_ONLY;
 			} else if ( !strncasecmp( val, "refreshAndPersist", sizeof( "refreshAndPersist" ) - 1 )) {
-				gots |= GOT_INTERVAL;
 				si->type = LDAP_SYNC_REFRESH_AND_PERSIST;
 				si->interval = 0;
 			} else {
@@ -2917,11 +3024,30 @@ parse_syncrepl_line(
 		} else if ( !strncasecmp( cargv[ i ],
 				INTERVALSTR, sizeof( INTERVALSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( INTERVALSTR );
-			gots |= GOT_INTERVAL;
-			if ( gots & GOT_TYPE && si->type == LDAP_SYNC_REFRESH_AND_PERSIST )
+			if ( si->type == LDAP_SYNC_REFRESH_AND_PERSIST ) {
 				si->interval = 0;
-			else
-				si->interval = atoi( val );
+			} else {
+				char *dstr;
+				char *hstr;
+				char *mstr;
+				dstr = val;
+				hstr = strchr( dstr, ':' );
+				if ( hstr == NULL ) {
+					fprintf( stderr, "Error: parse_syncrepl_line: "
+									 "invalid interval \"%s\"\n", val );
+					return 1;
+				}
+				*hstr++ = '\0';
+				mstr = strchr( hstr, ':' );
+				if ( mstr == NULL ) {
+					fprintf( stderr, "Error: parse_syncrepl_line: "
+									 "invalid interval \"%s\"\n", val );
+					return 1;
+				}
+				*mstr++ = '\0';
+				si->interval = (( atoi( dstr ) * 24 + atoi( hstr )) * 60
+								+ atoi( mstr )) * 60;
+			}
 			if ( si->interval < 0 ) {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
 								 "invalid interval \"%ld\"\n",
@@ -2932,21 +3058,23 @@ parse_syncrepl_line(
 				COOKIESTR, sizeof( COOKIESTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( COOKIESTR );
 			si->syncCookie = ber_str2bv( val, strlen( val ), 1, NULL );
+		} else if ( !strncasecmp( cargv[ i ],
+				MANAGEDSAITSTR, sizeof( MANAGEDSAITSTR ) - 1 ) ) {
+			val = cargv[ i ] + sizeof( COOKIESTR );
+			si->manageDSAit = atoi( val );
+		} else if ( !strncasecmp( cargv[ i ],
+				SLIMITSTR, sizeof( SLIMITSTR ) - 1 ) ) {
+			val = cargv[ i ] + sizeof( SLIMITSTR );
+			si->slimit = atoi( val );
+		} else if ( !strncasecmp( cargv[ i ],
+				TLIMITSTR, sizeof( TLIMITSTR ) - 1 ) ) {
+			val = cargv[ i ] + sizeof( TLIMITSTR );
+			si->tlimit = atoi( val );
 		} else {
 			fprintf( stderr, "Error: parse_syncrepl_line: "
 							 "unknown keyword \"%s\"\n", cargv[ i ] );
 		}
 	}
-
-	if ( si->bindmethod == LDAP_AUTH_SASL) {
-		if ((gots & GOT_MECH) == 0) {
-			fprintf( stderr, "Error: \"syncrepl\" line needs SASLmech flag " 
-			                 "in slapd config file\n" );
-			return -1;
-		}
-	}
-
-	gots |= GOT_MECH;
 
 	if ( gots != GOT_ALL ) {
 		fprintf( stderr, "Error: Malformed \"syncrepl\" line in slapd config file"
@@ -2956,4 +3084,3 @@ parse_syncrepl_line(
 
 	return 0;
 }
-#endif /* LDAP_SYNCREPL */

@@ -30,8 +30,7 @@ shell_back_search(
 		return( -1 );
 	}
 
-	if ( (op->o_private = (void *) forkandexec( si->si_search, &rfp, &wfp ))
-	    == (void *) -1 ) {
+	if ( forkandexec( si->si_search, &rfp, &wfp ) == (pid_t)-1 ) {
 		send_ldap_error( op, rs, LDAP_OTHER,
 		    "could not fork/exec" );
 		return( -1 );

@@ -170,26 +170,17 @@ Slapi_Entry *
 slapi_entry_dup( Slapi_Entry *e ) 
 {
 #ifdef LDAP_SLAPI
-	char		*tmp = NULL;
-	Slapi_Entry	*tmpEnt;
-	int		len = 0;
-	
-	tmp = slapi_entry2str( e, &len );
-	if ( tmp == NULL ) {
-		return (Slapi_Entry *)NULL;
-	}
+	Slapi_Entry *ret;
 
-	tmpEnt = (Slapi_Entry *)str2entry( tmp );
-	if ( tmpEnt == NULL ) { 
-		slapi_ch_free( (void **)&tmp );
-		return (Slapi_Entry *)NULL;
-	}
-	
-	if (tmp != NULL) {
-		slapi_ch_free( (void **)&tmp );
-	}
+	ret = (Slapi_Entry *)slapi_ch_calloc( 1, sizeof(*ret) );
 
-	return tmpEnt;
+	ret->e_id = e->e_id;
+	ber_dupbv( &ret->e_name, &e->e_name );
+	ber_dupbv( &ret->e_nname, &e->e_nname );
+	ret->e_attrs = attrs_dup( e->e_attrs );
+	ret->e_ocflags = e->e_ocflags;
+	ber_dupbv( &ret->e_bv, &e->e_bv );
+	ret->e_private = NULL;
 #else /* LDAP_SLAPI */
 	return NULL;
 #endif /* LDAP_SLAPI */
@@ -2264,6 +2255,16 @@ static int initConnectionPB( Slapi_PBlock *pb, Connection *conn )
 			return rc;
 	}
 
+	rc = slapi_pblock_set(pb, SLAPI_X_CONN_SSF, (void *)conn->c_ssf);
+	if ( rc != LDAP_SUCCESS )
+		return rc;
+
+	rc = slapi_pblock_set(pb, SLAPI_X_CONN_SASL_CONTEXT,
+		( conn->c_sasl_authctx != NULL ? conn->c_sasl_authctx :
+						 conn->c_sasl_sockctx ) );
+	if ( rc != LDAP_SUCCESS )
+		return rc;
+
 	return rc;
 }
 #endif /* LDAP_SLAPI */
@@ -3083,14 +3084,14 @@ void slapi_valueset_set_valueset(Slapi_ValueSet *vs1, const Slapi_ValueSet *vs2)
 int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr,
 	struct berval *val, int access )
 {
-#ifdef LDAPI_SLAPI
+#ifdef LDAP_SLAPI
 	Backend *be;
 	Connection *conn;
 	Operation *op;
 	int ret;
 	slap_access_t slap_access;
 	AttributeDescription *ad = NULL;
-	char *text;
+	const char *text;
 
 	ret = slap_str2ad( attr, &ad, &text );
 	if ( ret != LDAP_SUCCESS ) {
@@ -3130,7 +3131,7 @@ int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr,
 		return LDAP_PARAM_ERROR;
 	}
 
-	ret = access_allowed( be, conn, op, e, desc, val, slap_access, NULL );
+	ret = access_allowed( op, e, ad, val, slap_access, NULL );
 
 	return ret ? LDAP_SUCCESS : LDAP_INSUFFICIENT_ACCESS;
 #else
@@ -3142,9 +3143,8 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 {
 #ifdef LDAP_SLAPI
 	Operation *op;
-	int ret;
-	Modifications *ml;
-        Modifications *next;
+	int rc = LDAP_SUCCESS;
+	Modifications *ml, *mp;
 
 	if ( slapi_pblock_get( pb, SLAPI_OPERATION, (void *)&op ) != 0 ) {
 		return LDAP_PARAM_ERROR;
@@ -3155,18 +3155,27 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 		return LDAP_OTHER;
 	}
 
-	ret = acl_check_modlist( op, e, ml );
+	for ( mp = ml; mp != NULL; mp = mp->sml_next ) {
+		rc = slap_bv2ad( &mp->sml_type, &mp->sml_desc, (const char **)errbuf );
+		if ( rc != LDAP_SUCCESS ) {
+			break;
+		}
+	}
+
+	if ( rc == LDAP_SUCCESS ) {
+		rc = acl_check_modlist( op, e, ml ) ? LDAP_SUCCESS : LDAP_INSUFFICIENT_ACCESS;
+	}
 
 	/* Careful when freeing the modlist because it has pointers into the mods array. */
-	for ( ; ml != NULL; ml = next ) {
-		next = ml->sml_next;
+	for ( ; ml != NULL; ml = mp ) {
+		mp = ml->sml_next;
 
 		/* just free the containing array */
 		slapi_ch_free( (void **)&ml->sml_bvalues );
 		slapi_ch_free( (void **)&ml );
 	}
 
-	return ret ? LDAP_SUCCESS : LDAP_INSUFFICIENT_ACCESS;
+	return rc;
 #else
 	return LDAP_UNWILLING_TO_PERFORM;
 #endif
@@ -3272,7 +3281,7 @@ Modifications *slapi_x_ldapmods2modifications (LDAPMod **mods)
 		}
 
 		if ( i == 0 ) {
-			 mod->sml_bvalues = NULL;
+			mod->sml_bvalues = NULL;
 		} else {
 			mod->sml_bvalues = (BerVarray) ch_malloc( (i + 1) * sizeof(struct berval) );
 
@@ -3714,5 +3723,68 @@ int slapi_notify_condvar( Slapi_CondVar *cvar, int notify_all )
 #else
 	return -1;
 #endif
+}
+
+int slapi_x_access_allowed( Operation *op,
+	Entry *entry,
+	AttributeDescription *desc,
+	struct berval *val,
+	slap_access_t access,
+	AccessControlState *state )
+{
+#ifdef LDAP_SLAPI
+	int rc, slap_access = 0;
+	slapi_acl_callback_t *pGetPlugin, *tmpPlugin;
+
+	if ( op->o_pb == NULL ) {
+		/* internal operation */
+		return 1;
+	}
+
+	slapi_x_pblock_set_operation( op->o_pb, op );
+
+	switch ( access ) {
+	case ACL_WRITE:
+		slap_access |= SLAPI_ACL_ADD | SLAPI_ACL_DELETE | SLAPI_ACL_WRITE;
+		break;
+	case ACL_READ:
+		slap_access |= SLAPI_ACL_READ;
+		break;
+	case ACL_SEARCH:
+		slap_access |= SLAPI_ACL_SEARCH;
+		break;
+	case ACL_COMPARE:
+                slap_access = ACL_COMPARE;
+		break;
+	default:
+		break;
+        }
+
+	rc = getAllPluginFuncs( op->o_bd, SLAPI_PLUGIN_ACL_ALLOW_ACCESS, (SLAPI_FUNC **)&tmpPlugin );
+	if ( rc != LDAP_SUCCESS || tmpPlugin == NULL ) {
+		/* nothing to do; allowed access */
+		return 1;
+	}
+
+	rc = 1; /* default allow policy */
+
+	for ( pGetPlugin = tmpPlugin; *pGetPlugin != NULL; pGetPlugin++ ) {
+		/*
+		 * 0	access denied
+		 * 1	access granted
+		 */
+		rc = (*pGetPlugin)( op->o_pb, entry, desc->ad_cname.bv_val,
+					val, slap_access, (void *)state );
+		if ( rc == 0 ) {
+			break;
+		}
+	}
+
+	slapi_ch_free( (void **)&tmpPlugin );
+
+	return rc;
+#else
+	return 1;
+#endif /* LDAP_SLAPI */
 }
 

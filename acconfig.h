@@ -95,9 +95,6 @@
 #if defined(LDAP_DEVEL) && !defined(LDAP_TEST)
 #define LDAP_TEST
 #endif
-#if defined(LDAP_TEST) && !defined(LDAP_DEBUG)
-#define LDAP_DEBUG
-#endif
 #endif
 
 #ifdef HAVE_EBCDIC 
