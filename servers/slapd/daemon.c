@@ -36,6 +36,7 @@ int deny_severity = LOG_NOTICE;
 int		dtblsize;
 Connection	*c;
 
+static volatile sig_atomic_t slapd_shutdown = 0;
 static void	set_shutdown(int sig);
 static void	do_nothing  (int sig);
 

@@ -172,6 +172,12 @@
 /* define this to use SLAPD shell backend */
 #undef SLAPD_SHELL
 
+/* define this to be empty if your compiler doesn't support volatile */
+#undef volatile
+
+/* define this if sig_atomic_t isn't defined in signal.h */
+#undef sig_atomic_t
+
 /* These are defined in ldap_features.h */
 /*
 	LDAP_API_FEATURE_X_OPENLDAP_REENTRANT

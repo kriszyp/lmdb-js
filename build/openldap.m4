@@ -394,3 +394,32 @@ if test $ol_cv_dcl_sys_errlist = no ; then
 	AC_MSG_RESULT($ol_cv_have_sys_errlist)
 fi
 ])dnl
+
+dnl ====================================================================
+dnl Early MIPS compilers (used in Ultrix 4.2) don't like
+dnl "int x; int *volatile a = &x; *a = 0;"
+dnl 	-- borrowed from PDKSH
+AC_DEFUN(OL_C_VOLATILE,
+ [AC_CACHE_CHECK(if compiler understands volatile, ol_cv_c_volatile,
+    [AC_TRY_COMPILE([int x, y, z;],
+      [volatile int a; int * volatile b = x ? &y : &z;
+      /* Older MIPS compilers (eg., in Ultrix 4.2) don't like *b = 0 */
+      *b = 0;], ol_cv_c_volatile=yes, ol_cv_c_volatile=no)])
+  if test $ol_cv_c_volatile = yes; then
+    : 
+  else
+    AC_DEFINE(volatile, )
+  fi
+ ])dnl
+
+dnl ====================================================================
+dnl Define sig_atomic_t if not defined in signal.h
+AC_DEFUN(OL_TYPE_SIG_ATOMIC_T,
+ [AC_CACHE_CHECK(for sig_atomic_t, ol_cv_type_sig_atomic_t,
+    [AC_TRY_COMPILE([#include <signal.h>], [sig_atomic_t atomic;],
+		ol_cv_type_sig_atomic_t=yes, ol_cv_type_sig_atomic_t=no)])
+  if test $ol_cv_type_sig_atomic_t = no; then
+    AC_DEFINE(sig_atomic_t, int)
+  fi
+ ])dnl
+

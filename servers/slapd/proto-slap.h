@@ -234,7 +234,6 @@ extern int		global_schemacheck;
 extern int		lber_debug;
 extern int		ldap_syslog;
 extern int		num_conns;
-extern int		slapd_shutdown;
 extern long		num_bytes_sent;
 extern long		num_entries_sent;
 extern long		ops_completed;

@@ -24,7 +24,6 @@ int		ldap_syslog;
 #endif
 int		ldap_syslog_level = LOG_DEBUG;
 int		udp;
-int		slapd_shutdown;
 char		*default_referral;
 char		*configfile;
 time_t		starttime;

@@ -29,7 +29,7 @@ typedef struct globals {
     /* How long the master slurpd sleeps when there's no work to do */
     int	no_work_interval;
     /* We keep running until slurpd_shutdown is nonzero.  HUP signal set this */
-    int	slurpd_shutdown;
+    sig_atomic_t slurpd_shutdown;
     /* Number of replicas we're servicing */
     int num_replicas;
     /* Array of pointers to replica info */
