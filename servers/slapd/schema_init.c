@@ -3931,6 +3931,7 @@ check_time_syntax (struct berval *val,
 	return LDAP_SUCCESS;
 }
 
+#ifdef SUPPORT_OBSOLETE_UTC_SYNTAX
 static int
 utcTimeNormalize(
 	Syntax *syntax,
@@ -3956,7 +3957,9 @@ utcTimeNormalize(
 
 	return LDAP_SUCCESS;
 }
+#endif
 
+#ifdef SUPPORT_OBSOLETE_UTC_SYNTAX
 static int
 utcTimeValidate(
 	Syntax *syntax,
@@ -3966,6 +3969,7 @@ utcTimeValidate(
 
 	return check_time_syntax(in, 1, parts);
 }
+#endif
 
 static int
 generalizedTimeValidate(
@@ -4210,8 +4214,10 @@ static struct syntax_defs_rec {
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'Telex Number' )",
 		0, printablesStringValidate, IA5StringNormalize, NULL},
+#ifdef SUPPORT_OBSOLETE_UTC_SYNTAX
 	{"( 1.3.6.1.4.1.1466.115.121.1.53 DESC 'UTC Time' )",
 		0, utcTimeValidate, utcTimeNormalize, NULL},
+#endif
 	{"( 1.3.6.1.4.1.1466.115.121.1.54 DESC 'LDAP Syntax Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.55 DESC 'Modify Rights' )",

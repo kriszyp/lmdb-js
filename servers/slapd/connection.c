@@ -1349,6 +1349,8 @@ connection_input(
 
 	op = slap_op_alloc( ber, msgid, tag, conn->c_n_ops_received++ );
 
+	op->o_pagedresults_state = conn->c_pagedresults_state;
+
 #ifdef LDAP_CONNECTIONLESS
 	op->o_peeraddr = peeraddr;
 	if (cdn) {

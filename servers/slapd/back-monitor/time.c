@@ -53,8 +53,12 @@ monitor_subsys_time_init(
 	
 	Entry			*e, *e_tmp, *e_time;
 	struct monitorentrypriv	*mp;
-	char			buf[1024], ztmbuf[20], ltmbuf[20];
-	struct tm		*ztm, *ltm;
+	char			buf[1024], ztmbuf[20];
+	struct tm		*ztm;
+#ifdef HACK_LOCAL_TIME
+	struct tm		*ltm;
+	char			ltmbuf[20];
+#endif
 
 	/*
 	 * Note: ltmbuf, ltm are used only if HACK_LOCAL_TIME is defined
@@ -227,8 +231,12 @@ monitor_subsys_time_update(
 	Entry                   *e
 )
 {
-	char		ztmbuf[20], ltmbuf[20];
-	struct tm	*ztm, *ltm;
+	char		ztmbuf[20];
+	struct tm	*ztm;
+#ifdef HACK_LOCAL_TIME
+	char		ltmbuf[20];
+	struct tm	*
+#endif
 	time_t		currenttime;
 	Attribute	*a;
 	static AttributeDescription	*ad_local = NULL;

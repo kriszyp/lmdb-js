@@ -1414,27 +1414,43 @@ typedef struct slap_callback {
 } slap_callback;
 
 /*
+ * Paged Results state
+ */
+typedef unsigned long PagedResultsCookie;
+typedef struct slap_paged_state {
+	Backend *ps_be;
+	PagedResultsCookie ps_cookie;
+	ID ps_id;
+} PagedResultsState;
+
+/*
  * represents an operation pending from an ldap client
  */
 typedef struct slap_op {
-	ber_int_t	o_opid;		/* id of this operation		  */
-	ber_int_t	o_msgid;	/* msgid of the request		  */
+	unsigned long o_opid;	/* id of this operation */
+	unsigned long o_connid; /* id of conn initiating this op */
+
+	ber_int_t	o_msgid;	/* msgid of the request */
 	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
-	ber_tag_t	o_tag;		/* tag of the request		  */
-	time_t		o_time;		/* time op was initiated	  */
-	unsigned long	o_connid; /* id of conn initiating this op  */
-	ldap_pvt_thread_t	o_tid;	/* thread handling this op	  */
+	ber_tag_t	o_tag;		/* tag of the request */
+	time_t		o_time;		/* time op was initiated */
+
+	ldap_pvt_thread_t	o_tid;	/* thread handling this op */
+
+	ldap_pvt_thread_mutex_t	o_abandonmutex; /* protects o_abandon */
+	char o_abandon;	/* abandon flag */
 
 #define SLAP_NO_CONTROL 0
 #define SLAP_NONCRITICAL_CONTROL 1
 #define SLAP_CRITICAL_CONTROL 2
 	char o_managedsait;
+	char o_noop;
 	char o_subentries;
 	char o_subentries_visibility;
-	char o_noop;
 
-	char o_abandon;	/* abandon flag */
-	ldap_pvt_thread_mutex_t	o_abandonmutex; /* protects o_abandon  */
+	char o_pagedresults;
+	ber_int_t o_pagedresults_size;
+	PagedResultsState o_pagedresults_state;
 
 #ifdef LDAP_CONNECTIONLESS
 	Sockaddr	o_peeraddr;	/* UDP peer address		  */
@@ -1522,6 +1538,8 @@ typedef struct slap_conn {
 	int		c_sasl_layers;	 /* true if we need to install SASL i/o handlers */
 	void	*c_sasl_context;	/* SASL session context */
 	void	*c_sasl_extra;		/* SASL session extra stuff */
+
+	PagedResultsState c_pagedresults_state; /* paged result state */
 
 	long	c_n_ops_received;	/* num of ops received (next op_id) */
 	long	c_n_ops_executing;	/* num of ops currently executing */

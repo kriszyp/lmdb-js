@@ -53,9 +53,6 @@ LDAP_SLAPD_F (int) slap_bv2ad LDAP_P((
 	AttributeDescription **ad,
 	const char **text ));
 
-LDAP_SLAPD_F (AttributeDescription *) ad_dup LDAP_P((
-	AttributeDescription *desc ));
-
 LDAP_SLAPD_F (void) ad_destroy LDAP_P(( AttributeDescription * ));
 
 #define ad_cmp(l,r)	(((l)->ad_cname.bv_len < (r)->ad_cname.bv_len) \

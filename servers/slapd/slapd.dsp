@@ -102,7 +102,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 hs_regexd.lib libdbs.lib wsock32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 libdb32.lib hs_regex.lib libsasl.lib rpcrt4.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\SDebug"
+# ADD LINK32 rpcrt4.lib libdb32.lib hs_regex.lib libsasl.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\SDebug"
 
 !ELSEIF  "$(CFG)" == "slapd - Win32 Single Release"
 
@@ -127,7 +127,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 hs_regex.lib libdb.lib wsock32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 libdb.lib libdb32.lib hs_regex.lib libsasl.lib rpcrt4.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\SRelease"
+# ADD LINK32 libdb.lib libdb32.lib rpcrt4.lib hs_regex.lib libsasl.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\SRelease"
 
 !ENDIF 
 

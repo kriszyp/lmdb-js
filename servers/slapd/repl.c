@@ -353,7 +353,7 @@ print_vals(
 	struct berval *type,
 	struct berval *bv )
 {
-	int i, len;
+	ber_len_t i, len;
 	char	*buf, *bufp;
 
 	for ( i = 0, len = 0; bv && bv[i].bv_val; i++ ) {
