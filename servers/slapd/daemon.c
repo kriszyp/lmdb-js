@@ -22,10 +22,13 @@
 
 #ifdef HAVE_TCPD
 #include <tcpd.h>
+#define SLAP_STRING_UNKNOWN	STRING_UNKNOWN
 
 int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
-#endif /* TCP Wrappers */
+#else /* ! TCP Wrappers */
+#define SLAP_STRING_UNKNOWN	"unknown"
+#endif /* ! TCP Wrappers */
 
 #ifdef LDAP_PF_LOCAL
 #include <sys/stat.h>
@@ -858,7 +861,7 @@ static int slap_open_listener(
 		l.sl_name.bv_val = ber_memalloc( sizeof("IP=255.255.255.255:65535") );
 		snprintf( l.sl_name.bv_val, sizeof("IP=255.255.255.255:65535"),
 			"IP=%s:%d",
-			 s != NULL ? s : "unknown" , port );
+			 s != NULL ? s : SLAP_STRING_UNKNOWN, port );
 		l.sl_name.bv_len = strlen( l.sl_name.bv_val );
 	} break;
 
@@ -1562,7 +1565,7 @@ slapd_daemon_task(
 				peeraddr = inet_ntoa( *((struct in_addr *)
 							&from.sa_in6_addr.sin6_addr.s6_addr[12]) );
 				sprintf( peername, "IP=%s:%d",
-					 peeraddr != NULL ? peeraddr : "unknown",
+					 peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
 					 (unsigned) ntohs( from.sa_in6_addr.sin6_port ) );
 			} else {
 				char addr[INET6_ADDRSTRLEN];
@@ -1571,7 +1574,7 @@ slapd_daemon_task(
 						      &from.sa_in6_addr.sin6_addr,
 						      addr, sizeof addr );
 				sprintf( peername, "IP=%s %d",
-					 peeraddr != NULL ? peeraddr : "unknown",
+					 peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
 					 (unsigned) ntohs( from.sa_in6_addr.sin6_port ) );
 			}
 			break;
@@ -1580,7 +1583,7 @@ slapd_daemon_task(
 			case AF_INET:
 			peeraddr = inet_ntoa( from.sa_in_addr.sin_addr );
 			sprintf( peername, "IP=%s:%d",
-				peeraddr != NULL ? peeraddr : "unknown",
+				peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
 				(unsigned) ntohs( from.sa_in_addr.sin_port ) );
 				break;
 
@@ -1616,16 +1619,16 @@ slapd_daemon_task(
 
 #ifdef HAVE_TCPD
 				if ( !hosts_ctl("slapd",
-						dnsname != NULL ? dnsname : STRING_UNKNOWN,
-						peeraddr != NULL ? peeraddr : STRING_UNKNOWN,
-						STRING_UNKNOWN ))
+						dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
+						peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
+						SLAP_STRING_UNKNOWN ))
 				{
 					/* DENY ACCESS */
 					Statslog( LDAP_DEBUG_ANY,
 						"fd=%ld host access from %s (%s) denied.\n",
 						(long) s,
-						dnsname != NULL ? dnsname : "unknown",
-						peeraddr != NULL ? peeraddr : "unknown",
+						dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
+						peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
 						0, 0 );
 					slapd_close(s);
 					continue;
@@ -1635,7 +1638,7 @@ slapd_daemon_task(
 
 			id = connection_init(s,
 				slap_listeners[l],
-				dnsname != NULL ? dnsname : "unknown",
+				dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
 				peername,
 #ifdef HAVE_TLS
 				slap_listeners[l]->sl_is_tls,
