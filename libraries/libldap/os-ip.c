@@ -473,6 +473,17 @@ ldap_host_connected_to( Sockbuf *sb )
 			{
 				return LDAP_STRDUP( ldap_int_hostname );
 			}
+
+#ifdef INADDR_LOOPBACK
+			localhost.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
+
+			if( memcmp ( &localhost.sin_addr,
+				&((struct sockaddr_in *)&sa)->sin_addr,
+				sizeof(localhost.sin_addr) ) == 0 )
+			{
+				return LDAP_STRDUP( ldap_int_hostname );
+			}
+#endif
 		}
 		break;
 
