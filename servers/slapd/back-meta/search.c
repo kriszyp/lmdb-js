@@ -673,6 +673,8 @@ meta_send_entry(
 
 	dc.ctx = "searchAttrDN";
 	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
+		int		last = 0;
+
 		ldap_back_map( &li->targets[ target ]->rwmap.rwm_at, 
 				&a, &mapped, BACKLDAP_REMAP );
 		if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0' ) {
@@ -724,7 +726,6 @@ meta_send_entry(
 
 		} else if ( attr->a_desc == slap_schema.si_ad_objectClass
 				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass ) {
-			int		last;
 
 			for ( last = 0; attr->a_vals[ last ].bv_val; ++last );
 
@@ -760,6 +761,25 @@ meta_send_entry(
 		} else if ( attr->a_desc->ad_type->sat_syntax ==
 				slap_schema.si_syn_distinguishedName ) {
 			ldap_dnattr_result_rewrite( &dc, attr->a_vals );
+		}
+
+		if ( last && attr->a_desc->ad_type->sat_equality &&
+			attr->a_desc->ad_type->sat_equality->smr_normalize ) {
+			int i;
+
+			attr->a_nvals = ch_malloc((last + 1)*sizeof(struct berval));
+			for ( i = 0; i<last; i++ ) {
+				attr->a_desc->ad_type->sat_equality->smr_normalize(
+					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+					attr->a_desc->ad_type->sat_syntax,
+					attr->a_desc->ad_type->sat_equality,
+					&attr->a_vals[i], &attr->a_nvals[i],
+					op->o_tmpmemctx );
+			}
+			attr->a_nvals[i].bv_val = NULL;
+			attr->a_nvals[i].bv_len = 0;
+		} else {
+			attr->a_nvals = attr->a_vals;
 		}
 
 		*attrp = attr;
