@@ -58,7 +58,7 @@ do_search(
 	const char	*text;
 	int			manageDSAit;
 #ifdef LDAP_SLAPI
-	Slapi_PBlock	*pb;
+	Slapi_PBlock	*pb = NULL;
 	char		**attrs = NULL;
 #endif
 
@@ -516,7 +516,7 @@ static int doSearchRewriteFNs( Backend *be, Slapi_PBlock *pb, Filter **filter, s
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
 			"doSearchRewriteFNs: after compute_rewrite_search filter: %s\n", 
-			fstr->bv_len ? fstr->bv_val : "empty", 0 );
+			fstr->bv_len ? fstr->bv_val : "empty", 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ARGS, "    after compute_rewrite_search filter: %s\n",
 			fstr->bv_len ? fstr->bv_val : "empty", 0, 0 );
