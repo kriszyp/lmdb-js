@@ -61,7 +61,7 @@ tool_common_usage( void )
 {
 	static const char *const descriptions[] = {
 "  -c         continuous operation mode (do not stop on errors)\n",
-"  -C         chase referrals\n",
+"  -C         chase referrals (anonymously)\n",
 "  -d level   set LDAP debugging level to `level'\n",
 "  -D binddn  bind DN\n",
 "  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n"
