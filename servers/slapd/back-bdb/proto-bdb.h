@@ -171,6 +171,10 @@ void bdb_entry_free ( Entry *e );
 /*
  * idl.c
  */
+#ifdef SLAP_IDL_CACHE
+int bdb_idl_entry_cmp( const void*, const void* );
+#endif
+
 unsigned bdb_idl_search( ID *ids, ID id );
 
 int bdb_bt_compare(

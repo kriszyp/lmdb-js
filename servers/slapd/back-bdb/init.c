@@ -12,10 +12,9 @@
 #include <ac/unistd.h>
 #include <ac/stdlib.h>
 
-#include <lutil.h>
-
 #include "back-bdb.h"
 #include "external.h"
+#include <lutil.h>
 
 static struct bdbi_database {
 	char *file;
@@ -447,6 +446,7 @@ bdb_db_close( BackendDB *be )
 	entry = bdb->bi_idl_lru_head;
 	while ( entry != NULL ) {
 		next_entry = entry->idl_lru_next;
+		avl_delete( &bdb->bi_idl_tree, (caddr_t) entry, bdb_idl_entry_cmp );
 		free( entry->idl );
 		free( entry->kstr.bv_val );
 		free( entry );

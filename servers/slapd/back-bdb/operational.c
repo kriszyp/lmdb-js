@@ -27,7 +27,6 @@ bdb_hasSubordinates(
 	Entry		*e,
 	int		*hasSubordinates )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int		rc;
 	
 	assert( e );

@@ -384,8 +384,6 @@ retry:	/* transaction retry */
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
-		default:
-			rc = LDAP_OTHER;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
@@ -396,6 +394,7 @@ retry:	/* transaction retry */
 			db_strerror(rc), rc, 0 );
 #endif
 		text = "DN index delete failed";
+		rc = LDAP_OTHER;
 		goto return_results;
 	}
 
@@ -406,8 +405,6 @@ retry:	/* transaction retry */
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
-		default:
-			rc = LDAP_OTHER;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
@@ -419,6 +416,7 @@ retry:	/* transaction retry */
 			db_strerror(rc), rc, 0 );
 #endif
 		text = "entry delete failed";
+		rc = LDAP_OTHER;
 		goto return_results;
 	}
 
@@ -429,8 +427,6 @@ retry:	/* transaction retry */
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
-		default:
-			rc = LDAP_OTHER;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
@@ -440,6 +436,7 @@ retry:	/* transaction retry */
 			0, 0, 0 );
 #endif
 		text = "entry index delete failed";
+		rc = LDAP_OTHER;
 		goto return_results;
 	}
 

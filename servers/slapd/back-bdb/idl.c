@@ -44,7 +44,7 @@
 	}								\
 } while ( 0 )
 
-static int
+int
 bdb_idl_entry_cmp( const void *v_idl1, const void *v_idl2 )
 {
 	const bdb_idl_cache_entry_t *idl1 = v_idl1, *idl2 = v_idl2;
@@ -493,8 +493,18 @@ bdb_idl_fetch_key(
 				int i = 0;
 				while ( bdb->bi_idl_lru_tail != NULL && i < 10 ) {
 					ee = bdb->bi_idl_lru_tail;
-					avl_delete( &bdb->bi_idl_tree, (caddr_t) ee,
-					            bdb_idl_entry_cmp );
+					if ( avl_delete( &bdb->bi_idl_tree, (caddr_t) ee,
+					            bdb_idl_entry_cmp ) == NULL ) {
+#ifdef NEW_LOGGING
+						LDAP_LOG( INDEX, ERR, 
+							"bdb_idl_fetch_key: AVL delete failed\n", 
+							0, 0, 0 );
+#else
+						Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
+							"AVL delete failed\n",
+							0, 0, 0 );
+#endif
+					}
 					IDL_LRU_DELETE( bdb, ee );
 					i++;
 					--bdb->bi_idl_cache_size;
@@ -551,8 +561,18 @@ bdb_idl_insert_key(
 		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
 		                              bdb_idl_entry_cmp );
 		if ( matched_idl_entry != NULL ) {
-			avl_delete( &bdb->bi_idl_tree, (caddr_t) matched_idl_entry,
-			            bdb_idl_entry_cmp );
+			if ( avl_delete( &bdb->bi_idl_tree, (caddr_t) matched_idl_entry,
+				            bdb_idl_entry_cmp ) == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( INDEX, ERR, 
+					"bdb_idl_fetch_key: AVL delete failed\n", 
+					0, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
+					"AVL delete failed\n",
+					0, 0, 0 );
+#endif
+			}
 			--bdb->bi_idl_cache_size;
 			IDL_LRU_DELETE( bdb, matched_idl_entry );
 			free( matched_idl_entry->kstr.bv_val );
@@ -763,8 +783,18 @@ bdb_idl_delete_key(
 		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
 		                              bdb_idl_entry_cmp );
 		if ( matched_idl_entry != NULL ) {
-			avl_delete( &bdb->bi_idl_tree, (caddr_t) matched_idl_entry,
-			            bdb_idl_entry_cmp );
+			if ( avl_delete( &bdb->bi_idl_tree, (caddr_t) matched_idl_entry,
+				            bdb_idl_entry_cmp ) == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( INDEX, ERR, 
+					"bdb_idl_fetch_key: AVL delete failed\n", 
+					0, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
+					"AVL delete failed\n",
+					0, 0, 0 );
+#endif
+			}
 			--bdb->bi_idl_cache_size;
 			IDL_LRU_DELETE( bdb, matched_idl_entry );
 			free( matched_idl_entry->kstr.bv_val );
@@ -820,20 +850,17 @@ bdb_idl_delete_key(
 			/* It's a range, see if we need to rewrite
 			 * the boundaries
 			 */
-			hi = 0;
 			data.data = &lo;
 			rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
 			if ( rc != 0 ) {
 				err = "c_get lo";
 				goto fail;
 			}
-			if ( id > lo ) {
-				data.data = &hi;
-				rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
-				if ( rc != 0 ) {
-					err = "c_get hi";
-					goto fail;
-				}
+			data.data = &hi;
+			rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
+			if ( rc != 0 ) {
+				err = "c_get hi";
+				goto fail;
 			}
 			if ( id == lo || id == hi ) {
 				if ( id == lo ) {
@@ -851,6 +878,12 @@ bdb_idl_delete_key(
 						goto fail;
 					}
 				} else {
+					if ( id == lo ) {
+						/* reposition on lo slot */
+						data.data = &lo;
+						cursor->c_get( cursor, key, &data, DB_PREV );
+						lo = id;
+					}
 					rc = cursor->c_del( cursor, 0 );
 					if ( rc != 0 ) {
 						err = "c_del";
