@@ -21,24 +21,29 @@
 
 #ifdef SLAPD_SQL_DYNAMIC
 
-int backsql_LTX_init_module(int argc, char *argv[]) {
-    BackendInfo bi;
+int
+backsql_LTX_init_module(
+	int 		argc, 
+	char 		*argv[] )
+{
+	BackendInfo bi;
 
-    memset( &bi, '\0', sizeof(bi) );
-    bi.bi_type = "sql";
-    bi.bi_init = backbacksql_initialize;
+	memset( &bi, '\0', sizeof( bi ) );
+	bi.bi_type = "sql";
+	bi.bi_init = backbacksql_initialize;
 
-    backend_add(&bi);
-    return 0;
+	backend_add( &bi );
+	return 0;
 }
 
 #endif /* SLAPD_SHELL_DYNAMIC */
 
-int sql_back_initialize(
-    BackendInfo	*bi
-)
+int
+sql_back_initialize(
+	BackendInfo	*bi )
 { 
- Debug(LDAP_DEBUG_TRACE,"==>backsql_initialize()\n",0,0,0);
+	Debug( LDAP_DEBUG_TRACE,"==>backsql_initialize()\n", 0, 0, 0 );
+	
 	bi->bi_open = 0;
 	bi->bi_config = 0;
 	bi->bi_close = 0;
@@ -72,165 +77,234 @@ int sql_back_initialize(
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = backsql_connection_destroy;
 	
-	Debug(LDAP_DEBUG_TRACE,"<==backsql_initialize()\n",0,0,0);
+	Debug( LDAP_DEBUG_TRACE,"<==backsql_initialize()\n", 0, 0, 0 );
 	return 0;
 }
 
 
-int backsql_destroy ( BackendInfo *bi )
+int
+backsql_destroy( 
+	BackendInfo 	*bi )
 {
- Debug(LDAP_DEBUG_TRACE,"==>backsql_destroy()\n",0,0,0);
- Debug(LDAP_DEBUG_TRACE,"<==backsql_destroy()\n",0,0,0);
- return 0;
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_destroy()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_destroy()\n", 0, 0, 0 );
+	return 0;
 }
 
-int backsql_db_init(BackendDB *bd)
+int
+backsql_db_init(
+	BackendDB 	*bd )
 {
- backsql_info *si;
+	backsql_info *si;
  
- Debug(LDAP_DEBUG_TRACE,"==>backsql_db_init()\n",0,0,0);
- si = (backsql_info *) ch_calloc( 1, sizeof(backsql_info) );
- ldap_pvt_thread_mutex_init(&si->dbconn_mutex);
- ldap_pvt_thread_mutex_init(&si->schema_mutex);
- backsql_init_db_env(si);
- 
- bd->be_private=si;
- Debug(LDAP_DEBUG_TRACE,"<==backsql_db_init()\n",0,0,0);
- return 0;
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_db_init()\n", 0, 0, 0 );
+	si = (backsql_info *)ch_calloc( 1, sizeof( backsql_info ) );
+	ldap_pvt_thread_mutex_init( &si->dbconn_mutex );
+	ldap_pvt_thread_mutex_init( &si->schema_mutex );
+	backsql_init_db_env( si );
+	si->has_ldapinfo_dn_ru = -1;
+
+	bd->be_private = si;
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_db_init()\n", 0, 0, 0 );
+	return 0;
 }
 
-int backsql_db_destroy(BackendDB *bd)
+int
+backsql_db_destroy(
+	BackendDB 	*bd )
 {
- backsql_info *si=(backsql_info*)bd->be_private;
+	backsql_info *si = (backsql_info*)bd->be_private;
  
- Debug(LDAP_DEBUG_TRACE,"==>backsql_db_destroy()\n",0,0,0);
- ldap_pvt_thread_mutex_lock(&si->dbconn_mutex);
- backsql_free_db_env(si);
- ldap_pvt_thread_mutex_unlock(&si->dbconn_mutex);
- ldap_pvt_thread_mutex_lock(&si->schema_mutex);
- backsql_destroy_schema_map(si);
- ldap_pvt_thread_mutex_unlock(&si->schema_mutex);
- ldap_pvt_thread_mutex_destroy(&si->schema_mutex);
- ldap_pvt_thread_mutex_destroy(&si->dbconn_mutex);
- free(si->dbname);
- free(si->dbuser);
- if (si->dbpasswd)
-  free(si->dbpasswd);
- if (si->dbhost)
-  free(si->dbhost);
- if (si->upper_func)
-  free(si->upper_func);
- free(si->subtree_cond);
- free(si->oc_query);
- free(si->at_query);
- free(si->insentry_query);
- free(si->delentry_query);
- free(si);
- Debug(LDAP_DEBUG_TRACE,"<==backsql_db_destroy()\n",0,0,0);
- return 0;
-}
-
-int backsql_db_open (BackendDB *bd)
-{
- backsql_info *si=(backsql_info*)bd->be_private;
- Connection tmp;
- SQLHDBC dbh;
- int idq_len;
-
- Debug(LDAP_DEBUG_TRACE,"==>backsql_db_open(): testing RDBMS connection\n",0,0,0);
- if (si->dbname==NULL)
- {
-  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): datasource name not specified (use dbname directive in slapd.conf)\n",0,0,0);
-  return 1;
- }
- if (si->dbuser==NULL)
- {
-  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): user name not specified (use dbuser directive in slapd.conf)\n",0,0,0);
-  return 1;
- }
- if (si->subtree_cond==NULL)
- {
-  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): subtree search SQL condition not specified (use subtree_cond directive in slapd.conf)\n",0,0,0);
-  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): setting '%s' as default\n",backsql_def_subtree_cond,0,0);
-  si->subtree_cond=ch_strdup(backsql_def_subtree_cond);
- }
- if (si->oc_query==NULL)
- {
-  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): objectclass mapping SQL statement not specified (use oc_query directive in slapd.conf)\n",0,0,0);
-  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): setting '%s' by default\n",backsql_def_oc_query,0,0);
-  si->oc_query=ch_strdup(backsql_def_oc_query);
- }
- if (si->at_query==NULL)
- {
-  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): attribute mapping SQL statement not specified (use at_query directive in slapd.conf)\n",0,0,0);
-  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): setting '%s' by default\n",backsql_def_at_query,0,0);
-  si->at_query=ch_strdup(backsql_def_at_query);
- }
- if (si->insentry_query==NULL)
- {
-  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): entry insertion SQL statement not specified (use insentry_query directive in slapd.conf)\n",0,0,0);
-  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): setting '%s' by default\n",backsql_def_insentry_query,0,0);
-  si->insentry_query=ch_strdup(backsql_def_insentry_query);
- }
- if (si->delentry_query==NULL)
- {
-  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): entry deletion SQL statement not specified (use delentry_query directive in slapd.conf)\n",0,0,0);
-  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): setting '%s' by default\n",backsql_def_delentry_query,0,0);
-  si->delentry_query=ch_strdup(backsql_def_delentry_query);
- }
- tmp.c_connid=-1;
- dbh=backsql_get_db_conn(bd,&tmp);
- if (!dbh)
- {
-  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): connection failed, exiting\n",0,0,0
-);
-  return 1;
- }
-
- si->id_query=NULL;
- idq_len=0;
- if (si->upper_func==NULL)
- {
-  si->id_query=backsql_strcat(si->id_query,&idq_len,backsql_id_query,"dn=?",NULL);
- }
- else
- {
-    if (si->has_ldapinfo_dn_ru) {
-      si->id_query=backsql_strcat(si->id_query,&idq_len,backsql_id_query,"dn_ru=?",NULL);
-    }
-    else {
-      if (si->isTimesTen) {
-    si->id_query=backsql_strcat(si->id_query,&idq_len,backsql_id_query,si->upper_func,"(dn)=?",NULL);
-      }
-      else {
-   		si->id_query=backsql_strcat(si->id_query,&idq_len,backsql_id_query,si->upper_func,"(dn)=",si->upper_func,"(?)",NULL);
-   	  }
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_db_destroy()\n", 0, 0, 0 );
+	ldap_pvt_thread_mutex_lock( &si->dbconn_mutex );
+	backsql_free_db_env( si );
+	ldap_pvt_thread_mutex_unlock( &si->dbconn_mutex );
+	ldap_pvt_thread_mutex_lock( &si->schema_mutex );
+	backsql_destroy_schema_map( si );
+	ldap_pvt_thread_mutex_unlock( &si->schema_mutex );
+	ldap_pvt_thread_mutex_destroy( &si->schema_mutex );
+	ldap_pvt_thread_mutex_destroy( &si->dbconn_mutex );
+	free( si->dbname );
+	free( si->dbuser );
+	if ( si->dbpasswd ) {
+		free( si->dbpasswd );
 	}
- }
+	if ( si->dbhost ) {
+		free( si->dbhost );
+	}
+	if ( si->upper_func ) {
+		free( si->upper_func );
+	}
+	
+	free( si->subtree_cond );
+	free( si->oc_query );
+	free( si->at_query );
+	free( si->insentry_query );
+	free( si->delentry_query );
+	free( si );
+	
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_db_destroy()\n", 0, 0, 0 );
+	return 0;
+}
+
+int
+backsql_db_open(
+	BackendDB 	*bd )
+{
+	backsql_info 	*si = (backsql_info*)bd->be_private;
+	Connection 	tmp;
+	SQLHDBC 	dbh;
+	int 		idq_len;
+	struct berval	bv;
+
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_db_open(): "
+		"testing RDBMS connection\n", 0, 0, 0 );
+	if ( si->dbname == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"datasource name not specified "
+			"(use dbname directive in slapd.conf)\n", 0, 0, 0 );
+		return 1;
+	}
+	
+	if ( si->dbuser == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"user name not specified "
+			"(use dbuser directive in slapd.conf)\n", 0, 0, 0 );
+		return 1;
+	}
+	
+	if ( si->subtree_cond == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"subtree search SQL condition not specified "
+			"(use subtree_cond directive in slapd.conf)\n", 
+			0, 0, 0);
+		if ( si->upper_func ) {
+			struct berval	bv = { 0, NULL };
+			int		len = 0;
+
+			backsql_strcat( &bv, &len, si->upper_func,
+					backsql_def_upper_subtree_cond, NULL );
+			si->subtree_cond = bv.bv_val;
+		} else {
+			si->subtree_cond = ch_strdup( backsql_def_subtree_cond );
+		}
+			
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"setting '%s' as default\n",
+			si->subtree_cond, 0, 0 );
+	}
+
+	if ( si->oc_query == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"objectclass mapping SQL statement not specified "
+			"(use oc_query directive in slapd.conf)\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"setting '%s' by default\n", 
+			backsql_def_oc_query, 0, 0 );
+		si->oc_query = ch_strdup( backsql_def_oc_query );
+	}
+	
+	if ( si->at_query == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"attribute mapping SQL statement not specified "
+			"(use at_query directive in slapd.conf)\n",
+			0, 0, 0 );
+		Debug(LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"setting '%s' by default\n",
+			backsql_def_at_query, 0, 0 );
+		si->at_query = ch_strdup( backsql_def_at_query );
+	}
+	
+	if ( si->insentry_query == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"entry insertion SQL statement not specified "
+			"(use insentry_query directive in slapd.conf)\n",
+			0, 0, 0 );
+		Debug(LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"setting '%s' by default\n",
+			backsql_def_insentry_query, 0, 0 );
+		si->insentry_query = ch_strdup( backsql_def_insentry_query );
+	}
+	
+	if ( si->delentry_query == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"entry deletion SQL statement not specified "
+			"(use delentry_query directive in slapd.conf)\n",
+			0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"setting '%s' by default\n",
+			backsql_def_delentry_query, 0, 0 );
+		si->delentry_query = ch_strdup( backsql_def_delentry_query );
+	}
+	
+	tmp.c_connid =- 1;
+	dbh = backsql_get_db_conn( bd, &tmp );
+	if ( !dbh ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"connection failed, exiting\n", 0, 0, 0 );
+		return 1;
+	}
+
+	si->id_query = NULL;
+	idq_len = 0;
+
+	bv.bv_val = NULL;
+	bv.bv_len = 0;
+	if ( si->upper_func == NULL ) {
+		backsql_strcat( &bv, &idq_len, backsql_id_query, 
+				"dn=?", NULL );
+	} else {
+		if ( si->has_ldapinfo_dn_ru ) {
+			backsql_strcat( &bv, &idq_len, backsql_id_query,
+					"dn_ru=?", NULL );
+		} else {
+			if ( si->isTimesTen ) {
+				backsql_strcat( &bv, &idq_len, 
+						backsql_id_query,
+						si->upper_func, "(dn)=?",
+						NULL );
+			} else {
+				backsql_strcat( &bv, &idq_len, 
+						backsql_id_query,
+						si->upper_func, "(dn)=",
+						si->upper_func, "(?)", NULL );
+			}
+		}
+	}
+	si->id_query = bv.bv_val;
  
-backsql_free_db_conn(bd,&tmp);
- if (!si->schema_loaded)
- {
-  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): test failed, schema map not loaded - exiting\n",0,0,0);
-  return 1;
- }
- Debug(LDAP_DEBUG_TRACE,"<==backsql_db_open(): test succeeded, schema map loaded\n",0,0,0);
- return 0;
+	backsql_free_db_conn( bd, &tmp );
+	if ( !si->schema_loaded ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"test failed, schema map not loaded - exiting\n",
+			0, 0, 0 );
+		return 1;
+	}
+	
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_db_open(): "
+		"test succeeded, schema map loaded\n", 0, 0, 0 );
+	return 0;
 }
 
-int backsql_db_close(BackendDB *bd)
+int
+backsql_db_close(
+	BackendDB	*bd )
 {
- Debug(LDAP_DEBUG_TRACE,"==>backsql_db_close()\n",0,0,0);
- Debug(LDAP_DEBUG_TRACE,"<==backsql_db_close()\n",0,0,0);
- return 0;
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_db_close()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_db_close()\n", 0, 0, 0 );
+	return 0;
 }
 
-int backsql_connection_destroy(BackendDB *be,Connection *conn)
+int
+backsql_connection_destroy(
+	BackendDB 	*be,
+	Connection 	*conn )
 {
- Debug(LDAP_DEBUG_TRACE,"==>backsql_connection_destroy()\n",0,0,0);
- backsql_free_db_conn(be,conn);
- Debug(LDAP_DEBUG_TRACE,"<==backsql_connection_destroy()\n",0,0,0);
- return 0;
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_connection_destroy()\n", 0, 0, 0 );
+	backsql_free_db_conn( be, conn );
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_connection_destroy()\n", 0, 0, 0 );
+	return 0;
 }
 
 #endif /* SLAPD_SQL */
+

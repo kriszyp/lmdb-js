@@ -10,7 +10,7 @@ Then, at top of OpenLDAP source tree, run
 this should build back-sql-enabled slapd, provided that you have iODBC/unixODBC
 libraries and include files in include/library paths, "make install"...
 In other words, follow installation procedure described in OpenLDAP 
-Administrators Guide, adding --enbale-sql option to configure, and
+Administrators Guide, adding --enable-sql option to configure, and
 having iODBC/unixODBC libraries installed an accessible by compiler.
 
 Under Win32/MSVC++, I modified the workspace so that back-sql is built into
@@ -41,7 +41,7 @@ Several things worth noting about ODBC:
   Also worth noting are: ODBC-ODBC bridge by EasySoft (which was claimed
    by several people to be far more effective and stable than OpenLink),
    OpenRDA package etc.
-- be carefull defining RDBMS connection parameters, you'll probably need only
+- be careful defining RDBMS connection parameters, you'll probably need only
   "dbname" directive - all the rest can be defined in datasource. Every other
   directive is used to override value stored in datasource definition.
   Maybe you will want to use dbuser/dbpasswd to override credentials defined in datasource

@@ -11,17 +11,18 @@
  */
 
 
-typedef struct __backsql_entryID
-{
- unsigned long id;
- unsigned long keyval;
- unsigned long oc_id;
- char *dn;
- struct __backsql_entryID *next;
-}backsql_entryID;
+typedef struct backsql_entryID {
+	unsigned long		id;
+	unsigned long		keyval;
+	unsigned long		oc_id;
+	struct berval		dn;
+	struct backsql_entryID	*next;
+} backsql_entryID;
 
-backsql_entryID* backsql_dn2id(backsql_info *bi,backsql_entryID* id,SQLHDBC dbh,char *dn);
-backsql_entryID* backsql_free_entryID(backsql_entryID* id);/*returns next*/
+int backsql_dn2id( backsql_info *bi, backsql_entryID *id,
+		SQLHDBC dbh, struct berval *dn );
+/* returns next */
+backsql_entryID *backsql_free_entryID( backsql_entryID *id, int freeit );
 
-#endif
+#endif /* __BACKSQL_ENTRYID_H__ */
 

@@ -13,17 +13,28 @@
 #include "back-sql.h"
 #include "sql-types.h"
 
-RETCODE backsql_Prepare(SQLHDBC dbh,SQLHSTMT *sth,char* query,int timeout);
-RETCODE backsql_BindParamStr(SQLHSTMT sth,int par_ind,char *str,int maxlen);
-RETCODE backsql_BindParamID(SQLHSTMT sth,int par_ind,unsigned long *id);
-RETCODE backsql_BindRowAsStrings(SQLHSTMT sth,BACKSQL_ROW_NTS *row);
-RETCODE backsql_FreeRow(BACKSQL_ROW_NTS *row);
-void backsql_PrintErrors(SQLHENV henv, SQLHDBC hdbc, SQLHSTMT sth,int rc);
+RETCODE backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char* query, int timeout );
 
-int backsql_init_db_env(backsql_info *si);
-int backsql_free_db_env(backsql_info *si);
-SQLHDBC backsql_get_db_conn(Backend *be,Connection *ldapc);
-int backsql_free_db_conn(Backend *be,Connection *ldapc);
+#define backsql_BindParamStr( sth, par_ind, str, maxlen ) 		\
+	SQLBindParameter( (sth), (SQLUSMALLINT)(par_ind), 		\
+			SQL_PARAM_INPUT,				\
+			SQL_C_CHAR, SQL_VARCHAR,			\
+         		(SQLUINTEGER)(maxlen), 0, (SQLPOINTER)(str),	\
+			(SQLUINTEGER)(maxlen), NULL )
 
-#endif
+#define backsql_BindParamID( sth, par_ind, id )				\
+	SQLBindParameter( (sth), (SQLUSMALLINT)(par_ind),		\
+			SQL_PARAM_INPUT, SQL_C_ULONG, SQL_INTEGER,	\
+			0, 0, (SQLPOINTER)(id), 0, (SQLINTEGER*)NULL )
+
+RETCODE backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row );
+RETCODE backsql_FreeRow( BACKSQL_ROW_NTS *row );
+void backsql_PrintErrors( SQLHENV henv, SQLHDBC hdbc, SQLHSTMT sth, int rc );
+
+int backsql_init_db_env( backsql_info *si );
+int backsql_free_db_env( backsql_info *si );
+SQLHDBC backsql_get_db_conn( Backend *be, Connection *ldapc );
+int backsql_free_db_conn( Backend *be, Connection *ldapc );
+
+#endif /* __BACKSQL_SQL_WRAP_H__ */
 

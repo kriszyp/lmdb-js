@@ -17,26 +17,37 @@
 #include "back-sql.h"
 #include "sql-wrap.h"
 
-int backsql_dummy()
+int
+backsql_dummy( void )
 {
- return 0;
+	return 0;
 }
 
-int	backsql_compare(BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn,
+int
+backsql_compare(
+	BackendDB	*bd,
+	Connection	*conn,
+	Operation	*op,
+	struct berval	*dn,
+	struct berval	*ndn,
 	AttributeAssertion *ava )
 {
- Debug(LDAP_DEBUG_TRACE,"==>backsql_compare() - not implemented\n",0,0,0);
- return 0;
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_compare() - not implemented\n",
+			0, 0, 0 );
+	return 1;
 }
 
-int backsql_abandon( BackendDB *be,
-	Connection *conn, Operation *op, int msgid )
+int
+backsql_abandon(
+	BackendDB 	*be,
+	Connection	*conn, 
+	Operation	*op, 
+	int		msgid )
 {
- Debug(LDAP_DEBUG_TRACE,"==>backsql_abandon()\n",0,0,0);
- Debug(LDAP_DEBUG_TRACE,"<==backsql_abandon()\n",0,0,0);
- return 0;
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_abandon()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_abandon()\n", 0, 0, 0 );
+	return 0;
 }
 
 #endif /* SLAPD_SQL */
+

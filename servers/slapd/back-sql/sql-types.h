@@ -13,14 +13,13 @@
 #include <sql.h>
 #include <sqlext.h>
 
-typedef struct
-{
- SWORD ncols;
- char** col_names;
- UDWORD *col_prec;
- char** cols;
- SQLINTEGER* is_null;
-}BACKSQL_ROW_NTS;
+typedef struct {
+	SWORD		ncols;
+	char		**col_names;
+	UDWORD		*col_prec;
+	char		**cols;
+	SQLINTEGER	*is_null;
+} BACKSQL_ROW_NTS;
 
-#endif
+#endif /* __BACKSQL_SQL_TYPES_H__ */
 
