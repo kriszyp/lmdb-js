@@ -626,11 +626,21 @@ backend_db_init(
 		return NULL;
 	}
 
+	be = backendDB;
+
 	backendDB = (BackendDB *) ch_realloc(
 			(char *) backendDB,
 		    (nBackendDB + 1) * sizeof(Backend) );
 
 	memset( &backendDB[nbackends], '\0', sizeof(Backend) );
+
+	/* did realloc move our table? if so, fix up dependent pointers */
+	if ( be != backendDB ) {
+		int i;
+		for ( i=0, be=backendDB; i<nbackends; i++, be++ ) {
+			be->be_pcl_mutexp = &be->be_pcl_mutex;
+		}
+	}
 
 	be = &backends[nbackends++];
 
