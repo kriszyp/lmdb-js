@@ -61,7 +61,7 @@ extern int	ldap_syslog_level;
 	{ \
 		if ( ldap_debug & (level) ) \
 			fprintf( stderr, (fmt), (arg1), (arg2), (arg3) ); \
-		if ( ldap_syslog & level ) \
+		if ( ldap_syslog & (level) ) \
 			syslog( ldap_syslog_level, (fmt), (arg1), (arg2), (arg3) ); \
 	}
 #else /* LDAP_SYSLOG */
