@@ -12,6 +12,8 @@
 #include <ac/unistd.h>
 #include <ac/stdlib.h>
 
+#include <lutil.h>
+
 #include "back-bdb.h"
 #include "external.h"
 
@@ -35,52 +37,6 @@ struct berval bdb_uuid = { 0, NULL };
 static int
 bdb_open( BackendInfo *bi )
 {
-	static char *controls[] = {
-		LDAP_CONTROL_MANAGEDSAIT,
-		LDAP_CONTROL_SUBENTRIES,
-		LDAP_CONTROL_NOOP,
-		NULL
-	};
-
-	bi->bi_controls = controls;
-
-	/* initialize the underlying database system */
-	Debug( LDAP_DEBUG_TRACE, "bdb_open: initialize BDB backend\n",
-		0, 0, 0 );
-
-	{	/* version check */
-		int major, minor, patch;
-		char *version = db_version( &major, &minor, &patch );
-
-		if( major != DB_VERSION_MAJOR ||
-			minor != DB_VERSION_MINOR ||
-			patch < DB_VERSION_PATCH )
-		{
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_open: version mismatch\n"
-				"\texpected: " DB_VERSION_STRING "\n"
-				"\tgot: %s \n", version, 0, 0 );
-		}
-
-		Debug( LDAP_DEBUG_ANY, "bdb_open: %s\n",
-			version, 0, 0 );
-	}
-
-#if 0
-	db_env_set_func_malloc( ch_malloc );
-	db_env_set_func_realloc( ch_realloc );
-	db_env_set_func_free( ch_free );
-#endif
-
-	db_env_set_func_yield( ldap_pvt_thread_yield );
-
-	{
-		static char uuidbuf[40];
-
-		bdb_uuid.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ));
-		bdb_uuid.bv_val = uuidbuf;
-	}
-
 	return 0;
 }
 
@@ -447,7 +403,53 @@ bdb_initialize(
 	BackendInfo	*bi
 )
 {
-	bi->bi_open = bdb_open;
+	static char *controls[] = {
+		LDAP_CONTROL_MANAGEDSAIT,
+		LDAP_CONTROL_SUBENTRIES,
+		LDAP_CONTROL_NOOP,
+		NULL
+	};
+
+	bi->bi_controls = controls;
+
+	/* initialize the underlying database system */
+	Debug( LDAP_DEBUG_TRACE, "bdb_open: initialize BDB backend\n",
+		0, 0, 0 );
+
+	{	/* version check */
+		int major, minor, patch;
+		char *version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor != DB_VERSION_MINOR ||
+			patch < DB_VERSION_PATCH )
+		{
+			Debug( LDAP_DEBUG_ANY,
+				"bdb_open: version mismatch\n"
+				"\texpected: " DB_VERSION_STRING "\n"
+				"\tgot: %s \n", version, 0, 0 );
+		}
+
+		Debug( LDAP_DEBUG_ANY, "bdb_open: %s\n",
+			version, 0, 0 );
+	}
+
+#if 0
+	db_env_set_func_malloc( ch_malloc );
+	db_env_set_func_realloc( ch_realloc );
+	db_env_set_func_free( ch_free );
+#endif
+
+	db_env_set_func_yield( ldap_pvt_thread_yield );
+
+	{
+		static char uuidbuf[40];
+
+		bdb_uuid.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ));
+		bdb_uuid.bv_val = uuidbuf;
+	}
+
+	bi->bi_open = 0;
 	bi->bi_close = 0;
 	bi->bi_config = 0;
 	bi->bi_destroy = 0;
