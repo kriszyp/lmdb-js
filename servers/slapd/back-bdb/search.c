@@ -307,7 +307,8 @@ dn2entry_retry:
 
 	if ( candidates[0] == 0 ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, RESULTS, "bdb_search: no candidates\n", 0, 0, 0 );
+		LDAP_LOG ( OPERATION, RESULTS,
+			"bdb_search: no candidates\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "bdb_search: no candidates\n",
 			0, 0, 0 );
@@ -610,7 +611,8 @@ id2entry_retry:
 			if ( scopeok ) {
 				/* check size limit */
 				if ( --slimit == -1 ) {
-					bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+					bdb_cache_return_entry_r( bdb->bi_dbenv,
+						&bdb->bi_cache, e, &lock );
 					e = NULL;
 					send_search_result( conn, op,
 						rc = LDAP_SIZELIMIT_EXCEEDED, NULL, NULL,
@@ -624,8 +626,9 @@ id2entry_retry:
 #if 0	/* noop is masked SLAP_CTRL_UPDATE */
 					if( op->o_noop ) {
 						result = 0;
-					} else {
+					} else
 #endif
+					{
 #ifdef LDAP_CLIENT_UPDATE
 						if ( op->o_clientupdate_type & SLAP_LCUP_SYNC ) {
 							Attribute* a;
@@ -640,9 +643,11 @@ id2entry_retry:
 							if ( ber == NULL ) {
 #ifdef NEW_LOGGING
 								LDAP_LOG ( OPERATION, RESULTS, 
-									"bdb_search: ber_alloc_t failed\n", 0, 0, 0 );
+									"bdb_search: ber_alloc_t failed\n",
+									0, 0, 0 );
 #else
-								Debug( LDAP_DEBUG_TRACE, "bdb_search: ber_alloc_t failed\n",
+								Debug( LDAP_DEBUG_TRACE,
+									"bdb_search: ber_alloc_t failed\n",
 									0, 0, 0 );
 #endif
 								send_ldap_result( conn, op, rc=LDAP_OTHER,
@@ -659,19 +664,24 @@ id2entry_retry:
 								/* Send cookie */
 								for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 									AttributeDescription *desc = a->a_desc;
-									if ( !strcmp( desc->ad_cname.bv_val, "entryCSN" ) ) {
+									if ( desc == slap_schema.si_ad_entryCSN ) ) {
 										ber_dupbv( &entrycsn_bv, &a->a_vals[0] );
 										if ( latest_entrycsn_bv.bv_val == NULL ) {
 											ber_dupbv( &latest_entrycsn_bv, &entrycsn_bv );
 										} else {
-											res = value_match( &ret, desc, desc->ad_type->sat_ordering, SLAP_MR_ASSERTION_SYNTAX_MATCH, &entrycsn_bv, &latest_entrycsn_bv, &text );
+											res = value_match( &ret, desc,
+												desc->ad_type->sat_ordering,
+												SLAP_MR_ASSERTION_SYNTAX_MATCH,
+												&entrycsn_bv, &latest_entrycsn_bv, &text );
 											if ( res != LDAP_SUCCESS ) {
 												ret = 0;
 #ifdef NEW_LOGGING
 												LDAP_LOG ( OPERATION, RESULTS, 
-													"bdb_search: value_match failed\n", 0, 0, 0 );
+													"bdb_search: value_match failed\n",
+													0, 0, 0 );
 #else
-												Debug( LDAP_DEBUG_TRACE, "bdb_search: value_match failed\n",
+												Debug( LDAP_DEBUG_TRACE,
+													"bdb_search: value_match failed\n",
 													0, 0, 0 );
 #endif
 											}
@@ -679,23 +689,28 @@ id2entry_retry:
 											if ( ret > 0 ) {
 												ch_free( latest_entrycsn_bv.bv_val );
 												latest_entrycsn_bv.bv_val = NULL;
-												ber_dupbv( &latest_entrycsn_bv, &entrycsn_bv );
+												ber_dupbv( &latest_entrycsn_bv,
+													&entrycsn_bv );
 											}
 										}
 									}
 								}
 
-								ber_printf( ber, "{{b}" /*}*/, SLAP_LCUP_STATE_UPDATE_FALSE );
-								ber_printf( ber, "{b}",  SLAP_LCUP_ENTRY_DELETED_FALSE );
-								ber_printf( ber, "{sO" /*}*/, LCUP_COOKIE_OID, &entrycsn_bv );
-								ber_printf( ber, /*{{*/ "N}N}" );
+								ber_printf( ber,
+									"{bb{sON}N}" );
+									SLAP_LCUP_STATE_UPDATE_FALSE );
+									SLAP_LCUP_ENTRY_DELETED_FALSE );
+									LCUP_COOKIE_OID, &entrycsn_bv );
 
 								ch_free( entrycsn_bv.bv_val );
 								entrycsn_bv.bv_val = NULL;
+
 							} else {
 								/* Do not send cookie */
-								ber_printf( ber, "{{b}" /*}*/, SLAP_LCUP_STATE_UPDATE_FALSE );
-								ber_printf( ber, /*{*/ "{b}N}",  SLAP_LCUP_ENTRY_DELETED_FALSE );
+								ber_printf( ber,
+									"{bbN}",
+									SLAP_LCUP_STATE_UPDATE_FALSE,
+									SLAP_LCUP_ENTRY_DELETED_FALSE );
 							}
 
 							ctrls[0]->ldctl_oid = LDAP_CONTROL_ENTRY_UPDATE;
@@ -705,9 +720,11 @@ id2entry_retry:
 							if ( ret < 0 ) {
 #ifdef NEW_LOGGING
 								LDAP_LOG ( OPERATION, RESULTS, 
-									"bdb_search: ber_flatten failed\n", 0, 0, 0 );
+									"bdb_search: ber_flatten failed\n",
+									0, 0, 0 );
 #else
-								Debug( LDAP_DEBUG_TRACE, "bdb_search: ber_flatten failed\n",
+								Debug( LDAP_DEBUG_TRACE,
+									"bdb_search: ber_flatten failed\n",
 									0, 0, 0 );
 #endif
 								send_ldap_result( conn, op, rc=LDAP_OTHER,
@@ -724,16 +741,13 @@ id2entry_retry:
 							ch_free( ctrls[0] );
 							ber_free( ber, 1 );
 							ber_bvfree( bv );
-						} else {
+						} else
 #endif /* LDAP_CLIENT_UPDATE */
+						{
 							result = send_search_entry( be, conn, op,
 								e, attrs, attrsonly, NULL);
-#ifdef LDAP_CLIENT_UPDATE
 						}
-#endif /* LDAP_CLIENT_UPDATE */
-#if 0
 					}
-#endif
 
 					switch (result) {
 					case 0:		/* entry sent ok */
@@ -742,7 +756,8 @@ id2entry_retry:
 					case 1:		/* entry not sent */
 						break;
 					case -1:	/* connection closed */
-						bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+						bdb_cache_return_entry_r(bdb->bi_dbenv,
+							&bdb->bi_cache, e, &lock);
 						e = NULL;
 						rc = LDAP_OTHER;
 						goto done;
@@ -834,14 +849,13 @@ loop_continue:
 		ch_free( ctrls[0] );
 		ber_free( ber, 1 );
 		ber_bvfree( bv );
-	} else {
+	} else
 #endif /* LDAP_CLIENT_UPDATE */
+	{
 		send_search_result( conn, op,
 			v2refs == NULL ? LDAP_SUCCESS : LDAP_REFERRAL,
 			NULL, NULL, v2refs, NULL, nentries );
-#ifdef LDAP_CLIENT_UPDATE
 	}
-#endif /* LDAP_CLIENT_UPDATE */
 
 	rc = 0;
 
@@ -851,13 +865,15 @@ done:
 		bdb_cache_return_entry_r ( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 	}
 
-	if ( csnfeq.f_av_value.bv_val != NULL ) {
+#ifdef LDAP_CLIENT_UDATE
+	if ( csnfeq.f_ava != NULL && csnfeq.f_av_value.bv_val != NULL ) {
 		ch_free( csnfeq.f_av_value.bv_val );
 	}
 	
-	if ( csnfge.f_av_value.bv_val != NULL ) {
+	if ( csnfge.f_ava != NULL && csnfge.f_av_value.bv_val != NULL ) {
 		ch_free( csnfge.f_av_value.bv_val );
 	}
+#endif /* LDAP_CLIENT_UPDATE */
 
 	LOCK_ID_FREE (bdb->bi_dbenv, locker );
 
