@@ -164,6 +164,7 @@ ldap_back_add(
 		attrs[i]->mod_vals.modv_bvals = ch_malloc((j+1)*sizeof(struct berval *));
 		for (j=0; a->a_vals[j].bv_val; j++)
 			attrs[i]->mod_vals.modv_bvals[j] = &a->a_vals[j];
+		attrs[i]->mod_vals.modv_bvals[j] = NULL;
 		i++;
 	}
 	attrs[i] = NULL;
@@ -185,15 +186,14 @@ ldap_back_add(
 int
 ldap_dnattr_rewrite(
 		struct rewrite_info     *rwinfo,
-		struct berval           **a_vals,
+		BVarray			a_vals,
 		void                    *cookie
 )
 {
-	int j;
 	char *mattr;
 	
-	for ( j = 0; a_vals[ j ] != NULL; j++ ) {
-		switch ( rewrite_session( rwinfo, "bindDn", a_vals[ j ]->bv_val,
+	for ( ; a_vals->bv_val != NULL; a_vals++ ) {
+		switch ( rewrite_session( rwinfo, "bindDn", a_vals->bv_val,
 					cookie, &mattr )) {
 		case REWRITE_REGEXEC_OK:
 			if ( mattr == NULL ) {
@@ -204,17 +204,17 @@ ldap_dnattr_rewrite(
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 					"[rw] bindDn (in add of dn-valued"
 					" attr): \"%s\" -> \"%s\"\n",
-					a_vals[ j ]->bv_val, mattr ));
+					a_vals->bv_val, mattr ));
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
 					"rw> bindDn (in add of dn-valued attr):"
 					" \"%s\" -> \"%s\"\n%s",
-					a_vals[ j ]->bv_val, mattr, "" );
+					a_vals->bv_val, mattr, "" );
 #endif /* !NEW_LOGGING */
 
-			free( a_vals[ j ]->bv_val );
-			a_vals[ j ]->bv_val = mattr;
-			a_vals[ j ]->bv_len = strlen( mattr );
+			free( a_vals->bv_val );
+			a_vals->bv_val = mattr;
+			a_vals->bv_len = strlen( mattr );
 			
 			break;
 			

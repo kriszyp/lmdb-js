@@ -122,7 +122,7 @@ extern void mapping_free ( struct ldapmapping *mapping );
 
 #ifdef ENABLE_REWRITE
 extern int suffix_massage_config( struct rewrite_info *info, int argc, char **argv );
-extern int ldap_dnattr_rewrite( struct rewrite_info *rwinfo, struct berval **a_vals, void *cookie );
+extern int ldap_dnattr_rewrite( struct rewrite_info *rwinfo, BVarray a_vals, void *cookie );
 #endif /* ENABLE_REWRITE */
 
 LDAP_END_DECL

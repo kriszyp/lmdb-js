@@ -152,6 +152,7 @@ meta_back_modify(
 	}
 
 	for ( i = 0, ml = modlist; ml; ml = ml->sml_next ) {
+		int j;
 		/*
 		 * lastmod should always be <off>
 		 */
@@ -189,8 +190,13 @@ meta_back_modify(
 				li->targets[ candidate ]->rwinfo,
 				ml->sml_bvalues, conn );
 		}
-					
-		mods[ i ].mod_bvalues = ml->sml_bvalues;
+
+		for (j = 0; ml->sml_bvalues[ j ].bv_val; j++);
+		mods[ i ].mod_bvalues = (struct berval **)ch_malloc((j+1) *
+			sizeof(struct berval *));
+		for (j = 0; ml->sml_bvalues[ j ].bv_val; j++)
+			mods[ i ].mod_bvalues[ j ] = &ml->sml_bvalues[j];
+		mods[ i ].mod_bvalues[ j ] = NULL;
 		i++;
 	}
 	modv[ i ] = 0;
@@ -200,6 +206,8 @@ meta_back_modify(
 	if ( mdn != dn->bv_val ) {
 		free( mdn );
 	}
+	for ( i=0; modv[ i ]; i++)
+		free( modv[ i ]->mod_bvalues );
 	free( mods );
 	free( modv );
 	return meta_back_op_result( lc, op );

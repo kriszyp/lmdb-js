@@ -149,6 +149,7 @@ meta_back_add(
 	attrs = ch_malloc( sizeof( LDAPMod * )*i );
 
 	for ( i = 0, a = e->e_attrs; a; a = a->a_next ) {
+		int j;
 		/*
 		 * lastmod should always be <off>, so that
 		 * creation/modification operational attrs
@@ -192,13 +193,18 @@ meta_back_add(
 					a->a_vals, conn );
 		}
 
-		attrs[ i ]->mod_vals.modv_bvals = a->a_vals;
+		for (j=0; a->a_vals[ j ].bv_val; j++);
+		attrs[ i ]->mod_vals.modv_bvals = ch_malloc((j+1)*sizeof(struct berval *));
+		for (j=0; a->a_vals[ j ].bv_val; j++)
+			attrs[ i ]->mod_vals.modv_bvals[ j ] = &a->a_vals[ j ];
+		attrs[ i ]->mod_vals.modv_bvals[ j ] = NULL;
 		i++;
 	}
 	attrs[ i ] = NULL;
 
 	ldap_add_s( lc->conns[ candidate ]->ld, mdn.bv_val, attrs );
 	for ( --i; i >= 0; --i ) {
+		free( attrs[ i ]->mod_vals.modv_bvals );
 		free( attrs[ i ] );
 	}
 	free( attrs );
