@@ -564,6 +564,7 @@ int lber_pvt_sb_set_readahead( Sockbuf *sb, int rh )
    return 0;
 }
 
+#define USE_NONBLOCK
 #ifdef USE_NONBLOCK
 int lber_pvt_sb_set_nonblock( Sockbuf *sb, int nb )
 {
@@ -589,11 +590,13 @@ int lber_pvt_sb_set_nonblock( Sockbuf *sb, int nb )
 }
 #endif
 	 
-#define sockbuf_buf_init( bb ) \
-(bb)->buf_base=NULL;\
-(bb)->buf_ptr = 0;\
-(bb)->buf_end = 0;\
-(bb)->buf_size = 0;
+#define sockbuf_buf_init( bb ) do { \
+		Sockbuf_Buf *sbb = (bb); \
+		sbb->buf_base = NULL; \
+		sbb->buf_ptr = 0; \
+		sbb->buf_end = 0; \
+		sbb->buf_size = 0; \
+	} while(0)
 
 static int 
 sockbuf_buf_destroy( Sockbuf_Buf *buf )
