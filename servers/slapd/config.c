@@ -18,7 +18,7 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
-#define MAXARGS	200
+#define MAXARGS	500
 
 /*
  * defaults for various global variables
