@@ -365,8 +365,8 @@ H4: rootdn <dn>
 This directive specifies the DN that is not subject to
 access control or administrative limit restrictions for
 operations on this database.  The DN need not refer to
-an entry in the directory. The DN may refer to a SASL
-identity.
+an entry in this database or even in the directory. The
+DN may refer to a SASL identity.
 
 Entry-based Example:
 
@@ -379,14 +379,24 @@ SASL-based Example:
 
 H4: rootpw <password>
 
-This directive specifies a password for the DN given above that
-will always work, regardless of whether an entry with the given
-DN exists or has a password.
-This directive is deprecated in favor of SASL based authentication.
+This directive can be used to specifies a password for the DN for
+the rootdn.
 
 \Example:
 
 >	rootpw secret
+
+It is also permissible to provide hash of the password in
+RFC 2307 form.  {{slappasswd}}(8) may be used to generate
+the password hash.
+
+\Example:
+
+>	rootpw {SSHA}ZKKuqbEKJfKSXhUbHG3fG8MDn9j1v4QN
+
+The hash was generated using the command {{EX:slappasswd -s secret}}.
+
+This directive is deprecated in favor of SASL based authentication.
 
 
 H4: suffix <dn suffix>
