@@ -1433,9 +1433,7 @@ struct slap_backend_db {
 
 #define SLAP_DISALLOW_BIND_ANON		0x0001U /* no anonymous */
 #define SLAP_DISALLOW_BIND_SIMPLE	0x0002U	/* simple authentication */
-#define SLAP_DISALLOW_BIND_SIMPLE_UNPROTECTED \
-									0x0004U	/* unprotected simple auth */
-#define SLAP_DISALLOW_BIND_KRBV4	0x0008U /* Kerberos V4 authentication */
+#define SLAP_DISALLOW_BIND_KRBV4	0x0004U /* Kerberos V4 authentication */
 
 #define SLAP_DISALLOW_TLS_2_ANON	0x0010U /* StartTLS -> Anonymous */
 #define SLAP_DISALLOW_TLS_AUTHC		0x0020U	/* TLS while authenticated */
@@ -1929,6 +1927,11 @@ typedef struct slap_op {
 #define get_domainScope(op)				(0)
 #endif
 
+	char o_preread;
+	char o_postread;
+	AttributeName *o_preread_attrs;
+	AttributeName *o_postread_attrs;
+
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 	char o_pagedresults;
 #define get_pagedresults(op)			((int)(op)->o_pagedresults)
@@ -1952,11 +1955,9 @@ typedef struct slap_op {
 
 	AuthorizationInformation o_authz;
 
-	BerElement	*o_ber;		/* ber of the request		  */
-#ifdef LDAP_CONNECTIONLESS
-	BerElement	*o_res_ber;	/* ber of the reply		  */
-#endif
-	slap_callback	*o_callback;	/* callback pointers */
+	BerElement	*o_ber;		/* ber of the request */
+	BerElement	*o_res_ber;	/* ber of the CLDAP reply or readback control */
+	slap_callback *o_callback;	/* callback pointers */
 	LDAPControl	**o_ctrls;	 /* controls */
 
 	void	*o_threadctx;		/* thread pool thread context */
@@ -1972,6 +1973,7 @@ typedef struct slap_op {
 
 	Filter *o_assertion; /* Assert control filter */
 #define get_assertion(op)				((op)->o_assertion)
+
 	ValuesReturnFilter *o_vrFilter; /* ValuesReturnFilter */
 
 	syncinfo_t*	o_si;
@@ -2180,7 +2182,8 @@ enum {
 #define SLAP_LDAPDN_PRETTY 0x1
 #define SLAP_LDAPDN_MAXLEN 8192
 
-#define SLAP_SEARCH_MAX_CTRLS   10
+/* number of response controls supported */
+#define SLAP_MAX_RESPONSE_CONTROLS   6
 
 #ifdef LDAP_DEVEL
 #define SLAP_CTRL_HIDE				0x00000000U

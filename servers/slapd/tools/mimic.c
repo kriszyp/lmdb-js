@@ -80,6 +80,17 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	return -1;
 }
 
+int slap_read_controls(
+	Operation *op,
+	SlapReply *rs,
+	Entry *e,
+	const struct berval *oid,
+	LDAPControl **c )
+{
+	assert(0);
+	return -1;
+}
+
 int slap_sasl_init(void)
 {
 	return LDAP_SUCCESS;

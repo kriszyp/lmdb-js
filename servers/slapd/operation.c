@@ -107,9 +107,7 @@ slap_op_alloc(
 
 	op->o_time = slap_get_time();
 	op->o_opid = id;
-#ifdef LDAP_CONNECTIONLESS
 	op->o_res_ber = NULL;
-#endif
 
 #if defined( LDAP_SLAPI )
 	op->o_pb = slapi_pblock_new();

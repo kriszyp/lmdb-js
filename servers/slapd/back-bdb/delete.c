@@ -41,6 +41,9 @@ bdb_delete( Operation *op, SlapReply *rs )
 	Entry       *ctxcsn_e;
 	int         ctxcsn_added = 0;
 
+	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
+	int num_ctrls = 0;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ARGS,  "==> bdb_delete: %s\n", op->o_req_dn.bv_val, 0, 0 );
 #else
@@ -319,6 +322,23 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
+	/* pre-read */
+	if( op->o_preread ) {
+		if( slap_read_controls( op, rs, e,
+			&slap_pre_read_bv, &ctrls[num_ctrls] ) )
+		{
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, DETAIL1, 
+				"<=- bdb_delete: pre-read failed!\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE,
+				"<=- bdb_delete: pre-read failed!\n", 0, 0, 0 );
+#endif
+			goto return_results;
+		}
+		ctrls[++num_ctrls] = NULL;
+	}
+
 	/* nested transaction */
 	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, 
 		bdb->bi_db_opflags );
@@ -501,20 +521,22 @@ retry:	/* transaction retry */
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "commit failed";
 
-	} else {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS, 
-			"bdb_delete: deleted%s id=%08lx db=\"%s\"\n",
-			op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
-#else
-		Debug( LDAP_DEBUG_TRACE,
-			"bdb_delete: deleted%s id=%08lx dn=\"%s\"\n",
-			op->o_noop ? " (no-op)" : "",
-			e->e_id, e->e_dn );
-#endif
-		rs->sr_err = LDAP_SUCCESS;
-		rs->sr_text = NULL;
+		goto return_results;
 	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG ( OPERATION, RESULTS, 
+		"bdb_delete: deleted%s id=%08lx db=\"%s\"\n",
+		op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
+#else
+	Debug( LDAP_DEBUG_TRACE,
+		"bdb_delete: deleted%s id=%08lx dn=\"%s\"\n",
+		op->o_noop ? " (no-op)" : "",
+		e->e_id, e->e_dn );
+#endif
+	rs->sr_err = LDAP_SUCCESS;
+	rs->sr_text = NULL;
+	if( num_ctrls ) rs->sr_ctrls = ctrls;
 
 return_results:
 	send_ldap_result( op, rs );

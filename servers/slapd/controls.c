@@ -20,6 +20,8 @@
 #include "../../libraries/liblber/lber-int.h"
 
 static SLAP_CTRL_PARSE_FN parseAssert;
+static SLAP_CTRL_PARSE_FN parsePreRead;
+static SLAP_CTRL_PARSE_FN parsePostRead;
 static SLAP_CTRL_PARSE_FN parseProxyAuthz;
 static SLAP_CTRL_PARSE_FN parseManageDSAit;
 static SLAP_CTRL_PARSE_FN parseModifyIncrement;
@@ -32,9 +34,12 @@ static SLAP_CTRL_PARSE_FN parseDomainScope;
 #ifdef LDAP_CONTROL_SUBENTRIES
 static SLAP_CTRL_PARSE_FN parseSubentries;
 #endif
-static SLAP_CTRL_PARSE_FN parseLdupSync;
+static SLAP_CTRL_PARSE_FN parseLDAPsync;
 
 #undef sc_mask /* avoid conflict with Irix 6.5 <sys/signal.h> */
+
+const struct berval slap_pre_read_bv = BER_BVC(LDAP_CONTROL_PRE_READ);
+const struct berval slap_post_read_bv = BER_BVC(LDAP_CONTROL_POST_READ);
 
 struct slap_control {
 	/* Control OID */
@@ -70,6 +75,12 @@ static struct slap_control control_defs[] = {
 	{ LDAP_CONTROL_ASSERT,
 		SLAP_CTRL_ACCESS, NULL,
 		parseAssert, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+	{ LDAP_CONTROL_PRE_READ,
+		SLAP_CTRL_DELETE|SLAP_CTRL_MODIFY|SLAP_CTRL_RENAME, NULL,
+		parsePreRead, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+	{ LDAP_CONTROL_POST_READ,
+		SLAP_CTRL_ADD|SLAP_CTRL_MODIFY|SLAP_CTRL_RENAME, NULL,
+		parsePostRead, LDAP_SLIST_ENTRY_INITIALIZER(next) },
  	{ LDAP_CONTROL_VALUESRETURNFILTER,
  		SLAP_CTRL_SEARCH, NULL,
 		parseValuesReturnFilter, LDAP_SLIST_ENTRY_INITIALIZER(next) },
@@ -98,7 +109,7 @@ static struct slap_control control_defs[] = {
 		parseNoOp, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_SYNC,
 		SLAP_CTRL_HIDE|SLAP_CTRL_SEARCH, NULL,
-		parseLdupSync, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+		parseLDAPsync, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_MODIFY_INCREMENT,
 		SLAP_CTRL_MODIFY, NULL,
 		parseModifyIncrement, LDAP_SLIST_ENTRY_INITIALIZER(next) },
@@ -907,7 +918,7 @@ static int parseAssert (
 
 	ber = ber_init( &(ctrl->ldctl_value) );
 	if (ber == NULL) {
-		rs->sr_text = "internal error";
+		rs->sr_text = "assert control: internal error";
 		return LDAP_OTHER;
 	}
 	
@@ -921,14 +932,14 @@ static int parseAssert (
 		} else {
 			send_ldap_result( op, rs );
 		}
-		if( op->o_assertion != NULL) {
-			filter_free_x( op, op->o_assertion ); 
+		if( op->o_assertion != NULL ) {
+			filter_free_x( op, op->o_assertion );
 		}
+		return rs->sr_err;
 	}
+
 #ifdef LDAP_DEBUG
-	else {
-		filter2bv_x( op, op->o_assertion, &fstr );
-	}
+	filter2bv_x( op, op->o_assertion, &fstr );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ARGS, 
@@ -944,6 +955,104 @@ static int parseAssert (
 	op->o_assert = ctrl->ldctl_iscritical
 		? SLAP_CRITICAL_CONTROL
 		: SLAP_NONCRITICAL_CONTROL;
+
+	rs->sr_err = LDAP_SUCCESS;
+	return LDAP_SUCCESS;
+}
+
+static int parsePreRead (
+	Operation *op,
+	SlapReply *rs,
+	LDAPControl *ctrl )
+{
+	ber_len_t siz, off, i;
+	AttributeName *an = NULL;
+	BerElement	*ber;
+
+	if ( op->o_preread != SLAP_NO_CONTROL ) {
+		rs->sr_text = "preread control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( ctrl->ldctl_value.bv_len == 0 ) {
+		rs->sr_text = "preread control value is empty (or absent)";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	ber = ber_init( &(ctrl->ldctl_value) );
+	if (ber == NULL) {
+		rs->sr_text = "preread control: internal error";
+		return LDAP_OTHER;
+	}
+
+	siz = sizeof( AttributeName );
+	off = 0;
+	if ( ber_scanf( ber, "{M}", &an, &siz, off ) == LBER_ERROR ) {
+		rs->sr_text = "preread control: decoding error";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	for( i=0; i<siz; i++ ) {
+		const char *dummy;
+		an[i].an_desc = NULL;
+		an[i].an_oc = NULL;
+		slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
+	}
+
+	op->o_preread = ctrl->ldctl_iscritical
+		? SLAP_CRITICAL_CONTROL
+		: SLAP_NONCRITICAL_CONTROL;
+
+	op->o_preread_attrs = an;
+
+	rs->sr_err = LDAP_SUCCESS;
+	return LDAP_SUCCESS;
+}
+
+static int parsePostRead (
+	Operation *op,
+	SlapReply *rs,
+	LDAPControl *ctrl )
+{
+	ber_len_t siz, off, i;
+	AttributeName *an = NULL;
+	BerElement	*ber;
+
+	if ( op->o_postread != SLAP_NO_CONTROL ) {
+		rs->sr_text = "postread control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( ctrl->ldctl_value.bv_len == 0 ) {
+		rs->sr_text = "postread control value is empty (or absent)";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	ber = ber_init( &(ctrl->ldctl_value) );
+	if (ber == NULL) {
+		rs->sr_text = "postread control: internal error";
+		return LDAP_OTHER;
+	}
+
+	siz = sizeof( AttributeName );
+	off = 0;
+	if ( ber_scanf( ber, "{M}", &an, &siz, off ) == LBER_ERROR ) {
+		rs->sr_text = "postread control: decoding error";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	for( i=0; i<siz; i++ ) {
+		const char *dummy;
+		an[i].an_desc = NULL;
+		an[i].an_oc = NULL;
+		slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
+	}
+
+	op->o_postread = ctrl->ldctl_iscritical
+		? SLAP_CRITICAL_CONTROL
+		: SLAP_NONCRITICAL_CONTROL;
+
+	op->o_postread_attrs = an;
 
 	rs->sr_err = LDAP_SUCCESS;
 	return LDAP_SUCCESS;
@@ -985,7 +1094,6 @@ int parseValuesReturnFilter (
 			send_ldap_result( op, rs );
 		}
 		if( op->o_vrFilter != NULL) vrFilter_free( op, op->o_vrFilter ); 
-
 	}
 #ifdef LDAP_DEBUG
 	else {
@@ -1089,7 +1197,7 @@ static int parseDomainScope (
 }
 #endif
 
-static int parseLdupSync (
+static int parseLDAPsync (
 	Operation *op,
 	SlapReply *rs,
 	LDAPControl *ctrl )

@@ -41,6 +41,9 @@ bdb_add(Operation *op, SlapReply *rs )
 	Entry		*ctxcsn_e;
 	int			ctxcsn_added = 0;
 
+	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
+	int num_ctrls = 0;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ARGS, "==> bdb_add: %s\n", op->oq_add.rs_e->e_name.bv_val, 0, 0 );
 #else
@@ -376,6 +379,23 @@ retry:	/* transaction retry */
 		goto return_results;;
 	}
 
+	/* post-read */
+	if( op->o_postread ) {
+		if ( slap_read_controls( op, rs, op->oq_add.rs_e,
+			&slap_post_read_bv, &ctrls[num_ctrls] ) )
+		{
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, DETAIL1, 
+				"<=- bdb_add: post-read failed!\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE,
+				"<=- bdb_add: post-read failed!\n", 0, 0, 0 );
+#endif
+			goto return_results;
+		}
+		ctrls[++num_ctrls] = NULL;
+	}
+
 	/* nested transaction */
 	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, 
 		bdb->bi_db_opflags );
@@ -465,7 +485,8 @@ retry:	/* transaction retry */
 	}
 
 	if ( !op->o_bd->syncinfo ) {
-		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei, &ctxcsn_e, &ctxcsn_added, locker );
+		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei,
+			&ctxcsn_e, &ctxcsn_added, locker );
 		switch ( rc ) {
 		case BDB_CSN_ABORT :
 			goto return_results;
@@ -527,27 +548,32 @@ retry:	/* transaction retry */
 	ltid = NULL;
 	op->o_private = NULL;
 
-	if (rs->sr_err == LDAP_SUCCESS) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS, 
-			"bdb_add: added%s id=%08lx dn=\"%s\"\n", 
-			op->o_noop ? " (no-op)" : "", op->oq_add.rs_e->e_id, op->oq_add.rs_e->e_dn );
-#else
-		Debug(LDAP_DEBUG_TRACE, "bdb_add: added%s id=%08lx dn=\"%s\"\n",
-			op->o_noop ? " (no-op)" : "", op->oq_add.rs_e->e_id, op->oq_add.rs_e->e_dn );
-#endif
-		rs->sr_text = NULL;
-	}
-	else {
+	if (rs->sr_err != LDAP_SUCCESS) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
-			"bdb_add: %s : %s (%d)\n",  rs->sr_text, db_strerror(rs->sr_err), rs->sr_err );
+			"bdb_add: %s : %s (%d)\n",  rs->sr_text,
+				db_strerror(rs->sr_err), rs->sr_err );
 #else
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: %s : %s (%d)\n",
 			rs->sr_text, db_strerror(rs->sr_err), rs->sr_err );
 #endif
 		rs->sr_err = LDAP_OTHER;
+		goto return_results;
 	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG ( OPERATION, RESULTS, 
+		"bdb_add: added%s id=%08lx dn=\"%s\"\n", 
+		op->o_noop ? " (no-op)" : "",
+		op->oq_add.rs_e->e_id, op->oq_add.rs_e->e_dn );
+#else
+	Debug(LDAP_DEBUG_TRACE, "bdb_add: added%s id=%08lx dn=\"%s\"\n",
+		op->o_noop ? " (no-op)" : "",
+		op->oq_add.rs_e->e_id, op->oq_add.rs_e->e_dn );
+#endif
+
+	rs->sr_text = NULL;
+	if( num_ctrls ) rs->sr_ctrls = ctrls;
 
 return_results:
 	send_ldap_result( op, rs );
@@ -565,7 +591,6 @@ return_results:
 	}
 
 done:
-
 	if( ltid != NULL ) {
 		TXN_ABORT( ltid );
 		op->o_private = NULL;

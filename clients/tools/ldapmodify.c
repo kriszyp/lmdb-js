@@ -225,7 +225,7 @@ main( int argc, char **argv )
 
     rc = 0;
 
-	if ( assertion || authzid || manageDSAit || noop ) {
+	if ( assertion || authzid || manageDSAit || noop || preread || postread ) {
 		tool_server_controls( ld, NULL, 0 );
 	}
 

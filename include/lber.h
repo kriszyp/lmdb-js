@@ -532,9 +532,7 @@ LBER_V( Sockbuf_IO ) ber_sockbuf_io_tcp;
 LBER_V( Sockbuf_IO ) ber_sockbuf_io_readahead;
 LBER_V( Sockbuf_IO ) ber_sockbuf_io_fd;
 LBER_V( Sockbuf_IO ) ber_sockbuf_io_debug;
-#ifdef LDAP_CONNECTIONLESS
 LBER_V( Sockbuf_IO ) ber_sockbuf_io_udp;
-#endif
 
 /*
  * LBER memory.c

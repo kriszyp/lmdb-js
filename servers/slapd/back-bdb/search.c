@@ -18,6 +18,7 @@ static int base_candidate(
 	BackendDB	*be,
 	Entry	*e,
 	ID		*ids );
+
 static int search_candidates(
 	Operation *stackop,	/* op with the current threadctx/slab cache */
 	Operation *sop,		/* search op */
@@ -26,6 +27,7 @@ static int search_candidates(
 	u_int32_t locker,
 	ID	*ids,
 	ID	*scopes );
+
 static void send_pagerequest_response( 
 	Operation *op,
 	SlapReply *rs,
@@ -367,7 +369,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	int		entry_count = 0;
 	struct berval *search_context_csn = NULL;
 	DB_LOCK		ctxcsn_lock;
-	LDAPControl	*ctrls[SLAP_SEARCH_MAX_CTRLS];
+	LDAPControl	*ctrls[SLAP_MAX_RESPONSE_CONTROLS];
 	int		num_ctrls = 0;
 	AttributeName	uuid_attr[2];
 	int		rc_sync = 0;
@@ -398,7 +400,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	null_attr.an_name.bv_len = 0;
 	null_attr.an_name.bv_val = NULL;
 
-	for ( num_ctrls = 0; num_ctrls < SLAP_SEARCH_MAX_CTRLS; num_ctrls++ ) {
+	for( num_ctrls = 0; num_ctrls < SLAP_MAX_RESPONSE_CONTROLS; num_ctrls++ ) {
 		ctrls[num_ctrls] = NULL;
 	}
 	num_ctrls = 0;
