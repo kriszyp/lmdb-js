@@ -144,7 +144,7 @@ cat << _EOF_ >> $TMP
 _EOF_
 
 $MKDEP_CC $MKDEP_CFLAGS $files | \
-	sed -e 's; \./; ;g' | \
+	sed -e 's; \./; ;g' -e 's/ :/:/' | \
 	$SED > $TMP.sed
 # do not pipe to awk.  SGI awk wants a filename as argument.
 # (or '-', but I do not know if all other awks support that.)

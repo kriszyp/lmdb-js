@@ -9,10 +9,14 @@ OpenLDAP 2.0.X Engineering
 	Fixed -lldap SASL ctx close bug (ITS#790)
 	Fixed -lldap first/next attribute bug (ITS#778)
 	Fixed -lldap (v2) rebind URL bug
+	Fixed -llber stringal len=0 bug
 	Updated -llber bprint routine
 	Build Environment
+		Fixed LDFLAGS/-rpath usage
 		Fixed IPv6 detection (ITS#669,ITS#770)
 		Fixed VPATH schema install
+		Updated libtool to version 1.3.5
+		Added Darwin support
 
 OpenLDAP 2.0.4 Release
 	Fixed clients printf/usage bugs (ITS#749)
