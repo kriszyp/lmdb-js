@@ -603,7 +603,9 @@ LIBSLAPD_F (int) is_entry_objectclass LDAP_P((
 /*
  * schema_check.c
  */
-LIBSLAPD_F (int) schema_check_entry LDAP_P(( Entry *e ));
+LIBSLAPD_F (int) entry_schema_check LDAP_P((
+	Entry *e, Attribute *attrs,
+	char** text ));
 
 
 /*
