@@ -244,8 +244,8 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_X_INCREMENTAL_VALUES	"1.2.840.113556.1.4.802"
 #define LDAP_CONTROL_X_TREE_DELETE		"1.2.840.113556.1.4.805"
 #define LDAP_CONTROL_X_SEARCH_OPTIONS		"1.2.840.113556.1.4.1340"
-#define LDAP_SERVER_SEARCH_FLAG_DOMAIN_SCOPE	1
-#define LDAP_SERVER_SEARCH_FLAG_PHANTOM_ROOT	2
+#define LDAP_SERVER_SEARCH_FLAG_DOMAIN_SCOPE	1 /* do not generate referrals */
+#define LDAP_SERVER_SEARCH_FLAG_PHANTOM_ROOT	2 /* search all NCs subordinate to base */
 
 /* not implemented in slapd(8) */
 #define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473" /* RFC 2891 */
