@@ -160,10 +160,12 @@ ldap_translate_to_t61( LDAP *ld, char **bufp, unsigned long *lenp,
 typedef unsigned char  Byte;
 typedef struct { Byte  a, b; } Couple;
 
-static Byte *c_to_hh LDAP_P(( Byte *o, Byte c ));
-static Byte *c_to_cc LDAP_P(( Byte *o, Couple *cc, Byte c ));
-static int hh_to_c LDAP_P(( Byte *h ));
-static Byte *cc_to_t61 LDAP_P(( Byte *o, Byte *s ));
+/* Prototypes without LDAP_P():
+ * 'Byte' in definition incompatible with unprototyped declaration. */
+static Byte *c_to_hh   ( Byte *o, Byte c );
+static Byte *c_to_cc   ( Byte *o, Couple *cc, Byte c );
+static int   hh_to_c   ( Byte *h );
+static Byte *cc_to_t61 ( Byte *o, Byte *s );
 
 /*
    Character choosed as base in diacritics alone: NO-BREAK SPACE.
