@@ -61,6 +61,7 @@ main( int argc, char **argv )
 	ID		id;
 	struct dbcache	*db, *db2;
 	Backend		*be = NULL;
+	struct ldbminfo *li;
 	struct berval	bv;
 	struct berval	*vals[2];
 	Avlnode		*avltypes = NULL;
@@ -126,6 +127,10 @@ main( int argc, char **argv )
 		exit( 1 );
 	}
 	be = &backends[dbnum];
+
+	/* disable write sync'ing */
+	li = (struct ldbminfo *) be->be_private;
+	li->li_dbcachewsync = 0;
 
 	/*
 	 * first, make the dn2id index

@@ -70,6 +70,7 @@ main( int argc, char **argv )
 	int		dbnum;
 	ID		id;
 	Backend		*be = NULL;
+	struct ldbminfo *li;
 	struct berval	bv;
 	struct berval	*vals[2];
 	Avlnode		*avltypes = NULL;
@@ -145,6 +146,10 @@ main( int argc, char **argv )
 		exit( 1 );
 	}
 	be = &backends[dbnum];
+
+	/* disable write sync'ing */
+	li = (struct ldbminfo *) be->be_private;
+	li->li_dbcachewsync = 0;
 
 	/*
 	 * generate the id2entry index
