@@ -295,11 +295,9 @@ dn2entry_retry:
 	/* need normalized dn below */
 	ber_dupbv( &realbase, &e->e_nname );
 
-	/* start cursor at base entry's id 
-	 * FIXME: hack to make "" base work
-	 * FIXME: moddn needs to assign new ID for this to work
+	/* start cursor at beginning of candidates.
 	 */
-	cursor = e->e_id == NOID ? 1 : e->e_id;
+	cursor = 0;
 
 	if ( e != &slap_entry_root ) {
 		bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
