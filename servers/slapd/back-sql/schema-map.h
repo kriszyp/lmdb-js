@@ -12,7 +12,8 @@
 
 
 typedef struct {
-	char		*name;
+	struct berval	name;
+	ObjectClass	*oc;
 	char		*keytbl;
 	char		*keycol;
 	/* expected to return keyval of newly created entry */
@@ -29,7 +30,8 @@ typedef struct {
 
 typedef struct {
 	/* literal name of corresponding LDAP attribute type */
-	char		*name;
+	struct berval	name;
+	AttributeDescription	*ad;
 	char		*from_tbls;
 	char		*join_where;
 	char		*sel_expr;
@@ -56,14 +58,24 @@ typedef struct {
 } backsql_at_map_rec;
 
 /* defines to support bitmasks above */
-#define BACKSQL_ADD	1
-#define BACKSQL_DEL	2
+#define BACKSQL_ADD	0x1
+#define BACKSQL_DEL	0x2
+
+#define BACKSQL_IS_ADD(x)	( BACKSQL_ADD & (x) )
+#define BACKSQL_IS_DEL(x)	( BACKSQL_DEL & (x) )
+
+#define BACKSQL_NCMP(v1,v2)	ber_bvcmp((v1),(v2))
 
 int backsql_load_schema_map( backsql_info *si, SQLHDBC dbh );
-backsql_oc_map_rec *backsql_oc_with_name( backsql_info *si, char *objclass );
-backsql_oc_map_rec *backsql_oc_with_id( backsql_info *si, unsigned long id );
-backsql_at_map_rec *backsql_at_with_name( backsql_oc_map_rec *objclass,
-		char *attr );
+/* Deprecated */
+backsql_oc_map_rec *backsql_name2oc( backsql_info *si, struct berval *oc_name );
+backsql_oc_map_rec *backsql_oc2oc( backsql_info *si, ObjectClass *oc );
+backsql_oc_map_rec *backsql_id2oc( backsql_info *si, unsigned long id );
+/* Deprecated */
+backsql_at_map_rec *backsql_name2at( backsql_oc_map_rec *objclass,
+		struct berval *at_name );
+backsql_at_map_rec *backsql_ad2at( backsql_oc_map_rec *objclass,
+		AttributeDescription *ad );
 int backsql_destroy_schema_map( backsql_info *si );
 
 #endif /* __BACKSQL_SCHEMA_MAP_H__ */

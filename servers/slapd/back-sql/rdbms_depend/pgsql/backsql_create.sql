@@ -1,7 +1,8 @@
 drop table ldap_oc_mappings;
+drop sequence ldap_oc_mappings_id_seq;
 create table ldap_oc_mappings
  (
-	id integer not null primary key,
+	id serial not null primary key,
 	name varchar(64) not null,
 	keytbl varchar(64) not null,
 	keycol varchar(64) not null,
@@ -11,9 +12,10 @@ create table ldap_oc_mappings
 );
 
 drop table ldap_attr_mappings;
+drop sequence ldap_attr_mappings_id_seq;
 create table ldap_attr_mappings
  (
-	id integer not null primary key,
+	id serial not null primary key,
 	oc_map_id integer not null references ldap_oc_mappings(id),
 	name varchar(255) not null,
 	sel_expr varchar(255) not null,
@@ -27,9 +29,10 @@ create table ldap_attr_mappings
 );
 
 drop table ldap_entries;
+drop sequence ldap_entries_id_seq;
 create table ldap_entries
  (
-	id integer not null primary key,
+	id serial not null primary key,
 	dn varchar(255) not null,
 	oc_map_id integer not null references ldap_oc_mappings(id),
 	parent int NOT NULL,
@@ -51,10 +54,4 @@ create table ldap_entry_objclasses
 	entry_id integer not null references ldap_entries(id),
 	oc_name varchar(64)
  );
-
------ Apparently PostgreSQL 7.0 does not know concat(); however,
------ back-sql can be configured to use '||' for string concatenation.
------ Those who can't live without concat() can uncomment this:
--- drop function concat(text, text);
--- create function concat(text, text) returns text as 'select $1 || $2;' language 'sql';
 

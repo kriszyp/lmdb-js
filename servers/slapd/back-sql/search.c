@@ -25,42 +25,53 @@
 
 static struct berval AllUser = BER_BVC( LDAP_ALL_USER_ATTRIBUTES );
 static struct berval AllOper = BER_BVC( LDAP_ALL_OPERATIONAL_ATTRIBUTES );
+static struct berval NoAttrs = BER_BVC( LDAP_NO_ATTRS );
+
 #if 0
 static struct berval NoAttrs = BER_BVC( LDAP_NO_ATTRS );
 #endif
 
 static int
-backsql_attrlist_add( backsql_srch_info *bsi, struct berval *at_name )
+backsql_attrlist_add( backsql_srch_info *bsi, AttributeDescription *ad )
 {
-	int 	n_attrs = 0;
-	char	**tmp;
+	int 		n_attrs = 0;
+	AttributeName	*an = NULL;
 
 	if ( bsi->attrs == NULL ) {
 		return 1;
 	}
 
-	for ( ; bsi->attrs[ n_attrs ]; n_attrs++ ) {
+	for ( ; bsi->attrs[ n_attrs ].an_name.bv_val; n_attrs++ ) {
+		an = &bsi->attrs[ n_attrs ];
+		
 		Debug( LDAP_DEBUG_TRACE, "==>backsql_attrlist_add(): "
 			"attribute '%s' is in list\n", 
-			bsi->attrs[ n_attrs ], 0, 0 );
+			an->an_name.bv_val, 0, 0 );
 		/*
 		 * We can live with strcmp because the attribute 
 		 * list has been normalized before calling be_search
 		 */
-		if ( !strcmp( bsi->attrs[ n_attrs ], at_name->bv_val ) ) {
+		if ( !BACKSQL_NCMP( &an->an_name, &ad->ad_cname ) ) {
 			return 1;
 		}
 	}
 	
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_attrlist_add(): "
-		"adding '%s' to list\n", at_name->bv_val, 0, 0 );
-	tmp = (char **)ch_realloc( bsi->attrs, (n_attrs + 2)*sizeof( char * ) );
-	if ( tmp == NULL ) {
+		"adding '%s' to list\n", ad->ad_cname.bv_val, 0, 0 );
+
+	an = (AttributeName *)ch_realloc( bsi->attrs,
+			sizeof( AttributeName ) * ( n_attrs + 2 ) );
+	if ( an == NULL ) {
 		return -1;
 	}
-	bsi->attrs = tmp;
-	bsi->attrs[ n_attrs ] = ch_strdup( at_name->bv_val );
-	bsi->attrs[ n_attrs + 1 ] = NULL;
+
+	an[ n_attrs ].an_name = ad->ad_cname;
+	an[ n_attrs ].an_desc = ad;
+	an[ n_attrs + 1 ].an_name.bv_val = NULL;
+	an[ n_attrs + 1 ].an_name.bv_len = 0;
+
+	bsi->attrs = an;
+	
 	return 1;
 }
 
@@ -103,17 +114,21 @@ backsql_init_search(
 		bsi->attrs = NULL;
 
 	} else {
-		bsi->attrs = (char **)ch_calloc( 1, sizeof( char * ) );
-		bsi->attrs[ 0 ] = NULL;
+		bsi->attrs = (AttributeName *)ch_calloc( 1, 
+				sizeof( AttributeName ) );
+		bsi->attrs[ 0 ].an_name.bv_val = NULL;
+		bsi->attrs[ 0 ].an_name.bv_len = 0;
 		
 		for ( p = attrs; p->an_name.bv_val; p++ ) {
 			/*
 			 * ignore "+"
 			 */
-			if ( strcmp( p->an_name.bv_val, AllOper.bv_val ) == 0 ) {
+			if ( BACKSQL_NCMP( &p->an_name, &AllOper ) == 0 
+					|| BACKSQL_NCMP( &p->an_name, &NoAttrs ) == 0 ) {
 				continue;
 			}
-			backsql_attrlist_add( bsi, &p->an_name );
+
+			backsql_attrlist_add( bsi, p->an_desc );
 		}
 	}
 
@@ -192,7 +207,13 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f )
 		return 0;
 	}
 
-	at = backsql_at_with_name( bsi->oc, f->f_sub_desc->ad_cname.bv_val );
+	at = backsql_ad2at( bsi->oc, f->f_sub_desc );
+
+	/*
+	 * When dealing with case-sensitive strings 
+	 * we may omit normalization; however, normalized
+	 * SQL filters are more liberal.
+	 */
 
 	backsql_strcat( &bsi->flt_where, &bsi->fwhere_len, "(" /* ) */ , NULL );
 
@@ -273,8 +294,8 @@ int
 backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 {
 	backsql_at_map_rec	*at;
-	backsql_at_map_rec 	oc_attr 
-		= { "objectClass", "", "", NULL, NULL, NULL, NULL };
+	backsql_at_map_rec 	oc_attr = { BER_BVC("objectClass"),
+		slap_schema.si_ad_objectClass, "", "", NULL, NULL, NULL, NULL };
 	AttributeDescription	*ad = NULL;
 	int 			done = 0, len = 0;
 	/* TimesTen */
@@ -325,7 +346,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 	}
 
 	if ( strcasecmp( ad->ad_cname.bv_val, "objectclass" ) ) {
-		at = backsql_at_with_name( bsi->oc, ad->ad_cname.bv_val );
+		at = backsql_ad2at( bsi->oc, ad );
 
 	} else {
 		struct berval	bv;
@@ -337,13 +358,14 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		 */
 		bv.bv_val = at->sel_expr;
 		bv.bv_len = at->sel_expr ? strlen( at->sel_expr ) : 0;
-		backsql_strcat( &bv, &len, "'", bsi->oc->name, "'", NULL );
+		backsql_strcat( &bv, &len, "'", bsi->oc->name.bv_val, 
+				"'", NULL );
 		at->sel_expr = bv.bv_val;
 	}
 	if ( at == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_process_filter(): "
 			"attribute '%s' is not defined for objectclass '%s'\n",
-			ad->ad_cname.bv_val, bsi->oc->name, 0 );
+			ad->ad_cname.bv_val, bsi->oc->name.bv_val, 0 );
 		backsql_strcat( &bsi->flt_where, &bsi->fwhere_len, 
 				" 1=0 ", NULL );
 		goto impossible;
@@ -355,7 +377,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 	 * need to add this attribute to list of attrs to load,
 	 * so that we could do test_filter() later
 	 */
-	backsql_attrlist_add( bsi, &ad->ad_cname );
+	backsql_attrlist_add( bsi, ad );
 
 	if ( at->join_where != NULL && strstr( bsi->join_where.bv_val, at->join_where ) == NULL ) {
 	       	backsql_strcat( &bsi->join_where, &bsi->jwhere_len, 
@@ -365,7 +387,8 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 #if 0	
 	if ( at != &oc_attr ) {
 		backsql_strcat( &bsi->sel, &bsi->sel_len,
-				",", at->sel_expr, " AS ", at->name, NULL );
+				",", at->sel_expr, " AS ", 
+				at->name.bv_val, NULL );
  	}
 #endif
 
@@ -472,7 +495,7 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 	backsql_strcat( &bsi->sel, &bsi->sel_len,
 			"SELECT DISTINCT ldap_entries.id,", 
 			bsi->oc->keytbl, ".", bsi->oc->keycol,
-			",'", bsi->oc->name, "' AS objectClass",
+			",'", bsi->oc->name.bv_val, "' AS objectClass",
 			",ldap_entries.dn AS dn", NULL );
 #endif
 	backsql_strcat( &bsi->sel, &bsi->sel_len,
@@ -481,10 +504,10 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 	if ( bi->strcast_func ) {
 		backsql_strcat( &bsi->sel, &bsi->sel_len,
 				bi->strcast_func, 
-				"('", bsi->oc->name, "')", NULL );
+				"('", bsi->oc->name.bv_val, "')", NULL );
 	} else {
 		backsql_strcat( &bsi->sel, &bsi->sel_len,
-				"'", bsi->oc->name, "'", NULL );
+				"'", bsi->oc->name.bv_val, "'", NULL );
 	}
 	backsql_strcat( &bsi->sel, &bsi->sel_len,
 			" AS objectClass,ldap_entries.dn AS dn", NULL );
@@ -577,7 +600,7 @@ backsql_oc_get_candidates( backsql_oc_map_rec *oc, backsql_srch_info *bsi )
 	char			temp_base_dn[ BACKSQL_MAX_DN_LEN + 1 ];
  
 	Debug(	LDAP_DEBUG_TRACE, "==>backsql_oc_get_candidates(): oc='%s'\n",
-			oc->name, 0, 0 );
+			oc->name.bv_val, 0, 0 );
 	bsi->oc = oc;
 	if ( backsql_srch_query( bsi, &query ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
@@ -700,16 +723,21 @@ backsql_oc_get_candidates( backsql_oc_map_rec *oc, backsql_srch_info *bsi )
 		e = (Entry *)ch_calloc( 1, sizeof( Entry ) ); 
 		for ( i = 1; i < row.ncols; i++ ) {
 			if ( row.is_null[ i ] > 0 ) {
-				backsql_entry_addattr( e, row.col_names[ i ],
-						row.cols[ i ], 
-						row.col_prec[ i ] );
+				struct berval	bv;
+
+				ber_str2bv( row.cols[ i ], 
+						row.col_prec[ i ], 0, &bv );
+
+				backsql_entry_addattr( e, 
+						&row.col_names[ i ], &bv );
+
 				Debug( LDAP_DEBUG_TRACE, "prec=%d\n", 
 						(int)row.col_prec[ i ], 0, 0 );
 			} else {
 				Debug( LDAP_DEBUG_TRACE, 
 					"NULL value in this row "
 					"for attribute '%s'\n", 
-					row.col_names[ i ], 0, 0 );
+					&row.col_names[ i ], 0, 0 );
 			}
 		}
 #endif
@@ -770,14 +798,15 @@ backsql_search(
 	Debug( LDAP_DEBUG_TRACE, " deref=%d, attrsonly=%d, "
 		"attributes to load: %s\n",
 		deref, attrsonly, attrs == NULL ? "all" : "custom list" );
-	dbh = backsql_get_db_conn( be, conn );
 
-	if ( !dbh ) {
+	sres = backsql_get_db_conn( be, conn, &dbh );
+	if ( sres != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
 			"could not get connection handle - exiting\n", 
 			0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OTHER, "",
-				"SQL-backend error", NULL, NULL );
+		send_ldap_result( conn, op, sres, "",
+				sres == LDAP_OTHER ?  "SQL-backend error" : "",
+				NULL, NULL );
 		return 1;
 	}
 
@@ -861,7 +890,7 @@ backsql_search(
 	 * of entries matching LDAP query filter and scope (or at least 
 	 * candidates), and get the IDs
 	 */
-	avl_apply( bi->oc_by_name, (AVL_APPLY)backsql_oc_get_candidates,
+	avl_apply( bi->oc_by_oc, (AVL_APPLY)backsql_oc_get_candidates,
 			&srch_info, 0, AVL_INORDER );
 
 	if ( !isroot && limit->lms_s_unchecked != -1 ) {
@@ -951,7 +980,7 @@ done:;
 	for ( eid = srch_info.id_list; eid != NULL; 
 			eid = backsql_free_entryID( eid, 1 ) );
 
-	charray_free( srch_info.attrs );
+	ch_free( srch_info.attrs );
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_search()\n", 0, 0, 0 );
 	return 0;

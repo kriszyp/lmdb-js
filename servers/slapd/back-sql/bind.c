@@ -37,6 +37,7 @@ backsql_bind(
 	Entry			*e, user_entry;
 	Attribute		*a;
 	backsql_srch_info	bsi;
+	int			rc;
  
  	Debug( LDAP_DEBUG_TRACE, "==>backsql_bind()\n", 0, 0, 0 );
 
@@ -59,13 +60,14 @@ backsql_bind(
 	/*
 	 * method = LDAP_AUTH_SIMPLE
 	 */
-	dbh = backsql_get_db_conn( be, conn );
+	rc = backsql_get_db_conn( be, conn, &dbh );
 	if (!dbh) {
      		Debug( LDAP_DEBUG_TRACE, "backsql_bind(): "
 			"could not get connection handle - exiting\n",
 			0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OTHER, "",
-				"SQL-backend error", NULL, NULL );
+		send_ldap_result( conn, op, rc, "",
+				rc == LDAP_OTHER ? "SQL-backend error" : "", 
+				NULL, NULL );
 		return 1;
 	}
 

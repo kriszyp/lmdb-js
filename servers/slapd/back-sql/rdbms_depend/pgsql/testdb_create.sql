@@ -1,37 +1,38 @@
 drop table persons;
-CREATE TABLE persons (
-	id int NOT NULL,
-	name varchar(255) NOT NULL,
-	PRIMARY KEY ( id )
+drop sequence persons_id_seq;
+create table persons (
+	id serial not null primary key,
+	name varchar(255) not null,
+	surname varchar(255) not null
 );
 
 drop table institutes;
-CREATE TABLE institutes (
-	id int NOT NULL,
-	name varchar(255),
-	PRIMARY KEY ( id )
+drop sequence institutes_id_seq;
+create table institutes (
+	id serial not null primary key,
+	name varchar(255)
 );
 
 drop table documents;
-CREATE TABLE documents (
-	id int NOT NULL,
-	title varchar(255) NOT NULL,
-	abstract varchar(255),
-	PRIMARY KEY ( id )
+drop sequence documents_id_seq;
+create table documents (
+	id serial not null primary key,
+	title varchar(255) not null,
+	abstract varchar(255)
 );
 
 drop table authors_docs;
-CREATE TABLE authors_docs (
-	pers_id int NOT NULL,
-	doc_id int NOT NULL,
-	PRIMARY KEY ( pers_id, doc_id )
+create table authors_docs (
+	pers_id int not null,
+	doc_id int not null,
+	primary key ( pers_id, doc_id )
 );
 
 drop table phones;
-CREATE TABLE phones (
-	id int NOT NULL ,
-	phone varchar(255) NOT NULL ,
-	pers_id int NOT NULL,
-	PRIMARY KEY ( id )
+drop sequence phones_id_seq;
+create table phones (
+	id serial not null primary key,
+	phone varchar(255) not null ,
+	pers_id int not null
 );
 

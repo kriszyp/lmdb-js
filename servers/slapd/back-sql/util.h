@@ -19,10 +19,14 @@
 
 #define BACKSQL_STR_GROW 64
 
+extern struct berval 
+	bv_n_objectclass,
+	bv_n_0_10;
+
 struct berval *backsql_strcat( struct berval *dest, int *buflen, ... );
 
-int backsql_entry_addattr( Entry *e, char *at_name, char *at_val,
-		unsigned int at_val_len );
+int backsql_entry_addattr( Entry *e, struct berval *at_name, 
+		struct berval *at_val );
 
 typedef struct __backsql_srch_info {
 	struct berval		*base_dn;
@@ -42,7 +46,7 @@ typedef struct __backsql_srch_info {
 	Backend			*be;
 	Connection		*conn;
 	Operation		*op;
-	char			**attrs;
+	AttributeName		*attrs;
 	Entry			*e;
 	/* 1 if the db is TimesTen; 0 if it's not */
 	int			isTimesTen; 

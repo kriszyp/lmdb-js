@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include "slap.h"
+#include "ldap_pvt.h"
 #include "back-sql.h"
 #include "sql-wrap.h"
 #include "schema-map.h"
@@ -238,8 +239,7 @@ backsql_db_open(
 	}
 	
 	tmp.c_connid =- 1;
-	dbh = backsql_get_db_conn( bd, &tmp );
-	if ( !dbh ) {
+	if ( backsql_get_db_conn( bd, &tmp, &dbh ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"connection failed, exiting\n", 0, 0, 0 );
 		return 1;

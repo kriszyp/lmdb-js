@@ -17,6 +17,8 @@
 #include "ac/ctype.h"
 #include "ac/stdarg.h"
 #include "slap.h"
+#include "lber_pvt.h"
+#include "ldap_pvt.h"
 #include "back-sql.h"
 #include "schema-map.h"
 #include "util.h"
@@ -39,6 +41,13 @@ char backsql_id_query[] = "SELECT id,keyval,oc_map_id FROM ldap_entries WHERE ";
 
 /* TimesTen */
 char backsql_check_dn_ru_query[] = "SELECT dn_ru from ldap_entries";
+
+/*
+ * Frequently used constants
+ */
+struct berval 
+	bv_n_objectclass	= BER_BVC("objectclass"),
+	bv_n_0_10		= BER_BVC("0.10");
 
 struct berval *
 backsql_strcat( struct berval *dest, int *buflen, ... )
@@ -108,9 +117,8 @@ backsql_strcat( struct berval *dest, int *buflen, ... )
 int
 backsql_entry_addattr(
 	Entry		*e,
-	char		*at_name,
-	char		*at_val, 
-	unsigned int	at_val_len )
+	struct berval	*at_name,
+	struct berval	*at_val )
 {
 	struct berval		add_val[ 2 ];
 	AttributeDescription	*ad;
@@ -118,18 +126,18 @@ backsql_entry_addattr(
 	const char		*text;
 
 	Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(): "
-		"at_name='%s', at_val='%s'\n", at_name, at_val, 0 );
-	add_val[ 0 ].bv_val = at_val;
-	add_val[ 0 ].bv_len = at_val_len;
+		"at_name='%s', at_val='%s'\n", 
+		at_name->bv_val, at_val->bv_val, 0 );
+	add_val[ 0 ] = *at_val;
 	add_val[ 1 ].bv_val = NULL;
 	add_val[ 1 ].bv_len = 0;
 
 	ad = NULL;
-	rc = slap_str2ad( at_name, &ad, &text );
+	rc = slap_bv2ad( at_name, &ad, &text );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(): "
 			"failed to find AttributeDescription for '%s'\n",
-			at_name, 0, 0 );
+			at_name->bv_val, 0, 0 );
 		return 0;
 	}
 
@@ -138,7 +146,7 @@ backsql_entry_addattr(
 	if ( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(): "
 			"failed to merge value '%s' for attribute '%s'\n",
-			at_val, at_name, 0 );
+			at_val->bv_val, at_name->bv_val, 0 );
 		return 0;
 	}
 	

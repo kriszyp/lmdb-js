@@ -18,12 +18,6 @@
 #include "sql-wrap.h"
 
 int
-backsql_dummy( void )
-{
-	return 0;
-}
-
-int
 backsql_compare(
 	BackendDB	*bd,
 	Connection	*conn,

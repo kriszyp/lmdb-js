@@ -15,7 +15,7 @@
 
 typedef struct {
 	SWORD		ncols;
-	char		**col_names;
+	BerVarray	col_names;
 	UDWORD		*col_prec;
 	char		**cols;
 	SQLINTEGER	*is_null;

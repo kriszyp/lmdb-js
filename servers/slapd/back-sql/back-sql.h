@@ -35,7 +35,7 @@ typedef struct {
 	char		*upper_func;
 	char		*strcast_func;
 	Avlnode		*db_conns;
-	Avlnode		*oc_by_name;
+	Avlnode		*oc_by_oc;
 	Avlnode		*oc_by_id;
 	int		schema_loaded;
 	ldap_pvt_thread_mutex_t		dbconn_mutex;

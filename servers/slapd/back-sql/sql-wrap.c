@@ -14,8 +14,8 @@
 #include <stdio.h>
 #include "ac/string.h"
 #include <sys/types.h>
-#include "ldap_pvt.h"
 #include "slap.h"
+#include "ldap_pvt.h"
 #include "back-sql.h"
 #include "sql-types.h"
 #include "sql-wrap.h"
@@ -27,8 +27,6 @@ typedef struct backsql_conn {
 	int		ldap_cid;
 	SQLHDBC		dbh;
 } backsql_db_conn;
-
-int backsql_dummy( void *, void * );
 
 void
 backsql_PrintErrors( SQLHENV henv, SQLHDBC hdbc, SQLHSTMT sth, int rc )
@@ -70,14 +68,15 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 	Debug( LDAP_DEBUG_TRACE, "==>_SQLPrepare()\n", 0, 0, 0 );
 #endif
 
-	SQLGetInfo( dbh, SQL_DRIVER_NAME, drv_name, 30, &len );
+	SQLGetInfo( dbh, SQL_DRIVER_NAME, drv_name, sizeof( drv_name ), &len );
 
 #if 0
 	Debug( LDAP_DEBUG_TRACE, "_SQLPrepare(): driver name='%s'\n",
 			drv_name, 0, 0 );
 #endif
-	
-	if ( !strncmp( ldap_pvt_str2upper( drv_name ), "SQLSRV32.DLL", 30 ) ) {
+
+	ldap_pvt_str2upper( drv_name );
+	if ( !strncmp( drv_name, "SQLSRV32.DLL", sizeof( drv_name ) ) ) {
 		/*
 		 * stupid default result set in MS SQL Server
 		 * does not support multiple active statements
@@ -91,7 +90,8 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 				SQL_CONCUR_ROWVER );
 		if ( rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO ) {
 			Debug( LDAP_DEBUG_TRACE, "_SQLPrepare(): "
-				"SQLSetStmtOption(SQL_CONCURRENCY,SQL_CONCUR_ROWVER) failed:\n", 
+				"SQLSetStmtOption(SQL_CONCURRENCY,"
+				"SQL_CONCUR_ROWVER) failed:\n", 
 				0, 0, 0 );
 			backsql_PrintErrors( SQL_NULL_HENV, dbh, *sth, rc );
 		}
@@ -116,6 +116,9 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 }
 
 #if 0
+/*
+ * Turned into macros --- see sql-wrap.h
+ */
 RETCODE
 backsql_BindParamStr( SQLHSTMT sth, int par_ind, char *str, int maxlen )
 {
@@ -168,19 +171,20 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 			"ncols=%d\n", (int)row->ncols, 0, 0 );
 #endif
 
-		row->col_names = (char **)ch_calloc( row->ncols, 
+		row->col_names = (BerVarray)ch_calloc( row->ncols + 1, 
+				sizeof( struct berval ) );
+		row->cols = (char **)ch_calloc( row->ncols + 1, 
 				sizeof( char * ) );
-		row->cols = (char **)ch_calloc( row->ncols, sizeof( char * ) );
 		row->col_prec = (UDWORD *)ch_calloc( row->ncols,
 				sizeof( UDWORD ) );
 		row->is_null = (SQLINTEGER *)ch_calloc( row->ncols,
 				sizeof( SQLINTEGER ) );
 		for ( i = 1; i <= row->ncols; i++ ) {
 			rc = SQLDescribeCol( sth, (SQLSMALLINT)i, &colname[ 0 ],
-					(SQLUINTEGER)sizeof( colname ) - 1,
+					(SQLUINTEGER)( sizeof( colname ) - 1 ),
 					&name_len, &col_type,
 					&col_prec, &col_scale, &col_null );
-			row->col_names[ i - 1 ] = ch_strdup( colname );
+			ber_str2bv( colname, 0, 1, &row->col_names[ i - 1 ] );
 #if 0
 			Debug( LDAP_DEBUG_TRACE, "backsql_BindRowAsStrings: "
 				"col_name=%s, col_prec[%d]=%d\n",
@@ -220,6 +224,10 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 						&row->is_null[ i - 1 ] );
 			}
 		}
+
+		row->col_names[ i - 1 ].bv_val = NULL;
+		row->col_names[ i - 1 ].bv_len = 0;
+		row->cols[ i - 1 ] = NULL;
 	}
 #if 0
 	Debug( LDAP_DEBUG_TRACE, "<== backsql_BindRowAsStrings()\n", 0, 0, 0 );
@@ -231,28 +239,19 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 RETCODE
 backsql_FreeRow( BACKSQL_ROW_NTS *row )
 {
-	int	i;
-
 	if ( row->cols == NULL ) {
 		return SQL_ERROR;
 	}
 
-	for ( i = 0; i < row->ncols; i++ ) {
-		/*
-		 * FIXME: we need to free the col_names as well, don't we?
-		 */
-		free( row->cols[ i ] );
-	}
-
-	free( row->col_names );
+	ber_bvarray_free( row->col_names );
+	charray_free( row->cols );
 	free( row->col_prec );
-	free( row->cols );
 	free( row->is_null );
 
 	return SQL_SUCCESS;
 }
 
-int
+static int
 backsql_cmp_connid( backsql_db_conn *c1, backsql_db_conn *c2 )
 {
 	if ( c1->ldap_cid > c2->ldap_cid ) {
@@ -266,13 +265,19 @@ backsql_cmp_connid( backsql_db_conn *c1, backsql_db_conn *c2 )
 	return 0;
 }
 
-int
+static int
 backsql_close_db_conn( backsql_db_conn *conn )
 {
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_close_db_conn()\n", 0, 0, 0 );
 
+	/*
+	 * Default transact is SQL_ROLLBACK; commit is required only
+	 * by write operations, and it is explicitly performed after
+	 * each atomic operation succeeds.
+	 */
+
 	/* TimesTen */
-	SQLTransact( SQL_NULL_HENV, conn->dbh, SQL_COMMIT );
+	SQLTransact( SQL_NULL_HENV, conn->dbh, SQL_ROLLBACK );
 	SQLDisconnect( conn->dbh );
 	SQLFreeConnect( conn->dbh );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_close_db_conn()\n", 0, 0, 0 );
@@ -314,24 +319,27 @@ backsql_free_db_env( backsql_info *si )
 	return SQL_SUCCESS;
 }
 
-backsql_db_conn *
-backsql_open_db_conn( backsql_info *si, int ldap_cid )
+static int
+backsql_open_db_conn( backsql_info *si, int ldap_cid, backsql_db_conn **pdbc )
 {
 	/* TimesTen */
 	char			DBMSName[ 32 ];
 	backsql_db_conn		*dbc;
 	int			rc;
+
+	assert( pdbc );
+	*pdbc = NULL;
  
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_open_db_conn()\n", 0, 0, 0 );
 	dbc = (backsql_db_conn *)ch_calloc( 1, sizeof( backsql_db_conn ) );
 	dbc->ldap_cid = ldap_cid;
 	rc = SQLAllocConnect( si->db_env, &dbc->dbh );
-	if (!BACKSQL_SUCCESS( rc ) ) {
+	if ( !BACKSQL_SUCCESS( rc ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
 			"SQLAllocConnect() failed:\n", 0, 0, 0 );
 		backsql_PrintErrors( si->db_env, SQL_NULL_HDBC,
 				SQL_NULL_HENV, rc );
-		return NULL;
+		return LDAP_UNAVAILABLE;
 	}
 
 	rc = SQLConnect( dbc->dbh, si->dbname, SQL_NTS, si->dbuser, 
@@ -344,7 +352,7 @@ backsql_open_db_conn( backsql_info *si, int ldap_cid )
 			"succeeded with info" : "failed" );
 		backsql_PrintErrors( si->db_env, dbc->dbh, SQL_NULL_HENV, rc );
 		if ( rc != SQL_SUCCESS_WITH_INFO ) {
-			return NULL;
+			return LDAP_UNAVAILABLE;
 		}
 	}
 
@@ -379,12 +387,13 @@ backsql_open_db_conn( backsql_info *si, int ldap_cid )
 	Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(): "
 		"connected, adding to tree\n", 0, 0, 0 );
 	ldap_pvt_thread_mutex_lock( &si->dbconn_mutex );
-	avl_insert( &si->db_conns, dbc, (AVL_CMP)backsql_cmp_connid,
-			backsql_dummy );
+	avl_insert( &si->db_conns, dbc, (AVL_CMP)backsql_cmp_connid, NULL );
 	ldap_pvt_thread_mutex_unlock( &si->dbconn_mutex );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_open_db_conn()\n", 0, 0, 0 );
 
-	return dbc;
+	*pdbc = dbc;
+
+	return LDAP_SUCCESS;
 }
 
 int
@@ -413,14 +422,18 @@ backsql_free_db_conn( Backend *be, Connection *ldapc )
 	return SQL_SUCCESS;
 }
 
-SQLHDBC
-backsql_get_db_conn( Backend *be, Connection *ldapc )
+int
+backsql_get_db_conn( Backend *be, Connection *ldapc, SQLHDBC *dbh )
 {
 	backsql_info		*si = (backsql_info *)be->be_private;
 	backsql_db_conn		*dbc;
 	backsql_db_conn		tmp;
+	int			rc = LDAP_SUCCESS;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_get_db_conn()\n", 0, 0, 0 );
+
+	assert( dbh );
+	*dbh = SQL_NULL_HDBC;
 
 	tmp.ldap_cid = ldapc->c_connid;
 
@@ -431,25 +444,33 @@ backsql_get_db_conn( Backend *be, Connection *ldapc )
 	dbc = (backsql_db_conn *)avl_find( si->db_conns, &tmp,
 			(AVL_CMP)backsql_cmp_connid );
 	if ( !dbc ) {
-		dbc = backsql_open_db_conn( si, ldapc->c_connid );
+		rc = backsql_open_db_conn( si, ldapc->c_connid, &dbc );
+		if ( rc != LDAP_SUCCESS) {
+			Debug( LDAP_DEBUG_TRACE, "backsql_get_db_conn(): "
+				"could not get connection handle "
+				"-- returning NULL\n", 0, 0, 0 );
+			return rc;
+		}
 	}
- 
-	if ( !dbc ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_get_db_conn(): "
-			"could not get connection handle -- returning NULL\n",
-			0, 0, 0 );
-		return SQL_NULL_HDBC;
-	}
+
 	ldap_pvt_thread_mutex_lock( &si->schema_mutex );
 	if ( !si->schema_loaded ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_db_conn(): "
 			"first call -- reading schema map\n", 0, 0, 0 );
-		backsql_load_schema_map( si, dbc->dbh );
+		rc = backsql_load_schema_map( si, dbc->dbh );
+		if ( rc != LDAP_SUCCESS ) {
+			backsql_free_db_conn( be, ldapc );
+			return rc;
+		}
 	}
 	ldap_pvt_thread_mutex_unlock( &si->schema_mutex );
 
+	*dbh = dbc->dbh;
+
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_get_db_conn()\n", 0, 0, 0 );
-	return dbc->dbh;
+
+	return LDAP_SUCCESS;
 }
 
 #endif /* SLAPD_SQL */
+

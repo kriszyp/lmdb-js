@@ -182,7 +182,7 @@ backsql_get_attr_vals( backsql_at_map_rec *at, backsql_srch_info *bsi )
  
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_get_attr_vals(): "
 		"oc='%s' attr='%s' keyval=%ld\n",
-		bsi->oc->name, at->name, bsi->c_eid->keyval );
+		bsi->oc->name.bv_val, at->name.bv_val, bsi->c_eid->keyval );
 
 	rc = backsql_Prepare( bsi->dbh, &sth, at->query, 0 );
 	if ( rc != SQL_SUCCESS ) {
@@ -215,26 +215,28 @@ backsql_get_attr_vals( backsql_at_map_rec *at, backsql_srch_info *bsi )
 	for ( ; BACKSQL_SUCCESS( rc ); rc = SQLFetch( sth ) ) {
 		for ( i = 0; i < row.ncols; i++ ) {
 			if ( row.is_null[ i ] > 0 ) {
-       				backsql_entry_addattr( bsi->e, 
-						row.col_names[ i ],
-						row.cols[ i ],
+				struct berval	bv;
+
+				bv.bv_val = row.cols[ i ];
 #if 0
-						row.col_prec[ i ]
+				bv.bv_len = row.col_prec[ i ];
 #else
-						/*
-						 * FIXME: what if a binary 
-						 * is fetched?
-						 */
-						strlen( row.cols[ i ] )
+				/*
+				 * FIXME: what if a binary 
+				 * is fetched?
+				 */
+				bv.bv_len = strlen( row.cols[ i ] );
 #endif
-						);
+       				backsql_entry_addattr( bsi->e, 
+						&row.col_names[ i ], &bv );
+
 #if 0
 				Debug( LDAP_DEBUG_TRACE, "prec=%d\n",
 					(int)row.col_prec[ i ], 0, 0 );
 			} else {
       				Debug( LDAP_DEBUG_TRACE, "NULL value "
 					"in this row for attribute '%s'\n",
-					row.col_names[ i ], 0, 0 );
+					row.col_names[ i ].bv_val, 0, 0 );
 #endif
 			}
 		}
@@ -250,7 +252,7 @@ backsql_get_attr_vals( backsql_at_map_rec *at, backsql_srch_info *bsi )
 Entry *
 backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 {
-	char			**c_at_name;
+	int			i;
 	backsql_at_map_rec	*at;
 	int			rc;
 
@@ -261,7 +263,7 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 		return NULL;
 	}
 
-	bsi->oc = backsql_oc_with_id( bsi->bi, eid->oc_id );
+	bsi->oc = backsql_id2oc( bsi->bi, eid->oc_id );
 	bsi->e = e;
 	bsi->c_eid = eid;
 	e->e_attrs = NULL;
@@ -274,24 +276,31 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 	if ( bsi->attrs != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
 			"custom attribute list\n", 0, 0, 0 );
-		for ( c_at_name = bsi->attrs; *c_at_name != NULL; c_at_name++ ) {
-			if ( !strcasecmp( *c_at_name, "objectclass" ) 
-					|| !strcasecmp( *c_at_name, "0.10" ) ) {
+		for ( i = 0; bsi->attrs[ i ].an_name.bv_val; i++ ) {
+			AttributeName *attr = &bsi->attrs[ i ];
+
+			if ( attr->an_desc == slap_schema.si_ad_objectClass
+#if 0	/* FIXME: what is 0.10 ? */
+					|| !BACKSQL_NCMP( &attr->an_name, &bv_n_0_10 ) 
+#endif
+					) {
 #if 0
-				backsql_entry_addattr( bsi->e, "objectclass",
-						bsi->oc->name,
-						strlen( bsi->oc->name ) );
+				backsql_entry_addattr( bsi->e, 
+						&bv_n_objectclass,
+						&bsi->oc->name );
 #endif
 				continue;
 			}
-			at = backsql_at_with_name( bsi->oc, *c_at_name );
+
+			at = backsql_ad2at( bsi->oc, attr->an_desc );
 			if ( at != NULL ) {
     				backsql_get_attr_vals( at, bsi );
 			} else {
 				Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
 					"attribute '%s' is not defined "
 					"for objectlass '%s'\n",
-					*c_at_name, bsi->oc->name, 0 );
+					attr->an_name.bv_val, 
+					bsi->oc->name.bv_val, 0 );
 			}
 		}
 	} else {
@@ -301,8 +310,7 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 				bsi, 0, AVL_INORDER );
 	}
 
-	backsql_entry_addattr( bsi->e, "objectclass", bsi->oc->name,
-			strlen( bsi->oc->name ) );
+	backsql_entry_addattr( bsi->e, &bv_n_objectclass, &bsi->oc->name );
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_id2entry()\n", 0, 0, 0 );
 
