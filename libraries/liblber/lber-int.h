@@ -211,6 +211,22 @@ ber_log_sos_dump LDAP_P((
 	/* simple macros to realloc for now */
 extern BerMemoryFunctions*		ber_int_memory_fns;
 
+#ifdef CSRIMALLOC
+#define LBER_INT_MALLOC		malloc
+#define LBER_INT_CALLOC		calloc
+#define LBER_INT_REALLOC	realloc
+#define LBER_INT_FREE		free
+#define LBER_INT_VFREE		ber_memvfree
+#define LBER_INT_STRDUP		strdup
+
+#define LBER_MALLOC			malloc
+#define LBER_CALLOC			calloc
+#define LBER_REALLOC		realloc
+#define LBER_FREE			free
+#define LBER_VFREE			ber_memvfree
+#define LBER_STRDUP			strdup
+
+#else
 #define LBER_INT_MALLOC(s)		ber_memalloc((s))
 #define LBER_INT_CALLOC(n,s)	ber_memcalloc((n),(s))
 #define LBER_INT_REALLOC(p,s)	ber_memrealloc((p),(s))
@@ -224,6 +240,7 @@ extern BerMemoryFunctions*		ber_int_memory_fns;
 #define LBER_FREE(p)		ber_memfree((p))	
 #define LBER_VFREE(v)		ber_memvfree((void**)(v))
 #define LBER_STRDUP(s)		ber_strdup((s))
+#endif
 
 /* sockbuf.c */
 

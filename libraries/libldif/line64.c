@@ -25,6 +25,13 @@ int ldif_debug = 0;
 #define RIGHT4			0x0f
 #define CONTINUED_LINE_MARKER	'\001'
 
+#ifdef CSRIMALLOC
+#define ber_memalloc malloc
+#define ber_memcalloc calloc
+#define ber_memrealloc realloc
+#define ber_strdup strdup
+#endif
+
 static const char nib2b64[0x40] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 

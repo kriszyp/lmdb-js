@@ -53,7 +53,7 @@ test-nis-schema-bdb2:
 	fi
 
 clean-local:	FORCE
-	-$(RM) test-db/[!C]* test-repl/[!C]* *gmon *core
+	-$(RM) test-db/[!C]* test-repl/[!C]* *leak *gmon *core
 
 veryclean-local: FORCE
 	@-$(RM) data

@@ -115,6 +115,7 @@ int connections_destroy(void)
 
 	for ( i = 0; i < dtblsize; i++ ) {
 		if( connections[i].c_struct_state != SLAP_C_UNINITIALIZED ) {
+			ber_sockbuf_free( connections[i].c_sb );
 			ldap_pvt_thread_mutex_destroy( &connections[i].c_mutex );
 			ldap_pvt_thread_mutex_destroy( &connections[i].c_write_mutex );
 			ldap_pvt_thread_cond_destroy( &connections[i].c_write_cv );
