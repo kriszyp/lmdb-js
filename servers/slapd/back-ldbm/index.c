@@ -260,19 +260,14 @@ index_change_values(
 
 	
 	if (op == SLAP_INDEX_ADD_OP) {
-
 	    /* Add values */
-
 	    idl_funct =  idl_insert_key;
 	    mode = LDBM_WRCREAT;
 
 	} else {
-
 	    /* Delete values */
-
 	    idl_funct = idl_delete_key;
 	    mode = LDBM_WRITER;
-
 	}
 
 #ifndef SLAPD_SCHEMA_NOT_COMPAT
@@ -307,31 +302,25 @@ index_change_values(
 		return( -1 );
 	}
 
-
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	/* not yet implemented */
 #else
+	/*
+	 * presence index entry
+	 */
+	if ( indexmask & SLAP_INDEX_PRESENCE ) {
+		change_value( be, db, at_cn, SLAP_INDEX_PRESENCE,
+			"*", id, idl_funct );
+	}
+
+	if ( syntax & SYNTAX_BIN ) {
+		goto done;
+	}
+
 	for ( i = 0; vals[i] != NULL; i++ ) {
-		/*
-		 * presence index entry
-		 */
-		if ( indexmask & SLAP_INDEX_PRESENCE ) {
-
-			change_value( be, db, at_cn, SLAP_INDEX_PRESENCE,
-				      "*", id, idl_funct );
-
-		}
-
 		Debug( LDAP_DEBUG_TRACE,
-		       "index_change_values syntax 0x%x syntax bin 0x%x\n",
-		       syntax, SYNTAX_BIN, 0 );
-
-		if ( syntax & SYNTAX_BIN ) {
-
-			ldbm_cache_close( be, db );
-			return( 0 );
-
-		}
+		       "index_change_values syntax 0x%x\n",
+		       syntax, 0, 0 );
 
 		bigbuf = NULL;
 		len = vals[i]->bv_len;
@@ -355,10 +344,8 @@ index_change_values(
 		 * equality index entry
 		 */
 		if ( indexmask & SLAP_INDEX_EQUALITY ) {
-		    
 			change_value( be, db, at_cn, SLAP_INDEX_EQUALITY,
 				      val, id, idl_funct);
-
 		}
 
 		/*
@@ -424,8 +411,8 @@ index_change_values(
 	}
 #endif
 
+done:
 	ldbm_cache_close( be, db );
-
 	return( 0 );
 }
 
