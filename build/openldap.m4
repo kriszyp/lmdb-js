@@ -910,13 +910,31 @@ AC_DEFUN(OL_FUNC_CTIME_R_NARGS,
  [AC_CACHE_CHECK(number of arguments of ctime_r, ol_cv_func_ctime_r_nargs,
    [AC_TRY_COMPILE([#include <time.h>],
 		[time_t ti; char *buffer; ctime_r(&ti,buffer,32);],
-			ol_cv_func_ctime_r_nargs=3,
-			[AC_TRY_COMPILE([#include <time.h>],
-				[time_t ti; char *buffer; ctime_r(&ti,buffer);],
-					ol_cv_func_ctime_r_nargs=2,
-					ol_cv_func_ctime_r_nargs=0)])])
+			ol_cv_func_ctime_r_nargs3=yes,
+			ol_cv_func_ctime_r_nargs3=no)
+
+	AC_TRY_COMPILE([#include <time.h>],
+		[time_t ti; char *buffer; ctime_r(&ti,buffer);],
+			ol_cv_func_ctime_r_nargs2=yes,
+			ol_cv_func_ctime_r_nargs2=no)
+
+	if test $ol_cv_func_ctime_r_nargs3 = yes -a \
+		$ol_cv_func_ctime_r_nargs2 = no ; then
+
+		ol_cv_func_ctime_r_nargs=3
+
+	elif test $ol_cv_func_ctime_r_nargs3 = no -a \
+		$ol_cv_func_ctime_r_nargs2 = yes ; then
+
+		ol_cv_func_ctime_r_nargs=2
+
+	else
+		ol_cv_func_ctime_r_nargs=0
+	fi
+  ])
+
   if test $ol_cv_func_ctime_r_nargs -gt 1 ; then
-    AC_DEFINE_UNQUOTED(CTIME_R_NARGS, $ol_cv_func_ctime_r_nargs,
+ 	AC_DEFINE_UNQUOTED(CTIME_R_NARGS, $ol_cv_func_ctime_r_nargs,
 		[set to the number of arguments ctime_r() expects])
   fi
 ])dnl
