@@ -45,11 +45,11 @@ bdb2i_back_startup_internal(
 					DB_INIT_LOCK | DB_INIT_MPOOL );
 
 	/*  make sure, dbhome is an absolute path  */
-	if ( *lty->lty_dbhome != *DEFAULT_DIRSEP ) {
+	if ( *lty->lty_dbhome != *DIRSEP ) {
 		char   cwd[MAXPATHLEN];
 
 		(void) getcwd( cwd, MAXPATHLEN );
-		sprintf( cwd, "%s%s%s", cwd, DEFAULT_DIRSEP, lty->lty_dbhome );
+		sprintf( cwd, "%s%s%s", cwd, DIRSEP, lty->lty_dbhome );
 		free( lty->lty_dbhome );
 		lty->lty_dbhome = ch_strdup( cwd );
 
@@ -159,11 +159,11 @@ bdb2i_back_db_startup_internal(
 
 	/*  if the data directory is not an absolute path, have it relative
         to the current working directory (which should not be configured !)  */
-	if ( *li->li_directory != *DEFAULT_DIRSEP ) {
+	if ( *li->li_directory != *DIRSEP ) {
 		char   cwd[MAXPATHLEN];
 
 		(void) getcwd( cwd, MAXPATHLEN );
-		sprintf( cwd, "%s%s%s", cwd, DEFAULT_DIRSEP, li->li_directory );
+		sprintf( cwd, "%s%s%s", cwd, DIRSEP, li->li_directory );
 		free( li->li_directory );
 		li->li_directory = ch_strdup( cwd );
 

@@ -51,7 +51,7 @@ bdb2i_init_db_file_cache( struct ldbminfo *li, BDB2_TXN_FILES *fileinfo )
 
 	fileinfo->dbc_refcnt = 1;
 
-	sprintf( buf, "%s%s%s", li->li_directory, DEFAULT_DIRSEP,
+	sprintf( buf, "%s%s%s", li->li_directory, DIRSEP,
 					fileinfo->dbc_name );
 	if ( stat( buf, &st ) == 0 ) {
 		fileinfo->dbc_blksize = st.st_blksize;
@@ -134,7 +134,7 @@ bdb2i_txn_attr_config(
 
 				/*  re-use filename to get the complete path  */
 				sprintf( fileName, "%s%s%s",
-							li->li_directory, DEFAULT_DIRSEP, p->dbc_name );
+							li->li_directory, DIRSEP, p->dbc_name );
 
 				/*  since we have an mpool, we should not define a cache size */
 				p->dbc_db = bdb2i_db_open( fileName, DB_TYPE,
@@ -181,7 +181,7 @@ bdb2i_open_nextid( BackendDB *be )
 	char            fileName[MAXPATHLEN];
 
 	sprintf( fileName, "%s%s%s",
-				li->li_directory, DEFAULT_DIRSEP, NEXTID_NAME );
+				li->li_directory, DIRSEP, NEXTID_NAME );
 
 	/*  try to open the file for read and write  */
 	memset( &dbinfo, 0, sizeof( dbinfo ));
@@ -225,7 +225,7 @@ bdb2i_txn_open_files( BackendDB *be )
 		char   fileName[MAXPATHLEN];
 
 		sprintf( fileName, "%s%s%s",
-					li->li_directory, DEFAULT_DIRSEP, dbFile->dbc_name );
+					li->li_directory, DIRSEP, dbFile->dbc_name );
 
 		/*  since we have an mpool, we should not define a cache size */
 		dbFile->dbc_db = bdb2i_db_open( fileName, DB_TYPE,
