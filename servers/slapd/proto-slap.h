@@ -768,7 +768,10 @@ LDAP_SLAPD_F (int)	krbv4_ldap_auth();
  * Other...
  */
 #define SLAP_SB_MAX_INCOMING_DEFAULT (1<<18 - 1)
+#define SLAP_SB_MAX_INCOMING_AUTH (1<<24 - 1)
+
 LDAP_SLAPD_F (ber_len_t) sockbuf_max_incoming;
+LDAP_SLAPD_F (ber_len_t) sockbuf_max_incoming_auth;
 
 LDAP_SLAPD_F (slap_mask_t)	global_restrictops;
 LDAP_SLAPD_F (slap_mask_t)	global_allows;

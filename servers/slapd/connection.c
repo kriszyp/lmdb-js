@@ -488,6 +488,11 @@ void connection2anonymous( Connection *c )
     assert( connections != NULL );
     assert( c != NULL );
 
+	{
+		ber_len_t max = sockbuf_max_incoming;
+		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
+	}
+
 	if(c->c_authmech != NULL ) {
 		free(c->c_authmech);
 		c->c_authmech = NULL;

@@ -241,12 +241,20 @@ do_bind(
 
 		if( rc == LDAP_SUCCESS ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+
 			conn->c_dn = edn;
 			conn->c_authmech = mech;
 			conn->c_sasl_ssf = ssf;
 			if( ssf > conn->c_ssf ) {
 				conn->c_ssf = ssf;
 			}
+
+			if( conn->c_dn != NULL ) {
+				ber_len_t max = sockbuf_max_incoming;
+				ber_sockbuf_ctrl( conn->c_sb,
+					LBER_SB_OPT_SET_MAX_INCOMING, &max );
+			}
+
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 		} else if ( rc == LDAP_SASL_BIND_IN_PROGRESS ) {
@@ -405,6 +413,12 @@ do_bind(
 			} else {
 				conn->c_dn = ndn;
 				ndn = NULL;
+			}
+
+			if( conn->c_dn != NULL ) {
+				ber_len_t max = sockbuf_max_incoming;
+				ber_sockbuf_ctrl( conn->c_sb,
+					LBER_SB_OPT_SET_MAX_INCOMING, &max );
 			}
 
 			Debug( LDAP_DEBUG_TRACE, "do_bind: v%d bind: \"%s\" to \"%s\"\n",
