@@ -53,30 +53,11 @@ do_bind(
 	mech = NULL;
 	cred.bv_val = NULL;
 
-	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-
 	/*
 	 * Force to connection to "anonymous" until bind succeeds.
 	 */
-
-	if ( conn->c_authmech != NULL ) {
-		free( conn->c_authmech );
-		conn->c_authmech = NULL;
-	}
-
-	if ( conn->c_cdn != NULL ) {
-		free( conn->c_cdn );
-		conn->c_cdn = NULL;
-	}
-
-	if ( conn->c_dn != NULL ) {
-		free( conn->c_dn );
-		conn->c_dn = NULL;
-	}
-
-	conn->c_authc_backend = NULL;
-	conn->c_authz_backend = NULL;
-
+	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+	connection2anonymous( conn );
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 	if ( op->o_dn != NULL ) {

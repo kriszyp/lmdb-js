@@ -286,6 +286,8 @@ LDAP_SLAPD_F (Connection *) connection_first LDAP_P((ber_socket_t *));
 LDAP_SLAPD_F (Connection *) connection_next LDAP_P((Connection *, ber_socket_t *));
 LDAP_SLAPD_F (void) connection_done LDAP_P((Connection *));
 
+LDAP_SLAPD_F (void) connection2anonymous LDAP_P((Connection *));
+
 /*
  * dn.c
  */
@@ -753,6 +755,7 @@ LDAP_SLAPD_F (int)	krbv4_ldap_auth();
  */
 
 LDAP_SLAPD_F (slap_mask_t)	global_restrictops;
+LDAP_SLAPD_F (slap_mask_t)	global_allows;
 LDAP_SLAPD_F (slap_mask_t)	global_disallows;
 LDAP_SLAPD_F (slap_mask_t)	global_requires;
 LDAP_SLAPD_F (slap_ssf_set_t)	global_ssf_set;

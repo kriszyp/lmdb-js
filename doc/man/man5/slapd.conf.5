@@ -72,6 +72,13 @@ attributes (specified by <what>) by one or more requestors (specified
 by <who>).
 See the "OpenLDAP's Administrator's Guide" for details.
 .TP
+.B allow <features>
+Specify a set of features (separated by white space) to allow.
+.B tls_2_anon
+allows Start TLS to force session to anonymous status (see also
+.B disallow
+.BR tls_authc ).
+.TP
 .B argsfile <filename>
 The ( absolute ) name of a file that will hold the 
 .B slapd
@@ -136,6 +143,10 @@ disables anonymous bind creditials are not empty (e.g. when
 DN is empty).
 .B bind_anon_dn
 disables anonymous bind when DN is not empty.
+.B tls_authc
+disables StartTLS if authenticated (see also
+.B allow
+.BR tls_2_anon ).
 .TP
 .B idletimeout <integer>
 Specify the number of seconds to wait before forcibly closing

@@ -473,6 +473,30 @@ long connection_init(
     return id;
 }
 
+void connection2anonymous( Connection *c )
+{
+    assert( connections != NULL );
+    assert( c != NULL );
+
+	if(c->c_authmech != NULL ) {
+		free(c->c_authmech);
+		c->c_authmech = NULL;
+	}
+
+    if(c->c_dn != NULL) {
+        free(c->c_dn);
+        c->c_dn = NULL;
+    }
+
+	if(c->c_cdn != NULL) {
+		free(c->c_cdn);
+		c->c_cdn = NULL;
+	}
+
+	c->c_authc_backend = NULL;
+	c->c_authz_backend = NULL;
+}
+
 static void
 connection_destroy( Connection *c )
 {
@@ -492,22 +516,13 @@ connection_destroy( Connection *c )
 
     c->c_activitytime = c->c_starttime = 0;
 
-	if(c->c_authmech != NULL ) {
-		free(c->c_authmech);
-		c->c_authmech = NULL;
-	}
-    if(c->c_dn != NULL) {
-        free(c->c_dn);
-        c->c_dn = NULL;
-    }
-	if(c->c_cdn != NULL) {
-		free(c->c_cdn);
-		c->c_cdn = NULL;
-	}
+	connection2anonymous( c );
+
 	if(c->c_listener_url != NULL) {
 		free(c->c_listener_url);
 		c->c_listener_url = NULL;
 	}
+
 	if(c->c_peer_domain != NULL) {
 		free(c->c_peer_domain);
 		c->c_peer_domain = NULL;

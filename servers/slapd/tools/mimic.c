@@ -152,3 +152,7 @@ char * slap_sasl_secprops( const char *in )
 	return NULL;
 }
 
+void connection2anonymous( Connection *c )
+{
+	assert(0);
+}

@@ -26,6 +26,7 @@ int		deftime = SLAPD_DEFAULT_TIMELIMIT;
 AccessControl	*global_acl = NULL;
 slap_access_t		global_default_access = ACL_READ;
 slap_mask_t		global_restrictops = 0;
+slap_mask_t		global_allows = 0;
 slap_mask_t		global_disallows = 0;
 slap_mask_t		global_requires = 0;
 slap_ssf_set_t	global_ssf_set;
@@ -506,6 +507,41 @@ read_config( const char *fname )
 			}
 
 
+		/* allow these features */
+		} else if ( strcasecmp( cargv[0], "allows" ) == 0 ||
+			strcasecmp( cargv[0], "allow" ) == 0 )
+		{
+			slap_mask_t	allows;
+
+			if ( be != NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+"%s: line %d: allow line must appear prior to database definitions\n",
+				    fname, lineno, 0 );
+			}
+
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing feature(s) in \"allow <features>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+
+			allows = 0;
+
+			for( i=1; i < cargc; i++ ) {
+				if( strcasecmp( cargv[i], "tls_2_anon" ) == 0 ) {
+					allows |= SLAP_ALLOW_TLS_2_ANON;
+
+				} else if( strcasecmp( cargv[i], "none" ) != 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+		    "%s: line %d: unknown feature %s in \"allow <features>\" line\n",
+					    fname, lineno, cargv[i] );
+					return( 1 );
+				}
+			}
+
+			global_allows = allows;
+
 		/* disallow these features */
 		} else if ( strcasecmp( cargv[0], "disallows" ) == 0 ||
 			strcasecmp( cargv[0], "disallow" ) == 0 )
@@ -520,7 +556,7 @@ read_config( const char *fname )
 
 			if ( cargc < 2 ) {
 				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing feature(s) in \"disallows <features>\" line\n",
+	    "%s: line %d: missing feature(s) in \"disallow <features>\" line\n",
 				    fname, lineno, 0 );
 				return( 1 );
 			}
@@ -539,6 +575,9 @@ read_config( const char *fname )
 
 				} else if( strcasecmp( cargv[i], "bind_anon_dn" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_BIND_ANON_DN;
+
+				} else if( strcasecmp( cargv[i], "tls_authc" ) == 0 ) {
+					disallows |= SLAP_DISALLOW_TLS_AUTHC;
 
 				} else if( strcasecmp( cargv[i], "none" ) != 0 ) {
 					Debug( LDAP_DEBUG_ANY,
