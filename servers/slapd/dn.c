@@ -393,7 +393,8 @@ dnNormalize2(
 		/*
 		 * Back to string representation
 		 */
-		rc = ldap_dn2bv( dn, out, LDAP_DN_FORMAT_LDAPV3 );
+		rc = ldap_dn2bv( dn, out,
+			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY );
 
 		ldap_dnfree( dn );
 
@@ -561,7 +562,8 @@ dnPrettyNormal(
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		rc = ldap_dn2bv( dn, normal, LDAP_DN_FORMAT_LDAPV3 );
+		rc = ldap_dn2bv( dn, normal,
+			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY );
 
 		ldap_dnfree( dn );
 		if ( rc != LDAP_SUCCESS ) {
@@ -674,7 +676,9 @@ dnExtractRdn(
 		return rc;
 	}
 
-	rc = ldap_rdn2bv( tmpRDN, rdn, LDAP_DN_FORMAT_LDAPV3 );
+	rc = ldap_rdn2bv( tmpRDN, rdn,
+		LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_FORMAT_PRETTY );
+
 	ldap_rdnfree( tmpRDN );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
