@@ -18,7 +18,11 @@
 #include <ldap_cdefs.h>
 #include <ac/bytes.h>
 
+#undef AC_INT4_TYPE
+#ifdef AC_INT4_TYPE
+
 LDAP_BEGIN_DECL
+
 
 /*
  * SHA-1 in C
@@ -64,5 +68,7 @@ lutil_SHA1Data
 	LDAP_P((const unsigned char *, size_t, char *));
 
 LDAP_END_DECL
+
+#endif /* AC_INT4_TYPE */
 
 #endif /* _LUTIL_SHA1_H_ */

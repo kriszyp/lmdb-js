@@ -24,7 +24,8 @@
 #	elif SIZEOF_SHORT == 4
 #		define AC_INT4_TYPE short
 #	else
-#		error "AC_INT4_TYPE?"
+/* used by SHA-1, but commented out */
+/* #	error "AC_INT2_TYPE?" */
 #	endif
 #endif
 
