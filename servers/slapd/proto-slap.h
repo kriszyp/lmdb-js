@@ -1039,6 +1039,8 @@ LDAP_SLAPD_V (AccessControl *) global_acl;
 
 LDAP_SLAPD_V (ber_socket_t)	dtblsize;
 
+LDAP_SLAPD_V (int)		use_reverse_lookup;
+
 /*
  * operations
  */

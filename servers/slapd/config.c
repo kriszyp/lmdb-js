@@ -59,6 +59,12 @@ int nSaslRegexp = 0;
 SaslRegexp_t *SaslRegexp = NULL;
 int sasl_external_x509dn_convert;
 
+#ifdef SLAPD_RLOOKUPS
+int use_reverse_lookup = 1;
+#else /* !SLAPD_RLOOKUPS */
+int use_reverse_lookup = 0;
+#endif /* !SLAPD_RLOOKUPS */
+
 static char	*fp_getline(FILE *fp, int *lineno);
 static void	fp_getline_init(int *lineno);
 static int	fp_parse_line(char *line, int *argcp, char **argv);
@@ -2239,6 +2245,54 @@ read_config( const char *fname )
 				return rc;
 
 #endif
+
+		} else if ( !strcasecmp( cargv[0], "reverse-lookup" ) ) {
+#ifdef SLAPD_RLOOKUPS
+			if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+					   "%s: line %d: reverse-lookup: "
+					   "missing \"on\" or \"off\"\n",
+					   fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+"%s: line %d: reverse-lookup: missing \"on\" or \"off\"\n",
+		   			fname, lineno, 0 );
+#endif
+				return( 1 );
+			}
+
+			if ( !strcasecmp( cargv[1], "on" ) ) {
+				use_reverse_lookup = 1;
+			} else if ( !strcasecmp( cargv[1], "off" ) ) {
+				use_reverse_lookup = 0;
+			} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+					   "%s: line %d: reverse-lookup: "
+					   "must be \"on\" (default) "
+					   "or \"off\"\n",
+					   fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+"%s: line %d: reverse-lookup: must be \"on\" (default) or \"off\"\n",
+		   			fname, lineno, 0 );
+#endif
+				return( 1 );
+			}
+
+#else /* !SLAPD_RLOOKUPS */
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+				   "%s: line %d: reverse lookups "
+				   "are not configured (ignored).\n",
+				   fname, lineno ));
+#else
+			Debug( LDAP_DEBUG_ANY,
+"%s: line %d: reverse lookups are not configured (ignored).\n",
+		   		fname, lineno, 0 );
+#endif
+#endif /* !SLAPD_RLOOKUPS */
 
 		/* pass anything else to the current backend info/db config routine */
 		} else {

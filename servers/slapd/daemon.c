@@ -330,102 +330,6 @@ static int get_url_perms(
 		if ( strncasecmp( type, LDAPI_MOD_URLEXT "=", sizeof(LDAPI_MOD_URLEXT "=") - 1 ) == 0 ) {
 			char 	*value = type + sizeof(LDAPI_MOD_URLEXT "=") - 1;
 			mode_t	p = 0;
-
-#if 0
-			if ( strlen( value ) != 9 ) {
-				return LDAP_OTHER;
-			}
-
-			switch ( value[ 0 ] ) {
-			case 'r':
-				p |= S_IRUSR;
-				break;
-			case '-':
-				break;
-			default:
-				return LDAP_OTHER;
-			} 
-
-			switch ( value[ 1 ] ) {
-			case 'w':
-				p |= S_IWUSR;
-				break;
-			case '-':
-				break;
-			default:
-				return LDAP_OTHER;
-			} 
-
-			switch ( value[ 2 ] ) {
-			case 'x':
-				p |= S_IXUSR;
-				break;
-			case '-':
-				break;
-			default:
-				return LDAP_OTHER;
-			} 
-
-			switch ( value[ 3 ] ) {
-			case 'r':
-				p |= S_IRGRP;
-				break;
-			case '-':
-				break;
-			default:
-				return LDAP_OTHER;
-			} 
-
-			switch ( value[ 4 ] ) {
-			case 'w':
-				p |= S_IWGRP;
-				break;
-			case '-':
-				break;
-			default:
-				return LDAP_OTHER;
-			} 
-
-			switch ( value[ 5 ] ) {
-			case 'x':
-				p |= S_IXGRP;
-				break;
-			case '-':
-				break;
-			default:
-				return LDAP_OTHER;
-			} 
-
-			switch ( value[ 6 ] ) {
-			case 'r':
-				p |= S_IROTH;
-				break;
-			case '-':
-				break;
-			default:
-				return LDAP_OTHER;
-			} 
-
-			switch ( value[ 7 ] ) {
-			case 'w':
-				p |= S_IWOTH;
-				break;
-			case '-':
-				break;
-			default:
-				return LDAP_OTHER;
-			} 
-
-			switch ( value[ 8 ] ) {
-			case 'x':
-				p |= S_IXOTH;
-				break;
-			case '-':
-				break;
-			default:
-				return LDAP_OTHER;
-			} 
-#else
 			int 	j;
 
 			if ( strlen(value) != 3 ) {
@@ -446,7 +350,6 @@ static int get_url_perms(
 					return LDAP_OTHER;
 				}
 			} 
-#endif
 
 			*crit = c;
 			*perms = p;
@@ -1518,19 +1421,21 @@ slapd_daemon_task(
 #endif
 			) {
 #ifdef SLAPD_RLOOKUPS
+				if ( use_reverse_lookup ) {
 #  ifdef LDAP_PF_INET6
-				if ( from.sa_addr.sa_family == AF_INET6 )
-					hp = gethostbyaddr(
-						(char *)&(from.sa_in6_addr.sin6_addr),
-						sizeof(from.sa_in6_addr.sin6_addr),
-						AF_INET6 );
-				else
+					if ( from.sa_addr.sa_family == AF_INET6 )
+						hp = gethostbyaddr(
+							(char *)&(from.sa_in6_addr.sin6_addr),
+							sizeof(from.sa_in6_addr.sin6_addr),
+							AF_INET6 );
+					else
 #  endif /* LDAP_PF_INET6 */
-				hp = gethostbyaddr(
-					(char *) &(from.sa_in_addr.sin_addr),
-					sizeof(from.sa_in_addr.sin_addr),
-					AF_INET );
-				dnsname = hp ? ldap_pvt_str2lower( hp->h_name ) : NULL;
+					hp = gethostbyaddr(
+						(char *) &(from.sa_in_addr.sin_addr),
+						sizeof(from.sa_in_addr.sin_addr),
+						AF_INET );
+					dnsname = hp ? ldap_pvt_str2lower( hp->h_name ) : NULL;
+				}
 #else
 				dnsname = NULL;
 #endif /* SLAPD_RLOOKUPS */
