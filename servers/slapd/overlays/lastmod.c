@@ -33,12 +33,14 @@ typedef struct lastmod_info_t {
 	struct berval		lmi_rdnvalue;
 	Entry			*lmi_e;
 	ldap_pvt_thread_mutex_t	lmi_entry_mutex;
+	int			lmi_enabled;
 } lastmod_info_t;
 
 struct lastmod_schema_t {
 	ObjectClass		*lms_oc_lastmod;
 	AttributeDescription	*lms_ad_lastmodDN;
 	AttributeDescription	*lms_ad_lastmodType;
+	AttributeDescription	*lms_ad_lastmodEnabled;
 } lastmod_schema;
 
 enum lastmodType_e {
@@ -78,7 +80,7 @@ static struct m_s {
 			"$ description "
 			"$ seeAlso "
 		") )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
-		offsetof(struct lastmod_schema_t, lms_oc_lastmod) },
+		offsetof( struct lastmod_schema_t, lms_oc_lastmod ) },
 	{ NULL }
 }, mat[] = {
 	{ "lastmodDN", "( 1.3.6.1.4.1.4203.666.1.28"
@@ -88,7 +90,7 @@ static struct m_s {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
 		"NO-USER-MODIFICATION "
 		"USAGE directoryOperation )", SLAP_AT_HIDE,
-		offsetof(struct lastmod_schema_t, lms_ad_lastmodDN) },
+		offsetof( struct lastmod_schema_t, lms_ad_lastmodDN ) },
 	{ "lastmodType", "( 1.3.6.1.4.1.4203.666.1.29"
 		"NAME 'lastmodType' "
 		"DESC 'Type of last modification' "
@@ -98,6 +100,13 @@ static struct m_s {
 		"NO-USER-MODIFICATION "
 		"USAGE directoryOperation )", SLAP_AT_HIDE,
 		offsetof( struct lastmod_schema_t, lms_ad_lastmodType ) },
+	{ "lastmodEnabled", "( 1.3.6.1.4.1.4203.666.1.30"
+		"NAME 'lastmodEnabled' "
+		"DESC 'Lastmod overlay state' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
+		"EQUALITY booleanMatch "
+		"SINGLE-VALUE )", 0,
+		offsetof( struct lastmod_schema_t, lms_ad_lastmodEnabled ) },
 	{ NULL }
 };
 
@@ -207,11 +216,78 @@ lastmod_exop( Operation *op, SlapReply *rs )
 }
 
 static int
+lastmod_modify( Operation *op, SlapReply *rs )
+{
+	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
+	lastmod_info_t		*lmi = (lastmod_info_t *)on->on_bi.bi_private;
+	Modifications		*ml;
+
+	ldap_pvt_thread_mutex_lock( &lmi->lmi_entry_mutex );
+
+	if ( !acl_check_modlist( op, lmi->lmi_e, op->orm_modlist ) ) {
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		goto cleanup;
+	}
+
+	for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
+		Attribute	*a;
+
+		if ( ml->sml_desc != lastmod_schema.lms_ad_lastmodEnabled ) {
+			continue;
+		}
+
+		if ( ml->sml_op != LDAP_MOD_REPLACE ) {
+			rs->sr_text = "unsupported mod type";
+			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			goto cleanup;
+		}
+		
+		a = attr_find( lmi->lmi_e->e_attrs, ml->sml_desc );
+
+		if ( a == NULL ) {
+			rs->sr_text = "lastmod overlay internal error";
+			rs->sr_err = LDAP_OTHER;
+			goto cleanup;
+		}
+
+		ch_free( a->a_vals[ 0 ].bv_val );
+		ber_dupbv( &a->a_vals[ 0 ], &ml->sml_values[ 0 ] );
+		if ( a->a_nvals ) {
+			ch_free( a->a_nvals[ 0 ].bv_val );
+			if ( ml->sml_nvalues && !BER_BVISNULL( &ml->sml_nvalues[ 0 ] ) ) {
+				ber_dupbv( &a->a_nvals[ 0 ], &ml->sml_nvalues[ 0 ] );
+			} else {
+				ber_dupbv( &a->a_nvals[ 0 ], &ml->sml_values[ 0 ] );
+			}
+		}
+
+		if ( strcmp( ml->sml_values[ 0 ].bv_val, "TRUE" ) == 0 ) {
+			lmi->lmi_enabled = 1;
+		} else if ( strcmp( ml->sml_values[ 0 ].bv_val, "FALSE" ) == 0 ) {
+			lmi->lmi_enabled = 0;
+		} else {
+			assert( 0 );
+		}
+	}
+
+	rs->sr_err = LDAP_SUCCESS;
+
+cleanup:;
+	ldap_pvt_thread_mutex_unlock( &lmi->lmi_entry_mutex );
+
+	send_ldap_result( op, rs );
+	rs->sr_text = NULL;
+
+	return rs->sr_err;
+}
+
+static int
 lastmod_op_func( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	lastmod_info_t		*lmi = (lastmod_info_t *)on->on_bi.bi_private;
 	unsigned		i;
+	Modifications		*ml;
 
 	if ( dn_match( &op->o_req_ndn, &lmi->lmi_e->e_nname ) ) {
 		switch ( op->o_tag ) {
@@ -235,6 +311,34 @@ lastmod_op_func( Operation *op, SlapReply *rs )
 				}
 			}
 			return lastmod_exop( op, rs );
+
+		case LDAP_REQ_MODIFY:
+			/* if global overlay, modlist is not checked yet */
+			if ( op->orm_modlist->sml_desc == NULL ) {
+				char textbuf[SLAP_TEXT_BUFLEN];
+				size_t textlen = sizeof textbuf;
+
+				rs->sr_err = slap_mods_check( op->orm_modlist, 0, &rs->sr_text,
+						textbuf, textlen, NULL );
+
+				if ( rs->sr_err ) {
+					goto return_error;
+				}
+			}
+
+			/* allow only changes to overlay status */
+			for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
+				if ( ad_cmp( ml->sml_desc, slap_schema.si_ad_modifiersName ) != 0
+						&& ad_cmp( ml->sml_desc, slap_schema.si_ad_modifyTimestamp ) != 0
+						&& ad_cmp( ml->sml_desc, slap_schema.si_ad_entryCSN ) != 0
+						&& ad_cmp( ml->sml_desc, lastmod_schema.lms_ad_lastmodEnabled ) != 0 )
+				{
+					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+					rs->sr_text = "not allowed within namingContext";
+					goto return_error;
+				}
+			}
+			return lastmod_modify( op, rs );
 
 		default:
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
@@ -280,37 +384,41 @@ best_guess( Operation *op,
 		struct berval *bv_modifyTimestamp, struct berval *bv_nmodifyTimestamp,
 		struct berval *bv_modifiersName, struct berval *bv_nmodifiersName )
 {
-	struct tm	*tm;
+	if ( bv_modifyTimestamp ) {
+		struct tm	*tm;
 #ifdef HAVE_GMTIME_R
-	struct tm	tm_buf;
+		struct tm	tm_buf;
 #endif
-	char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
-	time_t		currtime;
+		char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+		time_t		currtime;
 
-	/* best guess */
+		/* best guess */
 #if 0
-	currtime = slap_get_time();
+		currtime = slap_get_time();
 #endif
-	/* maybe we better use the time the operation was initiated */
-	currtime = op->o_time;
+		/* maybe we better use the time the operation was initiated */
+		currtime = op->o_time;
 
 #ifndef HAVE_GMTIME_R
-	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-	tm = gmtime( &currtime );
+		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+		tm = gmtime( &currtime );
 #else /* HAVE_GMTIME_R */
-	tm = gmtime_r( &currtime, &tm_buf );
+		tm = gmtime_r( &currtime, &tm_buf );
 #endif /* HAVE_GMTIME_R */
-	lutil_gentime( tmbuf, sizeof( tmbuf ), tm );
+		lutil_gentime( tmbuf, sizeof( tmbuf ), tm );
 #ifndef HAVE_GMTIME_R
-	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 #endif
 
-	ber_str2bv( tmbuf, 0, 1, bv_modifyTimestamp );
-	ber_dupbv( bv_nmodifyTimestamp, bv_modifyTimestamp );
+		ber_str2bv( tmbuf, 0, 1, bv_modifyTimestamp );
+		ber_dupbv( bv_nmodifyTimestamp, bv_modifyTimestamp );
+	}
 
-	/* best guess */
-	ber_dupbv( bv_modifiersName, &op->o_dn );
-	ber_dupbv( bv_nmodifiersName, &op->o_ndn );
+	if ( bv_modifiersName ) {
+		/* best guess */
+		ber_dupbv( bv_modifiersName, &op->o_dn );
+		ber_dupbv( bv_nmodifiersName, &op->o_ndn );
+	}
 
 	return 0;
 }
@@ -401,6 +509,16 @@ lastmod_update( Operation *op, SlapReply *rs )
 					break;
 				}
 			}
+		}
+
+		/* if rooted at global overlay, opattrs are not yet in place */
+		if ( BER_BVISNULL( &bv_modifiersName ) ) {
+			best_guess( op, NULL, NULL, &bv_modifiersName, &bv_nmodifiersName );
+		}
+
+		/* if rooted at global overlay, opattrs are not yet in place */
+		if ( BER_BVISNULL( &bv_modifyTimestamp ) ) {
+			best_guess( op, &bv_modifyTimestamp, &bv_nmodifyTimestamp, NULL, NULL );
 		}
 
 		ber_dupbv( &bv_name, &op->o_req_dn );
@@ -534,7 +652,9 @@ error_return:;
 static int
 lastmod_response( Operation *op, SlapReply *rs )
 {
-	unsigned int	i;
+	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
+	lastmod_info_t		*lmi = (lastmod_info_t *)on->on_bi.bi_private;
+	unsigned int		i;
 
 	/* don't record failed operations */
 	switch ( rs->sr_err ) {
@@ -566,6 +686,14 @@ lastmod_response( Operation *op, SlapReply *rs )
 	default:
 		return SLAP_CB_CONTINUE;
 	}
+
+	/* skip if disabled */
+	ldap_pvt_thread_mutex_lock( &lmi->lmi_entry_mutex );
+	if ( !lmi->lmi_enabled ) {
+		ldap_pvt_thread_mutex_unlock( &lmi->lmi_entry_mutex );
+		return SLAP_CB_CONTINUE;
+	}
+	ldap_pvt_thread_mutex_unlock( &lmi->lmi_entry_mutex );
 
 process:;
 	(void)lastmod_update( op, rs );
@@ -724,7 +852,10 @@ lastmod_db_init(
 	}
 
 	lmi = (lastmod_info_t *)ch_malloc( sizeof( lastmod_info_t ) );
+
 	memset( lmi, 0, sizeof( lastmod_info_t ) );
+	lmi->lmi_enabled = 1;
+	
 	on->on_bi.bi_private = lmi;
 
 	return 0;
@@ -749,6 +880,17 @@ lastmod_db_config(
 		}
 
 		ber_str2bv( argv[ 1 ], 0, 1, &lmi->lmi_rdnvalue );
+
+	} else if ( strcasecmp( argv[ 0 ], "lastmod-enabled" ) == 0 ) {
+		if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+			lmi->lmi_enabled = 1;
+
+		} else if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+			lmi->lmi_enabled = 0;
+
+		} else {
+			return -1;
+		}
 
 	} else {
 		return SLAP_CONF_UNKNOWN;
@@ -795,28 +937,31 @@ lastmod_db_open(
 	}
 
 	snprintf( buf, sizeof( buf ),
-			"dn: cn=%s,%s\n"
+			"dn: cn=%s%s%s\n"
 			"objectClass: %s\n"
 			"structuralObjectClass: %s\n"
 			"cn: %s\n"
 			"description: This object contains the last modification to this database\n"
-			"%s: cn=%s,%s\n"
+			"%s: cn=%s%s%s\n"
+			"%s: %s\n"
 			"%s: %s\n"
 			"createTimestamp: %s\n"
 			"creatorsName: %s\n"
 			"modifyTimestamp: %s\n"
 			"modifiersName: %s\n"
 			"hasSubordinates: FALSE\n",
-			lmi->lmi_rdnvalue.bv_val, be->be_suffix[ 0 ].bv_val,
+			lmi->lmi_rdnvalue.bv_val, BER_BVISEMPTY( &be->be_suffix[ 0 ] ) ? "" : ",", be->be_suffix[ 0 ].bv_val,
 			lastmod_schema.lms_oc_lastmod->soc_cname.bv_val,
 			lastmod_schema.lms_oc_lastmod->soc_cname.bv_val,
 			lmi->lmi_rdnvalue.bv_val,
-			lastmod_schema.lms_ad_lastmodDN->ad_cname.bv_val, lmi->lmi_rdnvalue.bv_val, be->be_suffix[ 0 ].bv_val,
+			lastmod_schema.lms_ad_lastmodDN->ad_cname.bv_val,
+				lmi->lmi_rdnvalue.bv_val, BER_BVISEMPTY( &be->be_suffix[ 0 ] ) ? "" : ",", be->be_suffix[ 0 ].bv_val,
 			lastmod_schema.lms_ad_lastmodType->ad_cname.bv_val, lastmodType[ LASTMOD_ADD ].bv_val,
+			lastmod_schema.lms_ad_lastmodEnabled->ad_cname.bv_val, lmi->lmi_enabled ? "TRUE" : "FALSE",
 			tmbuf,
-			BER_BVISNULL( &be->be_rootdn ) ? "" : be->be_rootdn.bv_val,
+			BER_BVISNULL( &be->be_rootdn ) ? SLAPD_ANONYMOUS : be->be_rootdn.bv_val,
 			tmbuf,
-			BER_BVISNULL( &be->be_rootdn ) ? "" : be->be_rootdn.bv_val );
+			BER_BVISNULL( &be->be_rootdn ) ? SLAPD_ANONYMOUS : be->be_rootdn.bv_val );
 
 #if 0
 	fprintf( stderr, "# entry:\n%s\n", buf );
@@ -867,7 +1012,6 @@ static slap_overinst 		lastmod;
 int
 lastmod_init()
 {
-	memset( &lastmod, 0, sizeof( slap_overinst ) );
 	lastmod.on_bi.bi_type = "lastmod";
 	lastmod.on_bi.bi_db_init = lastmod_db_init;
 	lastmod.on_bi.bi_db_config = lastmod_db_config;

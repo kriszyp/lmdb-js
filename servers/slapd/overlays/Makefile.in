@@ -17,12 +17,14 @@ SRCS = overlays.c \
 	chain.c \
 	denyop.c \
 	dyngroup.c \
+	lastmod.c \
 	pcache.c \
 	rwm.c rwmconf.c rwmdn.c rwmmap.c
 OBJS = overlays.lo \
 	chain.lo \
 	denyop.lo \
 	dyngroup.lo \
+	lastmod.lo \
 	pcache.lo \
 	rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo
 
@@ -49,6 +51,9 @@ denyop.la : denyop.lo $(@PLAT@_LINK_LIBS)
 
 dyngroup.la : dyngroup.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ dyngroup.lo version.lo $(LINK_LIBS)
+
+lastmod.la : lastmod.lo $(@PLAT@_LINK_LIBS)
+	$(LTLINK_MOD) -module -o $@ lastmod.lo version.lo $(LINK_LIBS)
 
 pcache.la : pcache.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ pcache.lo version.lo $(LINK_LIBS)

@@ -33,6 +33,9 @@ extern int denyop_init();
 #if SLAPD_OVER_DYNGROUP == SLAPD_MOD_STATIC
 extern int dyngroup_init();
 #endif
+#if SLAPD_OVER_LASTMOD == SLAPD_MOD_STATIC
+extern int lastmod_init();
+#endif
 #if SLAPD_OVER_PROXYCACHE == SLAPD_MOD_STATIC
 extern int pcache_init();
 #endif
@@ -52,6 +55,9 @@ static struct {
 #endif
 #if SLAPD_OVER_DYNGROUP == SLAPD_MOD_STATIC
 	{ "Dynamic Group", dyngroup_init },
+#endif
+#if SLAPD_OVER_LASTMOD == SLAPD_MOD_STATIC
+	{ "Last Modification", lastmod_init },
 #endif
 #if SLAPD_OVER_PROXYCACHE == SLAPD_MOD_STATIC
 	{ "Proxy Cache", pcache_init },
