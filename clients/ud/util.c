@@ -37,9 +37,6 @@
 void
 printbase( char *lead, char *s )
 {
-	register char **cp;
-	char **rdns;
-
 #ifdef DEBUG
 	if (debug & D_TRACE)
 		printf("->printbase(%s, %s)\n", lead, s);
@@ -52,19 +49,7 @@ printbase( char *lead, char *s )
 		printf("%sroot\n", lead);
 		return;
 	}
-	printf("%s", lead);
-	rdns = ldap_explode_dn(s, TRUE);
-	for (cp = rdns; ; ) {
-		printf("%s", friendly_name(*cp));
-		cp++;
-		if (*cp == NULL) {
-			printf("\n");
-			break;
-		}
-		else
-			printf(", ");
-	}
-	ldap_value_free(rdns);
+	printf("%s%s\n", lead, s);
 	return;
 }
 
@@ -359,18 +344,6 @@ code_to_str( int i )
 	case LDAP_MOD_REPLACE : return("REPLACE");
 	default : return("?????");
 	}
-}
-
-char *
-friendly_name( char *s )
-{
-	static LDAPFriendlyMap *map = NULL;
-	static char *cp;
-
-	cp = ldap_friendly_name(FRIENDLYFILE, s, &map);
-	if (cp == NULL)
-		return(s);
-	return(cp);
 }
 
 #ifdef UOFM
