@@ -44,7 +44,7 @@ int ldbm_modify_internal(
 	Modifications	*ml;
 	Attribute	*save_attrs;
 
-	Debug(LDAP_DEBUG_TRACE, "ldbm_modify_internal:\n", 0, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "ldbm_modify_internal: %s\n", dn, 0, 0);
 
 	if ( !acl_check_modlist( be, conn, op, e, modlist )) {
 		return LDAP_INSUFFICIENT_ACCESS;
