@@ -87,6 +87,7 @@ struct sockbuf {
 	ber_socket_t		sb_fd;
    	unsigned int		sb_trans_needs_read:1;
    	unsigned int		sb_trans_needs_write:1;
+	ber_len_t			sb_max_incoming;
 };
 
 #define SOCKBUF_VALID( sb )	( (sb)->sb_valid == LBER_VALID_SOCKBUF )

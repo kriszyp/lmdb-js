@@ -546,10 +546,15 @@ get_lenbyte:
 
 fill_buffer:	
 	/* now fill the buffer. */
-	if (ber->ber_len==0) {
+
+	/* make sure length is reasonable */
+	if ( ber->ber_len == 0 ||
+		( sb->sb_max_incoming && ber->ber_len > sb->sb_max_incoming ))
+	{
 		errno = ERANGE;
 		return LBER_DEFAULT;
 	}
+
 	if (ber->ber_buf==NULL) {
 		ber->ber_buf = (char *) LBER_MALLOC( ber->ber_len );
 		if (ber->ber_buf==NULL) {

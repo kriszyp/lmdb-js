@@ -131,8 +131,10 @@ typedef struct lber_memory_fns {
 #define LBER_SB_OPT_DRAIN		10
 #define LBER_SB_OPT_NEEDS_READ		11
 #define LBER_SB_OPT_NEEDS_WRITE		12
+#define LBER_SB_OPT_GET_MAX_INCOMING 13
+#define LBER_SB_OPT_SET_MAX_INCOMING 14
 /* Largest option used by the library */
-#define LBER_SB_OPT_OPT_MAX		12
+#define LBER_SB_OPT_OPT_MAX		14
 
 /* LBER IO operations stacking levels */
 #define LBER_SBIOD_LEVEL_PROVIDER	10
