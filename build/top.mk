@@ -48,7 +48,7 @@ MKVERSION = $(top_srcdir)/build/mkversion -v "$(VERSION)"
 
 LIBTOOL = @LIBTOOL@
 LIBVERSION = 0:0:0
-LTVERSION = --version-info $LIBVERSION
+LTVERSION = --version-info $(LIBVERSION)
 LTLIBLINK  = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LDFLAGS) $(LTVERSION)
 LTLINK  = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LDFLAGS)
 LTINSTALL = $(LIBTOOL) --mode=install $(INSTALL) 
