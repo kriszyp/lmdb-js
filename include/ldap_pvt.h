@@ -82,7 +82,7 @@ ldap_pvt_get_hname LDAP_P((
 LDAP_F( int )
 ldap_charray_add LDAP_P((
     char	***a,
-    char	*s ));
+    const char *s ));
 
 LDAP_F( int )
 ldap_charray_merge LDAP_P((
@@ -95,7 +95,7 @@ ldap_charray_free LDAP_P(( char **a ));
 LDAP_F( int )
 ldap_charray_inlist LDAP_P((
     char	**a,
-    char	*s ));
+    const char *s ));
 
 LDAP_F( char ** )
 ldap_charray_dup LDAP_P(( char **a ));

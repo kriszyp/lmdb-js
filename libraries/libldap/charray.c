@@ -17,7 +17,7 @@
 int
 ldap_charray_add(
     char	***a,
-    char	*s
+    const char *s
 )
 {
 	int	n;
@@ -120,7 +120,7 @@ ldap_charray_free( char **a )
 int
 ldap_charray_inlist(
     char	**a,
-    char	*s
+    const char *s
 )
 {
 	int	i;
