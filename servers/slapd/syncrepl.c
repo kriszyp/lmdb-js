@@ -45,45 +45,18 @@ static int nonpresent_callback( struct slap_op *, struct slap_rep * );
 static int null_callback( struct slap_op *, struct slap_rep * );
 static int contextcsn_callback( Operation*, SlapReply* );
 
-static AttributeDescription **add_descs;
-static AttributeDescription **add_descs_lastmod;
-static AttributeDescription **del_descs;
-static AttributeDescription **del_descs_lastmod;
+static AttributeDescription **sync_descs;
 
 struct runqueue_s syncrepl_rq;
 
 void
 init_syncrepl()
 {
-	add_descs = ch_malloc( 2 * sizeof( AttributeDescription * ));
-	add_descs[0] = slap_schema.si_ad_objectClass;
-	add_descs[1] = NULL;
-
-	add_descs_lastmod = ch_malloc( 7 * sizeof( AttributeDescription * ));
-	add_descs_lastmod[0] = slap_schema.si_ad_objectClass;
-	add_descs_lastmod[1] = slap_schema.si_ad_creatorsName;
-	add_descs_lastmod[2] = slap_schema.si_ad_modifiersName;
-	add_descs_lastmod[3] = slap_schema.si_ad_createTimestamp;
-	add_descs_lastmod[4] = slap_schema.si_ad_modifyTimestamp;
-	add_descs_lastmod[5] = slap_schema.si_ad_entryCSN;
-	add_descs_lastmod[6] = NULL;
-
-	del_descs = ch_malloc( 9 * sizeof( AttributeDescription * ));
-	del_descs[0] = slap_schema.si_ad_structuralObjectClass;
-	del_descs[1] = slap_schema.si_ad_subschemaSubentry;
-	del_descs[2] = slap_schema.si_ad_hasSubordinates;
-	del_descs[3] = slap_schema.si_ad_creatorsName;
-	del_descs[4] = slap_schema.si_ad_modifiersName;
-	del_descs[5] = slap_schema.si_ad_createTimestamp;
-	del_descs[6] = slap_schema.si_ad_modifyTimestamp;
-	del_descs[7] = slap_schema.si_ad_entryCSN;
-	del_descs[8] = NULL;
-
-	del_descs_lastmod = ch_malloc( 4 * sizeof( AttributeDescription * ));
-	del_descs_lastmod[0] = slap_schema.si_ad_structuralObjectClass;
-	del_descs_lastmod[1] = slap_schema.si_ad_subschemaSubentry;
-	del_descs_lastmod[2] = slap_schema.si_ad_hasSubordinates;
-	del_descs_lastmod[3] = NULL;
+	sync_descs = ch_malloc( 4 * sizeof( AttributeDescription * ));
+	sync_descs[0] = slap_schema.si_ad_objectClass;
+	sync_descs[1] = slap_schema.si_ad_structuralObjectClass;
+	sync_descs[2] = slap_schema.si_ad_entryCSN;
+	sync_descs[3] = NULL;
 }
 
 int
@@ -430,11 +403,7 @@ do_syncrepl(
 	psub = be->be_nsuffix[0];
 
 	/* Delete Attributes */
-	if ( si->lastmod == LASTMOD_REQ ) {
-		descs = del_descs_lastmod;
-	} else {
-		descs = del_descs;
-	}
+	descs = sync_descs;
 
 	for ( i = 0; descs[i] != NULL; i++ ) {
 		for ( j = 0; si->attrs[j] != NULL; j++ ) {
@@ -451,15 +420,11 @@ do_syncrepl(
 
 	for ( n = 0; si->attrs[ n ] != NULL; n++ ) ;
 	
-	if ( si->lastmod == LASTMOD_REQ ) {
-		descs = add_descs_lastmod;
-	} else {
-		descs = add_descs;
-	}
+	descs = sync_descs;
 
 	for ( i = 0; descs[i] != NULL; i++ ) {
 		tmp = ( char ** ) ch_realloc( si->attrs,
-				( n + 2 ) * sizeof( char * ));
+				( n + 3 ) * sizeof( char * ));
 		if ( tmp == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR, "out of memory\n", 0,0,0 );
@@ -719,8 +684,6 @@ syncrepl_message_to_entry(
 
 	ber_tag_t	tag;
 
-	Modifications *prevml = NULL;
-	Modifications *nextml = NULL;
 	Modifications *ml = NULL;
 	AttributeDescription** descs;
 	int i;
@@ -857,29 +820,6 @@ syncrepl_message_to_entry(
 
 		ad = ml->sml_desc;
 		ml->sml_desc = NULL;
-
-		if ( si->lastmod == LASTMOD_REQ ) {
-			descs = del_descs_lastmod;
-		} else {
-			descs = del_descs;
-		}
-
-		for ( i = 0; descs[i] != NULL; i++ ) {
-			if ( ad == descs[i] ) {
-				if ( prevml == NULL ) {
-					modlist = &ml->sml_next;
-					prevml = NULL;
-				} else {
-					prevml->sml_next = ml->sml_next;
-				}
-				slap_mod_free( &ml->sml_mod, 0 );
-				nextml = ml->sml_next;
-				free( ml );
-				ml = nextml;
-				continue;
-			}
-		}
-		prevml = ml;
 		ml = ml->sml_next;
 	}
 
@@ -896,20 +836,6 @@ syncrepl_message_to_entry(
 		return NULL;
 	}
 	
-	rc = slap_mods_opattrs( op, *modlist, modtail,
-							 &text,txtbuf, textlen );
-	
-	if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-				"syncrepl_message_to_entry: mods opattrs (%s)\n", text, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: mods opattrs (%s)\n",
-				text, 0, 0 );
-#endif
-		return NULL;
-	}
-
 	rc = slap_mods2entry( *modlist, &e, 1, 1, &text, txtbuf, textlen);
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -1037,9 +963,8 @@ syncrepl_entry(
 			 rc == LDAP_REFERRAL ||
 			 rc == LDAP_NO_SUCH_OBJECT ) {
 
-			if ( !attr_find( e->e_attrs, slap_schema.si_ad_entryUUID )) {
-				attr_merge_normalize_one( e, slap_schema.si_ad_entryUUID, syncUUID, op->o_tmpmemctx );
-			}
+			attr_delete( &e->e_attrs, slap_schema.si_ad_entryUUID );
+			attr_merge_normalize_one( e, slap_schema.si_ad_entryUUID, syncUUID, op->o_tmpmemctx );
 
 			op->o_tag = LDAP_REQ_ADD;
 			op->ora_e = e;
@@ -1447,8 +1372,7 @@ syncrepl_updateCookie(
 
 	for ( ml = modlist; ml != NULL; ml = mlnext ) {
 		mlnext = ml->sml_next;
-		if ( ml->sml_desc == slap_schema.si_ad_structuralObjectClass )
-			ml->sml_op = LDAP_MOD_REPLACE;
+		ml->sml_op = LDAP_MOD_REPLACE;
 	}
 
 	if( rc != LDAP_SUCCESS ) {
@@ -1494,6 +1418,7 @@ update_cookie_retry:
 	op->o_tag = LDAP_REQ_MODIFY;
 	op->orm_modlist = modlist;
 	rc = be->be_modify( op, &rs );
+
 	if ( rc != LDAP_SUCCESS ) {
 		if ( rc == LDAP_REFERRAL ||
 			 rc == LDAP_NO_SUCH_OBJECT ) {

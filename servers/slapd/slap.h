@@ -1305,16 +1305,12 @@ typedef struct syncinfo_s {
         char			*authcId;
         char			*authzId;
         char			*srvtab;
-#define LASTMOD_REQ		0
-#define LASTMOD_GEN		1
-#define LASTMOD_NO		2
-        int				lastmod;
+		int				schemachecking;
         Filter			*filter;
         char			*filterstr;
         char			*base;
         int				scope;
         int				attrsonly;
-		int				attrsexclude;
         char			**attrs;
         int				type;
         time_t			interval;

@@ -2740,18 +2740,16 @@ add_syncrepl(
 
 	si = be->syncinfo = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
 
-	/* set default values; FIXME : add others */
 	si->tls = TLS_OFF;
 	if ( be->be_rootndn.bv_val )
 		ber_dupbv( &si->updatedn, &be->be_rootndn );
 	si->bindmethod = LDAP_AUTH_SIMPLE;
-	si->lastmod = LASTMOD_NO;
+	si->schemachecking = 0;
 	si->filterstr = "(objectclass=*)";
 	if ( be->be_suffix && be->be_suffix[0].bv_val )
 		si->base = ch_strdup( be->be_suffix[0].bv_val );
 	si->scope = LDAP_SCOPE_SUBTREE;
 	si->attrsonly = 0;
-	si->attrsexclude = 0;
 	si->attrs = (char **) ch_calloc( 1, sizeof( char * ));
 	si->attrs[0] = NULL;
 	si->type = LDAP_SYNC_REFRESH_ONLY;
@@ -2795,7 +2793,9 @@ add_syncrepl(
 			"Config: ** successfully added syncrepl \"%s\"\n",
 			si->provideruri == NULL ? "(null)" : si->provideruri, 0, 0 );
 #endif
-		be->be_flags |= SLAP_BFLAG_NO_SCHEMA_CHECK;
+		if ( !si->schemachecking ) {
+			be->be_flags |= SLAP_BFLAG_NO_SCHEMA_CHECK;
+		}
 		si->be = be;
 	}
 }
@@ -2819,6 +2819,7 @@ add_syncrepl(
 #define STARTTLSSTR		"starttls"
 #define CRITICALSTR		"critical"
 
+#define SCHEMASTR		"schemachecking"
 #define FILTERSTR		"filter"
 #define SEARCHBASESTR	"searchbase"
 #define SCOPESTR		"scope"
@@ -2938,17 +2939,15 @@ parse_syncrepl_line(
 				free( si->srvtab );
 			}
 			si->srvtab = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ], LASTMODSTR,
-				sizeof( LASTMODSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( LASTMODSTR );
-			if ( !strcasecmp( val, LMREQSTR )) {
-				si->lastmod = LASTMOD_REQ;
-			} else if ( !strcasecmp( val, LMGENSTR )) {
-				si->lastmod = LASTMOD_GEN;
-			} else if ( !strcasecmp( val, LMNOSTR )) {
-				si->lastmod = LASTMOD_NO;
+		} else if ( !strncasecmp( cargv[ i ],
+				SCHEMASTR, sizeof( SCHEMASTR ) - 1 ) ) {
+			val = cargv[ i ] + sizeof( SCHEMASTR );
+			if ( !strncasecmp( val, "on", sizeof( "on" ) - 1 )) {
+				si->schemachecking = 1;
+			} else if ( !strncasecmp( val, "off", sizeof( "off" ) - 1 ) ) {
+				si->schemachecking = 0;
 			} else {
-				si->lastmod = -1;
+				si->schemachecking = 1;
 			}
 		} else if ( !strncasecmp( cargv[ i ],
 				FILTERSTR, sizeof( FILTERSTR ) - 1 ) ) {
@@ -2977,13 +2976,7 @@ parse_syncrepl_line(
 			si->attrsonly = 1;
 		} else if ( !strncasecmp( cargv[ i ],
 				ATTRSSTR, sizeof( ATTRSSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( ATTRSSTR ) - 1;
-			if ( *val == '!' ) {
-				si->attrsexclude = 1;
-				val++;
-			}
-			if ( *val++ != '=' )
-				continue;
+			val = cargv[ i ] + sizeof( ATTRSSTR );
 			str2clist( &si->attrs, val, "," );
 		} else if ( !strncasecmp( cargv[ i ],
 				TYPESTR, sizeof( TYPESTR ) - 1 ) ) {

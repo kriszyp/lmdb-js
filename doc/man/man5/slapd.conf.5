@@ -1112,6 +1112,7 @@ If specified multiple times, each url is provided.
 .B [searchbase=<base DN>]
 .B [filter=<filter str>]
 .B [attrs=<attr list>]
+.B [schemachecking=on|off]
 .B [scope=sub|one|base]
 .B [type=refreshOnly|refreshAndPersist]
 .B [interval=dd:hh:mm]
@@ -1155,6 +1156,19 @@ is
 The replication provider site is specified by
 .B provider
 as an LDAP URI.
+If 
+.B schemachecking
+is
+.B on,
+every replicated entry will be checked for its schema
+when it is stored in the consumer replica.
+The consumer slapd should retrieve attributes of an entry
+that are required by the schema definition.
+If 
+.B schemachecking
+is
+.B off,
+entries will be stored without checking the schema conformance.
 A
 .B bindmethod
 of 

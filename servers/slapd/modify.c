@@ -766,12 +766,10 @@ int slap_mods_opattrs(
 	int mop = op->o_tag == LDAP_REQ_ADD
 		? LDAP_MOD_ADD : LDAP_MOD_REPLACE;
 
-	syncinfo_t *si = op->o_si;
-
 	assert( modtail != NULL );
 	assert( *modtail == NULL );
 
-	if ( SLAP_LASTMOD(op->o_bd) && ( !si || si->lastmod == LASTMOD_GEN )) {
+	if ( SLAP_LASTMOD( op->o_bd )) {
 		struct tm *ltm;
 		time_t now = slap_get_time();
 
@@ -824,27 +822,25 @@ int slap_mods_opattrs(
 			modtail = &mod->sml_next;
 		}
 
-		if ( SLAP_LASTMOD(op->o_bd) && ( !si || si->lastmod == LASTMOD_GEN )) {
+		if ( SLAP_LASTMOD( op->o_bd )) {
 			char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
 
-			if ( !si ) {
-				tmpval.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
-				tmpval.bv_val = uuidbuf;
+			tmpval.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
+			tmpval.bv_val = uuidbuf;
 		
-				mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
-				mod->sml_op = mop;
-				mod->sml_type.bv_val = NULL;
-				mod->sml_desc = slap_schema.si_ad_entryUUID;
-				mod->sml_values =
-					(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
-				ber_dupbv( &mod->sml_values[0], &tmpval );
-				mod->sml_values[1].bv_len = 0;
-				mod->sml_values[1].bv_val = NULL;
-				assert( mod->sml_values[0].bv_val );
-				mod->sml_nvalues = NULL;
-				*modtail = mod;
-				modtail = &mod->sml_next;
-			}
+			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
+			mod->sml_op = mop;
+			mod->sml_type.bv_val = NULL;
+			mod->sml_desc = slap_schema.si_ad_entryUUID;
+			mod->sml_values =
+			(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			ber_dupbv( &mod->sml_values[0], &tmpval );
+			mod->sml_values[1].bv_len = 0;
+			mod->sml_values[1].bv_val = NULL;
+			assert( mod->sml_values[0].bv_val );
+			mod->sml_nvalues = NULL;
+			*modtail = mod;
+			modtail = &mod->sml_next;
 
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;
@@ -879,7 +875,7 @@ int slap_mods_opattrs(
 		}
 	}
 
-	if ( SLAP_LASTMOD(op->o_bd) && ( !si || si->lastmod == LASTMOD_GEN )) {
+	if ( SLAP_LASTMOD( op->o_bd )) {
 		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		mod->sml_op = mop;
 		mod->sml_type.bv_val = NULL;
