@@ -435,7 +435,7 @@ typedef signed int ssize_t;
 /* #undef HAVE_SYSCONF */
 
 /* Define if you have the tempnam function.  */
-/* #undef HAVE_TEMPNAM */
+#define HAVE_TEMPNAM 1
 
 /* Define if you have the thr_getconcurrency function.  */
 /* #undef HAVE_THR_GETCONCURRENCY */
