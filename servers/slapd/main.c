@@ -251,7 +251,8 @@ main( argc, argv )
 			    0, 0, 0 );
 		}
 
-		ber_init( &ber, 0 );
+		ber_init_w_nullc( &ber, 0 );
+
 		while ( (tag = ber_get_next( &c.c_sb, &len, &ber ))
 		    == LDAP_TAG_MESSAGE ) {
 			pthread_mutex_lock( &currenttime_mutex );

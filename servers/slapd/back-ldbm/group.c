@@ -75,7 +75,7 @@ ldbm_back_group(
 					"<= ldbm_back_group: failed to find objectClass in groupOfNames\n", 
                         0, 0, 0 ); 
             }
-            else if (value_find(Member->a_vals, &bvMembers, SYNTAX_CIS, 1) != 0) {
+            else if (value_find(member->a_vals, &bvMembers, SYNTAX_CIS, 1) != 0) {
                 Debug( LDAP_DEBUG_ACL, "<= ldbm_back_group: %s not in %s: groupOfNames\n", 
                         edn, bdn, 0 ); 
             }

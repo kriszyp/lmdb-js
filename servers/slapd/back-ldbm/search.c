@@ -172,8 +172,9 @@ ldbm_back_search(
 		 * this for subtree searches, and don't check the filter explicitly
 		 * here since it's only a candidate anyway.
 		 */
-		if ( e->e_dn != NULL && strncasecmp( e->e_dn, "ref=", 4 )
-			== 0 && (ref = attr_find( e->e_attrs, "ref" )) != NULL &&
+		if ( e->e_dn != NULL &&
+			strncasecmp( e->e_dn, "ref=", 4 ) == 0 &&
+			(ref = attr_find( e->e_attrs, "ref" )) != NULL &&
 			scope == LDAP_SCOPE_SUBTREE )
 		{
 			int	i, len;
@@ -262,7 +263,7 @@ ldbm_back_search(
 			}
 		}
 
-		if( e == NULL ) {
+		if( e != NULL ) {
 			/* free reader lock */
 			cache_return_entry_r( &li->li_cache, e );
 		}
