@@ -15,10 +15,12 @@
 
 MONITORDB=${AC_MONITOR-no}
 BACKLDAP=${AC_ldap-ldapno}
+BACKRELAY=${AC_relay-relayno}
 PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}
 UNIQUE=${AC_unique-uniqueno}
+RWM=${AC_rwm-rwmno}
 WITH_SASL=${AC_WITH_SASL-no}
 USE_SASL=${SLAPD_USE_SASL-no}
 WITHTLS=${AC_WITHTLS-yes}
@@ -67,6 +69,7 @@ IDASSERTCONF=$DATADIR/slapd-idassert.conf
 LDAPGLUECONF1=$DATADIR/slapd-ldapglue.conf
 LDAPGLUECONF2=$DATADIR/slapd-ldapgluepeople.conf
 LDAPGLUECONF3=$DATADIR/slapd-ldapgluegroups.conf
+RWMCONF=$DATADIR/slapd-relay.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf

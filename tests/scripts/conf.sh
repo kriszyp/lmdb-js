@@ -36,10 +36,12 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${BACKEND}#//"				\
 	-e "s/^#${BACKENDTYPE}#//"			\
 	-e "s/^#${AC_ldap}#//"				\
+	-e "s/^#${AC_relay}#//"				\
 	-e "s/^#${AC_pcache}#//"			\
 	-e "s/^#${AC_ppolicy}#//"			\
 	-e "s/^#${AC_refint}#//"			\
 	-e "s/^#${AC_unique}#//"			\
+	-e "s/^#${AC_rwm}#//"			\
 	-e "s/^#${MON}#//"				\
 	-e "s/^#${MONMOD}#//"				\
 	-e "s/^#${SASL}#//"				\
