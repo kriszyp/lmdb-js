@@ -14,7 +14,9 @@ nis.schema              Network Information Service schema
 openldap.schema         OpenLDAP Project schema
 
 Additional schema definitions can be submitted using the OpenLDAP
-Issue Tracking System <http://www.openldap.org/its/>.
+Issue Tracking System <http://www.openldap.org/its/>.  Such
+submissions should include a reference (e.g. a URL) to a stable,
+mature specification (e.g., an RFC) of the schema.
 
 ---
 $OpenLDAP$
