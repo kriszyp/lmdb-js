@@ -1,4 +1,4 @@
-.TH SLAPD.CONF 5 "28 May 2001" "OpenLDAP LDVERSION"
+.TH SLAPD.CONF 5 "26 January 2002" "OpenLDAP LDVERSION"
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
@@ -594,7 +594,7 @@ for an explanation of the different flags.
 .SH TLS OPTIONS
 If
 .B slapd
-is build with support for Transport Layer Security, there are more options
+is built with support for Transport Layer Security, there are more options
 you can specify.
 .TP
 .B TLSCipherSuite <cipher-suite-spec>
@@ -606,6 +606,12 @@ TLSCipherSuite HIGH:MEDIUM:+SSLv2
 To check what ciphers a given spec selects, use:
 
 openssl ciphers -v <cipher-suite-spec>
+.TP
+.B TLSCACertificateFile <filename>
+Specifies the file that contains certificates for all of the Certificate
+Authorities that
+.B slapd
+will recognize.
 .TP
 .B TLSCertificateFile <filename>
 Specifies the file that contains the
@@ -624,6 +630,41 @@ it is of critical importance that it is protected carefully.
 Specifies the file to obtain random bits from when /dev/[u]random
 is not available.  Generally set to the name of the EGD/PRNGD socket.
 The environment variable RANDFILE can also be used to specify the filename.
+.TP
+.B TLSVerifyClient <level>
+Specifies what checks to perform on client certificates in an
+incoming TLS session, if any.
+The
+.B <level>
+can be specified as one of the following keywords:
+.RS
+.TP
+.B never
+This is the default.
+.B slapd
+will not ask the client for a certificate.
+.TP
+.B allow
+The client certificate is requested.  If no certificate is provided,
+the session proceeds normally.  If a bad certificate is provided,
+it will be ignored and the session proceeds normally.
+.TP
+.B try
+The client certificate is requested.  If no certificate is provided,
+the session proceeds normally.  If a bad certificate is provided,
+the session is immediately terminated.
+.TP
+.B demand | hard | true
+These keywords are all equivalent, for compatibility reasons.
+The client certificate is requested.  If no certificate is provided,
+or a bad certificate is provided, the session is immediately terminated.
+.LP
+Note that a valid client certificate is required in order to use the
+SASL EXTERNAL authentication mechanism with a TLS session.  As such,
+a non-default
+.B TLSVerifyClient
+setting must be chosen to enable SASL EXTERNAL authentication.
+.RE
 .SH GENERAL BACKEND OPTIONS
 Options in this section only apply to the configuration file section
 for the specified backend.  They are supported by every
