@@ -66,5 +66,5 @@ install-local:	ldapsearch ldapmodify ldapdelete ldapmodrdn ldapadd FORCE
 	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapmodify $(bindir)
 	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapdelete $(bindir)
 	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapmodrdn $(bindir)
-	$(RM) $(BINDIR)/ldapadd
-	$(LN) $(BINDIR)/ldapmodify $(bindir)/ldapadd
+	$(RM) $(bindir)/ldapadd
+	$(LN) $(bindir)/ldapmodify $(bindir)/ldapadd
