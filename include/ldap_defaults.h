@@ -205,11 +205,13 @@ Please try again later.\r\n"
 #define SLAPD_LDBM_MIN_MAXIDS		4000
 
 /* the following DNs must be normalized! */
+	/* dn of the special "schema" entry */
+#define SLAPD_SCHEMA_DN			"cn=Schema"
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	/* dn of the special "monitor" entry */
 #define SLAPD_MONITOR_DN		"cn=Monitor"
 	/* dn of the special "config" entry */
 #define SLAPD_CONFIG_DN			"cn=Config"
-	/* dn of the special "schema" entry */
-#define SLAPD_SCHEMA_DN			"cn=Schema"
+#endif
 
 #endif /* _LDAP_CONFIG_H */
