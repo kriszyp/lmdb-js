@@ -33,7 +33,7 @@ OpenLDAP OpenLDAP				http://www.openldap.org/
 OLF	 OpenLDAP Foundation			http://www.openldap.org/foundation/
 OLP	 OpenLDAP Project			http://www.openldap.org/project/
 UM	 University of Michigan			http://www.umich.edu/
-UMLDAP	 University of Michigan LDAP		http://www.umich.edu/~dirsrvs/ldap/
+UMLDAP	 University of Michigan LDAP		http://www.umich.edu/~dirvcs/ldap/
 IETF	 Internet Engineering Task Force	http://www.ietf.org/
 RFC	 RFC Editor				http://www.rfc-editor.org/
 !endblock
@@ -59,10 +59,13 @@ WWW	World Wide Web
 
 !block references; data
 Reference	Document	Jump
-RFC2251		RFC2251		http://www.rfc-editor.org/rfc2251.txt
-RFC2252		RFC2252		http://www.rfc-editor.org/rfc2252.txt
-RFC2253		RFC2253		http://www.rfc-editor.org/rfc2253.txt
-RFC2254		RFC2254		http://www.rfc-editor.org/rfc2254.txt
-RFC2255		RFC2255		http://www.rfc-editor.org/rfc2255.txt
-RFC2256		RFC2256		http://www.rfc-editor.org/rfc2256.txt
+RFC2251		RFC2251		ftp://ftp.isi.edu/in-notes/rfc2251.txt
+RFC2252		RFC2252		ftp://ftp.isi.edu/in-notes/rfc2252.txt
+RFC2253		RFC2253		ftp://ftp.isi.edu/in-notes/rfc2253.txt
+RFC2254		RFC2254		ftp://ftp.isi.edu/in-notes/rfc2254.txt
+RFC2255		RFC2255		ftp://ftp.isi.edu/in-notes/rfc2255.txt
+RFC2256		RFC2256		ftp://ftp.isi.edu/in-notes/rfc2256.txt
+RFC2829		RFC2829		ftp://ftp.isi.edu/in-notes/rfc2829.txt
+RFC2830		RFC2830		ftp://ftp.isi.edu/in-notes/rfc2830.txt
+RFC2831		RFC2830		ftp://ftp.isi.edu/in-notes/rfc2831.txt
 !endblock
