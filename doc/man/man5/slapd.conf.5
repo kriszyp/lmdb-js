@@ -208,7 +208,8 @@ disables StartTLS if authenticated (see also
 A SIGHUP signal will only cause a 'gentle' shutdown-attempt:
 .B Slapd
 will stop listening for new connections, but will not close the
-connections to the current clients.  It terminates when all clients
+connections to the current clients.  Future write operations return
+unwilling-to-perform, though.  Slapd terminates when all clients
 have closed their connections (if they ever do), or \- as before \-
 if it receives a SIGTERM signal.  This can be useful if you wish to
 terminate the server and start a new

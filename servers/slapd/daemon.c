@@ -237,7 +237,7 @@ void slapd_remove(ber_socket_t s, int wake) {
 	FD_CLR( s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-	WAKE_LISTENER(wake || slapd_gentle_shutdown < 0);
+	WAKE_LISTENER(wake || slapd_gentle_shutdown == 2);
 }
 
 void slapd_clr_write(ber_socket_t s, int wake) {
@@ -1114,17 +1114,18 @@ slapd_daemon_task(
 		if( slapd_gentle_shutdown ) {
 			ber_socket_t active;
 
-			if( slapd_gentle_shutdown > 0 ) {
+			if( slapd_gentle_shutdown == 1 ) {
 				Debug( LDAP_DEBUG_ANY, "slapd gentle shutdown\n", 0, 0, 0 );
 				close_listeners( 1 );
-				slapd_gentle_shutdown = -1;
+				global_restrictops |= SLAP_RESTRICT_OP_WRITES;
+				slapd_gentle_shutdown = 2;
 			}
 
 			ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 			active = slap_daemon.sd_nactives;
 			ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 			if( active == 0 ) {
-				slapd_shutdown = -1;
+				slapd_shutdown = 2;
 				break;
 			}
 		}
@@ -1780,7 +1781,7 @@ slapd_daemon_task(
 #endif
 	}
 
-	if( slapd_gentle_shutdown >= 0 )
+	if( slapd_gentle_shutdown != 2 )
 		close_listeners ( 0 );
 	free ( slap_listeners );
 	slap_listeners = NULL;
