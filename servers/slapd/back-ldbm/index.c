@@ -123,7 +123,7 @@ index_read(
 	DBCache	*db;
 	Datum   	key;
 	ID_BLOCK		*idl;
-	int		indexmask, syntax;
+	int		indexmask;
 	char		prefix;
 	char		*realval, *tmpval;
 	char		buf[BUFSIZ];
@@ -136,7 +136,7 @@ index_read(
 	Debug( LDAP_DEBUG_TRACE, "=> index_read(\"%c%s\"->\"%s\")\n",
 	    prefix, type, val );
 
-	attr_masks( be->be_private, type, &indexmask, &syntax );
+	attr_mask( be->be_private, type, &indexmask );
 	if ( ! (indextype & indexmask) ) {
 		idl =  idl_allids( be );
 		Debug( LDAP_DEBUG_TRACE,
@@ -310,13 +310,14 @@ index_change_values(
 	}
 
 	attr_normalize(type);
-	attr_masks( be->be_private, type, &indexmask, &syntax );
+	attr_mask( be->be_private, type, &indexmask );
 
 	if ( indexmask == 0 ) {
 		return( 0 );
 	}
 
 #ifdef SLAPD_SCHEMA_COMPAT
+	syntax = attr_syntax( type );
 	at_cn = at_canonical_name( type );
 #else
 	at_cn = at_canonical_name( at_find( type ) );
@@ -456,7 +457,6 @@ index_change_values(
 	ldbm_cache_close( be, db );
 
 	return( 0 );
-
 }
 
 static int

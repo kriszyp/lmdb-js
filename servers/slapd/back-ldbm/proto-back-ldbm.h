@@ -33,8 +33,7 @@ Entry *deref_internal_r LDAP_P((
  * attr.c
  */
 
-void attr_masks LDAP_P(( struct ldbminfo *li, char *type, int *indexmask,
- int *syntaxmask ));
+void attr_mask LDAP_P(( struct ldbminfo *li, char *type, int *indexmask ));
 void attr_index_config LDAP_P(( struct ldbminfo *li,
 	const char *fname, int lineno,
 	int argc, char **argv, int init ));

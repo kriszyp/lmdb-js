@@ -205,8 +205,6 @@ int ldbm_tool_index_attr(
 
 	assert( slapMode & SLAP_TOOL_MODE );
 
-	attr_masks( be->be_private, type, &indexmask, &syntaxmask );
-
 #ifdef SLAPD_SCHEMA_COMPAT
 	attr_normalize( type );
 	at_cn = at_canonical_name( type );
@@ -234,6 +232,8 @@ int ldbm_tool_index_attr(
 		return 0;
 	}
 #endif
+
+	attr_mask( be->be_private, at_cn, &indexmask );
 
 	if ( (db = ldbm_cache_open( be, at_cn, LDBM_SUFFIX, LDBM_NEWDB ))
 	    == NULL )

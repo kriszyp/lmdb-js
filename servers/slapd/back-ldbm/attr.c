@@ -19,7 +19,6 @@
 typedef struct ldbm_attrinfo {
 	char	*ai_type;	/* type name (cn, sn, ...)	*/
 	int	ai_indexmask;	/* how the attr is indexed	*/
-	int	ai_syntaxmask;	/* what kind of syntax		*/
 } AttrInfo;
 
 static int
@@ -67,17 +66,14 @@ ainfo_dup(
 }
 
 void
-attr_masks(
+attr_mask(
     struct ldbminfo	*li,
     char		*type,
-    int			*indexmask,
-    int			*syntaxmask
-)
+    int			*indexmask )
 {
 	AttrInfo	*a;
 
 	*indexmask = 0;
-	*syntaxmask = 0;
 	if ( (a = (AttrInfo *) avl_find( li->li_attrs, type,
 	    (AVL_CMP) ainfo_type_cmp )) == NULL ) {
 		if ( (a = (AttrInfo *) avl_find( li->li_attrs, "default",
@@ -86,14 +82,6 @@ attr_masks(
 		}
 	}
 	*indexmask = a->ai_indexmask;
-
-#ifdef SLAPD_SCHEMA_COMPAT
-	if ( strcasecmp( a->ai_type, "default" ) == 0 ) {
-		*syntaxmask = attr_syntax( type );
-	} else {
-		*syntaxmask = a->ai_syntaxmask;
-	}
-#endif
 }
 
 void
