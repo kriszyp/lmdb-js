@@ -354,7 +354,12 @@ ldbm_back_add(
 
 	send_ldap_result( conn, op, LDAP_SUCCESS,
 		NULL, NULL, NULL, NULL );
+
+	/* marks the entry as committed, so it is added to the cache;
+	 * otherwise it is removed from the cache, but not destroyed;
+	 * it will be destroyed by the caller */
 	rc = 0;
+	cache_entry_commit( e );
 
 return_results:;
 	if (p != NULL) {
@@ -368,10 +373,8 @@ return_results:;
 	}
 
 	if ( rc ) {
-		/* FIXME: remove from cache? */
-		cache_entry_private_destroy_mark( e );
-
-		/* free entry and writer lock */
+		/* in case of error, writer lock is freed 
+		 * and entry's private data is destroyed */
 		cache_return_entry_w( &li->li_cache, e );
 	}
 

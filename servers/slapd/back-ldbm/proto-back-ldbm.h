@@ -51,7 +51,7 @@ int cache_update_entry LDAP_P(( Cache *cache, Entry *e ));
 void cache_return_entry_rw LDAP_P(( Cache *cache, Entry *e, int rw ));
 #define cache_return_entry_r(c, e) cache_return_entry_rw((c), (e), 0)
 #define cache_return_entry_w(c, e) cache_return_entry_rw((c), (e), 1)
-void cache_entry_private_destroy_mark LDAP_P(( Entry *e ));
+void cache_entry_commit LDAP_P(( Entry *e ));
 
 ID cache_find_entry_dn2id LDAP_P(( Backend *be, Cache *cache, const char *dn ));
 ID cache_find_entry_ndn2id LDAP_P(( Backend *be, Cache *cache, const char *ndn ));

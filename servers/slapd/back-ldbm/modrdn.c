@@ -847,6 +847,7 @@ ldbm_back_modrdn(
 	    
 	    goto return_results;
 	}
+	rc = -1;
 	
 	(void) cache_update_entry( &li->li_cache, e );
 
@@ -856,7 +857,6 @@ ldbm_back_modrdn(
 
 	/* id2entry index */
 	if ( id2entry_add( be, e ) != 0 ) {
-		entry_free( e );
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "entry update failed", NULL, NULL );
 		goto return_results;
@@ -865,6 +865,7 @@ ldbm_back_modrdn(
 	send_ldap_result( conn, op, LDAP_SUCCESS,
 		NULL, NULL, NULL, NULL );
 	rc = 0;
+	cache_entry_commit( e );
 
 return_results:
 	if( new_dn != NULL ) free( new_dn );
@@ -917,5 +918,10 @@ return_results:
 
 	/* free entry and writer lock */
 	cache_return_entry_w( &li->li_cache, e );
+	if ( rc ) {
+		/* if rc != 0 the entry is uncached and its private data 
+		 * is destroyed; the entry must be freed */
+		entry_free( e );
+	}
 	return( rc );
 }
