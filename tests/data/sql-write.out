@@ -1,4 +1,10 @@
 # Using ldapsearch to retrieve all the entries...
+dn: cn=Akakiy Zinberstein,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Akakiy Zinberstein
+sn: Zinberstein
+givenName: Akakiy
+
 dn: documentTitle=book1,dc=example,dc=com
 objectClass: document
 description: abstract1
@@ -41,6 +47,12 @@ telephoneNumber: 545-4563
 # refldap://localhost:9010/dc=example,dc=com??sub
 
 # Using ldapsearch to retrieve all the entries...
+dn: cn=Akakiy Zinberstein,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Akakiy Zinberstein
+sn: Zinberstein
+givenName: Akakiy
+
 dn: o=An Org,dc=example,dc=com
 objectClass: organization
 o: An Org
@@ -130,6 +142,12 @@ documentIdentifier: document 3
 # refldap://localhost:9010/dc=example,dc=com??sub
 
 # Using ldapsearch to retrieve all the entries...
+dn: cn=Akakiy Zinberstein,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Akakiy Zinberstein
+sn: Zinberstein
+givenName: Akakiy
+
 dn: o=An Org,dc=example,dc=com
 objectClass: organization
 o: An Org
@@ -222,6 +240,12 @@ documentIdentifier: document 3
 # refldap://localhost:9010/dc=example,dc=com??sub
 
 # Using ldapsearch to retrieve all the entries...
+dn: cn=Akakiy Zinberstein,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Akakiy Zinberstein
+sn: Zinberstein
+givenName: Akakiy
+
 dn: o=An Org,dc=example,dc=com
 objectClass: organization
 o: An Org
@@ -289,6 +313,12 @@ documentIdentifier: document 3
 # refldap://localhost:9010/dc=example,dc=com??sub
 
 # Using ldapsearch to retrieve all the entries...
+dn: cn=Akakiy Zinberstein,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Akakiy Zinberstein
+sn: Zinberstein
+givenName: Akakiy
+
 dn: dc=example,dc=com
 objectClass: organization
 objectClass: dcObject
@@ -356,24 +386,26 @@ documentIdentifier: document 3
 # refldap://localhost:9010/dc=example,dc=com??sub
 
 # Using ldapsearch to retrieve the modified entry...
-dn: cn=Akakiy Zinberstein,dc=example,dc=com
-objectClass: inetOrgPerson
+dn: ou=Referral,dc=example,dc=com
 objectClass: referral
-cn: Akakiy Zinberstein
-sn: Zinberstein
+objectClass: extensibleObject
+ou: Referral
 ref: ldap://localhost:9009/
-givenName: Akakiy
 
 # Using ldapsearch to retrieve the renamed entry...
-dn: cn=Akakiy Zinber,dc=example,dc=com
-objectClass: inetOrgPerson
+dn: ou=Renamed Referral,dc=example,dc=com
 objectClass: referral
-cn: Akakiy Zinber
-sn: Zinber
+objectClass: extensibleObject
+ou: Renamed Referral
 ref: ldap://localhost:9009/
-givenName: Akakiy
 
 # Using ldapsearch to retrieve all the entries...
+dn: cn=Akakiy Zinberstein,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Akakiy Zinberstein
+sn: Zinberstein
+givenName: Akakiy
+
 dn: dc=example,dc=com
 objectClass: organization
 objectClass: dcObject
@@ -437,4 +469,6 @@ description: Historical novel
 documentTitle: War and Peace
 documentAuthor: cn=Lev Tolstoij,dc=subnet,dc=example,dc=com
 documentIdentifier: document 3
+
+# refldap://localhost:9009/dc=example,dc=com??sub
 

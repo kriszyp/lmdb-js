@@ -336,7 +336,7 @@ EOMODS
 		-h $LOCALHOST -p $PORT1 >> $TESTOUT 2>&1 << EOMODS
 version: 1
 
-dn: cn=Should Fail,cn=Akakiy Zinberstein,${BASEDN}
+dn: cn=Should Fail,ou=Referral,${BASEDN}
 changetype: add
 objectClass: inetOrgPerson
 cn: Should Fail
@@ -356,7 +356,7 @@ EOMODS
 		-h $LOCALHOST -p $PORT1 >> $TESTOUT 2>&1 << EOMODS
 version: 1
 
-dn: cn=Akakiy Zinberstein,${BASEDN}
+dn: ou=Referral,${BASEDN}
 changetype: modify
 replace: ref
 ref: ldap://localhost:9009/
@@ -375,9 +375,9 @@ EOMODS
 		-h $LOCALHOST -p $PORT1 >> $TESTOUT 2>&1 << EOMODS
 version: 1
 
-dn: cn=Akakiy Zinberstein,${BASEDN}
+dn: ou=Referral,${BASEDN}
 changetype: modrdn
-newrdn: cn=Akakiy Zinber
+newrdn: ou=Renamed Referral
 deleteoldrdn: 1
 EOMODS
 
@@ -393,7 +393,7 @@ EOMODS
 		-h $LOCALHOST -p $PORT1 >> $TESTOUT 2>&1 << EOMODS
 version: 1
 
-dn: cn=Akakiy Zinberstein,${BASEDN}
+dn: ou=Referral,${BASEDN}
 changetype: delete
 EOMODS
 
@@ -404,12 +404,32 @@ EOMODS
 		exit $RC
 	fi
 
+	echo "Adding a referral..."
+	$LDAPMODIFY -v -c -D "$MANAGERDN" -w $PASSWD \
+		-h $LOCALHOST -p $PORT1 -M >> $TESTOUT 2>&1 << EOMODS
+version: 1
+
+dn: ou=Another Referral,${BASEDN}
+changetype: add
+objectClass: referral
+objectClass: extensibleObject
+ou: Another Referral
+ref: ldap://localhost:9009/
+EOMODS
+
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapmodify failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
+
 	echo "Modifying a referral with manageDSAit..."
 	$LDAPMODIFY -v -c -D "$MANAGERDN" -w $PASSWD \
 		-h $LOCALHOST -p $PORT1 -M >> $TESTOUT 2>&1 << EOMODS
 version: 1
 
-dn: cn=Akakiy Zinberstein,${BASEDN}
+dn: ou=Referral,${BASEDN}
 changetype: modify
 replace: ref
 ref: ldap://localhost:9009/
@@ -425,7 +445,7 @@ EOMODS
 
 	echo "Using ldapsearch to retrieve the modified entry..."
 	echo "# Using ldapsearch to retrieve the modified entry..." >> $SEARCHOUT
-	$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT1 -b "cn=Akakiy Zinberstein,$BASEDN" -M \
+	$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT1 -b "ou=Referral,$BASEDN" -M \
 		 "objectClass=*" '*' ref >> $SEARCHOUT 2>&1
 
 	RC=$?
@@ -440,9 +460,9 @@ EOMODS
 		-h $LOCALHOST -p $PORT1 -M >> $TESTOUT 2>&1 << EOMODS
 version: 1
 
-dn: cn=Akakiy Zinberstein,${BASEDN}
+dn: ou=Referral,${BASEDN}
 changetype: modrdn
-newrdn: cn=Akakiy Zinber
+newrdn: ou=Renamed Referral
 deleteoldrdn: 1
 EOMODS
 
@@ -455,7 +475,7 @@ EOMODS
 
 	echo "Using ldapsearch to retrieve the renamed entry..."
 	echo "# Using ldapsearch to retrieve the renamed entry..." >> $SEARCHOUT
-	$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT1 -b "cn=Akakiy Zinber,$BASEDN" -M \
+	$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT1 -b "ou=Renamed Referral,$BASEDN" -M \
 		 "objectClass=*" '*' ref >> $SEARCHOUT 2>&1
 
 	RC=$?
@@ -470,7 +490,7 @@ EOMODS
 		-h $LOCALHOST -p $PORT1 -M >> $TESTOUT 2>&1 << EOMODS
 version: 1
 
-dn: cn=Akakiy Zinber,${BASEDN}
+dn: ou=Renamed Referral,${BASEDN}
 changetype: delete
 EOMODS
 
