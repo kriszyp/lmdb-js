@@ -11,6 +11,8 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
+
+/* Allocate an ID_BLOCK with room for nids ids */
 ID_BLOCK *
 idl_alloc( int nids )
 {
@@ -24,6 +26,8 @@ idl_alloc( int nids )
 	return( new );
 }
 
+
+/* Allocate an empty ALLIDS ID_BLOCK */
 ID_BLOCK	*
 idl_allids( Backend *be )
 {
@@ -36,16 +40,23 @@ idl_allids( Backend *be )
 	return( idl );
 }
 
+
+/* Free an ID_BLOCK */
 void
 idl_free( ID_BLOCK *idl )
 {
 	if ( idl == NULL ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"idl_free: called with NULL pointer\n",
+			0, 0, 0 );
 		return;
 	}
 
 	free( (char *) idl );
 }
 
+
+/* Fetch an single ID_BLOCK from the cache */
 static ID_BLOCK *
 idl_fetch_one(
     Backend		*be,
@@ -67,6 +78,16 @@ idl_fetch_one(
 	return( idl );
 }
 
+
+/* Fetch a set of ID_BLOCKs from the cache
+ *	if not INDIRECT
+ * 		if block return is an ALLIDS block,
+ *			return an new ALLIDS block
+ * 		otherwise
+ *			return block
+ *	construct super block from all blocks referenced by INDIRECT block
+ *	return super block
+ */
 ID_BLOCK *
 idl_fetch(
     Backend		*be,
@@ -162,6 +183,8 @@ idl_fetch(
 	return( idl );
 }
 
+
+/* store a single block */
 static int
 idl_store(
     Backend		*be,
@@ -194,54 +217,60 @@ idl_store(
 	return( rc );
 }
 
+
+/* split the block at id 
+ *	locate ID greater than or equal to id.
+ */
 static void
 idl_split_block(
     ID_BLOCK	*b,
     ID		id,
-    ID_BLOCK	**n1,
-    ID_BLOCK	**n2
+    ID_BLOCK	**right,
+    ID_BLOCK	**left
 )
 {
-	unsigned int	i;
+	unsigned int	nr, nl;
 
-	/* find where to split the block */
-	for ( i = 0; i < ID_BLOCK_NIDS(b) && id > ID_BLOCK_ID(b, i); i++ )
+	/* find where to split the block *//* XXX linear search XXX */
+	for ( nr = 0; nr < ID_BLOCK_NIDS(b) && id > ID_BLOCK_ID(b, nr); nr++ )
 		;	/* NULL */
 
-	*n1 = idl_alloc( i == 0 ? 1 : i );
-	*n2 = idl_alloc( ID_BLOCK_NIDS(b) - i + (i == 0 ? 0 : 1));
+	nl = ID_BLOCK_NIDS(b) - nr;
+
+	*right = idl_alloc( nr == 0 ? 1 : nr );
+	*left = idl_alloc( nl + (nr == 0 ? 0 : 1));
 
 	/*
 	 * everything before the id being inserted in the first block
 	 * unless there is nothing, in which case the id being inserted
 	 * goes there.
 	 */
-	SAFEMEMCPY(
-		(char *) &ID_BLOCK_ID(*n1, 0),
-		(char *) &ID_BLOCK_ID(b, 0),
-	    i * sizeof(ID) );
-	ID_BLOCK_NIDS(*n1) = (i == 0 ? 1 : i);
-
-	if ( i == 0 ) {
-		ID_BLOCK_ID(*n1, 0) = id;
+	if ( nr == 0 ) {
+		ID_BLOCK_NIDS(*right) = 1;
+		ID_BLOCK_ID(*right, 0) = id;
 	} else {
-		ID_BLOCK_ID(*n2, 0) = id;
+		SAFEMEMCPY(
+			(char *) &ID_BLOCK_ID(*right, 0),
+			(char *) &ID_BLOCK_ID(b, 0),
+			nr * sizeof(ID) );
+		ID_BLOCK_NIDS(*right) = nr;
+		ID_BLOCK_ID(*left, 0) = id;
 	}
 
 	/* the id being inserted & everything after in the second block */
 	SAFEMEMCPY(
-		(char *) &ID_BLOCK_ID(*n2, (i == 0 ? 0 : 1)),
-	    (char *) &ID_BLOCK_ID(b, i),
-		(ID_BLOCK_NIDS(b) - i) * sizeof(ID) );
-	ID_BLOCK_NIDS(*n2) = ID_BLOCK_NIDS(b) - i + (i == 0 ? 0 : 1);
+		(char *) &ID_BLOCK_ID(*left, (nr == 0 ? 0 : 1)),
+	    (char *) &ID_BLOCK_ID(b, nr),
+		nl * sizeof(ID) );
+	ID_BLOCK_NIDS(*left) = nl + (nr == 0 ? 0 : 1);
 }
+
 
 /*
  * idl_change_first - called when an indirect block's first key has
  * changed, meaning it needs to be stored under a new key, and the
  * header block pointing to it needs updating.
  */
-
 static int
 idl_change_first(
     Backend		*be,
@@ -284,6 +313,7 @@ idl_change_first(
 
 	return( 0 );
 }
+
 
 int
 idl_insert_key(
@@ -384,7 +414,7 @@ idl_insert_key(
 	 * need to write a new "header" block.
 	 */
 
-	/* select the block to try inserting into */
+	/* select the block to try inserting into *//* XXX linear search XXX */
 	for ( i = 0; !ID_BLOCK_NOID(idl, i) && id > ID_BLOCK_ID(idl, i); i++ )
 		;	/* NULL */
 	if ( i != 0 ) {
@@ -481,7 +511,7 @@ idl_insert_key(
 		 * and write the indirect header block.
 		 */
 
-		/* count how many indirect blocks */
+		/* count how many indirect blocks *//* XXX linear count XXX */
 		for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ )
 			;	/* NULL */
 
@@ -564,14 +594,16 @@ idl_insert_key(
 	return( rc );
 }
 
+
 /*
  * idl_insert - insert an id into an id list.
- * returns	0	id inserted
+ *
+ *	returns
+ * 		0	id inserted
  *		1	id inserted, first id in block has changed
  *		2	id not inserted, already there
  *		3	id not inserted, block must be split
  */
-
 int
 idl_insert( ID_BLOCK **idl, ID id, int maxids )
 {
@@ -581,7 +613,7 @@ idl_insert( ID_BLOCK **idl, ID id, int maxids )
 		return( 2 );	/* already there */
 	}
 
-	/* is it already there? XXX bin search XXX */
+	/* is it already there? *//* XXX linear search XXX */
 	for ( i = 0; i < ID_BLOCK_NIDS(*idl) && id > ID_BLOCK_ID(*idl, i); i++ ) {
 		;	/* NULL */
 	}
@@ -604,7 +636,7 @@ idl_insert( ID_BLOCK **idl, ID id, int maxids )
 		    (ID_BLOCK_NMAX(*idl) + ID_BLOCK_IDS_OFFSET) * sizeof(ID) );
 	}
 
-	/* make a slot for the new id */
+	/* make a slot for the new id *//* XXX bubble move XXX */
 	for ( j = ID_BLOCK_NIDS(*idl); j != i; j-- ) {
 		ID_BLOCK_ID(*idl, j) = ID_BLOCK_ID(*idl, j-1);
 	}
@@ -617,6 +649,7 @@ idl_insert( ID_BLOCK **idl, ID id, int maxids )
 
 	return( i == 0 ? 1 : 0 );	/* inserted - first id changed or not */
 }
+
 
 int
 idl_delete_key (
@@ -718,6 +751,8 @@ idl_delete_key (
 	return -1;
 }
 
+
+/* return a duplicate of a single ID_BLOCK */
 static ID_BLOCK *
 idl_dup( ID_BLOCK *idl )
 {
@@ -737,16 +772,18 @@ idl_dup( ID_BLOCK *idl )
 	return( new );
 }
 
+
+/* return the smaller ID_BLOCK */
 static ID_BLOCK *
 idl_min( ID_BLOCK *a, ID_BLOCK *b )
 {
 	return( ID_BLOCK_NIDS(a) > ID_BLOCK_NIDS(b) ? b : a );
 }
 
+
 /*
  * idl_intersection - return a intersection b
  */
-
 ID_BLOCK *
 idl_intersection(
     Backend	*be,
@@ -770,8 +807,12 @@ idl_intersection(
 	n = idl_dup( idl_min( a, b ) );
 
 	for ( ni = 0, ai = 0, bi = 0; ai < ID_BLOCK_NIDS(a); ai++ ) {
-		for ( ; bi < ID_BLOCK_NIDS(b) && ID_BLOCK_ID(b, bi) < ID_BLOCK_ID(a, ai); bi++ )
+		for ( ;
+			bi < ID_BLOCK_NIDS(b) && ID_BLOCK_ID(b, bi) < ID_BLOCK_ID(a, ai);
+			bi++ )
+		{
 			;	/* NULL */
+		}
 
 		if ( bi == ID_BLOCK_NIDS(b) ) {
 			break;
@@ -791,10 +832,10 @@ idl_intersection(
 	return( n );
 }
 
+
 /*
  * idl_union - return a union b
  */
-
 ID_BLOCK *
 idl_union(
     Backend	*be,
@@ -823,7 +864,10 @@ idl_union(
 
 	n = idl_alloc( ID_BLOCK_NIDS(a) + ID_BLOCK_NIDS(b) );
 
-	for ( ni = 0, ai = 0, bi = 0; ai < ID_BLOCK_NIDS(a) && bi < ID_BLOCK_NIDS(b); ) {
+	for ( ni = 0, ai = 0, bi = 0;
+		ai < ID_BLOCK_NIDS(a) && bi < ID_BLOCK_NIDS(b);
+		)
+	{
 		if ( ID_BLOCK_ID(a, ai) < ID_BLOCK_ID(b, bi) ) {
 			ID_BLOCK_ID(n, ni++) = ID_BLOCK_ID(a, ai++);
 
@@ -847,10 +891,10 @@ idl_union(
 	return( n );
 }
 
+
 /*
  * idl_notin - return a intersection ~b (or a minus b)
  */
-
 ID_BLOCK *
 idl_notin(
     Backend	*be,
@@ -924,6 +968,12 @@ idl_notin(
 	return( n );
 }
 
+/*	return the first ID in the block
+ *	if ALLIDS block
+ *		NIDS > 1 return 1
+ *		otherwise return NOID 
+ *	otherwise return first ID
+ */         
 ID
 idl_firstid( ID_BLOCK *idl )
 {
@@ -932,12 +982,18 @@ idl_firstid( ID_BLOCK *idl )
 	}
 
 	if ( ID_BLOCK_ALLIDS( idl ) ) {
-		return( ID_BLOCK_NIDS(idl) == 1 ? NOID : 1 );
+		return( ID_BLOCK_NIDS(idl) > 1 ? 1 : NOID );
 	}
 
 	return( ID_BLOCK_ID(idl, 0) );
 }
 
+/*	return next ID after id
+ *	if ALLIDS block, increment id. 
+ *		if id < NIDS return id
+ *		otherwise NOID.
+ *	otherwise SEARCH for next id (ugh!)
+ */ 
 ID
 idl_nextid( ID_BLOCK *idl, ID id )
 {
@@ -947,10 +1003,9 @@ idl_nextid( ID_BLOCK *idl, ID id )
 		return( ++id < ID_BLOCK_NIDS(idl) ? id : NOID );
 	}
 
-	for ( i = 0; i < ID_BLOCK_NIDS(idl) && ID_BLOCK_ID(idl, i) < id; i++ ) {
+	for ( i = 0; i < ID_BLOCK_NIDS(idl) && ID_BLOCK_ID(idl, i) <= id; i++ ) {
 		;	/* NULL */
 	}
-	i++;
 
 	if ( i >= ID_BLOCK_NIDS(idl) ) {
 		return( NOID );
