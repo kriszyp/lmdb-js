@@ -1,6 +1,6 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.19 Engineering
+OpenLDAP 2.0.19 Release
 	Fixed back-ldbm not filter indexing (ITS#1405)
 	Fixed back-passwd e_ndn bug (ITS#1467)
 	Fixed back-ldap undef ad bug (ITS#1367)
