@@ -86,8 +86,8 @@ static const struct ol_attribute {
 	{1, ATTR_TLS,		"TLS_KEY",		NULL,	LDAP_OPT_X_TLS_KEYFILE},
   	{0, ATTR_TLS,		"TLS_CACERT",	NULL,	LDAP_OPT_X_TLS_CACERTFILE},
   	{0, ATTR_TLS,		"TLS_CACERTDIR",NULL,	LDAP_OPT_X_TLS_CACERTDIR},
-  	{1, ATTR_TLS,		"TLS_REQCERT",	NULL,	LDAP_OPT_X_TLS_REQUIRE_CERT},
-	{1, ATTR_TLS,		"TLS_RANDFILE",	NULL,	LDAP_OPT_X_TLS_RANDOM_FILE},
+  	{0, ATTR_TLS,		"TLS_REQCERT",	NULL,	LDAP_OPT_X_TLS_REQUIRE_CERT},
+	{0, ATTR_TLS,		"TLS_RANDFILE",	NULL,	LDAP_OPT_X_TLS_RANDOM_FILE},
 #endif
 
 	{0, ATTR_NONE,		NULL,		NULL,	0}
@@ -443,12 +443,6 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 
 	ldap_int_utils_init();
 
-#ifdef HAVE_TLS
-   	ldap_pvt_tls_init();
-#endif
-
-	ldap_int_sasl_init();
-
 	if ( ldap_int_tblsize == 0 )
 		ldap_int_ip_init();
 
@@ -503,4 +497,6 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	}
 
 	openldap_ldap_init_w_env(gopts, NULL);
+
+	ldap_int_sasl_init();
 }
