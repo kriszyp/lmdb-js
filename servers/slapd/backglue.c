@@ -234,6 +234,7 @@ glue_back_response ( Operation *op, SlapReply *rs )
 			gs->refs = new;
 		}
 	}
+	return 0;
 }
 
 static int
