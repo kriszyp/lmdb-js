@@ -149,6 +149,9 @@ extern void slapi_destroy_condvar( Slapi_CondVar *cvar );
 extern int slapi_wait_condvar( Slapi_CondVar *cvar, struct timeval *timeout );
 extern int slapi_notify_condvar( Slapi_CondVar *cvar, int notify_all );
 
+extern LDAP *slapi_ldap_init( char *ldaphost, int ldapport, int secure, int shared );
+extern void slapi_ldap_unbind( LDAP *ld );
+
 extern char *slapi_ch_malloc( unsigned long size );
 extern void slapi_ch_free( void **ptr );
 extern void slapi_ch_free_string( char **s );
