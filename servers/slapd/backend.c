@@ -164,7 +164,8 @@ int backend_add(BackendInfo *aBackendInfo)
 /* startup a specific backend database */
 int backend_startup_one(Backend *be)
 {
-	int rc = 0;
+	int		rc = 0;
+	BackendInfo	*bi = be->bd_info;
 
 	assert(be);
 
@@ -172,6 +173,17 @@ int backend_startup_one(Backend *be)
 		ch_calloc( 1, sizeof( struct be_pcl ));
 
 	LDAP_TAILQ_INIT( be->be_pending_csn_list );
+
+	/* back-relay takes care of itself; so may do other */
+	if ( be->be_controls == NULL ) {
+		if ( overlay_is_over( be ) ) {
+			bi = ((slap_overinfo *)be->bd_info->bi_private)->oi_orig;
+		}
+
+		if ( bi->bi_controls ) {
+			be->be_controls = ldap_charray_dup( bi->bi_controls );
+		}
+	}
 
 	Debug( LDAP_DEBUG_TRACE,
 		"backend_startup: starting \"%s\"\n",
@@ -187,15 +199,27 @@ int backend_startup_one(Backend *be)
 	}
 
 	/* back-relay takes care of itself; so may do other */
-	if ( be->be_controls == NULL ) {
-		BackendInfo	*bi = be->bd_info;
-	
-		if ( overlay_is_over( be ) ) {
-			bi = ((slap_overinfo *)be->bd_info->bi_private)->oi_orig;
-		}
+	bi = be->bd_info;
+	if ( overlay_is_over( be ) ) {
+		bi = ((slap_overinfo *)be->bd_info->bi_private)->oi_orig;
+	}
 
-		if ( bi->bi_controls ) {
+	if ( bi->bi_controls ) {
+		if ( be->be_controls == NULL ) {
 			be->be_controls = ldap_charray_dup( bi->bi_controls );
+
+		} else {
+			int	i;
+
+			/* maybe not efficient, but it's startup and few dozens of controls... */
+			for ( i = 0; bi->bi_controls[ i ]; i++ ) {
+				if ( !ldap_charray_inlist( be->be_controls, bi->bi_controls[ i ] ) ) {
+					rc = ldap_charray_add( &be->be_controls, bi->bi_controls[ i ] );
+					if ( rc != 0 ) {
+						break;
+					}
+				}
+			}
 		}
 	}
 
