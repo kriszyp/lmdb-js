@@ -21,7 +21,7 @@ REQUIRED SOFTWARE
 
 	Base system (libraries and tools):
 		Standard C compiler (required)
-		Cryus SASL software (recommended)
+		Cyrus SASL software (recommended)
 		OpenSSL TLS software (recommended)
 		POSIX REGEX software (required)
 
