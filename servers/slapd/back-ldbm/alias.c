@@ -47,7 +47,7 @@ Entry *deref_internal_r(
 		|| ( alias == NULL && dn_in != NULL ) );
 
 	*matched = NULL;
-	*err = LDAP_SUCCESS;
+	*err = LDAP_NO_SUCH_OBJECT;
 	*text = NULL;
 
 	if( alias == NULL ) {
