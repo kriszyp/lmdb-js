@@ -30,12 +30,12 @@ LDAP_BEGIN_DECL
 
 /*
  * While it's not important that the subsystem number are
- * contiguous, it is important that the NUM_SUBSYS accurately
- * reflect the number of subsystems and MAX_SUBSYS reflect
+ * contiguous, it is important that the LDAP_SUBSYS_NUM accurately
+ * reflect the number of subsystems and LDAP_SUBSYS_MAX reflect
  * the largest subsystem number.
  */
-#define NUM_SUBSYS 12
-#define MAX_SUBSYS 11
+#define LDAP_SUBSYS_NUM 12
+#define LDAP_SUBSYS_MAX 11
 
 #define LDAP_SUBSYS_GLOBAL      0
 #define LDAP_SUBSYS_OPERATION   1
@@ -138,7 +138,6 @@ LDAP_LUTIL_F(int) lutil_mnem2level LDAP_P(( char *level ));
 LDAP_LUTIL_F(void) lutil_log_initialize(int argc, char **argv);
 LDAP_LUTIL_F(void) lutil_set_debug_level LDAP_P(( char *subsys, int level ));
 LDAP_LUTIL_F(void) lutil_log LDAP_P(( char *subsys, int level, const char *fmt, ... ));
-/*LDAP_LUTIL_F(void) lutil_log_int LDAP_P(( FILE* file, char *subsys, int level, const char *fmt, va_list vl ));*/
 
 LDAP_LUTIL_F(int) lutil_debug_file LDAP_P(( FILE *file ));
 
