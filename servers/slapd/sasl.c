@@ -656,8 +656,12 @@ slap_sasl_canonicalize(
 	 * the authcID temporarily in conn->c_sasl_dn. We necessarily
 	 * finish Canonicalizing before Authorizing, so there is no
 	 * conflict with slap_sasl_authorize's use of this temp var.
+	 *
+	 * The SASL EXTERNAL mech is backwards from all the other mechs,
+	 * it does authzID before the authcID. If we see that authzID
+	 * has already been done, don't do anything special with authcID.
 	 */
-	if ( flags == SASL_CU_AUTHID ) {
+	if ( flags == SASL_CU_AUTHID && !auxvals[PROP_AUTHZ].values ) {
 		conn->c_sasl_dn.bv_val = (char *) in;
 	} else if ( flags == SASL_CU_AUTHZID && conn->c_sasl_dn.bv_val ) {
 		rc = strcmp( in, conn->c_sasl_dn.bv_val );
