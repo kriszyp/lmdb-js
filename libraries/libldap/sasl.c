@@ -829,12 +829,18 @@ ldap_negotiated_sasl_bind_s(
 	sasl_callback_t callbacks[4];
 	int rc;
 
-	callbacks[n=0].id = SASL_CB_USER;
+	/*
+	 * Cyrus uses screwy terms.  The authname is the
+	 * SASL "username" or authentication identity.
+	 * The user is the authorization identity.
+	 */
+
+	callbacks[n=0].id = SASL_CB_AUTHNAME;
 	callbacks[n].proc = ldap_pvt_sasl_getsimple;
 	callbacks[n].context = (void *)authenticationId;
 
 	if( authorizationId != NULL ) {
-		callbacks[++n].id = SASL_CB_AUTHNAME;
+		callbacks[++n].id = SASL_CB_USER;
 		callbacks[n].proc = ldap_pvt_sasl_getsimple;
 		callbacks[n].context = (void *)authorizationId;
 	}
