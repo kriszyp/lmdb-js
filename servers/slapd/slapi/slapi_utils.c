@@ -1099,32 +1099,14 @@ slapi_filter_get_ava(
 			|| ftype ==  LDAP_FILTER_GE 
 			|| ftype == LDAP_FILTER_LE 
 			|| ftype == LDAP_FILTER_APPROX ) {
-		*type = slapi_ch_strdup( f->f_un.f_un_ava->aa_desc->ad_cname.bv_val );
-		if ( *type == NULL ) {
-			rc = LDAP_NO_MEMORY;
-			goto done;
-		}
-
-		*bval = ber_dupbv( NULL, &f->f_un.f_un_ava->aa_value );
-		if ( *bval == NULL ) {
-			rc = LDAP_NO_MEMORY;
-			goto done;
-		}
+		/*
+		 * According to the SLAPI Reference Manual these are
+		 * not duplicated.
+		 */
+		*type = f->f_un.f_un_ava->aa_desc->ad_cname.bv_val;
+		*bval = &f->f_un.f_un_ava->aa_value;
 	} else { /* filter type not supported */
 		rc = -1;
-	}
-
-done:
-	if ( rc != LDAP_SUCCESS ) {
-		if ( *bval ) {
-			ch_free( *bval );
-			*bval = NULL;
-		}
-
-		if ( *type ) {
-			ch_free( *type );
-			*type = NULL;
-		}
 	}
 
 	return rc;
