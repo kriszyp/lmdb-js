@@ -98,6 +98,7 @@ int ber_pvt_log_printf( int errlvl, int loglvl, const char *fmt, ... )
 	(*ber_pvt_log_print)( buf );
 	return 1;
 }
+
 #if 0
 static int ber_log_puts(int errlvl, int loglvl, char *buf)
 {
@@ -111,6 +112,7 @@ static int ber_log_puts(int errlvl, int loglvl, char *buf)
 	return 1;
 }
 #endif
+
 /*
  * Print arbitrary stuff, for debugging.
  */
@@ -136,22 +138,15 @@ ber_bprint(
 	LDAP_CONST char *data,
 	ber_len_t len )
 {
-    static const char	hexdig[] = "0123456789abcdef";
-#define BPLEN	48
-    char	out[ BPLEN ];
-    char	buf[ BPLEN + sizeof("\t%s\n") ];
-    int		i = 0;
+	static const char	hexdig[] = "0123456789abcdef";
+#define BP_OFFSET 9
+#define BP_GRAPH 60
+#define BP_LEN	80
+	char	line[ BP_LEN ];
+	ber_len_t i;
 
 	assert( data != NULL );
 
-<<<<<<< bprint.c
-    memset( out, '\0', BPLEN );
-    for ( ;; ) {
-	if ( len < 1 ) {
-	    sprintf( buf, "\t%s\n", ( i == 0 ) ? "(end)" : out );
-		(*ber_pvt_log_print)( buf );
-	    break;
-=======
 	/* in case len is zero */
 	line[0] = '\n';
 	line[1] = '\0';
@@ -186,34 +181,9 @@ ber_bprint(
 		} else {
 			line[ BP_GRAPH + n ] = '.';
 		}
->>>>>>> 1.34
 	}
 
-#ifndef LDAP_HEX
-	if ( isgraph( (unsigned char)*data )) {
-	    out[ i ] = ' ';
-	    out[ i+1 ] = *data;
-	} else {
-#endif
-	    out[ i ] = hexdig[ ( *data & 0xf0U ) >> 4 ];
-	    out[ i+1 ] = hexdig[ *data & 0x0fU ];
-#ifndef LDAP_HEX
-	}
-#endif
-	i += 2;
-	len--;
-	data++;
-
-	if ( i > BPLEN - 2 ) {
-		char data[128 + BPLEN];
-	    sprintf( data, "\t%s\n", out );
-		(*ber_pvt_log_print)(data);
-	    memset( out, '\0', BPLEN );
-	    i = 0;
-	    continue;
-	}
-	out[ i++ ] = ' ';
-    }
+	(*ber_pvt_log_print)( line );
 }
 
 int
@@ -240,28 +210,26 @@ ber_dump(
 	int inout )
 {
 	char buf[132];
+	ber_len_t len;
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
-	sprintf( buf, "ber_dump: buf 0x%lx, ptr 0x%lx, end 0x%lx\n",
+	if ( inout == 1 ) {
+		len = ber_pvt_ber_remaining(ber);
+	} else {
+		len = ber_pvt_ber_write(ber);
+	}
+
+	sprintf( buf, "ber_dump: buf=0x%08lx ptr=0x%08lx end=0x%08lx len=%ld\n",
 	    (long) ber->ber_buf,
 		(long) ber->ber_ptr,
-		(long) ber->ber_end );
+		(long) ber->ber_end,
+		(long) len );
 
 	(*ber_pvt_log_print)( buf );
 
-	if ( inout == 1 ) {
-		sprintf( buf, "          current len %ld, contents:\n",
-		    (long) (ber->ber_end - ber->ber_ptr) );
-		ber_bprint( ber->ber_ptr, ber->ber_end - ber->ber_ptr );
-
-	} else {
-		sprintf( buf, "          current len %ld, contents:\n",
-		    (long) (ber->ber_ptr - ber->ber_buf) );
-
-		ber_bprint( ber->ber_buf, ber->ber_ptr - ber->ber_buf );
-	}
+	ber_bprint( ber->ber_ptr, len );
 }
 
 int
