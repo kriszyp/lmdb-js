@@ -3,7 +3,7 @@
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
-slapd-bdb \- BDB backend to slapd
+slapd-bdb, slapd-hdb \- BDB backends to slapd
 .SH SYNOPSIS
 ETCDIR/slapd.conf
 .SH DESCRIPTION
@@ -14,6 +14,10 @@ However, it takes more care than with the LDBM backend to configure
 it properly.
 It uses the Sleepycat Berkeley DB (BDB) package to store data.
 It makes extensive use of indexing and caching to speed data access.
+.LP
+"hdb" is a variant of the BDB backend that uses a hierarchical database
+layout which supports subtree renames.  It is otherwise identical to
+the "bdb" behavior, and all the same configuration options apply.
 .LP
 It is noted that these options are intended to complement
 Berkeley DB configuration options set in the environment's
@@ -28,14 +32,14 @@ take precedence.
 These
 .B slapd.conf
 options apply to the BDB backend database.
-That is, they must follow a "database bdb" line and come before any
-subsequent "backend" or "database" lines.
+That is, they must follow a "database bdb" or "database hdb" line and
+come before any subsequent "backend" or "database" lines.
 Other database options are described in the
 .BR slapd.conf (5)
 manual page.
 .TP
 .B cachesize <integer>
-Specify the size in entries of the in-memory cache maintained 
+Specify the size in entries of the in-memory entry cache maintained 
 by the BDB backend database instance.
 The default is 1000 entries.
 .TP
@@ -77,7 +81,9 @@ will return a different result.
 .B idlcachesize <integer>
 Specify the size of the in-memory index cache, in index slots. The
 default is zero. A larger value will speed up frequent searches of
-indexed entries.
+indexed entries. An hdb database needs a large idlcachesize
+for good search performance, typically three times the entry cache size
+or larger.
 .TP
 .B
 index {<attrlist>|default} [pres,eq,approx,sub,<special>]
