@@ -139,6 +139,9 @@ dnValidate(
  * (use memcmp, which implies alphabetical order in case of IA5 value;
  * this should guarantee the repeatability of the operation).
  *
+ * Note: the sorting can be slightly improved by sorting first
+ * by attribute type length, then by alphabetical order.
+ *
  * uses a linear search; should be fine since the number of AVAs in
  * a RDN should be limited.
  */
