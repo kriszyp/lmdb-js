@@ -40,7 +40,7 @@ REQUIRED SOFTWARE
 
 	SLURPD:
 		LTHREAD compatible thread package
-			(POSIX pthreads, MIT pthreads, Mach Cthreads or Sun LWP)
+			(POSIX threads, Mach Cthreads, Sun LWP, or GNU Pth)
 
 	CLIENTS/CONTRIB ware:
 		Depends on package.  See per package README.
