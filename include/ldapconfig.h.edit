@@ -23,13 +23,13 @@
 #define _LDAP_CONFIG_H
 
 /*
- * config.h for LDAP -- edit this file to customize LDAP client behavior.
+ * config.h for LDAP -- edit this file to customize OpenLDAP behavior.
  * NO platform-specific definitions should be placed in this file.
- * Note that this IS USED by the LDAP or LBER libraries.
  */
 
 /*
- * SHARED DEFINITIONS - things you should change
+ * SHARED DEFINITIONS
+ * These are shared with Makefile and should not change via configure
  */
 #define DEFAULT_DIRSEP		"/"
 #define DEFAULT_BINDIR		"%BINDIR%"
