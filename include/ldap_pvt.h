@@ -66,6 +66,8 @@ ldap_pvt_gethostbyaddr_a LDAP_P((
 	struct hostent **result,
 	int *herrno_ptr ));
 
+struct sockaddr;
+
 LDAP_F( int )
 ldap_pvt_get_hname LDAP_P((
 	const struct sockaddr * sa,
