@@ -220,7 +220,6 @@ LDAP_ProcessOneSearchResult (interp, ldap, entry, destArrayNameObj, evalCodeObj)
 	    Tcl_DecrRefCount (attributeNameObj);
 	}
     }
-    ber_free(ber, 0);
     return Tcl_EvalObj (interp, evalCodeObj);
 }
 
