@@ -46,7 +46,16 @@ extern gdbm_error	gdbm_errno;
 #include <sys/types.h>
 #include <limits.h>
 #include <fcntl.h>
-#include <db.h>
+
+#ifdef LDBM_USE_DB2_COMPAT185
+#	include <db_185.h>
+#else
+#	include <db.h>
+#	ifdef LDBM_USE_DB2
+#		define R_NOOVERWRITE DB_NOOVERWRITE
+#		define DEFAULT_DB_PAGE_SIZE 1024
+#	endif
+#endif
 
 typedef DBT	Datum;
 #define dsize	size
@@ -57,11 +66,18 @@ typedef DB	*LDBM;
 #define DB_TYPE		DB_HASH
 
 /* for ldbm_open */
-#define LDBM_READER	O_RDONLY
-#define LDBM_WRITER	O_RDWR
-#define LDBM_WRCREAT	(O_RDWR|O_CREAT)
-#define LDBM_NEWDB	(O_RDWR|O_TRUNC|O_CREAT)
-#define LDBM_FAST	0
+#ifdef LDBM_USE_DB2
+#	define LDBM_READER	DB_RDONLY
+#	define LDBM_WRITER	0x00000      /* hopefully */
+#	define LDBM_WRCREAT	(DB_NOMMAP|DB_CREATE|DB_THREAD)
+#	define LDBM_NEWDB	(DB_TRUNCATE|DB_CREATE|DB_THREAD)
+#else
+#	define LDBM_READER	O_RDONLY
+#	define LDBM_WRITER	O_RDWR
+#	define LDBM_WRCREAT	(O_RDWR|O_CREAT)
+#	define LDBM_NEWDB	(O_RDWR|O_TRUNC|O_CREAT)
+#	define LDBM_FAST	0
+#endif
 
 #define LDBM_SUFFIX	".dbh"
 
@@ -85,7 +101,17 @@ extern int	errno;
 #include <sys/types.h>
 #include <limits.h>
 #include <fcntl.h>
-#include <db.h>
+
+#ifdef LDBM_USE_DB2_COMPAT185
+#	include <db_185.h>
+#else
+#	include <db.h>
+#	ifdef LDBM_USE_DB2
+#		define R_NOOVERWRITE DB_NOOVERWRITE
+#		define DEFAULT_DB_PAGE_SIZE 1024
+#	endif
+#endif
+
 
 typedef DBT	Datum;
 #define dsize	size
@@ -96,11 +122,19 @@ typedef DB	*LDBM;
 #define DB_TYPE		DB_BTREE
 
 /* for ldbm_open */
-#define LDBM_READER	O_RDONLY
-#define LDBM_WRITER	O_RDWR
-#define LDBM_WRCREAT	(O_RDWR|O_CREAT)
-#define LDBM_NEWDB	(O_RDWR|O_TRUNC|O_CREAT)
-#define LDBM_FAST	0
+#ifdef LDBM_USE_DB2
+#	define LDBM_READER	DB_RDONLY
+#	define LDBM_WRITER	0x00000      /* hopefully */
+#	define LDBM_WRCREAT	(DB_NOMMAP|DB_CREATE|DB_THREAD)
+#	define LDBM_NEWDB	(DB_TRUNCATE|DB_CREATE|DB_THREAD)
+#else
+#	define LDBM_READER	O_RDONLY
+#	define LDBM_WRITER	O_RDWR
+#	define LDBM_WRCREAT	(O_RDWR|O_CREAT)
+#	define LDBM_NEWDB	(O_RDWR|O_TRUNC|O_CREAT)
+#endif
+
+#  define LDBM_FAST	0
 
 #define LDBM_SUFFIX	".dbb"
 #define LDBM_ORDERED	1
@@ -123,7 +157,7 @@ extern int	errno;
  *****************************************************************/
 
 #include <ndbm.h>
-#ifndef O_RDONLY
+#ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
 
@@ -150,6 +184,7 @@ typedef DBM	*LDBM;
 #endif /* db btree */
 #endif /* gdbm */
 
+int	ldbm_errno( LDBM ldbm );
 LDBM	ldbm_open( char *name, int rw, int mode, int dbcachesize );
 void	ldbm_close( LDBM ldbm );
 void	ldbm_sync( LDBM ldbm );
@@ -158,8 +193,14 @@ Datum	ldbm_datum_dup( LDBM ldbm, Datum data );
 Datum	ldbm_fetch( LDBM ldbm, Datum key );
 int	ldbm_store( LDBM ldbm, Datum key, Datum data, int flags );
 int	ldbm_delete( LDBM ldbm, Datum key );
-Datum	ldbm_firstkey( LDBM ldbm );
-Datum	ldbm_nextkey( LDBM ldbm, Datum key );
-int	ldbm_errno( LDBM ldbm );
+
+#if LDBM_USE_DB2
+	void   *ldbm_malloc( size_t size );
+	Datum	ldbm_firstkey( LDBM ldbm, DBC **dbch );
+	Datum	ldbm_nextkey( LDBM ldbm, Datum key, DBC *dbcp );
+#else
+	Datum	ldbm_firstkey( LDBM ldbm );
+	Datum	ldbm_nextkey( LDBM ldbm, Datum key );
+#endif
 
 #endif /* _ldbm_h_ */

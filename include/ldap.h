@@ -20,12 +20,13 @@ LDAP_BEGIN_DECL
 #define LDAP_PORT	389
 #define LDAP_VERSION1	1
 #define LDAP_VERSION2	2
+#define LDAP_VERSION3	3
 #define LDAP_VERSION	LDAP_VERSION2
 
-#define COMPAT20
-#define COMPAT30
-#if defined(COMPAT20) || defined(COMPAT30)
-#define COMPAT
+#define LDAP_COMPAT20
+#define LDAP_COMPAT30
+#if defined(LDAP_COMPAT20) || defined(LDAP_COMPAT30)
+#define LDAP_COMPAT
 #endif
 
 #define LDAP_MAX_ATTR_LEN	100
