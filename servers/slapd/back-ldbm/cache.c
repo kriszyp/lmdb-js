@@ -59,22 +59,6 @@ cache_set_state( struct cache *cache, Entry *e, int state )
 	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 }
 
-#ifdef not_used
-static void
-cache_return_entry( struct cache *cache, Entry *e )
-{
-	/* set cache mutex */
-	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
-
-	if ( --e->e_refcnt == 0 && e->e_state == ENTRY_STATE_DELETED ) {
-		entry_free( e );
-	}
-
-	/* free cache mutex */
-	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
-}
-#endif
-
 static void
 cache_return_entry_rw( struct cache *cache, Entry *e, int rw )
 {
@@ -133,13 +117,13 @@ cache_return_entry_w( struct cache *cache, Entry *e )
 }
 
 /*
- * cache_create_entry_lock - create an entry in the cache, and lock it.
+ * cache_create_entry - create an entry in the cache, and lock it.
  * returns:	0	entry has been created and locked
  *		1	entry already existed
  *		-1	something bad happened
  */
 int
-cache_add_entry_lock(
+cache_add_entry(
     struct cache	*cache,
     Entry		*e,
     int			state
@@ -186,6 +170,102 @@ cache_add_entry_lock(
 
 	e->e_state = state;
 	e->e_refcnt = 1;
+
+	/* lru */
+	LRU_ADD( cache, e );
+	if ( ++cache->c_cursize > cache->c_maxsize ) {
+		/*
+		 * find the lru entry not currently in use and delete it.
+		 * in case a lot of entries are in use, only look at the
+		 * first 10 on the tail of the list.
+		 */
+		i = 0;
+		while ( cache->c_lrutail != NULL && cache->c_lrutail->e_refcnt
+		    != 0 && i < 10 ) {
+			/* move this in-use entry to the front of the q */
+			ee = cache->c_lrutail;
+			LRU_DELETE( cache, ee );
+			LRU_ADD( cache, ee );
+			i++;
+		}
+
+		/*
+		 * found at least one to delete - try to get back under
+		 * the max cache size.
+		 */
+		while ( cache->c_lrutail != NULL && cache->c_lrutail->e_refcnt
+                    == 0 && cache->c_cursize > cache->c_maxsize ) {
+			e = cache->c_lrutail;
+
+			/* check for active readers/writer lock */
+#ifdef LDAP_DEBUG
+			assert(!ldap_pvt_thread_rdwr_active( &e->e_rdwr ));
+#endif
+
+			/* delete from cache and lru q */
+			rc = cache_delete_entry_internal( cache, e );
+
+			entry_free( e );
+		}
+	}
+
+	/* free cache mutex */
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+	return( 0 );
+}
+
+/*
+ * cache_update_entry - update an entry in the cache
+ * returns:	0	entry has been created and locked
+ *		1	entry already existed
+ *		-1	something bad happened
+ */
+int
+cache_update_entry(
+    struct cache	*cache,
+    Entry		*e
+)
+{
+	int	i, rc;
+	Entry	*ee;
+
+	/* set cache mutex */
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+
+	if ( avl_insert( &cache->c_dntree, (caddr_t) e,
+		cache_entrydn_cmp, avl_dup_error ) != 0 )
+	{
+		Debug( LDAP_DEBUG_TRACE,
+			"====> cache_add_entry lock: entry %20s id %lu already in dn cache\n",
+		    e->e_dn, e->e_id, 0 );
+
+		/* free cache mutex */
+		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+		return( 1 );
+	}
+
+	/* id tree */
+	if ( avl_insert( &cache->c_idtree, (caddr_t) e,
+		cache_entryid_cmp, avl_dup_error ) != 0 )
+	{
+		Debug( LDAP_DEBUG_ANY,
+			"====> entry %20s id %lu already in id cache\n",
+		    e->e_dn, e->e_id, 0 );
+
+		/* delete from dn tree inserted above */
+		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
+			cache_entrydn_cmp ) == NULL )
+		{
+			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
+			    0, 0, 0 );
+		}
+
+		/* free cache mutex */
+		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+		return( -1 );
+	}
+
+	e->e_state = 0;
 
 	/* lru */
 	LRU_ADD( cache, e );

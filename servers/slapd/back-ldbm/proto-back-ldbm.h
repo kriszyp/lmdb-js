@@ -35,7 +35,8 @@ void attr_index_config LDAP_P(( struct ldbminfo *li, char *fname, int lineno,
 void cache_set_state LDAP_P(( struct cache *cache, Entry *e, int state ));
 void cache_return_entry_r LDAP_P(( struct cache *cache, Entry *e ));
 void cache_return_entry_w LDAP_P(( struct cache *cache, Entry *e ));
-int cache_add_entry_lock LDAP_P(( struct cache *cache, Entry *e, int state ));
+int cache_add_entry LDAP_P(( struct cache *cache, Entry *e, int state ));
+int cache_update_entry LDAP_P(( struct cache *cache, Entry *e ));
 ID cache_find_entry_dn2id LDAP_P(( Backend *be, struct cache *cache, char *dn ));
 Entry * cache_find_entry_id LDAP_P(( struct cache *cache, ID id, int rw ));
 int cache_delete_entry LDAP_P(( struct cache *cache, Entry *e ));

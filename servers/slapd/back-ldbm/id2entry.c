@@ -45,7 +45,6 @@ id2entry_add( Backend *be, Entry *e )
 	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 
 	ldbm_cache_close( be, db );
-	(void) cache_add_entry_lock( &li->li_cache, e, 0 );
 
 	Debug( LDAP_DEBUG_TRACE, "<= id2entry_add %d\n", rc, 0, 0 );
 
@@ -153,7 +152,7 @@ id2entry( Backend *be, ID id, int rw )
 	}
 
 	e->e_id = id;
-	(void) cache_add_entry_lock( &li->li_cache, e, 0 );
+	(void) cache_add_entry( &li->li_cache, e, 0 );
 
 	Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) (disk)\n",
 		rw ? "w" : "r", id, 0 );

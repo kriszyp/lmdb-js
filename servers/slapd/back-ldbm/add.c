@@ -149,7 +149,7 @@ ldbm_back_add(
 	 * This should only fail if the entry already exists.
 	 */
 
-	if ( cache_add_entry_lock( &li->li_cache, e, ENTRY_STATE_CREATING ) != 0 ) {
+	if ( cache_add_entry( &li->li_cache, e, ENTRY_STATE_CREATING ) != 0 ) {
 		if( p != NULL) {
 			/* free parent and writer lock */
 			cache_return_entry_w( &li->li_cache, p ); 
