@@ -44,9 +44,6 @@ if test $WAIT != 0 ; then
 fi
 BACKEND=$SAVE
 
-echo "Waiting 5 seconds to wait for master to start..."
-sleep 5
-
 echo "Using ldapsearch to check that master slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
@@ -59,13 +56,19 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	kill -HUP $PID
+	exit $RC
+fi
+
 echo "Using ldapadd to create the context prefix entry in the master..."
 $LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD < \
 	$LDIFORDEREDCP > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapadd failed ($RC)!"
-	kill -HUP $PID $SLAVEPID
+	kill -HUP $PID
 	exit $RC
 fi
 
@@ -90,13 +93,19 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	kill -HUP $PID
+	exit $RC
+fi
+
 echo "Using ldapadd to populate the master directory..."
 $LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD < \
 	$LDIFORDEREDNOCP > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapadd failed ($RC)!"
-	kill -HUP $PID $SLAVEPID
+	kill -HUP $PID $R1SLAVEPID
 	exit $RC
 fi
 
@@ -192,7 +201,7 @@ RC=$?
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed at master ($RC)!"
-	kill -HUP $PID $SLAVEPID
+	kill -HUP $PID $R1SLAVEPID
 	exit $RC
 fi
 
