@@ -1,5 +1,5 @@
 /*
- * Copyright 2000, OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000-2002, OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -14,6 +14,9 @@
 #include "LDAPMessage.h"
 
 using namespace std;
+
+// little helper function for doing case insensitve string comparison
+bool nocase_compare(char c1, char c2);
 
 LDAPAttributeList::LDAPAttributeList(){
     DEBUG(LDAP_DEBUG_CONSTRUCT,
@@ -82,11 +85,56 @@ LDAPAttributeList::const_iterator LDAPAttributeList::end() const{
     return m_attrs.end();
 }
 
+const LDAPAttribute* LDAPAttributeList::getAttributeByName(
+	const string& name) const {
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::getAttributeByName()" << endl);
+    DEBUG(LDAP_DEBUG_TRACE | LDAP_DEBUG_PARAMETER,
+            "   name:" << name << endl);
+    AttrList::const_iterator i;
+    for( i = m_attrs.begin(); i != m_attrs.end(); i++){
+	const std::string& tmpType = i->getName();
+	if(name.size() == tmpType.size()){
+	    if(equal(name.begin(), name.end(), tmpType.begin(),
+		    nocase_compare)){
+		return &(*i);
+		DEBUG(LDAP_DEBUG_TRACE,"    found:" << name << endl);
+	    }
+	}
+    }
+    return 0;
+}
+
 void LDAPAttributeList::addAttribute(const LDAPAttribute& attr){
     DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::addAttribute()" << endl);
     DEBUG(LDAP_DEBUG_TRACE | LDAP_DEBUG_PARAMETER,
             "   attr:" << attr << endl);
-    m_attrs.push_back(attr);
+    const std::string attrType = attr.getName();
+    const std::string::size_type attrLen = attrType.size();
+    std::string::size_type tmpAttrLen = 0;
+    bool done=false;
+    AttrList::iterator i;
+    for( i=m_attrs.begin(); i != m_attrs.end(); i++ ){
+	const std::string tmpAttrType = i->getName();
+	tmpAttrLen = tmpAttrType.size();
+	if(tmpAttrLen == attrLen){
+	    if(equal(tmpAttrType.begin(), tmpAttrType.end(), attrType.begin(),
+		    nocase_compare)){
+		const StringList& values = attr.getValues();
+		StringList::const_iterator j;
+		for(j = values.begin(); j != values.end(); j++){
+		    i->addValue(*j);
+		}
+		DEBUG(LDAP_DEBUG_TRACE,"Attribute" << i->getName() 
+			<< "already present" << endl);
+		done=true;
+		break; // The AttributeType was already present,
+		       // we are done here
+	    }
+	}
+    }
+    if(! done){
+	m_attrs.push_back(attr);
+    }
 }
 
 
@@ -108,5 +156,9 @@ ostream& operator << (ostream& s, const LDAPAttributeList& al){
         s << *i << "; ";
     }
     return s;
+}
+
+bool nocase_compare( char c1, char c2){
+    return toupper(c1) == toupper(c2);
 }
 

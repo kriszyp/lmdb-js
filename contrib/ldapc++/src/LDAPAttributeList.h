@@ -1,5 +1,5 @@
 /*
- * Copyright 2000, OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000-2002, OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -9,6 +9,8 @@
 
 #include <ldap.h>
 #include <list>
+#include <string>
+
 class LDAPAttribute;
 class LDAPAsynConnection;
 class LDAPMsg;
@@ -24,6 +26,7 @@ class LDAPAttributeList{
 
     public :
         typedef AttrList::const_iterator const_iterator;
+	typedef AttrList::iterator iterator;
 
 
         /**
@@ -73,6 +76,15 @@ class LDAPAttributeList{
          */
         const_iterator end() const;
 
+	/**
+	 * Get an Attribute by its AttributeType
+	 * @param name The name of the Attribute to look for
+	 * @return a pointer to the LDAPAttribute with the AttributeType 
+	 *	"name" or 0, if there is no Attribute of that Type
+	 */
+	const LDAPAttribute* getAttributeByName(const std::string& name) const;
+
+
         /**
          * Adds one element to the end of the list.
          * @param attr The attribute to add to the list.
@@ -92,5 +104,6 @@ class LDAPAttributeList{
         friend std::ostream& operator << (std::ostream& s, 
 					  const LDAPAttributeList& al);
 };
+
 #endif // LDAP_ATTRIBUTE_LIST_H
 
