@@ -7,6 +7,7 @@ Changes included in OpenLDAP 1.2
 	Fixed -lldap/ldap_init()
 	Updated ldap_open(3) man page to note ldap_init() is preferred.
 	Updated internal thread library
+	Updated slapd/back-shell to use void* private and pid_t
 	Build environment
 		Fixed --without-threads building
 		Fixed mkdep to handle multiple dependent files on one line
