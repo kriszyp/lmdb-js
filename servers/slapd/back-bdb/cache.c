@@ -74,8 +74,8 @@ bdb_cache_entry_db_relock(
 
 	if ( !lock ) return 0;
 
-	lockobj.data = ei;
-	lockobj.size = sizeof(ei->bei_parent) + sizeof(ei->bei_id);
+	lockobj.data = &ei->bei_id;
+	lockobj.size = sizeof(ei->bei_id);
 
 	list[0].op = DB_LOCK_PUT;
 	list[0].lock = *lock;
@@ -121,8 +121,8 @@ bdb_cache_entry_db_lock( DB_ENV *env, u_int32_t locker, EntryInfo *ei,
 	else
 		db_rw = DB_LOCK_READ;
 
-	lockobj.data = ei;
-	lockobj.size = sizeof(ei->bei_parent) + sizeof(ei->bei_id);
+	lockobj.data = &ei->bei_id;
+	lockobj.size = sizeof(ei->bei_id);
 
 	rc = LOCK_GET(env, locker, tryOnly ? DB_LOCK_NOWAIT : 0,
 					&lockobj, db_rw, lock);
@@ -532,7 +532,7 @@ bdb_cache_lru_add(
 			/* If we can successfully writelock it, then
 			 * the object is idle.
 			 */
-			if ( bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, elru, 1, 1,
+			if ( bdb_cache_entry_db_lock( bdb->bi_dbenv, bdb->bi_cache.c_locker, elru, 1, 1,
 				lockp ) == 0 ) {
 				/* If there's no entry, or this node is in
 				 * the process of linking into the cache,
@@ -655,45 +655,53 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 		if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
 			rc = DB_NOTFOUND;
 		} else {
-			bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, *eip, 0, 0, lock );
-			if ( !(*eip)->bei_e ) {
-				if (!ep) {
-					rc = bdb_id2entry( op->o_bd, tid, id, &ep );
-				}
-				if ( rc == 0 ) {
-					bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
-						*eip, 1, 0, lock );
-					/* Make sure no other modifier beat us to it */
-					if ( (*eip)->bei_e ) {
-						bdb_entry_return( ep );
-						ep = NULL;
-					} else {
-						ep->e_private = *eip;
-#ifdef BDB_HIER
-						bdb_fix_dn( ep, 0 );
-#endif
-						(*eip)->bei_e = ep;
+			rc = bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, *eip, 0, 0, lock );
+			/* entry is protected now, we don't need to hold the entryinfo */
+			if ( islocked ) {
+				bdb_cache_entryinfo_unlock( *eip );
+				islocked = 0;
+			}
+			if ( rc == 0 ) {
+				if ( !(*eip)->bei_e ) {
+					if (!ep) {
+						rc = bdb_id2entry( op->o_bd, tid, id, &ep );
 					}
-					bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
-						*eip, 0, 0, lock );
-				}
-			} else {
-				/* If we had the entry already, this item
-				 * is on the LRU list.
-				 */
-				lru_del = 1;
+					if ( rc == 0 ) {
+						bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
+							*eip, 1, 0, lock );
+						/* Make sure no other modifier beat us to it */
+						if ( (*eip)->bei_e ) {
+							bdb_entry_return( ep );
+							ep = NULL;
+						} else {
+							ep->e_private = *eip;
 #ifdef BDB_HIER
-				rc = bdb_fix_dn( (*eip)->bei_e, 1 );
-				if ( rc ) {
-					bdb_cache_entry_db_relock( bdb->bi_dbenv,
-						locker, *eip, 1, 0, lock );
-					/* check again in case other modifier did it already */
-					if ( bdb_fix_dn( (*eip)->bei_e, 1 ) )
-						rc = bdb_fix_dn( (*eip)->bei_e, 2 );
-					bdb_cache_entry_db_relock( bdb->bi_dbenv,
-						locker, *eip, 0, 0, lock );
-				}
+							bdb_fix_dn( ep, 0 );
 #endif
+							(*eip)->bei_e = ep;
+						}
+						bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
+							*eip, 0, 0, lock );
+					}
+				} else {
+					/* If we had the entry already, this item
+					 * is on the LRU list.
+					 */
+					lru_del = 1;
+#ifdef BDB_HIER
+					rc = bdb_fix_dn( (*eip)->bei_e, 1 );
+					if ( rc ) {
+						bdb_cache_entry_db_relock( bdb->bi_dbenv,
+							locker, *eip, 1, 0, lock );
+						/* check again in case other modifier did it already */
+						if ( bdb_fix_dn( (*eip)->bei_e, 1 ) )
+							rc = bdb_fix_dn( (*eip)->bei_e, 2 );
+						bdb_cache_entry_db_relock( bdb->bi_dbenv,
+							locker, *eip, 0, 0, lock );
+					}
+#endif
+				}
+
 			}
 		}
 	}
@@ -749,11 +757,22 @@ bdb_cache_add(
 {
 	EntryInfo *new, ei;
 	struct berval rdn = e->e_name;
+	DB_LOCK lock;
 	int rc;
 
 	ei.bei_id = e->e_id;
 	ei.bei_parent = eip;
 	ei.bei_nrdn = *nrdn;
+
+	/* Lock this entry so that bdb_add can run to completion.
+	 * It can only fail if BDB has run out of lock resources.
+	 */
+	rc = bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, &ei, 1, 0, &lock );
+	if ( rc ) {
+		bdb_cache_entryinfo_unlock( eip );
+		return rc;
+	}
+
 #ifdef BDB_HIER
 	if ( nrdn->bv_len != e->e_nname.bv_len ) {
 		char *ptr = strchr( rdn.bv_val, ',' );
@@ -1166,7 +1185,7 @@ bdb_cache_delete_entry(
 	DB_LOCK *lock )
 {
 	ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
-	if ( bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, ei, 1, 1, lock ) == 0 )
+	if ( bdb_cache_entry_db_lock( bdb->bi_dbenv, bdb->bi_cache.c_locker, ei, 1, 1, lock ) == 0 )
 	{
 		if ( ei->bei_e && !(ei->bei_state & CACHE_ENTRY_NOT_LINKED )) {
 			LRU_DELETE( &bdb->bi_cache, ei );

@@ -129,6 +129,7 @@ typedef struct bdb_cache {
 	EntryInfo	*c_lrutail;	/* lru - rem lru entries from here */
 	ldap_pvt_thread_rdwr_t c_rwlock;
 	ldap_pvt_thread_mutex_t lru_mutex;
+	u_int32_t	c_locker;	/* used by lru cleaner */
 } Cache;
  
 #define CACHE_READ_LOCK                0

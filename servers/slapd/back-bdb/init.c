@@ -447,6 +447,8 @@ bdb_db_open( BackendDB *be )
 		return rc;
 	}
 
+	bdb->bi_dbenv->lock_id(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
+
 	/* <insert> open (and create) index databases */
 	return 0;
 }
