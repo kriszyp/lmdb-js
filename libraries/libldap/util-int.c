@@ -220,7 +220,7 @@ int ldap_pvt_get_hname(
 #if defined( LDAP_R_COMPILE )
 	ldap_pvt_thread_mutex_unlock( &ldap_int_resolv_mutex );
 #endif
-	if ( rc ) *err = AC_GAI_STRERROR( rc );
+	if ( rc ) *err = (char *)AC_GAI_STRERROR( rc );
 	return rc;
 
 #else /* !HAVE_GETNAMEINFO */
