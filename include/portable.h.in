@@ -443,9 +443,6 @@
 /* Define if you have the <memory.h> header file.  */
 #undef HAVE_MEMORY_H
 
-/* Define if you have the <ncurses.h> header file.  */
-#undef HAVE_NCURSES_H
-
 /* Define if you have the <ndbm.h> header file.  */
 #undef HAVE_NDBM_H
 
@@ -580,9 +577,6 @@
 
 /* Define if you have the <tcpd.h> header file.  */
 #undef HAVE_TCPD_H
-
-/* Define if you have the <termcap.h> header file.  */
-#undef HAVE_TERMCAP_H
 
 /* Define if you have the <termios.h> header file.  */
 #undef HAVE_TERMIOS_H
@@ -796,15 +790,6 @@
 
 /* define if you have -lwrap */
 #undef HAVE_TCPD
-
-/* define if you have -ltermcap */
-#undef HAVE_TERMCAP
-
-/* define if you have -lncurses */
-#undef HAVE_NCURSES
-
-/* define if you have no termcap support */
-#undef NO_TERMCAP
 
 /* define if you have Cyrus SASL */
 #undef HAVE_CYRUS_SASL

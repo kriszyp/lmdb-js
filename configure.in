@@ -599,7 +599,6 @@ SLAPD_SQL_INCLUDES=
 KRB4_LIBS=
 KRB5_LIBS=
 SASL_LIBS=
-TERMCAP_LIBS=
 TLS_LIBS=
 MODULES_LIBS=
 SLAPI_LIBS=
@@ -2160,34 +2159,6 @@ if test $ol_enable_sql != no ; then
 fi
 
 dnl ----------------------------------------------------------------
-dnl ud needs termcap (should insert check here)
-ol_link_termcap=no
-AC_CHECK_HEADERS(termcap.h ncurses.h)
-
-if test $ol_link_termcap = no ; then
-	AC_CHECK_LIB(termcap, tputs, [have_termcap=yes], [have_termcap=no])
-	if test $have_termcap = yes ; then
-		AC_DEFINE(HAVE_TERMCAP, 1, [define if you have -ltermcap])
-		ol_link_termcap=yes
-		TERMCAP_LIBS=-ltermcap
-	fi
-fi
-
-if test $ol_link_termcap = no ; then
-	AC_CHECK_LIB(ncurses, initscr, [have_ncurses=yes], [have_ncurses=no])
-	if test $have_ncurses = yes ; then
-		AC_DEFINE(HAVE_NCURSES, 1, [define if you have -lncurses])
-		ol_link_termcap=yes
-		TERMCAP_LIBS=-lncurses
-	fi
-fi
-
-if test $ol_link_termcap = no ; then
-	AC_DEFINE(NO_TERMCAP,1, [define if you have no termcap support])
-	TERMCAP_LIBS=
-fi
-
-dnl ----------------------------------------------------------------
 dnl
 dnl Check for Cyrus SASL
 dnl
@@ -2891,7 +2862,6 @@ AC_SUBST(MOD_PERL_LDFLAGS)
 AC_SUBST(KRB4_LIBS)
 AC_SUBST(KRB5_LIBS)
 AC_SUBST(SASL_LIBS)
-AC_SUBST(TERMCAP_LIBS)
 AC_SUBST(TLS_LIBS)
 AC_SUBST(MODULES_LIBS)
 AC_SUBST(SLAPI_LIBS)
