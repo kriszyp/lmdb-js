@@ -65,6 +65,7 @@ char *assertion = NULL;
 char *authzid = NULL;
 int   manageDSAit = 0;
 int   noop = 0;
+int   ppolicy = 0;
 int   preread = 0;
 char *preread_attrs = NULL;
 int   postread = 0;
@@ -103,6 +104,7 @@ N_("             [!]assert=<filter>     (an RFC 2254 Filter)\n")
 N_("             [!]authzid=<authzid>   (\"dn:<dn>\" or \"u:<user>\")\n")
 N_("             [!]manageDSAit\n")
 N_("             [!]noop\n"),
+N_("             ppolicy\n"),
 N_("             [!]postread[=<attrs>]  (a comma-separated attribute list)\n"),
 N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n"),
 N_("  -f file    read operations from `file'\n"),
@@ -240,6 +242,22 @@ tool_args( int argc, char **argv )
 				}
 
 				noop = 1 + crit;
+
+			} else if ( strcasecmp( control, "ppolicy" ) == 0 ) {
+				if( ppolicy ) {
+					fprintf( stderr, "ppolicy control previously specified\n");
+					exit( EXIT_FAILURE );
+				}
+				if( cvalue != NULL ) {
+					fprintf( stderr, "ppolicy: no control value expected\n" );
+					usage();
+				}
+				if( crit ) {
+					fprintf( stderr, "ppolicy: critical flag not allowed\n" );
+					usage();
+				}
+
+				ppolicy = 1;
 
 			} else if ( strcasecmp( control, "preread" ) == 0 ) {
 				if( preread ) {
@@ -598,7 +616,7 @@ tool_args( int argc, char **argv )
 		}
 	}
 	if( protocol == LDAP_VERSION2 ) {
-		if( authzid || manageDSAit || noop ) {
+		if( authzid || manageDSAit || noop || ppolicy ) {
 			fprintf( stderr, "%s: -e/-M incompatible with LDAPv2\n", prog );
 			exit( EXIT_FAILURE );
 		}
@@ -713,6 +731,17 @@ tool_conn_setup( int not, void (*private_setup)( LDAP * ) )
 void
 tool_bind( LDAP *ld )
 {
+	if ( ppolicy ) {
+		LDAPControl *ctrls[2], c;
+		c.ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYREQUEST;
+		c.ldctl_value.bv_val = NULL;
+		c.ldctl_value.bv_len = 0;
+		c.ldctl_iscritical = 0;
+		ctrls[0] = &c;
+		ctrls[1] = NULL;
+		ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
+	}
+
 	if ( authmethod == LDAP_AUTH_SASL ) {
 #ifdef HAVE_CYRUS_SASL
 		void *defaults;
@@ -752,10 +781,47 @@ tool_bind( LDAP *ld )
 		exit( EXIT_FAILURE );
 #endif
 	} else {
-		if ( ldap_bind_s( ld, binddn, passwd.bv_val, authmethod )
-			!= LDAP_SUCCESS )
+		int msgid, err;
+		LDAPMessage *result;
+		LDAPControl **ctrls;
+
+		if (( msgid = ldap_bind( ld, binddn, passwd.bv_val, authmethod )) == -1 )
 		{
 			ldap_perror( ld, "ldap_bind" );
+			exit( EXIT_FAILURE );
+		}
+
+		if ( ldap_result( ld, msgid, 1, NULL, &result ) == -1 ) {
+			ldap_perror( ld, "ldap_result" );
+			exit( EXIT_FAILURE );
+		}
+
+		if ( ldap_parse_result( ld, result, &err, NULL, NULL, NULL,
+			&ctrls, 1 ) != LDAP_SUCCESS ) {
+			ldap_perror( ld, "ldap_bind parse result" );
+			exit( EXIT_FAILURE );
+		}
+
+		if ( ctrls && ppolicy ) {
+			LDAPControl *ctrl;
+			int expire, grace;
+			LDAPPasswordPolicyError pErr = -1;
+			
+			ctrl = ldap_find_control( LDAP_CONTROL_PASSWORDPOLICYRESPONSE, ctrls );
+			if ( ctrl && ldap_parse_passwordpolicy_control( ld, ctrl,
+				&expire, &grace, &pErr ) == LDAP_SUCCESS ) {
+				if ( expire >= 0 ) {
+					fprintf( stderr, "Password expires in %d seconds\n", expire );
+				} else if ( grace >= 0 ) {
+					fprintf( stderr, "Password expired, %d grace logins remain\n", grace );
+				}
+				if ( pErr != PP_noError ){
+					fprintf( stderr, "%s\n", ldap_passwordpolicy_err2txt( pErr ) );
+				}
+			}
+		}
+		if ( err != LDAP_SUCCESS ) {
+			fprintf( stderr, "ldap_bind result: %s\n", ldap_err2string( err ));
 			exit( EXIT_FAILURE );
 		}
 	}
@@ -767,7 +833,7 @@ void
 tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 {
 	int i = 0, j, crit = 0, err;
-	LDAPControl c[6], **ctrls;
+	LDAPControl c[8], **ctrls;
 
 	ctrls = (LDAPControl**) malloc(sizeof(c) + (count+1)*sizeof(LDAPControl*));
 	if ( ctrls == NULL ) {
@@ -827,6 +893,15 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		c[i].ldctl_value.bv_val = NULL;
 		c[i].ldctl_value.bv_len = 0;
 		c[i].ldctl_iscritical = noop > 1;
+		ctrls[i] = &c[i];
+		i++;
+	}
+
+	if ( ppolicy ) {
+		c[i].ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYREQUEST;
+		c[i].ldctl_value.bv_val = NULL;
+		c[i].ldctl_value.bv_len = 0;
+		c[i].ldctl_iscritical = 0;
 		ctrls[i] = &c[i];
 		i++;
 	}

@@ -47,6 +47,7 @@ extern char *assertion;
 extern char *authzid;
 extern int   manageDSAit;
 extern int   noop;
+extern int   ppolicy;
 extern int	preread, postread;
 
 extern int   not;
