@@ -6,14 +6,15 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <sys/time.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <dirent.h>
 
-#include <ac/string.h>
-#include <ac/socket.h>
+#include <ac/errno.h>
 #include <ac/signal.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
 
 #include "ldapconfig.h"
 #include "slap.h"
