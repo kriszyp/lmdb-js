@@ -35,13 +35,13 @@ static int ad_keystring(
 	return 0;
 }
 
-void ad_destroy( void *in )
+void ad_destroy( AttributeDescription *ad )
 {
-	AttributeDescription *ad = in, *n;
+	AttributeDescription *n;
 
-	for (;ad;ad = n) {
+	for (; ad != NULL; ad = n) {
 		n = ad->ad_next;
-		ldap_memfree(ad);
+		ldap_memfree( ad );
 	}
 }
 

@@ -729,7 +729,7 @@ LDAP_SLAPD_F (int) syn_schema_info( Entry *e );
 LDAP_SLAPD_F (void) oc_destroy LDAP_P(( void ));
 LDAP_SLAPD_F (void) oidm_destroy LDAP_P(( void ));
 LDAP_SLAPD_F (void) at_destroy LDAP_P(( void ));
-LDAP_SLAPD_F (void) ad_destroy LDAP_P(( void * ));
+LDAP_SLAPD_F (void) ad_destroy LDAP_P(( AttributeDescription * ));
 LDAP_SLAPD_F (void) mr_destroy LDAP_P(( void ));
 LDAP_SLAPD_F (void) syn_destroy LDAP_P(( void ));
 LDAP_SLAPD_F (void) schema_destroy LDAP_P(( void ));
