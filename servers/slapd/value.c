@@ -330,7 +330,6 @@ int value_find_ex(
 	int	i;
 	int rc;
 	struct berval nval = { 0, NULL };
-	struct berval nval_tmp;
 	MatchingRule *mr = ad->ad_type->sat_equality;
 
 	if( mr == NULL || !mr->smr_match ) {
@@ -351,8 +350,11 @@ int value_find_ex(
 	}
 
 	if( mr->smr_syntax->ssyn_normalize ) {
+		struct berval nval_tmp;
+
 		rc = mr->smr_syntax->ssyn_normalize(
-			mr->smr_syntax, nval.bv_val == NULL ? val : &nval, &nval_tmp );
+			mr->smr_syntax,
+			nval.bv_val == NULL ? val : &nval, &nval_tmp );
 
 		free(nval.bv_val);
 		nval = nval_tmp;
