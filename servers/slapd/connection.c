@@ -139,7 +139,6 @@ int connections_destroy(void)
 			ber_sockbuf_free( connections[i].c_sb );
 			ldap_pvt_thread_mutex_destroy( &connections[i].c_mutex );
 			ldap_pvt_thread_mutex_destroy( &connections[i].c_write_mutex );
-			ldap_pvt_thread_mutex_destroy( &connections[i].c_sasl_bindmutex );
 			ldap_pvt_thread_cond_destroy( &connections[i].c_write_cv );
 		}
 	}
@@ -451,7 +450,6 @@ long connection_init(
 		/* should check status of thread calls */
 		ldap_pvt_thread_mutex_init( &c->c_mutex );
 		ldap_pvt_thread_mutex_init( &c->c_write_mutex );
-		ldap_pvt_thread_mutex_init( &c->c_sasl_bindmutex );
 		ldap_pvt_thread_cond_init( &c->c_write_cv );
 
 		c->c_struct_state = SLAP_C_UNUSED;
