@@ -96,7 +96,7 @@
 /*
  * define to enable varchars as unique keys in user tables
  */
-#define BACKSQL_ARBITRARY_KEY
+#undef BACKSQL_ARBITRARY_KEY
 
 /*
  * API
