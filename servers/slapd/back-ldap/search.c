@@ -468,7 +468,7 @@ ldap_build_entry(
 
 		/* no subschemaSubentry */
 		if ( attr->a_desc == slap_schema.si_ad_subschemaSubentry ) {
-			ber_len_t	len;
+			BerVarray	vals;
 
 			/* 
 			 * We eat target's subschemaSubentry because
@@ -477,7 +477,11 @@ ldap_build_entry(
 			 * later, the local subschemaSubentry is
 			 * added.
 			 */
-			ber_skip_tag( &ber, &len );
+			( void )ber_scanf( &ber, "[W]", &vals );
+			for ( bv = vals; bv->bv_val; bv++ ) {
+				LBER_FREE( bv->bv_val );
+			}
+			LBER_FREE( vals );
 
 			ch_free(attr);
 			continue;
