@@ -1,16 +1,20 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 
-#include <ac/socket.h>
 #include <ac/string.h>
-#include <ac/time.h>
 #include <ac/unistd.h>
 
 #include <lber.h>
 #include <ldap.h>
 #include <ldif.h>
+
+#if LDAP_VERSION == LDAP_VERSION2
+/* until we implement ldap_set_options() */
+#include "../libraries/libldap/ldap-int.h"
+#endif
 
 #include "ldapconfig.h"
 

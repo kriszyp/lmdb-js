@@ -28,8 +28,7 @@
 #include <sys/file.h>
 #endif
 
-#include "lber.h"
-#include "ldap.h"
+#include "ldap-int.h"
 
 int next_line_tokens LDAP_P(( char **bufp, long *blenp, char ***toksp ));
 void free_strarray LDAP_P(( char **sap ));

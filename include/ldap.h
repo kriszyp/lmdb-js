@@ -21,7 +21,8 @@ LDAP_BEGIN_DECL
 #define LDAP_VERSION1	1
 #define LDAP_VERSION2	2
 #define LDAP_VERSION3	3
-#define LDAP_VERSION	LDAP_VERSION2
+#define LDAP_VERSION		LDAP_VERSION2
+#define LDAP_VERSION_MAX	LDAP_VERSION2
 
 #define LDAP_COMPAT20
 #define LDAP_COMPAT30
@@ -29,51 +30,53 @@ LDAP_BEGIN_DECL
 #define LDAP_COMPAT
 #endif
 
+#define LDAP_OPT_API_INFO			0x00
+#define LDAP_OPT_DESC				0x01
+#define LDAP_OPT_DEREF				0x02
+#define LDAP_OPT_SIZELIMIT			0x03
+#define LDAP_OPT_TIMELIMIT			0x04
+#define LDAP_OPT_REFERRALS			0x08
+#define LDAP_OPT_RESTART			0x09
+#define LDAP_OPT_PROTOCOL_VERSION	0x11
+#define LDAP_OPT_SERVER_CONTROLS	0x12
+#define LDAP_OPT_CLIENT_CONTROLS	0x13
+#define LDAP_OPT_HOST_NAME			0x30
+#define	LDAP_OPT_ERROR_NUMBER		0x31
+#define LDAP_OPT_ERROR_STRING		0x32
+
+/* for LDAPv2 compatibility */
+#define LDAP_OPT_DNS				0x40	/* use DN & DNS */
+
+/* on/off values */
+#define LDAP_OPT_ON		((void *) 1)
+#define LDAP_OPT_OFF	((void *)) 0)
+
+#define LDAP_OPT_SUCCESS	0
+#define	LDAP_OPT_ERROR		(-1)
+
+LDAP_F int ldap_get_option LDAP_P((LDAP *ld, int option, void *outvalue));
+LDAP_F int ldap_set_option LDAP_P((LDAP *ld, int option, void *invalue));
+
+typedef struct ldapapiinfo {
+	int		ldapai_info_version;		/* version of LDAPAPIInfo (1) */
+	int		ldapai_api_version;			/* revision of API supported */
+	int		ldapai_protocol_version;	/* highest LDAP version supported */
+	char	**ldapai_extensions;		/* names of API extensions */
+	char	*ldapi_vendor_name;			/* name of supplier */
+	int		ldapai_vendor_version;		/* supplier-specific version times 100 */
+} LDAPAPIInfo;
+
+typedef struct ldapcontrol {
+	char			*ldctl_oid;
+	struct berval	ldctl_value;
+	char			ldctl_iscritical;
+} LDAPControl, *PLDAPControl;
+
+LDAP_F void ldap_control_free LDAP_P(( LDAPControl *ctrl ));
+LDAP_F void ldap_controls_free LDAP_P(( LDAPControl **ctrls ));
+
+  
 #define LDAP_MAX_ATTR_LEN	100
-
-/* debugging stuff */
-#ifdef LDAP_DEBUG
-extern int	ldap_debug;
-#ifdef LDAP_SYSLOG
-extern int	ldap_syslog;
-extern int	ldap_syslog_level;
-#endif /* LDAP_SYSLOG */
-
-#define LDAP_DEBUG_TRACE	0x001
-#define LDAP_DEBUG_PACKETS	0x002
-#define LDAP_DEBUG_ARGS		0x004
-#define LDAP_DEBUG_CONNS	0x008
-#define LDAP_DEBUG_BER		0x010
-#define LDAP_DEBUG_FILTER	0x020
-#define LDAP_DEBUG_CONFIG	0x040
-#define LDAP_DEBUG_ACL		0x080
-#define LDAP_DEBUG_STATS	0x100
-#define LDAP_DEBUG_STATS2	0x200
-#define LDAP_DEBUG_SHELL	0x400
-#define LDAP_DEBUG_PARSE	0x800
-#define LDAP_DEBUG_ANY		0xffff
-
-/* this doesn't below as part of ldap.h */
-#ifdef LDAP_SYSLOG
-#define Debug( level, fmt, arg1, arg2, arg3 )	\
-	{ \
-		if ( ldap_debug & (level) ) \
-			fprintf( stderr, (fmt), (arg1), (arg2), (arg3) ); \
-		if ( ldap_syslog & level ) \
-			syslog( ldap_syslog_level, (fmt), (arg1), (arg2), (arg3) ); \
-	}
-#else /* LDAP_SYSLOG */
-#ifndef WINSOCK
-#define Debug( level, fmt, arg1, arg2, arg3 ) \
-		if ( ldap_debug & (level) ) \
-			fprintf( stderr, (fmt), (arg1), (arg2), (arg3) );
-#else /* !WINSOCK */
-extern void Debug( int level, char* fmt, ... );
-#endif /* !WINSOCK */
-#endif /* LDAP_SYSLOG */
-#else /* LDAP_DEBUG */
-#define Debug( level, fmt, arg1, arg2, arg3 )
-#endif /* LDAP_DEBUG */
 
 /* 
  * specific LDAP instantiations of BER types we know about
@@ -228,6 +231,11 @@ typedef struct ldapmod {
 #define LDAP_STRONG_AUTH_NOT_SUPPORTED	0x07
 #define LDAP_STRONG_AUTH_REQUIRED	0x08
 #define LDAP_PARTIAL_RESULTS		0x09
+#define	LDAP_REFERRAL		0x0a /* LDAPv3 */
+#define LDAP_ADMINLIMIT_EXCEEDED	0x0b /* LDAPv3 */
+#define	LDAP_UNAVAILABLE_CRITICIAL_EXTENSION	0x0c /* LDAPv3 */
+#define LDAP_CONFIDENTIALITY_REQUIRED	0x0d /* LDAPv3 */
+#define	LDAP_SASL_BIND_IN_PROGRESS	0x0e /* LDAPv3 */	
 
 #define LDAP_NO_SUCH_ATTRIBUTE		0x10
 #define LDAP_UNDEFINED_TYPE		0x11
@@ -239,7 +247,7 @@ typedef struct ldapmod {
 #define LDAP_NO_SUCH_OBJECT		0x20
 #define LDAP_ALIAS_PROBLEM		0x21
 #define LDAP_INVALID_DN_SYNTAX		0x22
-#define LDAP_IS_LEAF			0x23
+#define LDAP_IS_LEAF			0x23 /* not LDAPv3 */
 #define LDAP_ALIAS_DEREF_PROBLEM	0x24
 
 #define NAME_ERROR(n)	((n & 0xf0) == 0x20)
@@ -258,7 +266,8 @@ typedef struct ldapmod {
 #define LDAP_NOT_ALLOWED_ON_RDN		0x43
 #define LDAP_ALREADY_EXISTS		0x44
 #define LDAP_NO_OBJECT_CLASS_MODS	0x45
-#define LDAP_RESULTS_TOO_LARGE		0x46
+#define LDAP_RESULTS_TOO_LARGE		0x46 /* CLDAP */
+#define LDAP_AFFECTS_MULTIPLE_DSAS	0x47 /* LDAPv3 */
 
 #define LDAP_OTHER			0x50
 #define LDAP_SERVER_DOWN		0x51
@@ -282,14 +291,7 @@ typedef struct ldapmod {
  * where a response has multiple messages.
  */
 
-typedef struct ldapmsg {
-	int		lm_msgid;	/* the message id */
-	int		lm_msgtype;	/* the message type */
-	BerElement	*lm_ber;	/* the ber encoded message contents */
-	struct ldapmsg	*lm_chain;	/* for search - next msg in the resp */
-	struct ldapmsg	*lm_next;	/* next response */
-	unsigned int	lm_time;	/* used to maintain cache */
-} LDAPMessage;
+typedef struct ldapmsg LDAPMessage;
 #define NULLMSG	((LDAPMessage *) NULL)
 
 
@@ -406,64 +408,14 @@ typedef struct ldap_filt_desc {
  * structure representing an ldap connection
  */
 
-typedef struct ldap {
-	Sockbuf		ld_sb;		/* socket descriptor & buffer */
-	char		*ld_host;
-	int		ld_version;
-	char		ld_lberoptions;
-	int		ld_deref;
-#define LDAP_DEREF_NEVER	0
-#define LDAP_DEREF_SEARCHING	1
-#define LDAP_DEREF_FINDING	2
-#define LDAP_DEREF_ALWAYS	3
+typedef struct ldap LDAP;
 
-	int		ld_timelimit;
-	int		ld_sizelimit;
+#define LDAP_DEREF_NEVER	0x00
+#define LDAP_DEREF_SEARCHING	0x01
+#define LDAP_DEREF_FINDING	0x02
+#define LDAP_DEREF_ALWAYS	0x03
+
 #define LDAP_NO_LIMIT		0
-
-	LDAPFiltDesc	*ld_filtd;	/* from getfilter for ufn searches */
-	char		*ld_ufnprefix;	/* for incomplete ufn's */
-
-	int		ld_errno;
-	char		*ld_error;
-	char		*ld_matched;
-	int		ld_msgid;
-
-	/* do not mess with these */
-#ifdef LDAP_REFERRALS
-	LDAPRequest	*ld_requests;	/* list of outstanding requests */
-#else /* LDAP_REFERRALS */
-	LDAPMessage	*ld_requests;	/* list of outstanding requests */
-#endif /* LDAP_REFERRALS */
-	LDAPMessage	*ld_responses;	/* list of outstanding responses */
-	int		*ld_abandoned;	/* array of abandoned requests */
-	char		ld_attrbuffer[LDAP_MAX_ATTR_LEN];
-	LDAPCache	*ld_cache;	/* non-null if cache is initialized */
-	char		*ld_cldapdn;	/* DN used in connectionless search */
-
-	/* it is OK to change these next four values directly */
-	int		ld_cldaptries;	/* connectionless search retry count */
-	int		ld_cldaptimeout;/* time between retries */
-	int		ld_refhoplimit;	/* limit on referral nesting */
-	unsigned long	ld_options;	/* boolean options */
-#define LDAP_OPT_DNS		0x00000001	/* use DN & DNS */
-#define LDAP_OPT_REFERRALS	0x00000002	/* chase referrals */
-#define LDAP_OPT_RESTART	0x00000004	/* restart if EINTR occurs */
-
-	/* do not mess with the rest though */
-	char		*ld_defhost;	/* full name of default server */
-	int		ld_defport;	/* port of default server */
-	BERTranslateProc ld_lber_encode_translate_proc;
-	BERTranslateProc ld_lber_decode_translate_proc;
-#ifdef LDAP_REFERRALS
-	LDAPConn	*ld_defconn;	/* default connection */
-	LDAPConn	*ld_conns;	/* list of server connections */
-	void		*ld_selectinfo;	/* platform specifics for select */
-	int		(*ld_rebindproc)( struct ldap *ld, char **dnp,
-				char **passwdp, int *authmethodp, int freeit );
-				/* routine to get info needed for re-bind */
-#endif /* LDAP_REFERRALS */
-} LDAP;
 
 
 /*

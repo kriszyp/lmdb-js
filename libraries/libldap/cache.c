@@ -19,8 +19,6 @@ static char copyright[] = "@(#) Copyright (c) 1993 The Regents of the University
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include "lber.h"
-#include "ldap.h"
 #include "ldap-int.h"
 
 #ifndef LDAP_NOCACHE

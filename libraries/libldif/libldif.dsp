@@ -76,6 +76,10 @@ LIB32=link.exe -lib
 # Name "libldif - Win32 Debug"
 # Begin Source File
 
+SOURCE=..\..\include\ldif.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\line64.c
 # End Source File
 # End Target

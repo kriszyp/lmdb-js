@@ -26,8 +26,6 @@
 #include <sys/ioctl.h>
 #endif
 
-#include "lber.h"
-#include "ldap.h"
 #include "ldap-int.h"
 
 int

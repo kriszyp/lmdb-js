@@ -19,8 +19,7 @@ static char copyright[] = "@(#) Copyright (c) 1994 The Regents of the University
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include "lber.h"
-#include "ldap.h"
+#include "ldap-int.h"
 
 void
 ldap_getfilter_free( LDAPFiltDesc *lfdp )

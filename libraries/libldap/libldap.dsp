@@ -116,6 +116,10 @@ SOURCE=.\disptmpl.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\disptmpl.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\dsparse.c
 # End Source File
 # Begin Source File
@@ -160,7 +164,19 @@ SOURCE=.\kbind.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\lber.h
+# End Source File
+# Begin Source File
+
 SOURCE=".\ldap-int.h"
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap_log.h
 # End Source File
 # Begin Source File
 
@@ -201,6 +217,10 @@ SOURCE=.\sort.c
 # Begin Source File
 
 SOURCE=.\srchpref.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\srchpref.h
 # End Source File
 # Begin Source File
 

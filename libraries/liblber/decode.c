@@ -25,7 +25,7 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
-#include "lber.h"
+#include "lber-int.h"
 
 #ifdef LDAP_DEBUG
 int	lber_debug;

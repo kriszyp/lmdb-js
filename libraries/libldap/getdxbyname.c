@@ -17,8 +17,6 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include "lber.h"
-#include "ldap.h"
 #include "ldap-int.h"
 
 static char ** decode_answer LDAP_P(( unsigned char *answer, int len ));

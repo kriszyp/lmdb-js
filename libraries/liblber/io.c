@@ -26,7 +26,7 @@
 #include <io.h>
 #endif
 
-#include "lber.h"
+#include "lber-int.h"
 
 static int ber_realloc LDAP_P(( BerElement *ber, unsigned long len ));
 static int ber_filbuf LDAP_P(( Sockbuf *sb, long len ));

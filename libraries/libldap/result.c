@@ -20,8 +20,6 @@ static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of 
 #include <ac/time.h>
 #include <ac/unistd.h>
 
-#include "lber.h"
-#include "ldap.h"
 #include "ldap-int.h"
 
 

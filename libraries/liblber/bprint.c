@@ -8,7 +8,7 @@
 #include <ac/string.h>
 #endif /* LDAP_DEBUG && LDAP_LIBUI  */
 
-#include "lber.h"
+#include "lber-int.h"
 
 /*
  * Print arbitrary stuff, for debugging.

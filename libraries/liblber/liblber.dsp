@@ -92,6 +92,10 @@ SOURCE=.\io.c
 # End Source File
 # Begin Source File
 
+SOURCE=".\lber-int.h"
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\lber.h
 # End Source File
 # End Target

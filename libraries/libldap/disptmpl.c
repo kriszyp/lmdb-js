@@ -27,8 +27,7 @@
 #include <sys/file.h>
 #endif
 
-#include "lber.h"
-#include "ldap.h"
+#include "ldap-int.h"
 #include "disptmpl.h"
 
 static void free_disptmpl LDAP_P(( struct ldap_disptmpl *tmpl ));

@@ -20,8 +20,7 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include "lber.h"
-#include "ldap.h"
+#include "ldap-int.h"
 
 char *
 ldap_friendly_name( char *filename, char *uname, FriendlyMap **map )

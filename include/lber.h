@@ -40,6 +40,7 @@ LDAP_BEGIN_DECL
  */
 #define LBER_ERROR		0xffffffffL
 #define LBER_DEFAULT		0xffffffffL
+#define LBER_END_SEQORSET	0xfffffffeL
 
 /* general BER types we know about */
 #define LBER_BOOLEAN		0x01L
@@ -54,61 +55,33 @@ LDAP_BEGIN_DECL
 #define OLD_LBER_SEQUENCE	0x10L	/* w/o constructed bit - broken */
 #define OLD_LBER_SET		0x11L	/* w/o constructed bit - broken */
 
+/* get/set options for BerElement */
+#define LBER_SOCKBUF_OPT_TO_FILE				0x01
+#define LBER_SOCKBUF_OPT_TO_FILE_ONLY			0x02
+#define	LBER_SOCKBUF_OPT_TO_MAX_INCOMING_SIZE	0x04
+#define LBER_SOCKBUF_OPT_TO_NO_READ_AHEAD		0x08
+#define LBER_SOCKBUF_OPT_TO_DESC				0x10
+#define	LBER_SOCKBUF_OPT_TO_COPYDESC			0x20
+#define LBER_SOCKBUF_OPT_TO_READFN				0x40
+#define LBER_SOCKBUF_OPT_TO_WRITE_FN			0x80
+
+/* LBER on/off values */
+#define LBER_OPT_ON ((void *) 1)
+#define LBER_OPT_OFF ((void *) 0)
+
 typedef int (*BERTranslateProc) LDAP_P(( char **bufp,
 	unsigned long *buflenp,
 	int free_input ));
 
-typedef struct berelement {
-	char		*ber_buf;
-	char		*ber_ptr;
-	char		*ber_end;
-	struct seqorset	*ber_sos;
-	unsigned long	ber_tag;
-	unsigned long	ber_len;
-	int		ber_usertag;
-	char		ber_options;
 #define LBER_USE_DER		0x01
 #define LBER_USE_INDEFINITE_LEN	0x02
 #define LBER_TRANSLATE_STRINGS	0x04
-	char		*ber_rwptr;
-	BERTranslateProc ber_encode_translate_proc;
-	BERTranslateProc ber_decode_translate_proc;
-} BerElement;
+
+typedef struct berelement BerElement;
 #define NULLBER	((BerElement *) 0)
 
-typedef struct sockbuf {
-#ifndef MACOS
-	int		sb_sd;
-#else /* MACOS */
-	void		*sb_sd;
-#endif /* MACOS */
-	BerElement	sb_ber;
-
-	int		sb_naddr;	/* > 0 implies using CLDAP (UDP) */
-	void		*sb_useaddr;	/* pointer to sockaddr to use next */
-	void		*sb_fromaddr;	/* pointer to message source sockaddr */
-	void		**sb_addrs;	/* actually an array of pointers to
-						sockaddrs */
-
-	int		sb_options;	/* to support copying ber elements */
-#define LBER_TO_FILE		0x01	/* to a file referenced by sb_fd   */
-#define LBER_TO_FILE_ONLY	0x02	/* only write to file, not network */
-#define LBER_MAX_INCOMING_SIZE	0x04	/* impose limit on incoming stuff  */
-#define LBER_NO_READ_AHEAD	0x08	/* read only as much as requested  */
-	int		sb_fd;
-	long		sb_max_incoming;
-} Sockbuf;
+typedef struct sockbuf Sockbuf;
 #define READBUFSIZ	8192
-
-typedef struct seqorset {
-	BerElement	*sos_ber;
-	unsigned long	sos_clen;
-	unsigned long	sos_tag;
-	char		*sos_first;
-	char		*sos_ptr;
-	struct seqorset	*sos_next;
-} Seqorset;
-#define NULLSEQORSET	((Seqorset *) 0)
 
 /* structure for returning a sequence of octet strings + length */
 struct berval {
@@ -167,7 +140,7 @@ LDAP_F int ber_start_set LDAP_P(( BerElement *ber, unsigned long tag ));
 LDAP_F int ber_put_seq LDAP_P(( BerElement *ber ));
 LDAP_F int ber_put_set LDAP_P(( BerElement *ber ));
 LDAP_F int ber_printf LDAP_P(( BerElement *ber, char *fmt, ... ));
-
+LDAP_F int ber_fatten LDAP_P(( BerElement *ber, struct berval **bvPtr));
 /*
  * in io.c:
  */

@@ -25,8 +25,7 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
 #include <sys/file.h>
 #endif
 
-#include "lber.h"
-#include "ldap.h"
+#include "ldap-int.h"
 
 static int break_into_words LDAP_P(( char *str, char *delims, char ***wordsp ));
 int next_line_tokens LDAP_P(( char **bufp, long *blenp, char ***toksp ));

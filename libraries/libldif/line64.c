@@ -9,9 +9,9 @@
 #include <ac/socket.h>
 #include <ac/time.h>
 
-#include "lber.h"
-#include "ldap.h"
+#include "ldap_log.h"
 #include "ldif.h"
+
 
 #define RIGHT2			0x03
 #define RIGHT4			0x0f

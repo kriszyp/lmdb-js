@@ -24,8 +24,6 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 #include <sys/param.h>
 #endif
 
-#include "lber.h"
-#include "ldap.h"
 #include "ldap-int.h"
 
 

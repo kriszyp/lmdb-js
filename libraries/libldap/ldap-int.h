@@ -6,6 +6,12 @@
  */
 
 
+#include "../liblber/lber-int.h"
+#include "ldap_log.h"
+#include "ldap.h"
+
+LDAP_BEGIN_DECL
+
 #define LDAP_URL_PREFIX         "ldap://"
 #define LDAP_URL_PREFIX_LEN     7
 #define LDAP_URL_URLCOLON	"URL:"
@@ -22,7 +28,75 @@
 #endif /* LDAP_DNS */
 #endif /* LDAP_REFERRALS */
 
-LDAP_BEGIN_DECL
+/*
+ * This structure represents both ldap messages and ldap responses.
+ * These are really the same, except in the case of search responses,
+ * where a response has multiple messages.
+ */
+
+typedef struct ldapmsg {
+	int		lm_msgid;	/* the message id */
+	int		lm_msgtype;	/* the message type */
+	BerElement	*lm_ber;	/* the ber encoded message contents */
+	struct ldapmsg	*lm_chain;	/* for search - next msg in the resp */
+	struct ldapmsg	*lm_next;	/* next response */
+	unsigned int	lm_time;	/* used to maintain cache */
+} LDAPMessage;
+
+/*
+ * structure representing an ldap connection
+ */
+
+typedef struct ldap {
+	Sockbuf		ld_sb;		/* socket descriptor & buffer */
+	char		*ld_host;
+	int		ld_version;
+	char		ld_lberoptions;
+	int		ld_deref;
+	int		ld_timelimit;
+	int		ld_sizelimit;
+
+	LDAPFiltDesc	*ld_filtd;	/* from getfilter for ufn searches */
+	char		*ld_ufnprefix;	/* for incomplete ufn's */
+
+	int		ld_errno;
+	char		*ld_error;
+	char		*ld_matched;
+	int		ld_msgid;
+
+	/* do not mess with these */
+#ifdef LDAP_REFERRALS
+	LDAPRequest	*ld_requests;	/* list of outstanding requests */
+#else /* LDAP_REFERRALS */
+	LDAPMessage	*ld_requests;	/* list of outstanding requests */
+#endif /* LDAP_REFERRALS */
+	LDAPMessage	*ld_responses;	/* list of outstanding responses */
+	int		*ld_abandoned;	/* array of abandoned requests */
+	char		ld_attrbuffer[LDAP_MAX_ATTR_LEN];
+	LDAPCache	*ld_cache;	/* non-null if cache is initialized */
+	char		*ld_cldapdn;	/* DN used in connectionless search */
+
+	/* it is OK to change these next four values directly */
+	int		ld_cldaptries;	/* connectionless search retry count */
+	int		ld_cldaptimeout;/* time between retries */
+	int		ld_refhoplimit;	/* limit on referral nesting */
+	unsigned long	ld_options;	/* boolean options */
+
+	/* do not mess with the rest though */
+	char		*ld_defhost;	/* full name of default server */
+	int		ld_defport;	/* port of default server */
+	BERTranslateProc ld_lber_encode_translate_proc;
+	BERTranslateProc ld_lber_decode_translate_proc;
+#ifdef LDAP_REFERRALS
+	LDAPConn	*ld_defconn;	/* default connection */
+	LDAPConn	*ld_conns;	/* list of server connections */
+	void		*ld_selectinfo;	/* platform specifics for select */
+	int		(*ld_rebindproc)( struct ldap *ld, char **dnp,
+				char **passwdp, int *authmethodp, int freeit );
+				/* routine to get info needed for re-bind */
+#endif /* LDAP_REFERRALS */
+} LDAP;
+
 /*
  * in cache.c
  */

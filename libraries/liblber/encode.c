@@ -25,7 +25,7 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 
-#include "lber.h"
+#include "lber-int.h"
 
 static int ber_put_len LDAP_P(( BerElement *ber,
 	unsigned long len, int nosos ));
