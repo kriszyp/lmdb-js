@@ -75,7 +75,6 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 
 	/* supportedExtension */
 	for ( i=0; (val.bv_val = get_supported_extension(i)) != NULL; i++ ) {
-		val.bv_val = get_supported_extension(i);
 		val.bv_len = strlen( val.bv_val );
 		attr_merge( e, "supportedExtension", vals );
 	}
@@ -96,6 +95,14 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 			attr_merge( e, "supportedSASLMechanisms", vals );
 		}
 	}
+
+#ifdef SLAPD_ACI_ENABLED
+	/* supportedACIMechanisms */
+	for ( i=0; (val.bv_val = get_supported_acimech(i)) != NULL; i++ ) {
+		val.bv_len = strlen( val.bv_val );
+		attr_merge( e, "supportedACIMechanisms", vals );
+	}
+#endif
 
 	if ( default_referral != NULL ) {
 		attr_merge( e, "ref", default_referral );
