@@ -290,13 +290,13 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
  
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_get_attr_vals(): "
 		"oc='%s' attr='%s' keyval=%ld\n",
-		BACKSQL_OC_NAME( bsi->bsi_oc ), at->ad->ad_cname.bv_val, 
+		BACKSQL_OC_NAME( bsi->bsi_oc ), at->bam_ad->ad_cname.bv_val, 
 		bsi->bsi_c_eid->keyval );
 
-	rc = backsql_Prepare( bsi->bsi_dbh, &sth, at->query, 0 );
+	rc = backsql_Prepare( bsi->bsi_dbh, &sth, at->bam_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_values(): "
-			"error preparing query: %s\n", at->query, 0, 0 );
+			"error preparing query: %s\n", at->bam_query, 0, 0 );
 		backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, sth, rc );
 		return 1;
 	}
@@ -312,7 +312,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	if ( ! BACKSQL_SUCCESS( rc ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_values(): "
 			"error executing attribute query '%s'\n",
-			at->query, 0, 0 );
+			at->bam_query, 0, 0 );
 		backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return 1;
@@ -356,6 +356,10 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	SQLFreeStmt( sth, SQL_DROP );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_get_attr_vals()\n", 0, 0, 0 );
 
+	if ( at->bam_next ) {
+		return backsql_get_attr_vals( at->bam_next, v_bsi );
+	}
+
 	return 1;
 }
 
@@ -396,6 +400,7 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 			at = backsql_ad2at( bsi->bsi_oc, attr->an_desc );
 			if ( at != NULL ) {
     				backsql_get_attr_vals( at, bsi );
+
 			} else {
 				Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
 					"attribute '%s' is not defined "
@@ -408,12 +413,12 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
 			"retrieving all attributes\n", 0, 0, 0 );
-		avl_apply( bsi->bsi_oc->attrs, backsql_get_attr_vals,
+		avl_apply( bsi->bsi_oc->bom_attrs, backsql_get_attr_vals,
 				bsi, 0, AVL_INORDER );
 	}
 
 	if ( attr_merge_normalize_one( bsi->bsi_e, ad_oc,
-				&bsi->bsi_oc->oc->soc_cname,
+				&bsi->bsi_oc->bom_oc->soc_cname,
 				bsi->bsi_op->o_tmpmemctx ) ) {
 		entry_free( e );
 		return NULL;
@@ -427,7 +432,7 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 		struct berval	soc;
 		int rc;
 
-		bv[ 0 ] = bsi->bsi_oc->oc->soc_cname;
+		bv[ 0 ] = bsi->bsi_oc->bom_oc->soc_cname;
 		bv[ 1 ].bv_val = NULL;
 
 		rc = structural_class( bv, &soc, NULL, 

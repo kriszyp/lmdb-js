@@ -21,57 +21,65 @@
 #ifndef __BACKSQL_SCHEMA_MAP_H__
 #define __BACKSQL_SCHEMA_MAP_H__
 
-typedef struct {
+typedef struct backsql_oc_map_rec {
 	/*
 	 * Structure of corresponding LDAP objectClass definition
 	 */
-	ObjectClass	*oc;
-#define BACKSQL_OC_NAME(ocmap)	((ocmap)->oc->soc_cname.bv_val)
+	ObjectClass	*bom_oc;
+#define BACKSQL_OC_NAME(ocmap)	((ocmap)->bom_oc->soc_cname.bv_val)
 	
-	struct berval	keytbl;
-	struct berval	keycol;
+	struct berval	bom_keytbl;
+	struct berval	bom_keycol;
 	/* expected to return keyval of newly created entry */
-	char		*create_proc;
+	char		*bom_create_proc;
 	/* in case create_proc does not return the keyval of the newly
 	 * created row */
-	char		*create_keyval;
+	char		*bom_create_keyval;
 	/* supposed to expect keyval as parameter and delete 
 	 * all the attributes as well */
-	char		*delete_proc;
+	char		*bom_delete_proc;
 	/* flags whether delete_proc is a function (whether back-sql 
 	 * should bind first parameter as output for return code) */
-	int		expect_return;
-	unsigned long	id;
-	Avlnode		*attrs;
+	int		bom_expect_return;
+	unsigned long	bom_id;
+	Avlnode		*bom_attrs;
 } backsql_oc_map_rec;
 
-typedef struct {
+typedef struct backsql_at_map_rec {
 	/* Description of corresponding LDAP attribute type */
-	AttributeDescription	*ad;
-	struct berval	from_tbls;
-	struct berval	join_where;
-	struct berval	sel_expr;
+	AttributeDescription	*bam_ad;
+	/* ObjectClass if bam_ad is objectClass */
+	ObjectClass		*bam_oc;
+
+	struct berval	bam_from_tbls;
+	struct berval	bam_join_where;
+	struct berval	bam_sel_expr;
 	/* supposed to expect 2 binded values: entry keyval 
 	 * and attr. value to add, like "add_name(?,?,?)" */
-	char		*add_proc;
+	char		*bam_add_proc;
 	/* supposed to expect 2 binded values: entry keyval 
 	 * and attr. value to delete */
-	char		*delete_proc;
+	char		*bam_delete_proc;
 	/* for optimization purposes attribute load query 
 	 * is preconstructed from parts on schemamap load time */
-	char		*query;
+	char		*bam_query;
 	/* following flags are bitmasks (first bit used for add_proc, 
 	 * second - for delete_proc) */
 	/* order of parameters for procedures above; 
 	 * 1 means "data then keyval", 0 means "keyval then data" */
-	int 		param_order;
+	int 		bam_param_order;
 	/* flags whether one or more of procedures is a function 
 	 * (whether back-sql should bind first parameter as output 
 	 * for return code) */
-	int 		expect_return;
+	int 		bam_expect_return;
 	/* TimesTen */
-	struct berval	sel_expr_u;
+	struct berval	bam_sel_expr_u;
+
+	/* next mapping for attribute */
+	struct backsql_at_map_rec	*bam_next;
 } backsql_at_map_rec;
+
+#define BACKSQL_AT_MAP_REC_INIT { NULL, NULL, BER_BVC(""), BER_BVC(""), BER_BVNULL, NULL, NULL, NULL, 0, 0, BER_BVNULL, NULL }
 
 /* defines to support bitmasks above */
 #define BACKSQL_ADD	0x1
