@@ -938,8 +938,7 @@ LDAP_SLAPD_F (int) syn_schema_info( Entry *e );
  * user.c
  */
 #if defined(HAVE_PWD_H) && defined(HAVE_GRP_H)
-LDAP_SLAPD_F (void) slap_init_user LDAP_P((
-	const char *username, const char *groupname ));
+LDAP_SLAPD_F (void) slap_init_user LDAP_P(( char *username, char *groupname ));
 #endif
 
 /*
