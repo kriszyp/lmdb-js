@@ -105,10 +105,8 @@ dc: example
 l: Anytown, Michigan
 st: Michigan
 o: Example, Inc.
-o: UMICH
-o: UM
-o: U-M
-o: U of M
+o: EX
+o: Ex.
 description: The Example, Inc. at Anytown
 postalAddress: Example, Inc. $ 535 W. William St. $ Anytown, MI 48109 $ US
 telephoneNumber: +1 313 764-1817

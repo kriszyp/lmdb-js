@@ -18,8 +18,17 @@ echo "running defines.sh"
 
 mkdir -p $TESTDIR $DBDIR1
 
+echo "Running slapadd to build slapd database..."
+. $CONFFILTER $BACKEND $MONITORDB < $WHOAMICONF > $ADDCONF
+$SLAPADD -f $ADDCONF -l $LDIFWHOAMI
+RC=$?
+if test $RC != 0 ; then
+	echo "slapadd failed ($RC)!"
+	exit $RC
+fi
+
 echo "Starting slapd on TCP/IP port $PORT..."
-. $CONFFILTER $BACKEND $MONITORDB < $PWCONF > $CONF1
+. $CONFFILTER $BACKEND $MONITORDB < $WHOAMICONF > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -82,12 +91,270 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Testing ldapwhoami as ${MANAGERDN} for u:ursula..."
+echo "Testing ldapwhoami as ${MANAGERDN} for u:uham..."
 $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD \
-	-e \!authzid="u:ursula"
+	-e \!authzid="u:uham"
 
 RC=$?
 if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+# authzFrom: someone else => njorn
+echo "Testing authzFrom..."
+
+BINDDN="cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+BINDPW=bjensen
+AUTHZID="u:bjorn"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (dn.exact)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=Mark Elliot,ou=Alumni Association,ou=People,dc=example,dc=com"
+BINDPW=melliot
+AUTHZID="u:bjorn"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (u)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=Jane Doe,ou=Alumni Association,ou=People,dc=example,dc=com"
+BINDPW=jdoe
+AUTHZID="u:bjorn"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (URI)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=James A Jones 2,ou=Information Technology Division,ou=People,dc=example,dc=com"
+BINDPW=jjones
+AUTHZID="u:bjorn"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (group)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=No One,ou=Information Technology Division,ou=People,dc=example,dc=com"
+BINDPW=noone
+AUTHZID="u:bjorn"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (dn.onelevel)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=Dorothy Stevens,ou=Alumni Association,ou=People,dc=example,dc=com"
+BINDPW=dots
+AUTHZID="u:bjorn"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (dn.regex)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com"
+BINDPW=jaj
+AUTHZID="u:bjorn"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (dn.children)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=ITD Staff,ou=Groups,dc=example,dc=com"
+BINDPW=ITD
+AUTHZID="u:bjorn"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (dn.subtree)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=Should Fail,dc=example,dc=com"
+BINDPW=fail
+AUTHZID="u:bjorn"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (dn.subtree)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+# authzTo: bjorn => someone else
+echo "Testing authzTo..."
+
+BINDDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+BINDPW=bjorn
+AUTHZID="u:bjensen"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (dn.exact)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+BINDPW=bjorn
+AUTHZID="u:melliot"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (u)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+BINDPW=bjorn
+AUTHZID="u:jdoe"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (URI)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+BINDPW=bjorn
+AUTHZID="u:jjones"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (group)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+BINDPW=bjorn
+AUTHZID="u:noone"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (dn.onelevel)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+BINDPW=bjorn
+AUTHZID="u:dots"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (dn.regex)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+BINDPW=bjorn
+AUTHZID="u:jaj"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (dn.children)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+BINDPW=bjorn
+AUTHZID="u:group/itd staff"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (dn.subtree)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+BINDDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com"
+BINDPW=bjorn
+AUTHZID="u:fail"
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (URI; should fail)..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
+	-e \!authzid="$AUTHZID"
+
+RC=$?
+if test $RC != 1 ; then
 	echo "ldapwhoami failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
@@ -97,3 +364,8 @@ test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
 exit 0
+
+## Note to developers: the command
+## awk '/<===slap_sasl_match:/ {if (s==0) {s=1;c=0} c++; if ($4==0) {print c;s=0}} END {if (s==1) print c}' testrun/slapd.1.log
+## must return consecutive numbers from 1 to 9 twice to indicate
+## that the authzFrom and authzTo rules applied in the right order.
