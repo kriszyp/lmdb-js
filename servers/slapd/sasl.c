@@ -244,6 +244,23 @@ int sasl_bind(
 
 #else
 /* no SASL support */
+int sasl_bind(
+    Connection          *conn,
+    Operation           *op,  
+    char                *dn,  
+    char                *ndn,
+    char                *mech,
+    struct berval       *cred,
+	char				**edn )
+{
+	int rc;
+
+	send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+		NULL, "SASL unavailable", NULL, NULL );
+
+	return rc;
+}
+
 int sasl_init( void ) { return 0; }
 int sasl_destroy( void ) { return 0; }
 #endif
