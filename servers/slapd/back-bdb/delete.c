@@ -102,8 +102,8 @@ retry:	/* transaction retry */
 	}
 
 	/* get entry */
-	rs->sr_err = bdb_dn2entry( op->o_bd, ltid, &op->o_req_ndn, &ei, 1,
-		locker, &lock, op->o_tmpmemctx );
+	rs->sr_err = bdb_dn2entry( op, ltid, &op->o_req_ndn, &ei, 1,
+		locker, &lock );
 
 	switch( rs->sr_err ) {
 	case 0:
@@ -124,8 +124,8 @@ retry:	/* transaction retry */
 	if ( rs->sr_err == 0 ) {
 		e = ei->bei_e;
 		eip = ei->bei_parent;
-		bdb_cache_find_id( op->o_bd, ltid, eip->bei_id, &eip,
-			0, locker, &plock, op->o_tmpmemctx );
+		bdb_cache_find_id( op, ltid, eip->bei_id, &eip,
+			0, locker, &plock );
 	} else {
 		matched = ei->bei_e;
 	}
@@ -360,8 +360,7 @@ retry:	/* transaction retry */
 	}
 
 	/* delete from dn2id */
-	rs->sr_err = bdb_dn2id_delete( op->o_bd, lt2, eip, e,
-		op->o_tmpmemctx );
+	rs->sr_err = bdb_dn2id_delete( op, lt2, eip, e );
 	if ( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 

@@ -43,8 +43,7 @@ bdb_referrals( Operation *op, SlapReply *rs )
 
 dn2entry_retry:
 	/* get entry */
-	rc = bdb_dn2entry( op->o_bd, NULL, &op->o_req_ndn, &ei, 1, locker,
-		&lock, op->o_tmpmemctx );
+	rc = bdb_dn2entry( op, NULL, &op->o_req_ndn, &ei, 1, locker, &lock );
 
 	e = ei->bei_e;
 	switch(rc) {
@@ -118,7 +117,7 @@ dn2entry_retry:
 
 		LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 		if (rs->sr_matched) {
-			sl_free( (char *)rs->sr_matched, op->o_tmpmemctx );
+			op->o_tmpfree( (char *)rs->sr_matched, op->o_tmpmemctx );
 			rs->sr_matched = NULL;
 		}
 		return rc;

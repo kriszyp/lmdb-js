@@ -137,8 +137,8 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rs->sr_err = bdb_dn2entry( op->o_bd, ltid, &op->o_req_ndn, &ei, 1,
-		locker, &lock, op->o_tmpmemctx );
+	rs->sr_err = bdb_dn2entry( op, ltid, &op->o_req_ndn, &ei, 1,
+		locker, &lock );
 
 	switch( rs->sr_err ) {
 	case 0:
@@ -273,8 +273,8 @@ retry:	/* transaction retry */
 		 * children.
 		 */
 		eip = ei->bei_parent;
-		rs->sr_err = bdb_cache_find_id( op->o_bd, ltid,
-			eip->bei_id, &eip, 0, locker, &plock, op->o_tmpmemctx );
+		rs->sr_err = bdb_cache_find_id( op, ltid,
+			eip->bei_id, &eip, 0, locker, &plock );
 
 		switch( rs->sr_err ) {
 		case 0:
@@ -465,8 +465,8 @@ retry:	/* transaction retry */
 			/* newSuperior == entry being moved?, if so ==> ERROR */
 			/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
-			rs->sr_err = bdb_dn2entry( op->o_bd, ltid, np_ndn,
-				&neip, 0, locker, &nplock, op->o_tmpmemctx );
+			rs->sr_err = bdb_dn2entry( op, ltid, np_ndn,
+				&neip, 0, locker, &nplock );
 
 			switch( rs->sr_err ) {
 			case 0: np = neip->bei_e;
@@ -669,8 +669,7 @@ retry:	/* transaction retry */
 
 	/* Shortcut the search */
 	nei = neip ? neip : eip;
-	rs->sr_err = bdb_cache_find_ndn ( op->o_bd, ltid, &new_ndn,
-		&nei, locker, op->o_tmpmemctx );
+	rs->sr_err = bdb_cache_find_ndn ( op, ltid, &new_ndn, &nei, locker );
 	if ( nei ) bdb_cache_entryinfo_unlock( nei );
 	switch( rs->sr_err ) {
 	case DB_LOCK_DEADLOCK:
@@ -775,8 +774,7 @@ retry:	/* transaction retry */
 	e = &dummy;
 
 	/* delete old one */
-	rs->sr_err = bdb_dn2id_delete( op->o_bd, lt2, eip, e,
-		op->o_tmpmemctx );
+	rs->sr_err = bdb_dn2id_delete( op, lt2, eip, e );
 	if ( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
@@ -813,8 +811,7 @@ retry:	/* transaction retry */
 	new_ndn.bv_val = NULL;
 
 	/* add new one */
-	rs->sr_err = bdb_dn2id_add( op->o_bd, lt2, neip ? neip : eip, e,
-		op->o_tmpmemctx );
+	rs->sr_err = bdb_dn2id_add( op, lt2, neip ? neip : eip, e );
 	if ( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 

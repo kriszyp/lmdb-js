@@ -36,7 +36,7 @@ bdb_compare( Operation *op, SlapReply *rs )
 
 dn2entry_retry:
 	/* get entry */
-	rs->sr_err = bdb_dn2entry( op->o_bd, NULL, &op->o_req_ndn, &ei, 1, locker, &lock, op->o_tmpmemctx );
+	rs->sr_err = bdb_dn2entry( op, NULL, &op->o_req_ndn, &ei, 1, locker, &lock );
 
 	switch( rs->sr_err ) {
 	case DB_NOTFOUND:

@@ -125,8 +125,13 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 #else
 	{
 		EntryInfo *ei = NULL;
-		rc = bdb_cache_find_id( be, NULL, id, &ei, 0, 0,
-			NULL, NULL );
+		Operation op = {0};
+
+		op.o_bd = be;
+		op.o_tmpmemctx = NULL;
+		op.o_tmpmfuncs = &ch_mfuncs;
+
+		rc = bdb_cache_find_id( &op, NULL, id, &ei, 0, 0, NULL );
 		if ( rc == LDAP_SUCCESS )
 			e = ei->bei_e;
 	}
@@ -135,33 +140,33 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 }
 
 static int bdb_tool_next_id(
-	BackendDB *be,
+	Operation *op,
 	DB_TXN *tid,
 	Entry *e,
 	struct berval *text,
 	int hole,
 	u_int32_t locker )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	struct berval dn = e->e_nname;
 	struct berval pdn;
 	EntryInfo *ei = NULL;
 	int rc;
 
-	rc = bdb_cache_find_ndn( be, tid, &dn, &ei, locker, NULL );
+	rc = bdb_cache_find_ndn( op, tid, &dn, &ei, locker );
 	if ( ei ) bdb_cache_entryinfo_unlock( ei );
 	if ( rc == DB_NOTFOUND ) {
-		if ( be_issuffix( be, &dn ) ) {
+		if ( be_issuffix( op->o_bd, &dn ) ) {
 			pdn = slap_empty_bv;
 		} else {
 			dnParent( &dn, &pdn );
 			e->e_nname = pdn;
-			rc = bdb_tool_next_id( be, tid, e, text, 1, locker );
+			rc = bdb_tool_next_id( op, tid, e, text, 1, locker );
 			if ( rc ) {
 				return rc;
 			}
 		}
-		rc = bdb_next_id( be, tid, &e->e_id );
+		rc = bdb_next_id( op->o_bd, tid, &e->e_id );
 		if ( rc ) {
 			snprintf( text->bv_val, text->bv_len,
 				"next_id failed: %s (%d)",
@@ -176,7 +181,7 @@ static int bdb_tool_next_id(
 			return rc;
 		}
 		e->e_nname = dn;
-		rc = bdb_dn2id_add( be, tid, ei, e, NULL );
+		rc = bdb_dn2id_add( op, tid, ei, e );
 		if ( rc ) {
 			snprintf( text->bv_val, text->bv_len, 
 				"dn2id_add failed: %s (%d)",
@@ -262,9 +267,13 @@ ID bdb_tool_entry_put(
 		return NOID;
 	}
 
+	op.o_bd = be;
+	op.o_tmpmemctx = NULL;
+	op.o_tmpmfuncs = &ch_mfuncs;
+
 	locker = TXN_ID( tid );
 	/* add dn2id indices */
-	rc = bdb_tool_next_id( be, tid, e, text, 0, locker );
+	rc = bdb_tool_next_id( &op, tid, e, text, 0, locker );
 	if( rc != 0 ) {
 		goto done;
 	}
@@ -285,9 +294,6 @@ ID bdb_tool_entry_put(
 		goto done;
 	}
 
-	op.o_bd = be;
-	op.o_tmpmemctx = NULL;
-	op.o_tmpmfuncs = &ch_mfuncs;
 	rc = bdb_index_entry_add( &op, tid, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
@@ -402,9 +408,13 @@ int bdb_tool_entry_reindex(
 		(long) id, e->e_dn, 0 );
 #endif
 
+	op.o_bd = be;
+	op.o_tmpmemctx = NULL;
+	op.o_tmpmfuncs = &ch_mfuncs;
+
 #ifndef BDB_HIER
 	/* add dn2id indices */
-	rc = bdb_dn2id_add( be, tid, NULL, e, NULL );
+	rc = bdb_dn2id_add( &op, tid, NULL, e );
 	if( rc != 0 && rc != DB_KEYEXIST ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( TOOLS, ERR, 
@@ -419,9 +429,6 @@ int bdb_tool_entry_reindex(
 	}
 #endif
 
-	op.o_bd = be;
-	op.o_tmpmemctx = NULL;
-	op.o_tmpmfuncs = &ch_mfuncs;
 	rc = bdb_index_entry_add( &op, tid, e );
 
 done:

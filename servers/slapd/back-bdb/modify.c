@@ -376,8 +376,8 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry or ancestor */
-	rs->sr_err = bdb_dn2entry( op->o_bd, ltid, &op->o_req_ndn, &ei, 1,
-		locker, &lock, op->o_tmpmemctx );
+	rs->sr_err = bdb_dn2entry( op, ltid, &op->o_req_ndn, &ei, 1,
+		locker, &lock );
 
 	if ( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING

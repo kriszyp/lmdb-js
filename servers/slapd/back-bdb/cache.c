@@ -320,15 +320,14 @@ bdb_entryinfo_add_internal(
  */
 int
 bdb_cache_find_ndn(
-	Backend		*be,
+	Operation	*op,
 	DB_TXN		*txn,
 	struct berval	*ndn,
 	EntryInfo	**res,
-	u_int32_t	locker,
-	void		*ctx
+	u_int32_t	locker
 )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	EntryInfo	ei, *eip, *ei2;
 	int rc = 0;
 	char *ptr;
@@ -337,13 +336,13 @@ bdb_cache_find_ndn(
 	if ( *res ) {
 		/* we're doing a onelevel search for an RDN */
 		ei.bei_nrdn.bv_val = ndn->bv_val;
-		ei.bei_nrdn.bv_len = dn_rdnlen( be, ndn );
+		ei.bei_nrdn.bv_len = dn_rdnlen( op->o_bd, ndn );
 		eip = *res;
 	} else {
 		/* we're searching a full DN from the root */
-		ptr = ndn->bv_val + ndn->bv_len - be->be_nsuffix[0].bv_len;
+		ptr = ndn->bv_val + ndn->bv_len - op->o_bd->be_nsuffix[0].bv_len;
 		ei.bei_nrdn.bv_val = ptr;
-		ei.bei_nrdn.bv_len = be->be_nsuffix[0].bv_len;
+		ei.bei_nrdn.bv_len = op->o_bd->be_nsuffix[0].bv_len;
 		eip = &bdb->bi_cache.c_dntree;
 	}
 	
@@ -356,7 +355,7 @@ bdb_cache_find_ndn(
 			ei.bei_nrdn.bv_len = ndn->bv_len - (ei.bei_nrdn.bv_val - ndn->bv_val);
 			bdb_cache_entryinfo_unlock( eip );
 
-			rc = bdb_dn2id( be, txn, &ei.bei_nrdn, &ei, ctx );
+			rc = bdb_dn2id( op, txn, &ei.bei_nrdn, &ei );
 			if (rc) {
 				bdb_cache_entryinfo_lock( eip );
 				*res = eip;
@@ -410,15 +409,14 @@ bdb_cache_find_ndn(
  * been linked into the cache.
  */
 static int
-bdb_cache_find_parent(
-	Backend *be,
+hdb_cache_find_parent(
+	Operation *op,
 	DB_TXN *txn,
 	ID id,
-	EntryInfo **res,
-	void *ctx
+	EntryInfo **res
 )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	EntryInfo ei, eip, *ei2 = NULL, *ein = NULL, *eir = NULL;
 	ID parent;
 	int rc;
@@ -427,7 +425,7 @@ bdb_cache_find_parent(
 	ei.bei_kids = NULL;
 
 	for (;;) {
-		rc = bdb_dn2id_parent( be, txn, &ei, &eip.bei_id, ctx );
+		rc = hdb_dn2id_parent( op, txn, &ei, &eip.bei_id );
 		if ( rc ) break;
 
 		/* Save the previous node, if any */
@@ -508,17 +506,16 @@ bdb_cache_find_parent(
 
 int
 bdb_cache_find_id(
-	Backend *be,
+	Operation *op,
 	DB_TXN	*tid,
 	ID				id,
 	EntryInfo	**eip,
 	int		islocked,
 	u_int32_t	locker,
-	DB_LOCK		*lock,
-	void		*ctx
+	DB_LOCK		*lock
 )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	Entry	*ep = NULL;
 	int	rc = 0;
 	EntryInfo ei;
@@ -540,10 +537,10 @@ bdb_cache_find_id(
 	/* See if the ID exists in the database; add it to the cache if so */
 	if ( !*eip ) {
 #ifndef BDB_HIER
-		rc = bdb_id2entry( be, tid, id, &ep );
+		rc = bdb_id2entry( op->o_bd, tid, id, &ep );
 		if ( rc == 0 ) {
-			rc = bdb_cache_find_ndn( be, tid,
-				&ep->e_nname, eip, locker, ctx );
+			rc = bdb_cache_find_ndn( op, tid,
+				&ep->e_nname, eip, locker );
 			if ( *eip )
 				islocked = 1;
 			if ( rc ) {
@@ -552,7 +549,7 @@ bdb_cache_find_id(
 			}
 		}
 #else
-		rc = bdb_cache_find_parent(be, tid, id, eip, ctx );
+		rc = hdb_cache_find_parent(op, tid, id, eip );
 		if ( rc == 0 && *eip )
 			islocked = 1;
 #endif
@@ -564,7 +561,7 @@ bdb_cache_find_id(
 			rc = DB_NOTFOUND;
 		} else if (!(*eip)->bei_e ) {
 			if (!ep) {
-				rc = bdb_id2entry( be, tid, id, &ep );
+				rc = bdb_id2entry( op->o_bd, tid, id, &ep );
 			}
 			if ( rc == 0 ) {
 				bdb_cache_entry_db_lock( bdb->bi_dbenv, locker,

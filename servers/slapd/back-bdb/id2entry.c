@@ -202,7 +202,7 @@ int bdb_entry_release(
 			bdb_unlocked_cache_return_entry_rw( &bdb->bi_cache, e, rw );
 		} else {
 			bdb_cache_return_entry_rw( bdb->bi_dbenv, &bdb->bi_cache, e, rw, &boi->boi_lock );
-			sl_free( boi, o->o_tmpmemctx );
+			o->o_tmpfree( boi, o->o_tmpmemctx );
 			o->o_private = NULL;
 		}
 	} else {
@@ -272,7 +272,7 @@ int bdb_entry_get(
 
 dn2entry_retry:
 	/* can we find entry */
-	rc = bdb_dn2entry( op->o_bd, txn, ndn, &ei, 0, locker, &lock, op->o_tmpmemctx );
+	rc = bdb_dn2entry( op, txn, ndn, &ei, 0, locker, &lock );
 	switch( rc ) {
 	case DB_NOTFOUND:
 	case 0:
@@ -369,7 +369,7 @@ return_results:
 		 * release it later??
 		 */
 		if ( op && !boi ) {
-			boi = sl_calloc(1,sizeof(struct bdb_op_info),op->o_tmpmemctx);
+			boi = op->o_tmpcalloc(1,sizeof(struct bdb_op_info),op->o_tmpmemctx);
 			boi->boi_lock = lock;
 			op->o_private = boi;
 		}

@@ -138,8 +138,8 @@ retry:	/* transaction retry */
 	}
 
 	/* get entry or parent */
-	rs->sr_err = bdb_dn2entry( op->o_bd, ltid, &op->ora_e->e_nname, &ei,
-		1, locker, &lock, op->o_tmpmemctx );
+	rs->sr_err = bdb_dn2entry( op, ltid, &op->ora_e->e_nname, &ei,
+		1, locker, &lock );
 	switch( rs->sr_err ) {
 	case 0:
 		rs->sr_err = LDAP_ALREADY_EXISTS;
@@ -384,8 +384,7 @@ retry:	/* transaction retry */
 	}
 
 	/* dn2id index */
-	rs->sr_err = bdb_dn2id_add( op->o_bd, lt2, ei, op->oq_add.rs_e,
-		op->o_tmpmemctx );
+	rs->sr_err = bdb_dn2id_add( op, lt2, ei, op->oq_add.rs_e );
 	if ( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 

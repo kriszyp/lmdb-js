@@ -17,13 +17,12 @@
 #ifndef BDB_HIER
 int
 bdb_dn2id_add(
-	BackendDB	*be,
+	Operation *op,
 	DB_TXN *txn,
 	EntryInfo *eip,
-	Entry		*e,
-	void *ctx )
+	Entry		*e )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 	int		rc;
 	DBT		key, data;
@@ -43,7 +42,7 @@ bdb_dn2id_add(
 	key.size = e->e_nname.bv_len + 2;
 	key.ulen = key.size;
 	key.flags = DB_DBT_USERMEM;
-	buf = sl_malloc( key.size, ctx );
+	buf = op->o_tmpalloc( key.size, op->o_tmpmemctx );
 	key.data = buf;
 	buf[0] = DN_BASE_PREFIX;
 	ptr.bv_val = buf + 1;
@@ -69,7 +68,7 @@ bdb_dn2id_add(
 	}
 
 #ifndef BDB_MULTIPLE_SUFFIXES
-	if( !be_issuffix( be, &ptr )) {
+	if( !be_issuffix( op->o_bd, &ptr )) {
 #endif
 		buf[0] = DN_SUBTREE_PREFIX;
 		rc = db->put( db, txn, &key, &data, DB_NOOVERWRITE );
@@ -87,7 +86,7 @@ bdb_dn2id_add(
 		}
 		
 #ifdef BDB_MULTIPLE_SUFFIXES
-	if( !be_issuffix( be, &ptr )) {
+	if( !be_issuffix( op->o_bd, &ptr )) {
 #endif
 		dnParent( &ptr, &pdn );
 	
@@ -97,7 +96,7 @@ bdb_dn2id_add(
 		key.data = pdn.bv_val-1;
 		ptr = pdn;
 
-		rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
+		rc = bdb_idl_insert_key( op->o_bd, db, txn, &key, e->e_id );
 
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
@@ -114,13 +113,13 @@ bdb_dn2id_add(
 #ifndef BDB_MULTIPLE_SUFFIXES
 	}
 
-	while( !be_issuffix( be, &ptr )) {
+	while( !be_issuffix( op->o_bd, &ptr )) {
 #else
 	for (;;) {
 #endif
 		ptr.bv_val[-1] = DN_SUBTREE_PREFIX;
 
-		rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
+		rc = bdb_idl_insert_key( op->o_bd, db, txn, &key, e->e_id );
 
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
@@ -135,7 +134,7 @@ bdb_dn2id_add(
 			break;
 		}
 #ifdef BDB_MULTIPLE_SUFFIXES
-		if( be_issuffix( be, &ptr )) break;
+		if( be_issuffix( op->o_bd, &ptr )) break;
 #endif
 		dnParent( &ptr, &pdn );
 
@@ -149,7 +148,7 @@ bdb_dn2id_add(
 #endif
 
 done:
-	sl_free( buf, ctx );
+	op->o_tmpfree( buf, op->o_tmpmemctx );
 #ifdef NEW_LOGGING
 	LDAP_LOG ( INDEX, RESULTS, "<= bdb_dn2id_add: %d\n", rc, 0, 0 );
 #else
@@ -160,13 +159,12 @@ done:
 
 int
 bdb_dn2id_delete(
-	BackendDB	*be,
+	Operation *op,
 	DB_TXN *txn,
 	EntryInfo	*eip,
-	Entry		*e,
-	void *ctx )
+	Entry		*e )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 	int		rc;
 	DBT		key;
@@ -183,7 +181,7 @@ bdb_dn2id_delete(
 
 	DBTzero( &key );
 	key.size = e->e_nname.bv_len + 2;
-	buf = sl_malloc( key.size, ctx );
+	buf = op->o_tmpalloc( key.size, op->o_tmpmemctx );
 	key.data = buf;
 	key.flags = DB_DBT_USERMEM;
 	buf[0] = DN_BASE_PREFIX;
@@ -207,7 +205,7 @@ bdb_dn2id_delete(
 	}
 
 #ifndef BDB_MULTIPLE_SUFFIXES
-	if( !be_issuffix( be, &ptr )) {
+	if( !be_issuffix( op->o_bd, &ptr )) {
 #endif
 		buf[0] = DN_SUBTREE_PREFIX;
 		rc = db->del( db, txn, &key, 0 );
@@ -225,7 +223,7 @@ bdb_dn2id_delete(
 		}
 
 #ifdef BDB_MULTIPLE_SUFFIXES
-	if( !be_issuffix( be, &ptr )) {
+	if( !be_issuffix( op->o_bd, &ptr )) {
 #endif
 		dnParent( &ptr, &pdn );
 
@@ -235,7 +233,7 @@ bdb_dn2id_delete(
 		key.data = pdn.bv_val - 1;
 		ptr = pdn;
 
-		rc = bdb_idl_delete_key( be, db, txn, &key, e->e_id );
+		rc = bdb_idl_delete_key( op->o_bd, db, txn, &key, e->e_id );
 
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
@@ -252,13 +250,13 @@ bdb_dn2id_delete(
 #ifndef BDB_MULTIPLE_SUFFIXES
 	}
 
-	while( !be_issuffix( be, &ptr )) {
+	while( !be_issuffix( op->o_bd, &ptr )) {
 #else
 	for (;;) {
 #endif
 		ptr.bv_val[-1] = DN_SUBTREE_PREFIX;
 
-		rc = bdb_idl_delete_key( be, db, txn, &key, e->e_id );
+		rc = bdb_idl_delete_key( op->o_bd, db, txn, &key, e->e_id );
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( INDEX, ERR, 
@@ -272,7 +270,7 @@ bdb_dn2id_delete(
 			goto done;
 		}
 #ifdef BDB_MULTIPLE_SUFFIXES
-		if( be_issuffix( be, &ptr )) break;
+		if( be_issuffix( op->o_bd, &ptr )) break;
 #endif
 		dnParent( &ptr, &pdn );
 
@@ -286,7 +284,7 @@ bdb_dn2id_delete(
 #endif
 
 done:
-	sl_free( buf, ctx );
+	op->o_tmpfree( buf, op->o_tmpmemctx );
 #ifdef NEW_LOGGING
 	LDAP_LOG ( INDEX, RESULTS, "<= bdb_dn2id_delete %d\n", rc, 0, 0 );
 #else
@@ -297,15 +295,14 @@ done:
 
 int
 bdb_dn2id(
-	BackendDB	*be,
+	Operation *op,
 	DB_TXN *txn,
 	struct berval	*dn,
-	EntryInfo *ei,
-	void *ctx )
+	EntryInfo *ei )
 {
 	int		rc;
 	DBT		key, data;
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 
 #ifdef NEW_LOGGING
@@ -315,7 +312,7 @@ bdb_dn2id(
 #endif
 	DBTzero( &key );
 	key.size = dn->bv_len + 2;
-	key.data = sl_malloc( key.size, ctx );
+	key.data = op->o_tmpalloc( key.size, op->o_tmpmemctx );
 	((char *)key.data)[0] = DN_BASE_PREFIX;
 	AC_MEMCPY( &((char *)key.data)[1], dn->bv_val, key.size - 1 );
 
@@ -346,7 +343,7 @@ bdb_dn2id(
 #endif
 	}
 
-	sl_free( key.data, ctx );
+	op->o_tmpfree( key.data, op->o_tmpmemctx );
 	return rc;
 }
 
@@ -371,7 +368,7 @@ bdb_dn2id_children(
 #endif
 	DBTzero( &key );
 	key.size = e->e_nname.bv_len + 2;
-	key.data = sl_malloc( key.size, op->o_tmpmemctx );
+	key.data = op->o_tmpalloc( key.size, op->o_tmpmemctx );
 	((char *)key.data)[0] = DN_ONE_PREFIX;
 	AC_MEMCPY( &((char *)key.data)[1], e->e_nname.bv_val, key.size - 1 );
 
@@ -379,7 +376,7 @@ bdb_dn2id_children(
 	if ( bdb->bi_idl_cache_size ) {
 		rc = bdb_idl_cache_get( bdb, db, &key, NULL );
 		if ( rc != LDAP_NO_SUCH_OBJECT ) {
-			sl_free( key.data, op->o_tmpmemctx );
+			op->o_tmpfree( key.data, op->o_tmpmemctx );
 			return rc;
 		}
 	}
@@ -393,7 +390,7 @@ bdb_dn2id_children(
 	data.dlen = sizeof(id);
 
 	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
-	sl_free( key.data, op->o_tmpmemctx );
+	op->o_tmpfree( key.data, op->o_tmpmemctx );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( INDEX, DETAIL1, 
@@ -443,7 +440,7 @@ bdb_dn2idl(
 	key.size = e->e_nname.bv_len + 2;
 	key.ulen = key.size;
 	key.flags = DB_DBT_USERMEM;
-	key.data = sl_malloc( key.size, op->o_tmpmemctx );
+	key.data = op->o_tmpalloc( key.size, op->o_tmpmemctx );
 	((char *)key.data)[0] = prefix;
 	AC_MEMCPY( &((char *)key.data)[1], e->e_nname.bv_val, key.size - 1 );
 
@@ -473,7 +470,7 @@ bdb_dn2idl(
 #endif
 	}
 
-	sl_free( key.data, op->o_tmpmemctx );
+	op->o_tmpfree( key.data, op->o_tmpmemctx );
 	return rc;
 }
 #else	/* BDB_HIER */
@@ -588,28 +585,27 @@ int hdb_fix_dn(
  */
 int
 hdb_dn2id_add(
-	BackendDB	*be,
+	Operation	*op,
 	DB_TXN *txn,
 	EntryInfo	*eip,
-	Entry		*e,
-	void *ctx )
+	Entry		*e )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 	DBT		key, data;
 	int		rc, rlen, nrlen;
 	diskNode *d;
 	char *ptr;
 
-	nrlen = dn_rdnlen( be, &e->e_nname );
+	nrlen = dn_rdnlen( op->o_bd, &e->e_nname );
 	if (nrlen) {
-		rlen = dn_rdnlen( be, &e->e_name );
+		rlen = dn_rdnlen( op->o_bd, &e->e_name );
 	} else {
 		nrlen = e->e_nname.bv_len;
 		rlen = e->e_name.bv_len;
 	}
 
-	d = sl_malloc(sizeof(diskNode) + rlen + nrlen, ctx);
+	d = op->o_tmpalloc(sizeof(diskNode) + rlen + nrlen, op->o_tmpmemctx);
 	d->entryID = e->e_id;
 	d->nrdnlen = nrlen;
 	ptr = lutil_strncopy( d->nrdn, e->e_nname.bv_val, nrlen );
@@ -642,20 +638,19 @@ hdb_dn2id_add(
 		rc = db->put( db, txn, &key, &data, DB_NODUPDATA );
 	}
 
-	sl_free( d, ctx );
+	op->o_tmpfree( d, op->o_tmpmemctx );
 
 	return rc;
 }
 
 int
 hdb_dn2id_delete(
-	BackendDB	*be,
+	Operation	*op,
 	DB_TXN *txn,
 	EntryInfo	*eip,
-	Entry	*e,
-	void	*ctx )
+	Entry	*e )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 	DBT		key, data;
 	DBC	*cursor;
@@ -682,7 +677,7 @@ hdb_dn2id_delete(
 	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
 	if ( rc ) return rc;
 
-	d = sl_malloc( data.size, ctx );
+	d = op->o_tmpalloc( data.size, op->o_tmpmemctx );
 	d->entryID = e->e_id;
 	d->nrdnlen = BEI(e)->bei_nrdn.bv_len;
 	strcpy( d->nrdn, BEI(e)->bei_nrdn.bv_val );
@@ -704,20 +699,19 @@ hdb_dn2id_delete(
 			rc = cursor->c_del( cursor, 0 );
 	}
 	cursor->c_close( cursor );
-	sl_free( d, ctx );
+	op->o_tmpfree( d, op->o_tmpmemctx );
 
 	return rc;
 }
 
 int
 hdb_dn2id(
-	BackendDB	*be,
+	Operation	*op,
 	DB_TXN *txn,
 	struct berval	*in,
-	EntryInfo	*ei,
-	void *ctx )
+	EntryInfo	*ei )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 	DBT		key, data;
 	DBC	*cursor;
@@ -726,7 +720,7 @@ hdb_dn2id(
 	char	*ptr;
 	ID idp = ei->bei_parent->bei_id;
 
-	nrlen = dn_rdnlen( be, in );
+	nrlen = dn_rdnlen( op->o_bd, in );
 	if (!nrlen) nrlen = in->bv_len;
 
 	DBTzero(&key);
@@ -743,7 +737,7 @@ hdb_dn2id(
 	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
 	if ( rc ) return rc;
 
-	d = sl_malloc( data.size * 3, ctx );
+	d = op->o_tmpalloc( data.size * 3, op->o_tmpmemctx );
 	d->nrdnlen = nrlen;
 	ptr = lutil_strncopy( d->nrdn, in->bv_val, nrlen );
 	*ptr = '\0';
@@ -759,20 +753,19 @@ hdb_dn2id(
 		ei->bei_rdn.bv_val = ch_malloc( ei->bei_rdn.bv_len + 1 );
 		strcpy( ei->bei_rdn.bv_val, ptr );
 	}
-	sl_free( d, ctx );
+	op->o_tmpfree( d, op->o_tmpmemctx );
 
 	return rc;
 }
 
 int
 hdb_dn2id_parent(
-	Backend *be,
+	Operation *op,
 	DB_TXN *txn,
 	EntryInfo *ei,
-	ID *idp,
-	void *ctx )
+	ID *idp )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 	DBT		key, data;
 	DBC	*cursor;
@@ -794,7 +787,7 @@ hdb_dn2id_parent(
 	if ( rc ) return rc;
 
 	data.ulen = sizeof(diskNode) + (SLAP_LDAPDN_MAXLEN * 2);
-	d = sl_malloc( data.ulen, ctx );
+	d = op->o_tmpalloc( data.ulen, op->o_tmpmemctx );
 	data.data = d;
 
 	rc = cursor->c_get( cursor, &key, &data, DB_SET );
@@ -811,7 +804,7 @@ hdb_dn2id_parent(
 		ptr = d->nrdn + ei->bei_nrdn.bv_len + 1;
 		ber_str2bv( ptr, ei->bei_rdn.bv_len, 1, &ei->bei_rdn );
 	}
-	sl_free( d, ctx );
+	op->o_tmpfree( d, op->o_tmpmemctx );
 	return rc;
 }
 
@@ -883,7 +876,7 @@ struct dn2id_cookie {
 	DBT key;
 	DBT data;
 	DBC *dbc;
-	void *ctx;
+	Operation *op;
 };
 
 static int
@@ -955,7 +948,8 @@ gotit:
 		if ( cx->prefix == DN_SUBTREE_PREFIX ) {
 			ID *save, idcurs;
 
-			save = sl_malloc( BDB_IDL_SIZEOF( cx->tmp ), cx->ctx );
+			save = cx->op->o_tmpalloc( BDB_IDL_SIZEOF( cx->tmp ),
+				cx->op->o_tmpmemctx );
 			BDB_IDL_CPY( save, cx->tmp );
 			bdb_idl_union( cx->ids, cx->tmp );
 	
@@ -965,7 +959,7 @@ gotit:
 				cx->id = bdb_idl_next( save, &idcurs )) {
 				hdb_dn2idl_internal( cx );
 			}
-			sl_free( save, cx->ctx );
+			cx->op->o_tmpfree( save, cx->op->o_tmpmemctx );
 			cx->rc = 0;
 		} else {
 			BDB_IDL_CPY( cx->ids, cx->tmp );
@@ -1006,7 +1000,7 @@ hdb_dn2idl(
 			DN_ONE_PREFIX;
 	cx.ids = ids;
 	cx.buf = stack;
-	cx.ctx = op->o_tmpmemctx;
+	cx.op = op;
 
 	BDB_IDL_ZERO( ids );
 	if ( cx.prefix == DN_SUBTREE_PREFIX ) {

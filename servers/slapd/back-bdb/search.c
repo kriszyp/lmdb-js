@@ -86,8 +86,8 @@ static Entry * deref_base (
 			break;
 		}
 
-		rs->sr_err = bdb_dn2entry( op->o_bd, NULL, &ndn, &ei,
-			0, locker, &lockr, op->o_tmpmemctx );
+		rs->sr_err = bdb_dn2entry( op, NULL, &ndn, &ei,
+			0, locker, &lockr );
 
 		if ( ei ) e = ei->bei_e;
 		else	e = NULL;
@@ -203,8 +203,8 @@ static int search_aliases(
 			ida = bdb_idl_next(curscop, &cursora))
 		{
 			ei = NULL;
-			rs->sr_err = bdb_cache_find_id(op->o_bd, NULL,
-				ida, &ei, 0, locker, &lockr, op->o_tmpmemctx );
+			rs->sr_err = bdb_cache_find_id(op, NULL,
+				ida, &ei, 0, locker, &lockr );
 			if (rs->sr_err != LDAP_SUCCESS) {
 				continue;
 			}
@@ -269,8 +269,8 @@ nextido:
 		 * Set the name so that the scope's IDL can be retrieved.
 		 */
 		ei = NULL;
-		rs->sr_err = bdb_cache_find_id(op->o_bd, NULL, ido, &ei,
-			0, locker, &locka, op->o_tmpmemctx );
+		rs->sr_err = bdb_cache_find_id(op, NULL, ido, &ei,
+			0, locker, &locka );
 		if (rs->sr_err != LDAP_SUCCESS) goto nextido;
 		e = ei->bei_e;
 	}
@@ -507,8 +507,8 @@ int bdb_search( Operation *op, SlapReply *rs )
 	} else {
 dn2entry_retry:
 		/* get entry with reader lock */
-		rs->sr_err = bdb_dn2entry( op->o_bd, NULL, &sop->o_req_ndn, &ei,
-			1, locker, &lock, op->o_tmpmemctx );
+		rs->sr_err = bdb_dn2entry( op, NULL, &sop->o_req_ndn, &ei,
+			1, locker, &lock );
 	}
 
 	switch(rs->sr_err) {
@@ -910,8 +910,8 @@ loop_begin:
 id2entry_retry:
 			/* get the entry with reader lock */
 			ei = NULL;
-			rs->sr_err = bdb_cache_find_id( op->o_bd, NULL,
-				id, &ei, 0, locker, &lock, op->o_tmpmemctx );
+			rs->sr_err = bdb_cache_find_id( op, NULL,
+				id, &ei, 0, locker, &lock );
 
 			if (rs->sr_err == LDAP_BUSY) {
 				rs->sr_text = "ldap server busy";

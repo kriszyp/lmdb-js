@@ -150,7 +150,7 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rc = bdb_dn2entry( op->o_bd, ltid, &ndn, &ei, 0 , locker, &lock, op->o_tmpmemctx );
+	rc = bdb_dn2entry( op, ltid, &ndn, &ei, 0 , locker, &lock );
 
 	switch(rc) {
 	case DB_LOCK_DEADLOCK:

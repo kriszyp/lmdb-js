@@ -50,9 +50,9 @@ bdb_db_cache(
  */
 #define bdb_dn2entry				BDB_SYMBOL(dn2entry)
 
-int bdb_dn2entry LDAP_P(( BackendDB *be, DB_TXN *tid,
+int bdb_dn2entry LDAP_P(( Operation *op, DB_TXN *tid,
 	struct berval *dn, EntryInfo **e, int matched,
-	u_int32_t locker, DB_LOCK *lock, void *ctx));
+	u_int32_t locker, DB_LOCK *lock ));
 
 /*
  * dn2id.c
@@ -64,25 +64,22 @@ int bdb_dn2entry LDAP_P(( BackendDB *be, DB_TXN *tid,
 #define bdb_dn2idl					BDB_SYMBOL(dn2idl)
 
 int bdb_dn2id(
-	BackendDB *be,
+	Operation *op,
 	DB_TXN *tid,
 	struct berval *dn,
-	EntryInfo *ei,
-	void *ctx );
+	EntryInfo *ei );
 
 int bdb_dn2id_add(
-	BackendDB *be,
+	Operation *op,
 	DB_TXN *tid,
 	EntryInfo *eip,
-	Entry *e,
-	void *ctx );
+	Entry *e );
 
 int bdb_dn2id_delete(
-	BackendDB *be,
+	Operation *op,
 	DB_TXN *tid,
 	EntryInfo *eip,
-	Entry *e,
-	void *ctx );
+	Entry *e );
 
 int bdb_dn2id_children(
 	Operation *op,
@@ -101,11 +98,10 @@ int bdb_dn2idl(
 #define bdb_fix_dn					BDB_SYMBOL(fix_dn)
 
 int bdb_dn2id_parent(
-	Backend *be,
+	Operation *op,
 	DB_TXN *txn,
 	EntryInfo *ei,
-	ID *idp,
-	void *ctx );
+	ID *idp );
 
 int bdb_dup_compare(
 	DB *db,
@@ -444,22 +440,20 @@ int bdb_cache_modify(
 	DB_LOCK *lock
 );
 int bdb_cache_find_ndn(
-	Backend *be,
+	Operation *op,
 	DB_TXN	*txn,
 	struct berval   *ndn,
 	EntryInfo	**res,
-	u_int32_t	locker,
-	void	*ctx
+	u_int32_t	locker
 );
 int bdb_cache_find_id(
-	Backend *be,
+	Operation *op,
 	DB_TXN	*tid,
 	ID		id,
 	EntryInfo **eip,
 	int	islocked,
 	u_int32_t	locker,
-	DB_LOCK		*lock,
-	void	*ctx
+	DB_LOCK		*lock
 );
 int bdb_cache_delete(
 	Cache	*cache,
