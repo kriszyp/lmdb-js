@@ -748,12 +748,18 @@ be_root_dn( Backend *be )
 }
 
 int
+be_isroot_dn( Operation *op )
+{
+	return be_isroot( op->o_bd, &op->o_ndn );
+}
+
+int
 be_isroot_pw( Operation *op )
 {
 	int result;
 	char *errmsg;
 
-	if ( ! be_isroot( op->o_bd, &op->o_req_ndn ) ) {
+	if ( ! be_isroot_dn( op ) ) {
 		return 0;
 	}
 
