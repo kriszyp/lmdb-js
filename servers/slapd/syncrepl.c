@@ -299,7 +299,7 @@ do_syncrep1(
 	assert( si->si_rid < 1000 );
 	syncrepl_cn_bv.bv_val = syncrepl_cbuf;
 	syncrepl_cn_bv.bv_len = snprintf(syncrepl_cbuf, sizeof(syncrepl_cbuf),
-		CN_STR "syncrepl%d", si->si_rid );
+		CN_STR "syncrepl%ld", si->si_rid );
 	build_new_dn( &op->o_req_ndn, psub, &syncrepl_cn_bv, op->o_tmpmemctx );
 	op->o_req_dn = op->o_req_ndn;
 
@@ -667,12 +667,12 @@ do_syncrep2(
 					default:
 #ifdef NEW_LOGGING
 					LDAP_LOG( OPERATION, ERR,
-						"do_syncrep2 : unknown syncinfo tag (%d)\n",
-						si_tag, 0, 0 );
+						"do_syncrep2 : unknown syncinfo tag (%ld)\n",
+						(long) si_tag, 0, 0 );
 #else
 					Debug( LDAP_DEBUG_ANY,
-						"do_syncrep2 : unknown syncinfo tag (%d)\n",
-						si_tag, 0, 0 );
+						"do_syncrep2 : unknown syncinfo tag (%ld)\n",
+						(long) si_tag, 0, 0 );
 #endif
 						ldap_memfree( retoid );
 						ber_bvfree( retdata );
@@ -1481,7 +1481,7 @@ syncrepl_updateCookie(
 	assert( si->si_rid < 1000 );
 	cnbva[0].bv_len = snprintf( cnbva[0].bv_val,
 		slap_syncrepl_bvc.bv_len,
-		"syncrepl%d", si->si_rid );
+		"syncrepl%ld", si->si_rid );
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
 	mod->sml_desc = slap_schema.si_ad_cn;
@@ -1534,7 +1534,7 @@ syncrepl_updateCookie(
 	assert( si->si_rid < 1000 );
 	slap_syncrepl_cn_bv.bv_len = snprintf( slap_syncrepl_cn_bv.bv_val,
 		slap_syncrepl_cn_bvc.bv_len,
-		"cn=syncrepl%d", si->si_rid );
+		"cn=syncrepl%ld", si->si_rid );
 
 	build_new_dn( &slap_syncrepl_dn_bv, pdn, &slap_syncrepl_cn_bv,
 		op->o_tmpmemctx );
