@@ -37,7 +37,7 @@ LDAP_BEGIN_DECL
 
 extern BI_init	monitor_back_initialize;
 extern BI_db_init	monitor_back_db_init;
-extern BI_open	monitor_back_open;
+extern BI_db_open	monitor_back_db_open;
 extern BI_config	monitor_back_config;
 extern BI_db_config	monitor_back_db_config;
 
