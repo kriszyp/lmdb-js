@@ -96,13 +96,13 @@ main( int argc, char **argv )
 	int		rc, i, use_ldif, authmethod, version, want_bindpw, debug;
 
     if (( prog = strrchr( argv[ 0 ], '/'  )) == NULL &&
-        ( prog = strrchr( argv[ 0 ], '\\' )) == NULL   ) { // for Windows/DOS
+        ( prog = strrchr( argv[ 0 ], '\\' )) == NULL   ) { /*for Windows/DOS*/
 	prog = argv[ 0 ];
     } else {
 	++prog;
     }
 
-    // Print usage when no parameters
+    /* Print usage when no parameters */
     if( argc < 2 )
 	usage( prog );
 
@@ -758,9 +758,11 @@ domodrdn( char *dn, char *newrdn, int deleteoldrdn )
 
 
 
-// for Windows we need local versions of the berval
-// free functions because the LDAP DLL uses a different
-// heap.
+/*
+ * for Windows we need local versions of the berval
+ * free functions because the LDAP DLL uses a different
+ * heap.
+ */
 
 static void
 l_ber_bvfree( struct berval *bv )
