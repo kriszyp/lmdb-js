@@ -1418,6 +1418,9 @@ struct slap_replica_info {
 	slap_bindconf ri_bindconf;	/* for back-config */
 };
 
+#define SLAP_LIMIT_TIME	1
+#define SLAP_LIMIT_SIZE	2
+
 struct slap_limits_set {
 	/* time limits */
 	int	lms_t_soft;

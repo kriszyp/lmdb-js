@@ -798,6 +798,8 @@ LDAP_SLAPD_F (int) limits_parse_one LDAP_P(( const char *arg,
 	struct slap_limits_set *limit ));
 LDAP_SLAPD_F (int) limits_check LDAP_P((
 	Operation *op, SlapReply *rs ));
+LDAP_SLAPD_F (void) limits_unparse_one LDAP_P(( 
+	struct slap_limits_set *limit, struct berval *bv ));
 
 /*
  * lock.c

@@ -22,6 +22,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
+#include "lutil.h"
 
 /* define to get an error if requesting limit higher than hard */
 #undef ABOVE_HARD_LIMIT_IS_ERROR
@@ -899,6 +900,84 @@ limits_parse_one(
 	return 0;
 }
 
+void
+limits_unparse_one( struct slap_limits_set *lim, int which, struct berval *bv )
+{
+	char buf[8192], *ptr;
+
+	ptr = buf;
+	if ( which & SLAP_LIMIT_TIME ) {
+		if ( lim->lms_t_soft != SLAPD_DEFAULT_TIMELIMIT ) {
+			ptr = lutil_strcopy( ptr, " time.soft=" );
+			if ( lim->lms_t_soft == -1 )
+				ptr = lutil_strcopy( ptr, "unlimited" );
+			else
+				ptr += sprintf( ptr, "%d", lim->lms_t_soft );
+			*ptr++ = ' ';
+		}
+		if ( lim->lms_t_hard ) {
+			ptr = lutil_strcopy( ptr, " time.hard=" );
+			if ( lim->lms_t_hard == -1 )
+				ptr = lutil_strcopy( ptr, "unlimited" );
+			else
+				ptr += sprintf( ptr, "%d", lim->lms_t_hard );
+			*ptr++ = ' ';
+		}
+	}
+	if ( which & SLAP_LIMIT_SIZE ) {
+		if ( lim->lms_s_soft != SLAPD_DEFAULT_SIZELIMIT ) {
+			ptr = lutil_strcopy( ptr, " size.soft=" );
+			if ( lim->lms_s_soft == -1 )
+				ptr = lutil_strcopy( ptr, "unlimited" );
+			else
+				ptr += sprintf( ptr, "%d", lim->lms_s_soft );
+			*ptr++ = ' ';
+		}
+		if ( lim->lms_s_hard ) {
+			ptr = lutil_strcopy( ptr, " size.hard=" );
+			if ( lim->lms_s_soft == -1 )
+				ptr = lutil_strcopy( ptr, "unlimited" );
+			else
+				ptr += sprintf( ptr, "%d", lim->lms_s_hard );
+			*ptr++ = ' ';
+		}
+		if ( lim->lms_s_unchecked != -1 ) {
+			ptr = lutil_strcopy( ptr, " size.unchecked=" );
+			if ( lim->lms_s_unchecked == 0 )
+				ptr = lutil_strcopy( ptr, "disabled" );
+			else
+				ptr += sprintf( ptr, "%d", lim->lms_s_unchecked );
+			*ptr++ = ' ';
+		}
+		if ( lim->lms_s_pr_hide ) {
+			ptr = lutil_strcopy( ptr, " size.pr=noEstimate " );
+		}
+		if ( lim->lms_s_pr ) {
+			ptr = lutil_strcopy( ptr, " size.pr=" );
+			if ( lim->lms_s_pr == -1 )
+				ptr = lutil_strcopy( ptr, "unlimited" );
+			else
+				ptr += sprintf( ptr, "%d", lim->lms_s_pr );
+			*ptr++ = ' ';
+		}
+		if ( lim->lms_s_pr_total ) {
+			ptr = lutil_strcopy( ptr, " size.prtotal=" );
+			if ( lim->lms_s_pr_total == -1 )
+				ptr = lutil_strcopy( ptr, "unlimited" );
+			else if ( lim->lms_s_pr_total == -2 )
+				ptr = lutil_strcopy( ptr, "disabled" );
+			else 
+				ptr += sprintf( ptr, "%d", lim->lms_s_pr_total );
+			*ptr++ = ' ';
+		}
+	}
+	if ( ptr != buf ) {
+		ptr--;
+		*ptr = '\0';
+		bv->bv_len = ptr - buf - 1;
+		ber_str2bv( buf+1, bv->bv_len, 1, bv );
+	}
+}
 
 int
 limits_check( Operation *op, SlapReply *rs )

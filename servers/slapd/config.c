@@ -84,6 +84,7 @@ static int replicationInterval;
 
 static char	*passwd_salt;
 static char	*logfileName;
+static BerVarray authz_rewrites;
 
 #ifdef LDAP_SLAPI
 int slapi_plugins_used = 0;
@@ -452,7 +453,7 @@ static ConfigTable SystemConfiguration[] = {
 	{ "security", "factors", 2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
 		&config_security, "( OLcfgAt:59 NAME 'olcSecurity' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "sizelimit", "limit",	2, 2, 0, ARG_MAY_DB|ARG_MAGIC|CFG_SIZE,
+	{ "sizelimit", "limit",	2, 0, 0, ARG_MAY_DB|ARG_MAGIC|CFG_SIZE,
 		&config_sizelimit, "( OLcfgAt:60 NAME 'olcSizeLimit' "
 			"SYNTAX OMsInteger )", NULL, NULL },
 	{ "sockbuf_max_incoming", "max", 2, 2, 0, ARG_LONG,
@@ -478,7 +479,7 @@ static ConfigTable SystemConfiguration[] = {
 	{ "threads", "count", 2, 2, 0, ARG_INT|ARG_MAGIC|CFG_THREADS,
 		&config_generic, "( OLcfgAt:66 NAME 'olcThreads' "
 			"SYNTAX OMsInteger )", NULL, NULL },
-	{ "timelimit", "limit", 2, 2, 0, ARG_MAY_DB|ARG_MAGIC|CFG_TIME,
+	{ "timelimit", "limit", 2, 0, 0, ARG_MAY_DB|ARG_MAGIC|CFG_TIME,
 		&config_timelimit, "( OLcfgAt:67 NAME 'olcTimeLimit' "
 			"SYNTAX OMsInteger )", NULL, NULL },
 	{ "TLSCACertificateFile", NULL, 0, 0, 0,
@@ -1107,14 +1108,29 @@ config_generic(ConfigArgs *c) {
 			break;
 #endif
 #ifdef LDAP_SLAPI
-		case CFG_PLUGIN:	/* FIXME */
+		case CFG_PLUGIN:
 			slapi_int_plugin_unparse( c->be, &c->rvalue_vals );
 			if ( !c->rvalue_vals ) rc = 1;
 			break;
 #endif
 #ifdef SLAP_AUTH_REWRITE
-		case CFG_REWRITE:	/* FIXME */
-			rc = 1;
+		case CFG_REWRITE:
+			if ( authz_rewrites ) {
+				struct berval bv, idx;
+				char ibuf[32];
+				int i;
+
+				idx.bv_val = ibuf;
+				for ( i=0; !BER_BVISNULL( &authz_rewrites[i] ); i++ ) {
+					idx.bv_len = sprintf( idx.bv_val, "{%d}", i );
+					bv.bv_len = idx.bv_len + authz_rewrites[i].bv_len;
+					bv.bv_val = ch_malloc( bv.bv_len + 1 );
+					strcpy( bv.bv_val, idx.bv_val );
+					strcpy( bv.bv_val+idx.bv_len, authz_rewrites[i].bv_val );
+					ber_bvarray_add( &c->rvalue_vals, &bv );
+				}
+			}
+			if ( !c->rvalue_vals ) rc = 1;
 			break;
 #endif
 		default:
@@ -1348,9 +1364,13 @@ config_generic(ConfigArgs *c) {
 #endif
 
 #ifdef SLAP_AUTH_REWRITE
-		case CFG_REWRITE:
+		case CFG_REWRITE: {
+			struct berval bv;
 			if(slap_sasl_rewrite_config(c->fname, c->lineno, c->argc, c->argv))
 				return(1);
+			ber_str2bv( c->line, 0, 1, &bv );
+			ber_bvarray_add( &authz_rewrites, &bv );
+			}
 			break;
 #endif
 
@@ -1462,8 +1482,14 @@ config_sizelimit(ConfigArgs *c) {
 	int i, rc = 0;
 	char *next;
 	struct slap_limits_set *lim = &c->be->be_def_limit;
-	if (c->emit) {	/* FIXME */
-		return 1;
+	if (c->emit) {
+		struct berval bv = BER_BVNULL;
+		limits_unparse_one( lim, SLAP_LIMIT_SIZE, &bv );
+		if ( !BER_BVISEMPTY( &bv ))
+			ber_bvarray_add( &c->rvalue_vals, &bv );
+		else
+			rc = 1;
+		return rc;
 	}
 	for(i = 1; i < c->argc; i++) {
 		if(!strncasecmp(c->argv[i], "size", 4)) {
@@ -1502,7 +1528,13 @@ config_timelimit(ConfigArgs *c) {
 	char *next;
 	struct slap_limits_set *lim = &c->be->be_def_limit;
 	if (c->emit) {
-		return 1;	/* FIXME */
+		struct berval bv = BER_BVNULL;
+		limits_unparse_one( lim, SLAP_LIMIT_TIME, &bv );
+		if ( !BER_BVISEMPTY( &bv ))
+			ber_bvarray_add( &c->rvalue_vals, &bv );
+		else
+			rc = 1;
+		return rc;
 	}
 	for(i = 1; i < c->argc; i++) {
 		if(!strncasecmp(c->argv[i], "time", 4)) {
