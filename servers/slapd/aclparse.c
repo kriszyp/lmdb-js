@@ -487,7 +487,7 @@ parse_acl(
 					}
 
 					if (name && *name) {
-						rc = slap_str2ad( right, &b->a_group_at, &text );
+						rc = slap_str2ad( name, &b->a_group_at, &text );
 
 						if( rc != LDAP_SUCCESS ) {
 							fprintf( stderr,
