@@ -26,7 +26,7 @@
 
 #ifndef	lint
 static char rcsid_string_to_key_c[] =
-"$Id: string_to_key.c,v 1.2 1998/08/31 18:49:27 kurt Exp $";
+"$Id: string_to_key.c,v 1.3 1998/09/08 00:26:56 kurt Exp $";
 #endif
 
 #ifdef KERBEROS_V
@@ -57,6 +57,7 @@ extern void des_fixup_key_parity();
 #endif
 
 #if defined(WORLDPEACEINOURTIME) /* Use original, not ifs version */
+#ifndef KERBEROS_V
 /*
  * convert an arbitrary length string to a DES key
  */
@@ -143,6 +144,7 @@ des_string_to_key(str,key)
 		*((unsigned long *) key+1));
 }
 
+#endif /* KERBEROS_V */
 #else /* Use ifs version */
 
 #if 0
