@@ -10,8 +10,8 @@ XXDIR = $(srcdir)/*/
 XXHEADERS = ucdata.h ure.h
 
 XXSRCS	= ucdata.c ucgendat.c ure.c urestubs.c
-SRCS	= 
-OBJS	= ucdata.o ure.o urestubs.o
+SRCS	= ucstr.c
+OBJS	= ucdata.o ure.o urestubs.o ucstr.o
 
 XLIB = -llunicode
 PROGRAMS = ucgendat
