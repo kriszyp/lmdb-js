@@ -366,7 +366,7 @@ if test $ol_cv_c_upper_lower != no ; then
 	AC_DEFINE(C_UPPER_LOWER,1, [define if toupper() requires islower()])
 fi
 ])
-
+dnl
 dnl ====================================================================
 dnl Check for declaration of sys_errlist in one of stdio.h and errno.h.
 dnl Declaration of sys_errlist on BSD4.4 interferes with our declaration.
@@ -383,7 +383,6 @@ AC_CACHE_VAL(ol_cv_dcl_sys_errlist,[
 	[ol_cv_dcl_sys_errlist=yes],
 	[ol_cv_dcl_sys_errlist=no])])
 AC_MSG_RESULT($ol_cv_dcl_sys_errlist)
-
 # It's possible (for near-UNIX clones) that sys_errlist doesn't exist
 if test $ol_cv_dcl_sys_errlist = no ; then
 	AC_DEFINE(DECL_SYS_ERRLIST,1,
@@ -414,7 +413,7 @@ AC_DEFUN(OL_C_VOLATILE,
     AC_DEFINE(volatile,)
   fi
  ])dnl
-
+dnl
 dnl ====================================================================
 dnl Define sig_atomic_t if not defined in signal.h
 AC_DEFUN(OL_TYPE_SIG_ATOMIC_T,
@@ -425,26 +424,24 @@ AC_DEFUN(OL_TYPE_SIG_ATOMIC_T,
     AC_DEFINE(sig_atomic_t, int)
   fi
  ])dnl
-
+dnl
 dnl ====================================================================
 dnl check no of arguments for ctime_r
 AC_DEFUN(OL_FUNC_CTIME_R_NARGS,
  [AC_CACHE_CHECK(number of arguments of ctime_r, ol_cv_func_ctime_r_nargs,
    [AC_TRY_COMPILE([#include <time.h>],
 		[time_t ti; char *buffer; ctime_r(&ti,buffer,32);],
-			ol_cv_func_ctime_r_nargs=3, ol_cv_func_ctime_r_nargs=0)
-		if test $ol_cv_func_ctime_r_nargs = 0 ; then
-			AC_TRY_COMPILE([#include <time.h>],
-				[time_t ti; char *buffer;
-					ctime_r(&ti,buffer);],
-				ol_cv_func_ctime_r_nargs=2, ol_cv_func_ctime_r_nargs=0)
-		fi
-	])
+			ol_cv_func_ctime_r_nargs=3,
+			[AC_TRY_COMPILE([#include <time.h>],
+				[time_t ti; char *buffer; ctime_r(&ti,buffer);],
+					ol_cv_func_ctime_r_nargs=2,
+					ol_cv_func_ctime_r_nargs=0)])])
   if test $ol_cv_func_ctime_r_nargs -gt 1 ; then
     AC_DEFINE_UNQUOTED(CTIME_R_NARGS, $ol_cv_func_ctime_r_nargs,
 		[set to the number of arguments ctime_r() expects])
   fi
 ])dnl
+dnl
 dnl --------------------------------------------------------------------
 dnl check return type of ctime_r()
 AC_DEFUN(OL_FUNC_CTIME_R_TYPE,
@@ -460,76 +457,76 @@ AC_DEFUN(OL_FUNC_CTIME_R_TYPE,
 dnl ====================================================================
 dnl check no of arguments for gethostbyname_r
 AC_DEFUN(OL_FUNC_GETHOSTBYNAME_R_NARGS,
- [AC_CACHE_CHECK(number of arguments of gethostbyname_r, ol_cv_func_gethostbyname_r_nargs,
-   [AC_TRY_COMPILE([#include <sys/types.h>
-		    #include <sys/socket.h>
-		    #include <netinet/in.h>
-		    #include <netdb.h>
-		    #define BUFSIZE (sizeof(struct hostent)+10)],
-		   [struct hostent hent; char buffer[BUFSIZE];
-		    int bufsize=BUFSIZE;int h_errno;
-                    (void)gethostbyname_r( "segovia.cs.purdue.edu", &hent, buffer, bufsize, &h_errno);
-		    return 0;],
-		ol_cv_func_gethostbyname_r_nargs=5, ol_cv_func_gethostbyname_r_nargs=0)
-		if test $ol_cv_func_gethostbyname_r_nargs = 0 ; then
- 			AC_TRY_COMPILE([#include <sys/types.h>
-		    #include <sys/socket.h>
-		    #include <netinet/in.h>
-		    #include <netdb.h>
-		    #define BUFSIZE (sizeof(struct hostent)+10)],
-		   [struct hostent hent;struct hostent *rhent;
-		    char buffer[BUFSIZE];
-		    int bufsize=BUFSIZE;int h_errno;
-                     (void)gethostbyname_r( "segovia.cs.purdue.edu", &hent, buffer, bufsize, &rhent, &h_errno);
-		    return 0;],
-		   ol_cv_func_gethostbyname_r_nargs=6, ol_cv_func_gethostbyname_r_nargs=0)
-		fi
-	])
+ [AC_CACHE_CHECK(number of arguments of gethostbyname_r,
+	ol_cv_func_gethostbyname_r_nargs,
+	[AC_TRY_COMPILE([#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#define BUFSIZE (sizeof(struct hostent)+10)],
+		[struct hostent hent; char buffer[BUFSIZE];
+		int bufsize=BUFSIZE;int h_errno;
+		(void)gethostbyname_r("segovia.cs.purdue.edu", &hent,
+			buffer, bufsize, &h_errno);
+		return 0;],
+		ol_cv_func_gethostbyname_r_nargs=5, 
+ 		[AC_TRY_COMPILE([#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#define BUFSIZE (sizeof(struct hostent)+10)],
+			[struct hostent hent;struct hostent *rhent;
+			char buffer[BUFSIZE];
+			int bufsize=BUFSIZE;int h_errno;
+			(void)gethostbyname_r("localhost", &hent, buffer, bufsize,
+				&rhent, &h_errno);
+			return 0;],
+			ol_cv_func_gethostbyname_r_nargs=6,
+			ol_cv_func_gethostbyname_r_nargs=0)])])
   if test $ol_cv_func_gethostbyname_r_nargs -gt 1 ; then
-    AC_DEFINE_UNQUOTED(GETHOSTBYNAME_R_NARGS,
+	AC_DEFINE_UNQUOTED(GETHOSTBYNAME_R_NARGS,
 		$ol_cv_func_gethostbyname_r_nargs,
 		[set to the number of arguments gethostbyname_r() expects])
   fi
 ])dnl
+dnl
 dnl check no of arguments for gethostbyaddr_r
 AC_DEFUN(OL_FUNC_GETHOSTBYADDR_R_NARGS,
- [AC_CACHE_CHECK(number of arguments of gethostbyaddr_r, ol_cv_func_gethostbyaddr_r_nargs,
-   [AC_TRY_COMPILE([#include <sys/types.h>
-		    #include <sys/socket.h>
-		    #include <netinet/in.h>
-		    #include <netdb.h>
-		    #define BUFSIZE (sizeof(struct hostent)+10)],
-		   [struct hostent hent; char buffer[BUFSIZE]; 
-		    struct in_addr add={0x70707070};
-		    size_t alen=sizeof(struct in_addr);
-		    int bufsize=BUFSIZE;int h_errno;
-                    (void)gethostbyaddr_r( (void *)&(add.s_addr),
-				alen, AF_INET, &hent, buffer, bufsize, &h_errno);
+ [AC_CACHE_CHECK(number of arguments of gethostbyaddr_r,
+	[ol_cv_func_gethostbyaddr_r_nargs],
+	[AC_TRY_COMPILE([#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#define BUFSIZE (sizeof(struct hostent)+10)],
+	   [struct hostent hent; char buffer[BUFSIZE]; 
+	    struct in_addr add={0x70707070};
+	    size_t alen=sizeof(struct in_addr);
+	    int bufsize=BUFSIZE;int h_errno;
+		(void)gethostbyaddr_r( (void *)&(add.s_addr),
+			alen, AF_INET, &hent, buffer, bufsize, &h_errno);
 		    return 0;],
-		    ol_cv_func_gethostbyaddr_r_nargs=7,
-		    ol_cv_func_gethostbyaddr_r_nargs=0)
-		if test $ol_cv_func_gethostbyaddr_r_nargs = 0 ; then
-			AC_TRY_COMPILE([#include <sys/types.h>
-		    #include <sys/socket.h>
-		    #include <netinet/in.h>
-		    #include <netdb.h>
-		    #define BUFSIZE (sizeof(struct hostent)+10)],
-		   [struct hostent hent; struct hostent *rhent; char buffer[BUFSIZE]; 
-		    struct in_addr add={0x70707070};
-		    size_t alen=sizeof(struct in_addr);
-		    int bufsize=BUFSIZE;int h_errno;
-                    (void)gethostbyaddr_r( (void *)&(add.s_addr),
+		ol_cv_func_gethostbyaddr_r_nargs=7,
+		[AC_TRY_COMPILE([#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#define BUFSIZE (sizeof(struct hostent)+10)],
+			[struct hostent hent;
+			struct hostent *rhent; char buffer[BUFSIZE]; 
+			struct in_addr add={0x70707070};
+			size_t alen=sizeof(struct in_addr);
+			int bufsize=BUFSIZE;int h_errno;
+			(void)gethostbyaddr_r( (void *)&(add.s_addr),
 				alen, AF_INET, &hent, buffer, bufsize, 
 				&rhent, &h_errno);
-		    return 0;],
-		    ol_cv_func_gethostbyaddr_r_nargs=8,
-		    ol_cv_func_gethostbyaddr_r_nargs=0)
-		fi
-	])
+			return 0;],
+			ol_cv_func_gethostbyaddr_r_nargs=8,
+			ol_cv_func_gethostbyaddr_r_nargs=0)])])
   if test $ol_cv_func_gethostbyaddr_r_nargs -gt 1 ; then
     AC_DEFINE_UNQUOTED(GETHOSTBYADDR_R_NARGS,
 		$ol_cv_func_gethostbyaddr_r_nargs,
 		[set to the number of arguments gethostbyaddr_r() expects])
   fi
 ])dnl
-
+dnl

@@ -269,13 +269,10 @@ dnl Checks for programs
 
 AC_PROG_INSTALL
 
-dnl
-dnl 	We probably should use the vendor 'cc' by default
-dnl
 dnl The default compiler is cc (NOT gcc)
-dnl CC=${CC-"cc"}
+CC=${CC-"cc"}
 dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
-dnl CFLAGS=${CFLAGS-""}
+CFLAGS=${CFLAGS-""}
 
 AM_PROG_LIBTOOL
 dnl AC_PROG_MAKE_SET
@@ -505,21 +502,18 @@ if test $ol_link_tls = yes ; then
 	AC_DEFINE(HAVE_TLS, 1, [define if you have TLS])
 fi	
 
-dnl
 dnl Tests for reentrant functions necessary to build a
 dnl thread_safe -lldap.
-dnl
 AC_CHECK_FUNCS(		\
 	ctime_r			\
-	gethostbyaddr_r \
-	gethostbyname_r	\
+	gethostbyname_r	gethostbyaddr_r \
 )
 
-if test "$ac_cv_func_ctime_r" = yes ; then
+if test "$ac_cv_func_ctime_r" = no ; then
+	ol_cv_func_ctime_r_nargs=0
+else
 	OL_FUNC_CTIME_R_NARGS
 dnl	OL_FUNC_CTIME_R_TYPE
-else
-	ol_cv_func_ctime_r_nargs=0
 fi
 
 if test "$ac_cv_func_gethostbyname_r" = yes ; then
@@ -535,20 +529,18 @@ else
 fi
 
 if test "$ac_cv_func_ctime_r" = yes \
-	-a "$ol_cv_func_ctime_r_nargs" -ge 2 -a "$ol_cv_func_ctime_r_nargs" -le 3 \
- 	-a "$ol_cv_func_gethostbyname_r_nargs" -ge 5 -a "$ol_cv_func_gethostbyname_r_nargs" -le 6 \
- 	-a "$ol_cv_func_gethostbyaddr_r_nargs" -ge 5 -a "$ol_cv_func_gethostbyaddr_r_nargs" -le 6 \
-	-a "$ac_cv_func_gethostbyaddr_r" = yes \
+	-a "$ol_cv_func_ctime_r_nargs" -ge 2 \
+	-a "$ol_cv_func_ctime_r_nargs" -le 3 \
 	-a "$ac_cv_func_gethostbyname_r" = yes \
-	; then
-
-	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_REENTRANT, 1)
+	-a "$ol_cv_func_gethostbyname_r_nargs" -ge 5 \
+	-a "$ol_cv_func_gethostbyname_r_nargs" -le 6 \
+ 	-a "$ac_cv_func_gethostbyaddr_r" = yes \
+ 	-a "$ol_cv_func_gethostbyaddr_r_nargs" -ge 5 \
+	-a "$ol_cv_func_gethostbyaddr_r_nargs" -le 6 \
+ 	; then
+ 
+ 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_REENTRANT,1)
 fi
-
-if test $ol_link_threads != no ; then
-	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE, 1)
-fi
-
 
 ol_link_threads=no
 if test $ol_with_threads = auto -o $ol_with_threads = yes \
@@ -1253,8 +1245,6 @@ dnl	CPPFLAGS="$save_CPPFLAGS"
 dnl	LIBS="$save_LIBS"
 fi  
 
-dnl ----------------------------------------------------------------
-
 if test $ol_link_threads = no ; then
 	if test $ol_with_threads = yes ; then
 		AC_MSG_ERROR([no suitable thread support])
@@ -1269,6 +1259,12 @@ if test $ol_link_threads = no ; then
 		[define if you have (or want) no threads])
 	LTHREAD_LIBS=""
 fi
+
+if test $ol_link_threads != no ; then
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE,1)
+fi
+
+dnl ----------------------------------------------------------------
 
 ol_link_ldbm=no 
 if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db2 ; then
