@@ -1477,9 +1477,9 @@ If an error occurs during replication, the consumer will attempt to
 reconnect according to the
 .B retry
 parameter which is a list of the <retry interval> and <# of retries> pairs.
-For example, retry="60 5 300 3" lets the consumer retry every 60 seconds
-for the first 10 times and then retry every 300 seconds for the next three
-times before stop retrying. + in <# of retries> means indefinite
+For example, retry="60 10 300 3" lets the consumer retry every 60 seconds
+for the first 10 times and then retry every 300 seconds for the next 3
+times before stop retrying. The `+' in <# of retries> means indefinite
 number of retries until success.
 The schema checking can be enforced at the LDAP Sync
 consumer site by turning on the
