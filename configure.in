@@ -244,6 +244,7 @@ dnl
 ])
 
 dnl need to add check for -lresolv
+dnl only needed for LDAP_DNS?
 
 dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)
