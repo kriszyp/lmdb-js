@@ -280,7 +280,7 @@ ldap_int_open_connection(
 				LBER_SBIOD_LEVEL_PROVIDER, NULL );
 
 #ifdef HAVE_CYRUS_SASL
-			sasl_host = ldap_host_connected_to( conn->lconn_sb );
+			sasl_host = ldap_host_connected_to( conn->lconn_sb, host );
 #endif
 			break;
 
@@ -327,7 +327,7 @@ ldap_int_open_connection(
 				LBER_SBIOD_LEVEL_PROVIDER, NULL );
 
 #ifdef HAVE_CYRUS_SASL
-			sasl_host = ldap_host_connected_to( conn->lconn_sb );
+			sasl_host = ldap_host_connected_to( conn->lconn_sb, "localhost" );
 #endif
 			break;
 #endif /* LDAP_PF_LOCAL */
@@ -383,7 +383,8 @@ ldap_int_open_connection(
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	if ( conn->lconn_krbinstance == NULL ) {
 		char *c;
-		conn->lconn_krbinstance = ldap_host_connected_to( conn->lconn_sb );
+		conn->lconn_krbinstance = ldap_host_connected_to(
+			conn->lconn_sb, host );
 
 		if( conn->lconn_krbinstance != NULL && 
 		    ( c = strchr( conn->lconn_krbinstance, '.' )) != NULL ) {

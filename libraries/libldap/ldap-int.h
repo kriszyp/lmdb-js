@@ -441,7 +441,8 @@ LDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb,
 #if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) || \
 	defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 LDAP_V (char *) ldap_int_hostname;
-LDAP_F (char *) ldap_host_connected_to( Sockbuf *sb );
+LDAP_F (char *) ldap_host_connected_to( Sockbuf *sb,
+	const char *host );
 #endif
 
 LDAP_F (void) ldap_int_ip_init( void );

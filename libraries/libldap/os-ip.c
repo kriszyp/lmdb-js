@@ -506,7 +506,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 #if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND ) || \
 	defined( HAVE_CYRUS_SASL )
 char *
-ldap_host_connected_to( Sockbuf *sb )
+ldap_host_connected_to( Sockbuf *sb, const char *host )
 {
 	socklen_t		len;
 #ifdef LDAP_PF_INET6
@@ -515,8 +515,6 @@ ldap_host_connected_to( Sockbuf *sb )
 	struct sockaddr sabuf;
 #endif
 	struct sockaddr	*sa = (struct sockaddr *) &sabuf;
-	char			*host = NULL, *herr;
-	char hbuf[NI_MAXHOST];
 	int rc;
 	ber_socket_t	sd;
 
@@ -579,14 +577,21 @@ ldap_host_connected_to( Sockbuf *sb )
 		break;
 	}
 
-	hbuf[0] = 0;
-	if (ldap_pvt_get_hname( sa, len, hbuf, sizeof(hbuf), &herr ) == 0 &&
-		hbuf[0] ) 
+#if 0
 	{
-		host = LDAP_STRDUP( hbuf );   
-	}
+		char *herr;
+		char hbuf[NI_MAXHOST];
+		hbuf[0] = 0;
 
-	return host;
+		if (ldap_pvt_get_hname( sa, len, hbuf, sizeof(hbuf), &herr ) == 0
+			&& hbuf[0] ) 
+		{
+			return LDAP_STRDUP( hbuf );   
+		}
+	}
+#endif
+
+	return host ? LDAP_STRDUP( host ) : NULL;
 }
 #endif
 
