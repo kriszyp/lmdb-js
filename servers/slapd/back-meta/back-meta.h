@@ -165,9 +165,9 @@ struct metainfo {
 #define META_OP_REQUIRE_ALL		0x02
 extern struct metaconn *
 meta_back_getconn(
-		struct			metainfo *li,
-	       	struct			slap_conn *conn,
-		struct			slap_op *op,
+		struct metainfo		*li,
+		Operation		*op,
+		SlapReply		*rs,
 		int			op_type,
 		struct berval		*dn,
 		int			*candidate
@@ -188,7 +188,8 @@ meta_back_is_valid(
 extern int
 meta_back_op_result(
 		struct metaconn		*lc,
-		Operation		*op
+		Operation		*op,
+		SlapReply		*rs
 );
 
 extern int

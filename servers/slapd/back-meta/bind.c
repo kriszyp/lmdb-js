@@ -92,7 +92,8 @@ meta_back_do_single_bind(
 );
 
 int
-meta_back_bind(
+meta_back_bind( Operation *op, SlapReply *rs )
+		/*
 		Backend		*be,
 		Connection	*conn,
 		Operation	*op,
@@ -101,34 +102,35 @@ meta_back_bind(
 		int		method,
 		struct berval	*cred,
 		struct berval	*edn
-)
+) */
 {
-	struct metainfo	*li = ( struct metainfo * )be->be_private;
+	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
 	struct metaconn *lc;
 
 	int rc = -1, i, gotit = 0, ndnlen, isroot = 0;
 	int op_type = META_OP_ALLOW_MULTIPLE;
 	int err = LDAP_SUCCESS;
 
-	struct berval *realdn = dn;
-	struct berval *realndn = ndn;
-	struct berval *realcred = cred;
-	int realmethod = method;
+	struct berval *realdn = &op->o_req_dn;
+	struct berval *realndn = &op->o_req_ndn;
+	struct berval *realcred = &op->oq_bind.rb_cred;
+	int realmethod = op->oq_bind.rb_method;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( BACK_META, ENTRY,
-			"meta_back_bind: dn: %s.\n", dn->bv_val, 0, 0 );
+	LDAP_LOG( BACK_META, ENTRY, "meta_back_bind: dn: %s.\n",
+			op->o_req_dn.bv_val, 0, 0 );
 #else /* !NEW_LOGGING */
-	Debug( LDAP_DEBUG_ARGS, "meta_back_bind: dn: %s.\n%s%s", dn->bv_val, "", "" );
+	Debug( LDAP_DEBUG_ARGS, "meta_back_bind: dn: %s.\n%s%s",
+			op->o_req_dn.bv_val, "", "" );
 #endif /* !NEW_LOGGING */
 
-	if ( method == LDAP_AUTH_SIMPLE 
-			&& be_isroot_pw( be, conn, ndn, cred ) ) {
+	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE && be_isroot_pw( op ) ) {
 		isroot = 1;
-		ber_dupbv( edn, be_root_dn( be ) );
+		ber_dupbv( &op->oq_bind.rb_edn, be_root_dn( op->o_bd ) );
 		op_type = META_OP_REQUIRE_ALL;
 	}
-	lc = meta_back_getconn( li, conn, op, op_type, ndn, NULL );
+	lc = meta_back_getconn( li, op, rs, op_type,
+			&op->o_req_ndn, NULL );
 	if ( !lc ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, NOTICE,
@@ -136,10 +138,10 @@ meta_back_bind(
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ANY,
 				"meta_back_bind: no target for dn %s.\n%s%s",
-				dn->bv_val, "", "");
+				op->o_req_dn.bv_val, "", "");
 #endif /* !NEW_LOGGING */
-		send_ldap_result( conn, op, LDAP_OTHER, 
-				NULL, NULL, NULL, NULL );
+
+		send_ldap_result( op, rs );
 		return -1;
 	}
 
@@ -147,7 +149,7 @@ meta_back_bind(
 	 * Each target is scanned ...
 	 */
 	lc->bound_target = META_BOUND_NONE;
-	ndnlen = ndn->bv_len;
+	ndnlen = op->o_req_ndn.bv_len;
 	for ( i = 0; i < li->ntargets; i++ ) {
 		int lerr;
 
@@ -185,10 +187,10 @@ meta_back_bind(
 			realcred = &li->targets[ i ]->pseudorootpw;
 			realmethod = LDAP_AUTH_SIMPLE;
 		} else {
-			realdn = dn;
-			realndn = ndn;
-			realcred = cred;
-			realmethod = method;
+			realdn = &op->o_req_dn;
+			realndn = &op->o_req_ndn;
+			realcred = &op->oq_bind.rb_cred;
+			realmethod = op->oq_bind.rb_method;
 		}
 		
 		lerr = meta_back_do_single_bind( li, lc, op,
@@ -224,8 +226,8 @@ meta_back_bind(
 			err = LDAP_INVALID_CREDENTIALS;
 		}
 
-		err = ldap_back_map_result( err );
-		send_ldap_result( conn, op, err, NULL, NULL, NULL, NULL );
+		rs->sr_err = ldap_back_map_result( err );
+		send_ldap_result( op, rs );
 		return -1;
 	}
 
@@ -459,7 +461,7 @@ meta_back_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
  * FIXME: error return must be handled in a cleaner way ...
  */
 int
-meta_back_op_result( struct metaconn *lc, Operation *op )
+meta_back_op_result( struct metaconn *lc, Operation *op, SlapReply *rs )
 {
 	int i, rerr = LDAP_SUCCESS;
 	struct metasingleconn *lsc;
@@ -524,7 +526,12 @@ meta_back_op_result( struct metaconn *lc, Operation *op )
 		}
 	}
 
-	send_ldap_result( lc->conn, op, rerr, rmatch, rmsg, NULL, NULL );
+	rs->sr_err = rerr;
+	rs->sr_text = rmsg;
+	rs->sr_matched = rmatch;
+	send_ldap_result( op, rs );
+	rs->sr_text = NULL;
+	rs->sr_matched = NULL;
 
 	return ( ( rerr == LDAP_SUCCESS ) ? 0 : -1 );
 }

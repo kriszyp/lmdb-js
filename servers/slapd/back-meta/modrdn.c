@@ -76,7 +76,8 @@
 #include "back-meta.h"
 
 int
-meta_back_modrdn(
+meta_back_modrdn( Operation *op, SlapReply *rs )
+		/*
 		Backend		*be,
 		Connection	*conn,
 		Operation	*op,
@@ -87,28 +88,34 @@ meta_back_modrdn(
 		int		deleteoldrdn,
 		struct berval	*newSuperior,
 		struct berval	*nnewSuperior
-)
+) */
 {
-	struct metainfo *li = ( struct metainfo * )be->be_private;
-	struct metaconn *lc;
-	int candidate = -1;
+	struct metainfo		*li = ( struct metainfo * )op->o_bd->be_private;
+	struct metaconn		*lc;
+	int			rc = 0;
+	int			candidate = -1;
+	char			*mdn = NULL,
+				*mnewSuperior = NULL;
 
-	char *mdn = NULL, *mnewSuperior = NULL;
-
-	lc = meta_back_getconn( li, conn, op, META_OP_REQUIRE_SINGLE,
-			ndn, &candidate );
-	if ( !lc || !meta_back_dobind( lc, op ) 
-			|| !meta_back_is_valid( lc, candidate ) ) {
- 		send_ldap_result( conn, op, LDAP_OTHER,
- 				NULL, NULL, NULL, NULL );
-		return -1;
+	lc = meta_back_getconn( li, op, rs, META_OP_REQUIRE_SINGLE,
+			&op->o_req_ndn, &candidate );
+	if ( !lc ) {
+		rc = -1;
+		goto cleanup;
 	}
 
-	if ( newSuperior ) {
+	if ( !meta_back_dobind( lc, op ) 
+			|| !meta_back_is_valid( lc, candidate ) ) {
+		rs->sr_err = LDAP_OTHER;
+		rc = -1;
+		goto cleanup;
+	}
+
+	if ( op->oq_modrdn.rs_newSup ) {
 		int nsCandidate, version = LDAP_VERSION3;
 
 		nsCandidate = meta_back_select_unique_candidate( li,
-				newSuperior );
+				op->oq_modrdn.rs_newSup );
 
 		if ( nsCandidate != candidate ) {
 			/*
@@ -123,9 +130,9 @@ meta_back_modrdn(
 			/*
 			 * FIXME: is this the correct return code?
 			 */
-			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, NULL, NULL, NULL );
-			return -1;
+			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			rc = -1;
+			goto cleanup;
 		}
 
 		ldap_set_option( lc->conns[ nsCandidate ].ld,
@@ -136,34 +143,36 @@ meta_back_modrdn(
 	 	 */
 		switch ( rewrite_session( li->targets[ nsCandidate ]->rwinfo,
 					"newSuperiorDn",
-					newSuperior->bv_val, 
-					conn, 
+					op->oq_modrdn.rs_newSup->bv_val, 
+					op->o_conn, 
 					&mnewSuperior ) ) {
 		case REWRITE_REGEXEC_OK:
 			if ( mnewSuperior == NULL ) {
-				mnewSuperior = ( char * )newSuperior;
+				mnewSuperior = ( char * )op->oq_modrdn.rs_newSup;
 			}
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
 				"[rw] newSuperiorDn: \"%s\" -> \"%s\"\n",
-				newSuperior, mnewSuperior, 0 );
+				op->oq_modrdn.rs_newSup, mnewSuperior, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> newSuperiorDn:"
-					" \"%s\" -> \"%s\"\n%s",
-					newSuperior->bv_val, mnewSuperior, "" );
+					" \"%s\" -> \"%s\"\n",
+					op->oq_modrdn.rs_newSup->bv_val,
+					mnewSuperior, 0 );
 #endif /* !NEW_LOGGING */
 			break;
 
 		case REWRITE_REGEXEC_UNWILLING:
-			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, "Operation not allowed", 
-					NULL, NULL );
-			return -1;
+			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			rs->sr_text = "Operation not allowed";
+			rc = -1;
+			goto cleanup;
 
 		case REWRITE_REGEXEC_ERR:
-			send_ldap_result( conn, op, LDAP_OTHER,
-					NULL, "Rewrite error", NULL, NULL );
-			return -1;
+			rs->sr_err = LDAP_OTHER;
+			rs->sr_text = "Rewrite error";
+			rc = -1;
+			goto cleanup;
 		}
 	}
 
@@ -171,41 +180,56 @@ meta_back_modrdn(
 	 * Rewrite the modrdn dn, if required
 	 */
 	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
-				"modrDn", dn->bv_val, conn, &mdn ) ) {
+				"modrDn", op->o_req_dn.bv_val,
+				op->o_conn, &mdn ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mdn == NULL ) {
-			mdn = ( char * )dn->bv_val;
+			mdn = ( char * )op->o_req_dn.bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1,
-			"[rw] modrDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn, 0 );
+				"[rw] modrDn: \"%s\" -> \"%s\"\n",
+				op->o_req_dn.bv_val, mdn, 0 );
 #else /* !NEW_LOGGING */
-		Debug( LDAP_DEBUG_ARGS, "rw> modrDn: \"%s\" -> \"%s\"\n%s",
-				dn->bv_val, mdn, "" );
+		Debug( LDAP_DEBUG_ARGS, "rw> modrDn: \"%s\" -> \"%s\"\n",
+				op->o_req_dn.bv_val, mdn, 0 );
 #endif /* !NEW_LOGGING */
 		break;
 		
 	case REWRITE_REGEXEC_UNWILLING:
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-				NULL, "Operation not allowed", NULL, NULL );
-		return -1;
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_text = "Operation not allowed";
+		rc = -1;
+		goto cleanup;
 
 	case REWRITE_REGEXEC_ERR:
-		send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, "Rewrite error", NULL, NULL );
-		return -1;
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "Rewrite error";
+		rc = -1;
+		goto cleanup;
 	}
 
-	ldap_rename2_s( lc->conns[ candidate ].ld, mdn, newrdn->bv_val,
-			mnewSuperior, deleteoldrdn );
+	ldap_rename2_s( lc->conns[ candidate ].ld, mdn,
+			op->oq_modrdn.rs_newrdn.bv_val,
+			mnewSuperior, op->oq_modrdn.rs_deleteoldrdn );
 
-	if ( mdn != dn->bv_val ) {
+cleanup:;
+	if ( mdn != op->o_req_dn.bv_val ) {
 		free( mdn );
 	}
-	if ( mnewSuperior != NULL && mnewSuperior != newSuperior->bv_val ) {
+	
+	if ( mnewSuperior != NULL 
+			&& mnewSuperior != op->oq_modrdn.rs_newSup->bv_val ) {
 		free( mnewSuperior );
 	}
-	
-	return meta_back_op_result( lc, op );
+
+	if ( rc == 0 ) {
+		return meta_back_op_result( lc, op, rs ) == LDAP_SUCCESS
+			? 0 : 1;
+	} /* else */
+
+	send_ldap_result( op, rs );
+	return rc;
+
 }
 

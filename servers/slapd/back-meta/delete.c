@@ -76,26 +76,25 @@
 #include "back-meta.h"
 
 int
-meta_back_delete(
-		Backend		*be,
-		Connection	*conn,
-		Operation	*op,
-		struct berval	*dn,
-		struct berval	*ndn
-)
+meta_back_delete( Operation *op, SlapReply *rs )
 {
-	struct metainfo *li = ( struct metainfo * )be->be_private;
+	struct metainfo *li = ( struct metainfo * )op->o_bd->be_private;
 	struct metaconn *lc;
 	int candidate = -1;
 
 	char *mdn = NULL;
 
-	lc = meta_back_getconn( li, conn, op, META_OP_REQUIRE_SINGLE,
-			ndn, &candidate );
-	if ( !lc || !meta_back_dobind( lc, op )
+	lc = meta_back_getconn( li, op, rs, META_OP_REQUIRE_SINGLE,
+			&op->o_req_ndn, &candidate );
+	if ( !lc ) {
+ 		send_ldap_result( op, rs );
+		return -1;
+	}
+	
+	if ( !meta_back_dobind( lc, op )
 			|| !meta_back_is_valid( lc, candidate ) ) {
- 		send_ldap_result( conn, op, LDAP_OTHER,
- 				NULL, NULL, NULL, NULL );
+		rs->sr_err = LDAP_OTHER;
+ 		send_ldap_result( op, rs );
 		return -1;
 	}
 
@@ -103,37 +102,41 @@ meta_back_delete(
 	 * Rewrite the compare dn, if needed
 	 */
 	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
-				"deleteDn", dn->bv_val, conn, &mdn ) ) {
+				"deleteDn", op->o_req_dn.bv_val,
+				op->o_conn, &mdn ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mdn == NULL ) {
-			mdn = ( char * )dn->bv_val;
+			mdn = ( char * )op->o_req_dn.bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1,
-			"[rw] deleteDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn, 0 );
+				"[rw] deleteDn: \"%s\" -> \"%s\"\n",
+				op->o_req_dn.bv_val, mdn, 0 );
 #else /* !NEW_LOGGING */
-		Debug( LDAP_DEBUG_ARGS, "rw> deleteDn: \"%s\" -> \"%s\"\n%s",
-				dn->bv_val, mdn, "" );
+		Debug( LDAP_DEBUG_ARGS, "rw> deleteDn: \"%s\" -> \"%s\"\n",
+				op->o_req_dn.bv_val, mdn, 0 );
 #endif /* !NEW_LOGGING */
 		break;
 		
 	case REWRITE_REGEXEC_UNWILLING:
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-				NULL, "Operation not allowed", NULL, NULL );
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_text = "Operation not allowed";
+		send_ldap_result( op, rs );
 		return -1;
 
 	case REWRITE_REGEXEC_ERR:
-		send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, "Rewrite error", NULL, NULL );
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "Rewrite error";
+		send_ldap_result( op, rs );
 		return -1;
 	}
 	
 	ldap_delete_s( lc->conns[ candidate ].ld, mdn );
 
-	if ( mdn != dn->bv_val ) {
+	if ( mdn != op->o_req_dn.bv_val ) {
 		free( mdn );
 	}
 	
-	return meta_back_op_result( lc, op );
+	return meta_back_op_result( lc, op, rs );
 }
 

@@ -221,13 +221,13 @@ metaconn_free(
  */
 static int
 init_one_conn(
-		Connection *conn, 
-		Operation *op, 
-		struct metatarget *lt, 
-		struct metasingleconn *lsc
+		Operation *op,
+		SlapReply *rs,
+		struct metatarget	*lt, 
+		struct metasingleconn	*lsc
 		)
 {
-	int err, vers;
+	int		err, vers;
 
 	/*
 	 * Already init'ed
@@ -248,54 +248,66 @@ init_one_conn(
 	 * Set LDAP version. This will always succeed: If the client
 	 * bound with a particular version, then so can we.
 	 */
-	vers = conn->c_protocol;
+	vers = op->o_conn->c_protocol;
 	ldap_set_option( lsc->ld, LDAP_OPT_PROTOCOL_VERSION, &vers );
+	/* FIXME: configurable? */
+	ldap_set_option(lsc->ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON);
 
 	/*
 	 * Sets a cookie for the rewrite session
 	 */
-	( void )rewrite_session_init( lt->rwinfo, conn );
+	( void )rewrite_session_init( lt->rwinfo, op->o_conn );
 
 	/*
 	 * If the connection dn is not null, an attempt to rewrite it is made
 	 */
-	if ( conn->c_dn.bv_len != 0 ) {
+	if ( op->o_conn->c_dn.bv_len != 0 ) {
 		
 		/*
 		 * Rewrite the bind dn if needed
 		 */
 		lsc->bound_dn.bv_val = NULL;
 		switch ( rewrite_session( lt->rwinfo, "bindDn",
-					conn->c_dn.bv_val, conn, 
+					op->o_conn->c_dn.bv_val, op->o_conn, 
 					&lsc->bound_dn.bv_val ) ) {
 		case REWRITE_REGEXEC_OK:
 			if ( lsc->bound_dn.bv_val == NULL ) {
-				ber_dupbv( &lsc->bound_dn, &conn->c_dn );
+				ber_dupbv( &lsc->bound_dn, &op->o_conn->c_dn );
 			}
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
 				"[rw] bindDn: \"%s\" -> \"%s\"\n",
-				conn->c_dn.bv_val, lsc->bound_dn.bv_val, 0 );
+				op->o_conn->c_dn.bv_val,
+				lsc->bound_dn.bv_val, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
 				       	"rw> bindDn: \"%s\" -> \"%s\"\n",
-					conn->c_dn.bv_val, lsc->bound_dn.bv_val, 0 );
+					op->o_conn->c_dn.bv_val,
+					lsc->bound_dn.bv_val, 0 );
 #endif /* !NEW_LOGGING */
 			break;
 			
 		case REWRITE_REGEXEC_UNWILLING:
+			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			rs->sr_text = "Operation not allowed";
+#if 0
 			send_ldap_result( conn, op,
 					LDAP_UNWILLING_TO_PERFORM,
 					NULL, "Operation not allowed",
 					NULL, NULL );
-			return LDAP_UNWILLING_TO_PERFORM;
+#endif
+			return rs->sr_err;
 			
 		case REWRITE_REGEXEC_ERR:
+			rs->sr_err = LDAP_OTHER;
+			rs->sr_text = "Rewrite error";
+#if 0
 			send_ldap_result( conn, op,
 					LDAP_OTHER,
 					NULL, "Rewrite error",
 					NULL, NULL );
-			return LDAP_OTHER;
+#endif
+			return rs->sr_err;
 		}
 
 		assert( lsc->bound_dn.bv_val );
@@ -328,8 +340,8 @@ init_one_conn(
 struct metaconn *
 meta_back_getconn(
 		struct metainfo *li,
-	       	Connection 	*conn,
 	       	Operation 	*op,
+		SlapReply	*rs,
 		int 		op_type,
 		struct berval	*ndn,
 		int 		*candidate )
@@ -339,7 +351,7 @@ meta_back_getconn(
 	int new_conn = 0;
 
 	/* Searches for a metaconn in the avl tree */
-	lc_curr.conn = conn;
+	lc_curr.conn = op->o_conn;
 	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 	lc = (struct metaconn *)avl_find( li->conntree, 
 		(caddr_t)&lc_curr, meta_back_conn_cmp );
@@ -348,7 +360,7 @@ meta_back_getconn(
 	/* Looks like we didn't get a bind. Open a new session... */
 	if ( !lc ) {
 		lc = metaconn_alloc( li->ntargets );
-		lc->conn = conn;
+		lc->conn = op->o_conn;
 		new_conn = 1;
 	}
 
@@ -377,9 +389,7 @@ meta_back_getconn(
 				metaconn_free( lc );
 			}
 
-			send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
-				NULL, "", NULL, NULL );
-
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
 			return NULL;
 		}
 				
@@ -403,7 +413,7 @@ meta_back_getconn(
 		 * also init'd. In case of error, init_one_conn
 		 * sends the appropriate result.
 		 */
-		err = init_one_conn( conn, op, li->targets[ i ],
+		err = init_one_conn( op, rs, li->targets[ i ],
 				&lc->conns[ i ] );
 		if ( err != LDAP_SUCCESS ) {
 		
@@ -433,7 +443,7 @@ meta_back_getconn(
 			 * The target is activated; if needed, it is
 			 * also init'd
 			 */
-			int lerr = init_one_conn( conn, op, li->targets[ i ],
+			int lerr = init_one_conn( op, rs, li->targets[ i ],
 					&lc->conns[ i ] );
 			if ( lerr != LDAP_SUCCESS ) {
 				
@@ -460,7 +470,7 @@ meta_back_getconn(
 				 * The target is activated; if needed, it is
 				 * also init'd
 				 */
-				int lerr = init_one_conn( conn, op,
+				int lerr = init_one_conn( op, rs,
 						li->targets[ i ],
 						&lc->conns[ i ] );
 				if ( lerr != LDAP_SUCCESS ) {
@@ -477,6 +487,10 @@ meta_back_getconn(
 			}
 		}
 	}
+
+	/* clear out init_one_conn non-fatal errors */
+	rs->sr_err = LDAP_SUCCESS;
+	rs->sr_text = NULL;
 
 	if ( new_conn ) {
 		
@@ -506,8 +520,8 @@ meta_back_getconn(
 		 * Err could be -1 in case a duplicate metaconn is inserted
 		 */
 		if ( err != 0 ) {
-			send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, "Internal server error", NULL, NULL );
+			rs->sr_err = LDAP_OTHER;
+			rs->sr_text = "Internal server error";
 			metaconn_free( lc );
 			return NULL;
 		}

@@ -77,14 +77,9 @@
 #include "back-meta.h"
 
 int
-meta_back_add(
-		Backend		*be,
-		Connection	*conn,
-		Operation	*op,
-		Entry		*e
-)
+meta_back_add( Operation *op, SlapReply *rs )
 {
-	struct metainfo *li = ( struct metainfo * )be->be_private;
+	struct metainfo *li = ( struct metainfo * )op->o_bd->be_private;
 	struct metaconn *lc;
 	int i, candidate = -1;
 	Attribute *a;
@@ -92,20 +87,26 @@ meta_back_add(
 	struct berval mdn = { 0, NULL }, mapped;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( BACK_META, ENTRY, "meta_back_add: %s\n", e->e_dn, 0, 0 );
+	LDAP_LOG( BACK_META, ENTRY, "meta_back_add: %s\n",
+			op->o_req_dn.bv_val, 0, 0 );
 #else /* !NEW_LOGGING */
-	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n%s%s", e->e_dn, "", "");
+	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n",
+			op->o_req_dn.bv_val, 0, 0 );
 #endif /* !NEW_LOGGING */
 
 	/*
 	 * get the current connection
 	 */
-	lc = meta_back_getconn( li, conn, op, META_OP_REQUIRE_SINGLE,
-			&e->e_nname, &candidate );
-	if ( !lc || !meta_back_dobind( lc, op )
+	lc = meta_back_getconn( li, op, rs, META_OP_REQUIRE_SINGLE,
+			&op->o_req_ndn, &candidate );
+	if ( !lc ) {
+		send_ldap_result( op, rs );
+	}
+
+	if ( !meta_back_dobind( lc, op )
 			|| !meta_back_is_valid( lc, candidate ) ) {
- 		send_ldap_result( conn, op, LDAP_OTHER,
- 				NULL, NULL, NULL, NULL );
+		rs->sr_err = LDAP_OTHER;
+ 		send_ldap_result( op, rs );
 		return -1;
 	}
 
@@ -113,41 +114,45 @@ meta_back_add(
 	 * Rewrite the add dn, if needed
 	 */
 	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
-				"addDn", e->e_dn, conn, &mdn.bv_val )) {
+				"addDn", op->o_req_dn.bv_val, op->o_conn,
+				&mdn.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mdn.bv_val != NULL && mdn.bv_val[ 0 ] != '\0' ) {
 			mdn.bv_len = strlen( mdn.bv_val );
 		} else {
-			mdn = e->e_name;
+			mdn = op->o_req_dn;
 		}
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1,
-			"[rw] addDn: \"%s\" -> \"%s\"\n", e->e_dn, mdn.bv_val, 0 );
+				"[rw] addDn: \"%s\" -> \"%s\"\n",
+				op->o_req_dn.bv_val, mdn.bv_val, 0 );
 #else /* !NEW_LOGGING */
-		Debug( LDAP_DEBUG_ARGS, "rw> addDn: \"%s\" -> \"%s\"\n%s", 
-				e->e_dn, mdn.bv_val, "" );
+		Debug( LDAP_DEBUG_ARGS, "rw> addDn: \"%s\" -> \"%s\"\n", 
+				op->o_req_dn.bv_val, mdn.bv_val, 0 );
 #endif /* !NEW_LOGGING */
 		break;
  		
  	case REWRITE_REGEXEC_UNWILLING:
- 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
- 				NULL, "Operation not allowed", NULL, NULL );
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_text = "Operation not allowed";
+ 		send_ldap_result( op, rs );
 		return -1;
 	       	
 	case REWRITE_REGEXEC_ERR:
- 		send_ldap_result( conn, op, LDAP_OTHER,
- 				NULL, "Rewrite error", NULL, NULL );
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "Rewrite error";
+ 		send_ldap_result( op, rs );
 		return -1;
 	}
 
 	/* Count number of attributes in entry */
-	for ( i = 1, a = e->e_attrs; a; i++, a = a->a_next );
+	for ( i = 1, a = op->oq_add.rs_e->e_attrs; a; i++, a = a->a_next );
 	
 	/* Create array of LDAPMods for ldap_add() */
 	attrs = ch_malloc( sizeof( LDAPMod * )*i );
 
-	for ( i = 0, a = e->e_attrs; a; a = a->a_next ) {
+	for ( i = 0, a = op->oq_add.rs_e->e_attrs; a; a = a->a_next ) {
 		int j;
 
 		if ( a->a_desc->ad_type->sat_no_user_mod  ) {
@@ -175,13 +180,14 @@ meta_back_add(
 		if ( strcmp( a->a_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
 			ldap_dnattr_rewrite( li->targets[ candidate ]->rwinfo,
-					a->a_vals, conn );
+					a->a_vals, op->o_conn );
 		}
 
-		for (j=0; a->a_vals[ j ].bv_val; j++);
+		for ( j = 0; a->a_vals[ j ].bv_val; j++ );
 		attrs[ i ]->mod_vals.modv_bvals = ch_malloc((j+1)*sizeof(struct berval *));
-		for (j=0; a->a_vals[ j ].bv_val; j++)
+		for ( j = 0; a->a_vals[ j ].bv_val; j++ ) {
 			attrs[ i ]->mod_vals.modv_bvals[ j ] = &a->a_vals[ j ];
+		}
 		attrs[ i ]->mod_vals.modv_bvals[ j ] = NULL;
 		i++;
 	}
@@ -193,9 +199,9 @@ meta_back_add(
 		free( attrs[ i ] );
 	}
 	free( attrs );
-	if ( mdn.bv_val != e->e_dn ) {
+	if ( mdn.bv_val != op->oq_add.rs_e->e_dn ) {
 		free( mdn.bv_val );
 	}
-	return meta_back_op_result( lc, op );
+	return meta_back_op_result( lc, op, rs );
 }
 

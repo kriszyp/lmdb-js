@@ -76,82 +76,82 @@
 #include "back-meta.h"
 
 int
-meta_back_modify(
-		Backend	*be,
-		Connection	*conn,
-		Operation	*op,
-		struct berval	*dn,
-		struct berval	*ndn,
-		Modifications	*modlist
-)
+meta_back_modify( Operation *op, SlapReply *rs )
 {
-	struct metainfo	*li = ( struct metainfo * )be->be_private;
-	struct metaconn *lc;
-	LDAPMod **modv;
-	LDAPMod *mods;
-	Modifications *ml;
-	int candidate = -1, i;
-	char *mdn;
-	struct berval mapped;
+	struct metainfo		*li = ( struct metainfo * )op->o_bd->be_private;
+	struct metaconn 	*lc;
+	int			rc = 0;
+	LDAPMod			**modv = NULL;
+	LDAPMod			*mods = NULL;
+	Modifications		*ml;
+	int			candidate = -1, i;
+	char			*mdn;
+	struct berval		mapped;
 
-	lc = meta_back_getconn( li, conn, op, META_OP_REQUIRE_SINGLE,
-			ndn, &candidate );
-	if ( !lc || !meta_back_dobind( lc, op )
+	lc = meta_back_getconn( li, op, rs, META_OP_REQUIRE_SINGLE,
+			&op->o_req_ndn, &candidate );
+	if ( !lc ) {
+		rc = -1;
+		goto cleanup;
+	}
+	
+	if ( !meta_back_dobind( lc, op )
 			|| !meta_back_is_valid( lc, candidate ) ) {
- 		send_ldap_result( conn, op, LDAP_OTHER,
- 				NULL, NULL, NULL, NULL );
-		return -1;
+		rs->sr_err = LDAP_OTHER;
+		rc = -1;
+		goto cleanup;
 	}
 
 	/*
 	 * Rewrite the modify dn, if needed
 	 */
 	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
-				"modifyDn", dn->bv_val, conn, &mdn ) ) {
+				"modifyDn", op->o_req_dn.bv_val,
+				op->o_conn, &mdn ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mdn == NULL ) {
-			mdn = ( char * )dn->bv_val;
+			mdn = ( char * )op->o_req_dn.bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1,
-			"[rw] modifyDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn, 0 );
+				"[rw] modifyDn: \"%s\" -> \"%s\"\n",
+				op->o_req_dn.bv_val, mdn, 0 );
 #else /* !NEW_LOGGING */
-		Debug( LDAP_DEBUG_ARGS, "rw> modifyDn: \"%s\" -> \"%s\"\n%s",
-				dn->bv_val, mdn, "" );
+		Debug( LDAP_DEBUG_ARGS, "rw> modifyDn: \"%s\" -> \"%s\"\n",
+				op->o_req_dn.bv_val, mdn, 0 );
 #endif /* !NEW_LOGGING */
 		break;
 		
 	case REWRITE_REGEXEC_UNWILLING:
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-				NULL, "Operation not allowed", NULL, NULL );
-		return -1;
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_text = "Operation not allowed";
+		rc = -1;
+		goto cleanup;
 
 	case REWRITE_REGEXEC_ERR:
-		send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, "Rewrite error", NULL, NULL );
-		return -1;
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "Rewrite error";
+		rc = -1;
+		goto cleanup;
 	}
 
-	for ( i = 0, ml = modlist; ml; i++ ,ml = ml->sml_next )
+	for ( i = 0, ml = op->oq_modify.rs_modlist; ml; i++ ,ml = ml->sml_next )
 		;
 
 	mods = ch_malloc( sizeof( LDAPMod )*i );
 	if ( mods == NULL ) {
-		if ( mdn != dn->bv_val ) {
-			free( mdn );
-		}
-		return -1;
+		rs->sr_err = LDAP_NO_MEMORY;
+		rc = -1;
+		goto cleanup;
 	}
 	modv = ( LDAPMod ** )ch_malloc( ( i + 1 )*sizeof( LDAPMod * ) );
 	if ( modv == NULL ) {
-		free( mods );
-		if ( mdn != dn->bv_val ) {
-			free( mdn );
-		}
-		return -1;
+		rs->sr_err = LDAP_NO_MEMORY;
+		rc = -1;
+		goto cleanup;
 	}
 
-	for ( i = 0, ml = modlist; ml; ml = ml->sml_next ) {
+	for ( i = 0, ml = op->oq_modify.rs_modlist; ml; ml = ml->sml_next ) {
 		int j;
 
 		if ( ml->sml_desc->ad_type->sat_no_user_mod  ) {
@@ -178,7 +178,7 @@ meta_back_modify(
 					SLAPD_DN_SYNTAX ) == 0 ) {
 			ldap_dnattr_rewrite(
 				li->targets[ candidate ]->rwinfo,
-				ml->sml_bvalues, conn );
+				ml->sml_bvalues, op->o_conn );
 		}
 
 		if ( ml->sml_bvalues != NULL ){
@@ -199,13 +199,25 @@ meta_back_modify(
 
 	ldap_modify_s( lc->conns[ candidate ].ld, mdn, modv );
 
-	if ( mdn != dn->bv_val ) {
+cleanup:;
+	if ( mdn != op->o_req_dn.bv_val ) {
 		free( mdn );
 	}
-	for ( i=0; modv[ i ]; i++)
-		free( modv[ i ]->mod_bvalues );
+	if ( modv != NULL ) {
+		for ( i = 0; modv[ i ]; i++) {
+			free( modv[ i ]->mod_bvalues );
+		}
+	}
 	free( mods );
 	free( modv );
-	return meta_back_op_result( lc, op );
+	
+	if ( rc == 0 ) {
+		return meta_back_op_result( lc, op, rs ) == LDAP_SUCCESS
+			? 0 : 1;
+	} /* else */
+
+	send_ldap_result( op, rs );
+
+	return rc;
 }
 
