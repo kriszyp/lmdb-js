@@ -36,7 +36,6 @@ int		global_lastmod = ON;
 int		global_idletimeout = 0;
 char	*global_host = NULL;
 char	*global_realm = NULL;
-char	*global_ucdata_path = NULL;
 char		*ldap_srvtab = "";
 char		*default_passwd_hash;
 char		*default_search_base = NULL;
@@ -53,6 +52,7 @@ static void	fp_getline_init(int *lineno);
 static int	fp_parse_line(char *line, int *argcp, char **argv);
 
 static char	*strtok_quote(char *line, char *sep);
+static int      load_ucdata(char *path);
 
 int
 read_config( const char *fname )
@@ -208,6 +208,7 @@ read_config( const char *fname )
 			default_search_base = ch_strdup( cargv[1] );
 			default_search_nbase = ch_strdup( cargv[1] );
 
+			load_ucdata( NULL );
 			if( dn_normalize( default_search_nbase ) == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"invalid default search base \"%s\"\n",
@@ -357,14 +358,11 @@ read_config( const char *fname )
 				return( 1 );
 			}
 
-			if ( global_ucdata_path != NULL ) {
+			if ( load_ucdata( cargv[1] ) == 0 ) {
 				Debug( LDAP_DEBUG_ANY,
-					"%s: line %d: already set ucdata-path!\n",
-					fname, lineno, 0 );
+				       "%s: line %d: ucdata already loaded, ucdata-path must be set earlier in the file and/or be specified only once!\n",
+				       fname, lineno, 0 );
 				return 1;
-
-			} else {
-				global_ucdata_path = ch_strdup( cargv[1] );
 			}
 
 		/* set time limit */
@@ -422,6 +420,7 @@ read_config( const char *fname )
 				    fname, lineno, tmp_be->be_suffix[0] );
 			} else {
 				char *dn = ch_strdup( cargv[1] );
+				load_ucdata( NULL );
 				if( dn_validate( dn ) == NULL ) {
 					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 						"suffix DN invalid \"%s\"\n",
@@ -480,6 +479,7 @@ read_config( const char *fname )
 				char *alias, *aliased_dn;
 
 				alias = ch_strdup( cargv[1] );
+				load_ucdata( NULL );
 				(void) dn_normalize( alias );
 
 				aliased_dn = ch_strdup( cargv[2] );
@@ -531,6 +531,7 @@ read_config( const char *fname )
 				be->be_root_dn = ch_strdup( cargv[1] );
 				be->be_root_ndn = ch_strdup( cargv[1] );
 
+				load_ucdata( NULL );
 				if( dn_normalize( be->be_root_ndn ) == NULL ) {
 					free( be->be_root_dn );
 					free( be->be_root_ndn );
@@ -931,6 +932,7 @@ read_config( const char *fname )
 				    fname, lineno, 0 );
 			} else {
 				be->be_update_ndn = ch_strdup( cargv[1] );
+				load_ucdata( NULL );
 				if( dn_normalize( be->be_update_ndn ) == NULL ) {
 					Debug( LDAP_DEBUG_ANY,
 "%s: line %d: updatedn DN is invalid\n",
@@ -1160,6 +1162,7 @@ read_config( const char *fname )
 		free( saveline );
 	}
 	fclose( fp );
+	load_ucdata( NULL );
 	return( 0 );
 }
 
@@ -1290,4 +1293,19 @@ fp_getline_init( int *lineno )
 {
 	*lineno = -1;
 	buf[0] = '\0';
+}
+
+/* Loads ucdata, returns 1 if loading, 0 if already loaded */
+static int
+load_ucdata( char *path )
+{
+	static int loaded = 0;
+
+	if ( loaded ) {
+		return 0;
+	}
+	ucdata_load( path ? path : SLAPD_DEFAULT_UCDATA,
+		     UCDATA_CASE|UCDATA_CTYPE|UCDATA_NUM );
+	loaded = 1;
+	return 1;
 }

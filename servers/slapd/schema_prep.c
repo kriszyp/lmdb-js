@@ -219,9 +219,6 @@ schema_prep( void )
 	/* we should only be called once after schema_init() was called */
 	assert( schema_init_done == 1 );
 
-	ucdata_load( global_ucdata_path ? global_ucdata_path :
-		SLAPD_DEFAULT_UCDATA, UCDATA_CASE|UCDATA_CTYPE|UCDATA_NUM );
-
 	for( i=0; oc_map[i].ssom_name; i++ ) {
 		ObjectClass ** ocp = (ObjectClass **)
 			&(((char *) &slap_schema)[oc_map[i].ssom_offset]);
