@@ -156,10 +156,10 @@ skip_url_prefix(
 	int *enclosedp,
 	const char **scheme )
 {
-/*
- * return non-zero if this looks like a LDAP URL; zero if not
- * if non-zero returned, *urlp will be moved past "ldap://" part of URL
- */
+	/*
+ 	 * return non-zero if this looks like a LDAP URL; zero if not
+ 	 * if non-zero returned, *urlp will be moved past "ldap://" part of URL
+ 	 */
 	const char *p;
 
 	if ( url == NULL ) {
@@ -1115,7 +1115,6 @@ ldap_free_urldesc( LDAPURLDesc *ludp )
 }
 
 
-
 int
 ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 {
@@ -1150,7 +1149,7 @@ ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 		bind.ri_url = (char *)url;
 		err = ldap_send_server_request(
 					ld, ber, ld->ld_msgid, NULL,
-					NULL, NULL, &bind );
+					ludp, NULL, &bind );
 	}
 
 	ldap_free_urldesc( ludp );
