@@ -61,14 +61,26 @@ ldap_result( LDAP *ld, int msgid, int all, struct timeval *timeout,
 {
 	LDAPMessage	*lm, *lastlm, *nextlm;
 
+	assert( ld != NULL );
+	assert( result != NULL );
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_result\n", 0, 0, 0 );
+
+	if( ld == NULL ) {
+		return -1;
+	}
+
+	if( result == NULL ) {
+		ld->ld_errno = LDAP_PARAM_ERROR;
+		return -1;
+	}
+
 	/*
 	 * First, look through the list of responses we have received on
 	 * this association and see if the response we're interested in
 	 * is there.  If it is, return it.  If not, call wait4msg() to
 	 * wait until it arrives or timeout occurs.
 	 */
-
-	Debug( LDAP_DEBUG_TRACE, "ldap_result\n", 0, 0, 0 );
 
 	*result = NULLMSG;
 	lastlm = NULLMSG;
@@ -143,6 +155,9 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	LDAPConn	*lc, *nextlc;
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
+
+	assert( ld != NULL );
+	assert( result != NULL );
 
 #ifdef LDAP_DEBUG
 	if ( timeout == NULL ) {
@@ -275,13 +290,20 @@ try_read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 	BerElement	tmpber;
 	int		rc, refer_cnt, hadref, simple_request;
 	unsigned long	lderr;
+
+	assert( ld != NULL );
+	assert( lc != NULL );
 	
 	ber = &lc->lconn_ber;
+
 #else
+	assert( ld != NULL );
+
 	ber = &ld->ld_ber;
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 	Debug( LDAP_DEBUG_TRACE, "read1msg\n", 0, 0, 0 );
+
 #if 0
 	ber_init_w_nullc( &ber, 0 );
 	ldap_set_ber_options( ld, &ber );
@@ -607,6 +629,8 @@ ldap_select1( LDAP *ld, struct timeval *timeout )
 	fd_set		readfds;
 	static int	tblsize;
 
+	assert( ld != NULL );
+
 	if ( tblsize == 0 ) {
 #ifdef HAVE_SYSCONF
 		tblsize = sysconf( _SC_OPEN_MAX );
@@ -634,13 +658,17 @@ ldap_select1( LDAP *ld, struct timeval *timeout )
 int
 ldap_msgtype( LDAPMessage *lm )
 {
-	return( lm ? lm->lm_msgtype : -1 );
+	assert( lm != NULL );
+	return ( lm == NULL ) ? lm->lm_msgtype : -1;
 }
+
 
 int
 ldap_msgid( LDAPMessage *lm )
 {
-	return( lm ? lm->lm_msgid : -1 );
+	assert( lm != NULL );
+
+	return ( lm == NULL ) ? lm->lm_msgid : -1;
 }
 
 
@@ -649,6 +677,8 @@ ldap_msgfree( LDAPMessage *lm )
 {
 	LDAPMessage	*next;
 	int		type = 0;
+
+	assert( lm != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_msgfree\n", 0, 0, 0 );
 
@@ -671,6 +701,8 @@ int
 ldap_msgdelete( LDAP *ld, int msgid )
 {
 	LDAPMessage	*lm, *prev;
+
+	assert( ld != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_msgdelete\n", 0, 0, 0 );
 
