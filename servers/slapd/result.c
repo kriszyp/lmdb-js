@@ -248,7 +248,7 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 	 * plugin.
 	 */
 
-	if ( slapi_pblock_get( o->o_pb, SLAPI_RESCONTROLS, &sctrls ) != 0 ) {
+	if ( o->o_pb && slapi_pblock_get( o->o_pb, SLAPI_RESCONTROLS, &sctrls ) != 0 ) {
 		sctrls = NULL;
 	}
 
