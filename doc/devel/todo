@@ -38,9 +38,7 @@ Implement LDAP sorted search results control (RFC 2891)
 Medium projects
 ---------------
 Add DSML capabilities to command line tools
-Implement authPassword (RFC 3112)
 Implement DIT Structure Rules and Name Forms
-Implement LDAP Transactions extension
 Implement native support for simple SASL mechanisms (e.g. EXTERNAL and PLAIN)
 Redesign slapd to use poll(2) instead of select(2)
 Redesign slapd memory allocation fault handling
@@ -49,6 +47,7 @@ Localize tools
 
 Small projects
 --------------
+Implement authPassword (RFC 3112)
 Add LDIFv2 (XML) support to command line tools
 Implement LDAPprep and SASLprep
 Implement additional matching rules (RFC 3698)
