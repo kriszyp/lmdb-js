@@ -372,8 +372,21 @@ do_search(
 	}
 
 	if ( doPluginFNs( be, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb ) == 0 ) {
+		/*
+		 * The plugin can set the SLAPI_SEARCH_FILTER.
+		 * SLAPI_SEARCH_STRFILER is not normative.
+		 */
 		slapi_pblock_get( pb, SLAPI_SEARCH_FILTER, (void *)&filter);
-		slapi_pblock_get( pb, SLAPI_SEARCH_STRFILTER, (void *)&fstr.bv_val );
+		ch_free( fstr.bv_val );
+		filter2bv( filter, &fstr );
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, ARGS, 
+			"do_search: after compute_rewrite_search filter: %s\n", 
+			fstr.bv_len ? fstr.bv_val : "empty", 0 );
+#else
+		Debug( LDAP_DEBUG_ARGS, "    after compute_rewrite_search filter: %s\n",
+			fstr.bv_len ? fstr.bv_val : "empty", 0, 0 );
+#endif
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
