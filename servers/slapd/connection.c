@@ -125,8 +125,11 @@ int connections_shutdown(void)
 		}
 
 		ldap_pvt_thread_mutex_lock( &connections[i].c_mutex );
+
+		/* connections_mutex and c_mutex are locked */
 		connection_closing( &connections[i] );
 		connection_close( &connections[i] );
+
 		ldap_pvt_thread_mutex_unlock( &connections[i].c_mutex );
 	}
 
@@ -620,6 +623,7 @@ connection_operation( void *arg_v )
 	case LDAP_REQ_UNBIND_30:
 #endif
 	case LDAP_REQ_UNBIND:
+		/* c_mutex is locked */
 		connection_closing( conn );
 		break;
 
@@ -627,14 +631,6 @@ connection_operation( void *arg_v )
 		if( conn->c_conn_state == SLAP_C_BINDING) {
 			conn->c_conn_state = SLAP_C_ACTIVE;
 		}
-	}
-
-	if( conn->c_conn_state == SLAP_C_CLOSING ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"connection_operation: attempting closing conn=%ld sd=%d.\n",
-			conn->c_connid, ber_pvt_sb_get_desc( conn->c_sb ), 0 );
-
-		connection_close( conn );
 	}
 
 	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
@@ -659,7 +655,9 @@ int connection_read(int s)
 
 	ldap_pvt_thread_mutex_lock( &connections_mutex );
 
+	/* get (locked) connection */
 	c = connection_get( s );
+
 	if( c == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"connection_read(%d): no connection!\n",
@@ -698,6 +696,7 @@ int connection_read(int s)
 			"connection_read(%d): input error=%d id=%ld, closing.\n",
 			s, rc, c->c_connid );
 
+		/* connections_mutex and c_mutex are locked */
 		connection_closing( c );
 		connection_close( c );
 	}
@@ -801,6 +800,15 @@ static int
 connection_resched( Connection *conn )
 {
 	Operation *op;
+
+	if( conn->c_conn_state == SLAP_C_CLOSING ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"connection_resched: attempting closing conn=%ld sd=%d.\n",
+			conn->c_connid, ber_pvt_sb_get_desc( conn->c_sb ), 0 );
+
+		connection_close( conn );
+		return 0;
+	}
 
 	if( conn->c_conn_state != SLAP_C_ACTIVE ) {
 		/* other states need different handling */
