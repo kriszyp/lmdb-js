@@ -54,14 +54,14 @@ perl_back_initialize(
 	perl_run(perl_interpreter);
 
 	bi->bi_open = perl_back_open;
-	bi->bi_config = NULL;
+	bi->bi_config = 0;
 	bi->bi_close = perl_back_close;
 	bi->bi_destroy = perl_back_destroy;
 
 	bi->bi_db_init = perl_back_db_init;
 	bi->bi_db_config = perl_back_db_config;
-	bi->bi_db_open = NULL;
-	bi->bi_db_close = NULL;
+	bi->bi_db_open = 0;
+	bi->bi_db_close = 0;
 	bi->bi_db_destroy = perl_back_db_destroy;
 
 	bi->bi_op_bind = perl_back_bind;
@@ -72,10 +72,10 @@ perl_back_initialize(
 	bi->bi_op_modrdn = perl_back_modrdn;
 	bi->bi_op_add = perl_back_add;
 	bi->bi_op_delete = perl_back_delete;
-	bi->bi_op_abandon = NULL;
+	bi->bi_op_abandon = 0;
 
 #ifdef SLAPD_ACLGROUPS
-	bi->bi_acl_group = NULL;
+	bi->bi_acl_group = 0;
 #endif
 
 	return 0;

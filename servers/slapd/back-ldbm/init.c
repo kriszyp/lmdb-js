@@ -16,7 +16,7 @@ ldbm_back_initialize(
 )
 {
 	bi->bi_open = ldbm_back_open;
-	bi->bi_config = NULL;
+	bi->bi_config = 0;
 	bi->bi_close = ldbm_back_close;
 	bi->bi_destroy = ldbm_back_destroy;
 

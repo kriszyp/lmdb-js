@@ -1,6 +1,6 @@
 /* tcl_init.c - tcl backend initialization
  *
- * $Id: tcl_init.c,v 1.4 1999/02/18 01:18:39 bcollins Exp $
+ * $Id: tcl_init.c,v 1.5 1999/02/20 07:53:48 hallvard Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -39,7 +39,7 @@ tcl_back_initialize (
 	ldap_pvt_thread_mutex_init (&tcl_interpreter_mutex);
 
 	bi->bi_open = tcl_back_open;
-	bi->bi_config = NULL;
+	bi->bi_config = 0;
 	bi->bi_close = tcl_back_close;
 	bi->bi_destroy = tcl_back_destroy;
 
@@ -60,7 +60,7 @@ tcl_back_initialize (
 	bi->bi_op_abandon = tcl_back_abandon;
 
 #ifdef SLAPD_ACLGROUPS
-	bi->bi_acl_group = NULL;
+	bi->bi_acl_group = 0;
 #endif
 
 	return 0;

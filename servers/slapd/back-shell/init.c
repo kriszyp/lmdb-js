@@ -14,15 +14,15 @@ shell_back_initialize(
     BackendInfo	*bi
 )
 {
-	bi->bi_open = NULL;
-	bi->bi_config = NULL;
-	bi->bi_close = NULL;
-	bi->bi_destroy = NULL;
+	bi->bi_open = 0;
+	bi->bi_config = 0;
+	bi->bi_close = 0;
+	bi->bi_destroy = 0;
 
 	bi->bi_db_init = shell_back_db_init;
 	bi->bi_db_config = shell_back_db_config;
-	bi->bi_db_open = NULL;
-	bi->bi_db_close = NULL;
+	bi->bi_db_open = 0;
+	bi->bi_db_close = 0;
 	bi->bi_db_destroy = shell_back_db_destroy;
 
 	bi->bi_op_bind = shell_back_bind;
@@ -36,7 +36,7 @@ shell_back_initialize(
 	bi->bi_op_abandon = shell_back_abandon;
 
 #ifdef SLAPD_ACLGROUPS
-	bi->bi_acl_group = NULL;
+	bi->bi_acl_group = 0;
 #endif
 
 	return 0;
