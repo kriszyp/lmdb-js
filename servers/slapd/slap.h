@@ -17,6 +17,7 @@
 
 #define ON	1
 #define OFF	(-1)
+#define UNDEFINED 0
 
 /*
  * represents an attribute value assertion (i.e., attr=value)

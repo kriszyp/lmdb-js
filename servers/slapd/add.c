@@ -117,21 +117,25 @@ do_add( conn, op )
 	 */
 	if ( be->be_add != NULL ) {
 		/* do the update here */
-		if ( be->be_updatedn == NULL || strcasecmp( be->be_updatedn,
-		    op->o_dn ) == 0 ) {
-			if ( (be->be_lastmod == ON || be->be_lastmod == 0 &&
-			    global_lastmod == ON) && be->be_updatedn == NULL ) {
+		if ( be->be_updatedn == NULL ||
+			strcasecmp( be->be_updatedn, op->o_dn ) == 0 ) {
+
+			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
+				global_lastmod == ON)) && be->be_updatedn == NULL ) {
+
 				add_created_attrs( op, e );
 			}
 			if ( (*be->be_add)( be, conn, op, e ) == 0 ) {
 				replog( be, LDAP_REQ_ADD, e->e_dn, e, 0 );
 			}
+
 		} else {
 			entry_free( e );
 			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
 			    default_referral );
 		}
 	} else {
+	    Debug( LDAP_DEBUG_ARGS, "    do_add: HHH\n", 0, 0, 0 );
 		entry_free( e );
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "Function not implemented" );
@@ -155,8 +159,10 @@ add_created_attrs( Operation *op, Entry *e )
 
 	/* remove any attempts by the user to add these attrs */
 	for ( a = &e->e_attrs; *a != NULL; a = next ) {
-		if ( strcasecmp( (*a)->a_type, "createtimestamp" ) == 0
-		    || strcasecmp( (*a)->a_type, "creatorsname" ) == 0 ) {
+		if ( strcasecmp( (*a)->a_type, "modifiersname" ) == 0 || 
+			strcasecmp( (*a)->a_type, "modifytimestamp" ) == 0 ||
+			strcasecmp( (*a)->a_type, "creatorsname" ) == 0 ||
+			strcasecmp( (*a)->a_type, "createtimestamp" ) == 0 ) {
 			tmp = *a;
 			*a = (*a)->a_next;
 			attr_free( tmp );

@@ -155,14 +155,14 @@ do_modify(
 	 */
 	if ( be->be_modify != NULL ) {
 		/* do the update here */
-		if ( be->be_updatedn == NULL || strcasecmp( be->be_updatedn,
-		    op->o_dn ) == 0 ) {
-			if ( (be->be_lastmod == ON || be->be_lastmod == 0 &&
-			    global_lastmod == ON) && be->be_updatedn == NULL ) {
+		if ( be->be_updatedn == NULL ||
+			strcasecmp( be->be_updatedn, op->o_dn ) == 0 ) {
+
+			if ( (be->be_lastmod == ON || ( be->be_lastmod == UNDEFINED &&
+				global_lastmod == ON ) ) && be->be_updatedn == NULL ) {
 				add_lastmods( op, &mods );
 			}
-			if ( (*be->be_modify)( be, conn, op, odn, mods )
-			    == 0 ) {
+			if ( (*be->be_modify)( be, conn, op, odn, mods ) == 0 ) {
 				replog( be, LDAP_REQ_MODIFY, dn, mods, 0 );
 			}
 
@@ -214,17 +214,25 @@ add_lastmods( Operation *op, LDAPMod **mods )
 
 	/* remove any attempts by the user to modify these attrs */
 	for ( m = mods; *m != NULL; m = &(*m)->mod_next ) {
-		if ( strcasecmp( (*m)->mod_type, "modifytimestamp" ) == 0
-		    || strcasecmp( (*m)->mod_type, "modifiersname" ) == 0 ) {
-			tmp = *m;
-			*m = (*m)->mod_next;
-			free( tmp->mod_type );
-			if ( tmp->mod_bvalues != NULL ) {
-				ber_bvecfree( tmp->mod_bvalues );
-			}
-			free( tmp );
-		}
-	}
+            if ( strcasecmp( (*m)->mod_type, "modifytimestamp" ) == 0 || 
+				strcasecmp( (*m)->mod_type, "modifiersname" ) == 0 ||
+				strcasecmp( (*m)->mod_type, "createtimestamp" ) == 0 || 
+				strcasecmp( (*m)->mod_type, "creatorsname" ) == 0 ) {
+
+                Debug( LDAP_DEBUG_TRACE,
+					"add_lastmods: found lastmod attr: %s\n",
+					(*m)->mod_type, 0, 0 );
+                tmp = *m;
+                *m = (*m)->mod_next;
+                free( tmp->mod_type );
+                if ( tmp->mod_bvalues != NULL ) {
+                    ber_bvecfree( tmp->mod_bvalues );
+                }
+                free( tmp );
+                if (!*m)
+                    break;
+            }
+        }
 
 	if ( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
 		bv.bv_val = "NULLDN";
@@ -251,8 +259,7 @@ add_lastmods( Operation *op, LDAPMod **mods )
 	tmp = (LDAPMod *) ch_calloc( 1, sizeof(LDAPMod) );
 	tmp->mod_type = strdup( "modifytimestamp" );
 	tmp->mod_op = LDAP_MOD_REPLACE;
-	tmp->mod_bvalues = (struct berval **) ch_calloc( 1,
-	    2 * sizeof(struct berval *) );
+	tmp->mod_bvalues = (struct berval **) ch_calloc( 1, 2 * sizeof(struct berval *) );
 	tmp->mod_bvalues[0] = ber_bvdup( &bv );
 	tmp->mod_next = *mods;
 	*mods = tmp;
