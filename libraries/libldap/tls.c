@@ -766,10 +766,19 @@ ldap_pvt_tls_get_peer_hostname( void *s )
 }
 
 int
-ldap_pvt_tls_check_hostname( void *s, char *name )
+ldap_pvt_tls_check_hostname( void *s, const char *name_in )
 {
     int i, ret = LDAP_LOCAL_ERROR;
     X509 *x;
+	const char *name;
+
+	if( ldap_int_hostname &&
+		( !name_in || !strcasecmp( name_in, "localhost" ) ) )
+	{
+		name = ldap_int_hostname;
+	} else {
+		name = name_in;
+	}
 
     x = SSL_get_peer_certificate((SSL *)s);
     if (!x)
@@ -1076,7 +1085,9 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	}
 
 	/* avoid NULL host */
-	if( host == NULL ) host = "localhost";
+	if( host == NULL ) {
+		host = "localhost";
+	}
 
 	(void) ldap_pvt_tls_init();
 
