@@ -596,7 +596,7 @@ ber_scanf ( BerElement *ber,
 					(j + 2) * sizeof(char *) );
 
 				if( *sss == NULL ) {
-					LBER_MEMFREE( save );
+					LBER_FREE( save );
 					rc = LBER_DEFAULT;
 					goto breakout;
 				}
@@ -622,7 +622,7 @@ ber_scanf ( BerElement *ber,
 					(j + 2) * sizeof(struct berval *) );
 		
 				if( *bv == NULL ) {
-					LBER_MEMFREE( save );
+					LBER_FREE( save );
 					rc = LBER_DEFAULT;
 					goto breakout;
 				}
