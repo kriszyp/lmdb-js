@@ -150,10 +150,12 @@ bdb2i_back_db_init_internal(
 	li->li_directory = DEFAULT_DB_DIRECTORY;
 
 	/* always index dn, id2children, objectclass (used in some searches) */
-	argv[ 0 ] = "dn";
-	argv[ 1 ] = "dn";
-	argv[ 2 ] = NULL;
-	attr_syntax_config( "ldbm dn initialization", 0, 2, argv );
+	if ( !at_find( "dn" ) ) {
+		argv[ 0 ] = "dn";
+		argv[ 1 ] = "dn";
+		argv[ 2 ] = NULL;
+		attr_syntax_config( "ldbm dn initialization", 0, 2, argv );
+	}
 	argv[ 0 ] = "dn";
 	argv[ 1 ] = "sub";
 	argv[ 2 ] = "eq";

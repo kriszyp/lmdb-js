@@ -9,6 +9,7 @@
 #include <ac/syslog.h>
 #include <ac/regex.h>
 #include <ac/socket.h>			/* needed by LDAP_CONNECTIONLESS */
+#include <ldap_schema.h>
 
 #include "avl.h"
 
@@ -50,6 +51,12 @@
 #define SEPARATOR(c)	((c) == ',' || (c) == ';' || (c) == '+')
 #define SPACE(c)	((c) == ' ' || (c) == '\n')
 #define NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
+
+#define SLAP_SCHERR_OUTOFMEM		1
+#define SLAP_SCHERR_CLASS_NOT_FOUND	2
+#define SLAP_SCHERR_ATTR_NOT_FOUND	3
+#define SLAP_SCHERR_DUP_CLASS		4
+#define SLAP_SCHERR_DUP_ATTR		5
 
 LDAP_BEGIN_DECL
 
@@ -209,12 +216,32 @@ typedef struct ldapmodlist {
  * represents schema information for a database
  */
 
-struct objclass {
-	char		*oc_name;
-	char		**oc_required;
-	char		**oc_allowed;
-	struct objclass	*oc_next;
-};
+typedef struct slap_matching_rule {
+	int	dummy;
+} MatchingRule;
+
+typedef struct slap_attribute_type {
+	LDAP_ATTRIBUTE_TYPE		sat_atype;
+	struct slap_attribute_type	*sat_sup;
+	struct slap_attribute_type	**sat_subtypes;
+	MatchingRule			*sat_equality;
+	MatchingRule			*sat_ordering;
+	MatchingRule			*sat_substr;
+	/*
+	  Syntax				*sat_syntax;
+	*/
+	/* The next one is created to help in the transition */
+	int				sat_syntax_compat;
+	struct slap_attribute_type	*sat_next;
+} AttributeType;
+
+typedef struct slap_object_class {
+	LDAP_OBJECT_CLASS		soc_oclass;
+	struct slap_object_class	**soc_sups;
+	AttributeType			**soc_required;
+	AttributeType			**soc_allowed;
+	struct slap_object_class	*soc_next;
+} ObjectClass;
 
 /*
  * Backend-info

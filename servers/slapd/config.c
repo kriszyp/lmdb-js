@@ -346,12 +346,24 @@ read_config( char *fname )
 #endif
 		/* specify an objectclass */
 		} else if ( strcasecmp( cargv[0], "objectclass" ) == 0 ) {
-			parse_oc( be, fname, lineno, cargc, cargv );
+			if ( *cargv[1] == '(' ) {
+				char * p;
+				p = strchr(line,'(');
+				parse_oc( fname, lineno, p );
+			} else {
+				parse_oc_old( be, fname, lineno, cargc, cargv );
+			}
 
 		/* specify an attribute */
 		} else if ( strcasecmp( cargv[0], "attribute" ) == 0 ) {
-			attr_syntax_config( fname, lineno, cargc - 1,
-			    &cargv[1] );
+			if ( *cargv[1] == '(' ) {
+				char * p;
+				p = strchr(line,'(');
+				parse_at( fname, lineno, p );
+			} else {
+				attr_syntax_config( fname, lineno, cargc - 1,
+				    &cargv[1] );
+			}
 
 		/* turn on/off schema checking */
 		} else if ( strcasecmp( cargv[0], "schemacheck" ) == 0 ) {

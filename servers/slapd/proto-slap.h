@@ -46,6 +46,11 @@ Attribute * attr_find LDAP_P(( Attribute *a, char *type ));
 int attr_delete LDAP_P(( Attribute **attrs, char *type ));
 int attr_syntax LDAP_P(( char *type ));
 void attr_syntax_config LDAP_P(( char *fname, int lineno, int argc, char **argv ));
+AttributeType * at_find LDAP_P(( char *name ));
+int at_find_in_list LDAP_P(( AttributeType *sat, AttributeType **list ));
+int at_append_to_list LDAP_P(( AttributeType *sat, AttributeType ***listp ));
+int at_delete_from_list LDAP_P(( int pos, AttributeType ***listp ));
+int at_fake_if_needed LDAP_P(( char *name ));
 
 /*
  * ava.c
@@ -230,12 +235,17 @@ void send_ldap_search_result LDAP_P(( Connection *conn, Operation *op, int err,
  */
 
 int oc_schema_check LDAP_P(( Entry *e ));
+ObjectClass *oc_find LDAP_P((char *ocname));
+int oc_add LDAP_P((LDAP_OBJECT_CLASS *oc, char **err));
+
 
 /*
  * schemaparse.c
  */
 
-void parse_oc LDAP_P(( Backend *be, char *fname, int lineno, int argc, char **argv ));
+void parse_oc_old LDAP_P(( Backend *be, char *fname, int lineno, int argc, char **argv ));
+void parse_oc LDAP_P(( char *fname, int lineno, char * line ));
+void parse_at LDAP_P(( char *fname, int lineno, char *line ));
 
 /*
  * str2filter.c
@@ -311,8 +321,8 @@ extern ldap_pvt_thread_mutex_t	crypt_mutex;
 #endif
 extern ldap_pvt_thread_mutex_t	gmtime_mutex;
 
-extern struct acl	*global_acl;
-extern struct objclass	*global_oc;
+extern struct acl		*global_acl;
+extern ObjectClass		*global_oc;
 
 extern int	slap_init LDAP_P((int mode, char* name));
 extern int	slap_startup LDAP_P((int dbnum));

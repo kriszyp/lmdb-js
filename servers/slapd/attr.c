@@ -22,6 +22,10 @@
 
 #include "slap.h"
 
+#ifdef LDAP_DEBUG
+static void at_index_print( void );
+#endif
+
 void
 attr_free( Attribute *a )
 {
@@ -174,11 +178,11 @@ attr_delete(
 
 #define DEFAULT_SYNTAX	SYNTAX_CIS
 
+/* Force compilation errors by commenting out this
 struct asyntaxinfo {
 	char	**asi_names;
 	int	asi_syntax;
 };
-
 static Avlnode	*attr_syntaxes = NULL;
 
 static int
@@ -228,6 +232,8 @@ attr_syntax_dup(
 	return( 1 );
 }
 
+*/
+
 /*
  * attr_syntax - return the syntax of attribute type
  */
@@ -235,14 +241,11 @@ attr_syntax_dup(
 int
 attr_syntax( char *type )
 {
-	struct asyntaxinfo	*asi = NULL;
+	AttributeType	*sat;
 
-	if ( (asi = (struct asyntaxinfo *) avl_find( attr_syntaxes, type,
-            (AVL_CMP) attr_syntax_name_cmp )) != NULL ||
-		(asi = (struct asyntaxinfo *) avl_find_lin( attr_syntaxes, type,
-			(AVL_CMP) attr_syntax_names_cmp )) != NULL )
-	{
-		return( asi->asi_syntax );
+	sat = at_find(type);
+	if ( sat ) {
+		return( sat->sat_syntax_compat );
 	}
 
 	return( DEFAULT_SYNTAX );
@@ -261,8 +264,10 @@ attr_syntax_config(
 )
 {
 	char			*save;
-	struct asyntaxinfo	*a;
+	LDAP_ATTRIBUTE_TYPE	*at;
 	int			lasti;
+	int			code;
+	char			*err;
 
 	if ( argc < 2 ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -271,23 +276,30 @@ attr_syntax_config(
 		return;
 	}
 
-	a = (struct asyntaxinfo *) ch_calloc( 1, sizeof(struct asyntaxinfo) );
+	at = (LDAP_ATTRIBUTE_TYPE *)
+		ch_calloc( 1, sizeof(LDAP_ATTRIBUTE_TYPE) );
 
 	lasti = argc - 1;
 	if ( strcasecmp( argv[lasti], "caseignorestring" ) == 0 ||
 	    strcasecmp( argv[lasti], "cis" ) == 0 ) {
-		a->asi_syntax = SYNTAX_CIS;
+		at->at_syntax_oid = "1.3.6.1.4.1.1466.115.121.1.15";
+		at->at_equality_oid = "2.5.13.2";
 	} else if ( strcasecmp( argv[lasti], "telephone" ) == 0 ||
 	    strcasecmp( argv[lasti], "tel" ) == 0 ) {
-		a->asi_syntax = (SYNTAX_CIS | SYNTAX_TEL);
+		at->at_syntax_oid = "1.3.6.1.4.1.1466.115.121.1.50";
+		at->at_equality_oid = "2.5.13.20";
 	} else if ( strcasecmp( argv[lasti], "dn" ) == 0 ) {
-		a->asi_syntax = (SYNTAX_CIS | SYNTAX_DN);
+		at->at_syntax_oid = "1.3.6.1.4.1.1466.115.121.1.12";
+		at->at_equality_oid = "2.5.13.1";
 	} else if ( strcasecmp( argv[lasti], "caseexactstring" ) == 0 ||
 	    strcasecmp( argv[lasti], "ces" ) == 0 ) {
-		a->asi_syntax = SYNTAX_CES;
+		at->at_syntax_oid = "1.3.6.1.4.1.1466.115.121.1.15";
+		/* notice: this is caseExactIA5Match */
+		at->at_equality_oid = "1.3.6.1.4.1.1466.109.114.1";
 	} else if ( strcasecmp( argv[lasti], "binary" ) == 0 ||
 	    strcasecmp( argv[lasti], "bin" ) == 0 ) {
-		a->asi_syntax = SYNTAX_BIN;
+		at->at_syntax_oid = "1.3.6.1.4.1.1466.115.121.1.5";
+		/* There is no match for binary syntax. Really */
 	} else {
 		Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: unknown syntax \"%s\" in attribute line (ignored)\n",
@@ -295,50 +307,292 @@ attr_syntax_config(
 		Debug( LDAP_DEBUG_ANY,
     "possible syntaxes are \"cis\", \"ces\", \"tel\", \"dn\", or \"bin\"\n",
 		    0, 0, 0 );
-		free( (char *) a );
+		free( (AttributeType *) at );
 		return;
 	}
+
 	save = argv[lasti];
 	argv[lasti] = NULL;
-	a->asi_names = charray_dup( argv );
+	at->at_names = charray_dup( argv );
 	argv[lasti] = save;
 
-	switch ( avl_insert( &attr_syntaxes, (caddr_t) a,
-		(AVL_CMP) attr_syntax_cmp,
-	    (AVL_DUP) attr_syntax_dup ) ) {
-	case -1:	/* duplicate - different syntaxes */
-		Debug( LDAP_DEBUG_ARGS, "%s: line %d: duplicate attribute\n",
-		    fname, lineno, 0 );
-		/* FALL */
-
-	case 1:		/* duplicate - same syntaxes */
-		charray_free( a->asi_names );
-		free( (char *) a );
-		break;
-
-	default:	/* inserted */
-		break;
+	code = at_add( at, &err );
+	if ( code ) {
+		fprintf( stderr, "%s: line %d: %s %s\n",
+			 fname, lineno, scherr2str(code), err);
+		exit( 1 );
 	}
+	ldap_memfree(at);
+}
+
+int
+at_fake_if_needed(
+    char	*name
+)
+{
+	char *argv[3];
+
+	if ( at_find( name ) ) {
+		return 0;
+	} else {
+		argv[0] = name;
+		argv[1] = "cis";
+		argv[2] = NULL;
+		attr_syntax_config( "implicit", 0, 2, argv );
+		return 0;
+	}
+}
+
+struct aindexrec {
+	char		*air_name;
+	AttributeType	*air_at;
+};
+
+static Avlnode	*attr_index = NULL;
+static AttributeType *attr_list = NULL;
+
+static int
+attr_index_cmp(
+    struct aindexrec	*air1,
+    struct aindexrec	*air2
+)
+{
+	return (strcasecmp( air1->air_name, air2->air_name ));
+}
+
+static int
+attr_index_name_cmp(
+    char 		*type,
+    struct aindexrec	*air
+)
+{
+	return (strcasecmp( type, air->air_name ));
+}
+
+AttributeType *
+at_find(
+    char		*name
+)
+{
+	struct aindexrec	*air = NULL;
+
+	if ( (air = (struct aindexrec *) avl_find( attr_index, name,
+            (AVL_CMP) attr_index_name_cmp )) != NULL ) {
+		return( air->air_at );
+	}
+	return( NULL );
+}
+
+int
+at_append_to_list(
+    AttributeType	*sat,
+    AttributeType	***listp
+)
+{
+	AttributeType	**list;
+	AttributeType	**list1;
+	int		size;
+
+	list = *listp;
+	if ( !list ) {
+		size = 2;
+		list = calloc(size, sizeof(AttributeType *));
+		if ( !list ) {
+			return -1;
+		}
+	} else {
+		size = 0;
+		list1 = *listp;
+		while ( *list1 ) {
+			size++;
+			list1++;
+		}
+		size += 2;
+		list1 = realloc(list, size*sizeof(AttributeType *));
+		if ( !list1 ) {
+			return -1;
+		}
+		list = list1;
+	}
+	list[size-2] = sat;
+	list[size-1] = NULL;
+	*listp = list;
+	return 0;
+}
+
+int
+at_delete_from_list(
+    int			pos,
+    AttributeType	***listp
+)
+{
+	AttributeType	**list;
+	AttributeType	**list1;
+	int		i;
+	int		j;
+
+	if ( pos < 0 ) {
+		return -2;
+	}
+	list = *listp;
+	for ( i=0; list[i]; i++ )
+		;
+	if ( pos >= i ) {
+		return -2;
+	}
+	for ( i=pos, j=pos+1; list[j]; i++, j++ ) {
+		list[i] = list[j];
+	}
+	list[i] = NULL;
+	/* Tell the runtime this can be shrinked */
+	list1 = realloc(list, (i+1)*sizeof(AttributeType **));
+	if ( !list1 ) {
+		return -1;
+	}
+	*listp = list1;
+	return 0;
+}
+
+int
+at_find_in_list(
+    AttributeType	*sat,
+    AttributeType	**list
+)
+{
+	int	i;
+
+	if ( !list ) {
+		return -1;
+	}
+	for ( i=0; list[i]; i++ ) {
+		if ( sat == list[i] ) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+static int
+at_insert(
+    AttributeType	*sat,
+    char		**err
+)
+{
+	AttributeType		**atp;
+	struct aindexrec	*air;
+	char			**names;
+
+	atp = &attr_list;
+	while ( *atp != NULL ) {
+		atp = &(*atp)->sat_next;
+	}
+	*atp = sat;
+
+	if ( sat->sat_atype.at_oid ) {
+		air = (struct aindexrec *)
+			ch_calloc( 1, sizeof(struct aindexrec) );
+		air->air_name = sat->sat_atype.at_oid;
+		air->air_at = sat;
+		if ( avl_insert( &attr_index, (caddr_t) air,
+				 (AVL_CMP) attr_index_cmp,
+				 (AVL_DUP) avl_dup_error ) ) {
+			*err = sat->sat_atype.at_oid;
+			ldap_memfree(air);
+			return SLAP_SCHERR_DUP_ATTR;
+		}
+		/* FIX: temporal consistency check */
+		at_find(air->air_name);
+	}
+	if ( (names = sat->sat_atype.at_names) ) {
+		while ( *names ) {
+			air = (struct aindexrec *)
+				ch_calloc( 1, sizeof(struct aindexrec) );
+			air->air_name = ch_strdup(*names);
+			air->air_at = sat;
+			if ( avl_insert( &attr_index, (caddr_t) air,
+					 (AVL_CMP) attr_index_cmp,
+					 (AVL_DUP) avl_dup_error ) ) {
+				*err = *names;
+				ldap_memfree(air);
+				return SLAP_SCHERR_DUP_ATTR;
+			}
+			/* FIX: temporal consistency check */
+			at_find(air->air_name);
+			names++;
+		}
+	}
+
+	return 0;
+}
+
+int
+at_add(
+    LDAP_ATTRIBUTE_TYPE	*at,
+    char		**err
+)
+{
+	AttributeType	*sat;
+	AttributeType	*sat1;
+	int		code;
+	char		*errattr;
+
+	if ( at->at_names && at->at_names[0] ) {
+		errattr = at->at_names[0];
+	} else {
+		errattr = at->at_oid;
+	}
+	sat = (AttributeType *) ch_calloc( 1, sizeof(AttributeType) );
+	memcpy( &sat->sat_atype, at, sizeof(LDAP_ATTRIBUTE_TYPE));
+	if ( at->at_sup_oid ) {
+		if ( (sat1 = at_find(at->at_sup_oid)) ) {
+			sat->sat_sup = sat1;
+			if ( at_append_to_list(sat, &sat1->sat_subtypes) ) {
+				*err = errattr;
+				return SLAP_SCHERR_OUTOFMEM;
+			}
+		} else {
+			*err = errattr;
+			return SLAP_SCHERR_ATTR_NOT_FOUND;
+		}
+	}
+
+	if ( !strcmp(at->at_syntax_oid, "1.3.6.1.4.1.1466.115.121.1.15") ) {
+		if ( !strcmp(at->at_equality_oid,
+			     "1.3.6.1.4.1.1466.109.114.1") ) {
+			sat->sat_syntax_compat = SYNTAX_CES;
+		} else {
+			sat->sat_syntax_compat = SYNTAX_CIS;
+		}
+	} else if ( !strcmp(at->at_syntax_oid,
+			    "1.3.6.1.4.1.1466.115.121.1.50") ) {
+		sat->sat_syntax_compat = SYNTAX_CIS | SYNTAX_TEL;
+	} else if ( !strcmp(at->at_syntax_oid, "1.3.6.1.4.1.1466.115.121.1.12") ) {
+		sat->sat_syntax_compat = SYNTAX_CIS | SYNTAX_DN;
+	} else if ( !strcmp(at->at_syntax_oid, "1.3.6.1.4.1.1466.115.121.1.5") ) {
+		sat->sat_syntax_compat = SYNTAX_BIN;
+	} else {
+		sat->sat_syntax_compat = DEFAULT_SYNTAX;
+	}
+
+	code = at_insert(sat,err);
+	return code;
 }
 
 #ifdef LDAP_DEBUG
 
 static int
-attr_syntax_printnode( struct asyntaxinfo *a )
+at_index_printnode( struct aindexrec *air )
 {
-	int	i;
 
-	printf( "syntax: 0x%x\n", a->asi_syntax );
-	for ( i = 0; a->asi_names[i] != NULL; i++ ) {
-		printf( " name: %s\n", a->asi_names[i] );
-	}
+	printf( "%s = %s\n", air->air_name, ldap_attributetype2str(&air->air_at->sat_atype) );
 	return( 0 );
 }
 
 static void
-attr_syntax_print( void )
+at_index_print( void )
 {
-	(void) avl_apply( attr_syntaxes, (AVL_APPLY) attr_syntax_printnode,
+	printf("Printing attribute type index:\n");
+	(void) avl_apply( attr_index, (AVL_APPLY) at_index_printnode,
 		0, -1, AVL_INORDER );
 }
 
