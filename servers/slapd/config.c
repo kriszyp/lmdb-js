@@ -1214,9 +1214,9 @@ read_config( const char *fname )
 				} else if( strcasecmp( cargv[i], "none" ) != 0 ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-						   "%s: line %d: unknownfeature %s in "
-						   "\"disallow <features>\" line.\n",
-						   fname, lineno ));
+						"%s: line %d: unknown feature %s in "
+						"\"disallow <features>\" line.\n",
+						fname, lineno, cargv[i] ));
 #else
 					Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: unknown feature %s in \"disallow <features>\" line\n",
