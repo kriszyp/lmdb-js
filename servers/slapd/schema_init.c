@@ -31,11 +31,10 @@
 #define SLAP_NVALUES 1
 
 /* not yet implemented */
-#define objectIdentifierNormalize NULL
-#define integerOrderingMatch NULL
-#define uniqueMemberMatch NULL
 #define integerFirstComponentNormalize NULL
+#define objectIdentifierNormalize NULL
 #define objectIdentifierFirstComponentNormalize NULL
+#define uniqueMemberMatch NULL
 
 #define	OpenLDAPaciMatch			NULL
 
@@ -1465,6 +1464,45 @@ oidValidate(
 }
 
 static int
+integerValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	ber_len_t i;
+	struct berval val = *in;
+
+	if( val.bv_len == 0 ) return LDAP_INVALID_SYNTAX;
+
+	if ( val.bv_val[0] == '-' ) {
+		val.bv_len--;
+		val.bv_val++;
+
+		if( val.bv_len == 0 ) { /* bare "-" */
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		if( val.bv_val[0] == '0' ) { /* "-0" */
+			return LDAP_INVALID_SYNTAX;
+		}
+
+	} else if ( val.bv_val[0] == '0' ) {
+		if( val.bv_len == 1 ) { /* "0<more>" */
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		return LDAP_SUCCESS;
+	}
+
+	for( i=0; i < val.bv_len; i++ ) {
+		if( !ASCII_DIGIT(val.bv_val[i]) ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
+static int
 integerMatch(
 	int *matchp,
 	slap_mask_t flags,
@@ -1473,45 +1511,34 @@ integerMatch(
 	struct berval *value,
 	void *assertedValue )
 {
-	char *v, *av;
-	int vsign = 1, avsign = 1;	/* default sign = '+' */
-	struct berval *asserted;
-	ber_len_t vlen, avlen;
+	struct berval *asserted = (struct berval *) assertedValue;
+	int vsign = 1, asign = 1;	/* default sign = '+' */
+	struct berval v, a;
 	int match;
 
-	/* Skip leading space/sign/zeroes, and get the sign of the *value number */
-	v = value->bv_val;
-	vlen = value->bv_len;
-
-#ifndef SLAP_NVALUES
-	if( mr == slap_schema.si_mr_integerFirstComponentMatch ) {
-		char *tmp = memchr( v, '$', vlen );
-		if( tmp ) vlen = tmp - v;
-		while( vlen && ASCII_SPACE( v[vlen-1] )) vlen--;
-	}
-#endif
-
-	for( ; vlen && ( *v < '1' || '9' < *v ); v++, vlen-- ) { /* ANSI 2.2.1 */
-		if( *v == '-' ) vsign = -1;
+	v = *value;
+	if( v.bv_val[0] == '-' ) {
+		vsign = -1;
+		v.bv_val++;
+		v.bv_len--;
 	}
 
-	if( vlen == 0 ) vsign = 0;
+	if( v.bv_len == 0 ) vsign = 0;
 
-	/* Do the same with the *assertedValue number */
-	asserted = (struct berval *) assertedValue;
-	av = asserted->bv_val;
-	avlen = asserted->bv_len;
-	for( ; avlen && ( *av < '1' || '9' < *av ); av++, avlen-- )
-		if( *av == '-' )
-			avsign = -1;
-	if( avlen == 0 )
-		avsign = 0;
+	a = *asserted;
+	if( a.bv_val[0] == '-' ) {
+		asign = -1;
+		a.bv_val++;
+		a.bv_len--;
+	}
 
-	match = vsign - avsign;
+	if( a.bv_len == 0 ) vsign = 0;
+
+	match = vsign - asign;
 	if( match == 0 ) {
-		match = (vlen != avlen
-			? ( vlen < avlen ? -1 : 1 )
-			: memcmp( v, av, vlen ));
+		match = ( v.bv_len != a.bv_len
+			? ( v.bv_len < a.bv_len ? -1 : 1 )
+			: memcmp( v.bv_val, a.bv_val, v.bv_len ));
 		if( vsign < 0 ) match = -match;
 	}
 
@@ -1519,83 +1546,6 @@ integerMatch(
 	return LDAP_SUCCESS;
 }
 	
-static int
-integerValidate(
-	Syntax *syntax,
-	struct berval *val )
-{
-	ber_len_t i;
-
-	if( !val->bv_len ) return LDAP_INVALID_SYNTAX;
-
-	if(( val->bv_val[0] == '+' ) || ( val->bv_val[0] == '-' )) {
-		if( val->bv_len < 2 ) return LDAP_INVALID_SYNTAX;
-
-	} else if( !ASCII_DIGIT(val->bv_val[0]) ) {
-		return LDAP_INVALID_SYNTAX;
-	}
-
-	for( i=1; i < val->bv_len; i++ ) {
-		if( !ASCII_DIGIT(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
-	}
-
-	return LDAP_SUCCESS;
-}
-
-static int
-integerNormalize(
-	slap_mask_t use,
-	Syntax *syntax,
-	MatchingRule *mr,
-	struct berval *val,
-	struct berval *normalized,
-	void *ctx )
-{
-	char *p;
-	int negative=0;
-	ber_len_t len;
-
-	p = val->bv_val;
-	len = val->bv_len;
-
-	/* Ignore leading spaces */
-	while ( len && ( *p == ' ' )) {
-		p++;
-		len--;
-	}
-
-	/* save sign */
-	if( len ) {
-		negative = ( *p == '-' );
-		if(( *p == '-' ) || ( *p == '+' )) {
-			p++;
-			len--;
-		}
-	}
-
-	/* Ignore leading zeros */
-	while ( len && ( *p == '0' )) {
-		p++;
-		len--;
-	}
-
-	/* If there are no non-zero digits left, the number is zero, otherwise
-	   allocate space for the number and copy it into the buffer */
-	if( len == 0 ) {
-		normalized->bv_val = ber_strdup_x("0", ctx);
-		normalized->bv_len = 1;
-
-	} else {
-		normalized->bv_len = len+negative;
-		normalized->bv_val = sl_malloc( normalized->bv_len + 1, ctx );
-		if( negative ) normalized->bv_val[0] = '-';
-		AC_MEMCPY( normalized->bv_val + negative, p, len );
-		normalized->bv_val[len+negative] = '\0';
-	}
-
-	return LDAP_SUCCESS;
-}
-
 static int
 countryStringValidate(
 	Syntax *syntax,
@@ -2978,14 +2928,14 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.14 NAME 'integerMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
-		NULL, integerNormalize, integerMatch,
+		NULL, NULL, integerMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL },
 
 	{"( 2.5.13.15 NAME 'integerOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_ORDERING, NULL,
-		NULL, integerNormalize, integerOrderingMatch,
+		NULL, NULL, integerMatch,
 		NULL, NULL,
 		"integerMatch" },
 
@@ -3065,9 +3015,10 @@ static slap_mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.29 NAME 'integerFirstComponentMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT, integerFirstComponentMatchSyntaxes,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+			integerFirstComponentMatchSyntaxes,
 		NULL, integerFirstComponentNormalize, integerMatch,
-		NULL, NULL,
+		octetStringIndexer, octetStringFilter,
 		NULL },
 
 	{"( 2.5.13.30 NAME 'objectIdentifierFirstComponentMatch' "
@@ -3139,14 +3090,14 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 1.2.840.113556.1.4.803 NAME 'integerBitAndMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_EXT, NULL,
-		NULL, integerNormalize, integerBitAndMatch,
+		NULL, NULL, integerBitAndMatch,
 		NULL, NULL,
 		"integerMatch" },
 
 	{"( 1.2.840.113556.1.4.804 NAME 'integerBitOrMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_EXT, NULL,
-		NULL, integerNormalize, integerBitOrMatch,
+		NULL, NULL, integerBitOrMatch,
 		NULL, NULL,
 		"integerMatch" },
 
