@@ -1,6 +1,7 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.19 Engineering
+	Fixed slapd check for mandatory filter in authz-regexp URI (ITS#3396)
 	Build Environment
 		Updated BDB mismatch messages
 

@@ -312,18 +312,27 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 	}
 		
 	rc = ldap_url_parse( uri->bv_val, &ludp );
-	if ( rc == LDAP_URL_ERR_BADSCHEME ) {
+ 	switch ( rc ) {
+ 	case LDAP_URL_SUCCESS:
+ 		if ( strcasecmp( ludp->lud_scheme, "ldap" ) != 0 ) {
+ 			/*
+ 			 * must be ldap:///
+ 			 */
+ 			return LDAP_PROTOCOL_ERROR;
+ 		}
+ 		break;
+ 
+ 	case LDAP_URL_ERR_BADSCHEME:
 		/* last chance: assume it's a(n exact) DN ... */
 		bv.bv_val = uri->bv_val;
 		*scope = LDAP_X_SCOPE_EXACT;
 		goto is_dn;
-	}
 
-	if ( rc != LDAP_URL_SUCCESS ) {
+	default:
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if (( ludp->lud_host && *ludp->lud_host )
+	if ( ( ludp->lud_host && *ludp->lud_host )
 		|| ludp->lud_attrs || ludp->lud_exts )
 	{
 		/* host part must be empty */
@@ -923,7 +932,13 @@ void slap_sasl2dn( Operation *opx,
 		op.o_req_ndn.bv_val, op.oq_search.rs_scope, 0 );
 #endif
 
-	if(( op.o_bd == NULL ) || ( op.o_bd->be_search == NULL)) {
+	if ( ( op.o_bd == NULL ) || ( op.o_bd->be_search == NULL) ) {
+		goto FINISHED;
+	}
+
+	/* Must run an internal search. */
+	if ( op.ors_filter == NULL ) {
+		rc = LDAP_FILTER_ERROR;
 		goto FINISHED;
 	}
 
