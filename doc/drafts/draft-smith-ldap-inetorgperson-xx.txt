@@ -1,0 +1,1117 @@
+The LDAP inetOrgPerson Object Class                          Mark Smith
+INTERNET-DRAFT                                  Netscape Communications
+Intended Category: Informational                          22 April 1999
+Expires: 22 October 1999
+
+           Definition of the inetOrgPerson LDAP Object Class
+            Filename: draft-smith-ldap-inetorgperson-03.txt
+
+
+1.  Status of this Memo
+
+This document is an Internet-Draft and is in full conformance with all
+provisions of Section 10 of RFC2026.  Internet-Drafts are working docu-
+ments of the Internet Engineering Task Force (IETF), its areas, and its
+working groups.  Note that other groups may also distribute working
+documents as Internet-Drafts.
+
+Internet-Drafts are draft documents valid for a maximum of six months
+and may be updated, replaced, or obsoleted by other documents at any
+time.  It is inappropriate to use Internet-Drafts as reference material
+or to cite them other than as "work in progress."
+
+The list of current Internet-Drafts can be accessed at
+http://www.ietf.org/ietf/1id-abstracts.txt.
+
+The list of Internet-Draft Shadow Directories can be accessed at
+http://www.ietf.org/shadow.html.
+
+This draft document will be submitted to the RFC Editor as an Informa-
+tional document. Distribution of this memo is unlimited. Please send
+comments to the author <mcs@netscape.com>.
+
+Copyright (C) The Internet Society (1996-1999). All Rights Reserved.
+
+Please see the Copyright section near the end of this document for more
+information.
+
+This Internet Draft expires on 22 October 1999.
+
+
+2.  Abstract
+
+While the X.500 standards define many useful attribute types [X520] and
+object classes [X521], they do not define a person object class that
+meets the requirements found in today's Internet and Intranet directory
+service deployments.  We define a new object class called inetOrgPerson
+for use in LDAP and X.500 directory services that extends the X.521
+standard organizationalPerson class to meet these needs.
+
+
+
+M. Smith                 Network Working Group                  [Page 1]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+3.  Table of Contents
+
+1.     Status of this Memo............................................1
+2.     Abstract.......................................................1
+3.     Table of Contents..............................................2
+4.     Background and Intended Usage..................................3
+5.     New Attribute Types Used in the inetOrgPerson Object Class.....3
+5.1.      Vehicle license or registration plate.......................3
+5.2.      Department number...........................................4
+5.3.      Display Name................................................4
+5.4.      Employee Number.............................................4
+5.5.      Employee Type...............................................4
+5.6.      JPEG Photograph.............................................5
+5.7.      Preferred Language..........................................5
+5.8.      User S/MIME Certificate.....................................5
+5.9.      User PKCS #12...............................................6
+6.     Definition of the inetOrgPerson Object Class...................6
+7.     Example of an inetOrgPerson Entry..............................7
+8.     Security Considerations........................................8
+9.     Acknowledgments................................................8
+10.    Copyright......................................................8
+11.    Bibliography...................................................9
+12.    Author's Address...............................................10
+13.    Appendix A - inetOrgPerson Schema Summary......................10
+13.1.     Attribute Types.............................................10
+13.1.1.      New attribute types that are defined in this document....10
+13.1.2.      Attribute types from RFC 2256............................12
+13.1.3.      Attribute types from RFC 1274............................15
+13.1.4.      Attribute type from RFC 2079.............................17
+13.2.     Syntaxes....................................................17
+13.2.1.      Syntaxes from RFC 2252...................................17
+13.2.2.      Syntaxes from RFC 2256...................................17
+13.3.     Matching Rules..............................................18
+13.3.1.      Matching rules from RFC 2252.............................18
+13.3.2.      Matching rule from RFC 2256..............................18
+13.3.3.      Additional matching rules from X.520.....................19
+13.3.4.      Matching rules not defined in any referenced document....19
+14.    Appendix B - Change History....................................20
+
+
+
+
+
+
+
+
+
+
+
+
+
+M. Smith                 Network Working Group                  [Page 2]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+4.  Background and Intended Usage
+
+The inetOrgPerson object class is a general purpose object class that
+holds attributes about people.  The attributes it holds were chosen to
+accommodate information requirements found in typical Internet and
+Intranet directory service deployments.  The inetOrgPerson object class
+is designed to be used within directory services based on the LDAP
+[RFC2251] and the X.500 family of protocols, and it should be useful in
+other contexts as well.  There is no requirement for directory services
+implementors to use the inetOrgPerson object class; it is simply
+presented as well-documented class that implementors can choose to use
+if they find it useful.
+
+The attribute type and object class definitions in this document are
+written using the BNF form of AttributeTypeDescription and
+ObjectClassDescription given in [RFC2252].  In some cases lines have
+been folded for readability.
+
+Attributes that are referenced but not defined in this document are
+included in one of the following documents:
+
+   The COSINE and Internet X.500 Schema [RFC1274]
+
+   Definition of an X.500 Attribute Type and an Object Class to Hold
+   Uniform Resource Identifiers (URIs) [RFC2079]
+
+   A Summary of the X.500(96) User Schema for use with LDAPv3 [RFC2256]
+
+See Appendix A for a summary of the attribute types, associated syn-
+taxes, and matching rules used in this document.
+
+
+5.  New Attribute Types Used in the inetOrgPerson Object Class
+
+
+5.1.  Vehicle license or registration plate.
+
+This multivalued field is used to record the values of the license or
+registration plate associated with an individual.
+
+    ( 2.16.840.1.113730.3.1.1 NAME 'carLicense'
+      DESC 'vehicle license or registration plate'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+
+
+
+
+
+M. Smith                 Network Working Group                  [Page 3]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+5.2.  Department number
+
+Code for department to which a person belongs.  This can also be
+strictly numeric (e.g., 1234) or alphanumeric (e.g., ABC/123).
+
+    ( 2.16.840.1.113730.3.1.2
+      NAME 'departmentNumber'
+      DESC 'identifies a department within an organization'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+
+5.3.  Display Name
+
+When displaying an entry, especially within a one-line summary list, it
+is useful to be able to identify a name to be used.  Since other attri-
+bute types such as 'cn' are multivalued, an additional attribute type is
+needed.  Display name is defined for this purpose.
+
+    ( 2.16.840.1.113730.3.1.241
+      NAME 'displayName'
+      DESC 'preferred name of a person to be used when displaying entries'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+      SINGLE-VALUE )
+
+
+5.4.  Employee Number
+
+Numeric or alphanumeric identifier assigned to a person, typically based
+on order of hire or association with an organization.  Single valued.
+
+    ( 2.16.840.1.113730.3.1.3
+      NAME 'employeeNumber'
+      DESC 'numerically identifies an employee within an organization'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+      SINGLE-VALUE )
+
+
+5.5.  Employee Type
+
+Used to identify the employer to employee relationship.  Typical values
+used will be "Contractor", "Employee", "Intern", "Temp", "External", and
+"Unknown" but any value may be used.
+
+
+
+M. Smith                 Network Working Group                  [Page 4]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+    ( 2.16.840.1.113730.3.1.4
+      NAME 'employeeType'
+      DESC 'type of employment for a person'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+
+5.6.  JPEG Photograph
+
+Used to store one or more images of a person using the JPEG File Inter-
+change Format [JFIF].
+
+    ( 0.9.2342.19200300.100.1.60
+      NAME 'jpegPhoto'
+      DESC 'a JPEG image'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.28 )
+
+Note that the jpegPhoto attribute type was defined for use in the Inter-
+net X.500 pilots but no referencable definition for it could be located.
+
+
+5.7.  Preferred Language
+
+Used to indicate an individual's preferred written or spoken language.
+This is useful for international correspondence or human-computer
+interaction.  Values for this attribute type MUST conform to the defini-
+tion of the Accept-Language header field defined in [RFC2068] with one
+exception:  the sequence "Accept-Language" ":" should be omitted.  This
+is a single valued attribute type.
+
+    ( 2.16.840.1.113730.3.1.39
+      NAME 'preferredLanguage'
+      DESC 'preferred written or spoken language for a person'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+      SINGLE-VALUE )
+)
+
+
+5.8.  User S/MIME Certificate
+
+An S/MIME [RFC1847] signed message with a zero-length body.  This attri-
+bute is to be stored and requested in binary form, as
+'userSMIMECertificate;binary'.  It contains the person's entire certifi-
+cate chain and the signed attribute that describes their algorithm capa-
+bilities, stored as binary data.  If available, this attribute is
+
+
+
+M. Smith                 Network Working Group                  [Page 5]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+preferred over the userCertificate attribute for S/MIME applications.
+
+    ( 2.16.840.1.113730.3.1.40
+      NAME 'userSMIMECertificate'
+      DESC 'signed message used to support S/MIME'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.5 )
+
+
+5.9.  User PKCS #12
+
+PKCS #12 [PKCS12] provides a format for exchange of personal identity
+information.  When such information is stored in a directory service,
+the userPKCS12 attribute should be used. This attribute is to be stored
+and requested in binary form, as 'userPKCS12;binary'.  The attribute
+values are PFX PDUs stored as binary data.
+
+    ( 2.16.840.1.113730.3.1.216
+      NAME 'userPKCS12'
+      DESC 'PKCS #12 PFX PDU for exchange of personal identity information'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.5 )
+)
+
+
+6.  Definition of the inetOrgPerson Object Class
+
+The inetOrgPerson represents people who are associated with an organiza-
+tion in some way.  It is a structural class and is derived from the
+organizationalPerson class which is defined in X.521 [X521].
+
+( 2.16.840.1.113730.3.2.2
+    NAME 'inetOrgPerson'
+    SUP organizationalPerson
+    STRUCTURAL
+    MAY (
+        audio $ businessCategory $ carLicense $ departmentNumber $
+        displayName $ employeeNumber $ employeeType $ givenName $ homePhone $
+        homePostalAddress $ initials $ jpegPhoto $ labeledURI $
+        mail $ manager $ mobile $ o $ pager $
+        photo $ roomNumber $ secretary $ uid $ userCertificate $
+        x500uniqueIdentifier $ preferredLanguage $ userSMIMECertificate $
+        userPKCS12
+    )
+)
+
+
+For reference, we list the following additional attribute types that are
+part of the inetOrgPerson object class.  These attribute types are
+inherited from organizationalPerson (which in turn is derived from the
+
+
+
+M. Smith                 Network Working Group                  [Page 6]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+person object class):
+
+    MUST (
+        cn $ objectClass $ sn
+    )
+    MAY (
+        description $ destinationIndicator $ facsimileTelephoneNumber $
+        internationaliSDNNumber $ l $ ou $ physicalDeliveryOfficeName $
+        postalAddress $ postalCode $ postOfficeBox $
+        preferredDeliveryMethod $ registeredAddress $ seeAlso $
+        st $ street $ telephoneNumber $ teletexTerminalIdentifier $
+        telexNumber $ title $ userPassword $ x121Address
+    )
+
+
+7.  Example of an inetOrgPerson Entry
+
+The following example is expressed using the LDIF notation defined in
+[LDIF].
+
+dn: cn=Barbara Jensen,ou=Product Development,dc=airius,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Barbara Jensen
+cn: Babs Jensen
+displayName: Babs Jensen
+sn: Jensen
+givenName: Barbara
+initials: BJJ
+title: manager, product development
+uid: bjensen
+mail: bjensen@airius.com
+telephoneNumber: +1 408 555 1862
+facsimileTelephoneNumber: +1 408 555 1992
+mobile: +1 408 555 1941
+roomNumber: 0209
+carLicense: 6ABC246
+o: Airius
+ou: Product Development
+departmentNumber: 2604
+employeeNumber: 42
+employeeType: full time
+preferredLanguage: fr, en-gb;q=0.8, en;q=0.7
+labeledURI: http://www.airius.com/users/bjensen My Home Page
+
+
+
+
+
+M. Smith                 Network Working Group                  [Page 7]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+8.  Security Considerations
+
+Attributes of directory entries are used to provide descriptive informa-
+tion about the real-world objects they represent, which can be people,
+organizations or devices.  Most countries have privacy laws regarding
+the publication of information about people.
+
+Transfer of cleartext passwords are strongly discouraged where the
+underlying transport service cannot guarantee confidentiality and may
+result in disclosure of the password to unauthorized parties.
+
+
+9.  Acknowledgments
+
+The Netscape Directory Server team created the inetOrgPerson object
+class based on experience and customer requirements.  Anil Bhavnani and
+John Kristian in particular deserve credit for all of the early design
+work.
+
+Many members of the Internet community, in particular those in the IETF
+ASID and LDAPEXT groups, also contributed to the design of this object
+class.
+
+
+10.  Copyright
+
+Copyright (C) The Internet Society (1996-1999). All Rights Reserved.
+
+This document and translations of it may be copied and furnished to oth-
+ers, and derivative works that comment on or otherwise explain it or
+assist in its implementation may be prepared, copied, published and dis-
+tributed, in whole or in part, without restriction of any kind, provided
+that the above copyright notice and this paragraph are included on all
+such copies and derivative works.  However, this document itself may not
+be modified in any way, such as by removing the copyright notice or
+references to the Internet Society or other Internet organizations,
+except as needed for the  purpose of developing Internet standards in
+which case the procedures for copyrights defined in the Internet Stan-
+dards process must be followed, or as required to translate it into
+languages other than English.
+
+The limited permissions granted above are perpetual and will not be
+revoked by the Internet Society or its successors or assigns.
+
+This document and the information contained herein is provided on an "AS
+IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING TASK
+FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN WILL NOT
+
+
+
+M. Smith                 Network Working Group                  [Page 8]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FIT-
+NESS FOR A PARTICULAR PURPOSE.
+
+
+
+11.  Bibliography
+
+[JFIF]
+     E. Hamilton, "JPEG File Interchange Format (Version 1.02)", C-Cube
+     Microsystems, Milpitas, CA, September 1, 1992.
+
+[LDIF]
+     G. Good, "The LDAP Data Interchange Format (LDIF) - Technical
+     Specification" INTERNET-DRAFT <draft-good-ldap-ldif-02.txt>, 1
+     February 1999.
+
+
+[PKCS12]
+     "PKCS #12: Personal Information Exchange Standard", Version 1.0
+     DRAFT, 30 April 1997.
+
+[RFC1274]
+     P. Barker, S. Kille, "The COSINE and Internet X.500 Schema", RFC
+     1274, November 1991.
+
+[RFC1847]
+     J. Galvin, S. Murphy, S. Crocker, N. Freed, "Security Multiparts
+     for MIME:  Multipart/Signed and Multipart/Encrypted", RFC 1847,
+     October 1995.
+
+[RFC2068]
+     R. Fielding, J. Gettys, J. Mogul, H. Frystyk, T. Berners-Lee,
+     "Hypertext Transfer Protocol -- HTTP/1.1", RFC 2068, January 1997.
+
+[RFC2079]
+     M. Smith, "Definition of an X.500 Attribute Type and an Object
+     Class to Hold Uniform Resource Identifiers (URIs)", RFC 2079, Janu-
+     ary 1997.
+
+[RFC2251]
+     M. Wahl, T. Howes, S. Kille, "Lightweight Directory Access Protocol
+     (v3)", RFC 2251, December 1997.
+
+[RFC2252]
+     M. Wahl, A. Coulbeck, T. Howes, S. Kille, W. Yeong, C. Robbins,
+     "Lightweight Directory Access Protocol (v3): Attribute Syntax
+     Definitions", RFC 2252, December 1997.
+
+
+
+
+M. Smith                 Network Working Group                  [Page 9]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+[RFC2256]
+     M. Wahl, "A Summary of the X.500(96) User Schema for use with
+     LDAPv3", RFC 2256, December 1997.
+
+[X520]
+     ITU-T Rec. X.520, "The Directory: Selected Attribute Types", 1996.
+
+[X521]
+        ITU-T Rec. X.521, "The Directory: Selected Object Classes",
+        1996.
+
+
+12.  Author's Address
+
+Mark Smith
+Netscape Communications Corp.
+501 E. Middlefield Rd., Mailstop MV068
+Mountain View, CA 94043, USA
+Phone:  +1 650 937-3477
+EMail:  mcs@netscape.com
+
+
+13.  Appendix A - inetOrgPerson Schema Summary
+
+This appendix provides definitions of all the attribute types included
+in the inetOrgPerson object class along with their associated syntaxes
+and matching rules.
+
+13.1.  Attribute Types
+
+
+13.1.1.  New attribute types that are defined in this document
+
+    ( 2.16.840.1.113730.3.1.1 NAME 'carLicense'
+      DESC 'vehicle license or registration plate'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+    ( 2.16.840.1.113730.3.1.2
+      NAME 'departmentNumber'
+      DESC 'identifies a department within an organization'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+    ( 2.16.840.1.113730.3.1.241
+      NAME 'displayName'
+
+
+
+M. Smith                 Network Working Group                 [Page 10]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+      DESC 'preferred name of a person to be used when displaying entries'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+      SINGLE-VALUE )
+
+    ( 2.16.840.1.113730.3.1.3
+      NAME 'employeeNumber'
+      DESC 'numerically identifies an employee within an organization'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+      SINGLE-VALUE )
+
+    ( 2.16.840.1.113730.3.1.4
+      NAME 'employeeType'
+      DESC 'type of employment for a person'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+    ( 0.9.2342.19200300.100.1.60
+      NAME 'jpegPhoto'
+      DESC 'a JPEG image'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.28 )
+    Note: The jpegPhoto attribute type was defined for use in the
+      Internet X.500 pilots but no referencable definition for it
+      could be located.
+
+    ( 2.16.840.1.113730.3.1.39
+      NAME 'preferredLanguage'
+      DESC 'preferred written or spoken language for a person'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+      SINGLE-VALUE )
+
+    ( 2.16.840.1.113730.3.1.40
+      NAME 'userSMIMECertificate'
+      DESC 'signed message used to support S/MIME'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )
+
+    ( 2.16.840.1.113730.3.1.216
+      NAME 'userPKCS12'
+      DESC 'PKCS #12 PFX PDU for exchange of personal identity information'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )
+
+
+
+
+
+M. Smith                 Network Working Group                 [Page 11]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+13.1.2.  Attribute types from RFC 2256
+
+Note that the original definitions of these types can be found in X.520.
+
+    ( 2.5.4.15
+      NAME 'businessCategory'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{128} )
+
+    ( 2.5.4.3
+      NAME 'cn'
+      SUP name )
+
+    ( 2.5.4.13
+      NAME 'description'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{1024} )
+
+    ( 2.5.4.27
+      NAME 'destinationIndicator'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{128} )
+
+    ( 2.5.4.23
+      NAME 'facsimileTelephoneNumber'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.22 )
+
+    ( 2.5.4.42
+      NAME 'givenName'
+      SUP name )
+
+    ( 2.5.4.43
+      NAME 'initials'
+      SUP name )
+
+    ( 2.5.4.25
+      NAME 'internationaliSDNNumber'
+      EQUALITY numericStringMatch
+      SUBSTR numericStringSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.36{16} )
+
+    ( 2.5.4.7
+      NAME 'l'
+      SUP name )
+
+
+
+
+M. Smith                 Network Working Group                 [Page 12]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+    ( 2.5.4.0
+      NAME 'objectClass'
+      EQUALITY objectIdentifierMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )
+
+    ( 2.5.4.10
+      NAME 'o'
+      SUP name )
+
+    ( 2.5.4.11
+      NAME 'ou'
+      SUP name )
+
+    ( 2.5.4.19
+      NAME 'physicalDeliveryOfficeName'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{128} )
+
+    ( 2.5.4.18
+      NAME 'postOfficeBox'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{40} )
+
+    ( 2.5.4.16
+      NAME 'postalAddress'
+      EQUALITY caseIgnoreListMatch
+      SUBSTR caseIgnoreListSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )
+
+    ( 2.5.4.17
+      NAME 'postalCode'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{40} )
+
+    ( 2.5.4.28
+      NAME 'preferredDeliveryMethod'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.14
+      SINGLE-VALUE )
+
+    ( 2.5.4.26
+      NAME 'registeredAddress'
+      SUP postalAddress
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )
+
+    ( 2.5.4.34
+
+
+
+M. Smith                 Network Working Group                 [Page 13]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+      NAME 'seeAlso'
+      SUP distinguishedName )
+
+    ( 2.5.4.4
+      NAME 'sn'
+      SUP name )
+
+    ( 2.5.4.8
+      NAME 'st'
+      SUP name )
+
+    ( 2.5.4.9
+      NAME 'street'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{128} )
+
+    ( 2.5.4.20
+      NAME 'telephoneNumber'
+      EQUALITY telephoneNumberMatch
+      SUBSTR telephoneNumberSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.50{32} )
+
+    ( 2.5.4.22
+      NAME 'teletexTerminalIdentifier'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.51 )
+
+    ( 2.5.4.21
+      NAME 'telexNumber'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.52 )
+
+    ( 2.5.4.12
+      NAME 'title'
+      SUP name )
+
+    ( 2.5.4.36
+      NAME 'userCertificate'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 )
+
+    ( 2.5.4.35
+      NAME 'userPassword'
+      EQUALITY octetStringMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{128} )
+
+    ( 2.5.4.24
+      NAME 'x121Address'
+      EQUALITY numericStringMatch
+      SUBSTR numericStringSubstringsMatch
+
+
+
+M. Smith                 Network Working Group                 [Page 14]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.36{15} )
+
+    ( 2.5.4.45
+      NAME 'x500UniqueIdentifier'
+      EQUALITY bitStringMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 )
+
+Some attribute types included in inetOrgPerson are derived from the
+'name' and 'distinguishedName' attribute supertypes:
+
+    ( 2.5.4.41
+      NAME 'name'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
+
+    ( 2.5.4.49
+      NAME 'distinguishedName'
+      EQUALITY distinguishedNameMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )
+
+
+13.1.3.  Attribute types from RFC 1274
+
+    ( 0.9.2342.19200300.100.1.55
+      NAME 'audio'
+      EQUALITY octetStringMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{250000} )
+    Note: The syntax used here for the audio attribute type is Octet
+      String. RFC 1274 uses a syntax called audio which is not defined
+      in RFC 1274.
+
+    ( 0.9.2342.19200300.100.1.20
+      NAME 'homePhone'
+      EQUALITY telephoneNumberMatch
+      SUBSTR telephoneNumberSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )
+    Note: RFC 1274 uses the longer name 'homeTelephoneNumber'.
+
+    ( 0.9.2342.19200300.100.1.39
+      NAME 'homePostalAddress'
+      EQUALITY caseIgnoreListMatch
+      SUBSTR caseIgnoreListSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )
+
+    ( 0.9.2342.19200300.100.1.3
+      NAME 'mail'
+      EQUALITY caseIgnoreIA5Match
+
+
+
+M. Smith                 Network Working Group                 [Page 15]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+      SUBSTR caseIgnoreIA5SubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} )
+    Note: RFC 1274 uses the longer name 'rfc822Mailbox' and syntax OID
+      of 0.9.2342.19200300.100.3.5.  The newer LDAP RFCs refer to this
+      this attribute as 'mail' and define the IA5 String syntax using
+      using the OID 1.3.6.1.4.1.1466.115.121.1.26, as is done here.
+
+    ( 0.9.2342.19200300.100.1.10
+      NAME 'manager'
+      EQUALITY distinguishedNameMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )
+
+    ( 0.9.2342.19200300.100.1.41
+      NAME 'mobile'
+      EQUALITY telephoneNumberMatch
+      SUBSTR telephoneNumberSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )
+    Note: RFC 1274 uses the longer name 'mobileTelephoneNumber'.
+
+    ( 0.9.2342.19200300.100.1.42
+      NAME 'pager'
+      EQUALITY telephoneNumberMatch
+      SUBSTR telephoneNumberSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )
+    Note: RFC 1274 uses the longer name 'pagerTelephoneNumber'.
+
+    ( 0.9.2342.19200300.100.1.7
+      NAME 'photo' )
+    Note: Photo attribute values are encoded in G3 fax format with an
+      ASN.1 wrapper. Please refer to RFC 1274 section 9.3.7 for
+      detailed syntax information for this attribute.
+
+    ( 0.9.2342.19200300.100.1.6
+      NAME 'roomNumber'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+    ( 0.9.2342.19200300.100.1.21
+      NAME 'secretary'
+      EQUALITY distinguishedNameMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )
+
+    ( 0.9.2342.19200300.100.1.1
+      NAME 'uid'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+
+
+M. Smith                 Network Working Group                 [Page 16]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+    Note: RFC 1274 uses the longer name 'userid'.
+
+
+13.1.4.  Attribute type from RFC 2079
+
+    ( 1.3.6.1.4.1.250.1.57
+      NAME 'labeledURI'
+      EQUALITY caseExactMatch
+      SUBSTR caseExactSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+
+13.2.  Syntaxes
+
+
+13.2.1.  Syntaxes from RFC 2252
+
+    ( 1.3.6.1.4.1.1466.115.121.1.5 DESC 'Binary' )
+
+    ( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )
+
+    ( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' )
+
+    ( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'DN' )
+
+    ( 1.3.6.1.4.1.1466.115.121.1.15 DESC 'Directory String' )
+
+    ( 1.3.6.1.4.1.1466.115.121.1.22 DESC 'Facsimile Telephone Number' )
+
+    ( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5 String' )
+
+    ( 1.3.6.1.4.1.1466.115.121.1.28 DESC 'JPEG' )
+
+    ( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'Numeric String' )
+
+    ( 1.3.6.1.4.1.1466.115.121.1.38 DESC 'OID' )
+
+    ( 1.3.6.1.4.1.1466.115.121.1.41 DESC 'Postal Address' )
+
+    ( 1.3.6.1.4.1.1466.115.121.1.44 DESC 'Printable String' )
+
+    ( 1.3.6.1.4.1.1466.115.121.1.50 DESC 'Telephone Number' )
+
+
+13.2.2.  Syntaxes from RFC 2256
+
+    ( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'Delivery Method' )
+
+
+
+
+M. Smith                 Network Working Group                 [Page 17]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+    ( 1.3.6.1.4.1.1466.115.121.1.40 DESC 'Octet String' )
+
+    ( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'Teletex Terminal Identifier' )
+
+    ( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'Telex Number' )
+
+
+
+13.3.  Matching Rules
+
+
+13.3.1.  Matching rules from RFC 2252
+
+Note that the original definition of many of these matching rules can be
+found in X.520.
+
+    ( 2.5.13.16 NAME 'bitStringMatch'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 )
+
+    ( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+    ( 2.5.13.11 NAME 'caseIgnoreListMatch'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )
+
+    ( 2.5.13.2 NAME 'caseIgnoreMatch'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+    ( 2.5.13.1 NAME 'distinguishedNameMatch'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )
+
+    ( 2.5.13.8 NAME 'numericStringMatch'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )
+
+    ( 2.5.13.0 NAME 'objectIdentifierMatch'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )
+
+    ( 2.5.13.20 NAME 'telephoneNumberMatch'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )
+
+
+13.3.2.  Matching rule from RFC 2256
+
+Note that the original definition of this matching rule can be found in
+X.520.
+
+    ( 2.5.13.17 NAME 'octetStringMatch'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )
+
+
+
+M. Smith                 Network Working Group                 [Page 18]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+13.3.3.  Additional matching rules from X.520
+
+caseExactMatch
+
+    ( 2.5.13.5 NAME 'caseExactMatch'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+This rule determines whether a presented string exactly matches an
+attribute value of syntax DirectoryString.  It is identical to caseIg-
+noreMatch except that case is not ignored.  Multiple adjoining whi-
+tespace characters are treated the same as an individual space, and
+leading and trailing whitespace is ignored.
+
+
+caseExactSubstringsMatch
+
+    ( 2.5.13.7 NAME 'caseExactSubstringsMatch'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+This rules determines whether the initial, any and final substring ele-
+ments in a presented value are present in an attribute value of syntax
+DirectoryString.  It is identical to caseIgnoreSubstringsMatch except
+that case is not ignored.
+
+
+caseIgnoreListSubstringsMatch
+
+    ( 2.5.13.12 NAME 'caseIgnoreListSubstringsMatch'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )
+
+This rule compares a presented substring with an attribute value which
+is a sequence of DirectoryStrings, but where the case of letters is not
+significant for comparison purposes.  A presented value matches a stored
+value if and only if the presented value matches the string formed by
+concatenating the strings of the stored value.  Matching is done accord-
+ing to the caseIgnoreSubstringsMatch rule except that none of the ini-
+tial, final, or any values of the presented value match a substring of
+the concatenated string which spans more than one of the strings of the
+stored value.
+
+
+13.3.4.  Matching rules not defined in any referenced document
+
+caseIgnoreIA5SubstringsMatch
+
+    ( 1.3.6.1.4.1.1466.109.114.3 NAME 'caseIgnoreIA5SubstringsMatch'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+
+
+
+M. Smith                 Network Working Group                 [Page 19]
+
+INTERNET-DRAFT    The LDAP inetOrgPerson Object Class      22 April 1999
+
+
+This rules determines whether the initial, any and final substring ele-
+ments in a presented value are present in an attribute value of syntax
+IA5 String without regard to the case of the letters in the strings.  It
+is expected that this matching rule will be added to an update of RFC
+2252.
+
+
+14.  Appendix B - Change History
+
+Changes since draft-smith-ldap-inetorgperson-02.txt:
+
+   Added the 'o' (organization) attribute as an optional attribute type.
+
+   Changed the displayName attribute type from multi-valued to single-
+   valued.
+
+   Changed the syntax of the userPKCS12 and userSMIMECertificate attri-
+   bute types from Octet String to Binary.
+
+   Added syntaxes and matching rules to Appendix A.
+
+   Replaced "SUBSTRINGS" with "SUBSTR" in attribute type definitions in
+   order to comply with the syntax defined in RFC 2252.
+
+   Updated the example to remove spaces from the DN, to show sample use
+   of the o, ou, and displayName types and to replace the domain names
+   in the mail and labeledURI sample values with a legally cleaner
+   value.
+
+   Updated the X.500 references in the bibliography from 1993 to 1996;
+   removed reference to X.500.
+
+   Improved the formatting of the document slightly by adding vertical
+   white space and my moving the table of contents close to the begin-
+   ning.
+
+
+            This Internet Draft expires on 22 October 1999.
+
+
+
+
+
+
+
+
+
+
+
+
+
+M. Smith                 Network Working Group                 [Page 20]
+
