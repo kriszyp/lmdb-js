@@ -1,6 +1,6 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.7 Engineering
+OpenLDAP 2.2.8 Release
 	Fixed slapd syncrepl bugs (ITS#2948,2995)
 	Fixed slapd sasl-regexp multiple entry bug (ITS#3033)
 	Fixed slapd bind method portability bug (ITS#3038)
