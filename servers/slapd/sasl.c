@@ -1664,11 +1664,16 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 
 	/* All strings are in DN form now. Normalize if needed. */
 	if ( do_norm ) {
+		if ( is_dn != SET_U ) {
+			struct berval dntmp;
+			
+			ber_dupbv( &dntmp, dn );
+			dn->bv_val = dntmp.bv_val;
+		}
 		rc = dnNormalize2( NULL, dn, &dn2 );
 
 		/* User DNs were constructed above and must be freed now */
-		if ( is_dn == SET_U )
-			ch_free( dn->bv_val );
+		ch_free( dn->bv_val );
 
 		if ( rc != LDAP_SUCCESS ) {
 			dn->bv_val = NULL;
