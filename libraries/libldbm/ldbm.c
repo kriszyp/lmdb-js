@@ -304,6 +304,9 @@ LDBM
 ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 {
 	LDBM		ret = NULL;
+#ifdef HAVE_EBCDIC
+	char n2[2048];
+#endif
 
 #if DB_VERSION_MAJOR >= 3
 	int err;
@@ -326,6 +329,12 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 
 	/* likely should use ber_mem* routines */
 
+#ifdef HAVE_EBCDIC
+	strncpy(n2, name, sizeof(n2)-1);
+	n2[sizeof(n2)-1] = '\0';
+	__atoe(n2);
+	name = n2;
+#endif
 	err = ret->open( ret, name, NULL, DB_TYPE, rw, mode);
 
 	if ( err != 0 ) {
@@ -603,6 +612,14 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 	LDBM		db;
 #ifdef HAVE_ST_BLKSIZE
 		struct stat	st;
+#endif
+#ifdef HAVE_EBCDIC
+	char n2[2048];
+
+	strncpy(n2, name, sizeof(n2)-1);
+	n2[sizeof(n2)-1] = '\0';
+	__atoe(n2);
+	name = n2;
 #endif
 
 	LDBM_WLOCK;
