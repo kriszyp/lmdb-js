@@ -67,6 +67,9 @@ LDAP_BEGIN_DECL
 #endif
 
 #define LDAP_PORT		389
+#ifdef HAVE_TLS
+#define LDAP_TLS_PORT		636
+#endif
 
 #define LDAP_ROOT_DSE				""
 #define LDAP_NO_ATTRS				"1.1"
