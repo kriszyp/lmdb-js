@@ -1127,6 +1127,14 @@ createTimestamp attributes for entries.  By default, lastmod is on.
 Specifies the maximum number of aliases to dereference when trying to
 resolve an entry, used to avoid infinite alias loops. The default is 1.
 .TP
+.B overlay <overlay-name>
+Add the specified overlay to this database. An overlay is a piece of
+code that intercepts database operations in order to extend or change
+them. Overlays are pushed onto
+a stack over the database, and so they will execute in the reverse
+of the order in which they were configured and the database itself
+will receive control last of all.
+.TP
 .B readonly on | off
 This option puts the database into "read-only" mode.  Any attempts to 
 modify the database will return an "unwilling to perform" error.  By
