@@ -3,20 +3,17 @@
 
 
 
-
 INTERNET-DRAFT                                      Kurt D. Zeilenga
 Intended Category: Informational                    OpenLDAP Foundation
-Expires in six months                               26 October 2003
+Expires in six months                               18 July 2004
 
 
-               LDAP: Requesting Attributes by Object Class
-                   <draft-zeilenga-ldap-adlist-06.txt>
+               Requesting Attributes by Object Class in the
+                  Lightweight Directory Access Protocol
+                   <draft-zeilenga-ldap-adlist-08.txt>
 
 
 Status of this Memo
-
-  This document is an Internet-Draft and is in full conformance with all
-  provisions of Section 10 of RFC2026.
 
   This document is intended to be, after appropriate review and
   revision, submitted to the RFC Editor as an Informational document.
@@ -25,20 +22,27 @@ Status of this Memo
   <ldapext@ietf.org>.  Please send editorial comments directly to the
   author <Kurt@OpenLDAP.org>.
 
+  By submitting this Internet-Draft, I accept the provisions of Section
+  4 of RFC 3667.  By submitting this Internet-Draft, I certify that any
+  applicable patent or other IPR claims of which I am aware have been
+  disclosed, or will be disclosed, and any of which I become aware will
+  be disclosed, in accordance with RFC 3668.
+
   Internet-Drafts are working documents of the Internet Engineering Task
-  Force (IETF), its areas, and its working groups.  Note that other
+  Force (IETF), its areas, and its working groups. Note that other
   groups may also distribute working documents as Internet-Drafts.
+
   Internet-Drafts are draft documents valid for a maximum of six months
   and may be updated, replaced, or obsoleted by other documents at any
-  time.  It is inappropriate to use Internet-Drafts as reference
-  material or to cite them other than as ``work in progress.''
+  time. It is inappropriate to use Internet-Drafts as reference material
+  or to cite them other than as "work in progress."
 
   The list of current Internet-Drafts can be accessed at
-  <http://www.ietf.org/ietf/1id-abstracts.txt>. The list of
+  <http://www.ietf.org/ietf/1id-abstracts.txt>.  The list of
   Internet-Draft Shadow Directories can be accessed at
   <http://www.ietf.org/shadow.html>.
 
-  Copyright (C) The Internet Society (2003).  All Rights Reserved.
+  Copyright (C) The Internet Society (2004).  All Rights Reserved.
 
   Please see the Full Copyright section near the end of this document
   for more information.
@@ -47,17 +51,19 @@ Status of this Memo
 Abstract
 
   The Lightweight Directory Access Protocol (LDAP) search operation
-  provides mechanisms for clients to request all user application
-  attributes, all operational attributes, or attributes selected by
-  their description.  This document extends LDAP to provide a mechanism
-  for LDAP clients to request the return of all attributes of an object
-  class.
 
 
 
 Zeilenga          Requesting Attributes by Object Class         [Page 1]
 
-INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
+INTERNET-DRAFT        draft-zeilenga-ldap-adlist-08         18 July 2004
+
+
+  provides mechanisms for clients to request all user application
+  attributes, all operational attributes, and/or attributes selected by
+  their description.  This document extends LDAP to support a mechanism
+  that LDAP clients may use to request the return of all attributes
+  belonging to an object class.
 
 
 1.  Overview
@@ -66,17 +72,17 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
   search operation [RFC2251] support requesting a sets of attributes.
   This set is determined by a list of attribute descriptions.  Two
   special descriptors are defined to request all user attributes ("*")
-  [RFC2251] and all operational attributes ("+") [OPATTRS].  However,
+  [RFC2251] and all operational attributes ("+") [RFC3673].  However,
   there is no convenient mechanism for requesting pre-defined sets of
   attributes.
 
   This document extends LDAP to allow an object class identifier to be
-  specified in search request attributes list to request the return all
-  attributes allowed by object class.  A plus sign ("+", U+002B) is used
-  to distinguish an object class identifier from an attribute
-  descriptions.
+  specified in attributes lists, such as in Search requests, to request
+  the return all attributes belonging to an object class.  The
+  COMMERCIAL AT ("@", U+0040) character is used to distinguish an object
+  class identifier from an attribute descriptions.
 
-  For example, the attribute list of "+country" is equivalent to the
+  For example, the attribute list of "@country" is equivalent to the
   attribute list of 'c', 'searchGuide', 'description', and
   'objectClass'.  This object class and its attributes are described in
   [RFC2256].
@@ -99,23 +105,25 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
 3.  Return of all Attributes of an Object Class
 
   This extension allows object class identifiers is to be provided in
-  the attributes field of the LDAP SearchRequest [RFC2251].  For each
-  object class identified in the attributes field, the request is to be
-  treated as if each attribute allowed by that class (by "MUST" or
-  "MAY", directly or by SUPerior) was itself listed.
-
-  If the object class identifier is unrecognized, it is be treated an an
-  unrecognized attribute description.
-
-  This extension redefines the attributes field of the SearchRequest to
+  the attributes field of the LDAP SearchRequest [RFC2251] or other
+  request structures who borrow the attributes field and its semantics
 
 
 
 Zeilenga          Requesting Attributes by Object Class         [Page 2]
 
-INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
+INTERNET-DRAFT        draft-zeilenga-ldap-adlist-08         18 July 2004
 
 
+  (e.g., attributes field in pre/post read controls [READENTRY]).  For
+  each object class identified in the attributes field, the request is
+  to be treated as if each attribute allowed by that class (by "MUST" or
+  "MAY", directly or by "SUP"erior) was itself listed.
+
+  If the object class identifier is unrecognized, it is be treated an an
+  unrecognized attribute description.
+
+  This extension redefines the attributes field of the SearchRequest to
   be a DescriptionList described by the following ASN.1 [X.680] data
   type:
 
@@ -125,7 +133,8 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
   The Description is string conforming to the ABNF [RFC2234]:
 
        Description = AttributeDescription | ObjectClassDescription.
-       ObjectClassDescription = "+" ObjectClass *( ";" options )
+       ObjectClassDescription = AtSign ObjectClass *( ";" options )
+       AtSign = "@" ; U+0040
 
   where <AttributeDescription> and <options> productions are as defined
   in Section 4.1.5 of [RFC2251] and an <ObjectClass> is an object
@@ -138,8 +147,8 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
   may be defined in future specifications.
 
   Servers supporting this feature SHOULD publish the object identifier
-  (OID) 1.3.6.1.4.1.4203.1.11.2 as a value of the 'supportedFeatures'
-  [FEATURES] attribute in the root DSE.  Clients supporting this feature
+  (OID) IANA-ASSIGNED-OID as a value of the 'supportedFeatures'
+  [RFC3674] attribute in the root DSE.  Clients supporting this feature
   SHOULD NOT use the feature unless they have knowledge the server
   supports it.
 
@@ -148,29 +157,24 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
 
   This extension provides a shorthand for requesting all attributes of
   an object class.  As these attributes which could have been listed
-  individually, this short hand is not believed to raise additional
+  individually, this shorthand is not believed to raise additional
   security considerations.
 
   Implementors of this (or any) LDAP extension should be familiar with
   general LDAP security considerations [RFC3377].
 
 
-4.  IANA Considerations
-
-  The OID 1.3.6.1.4.1.4203.1.11.2 is used to identify the LDAP "OC AD
-  List" feature.  This OID was assigned [ASSIGN] by OpenLDAP Foundation,
-  under its IANA-assigned private enterprise allocation [PRIVATE], for
-  use in this specification.
-
-  Registration of this protocol mechanism is requested per BCP 64
-  [RFC3383].
-
 
 
 Zeilenga          Requesting Attributes by Object Class         [Page 3]
 
-INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
+INTERNET-DRAFT        draft-zeilenga-ldap-adlist-08         18 July 2004
 
+
+4.  IANA Considerations
+
+  Registration of the LDAP Protocol Mechanism [RFC3383] defined in
+  document is requested.
 
       Subject: Request for LDAP Protocol Mechanism Registration
       Object Identifier: 1.3.6.1.4.1.4203.1.5.2
@@ -182,12 +186,17 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
       Author/Change Controller: Kurt Zeilenga <kurt@openldap.org>
       Comments: none
 
+  This OID was assigned [ASSIGN] by OpenLDAP Foundation, under its
+  IANA-assigned private enterprise allocation [PRIVATE], for use in this
+  specification.
+
 
 5.  Author's Address
 
   Kurt D. Zeilenga
   OpenLDAP Foundation
-  <Kurt@OpenLDAP.org>
+
+  Email: Kurt@OpenLDAP.org
 
 
 6. Normative References
@@ -209,8 +218,16 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
                 Protocol (v3): Technical Specification", RFC 3377,
                 September 2002.
 
-  [FEATURES]    Zeilenga, K., "Feature Discovery in LDAP",
-                draft-zeilenga-ldap-features-xx.txt, a work in progress.
+  [Features]    Zeilenga, K., "Feature Discovery in LDAP", RFC 3674,
+
+
+
+Zeilenga          Requesting Attributes by Object Class         [Page 4]
+
+INTERNET-DRAFT        draft-zeilenga-ldap-adlist-08         18 July 2004
+
+
+                December 2003.
 
   [X.680]       International Telecommunication Union -
                 Telecommunication Standardization Sector, "Abstract
@@ -220,14 +237,6 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
 
 7. Informative References
 
-
-
-
-Zeilenga          Requesting Attributes by Object Class         [Page 4]
-
-INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
-
-
   [RFC2255]     Howes, T. and M. Smith, "The LDAP URL Format", RFC 2255,
                 December, 1997.
 
@@ -236,6 +245,13 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
 
   [RFC3383]     Zeilenga, K., "IANA Considerations for LDAP", BCP 64
                 (also RFC 3383), September 2002.
+
+  [RFC3673]     Zeilenga, K., "LDAPv3: All Operational Attributes", RFC
+                3673, December 2003.
+
+  [READENTRY]   Zeilenga, K., "LDAP Read Entry Controls",
+                draft-zeilenga-ldap-readentry-xx.txt, a work in
+                progress.
 
   [ASSIGN]      OpenLDAP Foundation, "OpenLDAP OID Delegations",
                 http://www.openldap.org/foundation/oid-delegate.txt.
@@ -247,37 +263,78 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
 
 Full Copyright
 
-  Copyright (C) The Internet Society (2003). All Rights Reserved.
+  Copyright (C) The Internet Society (2004).  This document is subject
+  to the rights, licenses and restrictions contained in BCP 78, and
+  except as set forth therein, the authors retain all their rights.
 
-  This document and translations of it may be copied and furnished to
-  others, and derivative works that comment on or otherwise explain it
-  or assist in its implmentation may be prepared, copied, published and
-  distributed, in whole or in part, without restriction of any kind,
-  provided that the above copyright notice and this paragraph are
-  included on all such copies and derivative works.  However, this
-  document itself may not be modified in any way, such as by removing
-  the copyright notice or references to the Internet Society or other
-  Internet organizations, except as needed for the  purpose of
-  developing Internet standards in which case the procedures for
-  copyrights defined in the Internet Standards process must be followed,
-  or as required to translate it into languages other than English.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  This document and the information contained herein are provided on an
+  "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+  OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
+  ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
+  INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+  INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+  WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 
 
 
 Zeilenga          Requesting Attributes by Object Class         [Page 5]
 
+INTERNET-DRAFT        draft-zeilenga-ldap-adlist-08         18 July 2004
+
+
+Intellectual Property Rights
+
+  The IETF takes no position regarding the validity or scope of any
+  Intellectual Property Rights or other rights that might be claimed to
+  pertain to the implementation or use of the technology described in
+  this document or the extent to which any license under such rights
+  might or might not be available; nor does it represent that it has
+  made any independent effort to identify any such rights.  Information
+  on the procedures with respect to rights in RFC documents can be found
+  in BCP 78 and BCP 79.
+
+  Copies of IPR disclosures made to the IETF Secretariat and any
+  assurances of licenses to be made available, or the result of an
+  attempt made to obtain a general license or permission for the use of
+  such proprietary rights by implementers or users of this specification
+  can be obtained from the IETF on-line IPR repository at
+  http://www.ietf.org/ipr.
+
+  The IETF invites any interested party to bring to its attention any
+  copyrights, patents or patent applications, or other proprietary
+  rights that may cover technology that may be required to implement
+  this standard.  Please address the information to the IETF at
+  ietf-ipr@ietf.org.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga          Requesting Attributes by Object Class         [Page 6]
+
+
+
