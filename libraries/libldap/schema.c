@@ -1838,11 +1838,25 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp, const in
 						      flags);
 				if ( !at->at_syntax_oid ) {
 				    if ( flags & LDAP_SCHEMA_ALLOW_OID_MACRO ) {
-					int len = ss-savepos;
-					at->at_syntax_oid = LDAP_MALLOC(len+1);
-					strncpy(at->at_syntax_oid, savepos,
-						len);
-					at->at_syntax_oid[len] = 0;
+					kind = get_token(&ss,&sval);
+					if (kind == TK_BAREWORD)
+					{
+					    char *sp = strchr(sval, '{');
+					    at->at_syntax_oid = sval;
+					    if (sp)
+					    {
+						*sp++ = 0;
+					    	at->at_syntax_len = atoi(sp);
+						while ( LDAP_DIGIT(*sp) )
+							sp++;
+						if ( *sp != '}' ) {
+						    *code = LDAP_SCHERR_UNEXPTOKEN;
+						    *errp = ss;
+						    ldap_attributetype_free(at);
+						    return NULL;
+						}
+					    }
+					}
 				    } else {
 					*errp = ss;
 					ldap_attributetype_free(at);
