@@ -15,7 +15,7 @@
 #include "ldap-int.h"
 #include "ldapconfig.h"
 
-struct ldapoptions openldap_ldap_global_options; 
+struct ldapoptions openldap_ldap_global_options = { LDAP_DEBUG_NONE };  
 
 #undef gopts
 #define gopts openldap_ldap_global_options
@@ -284,9 +284,9 @@ void openldap_ldap_initialize( void )
 	if ( openldap_ldap_initialized ) {
 		return;
 	}
-	
+
 	ldap_pvt_init_utils();
-	
+
 	gopts.ldo_version =	LDAP_VERSION2;
 	gopts.ldo_deref =	LDAP_DEREF_NEVER;
 	gopts.ldo_timelimit = LDAP_NO_LIMIT;

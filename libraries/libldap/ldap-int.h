@@ -19,6 +19,9 @@
 #include "../liblber/lber-int.h"
 
 #define ldap_debug	(openldap_ldap_global_options.ldo_debug)
+#undef Debug
+#define Debug( level, fmt, arg1, arg2, arg3 ) \
+	ldap_log_printf( NULL, (level), (fmt), (arg1), (arg2), (arg3) )
 
 #include "ldap_log.h"
 
@@ -76,12 +79,12 @@ struct ldapmsg {
  * which have global defaults.
  */
 struct ldapoptions {
+	int		ldo_debug;
+
 	int		ldo_version;	/* version to connect at */
 	int		ldo_deref;
 	int		ldo_timelimit;
 	int		ldo_sizelimit;
-
-	int		ldo_debug;
 
 	int		ldo_defport;
 	char*	ldo_defbase;
@@ -238,6 +241,11 @@ struct ldap {
 extern int openldap_ldap_initialized;
 extern struct ldapoptions openldap_ldap_global_options;
 void openldap_ldap_initialize LDAP_P((void));
+
+/*
+ * in print.c
+ */
+int ldap_log_printf LDAP_P((LDAP *ld, int level, char *fmt, ...));
 
 /*
  * in cache.c
