@@ -1398,7 +1398,11 @@ dn_match_cleanup:;
 			/* get the aci attribute */
 			at = attr_find( e->e_attrs, b->a_aci_at );
 			if ( at != NULL ) {
+#if 0
+				/* FIXME: this breaks acl caching;
+				 * see also ACL_RECORD_VALUE_STATE below */
 				ACL_RECORD_VALUE_STATE;
+#endif
 				/* the aci is an multi-valued attribute.  The
 				* rights are determined by OR'ing the individual
 				* rights given by the acis.
@@ -1427,47 +1431,56 @@ dn_match_cleanup:;
 				while ( parent_ndn.bv_val != old_parent_ndn.bv_val ){
 					old_parent_ndn = parent_ndn;
 					Debug(LDAP_DEBUG_ACL, "checking ACI of %s\n", parent_ndn.bv_val, 0, 0);
-					ret=backend_attribute(op, NULL, &parent_ndn, b->a_aci_at, &bvals);
+					ret = backend_attribute(op, NULL, &parent_ndn, b->a_aci_at, &bvals);
 					switch(ret){
-						case LDAP_SUCCESS :
-							if(bvals){
-								for( i = 0; bvals[i].bv_val != NULL; i++){
-									ACL_RECORD_VALUE_STATE;
-									if (aci_mask(op, e, desc, val, &bvals[i], matches,
-											&grant, &deny, &aci_bv_children) != 0) {
-										tgrant |= grant;
-										tdeny |= deny;
-										/* evaluation stops as soon as either a "deny" or a 
-										 * "grant" directive matches.
-										 */
-										if( (tgrant != ACL_PRIV_NONE) || (tdeny != ACL_PRIV_NONE) ){
-											stop=1;
-										}
-									}
-									Debug(LDAP_DEBUG_ACL, "<= aci_mask grant %s deny %s\n", 
-										accessmask2str(tgrant,accessmaskbuf),
-										accessmask2str(tdeny, accessmaskbuf1), 0);
+					case LDAP_SUCCESS :
+						stop = 0;
+						if (!bvals){
+							break;
+						}
+
+						for( i = 0; bvals[i].bv_val != NULL; i++){
+#if 0
+							/* FIXME: this breaks acl caching;
+							 * see also ACL_RECORD_VALUE_STATE above */
+							ACL_RECORD_VALUE_STATE;
+#endif
+							if (aci_mask(op, e, desc, val, &bvals[i], matches,
+									&grant, &deny, &aci_bv_children) != 0) {
+								tgrant |= grant;
+								tdeny |= deny;
+								/* evaluation stops as soon as either a "deny" or a 
+								 * "grant" directive matches.
+								 */
+								if( (tgrant != ACL_PRIV_NONE) || (tdeny != ACL_PRIV_NONE) ){
+									stop = 1;
 								}
 							}
-							stop=0;
-							break;
-						case LDAP_NO_SUCH_ATTRIBUTE:
-							/* just go on if the aci-Attribute is not present in
-							 * the current entry 
-							 */
-							Debug(LDAP_DEBUG_ACL, "no such attribute\n", 0, 0, 0);
-							stop=0;
-							break;
-						case LDAP_NO_SUCH_OBJECT:
-							/* We have reached the base object */
-							Debug(LDAP_DEBUG_ACL, "no such object\n", 0, 0, 0);
-							stop=1;
-							break;
-						default:
-							stop=1;
-							break;
+							Debug(LDAP_DEBUG_ACL, "<= aci_mask grant %s deny %s\n", 
+								accessmask2str(tgrant,accessmaskbuf),
+								accessmask2str(tdeny, accessmaskbuf1), 0);
+						}
+						break;
+
+					case LDAP_NO_SUCH_ATTRIBUTE:
+						/* just go on if the aci-Attribute is not present in
+						 * the current entry 
+						 */
+						Debug(LDAP_DEBUG_ACL, "no such attribute\n", 0, 0, 0);
+						stop = 0;
+						break;
+
+					case LDAP_NO_SUCH_OBJECT:
+						/* We have reached the base object */
+						Debug(LDAP_DEBUG_ACL, "no such object\n", 0, 0, 0);
+						stop = 1;
+						break;
+
+					default:
+						stop = 1;
+						break;
 					}
-					if(stop){
+					if (stop){
 						break;
 					}
 					dnParent(&old_parent_ndn, &parent_ndn);
