@@ -1,7 +1,16 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1999-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2004 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
 /*
  * schema.c:  parsing routines used by servers and clients to process
@@ -1173,8 +1182,8 @@ parse_qdescrs(const char **sp, int *code)
 					}
 					res = res1;
 				}
-				res[pos] = sval;
-				pos++;
+				res[pos++] = sval;
+				res[pos] = NULL;
 				parse_whsp(sp);
 			} else {
 				LDAP_VFREE(res);
@@ -1183,7 +1192,6 @@ parse_qdescrs(const char **sp, int *code)
 				return(NULL);
 			}
 		}
-		res[pos] = NULL;
 		parse_whsp(sp);
 		return(res);
 	} else if ( kind == TK_QDESCR ) {
@@ -1301,8 +1309,8 @@ parse_oids(const char **sp, int *code, const int allow_quoted)
 		kind = get_token(sp,&sval);
 		if ( kind == TK_BAREWORD ||
 		     ( allow_quoted && kind == TK_QDSTRING ) ) {
-			res[pos] = sval;
-			pos++;
+			res[pos++] = sval;
+			res[pos] = NULL;
 		} else {
 			*code = LDAP_SCHERR_UNEXPTOKEN;
 			LDAP_FREE(sval);
@@ -1331,8 +1339,8 @@ parse_oids(const char **sp, int *code, const int allow_quoted)
 						}
 						res = res1;
 					}
-					res[pos] = sval;
-					pos++;
+					res[pos++] = sval;
+					res[pos] = NULL;
 				} else {
 					*code = LDAP_SCHERR_UNEXPTOKEN;
 					LDAP_FREE(sval);
@@ -1347,7 +1355,6 @@ parse_oids(const char **sp, int *code, const int allow_quoted)
 				return NULL;
 			}
 		}
-		res[pos] = NULL;
 		parse_whsp(sp);
 		return(res);
 	} else if ( kind == TK_BAREWORD ||
@@ -2679,9 +2686,36 @@ ldap_str2contentrule( LDAP_CONST char * s,
 	savepos = ss;
 	cr->cr_oid = ldap_int_parse_numericoid(&ss,code,0);
 	if ( !cr->cr_oid ) {
-		*errp = ss;
-		ldap_contentrule_free(cr);
-		return NULL;
+		if ( (flags & LDAP_SCHEMA_ALLOW_ALL) && (ss == savepos) ) {
+			/* Backtracking */
+			ss = savepos;
+			kind = get_token(&ss,&sval);
+			if ( kind == TK_BAREWORD ) {
+				if ( !strcmp(sval, "NAME") ||
+				     !strcmp(sval, "DESC") ||
+				     !strcmp(sval, "OBSOLETE") ||
+				     !strcmp(sval, "AUX") ||
+				     !strcmp(sval, "MUST") ||
+				     !strcmp(sval, "MAY") ||
+				     !strcmp(sval, "NOT") ||
+				     !strncmp(sval, "X-", 2) ) {
+					/* Missing OID, backtrack */
+					ss = savepos;
+				} else if ( flags &
+					LDAP_SCHEMA_ALLOW_OID_MACRO ) {
+					/* Non-numerical OID, ignore */
+					int len = ss-savepos;
+					cr->cr_oid = LDAP_MALLOC(len+1);
+					strncpy(cr->cr_oid, savepos, len);
+					cr->cr_oid[len] = 0;
+				}
+			}
+			LDAP_FREE(sval);
+		} else {
+			*errp = ss;
+			ldap_contentrule_free(cr);
+			return NULL;
+		}
 	}
 	parse_whsp(&ss);
 
