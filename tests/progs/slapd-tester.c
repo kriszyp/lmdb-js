@@ -11,14 +11,12 @@
 
 #include <ac/ctype.h>
 #include <ac/dirent.h>
+#include <ac/param.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
 #include <ac/wait.h>
 
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
 
 #include "ldap_defaults.h"
 

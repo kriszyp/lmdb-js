@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 
+#include <ac/param.h>
 #include <ac/string.h>
 #include <ac/socket.h>
 #include <ac/time.h>
@@ -26,9 +27,6 @@
 
 #ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#endif
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
 #endif
 
 #include "slurp.h"

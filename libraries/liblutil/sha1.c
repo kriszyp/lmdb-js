@@ -30,9 +30,7 @@
 /* include socket.h to get sys/types.h and/or winsock2.h */
 #include <ac/socket.h>
 
-#if defined(HAVE_SYS_PARAM_H)
-#include <sys/param.h>
-#endif
+#include <ac/param.h>
 
 #include "lutil_sha1.h"
 

@@ -22,6 +22,7 @@
 #include <ac/stdlib.h>
 
 #include <ac/ctype.h>
+#include <ac/param.h>
 #include <ac/signal.h>
 #include <ac/string.h>
 #include <ac/sysexits.h>
@@ -31,10 +32,6 @@
 #include <ac/wait.h>
 
 #include <sys/stat.h>
-
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
 
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>

@@ -21,16 +21,13 @@
 #include <stdio.h>
 
 #include <ac/errno.h>
+#include <ac/param.h>
 #include <ac/string.h>
 #include <ac/syslog.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
 
 #include <sys/stat.h>
-
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
 
 #include <fcntl.h>
 

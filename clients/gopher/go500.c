@@ -26,11 +26,8 @@
 #include <ac/unistd.h>
 #include <ac/wait.h>
 
+#include <ac/param.h>
 #include <ac/setproctitle.h>
-
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
 
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
