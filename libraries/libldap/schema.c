@@ -1834,7 +1834,7 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp )
 	}
 }
 
-static char *err2text[] = {
+static char *const err2text[] = {
 	"",
 	"Out of memory",
 	"Unexpected token",

@@ -189,7 +189,7 @@ long connection_init LDAP_P((
 
 void connection_closing LDAP_P(( Connection *c ));
 int connection_state_closing LDAP_P(( Connection *c ));
-char *connection_state2str LDAP_P(( int state ));
+const char *connection_state2str LDAP_P(( int state )) LDAP_GCCATTR((const));
 
 int connection_write LDAP_P((ber_socket_t s));
 int connection_read LDAP_P((ber_socket_t s));
@@ -387,7 +387,7 @@ void parse_oc_old LDAP_P(( Backend *be, const char *fname, int lineno, int argc,
 void parse_oc LDAP_P(( const char *fname, int lineno, char *line, char **argv ));
 void parse_at LDAP_P(( const char *fname, int lineno, char *line, char **argv ));
 void parse_oidm LDAP_P(( const char *fname, int lineno, int argc, char **argv ));
-char *scherr2str LDAP_P((int code));
+char *scherr2str LDAP_P((int code)) LDAP_GCCATTR((const));
 int dscompare LDAP_P(( const char *s1, const char *s2del, char delim ));
 /*
  * str2filter.c

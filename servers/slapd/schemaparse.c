@@ -15,15 +15,13 @@
 #include "slap.h"
 #include "ldap_schema.h"
 
-static Avlnode		*object_classes = NULL;
-
 int	global_schemacheck = 1; /* schemacheck on is default */
 
 static void		oc_usage_old(void) LDAP_GCCATTR((noreturn));
 static void		oc_usage(void)     LDAP_GCCATTR((noreturn));
 static void		at_usage(void)     LDAP_GCCATTR((noreturn));
 
-static char *err2text[] = {
+static char *const err2text[] = {
 	"",
 	"Out of memory",
 	"Objectclass not found",

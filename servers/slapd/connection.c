@@ -35,7 +35,9 @@ static unsigned long conn_nextid = 0;
 #define SLAP_C_BINDING			0x03	/* binding */
 #define SLAP_C_CLOSING			0x04	/* closing */
 
-char* connection_state2str( int state ) {
+const char *
+connection_state2str( int state )
+{
 	switch( state ) {
 	case SLAP_C_INVALID:	return "!";		
 	case SLAP_C_INACTIVE:	return "|";		
