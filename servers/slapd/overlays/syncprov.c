@@ -64,26 +64,24 @@ typedef struct opcookie {
 } opcookie;
 
 typedef struct fbase_cookie {
-	struct berval *fdn;
-	syncops *fss;
-	int fbase;
-	int fsuffix;
+	struct berval *fdn;	/* DN of a modified entry, for scope testing */
+	syncops *fss;	/* persistent search we're testing against */
+	int fbase;	/* if TRUE we found the search base and it's still valid */
+	int fscope;	/* if TRUE then fdn is within the psearch scope */
 } fbase_cookie;
 
 static AttributeName csn_anlist[2];
 static AttributeName uuid_anlist[2];
 
-static int
-dn_avl_cmp( const void *c1, const void *c2 )
-{
-	struct berval *bv1 = (struct berval *)c1;
-	struct berval *bv2 = (struct berval *)c2;
-	int rc = bv1->bv_len - bv2->bv_len;
-
-	if ( rc ) return rc;
-	return ber_bvcmp( bv1, bv2 );
-}
-
+/* syncprov_findbase:
+ *   finds the true DN of the base of a search (with alias dereferencing) and
+ * checks to make sure the base entry doesn't get replaced with a different
+ * entry (e.g., swapping trees via ModDN, or retargeting an alias). If a
+ * change is detected, any persistent search on this base must be terminated /
+ * reloaded.
+ *   On the first call, we just save the DN and entryID. On subsequent calls
+ * we compare the DN and entryID with the saved values.
+ */
 static int
 findbase_cb( Operation *op, SlapReply *rs )
 {
@@ -99,17 +97,40 @@ findbase_cb( Operation *op, SlapReply *rs )
 			fc->fbase = 1;
 			fc->fss->s_eid = rs->sr_entry->e_id;
 			ber_dupbv( &fc->fss->s_base, &rs->sr_entry->e_nname );
+
 		} else if ( rs->sr_entry->e_id == fc->fss->s_eid &&
 			dn_match( &rs->sr_entry->e_nname, &fc->fss->s_base )) {
+
+		/* OK, the DN is the same and the entryID is the same. Now
+		 * see if the fdn resides in the scope.
+		 */
 			fc->fbase = 1;
-			fc->fsuffix = dnIsSuffix( fc->fdn, &rs->sr_entry->e_nname );
+			switch ( fc->fss->s_op->ors_scope ) {
+			case LDAP_SCOPE_BASE:
+				fc->fscope = dn_match( fc->fdn, &rs->sr_entry->e_nname );
+				break;
+			case LDAP_SCOPE_ONELEVEL: {
+				struct berval pdn;
+				dnParent( fc->fdn, &pdn );
+				fc->fscope = dn_match( &pdn, &rs->sr_entry->e_nname );
+				break; }
+			case LDAP_SCOPE_SUBTREE:
+				fc->fscope = dnIsSuffix( fc->fdn, &rs->sr_entry->e_nname );
+				break;
+#ifdef LDAP_SCOPE_SUBORDINATE
+			case LDAP_SCOPE_SUBORDINATE:
+				fc->fscope = dnIsSuffix( fc->fdn, &rs->sr_entry->e_nname ) &&
+					!dn_match( fc->fdn, &rs->sr_entry->e_nname );
+				break;
+#endif
+			}
 		}
 	}
 	return LDAP_SUCCESS;
 }
 
 static int
-syncprov_findbase( Operation *op, syncops *ss, fbase_cookie *fc )
+syncprov_findbase( Operation *op, fbase_cookie *fc )
 {
 	opcookie *opc = op->o_callback->sc_private;
 	slap_overinst *on = opc->son;
@@ -129,15 +150,15 @@ syncprov_findbase( Operation *op, syncops *ss, fbase_cookie *fc )
 	fop.o_callback = &cb;
 	fop.o_tag = LDAP_REQ_SEARCH;
 	fop.ors_scope = LDAP_SCOPE_BASE;
-	fop.ors_deref = ss->s_op->ors_deref;
+	fop.ors_deref = fc->fss->s_op->ors_deref;
 	fop.ors_slimit = 1;
 	fop.ors_tlimit = SLAP_NO_LIMIT;
 	fop.ors_attrs = slap_anlist_no_attrs;
 	fop.ors_attrsonly = 1;
-	fop.ors_filter = ss->s_op->ors_filter;
-	fop.ors_filterstr = ss->s_op->ors_filterstr;
+	fop.ors_filter = fc->fss->s_op->ors_filter;
+	fop.ors_filterstr = fc->fss->s_op->ors_filterstr;
 
-	fop.o_req_ndn = ss->s_op->o_req_ndn;
+	fop.o_req_ndn = fc->fss->s_op->o_req_ndn;
 
 	fop.o_bd->bd_info = on->on_info->oi_orig;
 	rc = fop.o_bd->be_search( &fop, &frs );
@@ -151,6 +172,26 @@ syncprov_findbase( Operation *op, syncops *ss, fbase_cookie *fc )
 	return LDAP_NO_SUCH_OBJECT;
 }
 
+/* syncprov_findcsn:
+ *   This function has three different purposes, but they all use a search
+ * that filters on entryCSN so they're combined here.
+ * 1: when the current contextCSN is unknown (i.e., at server start time)
+ * and a syncrepl search has arrived with a cookie, we search for all entries
+ * with CSN >= the cookie CSN, and store the maximum as our contextCSN. Also,
+ * we expect to find the cookie CSN in the search results, and note if we did
+ * or not. If not, we assume the cookie is stale. (This may be too restrictive,
+ * notice case 2.)
+ *
+ * 2: when the current contextCSN is known and we have a sync cookie, we search
+ * for one entry with CSN <= the cookie CSN. (Used to search for =.) If an
+ * entry is found, the cookie CSN is valid, otherwise it is stale. Case 1 is
+ * considered a special case of case 2, and both are generally called the
+ * "find CSN" task.
+ *
+ * 3: during a refresh phase, we search for all entries with CSN <= the cookie
+ * CSN, and generate Present records for them. We always collect this result
+ * in SyncID sets, even if there's only one match.
+ */
 #define	FIND_CSN	1
 #define	FIND_PRESENT	2
 
@@ -165,6 +206,9 @@ findcsn_cb( Operation *op, SlapReply *rs )
 	slap_callback *sc = op->o_callback;
 
 	if ( rs->sr_type == REP_SEARCH && rs->sr_err == LDAP_SUCCESS ) {
+		/* If the private pointer is set, it points to an fcsn_cookie
+		 * and we want to record the maxcsn and match state.
+		 */
 		if ( sc->sc_private ) {
 			int i;
 			fcsn_cookie *fc = sc->sc_private;
@@ -178,11 +222,16 @@ findcsn_cb( Operation *op, SlapReply *rs )
 				strcpy(fc->maxcsn.bv_val, a->a_vals[0].bv_val );
 			}
 		} else {
+		/* Otherwise, if the private pointer is not set, we just
+		 * want to know if any entry matched the filter.
+		 */
 			sc->sc_private = (void *)1;
 		}
 	}
 	return LDAP_SUCCESS;
 }
+
+/* Build a list of entryUUIDs for sending in a SyncID set */
 
 typedef struct fpres_cookie {
 	int num;
@@ -197,7 +246,6 @@ findpres_cb( Operation *op, SlapReply *rs )
 	int ret = SLAP_CB_CONTINUE;
 
 	if ( rs->sr_type == REP_SEARCH ) {
-		Debug(LDAP_DEBUG_TRACE, "present %s\n", rs->sr_entry->e_name.bv_val, 0, 0);
 		ret = slap_build_syncUUID_set( op, &pc->uuids, rs->sr_entry );
 		if ( ret > 0 ) {
 			pc->num++;
@@ -281,7 +329,7 @@ syncprov_findcsn( Operation *op, int mode )
 			fop.ors_attrs = slap_anlist_no_attrs;
 			fop.ors_slimit = 1;
 			cb.sc_private = NULL;
-			fbuf.bv_len = sprintf( buf, "(entryCSN=%s)", op->o_sync_state.ctxcsn->bv_val );
+			fbuf.bv_len = sprintf( buf, "(entryCSN<=%s)", op->o_sync_state.ctxcsn->bv_val );
 		}
 		cb.sc_response = findcsn_cb;
 
@@ -290,6 +338,8 @@ syncprov_findcsn( Operation *op, int mode )
 		fop.ors_attrsonly = 0;
 		fop.ors_attrs = uuid_anlist;
 		fop.ors_slimit = SLAP_NO_LIMIT;
+		/* We want pure entries, not referrals */
+		fop.o_managedsait = SLAP_CONTROL_CRITICAL;
 		cb.sc_private = &pcookie;
 		cb.sc_response = findpres_cb;
 		pcookie.num = 0;
@@ -440,8 +490,8 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		/* validate base */
 		fc.fss = ss;
 		fc.fbase = 0;
-		fc.fsuffix = 0;
-		rc = syncprov_findbase( op, ss, &fc );
+		fc.fscope = 0;
+		rc = syncprov_findbase( op, &fc );
 		if ( rc != LDAP_SUCCESS ) continue;
 
 		/* If we're sending results now, look for this op in old matches */
@@ -459,7 +509,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		}
 
 		/* check if current o_req_dn is in scope and matches filter */
-		if ( fc.fsuffix && test_filter( op, e, ss->s_filter ) ==
+		if ( fc.fscope && test_filter( op, e, ss->s_filter ) ==
 			LDAP_COMPARE_TRUE ) {
 			if ( saveit ) {
 				sm = op->o_tmpalloc( sizeof(syncmatches), op->o_tmpmemctx );
@@ -757,7 +807,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		opc.son = on;
 		cb = op->o_callback;
 		op->o_callback = &sc;
-		rs->sr_err = syncprov_findbase( op, &so, &fc );
+		rs->sr_err = syncprov_findbase( op, &fc );
 		op->o_callback = cb;
 
 		if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -815,6 +865,9 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		}
 	}
 
+	/* If we didn't get a cookie and we don't know our contextcsn, try to
+	 * find it anyway.
+	 */
 	if ( !gotstate && !si->si_gotcsn ) {
 		struct berval bv = BER_BVC("1"), *old;
 		
@@ -824,7 +877,9 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		op->o_sync_state.ctxcsn = old;
 	}
 
-	/* Append CSN range to search filter */
+	/* Append CSN range to search filter, save original filter
+	 * for persistent search evaluation
+	 */
 	if ( sop ) {
 		sop->s_filter = op->ors_filter;
 	}
@@ -863,7 +918,11 @@ shortcut:
 	cb->sc_next = op->o_callback;
 	op->o_callback = cb;
 
-	op->o_sync_mode = 0;	/* Don't let back-bdb see this */
+	/* FIXME: temporary hack to make sure back-bdb's native Psearch handling
+	 * doesn't get invoked. We can skip this after the back-bdb code is
+	 * removed, and also delete ss->ss_done.
+	 */
+	op->o_sync_mode = 0;
 
 	/* If this is a persistent search and no changes were reported during
 	 * the refresh phase, just invoke the response callback to transition
@@ -877,80 +936,6 @@ shortcut:
 	}
 	return SLAP_CB_CONTINUE;
 }
-
-#if 0
-static int
-syncprov_response( Operation *op, SlapReply *rs )
-{
-	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
-	syncprov_info_t		*si = (syncprov_info_t *)on->on_bi.bi_private;
-
-	if ( rs->sr_err == LDAP_SUCCESS ) {
-		if ( op->o_tag == LDAP_REQ_SEARCH ) {
-			/* handle transition from refresh to persist */
-			if ( op->o_sync_mode == SLAP_SYNC_REFRESH_AND_PERSIST ) {
-			}
-
-		/* If we're checkpointing */
-		} else if ( si->si_chkops || si->si_chktime )) {
-			int do_check = 0;
-
-			switch ( op->o_tag ) {
-			case LDAP_REQ_EXTENDED:
-				{ int i, doit = 0;
-
-				/* if not PASSWD_MODIFY, break */
-				for ( i=0; write_exop[i]; i++ )
-				{
-					if ( !ber_bvcmp( write_exop[i], &op->oq_extended.rs_reqoid ))
-					{
-						doit = 1;
-						break;
-					}
-				}
-				if ( !doit ) break;
-				}
-				/* else fallthru */
-			case LDAP_REQ_ADD:
-			case LDAP_REQ_MODIFY:
-			case LDAP_REQ_MODRDN:
-			case LDAP_REQ_DELETE:
-				ldap_pvt_thread_mutex_lock( &si->si_chk_mutex );
-				if ( si->si_chkops )
-				{
-					si->si_numops++;
-					if ( si->si_numops >= si->si_chkops )
-					{
-						do_check = 1;
-						si->si_numops = 0;
-					}
-				}
-				if ( si->si_chktime )
-				{
-					if ( op->o_time - si->si_chklast >= si->si_chktime )
-					{
-						do_check = 1;
-						si->si_chklast = op->o_time;
-					}
-				}
-				ldap_pvt_thread_mutex_unlock( &si->si_chk_mutex );
-				if ( do_check )
-				{
-					/* write cn=ldapsync to underlying db */
-				}
-				break;
-			}
-		}
-	}
-	/* Release this DN */
-	if ( op->o_tag == LDAP_REQ_MODIFY ) {
-		ldap_pvt_thread_mutex_lock( &si->si_mod_mutex );
-		avl_delete( &si->si_mods, &op->o_req_ndn, dn_avl_cmp );
-		ldap_pvt_thread_mutex_unlock( &si->si_mod_mutex );
-	}
-	return SLAP_CB_CONTINUE;
-}
-#endif
 
 static int
 syncprov_db_config(
