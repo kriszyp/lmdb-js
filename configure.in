@@ -799,8 +799,9 @@ dnl Checks for libraries
 
 AC_CHECK_FUNC(dlopen, :, [AC_CHECK_LIB(dl, dlopen)])
 
-dnl HP-UX requires -lV3 (or not)
-dnl AC_CHECK_LIB(V3, sigset)
+dnl HP-UX requires -lV3
+dnl this is not needed on newer versions of HP-UX
+AC_CHECK_LIB(V3, sigset)
 
 dnl The following is INTENTIONALLY scripted out because shell does not
 dnl support variable names with the '@' character, which is what
