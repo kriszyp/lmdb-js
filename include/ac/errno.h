@@ -25,15 +25,27 @@
 #	define		sys_errlist	((char **)0)
 #elif DECL_SYS_ERRLIST 
 	/* have sys_errlist but need declaration */
-	LDAP_LIBC_V (int)      sys_nerr;
-	LDAP_LIBC_V (char)    *sys_errlist[];
+	LDAP_LIBC_V(int)      sys_nerr;
+	LDAP_LIBC_V(char)    *sys_errlist[];
 #endif
 
-#ifdef HAVE_STRERROR
-#define	STRERROR(err)	strerror(err)
+#undef _AC_ERRNO_UNKNOWN
+#define _AC_ERRNO_UNKNOWN "unknown error"
+
+#ifdef HAVE_SYS_ERRLIST
+	/* this is thread safe */
+#	define	STRERROR(e) ( (e) > -1 && (e) < sys_nerr \
+			? sys_errlist[(e)] : _AC_ERRNO_UNKNOWN )
+
+#elif defined( HAVE_STRERROR )
+	/* this may not be thread safe */
+	/* and, yes, some implementations of strerror may return NULL */
+#	define	STRERROR(e) ( strerror(e) \
+		? strerror(e) : _AC_ERRNO_UNKNOWN )
+
 #else
-#define	STRERROR(err) \
-	((err) > -1 && (err) < sys_nerr ? sys_errlist[(err)] : "unknown")
+	/* this is thread safe */
+#	define	STRERROR(e) ( _AC_ERRNO_UNKNOWN )
 #endif
 
 #endif /* _AC_ERRNO_H */

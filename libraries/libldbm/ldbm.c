@@ -135,11 +135,8 @@ int ldbm_initialize( void )
 	if ( err ) {
 		char error[BUFSIZ];
 
-		if ( err < 0 ) {
-			sprintf( error, "%ld\n", (long) err );
-		} else {
-			sprintf( error, "%s\n", strerror( err ));
-		}
+		sprintf( error, "%s (%d)\n", STRERROR( err ), err );
+
 #ifdef LDAP_SYSLOG
 		syslog( LOG_INFO,
 			"ldbm_initialize(): FATAL error in db_appinit() : %s\n",
@@ -158,11 +155,8 @@ int ldbm_initialize( void )
         {
             char error[BUFSIZ];
 
-            if ( err < 0 ) {
-                sprintf( error, "%ld\n", (long) err );
-            } else {
-                sprintf( error, "%s\n", strerror( err ));
-            }
+            sprintf( error, "%s (%d)\n", STRERROR( err ), err );
+
 #ifdef LDAP_SYSLOG
             syslog( LOG_INFO,
                     "ldbm_initialize(): FATAL error in db_appinit() : %s\n",
@@ -233,11 +227,8 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
        {
            char error[BUFSIZ];
 
-           if ( err < 0 ) {
-               sprintf( error, "%ld\n", (long) err );
-           } else {
-               sprintf( error, "%s\n", strerror( err ));
-           }
+           sprintf( error, "%s (%d)\n", STRERROR( err ), err );
+
            (void)ret->close(ret, 0);
            return NULL;
        }
@@ -251,11 +242,8 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
        {
            char error[BUFSIZ];
 
-           if ( err < 0 ) {
-               sprintf( error, "%ld\n", (long) err );
-           } else {
-               sprintf( error, "%s\n", strerror( err ));
-           }
+           sprintf( error, "%s (%d)\n", STRERROR( err ), err );
+
            (void)ret->close(ret, 0);
            return NULL;
        }
@@ -383,13 +371,9 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
        {
            char error[BUFSIZ];
 
-           if ( rc < 0 ) {
-               sprintf( error, "%ld\n", (long) rc );
-           } else {
-               sprintf( error, "%s\n", strerror( rc ));
-           }
+           sprintf( error, "%s (%d)\n", STRERROR( rc ), rc );
        }
-        rc = (-1) * rc;
+       rc = (-1) * rc;
 
 #elif DB_VERSION_MAJOR >= 2
 	rc = (*ldbm->put)( ldbm, NULL, &key, &data, flags & ~LDBM_SYNC );

@@ -713,7 +713,7 @@ static int dosearch(
 		sctrls, cctrls, timelimit, sizelimit, &msgid );
 
 	if( rc != LDAP_SUCCESS ) {
-		fprintf( stderr, "ldapsearch: ldap_search_ext: %s (%d)",
+		fprintf( stderr, "ldapsearch: ldap_search_ext: %s (%d)\n",
 			ldap_err2string( rc ), rc );
 		return( rc );
 	}
@@ -1069,7 +1069,7 @@ static int print_result(
 			if( !ldif ) {
 				write_ldif( LDIF_PUT_VALUE, "ref", refs[i], strlen(refs[i]) );
 			} else {
-				fprintf( stderr, "Referral: %s", refs[i] );
+				fprintf( stderr, "Referral: %s\n", refs[i] );
 			}
 		}
 

@@ -216,19 +216,28 @@ do_bind(
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 		if ( conn->c_sasl_bind_mech != NULL ) {
-			if((strcmp(conn->c_sasl_bind_mech, mech) != 0)) {
-				/* mechanism changed, cancel in progress bind */
+			/* SASL bind is in progress */
 #ifdef HAVE_CYRUS_SASL
+			assert( conn->c_sasl_bind_context != NULL );
+#endif
+
+			if((strcmp(conn->c_sasl_bind_mech, mech) != 0)) {
+				/* mechanism changed */
+#ifdef HAVE_CYRUS_SASL
+				/* dispose of context */
 				sasl_dispose(&conn->c_sasl_bind_context);
 				conn->c_sasl_bind_context = NULL;
 #endif
 			}
+
 			free( conn->c_sasl_bind_mech );
 			conn->c_sasl_bind_mech = NULL;
 
 #ifdef LDAP_DEBUG
-#ifdef HAVE_CYRUS_SASL
 		} else {
+			/* SASL bind is NOT in progress */
+			assert( conn->c_sasl_bind_mech == NULL );
+#ifdef HAVE_CYRUS_SASL
 			assert( conn->c_sasl_bind_context == NULL );
 #endif
 #endif
@@ -256,7 +265,7 @@ do_bind(
 
 #ifdef HAVE_CYRUS_SASL
 		} else {
-			assert( conn->c_sasl_bind_context != NULL );
+			assert( conn->c_sasl_bind_context == NULL );
 #endif
 		}
 
@@ -374,6 +383,24 @@ do_bind(
 	}
 
 cleanup:
+	if( rc != LDAP_SASL_BIND_IN_PROGRESS ) {
+		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+
+		/* dispose of mech */
+		free( conn->c_sasl_bind_mech );
+		conn->c_sasl_bind_mech = NULL;
+
+#ifdef HAVE_CYRUS_SASL
+		if( conn->c_sasl_bind_context != NULL ) {
+			/* dispose of context */
+			sasl_dispose(&conn->c_sasl_bind_context);
+			conn->c_sasl_bind_context = NULL;
+		}
+#endif
+
+		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+	}
+
 	if( dn != NULL ) {
 		free( dn );
 	}
