@@ -101,7 +101,7 @@ int	argc;
 char	**argv;
 {
     char		*infile, *filtpattern, **attrs, line[ BUFSIZ ];
-    FILE		*fp;
+    FILE		*fp = NULL;
     int			rc, i, first, scope, kerberos, deref, attrsonly, debug;
     int			ldap_options, timelimit, sizelimit, authmethod, want_bindpw;
     LDAP		*ld;

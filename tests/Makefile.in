@@ -10,7 +10,7 @@ all-local:	FORCE
 	$(srcdir)/scripts/all $(srcdir)
 
 clean-local:	FORCE
-	$(RM) test-db/[!C]* test-repl/[!C]* *core
+	-$(RM) test-db/[!C]* test-repl/[!C]* *core
 
 veryclean-local: FORCE
 	@-$(RM) data

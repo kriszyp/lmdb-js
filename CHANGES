@@ -3,6 +3,9 @@ OpenLDAP Change Log
 Changes included in OpenLDAP 1.2.12 Engineering
 	CVS Tag: OPENLDAP_REL_ENG_1_2
 	Fixed ldapmodify ldaphost NULL bug
+	Fixed ldapsearch uninitialized fp bug
+	Build Environment
+		Ignore make clean rm failure
 
 Changes included in OpenLDAP 1.2.11
 	CVS Tag: OPENLDAP_REL_ENG_1_2_11
