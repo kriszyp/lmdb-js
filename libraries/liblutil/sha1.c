@@ -61,7 +61,7 @@ void
 lutil_SHA1Transform( uint32 *state, const unsigned char *buffer )
 {
     uint32 a, b, c, d, e;
-    typedef union {
+    typedef union char64long16_u {
 	unsigned char c[64];
 	u_int l[16];
     } CHAR64LONG16;

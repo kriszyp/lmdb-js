@@ -306,7 +306,7 @@ modify_dn (LDAP * ld, char *targetdn, char *pwattr, char *oldpw,
 
 	strvals[0] = buf;
 	strvals[1] = NULL;
-	mod.mod_vals.modv_strvals = strvals;
+	mod.mod_values = strvals;
 	mod.mod_type = pwattr;
 	mod.mod_op = LDAP_MOD_REPLACE;
 	mods[0] = &mod;

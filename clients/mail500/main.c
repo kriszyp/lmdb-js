@@ -81,7 +81,7 @@ typedef struct errs {
 #define	E_NOOWNER		11
 #define E_GROUPUNKNOWN		12
 	char		*e_addr;
-	union {
+	union e_union_u {
 		char		*e_u_loop;
 		LDAPMessage	*e_u_msg;
 	} e_union;

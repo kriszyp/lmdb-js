@@ -55,7 +55,7 @@ struct ldop {
 #define LDOP_SEARCH	0x01
     char	**ldop_suffixes;
     char	*ldop_dn;
-    union {
+    union ldapop_params_u {
 		    struct ldsrchparms LDsrchparams;
 	  }	ldop_params;
 #define ldop_srch	ldop_params.LDsrchparams

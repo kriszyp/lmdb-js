@@ -79,7 +79,7 @@ typedef struct ava {
 typedef struct filter {
 	unsigned long	f_choice;	/* values taken from ldap.h */
 
-	union {
+	union f_un_u {
 		/* present */
 		char		*f_un_type;
 
