@@ -442,6 +442,7 @@ ldap_int_sasl_bind(
 	LDAPControl		**sctrls,
 	LDAPControl		**cctrls )
 {
+	char *data;
 	const char *mech = NULL;
 	const char *pmech = NULL;
 	int			saslrc, rc;
@@ -508,6 +509,7 @@ ldap_int_sasl_bind(
 		}
 
 		if( saslrc == SASL_INTERACT ) {
+			fprintf(stderr, "SASL Interacting\n");
 			if( !ld->ld_options.ldo_sasl_interact ) break;
 
 			rc = (ld->ld_options.ldo_sasl_interact)( ld, prompts );
@@ -557,11 +559,12 @@ ldap_int_sasl_bind(
 				saslrc, 0, 0 );
 
 			if( saslrc == SASL_INTERACT ) {
-				fprintf(stderr, "Interacting\n");
+				int res;
+				fprintf(stderr, "SASL Interacting\n");
 				if( !ld->ld_options.ldo_sasl_interact ) break;
 
-				rc = (ld->ld_options.ldo_sasl_interact)( ld, prompts );
-				if( rc != LDAP_SUCCESS ) {
+				res = (ld->ld_options.ldo_sasl_interact)( ld, prompts );
+				if( res != LDAP_SUCCESS ) {
 					break;
 				}
 			}
@@ -578,17 +581,28 @@ ldap_int_sasl_bind(
 
 	assert ( rc == LDAP_SUCCESS );
 
-	if ( sasl_getprop( ctx, SASL_SSF, (void **) &ssf )
-		== SASL_OK && ssf && *ssf > 1 )
-	{
-#ifdef LDAP_SASL_SECURITY_LAYER
-		fprintf(stderr, "Installing Security Layer: ssf=%lu\n",
+	/* likely should add a quiet option */
+
+	saslrc = sasl_getprop( ctx, SASL_USERNAME, (void **) &data );
+	if( saslrc == SASL_OK ) {
+		fprintf( stderr, "SASL username: %s\n", data );
+	}
+
+	saslrc = sasl_getprop( ctx, SASL_REALM, (void **) &data );
+	if( saslrc == SASL_OK ) {
+		fprintf( stderr, "SASL realm: %s\n", data );
+	}
+
+	saslrc = sasl_getprop( ctx, SASL_SSF, (void **) &ssf );
+	if( saslrc == SASL_OK ) {
+		fprintf( stderr, "SASL SSF: %lu\n",
 			(unsigned long) *ssf );
 
-		ldap_pvt_sasl_install( ld->ld_sb, ctx );
-#else
-		fprintf(stderr, "SASL Security Factor is %lu\n",
-			(unsigned long) *ssf );
+#ifdef LDAP_SASL_SECURITY_LAYER
+		if( ssf && *ssf > 1 ) {
+			fprintf( stderr, "SASL installing layers\n" );
+			ldap_pvt_sasl_install( ld->ld_sb, ctx );
+		}
 #endif
 	}
 
