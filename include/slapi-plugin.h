@@ -181,6 +181,8 @@ void slapi_send_ldap_result( Slapi_PBlock *pb, int err, char *matched,
 	char *text, int nentries, struct berval **urls );
 int slapi_send_ldap_search_entry( Slapi_PBlock *pb, Slapi_Entry *e,
 	LDAPControl **ectrls, char **attrs, int attrsonly );
+int slapi_send_ldap_search_reference( Slapi_PBlock *pb, Slapi_Entry *e,
+	struct berval **urls, LDAPControl **ectrls, struct berval **v2refs );
 
 /* filter routines */
 Slapi_Filter *slapi_str2filter( char *str );
