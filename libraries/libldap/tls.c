@@ -41,7 +41,7 @@ static char *tls_opt_certfile = NULL;
 static char *tls_opt_keyfile = NULL;
 static char *tls_opt_cacertfile = NULL;
 static char *tls_opt_cacertdir = NULL;
-static int  tls_opt_require_cert = 0;
+static int  tls_opt_require_cert = LDAP_OPT_X_TLS_DEMAND;
 static char *tls_opt_ciphersuite = NULL;
 static char *tls_opt_randfile = NULL;
 
@@ -901,7 +901,10 @@ ldap_pvt_tls_check_hostname( void *s, const char *name_in )
 			"TLS: unable to get peer certificate.\n",
 			0, 0, 0 );
 #endif
-		return ret;
+		/* If this was a fatal condition, things would have
+		 * aborted long before now.
+		 */
+		return LDAP_SUCCESS;
 	}
 
 	i = X509_get_ext_by_NID(x, NID_subject_alt_name, -1);
@@ -1383,12 +1386,21 @@ tls_verify_cb( int ok, X509_STORE_CTX *ctx )
 		"TLS certificate verification: depth: %d, err: %d: "
 		"subject: %s, issuer: %s\n", errdepth, errnum, 
 		sname ? sname : "-unknown-", iname ? iname : "-unknown-" ));
+	if ( !ok ) {
+		LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "TLS certificate verification: Error, %s\n",
+			X509_verify_cert_error_string(errnum)));
+	}
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		   "TLS certificate verification: depth: %d, err: %d, subject: %s,",
 		   errdepth, errnum,
 		   sname ? sname : "-unknown-" );
 	Debug( LDAP_DEBUG_TRACE, " issuer: %s\n", iname ? iname : "-unknown-", 0, 0 );
+	if ( !ok ) {
+		Debug( LDAP_DEBUG_ANY,
+			"TLS certificate verification: Error, %s\n",
+			X509_verify_cert_error_string(errnum), 0, 0 );
+	}
 #endif
 	if ( sname )
 		CRYPTO_free ( sname );
