@@ -79,9 +79,9 @@ attributetype ( <oid> [NAME <name>] [DESC <description>] [OBSOLETE] \
 [SYNTAX <oidlen>] [SINGLE-VALUE] [COLLECTIVE] [NO-USER-MODIFICATION] \
 [USAGE <attributeUsage>] )
 Specify an attribute type using the LDAPv3 syntax defined in RFC 2252.
-This is the preferred format for attribute type definitions. The slapd
-parser extends the RFC 2252 definition by allowing string forms as well
-as numeric OIDs to be used for the attribute OID and attribute syntax OID.
+The slapd parser extends the RFC 2252 definition by allowing string
+forms as well as numeric OIDs to be used for the attribute OID and
+attribute syntax OID.
 (See the
 .B objectidentifier
 description.) Currently the syntax name parser is case-sensitive.
@@ -99,36 +99,6 @@ OtherMailbox OctetString PostalAddress ProtocolInformation
 PresentationAddress PrintableString SupportedAlgorithm TelephoneNumber
 TeletexTerminalIdentifier TelexNumber UTCTime LDAPSyntaxDescription
 SubstringAssertion NISnetgrouptriple Bootparameter
-.PD
-.RE
-.RE
-.TP
-.B 
-attribute[type] <name> [<name2>] { bin | ces | cis | tel | dn }
-Associate a syntax with an attribute name. This directive is deprecated
-in favor of the one above. By default, an 
-attribute is assumed to have syntax
-.BR cis .
-An optional alternate name can be 
-given for an attribute. The possible syntaxes and their meanings are:
-.RS
-.RS
-.PD 0
-.TP
-.B bin
-binary
-.TP
-.B ces
-case exact string
-.TP
-.B cis
-case ignore string
-.TP
-.B tel
-telephone number string
-.TP
-.B dn
-distinguished name
 .PD
 .RE
 .RE
@@ -229,18 +199,12 @@ objectclass ( <oid> [NAME <name>] [DESC <description] [OBSOLETE] \
 [SUP <oids>] [{ ABSTRACT | STRUCTURAL | AUXILIARY }] [MUST <oids>] \
 [MAY <oids>] )
 Specify an objectclass using the LDAPv3 syntax defined in RFC 2252.
-This is the preferred format for object class definitions. The slapd
-parser extends the RFC 2252 definition by allowing string forms as well
-as numeric OIDs to be used for the object class OID. (See the
+The slapd parser extends the RFC 2252 definition by allowing string
+forms as well as numeric OIDs to be used for the object class OID.
+(See the
 .B
 objectidentifier
-description.) Object classes are "STRUCTURAL" by default.
-.TP
-.B
-objectclass <name> requires <attrs> allows <attrs>
-Define the schema rules for the object class named <name>.  These are
-used in conjunction with the schemacheck option. This directive is
-deprecated in favor of the one above.
+description.)  Object classes are "STRUCTURAL" by default.
 .TP
 .B objectidentifier <name> { <oid> | <name>[:<suffix>] }
 Define a string name that equates to the given OID. The string can be used
@@ -354,7 +318,7 @@ Specify a password (or hash of the password) for the rootdn.
 This option accepts all RFC 2307 userPassword formats known to
 the server including \fB{SSHA}\fP, \fB{SHA}\fP, \fB{SMD5}\fP,
 \fB{MD5}\fP, \fB{CRYPT}\fP, and cleartext schemes.  Cleartext
-passwords are not recommended.
+and \fB{CRYPT}\fP passwords are not recommended.
 .TP
 .B suffix <dn suffix>
 Specify the DN suffix of queries that will be passed to this 
@@ -406,7 +370,8 @@ each database.  The default is
 .B
 index { <attrlist> | default } [ pres,eq,approx,sub,none ]
 Specify the indexes to maintain for the given attribute. If only 
-an <attr> is given, all possible indexes are maintained.
+an <attr> is given, the indices specified for \fBdefault\fR
+are maintained.
 .TP
 .B mode <integer>
 Specify the file protection mode that newly created database 
