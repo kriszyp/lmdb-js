@@ -523,6 +523,9 @@ LDAP_F (int) ldap_int_sasl_open LDAP_P((
 	const char* host, ber_len_t ssf ));
 LDAP_F (int) ldap_int_sasl_close LDAP_P(( LDAP *ld, LDAPConn *conn ));
 
+LDAP_F (int) ldap_int_sasl_external LDAP_P((
+	LDAP *ld, const char* authid, ber_len_t ssf ));
+
 LDAP_F (int) ldap_int_sasl_get_option LDAP_P(( LDAP *ld,
 	int option, void *arg ));
 LDAP_F (int) ldap_int_sasl_set_option LDAP_P(( LDAP *ld,

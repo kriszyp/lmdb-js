@@ -655,6 +655,35 @@ ldap_int_sasl_bind(
 	return rc;
 }
 
+int
+ldap_int_sasl_external(
+	LDAP *ld,
+	const char * authid,
+	ber_len_t ssf )
+{
+	int sc;
+	sasl_conn_t *ctx = ld->ld_defconn->lconn_sasl_ctx;
+	sasl_external_properties_t extprops;
+    
+	if ( ctx == NULL ) {
+		return LDAP_LOCAL_ERROR;
+	}
+    
+	memset( &extprops, '\0', sizeof(extprops) );
+	extprops.ssf = ssf;
+	extprops.auth_id = (char *) authid;
+    
+	sc = sasl_setprop( ctx, SASL_SSF_EXTERNAL,
+		(void *) &extprops );
+    
+	if ( sc != SASL_OK ) {
+		return LDAP_LOCAL_ERROR;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+
 int ldap_pvt_sasl_secprops(
 	const char *in,
 	sasl_security_properties_t *secprops )
@@ -954,4 +983,12 @@ ldap_int_sasl_bind(
 	LDAP_SASL_INTERACT_PROC *interact,
 	void * defaults )
 { return LDAP_NOT_SUPPORTED; }
+
+int
+ldap_int_sasl_external(
+	LDAP *ld,
+	const char * authid,
+	ber_len_t ssf )
+{ return LDAP_SUCCESS; }
+
 #endif /* HAVE_CYRUS_SASL */

@@ -880,6 +880,20 @@ ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 	 * certificate....
 	 */
 
+
+	{
+		void *ssl;
+		const char *authid;
+		ber_len_t ssf;
+
+		/* we need to let SASL know */
+		ssl = (void *) ldap_pvt_tls_sb_handle( sb );
+		ssf = ldap_pvt_tls_get_strength( ssl );
+		authid = ldap_pvt_tls_get_peer( ssl );
+
+		(void) ldap_int_sasl_external( ld, authid, ssf );
+	}
+
 	return LDAP_SUCCESS;
 }
 
