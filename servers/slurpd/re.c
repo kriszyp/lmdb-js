@@ -88,7 +88,6 @@ Re_free(
 
     ldap_pvt_thread_mutex_destroy( &re->re_mutex );
 
-    ch_free( re->re_timestamp );
     if (( rh = re->re_replicas ) != NULL ) {
 	for ( i = 0; rh[ i ].rh_hostname != NULL; i++ ) {
 	    free( rh[ i ].rh_hostname );
@@ -180,7 +179,7 @@ Re_parse(
 		/* there was a sequence number */
 		*p++ = '\0';
 	    }
-	    re->re_timestamp = strdup( value );
+	    re->re_timestamp = atol( value );
 	    if ( p != NULL && isdigit( (unsigned char) *p )) {
 		re->re_seq = atoi( p );
 	    }
@@ -463,7 +462,7 @@ Re_dump(
     }
     fprintf( fp, "Re_dump: ******\n" );
     fprintf( fp, "re_refcnt: %d\n", re->re_refcnt );
-    fprintf( fp, "re_timestamp: %s\n", re->re_timestamp );
+    fprintf( fp, "re_timestamp: %ld\n", (long) re->re_timestamp );
     fprintf( fp, "re_seq: %d\n", re->re_seq );
     for ( i = 0; re->re_replicas && re->re_replicas[ i ].rh_hostname != NULL;
 		i++ ) {
@@ -549,7 +548,7 @@ Re_write(
 	    }
 	}
     }
-    if ( fprintf( fp, "time: %s.%d\n", re->re_timestamp, re->re_seq ) < 0 ) {
+    if ( fprintf( fp, "time: %ld.%d\n", (long) re->re_timestamp, re->re_seq ) < 0 ) {
 	rc = -1;
 	goto bad;
     }
@@ -713,7 +712,7 @@ Re_init(
 
     /* Initialize private data */
    (*re)->re_refcnt = sglob->num_replicas;
-   (*re)->re_timestamp = NULL;
+   (*re)->re_timestamp = (time_t) 0L;
    (*re)->re_replicas = NULL;
    (*re)->re_dn = NULL;
    (*re)->re_changetype = 0;
