@@ -75,7 +75,6 @@ ber_put_tag(
 	ber_len_t	taglen;
 	ber_len_t	i;
 	unsigned char nettag[sizeof(ber_tag_t)];
-	ber_tag_t	xtag;
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
@@ -128,7 +127,6 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 	char		lenlen;
 	ber_len_t	mask;
 	unsigned char netlen[sizeof(ber_len_t)];
-	ber_len_t	xlen;
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
