@@ -195,6 +195,7 @@ meta_back_do_single_bind(
 	ber_int_t	msgid;
 	dncookie	dc;
 	struct metasingleconn	*lsc = &lc->conns[ candidate ];
+	LDAPMessage	*res;
 	
 	/*
 	 * Rewrite the bind dn if needed
@@ -217,38 +218,41 @@ meta_back_do_single_bind(
 			goto return_results;
 		}
 	}
-	
-	rs->sr_err = ldap_sasl_bind(lsc->ld, mdn.bv_val,
+
+	/* FIXME: this fixes the bind problem right now; we need
+	 * to use the asynchronous version to get the "matched"
+	 * and more in case of failure ... */
+	rs->sr_err = ldap_sasl_bind_s(lsc->ld, mdn.bv_val,
 			LDAP_SASL_SIMPLE, &op->oq_bind.rb_cred,
-			op->o_ctrls, NULL, &msgid);
+			op->o_ctrls, NULL, NULL);
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		rs->sr_err = ldap_back_map_result( rs );
+		goto return_results;
+	}
 
-	} else {
-		/*
-		 * FIXME: handle response!!!
-		 */
-		if ( lsc->bound_dn.bv_val != NULL ) {
-			ber_memfree( lsc->bound_dn.bv_val );
-		}
-		ber_dupbv( &lsc->bound_dn, &op->o_req_dn );
-		lsc->bound = META_BOUND;
-		lc->bound_target = candidate;
+	/*
+	 * FIXME: handle response!!!
+	 */
+	if ( lsc->bound_dn.bv_val != NULL ) {
+		ber_memfree( lsc->bound_dn.bv_val );
+	}
+	ber_dupbv( &lsc->bound_dn, &op->o_req_dn );
+	lsc->bound = META_BOUND;
+	lc->bound_target = candidate;
 
-		if ( li->savecred ) {
-			if ( lsc->cred.bv_val ) {
-				memset( lsc->cred.bv_val, 0, lsc->cred.bv_len );
-				ber_memfree( lsc->cred.bv_val );
-			}
-			ber_dupbv( &lsc->cred, &op->oq_bind.rb_cred );
-			ldap_set_rebind_proc( lsc->ld, meta_back_rebind, lsc );
+	if ( li->savecred ) {
+		if ( lsc->cred.bv_val ) {
+			memset( lsc->cred.bv_val, 0, lsc->cred.bv_len );
+			ber_memfree( lsc->cred.bv_val );
 		}
+		ber_dupbv( &lsc->cred, &op->oq_bind.rb_cred );
+		ldap_set_rebind_proc( lsc->ld, meta_back_rebind, lsc );
+	}
 
-		if ( li->cache.ttl != META_DNCACHE_DISABLED
-				&& op->o_req_ndn.bv_len != 0 ) {
-			( void )meta_dncache_update_entry( &li->cache,
-					&op->o_req_ndn, candidate );
-		}
+	if ( li->cache.ttl != META_DNCACHE_DISABLED
+			&& op->o_req_ndn.bv_len != 0 ) {
+		( void )meta_dncache_update_entry( &li->cache,
+				&op->o_req_ndn, candidate );
 	}
 
 return_results:;
