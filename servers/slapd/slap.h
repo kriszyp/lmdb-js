@@ -1298,44 +1298,45 @@ typedef struct syncinfo_s {
         struct slap_conn *conn;
         struct slap_backend_db *be;
         struct slap_entry *e;
-        void            *ctx;
-        int             id;
-        char            *masteruri;
-        int             type;
+        void			*ctx;
+        int				id;
+        char			*masteruri;
+        BerVarray		masteruri_bv;
+        int				type;
 		struct berval	updatedn;	
-        char            *binddn;
-        int             bindmethod;
-        char            *passwd;
-        char            *secprops;
-        char            *realm;
-        char            *authcId;
-        char            *authzId;
-        char            *srvtab;
-        char            *saslmech;
+        char			*binddn;
+        int				bindmethod;
+        char			*passwd;
+        char			*secprops;
+        char			*realm;
+        char			*authcId;
+        char			*authzId;
+        char			*srvtab;
+        char			*saslmech;
         time_t			interval;
-        char            *base;
-        int             scope;
-        int             deref;
-        int             slimit;
+        char			*base;
+        int				scope;
+        int				deref;
+        int				slimit;
 		int				tlimit;
-        Filter          *filter;
-        char            *filterstr;
-        char            **attrs;
-        int             attrsonly;
+        Filter			*filter;
+        char			*filterstr;
+        char			**attrs;
+        int				attrsonly;
 #define LASTMOD_REQ		0
 #define LASTMOD_GEN		1
 #define LASTMOD_NO		2
-        int             lastmod;
+        int				lastmod;
         /* TLS flags */
-#define TLS_OFF                 0
-#define TLS_ON                  1
-#define TLS_CRITICAL            2
-        int             tls;
-        int             found;
-        struct berval   *syncUUID;
+#define TLS_OFF			0
+#define TLS_ON			1
+#define TLS_CRITICAL	2
+        int				tls;
+        int				found;
+        struct berval	*syncUUID;
 		struct berval	*syncUUID_ndn;
-        struct berval   *syncCookie;
-        Avlnode         *presentlist;
+        struct berval	*syncCookie;
+        Avlnode			*presentlist;
 		LDAP_LIST_HEAD(np, nonpresent_entry) nonpresentlist;
 } syncinfo_t;
 

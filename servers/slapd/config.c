@@ -2854,6 +2854,10 @@ parse_syncrepl_line(
 					sizeof( PROVIDERSTR ) - 1 )) {
 			val = cargv[ i ] + sizeof( PROVIDERSTR );
 			si->masteruri = ch_strdup( val );
+			si->masteruri_bv = (BerVarray) ch_calloc( 2, sizeof( struct berval ));
+			ber_str2bv( si->masteruri, strlen( si->masteruri ), 0, &si->masteruri_bv[0] );
+			si->masteruri_bv[1].bv_len = 0;
+			si->masteruri_bv[1].bv_val = NULL;
 			gots |= GOT_HOST;
 		} else if ( !strncasecmp( cargv[ i ], STARTTLSSTR,
 			sizeof(STARTTLSSTR) - 1 ) )
