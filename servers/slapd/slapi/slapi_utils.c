@@ -922,6 +922,139 @@ slapi_dn_issuffix(
 #endif /* LDAP_SLAPI */
 }
 
+int
+slapi_dn_isparent(
+	const char	*parentdn,
+	const char	*childdn )
+{
+#ifdef LDAP_SLAPI
+	struct berval	assertedParentDN, normalizedAssertedParentDN;
+	struct berval	childDN, normalizedChildDN;
+	struct berval	normalizedParentDN;
+	int		match;
+
+	assert( parentdn != NULL );
+	assert( childdn != NULL );
+
+	assertedParentDN.bv_val = (char *)parentdn;
+	assertedParentDN.bv_len = strlen( parentdn );
+
+	if ( dnNormalize( 0, NULL, NULL, &assertedParentDN,
+		&normalizedAssertedParentDN, NULL ) != LDAP_SUCCESS )
+	{
+		return 0;
+	}
+
+	childDN.bv_val = (char *)childdn;
+	childDN.bv_len = strlen( childdn );
+
+	if ( dnNormalize( 0, NULL, NULL, &childDN,
+		&normalizedChildDN, NULL ) != LDAP_SUCCESS )
+	{
+		slapi_ch_free( (void **)&normalizedAssertedParentDN.bv_val );
+		return 0;
+	}
+
+	dnParent( &normalizedChildDN, &normalizedParentDN );
+
+	if ( dnMatch( &match, 0, slap_schema.si_syn_distinguishedName, NULL,
+		&normalizedParentDN, (void *)&normalizedAssertedParentDN ) != LDAP_SUCCESS )
+	{
+		match = -1;
+	}
+
+	slapi_ch_free( (void **)&normalizedAssertedParentDN.bv_val );
+	slapi_ch_free( (void **)&normalizedChildDN.bv_val );
+
+	return ( match == 0 );
+#else
+	return 0;
+#endif /* LDAP_SLAPI */
+}
+
+/*
+ * Returns DN of the parent entry, or NULL if the DN is
+ * an empty string or NULL, or has no parent.
+ */
+char *
+slapi_dn_parent( const char *_dn )
+{
+#ifdef LDAP_SLAPI
+	struct berval	dn, prettyDN;
+	struct berval	parentDN;
+
+	if ( _dn == NULL ) {
+		return NULL;
+	}
+
+	dn.bv_val = (char *)_dn;
+	dn.bv_len = strlen( _dn );
+
+	if ( dn.bv_len == 0 ) {
+		return NULL;
+	}
+
+	if ( dnPretty( NULL, &dn, &prettyDN, NULL ) != LDAP_SUCCESS ) {
+		return NULL;
+	}
+
+	dnParent( &prettyDN, &parentDN ); /* in-place */
+
+	slapi_ch_free( (void **)&prettyDN.bv_val );
+
+	if ( parentDN.bv_len == 0 ) {
+		return NULL;
+	}
+
+	return slapi_ch_strdup( parentDN.bv_val );
+#else
+	return NULL;
+#endif /* LDAP_SLAPI */
+}
+
+/*
+ * Returns DN of the parent entry; or NULL if the DN is
+ * an empty string, if the DN has no parent, or if the
+ * DN is the suffix of the backend database
+ */
+char *slapi_dn_beparent( Slapi_PBlock *pb, const char *_dn )
+{
+#ifdef LDAP_SLAPI
+	Backend 	*be;
+	struct berval	dn, prettyDN;
+	struct berval	normalizedDN, parentDN;
+
+	if ( slapi_pblock_get( pb, SLAPI_BACKEND, (void **)&be ) != 0 )
+		be = NULL;
+
+	dn.bv_val = (char *)_dn;
+	dn.bv_len = strlen( _dn );
+
+	if ( dnPrettyNormal( NULL, &dn, &prettyDN, &normalizedDN, NULL ) != LDAP_SUCCESS ) {
+		return NULL;
+	}
+
+	if ( be != NULL && be_issuffix( be, &normalizedDN ) ) {
+		slapi_ch_free( (void **)&prettyDN.bv_val );
+		slapi_ch_free( (void **)&normalizedDN.bv_val );
+		return NULL;
+	}
+
+	dnParent( &prettyDN, &parentDN );
+
+	slapi_ch_free( (void **)&prettyDN.bv_val );
+	slapi_ch_free( (void **)&normalizedDN.bv_val );
+
+	if ( parentDN.bv_len == 0 ) {
+		return NULL;
+	}
+
+	return slapi_ch_strdup( parentDN.bv_val );
+#else
+	return NULL;
+#endif /* LDAP_SLAPI */
+}
+
 char *
 slapi_dn_ignore_case( char *dn )
 {       
