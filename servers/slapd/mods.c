@@ -37,11 +37,8 @@ modify_add_values(
 	const char	**text,
 	char *textbuf, size_t textlen )
 {
-	int		i, j;
-	int		matched;
-	Attribute	*a;
-	MatchingRule *mr = mod->sm_desc->ad_type->sat_equality;
 	const char *op;
+	Attribute *a;
 
 	switch( mod->sm_op ) {
 	case LDAP_MOD_ADD:
@@ -56,16 +53,12 @@ modify_add_values(
 	}
 
 	a = attr_find( e->e_attrs, mod->sm_desc );
+	if( a != NULL ) { /* check if values to add exist in attribute */
+		int	rc, i, j;
+		MatchingRule *mr;
 
-	/*
-	 * With permissive set, as long as the attribute being added
-	 * has the same value(s?) as the existing attribute, then the
-	 * modify will succeed.
-	 */
-
-	/* check if the values we're adding already exist */
-	if( mr == NULL || !mr->smr_match ) {
-		if ( a != NULL ) {
+		mr = mod->sm_desc->ad_type->sat_equality;
+		if( mr == NULL || !mr->smr_match ) {
 			/* do not allow add of additional attribute
 				if no equality rule exists */
 			*text = textbuf;
@@ -73,50 +66,37 @@ modify_add_values(
 				"modify/%s: %s: no equality matching rule",
 				op, mod->sm_desc->ad_cname.bv_val );
 			return LDAP_INAPPROPRIATE_MATCHING;
-
-		} else {
-			return LDAP_SUCCESS;
 		}
 
-	} else if ( a != NULL ) {
 		/* no normalization is done in this routine nor
 		 * in the matching routines called by this routine. 
 		 * values are now normalized once on input to the
 		 * server (whether from LDAP or from the underlying
 		 * database).
 		 */
-		int		rc;
-
-		for ( matched = 0, i = 0; a->a_vals[i].bv_val; i++ ) {
-			int	match;
-
-			if( mod->sm_nvalues ) {
-				rc = value_match( &match, mod->sm_desc, mr,
-					SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
-						| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
-						| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-					&a->a_nvals[i], &mod->sm_nvalues[0], text );
-			} else {
-				rc = value_match( &match, mod->sm_desc, mr,
-					SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-					&a->a_vals[i], &mod->sm_values[0], text );
-			}
-
-			if( rc == LDAP_SUCCESS && match == 0 ) {
-				if ( permissive ) {
-					matched++;
-					continue;
+		for ( i=0; mod->sm_values[i].bv_val != NULL; i++ ) {
+			for ( j=0; a->a_vals[j].bv_val; j++ ) {
+				int match;
+				if( mod->sm_nvalues ) {
+					rc = value_match( &match, mod->sm_desc, mr,
+						SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
+							| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
+							| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
+						&a->a_nvals[j], &mod->sm_nvalues[i], text );
+				} else {
+					rc = value_match( &match, mod->sm_desc, mr,
+						SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+						&a->a_vals[i], &mod->sm_values[i], text );
 				}
-				*text = textbuf;
-				snprintf( textbuf, textlen,
-					"modify/%s: %s: value #0 already exists",
-					op, mod->sm_desc->ad_cname.bv_val );
-				return LDAP_TYPE_OR_VALUE_EXISTS;
+
+				if( rc != LDAP_SUCCESS ) {
+					*text = textbuf;
+					snprintf( textbuf, textlen,
+						"modify/%s: %s: value #%d already exists",
+						op, mod->sm_desc->ad_cname.bv_val, i );
+					return LDAP_TYPE_OR_VALUE_EXISTS;
+				}
 			}
-		}
-		if ( permissive && matched == i ) {
-			/* values already exist; do nothing */
-			return LDAP_SUCCESS;
 		}
 	}
 
