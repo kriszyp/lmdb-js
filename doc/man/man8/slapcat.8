@@ -4,6 +4,7 @@ slapcat \- SLAPD database to LDIF utility
 .SH SYNOPSIS
 .B SBINDIR/slapcat
 .B [\-v]
+.B [\-c]
 .B [\-d level]
 .B [\-b suffix]
 .B [\-n dbnum]
@@ -30,6 +31,9 @@ or
 .TP
 .B \-v
 enable verbose mode.
+.TP
+.B \-c
+enable continue (ignore errors) mode.
 .TP
 .BI \-d " level"
 enable debugging messages as defined by the specified
