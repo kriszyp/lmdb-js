@@ -9,9 +9,11 @@
 
 all-common: $(LIBRARY) $(PROGRAMS)
 
-version.c: $(OBJS)
+version.c: Makefile
 	$(RM) $@
 	$(MKVERSION) $(LIBRARY) > $@
+
+version.o: version.c $(OBJS)
 
 install-common: FORCE
 
