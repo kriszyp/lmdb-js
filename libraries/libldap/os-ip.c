@@ -33,6 +33,9 @@
 
 #include "ldap-int.h"
 
+int ldap_int_tblsize = 0;
+
+
 int
 ldap_connect_to_host( Sockbuf *sb, const char *host, unsigned long address,
 	int port, int async )
@@ -301,34 +304,41 @@ ldap_free_select_info( void *sip )
 }
 
 
+void
+ldap_int_ip_init( void )
+{
+	int tblsize;
+#if defined( HAVE_SYSCONF )
+	tblsize = sysconf( _SC_OPEN_MAX );
+#elif defined( HAVE_GETDTABLESIZE )
+	tblsize = getdtablesize();
+#else
+	tblsize = FD_SETSIZE;
+#endif /* !USE_SYSCONF */
+
+#ifdef FD_SETSIZE
+	if( tblsize > FD_SETSIZE )
+		tblsize = FD_SETSIZE;
+#endif	/* FD_SETSIZE*/
+	ldap_int_tblsize = tblsize;
+}
+
+
 int
 do_ldap_select( LDAP *ld, struct timeval *timeout )
 {
 	struct selectinfo	*sip;
-	static int		tblsize;
 
 	Debug( LDAP_DEBUG_TRACE, "do_ldap_select\n", 0, 0, 0 );
 
-	if ( tblsize == 0 ) {
-#if defined( HAVE_SYSCONF )
-		tblsize = sysconf( _SC_OPEN_MAX );
-#elif defined( HAVE_GETDTABLESIZE )
-		tblsize = getdtablesize();
-#else
-		tblsize = FD_SETSIZE;
-#endif /* !USE_SYSCONF */
-
-#ifdef FD_SETSIZE
-		if( tblsize > FD_SETSIZE ) {
-			tblsize = FD_SETSIZE;
-		}
-#endif	/* FD_SETSIZE*/
-	}
+	if ( ldap_int_tblsize == 0 )
+		ldap_int_ip_init();
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 	sip->si_use_readfds = sip->si_readfds;
 	sip->si_use_writefds = sip->si_writefds;
 	
-	return( select( tblsize, &sip->si_use_readfds, &sip->si_use_writefds,
-	    NULL, timeout ));
+	return( select( ldap_int_tblsize,
+	                &sip->si_use_readfds, &sip->si_use_writefds,
+	                NULL, timeout ));
 }

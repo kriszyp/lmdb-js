@@ -290,6 +290,8 @@ void ldap_int_initialize( void )
 	}
 
 	ldap_int_utils_init();
+	if ( ldap_int_tblsize == 0 )
+		ldap_int_ip_init();
 
 	gopts.ldo_version =	LDAP_VERSION2;
 	gopts.ldo_deref =	LDAP_DEREF_NEVER;
