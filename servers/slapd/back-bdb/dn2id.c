@@ -705,6 +705,7 @@ hdb_dn2id_delete(
 	return rc;
 }
 
+
 int
 hdb_dn2id(
 	Operation	*op,
@@ -745,15 +746,22 @@ hdb_dn2id(
 	data.data = d;
 
 	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH );
-	cursor->c_close( cursor );
-
 	if ( rc == 0 ) {
-		AC_MEMCPY( &ei->bei_id, &d->entryID, sizeof(ID) );
+		ei->bei_id = d->entryID;
 		ei->bei_rdn.bv_len = data.size - sizeof(diskNode) - nrlen;
 		ptr = d->nrdn + nrlen + 1;
-		ei->bei_rdn.bv_val = ch_malloc( ei->bei_rdn.bv_len + 1 );
-		strcpy( ei->bei_rdn.bv_val, ptr );
+		ber_str2bv( ptr, ei->bei_rdn.bv_len, 1, &ei->bei_rdn );
+		if ( !ei->bei_parent->bei_dkids ) {
+			db_recno_t dkids;
+			/* How many children does the parent have? */
+			/* FIXME: do we need to lock the parent
+			 * entryinfo? Seems safe...
+			 */
+			cursor->c_count( cursor, &dkids, 0 );
+			ei->bei_parent->bei_dkids = dkids;
+		}
 	}
+	cursor->c_close( cursor );
 	op->o_tmpfree( d, op->o_tmpmemctx );
 
 	return rc;
@@ -792,19 +800,24 @@ hdb_dn2id_parent(
 	data.data = d;
 
 	rc = cursor->c_get( cursor, &key, &data, DB_SET );
-	cursor->c_close( cursor );
 	if ( rc == 0 ) {
 		if (d->nrdnlen >= 0) {
-			return LDAP_OTHER;
+			rc = LDAP_OTHER;
+		} else {
+			db_recno_t dkids;
+			*idp = d->entryID;
+			ei->bei_nrdn.bv_len = 0 - d->nrdnlen;
+			ber_str2bv( d->nrdn, ei->bei_nrdn.bv_len, 1, &ei->bei_nrdn );
+			ei->bei_rdn.bv_len = data.size - sizeof(diskNode) -
+				ei->bei_nrdn.bv_len;
+			ptr = d->nrdn + ei->bei_nrdn.bv_len + 1;
+			ber_str2bv( ptr, ei->bei_rdn.bv_len, 1, &ei->bei_rdn );
+			/* How many children does this node have? */
+			cursor->c_count( cursor, &dkids, 0 );
+			ei->bei_dkids = dkids;
 		}
-		AC_MEMCPY( idp, &d->entryID, sizeof(ID) );
-		ei->bei_nrdn.bv_len = 0 - d->nrdnlen;
-		ber_str2bv( d->nrdn, ei->bei_nrdn.bv_len, 1, &ei->bei_nrdn );
-		ei->bei_rdn.bv_len = data.size - sizeof(diskNode) -
-			ei->bei_nrdn.bv_len;
-		ptr = d->nrdn + ei->bei_nrdn.bv_len + 1;
-		ber_str2bv( ptr, ei->bei_rdn.bv_len, 1, &ei->bei_rdn );
 	}
+	cursor->c_close( cursor );
 	op->o_tmpfree( d, op->o_tmpmemctx );
 	return rc;
 }
@@ -847,7 +860,12 @@ hdb_dn2id_children(
 
 	rc = cursor->c_get( cursor, &key, &data, DB_SET );
 	if ( rc == 0 ) {
-		rc = cursor->c_get( cursor, &key, &data, DB_NEXT_DUP );
+		db_recno_t dkids;
+		rc = cursor->c_count( cursor, &dkids, 0 );
+		if ( rc == 0 ) {
+			BEI(e)->bei_dkids = dkids;
+			if ( dkids < 2 ) rc = DB_NOTFOUND;
+		}
 	}
 	cursor->c_close( cursor );
 	return rc;
@@ -868,6 +886,7 @@ struct dn2id_cookie {
 	DB *db;
 	int prefix;
 	int rc;
+	EntryInfo *ei;
 	ID id;
 	ID dbuf;
 	ID *ids;
@@ -880,11 +899,35 @@ struct dn2id_cookie {
 	Operation *op;
 };
 
+/* Stuff for iterating over a bei_kids AVL tree and adding the
+ * IDs to an IDL
+ */
+struct apply_arg {
+	ID *idl;
+	EntryInfo **ei;
+};
+
+static int
+apply_func(
+	void *data,
+	void *arg )
+{
+	EntryInfo *ei = data;
+	struct apply_arg *ap = arg;
+
+	bdb_idl_insert( ap->idl, ei->bei_id );
+	if ( ap->ei ) {
+		*(ap->ei)++ = ei;
+	}
+	return 0;
+}
+
 static int
 hdb_dn2idl_internal(
 	struct dn2id_cookie *cx
 )
 {
+	EntryInfo **eilist = NULL, **ptr;
 #ifdef SLAP_IDL_CACHE
 	if ( cx->bdb->bi_idl_cache_size ) {
 		cx->rc = bdb_idl_cache_get(cx->bdb, cx->db, &cx->key, cx->tmp);
@@ -896,41 +939,102 @@ hdb_dn2idl_internal(
 		}
 	}
 #endif
-
-	cx->rc = cx->db->cursor( cx->db, NULL, &cx->dbc,
-		cx->bdb->bi_db_opflags );
-	if ( cx->rc ) return cx->rc;
 	BDB_IDL_ZERO( cx->tmp );
 
-	cx->data.data = &cx->dbuf;
-	cx->data.ulen = sizeof(ID);
-	cx->data.dlen = sizeof(ID);
-	cx->data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
+	/* If number of kids in the cache differs from on-disk, load
+	 * up all the kids from the database
+	 */
+	if ( cx->ei->bei_ckids+1 != cx->ei->bei_dkids ) {
+		EntryInfo ei;
+		ei.bei_parent = cx->ei;
 
-	/* The first item holds the parent ID. Ignore it. */
-	cx->rc = cx->dbc->c_get( cx->dbc, &cx->key, &cx->data, DB_SET );
-	if ( cx->rc == DB_NOTFOUND ) goto saveit;
-	if ( cx->rc ) return cx->rc;
+		cx->rc = cx->db->cursor( cx->db, NULL, &cx->dbc,
+			cx->bdb->bi_db_opflags );
+		if ( cx->rc ) return cx->rc;
 
-	cx->data.data = cx->buf;
-	cx->data.ulen = BDB_IDL_UM_SIZE * sizeof(ID);
-	cx->data.flags = DB_DBT_USERMEM;
+		cx->data.data = &cx->dbuf;
+		cx->data.ulen = sizeof(ID);
+		cx->data.dlen = sizeof(ID);
+		cx->data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 
-	/* Fetch the rest of the IDs in a loop... */
-	while ( (cx->rc = cx->dbc->c_get( cx->dbc, &cx->key, &cx->data,
-		DB_MULTIPLE | DB_NEXT_DUP )) == 0 ) {
-		u_int8_t *j;
-		size_t len;
-		DB_MULTIPLE_INIT( cx->ptr, &cx->data );
-		while (cx->ptr) {
-			DB_MULTIPLE_NEXT( cx->ptr, &cx->data, j, len );
-			if (j) {
-				AC_MEMCPY( &cx->dbuf, j, sizeof(ID) );
-				bdb_idl_insert( cx->tmp, cx->dbuf );
+		/* The first item holds the parent ID. Ignore it. */
+		cx->rc = cx->dbc->c_get( cx->dbc, &cx->key, &cx->data, DB_SET );
+		if ( cx->rc == DB_NOTFOUND ) goto saveit;
+		if ( cx->rc ) return cx->rc;
+
+		/* If the on-disk count is zero we've never checked it.
+		 * Count it now.
+		 */
+		if ( !cx->ei->bei_dkids ) {
+			db_recno_t dkids;
+			cx->dbc->c_count( cx->dbc, &dkids, 0 );
+			cx->ei->bei_dkids = dkids;
+		}
+
+		/* If there are kids and this is a subtree search, allocate
+		 * temp storage for the list of kids.
+		 */
+		if ( cx->prefix == DN_SUBTREE_PREFIX && cx->ei->bei_dkids > 1 ) {
+			eilist = cx->op->o_tmpalloc( sizeof(EntryInfo *) * cx->ei->bei_dkids, cx->op->o_tmpmemctx );
+			eilist[cx->ei->bei_dkids-1] = NULL;
+			ptr = eilist;
+		}
+
+		cx->data.data = cx->buf;
+		cx->data.ulen = BDB_IDL_UM_SIZE * sizeof(ID);
+		cx->data.flags = DB_DBT_USERMEM;
+
+		/* Fetch the rest of the IDs in a loop... */
+		while ( (cx->rc = cx->dbc->c_get( cx->dbc, &cx->key, &cx->data,
+			DB_MULTIPLE | DB_NEXT_DUP )) == 0 ) {
+			u_int8_t *j;
+			size_t len;
+			DB_MULTIPLE_INIT( cx->ptr, &cx->data );
+			while (cx->ptr) {
+				DB_MULTIPLE_NEXT( cx->ptr, &cx->data, j, len );
+				if (j) {
+					EntryInfo *ei2;
+					diskNode *d = (diskNode *)j;
+
+					AC_MEMCPY( &ei.bei_id, &d->entryID, sizeof(ID) );
+					AC_MEMCPY( &ei.bei_nrdn.bv_len, &d->nrdnlen, sizeof(d->nrdnlen) );
+					/* nrdn/rdn are set in-place.
+					 * hdb_cache_load will copy them as needed
+					 */
+					ei.bei_nrdn.bv_val = d->nrdn;
+					ei.bei_rdn.bv_len = len - sizeof(diskNode) - ei.bei_nrdn.bv_len;
+					ei.bei_rdn.bv_val = d->nrdn + ei.bei_nrdn.bv_len + 1;
+					bdb_idl_insert( cx->tmp, ei.bei_id );
+					hdb_cache_load( cx->bdb, &ei, &ei2 );
+					if ( eilist )
+						*ptr++ = ei2;
+				}
 			}
 		}
+		cx->dbc->c_close( cx->dbc );
+	} else {
+		/* The in-memory cache is in sync with the on-disk data.
+		 * do we have any kids?
+		 */
+		if ( cx->ei->bei_ckids > 0 ) {
+			struct apply_arg ap;
+
+			/* Temp storage for subtree search */
+			if ( cx->prefix == DN_SUBTREE_PREFIX ) {
+				eilist = cx->op->o_tmpalloc( sizeof(EntryInfo *) * cx->ei->bei_dkids, cx->op->o_tmpmemctx );
+				eilist[cx->ei->bei_dkids-1] = NULL;
+			}
+
+			/* Walk the kids tree; order is irrelevant since bdb_idl_insert
+			 * will insert in sorted order.
+			 */
+			ap.idl = cx->tmp;
+			ap.ei = eilist;
+			bdb_cache_entryinfo_lock( cx->ei );
+			avl_apply( cx->ei->bei_kids, apply_func, &ap, -1, AVL_POSTORDER );
+			bdb_cache_entryinfo_unlock( cx->ei );
+		}
 	}
-	cx->dbc->c_close( cx->dbc );
 
 	/* If we got some records, treat as success */
 	if (!BDB_IDL_IS_ZERO(cx->tmp)) {
@@ -946,21 +1050,15 @@ saveit:
 	;
 gotit:
 	if ( cx->rc == 0 ) {
-		if ( cx->prefix == DN_SUBTREE_PREFIX ) {
-			ID *save, idcurs;
-
-			save = cx->op->o_tmpalloc( BDB_IDL_SIZEOF( cx->tmp ),
-				cx->op->o_tmpmemctx );
-			BDB_IDL_CPY( save, cx->tmp );
+		/* If eilist is NULL, cx->tmp is empty... */
+		if ( cx->prefix == DN_SUBTREE_PREFIX && eilist ) {
 			bdb_idl_union( cx->ids, cx->tmp );
-	
-			idcurs = 0;
-			for ( cx->id = bdb_idl_first( save, &idcurs );
-				cx->id != NOID;
-				cx->id = bdb_idl_next( save, &idcurs )) {
+			for (ptr = eilist; *ptr; ptr++) {
+				cx->ei = *ptr;
+				cx->id = cx->ei->bei_id;
 				hdb_dn2idl_internal( cx );
 			}
-			cx->op->o_tmpfree( save, cx->op->o_tmpmemctx );
+			cx->op->o_tmpfree( eilist, cx->op->o_tmpmemctx );
 			cx->rc = 0;
 		} else {
 			BDB_IDL_CPY( cx->ids, cx->tmp );
@@ -995,6 +1093,7 @@ hdb_dn2idl(
 #endif
 
 	cx.id = e->e_id;
+	cx.ei = BEI(e);
 	cx.bdb = bdb;
 	cx.db = cx.bdb->bi_dn2id->bdi_db;
 	cx.prefix = op->ors_scope == LDAP_SCOPE_SUBTREE ? DN_SUBTREE_PREFIX :

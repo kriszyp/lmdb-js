@@ -457,8 +457,7 @@ int bdb_cache_find_ndn(
 	Operation *op,
 	DB_TXN	*txn,
 	struct berval   *ndn,
-	EntryInfo	**res,
-	u_int32_t	locker
+	EntryInfo	**res
 );
 int bdb_cache_find_id(
 	Operation *op,
@@ -480,6 +479,14 @@ void bdb_cache_delete_cleanup(
 	Entry	*e
 );
 void bdb_cache_release_all( Cache *cache );
+
+#ifdef BDB_HIER
+int hdb_cache_load(
+	struct bdb_info *bdb,
+	EntryInfo *ei,
+	EntryInfo **res
+);
+#endif
 
 #define bdb_cache_entry_db_relock		BDB_SYMBOL(cache_entry_db_relock)
 int bdb_cache_entry_db_relock(

@@ -1791,7 +1791,7 @@ numericStringNormalize(
  * Integer conversion macros that will use the largest available
  * type.
  */
-#if defined(HAVE_STRTOLL) && defined(LLONG_MAX) && defined(LLONG_MIN)
+#if defined(HAVE_STRTOLL) && defined(LLONG_MAX) && defined(LLONG_MIN) && defined(HAVE_LONG_LONG)
 # define SLAP_STRTOL(n,e,b)  strtoll(n,e,b) 
 # define SLAP_LONG_MAX       LLONG_MAX
 # define SLAP_LONG_MIN       LLONG_MIN

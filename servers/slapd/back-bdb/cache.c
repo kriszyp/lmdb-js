@@ -193,8 +193,7 @@ static int
 bdb_entryinfo_add_internal(
 	struct bdb_info *bdb,
 	EntryInfo *ei,
-	EntryInfo **res,
-	u_int32_t locker
+	EntryInfo **res
 )
 {
 	EntryInfo *ei2 = NULL;
@@ -228,6 +227,9 @@ bdb_entryinfo_add_internal(
 		ber_dupbv( &ei2->bei_nrdn, &ei->bei_nrdn );
 		avl_insert( &ei->bei_parent->bei_kids, ei2, bdb_rdn_cmp,
 			avl_dup_error );
+#ifdef BDB_HIER
+		ei->bei_parent->bei_ckids++;
+#endif
 	}
 
 	*res = ei2;
@@ -245,8 +247,7 @@ bdb_cache_find_ndn(
 	Operation	*op,
 	DB_TXN		*txn,
 	struct berval	*ndn,
-	EntryInfo	**res,
-	u_int32_t	locker
+	EntryInfo	**res
 )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
@@ -286,8 +287,7 @@ bdb_cache_find_ndn(
 
 			/* DN exists but needs to be added to cache */
 			ei.bei_nrdn.bv_len = len;
-			rc = bdb_entryinfo_add_internal( bdb, &ei, &ei2,
-				locker );
+			rc = bdb_entryinfo_add_internal( bdb, &ei, &ei2 );
 			/* add_internal left eip and c_rwlock locked */
 			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
 			if ( rc ) {
@@ -429,6 +429,41 @@ hdb_cache_find_parent(
 	}
 	return rc;
 }
+
+/* Used by hdb_dn2idl when loading the EntryInfo for all the children
+ * of a given node
+ */
+int hdb_cache_load(
+	struct bdb_info *bdb,
+	EntryInfo *ei,
+	EntryInfo **res )
+{
+	EntryInfo *ei2;
+	int rc;
+
+	/* See if we already have this one */
+	bdb_cache_entryinfo_lock( ei->bei_parent );
+	ei2 = (EntryInfo *)avl_find( ei->bei_parent->bei_kids, ei, bdb_rdn_cmp );
+	bdb_cache_entryinfo_unlock( ei->bei_parent );
+
+	if ( !ei2 ) {
+		/* Not found, add it */
+		struct berval bv;
+
+		/* bei_rdn was not malloc'd before, do it now */
+		ber_dupbv( &bv, &ei->bei_rdn );
+		ei->bei_rdn = bv;
+
+		rc = bdb_entryinfo_add_internal( bdb, ei, res );
+		bdb_cache_entryinfo_unlock( ei->bei_parent );
+		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
+	} else {
+		/* Found, return it */
+		*res = ei2;
+		return 0;
+	}
+	return rc;
+}
 #endif
 
 /* caller must have lru_mutex locked. mutex
@@ -548,7 +583,7 @@ again:		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 		rc = bdb_id2entry( op->o_bd, tid, id, &ep );
 		if ( rc == 0 ) {
 			rc = bdb_cache_find_ndn( op, tid,
-				&ep->e_nname, eip, locker );
+				&ep->e_nname, eip );
 			if ( *eip )
 				islocked = 1;
 			if ( rc ) {
@@ -676,8 +711,9 @@ bdb_cache_add(
 		rdn.bv_len = ptr - rdn.bv_val;
 	}
 	ber_dupbv( &ei.bei_rdn, &rdn );
+	if ( eip->bei_dkids ) eip->bei_dkids++;
 #endif
-	rc = bdb_entryinfo_add_internal( bdb, &ei, &new, locker );
+	rc = bdb_entryinfo_add_internal( bdb, &ei, &new );
 	new->bei_e = e;
 	e->e_private = new;
 	new->bei_state = CACHE_ENTRY_NO_KIDS;
@@ -871,6 +907,10 @@ bdb_cache_delete_internal(
 {
 	int rc = 0;	/* return code */
 
+#ifdef BDB_HIER
+	e->bei_parent->bei_ckids--;
+	if ( e->bei_parent->bei_dkids ) e->bei_parent->bei_dkids--;
+#endif
 	/* dn tree */
 	if ( avl_delete( &e->bei_parent->bei_kids, (caddr_t) e, bdb_rdn_cmp ) == NULL )
 	{

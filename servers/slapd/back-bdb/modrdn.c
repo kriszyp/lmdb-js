@@ -684,7 +684,7 @@ retry:	/* transaction retry */
 
 	/* Shortcut the search */
 	nei = neip ? neip : eip;
-	rs->sr_err = bdb_cache_find_ndn ( op, ltid, &new_ndn, &nei, locker );
+	rs->sr_err = bdb_cache_find_ndn ( op, ltid, &new_ndn, &nei );
 	if ( nei ) bdb_cache_entryinfo_unlock( nei );
 	switch( rs->sr_err ) {
 	case DB_LOCK_DEADLOCK:

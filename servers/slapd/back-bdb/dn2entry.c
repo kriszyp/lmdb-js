@@ -40,7 +40,7 @@ bdb_dn2entry(
 
 	*e = NULL;
 
-	rc = bdb_cache_find_ndn( op, tid, dn, &ei, locker );
+	rc = bdb_cache_find_ndn( op, tid, dn, &ei );
 	if ( rc ) {
 		if ( matched && rc == DB_NOTFOUND ) {
 			/* Set the return value, whether we have its entry
