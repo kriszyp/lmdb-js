@@ -34,11 +34,11 @@ int bdb_dn2id_add(
 	const char *dn,
 	ID id );
 
-Entry * bdb_dn2entry_rw LDAP_P(( Backend *be, DB_TXN *tid,
-	const char *dn, Entry **matched, int rw ));
+int bdb_dn2entry_rw LDAP_P(( Backend *be, DB_TXN *tid,
+	const char *dn, Entry **e, Entry **matched, int rw ));
 
-#define dn2entry_r(be, tid, dn, m) bdb_dn2entry_rw((be), (tid), (dn), (m), 0)
-#define dn2entry_w(be, tid, dn, m) bdb_dn2entry_rw((be), (tid), (dn), (m), 1)
+#define dn2entry_r(be, tid, dn, p, m) bdb_dn2entry_rw((be), (tid), (dn), (p), (m), 0)
+#define dn2entry_w(be, tid, dn, p, m) bdb_dn2entry_rw((be), (tid), (dn), (p), (m), 1)
 
 /*
  * entry.c

@@ -64,7 +64,7 @@ bdb_dn2id_add(
 		}
 	}
 
-	if ( rc != -1 ) {
+	{
 		char **subtree = dn_subtree( NULL, dn );
 
 		if( subtree != NULL ) {
@@ -89,7 +89,7 @@ bdb_dn2id_add(
 done:
 	ch_free( key.data );
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_index_dn_add %d\n", rc, 0, 0 );
-	return( rc );
+	return rc;
 }
 
 #if 0
@@ -314,5 +314,4 @@ dn2entry_rw(
 
 	return NULL;
 }
-
 #endif

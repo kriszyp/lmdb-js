@@ -22,12 +22,10 @@ bdb_add(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	char		*pdn = NULL;
 	Entry		*p = NULL;
-	int			rootlock = 0;
 	int			rc; 
 	const char	*text = NULL;
 	AttributeDescription *children = slap_schema.si_ad_children;
 	DB_TXN		*ltid = NULL;
-
 
 	Debug(LDAP_DEBUG_ARGS, "==> bdb_add: %s\n", e->e_dn, 0, 0);
 
@@ -54,6 +52,17 @@ bdb_add(
 		goto return_results;
 	}
 
+	if (0) {
+retry:	rc = txn_abort( ltid );
+		ltid = NULL;
+		op->o_private = NULL;
+		if( rc != 0 ) {
+			rc = LDAP_OTHER;
+			text = "internal error";
+			goto return_results;
+		}
+	}
+
 	/* begin transaction */
 	rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
 	if( rc != 0 ) {
@@ -64,6 +73,8 @@ bdb_add(
 		text = "internal error";
 		goto return_results;
 	}
+
+	op->o_private = ltid;
 	
 	/*
 	 * Get the parent dn and see if the corresponding entry exists.
@@ -76,12 +87,22 @@ bdb_add(
 		Entry *matched = NULL;
 
 		/* get parent with reader lock */
-		p = dn2entry_r( be, ltid, pdn, &matched );
+		rc = dn2entry_r( be, ltid, pdn, &p, &matched );
+		ch_free( pdn );
+
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		default:
+			rc = LDAP_OTHER;
+			text = "internal error";
+			goto return_results;
+		}
+
 		if ( p == NULL ) {
 			char *matched_dn;
 			struct berval **refs;
-
-			ch_free( pdn );
 
 			if ( matched != NULL ) {
 				matched_dn = ch_strdup( matched->e_dn );
@@ -108,8 +129,6 @@ bdb_add(
 
 			goto done;
 		}
-
-		ch_free(pdn);
 
 		if ( ! access_allowed( be, conn, op, p,
 			children, NULL, ACL_WRITE ) )
@@ -148,6 +167,10 @@ bdb_add(
 			goto done;
 		}
 
+		/* free parent and writer lock */
+		bdb_entry_return( be, p );
+		p = NULL;
+
 	} else {
 		if( pdn != NULL ) {
 			free(pdn);
@@ -172,9 +195,15 @@ bdb_add(
 	if ( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: dn2id_add failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
-		if( rc == DB_KEYEXIST ) {
+
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		case DB_KEYEXIST:
 			rc = LDAP_ALREADY_EXISTS;
-		} else {
+			break;
+		default:
 			rc = LDAP_OTHER;
 		}
 		goto return_results;
@@ -203,6 +232,7 @@ bdb_add(
 
 	rc = txn_commit( ltid, 0 );
 	ltid = NULL;
+	op->o_private = NULL;
 
 	if( rc == 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -220,8 +250,7 @@ bdb_add(
 
 return_results:
 	send_ldap_result( conn, op, rc,
-			NULL, text, NULL, NULL );
-
+		NULL, text, NULL, NULL );
 
 done:
 	if (p != NULL) {
@@ -231,6 +260,7 @@ done:
 
 	if( ltid != NULL ) {
 		txn_abort( ltid );
+		op->o_private = NULL;
 	}
 
 	return rc;

@@ -21,11 +21,6 @@ int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *out )
 	DBT key, data;
 	DB_TXN	*ltid;
 
-	rc = txn_begin( bdb->bi_dbenv, tid, &ltid, 0 );
-	if( rc != 0 ) {
-		return rc;
-	}
-
 	DBTzero( &key );
 	key.data = (char *) &kid;
 	key.size = sizeof( kid );
@@ -35,36 +30,66 @@ int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *out )
 	data.ulen = sizeof( id );
 	data.flags = DB_DBT_USERMEM;
 
-	/* get exiting value (with write lock) */
+	if( 0 ) {
+retry:	if( tid != NULL ) {
+			/* nested transaction, abort and return */
+			(void) txn_abort( ltid );
+			return rc;
+		}
+		rc = txn_abort( ltid );
+		if( rc != 0 ) {
+			return rc;
+		}
+	}
+
+	rc = txn_begin( bdb->bi_dbenv, tid, &ltid, 0 );
+	if( rc != 0 ) {
+		return rc;
+	}
+
+	/* get existing value for read/modify/write */
 	rc = bdb->bi_nextid->bdi_db->get( bdb->bi_nextid->bdi_db,
 		ltid, &key, &data, DB_RMW );
 
-	if( rc == DB_NOTFOUND ) {
-		/* must be first add */
+	switch(rc) {
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
+
+	case DB_NOTFOUND:
 		id = NOID;
+		break;
 
-	} else if( rc != 0 ) {
-		goto done;
+	case 0:
+		if ( data.size != sizeof(ID) ) {
+			/* size mismatch! */
+			rc = -1;
+			goto done;
+		}
+		break;
 
-	} else if ( data.size != sizeof(ID) ) {
-		/* size mismatch! */
-		rc = -1;
+	default:
 		goto done;
 	}
 
 	id++;
 
-	/* store new value */
+	/* put new value */
 	rc = bdb->bi_nextid->bdi_db->put( bdb->bi_nextid->bdi_db,
 		ltid, &key, &data, 0 );
 
-	*out = id;
+	switch(rc) {
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
 
-done:
-	if( rc != 0 ) {
-		(void) txn_abort( ltid );
-	} else {
+	case 0:
+		*out = id;
 		rc = txn_commit( ltid, 0 );
+		break;
+
+	default:
+done:	(void) txn_abort( ltid );
 	}
 
 	return rc;
