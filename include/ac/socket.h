@@ -116,6 +116,10 @@ extern char* WSAGetErrorString LDAP_P((int));
 #	define tcp_write( s, buf, len)	write( s, buf, len )
 
 #ifdef HAVE_PIPE
+/*
+ * Only use pipe() on systems where file and socket descriptors 
+ * are interchangable
+ */
 #define USE_PIPE HAVE_PIPE
 #endif
 
