@@ -76,6 +76,12 @@ ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 }
 
 int 
+ldap_pvt_thread_cond_destroy( ldap_pvt_thread_cond_t *cond )
+{
+	return 0;
+}
+
+int 
 ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )
 {
 	return 0;

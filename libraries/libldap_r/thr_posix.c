@@ -120,6 +120,12 @@ ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 {
 	return pthread_cond_init( cond, NULL );
 }
+
+int 
+ldap_pvt_thread_cond_destroy( ldap_pvt_thread_cond_t *cond )
+{
+	return pthread_cond_destroy( cond );
+}
 	
 int 
 ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )

@@ -76,6 +76,13 @@ ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 }
 
 int 
+ldap_pvt_thread_cond_destroy( ldap_pvt_thread_cond_t *cond )
+{
+	condition_clear( cond );
+	return( 0 );
+}
+
+int 
 ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )
 {
 	condition_signal( cond );
@@ -83,9 +90,9 @@ ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )
 }
 
 int
-ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cv )
+ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cond )
 {
-	condition_broadcast( cv );
+	condition_broadcast( cond );
 	return( 0 );
 }
 

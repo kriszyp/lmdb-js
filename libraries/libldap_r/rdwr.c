@@ -34,6 +34,14 @@ ldap_pvt_thread_rdwr_init(ldap_pvt_thread_rdwr_t *rdwrp )
 	return 0;
 }
 
+int 
+ldap_pvt_thread_rdwr_destroy(ldap_pvt_thread_rdwr_t *rdwrp )
+{
+	ldap_pvt_thread_mutex_destroy(&(rdwrp->lt_mutex) );
+	ldap_pvt_thread_cond_destroy(&(rdwrp->lt_lock_free) );
+	return 0;
+}
+
 int ldap_pvt_thread_rdwr_rlock(ldap_pvt_thread_rdwr_t *rdwrp){
 	ldap_pvt_thread_mutex_lock(&(rdwrp->lt_mutex));
 	while(rdwrp->lt_writer_writing) {
