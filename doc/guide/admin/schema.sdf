@@ -107,8 +107,8 @@ service) see {{URL:http://www.alvestrand.no/harald/objectid/}}.
 
 To obtain a fully registered OID at {{no cost}}, apply for an OID
 under the {{ORG[expand]IANA}} (IANA) maintained {{Private Enterprise}}
-arch.  Any private enterprise (organization) may request an OID to
-be assigned under this arch.  Just fill out the {{ORG:IANA}} form
+arc.  Any private enterprise (organization) may request an OID to
+be assigned under this arc.  Just fill out the {{ORG:IANA}} form
 at {{URL: http://www.iana.org/cgi-bin/enterprise.pl}} and your
 official OID will be sent to you usually within a few days.  Your
 base OID will be something like {{EX:1.3.6.1.4.1.X}} where {{EX:X}}
