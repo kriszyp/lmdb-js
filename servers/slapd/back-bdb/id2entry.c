@@ -26,7 +26,7 @@ int bdb_id2entry_put(
 #ifdef BDB_HIER
 	struct berval odn, ondn;
 
-	/* We only store rdns, and they go in the id2parent database. */
+	/* We only store rdns, and they go in the dn2id database. */
 
 	odn = e->e_name; ondn = e->e_nname;
 
@@ -115,12 +115,6 @@ int bdb_id2entry(
 		 * decoded in place.
 		 */
 		ch_free( data.data );
-	}
-
-	if ( rc == 0 ) {
-#ifdef BDB_HIER
-		bdb_fix_dn(be, id, *e);
-#endif
 	}
 
 	return rc;
@@ -216,7 +210,7 @@ int bdb_entry_release(
 		}
 	} else {
 		if (e->e_private != NULL)
-			free (e->e_private);
+			BEI(e)->bei_e = NULL;
 		e->e_private = NULL;
 		bdb_entry_return ( e );
 	}

@@ -344,6 +344,8 @@ bdb_idl_cache_put(
 	bdb_idl_cache_entry_t idl_tmp;
 	bdb_idl_cache_entry_t *ee;
 
+	DBT2bv( key, &idl_tmp.kstr );
+
 	ee = (bdb_idl_cache_entry_t *) ch_malloc(
 		sizeof( bdb_idl_cache_entry_t ) );
 	ee->db = db;
