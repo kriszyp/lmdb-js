@@ -28,6 +28,46 @@
 static char *sasl_host = NULL;
 static sasl_security_properties_t sasl_secprops;
 
+
+static int
+sasl_cb_log(
+	void *context,
+	int priority,
+	const char *message) 
+{
+	Connection *conn = context;
+	int level;
+	const char * label;
+
+	if ( message == NULL ) {
+		return SASL_BADPARAM;
+	}
+
+	switch (priority) {
+	case SASL_LOG_ERR:
+		level = LDAP_DEBUG_ANY;
+		label = "Error";
+		break;
+	case SASL_LOG_WARNING:
+		level = LDAP_DEBUG_TRACE;
+		label = "Warning";
+		break;
+	case SASL_LOG_INFO:
+		level = LDAP_DEBUG_TRACE;
+		label = "Info";
+		break;
+	default:
+		return SASL_BADPARAM;
+	}
+
+	Debug( level, "SASL [conn=%d] %s: %s\n",
+		conn ? conn->c_connid: -1,
+		label, message );
+
+	return SASL_OK;
+}
+
+
 static int
 slap_sasl_err2ldap( int saslerr )
 {
@@ -71,7 +111,8 @@ int slap_sasl_init( void )
 #ifdef HAVE_CYRUS_SASL
 	int rc;
 	sasl_conn_t *server = NULL;
-	static sasl_callback_t server_callbacks[] = {
+	sasl_callback_t server_callbacks[] = {
+		{ SASL_CB_LOG, &sasl_cb_log, NULL },
 		{ SASL_CB_LIST_END, NULL, NULL }
 	};
 
@@ -143,9 +184,14 @@ int slap_sasl_open( Connection *conn )
 
 #ifdef HAVE_CYRUS_SASL
 	sasl_conn_t *ctx = NULL;
+	sasl_callback_t session_callbacks[] = {
+		{ SASL_CB_LOG, &sasl_cb_log, conn },
+		{ SASL_CB_LIST_END, NULL, NULL }
+	};
 
 	/* create new SASL context */
-	sc = sasl_server_new( "ldap", sasl_host, global_realm, NULL,
+	sc = sasl_server_new( "ldap", sasl_host, global_realm,
+		session_callbacks,
 #ifdef LDAP_SASL_SECURITY_LAYER
 		SASL_SECURITY_LAYER,
 #else
@@ -401,3 +447,4 @@ char* slap_sasl_secprops( const char *in )
 	return "SASL not supported";
 #endif
 }
+
