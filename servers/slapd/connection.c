@@ -1630,7 +1630,7 @@ connection_input(
 		defer = "awaiting write";
 	} else if (conn->c_n_ops_executing >= connection_pool_max/2) {
 		defer = "too many executing";
-	} else if (conn->c_conn_state == SLAP_C_BINDING ) {
+	} else if (conn->c_conn_state == SLAP_C_BINDING) {
 		defer = "binding";
 	} else if (tag != LDAP_REQ_ABANDON && conn->c_n_ops_pending) {
 		defer = "pending operations";
