@@ -58,6 +58,7 @@ GLUECONF=$DATADIR/slapd-glue.conf
 REFINTCONF=$DATADIR/slapd-refint.conf
 UNIQUECONF=$DATADIR/slapd-unique.conf
 LIMITSCONF=$DATADIR/slapd-limits.conf
+DNCONF=$DATADIR/slapd-dn.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
@@ -127,6 +128,7 @@ LDIFREF=$DATADIR/referrals.ldif
 LDIFREFINT=$DATADIR/test-refint.ldif
 LDIFUNIQUE=$DATADIR/test-unique.ldif
 LDIFLIMITS=$DATADIR/test-limits.ldif
+LDIFDN=$DATADIR/test-dn.ldif
 MONITOR=""
 REFDN="c=US"
 BASEDN="dc=example,dc=com"
@@ -138,6 +140,7 @@ BJORNSDN="cn=Bjorn Jensen,ou=Information Technology DivisioN,OU=People,dc=exampl
 JAJDN="cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com"
 REFINTDN="cn=Manager,o=refint"
 UNIQUEDN="cn=Manager,o=unique"
+DNDN="cn=Manager"
 
 LOG1=$TESTDIR/slapd.1.log
 LOG2=$TESTDIR/slapd.2.log
@@ -186,6 +189,7 @@ REPLOUTMASTER=$DATADIR/repl.out.master
 MODSRCHFILTERS=$DATADIR/modify.search.filters
 CERTIFICATETLS=$DATADIR/certificate.tls
 CERTIFICATEOUT=$DATADIR/certificate.out
+DNOUT=$DATADIR/dn.out
 
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH

@@ -1,0 +1,84 @@
+#! /bin/sh
+## This work is part of OpenLDAP Software <http://www.openldap.org/>.
+##
+## Copyright 2004 The OpenLDAP Foundation.
+## All rights reserved.
+##
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted only as authorized by the OpenLDAP
+## Public License.
+##
+## A copy of this license is available in the file LICENSE in the
+## top-level directory of the distribution or, alternatively, at
+## <http://www.OpenLDAP.org/license.html>.
+
+# FIXME: temporary! bdb doesn't work
+if test "$BACKEND" != "ldbm" ; then
+	echo "Test does not support $BACKEND"
+	exit 0
+fi
+
+echo "running defines.sh"
+. $SRCDIR/scripts/defines.sh
+
+mkdir -p $TESTDIR $DBDIR1
+
+. $CONFFILTER $BACKEND $MONITORDB < $DNCONF > $CONF1
+echo "Starting slapd on TCP/IP port $PORT1..."
+$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+PID=$!
+if test $WAIT != 0 ; then
+    echo PID $PID
+    read foo
+fi
+KILLPIDS="$PID"
+
+echo "Testing slapd DN parsing..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+		'objectclass=*' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		break
+	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
+done
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Loading database..."
+$LDAPADD -D "$DNDN" -h $LOCALHOST -p $PORT1 -w $PASSWD -c -f $LDIFDN > \
+	/dev/null 2>&1
+
+echo "Searching database..."
+
+$LDAPSEARCH -b "" -h $LOCALHOST -p $PORT1 > $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+LDIFOUT=$DNOUT
+
+echo "Comparing ldapsearch results against original..."
+$CMP $SEARCHOUT $LDIFOUT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "comparison failed - DN write operations did not complete correctly"
+	exit 1
+fi
+
+#####
+
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
+
+echo ">>>>> Test succeeded"
+exit 0

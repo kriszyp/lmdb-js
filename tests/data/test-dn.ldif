@@ -1,0 +1,245 @@
+# Regular DNs
+dn: dc=net
+objectClass: domain
+dc: net
+seeAlso:
+
+dn: dc=example,dc=net
+objectClass: domain
+objectClass: domainRelatedObject
+dc: example
+associatedDomain: example.net
+
+#  UID=jsmith,DC=example,DC=net                          [AoOn]
+#  304631133011060A0992268993F22C64011916036E657431      [AoO]
+#  173015060A0992268993F22C64011916076578616D706C65
+#  31163014060A0992268993F22C64010113066A736D697468
+dn: UID=jsmith,DC=example,DC=net
+objectClass: inetOrgPerson
+cn: J. Smith
+sn: Smith
+uid: jsmith
+description: UID=jsmith,DC=example,DC=net
+
+#  OU=Sales+CN=J. Smith,DC=example,DC=net                [AoOn]
+#  304F31133011060A0992268993F22C64011916036E657431      [AoO]
+#  173015060A0992268993F22C64011916076578616D706C65
+#  311F300C060355040B130553616C6573300F060355040313
+#  084A2E20536D697468
+dn: OU=Sales+CN=J. Smith,DC=example,DC=net
+objectClass: inetOrgPerson
+cn: J. Smith
+sn: Smith
+ou: Sales
+description: OU=Sales+CN=J. Smith,DC=example,DC=net
+
+#  CN=John Smith\, III,DC=example,DC=net                 [AoOn]
+#  304831133011060A0992268993F22C64011916036E657431      [AoO]
+#  173015060A0992268993F22C64011916076578616D706C65
+#  311830160603550403130F4A6F686E20536D6974682C2049
+#  4949
+
+#  CN=John Smith\2C III,DC=example,DC=net                [AoOn]
+#  304831133011060A0992268993F22C64011916036E657431      [AoO]
+#  173015060A0992268993F22C64011916076578616D706C65
+#  311830160603550403130F4A6F686E20536D6974682C2049
+#  4949
+dn: CN=John Smith\, III,DC=example,DC=net
+objectClass: inetOrgPerson
+cn: John Smith, III
+sn: Smith
+seeAlso: CN=John Smith\2C III,DC=example,DC=net
+description: CN=John Smith\, III,DC=example,DC=net
+description: CN=John Smith\2C III,DC=example,DC=net
+
+dn: OU=Sales\; Data\+Algorithms,DC=example,DC=net
+objectClass: organizationalUnit
+ou: Sales; Data+Algorithms
+seeAlso: OU=Sales\3B Data\2BAlgorithms,DC=example,DC=net
+description: OU=Sales\; Data\+Algorithms,DC=example,DC=net
+description: OU=Sales\3B Data\2BAlgorithms,DC=example,DC=net
+
+#  CN=Before\0dAfter,DC=example,DC=net                   [AoOn]
+#  304531133011060A0992268993F22C64011916036E657431      [AoO]
+#  173015060A0992268993F22C64011916076578616D706C65
+#  3115301306035504030C0C4265666F72650D4166746572
+dn: CN=Before\0dAfter,DC=example,DC=net
+objectClass: groupOfNames
+cn:: QmVmb3JlDUFmdGVy
+member: CN=Before\0dAfter,DC=example,DC=net
+description: CN=Before\0dAfter,DC=example,DC=net
+
+#  CN=\23John Smith\20,DC=example,DC=net                 [AoOn]
+#  304531133011060A0992268993F22C64011916036E657431      [AoO]
+#  173015060A0992268993F22C64011916076578616D706C65
+#  311530130603550403140C234A6F686E20536D69746820
+
+#  CN=\#John Smith\ ,DC=example,DC=net                   [AoOn]
+#  304531133011060A0992268993F22C64011916036E657431      [AoO]
+#  173015060A0992268993F22C64011916076578616D706C65
+#  311530130603550403140C234A6F686E20536D69746820
+dn: CN=\23John Smith\20,DC=example,DC=net
+objectClass: inetOrgPerson
+cn:: I0pvaG4gU21pdGgg
+sn: Smith
+seeAlso: CN=\#John Smith\ ,DC=example,DC=net
+description: CN=\23John Smith\20,DC=example,DC=net
+description: CN=\#John Smith\ ,DC=example,DC=net
+
+#  1.3.6.1.4.1.1466.0=#04024869,DC=example,DC=com        [AoOn]
+#  304031133011060A0992268993F22C64011916036E657431      [AoO]
+#  173015060A0992268993F22C64011916076578616D706C65
+#  3110300E06082B060104018B3A0004024869
+#  FIXME
+dn: 1.3.6.1.4.1.1466.0=#04024869,DC=example,DC=com
+objectClass: top
+
+#  CN=Lu\C4\8Di\C4\87                                    [AoOn]
+#  30123110300E06035504030C074C75C48D69C487              [AoO]
+dn: CN=Lu\C4\8Di\C4\87
+objectClass: inetOrgPerson
+cn:: THXEjWnEhw==
+sn:: THXEjWnEhw==
+description: CN=Lu\C4\8Di\C4\87
+
+#  1.1.1=    // empty value                              [AoO]
+#  300A31083006060229011300                              [AoO]
+#  FIXME
+dn: 1.1.1=
+objectClass: top
+
+#Invalid DNs
+#  // some implementations may be liberal in what they accept
+#  // but should strict in what they produce.
+
+#  uid;x-option=jsmith   // option                       [oOn]
+dn: uid;x-option=jsmith
+objectClass: inetOrgPerson
+cn: J. Smith
+sn: Smith
+uid;x-option: jsmith
+
+#  at_tr=jsmith          // invalid attribute type name  [AoOn]
+dn: at_tr=jsmith
+objectClass: top
+
+#  -attr=jsmith          // invalid attribute type name  [AoOn]
+dn: -attr=jsmith
+objectClass: top
+
+#  1..1=jsmith           // invalid numeric OID          [AoO]
+dn: 1..1=jsmith
+objectClass: top
+
+#  1.1.=jsmith           // invalid numeric OID          [AoO]
+dn: 1.1.=jsmith
+objectClass: top
+
+#  01.1=jsmith           // invalid numeric OID          [oO]
+dn: 01.1=jsmith
+objectClass: top
+
+#  1.ff=jsmith           // invalid numeric OID          [AoOn]
+dn: 1.ff=jsmith
+objectClass: top
+
+#  1.1.1=#GG             // invalid HEX form             [AoOn]
+dn: 1.1.1=#GG
+objectClass: top
+
+#  1.1.1=#000            // invalid HEX form             [AoO]
+dn: 1.1.1=#000
+objectClass: top
+
+#  1.1.1=#F              // invalid HEX form             [AoO]
+dn: 1.1.1=#F
+objectClass: top
+
+#  1.1.1=#               // invalid HEX form             [AoO]
+dn: 1.1.1=#
+objectClass: top
+
+#  UID=jsmith,,DC=example,DC=net  // extra comma         [AoOn]
+dn: UID=jsmith,,DC=example,DC=net
+objectClass: inetOrgPerson
+cn: J. Smith
+sn: Smith
+uid: jsmith
+
+#  UID=john,smith        // unescaped ,                  [AoOn]
+dn: UID=john,smith
+objectClass: inetOrgPerson
+cn: J. Smith
+sn: Smith
+uid: john
+
+#  UID=john+smith        // unescaped +                  [AoOn]
+dn: UID=john+smith
+objectClass: inetOrgPerson
+cn: J. Smith
+sn: Smith
+uid: john
+
+#  UID=john\?smith       // invalid escape of ? or unescaped \ [oOn]
+dn: UID=john\?smith
+objectClass: inetOrgPerson
+cn: J. Smith
+sn: Smith
+uid: john?smith
+
+#  UID=john\Fsmith       // invalid hex escape           [AoOn]
+dn: UID=john\Fsmith
+objectClass: inetOrgPerson
+cn: J. Smith
+sn: Smith
+
+#  UID=john\GGsmith      // invalid hex escape           [oOn]
+dn: UID=john\GGsmith
+objectClass: inetOrgPerson
+cn: J. Smith
+sn: Smith
+
+
+#The following strings are invalid for use in LDAPv3, but were
+#legal in LDAPv2 (RFC 1779).  Some LDAPv3 implementations are
+#liberal in accepting these but should not generate them.
+
+#  " " // space, quote characters (") are not part of the string
+
+#  OID.1.1=jsmith                    // invalid attribute type name
+dn: OID.0.9.2342.19200300.100.1.1=jsmith
+objectClass: inetOrgPerson
+cn: J. Smith
+sn: Smith
+uid: jsmith
+description: OID.0.9.2342.19200300.100.1.1=jsmith
+
+dn: C=US
+objectClass: country
+c: US
+
+dn: O=example, C=US
+objectClass: organization
+o: example
+
+#  UID=jsmith, O=example, C=US       // spaces
+#  UID=jsmith;O=example;C=US         // semi-colons
+#  <UID=jsmith,O=example,C=US>       // brackets         [AoOn]
+dn: UID=jsmith, O=example, C=US
+objectClass: inetOrgPerson
+cn: J. Smith
+sn: Smith
+uid: jsmith
+seeAlso: UID=jsmith;O=example;C=US
+manager: <UID=jsmith,O=example,C=US>
+description: UID=jsmith, O=example, C=US
+description: UID=jsmith;O=example;C=US
+description: <UID=jsmith,O=example,C=US>
+
+#  CN="John Smith",O=example,C=US    // quotes
+dn: CN="John Smith",O=example,C=US
+objectClass: inetOrgPerson
+cn: John Smith
+sn: Smith
+description: CN="John Smith",O=example,C=US
+

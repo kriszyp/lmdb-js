@@ -1,0 +1,74 @@
+dn: dc=net
+objectClass: domain
+dc: net
+seeAlso:
+
+dn: dc=example,dc=net
+objectClass: domain
+objectClass: domainRelatedObject
+dc: example
+associatedDomain: example.net
+
+dn: uid=jsmith,dc=example,dc=net
+objectClass: inetOrgPerson
+cn: J. Smith
+sn: Smith
+uid: jsmith
+description: UID=jsmith,DC=example,DC=net
+
+dn: cn=J. Smith+ou=Sales,dc=example,dc=net
+objectClass: inetOrgPerson
+cn: J. Smith
+sn: Smith
+ou: Sales
+description: OU=Sales+CN=J. Smith,DC=example,DC=net
+
+dn: cn=John Smith\2C III,dc=example,dc=net
+objectClass: inetOrgPerson
+cn: John Smith, III
+sn: Smith
+seeAlso: cn=John Smith\2C III,dc=example,dc=net
+description: CN=John Smith\, III,DC=example,DC=net
+description: CN=John Smith\2C III,DC=example,DC=net
+
+dn: ou=Sales\3B Data\2BAlgorithms,dc=example,dc=net
+objectClass: organizationalUnit
+ou: Sales; Data+Algorithms
+seeAlso: ou=Sales\3B Data\2BAlgorithms,dc=example,dc=net
+description: OU=Sales\; Data\+Algorithms,DC=example,DC=net
+description: OU=Sales\3B Data\2BAlgorithms,DC=example,DC=net
+
+dn:: Y249QmVmb3JlDUFmdGVyLGRjPWV4YW1wbGUsZGM9bmV0
+objectClass: groupOfNames
+cn:: QmVmb3JlDUFmdGVy
+member:: Y249QmVmb3JlDUFmdGVyLGRjPWV4YW1wbGUsZGM9bmV0
+description: CN=Before\0dAfter,DC=example,DC=net
+
+dn: cn=\#John Smith\ ,dc=example,dc=net
+objectClass: inetOrgPerson
+cn:: I0pvaG4gU21pdGgg
+sn: Smith
+seeAlso: cn=\#John Smith\ ,dc=example,dc=net
+description: CN=\23John Smith\20,DC=example,DC=net
+description: CN=\#John Smith\ ,DC=example,DC=net
+
+dn:: Y249THXEjWnEhw==
+objectClass: inetOrgPerson
+cn:: THXEjWnEhw==
+sn:: THXEjWnEhw==
+description: CN=Lu\C4\8Di\C4\87
+
+dn: c=US
+objectClass: country
+c: US
+
+dn: o=example,c=US
+objectClass: organization
+o: example
+
+dn: cn=John Smith,o=example,c=US
+objectClass: inetOrgPerson
+cn: John Smith
+sn: Smith
+description: CN="John Smith",O=example,C=US
+
