@@ -135,7 +135,7 @@ typedef struct ldapcontrol {
 	char *			ldctl_oid;
 	struct berval	ldctl_value;
 	char			ldctl_iscritical;
-} LDAPControl, *PLDAPControl;
+} LDAPControl;
 
 /* LDAP "Standard" Controls */
 #define LDAP_CONTROL_REFERRALS	"1.2.840.113666.1.4.616"
@@ -709,7 +709,7 @@ ldap_kerberos_bind2_s LDAP_P((
 
 /*
  * in cache.c
- * DEPRECATED
+ * (deprecated)
  */
 LDAP_F( int )
 ldap_enable_cache LDAP_P(( LDAP *ld, long timeout, long maxmem ));
@@ -852,7 +852,7 @@ ldap_modify_s LDAP_P((
 
 
 /*
- * in rename.c:
+ * in modrdn.c:
  */
 LDAP_F( int )
 ldap_rename_ext LDAP_P((
@@ -875,10 +875,22 @@ ldap_rename_ext_s LDAP_P((
 	LDAPControl		**serverctrls,
 	LDAPControl		**clientctrls ));
 
+LDAP_F( int )
+ldap_rename2 LDAP_P((
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *newrdn,
+	int deleteoldrdn,
+	LDAP_CONST char *newSuperior ));
 
-/*
- * in modrdn.c:
- */
+LDAP_F( int )
+ldap_rename2_s LDAP_P((
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *newrdn,
+	int deleteoldrdn,
+	LDAP_CONST char *newSuperior));
+
 LDAP_F( int )
 ldap_modrdn LDAP_P((
 	LDAP *ld,
@@ -905,21 +917,6 @@ ldap_modrdn2_s LDAP_P((
 	LDAP_CONST char *newrdn,
 	int deleteoldrdn));
 
-LDAP_F( int )
-ldap_rename2 LDAP_P((
-	LDAP *ld,
-	LDAP_CONST char *dn,
-	LDAP_CONST char *newrdn,
-	int deleteoldrdn,
-	LDAP_CONST char *newSuperior ));
-
-LDAP_F( int )
-ldap_rename2_s LDAP_P((
-	LDAP *ld,
-	LDAP_CONST char *dn,
-	LDAP_CONST char *newrdn,
-	int deleteoldrdn,
-	LDAP_CONST char *newSuperior));
 
 /*
  * in open.c:
@@ -1327,6 +1324,7 @@ ldap_build_filter LDAP_P((
 /*
  * in free.c
  */
+
 LDAP_F( void )
 ldap_memfree LDAP_P((
 	void *p ));

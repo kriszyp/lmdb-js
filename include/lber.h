@@ -168,7 +168,7 @@ ber_skip_tag LDAP_P((
 
 LDAP_F( unsigned long )
 ber_peek_tag LDAP_P((
-	LDAP_CONST BerElement *ber,	/* not const in c-api-02 */
+	LDAP_CONST BerElement *ber,
 	unsigned long *len ));
 
 LDAP_F( unsigned long )
@@ -360,7 +360,7 @@ der_alloc LDAP_P(( void )); /* DEPRECATED */
 
 LDAP_F( BerElement * )
 ber_alloc_t LDAP_P((
-	int options ));
+	int beroptions ));
 
 LDAP_F( BerElement * )
 ber_dup LDAP_P((
