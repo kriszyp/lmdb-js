@@ -1798,6 +1798,8 @@ dnl AM_FUNC_MKTIME dnl checks for sys/time.h and unistd.h
 AC_FUNC_STRFTIME
 dnl AM_FUNC_STRTOD
 
+OL_FUNC_INET_ATON
+
 dnl we should use vfork instead of fork in a number of places...
 dnl AC_FUNC_VFORK
 AC_FUNC_VPRINTF

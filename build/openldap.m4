@@ -773,6 +773,33 @@ AC_DEFUN(OL_TYPE_SOCKLEN_T,
  ])dnl
 dnl
 dnl ====================================================================
+dnl Define inet_aton is available
+AC_DEFUN(OL_FUNC_INET_ATON,
+ [AC_CACHE_CHECK([for inet_aton()], ol_cv_func_inet_aton,
+    [AC_TRY_COMPILE([
+#ifdef HAVE_SYS_TYPES_H
+#	include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_SOCKET_H
+#	include <sys/socket.h>
+#	ifdef HAVE_SYS_SELECT_H
+#		include <sys/select.h>
+#	endif
+#	include <netinet/in.h>
+#	ifdef HAVE_ARPA_INET_H
+#		include <arpa/inet.h>
+#	endif
+#endif
+], [struct in_addr in;
+int rc = inet_aton( "255.255.255.255", &in );],
+		ol_cv_func_inet_aton=yes, ol_cv_func_inet_aton=no)])
+  if test $ol_cv_func_inet_aton != no; then
+    AC_DEFINE(HAVE_INET_ATON, 1,
+		[define to you inet_aton(3) is available])
+  fi
+ ])dnl
+dnl
+dnl ====================================================================
 dnl check no of arguments for ctime_r
 AC_DEFUN(OL_FUNC_CTIME_R_NARGS,
  [AC_CACHE_CHECK(number of arguments of ctime_r, ol_cv_func_ctime_r_nargs,

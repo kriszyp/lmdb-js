@@ -251,13 +251,7 @@ open_listener(
 
 	} else {
 		/* host or address was specified */
-
-#ifdef HAVE_WINSOCK
-		if((l.sl_addr.sin_addr.S_un.S_addr = inet_addr(lud->lud_host)) == INADDR_NONE)
-#else
-		if(!inet_aton(lud->lud_host, &l.sl_addr.sin_addr))
-#endif  
-		{
+		if( !inet_aton( lud->lud_host, &l.sl_addr.sin_addr ) ) {
 			struct hostent *he = gethostbyname( lud->lud_host );
 			if( he == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "invalid host (%s) in URL: %s",
@@ -266,13 +260,8 @@ open_listener(
 				return NULL;
 			}
 
-#ifdef HAVE_WINSOCK
-			memcpy( &l.sl_addr.sin_addr.S_un.S_addr, he->h_addr,
-			       sizeof( l.sl_addr.sin_addr.S_un.S_addr ) );
-#else
 			memcpy( &l.sl_addr.sin_addr, he->h_addr,
 			       sizeof( l.sl_addr.sin_addr ) );
-#endif  
 		}
 	}
 

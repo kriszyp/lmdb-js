@@ -257,23 +257,18 @@ ldap_pvt_connect(LDAP *ld, int s, struct sockaddr_in *sin, int async)
 	return ( -1 );
 }
 
-static int
-ldap_pvt_inet_aton( LDAP *ld, const char *host, struct in_addr *in)
-{
-#ifdef notyet
-/* #ifdef HAVE_INET_ATON */
-	return inet_aton( host, in );
-#else
+#ifndef HAVE_INET_ATON
+int
+ldap_pvt_inet_aton( const char *host, struct in_addr *in)
 {
 	unsigned long u = inet_addr( host );
 	if ( u != 0xffffffff || u != (unsigned long) -1 ) {
 		in->s_addr = u;
 		return 1;
 	}
-}
-#endif
 	return 0;
 }
+#endif
 
 
 int
@@ -291,7 +286,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
 	osip_debug(ld, "ldap_connect_to_host\n",0,0,0);
 	
 	if (host != NULL) {
-		if (! ldap_pvt_inet_aton( ld, host, &in) ) {
+		if (! inet_aton( host, &in) ) {
 			rc = ldap_pvt_gethostbyname_a(host, &he_buf, &ha_buf,
 					&hp, &local_h_errno);
 

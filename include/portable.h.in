@@ -738,6 +738,9 @@
 /* define if cross compiling */
 #undef CROSS_COMPILING
 
+/* define to you inet_aton(3) is available */
+#undef HAVE_INET_ATON
+
 /* define if sys_errlist is not declared in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 
