@@ -2,8 +2,7 @@ OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.20 Engineering
 	Fixed slapd regex lookup mutex issue (ITS#2505)
-	Fixed back-bdb filter indexing bugs (ITS#2506) (ITS#2507)
-	
+	Fixed back-bdb/ldbm filter indexing bugs (ITS#2506) (ITS#2507)
 
 OpenLDAP 2.1.19 Release
 	Fixed slapd substring index normalization (ITS#2468)
