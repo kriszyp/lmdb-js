@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 
 #include <ac/ctype.h>
 #include <ac/signal.h>
@@ -9,6 +10,14 @@
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
+#include <ac/errno.h>
+
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
 
 #include <lber.h>
 #include <ldap.h>
@@ -464,12 +473,15 @@ void print_entry(
 	} else if (( bvals = ldap_get_values_len( ld, entry, a )) != NULL ) {
 	    for ( i = 0; bvals[i] != NULL; i++ ) {
 		if ( vals2tmp ) {
+		    int tmpfd;
 		    sprintf( tmpfname, "/tmp/ldapsearch-%s-XXXXXX", a );
 		    tmpfp = NULL;
 
 		    if ( mktemp( tmpfname ) == NULL ) {
 			perror( tmpfname );
-		    } else if (( tmpfp = fopen( tmpfname, "w")) == NULL ) {
+		    } else if (( tmpfd = open( tmpfname, O_WRONLY|O_CREAT|O_EXCL, 0600 )) == -1 ) {
+			perror( tmpfname );
+		    } else if (( tmpfp = fdopen( tmpfd, "w")) == NULL ) {
 			perror( tmpfname );
 		    } else if ( fwrite( bvals[ i ]->bv_val,
 			    bvals[ i ]->bv_len, 1, tmpfp ) == 0 ) {
