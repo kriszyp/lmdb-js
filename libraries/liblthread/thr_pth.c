@@ -126,7 +126,6 @@ ldap_pvt_thread_mutex_destroy( ldap_pvt_thread_mutex_t *mutex )
 int 
 ldap_pvt_thread_mutex_lock( ldap_pvt_thread_mutex_t *mutex )
 {
-	pth_init();
 	return( pth_mutex_acquire( mutex, 0, NULL ) );
 }
 
