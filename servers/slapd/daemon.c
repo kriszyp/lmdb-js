@@ -248,7 +248,8 @@ slapd_daemon_task(
 	}
 
 	while ( !slapd_shutdown ) {
-		int i, ns, nfds;
+		unsigned int i;
+		int ns, nfds;
 
 		fd_set			readfds;
 		fd_set			writefds;

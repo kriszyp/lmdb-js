@@ -42,7 +42,6 @@ ldbm_back_modrdn(
 	char		*matched = NULL;
 	char		*p_dn = NULL, *p_ndn = NULL;
 	char		*new_dn = NULL, *new_ndn = NULL;
-	char		sep[2];
 	Entry		*e, *p = NULL;
 	int			rootlock = 0;
 	int			rc = -1;

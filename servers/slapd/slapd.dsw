@@ -3,18 +3,6 @@ Microsoft Developer Studio Workspace File, Format Version 5.00
 
 ###############################################################################
 
-Project: "backbdb2"=".\back-bdb2\backbdb2.dsp" - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
 Project: "backldbm"=".\back-ldbm\backldbm.dsp" - Package Owner=<4>
 
 Package=<5>
@@ -111,18 +99,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "regex"=..\..\libraries\regex\regex.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
 Project: "slapd"=.\slapd.dsp - Package Owner=<4>
 
 Package=<5>
@@ -145,9 +121,6 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name liblutil
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name regex
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libldap_r

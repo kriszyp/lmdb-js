@@ -81,7 +81,7 @@ lutil_passwd(
 		unsigned char *orig_pass = NULL;
  
 		/* base64 un-encode password */
-		orig_pass = (unsigned char *)malloc(pw_len * 0.75 + 1);
+		orig_pass = (unsigned char *)malloc((size_t)(pw_len * 0.75 + 1));
 		if ((rc = lutil_b64_pton(p, orig_pass, pw_len)) < 0)
 		{
 			free(orig_pass);
@@ -111,7 +111,7 @@ lutil_passwd(
 		unsigned char *orig_pass = NULL;
 
 		/* base64 un-encode password */
-		orig_pass = (unsigned char *)malloc(pw_len * 0.75 + 1);
+		orig_pass = (unsigned char *)malloc((size_t)(pw_len * 0.75 + 1));
 		if ((rc = lutil_b64_pton(p, orig_pass, pw_len)) < 0)
 		{
 			free(orig_pass);
