@@ -42,8 +42,7 @@ slap_get_commit_csn( Operation *op, struct berval *csn )
 	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
 
 	LDAP_TAILQ_FOREACH( csne, &op->o_bd->be_pending_csn_list, csn_link ) {
-		if ( csne->opid == op->o_opid && csne->connid == op->o_connid )
-			break;
+		if ( csne->opid == op->o_opid && csne->connid == op->o_connid ) break;
 	}
 
 	if ( csne ) {
@@ -51,10 +50,8 @@ slap_get_commit_csn( Operation *op, struct berval *csn )
 	}
 
 	LDAP_TAILQ_FOREACH( csne, &op->o_bd->be_pending_csn_list, csn_link ) {
-		if ( csne->state == SLAP_CSN_COMMIT )
-			committed_csne = csne;
-		if ( csne->state == SLAP_CSN_PENDING )
-			break;
+		if ( csne->state == SLAP_CSN_COMMIT ) committed_csne = csne;
+		if ( csne->state == SLAP_CSN_PENDING ) break;
 	}
 
 	ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
@@ -72,8 +69,7 @@ slap_rewind_commit_csn( Operation *op )
 	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
 
 	LDAP_TAILQ_FOREACH( csne, &op->o_bd->be_pending_csn_list, csn_link ) {
-		if ( csne->opid == op->o_opid && csne->connid == op->o_connid )
-			break;
+		if ( csne->opid == op->o_opid && csne->connid == op->o_connid ) break;
 	}
 
 	if ( csne ) {
@@ -97,8 +93,7 @@ slap_graduate_commit_csn( Operation *op )
 	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
 
 	LDAP_TAILQ_FOREACH( csne, &op->o_bd->be_pending_csn_list, csn_link ) {
-		if ( csne->opid == op->o_opid && csne->connid == op->o_connid )
-			break;
+		if ( csne->opid == op->o_opid && csne->connid == op->o_connid ) break;
 	}
 
 	if ( csne ) {
@@ -131,13 +126,14 @@ slap_create_context_csn_entry(
 
 	struct berval bv;
 
-	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
+	e = (Entry *) ch_calloc( 1, sizeof( Entry ));
 
-	attr_merge( e, slap_schema.si_ad_objectClass, ocbva, NULL );
-
-	attr_merge_one( e, slap_schema.si_ad_structuralObjectClass, &ocbva[1], NULL );
-
-	attr_merge_one( e, slap_schema.si_ad_cn, (struct berval *)&slap_ldapsync_bv, NULL );
+	attr_merge( e, slap_schema.si_ad_objectClass,
+		ocbva, NULL );
+	attr_merge_one( e, slap_schema.si_ad_structuralObjectClass,
+		&ocbva[1], NULL );
+	attr_merge_one( e, slap_schema.si_ad_cn,
+		(struct berval *)&slap_ldapsync_bv, NULL );
 
 	if ( context_csn ) {
 		attr_merge_one( e, slap_schema.si_ad_contextCSN,
@@ -148,7 +144,8 @@ slap_create_context_csn_entry(
 	bv.bv_len = sizeof("{}")-1;
 	attr_merge_one( e, slap_schema.si_ad_subtreeSpecification, &bv, NULL );
 
-	build_new_dn( &e->e_name, &be->be_nsuffix[0], (struct berval *)&slap_ldapsync_cn_bv, NULL );
+	build_new_dn( &e->e_name, &be->be_nsuffix[0],
+		(struct berval *)&slap_ldapsync_cn_bv, NULL );
 	ber_dupbv( &e->e_nname, &e->e_name );
 
 	return e;
@@ -177,23 +174,24 @@ slap_get_csn(
 	int manage_ctxcsn
 )
 {
-	struct	slap_csn_entry *pending;
+	struct slap_csn_entry *pending;
 
-	if ( csn == NULL )
-		return LDAP_OTHER;
+	if ( csn == NULL ) return LDAP_OTHER;
 
 	csn->bv_len = lutil_csnstr( csnbuf, len, 0, 0 );
 	csn->bv_val = csnbuf;
 
 	if ( manage_ctxcsn ) {
-		pending = (struct slap_csn_entry *) ch_calloc( 1, sizeof( struct slap_csn_entry ));
+		pending = (struct slap_csn_entry *) ch_calloc( 1,
+			sizeof( struct slap_csn_entry ));
 		ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
 		ber_dupbv( &op->o_sync_csn, csn );
 		pending->csn = ber_dupbv( NULL, csn );
 		pending->connid = op->o_connid;
 		pending->opid = op->o_opid;
 		pending->state = SLAP_CSN_PENDING;
-		LDAP_TAILQ_INSERT_TAIL( &op->o_bd->be_pending_csn_list, pending, csn_link );
+		LDAP_TAILQ_INSERT_TAIL( &op->o_bd->be_pending_csn_list,
+			pending, csn_link );
 		ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
 	}
 
