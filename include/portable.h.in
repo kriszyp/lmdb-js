@@ -49,15 +49,6 @@
 /* Define if on MINIX.  */
 #undef _MINIX
 
-/* Define to `int' if <sys/types.h> doesn't define.  */
-#undef mode_t
-
-/* Define to `long' if <sys/types.h> doesn't define.  */
-#undef off_t
-
-/* Define to `int' if <sys/types.h> doesn't define.  */
-#undef pid_t
-
 /* Define if the system does not provide POSIX.1 features except
    with this defined.  */
 #undef _POSIX_1_SOURCE
@@ -67,9 +58,6 @@
 
 /* Define as the return type of signal handlers (int or void).  */
 #undef RETSIGTYPE
-
-/* Define to `unsigned' if <sys/types.h> doesn't define.  */
-#undef size_t
 
 /* Define if you have the ANSI C header files.  */
 #undef STDC_HEADERS
@@ -400,6 +388,9 @@
 /* Define if you have the <memory.h> header file.  */
 #undef HAVE_MEMORY_H
 
+/* Define if you have the <minix/config.h> header file.  */
+#undef HAVE_MINIX_CONFIG_H
+
 /* Define if you have the <ncurses.h> header file.  */
 #undef HAVE_NCURSES_H
 
@@ -604,8 +595,20 @@
 /* define if you have POSIX termios */
 #undef HAVE_POSIX_TERMIOS
 
+/* Define to `int' if <sys/types.h> does not define. */
+#undef mode_t
+
+/* Define to `long' if <sys/types.h> does not define. */
+#undef off_t
+
+/* Define to `int' if <sys/types.h> does not define. */
+#undef pid_t
+
 /* Define if system has ptrdiff_t type */
 #undef HAVE_PTRDIFF_T
+
+/* Define to `unsigned' if <sys/types.h> does not define. */
+#undef size_t
 
 /* define if cross compiling */
 #undef CROSS_COMPILING

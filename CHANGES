@@ -7,6 +7,7 @@ Changes included in OpenLDAP 1.2.9
 	Added UD support for creators/modifiers attributes (ITS#422)
 	Build Environment
 		Rebuild configure
+		Added support for db1 vs db2 with glibc 2.1
 
 Changes included in OpenLDAP 1.2.8
 	CVS Tag: OPENLDAP_REL_ENG_1_2_8
