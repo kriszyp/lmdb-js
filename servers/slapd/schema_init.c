@@ -1810,6 +1810,7 @@ telephoneNumberNormalize(
 
 	if( normalized->bv_len == 0 ) {
 		free( normalized->bv_val );
+		normalized->bv_val = NULL;
 		return LDAP_INVALID_SYNTAX;
 	}
 
