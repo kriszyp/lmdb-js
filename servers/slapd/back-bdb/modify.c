@@ -328,20 +328,26 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	rc = txn_commit( ltid, 0 );
+	if( op->o_noop ) {
+		rc = txn_abort( ltid );
+	} else {
+		rc = txn_commit( ltid, 0 );
+	}
 	ltid = NULL;
 	op->o_private = NULL;
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modify: txn_commit failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
+			"bdb_modify: txn_%s failed: %s (%d)\n",
+			op->o_noop ? "abort (no-op)" : "commit",
+			db_strerror(rc), rc );
 		rc = LDAP_OTHER;
 		text = "commit failed";
 
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modify: updated id=%08lx dn=\"%s\"\n",
+			"bdb_modify: updated%s id=%08lx dn=\"%s\"\n",
+			op->o_noop ? " (no-op)" : "",
 			e->e_id, e->e_dn, 0 );
 		rc = LDAP_SUCCESS;
 		text = NULL;

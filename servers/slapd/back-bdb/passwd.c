@@ -198,7 +198,11 @@ retry:	/* transaction retry */
 		}
 
 		if( rc == 0 ) {
-			rc = txn_commit( ltid, 0 );
+			if( op->o_noop ) {
+				rc = txn_abort( ltid );
+			} else {
+				rc = txn_commit( ltid, 0 );
+			}
 			ltid = NULL;
 		}
 		op->o_private = NULL;

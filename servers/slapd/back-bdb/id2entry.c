@@ -135,8 +135,9 @@ int bdb_id2entry_rw(
 	bdb_fix_dn(be, id, *e);
 #endif
 
-	if (rc == 0)
+	if (rc == 0) {
 		bdb_cache_entry_commit(*e);
+	}
 
 	return rc;
 }
