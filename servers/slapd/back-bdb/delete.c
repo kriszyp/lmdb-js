@@ -561,11 +561,11 @@ retry:	/* transaction retry */
 		}
 
 		if ( rs->sr_err == LDAP_SUCCESS && !op->o_no_psearch ) {
-			ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
+			ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 			LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 				bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_DELETE );
 			}
-			ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
+			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
 		}
 
 		rs->sr_err = TXN_COMMIT( ltid, 0 );
