@@ -1541,12 +1541,13 @@ AC_CHECK_FUNCS(		\
 	endgrent		\
 	endpwent		\
 	flock			\
-	getdtablesize		\
+	getdtablesize	\
 	getgrgid		\
 	gethostname		\
 	getpass			\
 	getpwuid		\
-	gettimeofday		\
+	gettimeofday	\
+	initgroups		\
 	lockf			\
 	memcpy			\
 	memmove			\
@@ -1554,7 +1555,11 @@ AC_CHECK_FUNCS(		\
 	recv			\
 	recvfrom		\
 	setpwfile		\
+	setgid			\
+	setegid			\
 	setsid			\
+	setuid			\
+	seteuid			\
 	signal			\
 	sigset			\
 	snprintf		\

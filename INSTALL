@@ -47,18 +47,18 @@ these steps:
 	See the 'USING ENVIRONMENT VARIABLES' section for information
 	on how to use the variables. 
 
- 3. edit the file include/ldapconfig.h.edit to configure
-    the software for your site (the files are well-commented):
-
-	% vi include/ldapconfig.h.edit
-
- 4. Configure the build system
+ 3. Configure the build system
 
 	% [env settings] ./configure [options]
 
 	If all goes well, the configure script with auto-detect the
 	appropriate settings.  Use configure enable/with options and/or
 	environment variables to obtain desired results.
+
+ 4. Review the file include/ldapconfig.h.edit.
+	You generally do not need to modify this file.  
+
+	% vi include/ldapconfig.h.edit
 
  5. Build dependencies
 

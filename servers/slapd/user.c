@@ -11,12 +11,17 @@
 
 #include "portable.h"
 
-#if defined(HAVE_PWD_H) && defined(HAVE_GRP_H)
+#if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef HAVE_PWD_H
 #include <pwd.h>
+#endif
+#ifdef HAVE_GRP_H
 #include <grp.h>
+#endif
 
 #include <ac/ctype.h>
 #include <ac/unistd.h>
@@ -31,7 +36,7 @@
 void
 slap_init_user( char *user, char *group )
 {
-    uid_t	uid = (gid_t) -1;
+    uid_t	uid = (uid_t) -1;
     gid_t	gid = (gid_t) -1;
 
     if ( user ) {
@@ -104,11 +109,13 @@ slap_init_user( char *user, char *group )
 		   gid, 0, 0 );
 	    exit( 1 );
 	}
+#ifdef HAVE_SETEGID
 	if ( setegid( gid ) != 0 ) {
 	    Debug( LDAP_DEBUG_ANY, "Could not set effective group id to %d\n",
 		   gid, 0, 0 );
 	    exit( 1 );
 	}
+#endif
     }
 
     if ( uid >= 0 ) {
@@ -117,11 +124,13 @@ slap_init_user( char *user, char *group )
 		   uid, 0, 0 );
 	    exit( 1 );
 	}
+#ifdef HAVE_SETEUID
 	if ( seteuid( uid ) != 0 ) {
 	    Debug( LDAP_DEBUG_ANY, "Could not set real user id to %d\n",
 		   uid, 0, 0 );
 	    exit( 1 );
 	}
+#endif
     }
 }
 

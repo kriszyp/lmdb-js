@@ -5,7 +5,7 @@ slapd \- Stand-alone LDAP Daemon
 .B LIBEXECDIR/slapd [\-d debug\-level]
 .B [\-f slapd\-config\-file] [\-a address] [\-p port\-number]
 .B [\-s syslog\-level] [\-l syslog\-local\-user] [\-i]
-.B [\-U user] [\-G group]
+.B [\-u user] [\-g group]
 .B 
 .SH DESCRIPTION
 .LP
@@ -99,14 +99,14 @@ Internet standard '.' format.
 will listen on the default LDAP port (389) unless this option is given
 to override the default.  A numeric port number is expected.
 .TP
-.BI \-U " user"
+.BI \-u " user"
 .B slapd
 will run slapd with the specified user name or id, and that user's
 supplementary group access list as set with initgroups(3).  The group ID
-is also changed to this user's gid, unless the -G option is used to
+is also changed to this user's gid, unless the -g option is used to
 override.
 .TP
-.BI \-G " group"
+.BI \-g " group"
 .B slapd
 will run with the specified group name or id.
 .TP

@@ -57,15 +57,18 @@ static void
 usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-d ?|debuglevel] [-f configfile] [-p portnumber] [-s sysloglevel]", name );
-    fprintf( stderr, "\n        [-a bind-address] [-i] [-u]" );
+    fprintf( stderr, "\n        [-a bind-address] [-i]" );
+#if LDAP_CONNECTIONLESS
+	fprintf( stderr, " [-c]" );
+#endif
 #ifdef SLAPD_BDB2
     fprintf( stderr, " [-t]" );
 #endif
 #ifdef LOG_LOCAL4
     fprintf( stderr, " [-l sysloguser]" );
 #endif
-#if defined(HAVE_PWD_H) && defined(HAVE_GRP_H)
-    fprintf( stderr, " [-U user] [-G group]" );
+#if defined(HAVE_SETUID) && defined(HAVE_SETGID)
+    fprintf( stderr, " [-u user] [-g group]" );
 #endif
     fprintf( stderr, "\n" );
 }
@@ -84,7 +87,7 @@ main( int argc, char **argv )
 #ifdef LOG_LOCAL4
     int     syslogUser = DEFAULT_SYSLOG_USER;
 #endif
-#if defined(HAVE_PWD_H) && defined(HAVE_GRP_H)
+#if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 	char		*username = NULL, *groupname = NULL;
 #endif
 	char		*configfile;
@@ -102,15 +105,15 @@ main( int argc, char **argv )
 	g_argv = argv;
 
 	while ( (i = getopt( argc, argv,
-			     "d:f:ia:p:s:u"
+			     "d:f:ia:p:s:c"
 #ifdef LOG_LOCAL4
 			     "l:"
 #endif
 #ifdef SLAPD_BDB2
 			     "t"
 #endif
-#if defined(HAVE_PWD_H) && defined(HAVE_GRP_H)
-			     "U:G:"
+#if defined(HAVE_SETUID) && defined(HAVE_SETGID)
+			     "u:g:"
 #endif
 			     )) != EOF ) {
 		switch ( i ) {
@@ -195,9 +198,11 @@ main( int argc, char **argv )
 			break;
 #endif
 
-		case 'u':	/* do udp */
+#ifdef LDAP_CONNECTIONLESS
+		case 'c':	/* do connectionless (udp) */
 			udp = 1;
 			break;
+#endif
 
 #ifdef SLAPD_BDB2
 		case 't':  /* timed server */
@@ -205,15 +210,17 @@ main( int argc, char **argv )
 			break;
 #endif
 
-#if defined(HAVE_PWD_H) && defined(HAVE_GRP_H)
-		case 'U':	/* user name */
+#if defined(HAVE_SETUID) && defined(HAVE_GETUID)
+		case 'u':	/* user name */
+			if( username ) free(username);
 			username = ch_strdup( optarg );
 			break;
 
-		case 'G':	/* group name */
+		case 'g':	/* group name */
+			if( groupname ) free(groupname);
 			groupname = ch_strdup( optarg );
 			break;
-#endif /* HAVE_PWD_H && HAVE_GRP_H */
+#endif /* SETUID && GETUID */
 
 		default:
 			usage( argv[0] );
@@ -241,7 +248,7 @@ main( int argc, char **argv )
 
 	tcps = set_socket( inetd ? NULL : &bind_addr );
 
-#if defined(HAVE_PWD_H) && defined(HAVE_GRP_H)
+#if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 	if ( username != NULL || groupname != NULL )
 		slap_init_user( username, groupname );
 #endif
