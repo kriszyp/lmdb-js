@@ -233,6 +233,36 @@ parse_acl(
 						acl_usage();
 					}
 
+				} else if ( strncasecmp( left, "val", 3 ) == 0 ) {
+					if ( a->acl_attrval.bv_len ) {
+						fprintf( stderr,
+				"%s: line %d: attr val already specified in to clause.\n",
+							fname, lineno );
+						acl_usage();
+					}
+					if ( a->acl_attrs == NULL || a->acl_attrs[1].an_name.bv_val ) {
+						fprintf( stderr,
+				"%s: line %d: attr val requires a single attribute.\n",
+							fname, lineno );
+						acl_usage();
+					}
+					ber_str2bv( right, 0, 1, &a->acl_attrval );
+					if ( style && strcasecmp( style, "regex" ) == 0 ) {
+						int e = regcomp( &a->acl_attrval_re, a->acl_attrval.bv_val,
+							REG_EXTENDED | REG_ICASE | REG_NOSUB );
+						if ( e ) {
+							char buf[512];
+							regerror( e, &a->acl_attrval_re, buf, sizeof(buf) );
+							fprintf( stderr, "%s: line %d: "
+								"regular expression \"%s\" bad because of %s\n",
+								fname, lineno, right, buf );
+							acl_usage();
+						}
+						a->acl_attrval_style = ACL_STYLE_REGEX;
+					} else {
+						a->acl_attrval_style = ACL_STYLE_BASE;
+					}
+					
 				} else {
 					fprintf( stderr,
 						"%s: line %d: expecting <what> got \"%s\"\n",
@@ -1298,7 +1328,7 @@ acl_usage( void )
 		"<access clause> ::= access to <what> "
 				"[ by <who> <access> [ <control> ] ]+ \n"
 		"<what> ::= * | [dn[.<dnstyle>]=<DN>] [filter=<filter>] [attrs=<attrlist>]\n"
-		"<attrlist> ::= <attr> | <attr> , <attrlist>\n"
+		"<attrlist> ::= <attr> [val[.<style>]=<value>] | <attr> , <attrlist>\n"
 		"<attr> ::= <attrname> | entry | children\n"
 		"<who> ::= [ * | anonymous | users | self | dn[.<dnstyle>]=<DN> ]\n"
 			"\t[dnattr=<attrname>]\n"
@@ -1652,6 +1682,13 @@ print_acl( Backend *be, AccessControl *a )
 			first = 0;
 		}
 		fprintf(  stderr, "\n" );
+	}
+
+	if ( a->acl_attrval.bv_len != 0 ) {
+		to++;
+		fprintf( stderr, " val.%s=%s\n",
+			style_strings[a->acl_attrval_style], a->acl_attrval.bv_val );
+
 	}
 
 	if( !to ) {
