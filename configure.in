@@ -1559,9 +1559,10 @@ if test $am_cv_sys_posix_termios = yes ; then
 		[define if you have POSIX termios])
 fi
 
-AC_CHECK_HEADERS(		\
+AC_CHECK_HEADERS(	\
 	arpa/inet.h		\
-	arpa/nameser.h		\
+	arpa/nameser.h	\
+	assert.h		\
 	crypt.h			\
 	errno.h			\
 	fcntl.h			\
@@ -1587,9 +1588,9 @@ AC_CHECK_HEADERS(		\
 	sys/errno.h		\
 	sys/ioctl.h		\
 	sys/param.h		\
-	sys/resource.h		\
-	sys/socket.h		\
-	sys/syslog.h		\
+	sys/resource.h	\
+	sys/socket.h	\
+	sys/syslog.h	\
 	sys/time.h		\
 	sys/types.h		\
 	syslog.h		\

@@ -243,7 +243,16 @@
 #	include <stddef.h>
 #endif
 
+#if defined(LDAP_DEVEL) && !defined(LDAP_TEST)
+#define LDAP_TEST
+#endif
+#if defined(LDAP_TEST) && !defined(LDAP_DEBUG)
+#define LDAP_DEBUG
+#endif
+
 #include "ldap_cdefs.h"
 #include "ldap_features.h"
+
+#include "ac/assert.h"
 
 #endif /* _LDAP_PORTABLE_H */

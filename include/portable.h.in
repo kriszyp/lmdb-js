@@ -348,6 +348,9 @@
 /* Define if you have the <arpa/nameser.h> header file.  */
 #undef HAVE_ARPA_NAMESER_H
 
+/* Define if you have the <assert.h> header file.  */
+#undef HAVE_ASSERT_H
+
 /* Define if you have the <crypt.h> header file.  */
 #undef HAVE_CRYPT_H
 
@@ -680,19 +683,15 @@
 
 /* begin of postamble */
 
-/*
- * DEVEL implies TEST implies DEBUG
- */
-#if !defined( LDAP_TEST) && defined( LDAP_DEVEL )
-#define LDAP_TEST
-#endif
-
-#if !defined( LDAP_DEBUG) && defined( LDAP_TEST )
-#define LDAP_DEBUG
-#endif
-
 #ifdef HAVE_STDDEF_H
 #	include <stddef.h>
+#endif
+
+#if defined(LDAP_DEVEL) && !defined(LDAP_TEST)
+#define LDAP_TEST
+#endif
+#if defined(LDAP_TEST) && !defined(LDAP_DEBUG)
+#define LDAP_DEBUG
 #endif
 
 #include "ldap_cdefs.h"
