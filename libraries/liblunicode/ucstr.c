@@ -4,6 +4,12 @@
 #include <ac/string.h>
 #include <ac/stdlib.h>
 
+#include <lber.h>
+
+#define	malloc(x)	ber_memalloc(x)
+#define	realloc(x,y)	ber_memrealloc(x,y)
+#define	free(x)		ber_memfree(x)
+
 #include <ldap_utf8.h>
 #include <ldap_pvt_uc.h>
 
@@ -99,17 +105,34 @@ char * UTF8normalize(
 	s = bv->bv_val;
 	len = bv->bv_len;
 
-	if ( len == 0 ) {
-		out = (char *) malloc( 1 );
-		*out = '\0';
+	/* See if the string is pure ASCII so we can shortcut */
+	for ( i=0; i<len; i++ ) {
+		if ( s[i] & 0x80 )	/* non-ASCII */
+			break;
+	}
+
+	/* It's pure ASCII or zero-len */
+	if ( i == len ) {
+		out = malloc( len + 1 );
+		if ( i && !casefold ) {
+			strncpy( out, bv->bv_val, len );
+		} else {
+			for ( j=0; j<i; j++ )
+				out[j] = TOUPPER( s[j] );
+		}
+		out[len] = '\0';
 		return out;
 	}
-	
+
 	outsize = len + 7;
 	out = (char *) malloc( outsize );
 	if ( out == NULL ) {
 		return NULL;
 	}
+
+	/* FIXME: Should first check to see if string is already in
+	 * proper normalized form.
+	 */
 
 	outpos = 0;
 
@@ -234,6 +257,30 @@ int UTF8normcmp(
 		return *s1 - *s2 > 0 ? 1 : -1;
 	}
 	
+	/* See if we can get away with a straight ASCII compare */
+	len = (l1 < l2) ? l1 : l2;
+	for ( i = 0; i<len; i++ ) {
+		/* Is either char non-ASCII? */
+		if ((s1[i] & 0x80) || (s2[i] & 0x80))
+			break;
+		if (casefold) {
+			char c1 = TOUPPER(s1[i]);
+			char c2 = TOUPPER(s2[i]);
+		    	res = c1 - c2;
+		} else {
+			res = s1[i] - s2[i];
+		}
+		if (res)
+			return res;
+	}
+	/* Strings were ASCII, equal up to minlen */
+	if (i == len)
+		return l1 - l2;
+		
+	/* FIXME: Should first check to see if strings are already in
+	 * proper normalized form.
+	 */
+
 	ucs = (long *) malloc( ( l1 > l2 ? l1 : l2 ) * sizeof(*ucs) );
 	if ( ucs == NULL ) {
 		return l1 > l2 ? 1 : -1; /* what to do??? */
