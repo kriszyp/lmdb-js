@@ -23,6 +23,9 @@
 #include "entry-id.h"
 #include "util.h"
 
+#define BACKSQL_STOP		0
+#define BACKSQL_CONTINUE	1
+
 static int backsql_process_filter( backsql_srch_info *bsi, Filter *f );
 
 static int
@@ -726,7 +729,9 @@ backsql_oc_get_candidates( backsql_oc_map_rec *oc, backsql_srch_info *bsi )
 	if ( bsi->n_candidates == -1 ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 			"unchecked limit has been overcome\n", 0, 0, 0 );
-		return 1;
+		/* should never get here */
+		assert( 0 );
+		return BACKSQL_STOP;
 	}
 	
 	bsi->oc = oc;
@@ -734,7 +739,7 @@ backsql_oc_get_candidates( backsql_oc_map_rec *oc, backsql_srch_info *bsi )
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 			"could not construct query for objectclass\n",
 			0, 0, 0 );
-		return 1;
+		return BACKSQL_CONTINUE;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "Constructed query: %s\n", 
@@ -746,13 +751,13 @@ backsql_oc_get_candidates( backsql_oc_map_rec *oc, backsql_srch_info *bsi )
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 			"error preparing query\n", 0, 0, 0 );
 		backsql_PrintErrors( bsi->bi->db_env, bsi->dbh, sth, rc );
-		return 1;
+		return BACKSQL_CONTINUE;
 	}
 
 	if ( backsql_BindParamID( sth, 1, &bsi->oc->id ) != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 			"error binding objectclass id parameter\n", 0, 0, 0 );
-		return 1;
+		return BACKSQL_CONTINUE;
 	}
 
 	switch ( bsi->scope ) {
@@ -764,7 +769,7 @@ backsql_oc_get_candidates( backsql_oc_map_rec *oc, backsql_srch_info *bsi )
 				"error binding base_dn parameter\n", 0, 0, 0 );
 			backsql_PrintErrors( bsi->bi->db_env, bsi->dbh, 
 					sth, rc );
-			return 1;
+			return BACKSQL_CONTINUE;
 		}
 		break;
 
@@ -823,7 +828,7 @@ backsql_oc_get_candidates( backsql_oc_map_rec *oc, backsql_srch_info *bsi )
 				0, 0, 0 );
 			backsql_PrintErrors( bsi->bi->db_env, bsi->dbh, 
 					sth, rc );
-			return 1;
+			return BACKSQL_CONTINUE;
 		}
 		break;
 	}
@@ -837,7 +842,7 @@ backsql_oc_get_candidates( backsql_oc_map_rec *oc, backsql_srch_info *bsi )
 				res == LDAP_NO_SUCH_OBJECT ? ": no such entry"
 				: "", 0, 0 );
 			bsi->status = res;
-			return 0;
+			return BACKSQL_CONTINUE;
 		}
 		
 		rc = backsql_BindParamID( sth, 2, &base_id.id );
@@ -845,7 +850,7 @@ backsql_oc_get_candidates( backsql_oc_map_rec *oc, backsql_srch_info *bsi )
 		if ( rc != SQL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 				"error binding base id parameter\n", 0, 0, 0 );
-			return 1;
+			return BACKSQL_CONTINUE;
 		}
 		break;
 	}
@@ -856,7 +861,7 @@ backsql_oc_get_candidates( backsql_oc_map_rec *oc, backsql_srch_info *bsi )
 			"error executing query\n", 0, 0, 0 );
 		backsql_PrintErrors( bsi->bi->db_env, bsi->dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
-		return 1;
+		return BACKSQL_CONTINUE;
 	}
 
 	backsql_BindRowAsStrings( sth, &row );
@@ -885,7 +890,7 @@ backsql_oc_get_candidates( backsql_oc_map_rec *oc, backsql_srch_info *bsi )
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_oc_get_candidates()\n", 0, 0, 0 );
 
-	return 1;
+	return ( bsi->n_candidates == -1 ? BACKSQL_STOP : BACKSQL_CONTINUE );
 }
 
 int
@@ -1032,7 +1037,7 @@ backsql_search(
 	srch_info.n_candidates = ( isroot ? -2 : limit->lms_s_unchecked == -1 
 			? -2 : limit->lms_s_unchecked );
 	avl_apply( bi->oc_by_oc, (AVL_APPLY)backsql_oc_get_candidates,
-			&srch_info, 0, AVL_INORDER );
+			&srch_info, BACKSQL_STOP, AVL_INORDER );
 	if ( !isroot && limit->lms_s_unchecked != -1 ) {
 		if ( srch_info.n_candidates == -1 ) {
 			send_search_result( conn, op,
