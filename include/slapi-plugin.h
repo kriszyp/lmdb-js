@@ -13,7 +13,6 @@
 #ifndef _SLAPI_PLUGIN_H
 #define _SLAPI_PLUGIN_H
 
-#include <lber.h>
 #include <ldap.h>
 
 typedef struct slapi_pblock	Slapi_PBlock;
