@@ -418,10 +418,10 @@ static ID idl_first( ID *ids, ID *cursor )
 static ID idl_next( ID *ids, ID *cursor )
 {
 	if ( BDB_IDL_IS_RANGE( ids ) ) {
-		if( ids[2] <= ++(*cursor) ) {
-			return *cursor;
+		if( ids[2] < ++(*cursor) ) {
+			return NOID;
 		}
-		return NOID;
+		return *cursor;
 	}
 
 	if ( *cursor < ids[0] ) {
