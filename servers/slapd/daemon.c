@@ -743,6 +743,24 @@ static int slap_open_listener(
 			break;
 #ifdef LDAP_PF_INET6
 		case AF_INET6:
+#ifdef IPV6_V6ONLY
+			/* Try to use IPv6 sockets for IPv6 only */
+			tmp = 1;
+			rc = setsockopt( l.sl_sd, IPPROTO_IPV6, IPV6_V6ONLY,
+					 (char *) &tmp, sizeof(tmp) );
+			if ( rc == AC_SOCKET_ERROR ) {
+				int err = sock_errno();
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+					   "slap_open_listener: setsockopt( %ld, IPV6_V6ONLY ) failed errno %d (%s)\n",
+					   (long)l.sl_sd, err, sock_errstr(err) ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+				       "slapd(%ld): setsockopt(IPV6_V6ONLY) failed errno=%d (%s)\n",
+				       (long) l.sl_sd, err, sock_errstr(err) );
+#endif
+			}
+#endif
 			addrlen = sizeof(struct sockaddr_in6);
 			break;
 #endif
