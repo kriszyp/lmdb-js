@@ -11,8 +11,8 @@ PROGRAMS = apitest dntest ftest ltest
 SRCS	= bind.c open.c result.c error.c compare.c search.c \
 	controls.c messages.c references.c extended.c cyrus.c \
 	modify.c add.c modrdn.c delete.c abandon.c cache.c \
-	getfilter.c sasl.c sbind.c kbind.c unbind.c \
-	filter.c free.c dsparse.c sort.c \
+	sasl.c sbind.c kbind.c unbind.c \
+	filter.c free.c sort.c \
 	getdn.c getentry.c getattr.c getvalues.c addentry.c \
 	request.c os-ip.c url.c sortctrl.c vlvctrl.c \
 	init.c options.c print.c string.c util-int.c schema.c \
@@ -20,8 +20,8 @@ SRCS	= bind.c open.c result.c error.c compare.c search.c \
 OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
 	controls.lo messages.lo references.lo extended.lo cyrus.lo \
 	modify.lo add.lo modrdn.lo delete.lo abandon.lo cache.lo \
-	getfilter.lo sasl.lo sbind.lo kbind.lo unbind.lo \
-	filter.lo free.lo dsparse.lo sort.lo \
+	sasl.lo sbind.lo kbind.lo unbind.lo \
+	filter.lo free.lo sort.lo \
 	getdn.lo getentry.lo getattr.lo getvalues.lo addentry.lo \
 	request.lo os-ip.lo url.lo sortctrl.lo vlvctrl.lo \
 	init.lo options.lo print.lo string.lo util-int.lo schema.lo \
@@ -46,7 +46,7 @@ ftest:	$(XLIBS) ftest.o
 ltest:	$(XLIBS) test.o
 	$(LTLINK) -o $@ test.o $(LIBS)
 
-CFFILES=ldap.conf ldapfilter.conf
+CFFILES=ldap.conf
 
 install-local: $(CFFILES) FORCE
 	-$(MKDIR) $(DESTDIR)$(libdir)

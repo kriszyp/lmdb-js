@@ -1,4 +1,9 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1994 The Regents of the University of Michigan.
  *  All rights reserved.
  *
@@ -6,64 +11,53 @@
  *           link in lots of extra code when not using certain features
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1994 The Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
-
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#ifdef MACOS
-#include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
-#include <stdlib.h>
-#endif /* DOS */
-#endif /* MACOS */
+#include <ac/stdlib.h>
 
-#include "lber.h"
-#include "ldap.h"
+#include <ac/string.h>
+#include <ac/time.h>
+
+#include "ldap-int.h"
+
+/*
+ * C-API deallocator
+ */
+void
+ldap_memfree( void *p )
+{
+	LDAP_FREE( p );
+}
 
 void
-ldap_getfilter_free( LDAPFiltDesc *lfdp )
+ldap_memvfree( void **v )
 {
-    LDAPFiltList	*flp, *nextflp;
-    LDAPFiltInfo	*fip, *nextfip;
+	LDAP_VFREE( v );
+}
 
-    for ( flp = lfdp->lfd_filtlist; flp != NULL; flp = nextflp ) {
-	for ( fip = flp->lfl_ilist; fip != NULL; fip = nextfip ) {
-	    nextfip = fip->lfi_next;
-	    free( fip->lfi_filter );
-	    free( fip->lfi_desc );
-	    free( fip );
-	}
-	nextflp = flp->lfl_next;
-	free( flp->lfl_pattern );
-	free( flp->lfl_delims );
-	free( flp->lfl_tag );
-	free( flp );
-    }
+void *
+ldap_memalloc( ber_len_t s )
+{
+	return LDAP_MALLOC( s );
+}
 
-    if ( lfdp->lfd_curvalcopy != NULL ) {
-	free( lfdp->lfd_curvalcopy );
-    }
-    if ( lfdp->lfd_curvalwords != NULL ) {
-	free( lfdp->lfd_curvalwords );
-    }
-    if ( lfdp->lfd_filtprefix != NULL ) {
-	free( lfdp->lfd_filtprefix );
-    }
-    if ( lfdp->lfd_filtsuffix != NULL ) {
-	free( lfdp->lfd_filtsuffix );
-    }
+void *
+ldap_memcalloc( ber_len_t n, ber_len_t s )
+{
+	return LDAP_CALLOC( n, s );
+}
 
-    free( lfdp );
+void *
+ldap_memrealloc( void* p, ber_len_t s )
+{
+	return LDAP_REALLOC( p, s );
+}
+
+char *
+ldap_strdup( LDAP_CONST char *p )
+{
+	return LDAP_STRDUP( p );
 }
 
 /*
@@ -82,13 +76,21 @@ ldap_mods_free( LDAPMod **mods, int freemods )
 
 	for ( i = 0; mods[i] != NULL; i++ ) {
 		if ( mods[i]->mod_op & LDAP_MOD_BVALUES ) {
-			ber_bvecfree( mods[i]->mod_bvalues );
-		} else {
-			ldap_value_free( mods[i]->mod_values );
+			if( mods[i]->mod_bvalues != NULL )
+				ber_bvecfree( mods[i]->mod_bvalues );
+
+		} else if( mods[i]->mod_values != NULL ) {
+			LDAP_VFREE( mods[i]->mod_values );
 		}
-		free( (char *) mods[i] );
+
+		if ( mods[i]->mod_type != NULL ) {
+			LDAP_FREE( mods[i]->mod_type );
+		}
+
+		LDAP_FREE( (char *) mods[i] );
 	}
 
-	if ( freemods )
-		free( (char *) mods );
+	if ( freemods ) {
+		LDAP_FREE( (char *) mods );
+	}
 }
