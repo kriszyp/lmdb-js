@@ -34,6 +34,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include "lutil.h"
 
 #include "slap.h"
 #include "back-monitor.h"
