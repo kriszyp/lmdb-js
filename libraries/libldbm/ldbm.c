@@ -11,6 +11,7 @@
 #ifdef SLAPD_LDBM
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ac/errno.h>
 
 #include "ldbm.h"
