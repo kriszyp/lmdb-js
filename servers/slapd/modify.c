@@ -604,7 +604,7 @@ int slap_mods_check(
 		if( !slap_syntax_is_binary( ad->ad_type->sat_syntax )
 			&& slap_ad_is_binary( ad ))
 		{
-			/* attribute requires binary transfer */
+			/* attribute does not require binary transfer */
 			snprintf( textbuf, textlen,
 				"%s: disallows ;binary transfer",
 				ml->sml_type.bv_val );
