@@ -33,6 +33,8 @@
 #include "schema-map.h"
 #include "util.h"
 
+#define BACKSQL_DUPLICATE	(-1)
+
 /*
  * Uses the pointer to the ObjectClass structure
  */
@@ -61,16 +63,6 @@ backsql_cmp_attr( const void *v_m1, const void *v_m2 )
 	const backsql_at_map_rec *m1 = v_m1, *m2 = v_m2;
 
 	return SLAP_PTRCMP( m1->bam_ad, m2->bam_ad );
-}
-
-/*
- * Dummy duplicate handling function (required by avl_insert)
- */
-#define BACKSQL_DUPLICATE	(-1)
-static int
-backsql_dup_dummy(void *p1, void *p2)
-{
-	return BACKSQL_DUPLICATE;
 }
 
 int
@@ -324,13 +316,13 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 		 */
 
 		oc_map->bom_attrs = NULL;
-		if ( avl_insert( &si->oc_by_oc, oc_map, backsql_cmp_oc, backsql_dup_dummy ) == BACKSQL_DUPLICATE ) {
+		if ( avl_insert( &si->oc_by_oc, oc_map, backsql_cmp_oc, avl_dup_error ) == -1 ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
 					"duplicate objectClass \"%s\" in objectClass map\n",
 					oc_map->bom_oc->soc_cname.bv_val, 0, 0 );
 			return LDAP_OTHER;
 		}
-		if ( avl_insert( &si->oc_by_id, oc_map, backsql_cmp_oc_id, backsql_dup_dummy ) == BACKSQL_DUPLICATE ) {
+		if ( avl_insert( &si->oc_by_id, oc_map, backsql_cmp_oc_id, avl_dup_error ) == -1 ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
 					"duplicate objectClass \"%s\" in objectClass by ID map\n",
 					oc_map->bom_oc->soc_cname.bv_val, 0, 0 );
