@@ -112,11 +112,11 @@ configure detects a usable Cyrus SASL installation.
 H3: Database Software
 
 OpenLDAP's {{slapd}}(8) primary database backend, {{TERM:BDB}},
-requires {{ORG[expand]Sleepycat}} {{PRD:Berkeley DB}}, version 4.
+requires {{ORG[expand]Sleepycat}} {{PRD:Berkeley DB}}, version 4.2.
 If not available at configure time, you will not be able build
 {{slapd}}(8) with this primary database backend.
 
-Your operating system may provide {{PRD:Berkeley DB}}, version 4,
+Your operating system may provide {{PRD:Berkeley DB}}, version 4.2,
 in the base system or as an optional software component.  If not,
 you'll have to obtain and install it yourself.
 
