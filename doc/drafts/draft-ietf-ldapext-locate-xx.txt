@@ -1,7 +1,7 @@
 INTERNET-DRAFT                                         Michael P. Armijo
-<draft-ietf-ldapext-locate-03.txt>                          Levon Esibov
-July, 2000                                                    Paul Leach
-Expires: January, 2001                             Microsoft Corporation
+<draft-ietf-ldapext-locate-04.txt>                          Levon Esibov
+August, 2000                                                  Paul Leach
+Expires: February, 2001                            Microsoft Corporation
 							     R.L. Morgan
 						University of Washington
 
@@ -29,7 +29,7 @@ Status of this Memo
    http://www.ietf.org/shadow.html.
 
    Distribution of this memo is unlimited.  It is filed as <draft-
-   ietf-ldapext-locate-03.txt>, and expires on January 14, 2001.  
+   ietf-ldapext-locate-04.txt>, and expires on February 25, 2001.  
    Please send comments to the authors.
 
 
@@ -92,16 +92,17 @@ Status of this Memo
    DNs cannot be converted into a domain name.  Converted DNs result 
    in a fully qualified domain name.
 
-   The output domain name is initially empty.  For each RDN component
-   of the DN, beginning with the rightmost and working left, if the 
-   attribute type is "DC", then the attribute value is used as a domain 
-   name component (label).
-   The first such value becomes the most significant (i.e., rightmost)
-   domain name component, and successive values occupy less significant
-   positions (i.e., extending leftward), in order.  If the attribute
-   type is not "DC", then processing stops.  If the final RDN component
-   of the DN is not of type "DC" then the DN cannot be converted to a
-   domain name. 
+   The output domain name is initially empty.  The DN is processed in
+   right-to-left order (i.e., beginning with the first RDN in the
+   sequence of RDNs).  An RDN is able to be converted if it (1)
+   consists of a single AttributeTypeAndValue; (2) the attribute type
+   is "DC"; and (3) the attribute value is non-null.  If it can be
+   converted, the attribute value is used as a domain name component
+   (label).  The first such value becomes the rightmost (i.e., most
+   significant) domain name component, and successive converted RDN
+   values extend to the left.  If an RDN cannot be converted,
+   processing stops.  If the output domain name is empty when
+   processing stops, the DN cannot be converted into a domain name.
 
    For DN:
 
@@ -128,18 +129,16 @@ Status of this Memo
       _<Service>._<Proto>.<Domain>
 
    where <Service> is always "ldap", and <Proto> is a protocol that can
-   be either "udp" or "tcp".  "_ldap._tcp" applies to services 
-   compatible with LDAPv2 [7] or LDAPv3 [1].  "_ldap._udp" 
-   applies to services compatible with CLDAP [8].  <Domain> is 
-   the domain name formed by converting the DN of a naming context 
-   mastered by the LDAP Server into a domain name using the algorithm in 
-   Section 3.  Note that "ldap" is the symbolic name for the LDAP service 
-   in Assigned Numbers[6], as required by [5].
+   be either "udp" or "tcp".  <Domain> is the domain name formed by
+   converting the DN of a naming context mastered by the LDAP Server
+   into a domain name using the algorithm in Section 3.  Note that
+   "ldap" is the symbolic name for the LDAP service in Assigned
+   Numbers[6], as required by [5].
 
    Presence of such records enables clients to find the LDAP servers
    using standard DNS query [4].  A client (or server) seeking an LDAP
    server for a particular DN converts that DN to a domain name using
-   the algorithm of Section 2, does a SRV record query using the DNS
+   the algorithm of Section 3, does a SRV record query using the DNS
    name formed as described in the preceding paragraph, and interprets
    the response as described in [5] to determine a host (or hosts) to
    contact. As an example, a client that searches for an LDAP server
@@ -163,10 +162,16 @@ Status of this Memo
 
 5. Security Considerations
 
+   DNS responses can typically be easily spoofed.  Clients using this
+   location method SHOULD ensure, via use of strong security
+   mechanisms, that the LDAP server they contact is the one they
+   intended to contact.  See [7] for more information on security
+   threats and security mechanisms.
+
    This document describes a method that uses DNS SRV records to 
    discover LDAP servers.  All security considerations related to DNS
    SRV records are inherited by this document.  See the security 
-   considerations section in [6] for more details.
+   considerations section in [5] for more details.
 
 
 6. References
@@ -191,11 +196,8 @@ Status of this Memo
    [6]  Reynolds, J. and J. Postel, "Assigned Numbers", STD 2, RFC
         1700, October 1994.
 
-   [7]  Yeong, W., Howes, T. and Kille, S.,  "Lightweight Directory Access 
-        Protocol",  RFC 1777, March 1995
-
-   [8]  Young, A., "Connection-less Lightweight Directory Access Protocol",
-        RFC 1798, June 1995
+   [7]  Wahl, M., Alvestrand, H., Hodges, J. and Morgan, R., 
+        "Authentication Methods for LDAP", RFC 2829, May 2000.
 
 
 7. Authors' Addresses
@@ -225,7 +227,7 @@ Status of this Memo
    EMail: rlmorgan@washington.edu
    URI:   http://staff.washington.edu/rlmorgan/
 
-   Expires January, 2001
+   Expires February 25, 2001
 
 
 
