@@ -63,6 +63,9 @@ struct berval global_schemandn = { 0, NULL };
 ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
 ber_len_t sockbuf_max_incoming_auth= SLAP_SB_MAX_INCOMING_AUTH;
 
+int	slap_conn_max_pending = SLAP_CONN_MAX_PENDING_DEFAULT;
+int	slap_conn_max_pending_auth = SLAP_CONN_MAX_PENDING_AUTH;
+
 char   *slapd_pid_file  = NULL;
 char   *slapd_args_file = NULL;
 
@@ -331,6 +334,80 @@ read_config( const char *fname, int depth )
 			}
 
 			sockbuf_max_incoming_auth = max;
+
+		/* set conn pending max */
+		} else if ( strcasecmp( cargv[0], "conn_max_pending" ) == 0 ) {
+			long max;
+			if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, 
+				   "%s: line %d: missing max in \"conn_max_pending "
+				   "<requests>\" line\n", fname, lineno, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					   "%s: line %d: missing max in \"conn_max_pending <requests>\" line\n",
+				    fname, lineno, 0 );
+#endif
+
+				return( 1 );
+			}
+
+			max = atol( cargv[1] );
+
+			if( max < 0 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, 
+					   "%s: line %d: invalid max value (%ld) in "
+					   "\"conn_max_pending <requests>\" line.\n",
+					   fname, lineno, max );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: invalid max value (%ld) in "
+					"\"conn_max_pending <requests>\" line.\n",
+				    fname, lineno, max );
+#endif
+
+				return( 1 );
+			}
+
+			slap_conn_max_pending = max;
+
+		/* set conn pending max authenticated */
+		} else if ( strcasecmp( cargv[0], "conn_max_pending_auth" ) == 0 ) {
+			long max;
+			if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, 
+				   "%s: line %d: missing max in \"conn_max_pending_auth "
+				   "<requests>\" line\n", fname, lineno, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					   "%s: line %d: missing max in \"conn_max_pending_auth <requests>\" line\n",
+				    fname, lineno, 0 );
+#endif
+
+				return( 1 );
+			}
+
+			max = atol( cargv[1] );
+
+			if( max < 0 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, 
+					   "%s: line %d: invalid max value (%ld) in "
+					   "\"conn_max_pending_auth <requests>\" line.\n",
+					   fname, lineno, max );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: invalid max value (%ld) in "
+					"\"conn_max_pending_auth <requests>\" line.\n",
+				    fname, lineno, max );
+#endif
+
+				return( 1 );
+			}
+
+			slap_conn_max_pending_auth = max;
 
 		/* default search base */
 		} else if ( strcasecmp( cargv[0], "defaultSearchBase" ) == 0 ) {

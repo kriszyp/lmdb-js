@@ -1147,6 +1147,8 @@ LDAP_SLAPD_V(unsigned) num_subordinates;
 
 LDAP_SLAPD_V (ber_len_t) sockbuf_max_incoming;
 LDAP_SLAPD_V (ber_len_t) sockbuf_max_incoming_auth;
+LDAP_SLAPD_V (int)		slap_conn_max_pending;
+LDAP_SLAPD_V (int)		slap_conn_max_pending_auth;
 
 LDAP_SLAPD_V (slap_mask_t)	global_restrictops;
 LDAP_SLAPD_V (slap_mask_t)	global_allows;

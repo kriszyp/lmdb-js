@@ -1303,6 +1303,7 @@ connection_input(
 	ber_len_t	len;
 	ber_int_t	msgid;
 	BerElement	*ber;
+	int 		rc;
 #ifdef LDAP_CONNECTIONLESS
 	Sockaddr	peeraddr;
 	char 		*cdn = NULL;
@@ -1430,7 +1431,6 @@ connection_input(
 #endif
 #ifdef LDAP_CONNECTIONLESS
 	if (conn->c_is_udp) {
-		int rc;
 
 		if ( cdn ) {
 		    ber_str2bv( cdn, 0, 1, &op->o_dn );
@@ -1468,9 +1468,22 @@ connection_input(
 	}
 #endif /* LDAP_CONNECTIONLESS */
 
+	rc = 0;
+
+	/* Don't process requests when the conn is in the middle of a
+	 * Bind, or if it's closing. Also, don't let any single conn
+	 * use up all the available threads, and don't execute if we're
+	 * currently blocked on output. And don't execute if there are
+	 * already pending ops, let them go first.
+	 */
 	if ( conn->c_conn_state == SLAP_C_BINDING
-		|| conn->c_conn_state == SLAP_C_CLOSING )
+		|| conn->c_conn_state == SLAP_C_CLOSING
+		|| conn->c_n_ops_executing >= connection_pool_max/2
+		|| conn->c_n_ops_pending
+		|| conn->c_writewaiter)
 	{
+		int max = conn->c_dn.bv_len ? slap_conn_max_pending_auth
+			 : slap_conn_max_pending;
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONNECTION, INFO, 
 			"connection_input: conn %lu  deferring operation\n",
@@ -1480,18 +1493,13 @@ connection_input(
 #endif
 		conn->c_n_ops_pending++;
 		LDAP_STAILQ_INSERT_TAIL( &conn->c_pending_ops, op, o_next );
-
+		if ( conn->c_n_ops_pending > max ) {
+			rc = -1;
+		} else {
+			rc = 1;
+		}
 	} else {
 		conn->c_n_ops_executing++;
-		/* Don't allow any single conn to soak up all of the
-		 * available threads
-		 */
-		if (conn->c_n_ops_executing > connection_pool_max/2) {
-			ber_socket_t	sd;
-
-			ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_GET_FD, &sd );
-			slapd_clr_read( sd, 0 );
-		}
 		connection_op_activate( op );
 	}
 
@@ -1503,7 +1511,7 @@ connection_input(
 #endif
 	assert( conn->c_struct_state == SLAP_C_USED );
 
-	return 0;
+	return rc;
 }
 
 static int
@@ -1566,12 +1574,15 @@ connection_resched( Connection *conn )
 		return 0;
 	}
 
-	if( conn->c_conn_state != SLAP_C_ACTIVE ) {
+	if( conn->c_conn_state != SLAP_C_ACTIVE || conn->c_writewaiter ) {
 		/* other states need different handling */
 		return 0;
 	}
 
 	while ((op = LDAP_STAILQ_FIRST( &conn->c_pending_ops )) != NULL) {
+		if ( conn->c_n_ops_executing > connection_pool_max/2 ) {
+			break;
+		}
 		LDAP_STAILQ_REMOVE_HEAD( &conn->c_pending_ops, o_next );
 		LDAP_STAILQ_NEXT(op, o_next) = NULL;
 		/* pending operations should not be marked for abandonment */
@@ -1610,6 +1621,11 @@ static int connection_op_activate( Operation *op )
 	    op->o_protocol = op->o_conn->c_protocol
 		? op->o_conn->c_protocol : LDAP_VERSION3;
 	}
+	if (op->o_conn->c_conn_state == SLAP_C_INACTIVE
+		&& op->o_protocol > LDAP_VERSION2) {
+		op->o_conn->c_conn_state = SLAP_C_ACTIVE;
+	}
+
 	op->o_connid = op->o_conn->c_connid;
 
 	LDAP_STAILQ_INSERT_TAIL( &op->o_conn->c_ops, op, o_next );

@@ -81,6 +81,9 @@ LDAP_BEGIN_DECL
 #define SLAP_SB_MAX_INCOMING_DEFAULT ((1<<18) - 1)
 #define SLAP_SB_MAX_INCOMING_AUTH ((1<<24) - 1)
 
+#define SLAP_CONN_MAX_PENDING_DEFAULT	100
+#define SLAP_CONN_MAX_PENDING_AUTH	1000
+
 #define SLAP_TEXT_BUFLEN (256)
 
 /* psuedo error code indicating abandoned operation */
