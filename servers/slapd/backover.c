@@ -327,6 +327,7 @@ overlay_config( BackendDB *be, const char *ov )
 		prev->on_next = on2;
 	}
 	*on2 = *on;
+	on2->on_next = NULL;
 
 	/* Any initialization needed? */
 	if ( on->on_bi.bi_db_init ) {
