@@ -422,6 +422,18 @@ fe_op_modify( Operation *op, SlapReply *rs )
 
 		rs->sr_err = slapi_int_call_plugins( op->o_bd,
 			SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
+
+		/*
+		 * It's possible that the preoperation plugin changed the
+		 * modification array, so we need to convert it back to
+		 * a Modification list.
+		 *
+		 * Calling slapi_int_modifications2ldapmods() destroyed modlist so
+		 * we don't need to free it.
+		 */
+		slapi_pblock_get( pb, SLAPI_MODIFY_MODS, (void **)&modv );
+		modlist = slapi_int_ldapmods2modifications( modv );
+
 		if ( rs->sr_err < 0 ) {
 			/*
 			 * A preoperation plugin failure will abort the
@@ -445,17 +457,6 @@ fe_op_modify( Operation *op, SlapReply *rs )
 			modv = NULL;
 			goto cleanup;
 		}
-
-		/*
-		 * It's possible that the preoperation plugin changed the
-		 * modification array, so we need to convert it back to
-		 * a Modification list.
-		 *
-		 * Calling slapi_int_modifications2ldapmods() destroyed modlist so
-		 * we don't need to free it.
-		 */
-		slapi_pblock_get( pb, SLAPI_MODIFY_MODS, (void **)&modv );
-		modlist = slapi_int_ldapmods2modifications( modv );
 	}
 
 	/*
