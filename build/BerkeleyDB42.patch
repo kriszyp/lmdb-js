@@ -1,5 +1,13 @@
-This patch is intended to be applied to Berkeley DB 4.2 and,
+This patch is intended to be applied to Berkeley DB 4.2.52 and,
 if applied, will automatically be used by slapd(8) back-bdb/hdb.
+
+The patch can be applied using patch(1) as follows
+	cd db-4.2.52
+	patch < openldap-src/build/BerkeleyDB42.patch
+
+(modify directory paths as necessary).
+
+The patch should not be applied to Berkeley DB 4.3.
 
 
 Index: dbinc/db.in
