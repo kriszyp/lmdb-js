@@ -1,9 +1,8 @@
 # $OpenLDAP$
 #
 # Assorted definitions from several sources, including
-# ''works in progress''.  Use with extreme care.  May
-# be subject to change.
-#
+# ''works in progress''.  Use with extreme caution!
+# May be subject to change (or removal) without notice.
 
 #
 # draft-lachman-laser-ldap-mail-routing-02.txt
