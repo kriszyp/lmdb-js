@@ -7,7 +7,8 @@ Changes included in OpenLDAP 1.2 Release Engineering
 	Fixed -lldap templates y2k bug (ITS#294)
 	Fixed ldbm db_appinit to use u_int32_t instead of int (ITS#295)
 	Documentation
-		ldappasswd fix -c vs -H typo (ITS#154)
+		Reference Quick Start Guide in README and INSTALL
+		ldappasswd(1) fix -c vs -H typo (ITS#154)
 
 Changes included in OpenLDAP 1.2.7
 	CVS Tag: OPENLDAP_REL_ENG_1_2_7
