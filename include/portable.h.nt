@@ -26,12 +26,16 @@
 #define HAVE_REGEX_H 1
 
 /* win32 specific stuff */
+#define sleep _sleep
+
 #define strcasecmp	stricmp
 #define strncasecmp	strnicmp
 #define strdup		_strdup
+
+#define	snprintf	_snprintf
 #define vsnprintf	_vsnprintf
 #define vsprintf	_vsprintf
-#define sleep _sleep
+
 
 /* define type for caddr_t */
 typedef char * caddr_t;
