@@ -34,7 +34,7 @@ LDFLAGS	= -L$(LDIR) $(KRBLIBFLAG)
 all:	FORCE
 	-@echo "$(SLAPD_BACKENDS)" | grep LDAP_LDBM 2>&1 > /dev/null; \
 	if [ $$? = 0 ]; then \
-            $(MAKE) $(MFLAGS) CC=$(CC) libback-ldbm.a; \
+            $(MAKE) $(MFLAGS) CC="$(CC)" libback-ldbm.a; \
 	else \
 	    echo "Include -DLDAP_LDBM in SLAPD_BACKENDS in the"; \
 	    echo "Make-common file to build the ldbm backend"; \

@@ -187,3 +187,26 @@ char **getdxbyname( char *domain );
 char **getdxbyname();
 #endif /* NEEDPROTOS */
 #endif /* LDAP_DNS */
+
+#if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
+/*
+ * in charset.c
+ *
+ * added-in this stuff so that libldap.a would build, i.e. refs to 
+ * these routines from open.c would resolve. 
+ * hodges@stanford.edu 5-Feb-96
+ */
+#if LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET
+#ifdef NEEDPROTOS
+extern 
+int ldap_t61_to_8859( char **bufp, unsigned long *buflenp, int free_input );
+extern 
+int ldap_8859_to_t61( char **bufp, unsigned long *buflenp, int free_input );
+#else /* NEEDPROTOS */
+extern
+int ldap_t61_to_8859();
+extern
+int ldap_8859_to_t61();
+#endif /* NEEDPROTOS */
+#endif /* LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET */
+#endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */

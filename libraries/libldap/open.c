@@ -148,6 +148,10 @@ ldap_init( char *defhost, int defport )
 	ld->ld_lberoptions = LBER_USE_DER;
 	ld->ld_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
 
+#ifdef LDAP_REFERRALS
+        ld->ld_options |= LDAP_OPT_REFERRALS;
+#endif /* LDAP_REFERRALS */
+
 #if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
 	ld->ld_lberoptions |= LBER_TRANSLATE_STRINGS;
 #if LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET

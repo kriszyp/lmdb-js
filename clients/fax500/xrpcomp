@@ -1,4 +1,4 @@
-: run this script through /bin/sh
+#! /bin/sh
 
 RP500=ETCDIR/rp500
 

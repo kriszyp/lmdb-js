@@ -1,3 +1,10 @@
+
+/* Revision history
+ *
+ * 5-Jun-96	hodges
+ *	Added locking of new_conn_mutex when traversing the c[] array.
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -164,6 +171,8 @@ daemon(
 		Debug( LDAP_DEBUG_CONNS,
 		    "listening for connections on %d, activity on:",
 		    tcps, 0, 0 );
+
+		pthread_mutex_lock( &new_conn_mutex );
 		for ( i = 0; i < dtblsize; i++ ) {
 			if ( c[i].c_sb.sb_sd != -1 ) {
 				FD_SET( c[i].c_sb.sb_sd, &readfds );
@@ -176,6 +185,7 @@ daemon(
 			}
 		}
 		Debug( LDAP_DEBUG_CONNS, "\n", 0, 0, 0 );
+		pthread_mutex_unlock( &new_conn_mutex );
 
 		zero.tv_sec = 0;
 		zero.tv_usec = 0;

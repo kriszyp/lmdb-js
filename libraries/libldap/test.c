@@ -31,6 +31,12 @@
 #include "lber.h"
 #include "ldap.h"
 
+/* including the "internal" defs is legit and nec. since this test routine has 
+ * a-priori knowledge of libldap internal workings.
+ * hodges@stanford.edu 5-Feb-96
+ */
+#include "ldap-int.h"
+
 #if !defined( PCNFS ) && !defined( WINSOCK ) && !defined( MACOS )
 #define MOD_USE_BVALS
 #endif /* !PCNFS && !WINSOCK && !MACOS */
