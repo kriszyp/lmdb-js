@@ -61,6 +61,25 @@ ber_pvt_sb_copy_out LDAP_P(( Sockbuf_Buf *sbb, char *buf, ber_len_t len ));
 LBER_F( int )
 ber_pvt_socket_set_nonblock LDAP_P(( ber_socket_t sd, int nb ));
 
+
+#if 0
+#define ber_bvstrcmp(v1,v2) \
+	((v1)->bv_len < (v2)->bv_len \
+		? -1 : ((v1)->bv_len > (v2)->bv_len \
+			? 1 : strncmp((v1)->bv_val, (v2)->bv_val, (v1)->bv_len) ))
+#else
+	/* avoid strncmp() */
+#define ber_bvstrcmp(v1,v2)	ber_bvcmp((v1),(v2))
+#endif
+
+#define ber_bvstrcasecmp(v1,v2) \
+	((v1)->bv_len < (v2)->bv_len \
+		? -1 : ((v1)->bv_len > (v2)->bv_len \
+			? 1 : strncasecmp((v1)->bv_val, (v2)->bv_val, (v1)->bv_len) ))
+
+#define ber_bvccmp(v1,c) \
+	((v1)->bv_len == 1 ? (v1)->bv_val[0] == c : 0)
+
 LDAP_END_DECL
 
 #endif

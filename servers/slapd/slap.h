@@ -175,7 +175,7 @@ typedef struct slap_ssf_set {
 
 #define SLAP_INDEX_DEFAULT        SLAP_INDEX_EQUALITY
 
-#define IS_SLAP_INDEX(mask, type)	(((mask) & (type)) == (type) )
+#define IS_SLAP_INDEX(mask, type)	(((mask) & (type)) == (type))
 
 #define SLAP_INDEX_SUBSTR_TYPE    0x0F00UL
 

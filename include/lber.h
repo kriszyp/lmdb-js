@@ -580,23 +580,10 @@ ber_bvarray_free LDAP_P(( BerVarray p ));
 LBER_F( int )
 ber_bvarray_add LDAP_P(( BerVarray *p, BerValue *bv ));
 
-#define ber_memcmp(v1,v2) \
-	((v1)->bv_len == (v2)->bv_len ? \
-	 	memcmp((v1)->bv_val, (v2)->bv_val, (v1)->bv_len) : \
-		(v1)->bv_len - (v2)->bv_len )
-	
-#define ber_cmp(v1,v2) \
-	((v1)->bv_len == (v2)->bv_len ? \
-	 	strcmp((v1)->bv_val, (v2)->bv_val) : \
-		(v1)->bv_len - (v2)->bv_len )
-
-#define ber_casecmp(v1,v2) \
-	((v1)->bv_len == (v2)->bv_len ? \
-	 	strcasecmp((v1)->bv_val, (v2)->bv_val) : \
-		(v1)->bv_len - (v2)->bv_len )
-
-#define ber_charcmp(v1,c) \
-	((v1)->bv_len == 1 ? (v1)->bv_val[0] == c : 0)
+#define ber_bvcmp(v1,v2) \
+	((v1)->bv_len < (v2)->bv_len \
+		? -1 : ((v1)->bv_len > (v2)->bv_len \
+			? 1 : memcmp((v1)->bv_val, (v2)->bv_val, (v1)->bv_len) ))
 
 /*
  * error.c

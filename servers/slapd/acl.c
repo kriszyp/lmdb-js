@@ -15,6 +15,7 @@
 
 #include "slap.h"
 #include "sets.h"
+#include "lber_pvt.h"
 
 
 /*
@@ -531,17 +532,17 @@ acl_mask(
 			 * user is bound as somebody in the same namespace as
 			 * the entry, OR the given dn matches the dn pattern
 			 */
-			if ( ber_cmp( &b->a_dn_pat, &aci_bv_anonymous ) == 0 ) {
+			if ( ber_bvcmp( &b->a_dn_pat, &aci_bv_anonymous ) == 0 ) {
 				if ( op->o_ndn.bv_len != 0 ) {
 					continue;
 				}
 
-			} else if ( ber_cmp( &b->a_dn_pat, &aci_bv_users ) == 0 ) {
+			} else if ( ber_bvcmp( &b->a_dn_pat, &aci_bv_users ) == 0 ) {
 				if ( op->o_ndn.bv_len == 0 ) {
 					continue;
 				}
 
-			} else if ( ber_cmp( &b->a_dn_pat, &aci_bv_self ) == 0 ) {
+			} else if ( ber_bvcmp( &b->a_dn_pat, &aci_bv_self ) == 0 ) {
 				if ( op->o_ndn.bv_len == 0 ) {
 					continue;
 				}
@@ -552,7 +553,7 @@ acl_mask(
 
 			} else if ( b->a_dn_style == ACL_STYLE_REGEX ) {
 				if ( b->a_dn_pat.bv_len != 1 || 
-				    ber_charcmp( &b->a_dn_pat, '*' ) != 0 ) {
+				    ber_bvccmp( &b->a_dn_pat, '*' ) != 0 ) {
 					int ret = regex_matches( b->a_dn_pat.bv_val,
 						op->o_ndn.bv_val, e->e_ndn, matches );
 
@@ -601,7 +602,6 @@ acl_mask(
 
 				if ( strcmp( b->a_dn_pat.bv_val, op->o_ndn.bv_val + odnlen - patlen ) != 0 )
 					continue;
-
 			}
 		}
 
