@@ -726,7 +726,6 @@ LIBSLAPD_F (int)	krbv4_ldap_auth();
 LIBSLAPD_F (struct berval **)	default_referral;
 LIBSLAPD_F (char *)		replogfile;
 LIBSLAPD_F (const char) 	Versionstr[];
-LIBSLAPD_F (int)		active_threads;
 LIBSLAPD_F (int)		defsize;
 LIBSLAPD_F (int)		deftime;
 LIBSLAPD_F (int)		g_argc;
@@ -757,8 +756,6 @@ LIBSLAPD_F (time_t)		starttime;
 
 LIBSLAPD_F (time_t) slap_get_time LDAP_P((void));
 
-LIBSLAPD_F (ldap_pvt_thread_mutex_t)	active_threads_mutex;
-LIBSLAPD_F (ldap_pvt_thread_cond_t)	active_threads_cond;
 LIBSLAPD_F (ldap_pvt_thread_pool_t)	connection_pool;
 
 LIBSLAPD_F (ldap_pvt_thread_mutex_t)	entry2str_mutex;

@@ -90,9 +90,7 @@ monitor_info(
 	}
 	attr_merge( e, "version", vals );
 
-	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
-	sprintf( buf, "%d", active_threads );
-	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
+	sprintf( buf, "%d", ldap_pvt_thread_pool_backload(connection_pool) );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "threads", vals );

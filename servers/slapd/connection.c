@@ -843,13 +843,6 @@ operations_error:
 		}
 	}
 
-	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
-	active_threads--;
-	if( active_threads < 1 ) {
-		ldap_pvt_thread_cond_signal(&active_threads_cond);
-	}
-	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
-
 	connection_resched( conn );
 
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
@@ -1134,10 +1127,6 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	if( tmpdn != NULL ) {
 		free( tmpdn );
 	}
-
-	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
-	active_threads++;
-	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 
 	status = ldap_pvt_thread_pool_submit( connection_pool, connection_operation, (void *) arg );
 

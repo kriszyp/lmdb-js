@@ -751,9 +751,7 @@ slapd_daemon_task(
 
 		ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
-		ldap_pvt_thread_mutex_lock( &active_threads_mutex );
-		at = active_threads;
-		ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
+		at = ldap_pvt_thread_pool_backload(connection_pool);
 
 #if defined( HAVE_YIELDING_SELECT ) || defined( NO_THREADS )
 		tvp = NULL;
@@ -1158,16 +1156,11 @@ slapd_daemon_task(
 		}
 	}
 
-	ldap_pvt_thread_pool_destroy(connection_pool, 1);
-
-	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
 	Debug( LDAP_DEBUG_ANY,
 	    "slapd shutdown: waiting for %d threads to terminate\n",
-	    active_threads, 0, 0 );
-	while ( active_threads > 0 ) {
-		ldap_pvt_thread_cond_wait(&active_threads_cond, &active_threads_mutex);
-	}
-	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
+	    ldap_pvt_thread_pool_backload(connection_pool), 0, 0 );
+
+	ldap_pvt_thread_pool_destroy(connection_pool, 1);
 
 	return NULL;
 }
