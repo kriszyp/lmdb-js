@@ -1082,7 +1082,7 @@ is_my_host(
 {
 	char **d;
 
-	if ( d == NULL )
+	if ( myhosts == NULL )
 		return 0;
 	for ( d = myhosts; *d; d++ ) {
 		if ( !strcasecmp(*d,host) ) {
@@ -1100,7 +1100,7 @@ is_my_domain(
 	char **d;
 	char *p;
 
-	if ( d == NULL )
+	if ( mydomains == NULL )
 		return 0;
 	p = strchr( address, '@' );
 	if ( p == NULL)
@@ -1230,7 +1230,9 @@ entry_engine(
 				resolved = 1;
 				break;
 			case AS_SYNTAX_RFC822_EXT:
-				add_to( current_to, current_nto, vals );
+				do_addresses( vals, current_to, current_nto,
+					      togroups, ngroups, err, nerr,
+					      USER );
 				resolved = 1;
 				break;
 			case AS_SYNTAX_NATIVE_MB:
