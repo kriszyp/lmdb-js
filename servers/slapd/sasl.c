@@ -440,6 +440,9 @@ slap_auxprop_lookup(
 			op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
 			op.o_tmpmemctx = conn->c_sasl_bindop->o_tmpmemctx;
 			op.o_tmpmfuncs = conn->c_sasl_bindop->o_tmpmfuncs;
+#ifdef LDAP_SLAPI
+			op.o_pb = conn->c_sasl_bindop->o_pb;
+#endif
 			op.o_conn = conn;
 			op.o_connid = conn->c_connid;
 			op.ors_scope = LDAP_SCOPE_BASE;
@@ -565,6 +568,9 @@ slap_sasl_checkpass(
 		op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
 		op.o_tmpmemctx = conn->c_sasl_bindop->o_tmpmemctx;
 		op.o_tmpmfuncs = conn->c_sasl_bindop->o_tmpmfuncs;
+#ifdef LDAP_SLAPI
+		op.o_pb = conn->c_sasl_bindop->o_pb;
+#endif
 		op.o_conn = conn;
 		op.o_connid = conn->c_connid;
 		op.ors_scope = LDAP_SCOPE_BASE;

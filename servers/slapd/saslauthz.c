@@ -456,6 +456,9 @@ int slap_sasl_match( Operation *opx, struct berval *rule,
 	op.o_threadctx = opx->o_threadctx;
 	op.o_tmpmemctx = opx->o_tmpmemctx;
 	op.o_tmpmfuncs = opx->o_tmpmfuncs;
+#ifdef LDAP_SLAPI
+	op.o_pb = opx->o_pb;
+#endif
 	op.o_conn = opx->o_conn;
 	op.o_connid = opx->o_connid;
 
@@ -620,6 +623,9 @@ void slap_sasl2dn( Operation *opx,
 	op.o_threadctx = opx->o_threadctx;
 	op.o_tmpmemctx = opx->o_tmpmemctx;
 	op.o_tmpmfuncs = opx->o_tmpmfuncs;
+#ifdef LDAP_SLAPI
+	op.o_pb = opx->o_pb;
+#endif
 	op.oq_search.rs_deref = LDAP_DEREF_NEVER;
 	op.oq_search.rs_slimit = 1;
 	op.oq_search.rs_attrsonly = 1;
