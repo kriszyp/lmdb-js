@@ -516,29 +516,44 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 #define NULL 0
 #endif
 
+int fildes[2];
+
 int task(arg)
 	int *arg;
 {
 	int i;
 	struct timeval tv;
 
-	tv.tv_sec=5;
+	fd_set rfds;
+
+	tv.tv_sec=10;
 	tv.tv_usec=0;
 
+	FD_ZERO(&rfds);
+	FD_SET(fildes[0], &rfds);
+
 	/* we're not interested in any fds */
-	i = select(FD_SETSIZE, NULL, NULL, NULL, &tv);
+	i = select(FD_SETSIZE, &rfds, NULL, NULL, &tv);
 
 	if(i < 0) {
 		perror("select");
+		exit(0);
 	}
 
 	exit(1); /* if we exit here, the select blocked the whole process */
 }
 
-main(argc, argv)
-int argc; char **argv;
+int main(argc, argv)
+	int argc;
+	char **argv;
 {
 	pthread_t t;
+
+	/* create a pipe to select */
+	if(pipe(&fildes[0])) {
+		perror("select");
+		exit(0);
+	}
 
 #ifdef HAVE_PTHREAD_SETCONCURRENCY
 	(void) pthread_setconcurrency(2);
