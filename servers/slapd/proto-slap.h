@@ -150,10 +150,11 @@ void monitor_info LDAP_P(( Connection *conn, Operation *op ));
  * operation.c
  */
 
-void op_free LDAP_P(( Operation *op ));
-Operation * op_add LDAP_P(( Operation **olist, BerElement *ber, unsigned long msgid,
+void slap_op_free LDAP_P(( Operation *op ));
+Operation * slap_op_add LDAP_P(( Operation **olist,
+	BerElement *ber, unsigned long msgid,
 	unsigned long tag, char *dn, int id, int connid ));
-void op_delete LDAP_P(( Operation **olist, Operation *op ));
+void slap_op_delete LDAP_P(( Operation **olist, Operation *op ));
 
 /*
  * phonetic.c
@@ -322,3 +323,4 @@ extern void shell_back_init   LDAP_P((Backend *be));
 #endif
 
 #endif /* _proto_slap */
+
