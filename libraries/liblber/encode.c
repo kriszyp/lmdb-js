@@ -16,12 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#if defined( HAVE_STDARG_H ) && __STDC__
-#include <stdarg.h>
-#else
-#include <varargs.h>
-#endif
-
+#include <ac/stdarg.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 
@@ -509,7 +504,7 @@ ber_put_set( BerElement *ber )
 /* VARARGS */
 int
 ber_printf
-#if defined( HAVE_STDARG_H ) && __STDC__
+#ifdef HAVE_STDARG
 	( BerElement *ber, char *fmt, ... )
 #else
 	( va_alist )
@@ -517,7 +512,7 @@ va_dcl
 #endif
 {
 	va_list		ap;
-#if !(defined( HAVE_STDARG_H ) && __STDC__)
+#ifndef HAVE_STDARG
 	BerElement	*ber;
 	char		*fmt;
 #endif
@@ -526,7 +521,7 @@ va_dcl
 	int		rc, i;
 	unsigned long	len;
 
-#if defined( HAVE_STDARG_H ) && __STDC__
+#ifdef HAVE_STDARG
 	va_start( ap, fmt );
 #else
 	va_start( ap );

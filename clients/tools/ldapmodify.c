@@ -226,6 +226,9 @@ main( int argc, char **argv )
     }
 
     exit( rc );
+
+	/* UNREACHABLE */
+	return(0);
 }
 
 

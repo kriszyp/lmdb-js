@@ -19,11 +19,7 @@
 #include <stdlib.h>
 #endif
 
-#if defined( HAVE_STDARG_H ) && __STDC__
-#include <stdarg.h>
-#else
-#include <varargs.h>
-#endif
+#include <ac/stdarg.h>
 
 #include <ac/string.h>
 #include <ac/socket.h>
@@ -370,7 +366,7 @@ ber_next_element( BerElement *ber, unsigned long *len, char *last )
 /* VARARGS */
 unsigned long
 ber_scanf
-#if defined( HAVE_STDARG_H ) && __STDC__
+#if HAVE_STDARG
 	( BerElement *ber, char *fmt, ... )
 #else
 	( va_alist )
@@ -378,7 +374,7 @@ va_dcl
 #endif
 {
 	va_list		ap;
-#if !(defined( HAVE_STDARG_H ) && __STDC__)
+#ifndef HAVE_STDARG
 	BerElement	*ber;
 	char		*fmt;
 #endif
@@ -389,7 +385,7 @@ va_dcl
 	long		*l;
 	unsigned long	rc, tag, len;
 
-#if defined( HAVE_STDARG_H ) && __STDC__
+#ifdef HAVE_STDARG
 	va_start( ap, fmt );
 #else
 	va_start( ap );
