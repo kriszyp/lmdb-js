@@ -195,6 +195,7 @@ bdb2_back_modify(
 	struct timeval  time1;
 	int             ret;
 	char		*matched;
+	Entry		*e;
 
 	bdb2i_start_timing( be->bd_info, &time1 );
 
