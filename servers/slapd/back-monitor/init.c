@@ -594,6 +594,8 @@ monitor_back_db_open(
 #endif
 			return -1;
 		}
+
+		(*ad)->ad_type->sat_flags != mat[i].flags;
 	}
 
 	for ( i = 0; moc[i].name; i++ ) {
@@ -661,6 +663,8 @@ monitor_back_db_open(
 #endif
 			return -1;
 		}
+
+		Oc->soc_flags |= moc[i].flags;
 
 		((ObjectClass **)&(((char *)mi)[moc[i].offset]))[0] = Oc;
 	}
