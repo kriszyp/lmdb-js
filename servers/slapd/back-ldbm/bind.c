@@ -74,12 +74,7 @@ ldbm_back_bind(
 		/* allow noauth binds */
 		rc = 1;
 		if ( method == LDAP_AUTH_SIMPLE ) {
-			if( cred->bv_len == 0 ) {
-				/* SUCCESS */
-				send_ldap_result( conn, op, LDAP_SUCCESS,
-					NULL, NULL, NULL, NULL );
-
-			} else if ( be_isroot_pw( be, dn, cred ) ) {
+			if ( be_isroot_pw( be, dn, cred ) ) {
 				*edn = ch_strdup( be_root_dn( be ) );
 				rc = 0; /* front end will send result */
 
@@ -92,21 +87,6 @@ ldbm_back_bind(
 					NULL, NULL, NULL, NULL );
 			}
 
-		} else if ( method == LDAP_AUTH_SASL ) {
-#ifdef HAVE_CYRUS_SASL
-			rc = sasl_bind( be, conn, op, 
-				dn, ndn, mech, cred, edn );
-#else
-			if( mech != NULL && strcasecmp(mech,"DIGEST-MD5") == 0 ) {
-				/* insert DIGEST calls here */
-				send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
-					NULL, NULL, NULL, NULL );
-				
-			} else {
-				send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
-					NULL, NULL, NULL, NULL );
-			}
-#endif /* HAVE_CYRUS_SASL */
 		} else if ( refs != NULL ) {
 			send_ldap_result( conn, op, LDAP_REFERRAL,
 				matched_dn, NULL, refs, NULL );
@@ -142,7 +122,7 @@ ldbm_back_bind(
 		    0, 0 );
 
 		send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
-		    NULL, NULL, NULL, NULL );
+		    NULL, "entry is alias", NULL, NULL );
 
 		rc = 1;
 		goto return_results;
@@ -173,15 +153,6 @@ ldbm_back_bind(
 
 	switch ( method ) {
 	case LDAP_AUTH_SIMPLE:
-		if ( cred->bv_len == 0 ) {
-			send_ldap_result( conn, op, LDAP_SUCCESS,
-				NULL, NULL, NULL, NULL );
-
-			/* stop front end from sending result */
-			rc = 1;
-			goto return_results;
-		} 
-
 		/* check for root dn/passwd */
 		if ( be_isroot_pw( be, dn, cred ) ) {
 			/* front end will send result */
@@ -222,15 +193,6 @@ ldbm_back_bind(
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	case LDAP_AUTH_KRBV41:
-		if ( ! access_allowed( be, conn, op, e,
-			"krbname", NULL, ACL_AUTH ) )
-		{
-			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-				NULL, NULL, NULL, NULL );
-			rc = 1;
-			goto return_results;
-		}
-
 		if ( krbv4_ldap_auth( be, cred, &ad ) != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
 			    NULL, NULL, NULL, NULL );
@@ -249,7 +211,6 @@ ldbm_back_bind(
 
 		sprintf( krbname, "%s%s%s@%s", ad.pname, *ad.pinst ? "."
 		    : "", ad.pinst, ad.prealm );
-
 
 		if ( (a = attr_find( e->e_attrs, "krbname" )) == NULL ) {
 			/*
@@ -289,17 +250,9 @@ ldbm_back_bind(
 		goto return_results;
 #endif
 
-	case LDAP_AUTH_SASL:
-		/* insert SASL code here */
-#ifdef HAVE_CYRUS_SASL
-		/* this may discard edn as we always prefer the SASL authzid
-		 * because it may be sealed.
-		 */
-		rc = sasl_bind( be, conn, op, dn, ndn, mech, cred, edn );
-#endif /* HAVE_CYRUS_SASL */
 	default:
 		send_ldap_result( conn, op, LDAP_STRONG_AUTH_NOT_SUPPORTED,
-		    NULL, "auth method not supported", NULL, NULL );
+		    NULL, "authentication method not supported", NULL, NULL );
 		rc = 1;
 		goto return_results;
 	}
