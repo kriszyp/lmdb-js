@@ -125,6 +125,8 @@ int bdb_id2entry_rw(
 	}
 
 	if ( rc == 0 ) {
+		int add_loop_cnt = 0;
+
 #ifdef BDB_HIER
 		bdb_fix_dn(be, id, *e);
 #endif
@@ -132,7 +134,6 @@ int bdb_id2entry_rw(
 				&bdb->bi_cache, *e, rw, locker, lock);
 		while ( ret == 1 || ret == -1 ) {
 			Entry *ee;
-			int add_loop_cnt = 0;
 			if ( (*e)->e_private != NULL ) {
 				free ((*e)->e_private);
 			}
