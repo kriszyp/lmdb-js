@@ -14,6 +14,10 @@
 #include "ldapconfig.h"
 #include "ldif.h"
 
+#ifdef WIN32
+time_t starttime;
+#endif
+
 #define MAXARGS      		100
 
 static void

@@ -12,6 +12,10 @@
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 
+#ifdef WIN32
+time_t starttime;
+#endif
+
 #include "ldif.h"
 
 #define MAXARGS      		100
