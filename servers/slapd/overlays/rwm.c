@@ -515,7 +515,8 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 		return -1;
 	}
 
-	/* TODO: rewrite attribute types, values of DN-valued attributes ... */
+	/* TODO: rewrite newRDN, attribute types, 
+	 * values of DN-valued attributes ... */
 	return SLAP_CB_CONTINUE;
 }
 

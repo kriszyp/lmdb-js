@@ -33,18 +33,6 @@
 
 int
 meta_back_modrdn( Operation *op, SlapReply *rs )
-		/*
-		Backend		*be,
-		Connection	*conn,
-		Operation	*op,
-		struct berval	*dn,
-		struct berval	*ndn,
-		struct berval	*newrdn,
-		struct berval	*nnewrdn,
-		int		deleteoldrdn,
-		struct berval	*newSuperior,
-		struct berval	*nnewSuperior
-) */
 {
 	struct metainfo		*li = ( struct metainfo * )op->o_bd->be_private;
 	struct metaconn		*lc;
