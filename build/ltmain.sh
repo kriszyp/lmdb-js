@@ -1084,6 +1084,10 @@ compiler."
 	    # These systems don't actually have c library (as such)
 	    continue
 	    ;;
+          *-*-rhapsody* | *-*-darwin*)
+            # Darwin C library is in the System framework
+            deplibs="$deplibs -framework System"
+            ;;
 	  esac
 	elif test "$arg" = "-lm"; then
 	  case "$host" in
@@ -1091,6 +1095,10 @@ compiler."
 	    # These systems don't actually have math library (as such)
 	    continue
 	    ;;
+          *-*-rhapsody* | *-*-darwin*)
+            # Darwin math library is in the System framework
+            deplibs="$deplibs -framework System"
+            ;;
 	  esac
 	fi
 	deplibs="$deplibs $arg"

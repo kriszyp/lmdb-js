@@ -1364,6 +1364,17 @@ else
     hardcode_shlibpath_var=no
     ;;
 
+  darwin* | rhapsody*)
+    allow_undefined_flag='-undefined warning'
+    archive_cmds='$CC $(if [ "$module" = "yes" ]; then echo -bundle; else echo -dynamiclib -undefined suppress; fi) -o $lib $libobjs $deplibs $linkopts'
+    archive_expsym_cmds="$archive_cmds"' && strip -s $export_symbols'
+    ## What we need is to hardcode the path to the library, not the search path
+    #hardcode_direct=yes
+    #hardcode_libdir_flag_spec='-install_name $libdir/$lib'
+    hardcode_shlibpath_var=no
+    whole_archive_flag_spec='-all_load'
+    ;;
+
   hpux9* | hpux10* | hpux11*)
     case "$host_os" in
     hpux9*) archive_cmds='$rm $objdir/$soname~$LD -b +b $install_libdir -o $objdir/$soname $libobjs $deplibs $linkopts~test $objdir/$soname = $lib || mv $objdir/$soname $lib' ;;
@@ -1901,6 +1912,18 @@ freebsd*)
     shlibpath_overrides_runpath=no
     ;;
   esac
+  ;;
+
+darwin* | rhapsody*)
+  deplibs_check_method='file_magic Mach-O dynamically linked shared library'
+  file_magic_cmd=/usr/bin/file
+  file_magic_test_file=`echo System/Library/Frameworks/System.framework/Versions/*/System | head -1`
+  library_names_spec='${libname}.$(if [ "$module" = "yes" ]; then echo so; else echo dylib; fi)'
+  need_lib_prefix=no
+  need_version=no
+  postinstall_cmds='chmod +x $lib'
+  shlibpath_overrides_runpath=yes
+  shlibpath_var=DYLD_LIBRARY_PATH
   ;;
 
 gnu*)
