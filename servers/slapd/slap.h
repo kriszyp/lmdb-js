@@ -2219,6 +2219,7 @@ typedef struct slap_op {
 	LDAP_TAILQ_HEAD(pc_pre, pc_entry) o_ps_pre_candidates;
 	LDAP_TAILQ_HEAD(pc_post, pc_entry) o_ps_post_candidates;
 	Avlnode *o_psearch_finished;
+	struct pc_entry *o_ps_send_wait;
 	ldap_pvt_thread_mutex_t	o_pcmutex;
 
 	AuthorizationInformation o_authz;

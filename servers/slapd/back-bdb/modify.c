@@ -450,7 +450,10 @@ retry:	/* transaction retry */
 		ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 			rc = bdb_psearch(op, rs, ps_list, e, LDAP_PSEARCH_BY_PREMODIFY );
-			if ( rc ) {
+			if ( rc == LDAP_BUSY && op->o_ps_send_wait ) {
+				ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
+				goto retry;
+			} else if ( rc ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_modify: persistent search failed (%d,%d)\n",
 					rc, rs->sr_err, 0 );

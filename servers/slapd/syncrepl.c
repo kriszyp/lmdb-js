@@ -1195,34 +1195,31 @@ syncrepl_entry(
 	struct berval org_ndn = BER_BVNULL;
 	int	org_managedsait;
 
-	Debug( LDAP_DEBUG_SYNC, "%s: %s",
-				"syncrepl_entry",
-				"LDAP_RES_SEARCH_ENTRY", 0 );
 	switch( syncstate ) {
 	case LDAP_SYNC_PRESENT:
-		Debug( LDAP_DEBUG_SYNC, "%s: %s",
+		Debug( LDAP_DEBUG_SYNC, "%s: %s\n",
 					"syncrepl_entry",
-					"LDAP_SYNC_PRESENT", "\n" );
+					"LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_PRESENT)", 0 );
 		break;
 	case LDAP_SYNC_ADD:
-		Debug( LDAP_DEBUG_SYNC, "%s: %s",
+		Debug( LDAP_DEBUG_SYNC, "%s: %s\n",
 					"syncrepl_entry",
-					"LDAP_SYNC_ADD", "\n" );
+					"LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_ADD)", 0 );
 		break;
 	case LDAP_SYNC_DELETE:
-		Debug( LDAP_DEBUG_SYNC, "%s: %s",
+		Debug( LDAP_DEBUG_SYNC, "%s: %s\n",
 					"syncrepl_entry",
-					"LDAP_SYNC_DELETE", "\n" );
+					"LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_DELETE)", 0 );
 		break;
 	case LDAP_SYNC_MODIFY:
-		Debug( LDAP_DEBUG_SYNC, "%s: %s",
+		Debug( LDAP_DEBUG_SYNC, "%s: %s\n",
 					"syncrepl_entry",
-					"LDAP_SYNC_MODIFY", "\n" );
+					"LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_MODIFY)", 0 );
 		break;
 	default:
-		Debug( LDAP_DEBUG_ANY, "%s: %s",
+		Debug( LDAP_DEBUG_ANY, "%s: %s\n",
 					"syncrepl_entry",
-					"UNKNONW syncstate", "\n" );
+					"LDAP_RES_SEARCH_ENTRY(UNKNOWN syncstate)", 0 );
 	}
 
 	if (( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD )) {

@@ -428,12 +428,14 @@ int bdb_search( Operation *op, SlapReply *rs )
 	return rc;
 }
 
+#define BDB_PSEARCH_MAX_WAIT 3
 int bdb_psearch( Operation *op, SlapReply *rs, Operation *sop,
 	Entry *ps_e, int ps_type )
 {
 	int	rc;
 	struct pc_entry *pce = NULL;
 	struct pc_entry *p = NULL;
+	int num_retries = 0;
 
 	op->ors_post_search_id = NOID;
 
@@ -441,40 +443,54 @@ int bdb_psearch( Operation *op, SlapReply *rs, Operation *sop,
 	case LDAP_PSEARCH_BY_PREMODIFY:
 	case LDAP_PSEARCH_BY_PREDELETE:
 
-		if ( sop->o_refresh_in_progress ) {
-			pce = (struct pc_entry *) ch_calloc( 1, sizeof( struct pc_entry ));
-			pce->pc_id = ps_e->e_id;
-			ldap_pvt_thread_mutex_lock( &sop->o_pcmutex );
-			if ( LDAP_TAILQ_EMPTY( &sop->o_ps_pre_candidates )) {
-				LDAP_TAILQ_INSERT_HEAD( &sop->o_ps_pre_candidates, pce, pc_link );
-			} else {
-				LDAP_TAILQ_FOREACH( p, &sop->o_ps_pre_candidates, pc_link ) {
-					if ( p->pc_id > pce->pc_id )
-						break;
-				}
-
-				if ( p ) {
-					LDAP_TAILQ_INSERT_BEFORE( p, pce, pc_link );
+		if ( !op->o_ps_send_wait ) {
+			if ( sop->o_refresh_in_progress ) {
+				pce = (struct pc_entry *) ch_calloc(
+							1, sizeof( struct pc_entry ));
+				pce->pc_id = ps_e->e_id;
+				ldap_pvt_thread_mutex_lock( &sop->o_pcmutex );
+				if ( LDAP_TAILQ_EMPTY( &sop->o_ps_pre_candidates )) {
+					LDAP_TAILQ_INSERT_HEAD(
+							&sop->o_ps_pre_candidates, pce, pc_link );
 				} else {
-					LDAP_TAILQ_INSERT_TAIL(
-							&sop->o_ps_pre_candidates,
-							pce, pc_link );
+					LDAP_TAILQ_FOREACH( p,
+							&sop->o_ps_pre_candidates, pc_link ) {
+						if ( p->pc_id > pce->pc_id )
+							break;
+					}
+
+					if ( p ) {
+						LDAP_TAILQ_INSERT_BEFORE( p, pce, pc_link );
+					} else {
+						LDAP_TAILQ_INSERT_TAIL(
+								&sop->o_ps_pre_candidates,
+								pce, pc_link );
+					}
 				}
+				ldap_pvt_thread_mutex_unlock( &sop->o_pcmutex );
+			} else {
+				rc = bdb_do_search( op, rs, sop, ps_e, ps_type );
+				return rc;
 			}
-			ldap_pvt_thread_mutex_unlock( &sop->o_pcmutex );
 		} else {
-			rc = bdb_do_search( op, rs, sop, ps_e, ps_type );
-			return rc;
+			pce = op->o_ps_send_wait;
 		}
 
 		/* Wait until refresh search send the entry */
 		while ( !pce->pc_sent ) {
 			if ( sop->o_refresh_in_progress ) {
+				if ( num_retries == BDB_PSEARCH_MAX_WAIT ) {
+					op->o_ps_send_wait = pce;
+					return LDAP_BUSY;
+				}
 				ldap_pvt_thread_yield();
+				bdb_trans_backoff( ++num_retries );
 			} else {
 				break;
 			}
 		}
+
+		op->o_ps_send_wait = NULL;
 
 		if ( !sop->o_refresh_in_progress && !pce->pc_sent ) {
 			/* refresh ended without processing pce */
@@ -511,7 +527,6 @@ int bdb_psearch( Operation *op, SlapReply *rs, Operation *sop,
 				!LDAP_TAILQ_EMPTY( &sop->o_ps_post_candidates )) {
 			pce = (struct pc_entry *) ch_calloc( 1, sizeof( struct pc_entry ));
 			pce->pc_id = ps_e->e_id;
-//			pce->ps_type = ps_type;
 			ber_dupbv( &pce->pc_csn, &op->o_sync_csn );
 			if ( ps_type == LDAP_PSEARCH_BY_DELETE ) {
 				Attribute *a;
