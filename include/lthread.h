@@ -119,8 +119,6 @@ typedef void	*(*VFP)();
 #define PTHREAD_SHARE_PRIVATE   USYNC_THREAD
 #define PTHREAD_SHARE_PROCESS   USYNC_PROCESS
 
-
-#if !defined(__SunOS_5_6)
 /* thread attributes and thread type */
 typedef int		pthread_attr_t;
 typedef thread_t	pthread_t;
@@ -132,7 +130,6 @@ typedef mutex_t	pthread_mutex_t;
 /* condition variable attributes and condition variable type */
 typedef int     pthread_condattr_t;
 typedef cond_t	pthread_cond_t;
-#endif /* ! sunos56 */
 
 LDAP_END_DECL
 

@@ -151,7 +151,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 		    0, 0, 0 );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "wait4msg (timeout %ld sec, %ld usec)\n",
-		    timeout->tv_sec, timeout->tv_usec, 0 );
+		       (long) timeout->tv_sec, (long) timeout->tv_usec, 0 );
 	}
 #endif /* LDAP_DEBUG */
 
@@ -246,7 +246,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 			}
 
 			Debug( LDAP_DEBUG_TRACE, "wait4msg:  %ld secs to go\n",
-				tv.tv_sec, 0, 0 );
+			       (long) tv.tv_sec, 0, 0 );
 			start_time = tmp_time;
 		}
 	}

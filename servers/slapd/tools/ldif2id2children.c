@@ -270,6 +270,7 @@ main( int argc, char **argv )
 
 						data = ldbm_fetch( db->dbc_db,
 						    key );
+						free( dn );
 						if ( data.dptr == NULL ) {
 							dn_normalize( val );
 							if ( ! be_issuffix( be,

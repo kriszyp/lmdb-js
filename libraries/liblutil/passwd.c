@@ -44,7 +44,7 @@ lutil_passwd(
 
 		ldap_MD5Init(&MD5context);
 		ldap_MD5Update(&MD5context,
-			cred, strlen(cred));
+			       (const unsigned char *)cred, strlen(cred));
 		ldap_MD5Final(MD5digest, &MD5context);
 
 		if ( b64_ntop(MD5digest, sizeof(MD5digest),
@@ -63,7 +63,7 @@ lutil_passwd(
 
 		ldap_SHA1Init(&SHA1context);
 		ldap_SHA1Update(&SHA1context,
-			(unsigned char *) cred, strlen(cred));
+				(const unsigned char *) cred, strlen(cred));
 		ldap_SHA1Final(SHA1digest, &SHA1context);
 
 		if (b64_ntop(SHA1digest, sizeof(SHA1digest),

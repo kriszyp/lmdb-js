@@ -18,18 +18,20 @@ Larger than life projects
 LDAPv3 support <kurt@openldap.org>
 LDAP C API (draft-ietf-ldapext-ldap-c-api-xx) support <kurt@openldap.org>
 Schema Repository
-Modify -lldap to be operation-level multithreaded <kurt@openldap.org>
 
 Large projects
 --------------
 redesign slapd threading
 autoconf support <kurt@openldap.org>
 Modify -lldap to be session-level multithreaded <kurt@openldap.org>
+Port slapd (incl back-ldbm & tools) to NT
 
 
 Medium projects
 ---------------
 Modify -lldap to be reentrant/threadsafe <kurt@openldap.org>
+Modify -llthread to have private interface 
+Port slurpd to NT
 
 
 Small projects

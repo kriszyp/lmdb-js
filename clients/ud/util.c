@@ -281,7 +281,7 @@ format( char *str, int width, int lead )
 	 */
 	s = original = strdup(str);
 	for (;;) {
-		if ((strlen(s) + lead) < width) {
+		if (((int) strlen(s) + lead) < width) {
 			printf("%s%s\n", leader, s);
 			Free(leader);
 			Free(original);
@@ -352,7 +352,7 @@ format2(
 		i = "";
 
 	/* now do the first line */
-	if ((strlen(s) + strlen(first_tag) + first_indent) < width) {
+	if (((int) strlen(s) + (int) strlen(first_tag) + first_indent) < width) {
 		printf("%s%s%s\n", fi, first_tag, s);
 		Free(fi);
 		Free(i);
@@ -391,7 +391,7 @@ format2(
 
 	/* now do all of the other lines */
 	for (;;) {
-		if ((strlen(s) + strlen(tag) + indent) < width) {
+		if (((int) strlen(s) + (int) strlen(tag) + indent) < width) {
 			printf("%s%s%s\n", i, tag, s);
 			Free(fi);
 			Free(i);

@@ -126,7 +126,7 @@ ldbm_back_bind(
 	Entry		*e;
 	Attribute	*a;
 	int		rc;
-	char		*matched = NULL;
+	char		*matched;
 #ifdef HAVE_KERBEROS
 	char		krbname[MAX_K_NAME_SZ + 1];
 	AUTH_DAT	ad;

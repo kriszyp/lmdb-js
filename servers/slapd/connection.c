@@ -129,8 +129,8 @@ connection_activity(
 		    "ber_get_next on fd %d failed errno %d (%s)\n",
 		    conn->c_sb.sb_sd, errno, errno > -1 && errno < sys_nerr ?
 		    sys_errlist[errno] : "unknown" );
-		Debug( LDAP_DEBUG_TRACE, "*** got %d of %lu so far\n",
-		    conn->c_currentber->ber_rwptr - conn->c_currentber->ber_buf,
+		Debug( LDAP_DEBUG_TRACE, "*** got %ld of %lu so far\n",
+		    (long)(conn->c_currentber->ber_rwptr - conn->c_currentber->ber_buf),
 		    conn->c_currentber->ber_len, 0 );
 
 		if ( errno != EWOULDBLOCK && errno != EAGAIN ) {

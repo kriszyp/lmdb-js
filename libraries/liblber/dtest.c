@@ -59,7 +59,7 @@ main( int argc, char **argv )
 		fprintf( stderr, "ber_scanf returns -1\n" );
 		exit( 1 );
 	}
-	printf( "got int %d\n", i );
+	printf( "got int %ld\n", i );
 
 	return( 0 );
 }

@@ -36,9 +36,10 @@ parse_oc(
 			do {
 				i++;
 				if ( i < argc ) {
+					char **s = str2charray( argv[i], "," );
 					last = argv[i][strlen( argv[i] ) - 1];
-					charray_merge( &oc->oc_required,
-						str2charray( argv[i], "," ) );
+					charray_merge( &oc->oc_required, s );
+					charray_free( s );
 				}
 			} while ( i < argc && last == ',' );
 
@@ -47,9 +48,11 @@ parse_oc(
 			do {
 				i++;
 				if ( i < argc ) {
+					char **s = str2charray( argv[i], "," );
 					last = argv[i][strlen( argv[i] ) - 1];
-					charray_merge( &oc->oc_allowed,
-						str2charray( argv[i], "," ) );
+					
+					charray_merge( &oc->oc_allowed, s );
+					charray_free( s );
 				}
 			} while ( i < argc && last == ',' );
 

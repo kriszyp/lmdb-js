@@ -113,7 +113,7 @@ char *derefDN ( Backend     *be,
 {
   struct ldbminfo *li = (struct ldbminfo *) be->be_private;
   char 	*matched;
-  char 	*newDN;
+  char 	*newDN = NULL;
   int	depth;
   Entry 	*eMatched;
   Entry 	*eDeref;
@@ -135,7 +135,7 @@ char *derefDN ( Backend     *be,
     /* free reader lock */
     cache_return_entry_r(&li->li_cache, eMatched);
 
-    if (*matched) {	
+    if ((matched != NULL) && *matched) {	
       char *submatch;
       
       /* 
@@ -155,7 +155,9 @@ char *derefDN ( Backend     *be,
 	
 	if ((eNew = derefAlias_r( be, conn, op, eMatched )) == NULL) {
 	  free (matched);
+	  matched = NULL;
 	  free (newDN);
+	  newDN = NULL;
 	  free (remainder);
 	  break; /*  no associated entry, dont deref */
 	}
@@ -166,7 +168,9 @@ char *derefDN ( Backend     *be,
 	  if (!strcasecmp (matched, eNew->e_dn)) {
 	    /* newDN same as old so not an alias, no need to go further */
 	    free (newDN);
+	    newDN = NULL;
 	    free (matched);
+	    matched = NULL;
 	    free (remainder);
 	    break;
 	  }
@@ -176,13 +180,13 @@ char *derefDN ( Backend     *be,
 	   * the new dn together
 	   */
 	  free (newDN);
-	  free (matched);
-	  
 	  newDN = ch_malloc (strlen(eMatched->e_dn) + rlen + 1);
 	  strcpy (newDN, remainder);
 	  strcat (newDN, eMatched->e_dn);
 	  Debug( LDAP_DEBUG_TRACE, "<= expanded to %s\n", newDN, 0, 0 );
 
+	  free (matched);
+	  matched = NULL;
 	  free (remainder);
 
           /* free reader lock */
@@ -226,10 +230,13 @@ char *derefDN ( Backend     *be,
     send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM, "",
 		      "Maximum alias dereference depth exceeded for base" );
   }
+
+  if (newDN == NULL) {
+    newDN = strdup ( dn );
+  }
   
   Debug( LDAP_DEBUG_TRACE, "<= returning deref DN of  %s\n", newDN, 0, 0 ); 
-
-  free(matched);
+  if (matched != NULL) free(matched);
 
   return newDN;
 }

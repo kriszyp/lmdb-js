@@ -966,9 +966,11 @@ AC_CHECK_HEADERS(	\
 	sys/resource.h	\
 	sys/socket.h	\
 	sys/syslog.h	\
+	sys/time.h		\
 	sys/types.h		\
 	syslog.h		\
 	termios.h		\
+	unistd.h		\
 )
 
 dnl ----------------------------------------------------------------
@@ -999,9 +1001,9 @@ fi
 dnl ----------------------------------------------------------------
 dnl Checks for library functions.
 AC_FUNC_MEMCMP
-AM_FUNC_MKTIME dnl checks for sys/time.h and unistd.h
+dnl AM_FUNC_MKTIME dnl checks for sys/time.h and unistd.h
 AC_FUNC_STRFTIME
-AM_FUNC_STRTOD
+dnl AM_FUNC_STRTOD
 AC_FUNC_VPRINTF
 
 if test $ac_cv_func_vprintf = yes ; then
