@@ -319,7 +319,9 @@ typedef struct slap_filter {
 typedef struct slap_attr {
 	char		*a_type;	/* description */
 	struct berval	**a_vals;
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeType	*a_at;	/* attribute type */
+#else
 	int		a_syntax;
 #endif
 	struct slap_attr	*a_next;

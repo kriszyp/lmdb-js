@@ -124,7 +124,7 @@ attr_normalize( char *s )
 int
 attr_merge_fast(
     Entry		*e,
-    char		*type,
+    const char		*type,
     struct berval	**vals,
     int			nvals,
     int			naddvals,
@@ -164,7 +164,7 @@ attr_merge_fast(
 int
 attr_merge(
     Entry		*e,
-    char		*type,
+    const char		*type,
     struct berval	**vals
 )
 {
@@ -250,7 +250,7 @@ attr_delete(
  */
 
 int
-attr_syntax( char *type )
+attr_syntax( const char *type )
 {
 	AttributeType	*sat;
 
@@ -357,7 +357,7 @@ attr_syntax_config(
 
 int
 at_fake_if_needed(
-    char	*name
+    const char	*name
 )
 {
 	char *argv[3];
@@ -365,7 +365,7 @@ at_fake_if_needed(
 	if ( at_find( name ) ) {
 		return 0;
 	} else {
-		argv[0] = name;
+		argv[0] = (char*) name;
 		argv[1] = "cis";
 		argv[2] = NULL;
 		attr_syntax_config( "implicit", 0, 2, argv );
@@ -706,7 +706,7 @@ at_add(
 
 char *
 #ifdef SLAPD_SCHEMA_COMPAT
-at_canonical_name( char * a_type )
+at_canonical_name( const char * a_type )
 #else
 at_canonical_name( AttributeType * atp )
 #endif
@@ -719,7 +719,7 @@ at_canonical_name( AttributeType * atp )
 
 	if ( atp == NULL ) {
 #ifdef SLAPD_SCHEMA_COMPAT
-		return a_type;
+		return (char *) a_type;
 #else
 		return NULL;
 #endif
@@ -734,7 +734,7 @@ at_canonical_name( AttributeType * atp )
 	}
 
 #ifdef SLAPD_SCHEMA_COMPAT
-	return a_type;
+	return (char *) a_type;
 #else
 	return NULL;
 #endif
