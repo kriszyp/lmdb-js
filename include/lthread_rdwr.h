@@ -28,7 +28,7 @@
 
 LDAP_BEGIN_DECL
 
-typedef struct rdwr_var {
+typedef struct ldap_pvt_thread_rdwr_var {
 	int readers_reading;
 	int writer_writing;
 	pthread_mutex_t mutex;

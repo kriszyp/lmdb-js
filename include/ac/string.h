@@ -46,8 +46,9 @@
 	/* strdup() is missing, declare our own version */
 	extern char *strdup( const char *s );
 #else
-	/* some systems have strdup, but fail to declare it */
-	extern char *strdup();
+	/* provide our own strdup */
+	extern char *ldap_pvt_strdup( const char * s );
+#	define strdup ldap_pvt_strdup
 #endif
 
 /*

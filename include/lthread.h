@@ -194,7 +194,7 @@ typedef mon_t	pthread_mutex_t;
 
 /* condition variable attributes and condition variable type */
 typedef int	pthread_condattr_t;
-typedef struct lwpcv {
+typedef struct ldap_int_thread_cv {
 	int		lcv_created;
 	cv_t		lcv_cv;
 } pthread_cond_t;
