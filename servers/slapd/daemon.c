@@ -330,7 +330,7 @@ slapd_daemon_task(
 		}
 
 	} else {
-		if( connection_init( (ber_socket_t) 0, NULL, NULL ) ) {
+		if( connection_init( (ber_socket_t) 0, NULL, NULL, 0 ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"connection_init(%d) failed.\n",
 				0, 0, 0 );
@@ -579,7 +579,8 @@ slapd_daemon_task(
 			}
 #endif /* HAVE_TCPD */
 
-			if( (id = connection_init(s, client_name, client_addr)) < 0 ) {
+			if( (id = connection_init(s, client_name, client_addr,
+						  listeners[l].use_tls)) < 0 ) {
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: connection_init(%ld, %s, %s) failed.\n",
 					(long) s,

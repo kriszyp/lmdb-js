@@ -50,6 +50,7 @@ static void connection_close( Connection *c );
 static int connection_op_activate( Connection *conn, Operation *op );
 static int connection_resched( Connection *conn );
 static void connection_abandon( Connection *conn );
+static void connection_destroy( Connection *c );
 
 struct co_arg {
 	Connection	*co_conn;
@@ -271,7 +272,8 @@ static void connection_return( Connection *c )
 long connection_init(
 	ber_socket_t s,
 	const char* name,
-	const char* addr)
+	const char* addr,
+	int use_tls)
 {
 	unsigned long id;
 	Connection *c;
@@ -391,6 +393,21 @@ long connection_init(
 
     c->c_conn_state = SLAP_C_INACTIVE;
     c->c_struct_state = SLAP_C_USED;
+
+#ifdef HAVE_TLS
+    if ( use_tls ) {
+	    /* FIXME: >0 means incomplete read */
+	    if ( ldap_pvt_tls_accept( c->c_sb, NULL ) < 0 ) {
+		    Debug( LDAP_DEBUG_ANY,
+			   "connection_init(%d): TLS accept failed.\n",
+				s, 0, 0);
+		    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+		    ldap_pvt_thread_mutex_unlock( &connections_mutex );
+		    connection_destroy( c );
+		    return -1;
+	    }
+    }
+#endif
 
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
     ldap_pvt_thread_mutex_unlock( &connections_mutex );

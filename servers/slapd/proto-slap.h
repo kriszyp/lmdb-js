@@ -144,7 +144,7 @@ int connections_timeout_idle LDAP_P((time_t));
 
 long connection_init LDAP_P((
 	ber_socket_t s,
-	const char* name, const char* addr));
+	const char* name, const char* addr, int use_tls));
 
 void connection_closing LDAP_P(( Connection *c ));
 int connection_state_closing LDAP_P(( Connection *c ));
