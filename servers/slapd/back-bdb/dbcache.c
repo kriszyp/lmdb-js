@@ -71,7 +71,6 @@ bdb_db_cache(
 	rc = db->bdi_db->set_pagesize( db->bdi_db, BDB_PAGESIZE );
 #ifdef BDB_IDL_MULTI
 	rc = db->bdi_db->set_flags( db->bdi_db, DB_DUP | DB_DUPSORT );
-	rc = db->bdi_db->set_dup_compare( db->bdi_db, bdb_bt_compare );
 #endif
 
 	file = ch_malloc( strlen( name ) + sizeof(BDB_SUFFIX) );
@@ -79,7 +78,7 @@ bdb_db_cache(
 
 	rc = db->bdi_db->open( db->bdi_db,
 		file, name,
-		DB_BTREE, bdb->bi_db_opflags | DB_CREATE | DB_THREAD,
+		DB_HASH, bdb->bi_db_opflags | DB_CREATE | DB_THREAD,
 		bdb->bi_dbenv_mode );
 
 	ch_free( file );
