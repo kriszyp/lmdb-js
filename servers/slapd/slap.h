@@ -573,6 +573,14 @@ typedef enum slap_control_e {
 	ACL_BREAK
 } slap_control_t;
 
+typedef enum slap_style_e {
+	ACL_STYLE_REGEX,
+	ACL_STYLE_BASE,
+	ACL_STYLE_ONE,
+	ACL_STYLE_SUBTREE,
+	ACL_STYLE_CHILDREN
+} slap_style_t;
+
 typedef unsigned long slap_access_mask_t;
 
 /* the "by" part */
@@ -638,14 +646,19 @@ typedef struct slap_access {
 
 	slap_access_mask_t	a_mask;
 
+	slap_style_t a_dn_style;
 	char		*a_dn_pat;
 	AttributeDescription	*a_dn_at;
 	int			a_dn_self;
 
+	slap_style_t a_peername_style;
 	char		*a_peername_pat;
+	slap_style_t a_sockname_style;
 	char		*a_sockname_pat;
 
+	slap_style_t a_domain_style;
 	char		*a_domain_pat;
+	slap_style_t a_sockurl_style;
 	char		*a_sockurl_pat;
 
 #ifdef SLAPD_ACI_ENABLED
@@ -653,6 +666,7 @@ typedef struct slap_access {
 #endif
 
 	/* ACL Groups */
+	slap_style_t a_group_style;
 	char		*a_group_pat;
 	ObjectClass				*a_group_oc;
 	AttributeDescription	*a_group_at;
@@ -664,6 +678,7 @@ typedef struct slap_access {
 typedef struct slap_acl {
 	/* "to" part: the entries this acl applies to */
 	Filter		*acl_filter;
+	slap_style_t acl_dn_style;
 	regex_t		acl_dn_re;
 	char		*acl_dn_pat;
 	char		**acl_attrs;

@@ -33,6 +33,7 @@ static slap_control_t acl_mask(
 #ifdef SLAPD_ACI_ENABLED
 static int aci_mask(
 	Backend *be,
+    Connection *conn,
 	Operation *op,
 	Entry *e,
 	AttributeDescription *desc,
@@ -213,6 +214,8 @@ acl_get(
     regmatch_t	*matches )
 {
 	const char *attr;
+	int dnlen, patlen;
+
 	assert( e != NULL );
 	assert( count != NULL );
 
@@ -231,20 +234,67 @@ acl_get(
 		a = a->acl_next;
 	}
 
+	dnlen = strlen(e->e_ndn);
+
 	for ( ; a != NULL; a = a->acl_next ) {
 		(*count) ++;
 
 		if (a->acl_dn_pat != NULL) {
-			Debug( LDAP_DEBUG_ACL, "=> dnpat: [%d] %s nsub: %d\n", 
-				*count, a->acl_dn_pat, (int) a->acl_dn_re.re_nsub );
+			if ( a->acl_dn_style == ACL_STYLE_REGEX ) {
+				Debug( LDAP_DEBUG_ACL, "=> dnpat: [%d] %s nsub: %d\n", 
+					*count, a->acl_dn_pat, (int) a->acl_dn_re.re_nsub );
 
-			if (regexec(&a->acl_dn_re, e->e_ndn, nmatch, matches, 0)) {
-				continue;
+				if (regexec(&a->acl_dn_re, e->e_ndn, nmatch, matches, 0))
+					continue;
 
 			} else {
-				Debug( LDAP_DEBUG_ACL, "=> acl_get: [%d] matched\n",
-					*count, 0, 0);
+				Debug( LDAP_DEBUG_ACL, "=> dn: [%d] %s\n", 
+					*count, a->acl_dn_pat, 0 );
+
+				patlen = strlen( a->acl_dn_pat );
+				if ( dnlen < patlen )
+					continue;
+
+				if ( a->acl_dn_style == ACL_STYLE_BASE ) {
+					/* base dn -- entire object DN must match */
+					if ( dnlen != patlen )
+						continue;
+
+				} else if ( a->acl_dn_style == ACL_STYLE_ONE ) {
+					char *rdn;
+					int rdnlen = -1;
+
+					if ( dnlen <= patlen )
+						continue;
+
+					if ( e->e_ndn[dnlen - patlen - 1] != ',' )
+						continue;
+
+					rdn = dn_rdn( NULL, e->e_ndn );
+					if ( rdn != NULL ) {
+						rdnlen = strlen( rdn );
+						ch_free( rdn );
+					}
+					if ( rdnlen != dnlen - patlen - 1 )
+						continue;
+
+				} else if ( a->acl_dn_style == ACL_STYLE_SUBTREE ) {
+					if ( dnlen > patlen && e->e_ndn[dnlen - patlen - 1] != ',' )
+						continue;
+
+				} else if ( a->acl_dn_style == ACL_STYLE_CHILDREN ) {
+					if ( dnlen <= patlen )
+						continue;
+					if ( e->e_ndn[dnlen - patlen - 1] != ',' )
+						continue;
+				}
+
+				if ( strcmp( a->acl_dn_pat, e->e_ndn + dnlen - patlen ) != 0 )
+					continue;
 			}
+
+			Debug( LDAP_DEBUG_ACL, "=> acl_get: [%d] matched\n",
+				*count, 0, 0 );
 		}
 
 		if ( a->acl_filter != NULL ) {
@@ -295,7 +345,7 @@ acl_mask(
 	regmatch_t	*matches
 )
 {
-	int		i;
+	int		i, odnlen, patlen;
 	Access	*b;
 #ifdef LDAP_DEBUG
 	char accessmaskbuf[ACCESSMASK_MAXLEN];
@@ -348,13 +398,62 @@ acl_mask(
 					continue;
 				}
 
-			} else if ( strcmp( b->a_dn_pat, "*" ) != 0 ) {
-				int ret = regex_matches( b->a_dn_pat,
-					op->o_ndn, e->e_ndn, matches );
+			} else if ( b->a_dn_style == ACL_STYLE_REGEX ) {
+				if ( strcmp( b->a_dn_pat, "*" ) != 0 ) {
+					int ret = regex_matches( b->a_dn_pat,
+						op->o_ndn, e->e_ndn, matches );
 
-				if( ret == 0 ) {
-					continue;
+					if( ret == 0 ) {
+						continue;
+					}
 				}
+
+			} else {
+				if ( e->e_dn == NULL )
+					continue;
+
+				patlen = strlen( b->a_dn_pat );
+				odnlen = strlen( op->o_ndn );
+				if ( odnlen < patlen )
+					continue;
+
+				if ( b->a_dn_style == ACL_STYLE_BASE ) {
+					/* base dn -- entire object DN must match */
+					if ( odnlen != patlen )
+						continue;
+
+				} else if ( b->a_dn_style == ACL_STYLE_ONE ) {
+					char *rdn;
+					int rdnlen = -1;
+
+					if ( odnlen <= patlen )
+						continue;
+
+					if ( op->o_ndn[odnlen - patlen - 1] != ',' )
+						continue;
+
+					rdn = dn_rdn( NULL, op->o_ndn );
+					if ( rdn != NULL ) {
+						rdnlen = strlen( rdn );
+						ch_free( rdn );
+					}
+					if ( rdnlen != odnlen - patlen - 1 )
+						continue;
+
+				} else if ( b->a_dn_style == ACL_STYLE_SUBTREE ) {
+					if ( odnlen > patlen && op->o_ndn[odnlen - patlen - 1] != ',' )
+						continue;
+
+				} else if ( b->a_dn_style == ACL_STYLE_CHILDREN ) {
+					if ( odnlen <= patlen )
+						continue;
+					if ( op->o_ndn[odnlen - patlen - 1] != ',' )
+						continue;
+				}
+
+				if ( strcmp( b->a_dn_pat, op->o_ndn + odnlen - patlen ) != 0 )
+					continue;
+
 			}
 		}
 
@@ -362,11 +461,17 @@ acl_mask(
 			Debug( LDAP_DEBUG_ACL, "<= check a_sockurl_pat: %s\n",
 				b->a_sockurl_pat, 0, 0 );
 
-			if ( strcmp( b->a_sockurl_pat, "*" ) != 0 &&
-				!regex_matches( b->a_sockurl_pat, conn->c_listener_url,
-				e->e_ndn, matches ) ) 
-			{
-				continue;
+			if ( strcmp( b->a_sockurl_pat, "*" ) != 0) {
+				if ( b->a_sockurl_style == ACL_STYLE_REGEX) {
+					if (!regex_matches( b->a_sockurl_pat, conn->c_listener_url,
+							e->e_ndn, matches ) ) 
+					{
+						continue;
+					}
+				} else {
+					if ( strcasecmp( b->a_sockurl_pat, conn->c_listener_url ) == 0 )
+						continue;
+				}
 			}
 		}
 
@@ -374,11 +479,17 @@ acl_mask(
 			Debug( LDAP_DEBUG_ACL, "<= check a_domain_pat: %s\n",
 				b->a_domain_pat, 0, 0 );
 
-			if ( strcmp( b->a_domain_pat, "*" ) != 0 &&
-				!regex_matches( b->a_domain_pat, conn->c_peer_domain,
-				e->e_ndn, matches ) ) 
-			{
-				continue;
+			if ( strcmp( b->a_domain_pat, "*" ) != 0) {
+				if ( b->a_domain_style == ACL_STYLE_REGEX) {
+					if (!regex_matches( b->a_domain_pat, conn->c_peer_domain,
+							e->e_ndn, matches ) ) 
+					{
+						continue;
+					}
+				} else {
+					if ( strcasecmp( b->a_domain_pat, conn->c_peer_domain ) == 0 )
+						continue;
+				}
 			}
 		}
 
@@ -386,11 +497,17 @@ acl_mask(
 			Debug( LDAP_DEBUG_ACL, "<= check a_peername_path: %s\n",
 				b->a_peername_pat, 0, 0 );
 
-			if ( strcmp( b->a_peername_pat, "*" ) != 0 &&
-				!regex_matches( b->a_peername_pat, conn->c_peer_name,
-				e->e_ndn, matches ) )
-			{
-				continue;
+			if ( strcmp( b->a_peername_pat, "*" ) != 0) {
+				if ( b->a_peername_style == ACL_STYLE_REGEX) {
+					if (!regex_matches( b->a_peername_pat, conn->c_peer_name,
+							e->e_ndn, matches ) ) 
+					{
+						continue;
+					}
+				} else {
+					if ( strcasecmp( b->a_peername_pat, conn->c_peer_name ) == 0 )
+						continue;
+				}
 			}
 		}
 
@@ -398,11 +515,17 @@ acl_mask(
 			Debug( LDAP_DEBUG_ACL, "<= check a_sockname_path: %s\n",
 				b->a_sockname_pat, 0, 0 );
 
-			if ( strcmp( b->a_sockname_pat, "*" ) != 0 &&
-				!regex_matches( b->a_sockname_pat, conn->c_sock_name,
-				e->e_ndn, matches ) )
-			{
-				continue;
+			if ( strcmp( b->a_sockname_pat, "*" ) != 0) {
+				if ( b->a_sockname_style == ACL_STYLE_REGEX) {
+					if (!regex_matches( b->a_sockname_pat, conn->c_sock_name,
+							e->e_ndn, matches ) ) 
+					{
+						continue;
+					}
+				} else {
+					if ( strcasecmp( b->a_sockname_pat, conn->c_sock_name ) == 0 )
+						continue;
+				}
 			}
 		}
 
@@ -458,10 +581,15 @@ acl_mask(
 			 * the values in the attribute group
 			 */
 			/* see if asker is listed in dnattr */
-			string_expand(buf, sizeof(buf), b->a_group_pat, e->e_ndn, matches);
-			if ( dn_normalize(buf) == NULL ) {
-				/* did not expand to a valid dn */
-				continue;
+			if ( b->a_group_style != ACL_STYLE_REGEX ) {
+				string_expand(buf, sizeof(buf), b->a_group_pat, e->e_ndn, matches);
+				if ( dn_normalize(buf) == NULL ) {
+					/* did not expand to a valid dn */
+					continue;
+				}
+			} else {
+				strncpy( buf, b->a_group_pat, sizeof(buf) - 1 );
+				buf[sizeof(buf) - 1] = 0;
 			}
 
 			if (backend_group(be, e, buf, op->o_ndn,
@@ -511,7 +639,7 @@ acl_mask(
 			 * rights given by the acis.
 			 */
 			for ( i = 0; at->a_vals[i] != NULL; i++ ) {
-				if (aci_mask( be, op,
+				if (aci_mask( be, conn, op,
 					e, desc, val, at->a_vals[i],
 					matches, &grant, &deny ) != 0)
 				{
@@ -1002,6 +1130,7 @@ done:
 static int
 aci_mask(
     Backend			*be,
+    Connection		*conn,
     Operation		*op,
     Entry			*e,
 	AttributeDescription *desc,
@@ -1014,8 +1143,8 @@ aci_mask(
 {
     struct berval bv, perms, sdn;
     char *subjdn;
-	int rc, i;
-	char *attr;
+	int rc;
+	char *attr = desc->ad_cname->bv_val;
 
 	/* parse an aci of the form:
 		oid#scope#action;rights;attr;rights;attr$action;rights;attr;rights;attr#dnType#subjectDN
