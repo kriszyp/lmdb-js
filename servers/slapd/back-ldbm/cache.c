@@ -224,7 +224,7 @@ cache_add_entry_rw(
 
 	if( cache_entry_private_init(e) != 0 ) {
 		/* free cache mutex */
-		ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
 		Debug( LDAP_DEBUG_ANY,
 			"====> cache_add_entry( %ld ): \"%s\": private init failed!\n",
