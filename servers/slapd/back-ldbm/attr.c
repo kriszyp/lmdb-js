@@ -80,8 +80,7 @@ attr_index_config(
     const char		*fname,
     int			lineno,
     int			argc,
-    char		**argv,
-	int init )
+    char		**argv )
 {
 	int rc;
 	int	i;
@@ -223,7 +222,7 @@ attr_index_config(
 		rc = avl_insert( &li->li_attrs, (caddr_t) a,
 			(AVL_CMP) ainfo_cmp, (AVL_DUP) avl_dup_error );
 
-		if( rc && !init ) {
+		if( rc ) {
 			fprintf( stderr, "%s: line %d: duplicate index definition "
 				"for attr \"%s\" (ignored)\n",
 			    fname, lineno, attrs[i] );

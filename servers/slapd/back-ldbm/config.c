@@ -68,7 +68,7 @@ ldbm_back_db_config(
 "%s: line %d: extra junk after \"index <attr> [pres,eq,approx,sub]\" line (ignored)\n",
 			    fname, lineno );
 		}
-		rc = attr_index_config( li, fname, lineno, argc - 1, &argv[1], 0 );
+		rc = attr_index_config( li, fname, lineno, argc - 1, &argv[1] );
 
 		if( rc != LDAP_SUCCESS ) return 1;
 

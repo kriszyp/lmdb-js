@@ -176,17 +176,6 @@ ldbm_back_db_open(
     BackendDB	*be
 )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char		*argv[ 4 ];
-
-	/* allocate backend-database-specific stuff */
-
-	argv[ 0 ] = "objectclass";
-	argv[ 1 ] = "eq";
-	argv[ 2 ] = NULL;
-	attr_index_config( li, "ldbm objectclass initialization",
-		0, 2, argv, 1 );
-
 	return 0;
 }
 
