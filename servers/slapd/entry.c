@@ -544,6 +544,19 @@ int entry_encode(Entry *e, struct berval *bv)
 		}
 		len += entry_lenlen(i);
 		siz += sizeof(struct berval);	/* empty berval at end */
+#ifdef SLAP_NVALUES_ON_DISK
+		if (a->a_nvals) {
+			for (i=0; a->a_nvals[i].bv_val; i++) {
+				siz += sizeof(struct berval);
+				len += a->a_nvals[i].bv_len + 1;
+				len += entry_lenlen(a->a_nvals[i].bv_len);
+			}
+			len += entry_lenlen(i);	/* i nvals */
+			siz += sizeof(struct berval);
+		} else {
+			len += entry_lenlen(0);	/* 0 nvals */
+		}
+#endif
 	}
 	len += 1;	/* NUL byte at end */
 	len += entry_lenlen(siz);
@@ -571,11 +584,25 @@ int entry_encode(Entry *e, struct berval *bv)
 		    entry_putlen(&ptr, i);
 		    for (i=0; a->a_vals[i].bv_val; i++) {
 			entry_putlen(&ptr, a->a_vals[i].bv_len);
-			memcpy(ptr, a->a_vals[i].bv_val,
+			AC_MEMCPY(ptr, a->a_vals[i].bv_val,
 				a->a_vals[i].bv_len);
 			ptr += a->a_vals[i].bv_len;
 			*ptr++ = '\0';
 		    }
+#ifdef SLAP_NVALUES_ON_DISK
+		    if (a->a_nvals) {
+		    	entry_putlen(&ptr, i);
+			for (i=0; a->a_nvals[i].bv_val; i++) {
+			    entry_putlen(&ptr, a->a_nvals[i].bv_len);
+			    AC_MEMCPY(ptr, a->a_nvals[i].bv_val,
+				a->a_nvals[i].bv_len);
+			    ptr += a->a_nvals[i].bv_len;
+			    *ptr++ = '\0';
+			}
+		    } else {
+		    	entry_putlen(&ptr, 0);
+		    }
+#endif
 		}
 	}
 	*ptr = '\0';
@@ -584,7 +611,7 @@ int entry_encode(Entry *e, struct berval *bv)
 
 /* Retrieve an Entry that was stored using entry_encode above.
  * We malloc a single block with the size stored above for the Entry
- * and all if its Attributes. We also must lookup the stored
+ * and all of its Attributes. We also must lookup the stored
  * attribute names to get AttributeDescriptions. To detect if the
  * attributes of an Entry are later modified, we note that e->e_attr
  * is always a constant offset from (e).
@@ -682,7 +709,25 @@ int entry_decode(struct berval *bv, Entry **e)
 		bptr->bv_len = 0;
 		bptr++;
 
-#ifdef SLAP_NVALUES
+#ifdef SLAP_NVALUES_ON_DISK
+		j = entry_getlen(&ptr);
+		if (j) {
+			a->a_nvals = bptr;
+			while (j) {
+				i = entry_getlen(&ptr);
+				bptr->bv_len = i;
+				bptr->bv_val = (char *)ptr;
+				ptr += i+1;
+				bptr++;
+				j--;
+			}
+			bptr->bv_val = NULL;
+			bptr->bv_len = 0;
+			bptr++;
+		} else {
+			a->a_nvals = NULL;
+		}
+#elif defined(SLAP_NVALUES)
 		if( count && ad->ad_type->sat_equality &&
 			ad->ad_type->sat_equality->smr_normalize )
 		{
