@@ -359,8 +359,8 @@ static int sasl_sc_sasl2dn( BackendDB *be, Connection *conn, Operation *o,
 		ndn->bv_val = NULL;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( TRANSPORT, DETAIL1,
-		    "slap_sasl2dn: search DN returned more than 1 entry\n", 0, 0, 0 );
+		LDAP_LOG( TRANSPORT, DETAIL1,
+			"slap_sasl2dn: search DN returned more than 1 entry\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"slap_sasl2dn: search DN returned more than 1 entry\n", 0,0,0 );
@@ -409,7 +409,12 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 	Filter *filter=NULL;
 	regex_t reg;
 	smatch_info sm;
-	slap_callback cb = { slap_cb_null_response, slap_cb_null_sresult, sasl_sc_smatch, NULL };
+	slap_callback cb = {
+		slap_cb_null_response,
+		slap_cb_null_sresult,
+		sasl_sc_smatch,
+		NULL
+	};
 	Operation op = {0};
 
 #ifdef NEW_LOGGING
