@@ -36,6 +36,8 @@
 #  endif
 #endif
 
+#include <lutil.h>
+
 /* 100 usec intervals from 10/10/1582 to 1/1/1970 */
 #define UUID_TPLUS	0x01B21DD2138140LL
 
@@ -82,7 +84,7 @@ lutil_eaddr( void )
 		sdl = (struct sockaddr_dl *)(ifm + 1);
 
 		if ( sdl->sdl_family != AF_LINK || sdl->sdl_alen == 6 ) {
-			memcpy(eaddr,
+			AC_MEMCPY(eaddr,
 				(unsigned char *)sdl->sdl_data + sdl->sdl_nlen,
 				sizeof(eaddr));
 			free(buf);
@@ -139,7 +141,7 @@ lutil_eaddr( void )
 		sdl = (struct sockaddr_dl *)sa;
 
 		if ( sdl->sdl_alen == 6 ) {
-			memcpy(eaddr,
+			AC_MEMCPY(eaddr,
 				(unsigned char *)sdl->sdl_data + sdl->sdl_nlen,
 				sizeof(eaddr));
 			return eaddr;
@@ -220,7 +222,7 @@ lutil_uuidstr( char *buf, size_t len )
 	static unsigned short seq;
 	
 	if (!inited) {
-		lutil_entropy( &seq, sizeof(seq) );
+		lutil_entropy( (unsigned char *) &seq, sizeof(seq) );
 		inited++;
 	}
 
