@@ -121,7 +121,7 @@ in the base system or as an optional software component.  If not,
 you'll have to obtain and install it yourself.
 
 {{PRD:Berkeley DB}} is available from {{ORG[expand]Sleepycat}}'s
-download page {{URL: http://www.sleepycat.com/download.html}}.
+download page {{URL: http://www.sleepycat.com/download/}}.
 There are several versions available.  At the time of this writing,
 the latest release, version 4.1, is recommended. This package is
 required if you wish to use the {{TERM:BDB}} database backend.
