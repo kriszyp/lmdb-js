@@ -201,7 +201,6 @@ void slap_mods_free( Modifications *ml )
 
 int add_replica_info( Backend *be, const char *host )
 {
-	assert(0);
 	return 0;
 }
 	
