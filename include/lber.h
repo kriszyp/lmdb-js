@@ -203,7 +203,7 @@ typedef struct berval {
  * in bprint.c:
  */
 LIBLBER_F( void )
-ber_print_error LDAP_P((
+ber_error_print LDAP_P((
 	LDAP_CONST char *data ));
 
 LIBLBER_F( void )

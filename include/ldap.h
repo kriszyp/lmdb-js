@@ -541,7 +541,8 @@ ldap_set_option LDAP_P((
 	LDAP_CONST void *invalue));
 
 /* V3 REBIND Function Callback Prototype */
-typedef int (LDAP_REBIND_PROC) ( LDAP *ld, LDAP_CONST char *url, int request, ber_int_t msgid);
+typedef int (LDAP_REBIND_PROC) LDAP_P((
+	LDAP *ld, LDAP_CONST char *url, int request, ber_int_t msgid ));
 
 LIBLDAP_F( int )
 ldap_set_rebind_proc LDAP_P((
@@ -1497,19 +1498,27 @@ cldap_setretryinfo LDAP_P(( /* deprecated */
 /*
  * in sort.c
  */
+typedef int (LDAP_SORT_AD_CMP_PROC) LDAP_P((
+	LDAP_CONST char *left,
+	LDAP_CONST char *right ));
+
+typedef int (LDAP_SORT_AV_CMP_PROC) LDAP_P((
+	LDAP_CONST void *left,
+	LDAP_CONST void *right ));
+
 LIBLDAP_F( int )
 ldap_sort_entries LDAP_P(( LDAP *ld,
 	LDAPMessage **chain,
 	LDAP_CONST char *attr,
-	int (*cmp) (LDAP_CONST char *, LDAP_CONST char *) ));
+	LDAP_SORT_AD_CMP_PROC *cmp ));
 
-LIBLDAP_F( int )
+LIBLDAP_F( int )	/* deprecated */
 ldap_sort_values LDAP_P((
 	LDAP *ld,
 	char **vals,
-	int (*cmp) (LDAP_CONST void *, LDAP_CONST void *) ));
+	LDAP_SORT_AV_CMP_PROC *cmp ));
 
-LIBLDAP_F( int )
+LIBLDAP_F( int ) /* deprecated */
 ldap_sort_strcasecmp LDAP_P((
 	LDAP_CONST void *a,
 	LDAP_CONST void *b ));
@@ -1526,6 +1535,10 @@ ldap_is_ldap_url LDAP_P((
 
 LIBLDAP_F( int )
 ldap_is_ldaps_url LDAP_P((
+	LDAP_CONST char *url ));
+
+LIBLDAP_F( int )
+ldap_is_ldapi_url LDAP_P((
 	LDAP_CONST char *url ));
 
 LIBLDAP_F( int )
@@ -1558,8 +1571,6 @@ ldap_url_search_st LDAP_P((
 	struct timeval *timeout,
 	LDAPMessage **res ));
 
-LDAP_END_DECL
-
 /* 
  * in sortctrl.c  
  */
@@ -1573,29 +1584,27 @@ typedef struct ldapsortkey {
 } LDAPSortKey;
 
 LIBLDAP_F( int )
-ldap_create_sort_keylist LDAP_P(( 
-      LDAPSortKey ***sortKeyList,
-	   char        *keyString));
-
+ldap_create_sort_keylist LDAP_P((
+	LDAPSortKey ***sortKeyList,
+	char        *keyString ));
 
 LIBLDAP_F( void )
 ldap_free_sort_keylist LDAP_P((
-	   LDAPSortKey **sortkeylist));
-
-
-LIBLDAP_F( int )
-ldap_create_sort_control LDAP_P(( 	
-     LDAP *ld, 
-     LDAPSortKey **keyList,
-     int ctl_iscritical,
-     LDAPControl **ctrlp));
+	LDAPSortKey **sortkeylist ));
 
 LIBLDAP_F( int )
-ldap_parse_sort_control LDAP_P((  
-      LDAP           *ld, 
-      LDAPControl    **ctrlp,  
-      unsigned long  *result,
-      char           **attribute));
+ldap_create_sort_control LDAP_P((	
+	LDAP *ld, 
+	LDAPSortKey **keyList,
+	int ctl_iscritical,
+	LDAPControl **ctrlp ));
+
+LIBLDAP_F( int )
+ldap_parse_sort_control LDAP_P((
+	LDAP           *ld, 
+	LDAPControl    **ctrlp,  
+	unsigned long  *result,
+	char           **attribute ));
 
 
 /* 
@@ -1606,7 +1615,7 @@ ldap_parse_sort_control LDAP_P((
  * structure for virtul list.
  */
 typedef struct ldapvlvinfo {
-	 int             ldvlv_version;
+	int             ldvlv_version;
     unsigned long   ldvlv_before_count;      
     unsigned long   ldvlv_after_count;                     
     unsigned long   ldvlv_offset;              
@@ -1617,18 +1626,20 @@ typedef struct ldapvlvinfo {
 } LDAPVLVInfo;
 
 LIBLDAP_F( int ) 
-ldap_create_vlv_control LDAP_P(( 
-      LDAP *ld, 
-      LDAPVLVInfo *ldvlistp,
-      LDAPControl **ctrlp));
+ldap_create_vlv_control LDAP_P((
+	LDAP *ld, 
+	LDAPVLVInfo *ldvlistp,
+	LDAPControl **ctrlp ));
 
 LIBLDAP_F( int )
 ldap_parse_vlv_control LDAP_P(( 
-      LDAP          *ld, 
-      LDAPControl   **ctrls,
-      unsigned long *target_posp, 
-      unsigned long *list_countp, 
-      struct berval  **contextp,
-      int           *errcodep));
+	LDAP          *ld, 
+	LDAPControl   **ctrls,
+	unsigned long *target_posp, 
+	unsigned long *list_countp, 
+	struct berval **contextp,
+	int           *errcodep ));
 
+
+LDAP_END_DECL
 #endif /* _LDAP_H */
