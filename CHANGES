@@ -10,6 +10,7 @@ OpenLDAP 2.1.17 Engineering
 	Fixed slapd request flooding bug (ITS#2389)
 	Fixed slurpd one shot mode (ITS#2385)
 	Fixed slurpd core dump on exit (ITS#2363)
+	Fixed clients critical argument handling
 	Removed lint (ITS#2382)
 	Documentation
 		Update slurpd(8) -u usage
