@@ -26,7 +26,7 @@ ldbm_datum_free( LDBM ldbm, Datum data )
 	if ( data.dptr ) {
 		free( data.dptr );
 		data.dptr = NULL;
-		data.size = 0;
+		data.dsize = 0;
 	}
 }
 
