@@ -64,36 +64,29 @@ static LDAP_SLIST_HEAD(ATList, slap_attribute_type) attr_list
 static int
 attr_index_cmp(
     const void	*v_air1,
-    const void	*v_air2
-)
+    const void	*v_air2 )
 {
 	const struct aindexrec	*air1 = v_air1;
 	const struct aindexrec	*air2 = v_air2;
 	int i = air1->air_name.bv_len - air2->air_name.bv_len;
-	if (i)
-		return i;
+	if (i) return i;
 	return (strcasecmp( air1->air_name.bv_val, air2->air_name.bv_val ));
 }
 
 static int
 attr_index_name_cmp(
     const void	*v_type,
-    const void	*v_air
-)
+    const void	*v_air )
 {
     const struct berval    *type = v_type;
     const struct aindexrec *air  = v_air;
 	int i = type->bv_len - air->air_name.bv_len;
-	if (i)
-		return i;
-	return (strncasecmp( type->bv_val, air->air_name.bv_val,
-		type->bv_len ));
+	if (i) return i;
+	return (strncasecmp( type->bv_val, air->air_name.bv_val, type->bv_len ));
 }
 
 AttributeType *
-at_find(
-    const char		*name
-)
+at_find( const char *name )
 {
 	struct berval bv;
 
@@ -104,9 +97,7 @@ at_find(
 }
 
 AttributeType *
-at_bvfind(
-    struct berval	*name
-)
+at_bvfind( struct berval *name )
 {
 	struct aindexrec *air;
 
@@ -118,8 +109,7 @@ at_bvfind(
 int
 at_append_to_list(
     AttributeType	*sat,
-    AttributeType	***listp
-)
+    AttributeType	***listp )
 {
 	AttributeType	**list;
 	AttributeType	**list1;
@@ -155,8 +145,7 @@ at_append_to_list(
 int
 at_delete_from_list(
     int			pos,
-    AttributeType	***listp
-)
+    AttributeType	***listp )
 {
 	AttributeType	**list;
 	AttributeType	**list1;
@@ -188,8 +177,7 @@ at_delete_from_list(
 int
 at_find_in_list(
     AttributeType	*sat,
-    AttributeType	**list
-)
+    AttributeType	**list )
 {
 	int	i;
 
@@ -264,8 +252,7 @@ at_next( AttributeType **at )
 static int
 at_insert(
     AttributeType	*sat,
-    const char		**err
-)
+    const char		**err )
 {
 	struct aindexrec	*air;
 	char			**names;
@@ -314,8 +301,7 @@ at_insert(
 int
 at_add(
     LDAPAttributeType	*at,
-    const char		**err
-)
+    const char		**err )
 {
 	AttributeType	*sat;
 	MatchingRule	*mr;
