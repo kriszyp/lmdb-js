@@ -16,11 +16,11 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-echo "### This test needs the ldap backend."
+echo "### This test requires the ldap backend."
 echo "### If available, and explicitly requested, it can use SASL bind;"
 echo "### note that SASL must be properly set up, and the requested"
 echo "### mechanism must be available.  Define SLAPD_USE_SASL={yes|<mech>},"
-echo "### wth \"yes\" defaulting to DIGEST-MD5 to enable SASL authc[/authz]."
+echo "### with \"yes\" defaulting to DIGEST-MD5 to enable SASL authc[/authz]."
 
 if test $BACKLDAP = "ldapno" ; then 
 	echo "LDAP backend not available, test skipped"
@@ -201,6 +201,7 @@ $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 	
 if test $? != 0 ; then
 	echo "comparison failed - search with identity assertion didn't succeed"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
 
@@ -227,6 +228,7 @@ if test $USE_SASL != "no" ; then
 	
 	if test $? != 0 ; then
 		echo "comparison failed - search with SASL bind and identity assertion didn't succeed"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit 1
 	fi
 fi

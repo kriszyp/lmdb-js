@@ -64,6 +64,9 @@ LIMITSCONF=$DATADIR/slapd-limits.conf
 DNCONF=$DATADIR/slapd-dn.conf
 EMPTYDNCONF=$DATADIR/slapd-emptydn.conf
 IDASSERTCONF=$DATADIR/slapd-idassert.conf
+LDAPGLUECONF1=$DATADIR/slapd-ldapglue.conf
+LDAPGLUECONF2=$DATADIR/slapd-ldapgluepeople.conf
+LDAPGLUECONF3=$DATADIR/slapd-ldapgluegroups.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
@@ -139,6 +142,9 @@ LDIFEMPTYDN1=$DATADIR/test-emptydn1.ldif
 LDIFEMPTYDN2=$DATADIR/test-emptydn2.ldif
 LDIFIDASSERT1=$DATADIR/test-idassert1.ldif
 LDIFIDASSERT2=$DATADIR/test-idassert2.ldif
+LDIFLDAPGLUE1=$DATADIR/test-ldapglue.ldif
+LDIFLDAPGLUE2=$DATADIR/test-ldapgluepeople.ldif
+LDIFLDAPGLUE3=$DATADIR/test-ldapgluegroups.ldif
 MONITOR=""
 REFDN="c=US"
 BASEDN="dc=example,dc=com"
@@ -204,6 +210,8 @@ DNOUT=$DATADIR/dn.out
 EMPTYDNOUT1=$DATADIR/emptydn.out.slapadd
 EMPTYDNOUT2=$DATADIR/emptydn.out
 IDASSERTOUT=$DATADIR/idassert.out
+LDAPGLUEOUT=$DATADIR/ldapglue.out
+LDAPGLUEANONYMOUSOUT=$DATADIR/ldapglueanonymous.out
 
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH

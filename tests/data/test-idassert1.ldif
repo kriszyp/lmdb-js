@@ -17,6 +17,7 @@ userPassword:: Ympvcm4=
 mail: bjorn@example.com
 description: ***
 authzFrom: dn.exact:uid=jaj,o=Example,c=US
+authzFrom: dn.subtree:ou=People,dc=example,dc=it
 
 dn: uid=bjensen,ou=People,dc=example,dc=com
 objectClass: inetOrgPerson
