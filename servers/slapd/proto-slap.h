@@ -57,9 +57,8 @@ LDAP_SLAPD_F (AttributeDescription *) ad_dup LDAP_P((
 
 LDAP_SLAPD_F (void) ad_destroy LDAP_P(( AttributeDescription * ));
 
-#define ad_cmp(l,r)	(((l)->ad_cname.bv_len < (r)->ad_cname.bv_len) \
-	? strcasecmp((l)->ad_cname.bv_val, (r)->ad_cname.bv_val ) \
-	: ((l)->ad_cname.bv_len - (r)->ad_cname.bv_len ))
+#define ad_cmp(l,r)	(((l)->ad_cname.bv_len == (r)->ad_cname.bv_len) \
+	? strcasecmp((l)->ad_cname.bv_val, (r)->ad_cname.bv_val ) : 1 )
 
 LDAP_SLAPD_F (int) is_ad_subtype LDAP_P((
 	AttributeDescription *sub,
