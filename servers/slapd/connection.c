@@ -730,13 +730,13 @@ connection_operation( void *arg_v )
 	num_ops_initiated++;
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
 
-	if( conn->c_bind_in_progress == 1 && tag != LDAP_REQ_BIND ) {
-		Debug( LDAP_DEBUG_ANY,
-			"connection_operation: SASL bind in progress.\n",
-			0, 0, 0 );
-		send_ldap_result( conn, arg->co_op, LDAP_OPERATIONS_ERROR,
+	if( conn->c_bind_in_progress && tag != LDAP_REQ_BIND ) {
+		Debug( LDAP_DEBUG_ANY, "connection_operation: "
+			"error: SASL bind in progress (tag=%ld).\n",
+			(long) tag, 0, 0 );
+		send_ldap_result( conn, arg->co_op,
+			rc = LDAP_OPERATIONS_ERROR,
 			NULL, "SASL bind in progress", NULL, NULL );
-		rc = LDAP_OPERATIONS_ERROR;
 		goto operations_error;
 	}
 
