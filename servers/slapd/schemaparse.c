@@ -29,7 +29,8 @@ static char *err2text[] = {
 	"OID or name required",
 	"Syntax or superior required",
 	"Matchingrule not found",
-	"Syntax not found"
+	"Syntax not found",
+	"Syntax required"
 };
 
 char *
