@@ -13,8 +13,11 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include <time.h>
+
 #include <lber.h>
 #include <ldap.h>
+
 #include "ud.h"
 
 #ifdef DEBUG
@@ -88,7 +91,7 @@ char *s;
 		format("should be specified as a ordinary name (e.g., 'Friends of maX500').", 75, 15);
 		printf("\n");
 		printf("  [where]      A place in the Directory needs to be specified.  This name\n");
-		format("should be specified as an X.500-style name (e.g., 'ou=people, o=University of Michigan, c=United States of America').  In most cases, it is easier to omit the [where] and allow the program to guide you.", 75, 15);
+		format("should be specified as an LDAP-style name (e.g., 'ou=people, o=University of Michigan, c=United States of America').  In most cases, it is easier to omit the [where] and allow the program to guide you.", 75, 15);
 		printf("\n");
 		printf("  [who]        A person in the Directory needs to be specified.  This name\n");
 		format("can be specified as either a ordinary name (e.g., 'Jane Doe'), or as some other identifying characteristic (e.g., 'uid=babs').", 75, 15);
@@ -111,7 +114,7 @@ char *s;
 	}
 	else if (!strncasecmp("groupbase", s, len)) {
 		printf("  groupbase [where]\n\n");
-		format("The syntax and use of this command is identical to the more commonly used 'cb' command.  This command sets the base which is used to create groups in the X.500 Directory.  Setting the base to a certain value does not necessarily grant the person write-access to that part of the Directory in order to successfully create a group.", 75, 2);
+		format("The syntax and use of this command is identical to the more commonly used 'cb' command.  This command sets the base which is used to create groups in the LDAP Directory.  Setting the base to a certain value does not necessarily grant the person write-access to that part of the Directory in order to successfully create a group.", 75, 2);
 	}
 	else if (!strncasecmp("cd", s, len) || !strncasecmp("cb", s,len)) {
 		printf("  cb [where]\n");
@@ -125,7 +128,7 @@ char *s;
 	printf("\n            * cb default\n\n");
 	format("sets the search base to its original default value.", 75, 2);
 	printf("\n            * cb o=Merit Computer Network, c=US\n\n");
-	format("sets the search base to organization given, the Merit Computer Network in this case.  This comamnd checks the validity of the specified search base, and rejects it if it is not a valid Distinguished Name (DN).  A DN uniquely identifies a portion of the global X.500 namespace.", 75, 2);
+	format("sets the search base to organization given, the Merit Computer Network in this case.  This comamnd checks the validity of the specified search base, and rejects it if it is not a valid Distinguished Name (DN).  A DN uniquely identifies a portion of the global LDAP namespace.", 75, 2);
 	}
 	else if (!strncasecmp("quit", s, len) || !strncasecmp("stop",s, len)) {
 		printf("  quit\n");
@@ -145,7 +148,7 @@ char *s;
 	else if (!strncasecmp("modify", s, len) || !strncasecmp("change", s, len)) {
 		printf("  modify [entry]\n");
 		printf("  change [entry]\n\n");
-		format("Changes information associated with an entry in the X.500 Directory.  'change' is an alias for 'modify'.", 75, 2);
+		format("Changes information associated with an entry in the LDAP Directory.  'change' is an alias for 'modify'.", 75, 2);
 	}
 	else if (!strncasecmp("verbose", s, len)) {
 		printf("  verbose\n\n");
@@ -182,7 +185,7 @@ char *s;
 	}
 	else if (!strncasecmp("tidy", s, len)) {
 		printf("  tidy\n\n");
-		format("Unsubscribes you from non-existent groups.  Useful when you cannot resign from a group because, while your X.500 entry still contains a pointer to it, someone has removed a group of which you were a subscriber.", 75, 2);
+		format("Unsubscribes you from non-existent groups.  Useful when you cannot resign from a group because, while your LDAP entry still contains a pointer to it, someone has removed a group of which you were a subscriber.", 75, 2);
 	}
 	else if (*s == '?') {
 		format("Prints out a brief description of each command.  Same as typing 'help help'.", 75, 2);

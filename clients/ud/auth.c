@@ -157,7 +157,7 @@ int implicit;
 
 		if ( hassimple && !kinited ) {
 			printf("  Which password would you like to use?\n");
-			printf("    1 -> X.500 password\n");
+			printf("    1 -> LDAP password\n");
 #ifdef UOFM
 			printf("    2 -> UMICH password (aka Uniqname or Kerberos password)\n");
 #else
@@ -223,7 +223,7 @@ int implicit;
 	} else {
 #endif
 		authmethod = LDAP_AUTH_SIMPLE;
-		sprintf(prompt, "  Enter your X.500 password: ");
+		sprintf(prompt, "  Enter your LDAP password: ");
 		do {
 			passwd = mygetpass(prompt);
 		} while (passwd != NULL && *passwd == '\0');

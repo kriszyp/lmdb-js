@@ -33,7 +33,8 @@
 #include <termios.h>
 #endif /* defined( NeXT ) || defined( ultrix ) etc. */
 #endif /* !DOS */
-#if defined( aix ) || defined( __NetBSD__ )
+#if defined( aix ) || defined( __NetBSD__ ) \
+	|| defined( __FreeBSD__ ) || defined( linux )
 #include <sys/ioctl.h>
 #endif /* aix || __NetBSD__ */
 #include <ctype.h>
@@ -68,8 +69,8 @@ static int dereference = TRUE;
 char *default_bind_object = UD_BINDDN;
 
 char *bound_dn;			/* bound user's Distinguished Name */
-char *group_base;		/* place in X.500 tree where groups are */
-char *search_base;		/* place in X.500 tree where searches start */
+char *group_base;		/* place in LDAP tree where groups are */
+char *search_base;		/* place in LDAP tree where searches start */
 
 static jmp_buf env;		/* spot to jump to on an interrupt */
 
@@ -374,7 +375,7 @@ char **base, *s;
 	}
 
 	/*
-	 *  User wants to ascend one level in the X.500 tree.
+	 *  User wants to ascend one level in the LDAP tree.
 	 *  Easy:  Just strip off the first element of the
 	 *  current search base, unless it's the root, in
 	 *  which case we just do nothing.
@@ -627,13 +628,13 @@ initialize_client()
 	 *  because we want to be sure to use TCP, not UDP.
 	 */
 	if ((ld = ldap_open(server, ldap_port)) == NULL) {
-		fprintf(stderr, "  The X.500 Directory is temporarily unavailable.  Please try again later.\n");
+		fprintf(stderr, "  The LDAP Directory is temporarily unavailable.  Please try again later.\n");
 		exit(0);
 		/* NOTREACHED */
 	}
-	if (ldap_bind_s(ld, (char *) default_bind_object, (char *) UD_PASSWD,
+	if (ldap_bind_s(ld, (char *) default_bind_object, (char *) UD_BIND_CRED,
 	    LDAP_AUTH_SIMPLE) != LDAP_SUCCESS) {
-		fprintf(stderr, "  The X.500 Directory is temporarily unavailable.  Please try again later.\n");
+		fprintf(stderr, "  The LDAP Directory is temporarily unavailable.  Please try again later.\n");
 		if (ld->ld_errno != LDAP_UNAVAILABLE)
 			ldap_perror(ld, "  ldap_bind_s");
 		exit(0);
@@ -722,3 +723,22 @@ SIG_FN chwinsz()
 	(void) signal(SIGWINCH, chwinsz);
 }
 #endif
+
+#if defined(NO_CACHE)
+
+void ldap_uncache_entry( LDAP *ld, char *dn )
+{
+
+}
+
+int ldap_enable_cache( LDAP *ld, long timeout, long maxmem )
+{
+  return 0;
+}
+
+void ldap_flush_cache( LDAP *ld )
+{
+
+}
+
+#endif /* NO_CACHE */

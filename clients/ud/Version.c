@@ -10,4 +10,4 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-char Version[] = "  X.500 UserDirectory %VERSION% (%WHEN%)\n\t%WHOANDWHERE%\n";
+char Version[] = "LDAP UserDirectory %VERSION% (%WHEN%)\n\t%WHOANDWHERE%\n";
