@@ -11,6 +11,7 @@ OpenLDAP 2.0.5 Release
 	Fixed -lldap first/next attribute bug (ITS#778)
 	Fixed -lldap (v2) rebind URL bug
 	Fixed -lldap msgfree NULL bug (ITS#800)
+	Fixed -lldif empty value bug
 	Fixed -llber stringal len=0 bug
 	Updated -llber bprint routine
 	Build Environment
