@@ -4302,7 +4302,7 @@ static struct mrule_defs_rec {
 	 */
 	{"( " directoryStringApproxMatchOID " NAME 'directoryStringApproxMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
+		SLAP_MR_HIDE | SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
 		NULL, NULL,
 		directoryStringApproxMatch,
 		directoryStringApproxIndexer, 
@@ -4311,7 +4311,7 @@ static struct mrule_defs_rec {
 
 	{"( " IA5StringApproxMatchOID " NAME 'IA5StringApproxMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
+		SLAP_MR_HIDE | SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
 		NULL, NULL,
 		IA5StringApproxMatch,
 		IA5StringApproxIndexer, 

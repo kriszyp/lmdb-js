@@ -273,13 +273,13 @@ typedef struct slap_syntax {
 #define ssyn_extensions		ssyn_syn.syn_extensions
 	ber_len_t	ssyn_oidlen;
 
-	unsigned	ssyn_flags;
+	unsigned int ssyn_flags;
 
-#define SLAP_SYNTAX_NONE	0x00U
-#define SLAP_SYNTAX_BLOB	0x01U /* syntax treated as blob (audio) */
-#define SLAP_SYNTAX_BINARY	0x02U /* binary transfer required (certificate) */
-#define SLAP_SYNTAX_BER		0x04U /* stored using BER encoding (binary,certificate) */
-#define SLAP_SYNTAX_HIDE	0x80U /* hide (do not publish) */
+#define SLAP_SYNTAX_NONE	0x0000U
+#define SLAP_SYNTAX_BLOB	0x0001U /* syntax treated as blob (audio) */
+#define SLAP_SYNTAX_BINARY	0x0002U /* binary transfer required (certificate) */
+#define SLAP_SYNTAX_BER		0x0004U /* stored in BER encoding (certificate) */
+#define SLAP_SYNTAX_HIDE	0x8000U /* hide (do not publish) */
 
 	slap_syntax_validate_func	*ssyn_validate;
 	slap_syntax_transform_func	*ssyn_normalize;
@@ -347,7 +347,9 @@ typedef struct slap_matching_rule {
 	ber_len_t			smr_oidlen;
 	slap_mask_t				smr_usage;
 
-#define SLAP_MR_TYPE_MASK		0xFF00U
+#define SLAP_MR_HIDE			0x8000U
+
+#define SLAP_MR_TYPE_MASK		0x0F00U
 #define SLAP_MR_SUBTYPE_MASK	0x00F0U
 #define SLAP_MR_USAGE			0x000FU
 
@@ -371,9 +373,9 @@ typedef struct slap_matching_rule {
  * the provided value is expected to conform to the
  * attribute's value syntax.
  */
-#define SLAP_MR_ASSERTION_SYNTAX_MATCH 0x0000U
-#define SLAP_MR_VALUE_SYNTAX_MATCH 0x0001U
-#define SLAP_MR_VALUE_SYNTAX_CONVERTED_MATCH 0x0003U
+#define SLAP_MR_ASSERTION_SYNTAX_MATCH			0x0000U
+#define SLAP_MR_VALUE_SYNTAX_MATCH				0x0001U
+#define SLAP_MR_VALUE_SYNTAX_CONVERTED_MATCH	0x0003U
 
 #define SLAP_IS_MR_ASSERTION_SYNTAX_MATCH( usage ) \
 	(!((usage) & SLAP_MR_VALUE_SYNTAX_MATCH))

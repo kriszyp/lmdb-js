@@ -280,6 +280,11 @@ int mr_schema_info( Entry *e )
 	vals[1].bv_val = NULL;
 
 	for ( mr = mr_list; mr; mr = mr->smr_next ) {
+		if ( mr->smr_usage & SLAP_MR_HIDE ) {
+			/* skip hidden rules */
+			continue;
+		}
+
 		if ( ! mr->smr_match ) {
 			/* skip rules without matching functions */
 			continue;
