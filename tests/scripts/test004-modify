@@ -81,6 +81,12 @@ drink: Orange Juice
 -
 delete: drink
 drink: Pils
+-
+delete: sn
+sn: Jones
+-
+add: sn
+sn: Jones
 
 dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=University of Michigan,c=US
 changetype: modify

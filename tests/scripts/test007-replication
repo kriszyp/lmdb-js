@@ -114,6 +114,12 @@ dn: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michig
 changetype: modify
 add: drink
 drink: Orange Juice
+-
+delete: sn
+sn: Jones
+-
+add: sn
+sn: Jones
 
 dn: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
 changetype: modify
