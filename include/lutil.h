@@ -70,6 +70,9 @@ lutil_get_filed_password LDAP_P((
 /* passwd.c */
 struct lutil_pw_scheme;
 
+#define LUTIL_PASSWD_OK		(0)
+#define LUTIL_PASSWD_ERR	(-1)
+
 typedef int (LUTIL_PASSWD_CHK_FUNC)(
 	const struct berval *scheme,
 	const struct berval *passwd,

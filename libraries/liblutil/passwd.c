@@ -188,7 +188,7 @@ void lutil_passwd_init()
 	struct pw_scheme *s;
 
 	for( s=(struct pw_scheme *)pw_schemes_default; s->name.bv_val; s++) {
-		if ( lutil_passwd_add( &s->name, s->chk_fn, s->hash_fn )) break;
+		if ( lutil_passwd_add( &s->name, s->chk_fn, s->hash_fn ) ) break;
 	}
 }
 
@@ -376,7 +376,7 @@ static int pw_string(
 	pw.bv_val = ber_memalloc( pw.bv_len + 1 );
 
 	if( pw.bv_val == NULL ) {
-		return -1;
+		return LUTIL_PASSWD_ERR;
 	}
 
 	AC_MEMCPY( pw.bv_val, sc->bv_val, sc->bv_len );
@@ -385,7 +385,7 @@ static int pw_string(
 	pw.bv_val[pw.bv_len] = '\0';
 	*passwd = pw;
 
-	return 0;
+	return LUTIL_PASSWD_OK;
 }
 #endif /* SLAPD_LMHASH || SLAPD_CRYPT */
 
@@ -405,7 +405,7 @@ static int pw_string64(
 		string.bv_val = ber_memalloc( string.bv_len + 1 );
 
 		if( string.bv_val == NULL ) {
-			return -1;
+			return LUTIL_PASSWD_ERR;
 		}
 
 		AC_MEMCPY( string.bv_val, hash->bv_val,
@@ -424,7 +424,7 @@ static int pw_string64(
 
 	if( b64->bv_val == NULL ) {
 		if( salt ) ber_memfree( string.bv_val );
-		return -1;
+		return LUTIL_PASSWD_ERR;
 	}
 
 	AC_MEMCPY(b64->bv_val, sc->bv_val, sc->bv_len);
@@ -436,13 +436,13 @@ static int pw_string64(
 	if( salt ) ber_memfree( string.bv_val );
 	
 	if( rc < 0 ) {
-		return rc;
+		return LUTIL_PASSWD_ERR;
 	}
 
 	/* recompute length */
 	b64->bv_len = sc->bv_len + rc;
 	assert( strlen(b64->bv_val) == b64->bv_len );
-	return 0;
+	return LUTIL_PASSWD_OK;
 }
 
 /* PASSWORD CHECK ROUTINES */
@@ -462,20 +462,20 @@ static int chk_ssha1(
 	/* safety check */
 	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) <
 		sizeof(SHA1digest)+SALT_SIZE) {
-		return -1;
+		return LUTIL_PASSWD_ERR;
 	}
 
 	/* decode base64 password */
 	orig_pass = (unsigned char *) ber_memalloc( (size_t) (
 		LUTIL_BASE64_DECODE_LEN(passwd->bv_len) + 1) );
 
-	if( orig_pass == NULL ) return -1;
+	if( orig_pass == NULL ) return LUTIL_PASSWD_ERR;
 
 	rc = lutil_b64_pton(passwd->bv_val, orig_pass, passwd->bv_len);
 
 	if (rc < (int)(sizeof(SHA1digest)+SALT_SIZE)) {
 		ber_memfree(orig_pass);
-		return -1;
+		return LUTIL_PASSWD_ERR;
 	}
  
 	/* hash credentials with salt */
@@ -490,7 +490,7 @@ static int chk_ssha1(
 	/* compare */
 	rc = memcmp((char *)orig_pass, (char *)SHA1digest, sizeof(SHA1digest));
 	ber_memfree(orig_pass);
-	return rc ? 1 : 0;
+	return rc ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 }
 
 static int chk_sha1(
@@ -506,20 +506,20 @@ static int chk_sha1(
  
 	/* safety check */
 	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) < sizeof(SHA1digest)) {
-		return -1;
+		return LUTIL_PASSWD_ERR;
 	}
 
 	/* base64 un-encode password */
 	orig_pass = (unsigned char *) ber_memalloc( (size_t) (
 		LUTIL_BASE64_DECODE_LEN(passwd->bv_len) + 1) );
 
-	if( orig_pass == NULL ) return -1;
+	if( orig_pass == NULL ) return LUTIL_PASSWD_ERR;
 
 	rc = lutil_b64_pton(passwd->bv_val, orig_pass, passwd->bv_len);
 
 	if( rc != sizeof(SHA1digest) ) {
 		ber_memfree(orig_pass);
-		return -1;
+		return LUTIL_PASSWD_ERR;
 	}
  
 	/* hash credentials with salt */
@@ -531,7 +531,7 @@ static int chk_sha1(
 	/* compare */
 	rc = memcmp((char *)orig_pass, (char *)SHA1digest, sizeof(SHA1digest));
 	ber_memfree(orig_pass);
-	return rc ? 1 : 0;
+	return rc ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 }
 #endif
 
@@ -549,20 +549,20 @@ static int chk_smd5(
 	/* safety check */
 	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) <
 		sizeof(MD5digest)+SALT_SIZE) {
-		return -1;
+		return LUTIL_PASSWD_ERR;
 	}
 
 	/* base64 un-encode password */
 	orig_pass = (unsigned char *) ber_memalloc( (size_t) (
 		LUTIL_BASE64_DECODE_LEN(passwd->bv_len) + 1) );
 
-	if( orig_pass == NULL ) return -1;
+	if( orig_pass == NULL ) return LUTIL_PASSWD_ERR;
 
 	rc = lutil_b64_pton(passwd->bv_val, orig_pass, passwd->bv_len);
 
 	if (rc < (int)(sizeof(MD5digest)+SALT_SIZE)) {
 		ber_memfree(orig_pass);
-		return -1;
+		return LUTIL_PASSWD_ERR;
 	}
 
 	/* hash credentials with salt */
@@ -578,7 +578,7 @@ static int chk_smd5(
 	/* compare */
 	rc = memcmp((char *)orig_pass, (char *)MD5digest, sizeof(MD5digest));
 	ber_memfree(orig_pass);
-	return rc ? 1 : 0;
+	return rc ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 }
 
 static int chk_md5(
@@ -594,19 +594,19 @@ static int chk_md5(
 
 	/* safety check */
 	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) < sizeof(MD5digest)) {
-		return -1;
+		return LUTIL_PASSWD_ERR;
 	}
 
 	/* base64 un-encode password */
 	orig_pass = (unsigned char *) ber_memalloc( (size_t) (
 		LUTIL_BASE64_DECODE_LEN(passwd->bv_len) + 1) );
 
-	if( orig_pass == NULL ) return -1;
+	if( orig_pass == NULL ) return LUTIL_PASSWD_ERR;
 
 	rc = lutil_b64_pton(passwd->bv_val, orig_pass, passwd->bv_len);
 	if ( rc != sizeof(MD5digest) ) {
 		ber_memfree(orig_pass);
-		return -1;
+		return LUTIL_PASSWD_ERR;
 	}
 
 	/* hash credentials with salt */
@@ -619,7 +619,7 @@ static int chk_md5(
 	/* compare */
 	rc = memcmp((char *)orig_pass, (char *)MD5digest, sizeof(MD5digest));
 	ber_memfree(orig_pass);
-	return rc ? 1 : 0;
+	return rc ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 }
 
 #ifdef SLAPD_LMHASH
@@ -714,12 +714,12 @@ static int chk_lanman(
 	
 	for( i=0; i<cred->bv_len; i++) {
 		if(cred->bv_val[i] == '\0') {
-			return -1;	/* NUL character in password */
+			return LUTIL_PASSWD_ERR;	/* NUL character in password */
 		}
 	}
 	
 	if( cred->bv_val[i] != '\0' ) {
-		return -1;	/* passwd must behave like a string */
+		return LUTIL_PASSWD_ERR;	/* passwd must behave like a string */
 	}
 	
 	strncpy( UcasePassword, cred->bv_val, 14 );
@@ -745,7 +745,7 @@ static int chk_lanman(
 	storedPasswordHash[32] = '\0';
 	ldap_pvt_str2lower( storedPasswordHash );
 	
-	return memcmp( PasswordHash, storedPasswordHash, 32) ? 1 : 0;
+	return memcmp( PasswordHash, storedPasswordHash, 32) ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 }
 #endif /* SLAPD_LMHASH */
 
@@ -765,25 +765,25 @@ static int chk_sasl(
 
 	for( i=0; i<cred->bv_len; i++) {
 		if(cred->bv_val[i] == '\0') {
-			return 1;	/* NUL character in password */
+			return LUTIL_PASSWD_ERR;	/* NUL character in password */
 		}
 	}
 
 	if( cred->bv_val[i] != '\0' ) {
-		return 1;	/* cred must behave like a string */
+		return LUTIL_PASSWD_ERR;	/* cred must behave like a string */
 	}
 
 	for( i=0; i<passwd->bv_len; i++) {
 		if(passwd->bv_val[i] == '\0') {
-			return 1;	/* NUL character in password */
+			return LUTIL_PASSWD_ERR;	/* NUL character in password */
 		}
 	}
 
 	if( passwd->bv_val[i] != '\0' ) {
-		return 1;	/* passwd must behave like a string */
+		return LUTIL_PASSWD_ERR;	/* passwd must behave like a string */
 	}
 
-	rtn = 1;
+	rtn = LUTIL_PASSWD_ERR;
 
 #ifdef HAVE_CYRUS_SASL
 	if( lutil_passwd_sasl_conn != NULL ) {
@@ -798,7 +798,7 @@ static int chk_sasl(
 			passwd->bv_val, passwd->bv_len,
 			cred->bv_val, cred->bv_len );
 # endif
-		rtn = ( sc != SASL_OK );
+		rtn = ( sc != SASL_OK ) ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 	}
 #endif
 
@@ -818,36 +818,36 @@ static int chk_crypt(
 
 	for( i=0; i<cred->bv_len; i++) {
 		if(cred->bv_val[i] == '\0') {
-			return 1;	/* NUL character in password */
+			return LUTIL_PASSWD_ERR;	/* NUL character in password */
 		}
 	}
 
 	if( cred->bv_val[i] != '\0' ) {
-		return -1;	/* cred must behave like a string */
+		return LUTIL_PASSWD_ERR;	/* cred must behave like a string */
 	}
 
 	if( passwd->bv_len < 2 ) {
-		return -1;	/* passwd must be at least two characters long */
+		return LUTIL_PASSWD_ERR;	/* passwd must be at least two characters long */
 	}
 
 	for( i=0; i<passwd->bv_len; i++) {
 		if(passwd->bv_val[i] == '\0') {
-			return -1;	/* NUL character in password */
+			return LUTIL_PASSWD_ERR;	/* NUL character in password */
 		}
 	}
 
 	if( passwd->bv_val[i] != '\0' ) {
-		return -1;	/* passwd must behave like a string */
+		return LUTIL_PASSWD_ERR;	/* passwd must behave like a string */
 	}
 
 	cr = crypt( cred->bv_val, passwd->bv_val );
 
 	if( cr == NULL || cr[0] == '\0' ) {
 		/* salt must have been invalid */
-		return -1;
+		return LUTIL_PASSWD_ERR;
 	}
 
-	return strcmp( passwd->bv_val, cr ) ? 1 : 0;
+	return strcmp( passwd->bv_val, cr ) ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 }
 
 # if defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD )
@@ -862,28 +862,28 @@ static int chk_unix(
 
 	for( i=0; i<cred->bv_len; i++) {
 		if(cred->bv_val[i] == '\0') {
-			return -1;	/* NUL character in password */
+			return LUTIL_PASSWD_ERR;	/* NUL character in password */
 		}
 	}
 	if( cred->bv_val[i] != '\0' ) {
-		return -1;	/* cred must behave like a string */
+		return LUTIL_PASSWD_ERR;	/* cred must behave like a string */
 	}
 
 	for( i=0; i<passwd->bv_len; i++) {
 		if(passwd->bv_val[i] == '\0') {
-			return -1;	/* NUL character in password */
+			return LUTIL_PASSWD_ERR;	/* NUL character in password */
 		}
 	}
 
 	if( passwd->bv_val[i] != '\0' ) {
-		return -1;	/* passwd must behave like a string */
+		return LUTIL_PASSWD_ERR;	/* passwd must behave like a string */
 	}
 
 	{
 		struct passwd *pwd = getpwnam(passwd->bv_val);
 
 		if(pwd == NULL) {
-			return -1;	/* not found */
+			return LUTIL_PASSWD_ERR;	/* not found */
 		}
 
 		pw = pwd->pw_passwd;
@@ -909,17 +909,17 @@ static int chk_unix(
 
 	if( pw == NULL || pw[0] == '\0' || pw[1] == '\0' ) {
 		/* password must must be at least two characters long */
-		return -1;
+		return LUTIL_PASSWD_ERR;
 	}
 
 	cr = crypt(cred->bv_val, pw);
 
 	if( cr == NULL || cr[0] == '\0' ) {
 		/* salt must have been invalid */
-		return -1;
+		return LUTIL_PASSWD_ERR;
 	}
 
-	return strcmp(pw, cr) ? 1 : 0;
+	return strcmp(pw, cr) ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 
 }
 # endif
@@ -946,7 +946,7 @@ static int hash_ssha1(
 	salt.bv_len = sizeof(saltdata);
 
 	if( lutil_entropy( (unsigned char *) salt.bv_val, salt.bv_len) < 0 ) {
-		return -1; 
+		return LUTIL_PASSWD_ERR; 
 	}
 
 	lutil_SHA1Init( &SHA1context );
@@ -998,7 +998,7 @@ static int hash_smd5(
 	salt.bv_len = sizeof(saltdata);
 
 	if( lutil_entropy( (unsigned char *) salt.bv_val, salt.bv_len) < 0 ) {
-		return -1; 
+		return LUTIL_PASSWD_ERR; 
 	}
 
 	lutil_MD5Init( &MD5context );
@@ -1052,12 +1052,12 @@ static int hash_lanman(
 	
 	for( i=0; i<passwd->bv_len; i++) {
 		if(passwd->bv_val[i] == '\0') {
-			return -1;	/* NUL character in password */
+			return LUTIL_PASSWD_ERR;	/* NUL character in password */
 		}
 	}
 	
 	if( passwd->bv_val[i] != '\0' ) {
-		return -1;	/* passwd must behave like a string */
+		return LUTIL_PASSWD_ERR;	/* passwd must behave like a string */
 	}
 	
 	strncpy( UcasePassword, passwd->bv_val, 14 );
@@ -1097,16 +1097,16 @@ static int hash_crypt(
 
 	for( i=0; i<passwd->bv_len; i++) {
 		if(passwd->bv_val[i] == '\0') {
-			return -1;	/* NUL character in password */
+			return LUTIL_PASSWD_ERR;	/* NUL character in password */
 		}
 	}
 
 	if( passwd->bv_val[i] != '\0' ) {
-		return -1;	/* passwd must behave like a string */
+		return LUTIL_PASSWD_ERR;	/* passwd must behave like a string */
 	}
 
 	if( lutil_entropy( salt, sizeof( salt ) ) < 0 ) {
-		return -1; 
+		return LUTIL_PASSWD_ERR; 
 	}
 
 	for( i=0; i< ( sizeof(salt) - 1 ); i++ ) {
@@ -1129,7 +1129,7 @@ static int hash_crypt(
 	hash->bv_len = strlen( hash->bv_val );
 
 	if( hash->bv_len == 0 ) {
-		return -1;
+		return LUTIL_PASSWD_ERR;
 	}
 
 	return pw_string( scheme, hash );
@@ -1155,7 +1155,7 @@ static int hash_clear(
 	const char **text )
 {
 	ber_dupbv( hash, (struct berval *)passwd );
-	return 0;
+	return LUTIL_PASSWD_OK;
 }
 #endif
 
