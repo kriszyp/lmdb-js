@@ -65,8 +65,8 @@ root_dse_info( Entry **entry, char **text )
 	val.bv_len = sizeof("top")-1;
 	attr_merge( e, ad_objectClass, vals );
 
-	val.bv_val = "LDAProotDSE";
-	val.bv_len = sizeof("LDAProotDSE")-1;
+	val.bv_val = "OpenLDAProotDSE";
+	val.bv_len = sizeof("OpenLDAProotDSE")-1;
 	attr_merge( e, ad_objectClass, vals );
 
 	for ( i = 0; i < nbackends; i++ ) {
