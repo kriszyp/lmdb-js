@@ -59,8 +59,9 @@ bdb_search(
 #ifdef LDAP_CLIENT_UPDATE
 	Filter lcupf, csnfnot, csnfeq, csnfand, csnfge;
 	AttributeAssertion aa_ge, aa_eq;
-	LDAPControl ctrl;
 	int		entry_count = 0;
+	struct berval entrycsn_bv = { 0, NULL };
+	struct berval latest_entrycsn_bv = { 0, NULL };
 #endif /* LDAP_CLIENT_UPDATE */
 
 	struct slap_limits_set *limit = NULL;
@@ -306,7 +307,8 @@ dn2entry_retry:
 
 	if ( candidates[0] == 0 ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, RESULTS, "bdb_search: no candidates\n", 0, 0, 0 );
+		LDAP_LOG ( OPERATION, RESULTS,
+			"bdb_search: no candidates\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "bdb_search: no candidates\n",
 			0, 0, 0 );
@@ -352,7 +354,7 @@ dn2entry_retry:
 		csnfeq.f_choice = LDAP_FILTER_EQUALITY;
 		csnfeq.f_ava = &aa_eq;
 		csnfeq.f_av_desc = slap_schema.si_ad_entryCSN;
-		ber_dupbv(&csnfeq.f_av_value, op->o_clientupdate_state);
+		ber_dupbv( &csnfeq.f_av_value, &op->o_clientupdate_state );
 
 		csnfand.f_choice = LDAP_FILTER_AND;
 		csnfand.f_and = &csnfge;
@@ -361,7 +363,7 @@ dn2entry_retry:
 		csnfge.f_choice = LDAP_FILTER_GE;
 		csnfge.f_ava = &aa_ge;
 		csnfge.f_av_desc = slap_schema.si_ad_entryCSN;
-		ber_dupbv(&csnfge.f_av_value, op->o_clientupdate_state);
+		ber_dupbv( &csnfge.f_av_value, &op->o_clientupdate_state );
 		csnfge.f_next = filter;
 	}
 #endif /* LDAP_CLIENT_UPDATE */
@@ -609,7 +611,8 @@ id2entry_retry:
 			if ( scopeok ) {
 				/* check size limit */
 				if ( --slimit == -1 ) {
-					bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+					bdb_cache_return_entry_r( bdb->bi_dbenv,
+						&bdb->bi_cache, e, &lock );
 					e = NULL;
 					send_search_result( conn, op,
 						rc = LDAP_SIZELIMIT_EXCEEDED, NULL, NULL,
@@ -623,14 +626,128 @@ id2entry_retry:
 #if 0	/* noop is masked SLAP_CTRL_UPDATE */
 					if( op->o_noop ) {
 						result = 0;
-					} else {
+					} else
 #endif
-						result = send_search_entry( be, conn, op,
-							e, attrs, attrsonly, NULL);
+					{
+#ifdef LDAP_CLIENT_UPDATE
+						if ( op->o_clientupdate_type & SLAP_LCUP_SYNC ) {
+							Attribute* a;
+							int ret;
+							int res;
+							const char *text = NULL;
+							LDAPControl *ctrls[2];
+							struct berval *bv;
 
-#if 0
-					}
+							BerElement *ber = ber_alloc_t( LBER_USE_DER );
+
+							if ( ber == NULL ) {
+#ifdef NEW_LOGGING
+								LDAP_LOG ( OPERATION, RESULTS, 
+									"bdb_search: ber_alloc_t failed\n",
+									0, 0, 0 );
+#else
+								Debug( LDAP_DEBUG_TRACE,
+									"bdb_search: ber_alloc_t failed\n",
+									0, 0, 0 );
 #endif
+								send_ldap_result( conn, op, rc=LDAP_OTHER,
+									NULL, "internal error", NULL, NULL );
+								goto done;
+							}
+
+							entry_count++;
+
+							ctrls[0] = ch_malloc ( sizeof ( LDAPControl ) );
+							ctrls[1] = NULL;
+
+							if ( entry_count % op->o_clientupdate_interval == 0 ) {
+								/* Send cookie */
+								for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+									AttributeDescription *desc = a->a_desc;
+									if ( desc == slap_schema.si_ad_entryCSN ) {
+										ber_dupbv( &entrycsn_bv, &a->a_vals[0] );
+										if ( latest_entrycsn_bv.bv_val == NULL ) {
+											ber_dupbv( &latest_entrycsn_bv, &entrycsn_bv );
+										} else {
+											res = value_match( &ret, desc,
+												desc->ad_type->sat_ordering,
+												SLAP_MR_ASSERTION_SYNTAX_MATCH,
+												&entrycsn_bv, &latest_entrycsn_bv, &text );
+											if ( res != LDAP_SUCCESS ) {
+												ret = 0;
+#ifdef NEW_LOGGING
+												LDAP_LOG ( OPERATION, RESULTS, 
+													"bdb_search: value_match failed\n",
+													0, 0, 0 );
+#else
+												Debug( LDAP_DEBUG_TRACE,
+													"bdb_search: value_match failed\n",
+													0, 0, 0 );
+#endif
+											}
+
+											if ( ret > 0 ) {
+												ch_free( latest_entrycsn_bv.bv_val );
+												latest_entrycsn_bv.bv_val = NULL;
+												ber_dupbv( &latest_entrycsn_bv,
+													&entrycsn_bv );
+											}
+										}
+									}
+								}
+
+								ber_printf( ber,
+									"{bb{sON}N}",
+									SLAP_LCUP_STATE_UPDATE_FALSE,
+									SLAP_LCUP_ENTRY_DELETED_FALSE,
+									LCUP_COOKIE_OID, &entrycsn_bv );
+
+								ch_free( entrycsn_bv.bv_val );
+								entrycsn_bv.bv_val = NULL;
+
+							} else {
+								/* Do not send cookie */
+								ber_printf( ber,
+									"{bbN}",
+									SLAP_LCUP_STATE_UPDATE_FALSE,
+									SLAP_LCUP_ENTRY_DELETED_FALSE );
+							}
+
+							ctrls[0]->ldctl_oid = LDAP_CONTROL_ENTRY_UPDATE;
+							ctrls[0]->ldctl_iscritical = op->o_clientupdate;
+							ret = ber_flatten( ber, &bv );
+
+							if ( ret < 0 ) {
+#ifdef NEW_LOGGING
+								LDAP_LOG ( OPERATION, RESULTS, 
+									"bdb_search: ber_flatten failed\n",
+									0, 0, 0 );
+#else
+								Debug( LDAP_DEBUG_TRACE,
+									"bdb_search: ber_flatten failed\n",
+									0, 0, 0 );
+#endif
+								send_ldap_result( conn, op, rc=LDAP_OTHER,
+									NULL, "internal error", NULL, NULL );
+								goto done;
+							}
+
+							ber_dupbv( &ctrls[0]->ldctl_value, bv );
+							
+							result = send_search_entry( be, conn, op,
+								e, attrs, attrsonly, ctrls);
+
+							ch_free( ctrls[0]->ldctl_value.bv_val );
+							ch_free( ctrls[0] );
+							ber_free( ber, 1 );
+							ber_bvfree( bv );
+						} else
+#endif /* LDAP_CLIENT_UPDATE */
+						{
+							result = send_search_entry( be, conn, op,
+								e, attrs, attrsonly, NULL);
+						}
+					}
 
 					switch (result) {
 					case 0:		/* entry sent ok */
@@ -639,7 +756,8 @@ id2entry_retry:
 					case 1:		/* entry not sent */
 						break;
 					case -1:	/* connection closed */
-						bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+						bdb_cache_return_entry_r(bdb->bi_dbenv,
+							&bdb->bi_cache, e, &lock);
 						e = NULL;
 						rc = LDAP_OTHER;
 						goto done;
@@ -677,9 +795,68 @@ loop_continue:
 		ldap_pvt_thread_yield();
 	}
 
-	send_search_result( conn, op,
-		v2refs == NULL ? LDAP_SUCCESS : LDAP_REFERRAL,
-		NULL, NULL, v2refs, NULL, nentries );
+#ifdef LDAP_CLIENT_UPDATE
+	if ( op->o_clientupdate_type & SLAP_LCUP_SYNC ) {
+		int ret;
+		LDAPControl *ctrls[2];
+		BerElement *ber = ber_alloc_t( LBER_USE_DER );
+		struct berval *bv;
+
+		if ( ber == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, RESULTS, 
+				"bdb_search: ber_alloc_t failed\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE, "bdb_search: ber_alloc_t failed\n",
+				0, 0, 0 );
+#endif
+			send_ldap_result( conn, op, rc=LDAP_OTHER,
+				NULL, "internal error", NULL, NULL );
+			goto done;
+		}
+
+		ctrls[0] = ch_malloc ( sizeof ( LDAPControl ) );
+		ctrls[1] = NULL;
+
+		ber_printf( ber, "{sO", LCUP_COOKIE_OID, &latest_entrycsn_bv );
+		ber_printf( ber, "N}" );
+
+		ctrls[0]->ldctl_oid = LDAP_CONTROL_CLIENT_UPDATE_DONE;
+		ctrls[0]->ldctl_iscritical = op->o_clientupdate;
+		ret = ber_flatten( ber, &bv );
+
+		if ( ret < 0 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, RESULTS, 
+				"bdb_search: ber_flatten failed\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE, "bdb_search: ber_flatten failed\n",
+				0, 0, 0 );
+#endif
+			send_ldap_result( conn, op, rc=LDAP_OTHER,
+				NULL, "internal error", NULL, NULL );
+			goto done;
+		}
+
+		ber_dupbv( &ctrls[0]->ldctl_value, bv );
+
+		send_search_result( conn, op,
+			v2refs == NULL ? LDAP_SUCCESS : LDAP_REFERRAL,
+			NULL, NULL, v2refs, ctrls, nentries );
+
+		ch_free( latest_entrycsn_bv.bv_val );
+		latest_entrycsn_bv.bv_val = NULL;
+		ch_free( ctrls[0]->ldctl_value.bv_val );
+		ch_free( ctrls[0] );
+		ber_free( ber, 1 );
+		ber_bvfree( bv );
+	} else
+#endif /* LDAP_CLIENT_UPDATE */
+	{
+		send_search_result( conn, op,
+			v2refs == NULL ? LDAP_SUCCESS : LDAP_REFERRAL,
+			NULL, NULL, v2refs, NULL, nentries );
+	}
 
 	rc = 0;
 
@@ -688,6 +865,18 @@ done:
 		/* free reader lock */
 		bdb_cache_return_entry_r ( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 	}
+
+#ifdef LDAP_CLIENT_UDATE
+	if ( op->o_clientupdate_type & SLAP_LCUP_SYNC ) {
+		if ( csnfeq.f_ava != NULL && csnfeq.f_av_value.bv_val != NULL ) {
+			ch_free( csnfeq.f_av_value.bv_val );
+		}
+	
+		if ( csnfge.f_ava != NULL && csnfge.f_av_value.bv_val != NULL ) {
+			ch_free( csnfge.f_av_value.bv_val );
+		}
+	}
+#endif /* LDAP_CLIENT_UPDATE */
 
 	LOCK_ID_FREE (bdb->bi_dbenv, locker );
 
@@ -731,16 +920,19 @@ static int oc_filter(
 
 	switch(f->f_choice) {
 	case LDAP_FILTER_PRESENT:
-		if (f->f_desc == slap_schema.si_ad_objectClass)
+		if (f->f_desc == slap_schema.si_ad_objectClass) {
 			rc = 1;
+		}
 		break;
 
 	case LDAP_FILTER_AND:
 	case LDAP_FILTER_OR:
 		cur++;
-		for (f=f->f_and; f; f=f->f_next)
-			rc |= oc_filter(f, cur, max);
+		for (f=f->f_and; f; f=f->f_next) {
+			(void) oc_filter(f, cur, max);
+		}
 		break;
+
 	default:
 		break;
 	}
