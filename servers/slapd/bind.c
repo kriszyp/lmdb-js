@@ -525,30 +525,40 @@ do_bind(
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
 
 	rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_BIND_FN, pb );
-	if ( rs->sr_err < 0 ) {
-		/*
-		 * Binding is a special case for SLAPI plugins. It is
-		 * possible for a bind plugin to be successful *and*
-		 * abort further processing; this means it has handled
-		 * a bind request authoritatively. If we have reached
-		 * here, a result has been sent to the client (XXX
-		 * need to check with Sun whether SLAPI_BIND_ANONYMOUS
-		 * means a result has been sent).
-		 */
-		int ldapRc;
 
-		if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&ldapRc ) != 0 ) ||
-		     ldapRc == LDAP_SUCCESS ) {
-			ldapRc = LDAP_OTHER;
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, INFO, "do_bind: Bind preoperation plugin returned %d\n",
+			rs->sr_err, 0, 0);
+#else
+	Debug(LDAP_DEBUG_TRACE, "do_bind: Bind preoperation plugin returned %d.\n",
+			rs->sr_err, 0, 0);
+#endif
+
+	switch ( rs->sr_err ) {
+	case SLAPI_BIND_SUCCESS:
+		/* Continue with backend processing */
+		break;
+	case SLAPI_BIND_FAIL:
+		/* Failure, server sends result */
+		rs->sr_err = LDAP_INVALID_CREDENTIALS;
+		send_ldap_result( op, rs );
+		goto cleanup;
+		break;
+	case SLAPI_BIND_ANONYMOUS:
+		/* SLAPI_BIND_ANONYMOUS is undocumented XXX */
+	default:
+		/* Authoritative, plugin sent result */
+		if ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err) != 0 ) {
+			rs->sr_err = LDAP_OTHER;
 		}
+
 		op->orb_edn.bv_val = NULL;
 		op->orb_edn.bv_len = 0;
-		if ( rs->sr_err != SLAPI_BIND_FAIL && ldapRc == LDAP_SUCCESS ) {
-			/* Set the new connection DN. */
-			if ( rs->sr_err != SLAPI_BIND_ANONYMOUS ) {
-				slapi_pblock_get( pb, SLAPI_CONN_DN, (void *)&op->orb_edn.bv_val );
-				if ( op->orb_edn.bv_val ) op->orb_edn.bv_len = strlen( op->orb_edn.bv_val );
-			}
+
+		if ( rs->sr_err == LDAP_SUCCESS ) {
+			slapi_pblock_get( pb, SLAPI_CONN_DN, (void *)&op->orb_edn.bv_val );
+			if ( op->orb_edn.bv_val != NULL )
+				op->orb_edn.bv_len = strlen( op->orb_edn.bv_val );
 			rs->sr_err = dnPrettyNormal( NULL, &op->orb_edn, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
 			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 			ber_dupbv(&op->o_conn->c_dn, &op->o_req_dn);
@@ -570,15 +580,8 @@ do_bind(
 				op->o_conn->c_dn.bv_val, 0, 0 );
 			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 		}
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_bind: Bind preoperation plugin returned %d\n",
-				rs->sr_err, 0, 0);
-#else
-		Debug(LDAP_DEBUG_TRACE, "do_bind: Bind preoperation plugin returned %d.\n",
-				rs->sr_err, 0, 0);
-#endif
-		rs->sr_err = ldapRc;
 		goto cleanup;
+		break;
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
