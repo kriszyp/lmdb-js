@@ -1,7 +1,7 @@
 OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.1.1
-	CVS Tag: OPENLDAP_REL_ENG_1_1
+	CVS Tag: OPENLDAP_REL_ENG_1_1_1
 	Updated INSTALL, README, hints, and devel documents.
 	Updated slapd/ldif2dbm to disable write sync'ing
 	Fixed slapd & slurpd syslogging (ITS#6)
