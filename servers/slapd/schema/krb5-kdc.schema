@@ -1,10 +1,22 @@
+# krb5-kdc.schema - Definitions for a Kerberos V KDC schema
 # $OpenLDAP$
 # $Id: hdb.schema,v 1.3 2000/02/22 21:51:53 lukeh Exp $
-# Definitions for a Kerberos V KDC schema
+## This work is part of OpenLDAP Software <http://www.openldap.org/>.
+##
+## Copyright 1998-2003 The OpenLDAP Foundation.
+## All rights reserved.
+##
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted only as authorized by the OpenLDAP
+## Public License.
+##
+## A copy of this license is available in the file LICENSE in the
+## top-level directory of the distribution or, alternatively, at
+## <http://www.OpenLDAP.org/license.html>.
 
 #
 # This schema is not usable as it contains invalid constructs.
-# It is provided for informational purposes only.
+# It is provided to developers for informational purposes only.
 #
 
 # OID Base is iso(1) org(3) dod(6) internet(1) private(4) enterprise(1) padl(5322) kdcSchema(10)

@@ -1,6 +1,46 @@
-# $OpenLDAP$
-#
 # OpenLDAP Core schema
+# $OpenLDAP$
+## This work is part of OpenLDAP Software <http://www.openldap.org/>.
+##
+## Copyright 1998-2003 The OpenLDAP Foundation.
+## All rights reserved.
+##
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted only as authorized by the OpenLDAP
+## Public License.
+##
+## A copy of this license is available in the file LICENSE in the
+## top-level directory of the distribution or, alternatively, at
+## <http://www.OpenLDAP.org/license.html>.
+#
+## Portions Copyright (C) The Internet Society (1997-2003).
+## All Rights Reserved.
+##
+## This document and translations of it may be copied and furnished to
+## others, and derivative works that comment on or otherwise explain it
+## or assist in its implementation may be prepared, copied, published
+## and distributed, in whole or in part, without restriction of any
+## kind, provided that the above copyright notice and this paragraph are
+## included on all such copies and derivative works.  However, this
+## document itself may not be modified in any way, such as by removing
+## the copyright notice or references to the Internet Society or other
+## Internet organizations, except as needed for the purpose of
+## developing Internet standards in which case the procedures for
+## copyrights defined in the Internet Standards process must be         
+## followed, or as required to translate it into languages other than
+## English.
+##                                                                      
+## The limited permissions granted above are perpetual and will not be  
+## revoked by the Internet Society or its successors or assigns.        
+## 
+## This document and the information contained herein is provided on an 
+## "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING
+## TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING
+## BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION
+## HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
+## MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+#
 #
 # Includes LDAPv3 schema items from:
 #	RFC 2252/2256 (LDAPv3)

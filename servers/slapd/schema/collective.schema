@@ -1,12 +1,23 @@
-#INTERNET-DRAFT                           Editor:  Kurt D. Zeilenga
-#Intended Category: Standard Track                 OpenLDAP Foundation
-#Expires: 20 June 2002                             20 December 2001
+# collective.schema -- Collective attribute schema
+# $OpenLDAP$
+## This work is part of OpenLDAP Software <http://www.openldap.org/>.
+##
+## Copyright 1998-2003 The OpenLDAP Foundation.
+## All rights reserved.
+##
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted only as authorized by the OpenLDAP
+## Public License.
+##
+## A copy of this license is available in the file LICENSE in the
+## top-level directory of the distribution or, alternatively, at
+## <http://www.OpenLDAP.org/license.html>.
 #
-#
-#                      Collective Attributes in LDAP
-#                 <draft-zeilenga-ldap-collective-04.txt>
+## Portions Copyright (C) The Internet Society (2003).  All Rights Reserved.
+## Please see full copyright statement below.
 
-# [ portions trimmed ]
+# From draft-zeilenga-ldap-collective-xx.txt [portions trimmed]:
+#                      Collective Attributes in LDAP
 
 #Abstract
 #
@@ -160,3 +171,20 @@ attributeType ( 2.5.4.23.1 NAME 'c-FacsimileTelephoneNumber'
 #
 attributeType ( 2.5.4.25.1 NAME 'c-InternationalISDNNumber'
 	SUP internationalISDNNumber COLLECTIVE )
+
+# Full Copyright
+#
+# Copyright (C) The Internet Society (2003). All Rights Reserved.
+# 
+# This document and translations of it may be copied and furnished
+# to others, and derivative works that comment on or otherwise explain
+# it or assist in its implmentation may be prepared, copied, published
+# and distributed, in whole or in part, without restriction of any
+# kind, provided that the above copyright notice and this paragraph
+# are included on all such copies and derivative works.  However,
+# this document itself may not be modified in any way, such as by
+# removing the copyright notice or references to the Internet Society
+# or other Internet organizations, except as needed for the  purpose
+# of developing Internet standards in which case the procedures for
+# copyrights defined in the Internet Standards process must be followed,
+# or as required to translate it into languages other than English.
