@@ -444,8 +444,18 @@ int ad_inlist(
 		 * if so, return attributes which the class requires/allows
 		 */
 		oc = attrs->an_oc;
-		if( oc == NULL ) {
-			oc = oc_bvfind( &attrs->an_name );
+		if( oc == NULL && attrs->an_name.bv_val ) {
+			switch( attrs->an_name.bv_val[0] ) {
+				case '+':
+				case '-': {
+					struct berval ocname;
+					ocname.bv_len = attrs->an_name.bv_len - 1;
+					ocname.bv_val = &attrs->an_name.bv_val[1];
+					oc = oc_bvfind( &ocname );
+				} break;
+				default:
+					oc = oc_bvfind( &attrs->an_name );
+			}
 			attrs->an_oc = oc;
 		}
 		if( oc != NULL ) {
