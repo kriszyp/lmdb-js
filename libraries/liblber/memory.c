@@ -498,12 +498,6 @@ ber_bvstr(
 		return NULL;
 	}
 
-	if ( *s == '\0' ) {
-		new->bv_val = NULL;
-		new->bv_len = 0;
-		return new;
-	}
-
 	new->bv_val = (char *) s;
 	new->bv_len = strlen( s );
 
