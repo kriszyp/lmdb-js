@@ -504,6 +504,10 @@ int bdb_cache_entry_db_relock(
 	int tryOnly,
 	DB_LOCK *lock );
 
+int bdb_cache_entry_db_unlock(
+	DB_ENV *env,
+	DB_LOCK *lock );
+
 #ifdef BDB_REUSE_LOCKERS
 
 #define bdb_locker_id				BDB_SYMBOL(locker_id)
