@@ -404,7 +404,9 @@ monitor_subsys_conn_create(
 	       
 		/* create exactly the required entry */
 
-		if ( ldap_str2rdn( ndn->bv_val, &values, &text, LDAP_DN_FORMAT_LDAP ) ) {
+		if ( ldap_str2rdn( ndn->bv_val, &values, &(char *)text,
+			LDAP_DN_FORMAT_LDAP ) )
+		{
 			return( -1 );
 		}
 		
