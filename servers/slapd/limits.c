@@ -993,11 +993,18 @@ limits_check( Operation *op, SlapReply *rs )
 {
 	assert( op );
 	assert( rs );
-	/* protocol only allows 0..maxInt */
-	assert( op->ors_tlimit >= 0 );
-	assert( op->ors_slimit >= 0 );
 	/* FIXME: should this be always true? */
 	assert( op->o_tag == LDAP_REQ_SEARCH);
+
+	/* protocol only allows 0..maxInt; internal searches
+	 * may use SLAP_NO_LIMIT ( = -1 ) to indicate no limits... */
+	if ( op->ors_tlimit == SLAP_NO_LIMIT && op->ors_slimit == SLAP_NO_LIMIT ) {
+		return 0;
+	}
+
+	/* fail when at least one is set to a negative value... */
+	assert( op->ors_tlimit >= 0 );
+	assert( op->ors_slimit >= 0 );
 	
 	/* allow root to set no limit */
 	if ( be_isroot( op ) ) {

@@ -1142,6 +1142,9 @@ syncrepl_entry(
 	op->o_req_dn = si->si_base;
 	op->o_req_ndn = si->si_base;
 
+	op->ors_tlimit = 0;
+	op->ors_slimit = 0;
+
 	/* set callback function */
 	op->o_callback = &cb;
 	cb.sc_response = dn_callback;
