@@ -448,6 +448,10 @@ int slap_sasl_match( Operation *opx, struct berval *rule,
 	}
 
 	/* Must run an internal search. */
+	if ( op.oq_search.rs_filter == NULL ) {
+		rc = LDAP_FILTER_ERROR;
+		goto CONCLUDED;
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, DETAIL1, 
