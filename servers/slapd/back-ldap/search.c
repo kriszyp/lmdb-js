@@ -147,7 +147,7 @@ fail:
 			ldap_pvt_thread_yield();
 		} else if (rc == LDAP_RES_SEARCH_ENTRY) {
 			e = ldap_first_entry(lc->ld,res);
-			ldap_send_entry(be, op, lc, e, mapped_attrs, attrsonly);
+			ldap_send_entry(be, op, lc, e, attrs, attrsonly);
 			count++;
 			ldap_msgfree(res);
 		} else {
