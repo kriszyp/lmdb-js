@@ -660,12 +660,7 @@ initialize_client( void )
 	}
 	if (ldap_bind_s(ld, (char *) default_bind_object, NULL,
 	    LDAP_AUTH_SIMPLE) != LDAP_SUCCESS) {
-		int ld_errno = 0;
-		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
-
-		fprintf(stderr, "  The LDAP Directory is temporarily unavailable.  Please try again later.\n");
-		if (ld_errno != LDAP_UNAVAILABLE)
-			ldap_perror(ld, "  ldap_bind_s");
+		ldap_perror(ld, "  ldap_bind_s");
 		exit( EXIT_FAILURE );
 		/* NOTREACHED */
 	}

@@ -231,12 +231,7 @@ find( char *who, int quiet )
 			rc = ldap_search_s(ld, dn, LDAP_SCOPE_BASE, NULL, read_attrs, FALSE, &res);
 			ldap_memfree(dn);
 			if (rc != LDAP_SUCCESS) {
-				int ld_errno = 0;
-				ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
-				if (ld_errno == LDAP_UNAVAILABLE)
-					printf("  Could not contact the LDAP server to find \"%s\".\n", who);
-				else
-					ldap_perror(ld, "ldap_search_s");
+				ldap_perror(ld, "ldap_search_s");
 				return(NULL);
 			}
 			ldap_set_option(ld, LDAP_OPT_DEREF, &savederef);

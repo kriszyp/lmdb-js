@@ -195,13 +195,6 @@ char	**argv;
 	case LDAP_SUCCESS:
 		break;
 
-	case LDAP_UNAVAILABLE:
-		printFormatted( lineLength, TRUE, stdout,
-			"Sorry, the X.500 service is temporarily unavailable. \
-Please try again later." );
-		syslog( LOG_NOTICE, "X.500 service temporarily unavailable" );
-		exit( 1 );
-
 	default:
 		printFormatted( lineLength, TRUE, stdout,
 			"Bind to Directory failed, %s",
