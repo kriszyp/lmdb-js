@@ -58,6 +58,7 @@
 	/* should be moved to portable.h.nt */
 #define ftruncate(a,b) _chsize(a,b)
 #define truncate(a,b) _lclose( _lcreat(a, 0))
+#define mkdir(a,b)	mkdir(a)
 #define S_IRGRP 0
 #define S_IWGRP 0
 #endif
