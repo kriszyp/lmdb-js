@@ -82,7 +82,7 @@ fi
 
 echo "Testing OR searching..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
-	'(|(givenName=XX*YY*Z)(cn=)(undef=*)(objectclass=groupofnames)(sn=jones))' >> $SEARCHOUT 2>&1
+	'(|(givenName=XX*YY*Z)(cn=)(undef=*)(objectclass=groupofnames)(sn=jones)(member=cn=Manager,o=University of Michigan,c=US))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -92,7 +92,7 @@ fi
 
 echo "Testing AND matching and ends-with searching..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
-	'(&(objectclass=groupofnames)(cn=A*))' >> $SEARCHOUT 2>&1
+	'(&(objectclass=groupofnames)(cn=A*)(member=cn=Mark Elliot,ou=Alumni Association,ou=People,o=University of Michigan,c=US))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
