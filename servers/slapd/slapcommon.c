@@ -201,7 +201,7 @@ slap_tool_init(
 			break;
 
 		case 'n':	/* which config file db to index */
-			dbnum = atoi( optarg ) - 1;
+			dbnum = atoi( optarg );
 			break;
 
 		case 'q':	/* turn on quick */
@@ -289,6 +289,8 @@ slap_tool_init(
 		break;
 	}
 
+	ldap_syslog = 0;
+
 	if ( ldiffile == NULL ) {
 		ldiffp = tool == SLAPCAT ? stdout : stdin;
 
@@ -310,17 +312,17 @@ slap_tool_init(
 	}
 #endif
 		
-	rc = slap_init( mode, progname );
-
-	if ( rc != 0 ) {
-		fprintf( stderr, "%s: slap_init failed!\n", progname );
-		exit( EXIT_FAILURE );
-	}
-
 	rc = slap_schema_init();
 
 	if ( rc != 0 ) {
 		fprintf( stderr, "%s: slap_schema_init failed!\n", progname );
+		exit( EXIT_FAILURE );
+	}
+
+	rc = slap_init( mode, progname );
+
+	if ( rc != 0 ) {
+		fprintf( stderr, "%s: slap_init failed!\n", progname );
 		exit( EXIT_FAILURE );
 	}
 
@@ -342,7 +344,6 @@ slap_tool_init(
 	}
 
 	at_oc_cache = 1;
-	ldap_syslog = 0;
 
 	switch ( tool ) {
 	case SLAPADD:
@@ -441,7 +442,7 @@ slap_tool_init(
 			exit( EXIT_FAILURE );
 		}
 		
-		be = &backends[dbnum=0];
+		be = &backends[dbnum=1];
 		/* If just doing the first by default and it is a
 		 * glue subordinate, find the master.
 		 */

@@ -926,6 +926,9 @@
 /* The number of bytes in type wchar_t */
 #undef SIZEOF_WCHAR_T
 
+/* define if memcmp is not 8-bit clean or is otherwise broken */
+#undef NEED_MEMCMP_REPLACEMENT
+
 /* define to you inet_aton(3) is available */
 #undef HAVE_INET_ATON
 
@@ -1035,9 +1038,6 @@
 #undef SLAPD_SQL
 
 /* define for Dynamic Group overlay */
-#undef SLAPD_OVER_CHAIN
-
-/* define for Dynamic Group overlay */
 #undef SLAPD_OVER_DENYOP
 
 /* define for Dynamic Group overlay */
@@ -1063,6 +1063,9 @@
 
 /* define for Syncrepl Provider overlay */
 #undef SLAPD_OVER_SYNCPROV
+
+/* define for Translucent Proxy overlay */
+#undef SLAPD_OVER_TRANSLUCENT
 
 /* define for Attribute Uniqueness overlay */
 #undef SLAPD_OVER_UNIQUE

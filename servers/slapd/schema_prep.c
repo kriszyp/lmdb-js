@@ -689,6 +689,16 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_monitorContext) },
+	{ "configContext", "( 1.3.6.1.4.1.4203.666.11.1.1 "
+			"NAME 'configContext' "
+			"DESC 'config context' "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
+			"SINGLE-VALUE NO-USER-MODIFICATION "
+			"USAGE dSAOperation )",
+		rootDseAttribute, SLAP_AT_HIDE,
+		NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_configContext) },
 	{ "vendorName", "( 1.3.6.1.1.4 NAME 'vendorName' "
 			"DESC 'RFC3045: name of implementation vendor' "
 			"EQUALITY caseExactMatch "

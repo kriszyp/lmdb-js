@@ -109,8 +109,6 @@ LDAP_BEGIN_DECL
 
 #define SLAP_MAX_WORKER_THREADS		(16)
 
-#define SLAP_MAX_SYNCREPL_THREADS	(8)
-
 #define SLAP_SB_MAX_INCOMING_DEFAULT ((1<<18) - 1)
 #define SLAP_SB_MAX_INCOMING_AUTH ((1<<24) - 1)
 
@@ -321,7 +319,8 @@ extern int slap_inet4or6;
 
 typedef struct slap_oid_macro {
 	struct berval som_oid;
-	char **som_names;
+	BerVarray som_names;
+	BerVarray som_subs;
 	LDAP_SLIST_ENTRY(slap_oid_macro) som_next;
 } OidMacro;
 
@@ -823,6 +822,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_monitorContext;
 	AttributeDescription *si_ad_vendorName;
 	AttributeDescription *si_ad_vendorVersion;
+	AttributeDescription *si_ad_configContext;
 
 	/* subentry attribute descriptions */
 	AttributeDescription *si_ad_administrativeRole;
@@ -905,6 +905,9 @@ struct slap_internal_schema {
 typedef struct slap_attr_assertion {
 	AttributeDescription	*aa_desc;
 	struct berval aa_value;
+#ifdef LDAP_COMP_MATCH
+	struct slap_component_filter *aa_cf;/* for attribute aliasing */
+#endif
 } AttributeAssertion;
 
 typedef struct slap_ss_assertion {
@@ -1185,9 +1188,9 @@ struct slap_op;
 /*
  * "dynamic" ACL infrastructure (for ACIs and more)
  */
-typedef int (*slap_dynacl_parse)( const char *fname, int lineno, slap_style_t, const char *, void **privp );
-typedef int (*slap_dynacl_print)( void *priv );
-typedef int (*slap_dynacl_mask)(
+typedef int (slap_dynacl_parse)( const char *fname, int lineno, slap_style_t, const char *, void **privp );
+typedef int (slap_dynacl_unparse)( void *priv, struct berval *bv );
+typedef int (slap_dynacl_mask)(
 		void			*priv,
 		struct slap_op		*op,
 		Entry			*e,
@@ -1197,14 +1200,14 @@ typedef int (*slap_dynacl_mask)(
 		regmatch_t		*matches,
 		slap_access_t		*grant,
 		slap_access_t		*deny );
-typedef int (*slap_dynacl_destroy)( void *priv );
+typedef int (slap_dynacl_destroy)( void *priv );
 
 typedef struct slap_dynacl_t {
 	char			*da_name;
-	slap_dynacl_parse	da_parse;
-	slap_dynacl_print	da_print;
-	slap_dynacl_mask	da_mask;
-	slap_dynacl_destroy	da_destroy;
+	slap_dynacl_parse	*da_parse;
+	slap_dynacl_unparse	*da_unparse;
+	slap_dynacl_mask	*da_mask;
+	slap_dynacl_destroy	*da_destroy;
 	
 	void			*da_private;
 	struct slap_dynacl_t	*da_next;
@@ -1391,12 +1394,38 @@ LDAP_SLAPD_V (int) slapMode;
 #define	SLAP_TOOL_READONLY	0x0400
 #define	SLAP_TOOL_QUICK		0x0800
 
+#define SB_TLS_OFF		0
+#define SB_TLS_ON		1
+#define SB_TLS_CRITICAL	2
+
+typedef struct slap_bindconf {
+	int sb_tls;
+	int sb_method;
+	char *sb_binddn;
+	char *sb_cred;
+	char *sb_saslmech;
+	char *sb_secprops;
+	char *sb_realm;
+	char *sb_authcId;
+	char *sb_authzId;
+} slap_bindconf;
+
 struct slap_replica_info {
-	char *ri_host;				/* supersedes be_replica */
-	BerVarray ri_nsuffix;	/* array of suffixes this replica accepts */
+	const char *ri_uri;			/* supersedes be_replica */
+	const char *ri_host;		/* points to host part of uri */
+	BerVarray ri_nsuffix;		/* array of suffixes this replica accepts */
 	AttributeName *ri_attrs;	/* attrs to replicate, NULL=all */
-	int ri_exclude;			/* 1 => exclude ri_attrs */
+	int ri_exclude;				/* 1 => exclude ri_attrs */
+	slap_bindconf ri_bindconf;	/* for back-config */
 };
+
+typedef struct slap_verbmasks {
+	struct berval word;
+	const int mask;
+} slap_verbmasks;
+
+#define SLAP_LIMIT_TIME	1
+#define SLAP_LIMIT_SIZE	2
 
 struct slap_limits_set {
 	/* time limits */
@@ -1461,7 +1490,6 @@ typedef BackendDB Backend;
  * syncinfo structure for syncrepl
  */
 
-#define SLAP_SYNC_SID_SIZE	3
 #define SLAP_SYNC_RID_SIZE	3
 #define SLAP_SYNCUUID_SET_SIZE 256
 
@@ -1485,30 +1513,20 @@ LDAP_STAILQ_HEAD( slap_sync_cookie_s, sync_cookie );
 typedef struct syncinfo_s {
         struct slap_backend_db *si_be;
         long				si_rid;
-        struct berval			si_provideruri;
-#define SYNCINFO_TLS_OFF		0
-#define SYNCINFO_TLS_ON			1
-#define SYNCINFO_TLS_CRITICAL	2
-        int					si_tls;
-        int					si_bindmethod;
-        char				*si_binddn;
-        char				*si_passwd;
-        char				*si_saslmech;
-        char				*si_secprops;
-        char				*si_realm;
-        char				*si_authcId;
-        char				*si_authzId;
-		int					si_schemachecking;
+        struct berval		si_provideruri;
+		slap_bindconf		si_bindconf;
         struct berval		si_filterstr;
         struct berval		si_base;
         int					si_scope;
         int					si_attrsonly;
+		char				*si_anfile;
 		AttributeName		*si_anlist;
 		AttributeName		*si_exanlist;
 		char 				**si_attrs;
+		char				**si_exattrs;
 		int					si_allattrs;
 		int					si_allopattrs;
-		char				**si_exattrs;
+		int					si_schemachecking;
         int					si_type;
         time_t				si_interval;
 		time_t				*si_retryinterval;
@@ -1523,6 +1541,7 @@ typedef struct syncinfo_s {
         Avlnode				*si_presentlist;
 		LDAP				*si_ld;
 		LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
+		ldap_pvt_thread_mutex_t	si_mutex;
 } syncinfo_t;
 
 LDAP_TAILQ_HEAD( be_pcl, slap_csn_entry );
@@ -1700,8 +1719,8 @@ struct slap_backend_db {
 	ldap_pvt_thread_mutex_t					*be_pcl_mutexp;
 	syncinfo_t								*be_syncinfo; /* For syncrepl */
 
-	char	*be_realm;
 	void    *be_pb;         /* Netscape plugin */
+	struct ConfigTable *be_cf_table;
 
 	void	*be_private;	/* anything the backend database needs 	   */
 };
@@ -1745,7 +1764,6 @@ typedef struct req_search_s {
 	AttributeName *rs_attrs;
 	Filter *rs_filter;
 	struct berval rs_filterstr;
-	int rs_post_search_id;
 } req_search_s;
 
 typedef struct req_compare_s {
@@ -1909,6 +1927,8 @@ typedef int (BI_tool_id2entry_get) LDAP_P(( BackendDB *be, ID id, Entry **e ));
 typedef ID (BI_tool_entry_modify) LDAP_P(( BackendDB *be, Entry *e, 
 	struct berval *text ));
 
+struct ConfigTable;	/* config.h */
+
 struct slap_backend_info {
 	char	*bi_type; /* type of backend */
 
@@ -2010,6 +2030,7 @@ struct slap_backend_info {
 
 	slap_mask_t	bi_flags; /* backend flags */
 #define SLAP_BFLAG_MONITOR			0x0001U /* a monitor backend */
+#define SLAP_BFLAG_CONFIG			0x0002U /* a config backend */
 #define SLAP_BFLAG_NOLASTMODCMD		0x0010U
 #define SLAP_BFLAG_INCREMENT		0x0100U
 #define SLAP_BFLAG_ALIASES			0x1000U
@@ -2019,6 +2040,7 @@ struct slap_backend_info {
 
 #define SLAP_BFLAGS(be)		((be)->bd_info->bi_flags)
 #define SLAP_MONITOR(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_MONITOR)
+#define SLAP_CONFIG(be)		(SLAP_BFLAGS(be) & SLAP_BFLAG_CONFIG)
 #define SLAP_INCREMENT(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_INCREMENT)
 #define SLAP_ALIASES(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_ALIASES)
 #define SLAP_REFERRALS(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_REFERRALS)
@@ -2031,6 +2053,7 @@ struct slap_backend_info {
 	char	bi_ctrls[SLAP_MAX_CIDS + 1];
 
 	unsigned int bi_nDB;	/* number of databases of this type */
+	struct ConfigTable *bi_cf_table;
 	void	*bi_private;	/* anything the backend type needs */
 };
 
@@ -2230,7 +2253,6 @@ typedef struct slap_op {
 #define ors_attrs oq_search.rs_attrs
 #define ors_filter oq_search.rs_filter
 #define ors_filterstr oq_search.rs_filterstr
-#define ors_post_search_id oq_search.rs_post_search_id
 
 #define orr_newrdn oq_modrdn.rs_newrdn
 #define orr_nnewrdn oq_modrdn.rs_nnewrdn

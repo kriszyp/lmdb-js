@@ -242,16 +242,14 @@ OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend no|yes|mod],
 
 dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
-Overlays="chain denyop dyngroup glue lastmod ppolicy proxycache rwm \
-	refint syncprov unique"
+Overlays="denyop dyngroup glue lastmod ppolicy proxycache rwm \
+	refint syncprov translucent unique"
 
 AC_ARG_WITH(xxslapoverlays,[
 SLAPD Overlay Options:])
 
 OL_ARG_ENABLE(overlays,[    --enable-overlays	  enable all available overlays no|yes|mod],
 	no, [no yes mod])dnl
-OL_ARG_ENABLE(chain,[    --enable-chain   	  LDAP Chain Response no|yes|mod],
-	no, [no yes mod])
 OL_ARG_ENABLE(denyop,[    --enable-denyop  	  Deny Operation overlay no|yes|mod],
 	no, [no yes mod])
 OL_ARG_ENABLE(dyngroup,[    --enable-dyngroup	  Dynamic Group overlay no|yes|mod],
@@ -268,8 +266,10 @@ OL_ARG_ENABLE(refint,[    --enable-refint	  Referential Integrity overlay no|yes
 	no, [no yes mod])
 OL_ARG_ENABLE(rwm,[    --enable-rwm       	  Rewrite/Remap overlay no|yes|mod],
 	no, [no yes mod])
-OL_ARG_ENABLE(syncprov,[    --enable-syncprov       	  Syncrepl Provider overlay no|yes|mod],
+OL_ARG_ENABLE(syncprov,[    --enable-syncprov	  Syncrepl Provider overlay no|yes|mod],
 	yes, [no yes mod])
+OL_ARG_ENABLE(translucent,[    --enable-translucent  Translucent Proxy overlay no|yes|mod],
+	no, [no yes mod])
 OL_ARG_ENABLE(unique,[    --enable-unique       Attribute Uniqueness overlay no|yes|mod],
 	no, [no yes mod])
 
@@ -446,10 +446,6 @@ else
 	fi
 fi
 
-if test $ol_enable_chain != no -a $ol_enable_ldap = no ; then
-	AC_MSG_ERROR([--enable-chain requires --enable-ldap])
-fi
-
 if test $ol_enable_meta = yes -a $ol_enable_ldap = no ; then
 	AC_MSG_ERROR([--enable-meta requires --enable-ldap])
 fi
@@ -534,6 +530,7 @@ BUILD_PROXYCACHE=no
 BUILD_REFINT=no
 BUILD_RWM=no
 BUILD_SYNCPROV=no
+BUILD_TRANSLUCENT=no
 BUILD_UNIQUE=no
 
 SLAPD_DYNAMIC_OVERLAYS=
@@ -819,13 +816,16 @@ AC_CHECK_HEADERS(	\
 	winsock2.h		\
 )
 
-
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
 
+AC_CHECK_FUNCS( sigaction sigset )
+
 dnl HP-UX requires -lV3
 dnl this is not needed on newer versions of HP-UX
-AC_CHECK_LIB(V3, sigset)
+if test $ac_cv_func_sigaction = no && test $ac_cv_func_sigaction = no ; then
+	AC_CHECK_LIB(V3, sigset)
+fi
 
 dnl The following is INTENTIONALLY scripted out because shell does not
 dnl support variable names with the '@' character, which is what
@@ -2425,6 +2425,12 @@ AC_DEFINE(LBER_TAG_T,long)
 dnl ----------------------------------------------------------------
 dnl Checks for library functions.
 AC_FUNC_MEMCMP
+
+if test $ac_cv_func_memcmp_clean = no ; then
+	AC_DEFINE(NEED_MEMCMP_REPLACEMENT,1,
+		[define if memcmp is not 8-bit clean or is otherwise broken])
+fi
+
 dnl AM_FUNC_MKTIME dnl checks for sys/time.h and unistd.h
 AC_FUNC_STRFTIME
 dnl AM_FUNC_STRTOD
@@ -2483,9 +2489,7 @@ AC_CHECK_FUNCS(		\
 	setsid			\
 	setuid			\
 	seteuid			\
-	sigaction		\
 	signal			\
-	sigset			\
 	strdup			\
 	strpbrk			\
 	strrchr			\
@@ -2772,17 +2776,6 @@ if test "$ol_link_sql" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_SQL,$MFLAG,[define to support SQL backend])
 fi
 
-if test "$ol_enable_chain" != no ; then
-	BUILD_CHAIN=$ol_enable_chain
-	if test "$ol_enable_chain" = mod ; then
-		MFLAG=SLAPD_MOD_DYNAMIC
-		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS chain.la"
-	else
-		MFLAG=SLAPD_MOD_STATIC
-	fi
-	AC_DEFINE_UNQUOTED(SLAPD_OVER_CHAIN,$MFLAG,[define for Dynamic Group overlay])
-fi
-
 if test "$ol_enable_denyop" != no ; then
 	BUILD_DENYOP=$ol_enable_denyop
 	if test "$ol_enable_denyop" = mod ; then
@@ -2883,6 +2876,17 @@ if test "$ol_enable_syncprov" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_SYNCPROV,$MFLAG,[define for Syncrepl Provider overlay])
 fi
 
+if test "$ol_enable_translucent" != no ; then
+	BUILD_TRANSLUCENT=$ol_enable_translucent
+	if test "$ol_enable_translucent" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS translucent.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_TRANSLUCENT,$MFLAG,[define for Translucent Proxy overlay])
+fi
+
 if test "$ol_enable_unique" != no ; then
 	BUILD_UNIQUE=$ol_enable_unique
 	if test "$ol_enable_unique" = mod ; then
@@ -2960,6 +2964,7 @@ dnl overlays
   AC_SUBST(BUILD_REFINT)
   AC_SUBST(BUILD_RWM)
   AC_SUBST(BUILD_SYNCPROV)
+  AC_SUBST(BUILD_TRANSLUCENT)
   AC_SUBST(BUILD_UNIQUE)
 AC_SUBST(BUILD_SLURPD)
 
@@ -3076,7 +3081,7 @@ cat > $BACKENDSC << ENDX
 
 ENDX
 if test "${STATIC_BACKENDS}"; then
-	for b in ${STATIC_BACKENDS}; do
+	for b in config ${STATIC_BACKENDS}; do
 		bb=`echo "${b}" | sed -e 's/back-//'`
 		cat >> $BACKENDSC << ENDX
 extern BI_init ${bb}_back_initialize;
@@ -3088,7 +3093,7 @@ ENDX
 BackendInfo slap_binfo[[]] = {
 ENDX
 
-	for b in ${STATIC_BACKENDS}; do
+	for b in config ${STATIC_BACKENDS}; do
 		bb=`echo "${b}" | sed -e 's/back-//'`
 		echo "    Add ${bb} ..."
 		cat >> $BACKENDSC << ENDX

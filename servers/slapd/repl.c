@@ -42,6 +42,7 @@
 int
 add_replica_info(
     Backend     *be,
+    const char  *uri, 
     const char  *host 
 )
 {
@@ -59,7 +60,8 @@ add_replica_info(
 
 	be->be_replica[ i ] 
 		= ch_calloc( sizeof( struct slap_replica_info ), 1 );
-	be->be_replica[ i ]->ri_host = ch_strdup( host );
+	be->be_replica[ i ]->ri_uri = uri;
+	be->be_replica[ i ]->ri_host = host;
 	be->be_replica[ i ]->ri_nsuffix = NULL;
 	be->be_replica[ i ]->ri_attrs = NULL;
 	be->be_replica[ i + 1 ] = NULL;

@@ -298,6 +298,26 @@ dup_comp_filter (
 	return( rc );
 }
 
+int
+get_aliased_filter_aa ( Operation* op, AttributeAssertion* a_assert, AttributeAliasing* aa, const char** text )
+{
+	int rc;
+	struct berval assert_bv;
+	ComponentAssertion* ca;
+
+	Debug( LDAP_DEBUG_FILTER, "get_aliased_filter\n", 0, 0, 0 );
+
+	if ( !aa->aa_cf  )
+		return LDAP_PROTOCOL_ERROR;
+
+	assert_bv = a_assert->aa_value;
+	/*
+	 * Duplicate aa->aa_cf to ma->ma_cf by replacing the
+	 * the component assertion value in assert_bv
+	 * Multiple values may be separated with '$'
+	 */
+	return dup_comp_filter ( op, &assert_bv, aa->aa_cf, &a_assert->aa_cf );
+}
 
 int
 get_aliased_filter( Operation* op,
@@ -1369,4 +1389,11 @@ component_free( ComponentFilter *f ) {
 	free_comp_filter( f );
 }
 
+void
+free_ComponentData( Attribute *a ) {
+	if ( a->a_comp_data->cd_mem_op )
+		component_destructor( a->a_comp_data->cd_mem_op );
+	free ( a->a_comp_data );
+	a->a_comp_data = NULL;
+}
 #endif

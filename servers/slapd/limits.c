@@ -22,6 +22,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
+#include "lutil.h"
 
 /* define to get an error if requesting limit higher than hard */
 #undef ABOVE_HARD_LIMIT_IS_ERROR
@@ -899,6 +900,177 @@ limits_parse_one(
 	return 0;
 }
 
+static const char *lmpats[] = {
+	"exact",
+	"exact",
+	"onelvel",
+	"subtree",
+	"children",
+	"regex",
+	"anonymous",
+	"users",
+	"*"
+};
+
+/* Caller must provide an adequately sized buffer in bv */
+void
+limits_unparse( struct slap_limits *lim, struct berval *bv )
+{
+	struct berval btmp;
+	char *ptr;
+	int lm;
+
+	if ( !bv || !bv->bv_val ) return;
+
+	ptr = bv->bv_val;
+
+	if (( lim->lm_flags & SLAP_LIMITS_TYPE_MASK ) == SLAP_LIMITS_TYPE_GROUP ) {
+		ptr = lutil_strcopy( ptr, "group/" );
+		ptr = lutil_strcopy( ptr, lim->lm_group_oc->soc_cname.bv_val );
+		*ptr++ = '/';
+		ptr = lutil_strcopy( ptr, lim->lm_group_ad->ad_cname.bv_val );
+		ptr = lutil_strcopy( ptr, "=\"" );
+		ptr = lutil_strcopy( ptr, lim->lm_pat.bv_val );
+		*ptr++ = '"';
+	} else {
+		lm = lim->lm_flags & SLAP_LIMITS_MASK;
+		switch( lm ) {
+		case SLAP_LIMITS_ANONYMOUS:
+		case SLAP_LIMITS_USERS:
+		case SLAP_LIMITS_ANY:
+			ptr = lutil_strcopy( ptr, lmpats[lm] );
+			break;
+		case SLAP_LIMITS_UNDEFINED:
+		case SLAP_LIMITS_EXACT:
+		case SLAP_LIMITS_ONE:
+		case SLAP_LIMITS_SUBTREE:
+		case SLAP_LIMITS_CHILDREN:
+		case SLAP_LIMITS_REGEX:
+			ptr = lutil_strcopy( ptr, "dn." );
+			ptr = lutil_strcopy( ptr, lmpats[lm] );
+			*ptr++ = '=';
+			*ptr++ = '"';
+			ptr = lutil_strcopy( ptr, lim->lm_pat.bv_val );
+			*ptr++ = '"';
+			break;
+		}
+	}
+	*ptr++ = ' ';
+	bv->bv_len = ptr - bv->bv_val;
+	btmp.bv_val = ptr;
+	btmp.bv_len = 0;
+	limits_unparse_one( &lim->lm_limits, SLAP_LIMIT_SIZE|SLAP_LIMIT_TIME, &btmp );
+	bv->bv_len += btmp.bv_len;
+}
+
+/* Caller must provide an adequately sized buffer in bv */
+void
+limits_unparse_one( struct slap_limits_set *lim, int which, struct berval *bv )
+{
+	char *ptr;
+
+	if ( !bv || !bv->bv_val ) return;
+
+	ptr = bv->bv_val;
+
+	if ( which & SLAP_LIMIT_SIZE ) {
+		if ( lim->lms_s_soft != SLAPD_DEFAULT_SIZELIMIT ) {
+
+			/* If same as global limit, drop it */
+			if ( lim != &frontendDB->be_def_limit &&
+				lim->lms_s_soft == frontendDB->be_def_limit.lms_s_soft )
+				goto s_hard;
+			/* If there's also a hard limit, fully qualify this one */
+			else if ( lim->lms_s_hard )
+				ptr = lutil_strcopy( ptr, " size.soft=" );
+
+			/* If doing both size & time, qualify this */
+			else if ( which & SLAP_LIMIT_TIME )
+				ptr = lutil_strcopy( ptr, " size=" );
+
+			if ( lim->lms_s_soft == -1 )
+				ptr = lutil_strcopy( ptr, "unlimited" );
+			else
+				ptr += sprintf( ptr, "%d", lim->lms_s_soft );
+			*ptr++ = ' ';
+		}
+s_hard:
+		if ( lim->lms_s_hard ) {
+			ptr = lutil_strcopy( ptr, " size.hard=" );
+			if ( lim->lms_s_hard == -1 )
+				ptr = lutil_strcopy( ptr, "unlimited" );
+			else
+				ptr += sprintf( ptr, "%d", lim->lms_s_hard );
+			*ptr++ = ' ';
+		}
+		if ( lim->lms_s_unchecked != -1 ) {
+			ptr = lutil_strcopy( ptr, " size.unchecked=" );
+			if ( lim->lms_s_unchecked == 0 )
+				ptr = lutil_strcopy( ptr, "disabled" );
+			else
+				ptr += sprintf( ptr, "%d", lim->lms_s_unchecked );
+			*ptr++ = ' ';
+		}
+		if ( lim->lms_s_pr_hide ) {
+			ptr = lutil_strcopy( ptr, " size.pr=noEstimate " );
+		}
+		if ( lim->lms_s_pr ) {
+			ptr = lutil_strcopy( ptr, " size.pr=" );
+			if ( lim->lms_s_pr == -1 )
+				ptr = lutil_strcopy( ptr, "unlimited" );
+			else
+				ptr += sprintf( ptr, "%d", lim->lms_s_pr );
+			*ptr++ = ' ';
+		}
+		if ( lim->lms_s_pr_total ) {
+			ptr = lutil_strcopy( ptr, " size.prtotal=" );
+			if ( lim->lms_s_pr_total == -1 )
+				ptr = lutil_strcopy( ptr, "unlimited" );
+			else if ( lim->lms_s_pr_total == -2 )
+				ptr = lutil_strcopy( ptr, "disabled" );
+			else 
+				ptr += sprintf( ptr, "%d", lim->lms_s_pr_total );
+			*ptr++ = ' ';
+		}
+	}
+	if ( which & SLAP_LIMIT_TIME ) {
+		if ( lim->lms_t_soft != SLAPD_DEFAULT_TIMELIMIT ) {
+
+			/* If same as global limit, drop it */
+			if ( lim != &frontendDB->be_def_limit &&
+				lim->lms_t_soft == frontendDB->be_def_limit.lms_t_soft )
+				goto t_hard;
+
+			/* If there's also a hard limit, fully qualify this one */
+			else if ( lim->lms_t_hard ) 
+				ptr = lutil_strcopy( ptr, " time.soft=" );
+
+			/* If doing both size & time, qualify this */
+			else if ( which & SLAP_LIMIT_SIZE )
+				ptr = lutil_strcopy( ptr, " time=" );
+
+			if ( lim->lms_t_soft == -1 )
+				ptr = lutil_strcopy( ptr, "unlimited" );
+			else
+				ptr += sprintf( ptr, "%d", lim->lms_t_soft );
+			*ptr++ = ' ';
+		}
+t_hard:
+		if ( lim->lms_t_hard ) {
+			ptr = lutil_strcopy( ptr, " time.hard=" );
+			if ( lim->lms_t_hard == -1 )
+				ptr = lutil_strcopy( ptr, "unlimited" );
+			else
+				ptr += sprintf( ptr, "%d", lim->lms_t_hard );
+			*ptr++ = ' ';
+		}
+	}
+	if ( ptr != bv->bv_val ) {
+		ptr--;
+		*ptr = '\0';
+		bv->bv_len = ptr - bv->bv_val;
+	}
+}
 
 int
 limits_check( Operation *op, SlapReply *rs )

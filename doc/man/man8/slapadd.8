@@ -9,6 +9,7 @@ slapadd \- Add entries to a SLAPD database
 .B [\-v]
 .B [\-c]
 .B [\-u]
+.B [\-q]
 .B [\-w]
 .B [\-d level]
 .B [\-b suffix]
@@ -45,6 +46,12 @@ enable continue (ignore errors) mode.
 .TP
 .B \-u
 enable dry-run (don't write to backend) mode.
+.TP
+.B \-q
+enable quick (fewer integrity checks) mode.  Does fewer consistency checks
+on the input data, and no consistency checks when writing the database.
+Improves the load time but if any errors or interruptions occur the resulting
+database will be unusable.
 .TP
 .BI \-w
 write syncrepl context information.

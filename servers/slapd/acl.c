@@ -394,7 +394,7 @@ vd_access:
 		"=> access_allowed: %s access %s by %s\n",
 		access2str( access ),
 		ACL_GRANT(mask, access) ? "granted" : "denied",
-		accessmask2str( mask, accessmaskbuf ) );
+		accessmask2str( mask, accessmaskbuf, 1 ) );
 
 	ret = ACL_GRANT(mask, access);
 
@@ -678,7 +678,7 @@ acl_mask(
 		"=> acl_mask: to %s by \"%s\", (%s) \n",
 		val ? "value" : "all values",
 		op->o_ndn.bv_val ?  op->o_ndn.bv_val : "",
-		accessmask2str( *mask, accessmaskbuf ) );
+		accessmask2str( *mask, accessmaskbuf, 1) );
 
 
 	if( state && ( state->as_recorded & ACL_STATE_RECORDED_VD )
@@ -1543,8 +1543,8 @@ dn_match_cleanup:;
 					}
 				}
 				Debug(LDAP_DEBUG_ACL, "<= aci_mask grant %s deny %s\n",
-					  accessmask2str(tgrant,accessmaskbuf), 
-					  accessmask2str(tdeny, accessmaskbuf1), 0);
+					  accessmask2str(tgrant,accessmaskbuf, 1), 
+					  accessmask2str(tdeny, accessmaskbuf1, 1), 0);
 
 			}
 			/* If the entry level aci didn't contain anything valid for the 
@@ -1584,8 +1584,8 @@ dn_match_cleanup:;
 								}
 							}
 							Debug(LDAP_DEBUG_ACL, "<= aci_mask grant %s deny %s\n", 
-								accessmask2str(tgrant,accessmaskbuf),
-								accessmask2str(tdeny, accessmaskbuf1), 0);
+								accessmask2str(tgrant,accessmaskbuf, 1),
+								accessmask2str(tdeny, accessmaskbuf1, 1), 0);
 						}
 						break;
 
@@ -1651,7 +1651,7 @@ dn_match_cleanup:;
 
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_mask: [%d] applying %s (%s)\n",
-			i, accessmask2str( modmask, accessmaskbuf ), 
+			i, accessmask2str( modmask, accessmaskbuf, 1 ), 
 			b->a_type == ACL_CONTINUE
 				? "continue"
 				: b->a_type == ACL_BREAK
@@ -1681,7 +1681,7 @@ dn_match_cleanup:;
 
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_mask: [%d] mask: %s\n",
-			i, accessmask2str(*mask, accessmaskbuf), 0 );
+			i, accessmask2str(*mask, accessmaskbuf, 1), 0 );
 
 		if( b->a_type == ACL_CONTINUE ) {
 			continue;
@@ -1699,7 +1699,7 @@ dn_match_cleanup:;
 
 	Debug( LDAP_DEBUG_ACL,
 		"<= acl_mask: no more <who> clauses, returning %s (stop)\n",
-		accessmask2str(*mask, accessmaskbuf), 0, 0 );
+		accessmask2str(*mask, accessmaskbuf, 1), 0, 0 );
 	return ACL_STOP;
 }
 
@@ -2680,13 +2680,17 @@ dynacl_aci_parse( const char *fname, int lineno, slap_style_t sty, const char *r
 }
 
 static int
-dynacl_aci_print( void *priv )
+dynacl_aci_unparse( void *priv, struct berval *bv )
 {
 	AttributeDescription	*ad = ( AttributeDescription * )priv;
+	char *ptr;
 
 	assert( ad );
 
-	fprintf( stderr, " aci=%s", ad->ad_cname.bv_val );
+	bv->bv_val = ch_malloc( STRLENOF(" aci=") + ad->ad_cname.bv_len + 1 );
+	ptr = lutil_strcopy( bv->bv_val, " aci=" );
+	ptr = lutil_strcopy( ptr, ad->ad_cname.bv_val );
+	bv->bv_len = ptr - bv->bv_val;
 
 	return 0;
 }
@@ -2736,8 +2740,8 @@ dynacl_aci_mask(
 		}
 		
 		Debug( LDAP_DEBUG_ACL, "<= aci_mask grant %s deny %s\n",
-			  accessmask2str( tgrant, accessmaskbuf ), 
-			  accessmask2str( tdeny, accessmaskbuf1 ), 0 );
+			  accessmask2str( tgrant, accessmaskbuf, 1 ), 
+			  accessmask2str( tdeny, accessmaskbuf1, 1 ), 0 );
 	}
 
 	/* If the entry level aci didn't contain anything valid for the 
@@ -2803,8 +2807,8 @@ dynacl_aci_mask(
 						}
 					}
 					Debug( LDAP_DEBUG_ACL, "<= aci_mask grant %s deny %s\n", 
-						accessmask2str( tgrant, accessmaskbuf ),
-						accessmask2str( tdeny, accessmaskbuf1 ), 0 );
+						accessmask2str( tgrant, accessmaskbuf, 1 ),
+						accessmask2str( tdeny, accessmaskbuf1, 1 ), 0 );
 				}
 				break;
 
@@ -2844,7 +2848,7 @@ dynacl_aci_mask(
 static slap_dynacl_t	dynacl_aci = {
 	"aci",
 	dynacl_aci_parse,
-	dynacl_aci_print,
+	dynacl_aci_unparse,
 	dynacl_aci_mask,
 	NULL,
 	NULL,

@@ -661,7 +661,14 @@ avl_find2( Avlnode *root, const void *data, AVL_CMP fcmp )
 void*
 avl_find( Avlnode *root, const void* data, AVL_CMP fcmp )
 {
-	root = avl_find2( root, data, fcmp );
+	int	cmp;
+
+	while ( root != 0 && (cmp = (*fcmp)( data, root->avl_data )) != 0 ) {
+		if ( cmp < 0 )
+			root = root->avl_left;
+		else
+			root = root->avl_right;
+	}
 
 	return( root ? root->avl_data : 0 );
 }

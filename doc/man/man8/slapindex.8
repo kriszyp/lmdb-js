@@ -8,6 +8,7 @@ slapindex \- SLAPD index to LDIF utility
 .B SBINDIR/slapindex
 .B [\-v]
 .B [\-c]
+.B [\-q]
 .B [\-d level]
 .B [\-b suffix]
 .B [\-n dbnum]
@@ -30,6 +31,11 @@ enable verbose mode.
 .TP
 .B \-c
 enable continue (ignore errors) mode.
+.TP
+.B \-q
+enable quick (fewer integrity checks) mode. Performs no consistency checks
+when writing the database. Improves indexing time, but if any errors or
+interruptions occur the database will most likely be unusable.
 .TP
 .BI \-d " level"
 enable debugging messages as defined by the specified

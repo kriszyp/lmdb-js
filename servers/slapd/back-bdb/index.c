@@ -166,7 +166,6 @@ static int indexer(
 	slap_mask_t mask )
 {
 	int rc, i;
-	const char *text;
 	DB *db;
 	struct berval *keys;
 
@@ -269,10 +268,6 @@ static int index_at_values(
 {
 	int rc;
 	slap_mask_t mask = 0;
-#ifdef LDAP_COMP_MATCH
-	ComponentReference* cr_list, *cr;
-	AttributeDescription *comp_ad;
-#endif
 
 	if( type->sat_sup ) {
 		/* recurse */
@@ -287,6 +282,8 @@ static int index_at_values(
 	if( type->sat_ad ) {
 #ifdef LDAP_COMP_MATCH
 		/* component indexing */
+		ComponentReference* cr_list, *cr;
+
 		bdb_attr_mask_cr( op->o_bd->be_private, type->sat_ad, &mask, &cr_list );
 		if ( cr_list ) {
 			for( cr = cr_list ; cr ; cr = cr->cr_next ) {

@@ -845,11 +845,110 @@ ldap_int_sasl_external(
 }
 
 
+#define GOT_MINSSF	1
+#define	GOT_MAXSSF	2
+#define	GOT_MAXBUF	4
+
+static struct {
+	struct berval key;
+	int sflag;
+	int ival;
+	int idef;
+} sprops[] = {
+	{ BER_BVC("none"), 0, 0, 0 },
+	{ BER_BVC("nodict"), SASL_SEC_NODICTIONARY, 0, 0 },
+	{ BER_BVC("noplain"), SASL_SEC_NOPLAINTEXT, 0, 0 },
+	{ BER_BVC("noactive"), SASL_SEC_NOACTIVE, 0, 0 },
+	{ BER_BVC("passcred"), SASL_SEC_PASS_CREDENTIALS, 0, 0 },
+	{ BER_BVC("forwardsec"), SASL_SEC_FORWARD_SECRECY, 0, 0 },
+	{ BER_BVC("noanonymous"), SASL_SEC_NOANONYMOUS, 0, 0 },
+	{ BER_BVC("minssf="), 0, GOT_MINSSF, 0 },
+	{ BER_BVC("maxssf="), 0, GOT_MAXSSF, INT_MAX },
+	{ BER_BVC("maxbufsize="), 0, GOT_MAXBUF, 65536 },
+	{ BER_BVNULL, 0, 0 }
+};
+
+void ldap_pvt_sasl_secprops_unparse(
+	sasl_security_properties_t *secprops,
+	struct berval *out )
+{
+	int i, l = 0;
+	int comma;
+	char *ptr;
+
+	if ( secprops == NULL || out == NULL ) {
+		return;
+	}
+
+	comma = 0;
+	for ( i=0; !BER_BVISNULL( &sprops[i].key ); i++ ) {
+		if ( sprops[i].ival ) {
+			int v;
+
+			switch( sprops[i].ival ) {
+			case GOT_MINSSF: v = secprops->min_ssf; break;
+			case GOT_MAXSSF: v = secprops->max_ssf; break;
+			case GOT_MAXBUF: v = secprops->maxbufsize; break;
+			}
+			/* It is the default, ignore it */
+			if ( v == sprops[i].idef ) continue;
+
+			l += sprops[i].key.bv_len + 24;
+		} else if ( sprops[i].sflag ) {
+			if ( sprops[i].sflag & secprops->security_flags ) {
+				l += sprops[i].key.bv_len;
+			}
+		} else if ( secprops->security_flags == 0 ) {
+			l += sprops[i].key.bv_len;
+		}
+		if ( comma ) l++;
+		comma = 1;
+	}
+	l++;
+
+	out->bv_val = LDAP_MALLOC( l );
+	if ( out->bv_val == NULL ) {
+		out->bv_len = 0;
+		return;
+	}
+
+	ptr = out->bv_val;
+	comma = 0;
+	for ( i=0; !BER_BVISNULL( &sprops[i].key ); i++ ) {
+		if ( sprops[i].ival ) {
+			int v;
+
+			switch( sprops[i].ival ) {
+			case GOT_MINSSF: v = secprops->min_ssf; break;
+			case GOT_MAXSSF: v = secprops->max_ssf; break;
+			case GOT_MAXBUF: v = secprops->maxbufsize; break;
+			}
+			/* It is the default, ignore it */
+			if ( v == sprops[i].idef ) continue;
+
+			if ( comma ) *ptr++ = ',';
+			ptr += sprintf(ptr, "%s%d", sprops[i].key.bv_val, v );
+			comma = 1;
+		} else if ( sprops[i].sflag ) {
+			if ( sprops[i].sflag & secprops->security_flags ) {
+				if ( comma ) *ptr++ = ',';
+				ptr += sprintf(ptr, "%s", sprops[i].key.bv_val );
+				comma = 1;
+			}
+		} else if ( secprops->security_flags == 0 ) {
+			if ( comma ) *ptr++ = ',';
+			ptr += sprintf(ptr, "%s", sprops[i].key.bv_val );
+			comma = 1;
+		}
+	}
+	out->bv_len = ptr - out->bv_val;
+}
+
 int ldap_pvt_sasl_secprops(
 	const char *in,
 	sasl_security_properties_t *secprops )
 {
-	int i;
+	int i, j, l;
 	char **props = ldap_str2charray( in, "," );
 	unsigned sflags = 0;
 	int got_sflags = 0;
@@ -865,71 +964,35 @@ int ldap_pvt_sasl_secprops(
 	}
 
 	for( i=0; props[i]; i++ ) {
-		if( !strcasecmp(props[i], "none") ) {
-			got_sflags++;
-
-		} else if( !strcasecmp(props[i], "noplain") ) {
-			got_sflags++;
-			sflags |= SASL_SEC_NOPLAINTEXT;
-
-		} else if( !strcasecmp(props[i], "noactive") ) {
-			got_sflags++;
-			sflags |= SASL_SEC_NOACTIVE;
-
-		} else if( !strcasecmp(props[i], "nodict") ) {
-			got_sflags++;
-			sflags |= SASL_SEC_NODICTIONARY;
-
-		} else if( !strcasecmp(props[i], "forwardsec") ) {
-			got_sflags++;
-			sflags |= SASL_SEC_FORWARD_SECRECY;
-
-		} else if( !strcasecmp(props[i], "noanonymous")) {
-			got_sflags++;
-			sflags |= SASL_SEC_NOANONYMOUS;
-
-		} else if( !strcasecmp(props[i], "passcred") ) {
-			got_sflags++;
-			sflags |= SASL_SEC_PASS_CREDENTIALS;
-
-		} else if( !strncasecmp(props[i],
-			"minssf=", sizeof("minssf")) )
-		{
-			if( isdigit( (unsigned char) props[i][sizeof("minssf")] ) ) {
-				got_min_ssf++;
-				min_ssf = atoi( &props[i][sizeof("minssf")] );
+		l = strlen( props[i] );
+		for ( j=0; !BER_BVISNULL( &sprops[j].key ); j++ ) {
+			if ( l < sprops[j].key.bv_len ) continue;
+			if ( strncasecmp( props[i], sprops[j].key.bv_val,
+				sprops[j].key.bv_len )) continue;
+			if ( sprops[j].ival ) {
+				int v;
+				if ( props[i][sprops[j].key.bv_len] != '=' ) continue;
+				if ( !isdigit( props[i][sprops[j].key.bv_len+1] )) continue;
+				v = atoi( props[i]+sprops[j].key.bv_len+1 );
+				switch( sprops[j].ival ) {
+				case GOT_MINSSF:
+					min_ssf = v; got_min_ssf++; break;
+				case GOT_MAXSSF:
+					max_ssf = v; got_max_ssf++; break;
+				case GOT_MAXBUF:
+					maxbufsize = v; got_maxbufsize++; break;
+				}
 			} else {
-				return LDAP_NOT_SUPPORTED;
+				if ( props[i][sprops[j].key.bv_len] ) continue;
+				if ( sprops[j].sflag )
+					sflags |= sprops[j].sflag;
+				else
+					sflags = 0;
+				got_sflags++;
 			}
-
-		} else if( !strncasecmp(props[i],
-			"maxssf=", sizeof("maxssf")) )
-		{
-			if( isdigit( (unsigned char) props[i][sizeof("maxssf")] ) ) {
-				got_max_ssf++;
-				max_ssf = atoi( &props[i][sizeof("maxssf")] );
-			} else {
-				return LDAP_NOT_SUPPORTED;
-			}
-
-		} else if( !strncasecmp(props[i],
-			"maxbufsize=", sizeof("maxbufsize")) )
-		{
-			if( isdigit( (unsigned char) props[i][sizeof("maxbufsize")] ) ) {
-				got_maxbufsize++;
-				maxbufsize = atoi( &props[i][sizeof("maxbufsize")] );
-			} else {
-				return LDAP_NOT_SUPPORTED;
-			}
-
-			if( maxbufsize && (( maxbufsize < SASL_MIN_BUFF_SIZE )
-				|| (maxbufsize > SASL_MAX_BUFF_SIZE )))
-			{
-				/* bad maxbufsize */
-				return LDAP_PARAM_ERROR;
-			}
-
-		} else {
+			break;
+		}
+		if ( BER_BVISNULL( &sprops[j].key )) {
 			return LDAP_NOT_SUPPORTED;
 		}
 	}

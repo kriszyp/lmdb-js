@@ -1652,13 +1652,38 @@ ldap_pvt_tls_get_my_dn( void *s, struct berval *dn, LDAPDN_rewrite_dummy *func, 
 }
 
 int
+ldap_start_tls( LDAP *ld,
+	LDAPControl **serverctrls,
+	LDAPControl **clientctrls,
+	int *msgidp )
+{
+	return ldap_extended_operation( ld, LDAP_EXOP_START_TLS,
+		NULL, serverctrls, clientctrls, msgidp );
+}
+
+int
+ldap_install_tls( LDAP *ld )
+{
+#ifndef HAVE_TLS
+	return LDAP_NOT_SUPPORTED;
+#else
+	if ( ld->ld_sb != NULL && ldap_pvt_tls_inplace( ld->ld_sb ) != 0 ) {
+		return LDAP_LOCAL_ERROR;
+	}
+
+	return ldap_int_tls_start( ld, ld->ld_defconn, NULL );
+#endif
+}
+
+int
 ldap_start_tls_s ( LDAP *ld,
 	LDAPControl **serverctrls,
 	LDAPControl **clientctrls )
 {
+#ifndef HAVE_TLS
+	return LDAP_NOT_SUPPORTED;
+#else
 	int rc;
-
-#ifdef HAVE_TLS
 	char *rspoid = NULL;
 	struct berval *rspdata = NULL;
 
@@ -1683,9 +1708,7 @@ ldap_start_tls_s ( LDAP *ld,
 		rc = ldap_int_tls_start( ld, ld->ld_defconn, NULL );
 	}
 
-#else
-	rc = LDAP_NOT_SUPPORTED;
-#endif
 	return rc;
+#endif
 }
 

@@ -169,7 +169,7 @@ slapacl( int argc, char **argv )
 					desc->ad_cname.bv_val,
 					val.bv_val ? "=" : "",
 					val.bv_val ? val.bv_val : "",
-					accessmask2str( mask, accessmaskbuf ) );
+					accessmask2str( mask, accessmaskbuf, 1 ) );
 		}
 		rc = 0;
 		attr = NULL;

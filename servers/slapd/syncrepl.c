@@ -244,9 +244,9 @@ ldap_sync_search(
 	c[0].ldctl_iscritical = si->si_type < 0;
 	ctrls[0] = &c[0];
 
-	if ( si->si_authzId ) {
+	if ( si->si_bindconf.sb_authzId ) {
 		c[1].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
-		ber_str2bv( si->si_authzId, 0, 0, &c[1].ldctl_value );
+		ber_str2bv( si->si_bindconf.sb_authzId, 0, 0, &c[1].ldctl_value );
 		c[1].ldctl_iscritical = 1;
 		ctrls[1] = &c[1];
 		ctrls[2] = NULL;
@@ -295,39 +295,40 @@ do_syncrep1(
 
 	/* Bind to master */
 
-	if ( si->si_tls ) {
+	if ( si->si_bindconf.sb_tls ) {
 		rc = ldap_start_tls_s( si->si_ld, NULL, NULL );
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY,
 				"%s: ldap_start_tls failed (%d)\n",
-				si->si_tls == SYNCINFO_TLS_CRITICAL ? "Error" : "Warning",
+				si->si_bindconf.sb_tls == SB_TLS_CRITICAL ? "Error" : "Warning",
 				rc, 0 );
-			if( si->si_tls == SYNCINFO_TLS_CRITICAL ) goto done;
+			if( si->si_bindconf.sb_tls == SB_TLS_CRITICAL ) goto done;
 		}
 	}
 
-	if ( si->si_bindmethod == LDAP_AUTH_SASL ) {
+	if ( si->si_bindconf.sb_method == LDAP_AUTH_SASL ) {
 #ifdef HAVE_CYRUS_SASL
 		void *defaults;
 
-		if ( si->si_secprops != NULL ) {
+		if ( si->si_bindconf.sb_secprops != NULL ) {
 			rc = ldap_set_option( si->si_ld,
-				LDAP_OPT_X_SASL_SECPROPS, si->si_secprops);
+				LDAP_OPT_X_SASL_SECPROPS, si->si_bindconf.sb_secprops);
 
 			if( rc != LDAP_OPT_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY, "Error: ldap_set_option "
 					"(%s,SECPROPS,\"%s\") failed!\n",
-					si->si_provideruri.bv_val, si->si_secprops, 0 );
+					si->si_provideruri.bv_val, si->si_bindconf.sb_secprops, 0 );
 				goto done;
 			}
 		}
 
-		defaults = lutil_sasl_defaults( si->si_ld, si->si_saslmech,
-			si->si_realm, si->si_authcId, si->si_passwd, si->si_authzId );
+		defaults = lutil_sasl_defaults( si->si_ld, si->si_bindconf.sb_saslmech,
+			si->si_bindconf.sb_realm, si->si_bindconf.sb_authcId,
+			si->si_bindconf.sb_cred, si->si_bindconf.sb_authzId );
 
 		rc = ldap_sasl_interactive_bind_s( si->si_ld,
-				si->si_binddn,
-				si->si_saslmech,
+				si->si_bindconf.sb_binddn,
+				si->si_bindconf.sb_saslmech,
 				NULL, NULL,
 				LDAP_SASL_QUIET,
 				lutil_sasl_interact,
@@ -346,7 +347,7 @@ do_syncrep1(
 
 			/* FIXME (see above comment) */
 			/* if Kerberos credentials cache is not active, retry */
-			if ( strcmp( si->si_saslmech, "GSSAPI" ) == 0 &&
+			if ( strcmp( si->si_bindconf.sb_saslmech, "GSSAPI" ) == 0 &&
 				rc == LDAP_LOCAL_ERROR )
 			{
 				rc = LDAP_SERVER_DOWN;
@@ -363,8 +364,8 @@ do_syncrep1(
 #endif
 
 	} else {
-		rc = ldap_bind_s( si->si_ld,
-			si->si_binddn, si->si_passwd, si->si_bindmethod );
+		rc = ldap_bind_s( si->si_ld, si->si_bindconf.sb_binddn,
+			si->si_bindconf.sb_cred, si->si_bindconf.sb_method );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
 				"ldap_bind_s failed (%d)\n", rc, 0, 0 );
@@ -527,6 +528,10 @@ do_syncrep2(
 			msg != NULL;
 			msg = ldap_next_message( si->si_ld, msg ) )
 		{
+			if ( slapd_shutdown ) {
+				rc = -2;
+				goto done;
+			}
 			switch( ldap_msgtype( msg ) ) {
 			case LDAP_RES_SEARCH_ENTRY:
 				ldap_get_entry_controls( si->si_ld, msg, &rctrls );
@@ -839,11 +844,14 @@ do_syncrepl(
 	if ( si == NULL )
 		return NULL;
 
+	ldap_pvt_thread_mutex_lock( &si->si_mutex );
+
 	switch( abs( si->si_type )) {
 	case LDAP_SYNC_REFRESH_ONLY:
 	case LDAP_SYNC_REFRESH_AND_PERSIST:
 		break;
 	default:
+		ldap_pvt_thread_mutex_unlock( &si->si_mutex );
 		return NULL;
 	}
 
@@ -854,6 +862,7 @@ do_syncrepl(
 			ldap_unbind( si->si_ld );
 			si->si_ld = NULL;
 		}
+		ldap_pvt_thread_mutex_unlock( &si->si_mutex );
 		return NULL;
 	}
 
@@ -947,6 +956,7 @@ do_syncrepl(
 	}
 	
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+	ldap_pvt_thread_mutex_unlock( &si->si_mutex );
 
 	return NULL;
 }
@@ -1143,7 +1153,7 @@ syncrepl_entry(
 	SlapReply	rs_add = {REP_RESULT};
 	SlapReply	rs_modify = {REP_RESULT};
 	Filter f = {0};
-	AttributeAssertion ava = {0};
+	AttributeAssertion ava = { NULL, BER_BVNULL, NULL };
 	int rc = LDAP_SUCCESS;
 	int ret = LDAP_SUCCESS;
 
@@ -1538,7 +1548,7 @@ syncrepl_del_nonpresent(
 
 	if ( uuids ) {
 		Filter uf;
-		AttributeAssertion eq;
+		AttributeAssertion eq = { NULL, BER_BVNULL, NULL };
 		int i;
 
 		op->ors_attrsonly = 1;
@@ -2074,30 +2084,13 @@ avl_ber_bvfree( void *v_bv )
 void
 syncinfo_free( syncinfo_t *sie )
 {
+ 	ldap_pvt_thread_mutex_destroy( &sie->si_mutex );
 	if ( !BER_BVISNULL( &sie->si_provideruri ) ) {
 		ch_free( sie->si_provideruri.bv_val );
 	}
-	if ( sie->si_binddn ) {
-		ch_free( sie->si_binddn );
-	}
-	if ( sie->si_passwd ) {
-		ch_free( sie->si_passwd );
-	}
-	if ( sie->si_saslmech ) {
-		ch_free( sie->si_saslmech );
-	}
-	if ( sie->si_secprops ) {
-		ch_free( sie->si_secprops );
-	}
-	if ( sie->si_realm ) {
-		ch_free( sie->si_realm );
-	}
-	if ( sie->si_authcId ) {
-		ch_free( sie->si_authcId );
-	}
-	if ( sie->si_authzId ) {
-		ch_free( sie->si_authzId );
-	}
+
+	bindconf_free( &sie->si_bindconf );
+
 	if ( sie->si_filterstr.bv_val ) {
 		ch_free( sie->si_filterstr.bv_val );
 	}

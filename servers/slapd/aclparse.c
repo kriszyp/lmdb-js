@@ -1699,7 +1699,7 @@ parse_acl(
 }
 
 char *
-accessmask2str( slap_mask_t mask, char *buf )
+accessmask2str( slap_mask_t mask, char *buf, int debug )
 {
 	int	none = 1;
 	char	*ptr = buf;
@@ -1741,6 +1741,10 @@ accessmask2str( slap_mask_t mask, char *buf )
 			ptr = lutil_strcopy( ptr, "unknown" );
 		}
 		
+		if ( !debug ) {
+			*ptr = '\0';
+			return buf;
+		}
 		*ptr++ = '(';
 	}
 
@@ -1795,7 +1799,7 @@ accessmask2str( slap_mask_t mask, char *buf )
 	} 
 
 	if ( none ) {
-		*ptr++ = '0';
+		ptr = buf;
 	}
 
 	if ( ACL_IS_LEVEL( mask ) ) {
@@ -2137,59 +2141,83 @@ str2access( const char *str )
 	return( ACL_INVALID_ACCESS );
 }
 
-#ifdef LDAP_DEBUG
+#define ACLBUF_MAXLEN	8192
 
-static void
-print_access( Access *b )
+static char aclbuf[ACLBUF_MAXLEN];
+
+static char *
+access2text( Access *b, char *ptr )
 {
 	char maskbuf[ACCESSMASK_MAXLEN];
 
-	fprintf( stderr, "\tby" );
+	ptr = lutil_strcopy( ptr, "\tby" );
 
 	if ( !BER_BVISEMPTY( &b->a_dn_pat ) ) {
+		*ptr++ = ' ';
 		if ( ber_bvccmp( &b->a_dn_pat, '*' ) ||
-			b->a_dn_style == ACL_STYLE_ANONYMOUS /* strcmp( b->a_dn_pat.bv_val, "anonymous" ) == 0 */ ||
-			b->a_dn_style == ACL_STYLE_USERS /* strcmp( b->a_dn_pat.bv_val, "users" ) == 0 */ ||
-			b->a_dn_style == ACL_STYLE_SELF /* strcmp( b->a_dn_pat.bv_val, "self" ) == 0 */ )
+			b->a_dn_style == ACL_STYLE_ANONYMOUS ||
+			b->a_dn_style == ACL_STYLE_USERS ||
+			b->a_dn_style == ACL_STYLE_SELF )
 		{
-			fprintf( stderr, " %s", b->a_dn_pat.bv_val );
+			ptr = lutil_strcopy( ptr, b->a_dn_pat.bv_val );
 
 		} else {
-			fprintf( stderr, " dn.%s=\"%s\"",
-				style_strings[b->a_dn_style], b->a_dn_pat.bv_val );
+			ptr = lutil_strcopy( ptr, "dn." );
+			ptr = lutil_strcopy( ptr, style_strings[b->a_dn_style] );
+			*ptr++ = '=';
+			*ptr++ = '"';
+			ptr = lutil_strcopy( ptr, b->a_dn_pat.bv_val );
+			*ptr++ = '"';
 		}
 	}
 
 	if ( b->a_dn_at != NULL ) {
-		fprintf( stderr, " dnattr=%s", b->a_dn_at->ad_cname.bv_val );
+		ptr = lutil_strcopy( ptr, " dnattr=" );
+		ptr = lutil_strcopy( ptr, b->a_dn_at->ad_cname.bv_val );
 	}
 
 	if ( !BER_BVISEMPTY( &b->a_group_pat ) ) {
-		fprintf( stderr, " group/%s/%s.%s=\"%s\"",
-			b->a_group_oc ? b->a_group_oc->soc_cname.bv_val : "groupOfNames",
-			b->a_group_at ? b->a_group_at->ad_cname.bv_val : "member",
-			style_strings[b->a_group_style],
-			b->a_group_pat.bv_val );
+		ptr = lutil_strcopy( ptr, " group/" );
+		ptr = lutil_strcopy( ptr, b->a_group_oc ?
+			b->a_group_oc->soc_cname.bv_val : "groupOfNames" );
+		*ptr++ = '/';
+		ptr = lutil_strcopy( ptr, b->a_group_at ?
+			b->a_group_at->ad_cname.bv_val : "member" );
+		*ptr++ = '.';
+		ptr = lutil_strcopy( ptr, style_strings[b->a_group_style] );
+		*ptr++ = '=';
+		*ptr++ = '"';
+		ptr = lutil_strcopy( ptr, b->a_group_pat.bv_val );
+		*ptr++ = '"';
 	}
 
 	if ( !BER_BVISEMPTY( &b->a_peername_pat ) ) {
-		fprintf( stderr, " peername=\"%s\"", b->a_peername_pat.bv_val );
+		ptr = lutil_strcopy( ptr, " peername=\"" );
+		ptr = lutil_strcopy( ptr, b->a_peername_pat.bv_val );
+		*ptr++ = '"';
 	}
 
 	if ( !BER_BVISEMPTY( &b->a_sockname_pat ) ) {
-		fprintf( stderr, " sockname=\"%s\"", b->a_sockname_pat.bv_val );
+		ptr = lutil_strcopy( ptr, " sockname=\"" );
+		ptr = lutil_strcopy( ptr, b->a_sockname_pat.bv_val );
+		*ptr++ = '"';
 	}
 
 	if ( !BER_BVISEMPTY( &b->a_domain_pat ) ) {
-		fprintf( stderr, " domain=%s", b->a_domain_pat.bv_val );
+		ptr = lutil_strcopy( ptr, " domain=" );
+		ptr = lutil_strcopy( ptr, b->a_domain_pat.bv_val );
 	}
 
 	if ( !BER_BVISEMPTY( &b->a_sockurl_pat ) ) {
-		fprintf( stderr, " sockurl=\"%s\"", b->a_sockurl_pat.bv_val );
+		ptr = lutil_strcopy( ptr, " sockurl=\"" );
+		ptr = lutil_strcopy( ptr, b->a_sockurl_pat.bv_val );
+		*ptr++ = '"';
 	}
 
 	if ( !BER_BVISEMPTY( &b->a_set_pat ) ) {
-		fprintf( stderr, " set=\"%s\"", b->a_set_pat.bv_val );
+		ptr = lutil_strcopy( ptr, " set=\"" );
+		ptr = lutil_strcopy( ptr, b->a_set_pat.bv_val );
+		*ptr++ = '"';
 	}
 
 #ifdef SLAP_DYNACL
@@ -2197,68 +2225,84 @@ print_access( Access *b )
 		slap_dynacl_t	*da;
 
 		for ( da = b->a_dynacl; da; da = da->da_next ) {
-			if ( da->da_print ) {
-				(void)( *da->da_print )( da->da_private );
+			if ( da->da_unparse ) {
+				struct berval bv;
+				(void)( *da->da_unparse )( da->da_private, &bv );
+				ptr = lutil_strcopy( ptr, bv.bv_val );
+				ch_free( bv.bv_val );
 			}
 		}
 	}
 #else /* ! SLAP_DYNACL */
 #ifdef SLAPD_ACI_ENABLED
 	if ( b->a_aci_at != NULL ) {
-		fprintf( stderr, " aci=%s", b->a_aci_at->ad_cname.bv_val );
+		ptr = lutil_strcopy( ptr, " aci=" );
+		ptr = lutil_strcopy( ptr, b->a_aci_at->ad_cname.bv_val );
 	}
 #endif
 #endif /* SLAP_DYNACL */
 
 	/* Security Strength Factors */
 	if ( b->a_authz.sai_ssf ) {
-		fprintf( stderr, " ssf=%u",
+		ptr += sprintf( ptr, " ssf=%u", 
 			b->a_authz.sai_ssf );
 	}
 	if ( b->a_authz.sai_transport_ssf ) {
-		fprintf( stderr, " transport_ssf=%u",
+		ptr += sprintf( ptr, " transport_ssf=%u",
 			b->a_authz.sai_transport_ssf );
 	}
 	if ( b->a_authz.sai_tls_ssf ) {
-		fprintf( stderr, " tls_ssf=%u",
+		ptr += sprintf( ptr, " tls_ssf=%u",
 			b->a_authz.sai_tls_ssf );
 	}
 	if ( b->a_authz.sai_sasl_ssf ) {
-		fprintf( stderr, " sasl_ssf=%u",
+		ptr += sprintf( ptr, " sasl_ssf=%u",
 			b->a_authz.sai_sasl_ssf );
 	}
 
-	fprintf( stderr, " %s%s",
-		b->a_dn_self ? "self" : "",
-		accessmask2str( b->a_access_mask, maskbuf ) );
+	*ptr++ = ' ';
+	if ( b->a_dn_self ) ptr = lutil_strcopy( ptr, "self" );
+	ptr = lutil_strcopy( ptr, accessmask2str( b->a_access_mask, maskbuf, 0 ));
+	if ( !maskbuf[0] ) ptr--;
 
 	if( b->a_type == ACL_BREAK ) {
-		fprintf( stderr, " break" );
+		ptr = lutil_strcopy( ptr, " break" );
 
 	} else if( b->a_type == ACL_CONTINUE ) {
-		fprintf( stderr, " continue" );
+		ptr = lutil_strcopy( ptr, " continue" );
 
 	} else if( b->a_type != ACL_STOP ) {
-		fprintf( stderr, " unknown-control" );
+		ptr = lutil_strcopy( ptr, " unknown-control" );
+	} else {
+		if ( !maskbuf[0] ) ptr = lutil_strcopy( ptr, " stop" );
 	}
+	*ptr++ = '\n';
 
-	fprintf( stderr, "\n" );
+	return ptr;
 }
 
-
-static void
-print_acl( Backend *be, AccessControl *a )
+void
+acl_unparse( AccessControl *a, struct berval *bv )
 {
+	Access *b;
+	char *ptr;
 	int		to = 0;
-	Access	*b;
+	struct berval abv;
 
-	fprintf( stderr, "%s ACL: access to",
-		be == NULL ? "Global" : "Backend" );
+	bv->bv_val = aclbuf;
+	bv->bv_len = 0;
 
-	if ( !BER_BVISEMPTY( &a->acl_dn_pat ) ) {
+	ptr = bv->bv_val;
+
+	ptr = lutil_strcopy( ptr, "to" );
+	if ( !BER_BVISNULL( &a->acl_dn_pat ) ) {
 		to++;
-		fprintf( stderr, " dn.%s=\"%s\"\n",
-			style_strings[a->acl_dn_style], a->acl_dn_pat.bv_val );
+		ptr = lutil_strcopy( ptr, " dn." );
+		ptr = lutil_strcopy( ptr, style_strings[a->acl_dn_style] );
+		*ptr++ = '=';
+		*ptr++ = '"';
+		ptr = lutil_strcopy( ptr, a->acl_dn_pat.bv_val );
+		ptr = lutil_strcopy( ptr, "\"\n" );
 	}
 
 	if ( a->acl_filter != NULL ) {
@@ -2266,7 +2310,10 @@ print_acl( Backend *be, AccessControl *a )
 
 		to++;
 		filter2bv( a->acl_filter, &bv );
-		fprintf( stderr, " filter=%s\n", bv.bv_val );
+		ptr = lutil_strcopy( ptr, " filter=\"" );
+		ptr = lutil_strcopy( ptr, bv.bv_val );
+		*ptr++ = '"';
+		*ptr++ = '\n';
 		ch_free( bv.bv_val );
 	}
 
@@ -2275,34 +2322,54 @@ print_acl( Backend *be, AccessControl *a )
 		AttributeName *an;
 		to++;
 
-		fprintf( stderr, " attrs=" );
+		ptr = lutil_strcopy( ptr, " attrs=" );
 		for ( an = a->acl_attrs; an && !BER_BVISNULL( &an->an_name ); an++ ) {
-			if ( ! first ) fprintf( stderr, "," );
+			if ( ! first ) *ptr++ = ',';
 			if (an->an_oc) {
-				fputc( an->an_oc_exclude ? '!' : '@', stderr);
-				fputs( an->an_oc->soc_cname.bv_val, stderr );
+				*ptr++ = an->an_oc_exclude ? '!' : '@';
+				ptr = lutil_strcopy( ptr, an->an_oc->soc_cname.bv_val );
 
 			} else {
-				fputs( an->an_name.bv_val, stderr );
+				ptr = lutil_strcopy( ptr, an->an_name.bv_val );
 			}
 			first = 0;
 		}
-		fprintf(  stderr, "\n" );
+		*ptr++ = '\n';
 	}
 
 	if ( !BER_BVISEMPTY( &a->acl_attrval ) ) {
 		to++;
-		fprintf( stderr, " val.%s=\"%s\"\n",
-			style_strings[a->acl_attrval_style], a->acl_attrval.bv_val );
-
+		ptr = lutil_strcopy( ptr, " val." );
+		ptr = lutil_strcopy( ptr, style_strings[a->acl_attrval_style] );
+		*ptr++ = '=';
+		*ptr++ = '"';
+		ptr = lutil_strcopy( ptr, a->acl_attrval.bv_val );
+		*ptr++ = '"';
+		*ptr++ = '\n';
 	}
 
-	if( !to ) fprintf( stderr, " *\n" );
+	if( !to ) {
+		ptr = lutil_strcopy( ptr, " *\n" );
+	}
 
 	for ( b = a->acl_access; b != NULL; b = b->a_next ) {
-		print_access( b );
+		ptr = access2text( b, ptr );
 	}
+	*ptr = '\0';
+	bv->bv_len = ptr - bv->bv_val;
+}
 
-	fprintf( stderr, "\n" );
+#ifdef LDAP_DEBUG
+
+static void
+print_acl( Backend *be, AccessControl *a )
+{
+	int		to = 0;
+	Access	*b;
+	struct berval bv;
+
+	acl_unparse( a, &bv );
+	fprintf( stderr, "%s ACL: access %s\n",
+		be == NULL ? "Global" : "Backend", bv.bv_val );
 }
 #endif /* LDAP_DEBUG */

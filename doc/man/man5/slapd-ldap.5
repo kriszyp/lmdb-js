@@ -121,7 +121,9 @@ for details on these statements and for remarks and drawbacks about
 their usage.
 .TP
 .B idassert-passwd <password>
-Password used with the proxy authzDN above.
+Password used with the
+.B idassert-authcdn
+above.
 .TP
 .B idassert-mode <mode> [<flags>]
 defines what type of
@@ -249,12 +251,20 @@ underlying libldap, with rebinding eventually performed if the
 .RE
 
 .LP
-.B start-tls
+.B tls-start
 .br
-.B try-start-tls
+.B tls-try-start
+.br
+.B tls-propagate
+.br
+.B tls-try-propagate
 .RS
-execute the start TLS extended operation when the connection is initialized.
-\fBtry-start-tls\fP continues operations if start TLS fails.
+execute the start TLS extended operation when the connection is initialized;
+only works if the URI directive protocol scheme is not \fBldaps://\fP.
+The \fBtls-propagate\fP version issues the Start TLS exop only if the original
+connection did.
+\fBtry-start-tls\fP and \fBtry-propagate-tls\fP continue operations
+if start TLS failed.
 .RE
 
 

@@ -33,6 +33,9 @@
 
 #include "slap.h"
 
+#ifdef LDAP_COMP_MATCH
+#include "component.h"
+#endif
 
 void
 ava_free(
@@ -56,6 +59,9 @@ get_ava(
 	ber_tag_t rtag;
 	struct berval type, value;
 	AttributeAssertion *aa;
+#ifdef LDAP_COMP_MATCH
+	AttributeAliasing* a_alias = NULL;
+#endif
 
 	rtag = ber_scanf( ber, "{mm}", &type, &value );
 
@@ -68,6 +74,9 @@ get_ava(
 	aa = op->o_tmpalloc( sizeof( AttributeAssertion ), op->o_tmpmemctx );
 	aa->aa_desc = NULL;
 	aa->aa_value.bv_val = NULL;
+#ifdef LDAP_COMP_MATCH
+	aa->aa_cf = NULL;
+#endif
 
 	rc = slap_bv2ad( &type, &aa->aa_desc, text );
 
@@ -89,6 +98,19 @@ get_ava(
 		return rc;
 	}
 
+#ifdef LDAP_COMP_MATCH
+	if( is_aliased_attribute ) {
+		a_alias = is_aliased_attribute ( aa->aa_desc );
+		if ( a_alias ) {
+			rc = get_aliased_filter_aa ( op, aa, a_alias, text );
+			if( rc != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_FILTER,
+						"get_ava:Invalid Attribute Aliasing\n", 0, 0, 0 );
+				return rc;
+			}
+		}
+	}
+#endif
 	*ava = aa;
 	return LDAP_SUCCESS;
 }

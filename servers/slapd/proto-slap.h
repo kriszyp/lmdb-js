@@ -63,8 +63,9 @@ LDAP_SLAPD_F (char *) access2str LDAP_P(( slap_access_t access ));
 LDAP_SLAPD_F (slap_access_t) str2access LDAP_P(( const char *str ));
 
 #define ACCESSMASK_MAXLEN	sizeof("unknown (+wrscan)")
-LDAP_SLAPD_F (char *) accessmask2str LDAP_P(( slap_mask_t mask, char* ));
+LDAP_SLAPD_F (char *) accessmask2str LDAP_P(( slap_mask_t mask, char*, int debug ));
 LDAP_SLAPD_F (slap_mask_t) str2accessmask LDAP_P(( const char *str ));
+LDAP_SLAPD_F (void) acl_unparse LDAP_P(( AccessControl*, struct berval* ));
 LDAP_SLAPD_F (void) acl_destroy LDAP_P(( AccessControl*, AccessControl* ));
 LDAP_SLAPD_F (void) acl_free LDAP_P(( AccessControl *a ));
 
@@ -442,6 +443,18 @@ LDAP_SLAPD_F (int) read_config LDAP_P(( const char *fname, int depth ));
 LDAP_SLAPD_F (void) config_destroy LDAP_P ((void));
 LDAP_SLAPD_F (char **) slap_str2clist LDAP_P((
 	char ***, char *, const char * ));
+LDAP_SLAPD_F (int) verb_to_mask LDAP_P((
+	const char *word,  slap_verbmasks *v ));
+LDAP_SLAPD_F (int) verbs_to_mask LDAP_P((
+	int argc, char *argv[], slap_verbmasks *v, slap_mask_t *m ));
+LDAP_SLAPD_F (int) mask_to_verbs LDAP_P((
+	slap_verbmasks *v, slap_mask_t m, BerVarray *bva ));
+LDAP_SLAPD_F (int) bindconf_parse LDAP_P((
+	const char *word,  slap_bindconf *bc ));
+LDAP_SLAPD_F (int) bindconf_unparse LDAP_P((
+	slap_bindconf *bc, struct berval *bv ));
+LDAP_SLAPD_F (void) bindconf_free LDAP_P(( slap_bindconf *bc ));
+
 #ifdef LDAP_SLAPI
 LDAP_SLAPD_V (int) slapi_plugins_used;
 #endif
@@ -749,6 +762,8 @@ LDAP_SLAPD_V( void * ) slap_tls_ctx;
  * index.c
  */
 LDAP_SLAPD_F (int) slap_str2index LDAP_P(( const char *str, slap_mask_t *idx ));
+LDAP_SLAPD_F (void) slap_index2bvlen LDAP_P(( slap_mask_t idx, struct berval *bv ));
+LDAP_SLAPD_F (void) slap_index2bv LDAP_P(( slap_mask_t idx, struct berval *bv ));
 
 /*
  * init.c
@@ -797,6 +812,10 @@ LDAP_SLAPD_F (int) limits_parse_one LDAP_P(( const char *arg,
 	struct slap_limits_set *limit ));
 LDAP_SLAPD_F (int) limits_check LDAP_P((
 	Operation *op, SlapReply *rs ));
+LDAP_SLAPD_F (void) limits_unparse_one LDAP_P(( 
+	struct slap_limits_set *limit, int which, struct berval *bv ));
+LDAP_SLAPD_F (void) limits_unparse LDAP_P(( 
+	struct slap_limits *limit, struct berval *bv ));
 
 /*
  * lock.c
@@ -985,6 +1004,7 @@ LDAP_SLAPD_F (int) oc_schema_info( Entry *e );
  */
 LDAP_SLAPD_F(char *) oidm_find(char *oid);
 LDAP_SLAPD_F (void) oidm_destroy LDAP_P(( void ));
+LDAP_SLAPD_F (void) oidm_unparse LDAP_P(( BerVarray *bva ));
 LDAP_SLAPD_F (int) parse_oidm LDAP_P((
 	const char *fname, int lineno, int argc, char **argv ));
 
@@ -1079,7 +1099,7 @@ LDAP_SLAPD_F (int) get_alias_dn LDAP_P((
  * repl.c
  */
 LDAP_SLAPD_F (int) add_replica_info LDAP_P(( Backend *be,
-	const char *host ));
+	const char *uri, const char *host ));
 LDAP_SLAPD_F (int) add_replica_suffix LDAP_P(( Backend *be,
 	int nr, const char *suffix ));
 LDAP_SLAPD_F (int) add_replica_attrs LDAP_P(( Backend *be,
@@ -1129,6 +1149,7 @@ LDAP_SLAPD_F (int) read_root_dse_file LDAP_P((
  */
 LDAP_SLAPD_F (int) slap_sasl_init(void);
 LDAP_SLAPD_F (char *) slap_sasl_secprops( const char * );
+LDAP_SLAPD_F (void) slap_sasl_secprops_unparse( struct berval * );
 LDAP_SLAPD_F (int) slap_sasl_destroy(void);
 
 LDAP_SLAPD_F (int) slap_sasl_open( Connection *c, int reopen );
@@ -1146,13 +1167,6 @@ LDAP_SLAPD_F (int) slap_sasl_bind LDAP_P(( Operation *op, SlapReply *rs ));
 LDAP_SLAPD_F (int) slap_sasl_setpass(
 	Operation       *op,
 	SlapReply	*rs );
-
-LDAP_SLAPD_F (int) slap_sasl_config(
-	int cargc,
-	char **cargv,
-	char *line,
-	const char *fname,
-	int lineno );
 
 LDAP_SLAPD_F (int) slap_sasl_getdn( Connection *conn, Operation *op,
 	struct berval *id, char *user_realm, struct berval *dn, int flags );
@@ -1177,7 +1191,9 @@ LDAP_SLAPD_F (int) slap_sasl_authorized LDAP_P((
 	struct berval *authzid ));
 LDAP_SLAPD_F (int) slap_sasl_regexp_config LDAP_P((
 	const char *match, const char *replace ));
+LDAP_SLAPD_F (void) slap_sasl_regexp_unparse LDAP_P(( BerVarray *bva ));
 LDAP_SLAPD_F (int) slap_sasl_setpolicy LDAP_P(( const char * ));
+LDAP_SLAPD_F (const char *) slap_sasl_getpolicy LDAP_P(( void ));
 #ifdef SLAP_AUTH_REWRITE
 LDAP_SLAPD_F (int) slap_sasl_rewrite_config LDAP_P(( 
 	const char *fname,

@@ -33,6 +33,7 @@ LDAP_BEGIN_DECL
 #define bdb_attr_mask				BDB_SYMBOL(attr_mask)
 #define bdb_attr_index_config		BDB_SYMBOL(attr_index_config)
 #define bdb_attr_index_destroy		BDB_SYMBOL(attr_index_destroy)
+#define bdb_attr_index_unparse		BDB_SYMBOL(attr_index_unparse)
 
 #ifdef LDAP_COMP_MATCH
 #define bdb_attr_comp_ref			BDB_SYMBOL(attr_comp_ref)
@@ -54,7 +55,16 @@ int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 	const char *fname, int lineno,
 	int argc, char **argv ));
 
+void bdb_attr_index_unparse LDAP_P(( struct bdb_info *bdb, BerVarray *bva ));
 void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
+
+/*
+ * config.c
+ */
+
+#define bdb_back_init_cf				BDB_SYMBOL(back_init_cf)
+
+int bdb_back_init_cf( BackendInfo *bi );
 
 /*
  * dbcache.c
@@ -323,13 +333,6 @@ int bdb_index_entry LDAP_P(( Operation *op, DB_TXN *t, int r, Entry *e ));
 	bdb_index_entry((op),(t),SLAP_INDEX_ADD_OP,(e))
 #define bdb_index_entry_del(op,t,e) \
 	bdb_index_entry((op),(t),SLAP_INDEX_DELETE_OP,(e))
-
-/*
- * init.c
- */
-#define bdb_uuid					BDB_SYMBOL(uuid)
-
-extern struct berval bdb_uuid;
 
 /*
  * key.c

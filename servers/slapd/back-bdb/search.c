@@ -43,9 +43,6 @@ static void send_paged_response(
 	ID  *lastid,
 	int tentries );
 
-static int bdb_pfid_cmp( const void *v_id1, const void *v_id2 );
-static ID* bdb_id_dup( Operation *op, ID *id );
-
 /* Dereference aliases for a single alias entry. Return the final
  * dereferenced entry on success, NULL on any failure.
  */
@@ -153,7 +150,7 @@ static int search_aliases(
 	Entry *matched, *a;
 	EntryInfo *ei;
 	struct berval bv_alias = BER_BVC( "alias" );
-	AttributeAssertion aa_alias;
+	AttributeAssertion aa_alias = { NULL, BER_BVNULL, NULL };
 	Filter	af;
 	DB_LOCK locka, lockr;
 	int first = 1;
@@ -637,19 +634,16 @@ dn2entry_retry:
 		goto loop_begin;
 	}
 
-loop_start:
-
 	for ( id = bdb_idl_first( candidates, &cursor );
 		  id != NOID ; id = bdb_idl_next( candidates, &cursor ) )
 	{
 		int scopeok = 0;
-		ID* idhole = NULL;
 
 loop_begin:
 
 		/* check for abandon */
 		if ( op->o_abandon ) {
-			rs->sr_err = LDAP_SUCCESS;
+			rs->sr_err = SLAPD_ABANDON;
 			goto done;
 		}
 
@@ -1022,10 +1016,10 @@ static int search_candidates(
 	int rc, depth = 1;
 	Filter		f, rf, xf, nf;
 	ID		*stack;
-	AttributeAssertion aa_ref;
+	AttributeAssertion aa_ref = { NULL, BER_BVNULL, NULL };
 #ifdef BDB_SUBENTRIES
 	Filter	sf;
-	AttributeAssertion aa_subentry;
+	AttributeAssertion aa_subentry = { NULL, BER_BVNULL, NULL };
 #endif
 
 	/*
@@ -1276,18 +1270,3 @@ done:
 	(void) ber_free_buf( ber );
 }
 
-static int
-bdb_pfid_cmp( const void *v_id1, const void *v_id2 )
-{
-    const ID *p1 = v_id1, *p2 = v_id2;
-	return *p1 - *p2;
-}
-
-static ID*
-bdb_id_dup( Operation *op, ID *id )
-{
-	ID *new;
-	new = ch_malloc( sizeof(ID) );
-	*new = *id;
-	return new;
-}

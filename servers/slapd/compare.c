@@ -47,7 +47,7 @@ do_compare(
 	struct berval dn = BER_BVNULL;
 	struct berval desc = BER_BVNULL;
 	struct berval value = BER_BVNULL;
-	AttributeAssertion ava = { NULL, BER_BVNULL };
+	AttributeAssertion ava = { NULL, BER_BVNULL, NULL };
 
 	ava.aa_desc = NULL;
 

@@ -32,7 +32,8 @@
 enum ldap_int_thread_pool_state {
 	LDAP_INT_THREAD_POOL_RUNNING,
 	LDAP_INT_THREAD_POOL_FINISHING,
-	LDAP_INT_THREAD_POOL_STOPPING
+	LDAP_INT_THREAD_POOL_STOPPING,
+	LDAP_INT_THREAD_POOL_PAUSING,
 };
 
 typedef struct ldap_int_thread_key_s {
@@ -74,6 +75,7 @@ struct ldap_int_thread_pool_s {
 	LDAP_STAILQ_ENTRY(ldap_int_thread_pool_s) ltp_next;
 	ldap_pvt_thread_mutex_t ltp_mutex;
 	ldap_pvt_thread_cond_t ltp_cond;
+	ldap_pvt_thread_cond_t ltp_pcond;
 	LDAP_STAILQ_HEAD(tcq, ldap_int_thread_ctx_s) ltp_pending_list;
 	LDAP_SLIST_HEAD(tcl, ldap_int_thread_ctx_s) ltp_free_list;
 	LDAP_SLIST_HEAD(tclq, ldap_int_thread_ctx_s) ltp_active_list;
@@ -134,6 +136,9 @@ ldap_pvt_thread_pool_init (
 	rc = ldap_pvt_thread_cond_init(&pool->ltp_cond);
 	if (rc != 0)
 		return(rc);
+	rc = ldap_pvt_thread_cond_init(&pool->ltp_pcond);
+	if (rc != 0)
+		return(rc);
 	pool->ltp_state = LDAP_INT_THREAD_POOL_RUNNING;
 	pool->ltp_max_count = max_threads;
 	pool->ltp_max_pending = max_pending;
@@ -170,6 +175,7 @@ ldap_pvt_thread_pool_init (
 		LDAP_STAILQ_REMOVE(ldap_int_thread_pool_list, pool, 
 			ldap_int_thread_pool_s, ltp_next);
 		ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
+		ldap_pvt_thread_cond_destroy(&pool->ltp_pcond);
 		ldap_pvt_thread_cond_destroy(&pool->ltp_cond);
 		ldap_pvt_thread_mutex_destroy(&pool->ltp_mutex);
 		LDAP_FREE(pool);
@@ -204,7 +210,8 @@ ldap_pvt_thread_pool_submit (
 		return(-1);
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
-	if (pool->ltp_state != LDAP_INT_THREAD_POOL_RUNNING
+	if ((pool->ltp_state != LDAP_INT_THREAD_POOL_RUNNING &&
+		pool->ltp_state != LDAP_INT_THREAD_POOL_PAUSING)
 		|| (pool->ltp_max_pending > 0
 			&& pool->ltp_pending_count >= pool->ltp_max_pending))
 	{
@@ -229,6 +236,10 @@ ldap_pvt_thread_pool_submit (
 
 	pool->ltp_pending_count++;
 	LDAP_STAILQ_INSERT_TAIL(&pool->ltp_pending_list, ctx, ltc_next.q);
+	if (pool->ltp_state == LDAP_INT_THREAD_POOL_PAUSING) {
+		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+		return(0);
+	}
 	ldap_pvt_thread_cond_signal(&pool->ltp_cond);
 	if ((pool->ltp_open_count <= 0
 #if 0
@@ -391,6 +402,7 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 		LDAP_FREE(ctx);
 	}
 
+	ldap_pvt_thread_cond_destroy(&pool->ltp_pcond);
 	ldap_pvt_thread_cond_destroy(&pool->ltp_cond);
 	ldap_pvt_thread_mutex_destroy(&pool->ltp_mutex);
 	LDAP_FREE(pool);
@@ -471,6 +483,13 @@ ldap_int_thread_pool_wrapper (
 			ldap_int_thread_ctx_s, ltc_next.al);
 		LDAP_SLIST_INSERT_HEAD(&pool->ltp_free_list, ctx, ltc_next.l);
 		pool->ltp_active_count--;
+
+		if (pool->ltp_state == LDAP_INT_THREAD_POOL_PAUSING) {
+			if (pool->ltp_active_count < 2) {
+				ldap_pvt_thread_cond_signal(&pool->ltp_pcond);
+			}
+			ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+		}
 		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
 		ldap_pvt_thread_yield();
@@ -497,6 +516,61 @@ ldap_int_thread_pool_wrapper (
 
 	ldap_pvt_thread_exit(NULL);
 	return(NULL);
+}
+
+int
+ldap_pvt_thread_pool_pause ( 
+	ldap_pvt_thread_pool_t *tpool )
+{
+	struct ldap_int_thread_pool_s *pool;
+
+	if (tpool == NULL)
+		return(-1);
+
+	pool = *tpool;
+
+	if (pool == NULL)
+		return(0);
+
+	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
+
+	/* If someone else has already requested a pause, we have to wait */
+	if (pool->ltp_state == LDAP_INT_THREAD_POOL_PAUSING) {
+		pool->ltp_pending_count++;
+		pool->ltp_active_count--;
+		ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+		pool->ltp_pending_count--;
+		pool->ltp_active_count++;
+	}
+	/* Wait for everyone else to finish */
+	pool->ltp_state = LDAP_INT_THREAD_POOL_PAUSING;
+	while (pool->ltp_active_count > 1) {
+		ldap_pvt_thread_cond_wait(&pool->ltp_pcond, &pool->ltp_mutex);
+	}
+	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+	return(0);
+}
+
+int
+ldap_pvt_thread_pool_resume ( 
+	ldap_pvt_thread_pool_t *tpool )
+{
+	struct ldap_int_thread_pool_s *pool;
+
+	if (tpool == NULL)
+		return(-1);
+
+	pool = *tpool;
+
+	if (pool == NULL)
+		return(0);
+
+	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
+
+	pool->ltp_state = LDAP_INT_THREAD_POOL_RUNNING;
+	ldap_pvt_thread_cond_broadcast(&pool->ltp_cond);
+	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+	return(0);
 }
 
 int ldap_pvt_thread_pool_getkey(

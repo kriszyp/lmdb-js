@@ -296,6 +296,20 @@ over_op_func(
 	if ( rc == SLAP_CB_CONTINUE ) {
 		rc = op_rc[ which ];
 	}
+
+	/* The underlying backend didn't handle the request, make sure
+	 * overlay cleanup is processed.
+	 */
+	if ( rc == LDAP_UNWILLING_TO_PERFORM ) {
+		slap_callback *sc_next;
+		for ( ; op->o_callback && op->o_callback != cb.sc_next; 
+			op->o_callback = sc_next ) {
+			sc_next = op->o_callback->sc_next;
+			if ( op->o_callback->sc_cleanup ) {
+				op->o_callback->sc_cleanup( op, rs );
+			}
+		}
+	}
 	op->o_bd = be;
 	op->o_callback = cb.sc_next;
 	return rc;

@@ -978,8 +978,14 @@ static int slap_open_listener(
 #endif
 #ifdef LDAP_PF_LOCAL
 		case AF_LOCAL:
-			addrlen = sizeof(struct sockaddr_un);
-			break;
+#ifdef LOCAL_CREDS
+		{
+		    int one = 1;
+		    setsockopt(l.sl_sd, 0, LOCAL_CREDS, &one, sizeof one);
+		}
+#endif
+		addrlen = sizeof(struct sockaddr_un);
+		break;
 #endif
 		}
 

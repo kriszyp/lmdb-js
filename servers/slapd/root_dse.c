@@ -73,6 +73,8 @@ root_dse_info(
 		= slap_schema.si_ad_supportedFeatures;
 	AttributeDescription *ad_monitorContext
 		= slap_schema.si_ad_monitorContext;
+	AttributeDescription *ad_configContext
+		= slap_schema.si_ad_configContext;
 	AttributeDescription *ad_ref
 		= slap_schema.si_ad_ref;
 
@@ -124,6 +126,14 @@ root_dse_info(
 			vals[0] = backends[i].be_suffix[0];
 			nvals[0] = backends[i].be_nsuffix[0];
 			if( attr_merge( e, ad_monitorContext, vals, nvals ) ) {
+				return LDAP_OTHER;
+			}
+			continue;
+		}
+		if ( SLAP_CONFIG( &backends[i] )) {
+			vals[0] = backends[i].be_suffix[0];
+			nvals[0] = backends[i].be_nsuffix[0];
+			if( attr_merge( e, ad_configContext, vals, nvals ) ) {
 				return LDAP_OTHER;
 			}
 			continue;

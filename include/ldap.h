@@ -1304,6 +1304,21 @@ ldap_initialize LDAP_P((
 	LDAP **ldp,
 	LDAP_CONST char *url ));
 
+/*
+ * in tls.c
+ */
+
+LDAP_F( int )
+ldap_start_tls LDAP_P((
+	LDAP *ld,
+	LDAPControl **serverctrls,
+	LDAPControl **clientctrls,
+	int *msgidp ));
+
+LDAP_F( int )
+ldap_install_tls LDAP_P((
+	LDAP *ld ));
+
 LDAP_F( int )
 ldap_start_tls_s LDAP_P((
 	LDAP *ld,

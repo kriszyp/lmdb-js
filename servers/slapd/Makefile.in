@@ -23,7 +23,7 @@ SUBDIRS=back-* shell-backends slapi overlays
 NT_SRCS = nt_svc.c
 NT_OBJS = nt_svc.o ../../libraries/liblutil/slapdmsg.res
 
-SRCS	= main.c globals.c config.c daemon.c \
+SRCS	= main.c globals.c bconfig.c config.c daemon.c \
 		connection.c search.c filter.c add.c cr.c \
 		attr.c entry.c backend.c result.c operation.c \
 		dn.c compare.c modify.c delete.c modrdn.c ch_malloc.c \
@@ -40,7 +40,7 @@ SRCS	= main.c globals.c config.c daemon.c \
 		slappasswd.c slaptest.c slapauth.c slapacl.c component.c \
 		$(@PLAT@_SRCS)
 
-OBJS	= main.o globals.o config.o daemon.o \
+OBJS	= main.o globals.o bconfig.o config.o daemon.o \
 		connection.o search.o filter.o add.o cr.o \
 		attr.o entry.o backend.o result.o operation.o \
 		dn.o compare.o modify.o delete.o modrdn.o ch_malloc.o \
