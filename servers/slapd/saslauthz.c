@@ -369,6 +369,11 @@ void slap_sasl2dn( struct berval *saslname, struct berval *dn )
 		goto FINISHED;
 	}
 
+	/* FIXME: move this check to after select_backend, and set
+	 * the selected backend in conn->c_authz_backend, to allow
+	 * passwd_extop to be used on in-directory SASL secrets.
+	 *   ... when all of that gets implemented...
+	 */
 	/* Massive shortcut: search scope == base */
 	if( scope == LDAP_SCOPE_BASE ) {
 		*dn = searchbase;
