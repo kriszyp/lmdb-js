@@ -163,7 +163,7 @@ ldbm_back_add(
 		    0 );
 		next_id_return( be, e->e_id );
                 
-		entry_rdwr_unlock(e, 1);;
+		entry_rdwr_unlock(e, 1);
 		entry_free( e );
 
 		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, "", "" );
