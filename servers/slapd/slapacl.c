@@ -112,7 +112,10 @@ slapacl( int argc, char **argv )
 			if ( access == ACL_INVALID_ACCESS ) {
 				fprintf( stderr, "unknown access \"%s\" for attribute \"%s\"\n",
 						accessstr, argv[0] );
-				continue;
+				if ( continuemode ) {
+					continue;
+				}
+				break;
 			}
 		}
 
@@ -120,10 +123,13 @@ slapacl( int argc, char **argv )
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "slap_str2ad(%s) failed %d (%s)\n",
 					argv[0], rc, ldap_err2string( rc ) );
-			continue;
+			if ( continuemode ) {
+				continue;
+			}
+			break;
 		}
 
-		rc = access_allowed_mask( &op, &e, desc, &val, access,
+		(void)access_allowed_mask( &op, &e, desc, &val, access,
 				NULL, &mask );
 
 		fprintf( stderr, "%s%s%s: %s\n",

@@ -37,7 +37,7 @@
 int
 slapdn( int argc, char **argv )
 {
-	int			rc = EXIT_SUCCESS;
+	int			rc = 0;
 	const char		*progname = "slapdn";
 
 #ifdef NEW_LOGGING
@@ -59,7 +59,10 @@ slapdn( int argc, char **argv )
 			fprintf( stderr, "DN: <%s> check failed %d (%s)\n",
 					dn.bv_val, rc,
 					ldap_err2string( rc ) );
-			rc = 1;
+			if ( !continuemode ) {
+				rc = -1;
+				break;
+			}
 			
 		} else {
 			fprintf( stderr, "DN: <%s> check succeeded\n"
@@ -69,7 +72,6 @@ slapdn( int argc, char **argv )
 					ndn.bv_val, pdn.bv_val );
 			ch_free( ndn.bv_val );
 			ch_free( pdn.bv_val );
-			rc = 0;
 		}
 	}
 	

@@ -130,9 +130,11 @@ slapauth( int argc, char **argv )
 				fprintf( stderr, "authzID: <%s> check failed %d (%s)\n",
 						authzID.bv_val, rc,
 						ldap_err2string( rc ) );
-				rc = 1;
+				rc = -1;
 				BER_BVZERO( &authzID );
-				goto destroy;
+				if ( !continuemode ) {
+					goto destroy;
+				}
 			}
 
 			authzID = authzdn;
@@ -142,7 +144,7 @@ slapauth( int argc, char **argv )
 			op.o_tmpfree( authzID.bv_val, op.o_tmpmemctx );
 			BER_BVZERO( &authzID );
 
-			if ( rc ) {
+			if ( rc && !continuemode ) {
 				goto destroy;
 			}
 		}
@@ -157,7 +159,7 @@ slapauth( int argc, char **argv )
 
 		rc = do_check( &conn, &op, &id );
 
-		if ( rc ) {
+		if ( rc && !continuemode ) {
 			goto destroy;
 		}
 	}
