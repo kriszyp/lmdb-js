@@ -525,6 +525,43 @@ Specify the name of an LDIF(5) file containing user defined attributes
 for the root DSE.  These attributes are returned in addition to the
 attributes normally produced by slapd.
 .TP
+.B sasl-authz-policy <policy>
+Used to specify which rules to use for SASL Proxy Authorization. Proxy
+authorization allows a client to authenticate to the server using one
+user's credentials, but specify a different identity to use for authorization
+and access control purposes. It essentially allows user A to login as user
+B, using user A's password.
+The
+.B none
+flag disables proxy authorization. This is the default setting.
+The
+.B from
+flag will use rules in the
+.I saslAuthzFrom
+attribute of the authorization DN.
+The
+.B to
+flag will use rules in the
+.I saslAuthzTo
+attribute of the authentication DN.
+The
+.B both
+flag will allow both of the above. The rules are simply regular expressions
+specifying which DNs are allowed to perform proxy authorization. The
+.I saslAuthzFrom
+attribute in an entry specifies which other users
+are allowed to proxy login to this entry. The
+.I saslAuthzTo
+attribute in
+an entry specifies which other users this user can authorize as.  Use of
+.I saslAuthzTo
+rules can be easily
+abused if users are allowed to write arbitrary values to this attribute.
+In general the
+.I saslAuthzTo
+attribute must be protected with ACLs such that
+only privileged users can modify it.
+.TP
 .B sasl-host <fqdn>
 Used to specify the fully qualified domain name used for SASL processing.
 .TP
