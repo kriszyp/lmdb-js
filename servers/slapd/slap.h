@@ -54,7 +54,6 @@ LDAP_BEGIN_DECL
  * JCG 05/1999 (gomez@engr.sgi.com)
  */
 #define SLAP_MOD_SOFTADD	0x1000
-#undef LDAP_MOD_BVALUES /* we always use BVALUES */
 
 #define ON	1
 #define OFF	(-1)
