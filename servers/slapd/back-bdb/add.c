@@ -240,7 +240,7 @@ retry:	rc = txn_abort( ltid );
 
 #if BDB_INDEX
 	/* attribute indexes */
-	if ( index_entry_add( be, e, e->e_attrs ) != LDAP_SUCCESS ) {
+	if ( bdb_index_entry_add( be, ltid, e, e->e_attrs ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: index_entry_add failed\n",
 			0, 0, 0 );
 		switch( rc ) {

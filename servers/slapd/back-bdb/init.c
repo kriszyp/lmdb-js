@@ -369,7 +369,11 @@ bdb_initialize(
 	bi->bi_tool_entry_next = bdb_tool_entry_next;
 	bi->bi_tool_entry_get = bdb_tool_entry_get;
 	bi->bi_tool_entry_put = bdb_tool_entry_put;
+#if BDB_REINDEX
+	bi->bi_tool_entry_reindex = bdb_tool_entry_reindex;
+#else
 	bi->bi_tool_entry_reindex = 0;
+#endif
 	bi->bi_tool_sync = 0;
 
 	bi->bi_connection_init = 0;

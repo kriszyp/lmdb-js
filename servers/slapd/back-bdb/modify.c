@@ -129,10 +129,10 @@ int bdb_modify_internal(
 
 #if BDB_INDEX
 	/* delete indices for old attributes */
-	rc = index_entry_del( be, tid, e, save_attrs);
+	rc = bdb_index_entry_del( be, tid, e, save_attrs);
 
 	/* add indices for new attributes */
-	rc = index_entry_add( be, tid, e, e->e_attrs);
+	rc = bdb_index_entry_add( be, tid, e, e->e_attrs);
 #endif
 
 	attrs_free( save_attrs );

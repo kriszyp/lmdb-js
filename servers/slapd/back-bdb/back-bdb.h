@@ -15,7 +15,8 @@
 
 LDAP_BEGIN_DECL
 
-#define BBD_INDEX 1
+/* #define BDB_INDEX 1 */
+/* #define BDB_REINDEX 1 */
 /* #define BDB_FILTER_INDICES 1 */
 #define BDB_CONFIG_INDICES 1
 

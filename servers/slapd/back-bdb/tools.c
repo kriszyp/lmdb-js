@@ -184,28 +184,32 @@ done:
 	return e->e_id;
 }
 
-#if BDB_INDEX
+#if BDB_REINDEX
 int bdb_tool_entry_reindex(
 	BackendDB *be,
 	ID id )
 {
-	struct bdb_dbinfo *bdi = (struct bdb_dbinfo *) be->be_private;
+	struct bdb_info *bi = (struct bdb_info *) be->be_private;
 	int rc;
 	Entry *e;
-	DB_TXN *tid;
+	DB_TXN *tid = NULL;
 
 	Debug( LDAP_DEBUG_ARGS, "=> bdb_tool_entry_reindex( %ld )\n",
 		(long) id, 0, 0 );
 
-	rc = txn_begin( bdi->bdi_db_env, NULL, &tid, 0 );
+#if 0
+	rc = txn_begin( bi->bi_dbenv, NULL, &tid, 0 );
+#endif
  	
-	e = bdb_tool_entry_get( be, tid, id );
+	e = bdb_tool_entry_get( be, id );
 
 	if( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_tool_entry_reindex:: could not locate id=%ld\n",
 			(long) id, 0, 0 );
+#if 0
 		txn_abort( tid );
+#endif
 		return -1;
 	}
 
@@ -219,7 +223,7 @@ int bdb_tool_entry_reindex(
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_tool_entry_reindex( %ld, \"%s\" )\n",
 		id, e->e_dn, 0 );
 
-	rc = index_entry_add( be, e, e->e_attrs );
+	rc = bdb_index_entry_add( be, tid, e, e->e_attrs );
 
 	entry_free( e );
 
