@@ -149,7 +149,7 @@ int slap_bv2ad(
 				goto done;
 			}
 
-			desc.ad_lang = tokens[i];
+			desc.ad_lang = ch_strdup( tokens[i] );
 
 			/* normalize to all lower case, it's easy */
 			ldap_pvt_str2lower( desc.ad_lang );
