@@ -106,6 +106,7 @@ install-local-srv: install-slapd install-conf install-tools
 
 install-slapd: FORCE
 	@-$(MKDIR) $(libexecdir)
+	@-$(MKDIR) $(localstatedir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapd $(libexecdir)
 
 CFFILES=slapd.conf slapd.at.conf slapd.oc.conf

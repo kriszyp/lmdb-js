@@ -396,3 +396,51 @@ if test $ol_cv_dcl_sys_errlist = no ; then
 	AC_MSG_RESULT($ol_cv_have_sys_errlist)
 fi
 ])dnl
+
+dnl ====================================================================
+dnl Early MIPS compilers (used in Ultrix 4.2) don't like
+dnl "int x; int *volatile a = &x; *a = 0;"
+dnl 	-- borrowed from PDKSH
+AC_DEFUN(OL_C_VOLATILE,
+ [AC_CACHE_CHECK(if compiler understands volatile, ol_cv_c_volatile,
+    [AC_TRY_COMPILE([int x, y, z;],
+      [volatile int a; int * volatile b = x ? &y : &z;
+      /* Older MIPS compilers (eg., in Ultrix 4.2) don't like *b = 0 */
+      *b = 0;], ol_cv_c_volatile=yes, ol_cv_c_volatile=no)])
+  if test $ol_cv_c_volatile = yes; then
+    : 
+  else
+    AC_DEFINE(volatile, )
+  fi
+ ])dnl
+
+dnl ====================================================================
+dnl Define sig_atomic_t if not defined in signal.h
+AC_DEFUN(OL_TYPE_SIG_ATOMIC_T,
+ [AC_CACHE_CHECK(for sig_atomic_t, ol_cv_type_sig_atomic_t,
+    [AC_TRY_COMPILE([#include <signal.h>], [sig_atomic_t atomic;],
+		ol_cv_type_sig_atomic_t=yes, ol_cv_type_sig_atomic_t=no)])
+  if test $ol_cv_type_sig_atomic_t = no; then
+    AC_DEFINE(sig_atomic_t, int)
+  fi
+ ])dnl
+
+dnl ====================================================================
+dnl check no of arguments for ctime_r
+AC_DEFUN(OL_FUNC_CTIME_R_NARGS,
+ [AC_CACHE_CHECK(number of arguments of ctime_r, ol_cv_func_ctime_r_nargs,
+   [AC_TRY_COMPILE([#include <time.h>],
+		[time_t ti; char *buffer; ctime_r(&ti,buffer,32);],
+			ol_cv_func_ctime_r_nargs=3, ol_cv_func_ctime_r_nargs=0)
+		if test $ol_cv_func_ctime_r_nargs = 0 ; then
+			AC_TRY_COMPILE([#include <time.h>],
+				[time_t ti; char *buffer;
+					ctime_r(&ti,buffer);],
+				ol_cv_func_ctime_r_nargs=2, ol_cv_func_ctime_r_nargs=0)
+		fi
+	])
+  if test $ol_cv_func_ctime_r_nargs -gt 1 ; then
+    AC_DEFINE_UNQUOTED(CTIME_R_NARGS, $ol_cv_func_ctime_r_nargs)
+  fi
+])dnl
+

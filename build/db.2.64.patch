@@ -1,0 +1,36 @@
+*** db/db.c.sleepy	Sun Jan  3 20:02:51 1999
+--- db/db.c	Sun Jan  3 20:28:25 1999
+*************** db_open(fname, type, flags, mode, dbenv,
+*** 106,112 ****
+  	DB_PGINFO pginfo;
+  	HASHHDR *hashm;
+  	size_t cachesize;
+! 	ssize_t nr;
+  	u_int32_t iopsize;
+  	int fd, ftype, need_fileid, restore, ret, retry_cnt, swapped;
+  	char *real_name, mbuf[512];
+--- 106,112 ----
+  	DB_PGINFO pginfo;
+  	HASHHDR *hashm;
+  	size_t cachesize;
+! 	ssize_t nr = (ssize_t) 0;
+  	u_int32_t iopsize;
+  	int fd, ftype, need_fileid, restore, ret, retry_cnt, swapped;
+  	char *real_name, mbuf[512];
+*************** open_retry:	if (LF_ISSET(DB_CREATE)) {
+*** 337,343 ****
+  		if (nr != sizeof(mbuf)) {
+  			if (nr != 0) {
+  				__db_err(dbenv,
+! 				    "%s: unexpected file format", fname);
+  				goto einval;
+  			}
+  			/*
+--- 337,343 ----
+  		if (nr != sizeof(mbuf)) {
+  			if (nr != 0) {
+  				__db_err(dbenv,
+! 				    "%s: unexpected file format, %d bytes read", fname, nr);
+  				goto einval;
+  			}
+  			/*
