@@ -313,14 +313,20 @@ do_add( Operation *op, SlapReply *rs )
 
 			defref = op->o_bd->be_update_refs
 				? op->o_bd->be_update_refs : default_referral;
-			rs->sr_ref = referral_rewrite( defref,
-				NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
+			if ( defref != NULL ) {
+				rs->sr_ref = referral_rewrite( defref,
+					NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
 
-			rs->sr_err = LDAP_REFERRAL;
-			if (!rs->sr_ref) rs->sr_ref = default_referral;
-			send_ldap_result( op, rs );
+				rs->sr_err = LDAP_REFERRAL;
+				if (!rs->sr_ref) rs->sr_ref = default_referral;
+				send_ldap_result( op, rs );
 
-			if ( rs->sr_ref != default_referral ) ber_bvarray_free( rs->sr_ref );
+				if ( rs->sr_ref != default_referral ) ber_bvarray_free( rs->sr_ref );
+			} else {
+				send_ldap_error( op, rs,
+						LDAP_UNWILLING_TO_PERFORM,
+						"referral missing" );
+			}
 #endif /* SLAPD_MULTIMASTER */
 		}
 	} else {
