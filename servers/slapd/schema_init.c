@@ -475,7 +475,8 @@ UTF8casecmp(
 	struct berval *left )
 {
 	ber_len_t r, l;
-	int rlen, llen;
+	ber_len_t rlen, llen;
+	ber_len_t rslen, lslen;
 	ldap_unicode_t ru, lu;
 	ldap_unicode_t ruu, luu;
 
@@ -1893,8 +1894,6 @@ countryStringValidate(
 	Syntax *syntax,
 	struct berval *val )
 {
-	ber_len_t i;
-
 	if( val->bv_len != 2 ) return LDAP_INVALID_SYNTAX;
 
 	if( !SLAP_PRINTABLE(val->bv_val[0]) ) {
