@@ -115,8 +115,7 @@ attr_merge(
 	Attribute	**a;
 
 	for ( a = &e->e_attrs; *a != NULL; a = &(*a)->a_next ) {
-		if ( ad_cmp( (*a)->a_desc, desc ) == 0 )
-		{
+		if ( ad_cmp( (*a)->a_desc, desc ) == 0 ) {
 			break;
 		}
 	}
@@ -163,8 +162,7 @@ attr_find(
 )
 {
 	for ( ; a != NULL; a = a->a_next ) {
-		if ( ad_cmp( a->a_desc, desc ) == 0 )
-		{
+		if ( ad_cmp( a->a_desc, desc ) == 0 ) {
 			return( a );
 		}
 	}
@@ -188,8 +186,7 @@ attr_delete(
 	Attribute	**a;
 
 	for ( a = attrs; *a != NULL; a = &(*a)->a_next ) {
-		if ( ad_cmp( (*a)->a_desc, desc ) == 0 )
-		{
+		if ( ad_cmp( (*a)->a_desc, desc ) == 0 ) {
 			Attribute	*save = *a;
 			*a = (*a)->a_next;
 			attr_free( save );

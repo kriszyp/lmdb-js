@@ -73,6 +73,9 @@ LDAP_BEGIN_DECL
 
 #define SLAP_MAX_WORKER_THREADS		(32)
 
+#define SLAP_SB_MAX_INCOMING_DEFAULT ((1<<18) - 1)
+#define SLAP_SB_MAX_INCOMING_AUTH ((1<<24) - 1)
+
 #define SLAP_TEXT_BUFLEN (256)
 
 /* psuedo error code indicating abandoned operation */
@@ -1516,11 +1519,6 @@ typedef struct sasl_regexp {
   regmatch_t strings[SASLREGEX_REPLACE];  /* strings matching $1,$2 ... */
   int offset[SASLREGEX_REPLACE+2];        /* offsets of $1,$2... in *replace */
 } SaslRegexp_t;
-
-/* Flags for telling slap_sasl_getdn() what type of identity is being passed */
-#define FLAG_GETDN_FINAL   1
-#define FLAG_GETDN_AUTHCID 2
-#define FLAG_GETDN_AUTHZID 4
 
 /*
  * listener; need to access it from monitor backend

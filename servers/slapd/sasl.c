@@ -25,6 +25,10 @@
 #include <lutil.h>
 #endif
 
+/* Flags for telling slap_sasl_getdn() what type of identity is being passed */
+#define FLAG_GETDN_FINAL   1
+#define FLAG_GETDN_AUTHCID 2
+#define FLAG_GETDN_AUTHZID 4
 
 static sasl_security_properties_t sasl_secprops;
 
