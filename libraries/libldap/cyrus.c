@@ -328,6 +328,10 @@ int ldap_pvt_sasl_install( Sockbuf *sb, void *ctx_arg )
 	if ( !ber_sockbuf_ctrl( sb, LBER_SB_OPT_HAS_IO,
 			&ldap_pvt_sockbuf_io_sasl ) )
 	{
+#ifdef LDAP_DEBUG
+		ber_sockbuf_add_io( sb, &ber_sockbuf_io_debug,
+			LBER_SBIOD_LEVEL_APPLICATION, (void *)"sasl_" );
+#endif
 		ber_sockbuf_add_io( sb, &ldap_pvt_sockbuf_io_sasl,
 			LBER_SBIOD_LEVEL_APPLICATION, ctx_arg );
 	}
