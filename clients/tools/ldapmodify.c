@@ -27,6 +27,8 @@
 #include <ldap.h>
 #include <ldif.h>
 
+#include <ldapconfig.h>
+
 static char	*prog;
 static char	*binddn = NULL;
 static char	*passwd = NULL;

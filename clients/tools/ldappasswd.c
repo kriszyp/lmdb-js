@@ -189,7 +189,7 @@ hash_crypt (const char *pw_in, Salt * salt)
 		crypted_pw = crypt (pw_in, (char *)lsalt.salt);
 		free (lsalt.salt);
 	}
-	return (STRDUP (crypted_pw));
+	return (strdup (crypted_pw));
 }
 #endif
 
