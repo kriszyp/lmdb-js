@@ -663,7 +663,7 @@ meta_send_entry(
 	 * 
 	 * FIXME: should we log anything, or delegate to dnNormalize2?
 	 */
-	if ( dnNormalize2( NULL, &ent.e_name, &ent.e_nname ) != LDAP_SUCCESS ) {
+	if ( dnNormalize2( NULL, &ent.e_name, &ent.e_nname, &op->o_tmpmemctx ) != LDAP_SUCCESS ) {
 		return LDAP_INVALID_DN_SYNTAX;
 	}
 

@@ -184,7 +184,7 @@ meta_back_db_config(
 		dn.bv_len = strlen( ludp->lud_dn );
 
 		rc = dnPrettyNormal( NULL, &dn, &li->targets[ i ]->psuffix,
-			&li->targets[ i ]->suffix );
+			&li->targets[ i ]->suffix, NULL );
 		if( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 					"target '%s' DN is invalid\n",
@@ -333,7 +333,7 @@ meta_back_db_config(
 
 		dn.bv_val = argv[ 1 ];
 		dn.bv_len = strlen( argv[ 1 ] );
-		if ( dnNormalize2( NULL, &dn, &li->targets[ i ]->binddn ) != LDAP_SUCCESS ) {
+		if ( dnNormalize2( NULL, &dn, &li->targets[ i ]->binddn, NULL ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 					"bind DN '%s' is invalid\n",
 					fname, lineno, argv[ 1 ] );
@@ -390,7 +390,7 @@ meta_back_db_config(
 
 		dn.bv_val = argv[ 1 ];
 		dn.bv_len = strlen( argv[ 1 ] );
-		if ( dnNormalize2( NULL, &dn, &li->targets[ i ]->pseudorootdn ) != LDAP_SUCCESS ) {
+		if ( dnNormalize2( NULL, &dn, &li->targets[ i ]->pseudorootdn, NULL ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 					"pseudoroot DN '%s' is invalid\n",
 					fname, lineno, argv[ 1 ] );
@@ -449,7 +449,7 @@ meta_back_db_config(
 
 		dn.bv_val = argv[ 1 ];
 		dn.bv_len = strlen( argv[ 1 ] );
-		if ( dnPrettyNormal( NULL, &dn, &pvnc, &nvnc ) != LDAP_SUCCESS ) {
+		if ( dnPrettyNormal( NULL, &dn, &pvnc, &nvnc, NULL ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 					"suffix '%s' is invalid\n",
 					fname, lineno, argv[ 1 ] );
@@ -469,7 +469,7 @@ meta_back_db_config(
 
 		dn.bv_val = argv[ 2 ];
 		dn.bv_len = strlen( argv[ 2 ] );
-		if ( dnPrettyNormal( NULL, &dn, &prnc, &nrnc ) != LDAP_SUCCESS ) {
+		if ( dnPrettyNormal( NULL, &dn, &prnc, &nrnc, NULL ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 					"massaged suffix '%s' is invalid\n",
 					fname, lineno, argv[ 2 ] );
