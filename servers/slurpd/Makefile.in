@@ -20,7 +20,7 @@ BUILD_SRV = @BUILD_SLURPD@
 
 all-local: 	slurpd
 
-XLIBS = @SLURPD_LIBS@ -llthread @LTHREAD_LIBS@ @LUTIL_LIBS@
+XLIBS = @SLURPD_LIBS@ -llthread @LTHREAD_LIBS@ -llutil @LUTIL_LIBS@
 
 slurpd:	version.o
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) version.o $(LIBS)

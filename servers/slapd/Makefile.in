@@ -30,7 +30,7 @@ all-local: FORCE
 	(cd tools; $(MAKE) $(MFLAGS) all)
 
 XLIBS = @SLAPD_LIBS@ libbackends.a \
-	-lavl -llutil -lldbm @LDBM_LIBS@ -llthread @LTHREAD_LIBS@ @LUTIL_LIBS@
+	-lavl -lldbm @LDBM_LIBS@ -llthread @LTHREAD_LIBS@ -llutil @LUTIL_LIBS@
 
 slapd: version.o
 	$(CC) $(LDFLGS) -o $@ $(OBJS) version.o $(LIBS)
