@@ -40,6 +40,7 @@ Medium projects
 ---------------
 Implement authPassword (RFC 3112)
 Implement DIT Structure Rules and Name Forms
+Implement LDAP Assertion Control
 Implement LDAP Transactions extension
 Redesign slapd memory allocation fault handling
 Localize tools
@@ -47,6 +48,7 @@ Localize tools
 
 Small projects
 --------------
+Add DSML capabilities to command line tools
 Add dumpasn1 logging support
 Add tests to test suite
 Convert utfconv.txt into man page(s).
