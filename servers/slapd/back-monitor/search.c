@@ -152,7 +152,7 @@ monitor_back_search(
 )
 {
 	struct monitorinfo	*mi = (struct monitorinfo *) be->be_private;
-	int		rc;
+	int		rc = LDAP_SUCCESS;
 	Entry		*e, *matched = NULL;
 	int		nentries = 0;
 
@@ -174,7 +174,7 @@ monitor_back_search(
 			monitor_cache_release( mi, matched );
 		}
 
-		return( 0 );
+		return( rc );
 	}
 
 	nentries = 0;
