@@ -8,6 +8,16 @@
 
 #include "../slap.h"
 
+/* bogus ../results.c */
+int str2result(
+	char* s,
+	int *code, 
+	char **matched,
+	char **info )
+{
+	assert(0);
+}
+
 void
 send_ldap_result(
 	Connection  *conn, 

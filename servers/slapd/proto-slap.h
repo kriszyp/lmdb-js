@@ -287,7 +287,6 @@ extern char		**g_argv;
 extern time_t	starttime;
 
 time_t slap_get_time LDAP_P((void));
-void slap_set_time LDAP_P((void));
 
 extern ldap_pvt_thread_mutex_t	active_threads_mutex;
 extern ldap_pvt_thread_cond_t	active_threads_cond;

@@ -57,7 +57,6 @@ ldap_pvt_thread_mutex_t	replog_mutex;
 static char* slap_name;
 int slapMode = SLAP_UNDEFINED_MODE;
 
-static time_t			currenttime;
 static ldap_pvt_thread_mutex_t	currenttime_mutex;
 
 int
@@ -160,19 +159,11 @@ int slap_destroy(void)
 }
 
 /* should create a utils.c for these */
-
-void slap_set_time(void)
-{
-	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
-	time( &currenttime );
-	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
-}
-
 time_t slap_get_time(void)
 {
 	time_t t;
 	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
-	t = currenttime;
+	time( &t );
 	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 	return t;
 }

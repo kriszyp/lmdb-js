@@ -306,8 +306,6 @@ slapd_daemon_task(
 			/* FALL THRU */
 		}
 
-		slap_set_time();
-
 		if ( FD_ISSET( tcps, &readfds ) ) {
 			int s;
 			int len = sizeof(from);

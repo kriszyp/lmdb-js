@@ -154,10 +154,7 @@ bdb2i_back_search_internal(
 		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 		/* check time limit */
-		ldap_pvt_thread_mutex_lock( &currenttime_mutex );
-		time( &currenttime );
-		if ( tlimit != -1 && currenttime > stoptime ) {
-			ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
+		if ( tlimit != -1 && slap_get_time() > stoptime ) {
 			send_ldap_search_result( conn, op,
 			    LDAP_TIMELIMIT_EXCEEDED, NULL, nrefs > 0 ? rbuf :
 			    NULL, nentries );
@@ -168,7 +165,6 @@ bdb2i_back_search_internal(
 			}
 			return( 0 );
 		}
-		ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 
 		/* get the entry with reader lock */
 		if ( (e = bdb2i_id2entry_r( be, id )) == NULL ) {

@@ -7,8 +7,8 @@ SUBDIRS= progs
 BUILD_BDB2 = @BUILD_BDB2@
 
 test-bdb2:	FORCE
+	@-$(LN_S) $(srcdir)/data . 
 	@if test "$(BUILD_BDB2)" = "yes" ; then \
-		$(LN_S) $(srcdir)/data . ; \
 		echo "Initiating LDAP tests..." ; \
 		$(MKDIR) test-db test-repl ; \
 		$(srcdir)/scripts/all $(srcdir) bdb2 ; \

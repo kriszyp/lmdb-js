@@ -82,16 +82,12 @@ passwd_back_search(
 		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 		/* check time limit */
-		ldap_pvt_thread_mutex_lock( &currenttime_mutex );
-		time( &currenttime );
-		if ( currenttime > stoptime ) {
-			ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
+		if ( slap_get_time() > stoptime ) {
 			send_ldap_result( conn, op, LDAP_TIMELIMIT_EXCEEDED,
 			    NULL, NULL );
 			endpwent();
 			return( 0 );
 		}
-		ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 
 		e = pw2entry( be, pw );
 
