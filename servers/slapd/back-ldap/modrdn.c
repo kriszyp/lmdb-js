@@ -41,9 +41,8 @@ ldap_back_modrdn(
 	ber_int_t msgid;
 	dncookie dc;
 	LDAPControl **ctrls = NULL;
-#ifdef LDAP_BACK_PROXY_AUTHZ 
+	int do_retry = 1;
 	int rc = LDAP_SUCCESS;
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	struct berval mdn = BER_BVNULL, mnewSuperior = BER_BVNULL;
 
@@ -92,15 +91,23 @@ ldap_back_modrdn(
 #ifdef LDAP_BACK_PROXY_AUTHZ
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		rc = -1;
 		goto cleanup;
 	}
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
+retry:
 	rs->sr_err = ldap_rename( lc->ld, mdn.bv_val,
 			op->orr_newrdn.bv_val, mnewSuperior.bv_val,
 			op->orr_deleteoldrdn,
 			ctrls,
 			NULL, &msgid );
+	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
+	if ( rs->sr_err == LDAP_SERVER_DOWN && do_retry ) {
+		do_retry = 0;
+		if ( ldap_back_retry (lc, op, rs )) goto retry;
+	}
 
 #ifdef LDAP_BACK_PROXY_AUTHZ
 cleanup:
@@ -118,13 +125,6 @@ cleanup:
 		free( mnewSuperior.bv_val );
 	}
 
-#ifdef LDAP_BACK_PROXY_AUTHZ
-	if ( rc != LDAP_SUCCESS ) {
-		send_ldap_result( op, rs );
-		return -1;
-	}
-#endif /* LDAP_BACK_PROXY_AUTHZ */
-
-	return( ldap_back_op_result( lc, op, rs, msgid, 1 ) );
+	return rc;
 }
 

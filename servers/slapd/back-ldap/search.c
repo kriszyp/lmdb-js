@@ -57,6 +57,7 @@ ldap_back_search(
 	struct berval mfilter = BER_BVNULL;
 	int dontfreetext = 0;
 	int freeconn = 0;
+	int do_retry = 1;
 	dncookie dc;
 	LDAPControl **ctrls = NULL;
 
@@ -141,6 +142,7 @@ ldap_back_search(
 	}
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 	
+retry:
 	rs->sr_err = ldap_search_ext( lc->ld, mbase.bv_val,
 			op->ors_scope, mfilter.bv_val,
 			mapped_attrs, op->ors_attrsonly,
@@ -181,6 +183,8 @@ fail:;
 			Entry ent = {0};
 			struct berval bdn;
 			int abort = 0;
+			do_retry = 0;
+
 			e = ldap_first_entry( lc->ld, res );
 			rc = ldap_build_entry( op, e, &ent, &bdn,
 					LDAP_BUILD_ENTRY_PRIVATE );
@@ -222,6 +226,7 @@ fail:;
 			char		**references = NULL;
 			int		cnt;
 
+			do_retry = 0;
 			rc = ldap_parse_reference( lc->ld, res,
 					&references, &rs->sr_ctrls, 1 );
 
@@ -271,6 +276,11 @@ fail:;
 	}
 
 	if ( rc == -1 ) {
+		if ( do_retry ) {
+			do_retry = 0;
+			if ( ldap_back_retry( lc, op, rs ))
+				goto retry;
+		}
 		/* FIXME: invalidate the connection? */
 		rs->sr_err = LDAP_SERVER_DOWN;
 		freeconn = 1;

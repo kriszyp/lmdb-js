@@ -711,6 +711,39 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 	return( ERR_OK( rs->sr_err ) ? 0 : -1 );
 }
 
+/* return true if bound, false if failed */
+int
+ldap_back_retry( struct ldapconn *lc, Operation *op, SlapReply *rs )
+{
+	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
+	int vers = op->o_protocol;
+	LDAP *ld;
+
+	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
+	ldap_unbind( lc->ld );
+	lc->bound = 0;
+	rs->sr_err = ldap_initialize(&ld, li->url);
+		
+	if (rs->sr_err != LDAP_SUCCESS) {
+		rs->sr_err = slap_map_api2result( rs );
+		if (rs->sr_text == NULL) {
+			rs->sr_text = "ldap_initialize() failed";
+		}
+		if (op->o_conn) send_ldap_result( op, rs );
+		rs->sr_text = NULL;
+		return 0;
+	}
+	/* Set LDAP version. This will always succeed: If the client
+	 * bound with a particular version, then so can we.
+	 */
+	ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, (const void *)&vers);
+	/* FIXME: configurable? */
+	ldap_set_option(ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON);
+	lc->ld = ld;
+	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
+	return ldap_back_dobind( lc, op, rs );
+}
+
 #ifdef LDAP_BACK_PROXY_AUTHZ
 /*
  * ldap_back_proxy_authz_ctrl() prepends a proxyAuthz control

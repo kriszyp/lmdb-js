@@ -167,6 +167,7 @@ typedef struct dncookie {
 int ldap_back_freeconn( Operation *op, struct ldapconn *lc );
 struct ldapconn *ldap_back_getconn(struct slap_op *op, struct slap_rep *rs);
 int ldap_back_dobind(struct ldapconn *lc, Operation *op, SlapReply *rs);
+int ldap_back_retry(struct ldapconn *lc, Operation *op, SlapReply *rs);
 int ldap_back_map_result(SlapReply *rs);
 int ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 	ber_int_t msgid, int sendok);

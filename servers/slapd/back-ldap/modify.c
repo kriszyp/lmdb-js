@@ -47,6 +47,7 @@ ldap_back_modify(
 	ber_int_t msgid;
 	dncookie dc;
 	int isupdate;
+	int do_retry = 1;
 	LDAPControl **ctrls = NULL;
 
 	lc = ldap_back_getconn(op, rs);
@@ -161,12 +162,20 @@ ldap_back_modify(
 #ifdef LDAP_BACK_PROXY_AUTHZ
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		rc = -1;
 		goto cleanup;
 	}
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
+retry:
 	rs->sr_err = ldap_modify_ext( lc->ld, mdn.bv_val, modv,
 			ctrls, NULL, &msgid );
+	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
+	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
+		do_retry = 0;
+		if ( ldap_back_retry (lc, op, rs )) goto retry;
+	}
 
 cleanup:;
 #ifdef LDAP_BACK_PROXY_AUTHZ
@@ -185,13 +194,6 @@ cleanup:;
 	ch_free( mods );
 	ch_free( modv );
 
-#ifdef LDAP_BACK_PROXY_AUTHZ
-	if ( rc != LDAP_SUCCESS ) {
-		send_ldap_result( op, rs );
-		return -1;
-	}
-#endif /* LDAP_BACK_PROXY_AUTHZ */
-
-	return ldap_back_op_result( lc, op, rs, msgid, 1 );
+	return rc;
 }
 
