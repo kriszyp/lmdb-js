@@ -197,8 +197,7 @@ ldbm_back_bind(
 			goto return_results;
 		}
 
-		if ( slap_passwd_check( a->a_vals, cred, a->a_syntax, 0, cred ) != 0 )
-		{
+		if ( slap_passwd_check( a, cred ) != 0 ) {
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
 				NULL, NULL, NULL, NULL );
 			/* stop front end from sending result */

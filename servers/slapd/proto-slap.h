@@ -443,10 +443,7 @@ LIBSLAPD_F (void) slap_init_user LDAP_P(( char *username, char *groupname ));
  * passwd.c
  */
 LIBSLAPD_F (int) slap_passwd_check(
-	struct berval       **vals,
-	struct berval       *v,
-	int                 syntax,
-	int                 normalize,
+	Attribute			*attr,
 	struct berval		*cred );
 
 /*

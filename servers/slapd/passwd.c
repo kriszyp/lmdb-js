@@ -21,16 +21,13 @@
 
 int
 slap_passwd_check(
-	struct berval       **vals,
-	struct berval       *v,
-	int                 syntax,
-	int                 normalize,
+	Attribute *a,
 	struct berval		*cred
 )
 {
 	int     i;
-	for ( i = 0; vals[i] != NULL; i++ ) {
-		if ( syntax == SYNTAX_BIN ) {
+	for ( i = 0; a->a_vals[i] != NULL; i++ ) {
+		if ( a->a_syntax == SYNTAX_BIN ) {
 			int result;
 
 #ifdef SLAPD_CRYPT
@@ -39,7 +36,7 @@ slap_passwd_check(
 
 			result = lutil_passwd(
 				(char*) cred->bv_val,
-				(char*) vals[i]->bv_val,
+				(char*) a->a_vals[i]->bv_val,
 				NULL );
 
 #ifdef SLAPD_CRYPT
@@ -49,7 +46,7 @@ slap_passwd_check(
 			return result;
 
 		} else {
-                if ( value_cmp( vals[i], v, syntax, normalize ) == 0 ) {
+                if ( value_cmp( a->a_vals[i], cred, a->a_syntax, 1 ) == 0 ) {
                         return( 0 );
                 }
         }
