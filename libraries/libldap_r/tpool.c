@@ -61,7 +61,9 @@ static void *ldap_int_thread_pool_wrapper(
 
 static void *ldap_int_thread_enlist( ldap_int_thread_list_t *list, void *elem );
 static void *ldap_int_thread_delist( ldap_int_thread_list_t *list, void *elem );
+#if 0
 static void *ldap_int_thread_onlist( ldap_int_thread_list_t *list, void *elem );
+#endif
 
 int
 ldap_int_thread_pool_startup ( void )
@@ -433,7 +435,7 @@ ldap_int_thread_delist( ldap_int_thread_list_t *list, void *elem )
 	}
 	return(NULL);
 }
-
+#if 0
 static void *
 ldap_int_thread_onlist( ldap_int_thread_list_t *list, void *elem )
 {
@@ -448,5 +450,5 @@ ldap_int_thread_onlist( ldap_int_thread_list_t *list, void *elem )
 
 	return(NULL);
 }
-
+#endif
 #endif /* LDAP_HAVE_THREAD_POOL */
