@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.462 2003/03/02 20:46:41 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.464 2003/03/05 00:32:41 hyc Exp  
 
 # Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -10308,7 +10308,7 @@ if test "$ol_enable_dnssrv" = yes -a "$ol_link_dnssrv" = no ; then
 	{ echo "configure: error: DNSSRV requires res_query()" 1>&2; exit 1; }
 fi
 
-for ac_func in getaddrinfo gai_strerror inet_ntop 
+for ac_func in getaddrinfo getnameinfo gai_strerror inet_ntop 
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
 echo "configure:10315: checking for $ac_func" >&5
@@ -10756,7 +10756,7 @@ EOF
 
 		else
 			have_krb5=no
-			echo "configure: warning: Unrecongized Kerberos5 Implementation" 1>&2
+			echo "configure: warning: Unrecognized Kerberos5 Implementation" 1>&2
 		fi
 
 		if test $have_krb5 = yes ; then
@@ -22952,8 +22952,8 @@ if test "$ac_cv_func_getopt" != yes; then
 	LIBSRCS="$LIBSRCS getopt.c"
 fi
 if test "$ac_cv_func_getpeereid" != yes; then
-	echo $ac_n "checking msg_accrights in msghdr""... $ac_c" 1>&6
-echo "configure:22957: checking msg_accrights in msghdr" >&5
+	echo $ac_n "checking for msg_accrights in msghdr""... $ac_c" 1>&6
+echo "configure:22957: checking for msg_accrights in msghdr" >&5
 if eval "test \"\${ol_cv_msghdr_msg_accrights+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
