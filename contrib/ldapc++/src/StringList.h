@@ -63,6 +63,12 @@ class StringList{
         size_t size() const;
 
         /**
+         * @return true if there are zero strings currently
+         * stored in this list.
+         */
+        bool empty() const;
+
+        /**
          * @return A iterator that points to the first element of the list.
          */
         const_iterator begin() const;

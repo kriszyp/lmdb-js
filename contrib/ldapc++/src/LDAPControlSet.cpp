@@ -33,6 +33,11 @@ size_t LDAPControlSet::size() const {
     return data.size();
 }
 
+bool LDAPControlSet::empty() const {
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPControlSet::empty()" << endl);
+    return data.empty();
+}
+
 LDAPControlSet::const_iterator LDAPControlSet::begin() const{
     DEBUG(LDAP_DEBUG_TRACE,"LDAPControlSet::begin()" << endl);
     return data.begin();
@@ -51,7 +56,7 @@ void LDAPControlSet::add(const LDAPCtrl& ctrl){
 
 LDAPControl** LDAPControlSet::toLDAPControlArray() const{
     DEBUG(LDAP_DEBUG_TRACE, "LDAPControlSet::toLDAPControlArray()" << endl);
-    if(data.size() == 0){
+    if(data.empty()){
         return 0;
     }else{
         LDAPControl** ret= new LDAPControl*[data.size()+1];

@@ -66,6 +66,11 @@ size_t LDAPAttributeList::size() const{
     return m_attrs.size();
 }
 
+bool LDAPAttributeList::empty() const{
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::empty()" << endl);
+    return m_attrs.empty();
+}
+
 LDAPAttributeList::const_iterator LDAPAttributeList::begin() const{
     DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::begin()" << endl);
     return m_attrs.begin();

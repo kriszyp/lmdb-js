@@ -21,6 +21,10 @@ size_t LDAPEntryList::size() const{
     return m_entries.size();
 }
 
+bool LDAPEntryList::empty() const{
+    return m_entries.empty();
+}
+
 LDAPEntryList::const_iterator LDAPEntryList::begin() const{
     return m_entries.begin();
 }

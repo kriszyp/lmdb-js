@@ -35,6 +35,10 @@ size_t LDAPUrlList::size() const{
     return m_urls.size();
 }
 
+bool LDAPUrlList::empty() const{
+    return m_urls.empty();
+}
+
 LDAPUrlList::const_iterator LDAPUrlList::begin() const{
     return m_urls.begin();
 }

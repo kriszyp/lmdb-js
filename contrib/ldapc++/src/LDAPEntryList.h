@@ -43,6 +43,11 @@ class LDAPEntryList{
         size_t size() const;
 
         /**
+         * @return true if there are zero entries currently stored in the list.
+         */
+        bool empty() const;
+
+        /**
          * @return An iterator pointing to the first element of the list.
          */
         const_iterator begin() const;

@@ -46,7 +46,7 @@ const string& LDAPException::getServerMsg() const{
 
 ostream& operator << (ostream& s, LDAPException e){
 	s << "Error " << e.m_res_code << ": " << e.m_res_string;
-	if (e.m_err_string.size() > 0) {
+	if (!e.m_err_string.empty()) {
 		s << endl <<  "additional info: " << e.m_err_string ;
 	}
 	return s;

@@ -21,6 +21,10 @@ size_t LDAPReferenceList::size() const{
     return m_refs.size();
 }
 
+bool LDAPReferenceList::empty() const{
+    return m_refs.empty();
+}
+
 LDAPReferenceList::const_iterator LDAPReferenceList::begin() const{
     return m_refs.begin();
 }

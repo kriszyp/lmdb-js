@@ -29,7 +29,7 @@ StringList::~StringList(){
 }
 
 char** StringList::toCharArray() const{
-    if(size() > 0){
+    if(!empty()){
         char** ret = new char*[size()+1];
         StringList::const_iterator i;
         int j=0;
@@ -51,6 +51,10 @@ void StringList::add(const string& value){
 
 size_t StringList::size() const{
     return m_data.size();
+}
+
+bool StringList::empty() const{
+    return m_data.empty();
 }
 
 StringList::const_iterator StringList::begin() const{
