@@ -321,7 +321,7 @@ char	**argv;
     }
 
     if ( infile == NULL ) {
-	rc = dosearch( ld, base, scope, attrs, attrsonly, filtpattern, "" );
+	rc = dosearch( ld, base, scope, attrs, attrsonly, "%s", filtpattern );
     } else {
 	rc = 0;
 	first = 1;
