@@ -181,6 +181,7 @@ read_config( char *fname )
 				char *dn = ch_strdup( cargv[1] );
 				(void) dn_normalize_case( dn );
 				charray_add( &be->be_suffix, dn );
+				free( dn );
 			}
 
                 /* set database suffixAlias */
@@ -421,7 +422,7 @@ read_config( char *fname )
 					if ( strncasecmp( cargv[i], "host=", 5 )
 					    == 0 ) {
 						charray_add( &be->be_replica,
-						    ch_strdup( cargv[i] + 5 ) );
+							     cargv[i] + 5 );
 						break;
 					}
 				}
