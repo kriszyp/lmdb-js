@@ -542,8 +542,6 @@ dnl ----------------------------------------------------------------
 dnl Check for module support
 ol_link_modules=no
 if test $ol_enable_modules != no ; then
-	AC_MSG_ERROR([modules not supported in this version of OpenLDAP])
-
 	AC_CHECK_HEADERS(ltdl.h)
 
 	if test $ac_cv_header_ltdl_h = no ; then

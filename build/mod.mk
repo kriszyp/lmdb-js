@@ -12,7 +12,7 @@ LIBSTAT = lib$(LIBBASE).a
 
 LTFLAGS = --only-$(LINKAGE)
 
-COMPILE = $(LIBTOOL) --mode=compile $(CC) $(CFLAGS) $(MODDEFS) -c
+COMPILE = $(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) $(CFLAGS) $(MODDEFS) -c
 LTLIBLINK = $(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -rpath $(moduledir) \
 	$(CFLAGS) $(LDFLAGS) $(LTVERSION) $(LT_NO_UNDEF)
 

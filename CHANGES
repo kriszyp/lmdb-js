@@ -1,5 +1,12 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.x Engineering
+	Build Environment
+		Added libtool customizations
+		Enabled module support
+	Documentation
+		Update ldapsearch(1)
+
 OpenLDAP 2.0.5 Release
 	Fixed slapd/ldbm/search confusing log message (ITS#771)
 	Fixed slapd/sasl no cred bug
