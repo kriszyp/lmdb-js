@@ -624,6 +624,7 @@ acl_mask(
 			}
 		}
 
+#ifdef SLAPD_ACI_ENABLED
 		if ( b->a_set_pat != NULL ) {
 			struct berval bv;
 
@@ -634,7 +635,6 @@ acl_mask(
 			}
 		}
 
-#ifdef SLAPD_ACI_ENABLED
 		if ( b->a_aci_at != NULL ) {
 			Attribute	*at;
 			slap_access_t grant, deny, tgrant, tdeny;
