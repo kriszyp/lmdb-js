@@ -372,7 +372,8 @@ int slap_modlist2mods(
 
 		if( rc != LDAP_SUCCESS ) {
 			slap_mods_free( mod );
-			snprintf( textbuf, textlen, "%s: %s", ml->ml_type, text );
+			snprintf( textbuf, textlen, "%s: %s",
+				ml->ml_type, *text );
 			*text = textbuf;
 			return rc;
 		}
