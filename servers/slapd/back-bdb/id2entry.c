@@ -136,20 +136,22 @@ int bdb_entry_return(
 	BackendDB *be,
 	Entry *e )
 {
-	/* Our entries are almost always contiguous blocks, so a single
-	 * free() on the Entry pointer suffices. The exception is when
-	 * an entry has been modified, in which case the attr list will
-	 * have been alloc'd separately and its address will no longer
-	 * be a constant offset from (e).
+	/* Our entries are allocated in two blocks; the data comes from
+	 * the db itself and the Entry structure and associated pointers
+	 * are allocated in entry_decode. The db data pointer is saved
+	 * in e_private. Since the Entry structure is allocated as a single
+	 * block, e_attrs is always a fixed offset from e. The exception
+	 * is when an entry has been modified, in which case we also need
+	 * to free e_attrs.
 	 */
-	if( (void *) e->e_attrs != (void *) (e+1))
-	{
-		attrs_free(e->e_attrs);
+	if( (void *) e->e_attrs != (void *) (e+1)) {
+		attrs_free( e->e_attrs );
 	}
-	if (e->e_private)
-		free(e->e_private);
+	if( e->e_private ) {
+		free( e->e_private );
+	}
 
-	ch_free(e);
+	free( e );
 
 	return 0;
 }
@@ -161,10 +163,13 @@ int bdb_entry_release(
 	int rw )
 {
 	/* A tool will call this with NULL Connection and Operation
-	 * pointers. We don't need to do anything in that case,
+	 * pointers. We don't need to free the e_private in that case,
 	 * because the tool is getting entries into a realloc'd
 	 * buffer.
 	 */
-	if (c && o)
-		return bdb_entry_return(be, e);
+	if( c && o ) {
+		return bdb_entry_return( be, e );
+	} else {
+		free( e );
+	}
 }
