@@ -16,9 +16,9 @@ front-end.
 .LP
 This backend is is primarily intended to be used in prototypes.
 .SH WARNING
-.B "This backend's calling conventions have changed since OpenLDAP 2.0."
-The abandon operation now gets a new "pid:" line.
-The "msgid:" lines will be removed in a future version.
+The
+.B abandon
+shell command has been removed since OpenLDAP 2.1.
 .SH CONFIGURATION
 These
 .B slapd.conf
@@ -32,14 +32,6 @@ manual page.
 These options specify the pathname and arguments of the program to
 execute in response to the given LDAP operation.
 Each option is followed by the input lines that the program receives:
-.TP
-.B abandon  <pathname> <argument>...
-.nf
-ABANDON
-msgid: <message ID of operation to abandon>
-<repeat { "suffix:" <database suffix DN> }>
-pid: <process ID of operation to abandon>
-.fi
 .TP
 .B add      <pathname> <argument>...
 .nf
@@ -129,7 +121,7 @@ want the backend to handle.
 Operations for which a command is not supplied will be refused with an
 "unwilling to perform" error.
 .LP
-The commands - except \fBabandon\fP and \fBunbind\fP - should output:
+The commands - except \fBunbind\fP - should output:
 .RS
 .nf
 RESULT
