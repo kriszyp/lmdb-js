@@ -1,6 +1,6 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.14 Engineering
+OpenLDAP 2.2.14 Release
 	Fixed back-bdb ignore deadlock bug (ITS#3188)
 	Fixed back-bdb pagedResults no end cookie bug (ITS#3161)
 	Fixed back-bdb pagedResults clear controls bug (ITS#3182)
@@ -13,7 +13,7 @@ OpenLDAP 2.2.14 Engineering
 	Build environments
 		Fixed back-sql trace builds
 	Documentation
-		Fixed slapd.access(5) to dn.regex $$ bug
+		Fixed slapd.access(5) dn.regex $$ bug
 
 OpenLDAP 2.2.13 Release
 	Fixed pcache CSN pending segfault (ITS#3180)
