@@ -75,9 +75,9 @@ fi
 echo "Starting slave slapd on TCP/IP port $R1SLAVEPORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $R1SRSLAVECONF > $R1REPLCONF
 $SLAPD -f $R1REPLCONF -h $R1SLAVEURI -d $LVL $TIMING > $R1SLAVELOG 2>&1 &
-R1SLAVEPID=$!
+SLAVEPID=$!
 if test $WAIT != 0 ; then
-    echo SLAVEPID $R1SLAVEPID
+    echo SLAVEPID $SLAVEPID
     read foo
 fi
 
@@ -105,7 +105,7 @@ $LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD < \
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapadd failed ($RC)!"
-	kill -HUP $PID $R1SLAVEPID
+	kill -HUP $PID $SLAVEPID
 	exit $RC
 fi
 
@@ -201,7 +201,7 @@ RC=$?
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed at master ($RC)!"
-	kill -HUP $PID $R1SLAVEPID
+	kill -HUP $PID $SLAVEPID
 	exit $RC
 fi
 
@@ -212,11 +212,11 @@ RC=$?
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed at slave ($RC)!"
-	kill -HUP $PID $R1SLAVEPID
+	kill -HUP $PID $SLAVEPID
 	exit $RC
 fi
 
-kill -HUP $PID $R1SLAVEPID
+kill -HUP $PID $SLAVEPID
 
 SEARCHOUT=$MASTEROUT
 LDIF=$R1SLAVEOUT
