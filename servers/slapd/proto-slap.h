@@ -256,7 +256,8 @@ int lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
  */
 
 #ifdef SLAPD_MODULES
-int load_module LDAP_P(( const char* file_name, int argc, char *argv[] ));
+int module_load LDAP_P(( const char* file_name, int argc, char *argv[] ));
+int module_path LDAP_P(( const char* path ));
 #endif /* SLAPD_MODULES */
 
 /*
@@ -376,6 +377,7 @@ int is_entry_objectclass LDAP_P(( Entry *, char* objectclass ));
 void parse_oc_old LDAP_P(( Backend *be, char *fname, int lineno, int argc, char **argv ));
 void parse_oc LDAP_P(( char *fname, int lineno, char *line, char **argv ));
 void parse_at LDAP_P(( char *fname, int lineno, char *line, char **argv ));
+void parse_oidm LDAP_P(( char *fname, int lineno, int argc, char **argv ));
 char *scherr2str LDAP_P((int code));
 int dscompare LDAP_P(( char *s1, char *s2del, char delim ));
 /*

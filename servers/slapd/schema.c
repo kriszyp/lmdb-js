@@ -565,7 +565,7 @@ syn_find_desc( const char *syndesc, int *len )
 	Syntax		*synp;
 
 	for (synp = syn_list; synp; synp = synp->ssyn_next)
-		if ((*len = dscompare( synp->ssyn_syn.syn_desc, syndesc, '{')))
+		if ((*len = dscompare( synp->ssyn_syn.syn_desc, (char *)syndesc, '{')))
 			return synp;
 	return( NULL );
 }
