@@ -204,6 +204,12 @@ meta_clear_one_candidate(
 		lsc->bound_dn.bv_len = 0;
 	}
 
+	if ( lsc->cred.bv_val != NULL ) {
+		ber_memfree( lsc->cred.bv_val );
+		lsc->cred.bv_val = NULL;
+		lsc->cred.bv_len = 0;
+	}
+
 	return 0;
 }
 

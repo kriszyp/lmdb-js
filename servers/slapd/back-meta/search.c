@@ -58,7 +58,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	struct metaconn *lc;
 	struct metasingleconn *lsc;
 	struct timeval	tv = { 0, 0 };
-	LDAPMessage	*res, *e;
+	LDAPMessage	*res = NULL, *e;
 	int	rc = 0, *msgid, sres = LDAP_SUCCESS;
 	char *err = NULL;
 	struct berval match = { 0, NULL }, mmatch = { 0, NULL };
@@ -382,6 +382,11 @@ new_candidate:;
 					0, &tv, &res );
 
 			if ( rc == 0 ) {
+				/* timeout exceeded */
+
+				/* FIXME: res should not need to be freed */
+				assert( res == NULL );
+
 				continue;
 
 			} else if ( rc == -1 ) {
@@ -393,11 +398,18 @@ new_candidate:;
 				send_ldap_result( op, rs );
 				
 				/* anything else needs be done? */
+
+				/* FIXME: res should not need to be freed */
+				assert( res == NULL );
+
 				goto finish;
 
 			} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
 				e = ldap_first_entry( lsc->ld, res );
 				meta_send_entry( op, rs, lc, i, e );
+
+				ldap_msgfree( res );
+				res = NULL;
 
 				/*
 				 * If scope is BASE, we need to jump out
@@ -412,7 +424,7 @@ new_candidate:;
 					sres = LDAP_SUCCESS;
 					break;
 				}
-				ldap_msgfree( res );
+
 				gotit = 1;
 
 			} else if ( rc == LDAP_RES_SEARCH_REFERENCE ) {
@@ -460,9 +472,14 @@ new_candidate:;
 					rs->sr_ctrls = NULL;
 				}
 
+				ldap_msgfree( res );
+				res = NULL;
+
 			} else {
 				rs->sr_err = ldap_result2error( lsc->ld,
 						res, 1 );
+				res = NULL;
+
 				sres = ldap_back_map_result( rs );
 				if ( err != NULL ) {
 					free( err );

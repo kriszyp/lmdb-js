@@ -414,6 +414,7 @@ meta_back_op_result( struct metaconn *lc, Operation *op, SlapReply *rs )
 	struct metasingleconn *lsc;
 	char *rmsg = NULL;
 	char *rmatch = NULL;
+	int	free_rmsg = 0, free_rmatch = 0;
 
 	for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
 		char *msg = NULL;
@@ -457,9 +458,17 @@ meta_back_op_result( struct metaconn *lc, Operation *op, SlapReply *rs )
 			switch ( rs->sr_err ) {
 			default:
 				rerr = rs->sr_err;
+				if ( rmsg ) {
+					ber_memfree( rmsg );
+				}
 				rmsg = msg;
+				free_rmsg = 1;
 				msg = NULL;
+				if ( rmatch ) {
+					ber_memfree( rmatch );
+				}
 				rmatch = match;
+				free_rmatch = 1;
 				match = NULL;
 				break;
 			}
@@ -478,6 +487,12 @@ meta_back_op_result( struct metaconn *lc, Operation *op, SlapReply *rs )
 	rs->sr_text = rmsg;
 	rs->sr_matched = rmatch;
 	send_ldap_result( op, rs );
+	if ( free_rmsg ) {
+		ber_memfree( rmsg );
+	}
+	if ( free_rmatch ) {
+		ber_memfree( rmatch );
+	}
 	rs->sr_text = NULL;
 	rs->sr_matched = NULL;
 

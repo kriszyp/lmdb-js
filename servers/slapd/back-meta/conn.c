@@ -254,6 +254,11 @@ init_one_conn(
 			return rs->sr_err;
 		}
 
+		/* copy the DN idf needed */
+		if ( lsc->bound_dn.bv_val == op->o_conn->c_dn.bv_val ) {
+			ber_dupbv( &lsc->bound_dn, &op->o_conn->c_dn );
+		}
+
 		assert( lsc->bound_dn.bv_val );
 
 	} else {
