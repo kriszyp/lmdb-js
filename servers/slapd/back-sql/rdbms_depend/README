@@ -1,7 +1,7 @@
 Author: Pierangelo Masarati <ando@OpenLDAP.org>
 
-Back-sql can be tested with test031-sql; it requires a bit of work to get
-everything up and running appropriately.
+Back-sql can be tested with sql-test000-read; it requires a bit of work 
+to get everything up and running appropriately.
 
 This document briefly describes the steps that are required to prepare
 a quick'n'dirty installation of back-sql and of the related RDBMS
@@ -9,9 +9,9 @@ and ODBC; Examples are provided, but by no means they pretent
 to represent an exaustive source of info about how to setup the ODBC;
 refer to the docs for any problem or detail.
 
-Currently, the system has been tested with PostgreSQL and with MySQL;
+Currently, the system has been tested with IBM db2, PostgreSQL and MySQL;
 basic support and test data for other RDBMSes is in place, but as of
-today (August 2004) it's totally untested.  If you succeed in running
+today (November 2004) it's totally untested.  If you succeed in running
 any of the other RDBMSes, please provide feedback about any required
 change either in the code or in the test scripts by means of OpenLDAP's
 Issue Tracking System (http://www.openldap.org/its/).
@@ -85,6 +85,7 @@ Driver          = /usr/lib/libmyodbc.so
 FileUsage       = 1
 
 2.3) IBM db2
+[n.a.]
 
 3) The RDBMS must be setup; examples are provided for my installations 
 of PostgreSQL and MySQL, but details may change; other RDBMSes should
@@ -151,6 +152,7 @@ mysql> exit;
 [root@localhost]# SLAPD_USE_SQL=mysql ./run test031
 
 3.3) IBM db2
+[n.a.]
 
 3.3.1) Start the server:
 
@@ -174,10 +176,14 @@ in auto-commit mode (-c)
 [root@localhost]# SLAPD_USE_SQL=ibmdb2 ./run test031
 
 4) Cleanup:
-The basic portion of the test is readonly; this is performed by all RDBMSes.
-The secondary part involves write operations.  Currently, the write
-portion of the test is enabled only for PostgreSQL and IBM db2.
-Note that after a successful run of the write portion, the database is 
-no longer in the correct state to restart the test, and step 3.X.4 needs 
-to be re-run first.
+The test is basically readonly; this can be performed by all RDBMSes 
+(listed above).
+
+There is another test, sql-test900-write, which is currently enabled
+only for PostgreSQL and IBM db2.  Note that after a successful run 
+of the write test, the database is no longer in the correct state 
+to restart either of the tests, and step 3.X.4 needs to be re-run first.
+
+More tests are to come; PostgreSQL is known to allow a full reload 
+of the test database starting from an empty database.
 
