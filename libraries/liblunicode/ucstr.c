@@ -82,7 +82,7 @@ void ucstr2upper(
 }
 
 char * UTF8normalize(
-	struct berval *bv;
+	struct berval *bv,
 	char casefold )
 {
 	int i, j, len, clen, outpos, ucsoutlen, outsize, last;
