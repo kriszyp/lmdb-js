@@ -35,7 +35,7 @@ designed to be equivalent to standard C's <xxx.h> file.
 
 Nonstatic function and variable definitions in .c files should be
 preceded by their declarations in .h files.  Avoid implicit function
-declarations.
+declarations.  Avoid external declarations in .c files.
 
 When a function returns non-void, it should return a meaningful value.
 Avoid implicit int.
@@ -54,7 +54,7 @@ coordinate activities there.
 Do not commit a patch, however small, without at least testing that it
 compiles.
 
-In general, the patch/bugfix should be applied to -devel and tested.
+In general, a patch/bugfix should be applied to -devel and tested.
 When the patch is considered stable, then it can be merged into -stable.
 Same goes for other release engineering branches (like
 OPENLDAP_REL_ENG_1_1).  (-stable is rel eng 1.0).
