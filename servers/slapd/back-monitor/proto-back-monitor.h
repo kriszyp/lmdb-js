@@ -41,6 +41,7 @@ int monitor_subsys_backend_init LDAP_P(( BackendDB *be ));
  * databases 
  */
 int monitor_subsys_database_init LDAP_P(( BackendDB *be ));
+int monitor_subsys_database_modify LDAP_P(( Operation *op, Entry *e ));
 
 /*
  * threads

@@ -103,6 +103,7 @@ struct monitorinfo {
 	AttributeDescription *mi_ad_seeAlso;
 	AttributeDescription *mi_ad_l;
 	AttributeDescription *mi_ad_labeledURI;
+	AttributeDescription *mi_ad_readOnly;
 };
 
 /*

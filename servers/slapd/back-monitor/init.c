@@ -55,7 +55,7 @@ struct monitorsubsys monitor_subsys[] = {
 		monitor_subsys_database_init,
 		NULL,   /* update */
 		NULL,   /* create */
-		NULL	/* modify */
+		monitor_subsys_database_modify
        	}, { 
 		SLAPD_MONITOR_BACKEND, SLAPD_MONITOR_BACKEND_NAME, 
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
@@ -457,6 +457,14 @@ monitor_back_db_open(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(struct monitorinfo, mi_ad_monitorOverlay) },
+		{ "readOnly", "( 1.3.6.1.4.1.4203.666.1.31 "
+			"NAME 'readOnly' "
+			"DESC 'read/write status of a given database' "
+			"EQUALITY booleanMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
+			"SINGLE-VALUE "
+			"USAGE directoryOperation )", SLAP_AT_HIDE,
+			offsetof(struct monitorinfo, mi_ad_readOnly) },
 #ifdef INTEGRATE_CORE_SCHEMA
 		{ NULL, NULL, 0, -1 },	/* description */
 		{ NULL, NULL, 0, -1 },	/* seeAlso */
