@@ -701,7 +701,15 @@ glue_db_open (
 	int i;
 
 	for ( i=0; i<gi->gi_nodes; i++ ) {
+		int j;
+
 		gi->gi_n[i].gn_be = backendDB + gi->gi_n[i].gn_bx;
+
+		for ( j = 0; j < SLAP_MAX_CIDS; j++ ) {
+			if ( gi->gi_n[i].gn_be->be_ctrls[ j ] ) {
+				be->be_ctrls[ j ] = gi->gi_n[i].gn_be->be_ctrls[ j ];
+			}
+		}
 	}
 	return 0;
 }
