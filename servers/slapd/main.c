@@ -639,6 +639,9 @@ int main( int argc, char **argv )
 #endif
 	(void) SIGNAL( SIGINT, slap_sig_shutdown );
 	(void) SIGNAL( SIGTERM, slap_sig_shutdown );
+#ifdef SIGTRAP
+	(void) SIGNAL( SIGTRAP, slap_sig_shutdown );
+#endif
 #ifdef LDAP_SIGCHLD
 	(void) SIGNAL( LDAP_SIGCHLD, wait4child );
 #endif
