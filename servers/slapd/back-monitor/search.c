@@ -156,12 +156,14 @@ monitor_back_search( Operation *op, SlapReply *rs )
 	if ( e == NULL ) {
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		if ( matched ) {
-			rs->sr_matched = ch_strdup( matched->e_dn );
-			monitor_cache_release( mi, matched );
+			rs->sr_matched = matched->e_dn;
 		}
 
 		send_ldap_result( op, rs );
-		rs->sr_matched = NULL;
+		if ( matched ) {
+			monitor_cache_release( mi, matched );
+			rs->sr_matched = NULL;
+		}
 
 		return( 0 );
 	}

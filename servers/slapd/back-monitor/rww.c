@@ -70,7 +70,7 @@ monitor_subsys_readw_update_internal(
 	int                     nconns, nwritewaiters, nreadwaiters;
 	
 	Attribute		*a;
-	struct berval           bv[2], *b = NULL;
+	struct berval           *b = NULL;
 	char 			buf[1024];
 	
 	char			*str = NULL;
@@ -78,8 +78,6 @@ monitor_subsys_readw_update_internal(
 
 	assert( mi != NULL );
 	assert( e != NULL );
-	
-	bv[1].bv_val = NULL;
 	
 	nconns = nwritewaiters = nreadwaiters = 0;
 	for ( c = connection_first( &connindex );
@@ -117,9 +115,28 @@ monitor_subsys_readw_update_internal(
 	}
 
 	if ( b == NULL || b[0].bv_val == NULL ) {
-		bv[0].bv_val = buf;
-		bv[0].bv_len = strlen( buf );
-		attr_mergeit( e, monitor_ad_desc, bv );
+		struct berval bv, nbv;
+
+		bv.bv_val = buf;
+		bv.bv_len = strlen( buf );
+
+		nbv.bv_val = NULL;
+		if ( monitor_ad_normalize ) {
+			int	rc;
+
+			rc = monitor_ad_normalize(
+					0,
+					monitor_ad_desc->ad_type->sat_syntax,
+					monitor_ad_desc->ad_type->sat_equality,
+					&bv, &nbv );
+			if ( rc ) {
+				return( -1 );
+			}
+		}
+
+		attr_merge_one( e, monitor_ad_desc, &bv,
+				nbv.bv_val ? &nbv : NULL );
+		ch_free( nbv.bv_val );
 	}
 
 	return( 0 );

@@ -76,7 +76,8 @@ monitor_subsys_backend_init(
 	for ( i = nBackendInfo; i--; ) {
 		char 		buf[1024];
 		BackendInfo 	*bi;
-		struct berval 	bv[ 2 ];
+		struct berval 	bv, nbv;
+		int		rc;
 
 		bi = &backendInfo[i];
 
@@ -106,20 +107,34 @@ monitor_subsys_backend_init(
 			return( -1 );
 		}
 		
-		bv[0].bv_val = bi->bi_type;
-		bv[0].bv_len = strlen( bv[0].bv_val );
-		bv[1].bv_val = NULL;
+		bv.bv_val = bi->bi_type;
+		bv.bv_len = strlen( bv.bv_val );
 
-		attr_mergeit( e, monitor_ad_desc, bv );
-		attr_mergeit( e_backend, monitor_ad_desc, bv );
+		nbv.bv_val = NULL;
+		if ( monitor_ad_normalize ) {
+			rc = monitor_ad_normalize(
+					0,
+					monitor_ad_desc->ad_type->sat_syntax,
+					monitor_ad_desc->ad_type->sat_equality,
+					&bv, &nbv );
+			if ( rc ) {
+				return( -1 );
+			}
+		}
+
+		attr_merge_one( e, monitor_ad_desc, &bv,
+				nbv.bv_val ? &nbv : NULL );
+		attr_merge_one( e_backend, monitor_ad_desc, &bv,
+				nbv.bv_val ? &nbv : NULL );
+		ch_free( nbv.bv_val );
 
 		if ( bi->bi_controls ) {
 			int j;
 
 			for ( j = 0; bi->bi_controls[ j ]; j++ ) {
-				bv[0].bv_val = bi->bi_controls[ j ];
-				bv[0].bv_len = strlen( bv[0].bv_val );
-				attr_mergeit( e, slap_schema.si_ad_supportedControl, bv );
+				bv.bv_val = bi->bi_controls[ j ];
+				bv.bv_len = strlen( bv.bv_val );
+				attr_merge_one( e, slap_schema.si_ad_supportedControl, &bv, NULL );
 			}
 		}
 		

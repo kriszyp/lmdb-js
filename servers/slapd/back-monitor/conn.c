@@ -51,7 +51,7 @@ monitor_subsys_conn_init(
 	Entry			*e, *e_tmp, *e_conn;
 	struct monitorentrypriv	*mp;
 	char			buf[1024];
-	struct berval		bv[2];
+	struct berval		bv;
 
 	assert( be != NULL );
 
@@ -102,10 +102,9 @@ monitor_subsys_conn_init(
 		return( -1 );
 	}
 	
-	bv[1].bv_val = NULL;
-	bv[0].bv_val = "0";
-	bv[0].bv_len = 1;
-	attr_mergeit( e, monitor_ad_desc, bv );
+	bv.bv_val = "0";
+	bv.bv_len = 1;
+	attr_merge_one( e, monitor_ad_desc, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -160,10 +159,9 @@ monitor_subsys_conn_init(
 		return( -1 );
 	}
 	
-	bv[1].bv_val = NULL;
-	bv[0].bv_val = "0";
-	bv[0].bv_len = 1;
-	attr_mergeit( e, monitor_ad_desc, bv );
+	bv.bv_val = "0";
+	bv.bv_len = 1;
+	attr_merge_one( e, monitor_ad_desc, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -257,7 +255,7 @@ conn_create(
 	char			buf2[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 	char			buf3[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 
-	struct berval           bv[2];
+	struct berval           bv;
 
 	Entry			*e;
 
@@ -333,10 +331,9 @@ conn_create(
 		buf3
 		);
 
-	bv[1].bv_val = NULL;
-	bv[0].bv_val = buf;
-	bv[0].bv_len = strlen( buf );
-	attr_mergeit( e, monitor_ad_desc, bv );
+	bv.bv_val = buf;
+	bv.bv_len = strlen( buf );
+	attr_merge_one( e, monitor_ad_desc, &bv, NULL );
 
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;

@@ -48,8 +48,8 @@ monitor_subsys_thread_init(
 {
 	struct monitorinfo      *mi;
 	Entry                   *e;
-	struct berval           bv[2];
 	static char		buf[1024];
+	struct berval		bv;
 
 	mi = ( struct monitorinfo * )be->be_private;
 
@@ -72,11 +72,10 @@ monitor_subsys_thread_init(
 	/* initialize the thread number */
 	snprintf( buf, sizeof( buf ), "max=%d", connection_pool_max );
 
-	bv[1].bv_val = NULL;
-	bv[0].bv_val = buf;
-	bv[0].bv_len = strlen( bv[0].bv_val );
+	bv.bv_val = buf;
+	bv.bv_len = strlen( bv.bv_val );
 
-	attr_mergeit( e, monitor_ad_desc, bv );
+	attr_merge_one( e, monitor_ad_desc, &bv, NULL );
 
 	monitor_cache_release( mi, e );
 
@@ -90,10 +89,8 @@ monitor_subsys_thread_update(
 )
 {
 	Attribute		*a;
-	struct berval           bv[2], *b = NULL;
+	struct berval           *b = NULL;
 	char 			buf[1024];
-
-	bv[1].bv_val = NULL;
 
 	snprintf( buf, sizeof( buf ), "backload=%d", 
 			ldap_pvt_thread_pool_backload( &connection_pool ) );
@@ -111,9 +108,11 @@ monitor_subsys_thread_update(
 	}
 
 	if ( b == NULL || b[0].bv_val == NULL ) {
-		bv[0].bv_val = buf;
-		bv[0].bv_len = strlen( buf );
-		attr_mergeit( e, monitor_ad_desc, bv );
+		struct berval	bv;
+
+		bv.bv_val = buf;
+		bv.bv_len = strlen( buf );
+		attr_merge_one( e, monitor_ad_desc, &bv, NULL );
 	}
 
 	return( 0 );

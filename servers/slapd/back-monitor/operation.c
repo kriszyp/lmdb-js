@@ -65,7 +65,7 @@ monitor_subsys_ops_init(
 	Entry			*e, *e_tmp, *e_op, *e_children;
 	struct monitorentrypriv	*mp;
 	char			buf[1024];
-	struct berval		bv[2];
+	struct berval		bv;
 	int 			i;
 
 	assert( be != NULL );
@@ -121,10 +121,9 @@ monitor_subsys_ops_init(
 		return( -1 );
 	}
 	
-	bv[1].bv_val = NULL;
-	bv[0].bv_val = "0";
-	bv[0].bv_len = 1;
-	attr_mergeit( e, monitor_ad_desc, bv );
+	bv.bv_val = "0";
+	bv.bv_len = 1;
+	attr_merge_one( e, monitor_ad_desc, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -189,10 +188,9 @@ monitor_subsys_ops_init(
 			return( -1 );
 		}
 	
-		bv[1].bv_val = NULL;
-		bv[0].bv_val = "0";
-		bv[0].bv_len = 1;
-		attr_mergeit( e, monitor_ad_desc, bv );
+		bv.bv_val = "0";
+		bv.bv_len = 1;
+		attr_merge_one( e, monitor_ad_desc, &bv, NULL );
 	
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 		e->e_private = ( void * )mp;
@@ -257,9 +255,9 @@ monitor_subsys_ops_init(
 		return( -1 );
 	}
 
-	bv[0].bv_val = "0";
-	bv[0].bv_len = 1;
-	attr_mergeit( e, monitor_ad_desc, bv );
+	bv.bv_val = "0";
+	bv.bv_len = 1;
+	attr_merge_one( e, monitor_ad_desc, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -324,9 +322,9 @@ monitor_subsys_ops_init(
 			return( -1 );
 		}
 
-		bv[0].bv_val = "0";
-		bv[0].bv_len = 1;
-		attr_mergeit( e, monitor_ad_desc, bv );
+		bv.bv_val = "0";
+		bv.bv_len = 1;
+		attr_merge_one( e, monitor_ad_desc, &bv, NULL );
 	
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 		e->e_private = ( void * )mp;

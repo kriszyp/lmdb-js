@@ -38,6 +38,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
+#include <lber_pvt.h>
 #include "lutil.h"
 #include "ldif.h"
 #include "back-monitor.h"
@@ -49,27 +50,28 @@ ldap_pvt_thread_mutex_t		monitor_log_mutex;
 
 static struct {
 	int i;
-	const char *s;
+	struct berval s;
+	struct berval n;
 } int_2_level[] = {
-	{ LDAP_DEBUG_TRACE,	"Trace" },
-	{ LDAP_DEBUG_PACKETS,	"Packets" },
-	{ LDAP_DEBUG_ARGS,	"Args" },
-	{ LDAP_DEBUG_CONNS,	"Conns" },
-	{ LDAP_DEBUG_BER,	"BER" },
-	{ LDAP_DEBUG_FILTER,	"Filter" },
-	{ LDAP_DEBUG_CONFIG,	"Config" },	/* useless */
-	{ LDAP_DEBUG_ACL,	"ACL" },
-	{ LDAP_DEBUG_STATS,	"Stats" },
-	{ LDAP_DEBUG_STATS2,	"Stats2" },
-	{ LDAP_DEBUG_SHELL,	"Shell" },
-	{ LDAP_DEBUG_PARSE,	"Parse" },
-	{ LDAP_DEBUG_CACHE,	"Cache" },
-	{ LDAP_DEBUG_INDEX,	"Index" },
-	{ 0,			NULL }
+	{ LDAP_DEBUG_TRACE,	BER_BVC("Trace"),	{ 0, NULL } },
+	{ LDAP_DEBUG_PACKETS,	BER_BVC("Packets"),	{ 0, NULL } },
+	{ LDAP_DEBUG_ARGS,	BER_BVC("Args"),	{ 0, NULL } },
+	{ LDAP_DEBUG_CONNS,	BER_BVC("Conns"),	{ 0, NULL } },
+	{ LDAP_DEBUG_BER,	BER_BVC("BER"),	{ 0, NULL } },
+	{ LDAP_DEBUG_FILTER,	BER_BVC("Filter"),	{ 0, NULL } },
+	{ LDAP_DEBUG_CONFIG,	BER_BVC("Config"),	{ 0, NULL } },	/* useless */
+	{ LDAP_DEBUG_ACL,	BER_BVC("ACL"),	{ 0, NULL } },
+	{ LDAP_DEBUG_STATS,	BER_BVC("Stats"),	{ 0, NULL } },
+	{ LDAP_DEBUG_STATS2,	BER_BVC("Stats2"),	{ 0, NULL } },
+	{ LDAP_DEBUG_SHELL,	BER_BVC("Shell"),	{ 0, NULL } },
+	{ LDAP_DEBUG_PARSE,	BER_BVC("Parse"),	{ 0, NULL } },
+	{ LDAP_DEBUG_CACHE,	BER_BVC("Cache"),	{ 0, NULL } },
+	{ LDAP_DEBUG_INDEX,	BER_BVC("Index"),	{ 0, NULL } },
+	{ 0,			{ 0, NULL },	{ 0, NULL } }
 };
 
-static int loglevel2int( const char *str );
-static const char * int2loglevel( int n );
+static int loglevel2int( struct berval *l );
+static int int2loglevel( int n );
 
 static int add_values( Entry *e, Modification *mod, int *newlevel );
 static int delete_values( Entry *e, Modification *mod, int *newlevel );
@@ -111,13 +113,27 @@ monitor_subsys_log_init(
 
 	bv[1].bv_val = NULL;
 
-	/* initialize the debug level */
+	/* initialize the debug level(s) */
 	for ( i = 0; int_2_level[ i ].i != 0; i++ ) {
-		if ( int_2_level[ i ].i & ldap_syslog ) {
-			bv[0].bv_val = ( char * )int_2_level[ i ].s;
-			bv[0].bv_len = strlen( bv[0].bv_val );
 
-			attr_mergeit( e, monitor_ad_desc, bv );
+		if ( monitor_ad_normalize ) {
+			int	rc;
+
+			rc = monitor_ad_normalize(
+					0,
+					monitor_ad_desc->ad_type->sat_syntax,
+					monitor_ad_desc->ad_type->sat_equality,
+					&int_2_level[ i ].s,
+					&int_2_level[ i ].n );
+			if ( rc ) {
+				return( -1 );
+			}
+		}
+
+		if ( int_2_level[ i ].i & ldap_syslog ) {
+			attr_merge_one( e, monitor_ad_desc,
+					&int_2_level[ i ].s,
+					&int_2_level[ i ].n );
 		}
 	}
 
@@ -239,12 +255,16 @@ cleanup:;
 }
 
 static int
-loglevel2int( const char *str )
+loglevel2int( struct berval *l )
 {
 	int		i;
 	
 	for ( i = 0; int_2_level[ i ].i != 0; i++ ) {
-		if ( strcasecmp( str, int_2_level[ i ].s ) == 0 ) {
+		if ( l->bv_len != int_2_level[ i ].s.bv_len ) {
+			continue;
+		}
+
+		if ( strcasecmp( l->bv_val, int_2_level[ i ].s.bv_val ) == 0 ) {
 			return int_2_level[ i ].i;
 		}
 	}
@@ -252,18 +272,18 @@ loglevel2int( const char *str )
 	return 0;
 }
 
-static const char *
+static int
 int2loglevel( int n )
 {
 	int		i;
 	
 	for ( i = 0; int_2_level[ i ].i != 0; i++ ) {
 		if ( int_2_level[ i ].i == n ) {
-			return int_2_level[ i ].s;
+			return i;
 		}
 	}
 
-	return NULL;
+	return -1;
 }
 
 static int
@@ -272,20 +292,27 @@ check_constraints( Modification *mod, int *newlevel )
 	int		i;
 
 	for ( i = 0; mod->sm_bvalues && mod->sm_bvalues[i].bv_val != NULL; i++ ) {
-		int l;
-		const char *s;
-		ber_len_t len;
+		int		l;
 		
-		l = loglevel2int( mod->sm_bvalues[i].bv_val );
+		l = loglevel2int( &mod->sm_bvalues[i] );
 		if ( !l ) {
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
 
-		s = int2loglevel( l );
-		len = strlen( s );
-		assert( len == mod->sm_bvalues[i].bv_len );
+		if ( ( l = int2loglevel( l ) ) == -1 ) {
+			return LDAP_OTHER;
+		}
+
+		assert( int_2_level[ l ].s.bv_len
+				== mod->sm_bvalues[i].bv_len );
 		
-		AC_MEMCPY( mod->sm_bvalues[i].bv_val, s, len );
+		AC_MEMCPY( mod->sm_bvalues[i].bv_val,
+				int_2_level[ l ].s.bv_val,
+				int_2_level[ l ].s.bv_len );
+
+		AC_MEMCPY( mod->sm_nvalues[i].bv_val,
+				int_2_level[ l ].n.bv_val,
+				int_2_level[ l ].n.bv_len );
 
 		*newlevel |= l;
 	}
@@ -347,7 +374,8 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 	}
 
 	/* no - add them */
-	if ( attr_mergeit( e, mod->sm_desc, mod->sm_bvalues ) != 0 ) {
+	if ( attr_merge( e, mod->sm_desc, mod->sm_bvalues,
+				mod->sm_nvalues ) != 0 ) {
 		/* this should return result of attr_mergeit */
 		return LDAP_OTHER;
 	}
@@ -472,7 +500,8 @@ replace_values( Entry *e, Modification *mod, int *newlevel )
 	}
 
 	if ( mod->sm_bvalues != NULL &&
-		attr_mergeit( e, mod->sm_desc, mod->sm_bvalues ) != 0 ) {
+		attr_merge( e, mod->sm_desc, mod->sm_bvalues,
+		       mod->sm_nvalues	) != 0 ) {
 		return LDAP_OTHER;
 	}
 

@@ -44,6 +44,7 @@
  * used by many functions to add description to entries
  */
 AttributeDescription *monitor_ad_desc = NULL;
+slap_mr_normalize_func *monitor_ad_normalize = NULL;
 BackendDB *be_monitor = NULL;
 
 /*
@@ -244,7 +245,7 @@ monitor_back_db_init(
 	char 			buf[1024], *end_of_line;
 	struct berval		dn, ndn;
 	const char 		*text;
-	struct berval		bv[2];
+	struct berval		bv;
 
 	/*
 	 * database monitor can be defined once only
@@ -281,8 +282,8 @@ monitor_back_db_init(
 		return -1;
 	}
 
-	ber_dupbv( &bv[0], &dn );
-	ber_bvarray_add( &be->be_suffix, &bv[0] );
+	ber_dupbv( &bv, &dn );
+	ber_bvarray_add( &be->be_suffix, &bv );
 	ber_bvarray_add( &be->be_nsuffix, &ndn );
 
 	mi = ( struct monitorinfo * )ch_calloc( sizeof( struct monitorinfo ), 1 );
@@ -298,6 +299,10 @@ monitor_back_db_init(
 			text, "", "" );
 #endif
 		return( -1 );
+	}
+
+	if ( monitor_ad_desc->ad_type->sat_equality ) {
+		monitor_ad_normalize = monitor_ad_desc->ad_type->sat_equality->smr_normalize;
 	}
 
 	/*	
@@ -417,15 +422,14 @@ monitor_back_db_init(
 #endif
 		return( -1 );
 	}
-	bv[1].bv_val = NULL;
-	bv[0].bv_val = (char *) Versionstr;
+	bv.bv_val = (char *) Versionstr;
 	end_of_line = strchr( Versionstr, '\n' );
 	if ( end_of_line ) {
-		bv[0].bv_len = end_of_line - Versionstr;
+		bv.bv_len = end_of_line - Versionstr;
 	} else {
-		bv[0].bv_len = strlen( Versionstr );
+		bv.bv_len = strlen( Versionstr );
 	}
-	if ( attr_mergeit( e, monitor_ad_desc, bv ) ) {
+	if ( attr_merge_one( e, monitor_ad_desc, &bv, NULL ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, CRIT,
 			"unable to add description to '%s' entry\n",

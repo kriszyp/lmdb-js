@@ -136,11 +136,11 @@ monitor_subsys_database_init(
 		}
 		
 		if ( be->be_flags & SLAP_BFLAG_MONITOR ) {
-			attr_mergeit( e, ad_mc, be->be_suffix );
-			attr_mergeit( e_database, ad_mc, be->be_suffix );
+			attr_merge( e, ad_mc, be->be_suffix, be->be_nsuffix );
+			attr_merge( e_database, ad_mc, be->be_suffix, be->be_nsuffix );
 		} else {
-			attr_mergeit( e, ad_nc, be->be_suffix );
-			attr_mergeit( e_database, ad_nc, be->be_suffix );
+			attr_merge( e, ad_nc, be->be_suffix, be->be_nsuffix );
+			attr_merge( e_database, ad_nc, be->be_suffix, be->be_nsuffix );
 		}
 
 		for ( j = nBackendInfo; j--; ) {

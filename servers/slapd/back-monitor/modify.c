@@ -76,8 +76,8 @@ monitor_back_modify( Operation *op, SlapReply *rs )
 		if ( matched != NULL ) {
 			rs->sr_matched = NULL;
 			monitor_cache_release( mi, matched );
-			return( 0 );
 		}
+		return( 0 );
 	}
 
 	if ( !acl_check_modlist( op, e, op->oq_modify.rs_modlist )) {

@@ -49,15 +49,15 @@ monitor_back_compare( struct slap_op *op, struct slap_rep *rs)
 	/* get entry with reader lock */
 	monitor_cache_dn2entry( mi, &op->o_req_ndn, &e, &matched );
 	if ( e == NULL ) {
-		if ( matched ) {
-			rs->sr_matched = ch_strdup( matched->e_dn );
-			monitor_cache_release( mi, matched );
-		}
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
-
+		if ( matched ) {
+			rs->sr_matched = matched->e_dn;
+		}
 		send_ldap_result( op, rs );
-
-		rs->sr_matched = NULL;
+		if ( matched ) {
+			monitor_cache_release( mi, matched );
+			rs->sr_matched = NULL;
+		}
 
 		return( 0 );
 	}
