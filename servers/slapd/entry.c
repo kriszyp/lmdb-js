@@ -168,7 +168,7 @@ str2entry( char *s )
 			emaxsize += GRABSIZE; \
 			ecur = ebuf + offset; \
 		} \
-}
+	}
 
 char *
 entry2str(
@@ -181,7 +181,6 @@ entry2str(
 
 	/*
 	 * In string format, an entry looks like this:
-	 *	<id>\n
 	 *	dn: <dn>\n
 	 *	[<attr>: <value>\n]*
 	 */
