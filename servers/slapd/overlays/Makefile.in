@@ -57,3 +57,4 @@ MKDEPFLAG = -l
 
 $(LIBRARY): version.lo
 	$(LTLINK_LIB) -o $@ $(OBJS) version.lo
+
