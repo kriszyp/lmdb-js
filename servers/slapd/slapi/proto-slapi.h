@@ -49,7 +49,7 @@ extern void slapi_entry_attr_set_long(Slapi_Entry* e, const char *type, long l);
 extern void slapi_entry_attr_set_ulong(Slapi_Entry* e, const char *type, unsigned long l);
 extern int slapi_is_rootdse( const char *dn );
 extern int slapi_entry_has_children(const Slapi_Entry *e);
-
+size_t slapi_entry_size(Slapi_Entry *e);
 extern int slapi_entry_attr_merge_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals );
 extern int slapi_entry_add_values_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals );
 extern int slapi_entry_add_valueset(Slapi_Entry *e, const char *type, Slapi_ValueSet *vs);

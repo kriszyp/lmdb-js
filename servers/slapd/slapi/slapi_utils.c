@@ -559,6 +559,35 @@ slapi_entry_has_children(const Slapi_Entry *e)
 }
 
 /*
+ * Return approximate size of the entry rounded to the nearest
+ * 1K. Only the size of the attribute values are counted in the
+ * Sun implementation.
+ *
+ * http://docs.sun.com/source/816-6701-10/funcref.html#1017388
+ */
+size_t slapi_entry_size(Slapi_Entry *e)
+{
+#ifdef LDAP_SLAPI
+	size_t size;
+	Attribute *a;
+	int i;
+
+	for ( size = 0, a = e->e_attrs; a != NULL; a->a_next ) {
+		for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
+			size += a->a_vals[i].bv_len + 1;
+		}
+	}
+
+	size += 1023;
+	size -= (size % 1024);
+
+	return size;
+#else
+	return 0;
+#endif /* LDAP_SLAPI */
+}
+
+/*
  * Add values to entry.
  *
  * Returns:
