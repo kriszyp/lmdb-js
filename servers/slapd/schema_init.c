@@ -473,8 +473,36 @@ UTF8StringValidate(
 		/* get the length indicated by the first byte */
 		len = LDAP_UTF8_CHARLEN( u );
 
-		/* should not be zero */
-		if( len == 0 ) return LDAP_INVALID_SYNTAX;
+		/* very basic checks */
+		switch( len ) {
+			case 6:
+				if( u[5] >= 0xFE ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+			case 5:
+				if( u[4] >= 0xFE ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+			case 4:
+				if( u[3] >= 0xFE ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+			case 3:
+				if( u[2] >= 0xFE ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+			case 2:
+				if( u[1] >= 0xFE ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+			case 1:
+				if( u[0] >= 0xFE ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+				break;
+			default:
+				return LDAP_INVALID_SYNTAX;
+		}
 
 		/* make sure len corresponds with the offset
 			to the next character */
