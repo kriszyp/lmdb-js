@@ -263,7 +263,7 @@ with the correct values for your site:
 
 You are now ready to add more entries using {{ldapadd}}(1) or
 another LDAP client, experiment with various configuration options,
-backend arrangements, etc.
+backend arrangements, etc..
 
 Note that by default, the {{slapd}}(8) database grants {{read access
 to everybody}} excepting the {{super-user}} (as specified by the
