@@ -5,7 +5,7 @@
 
 all-common: all-local $(PROGRAMS)
 
-install-common: all install-local
+install-common: all-common install-local
 
 clean-common: 	clean-local
 	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) *.o a.out core

@@ -350,6 +350,10 @@ AC_OUTPUT( \
 Makefile:build/top.mk:Makefile.in:build/dir.mk \
 doc/Makefile:build/top.mk:doc/Makefile.in:build/dir.mk \
 doc/man/Makefile:build/top.mk:doc/man/Makefile.in:build/dir.mk \
+doc/man/man1/Makefile:build/top.mk:doc/man/man1/Makefile.in:build/man.mk \
+doc/man/man3/Makefile:build/top.mk:doc/man/man3/Makefile.in:build/man.mk \
+doc/man/man5/Makefile:build/top.mk:doc/man/man5/Makefile.in:build/man.mk \
+doc/man/man8/Makefile:build/top.mk:doc/man/man8/Makefile.in:build/man.mk \
 clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
 clients/finger/Makefile:build/top.mk:clients/finger/Makefile.in:build/rules.mk \
 clients/fax500/Makefile:build/top.mk:clients/fax500/Makefile.in:build/rules.mk \
