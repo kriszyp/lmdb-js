@@ -34,11 +34,9 @@ static char* getbuf( void ) {
 	char *p;
 	static char buf[1024];
 
-	if ( fgets( buf, sizeof(buf), stdin ) == NULL )
-		return NULL;
+	if ( fgets( buf, sizeof(buf), stdin ) == NULL ) return NULL;
 
-	if ( (p = strchr( buf, '\n' )) != NULL )
-		*p = '\0';
+	if ( (p = strchr( buf, '\n' )) != NULL ) *p = '\0';
 
 	return buf;
 }

@@ -15,8 +15,7 @@
 
 char *ber_pvt_wsa_err2string( int err )
 {
-	switch( err )
-	{
+	switch( err ) {
 		LBER_RETSTR( WSAEINTR )
 		LBER_RETSTR( WSAEBADF )
 		LBER_RETSTR( WSAEACCES )

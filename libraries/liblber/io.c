@@ -72,8 +72,7 @@ ber_write(
 
 	if ( nosos || ber->ber_sos == NULL ) {
 		if ( ber->ber_ptr + len > ber->ber_end ) {
-			if ( ber_realloc( ber, len ) != 0 )
-				return( -1 );
+			if ( ber_realloc( ber, len ) != 0 ) return( -1 );
 		}
 		AC_MEMCPY( ber->ber_ptr, buf, (size_t)len );
 		ber->ber_ptr += len;
@@ -81,8 +80,7 @@ ber_write(
 
 	} else {
 		if ( ber->ber_sos->sos_ptr + len > ber->ber_end ) {
-			if ( ber_realloc( ber, len ) != 0 )
-				return( -1 );
+			if ( ber_realloc( ber, len ) != 0 ) return( -1 );
 		}
 		AC_MEMCPY( ber->ber_sos->sos_ptr, buf, (size_t)len );
 		ber->ber_sos->sos_ptr += len;
@@ -183,8 +181,7 @@ ber_free( BerElement *ber, int freebuf )
 		return;
 	}
 
-	if( freebuf )
-		ber_free_buf( ber );
+	if( freebuf ) ber_free_buf( ber );
 
 	ber_memfree_x( (char *) ber, ber->ber_memctx );
 }
@@ -240,8 +237,7 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 		ber->ber_rwptr += rc;
 	} 
 
-	if ( freeit )
-		ber_free( ber, 1 );
+	if ( freeit ) ber_free( ber, 1 );
 
 	return( 0 );
 }
@@ -582,8 +578,7 @@ ber_get_next(
 #endif			
 				return LBER_DEFAULT;
 			}
-			for (i=0; i<llen; i++)
-			{
+			for (i=0; i<llen; i++) {
 				tlen <<=8;
 				tlen |= *p++;
 			}
@@ -594,10 +589,11 @@ ber_get_next(
 
 		/* Are there leftover data bytes inside ber->ber_len? */
 		if (ber->ber_ptr < (char *)&ber->ber_usertag) {
-			if (ber->ber_rwptr < (char *)&ber->ber_usertag)
+			if (ber->ber_rwptr < (char *)&ber->ber_usertag) {
 				sblen = ber->ber_rwptr - ber->ber_ptr;
-			else
+			} else {
 				sblen = (char *)&ber->ber_usertag - ber->ber_ptr;
+			}
 			AC_MEMCPY(buf, ber->ber_ptr, sblen);
 			ber->ber_ptr += sblen;
 		} else {

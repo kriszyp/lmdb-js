@@ -75,31 +75,30 @@ int ber_pvt_log_output(
 	const char *fmt,
 	... )
 {
-	char buf[ 1024 ];
+	char buf[1024];
 	va_list vl;
 	va_start( vl, fmt );
 
-	if ( ber_int_log_proc != NULL )
-	{
+	if ( ber_int_log_proc != NULL ) {
 		ber_int_log_proc( ber_pvt_err_file, subsystem, level, fmt, vl );
-	}
-	else
-	{
-            int level;
-            ber_get_option( NULL, LBER_OPT_BER_DEBUG, &level );
-            buf[sizeof(buf) - 1] = '\0';
-            vsnprintf( buf, sizeof(buf)-1, fmt, vl );
-            if ( ber_log_check( LDAP_DEBUG_BER, level ) )
-                (*ber_pvt_log_print)( buf );
-        }
-	va_end(vl);
 
+	} else {
+		int level;
+		ber_get_option( NULL, LBER_OPT_BER_DEBUG, &level );
+		buf[sizeof(buf) - 1] = '\0';
+		vsnprintf( buf, sizeof(buf)-1, fmt, vl );
+		if ( ber_log_check( LDAP_DEBUG_BER, level ) ) {
+			(*ber_pvt_log_print)( buf );
+		}
+	}
+
+	va_end(vl);
 	return 1;
 }
 	
 int ber_pvt_log_printf( int errlvl, int loglvl, const char *fmt, ... )
 {
-	char buf[ 1024 ];
+	char buf[1024];
 	va_list ap;
 
 	assert( fmt != NULL );
@@ -158,11 +157,11 @@ ber_bprint(
 	LDAP_CONST char *data,
 	ber_len_t len )
 {
-	static const char	hexdig[] = "0123456789abcdef";
+	static const char hexdig[] = "0123456789abcdef";
 #define BP_OFFSET 9
 #define BP_GRAPH 60
 #define BP_LEN	80
-	char	line[ BP_LEN ];
+	char	line[BP_LEN];
 	ber_len_t i;
 
 	assert( data != NULL );
@@ -183,23 +182,23 @@ ber_bprint(
 
 			off = i % 0x0ffffU;
 
-			line[ 2 ] = hexdig[ 0x0f & (off >> 12) ];
-			line[ 3 ] = hexdig[ 0x0f & (off >>  8) ];
-			line[ 4 ] = hexdig[ 0x0f & (off >>  4) ];
-			line[ 5 ] = hexdig[ 0x0f & off ];
-			line[ 6 ] = ':';
+			line[2] = hexdig[0x0f & (off >> 12)];
+			line[3] = hexdig[0x0f & (off >>  8)];
+			line[4] = hexdig[0x0f & (off >>  4)];
+			line[5] = hexdig[0x0f & off];
+			line[6] = ':';
 		}
 
 		off = BP_OFFSET + n*3 + ((n >= 8)?1:0);
-		line[ off   ] = hexdig[ 0x0f & ( data[i] >> 4 ) ];
-		line[ off+1 ] = hexdig[ 0x0f & data[i] ];
+		line[off] = hexdig[0x0f & ( data[i] >> 4 )];
+		line[off+1] = hexdig[0x0f & data[i]];
 		
 		off = BP_GRAPH + n + ((n >= 8)?1:0);
 
 		if ( isprint( (unsigned char) data[i] )) {
-			line[ BP_GRAPH + n ] = data[i];
+			line[BP_GRAPH + n] = data[i];
 		} else {
-			line[ BP_GRAPH + n ] = '.';
+			line[BP_GRAPH + n] = '.';
 		}
 	}
 
@@ -258,23 +257,23 @@ int ber_output_dump(
             
             off = i % 0x0ffffU;
 
-            line[ 2 ] = hexdig[ 0x0f & (off >> 12) ];
-            line[ 3 ] = hexdig[ 0x0f & (off >>  8) ];
-            line[ 4 ] = hexdig[ 0x0f & (off >>  4) ];
-            line[ 5 ] = hexdig[ 0x0f & off ];
-            line[ 6 ] = ':';
+            line[2] = hexdig[0x0f & (off >> 12)];
+            line[3] = hexdig[0x0f & (off >>  8)];
+            line[4] = hexdig[0x0f & (off >>  4)];
+            line[5] = hexdig[0x0f & off ];
+            line[6] = ':';
         }
 
         off = BP_OFFSET + n*3 + ((n >= 8)?1:0);
-        line[ off   ] = hexdig[ 0x0f & ( data[i] >> 4 ) ];
-        line[ off+1 ] = hexdig[ 0x0f & data[i] ];
+        line[off] = hexdig[ 0x0f & ( data[i] >> 4 ) ];
+        line[off+1] = hexdig[ 0x0f & data[i] ];
         
         off = BP_GRAPH + n + ((n >= 8)?1:0);
         
         if ( isprint( (unsigned char) data[i] )) {
-            line[ BP_GRAPH + n ] = data[i];
+            line[BP_GRAPH + n] = data[i];
         } else {
-            line[ BP_GRAPH + n ] = '.';
+            line[BP_GRAPH + n] = '.';
         }
     }
 

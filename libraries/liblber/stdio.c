@@ -128,10 +128,11 @@ int ber_pvt_vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
 	ptr = (char *)fmt;
 	s2 = str;
 	fm2[0] = '%';
-	if (n)
+	if (n) {
 		end = str + n;
-	else
+	} else {
 		end = NULL;
+	}
 
 	for (pct = strchr(ptr, '%'); pct; pct = strchr(ptr, '%')) {
 		len = pct-ptr;
@@ -145,8 +146,9 @@ int ber_pvt_vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
 		if (len < pct-ptr) return -1;
 		for (pct++, f2 = fm2+1; isdigit(*pct);) *f2++ = *pct++;
 		if (*pct == 'l') *f2++ = *pct++;
-		if (*pct == '%') *s2++ = '%';
-		else {
+		if (*pct == '%') {
+			*s2++ = '%';
+		} else {
 			*f2++ = *pct;
 			*f2 = '\0';
 			if (*pct == 's') {
@@ -166,8 +168,9 @@ int ber_pvt_vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
 				} else {
 					s2 += sprintf(s2, fm2, ss);
 				}
-			} else
+			} else {
 				s2 += sprintf(s2, fm2, va_arg(ap, int));
+			}
 		}
 		ptr = pct + 1;
 	}

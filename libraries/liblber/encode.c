@@ -97,20 +97,16 @@ ber_calc_lenlen( ber_len_t len )
 	 * with bit 8 0.
 	 */
 
-	if ( len <= (ber_len_t) 0x7FU )
-		return 1;
+	if ( len <= (ber_len_t) 0x7FU ) return 1;
 
 	/*
 	 * long len otherwise - one byte with bit 8 set, giving the
 	 * length of the length, followed by the length itself.
 	 */
 
-	if ( len <= (ber_len_t) 0xffU )
-		return 2;
-	if ( len <= (ber_len_t) 0xffffU )
-		return 3;
-	if ( len <= (ber_len_t) 0xffffffU )
-		return 4;
+	if ( len <= (ber_len_t) 0xffU ) return 2;
+	if ( len <= (ber_len_t) 0xffffU ) return 3;
+	if ( len <= (ber_len_t) 0xffffffU ) return 4;
 
 	return 5;
 }
@@ -149,14 +145,12 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 		if ( len & mask ) break;
 	}
 	lenlen = (unsigned char) ++i;
-	if ( lenlen > 4 )
-		return -1;
+	if ( lenlen > 4 ) return -1;
 
 	lenlen |= 0x80UL;
 
 	/* write the length of the length */
-	if ( ber_write( ber, &lenlen, 1, nosos ) != 1 )
-		return -1;
+	if ( ber_write( ber, &lenlen, 1, nosos ) != 1 ) return -1;
 
 	for( j=0; j<i; j++) {
 		netlen[(sizeof(ber_len_t)-1) - j] = (unsigned char)(len & 0xffU);
@@ -220,8 +214,9 @@ ber_put_int_or_enum(
 		return -1;
 	}
 
-	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 )
+	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 ) {
 		return -1;
+	}
 	i++;
 
 	for( j=0; j<i; j++ ) {
@@ -291,7 +286,8 @@ ber_put_ostring(
 		return -1;
 
 	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 ||
-		(ber_len_t) ber_write( ber, str, len, 0 ) != len ) {
+		(ber_len_t) ber_write( ber, str, len, 0 ) != len )
+	{
 		rc = -1;
 	} else {
 		/* return length of tag + length + contents */
@@ -421,9 +417,7 @@ ber_put_boolean(
 
 	c = boolval ? (unsigned char) ~0U : (unsigned char) 0U;
 
-	if ( ber_write( ber, (char *) &c, 1, 0 )
-		!= 1 )
-	{
+	if ( ber_write( ber, (char *) &c, 1, 0 ) != 1 ) {
 		return -1;
 	}
 
@@ -823,10 +817,11 @@ ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 			break;
 		}
 
-		if ( ber->ber_usertag == 0 )
+		if ( ber->ber_usertag == 0 ) {
 			ber->ber_tag = LBER_DEFAULT;
-		else
+		} else {
 			ber->ber_usertag = 0;
+		}
 	}
 
 	va_end( ap );

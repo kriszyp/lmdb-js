@@ -48,10 +48,11 @@ ber_get_tag( BerElement *ber )
 		return LBER_DEFAULT;
 	}
 
-	if ( ber->ber_ptr == ber->ber_buf )
+	if ( ber->ber_ptr == ber->ber_buf ) {
 		tag = *(unsigned char *)ber->ber_ptr;
-	else
+	} else {
 		tag = ber->ber_tag;
+	}
 	ber->ber_ptr++;
 
 	if ( (tag & LBER_BIG_TAG_MASK) != LBER_BIG_TAG_MASK ) {
@@ -118,8 +119,9 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 	 * greater than what we can hold in a ber_len_t.
 	 */
 
-	if ( ber_read( ber, (char *) &lc, 1 ) != 1 )
+	if ( ber_read( ber, (char *) &lc, 1 ) != 1 ) {
 		return LBER_DEFAULT;
+	}
 
 	if ( lc & 0x80U ) {
 		noctets = (lc & 0x7fU);
@@ -320,8 +322,7 @@ ber_get_stringbvl( bgbvr *b, ber_len_t *rlen )
 	tag = b->ber->ber_tag;
 
 	if ( ber_first_element( b->ber, &len, &last ) != LBER_DEFAULT ) {
-		for ( ; b->ber->ber_ptr < last; i++ )
-		{
+		for ( ; b->ber->ber_ptr < last; i++ ) {
 			if (ber_skip_tag( b->ber, &len ) == LBER_DEFAULT) break;
 			b->ber->ber_ptr += len;
 			b->ber->ber_tag = *(unsigned char *)b->ber->ber_ptr;
@@ -330,8 +331,7 @@ ber_get_stringbvl( bgbvr *b, ber_len_t *rlen )
 
 	if ( rlen ) *rlen = i;
 
-	if ( i == 0 )
-	{
+	if ( i == 0 ) {
 		*b->res.c = NULL;
 		return 0;
 	}
@@ -341,27 +341,26 @@ ber_get_stringbvl( bgbvr *b, ber_len_t *rlen )
 	/* Allocate the result vector */
 	switch (b->choice) {
 	case ChArray:
-		*b->res.c = ber_memalloc_x( (n+1) * sizeof( char * ), b->ber->ber_memctx);
-		if ( *b->res.c == NULL )
-			return LBER_DEFAULT;
+		*b->res.c = ber_memalloc_x( (n+1)*sizeof( char * ),
+			b->ber->ber_memctx);
+		if ( *b->res.c == NULL ) return LBER_DEFAULT;
 		(*b->res.c)[n] = NULL;
 		break;
 	case BvArray:
-		*b->res.ba = ber_memalloc_x( (n+1) * sizeof( struct berval ), b->ber->ber_memctx);
-		if ( *b->res.ba == NULL )
-			return LBER_DEFAULT;
+		*b->res.ba = ber_memalloc_x( (n+1)*sizeof( struct berval ),
+			b->ber->ber_memctx);
+		if ( *b->res.ba == NULL ) return LBER_DEFAULT;
 		(*b->res.ba)[n].bv_val = NULL;
 		break;
 	case BvVec:
-		*b->res.bv = ber_memalloc_x( (n+1) * sizeof( struct berval *), b->ber->ber_memctx);
-		if ( *b->res.bv == NULL )
-			return LBER_DEFAULT;
+		*b->res.bv = ber_memalloc_x( (n+1)*sizeof( struct berval *),
+			b->ber->ber_memctx);
+		if ( *b->res.bv == NULL ) return LBER_DEFAULT;
 		(*b->res.bv)[n] = NULL;
 		break;
 	case BvOff:
 		*b->res.ba = ber_memalloc_x( (n+1) * b->siz, b->ber->ber_memctx );
-		if ( *b->res.ba == NULL )
-			return LBER_DEFAULT;
+		if ( *b->res.ba == NULL ) return LBER_DEFAULT;
 		((struct berval *)((long)(*b->res.ba) + n*b->siz +
 			b->off))->bv_val = NULL;
 		break;
@@ -373,8 +372,9 @@ ber_get_stringbvl( bgbvr *b, ber_len_t *rlen )
 	for (n=0; n<i; n++)
 	{
 		tag = ber_next_element( b->ber, &len, last );
-		if ( ber_get_stringbv( b->ber, &bv, b->alloc ) == LBER_DEFAULT )
+		if ( ber_get_stringbv( b->ber, &bv, b->alloc ) == LBER_DEFAULT ) {
 			goto nomem;
+		}
 
 		/* store my result */
 		switch (b->choice) {
@@ -399,17 +399,23 @@ ber_get_stringbvl( bgbvr *b, ber_len_t *rlen )
 		}
 	}
 	return tag;
+
 nomem:
-	if (b->alloc || b->choice == BvVec)
-	{
-		for (--n; n>=0; n--)
-		{
+	if (b->alloc || b->choice == BvVec) {
+		for (--n; n>=0; n--) {
 			switch(b->choice) {
-			case ChArray: LBER_FREE((*b->res.c)[n]); break;
-			case BvArray: LBER_FREE((*b->res.ba)[n].bv_val); break;
-			case BvVec: LBER_FREE((*b->res.bv)[n]->bv_val);
-				LBER_FREE((*b->res.bv)[n]); break;
-			default: break;
+			case ChArray:
+				LBER_FREE((*b->res.c)[n]);
+				break;
+			case BvArray:
+				LBER_FREE((*b->res.ba)[n].bv_val);
+				break;
+			case BvVec:
+				LBER_FREE((*b->res.bv)[n]->bv_val);
+				LBER_FREE((*b->res.bv)[n]);
+				break;
+			default:
+				break;
 			}
 		}
 	}
@@ -438,12 +444,15 @@ ber_get_stringbv( BerElement *ber, struct berval *bv, int alloc )
 	}
 
 	if ( alloc ) {
-		if ( (bv->bv_val = (char *) ber_memalloc_x( bv->bv_len + 1, ber->ber_memctx )) == NULL ) {
+		bv->bv_val = (char *) ber_memalloc_x( bv->bv_len + 1,
+			ber->ber_memctx );
+		if ( bv->bv_val == NULL ) {
 			return LBER_DEFAULT;
 		}
 
 		if ( bv->bv_len > 0 && (ber_len_t) ber_read( ber, bv->bv_val,
-			bv->bv_len ) != bv->bv_len ) {
+			bv->bv_len ) != bv->bv_len )
+		{
 			LBER_FREE( bv->bv_val );
 			bv->bv_val = NULL;
 			return LBER_DEFAULT;
@@ -480,7 +489,8 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 	assert( ber != NULL );
 	assert( bv != NULL );
 
-	*bv = (struct berval *) ber_memalloc_x( sizeof(struct berval), ber->ber_memctx );
+	*bv = (struct berval *) ber_memalloc_x( sizeof(struct berval),
+		ber->ber_memctx );
 	if ( *bv == NULL ) {
 		return LBER_DEFAULT;
 	}
@@ -515,7 +525,8 @@ ber_get_bitstringa(
 	}
 	--datalen;
 
-	if ( (*buf = (char *) ber_memalloc_x( datalen, ber->ber_memctx )) == NULL ) {
+	*buf = (char *) ber_memalloc_x( datalen, ber->ber_memctx );
+	if ( *buf == NULL ) {
 		return LBER_DEFAULT;
 	}
 
@@ -649,8 +660,9 @@ ber_scanf ( BerElement *ber,
 #ifdef NEW_LOGGING
 	LDAP_LOG( BER, ENTRY, "ber_scanf fmt (%s) ber:\n", fmt, 0, 0 );
 
-	if ( LDAP_LOGS_TEST(BER, DETAIL2 ))
+	if ( LDAP_LOGS_TEST(BER, DETAIL2 )) {
 			BER_DUMP(( "liblber", LDAP_LEVEL_DETAIL2, ber, 1 ));
+	}
 #else
 	ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
 		"ber_scanf fmt (%s) ber:\n", fmt );
@@ -815,13 +827,13 @@ ber_scanf ( BerElement *ber,
 
 	va_end( ap );
 	if ( rc == LBER_DEFAULT ) {
-	    /*
-	     * Error.  Reclaim malloced memory that was given to the caller.
-	     * Set allocated pointers to NULL, "data length" outvalues to 0.
-	     */
-	    va_start( ap, fmt );
+		/*
+		 * Error.  Reclaim malloced memory that was given to the caller.
+		 * Set allocated pointers to NULL, "data length" outvalues to 0.
+		 */
+		va_start( ap, fmt );
 
-	    for ( ; fmt_reset < fmt; fmt_reset++ ) {
+		for ( ; fmt_reset < fmt; fmt_reset++ ) {
 		switch ( *fmt_reset ) {
 		case '!': { /* Hook */
 				BERDecodeCallback *f;
@@ -904,9 +916,9 @@ ber_scanf ( BerElement *ber,
 			/* format should be good */
 			assert( 0 );
 		}
-	    }
+		}
 
-	    va_end( ap );
+		va_end( ap );
 	}
 
 	return rc;

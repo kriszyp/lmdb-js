@@ -144,8 +144,7 @@ ber_sockbuf_ctrl( Sockbuf *sb, int opt, void *arg )
 			break;
 
 		default:
-			ret = sb->sb_iod->sbiod_io->sbi_ctrl( sb->sb_iod,
-				opt, arg );
+			ret = sb->sb_iod->sbiod_io->sbi_ctrl( sb->sb_iod, opt, arg );
 			break;
    }
 
@@ -182,11 +181,11 @@ ber_sockbuf_add_io( Sockbuf *sb, Sockbuf_IO *sbio, int layer, void *arg )
 	memset( &d->sbiod_pvt, '\0', sizeof( d->sbiod_pvt ) );
 	d->sbiod_next = p;
 	*q = d;
-      
+
 	if ( sbio->sbi_setup != NULL && ( sbio->sbi_setup( d, arg ) < 0 ) ) {
 		return -1;
 	}
-      
+
 	return 0;
 }
    
@@ -360,9 +359,7 @@ ber_int_sb_close( Sockbuf *sb )
    
 	p = sb->sb_iod;
 	while ( p ) {
-		if ( p->sbiod_io->sbi_close &&
-			p->sbiod_io->sbi_close( p ) < 0 )
-		{
+		if ( p->sbiod_io->sbi_close && p->sbiod_io->sbi_close( p ) < 0 ) {
 			return -1;
 		}
 		p = p->sbiod_next;
@@ -450,7 +447,7 @@ sb_stream_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
  * MacTCP/OpenTransport
  */
 	return tcpread( sbiod->sbiod_sb->sb_fd, 0, (unsigned char *)buf,
-		   len, NULL );
+		len, NULL );
 
 #elif defined( HAVE_PCNFS ) || \
    defined( HAVE_WINSOCK ) || defined ( __BEOS__ )
@@ -814,21 +811,20 @@ sb_debug_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 	ber_slen_t		ret;
 
 	ret = LBER_SBIOD_READ_NEXT( sbiod, buf, len );
-	if (sbiod->sbiod_sb->sb_debug & LDAP_DEBUG_PACKETS)
-	{
-	    int err = errno;
-	    if ( ret < 0 ) {
-		ber_log_printf( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
-			"%sread: want=%ld error=%s\n", (char *)sbiod->sbiod_pvt,
-			(long)len, STRERROR( errno ) );
-	    } else {
-		ber_log_printf( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
-			"%sread: want=%ld, got=%ld\n", (char *)sbiod->sbiod_pvt,
-			(long)len, (long)ret );
-		ber_log_bprint( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
-			(const char *)buf, ret );
-	    }
-	    errno = err;
+	if (sbiod->sbiod_sb->sb_debug & LDAP_DEBUG_PACKETS) {
+		int err = errno;
+		if ( ret < 0 ) {
+			ber_log_printf( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
+				"%sread: want=%ld error=%s\n", (char *)sbiod->sbiod_pvt,
+				(long)len, STRERROR( errno ) );
+		} else {
+			ber_log_printf( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
+				"%sread: want=%ld, got=%ld\n", (char *)sbiod->sbiod_pvt,
+				(long)len, (long)ret );
+			ber_log_bprint( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
+				(const char *)buf, ret );
+		}
+		errno = err;
 	}
 	return ret;
 }
@@ -839,23 +835,22 @@ sb_debug_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 	ber_slen_t		ret;
 
 	ret = LBER_SBIOD_WRITE_NEXT( sbiod, buf, len );
-	if (sbiod->sbiod_sb->sb_debug & LDAP_DEBUG_PACKETS)
-	{
-	    int err = errno;
-	    if ( ret < 0 ) {
-		ber_log_printf( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
-			"%swrite: want=%ld error=%s\n",
-			(char *)sbiod->sbiod_pvt, (long)len,
-			STRERROR( errno ) );
+	if (sbiod->sbiod_sb->sb_debug & LDAP_DEBUG_PACKETS) {
+		int err = errno;
+		if ( ret < 0 ) {
+			ber_log_printf( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
+				"%swrite: want=%ld error=%s\n",
+				(char *)sbiod->sbiod_pvt, (long)len,
+				STRERROR( errno ) );
+			errno = err;
+		} else {
+			ber_log_printf( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
+				"%swrite: want=%ld, written=%ld\n",
+				(char *)sbiod->sbiod_pvt, (long)len, (long)ret );
+			ber_log_bprint( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
+				(const char *)buf, ret );
+		}
 		errno = err;
-	    } else {
-		ber_log_printf( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
-			"%swrite: want=%ld, written=%ld\n",
-			(char *)sbiod->sbiod_pvt, (long)len, (long)ret );
-		ber_log_bprint( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
-			(const char *)buf, ret );
-	    }
-	    errno = err;
 	}
 
 	return ret;
@@ -888,8 +883,7 @@ sb_dgram_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 	assert( sbiod != NULL);
 	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
 
-	if ( arg != NULL )
-		sbiod->sbiod_sb->sb_fd = *((int *)arg);
+	if ( arg != NULL ) sbiod->sbiod_sb->sb_fd = *((int *)arg);
 	return 0;
 }
 
@@ -907,8 +901,7 @@ sb_dgram_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 	addrlen = sizeof( struct sockaddr );
 	src = buf;
 	buf += addrlen;
-	rc = recvfrom( sbiod->sbiod_sb->sb_fd, buf, len, 0, src,
-		&addrlen );
+	rc = recvfrom( sbiod->sbiod_sb->sb_fd, buf, len, 0, src, &addrlen );
 
 	return rc > 0 ? rc+sizeof(struct sockaddr) : rc;
 }
@@ -928,15 +921,14 @@ sb_dgram_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 	len -= sizeof( struct sockaddr );
    
 	rc = sendto( sbiod->sbiod_sb->sb_fd, buf, len, 0, dst,
-	     sizeof( struct sockaddr ) );
+		sizeof( struct sockaddr ) );
 
-	if ( rc < 0 )
-		return -1;
+	if ( rc < 0 ) return -1;
    
 	/* fake error if write was not atomic */
 	if (rc < len) {
 # ifdef EMSGSIZE
-	errno = EMSGSIZE;
+		errno = EMSGSIZE;
 # endif
 		return -1;
 	}
