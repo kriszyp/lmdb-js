@@ -100,12 +100,13 @@ int	back_ldap_LTX_init_module(int argc, char *argv[]);
 
 /* Whatever context ldap_back_dn_massage needs... */
 typedef struct dncookie {
-	struct ldapinfo *li;
 #ifdef ENABLE_REWRITE
+	struct rewrite_info *rw;
 	Connection *conn;
 	char *ctx;
 	SlapReply *rs;
 #else
+	struct ldapinfo *li;
 	int normalized;
 	int tofrom;
 #endif

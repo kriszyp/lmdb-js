@@ -47,10 +47,10 @@ ldap_back_dn_massage(
 {
 	int rc = 0;
 
-	switch (rewrite_session( dc->li->rwinfo, dc->ctx, dn->bv_val, dc->conn, 
+	switch (rewrite_session( dc->rw, dc->ctx, dn->bv_val, dc->conn, 
 				&res->bv_val )) {
 	case REWRITE_REGEXEC_OK:
-		if ( res->bv_val != NULL && res->bv_val[ 0 ] != '\0' ) {
+		if ( res->bv_val != NULL ) {
 			res->bv_len = strlen( res->bv_val );
 		} else {
 			*res = *dn;
@@ -62,6 +62,7 @@ ldap_back_dn_massage(
 		Debug( LDAP_DEBUG_ARGS,
 			"[rw] %s: \"%s\" -> \"%s\"\n", dc->ctx, dn->bv_val, res->bv_val );		
 #endif /* !NEW_LOGGING */
+		rc = LDAP_SUCCESS;
 		break;
  		
  	case REWRITE_REGEXEC_UNWILLING:
@@ -69,7 +70,7 @@ ldap_back_dn_massage(
 			dc->rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			dc->rs->sr_text = "Operation not allowed";
 		}
-		rc = -1;
+		rc = LDAP_UNWILLING_TO_PERFORM;
 		break;
 	       	
 	case REWRITE_REGEXEC_ERR:
@@ -77,7 +78,7 @@ ldap_back_dn_massage(
 			dc->rs->sr_err = LDAP_OTHER;
 			dc->rs->sr_text = "Rewrite error";
 		}
-		rc = -1;
+		rc = LDAP_OTHER;
 		break;
 	}
 	return rc;

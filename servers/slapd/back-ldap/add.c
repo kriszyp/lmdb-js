@@ -74,12 +74,13 @@ ldap_back_add(
 	/*
 	 * Rewrite the add dn, if needed
 	 */
-	dc.li = li;
 #ifdef ENABLE_REWRITE
+	dc.rw = li->rwinfo;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "addDn";
 #else
+	dc.li = li;
 	dc.tofrom = 1;
 	dc.normalized = 0;
 #endif
@@ -96,7 +97,7 @@ ldap_back_add(
 	attrs = (LDAPMod **)ch_malloc(sizeof(LDAPMod *)*i);
 
 #ifdef ENABLE_REWRITE
-	dc.ctx = "addAttrDN";
+	dc.ctx = "addDnAttr";
 #endif
 	for (i=0, a=op->oq_add.rs_e->e_attrs; a; a=a->a_next) {
 		if ( a->a_desc->ad_type->sat_no_user_mod  ) {
@@ -155,15 +156,38 @@ ldap_dnattr_rewrite(
 	BerVarray		a_vals
 )
 {
-	struct berval bv;
+	struct berval	bv;
+	int		i, last;
 
-	for ( ; a_vals->bv_val != NULL; a_vals++ ) {
-		ldap_back_dn_massage( dc, a_vals, &bv );
+	for ( last = 0; a_vals[last].bv_val != NULL; last++ );
+	last--;
 
-		/* leave attr untouched if massage failed */
-		if ( bv.bv_val && bv.bv_val != a_vals->bv_val ) {
-			ch_free( a_vals->bv_val );
-			*a_vals = bv;
+	for ( i = 0; a_vals[i].bv_val != NULL; i++ ) {
+		switch ( ldap_back_dn_massage( dc, &a_vals[i], &bv ) ) {
+		case LDAP_SUCCESS:
+		case LDAP_OTHER:	/* ? */
+		default:		/* ??? */
+			/* leave attr untouched if massage failed */
+			if ( bv.bv_val && bv.bv_val != a_vals[i].bv_val ) {
+				ch_free( a_vals[i].bv_val );
+				a_vals[i] = bv;
+			}
+			break;
+
+		case LDAP_UNWILLING_TO_PERFORM:
+			/*
+			 * FIXME: need to check if it may be considered 
+			 * legal to trim values when adding/modifying;
+			 * it should be when searching (see ACLs).
+			 */
+			ch_free( a_vals[i].bv_val );
+			if (last > i ) {
+				a_vals[i] = a_vals[last];
+			}
+			a_vals[last].bv_len = 0;
+			a_vals[last].bv_val = NULL;
+			last--;
+			break;
 		}
 	}
 	

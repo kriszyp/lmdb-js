@@ -66,12 +66,13 @@ ldap_back_delete(
 	/*
 	 * Rewrite the request dn, if needed
 	 */
-	dc.li = li;
 #ifdef ENABLE_REWRITE
+	dc.rw = li->rwinfo;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "deleteDn";
 #else
+	dc.li = li;
 	dc.tofrom = 1;
 	dc.normalized = 0;
 #endif

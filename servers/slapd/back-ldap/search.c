@@ -147,12 +147,13 @@ ldap_back_search(
 	/*
 	 * Rewrite the search base, if required
 	 */
-	dc.li = li;
 #ifdef ENABLE_REWRITE
+	dc.rw = li->rwinfo;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "searchBase";
 #else
+	dc.li = li;
 	dc.tofrom = 1;
 	dc.normalized = 0;
 #endif
@@ -392,12 +393,13 @@ ldap_build_entry(
 	/*
 	 * Rewrite the dn of the result, if needed
 	 */
-	dc.li = li;
 #ifdef ENABLE_REWRITE
+	dc.rw = li->rwinfo;
 	dc.conn = op->o_conn;
 	dc.rs = NULL;
 	dc.ctx = "searchResult";
 #else
+	dc.li = li;
 	dc.tofrom = 0;
 	dc.normalized = 0;
 #endif
@@ -523,13 +525,35 @@ ldap_build_entry(
 		 */
 		} else if ( attr->a_desc->ad_type->sat_syntax ==
 				slap_schema.si_syn_distinguishedName ) {
-			for ( bv = attr->a_vals; bv->bv_val; bv++ ) {
-				struct berval	newval = {0,NULL};
-				
-				ldap_back_dn_massage( &dc, bv, &newval );
-				if ( newval.bv_val && bv->bv_val != newval.bv_val ) {
+			int	last, i;
+
+			/*
+			 * FIXME: should use ldap_dnattr_rewrite(),
+			 * but need a different free() callback ...
+			 */
+
+			for ( last = 0; attr->a_vals[last].bv_val; last++ );
+
+			for ( i = 0; attr->a_vals[i].bv_val; i++ ) {
+				struct berval	newval = { 0, NULL };
+
+				bv = &attr->a_vals[i];
+				switch ( ldap_back_dn_massage( &dc, bv, &newval ) ) {
+				case LDAP_UNWILLING_TO_PERFORM:
 					LBER_FREE( bv->bv_val );
-					*bv = newval;
+					if ( last > i ) {
+						*bv = attr->a_vals[last];
+					}
+					attr->a_vals[last].bv_val = NULL;
+					last--;
+					break;
+
+				default:
+					if ( newval.bv_val && bv->bv_val != newval.bv_val ) {
+						LBER_FREE( bv->bv_val );
+						*bv = newval;
+					}
+					break;
 				}
 			}
 		}
@@ -602,12 +626,13 @@ ldap_back_entry_get(
 	/*
 	 * Rewrite the search base, if required
 	 */
-	dc.li = li;
 #ifdef ENABLE_REWRITE
+	dc.rw = li->rwinfo;
 	dc.conn = op->o_conn;
 	dc.rs = &rs;
 	dc.ctx = "searchBase";
 #else
+	dc.li = li;
 	dc.tofrom = 1;
 	dc.normalized = 1;
 #endif

@@ -72,12 +72,13 @@ ldap_back_bind(
 	/*
 	 * Rewrite the bind dn if needed
 	 */
-	dc.li = li;
 #ifdef ENABLE_REWRITE
+	dc.rw = li->rwinfo;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "bindDn";
 #else
+	dc.li = li;
 	dc.tofrom = 1;
 	dc.normalized = 0;
 #endif
@@ -311,8 +312,8 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 				/*
 				 * Rewrite the bind dn if needed
 				 */
-				dc.li = li;
 #ifdef ENABLE_REWRITE
+				dc.rw = li->rwinfo;
 				dc.conn = op->o_conn;
 				dc.rs = rs;
 				dc.ctx = "bindDn";
@@ -502,12 +503,13 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 			struct berval dn, mdn;
 			dncookie dc;
 
-			dc.li = li;
 #ifdef ENABLE_REWRITE
+			dc.rw = li->rwinfo;
 			dc.conn = op->o_conn;
 			dc.rs = rs;
 			dc.ctx = "matchedDn";
 #else
+			dc.li = li;
 			dc.tofrom = 0;
 			dc.normalized = 0;
 #endif

@@ -85,12 +85,13 @@ ldap_back_exop_passwd(
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
 	if (id.bv_len) {
-		dc.li = li;
 #ifdef ENABLE_REWRITE
+		dc.rw = li->rwinfo;
 		dc.conn = op->o_conn;
 		dc.rs = rs;
 		dc.ctx = "modifyPwd";
 #else
+		dc.li = li;
 		dc.tofrom = 1;
 		dc.normalized = 0;
 #endif

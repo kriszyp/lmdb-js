@@ -66,12 +66,13 @@ ldap_back_compare(
 	/*
 	 * Rewrite the compare dn, if needed
 	 */
-	dc.li = li;
 #ifdef ENABLE_REWRITE
+	dc.rw = li->rwinfo;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "compareDn";
 #else
+	dc.li = li;
 	dc.tofrom = 1;
 	dc.normalized = 0;
 #endif
