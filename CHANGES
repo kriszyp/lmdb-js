@@ -7,13 +7,18 @@ OpenLDAP 2.1.4 Engineering
 	Fixed slapd saslRegex bug (ITS#1978)
 	Fixed back-monitor time stats (ITS#1984)
 	Fixed back-meta undef DN attr bug (ITS#1953)
+	Fixed ldapmodify LDIF CRLF handling
+	Fixed slapd inappropriate return of operationsError
+	Fixed bdb IDL bugs
 	Updated slapd anon update error code (ITS#1987)
 	Updated slapd/libldap error messages
 	Updated slapd/libldap IPv4 only handling
 	Updated libldap LDAP_OPT_RESTART handling
 	Updated new logging
+	Updated OpenLDAPaci (experimental) syntax/semantics
 	Build Environment
 		Added OS/390 port
+		Added DN testing to tests suite
 		Updated WinNT port
 		Fixed krbName schema (ITS#1948)
 		Fixed pkiUser schema (ITS#1959)
