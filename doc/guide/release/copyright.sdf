@@ -15,12 +15,13 @@ H2: OpenLDAP Copyright Notice
 [[copyright]] 1998-2003 The OpenLDAP Foundation, Redwood City, California, USA
 All rights reserved.
 
-Redistribution and use in source and binary forms are permitted
-{{only as authorized}} by the {{SECT:OpenLDAP Public License}}.
+Redistribution and use in source and binary forms, with or without
+modification, are permitted {{only as authorized}} by the {{SECT:OpenLDAP
+Public License}}.
 
 A copy of this license is available in file {{F:LICENSE}} in the
-top-level directory of the distribution or, alternatively, at at
-{{URL:http://www.OpenLDAP.org/license.html}}
+top-level directory of the distribution or, alternatively, at
+<{{URL:http://www.OpenLDAP.org/license.html}}>.
 
 OpenLDAP is a registered trademark of the OpenLDAP Foundation.
 
@@ -37,6 +38,31 @@ Additional information about OpenLDAP software can be obtained at
 <{{URL:http://www.OpenLDAP.org/}}>.
 
 
+H2: Additional Copyright Notice
+
+Portions [[copyright]] 1998-2003 Kurt D. Zeilenga.
+Portions [[copyright]] 1998-2003 Net Boolean Incorporated.
+Portions [[copyright]] 2001-2003 IBM Corporation.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted only as authorized by the OpenLDAP
+Public License.
+
+
+Portions [[copyright]] 1999-2003 Howard Y.H. Chu.
+Portions [[copyright]] 1999-2003 Symas Corporation.
+Portions [[copyright]] 1998-2003 Hallvard B. Furuseth.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that this notice is preserved.
+The names of the copyright holders may not be used to endorse or
+promote products derived from this software without their specific
+prior written permission.  This software is provided ``as is''
+without express or implied warranty.
+
+
 H2: University of Michigan Copyright Notice
 
 Portions [[copyright]] 1992-1996 Regents of the University of Michigan.
@@ -48,3 +74,4 @@ to the University of Michigan at Ann Arbor. The name of the University
 may not be used to endorse or promote products derived from this
 software without specific prior written permission. This software
 is provided ``as is'' without express or implied warranty.
+
