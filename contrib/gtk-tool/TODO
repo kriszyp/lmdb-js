@@ -1,0 +1,22 @@
+LOADS!!!
+
+Someone please figure out how to _remove_ a widget from a container
+in Gtk+/Gtk--. As far as I know, and from my discussion with a
+certain person, it can't due to a design flaw of Gtk+ people. We
+need that first to be able to continue. The bug is reproducable
+when you start the thing, it automatically goes to the top node,
+i.e. University of Michigan, if you expand the tree a bit, then
+click on any one of the items available, it'll blow. That's because
+it needs to remove the contents in the right side of the browser
+window to be able to insert new things about the current node. And
+I didn't want to be an idiot and do it by some other means, because,
+as they've taught me in school, OO programming is meant to be used
+in a black-box fashion. If all else fails, then we'll start thinking
+about stupid solutions and their consenquences. No pun intended.
+
+All emails to -devel list, and plase make sure you put "GTK-TOOL"
+in the subject line, so other people who are not interested don't
+have to read our garbage.
+
+Pele
+pele@openldap.org
