@@ -671,7 +671,7 @@ int
 bdb_dn2id_add(
 	BackendDB	*be,
 	DB_TXN *txn,
-	const char	*pdn,
+	char	*pdn,
 	Entry		*e )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;

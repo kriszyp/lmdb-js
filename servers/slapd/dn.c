@@ -373,7 +373,7 @@ int dn_rdnlen(
 	Backend	*be,
 	const char	*dn_in )
 {
-	char	*dn, *s;
+	char	*s;
 	int	inquote;
 
 	if( dn_in == NULL ) {
@@ -392,11 +392,9 @@ int dn_rdnlen(
 		return( 0 );
 	}
 
-	dn = dn_in;
-
 	inquote = 0;
 
-	for ( s = dn; *s; s++ ) {
+	for ( s = (char *)dn_in; *s; s++ ) {
 		if ( *s == '\\' ) {
 			if ( *(s + 1) ) {
 				s++;
@@ -416,7 +414,7 @@ int dn_rdnlen(
 		}
 	}
 
-	return( s - dn );
+	return( s - dn_in );
 }
 
 char * dn_rdn(
