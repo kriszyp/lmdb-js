@@ -17,6 +17,8 @@ ldappasswd \- change the password of an LDAP entry
 [\c
 .BI \-d \ debuglevel\fR]
 [\c
+.BI \-H \ ldapuri\fR]
+[\c
 .BI \-h \ ldaphost\fR]
 [\c
 .BR \-n ]
@@ -87,8 +89,16 @@ Set the LDAP debugging level to \fIdebuglevel\fP.
 .B ldappasswd
 must be compiled with LDAP_DEBUG defined for this option to have any effect.
 .TP
+.BI \-H \ ldapuri
+Specify URI(s) referring to the ldap server(s).
+.TP
 .BI \-h \ ldaphost
 Specify an alternate host on which the ldap server is running.
+Deprecated in favor of -H.
+.TP
+.BI \-p \ ldapport
+Specify an alternate TCP port where the ldap server is listening.
+Deprecated in favor of -H.
 .TP
 .B \-n
 Do not set password. (Can be useful when used in conjunction with
@@ -101,9 +111,6 @@ This is used instead of specifying the password on the command line.
 .TP
 .BI \-s \ newPasswd
 Set the new password to \fInewPasswd\fP.
-.TP
-.BI \-p \ ldapport
-Specify an alternate port on which the ldap server is running.
 .TP
 .B \-v
 Increase the verbosity of output.  Can be specified multiple times.

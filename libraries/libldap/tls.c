@@ -8,8 +8,6 @@
 
 #include "portable.h"
 
-#ifdef HAVE_TLS
-
 #include <stdio.h>
 
 #include <ac/stdlib.h>
@@ -20,6 +18,8 @@
 #include <ac/unistd.h>
 
 #include "ldap-int.h"
+
+#ifdef HAVE_TLS
 
 #ifdef LDAP_R_COMPILE
 #include <ldap_pvt_thread.h>
@@ -1033,7 +1033,46 @@ tls_tmp_dh_cb( SSL *ssl, int is_export, int key_length )
 	return NULL;
 }
 #endif
-
-#else
-static int dummy;
 #endif
+
+int
+ldap_start_tls_s ( LDAP *ld,
+				LDAPControl **serverctrls,
+				LDAPControl **clientctrls )
+{
+#ifdef HAVE_TLS
+	LDAPConn *lc;
+	int rc;
+	char *rspoid = NULL;
+	struct berval *rspdata = NULL;
+
+	if (ld->ld_conns == NULL) {
+		rc = ldap_open_defconn( ld );
+		if (rc != LDAP_SUCCESS)
+			return(rc);
+	}
+
+	for (lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next) {
+		if (ldap_pvt_tls_inplace(lc->lconn_sb) != 0)
+			return LDAP_OPERATIONS_ERROR;
+
+		/* XXYYZ: this initiates operaton only on default connection! */
+		rc = ldap_extended_operation_s(ld, LDAP_EXOP_START_TLS,
+			NULL, serverctrls, clientctrls, &rspoid, &rspdata);
+
+		if (rc != LDAP_SUCCESS)
+			return rc;
+		if (rspoid != NULL)
+			LDAP_FREE(rspoid);
+		if (rspdata != NULL)
+			ber_bvfree(rspdata);
+		rc = ldap_pvt_tls_start( ld, lc->lconn_sb, ld->ld_options.ldo_tls_ctx );
+		if (rc != LDAP_SUCCESS)
+			return rc;
+	}
+	return LDAP_SUCCESS;
+#else
+	return LDAP_NOT_SUPPORTED;
+#endif
+}
+

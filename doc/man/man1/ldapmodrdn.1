@@ -31,6 +31,8 @@ ldapmodrdn \- LDAP rename entry tool
 [\c
 .BI \-w \ passwd\fR]
 [\c
+.BI \-H \ ldapuri\fR]
+[\c
 .BI \-h \ ldaphost\fR]
 [\c
 .BI \-p \ ldapport\fR]
@@ -128,11 +130,16 @@ This is used instead of specifying the password on the command line.
 .B \-w passwd
 Use \fIpasswd\fP as the password for simple authentication.
 .TP
-.B \-h ldaphost
-Specify an alternate host on which the ldap server is running.
+.BI \-H \ ldapuri
+Specify URI(s) referring to the ldap server(s).
 .TP
-.B \-p ldapport
+.BI \-h \ ldaphost
+Specify an alternate host on which the ldap server is running.
+Deprecated in favor of -H.
+.TP
+.BI \-p \ ldapport
 Specify an alternate TCP port where the ldap server is listening.
+Deprecated in favor of -H.
 .TP
 .BI \-P \ 2\fR\||\|\fI3
 Specify the LDAP protocol version to use.
