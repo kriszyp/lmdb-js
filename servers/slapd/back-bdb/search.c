@@ -433,18 +433,49 @@ id2entry_retry:
 		if ( !manageDSAit && scope != LDAP_SCOPE_BASE &&
 			is_entry_referral( e ) )
 		{
-			BerVarray erefs = get_entry_referrals(
-				be, conn, op, e );
-			BerVarray refs = referral_rewrite( erefs,
-				&e->e_name, NULL,
-				scope == LDAP_SCOPE_SUBTREE 
-					? LDAP_SCOPE_SUBTREE
-					: LDAP_SCOPE_BASE );
+			struct berval	dn;
 
-			send_search_reference( be, conn, op,
-				e, refs, NULL, &v2refs );
+			/* check scope */
+			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
+				if ( !be_issuffix( be, &e->e_nname ) ) {
+					dnParent( &e->e_nname, &dn );
+					scopeok = dn_match( &dn, &realbase );
+				} else {
+					scopeok = (realbase.bv_len == 0);
+				}
 
-			ber_bvarray_free( refs );
+			} else if ( !scopeok && scope == LDAP_SCOPE_SUBTREE ) {
+				scopeok = dnIsSuffix( &e->e_nname, &realbase );
+
+			} else {
+				scopeok = 1;
+			}
+
+			if( scopeok ) {
+				BerVarray erefs = get_entry_referrals(
+					be, conn, op, e );
+				BerVarray refs = referral_rewrite( erefs,
+					&e->e_name, NULL,
+					scope == LDAP_SCOPE_SUBTREE
+						? LDAP_SCOPE_SUBTREE
+						: LDAP_SCOPE_BASE );
+
+				send_search_reference( be, conn, op,
+					e, refs, NULL, &v2refs );
+
+				ber_bvarray_free( refs );
+
+			} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL2,
+					"bdb_search: candidate referral %ld scope not okay\n",
+					id ));
+#else
+				Debug( LDAP_DEBUG_TRACE,
+					"bdb_search: candidate referral %ld scope not okay\n",
+					id, 0, 0 );
+#endif
+			}
 
 			goto loop_continue;
 		}
