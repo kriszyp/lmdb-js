@@ -119,6 +119,9 @@ ldap_create( LDAP **ldp )
 	/* but not pointers to malloc'ed items */
 	ld->ld_options.ldo_sctrls = NULL;
 	ld->ld_options.ldo_cctrls = NULL;
+	ld->ld_options.ldo_tm_api = NULL;
+	ld->ld_options.ldo_tm_net = NULL;
+	ld->ld_options.ldo_defludp = NULL;
 
 #ifdef HAVE_CYRUS_SASL
 	ld->ld_options.ldo_def_sasl_mech = gopts->ldo_def_sasl_mech
@@ -131,27 +134,26 @@ ldap_create( LDAP **ldp )
 		? LDAP_STRDUP( gopts->ldo_def_sasl_authzid ) : NULL;
 #endif
 
-	ld->ld_options.ldo_defludp = ldap_url_duplist(gopts->ldo_defludp);
+	if ( gopts->ldo_tm_api &&
+		ldap_int_timeval_dup( &ld->ld_options.ldo_tm_api, gopts->ldo_tm_api ))
+		goto nomem;
 
-	if ( ld->ld_options.ldo_defludp == NULL ) {
-		LDAP_FREE( (char*)ld );
-		return LDAP_NO_MEMORY;
+	if ( gopts->ldo_tm_net &&
+		ldap_int_timeval_dup( &ld->ld_options.ldo_tm_net, gopts->ldo_tm_net ))
+		goto nomem;
+
+	if ( gopts->ldo_defludp ) {
+		ld->ld_options.ldo_defludp = ldap_url_duplist(gopts->ldo_defludp);
+
+		if ( ld->ld_options.ldo_defludp == NULL ) goto nomem;
 	}
 
-	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
-		ldap_free_urllist( ld->ld_options.ldo_defludp );
-		LDAP_FREE( (char*) ld );
-		return LDAP_NO_MEMORY;
-	}
+	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) goto nomem;
 
 	ld->ld_lberoptions = LBER_USE_DER;
 
 	ld->ld_sb = ber_sockbuf_alloc( );
-	if ( ld->ld_sb == NULL ) {
-		ldap_free_urllist( ld->ld_options.ldo_defludp );
-		LDAP_FREE( (char*) ld );
-		return LDAP_NO_MEMORY;
-	}
+	if ( ld->ld_sb == NULL ) goto nomem;
 
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_init( &ld->ld_req_mutex );
@@ -159,6 +161,20 @@ ldap_create( LDAP **ldp )
 #endif
 	*ldp = ld;
 	return LDAP_SUCCESS;
+
+nomem:
+	ldap_free_select_info( ld->ld_selectinfo );
+	ldap_free_urllist( ld->ld_options.ldo_defludp );
+	LDAP_FREE( ld->ld_options.ldo_tm_net );
+	LDAP_FREE( ld->ld_options.ldo_tm_api );
+#ifdef HAVE_CYRUS_SASL
+	LDAP_FREE( ld->ld_options.ldo_def_sasl_authzid );
+	LDAP_FREE( ld->ld_options.ldo_def_sasl_authcid );
+	LDAP_FREE( ld->ld_options.ldo_def_sasl_realm );
+	LDAP_FREE( ld->ld_options.ldo_def_sasl_mech );
+#endif
+	LDAP_FREE( (char *)ld );
+	return LDAP_NO_MEMORY;
 }
 
 /*
