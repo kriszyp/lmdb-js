@@ -33,10 +33,6 @@
 #include "slap.h"
 #include "lutil_ldap.h"
 
-/* This is for accessing ld->def_conn */
-#define LDAP_R_COMPILE
-#include "../../../libraries/libldap/ldap-int.h"
-
 #ifdef LDAP_SYNCREPL
 
 static Entry*
@@ -152,7 +148,6 @@ do_syncrepl(
 	int	rc;
 	int	err;
 	ber_len_t	len;
-	int	protocol = -1;
 	int	syncinfo_arrived = 0;
 	int	cancel_response = 0;
 
@@ -226,8 +221,8 @@ do_syncrepl(
 		}
 	}
 
-	protocol = LDAP_VERSION3;
-	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &protocol );
+	op.o_protocol = LDAP_VERSION3;
+	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &op.o_protocol );
 
 	/* Bind to master */
 
@@ -317,12 +312,12 @@ do_syncrepl(
 		}
 	}
 
+	si->ctx = ctx;
+
 	si->conn = &conn;
 	conn.c_send_ldap_result = slap_send_ldap_result;
 	conn.c_send_search_entry = slap_send_search_entry;
 	conn.c_send_search_reference = slap_send_search_reference;
-
-	si->ctx = ctx;
 
 	/* get syncrepl cookie of shadow replica from subentry */
 	ber_str2bv( si->base, strlen(si->base), 1, &base_bv ); 
@@ -336,7 +331,6 @@ do_syncrepl(
 	build_new_dn( &op.o_req_ndn, &nbase, &nsubrdn );
 
 	op.o_tag = LDAP_REQ_SEARCH;
-	op.o_protocol = LDAP_VERSION3;
 	op.o_ndn = be->be_rootndn;
 	psub = be->be_nsuffix[0];
 	op.o_callback = &cb;
@@ -637,6 +631,7 @@ syncrepl_message_to_entry(
 {
 	Entry		*e;
 	BerElement	*ber = NULL;
+	BerElement	*tmpber;
 	struct berval	bv;
 	Modifications	tmp;
 	Modifications	*mod;
@@ -664,13 +659,13 @@ syncrepl_message_to_entry(
 
 	modlist = NULL;
 
-	if ( msg->lm_msgtype != LDAP_RES_SEARCH_ENTRY ) {
+	if ( ldap_msgtype( msg ) != LDAP_RES_SEARCH_ENTRY ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
-			"Message type should be entry (%d)", msg->lm_msgtype, 0, 0 );
+			"Message type should be entry (%d)", ldap_msgtype( msg ), 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
-			"Message type should be entry (%d)", msg->lm_msgtype, 0, 0 );
+			"Message type should be entry (%d)", ldap_msgtype( msg ), 0, 0 );
 #endif
 		return NULL;
 	}
@@ -725,7 +720,10 @@ syncrepl_message_to_entry(
 		return NULL;
         }
 
-	*ber = *msg->lm_ber;
+	ber_free( ber, 0 );
+	tmpber = get_ldapmsg_ber( msg );
+	ber = ber_dup( tmpber );
+
 	ber_scanf( ber, "{xx" );
 
 	rc = ldap_int_get_controls( ber, &rctrls );
@@ -1139,10 +1137,10 @@ syncrepl_updateCookie(
 		ber_bvfree( si->syncCookie );
 	}
 	si->syncCookie = ber_dupbv( NULL, syncCookie );
-	ber_str2bv( "top", strlen("top"), 0, &ocbva[0] );
-	ber_str2bv( "subentry", strlen("subentry"), 0, &ocbva[1] );
+	ber_str2bv( "top", strlen("top"), 1, &ocbva[0] );
+	ber_str2bv( "subentry", strlen("subentry"), 1, &ocbva[1] );
 	ber_str2bv( "syncConsumerSubentry",
-			strlen("syncConsumerSubentry"), 0, &ocbva[2] );
+			strlen("syncConsumerSubentry"), 1, &ocbva[2] );
 	ocbva[3].bv_len = 0;
 	ocbva[3].bv_val = NULL;
 
@@ -1150,7 +1148,7 @@ syncrepl_updateCookie(
 	mod->sml_op = LDAP_MOD_REPLACE;
 	mod->sml_next = NULL;
 	mod->sml_desc = NULL;
-	ber_str2bv( "objectClass", strlen("objectClass"), 0, &mod->sml_type );
+	ber_str2bv( "objectClass", strlen("objectClass"), 1, &mod->sml_type );
 	mod->sml_bvalues = ocbva;
 	mod->sml_nvalues = ocbva;
 	*modtail = mod;
@@ -1167,7 +1165,7 @@ syncrepl_updateCookie(
 	mod->sml_op = LDAP_MOD_REPLACE;
 	mod->sml_next = NULL;
 	mod->sml_desc = NULL;
-	ber_str2bv( "cn", strlen("cn"), 0, &mod->sml_type );
+	ber_str2bv( "cn", strlen("cn"), 1, &mod->sml_type );
 	mod->sml_bvalues = cnbva;
 	mod->sml_nvalues = cnbva;
 	*modtail = mod;
@@ -1181,7 +1179,7 @@ syncrepl_updateCookie(
 	mod->sml_next = NULL;
 	mod->sml_desc = NULL;
 	ber_str2bv( "syncreplCookie", strlen("syncreplCookie"),
-						0, &mod->sml_type );
+						1, &mod->sml_type );
 	mod->sml_bvalues = scbva;
 	mod->sml_nvalues = scbva;
 	*modtail = mod;
@@ -1195,7 +1193,7 @@ syncrepl_updateCookie(
 	mod->sml_next = NULL;
 	mod->sml_desc = NULL;
 	ber_str2bv( "subtreeSpecification",
-			strlen("subtreeSpecification"), 0, &mod->sml_type );
+			strlen("subtreeSpecification"), 1, &mod->sml_type );
 	mod->sml_bvalues = ssbva;
 	mod->sml_nvalues = ssbva;
 	*modtail = mod;
@@ -1528,7 +1526,8 @@ int slap_mods_opattrs_syncrepl(
 	Backend *be = op->o_bd;
 	syncinfo_t *si = ( syncinfo_t * ) be->syncinfo;
 
-        int mop = op->o_tag == LDAP_REQ_ADD ? LDAP_MOD_ADD : LDAP_MOD_REPLACE;
+    //    int mop = op->o_tag == LDAP_REQ_ADD ? LDAP_MOD_ADD : LDAP_MOD_REPLACE;
+	int mop = LDAP_MOD_REPLACE;
 
         assert( modtail != NULL );
         assert( *modtail == NULL );
@@ -1569,7 +1568,7 @@ int slap_mods_opattrs_syncrepl(
                         }
 
                         mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
-                        mod->sml_op = mop;
+			mod->sml_op = mop;
                         mod->sml_type.bv_val = NULL;
                         mod->sml_desc = slap_schema.si_ad_structuralObjectClass;
                         mod->sml_values =
@@ -1803,9 +1802,9 @@ avl_ber_bvfree( void *bv )
 		return;
 	}
 	if ( ((struct berval *)bv)->bv_val != NULL ) {
-		LBER_FREE( ((struct berval *)bv)->bv_val );
+		ber_memfree ( ((struct berval *)bv)->bv_val );
 	}
-	LBER_FREE( (char *) bv );
+	ber_memfree ( (char *) bv );
 }
 
 static int
