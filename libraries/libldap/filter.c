@@ -221,6 +221,7 @@ ldap_pvt_filter_value_unescape( char *fval )
 		switch( fval[v] ) {
 		case '(':
 		case ')':
+		case '*':
 			return -1;
 
 		case '\\':
