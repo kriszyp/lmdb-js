@@ -135,7 +135,7 @@ filter_candidates(
 		Debug( LDAP_DEBUG_FILTER, "\tGE\n", 0, 0, 0 );
 #endif
 
-		result = idl_allids( be );
+		result = presence_candidates( be, f->f_desc );
 		break;
 
 	case LDAP_FILTER_LE:
@@ -146,7 +146,7 @@ filter_candidates(
 		Debug( LDAP_DEBUG_FILTER, "\tLE\n", 0, 0, 0 );
 #endif
 
-		result = idl_allids( be );
+		result = presence_candidates( be, f->f_desc );
 		break;
 
 	case LDAP_FILTER_AND:
@@ -179,11 +179,13 @@ filter_candidates(
 		Debug( LDAP_DEBUG_FILTER, "\tNOT\n", 0, 0, 0 );
 #endif
 
-		tmp1 = idl_allids( be );
-		tmp2 = filter_candidates( be, f->f_not );
-		result = idl_notin( be, tmp1, tmp2 );
-		idl_free( tmp2 );
-		idl_free( tmp1 );
+		/*
+		 * As candidates lists may contain entries which do
+		 * not match the assertion, negation of the inner candidate
+		 * list could result in matching entries be excluded from
+		 * the returned candidate list.
+		 */
+		result = idl_allids( be );
 		break;
 	}
 
