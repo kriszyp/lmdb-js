@@ -31,12 +31,12 @@ for i in 0 1 2 3 4 5; do
 	fi
 done
 
-echo "Using ldapmodify to populate the database..."
-$LDAPMODIFY -a -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD < \
+echo "Using ldapadd to populate the database..."
+$LDAPADD -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD < \
 	$LDIFORDERED > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapmodify failed!"
+	echo "ldapadd failed!"
 	kill -HUP $PID
 	exit $RC
 fi

@@ -19,8 +19,6 @@ fi
 
 if test "$LDAP_PROTO" ; then
 	PROTO="-P $LDAP_PROTO"
-else
-	PROTO=""
 fi
 
 PASSWDCONF=$DATADIR/slapd-passwd.conf

@@ -116,7 +116,7 @@ main( int argc, char **argv )
     authmethod = LDAP_AUTH_SIMPLE;
 	version = -1;
 
-    while (( i = getopt( argc, argv, "WFabckKnrtvh:p:D:w:d:f:" )) != EOF ) {
+    while (( i = getopt( argc, argv, "WFabckKnrtvh:p:D:w:d:f:P:" )) != EOF ) {
 	switch( i ) {
 	case 'a':	/* add */
 	    new = 1;
