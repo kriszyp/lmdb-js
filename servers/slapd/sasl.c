@@ -89,6 +89,12 @@ slap_sasl_authorize(
 		return SASL_BADAUTH;
 	}
 
+	Debug( LDAP_DEBUG_ARGS, "SASL Authorize [conn=%ld]: "
+		"authcid=\"%s\" authzid=\"%s\"\n",
+		(long) (conn ? conn->c_connid : -1),
+		authcid ? authcid : "<empty>",
+		authcid ? authcid : "<empty>" );
+
 	if ( authzid == NULL || *authzid == '\0' ||
 		strcmp( authcid, authzid ) == 0 )
 	{
@@ -461,20 +467,27 @@ int slap_sasl_bind(
 				realm ? realm : "",
 				(unsigned long) ( ssf ? *ssf : 0 ) );
 
-			if( !strncasecmp( username, "anonymous", sizeof("anonyous")-1 ) &&
+
+			rc = LDAP_SUCCESS;
+
+			if( username == NULL || (
+				!strncasecmp( username, "anonymous", sizeof("anonyous")-1 ) &&
 				( ( username[sizeof("anonymous")] == '\0' ) ||
-				  ( username[sizeof("anonymous")] == '@' ) ) )
+				  ( username[sizeof("anonymous")] == '@' ) ) ) )
 			{
 				Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: anonymous\n",
 					0, 0, 0);
 
-			} else {
+			} else if ( username[0] == 'u' && username[1] == ':'
+				&& username[2] != '\0'
+				&& strpbrk( &username[2], "=,;\"\\") == NULL )
+			{
 				*edn = ch_malloc( sizeof( "uid= + realm=" )
-					+ ( username ? strlen( username ) : 0 )
+					+ strlen( &username[2] )
 					+ ( realm ? strlen( realm ) : 0 ) );
 
 				strcpy( *edn, "uid=" );
-				strcat( *edn, username );
+				strcat( *edn, &username[2] );
 
 				if( realm && *realm ) {
 					strcat( *edn, " + realm=" );
@@ -483,11 +496,23 @@ int slap_sasl_bind(
 
 				Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: authzdn: \"%s\"\n",
 					*edn, 0, 0);
+
+			} else {
+				rc = LDAP_INAPPROPRIATE_AUTH;
+				errstr = "authorization disallowed";
+				Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: %s\n",
+					errstr, 0, 0);
 			}
 
-			send_ldap_sasl( conn, op, rc = LDAP_SUCCESS,
-				NULL, NULL, NULL, NULL,
-				response.bv_len ? &response : NULL );
+			if( rc == LDAP_SUCCESS ) {
+				send_ldap_sasl( conn, op, rc,
+					NULL, NULL, NULL, NULL,
+					response.bv_len ? &response : NULL );
+
+			} else {
+				send_ldap_result( conn, op, rc,
+					NULL, errstr, NULL, NULL );
+			}
 		}
 
 	} else if ( sc == SASL_CONTINUE ) {
