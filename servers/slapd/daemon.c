@@ -40,6 +40,12 @@ static volatile sig_atomic_t slapd_shutdown = 0;
 static void	set_shutdown(int sig);
 static void	do_nothing  (int sig);
 
+/* we need the server's name for constructing the pid/args file names */
+#if defined( SLAPD_PIDFILE ) || defined( SLAPD_ARGSFILE )
+extern char  *serverName;
+#define DEFAULT_SERVERNAME  "slapd"
+#endif
+
 void *
 slapd_daemon(
     void *port
@@ -55,6 +61,13 @@ slapd_daemon(
 	fd_set			writefds;
 	FILE			*fp;
 	int			on = 1;
+
+#ifdef SLAPD_PIDFILE
+    char            pidFile[BUFSIZ];
+#endif
+#ifdef SLAPD_ARGSFILE
+    char            argsFile[BUFSIZ];
+#endif
 
 #ifdef HAVE_SYSCONF
 	dtblsize = sysconf( _SC_OPEN_MAX );
@@ -135,14 +148,21 @@ slapd_daemon(
 	(void) SIGNAL( SIGHUP, set_shutdown );
 
 	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
+
+#if defined( SLAPD_PIDFILE ) || defined( SLAPD_ARGSFILE )
+    if ( !serverName ) serverName = DEFAULT_SERVERNAME;
+#endif
+
 #ifdef SLAPD_PIDFILE
-	if ( (fp = fopen( SLAPD_PIDFILE, "w" )) != NULL ) {
+    sprintf( pidFile, "%s%s%s", SLAPD_PIDDIR, serverName, SLAPD_PIDEXT );
+	if ( (fp = fopen( pidFile, "w" )) != NULL ) {
 		fprintf( fp, "%d\n", (int) getpid() );
 		fclose( fp );
 	}
 #endif
 #ifdef SLAPD_ARGSFILE
-	if ( (fp = fopen( SLAPD_ARGSFILE, "w" )) != NULL ) {
+    sprintf( argsFile, "%s%s%s", SLAPD_ARGSDIR, serverName, SLAPD_ARGSEXT );
+	if ( (fp = fopen( argsFile, "w" )) != NULL ) {
 		for ( i = 0; i < g_argc; i++ ) {
 			fprintf( fp, "%s ", g_argv[i] );
 		}

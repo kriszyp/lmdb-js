@@ -215,8 +215,12 @@ Please try again later.\r\n"
 #define SLAPD_DEFAULT_TIMELIMIT		3600
 	/* location of the slapd pid file */
 #define SLAPD_PIDFILE			"%RUNDIR%/slapd.pid"
+#define SLAPD_PIDDIR            "%RUNDIR%/"
+#define SLAPD_PIDEXT            ".pid"
 	/* location of the slapd args file */
 #define SLAPD_ARGSFILE			"%RUNDIR%/slapd.args"
+#define SLAPD_ARGSDIR           "%RUNDIR%/"
+#define SLAPD_ARGSEXT           ".args"
 	/* dn of the special "monitor" entry */
 #define SLAPD_MONITOR_DN		"cn=monitor"
 	/* dn of the special "config" entry */
