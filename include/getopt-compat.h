@@ -18,6 +18,13 @@
 
 LDAP_BEGIN_DECL
 
+/* change symbols to avoid clashing */
+#define optarg lutil_optarg
+#define optind lutil_optind
+#define opterr lutil_opterr
+#define optopt lutil_optopt
+#define getopt lutil_getopt
+
 LIBLUTIL_F (char *) optarg;
 LIBLUTIL_F (int) optind, opterr, optopt;
 
