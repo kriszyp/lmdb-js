@@ -28,6 +28,10 @@ static int	get_substring_filter(
 	char **fstr,
 	const char **text );
 
+static int escape_value(
+	struct berval *in,
+	struct berval *out );
+
 int
 get_filter(
 	Connection *conn,
@@ -41,6 +45,7 @@ get_filter(
 	int		err;
 	Filter		*f;
 	char		*ftmp = NULL;
+	struct berval escaped;
 
 	Debug( LDAP_DEBUG_FILTER, "begin get_filter\n", 0, 0, 0 );
 
@@ -102,14 +107,17 @@ get_filter(
 
 		assert( f->f_ava != NULL );
 
+		escape_value( f->f_av_value, &escaped );
+
 		*fstr = ch_malloc( sizeof("(=)")
 			+ f->f_av_desc->ad_cname->bv_len
-			+ f->f_av_value->bv_len );
+			+ escaped.bv_len );
 
 		sprintf( *fstr, "(%s=%s)",
 			f->f_av_desc->ad_cname->bv_val,
-		    f->f_av_value->bv_val );
+		    escaped.bv_val );
 
+		ber_memfree( escaped.bv_val );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
@@ -125,14 +133,17 @@ get_filter(
 			break;
 		}
 
+		escape_value( f->f_av_value, &escaped );
+
 		*fstr = ch_malloc( sizeof("(>=)")
 			+ f->f_av_desc->ad_cname->bv_len
-			+ f->f_av_value->bv_len );
+			+ escaped.bv_len );
 
 		sprintf( *fstr, "(%s>=%s)",
 			f->f_av_desc->ad_cname->bv_val,
-		    f->f_av_value->bv_val );
+		    escaped.bv_val );
 
+		ber_memfree( escaped.bv_val );
 		break;
 
 	case LDAP_FILTER_LE:
@@ -144,14 +155,17 @@ get_filter(
 		}
 
 
+		escape_value( f->f_av_value, &escaped );
+
 		*fstr = ch_malloc( sizeof("(<=)")
 			+ f->f_av_desc->ad_cname->bv_len
-			+ f->f_av_value->bv_len );
+			+ escaped.bv_len );
 
 		sprintf( *fstr, "(%s<=%s)",
 			f->f_av_desc->ad_cname->bv_val,
-		    f->f_av_value->bv_val );
+		    escaped.bv_val );
 
+		ber_memfree( escaped.bv_val );
 		break;
 
 	case LDAP_FILTER_PRESENT: {
@@ -190,14 +204,17 @@ get_filter(
 			break;
 		}
 
+		escape_value( f->f_av_value, &escaped );
+
 		*fstr = ch_malloc( sizeof("(~=)")
 			+ f->f_av_desc->ad_cname->bv_len
-			+ f->f_av_value->bv_len );
+			+ escaped.bv_len );
 
 		sprintf( *fstr, "(%s~=%s)",
 			f->f_av_desc->ad_cname->bv_val,
-		    f->f_av_value->bv_val );
+		    escaped.bv_val );
 
+		ber_memfree( escaped.bv_val );
 		break;
 
 	case LDAP_FILTER_AND:
@@ -334,6 +351,7 @@ get_substring_filter(
 	ber_len_t	len;
 	ber_tag_t	rc;
 	struct berval *value;
+	struct berval escaped;
 	char		*last;
 	struct berval type;
 	struct berval *nvalue;
@@ -433,9 +451,11 @@ get_substring_filter(
 			f->f_sub_initial = value;
 
 			if( fstr ) {
+				escape_value( value, &escaped );
 				*fstr = ch_realloc( *fstr,
-					strlen( *fstr ) + value->bv_len + 1 );
-				strcat( *fstr, value->bv_val );
+					strlen( *fstr ) + escaped.bv_len + 1 );
+				strcat( *fstr, escaped.bv_val );
+				ber_memfree( escaped.bv_val );
 			}
 			break;
 
@@ -447,10 +467,12 @@ get_substring_filter(
 			}
 
 			if( fstr ) {
+				escape_value( value, &escaped );
 				*fstr = ch_realloc( *fstr,
-					strlen( *fstr ) + value->bv_len + 2 );
+					strlen( *fstr ) + escaped.bv_len + 2 );
 				strcat( *fstr, "*" );
-				strcat( *fstr, value->bv_val );
+				strcat( *fstr, escaped.bv_val );
+				ber_memfree( escaped.bv_val );
 			}
 			break;
 
@@ -463,10 +485,12 @@ get_substring_filter(
 			f->f_sub_final = value;
 
 			if( fstr ) {
+				escape_value( value, &escaped );
 				*fstr = ch_realloc( *fstr,
-					strlen( *fstr ) + value->bv_len + 2 );
+					strlen( *fstr ) + escaped.bv_len + 2 );
 				strcat( *fstr, "*" );
-				strcat( *fstr, value->bv_val );
+				strcat( *fstr, escaped.bv_val );
+				ber_memfree( escaped.bv_val );
 			}
 			break;
 
@@ -561,12 +585,12 @@ filter_free( Filter *f )
 }
 
 #ifdef LDAP_DEBUG
-
 void
 filter_print( Filter *f )
 {
 	int	i;
 	Filter	*p;
+	struct berval escaped;
 
 	if ( f == NULL ) {
 		fprintf( stderr, "No filter!" );
@@ -574,45 +598,59 @@ filter_print( Filter *f )
 
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_EQUALITY:
+		escape_value( f->f_av_value, &escaped );
 		fprintf( stderr, "(%s=%s)",
 			f->f_av_desc->ad_cname->bv_val,
-		    f->f_av_value->bv_val );
+		    escaped.bv_val );
+		ber_memfree( escaped.bv_val );
 		break;
 
 	case LDAP_FILTER_GE:
+		escape_value( f->f_av_value, &escaped );
 		fprintf( stderr, "(%s>=%s)",
 			f->f_av_desc->ad_cname->bv_val,
-		    f->f_av_value->bv_val );
+		    escaped.bv_val );
+		ber_memfree( escaped.bv_val );
 		break;
 
 	case LDAP_FILTER_LE:
+		escape_value( f->f_av_value, &escaped );
 		fprintf( stderr, "(%s<=%s)",
 			f->f_ava->aa_desc->ad_cname->bv_val,
-		    f->f_ava->aa_value->bv_val );
+		    escaped.bv_val );
+		ber_memfree( escaped.bv_val );
 		break;
 
 	case LDAP_FILTER_APPROX:
+		escape_value( f->f_av_value, &escaped );
 		fprintf( stderr, "(%s~=%s)",
 			f->f_ava->aa_desc->ad_cname->bv_val,
-		    f->f_ava->aa_value->bv_val );
+		    escaped.bv_val );
+		ber_memfree( escaped.bv_val );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
 		fprintf( stderr, "(%s=" /*)*/,
 			f->f_sub_desc->ad_cname->bv_val );
 		if ( f->f_sub_initial != NULL ) {
+			escape_value( f->f_sub_initial, &escaped );
 			fprintf( stderr, "%s",
-				f->f_sub_initial->bv_val );
+				escaped.bv_val );
+			ber_memfree( escaped.bv_val );
 		}
 		if ( f->f_sub_any != NULL ) {
 			for ( i = 0; f->f_sub_any[i] != NULL; i++ ) {
+				escape_value( f->f_sub_any[i], &escaped );
 				fprintf( stderr, "*%s",
-					f->f_sub_any[i]->bv_val );
+					escaped.bv_val );
+				ber_memfree( escaped.bv_val );
 			}
 		}
 		if ( f->f_sub_final != NULL ) {
+			escape_value( f->f_sub_final, &escaped );
 			fprintf( stderr,
-				"*%s", f->f_sub_final->bv_val );
+				"*%s", escaped.bv_val );
+			ber_memfree( escaped.bv_val );
 		}
 		fprintf( stderr, /*(*/ ")" );
 		break;
@@ -649,3 +687,37 @@ filter_print( Filter *f )
 }
 
 #endif /* ldap_debug */
+
+int escape_value(
+	struct berval *in,
+	struct berval *out )
+{
+	ber_len_t i;
+	assert( in );
+	assert( out );
+
+	out->bv_val = (char *) ch_malloc( in->bv_len * 3 ) + 1;
+	out->bv_len = 0;
+
+#undef NIBBLE
+#undef ESCAPE_LO
+#undef ESCAPE_HI
+#define NIBBLE(c) ((c)&0x0f)
+#define ESCAPE_LO(c) ( NIBBLE(c) + ( NIBBLE(c) < 10 ? '0' : 'A' - 10 ) )
+#define ESCAPE_HI(c) ( ESCAPE_LO((c)>>4) )
+
+	for( i=0; i < in->bv_len ; i++ ) {
+		if( FILTER_ESCAPE(in->bv_val[i]) ) {
+			out->bv_val[out->bv_len++] = '\\';
+			out->bv_val[out->bv_len++] = ESCAPE_HI( in->bv_val[i] );
+			out->bv_val[out->bv_len++] = ESCAPE_LO( in->bv_val[i] );
+		} else {
+			out->bv_val[out->bv_len++] = in->bv_val[i];
+		}
+	}
+
+	out->bv_val[out->bv_len] = '\0';
+	return LDAP_SUCCESS;
+}
+
+
