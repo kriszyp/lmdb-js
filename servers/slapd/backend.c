@@ -1512,7 +1512,7 @@ static int backend_compute_output_attr(computed_attr_context *c, Slapi_Attr *a, 
 	}
 
 	if ( op->o_conn && access_allowed( op,
-		e, c->cac_attrs->an_desc, NULL, ACL_AUTH,
+		e, a->a_desc, NULL, ACL_AUTH,
 		&c->cac_acl_state ) == 0 ) {
 		return 1;
 	}
@@ -1523,7 +1523,7 @@ static int backend_compute_output_attr(computed_attr_context *c, Slapi_Attr *a, 
 		op->o_tmpmemctx );
 	for ( i=0,j=0; a->a_vals[i].bv_val; i++ ) {
 		if ( op->o_conn && access_allowed( op,
-			e, c->cac_attrs->an_desc,
+			e, a->a_desc,
 			&a->a_nvals[i],
 			ACL_AUTH, &c->cac_acl_state ) == 0 ) {
 			continue;
@@ -1615,16 +1615,10 @@ backend_attribute(
 			computed_attr_context ctx;
 			AttributeName aname;
 
-			/* only an_desc is needed by backend_compute_output_attr() */
-			aname.an_name = entry_at->ad_cname;
-			aname.an_desc = entry_at;
-			aname.an_oc_exclude = 0;
-			aname.an_oc = NULL;
-
 			slapi_int_pblock_set_operation( op->o_pb, op );
 
 			ctx.cac_pb = op->o_pb;
-			ctx.cac_attrs = &aname;
+			ctx.cac_attrs = NULL;
 			ctx.cac_userattrs = 0;
 			ctx.cac_opattrs = 0;
 			ctx.cac_acl_state = acl_state;
