@@ -427,6 +427,8 @@ bdb_db_destroy( BackendDB *be )
 {
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	Operation *ps = NULL;
+	Operation *psn = NULL;
 
 	/* close db environment */
 	if( bdb->bi_dbenv ) {
@@ -459,6 +461,23 @@ bdb_db_destroy( BackendDB *be )
 	if ( bdb->bi_idl_cache_max_size ) {
 		ldap_pvt_thread_rdwr_destroy( &bdb->bi_idl_tree_rwlock );
 		ldap_pvt_thread_mutex_destroy( &bdb->bi_idl_tree_lrulock );
+	}
+
+	ps = LDAP_LIST_FIRST( &bdb->bi_psearch_list );
+
+	if ( ps ) {
+		psn = LDAP_LIST_NEXT( ps, o_ps_link );
+		slap_op_free( ps );
+		if ( ps->o_tmpmemctx )
+			slap_sl_mem_destroy( NULL, ps->o_tmpmemctx );
+	}
+
+	while ( psn ) {
+		ps = psn;
+		psn = LDAP_LIST_NEXT( ps, o_ps_link );
+		slap_op_free( ps );
+		if ( ps->o_tmpmemctx )
+			slap_sl_mem_destroy( NULL, ps->o_tmpmemctx );
 	}
 
 	ch_free( bdb );

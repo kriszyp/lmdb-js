@@ -1443,8 +1443,11 @@ typedef struct syncinfo_s {
         struct berval		si_base;
         int					si_scope;
         int					si_attrsonly;
-        char				**si_attrs;
-		ObjectClass			**si_ocs;
+		AttributeName		*si_anlist;
+		AttributeName		*si_exanlist;
+		char 				**si_attrs;
+		int					si_allattrs;
+		int					si_allopattrs;
 		char				**si_exattrs;
         int					si_type;
         time_t				si_interval;

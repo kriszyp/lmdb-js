@@ -53,7 +53,8 @@ void
 init_syncrepl(syncinfo_t *si)
 {
 	int i, j, k, l, n;
-	char **tmp;
+	char **attrs, **exattrs;
+	ObjectClass *oc;
 
 	if ( !sync_descs[0] ) {
 		sync_descs[0] = slap_schema.si_ad_objectClass;
@@ -62,78 +63,128 @@ init_syncrepl(syncinfo_t *si)
 		sync_descs[3] = NULL;
 	}
 
-	for ( n = 0; si->si_attrs[ n ] != NULL; n++ ) /* empty */;
+	if ( si->si_allattrs && si->si_allopattrs )
+		attrs = NULL;
+	else
+		attrs = anlist2attrs( si->si_anlist );
 
-	if ( n ) {
-		/* Delete Attributes */
-		for ( i = 0; sync_descs[i] != NULL; i++ ) {
-			for ( j = 0; si->si_attrs[j] != NULL; j++ ) {
-				if ( strcmp( si->si_attrs[j], sync_descs[i]->ad_cname.bv_val )
-					== 0 )
-				{
-					for ( k = j; si->si_attrs[k] != NULL; k++ ) {
-						if ( k == j )
-							ch_free( si->si_attrs[k] );
-						si->si_attrs[k] = si->si_attrs[k+1];
+	if ( attrs ) {
+
+		if ( si->si_allattrs ) {
+			i = 0;
+			while ( attrs[i] ) {
+				if ( !is_at_operational( at_find( attrs[i] ))) {
+					for ( j = i; attrs[j] != NULL; j++ ) {
+						if ( j == i )
+							ch_free( attrs[i] );
+						attrs[j] = attrs[j+1];
 					}
+				} else {
+					i++;
 				}
 			}
-		}
-		for ( n = 0; si->si_attrs[ n ] != NULL; n++ ) /* empty */;
-		tmp = ( char ** ) ch_realloc( si->si_attrs, (n + 4)*sizeof( char * ));
-		if ( tmp == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "out of memory\n", 0,0,0 );
+			attrs = ( char ** ) ch_realloc( attrs, (i + 1)*sizeof( char * ));
+		} else if ( si->si_allopattrs ) {
+			i = 0;
+			while ( attrs[i] ) {
+				if ( is_at_operational( at_find( attrs[i] ))) {
+					for ( j = i; attrs[j] != NULL; j++ ) {
+						if ( j == i )
+							ch_free( attrs[i] );
+						attrs[j] = attrs[j+1];
+					}
+				} else {
+					i++;
+				}
+			}
+			attrs = ( char ** ) ch_realloc( attrs, (i + 1)*sizeof( char * ));
 		}
 
-		/* Add Attributes */
-		for ( i = 0; sync_descs[ i ] != NULL; i++ ) {
-			tmp[ n++ ] = ch_strdup ( sync_descs[i]->ad_cname.bv_val );
-			tmp[ n ] = NULL;
+		if ( !si->si_allopattrs ) {
+			for ( i = 0; sync_descs[i] != NULL; i++ ) {
+				j = 0;
+				while ( attrs[j] ) {
+					if ( !strcmp( attrs[j], sync_descs[i]->ad_cname.bv_val )) {
+						for ( k = j; attrs[k] != NULL; k++ ) {
+							if ( k == j )
+								ch_free( attrs[k] );
+							attrs[k] = attrs[k+1];
+						}
+					} else {
+						j++;
+					}
+				}
+
+			}
+			for ( n = 0; attrs[ n ] != NULL; n++ ) /* empty */;
+			attrs = ( char ** ) ch_realloc( attrs, (n + 4)*sizeof( char * ));
+			if ( attrs == NULL ) {
+				Debug( LDAP_DEBUG_ANY, "out of memory\n", 0,0,0 );
+			}
+	
+			/* Add Attributes */
+			for ( i = 0; sync_descs[ i ] != NULL; i++ ) {
+				attrs[ n++ ] = ch_strdup ( sync_descs[i]->ad_cname.bv_val );
+				attrs[ n ] = NULL;
+			}
 		}
 
 	} else {
-		tmp = ( char ** ) ch_realloc( si->si_attrs, 3 * sizeof( char * ));
-		if ( tmp == NULL ) {
+		attrs = ( char ** ) ch_realloc( attrs, 3 * sizeof( char * ));
+		if ( attrs == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "out of memory\n", 0,0,0 );
 		}
-		tmp[ n++ ] = ch_strdup( "*" );
-		tmp[ n++ ] = ch_strdup( "+" );
-		tmp[ n ] = NULL;
+		attrs[0] = ch_strdup( "*" );
+		attrs[1] = ch_strdup( "+" );
+		attrs[2] = NULL;
 	}
 	
-	si->si_attrs = tmp;
+	si->si_attrs = attrs;
 
-	for ( n = 0; si->si_exattrs[ n ] != NULL; n++ ) /* empty */;
-	if ( n ) {
-		/* Delete Attributes from exattrs list */
+	exattrs = anlist2attrs( si->si_exanlist );
+
+	if ( exattrs ) {
+
 		for ( i = 0; sync_descs[i] != NULL; i++ ) {
-			for ( j = 0; si->si_exattrs[j] != NULL; j++ ) {
-				if ( strcmp( si->si_exattrs[j], sync_descs[i]->ad_cname.bv_val )
-					== 0 )
-				{
-					for ( k = j; si->si_exattrs[k] != NULL; k++ ) {
+			j = 0;
+			while ( exattrs[j] != NULL ) {
+				if ( !strcmp( exattrs[j], sync_descs[i]->ad_cname.bv_val )) {
+					for ( k = j; exattrs[k] != NULL; k++ ) {
 						if ( k == j )
-							ch_free( si->si_exattrs[k] );
-						si->si_exattrs[k] = si->si_exattrs[k+1];
+							ch_free( exattrs[k] );
+						exattrs[k] = exattrs[k+1];
 					}
+				} else {
+					j++;
 				}
 			}
 		}
-		for ( i = 0; si->si_exattrs[i] != NULL; i++ ) {
-			for ( j = 0; si->si_ocs[j]; j++ ) {
-				for ( k = 0; si->si_ocs[j]->soc_required[k]; k++ ) {
-					if (!strcmp( si->si_exattrs[i],
-						si->si_ocs[j]->soc_required[k]->sat_cname.bv_val )) {
-						for ( l = i; si->si_exattrs[l] != NULL; l++ ) {
-							if ( l == i )
-								ch_free( si->si_exattrs[l] );
-							si->si_exattrs[l] = si->si_exattrs[l+1];
+
+		for ( i = 0; exattrs[i] != NULL; i++ ) {
+			for ( j = 0; si->si_anlist[j].an_name.bv_val; j++ ) {
+				if ( oc = si->si_anlist[j].an_oc ) {
+					k = 0;
+					while ( oc->soc_required[k] ) {
+						if ( !strcmp( exattrs[i],
+							 oc->soc_required[k]->sat_cname.bv_val )) {
+							for ( l = i; exattrs[l]; l++ ) {
+								if ( l == i )
+									ch_free( exattrs[i] );
+								exattrs[l] = exattrs[l+1];
+							}
+						} else {
+							k++;
 						}
 					}
 				}
 			}
 		}
+
+		for ( i = 0; exattrs[i] != NULL; i++ ) ;
+		exattrs = (char **) ch_realloc( exattrs, (i + 1)*sizeof(char *));
 	}
+
+	si->si_exattrs = exattrs;	
 }
 
 static int
@@ -2049,9 +2100,6 @@ syncinfo_free( syncinfo_t *sie )
 		}
 		ch_free( sie->si_attrs );
 	}
-	if ( sie->si_ocs ) {
-		ch_free( sie->si_ocs );
-	}
 	if ( sie->si_exattrs ) {
 		int i = 0;
 		while ( sie->si_exattrs[i] != NULL ) {
@@ -2059,6 +2107,22 @@ syncinfo_free( syncinfo_t *sie )
 			i++;
 		}
 		ch_free( sie->si_exattrs );
+	}
+	if ( sie->si_anlist ) {
+		int i = 0;
+		while ( sie->si_anlist[i].an_name.bv_val != NULL ) {
+			ch_free( sie->si_anlist[i].an_name.bv_val );
+			i++;
+		}
+		ch_free( sie->si_anlist );
+	}
+	if ( sie->si_exanlist ) {
+		int i = 0;
+		while ( sie->si_exanlist[i].an_name.bv_val != NULL ) {
+			ch_free( sie->si_exanlist[i].an_name.bv_val );
+			i++;
+		}
+		ch_free( sie->si_exanlist );
 	}
 	if ( sie->si_retryinterval ) {
 		ch_free( sie->si_retryinterval );

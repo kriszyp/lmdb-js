@@ -37,7 +37,6 @@
 #ifdef LDAP_SLAPI
 #include "slapi/slapi.h"
 
-static char **anlist2charray( Operation *op, AttributeName *an );
 static void init_search_pblock( Operation *op, char **attrs, int managedsait );
 static int call_search_preop_plugins( Operation *op );
 static int call_search_rewrite_plugins( Operation *op );
@@ -279,7 +278,7 @@ fe_op_search( Operation *op, SlapReply *rs )
 
 #ifdef LDAP_SLAPI
 			if ( op->o_pb ) {
-				attrs = anlist2charray( op, op->ors_attrs );
+				attrs = anlist2charray_x( op->ors_attrs, 0, op->o_tmpmemctx );
 				init_search_pblock( op, attrs, manageDSAit );
 				rs->sr_err = call_search_preop_plugins( op );
 				if ( rs->sr_err ) break;
@@ -297,7 +296,7 @@ fe_op_search( Operation *op, SlapReply *rs )
 
 #ifdef LDAP_SLAPI
 			if ( op->o_pb ) {
-				attrs = anlist2charray( op, op->ors_attrs );
+				attrs = anlist2charray_x( op->ors_attrs, 0, op->o_tmpmemctx );
 				init_search_pblock( op, attrs, manageDSAit );
 				rs->sr_err = call_search_preop_plugins( op );
 				if ( rs->sr_err ) break;
@@ -391,7 +390,7 @@ fe_op_search( Operation *op, SlapReply *rs )
 
 #ifdef LDAP_SLAPI
 	if ( op->o_pb ) {
-		attrs = anlist2charray( op, op->ors_attrs );
+		attrs = anlist2charray_x( op->ors_attrs, 0, op->o_tmpmemctx );
 		init_search_pblock( op, attrs, manageDSAit );
 		rs->sr_err = call_search_preop_plugins( op );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -427,26 +426,6 @@ return_results:;
 }
 
 #ifdef LDAP_SLAPI
-
-static char **anlist2charray( Operation *op, AttributeName *an )
-{
-	char **attrs;
-	int i;
-
-	if ( an != NULL ) {
-		for ( i = 0; !BER_BVISNULL( &an[i].an_name ); i++ )
-			;
-		attrs = (char **)op->o_tmpalloc( (i + 1) * sizeof(char *), op->o_tmpmemctx );
-		for ( i = 0; !BER_BVISNULL( &an[i].an_name ); i++ ) {
-			attrs[i] = an[i].an_name.bv_val;
-		}
-		attrs[i] = NULL;
-	} else {
-		attrs = NULL;
-	}
-
-	return attrs;
-}
 
 static void init_search_pblock( Operation *op,
 	char **attrs, int managedsait )

@@ -340,10 +340,10 @@ bdb_abandon( Operation *op, SlapReply *rs )
 
 	ps = bdb_drop_psearch( op, op->oq_abandon.rs_msgid );
 	if ( ps ) {
+		slap_op_free ( ps );
 		if ( ps->o_tmpmemctx ) {
 			slap_sl_mem_destroy( NULL, ps->o_tmpmemctx );
 		}
-		slap_op_free ( ps );
 		return LDAP_SUCCESS;
 	}
 	return LDAP_UNAVAILABLE;
@@ -358,10 +358,10 @@ bdb_cancel( Operation *op, SlapReply *rs )
 	if ( ps ) {
 		rs->sr_err = LDAP_CANCELLED;
 		send_ldap_result( ps, rs );
+		slap_op_free ( ps );
 		if ( ps->o_tmpmemctx ) {
 			slap_sl_mem_destroy( NULL, ps->o_tmpmemctx );
 		}
-		slap_op_free ( ps );
 		return LDAP_SUCCESS;
 	}
 	return LDAP_UNAVAILABLE;

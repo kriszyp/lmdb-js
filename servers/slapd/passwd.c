@@ -311,7 +311,7 @@ int slap_passwd_parse( struct berval *reqdata,
 		tag = ber_scanf( ber, "m", oldpass );
 
 		if( tag == LBER_ERROR ) {
-			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: ID parse failed.\n",
+			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: OLD parse failed.\n",
 				0, 0, 0 );
 
 			goto decoding_error;
@@ -333,7 +333,7 @@ int slap_passwd_parse( struct berval *reqdata,
 		tag = ber_scanf( ber, "m", newpass );
 
 		if( tag == LBER_ERROR ) {
-			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: OLD parse failed.\n",
+			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: NEW parse failed.\n",
 				0, 0, 0 );
 
 			goto decoding_error;

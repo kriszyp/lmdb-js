@@ -88,12 +88,6 @@ static int load_ucdata(char *path);
 static int add_syncrepl LDAP_P(( Backend *, char **, int ));
 static int parse_syncrepl_line LDAP_P(( char **, int, syncinfo_t *));
 
-static int get_attrs_from_file LDAP_P(( char ***, const char *, const char * ));
-static int get_ocs_from_file LDAP_P((
-					ObjectClass ***, const char *, const char *));
-static char **str2attrs( char ***, char *, const char * );
-static ObjectClass **str2ocs( ObjectClass ***, char *, const char * );
-
 int
 read_config( const char *fname, int depth )
 {
@@ -2282,12 +2276,12 @@ add_syncrepl(
 	si->si_base.bv_val = NULL;
 	si->si_scope = LDAP_SCOPE_SUBTREE;
 	si->si_attrsonly = 0;
-	si->si_attrs = (char **) ch_calloc( 1, sizeof( char * ));
-	si->si_attrs[0] = NULL;
-	si->si_ocs = (ObjectClass **) ch_calloc( 1, sizeof( ObjectClass ));
-	si->si_ocs[0] = NULL;
-	si->si_exattrs = (char **) ch_calloc( 1, sizeof( char * ));
-	si->si_exattrs[0] = NULL;
+	si->si_anlist = (AttributeName *) ch_calloc( 1, sizeof( AttributeName ));
+	si->si_exanlist = (AttributeName *) ch_calloc( 1, sizeof( AttributeName ));
+	si->si_attrs = NULL;
+	si->si_allattrs = 0;
+	si->si_allopattrs = 0;
+	si->si_exattrs = NULL;
 	si->si_type = LDAP_SYNC_REFRESH_ONLY;
 	si->si_interval = 86400;
 	si->si_retryinterval = NULL;
@@ -2356,8 +2350,8 @@ add_syncrepl(
 #define SEARCHBASESTR	"searchbase"
 #define SCOPESTR		"scope"
 #define ATTRSSTR		"attrs"
-#define ATTRSONLYSTR	"attrsonly"
 #define EXATTRSSTR		"exattrs"
+#define ATTRSONLYSTR	"attrsonly"
 #define TYPESTR			"type"
 #define INTERVALSTR		"interval"
 #define LASTMODSTR		"lastmod"
@@ -2545,18 +2539,34 @@ parse_syncrepl_line(
 			if ( !strncasecmp( val, ":include:", STRLENOF(":include:") )) {
 				char *attr_fname;
 				attr_fname = ch_strdup( val + STRLENOF(":include:") );
-				if ( get_attrs_from_file( &si->si_attrs, attr_fname, " ,\t" )) {
-					ch_free( attr_fname );
-					return -1;
-				}
-				if ( get_ocs_from_file( &si->si_ocs, attr_fname, " ,\t" )) {
+				si->si_anlist = file2anlist(
+								si->si_anlist, attr_fname, " ,\t" );
+				if ( si->si_anlist == NULL ) {
 					ch_free( attr_fname );
 					return -1;
 				}
 				ch_free( attr_fname );
 			} else {
-				str2attrs( &si->si_attrs, val, " ,\t" );
-				str2ocs( &si->si_ocs, val, " ,\t" );
+				char *str, *s, *next;
+				char delimstr[] = " ,\t";
+				str = ch_strdup( val );
+				for ( s = ldap_pvt_strtok( str, delimstr, &next );
+					  s != NULL;
+					  s = ldap_pvt_strtok( NULL, delimstr, &next )) {
+					if ( strlen(s) == 1 && *s == '*' ) {
+						si->si_allattrs = 1;
+						*(val + ( s - str )) = delimstr[0];
+					}
+					if ( strlen(s) == 1 && *s == '+' ) {
+						si->si_allopattrs = 1;
+						*(val + ( s - str )) = delimstr[0];
+					}
+				}
+				ch_free( str );
+				si->si_anlist = str2anlist( si->si_anlist, val, " ,\t" );
+				if ( si->si_anlist == NULL ) {
+					return -1;
+				}
 			}
 		} else if ( !strncasecmp( cargv[ i ],
 			EXATTRSSTR, sizeof( EXATTRSSTR ) - 1 ) )
@@ -2565,14 +2575,19 @@ parse_syncrepl_line(
 			if ( !strncasecmp( val, ":include:", STRLENOF(":include:") )) {
 				char *attr_fname;
 				attr_fname = ch_strdup( val + STRLENOF(":include:") );
-				if ( get_attrs_from_file( &si->si_exattrs,
-							attr_fname, " ,\t" )) {
+				si->si_exanlist = file2anlist(
+									si->si_exanlist, attr_fname, " ,\t" );
+				if ( si->si_exanlist == NULL ) {
 					ch_free( attr_fname );
 					return -1;
 				}
 				ch_free( attr_fname );
 			} else {
-				str2attrs( &si->si_exattrs, val, " ,\t" );
+				int j;
+				si->si_exanlist = str2anlist( si->si_exanlist, val, " ,\t" );
+				if ( si->si_exanlist == NULL ) {
+					return -1;
+				}
 			}
 		} else if ( !strncasecmp( cargv[ i ],
 			TYPESTR, sizeof( TYPESTR ) - 1 ) )
@@ -2721,128 +2736,6 @@ parse_syncrepl_line(
 	return 0;
 }
 
-static ObjectClass **
-str2ocs( ObjectClass ***out, char *in, const char *brkstr )
-{
-	char **clist;
-	int i, k = 0;
-	ObjectClass *oc;
-
-	clist = (char **) ch_calloc( 1, sizeof( char *));
-	clist[0] = NULL;
-
-	slap_str2clist( &clist, in, brkstr );
-
-	for ( i = 0; clist && clist[i]; i++ ) {
-		if (*clist[i] == '@' ) {
-			struct berval ocbv;
-			ber_str2bv( clist[i]+1, strlen(clist[i]+1), 1, &ocbv );
-			oc = oc_bvfind( &ocbv );
-			if ( oc ) {
-				k++;
-			}
-			ch_free( ocbv.bv_val );
-		}
-	}
-
-	*out = ch_realloc( *out, (k + 1) * sizeof( ObjectClass *));
-
-	for ( i = 0; clist && clist[i]; i++ ) {
-		if (*clist[i] == '@' ) {
-			struct berval ocbv;
-			ber_str2bv( clist[i]+1, strlen(clist[i]+1), 1, &ocbv );
-			(*out)[i] = oc_bvfind( &ocbv );
-			ch_free( ocbv.bv_val );
-		}
-	}
-
-	(*out)[i] = NULL;
-
-	for ( i = 0; clist && clist[i]; i++ ) {
-		ch_free( clist[i] );
-	}
-	ch_free( clist );
-
-	return (*out);
-}
-
-static char **
-str2attrs( char ***out, char *in, const char *brkstr )
-{
-	int i, j = 0, k = 0, l = 0;
-	ObjectClass *oc;
-
-	slap_str2clist( out, in , brkstr );
-
-	for ( i = 0; *out && (*out)[i]; i++ ) {
-		if ( *(*out)[i] == '@' ) {
-			struct berval ocbv;
-			ber_str2bv( (*out)[i]+1, strlen((*out)[i]+1), 1, &ocbv );
-			oc = oc_bvfind( &ocbv );
-			if ( oc ) {
-				k++;
-				for ( j = 0; oc->soc_required && oc->soc_required[j]; j++ );
-				l += j;
-				for ( j = 0; oc->soc_allowed && oc->soc_allowed[j]; j++ );
-				l += j;
-			}
-			ch_free( ocbv.bv_val );
-		}
-	}
-	
-	*out = ch_realloc( *out, (i - k + l + 1) * sizeof( char * ));
-
-	for ( i = 0; *out && (*out)[i]; i++ ) {
-retest1:
-		if ( *(*out)[i] == '@' ) {
-			struct berval ocbv;
-			ber_str2bv( (*out)[i]+1, strlen((*out)[i]+1), 1, &ocbv );
-			oc = oc_bvfind( &ocbv );
-			for ( k = i; (*out)[k]; k++ ) {
-				if ( k == i )
-					ch_free( (*out)[i] );
-				(*out)[k] = (*out)[k+1];
-			}				
-			k--;
-			if ( oc ) {
-				for ( j = 0; oc->soc_required && oc->soc_required[j]; j++ ) {
-					(*out)[k++] = ch_strdup(
-							oc->soc_required[j]->sat_cname.bv_val );
-				}
-				for ( j = 0; oc->soc_allowed && oc->soc_allowed[j]; j++ ) {
-					(*out)[k++] = ch_strdup(
-							oc->soc_allowed[j]->sat_cname.bv_val );
-				}
-				(*out)[k] = NULL;
-			}
-			ch_free( ocbv.bv_val );
-			goto retest1;
-		}
-	}
-
-	for ( i = 0; *out && (*out)[i]; i++ ) {
-		for ( j = i+1; *out && (*out)[j]; j++ ) {
-retest2:
-			if ( !strcmp( (*out)[i], (*out)[j] )) {
-				ch_free( (*out)[j] );	
-				for ( k = j; (*out)[k]; k++ ) {
-					(*out)[k] = (*out)[k+1];
-				}
-				if ( (*out)[j] != NULL )
-					goto retest2;
-				else
-					break;
-			}
-		}
-	}
-
-	for ( i = 0; *out && (*out)[i]; i++ );
-
-	*out = ch_realloc( *out, (i + 1) * sizeof( char * ));
-
-	return (*out);
-}
-
 char **
 slap_str2clist( char ***out, char *in, const char *brkstr )
 {
@@ -2887,118 +2780,3 @@ slap_str2clist( char ***out, char *in, const char *brkstr )
 	return( *out );
 }
 
-#define LBUFSIZ	80
-static int
-get_attrs_from_file( char ***attrs, const char *fname, const char *brkstr )
-{
-	FILE	*fp;
-	char	*line = NULL;
-	char	*lcur = NULL;
-	char	*c;
-	size_t	lmax = LBUFSIZ;
-
-	fp = fopen( fname, "r" );
-	if ( fp == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"get_attrs_from_file: failed to open attribute list file "
-			"\"%s\": %s\n", fname, strerror(errno), 0 );
-		return 1;
-	}
-
-	lcur = line = (char *) ch_malloc( lmax );
-	if ( !line ) {
-		Debug( LDAP_DEBUG_ANY,
-			"get_attrs_from_file: could not allocate memory\n",
-			0, 0, 0 );
-		fclose(fp);
-		return 1;
-	}
-
-	while ( fgets( lcur, LBUFSIZ, fp ) != NULL ) {
-		if (c = strchr( lcur, '\n' )) {
-			if ( c == line ) {
-				*c = '\0';
-			} else if ( *(c-1) == '\r' ) {
-				*(c-1) = '\0';
-			} else {
-				*c = '\0';
-			}
-		} else {
-			lmax += LBUFSIZ;
-			line = (char *) ch_realloc( line, lmax );
-			if ( !line ) {
-				Debug( LDAP_DEBUG_ANY,
-					"get_attrs_from_file: could not allocate memory\n",
-					0, 0, 0 );
-				fclose(fp);
-				return 1;
-			}
-			lcur = line + strlen( line );
-			continue;
-		}
-		str2attrs( attrs, line, brkstr );
-		lcur = line;
-	}
-	ch_free( line );
-	fclose(fp);
-	return 0;
-}
-#undef LBUFSIZ
-
-#define LBUFSIZ	80
-static int
-get_ocs_from_file( ObjectClass ***ocs, const char *fname, const char *brkstr )
-{
-	FILE	*fp;
-	char	*line = NULL;
-	char	*lcur = NULL;
-	char	*c;
-	size_t	lmax = LBUFSIZ;
-
-	fp = fopen( fname, "r" );
-	if ( fp == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"get_ocs_from_file: failed to open attribute list file "
-			"\"%s\": %s\n", fname, strerror(errno), 0 );
-		return 1;
-	}
-
-	lcur = line = (char *) ch_malloc( lmax );
-	if ( !line ) {
-		Debug( LDAP_DEBUG_ANY,
-			"get_ocs_from_file: could not allocate memory\n",
-			0, 0, 0 );
-		fclose(fp);
-		return 1;
-	}
-
-	while ( fgets( lcur, LBUFSIZ, fp ) != NULL ) {
-		if (c = strchr( lcur, '\n' )) {
-			if ( c == line ) {
-				*c = '\0';
-			} else if ( *(c-1) == '\r' ) {
-				*(c-1) = '\0';
-			} else {
-				*c = '\0';
-			}
-		} else {
-			lmax += LBUFSIZ;
-			line = (char *) ch_realloc( line, lmax );
-			if ( !line ) {
-				Debug( LDAP_DEBUG_ANY,
-					"get_ocs_from_file: could not allocate memory\n",
-					0, 0, 0 );
-				fclose(fp);
-				return 1;
-			}
-			lcur = line + strlen( line );
-			continue;
-		}
-		str2ocs( ocs, line, brkstr );
-		lcur = line;
-	}
-	ch_free( line );
-	fclose(fp);
-	return 0;
-}
-#undef LBUFSIZ

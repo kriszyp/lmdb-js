@@ -470,6 +470,7 @@ int backend_destroy(void)
 	int i;
 	BackendDB *bd;
 	syncinfo_t *si_entry;
+	struct slap_csn_entry *csne;
 
 	ldap_pvt_thread_pool_destroy( &syncrepl_pool, 1 );
 
@@ -480,6 +481,13 @@ int backend_destroy(void)
 			si_entry = LDAP_STAILQ_FIRST( &bd->be_syncinfo );
 			LDAP_STAILQ_REMOVE_HEAD( &bd->be_syncinfo, si_next );
 			syncinfo_free( si_entry );
+		}
+
+		LDAP_TAILQ_FOREACH( csne, bd->be_pending_csn_list, ce_csn_link ) {
+			LDAP_TAILQ_REMOVE( bd->be_pending_csn_list, csne, ce_csn_link );
+			ch_free( csne->ce_csn->bv_val );
+			ch_free( csne->ce_csn );
+			ch_free( csne );
 		}
 		
 		if ( bd->bd_info->bi_db_destroy ) {
