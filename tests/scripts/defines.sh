@@ -52,7 +52,7 @@ LDIF=$DATADIR/test.ldif
 LDIFORDERED=$DATADIR/test-ordered.ldif
 LDIFPASSWD=$DATADIR/passwd.ldif
 LDIFPASSWDOUT=$DATADIR/passwd-out.ldif
-MONITOR="cn=monitor"
+MONITOR=""
 BASEDN="o=University of Michigan, c=US"
 MANAGERDN="cn=Manager, o=University of Michigan, c=US"
 UPDATEDN="cn=Replica, o=University of Michigan, c=US"
