@@ -145,12 +145,12 @@ ldap_perror( LDAP *ld, LDAP_CONST char *str )
 			s, ld->ld_errno );
 	}
 
-	if ( ld->ld_matched != NULL ) {
+	if ( ld->ld_matched != NULL && ld->ld_matched[0] != '\0' ) {
 		fprintf( stderr, "\tmatched: \"%s\"\n",
 			ld->ld_matched );
 	}
 
-	if ( ld->ld_error != NULL ) {
+	if ( ld->ld_error != NULL && ld->ld_error[0] != '\0' ) {
 		fprintf( stderr, "\tadditional info: %s\n",
 		    ld->ld_error );
 	}
