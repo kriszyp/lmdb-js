@@ -77,6 +77,8 @@ LDAPGLUECONF1=$DATADIR/slapd-ldapglue.conf
 LDAPGLUECONF2=$DATADIR/slapd-ldapgluepeople.conf
 LDAPGLUECONF3=$DATADIR/slapd-ldapgluegroups.conf
 RWMCONF=$DATADIR/slapd-relay.conf
+CHAINCONF1=$DATADIR/slapd-chain1.conf
+CHAINCONF2=$DATADIR/slapd-chain2.conf
 SQLCONF=$DATADIR/slapd-sql.conf
 
 CONF1=$TESTDIR/slapd.1.conf
@@ -160,6 +162,8 @@ LDIFLDAPGLUE1=$DATADIR/test-ldapglue.ldif
 LDIFLDAPGLUE2=$DATADIR/test-ldapgluepeople.ldif
 LDIFLDAPGLUE3=$DATADIR/test-ldapgluegroups.ldif
 LDIFCOMPMATCH=$DATADIR/test-compmatch.ldif
+LDIFCHAIN1=$DATADIR/test-chain1.ldif
+LDIFCHAIN2=$DATADIR/test-chain2.ldif
 SQLADD=$DATADIR/sql-add.ldif
 MONITOR=""
 REFDN="c=US"
@@ -230,6 +234,7 @@ IDASSERTOUT=$DATADIR/idassert.out
 LDAPGLUEOUT=$DATADIR/ldapglue.out
 LDAPGLUEANONYMOUSOUT=$DATADIR/ldapglueanonymous.out
 RELAYOUT=$DATADIR/relay.out
+CHAINOUT=$DATADIR/chain.out
 SQLREAD=$DATADIR/sql-read.out
 SQLWRITE=$DATADIR/sql-write.out
 
