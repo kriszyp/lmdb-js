@@ -13,6 +13,12 @@ Copyright 1998-2002, The {{ORG[expand]OLF}}, {{All Rights Reserved}}.
 
 Copyright 1992-1996, Regents of the {{ORG[expand]UM}}, {{All Rights Reserved}}.
 
+This document is considered a part of OpenLDAP Software.  This
+document is subject to terms of conditions set forth in {{SECT:OpenLDAP
+Software Copyright Notices}} and the {{SECT:OpenLDAP Public License}}.
+Complete copies of the notices and associated license can be found
+in Appendix B and C, respectively.
+
 
 P2[notoc] Scope of this Document
 

@@ -12,11 +12,11 @@ H1: OpenLDAP Software Copyright Notices
 
 H2: OpenLDAP Copyright Notice
 
-[[copyright]] 1998-2001 The OpenLDAP Foundation, Redwood City, California, USA
+[[copyright]] 1998-2002 The OpenLDAP Foundation, Redwood City, California, USA
 All rights reserved.
 
 Redistribution and use in source and binary forms are permitted
-{{only as authorized}} by the OpenLDAP Public License.  A copy of
+{{only as authorized}} by the {{SECT:OpenLDAP Public License}}.  A copy of
 this license is available at {{URL:http://www.OpenLDAP.org/license.html}}
 or in file {{F:LICENSE}} in the top-level directory of the
 distribution.
