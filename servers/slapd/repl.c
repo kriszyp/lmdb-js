@@ -116,30 +116,10 @@ add_replica_attrs(
 	return ( be->be_replica[nr]->ri_attrs == NULL );
 }
    
-static struct timestamp {
-	long time;
-	long seq;
-} oldstamp;
-
 static void
 print_vals( FILE *fp, struct berval *type, struct berval *bv );
 static void
-replog1( struct slap_replica_info *ri, Operation *op, FILE *fp );
-
-void
-repstamp( Operation *op )
-{
-	ldap_pvt_thread_mutex_lock( &repstamp_mutex );
-	op->o_time = slap_get_time();
-	if ( op->o_time == oldstamp.time ) {
-		op->o_tseq = ++oldstamp.seq;
-	} else {
-		oldstamp.time = op->o_time;
-		oldstamp.seq = 0;
-		op->o_tseq = 0;
-	}
-	ldap_pvt_thread_mutex_unlock( &repstamp_mutex );
-}
+replog1( struct slap_replica_info *ri, Operation *op, FILE *fp, long now);
 
 void
 replog( Operation *op )
@@ -153,6 +133,7 @@ replog( Operation *op )
 	int     count = 0;
 #endif
 	int	subsets = 0;
+	long now = slap_get_time();
 
 	if ( op->o_bd->be_replogfile == NULL && replogfile == NULL ) {
 		return;
@@ -208,7 +189,7 @@ replog( Operation *op )
 	}
 #endif
 
-	replog1( NULL, op, fp );
+	replog1( NULL, op, fp, now );
 
 	if ( subsets > 0 ) {
 		for ( i = subsets - 1; op->o_bd->be_replica[i] != NULL; i++ ) {
@@ -245,7 +226,7 @@ replog( Operation *op )
 				/* Other operations were logged in the first pass */
 				continue;
 			}
-			replog1( op->o_bd->be_replica[i], op, fp );
+			replog1( op->o_bd->be_replica[i], op, fp, now );
 		}
 	}
 
@@ -257,13 +238,14 @@ static void
 rephdr(
 	struct slap_replica_info *ri,
 	Operation *op,
-	FILE *fp
+	FILE *fp,
+	long now
 )
 {
 	if ( ri ) {
 		fprintf( fp, "replica: %s\n", ri->ri_host );
 	}
-	fprintf( fp, "time: %ld.%ld\n", op->o_time, op->o_tseq );
+	fprintf( fp, "time: %ld\n", now );
 	fprintf( fp, "dn: %s\n", op->o_req_dn.bv_val );
 }
 
@@ -271,7 +253,8 @@ static void
 replog1(
 	struct slap_replica_info *ri,
 	Operation *op,
-	FILE	*fp
+	FILE	*fp,
+	long	now
 )
 {
 	Modifications	*ml;
@@ -345,7 +328,7 @@ replog1(
 						/* Found a match, log it */
 						if ( match ) {
 							if ( dohdr ) {
-								rephdr( ri, op, fp );
+								rephdr( ri, op, fp, now );
 								fprintf( fp, "changetype: modify\n" );
 								dohdr = 0;
 							}
@@ -369,7 +352,7 @@ replog1(
 				}
 			}
 			if ( dohdr ) {
-				rephdr( ri, op, fp );
+				rephdr( ri, op, fp, now );
 				fprintf( fp, "changetype: modify\n" );
 				dohdr = 0;
 			}
@@ -417,7 +400,7 @@ replog1(
 						match ^= ri->ri_exclude;
 						if ( match ) {
 							if ( dohdr ) {
-								rephdr( ri, op, fp );
+								rephdr( ri, op, fp, now );
 								fprintf( fp, "changetype: add\n" );
 								dohdr = 0;
 							}
@@ -429,7 +412,7 @@ replog1(
 				}
 			}
 			if ( dohdr ) {
-				rephdr( ri, op, fp );
+				rephdr( ri, op, fp, now );
 				fprintf( fp, "changetype: add\n" );
 				dohdr = 0;
 			}
@@ -438,12 +421,12 @@ replog1(
 		break;
 
 	case LDAP_REQ_DELETE:
-		rephdr( ri, op, fp );
+		rephdr( ri, op, fp, now );
 		fprintf( fp, "changetype: delete\n" );
 		break;
 
 	case LDAP_REQ_MODRDN:
-		rephdr( ri, op, fp );
+		rephdr( ri, op, fp, now );
 		fprintf( fp, "changetype: modrdn\n" );
 		fprintf( fp, "newrdn: %s\n", op->orr_newrdn.bv_val );
 		fprintf( fp, "deleteoldrdn: %d\n", op->orr_deleteoldrdn ? 1 : 0 );

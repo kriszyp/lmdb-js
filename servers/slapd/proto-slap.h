@@ -913,7 +913,6 @@ LDAP_SLAPD_F (int) add_replica_suffix LDAP_P(( Backend *be,
 LDAP_SLAPD_F (int) add_replica_attrs LDAP_P(( Backend *be,
 	int nr, char *attrs, int exclude ));
 LDAP_SLAPD_F (void) replog LDAP_P(( Operation *op ));
-LDAP_SLAPD_F (void) repstamp LDAP_P(( Operation *op ));
 
 /*
  * result.c
@@ -927,6 +926,7 @@ LDAP_SLAPD_F (void) slap_send_search_result LDAP_P(( Operation *op, SlapReply *r
 LDAP_SLAPD_F (int) slap_send_search_reference LDAP_P(( Operation *op, SlapReply *rs ));
 LDAP_SLAPD_F (int) slap_send_search_entry LDAP_P(( Operation *op, SlapReply *rs ));
 LDAP_SLAPD_F (int) slap_null_cb LDAP_P(( Operation *op, SlapReply *rs ));
+LDAP_SLAPD_F (int) slap_replog_cb LDAP_P(( Operation *op, SlapReply *rs ));
 
 LDAP_SLAPD_V( const struct berval ) slap_pre_read_bv;
 LDAP_SLAPD_V( const struct berval ) slap_post_read_bv;
@@ -1246,7 +1246,6 @@ LDAP_SLAPD_V (int)			connection_pool_max;
 
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	entry2str_mutex;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	replog_mutex;
-LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	repstamp_mutex;
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	passwd_mutex;
