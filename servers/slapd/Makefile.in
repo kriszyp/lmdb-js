@@ -57,7 +57,7 @@ OBJS	= main.o globals.o config.o daemon.o \
 		slappasswd.o slaptest.o slapauth.o slapacl.o component.o \
 		$(@PLAT@_OBJS)
 
-LDAP_INCDIR= ../../include -I$(srcdir)/slapi
+LDAP_INCDIR= ../../include -I$(srcdir)/slapi -I.
 LDAP_LIBDIR= ../../libraries
 
 SLAP_DIR=
