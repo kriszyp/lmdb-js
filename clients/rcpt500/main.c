@@ -141,7 +141,7 @@ main( int argc, char **argv )
     if ( dosyslog ) {
 	syslog( LOG_INFO, "processing command \"%s %s\" from %s",
 		( msg.msg_command < 0 ) ? "Unknown" :
-		cmds[ msg.msg_command ].cmd_text,
+		rcpt_cmds[ msg.msg_command ].cmd_text,
 		( msg.msg_arg == NULL ) ? "" : msg.msg_arg, msg.msg_replyto );
     }
 
@@ -151,10 +151,10 @@ main( int argc, char **argv )
 
 /*
     sprintf( reply, "Your request was interpreted as: %s %s\n\n",
-	    cmds[ msg.msg_command ].cmd_text, msg.msg_arg );
+	    rcpt_cmds[ msg.msg_command ].cmd_text, msg.msg_arg );
 */
 
-    (*cmds[ msg.msg_command ].cmd_handler)( &msg, reply );
+    (*rcpt_cmds[ msg.msg_command ].cmd_handler)( &msg, reply );
 
     if ( send_reply( &msg, reply ) < 0 ) {
 	if ( dosyslog ) {
@@ -360,10 +360,10 @@ find_command( char *text, char **argp )
     }
     *s = '\0';
 
-    for ( i = 0; cmds[ i ].cmd_text != NULL; ++i ) {
-	if (( s = strstr( argbuf, cmds[ i ].cmd_text )) != NULL
-	    && isspace( (unsigned char) s[ strlen( cmds[ i ].cmd_text ) ] )) {
-	    strcpy( argbuf, text + (s - argbuf) + strlen( cmds[ i ].cmd_text ));
+    for ( i = 0; rcpt_cmds[ i ].cmd_text != NULL; ++i ) {
+	if (( s = strstr( argbuf, rcpt_cmds[ i ].cmd_text )) != NULL
+	    && isspace( (unsigned char) s[ strlen( rcpt_cmds[ i ].cmd_text ) ] )) {
+	    strcpy( argbuf, text + (s - argbuf) + strlen( rcpt_cmds[ i ].cmd_text ));
 	    *argp = argbuf;
 	    while ( isspace( (unsigned char) **argp )) {
 		++(*argp);
