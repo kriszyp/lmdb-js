@@ -306,7 +306,7 @@ static int test_mra_filter(
 	}
 
 	/* check attrs in DN AVAs if required */
-	if ( mra->ma_dnattrs && !BER_BVISNULL( &e->e_nname ) ) {
+	if ( mra->ma_dnattrs && !BER_BVISEMPTY( &e->e_nname ) ) {
 		LDAPDN		dn = NULL;
 		int		iRDN, iAVA;
 		int		rc;
