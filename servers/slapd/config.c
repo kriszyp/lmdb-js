@@ -961,11 +961,11 @@ read_config( const char *fname )
 					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
 						"%s: line %d: "
 						"unable to normalize suffix "
-						"\"%s\"\n", dn ));
+						"\"%s\"\n", fname, lineno, dn ));
 #else
 					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 						"unable to normalize suffix "
-						"\"%s\"\n", dn, NULL, NULL );
+						"\"%s\"\n", fname, lineno, dn );
 #endif
 					free( dn );
 					return 1;
