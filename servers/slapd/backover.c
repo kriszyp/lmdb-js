@@ -235,7 +235,7 @@ static int op_rc[] = {
 	LDAP_UNWILLING_TO_PERFORM,	/* bind */
 	LDAP_UNWILLING_TO_PERFORM,	/* unbind */
 	LDAP_UNWILLING_TO_PERFORM,	/* search */
-	LDAP_UNWILLING_TO_PERFORM,	/* compare */
+	SLAP_CB_CONTINUE,		/* compare; pass to frontend */
 	LDAP_UNWILLING_TO_PERFORM,	/* modify */
 	LDAP_UNWILLING_TO_PERFORM,	/* modrdn */
 	LDAP_UNWILLING_TO_PERFORM,	/* add */
@@ -245,7 +245,7 @@ static int op_rc[] = {
 	LDAP_UNWILLING_TO_PERFORM,	/* extended */
 	LDAP_SUCCESS,			/* aux_operational */
 	LDAP_SUCCESS,			/* aux_chk_referrals */
-	LDAP_SUCCESS			/* aux_chk_controls */
+	SLAP_CB_CONTINUE		/* aux_chk_controls; pass to frontend */
 };
 
 static int
@@ -385,6 +385,50 @@ over_aux_chk_controls( Operation *op, SlapReply *rs )
 	return over_op_func( op, rs, op_aux_chk_controls );
 }
 
+static int
+over_connection_destroy(
+	BackendDB	*bd,
+	Connection	*conn
+)
+{
+	slap_overinfo *oi;
+	slap_overinst *on;
+	BackendDB db;
+	int rc = SLAP_CB_CONTINUE;
+
+	/* FIXME: used to happen for instance during abandon
+	 * when global overlays are used... */
+	assert( bd != NULL );
+
+	oi = bd->bd_info->bi_private;
+	on = oi->oi_list;
+
+ 	if ( !SLAP_ISOVERLAY( bd )) {
+ 		db = *bd;
+		db.be_flags |= SLAP_DBFLAG_OVERLAY;
+		bd = &db;
+	}
+
+	for (; on; on=on->on_next ) {
+		if ( on->on_bi.bi_connection_destroy ) {
+			bd->bd_info = (BackendInfo *)on;
+			rc = on->on_bi.bi_connection_destroy( bd, conn );
+			if ( rc != SLAP_CB_CONTINUE ) break;
+		}
+	}
+
+	if ( oi->oi_orig->bi_connection_destroy && rc == SLAP_CB_CONTINUE ) {
+		bd->bd_info = oi->oi_orig;
+		rc = oi->oi_orig->bi_connection_destroy( bd, conn );
+	}
+	/* should not fall thru this far without anything happening... */
+	if ( rc == SLAP_CB_CONTINUE ) {
+		rc = LDAP_UNWILLING_TO_PERFORM;
+	}
+
+	return rc;
+}
+
 int
 overlay_register(
 	slap_overinst *on
@@ -498,12 +542,14 @@ overlay_register_control( BackendDB *be, const char *oid )
 			}
 
 			bd->be_ctrls[ cid ] = 1;
+			bd->be_ctrls[ SLAP_MAX_CIDS ] = 1;
 		}
 
 	}
 	
 	if ( rc == 0 && !gotit ) {
 		be->be_ctrls[ cid ] = 1;
+		be->be_ctrls[ SLAP_MAX_CIDS ] = 1;
 	}
 
 	return rc;
@@ -573,6 +619,8 @@ overlay_config( BackendDB *be, const char *ov )
 		bi->bi_operational = over_aux_operational;
 		bi->bi_chk_referrals = over_aux_chk_referrals;
 		bi->bi_chk_controls = over_aux_chk_controls;
+		
+		bi->bi_connection_destroy = over_connection_destroy;
 
 		be->bd_info = bi;
 

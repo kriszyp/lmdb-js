@@ -222,15 +222,23 @@ glue_chk_controls ( Operation *op, SlapReply *rs )
 	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
 	BackendDB *b0 = op->o_bd;
 	BackendInfo *bi0 = op->o_bd->bd_info;
-	int rc;
+	int rc = SLAP_CB_CONTINUE;
 
 	op->o_bd = glue_back_select (b0, &op->o_req_ndn);
 	b0->bd_info = on->on_info->oi_orig;
 
-	if ( op->o_bd->bd_info->bi_chk_controls )
+	/* if the subordinate database has overlays, the bi_chk_controls()
+	 * hook is actually over_aux_chk_controls(); in case it actually
+	 * wraps a missing hok, we need to mimic the behavior
+	 * of the frontend applied to that database */
+	if ( op->o_bd->bd_info->bi_chk_controls ) {
 		rc = ( *op->o_bd->bd_info->bi_chk_controls )( op, rs );
-	else
-		rc = SLAP_CB_CONTINUE;
+	}
+
+	
+	if ( rc == SLAP_CB_CONTINUE ) {
+		rc = backend_check_controls( op, rs );
+	}
 
 	op->o_bd = b0;
 	op->o_bd->bd_info = bi0;

@@ -106,7 +106,7 @@ static struct slap_control control_defs[] = {
 		parsePostRead, LDAP_SLIST_ENTRY_INITIALIZER(next) },
  	{ LDAP_CONTROL_VALUESRETURNFILTER,
  		(int)offsetof(struct slap_control_ids, sc_valuesReturnFilter),
- 		SLAP_CTRL_SEARCH, NULL,
+ 		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH, NULL,
 		parseValuesReturnFilter, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_PAGEDRESULTS,
  		(int)offsetof(struct slap_control_ids, sc_pagedResults),
@@ -395,17 +395,17 @@ slap_global_control( Operation *op, const char *oid, int *cid )
 
 	if ( cid ) *cid = ctrl->sc_cid;
 
-	if ( ctrl->sc_mask & SLAP_CTRL_GLOBAL ) return LDAP_COMPARE_TRUE;
-
-	if (( op->o_tag & LDAP_REQ_SEARCH ) &&
-		( ctrl->sc_mask & SLAP_CTRL_GLOBAL_SEARCH ))
+	if ( ( ctrl->sc_mask & SLAP_CTRL_GLOBAL ) ||
+			( ( op->o_tag & LDAP_REQ_SEARCH ) &&
+			( ctrl->sc_mask & SLAP_CTRL_GLOBAL_SEARCH ) ) )
 	{
 		return LDAP_COMPARE_TRUE;
 	}
 
-	Debug( LDAP_DEBUG_ANY,
+	Debug( LDAP_DEBUG_TRACE,
 		"slap_global_control: unavailable control: %s\n",      
 		oid, 0, 0 );
+
 	return LDAP_COMPARE_FALSE;
 }
 
