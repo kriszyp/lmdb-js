@@ -19,12 +19,10 @@
 int		ldap_debug;
 int		ldap_syslog;
 int		ldap_syslog_level;
-int		global_schemacheck;
 long		num_entries_sent;
 long		num_bytes_sent;
 int		active_threads;
 char		*default_referral;
-struct objclass	*global_oc;
 time_t		currenttime;
 pthread_t	listener_tid;
 pthread_mutex_t	num_sent_mutex;
