@@ -1226,6 +1226,8 @@ struct slap_backend_db {
 #define		be_modify	bd_info->bi_op_modify
 #define		be_modrdn	bd_info->bi_op_modrdn
 #define		be_search	bd_info->bi_op_search
+#define		be_abandon	bd_info->bi_op_abandon
+#define		be_cancel	bd_info->bi_op_cancel
 
 #define		be_extended	bd_info->bi_extended
 
@@ -1402,6 +1404,9 @@ typedef int (BI_op_delete) LDAP_P((BackendDB *bd,
 typedef int (BI_op_abandon) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		ber_int_t msgid));
+typedef int (BI_op_cancel) LDAP_P((BackendDB *bd,
+		struct slap_conn *c, struct slap_op *o,
+		ber_int_t msgid));
 
 typedef int (BI_op_extended) LDAP_P((
 	BackendDB		*be,
@@ -1527,6 +1532,7 @@ struct slap_backend_info {
 	BI_op_add	*bi_op_add;
 	BI_op_delete	*bi_op_delete;
 	BI_op_abandon	*bi_op_abandon;
+	BI_op_cancel	*bi_op_cancel;
 
 	/* Extended Operations Helper */
 	BI_op_extended	*bi_extended;

@@ -76,8 +76,7 @@ int cancel_extop(
 	}
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
-	if ( found )
-		return LDAP_SUCCESS;
+	if ( found ) return LDAP_SUCCESS;
 
 	found = 0;
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
@@ -91,9 +90,13 @@ int cancel_extop(
 	if ( !found ) {
 #ifdef LDAP_SYNC
 		for ( i = 0; i < nbackends; i++ ) {
-			if ( strncmp( backends[i].be_type, "bdb", 3 ) ) continue;
+			Backend *be = &backends[i];
+			if( !be->be_abandon ) continue;
+
+
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-			if ( bdb_cancel( &backends[i], conn, opid ) == LDAP_SUCCESS ) {
+
+			if ( be->be_cancel( be, conn, op, opid ) == LDAP_SUCCESS ) {
 				return LDAP_SUCCESS;
 			} else {
 				*text = "message ID not found";
@@ -101,15 +104,15 @@ int cancel_extop(
 			}
 		}
 #else
-		*text = "message ID not found";
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+		*text = "message ID not found";
 	 	return LDAP_NO_SUCH_OPERATION;
 #endif
 	}
 
 	if ( op->o_cancel != SLAP_CANCEL_NONE ) {
-		*text = "message ID already being cancelled";
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+		*text = "message ID already being cancelled";
 		return LDAP_PROTOCOL_ERROR;
 	}
 

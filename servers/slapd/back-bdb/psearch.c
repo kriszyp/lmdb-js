@@ -37,6 +37,7 @@ int
 bdb_abandon(
 	BackendDB	*be,
 	Connection	*conn,
+	Operation	*op,
 	ber_int_t	id )
 {
 	Operation	*ps_list;
@@ -59,6 +60,7 @@ int
 bdb_cancel(
 	BackendDB	*be,
 	Connection	*conn,
+	Operation	*op,
 	ber_int_t	id )
 {
 	Operation	*ps_list;

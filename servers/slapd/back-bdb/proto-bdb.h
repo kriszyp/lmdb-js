@@ -368,13 +368,19 @@ void bdb_cache_release_all( Cache *cache );
  * lcup.c
  */
 
-#ifdef LDAP_CLIENT_UPDATE
 int bdb_abandon(
 	BackendDB       *be,
 	Connection      *conn,
+	Operation		*op,
 	ber_int_t       id
 );
-#endif
+
+int bdb_cancel(
+	BackendDB       *be,
+	Connection      *conn,
+	Operation		*op,
+	ber_int_t       id
+);
 
 #if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 int bdb_add_psearch_spec(

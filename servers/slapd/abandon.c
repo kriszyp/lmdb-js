@@ -109,14 +109,11 @@ do_abandon(
 
 done:
 
-#ifdef LDAP_CLIENT_UPDATE
 	for ( i = 0; i < nbackends; i++ ) {
-		if ( strncmp( backends[i].be_type, "bdb", 3 ) ) continue;
-		if ( bdb_abandon( &backends[i], conn, id ) == LDAP_SUCCESS ) {
-			break;
-		}
+		Backend *be = &backends[i];
+
+		if( be->be_abandon ) be->be_abandon( be, conn, op, id );
 	}
-#endif
 
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
