@@ -262,6 +262,8 @@ bdb_entryinfo_add_internal(
 					elru->bei_lruprev = NULL;
 					elru->bei_state = 0;
 #ifdef BDB_HIER
+					ch_free(elru->bei_rdn.bv_val);
+					elru->bei_rdn.bv_val = NULL;
 					elru->bei_modrdns = 0;
 #endif
 					ei2 = elru;
@@ -289,10 +291,10 @@ bdb_entryinfo_add_internal(
 		addkid = 0;
 		cache->c_cursize -= incr;
 #ifdef BDB_HIER
-		if ( ei->bei_rdn.bv_val ) {
-			ber_memfree_x( ei->bei_rdn.bv_val, NULL );
-			ei->bei_rdn.bv_val = NULL;
-		}
+		/* It got freed above because its value was
+		 * assigned to ei2.
+		 */
+		ei->bei_rdn.bv_val = NULL;
 #endif
 	} else {
 		LRU_ADD( cache, ei2 );
