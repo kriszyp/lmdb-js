@@ -322,20 +322,23 @@ ber_get_stringbvr( bgbvr *b, int n )
 		switch (b->choice) {
 		case ChArray:
 			*b->res.c = LBER_MALLOC( (n+1) * sizeof( char * ));
+			if ( *b->res.c == NULL )
+				return LBER_DEFAULT;
 			(*b->res.c)[n] = NULL;
 			break;
 		case BvArray:
 			*b->res.ba = LBER_MALLOC( (n+1) * sizeof( struct berval ));
+			if ( *b->res.ba == NULL )
+				return LBER_DEFAULT;
 			(*b->res.ba)[n].bv_val = NULL;
 			break;
 		case BvVec:
 			*b->res.bv = LBER_MALLOC( (n+1) * sizeof( struct berval *));
+			if ( *b->res.bv == NULL )
+				return LBER_DEFAULT;
 			(*b->res.bv)[n] = NULL;
 			break;
 		}
-		/* Did the malloc succeed? */
-		if ( *b->res.c == NULL )
-			return LBER_DEFAULT;
 		return 0;
 	}
 
