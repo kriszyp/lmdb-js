@@ -193,6 +193,9 @@ int connections_timeout_idle(time_t now)
 		c != NULL;
 		c = connection_next( c, &connindex ) )
 	{
+		/* Don't timeout a slow-running request */
+		if( c->c_n_ops_executing ) continue;
+
 		if( difftime( c->c_activitytime+global_idletimeout, now) < 0 ) {
 			/* close it */
 			connection_closing( c );
