@@ -225,6 +225,10 @@ LDAP_DEBUG=-DLDAP_DEBUG
 # uncomment this line to eliminate local caching support in the libldap
 #NO_CACHE=-DNO_CACHE
 
+# uncomment this line to do reverse lookups (useful for doing ACLs
+# by host/domain names)
+LDAP_REVERSE_LOOKUP=-DREVERSE_LOOKUP
+
 # uncomment this line to enable support for LDAP referrals in libldap
 LDAP_REFERRALS=-DLDAP_REFERRALS
 
