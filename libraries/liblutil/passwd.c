@@ -715,6 +715,7 @@ static int chk_crypt(
 	const struct berval * passwd,
 	const struct berval * cred )
 {
+	char *cr;
 	int i;
 
 	for( i=0; i<cred->bv_len; i++) {
@@ -727,6 +728,10 @@ static int chk_crypt(
 		return 1;	/* cred must behave like a string */
 	}
 
+	if( passwd->bv_len < 2 ) {
+		return 1;	/* passwd must be at least two characters long */
+	}
+
 	for( i=0; i<passwd->bv_len; i++) {
 		if(passwd->bv_val[i] == '\0') {
 			return 1;	/* NUL character in password */
@@ -737,7 +742,14 @@ static int chk_crypt(
 		return 1;	/* passwd must behave like a string */
 	}
 
-	return strcmp(passwd->bv_val, crypt(cred->bv_val, passwd->bv_val));
+	cr = crypt( cred->bv_val, passwd->bv_val );
+
+	if( cr == NULL || cr[0] == '\0' ) {
+		/* salt must have been invalid */
+		return 1;
+	}
+
+	return strcmp( passwd->bv_val, cr );
 }
 
 # if defined( HAVE_GETSPNAM ) \
@@ -792,11 +804,17 @@ static int chk_unix(
 	}
 #  endif
 
-	if( pw == NULL || *pw == '\0' ) return 1;
+	if( pw == NULL || pw[0] == '\0' || pw[1] == '\0' ) {
+		/* password must must be at least two characters long */
+		return 1;
+	}
 
 	cr = crypt(cred->bv_val, pw);
 
-	if( cr == NULL || *cr == '\0' ) return 1;
+	if( cr == NULL || cr[0] == '\0' ) {
+		/* salt must have been invalid */
+		return 1;
+	}
 
 	return strcmp(pw, cr);
 
