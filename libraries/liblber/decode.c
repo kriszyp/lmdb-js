@@ -304,6 +304,7 @@ typedef struct bgbvr {
 	ber_tag_t tag;
 	ber_len_t len;
 	char *last;
+	int alloc;
 	ber_len_t siz;
 	ber_len_t off;
 	union {
@@ -317,7 +318,7 @@ typedef struct bgbvr {
  * of elements in the vector is limited only by available stack space.
  * Each invocation consumes 24 bytes of stack on a 32-bit machine.
  */
-ber_tag_t
+static ber_tag_t
 ber_get_stringbvr( bgbvr *b, int n )
 {
 	struct berval bv, *bvp = NULL;
@@ -372,7 +373,7 @@ ber_get_stringbvr( bgbvr *b, int n )
 	if ( b->choice == BvVec )
 		bvp = LBER_MALLOC( sizeof( struct berval ));
 
-	if ( ber_get_stringbv( b->ber, &bv ) == LBER_DEFAULT ) {
+	if ( ber_get_stringbv( b->ber, &bv, b->alloc ) == LBER_DEFAULT ) {
 		if ( bvp ) LBER_FREE( bvp );
 		return LBER_DEFAULT;
 	}
@@ -400,14 +401,14 @@ ber_get_stringbvr( bgbvr *b, int n )
 		/* Failure will propagate up and free in reverse
 		 * order, which is actually ideal.
 		 */
+		if ( b->alloc ) LBER_FREE( bv.bv_val );
 		if ( bvp ) LBER_FREE( bvp );
-		LBER_FREE( bv.bv_val );
 	}
 	return b->tag;
 }
 
 ber_tag_t
-ber_get_stringbv( BerElement *ber, struct berval *bv )
+ber_get_stringbv( BerElement *ber, struct berval *bv, int alloc )
 {
 	ber_tag_t	tag;
 
@@ -421,18 +422,27 @@ ber_get_stringbv( BerElement *ber, struct berval *bv )
 		return LBER_DEFAULT;
 	}
 
-	if ( (bv->bv_val = (char *) LBER_MALLOC( bv->bv_len + 1 )) == NULL ) {
+	if ( ber_pvt_ber_remaining( ber ) < bv->bv_len ) {
 		return LBER_DEFAULT;
 	}
 
-	if ( bv->bv_len > 0 && (ber_len_t) ber_read( ber, bv->bv_val,
-		bv->bv_len ) != bv->bv_len ) {
-		LBER_FREE( bv->bv_val );
-		bv->bv_val = NULL;
-		return LBER_DEFAULT;
+	if ( alloc ) {
+		if ( (bv->bv_val = (char *) LBER_MALLOC( bv->bv_len + 1 )) == NULL ) {
+			return LBER_DEFAULT;
+		}
+
+		if ( bv->bv_len > 0 && (ber_len_t) ber_read( ber, bv->bv_val,
+			bv->bv_len ) != bv->bv_len ) {
+			LBER_FREE( bv->bv_val );
+			bv->bv_val = NULL;
+			return LBER_DEFAULT;
+		}
+	} else {
+		bv->bv_val = ber->ber_ptr;
+		ber->ber_ptr += bv->bv_len;
 	}
-	bv->bv_val[bv->bv_len] = '\0';
 	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
+	bv->bv_val[bv->bv_len] = '\0';
 
 	return tag;
 }
@@ -445,7 +455,7 @@ ber_get_stringa( BerElement *ber, char **buf )
 
 	assert( buf != NULL );
 
-	tag = ber_get_stringbv( ber, &bv );
+	tag = ber_get_stringbv( ber, &bv, 1 );
 	*buf = bv.bv_val;
 
 	return tag;
@@ -464,7 +474,7 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 		return LBER_DEFAULT;
 	}
 
-	tag = ber_get_stringbv( ber, *bv );
+	tag = ber_get_stringbv( ber, *bv, 1 );
 	if ( tag == LBER_DEFAULT ) {
 		LBER_FREE( *bv );
 		*bv = NULL;
@@ -686,9 +696,14 @@ ber_scanf ( BerElement *ber,
 			rc = ber_get_stringb( ber, s, l );
 			break;
 
+		case 'm':	/* octet string in berval, in-place */
+			bval = va_arg( ap, struct berval * );
+			rc = ber_get_stringbv( ber, bval, 0 );
+			break;
+
 		case 'o':	/* octet string in a supplied berval */
 			bval = va_arg( ap, struct berval * );
-			rc = ber_get_stringbv( ber, bval );
+			rc = ber_get_stringbv( ber, bval, 1 );
 			break;
 
 		case 'O':	/* octet string - allocate & include length */
@@ -716,6 +731,7 @@ ber_scanf ( BerElement *ber,
 		{
 			bgbvr cookie = { ber, ChArray };
 			cookie.res.c = va_arg( ap, char *** );
+			cookie.alloc = 1;
 			rc = ber_get_stringbvr( &cookie, 0 );
 			break;
 		}
@@ -724,6 +740,7 @@ ber_scanf ( BerElement *ber,
 		{
 			bgbvr cookie = { ber, BvVec };
 			cookie.res.bv = va_arg( ap, struct berval *** );
+			cookie.alloc = 1;
 			rc = ber_get_stringbvr( &cookie, 0 );
 			break;
 		}
@@ -732,6 +749,7 @@ ber_scanf ( BerElement *ber,
 		{
 			bgbvr cookie = { ber, BvArray };
 			cookie.res.ba = va_arg( ap, struct berval ** );
+			cookie.alloc = 1;
 			rc = ber_get_stringbvr( &cookie, 0 );
 			break;
 		}
@@ -744,6 +762,7 @@ ber_scanf ( BerElement *ber,
 		{
 			bgbvr cookie = { ber, BvOff };
 			cookie.res.ba = va_arg( ap, struct berval ** );
+			cookie.alloc = 0;
 			l = va_arg( ap, ber_len_t * );
 			cookie.siz = *l;
 			cookie.off = va_arg( ap, ber_len_t );
