@@ -268,7 +268,7 @@ static int
 set( Slapi_PBlock *pb, int param, void *val ) 
 {
 #if defined(LDAP_SLAPI)
-	int i;
+	int i, freeit;
 
 	if ( isValidParam( pb, param ) == INVALID_PARAM ) {
 		return PBLOCK_ERROR;
@@ -281,6 +281,17 @@ set( Slapi_PBlock *pb, int param, void *val )
 		return PBLOCK_ERROR; 
 	}
 
+	switch ( param ) {
+        case SLAPI_CONN_DN:
+        case SLAPI_CONN_AUTHMETHOD:
+        case SLAPI_IBM_CONN_DN_ALT:
+        case SLAPI_IBM_CONN_DN_ORIG:
+        case SLAPI_RESULT_TEXT:
+        case SLAPI_RESULT_MATCHED:
+		freeit = 1; break;
+	default:
+		freeit = 0; break;
+	}
 	for( i = 0; i < pb->numParams; i++ ) { 
 		if ( pb->curParams[i] == param ) {
 			break;
@@ -291,6 +302,7 @@ set( Slapi_PBlock *pb, int param, void *val )
 		pb->curParams[i] = param;
 	  	pb->numParams++;
 	}
+	if ( freeit ) ch_free( pb->curVals[i] );
 	pb->curVals[i] = val;
 
 	unLock( pb );	

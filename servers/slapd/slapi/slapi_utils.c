@@ -2244,13 +2244,15 @@ static int initConnectionPB( Slapi_PBlock *pb, Connection *conn )
 		0 );
 	if ( connAuthType != NULL ) {
 		rc = slapi_pblock_set(pb, SLAPI_CONN_AUTHMETHOD, (void *)connAuthType);
+		/* slapi_pblock_set dups this itself */
+		slapi_ch_free( (void **)&connAuthType );
 		if ( rc != LDAP_SUCCESS )
 			return rc;
 	}
 
 	if ( conn->c_authz.sai_dn.bv_val != NULL ) {
-		char *connDn = slapi_ch_strdup(conn->c_authz.sai_dn.bv_val);
-		rc = slapi_pblock_set(pb, SLAPI_CONN_DN, (void *)connDn);
+		/* slapi_pblock_set dups this itself */
+		rc = slapi_pblock_set(pb, SLAPI_CONN_DN, (void *)conn->c_authz.sai_dn.bv_val);
 		if ( rc != LDAP_SUCCESS )
 			return rc;
 	}
@@ -3741,8 +3743,6 @@ int slapi_x_access_allowed( Operation *op,
 		return 1;
 	}
 
-	slapi_x_pblock_set_operation( op->o_pb, op );
-
 	switch ( access ) {
 	case ACL_WRITE:
 		slap_access |= SLAPI_ACL_ADD | SLAPI_ACL_DELETE | SLAPI_ACL_WRITE;
@@ -3765,6 +3765,8 @@ int slapi_x_access_allowed( Operation *op,
 		/* nothing to do; allowed access */
 		return 1;
 	}
+
+	slapi_x_pblock_set_operation( op->o_pb, op );
 
 	rc = 1; /* default allow policy */
 
