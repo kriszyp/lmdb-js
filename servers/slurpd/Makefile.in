@@ -24,7 +24,7 @@ all-local-srv: 	slurpd
 
 # $(LTHREAD_LIBS) must be last!
 XLIBS = -lldif -lldap_r -llber -llutil
-XXLIBS = $(SLURPD_LIBS) $(KRB_LIBS) $(LUTIL_LIBS)
+XXLIBS = $(SLURPD_LIBS) $(KRB_LIBS) $(TLS_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS)
 
 slurpd:	version.o
