@@ -129,22 +129,21 @@ str2entry( char *s )
 			}
 
 			rc = dnPrettyNormal( NULL, &vals[0], &e->e_name, &e->e_nname );
-			free( vals[0].bv_val );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1, "str2entry: "
 					"entry %ld has invalid DN \"%s\"\n",
-					(long) e->e_id,
-					e->e_dn ? e->e_dn : "" ));
+					(long) e->e_id, vals[0].bv_val ));
 #else
 				Debug( LDAP_DEBUG_ANY, "str2entry: "
 					"entry %ld has invalid DN \"%s\"\n",
-					(long) e->e_id,
-					e->e_dn ? e->e_dn : "", 0 );
+					(long) e->e_id, vals[0].bv_val, 0 );
 #endif
 				entry_free( e );
+				free( vals[0].bv_val );
 				return NULL;
 			}
+			free( vals[0].bv_val );
 			continue;
 		}
 
