@@ -244,8 +244,6 @@ do_modify(
 cleanup:
 	free( dn );
 	free( ndn );
-	if ( modtail != NULL && *modtail != NULL )
-		free( *modtail );
 	if ( modlist != NULL )
 		modlist_free( modlist );
 	return rc;
@@ -315,7 +313,9 @@ modlist_free(
 	for ( ; ml != NULL; ml = next ) {
 		next = ml->ml_next;
 
-		free( ml->ml_type );
+		if (ml->ml_type)
+			free( ml->ml_type );
+
 		if ( ml->ml_bvalues != NULL )
 			ber_bvecfree( ml->ml_bvalues );
 
