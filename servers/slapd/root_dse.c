@@ -72,7 +72,6 @@ root_dse_info(
 	/* the DN is an empty string so no pretty/normalization is needed */
 	assert( !e->e_name.bv_len );
 	assert( !e->e_nname.bv_len );
-	
 
 	e->e_private = NULL;
 
@@ -222,6 +221,6 @@ int read_root_dse_file( const char *fname )
 
 	ch_free( buf );
 
-	Debug(LDAP_DEBUG_CONFIG,"rootDSE file %s read.\n", fname, 0, 0);
+	Debug(LDAP_DEBUG_CONFIG, "rootDSE file %s read.\n", fname, 0, 0);
 	return rc;
 }
