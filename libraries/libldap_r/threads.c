@@ -11,6 +11,9 @@
 
 #include "portable.h"
 
+#include <stdio.h>
+#include <stdarg.h>
+
 #include <ac/stdlib.h>
 #include <ac/string.h>
 
@@ -306,8 +309,6 @@ ldap_pvt_thread_pool_submit ( ldap_pvt_thread_pool_t pool, void *(*start_routine
 	int need_thread = 0;
 	ldap_pvt_thread_t thr;
 
-	return ldap_pvt_thread_create( &thr, 1, (void *)start_routine, arg );
-
 	if (pool == NULL)
 		return(-1);
 
@@ -328,8 +329,12 @@ ldap_pvt_thread_pool_submit ( ldap_pvt_thread_pool_t pool, void *(*start_routine
 	}
 	pool->ltp_pending_count++;
 	ldap_pvt_thread_enlist(&pool->ltp_pending_list, ctx);
-	if ((pool->ltp_open_count <= 0 || pool->ltp_open_count == pool->ltp_active_count)
-		&& (pool->ltp_max_count <= 0 || pool->ltp_open_count < pool->ltp_max_count))
+	ldap_pvt_thread_cond_signal(&pool->ltp_cond);
+	if ((pool->ltp_open_count <= 0
+			|| pool->ltp_pending_count > 1
+			|| pool->ltp_open_count == pool->ltp_active_count)
+		&& (pool->ltp_max_count <= 0
+			|| pool->ltp_open_count < pool->ltp_max_count))
 	{
 		pool->ltp_open_count++;
 		need_thread = 1;
@@ -367,7 +372,6 @@ ldap_pvt_thread_pool_submit ( ldap_pvt_thread_pool_t pool, void *(*start_routine
 		}
 	}
 
-	ldap_pvt_thread_cond_signal(&pool->ltp_cond);
 	return(0);
 }
 
@@ -439,12 +443,6 @@ ldap_pvt_thread_pool_wrapper ( ldap_pvt_thread_pool_t pool )
 
 	while (pool->ltp_state != LDAP_PVT_THREAD_POOL_STOPPING) {
 
-		if (pool->ltp_state == LDAP_PVT_THREAD_POOL_RUNNING) {
-			ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
-			if (pool->ltp_state == LDAP_PVT_THREAD_POOL_STOPPING)
-				break;
-		}
-
 		ctx = ldap_pvt_thread_delist(&pool->ltp_pending_list, NULL);
 		if (ctx == NULL) {
 			if (pool->ltp_state == LDAP_PVT_THREAD_POOL_FINISHING)
@@ -454,6 +452,9 @@ ldap_pvt_thread_pool_wrapper ( ldap_pvt_thread_pool_t pool )
 			 * only die if there are other open threads (i.e.,
 			 * always have at least one thread open).
 			 */
+			if (pool->ltp_state == LDAP_PVT_THREAD_POOL_RUNNING)
+				ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+
 			continue;
 		}
 
@@ -538,4 +539,5 @@ ldap_pvt_thread_onlist( ldap_pvt_thread_list *list, void *elem )
 
 	return(NULL);
 }
+
 #endif	/* NO_THREADS */
