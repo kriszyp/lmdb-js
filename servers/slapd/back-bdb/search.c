@@ -380,13 +380,20 @@ int bdb_search( Operation *op, SlapReply *rs )
 	AttributeName	*attrs;
 
 #ifdef LDAP_SYNC
-	Filter 		cookief, csnfnot, csnfeq, csnfand, csnfge, omitcsnf, omitcsnfle;
+	Filter 		contextcsnand, contextcsnle, cookief, csnfnot, csnfeq, csnfand, csnfge;
+	Filter		omitcsnf, omitcsnfle;
 	AttributeAssertion aa_ge, aa_eq, aa_le;
 	int		entry_count = 0;
+	struct berval *search_context_csn = NULL;
+	struct berval ctxcsn_rdn = { 0, NULL };
+	struct berval ctxcsn_ndn = { 0, NULL };
+	EntryInfo	*ctxcsn_ei;
+	Entry		*ctxcsn_e;
+	DB_LOCK		ctxcsn_lock;
+	Attribute	*csn_a;
 #if 0
 	struct berval	entrycsn_bv = { 0, NULL };
 #endif
-	struct berval	latest_entrycsn_bv = { 0, NULL };
 	LDAPControl	*ctrls[SLAP_SEARCH_MAX_CTRLS];
 	int		num_ctrls = 0;
 	AttributeName	uuid_attr[2];
@@ -679,6 +686,32 @@ dn2entry_retry:
 	}
 	e = NULL;
 
+#ifdef LDAP_SYNC
+	if ( sop->o_sync_mode != SLAP_SYNC_NONE ) {
+		ber_str2bv( "cn=ldapsync", strlen("cn=ldapsync"), 0, &ctxcsn_rdn );
+		build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &ctxcsn_rdn );
+
+		bdb_dn2entry( op, NULL, &ctxcsn_ndn, &ctxcsn_ei, 0, locker, &ctxcsn_lock );
+
+		if ( ctxcsn_ei ) {
+			ctxcsn_e = ctxcsn_ei->bei_e;
+		}
+
+		if ( ctxcsn_e ) {
+			csn_a = attr_find( ctxcsn_e->e_attrs, slap_schema.si_ad_contextCSN );
+			if ( csn_a ) {
+				search_context_csn = ber_dupbv( NULL, &csn_a->a_vals[0] );
+			} else {
+				search_context_csn = NULL;
+			}
+		} else {
+			search_context_csn = NULL;
+		}
+
+		bdb_cache_entry_db_unlock( bdb->bi_dbenv, &ctxcsn_lock );
+	}
+#endif
+
 	/* select candidates */
 	if ( sop->oq_search.rs_scope == LDAP_SCOPE_BASE ) {
 		rs->sr_err = base_candidate( op->o_bd, &base, candidates );
@@ -800,7 +833,27 @@ dn2entry_retry:
 		csnfge.f_ava = &aa_ge;
 		csnfge.f_av_desc = slap_schema.si_ad_entryCSN;
 		csnfge.f_av_value = sop->o_sync_state;
-		csnfge.f_next = sop->oq_search.rs_filter;
+
+		if ( search_context_csn ) {
+			csnfge.f_next = &contextcsnand;
+
+			contextcsnand.f_choice = LDAP_FILTER_AND;
+			contextcsnand.f_and = &contextcsnle;
+			contextcsnand.f_next = NULL;
+	
+			contextcsnle.f_choice = LDAP_FILTER_LE;
+			contextcsnle.f_ava = &aa_le;
+			contextcsnle.f_av_desc = slap_schema.si_ad_entryCSN;
+			contextcsnle.f_av_value = *search_context_csn;
+			contextcsnle.f_next = sop->oq_search.rs_filter;
+		} else {
+			csnfge.f_next = sop->oq_search.rs_filter;
+		}
+
+		if ( search_context_csn && search_context_csn->bv_val )
+			printf("search_context_csn = %s\n", search_context_csn->bv_val );
+		else
+			printf("search_context_csn = NULL\n");
 	}
 #endif
 
@@ -1038,7 +1091,7 @@ id2entry_retry:
 			if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
 				rc_sync = test_filter( sop, rs->sr_entry, &cookief );
 				rs->sr_err = test_filter( sop,
-					rs->sr_entry, sop->oq_search.rs_filter );
+					rs->sr_entry, &contextcsnand );
 				if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
 					if ( rc_sync == LDAP_COMPARE_TRUE ) {
 						entry_sync_state = LDAP_SYNC_ADD;
@@ -1134,7 +1187,7 @@ id2entry_retry:
 						if ( sop->o_ps_protocol == LDAP_SYNC ) {
 							rs->sr_err = bdb_build_sync_state_ctrl( sop,
 								rs, e, entry_sync_state, ctrls,
-								num_ctrls++, 1, &latest_entrycsn_bv );
+								num_ctrls++, 1, search_context_csn );
 							if ( rs->sr_err != LDAP_SUCCESS ) goto done;
 							rs->sr_attrs = attrs;
 							rs->sr_ctrls = ctrls;
@@ -1164,7 +1217,7 @@ id2entry_retry:
 					if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
 						rs->sr_err = bdb_build_sync_state_ctrl( sop,
 							rs, e, entry_sync_state, ctrls,
-							num_ctrls++, 0, &latest_entrycsn_bv );
+							num_ctrls++, 0, search_context_csn );
 						if ( rs->sr_err != LDAP_SUCCESS ) goto done;
 
 						rs->sr_ctrls = ctrls;
@@ -1234,18 +1287,18 @@ loop_continue:
 		rs->sr_rspoid = LDAP_SYNC_INFO;
 		rs->sr_ctrls = NULL;
 		bdb_send_ldap_intermediate( sop, rs,
-			LDAP_SYNC_STATE_MODE_DONE, &latest_entrycsn_bv );
+			LDAP_SYNC_STATE_MODE_DONE, search_context_csn );
 
 		/* If changelog is supported, this is where to process it */
 
 		if ( sop->o_sync_mode & SLAP_SYNC_PERSIST ) {
 			/* refreshAndPersist mode */
 			bdb_send_ldap_intermediate( sop, rs,
-				LDAP_SYNC_LOG_MODE_DONE, &latest_entrycsn_bv );
+				LDAP_SYNC_LOG_MODE_DONE, search_context_csn );
 		} else {
 			/* refreshOnly mode */
 			bdb_build_sync_done_ctrl( sop, rs, ctrls,
-				num_ctrls++, 1, &latest_entrycsn_bv );
+				num_ctrls++, 1, search_context_csn );
 			rs->sr_ctrls = ctrls;
 			rs->sr_ref = rs->sr_v2ref;
 			rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS : LDAP_REFERRAL;
@@ -1257,8 +1310,6 @@ loop_continue:
 			ctrls[num_ctrls] = NULL;
 		}
 
-		ch_free( latest_entrycsn_bv.bv_val );
-		latest_entrycsn_bv.bv_val = NULL;
 	} else
 #endif
 	{
@@ -1565,6 +1616,73 @@ done:
 #endif
 
 #ifdef LDAP_SYNC
+#if 1
+int
+bdb_build_sync_state_ctrl(
+	Operation	*op,
+	SlapReply	*rs,
+	Entry		*e,
+	int			entry_sync_state,
+	LDAPControl	**ctrls,
+	int			num_ctrls,
+	int			send_cookie,
+	struct berval	*csn)
+{
+	Attribute* a;
+	int ret;
+	int res;
+	const char *text = NULL;
+
+	char berbuf[LBER_ELEMENT_SIZEOF];
+	BerElement *ber = (BerElement *)berbuf;
+
+	struct berval entryuuid_bv	= { 0, NULL };
+
+	ber_init2( ber, 0, LBER_USE_DER );
+
+	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
+
+	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+		AttributeDescription *desc = a->a_desc;
+		if ( desc == slap_schema.si_ad_entryUUID ) {
+			ber_dupbv( &entryuuid_bv, &a->a_vals[0] );
+		}
+	}
+
+	if ( send_cookie && csn ) {
+		ber_printf( ber, "{eOON}",
+			entry_sync_state, &entryuuid_bv, csn );
+	} else {
+		ber_printf( ber, "{eON}",
+			entry_sync_state, &entryuuid_bv );
+	}
+
+	ch_free( entryuuid_bv.bv_val );
+	entryuuid_bv.bv_val = NULL;
+
+	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_STATE;
+	ctrls[num_ctrls]->ldctl_iscritical = op->o_sync;
+	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
+
+	ber_free_buf( ber );
+
+	if ( ret < 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, RESULTS, 
+			"bdb_build_sync_ctrl: ber_flatten2 failed\n",
+			0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"bdb_build_sync_ctrl: ber_flatten2 failed\n",
+			0, 0, 0 );
+#endif
+		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
+		return ret;
+	}
+
+	return LDAP_SUCCESS;
+}
+#else
 int
 bdb_build_sync_state_ctrl(
 	Operation	*op,
@@ -1659,6 +1777,7 @@ bdb_build_sync_state_ctrl(
 
 	return LDAP_SUCCESS;
 }
+#endif
 
 int
 bdb_build_sync_done_ctrl(
@@ -1667,7 +1786,7 @@ bdb_build_sync_done_ctrl(
 	LDAPControl	**ctrls,
 	int		num_ctrls,
 	int		send_cookie,
-	struct berval	*latest_entrycsn_bv	)
+	struct berval	*csn )
 {
 	int ret;
 	char berbuf[LBER_ELEMENT_SIZEOF];
@@ -1677,8 +1796,8 @@ bdb_build_sync_done_ctrl(
 
 	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
 
-	if ( send_cookie ) {
-		ber_printf( ber, "{ON}", latest_entrycsn_bv );
+	if ( send_cookie && csn ) {
+		ber_printf( ber, "{ON}", csn );
 	} else {
 		ber_printf( ber, "{N}" );
 	}

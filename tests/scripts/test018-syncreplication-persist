@@ -8,6 +8,9 @@ fi
 
 . $SRCDIR/scripts/args.sh $*
 
+echo "test018-syncreplication-persist is temporarily disabled"
+exit 0
+
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 

@@ -34,7 +34,11 @@ bdb_cache_entryinfo_new( )
 }
 
 /* Atomically release and reacquire a lock */
+#if LDAP_SYNC
+int
+#else
 static int
+#endif
 bdb_cache_entry_db_relock(
 	DB_ENV *env,
 	u_int32_t locker,

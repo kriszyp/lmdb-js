@@ -286,4 +286,31 @@ void syncrepl_add_glue( syncinfo_t *si, LDAP *ld, Operation *op, Entry *e,
 {
 	return;
 }
+
+#if 0
+struct berval *commit_csn( Operation *op )
+{
+	return NULL;
+}
+
+void rewind_commit_csn( Operation *op )
+{
+	return;
+}
+
+void graduate_commit_csn( Operation *op )
+{
+	return;
+}
+
+void update_context_csn( Backend *be, struct berval *context_csn )
+{
+	return;
+}
+
+Entry *create_context_csn_entry( Backend *be, struct berval *context_csn )
+{
+	return NULL;
+}
+#endif
 #endif

@@ -468,6 +468,16 @@ void bdb_cache_delete_cleanup(
 );
 void bdb_cache_release_all( Cache *cache );
 
+#ifdef LDAP_SYNC
+int bdb_cache_entry_db_relock(
+	DB_ENV *env,
+	u_int32_t locker,
+	EntryInfo *ei,
+	int rw,
+	int tryOnly,
+	DB_LOCK *lock );
+#endif
+
 #ifdef BDB_REUSE_LOCKERS
 
 #define bdb_locker_id				BDB_SYMBOL(locker_id)
@@ -515,13 +525,13 @@ int bdb_do_search(
 int
 bdb_build_sync_state_ctrl(
 	Operation       *op,
-	SlapReply	*rs,
+	SlapReply		*rs,
 	Entry           *e,
 	int             entry_sync_state,
 	LDAPControl     **ctrls,
 	int             num_ctrls,
 	int             send_cookie,
-	struct berval   *latest_entrycsn_bv     );
+	struct berval   *csn     );
 
 int
 bdb_build_sync_done_ctrl(

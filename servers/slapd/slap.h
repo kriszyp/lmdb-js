@@ -752,6 +752,7 @@ struct slap_internal_schema {
 #ifdef LDAP_SYNCREPL
 	AttributeDescription *si_ad_dseType;
 	AttributeDescription *si_ad_syncreplCookie;
+	AttributeDescription *si_ad_contextCSN;
 #endif
 
 	/* root DSE attribute descriptions */
@@ -1488,6 +1489,12 @@ struct slap_backend_db {
 	void	*be_private;	/* anything the backend database needs 	   */
 
 	void    *be_pb;         /* Netscape plugin */
+#ifdef LDAP_SYNC
+	LDAP_TAILQ_HEAD( pcl, slap_csn_entry )	be_pending_csn_list;
+	ldap_pvt_thread_mutex_t					be_pcl_mutex;
+	struct berval							be_context_csn;
+	ldap_pvt_thread_mutex_t					be_context_csn_mutex;
+#endif
 #ifdef LDAP_SYNCREPL
 	syncinfo_t	*syncinfo;	/* For syncrepl */
 #endif
@@ -1799,7 +1806,7 @@ typedef struct slap_paged_state {
 
 
 #ifdef LDAP_SYNC
-#define LDAP_PSEARCH_BY_ADD		0x01
+#define LDAP_PSEARCH_BY_ADD			0x01
 #define LDAP_PSEARCH_BY_DELETE		0x02
 #define LDAP_PSEARCH_BY_PREMODIFY	0x03
 #define LDAP_PSEARCH_BY_MODIFY		0x04
@@ -1808,6 +1815,16 @@ typedef struct slap_paged_state {
 struct psid_entry {
 	struct slap_op *ps_op;
 	LDAP_LIST_ENTRY(psid_entry) ps_link;
+};
+
+struct slap_csn_entry {
+	struct berval *csn;
+	unsigned long opid;
+	unsigned long connid;
+#define SLAP_CSN_PENDING	1
+#define SLAP_CSN_COMMIT		2
+	long state;
+	LDAP_TAILQ_ENTRY (slap_csn_entry) csn_link;
 };
 #endif
 

@@ -375,6 +375,11 @@ do_add( Operation *op, SlapReply *rs )
 #endif /* LDAP_SLAPI */
 
 done:
+
+#ifdef LDAP_SYNC
+	graduate_commit_csn( op );
+#endif
+
 	if( modlist != NULL ) {
 		slap_mods_free( modlist );
 	}

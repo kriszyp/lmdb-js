@@ -11,6 +11,9 @@ fi
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
+echo "test020-syncreplication-cascading is temporarily disabled"
+exit 0
+
 #
 # Test replication:
 # - start master

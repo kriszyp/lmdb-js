@@ -138,7 +138,7 @@ int backend_init(void)
 	int rc = -1;
 
 #ifdef LDAP_SYNCREPL
-        ldap_pvt_thread_pool_init( &syncrepl_pool, syncrepl_pool_max, 0 );
+	ldap_pvt_thread_pool_init( &syncrepl_pool, syncrepl_pool_max, 0 );
 #endif
 
 	if((nBackendInfo != 0) || (backendInfo != NULL)) {
@@ -267,6 +267,11 @@ int backend_startup(Backend *be)
 
 	if(be != NULL) {
 		/* startup a specific backend database */
+
+#ifdef LDAP_SYNC
+		LDAP_TAILQ_INIT( &be->be_pending_csn_list );
+#endif
+
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACKEND, DETAIL1, "backend_startup:  starting \"%s\"\n",
 			   be->be_suffix[0].bv_val, 0, 0 );
@@ -343,6 +348,10 @@ int backend_startup(Backend *be)
 	for( i = 0; i < nBackendDB; i++ ) {
 		/* append global access controls */
 		acl_append( &backendDB[i].be_acl, global_acl );
+
+#ifdef LDAP_SYNC
+		LDAP_TAILQ_INIT( &backendDB[i].be_pending_csn_list );
+#endif
 
 		if ( backendDB[i].bd_info->bi_db_open ) {
 			rc = backendDB[i].bd_info->bi_db_open(
@@ -535,8 +544,15 @@ backend_db_init(
 	be->be_requires = global_requires;
 	be->be_ssf_set = global_ssf_set;
 
+#ifdef LDAP_SYNC
+	be->be_context_csn.bv_len = 0;
+	be->be_context_csn.bv_val = NULL;
+	ldap_pvt_thread_mutex_init( &be->be_pcl_mutex );
+	ldap_pvt_thread_mutex_init( &be->be_context_csn_mutex );
+#endif
+
 #ifdef LDAP_SYNCREPL
-        be->syncinfo = NULL;
+	be->syncinfo = NULL;
 #endif
 
  	/* assign a default depth limit for alias deref */

@@ -1169,6 +1169,15 @@ LDAP_SLAPD_F (void)  syncrepl_add_glue LDAP_P(( syncinfo_t *, LDAP *, Operation*
 							Modifications*, int, struct berval*, struct berval* ));
 #endif
 
+#ifdef LDAP_SYNC
+LDAP_SLAPD_F (struct berval *) commit_csn LDAP_P(( Operation * ));
+LDAP_SLAPD_F (void) rewind_commit_csn LDAP_P(( Operation * ));
+LDAP_SLAPD_F (void) graduate_commit_csn LDAP_P(( Operation * ));
+LDAP_SLAPD_F (void) update_context_csn LDAP_P(( Backend *, struct berval * ));
+LDAP_SLAPD_F (Entry *) create_context_csn_entry LDAP_P(( Backend *, struct berval *));
+
+#endif
+
 LDAP_END_DECL
 
 #endif /* PROTO_SLAP_H */

@@ -45,6 +45,7 @@ static int cookie_callback( struct slap_op *, struct slap_rep * );
 static int dn_callback( struct slap_op *, struct slap_rep * );
 static int nonpresent_callback( struct slap_op *, struct slap_rep * );
 static int null_callback( struct slap_op *, struct slap_rep * );
+static int contextcsn_callback( Operation*, SlapReply* );
 
 static AttributeDescription **add_descs;
 static AttributeDescription **add_descs_lastmod;
@@ -1015,7 +1016,7 @@ syncrepl_entry(
 			 rc == LDAP_NO_SUCH_OBJECT ) {
 
 			if ( !attr_find( e->e_attrs, slap_schema.si_ad_entryUUID )) {
-				attr_merge_one( e, slap_schema.si_ad_entryUUID, syncUUID, syncUUID );
+				attr_merge_normalize_one( e, slap_schema.si_ad_entryUUID, syncUUID, op->o_tmpmemctx );
 			}
 
 			op->o_tag = LDAP_REQ_ADD;
@@ -1673,5 +1674,4 @@ str2clist( char ***out, char *in, const char *brkstr )
 	free( str );
 	return( *out );
 }
-
 #endif
