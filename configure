@@ -10010,12 +10010,12 @@ rm -f conftest*
 fi
 
 	echo "$ac_t""$ol_cv_have_sys_errlist" 1>&6
-fi
-if test $ol_cv_have_sys_errlist = yes ; then
-	cat >> confdefs.h <<\EOF
+	if test $ol_cv_have_sys_errlist = yes ; then
+		cat >> confdefs.h <<\EOF
 #define HAVE_SYS_ERRLIST 1
 EOF
 
+	fi
 fi
 
 
