@@ -37,7 +37,14 @@ modification should not be used, as they could be passed to the target
 servers, generating an error.
 .TP
 .B uri <ldapurl>
-LDAP server to use.
+LDAP server to use.  Multiple URIs can be set in in a single
+.B ldapurl
+argument, resulting in the underlying library automatically 
+call the first server of the list that responds, e.g. 
+
+\fBuri "ldap://host/ ldap://backup-host"\fP
+
+The URI list is space- or comma-separated.
 .TP
 .B server <hostport>
 Obsolete option; same as `uri ldap://<hostport>/'.

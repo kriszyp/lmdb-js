@@ -115,6 +115,10 @@ uri    "ldap://x.foo.com/dc=x,\fBdc=foo,dc=com\fP"
 .LP
 The <naming context> part doesn't need to be unique across the targets;
 it may also match one of the values of the "suffix" directive.
+Multiple URIs may be defined in a single argument.  The URIs must
+be separated by TABs (e.g. '\\t'), and the additional URIs must have
+no <naming context> part.  This causes the underlying library
+to contact the first server of the list that responds.
 .TP
 .B default-target [<target>]
 The "default-target" directive can also be used during target specification.
@@ -134,6 +138,10 @@ check permissions.
 .B bindpw <password for access control purposes>
 This directive sets the password for acl checking in conjunction
 with the above mentioned "binddn" directive.
+.TP
+.B rebind-as-user
+If this option is given, the client's bind credentials are remembered
+for rebinds when chasing referrals.
 .TP
 .B pseudorootdn "<substitute DN in case of rootdn bind>"
 This directive, if present, sets the DN that will be substituted to

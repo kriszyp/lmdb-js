@@ -94,7 +94,7 @@ for an exact match of the entry,
 .B one
 to indicate all the entries immediately below the
 .BR pattern ,
-.B sub
+.B subtree
 to indicate all the subentries of an entry including the entry itself,
 .B children
 to indicate all the subentries of an entry not including the entry itself.
@@ -102,7 +102,7 @@ Note that
 .B dn=".*"
 is equivalent to
 .BR * .
-The regex form of the pattern does not support UTF-8 (7) yet.
+The regex form of the pattern does not support UTF-8 yet.
 .LP
 The statement
 .B filter=<ldapfilter>
