@@ -465,8 +465,7 @@ cleanup:;
 clean2:;
 	if ( op->o_callback ) {
 		int		first = 1;
-		slap_callback	*sc = op->o_callback,
-				*sc_next = op->o_callback;
+		slap_callback	*sc = op->o_callback, *sc_next;
 
 		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
 			sc_next = op->o_callback->sc_next;
@@ -478,7 +477,6 @@ clean2:;
 			}
 			first = 0;
 		}
-
 		op->o_callback = sc;
 	}
 
@@ -1197,8 +1195,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 error_return:;
 	if ( op->o_callback ) {
 		int		first = 1;
-		slap_callback	*sc = op->o_callback,
-				*sc_next = op->o_callback;
+		slap_callback	*sc = op->o_callback, *sc_next;
 
 		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
 			sc_next = op->o_callback->sc_next;
@@ -1210,7 +1207,6 @@ error_return:;
 			}
 			first = 0;
 		}
-
 		op->o_callback = sc;
 	}
 
@@ -1386,8 +1382,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 rel:
 	if ( op->o_callback ) {
 		int		first = 1;
-		slap_callback	*sc = op->o_callback,
-				*sc_next = op->o_callback;
+		slap_callback	*sc = op->o_callback, *sc_next;
 
 		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
 			sc_next = op->o_callback->sc_next;
@@ -1399,7 +1394,6 @@ rel:
 			}
 			first = 0;
 		}
-
 		op->o_callback = sc;
 	}
 
