@@ -84,6 +84,13 @@ typedef struct ava {
 	struct berval	ava_value;
 } Ava;
 
+typedef struct mra {
+	char	*mra_rule;
+	char	*mra_type;
+	char	*mra_value;
+	int		mra_dnattrs;
+} Mra;
+
 /*
  * represents a search filter
  */
@@ -96,6 +103,9 @@ typedef struct filter {
 
 		/* equality, lessorequal, greaterorequal, approx */
 		Ava		f_un_ava;
+
+		/* extensible */
+		Mra		f_un_fra;	
 
 		/* and, or, not */
 		struct filter	*f_un_complex;
@@ -112,6 +122,10 @@ typedef struct filter {
 #define f_ava		f_un.f_un_ava
 #define f_avtype	f_un.f_un_ava.ava_type
 #define f_avvalue	f_un.f_un_ava.ava_value
+#define f_mra		f_un.f_un_mra
+#define f_mrtype	f_un.f_un_mra.mra_type
+#define f_mrvalue	f_un.f_un_mra.mra_value
+#define	f_mrdnaddrs	f_un.f_un_mra.mra_dnattrs
 #define f_and		f_un.f_un_complex
 #define f_or		f_un.f_un_complex
 #define f_not		f_un.f_un_complex
@@ -486,7 +500,6 @@ struct backend_info {
 	int	(*bi_op_delete) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		char *dn));
-	/* Bug: be_op_abandon in unused! */
 	int	(*bi_op_abandon) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		ber_int_t msgid));
