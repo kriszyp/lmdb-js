@@ -98,8 +98,7 @@ done:
 	/* give up connection lock */
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
-	/*
-	 * RACE CONDITION: we give up lock before sending result
+	/* FIXME: RACE CONDITION! we give up lock before sending result
 	 * Should be resolved by reworking connection state, not
 	 * by moving send here (so as to ensure proper TLS sequencing)
 	 */
