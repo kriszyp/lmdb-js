@@ -425,20 +425,12 @@ slap_mods2entry(
 			AC_MEMCPY( &attr->a_vals[i], mods->sml_values,
 				sizeof( struct berval ) * j );
 
-			/* trim the mods array */
-			ch_free( mods->sml_values );
-			mods->sml_values = NULL;
-
 			if( mods->sml_nvalues ) {
 				attr->a_nvals = ch_realloc( attr->a_nvals,
 					sizeof( struct berval ) * (i+j) );
 
 				AC_MEMCPY( &attr->a_nvals[i], mods->sml_nvalues,
 					sizeof( struct berval ) * j );
-
-				/* trim the mods array */
-				ch_free( mods->sml_nvalues );
-				mods->sml_nvalues = NULL;
 
 			} else {
 				attr->a_nvals = attr->a_vals;
