@@ -107,7 +107,7 @@ modify_add_values(
 		 */
 		int		rc;
 
-		for ( matched = 0, i = 0; a->a_vals[ i ].bv_val; i++ ) {
+		for ( matched = 0, i = 0; a->a_vals[i].bv_val; i++ ) {
 			int	match;
 
 			if( mod->sm_nvalues ) {

@@ -41,8 +41,7 @@
 int
 value_add( 
     BerVarray *vals,
-    BerVarray addvals
-)
+    BerVarray addvals )
 {
 	int	n, nn;
 	BerVarray v2;
@@ -96,8 +95,7 @@ value_add(
 int
 value_add_one( 
     BerVarray *vals,
-    struct berval *addval
-)
+    struct berval *addval )
 {
 	int	n;
 	BerVarray v2;
