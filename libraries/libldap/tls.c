@@ -954,9 +954,8 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 int
 ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 {
-#if 0
+	char *ld_host = ld->ld_conns->lconn_server->lud_host;
 	char *peer_cert_cn;
-#endif
 	void *ssl;
 
 	(void) ldap_pvt_tls_init();
@@ -971,7 +970,6 @@ ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 	ssl = (void *) ldap_pvt_tls_sb_handle( sb );
 	assert( ssl != NULL );
 
-#if 0
 	/* 
 	 * compare host with name in certificate 
 	 */
@@ -985,16 +983,15 @@ ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 		return LDAP_LOCAL_ERROR;
 	}
 
-	if ( strcasecmp( ld->ld_host, peer_cert_cn ) != 0 ) {
+	if ( strcasecmp( ld_host, peer_cert_cn ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
 			"common name in certificate (%s).\n", 
-			ld->ld_host, peer_cert_cn, 0 );
+			ld_host, peer_cert_cn, 0 );
 		LDAP_FREE( peer_cert_cn );
 		return LDAP_CONNECT_ERROR;
 	}
 
 	LDAP_FREE( peer_cert_cn );
-#endif
 
 	/*
 	 * set SASL properties to TLS ssf and authid
