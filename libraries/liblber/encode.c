@@ -581,6 +581,21 @@ ber_put_seqorset( BerElement *ber )
 		unsigned char nettag[sizeof(ber_tag_t)];
 		ber_tag_t tmptag = (*sos)->sos_tag;
 
+		if( ber->ber_sos->sos_ptr > ber->ber_end ) {
+			/* The sos_ptr exceeds the end of the BerElement
+			 * this can happen, for example, when the sos_ptr
+			 * is near the end and no data was written for the
+			 * 'V'.  We must realloc the BerElement to ensure
+			 * we don't overwrite the buffer when writing
+			 * the tag and length fields.
+			 */
+			ber_len_t ext = ber->ber_sos->sos_ptr - ber->ber_end;
+
+			if( ber_realloc( ber,  ext ) != 0 ) {
+				return -1;
+			}
+		}
+
 		/* the tag */
 		taglen = ber_calc_taglen( tmptag );
 

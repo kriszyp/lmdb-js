@@ -39,10 +39,6 @@ static ber_slen_t BerRead LDAP_P((
 	char *buf,
 	ber_len_t len ));
 
-static int ber_realloc LDAP_P((
-	BerElement *ber,
-	ber_len_t len ));
-
 #define EXBUFSIZ	1024
 
 /* probably far too large... */
@@ -137,7 +133,7 @@ ber_write(
 	}
 }
 
-static int
+int
 ber_realloc( BerElement *ber, ber_len_t len )
 {
 	ber_len_t	need, have, total;

@@ -176,6 +176,13 @@ struct seqorset {
 
 
 /*
+ * io.c
+ */
+int ber_realloc LDAP_P((
+	BerElement *ber,
+	ber_len_t len ));
+
+/*
  * bprint.c
  */
 #define ber_log_printf ber_pvt_log_printf
