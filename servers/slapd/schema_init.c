@@ -238,116 +238,12 @@ static int octetStringFilter(
 }
 
 static int
-nameUIDValidate(
-	Syntax *syntax,
-	struct berval *in )
-{
-	int rc;
-	struct berval dn;
-
-	if( in->bv_len == 0 ) return LDAP_SUCCESS;
-
-	ber_dupbv( &dn, in );
-	if( !dn.bv_val ) return LDAP_OTHER;
-
-	if( dn.bv_val[dn.bv_len-1] == 'B'
-		&& dn.bv_val[dn.bv_len-2] == '\'' )
-	{
-		/* assume presence of optional UID */
-		ber_len_t i;
-
-		for(i=dn.bv_len-3; i>1; i--) {
-			if( dn.bv_val[i] != '0' &&	dn.bv_val[i] != '1' ) {
-				break;
-			}
-		}
-		if( dn.bv_val[i] != '\'' ||
-		    dn.bv_val[i-1] != '#' ) {
-			ber_memfree( dn.bv_val );
-			return LDAP_INVALID_SYNTAX;
-		}
-
-		/* trim the UID to allow use of dnValidate */
-		dn.bv_val[i-1] = '\0';
-		dn.bv_len = i-1;
-	}
-
-	rc = dnValidate( NULL, &dn );
-
-	ber_memfree( dn.bv_val );
-	return rc;
-}
-
-static int
-nameUIDNormalize(
-	Syntax *syntax,
-	struct berval *val,
-	struct berval *normalized )
-{
-	struct berval out;
-	int rc;
-
-	ber_dupbv( &out, val );
-	if( out.bv_len != 0 ) {
-		ber_len_t dnlen;
-		char *uid = NULL;
-		ber_len_t uidlen = 0;
-
-		if( out.bv_val[out.bv_len-1] == '\'' ) {
-			/* assume presence of optional UID */
-			uid = strrchr( out.bv_val, '#' );
-
-			if( uid == NULL ) {
-				free( out.bv_val );
-				return LDAP_INVALID_SYNTAX;
-			}
-
-			uidlen = out.bv_len - (uid - out.bv_val);
-			/* temporarily trim the UID */
-			*uid = '\0';
-			out.bv_len -= uidlen;
-		}
-
-#ifdef USE_DN_NORMALIZE
-		rc = dnNormalize2( NULL, &out, normalized );
-#else
-		rc = dnPretty2( NULL, &out, normalized );
-#endif
-
-		if( rc != LDAP_SUCCESS ) {
-			free( out.bv_val );
-			return LDAP_INVALID_SYNTAX;
-		}
-
-		dnlen = normalized->bv_len;
-
-		if( uidlen ) {
-			struct berval b2;
-			b2.bv_val = ch_malloc(dnlen + uidlen + 1);
-			AC_MEMCPY( b2.bv_val, normalized->bv_val, dnlen );
-
-			/* restore the separator */
-			*uid = '#';
-			/* shift the UID */
-			AC_MEMCPY( normalized->bv_val+dnlen, uid, uidlen );
-			b2.bv_len = dnlen + uidlen;
-			normalized->bv_val[dnlen+uidlen] = '\0';
-			free(normalized->bv_val);
-			*normalized = b2;
-		}
-		free( out.bv_val );
-	}
-
-	return LDAP_SUCCESS;
-}
-
-static int
 inValidate(
 	Syntax *syntax,
 	struct berval *in )
 {
-	/* any value allowed */
-	return LDAP_OTHER;
+	/* no value allowed */
+	return LDAP_INVALID_SYNTAX;
 }
 
 static int
@@ -436,6 +332,119 @@ done:
 	return LDAP_SUCCESS;
 }
 
+static int
+nameUIDValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int rc;
+	struct berval dn;
+
+	if( in->bv_len == 0 ) return LDAP_SUCCESS;
+
+	ber_dupbv( &dn, in );
+	if( !dn.bv_val ) return LDAP_OTHER;
+
+	if( dn.bv_val[dn.bv_len-1] == 'B'
+		&& dn.bv_val[dn.bv_len-2] == '\'' )
+	{
+		/* assume presence of optional UID */
+		ber_len_t i;
+
+		for(i=dn.bv_len-3; i>1; i--) {
+			if( dn.bv_val[i] != '0' &&	dn.bv_val[i] != '1' ) {
+				break;
+			}
+		}
+		if( dn.bv_val[i] != '\'' || dn.bv_val[i-1] != '#' ) {
+			ber_memfree( dn.bv_val );
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		/* trim the UID to allow use of dnValidate */
+		dn.bv_val[i-1] = '\0';
+		dn.bv_len = i-1;
+	}
+
+	rc = dnValidate( NULL, &dn );
+
+	ber_memfree( dn.bv_val );
+	return rc;
+}
+
+static int
+nameUIDNormalize(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *normalized )
+{
+	struct berval out;
+	int rc;
+
+	ber_dupbv( &out, val );
+	if( out.bv_len != 0 ) {
+		struct berval uidin = { 0, NULL };
+		struct berval uidout = { 0, NULL };
+
+		if( out.bv_val[out.bv_len-1] == 'B'
+			&& out.bv_val[out.bv_len-2] == '\'' )
+		{
+			/* assume presence of optional UID */
+			uidin.bv_val = strrchr( out.bv_val, '#' );
+
+			if( uidin.bv_val == NULL ) {
+				free( out.bv_val );
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			uidin.bv_len = out.bv_len - (uidin.bv_val - out.bv_val);
+			out.bv_len -= uidin.bv_len--;
+
+			/* temporarily trim the UID */
+			*(uidin.bv_val++) = '\0';
+
+			rc = bitStringNormalize( syntax, &uidin, &uidout );
+
+			if( rc != LDAP_SUCCESS ) {
+				free( out.bv_val );
+				return LDAP_INVALID_SYNTAX;
+			}
+		}
+
+#ifdef USE_DN_NORMALIZE
+		rc = dnNormalize2( NULL, &out, normalized );
+#else
+		rc = dnPretty2( NULL, &out, normalized );
+#endif
+
+		if( rc != LDAP_SUCCESS ) {
+			free( out.bv_val );
+			free( uidout.bv_val );
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		if( uidout.bv_len ) {
+			normalized->bv_val = ch_realloc( normalized->bv_val,
+				normalized->bv_len + uidout.bv_len + sizeof("#") );
+
+			/* insert the separator */
+			normalized->bv_val[normalized->bv_len++] = '#';
+
+			/* append the UID */
+			AC_MEMCPY( &normalized->bv_val[normalized->bv_len],
+				uidout.bv_val, uidout.bv_len );
+			normalized->bv_len += uidout.bv_len;
+
+			/* terminate */
+			normalized->bv_val[normalized->bv_len] = '\0';
+		}
+
+		free( out.bv_val );
+	}
+
+	return LDAP_SUCCESS;
+}
+
 /*
  * Handling boolean syntax and matching is quite rigid.
  * A more flexible approach would be to allow a variety
@@ -478,6 +487,76 @@ booleanMatch(
 	*matchp = value->bv_len != asserted->bv_len;
 	return LDAP_SUCCESS;
 }
+
+/*-------------------------------------------------------------------
+LDAP/X.500 string syntax / matching rules have a few oddities.  This
+comment attempts to detail how slapd(8) treats them.
+
+Summary:
+  StringSyntax		X.500	LDAP	Matching
+  DirectoryString	CHOICE	UTF8	i/e + ignore insignificant spaces
+  PrintableString	subset	subset	i/e + ignore insignificant spaces
+  NumericString		subset	subset  ignore all spaces
+  IA5String			ASCII	ASCII	i/e + ignore insignificant spaces
+  TeletexString		T.61	T.61	i/e + ignore insignificant spaces
+
+  TelephoneNumber subset  subset  i + ignore all spaces and "-"
+
+  See draft-ietf-ldapbis-strpro for details (once published).
+
+
+Directory String -
+  In X.500(93), a directory string can be either a PrintableString,
+  a bmpString, or a UniversalString (e.g., UCS (a subset of Unicode)).
+  In later versions, more CHOICEs were added.  In all cases the string
+  must be non-empty.
+
+  In LDPAv3, a directory string is a UTF-8 encoded UCS string.
+
+  For matching, there are both case ignore and exact rules.  Both
+  also require that "insignificant" spaces be ignored.
+	spaces before the first non-space are ignored;
+	spaces after the last non-space are ignored;
+	spaces after a space are ignored.
+  Note: by these rules (and as clarified in X.520), a string of only
+  spaces is to be treated as if held one space, not empty (which
+  would be a syntax error).
+
+NumericString
+  In ASN.1, numeric string is just a string of digits and spaces
+  and could be empty.  However, in X.500, all attribute values of
+  numeric string carry a non-empty constraint.  For example:
+
+	internationalISDNNumber ATTRIBUTE ::= {
+		WITH SYNTAX InternationalISDNNumber
+		EQUALITY MATCHING RULE numericStringMatch
+		SUBSTRINGS MATCHING RULE numericStringSubstringsMatch
+		ID id-at-internationalISDNNumber }
+	InternationalISDNNumber ::=
+	    NumericString (SIZE(1..ub-international-isdn-number))
+
+  Unforunately, some assertion values are don't carry the same
+  constraint (but its unclear how such an assertion could ever
+  be true). In LDAP, there is one syntax (numericString) not two
+  (numericString with constraint, numericString without constraint).
+  This should be treated as numericString with non-empty constraint.
+  Note that while someone may have no ISDN number, there are no ISDN
+  numbers which are zero length.
+
+  In matching, spaces are ignored.
+
+PrintableString
+  In ASN.1, Printable string is just a string of printable characters
+  and can be empty.  In X.500, semantics much like NumericString (see
+  serialNumber for a like example) excepting uses insignificant space
+  handling instead of ignore all spaces.  
+
+IA5String
+  Basically same as PrintableString.  There are no examples in X.500,
+  but same logic applies.  So we require them to be non-empty as
+  well.
+
+-------------------------------------------------------------------*/
 
 static int
 UTF8StringValidate(
@@ -542,16 +621,25 @@ UTF8StringNormalize(
 	char *p, *q, *s, *e;
 	int len = 0;
 
+	/* validator should have refused an empty string */
+	assert( val->bv_len );
+
 	p = val->bv_val;
 
 	/* Ignore initial whitespace */
 	/* All space is ASCII. All ASCII is 1 byte */
 	for ( ; p < val->bv_val + val->bv_len && ASCII_SPACE( p[ 0 ] ); p++ );
 
-	ber_mem2bv( p, val->bv_len - (p - val->bv_val), 1, normalized );
-	e = normalized->bv_val + val->bv_len - (p - val->bv_val);
+	normalized->bv_len = val->bv_len - (p - val->bv_val);
 
-	assert( normalized->bv_len );
+	if( !normalized->bv_len ) {
+		ber_mem2bv( " ", 1, 1, normalized );
+		return LDAP_SUCCESS;
+	}
+
+	ber_mem2bv( p, normalized->bv_len, 1, normalized );
+	e = normalized->bv_val + normalized->bv_len;
+
 	assert( normalized->bv_val );
 
 	p = q = normalized->bv_val;
@@ -575,11 +663,11 @@ UTF8StringNormalize(
 		}
 	}
 
-	assert( normalized->bv_val < p );
+	assert( normalized->bv_val <= p );
 	assert( q+len <= p );
 
 	/* cannot start with a space */
-	assert( !ASCII_SPACE(normalized->bv_val[0]) );
+	assert( !ASCII_SPACE( normalized->bv_val[0] ) );
 
 	/*
 	 * If the string ended in space, backup the pointer one
@@ -631,10 +719,12 @@ UTF8SubstringsassertionNormalize(
 		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
 			/* empty */
 		}
-		nsa->sa_any = (struct berval *)ch_malloc( (i + 1) * sizeof(struct berval) );
+		nsa->sa_any = (struct berval *)
+			ch_malloc( (i + 1) * sizeof(struct berval) );
+
 		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
 			UTF8bvnormalize( &sa->sa_any[i], &nsa->sa_any[i], 
-					casefold );
+				casefold );
 			if( nsa->sa_any[i].bv_val == NULL ) {
 				goto err;
 			}
@@ -653,7 +743,7 @@ UTF8SubstringsassertionNormalize(
 
 err:
 	if ( nsa->sa_final.bv_val ) free( nsa->sa_final.bv_val );
-	if ( nsa->sa_any )ber_bvarray_free( nsa->sa_any );
+	if ( nsa->sa_any ) ber_bvarray_free( nsa->sa_any );
 	if ( nsa->sa_initial.bv_val ) free( nsa->sa_initial.bv_val );
 	ch_free( nsa );
 	return NULL;
@@ -690,7 +780,8 @@ approxMatch(
 	}
 
 	/* Yes, this is necessary */
-	assertv = UTF8bvnormalize( ((struct berval *)assertedValue), NULL, LDAP_UTF8_APPROX );
+	assertv = UTF8bvnormalize( ((struct berval *)assertedValue),
+		NULL, LDAP_UTF8_APPROX );
 	if( assertv == NULL ) {
 		ber_bvfree( nval );
 		*matchp = 1;
@@ -847,7 +938,8 @@ approxFilter(
 	BerVarray keys;
 
 	/* Yes, this is necessary */
-	val = UTF8bvnormalize( ((struct berval *)assertValue), NULL, LDAP_UTF8_APPROX );
+	val = UTF8bvnormalize( ((struct berval *)assertValue),
+		NULL, LDAP_UTF8_APPROX );
 	if( val == NULL || val->bv_val == NULL ) {
 		keys = (struct berval *)ch_malloc( sizeof(struct berval) );
 		keys[0].bv_val = NULL;
@@ -1674,14 +1766,24 @@ telephoneNumberNormalize(
 {
 	char *p, *q;
 
+	/* validator should have refused an empty string */
+	assert( val->bv_len );
+
 	q = normalized->bv_val = ch_malloc( val->bv_len + 1 );
 
-	for( p = val->bv_val; *p; p++ )
-		if ( ! ( ASCII_SPACE( *p ) || *p == '-' ))
+	for( p = val->bv_val; *p; p++ ) {
+		if ( ! ( ASCII_SPACE( *p ) || *p == '-' )) {
 			*q++ = *p;
+		}
+	}
 	*q = '\0';
 
 	normalized->bv_len = q - normalized->bv_val;
+
+	if( normalized->bv_len == 0 ) {
+		free( normalized->bv_val );
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	return LDAP_SUCCESS;
 }
@@ -1984,6 +2086,8 @@ printableStringValidate(
 {
 	ber_len_t i;
 
+	if( val->bv_len == 0 ) return LDAP_INVALID_SYNTAX;
+
 	for(i=0; i < val->bv_len; i++) {
 		if( !SLAP_PRINTABLE(val->bv_val[i]) ) {
 			return LDAP_INVALID_SYNTAX;
@@ -1998,13 +2102,27 @@ printablesStringValidate(
 	Syntax *syntax,
 	struct berval *val )
 {
-	ber_len_t i;
+	ber_len_t i, len;
 
-	for(i=0; i < val->bv_len; i++) {
-		if( !SLAP_PRINTABLES(val->bv_val[i]) ) {
+	if( val->bv_len == 0 ) return LDAP_INVALID_SYNTAX;
+
+	for(i=0,len=0; i < val->bv_len; i++) {
+		int c = val->bv_val[i];
+
+		if( c == '$' ) {
+			if( len == 0 ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+			len = 0;
+
+		} else if ( SLAP_PRINTABLE(c) ) {
+			len++;
+		} else {
 			return LDAP_INVALID_SYNTAX;
 		}
 	}
+
+	if( len == 0 ) LDAP_INVALID_SYNTAX;
 
 	return LDAP_SUCCESS;
 }
@@ -2015,6 +2133,8 @@ IA5StringValidate(
 	struct berval *val )
 {
 	ber_len_t i;
+
+	if( val->bv_len == 0 ) return LDAP_INVALID_SYNTAX;
 
 	for(i=0; i < val->bv_len; i++) {
 		if( !LDAP_ASCII(val->bv_val[i]) ) {
@@ -2032,6 +2152,8 @@ IA5StringNormalize(
 	struct berval *normalized )
 {
 	char *p, *q;
+
+	assert( val->bv_len );
 
 	p = val->bv_val;
 
@@ -2073,6 +2195,13 @@ IA5StringNormalize(
 	*q = '\0';
 
 	normalized->bv_len = q - normalized->bv_val;
+
+	if( normalized->bv_len == 0 ) {
+		normalized->bv_val = ch_realloc( normalized->bv_val, 2 );
+		normalized->bv_val[0] = ' ';
+		normalized->bv_val[1] = '\0';
+		normalized->bv_len = 1;
+	}
 
 	return LDAP_SUCCESS;
 }
@@ -3250,6 +3379,8 @@ numericStringValidate(
 {
 	ber_len_t i;
 
+	if( in->bv_len == 0 ) return LDAP_INVALID_SYNTAX;
+
 	for(i=0; i < in->bv_len; i++) {
 		if( !SLAP_NUMERIC(in->bv_val[i]) ) {
 			return LDAP_INVALID_SYNTAX;
@@ -3267,6 +3398,8 @@ numericStringNormalize(
 {
 	/* removal all spaces */
 	char *p, *q;
+
+	assert( val->bv_len );
 
 	normalized->bv_val = ch_malloc( val->bv_len + 1 );
 
@@ -3289,6 +3422,13 @@ numericStringNormalize(
 	*q = '\0';
 
 	normalized->bv_len = q - normalized->bv_val;
+
+	if( normalized->bv_len == 0 ) {
+		normalized->bv_val = ch_realloc( normalized->bv_val, 2 );
+		normalized->bv_val[0] = ' ';
+		normalized->bv_val[1] = '\0';
+		normalized->bv_len = 1;
+	}
 
 	return LDAP_SUCCESS;
 }
