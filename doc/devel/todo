@@ -41,6 +41,5 @@ Small projects
 Modify servers to use reentrant library functions <kurt@openldap.org>
 Modify -lldap to use reentrant library functions <kurt@openldap.org>
 Create ldapurl (from ldapsearch?) to support searching by URL
-Create ldappasswd to support generation of crypt, sha1, md5 passwords.
 Extend configure.in to support autodetect of Kerberos features.
 Extend mail500 (and other daemons) to use ldap filters.
