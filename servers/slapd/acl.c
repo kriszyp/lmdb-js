@@ -982,7 +982,16 @@ dn_match_cleanup:;
 		}
 
 		if ( b->a_set_pat.bv_len != 0 ) {
-			if (aci_match_set( &b->a_set_pat, be, e, conn, op, 0 ) == 0) {
+			struct berval bv;
+			char buf[ACL_BUF_SIZE];
+			if( b->a_set_style == ACL_STYLE_REGEX ){
+				bv.bv_len = sizeof(buf) - 1;
+				bv.bv_val = buf;
+				string_expand( &bv, &b->a_set_pat, e->e_ndn, matches );
+			}else{
+				bv = b->a_set_pat;
+			}
+			if (aci_match_set( &bv, be, e, conn, op, 0 ) == 0) {
 				continue;
 			}
 		}
