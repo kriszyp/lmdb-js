@@ -16,6 +16,7 @@
 
 int bdb_idl_search( ID *ids, ID id )
 {
+#if BDB_IDL_BINARY_SEARCH
 	/*
 	 * binary search of id in ids
 	 * if found, returns position of id
@@ -48,6 +49,16 @@ int bdb_idl_search( ID *ids, ID id )
 	} else {
 		return cursor + 1;
 	}
+#else
+	/* linear search */
+	int i;
+	for( i=1; i<=ids[0]; i++ ) {
+		if( id <= ids[i] ) {
+			return i;
+		}
+	}
+	return i;
+#endif
 }
 
 static int idl_insert( ID *ids, ID id )
@@ -147,7 +158,12 @@ bdb_idl_insert_key(
 	} else {
 		rc = idl_insert( ids, id );
 
-		if( rc != 0 ) return rc;
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_idl_insert_key: idl_insert failed (%d)\n",
+				rc, 0, 0 );
+			return rc;
+		}
 
 		data.size = (ids[0]+1) * sizeof( ID );
 	}
@@ -210,7 +226,12 @@ bdb_idl_delete_key(
 	} else {
 		rc = idl_delete( ids, id );
 
-		if( rc != 0 ) return rc;
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_idl_insert_key: idl_insert failed (%d)\n",
+				rc, 0, 0 );
+			return rc;
+		}
 
 		if( BDB_IS_ALLIDS(ids) ) {
 			/* delete the key */

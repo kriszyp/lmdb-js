@@ -41,6 +41,8 @@ bdb_dn2id_add(
 	/* store it -- don't override */
 	rc = db->put( db, txn, &key, &data, DB_NOOVERWRITE );
 	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY, "=> bdb_dn2id_add: put failed: %s %d\n",
+			db_strerror(rc), rc, 0 );
 		goto done;
 	}
 
@@ -54,11 +56,15 @@ bdb_dn2id_add(
 				pdn, key.size - 1 );
 
 			rc = bdb_idl_insert_key( be, db, txn, &key, id );
-			free( pdn );
 
 			if( rc != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"=> bdb_dn2id_add: parent (%s) insert failed: %d\n",
+					pdn, rc, 0 );
+				free( pdn );
 				goto done;
 			}
+			free( pdn );
 		}
 	}
 
@@ -76,6 +82,10 @@ bdb_dn2id_add(
 				rc = bdb_idl_insert_key( be, db, txn, &key, id );
 
 				if( rc != 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+						"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
+						subtree[i], rc, 0 );
+					charray_free( subtree );
 					goto done;
 				}
 			}
@@ -113,6 +123,8 @@ bdb_dn2id_delete(
 	/* store it -- don't override */
 	rc = db->del( db, txn, &key, 0 );
 	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY, "=> bdb_dn2id_delete: delete failed: %s %d\n",
+			db_strerror(rc), rc, 0 );
 		goto done;
 	}
 
@@ -126,11 +138,15 @@ bdb_dn2id_delete(
 				pdn, key.size - 1 );
 
 			rc = bdb_idl_delete_key( be, db, txn, &key, id );
-			free( pdn );
 
 			if( rc != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"=> bdb_dn2id_delete: parent (%s) delete failed: %d\n",
+					pdn, rc, 0 );
+				free( pdn );
 				goto done;
 			}
+			free( pdn );
 		}
 	}
 
@@ -148,6 +164,10 @@ bdb_dn2id_delete(
 				rc = bdb_idl_delete_key( be, db, txn, &key, id );
 
 				if( rc != 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+						"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n",
+						subtree[i], rc, 0 );
+					charray_free( subtree );
 					goto done;
 				}
 			}
