@@ -16,6 +16,9 @@
 #include <ac/errno.h>
 
 #if HAVE_SYS_UCRED_H
+#if HAVE_GRP_H
+#include <grp.h>	/* for NGROUPS on Tru64 5.1 */
+#endif
 #include <sys/ucred.h>
 #endif
 
