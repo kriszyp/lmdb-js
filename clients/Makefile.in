@@ -4,4 +4,4 @@
 ##
 ## Clients Makefile.in for OpenLDAP
 
-SUBDIRS= tools ud finger gopher mail500 fax500 rcpt500
+SUBDIRS= tools ud finger gopher mail500 fax500 rcpt500 maildap

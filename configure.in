@@ -2364,6 +2364,7 @@ clients/gopher/Makefile:build/top.mk:clients/gopher/Makefile.in:build/rules.mk \
 clients/mail500/Makefile:build/top.mk:clients/mail500/Makefile.in:build/rules.mk \
 clients/rcpt500/Makefile:build/top.mk:clients/rcpt500/Makefile.in:build/rules.mk \
 clients/ud/Makefile:build/top.mk:clients/ud/Makefile.in:build/rules.mk \
+clients/maildap/Makefile:build/top.mk:clients/maildap/Makefile.in:build/rules.mk \
 clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
 include/Makefile:build/top.mk:include/Makefile.in \
 libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
