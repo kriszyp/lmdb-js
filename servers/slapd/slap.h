@@ -363,6 +363,8 @@ struct backend_db {
 	char	*be_update_ndn;	/* allowed to make changes (in replicas)   */
 	int	be_lastmod;	/* keep track of lastmodified{by,time}	   */
 
+	char	*be_realm;
+
 	void	*be_private;	/* anything the backend database needs 	   */
 };
 
@@ -542,8 +544,9 @@ typedef struct slap_conn {
 	char	*c_cdn;		/* DN provided by the client */
 	char	*c_dn;		/* DN bound to this conn  */
 	ber_int_t	c_protocol;	/* version of the LDAP protocol used by client */
-	ber_tag_t	c_authtype;	/* auth method used to bind c_dn  */
+	ber_tag_t	c_authtype;/* auth method used to bind c_dn  */
 	char	*c_authmech;	/* SASL mechanism used to bind c_dn */
+	void	*c_authstate;	/* SASL state data */
 
 	Operation	*c_ops;			/* list of operations being processed */
 	Operation	*c_pending_ops;	/* list of pending operations */

@@ -26,6 +26,7 @@ int		global_default_access = ACL_READ;
 char		*replogfile;
 int		global_lastmod;
 int		global_idletimeout = 0;
+char	*global_realm = NULL;
 char		*ldap_srvtab = "";
 
 char   *slapd_pid_file  = NULL;
@@ -144,7 +145,28 @@ read_config( char *fname )
 
 			slapd_args_file = ch_strdup( cargv[1] );
 
-		/* set size limit */
+		/* set DIGEST realm */
+		} else if ( strcasecmp( cargv[0], "digest-realm" ) == 0 ) {
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing realm in \"digest-realm <realm>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+			if ( be != NULL ) {
+				be->be_realm = ch_strdup( cargv[1] );
+
+			} else if ( global_realm != NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: already set global realm!\n",
+					fname, lineno, 0 );
+				return 1;
+
+			} else {
+				global_realm = ch_strdup( cargv[1] );
+			}
+
+		/* set time limit */
 		} else if ( strcasecmp( cargv[0], "sizelimit" ) == 0 ) {
 			if ( cargc < 2 ) {
 				Debug( LDAP_DEBUG_ANY,

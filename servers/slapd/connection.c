@@ -30,6 +30,18 @@ static unsigned long conn_nextid = 0;
 #define SLAP_C_BINDING			0x03	/* binding */
 #define SLAP_C_CLOSING			0x04	/* closing */
 
+char* connection_state2str( int state ) {
+	switch( state ) {
+	case SLAP_C_INVALID:	return "!";		
+	case SLAP_C_INACTIVE:	return "|";		
+	case SLAP_C_ACTIVE:		return "";			
+	case SLAP_C_BINDING:	return "B";
+	case SLAP_C_CLOSING:	return "C";			
+	}
+
+	return "?";
+}
+
 static Connection* connection_get( ber_socket_t s );
 
 static int connection_input( Connection *c );
@@ -326,6 +338,8 @@ long connection_init(
         c->c_client_addr = NULL;
         c->c_ops = NULL;
         c->c_pending_ops = NULL;
+		c->c_authmech = NULL;
+		c->c_authstate = NULL;
 
         c->c_sb = ber_sockbuf_alloc( );
 
@@ -346,6 +360,8 @@ long connection_init(
     assert( c->c_client_addr == NULL );
     assert( c->c_ops == NULL );
     assert( c->c_pending_ops == NULL );
+	assert( c->c_authmech == NULL );
+	assert( c->c_authstate == NULL );
 
     c->c_client_name = ch_strdup( name == NULL ? "" : name );
     c->c_client_addr = ch_strdup( addr );
@@ -415,6 +431,14 @@ connection_destroy( Connection *c )
 	if(c->c_client_addr != NULL) {
 		free(c->c_client_addr);
 		c->c_client_addr = NULL;
+	}
+	if(c->c_authmech != NULL ) {
+		free(c->c_authmech);
+		c->c_authmech = NULL;
+	}
+	if(c->c_authstate != NULL ) {
+		free(c->c_authstate);
+		c->c_authstate = NULL;
 	}
 
 	if ( ber_pvt_sb_in_use(c->c_sb) ) {
@@ -916,10 +940,10 @@ static int connection_op_activate( Connection *conn, Operation *op )
 
 	arg->co_op->o_protocol = conn->c_protocol;
 
+	arg->co_op->o_authtype = conn->c_authtype;
 	arg->co_op->o_authmech = conn->c_authmech != NULL
 		?  ch_strdup( conn->c_authmech ) : NULL;
-	arg->co_op->o_authtype = conn->c_authtype;
-
+	
 	slap_op_add( &conn->c_ops, arg->co_op );
 
 	if(tag == LDAP_REQ_BIND) {

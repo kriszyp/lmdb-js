@@ -110,7 +110,7 @@ monitor_info( Connection *conn, Operation *op )
 			"%ld : %ld "
 			": %ld/%ld/%ld/%ld "
 			": %ld/%ld/%ld "
-			": %s%s%s%s "
+			": %s%s%s%s%s%s "
 			": %s : %s : %s "
 			": %s : %s",
 
@@ -127,6 +127,8 @@ monitor_info( Connection *conn, Operation *op )
 		    c->c_writewaiter ? "w" : "",
 		    c->c_ops != NULL ? "x" : "",
 		    c->c_pending_ops != NULL ? "p" : "",
+			connection_state2str( c->c_conn_state ),
+			c->c_bind_in_progress ? "S" : "",
 
 		    c->c_cdn ? c->c_cdn : "<anonymous>",
 		    c->c_client_addr ? c->c_client_addr : "unknown",

@@ -385,6 +385,9 @@ backend_db_init(
 	be->be_sizelimit = defsize;
 	be->be_timelimit = deftime;
 
+	be->be_realm = global_realm != NULL
+		? ch_strdup( global_realm ) : NULL;
+
 	if(bi->bi_db_init) {
 		rc = bi->bi_db_init( be );
 	}

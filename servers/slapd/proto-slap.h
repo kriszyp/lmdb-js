@@ -148,6 +148,7 @@ long connection_init LDAP_P((
 
 void connection_closing LDAP_P(( Connection *c ));
 int connection_state_closing LDAP_P(( Connection *c ));
+char *connection_state2str LDAP_P(( int state ));
 
 int connection_write LDAP_P((ber_socket_t s));
 int connection_read LDAP_P((ber_socket_t s));
@@ -331,6 +332,7 @@ extern int		global_default_access;
 extern int		global_lastmod;
 extern int		global_idletimeout;
 extern int		global_schemacheck;
+extern char		*global_realm;
 extern int		lber_debug;
 extern int		ldap_syslog;
 

@@ -39,7 +39,7 @@ do_bind(
 	char		*mech;
 	char		*cdn, *ndn;
 	ber_tag_t	tag;
-	int			rc;
+	int			rc = LDAP_SUCCESS;
 	struct berval	cred;
 	Backend		*be;
 
@@ -50,6 +50,25 @@ do_bind(
 	mech = NULL;
 	cred.bv_val = NULL;
 
+	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+
+	/* Force to connection to "anonymous" until bind succeeds.
+	 * This may need to be relocated or done on a case by case basis
+	 * to handle certain SASL mechanisms.
+	 */
+
+	if ( conn->c_cdn != NULL ) {
+		free( conn->c_cdn );
+		conn->c_cdn = NULL;
+	}
+
+	if ( conn->c_dn != NULL ) {
+		free( conn->c_dn );
+		conn->c_dn = NULL;
+	}
+
+	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+
 	/*
 	 * Parse the bind request.  It looks like this:
 	 *
@@ -59,8 +78,14 @@ do_bind(
 	 *		authentication	CHOICE {
 	 *			simple		[0] OCTET STRING -- passwd
 	 *			krbv42ldap	[1] OCTET STRING
-	 *			krbv42dsa	[1] OCTET STRING
+	 *			krbv42dsa	[2] OCTET STRING
+	 *			SASL		[3] SaslCredentials
 	 *		}
+	 *	}
+	 *
+	 *	SaslCredentials ::= SEQUENCE {
+     *		mechanism           LDAPString,
+     *		credentials         OCTET STRING OPTIONAL
 	 *	}
 	 */
 
@@ -152,26 +177,58 @@ do_bind(
 				NULL, "sasl mechanism not supported" );
 			goto cleanup;
 		}
+
+		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+
+		if ( conn->c_authmech != NULL ) {
+			assert( conn->c_bind_in_progress );
+
+			if((strcmp(conn->c_authmech, mech) != 0)) {
+				/* mechanism changed, cancel in progress bind */
+				conn->c_bind_in_progress = 0;
+				if( conn->c_authstate != NULL ) {
+					free(conn->c_authstate);
+					conn->c_authstate = NULL;
+				}
+				free(conn->c_authmech);
+				conn->c_authmech = NULL;
+			}
+
+#ifdef LDAP_DEBUG
+		} else {
+			assert( !conn->c_bind_in_progress );
+			assert( conn->c_authmech == NULL );
+			assert( conn->c_authstate == NULL );
+#endif
+		}
+
+	} else {
+		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+
+		if ( conn->c_authmech != NULL ) {
+			assert( conn->c_bind_in_progress );
+
+			/* cancel in progress bind */
+			conn->c_bind_in_progress = 0;
+
+			if( conn->c_authstate != NULL ) {
+				free(conn->c_authstate);
+				conn->c_authstate = NULL;
+			}
+			free(conn->c_authmech);
+			conn->c_authmech = NULL;
+		}
 	}
+
+	conn->c_protocol = version;
+	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 	/* accept null binds */
 	if ( ndn == NULL || *ndn == '\0' ) {
-		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-
-		conn->c_protocol = version;
-
-		if ( conn->c_cdn != NULL ) {
-			free( conn->c_cdn );
-			conn->c_cdn = NULL;
-		}
-
-		if ( conn->c_dn != NULL ) {
-			free( conn->c_dn );
-			conn->c_dn = NULL;
-		}
-
-		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-
+		/*
+		 * we already forced connection to "anonymous", we just
+		 * need to send success
+		 */
 		send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
 		goto cleanup;
 	}
@@ -184,27 +241,13 @@ do_bind(
 
 	if ( (be = select_backend( ndn )) == NULL ) {
 		if ( cred.bv_len == 0 ) {
-			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-
-			conn->c_protocol = version;
-
-			if ( conn->c_cdn != NULL ) {
-				free( conn->c_cdn );
-				conn->c_cdn = NULL;
-			}
-
-			if ( conn->c_dn != NULL ) {
-				free( conn->c_dn );
-				conn->c_dn = NULL;
-			}
-
-			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-
 			send_ldap_result( conn, op, LDAP_SUCCESS,
 				NULL, NULL );
+
 		} else if ( default_referral && *default_referral ) {
 			send_ldap_result( conn, op, rc = LDAP_PARTIAL_RESULTS,
 				NULL, default_referral );
+
 		} else {
 			send_ldap_result( conn, op, rc = LDAP_INVALID_CREDENTIALS,
 				NULL, default_referral );
@@ -222,18 +265,8 @@ do_bind(
 		if ( (*be->be_bind)( be, conn, op, ndn, method, mech, &cred, &edn ) == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
-			conn->c_protocol = version;
-
-			if ( conn->c_cdn != NULL ) {
-				free( conn->c_cdn );
-			}
-
 			conn->c_cdn = cdn;
 			cdn = NULL;
-
-			if ( conn->c_dn != NULL ) {
-				free( conn->c_dn );
-			}
 
 			if(edn != NULL) {
 				conn->c_dn = edn;
