@@ -358,10 +358,21 @@ int main( int argc, char **argv )
 	}
 
 #ifdef HAVE_TLS
-	ldap_pvt_tls_init();
+	rc = ldap_pvt_tls_init();
+	if( rc != 0) {
+		Debug( LDAP_DEBUG_ANY,
+		    "main: TLS init failed: %d\n",
+		    0, 0, 0 );
+		rc = 1;
+		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
+		goto destroy;
+	}
 
-	if (ldap_pvt_tls_init_def_ctx() != 0)
-	{
+	rc = ldap_pvt_tls_init_def_ctx();
+	if( rc != 0) {
+		Debug( LDAP_DEBUG_ANY,
+		    "main: TLS init def ctx failed: %d\n",
+		    0, 0, 0 );
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
 		goto destroy;
