@@ -49,6 +49,12 @@ lutil_detach LDAP_P((
 	int debug,
 	int do_close));
 
+/* entropy.c */
+LDAP_F( int )
+lutil_entorpy LDAP_P((
+	char *buf,
+	int nbytes ));
+
 /* passwd.c */
 LDAP_F( int )
 lutil_passwd LDAP_P((

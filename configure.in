@@ -1729,8 +1729,7 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl
-dnl Check for fetch URL support
-dnl		should be extended to support other fetch URL APIs
+dnl Check for Cyrus SASL
 dnl
 ol_link_sasl=no
 if test $ol_with_cyrus_sasl != no ; then
@@ -1749,6 +1748,27 @@ if test $ol_with_cyrus_sasl != no ; then
 
 	if test $ol_link_sasl = no -a $ol_with_cyrus_sasl = yes ; then
 		AC_MSG_ERROR(no suitable API for --with-cyrus-sasl=$ol_with_cyrus_sasl)
+	fi
+fi
+
+dnl ----------------------------------------------------------------
+dnl Check for entropy sources
+if test $cross_compiling != yes ; then
+	dev=no
+	if test -r /dev/urandom ; then
+		dev="/dev/urandom";
+	elif test -r /idev/urandom ; then
+		dev="/idev/urandom";
+	elif test -r /dev/srandom ; then
+		dev="/dev/srandom";
+	elif test -r /dev/random ; then
+		dev="/dev/random";
+	elif test -r /idev/random ; then
+		dev="/idev/random";
+	fi
+
+	if test $dev != no ; then
+		AC_DEFINE_UNQUOTED(URANDOM_DEVICE,"$dev",[set to urandom device])
 	fi
 fi
 

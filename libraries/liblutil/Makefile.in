@@ -4,9 +4,9 @@
 ##
 
 LIBRARY	= liblutil.a
-SRCS	= base64.c debug.c detach.c \
+SRCS	= base64.c debug.c detach.c entropy.c \
 	md5.c passwd.c sha1.c getpass.c lockf.c utils.c sockpair.c
-OBJS	= base64.o debug.o detach.o \
+OBJS	= base64.o debug.o detach.o entropy.o \
 	md5.o passwd.o sha1.o getpass.o lockf.o utils.o sockpair.o \
 	@LIBOBJS@
 
