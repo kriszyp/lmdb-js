@@ -1126,12 +1126,9 @@ be_entry_get_rw(
 	int rw,
 	Entry **e )
 {
-	Backend *be = op->o_bd;
 	int rc;
 
 	*e = NULL;
-
-	op->o_bd = select_backend( ndn, 0, 0 );
 
 	if (op->o_bd == NULL) {
 		rc = LDAP_NO_SUCH_OBJECT;
@@ -1141,7 +1138,6 @@ be_entry_get_rw(
 	} else {
 		rc = LDAP_UNWILLING_TO_PERFORM;
 	}
-	op->o_bd = be;
 	return rc;
 }
 
@@ -1159,8 +1155,11 @@ backend_group(
 	Attribute *a;
 	int rc;
 	GroupAssertion *g;
+	Backend *be = op->o_bd;
 
 	if ( op->o_abandon ) return SLAPD_ABANDON;
+
+	op->o_bd = select_backend( gr_ndn, 0, 0 );
 
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 
@@ -1175,7 +1174,8 @@ backend_group(
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 	if (g) {
-		return g->ga_res;
+		rc = g->ga_res;
+		goto done;
 	}
 
 	if ( target && dn_match( &target->e_nname, gr_ndn ) ) {
@@ -1213,7 +1213,8 @@ backend_group(
 		op->o_conn->c_groups = g;
 		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 	}
-
+done:
+	op->o_bd = be;
 	return rc;
 }
 
@@ -1230,12 +1231,14 @@ backend_attribute(
 	Attribute *a;
 	int i, j, rc = LDAP_SUCCESS;
 	AccessControlState acl_state = ACL_STATE_INIT;
+	Backend *be = op->o_bd;
+
+	op->o_bd = select_backend( edn, 0, 0 );
 
 	if ( target && dn_match( &target->e_nname, edn ) ) {
 		e = target;
 	} else {
 		rc = be_entry_get_rw(op, edn, NULL, entry_at, 0, &e );
-		if ( rc != LDAP_SUCCESS ) return rc;
 	} 
 
 	if ( e ) {
@@ -1280,6 +1283,7 @@ freeit:		if (e != target ) {
 		}
 	}
 
+	op->o_bd = be;
 	return rc;
 }
 
