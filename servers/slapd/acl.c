@@ -121,7 +121,7 @@ access_allowed(
 {
 	int				ret = 1;
 	int				count;
-	AccessControl	*a;
+	AccessControl			*a = NULL;
 
 #ifdef LDAP_DEBUG
 	char accessmaskbuf[ACCESSMASK_MAXLEN];

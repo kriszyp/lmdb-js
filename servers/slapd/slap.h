@@ -1114,7 +1114,7 @@ typedef struct slap_acl_state {
 	int as_result;
 	AttributeDescription *as_vd_ad;
 } AccessControlState;
-#define ACL_STATE_INIT { ACL_STATE_NOT_RECORDED, NULL, NULL, 0UL, { { 0, 0 } }, 0, NULL, 0, 0, 0, NULL }
+#define ACL_STATE_INIT { ACL_STATE_NOT_RECORDED, NULL, NULL, 0UL, { { 0, 0 } }, 0, NULL, 0, 0, NULL }
 
 /*
  * replog moddn param structure
