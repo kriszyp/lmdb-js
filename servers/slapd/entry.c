@@ -707,6 +707,8 @@ int entry_decode(struct berval *bv, Entry **e)
 					return rc;
 				}
 			}
+			a->a_nvals[j].bv_val = NULL;
+			a->a_nvals[j].bv_len = 0;
 		}
 #endif
 
