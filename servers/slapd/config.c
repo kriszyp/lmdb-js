@@ -2749,6 +2749,9 @@ add_syncrepl(
 	si->tlimit = -1;
 	si->slimit = -1;
 
+	si->presentlist = NULL;
+	LDAP_LIST_INIT( &si->nonpresentlist );
+
 	if ( si == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONFIG, ERR, "out of memory in add_syncrepl\n", 0, 0,0 );

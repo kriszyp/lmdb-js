@@ -1163,7 +1163,6 @@ syncrepl_add_glue(
 
 	for ( i = 0; i <= levels; i++ ) {
 		glue = (Entry*) ch_calloc( 1, sizeof(Entry) );
-		glue->e_private = NULL;
 		ber_dupbv( &dn, &e->e_nname );
 		j = levels - i;
 
@@ -2006,6 +2005,7 @@ nonpresent_callback(
 
 	if ( rs->sr_type == REP_RESULT ) {
 		count = avl_free( si->presentlist, avl_ber_bvfree );
+		si->presentlist = NULL;
 		return LDAP_SUCCESS;
 	} else if ( rs->sr_type == REP_SEARCH ) {
 		a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryUUID );
