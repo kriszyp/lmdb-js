@@ -502,6 +502,7 @@ long connection_init(
 	assert( c->c_sasl_extra == NULL );
 	assert( c->c_sasl_bindop == NULL );
 	assert( c->c_currentber == NULL );
+	assert( c->c_writewaiter == 0);
 
 	c->c_listener = listener;
 
@@ -525,7 +526,6 @@ long connection_init(
 	c->c_n_get = 0;
 	c->c_n_read = 0;
 	c->c_n_write = 0;
-	c->c_writewaiter = 0;
 
 	/* set to zero until bind, implies LDAP_VERSION3 */
 	c->c_protocol = 0;
@@ -708,6 +708,7 @@ connection_destroy( Connection *c )
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
 	}
 
+	c->c_writewaiter = 0;
 	c->c_conn_state = SLAP_C_INVALID;
 	c->c_struct_state = SLAP_C_UNUSED;
 
