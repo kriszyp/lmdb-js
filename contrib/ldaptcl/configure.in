@@ -22,16 +22,6 @@ if test "$neo_ok" = "yes"; then
     AC_PROG_CC
 else
     CC=${CC-cc}
-    AC_SUBST(CC)
-fi
-AC_PROG_CPP
-
-AC_ARG_ENABLE(gcc, [  --enable-gcc            allow use of gcc if available],
-    [neo_ok=$enableval], [neo_ok=no])
-if test "$neo_ok" = "yes"; then
-    AC_PROG_CC
-else
-    CC=${CC-cc}
 AC_SUBST(CC)
 fi
 
@@ -155,7 +145,7 @@ AC_ARG_WITH(ldap-incdir, [  --with-ldap-incdir=<dir>    path to ldap.h],
 
 ldaplibdir=$ldapdir/lib
 AC_ARG_WITH(ldap-libdir, [  --with-ldap-libdir=<dir>    path to ldap and lber libs],
-	[ldapincdir=$withval])
+	[ldaplibdir=$withval])
 
 AC_ARG_WITH(ldap-libraries, [  --with-ldap-libflags=<libnames>   -l flags for ldap libraries],
 	[ldaplibflags="-L$ldaplibdir $withval"],
