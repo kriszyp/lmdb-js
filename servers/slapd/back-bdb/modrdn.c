@@ -32,7 +32,7 @@ bdb_modrdn(
 	Entry		*e, *p = NULL;
 	Entry		*matched;
 	int			rc;
-	const char *text = NULL;
+	const char *text;
 	DB_TXN *	ltid;
 	struct bdb_op_info opinfo;
 
@@ -72,8 +72,10 @@ retry:	rc = txn_abort( ltid );
 		}
 	}
 
+
 	/* begin transaction */
 	rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
+	text = NULL;
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_delete: txn_begin failed: %s (%d)\n",
@@ -114,6 +116,8 @@ retry:	rc = txn_abort( ltid );
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
 			bdb_entry_return( be, matched );
+			matched = NULL;
+
 		} else {
 			refs = default_referral;
 		}
@@ -428,6 +432,11 @@ retry:	rc = txn_abort( ltid );
 	/* delete old one */
 	rc = bdb_dn2id_delete( be, ltid, e->e_ndn, e->e_id );
 	if ( rc != 0 ) {
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		}
 		rc = LDAP_OTHER;
 		text = "DN index delete fail";
 		goto return_results;
@@ -443,6 +452,11 @@ retry:	rc = txn_abort( ltid );
 	/* add new one */
 	rc = bdb_dn2id_add( be, ltid, e->e_ndn, e->e_id );
 	if ( rc != 0 ) {
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		}
 		rc = LDAP_OTHER;
 		text = "DN index add failed";
 		goto return_results;
@@ -452,6 +466,11 @@ retry:	rc = txn_abort( ltid );
 	rc = bdb_modify_internal( be, conn, op, ltid, &mod[0], e, &text );
 
 	if( rc != LDAP_SUCCESS ) {
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		}
 		goto return_results;
 	}
 	
@@ -460,14 +479,17 @@ retry:	rc = txn_abort( ltid );
 	 */
 
 	/* id2entry index */
-	rc = bdb_id2entry_add( be, ltid, e );
+	rc = bdb_id2entry_update( be, ltid, e );
 	if ( rc != 0 ) {
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		}
 		rc = LDAP_OTHER;
 		text = "entry update failed";
 		goto return_results;
 	}
-
-	rc = LDAP_SUCCESS;
 
 	rc = txn_commit( ltid, 0 );
 	ltid = NULL;

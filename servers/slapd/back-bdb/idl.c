@@ -191,7 +191,7 @@ bdb_idl_insert_key(
 	data.ulen = sizeof( ids );
 	data.flags = DB_DBT_USERMEM;
 
-	/* fetch the key and grab a write lock */
+	/* fetch the key for read/modify/write */
 	rc = db->get( db, tid, key, &data, DB_RMW );
 
 	if( rc == DB_NOTFOUND ) {
@@ -279,7 +279,7 @@ bdb_idl_delete_key(
 	data.ulen = sizeof( ids );
 	data.flags = DB_DBT_USERMEM;
 
-	/* fetch the key and grab a write lock */
+	/* fetch the key for read/modify/write */
 	rc = db->get( db, tid, key, &data, DB_RMW );
 
 	if ( rc != 0 ) {

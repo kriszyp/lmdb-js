@@ -27,7 +27,7 @@ bdb_delete(
 	char	*pdn = NULL;
 	Entry	*e, *p = NULL;
 	int	rc;
-	const char *text = NULL;
+	const char *text;
 	int		manageDSAit = get_manageDSAit( op );
 	AttributeDescription *children = slap_schema.si_ad_children;
 	DB_TXN		*ltid = NULL;
@@ -50,6 +50,7 @@ retry:	/* transaction retry */
 
 	/* begin transaction */
 	rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
+	text = NULL;
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_delete: txn_begin failed: %s (%d)\n",
@@ -94,6 +95,8 @@ retry:	/* transaction retry */
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
 			bdb_entry_return( be, matched );
+			matched = NULL;
+
 		} else {
 			refs = default_referral;
 		}
@@ -145,6 +148,7 @@ retry:	/* transaction retry */
 			children, NULL, ACL_WRITE );
 
 		bdb_entry_return( be, p );
+		p = NULL;
 
 		if ( !rc  ) {
 			Debug( LDAP_DEBUG_TRACE,
@@ -267,7 +271,9 @@ return_results:
 
 done:
 	/* free entry */
-	if( e != NULL ) bdb_entry_return( be, e );
+	if( e != NULL ) {
+		bdb_entry_return( be, e );
+	}
 
 	if( ltid != NULL ) {
 		txn_abort( ltid );

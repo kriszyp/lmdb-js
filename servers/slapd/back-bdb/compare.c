@@ -53,6 +53,8 @@ bdb_compare(
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
 			bdb_entry_return( be, matched );
+			matched = NULL;
+
 		} else {
 			refs = default_referral;
 		}
@@ -117,7 +119,9 @@ return_results:
 
 done:
 	/* free entry */
-	if( e != NULL ) bdb_entry_return( be, e );
+	if( e != NULL ) {
+		bdb_entry_return( be, e );
+	}
 
 	return rc;
 }

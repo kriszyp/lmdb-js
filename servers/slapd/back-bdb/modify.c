@@ -175,6 +175,7 @@ retry:	/* transaction retry */
 
 	/* begin transaction */
 	rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
+	text = NULL;
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modify: txn_begin failed: %s (%d)\n",
@@ -220,6 +221,7 @@ retry:	/* transaction retry */
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
 			bdb_entry_return( be, matched );
+			matched = NULL;
 
 		} else {
 			refs = default_referral;
@@ -311,7 +313,9 @@ done:
 		op->o_private = NULL;
 	}
 
-	bdb_entry_return( be, e );
+	if( e != NULL ) {
+		bdb_entry_return( be, e );
+	}
 	return rc;
 }
 

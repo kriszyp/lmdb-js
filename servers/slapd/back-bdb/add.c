@@ -24,7 +24,7 @@ bdb_add(
 	char		*pdn = NULL;
 	Entry		*p = NULL;
 	int			rc; 
-	const char	*text = NULL;
+	const char	*text;
 	AttributeDescription *children = slap_schema.si_ad_children;
 	DB_TXN		*ltid = NULL;
 	struct bdb_op_info opinfo;
@@ -68,6 +68,7 @@ retry:	rc = txn_abort( ltid );
 
 	/* begin transaction */
 	rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
+	text = NULL;
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_add: txn_begin failed: %s (%d)\n",
@@ -119,6 +120,7 @@ retry:	rc = txn_abort( ltid );
 					? get_entry_referrals( be, conn, op, matched )
 					: NULL;
 				bdb_entry_return( be, matched );
+				matched = NULL;
 
 			} else {
 				matched_dn = NULL;

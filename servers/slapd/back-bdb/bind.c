@@ -70,6 +70,8 @@ bdb_bind(
 				: NULL;
 
 			bdb_entry_return( be, matched );
+			matched = NULL;
+
 		} else {
 			refs = default_referral;
 		}
@@ -240,7 +242,9 @@ bdb_bind(
 
 done:
 	/* free entry and reader lock */
-	bdb_entry_return( be, e );
+	if( e != NULL ) {
+		bdb_entry_return( be, e );
+	}
 
 	/* front end with send result on success (rc==0) */
 	return rc;

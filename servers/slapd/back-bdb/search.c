@@ -107,6 +107,7 @@ bdb_search(
 			ber_bvecfree( refs );
 			free( matched_dn );
 			bdb_entry_return( be, matched );
+			matched = NULL;
 		}
 
 		return rc;
@@ -119,6 +120,7 @@ bdb_search(
 			conn, op, e );
 
 		bdb_entry_return( be, e );
+		e = NULL;
 
 		Debug( LDAP_DEBUG_TRACE, "bdb_search: entry is referral\n",
 			0, 0, 0 );
@@ -162,6 +164,7 @@ bdb_search(
 	cursor = e->e_id;
 
 	bdb_entry_return( be, e );
+	e = NULL;
 
 	if ( candidates[0] == 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "bdb_search: no candidates\n",
@@ -303,6 +306,7 @@ bdb_search(
 				/* check size limit */
 				if ( --slimit == -1 ) {
 					bdb_entry_return( be, e );
+					e = NULL;
 					send_search_result( conn, op,
 						rc = LDAP_SIZELIMIT_EXCEEDED, NULL, NULL,
 						v2refs, NULL, nentries );
@@ -321,6 +325,7 @@ bdb_search(
 						break;
 					case -1:	/* connection closed */
 						bdb_entry_return( be, e );
+						e = NULL;
 						rc = LDAP_OTHER;
 						goto done;
 					}

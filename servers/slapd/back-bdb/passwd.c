@@ -73,7 +73,7 @@ bdb_exop_passwd(
 
 	dn = id ? id->bv_val : op->o_dn;
 
-	Debug( LDAP_DEBUG_TRACE, "passwd: \"%s\"%s\n",
+	Debug( LDAP_DEBUG_TRACE, "bdb_exop_passwd: \"%s\"%s\n",
 		dn, id ? " (proxy)" : "", 0 );
 
 	if( dn == NULL || dn[0] == '\0' ) {
@@ -83,8 +83,9 @@ bdb_exop_passwd(
 	}
 
 	if (0) {
-		/* transaction retry */
-retry:	rc = txn_abort( ltid );
+retry:	/* transaction retry */
+		Debug( LDAP_DEBUG_TRACE, "bdb_exop_passwd: retrying...\n", 0, 0, 0 );
+		rc = txn_abort( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
 		if( rc != 0 ) {
@@ -96,6 +97,7 @@ retry:	rc = txn_abort( ltid );
 
 	/* begin transaction */
 	rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
+	*text = NULL;
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_exop_passwd: txn_begin failed: %s (%d)\n",
@@ -185,6 +187,7 @@ retry:	rc = txn_abort( ltid );
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			bdb_entry_return( be, e );
+			e = NULL;
 			goto retry;
 		}
 		*text = "entry update failed";

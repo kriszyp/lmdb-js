@@ -67,6 +67,7 @@ bdb_referrals(
 				: NULL;
 
 			bdb_entry_return( be, matched );
+			matched = NULL;
 		}
 
 		if( refs != NULL ) {
