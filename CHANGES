@@ -1,6 +1,7 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.25 Release
+	Update librewrite (misc bug fixes)
 	Build Environment
 		Fix LDBM link bug (ITS#2863)
 

@@ -203,7 +203,7 @@ target_free(
 		free( lt->pseudorootpw.bv_val );
 	}
 	if ( lt->rwinfo ) {
-		rewrite_info_delete( lt->rwinfo );
+		rewrite_info_delete( &lt->rwinfo );
 	}
 	avl_free( lt->oc_map.remap, NULL );
 	avl_free( lt->oc_map.map, mapping_free );

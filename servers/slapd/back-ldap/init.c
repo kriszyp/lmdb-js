@@ -183,7 +183,7 @@ ldap_back_db_destroy(
 		}
 #ifdef ENABLE_REWRITE
 		if (li->rwinfo) {
-			rewrite_info_delete( li->rwinfo );
+			rewrite_info_delete( &li->rwinfo );
 		}
 #else /* !ENABLE_REWRITE */
 		if (li->suffix_massage) {
