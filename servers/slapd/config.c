@@ -94,7 +94,8 @@ read_config( const char *fname, int depth )
 	int	lineno, i;
 	int rc;
 	struct berval vals[2];
-
+	char *replicahost;
+	LDAPURLDesc *ludp;
 	static int lastmod = 1;
 	static BackendInfo *bi = NULL;
 	static BackendDB	*be = NULL;
@@ -1758,11 +1759,11 @@ read_config( const char *fname, int depth )
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT, 
-					"%s: line %d: missing host in \"replica "
+					"%s: line %d: missing host or uri in \"replica "
 					" <host[:port]\" line\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing host in \"replica <host[:port]>\" line\n",
+	    "%s: line %d: missing host or uri in \"replica <host[:port]>\" line\n",
 				    fname, lineno, 0 );
 #endif
 
@@ -1789,16 +1790,62 @@ read_config( const char *fname, int depth )
 						nr = add_replica_info( be, 
 							cargv[i] + 5 );
 						break;
+					} else if (strncasecmp( cargv[i], "uri=", 4 )
+					    == 0 ) {
+					    if ( ldap_url_parse( cargv[ i ] + 4, &ludp )
+					    	!= LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+							LDAP_LOG( CONFIG, INFO, 
+					    		"%s: line %d: replica line contains invalid "
+					    		"uri definition.\n", fname, lineno, 0);
+#else
+							Debug( LDAP_DEBUG_ANY,
+					    		"%s: line %d: replica line contains invalid "
+					    		"uri definition.\n", fname, lineno, 0);
+#endif
+							return 1;
+						}
+						if (ludp->lud_host == NULL ) {
+#ifdef NEW_LOGGING
+							LDAP_LOG( CONFIG, INFO, 
+					    		"%s: line %d: replica line contains invalid "
+					    		"uri definition - missing hostname.\n", 
+					    		fname, lineno, 0);
+#else
+							Debug( LDAP_DEBUG_ANY,
+					    		"%s: line %d: replica line contains invalid "
+					    		"uri definition - missing hostname.\n", fname, lineno, 0);
+#endif
+							return 1;
+						}
+				    	replicahost = ch_malloc( strlen( cargv[ i ] ) );
+						if ( replicahost == NULL ) {
+#ifdef NEW_LOGGING
+							LDAP_LOG( CONFIG, ERR, 
+							"out of memory in read_config\n", 0, 0,0 );
+#else
+							Debug( LDAP_DEBUG_ANY, 
+							"out of memory in read_config\n", 0, 0, 0 );
+#endif
+							ldap_free_urldesc( ludp );				
+							exit( EXIT_FAILURE );
+						}
+						sprintf(replicahost, "%s:%d", 
+							ludp->lud_host, ludp->lud_port);
+						nr = add_replica_info( be, replicahost );
+						ldap_free_urldesc( ludp );				
+						ch_free(replicahost);
+						break;
 					}
 				}
 				if ( i == cargc ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG( CONFIG, INFO, 
-						"%s: line %d: missing host in \"replica\" line\n", 
+						"%s: line %d: missing host or uri in \"replica\" line\n", 
 						fname, lineno , 0 );
 #else
 					Debug( LDAP_DEBUG_ANY,
-		    "%s: line %d: missing host in \"replica\" line\n",
+		    "%s: line %d: missing host or uri in \"replica\" line\n",
 					    fname, lineno, 0 );
 #endif
 					return 1;

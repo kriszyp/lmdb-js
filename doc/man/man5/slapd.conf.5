@@ -966,7 +966,8 @@ This option puts the database into "read-only" mode.  Any attempts to
 modify the database will return an "unwilling to perform" error.  By
 default, readonly is off.
 .HP
-.B replica host=<hostname>[:port] [starttls=yes|critical]
+.B replica uri=ldap[s]://<hostname>[:port]|host=<hostname>[:port] 
+.B [starttls=yes|critical]
 .B [suffix=<suffix> [...]]
 .B bindmethod=simple|sasl [binddn=<simple DN>] [credentials=<simple password>]
 .B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
@@ -979,7 +980,14 @@ Administrator's Guide" for detailed information on setting up a replicated
 directory service. Zero or more
 .B suffix
 instances can be used to select the subtrees that will be replicated
-(defaults to all the database). A
+(defaults to all the database). 
+.B host
+is deprecated in favor of the
+.B uri
+option.
+.B uri
+allows the replica LDAP server to be specified as an LDAP URI. 
+A
 .B bindmethod
 of
 .B simple

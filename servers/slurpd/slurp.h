@@ -128,6 +128,7 @@
 
 /* Config file keywords */
 #define	HOSTSTR			"host"
+#define	URISTR			"uri"
 #define	ATTRSTR			"attr"
 #define	SUFFIXSTR		"suffix"
 #define	BINDDNSTR		"binddn"
@@ -214,6 +215,7 @@ struct ri {
     /* Private data */
     char	*ri_hostname;		/* canonical hostname of replica */
     int		ri_port;		/* port where slave slapd running */
+    char	*ri_uri;		/* e.g. "ldaps://ldap-1.example.com:636" */
     LDAP	*ri_ldp;		/* LDAP struct for this replica */
     int		ri_tls;			/* TLS: 0=no, 1=yes, 2=critical */
     int		ri_bind_method;		/* AUTH_SIMPLE or AUTH_KERBEROS */

@@ -442,9 +442,16 @@ parse_replica_line(
     int		gots = 0;
     int		i;
     char	*hp, *val;
+    LDAPURLDesc *ludp;
 
     for ( i = 1; i < cargc; i++ ) {
 	if ( !strncasecmp( cargv[ i ], HOSTSTR, sizeof( HOSTSTR ) - 1 ) ) {
+		if ( gots & GOT_HOST ) {
+			fprintf( stderr, "Error: Malformed \"replica\" line in slapd config " );
+			fprintf( stderr, "file, too many host or uri names specified, line %d\n",
+				lineno );
+			return -1;
+		}	
 	    val = cargv[ i ] + sizeof( HOSTSTR ); /* '\0' string terminator accounts for '=' */
 	    if (( hp = strchr( val, ':' )) != NULL ) {
 		*hp = '\0';
@@ -455,6 +462,30 @@ parse_replica_line(
 		ri->ri_port = 0;
 	    }
 	    ri->ri_hostname = strdup( val );
+	    gots |= GOT_HOST;
+	} else if ( !strncasecmp( cargv[ i ], URISTR, sizeof( URISTR ) - 1 ) ) {
+		if ( gots & GOT_HOST ) {
+			fprintf( stderr, "Error: Malformed \"replica\" line in slapd config " );
+			fprintf( stderr, "file, too many host or uri names specified, line %d\n",
+				lineno );
+			return -1;
+		}		
+		if ( ldap_url_parse( cargv[ i ] + sizeof( URISTR ), &ludp ) != LDAP_SUCCESS ) {
+			fprintf( stderr, "Error: Malformed \"replica\" line in slapd config " );
+			fprintf( stderr, "file, bad uri format specified, line %d\n",
+				lineno );
+			return -1;
+		}
+		if (ludp->lud_host == NULL) {
+			fprintf( stderr, "Error: Malformed \"replica\" line in slapd config " );
+			fprintf( stderr, "file, missing uri hostname, line %d\n",
+				lineno );
+			return -1;
+		}
+		ri->ri_hostname = strdup ( ludp->lud_host );
+		ri->ri_port = ludp->lud_port;
+		ri->ri_uri = strdup ( cargv[ i ] + sizeof( URISTR ) );		
+		ldap_free_urldesc( ludp );				
 	    gots |= GOT_HOST;
 	} else if ( !strncasecmp( cargv[ i ], 
 			ATTRSTR, sizeof( ATTRSTR ) - 1 ) ) {
