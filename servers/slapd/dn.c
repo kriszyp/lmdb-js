@@ -29,6 +29,87 @@
 #define B4SEPARATOR		8
 
 /*
+ * Upper cases a UTF8 character. We cheat a bit, we only change to upper
+ * if the byte length is preserved. Should be replaced.
+ */
+
+int
+UTF8touppercheat( unsigned char *p )
+{
+	ldap_unicode_t u;
+	int len;
+
+	len = LDAP_UTF8_CHARLEN( p );
+	if ( !len ) {
+		return 1;
+	}
+
+	u = ldap_utf8_to_ucs4( p );
+	if ( u == LDAP_UCS4_INVALID ) {
+		return 1;
+	}
+
+	u = uctoupper ( u );
+	if ( u < 0 ) {
+		return 1;
+	}
+
+	if ( u < 0x80 ) {
+		if ( len == 1 ) {
+			p[0] = u;
+		} else {
+			return 1;
+		}
+	} else if ( u < 0x800 ) {
+		if ( len == 2 ) {
+			p[0] = 0xc0 | ( u >> 6 );
+			p[1] = 0x80 | ( u & 0x3f );
+		} else {
+			return 1;
+		}
+	} else if ( u < 0x10000 ) {
+		if ( len == 3 ) {
+			p[0] = 0xe0 | ( u >> 12 );
+			p[1] = 0x80 | ( (u >> 6) & 0x3f );
+			p[2] = 0x80 | ( u & 0x3f );
+		} else {
+			return 1;
+		}
+	} else if ( u < 0x200000 ) {
+		if ( len == 4 ) {
+			p[0] = 0xf0 | ( u >> 18 );
+			p[1] = 0x80 | ( (u >> 12) & 0x3f );
+			p[2] = 0x80 | ( (u >> 6) & 0x3f );
+			p[3] = 0x80 | ( u & 0x3f );
+		} else {
+			return 1;
+		}	      
+	} else if ( u < 0x4000000 ) {
+		if ( len == 5 ) {
+			p[0] = 0xf8 | ( u >> 24 );
+			p[1] = 0x80 | ( (u >> 18) & 0x3f );
+			p[2] = 0x80 | ( (u >> 12) & 0x3f );
+			p[3] = 0x80 | ( (u >> 6) & 0x3f );
+			p[4] = 0x80 | ( u & 0x3f );
+		} else {
+			return 1;
+		}
+	} else if ( len == 6 ) {
+		/* u < 0x80000000 */
+		p[0] = 0xfc | ( u >> 30 );
+		p[1] = 0x80 | ( (u >> 24) & 0x3f );
+		p[2] = 0x80 | ( (u >> 18) & 0x3f );
+		p[3] = 0x80 | ( (u >> 12) & 0x3f );
+		p[4] = 0x80 | ( (u >> 6) & 0x3f );
+		p[5] = 0x80 | ( u & 0x3f );
+	} else {
+		return 1;
+	}
+
+	return len;
+}
+
+/*
  * dn_validate - validate and compress dn.  the dn is
  * compressed in place are returned if valid.
  */
@@ -196,8 +277,23 @@ char *
 dn_normalize( char *dn )
 {
 	/* upper case it */
+#if 1
 	ldap_pvt_str2upper( dn );
+#else
+	/* enabling this might require reindexing */
+	char *p;
 
+	p = dn;
+	while ( *p ) {
+		/* optimizing */
+		if ( LDAP_UTF8_ISASCII(p) ) {
+			*p = TOUPPER( (unsigned char) *p );
+			p++;
+		} else {
+			p += UTF8touppercheat( p );
+		}
+	}
+#endif
 	/* validate and compress dn */
 	dn = dn_validate( dn );
 
