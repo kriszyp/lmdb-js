@@ -5,12 +5,13 @@ OpenLDAP 2.1.10 Engineering
 	Fixed slapd empty values return filter control bug (ITS#2219)
 	Fixed slapd empty oid control bug
 	Fixed slapd NameAndOptionalUID bug
+	Fixed slapd reentant gethostbyname bug
 	Fixed ldapsearch empty baseObject bug
 	Fixed libldap_r thread stack size
 	Updated slapd to use data ready loop
-	Fixed slapd reentant gethostbyname bug
+	Updated ldapdelete/ldapmodrdn continue error handling
+	Added back-bdb IDL slab cache  (ITS#2183)
 	Removed lint
-	Update ldapdelete/ldapmodrdn continue error handling
 
 OpenLDAP 2.1.9 Release
 	Fixed back-bdb moddn newSuperior bug
