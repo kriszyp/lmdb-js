@@ -1434,7 +1434,8 @@ proxy_cache_search(
 			}
 			if ( oc_attr_absent ) {
 				query.attrs[ count ].an_desc = slap_schema.si_ad_objectClass;
-				query.attrs[ count ].an_name = query.attrs[count].an_desc->ad_cname;
+				ber_dupbv( &query.attrs[count].an_name,
+					&slap_schema.si_ad_objectClass->ad_cname );
 				count++;
 			}
 			query.attrs[ count ].an_name.bv_val = NULL;
