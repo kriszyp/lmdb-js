@@ -3545,7 +3545,7 @@ integerBitAndMatch(
 	if(( lAssertedValue == LONG_MIN || lAssertedValue == LONG_MAX) && errno == ERANGE )
 		return LDAP_CONSTRAINT_VIOLATION;
 
-	*matchp = (lValue & lAssertedValue);
+	*matchp = (lValue & lAssertedValue) ? 0 : 1;
 	return LDAP_SUCCESS;
 }
 
@@ -3569,7 +3569,7 @@ integerBitOrMatch(
 	if(( lAssertedValue == LONG_MIN || lAssertedValue == LONG_MAX) && errno == ERANGE )
 		return LDAP_CONSTRAINT_VIOLATION;
 
-	*matchp = (lValue | lAssertedValue);
+	*matchp = (lValue | lAssertedValue) ? 0 : -1;
 	return LDAP_SUCCESS;
 }
 
