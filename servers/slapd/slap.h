@@ -769,6 +769,7 @@ struct slap_internal_schema {
 
 	AttributeDescription *si_ad_dseType;
 	AttributeDescription *si_ad_syncreplCookie;
+	AttributeDescription *si_ad_syncTimestamp;
 	AttributeDescription *si_ad_contextCSN;
 
 	/* root DSE attribute descriptions */

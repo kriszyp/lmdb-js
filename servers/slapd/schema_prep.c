@@ -422,11 +422,22 @@ static struct slap_schema_ad_map {
 			"EQUALITY octetStringMatch "
 			"ORDERING octetStringOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 "
-			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
+			"SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_syncreplCookie) },
+
+	{ "syncTimestamp", "( 1.3.6.1.4.1.4203.666.1.30 NAME 'syncTimestamp' "
+			"DESC 'Time which object was replicated' "
+			"EQUALITY generalizedTimeMatch "
+			"ORDERING generalizedTimeOrderingMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
+			"SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )",
+		NULL, 0,
+		NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_syncTimestamp) },
 
 	{ "contextCSN", "( 1.3.6.1.4.1.4203.666.1.25 "
 			"NAME 'contextCSN' "
@@ -434,7 +445,7 @@ static struct slap_schema_ad_map {
 			"EQUALITY octetStringMatch "
 			"ORDERING octetStringOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 "
-			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
+			"SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,

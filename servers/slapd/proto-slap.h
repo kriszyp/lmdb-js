@@ -527,8 +527,8 @@ LDAP_SLAPD_F (int) extops_kill LDAP_P(( void ));
 LDAP_SLAPD_F (struct berval *) get_supported_extop LDAP_P((int index));
 
 /*
- *  * cancel.c
- *   */
+ * cancel.c
+ */
 LDAP_SLAPD_F ( SLAP_EXTOP_MAIN_FN ) cancel_extop;
 
 /*

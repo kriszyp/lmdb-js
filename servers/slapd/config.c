@@ -96,15 +96,15 @@ int use_reverse_lookup = 0;
 int slapi_plugins_used = 0;
 #endif
 
-static char	*fp_getline(FILE *fp, int *lineno);
-static void	fp_getline_init(int *lineno);
-static int	fp_parse_line(int lineno, char *line);
+static char *fp_getline(FILE *fp, int *lineno);
+static void fp_getline_init(int *lineno);
+static int fp_parse_line(int lineno, char *line);
 
 static char	*strtok_quote(char *line, char *sep);
-static int      load_ucdata(char *path);
+static int load_ucdata(char *path);
 
-static int     add_syncrepl LDAP_P(( Backend *, char **, int ));
-static int      parse_syncrepl_line LDAP_P(( char **, int, syncinfo_t *));
+static int add_syncrepl LDAP_P(( Backend *, char **, int ));
+static int parse_syncrepl_line LDAP_P(( char **, int, syncinfo_t *));
 
 int
 read_config( const char *fname, int depth )
@@ -2834,10 +2834,10 @@ add_syncrepl(
 		if ( si->si_rid == si_entry->si_rid ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( CONFIG, ERR,
-					"add_syncrepl: duplicaetd replica id\n", 0, 0,0 );
+				"add_syncrepl: duplicated replica id\n", 0, 0,0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
-					"add_syncrepl: duplicated replica id\n",0, 0, 0 );
+				"add_syncrepl: duplicated replica id\n",0, 0, 0 );
 #endif
 			duplicated_replica_id = 1;
 			break;

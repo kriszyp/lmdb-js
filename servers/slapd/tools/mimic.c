@@ -320,3 +320,15 @@ int slap_parse_user( struct berval *id, struct berval *user,
 {
 	return -1;
 }
+
+int cancel_extop( Operation *op, SlapReply *rs )
+{
+	return -1;
+}
+
+#ifdef HAVE_TLS
+int starttls_extop ( Operation *op, SlapReply *rs )
+{
+	return -1;
+}
+#endif
