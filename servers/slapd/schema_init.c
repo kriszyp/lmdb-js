@@ -618,8 +618,10 @@ UTF8StringNormalize(
 		q = s;
 	}
 
+#if 0
 	/* cannot end with a space */
 	assert( !ldap_utf8_isspace( LDAP_UTF8_PREV(q) ) );
+#endif
 
 	/* null terminate */
 	*q = '\0';
