@@ -474,7 +474,6 @@ ldap_send_entry(
 				}
 			}
 
-#ifdef ENABLE_REWRITE
 		/*
 		 * It is necessary to try to rewrite attributes with
 		 * dn syntax because they might be used in ACLs as
@@ -486,20 +485,21 @@ ldap_send_entry(
 		 * ACLs to the target directory server, and letting
 		 * everything pass thru the ldap backend.
 		 */
-		/* FIXME: #ifndef ENABLE_REWRITE should we massage these? */
 		} else if ( strcmp( attr->a_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
 			int i;
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
-				char *newval = NULL;
+				struct berval newval;
 				
+#ifdef ENABLE_REWRITE
 				switch ( rewrite_session( li->rwinfo,
 							"searchResult",
 							bv->bv_val,
-							lc->conn, &newval )) {
+							lc->conn, 
+							&newval.bv_val )) {
 				case REWRITE_REGEXEC_OK:
 					/* left as is */
-					if ( newval == NULL ) {
+					if ( newval.bv_val == NULL ) {
 						break;
 					}
 #ifdef NEW_LOGGING
@@ -509,15 +509,16 @@ ldap_send_entry(
 							" attr=%s:"
 							" \"%s\" -> \"%s\"\n",
 							attr->a_desc->ad_type->sat_cname.bv_val,
-							bv->bv_val, newval ));
+							bv->bv_val, 
+							newval.bv_val ));
 #else /* !NEW_LOGGING */
 					Debug( LDAP_DEBUG_ARGS,
 		"rw> searchResult on attr=%s: \"%s\" -> \"%s\"\n",
 						attr->a_desc->ad_type->sat_cname.bv_val,
-						bv->bv_val, newval );
+						bv->bv_val, newval.bv_val );
 #endif /* !NEW_LOGGING */
 					free( bv->bv_val );
-					ber_str2bv( newval, 0, 0, bv );
+					*bv = newval;
 					break;
 					
 				case REWRITE_REGEXEC_UNWILLING:
@@ -530,8 +531,11 @@ ldap_send_entry(
 					 */
 					break;
 				}
+#else /* !ENABLE_REWRITE */
+				ldap_back_dn_massage( li, bv, &newval, 0, 0 );
+				*bv = newval;
+#endif /* !ENABLE_REWRITE */
 			}
-#endif /* ENABLE_REWRITE */
 		}
 
 		*attrp = attr;

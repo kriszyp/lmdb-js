@@ -55,6 +55,8 @@ ldap_back_dn_massage(
 {
 	int     i, src, dst;
 
+	assert( res );
+
         if ( dn == NULL ) {
 		res->bv_val = NULL;
 		res->bv_len = 0;
