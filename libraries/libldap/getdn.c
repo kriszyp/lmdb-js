@@ -3253,7 +3253,10 @@ int ldap_dn2bv_x( LDAPDN dn, struct berval *bv, unsigned flags, void *ctx )
 			len += rdnl;
 		}
 
-		if ( ( bv->bv_val = LDAP_MALLOCX( len + 2, ctx ) ) == NULL ) {
+		/* reserve room for trailing '/' in case the DN 
+		 * is exactly a domain */
+		if ( ( bv->bv_val = LDAP_MALLOCX( len + 1 + 1, ctx ) ) == NULL )
+		{
 			rc = LDAP_NO_MEMORY;
 			break;
 		}
@@ -3306,13 +3309,14 @@ int ldap_dn2bv_x( LDAPDN dn, struct berval *bv, unsigned flags, void *ctx )
 		}
 
 		if ( trailing_slash ) {
+			/* the DN is exactly a domain -- need a trailing
+			 * slash; room was reserved in advance */
 			bv->bv_val[ len ] = '/';
 			len++;
 		}
 
 		bv->bv_len = len;
 		bv->bv_val[ bv->bv_len ] = '\0';
-
 
 		rc = LDAP_SUCCESS;
 	} break;
