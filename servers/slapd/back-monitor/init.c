@@ -929,7 +929,7 @@ monitor_back_config(
 	/*
 	 * eventually, will hold backend specific configuration parameters
 	 */
-	return 0;
+	return SLAP_CONF_UNKNOWN;
 }
 
 int
@@ -954,15 +954,7 @@ monitor_back_db_config(
 		ber_str2bv( argv[ 1 ], 0, 1, &mi->mi_l );
 
 	} else {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, INFO,
-			"line %d of file '%s' will be ignored\n",
-			lineno, fname, 0 );
-#else
-		Debug( LDAP_DEBUG_CONFIG, 
-			"line %d of file '%s' will be ignored\n",
-			lineno, fname, 0 );
-#endif
+		return SLAP_CONF_UNKNOWN;
 	}
 
 	return( 0 );

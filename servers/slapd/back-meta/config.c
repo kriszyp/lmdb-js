@@ -565,10 +565,7 @@ meta_back_db_config(
 				fname, lineno, argc, argv );
 	/* anything else */
 	} else {
-		fprintf( stderr,
-	"%s: line %d: unknown directive \"%s\" in meta database definition"
-	" (ignored)\n",
-		    fname, lineno, argv[0] );
+		return SLAP_CONF_UNKNOWN;
 	}
 	return 0;
 }

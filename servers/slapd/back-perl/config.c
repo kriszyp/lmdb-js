@@ -122,6 +122,7 @@ perl_back_db_config(
 	} else if ( strcasecmp( argv[0], "filterSearchResults" ) == 0 ) {
 		perl_back->pb_filter_search_results = 1;
 	} else {
+		return_code = SLAP_CONF_UNKNOWN;
 		/*
 		 * Pass it to Perl module if defined
 		 */
@@ -157,12 +158,7 @@ perl_back_db_config(
 
 		}
 
-		/* if the module rejected it then we should reject it */
-		if ( return_code != 0 ) {
-			fprintf( stderr,
-				 "Unknown perl backend config: %s\n", argv[0]);
-			exit( EXIT_FAILURE );
-		}
+		return return_code;
 	}
 
 	return 0;

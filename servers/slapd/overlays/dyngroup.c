@@ -117,6 +117,8 @@ static int dyngroup_config(
 		a2->ap_mem = ap.ap_mem;
 		a2->ap_uri = ap.ap_uri;
 		on->on_bi.bi_private = a2;
+	} else {
+		return SLAP_CONF_UNKNOWN;
 	}
 	return 0;
 }

@@ -325,9 +325,7 @@ backsql_db_config(
 			BACKSQL_FAIL_IF_NO_MAPPING( si ) ? "yes" : "no", 0, 0 );
 
 	} else {
-		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config (%s line %d): "
-			"unknown directive \"%s\" (ignored)\n",
-			fname, lineno, argv[ 0 ] );
+		return SLAP_CONF_UNKNOWN;
 	}
 
 	return 0;

@@ -77,7 +77,7 @@ over_db_config(
 	if ( oi->oi_bd.bd_info->bi_db_config ) {
 		rc = oi->oi_bd.bd_info->bi_db_config( &oi->oi_bd, fname, lineno,
 			argc, argv );
-		if ( rc ) return rc;
+		if ( rc != SLAP_CONF_UNKNOWN ) return rc;
 	}
 
 	bd = *be;
@@ -86,7 +86,7 @@ over_db_config(
 		if (on->on_bi.bi_db_config) {
 			rc = on->on_bi.bi_db_config( &bd, fname, lineno,
 				argc, argv );
-			if ( rc ) break;
+			if ( rc != SLAP_CONF_UNKNOWN ) break;
 		}
 	}
 	return rc;

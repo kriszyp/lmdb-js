@@ -522,6 +522,8 @@ rwm_config(
 	} else if (strcasecmp( argv[0], "suffixmassage" ) == 0 ) {
 		rc = rwm_suffixmassage_config( be, fname, lineno, argc, argv );
 
+	} else {
+		rc = SLAP_CONF_UNKNOWN;
 	}
 
 	return rc;

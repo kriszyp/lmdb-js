@@ -108,6 +108,8 @@ LDAP_BEGIN_DECL
 /* psuedo error code indicating disconnect */
 #define SLAPD_DISCONNECT (-2)
 
+/* unknown config file directive */
+#define SLAP_CONF_UNKNOWN (-2)
 
 /* We assume "C" locale, that is US-ASCII */
 #define ASCII_SPACE(c)	( (c) == ' ' )

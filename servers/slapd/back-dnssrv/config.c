@@ -47,10 +47,7 @@ dnssrv_back_db_config(
 
 	/* no configuration options (yet) */
 	{
-		fprintf( stderr,
-			"%s: line %d: unknown directive \"%s\""
-			" in DNSSRV database definition (ignored)\n",
-		    fname, lineno, argv[0] );
+		return SLAP_CONF_UNKNOWN;
 	}
 	return 0;
 }
