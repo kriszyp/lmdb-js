@@ -1,5 +1,5 @@
 /* include/portable.h.nt -- manually updated of MS NT (MS VC5) */
-/* synced with portable.h.in 1.18 */
+/* synced with portable.h.in 1.21 */
 /*
 Copyright 1998 The OpenLDAP Foundation, Redwood City, California, USA
 All rights reserved.
@@ -421,6 +421,9 @@ typedef char * caddr_t;
 /* Define if you have the waitpid function.  */
 #define HAVE_WAITPID 1
 
+/* Define if you have the <crypt.h> header file.  */
+/* #undef HAVE_CRYPT_H */
+
 /* Define if you have the <db.h> header file.  */
 /* #undef HAVE_DB_H */
 
@@ -471,6 +474,9 @@ typedef char * caddr_t;
 
 /* Define if you have the <malloc.h> header file.  */
 #define HAVE_MALLOC_H 1
+
+/* Define if you have the <memory.h> header file.  */
+/* #define HAVE_MEMORY_H */
 
 /* Define if you have the <ncurses.h> header file.  */
 /* #undef HAVE_NCURSES_H */

@@ -407,6 +407,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the waitpid function.  */
 #undef HAVE_WAITPID
 
+/* Define if you have the <crypt.h> header file.  */
+#undef HAVE_CRYPT_H
+
 /* Define if you have the <db.h> header file.  */
 #undef HAVE_DB_H
 
