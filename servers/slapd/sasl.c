@@ -45,6 +45,10 @@
 # endif
 
 static sasl_security_properties_t sasl_secprops;
+
+#define SASL_VERSION_FULL	((SASL_VERSION_MAJOR << 16) |\
+	(SASL_VERSION_MINOR << 8) | SASL_VERSION_STEP)
+
 #endif /* HAVE_CYRUS_SASL */
 
 #include "ldap_pvt.h"
@@ -468,6 +472,7 @@ slap_auxprop_lookup(
 	}
 }
 
+#if SASL_VERSION_FULL >= 0x020110
 static int
 sasl_ap_store( Operation *op, SlapReply *rs )
 {
@@ -573,6 +578,7 @@ slap_auxprop_store(
 	slap_mods_free( modlist );
 	return rc ? SASL_FAIL : SASL_OK;
 }
+#endif /* SASL_VERSION_FULL >= 2.1.16 */
 
 static sasl_auxprop_plug_t slap_auxprop_plugin = {
 	0,	/* Features */
@@ -581,8 +587,12 @@ static sasl_auxprop_plug_t slap_auxprop_plugin = {
 	NULL,	/* auxprop_free */
 	slap_auxprop_lookup,
 	"slapd",	/* name */
+#if SASL_VERSION_FULL >= 0x020110
 	slap_auxprop_store	/* the declaration of this member changed
 				 * in cyrus SASL from 2.1.15 to 2.1.16 */
+#else
+	NULL
+#endif
 };
 
 static int
