@@ -636,8 +636,8 @@ search filter, as described in {{REF:RFC2254}}.  For example:
 
 >	by filter=(objectClass=person)
 
-Note that entries by be select by both DN and filter by
-include both qualifiers in the <what> clause.
+Note that entries may be selected by both DN and filter by
+including both qualifiers in the <what> clause.
 
 >	by dn.one="ou=people,o=suffix" filter=(objectClass=person)
 
