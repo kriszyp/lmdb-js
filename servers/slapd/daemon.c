@@ -80,7 +80,7 @@ static int emfile;
 
 static int waking;
 #define WAKE_LISTENER(w) \
-do { if (w && waking < 5) { tcp_write( wake_sds[1], "0", 1 ); waking++;} } while(0)
+do { if (w && waking < 5) { waking++; tcp_write( wake_sds[1], "0", 1 ); } } while(0)
 
 volatile sig_atomic_t slapd_shutdown = 0, slapd_gentle_shutdown = 0;
 volatile sig_atomic_t slapd_abrupt_shutdown = 0;
@@ -228,7 +228,7 @@ static struct slap_daemon {
 #define SLAP_EVENT_INIT \
 	AC_MEMCPY( &readfds, &slap_daemon.sd_readers, sizeof(fd_set) );	\
 	if ( nwriters )	\
-		AC_MEMCPY( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) );
+		AC_MEMCPY( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) )
 
 #ifdef FD_SETSIZE
 #define	CHK_SETSIZE	\
