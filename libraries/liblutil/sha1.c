@@ -25,13 +25,10 @@
  */
 
 #include "portable.h"
-#include <ac/bytes.h>
-#include <ac/string.h>
-
-/* include socket.h to get sys/types.h and/or winsock2.h */
-#include <ac/socket.h>
-
 #include <ac/param.h>
+#include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/bytes.h>
 
 #include "lutil_sha1.h"
 
