@@ -1145,6 +1145,8 @@ int slapi_backend_set_pb( Slapi_PBlock *pb, Backend *be )
 	rc = slapi_pblock_set(pb, SLAPI_BE_TYPE, (void *)be->bd_info->bi_type);
 	if (rc != LDAP_SUCCESS)
 		return rc;
+
+	return LDAP_SUCCESS;
 #else
 	return -1;
 #endif /* defined(LDAP_SLAPI) */
@@ -1244,8 +1246,10 @@ int slapi_operation_set_pb( Slapi_PBlock *pb, Operation *op )
 		return rc;
 
 	rc = slapi_pblock_set(pb, SLAPI_REQUESTOR_DN, (void *)op->o_ndn.bv_val);
+	if (rc != LDAP_SUCCESS)
+		return rc;
 
-	return rc;
+	return LDAP_SUCCESS;
 #else
 	return -1;
 #endif
