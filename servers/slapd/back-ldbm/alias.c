@@ -12,8 +12,6 @@
 
 #include "portable.h"
 
-#ifdef SLAPD_ALIAS_DEREF
-
 #include <stdio.h>
 #include <string.h>
 #include <ac/socket.h>		/* Get struct sockaddr for slap.h */
@@ -23,17 +21,21 @@
 
 /*
  * given an alias object, dereference it to its end point.
- * entry returned has reader lock 
+ * Entry returned has reader lock or is NULL.  Starting entry is not released.
  */
 Entry *derefAlias_r ( Backend     *be,
 		    Connection	*conn,
 		    Operation	*op,
 		    Entry       *e)
 {
+  struct ldbminfo *li = (struct ldbminfo *) be->be_private; /* to free cache entries */
   Attribute *a;
   int       depth;
   char      **pastAliases;
   char      *matched;
+  Entry     *origDN = e;
+
+  if (!e) return NULL;  /* be sure we have a starting entry */
 
   Debug( LDAP_DEBUG_TRACE, "<= checking for alias for dn %s\n", e->e_dn, 0, 0 );
 
@@ -57,7 +59,40 @@ Entry *derefAlias_r ( Backend     *be,
       Debug( LDAP_DEBUG_TRACE, "<= %s is an alias for %s\n", 
 	     e->e_dn, a->a_vals[0]->bv_val, 0 );
       newDN = ch_strdup (a->a_vals[0]->bv_val);
-      oldDN = ch_strdup (e->e_dn);
+      oldDN = ch_strdup (e->e_ndn);
+
+      /* 
+       * release past lock if not original
+       */
+      if ( (depth > 0) && e ) {
+          cache_return_entry_r(&li->li_cache, e);	
+      }
+
+      /* make sure new and old DN are not same to avoid loops */
+      dn_normalize_case (newDN);
+      if ( strcmp (newDN, oldDN) == 0 ) {
+	
+	Debug( LDAP_DEBUG_TRACE, 
+	       "<= %s alias is same as current %s\n", 
+	       oldDN, newDN, 0 );
+	send_ldap_result( conn, op, LDAP_ALIAS_DEREF_PROBLEM, "",
+			  "Circular alias" );
+	free (newDN);
+	free (oldDN);
+	break;
+      }
+
+      /* make sure new and original are not same to avoid deadlocks */
+      if ( strcmp (newDN, origDN->e_ndn) == 0 ) {
+	Debug( LDAP_DEBUG_TRACE, 
+	       "<= %s alias is same as original %s\n", 
+	       oldDN, origDN->e_ndn, 0 );
+	send_ldap_result( conn, op, LDAP_ALIAS_DEREF_PROBLEM, "",
+			  "Circular alias" );
+	free (newDN);
+	free (oldDN);
+	break;
+      }
 
       /*
        * ok, so what happens if there is an alias in the DN of a dereferenced
@@ -69,11 +104,15 @@ Entry *derefAlias_r ( Backend     *be,
 	Debug( LDAP_DEBUG_TRACE, 
 	       "<= %s is a dangling alias to %s\n", 
 	       oldDN, newDN, 0 );
-	send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM, "",
+	send_ldap_result( conn, op, LDAP_ALIAS_DEREF_PROBLEM, "",
 			  "Dangling Alias" );
 
-			if(matched != NULL) free(matched);
+	if (matched != NULL) free(matched);
+	free (newDN);
+	free (oldDN);
+	break;
       }
+
       free (newDN);
       free (oldDN);
     }
@@ -84,9 +123,10 @@ Entry *derefAlias_r ( Backend     *be,
        */
 	Debug( LDAP_DEBUG_TRACE, 
 	       "<= %s has no data in aliasedobjectname attribute\n", 
-	       e->e_dn, 0, 0 );
+	       (e && e->e_dn) ? e->e_dn : "(null)", 0, 0 );
 	send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM, "",
 			  "Alias missing aliasedobjectname" );
+	break;
     }
   }
 
@@ -95,9 +135,11 @@ Entry *derefAlias_r ( Backend     *be,
    */
   if ( depth >= be->be_maxDerefDepth ) {
     Debug( LDAP_DEBUG_TRACE, 
-	   "<= %s exceeded maximum deref depth %d\n", 
-	   e->e_dn, be->be_maxDerefDepth, 0 );
-    send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM, "",
+	   "<= deref(\"%s\") exceeded maximum deref depth (%d) at \"%s\"\n", 
+	   origDN->e_dn ? origDN->e_dn : "(null)", 
+	   be->be_maxDerefDepth, 
+	   (e && e->e_ndn) ? e->e_ndn : "(null)");
+    send_ldap_result( conn, op, LDAP_ALIAS_DEREF_PROBLEM, "",
 			"Maximum alias dereference depth exceeded" );
   }
 
@@ -106,6 +148,17 @@ Entry *derefAlias_r ( Backend     *be,
 
 /*
  * given a DN fully deref it and return the real DN or original DN if it fails
+ * This involves finding the last matched part then reconstructing forward
+ * e.g. 
+ * ou=MyOU,o=MyAliasedOrg,c=MyCountry where o=MyAliasedOrg is an alias for o=MyOrg
+ * loop starts with newDN = ou=MyOU,o=MyAliasedOrg,c=MyCountry
+ *   dn2entry_r on newDN gives null entry and o=MyAliasedOrg,c=MyCountry matched
+ *   dn2entry_r on matched gives o=MyAliasedOrg,c=MyCountry entry
+ *   remainder is ou=MyOU
+ *   dereferencing o=MyAliasedOrg,c=MyCountry yields entry o=MyOrg,c=MyCountry
+ *   release lock on o=MyAliasedOrg,c=MyCountry entry
+ *   reconstructed dn is ou=MyOU,o=MyOrg,c=MyCountry
+ *   release lock on o=MyOrg,c=MyCountry entry
  */
 char *derefDN ( Backend     *be,
                 Connection  *conn,
@@ -121,6 +174,7 @@ char *derefDN ( Backend     *be,
   Entry 	*eDeref;
   Entry         *eNew;
   
+  if (!dn) return NULL; 
 
   Debug( LDAP_DEBUG_TRACE, 
 	 "<= dereferencing dn: \"%s\"\n", 
@@ -136,7 +190,7 @@ char *derefDN ( Backend     *be,
     
     if ((matched != NULL) && *matched) {	
       char *submatch;
-      
+   
       /* 
        * make sure there actually is an entry for the matched part 
        */
@@ -159,6 +213,9 @@ char *derefDN ( Backend     *be,
 	  newDN = NULL;
 	  free (remainder);
 	  remainder = NULL;
+	  
+	  cache_return_entry_r(&li->li_cache, eMatched);
+	  eMatched = NULL;
 	  break; /*  no associated entry, dont deref */
 	}
 	else {
@@ -168,13 +225,18 @@ char *derefDN ( Backend     *be,
 	  i = strcasecmp (matched, eNew->e_dn);
           /* free reader lock */
           cache_return_entry_r(&li->li_cache, eNew);
+
+	  free (matched);
+	  matched = NULL;
+
 	  if (! i) {
 	    /* newDN same as old so not an alias, no need to go further */
 	    free (newDN);
 	    newDN = NULL;
-	    free (matched);
-	    matched = NULL;
 	    free (remainder);
+
+	    cache_return_entry_r(&li->li_cache, eMatched);
+	    eMatched = NULL;
 	    break;
 	  }
 
@@ -188,12 +250,10 @@ char *derefDN ( Backend     *be,
 	  strcat (newDN, eMatched->e_dn);
 	  Debug( LDAP_DEBUG_TRACE, "<= expanded to %s\n", newDN, 0, 0 );
 
-	  free (matched);
-	  matched = NULL;
 	  free (remainder);
 	}
-        /* free reader lock */
-        cache_return_entry_r(&li->li_cache, eMatched);
+	/* free reader lock */
+	cache_return_entry_r(&li->li_cache, eMatched);
       }
       else {
 	if(submatch != NULL) free(submatch);
@@ -205,14 +265,18 @@ char *derefDN ( Backend     *be,
     }
   }
   
+  /* release lock if a match terminated the loop, there should be no
+   * outstanding locks at this point
+   */
   if(eMatched != NULL) {
     /* free reader lock */
     cache_return_entry_r(&li->li_cache, eMatched);
   }
 
   /*
-   * the final part of the DN might be an alias 
-   * so try to dereference it.
+   * the final part of the DN might be an alias so try to dereference it.
+   * e.g. if we had started with dn = o=MyAliasedOrg,c=MyCountry the dn would match
+   * and the above loop complete but we would still be left with an aliased DN.
    */
   if ( (eNew = dn2entry_r( be, newDN, &matched )) != NULL) {
     if ((eDeref = derefAlias_r( be, conn, op, eNew )) != NULL) {
@@ -224,15 +288,25 @@ char *derefDN ( Backend     *be,
     /* free reader lock */
     cache_return_entry_r(&li->li_cache, eNew);
   }
+  if (matched != NULL) free(matched);
   
   /*
    * warn if we exceeded the max depth as the resulting DN may not be dereferenced
    */
   if (depth >= be->be_maxDerefDepth) {
-    Debug( LDAP_DEBUG_TRACE, 
-	   "<= max deref depth exceeded in derefDN for \"%s\", result \"%s\"\n", 
-	   dn, newDN, 0 );
-    send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM, "",
+    if (newDN) {
+      Debug( LDAP_DEBUG_TRACE, 
+	     "<= max deref depth exceeded in derefDN for \"%s\", result \"%s\"\n", 
+	     dn, newDN, 0 );
+      free (newDN);
+      newDN = NULL;
+    }
+    else {
+      Debug( LDAP_DEBUG_TRACE, 
+	     "<= max deref depth exceeded in derefDN for \"%s\", result NULL\n", 
+	     dn, 0, 0 );
+    }
+    send_ldap_result( conn, op, LDAP_ALIAS_DEREF_PROBLEM, "",
 		      "Maximum alias dereference depth exceeded for base" );
   }
 
@@ -241,9 +315,6 @@ char *derefDN ( Backend     *be,
   }
   
   Debug( LDAP_DEBUG_TRACE, "<= returning deref DN of \"%s\"\n", newDN, 0, 0 ); 
-  if (matched != NULL) free(matched);
 
   return newDN;
 }
-
-#endif /* SLAPD_ALIAS_DEREF */

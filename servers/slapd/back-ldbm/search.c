@@ -76,7 +76,6 @@ ldbm_back_search(
 	 * the subordinates of the base
 	 */
 
-#ifdef SLAPD_ALIAS_DEREF
 	switch ( deref ) {
 	case LDAP_DEREF_FINDING:
 	case LDAP_DEREF_ALWAYS:
@@ -85,9 +84,6 @@ ldbm_back_search(
 	default:
 		realBase = ch_strdup(base);
 	}
-#else
-		realBase = ch_strdup(base);
-#endif
 
 	(void) dn_normalize_case( realBase );
 
@@ -249,7 +245,6 @@ ldbm_back_search(
 						return( 0 );
 					}
 
-#ifdef	SLAPD_ALIAS_DEREF
 					/*
 					 * check and apply aliasing where the dereferencing applies to
 					 * the subordinates of the base
@@ -259,29 +254,36 @@ ldbm_back_search(
 					case LDAP_DEREF_ALWAYS:
 						{
 							Entry *newe = derefAlias_r( be, conn, op, e );
-							cache_return_entry_r( &li->li_cache, e );
-							e = newe;
+							if ( newe == NULL ) { /* problem with the alias */
+								cache_return_entry_r( &li->li_cache, e );
+								e = NULL;
+							}
+							else if ( newe != e ) { /* reassign e */
+								cache_return_entry_r( &li->li_cache, e );
+								e = newe;
+							}	
 						}
 						break;
 					}
-#endif
 
-					switch ( send_search_entry( be, conn, op, e,
-						attrs, attrsonly ) ) {
-					case 0:		/* entry sent ok */
-						nentries++;
-						break;
-					case 1:		/* entry not sent */
-						break;
-					case -1:	/* connection closed */
-						cache_return_entry_r( &li->li_cache, e );
-						idl_free( candidates );
-						free( rbuf );
+					if (e) {
+						switch ( send_search_entry( be, conn, op, e,
+							attrs, attrsonly ) ) {
+						case 0:		/* entry sent ok */
+							nentries++;
+							break;
+						case 1:		/* entry not sent */
+							break;
+						case -1:	/* connection closed */
+							cache_return_entry_r( &li->li_cache, e );
+							idl_free( candidates );
+							free( rbuf );
 
-						if( realBase != NULL) {
-							free( realBase );
+							if( realBase != NULL) {
+								free( realBase );
+							}
+							return( 0 );
 						}
-						return( 0 );
 					}
 				}
 			}
