@@ -1050,7 +1050,7 @@ parse_acl(
 						acl_usage();
 					}
 
-					if ( BER_BVISEMPTY( &b->a_peername_pat ) ) {
+					if ( !BER_BVISEMPTY( &b->a_peername_pat ) ) {
 						fprintf( stderr, "%s: line %d: "
 							"peername pattern already specified.\n",
 							fname, lineno );
@@ -2240,8 +2240,11 @@ print_acl( Backend *be, AccessControl *a )
 			if ( ! first ) fprintf( stderr, "," );
 			if (an->an_oc) {
 				fputc( an->an_oc_exclude ? '!' : '@', stderr);
+				fputs( an->an_oc->soc_cname.bv_val, stderr );
+
+			} else {
+				fputs( an->an_name.bv_val, stderr );
 			}
-			fputs( an->an_name.bv_val, stderr );
 			first = 0;
 		}
 		fprintf(  stderr, "\n" );
