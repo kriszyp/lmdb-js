@@ -110,7 +110,7 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op)
 
 	ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER, &err);
 	ldap_get_option(lc->ld, LDAP_OPT_ERROR_STRING, &msg);
-	ldap_get_option(lc->ld, LDAP_OPT_MATCH_STRING, &match);
+	ldap_get_option(lc->ld, LDAP_OPT_MATCHED_DN, &match);
 	send_ldap_result( lc->conn, op, err, match, msg);
 	free(match);
 	free(msg);

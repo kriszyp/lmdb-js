@@ -103,7 +103,7 @@ fail:		return( ldap_back_op_result(lc, op) );
 		} else {
 			sres = ldap_result2error(lc->ld, res, 1);
 			ldap_get_option(lc->ld, LDAP_OPT_ERROR_STRING, &err);
-			ldap_get_option(lc->ld, LDAP_OPT_MATCH_STRING, &match);
+			ldap_get_option(lc->ld, LDAP_OPT_MATCHED_DN, &match);
 			rc = 0;
 		}
 		ldap_msgfree(res);
