@@ -263,7 +263,7 @@ syncprov_state_ctrl_from_slog(
 	return LDAP_SUCCESS;
 }
 
-int
+static int
 syncprov_sendinfo(
 	Operation	*op,
 	SlapReply	*rs,
@@ -908,6 +908,54 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
+static void
+syncprov_free_syncop( syncops *so )
+{
+	syncres *sr, *srnext;
+
+	filter_free( so->s_op->ors_filter );
+	ch_free( so->s_op );
+	ch_free( so->s_base.bv_val );
+	for ( sr=so->s_res; sr; sr=srnext ) {
+		srnext = sr->s_next;
+		ch_free( sr );
+	}
+	ldap_pvt_thread_mutex_destroy( &so->s_mutex );
+	ch_free( so );
+}
+
+static int
+syncprov_op_abandon( Operation *op, SlapReply *rs )
+{
+	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
+	syncprov_info_t		*si = on->on_bi.bi_private;
+	syncops *so, *soprev;
+
+	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+	for ( so=si->si_ops, soprev = (syncops *)&si->si_ops; so;
+		soprev=so, so=so->s_next ) {
+		if ( so->s_op->o_connid == op->o_connid &&
+			so->s_op->o_msgid == op->orn_msgid ) {
+				soprev->s_next = so->s_next;
+				break;
+		}
+	}
+	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+	if ( so ) {
+		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+		op->o_conn->c_n_ops_executing--;
+		op->o_conn->c_n_ops_completed++;
+		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+		/* Is this really a Cancel exop? */
+		if ( op->o_tag != LDAP_REQ_ABANDON ) {
+			rs->sr_err = LDAP_CANCELLED;
+			send_ldap_result( so->s_op, rs );
+		}
+		syncprov_free_syncop( so );
+	}
+	return SLAP_CB_CONTINUE;
+}
+
 #if 0
 static int
 syncprov_op_compare( Operation *op, SlapReply *rs )
@@ -1070,6 +1118,7 @@ syncprov_detach_op( Operation *op, syncops *so )
 	/* Increment number of ops so that idletimeout ignores us */
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 	op->o_conn->c_n_ops_executing++;
+	op->o_conn->c_n_ops_completed--;
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 }
 
@@ -1532,6 +1581,9 @@ syncprov_init()
 	syncprov.on_bi.bi_db_init = syncprov_db_init;
 	syncprov.on_bi.bi_db_config = syncprov_db_config;
 	syncprov.on_bi.bi_db_destroy = syncprov_db_destroy;
+
+	syncprov.on_bi.bi_op_abandon = syncprov_op_abandon;
+	syncprov.on_bi.bi_op_cancel = syncprov_op_abandon;
 
 	syncprov.on_bi.bi_op_add = syncprov_op_mod;
 #if 0
