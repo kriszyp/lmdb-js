@@ -32,6 +32,7 @@
 #include "lutil_ldap.h"
 #include "ldif.h"
 #include "ldap_defaults.h"
+#include "ldap_log.h"
 
 static char	*prog;
 static char	*binddn = NULL;
