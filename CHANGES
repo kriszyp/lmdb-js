@@ -2,11 +2,14 @@ OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.19 Engineering
 	Fixed slapd check for mandatory filter in authz-regexp URI (ITS#3396)
+	Fixed slapd bad descriptor check (ITS#3400)
 	Fixed slapd ACI when the subject contains '#' (ITS#3303)
 	Fixed back-ldap malformed URI check for multiple URIs (ITS#3399)
 	Fixed back-ldap/back-meta static definition of be_open() (ITS#3387)
+	Fixed back-bdb cache bugs (ITS#3356, #3358), ctxcsn memory leak
 	Build Environment
 		Updated BDB mismatch messages
+		Added BDB 4.3 detection
 
 OpenLDAP 2.2.18 Release
 	Fixed libldap schema keyword sensitivity (ITS#3334)
