@@ -475,21 +475,22 @@ put into LDAP entries to allow authorization:
 >	saslAuthzTo
 >	saslAuthzFrom
 
-Both can be multivalued. The first is called a source rule, and it
-is placed into a person's authentication DN entry to tell what
-other authorization DN's the person is allowed to change to. The
-second form is called a destination rule, and it is placed into an
-authorization DN's entry to tell what authenticated DN a person
-must be coming from in order to switch to that authorization DN.
-The choice of which form to use is up to the administrator. Source
-rules are checked first in the person's authentication DN entry,
-and if none of the {{EX:saslAuthzTo}} rules specify the authorization
-is permitted, the {{EX:saslAuthzFrom}} rules in the authorization
-DN entry are then checked. If neither case specifies that the
-request be honored, the request is denied with an "inappropriate
-access" message. Since the default behaviour is to deny authorization
-requests, rules only specify that a request be allowed; there are
-no negative rules telling what authorizations to deny.
+Both can be multivalued.  The {{EX:saslAuthzTo}} attribute is a
+source rule, and it is placed into the entry associated with the
+authentication DN to tell what authorization DNs the authenticated
+DN is allowed to assume.  The second attribute is a destination
+rule, and it is placed into the entry associated with the requested
+authorization DN to tell which authenticated DNs may assume it.
+
+The choice of which authorization policy attribute to use is up to
+the administrator.  Source rules are checked first in the person's
+authentication DN entry, and if none of the {{EX:saslAuthzTo}} rules
+specify the authorization is permitted, the {{EX:saslAuthzFrom}}
+rules in the authorization DN entry are then checked. If neither
+case specifies that the request be honored, the request is denied.
+Since the default behaviour is to deny authorization requests, rules
+only specify that a request be allowed; there are no negative rules
+telling what authorizations to deny.
 
 The value(s) in the two attributes are of the same form as the
 output of the replacement pattern of a {{EX:saslRegexp}} directive:

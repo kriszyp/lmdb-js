@@ -91,7 +91,7 @@ additive, you can do the math yourself. That is, if you want
 to trace function calls and watch the config file being
 processed, you could set level to the sum of those two levels
 (in this case, {{EX: -d 65}}).  Or, you can let slapd do the
-math, (e.g. {{EX: -d 1 -d 64}}).  Consult {{F: <ldap.h>}} for
+math, (e.g. {{EX: -d 1 -d 64}}).  Consult {{F: <ldap_log.h>}} for
 more details.
 
 Note: slapd must have been compiled with {{EX:-DLDAP_DEBUG}}
