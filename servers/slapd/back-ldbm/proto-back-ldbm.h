@@ -112,7 +112,23 @@ ID idl_nextid LDAP_P(( ID_BLOCK *idl, ID id ));
 int index_add_entry LDAP_P(( Backend *be, Entry *e ));
 int index_add_mods LDAP_P(( Backend *be, LDAPMod *mods, ID id ));
 ID_BLOCK * index_read LDAP_P(( Backend *be, char *type, int indextype, char *val ));
-int index_add_values LDAP_P(( Backend *be, char *type, struct berval **vals, ID  id ));
+
+/* To keep index files up-to-date we needed a index_delete_values() but since
+ * that function is so similar to index_add_values() I have merged them in one
+ * called index_change_values(). (gomez 07/07/1999)
+ */
+
+/* int index_add_values LDAP_P(( Backend *be, char *type, struct berval **vals, ID  id )); */
+/* Possible operations supported (op) by index_change_values() */
+#define __INDEX_ADD_OP  0x0001
+#define __INDEX_DEL_OP	0x0002
+int index_change_values LDAP_P(( Backend *be,
+                                 char *type,
+                                 struct berval **vals,
+                                 ID  id,
+                                 unsigned int op ));
+
+
 
 /*
  * kerberos.c

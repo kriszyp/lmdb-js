@@ -10,7 +10,16 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-static int	add_value(Backend *be, struct dbcache *db, char *type, int indextype, char *val, ID id);
+/* static int	add_value(Backend *be, struct dbcache *db, char *type, int indextype, char *val, ID id);*/
+
+static int	change_value(Backend *be,
+			  struct dbcache *db,
+			  char *type,
+			  int indextype,
+			  char *val,
+			  ID id,
+			  int
+			  (*idl_func)(Backend *, struct dbcache *, Datum, ID));
 static int	index2prefix(int indextype);
 
 int
@@ -40,7 +49,7 @@ index_add_entry(
 	/* add the dn to the indexes */
 	{
 		char *dn = ch_strdup("dn");
-		index_add_values( be, dn, bvals, e->e_id );
+		index_change_values( be, dn, bvals, e->e_id, __INDEX_ADD_OP );
 		free( dn );
 	}
 
@@ -48,7 +57,8 @@ index_add_entry(
 
 	/* add each attribute to the indexes */
 	for ( ap = e->e_attrs; ap != NULL; ap = ap->a_next ) {
-		index_add_values( be, ap->a_type, ap->a_vals, e->e_id );
+		index_change_values( be, ap->a_type, ap->a_vals, e->e_id,
+				     __INDEX_ADD_OP );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= index_add( %ld, \"%s\" ) 0\n", e->e_id,
@@ -67,14 +77,26 @@ index_add_mods(
 
 	for ( ; mods != NULL; mods = mods->mod_next ) {
 		switch ( mods->mod_op & ~LDAP_MOD_BVALUES ) {
-		case LDAP_MOD_ADD:
 		case LDAP_MOD_REPLACE:
-			rc = index_add_values( be, mods->mod_type,
-			    mods->mod_bvalues, id );
+			/* XXX: Delete old index data==>problem when this 
+			 * gets called we lost values already!
+			 */
+		case LDAP_MOD_ADD:
+			rc = index_change_values( be,
+						  mods->mod_type,
+						  mods->mod_bvalues,
+						  id,
+						  __INDEX_ADD_OP);
 			break;
 		case LDAP_MOD_SOFTADD:	/* SOFTADD means index was there already */
-		case LDAP_MOD_DELETE:
 			rc = 0;
+			break;
+		case LDAP_MOD_DELETE:
+			rc =  index_change_values( be,
+						   mods->mod_type,
+						   mods->mod_bvalues,
+						   id,
+						   __INDEX_DEL_OP );
 			break;
 		}
 
@@ -157,19 +179,21 @@ index_read(
 	return( idl );
 }
 
+/* Add or remove stuff from index files */
+
 static int
-add_value(
+change_value(
     Backend		*be,
     struct dbcache	*db,
     char		*type,
     int			indextype,
     char		*val,
-    ID			id
+    ID			id,
+    int			(*idl_func)(Backend *, struct dbcache *, Datum, ID)
 )
 {
 	int	rc;
 	Datum   key;
-	ID_BLOCK	*idl = NULL;
 	char	*tmpval = NULL;
 	char	*realval = val;
 	char	buf[BUFSIZ];
@@ -178,21 +202,20 @@ add_value(
 
 	ldbm_datum_init( key );
 
-	Debug( LDAP_DEBUG_TRACE, "=> add_value( \"%c%s\" )\n", prefix, val, 0 );
-
-	realval = val;
-	tmpval = NULL;
+	Debug( LDAP_DEBUG_TRACE,
+	       "=> change_value( \"%c%s\", op=%s )\n",
+	       prefix, val, (idl_func == idl_insert_key ? "ADD":"DELETE") );
 
 	if ( prefix != UNKNOWN_PREFIX ) {
               unsigned int     len = strlen( val );
 
               if ( (len + 2) < sizeof(buf) ) {
 			realval = buf;
-		} else {
+	      } else {
 			/* value + prefix + null */
 			tmpval = (char *) ch_malloc( len + 2 );
 			realval = tmpval;
-		}
+	      }
               realval[0] = prefix;
               strcpy( &realval[1], val );
 	}
@@ -200,28 +223,27 @@ add_value(
 	key.dptr = realval;
 	key.dsize = strlen( realval ) + 1;
 
-	rc = idl_insert_key( be, db, key, id );
+	rc = idl_func( be, db, key, id );
 
 	if ( tmpval != NULL ) {
 		free( tmpval );
 	}
 
-	if( idl != NULL ) {
-		idl_free( idl );
-	}
-
 	ldap_pvt_thread_yield();
 
-	/* Debug( LDAP_DEBUG_TRACE, "<= add_value %d\n", rc, 0, 0 ); */
+	Debug( LDAP_DEBUG_TRACE, "<= change_value %d\n", rc, 0, 0 );
+
 	return( rc );
-}
+
+}/* static int change_value() */
 
 int
-index_add_values(
+index_change_values(
     Backend		*be,
     char		*type,
     struct berval	**vals,
-    ID			id
+    ID			id,
+    unsigned int	op
 )
 {
 	char		*val, *p, *code, *w;
@@ -232,19 +254,50 @@ index_add_values(
 	char		*bigbuf;
 	struct dbcache	*db;
 
-	Debug( LDAP_DEBUG_TRACE, "=> index_add_values( \"%s\", %ld )\n", type,
-	    id, 0 );
+	int		(*idl_funct)(Backend *,
+				    struct dbcache *,
+				    Datum, ID);
+	char		*at_cn;	/* Attribute canonical name */
+	int		mode;
+
+	Debug( LDAP_DEBUG_TRACE,
+	       "=> index_change_values( \"%s\", %ld, op=%s )\n", 
+	       type, id, ((op == __INDEX_ADD_OP) ? "ADD" : "DELETE" ) );
+
+	
+	if (op == __INDEX_ADD_OP) {
+
+	    /* Add values */
+
+	    idl_funct =  idl_insert_key;
+	    mode = LDBM_WRCREAT;
+
+	} else {
+
+	    /* Delete values */
+
+	    idl_funct = idl_delete_key;
+	    mode = LDBM_WRITER;
+
+	}
+
 	attr_normalize(type);
 	attr_masks( be->be_private, type, &indexmask, &syntax );
+
 	if ( indexmask == 0 ) {
 		return( 0 );
 	}
 
-	if ( (db = ldbm_cache_open( be, type, LDBM_SUFFIX, LDBM_WRCREAT ))
-	    == NULL ) {
+	/* at_cn = at_canonical_name( type ); */
+	at_cn = type;
+
+	if ( (db = ldbm_cache_open( be, at_cn, LDBM_SUFFIX, mode ))
+	     == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-		    "<= index_add_values -1 (could not open/create %s%s)\n",
-		    type, LDBM_SUFFIX, 0 );
+		       "<= index_change_values (couldn't open(%s%s),md=%s)\n",
+		       at_cn,
+		       LDBM_SUFFIX,
+		       ((mode==LDBM_WRCREAT)?"LDBM_WRCREAT":"LDBM_WRITER") );
 		return( -1 );
 	}
 
@@ -254,14 +307,21 @@ index_add_values(
 		 * presence index entry
 		 */
 		if ( indexmask & INDEX_PRESENCE ) {
-			add_value( be, db, type, INDEX_PRESENCE, "*", id );
+
+			change_value( be, db, at_cn, INDEX_PRESENCE,
+				      "*", id, idl_funct );
+
 		}
 
-		Debug( LDAP_DEBUG_TRACE, "*** index_add_values syntax 0x%x syntax bin 0x%x\n",
-		    syntax, SYNTAX_BIN, 0 );
+		Debug( LDAP_DEBUG_TRACE,
+		       "index_change_values syntax 0x%x syntax bin 0x%x\n",
+		       syntax, SYNTAX_BIN, 0 );
+
 		if ( syntax & SYNTAX_BIN ) {
+
 			ldbm_cache_close( be, db );
 			return( 0 );
+
 		}
 
 		bigbuf = NULL;
@@ -279,14 +339,17 @@ index_add_values(
 
 		value_normalize( val, syntax );
 
-		/* val length could change */
+		/* value_normalize could change the length of val */
 		len = strlen( val );
 
 		/*
 		 * equality index entry
 		 */
 		if ( indexmask & INDEX_EQUALITY ) {
-			add_value( be, db, type, INDEX_EQUALITY, val, id );
+		    
+			change_value( be, db, at_cn, INDEX_EQUALITY,
+				      val, id, idl_funct);
+
 		}
 
 		/*
@@ -296,8 +359,13 @@ index_add_values(
 			for ( w = first_word( val ); w != NULL;
 			    w = next_word( w ) ) {
 				if ( (code = phonetic( w )) != NULL ) {
-					add_value( be, db, type, INDEX_APPROX,
-					    code, id );
+					change_value( be,
+						      db,
+						      at_cn,
+						      INDEX_APPROX,
+						      code,
+						      id,
+						      idl_funct );
 					free( code );
 				}
 			}
@@ -315,7 +383,8 @@ index_add_values(
 				}
 				buf[SUBLEN] = '\0';
 
-				add_value( be, db, type, INDEX_SUB, buf, id );
+				change_value( be, db, at_cn, INDEX_SUB,
+					      buf, id, idl_funct );
 
 				p = val + len - SUBLEN + 1;
 				for ( j = 0; j < SUBLEN - 1; j++ ) {
@@ -324,7 +393,8 @@ index_add_values(
 				buf[SUBLEN - 1] = '$';
 				buf[SUBLEN] = '\0';
 
-				add_value( be, db, type, INDEX_SUB, buf, id );
+				change_value( be, db, at_cn, INDEX_SUB,
+					      buf, id, idl_funct );
 			}
 
 			/* any */
@@ -334,7 +404,8 @@ index_add_values(
 				}
 				buf[SUBLEN] = '\0';
 
-				add_value( be, db, type, INDEX_SUB, buf, id );
+				change_value( be, db, at_cn, INDEX_SUB,
+					      buf, id, idl_funct );
 			}
 		}
 
@@ -345,7 +416,8 @@ index_add_values(
 	ldbm_cache_close( be, db );
 
 	return( 0 );
-}
+
+}/* int index_change_values() */
 
 static int
 index2prefix( int indextype )
