@@ -217,9 +217,7 @@ register_matching_rule(
 	int		code;
 	const char	*err;
 
-	if( def->mrd_usage == SLAP_MR_NONE &&
-		def->mrd_compat_syntaxes == NULL )
-	{
+	if( def->mrd_usage == SLAP_MR_NONE && def->mrd_compat_syntaxes == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "register_matching_rule: not usable %s\n",
 		    def->mrd_desc, 0, 0 );
 
@@ -228,10 +226,9 @@ register_matching_rule(
 
 	if( def->mrd_associated != NULL ) {
 		amr = mr_find( def->mrd_associated );
-
 		if( amr == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "register_matching_rule: could not locate "
-				"associated matching rule %s for %s\n",
+			Debug( LDAP_DEBUG_ANY, "register_matching_rule: "
+				"could not locate associated matching rule %s for %s\n",
 				def->mrd_associated, def->mrd_desc, 0 );
 
 			return -1;
@@ -243,17 +240,15 @@ register_matching_rule(
 			if (( def->mrd_usage & SLAP_MR_EQUALITY ) &&
 				(( def->mrd_usage & SLAP_MR_SUBTYPE_MASK ) != SLAP_MR_NONE ))
 			{
-				Debug( LDAP_DEBUG_ANY,
-				   "register_matching_rule: inappropriate (approx) association "
-						"%s for %s\n",
+				Debug( LDAP_DEBUG_ANY, "register_matching_rule: "
+						"inappropriate (approx) association %s for %s\n",
 					def->mrd_associated, def->mrd_desc, 0 );
 				return -1;
 			}
 
 		} else if (!( amr->smr_usage & SLAP_MR_EQUALITY )) {
-				Debug( LDAP_DEBUG_ANY,
-				   "register_matching_rule: inappropriate (equalilty) association "
-						"%s for %s\n",
+				Debug( LDAP_DEBUG_ANY, "register_matching_rule: "
+					"inappropriate (equalilty) association %s for %s\n",
 					def->mrd_associated, def->mrd_desc, 0 );
 				return -1;
 		}

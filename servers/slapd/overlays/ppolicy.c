@@ -1707,6 +1707,14 @@ ppolicy_db_init(
 }
 
 static int
+ppolicy_db_open(
+    BackendDB *be
+)
+{
+	return overlay_register_control( be, LDAP_CONTROL_PASSWORDPOLICYREQUEST );
+}
+
+static int
 ppolicy_close(
 	BackendDB *be
 )
@@ -1802,7 +1810,7 @@ int ppolicy_init()
 	}
 
 	code = register_supported_control( LDAP_CONTROL_PASSWORDPOLICYREQUEST,
-		SLAP_CTRL_ADD|SLAP_CTRL_BIND|SLAP_CTRL_MODIFY, extops,
+		SLAP_CTRL_ADD|SLAP_CTRL_BIND|SLAP_CTRL_MODIFY|SLAP_CTRL_HIDE, extops,
 		ppolicy_parseCtrl, &ppolicy_cid );
 	if ( code != LDAP_SUCCESS ) {
 		fprintf( stderr, "Failed to register control %d\n", code );
@@ -1813,6 +1821,7 @@ int ppolicy_init()
 
 	ppolicy.on_bi.bi_type = "ppolicy";
 	ppolicy.on_bi.bi_db_init = ppolicy_db_init;
+	ppolicy.on_bi.bi_db_open = ppolicy_db_open;
 	ppolicy.on_bi.bi_db_config = ppolicy_config;
 	ppolicy.on_bi.bi_db_close = ppolicy_close;
 

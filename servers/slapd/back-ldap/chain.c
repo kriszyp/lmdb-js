@@ -29,7 +29,35 @@
 #include "slap.h"
 #include "back-ldap.h"
 
-static BackendInfo *lback;
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+#define SLAP_CH_RESOLVE_SHIFT				SLAP_CONTROL_SHIFT
+#define SLAP_CH_RESOLVE_MASK				(0x3 << SLAP_CH_RESOLVE_SHIFT)
+#define SLAP_CH_RESOLVE_CHAINING_PREFERRED		(LDAP_CHAINING_PREFERRED << SLAP_CH_RESOLVE_SHIFT)
+#define SLAP_CH_RESOLVE_CHAINING_REQUIRED		(LDAP_CHAINING_REQUIRED << SLAP_CH_RESOLVE_SHIFT)
+#define SLAP_CH_RESOLVE_REFERRALS_PREFERRED		(LDAP_REFERRALS_PREFERRED << SLAP_CH_RESOLVE_SHIFT)
+#define SLAP_CH_RESOLVE_REFERRALS_REQUIRED		(LDAP_REFERRALS_REQUIRED << SLAP_CH_RESOLVE_SHIFT)
+#define SLAP_CH_RESOLVE_DEFAULT				SLAP_CH_RESOLVE_CHAINING_PREFERRED
+#define	SLAP_CH_CONTINUATION_SHIFT			(SLAP_CH_RESOLVE_SHIFT + 2)
+#define SLAP_CH_CONTINUATION_MASK			(0x3 << SLAP_CH_CONTINUATION_SHIFT)
+#define SLAP_CH_CONTINUATION_CHAINING_PREFERRED		(LDAP_CHAINING_PREFERRED << SLAP_CH_CONTINUATION_SHIFT)
+#define SLAP_CH_CONTINUATION_CHAINING_REQUIRED		(LDAP_CHAINING_REQUIRED << SLAP_CH_CONTINUATION_SHIFT)
+#define SLAP_CH_CONTINUATION_REFERRALS_PREFERRED	(LDAP_REFERRALS_PREFERRED << SLAP_CH_CONTINUATION_SHIFT)
+#define SLAP_CH_CONTINUATION_REFERRALS_REQUIRED		(LDAP_REFERRALS_REQUIRED << SLAP_CH_CONTINUATION_SHIFT)
+#define SLAP_CH_CONTINUATION_DEFAULT			SLAP_CH_CONTINUATION_CHAINING_PREFERRED
+
+#define o_chaining			o_ctrlflag[sc_chainingBehavior]
+#define get_chaining(op)		((op)->o_chaining & SLAP_CONTROL_MASK)
+#define get_chainingBehavior(op)	((op)->o_chaining & (SLAP_CH_RESOLVE_MASK|SLAP_CH_CONTINUATION_MASK))
+#define get_resolveBehavior(op)		((op)->o_chaining & SLAP_CH_RESOLVE_MASK)
+#define get_continuationBehavior(op)	((op)->o_chaining & SLAP_CH_CONTINUATION_MASK)
+#endif /*  LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
+#define	LDAP_CH_NONE			((void *)(0))
+#define	LDAP_CH_RES			((void *)(1))
+#define LDAP_CH_ERR			((void *)(2))
+
+static int		sc_chainingBehavior;
+static BackendInfo	*lback;
 
 static int
 ldap_chain_operational( Operation *op, SlapReply *rs )
@@ -58,6 +86,11 @@ ldap_chain_cb_search_response( Operation *op, SlapReply *rs )
 {
 	assert( op->o_tag == LDAP_REQ_SEARCH );
 
+	/* if in error, don't proceed any further */
+	if ( op->o_callback->sc_private == LDAP_CH_ERR ) {
+		return 0;
+	}
+
 	if ( rs->sr_type == REP_SEARCH ) {
 		Attribute	**ap = &rs->sr_entry->e_attrs;
 
@@ -79,9 +112,27 @@ ldap_chain_cb_search_response( Operation *op, SlapReply *rs )
 		
 		return SLAP_CB_CONTINUE;
 
+	} else if ( rs->sr_type == REP_SEARCHREF ) {
+		/* if we get it here, it means the library was unable
+		 * to chase the referral... */
+
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+		if ( get_chaining( op ) > SLAP_CONTROL_IGNORED ) {
+			switch ( get_continuationBehavior( op ) ) {
+			case SLAP_CH_RESOLVE_CHAINING_REQUIRED:
+				op->o_callback->sc_private = LDAP_CH_ERR;
+				return -1;
+
+			default:
+				break;
+			}
+		}
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+		return SLAP_CB_CONTINUE;
+
 	} else if ( rs->sr_type == REP_RESULT ) {
 		/* back-ldap tried to send result */
-		op->o_callback->sc_private = (void *)(1);
+		op->o_callback->sc_private = LDAP_CH_RES;
 	}
 
 	return 0;
@@ -94,8 +145,13 @@ ldap_chain_cb_search_response( Operation *op, SlapReply *rs )
 static int
 ldap_chain_cb_response( Operation *op, SlapReply *rs )
 {
+	/* if in error, don't proceed any further */
+	if ( op->o_callback->sc_private == LDAP_CH_ERR ) {
+		return 0;
+	}
+
 	if ( rs->sr_type == REP_RESULT ) {
-		op->o_callback->sc_private = (void *)(1);
+		op->o_callback->sc_private = LDAP_CH_RES;
 
 	} else if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_SEARCH )
 	{
@@ -115,7 +171,9 @@ ldap_chain_op(
 {
 	slap_overinst	*on = (slap_overinst *) op->o_bd->bd_info;
 	struct ldapinfo	li, *lip = (struct ldapinfo *)on->on_bi.bi_private;
-	int		rc;
+
+	/* NOTE: returned if ref is empty... */
+	int		rc = LDAP_OTHER;
 
 	if ( lip->url != NULL ) {
 		op->o_bd->be_private = on->on_bi.bi_private;
@@ -204,9 +262,43 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 
 	struct ldapinfo	li, *lip = (struct ldapinfo *)on->on_bi.bi_private;
 
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+	int		sr_err = rs->sr_err;
+	slap_reply_t	sr_type = rs->sr_type;
+	slap_mask_t	chain_mask = 0;
+	ber_len_t	chain_shift = 0;
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
 	if ( rs->sr_err != LDAP_REFERRAL && rs->sr_type != REP_SEARCHREF ) {
 		return SLAP_CB_CONTINUE;
 	}
+
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+	if ( rs->sr_err == LDAP_REFERRAL && get_chaining( op ) > SLAP_CONTROL_IGNORED ) {
+		switch ( get_resolveBehavior( op ) ) {
+		case SLAP_CH_RESOLVE_REFERRALS_PREFERRED:
+		case SLAP_CH_RESOLVE_REFERRALS_REQUIRED:
+			return SLAP_CB_CONTINUE;
+
+		default:
+			chain_mask = SLAP_CH_RESOLVE_MASK;
+			chain_shift = SLAP_CH_RESOLVE_SHIFT;
+			break;
+		}
+
+	} else if ( rs->sr_type == REP_SEARCHREF && get_chaining( op ) > SLAP_CONTROL_IGNORED ) {
+		switch ( get_continuationBehavior( op ) ) {
+		case SLAP_CH_CONTINUATION_REFERRALS_PREFERRED:
+		case SLAP_CH_CONTINUATION_REFERRALS_REQUIRED:
+			return SLAP_CB_CONTINUE;
+
+		default:
+			chain_mask = SLAP_CH_CONTINUATION_MASK;
+			chain_shift = SLAP_CH_CONTINUATION_SHIFT;
+			break;
+		}
+	}
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
 	/*
 	 * TODO: add checks on who/when chain operations; e.g.:
@@ -253,6 +345,14 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 		if ( op->ora_e->e_attrs == NULL ) {
 			char		textbuf[ SLAP_TEXT_BUFLEN ];
 			size_t		textlen = sizeof( textbuf );
+
+#if 0
+			/* FIXME: op->o_bd is still set to the BackendDB 
+			 * structure of the database that tried to handle
+			 * the operation and actually returned a referral
+			 * ... */
+			assert( SLAP_DBFLAGS( op->o_bd ) & SLAP_DBFLAG_GLOBAL_OVERLAY );
+#endif
 
 			/* global overlay: create entry */
 			/* NOTE: this is a hack to use the chain overlay
@@ -362,6 +462,8 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 				if ( rc == LDAP_SUCCESS && rs->sr_err == LDAP_SUCCESS ) {
 					break;
 				}
+
+				rc = rs->sr_err;
 			}
 
 			op->o_req_dn = odn;
@@ -393,12 +495,38 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 		break;
 	}
 
-	if ( sc2.sc_private == NULL ) {
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+	if ( rc != LDAP_SUCCESS || sc2.sc_private == LDAP_CH_ERR ) {
+		if ( rs->sr_err == LDAP_CANNOT_CHAIN ) {
+			goto cannot_chain;
+		}
+
+		switch ( ( get_chainingBehavior( op ) & chain_mask ) >> chain_shift ) {
+		case LDAP_CHAINING_REQUIRED:
+cannot_chain:;
+			op->o_callback = NULL;
+			send_ldap_error( op, rs, LDAP_CANNOT_CHAIN, "operation cannot be completed without chaining" );
+			break;
+
+		default:
+			rc = SLAP_CB_CONTINUE;
+			rs->sr_err = sr_err;
+			rs->sr_type = sr_type;
+			break;
+		}
+		goto dont_chain;
+	}
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
+	if ( sc2.sc_private == LDAP_CH_NONE ) {
 		op->o_callback = NULL;
 		rc = rs->sr_err = slap_map_api2result( rs );
 		send_ldap_result( op, rs );
 	}
 
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+dont_chain:;
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 	op->o_do_not_cache = cache;
 	op->o_bd->be_private = private;
 	op->o_callback = sc;
@@ -423,9 +551,9 @@ ldap_chain_db_config(
 	int		rc;
 
 	be->be_private = on->on_bi.bi_private;
-	if ( strncasecmp( argv[ 0 ], "chain-", sizeof( "chain-" ) - 1 ) == 0 ) {
+	if ( strncasecmp( argv[ 0 ], "chain-", STRLENOF( "chain-" ) ) == 0 ) {
 		argv0 = argv[ 0 ];
-		argv[ 0 ] = &argv[ 0 ][ sizeof( "chain-" ) - 1 ];
+		argv[ 0 ] = &argv[ 0 ][ STRLENOF( "chain-" ) ];
 	}
 	rc = lback->bi_db_config( be, fname, lineno, argc, argv );
 	if ( argv0 ) {
@@ -460,6 +588,16 @@ ldap_chain_db_init(
 	return rc;
 }
 
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+static int
+ldap_chain_db_open(
+	BackendDB *be
+)
+{
+	return overlay_register_control( be, LDAP_CONTROL_X_CHAINING_BEHAVIOR );
+}
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
 static int
 ldap_chain_db_destroy(
 	BackendDB *be
@@ -476,13 +614,156 @@ ldap_chain_db_destroy(
 	return rc;
 }
 
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+static int
+ldap_chain_parse_ctrl(
+	Operation	*op,
+	SlapReply	*rs,
+	LDAPControl	*ctrl )
+{
+	ber_tag_t	tag;
+	BerElement	*ber;
+	ber_int_t	mode,
+			behavior;
+
+	if ( get_chaining( op ) != SLAP_CONTROL_NONE ) {
+		rs->sr_text = "Chaining behavior control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( op->o_pagedresults != SLAP_CONTROL_NONE ) {
+		rs->sr_text = "Chaining behavior control specified with pagedResults control";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value ) ) {
+		mode = (SLAP_CH_RESOLVE_DEFAULT|SLAP_CH_CONTINUATION_DEFAULT);
+
+	} else {
+		ber_len_t	len;
+
+		/* Parse the control value
+		 *      ChainingBehavior ::= SEQUENCE { 
+		 *           resolveBehavior         Behavior OPTIONAL, 
+		 *           continuationBehavior    Behavior OPTIONAL } 
+		 *                             
+		 *      Behavior :: = ENUMERATED { 
+		 *           chainingPreferred       (0), 
+		 *           chainingRequired        (1), 
+		 *           referralsPreferred      (2), 
+		 *           referralsRequired       (3) } 
+		 */
+
+		ber = ber_init( &ctrl->ldctl_value );
+		if( ber == NULL ) {
+			rs->sr_text = "internal error";
+			return LDAP_OTHER;
+		}
+
+		tag = ber_scanf( ber, "{e" /* } */, &behavior );
+		/* FIXME: since the whole SEQUENCE is optional,
+		 * should we accept no enumerations at all? */
+		if ( tag != LBER_ENUMERATED ) {
+			rs->sr_text = "Chaining behavior control: resolveBehavior decoding error";
+			return LDAP_PROTOCOL_ERROR;
+		}
+
+		switch ( behavior ) {
+		case LDAP_CHAINING_PREFERRED:
+			mode = SLAP_CH_RESOLVE_CHAINING_PREFERRED;
+			break;
+
+		case LDAP_CHAINING_REQUIRED:
+			mode = SLAP_CH_RESOLVE_CHAINING_REQUIRED;
+			break;
+
+		case LDAP_REFERRALS_PREFERRED:
+			mode = SLAP_CH_RESOLVE_REFERRALS_PREFERRED;
+			break;
+
+		case LDAP_REFERRALS_REQUIRED:
+			mode = SLAP_CH_RESOLVE_REFERRALS_REQUIRED;
+			break;
+
+		default:
+			rs->sr_text = "Chaining behavior control: unknown resolveBehavior";
+			return LDAP_PROTOCOL_ERROR;
+		}
+
+		tag = ber_peek_tag( ber, &len );
+		if ( tag == LBER_ENUMERATED ) {
+			tag = ber_scanf( ber, "e", &behavior );
+			if ( tag == LBER_ERROR ) {
+				rs->sr_text = "Chaining behavior control: continuationBehavior decoding error";
+				return LDAP_PROTOCOL_ERROR;
+			}
+		}
+
+		if ( tag == LBER_DEFAULT ) {
+			mode |= SLAP_CH_CONTINUATION_DEFAULT;
+
+		} else {
+			switch ( behavior ) {
+			case LDAP_CHAINING_PREFERRED:
+				mode |= SLAP_CH_CONTINUATION_CHAINING_PREFERRED;
+				break;
+
+			case LDAP_CHAINING_REQUIRED:
+				mode |= SLAP_CH_CONTINUATION_CHAINING_REQUIRED;
+				break;
+
+			case LDAP_REFERRALS_PREFERRED:
+				mode |= SLAP_CH_CONTINUATION_REFERRALS_PREFERRED;
+				break;
+
+			case LDAP_REFERRALS_REQUIRED:
+				mode |= SLAP_CH_CONTINUATION_REFERRALS_REQUIRED;
+				break;
+
+			default:
+				rs->sr_text = "Chaining behavior control: unknown continuationBehavior";
+				return LDAP_PROTOCOL_ERROR;
+			}
+		}
+
+		if ( ( ber_scanf( ber, /* { */ "}") ) == LBER_ERROR ) {
+			rs->sr_text = "Chaining behavior control: decoding error";
+			return LDAP_PROTOCOL_ERROR;
+		}
+
+		(void) ber_free( ber, 1 );
+	}
+
+	op->o_chaining = mode | ( ctrl->ldctl_iscritical
+			? SLAP_CONTROL_CRITICAL
+			: SLAP_CONTROL_NONCRITICAL );
+
+	return LDAP_SUCCESS;
+}
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
 static slap_overinst ldapchain;
 
 int
 chain_init( void )
 {
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+	int	rc;
+
+	rc = register_supported_control( LDAP_CONTROL_X_CHAINING_BEHAVIOR,
+			/* SLAP_CTRL_GLOBAL| */ SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE, NULL,
+			ldap_chain_parse_ctrl, &sc_chainingBehavior );
+	if ( rc != LDAP_SUCCESS ) {
+		fprintf( stderr, "Failed to register chaining behavior control: %d\n", rc );
+		return rc;
+	}
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
 	ldapchain.on_bi.bi_type = "chain";
 	ldapchain.on_bi.bi_db_init = ldap_chain_db_init;
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+	ldapchain.on_bi.bi_db_open = ldap_chain_db_open;
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 	ldapchain.on_bi.bi_db_config = ldap_chain_db_config;
 	ldapchain.on_bi.bi_db_destroy = ldap_chain_db_destroy;
 	

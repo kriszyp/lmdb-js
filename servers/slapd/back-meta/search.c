@@ -259,7 +259,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 		rc = ldap_search_ext( lsc->msc_ld,
 				mbase.bv_val, realscope, mfilter.bv_val,
 				mapped_attrs, op->ors_attrsonly,
-				NULL, NULL,
+				op->o_ctrls, NULL,
 				NULL, op->ors_slimit, &msgid[ i ] ); 
 		if ( mapped_attrs ) {
 			free( mapped_attrs );

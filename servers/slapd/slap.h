@@ -1564,7 +1564,11 @@ struct slap_backend_db {
  */
 #define		be_has_subordinates bd_info->bi_has_subordinates
 
-#define		be_controls	bd_info->bi_controls
+	/* supported controls */
+	/* NOTE: this stores a duplicate of the control OIDs as listed
+	 * in bd_info->bi_controls at database startup; later on,
+	 * controls may be added run-time, e.g. by overlays */
+	char		**be_controls;
 
 #define		be_connection_init	bd_info->bi_connection_init
 #define		be_connection_destroy	bd_info->bi_connection_destroy
@@ -1589,7 +1593,8 @@ struct slap_backend_db {
 #define	SLAP_DBFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
 #define	SLAP_DBFLAG_GLUE_SUBORDINATE	0x0020U	/* child of a glue hierarchy */
 #define	SLAP_DBFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
-#define SLAP_DBFLAG_OVERLAY			0x0080U	/* this db struct is an overlay */
+#define SLAP_DBFLAG_OVERLAY		0x0080U	/* this db struct is an overlay */
+#define	SLAP_DBFLAG_GLOBAL_OVERLAY	0x0100U	/* this db struct is a global overlay */
 #define SLAP_DBFLAG_SHADOW		0x8000U /* a shadow */
 #define SLAP_DBFLAG_SYNC_SHADOW		0x1000U /* a sync shadow */
 #define SLAP_DBFLAG_SLURP_SHADOW	0x2000U /* a slurp shadow */
@@ -2558,8 +2563,8 @@ typedef struct slap_counters_t {
 #define SLAP_CTRL_HIDE				0x80000000U
 #endif
 
-#define SLAP_CTRL_FRONTEND			0x00800000U
-#define SLAP_CTRL_FRONTEND_SEARCH	0x00010000U	/* for NOOP */
+#define SLAP_CTRL_GLOBAL			0x00800000U
+#define SLAP_CTRL_GLOBAL_SEARCH		0x00010000U	/* for NOOP */
 
 #define SLAP_CTRL_OPFLAGS			0x0000FFFFU
 #define SLAP_CTRL_ABANDON			0x00000001U

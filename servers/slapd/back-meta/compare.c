@@ -144,7 +144,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		 */
 		 rc = ldap_compare_ext( lc->mc_conns[ i ].msc_ld, mdn.bv_val,
 				mapped_attr.bv_val, &mapped_value,
-				NULL, NULL, &msgid[ i ] );
+				op->o_ctrls, NULL, &msgid[ i ] );
 
 		if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 			free( mdn.bv_val );

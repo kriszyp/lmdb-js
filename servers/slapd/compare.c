@@ -274,6 +274,7 @@ fe_op_compare( Operation *op, SlapReply *rs )
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"subschemaSubentry compare not supported" );
 
+#ifndef SLAP_COMPARE_IN_FRONTEND
 	} else if ( ava.aa_desc == slap_schema.si_ad_hasSubordinates
 		&& op->o_bd->be_has_subordinates )
 	{
@@ -281,9 +282,16 @@ fe_op_compare( Operation *op, SlapReply *rs )
 
 		rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &entry );
 		if ( rc == 0 && entry ) {
-			rc = op->o_bd->be_has_subordinates( op, entry,
-				&hasSubordinates );
-			be_entry_release_r( op, entry );
+			if ( ! access_allowed( op, entry,
+				ava.aa_desc, &ava.aa_value, ACL_COMPARE, NULL ) )
+			{	
+				rc = rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+				
+			} else {
+				rc = rs->sr_err = op->o_bd->be_has_subordinates( op,
+						entry, &hasSubordinates );
+				be_entry_release_r( op, entry );
+			}
 		}
 
 		if ( rc == 0 ) {
@@ -293,20 +301,90 @@ fe_op_compare( Operation *op, SlapReply *rs )
 				? LDAP_COMPARE_TRUE : LDAP_COMPARE_FALSE;
 			if ( hasSubordinates == asserted ) {
 				rs->sr_err = LDAP_COMPARE_TRUE;
+
 			} else {
 				rs->sr_err = LDAP_COMPARE_FALSE;
 			}
+
+		} else {
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+			/* return error only if "disclose"
+			 * is granted on the object */
+			if ( backend_access( op, NULL, &op->o_req_ndn,
+					slap_schema.si_ad_entry,
+					NULL, ACL_DISCLOSE, NULL ) == LDAP_INSUFFICIENT_ACCESS )
+			{
+				rs->sr_err = LDAP_NO_SUCH_OBJECT;
+			}
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
 		}
+
 		send_ldap_result( op, rs );
 
-		if( rc == 0 ) rs->sr_err = LDAP_SUCCESS;
+		if ( rc == 0 ) {
+			rs->sr_err = LDAP_SUCCESS;
+		}
 
 	} else if ( op->o_bd->be_compare ) {
 		op->o_bd->be_compare( op, rs );
 
+#endif /* ! SLAP_COMPARE_IN_FRONTEND */
 	} else {
-		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-			"operation not supported within namingContext" );
+		/* do our best to compare that AVA
+		 * 
+		 * NOTE: this code is used only
+		 * if SLAP_COMPARE_IN_FRONTEND 
+		 * is #define'd (it's not by default)
+		 * or if op->o_bd->be_compare is NULL.
+		 * 
+		 * FIXME: one potential issue is that
+		 * if SLAP_COMPARE_IN_FRONTEND overlays
+		 * are not executed for compare. */
+		BerVarray	vals = NULL;
+		int		rc = LDAP_OTHER;
+
+		rs->sr_err = backend_attribute( op, NULL, &op->o_req_ndn,
+				ava.aa_desc, &vals, ACL_COMPARE );
+		switch ( rs->sr_err ) {
+		default:
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+			/* return error only if "disclose"
+			 * is granted on the object */
+			if ( backend_access( op, NULL, &op->o_req_ndn,
+					slap_schema.si_ad_entry,
+					NULL, ACL_DISCLOSE, NULL )
+					== LDAP_INSUFFICIENT_ACCESS )
+			{
+				rs->sr_err = LDAP_NO_SUCH_OBJECT;
+			}
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
+			break;
+
+		case LDAP_SUCCESS:
+			if ( value_find_ex( op->oq_compare.rs_ava->aa_desc,
+				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
+					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
+				vals, &ava.aa_value, op->o_tmpmemctx ) == 0 )
+			{
+				rs->sr_err = LDAP_COMPARE_TRUE;
+				break;
+
+			} else {
+				rs->sr_err = LDAP_COMPARE_FALSE;
+			}
+			rc = LDAP_SUCCESS;
+			break;
+		}
+
+		send_ldap_result( op, rs );
+
+		if ( rc == 0 ) {
+			rs->sr_err = LDAP_SUCCESS;
+		}
+		
+		if ( vals ) {
+			ber_bvarray_free_x( vals, op->o_tmpmemctx );
+		}
 	}
 
 #if defined( LDAP_SLAPI )

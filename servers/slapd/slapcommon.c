@@ -60,7 +60,7 @@ usage( int tool, const char *progname )
 
 	case SLAPADD:
 		options = "\n\t[-n databasenumber | -b suffix]\n"
-			"\t[-l ldiffile] [-u] [-w]\n";
+			"\t[-l ldiffile] [-q] [-u] [-w]\n";
 		break;
 
 	case SLAPAUTH:
@@ -77,7 +77,7 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPINDEX:
-		options = "\n\t[-n databasenumber | -b suffix]\n";
+		options = "\n\t[-n databasenumber | -b suffix] [-q]\n";
 		break;
 
 	case SLAPTEST:
@@ -151,7 +151,7 @@ slap_tool_init(
 		break;
 
 	case SLAPINDEX:
-		options = "b:cd:f:n:v";
+		options = "b:cd:f:n:qv";
 		mode |= SLAP_TOOL_READMAIN;
 		break;
 

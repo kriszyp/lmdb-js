@@ -379,7 +379,7 @@ handle_private_option( int i )
 			if( crit ) subentries *= -1;
 #endif
 
-	} else if ( strcasecmp( control, "sync" ) == 0 ) {
+		} else if ( strcasecmp( control, "sync" ) == 0 ) {
 			char *cookiep;
 			char *slimitp;
 			if ( ldapsync ) {
@@ -664,31 +664,34 @@ getNextPage:
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 		|| pagedResults
 #endif
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+		|| chaining
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 		|| ldapsync
 		|| subentries || valuesReturnFilter )
 	{
 		int err;
 		int i=0;
-		LDAPControl c[6];
+		LDAPControl c[10];
 
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
-	if ( domainScope ) {
-		c[i].ldctl_oid = LDAP_CONTROL_X_DOMAIN_SCOPE;
-		c[i].ldctl_value.bv_val = NULL;
-		c[i].ldctl_value.bv_len = 0;
-		c[i].ldctl_iscritical = domainScope > 1;
-		i++;
-	}
+		if ( domainScope ) {
+			c[i].ldctl_oid = LDAP_CONTROL_X_DOMAIN_SCOPE;
+			c[i].ldctl_value.bv_val = NULL;
+			c[i].ldctl_value.bv_len = 0;
+			c[i].ldctl_iscritical = domainScope > 1;
+			i++;
+		}
 #endif
 
 #ifdef LDAP_CONTROL_SUBENTRIES
 		if ( subentries ) {
-	        if (( seber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+			if (( seber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
 			}
 
 			err = ber_printf( seber, "b", abs(subentries) == 1 ? 0 : 1 );
-	    	if ( err == -1 ) {
+		    	if ( err == -1 ) {
 				ber_free( seber, 1 );
 				fprintf( stderr, _("Subentries control encoding error!\n") );
 				return EXIT_FAILURE;

@@ -259,7 +259,6 @@ int main( int argc, char **argv )
 	char	    *serverName;
 	int	    serverMode = SLAP_SERVER_MODE;
 
-	struct berval cookie = BER_BVNULL;
 	struct sync_cookie *scp = NULL;
 	struct sync_cookie *scp_entry = NULL;
 
@@ -356,8 +355,7 @@ int main( int argc, char **argv )
 		case 'c':	/* provide sync cookie, override if exist in replica */
 			scp = (struct sync_cookie *) ch_calloc( 1,
 										sizeof( struct sync_cookie ));
-			ber_str2bv( optarg, strlen( optarg ), 1, &cookie );
-			ber_bvarray_add( &scp->octet_str, &cookie );
+			ber_str2bv( optarg, 0, 1, &scp->octet_str );
 			slap_parse_sync_cookie( scp );
 
 			LDAP_STAILQ_FOREACH( scp_entry, &slap_sync_cookie, sc_next ) {

@@ -119,7 +119,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 			op->orr_newrdn.bv_val,
 			mnewSuperior.bv_val,
 			op->orr_deleteoldrdn,
-			NULL, NULL ) != LDAP_SUCCESS;
+			op->o_ctrls, NULL ) != LDAP_SUCCESS;
 
 cleanup:;
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {

@@ -183,7 +183,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	modv[ i ] = 0;
 
 	rs->sr_err = ldap_modify_ext_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
-			modv, NULL, NULL );
+			modv, op->o_ctrls, NULL );
 
 cleanup:;
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {

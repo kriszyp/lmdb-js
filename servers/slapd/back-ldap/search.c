@@ -234,13 +234,34 @@ fail:;
 			}
 
 		} else {
+			char		**references = NULL;
+
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
 					&match.bv_val, (char **)&rs->sr_text,
-					NULL, &rs->sr_ctrls, 1 );
-			if (rc != LDAP_SUCCESS ) {
+					&references, &rs->sr_ctrls, 1 );
+			if ( rc != LDAP_SUCCESS ) {
 				rs->sr_err = rc;
 			}
 			rs->sr_err = slap_map_api2result( rs );
+
+			if ( references ) {
+				int	cnt;
+
+				for ( cnt = 0; references[ cnt ]; cnt++ )
+					/* NO OP */ ;
+				
+				rs->sr_ref = ch_calloc( cnt + 1, sizeof( struct berval ) );
+
+				for ( cnt = 0; references[ cnt ]; cnt++ ) {
+					ber_str2bv( references[ cnt ], 0, 0, &rs->sr_ref[ cnt ] );
+				}
+
+				/* cleanup */
+				if ( references ) {
+					ldap_value_free( references );
+				}
+			}
+
 			rc = 0;
 			break;
 		}
@@ -283,12 +304,19 @@ finish:;
 		rs->sr_matched = NULL;
 		LDAP_FREE( match.bv_val );
 	}
+
 	if ( rs->sr_text ) {
 		if ( !dontfreetext ) {
 			LDAP_FREE( (char *)rs->sr_text );
 		}
 		rs->sr_text = NULL;
 	}
+
+	if ( rs->sr_ref ) {
+		ber_bvarray_free( rs->sr_ref );
+		rs->sr_ref = NULL;
+	}
+
 	if ( attrs ) {
 		ch_free( attrs );
 	}

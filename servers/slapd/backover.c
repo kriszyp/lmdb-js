@@ -467,6 +467,45 @@ overlay_is_inst( BackendDB *be, const char *over_type )
 	return 0;
 }
 
+int
+overlay_register_control( BackendDB *be, const char *oid )
+{
+	int		rc = 0;
+	int		gotit = 0;
+
+	if ( SLAP_DBFLAGS( be ) & SLAP_DBFLAG_GLOBAL_OVERLAY ) {
+		int	i;
+		
+		/* add to all backends... */
+		for ( i = 0; i < nBackendDB; i++ ) {
+			BackendDB	*bd = &backendDB[i];
+			
+			if ( be == bd ) {
+				gotit = 1;
+			}
+
+			if ( bd->be_controls == NULL ||
+				!ldap_charray_inlist( bd->be_controls, oid ) )
+			{
+				rc = ldap_charray_add( &bd->be_controls, oid );
+				if ( rc ) {
+					break;
+				}
+			}
+		}
+
+	}
+	
+	if ( rc == 0 && !gotit && !ldap_charray_inlist( be->be_controls, oid ) ) {
+		rc = ldap_charray_add( &be->be_controls, oid );
+		if ( rc ) {
+			return rc;
+		}
+	}
+
+	return rc;
+}
+
 /* add an overlay to a particular backend. */
 int
 overlay_config( BackendDB *be, const char *ov )
@@ -488,6 +527,13 @@ overlay_config( BackendDB *be, const char *ov )
 		oi = ch_malloc( sizeof( slap_overinfo ) );
 		oi->oi_orig = be->bd_info;
 		oi->oi_bi = *be->bd_info;
+
+		/* NOTE: the first time a global overlay is configured,
+		 * frontendDB gets this flag; it is used later by overlays
+		 * to determine if they're stacked on top of the frontendDB */
+		if ( oi->oi_orig == frontendDB->bd_info ) {
+			SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_GLOBAL_OVERLAY;
+		}
 
 		/* Save a pointer to ourself in bi_private.
 		 */

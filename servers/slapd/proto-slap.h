@@ -291,6 +291,15 @@ LDAP_SLAPD_F (int) backend_attribute LDAP_P((
 	slap_access_t access
 ));
 
+LDAP_SLAPD_F (int) backend_access LDAP_P((
+	Operation		*op,
+	Entry			*target,
+	struct berval		*edn,
+	AttributeDescription	*entry_at,
+	struct berval		*nval,
+	slap_access_t		access,
+	slap_mask_t		*mask ));
+
 LDAP_SLAPD_F (int) backend_operational LDAP_P((
 	Operation *op,
 	SlapReply *rs 
@@ -315,6 +324,9 @@ LDAP_SLAPD_F (slap_overinst *) overlay_next LDAP_P(( slap_overinst *on ));
 LDAP_SLAPD_F (slap_overinst *) overlay_find LDAP_P(( const char *name ));
 LDAP_SLAPD_F (int) overlay_is_over LDAP_P(( BackendDB *be ));
 LDAP_SLAPD_F (int) overlay_is_inst LDAP_P(( BackendDB *be, const char *name ));
+LDAP_SLAPD_F (int) overlay_register_control LDAP_P((
+	BackendDB *be,
+	const char *oid ));
 
 /*
  * ch_malloc.c
@@ -413,8 +425,12 @@ LDAP_SLAPD_F (int) register_supported_control LDAP_P((
 LDAP_SLAPD_F (int) slap_controls_init LDAP_P ((void));
 LDAP_SLAPD_F (void) controls_destroy LDAP_P ((void));
 LDAP_SLAPD_F (int) controls_root_dse_info LDAP_P ((Entry *e));
-LDAP_SLAPD_F (int) get_supported_controls LDAP_P (( char ***ctrloidsp, slap_mask_t **ctrlmasks ));
-LDAP_SLAPD_F (int) slap_find_control_id LDAP_P (( const char *oid, int *cid ));
+LDAP_SLAPD_F (int) get_supported_controls LDAP_P ((
+	char ***ctrloidsp, slap_mask_t **ctrlmasks ));
+LDAP_SLAPD_F (int) slap_find_control_id LDAP_P ((
+	const char *oid, int *cid ));
+LDAP_SLAPD_F (int) slap_global_control LDAP_P ((
+	Operation *op, const char *oid ));
 
 /*
  * config.c
@@ -422,9 +438,7 @@ LDAP_SLAPD_F (int) slap_find_control_id LDAP_P (( const char *oid, int *cid ));
 LDAP_SLAPD_F (int) read_config LDAP_P(( const char *fname, int depth ));
 LDAP_SLAPD_F (void) config_destroy LDAP_P ((void));
 LDAP_SLAPD_F (char **) slap_str2clist LDAP_P((
-						char ***,
-						char *,
-						const char * ));
+	char ***, char *, const char * ));
 #ifdef LDAP_SLAPI
 LDAP_SLAPD_V (int) slapi_plugins_used;
 #endif

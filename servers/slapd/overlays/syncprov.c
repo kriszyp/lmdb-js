@@ -2012,6 +2012,11 @@ syncprov_db_open(
 	Attribute *a;
 	int rc;
 
+	rc = overlay_register_control( be, LDAP_CONTROL_SYNC );
+	if ( rc ) {
+		return rc;
+	}
+
 	connection_fake_init( &conn, op, thrctx );
 	op->o_bd = be;
 	op->o_dn = be->be_rootdn;

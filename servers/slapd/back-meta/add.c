@@ -169,7 +169,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	attrs[ i ] = NULL;
 
 	rs->sr_err = ldap_add_ext_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
-			      attrs, NULL, NULL );
+			      attrs, op->o_ctrls, NULL );
 	for ( --i; i >= 0; --i ) {
 		free( attrs[ i ]->mod_bvalues );
 		free( attrs[ i ] );

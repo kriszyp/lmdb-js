@@ -49,6 +49,9 @@ extern int   manageDSAit;
 extern int   noop;
 extern int   ppolicy;
 extern int	preread, postread;
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+extern int	chaining;
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
 extern int   not;
 extern int   want_bindpw;
