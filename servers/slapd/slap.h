@@ -2166,6 +2166,9 @@ struct slap_control_ids {
 	int sc_modifyIncrement;
 	int sc_noOp;
 	int sc_pagedResults;
+#ifdef LDAP_DEVEL
+	int sc_sortedResults;
+#endif
 	int sc_valuesReturnFilter;
 	int sc_permissiveModify;
 	int sc_domainScope;
@@ -2370,10 +2373,13 @@ typedef struct slap_op {
 
 #define o_pagedresults	o_ctrlflag[slap_cids.sc_pagedResults]
 #define o_pagedresults_state	o_controls[slap_cids.sc_pagedResults]
+#define get_pagedresults(op)			((int)(op)->o_pagedresults)
+
+#ifdef LDAP_DEVEL
+#define o_sortedresults		o_ctrlflag[slap_cids.sc_sortedResults]
+#endif
 
 #define o_sync			o_ctrlflag[slap_cids.sc_LDAPsync]
-
-#define get_pagedresults(op)			((int)(op)->o_pagedresults)
 
 	AuthorizationInformation o_authz;
 

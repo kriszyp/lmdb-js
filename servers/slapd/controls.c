@@ -32,6 +32,9 @@ static SLAP_CTRL_PARSE_FN parseManageDSAit;
 static SLAP_CTRL_PARSE_FN parseModifyIncrement;
 static SLAP_CTRL_PARSE_FN parseNoOp;
 static SLAP_CTRL_PARSE_FN parsePagedResults;
+#ifdef LDAP_DEVEL
+static SLAP_CTRL_PARSE_FN parseSortedResults;
+#endif
 static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
 static SLAP_CTRL_PARSE_FN parsePermissiveModify;
 static SLAP_CTRL_PARSE_FN parseDomainScope;
@@ -112,6 +115,12 @@ static struct slap_control control_defs[] = {
  		(int)offsetof(struct slap_control_ids, sc_pagedResults),
 		SLAP_CTRL_SEARCH, NULL,
 		parsePagedResults, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+#ifdef LDAP_DEVEL
+	{ LDAP_CONTROL_SORTREQUEST,
+ 		(int)offsetof(struct slap_control_ids, sc_sortedResults),
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH|SLAP_CTRL_HIDE, NULL,
+		parseSortedResults, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+#endif
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 	{ LDAP_CONTROL_X_DOMAIN_SCOPE,
  		(int)offsetof(struct slap_control_ids, sc_domainScope),
@@ -949,6 +958,34 @@ done:;
 	(void)ber_free( ber, 1 );
 	return rc;
 }
+
+#ifdef LDAP_DEVEL
+static int parseSortedResults (
+	Operation *op,
+	SlapReply *rs,
+	LDAPControl *ctrl )
+{
+	int		rc = LDAP_SUCCESS;
+
+	if ( op->o_sortedresults != SLAP_CONTROL_NONE ) {
+		rs->sr_text = "sorted results control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value ) ) {
+		rs->sr_text = "sorted results control value is empty (or absent)";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	/* blow off parsing the value */
+
+	op->o_sortedresults = ctrl->ldctl_iscritical
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
+
+	return rc;
+}
+#endif
 
 static int parseAssert (
 	Operation *op,

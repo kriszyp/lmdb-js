@@ -254,7 +254,9 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 	 * plugin.
 	 */
 
-	if ( o->o_pb && slapi_pblock_get( o->o_pb, SLAPI_RESCONTROLS, &sctrls ) != 0 ) {
+	if ( o->o_pb &&
+		slapi_pblock_get( o->o_pb, SLAPI_RESCONTROLS, &sctrls ) != 0 )
+	{
 		sctrls = NULL;
 	}
 
@@ -269,10 +271,37 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 #ifdef LDAP_SLAPI
 	if ( c != NULL )
 #endif /* LDAP_SLAPI */
-	for( ; *c != NULL; c++) {
-		rc = send_ldap_control( ber, *c );
+	{
+		for( ; *c != NULL; c++) {
+			rc = send_ldap_control( ber, *c );
+			if( rc == -1 ) return rc;
+		}
+	}
+
+#ifdef LDAP_DEVEL
+	/* this is a hack to avoid having to modify op->s_ctrls */
+	if( o->o_sortedresults ) {
+		BerElementBuffer berbuf;
+		BerElement *sber = (BerElement *) &berbuf;
+		LDAPControl sorted;
+		BER_BVZERO( &sorted.ldctl_value );
+		sorted.ldctl_oid = LDAP_CONTROL_SORTRESPONSE;
+		sorted.ldctl_iscritical = 0;
+
+		ber_init2( sber, NULL, LBER_USE_DER );
+
+		ber_printf( sber, "{i}", LDAP_UNWILLING_TO_PERFORM );
+
+		if( ber_flatten2( ber, &sorted.ldctl_value, 0 ) == -1 ) {
+			return LBER_ERROR;
+		}
+
+		(void) ber_free_buf( ber );
+
+		rc = send_ldap_control( ber, &sorted );
 		if( rc == -1 ) return rc;
 	}
+#endif
 
 #ifdef LDAP_SLAPI
 	if ( sctrls != NULL ) {
@@ -1405,8 +1434,7 @@ str2result(
     char	*s,
     int		*code,
     char	**matched,
-    char	**info
-)
+    char	**info )
 {
 	int	rc;
 	char	*c;
@@ -1567,8 +1595,10 @@ slap_attr_flags( AttributeName *an )
 		flags |= ( SLAP_OPATTRS_NO | SLAP_USERATTRS_YES );
 
 	} else {
-		flags |= an_find( an, &AllOper ) ?  SLAP_OPATTRS_YES : SLAP_OPATTRS_NO;
-		flags |= an_find( an, &AllUser ) ?  SLAP_USERATTRS_YES : SLAP_USERATTRS_NO;
+		flags |= an_find( an, &AllOper )
+			? SLAP_OPATTRS_YES : SLAP_OPATTRS_NO;
+		flags |= an_find( an, &AllUser )
+			? SLAP_USERATTRS_YES : SLAP_USERATTRS_NO;
 	}
 
 	return flags;
