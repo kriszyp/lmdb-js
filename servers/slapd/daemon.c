@@ -1205,9 +1205,9 @@ int slapd_daemon( void )
 
 }
 
-#ifdef HAVE_WINSOCK2
 int sockinit(void)
 {
+#if defined( HAVE_WINSOCK2 )
     WORD wVersionRequested;
 	WSADATA wsaData;
 	int err;
@@ -1237,40 +1237,22 @@ int sockinit(void)
 	}
 
 	/* The WinSock DLL is acceptable. Proceed. */
+#elif defined( HAVE_WINSOCK )
+	WSADATA wsaData;
+	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) {
+	    return -1;
+	}
+#endif
 	return 0;
 }
 
 int sockdestroy(void)
 {
+#if defined( HAVE_WINSOCK2 ) || defined( HAVE_WINSOCK )
 	WSACleanup();
-	return 0;
-}
-
-#elif HAVE_WINSOCK
-static int sockinit(void)
-{
-	WSADATA wsaData;
-	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) {
-	    return -1;
-	}
-	return 0;
-}
-static int sockdestroy(void)
-{
-	WSACleanup();
-	return 0;
-}
-
-#else
-static int sockinit(void)
-{
-	return 0;
-}
-static int sockdestroy(void)
-{
-	return 0;
-}
 #endif
+	return 0;
+}
 
 RETSIGTYPE
 slap_sig_shutdown( int sig )
