@@ -16,6 +16,7 @@ REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
 SUBMASTERCONF=$DATADIR/slapd-repl-submaster.conf
 SUBSLAVECONF=$DATADIR/slapd-repl-subslave.conf
 SCHEMACONF=$DATADIR/slapd-schema.conf
+GLUECONF=$DATADIR/slapd-glue.conf
 
 DBCONF=$DBDIR/slapd.conf
 ADDCONF=$DBDIR/slapadd.conf
@@ -55,6 +56,7 @@ SLAVEPORT=9010
 MASTERURI="ldap://localhost:$PORT/"
 SLAVEURI="ldap://localhost:$SLAVEPORT/"
 LDIF=$DATADIR/test.ldif
+LDIFGLUED=$DATADIR/test-glued.ldif
 LDIFORDERED=$DATADIR/test-ordered.ldif
 LDIFBASE=$DATADIR/test-base.ldif
 LDIFPASSWD=$DATADIR/passwd.ldif
