@@ -104,7 +104,7 @@ OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
 
 dnl ----------------------------------------------------------------
 dnl General "with" options
-OL_ARG_ENABLE(dmalloc,[  --enable-dmalloc	enable debug malloc support], no)dnl
+dnl OL_ARG_ENABLE(dmalloc,[  --enable-dmalloc	enable debug malloc support], no)dnl
 
 OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl	with Cyrus SASL support],
 	auto, [auto yes no] )
@@ -1835,11 +1835,11 @@ if test $ol_enable_syslog != no ; then
 fi
 
 dnl ----------------------------------------------------------------
-if test $ol_enable_dmalloc != no ; then
-	AC_CHECK_HEADERS(dmalloc.h)
-	AC_CHECK_LIB(dmalloc, dmalloc_shutdown)
-fi
-
+dnl dmalloc support (deprecated in favor of -DCSRIMALLOC support)
+dnl if test $ol_enable_dmalloc != no ; then
+dnl 	AC_CHECK_HEADERS(dmalloc.h)
+dnl 	AC_CHECK_LIB(dmalloc, dmalloc_shutdown)
+dnl fi
 dnl ----------------------------------------------------------------
 dnl TCL
 if test $ol_enable_tcl != no ; then
