@@ -8,7 +8,7 @@ threads, so must Berkeley DB.
 
 The configuration tool of Sleepycat's Berkeley DB will automatically
 set appropriate options on IRIX, OSF/1, and SUN Solaris platforms
-(version 2.3.16), as well as FreeBSD (version 2.6.4).  The options
+(version 2.3.16), as well as FreeBSD (version 2.7.5).  The options
 must be manually defined on other plaforms, e.g. on LINUX.
 
 On PC-LINUX (kernel version 2.0.35, linux kernel threads as imple-
