@@ -1596,13 +1596,13 @@ fi
 if test "$ac_cv_func_gethostbyname_r" = yes ; then
  	OL_FUNC_GETHOSTBYNAME_R_NARGS
 else
- 	ol_cv_func_gethostbyname_r=0
+ 	ol_cv_func_gethostbyname_r_nargs=0
 fi
  
 if test "$ac_cv_func_gethostbyaddr_r" = yes ; then
  	OL_FUNC_GETHOSTBYADDR_R_NARGS
 else
- 	ol_cv_func_gethostbyaddr_r=0
+ 	ol_cv_func_gethostbyaddr_r_nargs=0
 fi
 
 if test "$ac_cv_func_ctime_r" = yes \
