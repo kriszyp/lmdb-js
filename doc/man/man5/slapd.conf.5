@@ -55,13 +55,12 @@ double quotes.  If an argument contains a double quote (`"') or a
 backslash character (`\\'), the character should be preceded by a
 backslash character.
 .LP
-The specific configuration options available are discussed below in the
-Global Configuration Options, General Backend Options, General Database
-Options, LDBM Backend-Specific Options, LDBM Database-Specific Options,
-Shell Database-Specific Options, and Password
-Database-Specific Options sections.  Refer to the "OpenLDAP
-Administrator's Guide" for more details on the slapd configuration
-file.
+The specific configuration options available are discussed below
+in the Global Configuration Options, General Backend Options,
+General Database Options, LDBM Database-Specific Options, Shell
+Database-Specific Options, and Password Database-Specific Options
+sections.  Refer to the "OpenLDAP Administrator's Guide" for more
+details on the slapd configuration file.
 .SH GLOBAL CONFIGURATION OPTIONS
 Options described in this section apply to all backends, unless specifically 
 overridden in a backend definition. Arguments that should be replaced by 
@@ -567,21 +566,16 @@ Specify the referral to pass back when
 .BR slapd (8)
 is asked to modify a replicated local database.
 If specified multiple times, each url is provided.
-.SH LDBM BACKEND-SPECIFIC OPTIONS
-Options in this category only apply to the LDBM backend. That is,
-they must follow "backend ldbm" line and come before any subsequent
-"backend" or "database" lines.  The LDBM backend is a high-performance
-database that makes extensive use of indexing and caching to speed
-data access. 
-.TP
-.B directory <directory>
-Specify the directory where shared LDBM files, namely those associated
-with a BerkeleyDB environment, for all LDBM databases are kept.
-The default is unset.
+.\" .SH LDBM BACKEND-SPECIFIC OPTIONS
+.\" Options in this category only apply to the LDBM backend. That is,
+.\" they must follow "backend ldbm" line and come before any subsequent
+.\" "backend" or "database" lines.  The LDBM backend is a high-performance
+.\" database that makes extensive use of indexing and caching to speed
+.\" data access. 
 .SH LDBM DATABASE-SPECIFIC OPTIONS
-Options in this category only apply to the LDBM databases. That is,
-they must follow "database ldbm" line and come before any subsequent
-"backend" or "database" lines.
+Options in this category only apply to the LDBM databases.
+That is, they must follow "database ldbm" line and come before
+any subsequent "backend" or "database" lines.
 .TP
 .B cachesize <integer>
 Specify the size in entries of the in-memory cache maintained 
