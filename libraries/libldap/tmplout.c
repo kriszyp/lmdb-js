@@ -1034,6 +1034,8 @@ searchaction( LDAP *ld, char *buf, char *base, LDAPMessage *entry, char *dn,
 	return( LDAP_PARAM_ERROR );
     } else if ( strcasecmp( attr, "-dnt" ) == 0 ) {
 	value = dn;
+    } else if ( strcasecmp( attr, "-dn" ) == 0 ) {
+	value = dn;
     } else if (( vals = ldap_get_values( ld, entry, attr )) != NULL ) {
 	value = vals[ 0 ];
     } else {
