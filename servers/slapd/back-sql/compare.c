@@ -35,7 +35,7 @@ backsql_compare( Operation *op, SlapReply *rs )
 	backsql_entryID		user_id = BACKSQL_ENTRYID_INIT;
 	SQLHDBC			dbh;
 	Entry			*e = NULL, user_entry;
-	Attribute		*a = NULL, *a_op = NULL;
+	Attribute		*a = NULL;
 	backsql_srch_info	bsi;
 	int			rc;
 	AttributeName		anlist[2];
@@ -79,55 +79,42 @@ backsql_compare( Operation *op, SlapReply *rs )
 		goto return_results;
 	}
 
+	memset( &anlist[0], 0, 2 * sizeof( AttributeName ) );
 	anlist[0].an_name = op->oq_compare.rs_ava->aa_desc->ad_cname;
 	anlist[0].an_desc = op->oq_compare.rs_ava->aa_desc;
-	anlist[1].an_name.bv_val = NULL;
 
-	/*
-	 * Try to get attr as dynamic operational
-	 */
-	if ( is_at_operational( op->oq_compare.rs_ava->aa_desc->ad_type ) ) {
-		AttributeName	*an_old;
-		Entry		*e_old;
-
-		user_entry.e_attrs = NULL;
-		user_entry.e_name = op->o_req_dn;
-		user_entry.e_nname = op->o_req_ndn;
-
-		an_old = rs->sr_attrs;
-		e_old = rs->sr_entry;
-
-		rs->sr_attrs = anlist;
-		rs->sr_entry = &user_entry;
-		rs->sr_err = backsql_operational( op, rs, 0, &a_op );
-		rs->sr_attrs = an_old;
-		rs->sr_entry = e_old;
-
-		if ( rs->sr_err != LDAP_SUCCESS ) {
-			goto return_results;
-		}
-		
-	}
-
-	/*
-	 * attr was dynamic operational
-	 */
-	if ( a_op != NULL ) {
-		user_entry.e_attrs = a_op;
-		e = &user_entry;
-
-	} else {
+ 	/*
+ 	 * Try to get attr as dynamic operational
+ 	 */
+ 	if ( is_at_operational( op->oq_compare.rs_ava->aa_desc->ad_type ) ) {
+		SlapReply	nrs = { 0 };
+ 
+ 		user_entry.e_attrs = NULL;
+ 		user_entry.e_name = op->o_req_dn;
+ 		user_entry.e_nname = op->o_req_ndn;
+ 
+		nrs.sr_attrs = anlist;
+		nrs.sr_entry = &user_entry;
+		rs->sr_err = backsql_operational( op, &nrs, 0, &user_entry.e_attrs );
+ 
+ 		if ( rs->sr_err != LDAP_SUCCESS ) {
+ 			goto return_results;
+ 		}
+ 		
+ 	} else {
 		backsql_init_search( &bsi, &dn, LDAP_SCOPE_BASE, 
-				-1, -1, -1, NULL, dbh, op, rs, anlist );
-		e = backsql_id2entry( &bsi, &user_entry, &user_id );
-		if ( e == NULL ) {
+					-1, -1, -1, NULL, dbh, op, rs, anlist );
+		bsi.bsi_e = &user_entry;
+		rc = backsql_id2entry( &bsi, &user_id );
+		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_compare(): "
-				"error in backsql_id2entry() "
-				"- compare failed\n", 0, 0, 0 );
-			rs->sr_err = LDAP_OTHER;
+				"error %d in backsql_id2entry() "
+				"- compare failed\n", rc, 0, 0 );
+			rs->sr_err = rc;
 			goto return_results;
 		}
 	}
+	e = &user_entry;
 
 	if ( ! access_allowed( op, e, op->oq_compare.rs_ava->aa_desc, 
 				&op->oq_compare.rs_ava->aa_value,
@@ -162,17 +149,7 @@ return_results:;
 	}
 
 	if ( e != NULL ) {
-		if ( e->e_name.bv_val != NULL ) {
-			free( e->e_name.bv_val );
-		}
-
-		if ( e->e_nname.bv_val != NULL ) {
-			free( e->e_nname.bv_val );
-		}
-
-		if ( e->e_attrs != NULL ) {
-			attrs_free( e->e_attrs );
-		}
+		entry_clean( e );
 	}
 
 	Debug(LDAP_DEBUG_TRACE,"<==backsql_compare()\n",0,0,0);

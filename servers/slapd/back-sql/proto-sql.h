@@ -79,6 +79,13 @@
 /*
  * add.c
  */
+int backsql_modify_delete_all_values(
+	Operation 		*op,
+	SlapReply		*rs,
+	SQLHDBC			dbh, 
+	backsql_entryID		*e_id,
+	backsql_at_map_rec	*at );
+
 int backsql_modify_internal(
 	Operation 		*op,
 	SlapReply		*rs,
@@ -115,8 +122,7 @@ int backsql_has_children( backsql_info *bi, SQLHDBC dbh, struct berval *dn );
 backsql_entryID *backsql_free_entryID( backsql_entryID *id, int freeit );
 
 /* turns an ID into an entry */
-Entry *backsql_id2entry( backsql_srch_info *bsi, Entry *e, 
-		backsql_entryID *id );
+int backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *id );
 
 /*
  * schema-map.c
@@ -190,6 +196,8 @@ extern char
 	backsql_def_at_query[],
 	backsql_def_delentry_query[],
 	backsql_def_insentry_query[],
+	backsql_def_delobjclasses_query[],
+	backsql_def_delreferrals_query[],
 	backsql_def_subtree_cond[],
 	backsql_def_upper_subtree_cond[],
 	backsql_id_query[],

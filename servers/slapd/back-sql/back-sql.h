@@ -99,6 +99,18 @@
 #undef BACKSQL_ARBITRARY_KEY
 
 /*
+ * define to the appropriate aliasing string
+ */
+#define BACKSQL_ALIASING	"AS "
+/* #define	BACKSQL_ALIASING	"" */
+
+/*
+ * define to the appropriate quoting char
+ */
+/* #define BACKSQL_ALIASING_QUOTE	'"' */
+/* #define BACKSQL_ALIASING_QUOTE	'\'' */
+
+/*
  * API
  */
 typedef struct backsql_api {
@@ -250,6 +262,7 @@ typedef struct backsql_srch_info {
 	time_t			bsi_stoptime;
 
 	backsql_entryID		*bsi_id_list,
+				**bsi_id_listtail,
 				*bsi_c_eid;
 	int			bsi_n_candidates;
 	int			bsi_abandon;
@@ -284,7 +297,10 @@ typedef struct {
 	struct berval	subtree_cond;
 	struct berval	children_cond;
 	char		*oc_query, *at_query;
-	char		*insentry_query,*delentry_query;
+	char		*insentry_query,
+			*delentry_query,
+			*delobjclasses_query,
+			*delreferrals_query;
 	char		*id_query;
 	char		*has_children_query;
 
@@ -335,6 +351,9 @@ typedef struct {
 
 #define BACKSQL_SUCCESS( rc ) \
 	( (rc) == SQL_SUCCESS || (rc) == SQL_SUCCESS_WITH_INFO )
+
+#define BACKSQL_AVL_STOP		0
+#define BACKSQL_AVL_CONTINUE		1
 
 #endif /* __BACKSQL_H__ */
 

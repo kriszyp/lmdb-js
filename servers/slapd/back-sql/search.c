@@ -25,14 +25,12 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include "ac/string.h"
+#include "ac/ctype.h"
 
 #include "slap.h"
 #include "lber_pvt.h"
 #include "ldap_pvt.h"
 #include "proto-sql.h"
-
-#define BACKSQL_STOP		0
-#define BACKSQL_CONTINUE	1
 
 static int backsql_process_filter( backsql_srch_info *bsi, Filter *f );
 static int backsql_process_filter_eq( backsql_srch_info *bsi, 
@@ -63,7 +61,7 @@ backsql_attrlist_add( backsql_srch_info *bsi, AttributeDescription *ad )
 		return 1;
 	}
 
-	for ( ; bsi->bsi_attrs[ n_attrs ].an_name.bv_val; n_attrs++ ) {
+	for ( ; !BER_BVISNULL( &bsi->bsi_attrs[ n_attrs ].an_name ); n_attrs++ ) {
 		an = &bsi->bsi_attrs[ n_attrs ];
 		
 		Debug( LDAP_DEBUG_TRACE, "==>backsql_attrlist_add(): "
@@ -89,8 +87,7 @@ backsql_attrlist_add( backsql_srch_info *bsi, AttributeDescription *ad )
 
 	an[ n_attrs ].an_name = ad->ad_cname;
 	an[ n_attrs ].an_desc = ad;
-	an[ n_attrs + 1 ].an_name.bv_val = NULL;
-	an[ n_attrs + 1 ].an_name.bv_len = 0;
+	BER_BVZERO( &an[ n_attrs + 1 ].an_name );
 
 	bsi->bsi_attrs = an;
 	
@@ -130,12 +127,13 @@ backsql_init_search(
 		bsi->bsi_attrs = NULL;
 
 	} else {
+		int	is_oc = 0;
+
 		bsi->bsi_attrs = (AttributeName *)ch_calloc( 1, 
 				sizeof( AttributeName ) );
-		bsi->bsi_attrs[ 0 ].an_name.bv_val = NULL;
-		bsi->bsi_attrs[ 0 ].an_name.bv_len = 0;
+		BER_BVZERO( &bsi->bsi_attrs[ 0 ].an_name );
 		
-		for ( p = attrs; p->an_name.bv_val; p++ ) {
+		for ( p = attrs; !BER_BVISNULL( &p->an_name ); p++ ) {
 			/*
 			 * ignore "1.1"; handle "+"
 			 */
@@ -145,27 +143,35 @@ backsql_init_search(
 
 			} else if ( BACKSQL_NCMP( &p->an_name, &NoAttrs ) == 0 ) {
 				continue;
+
+			} else if ( p->an_desc == slap_schema.si_ad_objectClass ) {
+				is_oc = 1;
 			}
 
 			backsql_attrlist_add( bsi, p->an_desc );
+		}
+
+		if ( is_oc == 0 ) {
+			/* add objectClass if not present,
+			 * because it is required to understand
+			 * if an entry is a referral, an alias 
+			 * or so... */
+			backsql_attrlist_add( bsi, slap_schema.si_ad_objectClass );
 		}
 	}
 
 	bsi->bsi_abandon = 0;
 	bsi->bsi_id_list = NULL;
+	bsi->bsi_id_listtail = &bsi->bsi_id_list;
 	bsi->bsi_n_candidates = 0;
 	bsi->bsi_stoptime = stoptime;
-	bsi->bsi_sel.bb_val.bv_val = NULL;
-	bsi->bsi_sel.bb_val.bv_len = 0;
+	BER_BVZERO( &bsi->bsi_sel.bb_val );
 	bsi->bsi_sel.bb_len = 0;
-	bsi->bsi_from.bb_val.bv_val = NULL;
-	bsi->bsi_from.bb_val.bv_len = 0;
+	BER_BVZERO( &bsi->bsi_from.bb_val );
 	bsi->bsi_from.bb_len = 0;
-	bsi->bsi_join_where.bb_val.bv_val = NULL;
-	bsi->bsi_join_where.bb_val.bv_len = 0;
+	BER_BVZERO( &bsi->bsi_join_where.bb_val );
 	bsi->bsi_join_where.bb_len = 0;
-	bsi->bsi_flt_where.bb_val.bv_val = NULL;
-	bsi->bsi_flt_where.bb_val.bv_len = 0;
+	BER_BVZERO( &bsi->bsi_flt_where.bb_val );
 	bsi->bsi_flt_where.bb_len = 0;
 	bsi->bsi_filter_oc = NULL;
 
@@ -201,13 +207,13 @@ backsql_process_filter_list( backsql_srch_info *bsi, Filter *f, int op )
 		switch ( op ) {
 		case LDAP_FILTER_AND:
 			backsql_strfcat( &bsi->bsi_flt_where, "l",
-					(ber_len_t)sizeof( " AND " ) - 1, 
+					(ber_len_t)STRLENOF( " AND " ), 
 						" AND " );
 			break;
 
 		case LDAP_FILTER_OR:
 			backsql_strfcat( &bsi->bsi_flt_where, "l",
-					(ber_len_t)sizeof( " OR " ) - 1,
+					(ber_len_t)STRLENOF( " OR " ),
 						" OR " );
 			break;
 		}
@@ -254,7 +260,7 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 		 * val LIKE '%1%2%3%4%'
 		 */
 
-		bv.bv_len = 0;
+		BER_BVZERO( &bv );
 		if ( f->f_sub_initial.bv_val ) {
 			bv.bv_len += f->f_sub_initial.bv_len;
 		}
@@ -270,7 +276,7 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 		bv.bv_val = ch_malloc( bv.bv_len + 1 );
 
 		s = 0;
-		if ( f->f_sub_initial.bv_val ) {
+		if ( !BER_BVISNULL( &f->f_sub_initial ) ) {
 			bv.bv_val[ s ] = f->f_sub_initial.bv_val[ 0 ];
 			for ( i = 1; i < f->f_sub_initial.bv_len; i++ ) {
 				bv.bv_val[ s + 2 * i - 1 ] = '%';
@@ -281,7 +287,7 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 		}
 
 		if ( f->f_sub_any != NULL ) {
-			for ( a = 0; f->f_sub_any[ a ].bv_val != NULL; a++ ) {
+			for ( a = 0; !BER_BVISNULL( &f->f_sub_any[ a ] ); a++ ) {
 				bv.bv_val[ s ] = f->f_sub_any[ a ].bv_val[ 0 ];
 				for ( i = 1; i < f->f_sub_any[ a ].bv_len; i++ ) {
 					bv.bv_val[ s + 2 * i - 1 ] = '%';
@@ -292,7 +298,7 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 			}
 		}
 
-		if ( f->f_sub_final.bv_val ) {
+		if ( !BER_BVISNULL( &f->f_sub_final ) ) {
 			bv.bv_val[ s ] = f->f_sub_final.bv_val[ 0 ];
 			for ( i = 1; i < f->f_sub_final.bv_len; i++ ) {
 				bv.bv_val[ s + 2 * i - 1 ] = '%';
@@ -332,16 +338,16 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 		backsql_strfcat( &bsi->bsi_flt_where, 
 				"bl",
 				&at->bam_sel_expr_u,
-				(ber_len_t)sizeof( " LIKE '" ) - 1,
+				(ber_len_t)STRLENOF( " LIKE '" ),
 					" LIKE '" );
 
 	} else {
 		backsql_strfcat( &bsi->bsi_flt_where, "bl",
 				&at->bam_sel_expr,
-				(ber_len_t)sizeof( " LIKE '" ) - 1, " LIKE '" );
+				(ber_len_t)STRLENOF( " LIKE '" ), " LIKE '" );
 	}
  
-	if ( f->f_sub_initial.bv_val != NULL ) {
+	if ( !BER_BVISNULL( &f->f_sub_initial ) ) {
 		ber_len_t	start;
 
 #ifdef BACKSQL_TRACE
@@ -362,7 +368,7 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 	backsql_strfcat( &bsi->bsi_flt_where, "c", '%' );
 
 	if ( f->f_sub_any != NULL ) {
-		for ( i = 0; f->f_sub_any[ i ].bv_val != NULL; i++ ) {
+		for ( i = 0; !BER_BVISNULL( &f->f_sub_any[ i ] ); i++ ) {
 			ber_len_t	start;
 
 #ifdef BACKSQL_TRACE
@@ -386,7 +392,7 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 		}
 	}
 
-	if ( f->f_sub_final.bv_val != NULL ) {
+	if ( !BER_BVISNULL( &f->f_sub_final ) ) {
 		ber_len_t	start;
 
 #ifdef BACKSQL_TRACE
@@ -405,9 +411,53 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 	}
 
 	backsql_strfcat( &bsi->bsi_flt_where, "l", 
-			(ber_len_t)sizeof( /* (' */ "')" ) - 1, /* ( */ "')" );
+			(ber_len_t)STRLENOF( /* (' */ "')" ), /* (' */ "')" );
  
 	return 1;
+}
+
+static int
+backsql_merge_from_tbls( backsql_srch_info *bsi, struct berval *from_tbls )
+{
+	if ( BER_BVISNULL( from_tbls ) ) {
+		return LDAP_SUCCESS;
+	}
+
+	if ( !BER_BVISNULL( &bsi->bsi_from.bb_val ) ) {
+		char	*start, *end, *tmp;
+
+		tmp = ch_strdup( from_tbls->bv_val );
+
+		for ( start = tmp, end = strchr( start, ',' ); start; ) {
+			if ( end ) {
+				end[0] = '\0';
+			}
+
+			if ( strstr( bsi->bsi_from.bb_val.bv_val, start) == NULL )
+			{
+				backsql_strfcat( &bsi->bsi_from, "cs", ',', start );
+			}
+
+			if ( end ) {
+				/* in case there are spaces after the comma... */
+				for ( start = &end[1]; isspace( start[0] ); start++ );
+				if ( start[0] ) {
+					end = strchr( start, ',' );
+				} else {
+					start = NULL;
+				}
+			} else {
+				start = NULL;
+			}
+		}
+
+		ch_free( tmp );
+
+	} else {
+		backsql_strfcat( &bsi->bsi_from, "b", from_tbls );
+	}
+
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -442,7 +492,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 
 	case LDAP_FILTER_NOT:
 		backsql_strfcat( &bsi->bsi_flt_where, "l",
-				(ber_len_t)sizeof( "NOT (" /* ) */ ) - 1,
+				(ber_len_t)STRLENOF( "NOT (" /* ) */ ),
 					"NOT (" /* ) */ );
 		rc = backsql_process_filter( bsi, f->f_not );
 		backsql_strfcat( &bsi->bsi_flt_where, "c", /* ( */ ')' );
@@ -465,7 +515,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 			 * like '%attributeName=value%'"
 			 */
 			backsql_strfcat( &bsi->bsi_flt_where, "l",
-					(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
+					(ber_len_t)STRLENOF( "1=1" ), "1=1" );
 			bsi->bsi_status = LDAP_SUCCESS;
 			rc = 1;
 			goto done;
@@ -519,19 +569,32 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 			 * - a search for "top" will return everything
 			 */
 			if ( is_object_subclass( oc, bsi->bsi_oc->bom_oc ) ) {
-				goto filter_oc_success;
+				static struct berval ldap_entry_objclasses = BER_BVC( "ldap_entry_objclasses" );
+
+				backsql_merge_from_tbls( bsi, &ldap_entry_objclasses );
+
+				backsql_strfcat( &bsi->bsi_flt_where, "lbl",
+						(ber_len_t)STRLENOF( "1=1 OR (ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entry_objclasses.oc_name='" /* ') */ ),
+							"1=1 OR (ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entry_objclasses.oc_name='" /* ') */,
+						&bsi->bsi_oc->bom_oc->soc_cname,
+						(ber_len_t)STRLENOF( /* (' */ "')" ),
+							/* (' */ "')" );
+				bsi->bsi_status = LDAP_SUCCESS;
+				rc = 1;
+				goto done;
 			}
 
 			break;
 		}
 
 		case LDAP_FILTER_PRESENT:
-filter_oc_success:;
 			backsql_strfcat( &bsi->bsi_flt_where, "l",
-					(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
+					(ber_len_t)STRLENOF( "1=1" ), "1=1" );
 			bsi->bsi_status = LDAP_SUCCESS;
 			rc = 1;
 			goto done;
+
+			/* FIXME: LDAP_FILTER_EXT? */
 			
 		default:
 			Debug( LDAP_DEBUG_TRACE,
@@ -560,7 +623,7 @@ filter_oc_success:;
 		 * candidate.
 		 */
 		backsql_strfcat( &bsi->bsi_flt_where, "l",
-				(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
+				(ber_len_t)STRLENOF( "1=1" ), "1=1" );
 		if ( ad == slap_schema.si_ad_hasSubordinates ) {
 			/*
 			 * instruct candidate selection algorithm
@@ -593,7 +656,7 @@ filter_oc_success:;
 		/* search anyway; other parts of the filter
 		 * may succeeed */
 		backsql_strfcat( &bsi->bsi_flt_where, "l",
-				(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
+				(ber_len_t)STRLENOF( "1=1" ), "1=1" );
 		bsi->bsi_status = LDAP_SUCCESS;
 		rc = 1;
 		goto done;
@@ -616,7 +679,7 @@ next:;
 	/* if more definitions of the same attr, apply */
 	if ( vat[i]->bam_next ) {
 		backsql_strfcat( &bsi->bsi_flt_where, "l",
-			sizeof( " OR " ) - 1, " OR " );
+			STRLENOF( " OR " ), " OR " );
 		vat[i] = vat[i]->bam_next;
 		goto next;
 	}
@@ -625,7 +688,7 @@ next:;
 	i++;
 	if ( vat[i] ) {
 		backsql_strfcat( &bsi->bsi_flt_where, "l",
-			sizeof( " OR " ) - 1, " OR " );
+			STRLENOF( " OR " ), " OR " );
 		goto next;
 	}
 
@@ -664,14 +727,14 @@ backsql_process_filter_eq( backsql_srch_info *bsi, backsql_at_map_rec *at,
 		backsql_strfcat( &bsi->bsi_flt_where, "cbl",
 				'(', /* ) */
 				&at->bam_sel_expr_u, 
-				(ber_len_t)sizeof( "='" ) - 1,
+				(ber_len_t)STRLENOF( "='" ),
 					"='" );
 
 		start = bsi->bsi_flt_where.bb_val.bv_len;
 
 		backsql_strfcat( &bsi->bsi_flt_where, "bl",
 				filter_value, 
-				(ber_len_t)sizeof( /* (' */ "')" ) - 1,
+				(ber_len_t)STRLENOF( /* (' */ "')" ),
 					/* (' */ "')" );
 
 		ldap_pvt_str2upper( &bsi->bsi_flt_where.bb_val.bv_val[ start ] );
@@ -680,9 +743,9 @@ backsql_process_filter_eq( backsql_srch_info *bsi, backsql_at_map_rec *at,
 		backsql_strfcat( &bsi->bsi_flt_where, "cblbl",
 				'(', /* ) */
 				&at->bam_sel_expr,
-				(ber_len_t)sizeof( "='" ) - 1, "='",
+				(ber_len_t)STRLENOF( "='" ), "='",
 				filter_value,
-				(ber_len_t)sizeof( /* (' */ "')" ) - 1,
+				(ber_len_t)STRLENOF( /* (' */ "')" ),
 					/* (' */ "')" );
 	}
 
@@ -705,14 +768,14 @@ backsql_process_filter_like( backsql_srch_info *bsi, backsql_at_map_rec *at,
 		backsql_strfcat( &bsi->bsi_flt_where, "cbl",
 				'(', /* ) */
 				&at->bam_sel_expr_u, 
-				(ber_len_t)sizeof( " LIKE '%" ) - 1,
+				(ber_len_t)STRLENOF( " LIKE '%" ),
 					" LIKE '%" );
 
 		start = bsi->bsi_flt_where.bb_val.bv_len;
 
 		backsql_strfcat( &bsi->bsi_flt_where, "bl",
 				filter_value, 
-				(ber_len_t)sizeof( /* (' */ "%')" ) - 1,
+				(ber_len_t)STRLENOF( /* (' */ "%')" ),
 					/* (' */ "%')" );
 
 		ldap_pvt_str2upper( &bsi->bsi_flt_where.bb_val.bv_val[ start ] );
@@ -721,10 +784,10 @@ backsql_process_filter_like( backsql_srch_info *bsi, backsql_at_map_rec *at,
 		backsql_strfcat( &bsi->bsi_flt_where, "cblbl",
 				'(', /* ) */
 				&at->bam_sel_expr,
-				(ber_len_t)sizeof( " LIKE '%" ) - 1,
+				(ber_len_t)STRLENOF( " LIKE '%" ),
 					" LIKE '%",
 				filter_value,
-				(ber_len_t)sizeof( /* (' */ "%')" ) - 1,
+				(ber_len_t)STRLENOF( /* (' */ "%')" ),
 					/* (' */ "%')" );
 	}
 
@@ -743,18 +806,20 @@ backsql_process_filter_attr( backsql_srch_info *bsi, Filter *f, backsql_at_map_r
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_process_filter_attr(%s)\n",
 		at->bam_ad->ad_cname.bv_val, 0, 0 );
 
-	backsql_merge_from_clause( &bsi->bsi_from, &at->bam_from_tbls );
-
 	/*
 	 * need to add this attribute to list of attrs to load,
 	 * so that we can do test_filter() later
 	 */
 	backsql_attrlist_add( bsi, at->bam_ad );
 
-	if ( at->bam_join_where.bv_val != NULL 
-			&& strstr( bsi->bsi_join_where.bb_val.bv_val, at->bam_join_where.bv_val ) == NULL ) {
+	backsql_merge_from_tbls( bsi, &at->bam_from_tbls );
+
+	if ( !BER_BVISNULL( &at->bam_join_where )
+			&& strstr( bsi->bsi_join_where.bb_val.bv_val,
+				at->bam_join_where.bv_val ) == NULL )
+	{
 	       	backsql_strfcat( &bsi->bsi_join_where, "lb",
-				(ber_len_t)sizeof( " AND " ) - 1, " AND ",
+				(ber_len_t)STRLENOF( " AND " ), " AND ",
 				&at->bam_join_where );
 	}
 
@@ -811,6 +876,23 @@ equality_match:;
 			break;
 		}
 
+		/* NOTE: this is required by objectClass inheritance 
+		 * and auxiliary objectClass use in filters for slightly
+		 * more efficient candidate selection. */
+		/* FIXME: a bit too many specializations to deal with
+		 * very specific cases... */
+		if ( at->bam_ad == slap_schema.si_ad_objectClass
+				|| at->bam_ad == slap_schema.si_ad_structuralObjectClass )
+		{
+			backsql_strfcat( &bsi->bsi_flt_where, "lbl",
+					(ber_len_t)STRLENOF( "(ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entry_objclasses.oc_name='" /* ') */ ),
+						"(ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entry_objclasses.oc_name='" /* ') */,
+					filter_value,
+					(ber_len_t)STRLENOF( /* (' */ "')" ),
+						/* (' */ "')" );
+			break;
+		}
+
 		/*
 		 * maybe we should check type of at->sel_expr here somehow,
 		 * to know whether upper_func is applicable, but for now
@@ -851,7 +933,7 @@ equality_match:;
 
 			backsql_strfcat( &bsi->bsi_flt_where, "bl",
 					filter_value, 
-					(ber_len_t)sizeof( /* (' */ "')" ) - 1,
+					(ber_len_t)STRLENOF( /* (' */ "')" ),
 						/* (' */ "')" );
 
 			ldap_pvt_str2upper( &bsi->bsi_flt_where.bb_val.bv_val[ start ] );
@@ -863,17 +945,17 @@ equality_match:;
 					&ordering,
 					'\'',
 					&f->f_av_value,
-					(ber_len_t)sizeof( /* (' */ "')" ) - 1,
+					(ber_len_t)STRLENOF( /* (' */ "')" ),
 						/* ( */ "')" );
 		}
 		break;
 
 	case LDAP_FILTER_PRESENT:
 		backsql_strfcat( &bsi->bsi_flt_where, "lbl",
-				(ber_len_t)sizeof( "NOT (" /* ) */) - 1,
+				(ber_len_t)STRLENOF( "NOT (" /* ) */),
 					"NOT (", /* ) */
 				&at->bam_sel_expr, 
-				(ber_len_t)sizeof( /* ( */ " IS NULL)" ) - 1,
+				(ber_len_t)STRLENOF( /* ( */ " IS NULL)" ),
 					/* ( */ " IS NULL)" );
 		break;
 
@@ -897,7 +979,7 @@ equality_match:;
 		/* unhandled filter type; should not happen */
 		assert( 0 );
 		backsql_strfcat( &bsi->bsi_flt_where, "l",
-				(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
+				(ber_len_t)STRLENOF( "1=1" ), "1=1" );
 		break;
 
 	}
@@ -915,38 +997,34 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 	int		rc;
 
 	assert( query );
-	query->bv_val = NULL;
-	query->bv_len = 0;
+	BER_BVZERO( query );
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_srch_query()\n", 0, 0, 0 );
-	bsi->bsi_sel.bb_val.bv_val = NULL;
-	bsi->bsi_sel.bb_val.bv_len = 0;
+	BER_BVZERO( &bsi->bsi_sel.bb_val );
+	BER_BVZERO( &bsi->bsi_sel.bb_val );
 	bsi->bsi_sel.bb_len = 0;
-	bsi->bsi_from.bb_val.bv_val = NULL;
-	bsi->bsi_from.bb_val.bv_len = 0;
+	BER_BVZERO( &bsi->bsi_from.bb_val );
 	bsi->bsi_from.bb_len = 0;
-	bsi->bsi_join_where.bb_val.bv_val = NULL;
-	bsi->bsi_join_where.bb_val.bv_len = 0;
+	BER_BVZERO( &bsi->bsi_join_where.bb_val );
 	bsi->bsi_join_where.bb_len = 0;
-	bsi->bsi_flt_where.bb_val.bv_val = NULL;
-	bsi->bsi_flt_where.bb_val.bv_len = 0;
+	BER_BVZERO( &bsi->bsi_flt_where.bb_val );
 	bsi->bsi_flt_where.bb_len = 0;
 
 	backsql_strfcat( &bsi->bsi_sel, "lbcbc",
-			(ber_len_t)sizeof( "SELECT DISTINCT ldap_entries.id," ) - 1,
+			(ber_len_t)STRLENOF( "SELECT DISTINCT ldap_entries.id," ),
 				"SELECT DISTINCT ldap_entries.id,", 
 			&bsi->bsi_oc->bom_keytbl, 
 			'.', 
 			&bsi->bsi_oc->bom_keycol, 
 			',' );
 
-	if ( bi->strcast_func.bv_val ) {
+	if ( !BER_BVISNULL( &bi->strcast_func ) ) {
 		backsql_strfcat( &bsi->bsi_sel, "blbl",
 				&bi->strcast_func, 
-				(ber_len_t)sizeof( "('" /* ') */ ) - 1,
+				(ber_len_t)STRLENOF( "('" /* ') */ ),
 					"('" /* ') */ ,
 				&bsi->bsi_oc->bom_oc->soc_cname,
-				(ber_len_t)sizeof( /* (' */ "')" ) - 1,
+				(ber_len_t)STRLENOF( /* (' */ "')" ),
 					/* (' */ "')" );
 	} else {
 		backsql_strfcat( &bsi->bsi_sel, "cbc",
@@ -954,21 +1032,33 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 				&bsi->bsi_oc->bom_oc->soc_cname,
 				'\'' );
 	}
+#ifdef BACKSQL_ALIASING_QUOTE
+	backsql_strfcat( &bsi->bsi_sel, "lclcl",
+			(ber_len_t)STRLENOF( " " BACKSQL_ALIASING ),
+				" " BACKSQL_ALIASING,
+			BACKSQL_ALIASING_QUOTE,
+			(ber_len_t)STRLENOF( "objectClass" ),
+				"objectClass",
+			BACKSQL_ALIASING_QUOTE,
+			(ber_len_t)STRLENOF( ",ldap_entries.dn " BACKSQL_ALIASING "dn" ),
+				",ldap_entries.dn " BACKSQL_ALIASING "dn" );
+#else /* ! BACKSQL_ALIASING_QUOTE */
 	backsql_strfcat( &bsi->bsi_sel, "l",
-			(ber_len_t)sizeof( " AS objectClass,ldap_entries.dn AS dn" ) - 1,
-			" AS objectClass,ldap_entries.dn AS dn" );
+			(ber_len_t)STRLENOF( " " BACKSQL_ALIASING "objectClass,ldap_entries.dn " BACKSQL_ALIASING "dn" ),
+				" " BACKSQL_ALIASING "objectClass,ldap_entries.dn " BACKSQL_ALIASING "dn" );
+#endif /* ! BACKSQL_ALIASING_QUOTE */
 
 	backsql_strfcat( &bsi->bsi_from, "lb",
-			(ber_len_t)sizeof( " FROM ldap_entries," ) - 1,
+			(ber_len_t)STRLENOF( " FROM ldap_entries," ),
 				" FROM ldap_entries,",
 			&bsi->bsi_oc->bom_keytbl );
 
 	backsql_strfcat( &bsi->bsi_join_where, "lbcbl",
-			(ber_len_t)sizeof( " WHERE " ) - 1, " WHERE ",
+			(ber_len_t)STRLENOF( " WHERE " ), " WHERE ",
 			&bsi->bsi_oc->bom_keytbl,
 			'.',
 			&bsi->bsi_oc->bom_keycol,
-			(ber_len_t)sizeof( "=ldap_entries.keyval AND ldap_entries.oc_map_id=? AND " ) - 1,
+			(ber_len_t)STRLENOF( "=ldap_entries.keyval AND ldap_entries.oc_map_id=? AND " ),
 				"=ldap_entries.keyval AND ldap_entries.oc_map_id=? AND " );
 
 	switch ( bsi->bsi_scope ) {
@@ -976,11 +1066,11 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 		if ( BACKSQL_CANUPPERCASE( bi ) ) {
 			backsql_strfcat( &bsi->bsi_join_where, "bl",
 					&bi->upper_func,
-					(ber_len_t)sizeof( "(ldap_entries.dn)=?" ) - 1,
+					(ber_len_t)STRLENOF( "(ldap_entries.dn)=?" ),
 						"(ldap_entries.dn)=?" );
 		} else {
 			backsql_strfcat( &bsi->bsi_join_where, "l",
-					(ber_len_t)sizeof( "ldap_entries.dn=?" ) - 1,
+					(ber_len_t)STRLENOF( "ldap_entries.dn=?" ),
 						"ldap_entries.dn=?" );
 		}
 		break;
@@ -989,18 +1079,18 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 		if ( BACKSQL_CANUPPERCASE( bi ) ) {
 			backsql_strfcat( &bsi->bsi_join_where, "bl",
 					&bi->upper_func,
-					(ber_len_t)sizeof( "(ldap_entries.dn) LIKE ?" ) - 1,
+					(ber_len_t)STRLENOF( "(ldap_entries.dn) LIKE ?" ),
 						"(ldap_entries.dn) LIKE ?" );
 		} else {
 			backsql_strfcat( &bsi->bsi_join_where, "l",
-					(ber_len_t)sizeof( "ldap_entries.dn LIKE ?" ) - 1,
+					(ber_len_t)STRLENOF( "ldap_entries.dn LIKE ?" ),
 						"ldap_entries.dn LIKE ?" );
 		}
 		break;
 		
 	case LDAP_SCOPE_ONELEVEL:
 		backsql_strfcat( &bsi->bsi_join_where, "l",
-				(ber_len_t)sizeof( "ldap_entries.parent=?" ) - 1,
+				(ber_len_t)STRLENOF( "ldap_entries.parent=?" ),
 					"ldap_entries.parent=?" );
 		break;
 
@@ -1008,11 +1098,11 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 		if ( BACKSQL_CANUPPERCASE( bi ) ) {
 			backsql_strfcat( &bsi->bsi_join_where, "bl",
 					&bi->upper_func,
-					(ber_len_t)sizeof( "(ldap_entries.dn) LIKE ?" ) - 1,
+					(ber_len_t)STRLENOF( "(ldap_entries.dn) LIKE ?" ),
 						"(ldap_entries.dn) LIKE ?"  );
 		} else {
 			backsql_strfcat( &bsi->bsi_join_where, "l",
-					(ber_len_t)sizeof( "ldap_entries.dn LIKE ?" ) - 1,
+					(ber_len_t)STRLENOF( "ldap_entries.dn LIKE ?" ),
 						"ldap_entries.dn LIKE ?" );
 		}
 
@@ -1030,7 +1120,7 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 				&bsi->bsi_sel.bb_val,
 				&bsi->bsi_from.bb_val, 
 				&bsi->bsi_join_where.bb_val,
-				(ber_len_t)sizeof( " AND " ) - 1, " AND ",
+				(ber_len_t)STRLENOF( " AND " ), " AND ",
 				&bsi->bsi_flt_where.bb_val );
 
 		*query = bb.bb_val;
@@ -1041,20 +1131,20 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 		 * anything.  No need to issue the query
 		 */
 		free( query->bv_val );
-		query->bv_val = NULL;
+		BER_BVZERO( query );
 	}
  
 	free( bsi->bsi_sel.bb_val.bv_val );
-	bsi->bsi_sel.bb_val.bv_len = 0;
+	BER_BVZERO( &bsi->bsi_sel.bb_val );
 	bsi->bsi_sel.bb_len = 0;
 	free( bsi->bsi_from.bb_val.bv_val );
-	bsi->bsi_from.bb_val.bv_len = 0;
+	BER_BVZERO( &bsi->bsi_from.bb_val );
 	bsi->bsi_from.bb_len = 0;
 	free( bsi->bsi_join_where.bb_val.bv_val );
-	bsi->bsi_join_where.bb_val.bv_len = 0;
+	BER_BVZERO( &bsi->bsi_join_where.bb_val );
 	bsi->bsi_join_where.bb_len = 0;
 	free( bsi->bsi_flt_where.bb_val.bv_val );
-	bsi->bsi_flt_where.bb_val.bv_len = 0;
+	BER_BVZERO( &bsi->bsi_flt_where.bb_val );
 	bsi->bsi_flt_where.bb_len = 0;
 	
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_srch_query() returns %s\n",
@@ -1097,7 +1187,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		/* should never get here */
 		assert( 0 );
 		bsi->bsi_status = LDAP_ADMINLIMIT_EXCEEDED;
-		return BACKSQL_STOP;
+		return BACKSQL_AVL_STOP;
 	}
 	
 	bsi->bsi_oc = oc;
@@ -1118,21 +1208,21 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		default:
 			bsi->bsi_status = LDAP_SUCCESS;
 			/* try next */
-			return BACKSQL_CONTINUE;
+			return BACKSQL_AVL_CONTINUE;
 
 		case LDAP_ADMINLIMIT_EXCEEDED:
 		case LDAP_OTHER:
 			/* don't try any more */
-			return BACKSQL_STOP;
+			return BACKSQL_AVL_STOP;
 		}
 	}
 
-	if ( query.bv_val == NULL ) {
+	if ( BER_BVISNULL( &query ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 			"could not construct query for objectclass \"%s\"\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
 		bsi->bsi_status = LDAP_SUCCESS;
-		return BACKSQL_CONTINUE;
+		return BACKSQL_AVL_CONTINUE;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "Constructed query: %s\n", 
@@ -1140,12 +1230,13 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 
 	rc = backsql_Prepare( bsi->bsi_dbh, &sth, query.bv_val, 0 );
 	free( query.bv_val );
+	BER_BVZERO( &query );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 			"error preparing query\n", 0, 0, 0 );
 		backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, sth, rc );
 		bsi->bsi_status = LDAP_OTHER;
-		return BACKSQL_CONTINUE;
+		return BACKSQL_AVL_CONTINUE;
 	}
 	
 	Debug( LDAP_DEBUG_TRACE, "id: '%ld'\n", bsi->bsi_oc->bom_id, 0, 0 );
@@ -1154,7 +1245,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 			"error binding objectclass id parameter\n", 0, 0, 0 );
 		bsi->bsi_status = LDAP_OTHER;
-		return BACKSQL_CONTINUE;
+		return BACKSQL_AVL_CONTINUE;
 	}
 
 	switch ( bsi->bsi_scope ) {
@@ -1166,7 +1257,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		 */
 		if ( bsi->bsi_base_dn->bv_len > BACKSQL_MAX_DN_LEN ) {
 			bsi->bsi_status = LDAP_OTHER;
-			return BACKSQL_CONTINUE;
+			return BACKSQL_AVL_CONTINUE;
 		}
 
 		AC_MEMCPY( temp_base_dn, bsi->bsi_base_dn->bv_val,
@@ -1189,7 +1280,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, 
 					sth, rc );
 			bsi->bsi_status = LDAP_OTHER;
-			return BACKSQL_CONTINUE;
+			return BACKSQL_AVL_CONTINUE;
 		}
 		break;
 
@@ -1200,7 +1291,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		 */
 		if ( bsi->bsi_base_dn->bv_len > BACKSQL_MAX_DN_LEN ) {
 			bsi->bsi_status = LDAP_OTHER;
-			return BACKSQL_CONTINUE;
+			return BACKSQL_AVL_CONTINUE;
 		}
 
 		/* 
@@ -1249,7 +1340,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, 
 					sth, rc );
 			bsi->bsi_status = LDAP_OTHER;
-			return BACKSQL_CONTINUE;
+			return BACKSQL_AVL_CONTINUE;
 		}
 		break;
 	}
@@ -1263,7 +1354,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 				res == LDAP_NO_SUCH_OBJECT ? ": no such entry"
 				: "", 0, 0 );
 			bsi->bsi_status = res;
-			return BACKSQL_CONTINUE;
+			return BACKSQL_AVL_CONTINUE;
 		}
 
 #ifdef BACKSQL_ARBITRARY_KEY
@@ -1283,7 +1374,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 				"error binding base id parameter\n", 0, 0, 0 );
 			bsi->bsi_status = LDAP_OTHER;
-			return BACKSQL_CONTINUE;
+			return BACKSQL_AVL_CONTINUE;
 		}
 		break;
 	}
@@ -1295,7 +1386,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		bsi->bsi_status = LDAP_OTHER;
-		return BACKSQL_CONTINUE;
+		return BACKSQL_AVL_CONTINUE;
 	}
 
 	backsql_BindRowAsStrings( sth, &row );
@@ -1327,9 +1418,10 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			c_id->eid_dn = dn;
 		}
 
-		c_id->eid_next = bsi->bsi_id_list;
-		bsi->bsi_id_list = c_id;
-		bsi->bsi_n_candidates--;
+		/* append at end of list ... */
+		c_id->eid_next = NULL;
+		*bsi->bsi_id_listtail = c_id;
+		bsi->bsi_id_listtail = &c_id->eid_next;
 
 #ifdef BACKSQL_ARBITRARY_KEY
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
@@ -1342,6 +1434,8 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			c_id->eid_id, c_id->eid_keyval, row.cols[ 3 ] );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
+		/* count candidates, for unchecked limit */
+		bsi->bsi_n_candidates--;
 		if ( bsi->bsi_n_candidates == -1 ) {
 			break;
 		}
@@ -1352,7 +1446,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_oc_get_candidates(): %d\n",
 			n_candidates - bsi->bsi_n_candidates, 0, 0 );
 
-	return ( bsi->bsi_n_candidates == -1 ? BACKSQL_STOP : BACKSQL_CONTINUE );
+	return ( bsi->bsi_n_candidates == -1 ? BACKSQL_AVL_STOP : BACKSQL_AVL_CONTINUE );
 }
 
 int
@@ -1361,7 +1455,7 @@ backsql_search( Operation *op, SlapReply *rs )
 	backsql_info		*bi = (backsql_info *)op->o_bd->be_private;
 	SQLHDBC			dbh;
 	int			sres;
-	Entry			*entry, *res;
+	Entry			user_entry = { 0 };
 	int			manageDSAit;
 	time_t			stoptime = 0;
 	backsql_srch_info	srch_info;
@@ -1383,7 +1477,7 @@ backsql_search( Operation *op, SlapReply *rs )
 
 	if ( op->o_req_ndn.bv_len > BACKSQL_MAX_DN_LEN ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
-			"search base length (%ld) exceeds max length (%ld)\n", 
+			"search base length (%ld) exceeds max length (%d)\n", 
 			op->o_req_ndn.bv_len, BACKSQL_MAX_DN_LEN, 0 );
 		/*
 		 * FIXME: a LDAP_NO_SUCH_OBJECT could be appropriate
@@ -1436,7 +1530,7 @@ backsql_search( Operation *op, SlapReply *rs )
 		( op->ors_limit->lms_s_unchecked == -1 ? -2 :
 		( op->ors_limit->lms_s_unchecked ) ) );
 	avl_apply( bi->oc_by_oc, backsql_oc_get_candidates,
-			&srch_info, BACKSQL_STOP, AVL_INORDER );
+			&srch_info, BACKSQL_AVL_STOP, AVL_INORDER );
 	if ( op->ors_limit != NULL	/* isroot == TRUE */
 			&& op->ors_limit->lms_s_unchecked != -1
 			&& srch_info.bsi_n_candidates == -1 )
@@ -1451,8 +1545,11 @@ backsql_search( Operation *op, SlapReply *rs )
 	 * mentioned in attrs and filter), test it against full filter 
 	 * and then send to client
 	 */
-	for ( eid = srch_info.bsi_id_list; eid != NULL; 
-			eid = backsql_free_entryID( eid, 1 ) ) {
+	for ( eid = srch_info.bsi_id_list;
+			eid != NULL; 
+			eid = backsql_free_entryID( eid, 1 ) )
+	{
+		int		rc;
 		Attribute	*hasSubordinate = NULL,
 				*a = NULL;
 
@@ -1485,24 +1582,73 @@ backsql_search( Operation *op, SlapReply *rs )
 			eid->eid_id, eid->eid_oc_id, eid->eid_keyval );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
-		entry = (Entry *)ch_calloc( sizeof( Entry ), 1 );
-		res = backsql_id2entry( &srch_info, entry, eid );
-		if ( res == NULL ) {
+		srch_info.bsi_e = &user_entry;
+		rc = backsql_id2entry( &srch_info, eid );
+		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
-				"error in backsql_id2entry() "
-				"- skipping entry\n", 0, 0, 0 );
+				"error %d in backsql_id2entry() "
+				"- skipping\n", rc, 0, 0 );
 			continue;
+		}
+
+		/* check scope */
+		switch ( op->ors_scope ) {
+		case LDAP_SCOPE_BASE:
+		case BACKSQL_SCOPE_BASE_LIKE:
+			if ( !bvmatch( &user_entry.e_nname, &op->o_req_ndn ) ) {
+				goto next_entry;
+			}
+			break;
+
+		case LDAP_SCOPE_ONE:
+		{
+			struct berval	rdn = user_entry.e_nname;
+			rdn.bv_len -= op->o_req_ndn.bv_len + STRLENOF( "," );
+			if ( !dnIsOneLevelRDN( &rdn ) ) {
+				goto next_entry;
+			}
+			/* fall thru */
+		}
+
+		case LDAP_SCOPE_SUBTREE:
+			if ( !dnIsSuffix( &user_entry.e_nname, &op->o_req_ndn ) ) {
+				goto next_entry;
+			}
+			break;
 		}
 
 		if ( !manageDSAit &&
 				op->ors_scope != LDAP_SCOPE_BASE &&
 				op->ors_scope != BACKSQL_SCOPE_BASE_LIKE &&
-				is_entry_referral( entry ) ) {
+				is_entry_referral( &user_entry ) )
+		{
 			BerVarray refs;
 			struct berval matched_dn;
 
-			ber_dupbv( &matched_dn, &entry->e_name );
-			refs = get_entry_referrals( op, entry );
+			ber_dupbv( &matched_dn, &user_entry.e_name );
+			refs = get_entry_referrals( op, &user_entry );
+			if ( !refs ) {
+				backsql_srch_info	srch_info2 = { 0 };
+				Entry			user_entry2 = { 0 };
+
+				/* retry with the full entry... */
+				backsql_init_search( &srch_info2,
+						&user_entry.e_name,
+						LDAP_SCOPE_BASE, 
+						-1, -1, -1, NULL,
+						dbh, op, rs, NULL );
+				srch_info2.bsi_e = &user_entry2;
+				rc = backsql_id2entry( &srch_info2, eid );
+				if ( rc == LDAP_SUCCESS ) {
+					if ( is_entry_referral( &user_entry2 ) )
+					{
+						refs = get_entry_referrals( op,
+								&user_entry2 );
+					} /* else: FIXME: inconsistency! */
+					entry_clean( &user_entry2 );
+				}
+			}
+
 			if ( refs ) {
 				rs->sr_ref = referral_rewrite( refs,
 						&matched_dn, &op->o_req_dn,
@@ -1523,7 +1669,7 @@ backsql_search( Operation *op, SlapReply *rs )
 			ber_memfree( matched_dn.bv_val );
 			rs->sr_matched = NULL;
 
-			continue;
+			goto next_entry;
 		}
 
 		/*
@@ -1532,16 +1678,14 @@ backsql_search( Operation *op, SlapReply *rs )
 		 * filter_has_subordinates()
 		 */
 		if ( srch_info.bsi_flags & BSQL_SF_FILTER_HASSUBORDINATE ) {
-			int		rc;
+			rc = backsql_has_children( bi, dbh, &user_entry.e_nname );
 
-			rc = backsql_has_children( bi, dbh, &entry->e_nname );
-
-			switch( rc ) {
+			switch ( rc ) {
 			case LDAP_COMPARE_TRUE:
 			case LDAP_COMPARE_FALSE:
 				hasSubordinate = slap_operational_hasSubordinate( rc == LDAP_COMPARE_TRUE );
 				if ( hasSubordinate != NULL ) {
-					for ( a = entry->e_attrs; 
+					for ( a = user_entry.e_attrs; 
 							a && a->a_next; 
 							a = a->a_next );
 
@@ -1556,15 +1700,11 @@ backsql_search( Operation *op, SlapReply *rs )
 					"has_children failed( %d)\n", 
 					rc, 0, 0 );
 				rc = 1;
-				break;
-			}
-
-			if ( rc ) {
-				continue;
+				goto next_entry;
 			}
 		}
 
-		if ( test_filter( op, entry, op->ors_filter )
+		if ( test_filter( op, &user_entry, op->ors_filter )
 				== LDAP_COMPARE_TRUE ) {
 			if ( hasSubordinate && !( srch_info.bsi_flags & BSQL_SF_ALL_OPER ) 
 					&& !ad_inlist( slap_schema.si_ad_hasSubordinates, op->ors_attrs ) ) {
@@ -1573,38 +1713,31 @@ backsql_search( Operation *op, SlapReply *rs )
 				hasSubordinate = NULL;
 			}
 
-#if 0	/* noop is masked SLAP_CTRL_UPDATE */
-			if ( op->o_noop ) {
-				sres = 0;
-			} else
-#endif
-			{
-				rs->sr_attrs = op->ors_attrs;
-				rs->sr_entry = entry;
-				rs->sr_flags = REP_ENTRY_MODIFIABLE;
-				sres = send_search_entry( op, rs );
-				rs->sr_entry = NULL;
-				rs->sr_attrs = NULL;
-			}
+			rs->sr_attrs = op->ors_attrs;
+			rs->sr_entry = &user_entry;
+			rs->sr_flags = REP_ENTRY_MODIFIABLE;
+			sres = send_search_entry( op, rs );
+			rs->sr_entry = NULL;
+			rs->sr_attrs = NULL;
 
 			switch ( sres ) {
 			case 0:
 				break;
-
-			case -1:
-				Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
-					"connection lost\n", 0, 0, 0 );
-				goto end_of_search;
 
 			default:
 				/*
 				 * FIXME: send_search_entry failed;
 				 * better stop
 				 */
-				break;
+			case -1:
+				Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
+					"connection lost\n", 0, 0, 0 );
+				goto end_of_search;
 			}
 		}
-		entry_free( entry );
+
+next_entry:;
+		entry_clean( &user_entry );
 
 		if ( op->ors_slimit != SLAP_NO_LIMIT
 				&& rs->sr_nentries >= op->ors_slimit )
@@ -1616,11 +1749,14 @@ backsql_search( Operation *op, SlapReply *rs )
 	}
 
 end_of_search:;
+	/* in case we got here accidentally */
+	entry_clean( &user_entry );
 
 	if ( rs->sr_nentries > 0 ) {
 		rs->sr_ref = rs->sr_v2ref;
 		rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS
 			: LDAP_REFERRAL;
+
 	} else {
 		rs->sr_err = srch_info.bsi_status;
 	}

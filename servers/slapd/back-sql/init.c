@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <sys/types.h>
+#include "ac/string.h"
 
 #include "slap.h"
 #include "ldap_pvt.h"
@@ -40,7 +41,7 @@ init_module(
 
 	memset( &bi, '\0', sizeof( bi ) );
 	bi.bi_type = "sql";
-	bi.bi_init = sql_back_initialize;
+	bi.bi_init = backsql_initialize;
 
 	backend_add( &bi );
 	return 0;
@@ -49,7 +50,7 @@ init_module(
 #endif /* SLAPD_SQL == SLAPD_MOD_DYNAMIC */
 
 int
-sql_back_initialize(
+backsql_initialize(
 	BackendInfo	*bi )
 { 
 	static char *controls[] = {
@@ -161,6 +162,8 @@ backsql_db_destroy(
 	free( si->at_query );
 	free( si->insentry_query );
 	free( si->delentry_query );
+	free( si->delobjclasses_query );
+	free( si->delreferrals_query );
 	free( si );
 	
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_db_destroy()\n", 0, 0, 0 );
@@ -176,7 +179,7 @@ backsql_db_open(
 	ber_len_t	idq_len;
 	struct berbuf	bb = BB_NULL;
 
-	Operation	otmp;
+	Operation	otmp = { 0 };
 		
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_db_open(): "
 		"testing RDBMS connection\n", 0, 0, 0 );
@@ -247,9 +250,9 @@ backsql_db_open(
 		 */
 		struct berval	concat;
 		struct berval	values[] = {
-			{ sizeof( "'%'" ) - 1,	"'%'" },
-			{ sizeof( "?" ) - 1,	"?" },
-			{ 0,			NULL }
+			BER_BVC( "'%'" ),
+			BER_BVC( "?" ),
+			BER_BVNULL
 		};
 		struct berbuf	bb = BB_NULL;
 
@@ -273,7 +276,7 @@ backsql_db_open(
 
 			backsql_strfcat( &bb, "blbbb",
 					&si->upper_func,
-					(ber_len_t)sizeof( "(ldap_entries.dn) LIKE " ) - 1,
+					(ber_len_t)STRLENOF( "(ldap_entries.dn) LIKE " ),
 						"(ldap_entries.dn) LIKE ",
 					&si->upper_func_open,
 					&concat,
@@ -286,7 +289,7 @@ backsql_db_open(
 			 */
 
 			backsql_strfcat( &bb, "lb",
-					(ber_len_t)sizeof( "ldap_entries.dn LIKE " ) - 1,
+					(ber_len_t)STRLENOF( "ldap_entries.dn LIKE " ),
 						"ldap_entries.dn LIKE ",
 					&concat );
 		}
@@ -309,10 +312,10 @@ backsql_db_open(
 
 			backsql_strfcat( &bb, "blbl",
 					&si->upper_func,
-					(ber_len_t)sizeof( "(ldap_entries.dn)=" ) - 1,
+					(ber_len_t)STRLENOF( "(ldap_entries.dn)=" ),
 						"(ldap_entries.dn)=",
 					&si->upper_func,
-					(ber_len_t)sizeof( "(?)" ) - 1, "(?)" );
+					(ber_len_t)STRLENOF( "(?)" ), "(?)" );
 
 		} else {
 
@@ -321,7 +324,7 @@ backsql_db_open(
 			 */
 
 			backsql_strfcat( &bb, "l",
-					(ber_len_t)sizeof( "ldap_entries.dn=?" ) - 1,
+					(ber_len_t)STRLENOF( "ldap_entries.dn=?" ),
 						"ldap_entries.dn=?");
 		}
 
@@ -382,7 +385,29 @@ backsql_db_open(
 		si->delentry_query = ch_strdup( backsql_def_delentry_query );
 	}
 
-	otmp.o_connid = -1;
+	if ( si->delobjclasses_query == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"objclasses deletion SQL statement not specified "
+			"(use \"delobjclasses_query\" directive in slapd.conf)\n",
+			0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"setting \"%s\" by default\n",
+			backsql_def_delobjclasses_query, 0, 0 );
+		si->delobjclasses_query = ch_strdup( backsql_def_delobjclasses_query );
+	}
+
+	if ( si->delreferrals_query == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"referrals deletion SQL statement not specified "
+			"(use \"delreferrals_query\" directive in slapd.conf)\n",
+			0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"setting \"%s\" by default\n",
+			backsql_def_delreferrals_query, 0, 0 );
+		si->delreferrals_query = ch_strdup( backsql_def_delreferrals_query );
+	}
+
+	otmp.o_connid = (unsigned long)(-1);
 	otmp.o_bd = bd;
 	if ( backsql_get_db_conn( &otmp, &dbh ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
@@ -398,6 +423,7 @@ backsql_db_open(
 
 	if ( si->upper_func.bv_val == NULL ) {
 		backsql_strcat( &bb, backsql_id_query, "dn=?", NULL );
+
 	} else {
 		if ( BACKSQL_HAS_LDAPINFO_DN_RU( si ) ) {
 			backsql_strcat( &bb, backsql_id_query,
@@ -407,12 +433,12 @@ backsql_db_open(
 				backsql_strfcat( &bb, "sbl",
 						backsql_id_query,
 						&si->upper_func, 
-						(ber_len_t)sizeof( "(dn)=?" ) - 1, "(dn)=?" );
+						(ber_len_t)STRLENOF( "(dn)=?" ), "(dn)=?" );
 			} else {
 				backsql_strfcat( &bb, "sblbcb",
 						backsql_id_query,
 						&si->upper_func, 
-						(ber_len_t)sizeof( "(dn)=" ) - 1, "(dn)=",
+						(ber_len_t)STRLENOF( "(dn)=" ), "(dn)=",
 						&si->upper_func_open, 
 						'?', 
 						&si->upper_func_close );
@@ -460,13 +486,14 @@ backsql_db_close(
 int
 backsql_connection_destroy( Backend *bd, Connection *c )
 {
-	Operation o;
+	Operation o = { 0 };
 	o.o_bd = bd;
 	o.o_connid = c->c_connid;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_connection_destroy()\n", 0, 0, 0 );
 	backsql_free_db_conn( &o );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_connection_destroy()\n", 0, 0, 0 );
+
 	return 0;
 }
 
