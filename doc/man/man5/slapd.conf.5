@@ -1317,6 +1317,7 @@ one subordinate to another subordinate within the namingContext.
 .B [timelimit=<limit>]
 .B [schemachecking=on|off]
 .B [updatedn=<dn>]
+.B [starttls=yes|critical]
 .B [bindmethod=simple|sasl]
 .B [binddn=<dn>]
 .B [saslmech=<mech>]
@@ -1398,6 +1399,13 @@ of the replica database and
 be the same as the
 .B rootdn
 of the master database.
+The
+.B starttls
+parameter specifies use of the StartTLS extended operation to establish
+a TLS session before Binding to the provider. If the
+.B critical
+argument is supplied, the session will be aborted if the StartTLS request
+fails. Otherwise the syncrepl session continues without TLS.
 A
 .B bindmethod
 of 
