@@ -312,7 +312,7 @@ dnl AC_PROG_INSTALL
 dnl The default compiler is cc (NOT gcc)
 dnl	(should check to see if 'cc' exists)
 if test -z "${CC}"; then
-	AC_CHECK_PROG(CC,cc,cc,)
+	AC_CHECK_PROGS(CC,cc)
 fi
 
 dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
