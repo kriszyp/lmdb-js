@@ -64,8 +64,8 @@ bdb_filter_candidates(
 			BDB_IDL_ZERO( ids );
 			break;
 		case LDAP_COMPARE_TRUE: {
-			struct bdb_info *bdb = (struct bdb_info *)op->o_bd->be_private;
-			BDB_IDL_ALL( bdb, ids );
+				struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+				BDB_IDL_ALL( bdb, ids );
 			} break;
 		case SLAPD_COMPARE_UNDEFINED:
 			break;
