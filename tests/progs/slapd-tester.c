@@ -3,14 +3,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <ac/string.h>
 #include <ac/ctype.h>
+#include <ac/dirent.h>
 #include <ac/socket.h>
+#include <ac/string.h>
 #include <ac/unistd.h>
 #include <ac/wait.h>
-#include <dirent.h>
 
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
 
 #include "ldapconfig.h"
 
@@ -305,7 +307,7 @@ get_read_entries( char *filename, char *entries[] )
 static void
 fork_child( char *prog, char *args[] )
 {
-	int	pid;
+	pid_t	pid;
 
 	wait4kids( maxkids );
 
@@ -332,25 +334,33 @@ static void
 wait4kids( int nkidval )
 {
 	int		status;
-	unsigned char	*p;
 
 	while ( nkids >= nkidval ) {
 		wait( &status );
-		p = (unsigned char *) &status;
-		if ( p[sizeof(int) - 1] == 0177 ) {
+
+		if ( WIFSTOPPED(status) ) {
 			fprintf( stderr,
 			    "stopping: child stopped with signal %d\n",
-			    p[sizeof(int) - 2] );
-		} else if ( p[sizeof(int) - 1] != 0 ) {
+			    (int) WSTOPSIG(status) );
+
+		} else if ( WIFSIGNALED(status) ) {
 			fprintf( stderr, 
-			    "stopping: child terminated with signal %d\n",
-			    p[sizeof(int) - 1] );
-			exit( p[sizeof(int) - 1] );
-		} else if ( p[sizeof(int) - 2] != 0 ) {
+			    "stopping: child terminated with signal %d%s\n",
+			    (int) WTERMSIG(status),
+#ifdef WCOREDUMP
+				WCOREDUMP(status) ? ", core dumped" : ""
+#else
+				""
+#endif
+				);
+			exit( WEXITSTATUS(status)  );
+
+		} else if ( WEXITSTATUS(status) != 0 ) {
 			fprintf( stderr, 
 			    "stopping: child exited with status %d\n",
-			    p[sizeof(int) - 2] );
-			exit( p[sizeof(int) - 2] );
+			    (int) WEXITSTATUS(status) );
+			exit( WEXITSTATUS(status) );
+
 		} else {
 			nkids--;
 		}

@@ -1701,6 +1701,7 @@ AC_CHECK_FUNCS(		\
 	strspn			\
 	sysconf			\
 	waitpid			\
+	wait4			\
 )
 
 dnl We actually may need to replace more than this.
