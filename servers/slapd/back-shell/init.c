@@ -53,7 +53,7 @@ shell_back_initialize(
 	bi->bi_op_modrdn = shell_back_modrdn;
 	bi->bi_op_add = shell_back_add;
 	bi->bi_op_delete = shell_back_delete;
-	bi->bi_op_abandon = shell_back_abandon;
+	bi->bi_op_abandon = 0;
 
 	bi->bi_extended = 0;
 
