@@ -659,7 +659,7 @@ slapd_daemon_task(
 		if( FD_ISSET( sel_exit_fd, &readfds ) )
 		{
 			char c;
-			read( sel_exit_fd, &c, 1 );
+			tcp_read( sel_exit_fd, &c, 1 );
 			continue;
 		}
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
@@ -1102,7 +1102,7 @@ slap_set_shutdown( int sig )
 		}
 	}
 #endif
-	write( sel_exit_fd, "0", 1 );
+	tcp_write( sel_exit_fd, "0", 1 );
 	/* reinstall self */
 	(void) SIGNAL( sig, slap_set_shutdown );
 }

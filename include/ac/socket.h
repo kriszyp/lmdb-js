@@ -67,8 +67,13 @@
 #define MAXHOSTNAMELEN  64
 #endif
 
+#define sock_errno()	errno
+#define sock_errstr()	STRERROR(errno)
+
 #ifdef HAVE_WINSOCK
-#	define tcp_close( s )		closesocket( s );
+#	define tcp_close( s )		closesocket( s )
+#	define tcp_read( s, buf, len )	recv( s, buf, len, 0 )
+#	define tcp_write( s, buf, len )	send( s, buf, len, 0 )
 #	define ioctl( s, c, a )		ioctlsocket( (s), (c), (a) )
 #	define ioctl_t				u_long
 #	define AC_SOCKET_INVALID	((unsigned int) ~0)
@@ -77,18 +82,26 @@
 #define EINPROGRESS WSAEINPROGRESS
 #define ETIMEDOUT	WSAETIMEDOUT
 
+#undef	sock_errno
+#undef	sock_errstr
 #define	sock_errno()	WSAGetLastError()
 #define	sock_errstr()	WSAGetLastErrorString()
 
 #elif MACOS
 #	define tcp_close( s )		tcpclose( s )
+#	define tcp_read( s, buf, len )	tcpread( s, buf, len )
+#	define tcp_write( s, buf, len )	tcpwrite( s, buf, len )
 
 #elif DOS
 #	ifdef PCNFS
 #		define tcp_close( s )	close( s )
+#		define tcp_read( s, buf, len )	recv( s, buf, len, 0 )
+#		define tcp_write( s, buf, len )	send( s, buf, len, 0 )
 #	endif /* PCNFS */
 #	ifdef NCSA
 #		define tcp_close( s )	do { netclose( s ); netshut() } while(0)
+#		define tcp_read( s, buf, len )	nread( s, buf, len )
+#		define tcp_write( s, buf, len )	netwrite( s, buf, len )
 #	endif /* NCSA */
 
 #elif HAVE_CLOSESOCKET
@@ -96,8 +109,8 @@
 
 #else
 #	define tcp_close( s )		close( s )
-#	define sock_errno()	errno
-#	define sock_errstr()	STRERROR(errno)
+#	define tcp_read( s, buf, len)	read( s, buf, len )
+#	define tcp_write( s, buf, len)	write( s, buf, len )
 #endif /* MACOS */
 
 #ifndef ioctl_t
