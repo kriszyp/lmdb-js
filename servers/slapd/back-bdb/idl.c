@@ -236,10 +236,10 @@ bdb_idl_fetch_key(
 		void *ptr;
 		size_t len;
 		int rc2;
+		int flags = bdb->bi_db_opflags | DB_MULTIPLE;
 		data.data = buf;
 		data.ulen = BDB_IDL_UM_SIZEOF;
 		data.flags = DB_DBT_USERMEM;
-		int flags = bdb->bi_db_opflags | DB_MULTIPLE;
 
 		if ( tid )
 			flags |= DB_RMW;
