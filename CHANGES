@@ -5,6 +5,7 @@ Changes included in OpenLDAP 1.2.1
 	Updated ctype and string generic headers
 	Fixed ctype 'unsigned char' bug 
 	Fixed slapd back-ldbm derefDN crash bug
+	Fixed slapd cn=config crash bug
 	Fixed ldbmcat BDB2 crash bug
 	Fixed -lldap leak of ldap.conf fd
 	Build environment
