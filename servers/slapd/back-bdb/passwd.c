@@ -97,16 +97,18 @@ retry:	/* transaction retry */
 		}
 	}
 
-	/* begin transaction */
-	rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
-	*text = NULL;
-	if( rc != 0 ) {
+	if (bdb->bi_txn) {
+	    /* begin transaction */
+	    rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
+	    *text = NULL;
+	    if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_exop_passwd: txn_begin failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		rc = LDAP_OTHER;
 		*text = "internal error";
 		goto done;
+	    }
 	}
 
 	opinfo.boi_bdb = be;
@@ -195,14 +197,12 @@ retry:	/* transaction retry */
 		}
 		*text = "entry update failed";
 		rc = LDAP_OTHER;
-	} else
-	{
+	}
+	if (bdb->bi_txn && rc == 0) {
 		rc = txn_commit( ltid, 0 );
 		ltid = NULL;
-		op->o_private = NULL;
-		if (rc)
-			*text = "commit failed";
 	}
+	op->o_private = NULL;
 
 done:
 	if( e != NULL ) {

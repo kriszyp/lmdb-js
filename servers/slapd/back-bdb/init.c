@@ -66,6 +66,7 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_dbenv_home = ch_strdup( BDB_DBENV_HOME );
 	bdb->bi_dbenv_xflags = 0;
 	bdb->bi_dbenv_mode = DEFAULT_MODE;
+	bdb->bi_txn = 1;	/* default to using transactions */
 
 #ifndef NO_THREADS
 	bdb->bi_lock_detect = DB_LOCK_NORUN;
@@ -119,8 +120,14 @@ bdb_db_open( BackendDB *be )
 		return rc;
 	}
 
-	flags = DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL | DB_INIT_TXN | 
-		DB_THREAD | DB_CREATE | DB_RECOVER;
+	flags = DB_INIT_MPOOL | DB_THREAD | DB_CREATE;
+	if( bdb->bi_txn )
+		flags |= DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN | DB_RECOVER;
+	else {
+		flags |= DB_INIT_CDB;
+		bdb->bi_txn_cp = 0;
+		bdb->bi_dbenv->set_lk_detect(bdb->bi_dbenv, DB_LOCK_DEFAULT);
+	}
 
 	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0] );
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
@@ -257,12 +264,14 @@ bdb_db_close( BackendDB *be )
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 
 	/* force a checkpoint */
+	if (bdb->bi_txn) {
 	rc = txn_checkpoint( bdb->bi_dbenv, 0, 0, DB_FORCE );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		return rc;
+	}
 	}
 
 	while( bdb->bi_ndatabases-- ) {

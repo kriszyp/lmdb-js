@@ -168,7 +168,7 @@ bdb_modify(
 	const char *text = NULL;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
-	DB_TXN	*ltid;
+	DB_TXN	*ltid = NULL;
 	struct bdb_op_info opinfo;
 
 	Debug( LDAP_DEBUG_ARGS, "bdb_modify: %s\n", dn, 0, 0 );
@@ -187,16 +187,18 @@ retry:	/* transaction retry */
 		}
 	}
 
-	/* begin transaction */
-	rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
-	text = NULL;
-	if( rc != 0 ) {
+	if (bdb->bi_txn) {
+	    /* begin transaction */
+	    rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
+	    text = NULL;
+	    if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modify: txn_begin failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		rc = LDAP_OTHER;
 		text = "internal error";
 		goto return_results;
+	    }
 	}
 
 	opinfo.boi_bdb = be;
@@ -300,7 +302,8 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	rc = txn_commit( ltid, 0 );
+	if (bdb->bi_txn)
+		rc = txn_commit( ltid, 0 );
 	ltid = NULL;
 	op->o_private = NULL;
 

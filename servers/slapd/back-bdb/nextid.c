@@ -19,7 +19,7 @@ int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *out )
 	ID kid = NOID;
 	ID id;
 	DBT key, data;
-	DB_TXN	*ltid;
+	DB_TXN	*ltid = NULL;
 
 	DBTzero( &key );
 	key.data = (char *) &kid;
@@ -48,12 +48,14 @@ retry:	if( tid != NULL ) {
 		}
 	}
 
-	rc = txn_begin( bdb->bi_dbenv, tid, &ltid, 0 );
-	if( rc != 0 ) {
+	if (bdb->bi_txn) {
+	    rc = txn_begin( bdb->bi_dbenv, tid, &ltid, 0 );
+	    if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_next_id: txn_begin failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		return rc;
+	    }
 	}
 
 	/* get existing value for read/modify/write */
@@ -105,7 +107,11 @@ retry:	if( tid != NULL ) {
 
 		bdb->bi_lastid = id;
 
-		rc = txn_commit( ltid, 0 );
+		if (bdb->bi_txn)
+		{
+			rc = txn_commit( ltid, 0 );
+			ltid = NULL;
+		}
 
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,

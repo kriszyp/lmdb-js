@@ -68,6 +68,7 @@ struct bdb_info {
 	slap_mask_t	bi_defaultmask;
 	Avlnode		*bi_attrs;
 
+	int		bi_txn;
 	int			bi_txn_cp;
 	u_int32_t	bi_txn_cp_min;
 	u_int32_t	bi_txn_cp_kbyte;

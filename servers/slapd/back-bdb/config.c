@@ -42,6 +42,9 @@ bdb_db_config(
 		}
 		bdb->bi_dbenv_home = ch_strdup( argv[1] );
 
+	/* turn off transactions, use CDB mode instead */
+	} else if ( strcasecmp( argv[0], "dbnotxn" ) == 0 ) {
+		bdb->bi_txn = 0;
 
 	/* transaction checkpoint configuration */
 	} else if ( strcasecmp( argv[0], "dbnosync" ) == 0 ) {
