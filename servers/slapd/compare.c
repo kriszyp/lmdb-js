@@ -37,6 +37,7 @@ do_compare(
 	Backend	*be;
 	int rc = LDAP_SUCCESS;
 	const char *text = NULL;
+	int manageDSAit;
 
 	ava.aa_desc = NULL;
 	desc.bv_val = NULL;
@@ -100,12 +101,14 @@ do_compare(
 		goto cleanup;
 	}
 
+	manageDSAit = get_manageDSAit( op );
+
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( ndn )) == NULL ) {
+	if ( (be = select_backend( ndn, manageDSAit )) == NULL ) {
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
 		rc = 1;

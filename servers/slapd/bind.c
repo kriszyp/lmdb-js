@@ -336,7 +336,7 @@ do_bind(
 	 * if we don't hold it.
 	 */
 
-	if ( (be = select_backend( ndn )) == NULL ) {
+	if ( (be = select_backend( ndn, 0 )) == NULL ) {
 		if ( default_referral ) {
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				NULL, NULL, default_referral, NULL );

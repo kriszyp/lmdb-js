@@ -433,9 +433,12 @@ be_db_close( void )
 }
 
 Backend *
-select_backend( const char * dn )
+select_backend(
+	const char * dn,
+	int manageDSAit )
 {
 	int	i, j, len, dnlen;
+	Backend *be = NULL;
 
 	dnlen = strlen( dn );
 	for ( i = 0; i < nbackends; i++ ) {
@@ -449,13 +452,23 @@ select_backend( const char * dn )
 			}
 
 			if ( strcmp( backends[i].be_nsuffix[j],
-			    dn + (dnlen - len) ) == 0 ) {
-				return( &backends[i] );
+			    dn + (dnlen - len) ) == 0 )
+			{
+				if( be == NULL ) {
+					be = &backends[i];
+
+					if( manageDSAit && len == dnlen ) {
+						continue;
+					}
+				} else {
+					be = &backends[i];
+				}
+				return be;
 			}
 		}
 	}
 
-	return( NULL );
+	return be;
 }
 
 int
@@ -848,7 +861,7 @@ backend_group(
 	if( strcmp( target->e_ndn, gr_ndn ) != 0 ) {
 		/* we won't attempt to send it to a different backend */
 		
-		be = select_backend(gr_ndn);
+		be = select_backend(gr_ndn, 0);
 
 		if (be == NULL) {
 			return LDAP_NO_SUCH_OBJECT;
@@ -878,7 +891,7 @@ backend_attribute(
 	if( target == NULL || strcmp( target->e_ndn, e_ndn ) != 0 ) {
 		/* we won't attempt to send it to a different backend */
 		
-		be = select_backend(e_ndn);
+		be = select_backend(e_ndn, 0);
 
 		if (be == NULL) {
 			return LDAP_NO_SUCH_OBJECT;

@@ -295,7 +295,7 @@ char *slap_sasl2dn( char *saslname )
 	   "slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
 	   searchbase, scope, 0 );
 
-	be = select_backend( searchbase );
+	be = select_backend( searchbase, 0 );
 	if(( be == NULL ) || ( be->be_search == NULL))
 		goto FINISHED;
 	searchbase = suffix_alias( be, searchbase );
@@ -383,7 +383,7 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 	   "slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
 	   searchbase, scope, 0 );
 
-	be = select_backend( searchbase );
+	be = select_backend( searchbase, 0 );
 	if(( be == NULL ) || ( be->be_search == NULL)) {
 		rc = LDAP_INAPPROPRIATE_AUTH;
 		goto CONCLUDED;

@@ -39,6 +39,7 @@ do_search(
 	Backend		*be;
 	int			rc;
 	const char		*text;
+	int			manageDSAit;
 
 	Debug( LDAP_DEBUG_TRACE, "do_search\n", 0, 0, 0 );
 	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY, "conn: %d do_search\n",
@@ -210,12 +211,14 @@ do_search(
 		nbase = ch_strdup( default_search_nbase );
 	}
 
+	manageDSAit = get_manageDSAit( op );
+
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( nbase )) == NULL ) {
+	if ( (be = select_backend( nbase, manageDSAit )) == NULL ) {
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
 

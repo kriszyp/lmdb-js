@@ -211,7 +211,7 @@ slap_tool_init(
 			exit( EXIT_FAILURE );
 		}
 
-		be = select_backend( tbase );
+		be = select_backend( tbase, 0 );
 		free( tbase );
 
 		if( be == NULL ) {

@@ -412,7 +412,7 @@ read_config( const char *fname )
 				Debug( LDAP_DEBUG_ANY,
 "%s: line %d: suffix line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
-			} else if ( ( tmp_be = select_backend( cargv[1] ) ) == be ) {
+			} else if ( ( tmp_be = select_backend( cargv[1], 0 ) ) == be ) {
 				Debug( LDAP_DEBUG_ANY,
 "%s: line %d: suffix already served by this backend (ignored)\n",
 				    fname, lineno, 0 );
@@ -464,13 +464,13 @@ read_config( const char *fname )
 					"%s: line %d: suffixAlias line"
 					" must appear inside a database definition (ignored)\n",
 					fname, lineno, 0 );
-			} else if ( (tmp_be = select_backend( cargv[1] )) != NULL ) {
+			} else if ( (tmp_be = select_backend( cargv[1], 0 )) != NULL ) {
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: suffixAlias served by"
 					"  a preceeding backend \"%s\" (ignored)\n",
 					fname, lineno, tmp_be->be_suffix[0] );
 
-			} else if ( (tmp_be = select_backend( cargv[2] )) != NULL ) {
+			} else if ( (tmp_be = select_backend( cargv[2], 0 )) != NULL ) {
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: suffixAlias derefs to differnet backend"
 					"  a preceeding backend \"%s\" (ignored)\n",

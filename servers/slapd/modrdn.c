@@ -54,6 +54,7 @@ do_modrdn(
 	ber_len_t	length;
 	int rc;
 	const char *text;
+	int manageDSAit;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modrdn\n", 0, 0, 0 );
 
@@ -160,13 +161,14 @@ do_modrdn(
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MODRDN dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, dn, 0, 0 );
 
+	manageDSAit = get_manageDSAit( op );
+
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-
-	if ( (be = select_backend( ndn )) == NULL ) {
+	if ( (be = select_backend( ndn, manageDSAit )) == NULL ) {
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
 		goto cleanup;
@@ -190,7 +192,7 @@ do_modrdn(
 	 * the same backend, otherwise we return an error.
 	 */
 	if( newSuperior != NULL ) {
-		newSuperior_be = select_backend( nnewSuperior );
+		newSuperior_be = select_backend( nnewSuperior, 0 );
 
 		if ( newSuperior_be != be ) {
 			/* newSuperior is in same backend */
