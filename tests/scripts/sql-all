@@ -18,14 +18,26 @@ TB=`$SHTOOL echo -e "%B"`
 TN=`$SHTOOL echo -e "%b"`
 SLEEPTIME=10
 
+echo "#######################################################################"
+echo "###                                                                 ###"
+echo "### SQL tests                                                       ###"
+echo "###                                                                 ###"
+echo "#######################################################################"
+echo "###"
 echo "### SQL tests require the sql backend, a properly configured"
-echo "### ODBC and a database poulated with data from the applicable"
+echo "### ODBC and a database populated with data from the applicable"
 echo "### servers/slapd/back-sql/rdbms_depend/* files."
+echo "###"
 echo "### Set SLAPD_USE_SQL to the desired RDBMS to enable this test;"
-echo "### Supported RDBMSes are: mysql,postgres"
+echo "###"
+echo "### Currently supported RDBMSes are:"
+echo "###         ibmdb2, mysql, postgres"
+echo "###"
 echo "### Set SLAPD_USE_SQLWRITE=yes to enable the write tests"
+echo "###"
 echo "### See servers/slapd/back-sql/rdbms_depend/README for more "
 echo "### details on how to set up the RDBMS and the ODBC"
+echo "###"
 
 echo ">>>>> Executing all LDAP tests for $BACKEND"
 
