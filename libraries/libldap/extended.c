@@ -65,7 +65,7 @@ ldap_extended_operation(
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
-	assert( reqoid != NULL || *reqoid == '\0' );
+	assert( reqoid != NULL && *reqoid != '\0' );
 	assert( msgidp != NULL );
 
 	/* must be version 3 (or greater) */
@@ -139,8 +139,7 @@ ldap_extended_operation_s(
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
-	assert( reqoid != NULL || *reqoid == '\0' );
-	assert( retoidp != NULL || retdatap != NULL );
+	assert( reqoid != NULL && *reqoid != '\0' );
 
     rc = ldap_extended_operation( ld, reqoid, reqdata,
 		sctrls, cctrls, &msgid );
