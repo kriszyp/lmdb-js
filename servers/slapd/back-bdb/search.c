@@ -19,8 +19,8 @@ static int base_candidate(
 	Entry	*e,
 	ID		*ids );
 static int search_candidates(
-	Operation *op,
 	Operation *stackop,	/* op with the current threadctx/slab cache */
+	Operation *sop,		/* search op */
 	Entry *e,
 	ID	*ids );
 static void send_pagerequest_response( 
@@ -32,7 +32,6 @@ static void send_pagerequest_response(
 #if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 #define IS_BDB_REPLACE(type) (( type == LDAP_PSEARCH_BY_DELETE ) || \
 			( type == LDAP_PSEARCH_BY_SCOPEOUT ))
-#define IS_BDB_LCUP_REPLACE(proto,type) (( proto == LDAP_CLIENT_UPDATE ) && IS_BDB_REPLACE(type) )
 
 #define IS_PSEARCH (op != sop)
 
@@ -413,7 +412,7 @@ dn2entry_retry:
 
 	} else {
 		BDB_IDL_ALL( bdb, candidates );
-		rs->sr_err = search_candidates( sop, op, e, candidates );
+		rs->sr_err = search_candidates( op, sop, e, candidates );
 	}
 
 	/* start cursor at beginning of candidates.
@@ -565,7 +564,7 @@ dn2entry_retry:
 		csnfge.f_ava = &aa_ge;
 		csnfge.f_av_desc = slap_schema.si_ad_entryCSN;
 		csnfge.f_av_value = sop->o_sync_state;
-		csnfge.f_next = op->oq_search.rs_filter;
+		csnfge.f_next = sop->oq_search.rs_filter;
 	}
 #endif
 
@@ -1210,8 +1209,8 @@ static void *search_stack(
 }
 
 static int search_candidates(
-	Operation *op,
 	Operation *stackop,
+	Operation *op,
 	Entry *e,
 	ID	*ids )
 {
