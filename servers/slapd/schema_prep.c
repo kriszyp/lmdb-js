@@ -157,7 +157,7 @@ static struct slap_schema_oc_map {
 	{ "subentry", "( 2.5.20.0 NAME 'subentry' "
 			"SUP top STRUCTURAL "
 			"MUST ( cn $ subtreeSpecification ) )",
-		subentryObjectClass, 0,
+		subentryObjectClass, SLAP_OC_SUBENTRY,
 		offsetof(struct slap_internal_schema, si_oc_subentry) },
 	{ "subschema", "( 2.5.20.1 NAME 'subschema' "
 		"DESC 'RFC2252: controlling subschema (sub)entry' "
@@ -165,7 +165,7 @@ static struct slap_schema_oc_map {
 		"MAY ( dITStructureRules $ nameForms $ ditContentRules $ "
 			"objectClasses $ attributeTypes $ matchingRules $ "
 			"matchingRuleUse ) )",
-		subentryObjectClass, SLAP_OC_SUBENTRY,
+		subentryObjectClass, 0,
 		offsetof(struct slap_internal_schema, si_oc_subschema) },
 	{ "monitor", "( 1.3.6.1.4.1.4203.666.3.2 NAME 'monitor' "
 		"DESC 'OpenLDAP system monitoring' "
