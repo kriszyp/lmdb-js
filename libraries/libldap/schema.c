@@ -840,7 +840,7 @@ parse_numericoid(const char **sp, int *code, const int flags)
 		}
 	}
 	if (flags & LDAP_SCHEMA_SKIP) {
-		res = start;
+		res = (char *)start;
 	} else {
 		res = LDAP_MALLOC(len+1);
 		if (!res) {
@@ -1140,8 +1140,8 @@ void
 ldap_syntax_free( LDAPSyntax * syn )
 {
 	LDAP_FREE(syn->syn_oid);
-	LDAP_VFREE(syn->syn_names);
-	LDAP_FREE(syn->syn_desc);
+	if (syn->syn_names) LDAP_VFREE(syn->syn_names);
+	if (syn->syn_desc) LDAP_FREE(syn->syn_desc);
 	free_extensions(syn->syn_extensions);
 	LDAP_FREE(syn);
 }
@@ -1281,9 +1281,9 @@ void
 ldap_matchingrule_free( LDAPMatchingRule * mr )
 {
 	LDAP_FREE(mr->mr_oid);
-	LDAP_VFREE(mr->mr_names);
-	LDAP_FREE(mr->mr_desc);
-	LDAP_FREE(mr->mr_syntax_oid);
+	if (mr->mr_names) LDAP_VFREE(mr->mr_names);
+	if (mr->mr_desc) LDAP_FREE(mr->mr_desc);
+	if (mr->mr_syntax_oid) LDAP_FREE(mr->mr_syntax_oid);
 	free_extensions(mr->mr_extensions);
 	LDAP_FREE(mr);
 }
@@ -1475,9 +1475,9 @@ void
 ldap_matchingruleuse_free( LDAPMatchingRuleUse * mru )
 {
 	LDAP_FREE(mru->mru_oid);
-	LDAP_VFREE(mru->mru_names);
-	LDAP_FREE(mru->mru_desc);
-	LDAP_VFREE(mru->mru_applies_oids);
+	if (mru->mru_names) LDAP_VFREE(mru->mru_names);
+	if (mru->mru_desc) LDAP_FREE(mru->mru_desc);
+	if (mru->mru_applies_oids) LDAP_VFREE(mru->mru_applies_oids);
 	free_extensions(mru->mru_extensions);
 	LDAP_FREE(mru);
 }
@@ -1668,13 +1668,13 @@ void
 ldap_attributetype_free(LDAPAttributeType * at)
 {
 	LDAP_FREE(at->at_oid);
-	LDAP_VFREE(at->at_names);
-	LDAP_FREE(at->at_desc);
-	LDAP_FREE(at->at_sup_oid);
-	LDAP_FREE(at->at_equality_oid);
-	LDAP_FREE(at->at_ordering_oid);
-	LDAP_FREE(at->at_substr_oid);
-	LDAP_FREE(at->at_syntax_oid);
+	if (at->at_names) LDAP_VFREE(at->at_names);
+	if (at->at_desc) LDAP_FREE(at->at_desc);
+	if (at->at_sup_oid) LDAP_FREE(at->at_sup_oid);
+	if (at->at_equality_oid) LDAP_FREE(at->at_equality_oid);
+	if (at->at_ordering_oid) LDAP_FREE(at->at_ordering_oid);
+	if (at->at_substr_oid) LDAP_FREE(at->at_substr_oid);
+	if (at->at_syntax_oid) LDAP_FREE(at->at_syntax_oid);
 	free_extensions(at->at_extensions);
 	LDAP_FREE(at);
 }
@@ -2048,11 +2048,11 @@ void
 ldap_objectclass_free(LDAPObjectClass * oc)
 {
 	LDAP_FREE(oc->oc_oid);
-	LDAP_VFREE(oc->oc_names);
-	LDAP_FREE(oc->oc_desc);
-	LDAP_VFREE(oc->oc_sup_oids);
-	LDAP_VFREE(oc->oc_at_oids_must);
-	LDAP_VFREE(oc->oc_at_oids_may);
+	if (oc->oc_names) LDAP_VFREE(oc->oc_names);
+	if (oc->oc_desc) LDAP_FREE(oc->oc_desc);
+	if (oc->oc_sup_oids) LDAP_VFREE(oc->oc_sup_oids);
+	if (oc->oc_at_oids_must) LDAP_VFREE(oc->oc_at_oids_must);
+	if (oc->oc_at_oids_may) LDAP_VFREE(oc->oc_at_oids_may);
 	free_extensions(oc->oc_extensions);
 	LDAP_FREE(oc);
 }

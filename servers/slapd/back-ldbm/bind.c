@@ -97,8 +97,8 @@ ldbm_back_bind(
 				NULL, NULL, NULL, NULL );
 		}
 
-		ber_bvecfree( refs );
-		free( matched_dn );
+		if ( refs ) ber_bvecfree( refs );
+		if ( matched_dn ) free( matched_dn );
 		return( rc );
 	}
 

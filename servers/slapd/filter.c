@@ -362,7 +362,7 @@ get_filter(
 		break;
 	}
 
-	free( ftmp.bv_val );
+	if ( ftmp.bv_val ) free( ftmp.bv_val );
 
 	if ( err != LDAP_SUCCESS ) {
 		if ( fstr->bv_val != NULL ) {

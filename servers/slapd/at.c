@@ -199,7 +199,7 @@ at_destroy( void )
 
 	for (a=attr_list; a; a=n) {
 		n = a->sat_next;
-		ldap_memfree(a->sat_subtypes);
+		if (a->sat_subtypes) ldap_memfree(a->sat_subtypes);
 		ad_destroy(a->sat_ad);
 		ldap_pvt_thread_mutex_destroy(&a->sat_ad_mutex);
 		ldap_attributetype_free((LDAPAttributeType *)a);

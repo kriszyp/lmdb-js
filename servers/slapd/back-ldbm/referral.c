@@ -82,7 +82,7 @@ ldbm_back_referrals(
 				NULL, NULL );
 		}
 
-		free( matched_dn );
+		if ( matched_dn ) free( matched_dn );
 		return rc;
 	}
 

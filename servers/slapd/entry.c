@@ -28,7 +28,7 @@ const Entry slap_entry_root = { NOID, { 0, "" }, { 0, "" }, NULL, NULL };
 
 int entry_destroy(void)
 {
-	free( ebuf );
+	if ( ebuf ) free( ebuf );
 	ebuf = NULL;
 	ecur = NULL;
 	emaxsize = 0;

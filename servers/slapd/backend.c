@@ -410,19 +410,19 @@ int backend_shutdown( Backend *be )
 int backend_destroy(void)
 {
 	int i;
+	BackendDB *bd;
 
 	/* destroy each backend database */
-	for( i = 0; i < nBackendDB; i++ ) {
-		if ( backendDB[i].bd_info->bi_db_destroy ) {
-			backendDB[i].bd_info->bi_db_destroy(
-				&backendDB[i] );
+	for( i = 0, bd = backendDB; i < nBackendDB; i++, bd++ ) {
+		if ( bd->bd_info->bi_db_destroy ) {
+			bd->bd_info->bi_db_destroy( bd );
 		}
-		ber_bvecfree( backendDB[i].be_suffix );
-		ber_bvecfree( backendDB[i].be_nsuffix );
-		free( backendDB[i].be_rootdn.bv_val );
-		free( backendDB[i].be_rootndn.bv_val );
-		free( backendDB[i].be_rootpw.bv_val );
-		acl_destroy( backendDB[i].be_acl, global_acl );
+		ber_bvecfree( bd->be_suffix );
+		ber_bvecfree( bd->be_nsuffix );
+		if ( bd->be_rootdn.bv_val ) free( bd->be_rootdn.bv_val );
+		if ( bd->be_rootndn.bv_val ) free( bd->be_rootndn.bv_val );
+		if ( bd->be_rootpw.bv_val ) free( bd->be_rootpw.bv_val );
+		acl_destroy( bd->be_acl, global_acl );
 	}
 	free( backendDB );
 

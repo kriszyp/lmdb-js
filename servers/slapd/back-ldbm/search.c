@@ -510,7 +510,7 @@ done:
 	if( candidates != NULL )
 		idl_free( candidates );
 
-	ber_bvecfree( v2refs );
+	if( v2refs ) ber_bvecfree( v2refs );
 	if( realbase.bv_val ) free( realbase.bv_val );
 
 	return rc;

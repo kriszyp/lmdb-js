@@ -383,9 +383,9 @@ cleanup:
 	free( pnewrdn.bv_val );	
 	free( nnewrdn.bv_val );	
 
-	free( newSuperior.bv_val );
-	free( pnewSuperior.bv_val );
-	free( nnewSuperior.bv_val );
+	if ( newSuperior.bv_val ) free( newSuperior.bv_val );
+	if ( pnewSuperior.bv_val ) free( pnewSuperior.bv_val );
+	if ( nnewSuperior.bv_val ) free( nnewSuperior.bv_val );
 
 	return rc;
 }
