@@ -145,6 +145,9 @@ ldap_send_entry(
 	BerElement *ber = NULL;
 	Attribute *attr, **attrp;
 	struct berval *dummy = NULL;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	char *text;
+#endif
 
 	ent.e_dn = ldap_get_dn(lc->ld, e);
 	ent.e_ndn = ch_strdup( ent.e_dn);
@@ -158,8 +161,16 @@ ldap_send_entry(
 		a = ldap_next_attribute(lc->ld, e, ber)) {
 		attr = (Attribute *)ch_malloc( sizeof(Attribute) );
 		attr->a_next = 0;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		/* FIXME: we assume here that the local server knows about
+		 * all the attributes that the remote server might send.
+		 * How should this really be handled?
+		 */
+		slap_str2ad(a, &attr->a_desc, &text);
+#else
 		attr->a_type = ch_strdup(a);
 		attr->a_syntax = attr_syntax(a);
+#endif
 		attr->a_vals = ldap_get_values_len(lc->ld, e, a);
 		if (!attr->a_vals)
 			attr->a_vals = &dummy;
@@ -170,7 +181,9 @@ ldap_send_entry(
 	for (;ent.e_attrs;) {
 		attr=ent.e_attrs;
 		ent.e_attrs = attr->a_next;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		free(attr->a_type);
+#endif
 		if (attr->a_vals != &dummy)
 			ber_bvecfree(attr->a_vals);
 		free(attr);

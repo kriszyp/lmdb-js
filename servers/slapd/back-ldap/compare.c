@@ -39,7 +39,11 @@ ldap_back_compare(
     Operation	*op,
     const char	*dn,
     const char	*ndn,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeAssertion *ava
+#else
     Ava		*ava
+#endif
 )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
@@ -55,6 +59,10 @@ ldap_back_compare(
 			return( -1 );
 	}
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	ldap_compare_s( lc->ld, dn, ava->aa_desc->ad_cname->bv_val, ava->aa_value->bv_val );
+#else
 	ldap_compare_s( lc->ld, dn, ava->ava_type, ava->ava_value.bv_val );
+#endif
 	return( ldap_back_op_result( lc, op ) );
 }

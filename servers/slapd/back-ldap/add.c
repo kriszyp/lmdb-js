@@ -67,7 +67,11 @@ ldap_back_add(
 	for (i=0, a=e->e_attrs; a; i++, a=a->a_next) {
 		attrs[i] = (LDAPMod *)ch_malloc(sizeof(LDAPMod));
 		attrs[i]->mod_op = LDAP_MOD_BVALUES;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		attrs[i]->mod_type = a->a_desc->ad_cname->bv_val;
+#else
 		attrs[i]->mod_type = a->a_type;
+#endif
 		attrs[i]->mod_vals.modv_bvals = a->a_vals;
 	}
 

@@ -30,9 +30,17 @@ extern int	ldap_back_search LDAP_P(( BackendDB *bd,
 	Filter *filter, const char *filterstr,
 	char **attrs, int attrsonly ));
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+extern int	ldap_back_compare LDAP_P(( BackendDB *bd,
+	Connection *conn, Operation *op,
+	const char *dn, const char *ndn,
+	AttributeAssertion *ava ));
+#else
 extern int	ldap_back_compare LDAP_P((BackendDB *bd,
 	Connection *conn, Operation *op,
-	const char *dn, const char *ndn, Ava 	*ava ));
+	const char *dn, const char *ndn,
+	Ava 	*ava ));
+#endif
 
 extern int	ldap_back_modify LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
@@ -53,6 +61,21 @@ extern int	ldap_back_delete LDAP_P(( BackendDB *bd,
 
 extern int	ldap_back_abandon LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op, int msgid ));
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+extern int	ldap_back_group LDAP_P(( BackendDB *bd,
+	Entry *target,
+	const char* gr_ndn,
+	const char* op_ndn,
+	ObjectClass* group_oc,
+	AttributeDescription* group_at));
+#else
+extern int	ldap_back_group LDAP_P(( BackendDB *bd,
+	Entry *target,
+	const char* gr_ndn, const char* op_ndn,
+	const char* group_oc,
+	const char* group_at));
+#endif
 
 LDAP_END_DECL
 
