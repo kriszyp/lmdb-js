@@ -8,7 +8,7 @@ AC_PREREQ(2.10)dnl Required Autoconf version
 dnl Do not use AutoConf 2.12; it produces a configuration script
 dnl that causes an "internal 2K buffer" error on HPUX when run
 dnl with /bin/sh.  Autoconf 2.10 seems to be okay.
-AC_CONFIG_AUX_DIR(etc)
+AC_CONFIG_AUX_DIR(build)
 AC_CONFIG_HEADER(include/portable.h)dnl
 dnl
 dnl Start Args
@@ -142,7 +142,7 @@ AC_PROG_RANLIB
 AC_PROG_MAKE_SET
 
 AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
-	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:etc)
+	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
 AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi,
 	$PATH:/usr/ucb)
 AC_PATH_PROG(FINGER, finger, /usr/ucb/finger,
@@ -288,36 +288,39 @@ test "x$exec_prefix" = xNONE && exec_prefix='${prefix}'
 SYSCONFDIR=`eval echo $sysconfdir`
 AC_SUBST(SYSCONFDIR)
 
+dnl AC_OUTPUT( \
+dnl include/ldapconfig.h \
+dnl include/Makefile:build/top.mk:include/Makefile.in	\
+dnl clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
+dnl clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
+dnl clients/ud/Makefile:build/top.mk:clients/ud/Makefile.in:build/rules.mk \
+dnl clients/fax500/Makefile:build/top.mk:clients/fax500/Makefile.in:build/rules.mk \
+dnl clients/finger/Makefile:build/top.mk:clients/finger/Makefile.in:build/rules.mk \
+dnl clients/gopher/Makefile:build/top.mk:clients/gopher/Makefile.in:build/rules.mk \
+dnl clients/mail500/Makefile:build/top.mk:clients/mail500/Makefile.in:build/rules.mk \
+dnl clients/rcpt500/Makefile:build/top.mk:clients/rcpt500/Makefile.in:build/rules.mk \
+dnl contrib/Makefile:build/top.mk:contrib/Makefile.in:build/dir.mk \
+dnl contrib/saucer/Makefile:build/top.mk:contrib/saucer/Makefile.in:build/rules.mk \
+dnl contrib/whois++/Makefile:build/top.mk:contrib/whois++/Makefile.in:build/rules.mk \
+dnl libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
+dnl libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk \
+dnl libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk \
+dnl libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk \
+dnl libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk \
+dnl libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk \
+dnl libraries/liblthread/Makefile:build/top.mk:libraries/liblthread/Makefile.in:build/lib.mk \
+dnl servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
+dnl servers/ldapd/Makefile:build/top.mk:servers/ldapd/Makefile.in:build/srv.mk \
+dnl servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
+dnl servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/srv.mk \
+dnl servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/srv.mk \
+dnl servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/srv.mk \
+dnl servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
+dnl servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
+dnl servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
+dnl tests/Makefile:build/top.mk:tests/Makefile.in \
+dnl Makefile:build/top.mk:Makefile.in:build/dir.mk, \
+dnl [date > stamp-h])
+
 AC_OUTPUT( \
-include/ldapconfig.h \
-include/Makefile:etc/top.mk:include/Makefile.in	\
-clients/Makefile:etc/top.mk:clients/Makefile.in:etc/dir.mk \
-clients/tools/Makefile:etc/top.mk:clients/tools/Makefile.in:etc/rules.mk \
-clients/ud/Makefile:etc/top.mk:clients/ud/Makefile.in:etc/rules.mk \
-clients/fax500/Makefile:etc/top.mk:clients/fax500/Makefile.in:etc/rules.mk \
-clients/finger/Makefile:etc/top.mk:clients/finger/Makefile.in:etc/rules.mk \
-clients/gopher/Makefile:etc/top.mk:clients/gopher/Makefile.in:etc/rules.mk \
-clients/mail500/Makefile:etc/top.mk:clients/mail500/Makefile.in:etc/rules.mk \
-clients/rcpt500/Makefile:etc/top.mk:clients/rcpt500/Makefile.in:etc/rules.mk \
-contrib/Makefile:etc/top.mk:contrib/Makefile.in:etc/dir.mk \
-contrib/saucer/Makefile:etc/top.mk:contrib/saucer/Makefile.in:etc/rules.mk \
-contrib/whois++/Makefile:etc/top.mk:contrib/whois++/Makefile.in:etc/rules.mk \
-libraries/Makefile:etc/top.mk:libraries/Makefile.in:etc/dir.mk 	\
-libraries/libavl/Makefile:etc/top.mk:libraries/libavl/Makefile.in:etc/lib.mk \
-libraries/liblber/Makefile:etc/top.mk:libraries/liblber/Makefile.in:etc/lib.mk \
-libraries/libldap/Makefile:etc/top.mk:libraries/libldap/Makefile.in:etc/lib.mk \
-libraries/libldbm/Makefile:etc/top.mk:libraries/libldbm/Makefile.in:etc/lib.mk \
-libraries/libldif/Makefile:etc/top.mk:libraries/libldif/Makefile.in:etc/lib.mk \
-libraries/liblthread/Makefile:etc/top.mk:libraries/liblthread/Makefile.in:etc/lib.mk \
-servers/Makefile:etc/top.mk:servers/Makefile.in:etc/dir.mk \
-servers/ldapd/Makefile:etc/top.mk:servers/ldapd/Makefile.in:etc/srv.mk \
-servers/slapd/Makefile:etc/top.mk:servers/slapd/Makefile.in:etc/srv.mk \
-servers/slapd/back-ldbm/Makefile:etc/top.mk:servers/slapd/back-ldbm/Makefile.in:etc/srv.mk \
-servers/slapd/back-passwd/Makefile:etc/top.mk:servers/slapd/back-passwd/Makefile.in:etc/srv.mk \
-servers/slapd/back-shell/Makefile:etc/top.mk:servers/slapd/back-shell/Makefile.in:etc/srv.mk \
-servers/slapd/tools/Makefile:etc/top.mk:servers/slapd/tools/Makefile.in \
-servers/slapd/shell-backends/Makefile:etc/top.mk:servers/slapd/shell-backends/Makefile.in:etc/srv.mk \
-servers/slurpd/Makefile:etc/top.mk:servers/slurpd/Makefile.in:etc/srv.mk \
-tests/Makefile:etc/top.mk:tests/Makefile.in \
-Makefile:etc/top.mk:Makefile.in:etc/dir.mk, \
-	[date > stamp-h])
+	[date > stamp-h] )
