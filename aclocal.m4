@@ -11,7 +11,7 @@ dnl even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 dnl PARTICULAR PURPOSE.
 
 dnl
-dnl Copyright 1998-2002 The OpenLDAP Foundation, Redwood City, California, USA
+dnl Copyright 1998-2003 The OpenLDAP Foundation, Redwood City, California, USA
 dnl All rights reserved.
 dnl 
 dnl Redistribution and use in source and binary forms, with or without

@@ -1,0 +1,17 @@
+# $OpenLDAP$
+## Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+##
+## Makefile for -lldbm
+##
+
+LIBRARY		= libldbm.a
+SRCS		= ldbm.c
+OBJS		= ldbm.o
+
+LDAP_INCDIR= ../../include       
+LDAP_LIBDIR= ../../libraries
+
+XLIBS		= $(LIBRARY)
+XXLIBS		= $(LDBM_LIBS)
+

@@ -1,0 +1,28 @@
+# $OpenLDAP$
+## Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+##
+## LIBREWRITE
+##
+## Copyright 2000-2001 Pierangelo Masarati <ando@sys-net.it>
+##
+
+SRCS = config.c context.c info.c ldapmap.c map.c params.c rule.c \
+	session.c subst.c var.c \
+	parse.c rewrite.c
+XSRCS = version.c
+OBJS = config.o context.o info.o ldapmap.o map.o params.o rule.o \
+	session.o subst.o var.o
+
+LDAP_INCDIR= ../../include       
+LDAP_LIBDIR= ../../libraries
+
+LIBRARY = librewrite.a
+PROGRAMS	= rewrite
+XLIBS = $(LIBRARY) $(LDAP_LIBAVL_A) $(LDAP_LIBLUTIL_A) \
+	$(LDAP_LIBLDAP_R_LA) $(LDAP_LIBLBER_LA)
+XXLIBS  = $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
+XXXLIBS = $(LTHREAD_LIBS)
+
+rewrite:	$(XLIBS) rewrite.o parse.o
+	$(LTLINK) -o $@ rewrite.o parse.o $(LIBS)

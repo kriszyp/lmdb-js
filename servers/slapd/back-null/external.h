@@ -1,5 +1,5 @@
 /*
- * Copyright 2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2002-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 #ifndef _NULL_EXTERNAL_H

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* cancel.c - LDAP cancel extended operation */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
