@@ -34,7 +34,9 @@ int ldbm_modify_internal(
     const char	*dn,
     Modifications	*modlist,
     Entry	*e,
-	const char **text 
+	const char **text,
+	char *textbuf,
+	size_t textlen
 )
 {
 	int rc, err;
@@ -135,7 +137,7 @@ int ldbm_modify_internal(
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 	/* check that the entry still obeys the schema */
-	rc = entry_schema_check( e, save_attrs, text );
+	rc = entry_schema_check( e, save_attrs, text, textbuf, textlen );
 	if ( rc != LDAP_SUCCESS ) {
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;
@@ -182,6 +184,8 @@ ldbm_back_modify(
 	Entry		*e;
 	int		manageDSAit = get_manageDSAit( op );
 	const char *text = NULL;
+	char textbuf[SLAP_TEXT_BUFLEN];
+	size_t textlen = sizeof textbuf;
 
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
 
@@ -229,7 +233,8 @@ ldbm_back_modify(
 	}
 	
 	/* Modify the entry */
-	rc = ldbm_modify_internal( be, conn, op, ndn, modlist, e, &text );
+	rc = ldbm_modify_internal( be, conn, op, ndn, modlist, e,
+		&text, textbuf, textlen );
 
 	if( rc != LDAP_SUCCESS ) {
 		if( rc != SLAPD_ABANDON ) {

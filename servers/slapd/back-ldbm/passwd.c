@@ -116,6 +116,8 @@ ldbm_back_exop_passwd(
 	{
 		Modifications ml;
 		struct berval *vals[2];
+		char textbuf[SLAP_TEXT_BUFLEN]; /* non-returnable */
+		size_t textlen;
 
 		vals[0] = hash;
 		vals[1] = NULL;
@@ -126,16 +128,19 @@ ldbm_back_exop_passwd(
 		ml.sml_next = NULL;
 
 		rc = ldbm_modify_internal( be,
-			conn, op, op->o_ndn, &ml, e, text );
+			conn, op, op->o_ndn, &ml, e, text, textbuf, textlen );
 
+		if( rc ) {
+			/* cannot return textbuf */
+			*text = "entry modify failed";
+			goto done;
+		}
 	}
 
-	if( rc == LDAP_SUCCESS ) {
-		/* change the entry itself */
-		if( id2entry_add( be, e ) != 0 ) {
-			*text = "entry update failed";
-			rc = LDAP_OTHER;
-		}
+	/* change the entry itself */
+	if( id2entry_add( be, e ) != 0 ) {
+		*text = "entry update failed";
+		rc = LDAP_OTHER;
 	}
 	
 done:

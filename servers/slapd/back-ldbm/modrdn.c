@@ -53,6 +53,8 @@ ldbm_back_modrdn(
 	int			rootlock = 0;
 	int			rc = -1;
 	const char *text = NULL;
+	char textbuf[SLAP_TEXT_BUFLEN];
+	size_t textlen = sizeof textbuf;
 	/* Added to support LDAP v2 correctly (deleteoldrdn thing) */
 	char		*new_rdn_val = NULL;	/* Val of new rdn */
 	char		*new_rdn_type = NULL;	/* Type of new rdn */
@@ -464,7 +466,8 @@ ldbm_back_modrdn(
 	}
 
 	/* modify memory copy of entry */
-	rc = ldbm_modify_internal( be, conn, op, dn, &mod[0], e, &text );
+	rc = ldbm_modify_internal( be, conn, op, dn, &mod[0], e,
+		&text, textbuf, textlen );
 
 	if( rc != LDAP_SUCCESS ) {
 		if( rc != SLAPD_ABANDON ) {
