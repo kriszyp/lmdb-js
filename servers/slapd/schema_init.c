@@ -364,7 +364,9 @@ nameUIDNormalize(
 	int rc;
 
 	ber_dupbv( &out, val );
-	if( out.bv_len != 0 ) {
+	if( out.bv_len == 0 ) {
+		*normalized = out;
+	} else {
 		struct berval uid = { 0, NULL };
 
 		if( out.bv_val[out.bv_len-1] == 'B'
