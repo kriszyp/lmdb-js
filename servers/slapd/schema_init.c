@@ -3556,7 +3556,26 @@ certificateExactConvert(
 	}
 
 	serial = asn1_integer2str(xcert->cert_info->serialNumber);
+	if ( !serial ) {
+		X509_free(xcert);
+		return LDAP_INVALID_SYNTAX;
+	}
 	issuer_dn = dn_openssl2ldap(X509_get_issuer_name(xcert));
+	if ( !issuer_dn ) {
+		X509_free(xcert);
+		ber_bvfree(serial);
+		return LDAP_INVALID_SYNTAX;
+	}
+	/* Actually, dn_openssl2ldap returns in a normalized format, but
+	   it is different from our normalized format */
+	bv_tmp = issuer_dn;
+	if ( dnNormalize(NULL, bv_tmp, &issuer_dn) != LDAP_SUCCESS ) {
+		X509_free(xcert);
+		ber_bvfree(serial);
+		ber_bvfree(bv_tmp);
+		return LDAP_INVALID_SYNTAX;
+	}
+	ber_bvfree(bv_tmp);
 
 	X509_free(xcert);
 
@@ -3630,7 +3649,7 @@ serial_and_issuer_parse(
 	q = ch_malloc( (end-begin+1)+1 );
 	AC_MEMCPY( q, begin, end-begin+1 );
 	q[end-begin+1] = '\0';
-	*issuer_dn = ber_bvstr(q);
+	*issuer_dn = ber_bvstr(dn_normalize(q));
 
 	return LDAP_SUCCESS;
 }
