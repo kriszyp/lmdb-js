@@ -444,7 +444,7 @@ monitor_back_db_open(
 			"EQUALITY generalizedTimeMatch "
 			"ORDERING generalizedTimeOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
-			"SINGLE-VALUE"
+			"SINGLE-VALUE "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )",
 			offsetof(struct monitorinfo, mi_ad_monitorTimestamp) },
