@@ -633,18 +633,19 @@ ldap_host_connected_to( Sockbuf *sb, const char *host )
 #endif
 
 
-#ifdef HAVE_POLL
-/* for UNIX poll(2) */
-	/* ??? */
-#else
-/* for UNIX select(2) */
 struct selectinfo {
+#ifdef HAVE_POLL
+	/* for UNIX poll(2) */
+	int si_maxfd;
+	struct pollfd si_fds[FD_SETSIZE];
+#else
+	/* for UNIX select(2) */
 	fd_set	si_readfds;
 	fd_set	si_writefds;
 	fd_set	si_use_readfds;
 	fd_set	si_use_writefds;
-};
 #endif
+};
 
 void
 ldap_mark_select_write( LDAP *ld, Sockbuf *sb )
@@ -655,9 +656,39 @@ ldap_mark_select_write( LDAP *ld, Sockbuf *sb )
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 	
 	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+
+#ifdef HAVE_POLL
+	/* for UNIX poll(2) */
+	{
+		int empty=-1;
+		int i;
+		for(i=0; i < sip->si_maxfd; i++) {
+			if( sip->si_fds[i].fd == sd ) {
+				sip->si_fds[i].events |= POLLIN;
+				return;
+			}
+			if( empty==-1 && sip->si_fds[i].fd == -1 ) {
+				empty=i;
+			}
+		}
+
+		if( empty == -1 ) {
+			if( sip->si_maxfd >= FD_SETSIZE ) {
+				/* FIXME */
+				return;
+			}
+			empty = sip->si_maxfd++;
+		}
+
+		sip->si_fds[empty].fd = sd;
+		sip->si_fds[empty].events = POLLOUT;
+	}
+#else
+	/* for UNIX select(2) */
 	if ( !FD_ISSET( sd, &sip->si_writefds )) {
 		FD_SET( sd, &sip->si_writefds );
 	}
+#endif
 }
 
 
@@ -670,9 +701,39 @@ ldap_mark_select_read( LDAP *ld, Sockbuf *sb )
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
 	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+
+#ifdef HAVE_POLL
+	/* for UNIX poll(2) */
+	{
+		int empty=-1;
+		int i;
+		for(i=0; i < sip->si_maxfd; i++) {
+			if( sip->si_fds[i].fd == sd ) {
+				sip->si_fds[i].events |= POLLIN;
+				return;
+			}
+			if( empty==-1 && sip->si_fds[i].fd == -1 ) {
+				empty=i;
+			}
+		}
+
+		if( empty == -1 ) {
+			if( sip->si_maxfd >= FD_SETSIZE ) {
+				/* FIXME */
+				return;
+			}
+			empty = sip->si_maxfd++;
+		}
+
+		sip->si_fds[empty].fd = sd;
+		sip->si_fds[empty].events = POLLIN;
+	}
+#else
+	/* for UNIX select(2) */
 	if ( !FD_ISSET( sd, &sip->si_readfds )) {
 		FD_SET( sd, &sip->si_readfds );
 	}
+#endif
 }
 
 
@@ -685,8 +746,22 @@ ldap_mark_select_clear( LDAP *ld, Sockbuf *sb )
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
 	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+
+#ifdef HAVE_POLL
+	/* for UNIX poll(2) */
+	{
+		int i;
+		for(i=0; i < sip->si_maxfd; i++) {
+			if( sip->si_fds[i].fd == sd ) {
+				sip->si_fds[i].fd = -1;
+			}
+		}
+	}
+#else
+	/* for UNIX select(2) */
 	FD_CLR( sd, &sip->si_writefds );
 	FD_CLR( sd, &sip->si_readfds );
+#endif
 }
 
 
@@ -699,7 +774,23 @@ ldap_is_write_ready( LDAP *ld, Sockbuf *sb )
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
 	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+
+#ifdef HAVE_POLL
+	/* for UNIX poll(2) */
+	{
+		int i;
+		for(i=0; i < sip->si_maxfd; i++) {
+			if( sip->si_fds[i].fd == sd ) {
+				return sip->si_fds[i].revents == POLLOUT;
+			}
+		}
+
+		return 0;
+	}
+#else
+	/* for UNIX select(2) */
 	return( FD_ISSET( sd, &sip->si_use_writefds ));
+#endif
 }
 
 
@@ -712,7 +803,23 @@ ldap_is_read_ready( LDAP *ld, Sockbuf *sb )
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
 	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+
+#ifdef HAVE_POLL
+	/* for UNIX poll(2) */
+	{
+		int i;
+		for(i=0; i < sip->si_maxfd; i++) {
+			if( sip->si_fds[i].fd == sd ) {
+				return sip->si_fds[i].revents == POLLIN;
+			}
+		}
+
+		return 0;
+	}
+#else
+	/* for UNIX select(2) */
 	return( FD_ISSET( sd, &sip->si_use_readfds ));
+#endif
 }
 
 
@@ -721,11 +828,18 @@ ldap_new_select_info( void )
 {
 	struct selectinfo	*sip;
 
-	if (( sip = (struct selectinfo *)LDAP_CALLOC( 1,
-	    sizeof( struct selectinfo ))) != NULL ) {
-		FD_ZERO( &sip->si_readfds );
-		FD_ZERO( &sip->si_writefds );
-	}
+	sip = (struct selectinfo *)LDAP_CALLOC( 1, sizeof( struct selectinfo ));
+
+	if ( sip == NULL ) return NULL;
+
+#ifdef HAVE_POLL
+	/* for UNIX poll(2) */
+	/* sip->si_maxfd=0 */
+#else
+	/* for UNIX select(2) */
+	FD_ZERO( &sip->si_readfds );
+	FD_ZERO( &sip->si_writefds );
+#endif
 
 	return( (void *)sip );
 }
@@ -756,7 +870,7 @@ ldap_int_ip_init( void )
 
 #ifdef FD_SETSIZE
 	if( tblsize > FD_SETSIZE ) tblsize = FD_SETSIZE;
-#endif	/* FD_SETSIZE*/
+#endif	/* FD_SETSIZE */
 
 	ldap_int_tblsize = tblsize;
 }
@@ -766,6 +880,7 @@ ldap_int_ip_init( void )
 int
 ldap_int_select( LDAP *ld, struct timeval *timeout )
 {
+	int rc;
 	struct selectinfo	*sip;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_int_select\n", 0, 0, 0 );
@@ -775,15 +890,20 @@ ldap_int_select( LDAP *ld, struct timeval *timeout )
 #endif
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
+
+#ifdef HAVE_POLL
+	{
+		int to = timeout ? TV2MILLISEC( timeout ) : INFTIM;
+		rc = poll( sip->si_fds, sip->si_maxfd, to );
+	}
+#else
 	sip->si_use_readfds = sip->si_readfds;
 	sip->si_use_writefds = sip->si_writefds;
 	
-#ifdef HAVE_POLL
-	assert(0);
-	return -1;
-#else
-	return( select( ldap_int_tblsize,
+	rc = select( ldap_int_tblsize,
 		&sip->si_use_readfds, &sip->si_use_writefds,
 		NULL, timeout ));
 #endif
+
+	return rc;
 }
