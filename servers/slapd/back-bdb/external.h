@@ -33,6 +33,10 @@ extern BI_chk_referrals	bdb_referrals;
 
 extern BI_operational	bdb_operational;
 
+#ifdef SLAP_X_FILTER_HASSUBORDINATES
+extern BI_has_subordinates bdb_hasSubordinates;
+#endif /* SLAP_X_FILTER_HASSUBORDINATES */
+
 /* tools.c */
 extern BI_tool_entry_open	bdb_tool_entry_open;
 extern BI_tool_entry_close	bdb_tool_entry_close;

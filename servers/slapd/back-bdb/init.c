@@ -93,6 +93,10 @@ bdb_db_init( BackendDB *be )
 
 	bdb->bi_lock_detect = DB_LOCK_DEFAULT;
 
+#ifdef LDAP_CLIENT_UPDATE
+	LDAP_LIST_INIT (&bdb->psearch_list);
+#endif
+
 	ldap_pvt_thread_mutex_init( &bdb->bi_database_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_mutex );
@@ -611,6 +615,9 @@ bdb_initialize(
 
 	bi->bi_chk_referrals = bdb_referrals;
 	bi->bi_operational = bdb_operational;
+#ifdef SLAP_X_FILTER_HASSUBORDINATES
+	bi->bi_has_subordinates = bdb_hasSubordinates;
+#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 	bi->bi_entry_release_rw = bdb_entry_release;
 
 	/*

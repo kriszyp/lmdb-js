@@ -62,6 +62,12 @@ bdb_modrdn(
 
 	int		noop = 0;
 
+#ifdef LDAP_CLIENT_UPDATE
+        Operation* ps_list;
+        struct psid_entry* pm_list;
+        struct psid_entry* pm_prev;
+#endif
+
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "==>bdb_modrdn(%s,%s,%s)\n", 
 		dn->bv_val,newrdn->bv_val, newSuperior ? newSuperior->bv_val : "NULL" );
@@ -69,14 +75,6 @@ bdb_modrdn(
 	Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn(%s,%s,%s)\n",
 		dn->bv_val, newrdn->bv_val,
 		newSuperior ? newSuperior->bv_val : "NULL" );
-#endif
-
-#if 0
-	if( newSuperior != NULL ) {
-		rc = LDAP_UNWILLING_TO_PERFORM;
-		text = "newSuperior not implemented (yet)";
-		goto return_results;
-	}
 #endif
 
 	if( 0 ) {
@@ -96,6 +94,17 @@ retry:	/* transaction retry */
 #else
 		Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn: retrying...\n", 0, 0, 0 );
 #endif
+
+#ifdef LDAP_CLIENT_UPDATE
+                pm_list = LDAP_LIST_FIRST(&op->premodify_list);
+                while ( pm_list != NULL ) {
+                        LDAP_LIST_REMOVE ( pm_list, link );
+                        pm_prev = pm_list;
+                        pm_list = LDAP_LIST_NEXT ( pm_list, link );
+                        free (pm_prev);
+                }
+#endif
+
 		rc = TXN_ABORT( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
@@ -384,6 +393,21 @@ retry:	/* transaction retry */
 			newSuperior->bv_val, 0, 0 );
 #endif
 
+		/*  newSuperior == oldParent? */
+		if( dn_match( &p_ndn, nnewSuperior ) ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_LDBM, INFO, "bdb_back_modrdn: "
+				"new parent \"%s\" same as the old parent \"%s\"\n",
+				newSuperior->bv_val, p_dn.bv_val, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE, "bdb_back_modrdn: "
+				"new parent \"%s\" same as the old parent \"%s\"\n",
+				newSuperior->bv_val, p_dn.bv_val, 0 );
+#endif      
+			newSuperior = NULL; /* ignore newSuperior */
+		}
+	}
+	if ( newSuperior != NULL ) {
 		if ( newSuperior->bv_len ) {
 			np_dn = newSuperior;
 			np_ndn = nnewSuperior;
@@ -392,7 +416,8 @@ retry:	/* transaction retry */
 			/* newSuperior == entry being moved?, if so ==> ERROR */
 			/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
-			rc = bdb_dn2entry_r( be, ltid, nnewSuperior, &np, NULL, 0, locker, &lock );
+			rc = bdb_dn2entry_r( be,
+				ltid, nnewSuperior, &np, NULL, 0, locker, &lock );
 
 			switch( rc ) {
 			case 0:
@@ -700,6 +725,14 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+#ifdef LDAP_CLIENT_UPDATE
+	if ( rc == LDAP_SUCCESS && !op->o_noop ) {
+		LDAP_LIST_FOREACH ( ps_list, &bdb->psearch_list, link ) {
+			bdb_psearch(be, conn, op, ps_list, e, LCUP_PSEARCH_BY_PREMODIFY );
+		}
+	}
+#endif /* LDAP_CLIENT_UPDATE */
+
 	/* modify entry */
 	rc = bdb_modify_internal( be, conn, op, ltid, &mod[0], e,
 		&text, textbuf, textlen );
@@ -794,6 +827,24 @@ return_results:
 	send_ldap_result( conn, op, rc,
 		NULL, text, NULL, NULL );
 
+#ifdef LDAP_CLIENT_UPDATE
+	if ( rc == LDAP_SUCCESS && !op->o_noop ) {
+		/* Loop through in-scope entries for each psearch spec */
+		LDAP_LIST_FOREACH ( ps_list, &bdb->psearch_list, link ) {
+			bdb_psearch( be, conn, op, ps_list, e, LCUP_PSEARCH_BY_MODIFY );
+		}
+		pm_list = LDAP_LIST_FIRST(&op->premodify_list);
+		while ( pm_list != NULL ) {
+			bdb_psearch(be, conn, op, pm_list->ps->op,
+						e, LCUP_PSEARCH_BY_SCOPEOUT);
+			LDAP_LIST_REMOVE ( pm_list, link );
+			pm_prev = pm_list;
+			pm_list = LDAP_LIST_NEXT ( pm_list, link );
+                        free (pm_prev);
+		}
+	}
+#endif /* LDAP_CLIENT_UPDATE */
+
 	if( rc == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();
 		TXN_CHECKPOINT( bdb->bi_dbenv,
@@ -836,6 +887,15 @@ done:
 	}
 
 	if( ltid != NULL ) {
+#ifdef LDAP_CLIENT_UPDATE
+                pm_list = LDAP_LIST_FIRST(&op->premodify_list);
+                while ( pm_list != NULL ) {
+                        LDAP_LIST_REMOVE ( pm_list, link );
+                        pm_prev = pm_list;
+                        pm_list = LDAP_LIST_NEXT ( pm_list, link );
+                        free (pm_prev);
+                }
+#endif
 		TXN_ABORT( ltid );
 		op->o_private = NULL;
 	}

@@ -16,9 +16,9 @@
 #include "proto-bdb.h"
 
 /*
- * sets the supported operational attributes (if required)
+ * sets *hasSubordinates to LDAP_COMPARE_TRUE/LDAP_COMPARE_FALSE
+ * if the entry has children or not.
  */
-
 int
 bdb_hasSubordinates(
 	BackendDB	*be,
@@ -124,6 +124,9 @@ return_results:
 	return rc;
 }
 
+/*
+ * sets the supported operational attributes (if required)
+ */
 int
 bdb_operational(
 	BackendDB	*be,
