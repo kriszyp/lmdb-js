@@ -1,4 +1,4 @@
-.TH LDAP 3 "1 August 2001" "OpenLDAP LDVERSION"
+.TH LDAP 3 "13 January 2002" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -30,9 +30,14 @@ Both synchronous and asynchronous APIs are provided.  Also included are
 various routines to parse the results returned from these routines.
 These routines are found in the \-lldap library.
 .LP
-The basic interaction is as follows.  A session handle associated
-with created using
-.BR ldap_init (3).
+The basic interaction is as follows.  A session handle is
+created using
+.BR ldap_init (3)
+or
+.BR ldap_initialize (3).
+(The
+.BR ldap_initialize (3)
+routine is preferred, but is not part of the draft specification.)
 The underlying session is established upon first use which is
 commonly an LDAP bind operation.  The LDAP bind operation is
 performed by calling
@@ -67,12 +72,19 @@ and
 .BR ldap_next_attribute (3)
 to step through an entry's attributes, and
 .BR ldap_get_values (3)
-to retrieve a given attribute's value.  Attribute values
+to retrieve a given attribute's values.  Attribute values
 may or may not be displayable.
+.SH CONTROLS
+LDAP operations can be extended through the use of controls. Controls
+can be sent to a server or returned to the client with any LDAP message.
+Extended versions of the standard routines are available for use with
+controls. These routines are generally named by adding
+.BR _ext
+to the regular routine's name.
 .SH UNIFORM RESOURCE LOCATORS (URLS)
 The
 .BR ldap_url (3)
-routines can be used test a URL to see if it is an LDAP URL, to parse LDAP
+routines can be used to test a URL to see if it is an LDAP URL, to parse LDAP
 URLs into their component pieces, and to initiate searches directly using
 an LDAP URL.
 .SH CACHING
@@ -103,9 +115,13 @@ and
 .SH INDEX
 .TP 20
 .SM ldap_open(3)
-open a connection to an LDAP server
+open a connection to an LDAP server (deprecated, use
+.BR ldap_init (3))
 .TP
 .SM ldap_init(3)
+initialize the LDAP library without opening a connection to a server
+.TP
+.SM ldap_initialize(3)
 initialize the LDAP library without opening a connection to a server
 .TP
 .SM ldap_result(3)
@@ -164,10 +180,10 @@ uncache a request
 set cache options
 .TP
 .SM ldap_compare(3)
-asynchronous compare to a directory entry
+asynchronously compare to a directory entry
 .TP
 .SM ldap_compare_s(3)
-synchronous compare to a directory entry
+synchronously compare to a directory entry
 .TP
 .SM ldap_delete(3)
 asynchronously delete an entry
@@ -185,7 +201,7 @@ LDAP error indication
 extract LDAP error indication from LDAP result
 .TP
 .SM ldap_errlist(3)
-list of ldap errors and their meanings
+list of LDAP errors and their meanings
 .TP
 .SM ldap_err2string(3)
 convert LDAP error indication to a string
@@ -212,13 +228,13 @@ extract the DN from an entry
 convert a DN into its component parts
 .TP
 .SM ldap_explode_rdn(3)
-convert a RDN into its component parts
+convert an RDN into its component parts
 .TP
 .SM ldap_get_values(3)
 return an attribute's values
 .TP
 .SM ldap_get_values_len(3)
-return an attribute values with lengths
+return an attribute's values with lengths
 .TP
 .SM ldap_value_free(3)
 free memory allocated by ldap_get_values(3)
