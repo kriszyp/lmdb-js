@@ -42,7 +42,7 @@ static int wait4msg LDAP_P(( LDAP *ld, int msgid, int all, struct timeval *timeo
 	LDAPMessage **result ));
 static int try_read1msg LDAP_P(( LDAP *ld, int msgid, int all, Sockbuf *sb, LDAPConn *lc,
 	LDAPMessage **result ));
-static unsigned long build_result_ber LDAP_P(( LDAP *ld, BerElement *ber, LDAPRequest *lr ));
+static unsigned long build_result_ber LDAP_P(( LDAP *ld, BerElement **bp, LDAPRequest *lr ));
 static void merge_error_info LDAP_P(( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr ));
 
 
@@ -423,9 +423,8 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 				if ( !simple_request ) {
 					ber_free( ber, 1 );
 					ber = NULL;
-					if ( build_result_ber( ld, ber, lr )
+					if ( build_result_ber( ld, &ber, lr )
 					    == LBER_ERROR ) {
-						ld->ld_errno = LDAP_NO_MEMORY;
 						rc = -1; /* fatal error */
 					}
 				}
@@ -535,30 +534,47 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 
 
 static unsigned long
-build_result_ber( LDAP *ld, BerElement *ber, LDAPRequest *lr )
+build_result_ber( LDAP *ld, BerElement **bp, LDAPRequest *lr )
 {
-	unsigned long	len;
+	unsigned long	len, tag;
 	long		along;
+	BerElement *ber;
 
-	ber_init_w_nullc( ber, 0 );
-	ldap_set_ber_options( ld, ber );
+	ber = *bp = ldap_alloc_ber_with_options( ld );
+
+	if( ber == NULL ) {
+		return LBER_ERROR;
+	}
+
 	if ( ber_printf( ber, "{it{ess}}", lr->lr_msgid,
 	    (unsigned long) lr->lr_res_msgtype, lr->lr_res_errno,
 	    lr->lr_res_matched ? lr->lr_res_matched : "",
 	    lr->lr_res_error ? lr->lr_res_error : "" ) == -1 ) {
+
+		ld->ld_errno = LDAP_ENCODING_ERROR;
 		return( LBER_ERROR );
 	}
 
 	ber_reset( ber, 1 );
+
 	if ( ber_skip_tag( ber, &len ) == LBER_ERROR ) {
+		ld->ld_errno = LDAP_DECODING_ERROR;
 		return( LBER_ERROR );
 	}
 
 	if ( ber_get_int( ber, &along ) == LBER_ERROR ) {
+		ld->ld_errno = LDAP_DECODING_ERROR;
 		return( LBER_ERROR );
 	}
 
-	return( ber_peek_tag( ber, &len ));
+	tag = ber_peek_tag( ber, &len );
+
+	if ( tag == LBER_ERROR ) {
+		ld->ld_errno = LDAP_DECODING_ERROR;
+		return( LBER_ERROR );
+	}
+
+	return tag;
 }
 
 
