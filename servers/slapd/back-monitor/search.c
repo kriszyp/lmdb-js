@@ -120,7 +120,7 @@ monitor_back_search( Operation *op, SlapReply *rs )
 {
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 	int		rc = LDAP_SUCCESS;
-	Entry		*e, *matched = NULL;
+	Entry		*e = NULL, *matched = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "=> monitor_back_search\n", 0, 0, 0 );
 
