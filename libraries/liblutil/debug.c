@@ -41,7 +41,7 @@ int lutil_debug_file( FILE *file )
 	return 0;
 }
 
-void (lutil_debug)( int level, int debug, const char *fmt, ... )
+void (lutil_debug)( int debug, int level, const char *fmt, ... )
 {
 	char buffer[4096];
 	va_list vl;
