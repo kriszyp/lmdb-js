@@ -5,8 +5,11 @@
 #ifndef _AC_SOCKET_H_
 #define _AC_SOCKET_H_
 
-#ifdef HAVE_SYS_SOCKET_H
+#ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
+#endif
+
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 
 #include <netinet/in.h>
@@ -17,11 +20,8 @@
 #endif
 
 #ifdef HAVE_WINSOCK2
-#include <sys/types.h>
 #include <winsock2.h>
-#endif
-
-#ifdef HAVE_WINSOCK
+#elif HAVE_WINSOCK
 #include <winsock.h>
 #endif
 

@@ -634,7 +634,7 @@ LDAP_F void ldap_value_free_len LDAP_P(( struct berval **vals ));
  * in result.c:
  */
 LDAP_F int ldap_result LDAP_P(( LDAP *ld, int msgid, int all,
-	LDAP_timeval_p timeout, LDAPMessage **result ));
+	struct timeval *timeout, LDAPMessage **result ));
 LDAP_F int ldap_msgfree LDAP_P(( LDAPMessage *lm ));
 LDAP_F int ldap_msgdelete LDAP_P(( LDAP *ld, int msgid ));
 

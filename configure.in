@@ -694,7 +694,9 @@ AC_CHECK_HEADERS( \
 	sys/errno.h \
 	sys/ioctl.h	\
 	sys/param.h	\
+	sys/socket.h\
 	sys/time.h	\
+	sys/types.h	\
 	syslog.h	\
 	termios.h	\
 	unistd.h	\

@@ -4,7 +4,6 @@
  * All rights reserved.
  */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #include <stdio.h>
@@ -156,9 +155,9 @@ main( int argc, char **argv )
 			break;
 
 		default:
-#ifndef NO_USERINTERFACE
+#ifdef LDAP_LIBUI
 			fprintf( stderr, "unknown fmt %c\n", *fmt );
-#endif /* NO_USERINTERFACE */
+#endif /* LDAP_LIBUI */
 			rc = -1;
 			break;
 		}

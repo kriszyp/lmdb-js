@@ -18,9 +18,9 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
 #include <ac/errno.h>
 #include <ac/regex.h>
 #include <ac/string.h>
+#include <ac/time.h>
 #include <ac/unistd.h>
 
-#include <sys/types.h>
 #ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif

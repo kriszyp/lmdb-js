@@ -111,9 +111,9 @@ int
 ber_filbuf( Sockbuf *sb, long len )
 {
 	short	rc;
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	int	addrlen;
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 
 	if ( sb->sb_ber.ber_buf == NULL ) {
 		if ( (sb->sb_ber.ber_buf = (char *) malloc( READBUFSIZ )) ==
@@ -124,7 +124,7 @@ ber_filbuf( Sockbuf *sb, long len )
 	}
 
 	if ( sb->sb_naddr > 0 ) {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 		rc = udp_read(sb, sb->sb_ber.ber_buf, READBUFSIZ, addrlen );
 #ifdef LDAP_DEBUG
 		if ( lber_debug ) {
@@ -134,9 +134,9 @@ ber_filbuf( Sockbuf *sb, long len )
 				lber_bprint( sb->sb_ber.ber_buf, rc );
 		}
 #endif /* LDAP_DEBUG */
-#else /* CLDAP */
+#else /* LDAP_CONNECTIONLESS */
 		rc = -1;
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	} else {
 		rc = read( sb->sb_sd, sb->sb_ber.ber_buf,
 		    ((sb->sb_options & LBER_NO_READ_AHEAD) &&
@@ -296,18 +296,19 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 	nwritten = 0;
 	do {
 		if (sb->sb_naddr > 0) {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 			rc = udp_write( sb, ber->ber_buf + nwritten,
 			    (size_t)towrite );
-#else /* CLDAP */
+#else /* LDAP_CONNECTIONLESS */
 			rc = -1;
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 			if ( rc <= 0 )
 				return( -1 );
+
 			/* fake error if write was not atomic */
 			if (rc < towrite) {
-#if defined( WSAEMSGSIZE )
-			    errno = WSAEMSGSIZE;
+#if !defined(MACOS) && !defined(DOS)
+			    errno = EMSGSIZE;
 #endif
 			    return( -1 );
 			}

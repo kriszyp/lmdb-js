@@ -1,6 +1,12 @@
 /* stack.c - stack handling routines */
 
+#include "portable.h"
+
 #include <stdio.h>
+
+#include <ac/time.h>
+#include <ac/socket.h>
+
 #include "lber.h"
 #include "ldap.h"
 

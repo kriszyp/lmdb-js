@@ -16,10 +16,10 @@ static char copyright[] = "@(#) Copyright (c) 1990, 1994 Regents of the Universi
 #include <stdio.h>
 #include <stdlib.h>
 
-
 #include <ac/errno.h>
 #include <ac/socket.h>
 #include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"

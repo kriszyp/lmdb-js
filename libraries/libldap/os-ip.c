@@ -13,6 +13,7 @@
 #include <ac/errno.h>
 #include <ac/socket.h>
 #include <ac/string.h>
+#include <ac/time.h>
 #include <ac/unistd.h>
 
 #ifdef HAVE_IO_H

@@ -16,6 +16,7 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 
 #include <ac/socket.h>
 #include <ac/string.h>
+#include <ac/time.h>
 
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
