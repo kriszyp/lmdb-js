@@ -1174,19 +1174,18 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	arg->co_conn = conn;
 	arg->co_op = op;
 
+	arg->co_op->o_authz = conn->c_authz;
 	arg->co_op->o_dn = ch_strdup( conn->c_dn != NULL ? conn->c_dn : "" );
 	arg->co_op->o_ndn = ch_strdup( arg->co_op->o_dn );
 	(void) dn_normalize( arg->co_op->o_ndn );
-
-	arg->co_op->o_protocol = conn->c_protocol
-		? conn->c_protocol : LDAP_VERSION3;
-	arg->co_op->o_connid = conn->c_connid;
-
-	arg->co_op->o_authz = conn->c_authz;
 	arg->co_op->o_authtype = conn->c_authtype;
 	arg->co_op->o_authmech = conn->c_authmech != NULL
 		?  ch_strdup( conn->c_authmech ) : NULL;
 	
+	arg->co_op->o_protocol = conn->c_protocol
+		? conn->c_protocol : LDAP_VERSION3;
+	arg->co_op->o_connid = conn->c_connid;
+
 	slap_op_add( &conn->c_ops, arg->co_op );
 
 	status = ldap_pvt_thread_pool_submit( &connection_pool,
