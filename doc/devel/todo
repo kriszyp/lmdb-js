@@ -39,21 +39,19 @@ Medium projects
 Implement LDAP Transactions
 Implement authPassword (RFC 3112)
 Implement localization
-Implement Proxy Authorization Group extension
-Implement LCUP
-Add LDIFv1 control support
+Implement Proxy Authorization Control extension
 Update to latest autoconf and friends
 
 
 Small projects
 --------------
+Add LDIFv1 control support
 Populate matchingRuleUse attribute in the subschema
 Implement -V version options
-Implement Proxy Authorization Control extension
-Complete Simple Paged Results Control
 Add No-Op Control support to ldap client tools
 Add tests to test suite (ACI, moddn, manageDSAit, etc.)
 Add support for Cyrus pwcheckd/saslauthd
+Recode linked-list structs to use <ldap_queue.h> macros
 Create ldapbind (from ldapcompare?) to support bind operations
 Convert utfconv.txt into man page(s).
 Update any manual page
