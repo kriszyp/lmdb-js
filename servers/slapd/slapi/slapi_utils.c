@@ -3144,9 +3144,8 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 {
 #ifdef LDAP_SLAPI
 	Operation *op;
-	int ret;
-	Modifications *ml;
-        Modifications *next;
+	int rc = LDAP_SUCCESS;
+	Modifications *ml, *mp;
 
 	if ( slapi_pblock_get( pb, SLAPI_OPERATION, (void *)&op ) != 0 ) {
 		return LDAP_PARAM_ERROR;
@@ -3157,18 +3156,27 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 		return LDAP_OTHER;
 	}
 
-	ret = acl_check_modlist( op, e, ml );
+	for ( mp = ml; mp != NULL; mp = mp->sml_next ) {
+		rc = slap_bv2ad( &mp->sml_type, &mp->sml_desc, (const char **)errbuf );
+		if ( rc != LDAP_SUCCESS ) {
+			break;
+		}
+	}
+
+	if ( rc == LDAP_SUCCESS ) {
+		rc = acl_check_modlist( op, e, ml ) ? LDAP_SUCCESS : LDAP_INSUFFICIENT_ACCESS;
+	}
 
 	/* Careful when freeing the modlist because it has pointers into the mods array. */
-	for ( ; ml != NULL; ml = next ) {
-		next = ml->sml_next;
+	for ( ; ml != NULL; ml = mp ) {
+		mp = ml->sml_next;
 
 		/* just free the containing array */
 		slapi_ch_free( (void **)&ml->sml_bvalues );
 		slapi_ch_free( (void **)&ml );
 	}
 
-	return ret ? LDAP_SUCCESS : LDAP_INSUFFICIENT_ACCESS;
+	return rc;
 #else
 	return LDAP_UNWILLING_TO_PERFORM;
 #endif
@@ -3274,7 +3282,7 @@ Modifications *slapi_x_ldapmods2modifications (LDAPMod **mods)
 		}
 
 		if ( i == 0 ) {
-			 mod->sml_bvalues = NULL;
+			mod->sml_bvalues = NULL;
 		} else {
 			mod->sml_bvalues = (BerVarray) ch_malloc( (i + 1) * sizeof(struct berval) );
 
