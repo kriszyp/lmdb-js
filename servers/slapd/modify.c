@@ -555,7 +555,7 @@ int slap_mods_opattrs(
 		mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof( struct berval * ) );
 		mod->sml_bvalues[0] = ber_bvdup( &name );
 		mod->sml_bvalues[1] = NULL;
-
+		assert( mod->sml_bvalues[0] );
 		*modtail = mod;
 		modtail = &mod->sml_next;
 
@@ -565,6 +565,7 @@ int slap_mods_opattrs(
 		mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof( struct berval * ) );
 		mod->sml_bvalues[0] = ber_bvdup( &timestamp );
 		mod->sml_bvalues[1] = NULL;
+		assert( mod->sml_bvalues[0] );
 		*modtail = mod;
 		modtail = &mod->sml_next;
 	}
@@ -575,6 +576,7 @@ int slap_mods_opattrs(
 	mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof( struct berval * ) );
 	mod->sml_bvalues[0] = ber_bvdup( &name );
 	mod->sml_bvalues[1] = NULL;
+	assert( mod->sml_bvalues[0] );
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -584,6 +586,7 @@ int slap_mods_opattrs(
 	mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof( struct berval * ) );
 	mod->sml_bvalues[0] = ber_bvdup( &timestamp );
 	mod->sml_bvalues[1] = NULL;
+	assert( mod->sml_bvalues[0] );
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
