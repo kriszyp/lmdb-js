@@ -1,4 +1,4 @@
-OpenLDAP 1.2 README
+OpenLDAP 1.2.1 README
 
 	For a description of what this distribution contains, see the
 	ANNOUNCEMENT file in this directory.  For a description of
@@ -37,24 +37,7 @@ REQUIRED SOFTWARE
 		
 
 MAKING AND INSTALLING THE DISTRIBUTION
-	This is a quick guide.  For details, see the INSTALL file.
-
-	% ./configure
-		configure OpenLDAP for current platform
-
-	% make depend
-		this will create dependency information
-
-	% make 
-		this will build the system
-
-	% su
-	# make install
-
-	in this directory.  This should produce something that basically
-	works.  You can "cd tests; make" to verify the build.
-
-	See the INSTALL file in this directory for more information.
+	Please see the INSTALL file for details.
 
 
 DOCUMENTATION

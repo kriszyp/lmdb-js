@@ -102,19 +102,17 @@ these steps:
 	These configuration files are located in the OpenLDAP
 	configuration directory (normally /usr/local/etc/openldap).
 
-	ldap.conf            - LDAP defaults
-	ldapfilter.conf      - search filter configuration
-	ldapsearchprefs.conf - search object definitions
-	ldaptemplates.conf   - display template definitions
+	Client configuration files:
+	  ldap.conf            - client defaults
+	  ldapfilter.conf      - search filter configuration
+	  ldapsearchprefs.conf - search object definitions
+	  ldaptemplates.conf   - display template definitions
+
+	Server configuration files:
+	  ldapd.conf           - LDAP - X.500 daemon
+	  slapd.conf           - Standalone LDAP daemon
 
     There are section 5 man pages for all of these files.
-
- 9. edit client configuration files as needed.
-	See ldap.conf(5) for details.
-
-10. edit server configuration files as needed.
-	See slapd.conf(5) if running slapd.
-	See ldapd.conf(5) if running ldapd.
 
 
 Building LDAP For More Than One Platform

@@ -1,7 +1,7 @@
 OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2.1
-	CVS Tag: OPENLDAP_REL_ENG_1_2
+	CVS Tag: OPENLDAP_REL_ENG_1_2_1
 	Updated ctype and string generic headers
 	Fixed ctype 'unsigned char' bug 
 	Fixed slapd back-ldbm derefDN crash bug
