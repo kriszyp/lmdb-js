@@ -102,7 +102,8 @@ meta_back_add(
 	 */
 	lc = meta_back_getconn( li, conn, op, META_OP_REQUIRE_SINGLE,
 			&e->e_nname, &candidate );
-	if ( !lc || !meta_back_dobind( lc, op ) || !meta_back_is_valid( lc, candidate ) ) {
+	if ( !lc || !meta_back_dobind( lc, op )
+			|| !meta_back_is_valid( lc, candidate ) ) {
  		send_ldap_result( conn, op, LDAP_OTHER,
  				NULL, NULL, NULL, NULL );
 		return -1;

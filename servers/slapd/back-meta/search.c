@@ -138,6 +138,8 @@ meta_back_search(
 	lc = meta_back_getconn( li, conn, op, META_OP_ALLOW_MULTIPLE, 
 			nbase, NULL );
 	if ( !lc || !meta_back_dobind( lc, op ) ) {
+ 		send_ldap_result( conn, op, LDAP_OTHER,
+ 				NULL, NULL, NULL, NULL );
 		return -1;
 	}
 
