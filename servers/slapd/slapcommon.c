@@ -77,7 +77,7 @@ usage( int tool, const char *progname )
 
 	case SLAPACL:
 		options = "\t[-U authcID | -D authcDN]"
-			" -b DN attr[/level][:value] [...]\n";
+			" -b DN [attr[/access][:value]] [...]\n";
 		break;
 	}
 
@@ -306,9 +306,6 @@ slap_tool_init(
 		break;
 
 	case SLAPACL:
-		if ( argc == optind ) {
-			usage( tool, progname );
-		}
 		if ( !BER_BVISNULL( &authcDN ) && !BER_BVISNULL( &authcID ) ) {
 			usage( tool, progname );
 		}

@@ -10,7 +10,7 @@ slapacl \- Check access to a list of attributes.
 .B [\-f slapd.conf]
 .B [\-D authcDN | \-U authcID]
 .B \-b DN
-.B attr[/level][:value] [...]
+.B [attr[/access][:value]] [...]
 .LP
 .SH DESCRIPTION
 .LP
@@ -26,7 +26,9 @@ and
 .B defaultaccess
 directives, and then parses the 
 .B attr
-list given on the command-line.
+list given on the command-line; if none is given, access to the
+.B entry
+pseudo-attribute is tested.
 .LP
 .SH OPTIONS
 .TP

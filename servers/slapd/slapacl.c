@@ -42,6 +42,7 @@ slapacl( int argc, char **argv )
 	Connection		conn;
 	Operation		op;
 	Entry			e = { 0 };
+	char			*attr = NULL;
 
 	slap_tool_init( progname, SLAPACL, argc, argv );
 
@@ -54,7 +55,8 @@ slapacl( int argc, char **argv )
 	connection_fake_init( &conn, &op, &conn );
 
 	if ( !BER_BVISNULL( &authcID ) ) {
-		rc = slap_sasl_getdn( &conn, &op, &authcID, NULL, &authcDN, SLAP_GETDN_AUTHCID );
+		rc = slap_sasl_getdn( &conn, &op, &authcID, NULL,
+				&authcDN, SLAP_GETDN_AUTHCID );
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "ID: <%s> check failed %d (%s)\n",
 					authcID.bv_val, rc,
@@ -99,6 +101,11 @@ slapacl( int argc, char **argv )
 		op.o_ndn = authcDN;
 	}
 
+	if ( argc == 0 ) {
+		argc = 1;
+		attr = slap_schema.si_ad_entry->ad_cname.bv_val;
+	}
+
 	for ( ; argc--; argv++ ) {
 		slap_mask_t		mask;
 		AttributeDescription	*desc = NULL;
@@ -109,21 +116,25 @@ slapacl( int argc, char **argv )
 		char			*accessstr;
 		slap_access_t		access = ACL_AUTH;
 
-		val.bv_val = strchr( argv[0], ':' );
+		if ( attr == NULL ) {
+			attr = argv[ 0 ];
+		}
+
+		val.bv_val = strchr( attr, ':' );
 		if ( val.bv_val != NULL ) {
 			val.bv_val[0] = '\0';
 			val.bv_val++;
 			val.bv_len = strlen( val.bv_val );
 		}
 
-		accessstr = strchr( argv[0], '/' );
+		accessstr = strchr( attr, '/' );
 		if ( accessstr != NULL ) {
 			accessstr[0] = '\0';
 			accessstr++;
 			access = str2access( accessstr );
 			if ( access == ACL_INVALID_ACCESS ) {
 				fprintf( stderr, "unknown access \"%s\" for attribute \"%s\"\n",
-						accessstr, argv[0] );
+						accessstr, attr );
 				if ( continuemode ) {
 					continue;
 				}
@@ -131,10 +142,10 @@ slapacl( int argc, char **argv )
 			}
 		}
 
-		rc = slap_str2ad( argv[0], &desc, &text );
+		rc = slap_str2ad( attr, &desc, &text );
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "slap_str2ad(%s) failed %d (%s)\n",
-					argv[0], rc, ldap_err2string( rc ) );
+					attr, rc, ldap_err2string( rc ) );
 			if ( continuemode ) {
 				continue;
 			}
@@ -160,6 +171,7 @@ slapacl( int argc, char **argv )
 					accessmask2str( mask, accessmaskbuf ) );
 		}
 		rc = 0;
+		attr = NULL;
 	}
 
 destroy:;
