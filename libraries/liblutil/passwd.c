@@ -485,7 +485,7 @@ static int chk_ssha1(
 
 	rc = lutil_b64_pton(passwd->bv_val, orig_pass, passwd->bv_len);
 
-	if (rc <= sizeof(SHA1digest)) {
+	if (rc < 0 || (unsigned)rc <= sizeof(SHA1digest)) {
 		ber_memfree(orig_pass);
 		return -1;
 	}
@@ -566,7 +566,7 @@ static int chk_smd5(
 
 	rc = lutil_b64_pton(passwd->bv_val, orig_pass, passwd->bv_len);
 
-	if (rc <= sizeof(MD5digest)) {
+	if (rc < 0 || (unsigned)rc <= sizeof(MD5digest)) {
 		ber_memfree(orig_pass);
 		return -1;
 	}
@@ -762,7 +762,7 @@ static int chk_ns_mta_md5(
 	char buffer[LUTIL_MD5_BYTES*2];
 	int i;
 
-	if( passwd.bv_len != LUTIL_MD5_BYTES*2 ) {
+	if( passwd->bv_len != LUTIL_MD5_BYTES*2 ) {
 		return 1;
 	}
 

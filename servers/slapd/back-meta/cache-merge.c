@@ -120,7 +120,14 @@ merge_entry(
 	sreply.sr_nentries = 0; 
 
 	e = ( Entry * ) ch_calloc( 1, sizeof( Entry )); 
-	dnPrettyNormal(0, &rs->sr_entry->e_name, &e->e_name, &e->e_nname, op->o_tmpmemctx);
+
+	dnPrettyNormal(0, &rs->sr_entry->e_name, &op_tmp.o_req_dn, &op_tmp.o_req_ndn, op->o_tmpmemctx);
+	ber_dupbv( &e->e_name, &op_tmp.o_req_dn );
+	ber_dupbv( &e->e_nname, &op_tmp.o_req_ndn );
+	sl_free( op_tmp.o_req_ndn.bv_val, op->o_tmpmemctx );
+	sl_free( op_tmp.o_req_dn.bv_val, op->o_tmpmemctx );
+	op_tmp.o_req_dn = e->e_name;
+	op_tmp.o_req_ndn = e->e_nname;
 
 	e->e_private = NULL;
 	e->e_attrs = NULL; 
@@ -163,8 +170,6 @@ merge_entry(
 	op_tmp.o_do_not_cache = 1;
 
 	op_tmp.ora_e = e;
-	op_tmp.o_req_dn = e->e_name;
-	op_tmp.o_req_ndn = e->e_nname;
 	rc = op->o_bd->be_add( &op_tmp, &sreply );
 
 	if ( rc != LDAP_SUCCESS ) {
@@ -178,8 +183,7 @@ merge_entry(
 			result->rc = info.added;
 		} else if ( rc == LDAP_REFERRAL ||
 					rc == LDAP_NO_SUCH_OBJECT ) {
-			slap_entry2mods( e, &modlist, &text );
-			syncrepl_add_glue( NULL, NULL, &op_tmp, e, modlist, 0, NULL, NULL );
+			syncrepl_add_glue( &op_tmp, e );
 			result->rc = info.added;
 		} else {
 			result->rc = 0;
@@ -256,7 +260,7 @@ normalize_values( Attribute* attr )
 	{
 		for ( i = 0; i < nvals; i++ ) {
 			rc = attr->a_desc->ad_type->sat_equality->smr_normalize(
-				0,
+				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 				attr->a_desc->ad_type->sat_syntax,
 				attr->a_desc->ad_type->sat_equality,
 				&attr->a_vals[i], &attr->a_nvals[i], NULL );

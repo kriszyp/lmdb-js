@@ -75,6 +75,7 @@ rewrite_parse(
 					"[%s:%d] rewriteEngine needs 'state'\n%s",
 					fname, lineno, "" );
 			return -1;
+
 		} else if ( argc > 2 ) {
 			Debug( LDAP_DEBUG_ANY,
 					"[%s:%d] extra fields in rewriteEngine"
@@ -84,8 +85,10 @@ rewrite_parse(
 
 		if ( strcasecmp( argv[ 1 ], "on" ) == 0 ) {
 			info->li_state = REWRITE_ON;
+
 		} else if ( strcasecmp( argv[ 1 ], "off" ) == 0 ) {
 			info->li_state = REWRITE_OFF;
+
 		} else {
 			Debug( LDAP_DEBUG_ANY,
 					"[%s:%d] unknown 'state' in rewriteEngine;"
@@ -123,12 +126,12 @@ rewrite_parse(
 		 * Checks for existence (lots of contexts should be
 		 * available by default ...)
 		 */
-		 __curr_context = rewrite_context_find( info, argv[ 1 ] );
-		 if ( __curr_context == NULL ) {
-			 __curr_context = rewrite_context_create( info,
+		 rewrite_int_curr_context = rewrite_context_find( info, argv[ 1 ] );
+		 if ( rewrite_int_curr_context == NULL ) {
+			 rewrite_int_curr_context = rewrite_context_create( info,
 					 argv[ 1 ] );                       
 		 }
-		 if ( __curr_context == NULL ) {
+		 if ( rewrite_int_curr_context == NULL ) {
 			 return -1;
 		 }
 						
@@ -151,6 +154,7 @@ rewrite_parse(
 							 " 'alias'\n%s",
 							 fname, lineno, "" );
 					 return -1;
+
 				 } else if ( argc > 4 ) {
 					 Debug( LDAP_DEBUG_ANY,
 							 "[%s:%d] extra fields in"
@@ -173,8 +177,9 @@ rewrite_parse(
 					 return -1;
 				 }
 				 
-				 __curr_context->lc_alias = aliased;
-				 __curr_context = aliased;
+				 rewrite_int_curr_context->lc_alias = aliased;
+				 rewrite_int_curr_context = aliased;
+
 			 } else {
 				 Debug( LDAP_DEBUG_ANY,
 						 "[%s:%d] extra fields"
@@ -195,6 +200,7 @@ rewrite_parse(
 					" 'subst' ['flags']\n%s",
 					fname, lineno, "" );
 			return -1;
+
 		} else if ( argc > 4 ) {
 			Debug( LDAP_DEBUG_ANY,
 					"[%s:%d] extra fields in rewriteRule"
@@ -202,22 +208,22 @@ rewrite_parse(
 					fname, lineno, "" );
 		}
 
-		if ( __curr_context == NULL ) {
+		if ( rewrite_int_curr_context == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 					"[%s:%d] rewriteRule outside a"
 					" context; will add to default\n%s",
 					fname, lineno, "" );
-			__curr_context = rewrite_context_find( info,
+			rewrite_int_curr_context = rewrite_context_find( info,
 					REWRITE_DEFAULT_CONTEXT );
 
 			/*
 			 * Default context MUST exist in a properly initialized
 			 * struct rewrite_info
 			 */
-			assert( __curr_context != NULL );
+			assert( rewrite_int_curr_context != NULL );
 		}
 		
-		rc = rewrite_rule_compile( info, __curr_context, argv[ 1 ],
+		rc = rewrite_rule_compile( info, rewrite_int_curr_context, argv[ 1 ],
 				argv[ 2 ], ( argc == 4 ? argv[ 3 ] : "" ) );
 	
 	/*

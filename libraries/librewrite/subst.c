@@ -36,8 +36,8 @@ rewrite_subst_compile(
 )
 {
 	size_t subs_len;
-	struct berval **subs = NULL, **tmps;
-	struct rewrite_submatch **submatch = NULL;
+	struct berval *subs = NULL, *tmps;
+	struct rewrite_submatch *submatch = NULL;
 
 	struct rewrite_subst *s = NULL;
 
@@ -51,28 +51,27 @@ rewrite_subst_compile(
 	 * Take care of substitution string
 	 */
 	for ( p = begin = result, subs_len = 0; p[ 0 ] != '\0'; p++ ) {
-		
+
 		/*
 		 * Keep only single escapes '%'
 		 */
 		if ( p[ 0 ] != REWRITE_SUBMATCH_ESCAPE ) {
 			continue;
 		} 
+
 		if ( p[ 1 ] == REWRITE_SUBMATCH_ESCAPE ) {
-			AC_MEMCPY((char *)p, p + 1, strlen( p ) );
+			/* Pull &p[1] over p, including the trailing '\0' */
+			AC_MEMCPY((char *)p, &p[ 1 ], strlen( p ) );
 			continue;
 		}
 
-		nsub++;
-		
-		tmps = (struct berval **)realloc( subs,
-				sizeof( struct berval * )*( nsub + 1 ) );
+		tmps = ( struct berval * )realloc( subs,
+				sizeof( struct berval )*( nsub + 1 ) );
 		if ( tmps == NULL ) {
-			/* cleanup */
+			/* FIXME: cleanup */
 			return NULL;
 		}
 		subs = tmps;
-		subs[ nsub ] = NULL;
 		
 		/*
 		 * I think an `if l > 0' at runtime is better outside than
@@ -81,62 +80,52 @@ rewrite_subst_compile(
 		l = p - begin;
 		if ( l > 0 ) {
 			subs_len += l;
-			subs[ nsub - 1 ] =
-				calloc( sizeof( struct berval ), 1 );
-			if ( subs[ nsub - 1 ] == NULL ) {
-				/* cleanup */
+			subs[ nsub ].bv_len = l;
+			subs[ nsub ].bv_val = malloc( l + 1 );
+			if ( subs[ nsub ].bv_val == NULL ) {
 				return NULL;
 			}
-			subs[ nsub - 1 ]->bv_len = l;
-			subs[ nsub - 1 ]->bv_val = malloc( l + 1 );
-			if ( subs[ nsub - 1 ]->bv_val == NULL ) {
-				return NULL;
-			}
-			AC_MEMCPY( subs[ nsub - 1 ]->bv_val, begin, l );
-			subs[ nsub - 1 ]->bv_val[ l ] = '\0';
+			AC_MEMCPY( subs[ nsub ].bv_val, begin, l );
+			subs[ nsub ].bv_val[ l ] = '\0';
 		} else {
-			subs[ nsub - 1 ] = NULL;
+			subs[ nsub ].bv_val = NULL;
+			subs[ nsub ].bv_len = 0;
 		}
 		
 		/*
 		 * Substitution pattern
 		 */
 		if ( isdigit( (unsigned char) p[ 1 ] ) ) {
+			struct rewrite_submatch *tmpsm;
 			int d = p[ 1 ] - '0';
-			struct rewrite_submatch **tmpsm;
 
 			/*
 			 * Add a new value substitution scheme
 			 */
-			tmpsm = realloc( submatch, 
-	sizeof( struct rewrite_submatch * )*( nsub + 1 ) );
+
+			tmpsm = ( struct rewrite_submatch * )realloc( submatch,
+					sizeof( struct rewrite_submatch )*( nsub + 1 ) );
 			if ( tmpsm == NULL ) {
 				/* cleanup */
 				return NULL;
 			}
 			submatch = tmpsm;
-			submatch[ nsub ] = NULL;
-			
-			submatch[ nsub - 1 ] = 
-	calloc( sizeof(  struct rewrite_submatch ), 1 );
-			if ( submatch[ nsub - 1 ] == NULL ) {
-				/* cleanup */
-				return NULL;
-			}
-			submatch[ nsub - 1 ]->ls_submatch = d;
+			submatch[ nsub ].ls_submatch = d;
 
 			/*
 			 * If there is no argument, use default
 			 * (substitute substring as is)
 			 */
 			if ( p[ 2 ] != '{' ) {
-				submatch[ nsub - 1 ]->ls_type = 
+				submatch[ nsub ].ls_type = 
 					REWRITE_SUBMATCH_ASIS;
+				submatch[ nsub ].ls_map = NULL;
 				begin = ++p + 1;
+
 			} else {
 				struct rewrite_map *map;
 
-				submatch[ nsub - 1 ]->ls_type =
+				submatch[ nsub ].ls_type =
 					REWRITE_SUBMATCH_XMAP;
 
 				map = rewrite_xmap_parse( info,
@@ -145,9 +134,8 @@ rewrite_subst_compile(
 					/* cleanup */
 					return NULL;
 				}
+				submatch[ nsub ].ls_map = map;
 				p = begin - 1;
-
-				submatch[ nsub - 1 ]->ls_map = map;
 			}
 
 		/*
@@ -155,7 +143,7 @@ rewrite_subst_compile(
 		 */
 		} else if ( p[ 1 ] == '{' ) {
 			struct rewrite_map *map;
-			struct rewrite_submatch **tmpsm;
+			struct rewrite_submatch *tmpsm;
 
 			map = rewrite_map_parse( info, p + 2, &begin );
 			if ( map == NULL ) {
@@ -167,52 +155,43 @@ rewrite_subst_compile(
 			/*
 			 * Add a new value substitution scheme
 			 */
-			tmpsm = realloc( submatch,
-					sizeof( struct rewrite_submatch * )*( nsub + 1 ) );
+			tmpsm = ( struct rewrite_submatch * )realloc( submatch,
+					sizeof( struct rewrite_submatch )*( nsub + 1 ) );
 			if ( tmpsm == NULL ) {
 				/* cleanup */
 				return NULL;
 			}
 			submatch = tmpsm;
-			submatch[ nsub ] = NULL;
-			submatch[ nsub - 1 ] =
-				calloc( sizeof(  struct rewrite_submatch ), 1 );
-			if ( submatch[ nsub - 1 ] == NULL ) {
-				/* cleanup */
-				return NULL;
-			}
-
-			submatch[ nsub - 1 ]->ls_type =
+			submatch[ nsub ].ls_type =
 				REWRITE_SUBMATCH_MAP_W_ARG;
-			
-			submatch[ nsub - 1 ]->ls_map = map;
+			submatch[ nsub ].ls_map = map;
 		}
+
+		nsub++;
 	}
 	
 	/*
 	 * Last part of string
 	 */
-	tmps = realloc( subs, sizeof( struct berval *)*( nsub + 2 ) );
+	tmps = (struct berval * )realloc( subs, sizeof( struct berval )*( nsub + 1 ) );
 	if ( tmps == NULL ) {
 		/*
 		 * XXX need to free the value subst stuff!
 		 */
-		free( submatch );
+		free( subs );
 		return NULL;
 	}
-
 	subs = tmps;
-	subs[ nsub + 1 ] = NULL;
 	l = p - begin;
 	if ( l > 0 ) {
-		subs[ nsub ] = calloc( sizeof( struct berval ), 1 );
 		subs_len += l;
-		subs[ nsub ]->bv_len = l;
-		subs[ nsub ]->bv_val = malloc( l + 1 );
-		AC_MEMCPY( subs[ nsub ]->bv_val, begin, l );
-		subs[ nsub ]->bv_val[ l ] = '\0';
+		subs[ nsub ].bv_len = l;
+		subs[ nsub ].bv_val = malloc( l + 1 );
+		AC_MEMCPY( subs[ nsub ].bv_val, begin, l );
+		subs[ nsub ].bv_val[ l ] = '\0';
 	} else {
-		subs[ nsub ] = NULL;
+		subs[ nsub ].bv_val = NULL;
+		subs[ nsub ].bv_len = 0;
 	}
 
 	s = calloc( sizeof( struct rewrite_subst ), 1 );
@@ -241,8 +220,8 @@ submatch_copy(
 		struct berval *val
 )
 {
-	int c, l;
-	const char *s;
+	int		c, l;
+	const char	*s;
 
 	assert( submatch != NULL );
 	assert( submatch->ls_type == REWRITE_SUBMATCH_ASIS
@@ -250,14 +229,14 @@ submatch_copy(
 	assert( string != NULL );
 	assert( match != NULL );
 	assert( val != NULL );
+	assert( val->bv_val == NULL );
 	
 	c = submatch->ls_submatch;
 	s = string + match[ c ].rm_so;
 	l = match[ c ].rm_eo - match[ c ].rm_so;
 	
-	val->bv_val = NULL;
 	val->bv_len = l;
-	val->bv_val = calloc( sizeof( char ), l + 1 );
+	val->bv_val = malloc( l + 1 );
 	if ( val->bv_val == NULL ) {
 		return REWRITE_ERR;
 	}
@@ -284,7 +263,7 @@ rewrite_subst_apply(
 {
 	struct berval *submatch = NULL;
 	char *res = NULL;
-	int n, l, cl;
+	int n = 0, l, cl;
 	int rc = REWRITE_REGEXEC_OK;
 
 	assert( info != NULL );
@@ -293,6 +272,8 @@ rewrite_subst_apply(
 	assert( string != NULL );
 	assert( match != NULL );
 	assert( val != NULL );
+
+	assert( val->bv_val == NULL );
 
 	val->bv_val = NULL;
 	val->bv_len = 0;
@@ -312,58 +293,59 @@ rewrite_subst_apply(
 	 * Resolve submatches (simple subst, map expansion and so).
 	 */
 	for ( n = 0, l = 0; n < subst->lt_num_submatch; n++ ) {
-		struct berval key;
-		int rc;
+		struct berval	key = { 0, NULL };
+
+		submatch[ n ].bv_val = NULL;
 		
 		/*
 		 * Get key
 		 */
-		switch( subst->lt_submatch[ n ]->ls_type ) {
+		switch ( subst->lt_submatch[ n ].ls_type ) {
 		case REWRITE_SUBMATCH_ASIS:
 		case REWRITE_SUBMATCH_XMAP:
-			rc = submatch_copy( subst->lt_submatch[ n ],
+			rc = submatch_copy( &subst->lt_submatch[ n ],
 					string, match, &key );
 			if ( rc != REWRITE_SUCCESS ) {
-				free( submatch );
-				return REWRITE_REGEXEC_ERR;
+				rc = REWRITE_REGEXEC_ERR;
+				goto cleanup;
 			}
 			break;
 			
 		case REWRITE_SUBMATCH_MAP_W_ARG:
-			switch ( subst->lt_submatch[ n ]->ls_map->lm_type ) {
+			switch ( subst->lt_submatch[ n ].ls_map->lm_type ) {
 			case REWRITE_MAP_GET_OP_VAR:
 			case REWRITE_MAP_GET_SESN_VAR:
 			case REWRITE_MAP_GET_PARAM:
 				rc = REWRITE_SUCCESS;
 				break;
+
 			default:
 				rc = rewrite_subst_apply( info, op, 
-					subst->lt_submatch[ n ]->ls_map->lm_subst,
+					subst->lt_submatch[ n ].ls_map->lm_subst,
 					string, match, &key);
 			}
 			
 			if ( rc != REWRITE_SUCCESS ) {
-				free( submatch );
-				return REWRITE_REGEXEC_ERR;
+				rc = REWRITE_REGEXEC_ERR;
+				goto cleanup;
 			}
 			break;
 
 		default:
-			Debug( LDAP_DEBUG_ANY, "Not Implemented\n%s%s%s", 
-					"", "", "" );
+			Debug( LDAP_DEBUG_ANY, "Not Implemented\n", 0, 0, 0 );
 			rc = REWRITE_ERR;
 			break;
 		}
 		
 		if ( rc != REWRITE_SUCCESS ) {
-			free( submatch );
-			return REWRITE_REGEXEC_ERR;
+			rc = REWRITE_REGEXEC_ERR;
+			goto cleanup;
 		}
 
 		/*
 		 * Resolve key
 		 */
-		switch ( subst->lt_submatch[ n ]->ls_type ) {
+		switch ( subst->lt_submatch[ n ].ls_type ) {
 		case REWRITE_SUBMATCH_ASIS:
 			submatch[ n ] = key;
 			rc = REWRITE_SUCCESS;
@@ -371,16 +353,20 @@ rewrite_subst_apply(
 			
 		case REWRITE_SUBMATCH_XMAP:
 			rc = rewrite_xmap_apply( info, op,
-					subst->lt_submatch[ n ]->ls_map,
+					subst->lt_submatch[ n ].ls_map,
 					&key, &submatch[ n ] );
+			free( key.bv_val );
+			key.bv_val = NULL;
 			break;
 			
 		case REWRITE_SUBMATCH_MAP_W_ARG:
 			rc = rewrite_map_apply( info, op,
-					subst->lt_submatch[ n ]->ls_map,
+					subst->lt_submatch[ n ].ls_map,
 					&key, &submatch[ n ] );
+			free( key.bv_val );
+			key.bv_val = NULL;
 			break;
-						
+
 		default:
 			/*
 			 * When implemented, this might return the
@@ -393,8 +379,7 @@ rewrite_subst_apply(
 		}
 		
 		if ( rc != REWRITE_SUCCESS ) {
-			free( submatch );
-			return REWRITE_REGEXEC_ERR;
+			rc = REWRITE_REGEXEC_ERR;
 		}
 		
 		/*
@@ -408,7 +393,7 @@ rewrite_subst_apply(
          * of the subst pattern and initialize it
          */
 	l += subst->lt_subs_len;
-	res = calloc( sizeof( char ), l + 1 );
+	res = malloc( l + 1 );
 	if ( res == NULL ) {
 		rc = REWRITE_REGEXEC_ERR;
 		goto cleanup;
@@ -418,29 +403,92 @@ rewrite_subst_apply(
 	 * Apply submatches (possibly resolved thru maps
 	 */
         for ( n = 0, cl = 0; n < subst->lt_num_submatch; n++ ) {
-		if ( subst->lt_subs[ n ] != NULL ) {
-                	AC_MEMCPY( res + cl, subst->lt_subs[ n ]->bv_val,
-					subst->lt_subs[ n ]->bv_len );
-			cl += subst->lt_subs[ n ]->bv_len;
+		if ( subst->lt_subs[ n ].bv_val != NULL ) {
+                	AC_MEMCPY( res + cl, subst->lt_subs[ n ].bv_val,
+					subst->lt_subs[ n ].bv_len );
+			cl += subst->lt_subs[ n ].bv_len;
 		}
 		AC_MEMCPY( res + cl, submatch[ n ].bv_val, 
 				submatch[ n ].bv_len );
 		cl += submatch[ n ].bv_len;
-		free( submatch[ n ].bv_val );
 	}
-	if ( subst->lt_subs[ n ] != NULL ) {
-		AC_MEMCPY( res + cl, subst->lt_subs[ n ]->bv_val,
-				subst->lt_subs[ n ]->bv_len );
+	if ( subst->lt_subs[ n ].bv_val != NULL ) {
+		AC_MEMCPY( res + cl, subst->lt_subs[ n ].bv_val,
+				subst->lt_subs[ n ].bv_len );
+		cl += subst->lt_subs[ n ].bv_len;
 	}
+	res[ cl ] = '\0';
 
 	val->bv_val = res;
 	val->bv_len = l;
 
 cleanup:;
 	if ( submatch ) {
+        	for ( ; --n >= 0; ) {
+			if ( submatch[ n ].bv_val ) {
+				free( submatch[ n ].bv_val );
+			}
+		}
 		free( submatch );
 	}
 
 	return rc;
+}
+
+/*
+ * frees data
+ */
+int
+rewrite_subst_destroy(
+		struct rewrite_subst **psubst
+)
+{
+	int			n;
+	struct rewrite_subst	*subst;
+
+	assert( psubst );
+	assert( *psubst );
+
+	subst = *psubst;
+
+	for ( n = 0; n < subst->lt_num_submatch; n++ ) {
+		if ( subst->lt_subs[ n ].bv_val ) {
+			free( subst->lt_subs[ n ].bv_val );
+			subst->lt_subs[ n ].bv_val = NULL;
+		}
+
+		switch ( subst->lt_submatch[ n ].ls_type ) {
+		case REWRITE_SUBMATCH_ASIS:
+			break;
+
+		case REWRITE_SUBMATCH_XMAP:
+			rewrite_xmap_destroy( &subst->lt_submatch[ n ].ls_map );
+			break;
+
+		case REWRITE_SUBMATCH_MAP_W_ARG:
+			rewrite_map_destroy( &subst->lt_submatch[ n ].ls_map );
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	free( subst->lt_submatch );
+	subst->lt_submatch = NULL;
+
+	/* last one */
+	if ( subst->lt_subs[ n ].bv_val ) {
+		free( subst->lt_subs[ n ].bv_val );
+		subst->lt_subs[ n ].bv_val = NULL;
+	}
+
+	free( subst->lt_subs );
+	subst->lt_subs = NULL;
+
+	free( subst );
+	*psubst = NULL;
+
+	return 0;
 }
 

@@ -216,6 +216,7 @@ modify_delete_values(
 	Attribute	*a;
 	MatchingRule 	*mr = mod->sm_desc->ad_type->sat_equality;
 	char		dummy = '\0';
+	int			match = 0;
 
 	/*
 	 * If permissive is set, then the non-existence of an 
@@ -264,7 +265,6 @@ modify_delete_values(
 	for ( i = 0; mod->sm_values[i].bv_val != NULL; i++ ) {
 		int	found = 0;
 		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
-			int match;
 
 			if( mod->sm_nvalues ) {
 				assert( a->a_nvals );
@@ -291,7 +291,7 @@ modify_delete_values(
 				snprintf( textbuf, textlen,
 					"%s: matching rule failed",
 					mod->sm_desc->ad_cname.bv_val );
-				goto return_results;
+				break;
 			}
 
 			if ( match != 0 ) {
@@ -317,7 +317,11 @@ modify_delete_values(
 				"modify/delete: %s: no such value",
 				mod->sm_desc->ad_cname.bv_val );
 			rc = LDAP_NO_SUCH_ATTRIBUTE;
-			goto return_results;
+			if ( i > 0 ) {
+				break;
+			} else {
+				goto return_results;
+			}
 		}
 	}
 

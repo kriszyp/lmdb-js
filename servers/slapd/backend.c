@@ -244,8 +244,6 @@ int backend_startup(Backend *be)
 	int i;
 	int rc = 0;
 
-	init_syncrepl();
-
 	if( ! ( nBackendDB > 0 ) ) {
 		/* no databases */
 #ifdef NEW_LOGGING
@@ -336,10 +334,12 @@ int backend_startup(Backend *be)
 
 	/* open each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
+#ifndef SLAPD_MULTIMASTER
 		if ( backendDB[i].be_update_ndn.bv_val && (
 			!backendDB[i].be_update_refs &&
-			!backendDB[i].syncinfo &&
-			!default_referral ) ) {
+			!backendDB[i].be_syncinfo &&
+			!default_referral ) )
+		{
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACKEND, CRIT, 
 				"backend_startup: slave \"%s\" updateref missing\n",
@@ -352,6 +352,7 @@ int backend_startup(Backend *be)
 #endif
 			return -1;
 		}
+#endif
 
 		/* append global access controls */
 		acl_append( &backendDB[i].be_acl, global_acl );
@@ -374,12 +375,13 @@ int backend_startup(Backend *be)
 			}
 		}
 
-		if ( backendDB[i].syncinfo != NULL ) {
-			syncinfo_t *si = ( syncinfo_t * ) backendDB[i].syncinfo;
-			si->be = &backendDB[i];
+		if ( backendDB[i].be_syncinfo != NULL ) {
+			syncinfo_t *si = ( syncinfo_t * ) backendDB[i].be_syncinfo;
+			si->si_be = &backendDB[i];
+			init_syncrepl(si);
 			ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
-			ldap_pvt_runqueue_insert( &syncrepl_rq, si->interval,
-							do_syncrepl, (void *) backendDB[i].syncinfo );
+			ldap_pvt_runqueue_insert( &syncrepl_rq, si->si_interval,
+				do_syncrepl, (void *) backendDB[i].be_syncinfo );
 			ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 		}
 	}
@@ -550,7 +552,7 @@ backend_db_init(
 	ldap_pvt_thread_mutex_init( &be->be_pcl_mutex );
 	ldap_pvt_thread_mutex_init( &be->be_context_csn_mutex );
 
-	be->syncinfo = NULL;
+	be->be_syncinfo = NULL;
 
  	/* assign a default depth limit for alias deref */
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
@@ -743,31 +745,29 @@ int
 backend_unbind( Operation *op, SlapReply *rs )
 {
 	int		i;
-#if defined( LDAP_SLAPI )
-	Slapi_PBlock *pb = op->o_pb;
-
-	int     rc;
-	slapi_x_pblock_set_operation( pb, op );
-#endif /* defined( LDAP_SLAPI ) */
 
 	for ( i = 0; i < nbackends; i++ ) {
 #if defined( LDAP_SLAPI )
-		slapi_pblock_set( pb, SLAPI_BACKEND, (void *)&backends[i] );
-		rc = doPluginFNs( &backends[i], SLAPI_PLUGIN_PRE_UNBIND_FN,
-				(Slapi_PBlock *)pb );
-		if ( rc < 0 ) {
-			/*
-			 * A preoperation plugin failure will abort the
-			 * entire operation.
-			 */
+		if ( op->o_pb ) {
+			int rc;
+			if ( i == 0 ) slapi_x_pblock_set_operation( op->o_pb, op );
+			slapi_pblock_set( op->o_pb, SLAPI_BACKEND, (void *)&backends[i] );
+			rc = doPluginFNs( &backends[i], SLAPI_PLUGIN_PRE_UNBIND_FN,
+					(Slapi_PBlock *)op->o_pb );
+			if ( rc < 0 ) {
+				/*
+				 * A preoperation plugin failure will abort the
+				 * entire operation.
+				 */
 #ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO, "do_bind: Unbind preoperation plugin "
-					"failed\n", 0, 0, 0);
+				LDAP_LOG( OPERATION, INFO, "do_bind: Unbind preoperation plugin "
+						"failed\n", 0, 0, 0);
 #else
-			Debug(LDAP_DEBUG_TRACE, "do_bind: Unbind preoperation plugin "
-					"failed.\n", 0, 0, 0);
+				Debug(LDAP_DEBUG_TRACE, "do_bind: Unbind preoperation plugin "
+						"failed.\n", 0, 0, 0);
 #endif
-			return 0;
+				return 0;
+			}
 		}
 #endif /* defined( LDAP_SLAPI ) */
 
@@ -777,8 +777,8 @@ backend_unbind( Operation *op, SlapReply *rs )
 		}
 
 #if defined( LDAP_SLAPI )
-		if ( doPluginFNs( &backends[i], SLAPI_PLUGIN_POST_UNBIND_FN,
-				(Slapi_PBlock *)pb ) < 0 ) {
+		if ( op->o_pb && doPluginFNs( &backends[i], SLAPI_PLUGIN_POST_UNBIND_FN,
+				(Slapi_PBlock *)op->o_pb ) < 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, INFO, "do_unbind: Unbind postoperation plugins "
 					"failed\n", 0, 0, 0);
@@ -1176,17 +1176,13 @@ backend_group(
 
 	op->o_bd = select_backend( gr_ndn, 0, 0 );
 
-	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
-
-	for (g = op->o_conn->c_groups; g; g=g->ga_next) {
+	for (g = op->o_groups; g; g=g->ga_next) {
 		if (g->ga_be != op->o_bd || g->ga_oc != group_oc ||
 			g->ga_at != group_at || g->ga_len != gr_ndn->bv_len)
 			continue;
 		if (strcmp( g->ga_ndn, gr_ndn->bv_val ) == 0)
 			break;
 	}
-
-	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 	if (g) {
 		rc = g->ga_res;
@@ -1283,17 +1279,15 @@ backend_group(
 	}
 
 	if ( op->o_tag != LDAP_REQ_BIND && !op->o_do_not_cache ) {
-		g = ch_malloc(sizeof(GroupAssertion) + gr_ndn->bv_len);
+		g = sl_malloc(sizeof(GroupAssertion) + gr_ndn->bv_len, op->o_tmpmemctx);
 		g->ga_be = op->o_bd;
 		g->ga_oc = group_oc;
 		g->ga_at = group_at;
 		g->ga_res = rc;
 		g->ga_len = gr_ndn->bv_len;
 		strcpy(g->ga_ndn, gr_ndn->bv_val);
-		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
-		g->ga_next = op->o_conn->c_groups;
-		op->o_conn->c_groups = g;
-		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+		g->ga_next = op->o_groups;
+		op->o_groups = g;
 	}
 done:
 	op->o_bd = be;

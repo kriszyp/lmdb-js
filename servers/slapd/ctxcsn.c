@@ -26,7 +26,6 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
-#include <db.h>
 
 #include "ldap_pvt.h"
 #include "lutil.h"
@@ -188,15 +187,13 @@ slap_get_csn(
 	if ( csn == NULL )
 		return LDAP_OTHER;
 
-	if ( manage_ctxcsn ) {
-		pending = (struct slap_csn_entry *) ch_calloc( 1, sizeof( struct slap_csn_entry ));
-	}
-
 	csn->bv_len = lutil_csnstr( csnbuf, len, 0, 0 );
 	csn->bv_val = csnbuf;
 
 	if ( manage_ctxcsn ) {
+		pending = (struct slap_csn_entry *) ch_calloc( 1, sizeof( struct slap_csn_entry ));
 		ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
+		ber_dupbv( &op->o_sync_csn, csn );
 		pending->csn = ber_dupbv( NULL, csn );
 		pending->connid = op->o_connid;
 		pending->opid = op->o_opid;

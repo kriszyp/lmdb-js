@@ -151,7 +151,7 @@ slap_tool_init(
 
 		case 'i': /* specify syncrepl id list */
 			replica_id_string = strdup( optarg );
-			if ( !isdigit( *replica_id_string )) {
+			if ( !isdigit( (unsigned char) *replica_id_string )) {
 				usage( tool );
 				exit( EXIT_FAILURE );
 			}

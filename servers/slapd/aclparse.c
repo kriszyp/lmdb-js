@@ -1565,7 +1565,7 @@ print_access( Access *b )
 			fprintf( stderr, " %s", b->a_dn_pat.bv_val );
 
 		} else {
-			fprintf( stderr, " dn.%s=%s",
+			fprintf( stderr, " dn.%s=\"%s\"",
 				style_strings[b->a_dn_style], b->a_dn_pat.bv_val );
 		}
 	}
@@ -1575,25 +1575,19 @@ print_access( Access *b )
 	}
 
 	if ( b->a_group_pat.bv_len ) {
-		fprintf( stderr, " group=%s", b->a_group_pat.bv_val );
-
-		if ( b->a_group_oc ) {
-			fprintf( stderr, " objectClass: %s",
-				b->a_group_oc->soc_oclass.oc_oid );
-
-			if ( b->a_group_at ) {
-				fprintf( stderr, " attributeType: %s",
-					b->a_group_at->ad_cname.bv_val );
-			}
-		}
+		fprintf( stderr, " group/%s/%s.%s=\"%s\"",
+			b->a_group_oc ? b->a_group_oc->soc_cname.bv_val : "groupOfNames",
+			b->a_group_at ? b->a_group_at->ad_cname.bv_val : "member",
+			style_strings[b->a_group_style],
+			b->a_group_pat.bv_val );
     }
 
 	if ( b->a_peername_pat.bv_len != 0 ) {
-		fprintf( stderr, " peername=%s", b->a_peername_pat.bv_val );
+		fprintf( stderr, " peername=\"%s\"", b->a_peername_pat.bv_val );
 	}
 
 	if ( b->a_sockname_pat.bv_len != 0 ) {
-		fprintf( stderr, " sockname=%s", b->a_sockname_pat.bv_val );
+		fprintf( stderr, " sockname=\"%s\"", b->a_sockname_pat.bv_val );
 	}
 
 	if ( b->a_domain_pat.bv_len != 0 ) {
@@ -1601,7 +1595,7 @@ print_access( Access *b )
 	}
 
 	if ( b->a_sockurl_pat.bv_len != 0 ) {
-		fprintf( stderr, " sockurl=%s", b->a_sockurl_pat.bv_val );
+		fprintf( stderr, " sockurl=\"%s\"", b->a_sockurl_pat.bv_val );
 	}
 
 #ifdef SLAPD_ACI_ENABLED
@@ -1657,7 +1651,7 @@ print_acl( Backend *be, AccessControl *a )
 
 	if ( a->acl_dn_pat.bv_len != 0 ) {
 		to++;
-		fprintf( stderr, " dn.%s=%s\n",
+		fprintf( stderr, " dn.%s=\"%s\"\n",
 			style_strings[a->acl_dn_style], a->acl_dn_pat.bv_val );
 	}
 
@@ -1687,7 +1681,7 @@ print_acl( Backend *be, AccessControl *a )
 
 	if ( a->acl_attrval.bv_len != 0 ) {
 		to++;
-		fprintf( stderr, " val.%s=%s\n",
+		fprintf( stderr, " val.%s=\"%s\"\n",
 			style_strings[a->acl_attrval_style], a->acl_attrval.bv_val );
 
 	}

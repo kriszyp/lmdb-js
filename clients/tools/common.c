@@ -20,6 +20,7 @@
 #include "lutil_ldap.h"
 #include "ldap_defaults.h"
 #include "ldap_pvt.h"
+#include "lber_pvt.h"
 
 #include "common.h"
 
@@ -762,8 +763,8 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 	}
 
 	if ( assertctl ) {
-		char berbuf[LBER_ELEMENT_SIZEOF];
-		BerElement *ber = (BerElement *)berbuf;
+		BerElementBuffer berbuf;
+		BerElement *ber = (BerElement *)&berbuf;
 		
 		if( assertion == NULL || *assertion == '\0' ) {
 			fprintf( stderr, "Assertion=<empty>\n" );
@@ -820,7 +821,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 	if ( preread ) {
 		char berbuf[LBER_ELEMENT_SIZEOF];
 		BerElement *ber = (BerElement *)berbuf;
-		char **attrs;
+		char **attrs = NULL;
 
 		if( preread_attrs ) {
 			attrs = ldap_str2charray( preread_attrs, "," );
@@ -850,7 +851,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 	if ( postread ) {
 		char berbuf[LBER_ELEMENT_SIZEOF];
 		BerElement *ber = (BerElement *)berbuf;
-		char **attrs;
+		char **attrs = NULL;
 
 		if( postread_attrs ) {
 			attrs = ldap_str2charray( postread_attrs, "," );

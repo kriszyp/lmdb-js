@@ -147,13 +147,13 @@ meta_back_db_init(
 		
 	cm = (cache_manager *)ch_malloc(sizeof(cache_manager)); 
 	if ( cm == NULL ) {
-		rewrite_info_delete( rwinfo );
+		rewrite_info_delete( &rwinfo );
 		return -1;
 	}
 
 	qm = (query_manager*)ch_malloc(sizeof(query_manager)); 
 	if ( qm == NULL ) {
-		rewrite_info_delete( rwinfo );
+		rewrite_info_delete( &rwinfo );
 		ch_free( cm );
 		return -1;
 	}
@@ -259,7 +259,7 @@ target_free(
 		free( lt->pseudorootpw.bv_val );
 	}
 	if ( lt->rwmap.rwm_rw ) {
-		rewrite_info_delete( lt->rwmap.rwm_rw );
+		rewrite_info_delete( &lt->rwmap.rwm_rw );
 	}
 	avl_free( lt->rwmap.rwm_oc.remap, NULL );
 	avl_free( lt->rwmap.rwm_oc.map, mapping_free );

@@ -36,8 +36,6 @@
 #include "ldap_pvt_thread.h"
 #include "ldap_queue.h"
 
-#define SLAP_EXTENDED_SCHEMA 1
-
 LDAP_BEGIN_DECL
 /*
  * SLAPD Memory allocation macros
@@ -98,6 +96,10 @@ LDAP_BEGIN_DECL
 #define ASCII_UPPER(c)	( (c) >= 'A' && (c) <= 'Z' )
 #define ASCII_ALPHA(c)	( ASCII_LOWER(c) || ASCII_UPPER(c) )
 #define ASCII_DIGIT(c)	( (c) >= '0' && (c) <= '9' )
+#define ASCII_HEXLOWER(c)	( (c) >= 'a' && (c) <= 'f' )
+#define ASCII_HEXUPPER(c)	( (c) >= 'A' && (c) <= 'F' )
+#define ASCII_HEX(c)	( ASCII_DIGIT(c) || \
+	ASCII_HEXLOWER(c) || ASCII_HEXUPPER(c) )
 #define ASCII_ALNUM(c)	( ASCII_ALPHA(c) || ASCII_DIGIT(c) )
 #define ASCII_PRINTABLE(c) ( (c) >= ' ' && (c) <= '~' )
 
@@ -451,11 +453,18 @@ typedef struct slap_matching_rule {
  */
 #define SLAP_MR_VALUE_OF_ASSERTION_SYNTAX	0x0001U
 #define SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX	0x0002U
+#define SLAP_MR_VALUE_OF_SYNTAX				0x0003U
 
 #define SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX( usage ) \
 	((usage) & SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX )
 #define SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX( usage ) \
 	((usage) & SLAP_MR_VALUE_OF_ASSERTION_SYNTAX )
+#ifdef LDAP_DEBUG
+#define SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) \
+	((usage) & SLAP_MR_VALUE_OF_SYNTAX)
+#else
+#define SLAP_MR_IS_VALUE_OF_SYNTAX( usage )	(1)
+#endif
 
 /* either or both the asserted value or attribute value
  * may be provided in normalized form
@@ -1278,55 +1287,60 @@ typedef BackendDB Backend;
 #define nbackends nBackendDB
 #define backends backendDB
 
+/*
+ * syncinfo structure for syncrepl
+ */
+
+#define SLAP_SYNC_SID_SIZE	3
+#define SLAP_SYNCUUID_SET_SIZE 256
+
 struct nonpresent_entry {
-	struct berval *dn;
-	struct berval *ndn;
-	LDAP_LIST_ENTRY(nonpresent_entry) np_link;
+	struct berval *npe_name;
+	struct berval *npe_nname;
+	LDAP_LIST_ENTRY(nonpresent_entry) npe_link;
 };
 
- /*
-  * syncinfo structure for syncrepl
-  */
+struct sync_cookie {
+	struct berval *ctxcsn;
+	long sid;
+	struct berval *octet_str;
+};
+
 typedef struct syncinfo_s {
-        struct slap_conn *conn;
-        struct slap_backend_db *be;
-        struct slap_entry *e;
-        void			*ctx;
-        int				id;
-        char			*provideruri;
-        BerVarray		provideruri_bv;
-#define TLS_OFF			0
-#define TLS_ON			1
-#define TLS_CRITICAL	2
-        int				tls;
-		struct berval	updatedn;	
-        int				bindmethod;
-        char			*binddn;
-        char			*passwd;
-        char			*saslmech;
-        char			*secprops;
-        char			*realm;
-        char			*authcId;
-        char			*authzId;
-        char			*srvtab;
-		int				schemachecking;
-        Filter			*filter;
-        char			*filterstr;
-        char			*base;
-        int				scope;
-        int				attrsonly;
-        char			**attrs;
-        int				type;
-        time_t			interval;
-        struct berval	*syncCookie;
-        int				manageDSAit;
-        int				slimit;
-		int				tlimit;
-        struct berval	*syncUUID;
-		struct berval	*syncUUID_ndn;
-        Avlnode			*presentlist;
-		int				sync_mode;
-		LDAP_LIST_HEAD(np, nonpresent_entry) nonpresentlist;
+        struct slap_backend_db *si_be;
+        unsigned int		si_id;
+        char				*si_provideruri;
+        BerVarray			si_provideruri_bv;
+#define SYNCINFO_TLS_OFF		0
+#define SYNCINFO_TLS_ON			1
+#define SYNCINFO_TLS_CRITICAL	2
+        int					si_tls;
+		struct berval		si_updatedn;	
+        int					si_bindmethod;
+        char				*si_binddn;
+        char				*si_passwd;
+        char				*si_saslmech;
+        char				*si_secprops;
+        char				*si_realm;
+        char				*si_authcId;
+        char				*si_authzId;
+		int					si_schemachecking;
+        Filter				*si_filter;
+        struct berval		si_filterstr;
+        struct berval		si_base;
+        int					si_scope;
+        int					si_attrsonly;
+        char				**si_attrs;
+        int					si_type;
+        time_t				si_interval;
+		struct sync_cookie	si_syncCookie;
+        int					si_manageDSAit;
+        int					si_slimit;
+		int					si_tlimit;
+		struct berval		si_syncUUID_ndn;
+        Avlnode				*si_presentlist;
+		LDAP				*si_ld;
+		LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
 } syncinfo_t;
 
 struct slap_backend_db {
@@ -1481,7 +1495,7 @@ struct slap_backend_db {
 	ldap_pvt_thread_mutex_t					be_pcl_mutex;
 	struct berval							be_context_csn;
 	ldap_pvt_thread_mutex_t					be_context_csn_mutex;
-	syncinfo_t	*syncinfo;	/* For syncrepl */
+	syncinfo_t	*be_syncinfo;	/* For syncrepl */
 };
 
 struct slap_conn;
@@ -1807,6 +1821,21 @@ struct psid_entry {
 	LDAP_LIST_ENTRY(psid_entry) ps_link;
 };
 
+struct slog_entry {
+	struct berval sl_uuid;
+	struct berval sl_name;
+	struct berval sl_csn;
+	LDAP_STAILQ_ENTRY(slog_entry) sl_link;
+};
+
+/* session lists */
+struct slap_session_entry {
+	int se_id;
+	int se_size;
+	struct berval se_spec;
+	LDAP_LIST_ENTRY( slap_session_entry ) se_link;
+};
+
 struct slap_csn_entry {
 	struct berval *csn;
 	unsigned long opid;
@@ -1816,6 +1845,19 @@ struct slap_csn_entry {
 	long state;
 	LDAP_TAILQ_ENTRY (slap_csn_entry) csn_link;
 };
+
+/*
+ * Caches the result of a backend_group check for ACL evaluation
+ */
+typedef struct slap_gacl {
+	struct slap_gacl *ga_next;
+	Backend *ga_be;
+	ObjectClass *ga_oc;
+	AttributeDescription *ga_at;
+	int ga_res;
+	ber_len_t ga_len;
+	char ga_ndn[1];
+} GroupAssertion;
 
 /*
  * represents an operation pending from an ldap client
@@ -1895,7 +1937,8 @@ typedef struct slap_op {
 #define SLAP_CANCEL_ACK					0x02
 #define SLAP_CANCEL_DONE				0x03
 
-	char o_do_not_cache;	/* don't cache from this op */
+	GroupAssertion *o_groups;
+	char o_do_not_cache;	/* don't cache groups from this op */
 	char o_is_auth_check;	/* authorization in progress */
 
 #define SLAP_NO_CONTROL 0
@@ -1947,13 +1990,21 @@ typedef struct slap_op {
 
 	char o_sync;
 	char o_sync_mode;
-#define SLAP_SYNC_NONE				(0x0)
-#define SLAP_SYNC_REFRESH			(0x1)
-#define SLAP_SYNC_PERSIST			(0x2)
-#define SLAP_SYNC_REFRESH_AND_PERSIST		(0x3)
-	struct berval o_sync_state;
+#define SLAP_SYNC_NONE					(0x0)
+#define SLAP_SYNC_REFRESH				(0x1)
+#define SLAP_SYNC_PERSIST				(0x2)
+#define SLAP_SYNC_REFRESH_AND_PERSIST	(0x3)
+	struct sync_cookie	o_sync_state;
+	int					o_sync_rhint;
+	struct berval		o_sync_cid;
+	int					o_sync_slog_size;
+	struct berval		o_sync_csn;
+	struct berval		o_sync_slog_omitcsn;
+	int					o_sync_slog_len;
+	LDAP_STAILQ_HEAD(sl, slog_entry) o_sync_slog_list;
 
 	int o_ps_entries;
+	int	o_no_psearch;
 	LDAP_LIST_ENTRY(slap_op) o_ps_link;
 	LDAP_LIST_HEAD(pe, psid_entry) o_pm_list;
 
@@ -1980,7 +2031,6 @@ typedef struct slap_op {
 
 	ValuesReturnFilter *o_vrFilter; /* ValuesReturnFilter */
 
-	syncinfo_t*	o_si;
 	int o_nocaching;
 
 #ifdef LDAP_SLAPI
@@ -2020,19 +2070,6 @@ typedef void (SEND_LDAP_INTERMEDIATE)(
 #define send_ldap_intermediate( op, rs ) \
 	(op->o_conn->c_send_ldap_intermediate)( op, rs )
 
-/*
- * Caches the result of a backend_group check for ACL evaluation
- */
-typedef struct slap_gacl {
-	struct slap_gacl *ga_next;
-	Backend *ga_be;
-	ObjectClass *ga_oc;
-	AttributeDescription *ga_at;
-	int ga_res;
-	ber_len_t ga_len;
-	char ga_ndn[1];
-} GroupAssertion;
-
 typedef struct slap_listener Listener;
 
 /*
@@ -2065,7 +2102,6 @@ typedef struct slap_conn {
 	Backend *c_authz_backend;
 
 	AuthorizationInformation c_authz;
-	GroupAssertion *c_groups;
 
 	ber_int_t	c_protocol;	/* version of the LDAP protocol used by client */
 
@@ -2077,6 +2113,10 @@ typedef struct slap_conn {
 
 	BerElement	*c_currentber;	/* ber we're attempting to read */
 	int		c_writewaiter;	/* true if writer is waiting */
+
+#define	CONN_IS_TLS	1
+#define	CONN_IS_UDP	2
+#define	CONN_IS_CLIENT	3
 
 #ifdef LDAP_CONNECTIONLESS
 	int	c_is_udp;		/* true if this is (C)LDAP over UDP */
@@ -2105,6 +2145,12 @@ typedef struct slap_conn {
 
 	void    *c_pb;                  /* Netscape plugin */
 	void	*c_extensions;		/* Netscape plugin */
+
+	/*
+	 * Client connection handling
+	 */
+	ldap_pvt_thread_start_t	*c_clientfunc;
+	void	*c_clientarg;
 
 	/*
 	 * These are the "callbacks" that are available for back-ends to

@@ -218,12 +218,13 @@ static int test_mra_filter(
 			/* If ma_rule is not the same as the attribute's
 			 * normal rule, then we can't use the a_nvals.
 			 */
-			if (mra->ma_rule == a->a_desc->ad_type->sat_equality)
+			if (mra->ma_rule == a->a_desc->ad_type->sat_equality) {
 				bv = a->a_nvals;
-			else
+			} else {
 				bv = a->a_vals;
-			for ( ; bv->bv_val != NULL; bv++ )
-			{
+			}
+
+			for ( ; bv->bv_val != NULL; bv++ ) {
 				int ret;
 				int rc;
 				const char *text;

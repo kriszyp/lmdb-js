@@ -3,6 +3,29 @@
  * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
+/*
+ * Modified by Jong Hyuk Choi
+ *
+ * Modifications provided under the terms of the following condition:
+ *
+ * Copyright (c) 2003 by International Business Machines, Inc.
+ *
+ * International Business Machines, Inc. (hereinafter called IBM) grants
+ * permission under its copyrights to use, copy, modify, and distribute this
+ * Software with or without fee, provided that the above copyright notice and
+ * all paragraphs of this notice appear in all copies, and that the name of IBM
+ * not be used in connection with the marketing of any product incorporating
+ * the Software or modifications thereof, without specific, written prior
+ * permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", AND IBM DISCLAIMS ALL WARRANTIES,
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE.  IN NO EVENT SHALL IBM BE LIABLE FOR ANY SPECIAL,
+ * DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER ARISING
+ * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE, EVEN
+ * IF IBM IS APPRISED OF THE POSSIBILITY OF SUCH DAMAGES.
+ */
+
 #include "portable.h"
 
 #include <stdio.h>
@@ -226,7 +249,8 @@ main( int argc, char **argv )
 			{
 				vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
 				vals[0].bv_val = uuidbuf;
-				attr_merge( e, slap_schema.si_ad_entryUUID, vals, NULL );
+				attr_merge_normalize_one( e,
+							slap_schema.si_ad_entryUUID, vals, NULL );
 			}
 
 			if( attr_find( e->e_attrs, slap_schema.si_ad_creatorsName )

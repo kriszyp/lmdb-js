@@ -16,8 +16,6 @@
 #include "slap.h"
 #include "ldap_pvt.h"
 
-#ifdef SLAP_EXTENDED_SCHEMA
-
 struct cindexrec {
 	struct berval	cir_name;
 	ContentRule	*cir_cr;
@@ -35,8 +33,7 @@ cr_index_cmp(
 	const struct cindexrec	*cir1 = v_cir1;
 	const struct cindexrec	*cir2 = v_cir2;
 	int i = cir1->cir_name.bv_len - cir2->cir_name.bv_len;
-	if (i)
-		return i;
+	if (i) return i;
 	return strcasecmp( cir1->cir_name.bv_val, cir2->cir_name.bv_val );
 }
 
@@ -48,8 +45,7 @@ cr_index_name_cmp(
 	const struct berval    *name = v_name;
 	const struct cindexrec *cir  = v_cir;
 	int i = name->bv_len - cir->cir_name.bv_len;
-	if (i)
-		return i;
+	if (i) return i;
 	return strncasecmp( name->bv_val, cir->cir_name.bv_val, name->bv_len );
 }
 
@@ -194,7 +190,11 @@ cr_add_auxiliaries(
 			return SLAP_SCHERR_CLASS_NOT_FOUND;
 		}
 
-		if( soc->soc_flags & SLAP_OC_OPERATIONAL ) (*op)++;
+		if( soc->soc_flags & SLAP_OC_OPERATIONAL &&
+			soc != slap_schema.si_oc_extensibleObject )
+		{
+			(*op)++;
+		}
 
 		if( soc->soc_kind != LDAP_SCHEMA_AUXILIARY ) {
 			*err = scr->scr_oc_oids_aux[naux];
@@ -203,7 +203,6 @@ cr_add_auxiliaries(
 	}
 
 	scr->scr_auxiliaries[naux] = NULL;
-
 	return 0;
 }
 
@@ -387,18 +386,17 @@ cr_add(
 	code = cr_create_precluded( scr, &op, err );
 	if ( code != 0 ) return code;
 
-	if( user && op ) return SLAP_SCHERR_CR_BAD_AUX;
+	if( user && op ) {
+		return SLAP_SCHERR_CR_BAD_AUX;
+	}
 
 	code = cr_insert(scr,err);
 	return code;
 }
 
-#endif
-
 int
 cr_schema_info( Entry *e )
 {
-#ifdef SLAP_EXTENDED_SCHEMA
 	AttributeDescription *ad_ditContentRules
 		= slap_schema.si_ad_ditContentRules;
 	ContentRule	*cr;
@@ -428,6 +426,5 @@ cr_schema_info( Entry *e )
 		}
 		ldap_memfree( val.bv_val );
 	}
-#endif
 	return 0;
 }

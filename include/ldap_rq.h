@@ -73,7 +73,8 @@ ldap_pvt_runqueue_isrunning(
 LDAP_F( void )
 ldap_pvt_runqueue_resched(
 	struct runqueue_s* rq,
-	struct re_s* entry
+	struct re_s* entry,
+	int defer
 );
 
 LDAP_F( int )

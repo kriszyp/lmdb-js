@@ -314,7 +314,7 @@ LDAPDN_rewrite( LDAPDN dn, unsigned flags, void *ctx )
 				 *	if value is empty, use empty_bv
 				 */
 				rc = ( *normf )(
-					0,
+					SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 					ad->ad_type->sat_syntax,
 					mr,
 					ava->la_value.bv_len
@@ -329,8 +329,10 @@ LDAPDN_rewrite( LDAPDN dn, unsigned flags, void *ctx )
 
 
 			if( bv.bv_val ) {
-				ber_memfree_x( ava->la_value.bv_val, ctx );
+				if ( ava->la_flags & LDAP_AVA_FREE_VALUE )
+					ber_memfree_x( ava->la_value.bv_val, ctx );
 				ava->la_value = bv;
+				ava->la_flags |= LDAP_AVA_FREE_VALUE;
 			}
 
 			if( do_sort ) AVA_Sort( rdn, iAVA );
@@ -882,7 +884,12 @@ int
 dnX509normalize( void *x509_name, struct berval *out )
 {
 	/* Invoke the LDAP library's converter with our schema-rewriter */
-	return ldap_X509dn2bv( x509_name, out, LDAPDN_rewrite, 0 );
+	int rc = ldap_X509dn2bv( x509_name, out, LDAPDN_rewrite, 0 );
+
+	Debug( LDAP_DEBUG_TRACE,
+		"dnX509Normalize: <%s>\n", out->bv_val, 0, 0 );
+
+	return rc;
 }
 
 /*

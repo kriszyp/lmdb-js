@@ -121,7 +121,12 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	pthread_attr_setdetachstate(&attr, detach);
 #endif
 #endif
+
+#if HAVE_PTHREADS < 5
+	rtn = pthread_create( thread, attr, start_routine, arg );
+#else
 	rtn = pthread_create( thread, &attr, start_routine, arg );
+#endif
 #if HAVE_PTHREADS > 5
 	pthread_attr_destroy(&attr);
 #else

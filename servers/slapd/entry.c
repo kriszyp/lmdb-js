@@ -66,9 +66,10 @@ str2entry( char *s )
 	 */
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, DETAIL1, "str2entry: \"%s\"\n", s ? s : "NULL", 0, 0 );
+	LDAP_LOG( OPERATION, DETAIL1, "str2entry: \"%s\"\n",
+		s ? s : "NULL", 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> str2entry\n",
+	Debug( LDAP_DEBUG_TRACE, "=> str2entry: \"%s\"\n",
 		s ? s : "NULL", 0, 0 );
 #endif
 

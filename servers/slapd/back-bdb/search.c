@@ -291,21 +291,44 @@ int is_sync_protocol( Operation *op )
 	( type == LDAP_PSEARCH_BY_SCOPEOUT ))
 #define IS_PSEARCH (op != sop)
 
-int
-bdb_abandon( Operation *op, SlapReply *rs )
+static Operation *
+bdb_drop_psearch( Operation *op, ber_int_t msgid )
 {
 	Operation	*ps_list;
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 
 	LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 		if ( ps_list->o_connid == op->o_connid ) {
-			if ( ps_list->o_msgid == op->oq_abandon.rs_msgid ) {
+			if ( ps_list->o_msgid == msgid ) {
 				ps_list->o_abandon = 1;
 				LDAP_LIST_REMOVE( ps_list, o_ps_link );
-				slap_op_free ( ps_list );
-				return LDAP_SUCCESS;
+				ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+				LDAP_STAILQ_REMOVE( &op->o_conn->c_ops, ps_list,
+					slap_op, o_next );
+				LDAP_STAILQ_NEXT( ps_list, o_next ) = NULL;
+				op->o_conn->c_n_ops_executing--;
+				op->o_conn->c_n_ops_completed++;
+				ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+				return ps_list;
 			}
 		}
+	}
+
+	return NULL;
+}
+
+int
+bdb_abandon( Operation *op, SlapReply *rs )
+{
+	Operation	*ps;
+
+	ps = bdb_drop_psearch( op, op->oq_abandon.rs_msgid );
+	if ( ps ) {
+		if ( ps->o_tmpmemctx ) {
+			sl_mem_destroy( NULL, ps->o_tmpmemctx );
+		}
+		slap_op_free ( ps );
+		return LDAP_SUCCESS;
 	}
 	return LDAP_UNAVAILABLE;
 }
@@ -313,26 +336,17 @@ bdb_abandon( Operation *op, SlapReply *rs )
 int
 bdb_cancel( Operation *op, SlapReply *rs )
 {
-	Operation	*ps_list;
-	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+	Operation	*ps;
 
-	LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-		if ( ps_list->o_connid == op->o_connid ) {
-			if ( ps_list->o_msgid == op->oq_cancel.rs_msgid ) {
-				ps_list->o_cancel = SLAP_CANCEL_DONE;
-				LDAP_LIST_REMOVE( ps_list, o_ps_link );
-
-				rs->sr_err = LDAP_CANCELLED;
-				send_ldap_result( ps_list, rs );
-
-				if ( ps_list->o_tmpmemctx ) {
-					sl_mem_destroy( NULL, ps_list->o_tmpmemctx );
-				}
-
-				slap_op_free ( ps_list );
-				return LDAP_SUCCESS;
-			}
+	ps = bdb_drop_psearch( op, op->oq_cancel.rs_msgid );
+	if ( ps ) {
+		rs->sr_err = LDAP_CANCELLED;
+		send_ldap_result( ps, rs );
+		if ( ps->o_tmpmemctx ) {
+			sl_mem_destroy( NULL, ps->o_tmpmemctx );
 		}
+		slap_op_free ( ps );
+		return LDAP_SUCCESS;
 	}
 	return LDAP_UNAVAILABLE;
 }
@@ -364,7 +378,6 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	AttributeName	*attrs;
 
 	Filter 		contextcsnand, contextcsnle, cookief, csnfnot, csnfeq, csnfand, csnfge;
-	Filter		omitcsnf, omitcsnfle;
 	AttributeAssertion aa_ge, aa_eq, aa_le;
 	int		entry_count = 0;
 	struct berval *search_context_csn = NULL;
@@ -382,19 +395,81 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	u_int32_t	locker = 0;
 	DB_LOCK		lock;
 
+	Operation	*ps_list;
+	int			sync_send_present_mode = 1;
+	int			match;
+	MatchingRule *mr;
+	const char *text;
+	int			slog_found = 0;
+
+	BerVarray	syncUUID_set = NULL;
+	int			syncUUID_set_cnt = 0;
+
 #ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ENTRY, "bdb_back_search\n", 0, 0, 0 );
+	LDAP_LOG( OPERATION, ENTRY, "bdb_search\n", 0, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_back_search\n",
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_search\n",
 		0, 0, 0);
 #endif
 	attrs = sop->oq_search.rs_attrs;
 
+	if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_REFRESH_AND_PERSIST ) {
+		struct slap_session_entry *sent;
+		if ( sop->o_sync_state.sid >= 0 ) {
+			LDAP_LIST_FOREACH( sent, &bdb->bi_session_list, se_link ) {
+				if ( sent->se_id == sop->o_sync_state.sid ) {
+					sop->o_sync_slog_size = sent->se_size;
+					break;
+				}
+			}
+		}
+	}
+
 	/* psearch needs to be registered before refresh begins */
 	/* psearch and refresh transmission is serialized in send_ldap_ber() */
 	if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_PERSIST ) {
+		ldap_pvt_thread_mutex_lock( &bdb->bi_pslist_mutex );
 		LDAP_LIST_INSERT_HEAD( &bdb->bi_psearch_list, sop, o_ps_link );
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_pslist_mutex );
+	} else if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_REFRESH_AND_PERSIST
+				&& sop->o_sync_slog_size >= 0 ) {
+		ldap_pvt_thread_mutex_lock( &bdb->bi_pslist_mutex );
+		LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
+			if ( ps_list->o_sync_slog_size >= 0 ) {
+				if ( ps_list->o_sync_state.sid == sop->o_sync_state.sid ) {
+					slog_found = 1;
+					break;
+				}
+			}
+		}
+
+		if ( slog_found ) {
+			if ( ps_list->o_sync_slog_omitcsn.bv_len != 0 ) {
+				mr = slap_schema.si_ad_entryCSN->ad_type->sat_ordering;
+				if ( sop->o_sync_state.ctxcsn &&
+					 sop->o_sync_state.ctxcsn->bv_val != NULL ) {
+					 value_match( &match, slap_schema.si_ad_entryCSN, mr,
+								SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+								sop->o_sync_state.ctxcsn,
+								&ps_list->o_sync_slog_omitcsn,
+								&text );
+				} else {
+					match = -1;
+				}
+				if ( match >= 0 ) {
+					sync_send_present_mode = 0;
+				}
+			} else {
+				sync_send_present_mode = 0;
+			}
+		} else if ( sop->o_sync_slog_size >= 0 ) {
+			LDAP_LIST_INSERT_HEAD( &bdb->bi_psearch_list, sop, o_ps_link );
+		} else {
+			sop->o_sync_state.sid = -1;
+		}
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_pslist_mutex );
 	}
+
 	null_attr.an_desc = NULL;
 	null_attr.an_oc = NULL;
 	null_attr.an_name.bv_len = 0;
@@ -656,6 +731,14 @@ dn2entry_retry:
 		goto done;
 	}
 
+	if ( sop->o_sync_mode != SLAP_SYNC_NONE && sop->o_sync_state.ctxcsn &&
+		 sop->o_sync_state.ctxcsn->bv_val &&
+		 ber_bvcmp( &sop->o_sync_state.ctxcsn[0], search_context_csn ) == 0 )
+	{
+		bdb_cache_entry_db_unlock( bdb->bi_dbenv, &ctxcsn_lock );
+		goto nochange;
+	}
+
 	/* select candidates */
 	if ( sop->oq_search.rs_scope == LDAP_SCOPE_BASE ) {
 		rs->sr_err = base_candidate( op->o_bd, &base, candidates );
@@ -756,8 +839,6 @@ dn2entry_retry:
 
 	if ( (sop->o_sync_mode & SLAP_SYNC_REFRESH) || IS_PSEARCH )
 	{
-		MatchingRule	*mr;
-		const char		*text;
 		int				match;
 
 		cookief.f_choice = LDAP_FILTER_AND;
@@ -771,7 +852,11 @@ dn2entry_retry:
 		csnfeq.f_choice = LDAP_FILTER_EQUALITY;
 		csnfeq.f_ava = &aa_eq;
 		csnfeq.f_av_desc = slap_schema.si_ad_entryCSN;
-		csnfeq.f_av_value = sop->o_sync_state;
+		if ( sop->o_sync_state.ctxcsn != NULL ) {
+			csnfeq.f_av_value = *sop->o_sync_state.ctxcsn;
+		} else {
+			csnfeq.f_av_value = slap_empty_bv;
+		}
 
 		csnfand.f_choice = LDAP_FILTER_AND;
 		csnfand.f_and = &csnfge;
@@ -780,7 +865,11 @@ dn2entry_retry:
 		csnfge.f_choice = LDAP_FILTER_GE;
 		csnfge.f_ava = &aa_ge;
 		csnfge.f_av_desc = slap_schema.si_ad_entryCSN;
-		csnfge.f_av_value = sop->o_sync_state;
+		if ( sop->o_sync_state.ctxcsn != NULL ) {
+			csnfge.f_av_value = *sop->o_sync_state.ctxcsn;
+		} else {
+			csnfge.f_av_value = slap_empty_bv;
+		}
 
 		if ( search_context_csn && !IS_PSEARCH ) {
 			csnfge.f_next = &contextcsnand;
@@ -796,21 +885,23 @@ dn2entry_retry:
 			contextcsnle.f_next = sop->oq_search.rs_filter;
 
 			mr = slap_schema.si_ad_entryCSN->ad_type->sat_ordering;
-			if ( sop->o_sync_state.bv_len != 0 ) {
+			if ( sop->o_sync_state.ctxcsn &&
+				 sop->o_sync_state.ctxcsn->bv_val != NULL ) {
 				value_match( &match, slap_schema.si_ad_entryCSN, mr,
-							SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-							&sop->o_sync_state, search_context_csn, &text );
+						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+						&sop->o_sync_state.ctxcsn[0], search_context_csn,
+						&text );
 			} else {
 				match = -1;
 			}
-			no_sync_state_change = !match;
+			no_sync_state_change = ( match >= 0 );
 		} else {
 			csnfge.f_next = sop->oq_search.rs_filter;
 		}
 	}
 
 	for ( id = bdb_idl_first( candidates, &cursor );
-		id != NOID;
+		id != NOID && !no_sync_state_change;
 		id = bdb_idl_next( candidates, &cursor ) )
 	{
 		int		scopeok = 0;
@@ -818,6 +909,9 @@ dn2entry_retry:
 loop_begin:
 		/* check for abandon */
 		if ( sop->o_abandon ) {
+			if ( sop != op ) {
+				bdb_drop_psearch( sop, sop->o_msgid );
+			}
 			rs->sr_err = LDAP_SUCCESS;
 			goto done;
 		}
@@ -1036,8 +1130,7 @@ id2entry_retry:
 		} else {
 			if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
 				rc_sync = test_filter( sop, rs->sr_entry, &cookief );
-				rs->sr_err = test_filter( sop,
-					rs->sr_entry, &contextcsnand );
+				rs->sr_err = test_filter( sop, rs->sr_entry, &contextcsnand );
 				if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
 					if ( rc_sync == LDAP_COMPARE_TRUE ) {
 						if ( no_sync_state_change ) {
@@ -1067,7 +1160,8 @@ id2entry_retry:
 
 		if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
 			/* check size limit */
-			if ( --sop->oq_search.rs_slimit == -1 ) {
+            if ( --sop->oq_search.rs_slimit == -1 &&
+                 sop->o_sync_slog_size == -1 ) {
 				if (!IS_PSEARCH) {
 					bdb_cache_return_entry_r( bdb->bi_dbenv,
 						&bdb->bi_cache, e, &lock );
@@ -1133,53 +1227,100 @@ id2entry_retry:
 							} else {
 								entry_sync_state = LDAP_SYNC_ADD;
 							}
-						} else if ( ps_type == LDAP_PSEARCH_BY_SCOPEOUT )
+						} else if ( ps_type == LDAP_PSEARCH_BY_SCOPEOUT ) {
 							entry_sync_state = LDAP_SYNC_DELETE;
-						else {
+						} else {
 							rs->sr_err = LDAP_OTHER;
 							goto done;
 						}
-						rs->sr_err = bdb_build_sync_state_ctrl( sop,
-							rs, e, entry_sync_state, ctrls,
-							num_ctrls++, 1, search_context_csn );
-						if ( rs->sr_err != LDAP_SUCCESS ) goto done;
-						rs->sr_attrs = attrs;
-						rs->sr_ctrls = ctrls;
-						result = send_search_entry( sop, rs );
-						ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
-						ch_free( ctrls[--num_ctrls] );
-						ctrls[num_ctrls] = NULL;
-						rs->sr_ctrls = NULL;
-
+						if ( sop->o_sync_slog_size != -1 ) {
+							if ( entry_sync_state == LDAP_SYNC_DELETE ) {
+								result = slap_add_session_log( op, sop, e );
+							} else {
+								result = 1;
+							}
+						} else {
+							struct berval cookie;
+							slap_compose_sync_cookie( sop, &cookie,
+										search_context_csn,
+										sop->o_sync_state.sid );
+							rs->sr_err = slap_build_sync_state_ctrl( sop,
+								rs, e, entry_sync_state, ctrls,
+								num_ctrls++, 1, &cookie );
+							if ( rs->sr_err != LDAP_SUCCESS ) goto done;
+							rs->sr_attrs = attrs;
+							rs->sr_ctrls = ctrls;
+							result = send_search_entry( sop, rs );
+							if ( cookie.bv_val )
+								ch_free( cookie.bv_val );	
+							sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val,
+									 sop->o_tmpmemctx );
+							sl_free( ctrls[--num_ctrls], sop->o_tmpmemctx );
+							ctrls[num_ctrls] = NULL;
+							rs->sr_ctrls = NULL;
+						}
 					} else if ( ps_type == LDAP_PSEARCH_BY_PREMODIFY ) {
 						struct psid_entry* psid_e;
-						psid_e = (struct psid_entry *) calloc (1,
+						psid_e = (struct psid_entry *) ch_calloc (1,
 							sizeof(struct psid_entry));
 						psid_e->ps_op = sop;
 						LDAP_LIST_INSERT_HEAD( &op->o_pm_list,
 							psid_e, ps_link );
 
 					} else {
-						printf("Error !\n");
+#ifdef NEW_LOGGING
+						LDAP_LOG ( OPERATION, RESULTS,
+							"bdb_search: invalid ps_type (%d) \n",
+							ps_type, 0, 0);
+#else
+						Debug( LDAP_DEBUG_TRACE,
+							"bdb_search: invalid ps_type (%d) \n",
+							ps_type, 0, 0);
+#endif
 					}
 				} else {
 					if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
-						rs->sr_err = bdb_build_sync_state_ctrl( sop,
-							rs, e, entry_sync_state, ctrls,
-							num_ctrls++, 0, search_context_csn );
-						if ( rs->sr_err != LDAP_SUCCESS ) goto done;
 
-						rs->sr_ctrls = ctrls;
 						if ( rc_sync == LDAP_COMPARE_TRUE ) { /* ADD */
+							rs->sr_err = slap_build_sync_state_ctrl( sop,
+								rs, e, entry_sync_state, ctrls,
+								num_ctrls++, 0, NULL );
+							if ( rs->sr_err != LDAP_SUCCESS ) goto done;
+							rs->sr_ctrls = ctrls;
 							rs->sr_attrs = sop->oq_search.rs_attrs;
+							result = send_search_entry( sop, rs );
+							sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val,
+									 sop->o_tmpmemctx );
+							sl_free( ctrls[--num_ctrls], sop->o_tmpmemctx );
+							ctrls[num_ctrls] = NULL;
+							rs->sr_ctrls = NULL;
 						} else { /* PRESENT */
-							rs->sr_attrs = &null_attr;
+							if ( sync_send_present_mode ) {
+								result = slap_build_syncUUID_set( sop,
+													&syncUUID_set, e );
+								if ( result <= 0 ) {
+									result = -1;	
+								} else {
+									syncUUID_set_cnt++;
+									if ( syncUUID_set_cnt == SLAP_SYNCUUID_SET_SIZE ) {
+										rs->sr_err = LDAP_SUCCESS;
+										rs->sr_rspoid = LDAP_SYNC_INFO;
+										rs->sr_ctrls = NULL;
+										result = slap_send_syncinfo( sop, rs,
+												LDAP_TAG_SYNC_ID_SET,
+												NULL, 0, syncUUID_set, 0 );
+										if ( result != LDAP_SUCCESS )
+											result = -1;
+										ber_bvarray_free_x( syncUUID_set,
+														sop->o_tmpmemctx );
+										syncUUID_set = NULL;
+										syncUUID_set_cnt = 0;
+									}
+								}
+							} else {
+								result = 1;
+							}
 						}
-						result = send_search_entry( sop, rs );
-						ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
-						ch_free( ctrls[--num_ctrls] );
-						ctrls[num_ctrls] = NULL;
-						rs->sr_ctrls = NULL;
 					} else {
 						rs->sr_attrs = sop->oq_search.rs_attrs;
 						rs->sr_ctrls = NULL;
@@ -1230,38 +1371,114 @@ loop_continue:
 		ldap_pvt_thread_yield();
 	}
 
+	if ( syncUUID_set_cnt > 0 ) {
+		rs->sr_err = LDAP_SUCCESS;
+		rs->sr_rspoid = LDAP_SYNC_INFO;
+		rs->sr_ctrls = NULL;
+		slap_send_syncinfo( sop, rs, LDAP_TAG_SYNC_ID_SET,
+							NULL, 0, syncUUID_set, 0 );
+		ber_bvarray_free_x( syncUUID_set, sop->o_tmpmemctx );
+		syncUUID_set_cnt = 0;
+	}
+
+nochange:
 	if (!IS_PSEARCH) {
 		if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
-			rs->sr_err = LDAP_SUCCESS;
-			rs->sr_rspoid = LDAP_SYNC_INFO;
-			rs->sr_ctrls = NULL;
-			bdb_send_ldap_intermediate( sop, rs,
-				LDAP_SYNC_STATE_MODE_DONE, search_context_csn );
-
-			/* If changelog is supported, this is where to process it */
-	
 			if ( sop->o_sync_mode & SLAP_SYNC_PERSIST ) {
-				/* refreshAndPersist mode */
-				bdb_send_ldap_intermediate( sop, rs,
-					LDAP_SYNC_LOG_MODE_DONE, search_context_csn );
+				struct berval cookie;
+				slap_compose_sync_cookie( sop, &cookie,
+										  search_context_csn,
+										  sop->o_sync_state.sid );
+
+				if ( sync_send_present_mode ) {
+					rs->sr_err = LDAP_SUCCESS;
+					rs->sr_rspoid = LDAP_SYNC_INFO;
+					rs->sr_ctrls = NULL;
+					slap_send_syncinfo( sop, rs,
+						LDAP_TAG_SYNC_REFRESH_PRESENT, &cookie, 1, NULL, 0 );
+				} else {
+					if ( !no_sync_state_change ) {
+						int slog_found = 0;
+						ldap_pvt_thread_mutex_lock( &bdb->bi_pslist_mutex );
+						LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
+							if ( ps_list->o_sync_slog_size > 0 ) {
+								if ( ps_list->o_sync_state.sid == sop->o_sync_state.sid ) {
+									slog_found = 1;
+									break;
+								}
+							}
+						}
+		
+						if ( slog_found ) {
+							rs->sr_err = LDAP_SUCCESS;
+							rs->sr_rspoid = NULL;
+							rs->sr_ctrls = NULL;
+							slap_send_session_log( op, ps_list, rs );
+						}
+						ldap_pvt_thread_mutex_unlock( &bdb->bi_pslist_mutex );
+					}
+					rs->sr_err = LDAP_SUCCESS;
+					rs->sr_rspoid = LDAP_SYNC_INFO;
+					rs->sr_ctrls = NULL;
+					slap_send_syncinfo( sop, rs,
+						LDAP_TAG_SYNC_REFRESH_DELETE, &cookie, 1, NULL, 0 );
+				}
+
+				if ( cookie.bv_val ) {
+					ch_free( cookie.bv_val );
+				}
 			} else {
 				/* refreshOnly mode */
-				bdb_build_sync_done_ctrl( sop, rs, ctrls,
-					num_ctrls++, 1, search_context_csn );
+				struct berval cookie;
+				slap_compose_sync_cookie( sop, &cookie,
+										  search_context_csn,
+										  sop->o_sync_state.sid );
+
+				if ( sync_send_present_mode ) {
+					slap_build_sync_done_ctrl( sop, rs, ctrls,
+						num_ctrls++, 1, &cookie, LDAP_SYNC_REFRESH_PRESENTS );
+				} else {
+					if ( !no_sync_state_change ) {
+						int slog_found = 0;
+						ldap_pvt_thread_mutex_lock( &bdb->bi_pslist_mutex );
+						LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list,
+								o_ps_link ) {
+							if ( ps_list->o_sync_slog_size > 0 ) {
+								if ( ps_list->o_sync_state.sid ==
+										sop->o_sync_state.sid ) {
+									slog_found = 1;
+									break;
+								}
+							}
+						}
+		
+						if ( slog_found ) {
+							slap_send_session_log( op, ps_list, rs );
+						}
+						ldap_pvt_thread_mutex_unlock( &bdb->bi_pslist_mutex );
+					}
+					slap_build_sync_done_ctrl( sop, rs, ctrls,
+						num_ctrls++, 1, &cookie, LDAP_SYNC_REFRESH_DELETES );
+				}
+
 				rs->sr_ctrls = ctrls;
 				rs->sr_ref = rs->sr_v2ref;
 				rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS : LDAP_REFERRAL;
+				rs->sr_rspoid = NULL;
 				send_ldap_result( sop, rs );
 				if ( ctrls[num_ctrls-1]->ldctl_value.bv_val != NULL ) {
-					ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
+					sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val, sop->o_tmpmemctx );
 				}
-				ch_free( ctrls[--num_ctrls] );
+				sl_free( ctrls[--num_ctrls], sop->o_tmpmemctx );
 				ctrls[num_ctrls] = NULL;
+				if ( cookie.bv_val )
+					ch_free( cookie.bv_val );	
 			}
 		} else {
 			rs->sr_ctrls = NULL;
 			rs->sr_ref = rs->sr_v2ref;
 			rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS : LDAP_REFERRAL;
+			rs->sr_rspoid = NULL;
 			send_ldap_result( sop, rs );
 		}
 	}
@@ -1562,160 +1779,3 @@ done:
 	(void) ber_free_buf( ber );
 }			
 #endif
-
-int
-bdb_build_sync_state_ctrl(
-	Operation	*op,
-	SlapReply	*rs,
-	Entry		*e,
-	int			entry_sync_state,
-	LDAPControl	**ctrls,
-	int			num_ctrls,
-	int			send_cookie,
-	struct berval	*csn)
-{
-	Attribute* a;
-	int ret;
-	int res;
-	const char *text = NULL;
-
-	BerElementBuffer berbuf;
-	BerElement *ber = (BerElement *)&berbuf;
-
-	struct berval entryuuid_bv	= { 0, NULL };
-
-	ber_init2( ber, 0, LBER_USE_DER );
-
-	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
-
-	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		AttributeDescription *desc = a->a_desc;
-		if ( desc == slap_schema.si_ad_entryUUID ) {
-			ber_dupbv( &entryuuid_bv, &a->a_vals[0] );
-		}
-	}
-
-	if ( send_cookie && csn ) {
-		ber_printf( ber, "{eOON}",
-			entry_sync_state, &entryuuid_bv, csn );
-	} else {
-		ber_printf( ber, "{eON}",
-			entry_sync_state, &entryuuid_bv );
-	}
-
-	ch_free( entryuuid_bv.bv_val );
-	entryuuid_bv.bv_val = NULL;
-
-	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_STATE;
-	ctrls[num_ctrls]->ldctl_iscritical = op->o_sync;
-	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
-
-	ber_free_buf( ber );
-
-	if ( ret < 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS, 
-			"bdb_build_sync_ctrl: ber_flatten2 failed\n",
-			0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_TRACE,
-			"bdb_build_sync_ctrl: ber_flatten2 failed\n",
-			0, 0, 0 );
-#endif
-		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
-		return ret;
-	}
-
-	return LDAP_SUCCESS;
-}
-
-int
-bdb_build_sync_done_ctrl(
-	Operation	*op,
-	SlapReply	*rs,
-	LDAPControl	**ctrls,
-	int		num_ctrls,
-	int		send_cookie,
-	struct berval	*csn )
-{
-	int ret;
-	BerElementBuffer berbuf;
-	BerElement *ber = (BerElement *)&berbuf;
-
-	ber_init2( ber, NULL, LBER_USE_DER );
-
-	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
-
-	if ( send_cookie && csn ) {
-		ber_printf( ber, "{ON}", csn );
-	} else {
-		ber_printf( ber, "{N}" );
-	}
-
-	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_DONE;
-	ctrls[num_ctrls]->ldctl_iscritical = op->o_sync;
-	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
-
-	ber_free_buf( ber );
-
-	if ( ret < 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS, 
-			"bdb_build_sync_done_ctrl: ber_flatten2 failed\n",
-			0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_TRACE,
-			"bdb_build_sync_done_ctrl: ber_flatten2 failed\n",
-			0, 0, 0 );
-#endif
-		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
-		return ret;
-	}
-
-	return LDAP_SUCCESS;
-}
-
-int
-bdb_send_ldap_intermediate(
-	Operation   *op,
-	SlapReply   *rs,
-	int	    state,
-	struct berval *cookie )
-{
-	BerElementBuffer berbuf;
-	BerElement *ber = (BerElement *)&berbuf;
-	struct berval rspdata;
-
-	int ret;
-
-	ber_init2( ber, NULL, LBER_USE_DER );
-
-	if ( cookie == NULL ) {
-		ber_printf( ber, "{eN}", state );
-	} else {
-		ber_printf( ber, "{eON}", state, cookie );
-	}
-
-	ret = ber_flatten2( ber, &rspdata, 0 );
-
-	if ( ret < 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS, 
-			"bdb_send_ldap_intermediate: ber_flatten2 failed\n",
-			0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_TRACE,
-			"bdb_send_ldap_intermediate: ber_flatten2 failed\n",
-			0, 0, 0 );
-#endif
-		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
-		return ret;
-	}
-
-	rs->sr_rspdata = &rspdata;
-	send_ldap_intermediate( op, rs );
-	rs->sr_rspdata = NULL;
-	ber_free_buf( ber );
-
-	return LDAP_SUCCESS;
-}

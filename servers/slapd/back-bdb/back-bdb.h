@@ -162,6 +162,8 @@ struct bdb_info {
 	ID			bi_lastid;
 	ldap_pvt_thread_mutex_t	bi_lastid_mutex;
 	LDAP_LIST_HEAD(pl, slap_op) bi_psearch_list;
+	ldap_pvt_thread_mutex_t bi_pslist_mutex;
+	LDAP_LIST_HEAD(se, slap_session_entry) bi_session_list;
 #ifdef SLAP_IDL_CACHE
 	int		bi_idl_cache_max_size;
 	int		bi_idl_cache_size;

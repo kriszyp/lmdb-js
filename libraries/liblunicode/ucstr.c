@@ -252,8 +252,8 @@ struct berval * UTF8bvnormalize(
 		last = i;
 
 		/* Allocate more space in out if necessary */
-		if (len - i > outsize - outpos) {
-			outsize = outsize + ((len - i) - (outsize - outpos));
+		if (len - i >= outsize - outpos) {
+			outsize += 1 + ((len - i) - (outsize - outpos));
 			outtmp = (char *) realloc(out, outsize);
 			if (outtmp == NULL) {
 				free(out);

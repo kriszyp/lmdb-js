@@ -92,6 +92,7 @@ usage( char *name )
 	fprintf( stderr,
 		"\t-4\t\tIPv4 only\n"
 		"\t-6\t\tIPv6 only\n"
+		"\t-c cookie\tSync cookie of consumer\n"
 		"\t-d level\tDebug level" "\n"
 		"\t-f filename\tConfiguration file\n"
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
@@ -143,6 +144,8 @@ int main( int argc, char **argv )
 #endif
 	char	    *serverName = NULL;
 	int	    serverMode = SLAP_SERVER_MODE;
+
+	struct berval cookie = { 0, NULL };
 
 #ifdef CSRIMALLOC
 	FILE *leakfile;
@@ -214,7 +217,7 @@ int main( int argc, char **argv )
 #endif
 
 	while ( (i = getopt( argc, argv,
-			     "d:f:h:s:n:t"
+			     "c:d:f:h:s:n:t"
 #if LDAP_PF_INET6
 				"46"
 #endif
@@ -242,6 +245,16 @@ int main( int argc, char **argv )
 			if ( urls != NULL ) free( urls );
 			urls = ch_strdup( optarg );
 	    break;
+
+		case 'c':	/* provide sync cookie, override if exist in replica */
+			if ( slap_sync_cookie ) {
+				slap_sync_cookie_free( slap_sync_cookie, 1 );
+			}
+			slap_sync_cookie = (struct sync_cookie *) ch_calloc( 1,
+								sizeof( struct sync_cookie ));
+			ber_str2bv( optarg, strlen( optarg ), 1, &cookie );
+			ber_bvarray_add( &slap_sync_cookie->octet_str, &cookie );
+			break;
 
 		case 'd':	/* set debug level and 'do not detach' flag */
 			no_detach = 1;

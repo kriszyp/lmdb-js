@@ -45,10 +45,6 @@ do_compare(
 	AttributeAssertion ava = { NULL, { 0, NULL } };
 	int manageDSAit;
 
-#ifdef LDAP_SLAPI
-	Slapi_PBlock *pb = op->o_pb;
-#endif
-
 	ava.aa_desc = NULL;
 
 #ifdef NEW_LOGGING
@@ -254,30 +250,33 @@ do_compare(
 		ava.aa_desc->ad_cname.bv_val, 0 );
 
 #if defined( LDAP_SLAPI )
-	slapi_x_pblock_set_operation( pb, op );
-	slapi_pblock_set( pb, SLAPI_COMPARE_TARGET, (void *)dn.bv_val );
-	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
-	slapi_pblock_set( pb, SLAPI_COMPARE_TYPE, (void *)desc.bv_val );
-	slapi_pblock_set( pb, SLAPI_COMPARE_VALUE, (void *)&value );
+#define	pb	op->o_pb
+	if ( pb ) {
+		slapi_x_pblock_set_operation( pb, op );
+		slapi_pblock_set( pb, SLAPI_COMPARE_TARGET, (void *)dn.bv_val );
+		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
+		slapi_pblock_set( pb, SLAPI_COMPARE_TYPE, (void *)desc.bv_val );
+		slapi_pblock_set( pb, SLAPI_COMPARE_VALUE, (void *)&value );
 
-	rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_COMPARE_FN, pb );
-	if ( rs->sr_err < 0 ) {
-		/*
-		 * A preoperation plugin failure will abort the
-		 * entire operation.
-		 */
+		rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_COMPARE_FN, pb );
+		if ( rs->sr_err < 0 ) {
+			/*
+			 * A preoperation plugin failure will abort the
+			 * entire operation.
+			 */
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_compare: compare preoperation plugin "
-				"failed\n", 0, 0, 0);
+			LDAP_LOG( OPERATION, INFO, "do_compare: compare preoperation plugin "
+					"failed\n", 0, 0, 0);
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_compare: compare preoperation plugin "
-				"failed.\n", 0, 0, 0);
+			Debug(LDAP_DEBUG_TRACE, "do_compare: compare preoperation plugin "
+					"failed.\n", 0, 0, 0);
 #endif
-		if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 )  ||
-		     rs->sr_err == LDAP_SUCCESS ) {
-			rs->sr_err = LDAP_OTHER;
+			if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 )  ||
+				 rs->sr_err == LDAP_SUCCESS ) {
+				rs->sr_err = LDAP_OTHER;
+			}
+			goto cleanup;
 		}
-		goto cleanup;
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
@@ -290,7 +289,7 @@ do_compare(
 	}
 
 #if defined( LDAP_SLAPI )
-	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_COMPARE_FN, pb ) < 0 ) {
+	if ( pb && doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_COMPARE_FN, pb ) < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_compare: compare postoperation plugins "
 				"failed\n", 0, 0, 0 );

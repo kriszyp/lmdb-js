@@ -73,6 +73,10 @@ char   *strtok_quote_ptr;
 
 int use_reverse_lookup = 0;
 
+#ifdef LDAP_SLAPI
+int slapi_plugins_used = 0;
+#endif
+
 static char	*fp_getline(FILE *fp, int *lineno);
 static void	fp_getline_init(int *lineno);
 static int	fp_parse_line(int lineno, char *line);
@@ -1639,13 +1643,11 @@ read_config( const char *fname, int depth )
 #endif
 			}
 
-#ifdef SLAP_EXTENDED_SCHEMA
 		} else if ( strcasecmp( cargv[0], "ditcontentrule" ) == 0 ) {
 			char * p;
 			p = strchr(saveline,'(' /*')'*/);
 			rc = parse_cr( fname, lineno, p, cargv );
 			if( rc ) return rc;
-#endif
 
 		/* specify an attribute type */
 		} else if (( strcasecmp( cargv[0], "attributetype" ) == 0 )
@@ -1937,7 +1939,7 @@ read_config( const char *fname, int depth )
 				}
 			}
 
-		/* dn of master entity allowed to write to replica */
+		/* dn of slave entity allowed to write to replica */
 		} else if ( strcasecmp( cargv[0], "updatedn" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
@@ -2406,6 +2408,7 @@ read_config( const char *fname, int depth )
 					!= LDAP_SUCCESS ) {
 				return( 1 );
 			}
+			slapi_plugins_used++;
 
 #else /* !defined( LDAP_SLAPI ) */
 #ifdef NEW_LOGGING
@@ -2753,7 +2756,7 @@ add_syncrepl(
 {
 	syncinfo_t *si;
 
-	if ( be->syncinfo ) {
+	if ( be->be_syncinfo ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONFIG, INFO, 
 			    "add_syncrepl: multiple syncrepl lines in a database "
@@ -2766,7 +2769,7 @@ add_syncrepl(
 		return 1;
 	}
 
-	si = be->syncinfo = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
+	si = be->be_syncinfo = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
 
 	if ( si == NULL ) {
 #ifdef NEW_LOGGING
@@ -2777,30 +2780,32 @@ add_syncrepl(
 		return 1;
 	}
 
-	si->tls = TLS_OFF;
-	if ( be->be_rootndn.bv_val )
-		ber_dupbv( &si->updatedn, &be->be_rootndn );
-	si->bindmethod = LDAP_AUTH_SIMPLE;
-	si->schemachecking = 0;
-	si->filterstr = "(objectclass=*)";
-	if ( be->be_suffix && be->be_suffix[0].bv_val )
-		si->base = ch_strdup( be->be_suffix[0].bv_val );
-	si->scope = LDAP_SCOPE_SUBTREE;
-	si->attrsonly = 0;
-	si->attrs = (char **) ch_calloc( 1, sizeof( char * ));
-	si->attrs[0] = NULL;
-	si->type = LDAP_SYNC_REFRESH_ONLY;
-	si->interval = 86400;
-	si->syncCookie = NULL;
-	si->manageDSAit = 0;
-	si->tlimit = -1;
-	si->slimit = -1;
-	si->syncUUID = NULL;
-	si->syncUUID_ndn = NULL;
-	si->sync_mode = LDAP_SYNC_STATE_MODE;
+	si->si_tls = SYNCINFO_TLS_OFF;
+	if ( be->be_rootndn.bv_val ) {
+		ber_dupbv( &si->si_updatedn, &be->be_rootndn );
+	}
+	si->si_bindmethod = LDAP_AUTH_SIMPLE;
+	si->si_schemachecking = 0;
+	ber_str2bv( "(objectclass=*)", sizeof("(objectclass=*)")-1, 0,
+		&si->si_filterstr );
+	si->si_base.bv_val = NULL;
+	si->si_scope = LDAP_SCOPE_SUBTREE;
+	si->si_attrsonly = 0;
+	si->si_attrs = (char **) ch_calloc( 1, sizeof( char * ));
+	si->si_attrs[0] = NULL;
+	si->si_type = LDAP_SYNC_REFRESH_ONLY;
+	si->si_interval = 86400;
+	si->si_syncCookie.ctxcsn = NULL;
+	si->si_syncCookie.octet_str = NULL;
+	si->si_syncCookie.sid = -1;
+	si->si_manageDSAit = 0;
+	si->si_tlimit = -1;
+	si->si_slimit = -1;
+	si->si_syncUUID_ndn.bv_val = NULL;
+	si->si_syncUUID_ndn.bv_len = 0;
 
-	si->presentlist = NULL;
-	LDAP_LIST_INIT( &si->nonpresentlist );
+	si->si_presentlist = NULL;
+	LDAP_LIST_INIT( &si->si_nonpresentlist );
 
 	if ( parse_syncrepl_line( cargv, cargc, si ) < 0 ) {
 		/* Something bad happened - back out */
@@ -2810,22 +2815,22 @@ add_syncrepl(
 		Debug( LDAP_DEBUG_ANY, "failed to add syncinfo\n", 0, 0, 0 );
 #endif
 		free( si );
-		be->syncinfo = NULL;
+		be->be_syncinfo = NULL;
 		return 1;
 	} else {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( CONFIG, RESULTS,
 			"add_syncrepl: Config: ** successfully added syncrepl \"%s\"\n",
-			si->provideruri == NULL ? "(null)" : si->provideruri, 0, 0 );
+			si->si_provideruri == NULL ? "(null)" : si->si_provideruri, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_CONFIG,
 			"Config: ** successfully added syncrepl \"%s\"\n",
-			si->provideruri == NULL ? "(null)" : si->provideruri, 0, 0 );
+			si->si_provideruri == NULL ? "(null)" : si->si_provideruri, 0, 0 );
 #endif
-		if ( !si->schemachecking ) {
+		if ( !si->si_schemachecking ) {
 			be->be_flags |= SLAP_BFLAG_NO_SCHEMA_CHECK;
 		}
-		si->be = be;
+		si->si_be = be;
 		return 0;
 	}
 }
@@ -2857,7 +2862,6 @@ add_syncrepl(
 #define ATTRSONLYSTR	"attrsonly"
 #define TYPESTR			"type"
 #define INTERVALSTR		"interval"
-#define COOKIESTR		"cookie"
 #define LASTMODSTR		"lastmod"
 #define LMREQSTR		"req"
 #define LMGENSTR		"gen"
@@ -2885,205 +2889,244 @@ parse_syncrepl_line(
 
 	for ( i = 1; i < cargc; i++ ) {
 		if ( !strncasecmp( cargv[ i ], IDSTR, sizeof( IDSTR ) - 1 )) {
+			int tmp;
 			/* '\0' string terminator accounts for '=' */
 			val = cargv[ i ] + sizeof( IDSTR );
-			si->id = atoi( val );
-			if ( si->id >= 1000 ) {
+			tmp= atoi( val );
+			if ( tmp >= 1000 || tmp < 0 ) {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
-						 "syncrepl id %d is out of range [0..999]\n", si->id );
+					 "syncrepl id %d is out of range [0..999]\n", tmp );
 				return -1;
 			}
+			si->si_id = tmp;
 			gots |= GOT_ID;
 		} else if ( !strncasecmp( cargv[ i ], PROVIDERSTR,
 					sizeof( PROVIDERSTR ) - 1 )) {
 			val = cargv[ i ] + sizeof( PROVIDERSTR );
-			si->provideruri = ch_strdup( val );
-			si->provideruri_bv = (BerVarray) ch_calloc( 2, sizeof( struct berval ));
-			ber_str2bv( si->provideruri, strlen( si->provideruri ), 0, &si->provideruri_bv[0] );
-			si->provideruri_bv[1].bv_len = 0;
-			si->provideruri_bv[1].bv_val = NULL;
+			si->si_provideruri = ch_strdup( val );
+			si->si_provideruri_bv = (BerVarray)
+				ch_calloc( 2, sizeof( struct berval ));
+			ber_str2bv( si->si_provideruri, strlen( si->si_provideruri ),
+				0, &si->si_provideruri_bv[0] );
+			si->si_provideruri_bv[1].bv_len = 0;
+			si->si_provideruri_bv[1].bv_val = NULL;
 			gots |= GOT_PROVIDER;
 		} else if ( !strncasecmp( cargv[ i ], STARTTLSSTR,
 			sizeof(STARTTLSSTR) - 1 ) )
 		{
 			val = cargv[ i ] + sizeof( STARTTLSSTR );
 			if( !strcasecmp( val, CRITICALSTR ) ) {
-				si->tls = TLS_CRITICAL;
+				si->si_tls = SYNCINFO_TLS_CRITICAL;
 			} else {
-				si->tls = TLS_ON;
+				si->si_tls = SYNCINFO_TLS_ON;
 			}
 		} else if ( !strncasecmp( cargv[ i ],
-				UPDATEDNSTR, sizeof( UPDATEDNSTR ) - 1 ) ) {
-			char *str;
+			UPDATEDNSTR, sizeof( UPDATEDNSTR ) - 1 ) )
+		{
 			struct berval updatedn = {0, NULL};
 			val = cargv[ i ] + sizeof( UPDATEDNSTR );
-			str = ch_strdup( val );
-			ber_str2bv( str, strlen(str), 1, &updatedn );
-			dnNormalize( 0, NULL, NULL, &updatedn, &si->updatedn, NULL );
-			ch_free( str );
-			ch_free( updatedn.bv_val );
+			ber_str2bv( val, 0, 0, &updatedn );
+			ch_free( si->si_updatedn.bv_val );
+			dnNormalize( 0, NULL, NULL, &updatedn, &si->si_updatedn, NULL );
 		} else if ( !strncasecmp( cargv[ i ], BINDMETHSTR,
-				sizeof( BINDMETHSTR ) - 1 ) ) {
+				sizeof( BINDMETHSTR ) - 1 ) )
+		{
 			val = cargv[ i ] + sizeof( BINDMETHSTR );
 			if ( !strcasecmp( val, SIMPLESTR )) {
-				si->bindmethod = LDAP_AUTH_SIMPLE;
+				si->si_bindmethod = LDAP_AUTH_SIMPLE;
 				gots |= GOT_METHOD;
 			} else if ( !strcasecmp( val, SASLSTR )) {
-				si->bindmethod = LDAP_AUTH_SASL;
+#ifdef HAVE_CYRUS_SASL
+				si->si_bindmethod = LDAP_AUTH_SASL;
 				gots |= GOT_METHOD;
+#else /* HAVE_CYRUS_SASL */
+				fprintf( stderr, "Error: parse_syncrepl_line: "
+					"not compiled with SASL support\n" );
+				return 1;
+#endif /* HAVE_CYRUS_SASL */
 			} else {
-				si->bindmethod = -1;
+				si->si_bindmethod = -1;
 			}
 		} else if ( !strncasecmp( cargv[ i ],
 				BINDDNSTR, sizeof( BINDDNSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( BINDDNSTR );
-			si->binddn = ch_strdup( val );
+			si->si_binddn = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				CREDSTR, sizeof( CREDSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( CREDSTR );
-			si->passwd = ch_strdup( val );
+			si->si_passwd = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				SASLMECHSTR, sizeof( SASLMECHSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( SASLMECHSTR );
-			si->saslmech = ch_strdup( val );
+			si->si_saslmech = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				SECPROPSSTR, sizeof( SECPROPSSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( SECPROPSSTR );
-			si->secprops = ch_strdup( val );
+			si->si_secprops = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				REALMSTR, sizeof( REALMSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( REALMSTR );
-			si->realm = ch_strdup( val );
+			si->si_realm = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				AUTHCSTR, sizeof( AUTHCSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( AUTHCSTR );
-			si->authcId = ch_strdup( val );
+			si->si_authcId = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				OLDAUTHCSTR, sizeof( OLDAUTHCSTR ) - 1 ) ) {
 			/* Old authcID is provided for some backwards compatibility */
 			val = cargv[ i ] + sizeof( OLDAUTHCSTR );
-			si->authcId = ch_strdup( val );
+			si->si_authcId = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
 				AUTHZSTR, sizeof( AUTHZSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( AUTHZSTR );
-			si->authzId = ch_strdup( val );
+			si->si_authzId = ch_strdup( val );
 		} else if ( !strncasecmp( cargv[ i ],
-				SRVTABSTR, sizeof( SRVTABSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( SRVTABSTR );
-			if ( si->srvtab != NULL ) {
-				free( si->srvtab );
-			}
-			si->srvtab = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ],
-				SCHEMASTR, sizeof( SCHEMASTR ) - 1 ) ) {
+				SCHEMASTR, sizeof( SCHEMASTR ) - 1 ) )
+		{
 			val = cargv[ i ] + sizeof( SCHEMASTR );
 			if ( !strncasecmp( val, "on", sizeof( "on" ) - 1 )) {
-				si->schemachecking = 1;
+				si->si_schemachecking = 1;
 			} else if ( !strncasecmp( val, "off", sizeof( "off" ) - 1 ) ) {
-				si->schemachecking = 0;
+				si->si_schemachecking = 0;
 			} else {
-				si->schemachecking = 1;
+				si->si_schemachecking = 1;
 			}
 		} else if ( !strncasecmp( cargv[ i ],
-				FILTERSTR, sizeof( FILTERSTR ) - 1 ) ) {
+			FILTERSTR, sizeof( FILTERSTR ) - 1 ) )
+		{
 			val = cargv[ i ] + sizeof( FILTERSTR );
-			si->filterstr = ch_strdup( val );
+			ber_str2bv( val, 0, 1, &si->si_filterstr );
 		} else if ( !strncasecmp( cargv[ i ],
-				SEARCHBASESTR, sizeof( SEARCHBASESTR ) - 1 ) ) {
+			SEARCHBASESTR, sizeof( SEARCHBASESTR ) - 1 ) )
+		{
+			struct berval bv;
 			val = cargv[ i ] + sizeof( SEARCHBASESTR );
-			si->base = ch_strdup( val );
+			if ( si->si_base.bv_val ) {
+				ch_free( si->si_base.bv_val );
+			}
+			ber_str2bv( val, 0, 0, &bv );
+			if ( dnNormalize( 0, NULL, NULL, &bv, &si->si_base, NULL )) {
+				fprintf( stderr, "Invalid base DN \"%s\"\n", val );
+				return 1;
+			}
 		} else if ( !strncasecmp( cargv[ i ],
-				SCOPESTR, sizeof( SCOPESTR ) - 1 ) ) {
+			SCOPESTR, sizeof( SCOPESTR ) - 1 ) )
+		{
 			val = cargv[ i ] + sizeof( SCOPESTR );
 			if ( !strncasecmp( val, "base", sizeof( "base" ) - 1 )) {
-				si->scope = LDAP_SCOPE_BASE;
+				si->si_scope = LDAP_SCOPE_BASE;
 			} else if ( !strncasecmp( val, "one", sizeof( "one" ) - 1 )) {
-				si->scope = LDAP_SCOPE_ONELEVEL;
+				si->si_scope = LDAP_SCOPE_ONELEVEL;
 			} else if ( !strncasecmp( val, "sub", sizeof( "sub" ) - 1 )) {
-				si->scope = LDAP_SCOPE_SUBTREE;
+				si->si_scope = LDAP_SCOPE_SUBTREE;
 			} else {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
-								 "unknown scope \"%s\"\n", val);
+					"unknown scope \"%s\"\n", val);
 				return 1;
 			}
 		} else if ( !strncasecmp( cargv[ i ],
-				ATTRSONLYSTR, sizeof( ATTRSONLYSTR ) - 1 ) ) {
-			si->attrsonly = 1;
+			ATTRSONLYSTR, sizeof( ATTRSONLYSTR ) - 1 ) )
+		{
+			si->si_attrsonly = 1;
 		} else if ( !strncasecmp( cargv[ i ],
-				ATTRSSTR, sizeof( ATTRSSTR ) - 1 ) ) {
+			ATTRSSTR, sizeof( ATTRSSTR ) - 1 ) )
+		{
 			val = cargv[ i ] + sizeof( ATTRSSTR );
-			str2clist( &si->attrs, val, "," );
+			str2clist( &si->si_attrs, val, "," );
 		} else if ( !strncasecmp( cargv[ i ],
-				TYPESTR, sizeof( TYPESTR ) - 1 ) ) {
+			TYPESTR, sizeof( TYPESTR ) - 1 ) )
+		{
 			val = cargv[ i ] + sizeof( TYPESTR );
-			if ( !strncasecmp( val, "refreshOnly", sizeof( "refreshOnly" ) - 1 )) {
-				si->type = LDAP_SYNC_REFRESH_ONLY;
-			} else if ( !strncasecmp( val, "refreshAndPersist", sizeof( "refreshAndPersist" ) - 1 )) {
-				si->type = LDAP_SYNC_REFRESH_AND_PERSIST;
-				si->interval = 0;
+			if ( !strncasecmp( val, "refreshOnly", sizeof("refreshOnly")-1 )) {
+				si->si_type = LDAP_SYNC_REFRESH_ONLY;
+			} else if ( !strncasecmp( val, "refreshAndPersist",
+				sizeof("refreshAndPersist")-1 ))
+			{
+				si->si_type = LDAP_SYNC_REFRESH_AND_PERSIST;
+				si->si_interval = 60;
 			} else {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
-								 "unknown sync type \"%s\"\n", val);
+					"unknown sync type \"%s\"\n", val);
 				return 1;
 			}
 		} else if ( !strncasecmp( cargv[ i ],
-				INTERVALSTR, sizeof( INTERVALSTR ) - 1 ) ) {
+			INTERVALSTR, sizeof( INTERVALSTR ) - 1 ) )
+		{
 			val = cargv[ i ] + sizeof( INTERVALSTR );
-			if ( si->type == LDAP_SYNC_REFRESH_AND_PERSIST ) {
-				si->interval = 0;
+			if ( si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST ) {
+				si->si_interval = 0;
 			} else {
-				char *dstr;
 				char *hstr;
 				char *mstr;
+				char *dstr;
+				char *sstr;
+				int dd, hh, mm, ss;
 				dstr = val;
 				hstr = strchr( dstr, ':' );
 				if ( hstr == NULL ) {
 					fprintf( stderr, "Error: parse_syncrepl_line: "
-									 "invalid interval \"%s\"\n", val );
+						"invalid interval \"%s\"\n", val );
 					return 1;
 				}
 				*hstr++ = '\0';
 				mstr = strchr( hstr, ':' );
 				if ( mstr == NULL ) {
 					fprintf( stderr, "Error: parse_syncrepl_line: "
-									 "invalid interval \"%s\"\n", val );
+						"invalid interval \"%s\"\n", val );
 					return 1;
 				}
 				*mstr++ = '\0';
-				si->interval = (( atoi( dstr ) * 24 + atoi( hstr )) * 60
-								+ atoi( mstr )) * 60;
+				sstr = strchr( mstr, ':' );
+				if ( sstr == NULL ) {
+					fprintf( stderr, "Error: parse_syncrepl_line: "
+						"invalid interval \"%s\"\n", val );
+					return 1;
+				}
+				*sstr++ = '\0';
+
+				dd = atoi( dstr );
+				hh = atoi( hstr );
+				mm = atoi( mstr );
+				ss = atoi( sstr );
+				if (( hh > 24 ) || ( hh < 0 ) ||
+					( mm > 60 ) || ( mm < 0 ) ||
+					( ss > 60 ) || ( ss < 0 ) || ( dd < 0 )) {
+					fprintf( stderr, "Error: parse_syncrepl_line: "
+						"invalid interval \"%s\"\n", val );
+					return 1;
+				}
+				si->si_interval = (( dd * 24 + hh ) * 60 + mm ) * 60 + ss;
 			}
-			if ( si->interval < 0 ) {
+			if ( si->si_interval < 0 ) {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
-								 "invalid interval \"%ld\"\n",
-								 (long) si->interval);
+					"invalid interval \"%ld\"\n",
+					(long) si->si_interval);
 				return 1;
 			}
 		} else if ( !strncasecmp( cargv[ i ],
-				COOKIESTR, sizeof( COOKIESTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( COOKIESTR );
-			si->syncCookie = ber_str2bv( val, strlen( val ), 1, NULL );
+			MANAGEDSAITSTR, sizeof( MANAGEDSAITSTR ) - 1 ) )
+		{
+			val = cargv[ i ] + sizeof( MANAGEDSAITSTR );
+			si->si_manageDSAit = atoi( val );
 		} else if ( !strncasecmp( cargv[ i ],
-				MANAGEDSAITSTR, sizeof( MANAGEDSAITSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( COOKIESTR );
-			si->manageDSAit = atoi( val );
-		} else if ( !strncasecmp( cargv[ i ],
-				SLIMITSTR, sizeof( SLIMITSTR ) - 1 ) ) {
+			SLIMITSTR, sizeof( SLIMITSTR ) - 1 ) )
+		{
 			val = cargv[ i ] + sizeof( SLIMITSTR );
-			si->slimit = atoi( val );
+			si->si_slimit = atoi( val );
 		} else if ( !strncasecmp( cargv[ i ],
-				TLIMITSTR, sizeof( TLIMITSTR ) - 1 ) ) {
+			TLIMITSTR, sizeof( TLIMITSTR ) - 1 ) )
+		{
 			val = cargv[ i ] + sizeof( TLIMITSTR );
-			si->tlimit = atoi( val );
+			si->si_tlimit = atoi( val );
 		} else {
 			fprintf( stderr, "Error: parse_syncrepl_line: "
-							 "unknown keyword \"%s\"\n", cargv[ i ] );
+				"unknown keyword \"%s\"\n", cargv[ i ] );
 		}
 	}
 
 	if ( gots != GOT_ALL ) {
-		fprintf( stderr, "Error: Malformed \"syncrepl\" line in slapd config file"
- );
+		fprintf( stderr,
+			"Error: Malformed \"syncrepl\" line in slapd config file" );
 		return -1;
 	}
 

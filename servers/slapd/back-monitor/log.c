@@ -122,7 +122,7 @@ monitor_subsys_log_init(
 			int	rc;
 
 			rc = (*mi->mi_ad_managedInfo->ad_type->sat_equality->smr_normalize)(
-					0,
+					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 					mi->mi_ad_managedInfo->ad_type->sat_syntax,
 					mi->mi_ad_managedInfo->ad_type->sat_equality,
 					&int_2_level[ i ].s,

@@ -324,9 +324,10 @@ ldbm_back_modify(
 				: NULL;
 			cache_return_entry_r( &li->li_cache, matched );
 		} else {
-			BerVarray deref = op->o_bd->syncinfo ?
-							  op->o_bd->syncinfo->provideruri_bv : default_referral;
-			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
+			BerVarray deref = op->o_bd->be_syncinfo ?
+				op->o_bd->be_syncinfo->si_provideruri_bv : default_referral;
+			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn,
+				LDAP_SCOPE_DEFAULT );
 		}
 
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);

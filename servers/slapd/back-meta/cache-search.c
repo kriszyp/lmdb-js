@@ -849,7 +849,7 @@ meta_create_entry (
 	struct berval	*bv, bdn;
 	const char 		*text;
 	char* 			ename = NULL; 
-	struct berval	sc;
+	struct berval	sc = { 0, NULL };
 	char*			textbuf;
 	size_t			textlen;
 

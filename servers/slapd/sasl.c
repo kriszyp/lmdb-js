@@ -297,6 +297,7 @@ static const char *slap_propnames[] = {
 	"*slapConn", "*authcDN", "*authzDN", NULL };
 
 static Filter generic_filter = { LDAP_FILTER_PRESENT };
+static struct berval generic_filterstr = BER_BVC("(objectclass=*)");
 
 #define	PROP_CONN	0
 #define	PROP_AUTHC	1
@@ -449,10 +450,12 @@ slap_auxprop_lookup(
 #endif
 			op.o_conn = conn;
 			op.o_connid = conn->c_connid;
+			op.o_req_dn = op.o_req_ndn;
 			op.ors_scope = LDAP_SCOPE_BASE;
 			op.ors_deref = LDAP_DEREF_NEVER;
 			op.ors_slimit = 1;
 			op.ors_filter = &generic_filter;
+			op.ors_filterstr = generic_filterstr;
 
 			op.o_bd->be_search( &op, &rs );
 		}
@@ -577,10 +580,12 @@ slap_sasl_checkpass(
 #endif
 		op.o_conn = conn;
 		op.o_connid = conn->c_connid;
+		op.o_req_dn = op.o_req_ndn;
 		op.ors_scope = LDAP_SCOPE_BASE;
 		op.ors_deref = LDAP_DEREF_NEVER;
 		op.ors_slimit = 1;
 		op.ors_filter = &generic_filter;
+		op.ors_filterstr = generic_filterstr;
 
 		op.o_bd->be_search( &op, &rs );
 	}

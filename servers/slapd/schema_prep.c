@@ -1,4 +1,4 @@
-/* schema_init.c - init builtin schema */
+/* schema_prep.c - load builtin schema */
 /* $OpenLDAP$ */
 /*
  * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
@@ -368,8 +368,9 @@ static struct slap_schema_ad_map {
 
 	{ "entryUUID", "( 1.3.6.1.4.1.4203.666.1.6 NAME 'entryUUID' "   
 			"DESC 'UUID of the entry' "
-			"EQUALITY octetStringMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
+			"EQUALITY UUIDMatch "
+			"ORDERING UUIDOrderingMatch "
+			"SYNTAX 1.3.6.1.4.1.4203.666.2.6 "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL,
@@ -422,7 +423,7 @@ static struct slap_schema_ad_map {
 			"DESC 'syncrepl Cookie for shadow copy' "
 			"EQUALITY octetStringMatch "
 			"ORDERING octetStringOrderingMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL,
@@ -434,7 +435,7 @@ static struct slap_schema_ad_map {
 			"DESC 'the largest committed CSN of a context' "
 			"EQUALITY octetStringMatch "
 			"ORDERING octetStringOrderingMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL,
@@ -682,7 +683,7 @@ static struct slap_schema_ad_map {
 			"EQUALITY OpenLDAPaciMatch "
 			"SYNTAX 1.3.6.1.4.1.4203.666.2.1 "
 			"USAGE directoryOperation )",
-		NULL, 0,
+		NULL, SLAP_AT_HIDE,
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_aci) },

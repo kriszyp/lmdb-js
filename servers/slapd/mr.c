@@ -326,14 +326,14 @@ mru_destroy( void )
 
 		if ( m->smru_str.bv_val ) {
 			ch_free( m->smru_str.bv_val );
+			m->smru_str.bv_val = NULL;
 		}
 		/* memory borrowed from m->smru_mr */
 		m->smru_oid = NULL;
 		m->smru_names = NULL;
 		m->smru_desc = NULL;
 
-		/* free what's left (basically 
-		 * smru_mruleuse.mru_applies_oids) */
+		/* free what's left (basically smru_mruleuse.mru_applies_oids) */
 		ldap_matchingruleuse_free((LDAPMatchingRuleUse *)m);
 	}
 }
@@ -494,10 +494,10 @@ int mr_schema_info( Entry *e )
 		Debug( LDAP_DEBUG_TRACE, "Merging mr [%lu] %s\n",
 			mr->smr_str.bv_len, mr->smr_str.bv_val, 0 );
 #endif
+
 		nval.bv_val = mr->smr_oid;
 		nval.bv_len = strlen(mr->smr_oid);
-		if( attr_merge_one( e, ad_matchingRules, &mr->smr_str, &nval ) )
-		{
+		if( attr_merge_one( e, ad_matchingRules, &mr->smr_str, &nval ) ) {
 			return -1;
 		}
 	}
@@ -512,7 +512,6 @@ int mru_schema_info( Entry *e )
 	struct berval nval;
 
 	LDAP_SLIST_FOREACH( mru, &mru_list, smru_next ) {
-
 		assert( !( mru->smru_usage & SLAP_MR_HIDE ) );
 
 		if ( mru->smru_str.bv_val == NULL ) {
@@ -526,10 +525,10 @@ int mru_schema_info( Entry *e )
 		Debug( LDAP_DEBUG_TRACE, "Merging mru [%lu] %s\n",
 			mru->smru_str.bv_len, mru->smru_str.bv_val, 0 );
 #endif
+
 		nval.bv_val = mru->smru_oid;
 		nval.bv_len = strlen(mru->smru_oid);
-		if( attr_merge_one( e, ad_matchingRuleUse, &mru->smru_str, &nval ) )
-		{
+		if( attr_merge_one( e, ad_matchingRuleUse, &mru->smru_str, &nval ) ) {
 			return -1;
 		}
 	}

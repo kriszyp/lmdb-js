@@ -60,10 +60,6 @@ do_modrdn(
 	ber_len_t	length;
 	int manageDSAit;
 
-#ifdef LDAP_SLAPI
-	Slapi_PBlock *pb = op->o_pb;
-#endif
-
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_modrdn: begin\n", 0, 0, 0 );
 #else
@@ -315,32 +311,35 @@ do_modrdn(
 	}
 
 #if defined( LDAP_SLAPI )
-	slapi_x_pblock_set_operation( pb, op );
-	slapi_pblock_set( pb, SLAPI_MODRDN_TARGET, (void *)dn.bv_val );
-	slapi_pblock_set( pb, SLAPI_MODRDN_NEWRDN, (void *)newrdn.bv_val );
-	slapi_pblock_set( pb, SLAPI_MODRDN_NEWSUPERIOR,
-			(void *)newSuperior.bv_val );
-	slapi_pblock_set( pb, SLAPI_MODRDN_DELOLDRDN, (void *)deloldrdn );
-	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
+#define	pb	op->o_pb
+	if ( pb ) {
+		slapi_x_pblock_set_operation( pb, op );
+		slapi_pblock_set( pb, SLAPI_MODRDN_TARGET, (void *)dn.bv_val );
+		slapi_pblock_set( pb, SLAPI_MODRDN_NEWRDN, (void *)newrdn.bv_val );
+		slapi_pblock_set( pb, SLAPI_MODRDN_NEWSUPERIOR,
+				(void *)newSuperior.bv_val );
+		slapi_pblock_set( pb, SLAPI_MODRDN_DELOLDRDN, (void *)deloldrdn );
+		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 
-	rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_MODRDN_FN, pb );
-	if ( rs->sr_err < 0 ) {
-		/*
-		 * A preoperation plugin failure will abort the
-		 * entire operation.
-		 */
+		rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_MODRDN_FN, pb );
+		if ( rs->sr_err < 0 ) {
+			/*
+			 * A preoperation plugin failure will abort the
+			 * entire operation.
+			 */
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_modrdn: modrdn preoperation plugin "
-				"failed\n", 0, 0, 0 );
+			LDAP_LOG( OPERATION, INFO, "do_modrdn: modrdn preoperation plugin "
+					"failed\n", 0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_modrdn: modrdn preoperation plugin "
-				"failed.\n", 0, 0, 0);
+			Debug(LDAP_DEBUG_TRACE, "do_modrdn: modrdn preoperation plugin "
+					"failed.\n", 0, 0, 0);
 #endif
-		if ( ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 ) ||
-		     rs->sr_err == LDAP_SUCCESS ) {
-			rs->sr_err = LDAP_OTHER;
+			if ( ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 ) ||
+				 rs->sr_err == LDAP_SUCCESS ) {
+				rs->sr_err = LDAP_OTHER;
+			}
+			goto cleanup;
 		}
-		goto cleanup;
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
@@ -354,10 +353,10 @@ do_modrdn(
 		/* do the update here */
 		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
 #ifndef SLAPD_MULTIMASTER
-		if ( !op->o_bd->syncinfo &&
-					( !op->o_bd->be_update_ndn.bv_len || repl_user ))
+		if ( !op->o_bd->be_syncinfo &&
+			( !op->o_bd->be_update_ndn.bv_len || repl_user ))
 #else
-		if ( !op->o_bd->syncinfo )
+		if ( !op->o_bd->be_syncinfo )
 #endif
 		{
 			op->orr_deleteoldrdn = deloldrdn;
@@ -371,11 +370,11 @@ do_modrdn(
 #ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = NULL;
-			if ( op->o_bd->syncinfo ) {
-				defref = op->o_bd->syncinfo->provideruri_bv;
+			if ( op->o_bd->be_syncinfo ) {
+				defref = op->o_bd->be_syncinfo->si_provideruri_bv;
 			} else {
 				defref = op->o_bd->be_update_refs
-						? op->o_bd->be_update_refs : default_referral;
+					? op->o_bd->be_update_refs : default_referral;
 			}
 			if ( defref != NULL ) {
 				rs->sr_ref = referral_rewrite( defref,
@@ -399,7 +398,7 @@ do_modrdn(
 	}
 
 #if defined( LDAP_SLAPI )
-	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_MODRDN_FN, pb ) < 0 ) {
+	if ( pb && doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_MODRDN_FN, pb ) < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_modrdn: modrdn postoperation plugins "
 				"failed\n", 0, 0, 0 );
@@ -495,7 +494,7 @@ slap_modrdn2mods(
 		if( desc->ad_type->sat_equality->smr_normalize) {
 			mod_tmp->sml_nvalues = &mod_tmp->sml_values[2];
 			(void) (*desc->ad_type->sat_equality->smr_normalize)(
-				SLAP_MR_EQUALITY,
+				SLAP_MR_EQUALITY|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 				desc->ad_type->sat_syntax,
 				desc->ad_type->sat_equality,
 				&mod_tmp->sml_values[0],
@@ -564,7 +563,7 @@ slap_modrdn2mods(
 			if( desc->ad_type->sat_equality->smr_normalize) {
 				mod_tmp->sml_nvalues = &mod_tmp->sml_values[2];
 				(void) (*desc->ad_type->sat_equality->smr_normalize)(
-					SLAP_MR_EQUALITY,
+					SLAP_MR_EQUALITY|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 					desc->ad_type->sat_syntax,
 					desc->ad_type->sat_equality,
 					&mod_tmp->sml_values[0],

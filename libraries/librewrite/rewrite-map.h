@@ -53,4 +53,7 @@ map_ldap_apply( struct rewrite_builtin_map *map,
 		struct berval *val
 );
 
+LDAP_REWRITE_F (int)
+map_ldap_destroy( struct rewrite_builtin_map **map );
+
 #endif /* MAP_H */

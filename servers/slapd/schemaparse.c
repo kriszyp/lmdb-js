@@ -45,7 +45,7 @@ static char *const err2text[] = {
 	"OID could not be expanded",
 	"Duplicate Content Rule",
 	"Content Rule not for STRUCTURAL object class",
-	"Content Rule AUX contains non-AUXILIARY object class"
+	"Content Rule AUX contains inappropriate object class",
 	"Content Rule attribute type list contains duplicate"
 };
 
@@ -95,8 +95,6 @@ dscompare(const char *s1, const char *s2, char delim)
 		return s1 - orig;
 	return 0;
 }
-
-#ifdef SLAP_EXTENDED_SCHEMA
 
 static void
 cr_usage( void )
@@ -152,8 +150,6 @@ parse_cr(
 	ldap_memfree(cr);
 	return 0;
 }
-
-#endif
 
 int
 parse_oc(

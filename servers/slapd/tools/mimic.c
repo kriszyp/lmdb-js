@@ -117,6 +117,26 @@ int slap_sasl_config(
 }
 
 
+int connection_client_setup(
+	ber_socket_t s,
+	Listener *l,
+	ldap_pvt_thread_start_t *func,
+	void *arg )
+{
+	assert(0);
+	return 0;
+}
+
+void connection_client_enable( ber_socket_t s )
+{
+	assert(0);
+}
+
+void connection_client_stop( ber_socket_t s )
+{
+	assert(0);
+}
+
 void connection2anonymous( Connection *c )
 {
 	assert(0);

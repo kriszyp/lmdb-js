@@ -163,7 +163,8 @@ int asserted_value_validate_normalize(
 	}
 
 	if( mr->smr_normalize ) {
-		rc = (mr->smr_normalize)( usage,
+		rc = (mr->smr_normalize)(
+			usage|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 			ad ? ad->ad_type->sat_syntax : NULL,
 			mr, in, out, ctx );
 
@@ -238,7 +239,7 @@ int value_find_ex(
 		mr->smr_normalize )
 	{
 		rc = (mr->smr_normalize)(
-			flags & (SLAP_MR_TYPE_MASK|SLAP_MR_SUBTYPE_MASK),
+			flags & (SLAP_MR_TYPE_MASK|SLAP_MR_SUBTYPE_MASK|SLAP_MR_VALUE_OF_SYNTAX),
 			ad ? ad->ad_type->sat_syntax : NULL,
 			mr, val, &nval, ctx );
 

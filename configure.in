@@ -173,7 +173,8 @@ OL_ARG_ENABLE(slapd,[  --enable-slapd	  enable building slapd], yes)dnl
 OL_ARG_ENABLE(aci,[    --enable-aci	  enable per-object ACIs (experimental)], no)dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	  enable cleartext passwords], yes)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	  enable crypt(3) passwords], no)dnl
-OL_ARG_ENABLE(kpasswd,[    --enable-kpasswd	  enable Kerberos password verification], no)dnl
+dnl OL_ARG_ENABLE(kpasswd,[    --enable-kpasswd	  enable Kerberos password verification], no)dnl
+ol_enable_kpasswd=${ol_enable_kpasswd-no}
 OL_ARG_ENABLE(lmpasswd,[    --enable-lmpasswd	  enable LAN Manager passwords], no)dnl
 OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verification], no)dnl
 OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no)dnl
@@ -209,7 +210,7 @@ OL_ARG_WITH(ldbm_type,[    --with-ldbm-type	  use LDBM type auto|btree|hash], au
 OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend], no)dnl
 OL_ARG_WITH(meta_module,[    --with-meta-module	  module type static|dynamic], static,
 	[static dynamic])
-OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend], no)dnl
+OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend], yes)dnl
 OL_ARG_WITH(monitor_module,[    --with-monitor-module module type static|dynamic], static,
 	[static dynamic])
 OL_ARG_ENABLE(null,[    --enable-null	  enable null backend], no)dnl
@@ -666,10 +667,12 @@ if test $ol_enable_perl != no ; then
 
 	else
 		PERL_CPPFLAGS="`$PERLBIN -MExtUtils::Embed -e ccopts`"
+		PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e 's/ -lc / /'`"
+
 		if test x"$ol_with_perl_module" = "xstatic" ; then
-			SLAPD_PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e s/-lc//`"
+			SLAPD_PERL_LDFLAGS="$PERL_LDFLAGS"
 		else
-			MOD_PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e s/-lc//`"
+			MOD_PERL_LDFLAGS="$PERL_LDFLAGS"
 		fi
 		dnl should check perl version
 		ol_link_perl=yes
@@ -1293,8 +1296,10 @@ else
 	AC_WARN([TLS data protection not supported!])
 fi
 
+WITH_TLS=no
 if test $ol_link_tls = yes ; then
 	AC_DEFINE(HAVE_TLS, 1, [define if you have TLS])
+	WITH_TLS=yes
 
 elif test $ol_with_tls = auto ; then
 	AC_WARN([Could not locate TLS/SSL package])
@@ -2769,6 +2774,7 @@ fi
 
 AC_SUBST(LIBSRCS)
 AC_SUBST(PLAT)
+AC_SUBST(WITH_TLS)
 AC_SUBST(BUILD_LIBS_DYNAMIC)
 
 AC_SUBST(BUILD_SLAPD)
@@ -2887,8 +2893,10 @@ servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
+tests/run \
 tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
 ,[
+chmod +x tests/run
 date > stamp-h
 echo Please run \"make depend\" to build dependencies
 ])

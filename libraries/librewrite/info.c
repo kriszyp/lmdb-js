@@ -35,7 +35,7 @@
  * rewrite_parse; it can be altered only by a 
  * rewriteContext config line or by a change in info.
  */
-struct rewrite_context *__curr_context = NULL;
+struct rewrite_context *rewrite_int_curr_context = NULL;
 
 /*
  * Inits the info
@@ -63,7 +63,7 @@ rewrite_info_init(
 	/*
 	 * Resets the running context for parsing ...
 	 */
-	__curr_context = NULL;
+	rewrite_int_curr_context = NULL;
 
 	info = calloc( sizeof( struct rewrite_info ), 1 );
 	if ( info == NULL ) {
@@ -102,19 +102,40 @@ rewrite_info_init(
  */
 int
 rewrite_info_delete(
-		struct rewrite_info *info
+		struct rewrite_info **pinfo
 )
 {
-	assert( info != NULL );
+	struct rewrite_info	*info;
+
+	assert( pinfo != NULL );
+	assert( *pinfo != NULL );
+
+	info = *pinfo;
 	
+	if ( info->li_context ) {
+		avl_free( info->li_context, rewrite_context_free );
+	}
+	info->li_context = NULL;
+
+	if ( info->li_maps ) {
+		avl_free( info->li_maps, rewrite_builtin_map_free );
+	}
+	info->li_context = NULL;
+
 	rewrite_session_destroy( info );
+
+#ifdef USE_REWRITE_LDAP_PVT_THREADS
+	ldap_pvt_thread_rdwr_destroy( &info->li_cookies_mutex );
+#endif /* USE_REWRITE_LDAP_PVT_THREADS */
 
 	rewrite_param_destroy( info );
 	
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
-	ldap_pvt_thread_rdwr_destroy( &info->li_cookies_mutex );
 	ldap_pvt_thread_rdwr_destroy( &info->li_params_mutex );
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
+
+	free( info );
+	*pinfo = NULL;
 
 	return REWRITE_SUCCESS;
 }
@@ -156,7 +177,7 @@ rewrite_session(
 )
 {
 	struct rewrite_context *context;
-	struct rewrite_op op = { 0, 0, NULL, NULL, NULL, NULL };
+	struct rewrite_op op = { 0, 0, NULL, NULL, NULL };
 	int rc;
 	
 	assert( info != NULL );
@@ -189,34 +210,40 @@ rewrite_session(
 		case REWRITE_MODE_ERR:
 			rc = REWRITE_REGEXEC_ERR;
 			goto rc_return;
+			
 		case REWRITE_MODE_OK:
 			rc = REWRITE_REGEXEC_OK;
 			goto rc_return;
+
 		case REWRITE_MODE_COPY_INPUT:
 			*result = strdup( string );
 			rc = REWRITE_REGEXEC_OK;
 			goto rc_return;
+
 		case REWRITE_MODE_USE_DEFAULT:
 			context = rewrite_context_find( info,
 					REWRITE_DEFAULT_CONTEXT );
 			break;
 		}
 	}
-	
+
+#if 0 /* FIXME: not used anywhere! (debug? then, why strdup?) */
 	op.lo_string = strdup( string );
 	if ( op.lo_string == NULL ) {
 		rc = REWRITE_REGEXEC_ERR;
 		goto rc_return;
 	}
+#endif
 	
 	/*
 	 * Applies rewrite context
 	 */
-	rc = rewrite_context_apply(info, &op, context, string, result );
+	rc = rewrite_context_apply( info, &op, context, string, result );
 	assert( op.lo_depth == 0 );
 
-	/* ?!? */
+#if 0 /* FIXME: not used anywhere! (debug? then, why strdup?) */	
 	free( op.lo_string );
+#endif
 	
 	switch ( rc ) {
 	/*

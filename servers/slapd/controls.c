@@ -986,7 +986,7 @@ static int parsePreRead (
 	}
 
 	siz = sizeof( AttributeName );
-	off = 0;
+	off = offsetof( AttributeName, an_name );
 	if ( ber_scanf( ber, "{M}", &an, &siz, off ) == LBER_ERROR ) {
 		rs->sr_text = "preread control: decoding error";
 		return LDAP_PROTOCOL_ERROR;
@@ -1035,7 +1035,7 @@ static int parsePostRead (
 	}
 
 	siz = sizeof( AttributeName );
-	off = 0;
+	off = offsetof( AttributeName, an_name );
 	if ( ber_scanf( ber, "{M}", &an, &siz, off ) == LBER_ERROR ) {
 		rs->sr_text = "postread control: decoding error";
 		return LDAP_PROTOCOL_ERROR;
@@ -1206,7 +1206,7 @@ static int parseLDAPsync (
 	BerElement *ber;
 	ber_int_t mode;
 	ber_len_t len;
-	struct berval cookie = { 0, NULL };
+	struct slap_session_entry *se;
 
 	if ( op->o_sync != SLAP_NO_CONTROL ) {
 		rs->sr_text = "LDAP Sync control specified multiple times";
@@ -1255,22 +1255,25 @@ static int parseLDAPsync (
 
 	tag = ber_peek_tag( ber, &len );
 
-	if ( tag == LDAP_SYNC_TAG_COOKIE ) {
-		if (( ber_scanf( ber, /*{*/ "m}",
-					&cookie )) == LBER_ERROR ) {
+	if ( tag == LDAP_TAG_SYNC_COOKIE ) {
+		struct berval tmp_bv;	
+		if (( ber_scanf( ber, /*{*/ "o", &tmp_bv )) == LBER_ERROR ) {
 			rs->sr_text = "LDAP Sync control : cookie decoding error";
 			return LDAP_PROTOCOL_ERROR;
 		}
-	} else {
-		if (( ber_scanf( ber, /*{*/ "}")) == LBER_ERROR ) {
-			rs->sr_text = "LDAP Sync control : decoding error";
+		ber_bvarray_add( &op->o_sync_state.octet_str, &tmp_bv );
+		slap_parse_sync_cookie( &op->o_sync_state );
+	}
+	if ( tag == LDAP_TAG_RELOAD_HINT ) {
+		if (( ber_scanf( ber, /*{*/ "b", &op->o_sync_rhint )) == LBER_ERROR ) {
+			rs->sr_text = "LDAP Sync control : rhint decoding error";
 			return LDAP_PROTOCOL_ERROR;
 		}
-		cookie.bv_len = 0;
-		cookie.bv_val = NULL;
 	}
-
-	ber_dupbv( &op->o_sync_state, &cookie );
+	if (( ber_scanf( ber, /*{*/ "}")) == LBER_ERROR ) {
+			rs->sr_text = "LDAP Sync control : decoding error";
+			return LDAP_PROTOCOL_ERROR;
+	}
 
 	(void) ber_free( ber, 1 );
 

@@ -159,7 +159,7 @@ do_search(
 
 	/* attributes */
 	siz = sizeof(AttributeName);
-	off = 0;
+	off = offsetof(AttributeName,an_name);
 	if ( ber_scanf( op->o_ber, "{M}}", &op->ors_attrs, &siz, off ) == LBER_ERROR ) {
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding attrs error" );
 		rs->sr_err = SLAPD_DISCONNECT;
@@ -245,7 +245,8 @@ do_search(
 
 	manageDSAit = get_manageDSAit( op );
 
-	if ( op->ors_scope == LDAP_SCOPE_BASE ) {
+	/* fake while loop to allow breaking out */
+	while ( op->ors_scope == LDAP_SCOPE_BASE ) {
 		Entry *entry = NULL;
 
 		if ( op->o_req_ndn.bv_len == 0 ) {
@@ -262,16 +263,15 @@ do_search(
 			}
 
 #ifdef LDAP_SLAPI
-			attrs = anlist2charray( op, op->ors_attrs );
-			initSearchPlugin( op, attrs, manageDSAit );
-			rs->sr_err = doPreSearchPluginFNs( op );
-			if ( rs->sr_err == LDAP_SUCCESS ) {
+			if ( op->o_pb ) {
+				attrs = anlist2charray( op, op->ors_attrs );
+				initSearchPlugin( op, attrs, manageDSAit );
+				rs->sr_err = doPreSearchPluginFNs( op );
+				if ( rs->sr_err ) break;
 				doSearchRewriteFNs( op );
-#endif /* LDAP_SLAPI */
-			rs->sr_err = root_dse_info( op->o_conn, &entry, &rs->sr_text );
-#ifdef LDAP_SLAPI
 			}
 #endif /* LDAP_SLAPI */
+			rs->sr_err = root_dse_info( op->o_conn, &entry, &rs->sr_text );
 
 		} else if ( bvmatch( &op->o_req_ndn, &global_schemandn ) ) {
 			/* check restrictions */
@@ -281,22 +281,21 @@ do_search(
 			}
 
 #ifdef LDAP_SLAPI
-			attrs = anlist2charray( op, op->ors_attrs );
-			initSearchPlugin( op, attrs, manageDSAit );
-			rs->sr_err = doPreSearchPluginFNs( op );
-			if ( rs->sr_err == LDAP_SUCCESS ) {
+			if ( op->o_pb ) {
+				attrs = anlist2charray( op, op->ors_attrs );
+				initSearchPlugin( op, attrs, manageDSAit );
+				rs->sr_err = doPreSearchPluginFNs( op );
+				if ( rs->sr_err ) break;
 				doSearchRewriteFNs( op );
-#endif /* LDAP_SLAPI */
-			rs->sr_err = schema_info( &entry, &rs->sr_text );
-#ifdef LDAP_SLAPI
 			}
 #endif /* LDAP_SLAPI */
+			rs->sr_err = schema_info( &entry, &rs->sr_text );
 		}
 
 		if( rs->sr_err != LDAP_SUCCESS ) {
 			send_ldap_result( op, rs );
 #ifdef LDAP_SLAPI
-			doPostSearchPluginFNs( op );
+			if ( op->o_pb ) doPostSearchPluginFNs( op );
 #endif /* LDAP_SLAPI */
 			goto return_results;
 
@@ -314,10 +313,11 @@ do_search(
 			rs->sr_err = LDAP_SUCCESS;
 			send_ldap_result( op, rs );
 #ifdef LDAP_SLAPI
-			doPostSearchPluginFNs( op );
+			if ( op->o_pb ) doPostSearchPluginFNs( op );
 #endif /* LDAP_SLAPI */
 			goto return_results;
 		}
+		break;
 	}
 
 	if( !op->o_req_ndn.bv_len && default_search_nbase.bv_len ) {
@@ -372,14 +372,16 @@ do_search(
 	}
 
 #ifdef LDAP_SLAPI
-	attrs = anlist2charray( op, op->ors_attrs );
-	initSearchPlugin( op, attrs, manageDSAit );
-	rs->sr_err = doPreSearchPluginFNs( op );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		goto return_results;
-	}
+	if ( op->o_pb ) {
+		attrs = anlist2charray( op, op->ors_attrs );
+		initSearchPlugin( op, attrs, manageDSAit );
+		rs->sr_err = doPreSearchPluginFNs( op );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			goto return_results;
+		}
 
-	doSearchRewriteFNs( op );
+		doSearchRewriteFNs( op );
+	}
 #endif /* LDAP_SLAPI */
 
 	/* actually do the search and send the result(s) */
@@ -391,12 +393,15 @@ do_search(
 	}
 
 #ifdef LDAP_SLAPI
-	doPostSearchPluginFNs( op );
+	if ( op->o_pb ) doPostSearchPluginFNs( op );
 #endif /* LDAP_SLAPI */
 
 return_results:;
 
 	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) )
+		return rs->sr_err;
+
+	if ( ( op->o_sync_slog_size != -1 ) )
 		return rs->sr_err;
 
 	if( op->o_req_dn.bv_val != NULL) sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );

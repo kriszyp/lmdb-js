@@ -162,7 +162,9 @@ attr_merge_normalize(
 	BerVarray	nvals = NULL;
 	int		rc;
 
-	if ( desc->ad_type->sat_equality && desc->ad_type->sat_equality->smr_normalize ) {
+	if ( desc->ad_type->sat_equality &&
+		desc->ad_type->sat_equality->smr_normalize )
+	{
 		int	i;
 		
 		for ( i = 0; vals[i].bv_val; i++ );
@@ -170,7 +172,7 @@ attr_merge_normalize(
 		nvals = sl_calloc( sizeof(struct berval), i + 1, memctx );
 		for ( i = 0; vals[i].bv_val; i++ ) {
 			rc = (*desc->ad_type->sat_equality->smr_normalize)(
-					0,
+					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 					desc->ad_type->sat_syntax,
 					desc->ad_type->sat_equality,
 					&vals[i], &nvals[i], memctx );
@@ -235,9 +237,11 @@ attr_merge_normalize_one(
 	struct berval	*nvalp;
 	int		rc;
 
-	if ( desc->ad_type->sat_equality && desc->ad_type->sat_equality->smr_normalize ) {
+	if ( desc->ad_type->sat_equality &&
+		desc->ad_type->sat_equality->smr_normalize )
+	{
 		rc = (*desc->ad_type->sat_equality->smr_normalize)(
-				0,
+				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 				desc->ad_type->sat_syntax,
 				desc->ad_type->sat_equality,
 				val, &nval, memctx );

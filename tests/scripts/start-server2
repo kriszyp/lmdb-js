@@ -1,0 +1,30 @@
+#! /bin/sh
+# $OpenLDAP$
+
+echo "running defines.sh"
+. $SRCDIR/scripts/defines.sh
+
+mkdir -p $TESTDIR $DBDIR2
+
+echo "Starting slapd on TCP/IP port $PORT2..."
+. $CONFFILTER $BACKEND < $CONFTWO > $CONF2
+$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+PID=$!
+
+echo "Using ldapsearch to retrieve all the entries..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -S "" -b "" -s base -h $LOCALHOST -p $PORT2 > $SERVER2OUT 2>&1
+	RC=$?
+	if test $RC = 1 ; then
+		echo "Waiting 5 seconds for slapd to start..."
+		sleep 5
+	fi
+done
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	exit $RC
+fi
+
+echo ">>>>> Server2 (pid=$PID) started"
+exit 0

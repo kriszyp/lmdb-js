@@ -398,6 +398,8 @@ ldap_int_destroy_global_options(void)
 {
 	struct ldapoptions *gopts = LDAP_INT_GLOBAL_OPT();
 
+	gopts->ldo_valid = LDAP_UNINITIALIZED;
+
 	if ( gopts->ldo_defludp ) {
 		ldap_free_urllist( gopts->ldo_defludp );
 		gopts->ldo_defludp = NULL;

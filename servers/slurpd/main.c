@@ -288,6 +288,10 @@ stop:
     /* destroy the thread package */
     ldap_pvt_thread_destroy();
 
+#ifdef HAVE_TLS
+    ldap_pvt_tls_destroy();
+#endif
+
 #ifdef NEW_LOGGING
 	LDAP_LOG ( SLURPD, RESULTS, "main: slurpd terminated\n", 0, 0, 0 );
 #else

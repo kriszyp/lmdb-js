@@ -127,31 +127,31 @@ bdb_db_config(
 		if( rc != LDAP_SUCCESS ) return 1;
 
 	/* unique key for shared memory regions */
-        } else if ( strcasecmp( argv[0], "shm_key" ) == 0 ) {
-                 if ( argc < 2 ) {
-                         fprintf( stderr,
-                 "%s: line %d: missing key in \"shm_key <key>\" line\n",
-                             fname, lineno );
-                         return( 1 );
-                 }
-                 bdb->bi_shm_key = atoi( argv[1] );
-
-	/* size of the cache in entries */
-        } else if ( strcasecmp( argv[0], "cachesize" ) == 0 ) {
-                 if ( argc < 2 ) {
-                         fprintf( stderr,
-                 "%s: line %d: missing size in \"cachesize <size>\" line\n",
-                             fname, lineno );
-                         return( 1 );
-                 }
-                 bdb->bi_cache.c_maxsize = atoi( argv[1] );
-
-	/* depth of search stack cache in units of (IDL)s */
-        } else if ( strcasecmp( argv[0], "searchstack" ) == 0 ) {
+	} else if ( strcasecmp( argv[0], "shm_key" ) == 0 ) {
 		if ( argc < 2 ) {
 			fprintf( stderr,
-		"%s: line %d: missing depth in \"searchstack <depth>\" line\n",
-			fname, lineno );
+				"%s: line %d: missing key in \"shm_key <key>\" line\n",
+				fname, lineno );
+			return( 1 );
+		}
+		bdb->bi_shm_key = atoi( argv[1] );
+
+	/* size of the cache in entries */
+	} else if ( strcasecmp( argv[0], "cachesize" ) == 0 ) {
+		if ( argc < 2 ) {
+			fprintf( stderr,
+				"%s: line %d: missing size in \"cachesize <size>\" line\n",
+				fname, lineno );
+			return( 1 );
+		}
+		bdb->bi_cache.c_maxsize = atoi( argv[1] );
+
+	/* depth of search stack cache in units of (IDL)s */
+	} else if ( strcasecmp( argv[0], "searchstack" ) == 0 ) {
+		if ( argc < 2 ) {
+			fprintf( stderr,
+				"%s: line %d: missing depth in \"searchstack <depth>\" line\n",
+				fname, lineno );
 			return( 1 );
 		}
 		bdb->bi_search_stack_depth = atoi( argv[1] );
@@ -165,16 +165,81 @@ bdb_db_config(
 
 #ifdef SLAP_IDL_CACHE
 	/* size of the IDL cache in entries */
-        } else if ( strcasecmp( argv[0], "idlcachesize" ) == 0 ) {
-                 if ( argc < 2 ) {
-                         fprintf( stderr,
-                 "%s: line %d: missing size in \"idlcachesize <size>\" line\n",
-                             fname, lineno );
-                         return( 1 );
-                 }
-		 if ( !( slapMode & SLAP_TOOL_MODE ) )
-	                 bdb->bi_idl_cache_max_size = atoi( argv[1] );
+	} else if ( strcasecmp( argv[0], "idlcachesize" ) == 0 ) {
+		if ( argc < 2 ) {
+			fprintf( stderr,
+				"%s: line %d: missing size in \"idlcachesize <size>\" line\n",
+				fname, lineno );
+			return( 1 );
+		}
+		if ( !( slapMode & SLAP_TOOL_MODE ) )
+			bdb->bi_idl_cache_max_size = atoi( argv[1] );
 #endif
+
+	} else if ( strcasecmp( argv[0], "sessionlog" ) == 0 ) {
+		int se_id = 0, se_size = 0;
+		struct slap_session_entry *sent;
+		if ( argc < 3 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( CONFIG, CRIT,
+				"%s: line %d: missing arguments in \"sessionlog <id> <size>\""
+				" line.\n", fname, lineno , 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: missing arguments in \"sessionlog <id> <size>\""
+				" line\n", fname, lineno, 0 );
+#endif
+			return( 1 );
+		}
+
+		se_id = atoi( argv[1] );
+		se_size = atoi( argv[2] );
+
+		if ( se_id < 0 || se_id > 999 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( CONFIG, CRIT,
+				"%s: line %d: session log id %d is out of range [0..999]\n",
+				fname, lineno , se_id );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: session log id %d is out of range [0..999]\n",
+				fname, lineno , se_id );
+#endif
+			return( 1 );
+		}
+
+		if ( se_size < 0 || se_size > 999 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( CONFIG, CRIT,
+				"%s: line %d: session log size %d is negative\n",
+				fname, lineno , se_size );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: session log size %d is negative\n",
+				fname, lineno , se_size );
+#endif
+			return( 1 );
+		}
+
+		LDAP_LIST_FOREACH( sent, &bdb->bi_session_list, se_link ) {
+			if ( sent->se_id == se_id ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT,
+					"%s: line %d: session %d already exists\n",
+					fname, lineno , se_id );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: session %d already exists\n",
+					fname, lineno , se_id );
+#endif
+				return( 1 );
+			}
+		}
+		sent = (struct slap_session_entry *) ch_calloc( 1,
+						sizeof( struct slap_session_entry ));
+		sent->se_id = se_id;
+		sent->se_size = se_size;
+		LDAP_LIST_INSERT_HEAD( &bdb->bi_session_list, sent, se_link );
 
 	/* anything else */
 	} else {

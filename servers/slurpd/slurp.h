@@ -65,9 +65,6 @@
 /* slurpd dump file - contents of rq struct are written here (debugging) */
 #define	SLURPD_DUMPFILE			LDAP_TMPDIR LDAP_DIRSEP "slurpd.dump"
 
-/* default srvtab file.  Can be overridden */
-#define	SRVTAB				"/etc/srvtab"
-
 /* Amount of time to sleep if no more work to do */
 #define	DEFAULT_NO_WORK_INTERVAL	3
 
@@ -84,11 +81,6 @@
 #define TLS_OFF			0
 #define TLS_ON			1
 #define TLS_CRITICAL	2
-
-/* We support simple (plaintext password) and SASL authentication */
-#define	AUTH_SIMPLE	1
-#define	AUTH_KERBEROS	2
-#define	AUTH_SASL 3
 
 /* Rejection records are prefaced with this string */
 #define	ERROR_STR	"ERROR"

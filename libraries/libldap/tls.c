@@ -858,45 +858,6 @@ ldap_pvt_tls_inplace ( Sockbuf *sb )
 	return HAS_TLS( sb ) ? 1 : 0;
 }
 
-void *
-ldap_pvt_tls_sb_ctx( Sockbuf *sb )
-{
-	void			*p;
-	
-	if (HAS_TLS( sb )) {
-		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&p );
-		return p;
-	}
-
-	return NULL;
-}
-
-int
-ldap_pvt_tls_get_strength( void *s )
-{
-	SSL_CIPHER *c;
-
-	c = SSL_get_current_cipher((SSL *)s);
-	return SSL_CIPHER_get_bits(c, NULL);
-}
-
-
-int
-ldap_pvt_tls_get_my_dn( void *s, struct berval *dn, LDAPDN_rewrite_dummy *func, unsigned flags )
-{
-	X509 *x;
-	X509_NAME *xn;
-	int rc;
-
-	x = SSL_get_certificate((SSL *)s);
-
-	if (!x) return LDAP_INVALID_CREDENTIALS;
-	
-	xn = X509_get_subject_name(x);
-	rc = ldap_X509dn2bv(xn, dn, (LDAPDN_rewrite_func *)func, flags );
-	return rc;
-}
-
 static X509 *
 tls_get_cert( SSL *s )
 {
@@ -1691,6 +1652,55 @@ tls_tmp_dh_cb( SSL *ssl, int is_export, int key_length )
 }
 #endif
 #endif
+
+void *
+ldap_pvt_tls_sb_ctx( Sockbuf *sb )
+{
+#ifdef HAVE_TLS
+	void			*p;
+	
+	if (HAS_TLS( sb )) {
+		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&p );
+		return p;
+	}
+#endif
+
+	return NULL;
+}
+
+int
+ldap_pvt_tls_get_strength( void *s )
+{
+#ifdef HAVE_TLS
+	SSL_CIPHER *c;
+
+	c = SSL_get_current_cipher((SSL *)s);
+	return SSL_CIPHER_get_bits(c, NULL);
+#else
+	return 0;
+#endif
+}
+
+
+int
+ldap_pvt_tls_get_my_dn( void *s, struct berval *dn, LDAPDN_rewrite_dummy *func, unsigned flags )
+{
+#ifdef HAVE_TLS
+	X509 *x;
+	X509_NAME *xn;
+	int rc;
+
+	x = SSL_get_certificate((SSL *)s);
+
+	if (!x) return LDAP_INVALID_CREDENTIALS;
+	
+	xn = X509_get_subject_name(x);
+	rc = ldap_X509dn2bv(xn, dn, (LDAPDN_rewrite_func *)func, flags );
+	return rc;
+#else
+	return LDAP_NOT_SUPPORTED;
+#endif
+}
 
 int
 ldap_start_tls_s ( LDAP *ld,

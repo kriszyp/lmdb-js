@@ -47,7 +47,6 @@ do_modify(
 #endif
 #ifdef LDAP_SLAPI
 	LDAPMod		**modv = NULL;
-	Slapi_PBlock *pb = op->o_pb;
 #endif
 	int manageDSAit;
 	int increment = 0;
@@ -316,8 +315,15 @@ do_modify(
 			if (len + 1 + tmp->sml_type.bv_len > sizeof(abuf)) {
 				Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD attr=%s\n",
 				    op->o_connid, op->o_opid, abuf, 0, 0 );
-	    			len = 0;
+
+	    		len = 0;
 				ptr = abuf;
+
+				if( 1 + tmp->sml_type.bv_len > sizeof(abuf)) {
+					Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD attr=%s\n",
+						op->o_connid, op->o_opid, tmp->sml_type.bv_val, 0, 0 );
+					continue;
+				}
 			}
 			if (len) {
 				*ptr++ = ' ';
@@ -376,44 +382,47 @@ do_modify(
 	}
 
 #if defined( LDAP_SLAPI )
-	slapi_x_pblock_set_operation( pb, op );
-	slapi_pblock_set( pb, SLAPI_MODIFY_TARGET, (void *)dn.bv_val );
-	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
-	modv = slapi_x_modifications2ldapmods( &modlist );
-	slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv );
+#define pb	op->o_pb
+	if ( pb ) {
+		slapi_x_pblock_set_operation( pb, op );
+		slapi_pblock_set( pb, SLAPI_MODIFY_TARGET, (void *)dn.bv_val );
+		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
+		modv = slapi_x_modifications2ldapmods( &modlist );
+		slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv );
 
-	rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
-	if ( rs->sr_err < 0 ) {
-		/*
-		 * A preoperation plugin failure will abort the
-		 * entire operation.
-		 */
+		rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
+		if ( rs->sr_err < 0 ) {
+			/*
+			 * A preoperation plugin failure will abort the
+			 * entire operation.
+			 */
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_modify: modify preoperation plugin "
-				"failed\n", 0, 0, 0 );
+			LDAP_LOG( OPERATION, INFO, "do_modify: modify preoperation plugin "
+					"failed\n", 0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_modify: modify preoperation plugin failed.\n",
-				0, 0, 0);
+			Debug(LDAP_DEBUG_TRACE, "do_modify: modify preoperation plugin failed.\n",
+					0, 0, 0);
 #endif
-		if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 )  ||
-		     rs->sr_err == LDAP_SUCCESS ) {
-			rs->sr_err = LDAP_OTHER;
+			if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 )  ||
+				 rs->sr_err == LDAP_SUCCESS ) {
+				rs->sr_err = LDAP_OTHER;
+			}
+			slapi_x_free_ldapmods( modv );
+			modv = NULL;
+			goto cleanup;
 		}
-		slapi_x_free_ldapmods( modv );
-		modv = NULL;
-		goto cleanup;
-	}
 
-	/*
-	 * It's possible that the preoperation plugin changed the
-	 * modification array, so we need to convert it back to
-	 * a Modification list.
-	 *
-	 * Calling slapi_x_modifications2ldapmods() destroyed modlist so
-	 * we don't need to free it.
-	 */
-	slapi_pblock_get( pb, SLAPI_MODIFY_MODS, (void **)&modv );
-	modlist = slapi_x_ldapmods2modifications( modv );
+		/*
+		 * It's possible that the preoperation plugin changed the
+		 * modification array, so we need to convert it back to
+		 * a Modification list.
+		 *
+		 * Calling slapi_x_modifications2ldapmods() destroyed modlist so
+		 * we don't need to free it.
+		 */
+		slapi_pblock_get( pb, SLAPI_MODIFY_MODS, (void **)&modv );
+		modlist = slapi_x_ldapmods2modifications( modv );
+	}
 
 	/*
 	 * NB: it is valid for the plugin to return no modifications
@@ -446,10 +455,10 @@ do_modify(
 		 * because it accepts each modify request
 		 */
 #ifndef SLAPD_MULTIMASTER
-		if ( !op->o_bd->syncinfo &&
+		if ( !op->o_bd->be_syncinfo &&
 			( !op->o_bd->be_update_ndn.bv_len || repl_user ))
 #else
-		if ( !op->o_bd->syncinfo )
+		if ( !op->o_bd->be_syncinfo )
 #endif
 		{
 			int update = op->o_bd->be_update_ndn.bv_len;
@@ -494,8 +503,8 @@ do_modify(
 		/* send a referral */
 		} else {
 			BerVarray defref = NULL;
-			if ( op->o_bd->syncinfo ) {
-				defref = op->o_bd->syncinfo->provideruri_bv;
+			if ( op->o_bd->be_syncinfo ) {
+				defref = op->o_bd->be_syncinfo->si_provideruri_bv;
 			} else {
 				defref = op->o_bd->be_update_refs
 						? op->o_bd->be_update_refs : default_referral;
@@ -525,7 +534,7 @@ do_modify(
 #if defined( LDAP_SLAPI )
 	} /* modlist != NULL */
 
-	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_MODIFY_FN, pb ) < 0 ) {
+	if ( pb && doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_MODIFY_FN, pb ) < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_modify: modify postoperation plugins "
 				"failed\n", 0, 0, 0 );
@@ -727,7 +736,7 @@ int slap_mods_check(
 
 				for( nvals = 0; ml->sml_values[nvals].bv_val; nvals++ ) {
 					rc = ad->ad_type->sat_equality->smr_normalize(
-						0,
+						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 						ad->ad_type->sat_syntax,
 						ad->ad_type->sat_equality,
 						&ml->sml_values[nvals], &ml->sml_nvalues[nvals], ctx );
@@ -841,12 +850,20 @@ int slap_mods_opattrs(
 			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_entryUUID;
 			mod->sml_values =
-			(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_values[0], &tmpval );
 			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
 			assert( mod->sml_values[0].bv_val );
-			mod->sml_nvalues = NULL;
+			mod->sml_nvalues =
+				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			(*mod->sml_desc->ad_type->sat_equality->smr_normalize)(
+					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+					mod->sml_desc->ad_type->sat_syntax,
+					mod->sml_desc->ad_type->sat_equality,
+					mod->sml_values, mod->sml_nvalues, NULL );
+			mod->sml_nvalues[1].bv_len = 0;
+			mod->sml_nvalues[1].bv_val = NULL;
 			*modtail = mod;
 			modtail = &mod->sml_next;
 
@@ -854,7 +871,8 @@ int slap_mods_opattrs(
 			mod->sml_op = mop;
 			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_creatorsName;
-			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			mod->sml_values =
+				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_values[0], &name );
 			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
@@ -872,7 +890,8 @@ int slap_mods_opattrs(
 			mod->sml_op = mop;
 			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_createTimestamp;
-			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			mod->sml_values =
+				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_values[0], &timestamp );
 			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
