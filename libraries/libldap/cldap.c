@@ -98,7 +98,7 @@ cldap_open( char *host, int port )
        return NULL;
     }
 	
-    ld->ld_version = LDAP_VERSION;
+    ld->ld_version = LDAP_VERSION2;
 
     sock.sin_family = AF_INET;
     sock.sin_port = htons( port );
