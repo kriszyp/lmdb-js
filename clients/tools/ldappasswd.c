@@ -592,7 +592,7 @@ main (int argc, char *argv[])
 	{
 		struct timeval tv;
 		gettimeofday (&tv, NULL);
-		srand(tv.sec * (tv.tv_usec + 1));
+		srand(tv.tv_sec * (tv.tv_usec + 1));
 	}
 #else
 	/* The traditional seed */
