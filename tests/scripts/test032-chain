@@ -133,8 +133,31 @@ for P in $PORT1 $PORT2 ; do
 		echo "comparison failed - chained search didn't succeed"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit 1
-fi
+	fi
 
+	DN="cn=Mark Elliot,ou=Alumni Association,ou=People,$BASEDN"
+	echo "Comparing \"$DN\" on port $P..."
+	$LDAPCOMPARE -h $LOCALHOST -p $P "$DN" "cn:Mark Elliot"
+		 > $TESTOUT 2>&1
+
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapcompare failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
+
+	DN="ou=Other,$BASEDN"
+	echo "Comparing \"$DN\" on port $P with manageDSAit control..."
+	$LDAPCOMPARE -h $LOCALHOST -p $P -M "$DN" "ou:Other"
+		 > $TESTOUT 2>&1
+
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapcompare failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
 done
 
 #

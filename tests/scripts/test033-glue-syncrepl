@@ -79,7 +79,7 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 
-echo "Waiting 15 seconds for slapds to sync..."
+echo "Waiting 15 seconds for shadow subtrees to sync..."
 sleep 15
 
 for P in $PORT1 $PORT2 ; do
@@ -90,6 +90,7 @@ for P in $PORT1 $PORT2 ; do
 
 	if test $RC != 0 ; then
 		echo "ldapsearch failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit $RC
 	fi
 
@@ -102,6 +103,7 @@ for P in $PORT1 $PORT2 ; do
 
 	if test $? != 0 ; then
 		echo "comparison failed - database was not created correctly"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit 1
 	fi
 done
