@@ -97,7 +97,7 @@ glue_back_close (
 )
 {
 	static int glueClosed = 0;
-	int rc;
+	int rc = 0;
 
 	if (glueClosed) return 0;
 
@@ -292,7 +292,7 @@ glue_back_search (
 {
 	glueinfo *gi = (glueinfo *)b0->be_private;
 	BackendDB *be;
-	int i, rc, t2limit = 0, s2limit = 0;
+	int i, rc = 0, t2limit = 0, s2limit = 0;
 	long stoptime = 0;
 	struct berval bv;
 	glue_state gs = {0};
@@ -813,7 +813,7 @@ glue_sub_init( )
 	int i, j;
 	int cont = num_subordinates;
 	BackendDB *b1, *be;
-	BackendInfo *bi;
+	BackendInfo *bi = NULL;
 	glueinfo *gi;
 
 	/* While there are subordinate backends, search backwards through the
