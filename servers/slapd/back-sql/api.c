@@ -94,13 +94,29 @@ backsql_api_dn2odbc( Operation *op, SlapReply *rs, struct berval *dn )
 
 	for ( ; ba; ba = ba->ba_next ) {
 		if ( ba->ba_dn2odbc ) {
+			/*
+			 * The dn2odbc() helper is supposed to rewrite
+			 * the contents of bv, freeing the original value
+			 * with ch_free() if required and replacing it 
+			 * with a newly allocated one using ch_malloc() 
+			 * or companion functions.
+			 *
+			 * NOTE: it is supposed to __always__ free
+			 * the value of bv in case of error, and reset
+			 * it with BER_BVZERO() .
+			 */
 			rc = ( *ba->ba_dn2odbc )( op, rs, &bv );
 
 			if ( rc ) {
+				/* in case of error, dn2odbc() must cleanup */
+				assert( BER_BVISNULL( &bv ) );
+
 				return rc;
 			}
 		}
 	}
+
+	assert( !BER_BVISNULL( &bv ) );
 
 	*dn = bv;
 
@@ -126,12 +142,27 @@ backsql_api_odbc2dn( Operation *op, SlapReply *rs, struct berval *dn )
 	for ( ; ba; ba = ba->ba_next ) {
 		if ( ba->ba_dn2odbc ) {
 			rc = ( *ba->ba_odbc2dn )( op, rs, &bv );
-
+			/*
+			 * The odbc2dn() helper is supposed to rewrite
+			 * the contents of bv, freeing the original value
+			 * with ch_free() if required and replacing it 
+			 * with a newly allocated one using ch_malloc() 
+			 * or companion functions.
+			 *
+			 * NOTE: it is supposed to __always__ free
+			 * the value of bv in case of error, and reset
+			 * it with BER_BVZERO() .
+			 */
 			if ( rc ) {
+				/* in case of error, odbc2dn() must cleanup */
+				assert( BER_BVISNULL( &bv ) );
+
 				return rc;
 			}
 		}
 	}
+
+	assert( !BER_BVISNULL( &bv ) );
 
 	*dn = bv;
 
