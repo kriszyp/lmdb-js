@@ -27,6 +27,7 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
+#include "lutil.h"
 #include "back-bdb.h"
 #include "external.h"
 
@@ -70,12 +71,12 @@ bdb_csn_commit(
 							   1, locker, &ctxcsn_lock );
 
 	*ctxcsn_e = ctxcsn_ei->bei_e;
-	bdb_cache_entry_db_relock( bdb->bi_dbenv, locker, ctxcsn_ei, 1, 0, &ctxcsn_lock );
 
 	max_committed_csn = slap_get_commit_csn( op );
 
-	if ( max_committed_csn == NULL )
+	if ( max_committed_csn == NULL ) {
 		return BDB_CSN_COMMIT;
+	}
 
 	*ctxcsn_added = 0;
 
@@ -98,7 +99,7 @@ bdb_csn_commit(
 
 			ret = slap_mods_check( modlist, 1, &rs->sr_text, textbuf, textlen, NULL );
 
-			if ( rc != LDAP_SUCCESS ) {
+			if ( ret != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, ERR,
 						"bdb_csn_commit: mods check (%s)\n", rs->sr_text, 0, 0 );
@@ -107,6 +108,8 @@ bdb_csn_commit(
 						"bdb_csn_commit: mods check (%s)\n", rs->sr_text, 0, 0 );
 #endif
 			}
+
+			bdb_cache_entry_db_relock( bdb->bi_dbenv, locker, ctxcsn_ei, 1, 0, &ctxcsn_lock );
 
 			ret = bdb_modify_internal( op, tid, modlist, *ctxcsn_e,
 									&rs->sr_text, textbuf, textlen );								
@@ -121,9 +124,9 @@ bdb_csn_commit(
 				switch( ret ) {
 				case DB_LOCK_DEADLOCK:
 				case DB_LOCK_NOTGRANTED:
-					return BDB_CSN_ABORT;
-				default:
 					goto rewind;
+				default:
+					return BDB_CSN_ABORT;
 				}
 			}
 
@@ -224,6 +227,13 @@ bdb_csn_commit(
 		break;
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, ERR,
+				"bdb_csn_commit : bdb_dn2entry retry\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+				"bdb_csn_commit : bdb_dn2entry retry\n", 0, 0, 0 );
+#endif
 		goto rewind;
 	case LDAP_BUSY:
 		rs->sr_err = rc;
@@ -240,4 +250,143 @@ bdb_csn_commit(
 rewind :
 	slap_rewind_commit_csn( op );
 	return BDB_CSN_RETRY;
+}
+
+int
+bdb_get_commit_csn(
+	Operation	*op,
+	SlapReply	*rs,
+	struct berval	**search_context_csn,
+	u_int32_t	locker,
+	DB_LOCK		*ctxcsn_lock
+)
+{
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+	struct berval ctxcsn_rdn = BER_BVNULL;
+	struct berval ctxcsn_ndn = BER_BVNULL;
+	struct berval csn = BER_BVNULL;
+	struct berval ctx_nrdn = BER_BVC( "cn=ldapsync" );
+	EntryInfo	*ctxcsn_ei = NULL;
+	EntryInfo	*suffix_ei = NULL;
+	Entry		*ctxcsn_e = NULL;
+	DB_TXN		*ltid = NULL;
+	Attribute	*csn_a;
+	char		substr[67];
+	char		gid[DB_XIDDATASIZE];
+	char		csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+	int			num_retries = 0;
+	int			ctxcsn_added = 0;
+	int			rc;
+
+	if ( op->o_sync_mode != SLAP_SYNC_NONE ) {
+		if ( op->o_bd->syncinfo ) {
+			sprintf( substr, "cn=syncrepl%d", op->o_bd->syncinfo->id );
+			ber_str2bv( substr, strlen( substr ), 0, &ctxcsn_rdn );
+			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &ctxcsn_rdn );
+		} else {
+			ber_str2bv( "cn=ldapsync", strlen("cn=ldapsync"), 0, &ctxcsn_rdn );
+			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &ctxcsn_rdn );
+		}
+
+ctxcsn_retry :
+		rs->sr_err = bdb_dn2entry( op, NULL, &ctxcsn_ndn, &ctxcsn_ei,
+									0, locker, ctxcsn_lock );
+		switch(rs->sr_err) {
+		case 0:
+			ch_free( ctxcsn_ndn.bv_val );
+			if ( ctxcsn_ei ) {
+				ctxcsn_e = ctxcsn_ei->bei_e;
+			}
+			break;
+        case LDAP_BUSY:
+			ch_free( ctxcsn_ndn.bv_val );
+			LOCK_ID_FREE (bdb->bi_dbenv, locker );
+			return LDAP_BUSY;
+        case DB_LOCK_DEADLOCK:
+        case DB_LOCK_NOTGRANTED:
+			goto ctxcsn_retry;
+        case DB_NOTFOUND:
+			if ( !op->o_bd->syncinfo ) {
+				snprintf( gid, sizeof( gid ), "%s-%08lx-%08lx",
+							bdb_uuid.bv_val, (long) op->o_connid, (long) op->o_opid );
+
+				slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
+
+				if ( 0 ) {
+txn_retry:
+					rs->sr_err = TXN_ABORT( ltid );
+					if ( rs->sr_err != 0 ) {
+						rs->sr_err = LDAP_OTHER;
+						return rs->sr_err;
+					}
+
+					bdb_trans_backoff( ++num_retries );
+					ldap_pvt_thread_yield();
+				}
+				rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, NULL, &ltid, bdb->bi_db_opflags );
+				if ( rs->sr_err != 0 ) {
+					rs->sr_err = LDAP_OTHER;
+					return rs->sr_err;
+				}
+
+				rs->sr_err = bdb_csn_commit( op, rs, ltid, NULL, &suffix_ei,
+										&ctxcsn_e, &ctxcsn_added, locker );
+				switch( rs->sr_err ) {
+				case BDB_CSN_ABORT:
+					LOCK_ID_FREE( bdb->bi_dbenv, locker );
+					return LDAP_OTHER;
+				case BDB_CSN_RETRY:
+					goto txn_retry;
+				}
+
+				rs->sr_err = TXN_PREPARE( ltid, gid );
+				if ( rs->sr_err != 0 ) {
+					rs->sr_err = LDAP_OTHER;
+					return rs->sr_err;
+				}
+
+				bdb_cache_add( bdb, suffix_ei, ctxcsn_e, &ctx_nrdn, locker );
+
+				rs->sr_err = TXN_COMMIT( ltid, 0 );
+				if ( rs->sr_err != 0 ) {
+					rs->sr_err = LDAP_OTHER;
+					return rs->sr_err;
+				}
+
+				ctxcsn_ei = NULL;
+				rs->sr_err = bdb_dn2entry( op, NULL, &ctxcsn_ndn, &ctxcsn_ei,
+										0, locker, ctxcsn_lock );
+				ch_free( ctxcsn_ndn.bv_val );
+
+				if ( ctxcsn_ei ) {
+					ctxcsn_e = ctxcsn_ei->bei_e;
+				}
+			} else {
+				LOCK_ID_FREE( bdb->bi_dbenv, locker );
+				return LDAP_OTHER;
+			}
+			break;
+
+		default:
+			LOCK_ID_FREE (bdb->bi_dbenv, locker );
+			return LDAP_OTHER;
+		}
+
+		if ( ctxcsn_e ) {
+			if ( op->o_bd->syncinfo ) {
+				csn_a = attr_find( ctxcsn_e->e_attrs, slap_schema.si_ad_syncreplCookie );
+			} else {
+				csn_a = attr_find( ctxcsn_e->e_attrs, slap_schema.si_ad_contextCSN );
+			}
+			if ( csn_a ) {
+				*search_context_csn = ber_dupbv( NULL, &csn_a->a_vals[0] );
+			} else {
+				*search_context_csn = NULL;
+			}
+		} else {
+			*search_context_csn = NULL;
+		}
+	}
+
+	return LDAP_SUCCESS;
 }

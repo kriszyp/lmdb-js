@@ -320,12 +320,6 @@ bdb_cancel( Operation *op, SlapReply *rs )
 				ps_list->o_cancel = SLAP_CANCEL_DONE;
 				LDAP_LIST_REMOVE( ps_list, o_ps_link );
 
-#if 0
-				bdb_build_sync_done_ctrl( conn, ps_list, ps_list->ctrls,
-					1, &latest_entrycsn_bv );
-				send_ldap_result( conn, ps_list, LDAP_CANCELLED,
-					NULL, NULL, NULL, ps_list->ctrls, ps_list->nentries);
-#endif
 				rs->sr_err = LDAP_CANCELLED;
 				send_ldap_result( ps_list, rs );
 
@@ -372,15 +366,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	AttributeAssertion aa_ge, aa_eq, aa_le;
 	int		entry_count = 0;
 	struct berval *search_context_csn = NULL;
-	struct berval ctxcsn_rdn = { 0, NULL };
-	struct berval ctxcsn_ndn = { 0, NULL };
-	EntryInfo	*ctxcsn_ei;
-	Entry		*ctxcsn_e;
 	DB_LOCK		ctxcsn_lock;
-	Attribute	*csn_a;
-#if 0
-	struct berval	entrycsn_bv = { 0, NULL };
-#endif
 	LDAPControl	*ctrls[SLAP_SEARCH_MAX_CTRLS];
 	int		num_ctrls = 0;
 	AttributeName	uuid_attr[2];
@@ -661,59 +647,11 @@ dn2entry_retry:
 	}
 	e = NULL;
 
-	if ( sop->o_sync_mode != SLAP_SYNC_NONE ) {
-		if ( sop->o_bd->syncinfo ) {
-			char substr[67];
-			sprintf( substr, "cn=syncrepl%d", sop->o_bd->syncinfo->id );
-			ber_str2bv( substr, strlen( substr ), 0, &ctxcsn_rdn );
-			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &ctxcsn_rdn );
-		} else {
-			ber_str2bv( "cn=ldapsync", strlen("cn=ldapsync"), 0, &ctxcsn_rdn );
-			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &ctxcsn_rdn );
-		}
+	rs->sr_err = bdb_get_commit_csn( sop, rs, &search_context_csn, locker, &ctxcsn_lock );
 
-ctxcsn_retry :
-		rs->sr_err = bdb_dn2entry( op, NULL, &ctxcsn_ndn, &ctxcsn_ei, 0, locker, &ctxcsn_lock );
-		ch_free( ctxcsn_ndn.bv_val );
-
-		switch(rs->sr_err) {
-		case 0:
-			e = ei->bei_e; break;
-		case LDAP_BUSY:
-			send_ldap_error( sop, rs, LDAP_BUSY, "ldap server busy" );
-			LOCK_ID_FREE (bdb->bi_dbenv, locker );
-			return LDAP_BUSY;
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			goto ctxcsn_retry;
-		case DB_NOTFOUND:
-			send_ldap_error( sop, rs, LDAP_OTHER, "context csn entry not present" );
-			LOCK_ID_FREE( bdb->bi_dbenv, locker );
-			return rs->sr_err;
-		default:
-			send_ldap_error( sop, rs, LDAP_OTHER, "internal error" );
-			LOCK_ID_FREE (bdb->bi_dbenv, locker );
-			return rs->sr_err;
-		}
-
-		if ( ctxcsn_ei ) {
-			ctxcsn_e = ctxcsn_ei->bei_e;
-		}
-
-		if ( ctxcsn_e ) {
-			if ( sop->o_bd->syncinfo ) {
-				csn_a = attr_find( ctxcsn_e->e_attrs, slap_schema.si_ad_syncreplCookie );
-			} else {
-				csn_a = attr_find( ctxcsn_e->e_attrs, slap_schema.si_ad_contextCSN );
-			}
-			if ( csn_a ) {
-				search_context_csn = ber_dupbv( NULL, &csn_a->a_vals[0] );
-			} else {
-				search_context_csn = NULL;
-			}
-		} else {
-			search_context_csn = NULL;
-		}
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		send_ldap_error( sop, rs, rs->sr_err, "error in csn management in search" );
+		goto done;
 	}
 
 	/* select candidates */
