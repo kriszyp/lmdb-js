@@ -27,9 +27,6 @@
 * Various Cyrus SASL related stuff.
 */
 
-#define SASL_MAX_BUFF_SIZE	65536
-#define SASL_MIN_BUFF_SIZE	4096
-
 int ldap_int_sasl_init( void )
 {
 	/* XXX not threadsafe */
@@ -127,23 +124,27 @@ sb_sasl_remove( Sockbuf_IO_Desc *sbiod )
 }
 
 static ber_len_t
-sb_sasl_pkt_length( const char *buf, int debuglevel )
+sb_sasl_pkt_length( const unsigned char *buf, int debuglevel )
 {
 	ber_len_t		size;
-	long			tmp;
 
 	assert( buf != NULL );
 
-	tmp = *((long *)buf);
-	size = ntohl( tmp );
+	size = buf[0] << 24
+		| buf[1] << 16
+		| buf[2] << 8
+		| buf[3];
    
+	/* we really should check against actual buffer size set
+	 * in the secopts.
+	 */
 	if ( size > SASL_MAX_BUFF_SIZE ) {
 		/* somebody is trying to mess me up. */
 		ber_log_printf( LDAP_DEBUG_ANY, debuglevel,
 			"sb_sasl_pkt_length: received illegal packet length "
 			"of %lu bytes\n", (unsigned long)size );      
 		size = 16; /* this should lead to an error. */
-}
+	}
 
 	return size + 4; /* include the size !!! */
 }
@@ -764,6 +765,13 @@ int ldap_pvt_sasl_secprops(
 				maxbufsize = atoi( &props[i][sizeof("maxbufsize")] );
 			} else {
 				return LDAP_NOT_SUPPORTED;
+			}
+
+			if( maxbufsize && (( maxbufsize < SASL_MIN_BUFF_SIZE )
+				|| (maxbufsize > SASL_MAX_BUFF_SIZE )))
+			{
+				/* bad maxbufsize */
+				return LDAP_PARAM_ERROR;
 			}
 
 		} else {
