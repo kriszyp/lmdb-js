@@ -356,7 +356,7 @@ acl_access_allowed(
 			string_expand(buf, sizeof(buf), b->a_group, edn, matches);
 			(void) dn_normalize_case(buf);
 
-			if (be_group(be, e, buf, odn,
+			if (backend_group(be, e, buf, odn,
 				b->a_objectclassvalue, b->a_groupattrname) == 0)
 			{
 				Debug( LDAP_DEBUG_ACL,

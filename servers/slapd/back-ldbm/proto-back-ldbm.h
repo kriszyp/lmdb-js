@@ -3,6 +3,8 @@
 
 #include <ldap_cdefs.h>
 
+#include "external.h"
+
 LDAP_BEGIN_DECL
 
 /*

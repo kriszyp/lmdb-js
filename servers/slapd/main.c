@@ -22,17 +22,14 @@
 #define DEFAULT_SYSLOG_USER  LOG_LOCAL4
 
 typedef struct _str2intDispatch {
-
-        char    *stringVal;
-        int      abbr;
-        int      intVal;
-
+	char    *stringVal;
+	int      abbr;
+	int      intVal;
 } STRDISP, *STRDISP_P;
 
 
 /* table to compute syslog-options to integer */
 static STRDISP  syslog_types[] = {
-
     { "LOCAL0",         6, LOG_LOCAL0 },
     { "LOCAL1",         6, LOG_LOCAL1 },
     { "LOCAL2",         6, LOG_LOCAL2 },
@@ -42,7 +39,6 @@ static STRDISP  syslog_types[] = {
     { "LOCAL6",         6, LOG_LOCAL6 },
     { "LOCAL7",         6, LOG_LOCAL7 },
     NULL
-
 };
 
 static int   cnvt_str2int();
@@ -65,10 +61,9 @@ main( int argc, char **argv )
 {
 	int		i;
 	int		inetd = 0;
+	int		rc = 0;
 	int		port;
 	int		udp;
-	Backend		*be = NULL;
-	FILE		*fp = NULL;
 #ifdef LOG_LOCAL4
     int     syslogUser = DEFAULT_SYSLOG_USER;
 #endif
@@ -171,27 +166,35 @@ main( int argc, char **argv )
 		serverName = ch_strdup( serverName + 1 );
 	}
 
-	if ( ! inetd ) {
-		/* pre-open config file before detach in case it is a relative path */
-		fp = fopen( configfile, "r" );
-#ifdef LDAP_DEBUG
-		lutil_detach( ldap_debug, 0 );
-#else
-		lutil_detach( 0, 0 );
-#endif
-	}
-
 #ifdef LOG_LOCAL4
 	openlog( serverName, OPENLOG_OPTIONS, syslogUser );
 #else
 	openlog( serverName, OPENLOG_OPTIONS );
 #endif
 
-	init();
-	read_config( configfile, &be, fp );
+	if ( slap_init( SLAP_SERVER_MODE, serverName ) != 0 ) {
+		rc = 1;
+		goto destroy;
+	}
+
+	if ( read_config( configfile ) != 0 ) {
+		rc = 1;
+		goto destroy;
+	}
+
+	if ( slap_startup(-1)  != 0 ) {
+		rc = 1;
+		goto shutdown;
+	}
 
 	if ( ! inetd ) {
 		int		status;
+
+#ifdef LDAP_DEBUG
+		lutil_detach( ldap_debug, 0 );
+#else
+		lutil_detach( 0, 0 );
+#endif
 
 		time( &starttime );
 
@@ -200,13 +203,13 @@ main( int argc, char **argv )
 		{
 			Debug( LDAP_DEBUG_ANY,
 			    "listener ldap_pvt_thread_create failed (%d)\n", status, 0, 0 );
-			exit( 1 );
+
+			rc = 1;
+		} else {
+
+			/* wait for the listener thread to complete */
+			ldap_pvt_thread_join( listener_tid, (void *) NULL );
 		}
-
-		/* wait for the listener thread to complete */
-		ldap_pvt_thread_join( listener_tid, (void *) NULL );
-
-		return 0;
 
 	} else {
 		Connection		c;
@@ -288,7 +291,12 @@ main( int argc, char **argv )
 			ber_free( &ber, 1 );
 		}
 	}
-	return 1;
+
+shutdown:
+	slap_shutdown(-1);
+destroy:
+	slap_destroy();
+	return rc;
 }
 
 

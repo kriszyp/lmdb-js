@@ -11,7 +11,7 @@
 #include "slap.h"
 #include "shell.h"
 
-void
+int
 shell_back_abandon(
     Backend	*be,
     Connection	*conn,
@@ -44,11 +44,11 @@ shell_back_abandon(
 			Debug( LDAP_DEBUG_ARGS, "shell could not find op %d\n",
 			    msgid, 0, 0 );
 		}
-		return;
+		return 0;
 	}
 
 	if ( forkandexec( si->si_abandon, &rfp, &wfp ) == -1 ) {
-		return;
+		return 0;
 	}
 
 	/* write out the request to the abandon process */
@@ -59,4 +59,6 @@ shell_back_abandon(
 
 	/* no result from abandon */
 	fclose( rfp );
+
+	return 0;
 }

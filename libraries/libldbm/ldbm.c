@@ -48,6 +48,8 @@ ldbm_datum_dup( LDBM ldbm, Datum data )
 	return( dup );
 }
 
+static int ldbm_initialized = 0;
+
 #ifndef HAVE_BERKELEY_DB2
 /* Everything but DB2 is non-reentrant */
 
@@ -55,13 +57,22 @@ static ldap_pvt_thread_mutex_t ldbm_big_mutex;
 #define LDBM_LOCK	(ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
 #define LDBM_UNLOCK	(ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
 
-void ldbm_initialize( void )
+int ldbm_initialize( void )
 {
-	static int initialized = 0;
-
-	if(initialized++) return;
+	if(ldbm_initialized++) return 1;
 
 	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
+
+	return 0;
+}
+
+int ldbm_shutdown( void )
+{
+	if( !ldbm_initialized ) return 1;
+
+	ldap_pvt_thread_mutex_destroy( &ldbm_big_mutex );
+
+	return 0;
 }
 
 #else
@@ -87,14 +98,12 @@ static DB_ENV           ldbm_Env;
 #define LDBM_LOCK	((void)0)
 #define LDBM_UNLOCK	((void)0)
 
-void ldbm_initialize( void )
+int ldbm_initialize( void )
 {
-	static int initialized = 0;
-
 	int     err;
 	int     envFlags;
 
-	if(initialized++) return;
+	if(ldbm_initialized++) return 1;
 
 	memset( &ldbm_Env, 0, sizeof( ldbm_Env ));
 
@@ -115,8 +124,19 @@ void ldbm_initialize( void )
 		syslog( LOG_INFO,
 			"ldbm_initialize(): FATAL error in db_appinit() : %s\n",
 			error );
-	 	exit( 1 );
+	 	return( 1 );
 	}
+
+	return 0;
+}
+
+int ldbm_shutdown( void )
+{
+	if( !ldbm_initialized ) return 1;
+
+	db_appexit( &ldbm_Env );
+
+	return 0;
 }
 
 #endif

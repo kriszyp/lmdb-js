@@ -27,9 +27,9 @@
  * Config
  *
  **********************************************************/
-void
-perl_back_config(
-	 Backend *be,
+int
+perl_back_db_config(
+	 BackendDB *be,
 	 char *fname,
 	 int lineno,
 	 int argc,
@@ -48,7 +48,7 @@ perl_back_config(
 			Debug( LDAP_DEBUG_ANY,
 				 "%s.pm: line %d: missing module in \"perlModule <module>\" line\n",
 				fname, lineno, 0 );
-			exit( 1 );
+			return( 1 );
 		}
 
 		strncpy(eval_str, argv[1], EVAL_BUF_SIZE );
@@ -82,7 +82,7 @@ perl_back_config(
 			fprintf( stderr,
 				"%s: line %d: missing module in \"PerlModulePath <module>\" line\n",
 				fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
 
 		sprintf( eval_str, "push @INC, '%s';", argv[1] );
@@ -94,7 +94,9 @@ perl_back_config(
 		 */
 
 		fprintf( stderr,
-			"Unknown perl backeng config: %s\n", argv[0]);
-		exit( 1 );
+			"Unknown perl backend config: %s\n", argv[0]);
+		return( 1 );
 	}
+
+	return 0;
 }

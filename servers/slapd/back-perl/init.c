@@ -33,25 +33,71 @@ ldap_pvt_thread_mutex_t	perl_interpreter_mutex;
  *
  **********************************************************/
 
-void
-perl_back_init(
-	Backend	*be
+int
+perl_back_initialize(
+	BackendInfo	*bi
 )
 {
 	char *embedding[] = { "", "-e", "0" };
 
-	if( perl_interpreter == NULL ) {
-		perl_interpreter = perl_alloc();
-		perl_construct(perl_interpreter);
-		perl_parse(perl_interpreter, NULL, 3, embedding, (char **)NULL);
-		perl_run(perl_interpreter);
-		
-		ldap_pvt_thread_mutex_init( &perl_interpreter_mutex );
-	}
+	Debug( LDAP_DEBUG_TRACE, "perl backend open\n", 0, 0, 0 );
 
+	if( perl_interpreter != NULL ) {
+		Debug( LDAP_DEBUG_ANY, "perl backend open: already opened\n",
+			0, 0, 0 );
+		return 1;
+	}
+	
+	perl_interpreter = perl_alloc();
+	perl_construct(perl_interpreter);
+	perl_parse(perl_interpreter, NULL, 3, embedding, (char **)NULL);
+	perl_run(perl_interpreter);
+
+	bi->bi_open = perl_back_open;
+	bi->bi_config = NULL;
+	bi->bi_close = perl_back_close;
+	bi->bi_destroy = perl_back_destroy;
+
+	bi->bi_db_init = perl_back_db_init;
+	bi->bi_db_config = perl_back_db_config;
+	bi->bi_db_open = NULL;
+	bi->bi_db_close = NULL;
+	bi->bi_db_destroy = perl_back_db_destroy;
+
+	bi->bi_op_bind = perl_back_bind;
+	bi->bi_op_unbind = perl_back_unbind;
+	bi->bi_op_search = perl_back_search;
+	bi->bi_op_compare = perl_back_compare;
+	bi->bi_op_modify = perl_back_modify;
+	bi->bi_op_modrdn = perl_back_modrdn;
+	bi->bi_op_add = perl_back_add;
+	bi->bi_op_delete = perl_back_delete;
+	bi->bi_op_abandon = NULL;
+
+	bi->bi_acl_group = NULL;
+
+	return 0;
+}
+		
+int
+perl_back_open(
+	BackendInfo	*bi
+)
+{
+	ldap_pvt_thread_mutex_init( &perl_interpreter_mutex );
+	return 0;
+}
+
+int
+perl_back_db_init(
+	Backend	*be
+)
+{
 	be->be_private = (PerlBackend *) ch_malloc( sizeof(PerlBackend) );
 	memset(&be->be_private, 0, sizeof(PerlBackend));
 
-	Debug( LDAP_DEBUG_ANY, "Here in perl backend\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "perl backend db init\n", 0, 0, 0 );
+
+	return 0;
 }
 

@@ -80,8 +80,9 @@ main( int argc, char **argv )
 	 * initialize stuff and figure out which backend we're dealing with
 	 */
 
-	init();
-	read_config( tailorfile, &be, NULL );
+	slap_init(SLAP_TOOL_MODE, "ldbmtest");
+	read_config( tailorfile );
+	slap_startup(-1);
 
 	while ( 1 ) {
 		printf( "dbtest: " );
@@ -356,6 +357,9 @@ main( int argc, char **argv )
 			break;
 		}
 	}
+
+	slap_shutdown(-1);
+	slap_destroy();
 
 	return( 0 );
 }

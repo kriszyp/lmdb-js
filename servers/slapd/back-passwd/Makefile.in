@@ -1,6 +1,6 @@
 XSRCS	= version.c
-SRCS	= search.c config.c
-OBJS	= search.o config.o
+SRCS	= search.c config.c init.c
+OBJS	= search.o config.o init.o
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries

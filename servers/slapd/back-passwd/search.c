@@ -11,6 +11,7 @@
 #include <pwd.h>
 
 #include "slap.h"
+#include "external.h"
 
 static Entry	*pw2entry(Backend *be, struct passwd *pw);
 

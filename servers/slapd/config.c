@@ -29,32 +29,35 @@ char   *slapd_args_file = NULL;
 
 static char	*fp_getline(FILE *fp, int *lineno);
 static void	fp_getline_init(int *lineno);
-static void	fp_parse_line(char *line, int *argcp, char **argv);
+static int	fp_parse_line(char *line, int *argcp, char **argv);
 
 static char	*strtok_quote(char *line, char *sep);
 
-void
-read_config( char *fname, Backend **bep, FILE *pfp )
+int
+read_config( char *fname )
 {
 	FILE	*fp;
 	char	*line, *savefname;
 	int	cargc, savelineno;
 	char	*cargv[MAXARGS];
 	int	lineno, i;
-	Backend	*be;
 
-	if ( (fp = pfp) == NULL && (fp = fopen( fname, "r" )) == NULL ) {
+	static BackendInfo *bi = NULL;
+	static BackendDB	*be = NULL;
+
+	if ( (fp = fopen( fname, "r" )) == NULL ) {
 		ldap_syslog = 1;
 		Debug( LDAP_DEBUG_ANY,
 		    "could not open config file \"%s\" - absolute path?\n",
 		    fname, 0, 0 );
 		perror( fname );
-		exit( 1 );
+		return 1;
 	}
 
 	Debug( LDAP_DEBUG_CONFIG, "reading config file %s\n", fname, 0, 0 );
-	be = *bep;
+
 	fp_getline_init( &lineno );
+
 	while ( (line = fp_getline( fp, &lineno )) != NULL ) {
 		/* skip comments and blank lines */
 		if ( line[0] == '#' || line[0] == '\0' ) {
@@ -63,7 +66,9 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 
 		Debug( LDAP_DEBUG_CONFIG, "line %d (%s)\n", lineno, line, 0 );
 
-		fp_parse_line( line, &cargc, cargv );
+		if ( fp_parse_line( line, &cargc, cargv ) != 0 ) {
+			return( 1 );
+		}
 
 		if ( cargc < 1 ) {
 			Debug( LDAP_DEBUG_ANY,
@@ -72,16 +77,33 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 			continue;
 		}
 
+		if ( strcasecmp( cargv[0], "backend" ) == 0 ) {
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+		"%s: line %d: missing type in \"backend <type>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+
+			if( be != NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+"%s: line %d: backend line must appear before any database definition\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+
+			bi = backend_info( cargv[1] );
+
 		/* start of a new database definition */
-		if ( strcasecmp( cargv[0], "database" ) == 0 ) {
+		} else if ( strcasecmp( cargv[0], "database" ) == 0 ) {
 			if ( cargc < 2 ) {
 				Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: missing type in \"database <type>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
-			*bep = new_backend( cargv[1] );
-			be = *bep;
+			bi = NULL;
+			be = backend_db_init( cargv[1] );
 
  		/* assign a default depth limit for alias deref */
 		be->be_maxDerefDepth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
@@ -92,7 +114,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing file name in \"pidfile <file>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 
 			slapd_pid_file = ch_strdup( cargv[1] );
@@ -103,7 +125,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing file name in \"argsfile <file>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 
 			slapd_args_file = ch_strdup( cargv[1] );
@@ -114,7 +136,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing limit in \"sizelimit <limit>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 			if ( be == NULL ) {
 				defsize = atoi( cargv[1] );
@@ -128,7 +150,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing limit in \"timelimit <limit>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 			if ( be == NULL ) {
 				deftime = atoi( cargv[1] );
@@ -142,7 +164,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: missing dn in \"suffix <dn>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			} else if ( cargc > 2 ) {
 				Debug( LDAP_DEBUG_ANY,
     "%s: line %d: extra cruft after <dn> in \"suffix %s\" line (ignored)\n",
@@ -164,12 +186,12 @@ read_config( char *fname, Backend **bep, FILE *pfp )
                                 Debug( LDAP_DEBUG_ANY,
                     "%s: line %d: missing alias and aliased_dn in \"suffixAlias <alias> <aliased_dn>\" line\n",
                                     fname, lineno, 0 );
-                                exit( 1 );
+                                return( 1 );
                         } else if ( cargc < 3 ) {
                                 Debug( LDAP_DEBUG_ANY,
                     "%s: line %d: missing aliased_dn in \"suffixAlias <alias> <aliased_dn>\" line\n",
                                     fname, lineno, 0 );
-                                exit( 1 );
+                                return( 1 );
                         } else if ( cargc > 3 ) {
                                 Debug( LDAP_DEBUG_ANY,
     "%s: line %d: extra cruft in suffixAlias line (ignored)\n",
@@ -210,7 +232,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
                                Debug( LDAP_DEBUG_ANY,
                    "%s: line %d: missing depth in \"maxDerefDepth <depth>\" line\n",
                                    fname, lineno, 0 );
-                               exit( 1 );
+                               return( 1 );
                        }
                        if ( be == NULL ) {
                                Debug( LDAP_DEBUG_ANY,
@@ -227,7 +249,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: missing dn in \"rootdn <dn>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 			if ( be == NULL ) {
 				Debug( LDAP_DEBUG_ANY,
@@ -244,7 +266,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing passwd in \"rootpw <passwd>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 			if ( be == NULL ) {
 				Debug( LDAP_DEBUG_ANY,
@@ -260,7 +282,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing on|off in \"readonly <on|off>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 			if ( be == NULL ) {
 				Debug( LDAP_DEBUG_ANY,
@@ -280,7 +302,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: missing URL in \"referral <URL>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 			default_referral = (char *) ch_malloc( strlen( cargv[1] )
 			    + sizeof("Referral:\n") + 1 );
@@ -302,7 +324,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
     "%s: line %d: missing on|off in \"schemacheck <on|off>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 			if ( strcasecmp( cargv[1], "on" ) == 0 ) {
 				global_schemacheck = 1;
@@ -320,7 +342,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing limit in \"defaultaccess <access>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 			if ( be == NULL ) {
 				if ( (global_default_access =
@@ -328,7 +350,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 					Debug( LDAP_DEBUG_ANY,
 "%s: line %d: bad access \"%s\" expecting [self]{none|compare|read|write}\n",
 					    fname, lineno, cargv[1] );
-					exit( 1 );
+					return( 1 );
 				}
 			} else {
 				if ( (be->be_dfltaccess =
@@ -336,7 +358,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 					Debug( LDAP_DEBUG_ANY,
 "%s: line %d: bad access \"%s\" expecting [self]{none|compare|read|write}\n",
 					    fname, lineno, cargv[1] );
-					exit( 1 );
+					return( 1 );
 				}
 			}
 
@@ -346,7 +368,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: missing level in \"loglevel <level>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 			ldap_syslog = atoi( cargv[1] );
 
@@ -356,7 +378,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing host in \"replica <host[:port]>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 			if ( be == NULL ) {
 				Debug( LDAP_DEBUG_ANY,
@@ -384,7 +406,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: missing dn in \"updatedn <dn>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 			if ( be == NULL ) {
 				Debug( LDAP_DEBUG_ANY,
@@ -401,7 +423,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing dn in \"replogfile <filename>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 			if ( be ) {
 				be->be_replogfile = ch_strdup( cargv[1] );
@@ -415,7 +437,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing on|off in \"lastmod <on|off>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 			if ( strcasecmp( cargv[1], "on" ) == 0 ) {
 				if ( be )
@@ -435,12 +457,15 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
     "%s: line %d: missing filename in \"include <filename>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 			savefname = ch_strdup( cargv[1] );
 			savelineno = lineno;
-			read_config( savefname, bep, NULL );
-			be = *bep;
+
+			if ( read_config( savefname ) != 0 ) {
+				return( 1 );
+			}
+
 			free( savefname );
 			lineno = savelineno - 1;
 
@@ -450,30 +475,47 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing filename in \"srvtab <filename>\" line\n",
 				    fname, lineno, 0 );
-				exit( 1 );
+				return( 1 );
 			}
 			ldap_srvtab = ch_strdup( cargv[1] );
 
-		/* pass anything else to the current backend config routine */
+		/* pass anything else to the current backend info/db config routine */
 		} else {
-			if ( be == NULL ) {
-				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: unknown directive \"%s\" outside database definition (ignored)\n",
-				    fname, lineno, cargv[0] );
-			} else if ( be->be_config == NULL ) {
-				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: unknown directive \"%s\" inside database definition (ignored)\n",
-				    fname, lineno, cargv[0] );
+			if ( bi != NULL ) {
+				if (bi->bi_config == NULL) {
+					Debug( LDAP_DEBUG_ANY,
+"%s: line %d: unknown directive \"%s\" inside backend info definition (ignored)\n",
+				   		fname, lineno, cargv[0] );
+				} else {
+					if ( (*bi->bi_config)( bi, fname, lineno, cargc, cargv )
+						!= 0 )
+					{
+						return( 1 );
+					}
+				}
+			} else if ( be != NULL ) {
+				if ( be->be_config == NULL ) {
+					Debug( LDAP_DEBUG_ANY,
+"%s: line %d: unknown directive \"%s\" inside backend database definition (ignored)\n",
+				    	fname, lineno, cargv[0] );
+				} else {
+					if ( (*be->be_config)( be, fname, lineno, cargc, cargv )
+						!= 0 )
+					{
+						return( 1 );
+					}
+				}
 			} else {
-				(*be->be_config)( be, fname, lineno, cargc,
-				    cargv );
+				Debug( LDAP_DEBUG_ANY,
+"%s: line %d: unknown directive \"%s\" outside backend info and database definitions (ignored)\n",
+				    fname, lineno, cargv[0] );
 			}
 		}
 	}
 	fclose( fp );
 }
 
-static void
+static int
 fp_parse_line(
     char	*line,
     int		*argcp,
@@ -488,11 +530,12 @@ fp_parse_line(
 		if ( *argcp == MAXARGS ) {
 			Debug( LDAP_DEBUG_ANY, "Too many tokens (max %d)\n",
 			    MAXARGS, 0, 0 );
-			exit( 1 );
+			return( 1 );
 		}
 		argv[(*argcp)++] = token;
 	}
 	argv[*argcp] = NULL;
+	return 0;
 }
 
 static char *

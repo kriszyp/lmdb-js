@@ -10,9 +10,9 @@
 #include "slap.h"
 #include "shell.h"
 
-void
-shell_back_config(
-    Backend	*be,
+int
+shell_back_db_config(
+    BackendDB	*be,
     char	*fname,
     int		lineno,
     int		argc,
@@ -24,7 +24,7 @@ shell_back_config(
 	if ( si == NULL ) {
 		fprintf( stderr, "%s: line %d: shell backend info is null!\n",
 		    fname, lineno );
-		exit( 1 );
+		return( 1 );
 	}
 
 	/* command + args to exec for binds */
@@ -33,7 +33,7 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"bind <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
 		si->si_bind = charray_dup( &argv[1] );
 
@@ -43,7 +43,7 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"unbind <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
 		si->si_unbind = charray_dup( &argv[1] );
 
@@ -53,7 +53,7 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"search <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
 		si->si_search = charray_dup( &argv[1] );
 
@@ -63,7 +63,7 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"compare <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
 		si->si_compare = charray_dup( &argv[1] );
 
@@ -73,7 +73,7 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"modify <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
 		si->si_modify = charray_dup( &argv[1] );
 
@@ -83,7 +83,7 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"modrdn <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
 		si->si_modrdn = charray_dup( &argv[1] );
 
@@ -93,7 +93,7 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"add <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
 		si->si_add = charray_dup( &argv[1] );
 
@@ -103,7 +103,7 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"delete <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
 		si->si_delete = charray_dup( &argv[1] );
 
@@ -113,7 +113,7 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"abandon <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
 		si->si_abandon = charray_dup( &argv[1] );
 
@@ -123,4 +123,6 @@ shell_back_config(
 "%s: line %d: unknown directive \"%s\" in shell database definition (ignored)\n",
 		    fname, lineno, argv[0] );
 	}
+
+	return 0;
 }

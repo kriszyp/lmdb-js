@@ -9,10 +9,11 @@
 #include <ac/time.h>
 
 #include "slap.h"
+#include "external.h"
 
-void
-passwd_back_config(
-    Backend	*be,
+int
+passwd_back_db_config(
+    BackendDB	*be,
     char	*fname,
     int		lineno,
     int		argc,
@@ -26,7 +27,7 @@ passwd_back_config(
 			fprintf( stderr,
 		"%s: line %d: missing filename in \"file <filename>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
 		be->be_private = ch_strdup( argv[1] );
 #else /* HAVE_SETPWFILE */
@@ -41,4 +42,6 @@ passwd_back_config(
 "%s: line %d: unknown directive \"%s\" in passwd database definition (ignored)\n",
 		    fname, lineno, argv[0] );
 	}
+
+	return( 0 );
 }

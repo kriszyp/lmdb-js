@@ -27,16 +27,38 @@
  *
  **********************************************************/
 
-void
+int
 perl_back_close(
-	Backend *be
+	BackendInfo *bd
 )
 {
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
 	perl_destruct(perl_interpreter);
-	perl_free(perl_interpreter);
 
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
+
+	return 0;
 }
 
+int
+perl_back_destroy(
+	BackendInfo *bd
+)
+{
+	perl_free(perl_interpreter);
+	perl_interpreter = NULL;
+
+	ldap_pvt_thread_mutex_destroy( &perl_interpreter_mutex );	
+
+	return 0;
+}
+
+int
+perl_back_db_destroy(
+	BackendDB *be
+)
+{
+	free( be->be_private );
+	be->be_private = NULL;
+}

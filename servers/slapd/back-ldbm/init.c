@@ -10,17 +10,77 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-void
-ldbm_back_init(
+int
+ldbm_back_initialize(
+    BackendInfo	*bi
+)
+{
+	bi->bi_open = ldbm_back_open;
+	bi->bi_config = NULL;
+	bi->bi_close = ldbm_back_close;
+	bi->bi_destroy = ldbm_back_destroy;
+
+	bi->bi_db_init = ldbm_back_db_init;
+	bi->bi_db_config = ldbm_back_db_config;
+	bi->bi_db_open = ldbm_back_db_open;
+	bi->bi_db_close = ldbm_back_db_close;
+	bi->bi_db_destroy = ldbm_back_db_destroy;
+
+	bi->bi_op_bind = ldbm_back_bind;
+	bi->bi_op_unbind = ldbm_back_unbind;
+	bi->bi_op_search = ldbm_back_search;
+	bi->bi_op_compare = ldbm_back_compare;
+	bi->bi_op_modify = ldbm_back_modify;
+	bi->bi_op_modrdn = ldbm_back_modrdn;
+	bi->bi_op_add = ldbm_back_add;
+	bi->bi_op_delete = ldbm_back_delete;
+	bi->bi_op_abandon = ldbm_back_abandon;
+
+	bi->bi_acl_group = ldbm_back_group;
+
+	return 0;
+}
+
+int
+ldbm_back_destroy(
+    BackendInfo	*bi
+)
+{
+	return 0;
+}
+
+int
+ldbm_back_open(
+    BackendInfo	*bi
+)
+{
+	int rc;
+
+	/* initialize the underlying database system */
+	rc = ldbm_initialize();
+
+	return rc;
+}
+
+int
+ldbm_back_close(
+    BackendInfo	*bi
+)
+{
+	/* initialize the underlying database system */
+	ldbm_shutdown();
+
+	return 0;
+}
+
+int
+ldbm_back_db_init(
     Backend	*be
 )
 {
 	struct ldbminfo	*li;
 	char		*argv[ 4 ];
 	int		i;
-
-	/* initialize the underlying database system */
-	ldbm_initialize();
 
 	/* allocate backend-specific stuff */
 	li = (struct ldbminfo *) ch_calloc( 1, sizeof(struct ldbminfo) );
@@ -78,4 +138,25 @@ ldbm_back_init(
 	ldap_pvt_thread_cond_init( &li->li_dbcache_cv );
 
 	be->be_private = li;
+
+	return 0;
+}
+
+int
+ldbm_back_db_open(
+    BackendDB	*be
+)
+{
+	return 0;
+}
+
+int
+ldbm_back_db_destroy(
+    BackendDB	*be
+)
+{
+	/* should free/destroy every in be_private */
+	free( be->be_private );
+	be->be_private = NULL;
+	return 0;
 }

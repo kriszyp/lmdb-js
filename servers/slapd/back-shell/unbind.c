@@ -10,7 +10,7 @@
 #include "slap.h"
 #include "shell.h"
 
-void
+int
 shell_back_unbind(
     Backend		*be,
     Connection		*conn,
@@ -23,14 +23,14 @@ shell_back_unbind(
 	if ( si->si_unbind == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "unbind not implemented" );
-		return;
+		return 0;
 	}
 
 	if ( (op->o_private = (void *) forkandexec( si->si_unbind, &rfp, &wfp ))
 	    == (void *) -1 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
 		    "could not fork/exec" );
-		return;
+		return 0;
 	}
 
 	/* write out the request to the unbind process */
@@ -42,4 +42,6 @@ shell_back_unbind(
 
 	/* no response to unbind */
 	fclose( rfp );
+
+	return 0;
 }

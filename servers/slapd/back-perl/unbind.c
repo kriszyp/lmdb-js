@@ -27,7 +27,7 @@
  * UnBind
  *
  **********************************************************/
-void
+int
 perl_back_unbind(
 	Backend *be,
 	Connection *conn,
@@ -36,6 +36,7 @@ perl_back_unbind(
 {
 	send_ldap_result( conn, op, LDAP_NOT_SUPPORTED,
 		"", "not yet implemented" );
-	Debug( LDAP_DEBUG_ANY, "Perl UNBIND\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "Perl UNBIND\n", 0, 0, 0 );
+	return 0;
 }
 

@@ -49,6 +49,7 @@ main( int argc, char **argv )
 	int      	lmax, lcur;
 	int		dbnum;
 	ID		id;
+	int		rc;
 	Backend		*be = NULL;
 	struct ldbminfo *li;
 	struct berval	bv;
@@ -103,8 +104,13 @@ main( int argc, char **argv )
 	 * initialize stuff and figure out which backend we're dealing with
 	 */
 
-	init();
-	read_config( tailorfile, &be, NULL );
+	rc = slap_init(SLAP_TOOL_MODE, "ldif2ldbm");
+	if (rc != 0 ) {
+		fprintf( stderr, "ldif2ldbm: slap_init failed!\n");
+		exit(1);
+	}
+
+	read_config( tailorfile );
 
 	if ( dbnum == -1 ) {
 		for ( dbnum = 0; dbnum < nbackends; dbnum++ ) {
@@ -125,6 +131,9 @@ main( int argc, char **argv )
 		fprintf( stderr, "Database number %d selected via -n is not an ldbm database\n", dbnum );
 		exit( 1 );
 	}
+
+	slap_startup(dbnum);
+
 	be = &backends[dbnum];
 
 	/* disable write sync'ing */
@@ -260,9 +269,12 @@ main( int argc, char **argv )
 			lcur = 0;
 		}
 	}
-	(*be->be_close)( be );
+
+	slap_shutdown(dbnum);
 
 	wait4kids( -1 );
+
+	slap_destroy();
 
 	exit( 0 );
 }

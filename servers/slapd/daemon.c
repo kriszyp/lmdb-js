@@ -390,18 +390,6 @@ slapd_daemon(
 	}
 	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 
-	/* let backends do whatever cleanup they need to do */
-	Debug( LDAP_DEBUG_TRACE,
-	    "slapd shutdown: closing each backends.\n",
-	    0, 0, 0 );
-	be_close();
-
-	Debug( LDAP_DEBUG_TRACE,
-	    "slapd shutdown: shutdown backends.\n",
-	    0, 0, 0 );
-	/* be_shutdown(); */
-	Debug( LDAP_DEBUG_ANY, "slapd: stopped\n", 0, 0, 0 );
-
 	return NULL;
 }
 

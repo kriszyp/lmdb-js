@@ -61,9 +61,38 @@ ldap_pvt_thread_mutex_t	num_sent_mutex;
 ldap_pvt_thread_mutex_t	entry2str_mutex;
 ldap_pvt_thread_mutex_t	replog_mutex;
 
-void
-init( void )
+static char* slap_name;
+int slapMode = 0;
+
+int
+slap_init( int mode, char *name )
 {
+	int rc;
+
+	if( slapMode ) {
+		Debug( LDAP_DEBUG_ANY,
+	   	 "%s init: init called twice (old=%d, new=%d)\n",
+	   	 name, slapMode, mode );
+		return 1;
+	}
+
+	slapMode = mode;
+
+	if(!slapMode) {
+		Debug( LDAP_DEBUG_ANY,
+	   	 "%s init: undefined mode (%d).\n",
+	   	 name, mode, 0 );
+		return 1;
+	}
+
+	Debug( LDAP_DEBUG_TRACE,
+		"%s init: initiated %s.\n",
+		name,
+		mode == SLAP_SERVER_MODE ? "server" : "tool",
+		0 );
+
+	slap_name = name;
+	
 	(void) ldap_pvt_thread_initialize();
 
 	ldap_pvt_thread_mutex_init( &active_threads_mutex );
@@ -78,4 +107,50 @@ init( void )
 #ifdef SLAPD_CRYPT
 	ldap_pvt_thread_mutex_init( &crypt_mutex );
 #endif
+
+	rc = backend_init();
+
+	return rc;
 }
+
+int slap_startup(int dbnum)
+{
+	int rc;
+
+	Debug( LDAP_DEBUG_TRACE,
+		"%s startup: initiated.\n",
+		slap_name, 0, 0 );
+
+	rc = backend_startup(dbnum);
+
+	return rc;
+}
+
+int slap_shutdown(int dbnum)
+{
+	int rc;
+
+	Debug( LDAP_DEBUG_TRACE,
+		"%s shutdown: initiated\n",
+		slap_name, 0, 0 );
+
+	/* let backends do whatever cleanup they need to do */
+	rc = backend_shutdown(dbnum); 
+
+	return rc;
+}
+
+int slap_destroy(void)
+{
+	int rc;
+
+	Debug( LDAP_DEBUG_TRACE,
+		"%s shutdown: freeing system resources.\n",
+		slap_name, 0, 0 );
+
+	rc = backend_destroy();
+
+	/* should destory the above mutex */
+	return rc;
+}
+

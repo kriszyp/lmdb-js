@@ -227,18 +227,54 @@ struct objclass {
 };
 
 /*
- * represents a "database"
+ * Backend-info
+ * represents a backend 
  */
 
-typedef struct backend Backend;
-struct backend {
+typedef struct backend_info BackendInfo;	/* per backend type */
+typedef struct backend_db BackendDB;		/* per backend database */
+
+extern int nBackendInfo;
+extern int nBackendDB;
+extern BackendInfo	*backendInfo;
+extern BackendDB	*backendDB;
+
+extern int			slapMode;	
+#define SLAP_UNDEFINED_MODE	0
+#define SLAP_SERVER_MODE	1
+#define SLAP_TOOL_MODE		2
+
+/* temporary aliases */
+typedef BackendDB Backend;
+#define nbackends nBackendDB
+#define backends backendDB
+
+struct backend_db {
+	BackendInfo	*bd_info;	/* pointer to shared backend info */
+
+	/* BackendInfo accessors */
+#define		be_config	bd_info->bi_db_config
+#define		be_type		bd_info->bi_type
+
+#define		be_bind		bd_info->bi_op_bind
+#define		be_unbind	bd_info->bi_op_unbind
+#define		be_add		bd_info->bi_op_add
+#define		be_compare	bd_info->bi_op_compare
+#define		be_delete	bd_info->bi_op_delete
+#define		be_modify	bd_info->bi_op_modify
+#define		be_modrdn	bd_info->bi_op_modrdn
+#define		be_search	bd_info->bi_op_search
+
+#define		be_group	bd_info->bi_acl_group
+
+	/* these should be renamed from be_ to bd_ */
 	char	**be_suffix;	/* the DN suffixes of data in this backend */
-        char    **be_suffixAlias;       /* the DN suffix aliases of data in this backend */
+	char    **be_suffixAlias;       /* the DN suffix aliases of data in this backend */
 	char	*be_root_dn;	/* the magic "root" dn for this db 	*/
 	char	*be_root_ndn;	/* the magic "root" normalized dn for this db	*/
 	char	*be_root_pw;	/* the magic "root" password for this db	*/
 	int	be_readonly;	/* 1 => db is in "read only" mode	   */
-        int     be_maxDerefDepth;       /* limit for depth of an alias deref  */
+	int     be_maxDerefDepth;       /* limit for depth of an alias deref  */
 	int	be_sizelimit;	/* size limit for this backend   	   */
 	int	be_timelimit;	/* time limit for this backend       	   */
 	struct acl *be_acl;	/* access control list for this backend	   */
@@ -247,49 +283,106 @@ struct backend {
 	char	*be_replogfile;	/* replication log file (in master)	   */
 	char	*be_update_ndn;	/* allowed to make changes (in replicas)   */
 	int	be_lastmod;	/* keep track of lastmodified{by,time}	   */
-	char	*be_type;	/* type of database			   */
 
 	void	*be_private;	/* anything the backend needs 		   */
+};
 
-	/* backend routines */
-	int	(*be_bind)   LDAP_P((Backend *be,
+struct backend_info {
+	char	*bi_type;	/* type of backend */
+
+	/*
+	 * per backend type routines:
+	 * bi_init: called to allocate a backend_info structure,
+	 *		called once BEFORE configuration file is read.
+	 *		bi_init() initializes this structure hence is
+	 *		called directly from be_initialize()
+	 * bi_config: called per 'backend' specific option
+	 *		all such options must before any 'database' options
+	 *		bi_config() is called only from read_config()
+	 * bi_open: called to open each database, called
+	 *		once AFTER configuration file is read but
+	 *		BEFORE any bi_db_open() calls.
+	 *		bi_open() is called from backend_startup()
+	 * bi_close: called to close each database, called
+	 *		once during shutdown after all bi_db_close calls.
+	 *		bi_close() is called from backend_shutdown()
+	 * bi_destroy: called to destroy each database, called
+	 *		once during shutdown after all bi_db_destroy calls.
+	 *		bi_destory() is called from backend_destroy()
+	 */
+	int (*bi_init)	LDAP_P((BackendInfo *bi));
+	int	(*bi_config) LDAP_P((BackendInfo *bi,
+		char *fname, int lineno, int argc, char **argv ));
+	int (*bi_open) LDAP_P((BackendInfo *bi));
+	int (*bi_close) LDAP_P((BackendInfo *bi));
+	int (*bi_destroy) LDAP_P((BackendInfo *bi));
+
+	/*
+	 * per database routines:
+	 * bi_db_init: called to initialize each database,
+	 *	called upon reading 'database <type>' 
+	 *	called only from backend_db_init()
+	 * bi_db_config: called to configure each database,
+	 *  called per database to handle per database options
+	 *	called only from read_config()
+	 * bi_db_open: called to open each database
+	 *	called once per database immediately AFTER bi_open()
+	 *	calls but before daemon startup.
+	 *  called only by backend_startup()
+	 * bi_db_close: called to close each database
+	 *	called once per database during shutdown but BEFORE
+	 *  any bi_close call.
+	 *  called only by backend_shutdown()
+	 * bi_db_destroy: called to destroy each database
+	 *  called once per database during shutdown AFTER all
+	 *  bi_close calls but before bi_destory calls.
+	 *  called only by backend_destory()
+	 */
+	int (*bi_db_init) LDAP_P((Backend *bd));
+	int	(*bi_db_config) LDAP_P((Backend *bd,
+		char *fname, int lineno, int argc, char **argv ));
+	int (*bi_db_open) LDAP_P((Backend *bd));
+	int (*bi_db_close) LDAP_P((Backend *bd));
+	int (*bi_db_destroy) LDAP_P((Backend *db));
+
+	/* LDAP Operations Handling Routines */
+	int	(*bi_op_bind)  LDAP_P(( BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		char *dn, int method, struct berval *cred, char** edn ));
-	void	(*be_unbind) LDAP_P((Backend *be,
+	int (*bi_op_unbind) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o ));
-	int	(*be_search) LDAP_P((Backend *be,
+	int	(*bi_op_search) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		char *base, int scope, int deref, int slimit, int tlimit,
 		Filter *f, char *filterstr, char **attrs, int attrsonly));
-	int	(*be_compare)LDAP_P((Backend *be,
+	int	(*bi_op_compare)LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		char *dn, Ava *ava));
-	int	(*be_modify) LDAP_P((Backend *be,
+	int	(*bi_op_modify) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		char *dn, LDAPModList *m));
-	int	(*be_modrdn) LDAP_P((Backend *be,
+	int	(*bi_op_modrdn) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		char *dn, char *newrdn, int deleteoldrdn ));
-	int	(*be_add)    LDAP_P((Backend *be,
+	int	(*bi_op_add)    LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		Entry *e));
-	int	(*be_delete) LDAP_P((Backend *be,
+	int	(*bi_op_delete) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		char *dn));
-	/* Bug: be_abandon in unused! */
-	void	(*be_abandon)LDAP_P((Backend *be,
+	/* Bug: be_op_abandon in unused! */
+	int	(*bi_op_abandon) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		int msgid));
-	void	(*be_config) LDAP_P((Backend *be,
-		char *fname, int lineno, int argc, char **argv ));
-	void	(*be_init)   LDAP_P((Backend *be));
-	void	(*be_close)  LDAP_P((Backend *be));
 
+	/* Auxilary Functions */
 #ifdef SLAPD_ACLGROUPS
-	int	(*be_group)  LDAP_P((Backend *be, Entry *e,
-		char *bdn, char *edn,
+	int	(*bi_acl_group)  LDAP_P((Backend *bd,
+		Entry *e, char *bdn, char *edn,
 		char *objectclassValue, char *groupattrName ));
 #endif
+
+	void	*bi_private;	/* anything the backend needs */
 };
 
 /*

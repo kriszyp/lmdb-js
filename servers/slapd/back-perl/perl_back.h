@@ -1,8 +1,6 @@
 #ifndef PERL_BACK_H
 #define PERL_BACK_H 1
 
-#include <ldap_cdefs.h>
-
 LDAP_BEGIN_DECL
 
 /*
@@ -18,5 +16,7 @@ typedef struct perl_backend_instance {
 } PerlBackend;
 
 LDAP_END_DECL
+
+#include "external.h"
 
 #endif

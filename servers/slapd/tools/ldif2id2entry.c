@@ -81,8 +81,8 @@ main( int argc, char **argv )
 	 * initialize stuff and figure out which backend we're dealing with
 	 */
 
-	init();
-	read_config( tailorfile, &be, NULL );
+	slap_init(SLAP_TOOL_MODE, "ldif2id2entry");
+	read_config( tailorfile );
 
 	if ( dbnum == -1 ) {
 		for ( dbnum = 0; dbnum < nbackends; dbnum++ ) {
@@ -103,6 +103,9 @@ main( int argc, char **argv )
 		fprintf( stderr, "Database number %d selected via -n is not an ldbm database\n", dbnum );
 		exit( 1 );
 	}
+
+	slap_startup(dbnum);
+
 	be = &backends[dbnum];
 
 	/* disable write sync'ing */
@@ -183,7 +186,8 @@ main( int argc, char **argv )
 			line[0] = '\0';
 		}
 	}
-	(*be->be_close)( be );
+
+	slap_shutdown(dbnum);
 
 	id++;
 	sprintf( line, "%s/NEXTID",
@@ -195,6 +199,8 @@ main( int argc, char **argv )
 		fprintf( fp, "%ld\n", id );
 		fclose( fp );
 	}
+
+	slap_destroy();
 
 	exit( 0 );
 }

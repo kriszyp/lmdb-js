@@ -202,7 +202,9 @@ LDAP_END_DECL
 
 LDAP_BEGIN_DECL
 
-void ldbm_initialize( void );
+int ldbm_initialize( void );
+int ldbm_shutdown( void );
+
 int	ldbm_errno( LDBM ldbm );
 LDBM	ldbm_open( char *name, int rw, int mode, int dbcachesize );
 void	ldbm_close( LDBM ldbm );

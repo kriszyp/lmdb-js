@@ -40,7 +40,7 @@ do_unbind(
 	    op->o_opid, 0, 0, 0 );
 
 	/* pass the unbind to all backends */
-	be_unbind( conn, op );
+	backend_unbind( conn, op );
 	
 	/* close the connection to the client */
 	close_connection( conn, op->o_connid, op->o_opid );
