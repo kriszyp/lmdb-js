@@ -13,9 +13,7 @@
 void
 slap_op_free( Operation *op )
 {
-#ifdef LDAP_DEBUG
 	assert( op->o_next == NULL );
-#endif
 
 	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 

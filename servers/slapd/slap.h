@@ -13,9 +13,6 @@
 #include <ac/syslog.h>
 #include <ac/regex.h>
 
-#undef NDEBUG
-#include <assert.h>
-
 #include "avl.h"
 
 #ifndef ldap_debug

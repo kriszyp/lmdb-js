@@ -27,12 +27,9 @@
 
 #include "lber-int.h"
 
-#ifdef LDAP_DEBUG
-#include <assert.h>
+#ifdef LDAP_TEST
 #undef TEST_PARTIAL_READ
 #undef TEST_PARTIAL_WRITE
-#else
-#define assert( cond )
 #endif
 
 #define MAX_BUF_SIZE	65535

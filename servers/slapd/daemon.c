@@ -26,12 +26,6 @@
 #include <sys/ioctl.h>
 #endif
 
-#ifdef LDAP_DEBUG
-#include <assert.h>
-#else
-#define assert( cond )
-#endif
-
 #ifdef HAVE_TCPD
 #include <tcpd.h>
 
@@ -165,9 +159,8 @@ slapd_daemon(
 			if ( (c[i].c_state != SLAP_C_INACTIVE)  
 				&& (c[i].c_state != SLAP_C_CLOSING) )
 			{
-#ifdef LDAP_DEBUG
 				assert(lber_pvt_sb_in_use( &c[i].c_sb ));
-#endif
+
 				FD_SET( lber_pvt_sb_get_desc(&c[i].c_sb),
 					&readfds );
 				if (lber_pvt_sb_data_ready(&c[i].c_sb))

@@ -32,12 +32,6 @@
 
 #include "lber-int.h"
 
-#ifdef LDAP_DEBUG
-#include <assert.h>
-#else
-#define assert(cond)
-#endif
-
 static long BerRead LDAP_P(( Sockbuf *sb, char *buf, long len ));
 static int ber_realloc LDAP_P(( BerElement *ber, unsigned long len ));
 
