@@ -34,12 +34,13 @@ LDAP_BEGIN_DECL
 #define LDAP_BOOL_RESTART		1
 #define LDAP_BOOL_DNS			2
 
+#define LDAP_BOOLEANS	unsigned long
 #define LDAP_BOOL(n)	(1 << (n))
-#define LDAP_BOOL_GET(ld, bool)	((ld)->ld_booleans & LDAP_BOOL(bool) \
+#define LDAP_BOOL_GET(lo, bool)	((lo)->ldo_booleans & LDAP_BOOL(bool) \
 									?  LDAP_OPT_ON : LDAP_OPT_OFF)
-#define LDAP_BOOL_SET(ld, bool) ((ld)->ld_booleans |= LDAP_BOOL(bool))
-#define LDAP_BOOL_CLR(ld, bool) ((ld)->ld_booleans &= ~LDAP_BOOL(bool))
-#define LDAP_BOOL_ZERO(ld) ((ld)->ld_booleans = 0)
+#define LDAP_BOOL_SET(lo, bool) ((lo)->ldo_booleans |= LDAP_BOOL(bool))
+#define LDAP_BOOL_CLR(lo, bool) ((lo)->ldo_booleans &= ~LDAP_BOOL(bool))
+#define LDAP_BOOL_ZERO(lo) ((lo)->ldo_booleans = 0)
 
 /*
  * This structure represents both ldap messages and ldap responses.
@@ -57,24 +58,49 @@ struct ldapmsg {
 };
 
 /*
+ * structure representing get/set'able options
+ * which have global defaults.
+ */
+struct ldapoptions {
+	int		ldo_version;	/* version to connect at */
+	int		ldo_deref;
+	int		ldo_timelimit;
+	int		ldo_sizelimit;
+
+	int		ldo_cldaptries;	/* connectionless search retry count */
+	int		ldo_cldaptimeout;/* time between retries */
+	int		ldo_refhoplimit;	/* limit on referral nesting */
+
+	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
+};
+
+/*
  * structure representing an ldap connection
  */
 
 struct ldap {
 	Sockbuf		ld_sb;		/* socket descriptor & buffer */
-	char		*ld_host;
-	int		ld_version;
-	char		ld_lberoptions;
-	int		ld_deref;
-	int		ld_timelimit;
-	int		ld_sizelimit;
+
+	struct ldapoptions ld_options;
+
+#define ld_deref		ld_options.ldo_deref
+#define ld_timelimit	ld_options.ldo_timelimit
+#define ld_sizelimit	ld_options.ldo_sizelimit
+
+#define ld_cldaptries	ld_options.ldo_cldaptries
+#define ld_cldaptimeout	ld_options.ldo_cldaptimeout
+#define ld_refhoplimit	ld_options.ldo_refhoplimit
+
+	int		ld_version;		/* version connected at */
+	char	*ld_host;
+	char	ld_lberoptions;
 
 	LDAPFiltDesc	*ld_filtd;	/* from getfilter for ufn searches */
 	char		*ld_ufnprefix;	/* for incomplete ufn's */
 
 	int		ld_errno;
-	char		*ld_error;
-	char		*ld_matched;
+	char	*ld_error;
+	char	*ld_matched;
 	int		ld_msgid;
 
 	/* do not mess with these */
@@ -89,17 +115,12 @@ struct ldap {
 	LDAPCache	*ld_cache;	/* non-null if cache is initialized */
 	char		*ld_cldapdn;	/* DN used in connectionless search */
 
-	/* it is OK to change these next four values directly */
-	int		ld_cldaptries;	/* connectionless search retry count */
-	int		ld_cldaptimeout;/* time between retries */
-	int		ld_refhoplimit;	/* limit on referral nesting */
-	unsigned long	ld_booleans;	/* boolean options */
-
 	/* do not mess with the rest though */
 	char		*ld_defhost;	/* full name of default server */
 	int		ld_defport;	/* port of default server */
 	BERTranslateProc ld_lber_encode_translate_proc;
 	BERTranslateProc ld_lber_decode_translate_proc;
+
 #ifdef LDAP_REFERRALS
 	LDAPConn	*ld_defconn;	/* default connection */
 	LDAPConn	*ld_conns;	/* list of server connections */
@@ -115,7 +136,7 @@ struct ldap {
  * in init.c
  */
 extern int openldap_ldap_initialized;
-extern struct ldap openldap_ld_globals;
+extern struct ldapoptions openldap_ldap_global_options;
 void openldap_ldap_initialize LDAP_P((void));
 
 /*

@@ -169,7 +169,8 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 			rc = ldap_select1( ld, tvp );
 
 			if ( rc == 0 || ( rc == -1 && (
-				(LDAP_BOOL_GET(ld, LDAP_BOOL_RESTART) == LDAP_OPT_OFF)
+				( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART)
+					== LDAP_OPT_OFF )
 			    || errno != EINTR ))) {
 				ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
 				    LDAP_TIMEOUT);
@@ -211,8 +212,10 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 #endif
 
 			if ( rc == 0 || ( rc == -1 && (
-				(LDAP_BOOL_GET(ld, LDAP_BOOL_RESTART) == LDAP_OPT_OFF)
-				|| errno != EINTR ))) {
+				( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART)
+					== LDAP_OPT_OFF )
+				|| errno != EINTR )))
+			{
 				ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
 				    LDAP_TIMEOUT);
 				return( rc );
@@ -327,8 +330,10 @@ read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 
 	if ( tag != LDAP_RES_SEARCH_ENTRY ) {
 		if ( ld->ld_version >= LDAP_VERSION2 &&
-			    ( lr->lr_parent != NULL ||
-				(LDAP_BOOL_GET(ld, LDAP_BOOL_REFERRALS) != LDAP_OPT_OFF))) {
+			( lr->lr_parent != NULL ||
+			( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS)
+				!= LDAP_OPT_OFF ) ) )
+		{
 			tmpber = ber;	/* struct copy */
 			if ( ber_scanf( &tmpber, "{iaa}", &lderr,
 			    &lr->lr_res_matched, &lr->lr_res_error )

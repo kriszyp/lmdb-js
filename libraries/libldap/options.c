@@ -10,11 +10,11 @@
 
 int
 ldap_get_option(
-	LDAP	*ldp,
+	LDAP	*ld,
 	int		option,
 	void	*outvalue)
 {
-	LDAP *ld;
+	struct ldapoptions *lo;
 
 	if(!openldap_ldap_initialized) {
 		openldap_ldap_initialize();
@@ -25,10 +25,10 @@ ldap_get_option(
 		return -1;
 	}
 
-	if(ldp == NULL) {
-		ld = &openldap_ld_globals;
+	if(ld == NULL) {
+		lo = &openldap_ldap_global_options;
 	} else {
-		ld = ldp;
+		lo = &ld->ld_options;
 	}
 
 	switch(option) {
@@ -57,7 +57,7 @@ ldap_get_option(
 		} break;
 
 	case LDAP_OPT_DESC:
-		if(ldp == NULL) {
+		if(ld == NULL) {
 			/* bad param */
 			break;
 		} 
@@ -66,30 +66,35 @@ ldap_get_option(
 		return 0;
 
 	case LDAP_OPT_DEREF:
-		* (int *) outvalue = ld->ld_deref;
+		* (int *) outvalue = lo->ldo_deref;
 		return 0;
 
 	case LDAP_OPT_SIZELIMIT:
-		* (int *) outvalue = ld->ld_sizelimit;
+		* (int *) outvalue = lo->ldo_sizelimit;
 		return 0;
 
 	case LDAP_OPT_TIMELIMIT:
-		* (int *) outvalue = ld->ld_timelimit;
+		* (int *) outvalue = lo->ldo_timelimit;
 		return 0;
 
 	case LDAP_OPT_REFERRALS:
-		* (int *) outvalue = (int) LDAP_BOOL_GET(ld, LDAP_BOOL_REFERRALS);
+		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_REFERRALS);
 		return 0;
 		
 	case LDAP_OPT_RESTART:
-		* (int *) outvalue = (int) LDAP_BOOL_GET(ld, LDAP_BOOL_RESTART);
+		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_RESTART);
 		return 0;
 
 	case LDAP_OPT_DNS:	/* LDAPv2 */
-		* (int *) outvalue = (int) LDAP_BOOL_GET(ld, LDAP_BOOL_DNS);
+		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_DNS);
 		return 0;
 
 	case LDAP_OPT_PROTOCOL_VERSION:
+		if(ld == NULL) {
+			/* bad param */
+			break;
+		} 
+
 		* (int *) outvalue = ld->ld_version;
 		return 0;
 
@@ -99,15 +104,27 @@ ldap_get_option(
 		break;
 
 	case LDAP_OPT_HOST_NAME:
+		if(ld == NULL) {
+			/* bad param */
+			break;
+		} 
 		* (char **) outvalue = ld->ld_host;
 		return 0;
 
 	case LDAP_OPT_ERROR_NUMBER:
+		if(ld == NULL) {
+			/* bad param */
+			break;
+		} 
 		* (int *) outvalue = ld->ld_errno;
 		return 0;
 
 	case LDAP_OPT_ERROR_STRING:
 		/* not yet supported */
+		if(ld == NULL) {
+			/* bad param */
+			break;
+		} 
 		break;
 
 	default:
@@ -120,11 +137,11 @@ ldap_get_option(
 
 int
 ldap_set_option(
-	LDAP	*ldp,
+	LDAP	*ld,
 	int		option,
 	void	*invalue)
 {
-	LDAP *ld;
+	struct ldapoptions *lo;
 
 	if(!openldap_ldap_initialized) {
 		openldap_ldap_initialize();
@@ -135,10 +152,10 @@ ldap_set_option(
 		return -1;
 	}
 
-	if(ldp == NULL) {
-		ld = &openldap_ld_globals;
+	if(ld == NULL) {
+		lo = &openldap_ldap_global_options;
 	} else {
-		ld = ldp;
+		lo = &ld->ld_options;
 	}
 
 	switch(option) {
@@ -148,30 +165,30 @@ ldap_set_option(
 		break;
 
 	case LDAP_OPT_DEREF:
-		ld->ld_deref = * (int *) invalue;
+		lo->ldo_deref = * (int *) invalue;
 		return 0;
 
 	case LDAP_OPT_SIZELIMIT:
-		ld->ld_sizelimit = * (int *) invalue;
+		lo->ldo_sizelimit = * (int *) invalue;
 		return 0;
 
 	case LDAP_OPT_TIMELIMIT:
-		ld->ld_timelimit = * (int *) invalue;
+		lo->ldo_timelimit = * (int *) invalue;
 		return 0;
 
 	case LDAP_OPT_REFERRALS:
 		if((int) invalue == (int) LDAP_OPT_ON) {
-			LDAP_BOOL_SET(ld, LDAP_BOOL_REFERRALS);
+			LDAP_BOOL_SET(lo, LDAP_BOOL_REFERRALS);
 		} else {
-			LDAP_BOOL_CLR(ld, LDAP_BOOL_REFERRALS);
+			LDAP_BOOL_CLR(lo, LDAP_BOOL_REFERRALS);
 		}
 		return 0;
 
 	case LDAP_OPT_RESTART:
 		if((int) invalue == (int) LDAP_OPT_ON) {
-			LDAP_BOOL_SET(ld, LDAP_BOOL_RESTART);
+			LDAP_BOOL_SET(lo, LDAP_BOOL_RESTART);
 		} else {
-			LDAP_BOOL_CLR(ld, LDAP_BOOL_RESTART);
+			LDAP_BOOL_CLR(lo, LDAP_BOOL_RESTART);
 		}
 		return 0;
 

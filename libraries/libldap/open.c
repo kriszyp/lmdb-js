@@ -99,6 +99,10 @@ ldap_init( char *defhost, int defport )
 {
 	LDAP			*ld;
 
+	if(!openldap_ldap_initialized) {
+		openldap_ldap_initialize();
+	}
+
 	Debug( LDAP_DEBUG_TRACE, "ldap_init\n", 0, 0, 0 );
 
 #ifdef HAVE_WINSOCK2
@@ -149,10 +153,10 @@ ldap_init( char *defhost, int defport )
 		return( NULL );
 	}
 
-	LDAP_BOOL_ZERO(ld);
-	LDAP_BOOL_SET(ld, LDAP_BOOL_REFERRALS);
+	LDAP_BOOL_ZERO(&ld->ld_options);
+	LDAP_BOOL_SET(&ld->ld_options, LDAP_BOOL_REFERRALS);
 #else
-	LDAP_BOOL_ZERO(ld);
+	LDAP_BOOL_ZERO(&ld->ld_options);
 #endif
 
 	if ( defhost != NULL &&
@@ -169,10 +173,10 @@ ldap_init( char *defhost, int defport )
 	ld->ld_defport = ( defport == 0 ) ? LDAP_PORT : defport;
 	ld->ld_version = LDAP_VERSION;
 	ld->ld_lberoptions = LBER_USE_DER;
-	ld->ld_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
+	ld->ld_options.ldo_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
 
 #ifdef LDAP_REFERRALS
-	LDAP_BOOL_SET(ld, LDAP_BOOL_REFERRALS);
+	LDAP_BOOL_SET(&ld->ld_options, LDAP_BOOL_REFERRALS);
 #endif /* LDAP_REFERRALS */
 
 #if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )

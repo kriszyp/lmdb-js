@@ -9,7 +9,7 @@
 
 #include "ldap-int.h"
 
-struct ldap openldap_ld_globals;
+struct ldapoptions openldap_ldap_global_options;
 
 int	openldap_ldap_initialized = 0;
 
