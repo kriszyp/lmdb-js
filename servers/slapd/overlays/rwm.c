@@ -34,6 +34,7 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
 	struct berval		dn = BER_BVNULL,
+				*dnp = NULL,
 				ndn = BER_BVNULL;
 	int			rc = 0;
 	dncookie		dc;
@@ -51,20 +52,35 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 	dc.normalized = 0;
 #endif
 
-	rc = rwm_dn_massage( &dc, &op->o_req_dn, &dn, &ndn );
+	/* NOTE: in those cases where only the ndn is available,
+	 * and the caller sets op->o_req_dn = op->o_req_ndn,
+	 * only rewrite the op->o_req_ndn and use it as 
+	 * op->o_req_dn as well */
+	if ( op->o_req_dn.bv_val != op->o_req_ndn.bv_val ) {
+		dnp = &dn;
+	}
+
+	rc = rwm_dn_massage( &dc, &op->o_req_dn, dnp, &ndn );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
 
-	if ( dn.bv_val == op->o_req_dn.bv_val ) {
+	if ( ( dnp && dn.bv_val == op->o_req_dn.bv_val ) ||
+		( !dnp && ndn.bv_val == op->o_req_ndn.bv_val ) ) {
 		return LDAP_SUCCESS;
 	}
 
-	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	if ( dnp ) {
+		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	}
 
-	op->o_req_dn = dn;
 	op->o_req_ndn = ndn;
+	if ( dnp ) {
+		op->o_req_dn = dn;
+	} else {
+		op->o_req_dn = ndn;
+	}
 
 	return LDAP_SUCCESS;
 }
