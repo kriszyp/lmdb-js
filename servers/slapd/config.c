@@ -930,7 +930,23 @@ read_config( const char *fname )
 
 				}
 				charray_add( &be->be_suffix, dn );
+#ifndef USE_LDAP_DN_PARSING
 				(void) ldap_pvt_str2upper( dn );
+#else /* USE_LDAP_DN_PARSING */
+				if ( dn_normalize( dn ) == NULL ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+						"%s: line %d: "
+						"unable to normalize suffix "
+						"\"%s\"\n", dn ));
+#else
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+						"unable to normalize suffix "
+						"\"%s\"\n", dn, NULL, NULL );
+#endif
+					return 1;
+				}
+#endif /* USE_LDAP_DN_PARSING */
 				charray_add( &be->be_nsuffix, dn );
 				free( dn );
 			}

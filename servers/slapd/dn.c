@@ -254,8 +254,6 @@ dn_normalize( char *dn )
 	AC_MEMCPY( dn, normalized->bv_val, normalized->bv_len + 1 );
 	ber_bvfree( normalized );
 
-	( void )ldap_pvt_str2upper( dn );
-
 	return( dn );
 	
 #else /* !USE_LDAP_DN_PARSING */
