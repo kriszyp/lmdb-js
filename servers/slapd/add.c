@@ -246,7 +246,7 @@ do_add( Connection *conn, Operation *op )
 		Debug(LDAP_DEBUG_TRACE, "do_add: add preoperation plugin failed.\n",
 				0, 0, 0);
 		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0 )
-			rc = LDAP_OPERATIONS_ERROR;
+			rc = LDAP_OTHER;
 		goto done;
 #endif
 	}

@@ -559,7 +559,7 @@ do_bind(
 		int ldapRc;
 
 		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&ldapRc ) != 0 )
-			ldapRc = LDAP_OPERATIONS_ERROR;
+			ldapRc = LDAP_OTHER;
 
 		edn.bv_val = NULL;
 		edn.bv_len = 0;

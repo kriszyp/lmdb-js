@@ -178,7 +178,7 @@ do_delete(
 				0, 0, 0);
 #endif
 		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0 )
-			rc = LDAP_OPERATIONS_ERROR;
+			rc = LDAP_OTHER;
 		goto cleanup;
 	}
 #endif /* defined( LDAP_SLAPI ) */

@@ -256,26 +256,26 @@ do_extended(
 		rc = slapi_pblock_set( pb, SLAPI_EXT_OP_REQ_OID,
 				(void *)reqoid.bv_val);
 		if ( rc != LDAP_SUCCESS ) {
-			rc = LDAP_OPERATIONS_ERROR;
+			rc = LDAP_OTHER;
 			goto done;
 		}
 
 		rc = slapi_pblock_set( pb, SLAPI_EXT_OP_REQ_VALUE,
 				(void *)&reqdata);
 		if ( rc != LDAP_SUCCESS ) {
-			rc = LDAP_OPERATIONS_ERROR;
+			rc = LDAP_OTHER;
 			goto done;
 		}
 
 		rc = slapi_x_connection_set_pb( pb, conn );
 		if ( rc != LDAP_SUCCESS ) {
-			rc = LDAP_OPERATIONS_ERROR;
+			rc = LDAP_OTHER;
 			goto done;
 		}
 
 		rc = slapi_x_operation_set_pb( pb, op );
 		if ( rc != LDAP_SUCCESS ) {
-			rc = LDAP_OPERATIONS_ERROR;
+			rc = LDAP_OTHER;
 			goto done;
 		}
 
