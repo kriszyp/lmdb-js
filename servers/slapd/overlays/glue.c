@@ -465,6 +465,7 @@ glue_entry_release_rw (
 	int rc;
 
 	b0 = op->o_bd;
+	b2 = *op->o_bd;
 	b2.bd_info = (BackendInfo *)glue_tool_inst( op->o_bd->bd_info );
 	op->o_bd = glue_back_select (&b2, &e->e_nname);
 
