@@ -308,7 +308,22 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-BASEDN="o=Example,c=US"
+FILTER="(uid=example)"
+echo "Searching filter=\"$FILTER\""
+echo "	attrs=\"uid\""
+echo "	base=\"$BASEDN\"..."
+echo "# searching filter=\"$FILTER\"" >> $SEARCHOUT
+echo "# 	attrs=\"uid\"" >> $SEARCHOUT
+echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" "$FILTER" uid \
+	>> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "Search failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 FILTER="(member=cn=Another Added Group,ou=Groups,$BASEDN)"
 echo "Searching filter=\"$FILTER\""
 echo "	attrs=\"member\""

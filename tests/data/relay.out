@@ -2566,6 +2566,14 @@ seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
 
 # refldap://localhost:9010/ou=Referrals,o=Beispiel,c=DE??sub
 
+# searching filter="(uid=example)"
+# 	attrs="uid"
+# 	base="o=Example,c=US"...
+dn: o=Example,c=US
+uid: example
+
+# refldap://localhost:9010/ou=Referrals,o=Beispiel,c=DE??sub
+
 # searching filter="(member=cn=Another Added Group,ou=Groups,o=Example,c=US)"
 # 	attrs="member"
 # 	base="o=Example,c=US"...
