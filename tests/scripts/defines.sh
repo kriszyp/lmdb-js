@@ -235,6 +235,7 @@ LDAPGLUEOUT=$DATADIR/ldapglue.out
 LDAPGLUEANONYMOUSOUT=$DATADIR/ldapglueanonymous.out
 RELAYOUT=$DATADIR/relay.out
 CHAINOUT=$DATADIR/chain.out
+CHAINMODOUT=$DATADIR/chainmod.out
 SQLREAD=$DATADIR/sql-read.out
 SQLWRITE=$DATADIR/sql-write.out
 
