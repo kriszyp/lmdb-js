@@ -1083,7 +1083,8 @@ bdb_dn2idl(
 	if (prefix == DN_ONE_PREFIX) {
 		rc = avl_apply(n->i_kids, insert_one, ids, -1, AVL_INORDER);
 	} else {
-		rc = bdb_idl_insert(ids, id);
+		ids[0] = 1;
+		ids[1] = id;
 		if (n->i_kids)
 			rc = avl_apply(n->i_kids, insert_sub, ids, -1, AVL_INORDER);
 	}
