@@ -102,8 +102,6 @@ ldbm_db_errcall( const char *prefix, char *message )
 #endif
 }
 
-#if DB_VERSION_MAJOR < 3
-
 int ldbm_initialize( const char* home )
 {
 	int	err;
@@ -134,6 +132,7 @@ int ldbm_initialize( const char* home )
 		}
 	}
 
+#if DB_VERSION_MAJOR < 3
 #ifndef HAVE_BERKELEY_DB_THREAD
 	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
 #endif
@@ -174,6 +173,7 @@ int ldbm_initialize( const char* home )
 #endif
 	 	return( 1 );
 	}
+#endif
 
 	return 0;
 }
@@ -182,34 +182,16 @@ int ldbm_shutdown( void )
 {
 	if( !ldbm_initialized ) return 1;
 
+#if DB_VERSION_MAJOR < 3
 	db_appexit( ldbm_Env );
 
 #ifndef HAVE_BERKELEY_DB_THREAD
 	ldap_pvt_thread_mutex_destroy( &ldbm_big_mutex );
 #endif
-
-	return 0;
-}
-
-#else  /* Berkeley v3 or greater */
-
-
-int ldbm_initialize( const char * home )
-{
-	/* v3 uses ldbm_initialize_env */
-	return 0;
-}
-
-
-int ldbm_shutdown( void )
-{
-	return 0;
-}
-
-
 #endif
 
-
+	return 0;
+}
 
 #else  /* some DB other than Berkeley V2 or greater */
 
@@ -235,7 +217,6 @@ int ldbm_shutdown( void )
 
 
 #if defined( HAVE_BERKELEY_DB ) && (DB_VERSION_MAJOR >= 3)
-
 
 DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 {
@@ -314,7 +295,6 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 void ldbm_shutdown_env(DB_ENV *env)
 {
 }
-
 
 #endif
 
