@@ -700,12 +700,9 @@ dnl ====================================================================
 dnl Check for NT Threads
 AC_DEFUN([OL_NT_THREADS], [
   	AC_CACHE_CHECK([for NT Threads], [ol_cv_nt_threads], [
-		# bogus test
-		if test $ac_cv_mingw32 = yes ; then
-			ol_cv_nt_threads=yes
-		else
-			ol_cv_nt_threads=no
-		fi
+		AC_CHECK_FUNC(_beginthread,
+			[ol_cv_nt_threads=yes],
+			[ol_cv_nt_threads=no])
 	])
 
 	if test $ol_cv_nt_threads = yes ; then
