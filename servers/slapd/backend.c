@@ -555,11 +555,11 @@ backend_db_init(
  	/* assign a default depth limit for alias deref */
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
 
-	if(bi->bi_db_init) {
+	if ( bi->bi_db_init ) {
 		rc = bi->bi_db_init( be );
 	}
 
-	if(rc != 0) {
+	if ( rc != 0 ) {
 		fprintf( stderr, "database init failed (%s)\n", type );
 		nbackends--;
 		return NULL;
@@ -583,6 +583,7 @@ be_db_close( void )
 	if ( frontendDB->bd_info->bi_db_close ) {
 		(*frontendDB->bd_info->bi_db_close)( frontendDB );
 	}
+
 }
 
 Backend *
@@ -1479,13 +1480,21 @@ backend_attribute(
 			BER_BVZERO( &anlist[ 1 ].an_name );
 			rs.sr_attrs = anlist;
 			
-			rs.sr_attr_flags = slap_attr_flags( rs.sr_attrs );
+ 			/* NOTE: backend_operational() is also called
+ 			 * when returning results, so it's supposed
+ 			 * to do no harm to entries */
+ 			rs.sr_entry = e;
+  			rc = backend_operational( op, &rs );
+ 			rs.sr_entry = NULL;
+ 
+			if ( rc == LDAP_SUCCESS ) {
+				if ( rs.sr_operational_attrs ) {
+					freeattr = 1;
+					a = rs.sr_operational_attrs;
 
-			rc = backend_operational( op, &rs );
-
-			if ( rc == LDAP_SUCCESS && rs.sr_operational_attrs ) {
-				freeattr = 1;
-				a = rs.sr_operational_attrs;
+				} else {
+					rc = LDAP_NO_SUCH_ATTRIBUTE;
+				}
 			}
 		}
 
@@ -1567,6 +1576,144 @@ freeit:		if ( e != target ) {
 	return rc;
 }
 
+#ifdef LDAP_SLAPI
+static int backend_compute_output_attr_access(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e)
+{
+	struct berval	*nval = (struct berval *)c->cac_private;
+	Operation	*op = NULL;
+
+	slapi_pblock_get( c->cac_pb, SLAPI_OPERATION, &op );
+	if ( op == NULL ) {
+		return 1;
+	}
+
+	return access_allowed( op, e, a->a_desc, nval, ACL_AUTH, NULL ) == 0;
+}
+#endif /* LDAP_SLAPI */
+
+int 
+backend_access(
+	Operation		*op,
+	Entry			*target,
+	struct berval		*edn,
+	AttributeDescription	*entry_at,
+	struct berval		*nval,
+	slap_access_t		access,
+	slap_mask_t		*mask )
+{
+	Entry		*e = NULL;
+	int		rc = LDAP_INSUFFICIENT_ACCESS;
+	Backend		*be = op->o_bd;
+
+	/* pedantic */
+	assert( op );
+	assert( op->o_conn );
+	assert( edn );
+	assert( access > ACL_NONE );
+
+	op->o_bd = select_backend( edn, 0, 0 );
+
+	if ( target && dn_match( &target->e_nname, edn ) ) {
+		e = target;
+
+	} else {
+		rc = be_entry_get_rw( op, edn, NULL, entry_at, 0, &e );
+	} 
+
+	if ( e ) {
+		Attribute	*a = NULL;
+		int		freeattr = 0;
+
+		if ( entry_at == NULL ) {
+			entry_at = slap_schema.si_ad_entry;
+		}
+
+		if ( entry_at == slap_schema.si_ad_entry || entry_at == slap_schema.si_ad_children )
+		{
+			if ( access_allowed_mask( op, e, entry_at,
+					NULL, access, NULL, mask ) == 0 )
+			{
+				rc = LDAP_INSUFFICIENT_ACCESS;
+
+			} else {
+				rc = LDAP_SUCCESS;
+			}
+
+		} else {
+			a = attr_find( e->e_attrs, entry_at );
+			if ( a == NULL ) {
+				SlapReply	rs = { 0 };
+				AttributeName	anlist[ 2 ];
+
+				anlist[ 0 ].an_name = entry_at->ad_cname;
+				anlist[ 0 ].an_desc = entry_at;
+				BER_BVZERO( &anlist[ 1 ].an_name );
+				rs.sr_attrs = anlist;
+			
+				rs.sr_attr_flags = slap_attr_flags( rs.sr_attrs );
+
+				/* NOTE: backend_operational() is also called
+				 * when returning results, so it's supposed
+				 * to do no harm to entries */
+				rs.sr_entry = e;
+				rc = backend_operational( op, &rs );
+				rs.sr_entry = NULL;
+
+				if ( rc == LDAP_SUCCESS ) {
+					if ( rs.sr_operational_attrs ) {
+						freeattr = 1;
+						a = rs.sr_operational_attrs;
+
+					} else {
+						rc = LDAP_NO_SUCH_OBJECT;
+					}
+				}
+			}
+
+			if ( a ) {
+				if ( access_allowed_mask( op, e, entry_at,
+						nval, access, NULL, mask ) == 0 )
+				{
+					rc = LDAP_INSUFFICIENT_ACCESS;
+					goto freeit;
+				}
+				rc = LDAP_SUCCESS;
+			}
+#ifdef LDAP_SLAPI
+			else if ( op->o_pb ) {
+				/* try any computed attributes */
+				computed_attr_context	ctx;
+
+				slapi_int_pblock_set_operation( op->o_pb, op );
+
+				ctx.cac_pb = op->o_pb;
+				ctx.cac_attrs = NULL;
+				ctx.cac_userattrs = 0;
+				ctx.cac_opattrs = 0;
+				ctx.cac_private = (void *)nval;
+
+				rc = compute_evaluator( &ctx, entry_at->ad_cname.bv_val, e, backend_compute_output_attr_access );
+				if ( rc == 1 ) {
+					rc = LDAP_INSUFFICIENT_ACCESS;
+
+				} else {
+					rc = LDAP_SUCCESS;
+				}
+			}
+#endif /* LDAP_SLAPI */
+		}
+freeit:		if ( e != target ) {
+			be_entry_release_r( op, e );
+		}
+		if ( freeattr ) {
+			attr_free( a );
+		}
+	}
+
+	op->o_bd = be;
+	return rc;
+}
+
 int backend_operational(
 	Operation *op,
 	SlapReply *rs )
@@ -1583,15 +1730,15 @@ int backend_operational(
 	 * and the backend supports specific operational attributes, 
 	 * add them to the attribute list
 	 */
-	if ( SLAP_OPATTRS( rs->sr_attr_flags ) || ( op->ors_attrs &&
-		ad_inlist( slap_schema.si_ad_entryDN, op->ors_attrs )))
+	if ( SLAP_OPATTRS( rs->sr_attr_flags ) || ( rs->sr_attrs &&
+		ad_inlist( slap_schema.si_ad_entryDN, rs->sr_attrs )))
 	{
 		*ap = slap_operational_entryDN( rs->sr_entry );
 		ap = &(*ap)->a_next;
 	}
 
-	if ( SLAP_OPATTRS( rs->sr_attr_flags ) || ( op->ors_attrs &&
-		ad_inlist( slap_schema.si_ad_subschemaSubentry, op->ors_attrs )))
+	if ( SLAP_OPATTRS( rs->sr_attr_flags ) || ( rs->sr_attrs &&
+		ad_inlist( slap_schema.si_ad_subschemaSubentry, rs->sr_attrs )))
 	{
 		*ap = slap_operational_subschemaSubentry( op->o_bd );
 		ap = &(*ap)->a_next;
@@ -1602,7 +1749,7 @@ int backend_operational(
 	if ( SLAP_ISOVERLAY( be_orig ))
 		op->o_bd = select_backend( be_orig->be_nsuffix, 0, 0 );
 
-	if (( SLAP_OPATTRS( rs->sr_attr_flags ) || op->ors_attrs ) &&
+	if (( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
 		op->o_bd && op->o_bd->be_operational != NULL )
 	{
 		Attribute	*a;
