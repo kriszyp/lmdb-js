@@ -92,7 +92,7 @@ LDAP_BEGIN_DECL
 
 /* schema needed by slapd */
 #define SLAPD_OID_DN_SYNTAX "1.3.6.1.4.1.1466.115.121.1.12"
-#define SLAPD_OID_ACI_SYNTAX "1.3.6.1.4.1.4203.2.1" /* experimental */
+#define SLAPD_OID_ACI_SYNTAX "1.3.6.1.4.1.4203.666.2.1" /* experimental */
 
 LIBSLAPD_F (int) slap_debug;
 
@@ -478,19 +478,19 @@ typedef struct slap_mod {
 } Modification;
 #else
 #define Modification LDAPMod
+#define sm_op mod_op
+#define sm_desc	mod_type
+#define sm_type mod_type
+#define sm_bvalues mod_bvalues
 #endif
 
 typedef struct slap_mod_list {
 	Modification sml_mod;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 #define sml_op		sml_mod.sm_op
 #define sml_desc	sml_mod.sm_desc
 #define sml_bvalues	sml_mod.sm_bvalues
-#else
-#define sml_op		sml_mod.mod_op
-#define sml_type	sml_mod.mod_type
-#define sml_values	sml_mod.mod_values
-#define sml_bvalues	sml_mod.mod_bvalues
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
+#define sml_type	sml_mod.sm_type
 #endif
 	struct slap_mod_list *sml_next;
 } Modifications;

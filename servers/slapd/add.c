@@ -256,7 +256,8 @@ add_created_attrs( Operation *op, Entry *e )
 
 	if ( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
 		bv.bv_val = "<anonymous>";
-		bv.bv_len = strlen( bv.bv_val );
+		bv.bv_len = sizeof("<anonymous>")-1;
+;
 	} else {
 		bv.bv_val = op->o_dn;
 		bv.bv_len = strlen( bv.bv_val );

@@ -27,6 +27,14 @@
 #include "slap.h"
 
 static void	modlist_free(LDAPModList *ml);
+static void mods_free(Modifications *mods);
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+/* static */ int modlist2mods(
+	LDAPModList *ml,
+	Modifications **mods,
+	char **text );
+#endif
 
 static int add_modified_attrs( Operation *op, Modifications **modlist );
 
@@ -42,10 +50,10 @@ do_modify(
 	ber_len_t	len;
 	LDAPModList	*modlist = NULL;
 	LDAPModList	**modtail = &modlist;
-	Modifications *mods = NULL;
 #ifdef LDAP_DEBUG
-	Modifications *tmp;
+	LDAPModList *tmp;
 #endif
+	Modifications *mods = NULL;
 	Backend		*be;
 	int rc;
 
@@ -158,24 +166,13 @@ do_modify(
 		goto cleanup;
 	}
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
-#else
-	mods = modlist;
-#endif
-
 #ifdef LDAP_DEBUG
 	Debug( LDAP_DEBUG_ARGS, "modifications:\n", 0, 0, 0 );
-	for ( tmp = mods; tmp != NULL; tmp = tmp->sml_next ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-		char *type = tmp->sml_desc.ad_cname->bv_val;
-#else
-		char *type = tmp->sml_type;
-#endif
+	for ( tmp = modlist; tmp != NULL; tmp = tmp->ml_next ) {
 		Debug( LDAP_DEBUG_ARGS, "\t%s: %s\n",
-			tmp->sml_op == LDAP_MOD_ADD
-				? "add" : (tmp->sml_op == LDAP_MOD_DELETE
-					? "delete" : "replace"), type, 0 );
+			tmp->ml_op == LDAP_MOD_ADD
+				? "add" : (tmp->ml_op == LDAP_MOD_DELETE
+					? "delete" : "replace"), tmp->ml_type, 0 );
 	}
 #endif
 
@@ -231,6 +228,20 @@ do_modify(
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
 #endif
 		{
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			char *text;
+			rc = modlist2mods( modlist, &mods, &text );
+
+			if( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto cleanup;
+			}
+#else
+			mods = modlist;
+			modlist = NULL;
+#endif
+
 			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
 				global_lastmod == ON)) && be->be_update_ndn == NULL )
 			{
@@ -272,12 +283,17 @@ cleanup:
 	free( ndn );
 	if ( modlist != NULL )
 		modlist_free( modlist );
+	if ( mods != NULL )
+		mods_free( mods );
 	return rc;
 }
 
 static int
 add_modified_attrs( Operation *op, Modifications **modlist )
 {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 	char		buf[22];
 	struct berval	bv;
 	struct berval	*bvals[2];
@@ -288,9 +304,6 @@ add_modified_attrs( Operation *op, Modifications **modlist )
 	bvals[0] = &bv;
 	bvals[1] = NULL;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
-#else
 	/* remove any attempts by the user to modify these attrs */
 	for ( m = *modlist; m != NULL; m = m->ml_next ) {
 		if ( oc_check_op_no_usermod_attr( m->ml_type ) ) {
@@ -300,7 +313,7 @@ add_modified_attrs( Operation *op, Modifications **modlist )
 
 	if ( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
 		bv.bv_val = "<anonymous>";
-		bv.bv_len = strlen( bv.bv_val );
+		bv.bv_len = sizeof("<anonymous>")-1;
 	} else {
 		bv.bv_val = op->o_dn;
 		bv.bv_len = strlen( bv.bv_val );
@@ -331,6 +344,42 @@ add_modified_attrs( Operation *op, Modifications **modlist )
 #endif
 
 	return LDAP_SUCCESS;
+}
+
+static void
+mod_free(
+	Modification	*mod,
+	int				freeit
+)
+{
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	ad_free( &mod->sm_desc, 0 );
+#else
+	if (mod->sm_desc) {
+		free( mod->sm_desc );
+	}
+#endif
+
+	if ( mod->sm_bvalues != NULL )
+		ber_bvecfree( mod->sm_bvalues );
+
+	if( freeit )
+		free( mod );
+}
+
+static void
+mods_free(
+    Modifications	*ml
+)
+{
+	Modifications *next;
+
+	for ( ; ml != NULL; ml = next ) {
+		next = ml->sml_next;
+
+		mod_free( &ml->sml_mod, 0 );
+		free( ml );
+	}
 }
 
 static void
