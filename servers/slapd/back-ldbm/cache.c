@@ -213,9 +213,9 @@ cache_add_entry_lock(
                     == 0 && cache->c_cursize > cache->c_maxsize ) {
 			e = cache->c_lrutail;
 
-			/* XXX check for writer lock - should also check no readers pending */
+			/* check for active readers/writer lock */
 #ifdef LDAP_DEBUG
-			assert(ldap_pvt_thread_rdwr_writers( &e->e_rdwr ) == 1);
+			assert(!ldap_pvt_thread_rdwr_active( &e->e_rdwr ));
 #endif
 
 			/* delete from cache and lru q */
