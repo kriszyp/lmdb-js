@@ -664,6 +664,7 @@ done:
 	*matchp = match;
 	return LDAP_SUCCESS;
 }
+#endif
 
 static int
 NumericStringNormalize(
@@ -719,8 +720,6 @@ NumericStringNormalize(
 
 	return LDAP_SUCCESS;
 }
-
-#endif
 
 struct syntax_defs_rec {
 	char *sd_desc;

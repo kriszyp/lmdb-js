@@ -16,6 +16,11 @@
 
 /* end of preamble */
 
+#if !defined( SLAPD_SCHEMA_COMPAT ) && !defined( SLAPD_SCHEMA_NOT_COMPAT )
+	/* use new schema codes */
+#define SLAPD_SCHEMA_NOT_COMPAT 1
+#endif
+
 /* --------------------------------------------------- */
 /* begin of MSVC5 specific entries */
 

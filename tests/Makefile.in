@@ -12,7 +12,8 @@ tests: bdb2 ldbm
 
 bdb2: test-bdb2
 test-bdb2:	FORCE
-	@-$(LN_S) $(srcdir)/data . 
+	@-$(LN_S) $(srcdir)/data data
+	@-$(LN_S) $(top_srcdir)/servers/slapd/schema schema 
 	@if test "$(BUILD_BDB2)" = "yes" ; then \
 		echo "Initiating LDAP tests..." ; \
 		$(MKDIR) test-db test-repl || true; \
@@ -23,27 +24,31 @@ test-bdb2:	FORCE
 
 ldbm: test-ldbm
 test-ldbm:	FORCE
-	@-$(LN_S) $(srcdir)/data .
+	@-$(LN_S) $(srcdir)/data data
+	@-$(LN_S) $(top_srcdir)/servers/slapd/schema schema 
 	@echo "Initiating LDAP tests..."
 	@-$(MKDIR) test-db test-repl || true
 	@$(srcdir)/scripts/all $(srcdir) ldbm
 
 passwd: test-passwd
 test-passwd: FORCE
-	@-$(LN_S) $(srcdir)/data .
+	@-$(LN_S) $(srcdir)/data data
+	@-$(LN_S) $(top_srcdir)/servers/slapd/schema schema 
 	@echo "Initiating LDAP tests..."
 	@-$(MKDIR) test-db test-repl || true
 	@$(srcdir)/scripts/passwd-search $(srcdir) passwd
 
 test-nis-schema:        test-nis-schema-ldbm
 test-nis-schema-ldbm:
-	@-$(LN_S) $(srcdir)/data .
+	@-$(LN_S) $(srcdir)/data data
+	@-$(LN_S) $(top_srcdir)/servers/slapd/schema schema 
 	@echo "Initiating LDAP server with NIS schema & ldbm backend..."; \
 	$(MKDIR) test-db test-repl ; \
 	$(srcdir)/scripts/startup_nis_ldap_server.sh $(srcdir) ldbm
 
 test-nis-schema-bdb2:
-	@-$(LN_S) $(srcdir)/data .
+	@-$(LN_S) $(srcdir)/data data
+	@-$(LN_S) $(top_srcdir)/servers/slapd/schema schema 
 	@echo "Initiating LDAP server with NIS schema & DB2 backend..."; \
 	@if test "$(BUILD_BDB2)" = "yes" ; then \
 		echo "Initiating LDAP tests..." ; \
@@ -57,6 +62,6 @@ clean-local:	FORCE
 	-$(RM) test-db/[!C]* test-repl/[!C]* *leak *gmon *core
 
 veryclean-local: FORCE
-	@-$(RM) data
+	@-$(RM) data schema
 	$(RM) -r test-db test-repl
 
