@@ -3735,6 +3735,105 @@ certificateExactMatch(
 
 	return ret;
 }
+
+/* 
+ * Index generation function
+ * We just index the serials, in most scenarios the issuer DN is one of
+ * a very small set of values.
+ */
+int certificateExactIndexer(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	struct berval **values,
+	struct berval ***keysp )
+{
+	int i;
+	struct berval **keys;
+	X509 *xcert;
+	unsigned char *p;
+	struct berval * serial;
+
+	/* we should have at least one value at this point */
+	assert( values != NULL && values[0] != NULL );
+
+	for( i=0; values[i] != NULL; i++ ) {
+		/* empty -- just count them */
+	}
+
+	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
+
+	for( i=0; values[i] != NULL; i++ ) {
+		p = values[i]->bv_val;
+		xcert = d2i_X509(NULL, &p, values[i]->bv_len);
+		if ( !xcert ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+			    "certificateExactIndexer: error parsing cert: %s\n",
+				ERR_error_string(ERR_get_error(),NULL)));
+#else
+			Debug( LDAP_DEBUG_ARGS, "certificateExactIndexer: "
+			       "error parsing cert: %s\n",
+			       ERR_error_string(ERR_get_error(),NULL),
+			       NULL, NULL );
+#endif
+			/* Do we leak keys on error? */
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		serial = asn1_integer2str(xcert->cert_info->serialNumber);
+		X509_free(xcert);
+		integerNormalize( slap_schema.si_syn_integer,
+				  serial,
+				  &keys[i] );
+		ber_bvfree(serial);
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+			   "certificateExactIndexer: returning: %s\n",
+			   keys[i]->bv_val));
+#else
+		Debug( LDAP_DEBUG_ARGS, "certificateExactIndexer: "
+		       "returning: %s\n",
+		       keys[i]->bv_val,
+		       NULL, NULL );
+#endif
+	}
+
+	keys[i] = NULL;
+	*keysp = keys;
+	return LDAP_SUCCESS;
+}
+
+/* Index generation function */
+/* We think this is always called with a value in matching rule syntax */
+int certificateExactFilter(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	void * assertValue,
+	struct berval ***keysp )
+{
+	struct berval **keys;
+	struct berval *asserted_serial;
+	struct berval *asserted_issuer_dn;
+
+	serial_and_issuer_parse(assertValue,
+				&asserted_serial,
+				&asserted_issuer_dn);
+
+	keys = ch_malloc( sizeof( struct berval * ) * 2 );
+	integerNormalize( syntax, asserted_serial, &keys[0] );
+	keys[1] = NULL;
+	*keysp = keys;
+
+	ber_bvfree(asserted_serial);
+	ber_bvfree(asserted_issuer_dn);
+	return LDAP_SUCCESS;
+}
 #endif
 
 static int
@@ -4493,7 +4592,8 @@ struct mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.2.826.0.1.3344810.7.1 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		certificateExactConvert, NULL,
-		certificateExactMatch, NULL, NULL,
+		certificateExactMatch,
+		certificateExactIndexer, certificateExactFilter,
 		NULL},
 #endif
 
