@@ -40,7 +40,7 @@ char		**g_argv;
  */
 ldap_pvt_thread_pool_t	connection_pool;
 ldap_pvt_thread_mutex_t	gmtime_mutex;
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_PASSWD )
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 ldap_pvt_thread_mutex_t	passwd_mutex;
 #endif
 
@@ -103,7 +103,7 @@ slap_init( int mode, const char *name )
 			ldap_pvt_thread_mutex_init( &num_sent_mutex );
 
 			ldap_pvt_thread_mutex_init( &gmtime_mutex );
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_PASSWD )
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 			ldap_pvt_thread_mutex_init( &passwd_mutex );
 #endif
 

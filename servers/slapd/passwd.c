@@ -224,7 +224,7 @@ slap_passwd_check(
 	int     i;
 	int result = 1;
 
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_PASSWD )
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 	ldap_pvt_thread_mutex_lock( &passwd_mutex );
 #ifdef SLAPD_SPASSWD
 	lutil_passwd_sasl_conn = conn->c_sasl_context;
@@ -238,7 +238,7 @@ slap_passwd_check(
 		}
 	}
 
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_PASSWD )
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 #ifdef SLAPD_SPASSWD
 	lutil_passwd_sasl_conn = NULL;
 #endif
@@ -266,13 +266,13 @@ struct berval * slap_passwd_hash(
 
 	struct berval *new;
 
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_PASSWD )
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 	ldap_pvt_thread_mutex_lock( &passwd_mutex );
 #endif
 
 	new = lutil_passwd_hash( cred , hash );
 	
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_PASSWD )
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 	ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 #endif
 
