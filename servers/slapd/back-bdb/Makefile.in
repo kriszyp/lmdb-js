@@ -3,7 +3,7 @@
 SRCS = init.c tools.c config.c \
 	add.c bind.c compare.c delete.c modify.c modrdn.c search.c \
 	extended.c passwd.c referral.c \
-	dn2entry.lo dn2id.c error.c id2entry.c idl.c nextid.c
+	dn2entry.c dn2id.c error.c id2entry.c idl.c nextid.c
 OBJS = init.lo tools.lo config.lo \
 	add.lo bind.lo compare.lo delete.lo modify.lo modrdn.lo search.lo \
 	extended.lo passwd.lo referral.lo \
