@@ -117,6 +117,13 @@ str2entry( char *s )
 			Debug( LDAP_DEBUG_TRACE,
 				"<= str2entry: str2ad(%s): %s\n", type, text, 0 );
 
+			if( slapMode & SLAP_TOOL_MODE ) {
+				entry_free( e );
+				free( value.bv_val );
+				free( type );
+				return NULL;
+			}
+
 			rc = slap_str2undef_ad( type, &ad, &text );
 
 			if( rc != LDAP_SUCCESS ) {
@@ -126,7 +133,37 @@ str2entry( char *s )
 				entry_free( e );
 				free( value.bv_val );
 				free( type );
-				return( NULL );
+				return NULL;
+			}
+		}
+
+		if( slapMode & SLAP_TOOL_MODE ) {
+			slap_syntax_validate_func *validate =
+				ad->ad_type->sat_syntax->ssyn_validate;
+
+			if( !validate ) {
+				Debug( LDAP_DEBUG_ANY,
+					"str2entry: no validator for syntax %s\n",
+					ad->ad_type->sat_syntax->ssyn_oid, 0, 0 );
+				entry_free( e );
+				free( value.bv_val );
+				free( type );
+				return NULL;
+			}
+
+			/*
+			 * validate value per syntax
+			 */
+			rc = validate( ad->ad_type->sat_syntax, &value );
+
+			if( rc != 0 ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"str2entry: invalid value for syntax %s\n",
+					ad->ad_type->sat_syntax->ssyn_oid, 0, 0 );
+				entry_free( e );
+				free( value.bv_val );
+				free( type );
+				return NULL;
 			}
 		}
 
