@@ -561,7 +561,7 @@ bdb_initialize(
 
 	bi->bi_extended = bdb_extended;
 
-#if 0
+#if 1
 	/*
 	 * these routines (and their callers) are not yet designed
 	 * to work with transaction.  Using them may cause deadlock.
