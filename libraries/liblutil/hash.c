@@ -44,8 +44,7 @@ void
 lutil_HASHUpdate(
     struct lutil_HASHContext	*ctx,
     const unsigned char		*buf,
-    ber_len_t		len
-)
+    ber_len_t		len )
 {
 	const unsigned char *p, *e;
 	ber_uint_t h;
