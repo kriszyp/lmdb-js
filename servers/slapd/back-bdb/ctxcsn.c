@@ -364,8 +364,9 @@ txn_retry:
 
 			ctxcsn_locker = TXN_ID ( ltid );
 
-			rs->sr_err = bdb_csn_commit( op, rs, ltid, NULL, &suffix_ei,
-									&ctxcsn_e, &ctxcsn_added, ctxcsn_locker );
+			rs->sr_err = bdb_csn_commit( op, rs, ltid, NULL,
+						&suffix_ei, &ctxcsn_e,
+						&ctxcsn_added, ctxcsn_locker );
 			switch( rs->sr_err ) {
 			case BDB_CSN_ABORT:
 				rs->sr_err = LDAP_OTHER;
@@ -389,8 +390,10 @@ txn_retry:
 				goto done;
 			}
 
-			rs->sr_err = bdb_dn2entry( op, NULL, &op->o_bd->be_context_csn, &ctxcsn_ei,
-                                    0, ctxcsn_locker, ctxcsn_lock );
+			rs->sr_err = bdb_dn2entry( op, NULL,
+						&op->o_bd->be_context_csn,
+						&ctxcsn_ei, 0, ctxcsn_locker,
+						ctxcsn_lock );
 
 			if ( ctxcsn_ei ) {
 				ctxcsn_e = ctxcsn_ei->bei_e;
