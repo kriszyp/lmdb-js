@@ -347,7 +347,6 @@ dnl servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Make
 dnl servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 dnl servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
 dnl servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
-dnl tests/Makefile:build/top.mk:tests/Makefile.in \
 dnl Makefile:build/top.mk:Makefile.in:build/dir.mk, \
 dnl [date > stamp-h])
 
@@ -356,5 +355,6 @@ clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
 include/Makefile:build/top.mk:include/Makefile.in \
 libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
 servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
+tests/Makefile:build/top.mk:tests/Makefile.in \
 Makefile:build/top.mk:Makefile.in:build/dir.mk \
 ,[date > stamp-h])

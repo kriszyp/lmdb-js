@@ -1,5 +1,5 @@
-## Copyright 1998 Net Boolean Incorporated
-## COPYING RESTRICTIONS APPLY, See COPYING file
+## Copyright 1998 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, See COPYRIGHT file
 ##
 ## include Makefile.in for OpenLDAP
 
@@ -15,7 +15,9 @@ install: all FORCE
 all: ldapconfig.h FORCE
 
 clean: FORCE 
-veryclean: FORCE
+	$(RM) ldapconfig.h
+
+veryclean: clean FORCE
 depend: FORCE
 
 ldapconfig.h: ldapconfig.h.edit Makefile
