@@ -41,7 +41,7 @@ ldbm_back_exop_passwd(
 	char *dn;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	static AttributeDescription *entry = NULL;
+	AttributeDescription *entry = slap_schema.si_ad_entry;
 #else
 	static const char *entry = "entry";
 #endif
