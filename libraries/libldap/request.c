@@ -618,8 +618,11 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 	}
 
 	/* find original request */
-	for ( origreq = lr; origreq->lr_parent != NULL; origreq = origreq->lr_parent ) {
-		;
+	for ( origreq = lr;
+		origreq->lr_parent != NULL;
+		origreq = origreq->lr_parent )
+	{
+		/* empty */ ;
 	}
 
 	refarray = refs;
@@ -661,22 +664,30 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 					refarray[i], 0, 0);
 				if( lc->lconn_rebind_queue == NULL ) {
 					/* Create a referral list */
-					if( (lc->lconn_rebind_queue = (char ***)LDAP_MALLOC( sizeof(void *) * 2)) == NULL) {
+					lc->lconn_rebind_queue =
+						(char ***) LDAP_MALLOC( sizeof(void *) * 2));
+
+					if( lc->lconn_rebind_queue == NULL) {
 						ld->ld_errno = LDAP_NO_MEMORY;
 						rc = -1;
 						goto done;
 					}
+
 					lc->lconn_rebind_queue[0] = refarray;
 					lc->lconn_rebind_queue[1] = NULL;
 					refarray = NULL;
+
 				} else {
 					/* Count how many referral arrays we already have */
 					for( j = 0; lc->lconn_rebind_queue[j] != NULL; j++) {
-						;
+						/* empty */;
 					}
+
 					/* Add the new referral to the list */
-					if( (lc->lconn_rebind_queue = (char ***)LDAP_REALLOC(
-							lc->lconn_rebind_queue, sizeof(void *) * (j + 2))) == NULL) {
+					lc->lconn_rebind_queue = (char ***) LDAP_REALLOC(
+						lc->lconn_rebind_queue, sizeof(void *) * (j + 2));
+
+					if( lc->lconn_rebind_queue == NULL ) {
 						ld->ld_errno = LDAP_NO_MEMORY;
 						rc = -1;
 						goto done;
@@ -685,6 +696,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 					lc->lconn_rebind_queue[j+1] = NULL;
 					refarray = NULL;
 				}
+
 				/* We have queued the referral/reference, now just return */
 				rc = 0;
 				*hadrefp = 1;
