@@ -1916,10 +1916,16 @@ slapd_daemon_task(
 #endif
 	}
 
-	if( slapd_gentle_shutdown != 2 )
+	if( slapd_gentle_shutdown != 2 ) {
 		close_listeners ( 0 );
+	}
+
 	free ( slap_listeners );
 	slap_listeners = NULL;
+
+	if( !slapd_gentle_shutdown ) {
+		connections_shutdown();
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( CONNECTION, CRIT, 

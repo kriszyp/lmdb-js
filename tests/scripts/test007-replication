@@ -94,7 +94,7 @@ $LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD < \
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapadd failed ($RC)!"
-	kill -INT $PID $SLAVEPID
+	kill -HUP $PID $SLAVEPID
 	kill -KILL $SLURPPID
 	exit $RC
 fi
@@ -184,7 +184,7 @@ RC=$?
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -INT $PID $SLAVEPID
+	kill -HUP $PID $SLAVEPID
 	kill -KILL $SLURPPID
 	exit $RC
 fi
@@ -196,12 +196,12 @@ RC=$?
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -INT $PID $SLAVEPID
+	kill -HUP $PID $SLAVEPID
 	kill -KILL $SLURPPID
 	exit $RC
 fi
 
-kill -INT $PID $SLAVEPID
+kill -HUP $PID $SLAVEPID
 kill -KILL $SLURPPID
 
 SEARCHOUT=$MASTEROUT
