@@ -281,7 +281,6 @@ modify_add_values(
 		}
 
 	} else {
-
 		/*
 		 * The original code performs ( n ) normalizations 
 		 * and ( n * ( n - 1 ) / 2 ) matches, which hide
@@ -310,8 +309,6 @@ modify_add_values(
 		 */
 
 		int		rc;
-		const char	*text = NULL;
-		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
 		if ( mod->sm_bvalues[ 1 ].bv_val == 0 ) {
 			if ( a != NULL ) {
@@ -319,7 +316,7 @@ modify_add_values(
 				int		i;
 
 				rc = value_normalize( mod->sm_desc, SLAP_MR_EQUALITY,
-					&mod->sm_bvalues[ 0 ], &asserted, &text );
+					&mod->sm_bvalues[ 0 ], &asserted, text );
 
 				if ( rc != LDAP_SUCCESS ) {
 					return rc;
@@ -330,7 +327,7 @@ modify_add_values(
 
 					rc = value_match( &match, mod->sm_desc, mr,
 						SLAP_MR_VALUE_SYNTAX_MATCH,
-						&a->a_vals[ i ], &asserted, &text );
+						&a->a_vals[ i ], &asserted, text );
 
 					if( rc == LDAP_SUCCESS && match == 0 ) {
 						free( asserted.bv_val );
@@ -342,7 +339,7 @@ modify_add_values(
 		} else {
 			rc = modify_check_duplicates( mod->sm_desc, mr,
 					a ? a->a_vals : NULL, mod->sm_bvalues,
-					&text, textbuf, sizeof( textbuf ) );
+					text, textbuf, textlen );
 	
 			if ( rc != LDAP_SUCCESS ) {
 				return rc;
