@@ -524,6 +524,12 @@ int main( int argc, char **argv )
 	mal_leaktrace(1);
 #endif
 
+	/*
+	 * FIXME: moved here from slapd_daemon_task()
+	 * because back-monitor db_open() needs it
+	 */
+	time( &starttime );
+
 	if ( slap_startup( NULL )  != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 21 );

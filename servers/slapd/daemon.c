@@ -1115,7 +1115,6 @@ slapd_daemon_task(
 {
 	int l;
 	time_t	last_idle_check = 0;
-	time( &starttime );
 
 	if ( global_idletimeout > 0 ) {
 		last_idle_check = slap_get_time();
