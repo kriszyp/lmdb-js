@@ -127,7 +127,7 @@ main( int argc, char **argv )
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 			for( attr = attrs_find( e->e_attrs, desc );
 				attr != NULL;
-				attr = attrs_find( attr, desc ) )
+				attr = attrs_find( attr->a_next, desc ) )
 #else
 			if (( attr = attr_find( e->e_attrs, type )) != NULL )
 #endif

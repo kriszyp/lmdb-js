@@ -219,7 +219,7 @@ test_ava_filter(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	for(a = attrs_find( e->e_attrs, ava->aa_desc );
 		a != NULL;
-		a = attrs_find( a, ava->aa_desc ) )
+		a = attrs_find( a->a_next, ava->aa_desc ) )
 #else
 	a = attr_find( e->e_attrs, ava->ava_type );
 	if ( a != NULL )
