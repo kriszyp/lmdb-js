@@ -378,12 +378,12 @@ struct berval * lutil_passwd_hash(
 	const struct pw_scheme *sc = get_scheme( method );
 
 	if( sc == NULL ) {
-		*text = "scheme not recognized";
+		if( text ) *text = "scheme not recognized";
 		return NULL;
 	}
 
 	if( ! sc->hash_fn ) {
-		*text = "scheme provided no hash function";
+		if( text ) *text = "scheme provided no hash function";
 		return NULL;
 	}
 
