@@ -1873,6 +1873,16 @@ proxy_cache_open(
 		rc = cm->db.bd_info->bi_db_open( &cm->db );
 	}
 
+	if ( rc != 0 ) {
+		return rc;
+	}
+
+	rc = backend_startup( &cm->db );
+
+	if ( rc != 0 ) {
+		return rc;
+	}
+
 	/* There is no runqueue in TOOL mode */
 	if ( slapMode & SLAP_SERVER_MODE ) {
 		ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
