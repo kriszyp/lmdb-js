@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.284 2000/01/08 17:42:15 kdz Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.287 2000/01/25 23:00:49 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -1943,7 +1943,7 @@ if test "${with_ldbm_api+set}" = set; then
   withval="$with_ldbm_api"
   
 	ol_arg=invalid
-	for ol_val in auto db2 db mdbm gdbm ndbm manual ; do
+	for ol_val in auto db2 db mdbm gdbm manual ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
