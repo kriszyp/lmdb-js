@@ -522,7 +522,7 @@ if test $ol_enable_perl != no ; then
 
 	else
 		PERL_CPPFLAGS="`$PERLBIN -MExtUtils::Embed -e ccopts`"
-		if test x"$ol_with_perl_module" == "xstatic" ; then
+		if test x"$ol_with_perl_module" = "xstatic" ; then
 			SLAPD_PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e s/-lc//`"
 		else
 			MOD_PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e s/-lc//`"
@@ -1732,7 +1732,7 @@ if test $ol_enable_tcl != no ; then
 		for lib in tcl tcl7.6 tcl8.0 tcl8.2 ; do
 			AC_CHECK_LIB($lib,main,
 			  [have_tcl=yes
-			   if test x"$ol_with_tcl_module" == "xstatic" ; then
+			   if test x"$ol_with_tcl_module" = "xstatic" ; then
 			       SLAPD_LIBS="$SLAPD_LIBS -l${lib}"
 			   else
 			       MOD_TCL_LIB="-l${lib}"
