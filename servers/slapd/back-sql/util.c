@@ -56,7 +56,7 @@ char backsql_def_delreferrals_query[] = "DELETE FROM ldap_referrals "
 	"WHERE entry_id=?";
 char backsql_def_subtree_cond[] = "ldap_entries.dn LIKE CONCAT('%',?)";
 char backsql_def_upper_subtree_cond[] = "(ldap_entries.dn) LIKE CONCAT('%',?)";
-char backsql_id_query[] = "SELECT id,keyval,oc_map_id FROM ldap_entries WHERE ";
+char backsql_id_query[] = "SELECT id,keyval,oc_map_id,dn FROM ldap_entries WHERE ";
 /* better ?||? or cast(?||? as varchar) */ 
 char backsql_def_concat_func[] = "CONCAT(?,?)";
 

@@ -65,6 +65,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		return 1;
 	}
 
+	/* FIXME: API... */
 	rs->sr_err = backsql_dn2id( bi, &e_id, dbh, &op->o_req_ndn );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
@@ -191,6 +192,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): new entry dn is \"%s\"\n",
 			new_dn.bv_val, 0, 0 );
 
+	/* FIXME: API... */
 	rs->sr_err = backsql_dn2id( bi, &pe_id, dbh, &p_ndn );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
@@ -211,6 +213,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 
 	(void)backsql_free_entryID( &pe_id, 0 );
 
+	/* FIXME: API... */
 	rs->sr_err = backsql_dn2id( bi, &new_pe_id, dbh, new_npdn );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
@@ -450,7 +453,7 @@ modrdn_return:;
 		}
 	}
 
-	if ( new_pe_id.eid_dn.bv_val ) {
+	if ( !BER_BVISNULL( &new_pe_id.eid_ndn ) ) {
 		(void)backsql_free_entryID( &new_pe_id, 0 );
 	}
 

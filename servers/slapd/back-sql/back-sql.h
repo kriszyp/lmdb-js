@@ -153,13 +153,14 @@ typedef struct backsql_entryID {
 
 	unsigned long		eid_oc_id;
 	struct berval		eid_dn;
+	struct berval		eid_ndn;
 	struct backsql_entryID	*eid_next;
 } backsql_entryID;
 
 #ifdef BACKSQL_ARBITRARY_KEY
-#define BACKSQL_ENTRYID_INIT { BER_BVNULL, BER_BVNULL, 0, BER_BVNULL, NULL }
+#define BACKSQL_ENTRYID_INIT { BER_BVNULL, BER_BVNULL, 0, BER_BVNULL, BER_BVNULL, NULL }
 #else /* ! BACKSQL_ARBITRARY_KEY */
-#define BACKSQL_ENTRYID_INIT { 0, 0, 0, BER_BVNULL, NULL }
+#define BACKSQL_ENTRYID_INIT { 0, 0, 0, BER_BVNULL, BER_BVNULL, NULL }
 #endif /* BACKSQL_ARBITRARY_KEY */
 
 /*
@@ -265,9 +266,14 @@ typedef struct backsql_srch_info {
 #define	BSQL_SF_ALL_OPER		0x0001
 #define BSQL_SF_FILTER_HASSUBORDINATE	0x0002
 
-	struct berval		*bsi_base_dn;
+	struct berval		*bsi_base_ndn;
 	backsql_entryID		bsi_base_id;
 	int			bsi_scope;
+/* BACKSQL_SCOPE_BASE_LIKE can be set by API in ors_scope
+ * whenever the search base DN contains chars that cannot
+ * be mapped into the charset used in the RDBMS; so they're
+ * turned into '%' and an approximate ('LIKE') condition
+ * is used */
 #define BACKSQL_SCOPE_BASE_LIKE		( LDAP_SCOPE_BASE | 0x1000 )
 	Filter			*bsi_filter;
 	int			bsi_slimit,

@@ -38,7 +38,7 @@ backsql_bind( Operation *op, SlapReply *rs )
 	backsql_srch_info	bsi;
 	AttributeName		anlist[2];
 	int			rc;
-	struct berval		dn;
+	struct berval		ndn;
  
  	Debug( LDAP_DEBUG_TRACE, "==>backsql_bind()\n", 0, 0, 0 );
 
@@ -73,8 +73,8 @@ backsql_bind( Operation *op, SlapReply *rs )
 		return 1;
 	}
 
-	dn = op->o_req_ndn;
-	if ( backsql_api_dn2odbc( op, rs, &dn ) ) {
+	ndn = op->o_req_ndn;
+	if ( backsql_api_dn2odbc( op, rs, &ndn ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
 			"backsql_api_dn2odbc failed\n", 
 			0, 0, 0 );
@@ -87,11 +87,11 @@ backsql_bind( Operation *op, SlapReply *rs )
 	anlist[0].an_desc = password;
 	anlist[1].an_name.bv_val = NULL;
 
-	rc = backsql_init_search( &bsi, &dn, LDAP_SCOPE_BASE, 
+	rc = backsql_init_search( &bsi, &ndn, LDAP_SCOPE_BASE, 
 			-1, -1, -1, NULL, dbh, op, rs, anlist, 1 );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_bind(): "
-			"could not retrieve bind dn id - no such entry\n", 
+			"could not retrieve bindDN ID - no such entry\n", 
 			0, 0, 0 );
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		send_ldap_result( op, rs );
@@ -134,7 +134,7 @@ backsql_bind( Operation *op, SlapReply *rs )
 	}
 
 error_return:;
-	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_dn ) ) {
+	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
 		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
 	}
 
@@ -143,8 +143,8 @@ error_return:;
 		return 1;
 	}
 	
-	if ( dn.bv_val != op->o_req_dn.bv_val ) {
-		ch_free( dn.bv_val );
+	if ( ndn.bv_val != op->o_req_ndn.bv_val ) {
+		ch_free( ndn.bv_val );
 	}
 
 	Debug(LDAP_DEBUG_TRACE,"<==backsql_bind()\n",0,0,0);

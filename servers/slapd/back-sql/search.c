@@ -96,13 +96,15 @@ backsql_attrlist_add( backsql_srch_info *bsi, AttributeDescription *ad )
  * Initializes the search structure.
  * 
  * If get_base_id != 0, the field bsi_base_id is filled 
- * with the entryID of bsi_base_dn; it must be freed
+ * with the entryID of bsi_base_ndn; it must be freed
  * by backsql_free_entryID() when no longer required.
+ *
+ * NOTE: base must be normalized
  */
 int
 backsql_init_search(
 	backsql_srch_info 	*bsi, 
-	struct berval		*base, 
+	struct berval		*nbase, 
 	int 			scope, 
 	int 			slimit,
 	int 			tlimit,
@@ -117,8 +119,9 @@ backsql_init_search(
 	AttributeName		*p;
 	int			rc = LDAP_SUCCESS;
 
-	bsi->bsi_base_dn = base;
+	bsi->bsi_base_ndn = nbase;
 	BER_BVZERO( &bsi->bsi_base_id.eid_dn );
+	BER_BVZERO( &bsi->bsi_base_id.eid_ndn );
 	bsi->bsi_scope = scope;
 	bsi->bsi_slimit = slimit;
 	bsi->bsi_tlimit = tlimit;
@@ -187,7 +190,7 @@ backsql_init_search(
 		assert( op->o_bd->be_private );
 
 		rc = backsql_dn2id( (backsql_info *)op->o_bd->be_private,
-				&bsi->bsi_base_id, dbh, base );
+				&bsi->bsi_base_id, dbh, nbase );
 	}
 
 	return ( bsi->bsi_status = rc );
@@ -1109,6 +1112,9 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 					"ldap_entries.parent=?" );
 		break;
 
+#ifdef LDAP_SCOPE_SUBORDINATE
+	case LDAP_SCOPE_SUBORDINATE:
+#endif /* LDAP_SCOPE_SUBORDINATE */
 	case LDAP_SCOPE_SUBTREE:
 		if ( BACKSQL_CANUPPERCASE( bi ) ) {
 			backsql_strfcat( &bsi->bsi_join_where, "bl",
@@ -1184,11 +1190,13 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 	int			n_candidates = bsi->bsi_n_candidates;
 
 	/* 
-	 * + 1 because we need room for '%'; this makes a subtree
+	 * + 1 because we need room for '%';
+	 * + 1 because we need room for ',' for LDAP_SCOPE_SUBORDINATE;
+	 * this makes a subtree
 	 * search for a DN BACKSQL_MAX_DN_LEN long legal 
 	 * if it returns that DN only
 	 */
-	char			temp_base_dn[ BACKSQL_MAX_DN_LEN + 1 + 1 ];
+	char			tmp_base_ndn[ BACKSQL_MAX_DN_LEN + 1 + 1 ];
 
 	bsi->bsi_status = LDAP_SUCCESS;
  
@@ -1271,28 +1279,28 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		 * We do not accept DNs longer than BACKSQL_MAX_DN_LEN;
 		 * however this should be handled earlier
 		 */
-		if ( bsi->bsi_base_dn->bv_len > BACKSQL_MAX_DN_LEN ) {
+		if ( bsi->bsi_base_ndn->bv_len > BACKSQL_MAX_DN_LEN ) {
 			bsi->bsi_status = LDAP_OTHER;
 			return BACKSQL_AVL_CONTINUE;
 		}
 
-		AC_MEMCPY( temp_base_dn, bsi->bsi_base_dn->bv_val,
-				bsi->bsi_base_dn->bv_len + 1 );
+		AC_MEMCPY( tmp_base_ndn, bsi->bsi_base_ndn->bv_val,
+				bsi->bsi_base_ndn->bv_len + 1 );
 
 		/* uppercase DN only if the stored DN can be uppercased
 		 * for comparison */
 		if ( BACKSQL_CANUPPERCASE( bi ) ) {
-			ldap_pvt_str2upper( temp_base_dn );
+			ldap_pvt_str2upper( tmp_base_ndn );
 		}
 
 		Debug( LDAP_DEBUG_TRACE, "(base)dn: \"%s\"\n",
-				temp_base_dn, 0, 0 );
+				tmp_base_ndn, 0, 0 );
 
 		rc = backsql_BindParamStr( sth, 2, SQL_PARAM_INPUT,
-				temp_base_dn, BACKSQL_MAX_DN_LEN );
+				tmp_base_ndn, BACKSQL_MAX_DN_LEN );
 		if ( rc != SQL_SUCCESS ) {
          		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
-				"error binding base_dn parameter\n", 0, 0, 0 );
+				"error binding base_ndn parameter\n", 0, 0, 0 );
 			backsql_PrintErrors( bi->sql_db_env, bsi->bsi_dbh, 
 					sth, rc );
 			bsi->bsi_status = LDAP_OTHER;
@@ -1300,12 +1308,16 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		}
 		break;
 
-	case LDAP_SCOPE_SUBTREE: {
+#ifdef LDAP_SCOPE_SUBORDINATE
+	case LDAP_SCOPE_SUBORDINATE:
+#endif /* LDAP_SCOPE_SUBORDINATE */
+	case LDAP_SCOPE_SUBTREE:
+	{
 		/*
 		 * We do not accept DNs longer than BACKSQL_MAX_DN_LEN;
 		 * however this should be handled earlier
 		 */
-		if ( bsi->bsi_base_dn->bv_len > BACKSQL_MAX_DN_LEN ) {
+		if ( bsi->bsi_base_ndn->bv_len > BACKSQL_MAX_DN_LEN ) {
 			bsi->bsi_status = LDAP_OTHER;
 			return BACKSQL_AVL_CONTINUE;
 		}
@@ -1324,34 +1336,59 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		 * If "dn_ru" is being used, do a prefix search.
 		 */
 		if ( BACKSQL_HAS_LDAPINFO_DN_RU( bi ) ) {
-			temp_base_dn[ 0 ] = '\0';
-			for ( i = 0, j = bsi->bsi_base_dn->bv_len - 1;
+			tmp_base_ndn[ 0 ] = '\0';
+
+			for ( i = 0, j = bsi->bsi_base_ndn->bv_len - 1;
 					j >= 0; i++, j--) {
-				temp_base_dn[ i ] = bsi->bsi_base_dn->bv_val[ j ];
+				tmp_base_ndn[ i ] = bsi->bsi_base_ndn->bv_val[ j ];
 			}
-			temp_base_dn[ i ] = '%';
-			temp_base_dn[ i + 1 ] = '\0';
+
+#ifdef LDAP_SCOPE_SUBORDINATE
+			if ( bsi->bsi_scope == LDAP_SCOPE_SUBORDINATE ) {
+				tmp_base_ndn[ i++ ] = ',';
+			}
+#endif /* LDAP_SCOPE_SUBORDINATE */
+
+			tmp_base_ndn[ i ] = '%';
+			tmp_base_ndn[ i + 1 ] = '\0';
 
 		} else {
-			temp_base_dn[ 0 ] = '%';
-			AC_MEMCPY( &temp_base_dn[ 1 ], bsi->bsi_base_dn->bv_val,
-				bsi->bsi_base_dn->bv_len + 1 );
+			i = 0;
+
+			tmp_base_ndn[ i++ ] = '%';
+
+#ifdef LDAP_SCOPE_SUBORDINATE
+			if ( bsi->bsi_scope == LDAP_SCOPE_SUBORDINATE ) {
+				tmp_base_ndn[ i++ ] = ',';
+			}
+#endif /* LDAP_SCOPE_SUBORDINATE */
+
+			AC_MEMCPY( &tmp_base_ndn[ i ], bsi->bsi_base_ndn->bv_val,
+				bsi->bsi_base_ndn->bv_len + 1 );
 		}
 
 		/* uppercase DN only if the stored DN can be uppercased
 		 * for comparison */
 		if ( BACKSQL_CANUPPERCASE( bi ) ) {
-			ldap_pvt_str2upper( temp_base_dn );
+			ldap_pvt_str2upper( tmp_base_ndn );
 		}
 
-		Debug( LDAP_DEBUG_TRACE, "(sub)dn: \"%s\"\n", temp_base_dn,
-				0, 0 );
+#ifdef LDAP_SCOPE_SUBORDINATE
+		if ( bsi->bsi_scope == LDAP_SCOPE_SUBORDINATE ) {
+			Debug( LDAP_DEBUG_TRACE, "(children)dn: \"%s\"\n",
+				tmp_base_ndn, 0, 0 );
+		} else 
+#endif /* LDAP_SCOPE_SUBORDINATE */
+		{
+			Debug( LDAP_DEBUG_TRACE, "(sub)dn: \"%s\"\n",
+				tmp_base_ndn, 0, 0 );
+		}
 
 		rc = backsql_BindParamStr( sth, 2, SQL_PARAM_INPUT,
-				temp_base_dn, BACKSQL_MAX_DN_LEN );
+				tmp_base_ndn, BACKSQL_MAX_DN_LEN );
 		if ( rc != SQL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
-				"error binding base_dn parameter (2)\n",
+				"error binding base_ndn parameter (2)\n",
 				0, 0, 0 );
 			backsql_PrintErrors( bi->sql_db_env, bsi->bsi_dbh, 
 					sth, rc );
@@ -1362,7 +1399,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 	}
 
  	case LDAP_SCOPE_ONELEVEL:
-		assert( !BER_BVISNULL( &bsi->bsi_base_id.eid_dn ) );
+		assert( !BER_BVISNULL( &bsi->bsi_base_id.eid_ndn ) );
 
 #ifdef BACKSQL_ARBITRARY_KEY
 		Debug( LDAP_DEBUG_TRACE, "(one)id: \"%s\"\n",
@@ -1395,7 +1432,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 	backsql_BindRowAsStrings( sth, &row );
 	rc = SQLFetch( sth );
 	for ( ; BACKSQL_SUCCESS( rc ); rc = SQLFetch( sth ) ) {
-		struct berval		dn, ndn;
+		struct berval		dn, pdn, ndn;
 		backsql_entryID		*c_id = NULL;
 		int			ret;
 
@@ -1405,7 +1442,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			continue;
 		}
 
-		ret = dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL );
+		ret = dnPrettyNormal( NULL, &dn, &pdn, &ndn, NULL );
 		if ( dn.bv_val != row.cols[ 3 ] ) {
 			free( dn.bv_val );
 		}
@@ -1414,7 +1451,8 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			continue;
 		}
 
-		if ( bi->sql_baseObject && bvmatch( &ndn, &bi->sql_baseObject->e_nname ) ) {
+		if ( bi->sql_baseObject && dn_match( &ndn, &bi->sql_baseObject->e_nname ) ) {
+			free( pdn.bv_val );
 			free( ndn.bv_val );
 			continue;
 		}
@@ -1430,11 +1468,8 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 		c_id->eid_oc_id = bsi->bsi_oc->bom_id;
 
-		if ( ndn.bv_val == row.cols[ 3 ] ) {
-			ber_dupbv( &c_id->eid_dn, &ndn );
-		} else {
-			c_id->eid_dn = ndn;
-		}
+		c_id->eid_dn = pdn;
+		c_id->eid_ndn = ndn;
 
 		/* append at end of list ... */
 		c_id->eid_next = NULL;
@@ -1478,7 +1513,7 @@ backsql_search( Operation *op, SlapReply *rs )
 	time_t			stoptime = 0;
 	backsql_srch_info	bsi;
 	backsql_entryID		*eid = NULL;
-	struct berval		base;
+	struct berval		nbase = BER_BVNULL;
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -1521,19 +1556,19 @@ backsql_search( Operation *op, SlapReply *rs )
 	/* compute it anyway; root does not use it */
 	stoptime = op->o_time + op->ors_tlimit;
 
-	base = op->o_req_ndn;
-	if ( backsql_api_dn2odbc( op, rs, &base ) ) {
+	nbase = op->o_req_ndn;
+	if ( backsql_api_dn2odbc( op, rs, &nbase ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
 			"backsql_api_dn2odbc failed\n", 
 			0, 0, 0 );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
 		send_ldap_result( op, rs );
-		return 1;
+		goto done;
 	}
 
 	/* init search */
-	rs->sr_err = backsql_init_search( &bsi, &base,
+	rs->sr_err = backsql_init_search( &bsi, &nbase,
 			op->ors_scope,
 			op->ors_slimit, op->ors_tlimit,
 			stoptime, op->ors_filter,
@@ -1654,7 +1689,7 @@ backsql_search( Operation *op, SlapReply *rs )
 		switch ( op->ors_scope ) {
 		case LDAP_SCOPE_BASE:
 		case BACKSQL_SCOPE_BASE_LIKE:
-			if ( !bvmatch( &e->e_nname, &op->o_req_ndn ) ) {
+			if ( !dn_match( &e->e_nname, &op->o_req_ndn ) ) {
 				goto next_entry;
 			}
 			break;
@@ -1662,6 +1697,7 @@ backsql_search( Operation *op, SlapReply *rs )
 		case LDAP_SCOPE_ONE:
 		{
 			struct berval	rdn = user_entry.e_nname;
+
 			rdn.bv_len -= op->o_req_ndn.bv_len + STRLENOF( "," );
 			if ( !dnIsOneLevelRDN( &rdn ) ) {
 				goto next_entry;
@@ -1669,7 +1705,17 @@ backsql_search( Operation *op, SlapReply *rs )
 			/* fall thru */
 		}
 
+#ifdef LDAP_SCOPE_SUBORDINATE
+		case LDAP_SCOPE_SUBORDINATE:
+			/* discard the baseObject entry */
+			if ( dn_match( &e->e_nname, &op->o_req_ndn ) ) {
+				goto next_entry;
+			}
+		/* FALLTHRU */
+#endif /* LDAP_SCOPE_SUBORDINATE */
+
 		case LDAP_SCOPE_SUBTREE:
+			/* FIXME: this should never fail... */
 			if ( !dnIsSuffix( &e->e_nname, &op->o_req_ndn ) ) {
 				goto next_entry;
 			}
@@ -1829,7 +1875,7 @@ end_of_search:;
 	}
 
 done:;
-	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_dn ) ) {
+	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
 		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
 	}
 
@@ -1837,8 +1883,16 @@ done:;
 		ch_free( bsi.bsi_attrs );
 	}
 
-	if ( base.bv_val != op->o_req_ndn.bv_val ) {
-		ch_free( base.bv_val );
+	if ( !BER_BVISNULL( &nbase )
+			&& nbase.bv_val != op->o_req_ndn.bv_val )
+	{
+		ch_free( nbase.bv_val );
+	}
+
+	/* restore scope ... FIXME: this should be done before ANY
+	 * frontend call that uses op */
+	if ( op->ors_scope == BACKSQL_SCOPE_BASE_LIKE ) {
+		op->ors_scope = LDAP_SCOPE_BASE;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_search()\n", 0, 0, 0 );
