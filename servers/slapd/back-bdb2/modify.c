@@ -126,6 +126,7 @@ bdb2_back_modify(
     Connection	*conn,
     Operation	*op,
     char	*dn,
+    char	*ndn,
     LDAPModList	*modlist
 )
 {
@@ -153,7 +154,7 @@ bdb2_back_modify(
 			break;
 	}
 
-	if ( (e = bdb2i_dn2entry_w( be, dn, &matched )) == NULL ) {
+	if ( (e = bdb2i_dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char *matched_dn = NULL;
 		struct berval **refs = NULL;
 
@@ -198,7 +199,7 @@ bdb2_back_modify(
 		goto done;
 	}
 
-	ret = bdb2i_back_modify_internal( be, conn, op, dn, modlist, e );
+	ret = bdb2i_back_modify_internal( be, conn, op, ndn, modlist, e );
 	bdb2i_cache_return_entry_w( &li->li_cache, e );
 
 done:

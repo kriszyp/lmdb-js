@@ -20,7 +20,8 @@ tcl_back_delete (
 	Backend * be,
 	Connection * conn,
 	Operation * op,
-	char *dn
+	char *dn,
+	char *ndn
 )
 {
 	char *command, *suf_tcl, *results;

@@ -316,6 +316,7 @@ bdb2_back_bind(
     Connection		*conn,
     Operation		*op,
     char		*dn,
+    char		*ndn,
     int			method,
 	char		*mech,
     struct berval	*cred,
@@ -335,7 +336,7 @@ bdb2_back_bind(
 		return( 1 );
 	}
 
-	ret = bdb2i_back_bind_internal( be, conn, op, dn, method, mech, cred, edn );
+	ret = bdb2i_back_bind_internal( be, conn, op, ndn, method, mech, cred, edn );
 
 	(void) bdb2i_leave_backend_r( lock );
 

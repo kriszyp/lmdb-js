@@ -30,6 +30,7 @@ ldbm_back_search(
     Connection	*conn,
     Operation	*op,
     char	*base,
+    char	*nbase,
     int		scope,
     int		deref,
     int		slimit,
@@ -57,10 +58,10 @@ ldbm_back_search(
 
 	/* get entry with reader lock */
 	if ( deref & LDAP_DEREF_FINDING ) {
-		e = deref_dn_r( be, base, &err, &matched, &text );
+		e = deref_dn_r( be, nbase, &err, &matched, &text );
 
 	} else {
-		e = dn2entry_r( be, base, &matched );
+		e = dn2entry_r( be, nbase, &matched );
 		err = e != NULL ? LDAP_SUCCESS : LDAP_REFERRAL;
 		text = NULL;
 	}

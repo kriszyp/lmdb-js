@@ -173,7 +173,8 @@ bdb2_back_delete(
     BackendDB	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn
+    char	*dn,
+    char	*ndn
 )
 {
 	DB_LOCK         lock;
@@ -189,7 +190,7 @@ bdb2_back_delete(
 		return( -1 );
 	}
 
-	ret = bdb2i_back_delete_internal( be, conn, op, dn );
+	ret = bdb2i_back_delete_internal( be, conn, op, ndn );
 	(void) bdb2i_leave_backend_w( lock );
 	bdb2i_stop_timing( be->bd_info, time1, "DEL", conn, op );
 

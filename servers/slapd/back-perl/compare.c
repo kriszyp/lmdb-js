@@ -32,6 +32,7 @@ perl_back_compare(
 	Connection	*conn,
 	Operation	*op,
 	char	*dn,
+	char	*ndn,
 	Ava		*ava
 )
 {

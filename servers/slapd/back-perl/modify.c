@@ -27,6 +27,7 @@ perl_back_modify(
 	Connection	*conn,
 	Operation	*op,
 	char	*dn,
+	char	*ndn,
 	LDAPModList	*modlist
 )
 {

@@ -542,32 +542,32 @@ struct slap_backend_info {
 	/* LDAP Operations Handling Routines */
 	int	(*bi_op_bind)  LDAP_P(( BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		char *dn, int method, char* mechanism,
+		char *dn, char *ndn, int method, char* mechanism,
 		struct berval *cred, char** edn ));
 	int (*bi_op_unbind) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o ));
 	int	(*bi_op_search) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		char *base, int scope, int deref,
+		char *base, char *nbase, int scope, int deref,
 		int slimit, int tlimit,
 		Filter *f, char *filterstr, char **attrs,
 		int attrsonly));
 	int	(*bi_op_compare)LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		char *dn, Ava *ava));
+		char *dn, char *ndn, Ava *ava));
 	int	(*bi_op_modify) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		char *dn, LDAPModList *m));
+		char *dn, char *ndn, LDAPModList *m));
 	int	(*bi_op_modrdn) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		char *dn, char *newrdn, int deleteoldrdn,
+		char *dn, char *ndn, char *newrdn, int deleteoldrdn,
 		char *newSuperior));
 	int	(*bi_op_add)    LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		Entry *e));
 	int	(*bi_op_delete) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		char *dn));
+		char *dn, char *ndn));
 	int	(*bi_op_abandon) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		ber_int_t msgid));

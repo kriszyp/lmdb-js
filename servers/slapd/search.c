@@ -30,7 +30,7 @@ do_search(
 	int		i, err;
 	ber_int_t		scope, deref, attrsonly;
 	ber_int_t		sizelimit, timelimit;
-	char		*base = NULL, *fstr = NULL;
+	char		*base = NULL, *nbase = NULL, *fstr = NULL;
 	Filter		*filter = NULL;
 	char		**attrs = NULL;
 	Backend		*be;
@@ -105,7 +105,7 @@ do_search(
 		goto return_results;
 	}
 
-	if( dn_normalize_case( base ) == NULL ) {
+	if( dn_normalize( base ) == NULL ) {
 		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX,
 			NULL, "invalid DN", NULL, NULL );
 		rc = -1;
@@ -161,29 +161,32 @@ do_search(
 	    "conn=%ld op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
 	    op->o_connid, op->o_opid, base, scope, fstr );
 
+	nbase = ch_strdup( base );
+	ldap_pvt_str2upper( nbase );
+
 	if ( scope == LDAP_SCOPE_BASE ) {
 #if defined( SLAPD_MONITOR_DN )
-		if ( strcmp( base, SLAPD_MONITOR_DN ) == 0 ) {
+		if ( strcmp( nbase, SLAPD_MONITOR_DN ) == 0 ) {
 			monitor_info( conn, op, attrs, attrsonly );
 			goto return_results;
 		}
 #endif
 
 #if defined( SLAPD_CONFIG_DN )
-		if ( strcmp( base, SLAPD_CONFIG_DN ) == 0 ) {
+		if ( strcmp( nbase, SLAPD_CONFIG_DN ) == 0 ) {
 			config_info( conn, op, attrs, attrsonly );
 			goto return_results;
 		}
 #endif
 
 #if defined( SLAPD_SCHEMA_DN )
-		if ( strcmp( base, SLAPD_SCHEMA_DN ) == 0 ) {
+		if ( strcmp( nbase, SLAPD_SCHEMA_DN ) == 0 ) {
 			schema_info( conn, op, attrs, attrsonly );
 			goto return_results;
 		}
 #endif
 
-		if ( strcmp( base, LDAP_ROOT_DSE ) == 0 ) {
+		if ( strcmp( nbase, LDAP_ROOT_DSE ) == 0 ) {
 			root_dse_info( conn, op, attrs, attrsonly );
 			goto return_results;
 		}
@@ -194,7 +197,7 @@ do_search(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( base )) == NULL ) {
+	if ( (be = select_backend( nbase )) == NULL ) {
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
 
@@ -202,11 +205,11 @@ do_search(
 	}
 
 	/* deref the base if needed */
-	base = suffix_alias( be, base );
+	nbase = suffix_alias( be, nbase );
 
 	/* actually do the search and send the result(s) */
 	if ( be->be_search ) {
-		(*be->be_search)( be, conn, op, base, scope, deref, sizelimit,
+		(*be->be_search)( be, conn, op, base, nbase, scope, deref, sizelimit,
 		    timelimit, filter, fstr, attrs, attrsonly );
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
@@ -215,6 +218,7 @@ do_search(
 
 return_results:;
 	if( base != NULL) free( base );
+	if( nbase != NULL) free( nbase );
 	if( fstr != NULL) free( fstr );
 	if( filter != NULL) filter_free( filter );
 	if ( attrs != NULL ) {

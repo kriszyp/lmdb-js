@@ -30,6 +30,7 @@ shell_back_modrdn(
     Connection	*conn,
     Operation	*op,
     char	*dn,
+    char	*ndn,
     char	*newrdn,
     int		deleteoldrdn,
     char	*newSuperior

@@ -69,6 +69,7 @@ ldbm_back_bind(
     Connection		*conn,
     Operation		*op,
     char		*dn,
+    char		*ndn,
     int			method,
 	char		*mech,
     struct berval	*cred,
@@ -88,6 +89,7 @@ ldbm_back_bind(
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_bind: dn: %s\n", dn, 0, 0);
 
 	*edn = NULL;
+	dn = ndn;
 
 	/* get entry with reader lock */
 	if ( (e = dn2entry_r( be, dn, &matched )) == NULL ) {

@@ -30,7 +30,7 @@ do_delete(
     Operation	*op
 )
 {
-	char	*ndn;
+	char	*dn, *ndn;
 	Backend	*be;
 	int rc;
 
@@ -50,29 +50,32 @@ do_delete(
 	 *	DelRequest := DistinguishedName
 	 */
 
-	if ( ber_scanf( op->o_ber, "a", &ndn ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "a", &dn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
 		return -1;
 	}
 
-	if(	dn_normalize_case( ndn ) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "do_delete: invalid dn (%s)\n", ndn, 0, 0 );
+	if(	dn_normalize( dn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_delete: invalid dn (%s)\n", dn, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
-		free( ndn );
+		free( dn );
 		return rc;
 	}
 
 	if( ( rc = get_ctrls( conn, op, 1 ) ) != LDAP_SUCCESS ) {
-		free( ndn );
+		free( dn );
 		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
 		return rc;
 	} 
 
-	Debug( LDAP_DEBUG_ARGS, "do_delete: dn (%s)\n", ndn, 0, 0 );
-	Debug( LDAP_DEBUG_STATS, "DEL dn=\"%s\"\n", ndn, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "do_delete: dn (%s)\n", dn, 0, 0 );
+	Debug( LDAP_DEBUG_STATS, "DEL dn=\"%s\"\n", dn, 0, 0 );
+
+	ndn = ch_strdup( dn );
+	ldap_pvt_str2upper( ndn );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
@@ -82,6 +85,7 @@ do_delete(
 	if ( (be = select_backend( ndn )) == NULL ) {
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
+		free( dn );
 		free( ndn );
 		return rc;
 	}
@@ -89,6 +93,7 @@ do_delete(
 	if ( global_readonly || be->be_readonly ) {
 		Debug( LDAP_DEBUG_ANY, "do_delete: database is read-only\n",
 		       0, 0, 0 );
+		free( dn );
 		free( ndn );
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
 		                  NULL, "database is read-only", NULL, NULL );
@@ -111,13 +116,13 @@ do_delete(
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
 #endif
 		{
-			if ( (*be->be_delete)( be, conn, op, ndn ) == 0 ) {
+			if ( (*be->be_delete)( be, conn, op, dn, ndn ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
 				if (be->be_update_ndn == NULL ||
 					strcmp( be->be_update_ndn, op->o_ndn ))
 #endif
 				{
-					replog( be, op, ndn, NULL );
+					replog( be, op, dn, NULL );
 				}
 			}
 #ifndef SLAPD_MULTIMASTER
@@ -132,6 +137,7 @@ do_delete(
 			NULL, "Function not implemented", NULL, NULL );
 	}
 
+	free( dn );
 	free( ndn );
 	return rc;
 }

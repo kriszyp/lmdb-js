@@ -168,6 +168,7 @@ ldbm_back_modify(
     Connection	*conn,
     Operation	*op,
     char	*dn,
+    char	*ndn,
     LDAPModList	*modlist
 )
 {
@@ -179,7 +180,7 @@ ldbm_back_modify(
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
 
 	/* acquire and lock entry */
-	if ( (e = dn2entry_w( be, dn, &matched )) == NULL ) {
+	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char* matched_dn = NULL;
 		struct berval **refs = NULL;
 
@@ -222,7 +223,7 @@ ldbm_back_modify(
 	}
 	
 	/* Modify the entry */
-	if ( ldbm_modify_internal( be, conn, op, dn, modlist, e ) != 0 ) {
+	if ( ldbm_modify_internal( be, conn, op, ndn, modlist, e ) != 0 ) {
 		goto error_return;
 	}
 

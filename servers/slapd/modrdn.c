@@ -43,7 +43,7 @@ do_modrdn(
     Operation	*op
 )
 {
-	char	*ndn, *newrdn;
+	char	*dn, *ndn, *newrdn;
 	ber_int_t	deloldrdn;
 	Backend	*be;
 	/* Vars for LDAP v3 newSuperior support */
@@ -74,7 +74,7 @@ do_modrdn(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{aab", &ndn, &newrdn, &deloldrdn )
+	if ( ber_scanf( op->o_ber, "{aab", &dn, &newrdn, &deloldrdn )
 	    == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
@@ -82,11 +82,11 @@ do_modrdn(
 		return -1;
 	}
 
-	if( dn_normalize_case( ndn ) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid dn (%s)\n", ndn, 0, 0 );
+	if( dn_normalize( dn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid dn (%s)\n", dn, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
-		free( ndn );
+		free( dn );
 		free( newrdn );
 		return rc;
 	}
@@ -95,7 +95,7 @@ do_modrdn(
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid rdn (%s)\n", newrdn, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid RDN", NULL, NULL );
-		free( ndn );
+		free( dn );
 		free( newrdn );
 		return rc;
 	}
@@ -112,7 +112,7 @@ do_modrdn(
 			       0, 0, 0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "newSuperior requires LDAPv3" );
-			free( ndn );
+			free( dn );
 			free( newrdn );
 			return -1;
 		}
@@ -124,7 +124,7 @@ do_modrdn(
 			   0, 0, 0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
-			free( ndn );
+			free( dn );
 			free( newrdn );
 		    return -1;
 		}
@@ -143,11 +143,11 @@ do_modrdn(
 
 	Debug( LDAP_DEBUG_ARGS,
 	    "do_modrdn: dn (%s) newrdn (%s) newsuperior (%s)\n",
-		ndn, newrdn,
+		dn, newrdn,
 		newSuperior != NULL ? newSuperior : "" );
 
 	if ( ber_scanf( op->o_ber, /*{*/ "}") == LBER_ERROR ) {
-		free( ndn );
+		free( dn );
 		free( newrdn );	
 		free( newSuperior );
 		free( nnewSuperior );
@@ -164,7 +164,7 @@ do_modrdn(
 	} 
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MODRDN dn=\"%s\"\n",
-	    op->o_connid, op->o_opid, ndn, 0, 0 );
+	    op->o_connid, op->o_opid, dn, 0, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
@@ -172,7 +172,11 @@ do_modrdn(
 	 * if we don't hold it.
 	 */
 
+	ndn = ch_strdup( dn );
+	ldap_pvt_str2upper( ndn );
+
 	if ( (be = select_backend( ndn )) == NULL ) {
+		free( dn );
 		free( ndn );
 		free( newrdn );	
 		free( newSuperior );
@@ -203,6 +207,7 @@ do_modrdn(
 			send_ldap_result( conn, op, rc,
 				NULL, NULL, NULL, NULL );
 
+			free( dn );
 			free( ndn );
 			free( newrdn );
 			free( newSuperior );
@@ -231,7 +236,7 @@ do_modrdn(
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
 #endif
 		{
-			if ( (*be->be_modrdn)( be, conn, op, ndn, newrdn,
+			if ( (*be->be_modrdn)( be, conn, op, dn, ndn, newrdn,
 			    deloldrdn, newSuperior ) == 0
 #ifdef SLAPD_MULTIMASTER
 				&& ( be->be_update_ndn == NULL ||
@@ -243,7 +248,7 @@ do_modrdn(
 				moddn.deloldrdn = deloldrdn;
 				moddn.newsup = newSuperior;
 
-				replog( be, op, ndn, &moddn );
+				replog( be, op, dn, &moddn );
 			}
 #ifndef SLAPD_MULTIMASTER
 		} else {
@@ -257,6 +262,7 @@ do_modrdn(
 	}
 
 done:
+	free( dn );
 	free( ndn );
 	free( newrdn );	
 	free( newSuperior );

@@ -37,7 +37,8 @@ ldap_back_delete(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn
+    char	*dn,
+    char	*ndn
 )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;

@@ -17,6 +17,7 @@ shell_back_search(
     Connection	*conn,
     Operation	*op,
     char	*base,
+    char	*nbase,
     int		scope,
     int		deref,
     int		size,

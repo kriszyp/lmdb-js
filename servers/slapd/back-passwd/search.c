@@ -27,6 +27,7 @@ passwd_back_search(
     Connection	*conn,
     Operation	*op,
     char	*base,
+    char	*nbase,
     int		scope,
     int		deref,
     int		slimit,
@@ -65,7 +66,7 @@ passwd_back_search(
 #endif /* HAVE_SETPWFILE */
 
 	/* Handle a query for the base of this backend */
-	if ( be_issuffix( be,  base ) ) {
+	if ( be_issuffix( be,  nbase ) ) {
 		struct berval	val, *vals[2];
 
 		vals[0] = &val;
@@ -164,8 +165,8 @@ passwd_back_search(
 		 */
 		if( !be_issuffix( be, parent ) ) {
 			int i;
-			for( i=0; be->be_suffix[i] != NULL; i++ ) {
-				if( dn_issuffix( base, be->be_suffix[i] ) ) {
+			for( i=0; be->be_nsuffix[i] != NULL; i++ ) {
+				if( dn_issuffix( nbase, be->be_nsuffix[i] ) ) {
 					matched = ch_strdup( be->be_suffix[i] );
 					break;
 				}
@@ -184,8 +185,6 @@ passwd_back_search(
 			err = LDAP_OPERATIONS_ERROR;
 			goto done;
 		}
-
-		user = ldap_pvt_str2lower( user );
 
 		if ( (pw = getpwnam( user )) == NULL ) {
 			matched = parent;

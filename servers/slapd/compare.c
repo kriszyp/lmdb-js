@@ -29,7 +29,7 @@ do_compare(
     Operation	*op
 )
 {
-	char	*ndn;
+	char	*dn, *ndn;
 	Ava	ava;
 	Backend	*be;
 	int rc = LDAP_SUCCESS;
@@ -56,7 +56,7 @@ do_compare(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{a{ao}}", &ndn, &ava.ava_type,
+	if ( ber_scanf( op->o_ber, "{a{ao}}", &dn, &ava.ava_type,
 	    &ava.ava_value ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
@@ -64,17 +64,17 @@ do_compare(
 		return -1;
 	}
 
-	if( dn_normalize_case( ndn ) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "do_compare: invalid dn (%s)\n", ndn, 0, 0 );
+	if( dn_normalize( dn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_compare: invalid dn (%s)\n", dn, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
-		free( ndn );
+		free( dn );
 		ava_free( &ava, 0 );
 		return rc;
 	}
 
 	if( ( rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
-		free( ndn );
+		free( dn );
 		ava_free( &ava, 0 );
 		Debug( LDAP_DEBUG_ANY, "do_compare: get_ctrls failed\n", 0, 0, 0 );
 		return rc;
@@ -83,10 +83,13 @@ do_compare(
 	value_normalize( ava.ava_value.bv_val, attr_syntax( ava.ava_type ) );
 
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-	    ndn, ava.ava_type, ava.ava_value.bv_val );
+	    dn, ava.ava_type, ava.ava_value.bv_val );
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
-	    op->o_connid, op->o_opid, ndn, ava.ava_type, 0 );
+	    op->o_connid, op->o_opid, dn, ava.ava_type, 0 );
+
+	ndn = ch_strdup( dn );
+	ldap_pvt_str2upper( ndn );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
@@ -94,6 +97,7 @@ do_compare(
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( ndn )) == NULL ) {
+		free( dn );
 		free( ndn );
 		ava_free( &ava, 0 );
 
@@ -106,12 +110,13 @@ do_compare(
 	ndn = suffix_alias( be, ndn );
 
 	if ( be->be_compare ) {
-		(*be->be_compare)( be, conn, op, ndn, &ava );
+		(*be->be_compare)( be, conn, op, dn, ndn, &ava );
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "Function not implemented", NULL, NULL );
 	}
 
+	free( dn );
 	free( ndn );
 	ava_free( &ava, 0 );
 

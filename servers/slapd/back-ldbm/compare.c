@@ -22,6 +22,7 @@ ldbm_back_compare(
     Connection	*conn,
     Operation	*op,
     char	*dn,
+    char	*ndn,
     Ava		*ava
 )
 {
@@ -33,7 +34,7 @@ ldbm_back_compare(
 	int		manageDSAit = get_manageDSAit( op );
 
 	/* get entry with reader lock */
-	if ( (e = dn2entry_r( be, dn, &matched )) == NULL ) {
+	if ( (e = dn2entry_r( be, ndn, &matched )) == NULL ) {
 		char *matched_dn = NULL;
 		struct berval **refs = NULL;
 

@@ -25,7 +25,8 @@ perl_back_delete(
 	Backend	*be,
 	Connection	*conn,
 	Operation	*op,
-	char	*dn
+	char	*dn,
+	char	*ndn
 )
 {
 	int len;

@@ -329,6 +329,7 @@ bdb2_back_search(
     Connection	*conn,
     Operation	*op,
     char	*base,
+    char	*nbase,
     int		scope,
     int		deref,
     int		slimit,
@@ -353,7 +354,7 @@ bdb2_back_search(
 
 	}
 
-	ret = bdb2i_back_search_internal( be, conn, op, base, scope, deref,
+	ret = bdb2i_back_search_internal( be, conn, op, nbase, scope, deref,
 					slimit, tlimit, filter, filterstr, attrs, attrsonly );
 
 	(void) bdb2i_leave_backend_r( lock );

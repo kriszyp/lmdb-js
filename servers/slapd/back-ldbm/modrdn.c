@@ -38,6 +38,7 @@ ldbm_back_modrdn(
     Connection	*conn,
     Operation	*op,
     char	*dn,
+    char	*ndn,
     char	*newrdn,
     int		deleteoldrdn,
     char	*newSuperior
@@ -74,7 +75,7 @@ ldbm_back_modrdn(
 	       0, 0 );
 
 	/* get entry with writer lock */
-	if ( (e = dn2entry_w( be, dn, &matched )) == NULL ) {
+	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char* matched_dn = NULL;
 		struct berval** refs = NULL;
 

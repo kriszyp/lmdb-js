@@ -109,14 +109,15 @@ do_bind(
 		goto cleanup;
 	}
 
-	ndn = ch_strdup( dn );
-
-	if ( dn_normalize_case( ndn ) == NULL ) {
+	if ( dn_normalize( dn ) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "bind: invalid dn (%s)\n", dn, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
 		goto cleanup;
 	}
+
+	ndn = ch_strdup( dn );
+	ldap_pvt_str2upper( ndn );
 
 	op->o_protocol = version;
 
@@ -286,7 +287,7 @@ do_bind(
 		/* deref suffix alias if appropriate */
 		ndn = suffix_alias( be, ndn );
 
-		if ( (*be->be_bind)( be, conn, op, ndn, method, mech, &cred, &edn ) == 0 ) {
+		if ( (*be->be_bind)( be, conn, op, dn, ndn, method, mech, &cred, &edn ) == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 			conn->c_cdn = dn;

@@ -38,6 +38,7 @@ ldap_back_bind(
     Connection		*conn,
     Operation		*op,
     char		*dn,
+    char		*ndn,
     int			method,
 	char		*mech,
     struct berval	*cred,

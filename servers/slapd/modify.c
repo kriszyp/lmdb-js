@@ -35,7 +35,7 @@ do_modify(
     Operation	*op
 )
 {
-	char		*ndn;
+	char		*dn, *ndn;
 	char		*last;
 	ber_tag_t	tag;
 	ber_len_t	len;
@@ -76,20 +76,20 @@ do_modify(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{a" /*}*/, &ndn ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{a" /*}*/, &dn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
 		return -1;
 	}
 
-	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", ndn, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn, 0, 0 );
 
-	if(	dn_normalize_case( ndn ) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "do_modify: invalid dn (%s)\n", ndn, 0, 0 );
+	if(	dn_normalize( dn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_modify: invalid dn (%s)\n", dn, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
-		free( ndn );
+		free( dn );
 		return rc;
 	}
 
@@ -111,7 +111,7 @@ do_modify(
 		{
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding modlist error" );
-			free( ndn );
+			free( dn );
 			free( *modtail );
 			*modtail = NULL;
 			modlist_free( modlist );
@@ -129,7 +129,7 @@ do_modify(
 				(long) (*modtail)->ml_op, 0, 0 );
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
 			    NULL, "unrecognized modify operation", NULL, NULL );
-			free( ndn );
+			free( dn );
 			modlist_free( modlist );
 			return LDAP_PROTOCOL_ERROR;
 		}
@@ -144,7 +144,7 @@ do_modify(
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
 			    NULL, "unrecognized modify operation without values",
 				NULL, NULL );
-			free( ndn );
+			free( dn );
 			modlist_free( modlist );
 			return LDAP_PROTOCOL_ERROR;
 		}
@@ -165,14 +165,17 @@ do_modify(
 #endif
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
-		free( ndn );
+		free( dn );
 		modlist_free( modlist );
 		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
 		return rc;
 	} 
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MOD dn=\"%s\"\n",
-	    op->o_connid, op->o_opid, ndn, 0, 0 );
+	    op->o_connid, op->o_opid, dn, 0, 0 );
+
+	ndn = ch_strdup( ndn );
+	ldap_pvt_str2upper( ndn );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
@@ -180,6 +183,7 @@ do_modify(
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( ndn )) == NULL ) {
+		free( dn );
 		free( ndn );
 		modlist_free( modlist );
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
@@ -220,6 +224,7 @@ do_modify(
 				rc = add_modified_attrs( op, &modlist );
 
 				if( rc != LDAP_SUCCESS ) {
+					free( dn );
 					free( ndn );
 					modlist_free( modlist );
 					send_ldap_result( conn, op, rc,
@@ -229,14 +234,14 @@ do_modify(
 				}
 			}
 
-			if ( (*be->be_modify)( be, conn, op, ndn, modlist ) == 0 
+			if ( (*be->be_modify)( be, conn, op, dn, ndn, modlist ) == 0 
 #ifdef SLAPD_MULTIMASTER
 				&& ( be->be_update_ndn == NULL ||
 					strcmp( be->be_update_ndn, op->o_ndn ) != 0 )
 #endif
 			) {
 				/* but we log only the ones not from a replicator user */
-				replog( be, op, ndn, modlist );
+				replog( be, op, dn, modlist );
 			}
 
 #ifndef SLAPD_MULTIMASTER
@@ -253,6 +258,7 @@ do_modify(
 	}
 
 done:
+	free( dn );
 	free( ndn );
 	modlist_free( modlist );
 	return rc;

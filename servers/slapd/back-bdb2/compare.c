@@ -108,6 +108,7 @@ bdb2_back_compare(
     Connection	*conn,
     Operation	*op,
     char	*dn,
+    char	*ndn,
     Ava		*ava
 )
 {
@@ -126,7 +127,7 @@ bdb2_back_compare(
 
 	}
 
-	ret = bdb2i_back_compare_internal( be, conn, op, dn, ava );
+	ret = bdb2i_back_compare_internal( be, conn, op, ndn, ava );
 	(void) bdb2i_leave_backend_r( lock );
 	bdb2i_stop_timing( be->bd_info, time1, "CMP", conn, op );
 

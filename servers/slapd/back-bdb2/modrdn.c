@@ -478,6 +478,7 @@ bdb2_back_modrdn(
     Connection	*conn,
     Operation	*op,
     char	*dn,
+    char	*ndn,
     char	*newrdn,
     int		deleteoldrdn,
     char	*newSuperior
@@ -497,7 +498,7 @@ bdb2_back_modrdn(
 
 	}
 
-	ret = bdb2i_back_modrdn_internal( be, conn, op, dn,
+	ret = bdb2i_back_modrdn_internal( be, conn, op, ndn,
 					newrdn, deleteoldrdn,
 					newSuperior );
 

@@ -67,16 +67,16 @@ do_add( Connection *conn, Operation *op )
 		return -1;
 	}
 
-	ndn = ch_strdup( dn );
-
-	if ( dn_normalize_case( ndn ) == NULL ) {
+	if ( dn_normalize( dn ) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn, 0, 0 );
 		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
 		free( dn );
-		free( ndn );
 		return LDAP_INVALID_DN_SYNTAX;
 	}
+
+	ndn = ch_strdup( dn );
+	ldap_pvt_str2upper( ndn );
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 

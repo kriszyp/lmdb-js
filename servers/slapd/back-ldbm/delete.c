@@ -21,7 +21,8 @@ ldbm_back_delete(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn
+    char	*dn,
+    char	*ndn
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
@@ -35,7 +36,7 @@ ldbm_back_delete(
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_delete: %s\n", dn, 0, 0);
 
 	/* get entry with writer lock */
-	if ( (e = dn2entry_w( be, dn, &matched )) == NULL ) {
+	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char *matched_dn = NULL;
 		struct berval **refs = NULL;
 
