@@ -33,7 +33,7 @@ int passwd_extop(
 	SlapReply *rs )
 {
 	struct berval id = {0, NULL}, old = {0, NULL}, new = {0, NULL},
-		dn, ndn, hash, vals[2];
+		dn, ndn, hash, vals[2], tmpbv;
 	int freenew = 0;
 	Modifications ml, **modtail;
 	Operation op2;
@@ -46,8 +46,8 @@ int passwd_extop(
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
-	rs->sr_err = slap_passwd_parse( op->oq_extended.rs_reqdata, &id,
-		&old, &new, &rs->sr_text );
+	ber_dupbv_x( &tmpbv, op->oq_extended.rs_reqdata, op->o_tmpmemctx );
+	rs->sr_err = slap_passwd_parse( &tmpbv, &id, &old, &new, &rs->sr_text );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		return rs->sr_err;
 	}
@@ -69,21 +69,6 @@ int passwd_extop(
 		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 	}
 
-	if ( ndn.bv_len == 0 ) {
-		rs->sr_text = "no password is associated with the Root DSE";
-		return LDAP_UNWILLING_TO_PERFORM;
-	}
-
-	if( op->o_bd && !op->o_bd->be_modify ) {
-		rs->sr_text = "operation not supported for current user";
-		return LDAP_UNWILLING_TO_PERFORM;
-	}
-
-	if (backend_check_restrictions( op, rs,
-			(struct berval *)&slap_EXOP_MODIFY_PASSWD ) != LDAP_SUCCESS) {
-		return rs->sr_err;
-	}
-
 	if( op->o_bd == NULL ) {
 #ifdef HAVE_CYRUS_SASL
 		return slap_sasl_setpass( op, rs );
@@ -92,6 +77,17 @@ int passwd_extop(
 		return LDAP_OTHER;
 #endif
 	}
+
+	if ( ndn.bv_len == 0 ) {
+		rs->sr_text = "no password is associated with the Root DSE";
+		return LDAP_UNWILLING_TO_PERFORM;
+	}
+
+	if (backend_check_restrictions( op, rs,
+			(struct berval *)&slap_EXOP_MODIFY_PASSWD ) != LDAP_SUCCESS) {
+		return rs->sr_err;
+	}
+
 
 #ifndef SLAPD_MULTIMASTER
 	/* This does not apply to multi-master case */
@@ -113,6 +109,21 @@ int passwd_extop(
 		return LDAP_REFERRAL;
 	}
 #endif /* !SLAPD_MULTIMASTER */
+
+	/* Give the backend a chance to handle this itself */
+	if ( op->o_bd->be_extended ) {
+		rs->sr_err = op->o_bd->be_extended( op, rs );
+		if ( rs->sr_err != LDAP_UNWILLING_TO_PERFORM ) {
+			return rs->sr_err;
+		}
+	}
+
+	/* The backend didn't handle it, so try it here */
+	if( op->o_bd && !op->o_bd->be_modify ) {
+		rs->sr_text = "operation not supported for current user";
+		return LDAP_UNWILLING_TO_PERFORM;
+	}
+
 	if ( new.bv_len == 0 ) {
 		slap_passwd_generate( &new );
 		freenew = 1;
