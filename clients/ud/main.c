@@ -33,7 +33,8 @@
 #include <termios.h>
 #endif /* defined( NeXT ) || defined( ultrix ) etc. */
 #endif /* !DOS */
-#if defined( aix ) || defined( __NetBSD__ )
+#if defined( aix ) || defined( __NetBSD__ ) \
+	|| defined( __FreeBSD__ ) || defined( linux )
 #include <sys/ioctl.h>
 #endif /* aix || __NetBSD__ */
 #include <ctype.h>

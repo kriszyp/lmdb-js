@@ -59,7 +59,7 @@ start_replica_thread(
     pthread_attr_init( &attr );
     pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
 
-    if ( pthread_create( &(ri->ri_tid), attr, (void *) replicate,
+    if ( pthread_create( &(ri->ri_tid), &attr, (void *) replicate,
 	    (void *) ri ) != 0 ) {
 	Debug( LDAP_DEBUG_ANY, "replica \"%s:%d\" pthread_create failed\n",
 		ri->ri_hostname, ri->ri_port, 0 );

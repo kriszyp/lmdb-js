@@ -483,6 +483,16 @@ pthread_kill( pthread_t tid, int sig )
 	kill( getpid(), sig );
 }
 
+#else
+
+#if defined ( POSIX_THREADS )
+
+void p_thread_yield( void )
+{
+	sched_yield();
+}
+
+#endif /* posix threads */
 #endif /* dce pthreads */
 #endif /* mit pthreads */
 #endif /* sunos5 lwp */

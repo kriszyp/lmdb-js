@@ -160,6 +160,18 @@ typedef cond_t	pthread_cond_t;
 #define pthread_attr_setdetachstate( a, b ) \
 					pthread_attr_setdetach_np( a, b )
 
+#else /* end dce pthreads */
+
+#if defined( POSIX_THREADS )
+
+#define _THREAD
+
+#include <pthread.h>
+
+#define pthread_mutexattr_default	NULL
+#define pthread_condattr_default	NULL
+
+#endif /* posix threads */
 #endif /* dce pthreads */
 #endif /* mit pthreads */
 #endif /* sunos5 */

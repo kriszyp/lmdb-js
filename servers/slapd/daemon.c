@@ -139,8 +139,16 @@ daemon(
 	}
 
 	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#ifdef SIGSTKFLT
+	(void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
+#else
 	(void) SIGNAL( SIGUSR1, (void *) do_nothing );
+#endif
+#ifdef SIGSTKFLT
+	(void) SIGNAL( SIGUNUSED, (void *) set_shutdown );
+#else
 	(void) SIGNAL( SIGUSR2, (void *) set_shutdown );
+#endif
 	(void) SIGNAL( SIGTERM, (void *) set_shutdown );
 	(void) SIGNAL( SIGINT, (void *) set_shutdown );
 	(void) SIGNAL( SIGHUP, (void *) set_shutdown );
@@ -365,8 +373,16 @@ set_shutdown()
 {
 	Debug( LDAP_DEBUG_ANY, "slapd got shutdown signal\n", 0, 0, 0 );
 	slapd_shutdown = 1;
+#ifdef SIGSTKFLT
+	pthread_kill( listener_tid, SIGSTKFLT );
+#else
 	pthread_kill( listener_tid, SIGUSR1 );
+#endif
+#ifdef SIGUNUSED
+	(void) SIGNAL( SIGUNUSED, (void *) set_shutdown );
+#else
 	(void) SIGNAL( SIGUSR2, (void *) set_shutdown );
+#endif
 	(void) SIGNAL( SIGTERM, (void *) set_shutdown );
 	(void) SIGNAL( SIGINT, (void *) set_shutdown );
 	(void) SIGNAL( SIGHUP, (void *) set_shutdown );
@@ -375,6 +391,10 @@ set_shutdown()
 static void
 do_nothing()
 {
-	Debug( LDAP_DEBUG_TRACE, "slapd got SIGUSR1\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "slapd got do_nothing signal\n", 0, 0, 0 );
+#ifdef SIGSTKFLT
+	(void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
+#else
 	(void) SIGNAL( SIGUSR1, (void *) do_nothing );
+#endif
 }

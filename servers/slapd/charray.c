@@ -107,11 +107,14 @@ charray_dup( char **a )
 }
 
 char **
-str2charray( char *str, char *brkstr )
+str2charray( char *str_in, char *brkstr )
 {
 	char	**res;
 	char	*s;
 	int	i;
+
+	/* protect the input string from strtok */
+	char *str = strdup( str_in );
 
 	i = 1;
 	for ( s = str; *s; s++ ) {
@@ -128,5 +131,6 @@ str2charray( char *str, char *brkstr )
 	}
 	res[i] = NULL;
 
+	free( str );
 	return( res );
 }

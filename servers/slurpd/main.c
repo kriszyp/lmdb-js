@@ -121,7 +121,7 @@ main(
      * Start the main file manager thread (in fm.c).
      */
     pthread_attr_init( &attr );
-    if ( pthread_create( &(sglob->fm_tid), attr, (void *) fm, (void *) NULL )
+    if ( pthread_create( &(sglob->fm_tid), &attr, (void *) fm, (void *) NULL )
 	    != 0 ) {
 	Debug( LDAP_DEBUG_ANY, "file manager pthread_create failed\n",
 		0, 0, 0 );

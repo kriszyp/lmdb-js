@@ -77,12 +77,20 @@ fm(
 
     /* Set up our signal handlers:
      * SIG{TERM,INT,HUP} causes a shutdown
-     * SIGUSR1 - does nothing, used to wake up sleeping threads.
-     * SIGUSR2 - causes slurpd to read its administrative interface file.
+     * SIG(STKFLT|USR1) - does nothing, used to wake up sleeping threads.
+     * SIG(UNUSED|USR2) - causes slurpd to read its administrative interface file.
      *           (not yet implemented).
      */
+#ifdef SIGSTKFLT
+    (void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
+#else
     (void) SIGNAL( SIGUSR1, (void *) do_nothing );
+#endif
+#ifdef SIGUNUSED
+    (void) SIGNAL( SIGUNUSED, (void *) do_admin );
+#else
     (void) SIGNAL( SIGUSR2, (void *) do_admin );
+#endif
     (void) SIGNAL( SIGTERM, (void *) set_shutdown );
     (void) SIGNAL( SIGINT, (void *) set_shutdown );
     (void) SIGNAL( SIGHUP, (void *) set_shutdown );
@@ -160,7 +168,11 @@ set_shutdown()
     int	i;
 
     sglob->slurpd_shutdown = 1;				/* set flag */
+#ifdef SIGSTKFLT
+    pthread_kill( sglob->fm_tid, SIGSTKFLT );	/* wake up file mgr */
+#else
     pthread_kill( sglob->fm_tid, SIGUSR1 );		/* wake up file mgr */
+#endif
     sglob->rq->rq_lock( sglob->rq );			/* lock queue */
     pthread_cond_broadcast( &(sglob->rq->rq_more) );	/* wake repl threads */
     for ( i = 0; i < sglob->num_replicas; i++ ) {
@@ -181,7 +193,11 @@ set_shutdown()
 void
 do_nothing()
 {
+#ifdef SIGSTKFLT
+    (void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
+#else
     (void) SIGNAL( SIGUSR1, (void *) do_nothing );
+#endif
 }
 
 

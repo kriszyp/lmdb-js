@@ -121,7 +121,11 @@ send_ldap_result2(
 		pthread_mutex_lock( &active_threads_mutex );
 		active_threads--;
 		conn->c_writewaiter = 1;
+#ifdef SIGSTKFLT
+		pthread_kill( listener_tid, SIGSTKFLT );
+#else
 		pthread_kill( listener_tid, SIGUSR1 );
+#endif
 		pthread_cond_wait( &conn->c_wcv, &active_threads_mutex );
 		pthread_mutex_unlock( &active_threads_mutex );
 
