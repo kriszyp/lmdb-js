@@ -1376,7 +1376,7 @@ slapi_send_ldap_result(
 		rs.sr_type = REP_EXTENDED;
 		rs.sr_rspoid = extOID;
 		slapi_pblock_get( pb, SLAPI_EXT_OP_RET_VALUE, &rs.sr_rspdata );
-		send_ldap_response( op, &rs );
+		send_ldap_extended_response( op, &rs );
 		return;
 	}
 
