@@ -83,6 +83,7 @@ could be used:
 >	index cn,sn,uid
 >	index objectClass pres,eq
 
+Note that not all index types are available with all attribute types.
 See {{SECT:The slapd Configuration File}} section for more details on
 this option. Once you have configured things to your liking, start up
 slapd, connect with your LDAP client, and start adding entries.  For
@@ -149,10 +150,10 @@ is done by one or more index options.
 
 For example:
 
->	index cn,sn,uid pres,eq,approx
+>	index cn,sn,uid pres,eq,sub
 >	index objectClass eq
 
-This would create presence, equality and approximate indexes for
+This would create presence, equality and substring indexes for
 the {{EX:cn}}, {{EX:sn}}, and {{EX:uid}} attributes and an equality
 index for the {{EX:objectClass}} attribute. See the configuration
 file section for more information on this option.

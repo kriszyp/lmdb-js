@@ -479,14 +479,17 @@ indexes are maintained.
 \Example:
 
 >	index default pres,eq
->	index objectClass,uid
->	index cn,sn eq,sub,approx
+>	index uid
+>	index cn,sn pres,eq,sub
+>	index objectClass eq
 
-The first line sets the default set of indices to maintain to present
-and equality.  The second line causes the default (pres,eq) set
-of indices to be maintained for {{EX:objectClass}} and {{EX:uid}} attribute
-types.  The third line causes equality, substring, and approximate
-indices to be maintained for {{EX:cn}} and {{EX:sn}} attribute types.
+The first line sets the default set of indices to maintain to
+present and equality.  The second line causes the default (pres,eq)
+set of indices to be maintained for the {{EX:uid}} attribute type.
+The third line causes present, equality, and substring indices to
+be maintained for {{EX:cn}} and {{EX:sn}} attribute types.  The
+fourth line causes an equality index for the {{EX:objectClass}}
+attribute type.
 
 H4: mode <integer>
 
@@ -877,7 +880,7 @@ all applicable entries, the {{EX:userPassword}} attribute is writable
 by the entry itself and by the "admin" entry.  It may be used for
 authentication/authorization purposes, but is otherwise not readable.
 All other attributes are writable by the entry and the "admin"
-entry, but may be read by authenticated users.
+entry, but may be read by all users (authenticated or not).
 
 The next section of the example configuration file defines another
 LDBM database. This one handles queries involving the
