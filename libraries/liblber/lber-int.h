@@ -30,6 +30,7 @@ struct lber_options {
 	short lbo_valid;
 	unsigned short		lbo_options;
 	int			lbo_debug;
+	long		lbo_meminuse;
 };
 
 #define LBER_UNINITIALIZED		0x0

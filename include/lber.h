@@ -101,6 +101,9 @@ LDAP_BEGIN_DECL
 #define LBER_OPT_ERROR_FN		0x8003
 #define LBER_OPT_LOG_PRINT_FILE		0x8004
 
+/* get/set Memory Debug options */
+#define LBER_OPT_MEMORY_INUSE		0x8005	/* for memory debugging */
+
 typedef int* (*BER_ERRNO_FN) LDAP_P(( void ));
 
 typedef void (*BER_LOG_PRINT_FN) LDAP_P(( LDAP_CONST char *buf ));
