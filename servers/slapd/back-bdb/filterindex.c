@@ -146,7 +146,6 @@ bdb_filter_candidates(
                 { struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 		BDB_IDL_ALL( bdb, ids );
 		}
-
 		break;
 
 	case LDAP_FILTER_AND:
@@ -176,6 +175,10 @@ bdb_filter_candidates(
 		Debug( LDAP_DEBUG_FILTER, "\tUNKNOWN %lu\n",
 			(unsigned long) f->f_choice, 0, 0 );
 #endif
+		/* Must not return NULL, otherwise extended filters break */
+                { struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+		BDB_IDL_ALL( bdb, ids );
+		}
 	}
 
 #ifdef NEW_LOGGING
