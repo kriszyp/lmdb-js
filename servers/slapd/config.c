@@ -39,7 +39,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 	FILE	*fp;
 	char	*line, *savefname;
 	int	cargc, savelineno;
-	char	*cargv[MAXARGS];
+	char	*cargv[MAXARGS+1];
 	int	lineno, i;
 	Backend	*be;
 
