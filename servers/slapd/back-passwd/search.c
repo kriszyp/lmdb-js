@@ -102,7 +102,7 @@ passwd_back_search(
 		attr_merge( e, "objectClass", vals );
 	
 		if ( test_filter( be, conn, op, e, filter ) == 0 ) {
-			send_search_entry( be, conn, op, e, attrs, attrsonly );
+			send_search_entry( be, conn, op, e, attrs, attrsonly, 0 );
 			matched = strdup( be->be_suffix[0] );
 			sent++;
 		}
