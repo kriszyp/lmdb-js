@@ -213,15 +213,8 @@ attr_index_config(
 	return LDAP_SUCCESS;
 }
 
-
-static void
-ainfo_free( void *attr )
-{
-	free( attr );
-}
-
 void
 attr_index_destroy( Avlnode *tree )
 {
-	avl_free( tree, ainfo_free );
+	avl_free( tree, free );
 }
