@@ -235,7 +235,9 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 
 	/* Explicit binds must not be shared */
 	if ( op->o_tag == LDAP_REQ_BIND
-		|| ( op->o_conn && op->o_bd == op->o_conn->c_authz_backend ) ) {
+		|| ( op->o_conn
+			&& op->o_conn->c_authz_backend
+			&& op->o_bd->be_private == op->o_conn->c_authz_backend->be_private ) ) {
 		lc_curr.conn = op->o_conn;
 
 	} else {
