@@ -759,7 +759,7 @@ be_isroot_pw( Operation *op )
 	int result;
 	char *errmsg;
 
-	if ( ! be_isroot_dn( op ) ) {
+	if ( ! be_isroot( op->o_bd, &op->o_req_ndn ) ) {
 		return 0;
 	}
 
