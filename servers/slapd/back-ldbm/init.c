@@ -105,7 +105,6 @@ ldbm_back_open(
 
 	/* initialize the underlying database system */
 	rc = ldbm_initialize( NULL );
-
 	return rc;
 }
 
@@ -116,7 +115,6 @@ ldbm_back_close(
 {
 	/* terminate the underlying database system */
 	ldbm_shutdown();
-
 	return 0;
 }
 
