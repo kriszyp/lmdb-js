@@ -372,6 +372,7 @@ get_substring_filter(
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+	f->f_sub_desc = NULL;
 	rc = slap_bv2ad( &type, &f->f_sub_desc, text );
 
 	ch_free( type.bv_val );

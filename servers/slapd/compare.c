@@ -98,6 +98,7 @@ do_compare(
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+	ava.aa_desc = NULL;
 	rc = slap_bv2ad( &desc, &ava.aa_desc, &text );
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc, NULL,

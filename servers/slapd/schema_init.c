@@ -688,10 +688,14 @@ schema_prep( void )
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	for( i=0; ad_map[i].ssm_type; i++ ) {
-		int rc = slap_str2ad( ad_map[i].ssm_type,
-			(AttributeDescription **)
-				&(((char *) &slap_schema)[ad_map[i].ssm_offset]),
-			&text);
+		int rc;
+
+		AttributeDescription ** adp = (AttributeDescription **)
+			&(((char *) &slap_schema)[ad_map[i].ssm_offset]);
+
+		*adp = NULL;
+
+		rc = slap_str2ad( ad_map[i].ssm_type, adp, &text );
 
 		if( rc != LDAP_SUCCESS ) {
 			fprintf( stderr,
