@@ -70,10 +70,6 @@ filter_matched_values(
 )
 {
 	ValuesReturnFilter *f;
-	Attribute	*a;
-	struct berval	*bv;
-	char		filter_found;
-	int 		i, j;
 	int		rc = LDAP_SUCCESS;
 
 #ifdef NEW_LOGGING
@@ -211,7 +207,6 @@ test_ava_vrFilter(
 		char 		***e_flags
 )
 {
-	int		rc;
 	int 		i, j;
 	Attribute	*a;
 
