@@ -92,7 +92,7 @@
 #define	sock_errno()	WSAGetLastError()
 #define	sock_errstr(e)	ber_pvt_wsa_err2string(e)
 
-LIBLBER_F (char *) ber_pvt_wsa_err2string LDAP_P((int));
+LBER_F( char * ) ber_pvt_wsa_err2string LDAP_P((int));
 
 #elif MACOS
 #	define tcp_close( s )		tcpclose( s )
