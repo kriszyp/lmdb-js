@@ -21,13 +21,13 @@ OBJS	= bind.o open.o result.o error.o compare.o search.o \
 	getdn.o getentry.o getattr.o getvalues.o addentry.o \
 	request.o getdxbyname.o os-ip.o url.o charset.o
 
-LIBS = -L. -L../liblber -lldap -llber $(AC_LIBS)
+LIBS = -L$(LDAP_LIBDIR) -lldap -llber $(AC_LIBS)
 LIBLBER = ../liblber/liblber.a
 
 ltest:	$(LIBRARY) test.o $(LIBLBER)
 	$(CC) $(LDFLAGS) -o $@ test.o $(LIBS)
 ttest:	$(LIBRARY) tmpltest.o $(LIBLBER)
-	$(CC) $(LDFLAGS) -o $@ test.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ tmpltest.o $(LIBS)
 
 CFFILES= ldapfilter.conf ldapfriendly ldaptemplates.conf ldapsearchprefs.conf
 
