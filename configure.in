@@ -623,22 +623,18 @@ if test $ol_aix_threads = yes ; then
 fi
 
 if test -z "${CC}"; then
-	AC_CHECK_PROGS(CC,cc,missing)
+	AC_CHECK_PROGS(CC,cc gcc,missing)
 
 	if test "${CC}" = "missing" ; then
-		AC_MSG_ERROR([Unable to locate cc(1).  Check PATH or set CC.])
+		AC_MSG_ERROR([Unable to locate cc(1) or suitable replacement.  Check PATH or set CC.])
 	fi
 fi
-
-dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
-dnl (for now, let autoconf sort this out)
-dnl CFLAGS=${CFLAGS-""}
 
 if test -z "${AR}"; then
 	AC_CHECK_PROGS(AR,ar gar,missing)
 
 	if test "${AR}" = "missing" ; then
-		AC_MSG_ERROR([Unable to locate ar(1).  Check PATH or set AR.])
+		AC_MSG_ERROR([Unable to locate ar(1) or suitable replacement.  Check PATH or set AR.])
 	fi
 fi
 
