@@ -423,7 +423,7 @@ main( int argc, char **argv )
 	if ( ldif ) {
 		if (ldif < 3 ) {
 			/* TEMPORARILY put the version in a comment many tools cannot yet a version attribute  */
-			printf( "# version: 1\n");
+			printf( "version: 1\n\n");
 		}
 
 		if (ldif < 2 ) {

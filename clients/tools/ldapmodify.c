@@ -41,6 +41,7 @@ static LDAP	*ld;
 #define LDAPMOD_MAXLINE		4096
 
 /* strings found in replog/LDIF entries (mostly lifted from slurpd/slurp.h) */
+#define T_VERSION_STR		"version"
 #define T_REPLICA_STR		"replica"
 #define T_DN_STR		"dn"
 #define T_CHANGETYPESTR         "changetype"
@@ -61,7 +62,7 @@ static LDAP	*ld;
 
 static void usage LDAP_P(( const char *prog ));
 static int process_ldapmod_rec LDAP_P(( char *rbuf ));
-static int process_ldif_rec LDAP_P(( char *rbuf ));
+static int process_ldif_rec LDAP_P(( char *rbuf, int count ));
 static void addmodifyop LDAP_P(( LDAPMod ***pmodsp, int modop, char *attr,
 	char *value, int vlen ));
 static int domodify LDAP_P(( char *dn, LDAPMod **pmods, int newentry ));
@@ -102,6 +103,7 @@ main( int argc, char **argv )
     char		*infile, *rbuf, *start, *p, *q;
     FILE		*fp;
 	int		rc, i, use_ldif, authmethod, version, want_bindpw, debug, manageDSAit;
+	int count;
 
     if (( prog = strrchr( argv[ 0 ], *LDAP_DIRSEP )) == NULL ) {
 	prog = argv[ 0 ];
@@ -289,8 +291,10 @@ main( int argc, char **argv )
 		}
 	}
 
+	count = 0;
     while (( rc == 0 || contoper ) &&
 		( rbuf = read_one_record( fp )) != NULL ) {
+	count++;
 	/*
 	 * we assume record is ldif/slapd.replog if the first line
 	 * has a colon that appears to the left of any equal signs, OR
@@ -316,7 +320,7 @@ main( int argc, char **argv )
 	}
 
 	if ( use_ldif ) {
-	    rc = process_ldif_rec( start );
+	    rc = process_ldif_rec( start, count );
 	} else {
 	    rc = process_ldapmod_rec( start );
 	}
@@ -337,7 +341,7 @@ main( int argc, char **argv )
 
 
 static int
-process_ldif_rec( char *rbuf )
+process_ldif_rec( char *rbuf, int count )
 {
     char	*line, *dn, *type, *value, *newrdn, *newsup, *p;
     int		rc, linenum, modop, replicaport;
@@ -346,6 +350,7 @@ process_ldif_rec( char *rbuf )
     int		expect_deleteoldrdn, deleteoldrdn;
     int		saw_replica, use_record, new_entry, delete_entry, got_all;
     LDAPMod	**pmods;
+	int version;
 
     new_entry = new;
 
@@ -353,6 +358,7 @@ process_ldif_rec( char *rbuf )
     expect_deleteoldrdn = expect_newrdn = expect_newsup = 0;
 	expect_sep = expect_ct = 0;
     linenum = 0;
+	version = 0;
     deleteoldrdn = 1;
     use_record = force;
     pmods = NULL;
@@ -360,6 +366,7 @@ process_ldif_rec( char *rbuf )
 
     while ( rc == 0 && ( line = ldif_getline( &rbuf )) != NULL ) {
 	++linenum;
+
 	if ( expect_sep && strcasecmp( line, T_MODSEPSTR ) == 0 ) {
 	    expect_sep = 0;
 	    expect_ct = 1;
@@ -386,6 +393,15 @@ process_ldif_rec( char *rbuf )
 			replicaport == ldapport ) {
 		    use_record = 1;
 		}
+	    } else if ( count == 1 && linenum == 1 && 
+			strcasecmp( type, T_VERSION_STR ) == 0 )
+		{
+			if( vlen == 0 || atoi(value) != 1 ) {
+		    	fprintf( stderr, "%s: invalid version %s, line %d (ignored)\n",
+			   	prog, value == NULL ? "(null)" : value, linenum );
+			}
+			version++;
+
 	    } else if ( strcasecmp( type, T_DN_STR ) == 0 ) {
 		if (( dn = strdup( value )) == NULL ) {
 		    perror( "strdup" );
@@ -498,6 +514,10 @@ process_ldif_rec( char *rbuf )
     }
 
 	if( linenum == 0 ) {
+		return 0;
+	}
+
+	if( version && linenum == 1 ) {
 		return 0;
 	}
 

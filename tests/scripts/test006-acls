@@ -66,6 +66,7 @@ $LDAPSEARCH -b "$JAJDN" -h localhost -p $PORT \
 # bjensen
 $LDAPMODIFY -D "$JAJDN" -h localhost -p $PORT -w jaj > \
 	$TESTOUT 2>&1 << EOMODS1
+version: 1
 dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
 changetype: modify
 add: member
@@ -75,6 +76,7 @@ EOMODS1
 
 $LDAPMODIFY -D "$JAJDN" -h localhost -p $PORT -w jaj >> \
 	$TESTOUT 2>&1 << EOMODS2
+version: 1
 
 dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
 changetype: modify
@@ -98,10 +100,17 @@ EOMODS3
 
 $LDAPMODIFY -D "$BJORNSDN" -h localhost -p $PORT -w bjorn >> \
 	$TESTOUT 2>&1 << EOMODS4
+# COMMENT
+version: 1
+# comment
 dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
+# comment
 changetype: modify
+# comment
 add: telephonenumber
+# comment
 telephonenumber: +1 810 555 1212
+# comment
 EOMODS4
 
 echo "Using ldapsearch to retrieve all the entries..."

@@ -48,6 +48,7 @@ fi
 echo "Testing modify, add, and delete..."
 $LDAPMODIFY -v -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
+version: 1
 
 # LEADING COMMENT AND WHITE SPACE
 
@@ -59,6 +60,8 @@ drink: Orange Juice
 
 dn: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
 changetype: modify
+# EMBEDDED COMMENT
+ CONTINUED
 replace: multilinedescription
 multilinedescription: The replaced multiLineDescription $ Blah Woof.
 -
