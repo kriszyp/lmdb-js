@@ -80,7 +80,7 @@ these steps:
 	LDBM support.
 
 	% cd tests
-	% make
+	% make test
 
 	If all goes well, the system has been built as configured.  If not,
 	return to step 4 after reviewing your configuration settings.
