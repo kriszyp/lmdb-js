@@ -46,8 +46,7 @@ perl_back_init(
 		perl_parse(perl_interpreter, NULL, 3, embedding, (char **)NULL);
 		perl_run(perl_interpreter);
 		
-		ldap_pvt_thread_mutex_init( &perl_interpreter_mutex,
-			ldap_pvt_thread_mutexattr_default );
+		ldap_pvt_thread_mutex_init( &perl_interpreter_mutex );
 	}
 
 	be->be_private = (PerlBackend *) ch_malloc( sizeof(PerlBackend) );
