@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# disable LDAP initialization
+LDAPNOINIT=true; export LDAPNOINIT
+
 echo ">>>>> Executing all LDAP tests..."
 
 if [ $# -eq 0 ]; then
