@@ -1,5 +1,8 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.17 Engineering
+	Fixed ldbm BerkeleyDB2 compat bug (ITS#1390)
+
 OpenLDAP 2.0.16 Release
 	Fixed ITS indexing bug (ITS#1349)
 	Fixed slapd/slurpd maxargs bug (ITS#1343)
