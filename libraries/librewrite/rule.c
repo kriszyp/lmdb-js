@@ -189,9 +189,7 @@ rewrite_rule_compile(
 				/* cleanup ... */
 				return REWRITE_ERR;
 			}
-			
-			//mode &= ~REWRITE_RECURSE;
-			//mode |= REWRITE_EXEC_ONCE;
+
 			action->la_type = REWRITE_ACTION_STOP;
 			break;
 			
