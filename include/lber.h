@@ -164,6 +164,12 @@ LDAP_F unsigned long ber_get_next LDAP_P(( Sockbuf *sb, unsigned long *len,
 LDAP_F void ber_init_w_nullc LDAP_P(( BerElement *ber, int options ));
 LDAP_F void ber_reset LDAP_P(( BerElement *ber, int was_writing ));
 
+/*
+ * LDAPv3 routines (not yet implemented)
+ */
+LDAP_F BerElement *ber_init LDAP_P(( struct berval *bv ));
+LDAP_F int ber_flatten LDAP_P(( BerElement *ber, struct berval **bvPtr ));
+
 LDAP_END_DECL
 
 #endif /* _LBER_H */
