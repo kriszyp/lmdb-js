@@ -1,10 +1,10 @@
 OpenLDAP Contributed Software README
 
-OpenLDAP provides a number of freely-distributable LDAP software
-packages.  Though distributed with OpenLDAP, they are not part of
-OpenLDAP.  Some packages may be out of date.  Each package in
-this directory has it's own use and redistribution restrictions
-as documented within the package.
+OpenLDAP Project provides a number of freely-distributable LDAP
+software packages.  Though distributed with OpenLDAP Software, they
+are not part of OpenLDAP Software.  Some packages may be out of
+date.  Each package in this directory has it's own use and
+redistribution restrictions as documented within the package.
 
 Current contributions:
 	ldapc++
@@ -19,7 +19,8 @@ Current contributions:
 		LDAP TCL API
 		Contributed by NeoSoft
 
-Please submit your contributions using the OpenLDAP Issue Tracking
-System <http://www.openldap.org/>.
+
+OpenLDAP Contributing Guidelines are available at:
+  <http://www.openldap.org/devel/contributing.html>.
 
 $OpenLDAP$
