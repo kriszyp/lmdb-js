@@ -125,9 +125,9 @@ SLURPD_LIBS = @SLURPD_LIBS@
 # Our Defaults
 CC = $(AC_CC)
 DEFS = $(LDAP_INCPATH) $(XINCPATH) $(XDEFS) $(AC_DEFS) $(DEFINES)
-LIBS = $(LDAP_LIBPATH) $(XLIBS) $(XXLIBS) $(AC_LIBS) $(XXXLIBS)
 CFLAGS = $(AC_CFLAGS) $(DEFS)
-LDFLAGS = $(AC_LDFLAGS) $(XLDFLAGS)
+LDFLAGS = $(LDAP_LIBPATH) $(AC_LDFLAGS) $(XLDFLAGS)
+LIBS = $(XLIBS) $(XXLIBS) $(AC_LIBS) $(XXXLIBS)
 
 all:		all-common all-local FORCE
 install:	install-common install-local FORCE
