@@ -264,7 +264,7 @@ ldbm_back_search(
 					}
 					if (e) {
 						switch ( send_search_entry( be, conn, op, e,
-							attrs, attrsonly ) ) {
+							attrs, attrsonly, 0 ) ) {
 						case 0:		/* entry sent ok */
 							nentries++;
 							break;

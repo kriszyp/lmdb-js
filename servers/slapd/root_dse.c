@@ -19,8 +19,8 @@
 void
 root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 {
+	char buf[BUFSIZ];
 	Entry		*e;
-	char		buf[BUFSIZ];
 	struct berval	val;
 	struct berval	*vals[2];
 	int		i, j;
@@ -37,51 +37,44 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 
 	for ( i = 0; i < nbackends; i++ ) {
 		for ( j = 0; backends[i].be_suffix[j] != NULL; j++ ) {
-			strcpy( buf, backends[i].be_suffix[j] );
-			val.bv_val = buf;
-			val.bv_len = strlen( buf );
+			val.bv_val = backends[i].be_suffix[j];
+			val.bv_len = strlen( val.bv_val );
 			attr_merge( e, "namingContexts", vals );
 		}
 	}
 
 #if defined( SLAPD_MONITOR_DN )
-	strcpy( buf, SLAPD_MONITOR_DN );
-	val.bv_val = buf;
-	val.bv_len = strlen( buf );
+	val.bv_val = SLAPD_MONITOR_DN;
+	val.bv_len = strlen( val.bv_val );
 	attr_merge( e, "namingContexts", vals );
+	/* subschemasubentry is added by send_search_entry() */
 #endif
 
 #if defined( SLAPD_CONFIG_DN )
-	strcpy( buf, SLAPD_CONFIG_DN );
-	val.bv_val = buf;
-	val.bv_len = strlen( buf );
+	val.bv_val = SLAPD_CONFIG_DN;
+	val.bv_len = strlen( val.bv_val );
 	attr_merge( e, "namingContexts", vals );
 #endif
 
 #if defined( SLAPD_SCHEMA_DN )
-	strcpy( buf, SLAPD_SCHEMA_DN );
-	val.bv_val = buf;
+	val.bv_val = SLAPD_SCHEMA_DN;
 	val.bv_len = strlen( val.bv_val );
 	attr_merge( e, "namingContexts", vals );
-	attr_merge( e, "subschemaSubentry", vals );
-	ldap_memfree( val.bv_val );
 #endif
 
 	/* altServer unsupported */
 
 	/* supportedControl */
 	for ( i=0; supportedControls[i] != NULL; i++ ) {
-		strcpy( buf, supportedControls[i] );
-		val.bv_val = buf;
-		val.bv_len = strlen( buf );
+		val.bv_val = supportedControls[i];
+		val.bv_len = strlen( val.bv_val );
 		attr_merge( e, "supportedControl", vals );
 	}
 
 	/* supportedExtension */
 	for ( i=0; supportedExtensions[i] != NULL; i++ ) {
-		strcpy( buf, supportedExtensions[i] );
-		val.bv_val = buf;
-		val.bv_len = strlen( buf );
+		val.bv_val = supportedExtensions[i];
+		val.bv_len = strlen( val.bv_val );
 		attr_merge( e, "supportedExtension", vals );
 	}
 
@@ -89,20 +82,19 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 	for ( i=LDAP_VERSION_MIN; i<=LDAP_VERSION_MAX; i++ ) {
 		sprintf(buf,"%d",i);
 		val.bv_val = buf;
-		val.bv_len = strlen( buf );
+		val.bv_len = strlen( val.bv_val );
 		attr_merge( e, "supportedLDAPVersion", vals );
 	}
 
 	/* supportedSASLMechanism */
 	for ( i=0; supportedSASLMechanisms[i] != NULL; i++ ) {
-		strcpy( buf, supportedSASLMechanisms[i] );
-		val.bv_val = buf;
-		val.bv_len = strlen( buf );
+		val.bv_val = supportedSASLMechanisms[i];
+		val.bv_len = strlen( val.bv_val );
 		attr_merge( e, "supportedSASLMechanism", vals );
 	}
 
 
-	send_search_entry( &backends[0], conn, op, e, attrs, attrsonly );
+	send_search_entry( &backends[0], conn, op, e, attrs, attrsonly, 1 );
 	send_ldap_search_result( conn, op, LDAP_SUCCESS, NULL, NULL, 1 );
 
 	entry_free( e );

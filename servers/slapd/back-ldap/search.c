@@ -158,7 +158,7 @@ ldap_send_entry(
 		if (!attr->a_vals)
 			attr->a_vals = &dummy;
 	}
-	send_search_entry( be, lc->conn, op, &ent, attrs, attrsonly );
+	send_search_entry( be, lc->conn, op, &ent, attrs, attrsonly, 0 );
 	for (;ent.e_attrs;) {
 		attr=ent.e_attrs;
 		ent.e_attrs = attr->a_next;

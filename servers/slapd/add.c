@@ -57,9 +57,9 @@ do_add( Connection *conn, Operation *op )
 	/* get the name */
 	if ( ber_scanf( ber, "{a", /*}*/ &dn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
-		    "decoding error" );
-		return LDAP_PROTOCOL_ERROR;
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		return -1;
 	}
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
@@ -80,17 +80,17 @@ do_add( Connection *conn, Operation *op )
 		struct berval	**vals;
 
 		if ( ber_scanf( ber, "{a{V}}", &type, &vals ) == LBER_ERROR ) {
-			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
-			    NULL, "decoding error" );
+			send_ldap_disconnect( conn, op,
+				LDAP_PROTOCOL_ERROR, "decoding error" );
 			entry_free( e );
-			return LDAP_PROTOCOL_ERROR;
+			return -1;
 		}
 
 		if ( vals == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "no values for type %s\n", type,
 			    0, 0 );
-			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
-			    NULL );
+			send_ldap_result( conn, op,
+				LDAP_PROTOCOL_ERROR, NULL, "no values for type" );
 			free( type );
 			entry_free( e );
 			return LDAP_PROTOCOL_ERROR;
@@ -105,9 +105,9 @@ do_add( Connection *conn, Operation *op )
 	if ( ber_scanf( ber, /*{*/ "}") == LBER_ERROR ) {
 		entry_free( e );
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
-		    "decoding error" );
-		return LDAP_PROTOCOL_ERROR;
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		return -1;
 	}
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
@@ -186,7 +186,7 @@ add_created_attrs( Operation *op, Entry *e )
 
 	/* remove any attempts by the user to add these attrs */
 	for ( a = &e->e_attrs; *a != NULL; a = next ) {
-		if ( oc_check_operational( (*a)->a_type ) ) {
+		if ( oc_check_no_usermod_attr( (*a)->a_type ) ) {
 			tmp = *a;
 			*a = (*a)->a_next;
 			attr_free( tmp );
@@ -197,7 +197,7 @@ add_created_attrs( Operation *op, Entry *e )
 	}
 
 	if ( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
-		bv.bv_val = "NULLDN";
+		bv.bv_val = "<anonymous>";
 		bv.bv_len = strlen( bv.bv_val );
 	} else {
 		bv.bv_val = op->o_dn;

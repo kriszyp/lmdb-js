@@ -1,6 +1,6 @@
 /* result.c - tcl backend utility functions
  *
- * $Id: tcl_util.c,v 1.4 1999/02/19 06:55:20 bcollins Exp $
+ * $Id: tcl_util.c,v 1.5 1999/02/28 04:55:49 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -80,7 +80,7 @@ interp_send_results (
 					buf, 0, 0);
 			} else {
 				send_search_entry (be, conn, op, e, attrs,
-					attrsonly);
+					attrsonly, 0 );
 				entry_free (e);
 			}
 

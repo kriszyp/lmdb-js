@@ -72,8 +72,9 @@ do_modrdn(
 	if ( ber_scanf( op->o_ber, "{aab", &ndn, &newrdn, &deloldrdn )
 	    == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL, "" );
-		return rc;
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		return -1;
 	}
 
 	/* Check for newSuperior parameter, if present scan it */
@@ -96,9 +97,9 @@ do_modrdn(
 			Debug( LDAP_DEBUG_ANY,
 			       "modrdn(v2): invalid field newSuperior!\n",
 			       0, 0, 0 );
-			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
-					  NULL, "" );
-			return rc;
+			send_ldap_disconnect( conn, op,
+				LDAP_PROTOCOL_ERROR, "newSuperior requires LDAPv3" );
+			return -1;
 		}
 
 		if ( ber_scanf( op->o_ber, "a", &newSuperior ) 
@@ -106,9 +107,9 @@ do_modrdn(
 
 		    Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\"}) failed\n",
 			   0, 0, 0 );
-		    send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
-				      "" );
-		    return rc;
+			send_ldap_disconnect( conn, op,
+				LDAP_PROTOCOL_ERROR, "decoding error" );
+		    return -1;
 
 		}
 
@@ -124,12 +125,11 @@ do_modrdn(
 		free( newrdn );	
 		free( newSuperior );
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: ber_scanf failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
-		    "decoding error" );
-		return rc;
+		send_ldap_disconnect( conn, op,
+				LDAP_PROTOCOL_ERROR, "decoding error" );
+		return -1;
 	}
 
-#ifdef  GET_CTRLS
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		free( ndn );
 		free( newrdn );	
@@ -137,7 +137,6 @@ do_modrdn(
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: get_ctrls failed\n", 0, 0, 0 );
 		return rc;
 	} 
-#endif
 
 	if( newSuperior != NULL ) {
 		/* GET BACKEND FOR NEW SUPERIOR */

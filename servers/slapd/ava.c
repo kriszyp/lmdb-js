@@ -18,12 +18,12 @@ get_ava(
 	if ( ber_scanf( ber, "{ao}", &ava->ava_type, &ava->ava_value )
 	    == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "  get_ava ber_scanf\n", 0, 0, 0 );
-		return( LDAP_PROTOCOL_ERROR );
+		return( -1 );
 	}
 	attr_normalize( ava->ava_type );
 	value_normalize( ava->ava_value.bv_val, attr_syntax( ava->ava_type ) );
 
-	return( 0 );
+	return( LDAP_SUCCESS );
 }
 
 void

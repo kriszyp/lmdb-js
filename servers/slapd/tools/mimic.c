@@ -55,7 +55,8 @@ send_search_entry(
 	Operation   *op,
 	Entry	*e,
 	char	**attrs,
-	int		attrsonly
+	int		attrsonly,
+	int		opattrs
 )        
 {
 	assert(0);

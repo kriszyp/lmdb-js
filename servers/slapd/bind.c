@@ -22,7 +22,6 @@
 #include "slap.h"
 
 char *supportedSASLMechanisms[] = {
-	"X-CRAM-MD5",
 	"X-DIGEST-MD5",
 	NULL
 };
@@ -103,8 +102,9 @@ do_bind(
 
 	if ( tag == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "bind: ber_scanf failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
-		    "decoding error" );
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		rc = -1;
 		goto cleanup;
 	}
 
@@ -131,8 +131,10 @@ do_bind(
 	}
 
 	if ( tag == LBER_ERROR ) {
-		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR,
     		"decoding error" );
+		rc = -1;
 		goto cleanup;
 	}
 
@@ -156,8 +158,8 @@ do_bind(
 
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
 		Debug( LDAP_DEBUG_ANY, "unknown version %d\n", version, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
-		    "version not supported" );
+		send_ldap_result( conn, op,
+			rc = LDAP_PROTOCOL_ERROR, NULL, "version not supported" );
 		goto cleanup;
 	}
 
@@ -165,8 +167,9 @@ do_bind(
 		if ( version < LDAP_VERSION3 ) {
 			Debug( LDAP_DEBUG_ANY, "do_bind: sasl with LDAPv%d\n",
 				version, 0, 0 );
-			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
-				"sasl bind requires LDAPv3" );
+			send_ldap_disconnect( conn, op,
+				LDAP_PROTOCOL_ERROR, "sasl bind requires LDAPv3" );
+			rc = -1;
 			goto cleanup;
 		}
 

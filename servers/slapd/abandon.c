@@ -40,7 +40,9 @@ do_abandon(
 
 	if ( ber_scanf( op->o_ber, "i", &id ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "do_abandon: ber_scanf failed\n", 0, 0 ,0 );
-		return LDAP_PROTOCOL_ERROR;
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		return -1;
 	}
 
 	if( (rc = get_ctrls( conn, op, 0 )) != LDAP_SUCCESS ) {

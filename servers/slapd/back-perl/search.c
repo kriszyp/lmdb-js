@@ -91,7 +91,8 @@ perl_back_search(
 							   op,
 							   e,
 							   attrs,
-							   attrsonly );
+							   attrsonly,
+							   0 );
 							 
 					entry_free( e );
 				}

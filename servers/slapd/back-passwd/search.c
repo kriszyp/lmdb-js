@@ -139,7 +139,7 @@ passwd_back_search(
 						return( 0 );
 					}
 
-					send_search_entry( be, conn, op, e, attrs, attrsonly );
+					send_search_entry( be, conn, op, e, attrs, attrsonly, 0 );
 					sent++;
 				}
 
@@ -176,7 +176,7 @@ passwd_back_search(
 		e = pw2entry( be, pw, rdn );
 
 		if ( test_filter( be, conn, op, e, filter ) == 0 ) {
-			send_search_entry( be, conn, op, e, attrs, attrsonly );
+			send_search_entry( be, conn, op, e, attrs, attrsonly, 0 );
 			sent++;
 		}
 

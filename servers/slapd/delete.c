@@ -47,8 +47,9 @@ do_delete(
 
 	if ( ber_scanf( op->o_ber, "a", &ndn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL, "" );
-		return rc;
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		return -1;
 	}
 
 	if( ( rc = get_ctrls( conn, op, 1 ) ) != LDAP_SUCCESS ) {

@@ -32,6 +32,7 @@ int get_ctrls(
 	BerElement *ber = op->o_ber;
 	LDAPControl ***ctrls = &op->o_ctrls;
 	int rc = LDAP_SUCCESS;
+	char *errmsg = NULL;
 
 	len = ber_pvt_ber_remaining(ber);
 
@@ -43,14 +44,16 @@ int get_ctrls(
 
 	if(( tag = ber_peek_tag( ber, &len )) != LDAP_TAG_CONTROLS ) {
 		if( tag == LBER_ERROR ) {
-			rc = LDAP_PROTOCOL_ERROR;
+			rc = -1;
+			errmsg = "unexpected data in PDU";
 		}
 
 		goto return_results;
 	}
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
-		rc = LDAP_PROTOCOL_ERROR;
+		rc = -1;
+		errmsg = "controls require LDAPv3";
 		goto return_results;
 	}
 
@@ -61,6 +64,7 @@ int get_ctrls(
 #if 0
 	if( *ctrls == NULL ) {
 		rc = LDAP_NO_MEMORY;
+		errmsg = "no memory";
 		goto return_results;
 	}
 #endif
@@ -94,6 +98,7 @@ int get_ctrls(
 			*ctrls = NULL;
 
 			rc = LDAP_NO_MEMORY;
+			errmsg = "no memory";
 			goto return_results;
 		}
 #endif
@@ -128,7 +133,8 @@ int get_ctrls(
 		if( tag == LBER_ERROR ) {
 			*ctrls = NULL;
 			ldap_controls_free( tctrls );
-			rc = LDAP_DECODING_ERROR;
+			rc = -1;
+			errmsg = "decoding controls error";
 			goto return_results;
 		}
 
@@ -136,6 +142,7 @@ int get_ctrls(
 			!charray_inlist( supportedControls, tctrl->ldctl_oid ) )
 		{
 			rc = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
+			errmsg = "critical extension is unavailable ";
 			goto return_results;
 		}
 
@@ -144,7 +151,11 @@ int get_ctrls(
 
 return_results:
 	if( sendres && rc != LDAP_SUCCESS ) {
-		send_ldap_result( conn, op, rc, NULL, NULL );
+		if( rc == -1 ) {
+			send_ldap_disconnect( conn, op, rc, errmsg );
+		} else {
+			send_ldap_result( conn, op, rc, NULL, errmsg );
+		}
 	}
 
 	return rc;

@@ -257,17 +257,26 @@ void replog LDAP_P(( Backend *be, int optype, char *dn, void *change, int flag )
  * result.c
  */
 
-void send_ldap_result LDAP_P(( Connection *conn, Operation *op, int err, char *matched,
-	char *text ));
-void send_ldap_search_result LDAP_P(( Connection *conn, Operation *op, int err,
-	char *matched, char *text, int nentries ));
+void send_ldap_result LDAP_P((
+	Connection *conn, Operation *op,
+	int err, char *matched, char *text ));
+
+void send_ldap_disconnect LDAP_P((
+	Connection *conn, Operation *op,
+	int err, char *text ));
+
+void send_ldap_search_result LDAP_P((
+	Connection *conn, Operation *op,
+	int err, char *matched, char *text, int nentries ));
 
 /*
  * schema.c
  */
 
 int oc_schema_check LDAP_P(( Entry *e ));
-int oc_check_operational LDAP_P(( char *type ));
+int oc_check_operational_attr LDAP_P(( char *type ));
+int oc_check_usermod_attr LDAP_P(( char *type ));
+int oc_check_no_usermod_attr LDAP_P(( char *type ));
 ObjectClass *oc_find LDAP_P((const char *ocname));
 int oc_add LDAP_P((LDAP_OBJECT_CLASS *oc, const char **err));
 Syntax *syn_find LDAP_P((const char *synname));
@@ -401,9 +410,12 @@ extern int	do_modify LDAP_P((Connection *conn, Operation *op));
 extern int	do_modrdn LDAP_P((Connection *conn, Operation *op));
 extern int	do_search LDAP_P((Connection *conn, Operation *op));
 extern int	do_unbind LDAP_P((Connection *conn, Operation *op));
-extern int	do_exop LDAP_P((Connection *conn, Operation *op));
+extern int	do_extended LDAP_P((Connection *conn, Operation *op));
 
-extern int send_search_entry LDAP_P((Backend *be, Connection *conn, Operation *op, Entry *e, char **attrs, int attrsonly));
+extern int send_search_entry LDAP_P((
+	Backend *be, Connection *conn, Operation *op,
+	Entry *e, char **attrs, int attrsonly, int opattrs ));
+
 extern int str2result LDAP_P(( char *s, int *code, char **matched, char **info ));
 
 extern ber_socket_t dtblsize;

@@ -55,7 +55,7 @@ access_allowed(
 		e->e_dn, attr, 0 );
 
 	/* the lastmod attributes are ignored by ACL checking */
-	if ( oc_check_operational( attr ) ) {
+	if ( oc_check_no_usermod_attr( attr ) ) {
  		Debug( LDAP_DEBUG_ACL, "Operational attribute: %s access allowed\n",
 			attr, 0, 0 );
 		return(1);
@@ -212,7 +212,6 @@ acl_access_allowed(
 )
 {
 	int		i;
-	char		*odn;
 	struct access	*b;
 	Attribute	*at;
 	struct berval	bv;
@@ -244,11 +243,9 @@ acl_access_allowed(
 		return( default_access >= access );
 	}
 
-	odn = op->o_ndn;
-
-	if ( odn != NULL ) {
-		bv.bv_val = odn;
-		bv.bv_len = strlen( odn );
+	if ( op->o_ndn != NULL ) {
+		bv.bv_val = op->o_ndn;
+		bv.bv_len = strlen( bv.bv_val );
 	}
 
 	for ( i = 1, b = a->acl_access; b != NULL; b = b->a_next, i++ ) {
@@ -282,7 +279,7 @@ acl_access_allowed(
 					return ACL_GRANT(b->a_access, access );
 				}
 			} else {
-				if ( regex_matches( b->a_dnpat, odn, edn, matches ) ) {
+				if ( regex_matches( b->a_dnpat, op->o_ndn, edn, matches ) ) {
 					Debug( LDAP_DEBUG_ACL,
 				    "<= acl_access_allowed: matched by clause #%d access %s\n",
 				    i, ACL_GRANT(b->a_access, access)
@@ -365,7 +362,7 @@ acl_access_allowed(
 			string_expand(buf, sizeof(buf), b->a_group, edn, matches);
 			(void) dn_normalize_case(buf);
 
-			if (backend_group(be, e, buf, odn,
+			if (backend_group(be, e, buf, op->o_ndn,
 				b->a_group_oc, b->a_group_at) == 0)
 			{
 				Debug( LDAP_DEBUG_ACL,
@@ -408,7 +405,7 @@ acl_check_modlist(
 		regmatch_t       matches[MAXREMATCHES];
 
 		/* the lastmod attributes are ignored by ACL checking */
-		if ( oc_check_operational( mlist->ml_type ) ) {
+		if ( oc_check_no_usermod_attr( mlist->ml_type ) ) {
 			Debug( LDAP_DEBUG_ACL, "Operational attribute: %s access allowed\n",
 				mlist->ml_type, 0, 0 );
 			continue;

@@ -123,19 +123,77 @@ oc_check_required( Entry *e, char *ocname )
 	return( NULL );
 }
 
+static char *oc_usermod_attrs[] = {
+	/*
+	 * OpenLDAP doesn't support any user modification of
+	 * operational attributes.
+	 */
+	NULL
+};
+
+static char *oc_operational_attrs[] = {
+	/*
+	 * these are operational attributes that *could* be
+	 * modified by users if we supported such.
+	 */
+	"objectClasses",
+	"attributeTypes",
+	"matchingRules",
+	"matchingRuleUse",
+	"dITStructureRules",
+	"dITContentRules",
+	"nameForms",
+	"ldapSyntaxes",
+	NULL
+
+};
+
+/* this list should be extensible  */
+static char *oc_no_usermod_attrs[] = {
+	/*
+	 * Operational and 'no user modification' attributes
+	 */
+
+	/* RFC2252, 3.2.1 */
+	"creatorsName",
+	"createTimestamp",
+	"modifiersName",
+	"modifyTimestamp",
+	"subschemaSubentry",
+
+	NULL
+};
+
+
 /*
  * check to see if attribute is 'operational' or not.
- * this list should be extensible...
  */
 int
-oc_check_operational( char *type )
+oc_check_operational_attr( char *type )
 {
-	return ( strcasecmp( type, "modifiersname" ) == 0 ||
-		strcasecmp( type, "modifytimestamp" ) == 0 ||
-		strcasecmp( type, "creatorsname" ) == 0 ||
-		strcasecmp( type, "createtimestamp" ) == 0 )
-		? 1 : 0;
+	return charray_inlist( oc_operational_attrs, type )
+		|| charray_inlist( oc_usermod_attrs, type )
+		|| charray_inlist( oc_no_usermod_attrs, type );
 }
+
+/*
+ * check to see if attribute can be user modified or not.
+ */
+int
+oc_check_usermod_attr( char *type )
+{
+	return charray_inlist( oc_usermod_attrs, type );
+}
+
+/*
+ * check to see if attribute is 'no user modification' or not.
+ */
+int
+oc_check_no_usermod_attr( char *type )
+{
+	return charray_inlist( oc_no_usermod_attrs, type );
+}
+
 
 static int
 oc_check_allowed( char *type, struct berval **ocl )
@@ -153,7 +211,12 @@ oc_check_allowed( char *type, struct berval **ocl )
 		return( 0 );
 	}
 
-	if ( oc_check_operational( type ) ) {
+	/*
+	 * All operational attributions are allowed by schema rules.
+	 * However, we only check attributions which are stored in the
+	 * the directory regardless if they are user or non-user modified.
+	 */
+	if ( oc_check_usermod_attr( type ) || oc_check_no_usermod_attr( type ) ) {
 		return( 0 );
 	}
 
@@ -1080,7 +1143,7 @@ schema_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 		return;
 	}
 	
-	send_search_entry( &backends[0], conn, op, e, attrs, attrsonly );
+	send_search_entry( &backends[0], conn, op, e, attrs, attrsonly, 0 );
 	send_ldap_search_result( conn, op, LDAP_SUCCESS, NULL, NULL, 1 );
 
 	entry_free( e );

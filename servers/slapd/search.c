@@ -74,14 +74,17 @@ do_search(
 	if ( ber_scanf( op->o_ber, "{aiiiib",
 		&base, &scope, &deref, &sizelimit,
 	    &timelimit, &attrsonly ) == LBER_ERROR ) {
-		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL, "" );
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		rc = -1;
 		goto return_results;
 	}
 
 	if ( scope != LDAP_SCOPE_BASE && scope != LDAP_SCOPE_ONELEVEL
 	    && scope != LDAP_SCOPE_SUBTREE ) {
-		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
-		    "Unknown search scope" );
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		rc = -1;
 		goto return_results;
 	}
 
@@ -93,14 +96,22 @@ do_search(
 
 	/* filter - returns a "normalized" version */
 	if ( (err = get_filter( conn, op->o_ber, &filter, &fstr )) != 0 ) {
-		send_ldap_result( conn, op, err, NULL, "Bad search filter" );
+		if( err == -1 ) {
+			send_ldap_disconnect( conn, op,
+				LDAP_PROTOCOL_ERROR, "decode error" );
+		} else {
+			send_ldap_result( conn, op, err, NULL, "Bad search filter" );
+		}
 		goto return_results;
 	}
+
 	Debug( LDAP_DEBUG_ARGS, "    filter: %s\n", fstr, 0, 0 );
 
 	/* attributes */
 	if ( ber_scanf( op->o_ber, /*{*/ "{v}}", &attrs ) == LBER_ERROR ) {
-		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL, "" );
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		rc = -1;
 		goto return_results;
 	}
 

@@ -681,17 +681,21 @@ connection_operation( void *arg_v )
 		rc = do_abandon( conn, arg->co_op );
 		break;
 
-#if 0
 	case LDAP_REQ_EXTENDED:
 		rc = do_extended( conn, arg->co_op );
 		break;
-#endif
 
 	default:
-		Debug( LDAP_DEBUG_ANY, "unknown request 0x%lx\n",
-		    arg->co_op->o_tag, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "unknown LDAP request 0x%lx\n",
+		    tag, 0, 0 );
+		arg->co_op->o_tag = LBER_ERROR;
+		send_ldap_disconnect( conn, arg->co_op,
+			LDAP_PROTOCOL_ERROR, "unknown LDAP request" );
+		rc = -1;
 		break;
 	}
+
+	if( rc == -1 ) tag = LBER_ERROR;
 
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
 	num_ops_completed++;
@@ -710,6 +714,7 @@ connection_operation( void *arg_v )
 	arg = NULL;
 
 	switch( tag ) {
+	case LBER_ERROR:
 	case LDAP_REQ_UNBIND:
 		/* c_mutex is locked */
 		connection_closing( conn );

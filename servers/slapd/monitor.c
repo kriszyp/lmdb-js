@@ -21,10 +21,6 @@
 #include "ldap_defaults.h"
 #include "slap.h"
 
-char *supportedExtensions[] = {
-	NULL
-};
-
 #if defined( SLAPD_MONITOR_DN )
 
 void
@@ -232,7 +228,7 @@ monitor_info( Connection *conn, Operation *op )
 	attr_merge( e, "concurrency", vals );
 #endif
 
-	send_search_entry( &backends[0], conn, op, e, NULL, 0 );
+	send_search_entry( &backends[0], conn, op, e, NULL, 0, 1 );
 	send_ldap_search_result( conn, op, LDAP_SUCCESS, NULL, NULL, 1 );
 
 	entry_free( e );
