@@ -822,7 +822,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 	 * about duplicate values?) */
 	isupdate = be_shadow_update( op );
 	for ( ap = a_first; *ap; ) {
-		struct ldapmapping	*mapping;
+		struct ldapmapping	*mapping = NULL;
 		int			drop_missing;
 		int			last;
 		Attribute		*a;
@@ -832,6 +832,13 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 			/* go on */ ;
 			
 		} else {
+			if ( op->ors_attrs != NULL && 
+					!SLAP_USERATTRS( rs->sr_attr_flags ) &&
+					!ad_inlist( (*ap)->a_desc, op->ors_attrs ) )
+			{
+				goto cleanup_attr;
+			}
+
 			drop_missing = rwm_mapping( &rwmap->rwm_at,
 					&(*ap)->a_desc->ad_cname, &mapping, RWM_REMAP );
 			if ( drop_missing || ( mapping != NULL && BER_BVISEMPTY( &mapping->m_dst ) ) )
@@ -841,13 +848,6 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 
 			if ( mapping != NULL ) {
 				(*ap)->a_desc = mapping->m_dst_ad;
-			}
-
-			if ( op->ors_attrs != NULL && 
-					!SLAP_USERATTRS( rs->sr_attr_flags ) &&
-					!ad_inlist( (*ap)->a_desc, op->ors_attrs ) )
-			{
-				goto cleanup_attr;
 			}
 		}
 
@@ -915,8 +915,8 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 		 * everything pass thru the ldap backend. */
 		/* FIXME: handle distinguishedName-like syntaxes, like
 		 * nameAndOptionalUID */
-		} else if ( (*ap)->a_desc->ad_type->sat_syntax ==
-				slap_schema.si_syn_distinguishedName )
+		} else if ( (*ap)->a_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName
+				|| ( mapping != NULL && mapping->m_src_ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) )
 		{
 #ifdef ENABLE_REWRITE
 			dc.ctx = "searchAttrDN";
@@ -1253,7 +1253,9 @@ rwm_response( Operation *op, SlapReply *rs )
 	switch( op->o_tag ) {
 	case LDAP_REQ_SEARCH:
 		/* Note: the operation attrs are remapped */
-		if ( op->ors_attrs != NULL && op->ors_attrs != rs->sr_attrs )
+		if ( rs->sr_type == REP_RESULT
+				&& op->ors_attrs != NULL
+				&& op->ors_attrs != rs->sr_attrs )
 		{
 			ch_free( op->ors_attrs );
 			op->ors_attrs = rs->sr_attrs;
