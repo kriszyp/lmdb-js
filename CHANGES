@@ -2,7 +2,7 @@ OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.6 Engineering
 	Build Environment
-		Fixed test021 portable echo bug (ITS#2933)
+		Fixed test021 portable echo bug (ITS#2933, ITS#2879)
 
 OpenLDAP 2.2.5 Release
 	Fixed slapd filter bug (ITS#2901)
