@@ -32,6 +32,7 @@ SLURPD=../servers/slurpd/slurpd
 LDAPSEARCH=../clients/tools/ldapsearch
 LDAPMODIFY=../clients/tools/ldapmodify
 LDAPADD=../clients/tools/ldapadd
+LDAPMODRDN=../clients/tools/ldapmodrdn
 SLAPDTESTER=$PROGDIR/slapd-tester
 LVL=5
 PORT=9009
