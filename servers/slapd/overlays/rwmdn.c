@@ -48,6 +48,12 @@ rwm_dn_massage(
 	int		rc = 0;
 	struct berval	mdn;
 
+	assert( in );
+
+	if ( dn == NULL && ndn == NULL ) {
+		return LDAP_OTHER;
+	}
+
 	rc = rewrite_session( dc->rwmap->rwm_rw, dc->ctx,
 			( in->bv_len ? in->bv_val : "" ), 
 			dc->conn, &mdn.bv_val );
@@ -74,9 +80,13 @@ rwm_dn_massage(
 		} else {
 			/* we assume the input string is already in pretty form,
 			 * and that the normalized version is already available */
-			*dn = *in;
-			if ( ndn != NULL ) {
-				BER_BVZERO( ndn );
+			if ( dn ) {
+				*dn = *in;
+				if ( ndn ) {
+					BER_BVZERO( ndn );
+				}
+			} else {
+				*ndn = *in;
 			}
 			rc = LDAP_SUCCESS;
 		}
@@ -84,11 +94,11 @@ rwm_dn_massage(
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDAP, DETAIL1, 
 			"[rw] %s: \"%s\" -> \"%s\"\n",
-			dc->ctx, in->bv_val, dn->bv_val );
+			dc->ctx, in->bv_val, dn ? dn->bv_val : ndn->bv_val );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 			"[rw] %s: \"%s\" -> \"%s\"\n",
-			dc->ctx, in->bv_val, dn->bv_val );		
+			dc->ctx, in->bv_val, dn ? dn->bv_val : ndn->bv_val );
 #endif /* !NEW_LOGGING */
 		break;
  		
@@ -131,15 +141,29 @@ rwm_dn_massage(
 			normal = BER_BVNULL,
 			*in = tmpin;
 
-	assert( dn );
+	if ( dn == NULL && ndn == NULL ) {
+		return LDAP_OTHER;
+	}
 
 	if ( in == NULL || BER_BVISNULL( in ) ) {
-		dn->bv_val = NULL;
-		dn->bv_len = 0;
+		if ( dn ) {
+			BER_BVZERO( dn );
+		}
+		if ( ndn ) {
+			BER_BVZERO( ndn );
+		}
 		return LDAP_SUCCESS;
 	}
+
 	if ( dc->rwmap == NULL || dc->rwmap->rwm_suffix_massage == NULL ) {
-		*dn = *in;
+		if ( dn ) {
+			*dn = *in;
+			if ( ndn ) {
+				BER_BVZERO( ndn );
+			}
+		} else {
+			*ndn = *in;
+		}
 		return LDAP_SUCCESS;
 	}
 
@@ -170,7 +194,7 @@ rwm_dn_massage(
 			return rc;
 		}
 
-		if ( dc->normalized && !BER_BVISNULL( &normal) ) {
+		if ( dc->normalized && !BER_BVISNULL( &normal ) ) {
 			in = &normal;
 
 		} else if ( !dc->normalized && !BER_BVISNULL( &pretty ) ) {
@@ -197,20 +221,31 @@ rwm_dn_massage(
 		}
 
 		if ( !strcmp( dc->rwmap->rwm_suffix_massage[i+src].bv_val, &in->bv_val[diff] ) ) {
-			dn->bv_len = diff + dc->rwmap->rwm_suffix_massage[i+dst].bv_len;
-			dn->bv_val = ch_malloc( dn->bv_len + 1 );
-			strncpy( dn->bv_val, in->bv_val, diff );
-			strcpy( &dn->bv_val[diff], dc->rwmap->rwm_suffix_massage[i+dst].bv_val );
+			struct berval	*out;
+
+			if ( dn ) {
+				out = dn;
+			} else {
+				out = ndn;
+			}
+			out->bv_len = diff + dc->rwmap->rwm_suffix_massage[i+dst].bv_len;
+			out->bv_val = ch_malloc( out->bv_len + 1 );
+			strncpy( out->bv_val, in->bv_val, diff );
+			strcpy( &out->bv_val[diff], dc->rwmap->rwm_suffix_massage[i+dst].bv_val );
 #ifdef NEW_LOGGING
 			LDAP_LOG ( BACK_LDAP, ARGS, 
 				"rwm_dn_massage: converted \"%s\" to \"%s\"\n",
-				in->bv_val, dn->bv_val, 0 );
+				in->bv_val, out->bv_val, 0 );
 #else
 			Debug( LDAP_DEBUG_ARGS,
 				"rwm_dn_massage:"
 				" converted \"%s\" to \"%s\"\n",
-				in->bv_val, dn->bv_val, 0 );
+				in->bv_val, out->bv_val, 0 );
 #endif
+			if ( dn && ndn ) {
+				rc = dnNormalize( 0, NULL, NULL, dn, ndn, NULL );
+			}
+
 			break;
 		}
 	}

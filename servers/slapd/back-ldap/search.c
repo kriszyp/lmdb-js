@@ -41,8 +41,6 @@ ldap_build_entry( Operation *op, LDAPMessage *e, Entry *ent,
 	 struct berval *bdn, int flags );
 #define LDAP_BUILD_ENTRY_PRIVATE	0x01
 
-static struct berval dummy = BER_BVNULL;
-
 int
 ldap_back_search(
     Operation	*op,
@@ -200,7 +198,7 @@ fail:;
 					ent.e_attrs = a->a_next;
 
 					v = a->a_vals;
-					if ( a->a_vals != &dummy ) {
+					if ( a->a_vals != &slap_dummy_bv ) {
 						ber_bvarray_free(a->a_vals);
 					}
 					if ( a->a_nvals != v ) {
@@ -453,7 +451,7 @@ ldap_build_entry(
 			 * values result filter
 			 */
 			if ( private ) {
-				attr->a_vals = &dummy;
+				attr->a_vals = &slap_dummy_bv;
 			} else {
 				attr->a_vals = ch_malloc( sizeof( struct berval ) );
 				BER_BVZERO( &attr->a_vals[0] );

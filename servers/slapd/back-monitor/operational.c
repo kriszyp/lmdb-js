@@ -46,7 +46,7 @@ monitor_back_operational(
 	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
 		/* just count */ ;
 
-	if ( rs->sr_opattrs == SLAP_OPATTRS ||
+	if ( SLAP_OPATTRS( rs->sr_attr_flags ) ||
 			ad_inlist( slap_schema.si_ad_hasSubordinates, rs->sr_attrs ) )
 	{
 		int			hs;

@@ -1687,10 +1687,16 @@ typedef struct rep_extended_s {
 
 typedef struct rep_search_s {
 	Entry *r_entry;
-	int r_opattrs;
-#define SLAP_OPATTRS_UNDEFINED	(0)
-#define SLAP_OPATTRS_NO		(-1)
-#define SLAP_OPATTRS		(1)
+	int r_attr_flags;
+#define SLAP_ATTRS_UNDEFINED	(0)
+#define SLAP_OPATTRS_NO		(0x01)
+#define SLAP_OPATTRS_YES	(0x02)
+#define SLAP_USERATTRS_NO	(0x10)
+#define SLAP_USERATTRS_YES	(0x20)
+#define SLAP_OPATTRS_MASK(f)	( (f) & (SLAP_OPATTRS_NO|SLAP_OPATTRS_YES) )
+#define SLAP_OPATTRS(f)		( (f) & SLAP_OPATTRS_YES )
+#define SLAP_USERATTRS_MASK(f)	( (f) & (SLAP_USERATTRS_NO|SLAP_USERATTRS_YES) )
+#define SLAP_USERATTRS(f)	( (f) & SLAP_USERATTRS_YES )
 	Attribute *r_operational_attrs;
 	AttributeName *r_attrs;
 	int r_nentries;
@@ -1722,7 +1728,7 @@ typedef struct slap_rep {
 #define	sr_attrs sr_un.sru_search.r_attrs
 #define	sr_entry sr_un.sru_search.r_entry
 #define	sr_operational_attrs sr_un.sru_search.r_operational_attrs
-#define sr_opattrs sr_un.sru_search.r_opattrs
+#define sr_attr_flags sr_un.sru_search.r_attr_flags
 #define	sr_v2ref sr_un.sru_search.r_v2ref
 #define	sr_nentries sr_un.sru_search.r_nentries
 #define	sr_rspoid sr_un.sru_extended.r_rspoid

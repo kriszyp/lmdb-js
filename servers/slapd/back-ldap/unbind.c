@@ -38,7 +38,7 @@ ldap_back_conn_destroy(
 )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
-	struct ldapconn *lc, lc_curr;
+	struct ldapconn *lc = NULL, lc_curr;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDAP, INFO,
@@ -56,6 +56,13 @@ ldap_back_conn_destroy(
 	lc = avl_delete( &li->conntree, (caddr_t)&lc_curr, ldap_back_conn_cmp );
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
+#ifdef ENABLE_REWRITE
+	/*
+	 * Cleanup rewrite session
+	 */
+	rewrite_session_delete( li->rwmap.rwm_rw, conn );
+#endif /* ENABLE_REWRITE */
+
 	if (lc) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDAP, DETAIL1, 
@@ -66,13 +73,6 @@ ldap_back_conn_destroy(
 			"=>ldap_back_conn_destroy: destroying conn %ld\n",
 			lc->conn->c_connid, 0, 0 );
 #endif
-
-#ifdef ENABLE_REWRITE
-		/*
-		 * Cleanup rewrite session
-		 */
-		rewrite_session_delete( li->rwmap.rwm_rw, conn );
-#endif /* ENABLE_REWRITE */
 
 		/*
 		 * Needs a test because the handler may be corrupted,

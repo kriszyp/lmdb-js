@@ -40,7 +40,7 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 	dncookie		dc;
 
 	/*
-	 * Rewrite the bind dn if needed
+	 * Rewrite the dn if needed
 	 */
 	dc.rwmap = rwmap;
 #ifdef ENABLE_REWRITE
@@ -73,14 +73,11 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 	if ( dnp ) {
 		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
-	}
-
-	op->o_req_ndn = ndn;
-	if ( dnp ) {
 		op->o_req_dn = dn;
 	} else {
 		op->o_req_dn = ndn;
 	}
+	op->o_req_ndn = ndn;
 
 	return LDAP_SUCCESS;
 }
@@ -110,8 +107,8 @@ rwm_add( Operation *op, SlapReply *rs )
 	}
 
 	if ( olddn != op->o_req_dn.bv_val ) {
-		ber_memfree( op->ora_e->e_name.bv_val );
-		ber_memfree( op->ora_e->e_nname.bv_val );
+		ch_free( op->ora_e->e_name.bv_val );
+		ch_free( op->ora_e->e_nname.bv_val );
 
 		ber_dupbv( &op->ora_e->e_name, &op->o_req_dn );
 		ber_dupbv( &op->ora_e->e_nname, &op->o_req_ndn );
@@ -151,7 +148,22 @@ rwm_add( Operation *op, SlapReply *rs )
 			if ( rc ) {
 				goto cleanup_attr;
 			}
+
+		} else if ( (*ap)->a_desc == slap_schema.si_ad_ref ) {
+#ifdef ENABLE_REWRITE
+			rc = rwm_referral_rewrite( op, rs, "addAttrDN",
+					(*ap)->a_vals,
+					(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
+#else
+			rc = 1;
+			rc = rwm_referral_rewrite( op, rs, &rc, (*ap)->a_vals,
+					(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
+#endif
+			if ( rc != LDAP_SUCCESS ) {
+				goto cleanup_attr;
+			}
 		}
+
 
 next_attr:;
 		ap = &(*ap)->a_next;
@@ -261,13 +273,18 @@ rwm_compare( Operation *op, SlapReply *rs )
 		}
 		if ( op->orc_ava->aa_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName )
 		{
+			struct berval	*mapped_valsp[2];
+			
+			mapped_valsp[0] = &mapped_vals[0];
+			mapped_valsp[1] = &mapped_vals[1];
+
 			mapped_vals[0] = op->orc_ava->aa_value;
 
 #ifdef ENABLE_REWRITE
-			rc = rwm_dnattr_rewrite( op, rs, "compareAttrDN", mapped_vals, NULL );
+			rc = rwm_dnattr_rewrite( op, rs, "compareAttrDN", NULL, mapped_valsp );
 #else
 			rc = 1;
-			rc = rwm_dnattr_rewrite( op, rs, &rc, mapped_vals, NULL );
+			rc = rwm_dnattr_rewrite( op, rs, &rc, NULL, mapped_valsp );
 #endif
 
 			if ( rc != LDAP_SUCCESS ) {
@@ -276,10 +293,7 @@ rwm_compare( Operation *op, SlapReply *rs )
 				return -1;
 			}
 
-			if ( mapped_vals[0].bv_val != op->orc_ava->aa_value.bv_val ) {
-				free( op->orc_ava->aa_value.bv_val );
-				op->orc_ava->aa_value = mapped_vals[0];
-			}
+			op->orc_ava->aa_value = mapped_vals[0];
 		}
 	}
 
@@ -397,7 +411,7 @@ rwm_modify( Operation *op, SlapReply *rs )
 						slap_schema.si_syn_distinguishedName )
 				{
 #ifdef ENABLE_REWRITE
-					rc = rwm_dnattr_rewrite( op, rs, "modifyDN",
+					rc = rwm_dnattr_rewrite( op, rs, "modifyAttrDN",
 							(*mlp)->sml_values,
 							(*mlp)->sml_nvalues ? &(*mlp)->sml_nvalues : NULL );
 #else
@@ -406,6 +420,20 @@ rwm_modify( Operation *op, SlapReply *rs )
 							(*mlp)->sml_values,
 							(*mlp)->sml_nvalues ? &(*mlp)->sml_nvalues : NULL );
 #endif
+				} else if ( (*mlp)->sml_desc == slap_schema.si_ad_ref ) {
+#ifdef ENABLE_REWRITE
+					rc = rwm_referral_rewrite( op, rs, "modifyAttrDN",
+							(*mlp)->sml_values,
+							(*mlp)->sml_nvalues ? &(*mlp)->sml_nvalues : NULL );
+#else
+					rc = 1;
+					rc = rwm_referral_rewrite( op, rs, &rc,
+							(*mlp)->sml_values,
+							(*mlp)->sml_nvalues ? &(*mlp)->sml_nvalues : NULL );
+#endif
+					if ( rc != LDAP_SUCCESS ) {
+						goto cleanup_mod;
+					}
 				}
 
 				if ( rc != LDAP_SUCCESS ) {
@@ -470,6 +498,9 @@ rwm_modrdn( Operation *op, SlapReply *rs )
 		}
 	}
 
+	/*
+	 * Rewrite the dn, if needed
+ 	 */
 #ifdef ENABLE_REWRITE
 	rc = rwm_op_dn_massage( op, rs, "renameDN" );
 #else
@@ -539,7 +570,7 @@ rwm_search( Operation *op, SlapReply *rs )
 	}
 
 	/*
-	 * Rewrite the bind dn if needed
+	 * Rewrite the dn if needed
 	 */
 	dc.rwmap = rwmap;
 #ifdef ENABLE_REWRITE
@@ -698,13 +729,12 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 	Attribute		**ap;
 
 	/*
-	 * Rewrite the dn of the result, if needed
+	 * Rewrite the dn attrs, if needed
 	 */
 	dc.rwmap = rwmap;
 #ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = NULL; 
-	dc.ctx = "searchAttrDN";
 #else
 	dc.tofrom = 0;
 	dc.normalized = 0;
@@ -728,11 +758,13 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 		int			last;
 		Attribute		*a;
 
-		if ( rs->sr_opattrs == SLAP_OPATTRS && is_at_operational( (*ap)->a_desc->ad_type ) )
+		if ( SLAP_OPATTRS( rs->sr_attr_flags ) && is_at_operational( (*ap)->a_desc->ad_type ) )
 		{
 			/* go on */ ;
 			
-		} else if ( op->ors_attrs != NULL && !ad_inlist( (*ap)->a_desc, op->ors_attrs ) )
+		} else if ( op->ors_attrs != NULL && 
+				!SLAP_USERATTRS( rs->sr_attr_flags ) && 
+				!ad_inlist( (*ap)->a_desc, op->ors_attrs ) )
 		{
 			goto cleanup_attr;
 		}
@@ -781,7 +813,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 					 * the value is replaced by
 					 * ch_alloc'ed memory
 					 */
-					free( bv[0].bv_val );
+					ch_free( bv[0].bv_val );
 					ber_dupbv( &bv[0], &mapped );
 				}
 			}
@@ -801,7 +833,19 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 		} else if ( (*ap)->a_desc->ad_type->sat_syntax ==
 				slap_schema.si_syn_distinguishedName )
 		{
+#ifdef ENABLE_REWRITE
+			dc.ctx = "searchAttrDN";
+#endif
 			rc = rwm_dnattr_result_rewrite( &dc, (*ap)->a_vals );
+			if ( rc != LDAP_SUCCESS ) {
+				goto cleanup_attr;
+			}
+
+		} else if ( (*ap)->a_desc == slap_schema.si_ad_ref ) {
+#ifdef ENABLE_REWRITE
+			dc.ctx = "searchAttrDN";
+#endif
+			rc = rwm_referral_result_rewrite( &dc, (*ap)->a_vals );
 			if ( rc != LDAP_SUCCESS ) {
 				goto cleanup_attr;
 			}
@@ -882,12 +926,13 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	 */
 	rc = rwm_dn_massage( &dc, &e->e_name, &dn, &ndn );
 	if ( rc != LDAP_SUCCESS ) {
+		rc = 1;
 		goto fail;
 	}
 
 	if ( e->e_name.bv_val != dn.bv_val ) {
-		free( e->e_name.bv_val );
-		free( e->e_nname.bv_val );
+		ch_free( e->e_name.bv_val );
+		ch_free( e->e_nname.bv_val );
 
 		e->e_name = dn;
 		e->e_nname = ndn;
@@ -899,7 +944,7 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	/* FIXME: the entries are in the remote mapping form;
 	 * so we need to select those attributes we are willing
 	 * to return, and remap them accordingly */
-	rwm_attrs( op, rs, &e->e_attrs );
+	(void)rwm_attrs( op, rs, &e->e_attrs );
 
 	rs->sr_entry = e;
 	rs->sr_flags = flags;
@@ -1060,6 +1105,10 @@ rwm_m_config(
 static int
 rwm_response( Operation *op, SlapReply *rs )
 {
+	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
+	struct ldaprwmap	*rwmap = 
+			(struct ldaprwmap *)on->on_bi.bi_private;
+
 	int		rc;
 
 	if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_SEARCH ) {
@@ -1083,6 +1132,27 @@ rwm_response( Operation *op, SlapReply *rs )
 	case LDAP_REQ_MODIFY:
 	case LDAP_REQ_COMPARE:
 	case LDAP_REQ_EXTENDED:
+		if ( rs->sr_ref ) {
+			dncookie		dc;
+
+			/*
+			 * Rewrite the dn of the referrals, if needed
+			 */
+			dc.rwmap = rwmap;
+#ifdef ENABLE_REWRITE
+			dc.conn = op->o_conn;
+			dc.rs = NULL; 
+			dc.ctx = "referralDN";
+#else
+			dc.tofrom = 0;
+			dc.normalized = 0;
+#endif
+			rc = rwm_referral_result_rewrite( &dc, rs->sr_ref );
+			if ( rc != LDAP_SUCCESS ) {
+				rc = 1;
+				break;
+			}
+		}
 		rc = rwm_matched( op, rs );
 		break;
 

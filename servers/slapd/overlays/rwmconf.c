@@ -244,9 +244,12 @@ rwm_suffix_massage_regexize( const char *s )
 			p = r + 1, i++ )
 		;
 
-	res = ch_calloc( sizeof( char ), strlen( s ) + 4 + 4*i + 1 );
+	res = ch_calloc( sizeof( char ), strlen( s )
+			+ STRLENOF( "((.+),)?" )
+			+ STRLENOF( "[ ]?" ) * i
+			+ STRLENOF( "$" ) + 1 );
 
-	ptr = lutil_strcopy( res, "(.*)" );
+	ptr = lutil_strcopy( res, "((.+),)?" );
 	for ( i = 0, p = s;
 			( r = strchr( p, ',' ) ) != NULL;
 			p = r + 1 , i++ ) {
@@ -257,7 +260,9 @@ rwm_suffix_massage_regexize( const char *s )
 			r++;
 		}
 	}
-	lutil_strcopy( ptr, p );
+	ptr = lutil_strcopy( ptr, p );
+	ptr[0] = '$';
+	ptr[1] = '\0';
 
 	return res;
 }
@@ -328,6 +333,13 @@ rwm_suffix_massage_config(
 
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "matchedDN";
+	rargv[ 2 ] = "alias";
+	rargv[ 3 ] = "searchEntryDN";
+	rargv[ 4 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
+
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "referralDN";
 	rargv[ 2 ] = "alias";
 	rargv[ 3 ] = "searchEntryDN";
 	rargv[ 4 ] = NULL;

@@ -52,6 +52,15 @@ with
 .IR "distinguishedName syntax" ,
 requires the knowledge of the attributeType syntax.
 See the REWRITING section for details.
+.LP
+Note that when mapping DN-valued attributes from local to remote,
+first the DN is rewritten, and then the attributeType is mapped;
+while mapping from remote to local, first the attributeType is mapped,
+and then the DN is rewritten.
+As such, it is important that the local attributeType is appropriately
+defined as using the distinguishedName syntax.
+Also, note that there are DN-related syntaxes, like nameAndOptionalUID,
+whose values are currenlty not rewritten.
 .SH SUFFIX MASSAGING
 A basic feature of the
 .B rwm
@@ -287,13 +296,13 @@ searchFilterAttrDN   search
 compareDN            compare
 compareAttrDN        compare AVA
 addDN                add
-addAttrDN            add AVA
+addAttrDN            add AVA (including "ref")
 modifyDN             modify
-modifyAttrDN         modify AVA
+modifyAttrDN         modify AVA (including "ref")
 modrDN               modrdn
 newSuperiorDN        modrdn
 deleteDN             delete
-exopPasswdDN         passwd exop DN if proxy
+exopPasswdDN         passwd exop DN
 .fi
 .RE
 .LP
@@ -307,6 +316,8 @@ searchAttrDN         search AVA (only if defined; defaults
                      to searchEntryDN; acts on DN-syntax
                      attributes of search results)
 matchedDN            all ops (only if applicable; defaults
+                     to searchEntryDN)
+referralDN           all ops (only if applicable; defaults
                      to searchEntryDN)
 .fi
 .RE

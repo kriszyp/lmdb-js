@@ -1502,19 +1502,25 @@ int backend_operational(
 	 * and the backend supports specific operational attributes, 
 	 * add them to the attribute list
 	 */
-	if ( rs->sr_opattrs == SLAP_OPATTRS || ( op->ors_attrs &&
+	if ( SLAP_OPATTRS( rs->sr_attr_flags ) || ( op->ors_attrs &&
 		ad_inlist( slap_schema.si_ad_subschemaSubentry, op->ors_attrs )) ) {
 		*ap = slap_operational_subschemaSubentry( op->o_bd );
 
 		ap = &(*ap)->a_next;
 	}
 
-	if ( ( rs->sr_opattrs == SLAP_OPATTRS || op->ors_attrs ) && op->o_bd &&
+	if ( ( SLAP_OPATTRS( rs->sr_attr_flags ) || op->ors_attrs ) && op->o_bd &&
 		op->o_bd->be_operational != NULL )
 	{
+		Attribute	*a;
+		
+		a = rs->sr_operational_attrs;
 		rs->sr_operational_attrs = NULL;
 		rc = op->o_bd->be_operational( op, rs );
 		*ap = rs->sr_operational_attrs;
+		if ( a != NULL ) {
+			rs->sr_operational_attrs = a;
+		}
 
 		for ( ; *ap; ap = &(*ap)->a_next )
 			/* just count them */ ;

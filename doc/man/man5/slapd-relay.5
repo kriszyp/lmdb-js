@@ -17,34 +17,63 @@ It requires the
 .LP
 This backend and the above mentioned overlay are experimental.
 .SH CONFIGURATION
-These
+The following
 .B slapd.conf
-options apply to the relay backend database.
+directives apply to the relay backend database.
 That is, they must follow a "database relay" line and come before any
 subsequent "backend" or "database" lines.
 Other database options are described in the
 .BR slapd.conf (5)
-manual page.
+manual page; only the
+.B suffix
+directive is required by the 
+.I relay
+backend.
 .TP
 .B relay <real naming context> [massage]
 The naming context of the database that is presented 
 under a virtual naming context.
-The presence of the directive implies that one single database
+The presence of this directive implies that one specific database,
+i.e. the one serving the
+.BR "real naming context" ,
 will be presented under a virtual naming context.
 This directive automatically instantiates the 
-.B rwm
-.BR overlay .
+.IR "rwm overlay" .
 If the optional
 .B massage
 keyword is present, the suffix massaging is automatically
-configured as well.
+configured as well; otherwise, specific massaging instructions
+are required by means of the
+.I rewrite
+directives described in
+.BR slapo-rwm (5).
+
+.SH ACCESS RULES
+One important issue is that access rules are based on the identity
+that issued the operation.
+After massaging from the virtual to the real naming context, the
+frontend sees the operation as performed by the identty in the
+real naming context.
+Moreover, since
+.B back-relay
+bypasses the real database frontend operations by short-circuiting
+operations thru the internal backend API, the original database
+access rules do not apply but in selected cases, i.e. when the
+backend itself applies access control.
+As a consequence, the instances of the relay database must provide
+own access rules that are consistent with those of the original
+database, possibly adding further specific restrictions.
+So, access rules in the
+.B relay
+database must refer to identities in the real naming context.
+Examples are reported in the EXAMPLES section.
 
 .SH SCENARIOS
 .LP
 If no
 .B relay
 directive is given, the 
-.B relay
+.I relay
 database does not refer to any specific database, but the most
 appropriate one is looked-up after rewriting the request DN
 for the operation that is being handled.
@@ -52,7 +81,8 @@ for the operation that is being handled.
 This allows to write carefully crafted rewrite rules that
 cause some of the requests to be directed to one database, and
 some to another; e.g., authentication can be mapped to one 
-database, and searches to another and so.
+database, and searches to another, or different target databases
+can be selected based on the DN of the request, and so.
 .LP
 Another possibility is to map the same operation to different 
 databases based on details of the virtual naming context,
@@ -61,7 +91,7 @@ e.g. groups on one database and persons on another.
 .SH Caveats
 The
 .B rwm overlay
-is far from complete.
+is experimental.
 .LP
 .SH EXAMPLES
 To implement a plain virtual naming context mapping
@@ -84,6 +114,10 @@ that looks up the real naming context for each operation, use
           "dc=real,dc=naming,dc=context"
 .fi
 .LP
+This is useful, for instance, to relay different databases that
+share the terminal portion of the naming context (the one that
+is rewritten).
+.LP
 To implement the old-fashioned suffixalias, e.g. mapping
 the virtual to the real naming context, but not the results
 back from the real to the virtual naming context, use
@@ -95,11 +129,11 @@ back from the real to the virtual naming context, use
   rewriteEngine   on
   rewriteContext  default
   rewriteRule     "dc=virtual,dc=naming,dc=context"
-          "dc=real,dc=naming,dc=context" ":"
-  rewriteRule     searchFilter
-  rewriteRule     searchResult
-  rewriteRule     searchResultAttrDN
-  rewriteRule     matchedDN
+          "dc=real,dc=naming,dc=context" ":@"
+  rewriteContext  searchFilter
+  rewriteContext  searchEntryDN
+  rewriteContext  searchAttrDN
+  rewriteContext  matchedDN
 .fi
 .LP
 Note that the virtual database is bound to a single real database,
@@ -108,10 +142,45 @@ so the
 is automatically instantiated, but the rewrite rules 
 are written explicitly to map all the virtual to real 
 naming context data flow, but none of the real to virtual.
+.LP
+Access rules:
+.LP
+.nf
+  database        bdb
+  suffix          "dc=example,dc=com"
+  # skip...
+  access to dn.subtree="dc=example,dc=com"
+          by dn.exact="cn=Supervisor,dc=example,dc=com" write
+          by * read
+
+  database        relay
+  suffix          "o=Example,c=US"
+  relay           "dc=example,dc=com" massage
+  # skip ...
+  access to dn.subtree="o=Example,c=US"
+          by dn.exact="cn=Supervisor,dc=example,dc=com" write
+          by dn.exact="cn=Relay Supervisor,dc=example,dc=com" write
+          by * read
+.fi
+.LP
+Note that, in both databases, the identities (the 
+.B <who> 
+clause) are in the
+.BR "real naming context" ,
+i.e.
+.BR "`dc=example,dc=com'" ,
+while the targets (the 
+.B <what> 
+clause) are in the
+.B real
+and in the
+.BR "virtual naming context" ,
+respectively.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
 default slapd configuration file
 .SH SEE ALSO
 .BR slapd.conf (5),
+.BR slapo-rwm (5),
 .BR slapd (8).

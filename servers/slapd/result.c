@@ -41,6 +41,8 @@
 #include "slapi/slapi.h"
 #endif
 
+const struct berval slap_dummy_bv = BER_BVNULL;
+
 int slap_null_cb( Operation *op, SlapReply *rs )
 {
 	return 0;
@@ -784,8 +786,15 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	/* FIXME: maybe we could se this flag at the operation level;
 	 * however, in principle the caller of send_search_entry() may
 	 * change the attribute list at each call */
-	rs->sr_opattrs = ( rs->sr_attrs == NULL ) ? SLAP_OPATTRS_NO
-		: ( an_find( rs->sr_attrs, &AllOper ) ? SLAP_OPATTRS : SLAP_OPATTRS_NO );
+	if ( rs->sr_attrs == NULL ) {
+		rs->sr_attr_flags = ( SLAP_OPATTRS_NO | SLAP_USERATTRS_YES );
+
+	} else {
+		rs->sr_attr_flags |= an_find( rs->sr_attrs, &AllOper ) ?
+			SLAP_OPATTRS_YES : SLAP_OPATTRS_NO;
+		rs->sr_attr_flags |= an_find( rs->sr_attrs, &AllUser ) ?
+			SLAP_USERATTRS_YES : SLAP_USERATTRS_NO;
+	}
 
 	rc = backend_operational( op, rs );
 	if ( rc ) {
@@ -967,7 +976,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		} else {
 			/* specific attrs requested */
 			if ( is_at_operational( desc->ad_type ) ) {
-				if ( rs->sr_opattrs != SLAP_OPATTRS &&
+				if ( !SLAP_OPATTRS( rs->sr_attr_flags ) &&
 						!ad_inlist( desc, rs->sr_attrs ) )
 				{
 					continue;
@@ -1177,7 +1186,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		} else {
 			/* specific attrs requested */
 			if( is_at_operational( desc->ad_type ) ) {
-				if ( rs->sr_opattrs != SLAP_OPATTRS && 
+				if ( !SLAP_OPATTRS( rs->sr_attr_flags ) && 
 						!ad_inlist( desc, rs->sr_attrs ) )
 				{
 					continue;
@@ -1295,7 +1304,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		ctx.cac_attrs = rs->sr_attrs;
 		ctx.cac_attrsonly = op->ors_attrsonly;
 		ctx.cac_userattrs = userattrs;
-		ctx.cac_opattrs = rs->sr_opattrs;
+		ctx.cac_opattrs = rs->sr_attr_flags;
 		ctx.cac_acl_state = acl_state;
 		ctx.cac_private = (void *)ber;
 
@@ -1433,7 +1442,7 @@ error_return:;
 		attrs_free( rs->sr_operational_attrs );
 		rs->sr_operational_attrs = NULL;
 	}
-	rs->sr_opattrs = SLAP_OPATTRS_UNDEFINED;
+	rs->sr_attr_flags = SLAP_ATTRS_UNDEFINED;
 
 	/* FIXME: I think rs->sr_type should be explicitly set to
 	 * REP_SEARCH here. That's what it was when we entered this

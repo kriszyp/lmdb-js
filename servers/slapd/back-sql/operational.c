@@ -49,7 +49,7 @@ backsql_operational(
 	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
 		/* just count */ ;
 
-	if ( ( rs->sr_opattrs == SLAP_OPATTRS || ad_inlist( slap_schema.si_ad_hasSubordinates, rs->sr_attrs ) ) 
+	if ( ( SLAP_OPATTRS( rs->sr_attr_flags ) || ad_inlist( slap_schema.si_ad_hasSubordinates, rs->sr_attrs ) ) 
 			&& attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_hasSubordinates ) == NULL ) {
 		
 		rc = backsql_get_db_conn( op, &dbh );

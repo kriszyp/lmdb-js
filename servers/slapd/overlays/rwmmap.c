@@ -163,6 +163,10 @@ rwm_map_attrnames(
 {
 	int		i, j;
 
+	assert( anp );
+
+	*anp = NULL;
+
 	if ( an == NULL ) {
 		return LDAP_SUCCESS;
 	}
@@ -384,7 +388,7 @@ map_attr_value(
 		fdc.ctx = "searchFilterAttrDN";
 #endif
 
-		rc = rwm_dn_massage( &fdc, value, &vtmp, NULL );
+		rc = rwm_dn_massage( &fdc, value, NULL, &vtmp );
 		switch ( rc ) {
 		case LDAP_SUCCESS:
 			if ( vtmp.bv_val != value->bv_val ) {
@@ -413,7 +417,7 @@ map_attr_value(
 	filter_escape_value( &vtmp, mapped_value );
 
 	if ( freeval ) {
-		ber_memfree( vtmp.bv_val );
+		ch_free( vtmp.bv_val );
 	}
 	
 	return 0;
@@ -453,12 +457,12 @@ rwm_int_filter_map_rewrite(
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(=)" );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=%s)",
 			atmp.bv_val, vtmp.bv_val );
 
-		ber_memfree( vtmp.bv_val );
+		ch_free( vtmp.bv_val );
 		break;
 
 	case LDAP_FILTER_GE:
@@ -469,12 +473,12 @@ rwm_int_filter_map_rewrite(
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(>=)" );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s>=%s)",
 			atmp.bv_val, vtmp.bv_val );
 
-		ber_memfree( vtmp.bv_val );
+		ch_free( vtmp.bv_val );
 		break;
 
 	case LDAP_FILTER_LE:
@@ -485,12 +489,12 @@ rwm_int_filter_map_rewrite(
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(<=)" );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s<=%s)",
 			atmp.bv_val, vtmp.bv_val );
 
-		ber_memfree( vtmp.bv_val );
+		ch_free( vtmp.bv_val );
 		break;
 
 	case LDAP_FILTER_APPROX:
@@ -501,12 +505,12 @@ rwm_int_filter_map_rewrite(
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len + STRLENOF( "(~=)" );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s~=%s)",
 			atmp.bv_val, vtmp.bv_val );
 
-		ber_memfree( vtmp.bv_val );
+		ch_free( vtmp.bv_val );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
@@ -519,7 +523,7 @@ rwm_int_filter_map_rewrite(
 		/* cannot be a DN ... */
 
 		fstr->bv_len = atmp.bv_len + STRLENOF( "(=*)" );
-		fstr->bv_val = malloc( fstr->bv_len + 128 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 128 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
 			atmp.bv_val );
@@ -536,7 +540,7 @@ rwm_int_filter_map_rewrite(
 				/* "(attr=" */ "%s*)",
 				vtmp.bv_val );
 
-			ber_memfree( vtmp.bv_val );
+			ch_free( vtmp.bv_val );
 		}
 
 		if ( f->f_sub_any != NULL ) {
@@ -550,7 +554,7 @@ rwm_int_filter_map_rewrite(
 				snprintf( &fstr->bv_val[len - 1], vtmp.bv_len + 3,
 					/* "(attr=[init]*[any*]" */ "%s*)",
 					vtmp.bv_val );
-				ber_memfree( vtmp.bv_val );
+				ch_free( vtmp.bv_val );
 			}
 		}
 
@@ -566,7 +570,7 @@ rwm_int_filter_map_rewrite(
 				/* "(attr=[init*][any*]" */ "%s)",
 				vtmp.bv_val );
 
-			ber_memfree( vtmp.bv_val );
+			ch_free( vtmp.bv_val );
 		}
 
 		break;
@@ -579,7 +583,7 @@ rwm_int_filter_map_rewrite(
 		}
 
 		fstr->bv_len = atmp.bv_len + STRLENOF( "(=*)" );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
 			atmp.bv_val );
@@ -589,7 +593,7 @@ rwm_int_filter_map_rewrite(
 	case LDAP_FILTER_OR:
 	case LDAP_FILTER_NOT:
 		fstr->bv_len = STRLENOF( "(%)" );
-		fstr->bv_val = malloc( fstr->bv_len + 128 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 128 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%c)",
 			f->f_choice == LDAP_FILTER_AND ? '&' :
@@ -632,7 +636,7 @@ rwm_int_filter_map_rewrite(
 			( f->f_mr_dnattrs ? STRLENOF( ":dn" ) : 0 ) +
 			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len + 1 : 0 ) +
 			vtmp.bv_len + STRLENOF( "(:=)" );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
 			atmp.bv_val,
@@ -640,8 +644,9 @@ rwm_int_filter_map_rewrite(
 			!BER_BVISEMPTY( &f->f_mr_rule_text ) ? ":" : "",
 			!BER_BVISEMPTY( &f->f_mr_rule_text ) ? f->f_mr_rule_text.bv_val : "",
 			vtmp.bv_val );
-		ber_memfree( vtmp.bv_val );
-		} break;
+		ch_free( vtmp.bv_val );
+		break;
+	}
 
 	case SLAPD_FILTER_COMPUTED:
 		switch ( f->f_result ) {
@@ -701,7 +706,7 @@ rwm_filter_map_rewrite(
 	case REWRITE_REGEXEC_OK:
 		if ( !BER_BVISNULL( fstr ) ) {
 			fstr->bv_len = strlen( fstr->bv_val );
-			free( ftmp.bv_val );
+			ch_free( ftmp.bv_val );
 
 		} else {
 			*fstr = ftmp;
@@ -748,7 +753,7 @@ rwm_filter_map_rewrite(
  * routines may be macros with args
  */
 int
-rwm_dnattr_rewrite(
+rwm_referral_rewrite(
 	Operation		*op,
 	SlapReply		*rs,
 	void			*cookie,
@@ -762,12 +767,12 @@ rwm_dnattr_rewrite(
 	int			i, last;
 
 	dncookie		dc;
-	struct berval		dn, ndn, *pndn = NULL;
+	struct berval		dn, ndn, *ndnp = NULL;
 
 	assert( a_vals );
 
 	/*
-	 * Rewrite the bind dn if needed
+	 * Rewrite the dn if needed
 	 */
 	dc.rwmap = rwmap;
 #ifdef ENABLE_REWRITE
@@ -781,7 +786,7 @@ rwm_dnattr_rewrite(
 
 	for ( last = 0; !BER_BVISNULL( &a_vals[last] ); last++ );
 	if ( pa_nvals != NULL ) {
-		pndn = &ndn;
+		ndnp = &ndn;
 
 		if ( *pa_nvals == NULL ) {
 			*pa_nvals = ch_malloc( last * sizeof(struct berval) );
@@ -791,9 +796,22 @@ rwm_dnattr_rewrite(
 	last--;
 
 	for ( i = 0; !BER_BVISNULL( &a_vals[i] ); i++ ) {
+		struct berval	olddn, oldval;
 		int		rc;
+		LDAPURLDesc	*ludp;
 
-		rc = rwm_dn_massage( &dc, &a_vals[i], &dn, pndn );
+		oldval = a_vals[i];
+		rc = ldap_url_parse( oldval.bv_val, &ludp );
+		if ( rc != LDAP_URL_SUCCESS ) {
+			/* leave attr untouched if massage failed */
+			if ( pa_nvals && BER_BVISNULL( &(*pa_nvals)[i] ) ) {
+				ber_dupbv( &(*pa_nvals)[i], &oldval );
+			}
+			continue;
+		}
+		ber_str2bv( ludp->lud_dn, 0, 0, &olddn );
+
+		rc = rwm_dn_massage( &dc, &olddn, &dn, ndnp );
 		switch ( rc ) {
 		case LDAP_UNWILLING_TO_PERFORM:
 			/*
@@ -816,27 +834,241 @@ rwm_dnattr_rewrite(
 			break;
 		
 		case LDAP_SUCCESS:
-			if ( !BER_BVISNULL( &dn ) && dn.bv_val != a_vals[i].bv_val ) {
-				ch_free( a_vals[i].bv_val );
-				a_vals[i] = dn;
+			if ( !BER_BVISNULL( &dn ) && dn.bv_val != olddn.bv_val ) {
+				char	*newurl;
+
+				ludp->lud_dn = dn.bv_val;
+				newurl = ldap_url_desc2str( ludp );
+				if ( newurl == NULL ) {
+					/* FIXME: leave attr untouched
+					 * even if ldap_url_desc2str failed... */
+					break;
+				}
+
+				ber_str2bv( newurl, 0, 1, &a_vals[i] );
+				LDAP_FREE( newurl );
+
 				if ( pa_nvals ) {
+					ludp->lud_dn = ndn.bv_val;
+					newurl = ldap_url_desc2str( ludp );
+					if ( newurl == NULL ) {
+						/* FIXME: leave attr untouched
+						 * even if ldap_url_desc2str failed... */
+						ch_free( a_vals[i].bv_val );
+						a_vals[i] = oldval;
+						break;
+					}
+
 					if ( !BER_BVISNULL( &(*pa_nvals)[i] ) ) {
 						ch_free( (*pa_nvals)[i].bv_val );
 					}
-					(*pa_nvals)[i] = *pndn;
+					ber_str2bv( newurl, 0, 1, &(*pa_nvals)[i] );
+					LDAP_FREE( newurl );
 				}
+
+				ch_free( oldval.bv_val );
+				ludp->lud_dn = olddn.bv_val;
 			}
 			break;
 
 		default:
 			/* leave attr untouched if massage failed */
 			if ( pa_nvals && BER_BVISNULL( &(*pa_nvals)[i] ) ) {
+				ber_dupbv( &(*pa_nvals)[i], &a_vals[i] );
+			}
+			break;
+		}
+		ldap_free_urldesc( ludp );
+	}
+	
+	return 0;
+}
+
+/*
+ * I don't like this much, but we need two different
+ * functions because different heap managers may be
+ * in use in back-ldap/meta to reduce the amount of
+ * calls to malloc routines, and some of the free()
+ * routines may be macros with args
+ */
+int
+rwm_dnattr_rewrite(
+	Operation		*op,
+	SlapReply		*rs,
+	void			*cookie,
+	BerVarray		a_vals,
+	BerVarray		*pa_nvals )
+{
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+	struct ldaprwmap	*rwmap = 
+			(struct ldaprwmap *)on->on_bi.bi_private;
+
+	int			i, last;
+
+	dncookie		dc;
+	struct berval		dn, *dnp = NULL, ndn, *ndnp = NULL;
+	BerVarray		in;
+
+	if ( a_vals ) {
+		in = a_vals;
+		dnp = &dn;
+
+	} else {
+		if ( pa_nvals == NULL || *pa_nvals == NULL ) {
+			return LDAP_OTHER;
+		}
+		in = *pa_nvals;
+	}
+
+	/*
+	 * Rewrite the dn if needed
+	 */
+	dc.rwmap = rwmap;
+#ifdef ENABLE_REWRITE
+	dc.conn = op->o_conn;
+	dc.rs = rs;
+	dc.ctx = (char *)cookie;
+#else
+	dc.tofrom = ((int *)cookie)[0];
+	dc.normalized = 0;
+#endif
+
+	for ( last = 0; !BER_BVISNULL( &in[last] ); last++ );
+	if ( pa_nvals != NULL ) {
+		ndnp = &ndn;
+
+		if ( *pa_nvals == NULL ) {
+			*pa_nvals = ch_malloc( last * sizeof(struct berval) );
+			memset( *pa_nvals, 0, last * sizeof(struct berval) );
+		}
+	}
+	last--;
+
+	for ( i = 0; !BER_BVISNULL( &in[i] ); i++ ) {
+		int		rc;
+
+		rc = rwm_dn_massage( &dc, &in[i], dnp, ndnp );
+		switch ( rc ) {
+		case LDAP_UNWILLING_TO_PERFORM:
+			/*
+			 * FIXME: need to check if it may be considered 
+			 * legal to trim values when adding/modifying;
+			 * it should be when searching (e.g. ACLs).
+			 */
+			ch_free( in[i].bv_val );
+			if (last > i ) {
+				in[i] = in[last];
+				if ( a_vals && pa_nvals ) {
+					(*pa_nvals)[i] = (*pa_nvals)[last];
+				}
+			}
+			BER_BVZERO( &in[last] );
+			if ( a_vals && pa_nvals ) {
+				BER_BVZERO( &(*pa_nvals)[last] );
+			}
+			last--;
+			break;
+		
+		case LDAP_SUCCESS:
+			if ( a_vals ) {
+				if ( !BER_BVISNULL( &dn ) && dn.bv_val != a_vals[i].bv_val ) {
+					ch_free( a_vals[i].bv_val );
+					a_vals[i] = dn;
+
+					if ( pa_nvals ) {
+						if ( !BER_BVISNULL( &(*pa_nvals)[i] ) ) {
+							ch_free( (*pa_nvals)[i].bv_val );
+						}
+						(*pa_nvals)[i] = ndn;
+					}
+				}
+				
+			} else {
+				assert( ndnp != NULL );
+
+				if ( !BER_BVISNULL( &ndn ) && ndn.bv_val != (*pa_nvals)[i].bv_val ) {
+					ch_free( (*pa_nvals)[i].bv_val );
+					(*pa_nvals)[i] = ndn;
+				}
+			}
+			break;
+
+		default:
+			/* leave attr untouched if massage failed */
+			if ( a_vals && pa_nvals && BER_BVISNULL( &(*pa_nvals)[i] ) ) {
 				dnNormalize( 0, NULL, NULL, &a_vals[i], &(*pa_nvals)[i], NULL );
 			}
 			break;
 		}
 	}
 	
+	return 0;
+}
+
+int
+rwm_referral_result_rewrite(
+	dncookie		*dc,
+	BerVarray		a_vals
+)
+{
+	int		i, last;
+
+	for ( last = 0; !BER_BVISNULL( &a_vals[last] ); last++ );
+	last--;
+
+	for ( i = 0; !BER_BVISNULL( &a_vals[i] ); i++ ) {
+		struct berval	dn, olddn;
+		int		rc;
+		LDAPURLDesc	*ludp;
+
+		rc = ldap_url_parse( a_vals[i].bv_val, &ludp );
+		if ( rc != LDAP_URL_SUCCESS ) {
+			/* leave attr untouched if massage failed */
+			continue;
+		}
+
+		ber_str2bv( ludp->lud_dn, 0, 0, &olddn );
+		
+		rc = rwm_dn_massage( dc, &olddn, &dn, NULL );
+		switch ( rc ) {
+		case LDAP_UNWILLING_TO_PERFORM:
+			/*
+			 * FIXME: need to check if it may be considered 
+			 * legal to trim values when adding/modifying;
+			 * it should be when searching (e.g. ACLs).
+			 */
+			ch_free( &a_vals[i].bv_val );
+			if ( last > i ) {
+				a_vals[i] = a_vals[last];
+			}
+			BER_BVZERO( &a_vals[last] );
+			last--;
+			break;
+
+		default:
+			/* leave attr untouched if massage failed */
+			if ( !BER_BVISNULL( &dn ) && olddn.bv_val != dn.bv_val ) {
+				char	*newurl;
+
+				ludp->lud_dn = dn.bv_val;
+				newurl = ldap_url_desc2str( ludp );
+				if ( newurl == NULL ) {
+					/* FIXME: leave attr untouched
+					 * even if ldap_url_desc2str failed... */
+					break;
+				}
+
+				ch_free( a_vals[i].bv_val );
+				ber_str2bv( newurl, 0, 1, &a_vals[i] );
+				LDAP_FREE( newurl );
+				ludp->lud_dn = olddn.bv_val;
+			}
+			break;
+		}
+
+		ldap_free_urldesc( ludp );
+	}
+
 	return 0;
 }
 
@@ -863,7 +1095,7 @@ rwm_dnattr_result_rewrite(
 			 * legal to trim values when adding/modifying;
 			 * it should be when searching (e.g. ACLs).
 			 */
-			LBER_FREE( &a_vals[i].bv_val );
+			ch_free( &a_vals[i].bv_val );
 			if ( last > i ) {
 				a_vals[i] = a_vals[last];
 			}
@@ -874,7 +1106,7 @@ rwm_dnattr_result_rewrite(
 		default:
 			/* leave attr untouched if massage failed */
 			if ( !BER_BVISNULL( &dn ) && a_vals[i].bv_val != dn.bv_val ) {
-				LBER_FREE( a_vals[i].bv_val );
+				ch_free( a_vals[i].bv_val );
 				a_vals[i] = dn;
 			}
 			break;

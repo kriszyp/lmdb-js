@@ -95,7 +95,7 @@ backsql_compare( Operation *op, SlapReply *rs )
 
 		nrs.sr_attrs = anlist;
 		nrs.sr_entry = &user_entry;
-		nrs.sr_opattrs = SLAP_OPATTRS_NO;
+		nrs.sr_attr_flags = SLAP_OPATTRS_NO;
 		nrs.sr_operational_attrs = NULL;
 
 		rs->sr_err = backsql_operational( op, &nrs );

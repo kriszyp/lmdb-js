@@ -156,7 +156,14 @@ extern int rwm_dnattr_rewrite(
 	void			*cookie,
 	BerVarray		a_vals,
 	BerVarray		*pa_nvals );
+extern int rwm_referral_rewrite(
+	Operation		*op,
+	SlapReply		*rs,
+	void			*cookie,
+	BerVarray		a_vals,
+	BerVarray		*pa_nvals );
 extern int rwm_dnattr_result_rewrite( dncookie *dc, BerVarray a_vals );
+extern int rwm_referral_result_rewrite( dncookie *dc, BerVarray a_vals );
 
 LDAP_END_DECL
 

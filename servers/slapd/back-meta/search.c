@@ -556,7 +556,6 @@ meta_send_entry(
 	Entry 			ent = {0};
 	BerElement 		ber = *e->lm_ber;
 	Attribute 		*attr, **attrp;
-	struct berval 		dummy = BER_BVNULL;
 	struct berval 		*bv, bdn;
 	const char 		*text;
 	dncookie		dc;
@@ -652,7 +651,7 @@ meta_send_entry(
 
 		if ( ber_scanf( &ber, "[W]", &attr->a_vals ) == LBER_ERROR 
 				|| attr->a_vals == NULL ) {
-			attr->a_vals = &dummy;
+			attr->a_vals = &slap_dummy_bv;
 
 		} else if ( attr->a_desc == slap_schema.si_ad_objectClass
 				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass ) {
@@ -724,7 +723,7 @@ meta_send_entry(
 	while ( ent.e_attrs ) {
 		attr = ent.e_attrs;
 		ent.e_attrs = attr->a_next;
-		if ( attr->a_vals != &dummy ) {
+		if ( attr->a_vals != &slap_dummy_bv ) {
 			ber_bvarray_free( attr->a_vals );
 		}
 		free( attr );

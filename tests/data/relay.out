@@ -2031,7 +2031,8 @@ homePhone: +1 313 555 8421
 pager: +1 313 555 2844
 facsimileTelephoneNumber: +1 313 555 9700
 telephoneNumber: +1 313 555 5331
-description: Just added self in o=Beispiel,c=DE virtual naming context
+description: Just added self to seeAlso in o=Beispiel,c=DE virtual naming cont
+ ext
 
 dn: cn=Added User,ou=Alumni Association,ou=People,o=Esempio,c=IT
 objectClass: OpenLDAPperson
@@ -2042,5 +2043,69 @@ seeAlso: cn=All Staff,ou=Groups,o=Esempio,c=IT
 homePhone: +49 1234567890
 drink: Beer
 mail: auser@mail.alumni.example.com
-telephoneNumber: +1 313 555 4178
+telephoneNumber: +49 1234-567-890
+description: Just added in o=Beispiel,c=DE naming context
+
+
+dn: ou=Referrals,dc=example,dc=com
+objectClass: referral
+objectClass: extensibleObject
+ou: Referrals
+description: Just added as ldap://localhost:9011/ou=Referrals,o=Beispiel,c=DE
+description: ...and modified as ldap://localhost:9012/ou=Referrals,o=Beispiel,
+ c=DE
+ref: ldap://localhost:9012/ou=Referrals,dc=example,dc=com??base
+
+dn: ou=Referrals,o=Example,c=US
+objectClass: referral
+objectClass: extensibleObject
+ou: Referrals
+description: Just added as ldap://localhost:9011/ou=Referrals,o=Beispiel,c=DE
+description: ...and modified as ldap://localhost:9012/ou=Referrals,o=Beispiel,
+ c=DE
+ref: ldap://localhost:9012/ou=Referrals,o=Example,c=US??base
+
+dn: ou=Referrals,o=Esempio,c=IT
+objectClass: referral
+objectClass: extensibleObject
+ou: Referrals
+description: Just added as ldap://localhost:9011/ou=Referrals,o=Beispiel,c=DE
+description: ...and modified as ldap://localhost:9012/ou=Referrals,o=Beispiel,
+ c=DE
+ref: ldap://localhost:9012/ou=Referrals,o=Esempio,c=IT??base
+
+dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Example,c
+ =US
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
+
+dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=Example,c=U
+ S
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
+
+dn: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=Example,c=US
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
+
+dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=Example,c=US
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
+
+dn: cn=James A Jones 2,ou=Information Technology Division,ou=People,o=Example,
+ c=US
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
+
+dn: cn=Jane Q. Doe,ou=Information Technology Division,ou=People,o=Example,c=US
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
+
+dn: cn=Jennifer Smith,ou=Alumni Association,ou=People,o=Example,c=US
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
+
+dn: cn=John P. Doe,ou=Information Technology Division,ou=People,o=Example,c=US
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
+
+dn: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=Example,c=US
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
+seeAlso: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=Example,c=US
+
+dn: cn=Added User,ou=Alumni Association,ou=People,o=Example,c=US
+seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
+
 
