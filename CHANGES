@@ -1,11 +1,11 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.15 Engineering
+OpenLDAP 2.0.15 Release
 	Fixed -lldap TLS external handling
 	Fixed -lldap ldaps:// no host bug
 	Fixed slapd Statslog bug
-	Fixed slapd oidm support
-	Added -lldap oidm support
+	Fixed slapd oidm support (ITS#1258)
+	Added -lldap oidm support (ITS#1213)
 	Added slapd supportedFeatures support
 	Removed lint
 	Build environment
