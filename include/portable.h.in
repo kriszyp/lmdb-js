@@ -267,9 +267,6 @@
 /* Define if you have the mkstemp function.  */
 #undef HAVE_MKSTEMP
 
-/* Define if you have the pthread_detach function.  */
-#undef HAVE_PTHREAD_DETACH
-
 /* Define if you have the pthread_getconcurrency function.  */
 #undef HAVE_PTHREAD_GETCONCURRENCY
 
@@ -590,6 +587,9 @@
 
 /* define if you have POSIX Threads */
 #undef HAVE_PTHREADS
+
+/* define if you have pthread_detach function */
+#undef HAVE_PTHREAD_DETACH
 
 /* define if you have Mach Cthreads */
 #undef HAVE_MACH_CTHREADS

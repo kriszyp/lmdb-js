@@ -792,11 +792,25 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			fi
 
 			dnl Check functions for compatibility
-			AC_CHECK_FUNCS(pthread_kill pthread_detach)
+			AC_CHECK_FUNCS(pthread_kill)
 
-			if test $ac_cv_func_pthread_detach = no ; then
+			dnl Check for pthread_detach with <pthread.h> inclusion
+			dnl as it's symbol may have been mangled.
+			AC_CACHE_CHECK([for pthread_detach with <pthread.h>],
+				[ol_cv_func_pthread_detach], [
+				dnl save the flags
+				AC_TRY_LINK([#include <pthread.h>],
+					[pthread_detach(NULL);],
+					[ol_cv_func_pthread_detach=yes],
+					[ol_cv_func_pthread_detach=no])
+			])
+
+			if test $ol_cv_func_pthread_detach = no ; then
 				AC_MSG_ERROR([could not locate pthread_detach()])
 			fi
+
+			AC_DEFINE(HAVE_PTHREAD_DETACH,1,
+				[define if you have pthread_detach function])
 
 			dnl Check for setconcurreny functions
 			AC_CHECK_FUNCS(	\
