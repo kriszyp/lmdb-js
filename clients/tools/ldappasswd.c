@@ -126,7 +126,8 @@ main( int argc, char *argv[] )
 	char	*user = NULL;
 
 	LDAP	       *ld = NULL;
-	struct berval *bv = NULL;
+	struct berval bv = {0};
+	BerElement  *ber = NULL;
 
 	int id, code = LDAP_OTHER;
 	LDAPMessage *res;
@@ -134,7 +135,7 @@ main( int argc, char *argv[] )
 	char	*retoid = NULL;
 	struct berval *retdata = NULL;
 
-    prog = lutil_progname( "ldappasswd", argc, argv );
+	prog = lutil_progname( "ldappasswd", argc, argv );
 
 	/* LDAPv3 only */
 	version = LDAP_VERSION3;
@@ -192,7 +193,7 @@ main( int argc, char *argv[] )
 
 	if( user != NULL || oldpw != NULL || newpw != NULL ) {
 		/* build change password control */
-		BerElement *ber = ber_alloc_t( LBER_USE_DER );
+		ber = ber_alloc_t( LBER_USE_DER );
 
 		if( ber == NULL ) {
 			perror( "ber_alloc_t" );
@@ -222,15 +223,13 @@ main( int argc, char *argv[] )
 
 		ber_printf( ber, /*{*/ "N}" );
 
-		rc = ber_flatten( ber, &bv );
+		rc = ber_flatten2( ber, &bv, 0 );
 
 		if( rc < 0 ) {
-			perror( "ber_flatten" );
+			perror( "ber_flatten2" );
 			ldap_unbind( ld );
 			return EXIT_FAILURE;
 		}
-
-		ber_free( ber, 1 );
 	}
 
 	if ( not ) {
@@ -239,10 +238,10 @@ main( int argc, char *argv[] )
 	}
 
 	rc = ldap_extended_operation( ld,
-		LDAP_EXOP_MODIFY_PASSWD, bv, 
+		LDAP_EXOP_MODIFY_PASSWD, bv.bv_val ? &bv : NULL, 
 		NULL, NULL, &id );
 
-	ber_bvfree( bv );
+	ber_free( ber, 1 );
 
 	if( rc != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_extended_operation" );
@@ -273,7 +272,7 @@ main( int argc, char *argv[] )
 	if( retdata != NULL ) {
 		ber_tag_t tag;
 		char *s;
-		BerElement *ber = ber_init( retdata );
+		ber = ber_init( retdata );
 
 		if( ber == NULL ) {
 			perror( "ber_init" );

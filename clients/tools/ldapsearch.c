@@ -361,9 +361,7 @@ main( int argc, char **argv )
 	FILE		*fp = NULL;
 	int			rc, i, first;
 	LDAP		*ld = NULL;
-	BerElement	*ber = NULL;
-	struct berval 	*sebvalp = NULL, *vrbvalp = NULL;
-	struct berval	*prbvalp = NULL;
+	BerElement	*seber = NULL, *vrber = NULL, *prber = NULL;
 
 	npagedresponses = npagedentries = npagedreferences =
 		npagedextended = npagedpartial = 0;
@@ -466,74 +464,67 @@ getNextPage:
 
 #ifdef LDAP_CONTROL_SUBENTRIES
 		if ( subentries ) {
-	        if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+	        if (( seber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
 			}
 
-			err = ber_printf( ber, "{b}", abs(subentries) == 1 ? 0 : 1 );
+			err = ber_printf( seber, "{b}", abs(subentries) == 1 ? 0 : 1 );
 	    	if ( err == LBER_ERROR ) {
-				ber_free( ber, 1 );
+				ber_free( seber, 1 );
 				fprintf( stderr, "Subentries control encoding error!\n" );
 				return EXIT_FAILURE;
 			}
 
-			if ( ber_flatten( ber, &sebvalp ) == LBER_ERROR ) {
+			if ( ber_flatten2( seber, &c[i].ldctl_value, 0 ) == LBER_ERROR ) {
 				return EXIT_FAILURE;
 			}
 
 			c[i].ldctl_oid = LDAP_CONTROL_SUBENTRIES;
-			c[i].ldctl_value=(*sebvalp);
 			c[i].ldctl_iscritical = subentries < 1;
 			i++;
 		}
 #endif
 
 		if ( valuesReturnFilter ) {
-	        if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+	        if (( vrber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
 			}
 
-	    	if ( ( err = ldap_put_vrFilter( ber, vrFilter ) ) == -1 ) {
-				ber_free( ber, 1 );
+	    	if ( ( err = ldap_put_vrFilter( vrber, vrFilter ) ) == -1 ) {
+				ber_free( vrber, 1 );
 				fprintf( stderr, "Bad ValuesReturnFilter: %s\n", vrFilter );
 				return EXIT_FAILURE;
 			}
 
-			if ( ber_flatten( ber, &vrbvalp ) == LBER_ERROR ) {
+			if ( ber_flatten2( vrber, &c[i].ldctl_value, 0 ) == LBER_ERROR ) {
 				return EXIT_FAILURE;
 			}
 
-			ber_free( ber, 1 );
-
 			c[i].ldctl_oid = LDAP_CONTROL_VALUESRETURNFILTER;
-			c[i].ldctl_value=(*vrbvalp);
 			c[i].ldctl_iscritical = valuesReturnFilter > 1;
 			i++;
 		}
 
 		if ( pagedResults ) {
-			if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+			if (( prber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
 			}
 
-			ber_printf( ber, "{iO}", pageSize, &cookie );
-			if ( ber_flatten( ber, &prbvalp ) == LBER_ERROR ) {
+			ber_printf( prber, "{iO}", pageSize, &cookie );
+			if ( ber_flatten2( prber, &c[i].ldctl_value, 0 ) == LBER_ERROR ) {
 				return EXIT_FAILURE;
 			}
 			
-			ber_free( ber, 1 );
-
 			c[i].ldctl_oid = LDAP_CONTROL_PAGEDRESULTS;
-			c[i].ldctl_value=(*prbvalp);
 			c[i].ldctl_iscritical = pagedResults > 1;
 			i++;
 		}
 
 		tool_server_controls( ld, c, i );
 
-		ber_bvfree( sebvalp );
-		ber_bvfree( vrbvalp );
-		ber_bvfree( prbvalp );
+		ber_free( seber, 1 );
+		ber_free( vrber, 1 );
+		ber_free( prber, 1 );
 	}
 	
 	if ( verbose ) {

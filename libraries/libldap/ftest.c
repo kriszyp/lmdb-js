@@ -76,7 +76,7 @@ main( int argc, char *argv[] )
 static int filter2ber( char *filter )
 {
 	int rc;
-	struct berval *bv = NULL;
+	struct berval bv = {0};
 	BerElement *ber;
 
 	printf( "Filter: %s\n", filter );
@@ -93,17 +93,16 @@ static int filter2ber( char *filter )
 		return EXIT_FAILURE;
 	}
 
-	rc = ber_flatten( ber, &bv );
+	rc = ber_flatten2( ber, &bv, 0 );
 	if( rc < 0 ) {
-		perror( "ber_flatten" );
+		perror( "ber_flatten2" );
 		return EXIT_FAILURE;
 	}
 
-	printf( "BER encoding (len=%ld):\n", (long) bv->bv_len );
-	ber_bprint( bv->bv_val, bv->bv_len );
+	printf( "BER encoding (len=%ld):\n", (long) bv.bv_len );
+	ber_bprint( bv.bv_val, bv.bv_len );
 
-	ber_free( ber, 0 );
-	ber_bvfree( bv );
+	ber_free( ber, 1 );
 
 	return EXIT_SUCCESS;
 }

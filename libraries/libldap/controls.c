@@ -410,7 +410,6 @@ ldap_create_control(
 	LDAPControl **ctrlp )
 {
 	LDAPControl *ctrl;
-	struct berval *bvalp;
 
 	assert( requestOID != NULL );
 	assert( ber != NULL );
@@ -421,13 +420,10 @@ ldap_create_control(
 		return LDAP_NO_MEMORY;
 	}
 
-	if ( ber_flatten( ber, &bvalp ) == -1 ) {
+	if ( ber_flatten2( ber, &ctrl->ldctl_value, 1 ) == -1 ) {
 		LDAP_FREE( ctrl );
 		return LDAP_NO_MEMORY;
 	}
-
-	ctrl->ldctl_value = *bvalp;
-	ber_memfree( bvalp );
 
 	ctrl->ldctl_oid = LDAP_STRDUP( requestOID );
 	ctrl->ldctl_iscritical = iscritical;

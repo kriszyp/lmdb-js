@@ -71,7 +71,8 @@ ldap_passwd( LDAP *ld,
 	int				*msgidp )
 {
 	int rc;
-	struct berval *bv = NULL;
+	struct berval bv = {0};
+	BerElement *ber = NULL;
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
@@ -79,7 +80,7 @@ ldap_passwd( LDAP *ld,
 
 	if( user != NULL || oldpw != NULL || newpw != NULL ) {
 		/* build change password control */
-		BerElement *ber = ber_alloc_t( LBER_USE_DER );
+		ber = ber_alloc_t( LBER_USE_DER );
 
 		if( ber == NULL ) {
 			ld->ld_errno = LDAP_NO_MEMORY;
@@ -105,9 +106,7 @@ ldap_passwd( LDAP *ld,
 
 		ber_printf( ber, /*{*/ "N}" );
 
-		rc = ber_flatten( ber, &bv );
-
-		ber_free( ber, 1 );
+		rc = ber_flatten2( ber, &bv, 0 );
 
 		if( rc < 0 ) {
 			ld->ld_errno = LDAP_ENCODING_ERROR;
@@ -117,7 +116,9 @@ ldap_passwd( LDAP *ld,
 	}
 	
 	rc = ldap_extended_operation( ld, LDAP_EXOP_MODIFY_PASSWD,
-		bv, sctrls, cctrls, msgidp );
+		bv.bv_val ? &bv : NULL, sctrls, cctrls, msgidp );
+
+	ber_free( ber, 1 );
 
 	return rc;
 }
