@@ -604,6 +604,9 @@ dn_normalize( char *dn )
 
 /*
  * dnParent - dn's parent, in-place
+ *
+ * note: the incoming dn is assumed to be normalized/prettyfied,
+ * so that escaped rdn/ava separators are in '\'+hexpair form
  */
 int
 dnParent( 
@@ -611,27 +614,17 @@ dnParent(
 	const char	**pdn )
 {
 	const char	*p;
-	int		rc;
 
-	rc = ldap_str2rdn( dn, NULL, (char **)&p,
-		LDAP_DN_FORMAT_LDAP | LDAP_DN_SKIP );
-	if ( rc != LDAP_SUCCESS ) {
-		return rc;
-	}
+	p = strchr( dn, ',' );
 
-	/* Parent is root */
-	if (*p == '\0') {
-		*pdn = "";
-		return LDAP_SUCCESS;
+	if ( p == NULL ) {
+		return LDAP_INVALID_DN_SYNTAX;
 	}
 
 	assert( DN_SEPARATOR( p[ 0 ] ) );
 	p++;
 
-	while ( ASCII_SPACE( p[ 0 ] ) ) {
-		p++;
-	}
-
+	assert( ! ASCII_SPACE( p[ 0 ] ) );
 	*pdn = p;
 
 	return LDAP_SUCCESS;

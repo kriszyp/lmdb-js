@@ -581,13 +581,10 @@ be_issuffix(
 )
 {
 	int	i;
-	size_t len = strlen(suffix);
+	struct berval	bvsuffix = { strlen( suffix ), suffix };
 
 	for ( i = 0; be->be_nsuffix != NULL && be->be_nsuffix[i] != NULL; i++ ) {
-		if ( len != be->be_nsuffix[i]->bv_len ) {
-			continue;
-		}
-		if ( strcmp( be->be_nsuffix[i]->bv_val, suffix ) == 0 ) {
+		if ( ber_bvcmp( be->be_nsuffix[i], &bvsuffix ) == 0 ) {
 			return( 1 );
 		}
 	}

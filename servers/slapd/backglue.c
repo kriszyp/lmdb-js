@@ -884,8 +884,11 @@ glue_sub_init( )
 					gi->nodes * sizeof(gluenode));
 			}
 			gi->n[gi->nodes].be = be;
-			gi->n[gi->nodes].pdn = dn_parent(NULL,
-				be->be_nsuffix[0]->bv_val);
+			if ( dnParent( be->be_nsuffix[0]->bv_val, 
+					(const char **)&gi->n[gi->nodes].pdn ) 
+					!= LDAP_SUCCESS ) {
+				return -1;
+			}
 			gi->nodes++;
 		}
 		if (gi) {
@@ -893,8 +896,11 @@ glue_sub_init( )
 			gi = (glueinfo *)ch_realloc(gi,
 				sizeof(glueinfo) + gi->nodes * sizeof(gluenode));
 			gi->n[gi->nodes].be = gi->be;
-			gi->n[gi->nodes].pdn = dn_parent(NULL,
-				b1->be_nsuffix[0]->bv_val);
+			if ( dnParent( b1->be_nsuffix[0]->bv_val, 
+					(const char **)&gi->n[gi->nodes].pdn ) 
+					!= LDAP_SUCCESS ) {
+				return -1;
+			}
 			gi->nodes++;
 			b1->be_private = gi;
 			b1->bd_info = bi;
