@@ -687,9 +687,9 @@ parse_idassert(
 			return 1;
 		}
 
-		if ( strcasecmp( argv[1], "none" ) == 0 ) {
+		if ( strcasecmp( argv[1], "legacy" ) == 0 ) {
 			/* will proxyAuthz as client's identity only if bound */
-			li->idassert_mode = LDAP_BACK_IDASSERT_NONE;
+			li->idassert_mode = LDAP_BACK_IDASSERT_LEGACY;
 
 		} else if ( strcasecmp( argv[1], "self" ) == 0 ) {
 			/* will proxyAuthz as client's identity */
@@ -699,31 +699,45 @@ parse_idassert(
 			/* will proxyAuthz as anonymous */
 			li->idassert_mode = LDAP_BACK_IDASSERT_ANONYMOUS;
 
-		} else if ( strcasecmp( argv[1], "proxyid" ) == 0 ) {
+		} else if ( strcasecmp( argv[1], "none" ) == 0 ) {
 			/* will not proxyAuthz */
-			li->idassert_mode = LDAP_BACK_IDASSERT_PROXYID;
+			li->idassert_mode = LDAP_BACK_IDASSERT_NOASSERT;
 
 		} else {
-			struct berval	dn;
+			struct berval	id;
 			int		rc;
 
 			/* will proxyAuthz as argv[1] */
-			li->idassert_mode = LDAP_BACK_IDASSERT_OTHER;
-			
-			ber_str2bv( argv[1], 0, 0, &dn );
+			ber_str2bv( argv[1], 0, 0, &id );
 
-			rc = dnNormalize( 0, NULL, NULL, &dn, &li->idassert_dn, NULL );
-			if ( rc != LDAP_SUCCESS ) {
+			if ( strncasecmp( id.bv_val, "u:", STRLENOF( "u:" ) ) == 0 ) {
+				/* force lowercase... */
+				id.bv_val[0] = 'u';
+				li->idassert_mode = LDAP_BACK_IDASSERT_OTHERID;
+				ber_dupbv( &li->idassert_id, &id );
+
+			} else {
+				/* default is DN? */
+				if ( strncasecmp( id.bv_val, "dn:", STRLENOF( "dn:" ) ) == 0 ) {
+					id.bv_val += STRLENOF( "dn:" );
+					id.bv_len -= STRLENOF( "dn:" );
+				}
+
+				rc = dnNormalize( 0, NULL, NULL, &id, &li->idassert_id, NULL );
+				if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG( CONFIG, CRIT, 
-					"%s: line %d: idassert DN \"%s\" is invalid.\n",
-					fname, lineno, argv[1] );
+					LDAP_LOG( CONFIG, CRIT, 
+						"%s: line %d: idassert ID \"%s\" is not a valid DN.\n",
+						fname, lineno, argv[1] );
 #else
-				Debug( LDAP_DEBUG_ANY,
-					"%s: line %d: idassert DN \"%s\" is invalid\n",
-					fname, lineno, argv[1] );
+					Debug( LDAP_DEBUG_ANY,
+						"%s: line %d: idassert ID \"%s\" is not a valid DN\n",
+						fname, lineno, argv[1] );
 #endif
-				return 1;
+					return 1;
+				}
+
+				li->idassert_mode = LDAP_BACK_IDASSERT_OTHERDN;
 			}
 		}
 

@@ -98,29 +98,81 @@ their usage.
 .B proxyauthzpw <password>
 Password used with the proxy authzDN above.
 .TP
-.B idassert-mode {none|anonymous|self|proxyid|<dn>}
-defines what type of identity assertion is used.
+.B idassert-mode <mode>
+defines what type of
+.I identity assertion
+is used.
+The supported modes are:
+.RS
+.RS
+.TP
+.B <mode>={legacy|anonymous|self|none|<id>}
+.RE
+.RS
+.B <id>={u:<ID>|[dn:]<DN>}
+.RE
+
 The default is 
-.BR none ,
-which implies that the proxy will bind as itself and assert the user's
-identity only when a user is bound.
-Other values are
+.BR legacy ,
+which implies that the proxy will bind as
+.I proxyauthzdn
+and assert the client's identity when it is not anonymous.
+Direct binds are always proxied.
+The other modes imply that the proxy will always bind as 
+.IR proxyauthzdn ,
+unless restricted by
+.BR idassert-authz
+rules (see below), in which case the operation will fail;
+eventually, it will assert some other identity according to
+.BR <mode> .
+Other identity assertion modes are
 .BR anonymous
 and
 .BR self ,
-which respectively mean that the empty or the client's identity
-will be asserted,
-.BR proxyid ,
-which means that no proxyAuthz control will be used, so the proxyauthzdn
+which respectively mean that the 
+.I empty 
+or the 
+.IR client 's 
+identity
+will be asserted;
+.BR none ,
+which means that no proxyAuthz control will be used, so the
+.I proxyauthzdn
 identity will be asserted.
-Moreover, if a valid DN is used as 
+Moreover, if a string prefixed with
+.B u:
+or 
+.B dn:
+is used as 
 .BR <mode> ,
 that identity will be asserted.
+Ths string is also treated as a DN if it is not prefixed
+by any recognized type indicator.  Whether or not the 
+.B dn: 
+prefix is present, the string must pass DN validation and normalization.
+For all modes that require the use of the
+.I proxyAuthz 
+control, on the remote server the proxy identity must have appropriate 
+.I authzTo
+permissions, or the asserted identities must have appropriate
+.I authzFrom 
+permissions.  Note, however, that the ID assertion feature is mostly 
+useful when the asserted identities do not exist on the remote server.
 .TP
 .B idassert-authz <authz>
 if defined, selects what
 .I local
 identities are authorized to exploit the identity assertion feature.
+The string
+.B authz 
+follows the rules defined for the
+.I authzFrom
+attribute.
+See 
+.BR slapd.conf (5),
+section related to
+.BR authz-policy ,
+for details on the supported syntaxes.
 .TP
 .B proxy-whoami
 Turns on proxying of the WhoAmI extended operation. If this option is

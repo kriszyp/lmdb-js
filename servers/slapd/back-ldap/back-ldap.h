@@ -94,12 +94,13 @@ struct ldapinfo {
 
 	/* ID assert stuff */
 	int		idassert_mode;
-#define	LDAP_BACK_IDASSERT_NONE		0
-#define	LDAP_BACK_IDASSERT_PROXYID	1
+#define	LDAP_BACK_IDASSERT_LEGACY	0
+#define	LDAP_BACK_IDASSERT_NOASSERT	1
 #define	LDAP_BACK_IDASSERT_ANONYMOUS	2
 #define	LDAP_BACK_IDASSERT_SELF		3
-#define	LDAP_BACK_IDASSERT_OTHER	4
-	struct berval	idassert_dn;
+#define	LDAP_BACK_IDASSERT_OTHERDN	4
+#define	LDAP_BACK_IDASSERT_OTHERID	5
+	struct berval	idassert_id;
 	BerVarray	idassert_authz;
 	/* end of ID assert stuff */
 #endif /* LDAP_BACK_PROXY_AUTHZ */

@@ -380,8 +380,6 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
 	if ( !lc->bound ) {
 #ifdef LDAP_BACK_PROXY_AUTHZ
-		int	gotit = 0;
-#if 0
 		/*
 		 * FIXME: we need to let clients use proxyAuthz
 		 * otherwise we cannot do symmetric pools of servers;
@@ -394,9 +392,6 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 		 * and implementation do not allow proxy authorization
 		 * control to be provided with Bind requests
 		 */
-		gotit = op->o_proxy_authz;
-#endif
-
 		/*
 		 * if no bind took place yet, but the connection is bound
 		 * and the "proxyauthzdn" is set, then bind as 
@@ -412,10 +407,10 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 			/* bind as proxyauthzdn only if no idassert mode is requested,
 			 * or if the client's identity is authorized */
 			switch ( li->idassert_mode ) {
-			case LDAP_BACK_IDASSERT_NONE:
+			case LDAP_BACK_IDASSERT_LEGACY:
 	      			if ( !BER_BVISNULL( &op->o_conn->c_dn ) && !BER_BVISEMPTY( &op->o_conn->c_dn )
-	      					&& !BER_BVISNULL( &li->proxyauthzdn ) && !BER_BVISEMPTY( &li->proxyauthzdn )
-	      					&& !gotit ) {
+	      					&& !BER_BVISNULL( &li->proxyauthzdn ) && !BER_BVISEMPTY( &li->proxyauthzdn ) )
+				{
 					binddn = li->proxyauthzdn;
 					bindcred = li->proxyauthzpw;
 				}
@@ -425,10 +420,12 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 				if ( li->idassert_authz ) {
 					struct berval	authcDN = BER_BVISNULL( &op->o_conn->c_dn ) ? slap_empty_bv : op->o_conn->c_dn;
 
-					rc = slap_sasl_matches( op, li->idassert_authz,
+					rs->sr_err = slap_sasl_matches( op, li->idassert_authz,
 							&authcDN, &authcDN );
-					if ( rc != LDAP_SUCCESS ) {
-						break;
+					if ( rs->sr_err != LDAP_SUCCESS ) {
+						send_ldap_result( op, rs );
+						lc->bound = 0;
+						goto done;
 					}
 				}
 				binddn = li->proxyauthzdn;
@@ -451,6 +448,8 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 			lc->bound = 1;
 		}
 	}
+
+done:;
 	rc = lc->bound;
 	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 	return rc;
@@ -636,7 +635,7 @@ ldap_back_proxy_authz_ctrl(
 	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
 	LDAPControl	**ctrls = NULL;
 	int		i = 0;
-	struct berval	assertedDN;
+	struct berval	assertedID;
 
 	*pctrls = NULL;
 
@@ -648,7 +647,7 @@ ldap_back_proxy_authz_ctrl(
 		goto done;
 	}
 
-	if ( li->idassert_mode == LDAP_BACK_IDASSERT_NONE ) {
+	if ( li->idassert_mode == LDAP_BACK_IDASSERT_LEGACY ) {
 		if ( op->o_proxy_authz ) {
 			/*
 			 * FIXME: we do not want to perform proxyAuthz
@@ -694,33 +693,34 @@ ldap_back_proxy_authz_ctrl(
 	}
 
 	switch ( li->idassert_mode ) {
-	case LDAP_BACK_IDASSERT_NONE:
+	case LDAP_BACK_IDASSERT_LEGACY:
 	case LDAP_BACK_IDASSERT_SELF:
 		/* original behavior:
 		 * assert the client's identity */
-		assertedDN = op->o_conn->c_dn;
+		assertedID = op->o_conn->c_dn;
 		break;
 
 	case LDAP_BACK_IDASSERT_ANONYMOUS:
 		/* assert "anonymous" */
-		assertedDN = slap_empty_bv;
+		assertedID = slap_empty_bv;
 		break;
 
-	case LDAP_BACK_IDASSERT_PROXYID:
+	case LDAP_BACK_IDASSERT_NOASSERT:
 		/* don't assert; bind as proxyauthzdn */
 		goto done;
 
-	case LDAP_BACK_IDASSERT_OTHER:
+	case LDAP_BACK_IDASSERT_OTHERID:
+	case LDAP_BACK_IDASSERT_OTHERDN:
 		/* assert idassert DN */
-		assertedDN = li->idassert_dn;
+		assertedID = li->idassert_id;
 		break;
 
 	default:
 		assert( 0 );
 	}
 
-	if ( BER_BVISNULL( &assertedDN ) ) {
-		assertedDN = slap_empty_bv;
+	if ( BER_BVISNULL( &assertedID ) ) {
+		assertedID = slap_empty_bv;
 	}
 
 	ctrls = ch_malloc( sizeof( LDAPControl * ) * (i + 2) );
@@ -728,12 +728,19 @@ ldap_back_proxy_authz_ctrl(
 	
 	ctrls[ 0 ]->ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
 	ctrls[ 0 ]->ldctl_iscritical = 1;
-	ctrls[ 0 ]->ldctl_value.bv_len = assertedDN.bv_len + STRLENOF( "dn:" );
-	ctrls[ 0 ]->ldctl_value.bv_val = ch_malloc( ctrls[ 0 ]->ldctl_value.bv_len + 1 );
-	AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val, "dn:", STRLENOF( "dn:" ) );
-	AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val + STRLENOF( "dn:" ),
-			assertedDN.bv_val, assertedDN.bv_len );
-	ctrls[ 0 ]->ldctl_value.bv_val[ ctrls[ 0 ]->ldctl_value.bv_len ] = '\0';
+
+	/* already in u:ID form */
+	if ( li->idassert_mode == LDAP_BACK_IDASSERT_OTHERID ) {
+		ber_dupbv( &ctrls[ 0 ]->ldctl_value, &assertedID );
+
+	/* needs the dn: prefix */
+	} else {
+		ctrls[ 0 ]->ldctl_value.bv_len = assertedID.bv_len + STRLENOF( "dn:" );
+		ctrls[ 0 ]->ldctl_value.bv_val = ch_malloc( ctrls[ 0 ]->ldctl_value.bv_len + 1 );
+		AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val, "dn:", STRLENOF( "dn:" ) );
+		AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val + STRLENOF( "dn:" ),
+				assertedID.bv_val, assertedID.bv_len + 1 );
+	}
 
 	if ( op->o_ctrls ) {
 		for ( i = 0; op->o_ctrls[ i ]; i++ ) {

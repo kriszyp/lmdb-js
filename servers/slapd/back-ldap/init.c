@@ -105,8 +105,8 @@ ldap_back_db_init(
 	BER_BVZERO( &li->proxyauthzdn );
 	BER_BVZERO( &li->proxyauthzpw );
 
-	li->idassert_mode = LDAP_BACK_IDASSERT_NONE;
-	BER_BVZERO( &li->idassert_dn );
+	li->idassert_mode = LDAP_BACK_IDASSERT_LEGACY;
+	BER_BVZERO( &li->idassert_id );
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
 #ifdef ENABLE_REWRITE
@@ -217,9 +217,9 @@ ldap_back_db_destroy(
 			ch_free( li->proxyauthzpw.bv_val );
 			BER_BVZERO( &li->proxyauthzpw );
 		}
-		if ( !BER_BVISNULL( &li->idassert_dn ) ) {
-			ch_free( li->idassert_dn.bv_val );
-			BER_BVZERO( &li->idassert_dn );
+		if ( !BER_BVISNULL( &li->idassert_id ) ) {
+			ch_free( li->idassert_id.bv_val );
+			BER_BVZERO( &li->idassert_id );
 		}
 #endif /* LDAP_BACK_PROXY_AUTHZ */
                 if (li->conntree) {
