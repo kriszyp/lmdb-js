@@ -237,6 +237,9 @@ int slap_destroy(void)
 		"%s destroy: freeing system resources.\n",
 		slap_name, 0, 0 );
 
+	if ( default_referral ) {
+		ber_bvarray_free( default_referral );
+	}
 
 	rc = backend_destroy();
 
