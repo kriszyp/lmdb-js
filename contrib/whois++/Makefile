@@ -19,10 +19,17 @@ FACILITY	= LOG_LOCAL3
 #
 #SYSLIBS	= -li -lsyslog
 #
+# If you want POSIX international support (format of dates), on ultrix
+#
+#INTERNATIONAL	= -DINTERNATIONAL
+#
 # If you want RFC931 logging you must have log_tcp source available
 #
+#RFC931DEF 	= -DRFC931
+#RFC931SRC	= /local/src/log_tcp/rfc931.c
+
 SRCS	= whois++.c command.c config.c describe.c help.c output.c template.c \
-	  util.c version.c # /local/src/log_tcp/rfc931.c
+	  util.c version.c $(RFC931SRC)
 HDRS	= whois++.h
 OBJS	= ${SRCS:.c=.o}
 HOST	= `hostname`
@@ -36,7 +43,8 @@ DEFINES = -DETCDIR=\"$(ETCDIR)\" -DBUILD="\"$(USER)@$(HOST) on $(DATE)\"" \
 	  -DCONFIG_DIRECTORY=\"$(CONFIG_DIRECTORY)\" -DMAIN \
 	  -DHELP_DIRECTORY=\"$(HELP_DIRECTORY)\" -DREVISION="$(REVISION)" \
 	  -DPROTOCOL="\"[FIRST DRAFT - 15 April 1993]\"" -DRELEASE=\"BETA\" \
-	  -DFACILITY=$(FACILITY) -DDEFAULT_LDAPHOST=\"$(LDAPHOST)\" # -DRFC931
+	  -DFACILITY=$(FACILITY) -DDEFAULT_LDAPHOST=\"$(LDAPHOST)\" \
+	  $(INTERNATIONAL) $(RFC931DEF)
 
 CFLAGS	= -I$(LDAPSRC)/include -I/usr/local/include $(ACFLAGS)
 LIBS	= -L$(LDAPSRC)/libraries/libldap -lldap -L$(LDAPSRC)/libraries/liblber \

@@ -38,6 +38,9 @@ INTERNATIONAL		Define this is you have POSIX international support.
 	constraint in a future release.
 	Available under Ultrix but not SunOS.
 
+RFC931			Define this if you wish to turn on rfc931 logging.
+	You must have log_tcp source available.
+
 Once you have modified these variable you should be able to just type "make",
 if you are in the whois++ directory, or "make ldap-whois++" from the main
 LDAP directory. All going well there should be no problems so "make install",
