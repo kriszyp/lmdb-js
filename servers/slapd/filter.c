@@ -212,6 +212,10 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
+		if ( f.f_and == NULL ) {
+			f.f_choice = SLAPD_FILTER_COMPUTED;
+			f.f_result = LDAP_COMPARE_TRUE;
+		}
 		/* no assert - list could be empty */
 		break;
 
@@ -225,6 +229,10 @@ get_filter(
 		err = get_filter_list( op, ber, &f.f_or, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
+		}
+		if ( f.f_or == NULL ) {
+			f.f_choice = SLAPD_FILTER_COMPUTED;
+			f.f_result = LDAP_COMPARE_FALSE;
 		}
 		/* no assert - list could be empty */
 		break;
@@ -243,6 +251,21 @@ get_filter(
 		}
 
 		assert( f.f_not != NULL );
+		if ( f.f_not->f_choice == SLAPD_FILTER_COMPUTED ) {
+			if ( f.f_not->f_result == LDAP_COMPARE_TRUE ) {
+				op->o_tmpfree( f.f_not, op->o_tmpmemctx );
+				f.f_not = NULL;
+				f.f_choice = SLAPD_FILTER_COMPUTED;
+				f.f_result = LDAP_COMPARE_FALSE;
+			} else if ( f.f_not->f_result == LDAP_COMPARE_FALSE ) {
+				op->o_tmpfree( f.f_not, op->o_tmpmemctx );
+				f.f_not = NULL;
+				f.f_choice = SLAPD_FILTER_COMPUTED;
+				f.f_result = LDAP_COMPARE_TRUE;
+			}
+			/* Leave UNDEFINED alone */
+		}
+				
 		break;
 
 	case LDAP_FILTER_EXT:
