@@ -5,8 +5,8 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-#ifndef _SLDAPD_H_
-#define _SLDAPD_H_
+#ifndef _SLAP_H_
+#define _SLAP_H_
 
 #include "ldap_defaults.h"
 
@@ -1021,9 +1021,10 @@ typedef struct slap_conn {
 #endif
 	void	*c_authstate;	/* SASL state data */
 
+	/* authentication backend */
 	Backend *c_authc_backend;
 
-	/* authorization backend */
+	/* authorization backend - normally same as c_authc_backend */
 	Backend *c_authz_backend;
 
 #ifdef SLAP_AUTHZID
@@ -1085,4 +1086,4 @@ LDAP_END_DECL
 
 #include "proto-slap.h"
 
-#endif /* _slap_h_ */
+#endif /* _SLAP_H_ */
