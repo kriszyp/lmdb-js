@@ -5,13 +5,13 @@
 
 
 INTERNET-DRAFT                                                   S. Legg
-draft-legg-ldapext-component-matching-08.txt         Adacel Technologies
-Intended Category: Standard Track                         April 19, 2002
+draft-legg-ldapext-component-matching-10.txt         Adacel Technologies
+Intended Category: Standard Track                          April 2, 2003
 
 
                  LDAP & X.500 Component Matching Rules
 
-    Copyright (C) The Internet Society (2002). All Rights Reserved.
+    Copyright (C) The Internet Society (2003). All Rights Reserved.
 
    Status of this Memo
 
@@ -39,10 +39,10 @@ Intended Category: Standard Track                         April 19, 2002
    to the LDAPEXT working group mailing list <ietf-ldapext@netscape.com>
    or to the author.
 
-   This Internet-Draft expires on 19 October 2002.
+   This Internet-Draft expires on 2 October 2003.
 
 
-1. Abstract
+Abstract
 
    The syntaxes of attributes in a Lightweight Directory Access Protocol
    or X.500 directory range from simple data types, such as text string,
@@ -55,72 +55,70 @@ Intended Category: Standard Track                         April 19, 2002
 
 
 
-Legg                     Expires 19 October 2002                [Page 1]
+Legg                     Expires 2 October 2003                 [Page 1]
 
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
 
 
    complex attribute syntax.
 
 
-2. Table of Contents
+1. Table of Contents
 
-   1. Abstract ......................................................  1
-   2. Table of Contents .............................................  2
-   3. Introduction ..................................................  2
-   4. Conventions ...................................................  4
-   5. ComponentAssertion ............................................  5
-      5.1 Component Reference .......................................  5
-         5.1.1 Component Type Substitutions .........................  7
-         5.1.2 Referencing SET, SEQUENCE and CHOICE Components ......  8
-         5.1.3 Referencing SET OF and SEQUENCE OF Components ........  9
-         5.1.4 Referencing Components of Parameterized Types ........ 10
-         5.1.5 Component Referencing Example ........................ 10
-         5.1.6 Referencing Components of Open Types ................. 11
-            5.1.6.1 Open Type Referencing Example ................... 12
-         5.1.7 Referencing Contained Types .......................... 13
-            5.1.7.1 Contained Type Referencing Example .............. 14
-      5.2 Matching of Components .................................... 15
-         5.2.1 Applicability of Existing Matching Rules ............. 16
-            5.2.1.1 String Matching ................................. 16
-            5.2.1.2 Telephone Number Matching ....................... 17
-            5.2.1.3 Distinguished Name Matching ..................... 17
-         5.2.2 Additional Useful Matching Rules ..................... 17
-            5.2.2.1 The rdnMatch Matching Rule ...................... 18
-            5.2.2.2 The presentMatch Matching Rule .................. 18
-         5.2.3 Summary of Useful Matching Rules ..................... 19
-   6. ComponentFilter ............................................... 21
-   7. The componentFilterMatch Matching Rule ........................ 22
-   8. Equality Matching of Complex Components ....................... 23
-      8.1 The OpenAssertionType Syntax .............................. 24
-      8.2 The allComponentsMatch Matching Rule ...................... 25
-      8.3 Deriving Component Equality Matching Rules ................ 27
-      8.4 The directoryComponentsMatch Matching Rule ................ 28
-   9. Component Matching Examples ................................... 29
-   10. Security Considerations ...................................... 36
-   11. Acknowledgements ............................................. 36
-   12. Normative References ......................................... 36
-   13. Informative References ....................................... 37
-   14. Intellectual Property Notice ................................. 38
-   15. Copyright Notice ............................................. 38
-   16. Author's Address ............................................. 39
+   1. Table of Contents .............................................  2
+   2. Introduction ..................................................  2
+   3. Conventions ...................................................  4
+   4. ComponentAssertion ............................................  5
+      4.1 Component Reference .......................................  5
+         4.1.1 Component Type Substitutions .........................  7
+         4.1.2 Referencing SET, SEQUENCE and CHOICE Components ......  8
+         4.1.3 Referencing SET OF and SEQUENCE OF Components ........  9
+         4.1.4 Referencing Components of Parameterized Types ........ 10
+         4.1.5 Component Referencing Example ........................ 10
+         4.1.6 Referencing Components of Open Types ................. 11
+            4.1.6.1 Open Type Referencing Example ................... 12
+         4.1.7 Referencing Contained Types .......................... 13
+            4.1.7.1 Contained Type Referencing Example .............. 14
+      4.2 Matching of Components .................................... 15
+         4.2.1 Applicability of Existing Matching Rules ............. 16
+            4.2.1.1 String Matching ................................. 16
+            4.2.1.2 Telephone Number Matching ....................... 17
+            4.2.1.3 Distinguished Name Matching ..................... 17
+         4.2.2 Additional Useful Matching Rules ..................... 17
+            4.2.2.1 The rdnMatch Matching Rule ...................... 17
+            4.2.2.2 The presentMatch Matching Rule .................. 18
+         4.2.3 Summary of Useful Matching Rules ..................... 19
+   5. ComponentFilter ............................................... 21
+   6. The componentFilterMatch Matching Rule ........................ 22
+   7. Equality Matching of Complex Components ....................... 23
+      7.1 The OpenAssertionType Syntax .............................. 24
+      7.2 The allComponentsMatch Matching Rule ...................... 25
+      7.3 Deriving Component Equality Matching Rules ................ 27
+      7.4 The directoryComponentsMatch Matching Rule ................ 28
+   8. Component Matching Examples ................................... 29
+   9. Security Considerations ....................................... 36
+   10. Acknowledgements ............................................. 37
+   11. Normative References ......................................... 37
+   12. Informative References ....................................... 38
+   13. Copyright Notice ............................................. 38
+   14. Author's Address ............................................. 39
 
 
-3. Introduction
-
-
-
-
-Legg                     Expires 19 October 2002                [Page 2]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
+2. Introduction
 
    The structure or data type of data held in an attribute of an LDAP
-   [3] or X.500 [18] directory is described by the attribute's syntax.
-   Attribute syntaxes range from simple data types, such as text string,
-   integer, or boolean, to complex data types, for example, the syntaxes
-   of the directory schema operational attributes.
+   [RFC3377] or X.500 [18] directory is described by the attribute's
+
+
+
+Legg                     Expires 2 October 2003                 [Page 2]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
+   syntax.  Attribute syntaxes range from simple data types, such as
+   text string, integer, or boolean, to complex data types, for example,
+   the syntaxes of the directory schema operational attributes.
 
    In X.500, the attribute syntaxes are explicitly described by ASN.1
    [11] type definitions.  ASN.1 type notation has a number of simple
@@ -148,32 +146,33 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    using ASN.1 type notation.  All of the type notations defined in [11]
    are supported.
 
-   Section 5 describes the ComponentAssertion, a testable assertion
+   Section 4 describes the ComponentAssertion, a testable assertion
    about the value of a component of an attribute value of any complex
    syntax.
 
-   Section 6 introduces the ComponentFilter assertion, which is an
+   Section 5 introduces the ComponentFilter assertion, which is an
    expression of ComponentAssertions.  The ComponentFilter enables more
    powerful filter matching of components in an attribute value.
 
-   Section 7 defines the componentFilterMatch matching rule, which
+   Section 6 defines the componentFilterMatch matching rule, which
    enables a ComponentFilter to be evaluated against attribute values.
 
-   Section 8 defines matching rules for component-wise equality matching
+   Section 7 defines matching rules for component-wise equality matching
    of attribute values of any syntax described by an ASN.1 type
    definition.
 
-   Examples showing the usage of componentFilterMatch are in Section 9.
-
-
-
-Legg                     Expires 19 October 2002                [Page 3]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
+   Examples showing the usage of componentFilterMatch are in Section 8.
 
    For a new attribute syntax, the Generic String Encoding Rules [7] and
-   the specifications in sections 5 to 8 of this document make it
+
+
+
+Legg                     Expires 2 October 2003                 [Page 3]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
+   the specifications in sections 4 to 7 of this document make it
    possible to fully and precisely define, the LDAP-specific encoding,
    the LDAP and X.500 binary encoding (and possibly other encodings in
    the future, e.g. XML via XER), a suitable equality matching rule, and
@@ -204,14 +203,14 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    semantically equivalent ASN.1 type definition is defined for them.
 
 
-4. Conventions
+3. Conventions
 
    Throughout this document "type" shall be taken to mean an ASN.1 type
    unless explicitly qualified as an attribute type, and "value" shall
    be taken to mean an ASN.1 value unless explicitly qualified as an
    attribute value.
 
-   Note that "ASN.1 value" does not mean a BER [19] encoded value.  The
+   Note that "ASN.1 value" does not mean a BER [16] encoded value.  The
    ASN.1 value is an abstract concept that is independent of any
    particular encoding.  BER is just one possible encoding of an ASN.1
    value.  The component matching rules operate at the abstract level
@@ -220,22 +219,21 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    Attribute type and matching rule definitions in this document are
    provided in both the X.500 [8] and LDAP [4] description formats. Note
    that the LDAP descriptions have been rendered with additional
-
-
-
-Legg                     Expires 19 October 2002                [Page 4]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    white-space and line breaks for the sake of readability.
+
+
+
+Legg                     Expires 2 October 2003                 [Page 4]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
 
    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
    "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and  "OPTIONAL" in this
    document are to be interpreted as described in RFC 2119 [1].
 
 
-5. ComponentAssertion
+4. ComponentAssertion
 
    A ComponentAssertion is an assertion about the presence, or values
    of, components within an ASN.1 value, i.e. an instance of an ASN.1
@@ -249,7 +247,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    (assumed to be defined with "EXPLICIT TAGS" in force):
 
       ComponentAssertion ::= SEQUENCE {
-          component         ComponentReference,
+          component         ComponentReference (SIZE(1..MAX)) OPTIONAL,
           useDefaultValues  BOOLEAN DEFAULT TRUE,
           rule              MATCHING-RULE.&id,
           value             MATCHING-RULE.&AssertionType }
@@ -272,20 +270,20 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    following sections.
 
 
-5.1 Component Reference
+4.1 Component Reference
 
    The component field in a ComponentAssertion is a UTF8 character
    string [6] whose textual content is a component reference,
-
-
-
-Legg                     Expires 19 October 2002                [Page 5]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    identifying a component part of some ASN.1 type or value.  A
    component reference conforms to the following ABNF [2], which extends
+
+
+
+Legg                     Expires 2 October 2003                 [Page 5]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
    the notation defined in Clause 14 of [11]:
 
       component-reference = ComponentId *( "." ComponentId )
@@ -332,16 +330,16 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    an ASN.1 open type.
 
    A component reference is always considered in the context of a
-
-
-
-Legg                     Expires 19 October 2002                [Page 6]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    particular complex ASN.1 type.  When applied to the ASN.1 type the
    component reference identifies a specific component type.  When
+
+
+
+Legg                     Expires 2 October 2003                 [Page 6]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
    applied to a value of the ASN.1 type a component reference identifies
    zero, one or more component values of that component type.  The
    component values are potentially in a DEFAULT value if
@@ -349,10 +347,10 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    the component reference determines what matching rules are capable of
    being used to match the component values.
 
-   An empty string for a component reference, which would identify the
-   whole ASN.1 value, is NOT supported since assertions about a whole
-   value are already possible by the direct application of a matching
-   rule to an attribute value.
+   The component field in a ComponentAssertion may also be absent, in
+   which case the identified component type is the ASN.1 type to which
+   the ComponentAssertion is applied, and the identified component value
+   is the whole ASN.1 value.
 
    A valid component reference for a particular complex ASN.1 type is
    constructed by starting with the outermost combining type and
@@ -363,7 +361,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    reference be a simple ASN.1 type.
 
 
-5.1.1 Component Type Substitutions
+4.1.1 Component Type Substitutions
 
    ASN.1 type notation has a number of constructs for referencing other
    defined types, and constructs that are irrelevant for matching
@@ -372,7 +370,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    performed to eliminate them from further consideration.  These
    substitutions automatically occur prior to each ComponentId, whether
    constructing or interpreting a component reference, but do not occur
-   after the last ComponentId, except as allowed by Section 5.2.
+   after the last ComponentId, except as allowed by Section 4.2.
 
    If the ASN.1 type is an ASN.1 type reference then the component type
    is taken to be the actual definition on the right hand side of the
@@ -388,16 +386,15 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    If the ASN.1 type is an ObjectClassFieldType (Clause 14 of [13]) that
    denotes a specific ASN.1 type (e.g. MATCHING-RULE.&id denotes the
    OBJECT IDENTIFIER type) then the component type is taken to be the
-
-
-
-Legg                     Expires 19 October 2002                [Page 7]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
-   denoted type.  Section 5.1.6 describes the case where the
+   denoted type.  Section 4.1.6 describes the case where the
    ObjectClassFieldType denotes an open type.
+
+
+
+Legg                     Expires 2 October 2003                 [Page 7]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
 
    If the ASN.1 type is a selection type other than one used in the list
    of components for a SET or SEQUENCE type then the component type is
@@ -411,7 +408,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    values.
 
 
-5.1.2 Referencing SET, SEQUENCE and CHOICE Components
+4.1.2 Referencing SET, SEQUENCE and CHOICE Components
 
    If the ASN.1 type is a SET or SEQUENCE type then the <identifier>
    form of ComponentId MAY be used to identify the component type within
@@ -445,21 +442,21 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    directly by identifier as though it was defined in-line in the SET or
    SEQUENCE type.
 
-
-
-Legg                     Expires 19 October 2002                [Page 8]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    The REAL type is treated as though it is the SEQUENCE type defined in
    Clause 20.5 of [11].
+
+
+
+Legg                     Expires 2 October 2003                 [Page 8]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
 
    The EMBEDDED PDV type is treated as though it is the SEQUENCE type
    defined in Clause 32.5 of [11].
 
    The EXTERNAL type is treated as though it is the SEQUENCE type
-   defined in Clause 33.5 of [11].
+   defined in Clause 8.18.1 of [16].
 
    The unrestricted CHARACTER STRING type is treated as though it is the
    SEQUENCE type defined in Clause 39.5 of [11].
@@ -470,11 +467,11 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    The <identifier> form MUST NOT be used on any other ASN.1 type.
 
 
-5.1.3 Referencing SET OF and SEQUENCE OF Components
+4.1.3 Referencing SET OF and SEQUENCE OF Components
 
    If the ASN.1 type is a SET OF or SEQUENCE OF type then the
    <from-beginning>, <from-end>, <count> and <all> forms of ComponentId
-   can be used.
+   MAY be used.
 
    The <from-beginning> form of ComponentId MAY be used to identify one
    instance (i.e. value) of the component type of the SET OF or SEQUENCE
@@ -495,22 +492,22 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    number of instances of the component type in a value of the SET OF or
    SEQUENCE OF type.  This count is not explicitly represented but for
    matching purposes it has an assumed ASN.1 type of INTEGER (0..MAX).
-   A ComponentId of the <count> form MUST be the last ComponentId in a
-   component reference.
+   A ComponentId of the <count> form, if used, MUST be the last
+   ComponentId in a component reference.
 
    The <all> form of ComponentId MAY be used to simultaneously identify
    all instances of the component type of the SET OF or SEQUENCE OF
-
-
-
-Legg                     Expires 19 October 2002                [Page 9]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    type.  It is through the <all> form that a component reference can
    identify more than one component value.  However, if a particular
    value of the SET OF or SEQUENCE OF type is an empty list there are no
+
+
+
+Legg                     Expires 2 October 2003                 [Page 9]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
    corresponding component values.
 
    Where multiple component values are identified, the remaining
@@ -526,7 +523,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    used on ASN.1 types other than SET OF or SEQUENCE OF.
 
 
-5.1.4 Referencing Components of Parameterized Types
+4.1.4 Referencing Components of Parameterized Types
 
    A component reference cannot be formed for a parameterized type
    unless the type has been used with actual parameters, in which case
@@ -534,7 +531,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    substituted with the actual parameters.
 
 
-5.1.5 Component Referencing Example
+4.1.5 Component Referencing Example
 
    Consider the following ASN.1 type definitions.
 
@@ -556,17 +553,17 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    type ExampleType.
 
    The component reference "part1" identifies a component of a value of
-
-
-
-Legg                     Expires 19 October 2002               [Page 10]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    ExampleType having the ASN.1 tagged type [0] INTEGER.
 
    The component reference "part2" identifies a component of a value of
+
+
+
+Legg                     Expires 2 October 2003                [Page 10]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
    ExampleType having the ASN.1 type of [1] ExampleSet
 
    The component reference "part2.option" identifies a component of a
@@ -596,7 +593,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    value of ExampleType having the ASN.1 type of OCTET STRING.
 
 
-5.1.6 Referencing Components of Open Types
+4.1.6 Referencing Components of Open Types
 
    If a sequence of ComponentIds identifies an ObjectClassFieldType
    denoting an open type (e.g. ATTRIBUTE.&Type denotes an open type)
@@ -612,17 +609,16 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
    The other components constraining the open type are termed the
    referenced components (using the terminology in [14]).  The <select>
-
-
-
-Legg                     Expires 19 October 2002               [Page 11]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    form contains a list of one or more values which take the place of
    the value(s) of the referenced component(s) to uniquely identify one
    of the permissable types of the open type.
+
+
+
+Legg                     Expires 2 October 2003                [Page 11]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
 
    Where the open type is constrained by a component relation
    constraint, there is a <Value> in the <select> form for each of the
@@ -647,7 +643,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    the open type.
 
 
-5.1.6.1 Open Type Referencing Example
+4.1.6.1 Open Type Referencing Example
 
    The ASN.1 type AttributeTypeAndValue from [8] describes a single
    attribute value of a nominated attribute type.
@@ -669,15 +665,16 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    to identify attribute values of specific attribute types it will
    contain a single OBJECT IDENTIFIER value.
 
-
-
-Legg                     Expires 19 October 2002               [Page 12]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    The component reference "value" on AttributeTypeAndValue refers to
    the open type.
+
+
+
+
+Legg                     Expires 2 October 2003                [Page 12]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
 
    One of the X.500 standard attributes is facsimileTelephoneNumber
    [10], which is identified with the OBJECT IDENTIFIER 2.5.4.23, and is
@@ -703,7 +700,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    "value.(2.5.4.23).telephoneNumber".
 
 
-5.1.7 Referencing Contained Types
+4.1.7 Referencing Contained Types
 
    Sometimes the contents of a BIT STRING or OCTET STRING value are
    required to be the encodings of other ASN.1 values of specific ASN.1
@@ -724,33 +721,33 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    some other component in an outer enclosing type (e.g. in a
    certificate Extension, extnValue is constrained by the chosen
    extnId).  In these cases the next ComponentId, if any, MUST be of the
-
-
-
-Legg                     Expires 19 October 2002               [Page 13]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    <select> form.
 
    For the purpose of building component references, the content of the
+
+
+
+Legg                     Expires 2 October 2003                [Page 13]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
    extnValue OCTET STRING in the Extension type is assumed to be an open
    type having a notional component relation constraint with the extnId
    component as the single referenced component, i.e.
 
       EXTENSION.&ExtnType ({ExtensionSet}{@extnId})
 
-   The data-value component of the associated types for the EXTERNAL,
-   EMBEDDED PDV and CHARACTER STRING types is an OCTET STRING containing
-   the encoding of a data value described by the identification
-   component.  For the purpose of building component references, the
-   content of the data-value OCTET STRING in these types is assumed to
-   be an open type having a notional component relation constraint with
-   the identification component as the single referenced component.
+   The data-value component of the associated types for the EMBEDDED PDV
+   and CHARACTER STRING types is an OCTET STRING containing the encoding
+   of a data value described by the identification component.  For the
+   purpose of building component references, the content of the
+   data-value OCTET STRING in these types is assumed to be an open type
+   having a notional component relation constraint with the
+   identification component as the single referenced component.
 
 
-5.1.7.1 Contained Type Referencing Example
+4.1.7.1 Contained Type Referencing Example
 
    The Extension ASN.1 type from [9] describes a single certificate
    extension value of a nominated extension type.
@@ -780,21 +777,21 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
           cA                 BOOLEAN DEFAULT FALSE,
           pathLenConstraint  INTEGER (0..MAX) OPTIONAL }
 
-
-
-
-Legg                     Expires 19 October 2002               [Page 14]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    The component reference "extnValue.content.(2.5.29.19)" on Extension
    specifies a BasicConstraintsSyntax extension value and the component
    reference "extnValue.content.(2.5.29.19).cA" identifies the cA
+
+
+
+Legg                     Expires 2 October 2003                [Page 14]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
    component of a BasicConstraintsSyntax extension value.
 
 
-5.2 Matching of Components
+4.2 Matching of Components
 
    The rule in a ComponentAssertion specifies how the zero, one or more
    component values identified by the component reference are tested by
@@ -805,22 +802,21 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    (typically one), defined as ASN.1 types, to which it may be applied.
    When used in a ComponentAssertion these matching rules apply to the
    same ASN.1 types, only in this context the corresponding ASN.1 values
-   are not complete attribute values.
+   are not necessarily complete attribute values.
 
    Note that the referenced component type may be a tagged and/or
    constrained version of the expected attribute syntax (e.g. [0]
    INTEGER, whereas integerMatch would expect simply INTEGER), or an
    open type.  Additional type substitutions of the kind described in
-   Section 5.1.1 are performed as required to reduce the component type
+   Section 4.1.1 are performed as required to reduce the component type
    to the same type as the attribute syntax expected by the matching
-   rule.  If an open type is encountered the actual ASN.1 type of the
-   component value is substituted before continuing.
+   rule.
 
    If a matching rule applies to more than one attribute syntax (e.g.
    objectIdentifierFirstComponentMatch [10]) then the minimum number of
-   substitutions required to conform to any one of those syntaxes are
+   substitutions required to conform to any one of those syntaxes is
    performed.  If a matching rule can apply to any attribute syntax
-   (e.g. the allComponentsMatch rule defined in Section 8.2) then the
+   (e.g. the allComponentsMatch rule defined in Section 7.2) then the
    referenced component type is used as is, with no additional
    substitutions.
 
@@ -836,27 +832,26 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    referenced component is used in place of an attribute syntax to
    decide the required assertion syntax.
 
-
-
-
-Legg                     Expires 19 October 2002               [Page 15]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    The ComponentAssertion is undefined if:
 
    a) the matching rule in the ComponentAssertion is not known to the
       evaluating procedure,
 
-   b) if no part of the component reference identifies an open type and
-      the matching rule is not applicable to the referenced component
+
+
+Legg                     Expires 2 October 2003                [Page 15]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
+   b) if the matching rule is not applicable to the referenced component
       type, even with the additional type substitutions,
 
    c) the value in the ComponentAssertion does not conform to the
       assertion syntax defined for the matching rule,
 
-   d) an open type in the tested value cannot be decoded, or
+   d) some part of the component reference identifies an open type in
+      the tested value that cannot be decoded, or
 
    e) the implementation does not support the particular combination of
       component reference and matching rule.
@@ -867,14 +862,10 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    value returns TRUE, and evaluates to FALSE otherwise (which includes
    the case where there are no component values).
 
-   If some part of the component reference identifies an open type and
-   the matching rule is not applicable to the referenced component type
-   the ComponentAssertion evaluates to FALSE.
 
+4.2.1 Applicability of Existing Matching Rules
 
-5.2.1 Applicability of Existing Matching Rules
-
-5.2.1.1 String Matching
+4.2.1.1 String Matching
 
    ASN.1 has a number of built in restricted character string types with
    different character sets and/or different character encodings.  A
@@ -892,14 +883,6 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
    The relevant string matching rules are: caseIgnoreMatch,
    caseIgnoreOrderingMatch, caseIgnoreSubstringsMatch, caseExactMatch,
-
-
-
-Legg                     Expires 19 October 2002               [Page 16]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    caseExactOrderingMatch and caseExactSubstringsMatch.  The relevant
    restricted character string types are: NumericString,
    PrintableString, VisibleString, IA5String, UTF8String, BMPString,
@@ -908,6 +891,14 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    of these ASN.1 string types.  Note that [7] declares each and every
    use of the DirectoryString{} parameterized type to be a
    ChoiceOfStrings type.
+
+
+
+
+Legg                     Expires 2 October 2003                [Page 16]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
 
    The assertion syntax of the string matching rules is still
    DirectoryString regardless of the string syntax of the component
@@ -920,7 +911,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    Otherwise matching returns FALSE.
 
 
-5.2.1.2 Telephone Number Matching
+4.2.1.2 Telephone Number Matching
 
    Early editions of X.520 [10] gave the syntax of the telephoneNumber
    attribute as a constrained PrintableString.  The fourth edition of
@@ -932,7 +923,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    TelephoneNumber values.
 
 
-5.2.1.3 Distinguished Name Matching
+4.2.1.3 Distinguished Name Matching
 
    The DistinguishedName type is defined by assignment to be the same as
    the RDNSequence type, however RDNSequence is sometimes directly used
@@ -941,22 +932,14 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    the RDNSequence type.
 
 
-5.2.2 Additional Useful Matching Rules
+4.2.2 Additional Useful Matching Rules
 
    This section defines additional matching rules that may prove useful
    in ComponentAssertions.  These rules MAY also be used in
    extensibleMatch search filters [3].
 
 
-
-
-
-Legg                     Expires 19 October 2002               [Page 17]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
-5.2.2.1 The rdnMatch Matching Rule
+4.2.2.1 The rdnMatch Matching Rule
 
    The distinguishedNameMatch matching rule can match whole
    distinguished names but it is sometimes useful to be able to match
@@ -965,6 +948,13 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    tested.
 
    The LDAP-style definitions for rdnMatch and its assertion syntax are:
+
+
+
+Legg                     Expires 2 October 2003                [Page 17]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
 
       ( 1.2.36.79672281.1.13.3 NAME 'rdnMatch'
           SYNTAX 1.2.36.79672281.1.5.0 )
@@ -991,7 +981,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    component reference "3", or alternatively, "-1".
 
 
-5.2.2.2 The presentMatch Matching Rule
+4.2.2.2 The presentMatch Matching Rule
 
    At times it would be useful to test not if a specific value of a
    particular component is present, but whether any value of a
@@ -1004,14 +994,6 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
       ( 1.2.36.79672281.1.13.5 NAME 'presentMatch'
           SYNTAX 1.2.36.79672281.1.5.1 )
 
-
-
-
-Legg                     Expires 19 October 2002               [Page 18]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
       ( 1.2.36.79672281.1.5.1 DESC 'NULL' )
 
    The LDAP-specific encoding for a value of the NULL syntax is given by
@@ -1022,6 +1004,13 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
       presentMatch MATCHING-RULE ::= {
           SYNTAX  NULL
           ID      { 1 2 36 79672281 1 13 5 } }
+
+
+
+Legg                     Expires 2 October 2003                [Page 18]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
 
    When used in a extensible match filter item, presentMatch behaves
    like the "present" case of a regular search filter.  In a
@@ -1043,12 +1032,12 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    as present and equal to zero.
 
 
-5.2.3 Summary of Useful Matching Rules
+4.2.3 Summary of Useful Matching Rules
 
    The following is a non-exhaustive list of useful matching rules and
    the ASN.1 types to which they can be applied, taking account of all
-   the extensions described in Section 5.2.1, and the new matching rules
-   defined in Section 5.2.2.
+   the extensions described in Section 4.2.1, and the new matching rules
+   defined in Section 4.2.2.
 
 
 
@@ -1063,9 +1052,20 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
 
 
-Legg                     Expires 19 October 2002               [Page 19]
+
+
+
+
+
+
+
+
+
+
+
+Legg                     Expires 2 October 2003                [Page 19]
 
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
 
 
       +================================+==============================+
@@ -1119,9 +1119,9 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
 
 
-Legg                     Expires 19 October 2002               [Page 20]
+Legg                     Expires 2 October 2003                [Page 20]
 
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
 
 
       +--------------------------------+------------------------------+
@@ -1129,12 +1129,12 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
       | uTCTimeOrderingMatch           |                              |
       +--------------------------------+------------------------------+
 
-   Note that the allComponentsMatch matching rule defined in Section 8.2
+   Note that the allComponentsMatch matching rule defined in Section 7.2
    can be used for equality matching of values of the ENUMERATED, NULL,
    REAL and RELATIVE-OID ASN.1 types, among other things.
 
 
-6. ComponentFilter
+5. ComponentFilter
 
    The ComponentAssertion allows the value(s) of any one component type
    in a complex ASN.1 type to be matched, but there is often a desire to
@@ -1175,9 +1175,9 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
 
 
-Legg                     Expires 19 October 2002               [Page 21]
+Legg                     Expires 2 October 2003                [Page 21]
 
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
 
 
    The "not" of a component filter evaluates to TRUE if the component
@@ -1185,7 +1185,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    and evaluates to undefined otherwise.
 
 
-7. The componentFilterMatch Matching Rule
+6. The componentFilterMatch Matching Rule
 
    The componentFilterMatch matching rule allows a ComponentFilter to be
    applied to an attribute value.  The result of the matching rule is
@@ -1227,20 +1227,19 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
       SequenceOfComponentFilter = "{" [ sp ComponentFilter
                                      *( "," sp ComponentFilter) ] sp "}"
 
-      ComponentAssertion = "{" sp component ","
+      ComponentAssertion = "{" [ sp component "," ]
 
 
 
-Legg                     Expires 19 October 2002               [Page 22]
+Legg                     Expires 2 October 2003                [Page 22]
 
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
 
 
-                             [ sp useDefaultValues "," ]
-                               sp rule ","
-                               sp assertion-value sp "}"
-      component          = component-label msp
-                               dquote component-reference dquote
+                               [ sp useDefaultValues "," ]
+                                 sp rule ","
+                                 sp assertion-value sp "}"
+      component          = component-label msp StringValue
       useDefaultValues   = use-defaults-label msp BooleanValue
       rule               = rule-label msp ObjectIdentifierValue
       assertion-value    = value-label msp Value
@@ -1253,10 +1252,9 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
       sp                 =  *%x20  ; zero, one or more space characters
       msp                = 1*%x20  ; one or more space characters
-      dquote             =   %x22  ; " (double quote)
 
-   The ABNF for <Value>, <ObjectIdentifierValue> and <BooleanValue> is
-   defined in [7].
+   The ABNF for <Value>, <StringValue>, <ObjectIdentifierValue> and
+   <BooleanValue> is defined in [7].
 
    The ABNF descriptions of LDAP-specific encodings for attribute
    syntaxes typically do not clearly or consistently delineate the
@@ -1276,24 +1274,24 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    componentFilterMatch, so componentFilterMatch MAY be nested.  The
    component references in a nested componentFilterMatch are relative to
    the component corresponding to the containing ComponentAssertion.  In
-   Section 9, an example search on the seeAlso attribute shows this
+   Section 8, an example search on the seeAlso attribute shows this
    usage.
 
 
-8. Equality Matching of Complex Components
+7. Equality Matching of Complex Components
 
    It is possible to test if an attribute value of a complex ASN.1
    syntax is the same as some purported (i.e. assertion) value by using
-
-
-
-Legg                     Expires 19 October 2002               [Page 23]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    a complicated ComponentFilter that tests if corresponding components
    are the same.  However, it would be more convenient to be able to
+
+
+
+Legg                     Expires 2 October 2003                [Page 23]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
    present a whole assertion value to a matching rule that could do the
    component-wise comparison of an attribute value with the assertion
    value for any arbitrary attribute syntax.  Similarly, the ability to
@@ -1305,11 +1303,11 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    semantics should be.  For example, in some instances a case sensitive
    comparison of string components may be preferable to a case
    insensitive comparison.  Therefore a basic equality matching rule,
-   allComponentsMatch, is defined in Section 8.2, and the means to
+   allComponentsMatch, is defined in Section 7.2, and the means to
    derive new matching rules from it with slightly different equality
-   matching semantics are described in Section 8.3.
+   matching semantics are described in Section 7.3.
 
-   The directoryComponentsMatch defined in Section 8.4 is a derivation
+   The directoryComponentsMatch defined in Section 7.4 is a derivation
    of allComponentsMatch that suits typical uses of the directory.
    Other specifications are free to derive new rules from
    allComponentsMatch or directoryComponentsMatch, that suit their usage
@@ -1320,7 +1318,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    component equality matching rules.
 
 
-8.1 The OpenAssertionType Syntax
+7.1 The OpenAssertionType Syntax
 
    The component equality matching rules have a variable assertion
    syntax.  In X.500 this is indicated by omitting the optional SYNTAX
@@ -1341,19 +1339,19 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    encoding defined for the syntax of the attribute type to which the
    matching rule with the OpenAssertionType assertion syntax is applied.
 
-
-
-Legg                     Expires 19 October 2002               [Page 24]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    The LDAP definition for the OpenAssertionType syntax is:
+
+
+
+Legg                     Expires 2 October 2003                [Page 24]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
 
       ( 1.2.36.79672281.1.5.3 DESC 'OpenAssertionType' )
 
 
-8.2 The allComponentsMatch Matching Rule
+7.2 The allComponentsMatch Matching Rule
 
    The LDAP-style definition for allComponentsMatch is:
 
@@ -1391,20 +1389,21 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
       Values of an EMBEDDED PDV, EXTERNAL, unrestricted CHARACTER
       STRING, or INSTANCE OF type are compared according to their
-      respective SEQUENCE type (see Section 5.1.2).
+      respective associated SEQUENCE type (see Section 4.1.2).
 
    b) Two values of a SEQUENCE OF type are the same if and only if, the
       values have the same number of (possibly duplicated) instances and
       corresponding instances are the same.
 
-
-
-Legg                     Expires 19 October 2002               [Page 25]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    c) Two values of a SET OF type are the same if and only if, the
+
+
+
+Legg                     Expires 2 October 2003                [Page 25]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
       values have the same number of instances and each distinct
       instance occurs in both values the same number of times, i.e. both
       values have the same instances, including duplicates, but in any
@@ -1452,15 +1451,14 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    m) Two REAL values are the same if and only if they are both the same
       special value, or neither is a special value and they have the
       same base and represent the same real number.  The special values
-
-
-
-Legg                     Expires 19 October 2002               [Page 26]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
       for REAL are zero, PLUS-INFINITY and MINUS-INFINITY.
+
+
+
+Legg                     Expires 2 October 2003                [Page 26]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
 
    n) Two RELATIVE-OID [12] values are the same if and only if the
       values have the same number of arcs and corresponding arcs are the
@@ -1469,7 +1467,9 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
       same.
 
    o) Two values of an open type are the same if and only if both are of
-      the same ASN.1 type and are the same according to that type.
+      the same ASN.1 type and are the same according to that type.  If
+      the actual ASN.1 type of the values is unknown then the
+      allComponentsMatch rule evaluates to undefined.
 
    Tags and constraints, being part of the type definition and not part
    of the abstract values, are ignored for matching purposes.
@@ -1478,10 +1478,10 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    matching rule for an attribute.
 
 
-8.3 Deriving Component Equality Matching Rules
+7.3 Deriving Component Equality Matching Rules
 
    A new component equality matching rule with more refined matching
-   semantics MAY be derived from allComponentsMatch, or any other
+   semantics may be derived from allComponentsMatch, or any other
    component equality matching rule, using the convention described in
    this section.
 
@@ -1511,15 +1511,15 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
 
 
-Legg                     Expires 19 October 2002               [Page 27]
+Legg                     Expires 2 October 2003                [Page 27]
 
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
 
 
    type.  Other component values that happen to be of the same ASN.1
    type are not selected.
 
-   Additional type substitutions as described in Section 5.2 are assumed
+   Additional type substitutions as described in Section 4.2 are assumed
    to be performed to align the component type with the matching rule
    assertion syntax.
 
@@ -1547,7 +1547,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    component in the table for the base rule.
 
 
-8.4 The directoryComponentsMatch Matching Rule
+7.4 The directoryComponentsMatch Matching Rule
 
    The directoryComponentsMatch matching rule is derived from the
    allComponentsMatch matching rule.
@@ -1563,13 +1563,13 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
           ID      { 1 2 36 79672281 1 13 7 } }
 
    The matching semantics of directoryComponentsMatch are described by
-   the following table, using the convention described in Section 8.3.
+   the following table, using the convention described in Section 7.3.
 
 
 
-Legg                     Expires 19 October 2002               [Page 28]
+Legg                     Expires 2 October 2003                [Page 28]
 
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
 
 
       ASN.1 Type                               | Matching Rule
@@ -1619,13 +1619,13 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    matching rule for an attribute.
 
 
-9. Component Matching Examples
+8. Component Matching Examples
 
 
 
-Legg                     Expires 19 October 2002               [Page 29]
+Legg                     Expires 2 October 2003                [Page 29]
 
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
 
 
    This section contains examples of search filters using the
@@ -1679,9 +1679,9 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
 
 
-Legg                     Expires 19 October 2002               [Page 30]
+Legg                     Expires 2 October 2003                [Page 30]
 
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
 
 
           item:{ component "identifier",
@@ -1735,9 +1735,9 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
 
 
-Legg                     Expires 19 October 2002               [Page 31]
+Legg                     Expires 2 October 2003                [Page 31]
 
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
 
 
    word "bogus" in the description:
@@ -1791,9 +1791,9 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
 
 
-Legg                     Expires 19 October 2002               [Page 32]
+Legg                     Expires 2 October 2003                [Page 32]
 
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
 
 
    match values of an ENUMERATED type.  The following search filter
@@ -1847,9 +1847,9 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
 
 
-Legg                     Expires 19 October 2002               [Page 33]
+Legg                     Expires 2 October 2003                [Page 33]
 
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
 
 
       (objectClasses:componentFilterMatch:=or:{
@@ -1903,9 +1903,9 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
 
 
-Legg                     Expires 19 October 2002               [Page 34]
+Legg                     Expires 2 October 2003                [Page 34]
 
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
 
 
    RDN, "o=Adacel", anywhere in the DN:
@@ -1959,9 +1959,9 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
 
 
-Legg                     Expires 19 October 2002               [Page 35]
+Legg                     Expires 2 October 2003                [Page 35]
 
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
 
 
           item:{ component "*.*.value.(2.5.4.11)",
@@ -1974,8 +1974,33 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    ComponentAssertion evaluates to FALSE.  Otherwise the substring
    assertion is evaluated against the attribute value.
 
+   Absent component references in ComponentAssertions can be exploited
+   to avoid false positive matches on multi-valued attributes.  For
+   example, suppose there is a multi-valued attribute named
+   productCodes, defined to have the Integer syntax
+   (1.3.6.1.4.1.1466.115.121.1.27).  Consider the following search
+   filter:
 
-10. Security Considerations
+      (&(!(productCodes:integerOrderingMatch:=3))
+        (productCodes:integerOrderingMatch:=8))
+
+   An entry whose productCodes attribute contains only the values 1 and
+   10 will match the above filter.  The first subfilter is satisfied by
+   the value 10 (10 is not less than 3), and the second subfilter is
+   satisfied by the value 1 (1 is less than 8).  The following search
+   filter can be used instead to only match entries that have a
+   productCodes value in the range 3 to 7, because the ComponentFilter
+   is evaluated against each productCodes value in isolation:
+
+      (productCodes:componentFilterMatch:= and:{
+           not:item:{ rule integerOrderingMatch, value 3 },
+          item:{ rule integerOrderingMatch, value 8 } })
+
+   An entry whose productCodes attribute contains only the values 1 and
+   10 will not match the above filter.
+
+
+9. Security Considerations
 
    The component matching rules described in this document allow for a
    compact specification of matching capabilities that could otherwise
@@ -1987,18 +2012,26 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    component matching rules are applicable to any attribute syntax,
    support for them in a directory server may allow searching of
    attributes that were previously unsearchable by virtue of there not
+
+
+
+Legg                     Expires 2 October 2003                [Page 36]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
    being a suitable matching rule.  Such attribute types ought to be
    properly protected with appropriate access controls.
 
 
-11. Acknowledgements
+10. Acknowledgements
 
    The author would like to thank Tom Gindin for private email
    discussions that clarified and refined the ideas presented in this
    document.
 
 
-12. Normative References
+11. Normative References
 
    [1]   Bradner, S., "Key words for use in RFCs to Indicate Requirement
          Levels", BCP 14, RFC 2119, March 1997.
@@ -2013,13 +2046,6 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
          Directory Access Protocol (v3): Attribute Syntax Definitions",
          RFC 2252, December 1997.
 
-
-
-Legg                     Expires 19 October 2002               [Page 36]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    [5]   Wahl, M., Kille S. and T. Howes. "Lightweight Directory Access
          Protocol (v3): UTF-8 String Representation of Distinguished
          Names", RFC 2253, December 1997.
@@ -2027,8 +2053,12 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    [6]   Yergeau, F., "UTF-8, a transformation format of ISO 10646", RFC
          2279, January 1998.
 
+   [RFC3377]  Hodges, J. and R. Morgan, "Lightweight Directory Access
+         Protocol (v3): Technical Specification", RFC 3377, September
+         2002.
+
    [7]   Legg, S., "Generic String Encoding Rules for ASN.1 Types",
-         draft-legg-ldap-gser-xx.txt, a work in progress, March 2002.
+         draft-legg-ldap-gser-xx.txt, a work in progress, October 2002.
 
    [8]   ITU-T Recommendation X.501 (1993) | ISO/IEC 9594-2:1994,
          Information Technology - Open Systems Interconnection - The
@@ -2037,6 +2067,14 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    [9]   ITU-T Recommendation X.509 (1997) | ISO/IEC 9594-8:1998,
          Information Technology - Open Systems Interconnection - The
          Directory: Authentication Framework
+
+
+
+
+Legg                     Expires 2 October 2003                [Page 37]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
 
    [10]  ITU-T Recommendation X.520 (1993) | ISO/IEC 9594-6:1994,
          Information Technology - Open Systems Interconnection - The
@@ -2061,77 +2099,43 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
          Information Technology - Abstract Syntax Notation One (ASN.1):
          Parameterization of ASN.1 specifications
 
+   [16]  ITU-T Recommendation X.690 (1997) | ISO/IEC 8825-1:1998
+         Information Technology - ASN.1 encoding rules: Specification of
+         Basic Encoding Rules (BER), Canonical Encoding Rules (CER) and
+         Distinguished Encoding Rules (DER)
 
-13. Informative References
 
-   [16]  Hovey, R. and S. Bradner, "The Organizations Involved in the
-         IETF Standards Process", BCP 11, RFC 2028, October 1996.
+12. Informative References
 
    [17]  Howes, T., "The String Representation of LDAP Search Filters",
-
-
-
-Legg                     Expires 19 October 2002               [Page 37]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
          RFC 2254, December 1997.
 
    [18]  ITU-T Recommendation X.500 (1993) | ISO/IEC 9594-1:1994,
          Information Technology - Open Systems Interconnection - The
          Directory: Overview of concepts, models and services
 
-   [19]  ITU-T Recommendation X.690 (1997) | ISO/IEC 8825-1:1998
-         Information Technology - ASN.1 encoding rules: Specification of
-         Basic Encoding Rules (BER), Canonical Encoding Rules (CER) and
-         Distinguished Encoding Rules (DER)
 
+13. Copyright Notice
 
-14. Intellectual Property Notice
-
-   The IETF takes no position regarding the validity or scope of any
-   intellectual property or other rights that might be claimed to
-   pertain to the implementation or use of the technology described in
-   this document or the extent to which any license under such rights
-   might or might not be available; neither does it represent that it
-   has made any effort to identify any such rights.  Information on the
-   IETF's procedures with respect to rights in standards-track and
-   standards-related documentation can be found in BCP-11. [16] Copies
-   of claims of rights made available for publication and any assurances
-   of licenses to be made available, or the result of an attempt made to
-   obtain a general license or permission for the use of such
-   proprietary rights by implementors or users of this specification can
-   be obtained from the IETF Secretariat.
-
-   The IETF invites any interested party to bring to its attention any
-   copyrights, patents or patent applications, or other proprietary
-   rights which may cover technology that may be required to practice
-   this standard.  Please address the information to the IETF Executive
-   Director.
-
-
-15. Copyright Notice
-
-      Copyright (C) The Internet Society (2002). All Rights Reserved.
+      Copyright (C) The Internet Society (2003). All Rights Reserved.
 
    This document and translations of it may be copied and furnished to
    others, and derivative works that comment on or otherwise explain it
    or assist in its implementation may be prepared, copied, published
    and distributed, in whole or in part, without restriction of any
    kind, provided that the above copyright notice and this paragraph are
+
+
+
+Legg                     Expires 2 October 2003                [Page 38]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
    included on all such copies and derivative works.  However, this
    document itself may not be modified in any way, such as by removing
    the copyright notice or references to the Internet Society or other
    Internet organizations, except as needed for the purpose of
-
-
-
-Legg                     Expires 19 October 2002               [Page 38]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    developing Internet standards in which case the procedures for
    copyrights defined in the Internet Standards process must be
    followed, or as required to translate it into languages other than
@@ -2148,47 +2152,46 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 
-16. Author's Address
+14. Author's Address
 
    Steven Legg
    Adacel Technologies Ltd.
-   405-409 Ferntree Gully Road
-   Mount Waverley, Victoria 3149
+   250 Bay Street
+   Brighton, Victoria 3186
    AUSTRALIA
 
-   Phone: +61 3 9451 2107
-     Fax: +61 3 9541 2121
+   Phone: +61 3 8530 7710
+     Fax: +61 3 8530 7888
    EMail: steven.legg@adacel.com.au
 
 
-17. Appendix A - Changes From Previous Drafts
+Appendix A - Changes From Previous Drafts
 
-17.1 Changes in Draft 01
+A.1 Changes in Draft 01
 
-   Section 4.1.7 (now 5.1.7) was added to enable component matching of
-   values embedded in encoded form into BIT STRINGs or OCTET STRINGs.
-   In particular, this is to allow component matching of values in
+   Section 4.1.7 was added to enable component matching of values
+   embedded in encoded form into BIT STRINGs or OCTET STRINGs.  In
+   particular, this is to allow component matching of values in
    Certificate extensions.  The <content> rule was added in Section 4.1
-   (now 5.1) to allow the OCTET STRING contents to be treated as either
-   raw octets or as an embedded value.
+   to allow the OCTET STRING contents to be treated as either raw octets
+   or as an embedded value.
 
    References to a companion document summarizing the ASN.1 types of
    LDAP syntaxes were removed to avoid holding up this document.
 
    The OpenType syntax was renamed to OpenAssertionType.
 
+
+
+Legg                     Expires 2 October 2003                [Page 39]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
    Object identifiers for the new syntax and matching rule definitions
    have been allocated from an arc belonging to Adacel Technologies Ltd.
 
-
-
-
-Legg                     Expires 19 October 2002               [Page 39]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
-17.2 Changes in Draft 02
+A.2 Changes in Draft 02
 
    The context specific tagging in the ComponentAssertion ASN.1 type was
    unnecessary and has been removed.
@@ -2197,7 +2200,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    ComponentAssertions has been clarified, and the description of
    OpenAssertionType has been promoted to its own section.
 
-17.3 Changes in Draft 03
+A.3 Changes in Draft 03
 
    The default matching by allComponentsMatch of component values of BIT
    STRING types with named bit lists has been changed to ignore trailing
@@ -2205,7 +2208,7 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
    Typographical errors in the <SafeUTF8Character> rule have been fixed.
 
-17.4 Changes in Draft 04
+A.4 Changes in Draft 04
 
    When the matching rule in a ComponentAssertion has a variable
    assertion syntax it is not possible to determine the syntax of the
@@ -2234,23 +2237,22 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    The ASN.1 type of the notional iteration count associated with SET OF
    and SEQUENCE OF values has been refined to INTEGER (0..MAX).
 
+
+
+Legg                     Expires 2 October 2003                [Page 40]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
    The encoding rules in Section 8 (now draft-legg-ldap-gser-xx.txt)
    have been formally named the Generic String Encoding Rules (GSER) and
-
-
-
-Legg                     Expires 19 October 2002               [Page 40]
-
-INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
-
-
    a transfer syntax object identifier has been assigned.
 
    The term "LDAP string encoding" has been replaced by the term "native
    LDAP-specific encoding" to align with terminology anticipated to be
    used in the revision of RFC 2252.
 
-17.5 Changes in Draft 05
+A.5 Changes in Draft 05
 
    Reformatted the draft to conform to recent and proposed RFC editorial
    policy.
@@ -2267,11 +2269,11 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
 
    Removed extraneous spaces from example DNs.
 
-17.6 Changes in Draft 06
+A.6 Changes in Draft 06
 
    An ABNF syntax error in the <exponent> rule was fixed.
 
-17.7 Changes in Draft 07
+A.7 Changes in Draft 07
 
    The term "native LDAP encoding" has been replaced by the term "LDAP-
    specific encoding" to align with terminology anticipated to be used
@@ -2283,17 +2285,71 @@ INTERNET-DRAFT    LDAP & X.500 Component Matching Rules   April 19, 2002
    editorial changes have been made to this draft to accommodate this
    split.
 
-17.8 Changes in Draft 08
+A.8 Changes in Draft 08
 
    The enumeratedMatch matching rule duplicates a subset of the
    functionality of allComponentsMatch so it has been removed.  The
    enumeratedMatch rule has been replaced by allComponentsMatch in the
    examples.  The description of the OpenAssertionType syntax has been
-   moved into Section 8.
+   moved into Section 7.
+
+
+
+Legg                     Expires 2 October 2003                [Page 41]
+
+INTERNET-DRAFT    LDAP & X.500 Component Matching Rules    April 2, 2003
+
+
+A.9 Changes in Draft 09
+
+   The associated type for the EXTERNAL type has been changed from the
+   one defined in X.680 for ASN.1 value notation to the one defined in
+   X.690 for BER.
+
+A.10 Changes in Draft 10
+
+   The definition of ComponentAssertion has been changed to make the
+   "component" field optional, and non-empty when present.  This change
+   allows the specification of search filters where all the assertions
+   must match the same value of an attribute. Normally each assertion is
+   free to match any of the values of a multi-valued attribute.
+   Corresponding changes have been made to the ABNF in Section 6.  An
+   illustrative example has been added to Section 8.
+
+   Conditions on whether a ComponentAssertion returns FALSE or undefined
+   when some part of the component references identifies an open type
+   have been removed from Section 4.2.  The changes in draft 04 that
+   introduced the <select> form of ComponentId made these conditions
+   unnecessary and inappropriate.
 
 
 
 
 
-Legg                     Expires 19 October 2002               [Page 41]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Legg                     Expires 2 October 2003                [Page 42]
 
