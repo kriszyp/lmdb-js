@@ -76,7 +76,7 @@ ldbm_back_search(
 	 * the subordinates of the base
 	 */
 
-#ifdef SLAPD_DEREF
+#ifdef SLAPD_ALIAS_DEREF
 	switch ( deref ) {
 	case LDAP_DEREF_FINDING:
 	case LDAP_DEREF_ALWAYS:
@@ -248,7 +248,7 @@ ldbm_back_search(
 						return( 0 );
 					}
 
-#ifdef	SLAPD_DEREF
+#ifdef	SLAPD_ALIAS_DEREF
 					/*
 					 * check and apply aliasing where the dereferencing applies to
 					 * the subordinates of the base
