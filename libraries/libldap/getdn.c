@@ -627,7 +627,7 @@ ldap_bv2dn( struct berval *bv, LDAPDN **dn, unsigned flags )
 	assert( bv->bv_val );
 	assert( dn );
 
-	Debug( LDAP_DEBUG_TRACE, "=> ldap_str2dn(%s,%u)\n%s", str, flags, "" );
+	Debug( LDAP_DEBUG_TRACE, "=> ldap_bv2dn(%s,%u)\n%s", str, flags, "" );
 
 	*dn = NULL;
 
@@ -847,11 +847,6 @@ ldap_bv2rdn( struct berval *bv, LDAPRDN **rdn,
 	assert( bv->bv_val );
 	assert( rdn || flags & LDAP_DN_SKIP );
 	assert( n );
-
-#if 0
-	Debug( LDAP_DEBUG_TRACE, "=> ldap_bv2rdn(%s,%u)\n%s", 
-			bv->bv_val, flags, "" );
-#endif
 
 	str = bv->bv_val;
 	stoplen = bv->bv_len;
@@ -1314,11 +1309,6 @@ return_result:;
 	if ( tmpRDN != tmpRDN_ ) {
 		LDAP_FREE( tmpRDN );
 	}
-
-#if 0
-	Debug( LDAP_DEBUG_TRACE, "<= ldap_str2rdn(%*s)=%d\n", 
-			p - str, str, rc );
-#endif
 
 	if ( rdn ) {
 		*rdn = newRDN;
