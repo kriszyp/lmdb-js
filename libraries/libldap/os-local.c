@@ -51,8 +51,6 @@
 #include "ldap-int.h"
 #include "ldap_defaults.h"
 
-/* int ldap_int_tblsize = 0; */
-
 #ifdef LDAP_DEBUG
 
 #define oslocal_debug(ld,fmt,arg1,arg2,arg3) \
@@ -169,7 +167,6 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 {
 	int rc;
 	struct timeval	tv, *opt_tv=NULL;
-	fd_set		wfds, *z=NULL;
 
 	if ( (opt_tv = ld->ld_options.ldo_tm_net) != NULL ) {
 		tv.tv_usec = opt_tv->tv_usec;
@@ -177,17 +174,15 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 	}
 
 	oslocal_debug(ld, "ldap_connect_timeout: fd: %d tm: %ld async: %d\n",
-			s, opt_tv ? tv.tv_sec : -1L, async);
+		s, opt_tv ? tv.tv_sec : -1L, async);
 
-	if ( ldap_pvt_ndelay_on(ld, s) == -1 )
-		return ( -1 );
+	if ( ldap_pvt_ndelay_on(ld, s) == -1 ) return -1;
 
 	if ( connect(s, (struct sockaddr *) sa, sizeof(struct sockaddr_un))
 		!= AC_SOCKET_ERROR )
 	{
-		if ( ldap_pvt_ndelay_off(ld, s) == -1 ) {
-			return ( -1 );
-		}
+		if ( ldap_pvt_ndelay_off(ld, s) == -1 ) return -1;
+
 #ifdef DO_SENDMSG
 	/* Send a dummy message with access rights. Remote side will
 	 * obtain our uid/gid by fstat'ing this descriptor.
@@ -211,38 +206,42 @@ sendcred:
 			}
 		}
 #endif
-		return ( 0 );
+		return 0;
 	}
 
-	if ( errno != EINPROGRESS && errno != EWOULDBLOCK ) {
-		return ( -1 );
-	}
+	if ( errno != EINPROGRESS && errno != EWOULDBLOCK ) return -1;
 	
 #ifdef notyet
-	if ( async ) return ( -2 );
+	if ( async ) return -2;
 #endif
 
-	FD_ZERO(&wfds);
-	FD_SET(s, &wfds );
-
-	do { 
-		rc = select(ldap_int_tblsize, z, &wfds, z, opt_tv ? &tv : NULL);
-	} while( rc == AC_SOCKET_ERROR && errno == EINTR &&
-		LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART ));
-
-	if( rc == AC_SOCKET_ERROR ) return rc;
-
-	if ( FD_ISSET(s, &wfds) ) {
-		if ( ldap_pvt_is_socket_ready(ld, s) == -1 )
-			return ( -1 );
-		if ( ldap_pvt_ndelay_off(ld, s) == -1 )
-			return ( -1 );
-#ifdef DO_SENDMSG
-		goto sendcred;
+#ifdef HAVE_POLL
+		assert(0);
 #else
-		return ( 0 );
+	{
+		fd_set		wfds, *z=NULL;
+		FD_ZERO(&wfds);
+		FD_SET(s, &wfds );
+
+		do { 
+			rc = select( ldap_int_tblsize, z, &wfds, z, opt_tv ? &tv : NULL );
+		} while( rc == AC_SOCKET_ERROR && errno == EINTR &&
+			LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART ));
+
+		if( rc == AC_SOCKET_ERROR ) return rc;
+
+		if ( FD_ISSET(s, &wfds) ) {
+			if ( ldap_pvt_is_socket_ready(ld, s) == -1 ) return -1;
+			if ( ldap_pvt_ndelay_off(ld, s) == -1 ) return -1;
+#ifdef DO_SENDMSG
+			goto sendcred;
+#else
+			return ( 0 );
 #endif
+		}
 	}
+#endif
+
 	oslocal_debug(ld, "ldap_connect_timeout: timed out\n",0,0,0);
 	ldap_pvt_set_errno( ETIMEDOUT );
 	return ( -1 );

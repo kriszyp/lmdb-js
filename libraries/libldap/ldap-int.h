@@ -448,7 +448,11 @@ LDAP_F (int) ldap_int_open_connection( LDAP *ld,
 /*
  * in os-ip.c
  */
+#ifndef HAVE_POLL
 LDAP_V (int) ldap_int_tblsize;
+LDAP_F (void) ldap_int_ip_init( void );
+#endif
+
 LDAP_F (int) ldap_int_timeval_dup( struct timeval **dest,
 	const struct timeval *tm );
 LDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb,
@@ -461,7 +465,6 @@ LDAP_F (char *) ldap_host_connected_to( Sockbuf *sb,
 	const char *host );
 #endif
 
-LDAP_F (void) ldap_int_ip_init( void );
 LDAP_F (int) ldap_int_select( LDAP *ld, struct timeval *timeout );
 LDAP_F (void *) ldap_new_select_info( void );
 LDAP_F (void) ldap_free_select_info( void *sip );

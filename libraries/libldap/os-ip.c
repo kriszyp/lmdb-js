@@ -39,8 +39,6 @@
 
 #include "ldap-int.h"
 
-int ldap_int_tblsize = 0;
-
 #if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
 #  ifdef LDAP_PF_INET6
 int ldap_int_inet4or6 = AF_UNSPEC;
@@ -212,9 +210,11 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 {
 	int rc;
 	struct timeval	tv, *opt_tv=NULL;
+#ifndef HAVE_POLL
 	fd_set		wfds, *z=NULL;
 #ifdef HAVE_WINSOCK
 	fd_set		efds;
+#endif
 #endif
 
 #ifdef LDAP_CONNECTIONLESS
@@ -258,6 +258,9 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 	if ( async ) return ( -2 );
 #endif
 
+#ifdef HAVE_POLL
+	assert(0);
+#else
 	FD_ZERO(&wfds);
 	FD_SET(s, &wfds );
 
@@ -305,6 +308,8 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 			return ( -1 );
 		return ( 0 );
 	}
+#endif
+
 	osip_debug(ld, "ldap_connect_timeout: timed out\n",0,0,0);
 	ldap_pvt_set_errno( ETIMEDOUT );
 	return ( -1 );
@@ -607,14 +612,18 @@ ldap_host_connected_to( Sockbuf *sb, const char *host )
 #endif
 
 
-/* for UNIX */
+#ifdef HAVE_POLL
+/* for UNIX poll(2) */
+	/* ??? */
+#else
+/* for UNIX select(2) */
 struct selectinfo {
 	fd_set	si_readfds;
 	fd_set	si_writefds;
 	fd_set	si_use_readfds;
 	fd_set	si_use_writefds;
 };
-
+#endif
 
 void
 ldap_mark_select_write( LDAP *ld, Sockbuf *sb )
@@ -708,10 +717,14 @@ ldap_free_select_info( void *sip )
 }
 
 
+#ifndef HAVE_POLL
+int ldap_int_tblsize = 0;
+
 void
 ldap_int_ip_init( void )
 {
 	int tblsize;
+
 #if defined( HAVE_SYSCONF )
 	tblsize = sysconf( _SC_OPEN_MAX );
 #elif defined( HAVE_GETDTABLESIZE )
@@ -721,11 +734,12 @@ ldap_int_ip_init( void )
 #endif /* !USE_SYSCONF */
 
 #ifdef FD_SETSIZE
-	if( tblsize > FD_SETSIZE )
-		tblsize = FD_SETSIZE;
+	if( tblsize > FD_SETSIZE ) tblsize = FD_SETSIZE;
 #endif	/* FD_SETSIZE*/
+
 	ldap_int_tblsize = tblsize;
 }
+#endif
 
 
 int
@@ -739,14 +753,20 @@ ldap_int_select( LDAP *ld, struct timeval *timeout )
 	Debug( LDAP_DEBUG_TRACE, "ldap_int_select\n", 0, 0, 0 );
 #endif
 
-	if ( ldap_int_tblsize == 0 )
-		ldap_int_ip_init();
+#ifndef HAVE_POLL
+	if ( ldap_int_tblsize == 0 ) ldap_int_ip_init();
+#endif
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 	sip->si_use_readfds = sip->si_readfds;
 	sip->si_use_writefds = sip->si_writefds;
 	
+#ifdef HAVE_POLL
+	assert(0);
+	return -1;
+#else
 	return( select( ldap_int_tblsize,
-	                &sip->si_use_readfds, &sip->si_use_writefds,
-	                NULL, timeout ));
+		&sip->si_use_readfds, &sip->si_use_writefds,
+		NULL, timeout ));
+#endif
 }

@@ -158,8 +158,7 @@ ldap_send_initial_request(
 int
 ldap_int_flush_request(
 	LDAP *ld,
-	LDAPRequest *lr
-)
+	LDAPRequest *lr )
 {
 	LDAPConn *lc = lr->lr_conn;
 

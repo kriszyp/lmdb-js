@@ -534,8 +534,10 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 	ldap_int_hostname = ldap_pvt_get_fqdn( ldap_int_hostname );
 #endif
-	if ( ldap_int_tblsize == 0 )
-		ldap_int_ip_init();
+
+#ifndef HAVE_POLL
+	if ( ldap_int_tblsize == 0 ) ldap_int_ip_init();
+#endif
 
 	ldap_int_initialize_global_options(gopts, NULL);
 
