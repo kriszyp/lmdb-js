@@ -5,6 +5,7 @@ File                    Description
 core.schema             OpenLDAP "core"
 cosine.schema           COSINE Pilot schema
 inetorgperson.schema    InetOrgPerson schema
+krb5-kdc.schema         Kerberos V KDC schema
 microsoft.ext.schema    Microsoft schema
 microsoft.schema        Microsoft schema
 microsoft.std.schema    Microsoft schema
