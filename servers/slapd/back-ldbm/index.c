@@ -24,7 +24,7 @@ static slap_mask_t index_mask(
 	AttributeType *at;
 	slap_mask_t mask = 0;
 
-	/* we do support indexing of binary attributes */
+	/* we do not support indexing of binary attributes */
 	if( slap_ad_is_binary( desc ) ) return 0;
 
 	attr_mask( be->be_private, desc->ad_cname->bv_val, &mask );
@@ -318,11 +318,9 @@ index_entry(
 	Attribute *ap
 )
 {
-
 	Debug( LDAP_DEBUG_TRACE, "=> index_entry_%s( %ld, \"%s\" )\n",
 		op == SLAP_INDEX_ADD_OP ? "add" : "del",
 		e->e_id, e->e_dn );
-
 
 	/* add each attribute to the indexes */
 	for ( ; ap != NULL; ap = ap->a_next ) {
