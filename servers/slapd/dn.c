@@ -1357,7 +1357,9 @@ dnIsOneLevelRDN( struct berval *rdn )
 	return 1;
 }
 
+#ifdef HAVE_TLS
 static SLAP_CERT_MAP_FN *DNX509PeerNormalizeCertMap = NULL;
+#endif
 
 int register_certificate_map_function(SLAP_CERT_MAP_FN *fn)
 {
