@@ -788,21 +788,21 @@ ldap_pvt_tls_get_strength( void *s )
 }
 
 
-char *
-ldap_pvt_tls_get_my_dn( void *s, LDAPDN_rewrite_dummy *func, unsigned flags )
+int
+ldap_pvt_tls_get_my_dn( void *s, struct berval *dn, LDAPDN_rewrite_dummy *func, unsigned flags )
 {
 	X509 *x;
 	X509_NAME *xn;
-	struct berval dn;
+	int rc;
 
 	x = SSL_get_certificate((SSL *)s);
 
-	if (!x) return NULL;
+	if (!x) return LDAP_INVALID_CREDENTIALS;
     
 	xn = X509_get_subject_name(x);
-	ldap_X509dn2bv(xn, &dn, (LDAPDN_rewrite_func *)func, flags );
+	rc = ldap_X509dn2bv(xn, dn, (LDAPDN_rewrite_func *)func, flags );
 	X509_free(x);
-	return dn.bv_val;
+	return rc;
 }
 
 static X509 *
@@ -819,21 +819,21 @@ tls_get_cert( SSL *s )
     return SSL_get_peer_certificate(s);
 }
 
-char *
-ldap_pvt_tls_get_peer_dn( void *s, LDAPDN_rewrite_dummy *func, unsigned flags )
+int
+ldap_pvt_tls_get_peer_dn( void *s, struct berval *dn, LDAPDN_rewrite_dummy *func, unsigned flags )
 {
 	X509 *x;
 	X509_NAME *xn;
-	struct berval dn;
+	int rc;
 
 	x = tls_get_cert((SSL *)s);
 
-	if (!x) return NULL;
+	if (!x) return LDAP_INVALID_CREDENTIALS;
     
 	xn = X509_get_subject_name(x);
-	ldap_X509dn2bv(xn, &dn, (LDAPDN_rewrite_func *)func, flags);
+	rc = ldap_X509dn2bv(xn, dn, (LDAPDN_rewrite_func *)func, flags);
 	X509_free(x);
-	return dn.bv_val;
+	return rc;
 }
 
 char *
@@ -1246,15 +1246,16 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	 * set SASL properties to TLS ssf and authid
 	 */
 	{
-		char *authid;
+		struct berval authid;
 		ber_len_t ssf;
 
 		/* we need to let SASL know */
 		ssf = ldap_pvt_tls_get_strength( ssl );
-		authid = ldap_pvt_tls_get_my_dn( ssl, NULL, 0 );
+		/* failure is OK, we just can't use SASL EXTERNAL */
+		(void) ldap_pvt_tls_get_my_dn( ssl, &authid, NULL, 0 );
 
-		(void) ldap_int_sasl_external( ld, conn, authid, ssf );
-		LDAP_FREE( authid );
+		(void) ldap_int_sasl_external( ld, conn, authid.bv_val, ssf );
+		LDAP_FREE( authid.bv_val );
 	}
 
 	return LDAP_SUCCESS;
