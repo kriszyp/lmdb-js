@@ -189,6 +189,10 @@ send_ldap_response(
 
 	assert( ctrls == NULL ); /* ctrls not implemented */
 
+	if (op->o_response)
+		return op->o_response( conn, op, tag, msgid, err, matched,
+			text, ref, resoid, resdata, sasldata, ctrls);
+		
 	ber = ber_alloc_t( LBER_USE_DER );
 
 #ifdef NEW_LOGGING
@@ -553,6 +557,10 @@ send_search_result(
 	ber_int_t msgid;
 	char *tmp = NULL;
 	assert( !LDAP_API_ERROR( err ) );
+
+	if (op->o_sresult)
+		return op->o_sresult(conn, op, err, matched, text, refs,
+			ctrls, nentries);
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,

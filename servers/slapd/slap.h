@@ -1176,6 +1176,17 @@ struct slap_backend_info {
 #define o_tls_ssf		o_authz.sai_tls_ssf
 #define o_sasl_ssf		o_authz.sai_sasl_ssf
 
+struct slap_op;
+struct slap_conn;
+
+typedef void (slap_response)(struct slap_conn *, struct slap_op *, ber_tag_t,
+	ber_int_t, ber_int_t, const char *, const char *, struct berval **,
+	const char *, struct berval *, struct berval *, LDAPControl **);
+
+typedef void (slap_sresult)(struct slap_conn *, struct slap_op *, ber_int_t,
+	const char *, const char *, struct berval **, LDAPControl **,
+	int nentries);
+
 /*
  * represents an operation pending from an ldap client
  */
@@ -1203,9 +1214,12 @@ typedef struct slap_op {
 
 	ldap_pvt_thread_mutex_t	o_abandonmutex; /* protects o_abandon  */
 	int		o_abandon;	/* abandon flag */
+	slap_response	*o_response;	/* callback function */
+	slap_sresult	*o_sresult;	/* search result callback */
 
 	struct slap_op	*o_next;	/* next operation in list	  */
 	void	*o_private;	/* anything the backend needs	  */
+	void	*o_glue;	/* for the glue backend */
 } Operation;
 
 /*
