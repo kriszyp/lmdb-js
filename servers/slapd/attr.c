@@ -162,10 +162,10 @@ attr_merge_normalize(
 	BerVarray	nvals = NULL;
 	int		rc;
 
-	if ( desc->ad_type->sat_equality->smr_normalize ) {
+	if ( desc->ad_type->sat_equality && desc->ad_type->sat_equality->smr_normalize ) {
 		int	i;
 		
-		for ( i = 0; vals[i].bv_val; i++);
+		for ( i = 0; vals[i].bv_val; i++ );
 
 		nvals = ch_calloc( sizeof(struct berval), i + 1 );
 		for ( i = 0; vals[i].bv_val; i++ ) {
@@ -186,7 +186,9 @@ attr_merge_normalize(
 	rc = attr_merge( e, desc, vals, nvals );
 
 error_return:;
-	ber_bvarray_free( nvals );
+	if ( nvals != NULL ) {
+		ber_bvarray_free( nvals );
+	}
 	return rc;
 }
 
