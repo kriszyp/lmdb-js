@@ -58,6 +58,14 @@ do_bind(
 	 */
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 	if ( conn->c_sasl_bind_in_progress ) be = conn->c_authz_backend;
+
+	/* log authorization identity demotion */
+	if ( conn->c_dn.bv_len ) {
+		Statslog( LDAP_DEBUG_STATS,
+			"conn=%lu op=%lu AUTHZ anonymous mech=implicit ssf=0",
+			op->o_connid, op->o_opid, 0, 0, 0 );
+	}
+
 	connection2anonymous( conn );
 	if ( conn->c_sasl_bind_in_progress ) conn->c_authz_backend = be;
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
@@ -315,6 +323,12 @@ do_bind(
 					LBER_SB_OPT_SET_MAX_INCOMING, &max );
 			}
 
+			/* log authorization identity */
+			Statslog( LDAP_DEBUG_STATS,
+				"conn=%lu op=%lu AUTHZ dn=\"%s\" mech=%s ssf=%d\n",
+				op->o_connid, op->o_opid,
+				conn->c_dn.bv_val, conn->c_authmech.bv_val, ssf );
+
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, DETAIL1, 
 				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
@@ -545,6 +559,12 @@ do_bind(
 				ber_sockbuf_ctrl( conn->c_sb,
 					LBER_SB_OPT_SET_MAX_INCOMING, &max );
 			}
+
+			/* log authorization identity */
+			Statslog( LDAP_DEBUG_STATS,
+				"conn=%lu op=%lu AUTHZ dn=\"%s\" mech=simple ssf=0\n",
+				op->o_connid, op->o_opid,
+				conn->c_dn.bv_val, conn->c_authmech.bv_val, 0 );
 
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, DETAIL1, 

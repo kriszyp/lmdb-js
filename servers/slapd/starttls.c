@@ -65,6 +65,10 @@ starttls_extop (
 	if ( !( global_disallows & SLAP_DISALLOW_TLS_2_ANON ) &&
 		( conn->c_dn.bv_len != 0 ) )
 	{
+		Statslog( LDAP_DEBUG_STATS,
+			"conn=%lu op=%lu AUTHZ anonymous mech=starttls ssf=0",
+			op->o_connid, op->o_opid, 0, 0, 0 );
+
 		/* force to anonymous */
 		connection2anonymous( conn );
 	}
