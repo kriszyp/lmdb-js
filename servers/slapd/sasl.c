@@ -288,7 +288,7 @@ int slap_sasl_open( Connection *conn )
 int slap_sasl_external(
 	Connection *conn,
 	slap_ssf_t ssf,
-	char *auth_id )
+	const char *auth_id )
 {
 #ifdef HAVE_CYRUS_SASL
 	int sc;
@@ -301,7 +301,7 @@ int slap_sasl_external(
 
 	memset( &extprops, '\0', sizeof(extprops) );
 	extprops.ssf = ssf;
-	extprops.auth_id = auth_id;
+	extprops.auth_id = (char *) auth_id;
 
 	sc = sasl_setprop( ctx, SASL_SSF_EXTERNAL,
 		(void *) &extprops );

@@ -9,7 +9,7 @@
 
 LDAP_BEGIN_DECL
 
-extern int	bdb_back_initialize LDAP_P(( BackendInfo *bi ));
+extern int	bdb_initialize LDAP_P(( BackendInfo *bi ));
 
 LDAP_END_DECL
 

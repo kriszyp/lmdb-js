@@ -16,6 +16,7 @@
 #include <ac/time.h>
 
 #include "ldap_pvt.h"
+#include "lutil.h"
 #include "slap.h"
 
 /* protected by connections_mutex */
@@ -291,7 +292,7 @@ long connection_init(
 	const char* sockname,
 	int use_tls,
 	slap_ssf_t ssf,
-	char *authid )
+	const char *authid )
 {
 	unsigned long id;
 	Connection *c;
@@ -1264,26 +1265,26 @@ int connection_write(ber_socket_t s)
  * one another, for the front end to use for searches on arbitrary back ends.
  */
 
-int connection_internal_open( Connection **conn, LDAP **ldp, char *id )
+int connection_internal_open( Connection **conn, LDAP **ldp, const char *id )
 {
 	int rc;
 	ber_socket_t fd[2] = {-1,-1};
 	Operation *op;
 
-
 	*conn=NULL;
 	*ldp=NULL;
 
-	rc = pipe( fd );
-	if( rc == -1 )
-		return( LDAP_OPERATIONS_ERROR );
+	rc = lutil_pair( fd );
+	if( rc == -1 ) {
+		return LDAP_OTHER;
+	}
 
 	rc = connection_init( fd[1], "INT", "localhost", 
       "localhost:0", "localhost:00", 0, 256, id );
 	if( rc < 0 ) {
-		close( fd[0] );
-		close( fd[1] );
-		return( LDAP_OPERATIONS_ERROR );
+		tcp_close( fd[0] );
+		tcp_close( fd[1] );
+		return LDAP_OTHER;
 	}
 	slapd_add_internal( fd[1] );
 
@@ -1300,14 +1301,14 @@ int connection_internal_open( Connection **conn, LDAP **ldp, char *id )
 	/* Create the client side of the connection */
 	rc = ldap_open_internal_connection( ldp, &(fd[0]) );
 	if( rc != LDAP_SUCCESS ) {
-		close( fd[0] );
-		return( LDAP_OPERATIONS_ERROR );
+		tcp_close( fd[0] );
+		return LDAP_OTHER;
 	}
 
 	/* The connection_get() will have locked the connection's mutex */
 	ldap_pvt_thread_mutex_unlock(  &((*conn)->c_mutex) );
 
-	return( LDAP_SUCCESS );
+	return LDAP_SUCCESS;
 }
 
 

@@ -9,10 +9,22 @@
 
 LDAP_BEGIN_DECL
 
+
 /*
- * error.c
+ * alias.c
  */
-void bdb_errcall( const char *pfx, char * msg );
+Entry *bdb_deref_internal_r LDAP_P((
+	Backend *be,
+	Entry *e,
+	const char *dn,
+	int *err,
+	Entry **matched,
+	const char **text ));
+
+#define deref_entry_r( be, e, err, matched, text ) \
+	bdb_deref_internal_r( be, e, NULL, err, matched, text )
+#define deref_dn_r( be, dn, err, matched, text ) \
+	bdb_deref_internal_r( be, NULL, dn, err, matched, text)
 
 /*
  * dn2id.c
@@ -22,6 +34,17 @@ int bdb_index_dn_add(
 	DB_TXN *tid,
 	const char *dn,
 	ID id );
+
+Entry * bdb_dn2entry_rw LDAP_P(( Backend *be, DB_TXN *tid,
+	const char *dn, Entry **matched, int rw ));
+
+#define dn2entry_r(be, tid, dn, m) bdb_dn2entry_rw((be), (tid), (dn), (m), 0)
+#define dn2entry_w(be, tid, dn, m) bdb_dn2entry_rw((be), (tid), (dn), (m), 1)
+
+/*
+ * error.c
+ */
+void bdb_errcall( const char *pfx, char * msg );
 
 /*
  * idl.c

@@ -127,6 +127,10 @@ LIB32=link.exe -lib
 # Name "backbdb - Win32 Single Release"
 # Begin Source File
 
+SOURCE=.\add.c
+# End Source File
+# Begin Source File
+
 SOURCE=".\back-bdb.h"
 # End Source File
 # Begin Source File
@@ -156,6 +160,10 @@ SOURCE=.\nextid.c
 # Begin Source File
 
 SOURCE=".\proto-bdb.h"
+# End Source File
+# Begin Source File
+
+SOURCE=.\search.c
 # End Source File
 # Begin Source File
 

@@ -51,7 +51,7 @@
 
 static BackendInfo binfo[] = {
 #if defined(SLAPD_BDB) && !defined(SLAPD_BDB_DYNAMIC)
-	{"bdb",	bdb_back_initialize},
+	{"bdb",	bdb_initialize},
 #endif
 #if defined(SLAPD_DNSSRV) && !defined(SLAPD_DNSSRV_DYNAMIC)
 	{"dnssrv",	dnssrv_back_initialize},

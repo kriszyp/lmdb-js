@@ -141,6 +141,10 @@ LDAP_F (int) ldap_pvt_sasl_install LDAP_P(( struct sockbuf *, void * ));
 
 #define LDAP_PVT_SASL_LOCAL_SSF	71	/* SSF for Unix Domain Sockets */
 
+struct ldap;
+LDAP_F (int) ldap_open_internal_connection LDAP_P((
+	struct ldap **ldp, ber_socket_t *fdp ));
+
 /* search.c */
 LDAP_F( char * )
 ldap_pvt_find_wildcard LDAP_P((	const char *s ));

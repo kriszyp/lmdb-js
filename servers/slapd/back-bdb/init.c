@@ -14,32 +14,39 @@
 
 #include "back-bdb.h"
 
-static char *bdbi_dbnames[BDB_INDICES] = {
-	"nextid", "id2entry", "dn2entry"
+static struct bdbi_database {
+	char *file;
+	char *name;
+	int type;
+	int flags;
+} bdbi_databases[BDB_INDICES] = {
+	{ "nextid", "nextid", DB_BTREE, 0 },
+	{ "id2entry", "id2entry", DB_BTREE, 0 },
+	{ "dn2entry", "dn2entry", DB_BTREE, 0 }
 };
 
 static int
-bi_back_destroy( BackendInfo *bi )
+bdb_destroy( BackendInfo *bi )
 {
 	return 0;
 }
 
 static int
-bi_back_open( BackendInfo *bi )
+bdb_open( BackendInfo *bi )
 {
 	/* initialize the underlying database system */
 	return 0;
 }
 
 static int
-bi_back_close( BackendInfo *bi )
+bdb_close( BackendInfo *bi )
 {
 	/* terminate the underlying database system */
 	return 0;
 }
 
 static int
-bi_back_db_init( Backend *be )
+bdb_db_init( Backend *be )
 {
 	struct bdb_info	*bdb;
 
@@ -56,7 +63,7 @@ bi_back_db_init( Backend *be )
 }
 
 static int
-bi_back_db_open( BackendDB *be )
+bdb_db_open( BackendDB *be )
 {
 	int rc, i;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -130,16 +137,7 @@ bi_back_db_open( BackendDB *be )
 		return rc;
 	}
 
-	flags = DB_THREAD;
-
-#if 0
-	if( be->be_read_only ) {
-		flags |= DB_RDONLY;
-	} else
-#endif
-	{
-		flags |= DB_CREATE;
-	}
+	flags = DB_THREAD | DB_CREATE;
 
 	/* open (and create) main database */
 	for( i = 0; i < BDB_INDICES; i++ ) {
@@ -156,10 +154,10 @@ bi_back_db_open( BackendDB *be )
 		}
 
 		rc = db->bdi_db->open( db->bdi_db,
-			bdbi_dbnames[i],
-			bdbi_dbnames[i],
-			DB_BTREE,
-			flags,
+			bdbi_databases[i].file,
+			bdbi_databases[i].name,
+			bdbi_databases[i].type,
+			bdbi_databases[i].flags | flags,
 			bdb->bi_dbenv_mode );
 
 		if( rc != 0 ) {
@@ -177,7 +175,7 @@ bi_back_db_open( BackendDB *be )
 }
 
 static int
-bi_back_db_close( BackendDB *be )
+bdb_db_close( BackendDB *be )
 {
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -200,7 +198,7 @@ bi_back_db_close( BackendDB *be )
 }
 
 static int
-bi_back_db_destroy( BackendDB *be )
+bdb_db_destroy( BackendDB *be )
 {
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -224,7 +222,7 @@ int back_bdb_LTX_init_module( int argc, char *argv[] ) {
 
     memset( &bi, '\0', sizeof(bi) );
     bi.bi_type = "bdb";
-    bi.bi_init = bi_back_initialize;
+    bi.bi_init = bdb_initialize;
 
     backend_add( &bi );
     return 0;
@@ -232,7 +230,7 @@ int back_bdb_LTX_init_module( int argc, char *argv[] ) {
 #endif /* SLAPD_BDB_DYNAMIC */
 
 int
-bdb_back_initialize(
+bdb_initialize(
     BackendInfo	*bi
 )
 {
@@ -255,22 +253,22 @@ bdb_back_initialize(
 				"\tgot: %s \n", version, 0, 0 );
 		}
 
-		Debug( LDAP_DEBUG_ANY, "bi_back_initialize: %s\n",
+		Debug( LDAP_DEBUG_ANY, "bdb_initialize: %s\n",
 			version, 0, 0 );
 	}
 
 	bi->bi_controls = controls;
 
-	bi->bi_open = bi_back_open;
-	bi->bi_close = bi_back_close;
+	bi->bi_open = bdb_open;
+	bi->bi_close = bdb_close;
 	bi->bi_config = 0;
-	bi->bi_destroy = bi_back_destroy;
+	bi->bi_destroy = bdb_destroy;
 
-	bi->bi_db_init = bi_back_db_init;
+	bi->bi_db_init = bdb_db_init;
 	bi->bi_db_config = 0;
-	bi->bi_db_open = bi_back_db_open;
-	bi->bi_db_close = bi_back_db_close;
-	bi->bi_db_destroy = bi_back_db_destroy;
+	bi->bi_db_open = bdb_db_open;
+	bi->bi_db_close = bdb_db_close;
+	bi->bi_db_destroy = bdb_db_destroy;
 
 #if 0
 	bi->bi_op_bind = bi_back_bind;

@@ -14,12 +14,6 @@
 
 #include "back-bdb.h"
 
-#define BDB_IDL_SIZE	(1<<16)
-#define BDB_IDL_MAX		(BDB_IDL_SIZE-16)
-#define BDB_IDL_ALLOC	(BDB_IDL_MAX * sizeof(ID))
-
-#define BDB_IS_ALLIDS(ids)	((ids)[0] == NOID)
-
 #define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
 
 static int idl_search( ID *ids, ID id )

@@ -52,7 +52,7 @@ int slap_parseURI( char *uri, char **searchbase, int *scope, Filter **filter )
 		return( LDAP_SUCCESS );
 	}
 
-	end = index( uri + 7, '/' );
+	end = strchr( uri + 7, '/' );
 	if ( end == NULL )
 		return( LDAP_PROTOCOL_ERROR );
 
@@ -60,7 +60,7 @@ int slap_parseURI( char *uri, char **searchbase, int *scope, Filter **filter )
 
 	/* Grab the searchbase */
 	start = end+1;
-	end = index( start, '?' );
+	end = strchr( start, '?' );
 	if( end == NULL ) {
 		*searchbase = ch_strdup( start );
 		dn_normalize( *searchbase );
@@ -73,7 +73,7 @@ int slap_parseURI( char *uri, char **searchbase, int *scope, Filter **filter )
 
 	/* Skip the attrs */
 	start = end+1;
-	end = index( start, '?' );
+	end = strchr( start, '?' );
 	if( end == NULL ) {
 		return( LDAP_SUCCESS );
 	}
@@ -489,7 +489,8 @@ COMPLETE:
 
 /* Check if a bind can SASL authorize to another identity. */
 
-int slap_sasl_authorized( Connection *conn, char *authcid, char *authzid )
+int slap_sasl_authorized( Connection *conn,
+	const char *authcid, const char *authzid )
 {
 	int rc;
 	char *saslname=NULL,*authcDN=NULL,*realm=NULL, *authzDN=NULL;

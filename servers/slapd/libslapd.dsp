@@ -288,6 +288,10 @@ SOURCE=.\sasl.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\saslauthz.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\schema.c
 # End Source File
 # Begin Source File

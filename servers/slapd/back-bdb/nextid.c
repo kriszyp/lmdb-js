@@ -21,6 +21,12 @@ int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *out )
 	ID kid = NOID;
 	ID id;
 	DBT key, data;
+	DB_TXN	*ltid;
+
+	rc = txn_begin( bdb->bi_dbenv, tid, &ltid, 0 );
+	if( rc != 0 ) {
+		return rc;
+	}
 
 	DBTzero( &key );
 	key.data = (char *) &kid;
@@ -33,26 +39,35 @@ int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *out )
 
 	/* get exiting value (with write lock) */
 	rc = bdb->bi_entries->bdi_db->get( bdb->bi_nextid->bdi_db,
-		tid, &key, &data, DB_RMW );
+		ltid, &key, &data, DB_RMW );
 
 	if( rc == DB_NOTFOUND ) {
 		/* must be first add */
 		id = NOID;
 
 	} else if( rc != 0 ) {
-		return rc;
+		goto done;
 
 	} else if ( data.size != sizeof(ID) ) {
 		/* size mismatch! */
-		return -1;
+		rc = -1;
+		goto done;
 	}
 
 	id++;
 
 	/* store new value */
 	rc = bdb->bi_entries->bdi_db->put( bdb->bi_nextid->bdi_db,
-		tid, &key, &data, 0 );
+		ltid, &key, &data, 0 );
 
 	*out = id;
+
+done:
+	if( rc != 0 ) {
+		(void) txn_abort( ltid );
+	} else {
+		rc = txn_commit( ltid, 0 );
+	}
+
 	return rc;
 }

@@ -24,7 +24,9 @@
 char *
 ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **berout )
 {
+#if LBER_SEQORSET_AVOID_OVERRUN
 	int rc;
+#endif
 	ber_tag_t tag;
 	ber_len_t len;
 	char *attr;

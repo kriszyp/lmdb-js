@@ -198,7 +198,7 @@ int bdb_tool_entry_reindex(
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_tool_entry_reindex:: could not locate id=%ld\n",
 			(long) id, 0, 0 );
-		txn_abort( bdi->bdi_db_env );
+		txn_abort( tid );
 		return -1;
 	}
 

@@ -314,6 +314,7 @@ read_config( const char *fname )
 			}
 
 		} else if ( !strcasecmp( cargv[0], "saslregexp" ) ) {
+			int rc;
 			if ( cargc != 3 ) {
 				Debug( LDAP_DEBUG_ANY, 
 				"%s: line %d: need 2 args in \"saslregexp <match> <replace>\"\n",
@@ -321,8 +322,9 @@ read_config( const char *fname )
 				return( 1 );
 			}
 			rc = slap_sasl_regexp_config( cargv[1], cargv[2] );
-			if ( rc )
+			if ( rc ) {
 				return rc;
+			}
 
 		/* SASL security properties */
 		} else if ( strcasecmp( cargv[0], "sasl-secprops" ) == 0 ) {
