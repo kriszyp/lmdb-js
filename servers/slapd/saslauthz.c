@@ -66,15 +66,20 @@ int slap_sasl_setpolicy( const char *arg )
 }
 
 static int slap_parseURI( Operation *op, struct berval *uri,
-	struct berval *searchbase, int *scope, Filter **filter )
+	struct berval *base, struct berval *nbase,
+	int *scope, Filter **filter, struct berval *fstr )
 {
 	struct berval bv;
 	int rc;
 	LDAPURLDesc *ludp;
 
 	assert( uri != NULL && uri->bv_val != NULL );
-	searchbase->bv_val = NULL;
-	searchbase->bv_len = 0;
+	base->bv_val = NULL;
+	base->bv_len = 0;
+	nbase->bv_val = NULL;
+	nbase->bv_len = 0;
+	fstr->bv_val = NULL;
+	fstr->bv_len = 0;
 	*scope = -1;
 	*filter = NULL;
 
@@ -93,7 +98,7 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 
 is_dn:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
-		rc = dnNormalize( 0, NULL, NULL, &bv, searchbase, op->o_tmpmemctx );
+		rc = dnNormalize( 0, NULL, NULL, &bv, nbase, op->o_tmpmemctx );
 		if( rc == LDAP_SUCCESS ) {
 			*scope = LDAP_SCOPE_BASE;
 		}
@@ -129,16 +134,24 @@ is_dn:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 			rc = LDAP_PROTOCOL_ERROR;
 			goto done;
 		}
+		ber_str2bv( ludp->lud_filter, 0, 0, fstr );
 	}
 
 	/* Grab the searchbase */
-	bv.bv_val = ludp->lud_dn;
-	bv.bv_len = strlen( bv.bv_val );
-	rc = dnNormalize( 0, NULL, NULL, &bv, searchbase, op->o_tmpmemctx );
+	ber_str2bv( ludp->lud_dn, 0, 0, base );
+	rc = dnNormalize( 0, NULL, NULL, base, nbase, op->o_tmpmemctx );
 
 done:
 	if( rc != LDAP_SUCCESS ) {
 		if( *filter ) filter_free_x( op, *filter );
+		base->bv_val = NULL;
+		base->bv_len = 0;
+		fstr->bv_val = NULL;
+		fstr->bv_len = 0;
+	} else {
+		/* Don't free these, return them to caller */
+		ludp->lud_filter = NULL;
+		ludp->lud_dn= NULL;
 	}
 
 	ldap_free_urldesc( ludp );
@@ -405,8 +418,9 @@ int slap_sasl_match( Operation *opx, struct berval *rule,
 		assertDN->bv_val, rule->bv_val, 0 );
 #endif
 
-	rc = slap_parseURI( opx, rule,
-		&op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter );
+	rc = slap_parseURI( opx, rule, &op.o_req_dn,
+		&op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter,
+		&op.ors_filterstr );
 	if( rc != LDAP_SUCCESS ) goto CONCLUDED;
 
 	/* Massive shortcut: search scope == base */
@@ -462,6 +476,7 @@ int slap_sasl_match( Operation *opx, struct berval *rule,
 #endif
 	op.o_conn = opx->o_conn;
 	op.o_connid = opx->o_connid;
+	op.o_req_dn = op.o_req_ndn;
 
 	op.o_bd->be_search( &op, &rs );
 
@@ -472,8 +487,10 @@ int slap_sasl_match( Operation *opx, struct berval *rule,
 	}
 
 CONCLUDED:
+	if( op.o_req_dn.bv_len ) ch_free( op.o_req_dn.bv_val );
 	if( op.o_req_ndn.bv_len ) sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
 	if( op.oq_search.rs_filter ) filter_free_x( opx, op.oq_search.rs_filter );
+	if( op.ors_filterstr.bv_len ) ch_free( op.ors_filterstr.bv_val );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
@@ -580,8 +597,9 @@ void slap_sasl2dn( Operation *opx,
 		goto FINISHED;
 	}
 
-	rc = slap_parseURI( opx, &regout,
-		&op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter );
+	rc = slap_parseURI( opx, &regout, &op.o_req_dn,
+		&op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter,
+		&op.ors_filterstr );
 	if( regout.bv_val ) sl_free( regout.bv_val, opx->o_tmpmemctx );
 	if( rc != LDAP_SUCCESS ) {
 		goto FINISHED;
@@ -630,6 +648,7 @@ void slap_sasl2dn( Operation *opx,
 	op.oq_search.rs_deref = LDAP_DEREF_NEVER;
 	op.oq_search.rs_slimit = 1;
 	op.oq_search.rs_attrsonly = 1;
+	op.o_req_dn = op.o_req_ndn;
 
 	op.o_bd->be_search( &op, &rs );
 	
@@ -637,8 +656,10 @@ FINISHED:
 	if( sasldn->bv_len ) {
 		opx->o_conn->c_authz_backend = op.o_bd;
 	}
-	if( op.o_req_ndn.bv_len ) ch_free( op.o_req_ndn.bv_val );
+	if( op.o_req_dn.bv_len ) ch_free( op.o_req_dn.bv_val );
+	if( op.o_req_ndn.bv_len ) sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
 	if( op.oq_search.rs_filter ) filter_free_x( opx, op.oq_search.rs_filter );
+	if( op.ors_filterstr.bv_len ) ch_free( op.ors_filterstr.bv_val );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
