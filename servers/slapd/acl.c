@@ -961,9 +961,9 @@ aci_set_gather (void *cookie, char *name, char *attr)
 
 	if ((ndn = ch_strdup(name)) != NULL) {
 		if (dn_normalize(ndn) != NULL) {
-			char *text;
+			const char *text;
 			AttributeDescription *desc = NULL;
-			if (slap_str2ad(attr, &desc, &text) == 0) {
+			if (slap_str2ad(attr, &desc, &text) == LDAP_SUCCESS) {
 				backend_attribute(cp->be, NULL /*cp->conn*/,
 									NULL /*cp->op*/, cp->e,
 									ndn, desc, &bvals);
@@ -1012,7 +1012,7 @@ aci_match_set (
 		char *subjdn;
 		char *setat;
 		struct berval **bvals;
-		char *text;
+		const char *text;
 		AttributeDescription *desc = NULL;
 
 		/* format of string is "entry/setAttrName" */
@@ -1032,7 +1032,7 @@ aci_match_set (
 		}
 		if ( setat != NULL ) {
 			if ( dn_normalize(subjdn) != NULL
-				&& slap_str2ad(setat, &desc, &text) == 0 )
+				&& slap_str2ad(setat, &desc, &text) == LDAP_SUCCESS )
 			{
 				backend_attribute(be, NULL, NULL, e,
 								subjdn, desc, &bvals);
