@@ -414,18 +414,11 @@ else
 		AC_MSG_ERROR([NDBM only supports LDBM type hash])
 	fi
 
-	if test $ol_enable_bdb = yes -o $ol_enable_hdb = yes ; then
+	if test $ol_enable_bdb != no -o $ol_enable_hdb != no ; then
 		if test $ol_with_ldbm_api = auto ; then
 			ol_with_ldbm_api=berkeley
 		elif test $ol_with_ldbm_api != berkeley ; then
 			AC_MSG_ERROR([LDBM API not compatible with BDB/HDB])
-		fi
-
-	elif test $ol_enable_bdb = auto ; then
-		if test $ol_with_ldbm_api != berkeley \
-			-o $ol_with_ldbm_api != auto ; then
-			AC_MSG_WARN([LDBM API not compatible with BDB, disabling BDB])
-			ol_enable_bdb=no
 		fi
 	fi
 fi
@@ -1894,21 +1887,16 @@ if test $ol_with_ldbm_api = auto \
 	fi
 fi
 
-if test $ol_enable_bdb = yes -a $ol_link_ldbm != berkeley ; then
-	AC_MSG_ERROR(BDB: BerkeleyDB not available)
-elif test $ol_enable_bdb != no -a $ol_link_ldbm = berkeley ; then
-	OL_BDB_COMPAT
-
-	if test $ol_cv_bdb_compat = yes ; then
-		ol_enable_bdb=yes
-	elif test $ol_enable_bdb = yes ; then
-		AC_MSG_ERROR([BDB: BerkeleyDB version incompatible])
+if test $ol_enable_bdb != no -o $ol_enable_hdb != no; then
+	if test $ol_link_ldbm != berkeley ; then
+		AC_MSG_ERROR(BDB/HDB: BerkeleyDB not available)
 	else
-		ol_enable_bdb=no
+		OL_BDB_COMPAT
+
+		if test $ol_cv_bdb_compat != yes ; then
+			AC_MSG_ERROR([BDB/HDB: BerkeleyDB version incompatible])
+		fi
 	fi
-fi
-if test $ol_enable_hdb = yes -a $ol_link_ldbm != berkeley ; then
-	AC_MSG_ERROR([HDB: BerkeleyDB not available])
 fi
 
 if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then
