@@ -101,9 +101,8 @@ parse_oc(
 	LDAPObjectClass *oc;
 	int		code;
 	const char	*err;
-	char		*oid = NULL;
 
-	oc = ldap_str2objectclass(line,&code,&err,LDAP_SCHEMA_ALLOW_ALL);
+	oc = ldap_str2objectclass(line, &code, &err, LDAP_SCHEMA_ALLOW_ALL );
 	if ( !oc ) {
 		fprintf( stderr, "%s: line %d: %s before %s\n",
 			 fname, lineno, ldap_scherr2str(code), err );
@@ -117,21 +116,6 @@ parse_oc(
 			fname, lineno );
 		oc_usage();
 		return 1;
-	}
-
-	if ( !OID_LEADCHAR( oc->oc_oid[0] )) {
-		/* Expand OID macros */
-		oid = oidm_find( oc->oc_oid );
-		if ( !oid ) {
-			fprintf( stderr,
-				"%s: line %d: OID %s not recognized\n",
-				fname, lineno, oc->oc_oid);
-			return 1;
-		}
-		if ( oid != oc->oc_oid ) {
-			ldap_memfree( oc->oc_oid );
-			oc->oc_oid = oid;
-		}
 	}
 
 	code = oc_add(oc,&err);

@@ -389,6 +389,19 @@ oc_add(
 		}
 	}
 
+	if ( !OID_LEADCHAR( oc->oc_oid[0] )) {
+		/* Expand OID macros */
+		char *oid = oidm_find( oc->oc_oid );
+		if ( !oid ) {
+			*err = oc->oc_oid;
+			return SLAP_SCHERR_OIDM;
+		}
+		if ( oid != oc->oc_oid ) {
+			ldap_memfree( oc->oc_oid );
+			oc->oc_oid = oid;
+		}
+	}
+
 	soc = (ObjectClass *) ch_calloc( 1, sizeof(ObjectClass) );
 	AC_MEMCPY( &soc->soc_oclass, oc, sizeof(LDAPObjectClass) );
 
