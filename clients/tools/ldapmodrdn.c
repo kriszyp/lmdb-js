@@ -35,20 +35,29 @@ main(int argc, char **argv)
     char		*usage = "usage: %s [-nvkc] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile | dn newrdn ]\n";
     char		*myname,*infile, *entrydn, *rdn, buf[ 4096 ];
     FILE		*fp;
-    int			rc, i, kerberos, remove, havedn, authmethod;
+    int			rc, i, remove, havedn, authmethod;
 
     infile = NULL;
-    kerberos = not = contoper = verbose = remove = 0;
+    not = contoper = verbose = remove = 0;
+    authmethod = LDAP_AUTH_SIMPLE;
 
     myname = (myname = strrchr(argv[0], '/')) == NULL ? argv[0] : ++myname;
 
     while (( i = getopt( argc, argv, "kKcnvrh:p:D:w:d:f:" )) != EOF ) {
 	switch( i ) {
 	case 'k':	/* kerberos bind */
-	    kerberos = 2;
+#ifdef HAVE_KERBEROS
+		authmethod = LDAP_AUTH_KRBV4;
+#else
+		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+#endif
 	    break;
 	case 'K':	/* kerberos bind, part one only */
-	    kerberos = 1;
+#ifdef HAVE_KERBEROS
+		authmethod = LDAP_AUTH_KRBV41;
+#else
+		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+#endif
 	    break;
 	case 'c':	/* continuous operation mode */
 	    ++contoper;
@@ -124,13 +133,6 @@ main(int argc, char **argv)
 	/* this seems prudent */
 	ldap_set_option( ld, LDAP_OPT_DEREF, LDAP_DEREF_NEVER);
 
-    if ( !kerberos ) {
-	authmethod = LDAP_AUTH_SIMPLE;
-    } else if ( kerberos == 1 ) {
-	authmethod = LDAP_AUTH_KRBV41;
-    } else {
-	authmethod = LDAP_AUTH_KRBV4;
-    }
     if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	ldap_perror( ld, "ldap_bind" );
 	exit( 1 );

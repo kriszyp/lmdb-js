@@ -33,18 +33,27 @@ main( int argc, char **argv )
     char		*usage = "usage: %s [-n] [-v] [-k] [-d debug-level] [-f file] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [dn]...\n";
     char		buf[ 4096 ];
     FILE		*fp;
-    int			i, rc, kerberos, authmethod;
+    int			i, rc, authmethod;
 
-    kerberos = not = verbose = contoper = 0;
+    not = verbose = contoper = 0;
     fp = NULL;
+    authmethod = LDAP_AUTH_SIMPLE;
 
     while (( i = getopt( argc, argv, "nvkKch:p:D:w:d:f:" )) != EOF ) {
 	switch( i ) {
 	case 'k':	/* kerberos bind */
-	    kerberos = 2;
+#ifdef HAVE_KERBEROS
+		authmethod = LDAP_AUTH_KRBV4;
+#else
+		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+#endif
 	    break;
 	case 'K':	/* kerberos bind, part one only */
-	    kerberos = 1;
+#ifdef HAVE_KERBEROS
+		authmethod = LDAP_AUTH_KRBV41;
+#else
+		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+#endif
 	    break;
 	case 'c':	/* continuous operation mode */
 	    ++contoper;
@@ -103,13 +112,6 @@ main( int argc, char **argv )
 		ldap_set_option( ld, LDAP_OPT_DEREF, &deref );
 	}
 
-    if ( !kerberos ) {
-	authmethod = LDAP_AUTH_SIMPLE;
-    } else if ( kerberos == 1 ) {
-	authmethod = LDAP_AUTH_KRBV41;
-    } else {
-	authmethod = LDAP_AUTH_KRBV4;
-    }
     if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	ldap_perror( ld, "ldap_bind" );
 	exit( 1 );
