@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2001, The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2002, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: A Quick-Start Guide
@@ -8,14 +8,14 @@ The following is a quick start guide to OpenLDAP 2.1 software,
 including the stand-alone LDAP daemon, {{slapd}}(8).
 
 It is meant to walk you through the basic steps needed to install
-and configure OpenLDAP software. It should be used in conjunction
-with the other chapters of this document, manual pages, and
-other materials provided with the distribution (e.g. the {{F:INSTALL}}
-document) or on the OpenLDAP web site (in particular, the
-OpenLDAP Software {{TERM:FAQ}}).
+and configure OpenLDAP Software. It should be used in conjunction
+with the other chapters of this document, manual pages, and other
+materials provided with the distribution (e.g. the {{F:INSTALL}}
+document) or on the OpenLDAP web site (in particular, the OpenLDAP
+Software {{TERM:FAQ}}).
 
-If you intend to run OpenLDAP seriously, you should review all
-of this document before attempting to install the software.
+If you intend to run OpenLDAP Software seriously, you should review
+all of this document before attempting to install the software.
 
 Note: This quick start guide does not use strong authentication
 nor any integrity or confidential protection services.  These
@@ -27,16 +27,15 @@ Guide.
 ^{{B: Get the software}}
 
 . You can obtain a copy of the software by following the
-instructions on the OpenLDAP download
-page ({{URL: http://www.openldap.org/software/download/}}).
-It is recommended that new users start with the (latest)
-{{release}}.
+instructions on the OpenLDAP download page
+({{URL: http://www.openldap.org/software/download/}}).  It is
+recommended that new users start with the latest {{release}}.
 
 
 .{{S: }}
 +{{B: Unpack the distribution}}
 
-.Pick a directory for the LDAP source to live under, change
+.Pick a directory for the source to live under, change
 directory to there, and unpack the distribution using the
 following commands:
 

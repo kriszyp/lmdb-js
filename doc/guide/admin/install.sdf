@@ -1,15 +1,16 @@
 # $OpenLDAP$
-# Copyright 1999-2000, The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2002, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Building and Installing OpenLDAP Software
 
 This chapter details how to build and install the {{ORG:OpenLDAP}}
-Software package including {{slapd}}(8), the stand-alone LDAP
-daemon and {{slurpd}}(8), the stand-alone update replication daemon.
-Building and installing OpenLDAP requires several steps: installing
-prerequisite software, configuring OpenLDAP itself, making, and finally
-installing.  The following sections describe this process in detail.
+Software package including {{slapd}}(8), the stand-alone LDAP daemon
+and {{slurpd}}(8), the stand-alone update replication daemon.
+Building and installing OpenLDAP Software requires several steps:
+installing prerequisite software, configuring OpenLDAP Software
+itself, making, and finally installing.  The following sections
+describe this process in detail.
 
 
 H2: Obtaining and Extracting the Software
@@ -20,19 +21,19 @@ directly from the project's {{TERM:FTP}} service at
 {{URL: ftp://ftp.openldap.org/pub/OpenLDAP/}}.
 
 The project makes available two series of packages for {{general
-use}}.  The project makes {{releases}} as new features and bug
-fixes come available.  Though the project takes steps to improve
-stablity of these releases, it is common for problems to arise
-only after {{release}}.  The {{Stable}} release is the latest
-{{release}} which has demonstrated stability through general use.
+use}}.  The project makes {{releases}} as new features and bug fixes
+come available.  Though the project takes steps to improve stablity
+of these releases, it is common for problems to arise only after
+{{release}}.  The {{stable}} release is the latest {{release}} which
+has demonstrated stability through general use.
 
 Users of OpenLDAP Software can choose, depending on their desire
-for the {{latest features}} versus {{demonstrated stability}},
-the most appropriate series to install.
+for the {{latest features}} versus {{demonstrated stability}}, the
+most appropriate series to install.
 
 After downloading OpenLDAP Software, you need to extract the
-distribution from the compressed archive file and change your
-working directory to the top directory of the distribution:
+distribution from the compressed archive file and change your working
+directory to the top directory of the distribution:
 
 .{{EX:gunzip -c openldap-VERSION.tgz | tar xf -}}
 .{{EX:cd openldap-VERSION}}
@@ -40,13 +41,12 @@ working directory to the top directory of the distribution:
 You'll have to replace {{EX:VERSION}} with the version name of
 the release.
 
-You should now review the {{F:COPYRIGHT}}, {{F:LICENSE}},
-{{F:README}} and {{F:INSTALL}} documents provided with the
-distribution.  The {{F:COPYRIGHT}} and {{F:LICENSE}} provide
-information on acceptable use, copying, and limitation of warranty
-of OpenLDAP software. The {{F:README}} and {{F:INSTALL}} documents
-provide detailed information on prerequisite software and
-installation procedures.
+You should now review the {{F:COPYRIGHT}}, {{F:LICENSE}}, {{F:README}}
+and {{F:INSTALL}} documents provided with the distribution.  The
+{{F:COPYRIGHT}} and {{F:LICENSE}} provide information on acceptable
+use, copying, and limitation of warranty of OpenLDAP Software. The
+{{F:README}} and {{F:INSTALL}} documents provide detailed information
+on prerequisite software and installation procedures.
 
 
 H2: Prerequisite software
@@ -71,7 +71,7 @@ requires separate installation.
 
 OpenSSL is available from {{URL: http://www.openssl.org/}}.
 
-OpenLDAP will not be fully LDAPv3 compliant unless OpenLDAP's
+OpenLDAP Software will not be fully LDAPv3 compliant unless OpenLDAP's
 {{EX:configure}} detects a usable OpenSSL installation.
 
 
@@ -105,7 +105,7 @@ Cyrus SASL is available from
 Cyrus SASL will make use of OpenSSL and Kerberos/GSSAPI libraries
 if preinstalled.
 
-OpenLDAP will not be fully LDAPv3 compliant unless OpenLDAP's
+OpenLDAP Software will not be fully LDAPv3 compliant unless OpenLDAP's
 configure detects a usable Cyrus SASL installation.
 
 
@@ -123,13 +123,13 @@ you'll have to obtain and install it yourself.
 {{PRD:Berkeley DB}} is available from {{ORG[expand]Sleepycat}}'s
 download page {{URL: http://www.sleepycat.com/download.html}}.
 There are several versions available.  At the time of this writing,
-the latest release, version 4.0, is recommended. This package
-is required if you wish to use the {{TERM:BDB}} database backend.
+the latest release, version 4.1, is recommended. This package is
+required if you wish to use the {{TERM:BDB}} database backend.
 
 OpenLDAP's {{slapd}}(8) LDBM backend supports a variety of data
-base managers including {{PRD:Berkeley DB}} and {{PRD:GDBM}}.  {{PRD:GDBM}}
-is available from {{ORG:FSF}}'s download site
-{{URL: ftp://ftp.gnu.org/pub/gnu/gdbm/}}.
+base managers including {{PRD:Berkeley DB}} and {{PRD:GDBM}}.
+{{PRD:GDBM}} is available from {{ORG:FSF}}'s download site {{URL:
+ftp://ftp.gnu.org/pub/gnu/gdbm/}}.
 
 
 H3: Threads
@@ -240,17 +240,19 @@ by your configuration.
 
 H2: Installing the Software
 
-Once you have successfully tested the software, you are ready to install it.
-You will need to have write permission
-to the installation directories you specified when you ran configure.
-By default OpenLDAP is installed in {{F:/usr/local}}.  If you changed this
-setting with the {{EX:--prefix}} configure option, it will be installed
-in the location you provided.
+Once you have successfully tested the software, you are ready to
+install it.  You will need to have write permission to the installation
+directories you specified when you ran configure.  By default
+OpenLDAP Software is installed in {{F:/usr/local}}.  If you changed
+this setting with the {{EX:--prefix}} configure option, it will be
+installed in the location you provided.
 
 Typically, the installation requires {{super-user}} privileges.
 From the top level OpenLDAP source directory, type:
 
 >	su root -c 'make install'
+
+and enter the appropriate password when requested.
 
 You should examine the output of this command carefully to make sure
 everything is installed correctly. You will find the configuration files
