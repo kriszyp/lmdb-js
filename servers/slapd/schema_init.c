@@ -70,6 +70,8 @@ blobValidate(
 	return LDAP_SUCCESS;
 }
 
+#define berValidate blobValidate
+
 static int
 octetStringMatch(
 	int *matchp,
@@ -79,12 +81,11 @@ octetStringMatch(
 	struct berval *value,
 	void *assertedValue )
 {
-	int match = value->bv_len - ((struct berval *) assertedValue)->bv_len;
+	struct berval *asserted = (struct berval *) assertedValue;
+	int match = value->bv_len - asserted->bv_len;
 
 	if( match == 0 ) {
-		match = memcmp( value->bv_val,
-			((struct berval *) assertedValue)->bv_val,
-			value->bv_len );
+		match = memcmp( value->bv_val, asserted->bv_val, value->bv_len );
 	}
 
 	*matchp = match;
@@ -100,11 +101,11 @@ octetStringOrderingMatch(
 	struct berval *value,
 	void *assertedValue )
 {
+	struct berval *asserted = (struct berval *) assertedValue;
 	ber_len_t v_len  = value->bv_len;
-	ber_len_t av_len = ((struct berval *) assertedValue)->bv_len;
+	ber_len_t av_len = asserted->bv_len;
 
-	int match = memcmp( value->bv_val,
-		((struct berval *) assertedValue)->bv_val,
+	int match = memcmp( value->bv_val, asserted->bv_val,
 		(v_len < av_len ? v_len : av_len) );
 
 	if( match == 0 ) match = v_len - av_len;
@@ -126,8 +127,8 @@ int octetStringIndexer(
 	int i;
 	size_t slen, mlen;
 	BerVarray keys;
-	HASH_CONTEXT   HASHcontext;
-	unsigned char	HASHdigest[HASH_BYTES];
+	HASH_CONTEXT HASHcontext;
+	unsigned char HASHdigest[HASH_BYTES];
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
@@ -181,8 +182,8 @@ int octetStringFilter(
 {
 	size_t slen, mlen;
 	BerVarray keys;
-	HASH_CONTEXT   HASHcontext;
-	unsigned char	HASHdigest[HASH_BYTES];
+	HASH_CONTEXT HASHcontext;
+	unsigned char HASHdigest[HASH_BYTES];
 	struct berval *value = (struct berval *) assertedValue;
 	struct berval digest;
 	digest.bv_val = HASHdigest;
@@ -216,7 +217,7 @@ int octetStringFilter(
 }
 
 static int
-octetStringSubstringsMatch (
+octetStringSubstringsMatch(
 	int *matchp,
 	slap_mask_t flags,
 	Syntax *syntax,
@@ -228,7 +229,7 @@ octetStringSubstringsMatch (
 	SubstringsAssertion *sub = assertedValue;
 	struct berval left = *value;
 	int i;
-	ber_len_t inlen=0;
+	ber_len_t inlen = 0;
 
 	/* Add up asserted input length */
 	if( sub->sa_initial.bv_val ) {
@@ -341,7 +342,7 @@ done:
 
 /* Substrings Index generation function */
 static int
-octetStringSubstringsIndexer (
+octetStringSubstringsIndexer(
 	slap_mask_t use,
 	slap_mask_t flags,
 	Syntax *syntax,
@@ -354,8 +355,8 @@ octetStringSubstringsIndexer (
 	size_t slen, mlen;
 	BerVarray keys;
 
-	HASH_CONTEXT   HASHcontext;
-	unsigned char	HASHdigest[HASH_BYTES];
+	HASH_CONTEXT HASHcontext;
+	unsigned char HASHdigest[HASH_BYTES];
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
@@ -371,15 +372,15 @@ octetStringSubstringsIndexer (
 		if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
 			if( values[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
 				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
-					( SLAP_INDEX_SUBSTR_MINLEN - 1);
+					(SLAP_INDEX_SUBSTR_MINLEN - 1);
 			} else {
-				nkeys += values[i].bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+				nkeys += values[i].bv_len - (SLAP_INDEX_SUBSTR_MINLEN - 1);
 			}
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_ANY ) {
 			if( values[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
-				nkeys += values[i].bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
+				nkeys += values[i].bv_len - (SLAP_INDEX_SUBSTR_MAXLEN - 1);
 			}
 		}
 
@@ -388,7 +389,7 @@ octetStringSubstringsIndexer (
 				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
 					( SLAP_INDEX_SUBSTR_MINLEN - 1);
 			} else {
-				nkeys += values[i].bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+				nkeys += values[i].bv_len - (SLAP_INDEX_SUBSTR_MINLEN - 1);
 			}
 		}
 	}
@@ -414,7 +415,7 @@ octetStringSubstringsIndexer (
 			( values[i].bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
 		{
 			char pre = SLAP_INDEX_SUBSTR_PREFIX;
-			max = values[i].bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1);
+			max = values[i].bv_len - (SLAP_INDEX_SUBSTR_MAXLEN - 1);
 
 			for( j=0; j<max; j++ ) {
 				HASH_Init( &HASHcontext );
@@ -515,8 +516,8 @@ octetStringSubstringsFilter (
 	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
 	BerVarray keys;
-	HASH_CONTEXT   HASHcontext;
-	unsigned char	HASHdigest[HASH_BYTES];
+	HASH_CONTEXT HASHcontext;
+	unsigned char HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
 
@@ -619,7 +620,6 @@ octetStringSubstringsFilter (
 
 				ber_dupbv( &keys[nkeys++], &digest );
 			}
-
 		}
 	}
 
@@ -676,9 +676,9 @@ bitStringValidate(
 	}
 
 	/*
-	 * rfc 2252 section 6.3 Bit String
-	 * bitstring = "'" *binary-digit "'"
-	 * binary-digit = "0" / "1"
+	 * RFC 2252 section 6.3 Bit String
+	 *	bitstring = "'" *binary-digit "'B"
+	 *	binary-digit = "0" / "1"
 	 * example: '0101111101'B
 	 */
 	
@@ -718,7 +718,7 @@ nameUIDValidate(
 		ber_len_t i;
 
 		for(i=dn.bv_len-3; i>1; i--) {
-			if( dn.bv_val[i] != '0' &&	dn.bv_val[i] != '1' ) {
+			if( dn.bv_val[i] != '0' && dn.bv_val[i] != '1' ) {
 				break;
 			}
 		}
@@ -852,11 +852,11 @@ Summary:
   DirectoryString	CHOICE	UTF8	i/e + ignore insignificant spaces
   PrintableString	subset	subset	i/e + ignore insignificant spaces
   PrintableString	subset	subset	i/e + ignore insignificant spaces
-  NumericString		subset	subset  ignore all spaces
+  NumericString		subset	subset	ignore all spaces
   IA5String			ASCII	ASCII	i/e + ignore insignificant spaces
   TeletexString		T.61	T.61	i/e + ignore insignificant spaces
 
-  TelephoneNumber subset  subset  i + ignore all spaces and "-"
+  TelephoneNumber	subset	subset	i + ignore all spaces and "-"
 
   See draft-ietf-ldapbis-strpro for details (once published).
 
@@ -1502,10 +1502,9 @@ integerMatch(
 	match = vsign - avsign;
 	if( match == 0 ) {
 		match = (vlen != avlen
-			     ? ( vlen < avlen ? -1 : 1 )
-			     : memcmp( v, av, vlen ));
-		if( vsign < 0 )
-			match = -match;
+			? ( vlen < avlen ? -1 : 1 )
+			: memcmp( v, av, vlen ));
+		if( vsign < 0 ) match = -match;
 	}
 
 	*matchp = match;
@@ -1546,7 +1545,6 @@ integerNormalize(
 	char *p;
 	int negative=0;
 	ber_len_t len;
-
 
 	p = val->bv_val;
 	len = val->bv_len;
@@ -2094,8 +2092,7 @@ static int
 serial_and_issuer_parse(
 	struct berval *assertion,
 	struct berval *serial,
-	struct berval *issuer_dn
-)
+	struct berval *issuer_dn )
 {
 	char *begin;
 	char *end;
@@ -2516,7 +2513,6 @@ utcTimeValidate(
 	struct berval *in )
 {
 	int parts[9];
-
 	return check_time_syntax(in, 1, parts);
 }
 #endif
@@ -2527,7 +2523,6 @@ generalizedTimeValidate(
 	struct berval *in )
 {
 	int parts[9];
-
 	return check_time_syntax(in, 0, parts);
 }
 
@@ -2665,7 +2660,6 @@ static slap_syntax_defs_rec syntax_defs[] = {
 		SLAP_SYNTAX_BLOB, blobValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.5 DESC 'Binary' "
 		X_NOT_H_R ")",
-#define berValidate blobValidate
 		SLAP_SYNTAX_BER, berValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )",
 		0, bitStringValidate, NULL },
@@ -3152,7 +3146,7 @@ int
 slap_schema_init( void )
 {
 	int		res;
-	int		i = 0;
+	int		i;
 
 	/* we should only be called once (from main) */
 	assert( schema_init_done == 0 );
@@ -3195,7 +3189,6 @@ slap_schema_init( void )
 void
 schema_destroy( void )
 {
-	int i;
 	oidm_destroy();
 	oc_destroy();
 	at_destroy();
