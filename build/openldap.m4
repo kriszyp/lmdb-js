@@ -315,9 +315,20 @@ AC_DEFUN([OL_BERKELEY_DB_THREAD],
 main()
 {
 	int rc;
-	DB_ENV env;
 	u_int32_t flags = DB_CREATE | DB_THREAD;
 
+
+#if DB_VERSION_MAJOR > 2
+	DB_ENV *env = NULL;
+
+	rc = db_env_create( &env, 0 );
+
+	if( rc == 0 ) {
+		rc = env->open( env, NULL, NULL, flags, 0 );
+	}
+
+#else
+	DB_ENV env;
 	memset( &env, '\0', sizeof(env) );
 
 	rc = db_appinit( NULL, NULL, &env, flags );
@@ -325,6 +336,7 @@ main()
 	if( rc == 0 ) {
 		db_appexit( &env );
 	}
+#endif
 
 	return rc;
 }],
