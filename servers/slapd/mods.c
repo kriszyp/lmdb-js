@@ -119,10 +119,15 @@ modify_check_duplicates(
 					mr, &nmods[ i ], &nvals[ j ] );
 				if ( rc != LDAP_SUCCESS ) {
 					nmods[ i + 1 ].bv_val = NULL;
+					*text = textbuf;
+					snprintf( textbuf, textlen,
+						"%s: matching rule failed",
+						ad->ad_cname.bv_val );
 					goto return_results;
 				}
 	
 				if ( match == 0 ) {
+					*text = textbuf;
 					snprintf( textbuf, textlen,
 						"%s: value #%d provided more than once",
 						ad->ad_cname.bv_val, i );
@@ -142,10 +147,15 @@ modify_check_duplicates(
 				mr, &nmods[ i ], &nmods[ j ] );
 			if ( rc != LDAP_SUCCESS ) {
 				nmods[ i + 1 ].bv_val = NULL;
+				*text = textbuf;
+				snprintf( textbuf, textlen,
+					"%s: matching rule failed",
+					ad->ad_cname.bv_val );
 				goto return_results;
 			}
 
 			if ( match == 0 ) {
+				*text = textbuf;
 				snprintf( textbuf, textlen,
 					"%s: value #%d provided more than once",
 					ad->ad_cname.bv_val, j );
@@ -183,10 +193,15 @@ modify_check_duplicates(
 					ad->ad_type->sat_syntax,
 					mr, &nmods[ i ], &asserted );
 				if ( rc != LDAP_SUCCESS ) {
+					*text = textbuf;
+					snprintf( textbuf, textlen,
+						"%s: matching rule failed",
+						ad->ad_cname.bv_val );
 					goto return_results;
 				}
 
 				if ( match == 0 ) {
+					*text = textbuf;
 					snprintf( textbuf, textlen,
 						"%s: value #%d provided more than once",
 						ad->ad_cname.bv_val, j );
@@ -331,6 +346,10 @@ modify_add_values(
 
 					if( rc == LDAP_SUCCESS && match == 0 ) {
 						free( asserted.bv_val );
+						*text = textbuf;
+						snprintf( textbuf, textlen,
+							"modify/%s: %s: value #0 already exists",
+							op, mod->sm_desc->ad_cname.bv_val, 0 );
 						return LDAP_TYPE_OR_VALUE_EXISTS;
 					}
 				}
@@ -451,6 +470,10 @@ modify_delete_values(
 
 			if ( rc != LDAP_SUCCESS ) {
 				free( asserted.bv_val );
+				*text = textbuf;
+				snprintf( textbuf, textlen,
+					"%s: matching rule failed",
+					mod->sm_desc->ad_cname.bv_val );
 				goto return_results;
 			}
 
