@@ -243,42 +243,36 @@ matching rules (OpenLDAP supports these and many more).
 	title="Table 8.3: Commonly Used Syntaxes"
 Name			OID				Description
 boolean			1.3.6.1.4.1.1466.115.121.1.7	boolean value
-distinguishedName	1.3.6.1.4.1.1466.115.121.1.12	DN
-directoryString		1.3.6.1.4.1.1466.115.121.1.15	UTF-8 string
-IA5String		1.3.6.1.4.1.1466.115.121.1.26	ASCII string
-Integer			1.3.6.1.4.1.1466.115.121.1.27	integer
-Name and Optional UID	1.3.6.1.4.1.1466.115.121.1.34	DN plus UID
-Numeric String		1.3.6.1.4.1.1466.115.121.1.36	numeric string
+directoryString		1.3.6.1.4.1.1466.115.121.1.15	Unicode (UTF-8) string
+distinguishedName	1.3.6.1.4.1.1466.115.121.1.12	LDAP DN
+integer			1.3.6.1.4.1.1466.115.121.1.27	integer
+numericString		1.3.6.1.4.1.1466.115.121.1.36	numeric string
 OID			1.3.6.1.4.1.1466.115.121.1.38	object identifier
-Octet String		1.3.6.1.4.1.1466.115.121.1.40	arbitary octets
-Printable String	1.3.6.1.4.1.1466.115.121.1.44	printable string
+octetString		1.3.6.1.4.1.1466.115.121.1.40	arbitary octets
 !endblock
 
 > 
 
 !block table; align=Center; coltags="EX,N"; \
 	title="Table 8.4: Commonly Used Matching Rules"
-Name				Type		Description
-booleanMatch			equality	boolean
-octetStringMatch		equality	octet string
-objectIdentiferMatch		equality	OID
-distinguishedNameMatch		equality	DN
-uniqueMemberMatch		equality	Name with optional UID
-numericStringMatch		equality	numerical
-numericStringOrderingMatch	ordering	numerical
-numericStringSubstringsMatch	substrings	numerical
-caseIgnoreMatch			equality	case insensitive, space insensitive
-caseIgnoreOrderingMatch		ordering	case insensitive, space insensitive
-caseIgnoreSubstringsMatch	substrings	case insensitive, space insensitive
-caseExactMatch			equality	case sensitive, space insensitive
-caseExactOrderingMatch		ordering	case sensitive, space insensitive
-caseExactSubstringsMatch	substrings	case sensitive, space insensitive
-caseIgnoreIA5Match		equality	case insensitive, space insensitive
-caseIgnoreIA5OrderingMatch	ordering	case insensitive, space insensitive
-caseIgnoreIA5SubstringsMatch	substrings	case insensitive, space insensitive
-caseExactIA5Match		equality	case sensitive, space insensitive
-caseExactIA5OrderingMatch	ordering	case sensitive, space insensitive
-caseExactIA5SubstringsMatch	substrings	case sensitive, space insensitive
+Name					Type		Description
+booleanMatch				equality	boolean
+caseIgnoreMatch				equality	case insensitive, space insensitive
+caseIgnoreOrderingMatch			ordering	case insensitive, space insensitive
+caseIgnoreSubstringsMatch		substrings	case insensitive, space insensitive
+caseExactMatch				equality	case sensitive, space insensitive
+caseExactOrderingMatch			ordering	case sensitive, space insensitive
+caseExactSubstringsMatch		substrings	case sensitive, space insensitive
+distinguishedNameMatch			equality	distinguished name
+integerMatch				equality	integer
+integerOrderingMatch			ordering	integer
+numericStringMatch			equality	numerical
+numericStringOrderingMatch		ordering	numerical
+numericStringSubstringsMatch		substrings	numerical
+octetStringMatch			equality	octet string
+octetStringOrderingStringMatch		ordering	octet string
+octetStringSubstringsStringMatch	ordering	octet string
+objectIdentiferMatch			equality	object identifier
 !endblock
 
 The second attribute, {{EX:cn}}, is a subtype of {{EX:name}} hence
