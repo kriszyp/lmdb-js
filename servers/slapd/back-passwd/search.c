@@ -33,7 +33,7 @@ passwd_back_search(
     int		slimit,
     int		tlimit,
     Filter	*filter,
-    const char	*filterstr,
+    struct berval	*filterstr,
     AttributeName	*attrs,
     int		attrsonly
 )
@@ -69,10 +69,9 @@ passwd_back_search(
 
 	/* Handle a query for the base of this backend */
 	if ( be_issuffix( be,  nbase->bv_val ) ) {
-		struct berval	val, *vals[2];
+		struct berval	vals[2];
 
-		vals[0] = &val;
-		vals[1] = NULL;
+		vals[1].bv_val = NULL;
 
 		matched = (char *) base;
 
@@ -103,7 +102,7 @@ passwd_back_search(
 				goto done;
 			}
 
-			val = rdn[0][0]->la_value;
+			vals[0] = rdn[0][0]->la_value;
 			attr_merge( e, desc, vals );
 
 			ldap_rdnfree(rdn);
@@ -116,8 +115,8 @@ passwd_back_search(
 			 *
 			 * should be a configuratable item
 			 */
-			val.bv_val = "organizationalUnit";
-			val.bv_len = sizeof("organizationalUnit")-1;
+			vals[0].bv_val = "organizationalUnit";
+			vals[0].bv_len = sizeof("organizationalUnit")-1;
 			attr_merge( e, ad_objectClass, vals );
 	
 			if ( test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE ) {
@@ -235,8 +234,7 @@ pw2entry( Backend *be, struct passwd *pw, const char **text )
 {
 	size_t pwlen;
 	Entry		*e;
-	struct berval	val;
-	struct berval	*vals[2];
+	struct berval	vals[2];
 	struct berval	bv;
 
 	int rc;
@@ -262,43 +260,42 @@ pw2entry( Backend *be, struct passwd *pw, const char **text )
 	 */
 
 	pwlen = strlen( pw->pw_name );
-	val.bv_len = (sizeof("uid=,")-1) + ( pwlen + be->be_suffix[0]->bv_len );
-	val.bv_val = ch_malloc( val.bv_len + 1 );
+	vals[0].bv_len = (sizeof("uid=,")-1) + ( pwlen + be->be_suffix[0]->bv_len );
+	vals[0].bv_val = ch_malloc( vals[0].bv_len + 1 );
 
 	/* rdn attribute type should be a configuratable item */
-	sprintf( val.bv_val, "uid=%s,%s",
+	sprintf( vals[0].bv_val, "uid=%s,%s",
 		pw->pw_name, be->be_suffix[0]->bv_val );
 
-	rc = dnNormalize2( NULL, &val, &bv );
+	rc = dnNormalize2( NULL, vals, &bv );
 	if( rc != LDAP_SUCCESS ) {
-		free( val.bv_val );
+		free( vals[0].bv_val );
 		return NULL;
 	}
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
-	e->e_name = val;
+	e->e_name = vals[0];
 	e->e_nname = bv;
 
 	e->e_attrs = NULL;
 
-	vals[0] = &val;
-	vals[1] = NULL;
+	vals[1].bv_val = NULL;
 
 	/* objectclasses should be configurable items */
-	val.bv_val = "top";
-	val.bv_len = sizeof("top")-1;
+	vals[0].bv_val = "top";
+	vals[0].bv_len = sizeof("top")-1;
 	attr_merge( e, ad_objectClass, vals );
 
-	val.bv_val = "person";
-	val.bv_len = sizeof("person")-1;
+	vals[0].bv_val = "person";
+	vals[0].bv_len = sizeof("person")-1;
 	attr_merge( e, ad_objectClass, vals );
 
-	val.bv_val = "uidObject";
-	val.bv_len = sizeof("uidObject")-1;
+	vals[0].bv_val = "uidObject";
+	vals[0].bv_len = sizeof("uidObject")-1;
 	attr_merge( e, ad_objectClass, vals );
 
-	val.bv_val = pw->pw_name;
-	val.bv_len = pwlen;
+	vals[0].bv_val = pw->pw_name;
+	vals[0].bv_len = pwlen;
 	attr_merge( e, ad_uid, vals );	/* required by uidObject */
 	attr_merge( e, ad_cn, vals );	/* required by person */
 	attr_merge( e, ad_sn, vals );	/* required by person */
@@ -312,30 +309,30 @@ pw2entry( Backend *be, struct passwd *pw, const char **text )
 	if (pw->pw_gecos[0]) {
 		char *s;
 
-		val.bv_val = pw->pw_gecos;
-		val.bv_len = strlen(val.bv_val);
+		vals[0].bv_val = pw->pw_gecos;
+		vals[0].bv_len = strlen(vals[0].bv_val);
 		attr_merge(e, ad_description, vals);
 
-		s = strchr(val.bv_val, ',');
+		s = strchr(vals[0].bv_val, ',');
 		if (s) *s = '\0';
 
-		s = strchr(val.bv_val, '&');
+		s = strchr(vals[0].bv_val, '&');
 		if (s) {
 			char buf[256];
-			int i = s - val.bv_val;
-			strncpy(buf, val.bv_val, i);
+			int i = s - vals[0].bv_val;
+			strncpy(buf, vals[0].bv_val, i);
 			s = buf+i;
 			strcpy(s, pw->pw_name);
 			*s = TOUPPER(*s);
-			strcat(s, val.bv_val+i+1);
-			val.bv_val = buf;
+			strcat(s, vals[0].bv_val+i+1);
+			vals[0].bv_val = buf;
 		}
-		val.bv_len = strlen(val.bv_val);
-		if ( strcmp( val.bv_val, pw->pw_name ))
+		vals[0].bv_len = strlen(vals[0].bv_val);
+		if ( strcmp( vals[0].bv_val, pw->pw_name ))
 			attr_merge( e, ad_cn, vals );
-		if ( (s=strrchr(val.bv_val, ' '))) {
-			val.bv_val = s + 1;
-			val.bv_len = strlen(val.bv_val);
+		if ( (s=strrchr(vals[0].bv_val, ' '))) {
+			vals[0].bv_val = s + 1;
+			vals[0].bv_len = strlen(vals[0].bv_val);
 			attr_merge(e, ad_sn, vals);
 		}
 	}

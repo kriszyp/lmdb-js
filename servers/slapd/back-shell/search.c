@@ -27,7 +27,7 @@ shell_back_search(
     int		size,
     int		time,
     Filter	*filter,
-    const char	*filterstr,
+    struct berval	*filterstr,
     AttributeName	*attrs,
     int		attrsonly
 )

@@ -68,9 +68,9 @@ shell_back_modify(
 		}
 
 		if( mod->sm_bvalues != NULL ) {
-			for ( i = 0; mod->sm_bvalues[i] != NULL; i++ ) {
+			for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
 				fprintf( wfp, "%s: %s\n", mod->sm_desc->ad_cname.bv_val,
-					mod->sm_bvalues[i]->bv_val /* binary! */ );
+					mod->sm_bvalues[i].bv_val /* binary! */ );
 			}
 		}
 
