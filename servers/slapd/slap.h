@@ -178,9 +178,11 @@ struct objclass {
 
 typedef struct backend {
 	char	**be_suffix;	/* the DN suffixes of data in this backend */
+        char    **be_suffixAlias;       /* the DN suffix aliases of data in this backend */
 	char	*be_rootdn;	/* the magic "root" dn for this db   	   */
 	char	*be_rootpw;	/* the magic "root" password for this db   */
 	int	be_readonly;	/* 1 => db is in "read only" mode	   */
+        int     be_maxDerefDepth;       /* limit for depth of an alias deref  */
 	int	be_sizelimit;	/* size limit for this backend   	   */
 	int	be_timelimit;	/* time limit for this backend       	   */
 	struct acl *be_acl;	/* access control list for this backend	   */
@@ -221,6 +223,8 @@ typedef struct op {
 	unsigned long	o_tag;		/* tag of the request		  */
 	time_t		o_time;		/* time op was initiated	  */
 	char		*o_dn;		/* dn bound when op was initiated */
+        char            *o_suffix;      /* suffix if aliased              */
+        char            *o_suffixAliased;       /* pending suffix translation     */
 	int		o_authtype;	/* auth method used to bind dn	  */
 					/* values taken from ldap.h	  */
 					/* LDAP_AUTH_*			  */

@@ -19,6 +19,7 @@
 #include "slap.h"
 
 extern Backend	*select_backend();
+extern char	*suffixAlias();
 
 extern char	*default_referral;
 
@@ -154,6 +155,9 @@ do_bind(
 		}
 		return;
 	}
+
+        /* alias suffix */
+        dn = suffixAlias ( dn, op, be );
 
 	if ( be->be_bind != NULL ) {
 		if ( (*be->be_bind)( be, conn, op, dn, method, &cred ) == 0 ) {

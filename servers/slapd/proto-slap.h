@@ -210,4 +210,9 @@ int value_ncmp( struct berval *v1, struct berval *v2, int syntax, int len,
 int value_find( struct berval **vals, struct berval *v, int syntax,
 	int normalize );
 
+/*
+ * suffixAlias.c
+ */
+char *suffixAlias ( char *dn, Operation *op, Backend *be );
+
 #endif /* _proto_slap */

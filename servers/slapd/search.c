@@ -19,6 +19,7 @@
 
 extern int	get_filter();
 extern Backend	*select_backend();
+extern char	*suffixAlias();
 
 extern char	*default_referral;
 
@@ -160,6 +161,9 @@ do_search( conn, op )
 		}
 		return;
 	}
+
+        /* translate the base if it matches an aliased base part */
+        base = suffixAlias ( base, op, be );
 
 	/* actually do the search and send the result(s) */
 	if ( be->be_search != NULL ) {

@@ -27,6 +27,8 @@ extern int		global_lastmod;
 
 static void	modlist_free();
 static void	add_lastmods();
+extern char     *suffixAlias();
+
 
 void
 do_modify(
@@ -146,6 +148,9 @@ do_modify(
 		    default_referral );
 		return;
 	}
+
+        /* alias suffix if approp */
+        dn = suffixAlias ( dn, op, be );
 
 	/*
 	 * do the modify if 1 && (2 || 3)

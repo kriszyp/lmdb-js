@@ -59,6 +59,7 @@ ldbm_back_search(
 	int		rmaxsize, nrefs;
 	char		*rbuf, *rcur, *r;
 	int		nentries = 0;
+	char		*realBase;
 
 	Debug(LDAP_DEBUG_ARGS, "=> ldbm_back_search\n", 0, 0, 0);
 
@@ -76,19 +77,37 @@ ldbm_back_search(
 		    be->be_sizelimit : slimit;
 	}
 
+	/*
+	 * check and apply aliasing where the dereferencing applies to
+	 * the subordinates of the base
+	 */
+	realBase = strdup (base);
+	switch ( deref ) {
+	case LDAP_DEREF_FINDING:
+	case LDAP_DEREF_ALWAYS:
+		free (realBase);
+		realBase = derefDN ( be, conn, op, base );
+		break;
+	}
+
+	(void) dn_normalize (realBase);
+
+	Debug( LDAP_DEBUG_TRACE, "using base %s\n",
+		realBase, 0, 0 );
+
 	switch ( scope ) {
 	case LDAP_SCOPE_BASE:
-		candidates = base_candidates( be, conn, op, base, filter,
+		candidates = base_candidates( be, conn, op, realBase, filter,
 		    attrs, attrsonly, &matched, &err );
 		break;
 
 	case LDAP_SCOPE_ONELEVEL:
-		candidates = onelevel_candidates( be, conn, op, base, filter,
+		candidates = onelevel_candidates( be, conn, op, realBase, filter,
 		    attrs, attrsonly, &matched, &err );
 		break;
 
 	case LDAP_SCOPE_SUBTREE:
-		candidates = subtree_candidates( be, conn, op, base, filter,
+		candidates = subtree_candidates( be, conn, op, realBase, filter,
 		    attrs, attrsonly, &matched, NULL, &err, 1 );
 		break;
 
@@ -165,7 +184,7 @@ ldbm_back_search(
 					MAKE_SPACE( ref->a_vals[i]->bv_len + 2 );
 					*rcur++ = '\n';
 					strncpy( rcur, ref->a_vals[i]->bv_val,
-					  ref->a_vals[i]->bv_len );
+						ref->a_vals[i]->bv_len );
 					rcur = rcur + ref->a_vals[i]->bv_len;
 					*rcur = '\0';
 					nrefs++;
@@ -184,15 +203,15 @@ ldbm_back_search(
 				if ( scope == LDAP_SCOPE_ONELEVEL ) {
 					if ( (dn = dn_parent( be, e->e_dn )) != NULL ) {
 						(void) dn_normalize( dn );
-						scopeok = (dn == base) ? 1 : (! strcasecmp( dn, base ));
+						scopeok = (dn == realBase) ? 1 : (! strcasecmp( dn, realBase ));
 					} else {
-						scopeok = (base == NULL || *base == '\0');
+						scopeok = (realBase == NULL || *realBase == '\0');
 					}
 					free( dn );
 				} else if ( scope == LDAP_SCOPE_SUBTREE ) {
 					dn = strdup( e->e_dn );
 					(void) dn_normalize( dn );
-					scopeok = dn_issuffix( dn, base );
+					scopeok = dn_issuffix( dn, realBase );
 					free( dn );
 				}
 
@@ -206,6 +225,17 @@ ldbm_back_search(
 						idl_free( candidates );
 						free( rbuf );
 						return( 0 );
+					}
+
+					/*
+					 * check and apply aliasing where the dereferencing applies to
+					 * the subordinates of the base
+					 */
+					switch ( deref ) {
+					case LDAP_DEREF_SEARCHING:
+					case LDAP_DEREF_ALWAYS:
+						e = derefAlias ( be, conn, op, e );
+						break;
 					}
 
 					switch ( send_search_entry( be, conn, op, e,

@@ -2,6 +2,20 @@
 #define _PROTO_BACK_LDBM
 
 /*
+ * alias.c
+ */
+Entry *derefAlias ( Backend     *be,
+		    Connection	*conn,
+		    Operation	*op,
+		    Entry       *e
+		    );
+char *derefDN ( Backend     *be,
+                Connection  *conn,
+                Operation   *op,
+                char        *dn
+);
+
+/*
  * attr.c
  */
 
@@ -41,7 +55,6 @@ int ldbm_cache_delete( struct dbcache *db, Datum key );
 int dn2id_add( Backend *be, char *dn, ID id );
 ID dn2id( Backend *be, char *dn );
 int dn2id_delete( Backend *be, char *dn );
-/*Entry * dn2entry( Backend *be, char *dn, char **matched );*/
 Entry * dn2entry_r( Backend *be, char *dn, char **matched );
 Entry * dn2entry_w( Backend *be, char *dn, char **matched );
 
