@@ -119,7 +119,7 @@ add_replica_attrs(
 static void
 print_vals( FILE *fp, struct berval *type, struct berval *bv );
 static void
-replog1( struct slap_replica_info *ri, Operation *op, FILE *fp, void *first);
+replog1( struct slap_replica_info *ri, Operation *op, FILE *fp, long now);
 
 void
 replog( Operation *op )
@@ -189,14 +189,10 @@ replog( Operation *op )
 	}
 #endif
 
-	fprintf( fp, "time: %ld\n", now );
-	fprintf( fp, "dn: %s\n", op->o_req_dn.bv_val );
-
-	replog1( NULL, op, fp, NULL );
+	replog1( NULL, op, fp, now );
 
 	if ( subsets > 0 ) {
-		void *first;
-		for ( i = subsets - 1; op->o_bd->be_replica != NULL && op->o_bd->be_replica[i] != NULL; i++ ) {
+		for ( i = subsets - 1; op->o_bd->be_replica[i] != NULL; i++ ) {
 
 			/* If no attrs, we already did this above */
 			if ( op->o_bd->be_replica[i]->ri_attrs == NULL ) {
@@ -214,63 +210,23 @@ replog( Operation *op )
 				}
 
 				if ( !op->o_bd->be_replica[i]->ri_nsuffix[j].bv_val ) {
-					/* do not add "replica:" line */
+					/* no matching suffix found, skip it */
 					continue;
 				}
 			}
-			subsets = 0;
-			first = NULL;
 			switch( op->o_tag ) {
 			case LDAP_REQ_EXTENDED:
 				/* quick hack for extended operations */
-				/* assume change parameter is a Modfications* */
+				/* assume change parameter is a Modifications* */
 				/* fall thru */
 			case LDAP_REQ_MODIFY:
-				for ( ml = op->orm_modlist; ml != NULL; ml = ml->sml_next ) {
-					int is_in, exclude;
-
-   					is_in = ad_inlist( ml->sml_desc, op->o_bd->be_replica[i]->ri_attrs );
-					exclude = op->o_bd->be_replica[i]->ri_exclude;
-					
-					/*
-					 * there might be a more clever way to do this test,
-					 * but this way, at least, is comprehensible :)
-					 */
-					if ( ( is_in && !exclude ) || ( !is_in && exclude ) ) {
-						subsets = 1;
-						first = ml;
-						break;
-					}
-				}
-				if ( !subsets ) {
-					continue;
-				}
-				break;
 			case LDAP_REQ_ADD:
-				for ( a = op->ora_e->e_attrs; a != NULL; a = a->a_next ) {
-					int is_in, exclude;
-
-   					is_in = ad_inlist( a->a_desc, op->o_bd->be_replica[i]->ri_attrs );
-					exclude = op->o_bd->be_replica[i]->ri_exclude;
-					
-					if ( ( is_in && !exclude ) || ( !is_in && exclude ) ) {
-						subsets = 1;
-						first = a;
-						break;
-					}
-				}
-				if ( !subsets ) {
-					continue;
-				}
 				break;
 			default:
 				/* Other operations were logged in the first pass */
 				continue;
 			}
-			fprintf( fp, "replica: %s\n", op->o_bd->be_replica[i]->ri_host );
-			fprintf( fp, "time: %ld\n", now );
-			fprintf( fp, "dn: %s\n", op->o_req_dn.bv_val );
-			replog1( op->o_bd->be_replica[i], op, fp, first );
+			replog1( op->o_bd->be_replica[i], op, fp, now );
 		}
 	}
 
@@ -278,29 +234,60 @@ replog( Operation *op )
 	ldap_pvt_thread_mutex_unlock( &replog_mutex );
 }
 
+static void
+rephdr(
+	struct slap_replica_info *ri,
+	Operation *op,
+	FILE *fp,
+	long now
+)
+{
+	if ( ri ) {
+		fprintf( fp, "replica: %s\n", ri->ri_host );
+	}
+	fprintf( fp, "time: %ld\n", now );
+	fprintf( fp, "dn: %s\n", op->o_req_dn.bv_val );
+}
 
 static void
 replog1(
-    struct slap_replica_info *ri,
-    Operation *op,
-    FILE	*fp,
-	void	*first
+	struct slap_replica_info *ri,
+	Operation *op,
+	FILE	*fp,
+	long	now
 )
 {
 	Modifications	*ml;
 	Attribute	*a;
+	AttributeName	*an;
+	int		dohdr = 1, ocs = -1;
+	struct berval vals[2];
+
+	vals[1].bv_val = NULL;
+	vals[1].bv_len = 0;
 
 	switch ( op->o_tag ) {
 	case LDAP_REQ_EXTENDED:
 		/* quick hack for extended operations */
-		/* assume change parameter is a Modfications* */
+		/* assume change parameter is a Modifications* */
 		/* fall thru */
 
 	case LDAP_REQ_MODIFY:
-		fprintf( fp, "changetype: modify\n" );
-		ml = first ? first : op->orm_modlist;
-		for ( ; ml != NULL; ml = ml->sml_next ) {
-			char *type;
+		for ( ml = op->orm_modlist; ml != NULL; ml = ml->sml_next ) {
+			char *did, *type = ml->sml_desc->ad_cname.bv_val;
+			switch ( ml->sml_op ) {
+			case LDAP_MOD_ADD:
+				did = "add"; break;
+
+			case LDAP_MOD_DELETE:
+				did = "delete"; break;
+
+			case LDAP_MOD_REPLACE:
+				did = "replace"; break;
+
+			case LDAP_MOD_INCREMENT:
+				did = "increment"; break;
+			}
 			if ( ri && ri->ri_attrs ) {
 				int is_in = ad_inlist( ml->sml_desc, ri->ri_attrs );
 
@@ -309,25 +296,67 @@ replog1(
 				{
 					continue;
 				}
+				/* If this is objectClass, see if the value is included
+				 * in any subset, otherwise drop it.
+				 */
+				if ( ocs && ml->sml_desc == slap_schema.si_ad_objectClass
+					&& ml->sml_bvalues ) {
+					int i, first = 1;
+
+					if ( ocs == -1 ) ocs = 0;
+
+					for ( i=0; ml->sml_bvalues[i].bv_val; i++ ) {
+						int match = 0;
+						for ( an = ri->ri_attrs; an->an_name.bv_val; an++ ) {
+							if ( an->an_oc ) {
+								ocs = 1;
+								match |= an->an_oc_exclude;
+								if ( ml->sml_bvalues[i].bv_len == an->an_name.bv_len
+									&& !strcasecmp(ml->sml_bvalues[i].bv_val,
+										an->an_name.bv_val ) ) {
+									match = !an->an_oc_exclude;
+									break;
+								}
+							}
+						}
+						/* Objectclasses need no special treatment, drop into
+						 * regular processing
+						 */
+						if ( !ocs ) break;
+
+						match ^= ri->ri_exclude;
+						/* Found a match, log it */
+						if ( match ) {
+							if ( dohdr ) {
+								rephdr( ri, op, fp, now );
+								fprintf( fp, "changetype: modify\n" );
+								dohdr = 0;
+							}
+							if ( first ) {
+								fprintf( fp, "%s: %s\n", did, type );
+								first = 0;
+							}
+							vals[0] = an->an_name;
+							print_vals( fp, &ml->sml_desc->ad_cname, vals );
+							ocs = 2;
+						}
+
+					}
+					/* Explicit objectclasses have been handled already */
+					if ( ocs ) {
+						if ( ocs == 2 ) {
+							fprintf( fp, "-\n" );
+						}
+						continue;
+					}
+				}
 			}
-			type = ml->sml_desc->ad_cname.bv_val;
-			switch ( ml->sml_op ) {
-			case LDAP_MOD_ADD:
-				fprintf( fp, "add: %s\n", type );
-				break;
-
-			case LDAP_MOD_DELETE:
-				fprintf( fp, "delete: %s\n", type );
-				break;
-
-			case LDAP_MOD_REPLACE:
-				fprintf( fp, "replace: %s\n", type );
-				break;
-
-			case LDAP_MOD_INCREMENT:
-				fprintf( fp, "increment: %s\n", type );
-				break;
+			if ( dohdr ) {
+				rephdr( ri, op, fp, now );
+				fprintf( fp, "changetype: modify\n" );
+				dohdr = 0;
 			}
+			fprintf( fp, "%s: %s\n", did, type );
 			if ( ml->sml_bvalues ) {
 				print_vals( fp, &ml->sml_desc->ad_cname, ml->sml_bvalues );
 			}
@@ -336,52 +365,68 @@ replog1(
 		break;
 
 	case LDAP_REQ_ADD:
-		fprintf( fp, "changetype: add\n" );
-		a = first ? first : op->ora_e->e_attrs;
-		for ( ; a != NULL; a=a->a_next ) {
+		for ( a = op->ora_e->e_attrs ; a != NULL; a=a->a_next ) {
 			if ( ri && ri->ri_attrs ) {
 				int is_in = ad_inlist( a->a_desc, ri->ri_attrs );
 				if ( ( !is_in && !ri->ri_exclude ) || ( is_in && ri->ri_exclude ) ) {
 					continue;
 				}
+
 				/* If the list includes objectClass names,
 				 * only include those classes in the
 				 * objectClass attribute
 				 */
-				if ( a->a_desc == slap_schema.si_ad_objectClass ) {
-					int ocs = 0;
-					AttributeName *an;
-					struct berval vals[2];
-					vals[1].bv_val = NULL;
-					vals[1].bv_len = 0;
-					for ( an = ri->ri_attrs; an->an_name.bv_val; an++ ) {
-						if ( an->an_oc ) {
-							int i;
+				if ( ocs && a->a_desc == slap_schema.si_ad_objectClass ) {
+					int i;
 
-							for ( i=0; a->a_vals[i].bv_val; i++ ) {
+					if ( ocs == -1 ) ocs = 0;
+
+					for ( i=0; a->a_vals[i].bv_val; i++ ) {
+						int match = 0;
+						for ( an = ri->ri_attrs; an->an_name.bv_val; an++ ) {
+							if ( an->an_oc ) {
+								ocs = 1;
+								match |= an->an_oc_exclude;
 								if ( a->a_vals[i].bv_len == an->an_name.bv_len
 									&& !strcasecmp(a->a_vals[i].bv_val,
 										an->an_name.bv_val ) ) {
-									ocs = 1;
-									vals[0] = an->an_name;
-									print_vals( fp, &a->a_desc->ad_cname, vals );
+									match = !an->an_oc_exclude;
 									break;
 								}
 							}
 						}
+						if ( !ocs ) break;
+
+						match ^= ri->ri_exclude;
+						if ( match ) {
+							if ( dohdr ) {
+								rephdr( ri, op, fp, now );
+								fprintf( fp, "changetype: add\n" );
+								dohdr = 0;
+							}
+							vals[0] = an->an_name;
+							print_vals( fp, &a->a_desc->ad_cname, vals );
+						}
 					}
 					if ( ocs ) continue;
 				}
+			}
+			if ( dohdr ) {
+				rephdr( ri, op, fp, now );
+				fprintf( fp, "changetype: add\n" );
+				dohdr = 0;
 			}
 			print_vals( fp, &a->a_desc->ad_cname, a->a_vals );
 		}
 		break;
 
 	case LDAP_REQ_DELETE:
+		rephdr( ri, op, fp, now );
 		fprintf( fp, "changetype: delete\n" );
 		break;
 
 	case LDAP_REQ_MODRDN:
+		rephdr( ri, op, fp, now );
 		fprintf( fp, "changetype: modrdn\n" );
 		fprintf( fp, "newrdn: %s\n", op->orr_newrdn.bv_val );
 		fprintf( fp, "deleteoldrdn: %d\n", op->orr_deleteoldrdn ? 1 : 0 );

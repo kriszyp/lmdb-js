@@ -481,6 +481,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 
 	null_attr.an_desc = NULL;
 	null_attr.an_oc = NULL;
+	null_attr.an_oc_exclude = 0;
 	null_attr.an_name.bv_len = 0;
 	null_attr.an_name.bv_val = NULL;
 
@@ -493,6 +494,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 		attrs = uuid_attr;
 		attrs[0].an_desc = NULL;
 		attrs[0].an_oc = NULL;
+		attrs[0].an_oc_exclude = 0;
 		attrs[0].an_name.bv_len = 0;
 		attrs[0].an_name.bv_val = NULL;
 	}

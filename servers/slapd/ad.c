@@ -533,24 +533,67 @@ int ad_inlist(
 		/*
 		 * EXTENSION: see if requested description is @objectClass
 		 * if so, return attributes which the class requires/allows
+		 * else if requested description is !objectClass, return
+		 * attributes which the class does not require/allow
 		 */
 		oc = attrs->an_oc;
 		if( oc == NULL && attrs->an_name.bv_val ) {
 			switch( attrs->an_name.bv_val[0] ) {
 			case '@': /* @objectClass */
 			case '+': /* +objectClass (deprecated) */
-				{
+			case '!': { /* exclude */
 					struct berval ocname;
 					ocname.bv_len = attrs->an_name.bv_len - 1;
 					ocname.bv_val = &attrs->an_name.bv_val[1];
 					oc = oc_bvfind( &ocname );
+					attrs->an_oc_exclude = 0;
+					if ( oc && attrs->an_name.bv_val[0] == '!' ) {
+						attrs->an_oc_exclude = 1;
+					}
 				} break;
+
 			default: /* old (deprecated) way */
 				oc = oc_bvfind( &attrs->an_name );
 			}
 			attrs->an_oc = oc;
 		}
 		if( oc != NULL ) {
+			if ( attrs->an_oc_exclude ) {
+				int gotit = 0;
+
+				if ( oc == slap_schema.si_oc_extensibleObject ) {
+					/* extensibleObject allows the return of anything */
+					return 0;
+				}
+
+				if( oc->soc_required ) {
+					/* allow return of required attributes */
+					int i;
+				
+   					for ( i = 0; oc->soc_required[i] != NULL; i++ ) {
+						for (a = desc->ad_type; a; a=a->sat_sup) {
+							if ( a == oc->soc_required[i] ) {
+								return 0;
+							}
+						}
+					}
+				}
+
+				if( oc->soc_allowed ) {
+					/* allow return of allowed attributes */
+					int i;
+   					for ( i = 0; oc->soc_allowed[i] != NULL; i++ ) {
+						for (a = desc->ad_type; a; a=a->sat_sup) {
+							if ( a == oc->soc_allowed[i] ) {
+								return 0;
+							}
+						}
+					}
+				}
+
+				return 1;
+			}
+			
 			if ( oc == slap_schema.si_oc_extensibleObject ) {
 				/* extensibleObject allows the return of anything */
 				return 1;
@@ -692,7 +735,8 @@ an_find(
  * on to an existing list if it was given.  If the string is not
  * a valid attribute name, if a '-' is prepended it is skipped
  * and the remaining name is tried again; if a '@' (or '+') is
- * prepended, an objectclass name is searched instead.
+ * prepended, an objectclass name is searched instead; if a '!'
+ * is prepended, the objectclass name is negated.
  * 
  * NOTE: currently, if a valid attribute name is not found, the
  * same string is also checked as valid objectclass name; however,
@@ -730,6 +774,7 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 	{
 		anew->an_desc = NULL;
 		anew->an_oc = NULL;
+		anew->an_oc_exclude = 0;
 		ber_str2bv(s, 0, 1, &anew->an_name);
 		slap_bv2ad(&anew->an_name, &anew->an_desc, &text);
 		if ( !anew->an_desc ) {
@@ -752,7 +797,7 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 
 			case '@':
 			case '+': /* (deprecated) */
-				{
+			case '!': {
 					struct berval ocname;
 					ocname.bv_len = anew->an_name.bv_len - 1;
 					ocname.bv_val = &anew->an_name.bv_val[1];
@@ -765,6 +810,10 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 						 */
 						strcpy( in, s );
 						return NULL;
+					}
+
+					if ( anew->an_name.bv_val[0] == '!' ) {
+						anew->an_oc_exclude = 1;
 					}
 				} break;
 

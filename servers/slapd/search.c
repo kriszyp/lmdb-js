@@ -71,7 +71,7 @@ do_search(
 	 *		scope		ENUMERATED {
 	 *			baseObject	(0),
 	 *			singleLevel	(1),
-	 *			wholeSubtree	(2)
+	 *			wholeSubtree (2)
 	 *		},
 	 *		derefAliases	ENUMERATED {
 	 *			neverDerefaliases	(0),
@@ -178,6 +178,7 @@ do_search(
 		const char *dummy;	/* ignore msgs from bv2ad */
 		op->ors_attrs[i].an_desc = NULL;
 		op->ors_attrs[i].an_oc = NULL;
+		op->ors_attrs[i].an_oc_exclude = 0;
 		slap_bv2ad(&op->ors_attrs[i].an_name, &op->ors_attrs[i].an_desc, &dummy);
 	}
 
@@ -355,7 +356,8 @@ do_search(
 		be_manageDSAit = manageDSAit;
 	}
 
-	if ( (op->o_bd = select_backend( &op->o_req_ndn, be_manageDSAit, 1 )) == NULL ) {
+	op->o_bd = select_backend( &op->o_req_ndn, be_manageDSAit, 1 );
+	if ( op->o_bd == NULL ) {
 		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->o_req_dn, op->ors_scope );
 

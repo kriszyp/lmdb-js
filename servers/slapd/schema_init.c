@@ -97,7 +97,7 @@ sequenceValidate(
 static int certificateValidate( Syntax *syntax, struct berval *in )
 {
 	X509 *xcert=NULL;
-	unsigned char *p = in->bv_val;
+	unsigned char *p = (unsigned char *)in->bv_val;
  
 	xcert = d2i_X509(NULL, &p, in->bv_len);
 	if ( !xcert ) return LDAP_INVALID_SYNTAX;
@@ -167,7 +167,7 @@ int octetStringIndexer(
 	HASH_CONTEXT HASHcontext;
 	unsigned char HASHdigest[HASH_BYTES];
 	struct berval digest;
-	digest.bv_val = HASHdigest;
+	digest.bv_val = (char *)HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
 	for( i=0; values[i].bv_val != NULL; i++ ) {
@@ -186,14 +186,15 @@ int octetStringIndexer(
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
 			HASH_Update( &HASHcontext,
-				prefix->bv_val, prefix->bv_len );
+				(unsigned char *)prefix->bv_val,
+				prefix->bv_len );
 		}
 		HASH_Update( &HASHcontext,
-			syntax->ssyn_oid, slen );
+			(unsigned char *)syntax->ssyn_oid, slen );
 		HASH_Update( &HASHcontext,
-			mr->smr_oid, mlen );
+			(unsigned char *)mr->smr_oid, mlen );
 		HASH_Update( &HASHcontext,
-			values[i].bv_val, values[i].bv_len );
+			(unsigned char *)values[i].bv_val, values[i].bv_len );
 		HASH_Final( HASHdigest, &HASHcontext );
 
 		ber_dupbv_x( &keys[i], &digest, ctx );
@@ -224,7 +225,7 @@ int octetStringFilter(
 	unsigned char HASHdigest[HASH_BYTES];
 	struct berval *value = (struct berval *) assertedValue;
 	struct berval digest;
-	digest.bv_val = HASHdigest;
+	digest.bv_val = (char *)HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
 	slen = syntax->ssyn_oidlen;
@@ -235,14 +236,14 @@ int octetStringFilter(
 	HASH_Init( &HASHcontext );
 	if( prefix != NULL && prefix->bv_len > 0 ) {
 		HASH_Update( &HASHcontext,
-			prefix->bv_val, prefix->bv_len );
+			(unsigned char *)prefix->bv_val, prefix->bv_len );
 	}
 	HASH_Update( &HASHcontext,
-		syntax->ssyn_oid, slen );
+		(unsigned char *)syntax->ssyn_oid, slen );
 	HASH_Update( &HASHcontext,
-		mr->smr_oid, mlen );
+		(unsigned char *)mr->smr_oid, mlen );
 	HASH_Update( &HASHcontext,
-		value->bv_val, value->bv_len );
+		(unsigned char *)value->bv_val, value->bv_len );
 	HASH_Final( HASHdigest, &HASHcontext );
 
 	ber_dupbv_x( keys, &digest, ctx );
@@ -397,7 +398,7 @@ octetStringSubstringsIndexer(
 	HASH_CONTEXT HASHcontext;
 	unsigned char HASHdigest[HASH_BYTES];
 	struct berval digest;
-	digest.bv_val = HASHdigest;
+	digest.bv_val = (char *)HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
 	nkeys=0;
@@ -460,17 +461,17 @@ octetStringSubstringsIndexer(
 				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
 					HASH_Update( &HASHcontext,
-						prefix->bv_val, prefix->bv_len );
+						(unsigned char *)prefix->bv_val, prefix->bv_len );
 				}
 
 				HASH_Update( &HASHcontext,
-					&pre, sizeof( pre ) );
+					(unsigned char *)&pre, sizeof( pre ) );
 				HASH_Update( &HASHcontext,
-					syntax->ssyn_oid, slen );
+					(unsigned char *)syntax->ssyn_oid, slen );
 				HASH_Update( &HASHcontext,
-					mr->smr_oid, mlen );
+					(unsigned char *)mr->smr_oid, mlen );
 				HASH_Update( &HASHcontext,
-					&values[i].bv_val[j],
+					(unsigned char *)&values[i].bv_val[j],
 					SLAP_INDEX_SUBSTR_MAXLEN );
 				HASH_Final( HASHdigest, &HASHcontext );
 
@@ -489,16 +490,16 @@ octetStringSubstringsIndexer(
 				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
 					HASH_Update( &HASHcontext,
-						prefix->bv_val, prefix->bv_len );
+						(unsigned char *)prefix->bv_val, prefix->bv_len );
 				}
 				HASH_Update( &HASHcontext,
-					&pre, sizeof( pre ) );
+					(unsigned char *)&pre, sizeof( pre ) );
 				HASH_Update( &HASHcontext,
-					syntax->ssyn_oid, slen );
+					(unsigned char *)syntax->ssyn_oid, slen );
 				HASH_Update( &HASHcontext,
-					mr->smr_oid, mlen );
+					(unsigned char *)mr->smr_oid, mlen );
 				HASH_Update( &HASHcontext,
-					values[i].bv_val, j );
+					(unsigned char *)values[i].bv_val, j );
 				HASH_Final( HASHdigest, &HASHcontext );
 
 				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
@@ -509,16 +510,16 @@ octetStringSubstringsIndexer(
 				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
 					HASH_Update( &HASHcontext,
-						prefix->bv_val, prefix->bv_len );
+						(unsigned char *)prefix->bv_val, prefix->bv_len );
 				}
 				HASH_Update( &HASHcontext,
-					&pre, sizeof( pre ) );
+					(unsigned char *)&pre, sizeof( pre ) );
 				HASH_Update( &HASHcontext,
-					syntax->ssyn_oid, slen );
+					(unsigned char *)syntax->ssyn_oid, slen );
 				HASH_Update( &HASHcontext,
-					mr->smr_oid, mlen );
+					(unsigned char *)mr->smr_oid, mlen );
 				HASH_Update( &HASHcontext,
-					&values[i].bv_val[values[i].bv_len-j], j );
+					(unsigned char *)&values[i].bv_val[values[i].bv_len-j], j );
 				HASH_Final( HASHdigest, &HASHcontext );
 
 				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
@@ -590,7 +591,7 @@ octetStringSubstringsFilter (
 		return LDAP_SUCCESS;
 	}
 
-	digest.bv_val = HASHdigest;
+	digest.bv_val = (char *)HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
 	slen = syntax->ssyn_oidlen;
@@ -611,16 +612,16 @@ octetStringSubstringsFilter (
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
 			HASH_Update( &HASHcontext,
-				prefix->bv_val, prefix->bv_len );
+				(unsigned char *)prefix->bv_val, prefix->bv_len );
 		}
 		HASH_Update( &HASHcontext,
-			&pre, sizeof( pre ) );
+			(unsigned char *)&pre, sizeof( pre ) );
 		HASH_Update( &HASHcontext,
-			syntax->ssyn_oid, slen );
+			(unsigned char *)syntax->ssyn_oid, slen );
 		HASH_Update( &HASHcontext,
-			mr->smr_oid, mlen );
+			(unsigned char *)mr->smr_oid, mlen );
 		HASH_Update( &HASHcontext,
-			value->bv_val, klen );
+			(unsigned char *)value->bv_val, klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
 		ber_dupbv_x( &keys[nkeys++], &digest, ctx );
@@ -645,16 +646,16 @@ octetStringSubstringsFilter (
 				HASH_Init( &HASHcontext );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
 					HASH_Update( &HASHcontext,
-						prefix->bv_val, prefix->bv_len );
+						(unsigned char *)prefix->bv_val, prefix->bv_len );
 				}
 				HASH_Update( &HASHcontext,
-					&pre, sizeof( pre ) );
+					(unsigned char *)&pre, sizeof( pre ) );
 				HASH_Update( &HASHcontext,
-					syntax->ssyn_oid, slen );
+					(unsigned char *)syntax->ssyn_oid, slen );
 				HASH_Update( &HASHcontext,
-					mr->smr_oid, mlen );
+					(unsigned char *)mr->smr_oid, mlen );
 				HASH_Update( &HASHcontext,
-					&value->bv_val[j], klen ); 
+					(unsigned char *)&value->bv_val[j], klen ); 
 				HASH_Final( HASHdigest, &HASHcontext );
 
 				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
@@ -674,16 +675,16 @@ octetStringSubstringsFilter (
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
 			HASH_Update( &HASHcontext,
-				prefix->bv_val, prefix->bv_len );
+				(unsigned char *)prefix->bv_val, prefix->bv_len );
 		}
 		HASH_Update( &HASHcontext,
-			&pre, sizeof( pre ) );
+			(unsigned char *)&pre, sizeof( pre ) );
 		HASH_Update( &HASHcontext,
-			syntax->ssyn_oid, slen );
+			(unsigned char *)syntax->ssyn_oid, slen );
 		HASH_Update( &HASHcontext,
-			mr->smr_oid, mlen );
+			(unsigned char *)mr->smr_oid, mlen );
 		HASH_Update( &HASHcontext,
-			&value->bv_val[value->bv_len-klen], klen );
+			(unsigned char *)&value->bv_val[value->bv_len-klen], klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
 		ber_dupbv_x( &keys[nkeys++], &digest, ctx );
@@ -1116,7 +1117,7 @@ UTF8StringValidate(
 {
 	ber_len_t count;
 	int len;
-	unsigned char *u = in->bv_val;
+	unsigned char *u = (unsigned char *)in->bv_val;
 
 	if( in->bv_len == 0 && syntax == slap_schema.si_syn_directoryString ) {
 		/* directory strings cannot be empty */
@@ -1158,7 +1159,7 @@ UTF8StringValidate(
 
 		/* make sure len corresponds with the offset
 			to the next character */
-		if( LDAP_UTF8_OFFSET( u ) != len ) return LDAP_INVALID_SYNTAX;
+		if( LDAP_UTF8_OFFSET( (char *)u ) != len ) return LDAP_INVALID_SYNTAX;
 	}
 
 	if( count != 0 ) {
@@ -1819,7 +1820,7 @@ UUIDNormalize(
 	struct berval *normalized,
 	void *ctx )
 {
-	unsigned char octet;
+	unsigned char octet = '\0';
 	int i;
 	int j;
 	normalized->bv_len = 16;
@@ -2222,7 +2223,7 @@ certificateExactNormalize(
 
 	assert( SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX(usage) );
 
-	p = val->bv_val;
+	p = (unsigned char *)val->bv_val;
 	xcert = d2i_X509( NULL, &p, val->bv_len);
 	if( xcert == NULL ) goto done;
 
@@ -2238,7 +2239,8 @@ certificateExactNormalize(
 	if( rc != LDAP_SUCCESS ) goto done;
 
 	normalized->bv_len = seriallen + issuer_dn.bv_len + 1;
-	p = normalized->bv_val = ch_malloc(normalized->bv_len+1);
+	normalized->bv_val = ch_malloc(normalized->bv_len+1);
+	p = (unsigned char *)normalized->bv_val;
 	AC_MEMCPY(p, serial, seriallen);
 	p += seriallen;
 	*p++ = '$';

@@ -323,14 +323,16 @@ glue_back_search ( Operation *op, SlapReply *rs )
 			}
 			op->o_bd = gi->n[i].be;
 			if (scope0 == LDAP_SCOPE_ONELEVEL && 
-				dn_match(&gi->n[i].pdn, &ndn)) {
+				dn_match(&gi->n[i].pdn, &ndn))
+			{
 				op->ors_scope = LDAP_SCOPE_BASE;
 				op->o_req_dn = op->o_bd->be_suffix[0];
 				op->o_req_ndn = op->o_bd->be_nsuffix[0];
 				rs->sr_err = op->o_bd->be_search(op, rs);
 
 			} else if (scope0 == LDAP_SCOPE_SUBTREE &&
-				dnIsSuffix(&op->o_bd->be_nsuffix[0], &ndn)) {
+				dnIsSuffix(&op->o_bd->be_nsuffix[0], &ndn))
+			{
 				op->o_req_dn = op->o_bd->be_suffix[0];
 				op->o_req_ndn = op->o_bd->be_nsuffix[0];
 				rs->sr_err = op->o_bd->be_search( op, rs );
