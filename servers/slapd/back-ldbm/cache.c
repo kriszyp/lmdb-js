@@ -477,7 +477,6 @@ try_again:
 				dn, id, state);
 
 			ldap_pvt_thread_yield();
-
 			goto try_again;
 		}
 
@@ -529,17 +528,19 @@ try_again:
 		(AVL_CMP) entry_id_cmp )) != NULL )
 	{
 		int state;
+		ID	ep_id;
+
 		count++;
 
 		assert( ep->e_private );
 
+		ep_id = ep->e_id; 
 		state = LEI(ep)->lei_state;
 
 		/*
 		 * entry is deleted or not fully created yet
 		 */
 		if ( state != CACHE_ENTRY_READY ) {
-			ID	ep_id = ep->e_id; 
 
 			assert(state != CACHE_ENTRY_UNDEFINED);
 
@@ -563,6 +564,11 @@ try_again:
 
 			/* free cache mutex */
 			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+
+			Debug(LDAP_DEBUG_TRACE,
+				"====> cache_find_entry_id( %ld ): %ld (busy) %d\n",
+				id, ep_id, state);
+
 			ldap_pvt_thread_yield();
 			goto try_again;
 		}
@@ -578,7 +584,7 @@ try_again:
 
 		Debug(LDAP_DEBUG_TRACE,
 			"====> cache_find_entry_id( %ld ) \"%s\" (found) (%d tries)\n",
-			id, ep->e_dn, count);
+			ep_id, ep->e_dn, count);
 
 		return( ep );
 	}
