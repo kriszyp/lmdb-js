@@ -195,6 +195,9 @@ OL_ARG_WITH(bdb_module,[    --with-bdb-module     module type static|dynamic], s
 OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend], no)dnl
 OL_ARG_WITH(dnssrv_module,[    --with-dnssrv-module  module type static|dynamic], static,
 	[static dynamic])
+OL_ARG_ENABLE(hdb,[    --enable-hdb	  enable Hierarchical DB backend], no)dnl
+OL_ARG_WITH(hdb_module,[    --with-hdb-module     module type static|dynamic], static,
+	[static dynamic])
 OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend], no)dnl
 OL_ARG_WITH(ldap_module,[    --with-ldap-module	  module type static|dynamic], static,
 	[static dynamic])
@@ -257,6 +260,9 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_dnssrv = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-dnssrv argument])
 	fi
+	if test $ol_enable_hdb = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-hdb argument])
+	fi
 	if test $ol_enable_ldap = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-ldap argument])
 	fi
@@ -317,6 +323,9 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_with_dnssrv_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-dnssrv-module argument])
 	fi
+	if test $ol_with_hdb_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-hdb-module argument])
+	fi
 	if test $ol_with_ldap_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-ldap-module argument])
 	fi
@@ -358,6 +367,7 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_slapi=no
 	ol_enable_bdb=no
 	ol_enable_dnssrv=no
+	ol_enable_hdb=no
 	ol_enable_ldap=no
 	ol_enable_ldbm=no
 	ol_enable_meta=no
@@ -382,6 +392,7 @@ if test $ol_enable_slapd = no ; then
 
 	ol_with_bdb_module=static
 	ol_with_dnssrv_module=static
+	ol_with_hdb_module=static
 	ol_with_ldap_module=static
 	ol_with_ldbm_module=static
 	ol_with_meta_module=static
@@ -415,6 +426,7 @@ elif test $ol_enable_ldbm = no ; then
 	if test $ol_enable_modules != yes -a \
 		$ol_enable_bdb = no -a \
 		$ol_enable_dnssrv = no -a \
+		$ol_enable_hdb = no -a \
 		$ol_enable_ldap = no -a \
 		$ol_enable_meta = no -a \
 		$ol_enable_monitor = no -a \
@@ -437,7 +449,7 @@ elif test $ol_enable_ldbm = no ; then
 	ol_with_ldbm_type=no
 	ol_with_ldbm_module=static
 
-	if test $ol_enable_bdb != no ; then
+	if test $ol_enable_bdb != no -o $ol_enable_hdb != no; then
 		ol_with_ldbm_api=berkeley
 	fi
 
@@ -456,11 +468,11 @@ else
 		AC_MSG_ERROR([NDBM only supports LDBM type hash])
 	fi
 
-	if test $ol_enable_bdb = yes ; then
+	if test $ol_enable_bdb = yes -o $ol_enable_hdb = yes ; then
 		if test $ol_with_ldbm_api = auto ; then
 			ol_with_ldbm_api=berkeley
 		elif test $ol_with_ldbm_api != berkeley ; then
-			AC_MSG_ERROR([LDBM API not compatible with BDB])
+			AC_MSG_ERROR([LDBM API not compatible with BDB/HDB])
 		fi
 
 	elif test $ol_enable_bdb = auto ; then
@@ -531,6 +543,7 @@ SLAPD_SLAPI_DEPEND=
 
 BUILD_BDB=no
 BUILD_DNSSRV=no
+BUILD_HDB=no
 BUILD_LDAP=no
 BUILD_LDBM=no
 BUILD_META=no
@@ -544,6 +557,7 @@ BUILD_TCL=no
 
 BUILD_BDB_DYNAMIC=static
 BUILD_DNSSRV_DYNAMIC=static
+BUILD_HDB_DYNAMIC=static
 BUILD_LDAP_DYNAMIC=static
 BUILD_LDBM_DYNAMIC=static
 BUILD_META_DYNAMIC=static
@@ -771,6 +785,7 @@ if test $ol_enable_modules != no ; then
 else
 	ol_with_bdb_module=static
 	ol_with_dnssrv_module=static
+	ol_with_hdb_module=static
 	ol_with_ldap_module=static
 	ol_with_ldbm_module=static
 	ol_with_meta_module=static
@@ -1965,6 +1980,9 @@ elif test $ol_enable_bdb != no -a $ol_link_ldbm = berkeley ; then
 		ol_enable_bdb=no
 	fi
 fi
+if test $ol_enable_hdb = yes -a $ol_link_ldbm != berkeley ; then
+	AC_MSG_ERROR(HDB: BerkeleyDB not available)
+fi
 
 if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then
 	AC_MSG_WARN(Could not find LDBM with BTREE support)
@@ -2619,6 +2637,21 @@ if test "$ol_link_dnssrv" != no ; then
 	fi
 fi
 
+if test "$ol_enable_hdb" != no ; then
+	AC_DEFINE(SLAPD_HDB,1,[define to support HDB backend])
+	BUILD_SLAPD=yes
+	BUILD_HDB=yes
+	if test "$ol_with_hdb_module" != static ; then
+		AC_DEFINE(SLAPD_HDB_DYNAMIC,1,
+			[define to support dynamic HDB backend])
+		BUILD_HDB=mod
+		BUILD_HDB_DYNAMIC=shared
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-hdb"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-hdb"
+	fi
+fi
+
 if test "$ol_enable_ldap" != no ; then
 	AC_DEFINE(SLAPD_LDAP,1,[define to support LDAP backend])
 	BUILD_SLAPD=yes
@@ -2825,6 +2858,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(SLAPD_SLAPI_DEPEND)
   AC_SUBST(BUILD_BDB)
   AC_SUBST(BUILD_DNSSRV)
+  AC_SUBST(BUILD_HDB)
   AC_SUBST(BUILD_LDAP)
   AC_SUBST(BUILD_LDBM)
   AC_SUBST(BUILD_META)
@@ -2837,6 +2871,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_TCL)
   AC_SUBST(BUILD_BDB_DYNAMIC)
   AC_SUBST(BUILD_DNSSRV_DYNAMIC)
+  AC_SUBST(BUILD_HDB_DYNAMIC)
   AC_SUBST(BUILD_LDAP_DYNAMIC)
   AC_SUBST(BUILD_LDBM_DYNAMIC)
   AC_SUBST(BUILD_META_DYNAMIC)
@@ -2922,6 +2957,7 @@ servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
 servers/slapd/back-bdb/Makefile:build/top.mk:servers/slapd/back-bdb/Makefile.in:build/mod.mk \
 servers/slapd/back-dnssrv/Makefile:build/top.mk:servers/slapd/back-dnssrv/Makefile.in:build/mod.mk \
+servers/slapd/back-hdb/Makefile:build/top.mk:servers/slapd/back-hdb/Makefile.in:build/mod.mk \
 servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk \
 servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/mod.mk \
 servers/slapd/back-meta/Makefile:build/top.mk:servers/slapd/back-meta/Makefile.in:build/mod.mk \
