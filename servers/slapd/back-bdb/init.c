@@ -252,13 +252,15 @@ bdb_db_destroy( BackendDB *be )
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 
 	/* close db environment */
-	rc = bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
-	bdb->bi_dbenv = NULL;
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_destroy: close failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-		return rc;
+	if( bdb->bi_dbenv ) {
+		rc = bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
+		bdb->bi_dbenv = NULL;
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bdb_db_destroy: close failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
+			return rc;
+		}
 	}
 
 	return 0;
