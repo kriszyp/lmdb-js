@@ -29,13 +29,13 @@ str2filter( const char *str )
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		   "str2filter: \"%s\"\n", str ));
+		"str2filter: \"%s\"\n", str ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "str2filter \"%s\"\n", str, 0, 0 );
 #endif
 
 	if ( str == NULL || *str == '\0' ) {
-		return( NULL );
+		return NULL;
 	}
 
 	str = freeme = ch_strdup( str );
@@ -45,7 +45,7 @@ str2filter( const char *str )
 		if ( (end = find_matching_paren( str )) == NULL ) {
 			filter_free( f );
 			free( freeme );
-			return( NULL );
+			return NULL;
 		}
 		*end = '\0';
 
@@ -54,7 +54,7 @@ str2filter( const char *str )
 		case '&':
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-				   "str2filter:  AND\n" ));
+				"str2filter:  AND\n" ));
 #else
 			Debug( LDAP_DEBUG_FILTER, "str2filter: AND\n",
 			    0, 0, 0 );
@@ -67,7 +67,7 @@ str2filter( const char *str )
 		case '|':
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-				   "str2filter:  OR\n" ));
+				"str2filter:  OR\n" ));
 #else
 			Debug( LDAP_DEBUG_FILTER, "put_filter: OR\n",
 			    0, 0, 0 );
@@ -80,7 +80,7 @@ str2filter( const char *str )
 		case '!':
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-				   "str2filter:  NOT\n" ));
+				"str2filter:  NOT\n" ));
 #else
 			Debug( LDAP_DEBUG_FILTER, "put_filter: NOT\n",
 			    0, 0, 0 );
@@ -93,7 +93,7 @@ str2filter( const char *str )
 		default:
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-				   "str2filter:  simple\n" ));
+				"str2filter:  simple\n" ));
 #else
 			Debug( LDAP_DEBUG_FILTER, "str2filter: simple\n",
 			    0, 0, 0 );
@@ -108,10 +108,10 @@ str2filter( const char *str )
 	default:	/* assume it's a simple type=value filter */
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-			   "str2filter: default\n" ));
+			"str2filter: default\n" ));
 #else
-		Debug( LDAP_DEBUG_FILTER, "str2filter: default\n", 0, 0,
-		    0 );
+		Debug( LDAP_DEBUG_FILTER, "str2filter: default\n",
+			0, 0, 0 );
 #endif
 
 		f = str2simple( str );
@@ -136,7 +136,7 @@ str2list( const char *str, unsigned long ftype )
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		   "str2list: \"%s\"\n", str ));
+		"str2list: \"%s\"\n", str ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "str2list \"%s\"\n", str, 0, 0 );
 #endif
@@ -185,7 +185,7 @@ str2simple( const char *str )
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		   "str2simple:	 \"%s\"\n", str ));
+		"str2simple: \"%s\"\n", str ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "str2simple \"%s\"\n", str, 0, 0 );
 #endif
@@ -221,23 +221,29 @@ str2simple( const char *str )
 
 	default: {
 			char *nextstar = ldap_pvt_find_wildcard( value );
+
 			if ( nextstar == NULL ) {
 				filter_free( f );
 				*(value-1) = '=';
 				return NULL;
-			} else if ( nextstar == '\0' ) {
+
+			} else if ( *nextstar == '\0' ) {
 				f->f_choice = LDAP_FILTER_EQUALITY;
+
 			} else if ( strcmp( value, "*" ) == 0 ) {
 				f->f_choice = LDAP_FILTER_PRESENT;
+
 			} else {
 				f->f_choice = LDAP_FILTER_SUBSTRINGS;
 				f->f_sub = ch_calloc( 1, sizeof( SubstringsAssertion ) );
+
 				rc = slap_str2ad( str, &f->f_sub_desc, &text );
 				if( rc != LDAP_SUCCESS ) {
 					filter_free( f );
 					*(value-1) = '=';
 					return NULL;
 				}
+
 				if ( str2subvals( value, f ) != 0 ) {
 					filter_free( f );
 					*(value-1) = '=';
@@ -256,6 +262,7 @@ str2simple( const char *str )
 			*(value-1) = '=';
 			return NULL;
 		}
+
 	} else {
 		ber_slen_t len;
 		char *tmp;
@@ -275,7 +282,7 @@ str2simple( const char *str )
 			filter_free( f );
 			*(value-1) = '=';
 			free( tmp );
-			return -1;
+			return NULL;
 		}
 		ber_str2bv( tmp, 0, 0, &f->f_av_value );
 	}
@@ -296,11 +303,10 @@ str2subvals( const char *in, Filter *f )
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		   "str2subvals: \"%s\"\n", in ));
+		"str2subvals: \"%s\"\n", in ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "str2subvals \"%s\"\n", in, 0, 0 );
 #endif
-
 
 	if( in == NULL ) return 0;
 
@@ -313,10 +319,10 @@ str2subvals( const char *in, Filter *f )
 		if ( nextstar == NULL ) {
 			free( freeme );
 			return -1;
-		}
 
-		if( *nextstar == '\0' ) {
+		} else if( *nextstar == '\0' ) {
 			final = 1;
+
 		} else {
 			gotstar++;
 			*nextstar = '\0';
