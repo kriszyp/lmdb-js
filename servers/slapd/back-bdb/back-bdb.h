@@ -28,15 +28,7 @@ LDAP_BEGIN_DECL
 #define bv2DBT(bv,t)		((t)->data = (bv)->bv_val, \
 								(t)->size = (bv)->bv_len )
 
-#define DEFAULT_MODE		0600
-
 #define BDB_TXN_RETRIES	16
-
-#ifdef BDB_HIER
-#define BDB_DBENV_HOME	LDAP_RUNDIR LDAP_DIRSEP "openldap-hdb"
-#else
-#define BDB_DBENV_HOME	LDAP_RUNDIR LDAP_DIRSEP "openldap-bdb"
-#endif
 
 #ifdef BDB_SUBDIRS
 #define BDB_TMP_SUBDIR	LDAP_DIRSEP "tmp"
