@@ -602,7 +602,7 @@ UTF8StringNormalize(
 
 	assert( *newval->bv_val );
 	assert( newval->bv_val < p );
-	assert( p >= q );
+	assert( q <= p );
 
 	/* cannot start with a space */
 	assert( !ldap_utf8_isspace(newval->bv_val) );
@@ -1950,7 +1950,7 @@ IA5StringNormalize(
 
 	assert( *newval->bv_val );
 	assert( newval->bv_val < p );
-	assert( p <= q );
+	assert( q <= p );
 
 	/* cannot start with a space */
 	assert( !ASCII_SPACE(*newval->bv_val) );
