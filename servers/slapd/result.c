@@ -250,8 +250,9 @@ send_ldap_response(
 	}
 
 #ifdef LDAP_CONNECTIONLESS
-	if (conn->c_is_udp) {
-	    rc = ber_write(ber, (char *)&op->o_peeraddr, sizeof(struct sockaddr), 0);
+	if( conn->c_is_udp ) {
+	    rc = ber_write(ber,
+			(char *)&op->o_peeraddr, sizeof(struct sockaddr), 0);
 	    if (rc != sizeof(struct sockaddr)) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
@@ -709,17 +710,18 @@ send_search_entry(
 
 #ifdef LDAP_CONNECTIONLESS
 	if (conn->c_is_udp) {
-	    rc = ber_write(ber, (char *)&op->o_peeraddr, sizeof(struct sockaddr), 0);
+	    rc = ber_write(ber,
+			(char *)&op->o_peeraddr, sizeof(struct sockaddr), 0);
 	    if (rc != sizeof(struct sockaddr)) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"send_search_entry: conn %lu  ber_printf failed\n",
-			conn ? conn->c_connid : 0, 0, 0 );
+			LDAP_LOG( OPERATION, ERR, 
+				"send_search_entry: conn %lu  ber_printf failed\n",
+				conn ? conn->c_connid : 0, 0, 0 );
 #else
-		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 #endif
-		ber_free_buf( ber );
-		return( 1 );
+			ber_free_buf( ber );
+			return( 1 );
 	    }
 	}
 	if (conn->c_is_udp && op->o_protocol == LDAP_VERSION2) {
@@ -1125,8 +1127,9 @@ send_search_entry(
 	}
 
 #ifdef LDAP_CONNECTIONLESS
-	if (conn->c_is_udp && op->o_protocol == LDAP_VERSION2 && rc != -1)
+	if (conn->c_is_udp && op->o_protocol == LDAP_VERSION2 && rc != -1) {
 		rc = ber_printf( ber, "}" );
+	}
 #endif
 	if ( rc == -1 ) {
 #ifdef NEW_LOGGING

@@ -501,26 +501,25 @@ long connection_init(
 
 #ifdef LDAP_CONNECTIONLESS
 	c->c_is_udp = 0;
-	if (tls_udp_option == 2)
-	{
+	if( tls_udp_option == 2 ) {
 		c->c_is_udp = 1;
 #ifdef LDAP_DEBUG
-	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
-		LBER_SBIOD_LEVEL_PROVIDER, (void*)"udp_" );
+		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
+			LBER_SBIOD_LEVEL_PROVIDER, (void*)"udp_" );
 #endif
-	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_udp,
-		LBER_SBIOD_LEVEL_PROVIDER, (void *)&s );
-	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_readahead,
-		LBER_SBIOD_LEVEL_PROVIDER, NULL );
+		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_udp,
+			LBER_SBIOD_LEVEL_PROVIDER, (void *)&s );
+		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_readahead,
+			LBER_SBIOD_LEVEL_PROVIDER, NULL );
 	} else
 #endif
 	{
 #ifdef LDAP_DEBUG
-	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
-		LBER_SBIOD_LEVEL_PROVIDER, (void*)"tcp_" );
+		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
+			LBER_SBIOD_LEVEL_PROVIDER, (void*)"tcp_" );
 #endif
-	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_tcp,
-		LBER_SBIOD_LEVEL_PROVIDER, (void *)&s );
+		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_tcp,
+			LBER_SBIOD_LEVEL_PROVIDER, (void *)&s );
 	}
 
 #ifdef LDAP_DEBUG
@@ -1307,8 +1306,9 @@ connection_input(
 	char 		*cdn = NULL;
 #endif
 
-	if ( conn->c_currentber == NULL && (conn->c_currentber = ber_alloc())
-	    == NULL ) {
+	if ( conn->c_currentber == NULL &&
+		( conn->c_currentber = ber_alloc()) == NULL )
+	{
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONNECTION, ERR, 
 			"connection_input: conn %lu  ber_alloc failed.\n", 
@@ -1322,8 +1322,7 @@ connection_input(
 	errno = 0;
 
 #ifdef LDAP_CONNECTIONLESS
-	if (conn->c_is_udp)
-	{
+	if ( conn->c_is_udp ) {
 		char	peername[sizeof("IP=255.255.255.255:65336")];
 		len = ber_int_sb_read(conn->c_sb, &peeraddr,
 			sizeof(struct sockaddr));
@@ -1396,12 +1395,12 @@ connection_input(
 	}
 
 #ifdef LDAP_CONNECTIONLESS
-	if (conn->c_is_udp) {
-		if (tag == LBER_OCTETSTRING) {
+	if( conn->c_is_udp ) {
+		if( tag == LBER_OCTETSTRING ) {
 			ber_get_stringa( ber, &cdn );
 			tag = ber_peek_tag(ber, &len);
 		}
-		if (tag != LDAP_REQ_ABANDON && tag != LDAP_REQ_SEARCH) {
+		if( tag != LDAP_REQ_ABANDON && tag != LDAP_REQ_SEARCH ) {
 #ifdef NEW_LOGGING
 		    LDAP_LOG( CONNECTION, ERR, 
 			       "connection_input: conn %lu  invalid req for UDP 0x%lx.\n",
@@ -1427,7 +1426,7 @@ connection_input(
 	op->o_pagedresults_state = conn->c_pagedresults_state;
 #ifdef LDAP_CONNECTIONLESS
 	op->o_peeraddr = peeraddr;
-	if (cdn) {
+	if (cdn ) {
 	    ber_str2bv( cdn, 0, 1, &op->o_dn );
 	    op->o_protocol = LDAP_VERSION2;
 	}
