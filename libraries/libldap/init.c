@@ -314,10 +314,18 @@ void openldap_ldap_initialize( void )
 	openldap_ldap_init_w_userconf(DEFAULT_LDAP_USERRC_FILE);
 
 	{
-		char *altfile = getenv("LDAPRC");
+		char *altfile = getenv("LDAPCONF");
 
 		if( altfile != NULL ) {
 			openldap_ldap_init_w_conf( altfile );
+		}
+	}
+
+	{
+		char *altfile = getenv("LDAPRC");
+
+		if( altfile != NULL ) {
+			openldap_ldap_init_w_userconf( altfile );
 		}
 	}
 

@@ -10,15 +10,25 @@ The
 configuration file is used to set system-wide defaults to be applied when
 running
 .I ldap
-clients.
-Note that each user may specify an optional configuration file,
+clients.  If the environment variable \fBLDAPNOINIT\fP is defined, all
+defaulting is disabled.
+.LP
+Each user may specify an optional configuration file,
 .IR .ldaprc ,
-in his/her home directory which will be used to override system-wide
-defaults file.  The user may also provide a local configuration
-file
-.I ldaprc
-which will be used to override per-user and system-wide defaults.
-Environmental variables may be used to file based defaults.
+in his/her home directory which will be used to override the system-wide
+defaults file.
+.LP
+Additional configuration files can be specified using
+the \fBLDAPCONF\fP and \fBLDAPRC\fP environment variables.
+\fBLDAPCONF\fP may be set the path of a configuration file.  This
+patch can be absolute or relative to current working directory.
+The \fBLDAPRC\fP, if defined, should be a basename of a file
+in the current working directory or in the user's home directory.
+.LP
+Environmental variables may also be used to augment the file based defaults.
+The name of the option is the as listed but with a prefix of \fBLDAP\fP.
+For example, to define \fBBASE\fP via the environment, define the variable
+\fBLDAPBASE\fP to desired value.
 .SH OPTIONS
 The different configuration options are:
 .TP 1i
@@ -61,6 +71,10 @@ dereferenced when searching, or dereferenced only when locating the
 base object for the search.  The default is to never dereference aliases.
 .SH FILES
 .I  ETCDIR/ldap.conf
+.LP
+.I  $HOME/.ldaprc
+.LP
+.I  $CWD/.ldaprc
 .SH "SEE ALSO"
 ldap(3)
 .SH AUTHOR
