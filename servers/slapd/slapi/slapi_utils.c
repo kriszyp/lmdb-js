@@ -166,17 +166,7 @@ Slapi_Entry *
 slapi_entry_dup( Slapi_Entry *e ) 
 {
 #ifdef LDAP_SLAPI
-	Slapi_Entry *ret;
-
-	ret = (Slapi_Entry *)slapi_ch_calloc( 1, sizeof(*ret) );
-
-	ret->e_id = e->e_id;
-	ber_dupbv( &ret->e_name, &e->e_name );
-	ber_dupbv( &ret->e_nname, &e->e_nname );
-	ret->e_attrs = attrs_dup( e->e_attrs );
-	ret->e_ocflags = e->e_ocflags;
-	ber_dupbv( &ret->e_bv, &e->e_bv );
-	ret->e_private = NULL;
+	return entry_dup( e );
 #else /* LDAP_SLAPI */
 	return NULL;
 #endif /* LDAP_SLAPI */
