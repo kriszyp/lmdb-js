@@ -407,6 +407,7 @@ nomem:
 			case BvArray: LBER_FREE((*b->res.ba)[n].bv_val); break;
 			case BvVec: LBER_FREE((*b->res.bv)[n]->bv_val);
 				LBER_FREE((*b->res.bv)[n]); break;
+			default: break;
 			}
 		}
 	}
