@@ -33,7 +33,7 @@ bdb_attribute(
 	struct bdb_op_info *boi = (struct bdb_op_info *) op->o_private;
 	DB_TXN *txn = NULL;
 	Entry *e;
-	int	i, j, rc;
+	int	i, j = 0, rc;
 	Attribute *attr;
 	BerVarray v;
 	const char *entry_at_name = entry_at->ad_cname.bv_val;
