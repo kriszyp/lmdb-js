@@ -47,8 +47,6 @@ int main( int argc, LPTSTR *argv )
 	*/
 	GetModuleFileName( NULL, filename, sizeof( filename ) );
 	fname_start = strrchr( filename, *LDAP_DIRSEP );
-	*fname_start = '\0';
-	SetCurrentDirectory( filename );
 
 	if ( argc > 1 ) {
 		if ( _stricmp( "install", argv[1] ) == 0 ) 
@@ -66,11 +64,7 @@ int main( int argc, LPTSTR *argv )
 			if ( argc > 4 && stricmp(argv[4], "auto") == 0)
 				auto_start = TRUE;
 
-			if ( (length = GetModuleFileName(NULL, filename, sizeof( filename ))) == 0 ) 
-			{
-				fputs( "unable to retrieve file name for the service.\n", stderr  );
-				return EXIT_FAILURE;
-			}
+			strcat(filename, " service");
 			if ( !srv_install(svcName, displayName, filename, auto_start) ) 
 			{
 				fputs( "service failed installation ...\n", stderr  );
@@ -85,11 +79,6 @@ int main( int argc, LPTSTR *argv )
 			char *svcName = SERVICE_NAME;
 			if ( (argc > 2) && (argv[2] != NULL) )
 				svcName = argv[2];
-			if ( (length = GetModuleFileName(NULL, filename, sizeof( filename ))) == 0 ) 
-			{
-				fputs( "unable to retrieve file name for the service.\n", stderr  );
-				return EXIT_FAILURE;
-			}
 			if ( !srv_remove(svcName, filename) ) 
 			{
 				fputs( "failed to remove the service ...\n", stderr  );
@@ -98,14 +87,19 @@ int main( int argc, LPTSTR *argv )
 			fputs( "service has been removed ...\n", stderr );
 			return EXIT_SUCCESS;
 		}
+		if ( _stricmp( "service", argv[1] ) == 0 )
+		{
+			is_NT_Service = 1;
+			*fname_start = '\0';
+			SetCurrentDirectory( filename );
+		}
 	}
 
-	puts( "starting slapd..." );
-	if (svc_installed(SERVICE_NAME, NULL) != 0
-		|| svc_running(SERVICE_NAME) == 1
-		|| StartServiceCtrlDispatcher(DispatchTable) == 0 )
+	if (is_NT_Service)
 	{
-		is_NT_Service = 0;
+		StartServiceCtrlDispatcher(DispatchTable);
+	} else
+	{
 		ServiceMain( argc, argv );
 	}
 
