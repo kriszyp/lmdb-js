@@ -136,7 +136,8 @@ do_compare(
 		goto cleanup;
 	}
 
-	rc = value_normalize( ava.aa_desc, SLAP_MR_EQUALITY, &value, &ava.aa_value, &text );
+	rc = value_validate_normalize( ava.aa_desc, SLAP_MR_EQUALITY,
+		&value, &ava.aa_value, &text );
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc, NULL, text, NULL, NULL );
 		goto cleanup;

@@ -63,7 +63,8 @@ get_ava(
 		return rc;
 	}
 
-	rc = value_normalize( aa->aa_desc, usage, &value, &aa->aa_value, text );
+	rc = value_validate_normalize( aa->aa_desc, usage,
+		&value, &aa->aa_value, text );
 
 	if( rc != LDAP_SUCCESS ) {
 		ch_free( aa );

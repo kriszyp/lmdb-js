@@ -166,7 +166,8 @@ get_mra(
 	 * OK, if no matching rule, normalize for equality, otherwise
 	 * normalize for the matching rule.
 	 */
-	rc = value_normalize( ma->ma_desc, SLAP_MR_EQUALITY, &value, &ma->ma_value, text );
+	rc = value_validate_normalize( ma->ma_desc, SLAP_MR_EQUALITY,
+		&value, &ma->ma_value, text );
 
 	if( rc != LDAP_SUCCESS ) {
 		mra_free( ma, 1 );
