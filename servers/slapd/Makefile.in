@@ -350,7 +350,8 @@ veryclean-local-srv: FORCE
 		fi; \
 	done
 
-install-local-srv: install-slapd install-conf install-schema install-tools
+install-local-srv: install-slapd install-tools \
+	install-conf install-db-config install-schema install-tools
 
 install-slapd: FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
@@ -406,7 +407,6 @@ install-schema: FORCE
 
 install-conf: FORCE
 	@-$(MKDIR) $(DESTDIR)$(sysconfdir)
-	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/openldap-data
 	$(INSTALL) $(INSTALLFLAGS) -m 600 slapd.conf.tmp $(DESTDIR)$(sysconfdir)/slapd.conf.default
 	if test ! -f $(DESTDIR)$(sysconfdir)/slapd.conf; then \
 		echo "installing slapd.conf in $(sysconfdir)"; \
@@ -415,6 +415,14 @@ install-conf: FORCE
 	else \
 		echo "PRESERVING EXISTING CONFIGURATION FILE $(DESTDIR)$(sysconfdir)/slapd.conf" ; \
 	fi
+
+install-db-config: FORCE
+	@-$(MKDIR) $(DESTDIR)$(localstatedir) $(DESTDIR)$(sysconfdir)
+	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/openldap-data
+	$(INSTALL) $(INSTALLFLAGS) -m 600 DB_CONFIG \
+		$(DESTDIR)$(localstatedir)/openldap-data/DB_CONFIG.example
+	$(INSTALL) $(INSTALLFLAGS) -m 600 DB_CONFIG \
+		$(DESTDIR)$(sysconfdir)/DB_CONFIG.example
 
 install-tools: FORCE
 	-$(MKDIR) $(DESTDIR)$(sbindir)
