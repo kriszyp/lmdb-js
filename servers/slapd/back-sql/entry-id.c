@@ -3,6 +3,7 @@
  *
  * Copyright 1999-2004 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
+ * Portions Copyright 2004 Mark Adamson.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
