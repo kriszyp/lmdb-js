@@ -180,7 +180,7 @@ findpres_cb( Operation *op, SlapReply *rs )
 	int ret;
 
 	if ( rs->sr_type == REP_SEARCH ) {
-		ret = slap_sync_build_syncUUID_set( op, &pc->uuids, rs->sr_entry );
+		ret = slap_build_syncUUID_set( op, &pc->uuids, rs->sr_entry );
 		if ( ret > 0 ) {
 			pc->num++;
 			if ( pc->num == SLAP_SYNCUUID_SET_SIZE ) {
@@ -269,7 +269,7 @@ syncprov_findcsn( Operation *op, int mode )
 		fop.ors_attrsonly = 0;
 		fop.ors_attrs = uuid_anlist;
 		fop.ors_slimit = SLAP_NO_LIMIT;
-		cb.sc_private = &fcookie;
+		cb.sc_private = &pcookie;
 		cb.sc_response = findpres_cb;
 		pcookie.num = 0;
 		pcookie.uuids = NULL;
@@ -288,6 +288,7 @@ syncprov_findcsn( Operation *op, int mode )
 
 	fop.o_bd->bd_info = on->on_info->oi_orig;
 	rc = fop.o_bd->be_search( &fop, &frs );
+	fop.o_bd->bd_info = on;
 
 	if ( mode == FIND_CSN ) {
 		if ( !si->si_gotcsn ) {
@@ -403,20 +404,22 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		}
 		ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
 
-		switch(op->o_tag) {
-		case LDAP_REQ_ADD:
-		case LDAP_REQ_MODIFY:
-		case LDAP_REQ_MODRDN:
-		case LDAP_REQ_EXTENDED:
-			syncprov_matchops( op, opc, 0 );
-			break;
-		case LDAP_REQ_DELETE:
-			/* for each match in opc->smatches:
-			 *   send DELETE msg
-			 */
-			for ( sm = opc->smatches; sm; sm=sm->sm_next ) {
+		if ( si->si_ops ) {
+			switch(op->o_tag) {
+			case LDAP_REQ_ADD:
+			case LDAP_REQ_MODIFY:
+			case LDAP_REQ_MODRDN:
+			case LDAP_REQ_EXTENDED:
+				syncprov_matchops( op, opc, 0 );
+				break;
+			case LDAP_REQ_DELETE:
+				/* for each match in opc->smatches:
+				 *   send DELETE msg
+				 */
+				for ( sm = opc->smatches; sm; sm=sm->sm_next ) {
+				}
+				break;
 			}
-			break;
 		}
 
 	}
@@ -497,19 +500,16 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	syncprov_info_t		*si = on->on_bi.bi_private;
 
-	if ( si->si_ops )
-	{
-		slap_callback *cb = op->o_tmpcalloc(1, sizeof(slap_callback)+sizeof(opcookie), op->o_tmpmemctx);
-		opcookie *opc = (opcookie *)(cb+1);
-		opc->son = on;
-		cb->sc_response = syncprov_op_response;
-		cb->sc_private = opc;
-		cb->sc_next = op->o_callback;
-		op->o_callback = cb;
+	slap_callback *cb = op->o_tmpcalloc(1, sizeof(slap_callback)+sizeof(opcookie), op->o_tmpmemctx);
+	opcookie *opc = (opcookie *)(cb+1);
+	opc->son = on;
+	cb->sc_response = syncprov_op_response;
+	cb->sc_private = opc;
+	cb->sc_next = op->o_callback;
+	op->o_callback = cb;
 
-		if ( op->o_tag != LDAP_REQ_ADD )
-			syncprov_matchops( op, opc, 1 );
-	}
+	if ( si->si_ops && op->o_tag != LDAP_REQ_ADD )
+		syncprov_matchops( op, opc, 1 );
 
 	return SLAP_CB_CONTINUE;
 }
@@ -603,18 +603,14 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		} else {
 			/* Does it match the current ctxCSN? */
 			if ( bvmatch( op->o_sync_state.ctxcsn, &si->si_ctxcsn )) {
-				struct berval cookie;
 				LDAPControl	*ctrls[2];
 
 				ctrls[0] = NULL;
 				ctrls[1] = NULL;
-				slap_compose_sync_cookie( op, &cookie, op->o_sync_state.ctxcsn,
-					op->o_sync_state.sid, op->o_sync_state.rid );
-				slap_build_sync_done_ctrl( op, rs, ctrls, 0, 1,
-					&cookie, LDAP_SYNC_REFRESH_DELETES );
+				slap_build_sync_done_ctrl( op, rs, ctrls, 0, 0,
+					NULL, LDAP_SYNC_REFRESH_DELETES );
 				rs->sr_err = LDAP_SUCCESS;
 				send_ldap_result( op, rs );
-				free( cookie.bv_val );
 				return rs->sr_err;
 			}
 			gotstate = 1;
