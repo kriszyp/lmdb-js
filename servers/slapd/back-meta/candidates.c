@@ -119,7 +119,7 @@ meta_back_is_candidate(
 			return META_NOT_CANDIDATE;
 		}
 
-		if ( strcmp( &nsuffix[ len - ndnlen] , ndn ) == 0 ) {
+		if ( strcmp( &nsuffix[ len - ndnlen ] , ndn ) == 0 ) {
 			/*
 			 * Got it!
 			 */

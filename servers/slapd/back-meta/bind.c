@@ -127,6 +127,8 @@ meta_back_bind(
 				"meta_back_bind: no target for dn %s.\n%s%s",
 				dn, "", "");
 #endif /* !NEW_LOGGING */
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, 
+				NULL, NULL, NULL, NULL );
 		return -1;
 	}
 
@@ -198,7 +200,7 @@ meta_back_bind(
 		 * deal with bind failure ...
 		 */
 		err = ldap_back_map_result( err );
-		send_ldap_result( conn, op, err, NULL, "", NULL, NULL );
+		send_ldap_result( conn, op, err, NULL, NULL, NULL, NULL );
 		return -1;
 	}
 
@@ -355,12 +357,14 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 int
 meta_back_op_result( struct metaconn *lc, Operation *op )
 {
-	int i, err = LDAP_SUCCESS;
-	char *msg = NULL;
-	char *match = NULL;
+	int i, rerr = LDAP_SUCCESS;
 	struct metasingleconn **lsc;
 
 	for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; ++i, ++lsc ) {
+		int err = LDAP_SUCCESS;
+		char *msg = NULL;
+		char *match = NULL;
+
 		ldap_get_option( lsc[ 0 ]->ld, LDAP_OPT_ERROR_NUMBER, &err );
 		if ( err != LDAP_SUCCESS ) {
 			/*
@@ -375,39 +379,39 @@ meta_back_op_result( struct metaconn *lc, Operation *op )
 					LDAP_OPT_MATCHED_DN, &match );
 			err = ldap_back_map_result( err );
 
-			/*
-			 * FIXME: need to rewrite "match" (need rwinfo)
-			 */
-			send_ldap_result( lc->conn, op, err, match, msg,
-				       	NULL, NULL );
-			
+			rerr = err;
+		}
+
+		/*
+		 * FIXME: need to rewrite "match" (need rwinfo)
+		 */
+		send_ldap_result( lc->conn, op, err, match, msg, NULL, NULL );
+		
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_DEBUG_NOTICE,
-					"meta_back_op_result: target"
-					" <%d> sending msg \"%s\""
-					" (matched \"%s\")\n",
-					i, ( msg ? msg : "" ),
-					( match ? match : "" ) ));
+		LDAP_LOG(( "backend", LDAP_DEBUG_NOTICE,
+				"meta_back_op_result: target"
+				" <%d> sending msg \"%s\""
+				" (matched \"%s\")\n",
+				i, ( msg ? msg : "" ),
+				( match ? match : "" ) ));
 #else /* !NEW_LOGGING */
-			Debug(LDAP_DEBUG_ANY,
-					"==> meta_back_op_result: target"
-					" <%d> sending msg \"%s\""
-					" (matched \"%s\")\n", 
-					i, ( msg ? msg : "" ),
-					( match ? match : "" ) );
+		Debug(LDAP_DEBUG_ANY,
+				"==> meta_back_op_result: target"
+				" <%d> sending msg \"%s\""
+				" (matched \"%s\")\n", 
+				i, ( msg ? msg : "" ),
+				( match ? match : "" ) );
 #endif /* !NEW_LOGGING */
 
-			/* better test the pointers before freeing? */
-			if ( match ) {
-				free( match );
-			}
-			if ( msg ) {
-				free( msg );
-			}
-			return -1;
+		/* better test the pointers before freeing? */
+		if ( match ) {
+			free( match );
+		}
+		if ( msg ) {
+			free( msg );
 		}
 	}
 
-	return ( err == LDAP_SUCCESS ) ? 0 : -1;
+	return ( rerr == LDAP_SUCCESS ) ? 0 : -1;
 }
 

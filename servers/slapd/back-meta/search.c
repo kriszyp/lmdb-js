@@ -141,6 +141,8 @@ meta_back_search(
 	 */
 	msgid = ch_calloc( sizeof( int ), li->ntargets );
 	if ( msgid == NULL ) {
+		send_search_result( conn, op, LDAP_OPERATIONS_ERROR,
+				NULL, NULL, NULL, NULL, 0 );
 		return -1;
 	}
 	
@@ -315,11 +317,13 @@ meta_back_search(
 		
 		case REWRITE_REGEXEC_UNWILLING:
 			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, "Unwilling to perform",
-					NULL, NULL );
-			/* continue to the next case */
+					NULL, NULL, NULL, NULL );
+			rc = -1;
+			goto finish;
 
 		case REWRITE_REGEXEC_ERR:
+			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+					NULL, NULL, NULL, NULL );
 			rc = -1;
 			goto finish;
 		}
@@ -515,11 +519,13 @@ meta_back_search(
 			
 		case REWRITE_REGEXEC_UNWILLING:
 			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, "Unwilling to perform",
-				       	NULL, NULL );
-			/* continue to the next case */
+					NULL, NULL, NULL, NULL );
+			rc = -1;
+			goto finish;
 			
 		case REWRITE_REGEXEC_ERR:
+			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+					NULL, NULL, NULL, NULL );
 			rc = -1;
 			goto finish;
 		}
