@@ -186,6 +186,9 @@ int bdb_idl_insert( ID *ids, ID id )
 #endif
 
 	if (BDB_IDL_IS_RANGE( ids )) {
+		/* if already in range, treat as a dup */
+		if (id >= BDB_IDL_FIRST(ids) && id <= BDB_IDL_LAST(ids))
+			return -1;
 		if (id < BDB_IDL_FIRST(ids))
 			ids[1] = id;
 		else if (id > BDB_IDL_LAST(ids))

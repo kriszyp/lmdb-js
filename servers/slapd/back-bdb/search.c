@@ -29,8 +29,11 @@ static void send_pagerequest_response(
 	Operation *op,
 	SlapReply *rs,
 	ID  lastid,
-	int tentries );			
+	int tentries );
 
+/* Dereference aliases for a single alias entry. Return the final
+ * dereferenced entry on success, NULL on any failure.
+ */
 static Entry * deref_base (
 	BackendDB *be,
 	SlapReply *rs,
@@ -50,25 +53,38 @@ static Entry * deref_base (
 	rs->sr_text = "maximum deref depth exceeded";
 
 	while (BDB_IDL_N(tmp) < be->be_max_deref_depth) {
+
+		/* Remember the last entry we looked at, so we can
+		 * report broken links
+		 */
 		*matched = e;
-		if ( visited ) {
-			x = bdb_idl_search(visited, e->e_id);
-			if (x > 0 && x <= visited[0] && visited[x] == e->e_id) {
-				e = NULL;
-				break;
-			}
-			bdb_idl_insert( visited, e->e_id );
+
+		/* If this is part of a subtree or onelevel search,
+		 * have we seen this ID before? If so, quit.
+		 */
+		if ( visited && bdb_idl_insert( visited, e->e_id ) ) {
+			e = NULL;
+			break;
 		}
+
+		/* If we've seen this ID during this deref iteration,
+		 * we've hit a loop.
+		 */
 		if ( bdb_idl_insert( tmp, e->e_id ) ) {
 			rs->sr_err = LDAP_ALIAS_PROBLEM;
 			rs->sr_text = "circular alias";
 			e = NULL;
 			break;
 		}
+
+		/* If there was a problem getting the aliasedObjectName,
+		 * get_alias_dn will have set the error status.
+		 */
 		if ( get_alias_dn(e, &ndn, &rs->sr_err, &rs->sr_text) ) {
 			e = NULL;
 			break;
 		}
+
 		rs->sr_err = bdb_dn2entry_r( be, NULL, &ndn, &e,
 			NULL, 0, locker, &lockr );
 		if (!e) {
@@ -76,9 +92,17 @@ static Entry * deref_base (
 			rs->sr_text = "aliasedObject not found";
 			break;
 		}
+
+		/* Free the previous entry, continue to work with the
+		 * one we just retrieved.
+		 */
 		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache,
 			*matched, lock);
 		*lock = lockr;
+
+		/* We found a regular entry. Return this to the caller. The
+		 * entry is still locked for Read.
+		 */
 		if (!is_entry_alias(e)) {
 			rs->sr_err = LDAP_SUCCESS;
 			rs->sr_text = NULL;
@@ -88,6 +112,10 @@ static Entry * deref_base (
 	return e;
 }
 
+/* Look for and dereference all aliases within the search scope. Adds
+ * the dereferenced entries to the "ids" list. Requires "stack" to be
+ * able to hold 8 levels of IDLs.
+ */
 static int search_aliases(
 	Operation *op,
 	SlapReply *rs,
@@ -108,13 +136,18 @@ static int search_aliases(
 	DB_LOCK locka, lockr;
 	int first = 1;
 
-	aliases = stack;
-	curscop = aliases + BDB_IDL_UM_SIZE;
-	subscop = curscop + BDB_IDL_UM_SIZE;
-	visited = subscop + BDB_IDL_UM_SIZE;
-	newsubs = visited + BDB_IDL_UM_SIZE;
-	oldsubs = newsubs + BDB_IDL_UM_SIZE;
-	tmp = oldsubs + BDB_IDL_UM_SIZE;
+
+	aliases = stack;	/* IDL of all aliases in the database */
+	curscop = aliases + BDB_IDL_UM_SIZE;	/* Aliases in the current scope */
+	subscop = curscop + BDB_IDL_UM_SIZE;	/* The current scope */
+	visited = subscop + BDB_IDL_UM_SIZE;	/* IDs we've seen in this search */
+	newsubs = visited + BDB_IDL_UM_SIZE;	/* New subtrees we've added */
+	oldsubs = newsubs + BDB_IDL_UM_SIZE;	/* Subtrees added previously */
+	tmp = oldsubs + BDB_IDL_UM_SIZE;	/* Scratch space for deref_base() */
+
+	/* A copy of subscop, because subscop gets clobbered by
+	 * the bdb_idl_union/intersection routines
+	 */
 	subscop2 = tmp + BDB_IDL_UM_SIZE;
 
 	af.f_choice = LDAP_FILTER_EQUALITY;
@@ -141,6 +174,11 @@ static int search_aliases(
 	ido = bdb_idl_first( oldsubs, &cursoro );
 
 	for (;;) {
+		/* Set curscop to only the aliases in the current scope. Start with
+		 * all the aliases, obtain the IDL for the current scope, and then
+		 * get the intersection of these two IDLs. Make sure to save a copy
+		 * of the scope IDL since it gets clobbered.
+		 */
 		BDB_IDL_CPY( curscop, aliases );
 		rs->sr_err = bdb_filter_candidates( op->o_bd, sf, subscop, NULL, NULL );
 		if (first) {
@@ -152,6 +190,7 @@ static int search_aliases(
 		rs->sr_err = bdb_idl_intersection(curscop, subscop);
 		BDB_IDL_CPY(subscop, subscop2);
 
+		/* Dereference all of the aliases in the current scope. */
 		cursora = 0;
 		for (ida = bdb_idl_first(curscop, &cursora); ida != NOID;
 			ida = bdb_idl_next(curscop, &cursora))
@@ -161,34 +200,56 @@ static int search_aliases(
 			if (rs->sr_err != LDAP_SUCCESS) {
 				continue;
 			}
+
+			/* This should only happen if the curscop IDL has maxed out and
+			 * turned into a range that spans IDs indiscriminately
+			 */
 			if (!is_entry_alias(a)) {
 				bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache,
 					a, &lockr);
 				continue;
 			}
+
+			/* Actually dereference the alias */
 			BDB_IDL_ZERO(tmp);
 			a = deref_base( op->o_bd, rs, a, &matched, locker, &lockr,
 				tmp, visited );
 			if (a) {
-				if (bdb_idl_insert(subscop, a->e_id) == 0
-					&& op->ors_scope == LDAP_SCOPE_SUBTREE)
-				{
+				/* If the target was not already in our current search scope,
+				 * make note of it in the newsubs list.
+				 * FIXME: Somehow we have to propagate these new scopes back
+				 * up to bdb_search.
+				 */
+				if (bdb_idl_insert(subscop, a->e_id) == 0) {
 					bdb_idl_insert(newsubs, a->e_id);
 				}
 				bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache,
 					a, &lockr);
 
 			} else if (matched) {
-				/* ignore errors */
+				/* Alias could not be dereferenced, or it deref'd to
+				 * an ID we've already seen. Ignore it.
+				 */
 				bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache,
 					matched, &lockr );
 				rs->sr_text = NULL;
 			}
 		}
+		/* All of the deref'd aliases have been added to subscop. Add these
+		 * to our candidate list.
+		 */
 		bdb_idl_union( ids, subscop );
+
+		/* If this is a OneLevel search, we're done; oldsubs only had one
+		 * ID in it. For a Subtree search, oldsubs may be a list of scope IDs.
+		 */
 		if (op->ors_scope != LDAP_SCOPE_SUBTREE) break;
 nextido:
 		ido = bdb_idl_next( oldsubs, &cursoro );
+		
+		/* If we're done processing the old scopes, did we add any new
+		 * scopes in this iteration? If so, go back and do those now.
+		 */
 		if (ido == NOID) {
 			if (BDB_IDL_IS_ZERO(newsubs)) break;
 			BDB_IDL_CPY(oldsubs, newsubs);
@@ -196,6 +257,12 @@ nextido:
 			cursoro = 0;
 			ido = bdb_idl_first( oldsubs, &cursoro );
 		}
+
+		/* Find the entry corresponding to the next scope. If it can't
+		 * be found, ignore it and move on. This should never happen;
+		 * we should never see the ID of an entry that doesn't exist.
+		 * Set the name so that the scope's IDL can be retrieved.
+		 */
 		rs->sr_err = bdb_id2entry_r(op->o_bd, NULL, ido, &e, locker, &locka);
 		if (rs->sr_err != LDAP_SUCCESS) goto nextido;
 		sf->f_dn = &e->e_nname;
