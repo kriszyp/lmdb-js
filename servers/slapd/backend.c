@@ -579,14 +579,13 @@ select_backend(
 int
 be_issuffix(
     Backend	*be,
-    const char	*suffix
+    struct berval	*bvsuffix
 )
 {
 	int	i;
-	struct berval	bvsuffix = { strlen( suffix ), (char *)suffix };
 
 	for ( i = 0; be->be_nsuffix != NULL && be->be_nsuffix[i] != NULL; i++ ) {
-		if ( ber_bvcmp( be->be_nsuffix[i], &bvsuffix ) == 0 ) {
+		if ( ber_bvcmp( be->be_nsuffix[i], bvsuffix ) == 0 ) {
 			return( 1 );
 		}
 	}

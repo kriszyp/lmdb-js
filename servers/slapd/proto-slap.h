@@ -168,7 +168,7 @@ LDAP_SLAPD_F (BackendDB *) select_backend LDAP_P((
 	int noSubordinates ));
 
 LDAP_SLAPD_F (int) be_issuffix LDAP_P(( Backend *be,
-	const char *suffix ));
+	struct berval *suffix ));
 LDAP_SLAPD_F (int) be_isroot LDAP_P(( Backend *be,
 	struct berval *ndn ));
 LDAP_SLAPD_F (int) be_isroot_pw LDAP_P(( Backend *be,
@@ -349,6 +349,8 @@ LDAP_SLAPD_F (void) slapd_clr_read LDAP_P((ber_socket_t s, int wake));
 
 #define dn_match(dn1, dn2) 	( ber_bvcmp((dn1), (dn2)) == 0 )
 
+LDAP_SLAPD_V( const struct berval ) slap_empty_bv;
+
 LDAP_SLAPD_F (int) dnValidate LDAP_P((
 	Syntax *syntax, 
 	struct berval *val ));
@@ -402,7 +404,7 @@ LDAP_SLAPD_F (void) build_new_dn LDAP_P((
 	struct berval * parent_dn,
 	struct berval * newrdn ));
 
-LDAP_SLAPD_F (int) dnParent LDAP_P(( const char *dn, const char **pdn ));
+LDAP_SLAPD_F (int) dnParent LDAP_P(( struct berval *dn, struct berval *pdn ));
 
 #define SLAP_DN_MIGRATION
 #ifdef SLAP_DN_MIGRATION

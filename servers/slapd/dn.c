@@ -18,6 +18,8 @@
 
 #include "slap.h"
 
+const struct berval slap_empty_bv = { 0, "" };
+
 #define SLAP_LDAPDN_PRETTY 0x1
 
 /*
@@ -564,16 +566,17 @@ dnMatch(
  */
 int
 dnParent( 
-	const char	*dn, 
-	const char	**pdn )
+	struct berval	*dn, 
+	struct berval	*pdn )
 {
 	const char	*p;
 
-	p = strchr( dn, ',' );
+	p = strchr( dn->bv_val, ',' );
 
 	/* one-level dn */
 	if ( p == NULL ) {
-		*pdn = "";
+		pdn->bv_val = "";
+		pdn->bv_len = 0;
 		return LDAP_SUCCESS;
 	}
 
@@ -581,7 +584,8 @@ dnParent(
 	p++;
 
 	assert( ATTR_LEADCHAR( p[ 0 ] ) );
-	*pdn = p;
+	pdn->bv_val = p;
+	pdn->bv_len = dn->bv_len - (p - dn->bv_val);
 
 	return LDAP_SUCCESS;
 }
@@ -642,6 +646,7 @@ dn_parent(
 	const char	*dn )
 {
 	const char	*pdn;
+	struct berval	bv;
 
 	if ( dn == NULL ) {
 		return NULL;
@@ -655,7 +660,9 @@ dn_parent(
 		return NULL;
 	}
 
-	if ( be != NULL && be_issuffix( be, dn ) ) {
+	bv.bv_val = dn;
+	bv.bv_len = strlen(bv.bv_val);
+	if ( be != NULL && be_issuffix( be, &bv ) ) {
 		return NULL;
 	}
 
@@ -699,7 +706,7 @@ dnExtractRdn(
 }
 
 /*
- * FIXME: should be replaced by dnExtractRdn()
+ * We can assume the input is a prettied or normalized DN
  */
 int 
 dn_rdnlen(
@@ -719,17 +726,13 @@ dn_rdnlen(
 		return 0;
 	}
 
-	if ( be != NULL && be_issuffix( be, dn_in->bv_val ) ) {
+	if ( be != NULL && be_issuffix( be, dn_in ) ) {
 		return 0;
 	}
 
-	rc = ldap_str2rdn( dn_in->bv_val, NULL, (char **)&p, 
-			LDAP_DN_FORMAT_LDAP | LDAP_DN_SKIP );
-	if ( rc != LDAP_SUCCESS ) {
-		return 0;
-	}
+	p = strchr( dn_in->bv_val, ',' );
 
-	return p - dn_in->bv_val;
+	return p ? p - dn_in->bv_val : dn_in->bv_len;
 }
 
 
