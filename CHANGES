@@ -3,6 +3,17 @@ OpenLDAP Change Log
 Changes included in OpenLDAP Stable 
 	CVS Tag: OPENLDAP_STABLE 
 
+Changes included in OpenLDAP Stable 
+	CVS Tag: OPENLDAP_STABLE_981025 
+	Added make/gmake comments
+	Changed ACL Group code to use groupOfNames
+	Changed "X.500" -> "LDAP" in UD
+	Fixed slapd partial results bug
+	Fixed slapd Y2K/GMT bug
+		-DLDAP_LOCALTIME added to provide old behavior
+	Fixed slapd flush writes bug
+	Removed lint
+
 Changes included in OpenLDAP 1.0.2 
 CVS Tag: OPENLDAP_STABLE_980929 
 	Updated README, INSTALL files 
