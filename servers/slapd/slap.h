@@ -1600,12 +1600,19 @@ typedef struct slap_conn {
 #define SASL_AUTHZ_SOURCE_ATTR "saslAuthzTo"
 #define SASL_AUTHZ_DEST_ATTR "saslAuthzFrom"
 
+typedef struct sasl_uri {
+  struct berval dn;
+  struct berval filter;
+  int scope;
+} SaslUri_t;
+
 typedef struct sasl_regexp {
   char *sr_match;							/* regexp match pattern */
-  char *sr_replace;							/* regexp replace pattern */
+  SaslUri_t sr_replace; 						/* regexp replace pattern */
   regex_t sr_workspace;						/* workspace for regexp engine */
   regmatch_t sr_strings[SASLREGEX_REPLACE];	/* strings matching $1,$2 ... */
-  int sr_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
+  int sr_dn_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
+  int sr_fi_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
 } SaslRegexp_t;
 
 /*

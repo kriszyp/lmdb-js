@@ -29,12 +29,12 @@
 #endif
 
 #include <ldap_pvt.h>
-#endif
 
 /* URI format: ldap://<host>/<base>[?[<attrs>][?[<scope>][?[<filter>]]]] */
 
 static int slap_parseURI( struct berval *uri,
-	struct berval *searchbase, int *scope, Filter **filter )
+	struct berval *searchbase, int *scope, Filter **filter,
+	struct berval *fstr )
 {
 	struct berval bv;
 	int rc;
@@ -45,6 +45,11 @@ static int slap_parseURI( struct berval *uri,
 	searchbase->bv_len = 0;
 	*scope = -1;
 	*filter = NULL;
+
+	if ( fstr ) {
+		fstr->bv_val = NULL;
+		fstr->bv_len = 0;
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -86,6 +91,8 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 		*filter = str2filter( ludp->lud_filter );
 		if ( *filter == NULL )
 			rc = LDAP_PROTOCOL_ERROR;
+		else if ( fstr )
+			ber_str2bv( ludp->lud_filter, 0, 1, fstr );
 	}
 
 	/* Grab the searchbase */
@@ -100,6 +107,47 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 	return( rc );
 }
 
+static int slap_sasl_rx_off(char *rep, int *off)
+{
+	const char *c;
+	int n;
+
+	/* Precompile replace pattern. Find the $<n> placeholders */
+	off[0] = -2;
+	n = 1;
+	for ( c = rep;	 *c;  c++ ) {
+		if ( *c == '\\' && c[1] ) {
+			c++;
+			continue;
+		}
+		if ( *c == '$' ) {
+			if ( n == SASLREGEX_REPLACE ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
+					"slap_sasl_regexp_config: \"%s\" has too many $n "
+						"placeholders (max %d)\n",
+					rep, SASLREGEX_REPLACE ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"SASL replace pattern %s has too many $n "
+						"placeholders (max %d)\n",
+					rep, SASLREGEX_REPLACE, 0 );
+#endif
+
+				return( LDAP_OPERATIONS_ERROR );
+			}
+			off[n] = c - rep;
+			n++;
+		}
+	}
+
+	/* Final placeholder, after the last $n */
+	off[n] = c - rep;
+	n++;
+	off[n] = -1;
+	return( LDAP_SUCCESS );
+}
+#endif /* HAVE_CYRUS_SASL */
 
 int slap_sasl_regexp_config( const char *match, const char *replace )
 {
@@ -108,6 +156,7 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	int rc, n;
 	SaslRegexp_t *reg;
 	struct berval bv, nbv;
+	Filter *filter;
 
 	SaslRegexp = (SaslRegexp_t *) ch_realloc( (char *) SaslRegexp,
 	  (nSaslRegexp + 1) * sizeof(SaslRegexp_t) );
@@ -129,20 +178,21 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	reg->sr_match = nbv.bv_val;
 
 	ber_str2bv( replace, 0, 0, &bv );
-	rc = dnNormalize2( NULL, &bv, &nbv );
+	rc = slap_parseURI( &bv, &reg->sr_replace.dn, &reg->sr_replace.scope,
+		&filter, &reg->sr_replace.filter );
+	if ( filter ) filter_free( filter );
 	if ( rc ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-			   "slap_sasl_regexp_config: \"%s\" could not be normalized.\n",
+			   "slap_sasl_regexp_config: \"%s\" could not be parsed.\n",
 			   replace ));
 #else
 		Debug( LDAP_DEBUG_ANY,
-		"SASL replace pattern %s could not be normalized.\n",
+		"SASL replace pattern %s could not be parsed.\n",
 		replace, 0, 0 );
 #endif
 		return( rc );
 	}
-	reg->sr_replace = nbv.bv_val;
 
 	/* Precompile matching pattern */
 	rc = regcomp( &reg->sr_workspace, reg->sr_match, REG_EXTENDED|REG_ICASE );
@@ -160,39 +210,13 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 		return( LDAP_OPERATIONS_ERROR );
 	}
 
-	/* Precompile replace pattern. Find the $<n> placeholders */
-	reg->sr_offset[0] = -2;
-	n = 1;
-	for ( c = reg->sr_replace;	 *c;  c++ ) {
-		if ( *c == '\\' && c[1] ) {
-			c++;
-			continue;
-		}
-		if ( *c == '$' ) {
-			if ( n == SASLREGEX_REPLACE ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-					"slap_sasl_regexp_config: \"%s\" has too many $n "
-						"placeholders (max %d)\n",
-					reg->sr_replace, SASLREGEX_REPLACE ));
-#else
-				Debug( LDAP_DEBUG_ANY,
-					"SASL replace pattern %s has too many $n "
-						"placeholders (max %d)\n",
-					reg->sr_replace, SASLREGEX_REPLACE, 0 );
-#endif
+	rc = slap_sasl_rx_off( reg->sr_replace.dn.bv_val, reg->sr_dn_offset );
+	if ( rc != LDAP_SUCCESS ) return rc;
 
-				return( LDAP_OPERATIONS_ERROR );
-			}
-			reg->sr_offset[n] = c - reg->sr_replace;
-			n++;
-		}
+	if (reg->sr_replace.filter.bv_val ) {
+		rc = slap_sasl_rx_off( reg->sr_replace.filter.bv_val, reg->sr_fi_offset );
+		if ( rc != LDAP_SUCCESS ) return rc;
 	}
-
-	/* Final placeholder, after the last $n */
-	reg->sr_offset[n] = c - reg->sr_replace;
-	n++;
-	reg->sr_offset[n] = -1;
 
 	nSaslRegexp++;
 #endif
@@ -202,17 +226,65 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 
 #ifdef HAVE_CYRUS_SASL
 
+/* Perform replacement on regexp matches */
+static void slap_sasl_rx_exp( char *rep, int *off, regmatch_t *str,
+	char *saslname, struct berval *out )
+{
+	int i, n, len, insert;
+
+	/* Get the total length of the final URI */
+
+	n=1;
+	len = 0;
+	while( off[n] >= 0 ) {
+		/* Len of next section from replacement string (x,y,z above) */
+		len += off[n] - off[n-1] - 2;
+		if( off[n+1] < 0)
+			break;
+
+		/* Len of string from saslname that matched next $i  (b,d above) */
+		i = rep[ off[n] + 1 ]	- '0';
+		len += str[i].rm_eo - str[i].rm_so;
+		n++;
+	}
+	out->bv_val = ch_malloc( len + 1 );
+	out->bv_len = len;
+
+	/* Fill in URI with replace string, replacing $i as we go */
+	n=1;
+	insert = 0;
+	while( off[n] >= 0) {
+		/* Paste in next section from replacement string (x,y,z above) */
+		len = off[n] - off[n-1] - 2;
+		strncpy( out->bv_val+insert, rep + off[n-1] + 2, len);
+		insert += len;
+		if( off[n+1] < 0)
+			break;
+
+		/* Paste in string from saslname that matched next $i  (b,d above) */
+		i = rep[ off[n] + 1 ]	- '0';
+		len = str[i].rm_eo - str[i].rm_so;
+		strncpy( out->bv_val+insert, saslname + str[i].rm_so, len );
+		insert += len;
+
+		n++;
+	}
+
+	out->bv_val[insert] = '\0';
+}
+
 /* Take the passed in SASL name and attempt to convert it into an
    LDAP URI to find the matching LDAP entry, using the pattern matching
    strings given in the saslregexp config file directive(s) */
-static int slap_sasl_regexp( struct berval *in, struct berval *out )
+
+static int slap_sasl_regexp( struct berval *in, SaslUri_t *out )
 {
 	char *saslname = in->bv_val;
-	int i, n, len, insert;
+	char *scope[] = { "base", "one", "sub" };
 	SaslRegexp_t *reg;
+	int i;
 
-	out->bv_val = NULL;
-	out->bv_len = 0;
+	memset( out, 0, sizeof( *out ) );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -240,53 +312,25 @@ static int slap_sasl_regexp( struct berval *in, struct berval *out )
 	 * replace pattern of the form "x$1y$2z". The returned string needs
 	 * to replace the $1,$2 with the strings that matched (b.*) and (d.*)
 	 */
+	slap_sasl_rx_exp( reg->sr_replace.dn.bv_val, reg->sr_dn_offset,
+		reg->sr_strings, saslname, &out->dn );
 
+	if ( reg->sr_replace.filter.bv_val )
+		slap_sasl_rx_exp( reg->sr_replace.filter.bv_val,
+			reg->sr_fi_offset, reg->sr_strings, saslname, &out->filter );
+	
+	out->scope = reg->sr_replace.scope;
 
-	/* Get the total length of the final URI */
-
-	n=1;
-	len = 0;
-	while( reg->sr_offset[n] >= 0 ) {
-		/* Len of next section from replacement string (x,y,z above) */
-		len += reg->sr_offset[n] - reg->sr_offset[n-1] - 2;
-		if( reg->sr_offset[n+1] < 0)
-			break;
-
-		/* Len of string from saslname that matched next $i  (b,d above) */
-		i = reg->sr_replace[ reg->sr_offset[n] + 1 ]	- '0';
-		len += reg->sr_strings[i].rm_eo - reg->sr_strings[i].rm_so;
-		n++;
-	}
-	out->bv_val = ch_malloc( len + 1 );
-	out->bv_len = len;
-
-	/* Fill in URI with replace string, replacing $i as we go */
-	n=1;
-	insert = 0;
-	while( reg->sr_offset[n] >= 0) {
-		/* Paste in next section from replacement string (x,y,z above) */
-		len = reg->sr_offset[n] - reg->sr_offset[n-1] - 2;
-		strncpy( out->bv_val+insert, reg->sr_replace + reg->sr_offset[n-1] + 2, len);
-		insert += len;
-		if( reg->sr_offset[n+1] < 0)
-			break;
-
-		/* Paste in string from saslname that matched next $i  (b,d above) */
-		i = reg->sr_replace[ reg->sr_offset[n] + 1 ]	- '0';
-		len = reg->sr_strings[i].rm_eo - reg->sr_strings[i].rm_so;
-		strncpy( out->bv_val+insert, saslname + reg->sr_strings[i].rm_so, len );
-		insert += len;
-
-		n++;
-	}
-
-	out->bv_val[insert] = '\0';
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		"slap_sasl_regexp: converted SASL name to %s\n", out->bv_val ));
+		"slap_sasl_regexp: converted SASL name to ldap:///%s??%s?%s\n",
+		out->dn.bv_val, scope[out->scope], out->filter.bv_val ?
+		out->filter.bv_val : "" ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
-	   "slap_sasl_regexp: converted SASL name to %s\n", out->bv_val, 0, 0 );
+	   "slap_sasl_regexp: converted SASL name to ldap:///%s??%s?%s\n",
+		out->dn.bv_val, scope[out->scope], out->filter.bv_val ?
+		out->filter.bv_val : "" );
 #endif
 
 	return( 1 );
@@ -341,13 +385,12 @@ static int sasl_sc_sasl2dn( BackendDB *be, Connection *conn, Operation *o,
 
 void slap_sasl2dn( struct berval *saslname, struct berval *dn )
 {
-	struct berval uri = {0, NULL};
-	struct berval searchbase = {0, NULL};
-	int rc, scope;
+	int rc;
 	Backend *be;
 	Filter *filter=NULL;
 	slap_callback cb = {sasl_sc_r, sasl_sc_s, sasl_sc_sasl2dn, NULL};
 	Operation op = {0};
+	SaslUri_t uri;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -360,14 +403,12 @@ void slap_sasl2dn( struct berval *saslname, struct berval *dn )
 	dn->bv_len = 0;
 	cb.sc_private = dn;
 
-	/* Convert the SASL name into an LDAP URI */
+	/* Convert the SASL name into a minimal URI */
 	if( !slap_sasl_regexp( saslname, &uri ) )
 		goto FINISHED;
 
-	rc = slap_parseURI( &uri, &searchbase, &scope, &filter );
-	if( rc ) {
-		goto FINISHED;
-	}
+	if ( uri.filter.bv_val )
+		filter = str2filter( uri.filter.bv_val );
 
 	/* FIXME: move this check to after select_backend, and set
 	 * the selected backend in conn->c_authz_backend, to allow
@@ -375,10 +416,10 @@ void slap_sasl2dn( struct berval *saslname, struct berval *dn )
 	 *   ... when all of that gets implemented...
 	 */
 	/* Massive shortcut: search scope == base */
-	if( scope == LDAP_SCOPE_BASE ) {
-		*dn = searchbase;
-		searchbase.bv_len = 0;
-		searchbase.bv_val = NULL;
+	if( uri.scope == LDAP_SCOPE_BASE ) {
+		*dn = uri.dn;
+		uri.dn.bv_len = 0;
+		uri.dn.bv_val = NULL;
 		goto FINISHED;
 	}
 
@@ -387,17 +428,17 @@ void slap_sasl2dn( struct berval *saslname, struct berval *dn )
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
 		   "slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
-		   searchbase.bv_val, scope ));
+		   uri.dn.bv_val, uri.scope ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
-	   searchbase.bv_val, scope, 0 );
+	   uri.dn.bv_val, uri.scope, 0 );
 #endif
 
-	be = select_backend( &searchbase, 0, 1 );
+	be = select_backend( &uri.dn, 0, 1 );
 	if(( be == NULL ) || ( be->be_search == NULL))
 		goto FINISHED;
-	suffix_alias( be, &searchbase );
+	suffix_alias( be, &uri.dn );
 
 	op.o_tag = LDAP_REQ_SEARCH;
 	op.o_protocol = LDAP_VERSION3;
@@ -405,14 +446,14 @@ void slap_sasl2dn( struct berval *saslname, struct berval *dn )
 	op.o_callback = &cb;
 	op.o_time = slap_get_time();
 
-	(*be->be_search)( be, /*conn*/NULL, &op, /*base*/NULL, &searchbase,
-	   scope, /*deref=*/1, /*sizelimit=*/1, /*time=*/0, filter, /*fstr=*/NULL,
+	(*be->be_search)( be, /*conn*/NULL, &op, /*base*/NULL, &uri.dn,
+	   uri.scope, /*deref=*/1, /*sizelimit=*/1, /*time=*/0, filter, /*fstr=*/NULL,
 	   /*attrs=*/NULL, /*attrsonly=*/0 );
 	
 FINISHED:
-	if( searchbase.bv_len ) ch_free( searchbase.bv_val );
+	if( uri.dn.bv_len ) ch_free( uri.dn.bv_val );
+	if( uri.filter.bv_len ) ch_free( uri.filter.bv_val );
 	if( filter ) filter_free( filter );
-	if( uri.bv_val ) ch_free( uri.bv_val );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -473,7 +514,7 @@ int slap_sasl_match( struct berval *rule, struct berval *assertDN, struct berval
 	   "===>slap_sasl_match: comparing DN %s to rule %s\n", assertDN->bv_val, rule->bv_val, 0 );
 #endif
 
-	rc = slap_parseURI( rule, &searchbase, &scope, &filter );
+	rc = slap_parseURI( rule, &searchbase, &scope, &filter, NULL );
 	if( rc != LDAP_SUCCESS )
 		goto CONCLUDED;
 
