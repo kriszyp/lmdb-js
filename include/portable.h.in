@@ -359,11 +359,17 @@
 /* Define if you have the <bits/types.h> header file.  */
 #undef HAVE_BITS_TYPES_H
 
+/* Define if you have the <bn.h> header file.  */
+#undef HAVE_BN_H
+
 /* Define if you have the <conio.h> header file.  */
 #undef HAVE_CONIO_H
 
 /* Define if you have the <crypt.h> header file.  */
 #undef HAVE_CRYPT_H
+
+/* Define if you have the <crypto.h> header file.  */
+#undef HAVE_CRYPTO_H
 
 /* Define if you have the <cthreads.h> header file.  */
 #undef HAVE_CTHREADS_H
@@ -463,6 +469,12 @@
 
 /* Define if you have the <netinet/tcp.h> header file.  */
 #undef HAVE_NETINET_TCP_H
+
+/* Define if you have the <openssl/bn.h> header file.  */
+#undef HAVE_OPENSSL_BN_H
+
+/* Define if you have the <openssl/crypto.h> header file.  */
+#undef HAVE_OPENSSL_CRYPTO_H
 
 /* Define if you have the <openssl/ssl.h> header file.  */
 #undef HAVE_OPENSSL_SSL_H
@@ -835,6 +847,9 @@
 
 /* define if you have -lslp */
 #undef HAVE_SLP
+
+/* define if you have SSLeay or OpenSSL's BIGNUM */
+#undef HAVE_BIGNUM
 
 /* define if you have -lgmp */
 #undef HAVE_GMP
