@@ -41,9 +41,12 @@
 
 #define UNSUPPORTED_EXTENDEDOP "unsupported extended operation"
 
+#define SLAP_EXOP_HIDE 0x8000
+
 static struct extop_list {
 	struct extop_list *next;
 	struct berval oid;
+	slap_mask_t flags;
 	SLAP_EXTOP_MAIN_FN *ext_main;
 } *supp_ext_list = NULL;
 
@@ -63,15 +66,16 @@ const struct berval slap_EXOP_START_TLS = BER_BVC(LDAP_EXOP_START_TLS);
 
 static struct {
 	const struct berval *oid;
+	slap_mask_t flags;
 	SLAP_EXTOP_MAIN_FN *ext_main;
 } builtin_extops[] = {
 #ifdef LDAP_EXOP_X_CANCEL
-	{ &slap_EXOP_CANCEL, cancel_extop },
+	{ &slap_EXOP_CANCEL, SLAP_EXOP_HIDE, cancel_extop },
 #endif
-	{ &slap_EXOP_WHOAMI, whoami_extop },
-	{ &slap_EXOP_MODIFY_PASSWD, passwd_extop },
+	{ &slap_EXOP_WHOAMI, 0, whoami_extop },
+	{ &slap_EXOP_MODIFY_PASSWD, 0, passwd_extop },
 #ifdef HAVE_TLS
-	{ &slap_EXOP_START_TLS, starttls_extop },
+	{ &slap_EXOP_START_TLS, 0, starttls_extop },
 #endif
 	{ NULL, NULL }
 };
@@ -80,21 +84,27 @@ static struct {
 static struct extop_list *find_extop(
 	struct extop_list *list, struct berval *oid );
 
-struct berval *
-get_supported_extop (int index)
+int exop_root_dse_info( Entry *e )
 {
+	AttributeDescription *ad_supportedExtension
+		= slap_schema.si_ad_supportedExtension;
+	struct berval vals[2];
 	struct extop_list *ext;
 
-	/* linear scan is slow, but this way doesn't force a
-	 * big change on root_dse.c, where this routine is used.
-	 */
-	for (ext = supp_ext_list; ext != NULL && --index >= 0; ext = ext->next) {
-		; /* empty */
+	vals[1].bv_val = NULL;
+	vals[1].bv_len = 0;
+
+	for (ext = supp_ext_list; ext != NULL; ext = ext->next) {
+		if( ext->flags & SLAP_EXOP_HIDE ) continue;
+
+		vals[0] = ext->oid;
+
+		if( attr_merge( e, ad_supportedExtension, vals, NULL ) ) {
+			return LDAP_OTHER;
+		}
 	}
 
-	if (ext == NULL) return NULL;
-
-	return &ext->oid ;
+	return LDAP_SUCCESS;
 }
 
 int
@@ -308,6 +318,7 @@ done:
 int
 load_extop(
 	struct berval *ext_oid,
+	slap_mask_t ext_flags,
 	SLAP_EXTOP_MAIN_FN *ext_main )
 {
 	struct extop_list *ext;
@@ -319,6 +330,8 @@ load_extop(
 	ext = ch_calloc(1, sizeof(struct extop_list) + ext_oid->bv_len + 1);
 	if (ext == NULL)
 		return(-1);
+
+	ext->flags = ext_flags;
 
 	ext->oid.bv_val = (char *)(ext + 1);
 	AC_MEMCPY( ext->oid.bv_val, ext_oid->bv_val, ext_oid->bv_len );
@@ -339,7 +352,9 @@ extops_init (void)
 	int i;
 
 	for (i = 0; builtin_extops[i].oid != NULL; i++) {
-		load_extop((struct berval *)builtin_extops[i].oid, builtin_extops[i].ext_main);
+		load_extop((struct berval *)builtin_extops[i].oid,
+			builtin_extops[i].flags,
+			builtin_extops[i].ext_main);
 	}
 	return(0);
 }

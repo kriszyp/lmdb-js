@@ -443,6 +443,8 @@ LDAP_SLAPD_F (int) entry_id_cmp LDAP_P(( const void *v_a, const void *v_b ));
 /*
  * extended.c
  */
+LDAP_SLAPD_F (int) exop_root_dse_info LDAP_P ((Entry *e));
+
 #ifdef LDAP_EXOP_X_CANCEL
 LDAP_SLAPD_V( const struct berval ) slap_EXOP_CANCEL;
 #endif
@@ -457,13 +459,12 @@ typedef int (SLAP_EXTOP_GETOID_FN) LDAP_P((
 
 LDAP_SLAPD_F (int) load_extop LDAP_P((
 	struct berval *ext_oid,
+	slap_mask_t flags,
 	SLAP_EXTOP_MAIN_FN *ext_main ));
 
 LDAP_SLAPD_F (int) extops_init LDAP_P(( void ));
 
 LDAP_SLAPD_F (int) extops_kill LDAP_P(( void ));
-
-LDAP_SLAPD_F (struct berval *) get_supported_extop LDAP_P((int index));
 
 /*
  *  * cancel.c

@@ -132,7 +132,8 @@ ldap_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		load_extop( (struct berval *)&slap_EXOP_WHOAMI, ldap_back_exop_whoami );
+		load_extop( (struct berval *)&slap_EXOP_WHOAMI,
+			0, ldap_back_exop_whoami );
 	
 	/* dn massaging */
 	} else if ( strcasecmp( argv[0], "suffixmassage" ) == 0 ) {
