@@ -14,8 +14,8 @@ static char copyright[] = "@(#) Copyright (c) 1994 The Regents of the University
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 
+#include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/time.h>
 

@@ -17,16 +17,15 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 
+#include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/unistd.h>
 
 #ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif
-
-#include <ac/unistd.h>
 
 #include "lber.h"
 #include "ldap.h"

@@ -16,13 +16,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <ac/string.h>
-#include <ctype.h>
-#include <ac/unistd.h>
-
-#include <errno.h>
-#include <sys/types.h>
+#include <ac/ctype.h>
+#include <ac/errno.h>
 #include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
 
 #ifdef HAVE_IO_H
 #include <io.h>

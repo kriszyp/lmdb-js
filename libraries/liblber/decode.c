@@ -23,7 +23,6 @@
 #endif
 
 #include <ac/string.h>
-#include <sys/types.h>
 #include <ac/socket.h>
 
 #include "lber.h"

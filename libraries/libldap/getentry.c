@@ -13,8 +13,8 @@ static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of 
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 
+#include <ac/ctype.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>

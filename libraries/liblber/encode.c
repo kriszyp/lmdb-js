@@ -15,7 +15,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ac/string.h>
 
 #ifdef STDC_HEADERS
 #include <stdarg.h>
@@ -23,8 +22,8 @@
 #include <varargs.h>
 #endif
 
-#include <sys/types.h>
 #include <ac/socket.h>
+#include <ac/string.h>
 
 #include "lber.h"
 

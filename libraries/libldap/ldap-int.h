@@ -22,7 +22,7 @@
 #endif /* LDAP_DNS */
 #endif /* LDAP_REFERRALS */
 
-
+LDAP_BEGIN_DECL
 /*
  * in cache.c
  */
@@ -133,4 +133,6 @@ int ldap_t61_to_8859( char **bufp, unsigned long *buflenp, int free_input );
 extern 
 int ldap_8859_to_t61( char **bufp, unsigned long *buflenp, int free_input );
 #endif /* LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET */
+
+LDAP_END_DECL
 #endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */

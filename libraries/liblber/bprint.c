@@ -3,8 +3,8 @@
 
 #if defined( LDAP_DEBUG ) && defined( LDAP_LIBUI )
 #include <stdio.h>
-#include <ctype.h>
 
+#include <ac/ctype.h>
 #include <ac/string.h>
 #endif /* LDAP_DEBUG && LDAP_LIBUI  */
 
