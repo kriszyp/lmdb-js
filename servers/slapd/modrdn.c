@@ -446,12 +446,11 @@ slap_modrdn2mods(
 	assert( !deleteoldrdn || old_rdn != NULL );
 
 	/* Add new attribute values to the entry */
-	for ( a_cnt = 0; new_rdn[ 0 ][ a_cnt ]; a_cnt++ ) {
+	for ( a_cnt = 0; new_rdn[0][a_cnt]; a_cnt++ ) {
 		AttributeDescription	*desc = NULL;
 		Modifications 		*mod_tmp;
 
-		rc = slap_bv2ad( &new_rdn[ 0 ][ a_cnt ]->la_attr, 
-				&desc, &text );
+		rc = slap_bv2ad( &new_rdn[0][a_cnt]->la_attr, &desc, &text );
 
 		if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -470,31 +469,47 @@ slap_modrdn2mods(
 
 		/* ACL check of newly added attrs */
 		if ( be && !access_allowed( be, conn, op, e, desc,
-			&new_rdn[ 0 ][ a_cnt ]->la_value, ACL_WRITE, NULL ) ) {
+			&new_rdn[0][a_cnt]->la_value, ACL_WRITE, NULL ) ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, ERR, 
 				"slap_modrdn2modlist: access to attr \"%s\" "
 				"(new) not allowed\n", 
-				new_rdn[ 0 ][a_cnt]->la_attr.bv_val, 0, 0 );
+				new_rdn[0][a_cnt]->la_attr.bv_val, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"slap_modrdn2modlist: access to attr \"%s\" "
 				"(new) not allowed\n", 
-				new_rdn[ 0 ][ a_cnt ]->la_attr.bv_val, 0, 0 );
+				new_rdn[0][ a_cnt ]->la_attr.bv_val, 0, 0 );
 #endif
 			rc = LDAP_INSUFFICIENT_ACCESS;
 			goto done;
 		}
 
 		/* Apply modification */
+#ifdef SLAP_NVALUES
+		mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications )
+			+ 4 * sizeof( struct berval ) );
+#else
 		mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications )
 			+ 2 * sizeof( struct berval ) );
+#endif
 		mod_tmp->sml_desc = desc;
 		mod_tmp->sml_values = ( BerVarray )( mod_tmp + 1 );
-		mod_tmp->sml_values[ 0 ] = new_rdn[ 0 ][ a_cnt ]->la_value;
-		mod_tmp->sml_values[ 1 ].bv_val = NULL;
+		mod_tmp->sml_values[0] = new_rdn[0][a_cnt]->la_value;
+		mod_tmp->sml_values[1].bv_val = NULL;
 #ifdef SLAP_NVALUES
-		mod_tmp->sml_nvalues = NULL;
+		if( desc->ad_type->sat_equality->smr_normalize) {
+			mod_tmp->sml_nvalues = &mod_tmp->sml_values[2];
+			(void) (*desc->ad_type->sat_equality->smr_normalize)(
+				SLAP_MR_EQUALITY,
+				desc->ad_type->sat_syntax,
+				desc->ad_type->sat_equality,
+				&mod_tmp->sml_values[0],
+				&mod_tmp->sml_nvalues[0] );
+			mod_tmp->sml_nvalues[1].bv_val = NULL;
+		} else {
+			mod_tmp->sml_nvalues = NULL;
+		}
 #endif
 		mod_tmp->sml_op = SLAP_MOD_SOFTADD;
 		mod_tmp->sml_next = mod;
@@ -503,25 +518,23 @@ slap_modrdn2mods(
 
 	/* Remove old rdn value if required */
 	if ( deleteoldrdn ) {
-		for ( d_cnt = 0; old_rdn[ 0 ][ d_cnt ]; d_cnt++ ) {
+		for ( d_cnt = 0; old_rdn[0][d_cnt]; d_cnt++ ) {
 			AttributeDescription	*desc = NULL;
 			Modifications 		*mod_tmp;
 
-			rc = slap_bv2ad( &old_rdn[ 0 ][ d_cnt ]->la_attr,
-					&desc, &text );
-
+			rc = slap_bv2ad( &old_rdn[0][d_cnt]->la_attr, &desc, &text );
 			if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR, 
 					"slap_modrdn2modlist: %s: %s (old)\n", 
 					text, 
-					old_rdn[ 0 ][ d_cnt ]->la_attr.bv_val, 
+					old_rdn[0][d_cnt]->la_attr.bv_val, 
 					0 );
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"slap_modrdn2modlist: %s: %s (old)\n",
 					text, 
-					old_rdn[ 0 ][ d_cnt ]->la_attr.bv_val, 
+					old_rdn[0][d_cnt]->la_attr.bv_val, 
 					0 );
 #endif
 				goto done;		
@@ -529,7 +542,7 @@ slap_modrdn2mods(
 
 			/* ACL check of newly added attrs */
 			if ( be && !access_allowed( be, conn, op, e, desc,
-				&old_rdn[ 0 ][ d_cnt ]->la_value, ACL_WRITE, 
+				&old_rdn[0][d_cnt]->la_value, ACL_WRITE, 
 				NULL ) ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR, 
@@ -549,15 +562,30 @@ slap_modrdn2mods(
 			}
 
 			/* Apply modification */
+#ifdef SLAP_NVALUES
 			mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications )
 				+ 2 * sizeof ( struct berval ) );
+#else
+			mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications )
+				+ 2 * sizeof ( struct berval ) );
+#endif
 			mod_tmp->sml_desc = desc;
 			mod_tmp->sml_values = ( BerVarray )(mod_tmp+1);
-			mod_tmp->sml_values[ 0 ] 
-				= old_rdn[ 0 ][ d_cnt ]->la_value;
-			mod_tmp->sml_values[ 1 ].bv_val = NULL;
+			mod_tmp->sml_values[0] = old_rdn[0][d_cnt]->la_value;
+			mod_tmp->sml_values[1].bv_val = NULL;
 #ifdef SLAP_NVALUES
-			mod_tmp->sml_nvalues = NULL;
+			if( desc->ad_type->sat_equality->smr_normalize) {
+				mod_tmp->sml_nvalues = &mod_tmp->sml_values[2];
+				(void) (*desc->ad_type->sat_equality->smr_normalize)(
+					SLAP_MR_EQUALITY,
+					desc->ad_type->sat_syntax,
+					desc->ad_type->sat_equality,
+					&mod_tmp->sml_values[0],
+					&mod_tmp->sml_nvalues[0] );
+				mod_tmp->sml_nvalues[1].bv_val = NULL;
+			} else {
+				mod_tmp->sml_nvalues = NULL;
+			}
 #endif
 			mod_tmp->sml_op = LDAP_MOD_DELETE;
 			mod_tmp->sml_next = mod;
