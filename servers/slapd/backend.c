@@ -624,7 +624,8 @@ select_backend(
 				if( be == NULL ) {
 					be = &backends[i];
 
-					if( manageDSAit && len == dnlen ) {
+					if( manageDSAit && len == dnlen &&
+						!SLAP_GLUE_SUBORDINATE( be ) ) {
 						continue;
 					}
 				} else {
