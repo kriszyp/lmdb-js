@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 
+#include <ac/string.h>
 #include <ac/socket.h>
 
 #ifdef HAVE_SYS_PARAM_H
