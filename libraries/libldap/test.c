@@ -10,7 +10,14 @@
 #include <ac/unistd.h>
 
 #include <sys/stat.h>
+
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
+#endif
+#ifdef HAVE_IO_H
+#include <io.h>
+#endif
+
 #include <fcntl.h>
 
 #include "lber.h"
@@ -133,7 +140,7 @@ file_read( char *path, struct berval *bv )
 	eof = feof( fp );
 	fclose( fp );
 
-	if ( rlen != bv->bv_len ) {
+	if ( (unsigned long) rlen != bv->bv_len ) {
 		perror( path );
 		free( bv->bv_val );
 		return( -1 );
@@ -959,7 +966,7 @@ print_search_entry( LDAP *ld, LDAPMessage *res )
 					int	j, nonascii;
 
 					nonascii = 0;
-					for ( j = 0; j < vals[i]->bv_len; j++ )
+					for ( j = 0; (unsigned long) j < vals[i]->bv_len; j++ )
 						if ( !isascii( vals[i]->bv_val[j] ) ) {
 							nonascii = 1;
 							break;

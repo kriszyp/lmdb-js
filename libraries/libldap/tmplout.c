@@ -13,7 +13,9 @@
 #include <ac/ctype.h>
 #include <ac/time.h>
 
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
+#endif
 
 #include "lber.h"
 #include "ldap.h"
