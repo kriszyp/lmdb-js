@@ -28,6 +28,18 @@
 #include "slap.h"
 #include "back-relay.h"
 
+static int
+relay_back_swap_bd( struct slap_op *op, struct slap_rep *rs )
+{
+	slap_callback	*cb = op->o_callback;
+	BackendDB	*be = op->o_bd;
+
+	op->o_bd = cb->sc_private;
+	cb->sc_private = be;
+
+	return SLAP_CB_CONTINUE;
+}
+
 static BackendDB *
 relay_back_select_backend( struct slap_op *op, struct slap_rep *rs, int err )
 {
@@ -103,28 +115,24 @@ relay_back_op_bind( struct slap_op *op, struct slap_rep *rs )
 int
 relay_back_op_unbind( struct slap_op *op, struct slap_rep *rs )
 {
+	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	bd = ri->ri_bd;
 	if ( bd == NULL ) {
-		return 1;
+		bd = select_backend( &op->o_req_ndn, 0, 1 );
 	}
 
-	if ( bd->be_unbind ) {
+	if ( bd && bd->be_unbind ) {
 		BackendDB	*be = op->o_bd;
 
 		op->o_bd = bd;
 		rc = ( bd->be_unbind )( op, rs );
 		op->o_bd = be;
-
-	} else {
-		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-				"operation not supported "
-				"within naming context" );
 	}
 
-	return rc;
+	return 0;
 
 }
 
@@ -141,6 +149,13 @@ relay_back_op_search( struct slap_op *op, struct slap_rep *rs )
 
 	if ( bd->be_search ) {
 		BackendDB	*be = op->o_bd;
+		slap_callback	cb;
+
+		cb.sc_next = op->o_callback;
+		cb.sc_response = relay_back_swap_bd;
+		cb.sc_cleanup = relay_back_swap_bd;
+		cb.sc_private = op->o_bd;
+		op->o_callback = &cb;
 
 		op->o_bd = bd;
 		rc = ( bd->be_search )( op, rs );
