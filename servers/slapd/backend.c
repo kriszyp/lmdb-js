@@ -944,7 +944,7 @@ backend_check_restrictions(
 	slap_mask_t restrictops;
 	slap_mask_t requires;
 	slap_mask_t opflag;
-	slap_mask_t exopflag;
+	slap_mask_t exopflag = 0;
 	slap_ssf_set_t *ssf;
 	int updateop = 0;
 	int starttls = 0;
