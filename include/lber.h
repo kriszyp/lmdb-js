@@ -431,7 +431,7 @@ ber_get_next LDAP_P((
 	BerElement *ber ));
 
 LBER_F( void )
-ber_init_w_nullc LDAP_P((
+ber_init_w_nullc LDAP_P((	/* DEPRECATED */
 	BerElement *ber,
 	int options ));
 
