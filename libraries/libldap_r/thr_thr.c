@@ -149,4 +149,10 @@ ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mp )
 	return( mutex_trylock( mp ) );
 }
 
+ldap_pvt_thread_t
+ldap_pvt_thread_self( void )
+{
+	return thr_self();
+}
+
 #endif /* HAVE_THR */

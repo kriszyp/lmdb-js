@@ -311,6 +311,11 @@ ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 #endif
 }
 
+ldap_pvt_thread_t ldap_pvt_thread_self( void )
+{
+	return pthread_self();
+}
+
 #ifdef LDAP_THREAD_HAVE_RDWR
 #ifdef HAVE_PTHREAD_RWLOCK_DESTROY
 int 

@@ -152,4 +152,10 @@ ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mp )
 		? -1 : 0;
 }
 
+ldap_pvt_thread_t
+ldap_pvt_thread_self( void )
+{
+	return GetCurrentThread();
+}
+
 #endif

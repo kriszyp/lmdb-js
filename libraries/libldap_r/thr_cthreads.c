@@ -146,4 +146,10 @@ ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mutex )
 	return mutex_try_lock( mutex );
 }
 
+ldap_pvt_thread_t
+ldap_pvt_thread_self( void )
+{
+	return cthread_self();
+}
+
 #endif /* HAVE_MACH_CTHREADS */

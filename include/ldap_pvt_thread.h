@@ -97,6 +97,9 @@ ldap_pvt_thread_mutex_trylock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 LDAP_F( int )
 ldap_pvt_thread_mutex_unlock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
+LDAP_F( ldap_pvt_thread_t )
+ldap_pvt_thread_self LDAP_P(( void ));
+
 #ifndef LDAP_THREAD_HAVE_RDWR
 typedef struct ldap_int_thread_rdwr_s * ldap_pvt_thread_rdwr_t;
 #endif
@@ -183,6 +186,10 @@ ldap_pvt_thread_pool_setkey LDAP_P((
 	void *key,
 	void *data,
 	ldap_pvt_thread_pool_keyfree_t *kfree ));
+
+LDAP_F( void *)
+ldap_pvt_thread_pool_context LDAP_P((
+	ldap_pvt_thread_pool_t *pool ));
 
 LDAP_END_DECL
 

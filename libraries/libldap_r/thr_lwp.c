@@ -360,4 +360,14 @@ ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cv )
 	return( cv->lcv_created ? cv_broadcast( cv->lcv_cv ) : 0 );
 }
 
+ldap_pvt_thread_t
+ldap_pvt_thread_self( void )
+{
+	thread_t		mylwp;
+
+	lwp_self( &mylwp );
+
+	return mylwp;
+}
+
 #endif /* HAVE_LWP */
