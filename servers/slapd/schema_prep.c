@@ -333,28 +333,29 @@ static struct slap_schema_oc_map {
 		offsetof(struct slap_internal_schema, si_oc_dynamicObject) },
 #endif
 #ifdef LDAP_SYNCREPL
-        { "glue", "( 1.3.6.1.4.1.4203.666.3.4 "
-                        "NAME 'glue' "
-                        "DESC 'Glue Entry' "
-                        "SUP top STRUCTURAL )",
-                0, SLAP_OC_OPERATIONAL,
-                offsetof(struct slap_internal_schema, si_oc_glue) },
+		{ "glue", "( 1.3.6.1.4.1.4203.666.3.4 "
+				"NAME 'glue' "
+				"DESC 'Glue Entry' "
+				"SUP top STRUCTURAL )",
+			0, SLAP_OC_OPERATIONAL,
+			offsetof(struct slap_internal_schema, si_oc_glue) },
 
-        { "syncConsumerSubentry", "( 1.3.6.1.4.1.4203.666.3.5 "
-                        "NAME 'syncConsumerSubentry' "
-                        "DESC 'Persistent Info for SyncRepl Consumer' "
-                        "AUXILIARY "
-                        "MAY syncreplCookie )",
-                0, SLAP_OC_OPERATIONAL,
-                offsetof(struct slap_internal_schema, si_oc_syncConsumerSubentry) },
-        { "syncProviderSubentry", "( 1.3.6.1.4.1.4203.666.3.6 "
-                        "NAME 'syncProviderSubentry' "
-                        "DESC 'Persistent Info for SyncRepl Producer' "
-                        "AUXILIARY "
-                        "MAY syncreplCookie )",
-                0, SLAP_OC_OPERATIONAL,
-                offsetof(struct slap_internal_schema, si_oc_syncProviderSubentry) },
+		{ "syncConsumerSubentry", "( 1.3.6.1.4.1.4203.666.3.5 "
+				"NAME 'syncConsumerSubentry' "
+				"DESC 'Persistent Info for SyncRepl Consumer' "
+				"AUXILIARY "
+				"MAY syncreplCookie )",
+			0, SLAP_OC_OPERATIONAL,
+			offsetof(struct slap_internal_schema, si_oc_syncConsumerSubentry) },
+		{ "syncProviderSubentry", "( 1.3.6.1.4.1.4203.666.3.6 "
+				"NAME 'syncProviderSubentry' "
+				"DESC 'Persistent Info for SyncRepl Producer' "
+				"AUXILIARY "
+				"MAY syncreplCookie )",
+			0, SLAP_OC_OPERATIONAL,
+			offsetof(struct slap_internal_schema, si_oc_syncProviderSubentry) },
 #endif
+
 	{ NULL, NULL, NULL, 0, 0 }
 };
 
@@ -513,7 +514,7 @@ static struct slap_schema_ad_map {
 #endif /* LDAP_CACHING */
 
 #ifdef LDAP_SYNCREPL
-        { "syncreplCookie", "( 1.3.6.1.4.1.4203.666.1.23 "
+	{ "syncreplCookie", "( 1.3.6.1.4.1.4203.666.1.23 "
 			"NAME 'syncreplCookie' "
 			"DESC 'syncrepl Cookie for shadow copy' "
 			"EQUALITY octetStringMatch "
