@@ -11,6 +11,7 @@ OpenLDAP 2.1.4 Engineering
 	Fixed ldapmodify LDIF CRLF handling
 	Fixed back-bdb IDL bugs (ITS#1969, ITS#1977, ITS#2015)
 	Fixed back-bdb entry return (ITS#1994)
+	Fixed back-bdb lock_id error detection (ITS#2030)
 	Fixed slapd inappropriate return of operationsError (ITS#1995)
 	Fixed slapd group ACL bug (ITS#1978)
 	Fixed slapd " " handling (ITS#1998)
@@ -23,6 +24,7 @@ OpenLDAP 2.1.4 Engineering
 	Updated slapd/libldap error messages (ITS#1989)
 	Updated slapd/libldap IPv4 only handling
 	Updated slapd bind logging (ITS#1809) (ITS#2017)
+	Updated slapd/libldap IPv6 handling (ITS#2018)
 	Updated libldap LDAP_OPT_RESTART handling
 	Updated new logging
 	Updated OpenLDAPaci syntax/semantics (ITS#2005, ITS#2006)
