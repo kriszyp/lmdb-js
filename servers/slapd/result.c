@@ -17,6 +17,7 @@
 #include <ac/unistd.h>
 
 #include "slap.h"
+#include "slapi.h"
 
 static char *v2ref( BerVarray ref, const char *text )
 {
@@ -369,6 +370,12 @@ send_ldap_response(
 
 		return;
 	}
+
+#ifdef LDAP_SLAPI
+	slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)err );
+	slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, ( matched != NULL ) ? (void *)ch_strdup( matched ) : NULL );
+	slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, ( text != NULL ) ? (void *)ch_strdup( text ) : NULL );
+#endif /* LDAP_SLAPI */
 
 	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
 	num_bytes_sent += bytes;

@@ -267,13 +267,13 @@ do_extended(
 			goto done;
 		}
 
-		rc = slapi_connection_set_pb( pb, conn );
+		rc = slapi_x_connection_set_pb( pb, conn );
 		if ( rc != LDAP_SUCCESS ) {
 			rc = LDAP_OPERATIONS_ERROR;
 			goto done;
 		}
 
-		rc = slapi_operation_set_pb( pb, op );
+		rc = slapi_x_operation_set_pb( pb, op );
 		if ( rc != LDAP_SUCCESS ) {
 			rc = LDAP_OPERATIONS_ERROR;
 			goto done;

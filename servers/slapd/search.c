@@ -340,9 +340,9 @@ do_search(
 	suffix_alias( be, &nbase );
 
 #if defined( LDAP_SLAPI )
-	slapi_backend_set_pb( pb, be );
-	slapi_connection_set_pb( pb, conn );
-	slapi_operation_set_pb( pb, op );
+	slapi_x_backend_set_pb( pb, be );
+	slapi_x_connection_set_pb( pb, conn );
+	slapi_x_operation_set_pb( pb, op );
 	slapi_pblock_set( pb, SLAPI_SEARCH_TARGET, (void *)base.bv_val );
 	slapi_pblock_set( pb, SLAPI_SEARCH_SCOPE, (void *)scope );
 	slapi_pblock_set( pb, SLAPI_SEARCH_DEREF, (void *)deref );

@@ -37,7 +37,8 @@ LDAP_END_DECL
 LDAP_BEGIN_DECL
 
 /*
- * types of plugins
+ * Plugin types universally supported by SLAPI
+ * implementations
  */
 #define SLAPI_PLUGIN_DATABASE           1
 #define SLAPI_PLUGIN_EXTENDEDOP         2
@@ -45,7 +46,21 @@ LDAP_BEGIN_DECL
 #define SLAPI_PLUGIN_POSTOPERATION      4
 #define SLAPI_PLUGIN_MATCHINGRULE       5
 #define SLAPI_PLUGIN_SYNTAX             6
+/* XXX this is SLAPI_PLUGIN_ACL in SunDS */
 #define SLAPI_PLUGIN_AUDIT              7
+/*
+ * The following plugin types are reserved for future
+ * Sun ONE DS compatability.
+ */
+#define SLAPI_PLUGIN_BEPREOPERATION             8       
+#define SLAPI_PLUGIN_BEPOSTOPERATION            9       
+#define SLAPI_PLUGIN_ENTRY                      10      
+#define SLAPI_PLUGIN_TYPE_OBJECT                11      
+#define SLAPI_PLUGIN_INTERNAL_PREOPERATION      12      
+#define SLAPI_PLUGIN_INTERNAL_POSTOPERATION     13
+#define SLAPI_PLUGIN_PWD_STORAGE_SCHEME         14
+#define SLAPI_PLUGIN_VATTR_SP                   15
+#define SLAPI_PLUGIN_REVER_PWD_STORAGE_SCHEME   16
 
 #define SLAPI_PLUGIN_EXTENDED_SENT_RESULT       -1
 #define SLAPI_PLUGIN_EXTENDED_NOT_HANDLED       -2

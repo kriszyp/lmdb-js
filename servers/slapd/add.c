@@ -226,9 +226,9 @@ do_add( Connection *conn, Operation *op )
 	}
 
 #if defined( LDAP_SLAPI )
-	slapi_backend_set_pb( pb, be );
-	slapi_connection_set_pb( pb, conn );
-	slapi_operation_set_pb( pb, op );
+	slapi_x_backend_set_pb( pb, be );
+	slapi_x_connection_set_pb( pb, conn );
+	slapi_x_operation_set_pb( pb, op );
 	slapi_pblock_set( pb, SLAPI_ADD_ENTRY, (void *)e );
 	slapi_pblock_set( pb, SLAPI_ADD_TARGET, (void *)dn.bv_val );
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );

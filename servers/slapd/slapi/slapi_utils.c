@@ -703,10 +703,6 @@ slapi_send_ldap_result(
 		return;
 	}
 
-	slapi_pblock_set( pb, SLAPI_RESULT_CODE, (void *)err);
-	slapi_pblock_set( pb, SLAPI_RESULT_MATCHED, ( matched != NULL ) ? (void *)ch_strdup( matched ) : NULL );
-	slapi_pblock_set( pb, SLAPI_RESULT_TEXT, ( text != NULL ) ? (void *)ch_strdup( text ) : NULL );
-
 	send_ldap_result( conn, op, err, matched, text, NULL, NULL );
 #endif /* defined(LDAP_SLAPI) */
 }
@@ -1135,7 +1131,7 @@ slapi_free_search_results_internal( Slapi_PBlock *pb )
 /*
  * Internal API to prime a Slapi_PBlock with a Backend.
  */
-int slapi_backend_set_pb( Slapi_PBlock *pb, Backend *be )
+int slapi_x_backend_set_pb( Slapi_PBlock *pb, Backend *be )
 {
 #if defined(LDAP_SLAPI)
 	int rc;
@@ -1157,7 +1153,7 @@ int slapi_backend_set_pb( Slapi_PBlock *pb, Backend *be )
 /*
  * Internal API to prime a Slapi_PBlock with a Connection.
  */
-int slapi_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
+int slapi_x_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
 {
 #if defined(LDAP_SLAPI)
 	char *connAuthType;
@@ -1211,7 +1207,7 @@ int slapi_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
 /*
  * Internal API to prime a Slapi_PBlock with an Operation.
  */
-int slapi_operation_set_pb( Slapi_PBlock *pb, Operation *op )
+int slapi_x_operation_set_pb( Slapi_PBlock *pb, Operation *op )
 {
 #if defined(LDAP_SLAPI)
 	int isRoot = 0;
