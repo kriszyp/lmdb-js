@@ -29,6 +29,10 @@
 
 #include "ldap_rq.h"
 
+/* FIXME: for ldap_ld_free() */
+#undef ldap_debug
+#include "../../libraries/libldap/ldap-int.h"
+
 #define SYNCREPL_STR	"syncreplxxx"
 #define CN_STR	"cn="
 
@@ -51,7 +55,6 @@ init_syncrepl(syncinfo_t *si)
 {
 	int i, j, k, l, n;
 	char **attrs, **exattrs;
-	ObjectClass *oc;
 
 	if ( !sync_descs[0] ) {
 		sync_descs[0] = slap_schema.si_ad_objectClass;
@@ -184,7 +187,8 @@ init_syncrepl(syncinfo_t *si)
 
 		for ( i = 0; exattrs[i] != NULL; i++ ) {
 			for ( j = 0; si->si_anlist[j].an_name.bv_val; j++ ) {
-				if ( oc = si->si_anlist[j].an_oc ) {
+				ObjectClass	*oc;
+				if ( ( oc = si->si_anlist[j].an_oc ) ) {
 					k = 0;
 					while ( oc->soc_required[k] ) {
 						if ( !strcmp( exattrs[i],
@@ -279,7 +283,6 @@ do_syncrep1(
 	char syncrepl_cbuf[sizeof(CN_STR SYNCREPL_STR)];
 	struct berval syncrepl_cn_bv;
 	struct sync_cookie	*sc = NULL;
-	struct sync_cookie	syncCookie = { NULL, -1, NULL };
 	struct berval	*psub;
 #ifdef HAVE_TLS
 	void	*ssl;
@@ -1157,7 +1160,6 @@ syncrepl_entry(
 	AttributeAssertion ava = {0};
 	int rc = LDAP_SUCCESS;
 	int ret = LDAP_SUCCESS;
-	const char *text;
 
 	struct berval pdn = BER_BVNULL;
 	struct berval org_req_dn = BER_BVNULL;
@@ -1406,7 +1408,6 @@ syncrepl_del_nonpresent(
 	Modifications *mod;
 	Modifications *modlist = NULL;
 	Modifications **modtail = &modlist;
-	Attribute	*attr;
 	AttributeName	an[2];
 
 	struct berval pdn = BER_BVNULL;
