@@ -583,6 +583,9 @@
 /* Define if you have the V3 library (-lV3).  */
 #undef HAVE_LIBV3
 
+/* Define if you have the bind library (-lbind).  */
+#undef HAVE_LIBBIND
+
 /* Define if you have the dmalloc library (-ldmalloc).  */
 #undef HAVE_LIBDMALLOC
 

@@ -20,28 +20,6 @@
 #define ID2CHILDRENCMD		"ldif2id2children"
 #define MAXARGS      		100
 
-int		ldap_debug;
-int		ldap_syslog;
-int		ldap_syslog_level;
-long		num_entries_sent;
-long		num_bytes_sent;
-int		active_threads;
-char		*default_referral;
-time_t		currenttime;
-pthread_t	listener_tid;
-pthread_mutex_t	num_sent_mutex;
-pthread_mutex_t	entry2str_mutex;
-pthread_mutex_t	active_threads_mutex;
-pthread_mutex_t	new_conn_mutex;
-pthread_mutex_t	currenttime_mutex;
-pthread_mutex_t	strtok_mutex;
-pthread_mutex_t	replog_mutex;
-pthread_mutex_t	ops_mutex;
-pthread_mutex_t	regex_mutex;
-#ifdef SLAPD_CRYPT
-pthread_mutex_t	crypt_mutex;
-#endif
-
 static void fork_child( char *prog, char *args[] );
 static void	wait4kids( int nkidval );
 

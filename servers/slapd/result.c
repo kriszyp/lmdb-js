@@ -116,6 +116,10 @@ send_ldap_result2(
 		pthread_kill( listener_tid, LDAP_SIGUSR1 );
 
 		pthread_cond_wait( &conn->c_wcv, &active_threads_mutex );
+
+		if( active_threads < 1 ) {
+			pthread_cond_signal(&active_threads_cond);
+		}
 		pthread_mutex_unlock( &active_threads_mutex );
 
 		pthread_yield();
@@ -346,6 +350,10 @@ send_search_entry(
 		conn->c_writewaiter = 1;
 		pthread_kill( listener_tid, LDAP_SIGUSR1 );
 		pthread_cond_wait( &conn->c_wcv, &active_threads_mutex );
+
+		if( active_threads < 1 ) {
+			pthread_cond_signal(&active_threads_cond);
+		}
 		pthread_mutex_unlock( &active_threads_mutex );
 
 		pthread_yield();

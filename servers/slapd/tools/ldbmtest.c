@@ -31,31 +31,9 @@ static void		free_and_close(struct dbcache *dbc, Datum key, Datum data);
 static void		edit_entry(char c, Datum *data);
 static void		get_keydata(FILE *fp, char c, Datum *key, Datum *data);
 
-struct dbcache	*dbc;
-LDBM		dbp;
-char		*tailorfile;
-Backend		*be = NULL;
-int		ldap_debug;
-int		ldap_syslog;
-int		ldap_syslog_level;
-long		num_entries_sent;
-long		num_bytes_sent;
-int		active_threads;
-char		*default_referral;
-time_t		currenttime;
-pthread_t	listener_tid;
-pthread_mutex_t	num_sent_mutex;
-pthread_mutex_t	entry2str_mutex;
-pthread_mutex_t	active_threads_mutex;
-pthread_mutex_t	new_conn_mutex;
-pthread_mutex_t	currenttime_mutex;
-pthread_mutex_t	strtok_mutex;
-pthread_mutex_t	replog_mutex;
-pthread_mutex_t	ops_mutex;
-pthread_mutex_t	regex_mutex;
-#ifdef SLAPD_CRYPT
-pthread_mutex_t	crypt_mutex;
-#endif
+static struct dbcache *dbc;
+static LDBM           dbp;
+static Backend		*be = NULL;
 
 int
 main( int argc, char **argv )
@@ -67,6 +45,7 @@ main( int argc, char **argv )
 	IDList		*idl;
 	Backend		*tbe;
 	int		i;
+	char 		*tailorfile;
 
 #ifdef HAVE_BERKELEY_DB2
 	DBC	*cursorp;

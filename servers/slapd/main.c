@@ -13,52 +13,6 @@
 
 
 /*
- * read-only global variables or variables only written by the listener
- * thread (after they are initialized) - no need to protect them with a mutex.
- */
-int		slap_debug = 0;
-
-#ifdef LDAP_DEBUG
-int		ldap_syslog = LDAP_DEBUG_STATS;
-#else
-int		ldap_syslog;
-#endif
-
-int		ldap_syslog_level = LOG_DEBUG;
-int		udp;
-char		*default_referral;
-char		*configfile;
-time_t		starttime;
-pthread_t	listener_tid;
-int		g_argc;
-char		**g_argv;
-/*
- * global variables that need mutex protection
- */
-time_t		currenttime;
-pthread_mutex_t	currenttime_mutex;
-pthread_mutex_t	strtok_mutex;
-int		active_threads;
-pthread_mutex_t	active_threads_mutex;
-pthread_mutex_t	new_conn_mutex;
-#ifdef SLAPD_CRYPT
-pthread_mutex_t crypt_mutex;
-#endif
-long		ops_initiated;
-long		ops_completed;
-int		num_conns;
-pthread_mutex_t	ops_mutex;
-long		num_entries_sent;
-long		num_bytes_sent;
-pthread_mutex_t	num_sent_mutex;
-/*
- * these mutexes must be used when calling the entry2str()
- * routine since it returns a pointer to static data.
- */
-pthread_mutex_t	entry2str_mutex;
-pthread_mutex_t	replog_mutex;
-
-/*
  * when more than one slapd is running on one machine, each one might have
  * it's own LOCAL for syslogging and must have its own pid/args files
  */
@@ -118,11 +72,13 @@ main( int argc, char **argv )
 	int		i;
 	int		inetd = 0;
 	int		port;
+	int		udp;
 	Backend		*be = NULL;
 	FILE		*fp = NULL;
 #ifdef LOG_LOCAL4
     int     syslogUser = DEFAULT_SYSLOG_USER;
 #endif
+	char		*configfile;
 
 	configfile = SLAPD_DEFAULT_CONFIGFILE;
 	port = LDAP_PORT;

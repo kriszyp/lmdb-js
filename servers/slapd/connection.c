@@ -100,6 +100,9 @@ connection_operation( void *arg_v )
 
 	pthread_mutex_lock( &active_threads_mutex );
 	active_threads--;
+	if( active_threads < 1 ) {
+		pthread_cond_signal(&active_threads_cond);
+	}
 	pthread_mutex_unlock( &active_threads_mutex );
 	return NULL;
 }
