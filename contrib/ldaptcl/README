@@ -11,7 +11,12 @@ is expected that code will converge rather than diverge.
 
 Support is provided for University of Michigan LDAP version 3.3,
 OpenLDAP, and Netscape.  The default configuration supports
-OpenLDAP 1.2.4.  OpenLDAP 2.x is not yet supported.
+OpenLDAP 1.2.4 and above.
+
+OpenLDAP 2.x is supported, but there is not yet any support for
+using SASL or TLS.  There may be interface changes in the LDAP API
+which the author is unaware of (a leak was recently fixed for the
+return values of ldap_first/next_attribute() calls).
 
 It uses GNU autoconf.  It builds and installs without requiring
 parallel directories, but it does require that Tcl and Extended Tcl
@@ -57,5 +62,6 @@ and lber libraries.
 This package was test built on a Alpha OSF4.0e with the native C
 compiler.
 
-You may email comments or bug fixes to openldap-devel@OpenLDAP.org,
-or to kunkee@OpenLDAP.org.
+Please email comments or bug fixes to openldap-devel@OpenLDAP.org,
+or to kunkee@OpenLDAP.org.  I would also like to know if you are
+using this interface, so I invite you to drop me an email if you do.
