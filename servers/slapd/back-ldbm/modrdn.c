@@ -379,10 +379,10 @@ ldbm_back_modrdn(
 		add_bv.bv_val = new_rdn_val;
 		add_bv.bv_len = strlen(new_rdn_val);
 		
-		mod[0].ml_type = new_rdn_type;	
-		mod[0].ml_bvalues = add_bvals;
-		mod[0].ml_op = LDAP_MOD_SOFTADD;
-		mod[0].ml_next = NULL;
+		mod[1].ml_type = new_rdn_type;	
+		mod[1].ml_bvalues = add_bvals;
+		mod[1].ml_op = LDAP_MOD_SOFTADD;
+		mod[1].ml_next = NULL;
 
 		/* Remove old rdn value if required */
 
@@ -411,11 +411,10 @@ ldbm_back_modrdn(
 			/* No need to normalize old_rdn_type, delete_values()
 			 * does that for us
 			 */
+			mod[0].ml_type = old_rdn_type;	
+			mod[0].ml_bvalues = del_bvals;
+			mod[0].ml_op = LDAP_MOD_DELETE;
 			mod[0].ml_next = &mod[1];
-			mod[1].ml_type = old_rdn_type;	
-			mod[1].ml_bvalues = del_bvals;
-			mod[1].ml_op = LDAP_MOD_DELETE;
-			mod[1].ml_next = NULL;
 
 			Debug( LDAP_DEBUG_TRACE,
 			       "ldbm_back_modrdn: removing old_rdn_val=%s\n",
@@ -439,8 +438,8 @@ ldbm_back_modrdn(
 #endif
 
 	/* modify memory copy of entry */
-	if ( ldbm_modify_internal( be, conn, op, dn, &mod[0], e )
-	     != 0 ) {
+	if ( ldbm_modify_internal( be, conn, op, dn,
+		&mod[deleteoldrdn ? 0 : 1], e ) != 0 ) {
 	    
 	    goto return_results;
 	    
