@@ -234,8 +234,6 @@ dn2id_delete(
 				(void) idl_delete_key( be, db, key, id );
 
 				free( key.dptr );
-
-				if(rc == -1) break;
 			}
 
 			charray_free( subtree );
