@@ -38,9 +38,13 @@ internal_result_v3(
 	Operation	*op, 
 	SlapReply	*rs )
 {
+#ifdef notdef
+	/* XXX needs review after internal API change */
+	/* rs->sr_nentries appears to always be 0 */
 	if (op->o_tag == LDAP_REQ_SEARCH)
 		slapi_pblock_set( (Slapi_PBlock *)op->o_pb,
 			SLAPI_NENTRIES, (void *)rs->sr_nentries );
+#endif
 
 	return;
 }
