@@ -1,5 +1,5 @@
 # $OpenLDAP$
-## Copyright 1998-2002 The OpenLDAP Foundation, Redwood City, California, USA
+## Copyright 1998-2003 The OpenLDAP Foundation, Redwood City, California, USA
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without

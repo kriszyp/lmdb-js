@@ -1,7 +1,7 @@
 /* config.c - DNS SRV backend configuration file routine */
 /* $OpenLDAP$ */
 /*
- * Copyright 2000-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 

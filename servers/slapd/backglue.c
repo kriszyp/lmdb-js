@@ -1,7 +1,7 @@
 /* backglue.c - backend glue routines */
 /* $OpenLDAP$ */
 /*
- * Copyright 2001-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2001-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 

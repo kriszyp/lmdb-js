@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2002-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* common.h - common definitions for the ldap client tools */
