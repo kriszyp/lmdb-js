@@ -246,7 +246,6 @@ LDAP_SLAPD_F (int) be_issuffix LDAP_P(( Backend *be,
 LDAP_SLAPD_F (int) be_isroot LDAP_P(( Operation *op ));
 LDAP_SLAPD_F (int) be_isroot_dn LDAP_P(( Backend *be, struct berval *ndn ));
 LDAP_SLAPD_F (int) be_isroot_pw LDAP_P(( Operation *op ));
-LDAP_SLAPD_F (int) be_sync_update LDAP_P(( Operation *op ));
 LDAP_SLAPD_F (int) be_slurp_update LDAP_P(( Operation *op ));
 #define be_isupdate( op ) be_slurp_update( (op) )
 LDAP_SLAPD_F (int) be_shadow_update LDAP_P(( Operation *op ));
@@ -1296,8 +1295,6 @@ LDAP_SLAPD_F (Entry*) slap_create_syncrepl_entry LDAP_P((
 					struct berval *, struct berval * ));
 LDAP_SLAPD_F (struct berval *) slap_uuidstr_from_normalized LDAP_P((
 					struct berval *, struct berval *, void * ));
-LDAP_SLAPD_F (int) syncrepl_isupdate LDAP_P(( Operation * ));
-LDAP_SLAPD_F (int) syncrepl_isupdate_dn LDAP_P(( Backend *, struct berval * ));
 LDAP_SLAPD_F (void) syncinfo_free LDAP_P(( syncinfo_t * ));
 
 /* syntax.c */

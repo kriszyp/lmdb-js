@@ -1410,7 +1410,6 @@ with the inner suffix must come first in the configuration file.
 .B [sizelimit=<limit>]
 .B [timelimit=<limit>]
 .B [schemachecking=on|off]
-.B [updatedn=<dn>]
 .B [bindmethod=simple|sasl]
 .B [binddn=<dn>]
 .B [saslmech=<mech>]
@@ -1485,16 +1484,6 @@ The schema checking can be enforced at the LDAP Sync
 consumer site by turning on the
 .B schemachecking
 parameter. The default is off.
-The
-.B updatedn
-parameter specifies the DN in the consumer site
-which is allowed to make changes to the replica.
-The DN should have read/write access to the replica database.
-Generally, this DN
-.I should not
-be the same as the
-.B rootdn
-of the master database.
 A
 .B bindmethod
 of 

@@ -1649,9 +1649,6 @@ add_syncrepl(
 	}
 
 	si->si_tls = SYNCINFO_TLS_OFF;
-	if ( be->be_rootndn.bv_val ) {
-		ber_dupbv( &si->si_updatedn, &be->be_rootndn );
-	}
 	si->si_bindmethod = LDAP_AUTH_SIMPLE;
 	si->si_schemachecking = 0;
 	ber_str2bv( "(objectclass=*)", STRLENOF("(objectclass=*)"), 1,
@@ -1721,7 +1718,6 @@ add_syncrepl(
 #define SLIMITSTR		"sizelimit"
 #define TLIMITSTR		"timelimit"
 #define SCHEMASTR		"schemachecking"
-#define UPDATEDNSTR		"updatedn"
 #define BINDMETHSTR		"bindmethod"
 #define SIMPLESTR			"simple"
 #define SASLSTR				"sasl"
@@ -1748,6 +1744,7 @@ add_syncrepl(
 #define LMREQSTR		"req"
 #define SRVTABSTR		"srvtab"
 #define SUFFIXSTR		"suffix"
+#define UPDATEDNSTR		"updatedn"
 
 /* mandatory */
 #define GOT_ID			0x0001
@@ -1804,23 +1801,6 @@ parse_syncrepl_line(
 			} else {
 				si->si_tls = SYNCINFO_TLS_ON;
 			}
-		} else if ( !strncasecmp( cargv[ i ], UPDATEDNSTR "=",
-					STRLENOF( UPDATEDNSTR "=" ) ) )
-		{
-			struct berval	updatedn = BER_BVNULL;
-			int		rc;
-
-			val = cargv[ i ] + STRLENOF( UPDATEDNSTR "=" );
-			ber_str2bv( val, 0, 0, &updatedn );
-			ch_free( si->si_updatedn.bv_val );
-			rc = dnNormalize( 0, NULL, NULL, &updatedn, &si->si_updatedn, NULL );
-			if ( rc != LDAP_SUCCESS ) {
-				fprintf( stderr, "Error: parse_syncrepl_line: "
-					"update DN \"%s\" is invalid: %d (%s)\n",
-					updatedn, rc, ldap_err2string( rc ) );
-				return -1;
-			}
-			
 		} else if ( !strncasecmp( cargv[ i ], BINDMETHSTR "=",
 				STRLENOF( BINDMETHSTR "=" ) ) )
 		{

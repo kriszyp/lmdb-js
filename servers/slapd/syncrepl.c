@@ -929,10 +929,10 @@ do_syncrepl(
 	op->o_tmpmemctx = NULL;
 	op->o_tmpmfuncs = &ch_mfuncs;
 
-	op->o_dn = si->si_updatedn;
-	op->o_ndn = si->si_updatedn;
 	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	op->o_bd = be = si->si_be;
+	op->o_dn = op->o_bd->be_rootdn;
+	op->o_ndn = op->o_bd->be_rootndn;
 
 	/* Establish session, do search */
 	if ( !si->si_ld ) {
@@ -1217,8 +1217,6 @@ syncrepl_entry(
 	struct berval pdn = BER_BVNULL;
 	struct berval org_req_dn = BER_BVNULL;
 	struct berval org_req_ndn = BER_BVNULL;
-	struct berval org_dn = BER_BVNULL;
-	struct berval org_ndn = BER_BVNULL;
 	int	org_managedsait;
 	dninfo dni = {0};
 	int	retry = 1;
@@ -1327,11 +1325,7 @@ syncrepl_entry(
 
 	org_req_dn = op->o_req_dn;
 	org_req_ndn = op->o_req_ndn;
-	org_dn = op->o_dn;
-	org_ndn = op->o_ndn;
 	org_managedsait = get_manageDSAit( op );
-	op->o_dn = op->o_bd->be_rootdn;
-	op->o_ndn = op->o_bd->be_rootndn;
 	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 
 	if ( syncstate != LDAP_SYNC_DELETE ) {
@@ -1593,8 +1587,6 @@ syncrepl_del_nonpresent(
 	struct berval pdn = BER_BVNULL;
 	struct berval org_req_dn = BER_BVNULL;
 	struct berval org_req_ndn = BER_BVNULL;
-	struct berval org_dn = BER_BVNULL;
-	struct berval org_ndn = BER_BVNULL;
 	int	org_managedsait;
 
 	op->o_req_dn = si->si_base;
@@ -1698,13 +1690,7 @@ syncrepl_del_nonpresent(
 				}
 			}
 
-			org_req_dn = op->o_req_dn;
-			org_req_ndn = op->o_req_ndn;
-			org_dn = op->o_dn;
-			org_ndn = op->o_ndn;
 			org_managedsait = get_manageDSAit( op );
-			op->o_dn = op->o_bd->be_rootdn;
-			op->o_ndn = op->o_bd->be_rootndn;
 			op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 
 			while ( rs_delete.sr_err == LDAP_SUCCESS &&
@@ -1725,8 +1711,6 @@ syncrepl_del_nonpresent(
 			}
 
 			op->o_managedsait = org_managedsait;
-			op->o_dn = org_dn;
-			op->o_ndn = org_ndn;
 			op->o_req_dn = org_req_dn;
 			op->o_req_ndn = org_req_ndn;
 			op->o_delete_glue_parent = 0;
@@ -2080,30 +2064,6 @@ done :
 	return;
 }
 
-int
-syncrepl_isupdate( Operation *op )
-{
-	return ( syncrepl_isupdate_dn( op->o_bd, &op->o_ndn ));
-}
-
-int
-syncrepl_isupdate_dn(
-	Backend*		be,
-	struct berval*	ndn )
-{
-	syncinfo_t*	si;
-	int			ret = 0;
-
-	if ( !LDAP_STAILQ_EMPTY( &be->be_syncinfo )) {
-		LDAP_STAILQ_FOREACH( si, &be->be_syncinfo, si_next ) {
-			if ( ( ret = dn_match( &si->si_updatedn, ndn ) ) ) {
-				return ret;
-			}
-		}
-	}
-	return 0;
-}
-
 static int
 dn_callback(
 	Operation*	op,
@@ -2382,9 +2342,6 @@ syncinfo_free( syncinfo_t *sie )
 	}
 	if ( sie->si_provideruri_bv ) {
 		ber_bvarray_free( sie->si_provideruri_bv );
-	}
-	if ( sie->si_updatedn.bv_val ) {
-		ch_free( sie->si_updatedn.bv_val );
 	}
 	if ( sie->si_binddn ) {
 		ch_free( sie->si_binddn );

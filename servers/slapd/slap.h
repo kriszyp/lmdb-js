@@ -1482,7 +1482,6 @@ typedef struct syncinfo_s {
 #define SYNCINFO_TLS_ON			1
 #define SYNCINFO_TLS_CRITICAL	2
         int					si_tls;
-		struct berval		si_updatedn;	
         int					si_bindmethod;
         char				*si_binddn;
         char				*si_passwd;
