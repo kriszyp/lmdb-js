@@ -31,8 +31,6 @@
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 
-#define EDITOR	"/usr/ucb/vi"
-
 static struct dbcache	*openchoice(char c, int mode, int verbose, char **fname);
 static void		print_entry(FILE *fp, char c, Datum *key, char *klabel, Datum *data, char *dlabel);
 static void		free_and_close(struct dbcache *dbc, Datum key, Datum data);
@@ -537,7 +535,7 @@ edit_entry( char c, Datum *data )
 		char	*editor;
 
 		if ( (editor = getenv( "EDITOR" )) == NULL ) {
-			editor = EDITOR;
+			editor = DEFAULT_EDITOR;
 		}
 		execl( editor, editor, tmpname, NULL );
 		perror( "execl" );
