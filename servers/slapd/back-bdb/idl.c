@@ -469,19 +469,24 @@ bdb_idl_fetch_key(
 		BDB_IDL_CPY( ee->idl, ids );
 		ber_dupbv( &ee->kstr, &idl_tmp.kstr );
 		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
-		avl_insert( &bdb->bi_idl_tree, (caddr_t) ee, (AVL_CMP) bdb_idl_entry_cmp, avl_dup_error );
-		IDL_LRU_ADD( bdb, ee );
-		if ( ++bdb->bi_idl_cache_size > bdb->bi_idl_cache_max_size ) {
-			int i = 0;
-			while ( bdb->bi_idl_lru_tail != NULL && i < 10 ) {
-				ee = bdb->bi_idl_lru_tail;
-				avl_delete( &bdb->bi_idl_tree, (caddr_t) ee, (AVL_CMP) bdb_idl_entry_cmp );
-				IDL_LRU_DELETE( bdb, ee );
-				i++;
-				--bdb->bi_idl_cache_size;
-				free( ee->kstr.bv_val );
-				free( ee->idl );
-				free( ee );
+		if ( avl_insert( &bdb->bi_idl_tree, (caddr_t) ee, (AVL_CMP) bdb_idl_entry_cmp, avl_dup_error )) {
+			free( ee->kstr.bv_val );
+			free( ee->idl );
+			free( ee );
+		} else {
+			IDL_LRU_ADD( bdb, ee );
+			if ( ++bdb->bi_idl_cache_size > bdb->bi_idl_cache_max_size ) {
+				int i = 0;
+				while ( bdb->bi_idl_lru_tail != NULL && i < 10 ) {
+					ee = bdb->bi_idl_lru_tail;
+					avl_delete( &bdb->bi_idl_tree, (caddr_t) ee, (AVL_CMP) bdb_idl_entry_cmp );
+					IDL_LRU_DELETE( bdb, ee );
+					i++;
+					--bdb->bi_idl_cache_size;
+					free( ee->kstr.bv_val );
+					free( ee->idl );
+					free( ee );
+				}
 			}
 		}
 		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
