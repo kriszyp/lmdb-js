@@ -347,8 +347,8 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	/* Are there anything left in the buffer? */
 	if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
 		ret = ber_pvt_sb_do_write( sbiod, &p->buf_out );
-		if ( ret < 0 )
-			return ret;
+		if ( ret < 0 ) return ret;
+
 		/* Still have something left?? */
 		if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
 			errno = EAGAIN;
@@ -378,14 +378,17 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 		ber_log_printf( LDAP_DEBUG_ANY, sbiod->sbiod_sb->sb_debug,
 			"sb_sasl_write: failed to encode packet: %s\n",
 			sasl_errstring( ret, NULL, NULL ) );
+		errno = EIO;
 		return -1;
 	}
 	p->buf_out.buf_end = p->buf_out.buf_size;
 
 	ret = ber_pvt_sb_do_write( sbiod, &p->buf_out );
+#if 0 /* retry => re-sasl_encode, that would be bad */
 	if ( ret <= 0 ) {
 		return ret;
 	}
+#endif
 	return len;
 }
 
@@ -397,8 +400,7 @@ sb_sasl_ctrl( Sockbuf_IO_Desc *sbiod, int opt, void *arg )
 	p = (struct sb_sasl_data *)sbiod->sbiod_pvt;
 
 	if ( opt == LBER_SB_OPT_DATA_READY ) {
-		if ( p->buf_in.buf_ptr != p->buf_in.buf_end )
-			return 1;
+		if ( p->buf_in.buf_ptr != p->buf_in.buf_end ) return 1;
 	}
 	
 	return LBER_SBIOD_CTRL_NEXT( sbiod, opt, arg );
