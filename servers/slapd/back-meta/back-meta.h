@@ -89,7 +89,7 @@ struct metasingleconn {
 #define	META_CANDIDATE		1
 	
 	LDAP            	*ld;
-	struct berval          	*bound_dn;
+	struct berval          	bound_dn;
 	int             	bound;
 #define META_UNBOUND		0
 #define META_BOUND		1

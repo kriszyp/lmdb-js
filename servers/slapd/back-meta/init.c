@@ -164,8 +164,8 @@ conn_free(
 		if ( lsc[ 0 ]->ld != NULL ) {
 			ldap_unbind( lsc[ 0 ]->ld );
 		}
-		if ( lsc[ 0 ]->bound_dn ) {
-			ber_bvfree( lsc[ 0 ]->bound_dn );
+		if ( lsc[ 0 ]->bound_dn.bv_val ) {
+			ber_memfree( lsc[ 0 ]->bound_dn.bv_val );
 		}
 		free( lsc[ 0 ] );
 	}

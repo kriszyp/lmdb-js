@@ -256,7 +256,7 @@ monitor_back_db_init(
 		return -1;
 	}
 
-	ber_bvecadd( &be->be_suffix, ber_bvdup( &dn ) );
+	ber_bvecadd( &be->be_suffix, ber_dupbv( NULL, &dn ) );
 	ber_bvecadd( &be->be_nsuffix, ndn );
 
 	mi = ( struct monitorinfo * )ch_calloc( sizeof( struct monitorinfo ), 1 );

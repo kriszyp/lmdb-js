@@ -487,6 +487,15 @@ ber_dupbv(
 	return new;
 }
 
+
+struct berval *
+ber_bvdup(
+	LDAP_CONST struct berval *src )
+{
+	return ber_dupbv( NULL, src );
+}
+
+
 struct berval *
 ber_str2bv(
 	LDAP_CONST char *s, ber_len_t len, int dup, struct berval *bv)

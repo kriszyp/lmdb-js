@@ -1408,7 +1408,6 @@ typedef struct sasl_regexp {
 #define FLAG_GETDN_AUTHCID 2
 #define FLAG_GETDN_AUTHZID 4
 
-
 LDAP_END_DECL
 
 #include "proto-slap.h"

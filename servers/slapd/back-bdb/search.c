@@ -92,12 +92,13 @@ bdb_search(
 	}
 
 	if ( e == NULL ) {
-		struct berval *matched_dn = NULL;
+		struct berval matched_dn = { 0, NULL };
 		BVarray refs = NULL;
 
 		if ( matched != NULL ) {
 			BVarray erefs;
-			matched_dn = ber_bvdup( &matched->e_name );
+
+			ber_dupbv( &matched_dn, &matched->e_name );
 
 			erefs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched )
@@ -107,7 +108,7 @@ bdb_search(
 			matched = NULL;
 
 			if( erefs ) {
-				refs = referral_rewrite( erefs, matched_dn,
+				refs = referral_rewrite( erefs, &matched_dn,
 					base, scope );
 				bvarray_free( erefs );
 			}
@@ -118,16 +119,18 @@ bdb_search(
 		}
 
 		send_ldap_result( conn, op,	rc=LDAP_REFERRAL ,
-			matched_dn ? matched_dn->bv_val : NULL, text, refs, NULL );
+			matched_dn.bv_val, text, refs, NULL );
 
 		if ( refs ) bvarray_free( refs );
-		if ( matched_dn ) ber_bvfree( matched_dn );
+		if ( matched_dn.bv_val ) ber_memfree( matched_dn.bv_val );
 		return rc;
 	}
 
 	if (!manageDSAit && e != &slap_entry_root && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
-		struct berval *matched_dn = ber_bvdup( &e->e_name );
+		struct berval matched_dn;
+		
+		ber_dupbv( &matched_dn, &e->e_name );
 		BVarray erefs = get_entry_referrals( be, conn, op, e );
 		BVarray refs = NULL;
 
@@ -135,7 +138,7 @@ bdb_search(
 		e = NULL;
 
 		if( erefs ) {
-			refs = referral_rewrite( erefs, matched_dn,
+			refs = referral_rewrite( erefs, &matched_dn,
 				base, scope );
 			bvarray_free( erefs );
 		}
@@ -144,12 +147,12 @@ bdb_search(
 			0, 0, 0 );
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
-			matched_dn->bv_val,
+			matched_dn.bv_val,
 			refs ? NULL : "bad referral object",
 			refs, NULL );
 
 		bvarray_free( refs );
-		ber_bvfree( matched_dn );
+		ber_memfree( matched_dn.bv_val );
 		return 1;
 	}
 

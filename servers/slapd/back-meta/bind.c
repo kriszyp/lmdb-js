@@ -254,7 +254,7 @@ meta_back_do_single_bind(
 	if ( rc != LDAP_SUCCESS ) {
 		rc = ldap_back_map_result( rc );
 	} else {
-		lc->conns[ candidate ]->bound_dn = ber_bvdup( dn );
+		ber_dupbv( &lc->conns[ candidate ]->bound_dn, dn );
 		lc->conns[ candidate ]->bound = META_BOUND;
 		lc->bound_target = candidate;
 
@@ -311,7 +311,7 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 		 * (note: if the target was already bound, the anonymous
 		 * bind clears the previous bind).
 		 */
-		rc = ldap_bind_s( lsc[ 0 ]->ld, lsc[ 0 ]->bound_dn->bv_val,
+		rc = ldap_bind_s( lsc[ 0 ]->ld, lsc[ 0 ]->bound_dn.bv_val,
 				NULL, LDAP_AUTH_SIMPLE );
 		if ( rc != LDAP_SUCCESS ) {
 			
@@ -320,14 +320,14 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 					"meta_back_dobind: (anonymous)"
 					" bind as \"%s\" failed"
 					" with error \"%s\"\n",
-					lsc[ 0 ]->bound_dn->bv_val,
+					lsc[ 0 ]->bound_dn.bv_val,
 					ldap_err2string( rc ) ));
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ANY,
 					"==>meta_back_dobind: (anonymous)"
 					" bind as \"%s\" failed"
 					" with error \"%s\"\n%s",
-					lsc[ 0 ]->bound_dn->bv_val,
+					lsc[ 0 ]->bound_dn.bv_val,
 					ldap_err2string( rc ), "" );
 #endif /* !NEW_LOGGING */
 

@@ -222,38 +222,38 @@ nameUIDValidate(
 	struct berval *in )
 {
 	int rc;
-	struct berval *dn;
+	struct berval dn;
 
 	if( in->bv_len == 0 ) return LDAP_SUCCESS;
 
-	dn = ber_bvdup( in );
-	if( !dn ) return LDAP_OTHER;
+	ber_dupbv( &dn, in );
+	if( !dn.bv_val ) return LDAP_OTHER;
 
-	if( dn->bv_val[dn->bv_len-1] == 'B'
-		&& dn->bv_val[dn->bv_len-2] == '\'' )
+	if( dn.bv_val[dn.bv_len-1] == 'B'
+		&& dn.bv_val[dn.bv_len-2] == '\'' )
 	{
 		/* assume presence of optional UID */
 		ber_len_t i;
 
-		for(i=dn->bv_len-3; i>1; i--) {
-			if( dn->bv_val[i] != '0' &&	dn->bv_val[i] != '1' ) {
+		for(i=dn.bv_len-3; i>1; i--) {
+			if( dn.bv_val[i] != '0' &&	dn.bv_val[i] != '1' ) {
 				break;
 			}
 		}
-		if( dn->bv_val[i] != '\'' ||
-		    dn->bv_val[i-1] != '#' ) {
-			ber_bvfree( dn );
+		if( dn.bv_val[i] != '\'' ||
+		    dn.bv_val[i-1] != '#' ) {
+			ber_memfree( dn.bv_val );
 			return LDAP_INVALID_SYNTAX;
 		}
 
 		/* trim the UID to allow use of dnValidate */
-		dn->bv_val[i-1] = '\0';
-		dn->bv_len = i-1;
+		dn.bv_val[i-1] = '\0';
+		dn.bv_len = i-1;
 	}
 
-	rc = dnValidate( NULL, dn );
+	rc = dnValidate( NULL, &dn );
 
-	ber_bvfree( dn );
+	ber_memfree( &dn );
 	return rc;
 }
 
@@ -3575,7 +3575,7 @@ serial_and_issuer_parse(
 
 	bv.bv_len = end-begin+1;
 	bv.bv_val = begin;
-	*serial = ber_bvdup(&bv);
+	*serial = ber_dupbv(NULL, &bv);
 
 	/* now extract the issuer, remember p was at the dollar sign */
 	begin = p+1;

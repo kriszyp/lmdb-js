@@ -276,26 +276,26 @@ init_one_conn(
 	 * If the connection dn is not null, an attempt to rewrite it is made
 	 */
 	if ( conn->c_cdn != 0 ) {
-		char *mdn = NULL;
 		
 		/*
 		 * Rewrite the bind dn if needed
 		 */
-		lsc->bound_dn = NULL;
+		lsc->bound_dn.bv_val = NULL;
 		switch ( rewrite_session( lt->rwinfo, "bindDn",
-					conn->c_cdn, conn, &mdn ) ) {
+					conn->c_cdn, conn, 
+					&lsc->bound_dn.bv_val ) ) {
 		case REWRITE_REGEXEC_OK:
-			if ( mdn == NULL ) {
-				lsc->bound_dn = ber_bvstrdup( conn->c_cdn );
+			if ( lsc->bound_dn.bv_val == NULL ) {
+				ber_str2bv( conn->c_cdn, 0, 1, &lsc->bound_dn );
 			}
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 					"[rw] bindDn: \"%s\" -> \"%s\"\n",
-					conn->c_cdn, lsc->bound_dn->bv_val ));
+					conn->c_cdn, lsc->bound_dn.bv_val ));
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
 				       	"rw> bindDn: \"%s\" -> \"%s\"\n",
-					conn->c_cdn, lsc->bound_dn->bv_val, 0 );
+					conn->c_cdn, lsc->bound_dn.bv_val, 0 );
 #endif /* !NEW_LOGGING */
 			break;
 			
@@ -314,14 +314,10 @@ init_one_conn(
 			return LDAP_OPERATIONS_ERROR;
 		}
 
-		if ( mdn ) {
-			lsc->bound_dn = ber_bvstr( mdn );
-		} else {
-			lsc->bound_dn = ber_bvstrdup( "" );
-		}
+		assert( lsc->bound_dn.bv_val );
 
 	} else {
-		lsc->bound_dn = ber_bvstrdup( "" );
+		ber_str2bv( "", 0, 1, &lsc->bound_dn );
 	}
 
 	lsc->bound = META_UNBOUND;
