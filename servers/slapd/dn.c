@@ -624,7 +624,8 @@ dnParent(
 
 	/* one-level dn */
 	if ( p == NULL ) {
-		*pdn = slap_empty_bv;
+		pdn->bv_len = 0;
+		pdn->bv_val = dn->bv_val + dn->bv_len;
 		return;
 	}
 
