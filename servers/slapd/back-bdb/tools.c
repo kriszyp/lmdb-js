@@ -147,6 +147,8 @@ ID bdb_tool_dn2id_get(
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
 
+	ei.bei_id = NOID;
+
 	bdb_dn2id( &op, NULL, dn, &ei );
 	
 	return ei.bei_id;
