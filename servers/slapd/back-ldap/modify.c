@@ -60,9 +60,10 @@ ldap_back_modify(
 	LDAPMod **modv = NULL;
 	LDAPMod *mods;
 	Modifications *ml;
-	int i, j;
+	int i, j, rc;
 	struct berval mapped;
 	struct berval mdn = { 0, NULL };
+	ber_int_t msgid;
 
 	lc = ldap_back_getconn(li, conn, op);
 	if ( !lc || !ldap_back_dobind( lc, conn, op ) ) {
@@ -156,7 +157,7 @@ ldap_back_modify(
 	}
 	modv[i] = 0;
 
-	ldap_modify_s( lc->ld, mdn.bv_val, modv );
+	rc = ldap_modify_ext( lc->ld, mdn.bv_val, modv, op->o_ctrls, NULL, &msgid );
 
 cleanup:;
 #ifdef ENABLE_REWRITE
@@ -170,6 +171,6 @@ cleanup:;
 		ch_free(modv[i]->mod_bvalues);
 	ch_free(mods);
 	ch_free(modv);
-	return( ldap_back_op_result( lc, conn, op ));
+	return( ldap_back_op_result( lc, conn, op, msgid, rc ));
 }
 

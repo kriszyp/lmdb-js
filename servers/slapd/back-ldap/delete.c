@@ -56,6 +56,8 @@ ldap_back_delete(
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc;
+	int rc;
+	ber_int_t msgid;
 
 	struct berval mdn = { 0, NULL };
 
@@ -97,11 +99,11 @@ ldap_back_delete(
 	ldap_back_dn_massage( li, dn, &mdn, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 	
-	ldap_delete_s( lc->ld, mdn.bv_val );
+	rc = ldap_delete_ext( lc->ld, mdn.bv_val, op->o_ctrls, NULL, &msgid );
 
 	if ( mdn.bv_val != dn->bv_val ) {
 		free( mdn.bv_val );
 	}
 	
-	return( ldap_back_op_result( lc, conn, op ) );
+	return( ldap_back_op_result( lc, conn, op, msgid, rc ) );
 }

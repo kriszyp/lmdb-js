@@ -90,8 +90,6 @@ ldap_back_search(
 	}
 
 	/*
-	 * controls are set in ldap_back_dobind()
-	 * 
 	 * FIXME: in case of values return filter, we might want
 	 * to map attrs and maybe rewrite value
 	 */
@@ -149,10 +147,12 @@ ldap_back_search(
 	/* should we check return values? */
 	if (deref != -1)
 		ldap_set_option( lc->ld, LDAP_OPT_DEREF, (void *)&deref);
-	if (tlimit != -1)
-		ldap_set_option( lc->ld, LDAP_OPT_TIMELIMIT, (void *)&tlimit);
-	if (slimit != -1)
-		ldap_set_option( lc->ld, LDAP_OPT_SIZELIMIT, (void *)&slimit);
+	if (tlimit != -1) {
+		tv.tv_sec = tlimit;
+		tv.tv_usec = 0;
+	} else {
+		tv.tv_sec = 0;
+	}
 
 	/*
 	 * Rewrite the search base, if required
@@ -260,11 +260,12 @@ ldap_back_search(
 		mapped_attrs[count] = NULL;
 	}
 
-	msgid = ldap_search(lc->ld, mbase.bv_val, scope, mapped_filter,
-			mapped_attrs, attrsonly);
-	if ( msgid == -1 ) {
+	rc = ldap_search_ext(lc->ld, mbase.bv_val, scope, mapped_filter,
+			mapped_attrs, attrsonly, op->o_ctrls, NULL, tv.tv_sec ? &tv
+			: NULL, slimit, &msgid);
+	if ( rc != LDAP_SUCCESS ) {
 fail:;
-		rc = ldap_back_op_result(lc, conn, op);
+		rc = ldap_back_op_result(lc, conn, op, msgid, rc);
 		goto finish;
 	}
 
@@ -339,10 +340,10 @@ fail:;
 			}
 
 		} else {
-			sres = ldap_result2error(lc->ld, res, 1);
+			rc = ldap_parse_result(lc->ld, res, &sres, &match,
+				&err, NULL, NULL, 1);
+			if (rc != LDAP_SUCCESS ) sres = rc;
 			sres = ldap_back_map_result(sres);
-			ldap_get_option(lc->ld, LDAP_OPT_ERROR_STRING, &err);
-			ldap_get_option(lc->ld, LDAP_OPT_MATCHED_DN, &match);
 			rc = 0;
 			break;
 		}

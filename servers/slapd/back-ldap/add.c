@@ -60,6 +60,7 @@ ldap_back_add(
 	LDAPMod **attrs;
 	struct berval mapped;
 	struct berval mdn = { 0, NULL };
+	ber_int_t msgid;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDAP, ENTRY, "ldap_back_add: %s\n", e->e_dn, 0, 0 );
@@ -176,7 +177,7 @@ ldap_back_add(
 	}
 	attrs[i] = NULL;
 
-	ldap_add_s(lc->ld, mdn.bv_val, attrs);
+	j = ldap_add_ext(lc->ld, mdn.bv_val, attrs, op->o_ctrls, NULL, &msgid);
 	for (--i; i>= 0; --i) {
 		ch_free(attrs[i]->mod_vals.modv_bvals);
 		ch_free(attrs[i]);
@@ -186,7 +187,7 @@ ldap_back_add(
 		free( mdn.bv_val );
 	}
 	
-	return( ldap_back_op_result( lc, conn, op ) );
+	return( ldap_back_op_result( lc, conn, op, msgid, j ) );
 }
 
 #ifdef ENABLE_REWRITE

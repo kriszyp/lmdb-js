@@ -68,20 +68,13 @@ ldap_back_bind(
 
 	struct berval mdn = { 0, NULL };
 	int rc = 0;
+	ber_int_t msgid;
 
 	lc = ldap_back_getconn(li, conn, op);
 	if ( !lc ) {
 		return( -1 );
 	}
 
-	if ( op->o_ctrls ) {
-		if ( ldap_set_option( lc->ld, LDAP_OPT_SERVER_CONTROLS,
-					op->o_ctrls ) != LDAP_SUCCESS ) {
-			ldap_back_op_result( lc, conn, op );
-			return( -1 );
-		}
-	}
-	
 	/*
 	 * Rewrite the bind dn if needed
 	 */
@@ -120,23 +113,23 @@ ldap_back_bind(
 		lc->bound_dn.bv_val = NULL;
 	}
 	lc->bound = 0;
-	rc = ldap_bind_s(lc->ld, mdn.bv_val, cred->bv_val, method);
-	if (rc != LDAP_SUCCESS) {
-		rc = ldap_back_op_result( lc, conn, op );
-	} else {
+	/* method is always LDAP_AUTH_SIMPLE if we got here */
+	rc = ldap_sasl_bind(lc->ld, mdn.bv_val, LDAP_SASL_SIMPLE,
+		cred, op->o_ctrls, NULL, &msgid);
+	rc = ldap_back_op_result( lc, conn, op, msgid, rc );
+	if (rc == LDAP_SUCCESS) {
 		lc->bound = 1;
 		if ( mdn.bv_val != dn->bv_val ) {
 			lc->bound_dn = mdn;
 		} else {
 			ber_dupbv( &lc->bound_dn, dn );
 		}
-	}
-
-	if ( li->savecred ) {
-		if ( lc->cred.bv_val )
-			ch_free( lc->cred.bv_val );
-		ber_dupbv( &lc->cred, cred );
-		ldap_set_rebind_proc( lc->ld, ldap_back_rebind, lc );
+		if ( li->savecred ) {
+			if ( lc->cred.bv_val )
+				ch_free( lc->cred.bv_val );
+			ber_dupbv( &lc->cred, cred );
+			ldap_set_rebind_proc( lc->ld, ldap_back_rebind, lc );
+		}
 	}
 
 	/* must re-insert if local DN changed as result of bind */
@@ -419,30 +412,19 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 int
 ldap_back_dobind( struct ldapconn *lc, Connection *conn, Operation *op )
 {	
-	int rc = 0;
+	int rc;
+	ber_int_t msgid;
 
 	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
-	if ( op->o_ctrls ) {
-		if ( ldap_set_option( lc->ld, LDAP_OPT_SERVER_CONTROLS,
-				op->o_ctrls ) != LDAP_SUCCESS ) {
-			ldap_back_op_result( lc, conn, op );
-			goto leave;
+	if ( !lc->bound ) {
+		rc = ldap_sasl_bind(lc->ld, lc->bound_dn.bv_val,
+			LDAP_SASL_SIMPLE, &lc->cred, NULL, NULL, &msgid);
+		rc = ldap_back_op_result( lc, conn, op, msgid, rc );
+		if (rc == LDAP_SUCCESS) {
+			lc->bound = 1;
 		}
 	}
-	
-	if ( lc->bound ) {
-		rc = lc->bound;
-		goto leave;
-	}
-
-	if ( ldap_bind_s( lc->ld, lc->bound_dn.bv_val, lc->cred.bv_val, 
-				LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
-		ldap_back_op_result( lc, conn, op );
-		goto leave;
-	} /* else */
-
-	rc = lc->bound = 1;
-leave:
+	rc = lc->bound;
 	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 	return rc;
 }
@@ -510,20 +492,27 @@ ldap_back_map_result(int err)
 }
 
 int
-ldap_back_op_result(struct ldapconn *lc, Connection *conn, Operation *op)
+ldap_back_op_result(struct ldapconn *lc, Connection *conn, Operation *op,
+	ber_int_t msgid, int err)
 {
-	int err = LDAP_SUCCESS;
 	char *msg = NULL;
 	char *match = NULL;
+	LDAPMessage *res;
+	int rc;
 
-	ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER, &err);
+	if (err == LDAP_SUCCESS) {
+		if (ldap_result(lc->ld, msgid, 0, NULL, &res) == -1) {
+			ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER, &err);
+		} else {
+			rc = ldap_parse_result(lc->ld, res, &err, &match,
+				&msg, NULL, NULL, 1);
+			if (rc != LDAP_SUCCESS) err = rc;
+		}
+	}
+	err = ldap_back_map_result(err);
 
 	/* internal ops must not reply to client */
 	if ( !conn || op->o_do_not_cache ) goto quiet;
-
-	ldap_get_option(lc->ld, LDAP_OPT_ERROR_STRING, &msg);
-	ldap_get_option(lc->ld, LDAP_OPT_MATCHED_DN, &match);
-	err = ldap_back_map_result(err);
 
 #ifdef ENABLE_REWRITE
 	

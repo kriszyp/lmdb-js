@@ -59,6 +59,8 @@ ldap_back_compare(
 	struct ldapconn *lc;
 	struct berval mapped_oc, mapped_at;
 	struct berval mdn = { 0, NULL };
+	int rc;
+	ber_int_t msgid;
 
 	lc = ldap_back_getconn(li, conn, op);
 	if (!lc || !ldap_back_dobind( lc, conn, op ) ) {
@@ -115,11 +117,12 @@ ldap_back_compare(
 		}
 	}
 
-	ldap_compare_s( lc->ld, mdn.bv_val, mapped_oc.bv_val, mapped_at.bv_val );
+	rc = ldap_compare_ext( lc->ld, mdn.bv_val, mapped_oc.bv_val,
+		&mapped_at, op->o_ctrls, NULL, &msgid );
 
 	if ( mdn.bv_val != dn->bv_val ) {
 		free( mdn.bv_val );
 	}
 	
-	return( ldap_back_op_result( lc, conn, op ) );
+	return( ldap_back_op_result( lc, conn, op, msgid, rc ) );
 }
