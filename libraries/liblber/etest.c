@@ -25,12 +25,12 @@
 
 #include "lber.h"
 
-static void usage( char *name )
+static void usage( const char *name )
 {
 	fprintf( stderr, "usage: %s fmtstring\n", name );
 }
 
-static char* getbuf() {
+static char* getbuf( void ) {
 	char *p;
 	static char buf[128];
 

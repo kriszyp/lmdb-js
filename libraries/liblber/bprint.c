@@ -14,9 +14,7 @@
 
 #include "lber-int.h"
 
-typedef void (*BER_LOG_FN) LDAP_P((FILE *file, char *subsys, int level, const char *fmt, va_list vl));
-
-#define	ber_log_check(errlvl, loglvl)	(errlvl & loglvl)
+#define	ber_log_check(errlvl, loglvl)	((errlvl) & (loglvl))
 
 BER_LOG_FN ber_int_log_proc = NULL;
 
@@ -71,7 +69,11 @@ BER_LOG_PRINT_FN ber_pvt_log_print = ber_error_print;
  * lber log 
  */
 
-int ber_pvt_log_output( char *subsystem, int level, const char *fmt, ... )
+int ber_pvt_log_output(
+	const char *subsystem,
+	int level,
+	const char *fmt,
+	... )
 {
 	char buf[ 1024 ];
 	va_list vl;
@@ -244,7 +246,7 @@ int ber_output_dump(
              (long) ber->ber_end,
              (long) len );
 
-    ber_pvt_log_output( subsys, level, "%s", buf );
+    (void) ber_pvt_log_output( subsys, level, "%s", buf );
 
 #define BP_OFFSET 9
 #define BP_GRAPH 60
@@ -261,7 +263,9 @@ int ber_output_dump(
         unsigned off;
         
         if( !n ) {
-            if( i ) ber_pvt_log_output( subsys, level, "%s", line );
+            if( i ) {
+				(void) ber_pvt_log_output( subsys, level, "%s", line );
+			}
             memset( line, ' ', sizeof(line)-2 );
             line[sizeof(line)-2] = '\n';
             line[sizeof(line)-1] = '\0';
@@ -288,7 +292,7 @@ int ber_output_dump(
         }
     }
 
-    ber_pvt_log_output( subsys, level, "%s", line );
+    return ber_pvt_log_output( subsys, level, "%s", line );
 }
 #endif
 
@@ -333,7 +337,7 @@ ber_dump(
 		(long) ber->ber_end,
 		(long) len );
 
-	(*ber_pvt_log_print)( buf );
+	(void) (*ber_pvt_log_print)( buf );
 
 	ber_bprint( ber->ber_ptr, len );
 }

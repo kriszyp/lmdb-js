@@ -31,7 +31,7 @@
 
 #include <lber.h>
 
-static void usage( char *name )
+static void usage( const char *name )
 {
 	fprintf( stderr, "usage: %s fmt\n", name );
 }

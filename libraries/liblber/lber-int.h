@@ -24,6 +24,9 @@
 
 LDAP_BEGIN_DECL
 
+typedef void (*BER_LOG_FN)(FILE *file,
+	const char *subsys, int level, const char *fmt, va_list vl );
+
 LBER_V (BER_ERRNO_FN) ber_int_errno_fn;
 
 struct lber_options {
@@ -45,6 +48,11 @@ struct lber_options {
 #        define BER_DUMP(a)
 #    endif
 #endif
+
+LBER_F( int ) ber_pvt_log_output(
+	const char *subsystem,
+	int level,
+	const char *fmt, ... );
 
 #define LBER_UNINITIALIZED		0x0
 #define LBER_INITIALIZED		0x1
