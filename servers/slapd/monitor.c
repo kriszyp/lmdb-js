@@ -179,7 +179,7 @@ monitor_info( Connection *conn, Operation *op )
 	attr_merge( e, "nbackends", vals );
 
 #ifdef HAVE_THREAD_CONCURRENCY
-	sprintf( buf, "%d", ldap_pvt_thread_getconcurrency() );
+	sprintf( buf, "%d", ldap_pvt_thread_get_concurrency() );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "concurrency", vals );
