@@ -4,15 +4,23 @@
 
 H1: A Quick-Start Guide to Running slapd
 
-This section provides a quick step-by-step guide to building,
-installing and running {{I:slapd}}. It is intended to provide users with a
-simple and quick way to get started only. If you intend to run slapd
-seriously, you should read the rest of this guide.
+This chapter provides a quick step-by-step guide to building,
+installing and running {{slapd}}(8). It is intended to provide
+users with a simple and quick way to get started only.
+If you intend to run slapd seriously, you should read the rest
+of this guide.
+
+
+Note: This guide does not use strong authentication nor any
+privacy and integrity protection services.  These services are
+described in detail in later chapters.  This guide should
+only be used in isolated environments (such as on a single
+host protected by a firewall).
 
 
 ^{{B:Get the software}}.
 
-.{{I:Slapd}} is part of the OpenLDAP distribution, which
+.{{slapd}} is part of the {{PRD:OpenLDAP}} distribution, which
 you can retrieve from {{URL: http://www.openldap.org/software/download/}}
 or {{URL: ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release.tgz}}.
 If you are reading this guide, you have probably already done this.
@@ -34,19 +42,20 @@ name of the release.
 .{{S: }}
 +{{B: Configure the software}}.
 
-.You will need to run the configure script to configure slapd.
+.You will need to run the {{EX:configure}} script to configure slapd.
 
 ..{{EX:./configure}}
 
-. Configure accepts many command line options that enable or disable
-optional features in slapd.  Usually the defaults are okay, but you
-may want to change them.  To get a complete list of options that configure 
-accepts, use the {{EX:--help}} option.
+. The {{EX:configure}} accepts many command line options that enable
+or disable optional software features.  Usually the defaults are okay,
+but you may want to change them.  To get a complete list of options
+that {{EX:configure}} accepts, use the {{EX:--help}} option.
 
 ..{{EX:./configure --help}}
 
 . Once OpenLDAP has been configured, it needs to be compiled.  
-You'll need to make dependencies and then compile the software.
+You'll need to construct dependencies and then compile the software
+using {{make}}(1) utility.
 For example:
 
 ..{{EX:make depend}}
@@ -55,22 +64,21 @@ For example:
 . Once OpenLDAP is compiled you need to install it.  By default OpenLDAP 
 is installed into {{F:/usr/local}}.  This is typically done as root.
 
-..{{EX:su root}}
-..{{EX:make install}}
+..{{EX:su root -c 'make install'}}
 
 
 .{{S: }}
 +{{B:Edit the configuration file}}.
 
-.Use this section as a brief guide.  For more details on the configuration
-file, see chapter 5.
+.Use this chapter as a brief tutorial.  For more details on the
+configuration file, see slapd.conf(5) and chapter 5.
 
 .Now we need to edit the default configuration file that was
-installed earlier.  The slapd configuration file {{I:slapd.conf}}(5)
+installed earlier.  The {{slapd}} configuration file {{slapd.conf}}(5)
 for is normally located at {{F:/usr/local/etc/openldap/slapd.conf}}.
-If you specified the {{EX:--prefix}} option when you ran configure,
+If you specified the {{EX:--prefix}} option when you ran {{EX:configure}},
 then replace {{F:/usr/local}} with the value you gave as the
-prefix.  For example, if you ran configure as
+prefix.  For example, if you ran {{EX:configure}} as
 
 ..{{EX:./configure --prefix=/opt/ldap}}
 
@@ -80,12 +88,12 @@ Now look in the configuration file for a line that begins with
 
 ..{{EX:database          ldbm}}
 
-.This marks the begining of the database configuration for slapd.
+.This marks the begining of the database configuration for {{slapd}}.
 Everything you will need to change for this example is located
 after this line.
 
 .Listed below are the default settings for the database in
-{{F:slapd.conf}}(5).  Lines that begin with a sharp sign ('#')
+{{F:slapd.conf}}(5).  Lines that begin with a sharp sign ('{{EX:#}}')
 are considered to be comments by slapd, they have been removed
 from the listing below to save space.  If a line starts with
 white space it is considered a continuation of the preceeding
@@ -111,24 +119,26 @@ You may specify an alternate directory via the directory option
 in the {{F:slapd.conf}} file.  The directory must exist before
 you start the server.
 
+Note: Use of rootpw is deprecated in favor of strong authentication
+mechanisms.  These are described in later chapters.
 
 .{{S: }}
 +{{B:Starting the server}}.
 
 .You are now ready to start the server by running the command
-{{I:slapd}}(8):
+{{slapd}}(8):
 
 ..{{EX:/usr/local/libexec/slapd}}
 
 . At this point the LDAP server is up and running, but there isn't
 any data in the directory.  You can check to see if the server is
 running and your naming context (the {{EX:suffix}} you specified above)
-by searching it with {{I:ldapsearch}}(1).  By default ldapsearch is
+by searching it with {{ldapsearch}}(1).  By default ldapsearch is
 installed as {{F:/usr/local/bin/ldapsearch}}.
 
 ..{{EX:ldapsearch -x -b '' -s base '(objectclass=*)' namingContexts}}
 
-.Note the use of single quotes around command parameters to prevent
+. Note the use of single quotes around command parameters to prevent
 special characters from interpreted by the shell.  This should return:
 
 ..{{EX:dn:}}
@@ -160,7 +170,7 @@ include additional entries and attributes in this file if you want,
 or add them later via LDAP.
 
 .The second step is to run a tool to add the contents of this file to the
-your directory.  We use the tool {{I:ldapadd}}(1) to populate the directory.
+your directory.  We use the tool {{ldapadd}}(1) to populate the directory.
 Again remember to replace {{EX:dc=example, dc=net}} with the correct values
 for your site.  By default ldapadd is installed as
 {{F:/usr/local/bin/ldapadd}}.
@@ -169,27 +179,31 @@ for your site.  By default ldapadd is installed as
 
 .Where {{F:example.ldif}} is the file you created above.
 
+Note: Use of transport security services is recommended when updating
+the directory.  These services are described in later chapters.
+
+
 .{{S: }}
 +{{B:See if it works}}.
 
 .Now we're ready to verify the added entries are in your directory.  
 You can use any LDAP client to do this, but our example uses the
-{{I:ldapsearch}}(1) tool.  Remember to replace {{EX:dc=example,dc=net}}
+{{ldapsearch}}(1) tool.  Remember to replace {{EX:dc=example,dc=net}}
 with the correct values for your site.
 
 ..{{EX:ldapsearch -x -b 'dc=example,dc=net' '(objectclass=*)'}}
 
 .This command will search for and retrieve every entry in the database.
 
-You are now ready to add more entries using {{I:ldapadd}}(1) or
+You are now ready to add more entries using {{ldapadd}}(1) or
 another LDAP client, experiment with various configuration options,
-backend arrangements, etc. Note that by default, the {{I:slapd}}(8)
-database grants {{I:read access to everybody}}. So if you want to add
-or modify entries over LDAP, you will have to bind as the {{EX:rootdn}}
-specified in the config file (see Section 5.2.2), or change the
-default access control (see Section 5.3).
+backend arrangements, etc. Note that by default, the {{slapd}}(8)
+database grants {{read access to everybody}} excepting the
+{{super-user}} (as specified by the {{EX:rootdn}} configuration
+directive).  It is highly recommended that you establish controls
+to restrict access to authorized users.  Access controls are discussed
+in a later chapter.
 
-
-The following sections provide more detailed information on making,
-installing, and running {{I:slapd}}(8).
+The following chapters provide more detailed information on making,
+installing, and running {{slapd}}(8).
 
