@@ -41,7 +41,7 @@ dnssrv_back_search(
 	char *hostlist = NULL;
 	char **hosts = NULL;
 	char *refdn;
-	struct berval nrefdn = { 0, NULL };
+	struct berval nrefdn = BER_BVNULL;
 	BerVarray urls = NULL;
 	int manageDSAit;
 
