@@ -666,7 +666,6 @@ void print_entry(
 								bvals[i]->bv_len ); 
 						printf( "%s%s", a, sep );
 						puts( notprint ? "NOT PRINTABLE" : bvals[ i ]->bv_val );
-						puts( "\n" );
 					}
 				}
 			}
