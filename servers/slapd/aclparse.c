@@ -319,7 +319,7 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "dnattr" ) == 0 ) {
-					if( b->a_dn_pat != NULL ) {
+					if( b->a_dn_at != NULL ) {
 						fprintf( stderr,
 							"%s: line %d: dnattr already specified.\n",
 							fname, lineno );
