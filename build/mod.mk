@@ -22,9 +22,11 @@ all-no lint-no 5lint-no depend-no install-no: FORCE
 
 all-common: all-$(BUILD_MOD)
 
-version.c: $(OBJS)
+version.c: Makefile
 	$(RM) $@
 	$(MKVERSION) $(LIBBASE) > $@
+
+version.o: version.c $(OBJS)
 
 $(LIBRARY): version.lo
 	$(LTLINK_MOD) -module -o $@ $(OBJS) version.lo $(LINK_LIBS)
