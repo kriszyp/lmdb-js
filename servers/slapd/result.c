@@ -122,11 +122,9 @@ send_ldap_result2(
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 	ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
 
-#ifdef LDAP_COUNTERS
 	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
 	num_bytes_sent += bytes;
 	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
-#endif
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%d op=%d RESULT err=%d tag=%lu nentries=%d\n", conn->c_connid,
@@ -352,12 +350,10 @@ send_search_entry(
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 	ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
 
-#ifdef LDAP_COUNTERS
 	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
 	num_bytes_sent += bytes;
 	num_entries_sent++;
 	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
-#endif
 
 	Statslog( LDAP_DEBUG_STATS2, "conn=%d op=%d ENTRY dn=\"%s\"\n",
 	    conn->c_connid, op->o_opid, e->e_dn, 0, 0 );

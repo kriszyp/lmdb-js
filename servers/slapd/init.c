@@ -40,9 +40,9 @@ ldap_pvt_thread_mutex_t	crypt_mutex;
 #endif
 
 int				num_conns;
-long			ops_initiated;
-long			ops_completed;
-ldap_pvt_thread_mutex_t	ops_mutex;
+long			num_ops_initiated;
+long			num_ops_completed;
+ldap_pvt_thread_mutex_t	num_ops_mutex;
 
 long			num_entries_sent;
 long			num_bytes_sent;
@@ -96,7 +96,7 @@ slap_init( int mode, char *name )
 			ldap_pvt_thread_mutex_init( &currenttime_mutex );
 			ldap_pvt_thread_mutex_init( &entry2str_mutex );
 			ldap_pvt_thread_mutex_init( &replog_mutex );
-			ldap_pvt_thread_mutex_init( &ops_mutex );
+			ldap_pvt_thread_mutex_init( &num_ops_mutex );
 			ldap_pvt_thread_mutex_init( &num_sent_mutex );
 
 			ldap_pvt_thread_mutex_init( &gmtime_mutex );

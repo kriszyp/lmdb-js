@@ -446,11 +446,9 @@ typedef struct slap_conn {
 	int		c_writewaiter;	/* true if writer is waiting */
 
 	long	c_n_ops_received;		/* num of ops received (next op_id) */
-#ifdef LDAP_COUNTERS
 	long	c_n_ops_executing;	/* num of ops currently executing */
 	long	c_n_ops_pending;		/* num of ops pending execution */
 	long	c_n_ops_completed;	/* num of ops completed */
-#endif
 } Connection;
 
 #if defined(LDAP_SYSLOG) && defined(LDAP_DEBUG)

@@ -87,12 +87,12 @@ monitor_info( Connection *conn, Operation *op )
 		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
 		sprintf( buf, "%d : %s : %d : %d : %s : %s%s%s%s", i,
-		    buf2, c[i].c_ops_received, c[i].c_ops_completed,
+		    buf2, c[i].c_n_ops_received, c[i].c_n_ops_completed,
 		    c[i].c_cdn ? c[i].c_cdn : "NULLDN",
-		    c[i].c_gettingber ? "r" : "",
+		    c[i].c_currentber ? "r" : "",
 		    c[i].c_writewaiter ? "w" : "",
-		    c[i].c_ops_executing ? "x" : "",
-		    c[i].c_ops_pending ? "p" : ""
+		    c[i].c_ops != NULL ? "x" : "",
+		    c[i].c_pending_ops != NULL ? "p" : ""
 		);
 
 		val.bv_val = buf;
@@ -128,22 +128,30 @@ monitor_info( Connection *conn, Operation *op )
 	attr_merge( e, "readwaiters", vals );
 
 #ifdef LDAP_COUNTERS
-	sprintf( buf, "%ld", ops_initiated );
+	ldap_pvt_thread_mutex_lock(&num_ops_mutex);
+	sprintf( buf, "%ld", num_ops_initiated );
+	ldap_pvt_thread_mutex_unlock(&num_ops_mutex);
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "opsinitiated", vals );
 
-	sprintf( buf, "%ld", ops_completed );
+	ldap_pvt_thread_mutex_lock(&num_ops_mutex);
+	sprintf( buf, "%ld", num_ops_completed );
+	ldap_pvt_thread_mutex_unlock(&num_ops_mutex);
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "opscompleted", vals );
 
+	ldap_pvt_thread_mutex_lock(&num_sent_mutex);
 	sprintf( buf, "%ld", num_entries_sent );
+	ldap_pvt_thread_mutex_unlock(&num_sent_mutex);
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "entriessent", vals );
 
+	ldap_pvt_thread_mutex_lock(&num_sent_mutex);
 	sprintf( buf, "%ld", num_bytes_sent );
+	ldap_pvt_thread_mutex_unlock(&num_sent_mutex);
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "bytessent", vals );

@@ -273,16 +273,13 @@ extern int		global_schemacheck;
 extern int		lber_debug;
 extern int		ldap_syslog;
 
-#ifdef LDAP_COUNTERS
 extern ldap_pvt_thread_mutex_t	num_sent_mutex;
 extern long		num_bytes_sent;
-
 extern long		num_entries_sent;
 
-extern ldap_pvt_thread_mutex_t	ops_mutex;
-extern long		ops_completed;
-extern long		ops_initiated;
-#endif
+extern ldap_pvt_thread_mutex_t	num_ops_mutex;
+extern long		num_ops_completed;
+extern long		num_ops_initiated;
 
 extern char   *slapd_pid_file;
 extern char   *slapd_args_file;

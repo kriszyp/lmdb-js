@@ -428,9 +428,9 @@ connection_operation( void *arg_v )
 	Connection *conn = arg->co_conn;
 
 #ifdef LDAP_COUNTERS
-	ldap_pvt_thread_mutex_lock( &ops_mutex );
-	ops_initiated++;
-	ldap_pvt_thread_mutex_unlock( &ops_mutex );
+	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
+	num_ops_initiated++;
+	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
 #endif
 
 	switch ( tag ) {
@@ -486,15 +486,15 @@ connection_operation( void *arg_v )
 	}
 
 #ifdef LDAP_COUNTERS
-	ldap_pvt_thread_mutex_lock( &ops_mutex );
-	ops_completed++;
-	ldap_pvt_thread_mutex_unlock( &ops_mutex );
+	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
+	num_ops_completed++;
+	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
 #endif
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 #ifdef LDAP_COUNTERS
-	conn->c_ops_completed++;
+	conn->c_n_ops_completed++;
 #endif
 
 	slap_op_remove( &conn->c_ops, arg->co_op );
