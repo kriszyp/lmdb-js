@@ -343,6 +343,12 @@ int bdb_cache_delete_entry(
 );
 void bdb_cache_release_all( Cache *cache );
 
+#ifdef BDB_REUSE_LOCKERS
+
+int bdb_locker_id( Operation *op, DB_ENV *env, int *locker );
+
+#endif
+
 #ifdef HAVE_EBCDIC
 char *ebcdic_dberror( int rc );
 

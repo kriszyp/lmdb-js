@@ -1100,3 +1100,57 @@ bdb_lru_print( Cache *cache )
 	}
 }
 #endif
+
+#ifdef BDB_REUSE_LOCKERS
+void
+bdb_locker_id_free( void *key, void *data )
+{
+	DB_ENV *env = key;
+	int lockid = (int) data;
+
+	XLOCK_ID_FREE( env, lockid );
+}
+
+int
+bdb_locker_id( Operation *op, DB_ENV *env, int *locker )
+{
+	int i, rc, lockid;
+	void *data;
+
+	if ( !env || !op || !locker ) return -1;
+
+	/* Shouldn't happen unless we're single-threaded */
+	if ( !op->o_threadctx ) {
+		*locker = 0;
+		return 0;
+	}
+
+	if ( ldap_pvt_thread_pool_getkey( op->o_threadctx, env, &data, NULL ) ) {
+		for ( i=0, rc=1; rc != 0 && i<4; i++ ) {
+			rc = XLOCK_ID( env, &lockid );
+			if (rc) ldap_pvt_thread_yield();
+		}
+		if ( rc != 0) {
+			return rc;
+		}
+		data = (void *)lockid;
+		if ( ( rc = ldap_pvt_thread_pool_setkey( op->o_threadctx, env,
+			data, bdb_locker_id_free ) ) ) {
+			XLOCK_ID_FREE( env, lockid );
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_BDB, ERR, "bdb_locker_id: err %s(%d)\n",
+				db_strerror(rc), rc, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY, "bdb_locker_id: err %s(%d)\n",
+				db_strerror(rc), rc, 0 );
+#endif
+
+			return rc;
+		}
+	} else {
+		lockid = (int)data;
+	}
+	*locker = lockid;
+	return 0;
+}
+#endif
