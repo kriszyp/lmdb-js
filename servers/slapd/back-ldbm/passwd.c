@@ -76,7 +76,7 @@ ldbm_back_exop_passwd(
 	Debug( LDAP_DEBUG_TRACE, "passwd: \"%s\"%s\n",
 		dn, id ? " (proxy)" : "", 0 );
 
-	if( dn == NULL || dn[0] == NULL ) {
+	if( dn == NULL || dn[0] == '\0' ) {
 		*text = ch_strdup("No password is associated with the Root DSE");
 		rc = LDAP_OPERATIONS_ERROR;
 		goto done;

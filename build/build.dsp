@@ -164,5 +164,9 @@ CFG=build - Win32 DLL Debug
 
 !ENDIF 
 
+# Begin Source File
+
+SOURCE=.\build.mak
+# End Source File
 # End Target
 # End Project

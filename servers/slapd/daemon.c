@@ -335,10 +335,6 @@ int slapd_daemon_init( char *urls )
 	int i, rc;
 	char **u;
 
-#ifndef HAVE_TLS
-	assert( tls_port == 0 );
-#endif
-
 	Debug( LDAP_DEBUG_ARGS, "daemon_init: %s\n",
 		urls ? urls : "<null>", 0, 0 );
 

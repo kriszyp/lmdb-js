@@ -8,9 +8,6 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 
-#undef LDAP_F_PRE
-#define LDAP_F_PRE LDAP_F_EXPORT
-
 #include "lber-int.h"
 
 #if LDAP_MEMORY_DEBUG

@@ -12,9 +12,6 @@
 #include <ac/stdarg.h>
 #include <ac/string.h>
 
-#undef LDAP_F_PRE
-#define LDAP_F_PRE LDAP_F_EXPORT
-
 #include "lber-int.h"
 
 /*

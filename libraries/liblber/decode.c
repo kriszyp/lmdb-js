@@ -26,9 +26,6 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
-#undef LDAP_F_PRE
-#define LDAP_F_PRE LDAP_F_EXPORT
-
 #include "lber-int.h"
 
 static ber_len_t ber_getnint LDAP_P((

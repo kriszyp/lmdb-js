@@ -53,7 +53,7 @@ lutil_detach LDAP_P((
 LIBLUTIL_F( int )
 lutil_entropy LDAP_P((
 	char *buf,
-	int nbytes ));
+	ber_len_t nbytes ));
 
 /* passwd.c */
 struct berval; /* avoid pulling in lber.h */
@@ -65,7 +65,7 @@ lutil_passwd LDAP_P((
 	const char **methods ));
 
 LIBLUTIL_F( struct berval * )
-lutil_passwd_generate LDAP_P(( int ));
+lutil_passwd_generate LDAP_P(( ber_len_t ));
 
 LIBLUTIL_F( struct berval * )
 lutil_passwd_hash LDAP_P((

@@ -32,9 +32,6 @@
 #include <io.h>
 #endif
 
-#undef LDAP_F_PRE
-#define LDAP_F_PRE LDAP_F_EXPORT
-
 #include "lber-int.h"
 
 static ber_slen_t BerRead LDAP_P((

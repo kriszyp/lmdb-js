@@ -88,7 +88,7 @@ typedef int (*BERTranslateProc) LDAP_P((
 /* LBER BerElement options */
 #define LBER_USE_DER		0x01
 #define LBER_USE_INDEFINITE_LEN	0x02
-#define LBER_TRANSLATE_STRINGS	0x04
+#define LBER_TRANSLATE_STRINGS	0x04	/* deprecated */
 
 /* get/set options for BerElement */
 #define LBER_OPT_BER_OPTIONS			0x01

@@ -250,7 +250,7 @@ lutil_passwd(
 
 }
 
-struct berval * lutil_passwd_generate( int len )
+struct berval * lutil_passwd_generate( ber_len_t len )
 {
 	struct berval *pw;
 

@@ -33,9 +33,8 @@
  * This routinue should be extended to support additional sources
  * of entropy.
  */
-int lutil_entropy( char *buf, int nbytes )
+int lutil_entropy( char *buf, ber_len_t nbytes )
 {
-	if( nbytes < 0 ) return -1;
 	if( nbytes == 0 ) return 0;
 
 #ifdef URANDOM_DEVICE
@@ -91,7 +90,7 @@ int lutil_entropy( char *buf, int nbytes )
 		 * access to this counter may not be atomic.
 		 */
 		static int counter = 0;
-		int n;
+		ber_len_t n;
 
 		struct rdata_s {
 			int counter;
