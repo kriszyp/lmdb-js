@@ -1687,7 +1687,7 @@ read_config( const char *fname )
 						if ( strncasecmp( cargv[i], "suffix=", 7 ) == 0 ) {
 							char *nsuffix = ch_strdup( cargv[i] + 7 );
 							if ( dn_normalize( nsuffix ) != NULL ) {
-								if ( be_issuffix( be, nsuffix ) ) {
+								if ( select_backend( nsuffix, 0 ) == be ) {
 									charray_add( &be->be_replica[nr]->ri_nsuffix, nsuffix );
 								} else {
 #ifdef NEW_LOGGING
