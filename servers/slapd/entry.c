@@ -115,16 +115,6 @@ str2entry( char *s )
 				continue;
 			}
 			e->e_dn = value != NULL ? value : ch_strdup( "" );
-
-			if ( e->e_ndn != NULL ) {
-				Debug( LDAP_DEBUG_ANY,
- "str2entry: entry %ld already has a normalized dn \"%s\" for \"%s\" (first ignored)\n",
-				    e->e_id, e->e_ndn,
-					value != NULL ? value : NULL );
-				free( e->e_ndn );
-			}
-			e->e_ndn = ch_strdup( e->e_dn );
-			(void) dn_normalize_case( e->e_ndn );
 			continue;
 		}
 
@@ -153,13 +143,9 @@ str2entry( char *s )
 		return( NULL );
 	}
 
-	if ( e->e_ndn == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"str2entry: entry %ld (\"%s\") has no normalized dn\n",
-		    e->e_id, e->e_dn, 0 );
-		entry_free( e );
-		return( NULL );
-	}
+	/* generate normalized dn */
+	e->e_ndn = ch_strdup( e->e_dn );
+	(void) dn_normalize_case( e->e_ndn );
 
 	Debug(LDAP_DEBUG_TRACE, "<= str2entry(%s) -> %ld (0x%lx)\n",
 		e->e_dn, e->e_id, (unsigned long)e );
