@@ -240,7 +240,7 @@ slap_tool_init(
 		}
 
 		be = select_backend( &nbase, 0, 0 );
-		ber_bvfree( nbase.bv_val );
+		ber_memfree( nbase.bv_val );
 
 		if( be == NULL ) {
 			fprintf( stderr, "%s: slap_init no backend for \"%s\"\n",
