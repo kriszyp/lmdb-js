@@ -109,12 +109,14 @@ ldap_back_map_init ( struct ldapmap *lm, struct ldapmapping **m )
 	*m = mapping;
 }
 
-void
-ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
+int
+ldap_back_mapping ( struct ldapmap *map, struct berval *s, struct ldapmapping **m,
 	int remap )
 {
 	Avlnode *tree;
-	struct ldapmapping *mapping, fmapping;
+	struct ldapmapping fmapping;
+
+	assert( m );
 
 	if ( remap == BACKLDAP_REMAP ) {
 		tree = map->remap;
@@ -122,9 +124,23 @@ ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
 		tree = map->map;
 	}
 
-	BER_BVZERO( bv );
 	fmapping.src = *s;
-	mapping = (struct ldapmapping *)avl_find( tree, (caddr_t)&fmapping, mapping_cmp );
+	*m = (struct ldapmapping *)avl_find( tree, (caddr_t)&fmapping, mapping_cmp );
+	if ( *m == NULL ) {
+		return map->drop_missing;
+	}
+
+	return 0;
+}
+
+void
+ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
+	int remap )
+{
+	struct ldapmapping *mapping;
+
+	BER_BVZERO( bv );
+	( void )ldap_back_mapping( map, s, &mapping, remap );
 	if ( mapping != NULL ) {
 		if ( !BER_BVISNULL( &mapping->dst ) ) {
 			*bv = mapping->dst;
@@ -135,8 +151,6 @@ ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
 	if ( !map->drop_missing ) {
 		*bv = *s;
 	}
-
-	return;
 }
 
 int

@@ -106,6 +106,8 @@ int mapping_cmp (const void *, const void *);
 int mapping_dup (void *, void *);
 
 void ldap_back_map_init ( struct ldapmap *lm, struct ldapmapping ** );
+int ldap_back_mapping ( struct ldapmap *map, struct berval *s,
+	struct ldapmapping **m, int remap );
 void ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *m,
 	int remap );
 #define BACKLDAP_MAP	0
