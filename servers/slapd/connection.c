@@ -322,6 +322,7 @@ connection_destroy( Connection *c )
     assert( c->c_conn_state != SLAP_C_INVALID );
     assert( c->c_ops == NULL );
 
+	ldap_pvt_thread_mutex_lock( &connections_mutex );
     c->c_struct_state = SLAP_C_UNUSED;
     c->c_conn_state = SLAP_C_INVALID;
 
@@ -359,6 +360,7 @@ connection_destroy( Connection *c )
 	}
 
    	lber_pvt_sb_destroy( &c->c_sb );
+	ldap_pvt_thread_mutex_unlock( &connections_mutex );
 }
 
 int connection_state_closing( Connection *c )
