@@ -572,7 +572,7 @@ size_t slapi_entry_size(Slapi_Entry *e)
 	Attribute *a;
 	int i;
 
-	for ( size = 0, a = e->e_attrs; a != NULL; a->a_next ) {
+	for ( size = 0, a = e->e_attrs; a != NULL; a = a->a_next ) {
 		for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
 			size += a->a_vals[i].bv_len + 1;
 		}
