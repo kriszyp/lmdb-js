@@ -342,12 +342,11 @@ static int dosearch(
     }
 
     if ( ldap_search( ld, base, scope, filter, attrs, attrsonly ) == -1 ) {
-	ldap_perror( ld, "ldap_search" );
-#ifdef HAVE_LDERRNO
-	return( ldap_lderrno(ld) );
-#else
-	return( -1 );
-#endif
+		int ld_errno;
+		ldap_perror( ld, "ldap_search" );
+
+		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+		return( ld_errno );
     }
 
     matches = 0;
