@@ -3,6 +3,7 @@ OpenLDAP 2.1 Change Log
 OpenLDAP 2.1.9 Engineering
 	Fixed back-bdb moddn newSuperior bug
 	Fixed back-ldap/meta modify bug (ITS#2158)
+	Fixed back-glue segv bug (ITS#2214)
 	Fixed libldap try_read1msg drain bug (ITS#2153)
 	Fixed libldap SASL bugs (ITS#2184)
 	Fixed libldap referral bug (ITS#2187)
