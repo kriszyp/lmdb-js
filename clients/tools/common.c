@@ -114,10 +114,10 @@ tool_args( int argc, char **argv )
 		char *control, *cvalue;
 		switch( i ) {
 		case 'c':	/* continuous operation mode */
-			contoper = 1;
+			contoper++;
 			break;
 		case 'C':
-			referrals = 1;
+			referrals++;
 			break;
 		case 'd':
 			debug |= atoi( optarg );
@@ -260,10 +260,10 @@ tool_args( int argc, char **argv )
 			break;
 		case 'M':
 			/* enable Manage DSA IT */
-			manageDSAit = 1;
+			manageDSAit++;
 			break;
 		case 'n':	/* print operations, don't actually do them */
-			not = 1;
+			not++;
 			break;
 		case 'O':
 #ifdef HAVE_CYRUS_SASL
@@ -372,7 +372,7 @@ tool_args( int argc, char **argv )
 #endif
 			break;
 		case 'v':	/* verbose mode */
-			verbose = 1;
+			verbose++;
 			break;
 		case 'V':	/* version */
 			version++;
@@ -389,7 +389,7 @@ tool_args( int argc, char **argv )
 			passwd.bv_len = strlen( passwd.bv_val );
 			break;
 		case 'W':
-			want_bindpw = 1;
+			want_bindpw++;
 			break;
 		case 'y':
 			pw_file = optarg;
