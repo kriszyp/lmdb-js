@@ -452,6 +452,7 @@ ldap_send_entry(
 		} else if ( attr->a_desc == slap_schema.si_ad_objectClass
 				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass ) {
 			int i, last;
+			assert( attr->a_vals );
 			for ( last = 0; attr->a_vals[last].bv_val; last++ ) ;
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
 				ldap_back_map(&li->oc_map, bv, &mapped, 1);
@@ -488,6 +489,7 @@ ldap_send_entry(
 		} else if ( strcmp( attr->a_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
 			int i;
+			assert( attr->a_vals );
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
 				struct berval newval;
 				
@@ -502,6 +504,7 @@ ldap_send_entry(
 					if ( newval.bv_val == NULL ) {
 						break;
 					}
+					newval.bv_len = strlen( newval.bv_val );
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "backend",
 							LDAP_LEVEL_DETAIL1,
