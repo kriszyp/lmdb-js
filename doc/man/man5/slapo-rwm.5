@@ -407,7 +407,7 @@ rwm-rewriteRule     "(.*),([^ ].*)" "$1, $2"
 
 # This one eats blanks
 rwm-rewriteContext  eatBlanks
-rwm-rewriteRule     "(.*),[ ](.*)" "$1,$2"
+rwm-rewriteRule     "(.*), (.*)" "$1,$2"
 
 # Here control goes back to the default rewrite
 # context; rules are appended to the existing ones.
@@ -493,7 +493,7 @@ rwm-rewriteRule ".*<>$" "${*prefix}uid=${*arg}${*suffix}" ":"
 # The second rule matches everything else and causes
 # the value to be rejected.
 rwm-rewriteContext searchEntryDN
-rwm-rewriteRule ".*,ou=People,dc=example,dc=com$" "$0" ":@"
+rwm-rewriteRule ".+,ou=People,dc=example,dc=com$" "$0" ":@"
 rwm-rewriteRule ".*" "" "#"
 .fi
 .SH FILES
