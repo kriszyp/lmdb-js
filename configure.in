@@ -1949,15 +1949,13 @@ if test "$ac_cv_sizeof_int" -lt 4 ; then
 	AC_MSG_WARN([OpenLDAP requires 'int' to be 32 bits or greater.])
 
 	AC_DEFINE(LBER_INT_T,long)
-	AC_DEFINE(LBER_TAG_T,long)
-	AC_DEFINE(LBER_SOCKET_T,int)
 else
 	AC_DEFINE(LBER_INT_T,int)
-	AC_DEFINE(LBER_TAG_T,long)
-	AC_DEFINE(LBER_SOCKET_T,int)
 fi
 
 AC_DEFINE(LBER_LEN_T,long)
+AC_DEFINE(LBER_SOCKET_T,int)
+AC_DEFINE(LBER_TAG_T,long)
 
 dnl ----------------------------------------------------------------
 dnl Checks for library functions.

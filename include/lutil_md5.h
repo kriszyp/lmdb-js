@@ -14,25 +14,19 @@
 #ifndef _LUTIL_MD5_H_
 #define _LUTIL_MD5_H_
 
-#include <ldap_cdefs.h>
-#include <ac/bytes.h>
+#include <lber_types.h>
 
 LDAP_BEGIN_DECL
 
-/* Unlike previous versions of this code, uint32 need not be exactly
+/* Unlike previous versions of this code, ber_int_t need not be exactly
    32 bits, merely 32 bits or more.  Choosing a data type which is 32
    bits instead of 64 is not important; speed is considerably more
    important.  ANSI guarantees that "unsigned long" will be big enough,
    and always using it seems to have few disadvantages.  */
 
-#ifndef LDAP_UINT32
-#define LDAP_UINT32 1
-typedef ac_uint4 uint32;
-#endif
-
 struct lutil_MD5Context {
-	uint32 buf[4];
-	uint32 bits[2];
+	ber_uint_t buf[4];
+	ber_uint_t bits[2];
 	unsigned char in[64];
 };
 
@@ -53,7 +47,7 @@ LDAP_F( void )
 lutil_MD5Update LDAP_P((
 	struct lutil_MD5Context *context,
 	unsigned char const *buf,
-	unsigned len));
+	ber_len_t len));
 
 LDAP_F( void )
 lutil_MD5Final LDAP_P((
@@ -62,7 +56,7 @@ lutil_MD5Final LDAP_P((
 
 LDAP_F( void )
 lutil_MD5Transform LDAP_P((
-	uint32 buf[4],
+	ber_uint_t buf[4],
 	const unsigned char in[64]));
 
 /*

@@ -23,30 +23,9 @@
 #ifndef _LBER_H
 #define _LBER_H
 
-#include <ldap_cdefs.h>
 #include <lber_types.h>
 
 LDAP_BEGIN_DECL
-
-/* booleans, enumerations, and integers */
-typedef LBER_INT_T ber_int_t;
-
-/* signed and unsigned versions */
-typedef signed LBER_INT_T ber_sint_t;
-typedef unsigned LBER_INT_T ber_uint_t;
-
-/* tags */
-typedef unsigned LBER_TAG_T ber_tag_t;
-
-/* "socket" descriptors */
-typedef LBER_SOCKET_T ber_socket_t;
-
-/* lengths */
-typedef unsigned LBER_LEN_T ber_len_t;
-
-/* signed lengths */
-typedef signed LBER_LEN_T ber_slen_t;
-
 
 /* Overview of LBER tag construction
  *
