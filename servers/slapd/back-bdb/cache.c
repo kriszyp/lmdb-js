@@ -37,6 +37,14 @@ static void	bdb_lru_print(Cache *cache);
 
 static int bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn, int reset );
 
+/* 4.2.52 */
+#if DB_VERSION_FULL == 0x04020034
+#define	READ_TXN_FLAG	ReadFlag
+static int ReadFlag = DB_TXN_NOT_DURABLE;
+#else
+#define READ_TXN_FLAG	0
+#endif
+
 static EntryInfo *
 bdb_cache_entryinfo_new( Cache *cache )
 {
@@ -1258,7 +1266,17 @@ bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn, int reset )
 	if ( ldap_pvt_thread_pool_getkey( ctx, ((char *)env)+1, &data, NULL ) ||
 		data == NULL ) {
 		for ( i=0, rc=1; rc != 0 && i<4; i++ ) {
-			rc = TXN_BEGIN( env, NULL, txn, 0 );
+			rc = TXN_BEGIN( env, NULL, txn, READ_TXN_FLAG );
+#if DB_VERSION_FULL == 0x04020034
+			if ( rc == EINVAL && READ_TXN_FLAG ) {
+				READ_TXN_FLAG = 0;
+				Debug( LDAP_DEBUG_ANY,
+					"bdb_txn_get: BerkeleyDB library needs TXN patch!\n",
+					0, 0, 0 );
+				i--;
+				continue;
+			}
+#endif
 			if (rc) ldap_pvt_thread_yield();
 		}
 		if ( rc != 0) {
