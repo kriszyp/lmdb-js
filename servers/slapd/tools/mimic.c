@@ -263,4 +263,9 @@ void* do_syncrepl( void *ctx, void *arg )
 {
 	return NULL;
 }
+
+char** str2clist( char **out, char *in, const char *brkstr )
+{
+	return NULL;
+}
 #endif

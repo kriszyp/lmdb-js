@@ -1323,6 +1323,7 @@ typedef struct syncinfo_s {
         int             tls;
         int             found;
         struct berval   *syncUUID;
+		struct berval	*syncUUID_ndn;
         struct berval   *syncCookie;
         Avlnode         *presentlist;
 		LDAP_LIST_HEAD(np, nonpresent_entry) nonpresentlist;

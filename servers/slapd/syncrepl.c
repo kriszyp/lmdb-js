@@ -69,6 +69,7 @@ slap_mods2entry_syncrepl( Modifications *, Entry **, int,
 
 /* callback functions */
 static int cookie_callback( struct slap_op *, struct slap_rep * );
+static int dn_callback( struct slap_op *, struct slap_rep * );
 static int nonpresent_callback( struct slap_op *, struct slap_rep * );
 static int null_callback( struct slap_op *, struct slap_rep * );
 
@@ -891,13 +892,12 @@ syncrepl_entry(
 	char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 
 	SlapReply	rs = {REP_RESULT};
-	int rc;
+	int rc = LDAP_SUCCESS;
 
-#if 0 /* FIXME : UUID search required first */
+	struct berval base_bv = {0, NULL};
+
 	char *filterstr;
-	struct berval filterstr_bv;
 	Filter *filter;
-#endif
 
 	Attribute *a;
 
@@ -919,74 +919,103 @@ syncrepl_entry(
 		attr_merge_one( e, slap_schema.si_ad_entryUUID, syncUUID, syncUUID );
 	}
 
-#if 0 /* FIXME : UUID search required first */
 	filterstr = (char *) sl_malloc( strlen("entryUUID=") + syncUUID->bv_len + 1, op->o_tmpmemctx ); 
 	strcpy( filterstr, "entryUUID=" );
 	strcat( filterstr, syncUUID->bv_val );
-#endif
 
 	si->e = e;
 	si->syncUUID = syncUUID;
+	si->syncUUID_ndn = NULL;
 
-#if 0 /* FIXME : UUID search required first */
 	filter = str2filter( filterstr );
-	ber_str2bv( filterstr, strlen(filterstr), 1, &filterstr_bv );
+	ber_str2bv( filterstr, strlen(filterstr), 1, &op->ors_filterstr );
 	ch_free( filterstr );
-#endif
+	op->ors_filter = filter;
+	op->ors_scope = LDAP_SCOPE_SUBTREE;
 
-	op->o_req_dn = e->e_name;
-	op->o_req_ndn = e->e_nname;
+	/* get syncrepl cookie of shadow replica from subentry */
+	ber_str2bv( si->base, strlen(si->base), 1, &base_bv ); 
+	dnPrettyNormal( 0, &base_bv, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
+	ch_free( base_bv.bv_val );
 
+	/* set callback function */
 	op->o_callback = &cb;
-	cb.sc_response = null_callback;
+	cb.sc_response = dn_callback;
 	cb.sc_private = si;
+
+	be->be_search( op, &rs );
+
+	ch_free( op->o_req_dn.bv_val );
+	ch_free( op->o_req_ndn.bv_val );
+	filter_free( op->ors_filter );
+	ch_free( op->ors_filterstr.bv_val );
+
+	cb.sc_response = null_callback;
+
+	if ( si->syncUUID_ndn )
+		printf("syncUUID_ndn = %s\n", si->syncUUID_ndn );
 
 	switch ( syncstate ) {
 	case LDAP_SYNC_ADD :
 	case LDAP_SYNC_MODIFY :
-sync_add_retry:
-		op->o_tag = LDAP_REQ_MODIFY;
-		op->orm_modlist = modlist;
-		rc = be->be_modify( op, &rs );
-		if ( rc != LDAP_SUCCESS ) {
-			if ( rc == LDAP_REFERRAL ||
-				 rc == LDAP_NO_SUCH_OBJECT ||
-				 rc == DB_NOTFOUND ) {
-				op->o_tag = LDAP_REQ_ADD;
-				op->ora_e = e;
-				rc = be->be_add( op, &rs );
-				if ( rc != LDAP_SUCCESS ) {
-					if ( rc == LDAP_ALREADY_EXISTS ) {
-						goto sync_add_retry;
-					} else if ( rc == LDAP_REFERRAL ||
-								rc == LDAP_NO_SUCH_OBJECT ||
-								rc == DB_NOTFOUND ) {
-						syncrepl_add_glue(ld, op, e,
-							modlist, syncstate,
-							syncUUID, syncCookie);
-					} else {
+
+		rc = LDAP_SUCCESS;
+
+		if ( si->syncUUID_ndn ) {
+			op->o_req_dn = *si->syncUUID_ndn;
+			op->o_req_ndn = *si->syncUUID_ndn;
+			op->o_tag = LDAP_REQ_DELETE;
+			rc = be->be_delete( op, &rs );
+		}
+
+		if ( rc == LDAP_SUCCESS ||
+			 rc == LDAP_REFERRAL ||
+			 rc == LDAP_NO_SUCH_OBJECT ||
+			 rc == DB_NOTFOUND ) {
+			op->o_tag = LDAP_REQ_ADD;
+			op->ora_e = e;
+			op->o_req_dn = e->e_name;
+			op->o_req_ndn = e->e_nname;
+			rc = be->be_add( op, &rs );
+			if ( rc != LDAP_SUCCESS ) {
+				if ( rc == LDAP_ALREADY_EXISTS ) {
 #ifdef NEW_LOGGING
-						LDAP_LOG( OPERATION, ERR,
-							"be_add failed (%d)\n",
-							rc, 0, 0 );
+					LDAP_LOG( OPERATION, ERR,
+						"be_add failed : already exists (%d)\n",
+						rc, 0, 0 );
 #else
-						Debug( LDAP_DEBUG_ANY,
-							"be_add failed (%d)\n",
-							rc, 0, 0 );
+					Debug( LDAP_DEBUG_ANY,
+						"be_add failed : already exists (%d)\n",
+						rc, 0, 0 );
 #endif
-					}
+				} else if ( rc == LDAP_REFERRAL ||
+							rc == LDAP_NO_SUCH_OBJECT ||
+							rc == DB_NOTFOUND ) {
+					syncrepl_add_glue(ld, op, e,
+						modlist, syncstate,
+						syncUUID, syncCookie);
 				} else {
-					return 0;
+#ifdef NEW_LOGGING
+					LDAP_LOG( OPERATION, ERR,
+						"be_add failed (%d)\n",
+						rc, 0, 0 );
+#else
+					Debug( LDAP_DEBUG_ANY,
+						"be_add failed (%d)\n",
+						rc, 0, 0 );
+#endif
 				}
 			} else {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, ERR,
-					"be_modify failed (%d)\n", rc, 0, 0 );
-#else
-				Debug( LDAP_DEBUG_ANY,
-					"be_modify failed (%d)\n", rc, 0, 0 );
-#endif
+				return 0;
 			}
+		} else {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, ERR,
+				"be_modify/be_delete failed (%d)\n", rc, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"be_modify/be_delete failed (%d)\n", rc, 0, 0 );
+#endif
 		}
 
 		si->e = NULL;
@@ -1917,6 +1946,21 @@ cookie_callback(
 }
 
 static int
+dn_callback(
+	Operation*	op,
+	SlapReply*	rs
+)
+{
+	syncinfo_t *si = op->o_callback->sc_private;
+	
+	if ( rs->sr_type == REP_SEARCH ) {
+		si->syncUUID_ndn = &rs->sr_entry->e_nname;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+static int
 nonpresent_callback(
 	Operation*	op,
 	SlapReply*	rs
@@ -1980,6 +2024,46 @@ null_callback(
 #endif
 	}
 	return LDAP_SUCCESS;
+}
+
+
+char **
+str2clist( char **out, char *in, const char *brkstr )
+{
+	char	*str;
+	char	*s;
+	char	*lasts;
+	int	i, j;
+	const char *text;
+	char	**new;
+
+	/* find last element in list */
+	for (i = 0; out && out[i]; i++);
+	
+	/* protect the input string from strtok */
+	str = ch_strdup( in );
+
+	/* Count words in string */
+	j=1;
+	for ( s = str; *s; s++ ) {
+		if ( strchr( brkstr, *s ) != NULL ) {
+			j++;
+		}
+	}
+
+	out = ch_realloc( out, ( i + j + 1 ) * sizeof( char * ) );
+	new = out + i;
+	for ( s = ldap_pvt_strtok( str, brkstr, &lasts );
+		s != NULL;
+		s = ldap_pvt_strtok( NULL, brkstr, &lasts ) )
+	{
+		*new = ch_strdup( s );
+		new++;
+	}
+
+	*new = NULL;
+	free( str );
+	return( out );
 }
 
 #endif

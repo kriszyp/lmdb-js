@@ -2896,51 +2896,9 @@ parse_syncrepl_line(
 			si->attrsonly = 1;
 		} else if ( !strncasecmp( cargv[ i ],
 				ATTRSSTR, sizeof( ATTRSSTR ) - 1 ) ) {
-			char **tmp;
 			val = cargv[ i ] + sizeof( ATTRSSTR );
-			for ( ; hp = strchr( val, ' ' ); val = ++hp ) {
-				*hp = '\0';
-				if ( *val != '\0' ) {
-					nr_attr++;
-					tmp = (char **) ch_realloc( si->attrs, nr_attr * sizeof( char * ));
-					if ( tmp == NULL ) {
-#ifdef NEW_LOGGING
-						LDAP_LOG( CONFIG, ERR, "out of memory\n", 0,0,0 );
-#else
-						Debug( LDAP_DEBUG_ANY, "out of memory\n", 0,0,0 );
-#endif
-						return -1;
-					}
-					si->attrs = tmp;
-					si->attrs[ nr_attr - 1 ] = ch_strdup( val );
-				}
-			}
-			if ( *val != '\0' ) {
-				nr_attr++;
-				tmp = (char **) ch_realloc( si->attrs, nr_attr * sizeof( char * ));
-				if ( tmp == NULL ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG( CONFIG, ERR, "out of memory\n", 0,0,0 );
-#else
-					Debug( LDAP_DEBUG_ANY, "out of memory\n", 0,0,0 );
-#endif
-					return -1;
-				}
-				si->attrs = tmp;
-				si->attrs[ nr_attr - 1 ] = ch_strdup( val );
-			}
-			nr_attr++;
-			tmp = (char **) ch_realloc( si->attrs, nr_attr * sizeof( char * ));
-			if ( tmp == NULL ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( CONFIG, ERR, "out of memory\n", 0,0,0 );
-#else
-				Debug( LDAP_DEBUG_ANY, "out of memory\n", 0,0,0 );
-#endif
-				return -1;
-			}
-			si->attrs = tmp;
-			si->attrs[ nr_attr - 1 ] = NULL;
+			si->attrs = NULL;
+			si->attrs = str2clist( si->attrs, val, "," );
 			gots |= GOT_ATTRS;
 		} else if ( !strncasecmp( cargv[ i ],
 				TYPESTR, sizeof( TYPESTR ) - 1 ) ) {
