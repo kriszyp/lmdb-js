@@ -230,6 +230,9 @@ int ldap_domain2hostlist(
 	/* Bind 8/9 interface */
 	p += NS_HFIXEDSZ;
 #else
+#ifndef	HFIXEDSZ
+#define	HFIXEDSZ	sizeof(HEADER)
+#endif
 	/* Bind 4 interface */
 	p += HFIXEDSZ;
 #endif
