@@ -26,6 +26,11 @@ static int	get_ssa(
 	SubstringsAssertion **s,
 	const char **text );
 
+static int filter_escape_value_x(
+	struct berval *in,
+	struct berval *out,
+	void *ctx );
+
 static void simple_vrFilter2bv(
 	Operation *op,
 	ValuesReturnFilter *f,
@@ -854,7 +859,7 @@ filter2bv( Filter *f, struct berval *fstr )
 	filter2bv_x( &op, f, fstr );
 }
 
-int
+static int
 filter_escape_value_x(
 	struct berval *in,
 	struct berval *out,
