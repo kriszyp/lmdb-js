@@ -35,7 +35,8 @@ cache_entry_cmp( Entry *e1, Entry *e2 )
 static int
 cache_entrydn_cmp( Entry *e1, Entry *e2 )
 {
-	return( strcasecmp( e1->e_dn, e2->e_dn ) );
+	/* compare their normalized dn's */
+	return( strcasecmp( e1->e_ndn, e2->e_ndn ) );
 }
 
 static int
@@ -234,10 +235,13 @@ cache_find_entry_dn2id(
 	pthread_mutex_lock( &cache->c_mutex );
 
 	e.e_dn = dn;
+	e.e_ndn = dn_normalize( ch_strdup( dn ) );
 
 	if ( (ep = (Entry *) avl_find( cache->c_dntree, (caddr_t) &e,
 		cache_entrydn_cmp )) != NULL )
 	{
+		free(e.e_ndn);
+
 		Debug(LDAP_DEBUG_TRACE, "====> cache_find_entry_dn2id: found dn: %s\n",
 			dn, 0, 0);
 
@@ -290,6 +294,8 @@ cache_find_entry_dn2id(
 
 		return( id );
 	}
+
+	free(e.e_ndn);
 
 	/* free cache mutex */
 	pthread_mutex_unlock( &cache->c_mutex );

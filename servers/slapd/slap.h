@@ -120,6 +120,7 @@ typedef unsigned long	ID;
  */
 typedef struct entry {
 	char		*e_dn;		/* DN of this entry 		  */
+	char		*e_ndn;		/* normalized DN of this entry	  */
 	Attribute	*e_attrs;	/* list of attributes + values    */
 
 	ID		e_id;		/* id of this entry - this should */

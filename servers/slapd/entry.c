@@ -17,7 +17,7 @@ static int		emaxsize;/* max size of ebuf	     		 */
 Entry *
 str2entry( char	*s )
 {
-	int		i;
+	int			id = 0;
 	Entry		*e;
 	Attribute	**a;
 	char		*type;
@@ -46,22 +46,29 @@ str2entry( char	*s )
 	Debug( LDAP_DEBUG_TRACE, "=> str2entry\n",
 		s ? s : "NULL", 0, 0 );
 
-	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
-
 	/* check to see if there's an id included */
 	next = s;
 	if ( isdigit( *s ) ) {
-		e->e_id = atoi( s );
+		id = atoi( s );
 		if ( (s = str_getline( &next )) == NULL ) {
 			Debug( LDAP_DEBUG_TRACE,
 			    "<= str2entry NULL (missing newline after id)\n",
 			    0, 0, 0 );
-			free( e );
 			return( NULL );
 		}
 	}
 
 	/* initialize reader/writer lock */
+	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+
+	if( e == NULL ) {
+		Debug( LDAP_DEBUG_TRACE,
+		    "<= str2entry NULL (entry allocation failed)\n",
+		    0, 0, 0 );
+		return( NULL );
+	}
+	e->e_id = id;
+
 	entry_rdwr_init(e);
 
 	/* dn + attributes */
@@ -86,6 +93,7 @@ str2entry( char	*s )
 			maxvals = 0;
 			a = NULL;
 		}
+
 		if ( strcasecmp( type, "dn" ) == 0 ) {
 			if ( e->e_dn != NULL ) {
 				Debug( LDAP_DEBUG_ANY,
@@ -94,6 +102,14 @@ str2entry( char	*s )
 				continue;
 			}
 			e->e_dn = ch_strdup( value );
+
+			if ( e->e_ndn != NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+ "str2entry: entry %lu already has a normalized dn \"%s\" for \"%s\" (first ignored)\n",
+				    e->e_id, e->e_ndn, value );
+				free( e->e_ndn );
+			}
+			e->e_ndn = dn_normalize( ch_strdup( value ) );
 			continue;
 		}
 
@@ -113,6 +129,14 @@ str2entry( char	*s )
 	if ( e->e_dn == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "str2entry: entry %lu has no dn\n",
 		    e->e_id, 0, 0 );
+		entry_free( e );
+		return( NULL );
+	}
+
+	if ( e->e_ndn == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"str2entry: entry %lu (\"%s\") has no normalized dn\n",
+		    e->e_id, e->e_dn, 0 );
 		entry_free( e );
 		return( NULL );
 	}
@@ -202,6 +226,9 @@ entry_free( Entry *e )
 
 	if ( e->e_dn != NULL ) {
 		free( e->e_dn );
+	}
+	if ( e->e_ndn != NULL ) {
+		free( e->e_ndn );
 	}
 	for ( a = e->e_attrs; a != NULL; a = next ) {
 		next = a->a_next;
