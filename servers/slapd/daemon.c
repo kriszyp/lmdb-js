@@ -72,6 +72,7 @@ do {\
 static 
 #endif
 volatile sig_atomic_t slapd_shutdown = 0;
+static int sel_exit_fd;
 
 static ldap_pvt_thread_t	listener_tid;
 static volatile sig_atomic_t slapd_listener = 0;
@@ -275,18 +276,10 @@ open_listener(
 
 
 	if ( (l.sl_sd = socket( AF_INET, SOCK_STREAM, 0 )) == AC_SOCKET_INVALID ) {
-#ifndef HAVE_WINSOCK
-		int err = errno;
+		int err = sock_errno();
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: socket() failed errno=%d (%s)\n", err,
-	    	err > -1 && err < sys_nerr ? sys_errlist[err] :
-	    	"unknown", 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, 
-			"daemon: socket() failed errno=%d (%s)\n",
-			WSAGetLastError(),
-	    	WSAGetLastErrorString(), 0 );
-#endif
+			sock_errstr(err), 0 );
 		return NULL;
 	}
 
@@ -306,12 +299,10 @@ open_listener(
 	if ( setsockopt( l.sl_sd, SOL_SOCKET, SO_REUSEADDR,
 		(char *) &tmp, sizeof(tmp) ) == -1 )
 	{
-		int err = errno;
+		int err = sock_errno();
 		Debug( LDAP_DEBUG_ANY,
 	       "slapd(%ld): setsockopt(SO_REUSEADDR) failed errno=%d (%s)\n",
-	    	(long) l.sl_sd, err,
-			err > -1 && err < sys_nerr
-				? sys_errlist[err] : "unknown" );
+	    	(long) l.sl_sd, err, sock_errstr(err) );
 	}
 #endif
 #ifdef SO_KEEPALIVE
@@ -320,12 +311,10 @@ open_listener(
 	if ( setsockopt( l.sl_sd, SOL_SOCKET, SO_KEEPALIVE,
 		(char *) &tmp, sizeof(tmp) ) == -1 )
 	{
-		int err = errno;
+		int err = sock_errno();
 		Debug( LDAP_DEBUG_ANY,
 			"slapd(%ld): setsockopt(SO_KEEPALIVE) failed errno=%d (%s)\n",
-	    	(long) l.sl_sd, err,
-			err > -1 && err < sys_nerr
-				? sys_errlist[err] : "unknown" );
+	    	(long) l.sl_sd, err, sock_errstr(err) );
 	}
 #endif
 #ifdef TCP_NODELAY
@@ -334,21 +323,17 @@ open_listener(
 	if ( setsockopt( l.sl_sd, IPPROTO_TCP, TCP_NODELAY,
 		(char *)&tmp, sizeof(tmp) ) )
 	{
-		int err = errno;
+		int err = sock_errno();
 		Debug( LDAP_DEBUG_ANY,
 			"slapd(%ld): setsockopt(TCP_NODELAY) failed errno=%d (%s)\n",
-	    	(long) l.sl_sd, err,
-			err > -1 && err < sys_nerr
-				? sys_errlist[err] : "unknown" );
+	    	(long) l.sl_sd, err, sock_errstr(err) );
 	}
 #endif
 
 	if ( bind( l.sl_sd, (struct sockaddr *) &l.sl_addr, sizeof(l.sl_addr) ) == -1 ) {
-		int err = errno;
+		int err = sock_errno();
 		Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed errno=%d (%s)\n",
-	    	(long) l.sl_sd, err,
-			err > -1 && err < sys_nerr
-				? sys_errlist[err] : "unknown" );
+	    	(long) l.sl_sd, err, sock_errstr(err) );
 		tcp_close( l.sl_sd );
 		return NULL;
 	}
@@ -401,6 +386,55 @@ int slapd_daemon_init(char *urls, int port, int tls_port )
 		dtblsize = FD_SETSIZE;
 	}
 #endif	/* !FD_SETSIZE */
+
+	/* set up a datagram socket connected to itself. we write a byte
+	 * on this socket whenever we catch a signal. The main loop will
+	 * be select'ing on this socket, and will wake up when this byte
+	 * arrives.
+	 */
+	if( (sel_exit_fd = socket( AF_INET, SOCK_DGRAM, 0 )) < 0 )
+	{
+		int err = sock_errno();
+		Debug( LDAP_DEBUG_ANY,
+			"daemon: socket() failed errno=%d (%s)\n", err,
+			sock_errstr(err), 0 );
+		return sel_exit_fd;
+	} else {
+		struct sockaddr_in si;
+		int len = sizeof(si);
+		int err;
+
+		(void) memset( (void*) &si, 0, len );
+
+		si.sin_family = AF_INET;
+		si.sin_port = 0;
+		si.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+		if( rc = bind( sel_exit_fd, (struct sockaddr *)&si, len ) )
+		{
+		    err = sock_errno();
+		    Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed errno=%d (%s)\n",
+		    (long) sel_exit_fd, err, sock_errstr(err) );
+		    tcp_close( sel_exit_fd );
+		    return rc;
+		}
+		if( rc = getsockname( sel_exit_fd, (struct sockaddr *)&si, &len))
+		{
+		    err = sock_errno();
+		    Debug( LDAP_DEBUG_ANY, "daemon: getsockname(%ld) failed errno=%d (%s)\n",
+		    (long) sel_exit_fd, err, sock_errstr(err) );
+		    tcp_close( sel_exit_fd );
+		    return rc;
+		}
+		if( rc = connect( sel_exit_fd, (struct sockaddr *)&si, len))
+		{
+		    err = sock_errno();
+		    Debug( LDAP_DEBUG_ANY, "daemon: connect(%ld) failed errno=%d (%s)\n",
+		    (long) sel_exit_fd, err, sock_errstr(err) );
+		    tcp_close( sel_exit_fd );
+		    return rc;
+		}
+	}
 
 	FD_ZERO( &slap_daemon.sd_readers );
 	FD_ZERO( &slap_daemon.sd_writers );
@@ -477,13 +511,11 @@ slapd_daemon_task(
 			continue;
 
 		if ( listen( slap_listeners[l]->sl_sd, 5 ) == -1 ) {
-			int err = errno;
+			int err = sock_errno();
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: listen(%s, 5) failed errno=%d (%s)\n",
 					(long) slap_listeners[l]->sl_url, err,
-					err > -1 && err < sys_nerr
-					? sys_errlist[err] : "unknown" );
-
+					sock_errstr(err) );
 			return( (void*)-1 );
 		}
 
@@ -537,17 +569,18 @@ slapd_daemon_task(
 
 #ifdef FD_SET_MANUAL_COPY
 		for( s = 0; s < nfds; s++ ) {
-			if(FD_ISSET( &slap_sd_writers, s )) {
-				FD_SET( &writefds, s );
+			if(FD_ISSET( &slap_sd_readers, s )) {
+				FD_SET( s, &readfds );
 			}
 			if(FD_ISSET( &slap_sd_writers, s )) {
-				FD_SET( &writefds, s );
+				FD_SET( s, &writefds );
 			}
 		}
 #else
 		memcpy( &readfds, &slap_daemon.sd_readers, sizeof(fd_set) );
 		memcpy( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) );
 #endif
+		FD_SET( sel_exit_fd, &readfds );
 
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID )
@@ -593,11 +626,7 @@ slapd_daemon_task(
 			NULL, tvp ))
 		{
 		case -1: {	/* failure - try again */
-#ifdef HAVE_WINSOCK
-				int err = WSAGetLastError();
-#else
-				int err = errno;
-#endif
+				int err = sock_errno();
 
 				if( err == EBADF && ++ebadf < SLAPD_EBADF_LIMIT) {
 					continue;
@@ -606,13 +635,9 @@ slapd_daemon_task(
 				if( err != EINTR ) {
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: select failed (%d): %s\n",
-						err,
-						err >= 0 && err < sys_nerr
-							? sys_errlist[err] : "unknown",
-						0 );
+						err, sock_errstr(err), 0 );
 
-
-				slapd_shutdown = -1;
+					slapd_shutdown = -1;
 				}
 			}
 			continue;
@@ -631,6 +656,12 @@ slapd_daemon_task(
 			/* FALL THRU */
 		}
 
+		if( FD_ISSET( sel_exit_fd, &readfds ) )
+		{
+			char c;
+			read( sel_exit_fd, &c, 1 );
+			continue;
+		}
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 			ber_int_t s;
 			socklen_t len = sizeof(from);
@@ -650,12 +681,11 @@ slapd_daemon_task(
 			if ( (s = accept( slap_listeners[l]->sl_sd,
 				(struct sockaddr *) &from, &len )) == AC_SOCKET_INVALID )
 			{
-				int err = errno;
+				int err = sock_errno();
 				Debug( LDAP_DEBUG_ANY,
-				    "daemon: accept(%ld) failed errno=%d (%s)\n", err,
-				    (long) slap_listeners[l]->sl_sd,
-				    err >= 0 && err < sys_nerr ?
-				    sys_errlist[err] : "unknown");
+				    "daemon: accept(%ld) failed errno=%d (%s)\n",
+				    (long) slap_listeners[l]->sl_sd, err,
+				    sock_errstr(err) );
 				continue;
 			}
 
@@ -688,12 +718,10 @@ slapd_daemon_task(
 			len = sizeof(from);
 
 			if ( getpeername( s, (struct sockaddr *) &from, &len ) != 0 ) {
-				int err = errno;
+				int err = sock_errno();
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: getpeername( %ld ) failed: errno=%d (%s)\n",
-					(long) s, err,
-				    err >= 0 && err < sys_nerr ?
-				    sys_errlist[err] : "unknown" );
+					(long) s, err, sock_errstr(err) );
 				slapd_close(s);
 				continue;
 			}
@@ -1074,6 +1102,7 @@ slap_set_shutdown( int sig )
 		}
 	}
 #endif
+	write( sel_exit_fd, "0", 1 );
 	/* reinstall self */
 	(void) SIGNAL( sig, slap_set_shutdown );
 }
