@@ -1271,7 +1271,7 @@ bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn, int reset )
 			if ( rc == EINVAL && READ_TXN_FLAG ) {
 				READ_TXN_FLAG = 0;
 				Debug( LDAP_DEBUG_ANY,
-					"bdb_txn_get: BerkeleyDB library needs TXN patch!\n",
+					"bdb_txn_get: BerkeleyDB 4.2.52 library needs TXN patch!\n",
 					0, 0, 0 );
 				i--;
 				continue;
