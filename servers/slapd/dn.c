@@ -490,6 +490,9 @@ rdn_attr_value( const char * rdn )
  * 
  * 1 if rdn is a legal rdn; 
  * 0 otherwise (including a sequence of rdns)
+ *
+ * note: got it from dn_rdn; it should be rewritten 
+ * according to dn_validate
  */
 int
 rdn_validate( const char * rdn )
