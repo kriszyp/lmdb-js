@@ -17,16 +17,16 @@ your use.  Each set is defined in a file suitable for inclusion
 file.  These schema files are normally installed in the
 {{F:/usr/local/etc/openldap/schema}} directory.
 
-!block table; colaligns="LR"; align=Center; \
+!block table; colaligns="LR"; coltags="F,N"; align=Center; \
 	title="Table 6.1: Provided Schema Specifications"
-File				Description
-{{F:core.schema}}		OpenLDAP {{core}} (required)
-{{F:cosine.schema}}		Cosine and Internet X.500 (useful)
-{{F:inetorgperson.schema}}	InetOrgPerson (useful)
-{{F:misc.schema}}		Assorted (experimental)
-{{F:nadf.schema}}		North American Directory Forum (FYI)
-{{F:nis.schema}}		Network Information Services (FYI)
-{{F:openldap.schema}}		OpenLDAP Project (experimental)
+File			Description
+core.schema		OpenLDAP {{core}} (required)
+cosine.schema		Cosine and Internet X.500 (useful)
+inetorgperson.schema	InetOrgPerson (useful)
+misc.schema		Assorted (experimental)
+nadf.schema		North American Directory Forum (FYI)
+nis.schema		Network Information Services (FYI)
+openldap.schema		OpenLDAP Project (experimental)
 !endblock
 
 To use any of these schema files, you only need to include the
@@ -73,16 +73,16 @@ can obtain one OID and branch it as needed.  For example,
 if your organization were assigned OID {{EX:1.1}}, you could branch
 the tree as follows:
 
-!block table; colaligns="LR"; align=Center; \
+!block table; colaligns="LR"; coltags="EX,N"; align=Center; \
 	title="Table 6.2: Example OID hierarchy"
-OID			Assignment
-{{EX:1.1}}		Organization's OID
-{{EX:1.1.1}}		SNMP Elements
-{{EX:1.1.2}}		LDAP Elements
-{{EX:1.1.2.1}}		AttributeTypes
-{{EX:1.1.2.1.1}}	myAttribute
-{{EX:1.1.2.2}}		ObjectClasses
-{{EX:1.1.2.2.1}}	myObjectClass
+OID		Assignment
+1.1		Organization's OID
+1.1.1		SNMP Elements
+1.1.2		LDAP Elements
+1.1.2.1		AttributeTypes
+1.1.2.1.1	myAttribute
+1.1.2.2		ObjectClasses
+1.1.2.2.1	myObjectClass
 !endblock
 
 You are, of course, free to design a hierarchy suitable to your
@@ -212,6 +212,19 @@ The first attribute, {{EX:name}}, has a syntax of directory string
 Note that syntaxes is specified by OID.  In addition, the equality
 and substring matching uses case ignore rules.  Below are tables of
 {{slapd}}(8) supported syntax and matching rules.
+
+!block table; align=Center; coltags="EX,EX,N"; \
+	title="Table 6.3: Supported Syntaxes"
+Name		OID				Description
+directoryString	1.3.6.1.4.1.1466.115.121.1.15	A directory string
+!endblock
+
+!block table; align=Center; coltags="EX,N"; \
+	title="Table 6.4: Supported Matching Rules"
+Name		Description
+caseIgnoreMatch	case insensitive, space insensitive matching
+caseExactMatch	case sensitive, space insensitive matching
+!endblock
 
 The second attribute, {{EX:cn}}, is a subtype of {{EX:name}} hence
 in inherits the syntax, matching rules, and usage of {{EX:name}}.
