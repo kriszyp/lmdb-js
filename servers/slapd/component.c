@@ -318,7 +318,7 @@ get_aliased_filter ( Operation* op, MatchingRuleAssertion* ma, AttributeAliasing
 	 * the component assertion value in assert_bv
 	 * Multiple values may be separated with '$'
 	 */
-	rc = dup_comp_filter ( op, &assert_bv, aa->aa_cf, &ma->ma_cf );
+	return dup_comp_filter ( op, &assert_bv, aa->aa_cf, &ma->ma_cf );
 }
 
 int
