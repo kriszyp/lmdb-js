@@ -41,13 +41,9 @@ Perform a security audit (and fix any hole found)
 
 Medium projects
 ---------------
-Redesign and Implement a LDAP C API
-Modify -lldap to be reentrant/threadsafe
-	implement LDAP concurrency draft
+Modify -lldap to be reentrant/threadsafe implement LDAP concurrency draft
 Modify libraries to use application specified logging routines
 Modify servers to use reentrant library functions
-Extend slapd to support per-backend schema
-Port slurpd to NT
 
 
 Small projects
