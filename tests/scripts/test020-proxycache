@@ -23,8 +23,8 @@ mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 # - verify answerability
 
 echo "Starting master slapd on TCP/IP port $PORT1..."
-. $CONFFILTER < $CACHEMASTERCONF > $CONF
-$SLAPD -f $CONF -h $URI1 -d $LVL > $LOG1 2>&1 &
+. $CONFFILTER < $CACHEMASTERCONF > $CONF1
+$SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
 	echo PID $PID
