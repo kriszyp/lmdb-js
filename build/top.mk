@@ -49,7 +49,7 @@ MKDEP = $(top_srcdir)/build/mkdep $(MKDEPFLAG) -c "$(CC)"
 
 LIBTOOL = @LIBTOOL@
 LIBVERSION = 1:0:0
-LTLINK  = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LFLAGS)
+LTLINK  = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LFLAGS) $(LTVERSION)
 LTINSTALL = $(LIBTOOL) --mode=install $(INSTALL) 
 
 # Misc UNIX commands used in makefiles
