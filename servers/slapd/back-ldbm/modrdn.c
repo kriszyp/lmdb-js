@@ -332,7 +332,9 @@ ldbm_back_modrdn(
 		goto return_results;		
 	}
 	
-	if ( strcasecmp( old_rdn_type, new_rdn_type ) != 0 ) {
+	if ( newSuperior == NULL
+		&& strcasecmp( old_rdn_type, new_rdn_type ) != 0 )
+	{
 	    /* Not a big deal but we may say something */
 	    Debug( LDAP_DEBUG_TRACE,
 		   "ldbm_back_modrdn: old_rdn_type=%s, new_rdn_type=%s!\n",

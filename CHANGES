@@ -13,6 +13,7 @@ OpenLDAP 2.0.8 Release Engineering
 	Fixed back-ldbm modify password DN bug (ITS#1060)
 	Fixed libldap SASL GSSAPI interop bug (ITS#884)
 	Fixed libldap TLS/SASL crash bugs (ITS#889)
+	Updated slapd anonymous write default to deny
 	Updated libldap TLS seeding (ITS#948) 
 	Updated libldap TLS certificate handling
 	Updated libldap referral/reference handling (ITS#905,1047)

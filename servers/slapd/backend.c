@@ -761,6 +761,11 @@ backend_check_restrictions(
 				*text = "update confidentiality required";
 				return LDAP_CONFIDENTIALITY_REQUIRED;
 			}
+
+			if( op->o_ndn == NULL ) {
+				*text = "modifications require authentication";
+				return LDAP_OPERATIONS_ERROR;
+			}
 		}
 	}
 
