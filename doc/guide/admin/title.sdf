@@ -5,11 +5,7 @@
 # Master: master.sdf
 # 
 
-!define DOC_NAME           "OpenLDAP Administrators Guide"
-!define DOC_AUTHOR         "OpenLDAP <{{URL:http://www.openldap.org/}}>"
-!define DOC_LOGO           "../images/LDAPwww.gif"
-!define DOC_LOF_TITLE      "Figures"
-!define DOC_LOF
-!build_title
+!define DOC_TYPE	"OpenLDAP Administrators Guide"
 
+!build_title
 

@@ -119,7 +119,3 @@ where {{EX: ETCDIR}} has the value you gave it in the
 during pre-build configuration. Finally, send inetd a HUP signal,
 and you should be all set.
 
-PB:
-
-
-

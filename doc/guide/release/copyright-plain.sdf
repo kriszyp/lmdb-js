@@ -1,4 +1,5 @@
 #
 # Plain Copyright for Software Distribution
 #
+!define NO_C
 !include "copyright.sdf"; plain

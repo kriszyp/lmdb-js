@@ -108,7 +108,3 @@ information. Here's how you might do it using the
 
 E: ldapsearch -s base -b cn=monitor 'objectclass=*'
 
-PB:
-
-
-

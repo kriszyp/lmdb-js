@@ -85,5 +85,3 @@ So, take a look at the index lines in your slapd configuration file to
 ensure that only those indices that make sense and are needed
 are being maintained.
 
-PB:
-

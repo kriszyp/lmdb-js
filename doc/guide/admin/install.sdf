@@ -8,15 +8,12 @@ detail. If you are reading this guide, chances are you have already
 obtained the software, but just in case, here's where you can get the
 latest version of the OpenLDAP package, which includes all of the
 software discussed in this guide:
+{{URL: ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release.tgz}}
 
-{{CMD[jump="ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release.tgz"]ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release.tgz}}
-
-There is also an OpenLDAP homepage accessible from the World
-Wide Web. This page contains the latest OpenLDAP news, release
-announcements, and pointers to other resources. You can access it
-at:
-
-{{CMD[jump="http://www.OpenLDAP.org/"]http://www.OpenLDAP.org/}}
+There is also an OpenLDAP Project has an extensive site on the
+World Wide Web. This sites contains the latest OpenLDAP news,
+release announcements, and pointers to other resources.
+You can access the site at: {{URL: http://www.OpenLDAP.org/}}
 
 
 H2: Pre-Build Configuration
@@ -29,7 +26,6 @@ Briefly, you should edit the include/ldapconfig.h.edit and
 Make-common files to contain the site-specific configuration your site
 requires before making. The next sections discuss these steps in
 more detail.
-
 
 
 H3: Editing the {{EX: Make-common}} file
@@ -82,35 +78,28 @@ option selects which package it will use. The currently supported
 options in order of preference are:
 
 *{{EX: DLDBM_USE_DBBTREE}}
-.
+
 .This option enables the Berkeley DB package btree database as the
-.LDBM backend. You can get this package from
-.
-.{{CMD[jump="ftp://ftp.cs.berkeley.edu/ucb/4bsd/db.tar.Z"]ftp://ftp.cs.berkeley.edu/ucb/4bsd/db.tar.Z}}
-.
+LDBM backend. You can get this package from:
+{{URL: ftp://ftp.cs.berkeley.edu/ucb/4bsd/db.tar.Z}}
 
 *{{EX: DLDBM_USE_DBHASH}}
-.
+
 .This option enables the Berkeley DB package hash database as the
-.LDBM backend. You can get this package from
-.
-.{{CMD[jump="ftp://ftp.cs.berkeley.edu/ucb/4bsd/db.tar.Z"]ftp://ftp.cs.berkeley.edu/ucb/4bsd/db.tar.Z}}
-.
+LDBM backend. You can get this package from
+{{URL ftp://ftp.cs.berkeley.edu/ucb/4bsd/db.tar.Z}}
 
 *{{EX: DLDBM_USE_GDBM}}
-.
+
 .This option enables GNU dbm as the LDBM backend. You can get this
-.package from
-.
-.{{CMD[jump="ftp://prep.ai.mit.edu/pub/gnu/gdbm-1.7.3.tar.gz"]ftp://prep.ai.mit.edu/pub/gnu/gdbm-1.7.3.tar.gz}}
-.
+package from
+{{URL: ftp://prep.ai.mit.edu/pub/gnu/gdbm-1.7.3.tar.gz}}
 
 *{{EX: DLDBM_USE_NDBM}}
-.
+
 .This option enables the standard UNIX ndbm(3) package as the
-.LDBM backend. This package should come standard on your UNIX
-.system. man ndbm for details.
-.
+LDBM backend. This package should come standard on your UNIX
+system. man ndbm for details.
 
 Example to enable the Berkeley DB Btree backend:
 
@@ -158,7 +147,8 @@ This option is normally set automatically in the {{EX: Make-platform}} file,
 based on the platform on which you are building. You do not normally
 need to set it. If you have set {{EX: THREADS}} to a non-default threads
 package as described above, you can specify the appropriate
- {{EX: -Ldirectory}} flag and  {{EX: -llibname}} flag needed to link the package here.
+{{EX: -Ldirectory}} flag and  {{EX: -llibname}} flag needed to link
+the package here.
 
 H4: PHONETIC
 
@@ -263,8 +253,4 @@ binaries. Existing configuration files are first moved to a name with a
 dash '-' appended, e.g., {{EX: slapd.conf}} is moved to {{EX: slapd.conf-}}. 
 If you install things twice, however, you can lose your existing configuration
 files.
-
-
-PB:
-
 

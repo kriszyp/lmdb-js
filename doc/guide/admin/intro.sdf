@@ -31,7 +31,8 @@ queried and updated, how it is protected from unauthorized access, etc.
 Some directory services are {{I:local}}, providing service to a restricted 
 context (e.g., the finger service on a single machine). Other services are 
 global, providing service to a much broader context (e.g., the entire Internet).
-Global services are usually {{I:distributed}}, meaning that the data they contain
+Global services are usually {{I:distributed}},
+meaning that the data they contain
 is spread across many machines, all of which cooperate to provide the
 directory service. Typically a global service defines a uniform {{I:namespace}}
 which gives the same view of the data no matter where you are in relation to
@@ -47,7 +48,8 @@ LDAP is a directory service protocol that runs over TCP/IP. The nitty-gritty
 details of LDAP are defined in RFC 1777 "The Lightweight Directory Access
 Protocol." This section gives an overview of LDAP from a user's perspective.
 
-{{I:What kind of information can be stored in the directory?}} The LDAP directory
+{{I:What kind of information can be stored in the directory?}}
+The LDAP directory
 service model is based on {{I:entries}}. An entry is a collection of 
 attributes that has a name, called a {{I:distinguished name}} (DN). 
 The DN is used to refer to the entry unambiguously. Each of the 
@@ -59,7 +61,8 @@ attribute it is. For example, a {{EX:mail}} attribute might contain the value
 "{{EX:babs@openldap.org}}". A {{EX:jpegPhoto}} attribute would contain 
 a photograph in binary JPEG/JFIF format.
 
-{{I:How is the information arranged?}} In LDAP, directory entries are arranged in
+{{I:How is the information arranged?}}
+In LDAP, directory entries are arranged in
 a hierarchical tree-like structure that reflects political, geographic and/or
 organizational boundaries. Entries representing countries appear at the top
 of the tree. Below them are entries representing states or national
@@ -80,7 +83,8 @@ The values of the {{I:objectclass}} attribute determine
 the {{I:schema}} rules the entry
 must obey.
 
-{{I:How is the information referenced?}} An entry is referenced by its
+{{I:How is the information referenced?}}
+An entry is referenced by its
 distinguished name, which is constructed by taking the name of the entry
 itself (called the relative distinguished name, or RDN) and concatenating the
 names of its ancestor entries. For example, the entry for Barbara Jensen in
@@ -88,7 +92,8 @@ the example above has an RDN of "{{EX:cn=Barbara J Jensen}}" and a DN of
 "{{EX:cn=Barbara J Jensen, o=OpenLDAP Project, c=US}}". The full DN format is
 described in RFC 1779, "A String Representation of Distinguished Names."
 
-{{I:How is the information accessed?}} LDAP defines operations for interrogating
+{{I:How is the information accessed?}}
+LDAP defines operations for interrogating
 and updating the directory. Operations are provided for adding and deleting
 an entry from the directory, changing an existing entry, and changing the
 name of an entry. Most of the time, though, LDAP is used to search for
@@ -105,7 +110,8 @@ organizations with the string "Acme" in their name, and that have a fax
 number. LDAP lets you do this too. The next section describes in more detail
 what you can do with LDAP and how it might be useful to you.
 
-{{I:How is the information protected from unauthorized access?}} Some directory
+{{I:How is the information protected from unauthorized access?}}
+Some directory
 services provide no protection, allowing anyone to see the information. LDAP
 provides a method for a client to authenticate, or prove its identity to a
 directory server, paving the way for rich access control to protect the
@@ -197,8 +203,9 @@ The stand-alone LDAP daemon, or {{I:slapd}}, is meant to remove much of the
 burden from the server side just as LDAP itself removed much of the burden
 from clients. If you are already running an X.500 service and you want to
 continue to do so, you can probably stop reading this guide, which is all
-about running LDAP via {{I:slapd}}, without running X.500. If you are not running
-X.500, want to stop running X.500, or have no immediate plans to run X.500,
+about running LDAP via {{I:slapd}}, without running X.500. If you are not
+running X.500,
+want to stop running X.500, or have no immediate plans to run X.500,
 read on.
 
 It is possible to replicate data from a {{I:slapd}} directory 

@@ -1,14 +1,25 @@
 # Copyright 1999, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 #
-# SDF master file for the OpenLDAP Administrator's guide
-# master.sdf 
+# master file for the OpenLDAP Administrator's Guide
+#
+#
+# To generate guide for distribution:
+#   sdf -2html guide.sdf
+#   sdf -2txt guide.sdf
+#   cp guide.{html,txt} $distribution/doc/guide
+#
+# To generate pages for web
+#	sdf -2topics index.sdf
+#
+
+!include "../preamble.sdf"; plain
 
 # title information
 !include "title.sdf"
 
 # Document copyright, publishing info, acknowledgements, preface
-!include "preamble.sdf"; plain
+!include "preface.sdf"; about
 
 # Chapters
 !include "intro.sdf"; chapter

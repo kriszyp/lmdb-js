@@ -8,8 +8,8 @@
 # acknowledge U-M.  Probably should be placed in a separate file.
 P1: Acknowledgements
 
-The OpenLDAP Project would like to thank the University of Michigan
-LDAP Team for building the foundation of LDAP software and information
+The OpenLDAP Project would like to thank the {{University of Michigan
+LDAP Team}} for building the foundation of LDAP software and information
 to which we build upon.
 
 

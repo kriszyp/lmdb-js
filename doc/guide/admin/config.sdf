@@ -72,7 +72,3 @@ This configuration can be used in conjunction with the first two
 configurations in situations where a single slapd does not provide the
 required reliability or availability.
 
-PB:
-
-
-

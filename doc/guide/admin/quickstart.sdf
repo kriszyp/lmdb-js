@@ -9,71 +9,70 @@ simple and quick way to get started only. If you intend to run slapd
 seriously, you should read the rest of this guide.
 
 
-^ {{B:Get the software}}. {{I:Slapd}} is part of the OpenLDAP distribution, which
+^ {{B:Get the software}}.
+. {{I:Slapd}} is part of the OpenLDAP distribution, which
 you can retrieve using this URL:
-.
-.{{CMD[jump="ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release.tgz"]ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release.tgz}}
-.
+
+..{{URL: ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release.tgz}}
+
 .If you are reading this guide, you have probably already done this.
-.  
+
 
 + {{B:Untar the distribution}}. Pick a place for the LDAP source to live, cd
 there, and untar it. For example:
-.
+
 .{{EX: cd /usr/local/src}}
 .{{EX: gunzip -c openldap-release.tgz | tar xvfB -}}
 .{{EX: cd ldap}}
-+{{B: Configure the software}}.
-.
-.You will have to edit two files to configure things for your site.
-.
-.{{EX: vi Make-common}}
+
++ {{B: Configure the software}}.
+. You will have to edit two files to configure things for your site.
+
+.{{EX:vi Make-common}}
 .{{EX:vi include/ldapconfig.h.edit}}
-.
-.Read the comments in Make-common and configure things
-.appropriately. If you have the Berkeley DB package installed, or the
-.GDBM package, you should set the LDBMBACKEND variable
-.accordingly. Otherwise, the defaults should be OK to get you started.
-.
-.In the include/ldapconfig.h.edit file, be sure to set the DEFAULT_BASE
-.and LDAPHOST variables to something appropriate for your site.
-.Other than that, the defaults should work OK.
 
+. Read the comments in Make-common and configure things
+appropriately. If you have the Berkeley DB package installed, or the
+GDBM package, you should set the LDBMBACKEND variable
+accordingly. Otherwise, the defaults should be OK to get you started.
 
-+{{B:Install the software}}. From the top level LDAP source directory,
-type:
-.
+. In the include/ldapconfig.h.edit file, be sure to set the DEFAULT_BASE
+and LDAPHOST variables to something appropriate for your site.
+Other than that, the defaults should work OK.
+
++ {{B:Install the software}}.
+. From the top level LDAP source directory, type:
+
 .{{EX: su}}
 .{{EX: make install}}
-.
-.Examine the output of this command carefully to ensure everything is
-.installed properly.
-.
+
+. Examine the output of this command carefully to ensure everything is
+installed properly.
 
 
-+{{B:Make a configuration file}}. Create a file called myslapd.conf and
-.enter the following lines into it. See Section 5 for more details on this
-.file.
-.
++ {{B:Make a configuration file}}.
+. Create a file called myslapd.conf and
+enter the following lines into it. See Section 5 for more details on this
+file.
+
 .{{EX:referral ldap://ldap.openldap.org}}
 .{{EX:database ldbm}}
 .{{EX:suffix "o=<YOUR ORGANIZATION>, c=US"}}
 .{{EX:rootdn "cn=<YOUR NAME>, o=<YOUR ORGANIZATION>, c=US"}}
 .{{EX:rootpw secret}}
-.
+
 .Be sure to replace "<YOUR ORGANIZATION>" with the name of your
-.organization and "<YOUR NAME>" with your name. If you are not in
-.the US, replace "US" with your two-letter country code. The rootdn
-.and rootpw lines are only required if later you want to easily add or
-.modify entries via LDAP.
-.
+organization and "<YOUR NAME>" with your name. If you are not in
+the US, replace "US" with your two-letter country code. The rootdn
+and rootpw lines are only required if later you want to easily add or
+modify entries via LDAP.
 
++ {{B:Create a database}}.
+. This is a two-step process. Step A is to create
+a file (we'll call it myldif) containing the entries you want your database
+to contain. Use the following example as a guide, or see Section 7.3 for
+more details.
 
-+{{B:Create a database}}.  This is a two-step process. Step A is to create
-.a file (we'll call it myldif) containing the entries you want your database
-.to contain. Use the following example as a guide, or see Section 7.3 for
-.more details.
-.
 .{{EX:dn: o=<YOUR ORGANIZATION>, c=US}}
 .{{EX:o: <YOUR ORGANIZATION>}}
 .{{EX:objectclass: organization}}
@@ -83,43 +82,38 @@ type:
 .{{EX:sn: <YOUR LAST NAME>}}
 .{{EX:mail: <YOUR EMAIL ADDRESS>}}
 .{{EX:objectclass: person}}
-.
+
 .You can include additional entries and attributes in this file if you want,
-.or add them later via LDAP.
-.
+or add them later via LDAP.
+
 .Step B is to run this file through a tool to create the slapd database.
-.
+
 .{{EX:$(ETCDIR)/ldif2ldbm -f myslapd.conf -i myldif}}
-.
+
 .Where myslapd.conf is the configuration file you made in step 6, and
-.myldif is the file you made in step 7A above. By default, the database
-.files will be created in /usr/tmp. You may specify an alternate directory
-.via the directory option in the slapd.conf file.
-.
+myldif is the file you made in step 7A above. By default, the database
+files will be created in /usr/tmp. You may specify an alternate directory
+via the directory option in the slapd.conf file.
 
++ {{B:See if it works}}.
+. You can use any LDAP client to do this, but our
+example uses the ldapsearch tool.
 
-+{{B:See if it works}}.You can use any LDAP client to do this, but our
-.example uses the ldapsearch tool.
-.
 .{{EX:ldapsearch -h 127.0.0.1 -b 'o=<YOUR ORGANIZATION>, c=US' 'objectclass=*'}}
-.
-.This command will search for and retrieve every entry in the database.
-.Note the use of single quotes around the filter, which prevents the "*"
-.from being interpreted by the shell.
-.
-.You are now ready to add more entries (e.g., using {{I:ldapadd}}(3) or
-.another LDAP client), experiment with various configuration options,
-.backend arrangements, etc. Note that by default, the {{I:slapd}} database
-.grants {{EX:READ}} access to everybody. So if you want to add or modify
-.entries over LDAP, you will have to bind as the rootdn specified in the
-.config file (see Section 5.2.2), or change the default access control
-.(see Section 5.3).
-.
+
+. This command will search for and retrieve every entry in the database.
+Note the use of single quotes around the filter, which prevents the "*"
+from being interpreted by the shell.
+
+. You are now ready to add more entries (e.g., using {{I:ldapadd}}(3) or
+another LDAP client), experiment with various configuration options,
+backend arrangements, etc. Note that by default, the {{I:slapd}} database
+grants {{EX:READ}} access to everybody. So if you want to add or modify
+entries over LDAP, you will have to bind as the rootdn specified in the
+config file (see Section 5.2.2), or change the default access control
+(see Section 5.3).
 
 
 The following sections provide more detailed information on making,
 installing, and running slapd.
-
-PB:
-
 

@@ -908,7 +908,3 @@ Note the use of `\' to escape the quotes necessary in the
 distinguished names given on lines 3 and 5. By default, all
 indexes are maintained for every attribute in an entry.
 
-
-PB:
-
-

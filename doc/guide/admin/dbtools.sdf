@@ -1,5 +1,6 @@
 # Copyright 1999, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
+
 H1: Database Creation and Maintenance Tools
 
 This section tells you how to create a slapd database from
@@ -19,10 +20,7 @@ want to ensure the database is not accessed while it is
 being created.
 
 
-
 H2: Creating a database over LDAP
-
-
 
 With this method, you use the LDAP client of your choice
 (e.g., the ldapadd(1) tool) to add entries, just like you would
@@ -101,12 +99,12 @@ E: description=OpenLDAP Postmaster <Postmaster@OpenLDAP.org>
 and then use a command like this to actually create the
 entry:
 
-E: ldapadd -f /tmp/newentry -D \
-	"cn=Manager, dc=OpenLDAP, dc=org" -w secret
+E: ldapadd -f /tmp/newentry -D "cn=Manager, dc=OpenLDAP, dc=org" -w secret
 
 The above command assumes that you have set {{EX: rootdn}} to
 "cn=Manager, dc=OpenLDAP, dc=org" and {{EX: rootpw}}
 to "secret".
+
 
 H2: Creating a database off-line
 
@@ -492,19 +490,19 @@ The basic steps to follow when converting your EDB format
 data to an LDIF file are:
 
 ^ Locate the directory at the top of the EDB file hierarchy
-.that your QUIPU DSA masters. The EDB file located there
-.should contain the entries for the first level of your
-.organization or organizational unit. If you are using an
-.indexed database with QUIPU, you may need to create EDB
-.files from your index files (using the synctree or qb2edb
-.tools).
-.
+that your QUIPU DSA masters. The EDB file located there
+should contain the entries for the first level of your
+organization or organizational unit. If you are using an
+indexed database with QUIPU, you may need to create EDB
+files from your index files (using the synctree or qb2edb
+tools).
 
-+If you do not have a file named EDB.root in the same
-.directory that contains your organizational or organizational
-.unit entry, create it now by hand. Its contents should look
-.something like this:
-.
+
++ If you do not have a file named EDB.root in the same
+directory that contains your organizational or organizational
+unit entry, create it now by hand. Its contents should look
+something like this:
+
 .{{EX:	MASTER}}
 .{{EX:	000001}}
 .{{EX:	}}
@@ -520,35 +518,34 @@ data to an LDIF file are:
 .{{EX:	}}
 
 + (Optional) Create a global add file and/or local .add files to
-.take care of adding any attribute values that do not appear in
-.the EDB files. For example, if all entries in a particular EDB
-.are person entries and you want to add the appropriate
-.objectClass attribute value for them, create a file called .add
-.in the same directory as the person EDB that contains the
-.single line:
-.
+take care of adding any attribute values that do not appear in
+the EDB files. For example, if all entries in a particular EDB
+are person entries and you want to add the appropriate
+objectClass attribute value for them, create a file called .add
+in the same directory as the person EDB that contains the
+single line:
+
 .{{EX: 	objectClass: person }}
-.
+
 
 + Run the edb2ldif program to do the actual conversion.
-.Make sure you are in the directory that contains the root of
-.the EDB hierarchy (the one where the EDB.root file resides).
-.Include a -b flag with a base DN one level above your
-.organizational entry, and include -i flags to ignore any
-.attributes that are not useful to slapd. E.g., the command:
-. 
+Make sure you are in the directory that contains the root of
+the EDB hierarchy (the one where the EDB.root file resides).
+Include a -b flag with a base DN one level above your
+organizational entry, and include -i flags to ignore any
+attributes that are not useful to slapd. E.g., the command:
+ 
 .{{EX:	edb2ldif -v -r -b "c=US" -i iattr -i acl -i xacl -i sacl}}
 .{{EX:		-i lacl -i masterDSA -i slaveDSA > ldif}}
-.
-.will convert the entire EDB hierarchy to LDIF format and
-.write the result to a file named ldif. Some attributes that are
-.not useful when running slapd are ignored. The EDB
-.hierarchy is assumed to reside logically below the base DN
-."c=US".
-.
+
+will convert the entire EDB hierarchy to LDIF format and
+write the result to a file named ldif. Some attributes that are
+not useful when running slapd are ignored. The EDB
+hierarchy is assumed to reside logically below the base DN
+"c=US".
 
 + Follow the steps outlined in section 8.2 above to produce
-.an LDBM database from your new LDIF file.
+an LDBM database from your new LDIF file.
 
 
 
@@ -646,9 +643,7 @@ type of index and what it contains. For more detailed
 information see the paper "An X.500 and LDAP Database:
 Design and Implementation," available in postscript format
 from
-
-{{CMD[jump="ftp://terminator.rs.itd.umich.edu/ldap/papers/xldbm.ps"]ftp://terminator.rs.itd.umich.edu/ldap/papers/xldbm.ps}}
-
+{{URL:ftp://terminator.rs.itd.umich.edu/ldap/papers/xldbm.ps}}
 
 
 H3: Attribute index format
@@ -702,9 +697,5 @@ stored is the corresponding EID.
 
 The {{EX: id2children}} index stores EIDs as keys. The data stored
 is a list of EIDs, just as for the attribute indexes.
-
-
-PB:
-
 
 
