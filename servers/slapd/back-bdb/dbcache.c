@@ -101,10 +101,8 @@ bdb_db_cache(
 
 	rc = db->bdi_db->set_pagesize( db->bdi_db, BDB_PAGESIZE );
 	rc = db->bdi_db->set_h_hash( db->bdi_db, bdb_db_hash );
-#ifdef BDB_IDL_MULTI
 	rc = db->bdi_db->set_flags( db->bdi_db, DB_DUP | DB_DUPSORT );
 	rc = db->bdi_db->set_dup_compare( db->bdi_db, bdb_bt_compare );
-#endif
 
 	file = ch_malloc( strlen( name ) + sizeof(BDB_SUFFIX) );
 	sprintf( file, "%s" BDB_SUFFIX, name );
