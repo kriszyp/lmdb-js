@@ -26,8 +26,7 @@
 #include <sys/file.h>
 #include <sys/param.h>
 
-#include "../slapd/slap.h"
-
+#include "slurp.h"
 
 
 FILE *
@@ -109,8 +108,8 @@ acquire_lock(
 {
     if (( *rfp = lock_fopen( file, "r+", lfp )) == NULL ) {
 	Debug( LDAP_DEBUG_ANY,
-		"Error: acquire_lock(%d): Could not acquire lock on \"%s\"\n",
-		getpid(), file, 0);
+		"Error: acquire_lock(%ld): Could not acquire lock on \"%s\"\n",
+		(long) getpid(), file, 0);
 	return( -1 );
     }
     return( 0 );
@@ -131,8 +130,8 @@ relinquish_lock(
 {
     if ( lock_fclose( rfp, lfp ) == EOF ) {
 	Debug( LDAP_DEBUG_ANY,
-		"Error: relinquish_lock (%d): Error closing \"%s\"\n",
-		getpid(), file, 0 );
+		"Error: relinquish_lock (%ld): Error closing \"%s\"\n",
+		(long) getpid(), file, 0 );
 	return( -1 );
     }
     return( 0 );

@@ -4,26 +4,22 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
+#include <ac/unistd.h>
 
 #include "../slap.h"
+#include "../back-ldbm/back-ldbm.h"
 
 #include "ldapconfig.h"
 #include "ldif.h"
 
 #define MAXARGS      		100
 
-extern void	attr_index_config();
-extern char	*attr_normalize();
-extern int	nbackends;
-extern Backend	*backends;
-extern int	ldap_debug;
-
 int		ldap_debug;
 int		ldap_syslog;
 int		ldap_syslog_level;
 int		global_schemacheck;
-int		num_entries_sent;
-int		num_bytes_sent;
+long		num_entries_sent;
+long		num_bytes_sent;
 int		active_threads;
 char		*default_referral;
 struct objclass	*global_oc;
@@ -38,6 +34,7 @@ pthread_mutex_t	replog_mutex;
 pthread_mutex_t	ops_mutex;
 pthread_mutex_t	regex_mutex;
 
+
 static void
 usage( char *name )
 {
@@ -45,6 +42,7 @@ usage( char *name )
 	exit( 1 );
 }
 
+int
 main( int argc, char **argv )
 {
 	int		i, cargc, indb, stop;
@@ -60,7 +58,6 @@ main( int argc, char **argv )
 	Backend		*be = NULL;
 	struct berval	bv;
 	struct berval	*vals[2];
-	extern char	*optarg;
 
 	inputfile = NULL;
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;

@@ -29,8 +29,8 @@ static char copyright[] = "Copyright 1992 The University of Adelaide";
  */
 
 #include "whois++.h"
-
-extern char	*index(), *rindex();
+#include <stdlib.h>
+extern int getdtablesize (void);
 
 #define	isspecial(c)	( (c) == ',' || (c) == ';' || (c) == ':' || (c) == '=' )
 
@@ -38,9 +38,8 @@ static	char	**component = NULL;
 static	int	numberOfComponents;
 static	int	components = 10;
 
-static int getToken( token )
-char	*token;
-
+static int
+getToken( char *token )
 {
 	static char	*buffer = NULL;
 	static int	idx;
@@ -51,6 +50,13 @@ char	*token;
 
 	if ( buffer == NULL ) {
 		tablesize = getdtablesize();
+
+#ifdef FD_SETSIZE
+		if ( tablesize > FD_SETSIZE ) {
+			tablesize = FD_SETSIZE;
+		}
+#endif	/* FD_SETSIZE */
+
 		timeout.tv_sec = 60;
 		timeout.tv_usec = 0;
 		FD_ZERO( &readfds );
@@ -201,10 +207,14 @@ char	*token;
 	}
 }
 
-static int term( token, value, attribute, specifier, soundex )
-int	token;
-char	*value, *attribute;
-int	*specifier, *soundex;
+static int
+term(
+	int	token,
+	char	*value,
+	char	*attribute,
+	int	*specifier,
+	int	*soundex
+)
 {
 	char	buffer[BUFSIZ], temp[BUFSIZ];
 	int	iterations;
@@ -334,10 +344,14 @@ int	*specifier, *soundex;
 	return token;
 }
 
-static	int processTerm( specifier, soundex, buffer, attribute, value )
-int	specifier, soundex;
-char	*buffer, *attribute, *value;
-
+static int
+processTerm(
+	int	specifier,
+	int	soundex,
+	char	*buffer,
+	char	*attribute,
+	char	*value
+)
 {
 	char	*s, *t;
 	char	query[BUFSIZ];
@@ -360,7 +374,7 @@ char	*buffer, *attribute, *value;
 			sprintf( query, "(%s%s%s)", attribute,
 				(soundex)?"~=":"=", buffer );
 		} else {
-			if ( ( s = index( buffer, ',' ) ) != NULL ) {
+			if ( ( s = strchr( buffer, ',' ) ) != NULL ) {
 				*s++ = '\0';
 				while ( *s && isspace( *s ) )
 					s++;
@@ -368,7 +382,7 @@ char	*buffer, *attribute, *value;
 					(soundex)?"~=":"=", buffer );
 				component[numberOfComponents++] = strdup( query );
 				/* let's just make sure there is no title */
-				if ( ( t = rindex( s, ',' ) ) != NULL ) {
+				if ( ( t = strrchr( s, ',' ) ) != NULL ) {
 					*t++ = '\0';
 					while ( *t && isspace( *t ) )
 						t++;
@@ -382,7 +396,7 @@ char	*buffer, *attribute, *value;
 				sprintf( query, "%s *", &buffer[6] );
 				strcpy( buffer, query );
 			}
-			if ( ( s = index( buffer, '@' ) ) != NULL ) {
+			if ( ( s = strchr( buffer, '@' ) ) != NULL ) {
 				*s++ = '\0';
 				if ( *buffer == '\0' ) /* no username */
 					sprintf( query, "(mail=*@%s)", s );
@@ -395,7 +409,7 @@ char	*buffer, *attribute, *value;
 				if ( soundex )
 					printFormatted( lineLength, TRUE, stdout,
 						"Fuzzy matching not supported on e-mail address queries" );
-			} else if ( index( buffer, ' ' ) == NULL ) {
+			} else if ( strchr( buffer, ' ' ) == NULL ) {
 				sprintf( query,
 					"(|(sn%s%s)(userid%s%s)(l%s%s)(ou%s%s)\
 (&(cn%s%s)(!(objectClass=person))))",
@@ -522,8 +536,8 @@ char	*buffer, *attribute, *value;
 	return SEARCH;
 }
 
-int	parseCommand( query )
-char	*query;
+int
+parseCommand( char *query )
 {
 	/*
 	 * This procedure reads the string sent by the user and breaks it

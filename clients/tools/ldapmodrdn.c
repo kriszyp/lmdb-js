@@ -23,10 +23,6 @@ static int	ldapport = LDAP_PORT;
 static int	not, verbose, contoper;
 static LDAP	*ld;
 
-#ifdef LDAP_DEBUG
-extern int ldap_debug, lber_debug;
-#endif /* LDAP_DEBUG */
-
 #define safe_realloc( ptr, size )	( ptr == NULL ? malloc( size ) : \
 					 realloc( ptr, size ))
 
@@ -37,17 +33,12 @@ static int domodrdn LDAP_P((
     int		remove));	/* flag: remove old RDN */
 
 int
-main( argc, argv )
-    int		argc;
-    char	**argv;
+main(int argc, char **argv)
 {
     char		*usage = "usage: %s [-nvkc] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile | dn newrdn ]\n";
     char		*myname,*infile, *entrydn, *rdn, buf[ 4096 ];
     FILE		*fp;
     int			rc, i, kerberos, remove, havedn, authmethod;
-
-    extern char	*optarg;
-    extern int	optind;
 
     infile = NULL;
     kerberos = not = contoper = verbose = remove = 0;

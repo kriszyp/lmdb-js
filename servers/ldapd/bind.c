@@ -28,7 +28,6 @@
 #include "common.h"
 
 #ifdef LDAP_COMPAT20
-extern int 	ldap_compat;
 #define BINDTAG	(ldap_compat == 20 ? OLD_LDAP_RES_BIND : LDAP_RES_BIND)
 #else
 #define BINDTAG	LDAP_RES_BIND
@@ -53,9 +52,7 @@ do_bind(
 	unsigned long	len;
 	char		*dn, *pw;
 	char		*matched;
-	struct PSAPaddr	*addr, *psap_cpy();
-	extern char	*dsa_address;
-	extern int	version;
+	struct PSAPaddr	*addr;
 
 	Debug( LDAP_DEBUG_TRACE, "do_bind\n", 0, 0, 0 );
 
@@ -99,7 +96,7 @@ do_bind(
 		return( 0 );
 	}
 
-	Debug( LDAP_DEBUG_ARGS, "do_bind: version %d dn (%s) method %d\n",
+	Debug( LDAP_DEBUG_ARGS, "do_bind: version %d dn (%s) method %lu\n",
 	    version, dn, method );
 
 	if ( m->m_conn->c_paddr == NULLPA ) {
@@ -147,8 +144,6 @@ do_bind_real(
 #ifdef HAVE_KERBEROS
 	u_long			nonce;
 #endif
-	extern DN		ldap_str2dn();
-
 	Debug( LDAP_DEBUG_TRACE, "do_bind_real\n", 0, 0, 0 );
 
 	*matched = NULL;

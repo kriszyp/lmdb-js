@@ -24,6 +24,7 @@
 #include <quipu/modify.h>
 #include <quipu/dap2.h>
 #include <quipu/dua.h>
+extern IFP	merge_acl;
 
 #include "lber.h"
 #include "ldap.h"
@@ -31,22 +32,9 @@
 
 static CommonArgs	common = default_common_args;
 
-extern short	ldap_photo_syntax;
-extern short	ldap_jpeg_syntax;
-extern short	ldap_jpeg_nonfile_syntax;
-extern short	ldap_audio_syntax;
-extern short	ldap_dn_syntax;
-extern short	ldap_postaladdress_syntax;
-extern short	ldap_acl_syntax;
-extern short	ldap_mtai_syntax;
-extern short	ldap_rts_cred_syntax;
-extern short	ldap_rtl_syntax;
-extern short	ldap_octetstring_syntax;
-
 static int replace_mod( struct entrymod *, Attr_Sequence, Attr_Sequence );
 
 #ifdef LDAP_COMPAT20
-extern int 	ldap_compat;
 #define MODTAG	(ldap_compat == 20 ? OLD_LDAP_RES_MODIFY : LDAP_RES_MODIFY)
 #else
 #define MODTAG	LDAP_RES_MODIFY
@@ -65,7 +53,6 @@ do_modify(
 	unsigned long		tag, len;
 	LDAPMod			*mods, *modtail;
 	struct ds_read_arg	ra;
-	extern DN		ldap_str2dn();
 
 	Debug( LDAP_DEBUG_TRACE, "do_modify\n", 0, 0, 0 );
 
@@ -183,7 +170,7 @@ do_modify2(
 	ma.mea_changes = NULLMOD;
 	for ( mods = m->m_mods; mods != NULL; mods = mods->mod_next ) {
 		struct entrymod	*em;
-		Attr_Sequence	as, new, get_as();
+		Attr_Sequence	as, new;
 
 		if ( (em = (struct entrymod *) calloc( 1,
 		    sizeof(struct entrymod) )) == NULLMOD ) {
@@ -401,9 +388,6 @@ get_as(
 		AttributeValue	av;
 		int		t61str, ncomp;
 		char		*sval, *s, *news, *n;
-		extern IFP	merge_acl;
-		extern AttributeValue	bv_asn2AttrV(), ldap_strdn2AttrV();
-		extern AttributeValue	ldap_str_at2AttrV(), bv_octet2AttrV();
 
 		if ( syntax == ldap_jpeg_syntax ||
 		    syntax == ldap_jpeg_nonfile_syntax ||

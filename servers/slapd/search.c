@@ -10,22 +10,22 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include "slap.h"
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "ldapconfig.h"
+#include "slap.h"
 
-extern int	get_filter();
-extern Backend	*select_backend();
-
-extern char	*default_referral;
 
 void
-do_search( conn, op )
-    Connection	*conn;	/* where to send results 		       */
-    Operation	*op;	/* info about the op to which we're responding */
+do_search(
+    Connection	*conn,	/* where to send results 		       */
+    Operation	*op	/* info about the op to which we're responding */
+)
 {
 	int		i, err;
 	int		scope, deref, attrsonly;
@@ -160,6 +160,9 @@ do_search( conn, op )
 		}
 		return;
 	}
+
+        /* translate the base if it matches an aliased base part */
+        base = suffixAlias ( base, op, be );
 
 	/* actually do the search and send the result(s) */
 	if ( be->be_search != NULL ) {

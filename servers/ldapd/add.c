@@ -10,21 +10,23 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
+
+#include <ac/socket.h>
+
 #include <quipu/commonarg.h>
 #include <quipu/attrvalue.h>
 #include <quipu/ds_error.h>
 #include <quipu/add.h>
 #include <quipu/dap2.h>
 #include <quipu/dua.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"
 
-#ifdef COMPAT20
-extern int 	ldap_compat;
+#ifdef LDAP_COMPAT20
 #define ADDTAG	(ldap_compat == 20 ? OLD_LDAP_RES_ADD : LDAP_RES_ADD)
 #else
 #define ADDTAG	LDAP_RES_ADD
@@ -44,7 +46,6 @@ do_add(
 	unsigned long			tag, len;
 	struct ds_addentry_arg		aa;
 	static CommonArgs		common = default_common_args;
-	extern DN			ldap_str2dn();
 
 	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
 
@@ -87,7 +88,7 @@ do_add(
 	aa.ada_entry = NULLATTR;
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) ) {
-		Attr_Sequence	as, get_as();
+		Attr_Sequence	as;
 
 		if ( ber_scanf( ber, "{a{V}}", &type, &bvals ) == LBER_ERROR )
 			break;

@@ -29,12 +29,8 @@
 
 #include "ud.h"
 
-#ifdef DEBUG
-extern int debug;
-#endif
-
-char * mygetpass(prompt)
-char *prompt;
+char *
+mygetpass( char *prompt )
 {
 #if !defined(HAVE_TERMIOS) && !defined(HAVE_SGTTY_H)
 	static char buf[256];
@@ -61,7 +57,7 @@ char *prompt;
 	register char *p;
 	register int c;
 	FILE *fi;
-	RETSIGTYPE (*sig)();
+	RETSIGTYPE (*sig)( int sig );
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -145,12 +141,11 @@ char *prompt;
 #endif /* DOS */
 }
 
-void printbase(lead, s)
-char *lead, *s;
+void
+printbase( char *lead, char *s )
 {
 	register char **cp;
 	char **rdns;
-	char * friendly_name();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -176,12 +171,9 @@ char *lead, *s;
 	return;
 }
 
-fetch_buffer(buffer, length, where)
-char *buffer;
-int length;
-FILE *where;
+void
+fetch_buffer( char *buffer, int length, FILE *where )
 {
-	extern LDAP *ld;
 	register int i;
     	char *p;
 
@@ -212,8 +204,8 @@ FILE *where;
 
 }
 
-fatal(s)
-char *s;
+void
+fatal( char *s )
 {
 	if (errno != 0)
 		perror(s);
@@ -223,9 +215,9 @@ char *s;
 	exit(-1);
 }
 
-isgroup()
+int
+isgroup( void )
 {
-	extern struct entry Entry;
 	char **vp;
 	register int i;
 	int group = FALSE;
@@ -253,14 +245,11 @@ isgroup()
  *  Print out the string 's' on a field of 'width' chracters.  Each line
  *  should be indented 'lead' characters.
  */
-format(str, width, lead)
-char *str;
-int width, lead;
+void
+format( char *str, int width, int lead )
 {
 	char *s, *original, *leader = "";
 	register char *cp;
-	void * Malloc();
-	void Free();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -309,14 +298,18 @@ int width, lead;
  *  indented 'indent' spaces, then followed by 'tag', and then followed by
  *  subsequent lines of 's'.
  */
-format2(s, first_tag, tag, first_indent, indent, width)
-char *s, *first_tag, *tag;
-int first_indent, indent, width;
+void
+format2(
+    char *s,
+    char *first_tag,
+    char *tag,
+    int first_indent,
+    int indent,
+    int width
+)
 {
 	char c, *fi, *i;
 	register char *cp;
-	void * Malloc();
-	void Free();
 
 	if (first_tag == NULL)
 		first_tag = "";
@@ -411,15 +404,13 @@ int first_indent, indent, width;
 #define IN_A_QUOTE   0
 #define OUT_OF_QUOTE 1
 
-char * strip_ignore_chars(cp)
-char *cp;
+char *
+strip_ignore_chars( char *cp )
 {
 	int had_a_comma = FALSE;
 	int flag = OUT_OF_QUOTE;
 	register char *rcp, *cp1;
 	char *tmp;
-	void * Malloc();
-	void Free();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -464,7 +455,8 @@ char *cp;
 	return(tmp);
 }
 
-char * code_to_str(int i)
+char *
+code_to_str( int i )
 {
 	switch(i) {
 	case LDAP_MOD_ADD : return("ADD");
@@ -474,8 +466,8 @@ char * code_to_str(int i)
 	}
 }
 
-char * friendly_name(s)
-char *s;
+char *
+friendly_name( char *s )
 {
 	static FriendlyMap *map = NULL;
 	static char *cp;
@@ -489,8 +481,8 @@ char *s;
 #ifdef UOFM
 
 /* return TRUE if s has the syntax of a uniqname */
-isauniqname(s)
-char *s;
+int
+isauniqname( char *s )
 {
 	int i = strlen(s);
 
@@ -506,11 +498,10 @@ char *s;
 #endif
 
 /* return TRUE if this attribute should be printed as a DN */
-isadn(s)
-char *s;
+int
+isadn( char *s )
 {
 	register int i;
-	extern struct attribute attrlist[];
 
 	for (i = 0; attrlist[i].quipu_name != NULL; i++)
 		if (!strcasecmp(s, attrlist[i].quipu_name))
@@ -520,8 +511,8 @@ char *s;
 	return(FALSE);
 }
 
-char * my_ldap_dn2ufn(s)
-char *s;
+char *
+my_ldap_dn2ufn( char *s )
 {
 	register char **cpp;
 	static char short_DN[BUFSIZ];
@@ -535,11 +526,10 @@ char *s;
 }
 
 /* return TRUE if this attribute should be printed as a URL */
-isaurl(s)
-char *s;
+int
+isaurl( char *s )
 {
 	register int i;
-	extern struct attribute attrlist[];
 
 	for (i = 0; attrlist[i].quipu_name != NULL; i++)
 		if (!strcasecmp(s, attrlist[i].quipu_name))
@@ -550,11 +540,10 @@ char *s;
 }
 
 /* return TRUE if this attribute should be printed as a date and time */
-isadate(s)
-char *s;
+int
+isadate( char *s )
 {
 	register int i;
-	extern struct attribute attrlist[];
 
 	for (i = 0; attrlist[i].quipu_name != NULL; i++)
 		if (!strcasecmp(s, attrlist[i].quipu_name))
@@ -564,8 +553,8 @@ char *s;
 	return(FALSE);
 }
 
-void * Malloc(size)
-unsigned int size;
+void *
+Malloc( unsigned int size )
 {
 	void *void_ptr;
 
@@ -578,8 +567,8 @@ unsigned int size;
 	return(void_ptr);
 }
 
-void Free(ptr)
-char *ptr;
+void
+Free( void *ptr )
 {
 #ifndef STDC_HEADERS
 	if (free(ptr) < 0) {
@@ -593,8 +582,8 @@ char *ptr;
 	return;
 }
 
-char * nextstr(s)
-char *s;
+char *
+nextstr( char *s )
 {
 	while (isspace(*s) && (*s != '\0'))
 		s++;
@@ -605,22 +594,18 @@ char *s;
 	return(s);
 }
 
-void free_mod_struct(modp)
-LDAPMod *modp;
+void
+free_mod_struct( LDAPMod *modp )
 {
-	void Free();
-
 	if (modp->mod_values != NULL)
 		(void) ldap_value_free(modp->mod_values);
 	Free(modp->mod_type);
 	Free(modp);
 }
 
-void StrFreeDup(ptr, new_value)
-char **ptr, *new_value;
+void
+StrFreeDup( char **ptr, char *new_value )
 {
-	void Free();
-
 	if (*ptr != NULL)
 		Free(*ptr);
 	if (new_value == NULL)
@@ -630,8 +615,8 @@ char **ptr, *new_value;
 }
 
 
-confirm_action( msg )
-	char	*msg;
+int
+confirm_action( char *msg )
 { 
         char 	tmp[SMALL_BUF_SIZE];
 	int	i;

@@ -11,8 +11,6 @@
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
 
-extern Attribute        *attr_find();
-
 
 #ifdef SLAPD_ACLGROUPS
 /* return 0 IFF edn is a value in member attribute
@@ -42,12 +40,12 @@ ldbm_back_group(
 
         /* can we find bdn entry with reader lock */
         if ((e = dn2entry_r(be, bdn, &matched )) == NULL) {
-                Debug( LDAP_DEBUG_TRACE, "=> ldbm_back_group: cannot find bdn: %s matched: %x\n", bdn, matched, 0 ); 
+                Debug( LDAP_DEBUG_TRACE, "=> ldbm_back_group: cannot find bdn: %s matched: %s\n", bdn, (matched ? matched : ""), 0 ); 
                 if (matched != NULL)
                         free(matched);
                 return( 1 );
         }
-        Debug( LDAP_DEBUG_ARGS, "=> ldbm_back_group: found bdn: %s matched: %x\n", bdn, matched, 0 ); 
+        Debug( LDAP_DEBUG_ARGS, "=> ldbm_back_group: found bdn: %s matched: %s\n", bdn, (matched ? matched : ""), 0 ); 
 
         /* check for deleted */
 

@@ -1,13 +1,14 @@
 /* operation.c - routines to deal with pending ldap operations */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 
-extern time_t		currenttime;
-extern pthread_mutex_t	currenttime_mutex;
 
 void
 op_free( Operation *op )
@@ -64,7 +65,7 @@ op_delete( Operation **olist, Operation *op )
 		;	/* NULL */
 
 	if ( *tmp == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "op_delete: can't find op %d\n",
+		Debug( LDAP_DEBUG_ANY, "op_delete: can't find op %ld\n",
 		    op->o_msgid, 0, 0 );
 		return; 
 	}

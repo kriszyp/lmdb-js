@@ -466,6 +466,12 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the <stddef.h> header file.  */
 #undef HAVE_STDDEF_H
 
+/* Define if you have the <string.h> header file.  */
+#undef HAVE_STRING_H
+
+/* Define if you have the <strings.h> header file.  */
+#undef HAVE_STRINGS_H
+
 /* Define if you have the <synch.h> header file.  */
 #undef HAVE_SYNCH_H
 

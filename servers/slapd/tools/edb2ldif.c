@@ -10,11 +10,17 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <dirent.h>
 #include <stdlib.h>
-#include <ctype.h>
+
+#include <ac/ctype.h>
+#include <ac/errno.h>
+#include <ac/dirent.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -53,6 +59,7 @@ struct edbmap {
 static int edb2ldif( FILE *outfp, char *edbfile, char *basedn, int recurse );
 static int convert_entry( FILE *fp, char *edbname, FILE *outfp,
 	char *basedn, char *loc_addvals, int loc_addlen, char *linebuf );
+static int add_rdn_values (Attr_Sequence entryas, RDN rdn);
 static int read_edbmap( char *mapfile, struct edbmap **edbmapp );
 static char *file2rdn( struct edbmap *edbmap, char *filename );
 static void free_edbmap( struct edbmap *edbmap );
@@ -77,15 +84,12 @@ int		ldap_syslog = 0;
 int		ldap_syslog_level = 0;
 
 
-main( argc, argv )
-    int		argc;
-    char	**argv;
+int
+main( int argc, char **argv )
 {
     char	*usage = "usage: %s [-d] [-o] [-r] [-v] [-b basedn] [-a addvalsfile] [-f fileattrdir] [-i ignoreattr...] [edbfile...]\n";
     char	edbfile[ MAXNAMLEN ], *basedn;
     int		c, rc, errflg, ignore_count, recurse;
-    extern int  optind;
-    extern char	*optarg;
     extern char	dsa_mode;
 #ifdef HAVE_FILE_ATTR_DIR
     extern char	*file_attr_directory;
@@ -243,11 +247,7 @@ main( argc, argv )
 
 
 static int
-edb2ldif( outfp, edbfile, basedn, recurse )
-    FILE	*outfp;
-    char	*edbfile;
-    char	*basedn;
-    int		recurse;
+edb2ldif( FILE *outfp, char *edbfile, char *basedn, int recurse )
 {
     FILE	*fp;
     char	*addvals, *p, *rdn, line[ MAX_LINE_SIZE + 1 ];
@@ -470,14 +470,15 @@ edb2ldif( outfp, edbfile, basedn, recurse )
  * return > 0 if entry converted, 0 if end of file, < 0 if error occurs
  */
 static int
-convert_entry( fp, edbname, outfp, basedn, loc_addvals, loc_addlen, linebuf )
-    FILE	*fp;
-    char	*edbname;
-    FILE	*outfp;
-    char	*basedn;
-    char	*loc_addvals;
-    int		loc_addlen;
-    char	*linebuf;
+convert_entry(
+    FILE	*fp,
+    char	*edbname,
+    FILE	*outfp,
+    char	*basedn,
+    char	*loc_addvals,
+    int		loc_addlen,
+    char	*linebuf
+)
 {
     Attr_Sequence	as, tmpas;
     AV_Sequence		av;
@@ -691,10 +692,8 @@ convert_entry( fp, edbname, outfp, basedn, loc_addvals, loc_addlen, linebuf )
 }
 
 
-int
-add_rdn_values( entryas, rdn )
-    Attr_Sequence	entryas;
-    RDN			rdn;
+static int
+add_rdn_values( Attr_Sequence entryas, RDN rdn )
 {
 /*
  * this routine is based on code from the real_unravel_attribute() routine
@@ -730,9 +729,7 @@ add_rdn_values( entryas, rdn )
 
 /* read the EDB.map file and return a linked list of translations */
 static int
-read_edbmap( mapfile, edbmapp )
-    char		*mapfile;
-    struct edbmap	**edbmapp;
+read_edbmap( char *mapfile, struct edbmap **edbmapp )
 {
     FILE		*fp;
     char		*p, *filename, *rdn, line[ MAX_LINE_SIZE + 1 ];
@@ -815,9 +812,7 @@ read_edbmap( mapfile, edbmapp )
 
 
 static char *
-file2rdn( edbmap, filename )
-    struct edbmap	*edbmap;
-    char		*filename;
+file2rdn( struct edbmap *edbmap, char *filename )
 {
 #ifdef LDAP_DEBUG
     if ( debugflg ) {
@@ -838,8 +833,7 @@ file2rdn( edbmap, filename )
 
 /* free the edbmap list */
 static void
-free_edbmap( edbmap )
-    struct edbmap	*edbmap;
+free_edbmap( struct edbmap *edbmap )
 {
     struct edbmap	*tmp;
 
@@ -860,13 +854,8 @@ free_edbmap( edbmap )
 
 
 static void
-print_err( msg )
-    char	*msg;
+print_err( char *msg )
 {
-    extern int	sys_nerr;
-    extern char	*sys_errlist[];
-    extern int	errno;
-
 #ifdef LDAP_DEBUG
     if ( debugflg ) {
 	fprintf( stderr, "print_err( \"%s\" )\n", msg );

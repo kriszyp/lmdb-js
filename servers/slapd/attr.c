@@ -9,6 +9,7 @@
 #endif
 
 #include <ac/ctype.h>
+#include <ac/errno.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
@@ -20,9 +21,6 @@
 #include <sys/stat.h>
 
 #include "slap.h"
-
-extern char	**charray_dup();
-extern int	errno;
 
 void
 attr_free( Attribute *a )
@@ -294,7 +292,7 @@ attr_syntax_config(
 	} else {
 		Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: unknown syntax \"%s\" in attribute line (ignored)\n",
-		    fname, lineno, 0 );
+		    fname, lineno, argv[lasti] );
 		Debug( LDAP_DEBUG_ANY,
     "possible syntaxes are \"cis\", \"ces\", \"tel\", \"dn\", or \"bin\"\n",
 		    0, 0, 0 );
@@ -325,7 +323,7 @@ attr_syntax_config(
 
 #ifdef LDAP_DEBUG
 
-static
+static int
 attr_syntax_printnode( struct asyntaxinfo *a )
 {
 	int	i;
@@ -337,8 +335,8 @@ attr_syntax_printnode( struct asyntaxinfo *a )
 	return( 0 );
 }
 
-static
-attr_syntax_print()
+static void
+attr_syntax_print( void )
 {
 	(void) avl_apply( attr_syntaxes, attr_syntax_printnode, 0, -1,
 	    AVL_INORDER );

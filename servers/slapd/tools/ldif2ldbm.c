@@ -3,13 +3,16 @@
 #include <stdio.h>
 
 #include <ac/string.h>
+#include <ac/ctype.h>
 #include <ac/socket.h>
+#include <ac/unistd.h>
+#include <ac/wait.h>
 
 #include <sys/param.h>
 
+#include "ldapconfig.h"
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
-#include "ldapconfig.h"
 #include "ldif.h"
 
 #define INDEXCMD		"ldif2index"
@@ -17,16 +20,12 @@
 #define ID2CHILDRENCMD		"ldif2id2children"
 #define MAXARGS      		100
 
-extern int		nbackends;
-extern Backend	*backends;
-extern int		ldap_debug;
-
 int		ldap_debug;
 int		ldap_syslog;
 int		ldap_syslog_level;
 int		global_schemacheck;
-int		num_entries_sent;
-int		num_bytes_sent;
+long		num_entries_sent;
+long		num_bytes_sent;
 int		active_threads;
 char		*default_referral;
 struct objclass	*global_oc;
@@ -49,7 +48,7 @@ static char	*tailorfile;
 static char	*inputfile;
 static int      maxkids = 1;
 static int      nkids;
- 
+
 static void
 usage( char *name )
 {
@@ -57,6 +56,7 @@ usage( char *name )
 	exit( 1 );
 }
 
+int
 main( int argc, char **argv )
 {
 	int		i, stop, status;
@@ -73,7 +73,6 @@ main( int argc, char **argv )
 	struct berval	bv;
 	struct berval	*vals[2];
 	Avlnode		*avltypes = NULL;
-	extern char	*optarg;
 
 	sbindir = DEFAULT_SBINDIR;
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;

@@ -23,10 +23,6 @@ static int	ldapport = LDAP_PORT;
 static int	not, verbose, contoper;
 static LDAP	*ld;
 
-#ifdef LDAP_DEBUG
-extern int ldap_debug, lber_debug;
-#endif /* LDAP_DEBUG */
-
 #define safe_realloc( ptr, size )	( ptr == NULL ? malloc( size ) : \
 					 realloc( ptr, size ))
 
@@ -35,17 +31,12 @@ static int dodelete LDAP_P((
     char	*dn));
 
 int
-main( argc, argv )
-    int		argc;
-    char	**argv;
+main( int argc, char **argv )
 {
     char		*usage = "usage: %s [-n] [-v] [-k] [-d debug-level] [-f file] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [dn]...\n";
     char		buf[ 4096 ];
     FILE		*fp;
     int			i, rc, kerberos, authmethod;
-
-    extern char	*optarg;
-    extern int	optind;
 
     kerberos = not = verbose = contoper = 0;
     fp = NULL;

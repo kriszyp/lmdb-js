@@ -12,14 +12,12 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <ac/socket.h>
+
 #include "slap.h"
-
-extern Backend	*select_backend();
-
-extern char	*default_referral;
 
 void
 do_abandon(

@@ -1,21 +1,23 @@
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "ldbm.h"
 #include "../slap.h"
 
-usage( name )
-char	*name;
+static void
+usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-n] <filename>\n", name );
 	exit( 1 );
 }
 
-main( argc, argv )
-    int		argc;
-    char	**argv;
+int
+main( int argc, char **argv )
 {
 	Datum		key, last, data;
 	LDBM		dbp;
@@ -23,6 +25,10 @@ main( argc, argv )
 	long		id;
 	char		*file, *s;
 	int		printid = 1;
+
+#ifdef HAVE_BERKELEY_DB2
+	DBC	*cursorp;
+#endif
 
 	if ( argc < 2 || argc > 3 || ( argc == 3 && strcmp( argv[1], "-n" )
 	    != 0 )) {
@@ -41,8 +47,15 @@ main( argc, argv )
 	}
 
         last.dptr = NULL;
+
+#ifdef HAVE_BERKELEY_DB2
+        for ( key = ldbm_firstkey( dbp, &cursorp ); key.dptr != NULL;
+            key = ldbm_nextkey( dbp, last, cursorp ) )
+#else
         for ( key = ldbm_firstkey( dbp ); key.dptr != NULL;
-            key = ldbm_nextkey( dbp, last ) ) {
+            key = ldbm_nextkey( dbp, last ) )
+#endif
+	{
                 if ( last.dptr != NULL )
                         ldbm_datum_free( dbp, last );
                 data = ldbm_fetch( dbp, key );

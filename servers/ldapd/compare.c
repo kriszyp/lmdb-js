@@ -10,21 +10,24 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
+
+#include <ac/socket.h>
+
 #include <quipu/commonarg.h>
 #include <quipu/attrvalue.h>
 #include <quipu/ds_error.h>
 #include <quipu/compare.h>
 #include <quipu/dap2.h>
 #include <quipu/dua.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"
 
-#ifdef COMPAT20
-extern int 	ldap_compat;
+#ifdef HAVE_COMPAT20
 #define COMPTAG	(ldap_compat == 20 ? OLD_LDAP_RES_COMPARE : LDAP_RES_COMPARE)
 #else
 #define COMPTAG	LDAP_RES_COMPARE
@@ -42,7 +45,6 @@ do_compare(
 	struct ds_compare_arg	ca;
 	AttributeType		type;
 	static CommonArgs	common = default_common_args;
-	extern short		ldap_dn_syntax;
 
 	Debug( LDAP_DEBUG_TRACE, "do_compare\n", 0, 0, 0 );
 

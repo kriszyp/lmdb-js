@@ -10,15 +10,6 @@
 
 #include "slap.h"
 
-extern Operation	*op_add();
-extern int		active_threads;
-extern pthread_mutex_t	active_threads_mutex;
-extern pthread_mutex_t	new_conn_mutex;
-extern long		ops_initiated;
-extern long		ops_completed;
-extern pthread_mutex_t	ops_mutex;
-extern pthread_t	listener_tid;
-
 struct co_arg {
 	Connection	*co_conn;
 	Operation	*co_op;
@@ -30,9 +21,10 @@ struct co_arg {
  * calls the appropriate stub to handle it.
  */
 
-static void
-connection_operation( struct co_arg *arg )
+static void *
+connection_operation( void *arg_v )
 {
+	struct co_arg	*arg = arg_v;
 	unsigned long	len;
 
 	pthread_mutex_lock( &arg->co_conn->c_opsmutex );
@@ -90,7 +82,7 @@ connection_operation( struct co_arg *arg )
 		break;
 
 	default:
-		Debug( LDAP_DEBUG_ANY, "unknown request 0x%x\n",
+		Debug( LDAP_DEBUG_ANY, "unknown request 0x%lx\n",
 		    arg->co_op->o_tag, 0, 0 );
 		break;
 	}
@@ -109,6 +101,7 @@ connection_operation( struct co_arg *arg )
 	pthread_mutex_lock( &active_threads_mutex );
 	active_threads--;
 	pthread_mutex_unlock( &active_threads_mutex );
+	return NULL;
 }
 
 void
@@ -136,7 +129,7 @@ connection_activity(
 		    "ber_get_next on fd %d failed errno %d (%s)\n",
 		    conn->c_sb.sb_sd, errno, errno > -1 && errno < sys_nerr ?
 		    sys_errlist[errno] : "unknown" );
-		Debug( LDAP_DEBUG_TRACE, "*** got %d of %d so far\n",
+		Debug( LDAP_DEBUG_TRACE, "*** got %d of %lu so far\n",
 		    conn->c_currentber->ber_rwptr - conn->c_currentber->ber_buf,
 		    conn->c_currentber->ber_len, 0 );
 
@@ -155,7 +148,7 @@ connection_activity(
 
 	if ( (tag = ber_get_int( ber, &msgid )) != LDAP_TAG_MSGID ) {
 		/* log, close and send error */
-		Debug( LDAP_DEBUG_ANY, "ber_get_int returns 0x%x\n", tag, 0,
+		Debug( LDAP_DEBUG_ANY, "ber_get_int returns 0x%lx\n", tag, 0,
 		    0 );
 		ber_free( ber, 1 );
 
@@ -165,7 +158,7 @@ connection_activity(
 
 	if ( (tag = ber_peek_tag( ber, &len )) == LBER_ERROR ) {
 		/* log, close and send error */
-		Debug( LDAP_DEBUG_ANY, "ber_peek_tag returns 0x%x\n", tag, 0,
+		Debug( LDAP_DEBUG_ANY, "ber_peek_tag returns 0x%lx\n", tag, 0,
 		    0 );
 		ber_free( ber, 1 );
 

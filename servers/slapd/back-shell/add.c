@@ -1,16 +1,16 @@
 /* add.c - shell backend add function */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 #include "shell.h"
 
-extern pthread_mutex_t	entry2str_mutex;
-extern char		*entry2str();
-
-void
+int
 shell_back_add(
     Backend	*be,
     Connection	*conn,
@@ -25,18 +25,18 @@ shell_back_add(
 	if ( si->si_add == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "add not implemented" );
-		return;
+		return( -1 );
 	}
 
 	if ( (op->o_private = forkandexec( si->si_add, &rfp, &wfp )) == -1 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
 		    "could not fork/exec" );
-		return;
+		return( -1 );
 	}
 
 	/* write out the request to the add process */
 	fprintf( wfp, "ADD\n" );
-	fprintf( wfp, "msgid: %d\n", op->o_msgid );
+	fprintf( wfp, "msgid: %ld\n", op->o_msgid );
 	print_suffixes( wfp, be );
 	pthread_mutex_lock( &entry2str_mutex );
 	fprintf( wfp, "%s", entry2str( e, &len, 0 ) );
@@ -47,4 +47,5 @@ shell_back_add(
 	read_and_send_results( be, conn, op, rfp, NULL, 0 );
 
 	fclose( rfp );
+	return( 0 );
 }

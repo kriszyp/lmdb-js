@@ -161,7 +161,8 @@ typedef struct rh {
  * Notes:
  *  - Private data should not be manipulated expect by Ri member functions.
  */
-typedef struct ri {
+typedef struct ri Ri;
+struct ri {
 
     /* Private data */
     char	*ri_hostname;		/* canonical hostname of replica */
@@ -179,9 +180,9 @@ typedef struct ri {
     pthread_t	ri_tid;			/* ID of thread for this replica */
 
     /* Member functions */
-    int		(*ri_process)();	/* process the next repl entry */
-    void	(*ri_wake)();		/* wake up a sleeping thread */
-} Ri;
+    int (*ri_process) LDAP_P(( Ri * ));	/* process the next repl entry */
+    void (*ri_wake)   LDAP_P(( Ri * ));	/* wake up a sleeping thread */
+};
     
 
 
@@ -201,13 +202,13 @@ typedef struct mi {
 
 
 
-
 /* 
  * Information about one particular replication entry.  Only routines in
  * re.c  and rq.c should touch the private data.  Other routines should
  * only use member functions.
  */
-typedef struct re {
+typedef struct re Re;
+struct re {
 
     /* Private data */
     pthread_mutex_t
@@ -222,16 +223,16 @@ typedef struct re {
     struct re	*re_next;		/* pointer to next element */
 
     /* Public functions */
-    int 	(*re_free)();		/* free an re struct */
-    struct re	*(*re_getnext)();	/* return next Re in linked list */
-    int		(*re_parse)();		/* parse a replication log entry */
-    int		(*re_write)();		/* write a replication log entry */
-    void	(*re_dump)();		/* debugging  - print contents */
-    int		(*re_lock)();		/* lock this re */
-    int		(*re_unlock)();		/* unlock this re */
-    int		(*re_decrefcnt)();	/* decrement the refcnt */
-    int		(*re_getrefcnt)();	/* get the refcnt */
-} Re;
+    int	(*re_free)    LDAP_P(( Re * ));	/* free an re struct */
+    Re *(*re_getnext) LDAP_P(( Re * ));	/* return next Re in linked list */
+    int (*re_parse) LDAP_P(( Re *, char * )); /* parse replication log entry */
+    int (*re_write) LDAP_P(( Ri *, Re *, FILE * )); /* write repl. log entry */
+    void (*re_dump)  LDAP_P(( Re *, FILE * )); /* debugging - print contents */
+    int (*re_lock)   LDAP_P(( Re * ));	  /* lock this re */
+    int (*re_unlock) LDAP_P(( Re * ));	  /* unlock this re */
+    int (*re_decrefcnt) LDAP_P(( Re * )); /* decrement the refcnt */
+    int (*re_getrefcnt) LDAP_P(( Re * )); /* get the refcnt */
+};
 
 
 
@@ -244,7 +245,8 @@ typedef struct re {
  * variable so routines in ri.c can use it as a mutex for the
  * rq_more condition variable.
  */
-typedef struct rq {
+typedef struct rq Rq;
+struct rq {
 
     /* Private data */
     Re		*rq_head;		/* pointer to head */
@@ -260,18 +262,18 @@ typedef struct rq {
 		rq_more;		/* condition var - more work added */
 
     /* Member functions */
-    Re		*(*rq_gethead)();	/* get the element at head */
-    Re		*(*rq_getnext)();	/* get the next element */
-    int		(*rq_delhead)();	/* delete the element at head */
-    int		(*rq_add)();		/* add at tail */
-    void	(*rq_gc)();		/* garbage-collect queue */
-    int		(*rq_lock)();		/* lock the queue */
-    int		(*rq_unlock)();		/* unlock the queue */
-    int		(*rq_needtrim)();	/* see if queue needs trimming */
-    int		(*rq_write)();		/* write Rq contents to a file */
-    int		(*rq_getcount)();	/* return queue counts */
-    void	(*rq_dump)();		/* debugging  - print contents */
-} Rq;
+    Re * (*rq_gethead)	LDAP_P(( Rq * )); /* get the element at head */
+    Re * (*rq_getnext)	LDAP_P(( Re * )); /* get the next element */
+    int	 (*rq_delhead)	LDAP_P(( Rq * )); /* delete the element at head */
+    int	 (*rq_add)	LDAP_P(( Rq *, char * )); /* add at tail */
+    void (*rq_gc)	LDAP_P(( Rq * )); /* garbage-collect queue */
+    int	 (*rq_lock)	LDAP_P(( Rq * )); /* lock the queue */
+    int	 (*rq_unlock)	LDAP_P(( Rq * )); /* unlock the queue */
+    int	 (*rq_needtrim)	LDAP_P(( Rq * )); /* see if queue needs trimming */
+    int	 (*rq_write)	LDAP_P(( Rq *, FILE * )); /*write Rq contents to file*/
+    int	 (*rq_getcount)	LDAP_P(( Rq *, int )); /* return queue counts */
+    void (*rq_dump)	LDAP_P(( Rq * )); /* debugging - print contents */
+};
 
 
 
@@ -298,8 +300,8 @@ typedef struct stel {
  * if present, uses the timestamps to avoid "replaying" replications
  * which have already been sent to a given replica.
  */
-typedef struct st {
-
+typedef struct st St;
+struct st {
     /* Private data */
     pthread_mutex_t
 		st_mutex;		/* mutex to serialize access */
@@ -310,13 +312,13 @@ typedef struct st {
     FILE	*st_lfp;		/* lockfile fp */
 
     /* Public member functions */
-    int		(*st_update)();		/* update the entry for a host */
-    Stel	*(*st_add)();		/* add a new repl host */
-    int		(*st_write)();		/* write status to disk */
-    int		(*st_read)();		/* read status info from disk */
-    int		(*st_lock)();		/* read status info from disk */
-    int		(*st_unlock)();		/* read status info from disk */
-} St;
+    int  (*st_update) LDAP_P(( St *, Stel*, Re* ));/*update entry for a host*/
+    Stel*(*st_add)    LDAP_P(( St *, Ri * ));	   /*add a new repl host*/
+    int  (*st_write)  LDAP_P(( St * ));	/* write status to disk */
+    int  (*st_read)   LDAP_P(( St * ));	/* read status info from disk */
+    int  (*st_lock)   LDAP_P(( St * ));	/* read status info from disk */
+    int  (*st_unlock) LDAP_P(( St * ));	/* read status info from disk */
+};
 
 #if defined( HAVE_LWP )
 typedef struct tl {
@@ -331,21 +333,14 @@ typedef struct tsl {
 } tsl_t;
 #endif /* HAVE_LWP */
 
-/* Public functions */
-
-/* In ch_malloc.c */
-void *	ch_malloc	LDAP_P(( unsigned long size ));
-void *	ch_realloc	LDAP_P(( void *block, unsigned long size ));
-void *	ch_calloc	LDAP_P(( unsigned long nelem, unsigned long size ));
-void	ch_free		LDAP_P(( void *p ));
-    
-
 /* 
  * Public functions used to instantiate and initialize queue objects.
  */
 extern int Ri_init LDAP_P(( Ri **ri ));
 extern int Rq_init LDAP_P(( Rq **rq ));
 extern int Re_init LDAP_P(( Re **re ));
+
+#include "proto-slurp.h"
 
 LDAP_END_DECL
 

@@ -1,30 +1,25 @@
 /* testavl.c - Test Tim Howes AVL code */
-#include <sys/types.h>
+
+#include "portable.h"
+
 #include <stdio.h>
+#include <stdlib.h>
+
+#include <ac/string.h>
+#include <sys/types.h>
+
 #include "avl.h"
 
-char *strdup( s )
-char	*s;
-{
-	char	*new;
+static void ravl_print LDAP_P(( Avlnode *root, int depth ));
+static void myprint LDAP_P(( Avlnode *root ));
 
-	if ( (new = (char *) malloc( strlen( s ) + 1 )) == NULL )
-		return( NULL );
-
-	strcpy( new, s );
-
-	return( new );
-}
-
-main( argc, argv )
-int	argc;
-char	**argv;
+int
+main( int argc, char **argv )
 {
 	Avlnode	*tree = NULLAVL;
 	char	command[ 10 ];
 	char	name[ 80 ];
 	char	*p;
-	int	free(), strcmp();
 
 	printf( "> " );
 	while ( fgets( command, sizeof( command ), stdin ) != NULL ) {
@@ -39,7 +34,7 @@ char	**argv;
 		case 't':	/* traverse with first, next */
 			printf( "***\n" );
 			for ( p = (char * ) avl_getfirst( tree );
-			    p != NULL; p = (char *) avl_getnext( tree, p ) )
+			    p != NULL; p = (char *) avl_getnext( /* tree, p */ ) )
 				printf( "%s\n", p );
 			printf( "***\n" );
 			break;
@@ -60,7 +55,7 @@ char	**argv;
 				exit( 0 );
 			name[ strlen( name ) - 1 ] = '\0';
 			if ( avl_insert( &tree, strdup( name ), strcmp, 
-			    avl_dup_error ) != OK )
+			    avl_dup_error ) != 0 )
 				printf( "\nNot inserted!\n" );
 			break;
 		case 'd':	/* delete */
@@ -85,9 +80,7 @@ char	**argv;
 	/* NOTREACHED */
 }
 
-static ravl_print( root, depth )
-Avlnode	*root;
-int	depth;
+static void ravl_print( Avlnode *root, int depth )
 {
 	int	i;
 
@@ -103,15 +96,14 @@ int	depth;
 	ravl_print( root->avl_left, depth+1 );
 }
 
-myprint( root )
-Avlnode	*root;
+static void myprint( Avlnode *root )
 {
 	printf( "********\n" );
 
 	if ( root == 0 )
 		printf( "\tNULL\n" );
 	else
-		( void ) ravl_print( root, 0 );
+		ravl_print( root, 0 );
 
 	printf( "********\n" );
 }

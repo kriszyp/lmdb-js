@@ -27,14 +27,9 @@
 #include "globals.h"
 
 
-/* External references */
-extern void write_reject LDAP_P(( Ri *, Re *, int, char * ));
-extern void do_nothing LDAP_P(());
-
 /* Forward references */
 static int ismine LDAP_P(( Ri  *, Re  * ));
 static int isnew LDAP_P(( Ri  *, Re  * ));
-void tsleep LDAP_P(( time_t ));
 
 
 /*
@@ -263,5 +258,3 @@ isnew(
     sglob->st->st_unlock( sglob->st );
     return ret;
 }
-
-

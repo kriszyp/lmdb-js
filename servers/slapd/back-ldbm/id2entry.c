@@ -9,13 +9,6 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-extern struct dbcache	*ldbm_cache_open();
-extern Datum		ldbm_cache_fetch();
-extern char		*dn_parent();
-extern Entry		*str2entry();
-extern char		*entry2str();
-extern pthread_mutex_t	entry2str_mutex;
-
 int
 id2entry_add( Backend *be, Entry *e )
 {
@@ -29,7 +22,7 @@ id2entry_add( Backend *be, Entry *e )
 	memset( &data, 0, sizeof( data ) );
 #endif
 
-	Debug( LDAP_DEBUG_TRACE, "=> id2entry_add( %d, \"%s\" )\n", e->e_id,
+	Debug( LDAP_DEBUG_TRACE, "=> id2entry_add( %lu, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
 
 	if ( (db = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, LDBM_WRCREAT ))
@@ -70,7 +63,7 @@ id2entry_delete( Backend *be, Entry *e )
 	Datum		key;
 	int		rc;
 
-	Debug( LDAP_DEBUG_TRACE, "=> id2entry_delete( %d, \"%s\" )\n", e->e_id,
+	Debug(LDAP_DEBUG_TRACE, "=> id2entry_delete( %lu, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
 
 	/* XXX - check for writer lock - should also check no reader pending */
@@ -95,7 +88,7 @@ id2entry_delete( Backend *be, Entry *e )
 	}
 
 	if ( cache_delete_entry( &li->li_cache, e ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "could not delete %d (%s) from cache\n",
+		Debug(LDAP_DEBUG_ANY, "could not delete %lu (%s) from cache\n",
 		    e->e_id, e->e_dn, 0 );
 	}
 
@@ -128,8 +121,8 @@ id2entry( Backend *be, ID id, int rw )
 		rw ? "w" : "r", id, 0 );
 
 	if ( (e = cache_find_entry_id( &li->li_cache, id, rw )) != NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s 0x%x (cache)\n",
-			rw ? "w" : "r", e, 0 );
+		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s 0x%lx (cache)\n",
+			rw ? "w" : "r", (unsigned long)e, 0 );
 		return( e );
 	}
 
@@ -185,7 +178,7 @@ id2entry_r( Backend *be, ID id )
 }
 
 Entry *
-id2entry_2( Backend *be, ID id )
+id2entry_w( Backend *be, ID id )
 {
 	return( id2entry( be, id, 1 ) );
 }

@@ -1,7 +1,9 @@
-#ifdef KERBEROS
+#include "portable.h"
+
+#if defined(HAVE_KERBEROS) && !defined(openbsd)
 /*
- * $Source: /usr/local/src/ldap/clients/ud/RCS/string_to_key.c,v $
- * $Author: lsloan $
+ * $Source: /repo/OpenLDAP/pkg/ldap/clients/ud/string_to_key.c,v $
+ * $Author: hallvard $
  *
  * Copyright 1985, 1986, 1987, 1988, 1989 by the Massachusetts Institute
  * of Technology.
@@ -24,35 +26,24 @@
  *	spm	8/85	MIT project athena
  */
 
-#ifndef	lint
-static char rcsid_string_to_key_c[] =
-"$Id: string_to_key.c,v 1.5 1995/11/09 20:29:55 lsloan Exp $";
-#endif
-
-#include <mit-copyright.h>
 #include <stdio.h>
-#include <des.h>
-/* #include "des_internal.h" */
-#if 1
-#include <krb.h>
-#endif
+#include <ac/krb.h>
 
 extern int des_debug;
 extern int des_debug_print();
 extern void des_fixup_key_parity();
 
-#ifndef AFSKERBEROS
+#ifndef HAVE_AFS_KERBEROS
 #define WORLDPEACEINOURTIME
 #endif
 
 #if defined(WORLDPEACEINOURTIME) /* Use original, not ifs version */
+#ifndef HAVE_KERBEROS_V
 /*
  * convert an arbitrary length string to a DES key
  */
 int
-des_string_to_key(str,key)
-    char *str;
-    register des_cblock *key;
+des_string_to_key( char *str, register des_cblock *key )
 {
     register char *in_str;
     register unsigned temp,i;
@@ -132,6 +123,7 @@ des_string_to_key(str,key)
 		*((unsigned long *) key+1));
 }
 
+#endif /* HAVE_KERBEROS_V */
 #else /* Use ifs version */
 
 #if 0
@@ -151,10 +143,12 @@ des_string_to_key(str,key)
    encryption key.  It is compatible with the original Andrew authentication
    service password database. */
 
-static void Andrew_StringToKey (str, cell, key)
-  char          *str;
-  char          *cell;                  /* cell for password */
-  des_cblock *key;
+static void
+Andrew_StringToKey(
+  char          *str,
+  char          *cell,                  /* cell for password */
+  des_cblock *key
+)
 {   char  password[8+1];                /* crypt is limited to 8 chars anyway */
     int   i;
     int   passlen;
@@ -190,10 +184,12 @@ static void Andrew_StringToKey (str, cell, key)
     des_fixup_key_parity (key);
 }
 
-static void StringToKey (str, cell, key)
-  char          *str;
-  char          *cell;                  /* cell for password */
-  des_cblock *key;
+static void
+StringToKey(
+  char          *str,
+  char          *cell,                  /* cell for password */
+  des_cblock	*key
+)
 {   des_key_schedule schedule;
     char temp_key[8];
     char ivec[8];
@@ -219,16 +215,19 @@ static void StringToKey (str, cell, key)
     des_fixup_key_parity (key);
 }
 
-/* static */  void
-ka_StringToKey (str, cell, key)
-  char          *str;
-  char          *cell;                  /* cell for password */
-  des_cblock	*key;
+void
+ka_StringToKey (
+  char          *str,
+  char          *cell,                  /* cell for password */
+  des_cblock	*key
+)
 {   char  realm[REALM_SZ];
 
 #if NOWAYOUTTODAY
     long  code;
-    /* code = ka_CellToRealm (cell, realm, 0/*local*/); */
+#if 0
+    code = ka_CellToRealm (cell, realm, 0/*local*/);
+#endif
     if (code) strcpy (realm, "");
     else lcstring (realm, realm, sizeof(realm)); /* for backward compatibility */
 #else
@@ -243,9 +242,7 @@ ka_StringToKey (str, cell, key)
  * convert an arbitrary length string to a DES key
  */
 int
-des_string_to_key(str,key)
-    char *str;
-    register des_cblock *key;
+des_string_to_key( char *str, register des_cblock *key )
 {
 	/* NB: i should probably call routine to get local cell here */
 	ka_StringToKey(str, "umich.edu", key);

@@ -64,6 +64,7 @@ LDAP_F caddr_t
 avl_getfirst LDAP_P((Avlnode *));
 
 #ifdef AVL_REENTRANT
+/* ??? avl.c does not provide this version ??? */
 LDAP_F caddr_t
 avl_getnext LDAP_P((Avlnode *, caddr_t ));
 #else
@@ -75,7 +76,13 @@ LDAP_F int
 avl_dup_error LDAP_P((void));
 
 LDAP_F int
+avl_dup_ok LDAP_P((void));
+
+LDAP_F int
 avl_apply LDAP_P((Avlnode *, IFP, caddr_t, int, int));
+
+LDAP_F int
+avl_prefixapply LDAP_P((Avlnode *, caddr_t, IFP, caddr_t, IFP, caddr_t, int));
 
 /* apply traversal types */
 #define AVL_PREORDER	1

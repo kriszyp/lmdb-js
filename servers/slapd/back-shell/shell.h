@@ -1,5 +1,12 @@
 /* shell.h - shell backend header file */
 
+#ifndef SLAPD_SHELL_H
+#define SLAPD_SHELL_H
+
+#include <ldap_cdefs.h>
+
+LDAP_BEGIN_DECL
+
 struct shellinfo {
 	char	**si_bind;	/* cmd + args to exec for bind	  */
 	char	**si_unbind;	/* cmd + args to exec for unbind  */
@@ -11,3 +18,14 @@ struct shellinfo {
 	char	**si_delete;	/* cmd + args to exec for delete  */
 	char	**si_abandon;	/* cmd + args to exec for abandon */
 };
+
+struct backend;
+struct conn;
+struct op;
+extern int forkandexec LDAP_P((char **args, FILE **rfp, FILE **wfp));
+extern void print_suffixes LDAP_P((FILE *fp, struct backend *be));
+extern int read_and_send_results LDAP_P((struct backend *be, struct conn *conn, struct op *op, FILE *fp, char **attrs, int attrsonly));
+
+LDAP_END_DECL
+
+#endif

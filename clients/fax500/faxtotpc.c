@@ -21,18 +21,20 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <ctype.h>
-
 #include <sys/types.h>
+
+#include <ac/ctype.h>
 #include <ac/string.h>
+
+#include "fax500.h"
 
 #define	TPCDOMAIN	"tpc.int"
 
 /*
  * Remove everything from 'str' which is not a digit
  */
-void strip_nonnum(str)
-char *str;
+void
+strip_nonnum( char *str )
 {
 	char *p, *q;
 	p = q = str;
@@ -58,9 +60,8 @@ char *str;
  * Remove anything of the form (blah) where
  * "blah" contains a non-numeric character.
  */
-char *remove_parens(ibuf, obuf)
-char *ibuf;
-char *obuf;
+char *
+remove_parens( char *ibuf, char *obuf )
 {
 	char *p = ibuf;
 	char *q = obuf;
@@ -129,9 +130,8 @@ char *obuf;
  * 6                  93
  * 8                  99
  */
-char *munge_phone(ibuf, obuf)
-char *ibuf;
-char *obuf;
+char *
+munge_phone( char *ibuf, char *obuf )
 {
 #define	UMAREACODE	"1313"
 
@@ -173,17 +173,11 @@ char *obuf;
 
 
 
-
-
-
-
-
 /* 
  * Convert string to "tpc.int" domain name.
  */
-char *faxtotpc(phone, userinfo)
-char *phone;
-char *userinfo;
+char *
+faxtotpc( char *phone, char *userinfo )
 {
 	char *p;
 	char *q;
@@ -241,5 +235,4 @@ char *userinfo;
 	strcat(obuf, TPCDOMAIN);	/* tack on domain name */
 	p = strdup(obuf);
 	return(p);
-				
 }

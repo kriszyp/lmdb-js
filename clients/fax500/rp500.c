@@ -12,19 +12,24 @@
 
 #include "portable.h"
 
-#include <stdio.h>
-#include <signal.h>
+#include <stdlib.h>
 
+#include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/syslog.h>
 #include <ac/time.h>
+#include <ac/unistd.h>
 #include <ac/wait.h>
 
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
+#endif
 
 #include <lber.h>
 #include <ldap.h>
+
+#include "fax500.h"
 
 #include <ldapconfig.h>
 
@@ -38,23 +43,20 @@ int		deref;
 int		sizelimit;
 LDAPFiltDesc	*filtd;
 
-static print_entry();
+static void	print_entry(LDAP *ld, LDAPMessage *e);
 
-static
-usage( name )
-    char	*name;
+static void
+usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-d debuglevel] [-x ldaphost] [-b searchbase] [-a] [-z sizelimit] [-f filterfile] searchstring\r\n", name );
 	exit( -1 );
 }
 
-main (argc, argv)
-    int		argc;
-    char	**argv;
+int
+main( int argc, char **argv )
 {
 	int		i, rc, matches;
 	char		*filterfile = FILTERFILE;
-	struct timeval	timeout;
 	char		buf[10];
 	char		*key;
 	LDAP		*ld;
@@ -64,8 +66,6 @@ main (argc, argv)
 	static char	*attrs[] = { "title", "o", "ou", "postalAddress",
 					"telephoneNumber", "mail",
 					"facsimileTelephoneNumber", NULL };
-	extern char	*optarg;
-	extern int	optind;
 
 	deref = LDAP_DEREF_ALWAYS;
 	while ( (i = getopt( argc, argv, "ab:d:f:x:z:" )) != EOF ) {
@@ -176,7 +176,6 @@ main (argc, argv)
 				rdn++;
 			if ( strcasecmp( rdn, buf ) == 0 ) {
 				char	**cn;
-				char	*s;
 				int	i, last;
 
 				cn = ldap_get_values( ld, e, "cn" );
@@ -237,16 +236,14 @@ main (argc, argv)
 	return( 0 );
 }
 
-static
-print_entry( ld, e )
-    LDAP	*ld;
-    LDAPMessage	*e;
+static void
+print_entry( LDAP *ld, LDAPMessage *e )
 {
 	int	i;
 	char	*dn, *rdn;
 	char	**ufn;
 	char	**title, **dept, **addr, **phone, **fax, **mail;
-	char	*faxmail, *org, *faxtotpc();
+	char	*faxmail, *org;
 
 	dn = ldap_get_dn( ld, e );
 	ufn = ldap_explode_dn( dn, 0 );

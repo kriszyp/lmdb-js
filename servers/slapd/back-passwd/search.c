@@ -12,10 +12,7 @@
 
 #include "slap.h"
 
-extern time_t		currenttime;
-extern pthread_mutex_t	currenttime_mutex;
-
-static Entry	*pw2entry();
+static Entry	*pw2entry(Backend *be, struct passwd *pw);
 
 int
 passwd_back_search(

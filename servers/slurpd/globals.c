@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ac/string.h>
 
 #include "slurp.h"
 #include "globals.h"
@@ -32,7 +33,8 @@ int ldap_debug = 0;
 /*
  * Initialize the globals
  */
-Globals *init_globals()
+Globals *
+init_globals( void )
 {
     Globals *g;
 

@@ -8,9 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <ac/ctype.h>
 #include <ac/socket.h>
 #include <ac/string.h>
-#include <ac/ctype.h>
 #include <ac/time.h>
 
 #ifdef HAVE_SYS_FILE_H
@@ -23,6 +23,7 @@
 
 #include "ldapconfig.h"
 
+/* local functions */
 static int do_entry2text LDAP_P((
 	LDAP *ld, char *buf, char *base, LDAPMessage *entry,
 	struct ldap_disptmpl *tmpl, char **defattrs, char ***defvals,

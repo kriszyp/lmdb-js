@@ -11,28 +11,25 @@
  *
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
+
+#include <ac/string.h>
+#include <ac/ctype.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldapconfig.h>
 #include "ud.h"
 
-extern LDAPMessage * find();
+static char * bind_and_fetch(char *name);
 
-#ifdef DEBUG
-extern int debug;
-#endif
 
-extern char *bound_dn, *group_base;
-extern int verbose, bind_status;
-extern struct entry Entry;
-extern LDAP *ld;
-
-extern void Free();
-
-void add_group(name)
-char *name;
+void
+add_group( char *name )
 {
 	register int i, idx = 0, prompt = 0;
 	char tmp[BUFSIZ], dn[BUFSIZ];
@@ -42,8 +39,6 @@ char *name;
 	char *init_rdn_value[2], *init_owner_value[2], *init_domain_value[2],
 	  	*init_errors_value[MAX_VALUES], *init_joinable_value[2],
 		*init_request_value[MAX_VALUES];
-	extern void ldap_flush_cache();
-	extern char * strip_ignore_chars();
 
 #ifdef DEBUG
 	if (debug & D_TRACE) {
@@ -160,7 +155,6 @@ char *name;
 		register LDAPMod **lpp;
 		register char **cpp;
 		register int j;
-		extern char * code_to_str();
 		printf("  About to call ldap_add()\n");
 		printf("  ld = 0x%x\n", ld);
 		printf("  dn = [%s]\n", dn);
@@ -175,7 +169,7 @@ char *name;
 #endif
 
 	/*
-	 *  Now add this to the X.500 Directory.
+	 *  Now add this to the LDAP Directory.
 	 */
 	if (ldap_add_s(ld, dn, attrs) != 0) {
 		ldap_perror(ld, "  ldap_add_s");
@@ -199,11 +193,10 @@ char *name;
 	return;
 }
 
-void remove_group(name)
-char *name;
+void
+remove_group( char *name )
 {
 	char *dn, tmp[BUFSIZ];
-	static char * bind_and_fetch();
 
 #ifdef DEBUG
 	if (debug & D_TRACE) {
@@ -225,7 +218,7 @@ char *name;
 		return;
 
 	/*
-	 *  Now remove this from the X.500 Directory.
+	 *  Now remove this from the LDAP Directory.
 	 */
 	if (ldap_delete_s(ld, dn) != 0) {
 		if (ld->ld_errno == LDAP_INSUFFICIENT_ACCESS)
@@ -246,15 +239,13 @@ char *name;
 	return;
 }
 
-void x_group(action, name)
-int action;
-char *name;
+void
+x_group( int action, char *name )
 {
 	char **vp;
 	char *values[2], *group_name;
 	LDAPMod mod, *mods[2];
 	static char *actions[] = { "join", "resign from", NULL };
-	static char * bind_and_fetch();
 
 #ifdef DEBUG
 	if (debug & D_TRACE) {
@@ -344,8 +335,8 @@ char *name;
 	return;
 }
 
-void bulk_load(group)
-char *group;
+void
+bulk_load( char *group )
 {
 	register int idx_mail, idx_x500;
 	register int count_mail, count_x500;
@@ -452,7 +443,7 @@ char *group;
 		}
 
 		/*
-		 *  Add the X.500 style names.
+		 *  Add the LDAP style names.
 		 */
 		if (count_x500 > 0) {
 			mods[0] = &mod;
@@ -500,15 +491,13 @@ char *group;
 	return;
 }
 
-void purge_group(group)
-char *group;
+void
+purge_group( char *group )
 {
 	int isclean = TRUE;
 	LDAPMessage *lm;
 	LDAPMod mod, *mods[2];
 	char dn[BUFSIZ], tmp[BUFSIZ], *values[2], **vp, **rdns;
-	extern char * my_ldap_dn2ufn();
-	extern int col_size;
 
 #ifdef DEBUG
 	if (debug & D_TRACE) {
@@ -562,7 +551,7 @@ char *group;
 	vp = Entry.attrs[attr_to_index("member")].values;
 	if (vp == NULL) {
 		if (verbose)
-			printf("  \"%s\" has no X.500 members.  There is nothing to purge.\n", group);
+			printf("  \"%s\" has no LDAP members.  There is nothing to purge.\n", group);
 		return;
 	}
 	for (; *vp != NULL; vp++) {
@@ -654,7 +643,8 @@ ask:
 	return;
 }
 
-void tidy_up()
+void
+tidy_up( void )
 {
 	register int i = 0;
 	int found_one = 0;
@@ -729,11 +719,9 @@ void tidy_up()
  *  Names or e-mail addresses.  This includes things like group members,
  *  the errors-to field in groups, and so on.
  */
-void mod_addrDN(group, offset)
-char *group;
-int offset;
+void
+mod_addrDN( char *group, int offset )
 {
-	extern struct attribute attrlist[];
 	char s[BUFSIZ], *new_value /* was member */, *values[2];
 	char attrtype[ 64 ];
 	int i;
@@ -805,7 +793,7 @@ int offset;
 	}
 	if (verbose) {
 		printf("\n");
-		format("Values may be specified as a name (which is then looked up in the X.500 Directory) or as a domain-style (i.e., user@domain) e-mail address.  Simply hit the RETURN key at the prompt when finished.\n", 75, 2);
+		format("Values may be specified as a name (which is then looked up in the LDAP Directory) or as a domain-style (i.e., user@domain) e-mail address.  Simply hit the RETURN key at the prompt when finished.\n", 75, 2);
 		printf("\n");
 	}
 
@@ -998,10 +986,8 @@ int offset;
 	}
 }
 
-my_ldap_modify_s(ldap, group, mods)
-LDAP *ldap;
-char *group;
-LDAPMod *mods[];
+int
+my_ldap_modify_s( LDAP *ldap, char *group, LDAPMod **mods )
 {
 	int	was_rfc822member, rc;
 
@@ -1020,8 +1006,8 @@ LDAPMod *mods[];
 	return(rc);
 }
 
-void list_groups(who)
-char *who;
+void
+list_groups( char *who )
 {
 	LDAPMessage *mp;
 	char name[BUFSIZ], filter[BUFSIZ], *search_attrs[2];
@@ -1099,12 +1085,11 @@ char *who;
 	return;
 }
 
-static char * bind_and_fetch(name)
-char *name;
+static char *
+bind_and_fetch( char *name )
 {
 	LDAPMessage *lm;
 	char tmp[MED_BUF_SIZE];
-	extern char * strip_ignore_chars();
 
 #ifdef DEBUG
 	if (debug & D_TRACE) {
@@ -1154,8 +1139,8 @@ char *name;
 	return(strdup(Entry.DN));
 }
 
-void list_memberships(who)
-char *who;
+void
+list_memberships( char *who )
 {
 	LDAPMessage *mp;
 	char name[BUFSIZ], filter[BUFSIZ], *search_attrs[2];

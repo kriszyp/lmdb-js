@@ -8,6 +8,8 @@
 #ifndef _LDAP_INT_H 
 #define _LDAP_INT_H 
 
+LDAP_BEGIN_DECL
+
 #define LDAP_URL_PREFIX         "ldap://"
 #define LDAP_URL_PREFIX_LEN     7
 #define LDAP_URL_URLCOLON	"URL:"
@@ -24,7 +26,6 @@
 #endif /* LDAP_DNS */
 #endif /* LDAP_REFERRALS */
 
-LDAP_BEGIN_DECL
 /*
  * in cache.c
  */
@@ -34,7 +35,7 @@ void ldap_add_result_to_cache LDAP_P(( LDAP *ld, LDAPMessage *result ));
 int ldap_check_cache LDAP_P(( LDAP *ld, unsigned long msgtype, BerElement *request ));
 
 /*
- * in dparse.c
+ * in dsparse.c
  */
 int next_line_tokens LDAP_P(( char **bufp, long *blenp, char ***toksp ));
 void free_strarray LDAP_P(( char **sap ));
@@ -105,6 +106,12 @@ int ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadref
 int ldap_append_referral( LDAP *ld, char **referralsp, char *s );
 #endif /* LDAP_REFERRALS */
 
+/*
+ * in result.c:
+ */
+#ifdef LDAP_CONNECTIONLESS
+LDAP_F int cldap_getmsg	( LDAP *ld, struct timeval *timeout, BerElement *ber );
+#endif
 
 /*
  * in search.c
@@ -142,4 +149,5 @@ int ldap_8859_to_t61( char **bufp, unsigned long *buflenp, int free_input );
 #endif /* LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET */
 #endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
 
+LDAP_END_DECL
 #endif /* _LDAP_INT_H */

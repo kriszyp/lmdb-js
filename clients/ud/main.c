@@ -28,6 +28,7 @@
 
 #include <ac/signal.h>
 #include <ac/string.h>
+#include <ac/ctype.h>
 #include <ac/termios.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
@@ -80,15 +81,10 @@ LDAPFiltDesc *lfdp;		/* LDAP filter descriptor */
 int debug;			/* debug flag */
 #endif
 
-extern void initialize_client();
-extern void initialize_attribute_strings();
 
-main(argc, argv)
-int argc;
-char *argv[];
+int
+main( int argc, char **argv )
 {
-	extern char Version[];			/* version number */
-	extern char *optarg;			/* for parsing argv */
 	register int c;				/* for parsing argv */
 	register char *cp;			/* for parsing Version */
 
@@ -163,7 +159,8 @@ char *argv[];
 	/* NOTREACHED */
 }
 
-do_commands()
+void
+do_commands( void )
 {
 	LDAPMessage *mp;			/* returned by find() */
 	register char *cp;			/* misc char pointer */
@@ -171,10 +168,6 @@ do_commands()
 	static char buf[MED_BUF_SIZE];		/* for prompting */
 	static char cmd[MED_BUF_SIZE];		/* holds the command */
 	static char input[MED_BUF_SIZE];	/* buffer for input */
-	extern LDAPMessage *find();
-	extern void purge_group(), add_group(), remove_group(), x_group(),
-		tidy_up(), list_groups(), list_memberships(), edit();
-	extern char *nextstr();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -282,9 +275,9 @@ do_commands()
 	/* NOTREACHED */
 }
 
-status()
+void
+status( void )
 {
-	void printbase();
 	register char **rdns;
 
 #ifdef DEBUG
@@ -311,9 +304,8 @@ status()
 	}
 }
 
-change_base(type, base, s)
-int type;
-char **base, *s;
+void
+change_base( int type, char **base, char *s )
 {
 	register char *cp;			/* utility pointers */
 	char **rdns;				/* for parsing */
@@ -327,13 +319,9 @@ char **base, *s;
 	static char *choices[MED_BUF_SIZE];	/* bases from which to choose */
 	static char resp[SMALL_BUF_SIZE];	/* for prompting user */
 	static char buf[MED_BUF_SIZE];
-	void printbase();
 	static char *attrs[] = { "objectClass", NULL };
 	LDAPMessage *mp;			/* results from a search */
 	LDAPMessage *ep;			/* for going thru bases */
-	extern char * friendly_name();
-	extern void StrFreeDup();
-	extern void Free();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -528,7 +516,8 @@ char **base, *s;
 	}
 }
 
-void initialize_client()
+void
+initialize_client( void )
 {
 	FILE *fp;				/* for config file */
 	static char buffer[MED_BUF_SIZE];	/* for input */
@@ -537,9 +526,6 @@ void initialize_client()
 	char *term;				/* for tty set-up */
 	char *config;				/* config file to use */
 	static char bp[1024];			/* for tty set-up */
-	extern RETSIGTYPE attn();			/* ^C signal handler */
-	extern char *getenv();
-	extern void Free();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -665,7 +651,6 @@ void initialize_client()
 #ifndef NO_TERMCAP
 	{
 	struct winsize win;			/* for tty set-up */
-	extern RETSIGTYPE chwinsz();		/* WINSZ signal handler */
 
 	if (((term = getenv("TERM")) == NULL) || (tgetent(bp, term) <= 0))
 		return;
@@ -693,7 +678,8 @@ void initialize_client()
 #endif
 }
 
-RETSIGTYPE attn()
+RETSIGTYPE
+attn( int sig )
 {
 	fflush(stderr);
 	fflush(stdout);
@@ -704,8 +690,9 @@ RETSIGTYPE attn()
 	longjmp(env, 1);
 }
 
-#ifndef NO_TERMCAP
-RETSIGTYPE chwinsz() 
+#if !defined(NO_TERMCAP) && defined(TIOCGWINSZ)
+RETSIGTYPE
+chwinsz( int sig )
 {
 	struct winsize win;
 

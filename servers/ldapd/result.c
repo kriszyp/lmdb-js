@@ -10,27 +10,21 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
+
 #include <quipu/dsap.h>
 #include <quipu/dap2.h>
 #include <quipu/dua.h>
-#ifdef __hpux
-#include <syslog.h>
-#else
-#include <sys/syslog.h>
-#endif
+
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"
-
-extern int	dosyslog;
-#ifdef COMPAT
-extern int	ldap_compat;
-#endif
 
 /*
  * dsa_response - called by do_queries() when there is activity on one of
@@ -131,7 +125,7 @@ dsa_response(
 			return;
 		}
 		if ( m->m_msgtype == LDAP_REQ_SEARCH 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 		    || m->m_msgtype == OLD_LDAP_REQ_SEARCH
 #endif
 		    )
@@ -154,7 +148,7 @@ dsa_response(
 			int	bound, rc;
 
 			switch ( m->m_msgtype ) {
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 			case OLD_LDAP_REQ_ADD:
 			case OLD_LDAP_REQ_MODIFY:
 			case OLD_LDAP_REQ_MODRDN:
@@ -162,7 +156,7 @@ dsa_response(
 			case OLD_LDAP_REQ_COMPARE:
 			case OLD_LDAP_REQ_SEARCH:
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 			case LDAP_REQ_DELETE_30:
 #endif
 			case LDAP_REQ_ADD:
@@ -283,7 +277,7 @@ send_ldap_msgresult(
     char		*text
 )
 {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if ( m->m_cldap ) {
 		SAFEMEMCPY( (char *)sb->sb_useaddr, &m->m_clientaddr,
 		    sizeof( struct sockaddr ));
@@ -308,19 +302,15 @@ send_ldap_result(
 {
 	BerElement	*ber;
 	int		rc;
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	int		cldap;
-#endif
-	extern int	version;
-
-#ifdef CLDAP
 	cldap = ( sb->sb_naddr > 0 );
 #endif
 
 	Debug( LDAP_DEBUG_TRACE, "send_ldap_result\n", 0, 0, 0 );
 
 	if ( tag == LBER_DEFAULT )
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 		tag = ldap_compat == 20 ? OLD_LBER_SEQUENCE : LBER_SEQUENCE;
 #else
 		tag = LBER_SEQUENCE;
@@ -332,20 +322,20 @@ send_ldap_result(
 	}
 
 	if ( version != 1 ) {
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 		if ( ldap_compat == 20 ) {
 			rc = ber_printf( ber, "t{it{tess}}", OLD_LBER_SEQUENCE,
 			    msgid, tag, LBER_INTEGER, err,
 			    matched ? matched : "", text );
 		} else
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		if ( ldap_compat == 30 ) {
 			rc = ber_printf( ber, "{it{{ess}}}", msgid, tag, err,
 			    matched ? matched : "", text );
 		} else
 #endif
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 		if ( cldap ) {
 			rc = ber_printf( ber, "{is{t{ess}}}", msgid, "", tag,
 			    err, matched ? matched : "", text );

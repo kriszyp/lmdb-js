@@ -10,18 +10,17 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include "slap.h"
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "ldapconfig.h"
+#include "slap.h"
 
 #if defined( SLAPD_CONFIG_DN )
-
-extern int		nbackends;
-extern Backend		*backends;
-extern char		*default_referral;
 
 /*
  * no mutex protection in here - take our chances!
@@ -40,6 +39,9 @@ config_info( Connection *conn, Operation *op )
 	vals[1] = NULL;
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	/* initialize reader/writer lock */
+	entry_rdwr_init(e);
+
 	e->e_attrs = NULL;
 	e->e_dn = strdup( SLAPD_CONFIG_DN );
 

@@ -17,12 +17,15 @@
 #include <quipu/ds_search.h>
 #include <quipu/dap2.h>
 #include <quipu/dua.h>
+extern sntx_table *get_syntax_table( short int sntx );
+extern PE asn2pe( char * );
 
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"
 
-int ldap_certif_print( PS ps, struct certificate *parm, int format )
+int
+ldap_certif_print( PS ps, struct certificate *parm, int format )
 {
 	Debug( LDAP_DEBUG_TRACE, "ldap_certif_print()\n", 0, 0, 0 );
 
@@ -114,7 +117,8 @@ ldap_print_algid( PS ps, struct alg_id *parm, int format )
    }
 }
 
-struct certificate *ldap_str2cert( char *str )
+struct certificate *
+ldap_str2cert( char *str )
 {
 struct certificate *result;
 char *ptr;
@@ -280,8 +284,6 @@ OID oid;
 void
 ldap_str2alg( char *str, struct alg_id *alg )
 {
-PE asn2pe();
-
   if ((str == NULLCP) || (*str == '\0'))
    {
      alg->asn = NULLPE;
@@ -305,11 +307,10 @@ PE asn2pe();
     }
 }
 
-void certif_init()
+void
+certif_init( void )
 {
-	extern short	ldap_certif_syntax;
 	sntx_table	*syntax_table;
-	extern sntx_table *get_syntax_table( short int sntx );
 
 	if ((syntax_table = get_syntax_table(ldap_certif_syntax)) != NULL) {
 		syntax_table->s_print = (void *) ldap_certif_print;

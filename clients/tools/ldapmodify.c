@@ -33,10 +33,6 @@ static int	ldapport = LDAP_PORT;
 static int	new, replace, not, verbose, contoper, force, valsfromfiles;
 static LDAP	*ld;
 
-#ifdef LDAP_DEBUG
-extern int ldap_debug, lber_debug;
-#endif /* LDAP_DEBUG */
-
 #define safe_realloc( ptr, size )	( ptr == NULL ? malloc( size ) : \
 					 realloc( ptr, size ))
 
@@ -77,9 +73,6 @@ main( int argc, char **argv )
     FILE		*fp;
     int			rc, i, kerberos, use_ldif, authmethod;
     char		*usage = "usage: %s [-abcknrvF] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile ]\n";
-
-    extern char	*optarg;
-    extern int	optind;
 
     if (( prog = strrchr( argv[ 0 ], '/' )) == NULL ) {
 	prog = argv[ 0 ];

@@ -12,43 +12,6 @@
 
 #include "slap.h"
 
-#ifdef SLAPD_LDBM
-extern int	ldbm_back_bind();
-extern int	ldbm_back_unbind();
-extern int	ldbm_back_search();
-extern int	ldbm_back_compare();
-extern int	ldbm_back_modify();
-extern int	ldbm_back_modrdn();
-extern int	ldbm_back_add();
-extern int	ldbm_back_delete();
-extern int	ldbm_back_abandon();
-extern int	ldbm_back_config();
-extern int	ldbm_back_init();
-extern int	ldbm_back_close();
-extern int      ldbm_back_group();
-#endif
-
-#ifdef SLAPD_PASSWD
-extern int	passwd_back_search();
-extern int	passwd_back_config();
-#endif
-
-#ifdef SLAPD_SHELL
-extern int	shell_back_bind();
-extern int	shell_back_unbind();
-extern int	shell_back_search();
-extern int	shell_back_compare();
-extern int	shell_back_modify();
-extern int	shell_back_modrdn();
-extern int	shell_back_add();
-extern int	shell_back_delete();
-extern int	shell_back_abandon();
-extern int	shell_back_config();
-extern int	shell_back_init();
-#endif
-
-extern int	defsize;
-extern int	deftime;
 
 #define BACKEND_GRAB_SIZE	10
 
@@ -253,7 +216,7 @@ be_isroot_pw( Backend *be, char *dn, struct berval *cred )
 }
 
 void
-be_close()
+be_close( void )
 {
 	int	i;
 
@@ -282,7 +245,13 @@ be_unbind(
 
 #ifdef SLAPD_ACLGROUPS
 int 
-be_group(Backend *be, char *bdn, char *edn, char *objectclassValue, char *groupattrName)
+be_group(
+	Backend	*be,
+	char	*bdn,
+	char	*edn,
+	char	*objectclassValue,
+	char	*groupattrName
+)
 {
         if (be->be_group)
                 return(be->be_group(be, bdn, edn, objectclassValue, groupattrName));

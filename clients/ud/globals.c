@@ -10,15 +10,13 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#include <stdio.h>
-#include "ud.h"
+#include "portable.h"
 
-extern void 	set_boolean(), 
-		change_field(), 
-#ifdef UOFM
-		set_updates(), 
-#endif
-		mod_addrDN();
+#include <stdio.h>
+#include <ac/time.h>		/* portable.h+ldap.h needs time_t */
+#include <lber.h>
+#include <ldap.h>
+#include "ud.h"
 
 struct attribute attrlist[] = {
 
@@ -28,8 +26,8 @@ struct attribute attrlist[] = {
 	 *  Field 3 = function used to modify this field (if any)
 	 *  Field 4 = Flags specifying how this field is displayed
 	 */
-	{ "memberOfGroup", "Subscriptions", NULL, ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_IS_A_DN },
-	{ "acl", "Access Control", NULL, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ },
+	{ "memberOfGroup", "Subscriptions", 0, ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_IS_A_DN },
+	{ "acl", "Access Control", 0, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ },
 	{ "cn", "Aliases", change_field, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ | ATTR_FLAG_SEARCH | ATTR_FLAG_GROUP_MOD },
 	{ "title", "Title", change_field, ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_SEARCH | ATTR_FLAG_PERSON_MOD },
 	{ "postalAddress", "Business address", change_field, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ | ATTR_FLAG_PERSON_MOD | ATTR_FLAG_GROUP_MOD | ATTR_FLAG_IS_MULTILINE },
@@ -38,18 +36,18 @@ struct attribute attrlist[] = {
 	{ "member", "Members", mod_addrDN, ATTR_FLAG_GROUP | ATTR_FLAG_READ | ATTR_FLAG_IS_A_DN | ATTR_FLAG_GROUP_MOD },
 	{ "homePhone", "Home phone", change_field, ATTR_FLAG_PERSON | ATTR_FLAG_READ  | ATTR_FLAG_PERSON_MOD },
 	{ "homePostalAddress", "Home address", change_field, ATTR_FLAG_PERSON | ATTR_FLAG_READ  | ATTR_FLAG_PERSON_MOD | ATTR_FLAG_IS_MULTILINE },
-	{ "objectClass", "Object class", NULL, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ | ATTR_FLAG_SEARCH },
+	{ "objectClass", "Object class", 0, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ | ATTR_FLAG_SEARCH },
 #ifdef UOFM
 	{ "multiLineDescription", "Description", change_field, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ  | ATTR_FLAG_PERSON_MOD | ATTR_FLAG_GROUP_MOD | ATTR_FLAG_IS_MULTILINE },
 #endif
-#ifdef KERBEROS
-	{ "krbName", "Kerberos name", NULL, ATTR_FLAG_PERSON | ATTR_FLAG_READ },
+#ifdef HAVE_KERBEROS
+	{ "krbName", "Kerberos name", 0, ATTR_FLAG_PERSON | ATTR_FLAG_READ },
 #endif
-	{ "description", "Brief description", NULL, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ },
+	{ "description", "Brief description", 0, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ },
 	{ "facsimileTelephoneNumber", "Fax number", change_field, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ  | ATTR_FLAG_PERSON_MOD | ATTR_FLAG_GROUP_MOD },
 	{ "pager", "Pager number", change_field, ATTR_FLAG_PERSON | ATTR_FLAG_READ  | ATTR_FLAG_PERSON_MOD },
-	{ "uid", "Uniqname", NULL, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ },
-	{ "userPassword", "Password", NULL, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ },
+	{ "uid", "Uniqname", 0, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ },
+	{ "userPassword", "Password", 0, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ },
 #ifdef UOFM
 	{ "noBatchUpdates", "No batch updates", set_updates, ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_PERSON_MOD },
 #endif
@@ -65,7 +63,7 @@ struct attribute attrlist[] = {
 	{ "onVacation", "On Vacation", set_boolean, ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_PERSON_MOD | ATTR_FLAG_IS_A_BOOL },
 	{ "vacationMessage", "Vacation Message", change_field, ATTR_FLAG_PERSON | ATTR_FLAG_READ  | ATTR_FLAG_PERSON_MOD | ATTR_FLAG_IS_MULTILINE },
 	{ "drink", "Favorite Beverage", change_field, ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_PERSON_MOD },
-	{ "lastModifiedBy", "Last modified by", NULL, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_IS_A_DN | ATTR_FLAG_READ },
-	{ "lastModifiedTime", "Last modified at", NULL, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_IS_A_DATE },
-	{ NULL, NULL, NULL, ATTR_FLAG_NONE }
+	{ "lastModifiedBy", "Last modified by", 0, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_IS_A_DN | ATTR_FLAG_READ },
+	{ "lastModifiedTime", "Last modified at", 0, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_IS_A_DATE },
+	{ NULL, NULL, 0, ATTR_FLAG_NONE }
 };

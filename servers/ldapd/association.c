@@ -21,14 +21,15 @@
 
 #include <quipu/commonarg.h>
 #include <quipu/ds_error.h>
-#include "lber.h"
-#include "ldap.h"
-
+#include <quipu/dap.h>			/* get dap_unbind() */
 #if ISODEPACKAGE == IC
 #include <ll/isoaddrs.h>
 #else
 #include <isoaddrs.h>
 #endif
+
+#include "lber.h"
+#include "ldap.h"
 #include "common.h"
 
 #ifdef HAVE_SYS_IOCTL_H 
@@ -44,11 +45,10 @@
 
 struct conn	*conns;
 
-struct conn *conn_dup( struct conn *cn )
+struct conn *
+conn_dup( struct conn *cn )
 {
 	struct conn	*new;
-	struct PSAPaddr	*psap_cpy();
-
 	if ( (new = (struct conn *) malloc( sizeof(struct conn) )) == NULL )
 		return( NULL );
 
@@ -70,10 +70,9 @@ struct conn *conn_dup( struct conn *cn )
 }
 
 int
-conn_init()
+conn_init( void )
 {
-	extern char	*dsa_address;
-	struct PSAPaddr	*addr, *psap_cpy();
+	struct PSAPaddr	*addr;
 
 	if ( (conns = (struct conn *) malloc( sizeof(struct conn) )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "conn_init: malloc failed\n", 0, 0, 0 );
@@ -104,7 +103,6 @@ void
 conn_free( struct conn *conn )
 {
 	struct timeval	tv;
-	extern int	referral_connection_timeout;
 
 	Debug( LDAP_DEBUG_TRACE, "conn_free (%s): refcnt is %d\n",
 	    paddr2str( conn->c_paddr, NULLNA ), conn->c_refcnt, 0 );
@@ -173,7 +171,7 @@ conn_setfds( fd_set *fds )
 }
 
 void
-conn_badfds()
+conn_badfds( void )
 {
 	struct conn	*tmp;
 
@@ -186,7 +184,8 @@ conn_badfds()
 	}
 }
 
-struct conn *conn_getfd( fd_set *fds )
+struct conn *
+conn_getfd( fd_set *fds )
 {
 	struct conn	*tmp;
 
@@ -226,7 +225,8 @@ psap_cmp( struct PSAPaddr *a, struct PSAPaddr *b )
 	return( bcmp( (char *) a, (char *) b, sizeof(struct PSAPaddr) ) );
 }
 
-struct conn *conn_find( struct conn *c )
+struct conn *
+conn_find( struct conn *c )
 {
 	struct conn	*tmp;
 
@@ -263,7 +263,7 @@ struct conn *conn_find( struct conn *c )
 }
 
 void
-conn_close()
+conn_close( void )
 {
 	struct conn	*tmp;
 
@@ -277,7 +277,6 @@ int
 isclosed( int ad )
 {
 	int		o;
-	extern int	errno;
 
 	if ( ioctl( ad, FIOGETOWN, &o ) < 0 )
 		return( errno == EBADF ? 1 : 0 );

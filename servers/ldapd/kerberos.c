@@ -10,20 +10,22 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#ifdef KERBEROS
+#include "portable.h"
+
+#ifdef HAVE_KERBEROS
 
 #include <stdio.h>
-#include <sys/types.h>
-#include "krb.h"
-#include <sys/socket.h>
-#include <netdb.h>
-#include <netinet/in.h>
+
+#include <ac/krb.h>
+#include <ac/socket.h>
+
 #include <quipu/bind.h>
 #if ISODEPACKAGE == IC
 #include <quipu/DAS-types.h>
 #else
 #include <pepsy/DAS-types.h>
 #endif
+
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"
@@ -36,8 +38,6 @@ kerberosv4_ldap_auth( char *cred, long	len )
 	char		instance[INST_SZ];
 	int		err;
 	AUTH_DAT	ad;
-	extern char	*krb_ldap_service;
-	extern char	*kerberos_keyfile;
 
 	Debug( LDAP_DEBUG_TRACE, "kerberosv4_ldap_auth\n", 0, 0, 0 );
 
@@ -70,8 +70,6 @@ kerberosv4_bindarg(
 	struct timeval			tv;
 	char				realm[REALM_SZ];
 	int				err;
-	extern char			*krb_x500_service;
-	extern char			*krb_x500_instance;
 
 	Debug( LDAP_DEBUG_TRACE, "kerberosv4_bindarg\n", 0, 0, 0 );
 

@@ -25,28 +25,10 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include "slap.h"
 #include "ldapconfig.h"
+#include "slap.h"
 
 #if defined( SLAPD_MONITOR_DN )
-
-extern int		nbackends;
-extern Backend		*backends;
-extern int		active_threads;
-extern int		dtblsize;
-extern Connection	*c;
-extern long		ops_initiated;
-extern long		ops_completed;
-extern long		num_entries_sent;
-extern long		num_bytes_sent;
-extern time_t		currenttime;
-extern time_t		starttime;
-extern int		num_conns;
-
-extern pthread_mutex_t	new_conn_mutex;
-extern pthread_mutex_t	currenttime_mutex;
-
-extern char Versionstr[];
 
 void
 monitor_info( Connection *conn, Operation *op )
@@ -106,7 +88,7 @@ monitor_info( Connection *conn, Operation *op )
 			pthread_mutex_unlock( &currenttime_mutex );
 
 			pthread_mutex_lock( &c[i].c_dnmutex );
-			sprintf( buf, "%d : %s : %ld : %ld : %s : %s%s", i,
+			sprintf( buf, "%d : %s : %d : %d : %s : %s%s", i,
 			    buf2, c[i].c_opsinitiated, c[i].c_opscompleted,
 			    c[i].c_dn ? c[i].c_dn : "NULLDN",
 			    c[i].c_gettingber ? "r" : "",

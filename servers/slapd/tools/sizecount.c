@@ -1,4 +1,10 @@
+#include "portable.h"
+
 #include <stdio.h>
+#include <stdlib.h>
+#include <ac/string.h>
+#include <unistd.h>			/* get unlink() */
+
 #include <ldbm.h>
 #include <lber.h>
 #include <ldap.h>
@@ -9,10 +15,10 @@
 #define DB_FLAGS	(LDBM_WRCREAT|LDBM_NEWDB)
 #define SUBLEN		3
 
-extern char	*first_word();
-extern char	*next_word();
-extern char	*word_dup();
-extern char	*phonetic();
+extern char	*first_word(char *);
+extern char	*next_word(char *);
+extern char	*word_dup(char *);
+extern char	*phonetic(char *);
 
 extern int ldap_debug;
 extern int lber_debug;
@@ -20,11 +26,10 @@ extern int lber_debug;
 int	ldap_syslog;
 int	ldap_syslog_level;
 
-static void	add();
+static void	add(LDBM ldbm, char *s, int *count, int *size, int freeit);
 
-main( argc, argv )
-    int		argc;
-    char	**argv;
+int
+main( int argc, char **argv )
 {
 	LDAP			*ld;
 	LDAPMessage		*res, *e;

@@ -2,7 +2,8 @@
 
 #include "portable.h"
 
-int
+/*ARGSUSED*/
+void
 ldbm_back_abandon()
 {
 }

@@ -1,18 +1,17 @@
 /* config.c - configuration file handling routines */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include "slap.h"
+
+#include <ac/string.h>
+#include <ac/ctype.h>
+#include <ac/socket.h>
+
 #include "ldapconfig.h"
+#include "slap.h"
 
 #define MAXARGS	100
-
-extern Backend	*new_backend();
-extern char	*default_referral;
-extern int	ldap_syslog;
-extern int	global_schemacheck;
 
 /*
  * defaults for various global variables
@@ -25,11 +24,11 @@ char		*replogfile;
 int		global_lastmod;
 char		*ldap_srvtab = "";
 
-static char	*fp_getline();
-static void	fp_getline_init();
-static void	fp_parse_line();
+static char	*fp_getline(FILE *fp, int *lineno);
+static void	fp_getline_init(int *lineno);
+static void	fp_parse_line(char *line, int *argcp, char **argv);
 
-static char	*strtok_quote();
+static char	*strtok_quote(char *line, char *sep);
 
 void
 read_config( char *fname, Backend **bep, FILE *pfp )
@@ -81,6 +80,9 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 			*bep = new_backend( cargv[1] );
 			be = *bep;
 
+ 		/* assign a default depth limit for alias deref */
+		be->be_maxDerefDepth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
+
 		/* set size limit */
 		} else if ( strcasecmp( cargv[0], "sizelimit" ) == 0 ) {
 			if ( cargc < 2 ) {
@@ -130,6 +132,54 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				(void) dn_normalize( dn );
 				charray_add( &be->be_suffix, dn );
 			}
+
+                /* set database suffixAlias */
+                } else if ( strcasecmp( cargv[0], "suffixAlias" ) == 0 ) {
+                        if ( cargc < 2 ) {
+                                Debug( LDAP_DEBUG_ANY,
+                    "%s: line %d: missing alias and aliased_dn in \"suffixAlias <alias> <aliased_dn>\" line\n",
+                                    fname, lineno, 0 );
+                                exit( 1 );
+                        } else if ( cargc < 3 ) {
+                                Debug( LDAP_DEBUG_ANY,
+                    "%s: line %d: missing aliased_dn in \"suffixAlias <alias> <aliased_dn>\" line\n",
+                                    fname, lineno, 0 );
+                                exit( 1 );
+                        } else if ( cargc > 3 ) {
+                                Debug( LDAP_DEBUG_ANY,
+    "%s: line %d: extra cruft in suffixAlias line (ignored)\n",
+                                    fname, lineno, 0 );
+                        }
+                        if ( be == NULL ) {
+                                Debug( LDAP_DEBUG_ANY,
+"%s: line %d: suffixAlias line must appear inside a database definition (ignored)\n",
+                                    fname, lineno, 0 );
+                        } else {
+                                dn = strdup( cargv[1] );
+                                (void) dn_normalize( dn );
+                                charray_add( &be->be_suffixAlias, dn );
+
+                                dn = strdup( cargv[2] );
+                                (void) dn_normalize( dn );
+                                charray_add( &be->be_suffixAlias, dn );
+                        }
+
+               /* set max deref depth */
+               } else if ( strcasecmp( cargv[0], "maxDerefDepth" ) == 0 ) {
+                       if ( cargc < 2 ) {
+                               Debug( LDAP_DEBUG_ANY,
+                   "%s: line %d: missing depth in \"maxDerefDepth <depth>\" line\n",
+                                   fname, lineno, 0 );
+                               exit( 1 );
+                       }
+                       if ( be == NULL ) {
+                               Debug( LDAP_DEBUG_ANY,
+"%s: line %d: depth line must appear inside a database definition (ignored)\n",
+                                   fname, lineno, 0 );
+                       } else {
+                           be->be_maxDerefDepth = atoi (cargv[1]);
+                       }
+
 
 		/* set magic "root" dn for this database */
 		} else if ( strcasecmp( cargv[0], "rootdn" ) == 0 ) {

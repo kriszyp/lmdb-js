@@ -10,23 +10,19 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include "slap.h"
 
-extern Backend	*select_backend();
+static void	modlist_free(LDAPMod *mods);
+static void	add_lastmods(Operation *op, LDAPMod **mods);
 
-extern char		*default_referral;
-extern time_t		currenttime;
-extern pthread_mutex_t	currenttime_mutex;
-extern int		global_lastmod;
-
-static void	modlist_free();
-static void	add_lastmods();
 
 void
 do_modify(
@@ -147,6 +143,9 @@ do_modify(
 		return;
 	}
 
+        /* alias suffix if approp */
+        dn = suffixAlias ( dn, op, be );
+
 	/*
 	 * do the modify if 1 && (2 || 3)
 	 * 1) there is a modify function implemented in this backend;
@@ -155,14 +154,14 @@ do_modify(
 	 */
 	if ( be->be_modify != NULL ) {
 		/* do the update here */
-		if ( be->be_updatedn == NULL || strcasecmp( be->be_updatedn,
-		    op->o_dn ) == 0 ) {
-			if ( (be->be_lastmod == ON || be->be_lastmod == 0 &&
-			    global_lastmod == ON) && be->be_updatedn == NULL ) {
+		if ( be->be_updatedn == NULL ||
+			strcasecmp( be->be_updatedn, op->o_dn ) == 0 ) {
+
+			if ( (be->be_lastmod == ON || ( be->be_lastmod == UNDEFINED &&
+				global_lastmod == ON ) ) && be->be_updatedn == NULL ) {
 				add_lastmods( op, &mods );
 			}
-			if ( (*be->be_modify)( be, conn, op, odn, mods )
-			    == 0 ) {
+			if ( (*be->be_modify)( be, conn, op, odn, mods ) == 0 ) {
 				replog( be, LDAP_REQ_MODIFY, dn, mods, 0 );
 			}
 
@@ -200,7 +199,7 @@ modlist_free(
 static void
 add_lastmods( Operation *op, LDAPMod **mods )
 {
-	char		buf[20];
+	char		buf[22];
 	struct berval	bv;
 	struct berval	*bvals[2];
 	LDAPMod		**m;
@@ -214,17 +213,25 @@ add_lastmods( Operation *op, LDAPMod **mods )
 
 	/* remove any attempts by the user to modify these attrs */
 	for ( m = mods; *m != NULL; m = &(*m)->mod_next ) {
-		if ( strcasecmp( (*m)->mod_type, "modifytimestamp" ) == 0
-		    || strcasecmp( (*m)->mod_type, "modifiersname" ) == 0 ) {
-			tmp = *m;
-			*m = (*m)->mod_next;
-			free( tmp->mod_type );
-			if ( tmp->mod_bvalues != NULL ) {
-				ber_bvecfree( tmp->mod_bvalues );
-			}
-			free( tmp );
-		}
-	}
+            if ( strcasecmp( (*m)->mod_type, "modifytimestamp" ) == 0 || 
+				strcasecmp( (*m)->mod_type, "modifiersname" ) == 0 ||
+				strcasecmp( (*m)->mod_type, "createtimestamp" ) == 0 || 
+				strcasecmp( (*m)->mod_type, "creatorsname" ) == 0 ) {
+
+                Debug( LDAP_DEBUG_TRACE,
+					"add_lastmods: found lastmod attr: %s\n",
+					(*m)->mod_type, 0, 0 );
+                tmp = *m;
+                *m = (*m)->mod_next;
+                free( tmp->mod_type );
+                if ( tmp->mod_bvalues != NULL ) {
+                    ber_bvecfree( tmp->mod_bvalues );
+                }
+                free( tmp );
+                if (!*m)
+                    break;
+            }
+        }
 
 	if ( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
 		bv.bv_val = "NULLDN";
@@ -243,16 +250,20 @@ add_lastmods( Operation *op, LDAPMod **mods )
 	*mods = tmp;
 
 	pthread_mutex_lock( &currenttime_mutex );
-        ltm = localtime( &currenttime );
-        strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+#ifndef LDAP_LOCALTIME
+	ltm = gmtime( &currenttime );
+	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
+#else
+	ltm = localtime( &currenttime );
+	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+#endif
 	pthread_mutex_unlock( &currenttime_mutex );
 	bv.bv_val = buf;
 	bv.bv_len = strlen( bv.bv_val );
 	tmp = (LDAPMod *) ch_calloc( 1, sizeof(LDAPMod) );
 	tmp->mod_type = strdup( "modifytimestamp" );
 	tmp->mod_op = LDAP_MOD_REPLACE;
-	tmp->mod_bvalues = (struct berval **) ch_calloc( 1,
-	    2 * sizeof(struct berval *) );
+	tmp->mod_bvalues = (struct berval **) ch_calloc( 1, 2 * sizeof(struct berval *) );
 	tmp->mod_bvalues[0] = ber_bvdup( &bv );
 	tmp->mod_next = *mods;
 	*mods = tmp;

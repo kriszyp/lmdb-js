@@ -105,7 +105,7 @@ static int BerWrite LDAP_P(( Sockbuf *sb, char *buf, long len ));
 
 #define EXBUFSIZ	1024
 
-int
+static int
 ber_filbuf( Sockbuf *sb, long len )
 {
 	short	rc;
@@ -151,7 +151,7 @@ ber_filbuf( Sockbuf *sb, long len )
 }
 
 
-long
+static long
 BerRead( Sockbuf *sb, char *buf, long len )
 {
 	int	c;
@@ -340,13 +340,13 @@ ber_alloc_t( int options )
 }
 
 BerElement *
-ber_alloc()
+ber_alloc( void )
 {
 	return( ber_alloc_t( 0 ) );
 }
 
 BerElement *
-der_alloc()
+der_alloc( void )
 {
 	return( ber_alloc_t( LBER_USE_DER ) );
 }
@@ -467,7 +467,8 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 	unsigned long	tag = 0, netlen, toread;
 	unsigned char	lc;
 	long		rc;
-	int		noctets, diff;
+	int			noctets;
+	unsigned int	diff;
 
 #ifdef LDAP_DEBUG
 	if ( lber_debug )

@@ -1,24 +1,23 @@
 /* ldbmcache.c - maintain a cache of open ldbm files */
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/param.h>
-#include <sys/stat.h>
-#include <errno.h>
 #include "portable.h"
-#include "slap.h"
-#include "ldapconfig.h"
-#include "back-ldbm.h"
 
-#ifndef SYSERRLIST_IN_STDIO
-extern int		sys_nerr;
-extern char		*sys_errlist[];
+#include <stdio.h>
+
+#include <ac/errno.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#include <sys/stat.h>
+
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
 #endif
-extern time_t		currenttime;
-extern pthread_mutex_t	currenttime_mutex;
+
+#include "ldapconfig.h"
+#include "slap.h"
+#include "back-ldbm.h"
 
 struct dbcache *
 ldbm_cache_open(
@@ -115,7 +114,7 @@ ldbm_cache_open(
 	    li->li_dbcache[i].dbc_maxids) + 1;
 
 	Debug( LDAP_DEBUG_ARGS,
-	    "ldbm_cache_open (blksize %d) (maxids %d) (maxindirect %d)\n",
+	    "ldbm_cache_open (blksize %ld) (maxids %d) (maxindirect %d)\n",
 	    li->li_dbcache[i].dbc_blksize, li->li_dbcache[i].dbc_maxids,
 	    li->li_dbcache[i].dbc_maxindirect );
 	Debug( LDAP_DEBUG_TRACE, "<= ldbm_cache_open (opened %d)\n", i, 0, 0 );
@@ -176,6 +175,9 @@ ldbm_cache_fetch(
 )
 {
 	Datum	data;
+#ifdef HAVE_BERKELEY_DB2
+	memset( &data, 0, sizeof( data ) );
+#endif
 
 	pthread_mutex_lock( &db->dbc_mutex );
 #ifdef reentrant_database
@@ -215,6 +217,24 @@ ldbm_cache_store(
 		pthread_cond_wait( &db->dbc_cv, &db->dbc_mutex );
 	}
 #endif
+
+#ifdef LDBM_DEBUG
+	Statslog( LDAP_DEBUG_STATS,
+		"=> ldbm_cache_store(): key.dptr=%s, key.dsize=%d\n",
+		key.dptr, key.dsize, 0, 0, 0 );
+
+	Statslog( LDAP_DEBUG_STATS,
+		"=> ldbm_cache_store(): key.dptr=0x%08x, data.dptr=0x%0 8x\n",
+		key.dptr, data.dptr, 0, 0, 0 );
+
+	Statslog( LDAP_DEBUG_STATS,
+		"=> ldbm_cache_store(): data.dptr=%s, data.dsize=%d\n",
+		data.dptr, data.dsize, 0, 0, 0 );
+
+	Statslog( LDAP_DEBUG_STATS,
+		"=> ldbm_cache_store(): flags=0x%08x\n",
+		flags, 0, 0, 0, 0 );
+#endif /* LDBM_DEBUG */
 
 	rc = ldbm_store( db->dbc_db, key, data, flags );
 

@@ -27,19 +27,21 @@
  * Just invoke the Ri's process() member function, and log the start and
  * finish.
  */
-void
+static void *
 replicate(
-    Ri	*ri
+    void	*ri_arg
 )
 {
+    Ri		*ri = (Ri *) ri_arg;
+
     Debug( LDAP_DEBUG_ARGS, "begin replication thread for %s:%d\n",
-	    ri->ri_hostname, ri->ri_port, 0 );
+	    ((Ri *)ri)->ri_hostname, ((Ri *)ri)->ri_port, 0 );
 
     ri->ri_process( ri );
 
     Debug( LDAP_DEBUG_ARGS, "end replication thread for %s:%d\n",
 	    ri->ri_hostname, ri->ri_port, 0 );
-    return;
+    return NULL;
 }
 
 

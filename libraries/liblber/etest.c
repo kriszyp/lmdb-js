@@ -4,43 +4,46 @@
  * All rights reserved.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#ifdef MACOS
-#include <stdlib.h>
-#include <unix.h>
-#include <fcntl.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_CONSOLE_H
 #include <console.h>
-#else /* MACOS */
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif /* MACOS */
+#endif /* HAVE_CONSOLE_H */
+
 #include "lber.h"
 
-static usage( char *name )
+static void usage( char *name )
 {
 	fprintf( stderr, "usage: %s fmtstring\n", name );
 }
 
 main( int argc, char **argv )
 {
-	int		i, num, len;
-	char		*s, *p;
+#ifdef notdef
+	int		i, len;
+	char	*s, *p;
+#endif
+	int		num;
 	Seqorset	*sos = NULLSEQORSET;
 	BerElement	*ber;
 	Sockbuf		sb;
-	extern char	*optarg;
 
 	if ( argc < 2 ) {
 		usage( argv[0] );
 		exit( 1 );
 	}
 
-	bzero( &sb, sizeof(sb) );
+	memset( &sb, 0, sizeof(sb) );
 	sb.sb_sd = 1;
 	sb.sb_ber.ber_buf = NULL;
 
-#ifdef MACOS
+#ifdef HAVE_CONSOLE_H
 	ccommand( &argv );
 	cshow( stdout );
 
@@ -151,9 +154,9 @@ main( int argc, char **argv )
 			break;
 
 		default:
-#ifndef NO_USERINTERFACE
+#ifdef LDAP_LIBUI
 			fprintf( stderr, "unknown fmt %c\n", *fmt );
-#endif /* NO_USERINTERFACE */
+#endif /* LDAP_LIBUI */
 			rc = -1;
 			break;
 		}

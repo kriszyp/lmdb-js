@@ -10,9 +10,6 @@
 
 #include "slap.h"
 
-void	entry_free();
-char	*entry2str();
-
 static unsigned char	*ebuf;	/* buf returned by entry2str 		 */
 static unsigned char	*ecur;	/* pointer to end of currently used ebuf */
 static int		emaxsize;/* max size of ebuf	     		 */
@@ -90,7 +87,7 @@ str2entry( char	*s )
 		if ( strcasecmp( type, "dn" ) == 0 ) {
 			if ( e->e_dn != NULL ) {
 				Debug( LDAP_DEBUG_ANY,
-    "str2entry: entry %d has multiple dns \"%s\" and \"%s\" (second ignored)\n",
+ "str2entry: entry %lu has multiple dns \"%s\" and \"%s\" (second ignored)\n",
 				    e->e_id, e->e_dn, value );
 				continue;
 			}
@@ -111,13 +108,13 @@ str2entry( char	*s )
 
 	/* check to make sure there was a dn: line */
 	if ( e->e_dn == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "str2entry: entry %d has no dn\n",
+		Debug( LDAP_DEBUG_ANY, "str2entry: entry %lu has no dn\n",
 		    e->e_id, 0, 0 );
 		entry_free( e );
 		return( NULL );
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= str2entry 0x%x\n", e, 0, 0 );
+	Debug(LDAP_DEBUG_TRACE, "<= str2entry 0x%lx\n", (unsigned long)e, 0,0);
 
 	return( e );
 }
@@ -261,4 +258,3 @@ entry_rdwr_init(Entry *e)
 {
 	return pthread_rdwr_init_np(&e->e_rdwr, NULL);
 }
-

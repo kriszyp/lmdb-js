@@ -13,16 +13,14 @@
  *
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+
 #include "slap.h"
 
-extern Backend	*select_backend();
-extern void      be_unbind();
-
-extern char		*default_referral;
-extern pthread_mutex_t	new_conn_mutex;
 
 void
 do_unbind(

@@ -5,6 +5,7 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
+#include <ac/unistd.h>			/* Get read() */
 
 #include "lber.h"
 #include "ldap.h"
@@ -14,16 +15,15 @@ int	ldap_syslog;
 int	ldap_syslog_level;
 
 
-usage( name )
-char	*name;
+static void
+usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-b] <attrtype>\n", name );
 	exit( 1 );
 }
 
-main( argc, argv )
-    int		argc;
-    char	**argv;
+int
+main( int argc, char **argv )
 {
 	char	buf[BUFSIZ];
 	char	*type, *out;

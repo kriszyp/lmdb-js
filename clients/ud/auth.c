@@ -19,6 +19,7 @@
 #include <ac/krb.h>
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/unistd.h>
 
 #ifdef HAVE_PWD_H
 #include <pwd.h>
@@ -30,25 +31,17 @@
 
 #include "ud.h"
 
-extern LDAP *ld;		/* our LDAP descriptor */
-extern int verbose;		/* verbosity indicator */
-extern char *mygetpass();	/* getpass() passwds are too short */
-
-#ifdef DEBUG
-extern int debug;		/* debug flag */
-#endif
-
 #ifdef HAVE_KERBEROS
 static char tktpath[20];	/* ticket file path */
 static int kinit();
 static int valid_tgt();
 #endif
 
-static void set_bound_dn();
+static void set_bound_dn(char *s);
 
-auth(who, implicit)
-char *who;
-int implicit;
+
+int
+auth( char *who, int implicit )
 {
 	int rc;			/* return code from ldap_bind() */
 	char *passwd = NULL;	/* returned by mygetpass() */
@@ -71,13 +64,6 @@ int implicit;
 	static char prompt[MED_BUF_SIZE];	/* place for us to sprintf the prompt */
 	static char name[MED_BUF_SIZE];	/* place to store the user's name */
 	static char password[MED_BUF_SIZE];	/* password entered by user */
-	extern struct entry Entry;	/* look here for a name if needed */
-	extern LDAPMessage *find();	/* for looking up 'name' */
-	extern char *search_base;	/* for printing later */
-	extern char *default_bind_object;	/* bind as this on failure */
-	extern void printbase();	/* used to pretty-print a base */
-	extern int bind_status;
-	extern void Free();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -306,8 +292,8 @@ int implicit;
 #define FIVEMINS	( 5 * 60 )
 #define TGT		"krbtgt"
 
-static void str2upper( s )
-    char	*s;
+static void
+str2upper( char *s )
 {
 	char	*p;
 
@@ -317,8 +303,8 @@ static void str2upper( s )
 }
 
 
-static valid_tgt( names )
-    char	**names;
+static int
+valid_tgt( char **names )
 {
 	int		i;
 	char		name[ ANAME_SZ ], inst[ INST_SZ ], realm[ REALM_SZ ];
@@ -358,9 +344,7 @@ static char *kauth_name;
 
 /*ARGSUSED*/
 int
-krbgetpass( user, inst, realm, pw, key )
-    char *user, *inst, *realm, *pw;
-    C_Block key;
+krbgetpass( char *user, char *inst, char *realm, char *pw, C_Block key )
 {
 	char	*p, lcrealm[ REALM_SZ ], prompt[256], *passwd;
 
@@ -390,8 +374,8 @@ krbgetpass( user, inst, realm, pw, key )
 	return( 0 );
 }
 
-static kinit( kname )
-    char	*kname;
+static int
+kinit( char *kname )
 {
 	int	rc;
 	char	name[ ANAME_SZ ], inst[ INST_SZ ], realm[ REALM_SZ ];
@@ -430,7 +414,8 @@ static kinit( kname )
 	return( 0 );
 }
 
-void destroy_tickets(void)
+void
+destroy_tickets( void )
 {
 	if ( *tktpath != '\0' ) {
 		unlink( tktpath );
@@ -438,11 +423,9 @@ void destroy_tickets(void)
 }
 #endif
 
-static void set_bound_dn(char *s)
+static void
+set_bound_dn( char *s )
 {
-	extern void Free();
-	extern char *bound_dn;
-
 	if (bound_dn != NULL)
 		Free(bound_dn);
 	bound_dn = (s == NULL) ? NULL : strdup(s);

@@ -1,31 +1,35 @@
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/time.h>
+#include <limits.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/ctype.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+#include <ac/wait.h>
+
 #include <sys/resource.h>
-#include <sys/wait.h>
 #include <sys/param.h>
 #include <sys/stat.h>
-#include <limits.h>
-#include "portable.h"
+
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+
 #include "ldapconfig.h"
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 
 #define EDITOR	"/usr/ucb/vi"
 
-extern IDList		*idl_fetch();
-extern Backend		*select_backend();
-extern struct dbcache	*ldbm_cache_open();
-
-static struct dbcache	*openchoice();
-static void		print_entry();
-static void		free_and_close();
-static void		edit_entry();
-static void		get_keydata();
+static struct dbcache	*openchoice(char c, int mode, int verbose, char **fname);
+static void		print_entry(FILE *fp, char c, Datum *key, char *klabel, Datum *data, char *dlabel);
+static void		free_and_close(struct dbcache *dbc, Datum key, Datum data);
+static void		edit_entry(char c, Datum *data);
+static void		get_keydata(FILE *fp, char c, Datum *key, Datum *data);
 
 struct dbcache	*dbc;
 LDBM		dbp;
@@ -35,8 +39,8 @@ int		ldap_debug;
 int		ldap_syslog;
 int		ldap_syslog_level;
 int		global_schemacheck;
-int		num_entries_sent;
-int		num_bytes_sent;
+long		num_entries_sent;
+long		num_bytes_sent;
 int		active_threads;
 char		*default_referral;
 struct objclass	*global_oc;
@@ -51,9 +55,8 @@ pthread_mutex_t	replog_mutex;
 pthread_mutex_t	ops_mutex;
 pthread_mutex_t	regex_mutex;
 
-main( argc, argv )
-    int		argc;
-    char	**argv;
+int
+main( int argc, char **argv )
 {
 	char		buf[256];
 	Datum		savekey, key, data, last;
@@ -62,7 +65,10 @@ main( argc, argv )
 	IDList		*idl;
 	Backend		*tbe;
 	int		i;
-	extern char	*optarg;
+
+#ifdef HAVE_BERKELEY_DB2
+	DBC	*cursorp;
+#endif
 
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	while ( (i = getopt( argc, argv, "d:f:" )) != EOF ) {
@@ -151,9 +157,16 @@ main( argc, argv )
 			}
 
 			savekey.dptr = NULL;
+#ifdef HAVE_BERKELEY_DB2
+			for ( key = ldbm_firstkey( dbc->dbc_db, &cursorp );
+			    key.dptr != NULL;
+			    key = ldbm_nextkey( dbc->dbc_db, key, cursorp ) )
+#else
 			for ( key = ldbm_firstkey( dbc->dbc_db );
 			    key.dptr != NULL;
-			    key = ldbm_nextkey( dbc->dbc_db, key ) ) {
+			    key = ldbm_nextkey( dbc->dbc_db, key ) )
+#endif
+			{
 				if ( savekey.dptr != NULL )
 					ldbm_datum_free( dbc->dbc_db, savekey );
 				savekey = key;
@@ -271,7 +284,7 @@ main( argc, argv )
 				if ( idl_insert_key( be, dbc, key, id )
 				    != 0 ) {
 					fprintf( stderr,
-					    "idl_insert_key (%s) %d failed\n",
+					    "idl_insert_key (%s) %ld failed\n",
 					    key.dptr, id );
 					continue;
 				}
@@ -313,8 +326,16 @@ main( argc, argv )
 			}
 
 			last.dptr = NULL;
+
+#ifdef HAVE_BERKELEY_DB2
+			for ( key = ldbm_firstkey( dbp, &cursorp );
+				key.dptr != NULL;
+				key = ldbm_nextkey( dbp, last, cursorp ) )
+#else
 			for ( key = ldbm_firstkey( dbp ); key.dptr != NULL;
-			    key = ldbm_nextkey( dbp, last ) ) {
+			    key = ldbm_nextkey( dbp, last ) )
+#endif
+			{
 				if ( last.dptr != NULL ) {
 					ldbm_datum_free( dbp, last );
 				}
@@ -352,10 +373,7 @@ main( argc, argv )
 }
 
 static void
-free_and_close( dbc, key, data )
-    struct dbcache	*dbc;
-    Datum		key;
-    Datum		data;
+free_and_close( struct dbcache *dbc, Datum key, Datum data )
 {
 	ldbm_cache_really_close( be, dbc );
 	if ( key.dptr != NULL )
@@ -365,17 +383,13 @@ free_and_close( dbc, key, data )
 }
 
 static int
-dnid_cmp( a, b )
-    long	*a;
-    long	*b;
+dnid_cmp( const void *a, const void *b )
 {
-	return( *a - *b );
+	return( *(const long int *)a - *(const long int *)b );
 }
 
 static char *
-myrealloc( p, size )
-    char	*p;
-    int		size;
+myrealloc( char *p, int size )
 {
 	if ( p == NULL )
 		return( (char *) malloc( size ) );
@@ -384,9 +398,7 @@ myrealloc( p, size )
 }
 
 static void
-get_idlist( fp, data )
-    FILE	*fp;
-    Datum	*data;
+get_idlist( FILE *fp, Datum *data )
 {
 	char	buf[20];
 	int	i, j, fd, tty;
@@ -448,7 +460,7 @@ get_idlist( fp, data )
 			p->b_nids = i;
 		}
 
-		qsort( (void *) p->b_ids, i, sizeof(ID), (void *) dnid_cmp );
+		qsort( (void *) p->b_ids, i, sizeof(ID), dnid_cmp );
 	}
 
 	data->dptr = (char *) p;
@@ -456,9 +468,7 @@ get_idlist( fp, data )
 }
 
 static void
-get_entry( fp, data )
-    FILE	*fp;
-    Datum	*data;
+get_entry( FILE *fp, Datum *data )
 {
 	char	buf[BUFSIZ];
 	char	*p;
@@ -492,17 +502,17 @@ get_entry( fp, data )
 }
 
 static void
-edit_entry( c, data )
-    char	c;
-    Datum	*data;
+edit_entry( char c, Datum *data )
 {
 	int		fd, pid;
 	char		tmpname[20];
 	FILE		*fp;
+#ifndef HAVE_WAITPID
 	WAITSTATUSTYPE	status;
+#endif
 
 	strcpy( tmpname, "/tmp/dbtestXXXXXX" );
-#ifdef ultrix
+#ifndef HAVE_MKSTEMP
 	if ( (fd = open( mktemp( tmpname ), O_RDWR, 0600 )) == -1 ) {
 		perror( tmpname );
 		return;
@@ -536,8 +546,8 @@ edit_entry( c, data )
 
 	fclose( fp );
  
-#ifdef USE_WAITPID
-	if ( waitpid( (pid_t) -1, 0, WAIT_FLAGS ) < 0 ) {
+#ifdef HAVE_WAITPID
+	if ( waitpid( (pid_t) -1, NULL, WAIT_FLAGS ) < 0 ) {
 #else
 	if ( wait3( &status, WAIT_FLAGS, 0 ) < 0 ) {
 #endif
@@ -556,12 +566,7 @@ edit_entry( c, data )
 }
 
 static struct dbcache *
-openfile( name, namesiz, mode, verbose, c )
-    char	*name;
-    int		namesiz;
-    int		mode;
-    int		verbose;
-    char	c;
+openfile( char *name, int namesiz, int mode, int verbose, char c )
 {
 	struct dbcache	*dbc;
 
@@ -590,11 +595,7 @@ openfile( name, namesiz, mode, verbose, c )
 }
 
 static struct dbcache *
-openchoice( c, mode, verbose, fname )
-    char	c;
-    int		mode;
-    int		verbose;
-    char	**fname;
+openchoice( char c, int mode, int verbose, char **fname )
 {
 	static char	name[MAXPATHLEN];
 
@@ -629,13 +630,14 @@ openchoice( c, mode, verbose, fname )
 }
 
 static void
-print_entry( fp, c, key, klabel, data, dlabel )
-    FILE	*fp;
-    char	c;
-    Datum	*key;
-    char	*klabel;
-    Datum	*data;
-    char	*dlabel;
+print_entry(
+	FILE	*fp,
+	char	c,
+	Datum	*key,
+	char	*klabel,
+	Datum	*data,
+	char	*dlabel
+)
 {
 	ID	id;
 	IDList	*idl;
@@ -661,14 +663,14 @@ print_entry( fp, c, key, klabel, data, dlabel )
 			    key->dsize );
 		if ( data != NULL ) {
 			SAFEMEMCPY( (char *) &id, data->dptr, sizeof(ID) );
-			fprintf( fp, "%s%d\n", dlabel ? dlabel : "", id );
+			fprintf( fp, "%s%ld\n", dlabel ? dlabel : "", id );
 		}
 		break;
 
 	case 'e':	/* id2entry - key is dnid, data is entry */
 		if ( key != NULL ) {
 			SAFEMEMCPY( (char *) &id, key->dptr, sizeof(ID) );
-			fprintf( fp, "%s %d\n", klabel, id );
+			fprintf( fp, "%s %lu\n", klabel, id );
 		}
 		if ( data != NULL ) {
 			if ( dlabel ) {
@@ -688,19 +690,19 @@ print_entry( fp, c, key, klabel, data, dlabel )
 			idl = (IDList *) data->dptr;
 
 			if ( dlabel )
-				fprintf( fp, "%s\tnmax=%d\n\tncur=%d\n", dlabel,
+				fprintf( fp, "%s\tnmax=%ld\n\tncur=%ld\n", dlabel,
 				    idl->b_nmax, idl->b_nids );
 
 			if ( INDIRECT_BLOCK( idl ) ) {
 				for ( i = 0; idl->b_ids[i] != NOID; i++ ) {
-					fprintf( fp, "\t%d\n", idl->b_ids[i] );
+					fprintf( fp, "\t%ld\n", idl->b_ids[i] );
 				}
 			} else if ( ALLIDS( idl ) ) {
-				fprintf( fp, "\tALLIDS (1..%d)\n",
+				fprintf( fp, "\tALLIDS (1..%ld)\n",
 				    idl->b_nids - 1 );
 			} else {
 				for ( i = 0; i < idl->b_nids; i++ ) {
-					fprintf( fp, "\t%d\n", idl->b_ids[i] );
+					fprintf( fp, "\t%ld\n", idl->b_ids[i] );
 				}
 			}
 		}
@@ -722,11 +724,7 @@ print_entry( fp, c, key, klabel, data, dlabel )
 }
 
 static void
-get_keydata( fp, c, key, data )
-    FILE	*fp;
-    char	c;
-    Datum	*key;
-    Datum	*data;
+get_keydata( FILE *fp, char c, Datum *key, Datum *data )
 {
 	static char	kbuf[BUFSIZ], dbuf[BUFSIZ];
 	long		n;

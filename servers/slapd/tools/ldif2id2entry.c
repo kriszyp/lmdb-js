@@ -1,26 +1,23 @@
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/unistd.h>
+
+#include "ldapconfig.h"
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 
-#define DEFAULT_CONFIGFILE	"/usr/local/etc/slapd.conf"
 #define MAXARGS      		100
-
-extern struct dbcache	*ldbm_cache_open();
-extern void		attr_index_config();
-extern int		strcasecmp();
-extern int		nbackends;
-extern Backend		*backends;
-extern int		ldap_debug;
 
 int		ldap_debug;
 int		ldap_syslog;
 int		ldap_syslog_level;
 int		global_schemacheck;
-int		num_entries_sent;
-int		num_bytes_sent;
+long		num_entries_sent;
+long		num_bytes_sent;
 int		active_threads;
 char		*default_referral;
 struct objclass	*global_oc;
@@ -35,8 +32,6 @@ pthread_mutex_t	replog_mutex;
 pthread_mutex_t	ops_mutex;
 pthread_mutex_t	regex_mutex;
 
-static int	make_index();
-
 static char	*tailorfile;
 static char	*inputfile;
  
@@ -47,6 +42,7 @@ usage( char *name )
 	exit( 1 );
 }
 
+int
 main( int argc, char **argv )
 {
 	int		i, cargc, indb, stop, status;
@@ -63,9 +59,8 @@ main( int argc, char **argv )
 	struct berval	*vals[2];
 	Avlnode		*avltypes = NULL;
 	FILE		*fp;
-	extern char	*optarg;
 
-	tailorfile = DEFAULT_CONFIGFILE;
+	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	dbnum = -1;
 	while ( (i = getopt( argc, argv, "d:f:i:n:" )) != EOF ) {
 		switch ( i ) {
@@ -117,7 +112,7 @@ main( int argc, char **argv )
 			fprintf( stderr, "No ldbm database found in config file\n" );
 			exit( 1 );
 		}
-	} else if ( dbnum < 1 || dbnum > nbackends ) {
+	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {
 		fprintf( stderr, "Database number selected via -n is out of range\n" );
 		fprintf( stderr, "Must be in the range 1 to %d (number of databases in the config file)\n", nbackends );
 		exit( 1 );
@@ -149,7 +144,7 @@ main( int argc, char **argv )
 
 			len = strlen( line );
 			if ( buf == NULL || *buf == '\0' ) {
-				sprintf( idbuf, "%d\n", id + 1 );
+				sprintf( idbuf, "%lu\n", id + 1 );
 				idlen = strlen( idbuf );
 			} else {
 				idlen = 0;

@@ -13,6 +13,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <ac/ctype.h>
 #include <ac/string.h>
@@ -21,28 +22,14 @@
 #include <lber.h>
 #include <ldap.h>
 #include "ud.h"
-extern void Free();
 
-extern struct entry Entry; 
-extern int verbose;
-extern LDAP *ld;
+static char *get_URL( void );
+static int  check_URL( char *url );
 
-extern LDAPMessage *find();
-extern void * Malloc();
 
-static char * get_URL();
-static int check_URL();
-
-#ifdef DEBUG
-extern int debug;
-#endif
-
-modify(who)
-char *who;
+void
+modify( char *who )
 {
-#ifdef UOFM
-	void set_updates();	/* routine to modify noBatchUpdates */
-#endif
 	LDAPMessage *mp;	/* returned from find() */
 	char *dn;		/* distinguished name */
 	char **rdns;		/* for fiddling with the DN */
@@ -52,11 +39,8 @@ char *who;
 #ifdef UOFM
 	static char printed_warning = 0;	/* for use with the */
 	struct attribute no_batch_update_attr;
-	extern char * fetch_boolean_value();
 #endif
 	int is_a_group;		/* TRUE if it is; FALSE otherwise */
-	extern void Free();
-	extern int bind_status;
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -165,14 +149,16 @@ char *who;
 }
 
 /* generic routine for changing any field */
-void change_field(who, attr)
-char *who;			/* DN of entry we are changing */
-struct attribute attr;		/* attribute to change */
+void
+change_field(
+    char *who,			/* DN of entry we are changing */
+    int attr_idx		/* attribute to change */
+)
 {
+	struct attribute attr = Entry.attrs[attr_to_index(attrlist[attr_idx].quipu_name)];
 
 #define	IS_MOD(x)	(!strncasecmp(resp, (x), strlen(resp)))
 				
-	char *get_value();		/* routine to extract values */
 	static char buf[MED_BUF_SIZE];	/* for printing things */
 	static char resp[SMALL_BUF_SIZE];	/* for user input */
 	char *prompt, *prompt2, *more;
@@ -180,7 +166,6 @@ struct attribute attr;		/* attribute to change */
 	static LDAPMod mod;
 	static LDAPMod *mods[2] = { &mod };	/* passed to ldap_modify */
 	static char *values[MAX_VALUES];	/* passed to ldap_modify */
-	extern void Free();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -378,8 +363,8 @@ struct attribute attr;		/* attribute to change */
 #define MAX_DESC_LINES  24
 #define INTL_ADDR_LIMIT	30
 
-char *get_value(id, prompt)
-char *id, *prompt;
+char *
+get_value( char *id, char *prompt )
 {
 	char *cp;		/* for the Malloc() */
 	int count;		/* line # of new value -- if multiline */
@@ -541,12 +526,15 @@ mail_is_good:
 	return(cp);
 }
 
-void set_boolean(who, attr)
-char *who;			/* DN of entry we are changing */
-struct attribute attr;		/* boolean attribute to change */
+void
+set_boolean(
+	char *who,		/* DN of entry we are changing */
+	int attr_idx		/* boolean attribute to change */
+)
 {
+	struct attribute attr = Entry.attrs[attr_to_index(attrlist[attr_idx].quipu_name)];
+
 	char *cp, *s;
-	extern char * fetch_boolean_value();
 	static char response[16];
 	static char *newsetting[2] = { NULL, NULL };
 	LDAPMod mod, *mods[2];
@@ -600,11 +588,10 @@ struct attribute attr;		/* boolean attribute to change */
 
 #ifdef UOFM
 
-void set_updates(who)
-char *who;
+void
+set_updates( char *who, int dummy )
 {
 	char *cp, *s;
-	extern char * fetch_boolean_value();
 	static char response[16];
 	static char value[6];
 	static char *newsetting[2] = { value, NULL };
@@ -670,11 +657,10 @@ char *who;
 
 #endif
 
-print_mod_list(group)
-int group;
+void
+print_mod_list( int group )
 {
 	register int i, j = 1;
-	extern struct attribute attrlist[];
 
 	if (group == TRUE) {
 	    for (i = 0; attrlist[i].quipu_name != NULL; i++) {
@@ -699,15 +685,11 @@ int group;
 #endif
 }
 			
-perform_action(choice, dn, group)
-char choice[];
-char *dn;
-int group;
+int
+perform_action( char *choice, char *dn, int group )
 {
 	int selection;
 	register int i, j = 1;
-	extern struct attribute attrlist[];
-	extern void mod_addrDN(), change_field(), set_boolean();
 
 	selection = atoi(choice);
 	if (selection < 1) {
@@ -743,18 +725,12 @@ int group;
 		return(1);
 		/* NOTREACHED */
 	}
-	if (attrlist[i].mod_func == change_field)
-		(*attrlist[i].mod_func)(dn, Entry.attrs[attr_to_index(attrlist[i].quipu_name)]);
-	else if (attrlist[i].mod_func == mod_addrDN)
-		(*attrlist[i].mod_func)(dn, i);
-	else if (attrlist[i].mod_func == set_boolean)
-		(*attrlist[i].mod_func)(dn, Entry.attrs[attr_to_index(attrlist[i].quipu_name)]);
-	else
-		(*attrlist[i].mod_func)(dn);
+	(*attrlist[i].mod_func)(dn, i);
 	return(0);
 }
 
-static char * get_URL()
+static char *
+get_URL( void )
 {
 	char *rvalue, label[MED_BUF_SIZE], url[MED_BUF_SIZE];
 
@@ -784,8 +760,8 @@ static char * get_URL()
 	return((char *) rvalue);
 }
 
-static check_URL(url)
-char *url;
+static int
+check_URL( char *url )
 {
 	register char *cp;
 
@@ -799,6 +775,7 @@ char *url;
 }
 
 
+void
 mod_perror( LDAP *ld )
 {
 	if ( ld == NULL || ( ld->ld_errno != LDAP_UNAVAILABLE &&

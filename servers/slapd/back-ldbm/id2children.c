@@ -10,10 +10,6 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-struct dbcache	*ldbm_cache_open();
-extern Datum	ldbm_cache_fetch();
-IDList		*idl_fetch();
-
 int
 id2children_add(
     Backend	*be,
@@ -33,8 +29,8 @@ id2children_add(
 	memset( &data, 0, sizeof( data ) );
 #endif
 
-	Debug( LDAP_DEBUG_TRACE, "=> id2children_add( %d, %d )\n", p ? p->e_id
-	    : 0, e->e_id, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> id2children_add( %lu, %lu )\n",
+	       p ? p->e_id : 0, e->e_id, 0 );
 
 	if ( (db = ldbm_cache_open( be, "id2children", LDBM_SUFFIX,
 	    LDBM_WRCREAT )) == NULL ) {
@@ -75,7 +71,7 @@ id2children_remove(
 	IDList		*idl;
 	char		buf[20];
 
-	Debug( LDAP_DEBUG_TRACE, "=> id2children_remove( %d, %d )\n", p ? p->e_id
+	Debug( LDAP_DEBUG_TRACE, "=> id2children_remove( %lu, %lu )\n", p ? p->e_id
 	    : 0, e->e_id, 0 );
 
 	if ( (db = ldbm_cache_open( be, "id2children", LDBM_SUFFIX,
@@ -87,7 +83,7 @@ id2children_remove(
 	}
 
 	memset( &key, 0, sizeof(key) );
-	sprintf( buf, "%c%d", EQ_PREFIX, p ? p->e_id : 0 );
+	sprintf( buf, "%c%ld", EQ_PREFIX, p ? p->e_id : 0 );
 	key.dptr = buf;
 	key.dsize = strlen( buf ) + 1;
 
@@ -120,7 +116,7 @@ has_children(
 	memset( &key, 0, sizeof( key ) );
 #endif
 
-	Debug( LDAP_DEBUG_TRACE, "=> has_children( %d )\n", p->e_id , 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> has_children( %lu )\n", p->e_id , 0, 0 );
 
 	if ( (db = ldbm_cache_open( be, "id2children", LDBM_SUFFIX,
 	    LDBM_WRCREAT )) == NULL ) {

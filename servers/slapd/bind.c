@@ -21,11 +21,6 @@
 
 #include "slap.h"
 
-extern Backend	*select_backend();
-extern char	*suffixAlias();
-
-extern char	*default_referral;
-
 void
 do_bind(
     Connection	*conn,

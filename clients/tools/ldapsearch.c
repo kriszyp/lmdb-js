@@ -17,13 +17,9 @@
 
 #define DEFSEP		"="
 
-#ifdef LDAP_DEBUG
-extern int ldap_debug, lber_debug;
-#endif /* LDAP_DEBUG */
 
-
-static void usage( s )
-char	*s;
+static void
+usage( char *s )
 {
     fprintf( stderr, "usage: %s [options] filter [attributes...]\nwhere:\n", s );
     fprintf( stderr, "    filter\tRFC-1558 compliant LDAP search filter\n" );
@@ -89,17 +85,13 @@ static int	skipsortattr = 0;
 static int	verbose, not, includeufn, allow_binary, vals2tmp, ldif;
 
 int
-main( argc, argv )
-int	argc;
-char	**argv;
+main( int argc, char **argv )
 {
     char		*infile, *filtpattern, **attrs, line[ BUFSIZ ];
     FILE		*fp;
     int			rc, i, first, scope, kerberos, deref, attrsonly;
     int			ldap_options, timelimit, sizelimit, authmethod;
     LDAP		*ld;
-    extern char		*optarg;
-    extern int		optind;
 
     infile = NULL;
     deref = verbose = allow_binary = not = kerberos = vals2tmp =
@@ -375,8 +367,6 @@ static int dosearch(
         ldap_perror( ld, "ldap_search" );
     }
     if ( sortattr != NULL ) {
-	    extern int	strcasecmp();
-
 	    (void) ldap_sort_entries( ld, &res,
 		    ( *sortattr == '\0' ) ? NULL : sortattr, strcasecmp );
 	    matches = 0;
@@ -412,7 +402,6 @@ void print_entry(
     BerElement		*ber;
     struct berval	**bvals;
     FILE		*tmpfp;
-    extern char		*mktemp();
 
     dn = ldap_get_dn( ld, entry );
     if ( ldif ) {

@@ -1,30 +1,18 @@
 /* result.c - routines to send ldap results, errors, and referrals */
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <errno.h>
-#include <signal.h>
 #include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/errno.h>
+#include <ac/signal.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>		/* get close() */
+
 #include "slap.h"
 
-#ifndef SYSERRLIST_IN_STDIO
-extern int		sys_nerr;
-extern char		*sys_errlist[];
-#endif
-extern int		active_threads;
-extern pthread_mutex_t	active_threads_mutex;
-extern pthread_mutex_t	new_conn_mutex;
-extern pthread_t	listener_tid;
-extern struct acl	*acl_get_applicable();
-extern long		num_entries_sent;
-extern long		num_bytes_sent;
-extern pthread_mutex_t	num_sent_mutex;
-
-void	close_connection();
 
 static void
 send_ldap_result2(
@@ -39,6 +27,9 @@ send_ldap_result2(
 	BerElement	*ber;
 	int		rc, sd;
 	unsigned long	tag, bytes;
+
+	if ( err == LDAP_PARTIAL_RESULTS && (text == NULL || *text == '\0') )
+		err = LDAP_NO_SUCH_OBJECT;
 
 	Debug( LDAP_DEBUG_TRACE, "send_ldap_result %d:%s:%s\n", err, matched ?
 	    matched : "", text ? text : "" );
@@ -61,7 +52,7 @@ send_ldap_result2(
 		break;
 	}
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( (ber = ber_alloc_t( conn->c_version == 30 ? 0 : LBER_USE_DER ))
 	    == NULLBER ) {
 #else
@@ -71,13 +62,13 @@ send_ldap_result2(
 		return;
 	}
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if ( op->o_cldap ) {
 		rc = ber_printf( ber, "{is{t{ess}}}", op->o_msgid, "", tag,
 		    err, matched ? matched : "", text ? text : "" );
 	} else
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		rc = ber_printf( ber, "{it{{ess}}}", op->o_msgid, tag, err,
 		    matched ? matched : "", text ? text : "" );
@@ -121,7 +112,13 @@ send_ldap_result2(
 		pthread_mutex_lock( &active_threads_mutex );
 		active_threads--;
 		conn->c_writewaiter = 1;
+
+#ifdef HAVE_LINUX_THREADS
+		pthread_kill( listener_tid, SIGSTKFLT );
+#else /* !linux */
 		pthread_kill( listener_tid, SIGUSR1 );
+#endif /* !linux */
+
 		pthread_cond_wait( &conn->c_wcv, &active_threads_mutex );
 		pthread_mutex_unlock( &active_threads_mutex );
 
@@ -151,7 +148,7 @@ send_ldap_result(
     char	*text
 )
 {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if ( op->o_cldap ) {
 		SAFEMEMCPY( (char *)conn->c_sb.sb_useaddr, &op->o_clientaddr,
 		    sizeof( struct sockaddr ));
@@ -192,6 +189,7 @@ send_search_entry(
 	Attribute	*a;
 	int		i, rc, bytes, sd;
 	struct acl	*acl;
+	char            *edn;
 
 	Debug( LDAP_DEBUG_TRACE, "=> send_search_entry (%s)\n", e->e_dn, 0, 0 );
 
@@ -202,44 +200,64 @@ send_search_entry(
 		return( 1 );
 	}
 
-#ifdef COMPAT30
+	edn = dn_normalize_case( strdup( e->e_dn ) );
+
+#ifdef LDAP_COMPAT30
 	if ( (ber = ber_alloc_t( conn->c_version == 30 ? 0 : LBER_USE_DER ))
-	    == NULLBER ) {
+		== NULLBER )
 #else
-	if ( (ber = der_alloc()) == NULLBER ) {
+	if ( (ber = der_alloc()) == NULLBER )
 #endif
+	{
 		Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
-		    "ber_alloc" );
-		return( 1 );
+			"ber_alloc" );
+		goto error_return;
 	}
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		rc = ber_printf( ber, "{it{{s{", op->o_msgid,
 		    LDAP_RES_SEARCH_ENTRY, e->e_dn );
 	} else
 #endif
+	{
 		rc = ber_printf( ber, "{it{s{", op->o_msgid,
-		    LDAP_RES_SEARCH_ENTRY, e->e_dn );
+			LDAP_RES_SEARCH_ENTRY, e->e_dn );
+	}
 
 	if ( rc == -1 ) {
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 		ber_free( ber, 1 );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
 		    "ber_printf dn" );
-		return( 1 );
+		goto error_return;
 	}
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+		regmatch_t       matches[MAXREMATCHES];
+
 		if ( attrs != NULL && ! charray_inlist( attrs, a->a_type ) ) {
 			continue;
 		}
 
-		acl = acl_get_applicable( be, op, e, a->a_type );
+		/* the lastmod attributes are ignored by ACL checking */
+		if ( strcasecmp( a->a_type, "modifiersname" ) == 0 ||
+			strcasecmp( a->a_type, "modifytimestamp" ) == 0 ||
+			strcasecmp( a->a_type, "creatorsname" ) == 0 ||
+			strcasecmp( a->a_type, "createtimestamp" ) == 0 ) 
+		{
+			Debug( LDAP_DEBUG_ACL, "LASTMOD attribute: %s access DEFAULT\n",
+				a->a_type, 0, 0 );
+			acl = NULL;
+		} else {
+			acl = acl_get_applicable( be, op, e, a->a_type, edn,
+				MAXREMATCHES, matches );
+		}
 
-		if ( ! acl_access_allowed( acl, be, conn, e, NULL, op,
-		    ACL_READ ) ) {
+		if ( ! acl_access_allowed( acl, be, conn, e, NULL, op, ACL_READ,
+			edn, matches ) ) 
+		{
 			continue;
 		}
 
@@ -248,14 +266,14 @@ send_search_entry(
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
 			    NULL, "ber_printf type" );
-			return( 1 );
+			goto error_return;
 		}
 
 		if ( ! attrsonly ) {
 			for ( i = 0; a->a_vals[i] != NULL; i++ ) {
-				if ( a->a_syntax & SYNTAX_DN &&
-				    ! acl_access_allowed( acl, be, conn, e,
-				    a->a_vals[i], op, ACL_READ ) )
+				if ( a->a_syntax & SYNTAX_DN && 
+					! acl_access_allowed( acl, be, conn, e, a->a_vals[i], op,
+						ACL_READ, edn, matches) )
 				{
 					continue;
 				}
@@ -270,7 +288,7 @@ send_search_entry(
 					send_ldap_result( conn, op,
 					    LDAP_OPERATIONS_ERROR, NULL,
 					    "ber_printf value" );
-					return( 1 );
+					goto error_return;
 				}
 			}
 		}
@@ -280,11 +298,13 @@ send_search_entry(
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
 			    NULL, "ber_printf type end" );
-			return( 1 );
+			goto error_return;
 		}
 	}
 
-#ifdef COMPAT30
+	free(edn);
+
+#ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		rc = ber_printf( ber, "}}}}" );
 	} else
@@ -356,6 +376,10 @@ send_search_entry(
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_entry\n", 0, 0, 0 );
 
 	return( rc );
+
+error_return:;
+	free(edn);
+	return( 1 );
 }
 
 int

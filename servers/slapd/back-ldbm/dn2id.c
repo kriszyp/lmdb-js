@@ -11,10 +11,6 @@
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
 
-extern struct dbcache	*ldbm_cache_open();
-extern char		*dn_parent();
-extern Datum		ldbm_cache_fetch();
-
 int
 dn2id_add(
     Backend	*be,
@@ -84,7 +80,7 @@ dn2id(
 	/* first check the cache */
 	if ( (id = cache_find_entry_dn2id( be, &li->li_cache, dn )) != NOID ) {
 		free( dn );
-		Debug( LDAP_DEBUG_TRACE, "<= dn2id %d (in cache)\n", id,
+		Debug( LDAP_DEBUG_TRACE, "<= dn2id %lu (in cache)\n", id,
 			0, 0 );
 		return( id );
 	}
@@ -114,7 +110,7 @@ dn2id(
 
 	ldbm_datum_free( db->dbc_db, data );
 
-	Debug( LDAP_DEBUG_TRACE, "<= dn2id %d\n", id, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= dn2id %lu\n", id, 0, 0 );
 	return( id );
 }
 

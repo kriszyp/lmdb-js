@@ -33,23 +33,6 @@
 #include "globals.h"
 
 /*
- * Externs
- */
-extern FILE *lock_fopen LDAP_P(( char *, char *, FILE ** ));
-
-/*
- * Forward declarations
- */
-int file_nonempty LDAP_P(( char * ));
-
-
-/*
- * Forward declarations
- */
-static int duplicate_replog( char *, char * );
-
-
-/*
  * Copy the replication log.  Returns 0 on success, 1 if a temporary
  * error occurs, and -1 if a fatal error occurs.
  */
@@ -84,8 +67,8 @@ copy_replog(
     }
     if ( access( buf, W_OK ) < 0 ) {
 	Debug( LDAP_DEBUG_ANY,
-		"Error: copy_replog (%d): Directory %s is not writable\n",
-		getpid(), buf, 0 );
+		"Error: copy_replog (%ld): Directory %s is not writable\n",
+		(long) getpid(), buf, 0 );
 	return( -1 );
     }
     strcpy( buf, dst );
@@ -96,8 +79,8 @@ copy_replog(
     }
     if ( access( buf, W_OK ) < 0 ) {
 	Debug( LDAP_DEBUG_ANY,
-		"Error: copy_replog (%d): Directory %s is not writable\n",
-		getpid(), buf, 0 );
+		"Error: copy_replog (%ld): Directory %s is not writable\n",
+		(long) getpid(), buf, 0 );
 	return( -1 );
     }
 

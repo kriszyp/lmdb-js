@@ -1,13 +1,16 @@
 /* compare.c - shell backend compare function */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 #include "shell.h"
 
-void
+int
 shell_back_compare(
     Backend	*be,
     Connection	*conn,
@@ -22,19 +25,19 @@ shell_back_compare(
 	if ( si->si_compare == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "compare not implemented" );
-		return;
+		return( -1 );
 	}
 
 	if ( (op->o_private = forkandexec( si->si_compare, &rfp, &wfp ))
 	    == -1 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
 		    "could not fork/exec" );
-		return;
+		return( -1 );
 	}
 
 	/* write out the request to the compare process */
 	fprintf( wfp, "COMPARE\n" );
-	fprintf( wfp, "msgid: %d\n", op->o_msgid );
+	fprintf( wfp, "msgid: %ld\n", op->o_msgid );
 	print_suffixes( wfp, be );
 	fprintf( wfp, "dn: %s\n", dn );
 	fprintf( wfp, "%s: %s\n", ava->ava_type, ava->ava_value.bv_val );
@@ -44,4 +47,5 @@ shell_back_compare(
 	read_and_send_results( be, conn, op, rfp, NULL, 0 );
 
 	fclose( rfp );
+	return( 0 );
 }

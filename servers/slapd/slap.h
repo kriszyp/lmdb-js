@@ -33,6 +33,9 @@
 
 LDAP_BEGIN_DECL
 
+struct op;
+struct conn;
+
 /*
  * represents an attribute value assertion (i.e., attr=value)
  */
@@ -184,7 +187,8 @@ struct objclass {
  * represents a "database"
  */
 
-typedef struct backend {
+typedef struct backend Backend;
+struct backend {
 	char	**be_suffix;	/* the DN suffixes of data in this backend */
         char    **be_suffixAlias;       /* the DN suffix aliases of data in this backend */
 	char	*be_rootdn;	/* the magic "root" dn for this db   	   */
@@ -203,23 +207,25 @@ typedef struct backend {
 
 	void	*be_private;	/* anything the backend needs 		   */
 
-	IFP	be_bind;	/* backend bind routine			   */
-	IFP	be_unbind;	/* backend unbind routine 		   */
-	IFP	be_search;	/* backend search routine 		   */
-	IFP	be_compare;	/* backend compare routine 		   */
-	IFP	be_modify;	/* backend modify routine 		   */
-	IFP	be_modrdn;	/* backend modrdn routine 		   */
-	IFP	be_add;		/* backend add routine			   */
-	IFP	be_delete;	/* backend delete routine 		   */
-	IFP	be_abandon;	/* backend abandon routine 		   */
-	IFP	be_config;	/* backend config routine	   	   */
-	IFP	be_init;	/* backend init routine			   */
-	IFP	be_close;	/* backend close routine		   */
+	/* backend routines */
+	int	(*be_bind)   LDAP_P((Backend *be, struct conn *c, struct op *o, char *dn, int method, struct berval *cred ));
+	void	(*be_unbind) LDAP_P((Backend *be, struct conn *c, struct op *o ));
+	int	(*be_search) LDAP_P((Backend *be, struct conn *c, struct op *o, char *base, int scope, int deref, int slimit, int tlimit, Filter *f, char *filterstr, char **attrs, int attrsonly));
+	int	(*be_compare)LDAP_P((Backend *be, struct conn *c, struct op *o, char *dn, Ava *ava));
+	int	(*be_modify) LDAP_P((Backend *be, struct conn *c, struct op *o, char *dn, LDAPMod *m));
+	int	(*be_modrdn) LDAP_P((Backend *be, struct conn *c, struct op *o, char *dn, char *newrdn, int deleteoldrdn ));
+	int	(*be_add)    LDAP_P((Backend *be, struct conn *c, struct op *o, Entry *e));
+	int	(*be_delete) LDAP_P((Backend *be, struct conn *c, struct op *o, char *dn));
+	/* Bug: be_abandon in unused! */
+	void	(*be_abandon)LDAP_P((Backend *be, struct conn *c, struct op *o, int msgid));
+	void	(*be_config) LDAP_P((Backend *be, char *fname, int lineno, int argc, char **argv ));
+	void	(*be_init)   LDAP_P((Backend *be));
+	void	(*be_close)  LDAP_P((Backend *be));
 
 #ifdef SLAPD_ACLGROUPS
-	IFP	be_group;	/* backend group member test               */
+	int	(*be_group)  LDAP_P((Backend *be, char *bdn, char *edn, char *objectclassValue, char *groupattrName ));
 #endif
-} Backend;
+};
 
 /*
  * represents an operation pending from an ldap client

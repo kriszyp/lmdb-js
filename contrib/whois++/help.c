@@ -30,8 +30,8 @@ static char copyright[] = "Copyright 1992 The University of Adelaide";
 
 #include "whois++.h"
 
-void	needHelp( reason )
-char	*reason;
+void
+needHelp( char *reason )
 {
 	char		filename[MAXPATHLEN];
 	char		buffer[BUFSIZ];

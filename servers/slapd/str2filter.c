@@ -1,20 +1,24 @@
 /* str2filter.c - parse an rfc 1588 string filter */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/ctype.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 
-static char	*find_matching_paren();
-static Filter	*str2list();
-static Filter	*str2simple();
-static int	str2subvals();
+static char	*find_matching_paren(char *s);
+static Filter	*str2list(char *str, long unsigned int ftype);
+static Filter	*str2simple(char *str);
+static int	str2subvals(char *val, Filter *f);
 
 Filter *
 str2filter( char *str )
 {
-	Filter	*f;
+	Filter	*f = NULL;
 	char	*end;
 
 	Debug( LDAP_DEBUG_FILTER, "str2filter \"%s\"\n", str, 0, 0 );

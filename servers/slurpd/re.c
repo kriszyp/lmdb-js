@@ -31,9 +31,6 @@
 #include "slurp.h"
 #include "globals.h"
 
-/* externs */
-extern char *str_getline LDAP_P(( char **next ));
-
 /* Forward references */
 static Rh 	*get_repl_hosts LDAP_P(( char *, int *, char ** ));
 static int	gettype LDAP_P(( char * ));
@@ -63,6 +60,7 @@ Re_getnext(
 
 /*
  * Free an Re
+ * ??? Something should apparently return nonzero here, but I dont know what.
  */
 static int
 Re_free(
@@ -101,6 +99,7 @@ Re_free(
 	free( mi );
     }
     free( re );
+    return 0;
 }
 
 

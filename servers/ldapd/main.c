@@ -48,12 +48,11 @@ int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
 #endif /* TCP_WRAPPERS */
 
-void log_and_exit();
-static int	set_socket();
-static void	do_queries();
-static RETSIGTYPE wait4child();
+static int	set_socket( int port, int udp );
+static void	do_queries( int clientsock, int udp );
+static RETSIGTYPE wait4child( int sig );
 #ifdef LDAP_CONNECTIONLESS
-static int	udp_init();
+static int	udp_init( int port, int createsocket );
 #endif
 
 #ifdef LDAP_DEBUG
@@ -82,8 +81,6 @@ char	*kerberos_keyfile;
 int	dtblsize;
 int	RunFromInetd = 0;
 
-extern char Versionstr[];
-
 static void
 usage( char *name )
 {
@@ -101,9 +98,7 @@ usage( char *name )
 }
 
 int
-main (argc, argv)
-int	argc;
-char	**argv;
+main( int argc, char **argv )
 {
 	int			tcps, ns;
 #ifdef LDAP_CONNECTIONLESS
@@ -118,12 +113,9 @@ char	**argv;
 	int			len;
 	int			dsapargc;
 	char			**dsapargv;
-	RETSIGTYPE			wait4child();
 #ifdef LDAP_PROCTITLE
 	char			title[80];
 #endif
-	extern char		*optarg;
-	extern int		optind;
 
 #ifdef VMS
 	/* Pick up socket from inetd-type server on VMS */
@@ -274,8 +266,8 @@ char	**argv;
 		lutil_detach( 0, 1 );
 #  endif
 #endif
-		(void) SIGNAL( SIGCHLD, (void *) wait4child );
-		(void) SIGNAL( SIGINT, (void *) log_and_exit );
+		(void) SIGNAL( SIGCHLD, wait4child );
+		(void) SIGNAL( SIGINT, log_and_exit );
 	}
 
 	/* 
@@ -449,7 +441,7 @@ char	**argv;
 		    hp->h_name );
 #endif
 		gettimeofday( &conn_start_tv, (struct timezone *) NULL );
-		(void) SIGNAL( SIGPIPE, (void *) log_and_exit );
+		(void) SIGNAL( SIGPIPE, log_and_exit );
 
 		do_queries( ns, 0 );
 		/* NOT REACHED */
@@ -465,7 +457,7 @@ char	**argv;
 			setproctitle( title );
 #endif
 			gettimeofday( &conn_start_tv, (struct timezone *) NULL );
-			(void) SIGNAL( SIGPIPE, (void *) log_and_exit );
+			(void) SIGNAL( SIGPIPE, log_and_exit );
 
 			do_queries( ns, 0 );
 			break;
@@ -538,7 +530,6 @@ do_queries(
 	timeout.tv_usec = 0;
 	for ( ;; ) {
 		struct conn		*dsaconn;
-		extern struct conn	*conns;
 
 		FD_ZERO( &readfds );
 		FD_SET( clientsock, &readfds );
@@ -651,7 +642,8 @@ set_socket(
 	return( s );
 }
 
-static RETSIGTYPE wait4child()
+static RETSIGTYPE
+wait4child( int sig )
 {
 #ifndef HAVE_WAITPID
 	WAITSTATUSTYPE     status;
@@ -667,11 +659,11 @@ static RETSIGTYPE wait4child()
 		;       /* NULL */
 #endif
 
-	(void) SIGNAL( SIGCHLD, (void *) wait4child );
+	(void) SIGNAL( SIGCHLD, wait4child );
 }
 
 
-void
+RETSIGTYPE
 log_and_exit( int exitcode )
 {
 	struct timeval	tv;
@@ -699,9 +691,6 @@ udp_init(
 {
 	int	s, bound;
 	char	*matched;
-	extern char		*dsa_address;
-	extern struct PSAPaddr	*psap_cpy();
-	extern struct conn	*conns;
 
 	if ( createsocket )
 		s = set_socket( port, 1 );

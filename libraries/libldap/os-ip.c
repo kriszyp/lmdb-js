@@ -56,7 +56,11 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 
 	connected = use_hp = 0;
 
-	if ( host != NULL && ( address = inet_addr( host )) == (unsigned long) -1L ) {
+	if ( host != NULL ) {
+	    address = inet_addr( host );
+	    /* This was just a test for -1 until OSF1 let inet_addr return
+	       unsigned int, which is narrower than 'unsigned long address' */
+	    if ( address == 0xffffffff || address == (unsigned long) -1 ) {
 		if ( (hp = gethostbyname( host )) == NULL ) {
 #ifdef HAVE_WINSOCK
 			errno = WSAGetLastError();
@@ -66,6 +70,7 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 			return( -1 );
 		}
 		use_hp = 1;
+	    }
 	}
 
 	rc = -1;
@@ -256,7 +261,7 @@ ldap_is_read_ready( LDAP *ld, Sockbuf *sb )
 
 
 void *
-ldap_new_select_info()
+ldap_new_select_info( void )
 {
 	struct selectinfo	*sip;
 
@@ -290,6 +295,8 @@ do_ldap_select( LDAP *ld, struct timeval *timeout )
 		tblsize = sysconf( _SC_OPEN_MAX );
 #elif defined( HAVE_GETDTABLESIZE )
 		tblsize = getdtablesize();
+#else
+		tblsize = FD_SETSIZE;
 #endif /* !USE_SYSCONF */
 
 #ifdef FD_SETSIZE

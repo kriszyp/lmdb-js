@@ -10,27 +10,23 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#ifndef __STDC__
-#include <memory.h>
-#endif
-#include <time.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include <lber.h>
 #include <ldap.h>
+
 #include "ud.h"
 
-#ifdef DEBUG
-extern int debug;
-#endif
-
 struct entry Entry;
-extern LDAP *ld;
 
-extern void * Malloc();
-extern void Free();
-extern char * my_ldap_dn2ufn();
+static char *time2text(char *ldtimestr, int dateonly);
+static long		gtime(struct tm *tm);
 
 /*
  *  When displaying entries, display only these attributes, and in this
@@ -80,15 +76,15 @@ static char *group_attr_print_order[] = {
 	NULL
 };
 
-parse_answer(s)
-LDAPMessage *s;
+
+void
+parse_answer( LDAPMessage *s )
 {
 	int idx;
 	char **rdns;
 	BerElement *cookie;
 	register LDAPMessage *ep;
 	register char *ap;
-	void clear_entry();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -137,10 +133,8 @@ LDAPMessage *s;
 #endif
 }
 
-add_value(attr, ep, ap)
-struct attribute *attr;
-LDAPMessage *ep;
-char *ap;
+void
+add_value( struct attribute *attr, LDAPMessage *ep, char *ap )
 {
 	register int i = 0;
 	char **vp, **tp, **avp;
@@ -185,13 +179,12 @@ char *ap;
 	ldap_value_free(vp);
 }
 
-print_an_entry()
+void
+print_an_entry( void )
 {
 	int n = 0, i, idx;
 	char is_a_group, **order;
 	char *sub_list[MAX_VALUES], buf[SMALL_BUF_SIZE];
-	extern int col_size, isaurl(), isadn();
-	static char *time2text();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -277,8 +270,8 @@ print_an_entry()
 #define OUT_LABEL_LEN	20
 
 /* prints the values associated with an attribute */
-print_values(A)
-struct attribute A;
+void
+print_values( struct attribute A )
 {
 	register int i, k;
 	register char *cp, **vp;
@@ -370,13 +363,12 @@ struct attribute A;
 }
 
 /* prints the DN's associated with an attribute */
-print_DN(A)
-struct attribute A;
+void
+print_DN( struct attribute A )
 {
 	int i, lead;
 	register char **vp;
 	char out_buf[MED_BUF_SIZE], *padding = NULL;
-	extern int col_size;
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -407,10 +399,10 @@ struct attribute A;
 	return;
 }
 
-void clear_entry()
+void
+clear_entry( void )
 {
 	register int i;
-	extern struct attribute attrlist[];
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -456,11 +448,10 @@ void clear_entry()
 	}
 }
 
-attr_to_index(s)
-char *s;
+int
+attr_to_index( char *s )
 {
 	register int i;
-	extern struct attribute attrlist[];
 
 	for (i = 0; attrlist[i].quipu_name != NULL; i++)
 		if (!strcasecmp(s, attrlist[i].quipu_name))
@@ -468,11 +459,10 @@ char *s;
 	return(-1);
 }
 
-void initialize_attribute_strings()
+void
+initialize_attribute_strings( void )
 {
 	register int i;
-	extern struct entry Entry;
-	extern struct attribute attrlist[];
 
 	for (i = 0; attrlist[i].quipu_name != NULL; i++)
 		Entry.attrs[i].quipu_name = attrlist[i].quipu_name;
@@ -481,8 +471,8 @@ void initialize_attribute_strings()
 }
 
 /* prints the URL/label pairs associated with an attribute */
-print_URL(A)
-struct attribute A;
+void
+print_URL( struct attribute A )
 {
 	int i, lead;
 	register char **vp;
@@ -516,16 +506,11 @@ struct attribute A;
 	return;
 }
 
-print_one_URL(s, label_lead, tag, url_lead)
-char *s;
-int label_lead;
-char *tag;
-int url_lead;
+void
+print_one_URL( char *s, int label_lead, char *tag, int url_lead )
 {
 	register int i;
 	char c, *cp, *url;
-	extern int col_size;
-	extern void Free();
 
 	for (cp = s; !isspace(*cp) && (*cp != '\0'); cp++)
 		;
@@ -555,7 +540,6 @@ time2text( char *ldtimestr, int dateonly )
     struct tm		t;
     char		*p, *timestr, zone, *fmterr = "badly formatted time";
     time_t		gmttime;
-    static long		gtime();
 
     memset( (char *)&t, 0, sizeof( struct tm ));
     if ( strlen( ldtimestr ) < 13 ) {
@@ -595,9 +579,7 @@ time2text( char *ldtimestr, int dateonly )
 
 /* gtime.c - inverse gmtime */
 
-#if !defined( MACOS ) && !defined( _WIN32 ) && !defined( DOS )
-#include <sys/time.h>
-#endif /* !MACOS */
+#include <ac/time.h>
 
 /* gtime(): the inverse of localtime().
 	This routine was supplied by Mike Accetta at CMU many years ago.
@@ -614,7 +596,8 @@ int	dmsize[] = {
 
 /*  */
 
-static long	gtime ( struct tm *tm )
+static long
+gtime( struct tm *tm )
 {
     register int    i,
                     sec,

@@ -1,14 +1,15 @@
 OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.1-Alpha (from -devel)
-	CVS Tag: OPENLDAP_REL_ENG_1_1
+	CVS Tag: OPENLDAP_REL_ENG_1_1_ALPHA3
 	Changed LDBM default to sync on writes
 	Added mail500 BOUNCEFROM patch
 	Added dbcachenowsync option
 	Fixed slapd/ldbm id2children bug
 	Fixed slapd/shell newline bug
 	Fixed whois++ get_dn leak
-	Fixed DEC OSF1 (alpha) support
+	Fixed pointer truncation to int bugs
+	Fixed DEC OSF/1 support bugs
 	Fixed r/w lock initialization on non-final Pthreads
 	Fixed slapd/slurpd file unlock bugs
 	Fixed slurpd string translation bug
@@ -24,6 +25,8 @@ Changes included in OpenLDAP 1.1-Alpha (from -devel)
 		Added pwd.h &  getpwuid() tests
 		Added sys/resource.h test
 	Updated NT support (now builds ud)
+	Added function prototypes
+	Removed library externs
 	Removed lint
 
 

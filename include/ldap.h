@@ -501,9 +501,8 @@ typedef struct ldap_url_desc {
 #define LDAP_URL_ERR_BADSCOPE	3	/* URL scope string is invalid */
 #define LDAP_URL_ERR_MEM	4	/* can't allocate memory space */
 
-/* this typedef is never used, only exists to rid of declaration
- in function param list warning */
-typedef struct timeval LDAPtv;
+/* avoid pulling in headers */
+struct timeval;
 
 /*
  * in abandon.c:
@@ -718,10 +717,10 @@ LDAP_F void cldap_setretryinfo LDAP_P(( LDAP *ld, int tries, int timeout ));
  */
 LDAP_F int ldap_sort_entries LDAP_P(( LDAP *ld,
 	LDAPMessage **chain, char *attr,
-	int (*cmp) LDAP_P((const char *, const char *)) ));
+	int (*cmp) (const char *, const char *) ));
 LDAP_F int ldap_sort_values LDAP_P(( LDAP *ld,
-	char **vals, int (*cmp) LDAP_P((const void *, const void *)) ));
-LDAP_F int ldap_sort_strcasecmp LDAP_P(( char **a, char **b ));
+	char **vals, int (*cmp) (const void *, const void *) ));
+LDAP_F int ldap_sort_strcasecmp LDAP_P(( const void *a, const void *b ));
 
 
 /*

@@ -10,6 +10,7 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
+void
 ldbm_back_init(
     Backend	*be
 )

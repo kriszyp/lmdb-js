@@ -18,6 +18,7 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
+#include <ac/unistd.h>
 
 #ifdef HAVE_CONSOLE_H
 #include <console.h>
@@ -38,7 +39,6 @@ main( int argc, char **argv )
 	int		tag;
 	BerElement	ber;
 	Sockbuf		sb;
-	extern char	*optarg;
 
 #ifdef HAVE_CONSOLE_H
 	ccommand( &argv );

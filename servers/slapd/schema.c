@@ -1,21 +1,17 @@
 /* schema.c - routines to enforce schema definitions */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 
-extern Attribute	*attr_find();
-extern char		**str2charray();
-extern void		charray_merge();
-
-extern struct objclass	*global_oc;
-extern int		global_schemacheck;
-
-static struct objclass	*oc_find();
-static int		oc_check_required();
-static int		oc_check_allowed();
+static struct objclass	*oc_find(char *ocname);
+static int		oc_check_required(Entry *e, char *ocname);
+static int		oc_check_allowed(char *type, struct berval **ocl);
 
 /*
  * oc_check - check that entry e conforms to the schema required by
@@ -76,6 +72,11 @@ oc_check_required( Entry *e, char *ocname )
 		return( 0 );
 	}
 
+	/* check for empty oc_required */
+	if(oc->oc_required == NULL) {
+		return( 0 );
+	}
+
 	/* for each required attribute */
 	for ( i = 0; oc->oc_required[i] != NULL; i++ ) {
 		/* see if it's in the entry */
@@ -111,14 +112,16 @@ oc_check_allowed( char *type, struct berval **ocl )
 		/* if we know about the oc */
 		if ( (oc = oc_find( ocl[i]->bv_val )) != NULL ) {
 			/* does it require the type? */
-			for ( j = 0; oc->oc_required[j] != NULL; j++ ) {
+			for ( j = 0; oc->oc_required != NULL && 
+				oc->oc_required[j] != NULL; j++ ) {
 				if ( strcasecmp( oc->oc_required[j], type )
 				    == 0 ) {
 					return( 0 );
 				}
 			}
 			/* does it allow the type? */
-			for ( j = 0; oc->oc_allowed[j] != NULL; j++ ) {
+			for ( j = 0; oc->oc_allowed != NULL && 
+				oc->oc_allowed[j] != NULL; j++ ) {
 				if ( strcasecmp( oc->oc_allowed[j], type )
 				    == 0 || strcmp( oc->oc_allowed[j], "*" )
 				    == 0 )
@@ -154,7 +157,7 @@ oc_find( char *ocname )
 
 #ifdef LDAP_DEBUG
 
-static
+static void
 oc_print( struct objclass *oc )
 {
 	int	i;

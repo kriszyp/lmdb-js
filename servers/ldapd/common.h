@@ -10,6 +10,9 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#ifndef _LDAPD_COMMON_H
+#define _LDAPD_COMMON_H 1
+
 /*
  * This structure represents an association to a dsa.  There is one of
  * these for each association open (a new association is made for each
@@ -41,32 +44,77 @@ struct msg {
 	LDAPMod		*m_mods;	/* for modify operations only */
 	BerElement	*m_ber;		/* the unparsed ber for the op */
 	struct conn	*m_conn;	/* connection structure */
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	int		m_cldap;	/* connectionless transport? (CLDAP) */
 	struct sockaddr	m_clientaddr;	/* client address (if using CLDAP) */
 	DN		m_searchbase;	/* base used in search */
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	struct msg	*m_next;
 };
 
 #define DEFAULT_TIMEOUT			3600	/* idle client connections */
 #define DEFAULT_REFERRAL_TIMEOUT	900	/* DSA connections */
 
-#ifdef NEEDPROTOS
 #include "proto-ldapd.h"
-#else
-extern struct msg *add_msg();
-extern struct msg *get_msg();
-extern struct msg *get_cldap_msg();
-extern int	  del_msg();
 
-extern struct conn *conn_getfd();
-extern struct conn *conn_find();
-extern struct conn *conn_dup();
-extern void conn_del();
+/* from ISODE */
+extern char	*dsa_address;
+extern char	*bound_dn, *bound_pw;
+struct PSAPaddr	*psap_cpy(struct PSAPaddr *);
 
-extern AttributeValue ldap_str2AttrV();
-extern DN ldap_str2dn();
-extern void ldap_str2alg();
-extern void ldap_print_algid();
-#endif /* don't need protos */
+/* in association.c */
+extern struct conn	*conns;
+
+/* in main.c */
+#ifdef LDAP_DEBUG
+extern int	ldap_debug;
+#endif
+extern int	version;
+#ifdef LDAP_COMPAT
+extern int	ldap_compat;
+#endif
+extern int	dosyslog;
+extern int	do_tcp;
+#ifdef LDAP_CONNECTIONLESS
+extern int	do_udp;
+#endif
+extern int	idletime;
+extern int	referral_connection_timeout;
+extern struct timeval	conn_start_tv;
+#ifdef HAVE_KERBEROS
+extern char	*krb_ldap_service;
+extern char	*krb_x500_service;
+extern char	*krb_x500_instance;
+extern char	*krb_x500_nonce;
+extern char	*kerberos_keyfile;
+#endif
+
+/* syntax.c */
+extern short	ldap_photo_syntax;
+extern short	ldap_jpeg_syntax;
+extern short	ldap_jpeg_nonfile_syntax;
+extern short	ldap_audio_syntax;
+extern short	ldap_dn_syntax;
+extern short	ldap_postaladdress_syntax;
+extern short	ldap_acl_syntax;
+extern short	ldap_mtai_syntax;
+extern short	ldap_rts_cred_syntax;
+extern short	ldap_rtl_syntax;
+extern short	ldap_mailbox_syntax;
+extern short	ldap_caseignorelist_syntax;
+extern short	ldap_caseexactstring_syntax;
+extern short	ldap_certif_syntax;
+extern short	ldap_iattr_syntax;
+extern short	ldap_telex_syntax;
+extern short	ldap_octetstring_syntax;
+extern short	ldap_deliverymethod_syntax;
+extern short	ldap_facsimileTelephoneNumber_syntax;
+extern short	ldap_presentationAddress_syntax;
+extern short	ldap_teletexTerminalIdentifier_syntax;
+extern short	ldap_searchGuide_syntax;
+extern short	ldap_dLSubmitPermission_syntax;
+
+/* Version.c */
+extern char	Versionstr[];
+
+#endif

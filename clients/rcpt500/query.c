@@ -6,43 +6,38 @@
  * All Rights Reserved
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <syslog.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/time.h>
+#include <stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
-#include "portable.h"
-#include "ldapconfig.h"
 #include "disptmpl.h"
-#include "rcpt500.h"
 
-extern int dosyslog;
-extern int do_cldap;
-extern int rdncount;
-extern int derefaliases;
-extern int sizelimit;
-extern int ldapport;
-extern char *ldaphost;
-extern char *searchbase;
-extern char *dapuser;
-extern char *filterfile;
-extern char *templatefile;
+#include "rcpt500.h"
+#include "ldapconfig.h"
 
 static char buf[ MAXSIZE ];
 static char *errpreface = "Your query failed: ";
 
-extern int      strcasecmp();
+static void close_ldap(LDAP *ld);
+static void append_entry_list(char *rep, char *qu, LDAP *ld, LDAPMessage *msg);
+static int  append_text(void *reply, char *text, int len);
+static int  do_read (LDAP *ld, char *dn, char *rep, struct ldap_disptmpl *tmp);
+static void report_ldap_err (LDAP *ldp, char *reply);
+static void remove_trailing_space (char *s);
 
 void close_ldap();
 
 
 int
-query_cmd( msgp, reply )
-    struct msginfo	*msgp;
-    char		*reply;
+query_cmd( struct msginfo *msgp, char *reply )
 {
     LDAP			*ldp;
     LDAPMessage			*ldmsgp, *entry;
@@ -77,11 +72,11 @@ query_cmd( msgp, reply )
     /*
      * open connection to LDAP server and bind as dapuser
      */
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
     if ( do_cldap )
 	ldp = cldap_open( ldaphost, ldapport );
     else
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	ldp = ldap_open( ldaphost, ldapport );
 
     if ( ldp == NULL ) {
@@ -91,9 +86,9 @@ query_cmd( msgp, reply )
 	return( 0 );
     }
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
     if ( !do_cldap )
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	if ( ldap_simple_bind_s( ldp, dapuser, NULL ) != LDAP_SUCCESS ) {
 	    report_ldap_err( ldp, reply );
 	    close_ldap( ldp );
@@ -110,11 +105,11 @@ query_cmd( msgp, reply )
     matches = 0;
 
 #ifdef RCPT500_UFN
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
     if ( !do_cldap && strchr( msgp->msg_arg, ',' ) != NULL ) {
-#else /* CLDAP */
+#else /* LDAP_CONNECTIONLESS */
     if ( strchr( msgp->msg_arg, ',' ) != NULL ) {
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	struct timeval	tv;
 
 	ldap_ufn_setprefix( ldp, searchbase );
@@ -133,12 +128,12 @@ query_cmd( msgp, reply )
     
 	for ( lfi = ldap_getfirstfilter( lfdp, "rcpt500", msgp->msg_arg );
 		lfi != NULL; lfi = ldap_getnextfilter( lfdp )) {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	    if ( do_cldap )
 		rc = cldap_search_s( ldp, searchbase, LDAP_SCOPE_SUBTREE,
 			lfi->lfi_filter, attrs, 0, &ldmsgp, dapuser );
 	    else 
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 		rc = ldap_search_s( ldp, searchbase, LDAP_SCOPE_SUBTREE,
 			lfi->lfi_filter, attrs, 0, &ldmsgp );
 
@@ -217,23 +212,20 @@ query_cmd( msgp, reply )
 }
 
 
-void
+static void
 close_ldap( LDAP *ld )
 {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
     if ( do_cldap )
 	cldap_close( ld );
     else
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	ldap_unbind( ld );
 }
 
 
-append_entry_list( reply, query, ldp, ldmsgp )
-    char	*reply;
-    char	*query;
-    LDAP	*ldp;
-    LDAPMessage	*ldmsgp;
+static void
+append_entry_list( char *reply, char *query, LDAP *ldp, LDAPMessage *ldmsgp )
 {
     LDAPMessage	*e;
     char	*dn, *rdn, *s, **title;
@@ -294,23 +286,16 @@ append_entry_list( reply, query, ldp, ldmsgp )
 }
 
 
-int
-append_text( reply, text, len )
-    char	*reply;
-    char	*text;
-    int		len;
+static int
+append_text( void *reply, char *text, int len )
 {
-    strcat( reply, text );
+    strcat( (char *) reply, text );
     return( len );
 }
     
 
-int
-do_read( ldp, dn, reply, tmpll )
-    LDAP			*ldp;
-    char			*dn;
-    char			*reply;
-    struct ldap_disptmpl	*tmpll;
+static int
+do_read( LDAP *ldp, char *dn, char *reply, struct ldap_disptmpl *tmpll )
 {
     int				rc;
     static char	*maildefvals[] = { "None registered in this service", NULL };
@@ -319,16 +304,15 @@ do_read( ldp, dn, reply, tmpll )
 
 
     rc = ldap_entry2text_search( ldp, dn, searchbase, NULLMSG, tmpll,
-	    defattrs, defvals, (void *)append_text, (void *)reply, "\n",
+	    defattrs, defvals, append_text, (void *)reply, "\n",
 	    rdncount, LDAP_DISP_OPT_DOSEARCHACTIONS );
 
     return( rc );
 }
 
 
-report_ldap_err( ldp, reply )
-    LDAP	*ldp;
-    char	*reply;
+static void
+report_ldap_err( LDAP *ldp, char *reply )
 {
     strcat( reply, errpreface );
     strcat( reply, ldap_err2string( ldp->ld_errno ));
@@ -336,8 +320,8 @@ report_ldap_err( ldp, reply )
 }
 
 
-remove_trailing_space( s )
-    char	*s;
+static void
+remove_trailing_space( char *s )
 {
     char	*p = s + strlen( s ) - 1;
 

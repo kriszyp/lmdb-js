@@ -29,10 +29,11 @@ static char copyright[] = "Copyright 1992 The University of Adelaide";
  */
 
 #include "whois++.h"
+#include <stdlib.h>
 
-void	showTemplate( template )
-char	*template;
 
+void
+showTemplate( char *template )
 {
 	char	filename[MAXPATHLEN], buffer[BUFSIZ];
 	FILE	*description;
@@ -57,9 +58,8 @@ char	*template;
 	}
 }
 
-void	listTemplates( query )
-char	*query;
-
+void
+listTemplates( char *query )
 {
 	char		filename[MAXPATHLEN];
 	DIR		*dir;
@@ -89,9 +89,8 @@ char	*query;
 	}
 }
 
-char	**specifyAttributes( objectClass )
-char	*objectClass;
-
+char **
+specifyAttributes( char *objectClass )
 {
 	FILE	*description;
 	char	filename[MAXPATHLEN], buffer[BUFSIZ];
@@ -131,9 +130,8 @@ char	*objectClass;
 	return attributes;
 }
 
-char	*templateToObjectClass( template )
-char	*template;
-
+char *
+templateToObjectClass( char *template )
 {
 	int	i;
 
@@ -151,9 +149,8 @@ char	*template;
 	return template;
 }
 
-char	*objectClassToTemplate( objectClass )
-char	*objectClass;
-
+char *
+objectClassToTemplate( char *objectClass )
 {
 	int	i;
 

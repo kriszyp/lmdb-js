@@ -1,15 +1,16 @@
 /* search.c - shell backend search function */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "slap.h"
 #include "shell.h"
 
-extern Entry	*str2entry();
-
-void
+int
 shell_back_search(
     Backend	*be,
     Connection	*conn,
@@ -34,19 +35,19 @@ shell_back_search(
 	if ( si->si_search == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "search not implemented" );
-		return;
+		return( -1 );
 	}
 
 	if ( (op->o_private = forkandexec( si->si_search, &rfp, &wfp ))
 	    == -1 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
 		    "could not fork/exec" );
-		return;
+		return( -1 );
 	}
 
 	/* write out the request to the search process */
 	fprintf( wfp, "SEARCH\n" );
-	fprintf( wfp, "msgid: %d\n", op->o_msgid );
+	fprintf( wfp, "msgid: %ld\n", op->o_msgid );
 	print_suffixes( wfp, be );
 	fprintf( wfp, "base: %s\n", base );
 	fprintf( wfp, "scope: %d\n", scope );
@@ -66,4 +67,5 @@ shell_back_search(
 	read_and_send_results( be, conn, op, rfp, attrs, attrsonly );
 
 	fclose( rfp );
+	return( 0 );
 }
