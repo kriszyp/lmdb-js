@@ -5,6 +5,7 @@ OpenLDAP 2.1.5 Engineering
 	Fixed back-bdb locker_id bugs (ITS#2040)
 	Fixed back-bdb duplicate results (ITS#2044)
 	Fixed back-bdb group member check
+	Fixed back-bdb idl_intersection bug (ITS#2082)
 	Fixed slapd objectClass subclassing matching (ITS#2053)
 	Fixed slapd base==target referral bug (ITS#1991)
 	Fixed slapd ACL attribute auth bug (ITS#2067)
