@@ -23,7 +23,8 @@ LDAP_BEGIN_DECL
 #define BDB_IDL_MAX			(BDB_IDL_DB_SIZE-32)
 /* #define BDB_IDL_DB_ALLOC	(BDB_IDL_DB_SIZE * sizeof(ID)) */
 
-#define BDB_IS_ALLIDS(ids)	((ids)[0] == NOID)
+#define BDB_IDL_RANGE_SIZE	(3 * sizeof(ID))
+#define BDB_IDL_IS_RANGE(ids)	((ids)[0] == NOID)
 
 #define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
 #define DN_ONE_PREFIX	 	'%'

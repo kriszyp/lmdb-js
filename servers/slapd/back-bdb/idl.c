@@ -14,7 +14,7 @@
 
 #define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
 
-int bdb_idl_search( ID *ids, ID id )
+unsigned bdb_idl_search( ID *ids, ID id )
 {
 #if BDB_IDL_BINARY_SEARCH
 	/*
@@ -22,10 +22,10 @@ int bdb_idl_search( ID *ids, ID id )
 	 * if found, returns position of id
 	 * if not found, returns first postion greater than id
 	 */
-	int base = 0;
-	int cursor = 0;
+	unsigned base = 0;
+	unsigned cursor = 0;
 	int val;
-	int n = ids[0];
+	unsigned n = ids[0];
 
 	while( 0 < n ) {
 		int pivot = n >> 1;
@@ -64,7 +64,7 @@ int bdb_idl_search( ID *ids, ID id )
 
 static int idl_insert( ID *ids, ID id )
 {
-	int x = bdb_idl_search( ids, id );
+	unsigned x = bdb_idl_search( ids, id );
 
 	assert( x > 0 );
 
@@ -79,6 +79,14 @@ static int idl_insert( ID *ids, ID id )
 	}
 
 	if ( ++ids[0] >= BDB_IDL_DB_MAX ) {
+		if( id < ids[1] ) {
+			ids[1] = id;
+			ids[2] = ids[ids[0]-1];
+		} else if ( ids[ids[0]-1] < id ) {
+			ids[2] = id;
+		} else {
+			ids[2] = ids[ids[0]-1];
+		}
 		ids[0] = NOID;
 	
 	} else {
@@ -93,7 +101,7 @@ static int idl_insert( ID *ids, ID id )
 
 static int idl_delete( ID *ids, ID id )
 {
-	int x = bdb_idl_search( ids, id );
+	unsigned x = bdb_idl_search( ids, id );
 
 	assert( x > 0 );
 
@@ -162,8 +170,14 @@ bdb_idl_insert_key(
 			(long) sizeof( ID ), (long) data.size, 0 );
 		return -1;
 	
-	} else if ( BDB_IS_ALLIDS(ids) ) {
-		return 0;
+	} else if ( BDB_IDL_IS_RANGE(ids) ) {
+		if( id < ids[1] ) {
+			ids[1] = id;
+		} else if ( ids[2] > id ) {
+			ids[2] = id;
+		} else {
+			return 0;
+		}
 
 	} else if ( data.size != (1 + ids[0]) * sizeof( ID ) ) {
 		/* size mismatch */
@@ -182,8 +196,8 @@ bdb_idl_insert_key(
 			return rc;
 		}
 
-		if( BDB_IS_ALLIDS( ids ) ) {
-			data.size = sizeof( ID );
+		if( BDB_IDL_IS_RANGE( ids ) ) {
+			data.size = BDB_IDL_RANGE_SIZE;
 		} else {
 			data.size = (ids[0]+1) * sizeof( ID );
 		}
@@ -239,7 +253,7 @@ bdb_idl_delete_key(
 			(long) sizeof( ID ), (long) data.size, 0 );
 		return -1;
 	
-	} else if ( BDB_IS_ALLIDS(ids) ) {
+	} else if ( BDB_IDL_IS_RANGE(ids) ) {
 		return 0;
 
 	} else if ( data.size != (1 + ids[0]) * sizeof( ID ) ) {

@@ -381,7 +381,11 @@ static int search_candidates(
 	Debug(LDAP_DEBUG_TRACE, "subtree_candidates: base: \"%s\" (0x%08lx)\n",
 		e->e_dn, (long) e->e_id, 0);
 
+	/* return a RANGE IDL for now */
 	ids[0] = NOID;
+	ids[1] = e->e_id;
+	ids[2] = e->e_id+128;
+
 	return 0;
 }
 
@@ -394,9 +398,10 @@ static ID idl_first( ID *ids, ID *cursor )
 		return NOID;
 	}
 
-	if ( BDB_IS_ALLIDS( ids ) ) {
-		/* XXYYZ: quick hack for testing */
-		ids[1] = 100;
+	if ( BDB_IDL_IS_RANGE( ids ) ) {
+		if( *cursor < ids[1] ) {
+			*cursor = ids[1];
+		}
 		return *cursor;
 	}
 
@@ -412,8 +417,8 @@ static ID idl_first( ID *ids, ID *cursor )
 
 static ID idl_next( ID *ids, ID *cursor )
 {
-	if ( BDB_IS_ALLIDS( ids ) ) {
-		if( ++(*cursor) <= ids[1] ) {
+	if ( BDB_IDL_IS_RANGE( ids ) ) {
+		if( ids[2] <= ++(*cursor) ) {
 			return *cursor;
 		}
 		return NOID;

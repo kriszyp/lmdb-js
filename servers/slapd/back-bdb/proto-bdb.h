@@ -102,7 +102,7 @@ int bdb_id2entry(
 /*
  * idl.c
  */
-int bdb_idl_search( ID *ids, ID id );
+unsigned bdb_idl_search( ID *ids, ID id );
 
 int bdb_idl_insert_key(
 	BackendDB *be,
