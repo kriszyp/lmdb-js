@@ -683,11 +683,11 @@ dnl AC_ISC_POSIX
 dnl AC_MINIX
 
 dnl ----------------------------------------------------------------
-dnl Checks for system services
-AC_CYGWIN
-AC_MINGW32
-AC_EXEEXT
-AC_OBJEXT
+dnl Checks for system services (now obsolete)
+dnl AC_CYGWIN (obsolete)
+dnl AC_MINGW32 (obsolete)
+dnl AC_EXEEXT
+dnl AC_OBJEXT
 
 AC_DEFINE_UNQUOTED(EXEEXT, "${EXEEXT}", [defined to be the EXE extension])
 
@@ -712,7 +712,8 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl Check for AIX security library
-AC_CHECK_LIB(s, afopen, [
+AC_CHECK_LIB(s, afopen,
+[
 	AUTH_LIBS=-ls
 	AC_DEFINE(HAVE_AIX_SECURITY,1,[define if you have AIX security lib])
 ])

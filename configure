@@ -9725,20 +9725,6 @@ fi
 
 
 
-case $host_os in
-  *cygwin* ) CYGWIN=yes;;
-         * ) CYGWIN=no;;
-esac
-
-
-case $host_os in
-  *mingw32* ) MINGW32=yes;;
-          * ) MINGW32=no;;
-esac
-
-
-
-
 
 cat >>confdefs.h <<_ACEOF
 #define EXEEXT "${EXEEXT}"
