@@ -50,6 +50,7 @@ usage( const char *s )
 "  -a deref   one of never (default), always, search, or find\n"
 "  -A         retrieve attribute names only (no values)\n"
 "  -b basedn  base dn for search\n"
+"  -F prefix  URL prefix for files (default: \"" LDAP_FILE_URI_PREFIX ")\n"
 "  -l limit   time limit (in seconds) for search\n"
 "  -L         print responses in LDIFv1 format\n"
 "  -LL        print responses in LDIF format without comments\n"
@@ -62,7 +63,6 @@ usage( const char *s )
 "  -T path    write files to directory specified by path (default:\n"
 "             " LDAP_TMPDIR ")\n"
 "  -u         include User Friendly entry names in the output\n"
-"  -V prefix  URL prefix for files (default: \"" LDAP_FILE_URI_PREFIX ")\n"
 "  -z limit   size limit (in entries) for search\n"
 
 "Common options:\n"
@@ -81,12 +81,12 @@ usage( const char *s )
 "  -P version procotol version (default: 3)\n"
 "  -Q         use SASL Quiet mode\n"
 "  -R realm   SASL realm\n"
-"  -U user    SASL authentication identity (username)\n"
+"  -U authcid SASL authentication identity\n"
 "  -v         run in verbose mode (diagnostics to standard output)\n"
 "  -w passwd  bind passwd (for simple authentication)\n"
 "  -W         prompt for bind passwd\n"
 "  -x         Simple authentication\n"
-"  -X id      SASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
+"  -X authzid SASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
 "  -Y mech    SASL mechanism\n"
 "  -Z         Start TLS request (-ZZ to require successful response)\n"
 , s );
@@ -135,7 +135,7 @@ static int dosearch LDAP_P((
 	int		attrsonly,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls,
-	struct timeval *timelimit,
+	struct timeval *timeout,
 	int	sizelimit ));
 
 static char *tmpdir = NULL;
@@ -181,7 +181,7 @@ main( int argc, char **argv )
 
     prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : prog + 1;
 
-	while (( i = getopt( argc, argv, "Aa:b:f:Ll:S:s:T:tuV:z:"
+	while (( i = getopt( argc, argv, "Aa:b:F:f:Ll:S:s:T:tuz:"
 		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:Y:Z")) != EOF )
 	{
 	switch( i ) {
@@ -213,8 +213,17 @@ main( int argc, char **argv )
 		}
 		infile = strdup( optarg );
 		break;
+	case 'F':	/* uri prefix */
+		if( urlpre ) free( urlpre );
+		urlpre = strdup( optarg );
+		break;
 	case 'l':	/* time limit */
 		timelimit = atoi( optarg );
+		if( timelimit < 0 ) {
+			fprintf( stderr, "%s: invalid timelimit (%d) specified\n",
+				prog, timelimit );
+			return EXIT_FAILURE;
+		}
 		break;
 	case 'L':	/* print entries in LDIF format */
 		++ldif;
@@ -243,10 +252,6 @@ main( int argc, char **argv )
 	case 'T':	/* tmpdir */
 		if( tmpdir ) free( tmpdir );
 		tmpdir = strdup( optarg );
-		break;
-	case 'V':	/* uri prefix */
-		if( urlpre ) free( urlpre );
-		urlpre = strdup( optarg );
 		break;
 	case 'z':	/* size limit */
 		sizelimit = atoi( optarg );
@@ -884,7 +889,7 @@ static int dosearch(
 	int		attrsonly,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls,
-	struct timeval *timelimit,
+	struct timeval *timeout,
 	int sizelimit )
 {
 	char		filter[ BUFSIZ ];
@@ -917,7 +922,7 @@ static int dosearch(
 	}
 
 	rc = ldap_search_ext( ld, base, scope, filter, attrs, attrsonly,
-		sctrls, cctrls, timelimit, sizelimit, &msgid );
+		sctrls, cctrls, timeout, sizelimit, &msgid );
 
 	if( rc != LDAP_SUCCESS ) {
 		fprintf( stderr, "%s: ldap_search_ext: %s (%d)\n",
