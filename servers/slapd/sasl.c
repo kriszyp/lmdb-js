@@ -92,7 +92,7 @@ slap_sasl_authorize(
 		"authcid=\"%s\" authzid=\"%s\"\n",
 		(long) (conn ? conn->c_connid : -1),
 		authcid ? authcid : "<empty>",
-		authcid ? authcid : "<empty>" );
+		authzid ? authzid : "<empty>" );
 
 	if ( authzid == NULL || *authzid == '\0' ||
 		strcmp( authcid, authzid ) == 0 )
