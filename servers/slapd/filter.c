@@ -189,7 +189,7 @@ get_filter(
 		{
 			char *text;
 			int rc;
-
+			f->f_desc = NULL;
 			err = slap_bv2ad( &type, &f->f_desc, &text );
 
 			if( err != LDAP_SUCCESS ) {
