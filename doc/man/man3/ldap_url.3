@@ -5,10 +5,7 @@
 .SH NAME
 ldap_is_ldap_url,
 ldap_url_parse,
-ldap_free_urldesc,
-ldap_url_search,
-ldap_url_search_s,
-ldap_url_search_st \- LDAP Uniform Resource Locator routines
+ldap_free_urldesc \- LDAP Uniform Resource Locator routines
 .SH SYNOPSIS
 .nf
 .ft B
@@ -36,30 +33,6 @@ typedef struct ldap_url_desc {
 .LP
 .ft B
 ldap_free_urldesc( LDAPURLDesc *ludp )
-.LP
-.ft B
-int ldap_url_search( ld, url, attrsonly )
-.ft
-LDAP            *ld;
-char            *url;
-int             attrsonly;
-.LP
-.ft B
-int ldap_url_search_s( ld, url, attrsonly, res )
-.ft
-LDAP            *ld;
-char            *url;
-int             attrsonly;
-LDAPMessage     **res;
-.LP
-.ft B
-int ldap_url_search_st( ld, url, attrsonly, timeout, res )
-.ft
-LDAP            *ld;
-char            *url;
-int             attrsonly;
-struct timeval  *timeout;
-LDAPMessage     **res;
 .SH DESCRIPTION
 These routines support the use of LDAP URLs (Uniform Resource Locators)
 as detailed in RFC 2255.  LDAP URLs look like this:
@@ -102,27 +75,8 @@ error occurs, a non-zero URL error code is returned.
 should be called to free an LDAP URL description that was obtained from
 a call to
 .B ldap_url_parse().
-.LP
-.B ldap_url_search()
-initiates an asynchronous LDAP search based on the contents of the
-\fIurl\fP string.  This routine acts just like
-.BR ldap_search (3)
-except that many search parameters are pulled out of the URL.
-.LP
-.B ldap_url_search_s()
-performs a synchronous LDAP search based on the contents of the
-\fIurl\fP string.  This routine acts just like
-.BR ldap_search_s (3)
-except that many search parameters are pulled out of the URL.
-.LP
-.B ldap_url_search_st()
-performs a synchronous LDAP URL search with a specified \fItimeout\fP.
-This routine acts just like
-.BR ldap_search_st (3)
-except that many search parameters are pulled out of the URL.
 .SH SEE ALSO
-.BR ldap (3),
-.BR ldap_search (3)
+.BR ldap (3)
 .LP
 .B The LDAP URL Format, RFC 2255,
 Tim Howes and Mark Smith, December 1997.
