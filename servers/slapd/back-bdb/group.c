@@ -205,7 +205,8 @@ dn2entry_retry:
 		group_oc_name, group_at_name, 0 ); 
 #endif
 
-	if( value_find( group_at, attr->a_vals, op_ndn ) != LDAP_SUCCESS ) {
+	if( value_find_ex( group_at, SLAP_MR_VALUE_NORMALIZED_MATCH,
+		attr->a_vals, op_ndn ) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_BDB, DETAIL1, 
 			"bdb_group: \"%s\" not in \"%s\": %s\n",
