@@ -8,8 +8,12 @@ OpenLDAP 1.1 Alpha README
 	directory.  For a more detailed description of how to make an
 	install the distribution, see the INSTALL file in this directory.
 
+	Additional installation information, such as per platform
+	hints can be found in the doc/install directory.
+
 	For more information:
 		http://www.OpenLDAP.org/
+
 
 REQUIRED SOFTWARE
 	Build OpenLDAP requires the following software components:
@@ -21,21 +25,23 @@ REQUIRED SOFTWARE
 	SLAPD:
 		LDBM compatible datastore
 			(Berkeley DB, Sleepycat DB2, or GDBM)
+
 	SLURPD:
 		LTHREAD compatible thread package
 			(POSIX pthreads, MIT pthreads, Mach Cthreads or Sun LWP)
 
 	LDAPD:
-		ISODE compatible ldap distribution
+		ISODE compatible X.500 distribution
 
-	CLIENTS/CONTRIBware:
+	CLIENTS/CONTRIB ware:
 		Depends on package.  See per package README.
 		
 
 MAKING AND INSTALLING THE DISTRIBUTION
+	This is a quick guide.  For details, see the INSTALL file.
 
-    You should be able to make and install the distribution with a
-    default configuration by typing the following commands:
+	% ./configure
+		autoconf OpenLDAP for current platform
 
 	% ./configure --help
 		This will list the available options.
@@ -71,10 +77,17 @@ MAKING AND INSTALLING THE DISTRIBUTION
 
     See the INSTALL file in this directory for more information.
 
-DOCUMENTATION
 
+DOCUMENTATION
     There are man pages for most programs in the distribution and
     routines in the various libraries.  See ldap(3) for details.
+
+	Additional documentation can be found in the doc directory.
+		doc/devel	Developer Information
+		doc/drafts	LDAP-related IETF drafts
+		doc/install	Installation and Integration
+		doc/man		Raw man(1) pages
+		doc/rfcs	LDAP-related Request for Comments
 
     There is an OpenLDAP homepage available that contains the latest
     LDAP news, releases announcements, pointers to other LDAP resources,
@@ -82,8 +95,8 @@ DOCUMENTATION
 
 	http://www.OpenLDAP.org/
 
-FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
 
+FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
     We would appreciate any feedback you can provide.  If you have
     problems, report them to this address:
 
