@@ -336,6 +336,9 @@ typedef struct {
 #define BACKSQL_SUCCESS( rc ) \
 	( (rc) == SQL_SUCCESS || (rc) == SQL_SUCCESS_WITH_INFO )
 
+#define BACKSQL_AVL_STOP		0
+#define BACKSQL_AVL_CONTINUE		1
+
 #endif /* __BACKSQL_H__ */
 
 

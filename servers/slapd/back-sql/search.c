@@ -31,9 +31,6 @@
 #include "ldap_pvt.h"
 #include "proto-sql.h"
 
-#define BACKSQL_STOP		0
-#define BACKSQL_CONTINUE	1
-
 static int backsql_process_filter( backsql_srch_info *bsi, Filter *f );
 static int backsql_process_filter_eq( backsql_srch_info *bsi, 
 		backsql_at_map_rec *at,
@@ -1097,7 +1094,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		/* should never get here */
 		assert( 0 );
 		bsi->bsi_status = LDAP_ADMINLIMIT_EXCEEDED;
-		return BACKSQL_STOP;
+		return BACKSQL_AVL_STOP;
 	}
 	
 	bsi->bsi_oc = oc;
@@ -1118,12 +1115,12 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		default:
 			bsi->bsi_status = LDAP_SUCCESS;
 			/* try next */
-			return BACKSQL_CONTINUE;
+			return BACKSQL_AVL_CONTINUE;
 
 		case LDAP_ADMINLIMIT_EXCEEDED:
 		case LDAP_OTHER:
 			/* don't try any more */
-			return BACKSQL_STOP;
+			return BACKSQL_AVL_STOP;
 		}
 	}
 
@@ -1132,7 +1129,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			"could not construct query for objectclass \"%s\"\n",
 			oc->bom_oc->soc_cname.bv_val, 0, 0 );
 		bsi->bsi_status = LDAP_SUCCESS;
-		return BACKSQL_CONTINUE;
+		return BACKSQL_AVL_CONTINUE;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "Constructed query: %s\n", 
@@ -1145,7 +1142,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			"error preparing query\n", 0, 0, 0 );
 		backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, sth, rc );
 		bsi->bsi_status = LDAP_OTHER;
-		return BACKSQL_CONTINUE;
+		return BACKSQL_AVL_CONTINUE;
 	}
 	
 	Debug( LDAP_DEBUG_TRACE, "id: '%ld'\n", bsi->bsi_oc->bom_id, 0, 0 );
@@ -1154,7 +1151,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 			"error binding objectclass id parameter\n", 0, 0, 0 );
 		bsi->bsi_status = LDAP_OTHER;
-		return BACKSQL_CONTINUE;
+		return BACKSQL_AVL_CONTINUE;
 	}
 
 	switch ( bsi->bsi_scope ) {
@@ -1166,7 +1163,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		 */
 		if ( bsi->bsi_base_dn->bv_len > BACKSQL_MAX_DN_LEN ) {
 			bsi->bsi_status = LDAP_OTHER;
-			return BACKSQL_CONTINUE;
+			return BACKSQL_AVL_CONTINUE;
 		}
 
 		AC_MEMCPY( temp_base_dn, bsi->bsi_base_dn->bv_val,
@@ -1189,7 +1186,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, 
 					sth, rc );
 			bsi->bsi_status = LDAP_OTHER;
-			return BACKSQL_CONTINUE;
+			return BACKSQL_AVL_CONTINUE;
 		}
 		break;
 
@@ -1200,7 +1197,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		 */
 		if ( bsi->bsi_base_dn->bv_len > BACKSQL_MAX_DN_LEN ) {
 			bsi->bsi_status = LDAP_OTHER;
-			return BACKSQL_CONTINUE;
+			return BACKSQL_AVL_CONTINUE;
 		}
 
 		/* 
@@ -1249,7 +1246,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, 
 					sth, rc );
 			bsi->bsi_status = LDAP_OTHER;
-			return BACKSQL_CONTINUE;
+			return BACKSQL_AVL_CONTINUE;
 		}
 		break;
 	}
@@ -1263,7 +1260,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 				res == LDAP_NO_SUCH_OBJECT ? ": no such entry"
 				: "", 0, 0 );
 			bsi->bsi_status = res;
-			return BACKSQL_CONTINUE;
+			return BACKSQL_AVL_CONTINUE;
 		}
 
 #ifdef BACKSQL_ARBITRARY_KEY
@@ -1283,7 +1280,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 				"error binding base id parameter\n", 0, 0, 0 );
 			bsi->bsi_status = LDAP_OTHER;
-			return BACKSQL_CONTINUE;
+			return BACKSQL_AVL_CONTINUE;
 		}
 		break;
 	}
@@ -1295,7 +1292,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		backsql_PrintErrors( bi->db_env, bsi->bsi_dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		bsi->bsi_status = LDAP_OTHER;
-		return BACKSQL_CONTINUE;
+		return BACKSQL_AVL_CONTINUE;
 	}
 
 	backsql_BindRowAsStrings( sth, &row );
@@ -1352,7 +1349,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_oc_get_candidates(): %d\n",
 			n_candidates - bsi->bsi_n_candidates, 0, 0 );
 
-	return ( bsi->bsi_n_candidates == -1 ? BACKSQL_STOP : BACKSQL_CONTINUE );
+	return ( bsi->bsi_n_candidates == -1 ? BACKSQL_AVL_STOP : BACKSQL_AVL_CONTINUE );
 }
 
 int
@@ -1436,7 +1433,7 @@ backsql_search( Operation *op, SlapReply *rs )
 		( op->ors_limit->lms_s_unchecked == -1 ? -2 :
 		( op->ors_limit->lms_s_unchecked ) ) );
 	avl_apply( bi->oc_by_oc, backsql_oc_get_candidates,
-			&srch_info, BACKSQL_STOP, AVL_INORDER );
+			&srch_info, BACKSQL_AVL_STOP, AVL_INORDER );
 	if ( op->ors_limit != NULL	/* isroot == TRUE */
 			&& op->ors_limit->lms_s_unchecked != -1
 			&& srch_info.bsi_n_candidates == -1 )
