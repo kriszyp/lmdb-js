@@ -104,18 +104,20 @@ str2entry( char	*s )
 			if ( e->e_dn != NULL ) {
 				Debug( LDAP_DEBUG_ANY,
  "str2entry: entry %ld has multiple dns \"%s\" and \"%s\" (second ignored)\n",
-				    e->e_id, e->e_dn, value );
+				    e->e_id, e->e_dn,
+					value != NULL ? value : NULL );
 				continue;
 			}
-			e->e_dn = ch_strdup( value );
+			e->e_dn = ch_strdup( value != NULL ? value : "" );
 
 			if ( e->e_ndn != NULL ) {
 				Debug( LDAP_DEBUG_ANY,
  "str2entry: entry %ld already has a normalized dn \"%s\" for \"%s\" (first ignored)\n",
-				    e->e_id, e->e_ndn, value );
+				    e->e_id, e->e_ndn,
+					value != NULL ? value : NULL );
 				free( e->e_ndn );
 			}
-			e->e_ndn = ch_strdup( value );
+			e->e_ndn = ch_strdup( e->e_dn );
 			(void) dn_normalize_case( e->e_ndn );
 			continue;
 		}
