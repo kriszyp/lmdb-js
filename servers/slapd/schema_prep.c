@@ -683,7 +683,7 @@ static struct slap_schema_ad_map {
 			"EQUALITY OpenLDAPaciMatch "
 			"SYNTAX 1.3.6.1.4.1.4203.666.2.1 "
 			"USAGE directoryOperation )",
-		NULL, 0,
+		NULL, SLAP_AT_HIDE,
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_aci) },
