@@ -1,13 +1,14 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.16 Engineering
-	Fixed slapd modify mem leak
+OpenLDAP 2.1.16 Release
+	Fixed slapd sasl internal search "auth" issue
 	Fixed liblber BER decoding bug (ITS#2365)
 	Fixed slurpd TLS failure handling (ITS#2253)
-	Fixed slapd sasl internal search "auth" issue
 	Fixed back-meta NULL deref bug (ITS#2359)
 	Fixed back-ldap memory corruption (ITS#2362)
-	Updated back-perl
+    Fixed back-bdb IDL cache leak (ITS#2367)
+    Fixed slapd index large db files bug (ITS#2368)
+	Updated back-perl (ITS#2356)
 	Removed ldaptcl from distribution
 	Removed lint
 	Build Environment

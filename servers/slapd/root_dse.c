@@ -226,6 +226,7 @@ int read_root_dse_file( const char *fname )
 		Debug( LDAP_DEBUG_ANY,
 			"read_root_dse_file: SLAP_CALLOC failed", 0, 0, 0 );
 #endif
+		fclose( fp );
 		return LDAP_OTHER;
 	}
 	usr_attr->e_attrs = NULL;
@@ -237,9 +238,8 @@ int read_root_dse_file( const char *fname )
 		if( e == NULL ) {
 			fprintf( stderr, "root_dse: could not parse entry (line=%d)\n",
 				lineno );
-			entry_free( usr_attr );
-			usr_attr = NULL;
-			return EXIT_FAILURE;
+			rc = EXIT_FAILURE;
+			break;
 		}
 
 		/* make sure the DN is the empty DN */
@@ -248,9 +248,8 @@ int read_root_dse_file( const char *fname )
 				"root_dse: invalid rootDSE - dn=\"%s\" (line=%d)\n",
 				e->e_dn, lineno );
 			entry_free( e );
-			entry_free( usr_attr );
-			usr_attr = NULL;
-			return EXIT_FAILURE;
+			rc = EXIT_FAILURE;
+			break;
 		}
 
 		/*
@@ -260,14 +259,24 @@ int read_root_dse_file( const char *fname )
 		 */
 
 		for(a = e->e_attrs; a != NULL; a = a->a_next) {
-			if( attr_merge( usr_attr, a->a_desc, a->a_vals ) )
-				return LDAP_OTHER;
+			if( attr_merge( usr_attr, a->a_desc, a->a_vals ) ) {
+				rc = LDAP_OTHER;
+				break;
+			}
 		}
 
 		entry_free( e );
+		if (rc) break;
+	}
+
+	if (rc) {
+		entry_free( usr_attr );
+		usr_attr = NULL;
 	}
 
 	ch_free( buf );
+
+	fclose( fp );
 
 	Debug(LDAP_DEBUG_CONFIG, "rootDSE file %s read.\n", fname, 0, 0);
 	return rc;
