@@ -335,7 +335,7 @@ ldap_pvt_put_filter( BerElement *ber, const char *str_in )
 	 *              lessOrEqual     [6]     AttributeValueAssertion,
 	 *              present         [7]     AttributeType,
 	 *              approxMatch     [8]     AttributeValueAssertion,
-	 *				extensibleMatch [9]		MatchingRuleAssertion -- LDAPv3
+	 *		extensibleMatch [9]	MatchingRuleAssertion -- LDAPv3
 	 *      }
 	 *
 	 *      SubstringFilter ::= SEQUENCE {
@@ -347,11 +347,11 @@ ldap_pvt_put_filter( BerElement *ber, const char *str_in )
 	 *              }
 	 *      }
 	 *
-	 *		MatchingRuleAssertion ::= SEQUENCE {	-- LDAPv3
-	 *			matchingRule    [1] MatchingRuleId OPTIONAL,
-	 *			type            [2] AttributeDescription OPTIONAL,
-	 *			matchValue      [3] AssertionValue,
-	 *			dnAttributes    [4] BOOLEAN DEFAULT FALSE }
+	 *	MatchingRuleAssertion ::= SEQUENCE {	-- LDAPv3
+	 *		matchingRule    [1] MatchingRuleId OPTIONAL,
+	 *		type            [2] AttributeDescription OPTIONAL,
+	 *		matchValue      [3] AssertionValue,
+	 *		dnAttributes    [4] BOOLEAN DEFAULT FALSE }
 	 *
 	 * Note: tags in a choice are always explicit
 	 */
