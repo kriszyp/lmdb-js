@@ -291,6 +291,10 @@ static int slap_get_listener_addresses(
 			*sap = NULL;
 			break;
 		}
+		if (*sap != NULL) {
+			(*sap)->sa_family = sai->ai_family;
+			(*sap)->sa_len = sai->ai_addrlen;
+		}
 		sap++;
 	} while ((sai = sai->ai_next) != NULL);
 
