@@ -81,7 +81,7 @@ static char * referral_dn_muck(
 			return NULL;
 		}
 
-		if( dn_match( &nbaseDN, &nrefDN ) == 0 ) {
+		if( dn_match( &nbaseDN, &nrefDN ) ) {
 			ch_free( nrefDN.bv_val );
 			ch_free( nbaseDN.bv_val );
 			return ntargetDN.bv_val;
