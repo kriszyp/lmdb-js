@@ -818,17 +818,24 @@ slap_sasl_canonicalize(
 	if ( auxvals[which].values )
 		goto done;
 
-	if ( flags == SASL_CU_AUTHZID ) {
-	/* If we got unqualified authzid's, they probably came from SASL
-	 * itself just passing the authcid to us. Look inside the oparams
-	 * structure to see if that's true. (HACK: the out_len pointer is
-	 * the address of a member of a sasl_out_params_t structure...)
+	/* Normally we require an authzID to have a u: or dn: prefix.
+	 * However, SASL frequently gives us an authzID that is just
+	 * an exact copy of the authcID, without a prefix. We need to
+	 * detect and allow this condition. If SASL calls canonicalize
+	 * with SASL_CU_AUTHID|SASL_CU_AUTHZID this is a no-brainer.
+	 * But if it's broken into two calls, we need to remember the
+	 * authcID so that we can compare the authzID later. We store
+	 * the authcID temporarily in conn->c_sasl_dn. We necessarily
+	 * finish Canonicalizing before Authorizing, so there is no
+	 * conflict with slap_sasl_authorize's use of this temp var.
 	 */
-		sasl_out_params_t dummy;
-		int offset = (void *)&dummy.ulen - (void *)&dummy.authid;
-		char **authid = (void *)out_len - offset;
-		if ( *authid && !strcmp( in, *authid ) )
-			goto done;
+	if ( flags == SASL_CU_AUTHID ) {
+		conn->c_sasl_dn.bv_val = in;
+	} else if ( flags == SASL_CU_AUTHZID && conn->c_sasl_dn.bv_val ) {
+		rc = strcmp( in, conn->c_sasl_dn.bv_val );
+		conn->c_sasl_dn.bv_val = NULL;
+		/* They were equal, no work needed */
+		if ( !rc ) goto done;
 	}
 
 	rc = slap_sasl_getdn( conn, (char *)in, inlen, (char *)user_realm, &dn,
@@ -1114,12 +1121,15 @@ int slap_sasl_init( void )
 		return -1;
 	}
 #endif
-	
+
+	/* SASL 2 does its own memory management internally */
+#if SASL_VERSION_MAJOR < 2
 	sasl_set_alloc(
 		ber_memalloc,
 		ber_memcalloc,
 		ber_memrealloc,
 		ber_memfree ); 
+#endif
 
 	sasl_set_mutex(
 		ldap_pvt_sasl_mutex_new,
