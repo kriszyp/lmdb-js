@@ -45,7 +45,6 @@ oc_schema_check( Entry *e )
 			Debug( LDAP_DEBUG_ANY,
 				"Objectclass \"%s\" not defined",
 				aoc->a_vals[i]->bv_val, 0, 0 );
-			ret = 1;
 		}
 		else
 		{
