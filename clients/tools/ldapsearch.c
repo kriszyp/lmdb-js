@@ -935,7 +935,7 @@ static int dosearch(
 	struct timeval *timeout,
 	int sizelimit )
 {
-	char		filter[ BUFSIZ ];
+	char			*filter;
 	int			rc;
 	int			nresponses;
 	int			nentries;
@@ -946,6 +946,12 @@ static int dosearch(
 	ber_int_t	msgid;
 
 	if( filtpatt != NULL ) {
+		filter = malloc( strlen( filtpatt ) + strlen( value ) );
+		if( filter == NULL ) {
+			perror( "malloc" );
+			return EXIT_FAILURE;
+		}
+
 		sprintf( filter, filtpatt, value );
 
 		if ( verbose ) {
@@ -957,7 +963,7 @@ static int dosearch(
 		}
 
 	} else {
-		sprintf( filter, "%s", value );
+		filter = value;
 	}
 
 	if ( not ) {
@@ -966,6 +972,10 @@ static int dosearch(
 
 	rc = ldap_search_ext( ld, base, scope, filter, attrs, attrsonly,
 		sctrls, cctrls, timeout, sizelimit, &msgid );
+
+	if ( filtpatt != NULL ) {
+		free( filter );
+	}
 
 	if( rc != LDAP_SUCCESS ) {
 		fprintf( stderr, "%s: ldap_search_ext: %s (%d)\n",
