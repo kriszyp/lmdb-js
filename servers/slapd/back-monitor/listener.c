@@ -47,7 +47,6 @@ monitor_subsys_listener_init(
 	Entry			*e, *e_listener, *e_tmp;
 	int			i;
 	struct monitorentrypriv	*mp;
-	struct berval 		bv[2];
 	Listener		**l;
 
 	assert( be != NULL );
@@ -125,6 +124,7 @@ monitor_subsys_listener_init(
 
 #ifdef HAVE_TLS
 		if ( l[i]->sl_is_tls ) {
+			struct berval bv[2];
 			bv[1].bv_val = NULL;
 			bv[0].bv_val = "TLS";
 			bv[0].bv_len = sizeof("TLS")-1;
@@ -133,6 +133,7 @@ monitor_subsys_listener_init(
 #endif /* HAVE_TLS */
 #ifdef LDAP_CONNECTIONLESS
 		if ( l[i]->sl_is_udp ) {
+			struct berval bv[2];
 			bv[1].bv_val = NULL;
 			bv[0].bv_val = "UDP";
 			bv[0].bv_len = sizeof("UDP")-1;
