@@ -175,7 +175,7 @@ perl_back_db_open(
 
 
 static void
-perl_back_xs_init()
+perl_back_xs_init(PERL_BACK_XS_INIT_PARAMS)
 {
 	char *file = __FILE__;
 	dXSUB_SYS;
