@@ -294,7 +294,7 @@ typedef char * caddr_t;
 /* #undef SLAPD_PHONETIC */
 
 /* define this for Reverse Lookup support */
-/* #undef SLAPD_RLOOKUPS */
+#define SLAPD_RLOOKUPS 1
 
 /* define this to use SLAPD shell backend */
 /* #undef SLAPD_SHELL */
