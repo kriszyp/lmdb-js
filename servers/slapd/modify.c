@@ -374,12 +374,14 @@ do_modify(
 	 * attribute types were included in the modification request,
 	 * then slapi_x_ldapmods2modifications() above will return
 	 * NULL).
+	 *
+	 * However, the post-operation plugin should still be 
+	 * called.
 	 */
 	if ( modlist == NULL ) {
 		rs->sr_err = LDAP_SUCCESS;
 		send_ldap_result( op, rs );
-		goto cleanup;
-	}
+	} else {
 #endif /* defined( LDAP_SLAPI ) */
 
 	/*
@@ -478,6 +480,8 @@ do_modify(
 	}
 
 #if defined( LDAP_SLAPI )
+	} /* modlist != NULL */
+
 	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_MODIFY_FN, pb ) < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_modify: modify postoperation plugins "

@@ -3085,14 +3085,14 @@ void slapi_valueset_set_valueset(Slapi_ValueSet *vs1, const Slapi_ValueSet *vs2)
 int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr,
 	struct berval *val, int access )
 {
-#ifdef LDAPI_SLAPI
+#ifdef LDAP_SLAPI
 	Backend *be;
 	Connection *conn;
 	Operation *op;
 	int ret;
 	slap_access_t slap_access;
 	AttributeDescription *ad = NULL;
-	char *text;
+	const char *text;
 
 	ret = slap_str2ad( attr, &ad, &text );
 	if ( ret != LDAP_SUCCESS ) {
@@ -3132,7 +3132,7 @@ int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr,
 		return LDAP_PARAM_ERROR;
 	}
 
-	ret = access_allowed( be, conn, op, e, desc, val, slap_access, NULL );
+	ret = access_allowed( op, e, ad, val, slap_access, NULL );
 
 	return ret ? LDAP_SUCCESS : LDAP_INSUFFICIENT_ACCESS;
 #else
