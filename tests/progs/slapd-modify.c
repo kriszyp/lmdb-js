@@ -131,12 +131,12 @@ do_modify( char *uri, char *host, int port, char *manager,
 	int  	i;
 	pid_t	pid;
 
-	pid = getpid();
-	
 	struct ldapmod mod;
 	struct ldapmod *mods[2];
 	char *values[2] = { value, NULL };
 
+	pid = getpid();
+	
 	mod.mod_op = LDAP_MOD_ADD;
 	mod.mod_type = attr;
 	mod.mod_values = values;
