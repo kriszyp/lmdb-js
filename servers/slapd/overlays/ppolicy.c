@@ -200,119 +200,15 @@ static struct schema_info pwd_UsSchema[] = {
 static ldap_pvt_thread_mutex_t chk_syntax_mutex;
 
 static time_t
-ppolicy_timegm( struct tm *t )
-{
-	static int moffset[12] = {
-		0, 31, 59, 90, 120,
-		151, 181, 212, 243,
-		273, 304, 334 }; 
-	time_t ret; 
-
-	/* t->tm_year is years since 1900 */
-	/* calculate days from years since 1970 (epoch) */ 
-	ret = t->tm_year - 70; 
-	ret *= 365L; 
-
-	/* count leap days in preceding years */ 
-	ret += ((t->tm_year -69) >> 2); 
-
-	/* calculate days from months */ 
-	ret += moffset[t->tm_mon]; 
-
-	/* add in this year's leap day, if any */ 
-	if (((t->tm_year & 3) == 0) && (t->tm_mon > 1)) { 
-		ret ++; 
-	} 
-
-	/* add in days in this month */ 
-	ret += (t->tm_mday - 1); 
-
-	/* convert to hours */ 
-	ret *= 24L; 
-	ret += t->tm_hour; 
-
-	/* convert to minutes */ 
-	ret *= 60L; 
-	ret += t->tm_min; 
-
-	/* convert to seconds */ 
-	ret *= 60L; 
-	ret += t->tm_sec; 
-
-	/* return the result */ 
-	return ret; 
-}
-
-static time_t
 parse_time( char *atm )
 {
-	struct tm tm;
-	char *ptr = atm;
+	struct lutil_tm tm;
+	struct lutil_timet tt;
 	time_t ret = (time_t)-1;
-	int i = 0;
 
-	while (atm) {
-
-		/* Is the stamp reasonbly long? */
-		for (i=0; isdigit(atm[i]); i++);
-		if (i < sizeof("00000101000000")-1)
-			break;
-
-		/*
-		 * parse the time and return it's time_t value.
-		 */
-		/* 4 digit year to year - 1900 */
-		tm.tm_year = *ptr++ - '0';
-		tm.tm_year *= 10; tm.tm_year += *ptr++ - '0';
-		tm.tm_year *= 10; tm.tm_year += *ptr++ - '0';
-		tm.tm_year *= 10; tm.tm_year += *ptr++ - '0';
-		tm.tm_year -= 1900;
-		/* month 01-12 to 0-11 */
-		tm.tm_mon = *ptr++ - '0';
-		tm.tm_mon *=10; tm.tm_mon += *ptr++ - '0';
-		if (tm.tm_mon < 1 || tm.tm_mon > 12) break;
-		tm.tm_mon--;
-
-		/* day of month 01-31 */
-		tm.tm_mday = *ptr++ - '0';
-		tm.tm_mday *=10; tm.tm_mday += *ptr++ - '0';
-		if (tm.tm_mday < 1 || tm.tm_mday > 31) break;
-
-		/* Hour 00-23 */
-		tm.tm_hour = *ptr++ - '0';
-		tm.tm_hour *=10; tm.tm_hour += *ptr++ - '0';
-		if (tm.tm_hour < 0 || tm.tm_hour > 23) break;
-
-		/* Minute 00-59 */
-		tm.tm_min = *ptr++ - '0';
-		tm.tm_min *=10; tm.tm_min += *ptr++ - '0';
-		if (tm.tm_min < 0 || tm.tm_min > 59) break;
-
-		/* Second 00-61 */
-		tm.tm_sec = *ptr++ - '0';
-		tm.tm_sec *=10; tm.tm_sec += *ptr++ - '0';
-		if (tm.tm_sec < 0 || tm.tm_sec > 61) break;
-
-		/* Fractions of seconds */
-		for (i = 0;isdigit(*ptr);) {
-			i*=10; i+= *ptr++ - '0';
-		}
-
-		/*
-		 * special case - if the lowest allowable GeneralizedTime is here, return
-		 * this as zero time. Note: this might also be the case if the value stored
-		 * is equivalent to the start of the epoch (ie, Jan 1, 1970 at midnight.
-		 */
-		if (strncmp(atm, "00000101000000", sizeof("00000101000000")-1) == 0 &&
-			i == 0 ) break;
-		
-		/* Must be UTC */
-		if (*ptr != 'Z') break;
-
-    		/* FIXME: we don't check precision smaller than seconds. */
-
-		ret = ppolicy_timegm( &tm );
-		break;
+	if ( lutil_parsetime( atm, &tm ) == 0) {
+		lutil_tm2time( &tm, &tt );
+		ret = tt.tt_sec;
 	}
 	return ret;
 }
