@@ -119,8 +119,8 @@ ldbm_back_add(
 		 * and release the add lock.
 		 */
 		pthread_mutex_lock(&li->li_root_mutex);
+		rootlock = 1;
 		pthread_mutex_unlock(&li->li_add_mutex);
-		rootlock=1;
 	}
 
 	/*
@@ -134,7 +134,8 @@ ldbm_back_add(
 		if( p != NULL) {
 			/* free parent and writer lock */
 			cache_return_entry_w( &li->li_cache, p ); 
-		} else if ( rootlock ) {
+		}
+		if ( rootlock ) {
 			/* release root lock */
 			pthread_mutex_unlock(&li->li_root_mutex);
 		}
@@ -208,8 +209,9 @@ return_results:;
 	if (p != NULL) {
 		/* free parent and writer lock */
 		cache_return_entry_w( &li->li_cache, p ); 
+	}
 
-	} else if ( rootlock ) {
+	if ( rootlock ) {
 		/* release root lock */
 		pthread_mutex_unlock(&li->li_root_mutex);
 	}
