@@ -3,15 +3,35 @@
 
 H1: Using TLS
 
-OpenLDAP clients and servers are capable of using
+OpenLDAP clients and servers are capable of using the
 Transport Layer Security {{TERM:TLS}} framework to provide
 integrity and confidentiality protections and to support
-LDAP authentication via SASL EXTERNAL. 
+LDAP authentication using the SASL EXTERNAL mechanism. 
 
 TLS uses {{TERM:X.509}} certificates to carry client and server
 identities. All servers are required to have valid certificates,
 whereas client certificates are optional. Clients must have a
-valid certificate in order to authenticate using the SASL EXTERNAL
-mechanism.
+valid certificate in order to authenticate via SASL EXTERNAL.
+For more information on creating and managing certificates,
+see the {{PRD:OpenSSL}} documentation.
 
+H2: Server Certificates
 
+The DN of a server certificate must use the CN attribute
+to name the server, and the CN must carry the server's
+fully qualified domain name. Additional alias names and wildcards
+may be present in the subjectAltName certificate extension.
+More details on server certificate names are in {{REF:RFC2830}}.
+
+H2: Client Certificates
+
+The DN of a client certificate can be used directly as an
+authentication DN.
+Since X.509 is a part of the {{TERM:X.500}} standard and LDAP
+is also based on X.500, both use the same DN formats and
+generally the DN in a user's X.509 certificate should be
+identical to the DN of their LDAP entry. However, sometimes
+the DNs may not be exactly the same, and so the mapping
+facility described in 
+{{SECT:Mapping Authentication identities to LDAP entries}}
+can be applied to these DNs as well.
