@@ -17,12 +17,6 @@
 #include "ldap_defaults.h"
 #include "lber.h"
 
-struct M2S
-{
-	char *mnemonic;
-	int  subsys;
-};
-
 struct DEBUGLEVEL
 {
 	char *subsystem;
@@ -102,7 +96,7 @@ static void addSubsys( const char *subsys, int level )
 
 void lutil_set_debug_level( char* subsys, int level )
 {
-	addSubsys( subsys, level );
+    addSubsys( subsys, level );
 }
 
 int lutil_debug_file( FILE *file )
