@@ -180,10 +180,13 @@ typedef struct ldapcontrol {
 } LDAPControl;
 
 /* LDAP Controls */
-	/* chase referrals controls */
+
+#ifdef undef
+	/* chase referrals client control (not yet implemented)  */
 #define LDAP_CONTROL_REFERRALS	"1.2.840.113666.1.4.616"
 #define LDAP_CHASE_SUBORDINATE_REFERRALS	0x0020U
 #define LDAP_CHASE_EXTERNAL_REFERRALS	0x0040U
+#endif
 
 #define LDAP_CONTROL_MANAGEDSAIT "2.16.840.1.113730.3.4.2"
 
@@ -348,7 +351,7 @@ typedef struct ldapcontrol {
 #define LDAP_AUTH_METHOD_NOT_SUPPORTED	0x07
 #define LDAP_STRONG_AUTH_NOT_SUPPORTED	LDAP_AUTH_METHOD_NOT_SUPPORTED
 #define LDAP_STRONG_AUTH_REQUIRED	0x08
-#define LDAP_PARTIAL_RESULTS		0x09	/* not listed in v3 */
+#define LDAP_PARTIAL_RESULTS		0x09	/* LDAPv2+ (not LDAPv3) */
 
 #define	LDAP_REFERRAL				0x0a /* LDAPv3 */
 #define LDAP_ADMINLIMIT_EXCEEDED	0x0b /* LDAPv3 */
@@ -400,6 +403,8 @@ typedef struct ldapcontrol {
 #define LDAP_OTHER			0x50
 
 #define LDAP_API_ERROR(n)		LDAP_RANGE((n),0x51,0x61) /* 81-97 */
+#define LDAP_API_RESULT(n)		(((n) == LDAP_SUCCESS) || \
+									LDAP_RANGE((n),0x51,0x61)) /* 0,81-97 */
 
 /* reserved for APIs */
 #define LDAP_SERVER_DOWN		0x51
