@@ -310,9 +310,9 @@ slap_auxprop_lookup(
 	const char *user,
 	unsigned ulen)
 {
-	int rc;
+	int rc, i, last;
 	struct berval dn;
-	const struct propval *list, *cur;
+	const struct propval *list;
 	BerVarray vals, bv;
 	AttributeDescription *ad;
 	const char *text;
@@ -320,17 +320,19 @@ slap_auxprop_lookup(
 	list = sparams->utils->prop_get( sparams->propctx );
 
 	/* Find our DN first */
-	for( cur = list; cur->name; cur++ ) {
-		if ( cur->name[0] == '*' ) {
+	for( i = 0, last = 0; list[i].name; i++ ) {
+		if ( list[i].name[0] == '*' ) {
 			if ( (flags & SASL_AUXPROP_AUTHZID) &&
-				!strcmp( cur->name, slap_propnames[1] ) ) {
-				if ( cur->values && cur->values[0] )
-					AC_MEMCPY( &dn, cur->values[0], sizeof( dn ) );
+				!strcmp( list[i].name, slap_propnames[1] ) ) {
+				if ( list[i].values && list[i].values[0] )
+					AC_MEMCPY( &dn, list[i].values[0], sizeof( dn ) );
+				if ( !last ) last = i;
 				break;
 			}
-			if ( !strcmp( cur->name, slap_propnames[0] ) ) {
-				if ( cur->values && cur->values[0] ) {
-					AC_MEMCPY( &dn, cur->values[0], sizeof( dn ) );
+			if ( !strcmp( list[i].name, slap_propnames[0] ) ) {
+				if ( !last ) last = i;
+				if ( list[i].values && list[i].values[0] ) {
+					AC_MEMCPY( &dn, list[i].values[0], sizeof( dn ) );
 					if ( !(flags & SASL_AUXPROP_AUTHZID) )
 						break;
 				}
@@ -339,8 +341,8 @@ slap_auxprop_lookup(
 	}
 
 	/* Now fetch the rest */
-	for( cur = list; cur->name; cur++ ) {
-		const char *name = cur->name;
+	for( i = 0; i < last; i++ ) {
+		const char *name = list[i].name;
 
 		if ( name[0] == '*' ) {
 			if ( flags & SASL_AUXPROP_AUTHZID ) continue;
@@ -348,9 +350,9 @@ slap_auxprop_lookup(
 		} else if ( !(flags & SASL_AUXPROP_AUTHZID ) )
 			continue;
 
-		if ( cur->values ) {
+		if ( list[i].values ) {
 			if ( !(flags & SASL_AUXPROP_OVERRIDE) ) continue;
-			sparams->utils->prop_erase( sparams->propctx, cur->name );
+			sparams->utils->prop_erase( sparams->propctx, list[i].name );
 		}
 		ad = NULL;
 		rc = slap_str2ad( name, &ad, &text );
@@ -368,7 +370,7 @@ slap_auxprop_lookup(
 		rc = backend_attribute( NULL,NULL,NULL,NULL, &dn, ad, &vals );
 		if ( rc != LDAP_SUCCESS ) continue;
 		for ( bv = vals; bv->bv_val; bv++ ) {
-			sparams->utils->prop_set( sparams->propctx, cur->name,
+			sparams->utils->prop_set( sparams->propctx, list[i].name,
 				bv->bv_val, bv->bv_len );
 		}
 		ber_bvarray_free( vals );
@@ -491,7 +493,7 @@ slap_sasl_canonicalize(
 	struct propctx *props = sasl_auxprop_getctx( sconn );
 	struct propval auxvals[3];
 	struct berval dn;
-	int rc;
+	int rc, which;
 	const char *names[2];
 
 	*out_len = 0;
@@ -510,20 +512,37 @@ slap_sasl_canonicalize(
 			in ? in : "<empty>" );
 #endif
 
+	/* If name is too big, just truncate. We don't care, we're
+	 * using DNs, not the usernames.
+	 */
 	if ( inlen > out_max )
-		return SASL_BUFOVER;
+		inlen = out_max-1;
+
+	/* See if we need to add request, can only do it once */
+	prop_getnames( props, slap_propnames, auxvals );
+	if ( !auxvals[0].name )
+		prop_request( props, slap_propnames );
+
+	if ( flags & SASL_CU_AUTHID )
+		which = 0;
+	else
+		which = 1;
+
+	/* Already been here? */
+	if ( auxvals[which].values )
+		goto done;
 
 	if ( flags == SASL_CU_AUTHZID ) {
 	/* If we got unqualified authzid's, they probably came from SASL
-	 * itself just passing the authcid to us. Ignore it.
+	 * itself just passing the authcid to us. Look inside the oparams
+	 * structure to see if that's true. (HACK: the out_len pointer is
+	 * the address of a member of a sasl_out_params_t structure...)
 	 */
-		if (strncasecmp(in, "u:", 2) && strncasecmp(in, "dn:", 3)) {
-			AC_MEMCPY( out, in, inlen );
-			out[inlen] = '\0';
-			*out_len = inlen;
-
-			return SASL_OK;
-		}
+		sasl_out_params_t dummy;
+		int offset = (void *)&dummy.ulen - (void *)&dummy.authid;
+		char **authid = (void *)out_len - offset;
+		if ( !strcmp( in, *authid ) )
+			goto done;
 	}
 
 	rc = slap_sasl_getdn( conn, (char *)in, inlen, (char *)user_realm, &dn,
@@ -533,20 +552,7 @@ slap_sasl_canonicalize(
 		return SASL_NOAUTHZ;
 	}		
 
-	AC_MEMCPY( out, in, inlen );
-	out[inlen] = '\0';
-
-	*out_len = inlen;
-
-	/* See if we need to add request, can only do it once */
-	prop_getnames( props, slap_propnames, auxvals );
-	if ( !auxvals[0].name )
-		sasl_auxprop_request( sconn, slap_propnames );
-
-	if ( flags & SASL_CU_AUTHID )
-		names[0] = slap_propnames[0];
-	else
-		names[0] = slap_propnames[1];
+	names[0] = slap_propnames[which];
 	names[1] = NULL;
 
 	prop_set( props, names[0], (char *)&dn, sizeof( dn ) );
@@ -564,6 +570,10 @@ slap_sasl_canonicalize(
 			(flags & SASL_CU_AUTHID) ? "authcDN" : "authzDN",
 			dn.bv_val );
 #endif
+done:	AC_MEMCPY( out, in, inlen );
+	out[inlen] = '\0';
+
+	*out_len = inlen;
 
 	return SASL_OK;
 }
