@@ -2,14 +2,13 @@
 
 	OpenLDAP 1.1
 
-
 	The OpenLDAP Project is pleased to announce the availability
 	of OpenLDAP release 1.1, a suite of the Lightweight Weight
 	Directory Protocol servers, clients, utilities, and development tools.
 
 	OpenLDAP is derived from University of Michigan LDAP release 3.3.
 
-    This release includes the following components:
+	This release includes the following components:
 
 	- slapd - a stand-alone LDAP directory server
 	- slurpd - a stand-alone LDAP replication server
@@ -26,7 +25,7 @@
 	- fax500 - an LDAP-capable mailer that supports remote printing
 	- LDAP tools - A collection of shell-based LDAP utility programs
 
-    In addition, there are some contributed components:
+	In addition, there are some contributed components:
 
 	- gtk-tool - a demonstration ldap interface written gtk
 	- php3-tool - a demonstration ldap interface written php3 
@@ -50,38 +49,39 @@ CHANGES
 	- platforms updates, and
 	- numerous bug fixes and build changes.
 
-    See the CHANGES file in the distribution for more details.
+	See the CHANGES file in the distribution for more details.
 
 AVAILABILITY
 
 	This software is available under the OpenLDAP Public License.
 	For download information is available at:
+
 		http://www.OpenLDAP.org/software/download/
 
 SUPPORT
 
-    The software is provided as is without any express or implied
-    warranty, but there is a bug reporting mail address which is
-    responded to on a best-effort basis:
+	The software is provided as is without any express or implied
+	warranty, but there is a bug reporting mail address which is
+	responded to on a best-effort basis:
 
-	OpenLDAP-bugs@OpenLDAP.org
+		OpenLDAP-bugs@OpenLDAP.org
 
-    In addition, there are also a number of discussion lists
+	In addition, there are also a number of discussion lists
 	related OpenLDAP.  A list of mailing lists is available at:
-        http://www.OpenLDAP.org/lists/
 
+		http://www.OpenLDAP.org/lists/
 
-    The OpenLDAP home page containing lots of interesting information
+	The OpenLDAP home page containing lots of interesting information
 	and online documentation is available at this URL:
 
-        http://www.OpenLDAP.org/
+		http://www.OpenLDAP.org/
 
 SUPPORTED PLATFORMS
 
-    This release has been ported to many UNIX (and UNIX-like) platforms
+	This release has been ported to many UNIX (and UNIX-like) platforms
 	including AIX, Digital UNIX (OSF/1), FreeBSD, HP-UX, IRIX, Linux,
 	NetBSD, NexTSTEP, OpenBSD, SCO, Solaris, SunOS, and Ultrix.
 
-    The client libraries and some clients have also been ported to
-    MS Windows 95/NT.
+	The client libraries and some clients have also been ported to
+	MS Windows 95/NT.
 
