@@ -44,16 +44,6 @@
 
 int
 monitor_back_bind( Operation *op, SlapReply *rs )
-	/*
-	Backend		*be,
-	Connection	*conn,
-	Operation	*op,
-	struct berval	*dn,
-	struct berval	*ndn,
-	int		method,
-	struct berval	*cred,
-	struct berval	*edn
-) */
 {
 #if 0	/* not used yet */
 	struct monitorinfo	*mi
