@@ -5,5 +5,8 @@ if [ x"$MONITORDB" = x"yes" ] ; then
 else
 	MON=nomonitor
 fi
-sed -e "s/@BACKEND@/$BACKEND/" -e "s/^#$BACKEND#//"  -e "s/^#$MON#//" \
-	-e "s/@PORT@/9009/" -e "s/@SLAVEPORT@/9010/"
+sed -e "s/@BACKEND@/${BACKEND}/"	\
+	-e "s/^#${BACKEND}#//"			\
+	-e "s/^#${MON}#//"				\
+	-e "s/@PORT@/${PORT}/"			\
+	-e "s/@SLAVEPORT@/${SLAVEPORT}/"
