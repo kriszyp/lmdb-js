@@ -478,7 +478,7 @@ static struct slap_schema_ad_map {
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )",
 		NULL, SLAP_AT_HIDE, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_children) },
-	{ "saslAuthzTo", "( 1.3.6.1.4.1.4203.1.3.3 "
+	{ "saslAuthzTo", "( 1.3.6.1.4.1.4203.1.3.6 "
 			"NAME 'saslAuthzTo' "
 			"DESC 'SASL proxy authorization targets' "
 			"EQUALITY caseExactMatch "
@@ -486,7 +486,7 @@ static struct slap_schema_ad_map {
 			"USAGE dSAOperation )",
 		NULL, 0, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_saslAuthzTo) },
-	{ "saslAuthzFrom", "( 1.3.6.1.4.1.4203.1.3.4 "
+	{ "saslAuthzFrom", "( 1.3.6.1.4.1.4203.1.3.7 "
 			"NAME 'saslAuthzFrom' "
 			"DESC 'SASL proxy authorization sources' "
 			"EQUALITY caseExactMatch "
