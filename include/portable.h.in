@@ -310,6 +310,9 @@
 /* Define if you have the thr_yield function.  */
 #undef HAVE_THR_YIELD
 
+/* Define if you have the usleep function.  */
+#undef HAVE_USLEEP
+
 /* Define if you have the vsnprintf function.  */
 #undef HAVE_VSNPRINTF
 
