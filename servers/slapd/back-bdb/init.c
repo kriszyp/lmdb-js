@@ -34,11 +34,9 @@ static int
 bdb_open( BackendInfo *bi )
 {
 	/* initialize the underlying database system */
+	Debug( LDAP_DEBUG_TRACE, "bdb_open: initialize BDB backend\n",
+		0, 0, 0 );
 
-	db_env_set_func_malloc( ch_malloc );
-	db_env_set_func_realloc( ch_realloc );
-	db_env_set_func_free( ch_free );
-	db_env_set_func_yield( ldap_pvt_thread_yield );
 	return 0;
 }
 
@@ -53,6 +51,10 @@ static int
 bdb_db_init( Backend *be )
 {
 	struct bdb_info	*bdb;
+
+	Debug( LDAP_DEBUG_ANY,
+		"bdb_db_init: Initializing BDB database\n",
+		0, 0, 0 );
 
 	/* allocate backend-database-specific stuff */
 	bdb = (struct bdb_info *) ch_calloc( 1, sizeof(struct bdb_info) );
@@ -72,12 +74,17 @@ bdb_db_open( BackendDB *be )
 	int rc, i;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	u_int32_t flags;
+
+	Debug( LDAP_DEBUG_ANY,
+		"bdb_db_open: opening database for %s\n",
+		be->be_suffix[0], 0, 0 );
+
 	/* we should check existance of dbenv_home and db_directory */
 
 	rc = db_env_create( &bdb->bi_dbenv, 0 );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bi_back_db_open: db_env_create failed: %s (%d)\n",
+			"bdb_db_open: db_env_create failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		return rc;
 	}
@@ -105,7 +112,7 @@ bdb_db_open( BackendDB *be )
 		rc = bdb->bi_dbenv->set_tmp_dir( bdb->bi_dbenv, dir );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"bi_back_db_open: set_tmp_dir(%s) failed: %s (%d)\n",
+				"bdb_db_open: set_tmp_dir(%s) failed: %s (%d)\n",
 				dir, db_strerror(rc), rc );
 			return rc;
 		}
@@ -125,7 +132,7 @@ bdb_db_open( BackendDB *be )
 		rc = bdb->bi_dbenv->set_data_dir( bdb->bi_dbenv, dir );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"bi_back_db_open: set_data_dir(%s) failed: %s (%d)\n",
+				"bdb_db_open: set_data_dir(%s) failed: %s (%d)\n",
 				dir, db_strerror(rc), rc );
 			return rc;
 		}
@@ -142,7 +149,7 @@ bdb_db_open( BackendDB *be )
 		bdb->bi_dbenv_mode );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bi_back_db_open: dbenv_open failed: %s (%d)\n",
+			"bdb_db_open: dbenv_open failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		return rc;
 	}
@@ -158,7 +165,7 @@ bdb_db_open( BackendDB *be )
 		rc = db_create( &db->bdi_db, bdb->bi_dbenv, 0 );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"bi_back_db_open: db_create(%s) failed: %s (%d)\n",
+				"bdb_db_open: db_create(%s) failed: %s (%d)\n",
 				bdb->bi_dbenv_home, db_strerror(rc), rc );
 			return rc;
 		}
@@ -172,7 +179,7 @@ bdb_db_open( BackendDB *be )
 
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"bi_back_db_open: db_open(%s) failed: %s (%d)\n",
+				"bdb_db_open: db_open(%s) failed: %s (%d)\n",
 				bdb->bi_dbenv_home, db_strerror(rc), rc );
 			return rc;
 		}
@@ -194,7 +201,7 @@ bdb_db_close( BackendDB *be )
 	rc = txn_checkpoint( bdb->bi_dbenv, 0, 0, DB_FORCE );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bi_back_db_destroy: txn_checkpoint failed: %s (%d)\n",
+			"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		return rc;
 	}
@@ -218,7 +225,7 @@ bdb_db_destroy( BackendDB *be )
 	bdb->bi_dbenv = NULL;
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bi_back_db_destroy: close failed: %s (%d)\n",
+			"bdb_db_destroy: close failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		return rc;
 	}
@@ -266,6 +273,13 @@ bdb_initialize(
 		Debug( LDAP_DEBUG_ANY, "bdb_initialize: %s\n",
 			version, 0, 0 );
 	}
+
+#if 0
+	db_env_set_func_malloc( ch_malloc );
+	db_env_set_func_realloc( ch_realloc );
+	db_env_set_func_free( ch_free );
+	db_env_set_func_yield( ldap_pvt_thread_yield );
+#endif
 
 	bi->bi_controls = controls;
 
