@@ -4166,3 +4166,35 @@ int slapi_entry_add_rdn_values( Slapi_Entry *e )
 #endif /* LDAP_SLAPI */
 }
 
+const char *slapi_entry_get_uniqueid( const Slapi_Entry *e )
+{
+#ifdef LDAP_SLAPI
+	Attribute *attr;
+	const char *uniqueid;
+
+	attr = attr_find( e->e_attrs, slap_schema.si_ad_entryUUID );
+	if ( attr == NULL ) {
+		return NULL;
+	}
+
+	if ( attr->a_vals != NULL && attr->a_vals[0].bv_len != 0 ) {
+		return slapi_value_get_string( &attr->a_vals[0] );
+	}
+#endif /* LDAP_SLAPI */
+
+	return NULL;
+}
+
+void slapi_entry_set_uniqueid( Slapi_Entry *e, char *uniqueid )
+{
+#ifdef LDAP_SLAPI
+	struct berval bv;
+
+	attr_delete ( &e->e_attrs, slap_schema.si_ad_entryUUID );
+
+	bv.bv_val = uniqueid;
+	bv.bv_len = strlen( uniqueid );
+	attr_merge_normalize_one( e, slap_schema.si_ad_entryUUID, &bv, NULL );
+#endif /* LDAP_SLAPI */
+}
+
