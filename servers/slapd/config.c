@@ -661,7 +661,7 @@ read_config( char *fname )
                              fname, lineno, 0 );
                       exit( EXIT_FAILURE );
                    }
-                   if (!load_module(cargv[1], cargc - 2, (cargc > 2) ? cargv + 2 : NULL)) {
+                   if (load_module(cargv[1], cargc - 2, (cargc > 2) ? cargv + 2 : NULL)) {
                       Debug( LDAP_DEBUG_ANY,
                              "%s: line %d: failed to load or initialize module %s\n",
                              fname, lineno, cargv[1]);

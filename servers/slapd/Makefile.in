@@ -24,15 +24,17 @@ OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
+SLAP_DIR=
+SLAPD_MODULES=@SLAPD_MODULES_LIST@
 XDEFS = $(MODULES_CPPFLAGS)
-XLDFLAGS = $(MODULES_LDFLAGS)
+XLDFLAGS = $(MODULES_LDFLAGS) $(SLAPD_MODULES)
 
 # $(LTHREAD_LIBS) must be last
 XLIBS = libbackends.a -lavl -lldbm -lldif -lldap_r -llber -llutil
 XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) \
 	$(PERL_LDFLAGS) $(SECURITY_LIBS) \
 	$(LDIF_LIBS) $(LUTIL_LIBS)
-XXXLIBS = $(LTHREAD_LIBS)
+XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
 
 BUILD_OPT = "--enable-slapd"
 BUILD_SRV = @BUILD_SLAPD@
@@ -117,6 +119,15 @@ install-slapd: FORCE
 	@-$(MKDIR) $(libexecdir)
 	@-$(MKDIR) $(localstatedir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapd $(libexecdir)
+	@if [ ! -z "$(SLAPD_MODULES)" ]; then \
+	    for i in back-* shell-backends tools; do \
+		if [ -d $$i ]; then \
+			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) install"; \
+			( cd $$i; $(MAKE) $(MFLAGS) install ); \
+		fi; \
+	    done; \
+	fi
+
 
 CFFILES=slapd.conf slapd.at.conf slapd.oc.conf
 
