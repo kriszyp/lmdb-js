@@ -659,8 +659,8 @@ idl_insert( ID_BLOCK **idl, ID id, unsigned int maxids )
 	}
 
 	/* make a slot for the new id */
-	SAFEMEMCPY( &ID_BLOCK_ID(*idl, i), &ID_BLOCK_ID(*idl, i+1), 
-		ID_BLOCK_NIDS(*idl) - i );
+	SAFEMEMCPY( &ID_BLOCK_ID(*idl, i+1), &ID_BLOCK_ID(*idl, i),
+	            (ID_BLOCK_NIDS(*idl) - i) * sizeof(ID) );
 
 	ID_BLOCK_ID(*idl, i) = id;
 	ID_BLOCK_NIDS(*idl)++;
