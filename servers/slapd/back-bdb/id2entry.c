@@ -153,7 +153,6 @@ int bdb_id2entry_rw(
 				free ( (*e)->e_private );
 			bdb_entry_return( *e );
 			*e = NULL;
-			ch_free( data.data );
 		}
 		rc = ret;
 	}
