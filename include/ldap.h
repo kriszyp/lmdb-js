@@ -66,10 +66,8 @@ LDAP_BEGIN_DECL
 /* #define LDAP_API_OPERATION_SESSION_SAFE	1	*/
 #endif
 
-#define LDAP_PORT		389
-#ifdef HAVE_TLS
-#define LDAP_TLS_PORT		636
-#endif
+#define LDAP_PORT		389		/* ldap:///		default LDAP port */
+#define LDAPS_PORT		636		/* ldaps:///	default LDAP over TLS port */
 
 #define LDAP_ROOT_DSE				""
 #define LDAP_NO_ATTRS				"1.1"
@@ -470,19 +468,28 @@ typedef struct ldap_friendly {
  * types for ldap URL handling
  */
 typedef struct ldap_url_desc {
+	int		lud_ldaps;
     char	*lud_host;
     int		lud_port;
     char	*lud_dn;
     char	**lud_attrs;
     int		lud_scope;
     char	*lud_filter;
-    char	*lud_string;	/* for internal use only */
+	char	**lud_exts;
 } LDAPURLDesc;
 
-#define LDAP_URL_ERR_NOTLDAP	0x01	/* URL doesn't begin with "ldap://" */
-#define LDAP_URL_ERR_NODN		0x02	/* URL has no DN (required) */
-#define LDAP_URL_ERR_BADSCOPE	0x03	/* URL scope string is invalid */
-#define LDAP_URL_ERR_MEM		0x04	/* can't allocate memory space */
+#define LDAP_URL_SUCCESS		0x00	/* Success */
+#define LDAP_URL_ERR_MEM		0x01	/* can't allocate memory space */
+#define LDAP_URL_ERR_PARAM		0x02	/* parameter is bad */
+
+#define LDAP_URL_ERR_NOTLDAP	0x03	/* URL doesn't begin with "ldap[s]://" */
+#define LDAP_URL_ERR_BADENCLOSURE 0x04	/* URL is missing trailing ">" */
+#define LDAP_URL_ERR_BADURL		0x05	/* URL is bad */
+#define LDAP_URL_ERR_BADHOST	0x06	/* host port is bad */
+#define LDAP_URL_ERR_BADATTRS	0x07	/* bad (or missing) attributes */
+#define LDAP_URL_ERR_BADSCOPE	0x08	/* scope string is invalid (or missing) */
+#define LDAP_URL_ERR_BADFILTER	0x09	/* bad or missing filter */
+#define LDAP_URL_ERR_BADEXTS	0x0a	/* bad or missing extensions */
 
 /*
  * The API draft spec says we should declare (or cause to be declared)
@@ -1426,6 +1433,10 @@ ldap_sort_strcasecmp LDAP_P((
  */
 LDAP_F( int )
 ldap_is_ldap_url LDAP_P((
+	LDAP_CONST char *url ));
+
+LDAP_F( int )
+ldap_is_ldaps_url LDAP_P((
 	LDAP_CONST char *url ));
 
 LDAP_F( int )
