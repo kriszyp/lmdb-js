@@ -1,8 +1,18 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
+
 /*
  * int lutil_passwd(
  *	const struct berval *passwd,
@@ -90,6 +100,8 @@ struct pw_slist {
 };
 
 /* password check routines */
+
+#define	SALT_SIZE	4
 
 static LUTIL_PASSWD_CHK_FUNC chk_md5;
 static LUTIL_PASSWD_CHK_FUNC chk_smd5;
@@ -473,7 +485,8 @@ static int chk_ssha1(
 	unsigned char *orig_pass = NULL;
 
 	/* safety check */
-	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) <= sizeof(SHA1digest)) {
+	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) <
+		sizeof(SHA1digest)+SALT_SIZE) {
 		return -1;
 	}
 
@@ -485,7 +498,7 @@ static int chk_ssha1(
 
 	rc = lutil_b64_pton(passwd->bv_val, orig_pass, passwd->bv_len);
 
-	if (rc <= sizeof(SHA1digest)) {
+	if (rc < (int)(sizeof(SHA1digest)+SALT_SIZE)) {
 		ber_memfree(orig_pass);
 		return -1;
 	}
@@ -516,6 +529,11 @@ static int chk_sha1(
 	int rc;
 	unsigned char *orig_pass = NULL;
  
+	/* safety check */
+	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) < sizeof(SHA1digest)) {
+		return -1;
+	}
+
 	/* base64 un-encode password */
 	orig_pass = (unsigned char *) ber_memalloc( (size_t) (
 		LUTIL_BASE64_DECODE_LEN(passwd->bv_len) + 1) );
@@ -554,7 +572,8 @@ static int chk_smd5(
 	unsigned char *orig_pass = NULL;
 
 	/* safety check */
-	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) <= sizeof(MD5digest)) {
+	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) <
+		sizeof(MD5digest)+SALT_SIZE) {
 		return -1;
 	}
 
@@ -566,7 +585,7 @@ static int chk_smd5(
 
 	rc = lutil_b64_pton(passwd->bv_val, orig_pass, passwd->bv_len);
 
-	if (rc <= sizeof(MD5digest)) {
+	if (rc < (int)(sizeof(MD5digest)+SALT_SIZE)) {
 		ber_memfree(orig_pass);
 		return -1;
 	}
@@ -597,6 +616,11 @@ static int chk_md5(
 	unsigned char MD5digest[LUTIL_MD5_BYTES];
 	int rc;
 	unsigned char *orig_pass = NULL;
+
+	/* safety check */
+	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) < sizeof(MD5digest)) {
+		return -1;
+	}
 
 	/* base64 un-encode password */
 	orig_pass = (unsigned char *) ber_memalloc( (size_t) (
@@ -1163,7 +1187,7 @@ static struct berval *hash_ssha1(
 {
 	lutil_SHA1_CTX  SHA1context;
 	unsigned char   SHA1digest[LUTIL_SHA1_BYTES];
-	unsigned char   saltdata[4];
+	char            saltdata[SALT_SIZE];
 	struct berval digest;
 	struct berval salt;
 
@@ -1213,7 +1237,7 @@ static struct berval *hash_smd5(
 {
 	lutil_MD5_CTX   MD5context;
 	unsigned char   MD5digest[LUTIL_MD5_BYTES];
-	unsigned char   saltdata[4];
+	char            saltdata[SALT_SIZE];
 	struct berval digest;
 	struct berval salt;
 
