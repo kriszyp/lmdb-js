@@ -617,7 +617,7 @@ main( int argc, char **argv )
 		filtpattern = strdup( argv[optind++] );
 	}
 
-	if ( (argv[optind] != NULL) && (sortattr == NULL || *sortattr == '\0') ) {
+	if ( argv[optind] != NULL ) {
 		attrs = &argv[optind];
 	}
 
