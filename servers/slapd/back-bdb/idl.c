@@ -172,7 +172,7 @@ unsigned bdb_idl_search( ID *ids, ID id )
 
 int bdb_idl_insert( ID *ids, ID id )
 {
-	unsigned x = bdb_idl_search( ids, id );
+	unsigned x;
 
 #if IDL_DEBUG > 1
 #ifdef NEW_LOGGING
@@ -185,6 +185,15 @@ int bdb_idl_insert( ID *ids, ID id )
 	idl_check( ids );
 #endif
 
+	if (BDB_IDL_IS_RANGE( ids )) {
+		if (id < BDB_IDL_FIRST(ids))
+			ids[1] = id;
+		else if (id > BDB_IDL_LAST(ids))
+			ids[2] = id;
+		return 0;
+	}
+
+	x = bdb_idl_search( ids, id );
 	assert( x > 0 );
 
 	if( x < 1 ) {

@@ -142,7 +142,7 @@ dn2entry_retry:
 			0, 0 );
 #endif
 
-		send_ldap_error( op, LDAP_ALIAS_PROBLEM, "entry is alias");
+		send_ldap_error( op, rs, LDAP_ALIAS_PROBLEM, "entry is alias");
 
 		goto done;
 	}
