@@ -220,7 +220,7 @@ int slap_sasl_getdn( Connection *conn, char *id,
 
 		/* Build the new dn */
 		c1 = dn->bv_val;
-		dn->bv_val = ch_malloc( len );
+		dn->bv_val = ch_malloc( len+1 );
 		p = slap_strcopy( dn->bv_val, "uid=" );
 		p = slap_strcopy( p, c1 );
 		ch_free( c1 );
