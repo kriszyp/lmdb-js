@@ -249,8 +249,6 @@ OL_ARG_ENABLE(rwm,[    --enable-rwm       	  Rewrite/Remap overlay no|yes|mod], 
 	[no yes mod])
 OL_ARG_ENABLE(unique,[    --enable-unique       Attribute Uniqueness overlay no|yes|mod], no,
 	[no yes mod])
-OL_ARG_ENABLE(overlays,[    --enable-overlays     Enable all overlays no|yes|mod (overrides above)], "",
-	["" no yes mod])
 
 
 dnl ----------------------------------------------------------------
@@ -2633,13 +2631,6 @@ if test "$ol_link_sql" != no ; then
 		MFLAG=SLAPD_MOD_STATIC
 	fi
 	AC_DEFINE_UNQUOTED(SLAPD_SQL,$MFLAG,[define to support SQL backend])
-fi
-
-dnl enable all overlays
-if test "x$ol_enable_overlays" != "x" ; then
-	for i in $Overlays; do
-		eval "ol_enable_$i=$ol_enable_overlays"
-	done
 fi
 
 if test "$ol_enable_chain" != no ; then
