@@ -107,7 +107,7 @@ Note that the parameter number and order must not be changed.
 Specifies the name of a function that converts a given value to uppercase.
 This is used for CIS matching when the RDBMS is case sensitive.
 .TP
-.B upper_needs_cast { yes | no }
+.B upper_needs_cast { NO | yes}
 Set this directive to 
 .B yes
 if 
@@ -151,7 +151,7 @@ This is
 .B experimental 
 and may change in future releases.
 .TP
-.B has_ldapinfo_dn_ru { yes | no }
+.B has_ldapinfo_dn_ru { NO | yes }
 Explicitly inform the backend whether the SQL schema has dn_ru column
 (dn in reverse uppercased form) or not.
 Overrides automatic check (required by PostgreSQL/unixODBC).
@@ -160,7 +160,7 @@ This is
 and may change in future releases.
 
 .TP
-.B fail_if_no_mapping { yes | no }
+.B fail_if_no_mapping { NO | yes }
 When set to
 .B yes
 it forces
@@ -177,6 +177,37 @@ in ldap_oc_mappings, an
 operation will fail regardless of the
 .B fail_if_no_mapping
 switch; see section "METAINFORMATION USED" for details.
+This is
+.B experimental 
+and may change in future releases.
+
+.TP
+.B allow_orphans { NO | yes }
+When set to 
+.B yes
+orphaned entries (i.e. without the parent entry in the database)
+can be added.  This option should be used with care, possibly 
+in conjunction with some special rule on the RDBMS side that
+dynamically creates the missing parent.
+
+.TP
+.B baseObject [filename]
+Instructs the database to create and manage an in-memory baseObject
+entry instead of looking for one in the RDBMS.
+If the (optional) 
+.B filename
+argument is given, the entry is read from file
+.B filename
+in
+.BR LDIF (5)
+form.
+This is particularly useful when
+.B ldap_entries 
+information is stored in a view rather than in a table, and 
+.B union
+is not supported for views, so that the view can only specify
+one rule to compute the entry structure for one objectClass.
+This topic is discussed further in section "METAINFORMATION USED".
 This is
 .B experimental 
 and may change in future releases.
@@ -369,13 +400,26 @@ like this (by Robin Elfrink):
 .LP
 .nf
   CREATE VIEW ldap_entries (id, dn, oc_map_id, parent, keyval)
-      AS SELECT (1000000000+userid),
+      AS
+          SELECT 0, UPPER('o=MyCompany,c=NL'),
+  3, 0, 'baseObject' FROM unixusers WHERE userid='root' UNION
+          SELECT (1000000000+userid),
   UPPER(CONCAT(CONCAT('cn=',gecos),',o=MyCompany,c=NL')),
   1, 0, userid FROM unixusers UNION
           SELECT (2000000000+groupnummer),
   UPPER(CONCAT(CONCAT('cn=',groupnaam),',o=MyCompany,c=NL')),
   2, 0, groupnummer FROM groups;
 .fi
+
+.LP
+If your RDBMS does not support
+.B unions
+in views, only one objectClass can be mapped in
+.BR ldap_entries ,
+and the baseObject cannot be created; in this case, see the 
+.B baseObject
+directive for a possible workaround.
+
 .LP
 .SH Typical SQL backend operation
 Having metainformation loaded, the SQL backend uses these tables to

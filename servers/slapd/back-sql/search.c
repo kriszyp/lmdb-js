@@ -184,6 +184,8 @@ backsql_init_search(
 	bsi->bsi_filter_oc = NULL;
 
 	if ( get_base_id ) {
+		assert( op->o_bd->be_private );
+
 		rc = backsql_dn2id( (backsql_info *)op->o_bd->be_private,
 				&bsi->bsi_base_id, dbh, base );
 	}
@@ -1393,12 +1395,27 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 	backsql_BindRowAsStrings( sth, &row );
 	rc = SQLFetch( sth );
 	for ( ; BACKSQL_SUCCESS( rc ); rc = SQLFetch( sth ) ) {
-		struct berval		dn;
+		struct berval		dn, ndn;
 		backsql_entryID		*c_id = NULL;
+		int			ret;
 
 		ber_str2bv( row.cols[ 3 ], 0, 0, &dn );
 
 		if ( backsql_api_odbc2dn( bsi->bsi_op, bsi->bsi_rs, &dn ) ) {
+			continue;
+		}
+
+		ret = dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL );
+		if ( dn.bv_val != row.cols[ 3 ] ) {
+			free( dn.bv_val );
+		}
+
+		if ( ret != LDAP_SUCCESS ) {
+			continue;
+		}
+
+		if ( bi->sql_baseObject && bvmatch( &ndn, &bi->sql_baseObject->e_nname ) ) {
+			free( ndn.bv_val );
 			continue;
 		}
 
@@ -1413,10 +1430,10 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 		c_id->eid_oc_id = bsi->bsi_oc->bom_id;
 
-		if ( dn.bv_val == row.cols[ 3 ] ) {
-			ber_dupbv( &c_id->eid_dn, &dn );
+		if ( ndn.bv_val == row.cols[ 3 ] ) {
+			ber_dupbv( &c_id->eid_dn, &ndn );
 		} else {
-			c_id->eid_dn = dn;
+			c_id->eid_dn = ndn;
 		}
 
 		/* append at end of list ... */
@@ -1459,7 +1476,7 @@ backsql_search( Operation *op, SlapReply *rs )
 	Entry			user_entry = { 0 };
 	int			manageDSAit;
 	time_t			stoptime = 0;
-	backsql_srch_info	srch_info;
+	backsql_srch_info	bsi;
 	backsql_entryID		*eid = NULL;
 	struct berval		base;
 
@@ -1504,7 +1521,7 @@ backsql_search( Operation *op, SlapReply *rs )
 	/* compute it anyway; root does not use it */
 	stoptime = op->o_time + op->ors_tlimit;
 
-	base = op->o_req_dn;
+	base = op->o_req_ndn;
 	if ( backsql_api_dn2odbc( op, rs, &base ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
 			"backsql_api_dn2odbc failed\n", 
@@ -1516,7 +1533,7 @@ backsql_search( Operation *op, SlapReply *rs )
 	}
 
 	/* init search */
-	rs->sr_err = backsql_init_search( &srch_info, &base,
+	rs->sr_err = backsql_init_search( &bsi, &base,
 			op->ors_scope,
 			op->ors_slimit, op->ors_tlimit,
 			stoptime, op->ors_filter,
@@ -1526,20 +1543,47 @@ backsql_search( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	/*
-	 * for each objectclass we try to construct query which gets IDs
-	 * of entries matching LDAP query filter and scope (or at least 
-	 * candidates), and get the IDs
-	 */
-	srch_info.bsi_n_candidates =
-		( op->ors_limit == NULL	/* isroot == FALSE */ ? -2 : 
+	bsi.bsi_n_candidates =
+		( op->ors_limit == NULL	/* isroot == TRUE */ ? -2 : 
 		( op->ors_limit->lms_s_unchecked == -1 ? -2 :
 		( op->ors_limit->lms_s_unchecked ) ) );
-	avl_apply( bi->sql_oc_by_oc, backsql_oc_get_candidates,
-			&srch_info, BACKSQL_AVL_STOP, AVL_INORDER );
-	if ( op->ors_limit != NULL	/* isroot == TRUE */
+
+	switch ( bsi.bsi_scope ) {
+	case LDAP_SCOPE_BASE:
+	case BACKSQL_SCOPE_BASE_LIKE:
+		/*
+		 * probably already found...
+		 */
+		bsi.bsi_id_list = &bsi.bsi_base_id;
+		bsi.bsi_id_listtail = &bsi.bsi_base_id.eid_next;
+		break;
+
+	case LDAP_SCOPE_SUBTREE:
+		/*
+		 * if baseObject is defined, and if it is the root 
+		 * of the search, add it to the candidate list
+		 */
+		if ( bi->sql_baseObject && BACKSQL_IS_BASEOBJECT_ID( &bsi.bsi_base_id.eid_id ) )
+		{
+			bsi.bsi_id_list = &bsi.bsi_base_id;
+			bsi.bsi_id_listtail = &bsi.bsi_base_id.eid_next;
+		}
+
+		/* FALLTHRU */
+	default:
+
+		/*
+		 * for each objectclass we try to construct query which gets IDs
+		 * of entries matching LDAP query filter and scope (or at least 
+		 * candidates), and get the IDs
+		 */
+		avl_apply( bi->sql_oc_by_oc, backsql_oc_get_candidates,
+				&bsi, BACKSQL_AVL_STOP, AVL_INORDER );
+	}
+
+	if ( op->ors_limit != NULL	/* isroot == FALSE */
 			&& op->ors_limit->lms_s_unchecked != -1
-			&& srch_info.bsi_n_candidates == -1 )
+			&& bsi.bsi_n_candidates == -1 )
 	{
 		rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 		send_ldap_result( op, rs );
@@ -1549,15 +1593,16 @@ backsql_search( Operation *op, SlapReply *rs )
 	/*
 	 * now we load candidate entries (only those attributes 
 	 * mentioned in attrs and filter), test it against full filter 
-	 * and then send to client
+	 * and then send to client; don't free entry_id if baseObject...
 	 */
-	for ( eid = srch_info.bsi_id_list;
+	for ( eid = bsi.bsi_id_list;
 			eid != NULL; 
-			eid = backsql_free_entryID( eid, 1 ) )
+			eid = backsql_free_entryID( eid, eid == &bsi.bsi_base_id ? 0 : 1 ) )
 	{
 		int		rc;
 		Attribute	*hasSubordinate = NULL,
 				*a = NULL;
+		Entry		*e = NULL;
 
 		/* check for abandon */
 		if ( op->o_abandon ) {
@@ -1588,20 +1633,28 @@ backsql_search( Operation *op, SlapReply *rs )
 			eid->eid_id, eid->eid_oc_id, eid->eid_keyval );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
-		srch_info.bsi_e = &user_entry;
-		rc = backsql_id2entry( &srch_info, eid );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
-				"error %d in backsql_id2entry() "
-				"- skipping\n", rc, 0, 0 );
-			continue;
+		/* don't recollect baseObject ... */
+		if ( BACKSQL_IS_BASEOBJECT_ID( &eid->eid_id ) ) {
+			e = bi->sql_baseObject;
+
+		} else {
+			bsi.bsi_e = &user_entry;
+			rc = backsql_id2entry( &bsi, eid );
+			if ( rc != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
+					"error %d in backsql_id2entry() "
+					"- skipping\n", rc, 0, 0 );
+				continue;
+			}
+
+			e = &user_entry;
 		}
 
 		/* check scope */
 		switch ( op->ors_scope ) {
 		case LDAP_SCOPE_BASE:
 		case BACKSQL_SCOPE_BASE_LIKE:
-			if ( !bvmatch( &user_entry.e_nname, &op->o_req_ndn ) ) {
+			if ( !bvmatch( &e->e_nname, &op->o_req_ndn ) ) {
 				goto next_entry;
 			}
 			break;
@@ -1617,7 +1670,7 @@ backsql_search( Operation *op, SlapReply *rs )
 		}
 
 		case LDAP_SCOPE_SUBTREE:
-			if ( !dnIsSuffix( &user_entry.e_nname, &op->o_req_ndn ) ) {
+			if ( !dnIsSuffix( &e->e_nname, &op->o_req_ndn ) ) {
 				goto next_entry;
 			}
 			break;
@@ -1626,23 +1679,23 @@ backsql_search( Operation *op, SlapReply *rs )
 		if ( !manageDSAit &&
 				op->ors_scope != LDAP_SCOPE_BASE &&
 				op->ors_scope != BACKSQL_SCOPE_BASE_LIKE &&
-				is_entry_referral( &user_entry ) )
+				is_entry_referral( e ) )
 		{
 			BerVarray refs;
 
-			refs = get_entry_referrals( op, &user_entry );
+			refs = get_entry_referrals( op, e );
 			if ( !refs ) {
-				backsql_srch_info	srch_info2 = { 0 };
+				backsql_srch_info	bsi2 = { 0 };
 				Entry			user_entry2 = { 0 };
 
 				/* retry with the full entry... */
-				(void)backsql_init_search( &srch_info2,
-						&user_entry.e_name,
+				(void)backsql_init_search( &bsi2,
+						&e->e_nname,
 						LDAP_SCOPE_BASE, 
 						-1, -1, -1, NULL,
 						dbh, op, rs, NULL, 0 );
-				srch_info2.bsi_e = &user_entry2;
-				rc = backsql_id2entry( &srch_info2, eid );
+				bsi2.bsi_e = &user_entry2;
+				rc = backsql_id2entry( &bsi2, eid );
 				if ( rc == LDAP_SUCCESS ) {
 					if ( is_entry_referral( &user_entry2 ) )
 					{
@@ -1655,7 +1708,7 @@ backsql_search( Operation *op, SlapReply *rs )
 
 			if ( refs ) {
 				rs->sr_ref = referral_rewrite( refs,
-						&user_entry.e_name,
+						&e->e_name,
 						&op->o_req_dn,
 						op->ors_scope );
 				ber_bvarray_free( refs );
@@ -1681,8 +1734,8 @@ backsql_search( Operation *op, SlapReply *rs )
 		 * anyway; we should have used the frontend API function
 		 * filter_has_subordinates()
 		 */
-		if ( srch_info.bsi_flags & BSQL_SF_FILTER_HASSUBORDINATE ) {
-			rc = backsql_has_children( bi, dbh, &user_entry.e_nname );
+		if ( bsi.bsi_flags & BSQL_SF_FILTER_HASSUBORDINATE ) {
+			rc = backsql_has_children( bi, dbh, &e->e_nname );
 
 			switch ( rc ) {
 			case LDAP_COMPARE_TRUE:
@@ -1708,9 +1761,9 @@ backsql_search( Operation *op, SlapReply *rs )
 			}
 		}
 
-		if ( test_filter( op, &user_entry, op->ors_filter )
+		if ( test_filter( op, e, op->ors_filter )
 				== LDAP_COMPARE_TRUE ) {
-			if ( hasSubordinate && !( srch_info.bsi_flags & BSQL_SF_ALL_OPER ) 
+			if ( hasSubordinate && !( bsi.bsi_flags & BSQL_SF_ALL_OPER ) 
 					&& !ad_inlist( slap_schema.si_ad_hasSubordinates, op->ors_attrs ) ) {
 				a->a_next = NULL;
 				attr_free( hasSubordinate );
@@ -1719,8 +1772,10 @@ backsql_search( Operation *op, SlapReply *rs )
 
 			rs->sr_attrs = op->ors_attrs;
 			rs->sr_operational_attrs = NULL;
-			rs->sr_entry = &user_entry;
-			rs->sr_flags = REP_ENTRY_MODIFIABLE;
+			rs->sr_entry = e;
+			if ( e == &user_entry ) {
+				rs->sr_flags = REP_ENTRY_MODIFIABLE;
+			}
 			sres = send_search_entry( op, rs );
 			rs->sr_entry = NULL;
 			rs->sr_attrs = NULL;
@@ -1764,7 +1819,7 @@ end_of_search:;
 			: LDAP_REFERRAL;
 
 	} else {
-		rs->sr_err = srch_info.bsi_status;
+		rs->sr_err = bsi.bsi_status;
 	}
 	send_ldap_result( op, rs );
 
@@ -1774,12 +1829,12 @@ end_of_search:;
 	}
 
 done:;
-	if ( !BER_BVISNULL( &srch_info.bsi_base_id.eid_dn ) ) {
-		(void)backsql_free_entryID( &srch_info.bsi_base_id, 0 );
+	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_dn ) ) {
+		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
 	}
 
-	if ( srch_info.bsi_attrs ) {
-		ch_free( srch_info.bsi_attrs );
+	if ( bsi.bsi_attrs ) {
+		ch_free( bsi.bsi_attrs );
 	}
 
 	if ( base.bv_val != op->o_req_ndn.bv_val ) {

@@ -27,7 +27,19 @@
 #include <sys/types.h>
 
 #include "slap.h"
+#include "ldif.h"
 #include "proto-sql.h"
+
+static int
+create_baseObject(
+	BackendDB	*be,
+	const char	*fname,
+	int		lineno );
+
+static int
+read_baseObject(
+	BackendDB	*be,
+	const char	*fname );
 
 int
 backsql_db_config(
@@ -389,6 +401,39 @@ backsql_db_config(
 			"allow_orphans=%s\n", 
 			BACKSQL_ALLOW_ORPHANS( bi ) ? "yes" : "no", 0, 0 );
 
+	} else if ( !strcasecmp( argv[ 0 ], "baseobject" ) ) {
+		if ( be->be_suffix == NULL ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): : "
+				"must be defined after \"suffix\"\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( bi->sql_baseObject ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): : "
+				"\"baseObject\" already provided (will be overwritten)\n",
+				fname, lineno, 0 );
+			entry_free( bi->sql_baseObject );
+		}
+	
+		switch ( argc ) {
+		case 1:
+			return create_baseObject( be, fname, lineno );
+
+		case 2:
+			return read_baseObject( be, argv[ 1 ] );
+
+		default:
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"trailing values "
+				"in \"baseObject\" directive?\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
 	} else if ( !strcasecmp( argv[ 0 ], "sqllayer") ) {
 		if ( backsql_api_config( bi, argv[ 1 ] ) ) {
 			Debug( LDAP_DEBUG_TRACE,
@@ -401,6 +446,208 @@ backsql_db_config(
 	} else {
 		return SLAP_CONF_UNKNOWN;
 	}
+
+	return 0;
+}
+
+/*
+ * Read the entries specified in fname and merge the attributes
+ * to the user defined baseObject entry. Note that if we find any errors
+ * what so ever, we will discard the entire entries, print an
+ * error message and return.
+ */
+static int
+read_baseObject( 
+	BackendDB	*be,
+	const char	*fname )
+{
+	backsql_info 	*bi = (backsql_info *)be->be_private;
+	FILE		*fp;
+	int		rc = 0, lineno = 0, lmax = 0;
+	char		*buf = NULL;
+
+	assert( fname );
+
+	fp = fopen( fname, "r" );
+	if ( fp == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"could not open back-sql baseObject attr file \"%s\" - absolute path?\n",
+			fname, 0, 0 );
+		perror( fname );
+		return LDAP_OTHER;
+	}
+
+	bi->sql_baseObject = (Entry *) SLAP_CALLOC( 1, sizeof(Entry) );
+	if ( bi->sql_baseObject == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"read_baseObject_file: SLAP_CALLOC failed", 0, 0, 0 );
+		fclose( fp );
+		return LDAP_NO_MEMORY;
+	}
+	bi->sql_baseObject->e_name = be->be_suffix[0];
+	bi->sql_baseObject->e_nname = be->be_nsuffix[0];
+	bi->sql_baseObject->e_attrs = NULL;
+
+	while ( ldif_read_record( fp, &lineno, &buf, &lmax ) ) {
+		Entry		*e = str2entry( buf );
+		Attribute	*a;
+
+		if( e == NULL ) {
+			fprintf( stderr, "back-sql baseObject: could not parse entry (line=%d)\n",
+				lineno );
+			rc = LDAP_OTHER;
+			break;
+		}
+
+		/* make sure the DN is the database's suffix */
+		if ( !be_issuffix( be, &e->e_nname ) ) {
+			fprintf( stderr,
+				"back-sql: invalid baseObject - dn=\"%s\" (line=%d)\n",
+				e->e_dn, lineno );
+			entry_free( e );
+			rc = EXIT_FAILURE;
+			break;
+		}
+
+		/*
+		 * we found a valid entry, so walk thru all the attributes in the
+		 * entry, and add each attribute type and description to baseObject
+		 */
+		for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+			if ( attr_merge( bi->sql_baseObject, a->a_desc, a->a_vals,
+				( a->a_nvals == a->a_vals ) ? NULL : a->a_nvals ) )
+			{
+				rc = LDAP_OTHER;
+				break;
+			}
+		}
+
+		entry_free( e );
+		if ( rc ) {
+			break;
+		}
+	}
+
+	if ( rc ) {
+		entry_free( bi->sql_baseObject );
+		bi->sql_baseObject = NULL;
+	}
+
+	ch_free( buf );
+
+	fclose( fp );
+
+	Debug( LDAP_DEBUG_CONFIG, "back-sql baseObject file \"%s\" read.\n", fname, 0, 0 );
+
+	return rc;
+}
+
+static int
+create_baseObject(
+	BackendDB	*be,
+	const char	*fname,
+	int		lineno )
+{
+	backsql_info 	*bi = (backsql_info *)be->be_private;
+	LDAPRDN		rdn;
+	char		*p;
+	int		rc, iAVA;
+	char		buf[1024];
+
+	snprintf( buf, sizeof(buf),
+			"dn: %s\n"
+			"objectClass: extensibleObject\n"
+			"description: builtin baseObject for back-sql\n"
+			"description: all entries mapped in the \"ldap_entries\" table\n"
+			"description: must have \"" BACKSQL_BASEOBJECT_IDSTR "\" "
+				"in the \"parent\" column",
+			be->be_suffix[0].bv_val );
+
+	bi->sql_baseObject = str2entry( buf );
+	if ( bi->sql_baseObject == NULL ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"<==backsql_db_config (%s line %d): "
+			"unable to parse baseObject entry\n",
+			fname, lineno, 0 );
+		return 1;
+	}
+
+	if ( BER_BVISEMPTY( &be->be_suffix[ 0 ] ) ) {
+		return 0;
+	}
+
+	rc = ldap_bv2rdn( &be->be_suffix[ 0 ], &rdn, (char **) &p, LDAP_DN_FORMAT_LDAP );
+	if ( rc != LDAP_SUCCESS ) {
+		snprintf( buf, sizeof(buf),
+			"unable to extract RDN from baseObject DN \"%s\" (%d: %s)",
+			be->be_suffix[ 0 ].bv_val, rc, ldap_err2string( rc ) );
+		Debug( LDAP_DEBUG_TRACE,
+			"<==backsql_db_config (%s line %d): %s\n",
+			fname, lineno, buf );
+		return 1;
+	}
+
+	for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
+		LDAPAVA				*ava = rdn[ iAVA ];
+		AttributeDescription		*ad = NULL;
+		slap_syntax_transform_func	*transf = NULL;
+		struct berval			bv = BER_BVNULL;
+		const char			*text = NULL;
+
+		assert( ava );
+
+		rc = slap_bv2ad( &ava->la_attr, &ad, &text );
+		if ( rc != LDAP_SUCCESS ) {
+			snprintf( buf, sizeof(buf),
+				"AttributeDescription of naming "
+				"attribute #%d from baseObject "
+				"DN \"%s\": %d: %s",
+				iAVA, be->be_suffix[ 0 ].bv_val,
+				rc, ldap_err2string( rc ) );
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): %s\n",
+				fname, lineno, buf );
+			return 1;
+		}
+		
+		transf = ad->ad_type->sat_syntax->ssyn_pretty;
+		if ( transf ) {
+			/*
+	 		 * transform value by pretty function
+			 *	if value is empty, use empty_bv
+			 */
+			rc = ( *transf )( ad->ad_type->sat_syntax,
+				ava->la_value.bv_len
+					? &ava->la_value
+					: (struct berval *) &slap_empty_bv,
+				&bv, NULL );
+	
+			if ( rc != LDAP_SUCCESS ) {
+				snprintf( buf, sizeof(buf),
+					"prettying of attribute #%d from baseObject "
+					"DN \"%s\" failed: %d: %s",
+					iAVA, be->be_suffix[ 0 ].bv_val,
+					rc, ldap_err2string( rc ) );
+				Debug( LDAP_DEBUG_TRACE,
+					"<==backsql_db_config (%s line %d): %s\n",
+					fname, lineno, buf );
+				return 1;
+			}
+		}
+
+		if ( !BER_BVISNULL( &bv ) ) {
+			if ( ava->la_flags & LDAP_AVA_FREE_VALUE ) {
+				ber_memfree( ava->la_value.bv_val );
+			}
+			ava->la_value = bv;
+			ava->la_flags |= LDAP_AVA_FREE_VALUE;
+		}
+
+		attr_merge_normalize_one( bi->sql_baseObject,
+				ad, &ava->la_value, NULL );
+	}
+
+	ldap_rdnfree( rdn );
 
 	return 0;
 }

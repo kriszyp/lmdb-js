@@ -58,7 +58,7 @@ backsql_compare( Operation *op, SlapReply *rs )
 		goto return_results;
 	}
 
-	dn = op->o_req_dn;
+	dn = op->o_req_ndn;
 	if ( backsql_api_dn2odbc( op, rs, &dn ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
 			"backsql_api_dn2odbc failed\n", 

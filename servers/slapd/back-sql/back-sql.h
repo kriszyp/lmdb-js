@@ -357,6 +357,19 @@ typedef struct {
 	(!BER_BVISNULL( &(si)->sql_upper_func ))
 #define BACKSQL_ALLOW_ORPHANS(si) \
 	((si)->sql_flags & BSQLF_ALLOW_ORPHANS)
+
+	Entry		*sql_baseObject;
+#ifdef BACKSQL_ARBITRARY_KEY
+#define BACKSQL_BASEOBJECT_IDSTR	"baseObject"
+#define BACKSQL_BASEOBJECT_KEYVAL	BACKSQL_BASEOBJECT_IDSTR
+#define	BACKSQL_IS_BASEOBJECT_ID(id)	(bvmatch((id), &backsql_baseObject_bv)
+#else /* ! BACKSQL_ARBITRARY_KEY */
+#define BACKSQL_BASEOBJECT_ID		0
+#define BACKSQL_BASEOBJECT_IDSTR	"0"
+#define BACKSQL_BASEOBJECT_KEYVAL	0
+#define	BACKSQL_IS_BASEOBJECT_ID(id)	(*(id) == BACKSQL_BASEOBJECT_ID)
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+#define BACKSQL_BASEOBJECT_OC		0
 	
 	Avlnode		*sql_db_conns;
 	Avlnode		*sql_oc_by_oc;

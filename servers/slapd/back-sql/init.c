@@ -163,6 +163,11 @@ backsql_db_destroy(
 	free( bi->sql_delentry_query );
 	free( bi->sql_delobjclasses_query );
 	free( bi->sql_delreferrals_query );
+
+	if ( bi->sql_baseObject ) {
+		entry_free( bi->sql_baseObject );
+	}
+	
 	free( bi );
 	
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_db_destroy()\n", 0, 0, 0 );

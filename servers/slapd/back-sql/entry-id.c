@@ -29,6 +29,10 @@
 #include "slap.h"
 #include "proto-sql.h"
 
+#ifdef BACKSQL_ARBITRARY_KEY
+struct berval backsql_baseObject_bv = BER_BVC( BACKSQL_BASEOBJECT_IDSTR );
+#endif /* BACKSQL_ARBITRARY_KEY */
+
 backsql_entryID *
 backsql_free_entryID( backsql_entryID *id, int freeit )
 {
@@ -40,15 +44,18 @@ backsql_free_entryID( backsql_entryID *id, int freeit )
 
 	if ( id->eid_dn.bv_val != NULL ) {
 		free( id->eid_dn.bv_val );
+		BER_BVZERO( &id->eid_dn );
 	}
 
 #ifdef BACKSQL_ARBITRARY_KEY
 	if ( id->eid_id.bv_val ) {
 		free( id->eid_id.bv_val );
+		BER_BVZERO( &id->eid_id );
 	}
 
 	if ( id->eid_keyval.bv_val ) {
 		free( id->eid_keyval.bv_val );
+		BER_BVZERO( &id->eid_keyval );
 	}
 #endif /* BACKSQL_ARBITRARY_KEY */
 
@@ -93,9 +100,29 @@ backsql_dn2id(
 			dn->bv_val, dn->bv_len, BACKSQL_MAX_DN_LEN );
 		return LDAP_OTHER;
 	}
+
+	/* return baseObject if available and matches */
+	if ( bi->sql_baseObject != NULL && bvmatch( dn, &bi->sql_baseObject->e_nname ) ) {
+		if ( id != NULL ) {
+#ifdef BACKSQL_ARBITRARY_KEY
+			ber_dupbv( &id->eid_id, &backsql_baseObject_bv );
+			ber_dupbv( &id->eid_keyval, &backsql_baseObject_bv );
+#else /* ! BACKSQL_ARBITRARY_KEY */
+			id->eid_id = BACKSQL_BASEOBJECT_ID;
+			id->eid_keyval = BACKSQL_BASEOBJECT_KEYVAL;
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+			id->eid_oc_id = BACKSQL_BASEOBJECT_OC;
+
+			ber_dupbv( &id->eid_dn, &bi->sql_baseObject->e_nname );
+
+			id->eid_next = NULL;
+		}
+
+		return LDAP_SUCCESS;
+	}
 	
 	/* begin TimesTen */
-	Debug(LDAP_DEBUG_TRACE, "id_query \"%s\"\n", bi->sql_id_query, 0, 0);
+	Debug( LDAP_DEBUG_TRACE, "id_query \"%s\"\n", bi->sql_id_query, 0, 0 );
 	assert( bi->sql_id_query );
  	rc = backsql_Prepare( dbh, &sth, bi->sql_id_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
@@ -405,6 +432,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 int
 backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 {
+	backsql_info		*bi = (backsql_info *)bsi->bsi_op->o_bd->be_private;
 	int			i;
 	int			rc;
 	AttributeDescription	*ad_oc = slap_schema.si_ad_objectClass;
@@ -414,6 +442,19 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 	assert( bsi->bsi_e );
 
 	memset( bsi->bsi_e, 0, sizeof( Entry ) );
+
+	if ( bi->sql_baseObject && BACKSQL_IS_BASEOBJECT_ID( &eid->eid_id ) ) {
+		Entry	*e;
+
+		e = entry_dup( bi->sql_baseObject );
+		if ( e == NULL ) {
+			return LDAP_NO_MEMORY;
+		}
+			
+		*bsi->bsi_e = *e;
+		free( e );
+		goto done;
+	}
 
 	rc = dnPrettyNormal( NULL, &eid->eid_dn,
 			&bsi->bsi_e->e_name, &bsi->bsi_e->e_nname,
@@ -528,6 +569,7 @@ next:;
 		}
 	}
 
+done:;
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_id2entry()\n", 0, 0, 0 );
 
 	return LDAP_SUCCESS;

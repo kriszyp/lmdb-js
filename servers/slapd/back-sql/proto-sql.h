@@ -105,6 +105,9 @@ int backsql_api_odbc2dn( Operation *op, SlapReply *rs, struct berval *dn );
 /*
  * entry-id.c
  */
+#ifdef BACKSQL_ARBITRARY_KEY
+extern struct berval	backsql_baseObject_bv;
+#endif /* BACKSQL_ARBITRARY_KEY */
 
 /* stores in *id the ID in table ldap_entries corresponding to DN, if any */
 int backsql_dn2id( backsql_info *bi, backsql_entryID *id,
