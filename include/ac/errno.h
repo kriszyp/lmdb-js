@@ -36,6 +36,4 @@
 	((err) > -1 && (err) < sys_nerr ? sys_errlist[(err)] : "unknown")
 #endif
 
-LIBC_F (char *) strerror_r();
-    
 #endif /* _AC_ERRNO_H */
