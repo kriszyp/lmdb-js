@@ -2027,7 +2027,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'Integer' )",
 		0, integerValidate, integerNormalize, integerPretty},
 	{"( 1.3.6.1.4.1.1466.115.121.1.28 DESC 'JPEG' " X_NOT_H_R ")",
-		SLAP_SYNTAX_BLOB, NULL, NULL, NULL},
+		SLAP_SYNTAX_BLOB, blobValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.29 DESC 'Master And Shadow Access Points' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.30 DESC 'Matching Rule Description' )",
