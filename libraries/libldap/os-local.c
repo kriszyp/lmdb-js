@@ -216,14 +216,40 @@ sendcred:
 #endif
 
 #ifdef HAVE_POLL
-		assert(0);
+	{
+		struct pollfd fd;
+		int timeout = INFTIM;
+
+		if( opt_tv != NULL ) timeout = TV2MILLISEC( &tv );
+
+		fd.fd = s;
+		fd.events = POLLOUT;
+
+		do {
+			fd.revents = 0;
+			rc = poll( &fd, 1, timeout );
+		} while( rc == AC_SOCKET_ERROR && errno == EINTR &&
+			LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART ));
+
+		if( rc == AC_SOCKET_ERROR ) return rc;
+
+		if( fd.revents & POLLOUT ) {
+			if ( ldap_pvt_is_socket_ready(ld, s) == -1 ) return -1;
+			if ( ldap_pvt_ndelay_off(ld, s) == -1 ) return -1;
+#ifdef DO_SENDMSG
+			goto sendcred;
+#else
+			return ( 0 );
+#endif
+		}
+	}
 #else
 	{
-		fd_set		wfds, *z=NULL;
-		FD_ZERO(&wfds);
-		FD_SET(s, &wfds );
+		fd_set wfds, *z=NULL;
 
 		do { 
+			FD_ZERO(&wfds);
+			FD_SET(s, &wfds );
 			rc = select( ldap_int_tblsize, z, &wfds, z, opt_tv ? &tv : NULL );
 		} while( rc == AC_SOCKET_ERROR && errno == EINTR &&
 			LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART ));

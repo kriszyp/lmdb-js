@@ -42,6 +42,9 @@
 #define SASL_MIN_BUFF_SIZE	4096
 #endif
 
+#undef TV2MILLISEC
+#define TV2MILLISEC(tv) (((tv)->sec * 1000) + ((tv)->tv_usec/1000))
+
 /* 
  * Support needed if the library is running in the kernel
  */

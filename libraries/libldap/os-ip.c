@@ -210,12 +210,6 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 {
 	int rc;
 	struct timeval	tv, *opt_tv=NULL;
-#ifndef HAVE_POLL
-	fd_set		wfds, *z=NULL;
-#ifdef HAVE_WINSOCK
-	fd_set		efds;
-#endif
-#endif
 
 #ifdef LDAP_CONNECTIONLESS
 	/* We could do a connect() but that would interfere with
@@ -259,60 +253,86 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 #endif
 
 #ifdef HAVE_POLL
-	assert(0);
-#else
-	FD_ZERO(&wfds);
-	FD_SET(s, &wfds );
+	{
+		struct pollfd fd;
+		int timeout = INFTIM;
 
-#ifdef HAVE_WINSOCK
-	FD_ZERO(&efds);
-	FD_SET(s, &efds );
-#endif
+		if( opt_tv != NULL ) timeout = TV2MILLISEC( &tv );
 
-	do {
-		rc = select(ldap_int_tblsize, z, &wfds,
-#ifdef HAVE_WINSOCK
-			&efds,
-#else
-			z,
-#endif
-			opt_tv ? &tv : NULL);
-	} while( rc == AC_SOCKET_ERROR && errno == EINTR &&
-		LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART ));
+		fd.fd = s;
+		fd.events = POLLOUT;
 
-	if( rc == AC_SOCKET_ERROR ) return rc;
+		do {
+			fd.revents = 0;
+			rc = poll( &fd, 1, timeout );
+		} while( rc == AC_SOCKET_ERROR && errno == EINTR &&
+			LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART ));
 
-#ifdef HAVE_WINSOCK
-	/* This means the connection failed */
-	if ( FD_ISSET(s, &efds) ) {
-	    int so_errno;
-	    int dummy = sizeof(so_errno);
-	    if ( getsockopt( s, SOL_SOCKET, SO_ERROR,
-			(char *) &so_errno, &dummy ) == AC_SOCKET_ERROR || !so_errno )
-	    {
-	    	/* impossible */
-	    	so_errno = WSAGetLastError();
-	    }
-	    ldap_pvt_set_errno(so_errno);
-	    osip_debug(ld, "ldap_pvt_connect: error on socket %d: "
-		       "errno: %d (%s)\n", s, errno, sock_errstr(errno));
-	    return -1;
+		if( rc == AC_SOCKET_ERROR ) return rc;
+
+		if( fd.revents & POLLOUT ) {
+			if ( ldap_pvt_is_socket_ready(ld, s) == -1 ) return -1;
+			if ( ldap_pvt_ndelay_off(ld, s) == -1 ) return -1;
+			return ( 0 );
+		}
 	}
+#else
+	{
+		fd_set		wfds, *z=NULL;
+#ifdef HAVE_WINSOCK
+		fd_set		efds;
 #endif
-	if ( FD_ISSET(s, &wfds) ) {
+		FD_ZERO(&wfds);
+		FD_SET(s, &wfds );
+
+#ifdef HAVE_WINSOCK
+		FD_ZERO(&efds);
+		FD_SET(s, &efds );
+#endif
+
+		do {
+			rc = select(ldap_int_tblsize, z, &wfds,
+#ifdef HAVE_WINSOCK
+				&efds,
+#else
+				z,
+#endif
+				opt_tv ? &tv : NULL);
+		} while( rc == AC_SOCKET_ERROR && errno == EINTR &&
+			LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART ));
+
+		if( rc == AC_SOCKET_ERROR ) return rc;
+
+#ifdef HAVE_WINSOCK
+		/* This means the connection failed */
+		if ( FD_ISSET(s, &efds) ) {
+		    int so_errno;
+		    int dummy = sizeof(so_errno);
+		    if ( getsockopt( s, SOL_SOCKET, SO_ERROR,
+				(char *) &so_errno, &dummy ) == AC_SOCKET_ERROR || !so_errno )
+		    {
+		    	/* impossible */
+		    	so_errno = WSAGetLastError();
+		    }
+		    ldap_pvt_set_errno(so_errno);
+		    osip_debug(ld, "ldap_pvt_connect: error on socket %d: "
+			       "errno: %d (%s)\n", s, errno, sock_errstr(errno));
+		    return -1;
+		}
+#endif
+		if ( FD_ISSET(s, &wfds) ) {
 #ifndef HAVE_WINSOCK
-		if ( ldap_pvt_is_socket_ready(ld, s) == -1 )
-			return ( -1 );
+			if ( ldap_pvt_is_socket_ready(ld, s) == -1 ) return -1;
 #endif
-		if ( ldap_pvt_ndelay_off(ld, s) == -1 )
-			return ( -1 );
-		return ( 0 );
+			if ( ldap_pvt_ndelay_off(ld, s) == -1 ) return -1;
+			return 0;
+		}
 	}
 #endif
 
 	osip_debug(ld, "ldap_connect_timeout: timed out\n",0,0,0);
 	ldap_pvt_set_errno( ETIMEDOUT );
-	return ( -1 );
+	return -1;
 }
 
 #ifndef HAVE_INET_ATON
