@@ -83,30 +83,3 @@ char *ber_pvt_wsa_err2string( int err )
 }
 
 #undef __RETSTR
-
-#if 0	/* No one seems to be using these */
-char *ber_pvt_wsa_last_errstring( void )
-{
-	return ber_pvt_wsa_err2string( WSAGetLastError() );
-}
-
-#include <windows.h>
-
-char *GetErrorString( int err )
-{
-	static char msgBuf[1024];
-
-	FormatMessage(
-		FORMAT_MESSAGE_FROM_SYSTEM,
-		NULL,
-		err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		msgBuf, 1024, NULL );
-
-	return msgBuf;
-}
-
-char *GetLastErrorString( void )
-{
-	return GetErrorString( GetLastError() );
-}
-#endif

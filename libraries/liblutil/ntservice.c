@@ -43,7 +43,6 @@ ldap_pvt_thread_t		start_status_tid,	stop_status_tid;
 
 void (*stopfunc)(int);
 
-/* in nt_err.c */
 char *GetLastErrorString( void );
 
 int srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszDisplayName,
@@ -429,4 +428,21 @@ void ReportSlapdShutdownComplete(  )
 	}
 }
 
+char *GetErrorString( int err )
+{
+	static char msgBuf[1024];
+
+	FormatMessage(
+		FORMAT_MESSAGE_FROM_SYSTEM,
+		NULL,
+		err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		msgBuf, 1024, NULL );
+
+	return msgBuf;
+}
+
+char *GetLastErrorString( void )
+{
+	return GetErrorString( GetLastError() );
+}
 #endif
