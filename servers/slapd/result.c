@@ -472,8 +472,8 @@ clean2:;
 			sc_next = op->o_callback->sc_next;
 			if ( op->o_callback->sc_cleanup ) {
 				(void)op->o_callback->sc_cleanup( op, rs );
-				if ( first && op->o_callback == NULL ) {
-					sc = NULL;
+				if ( first && op->o_callback != sc ) {
+					sc = op->o_callback;
 				}
 			}
 			first = 0;
@@ -1204,8 +1204,8 @@ error_return:;
 			sc_next = op->o_callback->sc_next;
 			if ( op->o_callback->sc_cleanup ) {
 				(void)op->o_callback->sc_cleanup( op, rs );
-				if ( first && op->o_callback == NULL ) {
-					sc = NULL;
+				if ( first && op->o_callback != sc ) {
+					sc = op->o_callback;
 				}
 			}
 			first = 0;
@@ -1393,8 +1393,8 @@ rel:
 			sc_next = op->o_callback->sc_next;
 			if ( op->o_callback->sc_cleanup ) {
 				(void)op->o_callback->sc_cleanup( op, rs );
-				if ( first && op->o_callback == NULL ) {
-					sc = NULL;
+				if ( first && op->o_callback != sc ) {
+					sc = op->o_callback;
 				}
 			}
 			first = 0;
