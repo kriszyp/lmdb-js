@@ -1380,6 +1380,77 @@ slapi_filter_free(
 #endif /* defined(LDAP_SLAPI) */
 }
 
+Slapi_Filter *
+slapi_filter_dup( Slapi_Filter *filter )
+{
+#ifdef LDAP_SLAPI
+	Filter *f;
+
+	f = (Filter *) slapi_ch_malloc( sizeof(Filter) );
+	f->f_next = NULL;
+	f->f_choice = filter->f_choice;
+
+	switch ( f->f_choice ) {
+	case LDAP_FILTER_AND:
+	case LDAP_FILTER_NOT:
+	case LDAP_FILTER_OR: {
+		Filter *pFilter, **ppF;
+
+		for ( pFilter = filter->f_list, ppF = &f->f_list;
+		      pFilter != NULL;
+		      pFilter = pFilter->f_next, ppF = &f->f_next )
+		{
+			*ppF = slapi_filter_dup( pFilter );
+		}
+		break;
+	}
+	case LDAP_FILTER_PRESENT:
+		f->f_desc = filter->f_desc;
+		break;
+	case LDAP_FILTER_EQUALITY:
+	case LDAP_FILTER_GE:
+	case LDAP_FILTER_LE:
+	case LDAP_FILTER_APPROX:
+		f->f_ava = (AttributeAssertion *)slapi_ch_malloc( sizeof(AttributeAssertion) );
+		f->f_ava->aa_desc = filter->f_ava->aa_desc;
+		ber_dupbv( &f->f_ava->aa_value, &filter->f_ava->aa_value );
+		break;
+	case LDAP_FILTER_EXT:
+		f->f_mra = (MatchingRuleAssertion *)slapi_ch_malloc( sizeof(MatchingRuleAssertion) );
+		f->f_mra->ma_rule = filter->f_mra->ma_rule;
+		f->f_mra->ma_rule_text = filter->f_mra->ma_rule_text; /* struct copy */
+		f->f_mra->ma_desc = filter->f_mra->ma_desc;
+		f->f_mra->ma_dnattrs = filter->f_mra->ma_dnattrs;
+		ber_dupbv( &f->f_mra->ma_value, &filter->f_mra->ma_value );
+	case LDAP_FILTER_SUBSTRINGS: {
+		int i;
+
+		f->f_sub = (SubstringsAssertion *)slapi_ch_malloc( sizeof(SubstringsAssertion) );
+		ber_dupbv( &f->f_sub_initial, &filter->f_sub_initial );
+		for ( i = 0; filter->f_sub_any[i].bv_val != NULL; i++ )
+			;
+		f->f_sub_any = (BerVarray)slapi_ch_malloc( (i + 1) * (sizeof(struct berval)) );
+		for ( i = 0; filter->f_sub_any[i].bv_val != NULL; i++ ) {
+			ber_dupbv( &f->f_sub_any[i], &filter->f_sub_any[i] );
+		}
+		ber_dupbv( &f->f_sub_final, &filter->f_sub_final );
+		break;
+	}
+	case SLAPD_FILTER_COMPUTED:
+		f->f_result = filter->f_result;
+		break;
+	default:
+		slapi_ch_free( (void **)&f );
+		f = NULL;
+		break;
+	}
+
+	return f;
+#else
+	return NULL;
+#endif /* LDAP_SLAPI */
+}
+
 int 
 slapi_filter_get_choice( Slapi_Filter *f )
 {
@@ -1566,7 +1637,7 @@ slapi_filter_join( int ftype, Slapi_Filter *f1, Slapi_Filter *f2)
 	{
 		f = (Slapi_Filter *)slapi_ch_malloc( sizeof(*f) );
 		f->f_choice = ftype;
-		f->f_and = f1;
+		f->f_list = f1;
 		f->f_next = f2;
 	}
 
@@ -1685,7 +1756,7 @@ slapi_filter_apply( Slapi_Filter *f, FILTER_APPLY_FN fn, void *arg, int *error_c
 #else
 	*error_code = SLAPI_FILTER_UNKNOWN_FILTER_TYPE;
 	return -1;
-#endif
+#endif /* LDAP_SLAPI */
 }
 
 int 

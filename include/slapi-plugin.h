@@ -184,6 +184,7 @@ int slapi_send_ldap_search_entry( Slapi_PBlock *pb, Slapi_Entry *e,
 
 /* filter routines */
 Slapi_Filter *slapi_str2filter( char *str );
+Slapi_Filter *slapi_filter_dup( Slapi_Filter *f );
 void slapi_filter_free( Slapi_Filter *f, int recurse );
 int slapi_filter_get_choice( Slapi_Filter *f);
 int slapi_filter_get_ava( Slapi_Filter *f, char **type, struct berval **bval );
@@ -198,10 +199,10 @@ int slapi_filter_test( Slapi_PBlock *pb, Slapi_Entry *e, Slapi_Filter *f,
 int slapi_filter_test_simple( Slapi_Entry *e, Slapi_Filter *f );
 typedef int (*FILTER_APPLY_FN)( Slapi_Filter *f, void *arg );
 int slapi_filter_apply( Slapi_Filter *f, FILTER_APPLY_FN fn, void *arg, int *error_code );
-#define SLAPI_FILTER_SCAN_STOP			-1
-#define SLAPI_FILTER_SCAN_ERROR			-2
-#define SLAPI_FILTER_SCAN_NOMORE		0
-#define SLAPI_FILTER_SCAN_CONTINUE		1
+#define SLAPI_FILTER_SCAN_STOP			-1 /* set by callback */
+#define SLAPI_FILTER_SCAN_ERROR			-2 /* set by callback */
+#define SLAPI_FILTER_SCAN_NOMORE		0 /* set by callback */
+#define SLAPI_FILTER_SCAN_CONTINUE		1 /* set by callback */
 #define SLAPI_FILTER_UNKNOWN_FILTER_TYPE	2 /* set by slapi_filter_apply() */
 
 /* internal add/delete/search/modify routines */

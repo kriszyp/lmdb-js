@@ -176,6 +176,7 @@ int checkControlHonored(LDAPControl **controls, char *pControlOid,
 				unsigned long operation, int *isHonored );
 void slapi_broadcast_be(int funcType, Slapi_PBlock *pPB);
 Slapi_Filter *slapi_str2filter( char *str );
+Slapi_Filter *slapi_filter_dup( Slapi_Filter *f );
 void slapi_filter_free( Slapi_Filter *f, int recurse );
 int slapi_filter_get_choice( Slapi_Filter *f);
 int slapi_filter_get_ava( Slapi_Filter *f, char **type, struct berval **bval );
