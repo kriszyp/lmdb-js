@@ -80,31 +80,40 @@ AC_SUBST(LN_H)dnl
 dnl
 dnl ====================================================================
 dnl Check for dependency generation flag
-AC_DEFUN([OL_CC_DEPEND], [# test for cc depend flag
-AC_CACHE_CHECK([for ${CC-cc} depend flag], ol_cv_cc_depend,
-[	ol_cv_cc_depend=no
-	if test $GCC = yes ; then
-		ol_cv_cc_depend="-M"
-	else
-		for flag in "-M" "-xM"; do
-			cat > conftest.c <<EOF
+AC_DEFUN([OL_MKDEPEND], [# test for make depend flag
+OL_MKDEP=
+OL_MKDEP_FLAGS=
+if test -z "${MKDEP}"; then
+	OL_MKDEP="${CC-cc}"
+	if test -z "${MKDEP_FLAGS}"; then
+		AC_CACHE_CHECK([for ${OL_MKDEP} depend flag], ol_cv_mkdep, [
+			ol_cv_mkdep=no
+			for flag in "-M" "-xM"; do
+				cat > conftest.c <<EOF
  noCode;
 EOF
-			if AC_TRY_COMMAND(${CC-cc} $flag conftest.c) \
-				| egrep '^conftest\.'"${ac_objext}" >/dev/null 2>&1
-			then
-				cc_cv_cc_depend=$flag
-				break
-			fi
-		done
-		rm -f conftest*
-	fi])
-if test "${ol_cv_cc_depend}" != no ; then
-	CC_DEPEND_FLAGS="${ol_cv_cc_depend}"
-	AC_SUBST(CC_DEPEND_FLAGS)
+				if AC_TRY_COMMAND($OL_MKDEP $flag conftest.c) \
+					| egrep '^conftest\.'"${ac_objext}" >/dev/null 2>&1
+				then
+					ol_cv_mkdep=$flag
+					OL_MKDEP_FLAGS="$flag"
+					break
+				fi
+			done
+			rm -f conftest*
+		])
+	else
+		cc_cv_mkdep=yes
+		OL_MKDEP_FLAGS="${MKDEP_FLAGS}"
+	fi
 else
-	AC_MSG_WARN([do not know how to generate dependencies])
-fi])
+	cc_cv_mkdep=yes
+	OL_MKDEP="${MKDEP}"
+	OL_MKDEP_FLAGS="${MKDEP_FLAGS}"
+fi
+dnl AC_SUBST(OL_MKDEP)
+dnl AC_SUBST(OL_MKDEP_FLAGS)
+])
 dnl
 dnl ====================================================================
 dnl Check if system uses EBCDIC instead of ASCII
