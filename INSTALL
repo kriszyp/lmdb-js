@@ -31,8 +31,7 @@ Making and Installing the OpenLDAP Distribution
 
         % ./configure --help
 
-     to list available configuration options.   A description of these
-     options is provided in the 'CONFIGURE OPTIONS' section below.
+     to list available configuration options.
 
      The configure script uses environmental variables for determining
      compiler/linker options including:

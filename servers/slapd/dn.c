@@ -258,7 +258,12 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			 */
 			ava->la_attr = ad->ad_cname;
 
-			if( flags & SLAP_LDAPDN_PRETTY ) {
+			if( ava->la_flags & LDAP_AVA_BINARY ) {
+				/* AVA is binary encoded, don't muck with it */
+				transf = NULL;
+				mr = NULL;
+
+			} else if( flags & SLAP_LDAPDN_PRETTY ) {
 				transf = ad->ad_type->sat_syntax->ssyn_pretty;
 				mr = NULL;
 			} else {
@@ -269,9 +274,13 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			if ( transf ) {
 				/*
 			 	 * transform value by normalize/pretty function
+				 *	if value is empty, use empty_bv
 				 */
 				rc = ( *transf )( ad->ad_type->sat_syntax,
-					&ava->la_value, &bv );
+					ava->la_value.bv_len
+						? &ava->la_value
+						: (struct berval *) &slap_empty_bv,
+					&bv );
 			
 				if ( rc != LDAP_SUCCESS ) {
 					return LDAP_INVALID_SYNTAX;

@@ -29,5 +29,6 @@ veryclean-local: FORCE
 
 distclean: veryclean FORCE
 
+check: test
 test: FORCE
 	cd tests; make test

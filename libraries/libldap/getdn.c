@@ -2864,7 +2864,6 @@ int ldap_dn2bv( LDAPDN *dn, struct berval *bv, unsigned flags )
 	int ( *sv2s ) ( struct berval *v, char *s, unsigned f, ber_len_t *l );
 
 	assert( bv );
-
 	bv->bv_len = 0;
 	bv->bv_val = NULL;
 
@@ -2883,13 +2882,13 @@ int ldap_dn2bv( LDAPDN *dn, struct berval *bv, unsigned flags )
 	case LDAP_DN_FORMAT_LDAPV3:
 		sv2l = strval2strlen;
 		sv2s = strval2str;
-		goto got_funcs;
 
+		if( 0 ) {
 	case LDAP_DN_FORMAT_LDAPV2:
-		sv2l = strval2IA5strlen;
-		sv2s = strval2IA5str;
-got_funcs:
-		
+			sv2l = strval2IA5strlen;
+			sv2s = strval2IA5str;
+		}
+
 		for ( iRDN = 0, len = 0; dn[ 0 ][ iRDN ]; iRDN++ ) {
 			ber_len_t	rdnl;
 			LDAPRDN		*rdn = dn[ 0 ][ iRDN ];
@@ -2932,7 +2931,6 @@ got_funcs:
 		break;
 
 	case LDAP_DN_FORMAT_UFN: {
-
 		/*
 		 * FIXME: quoting from RFC 1781:
 		 *
@@ -3047,11 +3045,10 @@ got_funcs:
 #endif /* DC_IN_UFN */
 		
 		rc = LDAP_SUCCESS;
-		break;
-	}
+
+	} break;
 
 	case LDAP_DN_FORMAT_DCE:
-
 		for ( iRDN = 0, len = 0; dn[ 0 ][ iRDN ]; iRDN++ ) {
 			ber_len_t	rdnl;
 			LDAPRDN		*rdn = dn[ 0 ][ iRDN ];
@@ -3090,7 +3087,6 @@ got_funcs:
 		break;
 
 	case LDAP_DN_FORMAT_AD_CANONICAL: {
-		
 		/*
 		 * Sort of UFN for DCE DNs: a slash ('/') separated
 		 * global->local DN with no types; strictly speaking,
@@ -3172,8 +3168,7 @@ got_funcs:
 		bv->bv_val[ bv->bv_len ] = '\0';
 
 		rc = LDAP_SUCCESS;
-		break;
-	}
+	} break;
 
 	default:
 		return LDAP_PARAM_ERROR;
@@ -3181,6 +3176,7 @@ got_funcs:
 
 	Debug( LDAP_DEBUG_TRACE, "<= ldap_dn2bv(%s,%u)=%d\n",
 		bv->bv_val, flags, rc );
+
 return_results:;
 	return( rc );
 }
