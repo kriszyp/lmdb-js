@@ -124,7 +124,7 @@ root_dse_info(
 			/* no suffix! */
 			continue;
 		}
-		if ( backends[i].be_flags & SLAP_BFLAG_MONITOR ) {
+		if ( SLAP_MONITOR( backends[i].be_flags )) {
 			vals[0] = backends[i].be_suffix[0];
 			nvals[0] = backends[i].be_nsuffix[0];
 			if( attr_merge( e, ad_monitorContext, vals, nvals ) ) {
