@@ -57,9 +57,9 @@ ldap_back_delete(
 
 	struct berval mdn = { 0, NULL };
 
-	lc = ldap_back_getconn( li, op, rs );
+	lc = ldap_back_getconn( op, rs );
 	
-	if ( !lc || !ldap_back_dobind( li, lc, op, rs ) ) {
+	if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
 		return( -1 );
 	}
 

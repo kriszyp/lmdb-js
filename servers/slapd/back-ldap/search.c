@@ -69,7 +69,7 @@ ldap_back_search(
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 
-	lc = ldap_back_getconn(li, op, rs);
+	lc = ldap_back_getconn(op, rs);
 	if ( !lc ) {
 		return( -1 );
 	}
@@ -78,7 +78,7 @@ ldap_back_search(
 	 * FIXME: in case of values return filter, we might want
 	 * to map attrs and maybe rewrite value
 	 */
-	if ( !ldap_back_dobind( li, lc, op, rs ) ) {
+	if ( !ldap_back_dobind( lc, op, rs ) ) {
 		return( -1 );
 	}
 
@@ -648,10 +648,10 @@ ldap_back_entry_get(
 	/* Tell getconn this is a privileged op */
 	is_oc = op->o_do_not_cache;
 	op->o_do_not_cache = 1;
-	lc = ldap_back_getconn(li, op, &rs);
+	lc = ldap_back_getconn(op, &rs);
 	oconn = op->o_conn;
 	op->o_conn = NULL;
-	if ( !lc || !ldap_back_dobind(li, lc, op, &rs) ) {
+	if ( !lc || !ldap_back_dobind(lc, op, &rs) ) {
 		op->o_do_not_cache = is_oc;
 		op->o_conn = oconn;
 		return 1;

@@ -91,8 +91,8 @@ struct ldapinfo {
 	struct ldapmap at_map;
 };
 
-struct ldapconn *ldap_back_getconn(struct ldapinfo *li, struct slap_op *op, struct slap_rep *rs);
-int ldap_back_dobind(struct ldapinfo *li, struct ldapconn *lc, Operation *op, SlapReply *rs);
+struct ldapconn *ldap_back_getconn(struct slap_op *op, struct slap_rep *rs);
+int ldap_back_dobind(struct ldapconn *lc, Operation *op, SlapReply *rs);
 int ldap_back_map_result(int err);
 int ldap_back_op_result(struct ldapinfo *li, struct ldapconn *lc,
 	Operation *op, SlapReply *rs, ber_int_t msgid, int rc, int sendok);

@@ -63,7 +63,7 @@ ldap_back_bind(
 	int rc = 0;
 	ber_int_t msgid;
 
-	lc = ldap_back_getconn(li, op, rs);
+	lc = ldap_back_getconn(op, rs);
 	if ( !lc ) {
 		return( -1 );
 	}
@@ -236,8 +236,9 @@ static void myprint( Avlnode *root )
 #endif /* PRINT_CONNTREE */
 
 struct ldapconn *
-ldap_back_getconn(struct ldapinfo *li, Operation *op, SlapReply *rs)
+ldap_back_getconn(Operation *op, SlapReply *rs)
 {
+	struct ldapinfo *li = (struct ldapinfo *)op->o_bd->be_private;
 	struct ldapconn *lc, lc_curr;
 	LDAP *ld;
 	int is_priv = 0;
@@ -429,8 +430,9 @@ ldap_back_getconn(struct ldapinfo *li, Operation *op, SlapReply *rs)
  * it can be used to simplify the check.
  */
 int
-ldap_back_dobind( struct ldapinfo *li, struct ldapconn *lc, Operation *op, SlapReply *rs )
+ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 {	
+	struct ldapinfo *li = (struct ldapinfo *)op->o_bd->be_private;
 	int rc;
 	ber_int_t msgid;
 

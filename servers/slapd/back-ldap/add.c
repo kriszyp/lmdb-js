@@ -65,8 +65,8 @@ ldap_back_add(
 	Debug(LDAP_DEBUG_ARGS, "==> ldap_back_add: %s\n", op->o_req_dn.bv_val, 0, 0);
 #endif /* !NEW_LOGGING */
 	
-	lc = ldap_back_getconn(li, op, rs);
-	if ( !lc || !ldap_back_dobind( li, lc, op, rs ) ) {
+	lc = ldap_back_getconn(op, rs);
+	if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
 		return( -1 );
 	}
 

@@ -56,8 +56,8 @@ ldap_back_exop_passwd(
 	ber_int_t msgid;
 	int rc;
 
-	lc = ldap_back_getconn(li, op, rs);
-	if (!lc || !ldap_back_dobind(li, lc, op, rs) ) {
+	lc = ldap_back_getconn(op, rs);
+	if (!lc || !ldap_back_dobind(lc, op, rs) ) {
 		return -1;
 	}
 

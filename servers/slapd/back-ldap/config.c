@@ -439,8 +439,8 @@ ldap_back_exop_whoami(
 		ber_int_t msgid;
 
 		op2.o_ndn = op->o_conn->c_ndn;
-		lc = ldap_back_getconn(li, &op2, rs);
-		if (!lc || !ldap_back_dobind( li, lc, op, rs )) {
+		lc = ldap_back_getconn(&op2, rs);
+		if (!lc || !ldap_back_dobind( lc, op, rs )) {
 			return -1;
 		}
 		c.ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;

@@ -57,8 +57,8 @@ ldap_back_compare(
 	int rc;
 	ber_int_t msgid;
 
-	lc = ldap_back_getconn(li, op, rs);
-	if (!lc || !ldap_back_dobind( li, lc, op, rs ) ) {
+	lc = ldap_back_getconn(op, rs);
+	if (!lc || !ldap_back_dobind( lc, op, rs ) ) {
 		return( -1 );
 	}
 
