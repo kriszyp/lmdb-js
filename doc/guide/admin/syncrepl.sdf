@@ -223,7 +223,8 @@ value is read, the database will still be scanned for any {{EX:entryCSN}}
 values greater than it, to make sure the {{EX:contextCSN}} value truly
 reflects the greatest committed {{EX:entryCSN}} in the database. On
 databases which support inequality indexing, setting an eq index
-on the {{EX:entryCSN}} attribute will greatly speed up this scanning step.
+on the {{EX:entryCSN}} attribute and configuring {{contextCSN}} checkpoints
+will greatly speed up this scanning step.
 
 If no {{EX:contextCSN}} can be determined by reading and scanning the
 database, a new value will be generated. Also, if scanning the database
@@ -300,7 +301,7 @@ The {{EX:contextCSN}} checkpoint is configured by the
 
 >	syncprov-checkpoint <ops> <minutes>
 
-directive. Checkpoints are tested after successful write operations.
+directive. Checkpoints are only tested after successful write operations.
 If {{<ops>}} operations or more than {{<minutes>}} time has passed
 since the last checkpoint, a new checkpoint is performed.
 
