@@ -278,8 +278,13 @@ ber_get_stringb(
 	return tag;
 }
 
+/* Definitions for recursive get_string */
+
 enum bgbvc { ChArray, BvArray, BvVec };
 
+/* Use this single cookie for state, to keep actual
+ * stack use to the absolute minimum.
+ */
 typedef struct bgbvr {
 	BerElement *ber;
 	enum bgbvc choice;
@@ -293,6 +298,10 @@ typedef struct bgbvr {
 	} res;
 } bgbvr;
 
+/* Recursive get_string, for decoding a vector of strings. The number
+ * of elements in the vector is limited only by available stack space.
+ * Each invocation consumes 24 bytes of stack on a 32-bit machine.
+ */
 ber_tag_t
 ber_get_stringbvr( bgbvr *b, int n )
 {
@@ -309,7 +318,7 @@ ber_get_stringbvr( bgbvr *b, int n )
 			*b->res.c = NULL;
 			return 0;
 		}
-		/* do the allocation */
+		/* Allocate the result vector */
 		switch (b->choice) {
 		case ChArray:
 			*b->res.c = LBER_MALLOC( (n+1) * sizeof( char * ));
@@ -324,9 +333,15 @@ ber_get_stringbvr( bgbvr *b, int n )
 			(*b->res.bv)[n] = NULL;
 			break;
 		}
+		/* Did the malloc succeed? */
+		if ( *b->res.c == NULL )
+			return LBER_DEFAULT;
 		return 0;
 	}
 
+	/* Do all local allocs before the recursion. Then there
+	 * cannot possibly be any failures on the return trip.
+	 */
 	if ( b->choice == BvVec )
 		bvp = LBER_MALLOC( sizeof( struct berval ));
 
@@ -336,6 +351,7 @@ ber_get_stringbvr( bgbvr *b, int n )
 	}
 
 	b->tag = ber_get_stringbvr( b, n+1 );
+	
 	if ( b->tag == 0 )
 	{
 		/* store my result */
@@ -352,6 +368,9 @@ ber_get_stringbvr( bgbvr *b, int n )
 			break;
 		}
 	} else {
+		/* Failure will propagate up and free in reverse
+		 * order, which is actually ideal.
+		 */
 		if ( bvp ) LBER_FREE( bvp );
 		LBER_FREE( bv.bv_val );
 	}
@@ -549,6 +568,7 @@ ber_next_element(
 }
 
 /* Hopefully no one sends vectors with more elements than this */
+/* Don't define this! ber_get_stringbvr works much much better! */
 /* #define	TMP_SLOTS	1024 */
 
 /* VARARGS */
