@@ -75,9 +75,7 @@ Attribute *attr_dup( Attribute *a )
 	}
 
 	tmp->a_type = ch_strdup( a->a_type );
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	tmp->a_at = a->a_at;
-#else
+#ifdef SLAPD_SCHEMA_COMPAT
 	tmp->a_syntax = a->a_syntax;
 #endif
 	tmp->a_next = NULL;
@@ -407,19 +405,23 @@ at_find(
     const char		*name
 )
 {
-	struct aindexrec	*air = NULL;
-	char			*p, *tmpname = NULL;
+	struct aindexrec	*air;
+	char			*tmpname;
 
+#ifdef SLAPD_SCHEMA_COMPAT
 	/*
 	 * The name may actually be an AttributeDescription, i.e. it may
-	 * contain options.  Let's deal with it.
+	 * contain options.
 	 */
-	p = strchr( name, ';' );
+	/* Treat any attribute type with option as an unknown attribute type */
+	char *p = strchr( name, ';' );
 	if ( p ) {
 		tmpname = ch_malloc( p-name+1 );
 		strncpy( tmpname, name, p-name );
 		tmpname[p-name] = '\0';
-	} else {
+	} else
+#endif
+	{
 		tmpname = (char *)name;
 	}
 

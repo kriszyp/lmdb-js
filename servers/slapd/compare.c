@@ -127,6 +127,7 @@ do_compare(
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "Function not implemented", NULL, NULL );
 	}
+
 cleanup:
 	free( dn );
 	free( ndn );

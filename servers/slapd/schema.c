@@ -201,7 +201,7 @@ static char *oc_op_no_usermod_attrs[] = {
 int
 oc_check_op_attr( const char *type )
 {
-#ifdef SLAPD_SCHEMA_COMPAT
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	return charray_inlist( oc_op_attrs, type )
 		|| charray_inlist( oc_op_usermod_attrs, type )
 		|| charray_inlist( oc_op_no_usermod_attrs, type );
@@ -210,7 +210,7 @@ oc_check_op_attr( const char *type )
 
 	if( at == NULL ) return 0;
 
-	return at->sat_usage != 0;
+	return at->sat_usage != LDAP_SCHEMA_USER_APPLICATIONS;
 #endif
 }
 
@@ -263,6 +263,8 @@ oc_check_allowed( char *type, struct berval **ocl )
 		return( 0 );
 	}
 
+#ifdef SLAPD_SCHEMA_COMPAT
+	/* Treat any attribute type with option as an unknown attribute type */
 	/*
 	 * The "type" we have received is actually an AttributeDescription.
 	 * Let's find out the corresponding type.
@@ -276,9 +278,12 @@ oc_check_allowed( char *type, struct berval **ocl )
 		       "oc_check_allowed type \"%s\" from \"%s\"\n",
 		       t, type, 0 );
 
-	} else {
+	} else
+#endif
+	{
 		t = type;
 	}
+
 
 	/*
 	 * All operational attributions are allowed by schema rules.
