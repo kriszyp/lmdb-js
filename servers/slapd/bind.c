@@ -338,8 +338,6 @@ do_bind(
 		goto cleanup;
 	}
 
-	conn->c_authz_backend = be;
-
 	/* check restrictions */
 	rc = backend_check_restrictions( be, conn, op, NULL, &text ) ;
 	if( rc != LDAP_SUCCESS ) {
@@ -347,6 +345,8 @@ do_bind(
 			NULL, text, NULL, NULL );
 		goto cleanup;
 	}
+
+	conn->c_authz_backend = be;
 
 	if ( be->be_bind ) {
 		int ret;
