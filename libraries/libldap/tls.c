@@ -891,14 +891,10 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 int
 ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 {
-<<<<<<< tls.c
-	ldap_pvt_tls_init();
-=======
 	char *peer_cert_cn, *peer_hostname;
 	void *ssl;
 
 	(void) ldap_pvt_tls_init();
->>>>>>> 1.40
 
 	/*
 	 * Fortunately, the lib uses blocking io...
