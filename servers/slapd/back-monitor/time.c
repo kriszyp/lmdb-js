@@ -56,6 +56,10 @@ monitor_subsys_time_init(
 	char			buf[1024], ztmbuf[20], ltmbuf[20];
 	struct tm		*ztm, *ltm;
 
+	/*
+	 * Note: ltmbuf, ltm are used only if HACK_LOCAL_TIME is defined
+	 */
+
 	assert( be != NULL );
 
 	mi = ( struct monitorinfo * )be->be_private;
@@ -85,17 +89,25 @@ monitor_subsys_time_init(
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 	ztm = gmtime( &starttime );
 	strftime( ztmbuf, sizeof(ztmbuf), "%Y%m%d%H%M%SZ", ztm );
+#ifdef HACK_LOCAL_TIME
 	ltm = localtime( &starttime );
 	local_time( ltm, -timezone, ltmbuf, sizeof( ltmbuf ) );
+#endif /* HACK_LOCAL_TIME */
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 	snprintf( buf, sizeof( buf ),
 			"dn: cn=Start,%s\n"
 			SLAPD_MONITOR_OBJECTCLASSES
 			"cn: Start\n"
 			"description: %s\n"
-			"description;lang-x-local: %s",
-			monitor_subsys[SLAPD_MONITOR_TIME].mss_dn.bv_val,
-			ztmbuf, ltmbuf );
+#ifdef HACK_LOCAL_TIME
+			"description;lang-x-local: %s"
+#endif /* HACK_LOCAL_TIME */
+			, monitor_subsys[SLAPD_MONITOR_TIME].mss_dn.bv_val,
+			ztmbuf
+#ifdef HACK_LOCAL_TIME
+			, ltmbuf 
+#endif /* HACK_LOCAL_TIME */
+			);
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -148,9 +160,15 @@ monitor_subsys_time_init(
 			SLAPD_MONITOR_OBJECTCLASSES
 			"cn: Current\n"
 			"description: %s\n"
-			"description;lang-x-local: %s",
-			monitor_subsys[SLAPD_MONITOR_TIME].mss_dn.bv_val,
-			ztmbuf, ltmbuf );
+#ifdef HACK_LOCAL_TIME 
+			"description;lang-x-local: %s"
+#endif /* HACK_LOCAL_TIME */
+			, monitor_subsys[SLAPD_MONITOR_TIME].mss_dn.bv_val,
+			ztmbuf
+#ifdef HACK_LOCAL_TIME
+			, ltmbuf
+#endif /* HACK_LOCAL_TIME */
+			);
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -219,6 +237,11 @@ monitor_subsys_time_update(
 
 	static int	init_start = 0;
 
+	/*
+	 * Note: ltmbuf, ltm, ad_local, text are used only if HACK_LOCAL_TIME
+	 * 	 is defined
+	 */
+
 	assert( mi );
 	assert( e );
 	
@@ -238,8 +261,10 @@ monitor_subsys_time_update(
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 	ztm = gmtime( &currenttime );
 	strftime( ztmbuf, sizeof( ztmbuf ), "%Y%m%d%H%M%SZ", ztm );
+#ifdef HACK_LOCAL_TIME
 	ltm = localtime( &currenttime );
 	local_time( ltm, -timezone, ltmbuf, sizeof( ltmbuf ) );
+#endif /* HACK_LOCAL_TIME */
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
 	a = attr_find( e->e_attrs, monitor_ad_desc );
@@ -251,6 +276,7 @@ monitor_subsys_time_update(
 	assert( len == a->a_vals[0].bv_len );
 	AC_MEMCPY( a->a_vals[0].bv_val, ztmbuf, len );
 
+#ifdef HACK_LOCAL_TIME
 	if ( ad_local == NULL ) {
 		if ( slap_str2ad( "description;lang-x-local", 
 					&ad_local, &text ) != LDAP_SUCCESS ) {
@@ -265,6 +291,7 @@ monitor_subsys_time_update(
 	len = strlen( ltmbuf );
 	assert( len == a->a_vals[0].bv_len );
 	AC_MEMCPY( a->a_vals[0].bv_val, ltmbuf, len );
+#endif /* HACK_LOCAL_TIME */
 
 	return( 0 );
 }
