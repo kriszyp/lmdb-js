@@ -3058,8 +3058,15 @@ void
 config_destroy( )
 {
 	ucdata_unload( UCDATA_ALL );
-	free( frontendDB->be_schemandn.bv_val );
-	free( frontendDB->be_schemadn.bv_val );
+	if ( frontendDB ) {
+		/* NOTE: in case of early exit, frontendDB can be NULL */
+		if ( frontendDB->be_schemandn.bv_val )
+			free( frontendDB->be_schemandn.bv_val );
+		if ( frontendDB->be_schemadn.bv_val )
+			free( frontendDB->be_schemadn.bv_val );
+		if ( frontendDB->be_acl )
+			acl_destroy( frontendDB->be_acl, NULL );
+	}
 	free( line );
 	if ( slapd_args_file )
 		free ( slapd_args_file );
@@ -3067,7 +3074,6 @@ config_destroy( )
 		free ( slapd_pid_file );
 	if ( default_passwd_hash )
 		ldap_charray_free( default_passwd_hash );
-	acl_destroy( frontendDB->be_acl, NULL );
 }
 
 static int
