@@ -1513,10 +1513,7 @@ typedef struct slap_conn {
 	struct berval	c_sasl_bind_mech;			/* mech in progress */
 	struct berval	c_cdn;
 
-	/* authentication backend */
-	Backend *c_authc_backend;
-
-	/* authorization backend - normally same as c_authc_backend */
+	/* authorization backend */
 	Backend *c_authz_backend;
 
 	AuthorizationInformation c_authz;

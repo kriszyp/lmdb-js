@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 
+#include <ldap_pvt.h>
 #include "slurp.h"
 #include "globals.h"
 #include "lutil.h"

@@ -605,7 +605,6 @@ void connection2anonymous( Connection *c )
 	}
 	c->c_cdn.bv_len = 0;
 
-	c->c_authc_backend = NULL;
 	c->c_authz_backend = NULL;
     
     {
