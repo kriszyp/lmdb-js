@@ -17,6 +17,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+
 #ifdef MACOS
 #include "macos.h"
 #else /* MACOS */
@@ -110,7 +111,7 @@ int
 ldap_init_searchprefs_buf( char *buf, long buflen,
 	struct ldap_searchobj **solistp )
 {
-    int				rc, version;
+    int				rc = -1, version;
     char			**toks;
     struct ldap_searchobj	*prevso, *so;
 

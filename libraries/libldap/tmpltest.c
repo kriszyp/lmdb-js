@@ -1,14 +1,15 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
+
+#ifdef MACOS
+#include <console.h>
+#endif /* MACOS */
+
 #include "lber.h"
 #include "ldap.h"
 #include "disptmpl.h"
 #include "srchpref.h"
-
-#ifdef MACOS
-#include <stdlib.h>
-#include <console.h>
-#endif /* MACOS */
 
 #ifdef NEEDPROTOS
 void dump_tmpl( struct ldap_disptmpl *tmpl );
@@ -18,9 +19,7 @@ void dump_tmpl();
 void dump_srchpref();
 #endif /* NEEDPROTOS */
 
-
 #define NULLSTRINGIFNULL( s )	( s == NULL ? "(null)" : s )
-
 
 int
 main( int argc, char **argv )

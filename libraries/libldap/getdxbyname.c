@@ -91,9 +91,11 @@ decode_answer( unsigned char *answer, int len )
     int			dx_pref[ MAX_TO_SORT ];
 
 #ifdef LDAP_DEBUG
+#ifdef notdef
     if ( ldap_debug & LDAP_DEBUG_PACKETS ) {
-/*	__p_query( answer );	/* */
+		__p_query( answer );
     }
+#endif
 #endif /* LDAP_DEBUG */
 
     dxs = NULL;

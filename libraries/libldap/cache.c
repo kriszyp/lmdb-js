@@ -13,8 +13,9 @@ static char copyright[] = "@(#) Copyright (c) 1993 The Regents of the University
 
 #include <stdio.h>
 #include <string.h>
-#ifdef MACOS
 #include <stdlib.h>
+
+#ifdef MACOS
 #include <time.h>
 #include "macos.h"
 #else /* MACOS */
@@ -32,6 +33,7 @@ static char copyright[] = "@(#) Copyright (c) 1993 The Regents of the University
 #include <sys/socket.h>
 #endif /* DOS */
 #endif /* MACOS */
+
 #include "lber.h"
 #include "ldap.h"
 #include "ldap-int.h"
@@ -139,8 +141,8 @@ ldap_flush_cache( LDAP *ld )
 void
 ldap_uncache_request( LDAP *ld, int msgid )
 {
-	Debug( LDAP_DEBUG_TRACE, "ldap_uncache_request %d ld_cache %x\n",
-	    msgid, ld->ld_cache, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_uncache_request %d ld_cache %lx\n",
+	    msgid, (long) ld->ld_cache, 0 );
 
 	uncache_entry_or_req( ld, NULL, msgid );
 }
@@ -149,8 +151,8 @@ ldap_uncache_request( LDAP *ld, int msgid )
 void
 ldap_uncache_entry( LDAP *ld, char *dn )
 {
-	Debug( LDAP_DEBUG_TRACE, "ldap_uncache_entry %s ld_cache %x\n",
-	    dn, ld->ld_cache, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_uncache_entry %s ld_cache %lx\n",
+	    dn, (long) ld->ld_cache, 0 );
 
 	uncache_entry_or_req( ld, dn, 0 );
 }
@@ -165,8 +167,8 @@ uncache_entry_or_req( LDAP *ld,
 	LDAPMessage	*m, *prev, *next;
 
 	Debug( LDAP_DEBUG_TRACE,
-	    "ldap_uncache_entry_or_req  dn %s  msgid %d  ld_cache %x\n",
-	    dn, msgid, ld->ld_cache );
+	    "ldap_uncache_entry_or_req  dn %s  msgid %d  ld_cache %lx\n",
+	    dn, msgid, (long) ld->ld_cache );
 
 	if ( ld->ld_cache == NULLLDCACHE ) {
 	    return;

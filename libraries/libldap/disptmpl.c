@@ -152,7 +152,7 @@ int
 ldap_init_templates_buf( char *buf, long buflen,
 	struct ldap_disptmpl **tmpllistp )
 {
-    int				rc, version;
+    int				rc=-1, version;
     char			**toks;
     struct ldap_disptmpl	*prevtmpl, *tmpl;
 
@@ -457,9 +457,9 @@ read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
     int				i, j, tokcnt, samerow, adsource;
     char			**toks, *itemopts;
     struct ldap_disptmpl	*tmpl;
-    struct ldap_oclist		*ocp, *prevocp;
-    struct ldap_adddeflist	*adp, *prevadp;
-    struct ldap_tmplitem	*rowp, *ip, *previp;
+    struct ldap_oclist		*ocp, *prevocp = NULL;
+    struct ldap_adddeflist	*adp, *prevadp = NULL;
+    struct ldap_tmplitem	*rowp = NULL, *ip, *previp = NULL;
 
     *tmplp = NULL;
 

@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <stdlib.h>
+
 #ifdef MACOS
 #include "macos.h"
 #else /* MACOS */
@@ -989,7 +990,7 @@ searchaction( LDAP *ld, char *buf, char *base, LDAPMessage *entry, char *dn,
 	struct ldap_tmplitem *tip, int labelwidth, int rdncount,
 	writeptype writeproc, void *writeparm, char *eol, char *urlprefix )
 {
-    int			err, lderr, i, count, html;
+    int			err = 0, lderr, i, count, html;
     char		**vals, **members;
     char		*value, *filtpattern, *attr, *selectname;
     char		*retattrs[2], filter[ 256 ];

@@ -11,15 +11,14 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #ifdef MACOS
-#include <stdlib.h>
 #include "macos.h"
 #endif /* MACOS */
 
 #if defined( DOS ) || defined( _WIN32 )
 #include "msdos.h"
-#include <stdlib.h>
 #endif /* DOS */
 
 #if !defined(MACOS) && !defined(DOS) && !defined( _WIN32 )
@@ -167,7 +166,8 @@ int
 open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
 	char **krbinstancep, int async )
 {
-	int 			rc, port;
+	int 			rc = -1;
+	int				port;
 	char			*p, *q, *r;
 	char			*curhost, hostname[ 2*MAXHOSTNAMELEN ];
 

@@ -12,9 +12,9 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 #ifdef MACOS
-#include <stdlib.h>
 #include "macos.h"
 #else /* MACOS */
 #if defined( DOS ) || defined( _WIN32 )
@@ -85,9 +85,9 @@ ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, char *prefix,
 	char **attrs, int attrsonly, LDAPMessage **res, cancelptype cancelproc,
 	void *cancelparm, char *tag1, char *tag2, char *tag3 )
 {
-	char		*dn, *ftag;
-	char		**dns;
-	int		max, i, err, scope, phase, tries;
+	char		*dn, *ftag = NULL;
+	char		**dns = NULL;
+	int		max, i, err, scope = 0, phase, tries;
 	LDAPFiltInfo	*fi;
 	LDAPMessage	*tmpcand;
 	LDAPMessage	*candidates;
@@ -242,7 +242,7 @@ ldap_ufn_search_ct( LDAP *ld, char *ufn, char **attrs, int attrsonly,
 {
 	char	**ufncomp, **prefixcomp;
 	char	*pbuf;
-	int	ncomp, pcomp, i, err;
+	int	ncomp, pcomp, i, err = 0;
 
 	/* initialize the getfilter stuff if it's not already */
 	if ( ld->ld_filtd == NULL && ldap_ufn_setfilter( ld, FILTERFILE )

@@ -12,23 +12,17 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #if defined( DOS ) || defined( _WIN32 )
 #include "msdos.h"
 #endif /* DOS || _WIN32 */
 
 #ifdef MACOS
-#include <stdlib.h>
 #include "macos.h"
 #else /* MACOS */
-#if defined(NeXT) || defined(VMS)
-#include <stdlib.h>
-#else /* next || vms */
-#ifndef __FreeBSD__
-#include <malloc.h>
-#endif
-#endif /* next || vms */
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -303,7 +297,7 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 #ifdef LDAP_DEBUG
 	if ( lber_debug ) {
 		fprintf( stderr, "ber_flush: %ld bytes to sd %ld%s\n", towrite,
-		    sb->sb_sd, ber->ber_rwptr != ber->ber_buf ? " (re-flush)"
+		    (long) sb->sb_sd, ber->ber_rwptr != ber->ber_buf ? " (re-flush)"
 		    : "" );
 		if ( lber_debug > 1 )
 			lber_bprint( ber->ber_rwptr, towrite );
@@ -421,14 +415,16 @@ void
 ber_dump( BerElement *ber, int inout )
 {
 	fprintf( stderr, "ber_dump: buf 0x%lx, ptr 0x%lx, end 0x%lx\n",
-	    ber->ber_buf, ber->ber_ptr, ber->ber_end );
+	    (long) ber->ber_buf,
+		(long) ber->ber_ptr,
+		(long) ber->ber_end );
 	if ( inout == 1 ) {
 		fprintf( stderr, "          current len %ld, contents:\n",
-		    ber->ber_end - ber->ber_ptr );
+		    (long) (ber->ber_end - ber->ber_ptr) );
 		lber_bprint( ber->ber_ptr, ber->ber_end - ber->ber_ptr );
 	} else {
 		fprintf( stderr, "          current len %ld, contents:\n",
-		    ber->ber_ptr - ber->ber_buf );
+		    (long) (ber->ber_ptr - ber->ber_buf) );
 		lber_bprint( ber->ber_buf, ber->ber_ptr - ber->ber_buf );
 	}
 }
@@ -439,9 +435,9 @@ ber_sos_dump( Seqorset *sos )
 	fprintf( stderr, "*** sos dump ***\n" );
 	while ( sos != NULLSEQORSET ) {
 		fprintf( stderr, "ber_sos_dump: clen %ld first 0x%lx ptr 0x%lx\n",
-		    sos->sos_clen, sos->sos_first, sos->sos_ptr );
+		    (long) sos->sos_clen, (long) sos->sos_first, (long) sos->sos_ptr );
 		fprintf( stderr, "              current len %ld contents:\n",
-		    sos->sos_ptr - sos->sos_first );
+		    (long) (sos->sos_ptr - sos->sos_first) );
 		lber_bprint( sos->sos_first, sos->sos_ptr - sos->sos_first );
 
 		sos = sos->sos_next;
@@ -489,7 +485,7 @@ get_tag( Sockbuf *sb )
 unsigned long
 ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 {
-	unsigned long	tag, netlen, toread;
+	unsigned long	tag = 0, netlen, toread;
 	unsigned char	lc;
 	long		rc;
 	int		noctets, diff;

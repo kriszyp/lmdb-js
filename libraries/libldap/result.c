@@ -11,8 +11,9 @@ static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of 
 
 #include <stdio.h>
 #include <string.h>
-#ifdef MACOS
 #include <stdlib.h>
+
+#ifdef MACOS
 #include <time.h>
 #include "macos.h"
 #else /* MACOS */
@@ -35,12 +36,14 @@ static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of 
 #ifdef _AIX
 #include <sys/select.h>
 #endif /* _AIX */
-#include "portable.h"
 #endif /* DOS */
 #endif /* MACOS */
 #ifdef VMS
 #include "ucx_select.h"
 #endif
+
+#include "portable.h"
+
 #include "lber.h"
 #include "ldap.h"
 #include "ldap-int.h"
@@ -181,7 +184,8 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 {
 	int		rc;
 	struct timeval	tv, *tvp;
-	long		start_time, tmp_time;
+	time_t		start_time = 0;
+	time_t		tmp_time;
 #ifdef LDAP_REFERRALS
 	LDAPConn	*lc, *nextlc;
 #endif /* LDAP_REFERRALS */
@@ -201,7 +205,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 	} else {
 		tv = *timeout;
 		tvp = &tv;
-		start_time = (long)time( NULL );
+		start_time = time( NULL );
 	}
 		    
 	rc = -2;
@@ -287,7 +291,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 #endif /* !LDAP_REFERRALS */
 
 		if ( rc == -2 && tvp != NULL ) {
-			tmp_time = (long)time( NULL );
+			tmp_time = time( NULL );
 			if (( tv.tv_sec -=  ( tmp_time - start_time )) <= 0 ) {
 				rc = 0;	/* timed out */
 				ld->ld_errno = LDAP_TIMEOUT;

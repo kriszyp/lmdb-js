@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-#ifdef MACOS
 #include <stdlib.h>
+
+#ifdef MACOS
 #ifdef THINK_C
 #include <console.h>
 #include <unix.h>
@@ -287,7 +288,7 @@ main(
 #endif /* WINSOCK */
 	int argc, char **argv )
 {
-	LDAP		*ld;
+	LDAP		*ld = NULL;
 	int		i, c, port, cldapflg, errflg, method, id, msgtype;
 	char		line[256], command1, command2, command3;
 	char		passwd[64], dn[256], rdn[64], attr[64], value[256];

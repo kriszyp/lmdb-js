@@ -11,15 +11,15 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 
 #include <stdio.h>
 #include <string.h>
-#ifdef MACOS
 #include <stdlib.h>
+
+#ifdef MACOS
 #include <time.h>
 #include "macos.h"
 #else /* MACOS */
 #if defined( DOS ) || defined( _WIN32 )
 #include "msdos.h"
 #include <time.h>
-#include <stdlib.h>
 #ifdef PCNFS
 #include <tklib.h>
 #include <tk_errno.h>

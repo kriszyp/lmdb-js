@@ -12,9 +12,9 @@ static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of 
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 #ifdef MACOS
-#include <stdlib.h>
 #include "macos.h"
 #endif /* MACOS */
 
@@ -27,6 +27,7 @@ static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of 
 #include <sys/types.h>
 #include <sys/socket.h>
 #endif
+
 #include "lber.h"
 #include "ldap.h"
 #include "ldap-int.h"

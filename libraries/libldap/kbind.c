@@ -13,9 +13,9 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #ifdef MACOS
-#include <stdlib.h>
 #include "macos.h"
 #else /* MACOS */
 #ifdef DOS

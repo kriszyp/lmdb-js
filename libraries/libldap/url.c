@@ -24,14 +24,13 @@ static char copyright[] = "@(#) Copyright (c) 1996 Regents of the University of 
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 #ifdef MACOS
-#include <stdlib.h>
 #include "macos.h"
 #endif /* MACOS */
 
 #if defined( DOS ) || defined( _WIN32 )
-#include <stdlib.h>
 #include <malloc.h>
 #include "msdos.h"
 #endif /* DOS || _WIN32 */

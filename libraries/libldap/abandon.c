@@ -11,6 +11,7 @@ static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of 
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #if !defined( MACOS ) && !defined( DOS )
 #include <sys/types.h>
@@ -23,7 +24,6 @@ static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of 
 #endif /* DOS */
 
 #ifdef MACOS
-#include <stdlib.h>
 #include "macos.h"
 #endif /* MACOS */
 

@@ -10,6 +10,7 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 
@@ -21,7 +22,9 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
+#include <unistd.h>
 #endif /* _WIN32 */
 #ifdef _AIX
 #include <sys/select.h>
@@ -29,6 +32,7 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 #ifdef VMS
 #include "ucx_select.h"
 #endif /* VMS */
+
 #include "portable.h"
 #include "lber.h"
 #include "ldap.h"
@@ -77,9 +81,10 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
  * XXX async is not used yet!
  */
 {
-	int			rc, i, s, connected, use_hp;
+	int			rc, i, s = 0;
+	int			connected, use_hp;
 	struct sockaddr_in	sin;
-	struct hostent		*hp;
+	struct hostent		*hp = NULL;
 #ifdef notyet
 #ifdef LDAP_REFERRALS
 	int			status;	/* for ioctl call */
