@@ -62,4 +62,4 @@ install-local:	FORCE
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapmodrdn $(DESTDIR)$(bindir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldappasswd $(DESTDIR)$(bindir)
 	$(RM) $(DESTDIR)$(bindir)/ldapadd$(EXEEXT)
-	$(LN) ldapmodify$(EXEEXT) $(DESTDIR)$(bindir)/ldapadd$(EXEEXT)
+	$(LN) $(DESTDIR)$(bindir)/ldapmodify$(EXEEXT) $(DESTDIR)$(bindir)/ldapadd$(EXEEXT)
