@@ -2,15 +2,18 @@ OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.12 Engineering
 	Fixed slapd modlist2mods error text bug
-	Fixed slapd empty rootdn bug
-	Fixed slapd numericString empty value bug
+	Fixed slapd empty rootdn bug (ITS#1172)
+	Fixed slapd numericString empty value bug (ITS#1182)
 	Fixed slapd undefined attr error report
+	Fixed slapd acl default clause bug (ITS#1187)
 	Fixed ldapmodrdn SASL auth bug (ITS#1179)
-	Added slapd sb_max_incoming_auth support
 	Added slapd DB_ENV support
+	Added slapd modrdn children check (ITS#1053,1192)
+	Added slapd sb_max_incoming_auth support (ITS#1181)
+	Added slapadd already exists check (ITS#1191)
 	Updated slapd filter checks
 	Updated ldaptcl API (contrib)
-	Updated ldbm to use BerkeleyDB's CDB
+	Updated ldbm to use BerkeleyDB's CDB (ITS#1176)
 	Build environment
 		Remove extraneous files
 
@@ -46,16 +49,16 @@ OpenLDAP 2.0.8 Release
 	Fixed back-shell unbind response bug
 	Fixed back-ldbm oldSuperior bug (ITS#951)
 	Fixed back-ldbm modify password DN bug (ITS#1060)
-	Fixed libldap SASL GSSAPI interop bug (ITS#884)
-	Fixed libldap TLS/SASL crash bugs (ITS#889)
-	Fixed liblber exception bugs
+	Fixed -lldap SASL GSSAPI interop bug (ITS#884)
+	Fixed -lldap TLS/SASL crash bugs (ITS#889)
+	Fixed -llber exception bugs
 	Added slapd RANDFILE option (ITS#1069)
 	Updated slapd anonymous write default to deny
 	Updated slapd syntax erorr reporting
-	Updated libldap TLS seeding (ITS#948) 
-	Updated libldap TLS certificate handling
-	Updated libldap referral/reference handling (ITS#905,1047)
-	Updated libldap schema safe_string bug (ITS#1092) 
+	Updated -lldap TLS seeding (ITS#948) 
+	Updated -lldap TLS certificate handling (ITS#903)
+	Updated -lldap referral/reference handling (ITS#905,1047)
+	Updated -lldap schema safe_string bug (ITS#1092) 
 	Updated maildap
 	Updated ldaptcl
 	Updated client usage messages

@@ -115,7 +115,15 @@ ldbm_back_modrdn(
 		    e->e_dn, NULL, refs, NULL );
 
 		ber_bvecfree( refs );
+		goto return_results;
+	}
 
+	if ( has_children( be, e ) ) {
+		Debug( LDAP_DEBUG_TRACE, "entry %s referral\n", 0,
+		    0, 0 );
+
+		send_ldap_result( conn, op, LDAP_NOT_ALLOWED_ON_NONLEAF,
+		    NULL, "subtree rename not supported", NULL, NULL );
 		goto return_results;
 	}
 
@@ -129,7 +137,8 @@ ldbm_back_modrdn(
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
 				0, 0, 0);
 			send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, NULL, NULL, NULL );
+				NULL, "parent entry does not exist", NULL, NULL );
+
 			goto return_results;
 		}
 
@@ -203,7 +212,7 @@ ldbm_back_modrdn(
 			       "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
 			       np_ndn, 0, 0);
 			send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, NULL, NULL, NULL );
+				NULL, "newSuperior not found", NULL, NULL );
 			goto return_results;
 		}
 
@@ -229,7 +238,7 @@ ldbm_back_modrdn(
 			    0, 0 );
 
 			send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
-			    NULL, NULL, NULL, NULL );
+			    NULL, "newSuperior is an alias", NULL, NULL );
 
 			goto return_results;
 		}
@@ -241,7 +250,7 @@ ldbm_back_modrdn(
 				0, 0 );
 
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			    NULL, NULL, NULL, NULL );
+			    NULL, "newSuperior is a referral", NULL, NULL );
 
 			goto return_results;
 		}
