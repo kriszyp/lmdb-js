@@ -136,7 +136,7 @@ do_search(
 #endif
 
 	/* filter - returns a "normalized" version */
-	rc = get_filter( conn, op->o_ber, &filter, &fstr, &text );
+	rc = get_filter( conn, op->o_ber, &filter, &text );
 	if( rc != LDAP_SUCCESS ) {
 		if( rc == SLAPD_DISCONNECT ) {
 			send_ldap_disconnect( conn, op,
@@ -146,13 +146,18 @@ do_search(
 				NULL, text, NULL, NULL );
 		}
 		goto return_results;
+
+	} else {
+		filter2bv( filter, &fstr );
 	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		"do_search: conn %d	filter: %s\n", conn->c_connid, fstr.bv_val ));
+		"do_search: conn %d	filter: %s\n", conn->c_connid,
+		fstr.bv_len ? fstr.bv_val : "empty" ));
 #else
-	Debug( LDAP_DEBUG_ARGS, "    filter: %s\n", fstr.bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "    filter: %s\n",
+		fstr.bv_len ? fstr.bv_val : "empty", 0, 0 );
 #endif
 
 	/* attributes */
