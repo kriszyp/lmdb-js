@@ -395,7 +395,6 @@ static int slap_get_listener_addresses(
 			return -1;
 		}
 
-		sai = res;
 		sap = *sal;
 
 		for ( sai=res; sai; sai=sai->ai_next ) {
