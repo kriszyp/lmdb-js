@@ -731,7 +731,7 @@ dnl	defines ol_cv_sys_linux_threads to 'yes' or 'no'
 dnl	'no' implies pthreads implementation is not LinuxThreads.
 dnl 
 AC_DEFUN([OL_SYS_LINUX_THREADS], [
-	AC_CHECK_FUNC(pthread_kill_other_threads_np)
+	AC_CHECK_FUNCS(pthread_kill_other_threads_np)
 	AC_CACHE_CHECK([for LinuxThreads implementation],
 		[ol_cv_sys_linux_threads],
 		[ol_cv_sys_linux_threads=$ac_cv_func_pthread_kill_other_threads_np])
