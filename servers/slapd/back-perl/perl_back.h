@@ -17,8 +17,28 @@ LDAP_BEGIN_DECL
 #define PERL_IS_5_6
 #endif
 
-extern PerlInterpreter *perl_interpreter;
 extern ldap_pvt_thread_mutex_t  perl_interpreter_mutex;
+
+#ifdef HAVE_WIN32_ASPERL
+/* We should be using the PL_errgv, I think */
+/* All the old style variables are prefixed with PL_ now */
+# define errgv	PL_errgv
+# define na	PL_na
+#endif
+
+#ifdef HAVE_WIN32_ASPERL 
+/* pTHX is needed often now */
+# define PERL_INTERPRETER			my_perl
+# define PERL_BACK_XS_INIT_PARAMS		pTHX
+# define PERL_BACK_BOOT_DYNALOADER_PARAMS	pTHX, CV *cv
+#else
+# define PERL_INTERPRETER			perl_interpreter
+# define PERL_BACK_XS_INIT_PARAMS		void
+# define PERL_BACK_BOOT_DYNALOADER_PARAMS	CV *cv
+#endif
+
+extern PerlInterpreter *PERL_INTERPRETER;
+
 
 typedef struct perl_backend_instance {
 	char	*pb_module_name;

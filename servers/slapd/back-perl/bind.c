@@ -10,17 +10,19 @@
  */
 
 #include "portable.h"
-/* init.c - initialize shell backend */
+/* init.c - initialize Perl backend */
 	
 #include <stdio.h>
-/*	#include <ac/types.h>
-	#include <ac/socket.h>
-*/
-
-#include <EXTERN.h>
-#include <perl.h>
 
 #include "slap.h"
+#ifdef HAVE_WIN32_ASPERL
+#include "asperl_undefs.h"
+#endif
+
+#include <EXTERN.h>
+#include <XSUB.h>
+#include <perl.h>
+
 #include "perl_back.h"
 
 
@@ -46,12 +48,16 @@ perl_back_bind(
 
 	PerlBackend *perl_back = (PerlBackend *) be->be_private;
 
+#ifdef HAVE_WIN32_ASPERL
+	PERL_SET_CONTEXT( PERL_INTERPRETER );
+#endif
+
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
 	{
 		dSP; ENTER; SAVETMPS;
 
-		PUSHMARK(sp);
+		PUSHMARK(SP);
 		XPUSHs( perl_back->pb_obj_ref );
 		XPUSHs(sv_2mortal(newSVpv( dn->bv_val , 0)));
 		XPUSHs(sv_2mortal(newSVpv( cred->bv_val , cred->bv_len)));

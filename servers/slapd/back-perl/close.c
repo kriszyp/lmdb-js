@@ -13,14 +13,15 @@
 /* init.c - initialize shell backend */
 	
 #include <stdio.h>
-/*	#include <ac/types.h>
-	#include <ac/socket.h>
-*/
+
+#include "slap.h"
+#ifdef HAVE_WIN32_ASPERL
+#include "asperl_undefs.h"
+#endif
 
 #include <EXTERN.h>
 #include <perl.h>
 
-#include "slap.h"
 #include "perl_back.h"
 
 /**********************************************************
@@ -36,7 +37,7 @@ perl_back_close(
 {
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
-	perl_destruct(perl_interpreter);
+	perl_destruct(PERL_INTERPRETER);
 
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
@@ -48,8 +49,8 @@ perl_back_destroy(
 	BackendInfo *bd
 )
 {
-	perl_free(perl_interpreter);
-	perl_interpreter = NULL;
+	perl_free(PERL_INTERPRETER);
+	PERL_INTERPRETER = NULL;
 
 	ldap_pvt_thread_mutex_destroy( &perl_interpreter_mutex );	
 

@@ -25,14 +25,15 @@
 #include "portable.h"
 
 #include <stdio.h>
-/*	#include <ac/types.h>
-	#include <ac/socket.h>
-*/
+
+#include "slap.h"
+#ifdef HAVE_WIN32_ASPERL
+#include "asperl_undefs.h"
+#endif
 
 #include <EXTERN.h>
 #include <perl.h>
 
-#include "slap.h"
 #include "perl_back.h"
 
 int

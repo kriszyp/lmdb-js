@@ -13,23 +13,23 @@
  /* init.c - initialize shell backend */
 	
 #include <stdio.h>
-/* #include <ac/types.h>
-	#include <ac/socket.h>
-*/
-
-
-
-#include <EXTERN.h>
-#include <perl.h>
 
 #include "slap.h"
+#ifdef HAVE_WIN32_ASPERL
+#include "asperl_undefs.h"
+#endif
+
+#include <EXTERN.h>
+#include <XSUB.h>
+#include <perl.h>
+
 #include "perl_back.h"
 
 
-static void perl_back_xs_init LDAP_P((void));
-EXT void boot_DynaLoader LDAP_P((CV* cv));
+static void perl_back_xs_init LDAP_P((PERL_BACK_XS_INIT_PARAMS));
+EXT void boot_DynaLoader LDAP_P((PERL_BACK_BOOT_DYNALOADER_PARAMS));
 
-PerlInterpreter *perl_interpreter = NULL;
+PerlInterpreter *PERL_INTERPRETER = NULL;
 ldap_pvt_thread_mutex_t	perl_interpreter_mutex;
 
 #ifdef SLAPD_PERL_DYNAMIC
@@ -64,16 +64,16 @@ perl_back_initialize(
 
 	Debug( LDAP_DEBUG_TRACE, "perl backend open\n", 0, 0, 0 );
 
-	if( perl_interpreter != NULL ) {
+	if( PERL_INTERPRETER != NULL ) {
 		Debug( LDAP_DEBUG_ANY, "perl backend open: already opened\n",
 			0, 0, 0 );
 		return 1;
 	}
 	
-	perl_interpreter = perl_alloc();
-	perl_construct(perl_interpreter);
-	perl_parse(perl_interpreter, perl_back_xs_init, 3, embedding, (char **)NULL);
-	perl_run(perl_interpreter);
+	PERL_INTERPRETER = perl_alloc();
+	perl_construct(PERL_INTERPRETER);
+	perl_parse(PERL_INTERPRETER, perl_back_xs_init, 3, embedding, (char **)NULL);
+	perl_run(PERL_INTERPRETER);
 
 	bi->bi_open = perl_back_open;
 	bi->bi_config = 0;
