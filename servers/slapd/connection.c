@@ -1227,17 +1227,21 @@ int connection_read(ber_socket_t s)
 	}
 #endif
 
-#define CONNECTION_INPUT_LOOP 1
+/* #define CONNECTION_INPUT_LOOP 1 */
+#define	DATA_READY_LOOP 1
 
-#ifdef DATA_READY_LOOP
-	while( !rc && ber_sockbuf_ctrl( c->c_sb, LBER_SB_DATA_READY, NULL ) )
-#elif CONNECTION_INPUT_LOOP
-	while(!rc)
-#endif
+	do
 	{
 		/* How do we do this without getting into a busy loop ? */
 		rc = connection_input( c );
 	}
+#ifdef DATA_READY_LOOP
+	while( !rc && ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ) );
+#elif CONNECTION_INPUT_LOOP
+	while(!rc);
+#else
+	while(0);
+#endif
 
 	if( rc < 0 ) {
 #ifdef NEW_LOGGING
