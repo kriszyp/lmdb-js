@@ -1398,10 +1398,10 @@ int caseIgnoreIA5SubstringsIndexer(
 		int j,max;
 		struct berval *value;
 
-		if( value->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
+		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
 
-		max = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+		max = SLAP_INDEX_SUBSTR_MAXLEN < values[i]->bv_len
+			? SLAP_INDEX_SUBSTR_MAXLEN : values[i]->bv_len;
 
 		value = ber_bvdup( values[i] );
 		ldap_pvt_str2upper( value->bv_val );
