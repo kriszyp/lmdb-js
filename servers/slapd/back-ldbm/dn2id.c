@@ -20,9 +20,10 @@ dn2id_add(
     ID		id
 )
 {
-	int		rc;
+	int		rc, flags;
 	struct dbcache	*db;
 	Datum		key, data;
+	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id_add( \"%s\", %ld )\n", dn, id, 0 );
 
@@ -41,11 +42,10 @@ dn2id_add(
 	data.dptr = (char *) &id;
 	data.dsize = sizeof(ID);
 
-#ifdef LDBM_PESSIMISTIC
-	rc = ldbm_cache_store( db, key, data, LDBM_INSERT | LDBM_SYNC );
-#else
-	rc = ldbm_cache_store( db, key, data, LDBM_INSERT );
-#endif
+	flags = LDBM_INSERT;
+	if ( li->li_flush_wrt ) flags |= LDBM_SYNC;
+
+	rc = ldbm_cache_store( db, key, data, flags );
 
 	free( dn );
 	ldbm_cache_close( be, db );

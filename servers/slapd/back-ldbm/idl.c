@@ -163,19 +163,19 @@ idl_store(
     IDList		*idl
 )
 {
-	int	rc;
+	int	rc, flags;
 	Datum	data;
+	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
 	/* Debug( LDAP_DEBUG_TRACE, "=> idl_store\n", 0, 0, 0 ); */
 
 	data.dptr = (char *) idl;
 	data.dsize = (2 + idl->b_nmax) * sizeof(ID);
+	
+	flags = LDBM_REPLACE;
+	if( li->li_flush_wrt ) flags |= LDBM_SYNC;
 
-#ifdef LDBM_PESSIMISTIC
-	rc = ldbm_cache_store( db, key, data, LDBM_REPLACE | LDBM_SYNC );
-#else
-	rc = ldbm_cache_store( db, key, data, LDBM_REPLACE );
-#endif
+	rc = ldbm_cache_store( db, key, data, flags );
 
 	/* Debug( LDAP_DEBUG_TRACE, "<= idl_store %d\n", rc, 0, 0 ); */
 	return( rc );

@@ -77,6 +77,10 @@ ldbm_back_config(
 		}
 		li->li_dbcachesize = atoi( argv[1] );
 
+	/* flush on writes */
+	} else if ( strcasecmp( argv[0], "flushwrites" ) == 0 ) {
+		li->li_flush_wrt = 1;
+
 	/* anything else */
 	} else {
 		fprintf( stderr,
