@@ -15,8 +15,6 @@
 #ifndef _SLURPD_H_
 #define _SLURPD_H_
 
-#include "portable.h"
-
 #define LDAP_SYSLOG
 
 #include <ac/syslog.h>

@@ -10,8 +10,6 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#include "portable.h"
-
 #ifdef DOS
 #define MAX_VALUES	8
 #else
