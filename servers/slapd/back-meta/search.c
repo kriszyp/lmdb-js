@@ -388,6 +388,7 @@ new_candidate:;
 
 				rc = ldap_parse_reference( lsc->ld, res,
 						&references, &rs->sr_ctrls, 1 );
+				res = NULL;
 
 				if ( rc != LDAP_SUCCESS ) {
 					continue;
@@ -421,9 +422,6 @@ new_candidate:;
 					ldap_controls_free( rs->sr_ctrls );
 					rs->sr_ctrls = NULL;
 				}
-
-				ldap_msgfree( res );
-				res = NULL;
 
 			} else {
 				rs->sr_err = ldap_result2error( lsc->ld,

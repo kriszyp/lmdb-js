@@ -6,6 +6,7 @@ OpenLDAP 2.2.14 Engineering
 	Fixed back-bdb pagedResults clear controls bug (ITS#3182)
 	Fixed back-bdb pagedResults ignore control bug
 	Fixed back-hdb empty suffix bugs (ITS#3063,3186)
+	Fixed back-meta freeit bug (ITS#3190)
 	Fixed slapi prototypes bug (ITS#3166)
 	Fixed slapi internal search limit bugs (ITS#3183)
 	Added slapd -l USER/DAEMON options (ITS#3187)
