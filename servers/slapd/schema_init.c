@@ -1984,11 +1984,14 @@ integerBitOrMatch(
 
 	/* safe to assume integers are NUL terminated? */
 	lValue = SLAP_STRTOL(value->bv_val, NULL, 10);
-	if(( lValue == SLAP_LONG_MIN || lValue == SLAP_LONG_MAX ) && errno == ERANGE ) {
+	if(( lValue == SLAP_LONG_MIN || lValue == SLAP_LONG_MAX ) &&
+		errno == ERANGE )
+	{
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
-	lAssertedValue = SLAP_STRTOL(((struct berval *)assertedValue)->bv_val, NULL, 10);
+	lAssertedValue = SLAP_STRTOL( ((struct berval *)assertedValue)->bv_val,
+		NULL, 10);
 	if(( lAssertedValue == SLAP_LONG_MIN || lAssertedValue == SLAP_LONG_MAX )
 		&& errno == ERANGE )
 	{
