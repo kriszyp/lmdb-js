@@ -170,6 +170,7 @@ typedef struct glue_state {
 	char *matched;
 	int nrefs;
 	BVarray refs;
+	slap_callback *prevcb;
 } glue_state;
 
 static void
@@ -188,7 +189,7 @@ glue_back_response (
 	LDAPControl **ctrls
 )
 {
-	glue_state *gs = op->o_glue;
+	glue_state *gs = op->o_callback->sc_private;
 
 	if (err == LDAP_SUCCESS || gs->err != LDAP_SUCCESS)
 		gs->err = err;
@@ -240,11 +241,36 @@ glue_back_sresult (
 	int nentries
 )
 {
-	glue_state *gs = op->o_glue;
+	glue_state *gs = op->o_callback->sc_private;
 
 	gs->nentries += nentries;
 	glue_back_response (c, op, 0, 0, err, matched, text, refs,
 			    NULL, NULL, NULL, ctrls);
+}
+
+static int
+glue_back_sendentry (
+	BackendDB *be,
+	Connection *c,
+	Operation *op,
+	Entry *e,
+	AttributeName *an,
+	int ao,
+	LDAPControl **ctrls
+)
+{
+	slap_callback *tmp = op->o_callback;
+	glue_state *gs = tmp->sc_private;
+	int rc;
+
+	op->o_callback = gs->prevcb;
+	if (op->o_callback && op->o_callback->sc_sendentry) {
+		rc = op->o_callback->sc_sendentry(be, c, op, e, an, ao, ctrls);
+	} else {
+		rc = send_search_entry(be, c, op, e, an, ao, ctrls);
+	}
+	op->o_callback = tmp;
+	return rc;
 }
 
 static int
@@ -268,9 +294,12 @@ glue_back_search (
 	BackendDB *be;
 	int i, rc, t2limit = 0, s2limit = 0;
 	long stoptime = 0;
-	glue_state gs = {0};
 	struct berval bv;
+	glue_state gs = {0};
+	slap_callback cb = {glue_back_response, glue_back_sresult, 
+		glue_back_sendentry, &gs};
 
+	gs.prevcb = op->o_callback;
 
 	if (tlimit) {
 		stoptime = slap_get_time () + tlimit;
@@ -293,9 +322,7 @@ glue_back_search (
 
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:
-		op->o_glue = &gs;
-		op->o_sresult = glue_back_sresult;
-		op->o_response = glue_back_response;
+		op->o_callback = &cb;
 
 		/*
 		 * Execute in reverse order, most general first 
@@ -349,9 +376,7 @@ glue_back_search (
 		}
 		break;
 	}
-	op->o_sresult = NULL;
-	op->o_response = NULL;
-	op->o_glue = NULL;
+	op->o_callback = gs.prevcb;
 
 	send_search_result (conn, op, gs.err, gs.matched, NULL,
 		gs.refs, NULL, gs.nentries);

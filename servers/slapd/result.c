@@ -187,8 +187,8 @@ send_ldap_response(
 	int		rc;
 	long	bytes;
 
-	if (op->o_response) {
-		op->o_response( conn, op, tag, msgid, err, matched,
+	if (op->o_callback && op->o_callback->sc_response) {
+		op->o_callback->sc_response( conn, op, tag, msgid, err, matched,
 			text, ref, resoid, resdata, sasldata, ctrls );
 		return;
 	}
@@ -548,8 +548,8 @@ send_search_result(
 
 	assert( !LDAP_API_ERROR( err ) );
 
-	if (op->o_sresult) {
-		op->o_sresult(conn, op, err, matched, text, refs,
+	if (op->o_callback && op->o_callback->sc_sresult) {
+		op->o_callback->sc_sresult(conn, op, err, matched, text, refs,
 			ctrls, nentries);
 		return;
 	}
@@ -630,6 +630,11 @@ send_search_entry(
 	int		opattrs;
 
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
+
+	if (op->o_callback && op->o_callback->sc_sendentry) {
+		return op->o_callback->sc_sendentry( be, conn, op, e, attrs,
+			attrsonly, ctrls );
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,

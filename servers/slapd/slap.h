@@ -1360,6 +1360,16 @@ typedef void (slap_sresult)( struct slap_conn *, struct slap_op *,
 	ber_int_t, const char *, const char *, BVarray,
 	LDAPControl **, int nentries);
 
+typedef int (slap_sendentry)( BackendDB *, struct slap_conn *,
+	struct slap_op *, Entry *, AttributeName *, int, LDAPControl **);
+
+typedef struct slap_callback {
+	slap_response *sc_response;
+	slap_sresult *sc_sresult;
+	slap_sendentry *sc_sendentry;
+	void *sc_private;
+} slap_callback;
+
 /*
  * represents an operation pending from an ldap client
  */
@@ -1388,11 +1398,9 @@ typedef struct slap_op {
 	AuthorizationInformation o_authz;
 
 	BerElement	*o_ber;		/* ber of the request		  */
-	slap_response	*o_response;	/* callback function */
-	slap_sresult	*o_sresult;	/* search result callback */
+	slap_callback	*o_callback;	/* callback pointers */
 	LDAPControl	**o_ctrls;	 /* controls */
 
-	void	*o_glue;	/* for the glue backend */
 	void	*o_private;	/* anything the backend needs */
 
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
