@@ -47,8 +47,8 @@ LDAP_BEGIN_DECL
 
 extern int slap_debug;
 
-struct op;
-struct conn;
+struct slap_op;
+struct slap_conn;
 
 /*
  * represents an attribute value assertion (i.e., attr=value)
@@ -234,17 +234,36 @@ struct backend {
 	void	*be_private;	/* anything the backend needs 		   */
 
 	/* backend routines */
-	int	(*be_bind)   LDAP_P((Backend *be, struct conn *c, struct op *o, char *dn, int method, struct berval *cred ));
-	void	(*be_unbind) LDAP_P((Backend *be, struct conn *c, struct op *o ));
-	int	(*be_search) LDAP_P((Backend *be, struct conn *c, struct op *o, char *base, int scope, int deref, int slimit, int tlimit, Filter *f, char *filterstr, char **attrs, int attrsonly));
-	int	(*be_compare)LDAP_P((Backend *be, struct conn *c, struct op *o, char *dn, Ava *ava));
-	int	(*be_modify) LDAP_P((Backend *be, struct conn *c, struct op *o, char *dn, LDAPModList *m));
-	int	(*be_modrdn) LDAP_P((Backend *be, struct conn *c, struct op *o, char *dn, char *newrdn, int deleteoldrdn ));
-	int	(*be_add)    LDAP_P((Backend *be, struct conn *c, struct op *o, Entry *e));
-	int	(*be_delete) LDAP_P((Backend *be, struct conn *c, struct op *o, char *dn));
+	int	(*be_bind)   LDAP_P((Backend *be,
+		struct slap_conn *c, struct slap_op *o,
+		char *dn, int method, struct berval *cred ));
+	void	(*be_unbind) LDAP_P((Backend *be,
+		struct slap_conn *c, struct slap_op *o ));
+	int	(*be_search) LDAP_P((Backend *be,
+		struct slap_conn *c, struct slap_op *o,
+		char *base, int scope, int deref, int slimit, int tlimit,
+		Filter *f, char *filterstr, char **attrs, int attrsonly));
+	int	(*be_compare)LDAP_P((Backend *be,
+		struct slap_conn *c, struct slap_op *o,
+		char *dn, Ava *ava));
+	int	(*be_modify) LDAP_P((Backend *be,
+		struct slap_conn *c, struct slap_op *o,
+		char *dn, LDAPModList *m));
+	int	(*be_modrdn) LDAP_P((Backend *be,
+		struct slap_conn *c, struct slap_op *o,
+		char *dn, char *newrdn, int deleteoldrdn ));
+	int	(*be_add)    LDAP_P((Backend *be,
+		struct slap_conn *c, struct slap_op *o,
+		Entry *e));
+	int	(*be_delete) LDAP_P((Backend *be,
+		struct slap_conn *c, struct slap_op *o,
+		char *dn));
 	/* Bug: be_abandon in unused! */
-	void	(*be_abandon)LDAP_P((Backend *be, struct conn *c, struct op *o, int msgid));
-	void	(*be_config) LDAP_P((Backend *be, char *fname, int lineno, int argc, char **argv ));
+	void	(*be_abandon)LDAP_P((Backend *be,
+		struct slap_conn *c, struct slap_op *o,
+		int msgid));
+	void	(*be_config) LDAP_P((Backend *be,
+		char *fname, int lineno, int argc, char **argv ));
 	void	(*be_init)   LDAP_P((Backend *be));
 	void	(*be_close)  LDAP_P((Backend *be));
 
@@ -259,7 +278,7 @@ struct backend {
  * represents an operation pending from an ldap client
  */
 
-typedef struct op {
+typedef struct slap_op {
 	BerElement	*o_ber;		/* ber of the request		  */
 	long		o_msgid;	/* msgid of the request		  */
 	unsigned long	o_tag;		/* tag of the request		  */
@@ -277,7 +296,7 @@ typedef struct op {
 	struct sockaddr	o_clientaddr;	/* client address if via CLDAP	  */
 	char		o_searchbase;	/* search base if via CLDAP	  */
 #endif
-	struct op	*o_next;	/* next operation pending	  */
+	struct slap_op	*o_next;	/* next operation pending	  */
 	pthread_t	o_tid;		/* thread handling this op	  */
 	int		o_abandon;	/* signals op has been abandoned  */
 	pthread_mutex_t	o_abandonmutex;	/* signals op has been abandoned  */
@@ -289,7 +308,7 @@ typedef struct op {
  * represents a connection from an ldap client
  */
 
-typedef struct conn {
+typedef struct slap_conn {
 	Sockbuf		c_sb;		/* ber connection stuff		  */
 	char		*c_dn;		/* current DN bound to this conn  */
 	pthread_mutex_t	c_dnmutex;	/* mutex for c_dn field		  */

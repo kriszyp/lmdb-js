@@ -89,7 +89,7 @@ connection_operation( void *arg_v )
 
 	pthread_mutex_lock( &arg->co_conn->c_opsmutex );
 	arg->co_conn->c_opscompleted++;
-	op_delete( &arg->co_conn->c_ops, arg->co_op );
+	slap_op_delete( &arg->co_conn->c_ops, arg->co_op );
 	pthread_mutex_unlock( &arg->co_conn->c_opsmutex );
 
 	free( (char *) arg );
@@ -184,7 +184,7 @@ connection_activity(
 	pthread_mutex_unlock( &conn->c_dnmutex );
 
 	pthread_mutex_lock( &conn->c_opsmutex );
-	arg->co_op = op_add( &conn->c_ops, ber, msgid, tag, tmpdn,
+	arg->co_op = slap_op_add( &conn->c_ops, ber, msgid, tag, tmpdn,
 	    conn->c_opsinitiated, conn->c_connid );
 	pthread_mutex_unlock( &conn->c_opsmutex );
 
