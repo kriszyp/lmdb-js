@@ -1,0 +1,15 @@
+Clients         ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+
+fax500                                         f h    m
+finger                                      c  f  i  l  p    t   x
+go500                   I                  bcd f     l  p    t   x
+go500gw                 I      P          a cd f h   l  p    t   x
+ldapdelete         D      K M  P      W     cd f h  k  np      vw
+ldapmodify         D F    K M  P      W   abcd f h  k  np  r t vw
+ldapmodrdn         D      K M  P      W     cd f h  k  np  rs  vw
+ldappasswd      A  D      KL   P  S       a cd   h  k       stuvw    
+ldapsearch      AB D F    KLM  P RST VW   ab d f h  kl np   stuvw  z
+mail500           C                          d f h   lm        v
+rcpt500                             U     abc  f h   l  p   st     z
+rp500                                     ab d f                 x z
+ud                 D                 V      cd f     l  p   s uv
