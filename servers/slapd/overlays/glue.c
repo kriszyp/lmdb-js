@@ -194,6 +194,28 @@ glue_op_func ( Operation *op, SlapReply *rs )
 }
 
 static int
+glue_chk_referrals ( Operation *op, SlapReply *rs )
+{
+	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
+	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
+	BackendDB *b0 = op->o_bd;
+	BackendInfo *bi0 = op->o_bd->bd_info;
+	int rc;
+
+	op->o_bd = glue_back_select (b0, &op->o_req_ndn);
+	b0->bd_info = on->on_info->oi_orig;
+
+	if ( op->o_bd->bd_info->bi_chk_referrals )
+		rc = ( *op->o_bd->bd_info->bi_chk_referrals )( op, rs );
+	else
+		rc = SLAP_CB_CONTINUE;
+
+	op->o_bd = b0;
+	op->o_bd->bd_info = bi0;
+	return rc;
+}
+
+static int
 glue_op_search ( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
@@ -766,6 +788,8 @@ glue_init()
 	glue.on_bi.bi_op_modrdn = glue_op_func;
 	glue.on_bi.bi_op_add = glue_op_func;
 	glue.on_bi.bi_op_delete = glue_op_func;
+
+	glue.on_bi.bi_chk_referrals = glue_chk_referrals;
 
 	return overlay_register( &glue );
 }

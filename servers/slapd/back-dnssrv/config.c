@@ -37,6 +37,7 @@ dnssrv_back_db_config(
     int		argc,
     char	**argv )
 {
+#if 0
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 
 	if ( li == NULL ) {
@@ -44,6 +45,7 @@ dnssrv_back_db_config(
 		    fname, lineno );
 		return( 1 );
 	}
+#endif
 
 	/* no configuration options (yet) */
 	return SLAP_CONF_UNKNOWN;
