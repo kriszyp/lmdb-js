@@ -208,7 +208,7 @@ OL_ARG_WITH(ldbm_type,[    --with-ldbm-type	  use LDBM type auto|btree|hash], au
 OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend], no)dnl
 OL_ARG_WITH(meta_module,[    --with-meta-module	  module type static|dynamic], static,
 	[static dynamic])
-OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend], no)dnl
+OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend], yes)dnl
 OL_ARG_WITH(monitor_module,[    --with-monitor-module module type static|dynamic], static,
 	[static dynamic])
 OL_ARG_ENABLE(null,[    --enable-null	  enable null backend], no)dnl
