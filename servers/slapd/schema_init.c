@@ -208,22 +208,9 @@ int octetStringIndexer(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	/* XXX this invocation does not like hashDigestify() */
 	for( i=0; values[i].bv_val != NULL; i++ ) {
-		HASH_Init( &HASHcontext );
-		if( prefix != NULL && prefix->bv_len > 0 ) {
-			HASH_Update( &HASHcontext,
-				(unsigned char *)prefix->bv_val,
-				prefix->bv_len );
-		}
-		HASH_Update( &HASHcontext,
-			(unsigned char *)syntax->ssyn_oid, slen );
-		HASH_Update( &HASHcontext,
-			(unsigned char *)mr->smr_oid, mlen );
-		HASH_Update( &HASHcontext,
-			(unsigned char *)values[i].bv_val, values[i].bv_len );
-		HASH_Final( HASHdigest, &HASHcontext );
-
+		hashDigestify( &HASHcontext, HASHdigest, prefix, 0,
+			syntax, mr, (unsigned char *)values[i].bv_val, values[i].bv_len );
 		ber_dupbv_x( &keys[i], &digest, ctx );
 	}
 
@@ -260,18 +247,8 @@ int octetStringFilter(
 
 	keys = slap_sl_malloc( sizeof( struct berval ) * 2, ctx );
 
-	HASH_Init( &HASHcontext );
-	if( prefix != NULL && prefix->bv_len > 0 ) {
-		HASH_Update( &HASHcontext,
-			(unsigned char *)prefix->bv_val, prefix->bv_len );
-	}
-	HASH_Update( &HASHcontext,
-		(unsigned char *)syntax->ssyn_oid, slen );
-	HASH_Update( &HASHcontext,
-		(unsigned char *)mr->smr_oid, mlen );
-	HASH_Update( &HASHcontext,
-		(unsigned char *)value->bv_val, value->bv_len );
-	HASH_Final( HASHdigest, &HASHcontext );
+	hashDigestify( &HASHcontext, HASHdigest, prefix, 0,
+		syntax, mr, (unsigned char *)value->bv_val, value->bv_len );
 
 	ber_dupbv_x( keys, &digest, ctx );
 	keys[1].bv_val = NULL;
