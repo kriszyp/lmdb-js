@@ -650,9 +650,9 @@ UTF8SubstringsassertionNormalize(
 	return nsa;
 
 err:
-	ch_free( nsa->sa_final );
+	ber_bvfree( nsa->sa_final );
 	ber_bvecfree( nsa->sa_any );
-	ch_free( nsa->sa_initial );
+	ber_bvfree( nsa->sa_initial );
 	ch_free( nsa );
 	return NULL;
 }
@@ -700,23 +700,23 @@ approxMatch(
 	struct berval *value,
 	void *assertedValue )
 {
-	char *val, *assertv, **values, **words, *c;
+	char *val, *nval, *assertv, **values, **words, *c;
 	int i, count, len, nextchunk=0, nextavail=0;
 	size_t avlen;
 
 	/* Yes, this is necessary */
-	val = UTF8normalize( value->bv_val, UTF8_NOCASEFOLD );
-	if( val == NULL ) {
+	nval = UTF8normalize( value->bv_val, UTF8_NOCASEFOLD );
+	if( nval == NULL ) {
 		*matchp = 1;
 		return LDAP_SUCCESS;
 	}
-	strip8bitChars( val );
+	strip8bitChars( nval );
 
 	/* Yes, this is necessary */
 	assertv = UTF8normalize( ((struct berval *)assertedValue)->bv_val,
 				 UTF8_NOCASEFOLD );
 	if( assertv == NULL ) {
-		free( val );
+		ch_free( nval );
 		*matchp = 1;
 		return LDAP_SUCCESS;
 	}
@@ -724,7 +724,7 @@ approxMatch(
 	avlen = strlen( assertv );
 
 	/* Isolate how many words there are */
-	for( c=val,count=1; *c; c++ ) {
+	for( c=nval,count=1; *c; c++ ) {
 		c = strpbrk( c, SLAPD_APPROX_DELIMITER );
 		if ( c == NULL ) break;
 		*c = '\0';
@@ -734,7 +734,7 @@ approxMatch(
 	/* Get a phonetic copy of each word */
 	words = (char **)ch_malloc( count * sizeof(char *) );
 	values = (char **)ch_malloc( count * sizeof(char *) );
-	for( c=val,i=0;	 i<count;  i++,c+=strlen(c)+1 ) {
+	for( c=nval,i=0;  i<count;  i++,c+=strlen(c)+1 ) {
 		words[i] = c;
 		values[i] = phonetic(c);
 	}
@@ -770,6 +770,7 @@ approxMatch(
 					break;
 				}
 			}
+			ch_free( val );
 		}
 
 		/* This chunk in the asserted value was NOT within the *value. */
@@ -797,7 +798,7 @@ approxMatch(
 	}
 	ch_free( values );
 	ch_free( words );
-	free( val );
+	ch_free( nval );
 
 	return LDAP_SUCCESS;
 }
@@ -1183,9 +1184,9 @@ retry:
 done:
 	free( nav );
 	if( sub != NULL ) {
-		ch_free( sub->sa_final );
+		ber_bvfree( sub->sa_final );
 		ber_bvecfree( sub->sa_any );
-		ch_free( sub->sa_initial );
+		ber_bvfree( sub->sa_initial );
 		ch_free( sub );
 	}
 	*matchp = match;
@@ -1550,9 +1551,9 @@ int caseExactIgnoreSubstringsFilter(
 	}
 
 	if( nkeys == 0 ) {
-		ch_free( sa->sa_final );
+		ber_bvfree( sa->sa_final );
 		ber_bvecfree( sa->sa_any );
-		ch_free( sa->sa_initial );
+		ber_bvfree( sa->sa_initial );
 		ch_free( sa );
 		*keysp = NULL;
 		return LDAP_SUCCESS;
@@ -1665,9 +1666,9 @@ int caseExactIgnoreSubstringsFilter(
 		ch_free( keys );
 		*keysp = NULL;
 	}
-	ch_free( sa->sa_final );
+	ber_bvfree( sa->sa_final );
 	ber_bvecfree( sa->sa_any );
-	ch_free( sa->sa_initial );
+	ber_bvfree( sa->sa_initial );
 	ch_free( sa );
 
 	return LDAP_SUCCESS;
