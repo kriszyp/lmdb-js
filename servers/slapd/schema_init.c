@@ -17,6 +17,76 @@
 #include "ldap_pvt.h"
 
 static int
+dnValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int rc;
+	char *dn;
+
+	if( in->bv_len == 0 ) return LDAP_SUCCESS;
+
+	dn = ch_strdup( in->bv_val );
+
+	rc = dn_validate( dn ) == NULL
+		? LDAP_INVALID_SYNTAX : LDAP_SUCCESS;
+
+	ch_free( dn );
+	return rc;
+}
+
+static int
+dnNormalize(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval **normalized )
+{
+	struct berval *out = ber_bvdup( val );
+
+	if( out->bv_len != 0 ) {
+		char *dn;
+#ifdef USE_DN_NORMALIZE
+		dn = dn_normalize( out->bv_val );
+#else
+		dn = dn_validate( out->bv_val );
+#endif
+
+		if( dn == NULL ) {
+			ber_bvfree( out );
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		out->bv_val = dn;
+		out->bv_len = strlen( dn );
+	}
+
+	*normalized = out;
+	return LDAP_SUCCESS;
+}
+
+static int
+dnMatch(
+	int *match,
+	unsigned use,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	struct berval *asserted = (struct berval *) assertedValue;
+	ber_slen_t diff;
+	
+	diff = value->bv_len - asserted->bv_len;
+	if( diff ) return diff;
+	
+#ifdef USE_DN_NORMALIZE
+	return strcmp( value->bv_val, asserted->bv_val );
+#else
+	return strcasecmp( value->bv_val, asserted->bv_val );
+#endif
+}
+	
+static int
 inValidate(
 	Syntax *syntax,
 	struct berval *in )
@@ -631,8 +701,8 @@ struct syntax_defs_rec syntax_defs[] = {
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.11 DESC 'Country String' )",
 		0, NULL, NULL, NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'DN' )",
-		0, blobValidate, NULL, NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'Distinguished Name' )",
+		0, dnValidate, dnNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.13 DESC 'Data Quality' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'Delivery Method' )",
@@ -779,7 +849,6 @@ struct mrule_defs_rec {
 
 /* unimplemented matching functions */
 #define objectIdentifierMatch NULL
-#define distinguishedNameMatch NULL
 #define numericStringMatch NULL
 #define numericStringSubstringsMatch NULL
 #define caseIgnoreListMatch NULL
@@ -806,7 +875,7 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.1 NAME 'distinguishedNameMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, distinguishedNameMatch, NULL, NULL},
+		NULL, NULL, dnMatch, NULL, NULL},
 
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
