@@ -130,7 +130,7 @@ do_search(
 #endif /* monitor or config or schema dn */
 
 	if ( strcmp( base, LDAP_ROOT_DSE ) == 0 && scope == LDAP_SCOPE_BASE ) {
-		root_dse_info( conn, op );
+		root_dse_info( conn, op, attrs, attrsonly );
 		goto return_results;
 	}
 

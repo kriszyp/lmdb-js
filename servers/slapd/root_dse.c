@@ -17,7 +17,7 @@
 #include "slap.h"
 
 void
-root_dse_info( Connection *conn, Operation *op )
+root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 {
 	Entry		*e;
 	char		buf[BUFSIZ];
@@ -63,7 +63,7 @@ root_dse_info( Connection *conn, Operation *op )
 		attr_merge( e, "supportedLDAPVersion", vals );
 	}
 	
-	send_search_entry( &backends[0], conn, op, e, NULL, 0 );
+	send_search_entry( &backends[0], conn, op, e, attrs, attrsonly );
 	send_ldap_search_result( conn, op, LDAP_SUCCESS, NULL, NULL, 1 );
 
 	entry_free( e );
