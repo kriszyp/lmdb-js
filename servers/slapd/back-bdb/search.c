@@ -835,7 +835,7 @@ dn2entry_retry:
 		struct berval matched_dn = BER_BVNULL;
 
 		if ( matched != NULL ) {
-			BerVarray erefs;
+			BerVarray erefs = NULL;
 
 			if ( ! access_allowed( op, matched,
 						slap_schema.si_ad_entry,
