@@ -61,7 +61,8 @@ ldap_back_modify(
 	LDAPMod *mods;
 	Modifications *ml;
 	int i;
-	char *mdn = NULL, *mapped;
+	char *mapped;
+	struct berval mdn = { 0, NULL };
 
 	lc = ldap_back_getconn(li, conn, op);
 	if ( !lc || !ldap_back_dobind( lc, op ) ) {
@@ -72,17 +73,17 @@ ldap_back_modify(
 	 * Rewrite the modify dn, if needed
 	 */
 #ifdef ENABLE_REWRITE
-	switch ( rewrite_session( li->rwinfo, "modifyDn", dn->bv_val, conn, &mdn ) ) {
+	switch ( rewrite_session( li->rwinfo, "modifyDn", dn->bv_val, conn, &mdn.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
-		if ( mdn == NULL ) {
-			mdn = ( char * )dn->bv_val;
+		if ( mdn.bv_val == NULL ) {
+			mdn.bv_val = ( char * )dn->bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] modifyDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn ));
+				"[rw] modifyDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn.bv_val ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> modifyDn: \"%s\" -> \"%s\"\n%s",
-				dn->bv_val, mdn, "" );
+				dn->bv_val, mdn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -97,7 +98,7 @@ ldap_back_modify(
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */
-	mdn = ldap_back_dn_massage( li, ch_strdup( dn->bv_val ), 0 );
+	ldap_back_dn_massage( li, dn, &mdn, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 
 	for (i=0, ml=modlist; ml; i++,ml=ml->sml_next)
@@ -140,13 +141,13 @@ ldap_back_modify(
 	}
 	modv[i] = 0;
 
-	ldap_modify_s( lc->ld, mdn, modv );
+	ldap_modify_s( lc->ld, mdn.bv_val, modv );
 
 cleanup:;
 #ifdef ENABLE_REWRITE
-	if ( mdn != dn->bv_val ) {
+	if ( mdn.bv_val != dn->bv_val ) {
 #endif /* ENABLE_REWRITE */
-		free( mdn );
+		free( mdn.bv_val );
 #ifdef ENABLE_REWRITE
 	}
 #endif /* ENABLE_REWRITE */

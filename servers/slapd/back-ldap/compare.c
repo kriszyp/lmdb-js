@@ -57,7 +57,8 @@ ldap_back_compare(
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc;
-	char *mdn, *mapped_oc, *mapped_at;
+	char *mapped_oc, *mapped_at;
+	struct berval mdn = { 0, NULL };
 
 	lc = ldap_back_getconn(li, conn, op);
 	if (!lc || !ldap_back_dobind( lc, op ) ) {
@@ -68,18 +69,18 @@ ldap_back_compare(
 	 * Rewrite the compare dn, if needed
 	 */
 #ifdef ENABLE_REWRITE
-	switch ( rewrite_session( li->rwinfo, "compareDn", dn->bv_val, conn, &mdn ) ) {
+	switch ( rewrite_session( li->rwinfo, "compareDn", dn->bv_val, conn, &mdn.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
-		if ( mdn == NULL ) {
-			mdn = ( char * )dn->bv_val;
+		if ( mdn.bv_val == NULL ) {
+			mdn.bv_val = ( char * )dn->bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] compareDn: \"%s\" -> \"%s\"\n",
-				dn->bv_val, mdn ));
+				dn->bv_val, mdn.bv_val ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> compareDn: \"%s\" -> \"%s\"\n%s",
-				dn->bv_val, mdn, "" );
+				dn->bv_val, mdn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -94,8 +95,8 @@ ldap_back_compare(
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */
-	mdn = ldap_back_dn_massage( li, ch_strdup( dn->bv_val ), 0 );
- 	if ( mdn == NULL ) {
+	ldap_back_dn_massage( li, dn, &mdn, 0, 1 );
+ 	if ( mdn.bv_val == NULL ) {
  		return -1;
 	}
 #endif /* !ENABLE_REWRITE */
@@ -108,15 +109,11 @@ ldap_back_compare(
 	if (mapped_at == NULL)
 		return( -1 );
 
-	ldap_compare_s( lc->ld, mdn, mapped_oc, mapped_at );
+	ldap_compare_s( lc->ld, mdn.bv_val, mapped_oc, mapped_at );
 
-#ifdef ENABLE_REWRITE
-	if ( mdn != dn->bv_val ) {
-#endif /* ENABLE_REWRITE */
-		free( mdn );
-#ifdef ENABLE_REWRITE
+	if ( mdn.bv_val != dn->bv_val ) {
+		free( mdn.bv_val );
 	}
-#endif /* ENABLE_REWRITE */
 	
 	return( ldap_back_op_result( lc, op ) );
 }

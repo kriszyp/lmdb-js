@@ -58,7 +58,8 @@ ldap_back_add(
 	int i;
 	Attribute *a;
 	LDAPMod **attrs;
-	char *mdn = NULL, *mapped;
+	char *mapped;
+	struct berval mdn = { 0, NULL };
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY, "ldap_back_add: %s\n",
@@ -76,18 +77,18 @@ ldap_back_add(
 	 * Rewrite the add dn, if needed
 	 */
 #ifdef ENABLE_REWRITE
-	switch (rewrite_session( li->rwinfo, "addDn", e->e_dn, conn, &mdn )) {
+	switch (rewrite_session( li->rwinfo, "addDn", e->e_dn, conn, &mdn.bv_val )) {
 	case REWRITE_REGEXEC_OK:
-		if ( mdn == NULL ) {
-			mdn = e->e_dn;
+		if ( mdn.bv_val == NULL ) {
+			mdn.bv_val = e->e_dn;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 					"[rw] addDn: \"%s\" -> \"%s\"\n",
-					e->e_dn, mdn ));		
+					e->e_dn, mdn.bv_val ));		
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> addDn: \"%s\" -> \"%s\"\n%s", 
-				e->e_dn, mdn, "" );
+				e->e_dn, mdn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 		break;
  		
@@ -102,7 +103,7 @@ ldap_back_add(
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */
-	mdn = ldap_back_dn_massage( li, ch_strdup( e->e_dn ), 0 );
+	ldap_back_dn_massage( li, &e->e_name, &mdn, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 
 	/* Count number of attributes in entry */
@@ -162,17 +163,13 @@ ldap_back_add(
 	}
 	attrs[i] = NULL;
 
-	ldap_add_s(lc->ld, mdn, attrs);
+	ldap_add_s(lc->ld, mdn.bv_val, attrs);
 	for (--i; i>= 0; --i)
 		free(attrs[i]);
 	free(attrs);
-#ifdef ENABLE_REWRITE
-	if ( mdn != e->e_dn ) {
-#endif /* ENABLE_REWRITE */
-	free( mdn );
-#ifdef ENABLE_REWRITE
+	if ( mdn.bv_val != e->e_dn ) {
+		free( mdn.bv_val );
 	}
-#endif /* ENABLE_REWRITE */
 	
 	return( ldap_back_op_result( lc, op ) );
 }

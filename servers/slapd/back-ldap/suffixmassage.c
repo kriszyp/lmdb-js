@@ -44,35 +44,46 @@
  * 
  * Aliases the suffix; based on suffix_alias (servers/slapd/suffixalias.c).
  */
-char *
+void
 ldap_back_dn_massage(
 	struct ldapinfo *li,
-	char *dn,
-	int normalized
+	struct berval *dn,
+	struct berval *res,
+	int normalized,
+	int tofrom
 )
 {
-	int     i, dnLength;
+	int     i, src, dst;
 
         if ( dn == NULL ) {
-		return NULL;
+		res->bv_val = NULL;
+		res->bv_len = 0;
+		return;
 	}
         if ( li == NULL ) {
-		return dn;
+		*res = *dn;
+		return;
 	}
 
-        dnLength = strlen ( dn );
+	if ( tofrom ) {
+		src = 0 + normalized;
+		dst = 2 + normalized;
+	} else {
+		src = 2 + normalized;
+		dst = 0 + normalized;
+	}
 
         for ( i = 0;
                 li->suffix_massage != NULL && li->suffix_massage[i] != NULL;
                 i += 4 ) {
-                int aliasLength = strlen( li->suffix_massage[i+normalized] );
-                int diff = dnLength - aliasLength;
+                int aliasLength = li->suffix_massage[i+src]->bv_len;
+                int diff = dn->bv_len - aliasLength;
 
                 if ( diff < 0 ) {
                         /* alias is longer than dn */
                         continue;
 										                } else if ( diff > 0 ) {
-                        if ( normalized && ( ! DN_SEPARATOR(dn[diff-1]) ) ) {
+                        if ( normalized && ( ! DN_SEPARATOR(dn->bv_val[diff-1]) ) ) {
                                 /* boundary is not at a DN separator */
                                 continue;
 			}
@@ -80,81 +91,19 @@ ldap_back_dn_massage(
                         /* XXX or an escaped separator... oh well */
                 }
 
-                if ( !strcmp( li->suffix_massage[i+normalized], &dn[diff] ) ) {
-                        char *oldDN = dn;
-                        dn = ch_malloc( diff + strlen( li->suffix_massage[i+2+normalized] ) + 1 );
-                        strncpy( dn, oldDN, diff );
-                        strcpy( &dn[diff], li->suffix_massage[i+2+normalized] );
+                if ( !strcmp( li->suffix_massage[i+src]->bv_val, &dn->bv_val[diff] ) ) {
+			res->bv_len = diff + li->suffix_massage[i+dst]->bv_len;
+                        res->bv_val = ch_malloc( res->bv_len + 1 );
+                        strncpy( res->bv_val, dn->bv_val, diff );
+                        strcpy( &res->bv_val[diff], li->suffix_massage[i+dst]->bv_val );
                         Debug( LDAP_DEBUG_ARGS,
                                 "ldap_back_dn_massage:"
 				" converted \"%s\" to \"%s\"\n",
-                                oldDN, dn, 0 );
-                        free( oldDN );
+                                dn->bv_val, res->bv_val, 0 );
                         break;
                 }
         }
 
-        return dn;
-}
-
-/*
- * ldap_back_dn_restore
- * 
- * Restores the original suffix;
- * based on suffix_alias (servers/slapd/suffixalias.c).
- */
-char *
-ldap_back_dn_restore(
-        struct ldapinfo *li,
-        char *dn,
-        int normalized
-	)
-{
-        int     i, dnLength;
-
-        if ( dn == NULL ) {
-                return NULL;
-        }
-        if ( li == NULL ) {
-                return dn;
-        }
-
-        dnLength = strlen ( dn );
-
-        for ( i = 0;
-                li->suffix_massage != NULL && li->suffix_massage[i] != NULL;
-                i += 4 ) {
-                int aliasLength = strlen( li->suffix_massage[i+2+normalized] );
-                int diff = dnLength - aliasLength;
-
-                if ( diff < 0 ) {
-                        /* alias is longer than dn */
-                        continue;
-
-                } else if ( diff > 0 ) {
-                        if ( normalized && ( ! DN_SEPARATOR(dn[diff-1]) ) ) {
-                                /* boundary is not at a DN separator */
-                                continue;
-                        }
-                        /* At a DN Separator */
-                        /* XXX or an escaped separator... oh well */
-                }
-
-                if ( !strcmp( li->suffix_massage[i+2+normalized], &dn[diff] ) ) {
-                        char *oldDN = dn;
-                        dn = ch_malloc( diff + strlen( li->suffix_massage[i+normalized] ) + 1 );
-                        strncpy( dn, oldDN, diff );
-                        strcpy( &dn[diff], li->suffix_massage[i+normalized] );
-			Debug( LDAP_DEBUG_ARGS,
-                        	"ldap_back_dn_restore:"
-                                " converted \"%s\" to \"%s\"\n",
-                                oldDN, dn, 0 );
-                        free( oldDN );
-                        break;
-                }
-        }
-
-        return dn;
+        return;
 }
 #endif /* !ENABLE_REWRITE */
-

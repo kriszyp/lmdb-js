@@ -72,7 +72,8 @@ ldap_back_search(
 	LDAPMessage		*res, *e;
 	int	count, rc = 0, msgid, sres = LDAP_SUCCESS; 
 	char *match = NULL, *err = NULL;
-	char *mbase = NULL, *mapped_filter = NULL, **mapped_attrs = NULL;
+	char *mapped_filter = NULL, **mapped_attrs = NULL;
+	struct berval mbase;
 #ifdef ENABLE_REWRITE
 	char *mfilter = NULL, *mmatch = NULL;
 #endif /* ENABLE_REWRITE */
@@ -143,18 +144,18 @@ ldap_back_search(
 	 */
 #ifdef ENABLE_REWRITE
  	switch ( rewrite_session( li->rwinfo, "searchBase",
- 				base->bv_val, conn, &mbase ) ) {
+ 				base->bv_val, conn, &mbase.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
-		if ( mbase == NULL ) {
-			mbase = ( char * )base->bv_val;
+		if ( mbase.bv_val == NULL ) {
+			mbase.bv_val = ( char * )base->bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] searchBase: \"%s\" -> \"%s\"\n%",
-				base->bv_val, mbase ));
+				base->bv_val, mbase.bv_val ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> searchBase: \"%s\" -> \"%s\"\n%s",
-				base->bv_val, mbase, "" );
+				base->bv_val, mbase.bv_val, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -202,7 +203,7 @@ ldap_back_search(
 		goto finish;
 	}
 #else /* !ENABLE_REWRITE */
-	mbase = ldap_back_dn_massage( li, ch_strdup( base->bv_val ), 0 );
+	ldap_back_dn_massage( li, base, &mbase, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 
 	mapped_filter = ldap_back_map_filter(&li->at_map, &li->oc_map,
@@ -230,7 +231,7 @@ ldap_back_search(
 		mapped_attrs[count] = NULL;
 	}
 
-	if ((msgid = ldap_search(lc->ld, mbase, scope, mapped_filter, mapped_attrs,
+	if ((msgid = ldap_search(lc->ld, mbase.bv_val, scope, mapped_filter, mapped_attrs,
 		attrsonly)) == -1)
 	{
 fail:;
@@ -351,13 +352,9 @@ finish:;
 	}
 #endif /* !ENABLE_REWRITE */
 	
-#ifdef ENABLE_REWRITE
-	if ( mbase != base->bv_val ) {
-#endif /* ENABLE_REWRITE */
-		free( mbase );
-#ifdef ENABLE_REWRITE
+	if ( mbase.bv_val != base->bv_val ) {
+		free( mbase.bv_val );
 	}
-#endif /* ENABLE_REWRITE */
 	
 	return rc;
 }
@@ -378,7 +375,7 @@ ldap_send_entry(
 	BerElement *ber = NULL;
 	Attribute *attr, **attrp;
 	struct berval *dummy = NULL;
-	struct berval *bv;
+	struct berval *bv, bdn;
 	const char *text;
 
 #ifdef ENABLE_REWRITE
@@ -417,11 +414,13 @@ ldap_send_entry(
 		return;
 	}
 #else /* !ENABLE_REWRITE */
-	ent.e_dn = ldap_back_dn_restore( li, ldap_get_dn(lc->ld, e), 0 );
+	ber_str2bv( ldap_get_dn(lc->ld, e), 0, 0, &bdn );
+	ldap_back_dn_massage( li, &bdn, &ent.e_name, 0, 0 );
 #endif /* !ENABLE_REWRITE */
 
-	ent.e_ndn = ch_strdup( ent.e_dn );
-	(void) dn_normalize( ent.e_ndn );
+	bv = NULL;
+	dnNormalize( NULL, &ent.e_name, &bv );
+	ent.e_nname = *bv;
 	ent.e_id = 0;
 	ent.e_attrs = 0;
 	ent.e_private = 0;
@@ -474,8 +473,7 @@ ldap_send_entry(
 					i--;
 				} else if ( mapped != bv->bv_val ) {
 					ch_free(bv->bv_val);
-					bv->bv_val = ch_strdup( mapped );
-					bv->bv_len = strlen( mapped );
+					ber_str2bv( mapped, 0, 1, bv );
 				}
 			}
 

@@ -57,7 +57,7 @@ ldap_back_delete(
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc;
 
-	char *mdn = NULL;
+	struct berval mdn = { 0, NULL };
 
 	lc = ldap_back_getconn( li, conn, op );
 	
@@ -69,17 +69,17 @@ ldap_back_delete(
 	 * Rewrite the compare dn, if needed
 	 */
 #ifdef ENABLE_REWRITE
-	switch ( rewrite_session( li->rwinfo, "deleteDn", dn->bv_val, conn, &mdn ) ) {
+	switch ( rewrite_session( li->rwinfo, "deleteDn", dn->bv_val, conn, &mdn.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
-	if ( mdn == NULL ) {
-			mdn = ( char * )dn->bv_val;
+	if ( mdn.bv_val == NULL ) {
+			mdn.bv_val = ( char * )dn->bv_val;
 		}
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			"[rw] deleteDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn ));
+			"[rw] deleteDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn.bv_val ));
 #else /* !NEW_LOGGING */
 	Debug( LDAP_DEBUG_ARGS, "rw> deleteDn: \"%s\" -> \"%s\"\n%s",
-			dn->bv_val, mdn, "" );
+			dn->bv_val, mdn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 	break;
 		
@@ -94,18 +94,14 @@ ldap_back_delete(
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */
-	mdn = ldap_back_dn_massage( li, ch_strdup( dn->bv_val ), 0 );
+	ldap_back_dn_massage( li, dn, &mdn, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 	
-	ldap_delete_s( lc->ld, mdn );
+	ldap_delete_s( lc->ld, mdn.bv_val );
 
-#ifdef ENABLE_REWRITE
-	if ( mdn != dn->bv_val ) {
-#endif /* ENABLE_REWRITE */
-		free( mdn );
-#ifdef ENABLE_REWRITE
+	if ( mdn.bv_val != dn->bv_val ) {
+		free( mdn.bv_val );
 	}
-#endif /* ENABLE_REWRITE */
 	
 	return( ldap_back_op_result( lc, op ) );
 }

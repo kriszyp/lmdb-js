@@ -64,7 +64,7 @@ ldap_back_bind(
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc;
 
-	char *mdn = NULL;
+	struct berval mdn = { 0, NULL };
 	int rc = 0;
 
 	lc = ldap_back_getconn(li, conn, op);
@@ -76,17 +76,17 @@ ldap_back_bind(
 	 * Rewrite the bind dn if needed
 	 */
 #ifdef ENABLE_REWRITE
-	switch ( rewrite_session( li->rwinfo, "bindDn", dn->bv_val, conn, &mdn ) ) {
+	switch ( rewrite_session( li->rwinfo, "bindDn", dn->bv_val, conn, &mdn.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
-		if ( mdn == NULL ) {
-			mdn = ( char * )dn->bv_val;
+		if ( mdn.bv_val == NULL ) {
+			mdn.bv_val = ( char * )dn->bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] bindDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn ));
+				"[rw] bindDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn.bv_val ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> bindDn: \"%s\" -> \"%s\"\n%s",
-				dn->bv_val, mdn, "" );
+				dn->bv_val, mdn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -101,23 +101,19 @@ ldap_back_bind(
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */
-	mdn = ldap_back_dn_massage( li, ch_strdup( dn->bv_val ), 0 );
+	ldap_back_dn_massage( li, dn, &mdn, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 
-	rc = ldap_bind_s(lc->ld, mdn, cred->bv_val, method);
+	rc = ldap_bind_s(lc->ld, mdn.bv_val, cred->bv_val, method);
 	if (rc != LDAP_SUCCESS) {
 		rc = ldap_back_op_result( lc, op );
 	} else {
 		lc->bound = 1;
 	}
 
-#ifdef ENABLE_REWRITE	
-	if ( mdn != dn->bv_val ) {
-#endif /* ENABLE_REWRITE */
-	free( mdn );
-#ifdef ENABLE_REWRITE
+	if ( mdn.bv_val != dn->bv_val ) {
+		free( mdn.bv_val );
 	}
-#endif /* ENABLE_REWRITE */
 	
 	return( rc );
 }
@@ -236,13 +232,14 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 			 * Rewrite the bind dn if needed
 			 */
 #ifdef ENABLE_REWRITE			
-			lc->bound_dn = NULL;
+			lc->bound_dn.bv_val = NULL;
+			lc->bound_dn.bv_len = 0;
 			switch ( rewrite_session( li->rwinfo, "bindDn",
 						lc->conn->c_cdn, conn,
-						&lc->bound_dn ) ) {
+						&lc->bound_dn.bv_val ) ) {
 			case REWRITE_REGEXEC_OK:
-				if ( lc->bound_dn == NULL ) {
-					lc->bound_dn = 
+				if ( lc->bound_dn.bv_val == NULL ) {
+					lc->bound_dn.bv_val = 
 						ch_strdup( lc->conn->c_cdn );
 				}
 #ifdef NEW_LOGGING
@@ -250,13 +247,13 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 						"[rw] bindDn: \"%s\" ->"
 						" \"%s\"\n%s",
 						lc->conn->c_cdn,
-						lc->bound_dn ));
+						lc->bound_dn.bv_val ));
 #else /* !NEW_LOGGING */
 				Debug( LDAP_DEBUG_ARGS,
 					       	"rw> bindDn: \"%s\" ->"
 						" \"%s\"\n%s",
 						lc->conn->c_cdn,
-						lc->bound_dn, "" );
+						lc->bound_dn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 				break;
 				
@@ -275,11 +272,13 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 				return( NULL );
 			}
 #else /* !ENABLE_REWRITE */
-			lc->bound_dn = ldap_back_dn_massage( li,
-	 				ch_strdup( lc->conn->c_cdn ), 0 );		
+			struct berval bv;
+			ber_str2bv( lc->conn->c_cdn, 0, 0, &bv );
+			ldap_back_dn_massage( li, &bv, &lc->bound_dn, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 		} else {
-			lc->bound_dn = NULL;
+			lc->bound_dn.bv_val = NULL;
+			lc->bound_dn.bv_len = 0;
 		}
 		lc->bound = 0;
 
@@ -340,7 +339,7 @@ ldap_back_dobind(struct ldapconn *lc, Operation *op)
 		return( lc->bound );
 	}
 
-	if (ldap_bind_s(lc->ld, lc->bound_dn, NULL, LDAP_AUTH_SIMPLE) !=
+	if (ldap_bind_s(lc->ld, lc->bound_dn.bv_val, NULL, LDAP_AUTH_SIMPLE) !=
 		LDAP_SUCCESS) {
 		ldap_back_op_result(lc, op);
 		return( 0 );

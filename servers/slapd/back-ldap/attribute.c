@@ -40,7 +40,8 @@ ldap_back_attribute(
 	LDAP *ld;
 
 	*vals = NULL;
-	if (target != NULL && strcmp(target->e_ndn, ndn->bv_val) == 0) {
+	if (target != NULL && target->e_nname.bv_len == ndn->bv_len &&
+		strcmp(target->e_nname.bv_val, ndn->bv_val) == 0) {
 		/* we already have a copy of the entry */
 		/* attribute and objectclass mapping has already been done */
 		if ((attr = attr_find(target->e_attrs, entry_at)) == NULL)

@@ -144,7 +144,7 @@ conn_free(
 )
 {
 	ldap_unbind(lc->ld);
-	if ( lc->bound_dn) free( lc->bound_dn );
+	if ( lc->bound_dn.bv_val) free( lc->bound_dn.bv_val );
 	free( lc );
 }
 
@@ -189,7 +189,7 @@ ldap_back_db_destroy(
 		}
 #else /* !ENABLE_REWRITE */
 		if (li->suffix_massage) {
-  			ldap_value_free( li->suffix_massage );
+  			ber_bvecfree( li->suffix_massage );
  		}
 #endif /* !ENABLE_REWRITE */
 

@@ -88,8 +88,8 @@ ldap_back_conn_destroy(
 		 * in a segmentation fault
 		 */
 		ldap_unbind(lc->ld);
-		if ( lc->bound_dn ) {
-			free( lc->bound_dn );
+		if ( lc->bound_dn.bv_val ) {
+			free( lc->bound_dn.bv_val );
 		}
 		free( lc );
 	}

@@ -53,7 +53,7 @@ struct slap_op;
 struct ldapconn {
 	struct slap_conn	*conn;
 	LDAP		*ld;
-	char 		*bound_dn;
+	struct berval 	bound_dn;
 	int		bound;
 };
 
@@ -78,7 +78,7 @@ struct ldapinfo {
 #ifdef ENABLE_REWRITE
 	struct rewrite_info *rwinfo;
 #else /* !ENABLE_REWRITE */
-	char **suffix_massage;
+	struct berval **suffix_massage;
 #endif /* !ENABLE_REWRITE */
 
 	struct ldapmap oc_map;
@@ -92,8 +92,8 @@ int ldap_back_map_result(int err);
 int ldap_back_op_result(struct ldapconn *lc, Operation *op);
 int	back_ldap_LTX_init_module(int argc, char *argv[]);
 
-char *ldap_back_dn_massage(struct ldapinfo *li, char *dn, int normalized);
-char *ldap_back_dn_restore(struct ldapinfo *li, char *dn, int normalized);
+void ldap_back_dn_massage(struct ldapinfo *li, struct berval *dn,
+	struct berval *res, int normalized, int tofrom);
 
 extern int ldap_back_conn_cmp( const void *c1, const void *c2);
 extern int ldap_back_conn_dup( void *c1, void *c2 );

@@ -38,9 +38,9 @@ ldap_back_group(
 
 	LDAPMessage	*result;
 	char *gattr[2];
-	char *filter = NULL;
+	char *filter = NULL, *ptr;
 	LDAP *ld;
-	char *mop_ndn, *mgr_ndn;
+	struct berval mop_ndn = { 0, NULL }, mgr_ndn = { 0, NULL };
 
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 	char *group_oc_name = NULL;
@@ -52,7 +52,8 @@ ldap_back_group(
 		group_oc_name = group_oc->soc_oid;
 	}
 
-	if (target != NULL && strcmp(target->e_ndn, gr_ndn->bv_val) == 0) {
+	if (target != NULL && target->e_nname.bv_len == gr_ndn->bv_len &&
+		strcmp(target->e_nname.bv_val, gr_ndn->bv_val) == 0) {
 		/* we already have a copy of the entry */
 		/* attribute and objectclass mapping has already been done */
 
@@ -92,19 +93,19 @@ ldap_back_group(
 	 */
 #ifdef ENABLE_REWRITE
 	switch ( rewrite_session( li->rwinfo, "bindDn",
-				op_ndn->bv_val, conn, &mop_ndn ) ) {
+				op_ndn->bv_val, conn, &mop_ndn.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
-		if ( mop_ndn == NULL ) {
-			mop_ndn = ( char * )op_ndn->bv_val;
+		if ( mop_ndn.bv_val == NULL ) {
+			mop_ndn = *op_ndn;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] bindDn (op ndn in group):"
-				" \"%s\" -> \"%s\"\n", op_ndn->bv_val, mop_ndn ));
+				" \"%s\" -> \"%s\"\n", op_ndn->bv_val, mop_ndn.bv_val ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 			"rw> bindDn (op ndn in group): \"%s\" -> \"%s\"\n%s",
-			op_ndn->bv_val, mop_ndn, "" );
+			op_ndn->bv_val, mop_ndn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 		break;
 	
@@ -118,20 +119,20 @@ ldap_back_group(
 	 * Rewrite the gr ndn if needed
 	 */
         switch ( rewrite_session( li->rwinfo, "searchBase",
-				gr_ndn->bv_val, conn, &mgr_ndn ) ) {
+				gr_ndn->bv_val, conn, &mgr_ndn.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
-		if ( mgr_ndn == NULL ) {
-			mgr_ndn = ( char * )gr_ndn->bv_val;
+		if ( mgr_ndn.bv_val == NULL ) {
+			mgr_ndn = *gr_ndn;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] searchBase (gr ndn in group):"
-				" \"%s\" -> \"%s\"\n%s", gr_ndn->bv_val, mgr_ndn ));
+				" \"%s\" -> \"%s\"\n%s", gr_ndn->bv_val, mgr_ndn.bv_val ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 			"rw> searchBase (gr ndn in group):"
 			" \"%s\" -> \"%s\"\n%s",
-			gr_ndn->bv_val, mgr_ndn, "" );
+			gr_ndn->bv_val, mgr_ndn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 		break;
 	
@@ -141,12 +142,12 @@ ldap_back_group(
 		goto cleanup;
 	}
 #else /* !ENABLE_REWRITE */
-	mop_ndn = ldap_back_dn_massage( li, ch_strdup( op_ndn ), 1 );
-	if ( mop_ndn == NULL ) {
+	ldap_back_dn_massage( li, op_ndn, &mop_ndn, 1, 1 );
+	if ( mop_ndn.bv_val == NULL ) {
 		goto cleanup;
 	}
-	mgr_ndn = ldap_back_dn_massage( li, ch_strdup( gr_ndn ), 1 );
-	if ( mgr_ndn == NULL ) {
+	ldap_back_dn_massage( li, gr_ndn, &mgr_ndn, 1, 1 );
+	if ( mgr_ndn.bv_val == NULL ) {
 		goto cleanup;
 	}
 #endif /* !ENABLE_REWRITE */
@@ -161,7 +162,7 @@ ldap_back_group(
 	filter = ch_malloc(sizeof("(&(objectclass=)(=))")
 						+ strlen(group_oc_name)
 						+ strlen(group_at_name)
-						+ strlen(mop_ndn) + 1);
+						+ mop_ndn.bv_len + 1);
 	if (filter == NULL)
 		goto cleanup;
 
@@ -174,17 +175,17 @@ ldap_back_group(
 		goto cleanup;
 	}
 
-	strcpy(filter, "(&(objectclass=");
-	strcat(filter, group_oc_name);
-	strcat(filter, ")(");
-	strcat(filter, group_at_name);
-	strcat(filter, "=");
-	strcat(filter, mop_ndn);
-	strcat(filter, "))");
+	ptr = slap_strcopy(filter, "(&(objectclass=");
+	ptr = slap_strcopy(ptr, group_oc_name);
+	ptr = slap_strcopy(ptr, ")(");
+	ptr = slap_strcopy(ptr, group_at_name);
+	ptr = slap_strcopy(ptr, "=");
+	ptr = slap_strcopy(ptr, mop_ndn.bv_val);
+	strcpy(ptr, "))");
 
 	gattr[0] = "objectclass";
 	gattr[1] = NULL;
-	if (ldap_search_ext_s(ld, mgr_ndn, LDAP_SCOPE_BASE, filter,
+	if (ldap_search_ext_s(ld, mgr_ndn.bv_val, LDAP_SCOPE_BASE, filter,
 		gattr, 0, NULL, NULL, LDAP_NO_LIMIT,
 		LDAP_NO_LIMIT, &result) == LDAP_SUCCESS) {
 		if (ldap_first_entry(ld, result) != NULL)
@@ -197,18 +198,11 @@ cleanup:;
 		ldap_unbind(ld);
 	}
 	ch_free(filter);
-#ifdef ENABLE_REWRITE
-	if ( mop_ndn != op_ndn->bv_val ) {
-#endif /* ENABLE_REWRITE */
-		free( mop_ndn );
-#ifdef ENABLE_REWRITE
+	if ( mop_ndn.bv_val != op_ndn->bv_val ) {
+		free( mop_ndn.bv_val );
 	}
-	if ( mgr_ndn != gr_ndn->bv_val ) {
-#endif /* ENABLE_REWRITE */
-		free( mgr_ndn );
-#ifdef ENABLE_REWRITE
+	if ( mgr_ndn.bv_val != gr_ndn->bv_val ) {
+		free( mgr_ndn.bv_val );
 	}
-#endif /* ENABLE_REWRITE */
 	return(rc);
 }
-

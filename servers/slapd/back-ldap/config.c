@@ -114,7 +114,7 @@ ldap_back_db_config(
 	/* dn massaging */
 	} else if ( strcasecmp( argv[0], "suffixmassage" ) == 0 ) {
 #ifndef ENABLE_REWRITE
-		char *dn, *massaged_dn;
+		struct berval *bd2;
 #endif /* ENABLE_REWRITE */
 		BackendDB *tmp_be;
 		struct berval bdn, *ndn = NULL;
@@ -184,18 +184,17 @@ ldap_back_db_config(
 		 */
 	 	return suffix_massage_config( li->rwinfo, argc, argv );
 #else /* !ENABLE_REWRITE */
-		dn = ch_strdup( argv[1] );
-		charray_add( &li->suffix_massage, dn );
-		(void) dn_normalize( dn );
-		charray_add( &li->suffix_massage, dn );
+		bd2 = ber_bvstrdup( argv[1] );
+		ber_bvecadd( &li->suffix_massage, bd2 );
+		ndn = NULL;
+		dnNormalize( NULL, bd2, &ndn );
+		ber_bvecadd( &li->suffix_massage, ndn );
 		
-		massaged_dn = ch_strdup( argv[2] );
-		charray_add( &li->suffix_massage, massaged_dn );
-		(void) dn_normalize( massaged_dn );
-		charray_add( &li->suffix_massage, massaged_dn );
-		
-		free( dn );
-		free( massaged_dn );
+		bd2 = ber_bvstrdup( argv[2] );
+		ber_bvecadd( &li->suffix_massage, bd2 );
+		ndn = NULL;
+		dnNormalize( NULL, bd2, &ndn );
+		ber_bvecadd( &li->suffix_massage, ndn );
 #endif /* !ENABLE_REWRITE */
 
 #ifdef ENABLE_REWRITE

@@ -62,7 +62,7 @@ ldap_back_modrdn(
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc;
 
-	char *mdn = NULL, *mnewSuperior = NULL;
+	struct berval mdn = { 0, NULL }, mnewSuperior = { 0, NULL };
 
 	lc = ldap_back_getconn( li, conn, op );
 	if ( !lc || !ldap_back_dobind(lc, op) ) {
@@ -78,20 +78,20 @@ ldap_back_modrdn(
 	 	 */
 #ifdef ENABLE_REWRITE
 		switch ( rewrite_session( li->rwinfo, "newSuperiorDn",
-					newSuperior->bv_val, conn, &mnewSuperior ) ) {
+					newSuperior->bv_val, conn, &mnewSuperior.bv_val ) ) {
 		case REWRITE_REGEXEC_OK:
-			if ( mnewSuperior == NULL ) {
-				mnewSuperior = ( char * )newSuperior;
+			if ( mnewSuperior.bv_val == NULL ) {
+				mnewSuperior.bv_val = ( char * )newSuperior;
 			}
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 					"[rw] newSuperiorDn:"
 					" \"%s\" -> \"%s\"\n",
-					newSuperior, mnewSuperior ));
+					newSuperior, mnewSuperior.bv_val ));
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> newSuperiorDn:"
 					" \"%s\" -> \"%s\"\n%s",
-					newSuperior->bv_val, mnewSuperior, "" );
+					newSuperior->bv_val, mnewSuperior.bv_val, "" );
 #endif /* !NEW_LOGGING */
 			break;
 
@@ -108,9 +108,8 @@ ldap_back_modrdn(
 			return( -1 );
 		}
 #else /* !ENABLE_REWRITE */
-		mnewSuperior = ldap_back_dn_massage( li,
-	 			ch_strdup( newSuperior->bv_val ), 0 );
-		if ( mnewSuperior == NULL ) {
+		ldap_back_dn_massage( li, newSuperior, &mnewSuperior, 0, 1 );
+		if ( mnewSuperior.bv_val == NULL ) {
 			return( -1 );
 		}
 #endif /* !ENABLE_REWRITE */
@@ -120,17 +119,17 @@ ldap_back_modrdn(
 	/*
 	 * Rewrite the modrdn dn, if required
 	 */
-	switch ( rewrite_session( li->rwinfo, "modrDn", dn->bv_val, conn, &mdn ) ) {
+	switch ( rewrite_session( li->rwinfo, "modrDn", dn->bv_val, conn, &mdn.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
-		if ( mdn == NULL ) {
-			mdn = ( char * )dn->bv_val;
+		if ( mdn.bv_val == NULL ) {
+			mdn.bv_val = ( char * )dn->bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] modrDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn ));
+				"[rw] modrDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn.bv_val ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> modrDn: \"%s\" -> \"%s\"\n%s",
-				dn->bv_val, mdn, "" );
+				dn->bv_val, mdn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -145,24 +144,17 @@ ldap_back_modrdn(
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */
-	mdn = ldap_back_dn_massage( li, ch_strdup( dn->bv_val ), 0 );
+	ldap_back_dn_massage( li, dn, &mdn, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 
-	ldap_rename2_s( lc->ld, mdn, newrdn->bv_val, mnewSuperior, deleteoldrdn );
+	ldap_rename2_s( lc->ld, mdn.bv_val, newrdn->bv_val, mnewSuperior.bv_val, deleteoldrdn );
 
-#ifdef ENABLE_REWRITE
-	if ( mdn != dn->bv_val ) {
-#endif /* ENABLE_REWRITE */
-	free( mdn );
-#ifdef ENABLE_REWRITE
+	if ( mdn.bv_val != dn->bv_val ) {
+		free( mdn.bv_val );
 	}
-#endif /* ENABLE_REWRITE */
-	if ( mnewSuperior != NULL
-#ifdef ENABLE_REWRITE
-			&& mnewSuperior != newSuperior->bv_val
-#endif /* ENABLE_REWRITE */
-	   ) {
-		free( mnewSuperior );
+	if ( mnewSuperior.bv_val != NULL
+		&& mnewSuperior.bv_val != newSuperior->bv_val ) {
+		free( mnewSuperior.bv_val );
 	}
 	
 	return( ldap_back_op_result( lc, op ) );
