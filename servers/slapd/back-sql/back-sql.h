@@ -4,6 +4,7 @@
  * Copyright 1999-2004 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
  * Portions Copyright 2002 Pierangelo Mararati.
+ * Portions Copyright 2004 Mark Adamson.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -17,24 +18,7 @@
 /* ACKNOWLEDGEMENTS:
  * This work was initially developed by Dmitry Kovalev for inclusion
  * by OpenLDAP Software.  Additional significant contributors include
- * Pierangelo Mararati
- */
-/*
- * Original copyright notice by Mark Adamson (applies to portions
- * of code submitted as ITS#3432, and reworked by Pierangelo Masarati):
- *
- * The patch files are derived from OpenLDAP Software. All of the
- * modifications to OpenLDAP Software represented in the following
- * patches were developed by Mark Adamson (adamson@cmu.edu). These
- * modifications are not subject to any license of Carnegie Mellon.
- *
- * The attached modifications to OpenLDAP Software are subject to the
- * following notice:
- *
- *   Copyright 2004 Mark Adamson
- *   Redistribution and use in source and binary forms, with or without
- *   modification, are permitted only as authorized by the OpenLDAP Public
- *   License.
+ * Pierangelo Mararati and Mark Adamson.
  */
 /*
  * The following changes have been addressed:
