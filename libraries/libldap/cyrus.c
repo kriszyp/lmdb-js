@@ -105,6 +105,10 @@ int ldap_int_sasl_init( void )
 		return 0;
 	}
 
+#if SASL_VERSION_MAJOR < 2
+	/* A no-op to make sure we link with Cyrus 1.5 */
+	sasl_client_auth( NULL, NULL, NULL, 0, NULL, NULL );
+#endif
 	return -1;
 }
 
