@@ -281,6 +281,7 @@ at_add(
 
 		for( i=0; at->at_names[i]; i++ ) {
 			if( !slap_valid_descr( at->at_names[i] ) ) {
+				*err = at->at_names[i];
 				return SLAP_SCHERR_BAD_DESCR;
 			}
 		}
@@ -289,12 +290,32 @@ at_add(
 
 	} else if ( at->at_oid ) {
 		cname = at->at_oid;
+
 	} else {
+		*err = "";
 		return SLAP_SCHERR_ATTR_INCOMPLETE;
 	}
 
+	*err = cname;
+
+	if ( !at->at_usage && at->at_no_user_mod ) {
+		/* user attribute must be modifable */
+		return SLAP_SCHERR_ATTR_BAD_USAGE;
+	}
+
 	if ( at->at_collective ) {
+#ifdef SLAP_COLLECTIVE
+		if( at->at_usage ) {
+			/* collective attributes cannot be operational */
+			return SLAP_SCHERR_NOT_SUPPORTED;
+		}
+		if( at->at_single_value ) {
+			/* collective attributes cannot be single-valued */
+			return SLAP_SCHERR_NOT_SUPPORTED;
+		}
+#else
 		return SLAP_SCHERR_NOT_SUPPORTED;
+#endif
 	}
 
 	sat = (AttributeType *) ch_calloc( 1, sizeof(AttributeType) );
@@ -315,8 +336,12 @@ at_add(
 		sat->sat_sup = supsat;
 
 		if ( at_append_to_list(sat, &supsat->sat_subtypes) ) {
-			*err = cname;
 			return SLAP_SCHERR_OUTOFMEM;
+		}
+
+		if ( sat->sat_usage != supsat->sat_usage ) {
+			/* subtypes must have same usage as their SUP */
+			return SLAP_SCHERR_ATTR_BAD_USAGE;
 		}
 	}
 
