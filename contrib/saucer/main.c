@@ -322,20 +322,22 @@ int cmd_set(char **cmdargv, int cmdargc)
 			case 0:
 				if ((++i < cmdargc)  &&
 					(j = table_lookup(cmdargv[i], alias_opts, sizeof(alias_opts) / sizeof(alias_opts[0]))) >= 0)
-					ld->ld_deref = j;
+					ldap_set_option(ld, LDAP_OPT_DEREF, &j);
 				else
 					errflag = 1;
 				break;
 			case 1:
-				if (++i < cmdargc)
-					ld->ld_sizelimit = atoi(cmdargv[i]);
-				else
+				if (++i < cmdargc) {
+					j = atoi(cmdargv[i]);
+					ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &j);
+				} else
 					errflag = 1;
 				break;
 			case 2:
-				if (++i < cmdargc)
-					ld->ld_timelimit = atoi(cmdargv[i]);
-				else
+				if (++i < cmdargc) {
+					j = atoi(cmdargv[i]);
+					ldap_set_option(ld, LDAP_OPT_TIMELIMIT, &j);
+				} else
 					errflag = 1;
 				break;
 			default:
@@ -347,11 +349,16 @@ int cmd_set(char **cmdargv, int cmdargc)
 
 	if (errflag)
 		show_syntax(CMD_SET);
-	else
+	else {
+		int opt_a, opt_s, opt_t;
+		ldap_get_option(ld, LDAP_OPT_DEREF, &opt_a);
+		ldap_get_option(ld, LDAP_OPT_SIZELIMIT, &opt_s);
+		ldap_get_option(ld, LDAP_OPT_TIMELIMIT, &opt_t);
 		printf("Alias dereferencing is %s, Sizelimit is %d entr%s, Timelimit is %d second%s.\n",
-			   alias_opts[ld->ld_deref],
-			   ld->ld_sizelimit, ld->ld_sizelimit == 1 ? "y" : "ies",
-			   ld->ld_timelimit, ld->ld_timelimit == 1 ? ""  : "s");
+		       alias_opts[opt_a],
+		       opt_s, opt_s == 1 ? "y" : "ies",
+		       opt_t, opt_t == 1 ? ""  : "s");
+	}
 
 	return 0;
 }
