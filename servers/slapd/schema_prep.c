@@ -513,15 +513,16 @@ static struct slap_schema_ad_map {
 #endif /* LDAP_CACHING */
 
 #ifdef LDAP_SYNCREPL
-        { "syncreplCookie", "( 1.3.6.1.4.1.4203.666.1.13 NAME 'syncreplCookie' "
-                        "DESC 'syncrepl Cookie for shadow copy' "
-                        "EQUALITY octetStringMatch "
-                        "ORDERING octetStringOrderingMatch "
-                        "SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
-                        "SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
-                NULL, SLAP_AT_HIDE,
-                NULL, NULL, NULL, NULL, NULL,
-                offsetof(struct slap_internal_schema, si_ad_syncreplCookie) },
+        { "syncreplCookie", "( 1.3.6.1.4.1.4203.666.1.23 "
+			"NAME 'syncreplCookie' "
+			"DESC 'syncrepl Cookie for shadow copy' "
+			"EQUALITY octetStringMatch "
+			"ORDERING octetStringOrderingMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
+			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
+		NULL, SLAP_AT_HIDE,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_syncreplCookie) },
 #endif
 
 	/* root DSE attributes */
