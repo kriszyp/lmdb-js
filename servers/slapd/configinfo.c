@@ -42,6 +42,7 @@ config_info( Connection *conn, Operation *op )
 
 	e->e_attrs = NULL;
 	e->e_dn = ch_strdup( SLAPD_CONFIG_DN );
+	e->e_ndn = dn_normalize_case( ch_strdup( SLAPD_CONFIG_DN ));
 	e->e_private = NULL;
 
 	for ( i = 0; i < nbackends; i++ ) {
