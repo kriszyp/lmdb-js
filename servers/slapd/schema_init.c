@@ -3088,10 +3088,10 @@ static int caseIgnoreIA5SubstringsIndexer(
 	BerVarray keys, nvals;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
+	int rc = LDAP_SUCCESS;
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
-	int rc = LDAP_SUCCESS;
 
 	/* we should have at least one value at this point */
 	assert( values != NULL && values[0].bv_val != NULL );
