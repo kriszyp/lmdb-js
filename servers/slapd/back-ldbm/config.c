@@ -147,7 +147,7 @@ ldbm_back_db_config(
 
 #else
 		Debug( LDAP_DEBUG_ANY,
-    "\"dbsync\" policies not supported in non-threaded environments\n");
+    "\"dbsync\" policies not supported in non-threaded environments\n", 0, 0, 0);
 		return 1;
 #endif
 
