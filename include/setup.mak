@@ -20,4 +20,4 @@ ldap_features.h: ldap_features.nt
 portable.h: portable.nt
 
 ol_version0.h:	../build/version.h
-	$(CPP) /EP /D_OLV_PKG=\"OpenLDAP\" /D_OLV_VER=\"2.1.16\" -D_OLV_WHO=\"$(USERNAME)@$(COMPUTERNAME)\" $? > $@
+	$(CPP) /EP -D_OLV_WHO=\"$(USERNAME)@$(COMPUTERNAME)\" $? > $@
