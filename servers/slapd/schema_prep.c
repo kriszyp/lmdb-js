@@ -448,20 +448,6 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_aci) },
 #endif
 
-	{ "entryTtl", "( 1.3.6.1.4.1.1466.101.119.3 NAME 'entryTtl' "
-			"DESC 'RFC2589: entry time-to-live' "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE "
-			"NO-USER-MODIFICATION USAGE dSAOperation )",
-		dynamicAttribute, 0, NULL, NULL, NULL,
-		offsetof(struct slap_internal_schema, si_ad_entryTtl) },
-	{ "dynamicSubtrees", "( 1.3.6.1.4.1.1466.101.119.4 "
-			"NAME 'dynamicSubtrees' "
-			"DESC 'RFC2589: dynamic subtrees' "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 NO-USER-MODIFICATION "
-			"USAGE dSAOperation )",
-		rootDseAttribute, 0, NULL, NULL, NULL,
-		offsetof(struct slap_internal_schema, si_ad_dynamicSubtrees) },
-
 	/* userApplication attributes (which system schema depends upon) */
 	{ "distinguishedName", "( 2.5.4.49 NAME 'distinguishedName' "
 			"DESC 'RFC2256: common supertype of DN attributes' "
@@ -952,30 +938,4 @@ static int administrativeRoleAttribute (
 		"attribute \"%s\" not supported!",
 		attr->a_desc->ad_cname.bv_val );
 	return LDAP_OBJECT_CLASS_VIOLATION;
-}
-
-static int dynamicAttribute (
-	Backend *be,
-	Entry *e,
-	Attribute *attr,
-	const char** text,
-	char *textbuf, size_t textlen )
-{
-	*text = textbuf;
-
-	if( !SLAP_DYNAMIC(be) ) {
-		snprintf( textbuf, textlen,
-			"attribute \"%s\" not supported in context",
-			attr->a_desc->ad_cname.bv_val );
-		return LDAP_OBJECT_CLASS_VIOLATION;
-	}
-
-	if( !is_entry_dynamicObject( e ) ) {
-		snprintf( textbuf, textlen,
-			"attribute \"%s\" only allowed in dynamic object",
-			attr->a_desc->ad_cname.bv_val );
-		return LDAP_OBJECT_CLASS_VIOLATION;
-	}
-
-	return LDAP_SUCCESS;
 }

@@ -557,8 +557,6 @@ struct slap_internal_schema {
 	ObjectClass *si_oc_subentry;
 	ObjectClass *si_oc_subschema;
 	ObjectClass *si_oc_monitor;
-	ObjectClass *si_oc_collectiveAttributeSubentry;
-	ObjectClass *si_oc_dynamicObject;
 
 	/* objectClass attribute descriptions */
 	AttributeDescription *si_ad_objectClass;
@@ -571,10 +569,6 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_modifyTimestamp;
 	AttributeDescription *si_ad_hasSubordinates;
 	AttributeDescription *si_ad_subschemaSubentry;
-	AttributeDescription *si_ad_collectiveSubentries;
-	AttributeDescription *si_ad_collectiveExclusions;
-	AttributeDescription *si_ad_entryUUID;
-	AttributeDescription *si_ad_entryCSN;
 
 	/* root DSE attribute descriptions */
 	AttributeDescription *si_ad_altServer;
@@ -611,10 +605,6 @@ struct slap_internal_schema {
 #ifdef SLAPD_ACI_ENABLED
 	AttributeDescription *si_ad_aci;
 #endif
-
-	/* dynamic entries */
-	AttributeDescription *si_ad_entryTtl;
-	AttributeDescription *si_ad_dynamicSubtrees;
 
 	/* Other attributes descriptions */
 	AttributeDescription *si_ad_distinguishedName;
