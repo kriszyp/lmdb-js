@@ -82,14 +82,14 @@ rwm_add( Operation *op, SlapReply *rs )
 	char			*olddn = op->o_req_dn.bv_val;
 
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "addDn" );
+	rc = rwm_op_dn_massage( op, rs, "addDN" );
 #else
 	rc = 1;
 	rc = rwm_op_dn_massage( op, rs, &rc );
 #endif
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
-		send_ldap_error( op, rs, rc, "addDn massage error" );
+		send_ldap_error( op, rs, rc, "addDN massage error" );
 		return -1;
 	}
 
@@ -124,7 +124,7 @@ rwm_add( Operation *op, SlapReply *rs )
 			 * the operation should give up, right?
 			 */
 #ifdef ENABLE_REWRITE
-			rc = rwm_dnattr_rewrite( op, rs, "addAttrDn",
+			rc = rwm_dnattr_rewrite( op, rs, "addAttrDN",
 					(*ap)->a_vals,
 					(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
 #else
@@ -165,14 +165,14 @@ rwm_bind( Operation *op, SlapReply *rs )
 	( void )rewrite_session_delete( rwmap->rwm_rw, op->o_conn );
 	( void )rewrite_session_init( rwmap->rwm_rw, op->o_conn );
 
-	rc = rwm_op_dn_massage( op, rs, "bindDn" );
+	rc = rwm_op_dn_massage( op, rs, "bindDN" );
 #else
 	rc = 1;
 	rc = rwm_op_dn_massage( op, rs, &rc );
 #endif
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
-		send_ldap_error( op, rs, rc, "bindDn massage error" );
+		send_ldap_error( op, rs, rc, "bindDN massage error" );
 		return -1;
 	}
 
@@ -205,14 +205,14 @@ rwm_compare( Operation *op, SlapReply *rs )
 				mapped_vals[2] = { BER_BVNULL, BER_BVNULL };
 
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "compareDn" );
+	rc = rwm_op_dn_massage( op, rs, "compareDN" );
 #else
 	rc = 1;
 	rc = rwm_op_dn_massage( op, rs, &rc );
 #endif
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
-		send_ldap_error( op, rs, rc, "compareDn massage error" );
+		send_ldap_error( op, rs, rc, "compareDN massage error" );
 		return -1;
 	}
 
@@ -277,14 +277,14 @@ rwm_delete( Operation *op, SlapReply *rs )
 	int			rc;
 
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "deleteDn" );
+	rc = rwm_op_dn_massage( op, rs, "deleteDN" );
 #else
 	rc = 1;
 	rc = rwm_op_dn_massage( op, rs, &rc );
 #endif
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
-		send_ldap_error( op, rs, rc, "deleteDn massage error" );
+		send_ldap_error( op, rs, rc, "deleteDN massage error" );
 		return -1;
 	}
 
@@ -302,14 +302,14 @@ rwm_modify( Operation *op, SlapReply *rs )
 	int			rc;
 
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "modifyDn" );
+	rc = rwm_op_dn_massage( op, rs, "modifyDN" );
 #else
 	rc = 1;
 	rc = rwm_op_dn_massage( op, rs, &rc );
 #endif
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
-		send_ldap_error( op, rs, rc, "modifyDn massage error" );
+		send_ldap_error( op, rs, rc, "modifyDN massage error" );
 		return -1;
 	}
 
@@ -381,7 +381,7 @@ rwm_modify( Operation *op, SlapReply *rs )
 						slap_schema.si_syn_distinguishedName )
 				{
 #ifdef ENABLE_REWRITE
-					rc = rwm_dnattr_rewrite( op, rs, "modifyDn",
+					rc = rwm_dnattr_rewrite( op, rs, "modifyDN",
 							(*mlp)->sml_values,
 							(*mlp)->sml_nvalues ? &(*mlp)->sml_nvalues : NULL );
 #else
@@ -455,14 +455,14 @@ rwm_modrdn( Operation *op, SlapReply *rs )
 	}
 
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "renameDn" );
+	rc = rwm_op_dn_massage( op, rs, "renameDN" );
 #else
 	rc = 1;
 	rc = rwm_op_dn_massage( op, rs, &rc );
 #endif
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
-		send_ldap_error( op, rs, rc, "renameDn massage error" );
+		send_ldap_error( op, rs, rc, "renameDN massage error" );
 		return -1;
 	}
 
@@ -512,13 +512,13 @@ rwm_search( Operation *op, SlapReply *rs )
 	char			*text = NULL;
 
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "searchDn" );
+	rc = rwm_op_dn_massage( op, rs, "searchDN" );
 #else
 	rc = 1;
 	rc = rwm_op_dn_massage( op, rs, &rc );
 #endif
 	if ( rc != LDAP_SUCCESS ) {
-		text = "searchDn massage error";
+		text = "searchDN massage error";
 		goto error_return;
 	}
 
@@ -610,14 +610,14 @@ rwm_extended( Operation *op, SlapReply *rs )
 	int			rc;
 
 #ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "extendedDn" );
+	rc = rwm_op_dn_massage( op, rs, "extendedDN" );
 #else
 	rc = 1;
 	rc = rwm_op_dn_massage( op, rs, &rc );
 #endif
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
-		send_ldap_error( op, rs, rc, "extendedDn massage error" );
+		send_ldap_error( op, rs, rc, "extendedDN massage error" );
 		return -1;
 	}
 
@@ -834,7 +834,7 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 #ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = NULL; 
-	dc.ctx = "searchResult";
+	dc.ctx = "searchEntryDN";
 #else
 	dc.tofrom = 0;
 	dc.normalized = 0;

@@ -63,10 +63,10 @@ directive.
 .B rwm-suffixmassage "<virtual naming context>" "<real naming context>"
 Shortcut to implement naming context rewriting; the trailing part
 of the DN is rewritten from the virtual to the real naming context
-in the bindDN, searchBase, searchFilterAttrDN, compareDN, compareAttrDN,
+in the bindDN, searchDN, searchFilterAttrDN, compareDN, compareAttrDN,
 addDN, addAttrDN, modifyDN, modifyAttrDN, modrDN, newSuperiorDN,
 deleteDN, exopPasswdDN, and from the real to the virtual naming context
-in the searchResult, searchAttrDN and matchedDN rewrite contexts.
+in the searchEntryDN, searchAttrDN and matchedDN rewrite contexts.
 By default no rewriting occurs for the searchFilter rewrite context.
 This directive implies setting the
 .B rwm-rewriteEngine
@@ -281,7 +281,7 @@ client -> server:
 (default)            if defined and no specific context 
                      is available
 bindDN               bind
-searchBase           search
+searchDN             search
 searchFilter         search
 searchFilterAttrDN   search
 compareDN            compare
@@ -301,11 +301,13 @@ server -> client:
 .LP
 .RS
 .nf
-searchResult         search (only if defined; no default;
-                     acts on DN and DN-syntax attributes 
-                     of search results)
-searchAttrDN         search AVA
-matchedDN            all ops (only if applicable)
+searchEntryDN        search (only if defined; no default;
+                     acts on DN of search entries)
+searchAttrDN         search AVA (only if defined; defaults
+                     to searchEntryDN; acts on DN-syntax
+                     attributes of search results)
+matchedDN            all ops (only if applicable; defaults
+                     to searchEntryDN)
 .fi
 .RE
 .LP
@@ -369,10 +371,10 @@ rwm-rewriteRule "(.*)<virtualnamingcontext>$" "$1<realnamingcontext>" ":"
 # empty filter rule
 rwm-rewriteContext searchFilter
 # all dataflow from server to client
-rwm-rewriteContext searchResult
+rwm-rewriteContext searchEntryDN
 rwm-rewriteRule "(.*)<realnamingcontext>$" "$1<virtualnamingcontext>" ":"
-rwm-rewriteContext searchAttrDN alias searchResult
-rwm-rewriteContext matchedDN alias searchResult
+rwm-rewriteContext searchAttrDN alias searchEntryDN
+rwm-rewriteContext matchedDN alias searchEntryDN
 
 # Everything defined here goes into the `default' context.
 # This rule changes the naming context of anything sent
@@ -419,11 +421,11 @@ rwm-rewriteRule     ".*" "${>addBlanks($0)}" ":"
 .\" rwm-rewriteRule     ".*" "${>addBlanks(${>uid2Gecos($0)})}" ":"
 .\" 
 # Rewrite the search base according to `default' rules.
-rwm-rewriteContext  searchBase alias default
+rwm-rewriteContext  searchDN alias default
 
 # Search results with OpenLDAP DN are rewritten back with
 # `dc=home,dc=net' naming context, with spaces eaten.
-rwm-rewriteContext  searchResult
+rwm-rewriteContext  searchEntryDN
 rwm-rewriteRule     "(.*[^ ],)?[ ]?dc=OpenLDAP,[ ]?dc=org$"
                 "${>eatBlanks($1)}dc=home,dc=net"    ":"
 
@@ -438,7 +440,7 @@ rwm-rewriteMap ldap attr2dn "ldap://host/dc=my,dc=org?dn?sub"
 # in case of match stops rewriting; in case of error,
 # it is ignored.  In case we are mapping virtual
 # to real naming contexts, we also need to rewrite
-# regular DNs, because the definition of a bindDn
+# regular DNs, because the definition of a bindDN
 # rewrite context overrides the default definition.
 rwm-rewriteContext bindDN
 rwm-rewriteRule "^mail=[^,]+@[^,]+$" "${attr2dn($0)}" ":@I"
@@ -479,7 +481,7 @@ rwm-rewriteRule ".*<>$" "${*prefix}uid=${*arg}${*suffix}" ":"
 # in case of match the rewriting exits successfully.
 # The second rule matches everything else and causes
 # the value to be rejected.
-rwm-rewriteContext searchResult
+rwm-rewriteContext searchEntryDN
 rwm-rewriteRule ".*,ou=People,dc=example,dc=com$" "$0" ":@"
 rwm-rewriteRule ".*" "" "#"
 .fi
