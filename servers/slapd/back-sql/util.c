@@ -30,6 +30,7 @@
 
 #include "slap.h"
 #include "proto-sql.h"
+#include "lutil.h"
 
 #define BACKSQL_MAX(a,b) ((a)>(b)?(a):(b))
 #define BACKSQL_MIN(a,b) ((a)<(b)?(a):(b))
@@ -488,6 +489,94 @@ backsql_prepare_pattern(
 
 	return 0;
 }
+
+int
+backsql_entryUUID(
+	backsql_info	*bi,
+	backsql_entryID	*id,
+	struct berval	*entryUUID,
+	void		*memctx )
+{
+	char		uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
+	struct berval	uuid;
+#ifdef BACKSQL_ARBITRARY_KEY
+	int		i;
+	ber_len_t	l, lmax;
+#endif /* BACKSQL_ARBITRARY_KEY */
+
+	/* entryUUID is generated as "%08x-%04x-%04x-0000-eaddrXXX"
+	 * with eid_oc_id as %08x and hi and lo eid_id as %04x-%04x */
+	assert( bi );
+	assert( id );
+	assert( entryUUID );
+
+#ifdef BACKSQL_ARBITRARY_KEY
+	snprintf( uuidbuf, sizeof( uuidbuf ),
+			"%08x-0000-0000-0000-000000000000",
+			( id->eid_oc_id & 0xFFFFFFFF ) );
+	lmax = id->eid_keyval.bv_len < 12 ? id->eid_keyval.bv_len : 12;
+	for ( l = 0, i = 9; l < lmax; l++, i += 2 ) {
+		switch ( i ) {
+		case STRLENOF( "00000000-0000" ):
+		case STRLENOF( "00000000-0000-0000" ):
+		case STRLENOF( "00000000-0000-0000-0000" ):
+			uuidbuf[ i++ ] = '-';
+		/* FALLTHRU */
+
+		default:
+			snprintf( &uuidbuf[ i ], 3, "%2x", id->eid_keyval.bv_val[ l ] );
+			break;
+		}
+	}
+#else /* ! BACKSQL_ARBITRARY_KEY */
+	/* note: works only with 32 bit architectures... */
+	snprintf( uuidbuf, sizeof( uuidbuf ),
+			"%08x-%04x-%04x-0000-000000000000",
+			( id->eid_oc_id & 0xFFFFFFFF ),
+			( ( id->eid_keyval & 0xFFFF0000 ) >> 16 ),
+			( id->eid_keyval & 0xFFFF ) );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+
+	uuid.bv_val = uuidbuf;
+	uuid.bv_len = strlen( uuidbuf );
+
+	ber_dupbv_x( entryUUID, &uuid, memctx );
+
+	return 0;
+}
+
+int
+backsql_entryUUID_decode(
+	struct berval	*entryUUID,
+	unsigned long	*oc_id,
+#ifdef BACKSQL_ARBITRARY_KEY
+	struct berval	*keyval
+#else /* ! BACKSQL_ARBITRARY_KEY */
+	unsigned long	*keyval
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+	)
+{
+	fprintf( stderr, "==> backsql_entryUUID_decode()\n" );
+
+	*oc_id = ( entryUUID->bv_val[0] << 3 )
+		+ ( entryUUID->bv_val[1] << 2 )
+		+ ( entryUUID->bv_val[2] << 1 )
+		+ entryUUID->bv_val[3];
+
+#ifdef BACKSQL_ARBITRARY_KEY
+#else /* ! BACKSQL_ARBITRARY_KEY */
+	*keyval = ( entryUUID->bv_val[4] << 3 )
+		+ ( entryUUID->bv_val[5] << 2 )
+		+ ( entryUUID->bv_val[6] << 1 )
+		+ entryUUID->bv_val[7];
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+
+	fprintf( stderr, "<== backsql_entryUUID_decode(): oc=%lu id=%lu\n",
+			*oc_id, *keyval );
+
+	return LDAP_SUCCESS;
+}
+
 
 #endif /* SLAPD_SQL */
 

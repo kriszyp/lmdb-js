@@ -558,7 +558,8 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 	 * Turn structuralObjectClass into objectClass
 	 */
 	if ( ad == slap_schema.si_ad_objectClass 
-			|| ad == slap_schema.si_ad_structuralObjectClass ) {
+			|| ad == slap_schema.si_ad_structuralObjectClass )
+	{
 		/*
 		 * If the filter is LDAP_FILTER_PRESENT, then it's done;
 		 * otherwise, let's see if we are lucky: filtering
@@ -624,6 +625,53 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 			rc = -1;
 			goto done;
 		}
+
+	} else if ( ad == slap_schema.si_ad_entryUUID ) {
+		unsigned long	oc_id;
+#ifdef BACKSQL_ARBITRARY_KEY
+		struct berval	keyval;
+#else /* ! BACKSQL_ARBITRARY_KEY */
+		unsigned long	keyval;
+		char		keyvalbuf[] = "18446744073709551615";
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+
+		switch ( f->f_choice ) {
+		case LDAP_FILTER_EQUALITY:
+			backsql_entryUUID_decode( &f->f_av_value, &oc_id, &keyval );
+
+			if ( oc_id != bsi->bsi_oc->bom_id ) {
+				bsi->bsi_status = LDAP_SUCCESS;
+				rc = -1;
+				goto done;
+			}
+
+#ifdef BACKSQL_ARBITRARY_KEY
+			backsql_strfcat( &bsi->bsi_flt_where, "bcblbc",
+					&bsi->bsi_oc->bom_keytbl, '.',
+					&bsi->bsi_oc->bom_keycol,
+					STRLENOF( " LIKE '" ), " LIKE '",
+					&keyval, '\'' );
+#else /* ! BACKSQL_ARBITRARY_KEY */
+			snprintf( keyvalbuf, sizeof( keyvalbuf ), "%lu", keyval );
+			backsql_strfcat( &bsi->bsi_flt_where, "bcbcs",
+					&bsi->bsi_oc->bom_keytbl, '.',
+					&bsi->bsi_oc->bom_keycol, '=', keyvalbuf );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+			break;
+
+		case LDAP_FILTER_PRESENT:
+			backsql_strfcat( &bsi->bsi_flt_where, "l",
+					(ber_len_t)STRLENOF( "1=1" ), "1=1" );
+			break;
+
+		default:
+			rc = -1;
+			goto done;
+		}
+
+		bsi->bsi_flags |= BSQL_SF_FILTER_ENTRYUUID;
+		rc = 1;
+		goto done;
 
 	} else if ( ad == slap_schema.si_ad_hasSubordinates || ad == NULL ) {
 		/*
@@ -1635,7 +1683,8 @@ backsql_search( Operation *op, SlapReply *rs )
 			eid = backsql_free_entryID( eid, eid == &bsi.bsi_base_id ? 0 : 1 ) )
 	{
 		int		rc;
-		Attribute	*hasSubordinate = NULL,
+		Attribute	*a_hasSubordinate = NULL,
+				*a_entryUUID = NULL,
 				*a = NULL;
 		Entry		*e = NULL;
 
@@ -1786,13 +1835,13 @@ backsql_search( Operation *op, SlapReply *rs )
 			switch ( rc ) {
 			case LDAP_COMPARE_TRUE:
 			case LDAP_COMPARE_FALSE:
-				hasSubordinate = slap_operational_hasSubordinate( rc == LDAP_COMPARE_TRUE );
-				if ( hasSubordinate != NULL ) {
+				a_hasSubordinate = slap_operational_hasSubordinate( rc == LDAP_COMPARE_TRUE );
+				if ( a_hasSubordinate != NULL ) {
 					for ( a = user_entry.e_attrs; 
 							a && a->a_next; 
 							a = a->a_next );
 
-					a->a_next = hasSubordinate;
+					a->a_next = a_hasSubordinate;
 				}
 				rc = 0;
 				break;
@@ -1807,14 +1856,36 @@ backsql_search( Operation *op, SlapReply *rs )
 			}
 		}
 
-		if ( test_filter( op, e, op->ors_filter )
-				== LDAP_COMPARE_TRUE ) {
-			if ( hasSubordinate && !( bsi.bsi_flags & BSQL_SF_ALL_OPER ) 
-					&& !ad_inlist( slap_schema.si_ad_hasSubordinates, op->ors_attrs ) ) {
-				a->a_next = NULL;
-				attr_free( hasSubordinate );
-				hasSubordinate = NULL;
+		if ( bsi.bsi_flags & BSQL_SF_FILTER_ENTRYUUID ) {
+			a_entryUUID = backsql_operational_entryUUID( bi, eid );
+			if ( a_entryUUID != NULL ) {
+				for ( a = user_entry.e_attrs; 
+						a && a->a_next; 
+						a = a->a_next );
+
+				a->a_next = a_entryUUID;
 			}
+		}
+
+		if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE )
+		{
+#if 0
+			if ( a_hasSubordinate && !( bsi.bsi_flags & BSQL_SF_ALL_OPER ) 
+					&& !ad_inlist( slap_schema.si_ad_hasSubordinates, op->ors_attrs ) )
+			{
+				a->a_next = NULL;
+				attr_free( a_hasSubordinate );
+				a_hasSubordinate = NULL;
+			}
+
+			if ( a_entryUUID && !( bsi.bsi_flags & BSQL_SF_ALL_OPER ) 
+					&& !ad_inlist( slap_schema.si_ad_entryUUID, op->ors_attrs ) )
+			{
+				a->a_next = NULL;
+				attr_free( a_hasSubordinate );
+				a_hasSubordinate = NULL;
+			}
+#endif
 
 			rs->sr_attrs = op->ors_attrs;
 			rs->sr_operational_attrs = NULL;

@@ -1,4 +1,47 @@
-# Testing search...
+# Testing baseobject search...
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
+# Testing onelevel search...
+dn: documentTitle=book1,dc=example,dc=com
+objectClass: document
+description: abstract1
+documentTitle: book1
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentAuthor: cn=Torvlobnor Puzdoy,dc=example,dc=com
+documentIdentifier: document 1
+
+dn: documentTitle=book2,dc=example,dc=com
+objectClass: document
+description: abstract2
+documentTitle: book2
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentIdentifier: document 2
+
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 222-3234
+telephoneNumber: 332-2334
+
+dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Torvlobnor Puzdoy
+sn: Puzdoy
+seeAlso: documentTitle=book1,dc=example,dc=com
+givenName: Torvlobnor
+telephoneNumber: 545-4563
+
+# refldap://localhost/dc=example,dc=com??one
+
+# Testing subtree search...
 dn: documentTitle=book1,dc=example,dc=com
 objectClass: document
 description: abstract1
@@ -282,6 +325,17 @@ dc: example
 
 # refldap://localhost/dc=example,dc=com??sub
 
+# Testing entryUUID in filter...
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 222-3234
+telephoneNumber: 332-2334
+
 # Testing attribute inheritance in requested attributes...
 dn: cn=Mitya Kovalev,dc=example,dc=com
 cn: Mitya Kovalev
@@ -313,30 +367,35 @@ structuralObjectClass: document
 entryDN: documentTitle=book1,dc=example,dc=com
 subschemaSubentry: cn=Subschema
 hasSubordinates: FALSE
+entryUUID: 00000002-0000-0001-0000-000000000000
 
 dn: documentTitle=book2,dc=example,dc=com
 structuralObjectClass: document
 entryDN: documentTitle=book2,dc=example,dc=com
 subschemaSubentry: cn=Subschema
 hasSubordinates: FALSE
+entryUUID: 00000002-0000-0002-0000-000000000000
 
 dn: dc=example,dc=com
 structuralObjectClass: organization
 entryDN: dc=example,dc=com
 subschemaSubentry: cn=Subschema
 hasSubordinates: TRUE
+entryUUID: 00000003-0000-0001-0000-000000000000
 
 dn: cn=Mitya Kovalev,dc=example,dc=com
 structuralObjectClass: inetOrgPerson
 entryDN: cn=Mitya Kovalev,dc=example,dc=com
 subschemaSubentry: cn=Subschema
 hasSubordinates: FALSE
+entryUUID: 00000001-0000-0001-0000-000000000000
 
 dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
 structuralObjectClass: inetOrgPerson
 entryDN: cn=Torvlobnor Puzdoy,dc=example,dc=com
 subschemaSubentry: cn=Subschema
 hasSubordinates: FALSE
+entryUUID: 00000001-0000-0002-0000-000000000000
 
 # refldap://localhost/dc=example,dc=com??sub
 

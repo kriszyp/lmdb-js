@@ -128,6 +128,14 @@ backsql_entryID *backsql_free_entryID( backsql_entryID *id, int freeit );
 int backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *id );
 
 /*
+ * operational.c
+ */
+
+Attribute *backsql_operational_entryUUID( backsql_info *bi, backsql_entryID *id );
+
+Attribute *backsql_operational_entryCSN( Operation *op );
+
+/*
  * schema-map.c
  */
 
@@ -237,5 +245,15 @@ int backsql_split_pattern( const char *pattern, BerVarray *split_pattern,
 
 int backsql_prepare_pattern( BerVarray split_pattern, BerVarray values,
 		struct berval *res );
+
+int backsql_entryUUID( backsql_info *bi, backsql_entryID *id,
+		struct berval *entryUUID, void *memctx );
+int backsql_entryUUID_decode( struct berval *entryUUID, unsigned long *oc_id,
+#ifdef BACKSQL_ARBITRARY_KEY
+	struct berval	*keyval
+#else /* ! BACKSQL_ARBITRARY_KEY */
+	unsigned long	*keyval
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+	);
 
 #endif /* PROTO_SQL_H */

@@ -265,6 +265,7 @@ typedef struct backsql_srch_info {
 	int			bsi_flags;
 #define	BSQL_SF_ALL_OPER		0x0001
 #define BSQL_SF_FILTER_HASSUBORDINATE	0x0002
+#define BSQL_SF_FILTER_ENTRYUUID	0x0004
 
 	struct berval		*bsi_base_ndn;
 	backsql_entryID		bsi_base_id;
