@@ -481,7 +481,11 @@ be_isroot( Backend *be, const char *ndn )
 {
 	int rc;
 
-	if ( ndn == NULL || be->be_root_ndn == NULL ) {
+	if ( ndn == NULL || *ndn == '\0' ) {
+		return( 0 );
+	}
+
+	if ( be->be_root_ndn == NULL || *be->be_root_ndn == '\0' ) {
 		return( 0 );
 	}
 
