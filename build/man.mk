@@ -38,7 +38,7 @@ install-common:
 				$(LN_S) -f $$page $(MANDIR)/$$link; \
 			done; \
 		fi; \
-	done; \
+	done
 
 clean-common:   FORCE
 	$(RM) *.tmp all-common
