@@ -393,6 +393,7 @@ acl_mask(
 		}
 
 		if ( b->a_dn_at != NULL && op->o_ndn != NULL ) {
+			char *dn_at;
 			Attribute	*at;
 			struct berval	bv;
 
@@ -402,8 +403,14 @@ acl_mask(
 			bv.bv_val = op->o_ndn;
 			bv.bv_len = strlen( bv.bv_val );
 
+#ifdef SLAPD_SCHEMA_COMPAT
+			dn_at = b->a_dn_at;
+#else
+			dn_at = at_canonical_name( b->a_dn_at );
+#endif
+
 			/* see if asker is listed in dnattr */ 
-			if ( (at = attr_find( e->e_attrs, b->a_dn_at )) != NULL
+			if ( (at = attr_find( e->e_attrs, dn_at )) != NULL
 #ifdef SLAPD_SCHEMA_COMPAT
 				&& value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0
 #endif

@@ -260,12 +260,17 @@ get_substring_filter(
 	{
 		rc = ber_scanf( ber, "O", &val );
 		if ( rc == LBER_ERROR ) {
-			return( -1 );
+			rc = -1;
+			goto return_error;
 		}
+
 		if ( val == NULL || val->bv_len == 0 ) {
 			ber_bvfree( val );
-			return( LDAP_INVALID_SYNTAX );
-		}
+			rc = LDAP_INVALID_SYNTAX;
+			goto return_error;
+		} 
+
+		rc = LDAP_PROTOCOL_ERROR;
 
 #ifdef SLAPD_SCHEMA_COMPAT
 		/* we should call a substring syntax normalization routine */
@@ -322,7 +327,12 @@ get_substring_filter(
 		default:
 			Debug( LDAP_DEBUG_FILTER, "  unknown type\n", tag, 0,
 			    0 );
+
+			ber_bvfree( val );
+
 return_error:
+			Debug( LDAP_DEBUG_FILTER, "  error=%d\n", rc, 0, 0 );
+
 			if( fstr ) {
 				free( *fstr );
 				*fstr = NULL;
@@ -332,7 +342,7 @@ return_error:
 			ber_bvfree( f->f_sub_initial );
 			ber_bvecfree( f->f_sub_any );
 			ber_bvfree( f->f_sub_final );
-			return( LDAP_PROTOCOL_ERROR );
+			return rc;
 		}
 	}
 

@@ -315,12 +315,34 @@ parse_acl(
 				if ( strcasecmp( left, "dnattr" ) == 0 ) {
 					if( b->a_dn_pat != NULL ) {
 						fprintf( stderr,
-							"%s: line %d: dnaddr already specified.\n",
+							"%s: line %d: dnattr already specified.\n",
 							fname, lineno );
 						acl_usage();
 					}
 
+#ifdef SLAPD_SCHEMA_COMPAT
 					b->a_dn_at = ch_strdup( right );
+#else
+					b->a_dn_at = at_find( right );
+
+					if( b->a_dn_at == NULL ) {
+						fprintf( stderr,
+							"%s: line %d: dnattr attribute type undefined.\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+#ifdef SLAPD_OID_DN_SYNTAX
+					if( strcmp( b->a_dn_at->sat_syntax_oid,
+						SLAPD_OID_DN_SYNTAX ) != 0 )
+					{
+						fprintf( stderr,
+							"%s: line %d: dnattr attribute type not of DN syntax.\n",
+							fname, lineno );
+						acl_usage();
+					}
+#endif
+#endif
 					continue;
 				}
 
@@ -356,12 +378,40 @@ parse_acl(
 					}
 
 					if (name && *name) {
+#ifdef SLAPD_SCHEMA_COMPAT
 						b->a_group_at = ch_strdup(name);
+#else
+						b->a_group_at = at_find( name );
+#endif
 						*--name = '/';
 
 					} else {
+#ifdef SLAPD_SCHEMA_COMPAT
 						b->a_group_at = ch_strdup("member");
+#else
+						b->a_group_at = at_find("member");
+#endif
 					}
+
+#ifndef SLAPD_SCHEMA_COMPAT
+					if( b->a_group_at == NULL ) {
+						fprintf( stderr,
+							"%s: line %d: group attribute type undefined.\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+#ifdef SLAPD_OID_DN_SYNTAX
+					if( strcmp( b->a_group_at->sat_syntax_oid,
+						SLAPD_OID_DN_SYNTAX ) != 0 )
+					{
+						fprintf( stderr,
+							"%s: line %d: group attribute type not of DN syntax.\n",
+							fname, lineno );
+						acl_usage();
+					}
+#endif /* SLAPD_OID_DN_SYNTAX */
+#endif /* !SLAPD_SCHEMA_COMPAT */
 					continue;
 				}
 
@@ -426,13 +476,42 @@ parse_acl(
 						acl_usage();
 					}
 
-					if ( right != NULL && *right != '\0' )
+					if ( right != NULL && *right != '\0' ) {
+#ifdef SLAPD_SCHEMA_COMPAT
 						b->a_aci_at = ch_strdup( right );
-					else
+#else
+						b->a_aci_at = at_find( right );
+#endif
+					} else {
+#ifdef SLAPD_SCHEMA_COMPAT
 						b->a_aci_at = ch_strdup( SLAPD_ACI_DEFAULT_ATTR );
+#else
+						b->a_aci_at = at_find( SLAPD_ACI_DEFAULT_ATTR );
+#endif
+					}
+
+#ifdef SLAPD_SCHEMA_COMPAT
+					if( b->a_aci_at == NULL ) {
+						fprintf( stderr,
+							"%s: line %d: aci attribute type undefined.\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+#ifdef SLAPD_OID_DN_SYNTAX
+					if( strcmp( b->a_aci_at->sat_syntax_oid,
+						SLAPD_OID_DN_SYNTAX ) != 0 )
+					{
+						fprintf( stderr,
+							"%s: line %d: aci attribute type not of DN syntax.\n",
+							fname, lineno );
+						acl_usage();
+					}
+#endif /* SLAPD_OID_DN_SYNTAX */
+#endif /* SLAPD_SCHEMA_COMPAT */
 					continue;
 				}
-#endif
+#endif /* SLAPD_ACI_ENABLED */
 
 				if( right != NULL ) {
 					/* unsplit */

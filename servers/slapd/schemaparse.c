@@ -18,7 +18,9 @@
 
 int	global_schemacheck = 1; /* schemacheck on is default */
 
+#ifdef SLAPD_SCHEMA_COMPAT
 static void		oc_usage_old(void) LDAP_GCCATTR((noreturn));
+#endif
 static void		oc_usage(void)     LDAP_GCCATTR((noreturn));
 static void		at_usage(void)     LDAP_GCCATTR((noreturn));
 
@@ -48,6 +50,7 @@ scherr2str(int code)
 	}
 }
 
+#ifdef SLAPD_SCHEMA_COMPAT
 void
 parse_oc_old(
     Backend	*be,
@@ -57,7 +60,6 @@ parse_oc_old(
     char	**argv
 )
 {
-#ifdef SLAPD_SCHEMA_COMPAT
 	int		i;
 	char		last;
 	LDAP_OBJECT_CLASS	*oc;
@@ -145,13 +147,8 @@ parse_oc_old(
 		exit( EXIT_FAILURE );
 	}
 	ldap_memfree(oc);
-
-#else
-	fprintf( stderr, "%s: line %d: %s %s\n",
-		 fname, lineno, "not built with -DSLAPD_SCHEMA_COMPAT\n");
-	exit( EXIT_FAILURE );
-#endif
 }
+#endif
 
 /* OID Macros */
 
@@ -304,6 +301,7 @@ oc_usage( void )
 	exit( EXIT_FAILURE );
 }
 
+#ifdef SLAPD_SCHEMA_COMPAT
 static void
 oc_usage_old( void )
 {
@@ -312,6 +310,7 @@ oc_usage_old( void )
 	fprintf( stderr, "                [ allows <attrlist> ]\n" );
 	exit( EXIT_FAILURE );
 }
+#endif
 
 static void
 at_usage( void )

@@ -145,8 +145,12 @@ index_read(
 		return( idl );
 	}
 
+#ifdef SLAPD_SCHEMA_COMPAT
 	attr_normalize( type );
 	at_cn = at_canonical_name( type );
+#else
+	at_cn = at_canonical_name( at_find( type ) );
+#endif
 
 	if ( at_cn == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -312,7 +316,11 @@ index_change_values(
 		return( 0 );
 	}
 
+#ifdef SLAPD_SCHEMA_COMPAT
 	at_cn = at_canonical_name( type );
+#else
+	at_cn = at_canonical_name( at_find( type ) );
+#endif
 
 	if ( at_cn == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -321,7 +329,6 @@ index_change_values(
 		return( -1 );
 	}
 
-#ifdef SLAPD_SCHEMA_COMPAT
 	if ( (db = ldbm_cache_open( be, at_cn, LDBM_SUFFIX, mode ))
 	     == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -332,6 +339,7 @@ index_change_values(
 	}
 
 
+#ifdef SLAPD_SCHEMA_COMPAT
 	for ( i = 0; vals[i] != NULL; i++ ) {
 		/*
 		 * presence index entry
@@ -443,9 +451,9 @@ index_change_values(
 			free( bigbuf );
 		}
 	}
+#endif
 
 	ldbm_cache_close( be, db );
-#endif
 
 	return( 0 );
 

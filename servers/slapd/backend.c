@@ -618,12 +618,16 @@ backend_group(
 	const char	*gr_ndn,
 	const char	*op_ndn,
 	const char	*objectclassValue,
-	const char	*groupattrName
+#ifdef SLAPD_SCHEMA_COMPAT
+	const char	*group_at
+#else
+	AttributeType *group_at
+#endif
 )
 {
 	if (be->be_group)
 		return( be->be_group(be, target, gr_ndn, op_ndn,
-			objectclassValue, groupattrName) );
+			objectclassValue, group_at) );
 	else
 		return(1);
 }

@@ -28,7 +28,11 @@ ldbm_back_group(
 	const char	*gr_ndn,
 	const char	*op_ndn,
 	const char	*objectclassValue,
+#ifdef SLAPD_SCHEMA_COMPAT
 	const char	*groupattrName
+#else
+	AttributeType *group_at
+#endif
 )
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;    
@@ -37,6 +41,10 @@ ldbm_back_group(
 
 	Attribute   *attr;
 	struct berval bv;
+
+#ifndef SLAPD_SCHEMA_COMPAT
+	char *groupattrName = at_canonical_name( group_at );
+#endif
 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> ldbm_back_group: gr dn: \"%s\"\n",

@@ -8,7 +8,9 @@
 #ifndef _SLDAPD_H_
 #define _SLDAPD_H_
 
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 #define SLAPD_SCHEMA_COMPAT 1
+#endif
 
 #include "ldap_defaults.h"
 
@@ -88,6 +90,9 @@ LDAP_BEGIN_DECL
 #define NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
 
 #define SLAPD_ACI_DEFAULT_ATTR		"aci"
+
+/* schema needed by slapd */
+#define SLAPD_OID_DN_SYNTAX "1.3.6.1.4.1.1466.115.121.1.12"
 
 LIBSLAPD_F (int) slap_debug;
 
@@ -241,8 +246,8 @@ typedef struct slap_ava {
  * represents an matching rule assertion
  */
 typedef struct slap_mra {
-	char	*mra_rule;
-	char	*mra_type;	/* attribute description */
+	char	*mra_rule;	/* optional */
+	char	*mra_type;	/* attribute description -- optional */
 	int		mra_dnattrs;
 	struct berval	*mra_value;
 } Mra;
@@ -434,7 +439,11 @@ typedef struct slap_access {
 	slap_access_mask_t	a_mask;
 
 	char		*a_dn_pat;
+#ifdef SLAPD_SCHEMA_COMPAT
 	char		*a_dn_at;
+#else
+	AttributeType	*a_dn_at;
+#endif
 	int			a_dn_self;
 
 	char		*a_peername_pat;
@@ -444,13 +453,21 @@ typedef struct slap_access {
 	char		*a_sockurl_pat;
 
 #ifdef SLAPD_ACI_ENABLED
+#ifdef SLAPD_SCHEMA_COMPAT
 	char		*a_aci_at;
+#else
+	AttributeType	*a_aci_at;
+#endif
 #endif
 
 	/* ACL Groups */
 	char		*a_group_pat;
 	char		*a_group_oc;
+#ifdef SLAPD_SCHEMA_COMPAT
 	char		*a_group_at;
+#else
+	AttributeType	*a_group_at;
+#endif
 
 	struct slap_access	*a_next;
 } Access;
@@ -690,7 +707,8 @@ struct slap_backend_info {
 
 	int	(*bi_acl_group)  LDAP_P((Backend *bd,
 		Entry *e, const char *bdn, const char *edn,
-		const char *objectclassValue, const char *groupattrName ));
+		const char *objectclassValue,
+		AttributeType *group_at ));
 
 	int	(*bi_connection_init) LDAP_P((BackendDB *bd,
 		struct slap_conn *c));

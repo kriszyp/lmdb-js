@@ -261,7 +261,6 @@ attr_syntax( char *type )
 
 	return( DEFAULT_SYNTAX );
 }
-#endif
 
 /*
  * attr_syntax_config - process an attribute syntax config line
@@ -275,7 +274,6 @@ attr_syntax_config(
     char	**argv
 )
 {
-#ifdef SLAPD_SCHEMA_COMPAT
 	char			*save;
 	LDAP_ATTRIBUTE_TYPE	*at;
 	int			lasti;
@@ -296,7 +294,7 @@ attr_syntax_config(
 #define SYNTAX_DSCE_OID	"2.5.13.5"
 #define SYNTAX_IA5_OID	"1.3.6.1.4.1.1466.115.121.1.26"
 #define SYNTAX_IA5CE_OID	"1.3.6.1.4.1.1466.109.114.1"
-#define SYNTAX_DN_OID	"1.3.6.1.4.1.1466.115.121.1.12"
+#define SYNTAX_DN_OID	SLAPD_OID_DN_SYNTAX
 #define SYNTAX_TEL_OID	"1.3.6.1.4.1.1466.115.121.1.50"
 #define SYNTAX_BIN_OID	"1.3.6.1.4.1.1466.115.121.1.40" /* octetString */
 
@@ -353,15 +351,10 @@ attr_syntax_config(
 			 fname, lineno, scherr2str(code), err);
 		exit( EXIT_FAILURE );
 	}
+
 	ldap_memfree(at);
-#else
-	fprintf( stderr, "%s: line %d: %s\n",
-		 fname, lineno, "not built with -DSLAPD_SCHEMA_COMPAT\n");
-	exit( EXIT_FAILURE );
-#endif
 }
 
-#ifdef SLAPD_SCHEMA_COMPAT
 int
 at_fake_if_needed(
     char	*name
@@ -712,12 +705,24 @@ at_add(
 
 
 char *
+#ifdef SLAPD_SCHEMA_COMPAT
 at_canonical_name( char * a_type )
+#else
+at_canonical_name( AttributeType * atp )
+#endif
 {
+#ifdef SLAPD_SCHEMA_COMPAT
 	AttributeType	*atp;
 
-	if ( (atp=at_find(a_type)) == NULL ) {
+	atp=at_find(a_type);
+#endif
+
+	if ( atp == NULL ) {
+#ifdef SLAPD_SCHEMA_COMPAT
 		return a_type;
+#else
+		return NULL;
+#endif
 
 	} else if ( atp->sat_names
 		&& atp->sat_names[0] && (*(atp->sat_names[0]) != '\0') )
@@ -726,10 +731,13 @@ at_canonical_name( char * a_type )
 
 	} else if (atp->sat_oid && (*atp->sat_oid != '\0')) {
 		return atp->sat_oid;
-		
-	} else {
-		return a_type;
 	}
+
+#ifdef SLAPD_SCHEMA_COMPAT
+	return a_type;
+#else
+	return NULL;
+#endif
 }
 
 #if defined( SLAPD_SCHEMA_DN )

@@ -25,7 +25,9 @@ get_ava(
 		Debug( LDAP_DEBUG_ANY, "  get_ava ber_scanf\n", 0, 0, 0 );
 		return( -1 );
 	}
+
 	attr_normalize( ava->ava_type );
+
 #ifdef SLAPD_SCHEMA_COMPAT
 	value_normalize( ava->ava_value.bv_val, attr_syntax( ava->ava_type ) );
 #endif
