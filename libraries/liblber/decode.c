@@ -590,14 +590,14 @@ ber_scanf ( BerElement *ber,
 			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
 			    tag = ber_next_element( ber, &len, last ) )
 			{
-				void *save = *sss;
+				char **save = *sss;
 
 				*sss = (char **) LBER_REALLOC( *sss,
 					(j + 2) * sizeof(char *) );
 
 				if( *sss == NULL ) {
 					save[j] = NULL;
-					ber_memvfree( save );
+					ber_memvfree( (void **) save );
 					rc = LBER_DEFAULT;
 					goto breakout;
 				}
@@ -616,7 +616,7 @@ ber_scanf ( BerElement *ber,
 			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
 			    tag = ber_next_element( ber, &len, last ) )
 			{
-				void *save = *bv;
+				struct berval **save = *bv;
 
 				*bv = (struct berval **) LBER_REALLOC( *bv,
 					(j + 2) * sizeof(struct berval *) );
@@ -744,7 +744,7 @@ breakout:
 		case 'v':	/* sequence of strings */
 			sss = va_arg( ap, char *** );
 			if ( *sss ) {
-				ber_memvfree( *sss );
+				ber_memvfree( (void **) *sss );
 				*sss = NULL;
 			}
 			break;
