@@ -49,10 +49,12 @@ OBJEXT = @OBJEXT@
 
 BUILD_LIBS_DYNAMIC = @BUILD_LIBS_DYNAMIC@
 
-INSTALL = @INSTALL@
-INSTALL_PROGRAM = @INSTALL_PROGRAM@
-INSTALL_DATA = @INSTALL_DATA@
-INSTALL_SCRIPT = @INSTALL_SCRIPT@
+SHTOOL = $(top_srcdir)/build/shtool
+
+INSTALL = $(SHTOOL) install -c
+INSTALL_PROGRAM = $(INSTALL)
+INSTALL_DATA = $(INSTALL) -m 644
+INSTALL_SCRIPT = $(INSTALL)
 
 LINT = lint
 5LINT = 5lint
@@ -63,8 +65,6 @@ MKDEP_CC	= @OL_MKDEP@
 MKDEP_CFLAGS = @OL_MKDEP_FLAGS@
 
 MKVERSION = $(top_srcdir)/build/mkversion -v "$(VERSION)"
-
-SHTOOL = $(top_srcdir)/build/shtool
 
 LIBTOOL = @LIBTOOL@
 LIBRELEASE = @OPENLDAP_LIBRELEASE@
@@ -125,13 +125,14 @@ BASENAME = basename
 CAT = cat
 CHMOD = chmod
 DATE = date
+ECHO = $(SHTOOL) echo
 HOSTNAME = $(SHTOOL) echo -e "%h%d"
-LN = ln
-LN_H = @LN_H@
-LN_S = @LN_S@
+LN = $(SHTOOL) mkln
+LN_H = $(LN)
+LN_S = $(LN) -s
 MAKEINFO = @MAKEINFO@
 MKDIR = $(SHTOOL) mkdir -p
-MV = mv
+MV = $(SHTOOL) move
 PWD = pwd
 RANLIB = @RANLIB@
 RM = rm -f

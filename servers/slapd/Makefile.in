@@ -257,7 +257,7 @@ libslapi.a: slapi/.libs/libslapi.a
 slapd: $(SLAPD_DEPENDS) @LIBSLAPI@
 	$(LTLINK) -o $@ $(SLAPD_OBJECTS) $(LIBS) \
 		$(WRAP_LIBS)
-	rm -f $(SLAPTOOLS)
+	$(RM) $(SLAPTOOLS)
 	for i in $(SLAPTOOLS); do \
 		$(LN_S) slapd$(EXEEXT) $$i$(EXEEXT); done
 
@@ -330,7 +330,7 @@ depend-local-srv: FORCE
 	@echo ""
 
 clean-local:
-	rm -f *.exp *.def *.base *.a *.objs symdummy.c
+	$(RM) *.exp *.def *.base *.a *.objs symdummy.c
 
 clean-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
@@ -340,7 +340,7 @@ clean-local-srv: FORCE
 			if test $$? != 0 ; then exit 1; fi ; \
 		fi; \
 	done
-	rm -f *.tmp all-cffiles
+	$(RM) *.tmp all-cffiles
 
 veryclean-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
@@ -426,9 +426,8 @@ install-db-config: FORCE
 
 install-tools: FORCE
 	-$(MKDIR) $(DESTDIR)$(sbindir)
-	cd $(DESTDIR)$(sbindir); \
-	rm -f $(SLAPTOOLS); \
 	for i in $(SLAPTOOLS); do \
-		$(LN_S) $(libexecdir)/slapd$(EXEEXT) $$i$(EXEEXT); \
+		$(RM) $(DESTDIR)$(sbindir)/$$i$(EXEEXT); \
+		$(LN_S) -f $(DESTDIR)$(libexecdir)/slapd$(EXEEXT) $(DESTDIR)$(sbindir)/$$i$(EXEEXT); \
 	done
 
