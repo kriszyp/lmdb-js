@@ -61,7 +61,7 @@ int is_entry_objectclass(
 	}
 
 	if( set_flags && ( e->e_ocflags & SLAP_OC__END )) {
-		return (e->e_ocflags & oc->soc_flags);
+		return (e->e_ocflags & oc->soc_flags) ? 1 : 0;
 	}
 
 	/*
@@ -480,6 +480,9 @@ oc_schema_info( Entry *e )
 		if ( ldap_objectclass2bv( &oc->soc_oclass, vals ) == NULL ) {
 			return -1;
 		}
+
+		if( oc->soc_flags & SLAP_OC_HIDE ) continue;
+
 #if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging oc [%ld] %s\n",
 	       (long) vals[0].bv_len, vals[0].bv_val, 0 );

@@ -201,7 +201,7 @@ static struct slap_schema_oc_map {
 	{ "collectiveAttributeSubentry", "( 2.5.20.2 "
 			"NAME 'collectiveAttributeSubentry' "
 			"AUXILIARY )",
-		subentryObjectClass, SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY,
+		subentryObjectClass, SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY|SLAP_OC_HIDE,
 		offsetof(struct slap_internal_schema, si_oc_collectiveAttributeSubentry) },
 	{ "dynamicObject", "( 1.3.6.1.4.1.1466.101.119.2 "
 			"NAME 'dynamicObject' "
@@ -293,13 +293,13 @@ static struct slap_schema_ad_map {
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
 			"NO-USER-MODIFICATION USAGE directoryOperation )",
-		NULL, 0, NULL, NULL, NULL,
+		NULL, SLAP_AT_HIDE, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_collectiveSubentries) },
 	{ "collectiveExclusions", "( 2.5.18.7 NAME 'collectiveExclusions' "
 			"EQUALITY objectIdentifierMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 "
 			"USAGE directoryOperation )",
-		NULL, 0, NULL, NULL, NULL,
+		NULL, SLAP_AT_HIDE, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_collectiveExclusions) },
 
 	{ "entryUUID", "( 1.3.6.1.4.1.4203.666.1.6 NAME 'entryUUID' "   
@@ -383,13 +383,13 @@ static struct slap_schema_ad_map {
 			"EQUALITY objectIdentifierMatch "
 			"USAGE directoryOperation "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
-		administrativeRoleAttribute, 0, NULL, NULL, NULL,
+		administrativeRoleAttribute, SLAP_AT_HIDE, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_administrativeRole) },
 	{ "subtreeSpecification", "( 2.5.18.6 NAME 'subtreeSpecification' "
 			"SINGLE-VALUE "
 			"USAGE directoryOperation "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.45 )",
-		subentryAttribute, 0, NULL, NULL, NULL,
+		subentryAttribute, SLAP_AT_HIDE, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_subtreeSpecification) },
 
 	/* subschema subentry attributes */
@@ -398,13 +398,13 @@ static struct slap_schema_ad_map {
 			"EQUALITY integerFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.17 "
 			"USAGE directoryOperation ) ",
-		subentryAttribute, 0, NULL, NULL, NULL,
+		subentryAttribute, SLAP_AT_HIDE, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_ditStructureRules) },
 	{ "ditContentRules", "( 2.5.21.2 NAME 'dITContentRules' "
 			"DESC 'RFC2252: DIT content rules' "
 			"EQUALITY objectIdentifierFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.16 USAGE directoryOperation )",
-		subentryAttribute, 0, NULL, NULL, NULL,
+		subentryAttribute, SLAP_AT_HIDE, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_ditContentRules) },
 	{ "matchingRules", "( 2.5.21.4 NAME 'matchingRules' "
 			"DESC 'RFC2252: matching rules' "
@@ -428,13 +428,13 @@ static struct slap_schema_ad_map {
 			"DESC 'RFC2252: name forms ' "
 			"EQUALITY objectIdentifierFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.35 USAGE directoryOperation )",
-		subentryAttribute, 0, NULL, NULL, NULL,
+		subentryAttribute, SLAP_AT_HIDE, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_nameForms) },
 	{ "matchingRuleUse", "( 2.5.21.8 NAME 'matchingRuleUse' "
 			"DESC 'RFC2252: matching rule uses' "
 			"EQUALITY objectIdentifierFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.31 USAGE directoryOperation )",
-		subentryAttribute, 0, NULL, NULL, NULL,
+		subentryAttribute, SLAP_AT_HIDE, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_matchingRuleUse) },
 
 	{ "ldapSyntaxes", "( 1.3.6.1.4.1.1466.101.120.16 NAME 'ldapSyntaxes' "
@@ -466,14 +466,14 @@ static struct slap_schema_ad_map {
 			"DESC 'OpenLDAP ACL entry pseudo-attribute' "
 			"SYNTAX 1.3.6.1.4.1.4203.1.1.1 "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )",
-		NULL, 0, NULL, NULL, NULL,
+		NULL, SLAP_AT_HIDE, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_entry) },
 	{ "children", "( 1.3.6.1.4.1.4203.1.3.2 "
 			"NAME 'children' "
 			"DESC 'OpenLDAP ACL children pseudo-attribute' "
 			"SYNTAX 1.3.6.1.4.1.4203.1.1.1 "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )",
-		NULL, 0, NULL, NULL, NULL,
+		NULL, SLAP_AT_HIDE, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_children) },
 #ifdef SLAPD_ACI_ENABLED
 	{ "OpenLDAPaci", "( 1.3.6.1.4.1.4203.666.1.5 "

@@ -464,6 +464,9 @@ at_schema_info( Entry *e )
 		if ( ldap_attributetype2bv( &at->sat_atype, vals ) == NULL ) {
 			return -1;
 		}
+
+		if( at->sat_flags & SLAP_AT_HIDE ) continue;
+
 #if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging at [%ld] %s\n",
 		       (long) vals[0].bv_len, vals[0].bv_val, 0 );

@@ -431,6 +431,9 @@ typedef struct slap_attribute_type {
 	Syntax					*sat_syntax;
 
 	AttributeTypeSchemaCheckFN	*sat_check;
+
+#define SLAP_AT_NONE	0x0000U
+#define SLAP_AT_HIDE	0x0001U /* hide attribute */
 	slap_mask_t					sat_flags;
 
 	struct slap_attribute_type	*sat_next;
@@ -496,6 +499,7 @@ typedef struct slap_object_class {
 #define	SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY	0x10
 #define	SLAP_OC__MASK		0x1F
 #define	SLAP_OC__END		0x20
+#define SLAP_OC_HIDE		0x80
 
 #ifdef LDAP_EXTENDED_SCHEMA
 /*
