@@ -1,0 +1,203 @@
+#-----------------------------------------------------------------------------
+# Copyright (c) 1995 Regents of the University of Michigan.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms are permitted
+# provided that this notice is preserved and that due credit is given
+# to the University of Michigan at Ann Arbor. The name of the University
+# may not be used to endorse or promote products derived from this
+# software without specific prior written permission. This software
+# is provided ``as is'' without express or implied warranty.
+#
+#       Stand alone LDAP server tools makefile
+#
+#-----------------------------------------------------------------------------
+HAVE_ISODE = @HAVE_ISODE@
+BUILD_LDBM = @BUILD_LDBM@
+BUILD_BDB2 = @BUILD_BDB2@
+
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
+
+XDEFS = $(MODULES_CPPFLAGS)
+XLDFLAGS = $(MODULES_LDFLAGS)
+
+XLIBS = -lavl -lldif -lldbm -lldap_r -llber -llutil
+XXLIBS = $(SLAPD_LIBS) \
+	$(PERL_LDFLAGS) $(LDBM_LIBS) $(KRB_LIBS) $(TLS_LIBS) $(LUTIL_LIBS)
+XXXLIBS = $(LTHREAD_LIBS)
+
+PROGRAMS=ldif2index ldif2ldbm ldbmcat ldif2id2entry ldif2id2children \
+	centipede ldbmtest ldif
+
+PROGRAMS2=ldif2index-bdb2 ldif2ldbm-bdb2 \
+	ldif2id2entry-bdb2 ldif2id2children-bdb2
+
+SRCS = centipede.c ldbmcat.c ldbmtest.c sizecount.c \
+	ldif.c ldif2id2children.c ldif2id2entry.c ldif2index.c ldif2ldbm.c \
+	mimic.c
+
+SRCS2 = ldif2id2children-bdb2.c ldif2id2entry-bdb2.c \
+	ldif2index-bdb2.c ldif2ldbm-bdb2.c
+
+XSRCS = edb2-vers.c
+
+EDB2LDIFSRCS	= edb2ldif.c ldapsyntax.c
+EDB2LDIFOBJS	= edb2ldif.o ldapsyntax.o
+
+OBJS2	= mimic.o \
+		../config.o ../ch_malloc.o ../backend.o ../charray.o \
+		../module.o ../aclparse.o ../schema.o ../filterentry.o \
+		../acl.o ../phonetic.o ../attr.o ../value.o ../entry.o \
+		../dn.o ../filter.o ../str2filter.o ../ava.o ../init.o \
+		../controls.o ../schemaparse.o
+
+all-local: build-ldbm build-bdb2 build-edb2ldif build-chlog2replog
+
+build-ldbm: FORCE
+	@if [ "$(BUILD_LDBM)" = "yes" ]; then \
+		$(MAKE) $(MFLAGS) ldbm-tools; \
+	else \
+		echo "run configure with --with-ldbm to build LDBM tools"; \
+	fi
+
+build-bdb2: FORCE
+	@if [ "$(BUILD_BDB2)" = "yes" ]; then \
+		$(MAKE) $(MFLAGS) bdb2-tools; \
+	else \
+		echo "run configure with --enable-bdb2 to build BDB2 tools"; \
+	fi
+
+ldbm-tools: $(PROGRAMS)
+
+bdb2-tools: $(PROGRAMS2)
+
+build-edb2ldif:	FORCE
+	@if [ "$(HAVE_ISODE)" = "yes" ]; then \
+		$(MAKE) $(MFLAGS) edb2ldif; \
+	else \
+		echo "run configure with --with-isode to build edb2ldif"; \
+	fi
+
+edb2ldif:	edb2-vers.o
+	$(CC) $(LDFLAGS) -o $@ $(EDB2LDIFOBJS) edb2-vers.o $(LIBS)
+
+edb2-vers.c: $(EDB2LDIFOBJS)
+	@-$(RM) $@
+	$(MKVERSION) ebd2ldif > $@
+
+build-chlog2replog: FORCE
+	@if [ "$(HAVE_ISODE)" = "yes" ]; then \
+		$(MAKE) $(MFLAGS) chlog2replog; \
+	else \
+		echo "run configure with --with-isode to build chlog2replog"; \
+	fi
+
+chlog2replog: chlog2replog.o ../lock.o ../ch_malloc.o $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ chlog2replog.o ../lock.o ../ch_malloc.o $(LIBS)
+
+ldif2index:	ldif2index.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ ldif2index.o $(OBJS2) ../libbackends.a $(LIBS)
+
+ldif2index-bdb2:	ldif2index-bdb2.o ../libbackends.a \
+		$(OBJS2) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ ldif2index-bdb2.o $(OBJS2) ../libbackends.a $(LIBS)
+
+ldif2ldbm:	ldif2ldbm.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ ldif2ldbm.o $(OBJS2) ../libbackends.a $(LIBS)
+
+ldif2ldbm-bdb2:	ldif2ldbm-bdb2.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ ldif2ldbm-bdb2.o $(OBJS2) ../libbackends.a $(LIBS)
+
+ldif2id2entry:	ldif2id2entry.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ ldif2id2entry.o $(OBJS2) ../libbackends.a $(LIBS)
+
+ldif2id2entry-bdb2:	ldif2id2entry-bdb2.o ../libbackends.a \
+		$(OBJS2) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ ldif2id2entry-bdb2.o $(OBJS2) ../libbackends.a $(LIBS)
+
+ldif2id2children:	ldif2id2children.o ../libbackends.a \
+		$(OBJS2) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ ldif2id2children.o $(OBJS2) ../libbackends.a $(LIBS)
+
+ldif2id2children-bdb2:	ldif2id2children-bdb2.o ../libbackends.a \
+		$(OBJS2) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ ldif2id2children-bdb2.o $(OBJS2) ../libbackends.a $(LIBS)
+
+ldbmcat:	ldbmcat.o $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ ldbmcat.o $(LIBS)
+
+ldif:		ldif.o $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ ldif.o $(LIBS)
+
+centipede:	centipede.o $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ centipede.o $(LIBS)
+
+sizecount:	sizecount.o ../phonetic.o ../ch_malloc.o $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ sizecount.o ../phonetic.o ../ch_malloc.o $(LIBS)
+
+ldbmtest:	ldbmtest.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o ldbmtest ldbmtest.o $(OBJS2) ../libbackends.a $(LIBS)
+
+clean-local: FORCE
+	$(RM) $(PROGRAMS) $(PROGRAMS2) $(XPROGRAMS) $(XSRCS) edb2-vers.c \
+		*.o core .libs/*
+
+depend-local: FORCE
+	@DEPEND=no ; DEPEND_LDBM= ; DEPEND_BDB2= ; DEPEND_ISODE= ; \
+	if [ "$(BUILD_LDBM)" = "yes" ]; then \
+		DEPEND_LDBM="$(SRCS)"; \
+		DEPEND=yes ; \
+	fi; \
+	if [ "$(BUILD_BDB2)" = "yes" ]; then \
+		DEPEND_BDB2="$(SRCS2)"; \
+		DEPEND=yes ; \
+	fi; \
+	if [ "$(HAVE_ISODE)" = "yes" ]; then \
+		DEPEND_ISODE="$(ISODEINCLUDEFLAG) chlog2replog.c $(EDB2LDIFSRCS)"; \
+		DEPEND=yes ; \
+	fi; \
+	if [ "$$DEPEND" = "yes" ]; then \
+	$(MKDEP) $(DEFS) $(DEFINES) $$DEPEND_ISODE \
+			$$DEPEND_LDBM $$DEPEND_BDB2; \
+	else \
+		echo "slapd-tools: no dependencies to make"; \
+	fi
+
+install-local: install-ldbm install-bdb2 install-isode FORCE
+
+install-ldbm: FORCE
+	@-$(MKDIR) $(sbindir) 
+	@if [ "$(BUILD_LDBM)" = "yes" ]; then \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2index $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldbmcat $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 centipede $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldbmtest $(sbindir)	; \
+	else \
+		exit 0 ; \
+	fi
+
+install-bdb2: FORCE
+	@-$(MKDIR) $(sbindir) 
+	@if [ "$(BUILD_BDB2)" = "yes" ]; then \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm-bdb2 $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2index-bdb2 $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry-bdb2 $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children-bdb2 $(sbindir) ; \
+	else \
+		exit 0 ; \
+	fi
+
+install-isode: FORCE
+	@-$(MKDIR) $(sbindir)
+	@if [ "$(HAVE_ISODE)" = "yes" ]; then \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 edb2ldif $(sbindir); \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 chlog2replog $(sbindir); \
+	else \
+		exit 0 ; \
+	fi
+
