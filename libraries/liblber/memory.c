@@ -674,22 +674,32 @@ ber_bvarray_add( BerVarray *a, BerValue *bv )
 			return 0;
 		}
 		n = 0;
+
 		*a = (BerValue *) LBER_MALLOC( 2 * sizeof(BerValue) );
+		if ( *a == NULL ) {
+			return -1;
+		}
+
 	} else {
+		BerVarray *atmp;
 		BER_MEM_VALID( a );
 
 		for ( n = 0; *a != NULL && (*a)[n].bv_val != NULL; n++ ) {
-			;	/* NULL */
+			;	/* just count them */
 		}
 
 		if (bv == NULL) {
 			return n;
 		}
-		*a = (BerValue *) LBER_REALLOC( (char *) *a,
+
+		*atmp = (BerValue *) LBER_REALLOC( (char *) *a,
 		    (n + 2) * sizeof(BerValue) );
-	}
-	if ( *a == NULL ) {
-		return -1;
+
+		if( *atmp == NULL ) {
+			return -1;
+		}
+
+		*a = *atmp;
 	}
 
 	(*a)[n++] = *bv;
