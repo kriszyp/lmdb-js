@@ -1133,25 +1133,41 @@ slapi_free_search_results_internal( Slapi_PBlock *pb )
 /*
  * Internal API to prime a Slapi_PBlock with a Backend.
  */
-void slapi_backend_set_pb( Slapi_PBlock *pb, Backend *be )
+int slapi_backend_set_pb( Slapi_PBlock *pb, Backend *be )
 {
 #if defined(LDAP_SLAPI)
-	slapi_pblock_set(pb, SLAPI_BACKEND, (void *)be);
-	slapi_pblock_set(pb, SLAPI_BE_TYPE, (void *)be->bd_info->bi_type);
+	int rc;
+
+	rc = slapi_pblock_set(pb, SLAPI_BACKEND, (void *)be);
+	if (rc != LDAP_SUCCESS)
+		return rc;
+
+	rc = slapi_pblock_set(pb, SLAPI_BE_TYPE, (void *)be->bd_info->bi_type);
+	if (rc != LDAP_SUCCESS)
+		return rc;
+#else
+	return -1;
 #endif /* defined(LDAP_SLAPI) */
 }
 
 /*
  * Internal API to prime a Slapi_PBlock with a Connection.
  */
-void slapi_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
+int slapi_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
 {
 #if defined(LDAP_SLAPI)
 	char *connAuthType;
 	size_t len;
+	int rc;
 
-	slapi_pblock_set(pb, SLAPI_CONNECTION, (void *)conn);
-	slapi_pblock_set(pb, SLAPI_CONN_ID, (void *)conn->c_connid);
+	rc = slapi_pblock_set(pb, SLAPI_CONNECTION, (void *)conn);
+	if (rc != LDAP_SUCCESS)
+		return rc;
+
+	rc = slapi_pblock_set(pb, SLAPI_CONN_ID, (void *)conn->c_connid);
+	if (rc != LDAP_SUCCESS)
+		return rc;
+
 	switch (conn->c_authz.sai_method) {
 	case LDAP_AUTH_SASL: 
 		len = sizeof(SLAPD_AUTH_SASL) + conn->c_authz.sai_mech.bv_len;
@@ -1172,23 +1188,31 @@ void slapi_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
 		connAuthType = slapi_ch_strdup(SLAPD_AUTH_SSL);
 	}
 	if (connAuthType != NULL) {
-		slapi_pblock_set(pb, SLAPI_CONN_AUTHTYPE, (void *)connAuthType);
+		rc = slapi_pblock_set(pb, SLAPI_CONN_AUTHTYPE, (void *)connAuthType);
+		if (rc != LDAP_SUCCESS)
+			return rc;
 	}
 	if (conn->c_authz.sai_dn.bv_val != NULL) {
 		char *connDn = slapi_ch_strdup(conn->c_authz.sai_dn.bv_val);
-		slapi_pblock_set(pb, SLAPI_CONN_DN, (void *)connDn);
+		rc = slapi_pblock_set(pb, SLAPI_CONN_DN, (void *)connDn);
+		if (rc != LDAP_SUCCESS)
+			return rc;
 	}
+	return LDAP_SUCCESS;
+#else
+	return -1;
 #endif /* defined(LDAP_SLAPI) */
 }
 
 /*
  * Internal API to prime a Slapi_PBlock with an Operation.
  */
-void slapi_operation_set_pb( Slapi_PBlock *pb, Operation *op )
+int slapi_operation_set_pb( Slapi_PBlock *pb, Operation *op )
 {
 #if defined(LDAP_SLAPI)
 	int isRoot = 0;
 	int isUpdateDn = 0;
+	int rc;
 	Backend *be;
 
 	if (slapi_pblock_get(pb, SLAPI_BACKEND, (void *)&be) != 0) {
@@ -1199,12 +1223,31 @@ void slapi_operation_set_pb( Slapi_PBlock *pb, Operation *op )
 		isUpdateDn = be_isupdate(be, &op->o_ndn);
 	}
 		
-	slapi_pblock_set(pb, SLAPI_OPERATION, (void *)op);
-	slapi_pblock_set(pb, SLAPI_OPINITIATED_TIME, (void *)op->o_time);
-	slapi_pblock_set(pb, SLAPI_REQUESTOR_ISROOT, (void *)isRoot);
-	slapi_pblock_set(pb, SLAPI_REQUESTOR_ISUPDATEDN, (void *)isUpdateDn);
-	slapi_pblock_set(pb, SLAPI_REQCONTROLS, (void *)op->o_ctrls);
-	slapi_pblock_set(pb, SLAPI_REQUESTOR_DN, (void *)op->o_ndn.bv_val);
+	rc = slapi_pblock_set(pb, SLAPI_OPERATION, (void *)op);
+	if (rc != LDAP_SUCCESS)
+		return rc;
+
+	rc = slapi_pblock_set(pb, SLAPI_OPINITIATED_TIME, (void *)op->o_time);
+	if (rc != LDAP_SUCCESS)
+		return rc;
+
+	rc = slapi_pblock_set(pb, SLAPI_REQUESTOR_ISROOT, (void *)isRoot);
+	if (rc != LDAP_SUCCESS)
+		return rc;
+
+	rc = slapi_pblock_set(pb, SLAPI_REQUESTOR_ISUPDATEDN, (void *)isUpdateDn);
+	if (rc != LDAP_SUCCESS)
+		return rc;
+
+	rc = slapi_pblock_set(pb, SLAPI_REQCONTROLS, (void *)op->o_ctrls);
+	if (rc != LDAP_SUCCESS)
+		return rc;
+
+	rc = slapi_pblock_set(pb, SLAPI_REQUESTOR_DN, (void *)op->o_ndn.bv_val);
+
+	return rc;
+#else
+	return -1;
 #endif
 }
 

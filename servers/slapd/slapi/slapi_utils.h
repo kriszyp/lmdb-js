@@ -108,9 +108,9 @@ int slapi_audit_init_header( Connection *conn, Operation *op,
 int slapi_audit_send_record( Slapi_PBlock *pb, Connection *conn, 
 						Operation *op, int rc);
 
-void slapi_backend_set_pb( Slapi_PBlock *pb, Backend *be );
-void slapi_connection_set_pb( Slapi_PBlock *pb, Connection *conn );
-void slapi_operation_set_pb( Slapi_PBlock *pb, Operation *op );
+int slapi_backend_set_pb( Slapi_PBlock *pb, Backend *be );
+int slapi_connection_set_pb( Slapi_PBlock *pb, Connection *conn );
+int slapi_operation_set_pb( Slapi_PBlock *pb, Operation *op );
 
 extern ldap_pvt_thread_mutex_t	slapi_hn_mutex;
 extern ldap_pvt_thread_mutex_t	slapi_time_mutex;
