@@ -90,7 +90,6 @@ struct dbcache {
 	int			dbc_refcnt;
 	int			dbc_maxids;
 	int			dbc_maxindirect;
-	time_t		dbc_lastref;
 	long		dbc_blksize;
 	char		*dbc_name;
 	LDBM		dbc_db;
@@ -146,6 +145,11 @@ typedef  struct _bdb2_txn_head {
 #define  BDB2_DB_ID2CHILDREN_FILE   3
 #define  BDB2_DB_OC_IDX_FILE        4
 
+	/*  a file pointer for the NEXTID file
+		(must be opened appropriately at backend
+		entry and closed on leave  */
+	FILE             *nextidFP;
+
 	/*  is the default attribute index set to non-none  */
 	int              withDefIDX;
 #define  BDB2_WITH_DEF_IDX          1
@@ -187,9 +191,6 @@ struct ldbminfo {
 	Avlnode			*li_attrs;
 	int			li_dbcachesize;
 	int			li_dbcachewsync;
-	struct dbcache		li_dbcache[MAXDBCACHE];
-	ldap_pvt_thread_mutex_t		li_dbcache_mutex;
-	ldap_pvt_thread_cond_t		li_dbcache_cv;
 
 	/*  a list of all files of the database  */
 	BDB2_TXN_HEAD		li_txn_head;

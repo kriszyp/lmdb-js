@@ -4,7 +4,32 @@
 ## tests Makefile.in for OpenLDAP
 BUILD_BDB2 = @BUILD_BDB2@
 
-bdb2-local:	FORCE
+SRC      = slapd-tester.c slapd-search.c
+PROGRAMS = slapd-tester slapd-search slapd-read slapd-addel
+
+LDAP_INCDIR= ../include
+LDAP_LIBDIR= ../libraries
+
+XLIBS    = -lldap_r -llber -llutil
+
+build-tools: FORCE
+	$(MAKE) $(MFLAGS) load-tools
+
+load-tools: $(PROGRAMS)
+
+slapd-tester: slapd-tester.o 
+	$(LTLINK) -o $@ slapd-tester.o
+
+slapd-search: slapd-search.o $(LDAP_LIBLBER_DEPEND) $(LDAP_LIBLDAP_DEPEND)
+	$(LTLINK) -o $@ slapd-search.o $(LDAP_LIBPATH) $(XLIBS)
+
+slapd-read: slapd-read.o $(LDAP_LIBLBER_DEPEND) $(LDAP_LIBLDAP_DEPEND)
+	$(LTLINK) -o $@ slapd-read.o $(LDAP_LIBPATH) $(XLIBS)
+
+slapd-addel: slapd-addel.o $(LDAP_LIBLBER_DEPEND) $(LDAP_LIBLDAP_DEPEND)
+	$(LTLINK) -o $@ slapd-addel.o $(LDAP_LIBPATH) $(XLIBS)
+
+bdb2-local:	build-tools FORCE
 	@if test "$(BUILD_BDB2)" = "yes" ; then \
 		$(LN_S) $(srcdir)/data . ; \
 		echo "Initiating LDAP tests..." ; \
@@ -14,7 +39,7 @@ bdb2-local:	FORCE
 		echo "run configure with --enable-bdb2" ; \
 	fi
 
-all-local:	FORCE
+all-local:	build-tools FORCE
 	@-$(LN_S) $(srcdir)/data .
 	@echo "Initiating LDAP tests..."; \
 	$(MKDIR) test-db test-repl ; \
@@ -22,8 +47,12 @@ all-local:	FORCE
 
 clean-local:	FORCE
 	$(RM) test-db/[!C]* test-repl/[!C]* *core
+	$(RM) $(PROGRAMS)
+	$(RM) *.o
 
 veryclean-local: FORCE
 	@-$(RM) data
 	$(RM) -r test-db test-repl
+	$(RM) $(PROGRAMS)
+	$(RM) *.o
 

@@ -39,16 +39,10 @@ bdb2i_txn_head_init( BDB2_TXN_HEAD *head )
 static void
 bdb2i_init_db_file_cache( struct ldbminfo *li, BDB2_TXN_FILES *fileinfo )
 {
-	time_t      curtime;
 	struct stat st;
 	char        buf[MAXPATHLEN];
 
-	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
-	curtime = currenttime;
-	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
-
 	fileinfo->dbc_refcnt = 1;
-	fileinfo->dbc_lastref = curtime;
 
 	sprintf( buf, "%s%s%s", li->li_directory, DEFAULT_DIRSEP,
 					fileinfo->dbc_name );
@@ -66,6 +60,14 @@ bdb2i_init_db_file_cache( struct ldbminfo *li, BDB2_TXN_FILES *fileinfo )
 }
 
 
+/*  create a DB file cache entry for a specified index attribute
+	(if not already done); the function is called during config
+	file read for all index'ed attributes; if "default" index with
+	a non-none selection is given, this is remembered for run-time
+	extension of the list of index files; the function is also
+	called before add or modify operations to check for putative
+	new "default" index files; at that time, files are also opened
+*/
 void
 bdb2i_txn_attr_config(
 	struct ldbminfo  *li,
@@ -158,11 +160,45 @@ bdb2i_txn_attr_config(
 }
 
 
+/*  open the NEXTID file for read/write; if it does not exist,
+	create it (access to the file must be preceeded by a rewind)
+*/
+static int
+bdb2i_open_nextid( struct ldbminfo *li )
+{
+	BDB2_TXN_HEAD   *head = &li->li_txn_head;
+	FILE            *fp = NULL;
+	char            *file = li->li_nextid_file;
+
+	/*  try to open the file for read and write  */
+	if ((( fp = fopen( file, "r+" )) == NULL ) &&
+		(( fp = fopen( file, "w+" )) == NULL )) {
+
+			Debug( LDAP_DEBUG_ANY,
+				"bdb2i_open_nextid: could not open \"%s\"\n",
+				file, 0, 0 );
+			return( -1 );
+
+	}
+
+	/*  the file is open for read/write  */
+	head->nextidFP = fp;
+
+	return( 0 );
+}
+
+
+/*  open all DB during startup of the backend (necessary due to TP)
+	additional files may be opened during slapd life-time due to
+	default indexes (must be configured in slapd.conf;
+	see bdb2i_txn_attr_config)
+*/
 int
 bdb2i_txn_open_files( struct ldbminfo *li )
 {
 	BDB2_TXN_HEAD   *head = &li->li_txn_head;
 	BDB2_TXN_FILES  *dbFile;
+	int             rc;
 
 	for ( dbFile = head->dbFiles; dbFile; dbFile = dbFile->next ) {
 		char   fileName[MAXPATHLEN];
@@ -179,7 +215,7 @@ bdb2i_txn_open_files( struct ldbminfo *li )
 			Debug( LDAP_DEBUG_ANY,
 				"bdb2i_txn_open_files(): couldn't open file \"%s\" -- FATAL.\n",
 				dbFile->dbc_name, 0, 0 );
-			return( 1 );
+			return( -1 );
 
 		}
 
@@ -191,10 +227,22 @@ bdb2i_txn_open_files( struct ldbminfo *li )
 
 	}
 
-	return 0;
+	rc = bdb2i_open_nextid( li );
+
+	return rc;
 }
 
 
+/*  close the NEXTID file  */
+static void
+bdb2i_close_nextid( BDB2_TXN_HEAD *head )
+{
+	fclose( head->nextidFP );
+	head->nextidFP = NULL;
+}
+
+
+/*  close all DB files during shutdown of the backend  */
 void
 bdb2i_txn_close_files( BackendDB *be )
 {
@@ -207,9 +255,15 @@ bdb2i_txn_close_files( BackendDB *be )
 		ldbm_close( dbFile->dbc_db );
 
 	}
+
+	bdb2i_close_nextid( head );
+
 }
 
 
+/*  get the db_cache structure associated with a specified
+	DB file (replaces the on-the-fly opening of files in cache_open()
+*/
 BDB2_TXN_FILES *
 bdb2i_get_db_file_cache( struct ldbminfo *li, char *name )
 {

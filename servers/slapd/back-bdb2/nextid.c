@@ -13,32 +13,29 @@
 #include "slap.h"
 #include "back-bdb2.h"
 
+/*  XXX the separate handling of the NEXTID file is in contrast to TP  */
+/*  the NEXTID file is beeing opened during database start-up  */
 static ID
 next_id_read( BackendDB *be )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	BDB2_TXN_HEAD   *head = &li->li_txn_head;
+	FILE*	fp = head->nextidFP;
 	ID  	id;
 	char	buf[20];
-	char*	file = li->li_nextid_file; 
-	FILE*	fp;
 
-	if ( (fp = fopen( file, "r" )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-		    "next_id_read: could not open \"%s\"\n",
-		    file, 0, 0 );
-		return NOID;
-	}
+	/*  set the file pointer to the beginnig of the file  */
+	rewind( fp );
 
+	/*  read the nextid  */
 	if ( fgets( buf, sizeof(buf), fp ) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		   "next_id_read: could not fgets nextid from \"%s\"\n",
-		    file, 0, 0 );
-		fclose( fp );
+		    li->li_nextid_file, 0, 0 );
 		return NOID;
 	}
 
 	id = atol( buf );
-	fclose( fp );
 
 	if(id < 1) {
 		Debug( LDAP_DEBUG_ANY,
@@ -50,31 +47,30 @@ next_id_read( BackendDB *be )
 	return id;
 }
 
+/*  XXX the separate handling of the NEXTID file is in contrast to TP  */
+/*  the NEXTID file is beeing opened during database start-up  */
 static int
 next_id_write( BackendDB *be, ID id )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	BDB2_TXN_HEAD   *head = &li->li_txn_head;
+	FILE*	fp = head->nextidFP;
 	char	buf[20];
-	char*	file = li->li_nextid_file; 
-	FILE*	fp;
-	int		rc;
+	int		rc = 0;
 
-	if ( (fp = fopen( file, "w" )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "next_id_write(%ld): could not open \"%s\"\n",
-		    id, file, 0 );
-		return -1;
-	} 
+	/*  set the file pointer to the beginnig of the file  */
+	rewind( fp );
 
-	rc = 0;
-
+	/*  write the nextid  */
 	if ( fprintf( fp, "%ld\n", id ) == EOF ) {
 		Debug( LDAP_DEBUG_ANY, "next_id_write(%ld): cannot fprintf\n",
 		    id, 0, 0 );
 		rc = -1;
 	}
 
-	if( fclose( fp ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "next_id_write %ld: cannot fclose\n",
+	/*  if forced flushing of files is in effect, do so  */
+	if( li->li_dbcachewsync && ( fflush( fp ) != 0 )) {
+		Debug( LDAP_DEBUG_ANY, "next_id_write %ld: cannot fflush\n",
 		    id, 0, 0 );
 		rc = -1;
 	}

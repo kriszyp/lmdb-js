@@ -128,26 +128,26 @@ bdb2i_index_read(
 	realval = val;
 	tmpval = NULL;
 	if ( prefix != UNKNOWN_PREFIX ) {
-              unsigned int	len = strlen( val );
+        unsigned int	len = strlen( val );
 
-              if ( (len + 2) < sizeof(buf) ) {
+        if ( (len + 2) < sizeof(buf) ) {
 			realval = buf;
 		} else {
 			/* value + prefix + null */
 			tmpval = (char *) ch_malloc( len + 2 );
 			realval = tmpval;
 		}
-              realval[0] = prefix;
-              strcpy( &realval[1], val );
+        realval[0] = prefix;
+        strcpy( &realval[1], val );
 	}
 
 	key.dptr = realval;
 	key.dsize = strlen( realval ) + 1;
 
 	idl = bdb2i_idl_fetch( be, db, key );
-      if ( tmpval != NULL ) {
-              free( tmpval );
-      }
+    if ( tmpval != NULL ) {
+        free( tmpval );
+    }
 
 	bdb2i_cache_close( be, db );
 
@@ -168,7 +168,6 @@ add_value(
 {
 	int	rc;
 	Datum   key;
-	ID_BLOCK	*idl = NULL;
 	char	*tmpval = NULL;
 	char	*realval = val;
 	char	buf[BUFSIZ];
@@ -180,17 +179,17 @@ add_value(
 	Debug( LDAP_DEBUG_TRACE, "=> add_value( \"%c%s\" )\n", prefix, val, 0 );
 
 	if ( prefix != UNKNOWN_PREFIX ) {
-              unsigned int     len = strlen( val );
+        unsigned int     len = strlen( val );
 
-              if ( (len + 2) < sizeof(buf) ) {
+        if ( (len + 2) < sizeof(buf) ) {
 			realval = buf;
 		} else {
 			/* value + prefix + null */
 			tmpval = (char *) ch_malloc( len + 2 );
 			realval = tmpval;
 		}
-              realval[0] = prefix;
-              strcpy( &realval[1], val );
+        realval[0] = prefix;
+        strcpy( &realval[1], val );
 	}
 
 	key.dptr = realval;
@@ -200,10 +199,6 @@ add_value(
 
 	if ( tmpval != NULL ) {
 		free( tmpval );
-	}
-
-	if( idl != NULL ) {
-		bdb2i_idl_free( idl );
 	}
 
 	ldap_pvt_thread_yield();

@@ -177,8 +177,6 @@ bdb2i_back_db_init_internal(
 	ldap_pvt_thread_mutex_init( &li->li_add_mutex );
 	ldap_pvt_thread_mutex_init( &li->li_cache.c_mutex );
 	ldap_pvt_thread_mutex_init( &li->li_nextid_mutex );
-	ldap_pvt_thread_mutex_init( &li->li_dbcache_mutex );
-	ldap_pvt_thread_cond_init( &li->li_dbcache_cv );
 
 	/*  initialize the TP file head  */
 	if ( bdb2i_txn_head_init( &li->li_txn_head ) != 0 )

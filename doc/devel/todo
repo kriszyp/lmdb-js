@@ -32,7 +32,7 @@ Modify -lldap to be session-level multithreaded
 Port slapd (incl back-ldbm & tools) to NT
 MajorLDAP - Design and implement an LDAP-enabled mailing list manager
 Slapd-DB2 - Design and implement a backend to take full advantage
-	of the latest DB2 features. 
+	of the latest DB2 features <ksp@openldap.org>. 
 
 
 Medium projects
