@@ -522,6 +522,7 @@ ldbm_firstkey( LDBM ldbm, LDBMCursor **dbch )
 #  endif
 	{
 		key.dptr = NULL;
+		LDBM_UNLOCK;
 		return( key );
 	} else {
 		*dbch = dbci;
