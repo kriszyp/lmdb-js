@@ -55,11 +55,10 @@ ber_calc_taglen( ber_tag_t tag )
 	for ( i = sizeof(ber_tag_t) - 1; i > 0; i-- ) {
 		mask = ((ber_tag_t)0xffU << (i * 8));
 		/* not all zero */
-		if ( tag & mask )
-			break;
+		if ( tag & mask ) break;
 	}
 
-	return( i + 1 );
+	return i + 1;
 }
 
 static int
@@ -99,7 +98,7 @@ ber_calc_lenlen( ber_len_t len )
 	 */
 
 	if ( len <= (ber_len_t) 0x7FU )
-		return( 1 );
+		return 1;
 
 	/*
 	 * long len otherwise - one byte with bit 8 set, giving the
@@ -107,13 +106,13 @@ ber_calc_lenlen( ber_len_t len )
 	 */
 
 	if ( len <= (ber_len_t) 0xffU )
-		return( 2 );
+		return 2;
 	if ( len <= (ber_len_t) 0xffffU )
-		return( 3 );
+		return 3;
 	if ( len <= (ber_len_t) 0xffffffU )
-		return( 4 );
+		return 4;
 
-	return( 5 );
+	return 5;
 }
 
 static int
@@ -135,7 +134,7 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 
 	if ( len <= 127 ) {
 		char length_byte = (char) len;
-		return( ber_write( ber, &length_byte, 1, nosos ) );
+		return ber_write( ber, &length_byte, 1, nosos );
 	}
 
 	/*
@@ -147,18 +146,17 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 	for ( i = sizeof(ber_len_t) - 1; i > 0; i-- ) {
 		mask = ((ber_len_t)0xffU << (i * 8));
 		/* not all zero */
-		if ( len & mask )
-			break;
+		if ( len & mask ) break;
 	}
 	lenlen = (unsigned char) ++i;
 	if ( lenlen > 4 )
-		return( -1 );
+		return -1;
 
 	lenlen |= 0x80UL;
 
 	/* write the length of the length */
 	if ( ber_write( ber, &lenlen, 1, nosos ) != 1 )
-		return( -1 );
+		return -1;
 
 	for( j=0; j<i; j++) {
 		netlen[(sizeof(ber_len_t)-1) - j] = (unsigned char)(len & 0xffU);
@@ -200,12 +198,10 @@ ber_put_int_or_enum(
 
 		if ( sign ) {
 			/* not all ones */
-			if ( (unum & mask) != mask )
-				break;
+			if ( (unum & mask) != mask ) break;
 		} else {
 			/* not all zero */
-			if ( unum & mask )
-				break;
+			if ( unum & mask ) break;
 		}
 	}
 
@@ -214,16 +210,18 @@ ber_put_int_or_enum(
 	 * byte matches the sign bit, we need to "back up" a byte.
 	 */
 	mask = (unum & ((ber_uint_t)0x80U << (i * 8)));
-	if ( (mask && !sign) || (sign && !mask) )
+	if ( (mask && !sign) || (sign && !mask) ) {
 		i++;
+	}
 
 	len = i + 1;
 
-	if ( (taglen = ber_put_tag( ber, tag, 0 )) == -1 )
-		return( -1 );
+	if ( (taglen = ber_put_tag( ber, tag, 0 )) == -1 ) {
+		return -1;
+	}
 
 	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 )
-		return( -1 );
+		return -1;
 	i++;
 
 	for( j=0; j<i; j++ ) {
@@ -248,10 +246,11 @@ ber_put_enum(
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
-	if ( tag == LBER_DEFAULT )
+	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_ENUMERATED;
+	}
 
-	return( ber_put_int_or_enum( ber, num, tag ) );
+	return ber_put_int_or_enum( ber, num, tag );
 }
 
 int
@@ -263,10 +262,11 @@ ber_put_int(
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
-	if ( tag == LBER_DEFAULT )
+	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_INTEGER;
+	}
 
-	return( ber_put_int_or_enum( ber, num, tag ) );
+	return ber_put_int_or_enum( ber, num, tag );
 }
 
 int
@@ -284,11 +284,12 @@ ber_put_ostring(
 
 	assert( BER_VALID( ber ) );
 
-	if ( tag == LBER_DEFAULT )
+	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_OCTETSTRING;
+	}
 
 	if ( (taglen = ber_put_tag( ber, tag, 0 )) == -1 )
-		return( -1 );
+		return -1;
 
 	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 ||
 		(ber_len_t) ber_write( ber, str, len, 0 ) != len ) {
@@ -298,7 +299,7 @@ ber_put_ostring(
 		rc = taglen + lenlen + len;
 	}
 
-	return( rc );
+	return rc;
 }
 
 int
@@ -328,7 +329,7 @@ ber_put_string(
 
 	assert( BER_VALID( ber ) );
 
-	return( ber_put_ostring( ber, str, strlen( str ), tag ));
+	return ber_put_ostring( ber, str, strlen( str ), tag );
 }
 
 int
@@ -346,25 +347,30 @@ ber_put_bitstring(
 
 	assert( BER_VALID( ber ) );
 
-	if ( tag == LBER_DEFAULT )
+	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_BITSTRING;
+	}
 
-	if ( (taglen = ber_put_tag( ber, tag, 0 )) == -1 )
-		return( -1 );
+	if ( (taglen = ber_put_tag( ber, tag, 0 )) == -1 ) {
+		return -1;
+	}
 
 	len = ( blen + 7 ) / 8;
 	unusedbits = (unsigned char) ((len * 8) - blen);
-	if ( (lenlen = ber_put_len( ber, len + 1, 0 )) == -1 )
-		return( -1 );
+	if ( (lenlen = ber_put_len( ber, len + 1, 0 )) == -1 ) {
+		return -1;
+	}
 
-	if ( ber_write( ber, (char *)&unusedbits, 1, 0 ) != 1 )
-		return( -1 );
+	if ( ber_write( ber, (char *)&unusedbits, 1, 0 ) != 1 ) {
+		return -1;
+	}
 
-	if ( (ber_len_t) ber_write( ber, str, len, 0 ) != len )
-		return( -1 );
+	if ( (ber_len_t) ber_write( ber, str, len, 0 ) != len ) {
+		return -1;
+	}
 
 	/* return length of tag + length + unused bit count + contents */
-	return( taglen + 1 + lenlen + len );
+	return taglen + 1 + lenlen + len;
 }
 
 int
@@ -375,16 +381,19 @@ ber_put_null( BerElement *ber, ber_tag_t tag )
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
-	if ( tag == LBER_DEFAULT )
+	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_NULL;
+	}
 
-	if ( (taglen = ber_put_tag( ber, tag, 0 )) == -1 )
-		return( -1 );
+	if ( (taglen = ber_put_tag( ber, tag, 0 )) == -1 ) {
+		return -1;
+	}
 
-	if ( ber_put_len( ber, 0, 0 ) != 1 )
-		return( -1 );
+	if ( ber_put_len( ber, 0, 0 ) != 1 ) {
+		return -1;
+	}
 
-	return( taglen + 1 );
+	return taglen + 1;
 }
 
 int
@@ -403,17 +412,21 @@ ber_put_boolean(
 	if ( tag == LBER_DEFAULT )
 		tag = LBER_BOOLEAN;
 
-	if ( (taglen = ber_put_tag( ber, tag, 0 )) == -1 )
-		return( -1 );
+	if ( (taglen = ber_put_tag( ber, tag, 0 )) == -1 ) {
+		return -1;
+	}
 
-	if ( ber_put_len( ber, 1, 0 ) != 1 )
-		return( -1 );
+	if ( ber_put_len( ber, 1, 0 ) != 1 ) {
+		return -1;
+	}
 
 	if ( ber_write( ber, (char *)(boolval ? &trueval : &falseval), 1, 0 )
-	    != 1 )
-		return( -1 );
+		!= 1 )
+	{
+		return -1;
+	}
 
-	return( taglen + 2 );
+	return taglen + 2;
 }
 
 #define FOUR_BYTE_LEN	5
@@ -430,14 +443,16 @@ ber_start_seqorset(
 
 	new = (Seqorset *) LBER_CALLOC( 1, sizeof(Seqorset) );
 
-	if ( new == NULL )
-		return( -1 );
+	if ( new == NULL ) {
+		return -1;
+	}
 
 	new->sos_ber = ber;
-	if ( ber->ber_sos == NULL )
+	if ( ber->ber_sos == NULL ) {
 		new->sos_first = ber->ber_ptr;
-	else
+	} else {
 		new->sos_first = ber->ber_sos->sos_ptr;
+	}
 
 	/* Set aside room for a 4 byte length field */
 	new->sos_ptr = new->sos_first + ber_calc_taglen( tag ) + FOUR_BYTE_LEN;
@@ -446,7 +461,7 @@ ber_start_seqorset(
 	new->sos_next = ber->ber_sos;
 	ber->ber_sos = new;
 
-	return( 0 );
+	return 0;
 }
 
 int
@@ -455,10 +470,11 @@ ber_start_seq( BerElement *ber, ber_tag_t tag )
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
-	if ( tag == LBER_DEFAULT )
+	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_SEQUENCE;
+	}
 
-	return( ber_start_seqorset( ber, tag ) );
+	return ber_start_seqorset( ber, tag );
 }
 
 int
@@ -467,10 +483,11 @@ ber_start_set( BerElement *ber, ber_tag_t tag )
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
-	if ( tag == LBER_DEFAULT )
+	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_SET;
+	}
 
-	return( ber_start_seqorset( ber, tag ) );
+	return ber_start_seqorset( ber, tag );
 }
 
 static int
@@ -497,8 +514,9 @@ ber_put_seqorset( BerElement *ber )
 
 	len = (*sos)->sos_clen;
 
-	if ( sizeof(ber_len_t) > 4 && len > 0xffffffffUL )
-		return( -1 );
+	if ( sizeof(ber_len_t) > 4 && len > 0xffffffffUL ) {
+		return -1;
+	}
 
 	if ( ber->ber_options & LBER_USE_DER ) {
 		lenlen = ber_calc_lenlen( len );
@@ -524,8 +542,9 @@ ber_put_seqorset( BerElement *ber )
 
 		if ( ber->ber_options & LBER_USE_DER ) {
 			/* Write the length in the minimum # of octets */
-			if ( ber_put_len( ber, len, 1 ) == -1 )
-				return( -1 );
+			if ( ber_put_len( ber, len, 1 ) == -1 ) {
+				return -1;
+			}
 
 			if (lenlen != FOUR_BYTE_LEN) {
 				/*
@@ -540,8 +559,9 @@ ber_put_seqorset( BerElement *ber )
 		} else {
 			/* Fill FOUR_BYTE_LEN bytes for length field */
 			/* one byte of length length */
-			if ( ber_write( ber, (char *)&ltag, 1, 1 ) != 1 )
-				return( -1 );
+			if ( ber_write( ber, (char *)&ltag, 1, 1 ) != 1 ) {
+				return -1;
+			}
 
 			/* the length itself */
 			rc  = ber_write( ber,
@@ -549,7 +569,7 @@ ber_put_seqorset( BerElement *ber )
 				FOUR_BYTE_LEN-1, 1 );
 
 			if( rc != FOUR_BYTE_LEN - 1 ) {
-				return( -1 );
+				return -1;
 			}
 		}
 		/* The ber_ptr is at the set/seq start - move it to the end */
@@ -628,7 +648,7 @@ ber_put_seqorset( BerElement *ber )
 	LBER_FREE( (char *) (*sos) );
 	*sos = next;
 
-	return( taglen + lenlen + len );
+	return taglen + lenlen + len;
 }
 
 int
@@ -637,7 +657,7 @@ ber_put_seq( BerElement *ber )
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
-	return( ber_put_seqorset( ber ) );
+	return ber_put_seqorset( ber );
 }
 
 int
@@ -646,7 +666,7 @@ ber_put_set( BerElement *ber )
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
-	return( ber_put_seqorset( ber ) );
+	return ber_put_seqorset( ber );
 }
 
 /* N tag */
@@ -792,5 +812,5 @@ ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 
 	va_end( ap );
 
-	return( rc );
+	return rc;
 }

@@ -150,7 +150,7 @@ ber_memfree( void *p )
 			mh->bm_sequence, mh, mh->bm_length, ber_int_options.lbo_meminuse);
 #endif
 		/* Fill the free space with poison */
-		memset( mh, 0xff, mh->bm_length + sizeof(struct ber_mem_hdr) + sizeof( ber_int_t));
+		memset( mh, 0xff, mh->bm_length + sizeof(struct ber_mem_hdr) + sizeof(ber_int_t));
 		free( mh );
 #else
 		free( p );
@@ -365,8 +365,9 @@ ber_bvfree( struct berval *bv )
 
 	BER_MEM_VALID( bv );
 
-	if ( bv->bv_val != NULL )
+	if ( bv->bv_val != NULL ) {
 		LBER_FREE( bv->bv_val );
+	}
 
 	LBER_FREE( (char *) bv );
 }
@@ -385,8 +386,9 @@ ber_bvecfree( struct berval **bv )
 
 	BER_MEM_VALID( bv );
 
-	for ( i = 0; bv[i] != NULL; i++ )
+	for ( i = 0; bv[i] != NULL; i++ ) {
 		ber_bvfree( bv[i] );
+	}
 
 	LBER_FREE( (char *) bv );
 }
@@ -477,7 +479,7 @@ ber_bvdup(
 	new->bv_val[bv->bv_len] = '\0';
 	new->bv_len = bv->bv_len;
 
-	return( new );
+	return new;
 }
 
 struct berval *
@@ -531,7 +533,7 @@ ber_bvstrdup(
 		LBER_FREE( p );
 	}
 
-	return( new );
+	return new;
 }
 
 char *
@@ -548,16 +550,16 @@ ber_strdup( LDAP_CONST char *s )
 
 	if( s == NULL ) {
 		ber_errno = LBER_ERROR_PARAM;
-		return( NULL );
+		return NULL;
 	}
 
 	len = strlen( s ) + 1;
 
 	if ( (p = LBER_MALLOC( len )) == NULL ) {
 		ber_errno = LBER_ERROR_MEMORY;
-		return( NULL );
+		return NULL;
 	}
 
 	AC_MEMCPY( p, s, len );
-	return( p );
+	return p;
 }

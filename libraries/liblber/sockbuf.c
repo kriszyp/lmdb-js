@@ -68,7 +68,6 @@ ber_sockbuf_ctrl( Sockbuf *sb, int opt, void *arg )
 {
 	Sockbuf_IO_Desc		*p;
 	int			ret = 0;
-	char			buf[4096];
 
 	assert( sb != NULL );
 
@@ -95,16 +94,17 @@ ber_sockbuf_ctrl( Sockbuf *sb, int opt, void *arg )
 			ret = ber_pvt_socket_set_nonblock( sb->sb_fd, arg != NULL)
 				? -1 : 1;
 			break;
-		case LBER_SB_OPT_DRAIN:
-			/* Drain the data source to enable possible errors (e.g.
-			 * TLS) to be propagated to the upper layers
-			 */
-			do {
-				ret = ber_int_sb_read( sb, buf, sizeof( buf ) );
-			} while ( ret == sizeof( buf ) );
+		case LBER_SB_OPT_DRAIN: {
+				/* Drain the data source to enable possible errors (e.g.
+				 * TLS) to be propagated to the upper layers
+				 */
+				char buf[MIN_BUFF_SIZE];
+				do {
+					ret = ber_int_sb_read( sb, buf, sizeof( buf ) );
+				} while ( ret == sizeof( buf ) );
 
-			ret = 1;
-			break;
+				ret = 1;
+			} break;
 		case LBER_SB_OPT_NEEDS_READ:
 			ret = ( sb->sb_trans_needs_read ? 1 : 0 );
 			break;
