@@ -230,13 +230,17 @@ bdb2_back_modify(
 	if ( (e = bdb2i_dn2entry_w( be, dn, &matched )) == NULL ) {
 		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched,
 		    NULL );
+
 		if ( matched != NULL ) {
 			free( matched );
 		}
-		return( -1 );
+
+		ret = -1;
+
+	} else {
+		ret = bdb2i_back_modify_internal( be, conn, op, dn, modlist, e );
 	}
 
-	 ret = bdb2i_back_modify_internal( be, conn, op, dn, modlist, e );
 	(void) bdb2i_leave_backend_w( lock );
 	bdb2i_stop_timing( be->bd_info, time1, "MOD", conn, op );
 
