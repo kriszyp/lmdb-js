@@ -91,7 +91,7 @@ ldbm_back_modrdn(
 	/* get entry with writer lock */
 	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char* matched_dn = NULL;
-		BVarray refs;
+		BerVarray refs;
 
 		if( matched != NULL ) {
 			matched_dn = strdup( matched->e_dn );
@@ -107,7 +107,7 @@ ldbm_back_modrdn(
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
 
-		if ( refs ) bvarray_free( refs );
+		if ( refs ) ber_bvarray_free( refs );
 		free( matched_dn );
 
 		return( -1 );
@@ -116,7 +116,7 @@ ldbm_back_modrdn(
 	if (!manageDSAit && is_entry_referral( e ) ) {
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
-		BVarray refs = get_entry_referrals( be,
+		BerVarray refs = get_entry_referrals( be,
 			conn, op, e );
 
 #ifdef NEW_LOGGING
@@ -130,7 +130,7 @@ ldbm_back_modrdn(
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 		    e->e_dn, NULL, refs, NULL );
 
-		if ( refs ) bvarray_free( refs );
+		if ( refs ) ber_bvarray_free( refs );
 		goto return_results;
 	}
 
@@ -613,7 +613,7 @@ ldbm_back_modrdn(
 		mod_tmp = (Modifications *)ch_malloc( sizeof( Modifications )
 			+ 2 * sizeof( struct berval ) );
 		mod_tmp->sml_desc = desc;
-		mod_tmp->sml_bvalues = (BVarray)( mod_tmp + 1 );
+		mod_tmp->sml_bvalues = (BerVarray)( mod_tmp + 1 );
 		mod_tmp->sml_bvalues[0] = new_rdn[0][a_cnt]->la_value;
 		mod_tmp->sml_bvalues[1].bv_val = NULL;
 		mod_tmp->sml_op = SLAP_MOD_SOFTADD;
@@ -687,7 +687,7 @@ ldbm_back_modrdn(
 			mod_tmp = (Modifications *)ch_malloc( sizeof( Modifications )
 				+ 2 * sizeof( struct berval ) );
 			mod_tmp->sml_desc = desc;
-			mod_tmp->sml_bvalues = (BVarray)(mod_tmp+1);
+			mod_tmp->sml_bvalues = (BerVarray)(mod_tmp+1);
 			mod_tmp->sml_bvalues[0] = old_rdn[0][d_cnt]->la_value;
 			mod_tmp->sml_bvalues[1].bv_val = NULL;
 			mod_tmp->sml_op = LDAP_MOD_DELETE;

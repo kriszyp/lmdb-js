@@ -561,7 +561,7 @@ int entry_decode(struct berval *bv, Entry **e)
 	const char *text;
 	AttributeDescription *ad;
 	unsigned char *ptr = (unsigned char *)bv->bv_val;
-	BVarray bptr;
+	BerVarray bptr;
 
 	i = entry_getlen(&ptr);
 	x = ch_malloc(i);
@@ -587,7 +587,7 @@ int entry_decode(struct berval *bv, Entry **e)
 	 * pointer can never be NULL
 	 */
 	x->e_attrs = (Attribute *)(x+1);
-	bptr = (BVarray)x->e_attrs;
+	bptr = (BerVarray)x->e_attrs;
 	a = NULL;
 
 	while (i = entry_getlen(&ptr)) {
@@ -623,7 +623,7 @@ int entry_decode(struct berval *bv, Entry **e)
 		}
 		ptr += i + 1;
 		a->a_desc = ad;
-		bptr = (BVarray)(a+1);
+		bptr = (BerVarray)(a+1);
 		a->a_vals = bptr;
 		a->a_flags = 0;
 		j = entry_getlen(&ptr);

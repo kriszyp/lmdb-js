@@ -58,7 +58,7 @@ bdb_bind(
 	/* get entry with reader lock */
 	if ( e == NULL ) {
 		char *matched_dn = NULL;
-		BVarray refs;
+		BerVarray refs;
 
 		if( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
@@ -100,7 +100,7 @@ bdb_bind(
 				NULL, NULL, NULL, NULL );
 		}
 
-		bvarray_free( refs );
+		ber_bvarray_free( refs );
 		free( matched_dn );
 
 		return rc;
@@ -123,7 +123,7 @@ bdb_bind(
 
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow bind */
-		BVarray refs = get_entry_referrals( be,
+		BerVarray refs = get_entry_referrals( be,
 			conn, op, e );
 
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
@@ -138,7 +138,7 @@ bdb_bind(
 				NULL, NULL, NULL, NULL );
 		}
 
-		bvarray_free( refs );
+		ber_bvarray_free( refs );
 
 		goto done;
 	}

@@ -283,13 +283,13 @@ do_search(
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( &nbase, manageDSAit, 1 )) == NULL ) {
-		BVarray ref = referral_rewrite( default_referral,
+		BerVarray ref = referral_rewrite( default_referral,
 			NULL, &pbase, scope );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
 
-		bvarray_free( ref );
+		ber_bvarray_free( ref );
 		goto return_results;
 	}
 

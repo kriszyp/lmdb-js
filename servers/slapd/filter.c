@@ -589,7 +589,7 @@ get_substring_filter(
 				goto return_error;
 			}
 
-			bvarray_add( &f->f_sub_any, &value );
+			ber_bvarray_add( &f->f_sub_any, &value );
 
 			if( fstr->bv_val ) {
 				int i = fstr->bv_len;
@@ -660,7 +660,7 @@ return_error:
 			}
 
 			free( f->f_sub_initial.bv_val );
-			bvarray_free( f->f_sub_any );
+			ber_bvarray_free( f->f_sub_any );
 			free( f->f_sub_final.bv_val );
 			ch_free( f->f_sub );
 			return rc;
@@ -711,7 +711,7 @@ filter_free( Filter *f )
 		if ( f->f_sub_initial.bv_val != NULL ) {
 			free( f->f_sub_initial.bv_val );
 		}
-		bvarray_free( f->f_sub_any );
+		ber_bvarray_free( f->f_sub_any );
 		if ( f->f_sub_final.bv_val != NULL ) {
 			free( f->f_sub_final.bv_val );
 		}

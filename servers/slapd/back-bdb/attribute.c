@@ -28,13 +28,13 @@ bdb_attribute(
 	Entry *target,
 	struct berval *entry_ndn,
 	AttributeDescription *entry_at,
-	BVarray *vals )
+	BerVarray *vals )
 {
 	struct bdbinfo *li = (struct bdbinfo *) be->be_private;
 	Entry *e;
 	int	i, j, rc;
 	Attribute *attr;
-	BVarray v;
+	BerVarray v;
 	const char *entry_at_name = entry_at->ad_cname.bv_val;
 
 #ifdef NEW_LOGGING
@@ -163,7 +163,7 @@ bdb_attribute(
 		/* count them */
 	}
 
-	v = (BVarray) ch_malloc( sizeof(struct berval) * (i+1) );
+	v = (BerVarray) ch_malloc( sizeof(struct berval) * (i+1) );
 
 	for ( i=0, j=0; attr->a_vals[i].bv_val != NULL; i++ ) {
 		if( conn != NULL

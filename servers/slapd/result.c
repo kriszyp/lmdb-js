@@ -19,7 +19,7 @@
 
 #include "slap.h"
 
-static char *v2ref( BVarray ref, const char *text )
+static char *v2ref( BerVarray ref, const char *text )
 {
 	size_t len = 0, i = 0;
 	char *v2;
@@ -175,7 +175,7 @@ send_ldap_response(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
-	BVarray	ref,
+	BerVarray	ref,
 	const char	*resoid,
 	struct berval	*resdata,
 	struct berval	*sasldata,
@@ -381,7 +381,7 @@ send_ldap_result(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
-	BVarray ref,
+	BerVarray ref,
 	LDAPControl **ctrls
 )
 {
@@ -465,7 +465,7 @@ send_ldap_sasl(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
-	BVarray ref,
+	BerVarray ref,
 	LDAPControl **ctrls,
 	struct berval *cred
 )
@@ -498,7 +498,7 @@ send_ldap_extended(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
-    BVarray	refs,
+    BerVarray	refs,
     const char		*rspoid,
 	struct berval *rspdata,
 	LDAPControl **ctrls
@@ -537,7 +537,7 @@ send_search_result(
     ber_int_t	err,
     const char	*matched,
 	const char	*text,
-    BVarray	refs,
+    BerVarray	refs,
 	LDAPControl **ctrls,
     int		nentries
 )
@@ -1002,9 +1002,9 @@ send_search_reference(
     Connection	*conn,
     Operation	*op,
     Entry	*e,
-	BVarray refs,
+	BerVarray refs,
 	LDAPControl **ctrls,
-    BVarray *v2refs
+    BerVarray *v2refs
 )
 {
 	char		berbuf[256];

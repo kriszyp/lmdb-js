@@ -88,7 +88,7 @@ do_extended(
 	ber_len_t len;
 	struct extop_list *ext;
 	const char *text;
-	BVarray refs;
+	BerVarray refs;
 	char *rspoid;
 	struct berval *rspdata;
 	LDAPControl **rspctrls;
@@ -207,7 +207,7 @@ do_extended(
 		send_ldap_extended( conn, op, rc, NULL, text, refs,
 			rspoid, rspdata, rspctrls );
 
-		bvarray_free( refs );
+		ber_bvarray_free( refs );
 	}
 
 	if ( rspoid != NULL ) {

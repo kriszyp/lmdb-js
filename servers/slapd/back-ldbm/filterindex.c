@@ -480,7 +480,7 @@ equality_candidates(
 		if( idl == NULL ) break;
 	}
 
-	bvarray_free( keys );
+	ber_bvarray_free( keys );
 
 	ldbm_cache_close( be, db );
 
@@ -662,7 +662,7 @@ approx_candidates(
 		if( idl == NULL ) break;
 	}
 
-	bvarray_free( keys );
+	ber_bvarray_free( keys );
 
 	ldbm_cache_close( be, db );
 
@@ -900,7 +900,7 @@ substring_candidates(
 		if( idl == NULL ) break;
 	}
 
-	bvarray_free( keys );
+	ber_bvarray_free( keys );
 
 	ldbm_cache_close( be, db );
 

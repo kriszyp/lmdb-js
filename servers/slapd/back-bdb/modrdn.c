@@ -119,7 +119,7 @@ retry:	/* transaction retry */
 
 	if ( e == NULL ) {
 		char* matched_dn = NULL;
-		BVarray refs;
+		BerVarray refs;
 
 		if( matched != NULL ) {
 			matched_dn = strdup( matched->e_dn );
@@ -137,7 +137,7 @@ retry:	/* transaction retry */
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
 
-		bvarray_free( refs );
+		ber_bvarray_free( refs );
 		free( matched_dn );
 
 		goto done;
@@ -146,7 +146,7 @@ retry:	/* transaction retry */
 	if (!manageDSAit && is_entry_referral( e ) ) {
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
-		BVarray refs = get_entry_referrals( be,
+		BerVarray refs = get_entry_referrals( be,
 			conn, op, e );
 
 		Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: entry %s is referral\n",
@@ -155,7 +155,7 @@ retry:	/* transaction retry */
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			e->e_dn, NULL, refs, NULL );
 
-		bvarray_free( refs );
+		ber_bvarray_free( refs );
 		goto done;
 	}
 
@@ -486,7 +486,7 @@ retry:	/* transaction retry */
 		mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications )
 			+ 2 * sizeof( struct berval ) );
 		mod_tmp->sml_desc = desc;
-		mod_tmp->sml_bvalues = ( BVarray )( mod_tmp + 1 );
+		mod_tmp->sml_bvalues = ( BerVarray )( mod_tmp + 1 );
 		mod_tmp->sml_bvalues[ 0 ] = new_rdn[0][ a_cnt ]->la_value;
 		mod_tmp->sml_bvalues[ 1 ].bv_val = NULL;
 		mod_tmp->sml_op = SLAP_MOD_SOFTADD;
@@ -536,7 +536,7 @@ retry:	/* transaction retry */
 			mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications )
 				+ 2 * sizeof ( struct berval ) );
 			mod_tmp->sml_desc = desc;
-			mod_tmp->sml_bvalues = ( BVarray )(mod_tmp+1);
+			mod_tmp->sml_bvalues = ( BerVarray )(mod_tmp+1);
 			mod_tmp->sml_bvalues[ 0 ] = old_rdn[0][ d_cnt ]->la_value;
 			mod_tmp->sml_bvalues[ 1 ].bv_val = NULL;
 			mod_tmp->sml_op = LDAP_MOD_DELETE;

@@ -129,7 +129,7 @@ LDAP_SLAPD_F (Attribute *) attr_dup LDAP_P(( Attribute *a ));
 
 LDAP_SLAPD_F (int) attr_merge LDAP_P(( Entry *e,
 	AttributeDescription *desc,
-	BVarray vals ));
+	BerVarray vals ));
 LDAP_SLAPD_F (Attribute *) attrs_find LDAP_P((
 	Attribute *a, AttributeDescription *desc ));
 LDAP_SLAPD_F (Attribute *) attr_find LDAP_P((
@@ -221,7 +221,7 @@ LDAP_SLAPD_F (int) backend_attribute LDAP_P((BackendDB *be,
 	Entry *target,
 	struct berval *entry_ndn,
 	AttributeDescription *entry_at,
-	BVarray *vals
+	BerVarray *vals
 ));
 
 LDAP_SLAPD_F (Attribute *) backend_operational(
@@ -277,9 +277,6 @@ LDAP_SLAPD_F (char **) charray_dup LDAP_P(( char **a ));
 LDAP_SLAPD_F (char **) str2charray LDAP_P(( const char *str, const char *brkstr ));
 LDAP_SLAPD_F (int) charray_strcmp LDAP_P(( const char **a1, const char **a2 ));
 LDAP_SLAPD_F (int) charray_strcasecmp LDAP_P(( const char **a1, const char **a2 ));
-
-LDAP_SLAPD_F (int) bvarray_add LDAP_P(( BVarray *a, struct berval *bv ));
-LDAP_SLAPD_F (void) bvarray_free LDAP_P(( struct berval *a ));
 
 LDAP_SLAPD_F (char *) slap_strcopy LDAP_P((
 	char *dst, const char *src ));
@@ -448,7 +445,7 @@ typedef int (SLAP_EXTOP_MAIN_FN) LDAP_P((
 	struct berval ** rspdata,
 	LDAPControl *** rspctrls,
 	const char ** text,
-	BVarray *refs ));
+	BerVarray *refs ));
 
 typedef int (SLAP_EXTOP_GETOID_FN) LDAP_P((
 	int index, char *oid, int blen ));
@@ -616,11 +613,11 @@ LDAP_SLAPD_F (void) replog LDAP_P(( Backend *be, Operation *op,
 LDAP_SLAPD_F (int) validate_global_referral LDAP_P((
 	const char *url ));
 
-LDAP_SLAPD_F (BVarray) get_entry_referrals LDAP_P((
+LDAP_SLAPD_F (BerVarray) get_entry_referrals LDAP_P((
 	Backend *be, Connection *conn, Operation *op, Entry *e ));
 
-LDAP_SLAPD_F (BVarray) referral_rewrite LDAP_P((
-	BVarray refs,
+LDAP_SLAPD_F (BerVarray) referral_rewrite LDAP_P((
+	BerVarray refs,
 	struct berval *base,
 	struct berval *target,
 	int scope ));
@@ -632,14 +629,14 @@ LDAP_SLAPD_F (BVarray) referral_rewrite LDAP_P((
 LDAP_SLAPD_F (void) send_ldap_result LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched, const char *text,
-	BVarray refs,
+	BerVarray refs,
 	LDAPControl **ctrls ));
 
 LDAP_SLAPD_F (void) send_ldap_sasl LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched,
 	const char *text,
-	BVarray refs,
+	BerVarray refs,
 	LDAPControl **ctrls,
 	struct berval *cred ));
 
@@ -650,7 +647,7 @@ LDAP_SLAPD_F (void) send_ldap_disconnect LDAP_P((
 LDAP_SLAPD_F (void) send_ldap_extended LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched,
-	const char *text, BVarray refs,
+	const char *text, BerVarray refs,
 	const char *rspoid, struct berval *rspdata,
 	LDAPControl **ctrls ));
 
@@ -662,15 +659,15 @@ LDAP_SLAPD_F (void) send_ldap_partial LDAP_P((
 LDAP_SLAPD_F (void) send_search_result LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched, const char *text,
-	BVarray refs,
+	BerVarray refs,
 	LDAPControl **ctrls,
 	int nentries ));
 
 LDAP_SLAPD_F (int) send_search_reference LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
-	Entry *e, BVarray refs,
+	Entry *e, BerVarray refs,
 	LDAPControl **ctrls,
-	BVarray *v2refs ));
+	BerVarray *v2refs ));
 
 LDAP_SLAPD_F (int) send_search_entry LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
@@ -822,11 +819,11 @@ LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
  */
 LDAP_SLAPD_F( int ) oc_check_allowed(
 	AttributeType *type,
-	BVarray oclist,
+	BerVarray oclist,
 	ObjectClass *sc );
 
 LDAP_SLAPD_F( int ) structural_class(
-	BVarray ocs,
+	BerVarray ocs,
 	struct berval *scbv,
 	ObjectClass **sc,
 	const char **text,
@@ -907,11 +904,11 @@ LDAP_SLAPD_F (int) value_match LDAP_P((
 LDAP_SLAPD_F (int) value_find_ex LDAP_P((
 	AttributeDescription *ad,
 	unsigned flags,
-	BVarray values,
+	BerVarray values,
 	struct berval *value ));
 LDAP_SLAPD_F (int) value_add LDAP_P((
-	BVarray *vals,
-	BVarray addvals ));
+	BerVarray *vals,
+	BerVarray addvals ));
 
 /*
  * user.c
@@ -977,7 +974,7 @@ LDAP_SLAPD_V (slap_mask_t)	global_disallows;
 LDAP_SLAPD_V (slap_mask_t)	global_requires;
 LDAP_SLAPD_V (slap_ssf_set_t)	global_ssf_set;
 
-LDAP_SLAPD_V (BVarray)		default_referral;
+LDAP_SLAPD_V (BerVarray)		default_referral;
 LDAP_SLAPD_V (char *)		replogfile;
 LDAP_SLAPD_V (const char) 	Versionstr[];
 LDAP_SLAPD_V (struct slap_limits_set)		deflimit;

@@ -156,7 +156,7 @@ extern int
 index_values LDAP_P((
 	Backend *be,
 	AttributeDescription *desc,
-	BVarray vals,
+	BerVarray vals,
 	ID id,
 	int op ));
 

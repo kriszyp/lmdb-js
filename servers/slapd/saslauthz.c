@@ -286,13 +286,13 @@ char *slap_sasl_regexp( char *saslname )
 /* Two empty callback functions to avoid sending results */
 static void sasl_sc_r( Connection *conn, Operation *o, ber_tag_t tag,
 	ber_int_t msgid, ber_int_t err, const char *matched,
-	const char *text, BVarray ref, const char *resoid,
+	const char *text, BerVarray ref, const char *resoid,
 	struct berval *resdata, struct berval *sasldata, LDAPControl **c)
 {
 }
 
 static void sasl_sc_s( Connection *conn, Operation *o, ber_int_t err,
-	const char *matched, const char *text, BVarray refs, LDAPControl **c,
+	const char *matched, const char *text, BerVarray refs, LDAPControl **c,
 	int nentries)
 {
 }
@@ -550,7 +550,7 @@ slap_sasl_check_authz(char *searchDN, char *assertDN, struct berval *attr, char 
 {
 	const char *errmsg;
 	int i, rc;
-	BVarray vals=NULL;
+	BerVarray vals=NULL;
 	AttributeDescription *ad=NULL;
 	struct berval bv;
 
@@ -585,7 +585,7 @@ slap_sasl_check_authz(char *searchDN, char *assertDN, struct berval *attr, char 
 	rc = LDAP_INAPPROPRIATE_AUTH;
 
 COMPLETE:
-	if( vals ) bvarray_free( vals );
+	if( vals ) ber_bvarray_free( vals );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,

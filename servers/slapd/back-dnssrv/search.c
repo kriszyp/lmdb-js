@@ -40,7 +40,7 @@ dnssrv_back_search(
 	char **hosts = NULL;
 	char *refdn;
 	struct berval nrefdn = { 0, NULL };
-	BVarray urls = NULL;
+	BerVarray urls = NULL;
 
 	assert( get_manageDSAit( op ) );
 
@@ -81,7 +81,7 @@ dnssrv_back_search(
 		strcpy( url.bv_val, "ldap://" );
 		strcpy( &url.bv_val[sizeof("ldap://")-1], hosts[i] );
 
-		if( bvarray_add( &urls, &url ) < 0 ) {
+		if( ber_bvarray_add( &urls, &url ) < 0 ) {
 			free( url.bv_val );
 			send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "problem processing DNS SRV records for DN",
@@ -226,6 +226,6 @@ done:
 	if( domain != NULL ) ch_free( domain );
 	if( hostlist != NULL ) ch_free( hostlist );
 	if( hosts != NULL ) charray_free( hosts );
-	if( urls != NULL ) bvarray_free( urls );
+	if( urls != NULL ) ber_bvarray_free( urls );
 	return 0;
 }

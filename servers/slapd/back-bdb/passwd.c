@@ -24,7 +24,7 @@ bdb_exop_passwd(
 	struct berval	**rspdata,
 	LDAPControl		*** rspctrls,
 	const char		**text,
-	BVarray *refs )
+	BerVarray *refs )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc;

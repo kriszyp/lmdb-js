@@ -308,7 +308,7 @@ ldbm_back_modify(
 	/* acquire and lock entry */
 	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char* matched_dn = NULL;
-		BVarray refs;
+		BerVarray refs;
 
 		if ( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
@@ -324,7 +324,7 @@ ldbm_back_modify(
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
 
-		if ( refs ) bvarray_free( refs );
+		if ( refs ) ber_bvarray_free( refs );
 		free( matched_dn );
 
 		return( -1 );
@@ -333,7 +333,7 @@ ldbm_back_modify(
     if ( !manageDSAit && is_entry_referral( e ) ) {
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
-		BVarray refs = get_entry_referrals( be,
+		BerVarray refs = get_entry_referrals( be,
 			conn, op, e );
 
 #ifdef NEW_LOGGING
@@ -348,7 +348,7 @@ ldbm_back_modify(
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 		    e->e_dn, NULL, refs, NULL );
 
-		if ( refs ) bvarray_free( refs );
+		if ( refs ) ber_bvarray_free( refs );
 
 		goto error_return;
 	}

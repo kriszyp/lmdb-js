@@ -26,7 +26,7 @@ int passwd_extop(
 	struct berval **rspdata,
 	LDAPControl ***rspctrls,
 	const char **text,
-	BVarray *refs )
+	BerVarray *refs )
 {
 	int rc;
 

@@ -42,7 +42,7 @@ ldbm_back_referrals(
 	e = dn2entry_r( be, ndn, &matched );
 	if ( e == NULL ) {
 		char *matched_dn = NULL;
-		BVarray refs = NULL;
+		BerVarray refs = NULL;
 
 		if ( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
@@ -74,7 +74,7 @@ ldbm_back_referrals(
 			/* send referrals */
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				matched_dn, NULL, refs, NULL );
-			bvarray_free( refs );
+			ber_bvarray_free( refs );
 
 		} else if ( rc != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, rc, matched_dn,
@@ -88,8 +88,8 @@ ldbm_back_referrals(
 
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral */
-		BVarray refs = get_entry_referrals( be, conn, op, e );
-		BVarray rrefs = referral_rewrite(
+		BerVarray refs = get_entry_referrals( be, conn, op, e );
+		BerVarray rrefs = referral_rewrite(
 			refs, &e->e_name, dn, LDAP_SCOPE_DEFAULT );
 
 #ifdef NEW_LOGGING
@@ -106,14 +106,14 @@ ldbm_back_referrals(
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				e->e_dn, NULL, rrefs, NULL );
 
-			bvarray_free( rrefs );
+			ber_bvarray_free( rrefs );
 
 		} else {
 			send_ldap_result( conn, op, rc = LDAP_OTHER, e->e_dn,
 				"bad referral object", NULL, NULL );
 		}
 
-		if( refs != NULL ) bvarray_free( refs );
+		if( refs != NULL ) ber_bvarray_free( refs );
 	}
 
 	cache_return_entry_r( &li->li_cache, e );

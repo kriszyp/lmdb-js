@@ -147,7 +147,7 @@ static int indexer(
 	Backend *be,
 	char *dbname,
 	struct berval *atname,
-	BVarray vals,
+	BerVarray vals,
 	ID id,
 	int op,
 	slap_mask_t mask )
@@ -196,7 +196,7 @@ static int indexer(
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
 				key_change( be, db, &keys[i], id, op );
 			}
-			bvarray_free( keys );
+			ber_bvarray_free( keys );
 		}
 	}
 
@@ -212,7 +212,7 @@ static int indexer(
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
 				key_change( be, db, &keys[i], id, op );
 			}
-			bvarray_free( keys );
+			ber_bvarray_free( keys );
 		}
 	}
 
@@ -228,7 +228,7 @@ static int indexer(
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
 				key_change( be, db, &keys[i], id, op );
 			}
-			bvarray_free( keys );
+			ber_bvarray_free( keys );
 		}
 	}
 
@@ -240,7 +240,7 @@ static int index_at_values(
 	Backend *be,
 	AttributeType *type,
 	struct berval *lang,
-	BVarray vals,
+	BerVarray vals,
 	ID id,
 	int op,
 	char ** dbnamep,
@@ -310,7 +310,7 @@ static int index_at_values(
 int index_values(
 	Backend *be,
 	AttributeDescription *desc,
-	BVarray vals,
+	BerVarray vals,
 	ID id,
 	int op )
 {

@@ -603,3 +603,57 @@ ber_strndup__( LDAP_CONST char *s, size_t l )
 	p[ len ] = '\0';
 	return p;
 }
+
+void
+ber_bvarray_free( BerVarray a )
+{
+	int i;
+
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
+
+	if (a) {
+		BER_MEM_VALID( a );
+
+		for (i=0; a[i].bv_val; i++) {
+			LBER_FREE(a[i].bv_val);
+		}
+
+		LBER_FREE(a);
+	}
+}
+
+int
+ber_bvarray_add( BerVarray *a, BerValue *bv )
+{
+	int	n;
+
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
+
+	if ( *a == NULL ) {
+		if (bv == NULL) {
+			return 0;
+		}
+		n = 0;
+		*a = (BerValue *) LBER_MALLOC( 2 * sizeof(BerValue) );
+	} else {
+		BER_MEM_VALID( a );
+
+		for ( n = 0; *a != NULL && (*a)[n].bv_val != NULL; n++ ) {
+			;	/* NULL */
+		}
+
+		if (bv == NULL) {
+			return n;
+		}
+		*a = (BerValue *) LBER_REALLOC( (char *) *a,
+		    (n + 2) * sizeof(BerValue) );
+	}
+	if ( *a == NULL ) {
+		return -1;
+	}
+
+	(*a)[n++] = *bv;
+	(*a)[n].bv_val = NULL;
+
+	return n;
+}

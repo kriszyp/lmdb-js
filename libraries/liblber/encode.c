@@ -781,8 +781,8 @@ ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 			}
 			break;
 
-		case 'W':	/* BVarray */
-			if ( (bv = va_arg( ap, BVarray )) == NULL )
+		case 'W':	/* BerVarray */
+			if ( (bv = va_arg( ap, BerVarray )) == NULL )
 				break;
 			for ( i = 0; bv[i].bv_val != NULL; i++ ) {
 				if ( (rc = ber_put_berval( ber, &bv[i],

@@ -213,14 +213,14 @@ int validate_global_referral( const char *url )
 	return rc;
 }
 
-BVarray referral_rewrite(
-	BVarray in,
+BerVarray referral_rewrite(
+	BerVarray in,
 	struct berval *base,
 	struct berval *target,
 	int scope )
 {
 	int i;
-	BVarray refs;
+	BerVarray refs;
 	struct berval *iv, *jv;
 
 	if( in == NULL ) return NULL;
@@ -278,14 +278,14 @@ BVarray referral_rewrite(
 }
 
 
-BVarray get_entry_referrals(
+BerVarray get_entry_referrals(
 	Backend *be,
 	Connection *conn,
 	Operation *op,
 	Entry *e )
 {
 	Attribute *attr;
-	BVarray refs;
+	BerVarray refs;
 	unsigned i;
 	struct berval *iv, *jv;
 

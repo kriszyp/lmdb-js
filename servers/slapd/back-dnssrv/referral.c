@@ -29,7 +29,7 @@ dnssrv_back_referrals(
 	char *domain = NULL;
 	char *hostlist = NULL;
 	char **hosts = NULL;
-	BVarray urls = NULL;
+	BerVarray urls = NULL;
 
 	if( ndn->bv_len == 0 ) {
 		*text = "DNS SRV operation upon null (empty) DN disallowed";
@@ -82,7 +82,7 @@ dnssrv_back_referrals(
 		strcpy( url.bv_val, "ldap://" );
 		strcpy( &url.bv_val[sizeof("ldap://")-1], hosts[i] );
 
-		if ( bvarray_add( &urls, &url ) < 0 ) {
+		if ( ber_bvarray_add( &urls, &url ) < 0 ) {
 			free( url.bv_val );
 			*text = "problem processing DNS SRV records for DN";
 			goto done;
@@ -104,6 +104,6 @@ done:
 	if( domain != NULL ) ch_free( domain );
 	if( hostlist != NULL ) ch_free( hostlist );
 	if( hosts != NULL ) charray_free( hosts );
-	bvarray_free( urls );
+	ber_bvarray_free( urls );
 	return rc;
 }

@@ -12,13 +12,13 @@
 #include "slap.h"
 #include "sets.h"
 
-static BVarray set_join (BVarray lset, int op, BVarray rset);
-static BVarray set_chase (SLAP_SET_GATHER gatherer,
-	void *cookie, BVarray set, struct berval *attr, int closure);
+static BerVarray set_join (BerVarray lset, int op, BerVarray rset);
+static BerVarray set_chase (SLAP_SET_GATHER gatherer,
+	void *cookie, BerVarray set, struct berval *attr, int closure);
 static int set_samedn (char *dn1, char *dn2);
 
 long
-slap_set_size (BVarray set)
+slap_set_size (BerVarray set)
 {
 	int i;
 
@@ -31,15 +31,15 @@ slap_set_size (BVarray set)
 }
 
 void
-slap_set_dispose (BVarray set)
+slap_set_dispose (BerVarray set)
 {
-	bvarray_free(set);
+	ber_bvarray_free(set);
 }
 
-static BVarray
-set_join (BVarray lset, int op, BVarray rset)
+static BerVarray
+set_join (BerVarray lset, int op, BerVarray rset)
 {
-	BVarray set;
+	BerVarray set;
 	long i, j, last;
 
 	set = NULL;
@@ -113,11 +113,11 @@ set_join (BVarray lset, int op, BVarray rset)
 	return(set);
 }
 
-static BVarray
+static BerVarray
 set_chase (SLAP_SET_GATHER gatherer,
-	void *cookie, BVarray set, struct berval *attr, int closure)
+	void *cookie, BerVarray set, struct berval *attr, int closure)
 {
-	BVarray vals, nset;
+	BerVarray vals, nset;
 	char attrstr[32];
 	struct berval bv = {attr->bv_len, attrstr};
 	int i;
@@ -194,20 +194,20 @@ set_samedn (char *dn1, char *dn2)
 int
 slap_set_filter (SLAP_SET_GATHER gatherer,
 	void *cookie, struct berval *fbv,
-	char *user, char *this, BVarray *results)
+	char *user, char *this, BerVarray *results)
 {
 #define IS_SET(x)	( (long)(x) >= 256 )
 #define IS_OP(x)	( (long)(x) < 256 )
 #define SF_ERROR(x)	do { rc = -1; goto _error; } while (0)
-#define SF_TOP()	( (BVarray)( (stp < 0) ? 0 : stack[stp] ) )
-#define SF_POP()	( (BVarray)( (stp < 0) ? 0 : stack[stp--] ) )
+#define SF_TOP()	( (BerVarray)( (stp < 0) ? 0 : stack[stp] ) )
+#define SF_POP()	( (BerVarray)( (stp < 0) ? 0 : stack[stp--] ) )
 #define SF_PUSH(x)	do { \
 		if (stp >= 63) SF_ERROR(overflow); \
-		stack[++stp] = (BVarray)(long)(x); \
+		stack[++stp] = (BerVarray)(long)(x); \
 	} while (0)
 
-	BVarray set, lset;
-	BVarray stack[64];
+	BerVarray set, lset;
+	BerVarray stack[64];
 	int len, op, rc, stp;
 	char c, *filter = fbv->bv_val;
 

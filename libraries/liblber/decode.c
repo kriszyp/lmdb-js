@@ -309,7 +309,7 @@ typedef struct bgbvr {
 	ber_len_t off;
 	union {
 		char ***c;
-		BVarray *ba;
+		BerVarray *ba;
 		struct berval ***bv;
 	} res;
 } bgbvr;
@@ -395,7 +395,7 @@ ber_get_stringbvr( bgbvr *b, int n )
 			*bvp = bv;
 			break;
 		case BvOff:
-			*(BVarray)((long)(*b->res.ba)+n*b->siz+b->off) = bv;
+			*(BerVarray)((long)(*b->res.ba)+n*b->siz+b->off) = bv;
 		}
 	} else {
 		/* Failure will propagate up and free in reverse
@@ -884,7 +884,7 @@ ber_scanf ( BerElement *ber,
 
 		case 'v':	/* sequence of strings */
 		case 'V':	/* sequence of strings + lengths */
-		case 'W':	/* BVarray */
+		case 'W':	/* BerVarray */
 		case 'm':	/* berval in-place */
 		case 'M':	/* BVoff array in-place */
 		case 'n':	/* null */

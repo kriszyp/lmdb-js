@@ -51,7 +51,7 @@ bdb_search(
 	ID		id, cursor;
 	ID		candidates[BDB_IDL_UM_SIZE];
 	Entry		*e = NULL;
-	BVarray v2refs = NULL;
+	BerVarray v2refs = NULL;
 	Entry	*matched = NULL;
 	struct berval	realbase = { 0, NULL };
 	int		nentries = 0;
@@ -93,10 +93,10 @@ bdb_search(
 
 	if ( e == NULL ) {
 		struct berval matched_dn = { 0, NULL };
-		BVarray refs = NULL;
+		BerVarray refs = NULL;
 
 		if ( matched != NULL ) {
-			BVarray erefs;
+			BerVarray erefs;
 
 			ber_dupbv( &matched_dn, &matched->e_name );
 
@@ -110,7 +110,7 @@ bdb_search(
 			if( erefs ) {
 				refs = referral_rewrite( erefs, &matched_dn,
 					base, scope );
-				bvarray_free( erefs );
+				ber_bvarray_free( erefs );
 			}
 
 		} else {
@@ -121,7 +121,7 @@ bdb_search(
 		send_ldap_result( conn, op,	rc=LDAP_REFERRAL ,
 			matched_dn.bv_val, text, refs, NULL );
 
-		if ( refs ) bvarray_free( refs );
+		if ( refs ) ber_bvarray_free( refs );
 		if ( matched_dn.bv_val ) ber_memfree( matched_dn.bv_val );
 		return rc;
 	}
@@ -129,7 +129,7 @@ bdb_search(
 	if (!manageDSAit && e != &slap_entry_root && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		struct berval matched_dn;
-		BVarray erefs, refs;
+		BerVarray erefs, refs;
 		
 		ber_dupbv( &matched_dn, &e->e_name );
 		erefs = get_entry_referrals( be, conn, op, e );
@@ -141,7 +141,7 @@ bdb_search(
 		if( erefs ) {
 			refs = referral_rewrite( erefs, &matched_dn,
 				base, scope );
-			bvarray_free( erefs );
+			ber_bvarray_free( erefs );
 		}
 
 		Debug( LDAP_DEBUG_TRACE, "bdb_search: entry is referral\n",
@@ -152,7 +152,7 @@ bdb_search(
 			refs ? NULL : "bad referral object",
 			refs, NULL );
 
-		bvarray_free( refs );
+		ber_bvarray_free( refs );
 		ber_memfree( matched_dn.bv_val );
 		return 1;
 	}
@@ -373,9 +373,9 @@ bdb_search(
 		if ( !manageDSAit && scope != LDAP_SCOPE_BASE &&
 			is_entry_referral( e ) )
 		{
-			BVarray erefs = get_entry_referrals(
+			BerVarray erefs = get_entry_referrals(
 				be, conn, op, e );
-			BVarray refs = referral_rewrite( erefs,
+			BerVarray refs = referral_rewrite( erefs,
 				&e->e_name, NULL,
 				scope == LDAP_SCOPE_SUBTREE 
 					? LDAP_SCOPE_SUBTREE
@@ -384,7 +384,7 @@ bdb_search(
 			send_search_reference( be, conn, op,
 				e, refs, NULL, &v2refs );
 
-			bvarray_free( refs );
+			ber_bvarray_free( refs );
 
 			goto loop_continue;
 		}
@@ -465,7 +465,7 @@ loop_continue:
 	rc = 0;
 
 done:
-	if( v2refs ) bvarray_free( v2refs );
+	if( v2refs ) ber_bvarray_free( v2refs );
 	if( realbase.bv_val ) ch_free( realbase.bv_val );
 
 	return rc;

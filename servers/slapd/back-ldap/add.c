@@ -187,7 +187,7 @@ ldap_back_add(
 int
 ldap_dnattr_rewrite(
 		struct rewrite_info     *rwinfo,
-		BVarray			a_vals,
+		BerVarray			a_vals,
 		void                    *cookie
 )
 {

@@ -47,7 +47,7 @@ ldbm_back_search(
 	ID_BLOCK		*candidates;
 	ID		id, cursor;
 	Entry		*e;
-	BVarray		v2refs = NULL;
+	BerVarray		v2refs = NULL;
 	Entry	*matched = NULL;
 	struct berval	realbase = { 0, NULL };
 	int		nentries = 0;
@@ -92,10 +92,10 @@ ldbm_back_search(
 
 	if ( e == NULL ) {
 		struct berval matched_dn = { 0, NULL };
-		BVarray refs = NULL;
+		BerVarray refs = NULL;
 
 		if ( matched != NULL ) {
-			BVarray erefs;
+			BerVarray erefs;
 			ber_dupbv( &matched_dn, &matched->e_name );
 
 			erefs = is_entry_referral( matched )
@@ -108,7 +108,7 @@ ldbm_back_search(
 				refs = referral_rewrite( erefs, &matched_dn,
 					base, scope );
 
-				bvarray_free( erefs );
+				ber_bvarray_free( erefs );
 			}
 
 		} else {
@@ -119,7 +119,7 @@ ldbm_back_search(
 		send_ldap_result( conn, op, err, matched_dn.bv_val, 
 			text, refs, NULL );
 
-		bvarray_free( refs );
+		ber_bvarray_free( refs );
 		ber_memfree( matched_dn.bv_val );
 		return 1;
 	}
@@ -127,8 +127,8 @@ ldbm_back_search(
 	if (!manageDSAit && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		struct berval matched_dn;
-		BVarray erefs;
-		BVarray refs;
+		BerVarray erefs;
+		BerVarray refs;
 
 		ber_dupbv( &matched_dn, &e->e_name );
 		erefs = get_entry_referrals( be, conn, op, e );
@@ -150,13 +150,13 @@ ldbm_back_search(
 			refs = referral_rewrite( erefs, &matched_dn,
 				base, scope );
 
-			bvarray_free( erefs );
+			ber_bvarray_free( erefs );
 		}
 
 		if( refs ) {
 			send_ldap_result( conn, op, LDAP_REFERRAL,
 				matched_dn.bv_val, NULL, refs, NULL );
-			bvarray_free( refs );
+			ber_bvarray_free( refs );
 
 		} else {
 			send_ldap_result( conn, op, LDAP_OTHER,
@@ -395,9 +395,9 @@ searchit:
 			}
 
 			if( scopeok ) {
-				BVarray erefs = get_entry_referrals(
+				BerVarray erefs = get_entry_referrals(
 					be, conn, op, e );
-				BVarray refs = referral_rewrite( erefs,
+				BerVarray refs = referral_rewrite( erefs,
 					&e->e_name, NULL,
 					scope == LDAP_SCOPE_SUBTREE
 						? LDAP_SCOPE_SUBTREE
@@ -406,7 +406,7 @@ searchit:
 				send_search_reference( be, conn, op,
 					e, refs, NULL, &v2refs );
 
-				bvarray_free( refs );
+				ber_bvarray_free( refs );
 
 			} else {
 #ifdef NEW_LOGGING
@@ -512,7 +512,7 @@ done:
 	if( candidates != NULL )
 		idl_free( candidates );
 
-	if( v2refs ) bvarray_free( v2refs );
+	if( v2refs ) ber_bvarray_free( v2refs );
 	if( realbase.bv_val ) free( realbase.bv_val );
 
 	return rc;

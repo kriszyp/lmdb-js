@@ -58,7 +58,7 @@ typedef	struct AciSetCookie {
 	Operation *op;
 } AciSetCookie;
 
-BVarray aci_set_gather (void *cookie, char *name, struct berval *attr);
+BerVarray aci_set_gather (void *cookie, char *name, struct berval *attr);
 static int aci_match_set ( struct berval *subj, Backend *be,
     Entry *e, Connection *conn, Operation *op, int setref );
 
@@ -1199,11 +1199,11 @@ aci_get_part(
 	return(bv->bv_len);
 }
 
-BVarray
+BerVarray
 aci_set_gather (void *cookie, char *name, struct berval *attr)
 {
 	AciSetCookie *cp = cookie;
-	BVarray bvals = NULL;
+	BerVarray bvals = NULL;
 	struct berval bv, ndn;
 
 	/* this routine needs to return the bervals instead of
@@ -1244,7 +1244,7 @@ aci_match_set (
 	} else {
 		struct berval subjdn, ndn = { 0, NULL };
 		struct berval setat;
-		BVarray bvals;
+		BerVarray bvals;
 		const char *text;
 		AttributeDescription *desc = NULL;
 
@@ -1281,7 +1281,7 @@ aci_match_set (
 						bvals[0].bv_val = bvals[i-1].bv_val;
 						bvals[i-1].bv_val = NULL;
 					}
-					bvarray_free(bvals);
+					ber_bvarray_free(bvals);
 				}
 			}
 			if (ndn.bv_val)

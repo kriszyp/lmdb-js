@@ -343,7 +343,7 @@ equality_candidates(
 			break;
 	}
 
-	bvarray_free( keys );
+	ber_bvarray_free( keys );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"<= bdb_equality_candidates id=%ld, first=%ld, last=%ld\n",
@@ -450,7 +450,7 @@ approx_candidates(
 			break;
 	}
 
-	bvarray_free( keys );
+	ber_bvarray_free( keys );
 
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_approx_candidates %ld, first=%ld, last=%ld\n",
 		(long) ids[0],
@@ -553,7 +553,7 @@ substring_candidates(
 			break;
 	}
 
-	bvarray_free( keys );
+	ber_bvarray_free( keys );
 
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_substring_candidates %ld, first=%ld, last=%ld\n",
 		(long) ids[0],

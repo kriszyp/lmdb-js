@@ -27,7 +27,7 @@ ldbm_back_exop_passwd(
     struct berval	**rspdata,
 	LDAPControl		*** rspctrls,
 	const char		**text,
-    BVarray *refs
+    BerVarray *refs
 )
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;

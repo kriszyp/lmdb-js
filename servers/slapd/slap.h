@@ -329,8 +329,8 @@ typedef int slap_mr_indexer_func LDAP_P((
 	struct slap_syntax *syntax,	/* syntax of stored value */
 	struct slap_matching_rule *mr,
 	struct berval *prefix,
-	BVarray values,
-	BVarray *keys ));
+	BerVarray values,
+	BerVarray *keys ));
 
 /* Filter index function */
 typedef int slap_mr_filter_func LDAP_P((
@@ -340,7 +340,7 @@ typedef int slap_mr_filter_func LDAP_P((
 	struct slap_matching_rule *mr,
 	struct berval *prefix,
 	void * assertValue,
-	BVarray *keys ));
+	BerVarray *keys ));
 
 typedef struct slap_matching_rule {
 	LDAPMatchingRule		smr_mrule;
@@ -714,7 +714,7 @@ typedef struct slap_filter {
  */
 typedef struct slap_attr {
 	AttributeDescription *a_desc;
-	BVarray	a_vals;
+	BerVarray	a_vals;
 	struct slap_attr	*a_next;
 	unsigned a_flags;
 #define SLAP_ATTR_IXADD		0x1U
@@ -759,7 +759,7 @@ typedef struct slap_mod {
 	int sm_op;
 	AttributeDescription *sm_desc;
 	struct berval sm_type;
-	BVarray sm_bvalues;
+	BerVarray sm_bvalues;
 } Modification;
 
 typedef struct slap_mod_list {
@@ -1122,7 +1122,7 @@ struct slap_backend_db {
 	struct slap_replica_info **be_replica;	/* replicas of this backend (in master)	*/
 	char	*be_replogfile;	/* replication log file (in master)	   */
 	struct berval be_update_ndn;	/* allowed to make changes (in replicas) */
-	BVarray	be_update_refs;	/* where to refer modifying clients to */
+	BerVarray	be_update_refs;	/* where to refer modifying clients to */
 	char	*be_realm;
 
 	void	*be_private;	/* anything the backend database needs 	   */
@@ -1195,7 +1195,7 @@ typedef int (BI_op_extended) LDAP_P((
     struct berval ** rspdata,
 	LDAPControl *** rspctrls,
 	const char **	text,
-	BVarray *refs ));
+	BerVarray *refs ));
 
 typedef int (BI_entry_release_rw) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
@@ -1218,7 +1218,7 @@ typedef int (BI_acl_attribute)  LDAP_P((Backend *bd,
 		struct slap_conn *c, struct slap_op *o,
 		Entry *e, struct berval *edn,
 		AttributeDescription *entry_at,
-		BVarray *vals ));
+		BerVarray *vals ));
 
 typedef int (BI_operational)  LDAP_P((Backend *bd,
 		struct slap_conn *c, struct slap_op *o,
@@ -1363,11 +1363,11 @@ struct slap_conn;
 
 typedef void (slap_response)( struct slap_conn *, struct slap_op *,
 	ber_tag_t, ber_int_t, ber_int_t, const char *, const char *,
-	BVarray, const char *, struct berval *,
+	BerVarray, const char *, struct berval *,
 	struct berval *, LDAPControl ** );
 
 typedef void (slap_sresult)( struct slap_conn *, struct slap_op *,
-	ber_int_t, const char *, const char *, BVarray,
+	ber_int_t, const char *, const char *, BerVarray,
 	LDAPControl **, int nentries);
 
 typedef int (slap_sendentry)( BackendDB *, struct slap_conn *,

@@ -30,7 +30,7 @@ starttls_extop (
 	struct berval ** rspdata,
 	LDAPControl ***rspctrls,
 	const char ** text,
-	BVarray * refs )
+	BerVarray * refs )
 {
 	void *ctx;
 	int rc;

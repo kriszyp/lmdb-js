@@ -91,13 +91,13 @@ meta_back_attribute(
 		Entry			*target,
 		struct berval		*ndn,
 		AttributeDescription 	*entry_at,
-		BVarray			*vals
+		BerVarray			*vals
 )
 {
 	struct metainfo *li = ( struct metainfo * )be->be_private;    
 	int rc = 1, i, j, count, is_oc, candidate;
 	Attribute *attr;
-	BVarray abv, v;
+	BerVarray abv, v;
 	char **vs; 
 	struct berval	mapped;
 	LDAPMessage	*result, *e;
@@ -115,7 +115,7 @@ meta_back_attribute(
 
 		for ( count = 0; attr->a_vals[ count ].bv_val != NULL; count++ )
 			;
-		v = ( BVarray )ch_calloc( ( count + 1 ), sizeof( struct berval ) );
+		v = ( BerVarray )ch_calloc( ( count + 1 ), sizeof( struct berval ) );
 		if ( v == NULL ) {
 			return 1;
 		}
@@ -166,7 +166,7 @@ meta_back_attribute(
 			if ( vs != NULL ) {
 				for ( count = 0; vs[ count ] != NULL;
 						count++ ) { }
-				v = ( BVarray )ch_calloc( ( count + 1 ),
+				v = ( BerVarray )ch_calloc( ( count + 1 ),
 						sizeof( struct berval ) );
 				if ( v == NULL ) {
 					ldap_value_free( vs );

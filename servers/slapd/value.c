@@ -20,25 +20,25 @@
 
 int
 value_add( 
-    BVarray *vals,
-    BVarray addvals
+    BerVarray *vals,
+    BerVarray addvals
 )
 {
 	int	n, nn;
-	BVarray v2;
+	BerVarray v2;
 
 	for ( nn = 0; addvals != NULL && addvals[nn].bv_val != NULL; nn++ )
 		;	/* NULL */
 
 	if ( *vals == NULL ) {
-		*vals = (BVarray) ch_malloc( (nn + 1)
+		*vals = (BerVarray) ch_malloc( (nn + 1)
 		    * sizeof(struct berval) );
 		n = 0;
 	} else {
 		for ( n = 0; (*vals)[n].bv_val != NULL; n++ ) {
 			;	/* Empty */
 		}
-		*vals = (BVarray) ch_realloc( (char *) *vals,
+		*vals = (BerVarray) ch_realloc( (char *) *vals,
 		    (n + nn + 1) * sizeof(struct berval) );
 	}
 
@@ -177,7 +177,7 @@ value_match(
 int value_find_ex(
 	AttributeDescription *ad,
 	unsigned flags,
-	BVarray vals,
+	BerVarray vals,
 	struct berval *val )
 {
 	int	i;

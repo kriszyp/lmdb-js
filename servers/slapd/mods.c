@@ -29,7 +29,7 @@ slap_mod_free(
 		free( mod->sm_type.bv_val );
 #endif
 	if ( mod->sm_bvalues != NULL )
-		bvarray_free( mod->sm_bvalues );
+		ber_bvarray_free( mod->sm_bvalues );
 
 	if( freeit )
 		free( mod );

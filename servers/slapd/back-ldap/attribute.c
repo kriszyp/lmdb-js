@@ -27,13 +27,13 @@ ldap_back_attribute(
 	Entry	*target,
 	struct berval	*ndn,
 	AttributeDescription *entry_at,
-	BVarray *vals
+	BerVarray *vals
 )
 {
 	struct ldapinfo *li = (struct ldapinfo *) be->be_private;    
 	int rc = 1, i, j, count, is_oc;
 	Attribute *attr = NULL;
-	BVarray abv, v;
+	BerVarray abv, v;
 	struct berval mapped = { 0, NULL };
 	char **vs = NULL;
 	LDAPMessage	*result = NULL, *e = NULL;
@@ -48,7 +48,7 @@ ldap_back_attribute(
 			return(1);
 
 		for ( count = 0; attr->a_vals[count].bv_val != NULL; count++ ) { }
-		v = (BVarray) ch_calloc( (count + 1), sizeof(struct berval) );
+		v = (BerVarray) ch_calloc( (count + 1), sizeof(struct berval) );
 		if (v != NULL) {
 			for ( j = 0, abv = attr->a_vals; --count >= 0; abv++ ) {
 				if ( abv->bv_len > 0 ) {
@@ -95,7 +95,7 @@ ldap_back_attribute(
 	}
 
 	for ( count = 0; vs[count] != NULL; count++ ) { }
-	v = (BVarray) ch_calloc( (count + 1), sizeof(struct berval) );
+	v = (BerVarray) ch_calloc( (count + 1), sizeof(struct berval) );
 	if (v == NULL) {
 		goto cleanup;
 	}

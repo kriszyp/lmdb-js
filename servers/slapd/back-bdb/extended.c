@@ -32,7 +32,7 @@ bdb_extended(
 	struct berval	**rspdata,
 	LDAPControl *** rspctrls,
 	const char**	text,
-	BVarray	*refs 
+	BerVarray	*refs 
 )
 {
 	int i;

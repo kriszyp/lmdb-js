@@ -1050,7 +1050,7 @@ backend_attribute(
 	Entry	*target,
 	struct berval	*edn,
 	AttributeDescription *entry_at,
-	BVarray *vals
+	BerVarray *vals
 )
 {
 	if ( target == NULL || !dn_match( &target->e_nname, edn ) ) {

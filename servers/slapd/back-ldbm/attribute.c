@@ -28,13 +28,13 @@ ldbm_back_attribute(
 	Entry	*target,
 	struct berval	*entry_ndn,
 	AttributeDescription *entry_at,
-	BVarray *vals )
+	BerVarray *vals )
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;    
 	Entry	     *e;
 	int	     rc;
 	Attribute   *attr;
-	BVarray v;
+	BerVarray v;
 	const char *entry_at_name = entry_at->ad_cname.bv_val;
 	struct berval *iv, *jv;
 
@@ -162,7 +162,7 @@ ldbm_back_attribute(
 		/* count them */
 	}
 
-	v = (BVarray) ch_malloc( sizeof(struct berval) * ((iv - attr->a_vals)+1) );
+	v = (BerVarray) ch_malloc( sizeof(struct berval) * ((iv - attr->a_vals)+1) );
 
 	for ( iv=attr->a_vals, jv=v; iv->bv_val; iv++ ) {
 		if( conn != NULL

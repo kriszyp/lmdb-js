@@ -169,7 +169,7 @@ typedef struct glue_state {
 	int matchlen;
 	char *matched;
 	int nrefs;
-	BVarray refs;
+	BerVarray refs;
 	slap_callback *prevcb;
 } glue_state;
 
@@ -182,7 +182,7 @@ glue_back_response (
 	ber_int_t err,
 	const char *matched,
 	const char *text,
-	BVarray ref,
+	BerVarray ref,
 	const char *resoid,
 	struct berval *resdata,
 	struct berval *sasldata,
@@ -209,7 +209,7 @@ glue_back_response (
 	}
 	if (ref) {
 		int i, j, k;
-		BVarray new;
+		BerVarray new;
 
 		for (i=0; ref[i].bv_val; i++);
 
@@ -236,7 +236,7 @@ glue_back_sresult (
 	ber_int_t err,
 	const char *matched,
 	const char *text,
-	BVarray refs,
+	BerVarray refs,
 	LDAPControl **ctrls,
 	int nentries
 )
@@ -385,7 +385,7 @@ done:
 	if (gs.matched)
 		free (gs.matched);
 	if (gs.refs)
-		bvarray_free(gs.refs);
+		ber_bvarray_free(gs.refs);
 	return rc;
 }
 
@@ -600,7 +600,7 @@ glue_back_attribute (
 	Entry *target,
 	struct berval *ndn,
 	AttributeDescription *ad,
-	BVarray *vals
+	BerVarray *vals
 )
 {
 	BackendDB *be;

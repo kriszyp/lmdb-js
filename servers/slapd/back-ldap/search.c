@@ -548,7 +548,7 @@ ldap_send_entry(
 		attr = ent.e_attrs;
 		ent.e_attrs = attr->a_next;
 		if (attr->a_vals != &dummy)
-			bvarray_free(attr->a_vals);
+			ber_bvarray_free(attr->a_vals);
 		ch_free(attr);
 	}
 	

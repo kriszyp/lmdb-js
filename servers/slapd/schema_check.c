@@ -394,7 +394,7 @@ oc_check_required(
 
 int oc_check_allowed(
 	AttributeType *at,
-	BVarray ocl,
+	BerVarray ocl,
 	ObjectClass *sc )
 {
 	int		i, j;
@@ -475,7 +475,7 @@ int oc_check_allowed(
  * Determine the structural object class from a set of OIDs
  */
 int structural_class(
-	BVarray ocs,
+	BerVarray ocs,
 	struct berval *scbv,
 	ObjectClass **scp,
 	const char **text,

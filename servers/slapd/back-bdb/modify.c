@@ -257,7 +257,7 @@ retry:	/* transaction retry */
 	/* acquire and lock entry */
 	if ( e == NULL ) {
 		char* matched_dn = NULL;
-		BVarray refs;
+		BerVarray refs;
 
 		if ( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
@@ -275,7 +275,7 @@ retry:	/* transaction retry */
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
 
-		bvarray_free( refs );
+		ber_bvarray_free( refs );
 		free( matched_dn );
 
 		return rc;
@@ -284,7 +284,7 @@ retry:	/* transaction retry */
 	if ( !manageDSAit && is_entry_referral( e ) ) {
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
-		BVarray refs = get_entry_referrals( be,
+		BerVarray refs = get_entry_referrals( be,
 			conn, op, e );
 
 		Debug( LDAP_DEBUG_TRACE,
@@ -294,7 +294,7 @@ retry:	/* transaction retry */
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			e->e_dn, NULL, refs, NULL );
 
-		bvarray_free( refs );
+		ber_bvarray_free( refs );
 		goto done;
 	}
 	

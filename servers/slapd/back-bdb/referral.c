@@ -54,7 +54,7 @@ bdb_referrals(
 
 	if ( e == NULL ) {
 		char *matched_dn = NULL;
-		BVarray refs = NULL;
+		BerVarray refs = NULL;
 
 		if ( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
@@ -80,7 +80,7 @@ bdb_referrals(
 			/* send referrals */
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				matched_dn, NULL, refs, NULL );
-			bvarray_free( refs );
+			ber_bvarray_free( refs );
 		} else if ( rc != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, rc, matched_dn,
 				matched_dn ? "bad referral object" : NULL,
@@ -93,8 +93,8 @@ bdb_referrals(
 
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral */
-		BVarray refs = get_entry_referrals( be, conn, op, e );
-		BVarray rrefs = referral_rewrite(
+		BerVarray refs = get_entry_referrals( be, conn, op, e );
+		BerVarray rrefs = referral_rewrite(
 			refs, &e->e_name, dn, LDAP_SCOPE_DEFAULT );
 
 		Debug( LDAP_DEBUG_TRACE,
@@ -104,13 +104,13 @@ bdb_referrals(
 		if( rrefs != NULL ) {
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				e->e_dn, NULL, rrefs, NULL );
-			bvarray_free( rrefs );
+			ber_bvarray_free( rrefs );
 		} else {
 			send_ldap_result( conn, op, rc = LDAP_OTHER, e->e_dn,
 				"bad referral object", NULL, NULL );
 		}
 
-		bvarray_free( refs );
+		ber_bvarray_free( refs );
 	}
 
 	bdb_entry_return( be, e );

@@ -160,7 +160,7 @@ static int indexer(
 	DB_TXN *txn,
 	char *dbname,
 	struct berval *atname,
-	BVarray vals,
+	BerVarray vals,
 	ID id,
 	int op,
 	slap_mask_t mask )
@@ -209,11 +209,11 @@ static int indexer(
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
 				rc = bdb_key_change( be, db, txn, &keys[i], id, op );
 				if( rc ) {
-					bvarray_free( keys );
+					ber_bvarray_free( keys );
 					goto done;
 				}
 			}
-			bvarray_free( keys );
+			ber_bvarray_free( keys );
 		}
 		rc = LDAP_SUCCESS;
 	}
@@ -230,11 +230,11 @@ static int indexer(
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
 				rc = bdb_key_change( be, db, txn, &keys[i], id, op );
 				if( rc ) {
-					bvarray_free( keys );
+					ber_bvarray_free( keys );
 					goto done;
 				}
 			}
-			bvarray_free( keys );
+			ber_bvarray_free( keys );
 		}
 
 		rc = LDAP_SUCCESS;
@@ -252,11 +252,11 @@ static int indexer(
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
 				bdb_key_change( be, db, txn, &keys[i], id, op );
 				if( rc ) {
-					bvarray_free( keys );
+					ber_bvarray_free( keys );
 					goto done;
 				}
 			}
-			bvarray_free( keys );
+			ber_bvarray_free( keys );
 		}
 
 		rc = LDAP_SUCCESS;
@@ -271,7 +271,7 @@ static int index_at_values(
 	DB_TXN *txn,
 	AttributeType *type,
 	struct berval *lang,
-	BVarray vals,
+	BerVarray vals,
 	ID id,
 	int op,
 	char ** dbnamep,
@@ -352,7 +352,7 @@ int bdb_index_values(
 	Backend *be,
 	DB_TXN *txn,
 	AttributeDescription *desc,
-	BVarray vals,
+	BerVarray vals,
 	ID id,
 	int op )
 {

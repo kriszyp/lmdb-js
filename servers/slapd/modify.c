@@ -288,13 +288,13 @@ do_modify(
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( &ndn, manageDSAit, 0 )) == NULL ) {
-		BVarray ref = referral_rewrite( default_referral,
+		BerVarray ref = referral_rewrite( default_referral,
 			NULL, &pdn, LDAP_SCOPE_DEFAULT );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
 
-		bvarray_free( ref );
+		ber_bvarray_free( ref );
 		goto cleanup;
 	}
 
@@ -375,15 +375,15 @@ do_modify(
 #ifndef SLAPD_MULTIMASTER
 		/* send a referral */
 		} else {
-			BVarray defref = be->be_update_refs
+			BerVarray defref = be->be_update_refs
 				? be->be_update_refs : default_referral;
-			BVarray ref = referral_rewrite( defref,
+			BerVarray ref = referral_rewrite( defref,
 				NULL, &pdn, LDAP_SCOPE_DEFAULT );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				ref ? ref : defref, NULL );
 
-			bvarray_free( ref );
+			ber_bvarray_free( ref );
 #endif
 		}
 	} else {
@@ -591,7 +591,7 @@ int slap_mods_opattrs(
 			mod->sml_op = mop;
 			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_structuralObjectClass;
-			mod->sml_bvalues = (BVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			mod->sml_bvalues = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_bvalues[0], &tmpval );
 			mod->sml_bvalues[1].bv_val = NULL;
 			assert( mod->sml_bvalues[0].bv_val );
@@ -606,7 +606,7 @@ int slap_mods_opattrs(
 		mod->sml_op = mop;
 		mod->sml_type.bv_val = NULL;
 		mod->sml_desc = slap_schema.si_ad_entryUUID;
-		mod->sml_bvalues = (BVarray) ch_malloc( 2 * sizeof( struct berval ) );
+		mod->sml_bvalues = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 		ber_dupbv( &mod->sml_bvalues[0], &tmpval );
 		mod->sml_bvalues[1].bv_val = NULL;
 		assert( mod->sml_bvalues[0].bv_val );
@@ -617,7 +617,7 @@ int slap_mods_opattrs(
 		mod->sml_op = mop;
 		mod->sml_type.bv_val = NULL;
 		mod->sml_desc = slap_schema.si_ad_creatorsName;
-		mod->sml_bvalues = (BVarray) ch_malloc( 2 * sizeof( struct berval ) );
+		mod->sml_bvalues = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 		ber_dupbv( &mod->sml_bvalues[0], &name );
 		mod->sml_bvalues[1].bv_val = NULL;
 		assert( mod->sml_bvalues[0].bv_val );
@@ -628,7 +628,7 @@ int slap_mods_opattrs(
 		mod->sml_op = mop;
 		mod->sml_type.bv_val = NULL;
 		mod->sml_desc = slap_schema.si_ad_createTimestamp;
-		mod->sml_bvalues = (BVarray) ch_malloc( 2 * sizeof( struct berval ) );
+		mod->sml_bvalues = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 		ber_dupbv( &mod->sml_bvalues[0], &timestamp );
 		mod->sml_bvalues[1].bv_val = NULL;
 		assert( mod->sml_bvalues[0].bv_val );
@@ -640,7 +640,7 @@ int slap_mods_opattrs(
 	mod->sml_op = mop;
 	mod->sml_type.bv_val = NULL;
 	mod->sml_desc = slap_schema.si_ad_entryCSN;
-	mod->sml_bvalues = (BVarray) ch_malloc( 2 * sizeof( struct berval ) );
+	mod->sml_bvalues = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 	ber_dupbv( &mod->sml_bvalues[0], &csn );
 	mod->sml_bvalues[1].bv_val = NULL;
 	assert( mod->sml_bvalues[0].bv_val );
@@ -651,7 +651,7 @@ int slap_mods_opattrs(
 	mod->sml_op = mop;
 	mod->sml_type.bv_val = NULL;
 	mod->sml_desc = slap_schema.si_ad_modifiersName;
-	mod->sml_bvalues = (BVarray) ch_malloc( 2 * sizeof( struct berval ) );
+	mod->sml_bvalues = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 	ber_dupbv( &mod->sml_bvalues[0], &name );
 	mod->sml_bvalues[1].bv_val = NULL;
 	assert( mod->sml_bvalues[0].bv_val );
@@ -662,7 +662,7 @@ int slap_mods_opattrs(
 	mod->sml_op = mop;
 	mod->sml_type.bv_val = NULL;
 	mod->sml_desc = slap_schema.si_ad_modifyTimestamp;
-	mod->sml_bvalues = (BVarray) ch_malloc( 2 * sizeof( struct berval ) );
+	mod->sml_bvalues = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 	ber_dupbv( &mod->sml_bvalues[0], &timestamp );
 	mod->sml_bvalues[1].bv_val = NULL;
 	assert( mod->sml_bvalues[0].bv_val );

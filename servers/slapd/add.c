@@ -212,13 +212,13 @@ do_add( Connection *conn, Operation *op )
 	 */
 	be = select_backend( &e->e_nname, manageDSAit, 0 );
 	if ( be == NULL ) {
-		BVarray ref = referral_rewrite( default_referral,
+		BerVarray ref = referral_rewrite( default_referral,
 			NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
 
-		if ( ref ) bvarray_free( ref );
+		if ( ref ) ber_bvarray_free( ref );
 		goto done;
 	}
 
@@ -299,15 +299,15 @@ do_add( Connection *conn, Operation *op )
 
 #ifndef SLAPD_MULTIMASTER
 		} else {
-			BVarray defref = be->be_update_refs
+			BerVarray defref = be->be_update_refs
 				? be->be_update_refs : default_referral;
-			BVarray ref = referral_rewrite( defref,
+			BerVarray ref = referral_rewrite( defref,
 				NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				ref ? ref : defref, NULL );
 
-			if ( ref ) bvarray_free( ref );
+			if ( ref ) ber_bvarray_free( ref );
 #endif
 		}
 	} else {

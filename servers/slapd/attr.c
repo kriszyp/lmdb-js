@@ -29,7 +29,7 @@ static void at_index_print( void ) {};
 void
 attr_free( Attribute *a )
 {
-	bvarray_free( a->a_vals );
+	ber_bvarray_free( a->a_vals );
 	free( a );
 }
 
@@ -110,7 +110,7 @@ int
 attr_merge(
 	Entry		*e,
 	AttributeDescription *desc,
-	BVarray	vals )
+	BerVarray	vals )
 {
 	Attribute	**a;
 

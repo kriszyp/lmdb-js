@@ -27,7 +27,7 @@ static void new_superior(
 	struct berval *res );
 
 static int dnlist_subordinate(
-	BVarray dnlist,
+	BerVarray dnlist,
 	struct berval *dn );
 
 Entry *deref_internal_r(
@@ -43,7 +43,7 @@ Entry *deref_internal_r(
 	Entry *entry;
 	Entry *sup;
 	unsigned depth;
-	BVarray dnlist;
+	BerVarray dnlist;
 
 	assert( ( alias != NULL && dn_in == NULL )
 		|| ( alias == NULL && dn_in != NULL ) );
@@ -63,7 +63,7 @@ Entry *deref_internal_r(
 	}
 
 	dnlist = NULL;
-	bvarray_add( &dnlist, &dn );
+	ber_bvarray_add( &dnlist, &dn );
 
 	for( depth=0 ; ; depth++ ) {
 		if( entry != NULL ) {
@@ -113,7 +113,7 @@ Entry *deref_internal_r(
 				cache_return_entry_r(&li->li_cache, entry );
 				entry = newe;
 				ber_dupbv( &dn, &entry->e_nname );
-				bvarray_add( &dnlist, &dn );
+				ber_bvarray_add( &dnlist, &dn );
 				continue;
 			}
 			
@@ -177,7 +177,7 @@ Entry *deref_internal_r(
 				cache_return_entry_r(&li->li_cache, sup );
 				entry = newe;
 				ber_dupbv( &dn, &entry->e_nname );
-				bvarray_add( &dnlist, &dn );
+				ber_bvarray_add( &dnlist, &dn );
 				continue;
 			}
 			
@@ -198,7 +198,7 @@ Entry *deref_internal_r(
 	}
 
 	free( dn.bv_val );
-	bvarray_free( dnlist );
+	ber_bvarray_free( dnlist );
 	return entry;
 }
 
@@ -276,7 +276,7 @@ static void new_superior(
 }
 
 static int dnlist_subordinate(
-	BVarray dnlist,
+	BerVarray dnlist,
 	struct berval *dn )
 {
 	assert( dnlist );

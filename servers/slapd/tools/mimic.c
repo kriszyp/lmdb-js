@@ -49,7 +49,7 @@ send_ldap_extended(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
-	BVarray refs,
+	BerVarray refs,
     const char	*rspoid,
 	struct berval *rspdata,
 	LDAPControl **ctrls
@@ -65,7 +65,7 @@ send_ldap_sasl(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
-	BVarray refs,
+	BerVarray refs,
 	LDAPControl **ctrls,
 	struct berval *cred
 )
@@ -80,7 +80,7 @@ send_ldap_result(
 	ber_int_t     err,
 	const char    *matched,
 	const char    *text,
-	BVarray refs,
+	BerVarray refs,
 	LDAPControl **ctrls
 )        
 {
@@ -94,7 +94,7 @@ send_search_result(
 	ber_int_t     err,
 	const char    *matched,
 	const char    *text,
-	BVarray refs,
+	BerVarray refs,
 	LDAPControl **ctrls,
 	int		nentries
 )        
@@ -122,9 +122,9 @@ int send_search_reference(
 	Connection  *conn, 
 	Operation   *op,
 	Entry	*e,
-	BVarray	refs,
+	BerVarray	refs,
 	LDAPControl **ctrls,
-	BVarray	*v2refs
+	BerVarray	*v2refs
 )
 {
 	assert(0);

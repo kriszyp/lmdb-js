@@ -201,7 +201,7 @@ typedef struct berval {
 	char		*bv_val;
 } BerValue;
 
-typedef BerValue *BVarray;	/* To distinguish from a single bv */
+typedef BerValue *BerVarray;	/* To distinguish from a single bv */
 
 /* this should be moved to lber-int.h */
 
@@ -573,6 +573,12 @@ ber_str2bv LDAP_P((
 LBER_F( char * )
 ber_strdup LDAP_P((
 	LDAP_CONST char * ));
+
+LBER_F( void )
+ber_bvarray_free LDAP_P(( BerVarray p ));
+
+LBER_F( int )
+ber_bvarray_add LDAP_P(( BerVarray *p, BerValue *bv ));
 
 /*
  * error.c
