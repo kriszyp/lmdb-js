@@ -25,44 +25,6 @@
 # Standard X.501(93) Operational Attribute Types from RFC 2252
 #
 
-attributetype ( 2.5.18.1 NAME 'createTimestamp'
-	DESC 'RFC2252: time which object was created'
-	EQUALITY generalizedTimeMatch
-	ORDERING generalizedTimeOrderingMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
-	SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
-
-attributetype ( 2.5.18.2 NAME 'modifyTimestamp'
-	DESC 'RFC2252: time which object was last modified'
-	EQUALITY generalizedTimeMatch
-	ORDERING generalizedTimeOrderingMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
-	SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
-
-attributetype ( 2.5.18.3 NAME 'creatorsName'
-	DESC 'RFC2252: name of creator'
-	EQUALITY distinguishedNameMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
-	SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
-
-attributetype ( 2.5.18.4 NAME 'modifiersName'
-	DESC 'RFC2252: name of last modifier'
-	EQUALITY distinguishedNameMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
-	SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
-
-attributetype ( 2.5.18.9 NAME 'hasSubordinates'
-	DESC 'X.501: entry has children'
-	EQUALITY booleanMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.7
-	SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
-
-attributetype ( 2.5.18.10 NAME 'subschemaSubentry'
-	DESC 'RFC2252: name of controlling subschema entry'
-	EQUALITY distinguishedNameMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 NO-USER-MODIFICATION
-	SINGLE-VALUE USAGE directoryOperation )
-
 attributetype ( 2.5.21.1 NAME 'dITStructureRules'
 	DESC 'RFC2252: DIT structure rules'
 	EQUALITY integerFirstComponentMatch
@@ -72,21 +34,6 @@ attributetype ( 2.5.21.2 NAME 'dITContentRules'
 	DESC 'RFC2252: DIT content rules'
 	EQUALITY objectIdentifierFirstComponentMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.16 USAGE directoryOperation )
-
-attributetype ( 2.5.21.4 NAME 'matchingRules'
-	DESC 'RFC2252: matching rules'
-	EQUALITY objectIdentifierFirstComponentMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.30 USAGE directoryOperation )
-
-attributetype ( 2.5.21.5 NAME 'attributeTypes'
-	DESC 'RFC2252: attribute types'
-	EQUALITY objectIdentifierFirstComponentMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.3 USAGE directoryOperation )
-
-attributetype ( 2.5.21.6 NAME 'objectClasses'
-	DESC 'RFC2252: object classes'
-	EQUALITY objectIdentifierFirstComponentMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.37 USAGE directoryOperation )
 
 attributetype ( 2.5.21.7 NAME 'nameForms'
 	DESC 'RFC2252: name forms '
@@ -98,55 +45,17 @@ attributetype ( 2.5.21.8 NAME 'matchingRuleUse'
 	EQUALITY objectIdentifierFirstComponentMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.31 USAGE directoryOperation )
 
-# From X.500(93)
-attributetype ( 2.5.21.9 NAME 'structuralObjectClass'
-	DESC 'X.500(93): structural object class of entry'
-	EQUALITY objectIdentifierMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38
-	NO-USER-MODIFICATION SINGLE-VALUE USAGE directoryOperation )
-
 #
 # LDAP Operational Attributes from RFC 2252
 #
-
-attributetype ( 1.3.6.1.4.1.1466.101.120.5 NAME 'namingContexts'
-	DESC 'RFC2252: naming contexts'
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 USAGE dSAOperation )
 
 attributetype ( 1.3.6.1.4.1.1466.101.120.6 NAME 'altServer'
 	DESC 'RFC2252: alternative servers'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 USAGE dSAOperation )
 
-attributetype ( 1.3.6.1.4.1.1466.101.120.7 NAME 'supportedExtension'
-	DESC 'RFC2252: supported extended operations'
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 USAGE dSAOperation )
-
-attributetype ( 1.3.6.1.4.1.1466.101.120.13 NAME 'supportedControl'
-	DESC 'RFC2252: supported controls'
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 USAGE dSAOperation )
-
-attributetype ( 1.3.6.1.4.1.1466.101.120.14 NAME 'supportedSASLMechanisms'
-	DESC 'RFC2252: supported SASL mechanisms'
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 USAGE dSAOperation )
-
-attributetype ( 1.3.6.1.4.1.1466.101.120.15 NAME 'supportedLDAPVersion'
-	DESC 'RFC2252: supported LDAP versions'
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 USAGE dSAOperation )
-
-attributetype ( 1.3.6.1.4.1.1466.101.120.16 NAME 'ldapSyntaxes'
-	DESC 'RFC2252: LDAP syntaxes'
-	EQUALITY objectIdentifierFirstComponentMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.54 USAGE directoryOperation )
-
 #
 # Standard attribute types used for subtyping from RFC 2256
 #
-
-attributetype ( 2.5.4.41 NAME 'name'
-	DESC 'RFC2256: common supertype of name attributes'
-	EQUALITY caseIgnoreMatch
-	SUBSTR caseIgnoreSubstringsMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
 
 attributetype ( 2.5.4.49 NAME 'distinguishedName'
 	DESC 'RFC2256: common supertype of distingushed name attributes'
@@ -157,24 +66,27 @@ attributetype ( 2.5.4.49 NAME 'distinguishedName'
 # Standard attribute types from RFC 2256
 #
 
-attributetype ( 2.5.4.0 NAME 'objectClass'
-	DESC 'RFC2256: object classes of the entity'
-	EQUALITY objectIdentifierMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )
+# system schema
+#attributetype ( 2.5.4.0 NAME 'objectClass'
+#	DESC 'RFC2256: object classes of the entity'
+#	EQUALITY objectIdentifierMatch
+#	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )
 
-attributetype ( 2.5.4.1 NAME ( 'aliasedObjectName' 'aliasedEntryName' )
-	DESC 'RFC2256: name of aliased object'
-	EQUALITY distinguishedNameMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 SINGLE-VALUE )
+# system schema
+#attributetype ( 2.5.4.1 NAME ( 'aliasedObjectName' 'aliasedEntryName' )
+#	DESC 'RFC2256: name of aliased object'
+#	EQUALITY distinguishedNameMatch
+#	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 SINGLE-VALUE )
 
 attributetype ( 2.5.4.2 NAME 'knowledgeInformation'
 	DESC 'RFC2256: knowledge information'
 	EQUALITY caseIgnoreMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
 
-attributetype ( 2.5.4.3 NAME ( 'cn' 'commonName' )
-	DESC 'RFC2256: common name(s) for which the entity is known by'
-	SUP name )
+# system schema
+#attributetype ( 2.5.4.3 NAME ( 'cn' 'commonName' )
+#	DESC 'RFC2256: common name(s) for which the entity is known by'
+#	SUP name )
 
 attributetype ( 2.5.4.4 NAME ( 'sn' 'surname' )
 	DESC 'RFC2256: last (family) name(s) for which the entity is known by'
@@ -330,10 +242,11 @@ attributetype ( 2.5.4.34 NAME 'seeAlso'
 	DESC 'RFC2256: DN of related object'
 	SUP distinguishedName )
 
-attributetype ( 2.5.4.35 NAME 'userPassword'
-	DESC 'RFC2256/2307: password of user'
-	EQUALITY octetStringMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{128} )
+# system schema
+#attributetype ( 2.5.4.35 NAME 'userPassword'
+#	DESC 'RFC2256/2307: password of user'
+#	EQUALITY octetStringMatch
+#	SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{128} )
 
 # Must be transferred using ;binary
 attributetype ( 2.5.4.36 NAME 'userCertificate'
@@ -696,11 +609,11 @@ objectclass ( 1.3.6.1.1.3.1 NAME 'uidObject'
 # From draft-zeilenga-ldap-namedref-00.txt
 #	used to represent referrals in the directory
 #
-attributetype ( 2.16.840.1.113730.3.1.34 NAME 'ref'
-	DESC 'namedref: subordinate referral URL'
-	EQUALITY caseExactMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
-	USAGE distributedOperation )
+#attributetype ( 2.16.840.1.113730.3.1.34 NAME 'ref'
+#	DESC 'namedref: subordinate referral URL'
+#	EQUALITY caseExactMatch
+#	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+#	USAGE distributedOperation )
 
 objectclass ( 2.16.840.1.113730.3.2.6 NAME 'referral'
 	DESC 'namedref: named subordinate referral'
@@ -762,52 +675,12 @@ attributetype ( 1.3.6.1.4.1.250.1.32
 	SINGLE-VALUE )
 
 #
-# draft-zeilenga-ldap-features-xx.txt (supportedFeatures)
-#
-attributetype ( 1.3.6.1.4.1.4203.1.3.5
-	NAME 'supportedFeatures'
-	DESC 'features supported by the server'
-	EQUALITY objectIdentifierMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38
-	USAGE dSAOperation )
-
-#
-# LDUP/LCUP attributes
-#  Experimental!
-#
-attributetype ( 1.3.6.1.4.1.4203.666.1.6 NAME 'entryUUID'
-	DESC 'LCUP/LDUP: universally unique identifier'
-	EQUALITY octetStringMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64}
-	SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
-
-attributetype ( 1.3.6.1.4.1.4203.666.1.7 NAME 'entryCSN'
-	DESC 'LCUP/LDUP: change sequence number'
-	EQUALITY octetStringMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64}
-	SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
-
-#
 # OpenLDAP specific schema items
+# 	Access Control Information
 #
-
-attributetype ( 1.3.6.1.4.1.4203.1.3.1
-	NAME 'entry'
-	DESC 'OpenLDAP ACL entry pseudo-attribute'
-	SYNTAX 1.3.6.1.4.1.4203.1.1.1
-	SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )
-
-attributetype ( 1.3.6.1.4.1.4203.1.3.2
-	NAME 'children'
-	DESC 'OpenLDAP ACL children pseudo-attribute'
-	SYNTAX 1.3.6.1.4.1.4203.1.1.1
-	SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )
-
-# OpenLDAP Access Control Information
-#	Experimental
-attributetype ( 1.3.6.1.4.1.4203.666.1.5
-	NAME 'OpenLDAPaci'
-	DESC 'OpenLDAP access control information (experimental)'
-	EQUALITY OpenLDAPaciMatch
-	SYNTAX 1.3.6.1.4.1.4203.666.2.1
-	USAGE directoryOperation )
+#attributetype ( 1.3.6.1.4.1.4203.666.1.5
+#	NAME 'OpenLDAPaci'
+#	DESC 'OpenLDAP access control information (experimental)'
+#	EQUALITY OpenLDAPaciMatch
+#	SYNTAX 1.3.6.1.4.1.4203.666.2.1
+#	USAGE directoryOperation )
