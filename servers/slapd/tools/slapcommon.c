@@ -250,7 +250,7 @@ slap_tool_init(
 		/* If the named base is a glue master, operate on the
 		 * entire context
 		 */
-		if (be->be_flags & SLAP_BFLAG_GLUE_INSTANCE)
+		if (SLAP_GLUE_INSTANCE(be))
 			nosubordinates = 1;
 
 	} else if ( dbnum == -1 ) {
@@ -258,8 +258,10 @@ slap_tool_init(
 		/* If just doing the first by default and it is a
 		 * glue subordinate, find the master.
 		 */
-		while (be->be_flags & SLAP_BFLAG_GLUE_SUBORDINATE) {
-			nosubordinates = 1;
+		while (SLAP_GLUE_SUBORDINATE(be) || SLAP_MONITOR(be)) {
+			if (SLAP_GLUE_SUBORDINATE(be)) {
+				nosubordinates = 1;
+			}
 			be++;
 		}
 

@@ -610,7 +610,7 @@ glue_sub_init( )
 	 * backends and connect them to their superior.
 	 */
 	for (i = nBackendDB - 1, b1=&backendDB[i]; cont && i>=0; b1--,i--) {
-		if (b1->be_flags & SLAP_BFLAG_GLUE_SUBORDINATE) {
+		if (SLAP_GLUE_SUBORDINATE ( b1 ) ) {
 			/* The last database cannot be a subordinate of noone */
 			if (i == nBackendDB - 1) {
 				b1->be_flags ^= SLAP_BFLAG_GLUE_SUBORDINATE;
@@ -619,11 +619,11 @@ glue_sub_init( )
 		}
 		gi = NULL;
 		for (j = i-1, be=&backendDB[j]; j>=0; be--,j--) {
-			if (!(be->be_flags & SLAP_BFLAG_GLUE_SUBORDINATE)) {
+			if ( ! SLAP_GLUE_SUBORDINATE( be ) ) {
 				continue;
 			}
 			/* We will only link it once */
-			if (be->be_flags & SLAP_BFLAG_GLUE_LINKED) {
+			if ( SLAP_GLUE_LINKED( be ) ) {
 				continue;
 			}
 			if (!dnIsSuffix(&be->be_nsuffix[0], &b1->be_nsuffix[0])) {

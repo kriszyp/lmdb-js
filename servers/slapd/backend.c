@@ -536,7 +536,7 @@ select_backend(
 		for ( j = 0; backends[i].be_nsuffix != NULL &&
 		    backends[i].be_nsuffix[j].bv_val != NULL; j++ )
 		{
-			if (( backends[i].be_flags & SLAP_BFLAG_GLUE_SUBORDINATE )
+			if ( ( SLAP_GLUE_SUBORDINATE( &backends[i] ) )
 				&& noSubs )
 			{
 			  	continue;

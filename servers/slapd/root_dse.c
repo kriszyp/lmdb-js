@@ -137,7 +137,7 @@ root_dse_info(
 			}
 			continue;
 		}
-		if ( backends[i].be_flags & SLAP_BFLAG_GLUE_SUBORDINATE ) {
+		if ( SLAP_GLUE_SUBORDINATE( &backends[i] ) ) {
 			continue;
 		}
 		for ( j = 0; backends[i].be_suffix[j].bv_val != NULL; j++ ) {

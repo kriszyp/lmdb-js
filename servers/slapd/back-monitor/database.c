@@ -103,7 +103,7 @@ monitor_subsys_database_init(
 		be = &backendDB[i];
 
 		/* Subordinates are not exposed as their own naming context */
-		if ( be->be_flags & SLAP_BFLAG_GLUE_SUBORDINATE ) {
+		if ( SLAP_GLUE_SUBORDINATE( be ) ) {
 			continue;
 		}
 

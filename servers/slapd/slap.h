@@ -1334,6 +1334,10 @@ struct slap_backend_db {
 #define SLAP_BFLAG_DYNAMIC		0x2000U
 	slap_mask_t	be_flags;
 #define SLAP_LASTMOD(be)	(!((be)->be_flags & SLAP_BFLAG_NOLASTMOD))
+#define	SLAP_GLUE_INSTANCE(be)	((be)->be_flags & SLAP_BFLAG_GLUE_INSTANCE)
+#define	SLAP_GLUE_SUBORDINATE(be) \
+	((be)->be_flags & SLAP_BFLAG_GLUE_SUBORDINATE)
+#define	SLAP_GLUE_LINKED(be)	((be)->be_flags & SLAP_BFLAG_GLUE_LINKED)
 #define SLAP_ALIASES(be)	((be)->be_flags & SLAP_BFLAG_ALIASES)
 #define SLAP_REFERRALS(be)	((be)->be_flags & SLAP_BFLAG_REFERRALS)
 #define SLAP_SUBENTRIES(be)	((be)->be_flags & SLAP_BFLAG_SUBENTRIES)
