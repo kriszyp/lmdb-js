@@ -729,8 +729,10 @@ static Listener * slap_open_listener(
 		inet_ntop( AF_INET, &((struct sockaddr_in *)*sal)->sin_addr,
 			   addr, sizeof(addr) );
 		s = addr;
+		port = ((struct sockaddr_in *)*sal) ->sin_port;
 #else
 		s = inet_ntoa( l.sl_addr.sin_addr );
+		port = l.sl_addr.sin_port;
 #endif
 		l.sl_name = ch_malloc( sizeof("IP=255.255.255.255:65535") );
 		sprintf( l.sl_name, "IP=%s:%d",
@@ -742,6 +744,7 @@ static Listener * slap_open_listener(
 		char addr[INET6_ADDRSTRLEN];
 		inet_ntop( AF_INET6, &((struct sockaddr_in6 *)*sal)->sin6_addr,
 			   addr, sizeof addr);
+		port = ((struct sockaddr_in6 *)*sal)->sin6_port;
 		l.sl_name = ch_malloc( strlen(addr) + sizeof("IP= 65535") );
 		sprintf( l.sl_name, "IP=%s %d", addr, port );
 	} break;
