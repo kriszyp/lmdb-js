@@ -2122,7 +2122,9 @@ printablesStringValidate(
 		}
 	}
 
-	if( len == 0 ) LDAP_INVALID_SYNTAX;
+	if( len == 0 ) {
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	return LDAP_SUCCESS;
 }
