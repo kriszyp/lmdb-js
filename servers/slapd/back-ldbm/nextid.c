@@ -102,8 +102,11 @@ next_id_get( Backend *be, ID *idp )
 
 	*idp = NOID;
 
+	ldap_pvt_thread_mutex_lock( &li->li_nextid_mutex );
+
 	if ( li->li_nextid == NOID ) {
 		if ( ( rc = next_id_read( be, idp ) ) ) {
+			ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex );
 			return( rc );
 		}
 		li->li_nextid = *idp;
@@ -111,6 +114,7 @@ next_id_get( Backend *be, ID *idp )
 
 	*idp = li->li_nextid;
 
+	ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex );
 	return( rc );
 }
 
@@ -120,8 +124,11 @@ next_id( Backend *be, ID *idp )
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	int rc = 0;
 
+	ldap_pvt_thread_mutex_lock( &li->li_nextid_mutex );
+
 	if ( li->li_nextid == NOID ) {
 		if ( ( rc = next_id_read( be, idp ) ) ) {
+			ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex );
 			return( rc );
 		}
 		li->li_nextid = *idp;
@@ -132,5 +139,6 @@ next_id( Backend *be, ID *idp )
 		rc = -1;
 	}
 
+	ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex );
 	return( rc );
 }

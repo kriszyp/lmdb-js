@@ -38,9 +38,6 @@ ldbm_back_referrals(
 		return rc;
 	} 
 
-	/* grab giant lock for reading */
-	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
-
 	/* get entry with reader lock */
 	e = dn2entry_r( be, ndn, &matched );
 	if ( e == NULL ) {
@@ -72,8 +69,6 @@ ldbm_back_referrals(
 			refs = referral_rewrite( default_referral,
 				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
-
-		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 		if( refs != NULL ) {
 			/* send referrals */
@@ -122,7 +117,5 @@ ldbm_back_referrals(
 	}
 
 	cache_return_entry_r( &li->li_cache, e );
-	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
-
 	return rc;
 }

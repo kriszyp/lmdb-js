@@ -31,8 +31,8 @@ ldbm_back_entry_release_rw(
 	if ( slapMode == SLAP_SERVER_MODE ) {
 		/* free entry and reader or writer lock */
 		cache_return_entry_rw( &li->li_cache, e, rw ); 
-
 	} else {
+		
 		entry_free( e );
 	}
 

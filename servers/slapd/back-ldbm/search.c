@@ -64,8 +64,6 @@ ldbm_back_search(
 	Debug(LDAP_DEBUG_TRACE, "=> ldbm_back_search\n", 0, 0, 0);
 #endif
 
-	/* grab giant lock for reading */
-	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
 
 	if ( nbase->bv_len == 0 ) {
 		/* DIT root special case */
@@ -118,8 +116,6 @@ ldbm_back_search(
 				NULL, base, scope );
 		}
 
-		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
-
 		send_ldap_result( conn, op, err, matched_dn.bv_val, 
 			text, refs, NULL );
 
@@ -139,7 +135,6 @@ ldbm_back_search(
 		refs = NULL;
 
 		cache_return_entry_r( &li->li_cache, e );
-		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
@@ -511,8 +506,6 @@ loop_continue:
 	rc = 0;
 
 done:
-	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
-
 	if( candidates != NULL )
 		idl_free( candidates );
 
