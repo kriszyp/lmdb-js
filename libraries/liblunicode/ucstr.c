@@ -269,7 +269,7 @@ int UTF8bvnormcmp(
 	struct berval *bv2,
 	unsigned flags )
 {
-	int i, l1, l2, len, ulen, res;
+	int i, l1, l2, len, ulen, res = 0;
 	char *s1, *s2, *done;
 	unsigned long *ucs, *ucsout1, *ucsout2;
 	unsigned casefold = flags & LDAP_UTF8_CASEFOLD;
@@ -310,8 +310,8 @@ int UTF8bvnormcmp(
 				if (!LDAP_UTF8_ISASCII(s1) || !LDAP_UTF8_ISASCII(s2)) {
 					break;
 				}
-			} else if ((len < l1) && !LDAP_UTF8_ISASCII(s1) ||
-				   (len < l2) && !LDAP_UTF8_ISASCII(s2)) {
+			} else if (((len < l1) && !LDAP_UTF8_ISASCII(s1)) ||
+				   ((len < l2) && !LDAP_UTF8_ISASCII(s2))) {
 				break;
 			}
 			return res;
