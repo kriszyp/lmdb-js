@@ -198,6 +198,9 @@ dnssrv_back_search(
 
 			} else if ( p != NULL ) {
 				bv.bv_len = p - bv.bv_val;
+
+			} else {
+				bv.bv_len = strlen( bv.bv_val );
 			}
 
 			attr_mergeit_one( e, ad_dc, &bv );
