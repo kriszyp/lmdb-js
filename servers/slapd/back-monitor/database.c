@@ -111,7 +111,7 @@ monitor_subsys_database_init(
 				"dn: cn=Database %d,%s\n"
 				SLAPD_MONITOR_OBJECTCLASSES
 				"cn: Database %d\n"
-				"description: %s",
+				"description: %s\n",
 				i,
 				monitor_subsys[SLAPD_MONITOR_DATABASE].mss_dn.bv_val,
 				i,
