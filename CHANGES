@@ -2,6 +2,7 @@ OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.9 Engineering
 	Build Environment
+		Add nisMailSchema (ITS#876)
 		Fix inet_ntop configure test (ITS#1146)
 		Fix thr_nt.c typo bug
 

@@ -1,10 +1,12 @@
 # $OpenLDAP$
+#
 # Assorted definitions from several sources, including
-# ''works in progress''.  Use with extreme care.
+# ''works in progress''.  Use with extreme care.  May
+# be subject to change.
+#
 
 #
-# draft-lachman-laser-ldap-mail-routing-01.txt
-#	This I-D has expired.
+# draft-lachman-laser-ldap-mail-routing-02.txt
 #
 attributetype ( 2.16.840.1.113730.3.1.13
 	NAME 'mailLocalAddress'
@@ -34,3 +36,22 @@ objectclass ( 2.16.840.1.113730.3.2.TBD
 	SUP top AUXILIARY
 	MAY	( mailLocalAddress $ mailHost $ mailRoutingAddress ) )
 
+
+#
+# draft-srivastava-ldap-mail-00.html
+#   !!!EXPIRED!!!
+attributetype ( 1.3.6.1.4.1.42.2.27.2.1.15
+	NAME 'rfc822MailMember'
+	DESC 'rfc822 mail address of group member(s)'
+	EQUALITY caseIgnoreIA5Match
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+# 
+# !!!no I-D!!!
+#
+objectclass ( 1.3.6.1.4.1.42.2.27.1.2.5
+	NAME 'nisMailAlias'
+	DESC 'NIS mail alias'
+	SUP top STRUCTURAL
+	MUST cn
+	MAY rfc822MailMember )
