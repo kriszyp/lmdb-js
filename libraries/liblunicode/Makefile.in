@@ -42,6 +42,6 @@ install-local: $(PROGRAMS) FORCE
 $(XXSRCS) : .links
 
 clean-local: FORCE
-	@$(RM) *.dat .links
+	@$(RM) *.dat .links $(XXHEADERS)
 
 depend-common: .links
