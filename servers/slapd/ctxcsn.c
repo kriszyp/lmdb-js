@@ -30,18 +30,24 @@ const struct berval slap_ldapsync_bv = BER_BVC("ldapsync");
 const struct berval slap_ldapsync_cn_bv = BER_BVC("cn=ldapsync");
 
 void
-slap_get_commit_csn( Operation *op, struct berval *csn )
+slap_get_commit_csn(
+	Operation *op,
+	struct berval *maxcsn,
+	struct berval *curcsn
+)
 {
 	struct slap_csn_entry *csne, *committed_csne = NULL;
 	int i = 0;
 
-	csn->bv_val = NULL;
-	csn->bv_len = 0;
+	if ( maxcsn ) {
+		BER_BVZERO( maxcsn );
+	}
 
 	ldap_pvt_thread_mutex_lock( op->o_bd->be_pcl_mutexp );
 
 	LDAP_TAILQ_FOREACH( csne, op->o_bd->be_pending_csn_list, ce_csn_link ) {
 		if ( csne->ce_opid == op->o_opid && csne->ce_connid == op->o_connid ) {
+			if ( curcsn ) *curcsn = csne->ce_csn;
 			csne->ce_state = SLAP_CSN_COMMIT;
 			break;
 		}
@@ -52,7 +58,7 @@ slap_get_commit_csn( Operation *op, struct berval *csn )
 		if ( csne->ce_state == SLAP_CSN_PENDING ) break;
 	}
 
-	if ( committed_csne ) ber_dupbv_x( csn, &committed_csne->ce_csn, op->o_tmpmemctx );
+	if ( committed_csne && maxcsn ) *maxcsn = committed_csne->ce_csn;
 	ldap_pvt_thread_mutex_unlock( op->o_bd->be_pcl_mutexp );
 }
 
