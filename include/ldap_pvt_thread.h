@@ -29,19 +29,23 @@
 LDAP_BEGIN_DECL
 
 typedef pthread_t		ldap_pvt_thread_t;
-typedef pthread_attr_t		ldap_pvt_thread_attr_t;
 typedef pthread_mutex_t		ldap_pvt_thread_mutex_t;
-typedef pthread_mutexattr_t	ldap_pvt_thread_mutexattr_t;
 typedef pthread_cond_t		ldap_pvt_thread_cond_t;
-typedef pthread_condattr_t	ldap_pvt_thread_condattr_t;
-
-#define LDAP_PVT_THREAD_CREATE_DETACHED PTHREAD_CREATE_DETACHED 
-#define LDAP_PVT_THREAD_CREATE_JOINABLE PTHREAD_CREATE_JOINABLE 
 
 #if defined( _POSIX_REENTRANT_FUNCTIONS ) || \
 	defined( _POSIX_THREAD_SAFE_FUNCTIONS ) || \
 	defined( _POSIX_THREADSAFE_FUNCTIONS )
 #define HAVE_REENTRANT_FUNCTIONS 1
+#endif
+
+#if defined( HAVE_PTHREAD_GETCONCURRENCY ) || \
+	defined( HAVE_THR_GETCONCURRENCY )
+#define HAVE_GETCONCURRENCY 1
+#endif
+
+#if defined( HAVE_PTHREAD_SETCONCURRENCY ) || \
+	defined( HAVE_THR_SETCONCURRENCY )
+#define HAVE_SETCONCURRENCY 1
 #endif
 
 LDAP_END_DECL
@@ -58,23 +62,17 @@ LDAP_END_DECL
 LDAP_BEGIN_DECL
 
 typedef cthread_t		ldap_pvt_thread_t;
-typedef int			ldap_pvt_thread_attr_t;
 typedef struct mutex		ldap_pvt_thread_mutex_t;
-typedef int			ldap_pvt_thread_mutexattr_t;
 typedef struct condition	ldap_pvt_thread_cond_t;
-typedef int			ldap_pvt_thread_condattr_t;
-
-#define LDAP_PVT_THREAD_CREATE_DETACHED 1
-#define LDAP_PVT_THREAD_CREATE_JOINABLE 0
 
 LDAP_END_DECL
 
 #elif defined( HAVE_THR )
-/**************************************
- *                                    *
- * thread definitions for Solaris LWP *
- *                                    *
- **************************************/
+/********************************************
+ *                                          *
+ * thread definitions for Solaris LWP (THR) *
+ *                                          *
+ ********************************************/
 
 #include <thread.h>
 #include <synch.h>
@@ -82,16 +80,17 @@ LDAP_END_DECL
 LDAP_BEGIN_DECL
 
 typedef thread_t		ldap_pvt_thread_t;
-typedef int			ldap_pvt_thread_attr_t;
 typedef mutex_t			ldap_pvt_thread_mutex_t;
-typedef int			ldap_pvt_thread_mutexattr_t;
 typedef cond_t			ldap_pvt_thread_cond_t;
-typedef int			ldap_pvt_thread_condattr_t;
-
-#define LDAP_PVT_THREAD_CREATE_DETACHED THR_DETACHED
-#define LDAP_PVT_THREAD_CREATE_JOINABLE 0
 
 #define HAVE_REENTRANT_FUNCTIONS 1
+
+#ifdef HAVE_THR_GETCONCURRENCY
+#define HAVE_GETCONCURRENCY 1
+#endif
+#ifdef HAVE_THR_SETCONCURRENCY
+#define HAVE_SETCONCURRENCY 1
+#endif
 
 LDAP_END_DECL
 
@@ -108,23 +107,14 @@ LDAP_END_DECL
 LDAP_BEGIN_DECL
 
 typedef thread_t		ldap_pvt_thread_t;
-typedef int			ldap_pvt_thread_attr_t;
 typedef mon_t			ldap_pvt_thread_mutex_t;
-typedef int			ldap_pvt_thread_mutexattr_t;
 struct lwpcv {
 	int		lcv_created;
 	cv_t		lcv_cv;
 };
 typedef struct lwpcv		ldap_pvt_thread_cond_t;
-typedef int			ldap_pvt_thread_condattr_t;
-
-#define LDAP_PVT_THREAD_CREATE_DETACHED 1
-#define LDAP_PVT_THREAD_CREATE_JOINABLE 0
 
 #define HAVE_REENTRANT_FUNCTIONS 1
-
-stkalign_t *ldap_pvt_thread_get_stack( int *stacknop );
-void ldap_pvt_thread_free_stack( int *stackno );
 
 LDAP_END_DECL
 
@@ -136,14 +126,8 @@ LDAP_END_DECL
 LDAP_BEGIN_DECL
 
 typedef HANDLE			ldap_pvt_thread_t;
-typedef int			ldap_pvt_thread_attr_t;
 typedef HANDLE			ldap_pvt_thread_mutex_t;
-typedef int			ldap_pvt_thread_mutexattr_t;
 typedef HANDLE			ldap_pvt_thread_cond_t;
-typedef int			ldap_pvt_thread_condattr_t;
-
-#define LDAP_PVT_THREAD_CREATE_DETACHED 0
-#define LDAP_PVT_THREAD_CREATE_JOINABLE 0
 
 LDAP_END_DECL
 
@@ -163,14 +147,8 @@ LDAP_BEGIN_DECL
 #endif
 
 typedef int			ldap_pvt_thread_t;
-typedef int			ldap_pvt_thread_attr_t;
 typedef int			ldap_pvt_thread_mutex_t;
-typedef int			ldap_pvt_thread_mutexattr_t;
 typedef int			ldap_pvt_thread_cond_t;
-typedef int			ldap_pvt_thread_condattr_t;
-
-#define LDAP_PVT_THREAD_CREATE_DETACHED 0
-#define LDAP_PVT_THREAD_CREATE_JOINABLE 0
 
 LDAP_END_DECL
 
@@ -178,22 +156,42 @@ LDAP_END_DECL
 
 #ifndef NO_THREADS
 #	define HAVE_THREADS 1
+
 #endif
 
 LDAP_BEGIN_DECL
 
+LDAP_F int
+ldap_pvt_thread_initialize LDAP_P(( void ));
+
+LDAP_F unsigned int
+ldap_pvt_thread_sleep LDAP_P(( unsigned int s ));
+
+#ifdef HAVE_GETCONCURRENCY
+LDAP_F int
+ldap_pvt_thread_getconcurrency LDAP_P(( void ));
+#endif
+#ifdef HAVE_SETCONCURRENCY
+#	ifndef LDAP_THREAD_CONCURRENCY
+	/* three concurrent threads should be enough */
+#	define LDAP_THREAD_CONCURRENCY	3
+#	endif
+LDAP_F int
+ldap_pvt_thread_setconcurrency LDAP_P(( int ));
+#endif
+
 LDAP_F int 
-ldap_pvt_thread_create LDAP_P(( ldap_pvt_thread_t * thread, 
-			       ldap_pvt_thread_attr_t *attr,
-			       void *(*start_routine)( void *), 
-			       void *arg));
+ldap_pvt_thread_create LDAP_P((
+	ldap_pvt_thread_t * thread, 
+	int	detach,
+	void *(*start_routine)( void * ), 
+	void *arg));
 
 LDAP_F void 
 ldap_pvt_thread_exit LDAP_P(( void *retval ));
 
 LDAP_F int 
-ldap_pvt_thread_join LDAP_P(( ldap_pvt_thread_t thread, 
-			     void **thread_return ));
+ldap_pvt_thread_join LDAP_P(( ldap_pvt_thread_t thread, void **status ));
 
 LDAP_F int 
 ldap_pvt_thread_kill LDAP_P(( ldap_pvt_thread_t thread, int signo ));
@@ -202,18 +200,7 @@ LDAP_F int
 ldap_pvt_thread_yield LDAP_P(( void ));
 
 LDAP_F int 
-ldap_pvt_thread_attr_init LDAP_P(( ldap_pvt_thread_attr_t *attr ));
-
-LDAP_F int 
-ldap_pvt_thread_attr_destroy LDAP_P(( ldap_pvt_thread_attr_t *attr ));
-
-LDAP_F int 
-ldap_pvt_thread_attr_setdetachstate LDAP_P(( ldap_pvt_thread_attr_t *attr, 
-					    int dstate ));
-
-LDAP_F int 
-ldap_pvt_thread_cond_init LDAP_P(( ldap_pvt_thread_cond_t *cond,
-				  ldap_pvt_thread_condattr_t *attr ));
+ldap_pvt_thread_cond_init LDAP_P(( ldap_pvt_thread_cond_t *cond ));
 
 LDAP_F int 
 ldap_pvt_thread_cond_signal LDAP_P(( ldap_pvt_thread_cond_t *cond ));
@@ -222,12 +209,12 @@ LDAP_F int
 ldap_pvt_thread_cond_broadcast LDAP_P(( ldap_pvt_thread_cond_t *cond ));
 
 LDAP_F int 
-ldap_pvt_thread_cond_wait LDAP_P(( ldap_pvt_thread_cond_t *cond, 
-				  ldap_pvt_thread_mutex_t *mutex ));
+ldap_pvt_thread_cond_wait LDAP_P((
+	ldap_pvt_thread_cond_t *cond, 
+	ldap_pvt_thread_mutex_t *mutex ));
 
 LDAP_F int 
-ldap_pvt_thread_mutex_init LDAP_P(( ldap_pvt_thread_mutex_t *mutex,
-				   ldap_pvt_thread_mutexattr_t *attr ));
+ldap_pvt_thread_mutex_init LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
 LDAP_F int 
 ldap_pvt_thread_mutex_destroy LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
@@ -236,20 +223,23 @@ LDAP_F int
 ldap_pvt_thread_mutex_lock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
 LDAP_F int 
+ldap_pvt_thread_mutex_trylock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
+
+LDAP_F int 
 ldap_pvt_thread_mutex_unlock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
 typedef struct ldap_pvt_thread_rdwr_var {
-	int readers_reading;
-	int writer_writing;
-	ldap_pvt_thread_mutex_t mutex;
-	ldap_pvt_thread_cond_t lock_free;
+	int lt_readers_reading;
+	int lt_writer_writing;
+	ldap_pvt_thread_mutex_t lt_mutex;
+	ldap_pvt_thread_cond_t lt_lock_free;
 } ldap_pvt_thread_rdwr_t;
 
-typedef void * ldap_pvt_thread_rdwrattr_t;
+#define LDAP_PVT_THREAD_CREATE_DETACHED 1
+#define LDAP_PVT_THREAD_CREATE_JOINABLE 0
 
 LDAP_F int 
-ldap_pvt_thread_rdwr_init LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp, 
-				  ldap_pvt_thread_rdwrattr_t *attrp));
+ldap_pvt_thread_rdwr_init LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 LDAP_F int 
 ldap_pvt_thread_rdwr_rlock LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 LDAP_F int 

@@ -30,17 +30,17 @@ ldbm_back_add(
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", dn, 0, 0);
 
 	/* nobody else can add until we lock our parent */
-	pthread_mutex_lock(&li->li_add_mutex);
+	ldap_pvt_thread_mutex_lock(&li->li_add_mutex);
 
 	if ( ( dn2id( be, dn ) ) != NOID ) {
-		pthread_mutex_unlock(&li->li_add_mutex);
+		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 		entry_free( e );
 		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, "", "" );
 		return( -1 );
 	}
 
 	if ( global_schemacheck && oc_schema_check( e ) != 0 ) {
-		pthread_mutex_unlock(&li->li_add_mutex);
+		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 
 		Debug( LDAP_DEBUG_TRACE, "entry failed schema check\n",
 			0, 0, 0 );
@@ -62,7 +62,7 @@ ldbm_back_add(
 
 		/* get parent with writer lock */
 		if ( (p = dn2entry_w( be, pdn, &matched )) == NULL ) {
-			pthread_mutex_unlock(&li->li_add_mutex);
+			ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n", 0,
 			    0, 0 );
 			send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
@@ -78,7 +78,7 @@ ldbm_back_add(
 		}
 
 		/* don't need the add lock anymore */
-		pthread_mutex_unlock(&li->li_add_mutex);
+		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 
 		free(pdn);
 
@@ -104,7 +104,7 @@ ldbm_back_add(
 	} else {
 		/* no parent, must be adding entry to root */
 		if ( ! be_isroot( be, op->o_ndn ) ) {
-			pthread_mutex_unlock(&li->li_add_mutex);
+			ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 			Debug( LDAP_DEBUG_TRACE, "no parent & not root\n", 0,
 			    0, 0 );
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
@@ -118,9 +118,9 @@ ldbm_back_add(
 		 * no parent, acquire the root write lock
 		 * and release the add lock.
 		 */
-		pthread_mutex_lock(&li->li_root_mutex);
+		ldap_pvt_thread_mutex_lock(&li->li_root_mutex);
 		rootlock = 1;
-		pthread_mutex_unlock(&li->li_add_mutex);
+		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 	}
 
 	/* acquire required reader/writer lock */
@@ -132,7 +132,7 @@ ldbm_back_add(
 
 		if ( rootlock ) {
 			/* release root lock */
-			pthread_mutex_unlock(&li->li_root_mutex);
+			ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
 		}
 
 		Debug( LDAP_DEBUG_ANY, "add: could not lock entry\n",
@@ -158,7 +158,7 @@ ldbm_back_add(
 		}
 		if ( rootlock ) {
 			/* release root lock */
-			pthread_mutex_unlock(&li->li_root_mutex);
+			ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
 		}
 
 		Debug( LDAP_DEBUG_ANY, "cache_add_entry_lock failed\n", 0, 0,
@@ -228,7 +228,7 @@ return_results:;
 
 	if ( rootlock ) {
 		/* release root lock */
-		pthread_mutex_unlock(&li->li_root_mutex);
+		ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
 	}
 
 	cache_set_state( &li->li_cache, e, 0 );

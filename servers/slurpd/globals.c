@@ -60,7 +60,7 @@ init_globals( void )
 	fprintf( stderr, "Cannot initialize status data\n" );
 	exit( 1 );
     }
-    pthread_mutex_init( &(g->rej_mutex), pthread_mutexattr_default );
+    ldap_pvt_thread_mutex_init( &(g->rej_mutex) );
     if ( Rq_init( &(g->rq)) < 0 ) {
 	fprintf( stderr, "Cannot initialize queue\n" );
 	exit( 1 );

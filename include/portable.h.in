@@ -331,26 +331,11 @@
 /* Define if you have the mkstemp function.  */
 #undef HAVE_MKSTEMP
 
-/* Define if you have the pthread_attr_create function.  */
-#undef HAVE_PTHREAD_ATTR_CREATE
-
-/* Define if you have the pthread_attr_delete function.  */
-#undef HAVE_PTHREAD_ATTR_DELETE
-
-/* Define if you have the pthread_attr_destroy function.  */
-#undef HAVE_PTHREAD_ATTR_DESTROY
-
-/* Define if you have the pthread_attr_init function.  */
-#undef HAVE_PTHREAD_ATTR_INIT
-
-/* Define if you have the pthread_attr_setdetach_np function.  */
-#undef HAVE_PTHREAD_ATTR_SETDETACH_NP
-
-/* Define if you have the pthread_attr_setdetachstate function.  */
-#undef HAVE_PTHREAD_ATTR_SETDETACHSTATE
-
 /* Define if you have the pthread_detach function.  */
 #undef HAVE_PTHREAD_DETACH
+
+/* Define if you have the pthread_getconcurrency function.  */
+#undef HAVE_PTHREAD_GETCONCURRENCY
 
 /* Define if you have the pthread_kill function.  */
 #undef HAVE_PTHREAD_KILL
@@ -427,8 +412,14 @@
 /* Define if you have the tempnam function.  */
 #undef HAVE_TEMPNAM
 
+/* Define if you have the thr_getconcurrency function.  */
+#undef HAVE_THR_GETCONCURRENCY
+
 /* Define if you have the thr_setconcurrency function.  */
 #undef HAVE_THR_SETCONCURRENCY
+
+/* Define if you have the thr_yield function.  */
+#undef HAVE_THR_YIELD
 
 /* Define if you have the vsnprintf function.  */
 #undef HAVE_VSNPRINTF

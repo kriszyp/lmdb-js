@@ -55,9 +55,9 @@ start_replica_thread(
 )
 {
     /* POSIX_THREADS or compatible */
-    if ( pthread_create( &(ri->ri_tid), NULL, replicate,
+    if ( ldap_pvt_thread_create( &(ri->ri_tid), NULL, replicate,
 	    (void *) ri ) != 0 ) {
-	Debug( LDAP_DEBUG_ANY, "replica \"%s:%d\" pthread_create failed\n",
+	Debug( LDAP_DEBUG_ANY, "replica \"%s:%d\" ldap_pvt_thread_create failed\n",
 		ri->ri_hostname, ri->ri_port, 0 );
 	return -1;
     }

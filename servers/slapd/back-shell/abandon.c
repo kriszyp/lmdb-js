@@ -26,7 +26,7 @@ shell_back_abandon(
 
 	/* no abandon command defined - just kill the process handling it */
 	if ( si->si_abandon == NULL ) {
-		pthread_mutex_lock( &conn->c_opsmutex );
+		ldap_pvt_thread_mutex_lock( &conn->c_opsmutex );
 		pid = -1;
 		for ( o = conn->c_ops; o != NULL; o = o->o_next ) {
 			if ( o->o_msgid == msgid ) {
@@ -34,7 +34,7 @@ shell_back_abandon(
 				break;
 			}
 		}
-		pthread_mutex_unlock( &conn->c_opsmutex );
+		ldap_pvt_thread_mutex_unlock( &conn->c_opsmutex );
 
 		if ( pid != -1 ) {
 			Debug( LDAP_DEBUG_ARGS, "shell killing pid %d\n", pid,

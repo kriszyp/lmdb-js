@@ -79,12 +79,12 @@ ldbm_back_modify(
 	}
 
 	/* check for abandon */
-	pthread_mutex_lock( &op->o_abandonmutex );
+	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 	if ( op->o_abandon ) {
-		pthread_mutex_unlock( &op->o_abandonmutex );
+		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 		goto error_return;
 	}
-	pthread_mutex_unlock( &op->o_abandonmutex );
+	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 	/* modify indexes */
 	if ( index_add_mods( be, modlist, e->e_id ) != 0 ) {
@@ -93,12 +93,12 @@ ldbm_back_modify(
 	}
 
 	/* check for abandon */
-	pthread_mutex_lock( &op->o_abandonmutex );
+	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 	if ( op->o_abandon ) {
-		pthread_mutex_unlock( &op->o_abandonmutex );
+		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 		goto error_return;
 	}
-	pthread_mutex_unlock( &op->o_abandonmutex );
+	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 	/* change the entry itself */
 	if ( id2entry_add( be, e ) != 0 ) {

@@ -18,7 +18,7 @@ BUILD_LDBM = @BUILD_LDBM@
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
 
-XLIBS = -lavl -lldif -lldap -llber -lldbm -llthread -llutil
+XLIBS = -lavl -lldif -lldbm -lldap_r -llber -llutil
 XXLIBS = $(LDAPD_LIBS) $(SLAPD_LIBS) \
 	$(PERL_LDFLAGS) $(LDBM_LIBS) $(KRB_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS)

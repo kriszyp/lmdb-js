@@ -50,19 +50,19 @@ do_abandon(
 	 * flag and abort the operation at a convenient time.
 	 */
 
-	pthread_mutex_lock( &conn->c_opsmutex );
+	ldap_pvt_thread_mutex_lock( &conn->c_opsmutex );
 	for ( o = conn->c_ops; o != NULL; o = o->o_next ) {
 		if ( o->o_msgid == id )
 			break;
 	}
 
 	if ( o != NULL ) {
-		pthread_mutex_lock( &o->o_abandonmutex );
+		ldap_pvt_thread_mutex_lock( &o->o_abandonmutex );
 		o->o_abandon = 1;
-		pthread_mutex_unlock( &o->o_abandonmutex );
+		ldap_pvt_thread_mutex_unlock( &o->o_abandonmutex );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "do_abandon: op not found\n", 0, 0,
 		    0 );
 	}
-	pthread_mutex_unlock( &conn->c_opsmutex );
+	ldap_pvt_thread_mutex_unlock( &conn->c_opsmutex );
 }

@@ -16,18 +16,59 @@
 
 #if defined( HAVE_PTHREADS )
 
-int 
-ldap_pvt_thread_create( ldap_pvt_thread_t * thread, 
-		        ldap_pvt_thread_attr_t *attr,
-		       void *(*start_routine)( void *), void *arg)
+int
+ldap_pvt_thread_initialize( void )
 {
-#if !defined( HAVE_PTHREADS_D4 )
-	/* This is a standard pthreads implementation. */
-	return pthread_create( thread, attr, start_routine, arg );
+#if defined( LDAP_THREAD_CONCURRENCY ) && HAVE_PTHREAD_SETCONCURRENCY
+	ldap_pvt_thread_setconcurrency( LDAP_THREAD_CONCURRENCY );
+#endif
+	return 0;
+}
+
+#ifdef HAVE_PTHREAD_SETCONCURRENCY
+int
+ldap_pvt_thread_set_concurrency(int n)
+{
+#ifdef HAVE_PTHREAD_SETCONCURRENCY
+	return pthread_setconcurrency( n );
+#elif HAVE_THR_SETCONCURRENCY
+	return pthread_setconcurrency( n );
 #else
-	/* This is a draft 4 or earlier implementation. */
-	return pthread_create( thread, *attr, start_routine, arg );
-#endif	
+	return 0;
+#endif
+}
+#endif
+
+#ifdef HAVE_PTHREAD_GETCONCURRENCY
+int
+ldap_pvt_thread_get_concurrency(void)
+{
+#ifdef HAVE_PTHREAD_GETCONCURRENCY
+	return pthread_getconcurrency();
+#elif HAVE_THR_GETCONCURRENCY
+	return pthread_getconcurrency();
+#else
+	return 0;
+#endif
+}
+#endif
+
+int 
+ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
+	int detach,
+	void *(*start_routine)( void * ),
+	void *arg)
+{
+	int rtn = pthread_create( thread, NULL, start_routine, arg );
+
+	if( detach ) {
+#ifdef HAVE_PTHREADS_FINAL
+		pthread_detach( *thread );
+#else
+		pthread_detach( thread );
+#endif
+	}
+	return rtn;
 }
 
 void 
@@ -65,57 +106,19 @@ ldap_pvt_thread_yield( void )
 {
 #ifdef HAVE_SCHED_YIELD
 	return sched_yield();
-#else
+#elif HAVE_PTHREAD_YIELD
 	return pthread_yield();
+#elif HAVE_THR_YIELD
+	return thr_yield();
+#else
+	return 0;
 #endif   
 }
 
 int 
-ldap_pvt_thread_attr_init( ldap_pvt_thread_attr_t *attr )
+ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 {
-#if defined( HAVE_PTHREAD_ATTR_INIT )
-	return pthread_attr_init( attr );
-#elif defined( HAVE_PTHREAD_ATTR_CREATE )
-	return pthread_attr_create( attr );
-#else
-	No way to init attr, so cause an error.
-#endif
-}
-	
-int 
-ldap_pvt_thread_attr_destroy( ldap_pvt_thread_attr_t *attr )
-{
-#if defined( HAVE_PTHREAD_ATTR_DESTROY )
-	return pthread_attr_destroy( attr );
-#elif defined( HAVE_PTHREAD_ATTR_DELETE )
-	return pthread_attr_delete( attr );
-#else
-	No way to destroy attr, so cause an error.
-#endif
-}
-
-int 
-ldap_pvt_thread_attr_setdetachstate( ldap_pvt_thread_attr_t *attr, int dstate )
-{
-#if defined( HAVE_PTHREAD_ATTR_SETDETACHSTATE )
-	return pthread_attr_setdetachstate( attr, dstate );
-#elif defined( HAVE_PTHREAD_ATTR_SETDETACH_NP )
-	return pthread_attr_setdetach_np( attr, dstate );
-#else
-	No way to set state, so cause an error.
-#endif
-}
-
-int 
-ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond, 
-			  ldap_pvt_thread_condattr_t *attr )
-{
-#if defined( HAVE_PTHREADS_D4 )
-	return pthread_cond_init( cond, 
-				 attr ? attr : pthread_condattr_default );
-#else	
-	return pthread_cond_init( cond, attr );
-#endif	
+	return pthread_cond_init( cond, NULL );
 }
 	
 int 
@@ -138,15 +141,9 @@ ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond,
 }
 
 int 
-ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex,
-			   ldap_pvt_thread_mutexattr_t *attr )
+ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
-#if defined( HAVE_PTHREADS_D4 )
-	return pthread_mutex_init( mutex,
-				  attr ? attr : pthread_mutexattr_default );
-#else	    
-	return pthread_mutex_init( mutex, attr );
-#endif	    
+	return pthread_mutex_init( mutex, NULL );
 }
 
 int 

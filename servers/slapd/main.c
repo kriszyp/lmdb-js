@@ -195,19 +195,15 @@ main( int argc, char **argv )
 
 		time( &starttime );
 
-		if ( status = pthread_create( &listener_tid, NULL,
+		if ( status = ldap_pvt_thread_create( &listener_tid, 0,
 			slapd_daemon, (void *) port ) != 0 )
 		{
 			Debug( LDAP_DEBUG_ANY,
-			    "listener pthread_create failed (%d)\n", status, 0, 0 );
+			    "listener ldap_pvt_thread_create failed (%d)\n", status, 0, 0 );
 			exit( 1 );
 		}
 
-#ifdef HAVE_PTHREADS_FINAL
-		pthread_join( listener_tid, (void *) NULL );
-#else
-		pthread_join( listener_tid, (void *) &status );
-#endif
+		ldap_pvt_thread_join( listener_tid, (void *) NULL );
 
 		return 0;
 
@@ -230,9 +226,9 @@ main( int argc, char **argv )
 		c.c_sb.sb_ber.ber_buf = NULL;
 		c.c_sb.sb_ber.ber_ptr = NULL;
 		c.c_sb.sb_ber.ber_end = NULL;
-		pthread_mutex_init( &c.c_dnmutex, pthread_mutexattr_default );
-		pthread_mutex_init( &c.c_opsmutex, pthread_mutexattr_default );
-		pthread_mutex_init( &c.c_pdumutex, pthread_mutexattr_default );
+		ldap_pvt_thread_mutex_init( &c.c_dnmutex );
+		ldap_pvt_thread_mutex_init( &c.c_opsmutex );
+		ldap_pvt_thread_mutex_init( &c.c_pdumutex );
 #ifdef notdefcldap
 		c.c_sb.sb_addrs = (void **) saddrlist;
 		c.c_sb.sb_fromaddr = &faddr;
@@ -262,9 +258,9 @@ main( int argc, char **argv )
 
 		while ( (tag = ber_get_next( &c.c_sb, &len, &ber ))
 		    == LDAP_TAG_MESSAGE ) {
-			pthread_mutex_lock( &currenttime_mutex );
+			ldap_pvt_thread_mutex_lock( &currenttime_mutex );
 			time( &currenttime );
-			pthread_mutex_unlock( &currenttime_mutex );
+			ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 
 			if ( (tag = ber_get_int( &ber, &msgid ))
 			    != LDAP_TAG_MSGID ) {

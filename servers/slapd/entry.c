@@ -220,8 +220,8 @@ entry_free( Entry *e )
 
 	/* XXX check that no reader/writer locks exist */
 #ifdef LDAP_DEBUG
-	assert( !pthread_rdwr_wchk_np(&e->e_rdwr) &&
-		!pthread_rdwr_rchk_np(&e->e_rdwr) );
+	assert( !ldap_pvt_thread_rdwr_wchk(&e->e_rdwr) &&
+		!ldap_pvt_thread_rdwr_rchk(&e->e_rdwr) );
 #endif
 
 	if ( e->e_dn != NULL ) {
@@ -243,9 +243,9 @@ entry_rdwr_lock(Entry *e, int rw)
 	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%slock: ID: %ld\n",
 		rw ? "w" : "r", e->e_id, 0);
 	if (rw)
-		return pthread_rdwr_wlock_np(&e->e_rdwr);
+		return ldap_pvt_thread_rdwr_wlock(&e->e_rdwr);
 	else
-		return pthread_rdwr_rlock_np(&e->e_rdwr);
+		return ldap_pvt_thread_rdwr_rlock(&e->e_rdwr);
 }
 
 int
@@ -266,9 +266,9 @@ entry_rdwr_unlock(Entry *e, int rw)
 	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%sunlock: ID: %ld\n",
 		rw ? "w" : "r", e->e_id, 0);
 	if (rw)
-		return pthread_rdwr_wunlock_np(&e->e_rdwr);
+		return ldap_pvt_thread_rdwr_wunlock(&e->e_rdwr);
 	else
-		return pthread_rdwr_runlock_np(&e->e_rdwr);
+		return ldap_pvt_thread_rdwr_runlock(&e->e_rdwr);
 }
 
 int
@@ -286,5 +286,5 @@ entry_rdwr_wunlock(Entry *e)
 int
 entry_rdwr_init(Entry *e)
 {
-	return pthread_rdwr_init_np(&e->e_rdwr, NULL);
+	return ldap_pvt_thread_rdwr_init( &e->e_rdwr );
 }

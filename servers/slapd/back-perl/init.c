@@ -24,7 +24,7 @@
 
 
 PerlInterpreter *perl_interpreter = NULL;
-pthread_mutex_t	perl_interpreter_mutex;
+ldap_pvt_thread_mutex_t	perl_interpreter_mutex;
 
 
 /**********************************************************
@@ -46,8 +46,8 @@ perl_back_init(
 		perl_parse(perl_interpreter, NULL, 3, embedding, (char **)NULL);
 		perl_run(perl_interpreter);
 		
-		pthread_mutex_init( &perl_interpreter_mutex,
-			pthread_mutexattr_default );
+		ldap_pvt_thread_mutex_init( &perl_interpreter_mutex,
+			ldap_pvt_thread_mutexattr_default );
 	}
 
 	be->be_private = (PerlBackend *) ch_malloc( sizeof(PerlBackend) );

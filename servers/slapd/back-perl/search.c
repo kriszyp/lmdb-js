@@ -50,7 +50,7 @@ perl_back_search(
 	char *buf;
 	int i;
 
-	pthread_mutex_lock( &perl_interpreter_mutex );	
+	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
 	{
 		dSP; ENTER; SAVETMPS;
@@ -95,7 +95,7 @@ perl_back_search(
 		PUTBACK; FREETMPS; LEAVE;
 	}
 
-	pthread_mutex_unlock( &perl_interpreter_mutex );	
+	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
 	send_ldap_result( conn, op, err, matched, info );
 }

@@ -618,30 +618,28 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			if test $ac_cv_func_sched_yield = no -a \
 				$ac_cv_func_pthread_yield = no ; then
 				dnl Solaris has sched_yield() in -lposix4
-				AC_CHECK_LIB(posix4, sched_yield,
-					[LTHREAD_LIBS="$LTHREAD_LIBS -lposix4"
-					AC_DEFINE(HAVE_SCHED_YIELD,1)
-					ac_cv_func_sched_yield=yes],
-					[ac_cv_func_sched_yield=no])
+				dnl but we'll use thr_yield instead.
+				AC_CHECK_FUNCS(thr_yield)
 			fi
 			if test $ac_cv_func_sched_yield = no -a \
-				$ac_cv_func_pthread_yield = no ; then
+				$ac_cv_func_pthread_yield = no -a \
+				"$ac_cv_func_thr_yield" = no ; then
 				AC_MSG_WARN([could not locate sched_yield() or pthread_yield()])
 			fi
 
 			dnl Check functions for compatibility
 			AC_CHECK_FUNCS(pthread_kill pthread_detach)
 
-			AC_CHECK_FUNCS( \
-				pthread_attr_create pthread_attr_init \
-				pthread_attr_destroy pthread_attr_delete \
-				pthread_attr_setdetachstate pthread_attr_setdetach_np \
-			)
+			if test $ac_cv_func_pthread_detach = no ; then
+				AC_MSG_ERROR([could not locate pthread_detach()])
+			fi
 
 			dnl Check for setconcurreny functions
 			AC_CHECK_FUNCS(	\
 				pthread_setconcurrency \
+				pthread_getconcurrency \
 				thr_setconcurrency \
+				thr_getconcurrency \
 			)
 
 			AC_MSG_CHECKING([if pthread_create() works])
@@ -834,21 +832,11 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 				ol_with_yielding_select=yes
 			fi
 
-			AC_CACHE_CHECK([for misplaced posix thread in headers],
-				[ol_cv_header_misplaced_pthreads], [
-				AC_TRY_COMPILE([
-#include <sys/types.h>
-typedef double pthread_t;
-				], [
-				pthread_t thread = 0.0;
-				],
-				[ol_cv_header_misplaced_pthreads=no],
-				[ol_cv_header_misplaced_pthreads=yes])
-			])
-
-			if test "$ol_cv_header_misplaced_pthreads" = yes ; then
-				AC_MSG_ERROR([pthread types are misplaced, use --with-threads=posix]);
-			fi
+			dnl Check for setconcurreny functions
+			AC_CHECK_FUNCS(	\
+				thr_setconcurrency \
+				thr_getconcurrency \
+			)
 		fi
 	fi
 
@@ -981,22 +969,6 @@ if test $ol_link_threads = no ; then
 	if test $ol_with_threads = auto ; then
 		AC_MSG_WARN([no suitable thread support, disabling threads])
 		ol_with_threads=no
-	fi
-
-	AC_CACHE_CHECK([for misplaced posix thread in headers],
-		[ol_cv_header_misplaced_pthreads], [
-		AC_TRY_COMPILE([
-#include <sys/types.h>
-typedef double pthread_t;
-			], [
-				pthread_t thread = 0.0;
-			],
-			[ol_cv_header_misplaced_pthreads=no],
-			[ol_cv_header_misplaced_pthreads=yes])
-	])
-
-	if test "$ol_cv_header_misplaced_pthreads" = yes ; then
-		AC_MSG_ERROR([pthread types are misplaced, use --with-threads=posix]);
 	fi
 
 	AC_DEFINE(NO_THREADS,1)
@@ -1479,7 +1451,6 @@ libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.
 libraries/libldap_r/Makefile:build/top.mk:libraries/libldap_r/Makefile.in:build/lib.mk:build/lib-shared.mk	\
 libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk:build/lib-static.mk	\
-libraries/liblthread/Makefile:build/top.mk:libraries/liblthread/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk	\
 servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 servers/ldapd/Makefile:build/top.mk:servers/ldapd/Makefile.in:build/srv.mk \

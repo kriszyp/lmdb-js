@@ -10,7 +10,7 @@ LDAP_BEGIN_DECL
 #define EVAL_BUF_SIZE 500
 
 extern PerlInterpreter *perl_interpreter;
-extern pthread_mutex_t  perl_interpreter_mutex;
+extern ldap_pvt_thread_mutex_t  perl_interpreter_mutex;
 
 typedef struct perl_backend_instance {
   char *pb_module_name;

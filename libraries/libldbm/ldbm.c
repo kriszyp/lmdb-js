@@ -19,7 +19,7 @@
 #include <ac/errno.h>
 
 #include "ldbm.h"
-#include "lthread.h"
+#include "ldap_pvt_thread.h"
 
 #if defined( LDBM_USE_DBHASH ) || defined( LDBM_USE_DBBTREE )
 
@@ -87,9 +87,9 @@ void ldbm_initialize( void )
 #else
 
 /* DB 1.85 is non-reentrant */
-static pthread_mutex_t ldbm_big_mutex;
-#define LDBM_LOCK	(pthread_mutex_lock(&ldbm_big_mutex))
-#define LDBM_UNLOCK	(pthread_mutex_unlock(&ldbm_big_mutex))
+static ldap_pvt_thread_mutex_t ldbm_big_mutex;
+#define LDBM_LOCK	(ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
+#define LDBM_UNLOCK	(ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
 
 void ldbm_initialize( void )
 {
@@ -97,7 +97,7 @@ void ldbm_initialize( void )
 
 	if(initialized++) return;
 
-	pthread_mutex_init( &ldbm_big_mutex,  pthread_mutexattr_default );
+	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
 }
 
 #endif
@@ -373,9 +373,9 @@ ldbm_errno( LDBM ldbm )
 #include <sys/stat.h>
 
 /* GDBM is non-reentrant */
-static pthread_mutex_t ldbm_big_mutex;
-#define LDBM_LOCK	(pthread_mutex_lock(&ldbm_big_mutex))
-#define LDBM_UNLOCK	(pthread_mutex_unlock(&ldbm_big_mutex))
+static ldap_pvt_thread_mutex_t ldbm_big_mutex;
+#define LDBM_LOCK	(ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
+#define LDBM_UNLOCK	(ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
 
 void ldbm_initialize( void )
 {
@@ -383,7 +383,7 @@ void ldbm_initialize( void )
 
 	if(initialized++) return;
 
-	pthread_mutex_init( &ldbm_big_mutex,  pthread_mutexattr_default );
+	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
 }
 
 /*****************************************************************
@@ -521,9 +521,9 @@ ldbm_errno( LDBM ldbm )
 #elif defined( HAVE_NDBM )
 
 /* GDBM is non-reentrant */
-static pthread_mutex_t ldbm_big_mutex;
-#define LDBM_LOCK	(pthread_mutex_lock(&ldbm_big_mutex))
-#define LDBM_UNLOCK	(pthread_mutex_unlock(&ldbm_big_mutex))
+static ldap_pvt_thread_mutex_t ldbm_big_mutex;
+#define LDBM_LOCK	(ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
+#define LDBM_UNLOCK	(ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
 
 void ldbm_initialize( void )
 {
@@ -531,7 +531,7 @@ void ldbm_initialize( void )
 
 	if(initialized++) return;
 
-	pthread_mutex_init( &ldbm_big_mutex,  pthread_mutexattr_default );
+	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
 }
 
 /*****************************************************************

@@ -14,28 +14,28 @@ XXSRCS	= apitest.c test.c tmpltest.c \
 	free.c disptmpl.c srchpref.c dsparse.c tmplout.c sort.c \
 	getdn.c getentry.c getattr.c getvalues.c addentry.c \
 	request.c getdxbyname.c os-ip.c url.c charset.c \
-	init.c options.c string.c util-int.c
+	init.c options.c print.c string.c util-int.c
 SRCS	= thr_posix.c thr_cthreads.c thr_thr.c thr_lwp.c thr_nt.c \
-	thr_stub.c rdwr.c
+	thr_sleep.c thr_stub.c rdwr.c
 OBJS	= bind.lo controls.lo open.lo result.lo error.lo compare.lo search.lo \
 	modify.lo add.lo modrdn.lo delete.lo abandon.lo ufn.lo cache.lo \
 	getfilter.lo sbind.lo kbind.lo unbind.lo friendly.lo cldap.lo \
 	free.lo disptmpl.lo srchpref.lo dsparse.lo tmplout.lo sort.lo \
 	getdn.lo getentry.lo getattr.lo getvalues.lo addentry.lo \
 	request.lo getdxbyname.lo os-ip.lo url.lo charset.lo \
-	init.lo options.lo string.lo util-int.lo \
+	init.lo options.lo print.lo string.lo util-int.lo \
 	thr_posix.lo thr_cthreads.lo thr_thr.lo thr_lwp.lo thr_nt.lo \
-	thr_stub.lo rdwr.lo	
+	thr_sleep.lo thr_stub.lo rdwr.lo	
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
 XDEFS = -DLDAP_R_COMPILE -I$(XXDIR)
-XLIBS = -lldap_r -llber -llthread -llutil
+XLIBS = -lldap_r -llber
 XXLIBS = $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS)
 
-.links : FORCE
+.links :
 	@for i in $(XXSRCS); do \
 		$(RM) $$i ; \
 		$(LN_S) $(XXDIR)/$$i . ; \

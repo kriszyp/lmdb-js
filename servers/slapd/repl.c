@@ -33,10 +33,10 @@ replog(
 		return;
 	}
 
-	pthread_mutex_lock( &replog_mutex );
+	ldap_pvt_thread_mutex_lock( &replog_mutex );
 	if ( (fp = lock_fopen( be->be_replogfile ? be->be_replogfile :
 	    replogfile, "a", &lfp )) == NULL ) {
-		pthread_mutex_unlock( &replog_mutex );
+		ldap_pvt_thread_mutex_unlock( &replog_mutex );
 		return;
 	}
 
@@ -92,7 +92,7 @@ replog(
 	case LDAP_REQ_ADD:
 		e = change;
 		fprintf( fp, "changetype: add\n" );
-		pthread_mutex_lock( &entry2str_mutex );
+		ldap_pvt_thread_mutex_lock( &entry2str_mutex );
 		tmp = entry2str( e, &len, 0 );
 		while ( (tmp = strchr( tmp, '\n' )) != NULL ) {
 			tmp++;
@@ -100,7 +100,7 @@ replog(
 				break;
 		}
 		fprintf( fp, "%s", tmp );
-		pthread_mutex_unlock( &entry2str_mutex );
+		ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 		break;
 
 	case LDAP_REQ_DELETE:
@@ -116,5 +116,5 @@ replog(
 	fprintf( fp, "\n" );
 
 	lock_fclose( fp, lfp );
-	pthread_mutex_unlock( &replog_mutex );
+	ldap_pvt_thread_mutex_unlock( &replog_mutex );
 }

@@ -22,10 +22,16 @@
  *                                                                     *
  ***********************************************************************/
 
+int
+ldap_pvt_thread_initialize( void )
+{
+	return 0;
+}
+
 int 
 ldap_pvt_thread_create( ldap_pvt_thread_t * thread, 
-		       ldap_pvt_thread_attr_t *attr,
-		       void *(*start_routine)( void *), void *arg)
+	int detach,
+	void *(*start_routine)( void *), void *arg)
 {
 	*thread = cthread_fork( (cthread_fn_t) start_routine, arg);
 	return ( *thread == NULL ? -1 : 0 );	
@@ -63,28 +69,7 @@ ldap_pvt_thread_yield( void )
 }
 
 int 
-ldap_pvt_thread_attr_init( ldap_pvt_thread_attr_t *attr )
-{
-	*attr = 0;
-	return( 0 );
-}
-
-int 
-ldap_pvt_thread_attr_destroy( ldap_pvt_thread_attr_t *attr )
-{
-	return( 0 );
-}
-
-int 
-ldap_pvt_thread_attr_setdetachstate( ldap_pvt_thread_attr_t *attr, int dstate )
-{
-	*attr = dstate;
-	return( 0 );
-}
-
-int 
-ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond, 
-			  ldap_pvt_thread_condattr_t *attr )
+ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 {
 	condition_init( cond );
 	return( 0 );
@@ -113,8 +98,7 @@ ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond,
 }
 
 int 
-ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex,
-			   ldap_pvt_thread_mutexattr_t *attr )
+ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
 	mutex_init( mutex );
 	mutex->name = NULL;

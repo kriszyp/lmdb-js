@@ -33,7 +33,7 @@ perl_back_delete(
 
 	PerlBackend *perl_back = (PerlBackend *) be->be_private;
 
-	pthread_mutex_lock( &perl_interpreter_mutex );	
+	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
 	{
 		dSP; ENTER; SAVETMPS;
@@ -57,7 +57,7 @@ perl_back_delete(
 		PUTBACK; FREETMPS; LEAVE;
 	}
 
-	pthread_mutex_unlock( &perl_interpreter_mutex );	
+	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
 	if( return_code != 0 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );

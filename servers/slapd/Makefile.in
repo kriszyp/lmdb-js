@@ -23,7 +23,7 @@ LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
 # $(LTHREAD_LIBS) must be last
-XLIBS = libbackends.a -lavl -lldbm -lldif -lldap -llber -llthread -llutil
+XLIBS = libbackends.a -lavl -lldbm -lldif -lldap_r -llber -llutil
 XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) \
 	$(PERL_LDFLAGS) $(KRB_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS)

@@ -22,98 +22,92 @@
  *                                                                     *
  ***********************************************************************/
 
-int 
-openldap_thread_create( openldap_thread_t * thread, 
-		       openldap_thread_attr_t *attr,
-		       void *(*start_routine)( void *), void *arg)
+int
+ldap_pvt_thread_initialize( void )
 {
+	return 0;
+}
+
+static void* ldap_int_status = NULL;
+
+int 
+ldap_pvt_thread_create( ldap_pvt_thread_t * thread, 
+	int detach,
+	void *(*start_routine)(void *),
+	void *arg)
+{
+	if( ! detach ) ldap_int_status = NULL;
 	start_routine( arg );
 	return 0;
 }
 
 void 
-openldap_thread_exit( void *retval )
+ldap_pvt_thread_exit( void *retval )
 {
+	if( retval != NULL ) {
+		ldap_int_status = retval;
+	}
 	return;
 }
 
 int 
-openldap_thread_join( openldap_thread_t thread, void **thread_return )
+ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **status )
+{
+	if(status != NULL) *status = ldap_int_status;
+	return 0;
+}
+
+int 
+ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 {
 	return 0;
 }
 
 int 
-openldap_thread_kill( openldap_thread_t thread, int signo )
+ldap_pvt_thread_yield( void )
 {
 	return 0;
 }
 
 int 
-openldap_thread_yield( void )
+ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 {
 	return 0;
 }
 
 int 
-openldap_thread_attr_init( openldap_thread_attr_t *attr )
+ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )
 {
 	return 0;
 }
 
 int 
-openldap_thread_attr_destroy( openldap_thread_attr_t *attr )
+ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond,
+			  ldap_pvt_thread_mutex_t *mutex )
 {
 	return 0;
 }
 
 int 
-openldap_thread_attr_setdetachstate( openldap_thread_attr_t *attr, int dstate )
+ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
 	return 0;
 }
 
 int 
-openldap_thread_cond_init( openldap_thread_cond_t *cond, 
-			  openldap_thread_condattr_t *attr )
+ldap_pvt_thread_mutex_destroy( ldap_pvt_thread_mutex_t *mutex )
 {
 	return 0;
 }
 
 int 
-openldap_thread_cond_signal( openldap_thread_cond_t *cond )
+ldap_pvt_thread_mutex_lock( ldap_pvt_thread_mutex_t *mutex )
 {
 	return 0;
 }
 
 int 
-openldap_thread_cond_wait( openldap_thread_cond_t *cond,
-			  openldap_thread_mutex_t *mutex )
-{
-	return 0;
-}
-
-int 
-openldap_thread_mutex_init( openldap_thread_mutex_t *mutex,
-			   openldap_thread_mutexattr_t *attr )
-{
-	return 0;
-}
-
-int 
-openldap_thread_mutex_destroy( openldap_thread_mutex_t *mutex )
-{
-	return 0;
-}
-
-int 
-openldap_thread_mutex_lock( openldap_thread_mutex_t *mutex )
-{
-	return 0;
-}
-
-int 
-openldap_thread_mutex_unlock( openldap_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 {
 	return 0;
 }

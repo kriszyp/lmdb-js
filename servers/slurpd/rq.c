@@ -49,7 +49,7 @@ Rq_lock(
     Rq	*rq
 )
 {
-    return( pthread_mutex_lock( &rq->rq_mutex ));
+    return( ldap_pvt_thread_mutex_lock( &rq->rq_mutex ));
 }
 
 
@@ -61,7 +61,7 @@ Rq_unlock(
     Rq	*rq
 )
 {
-    return( pthread_mutex_unlock( &rq->rq_mutex ));
+    return( ldap_pvt_thread_mutex_unlock( &rq->rq_mutex ));
 }
 
 
@@ -184,7 +184,7 @@ Rq_add(
     /* Increment count of items in queue */
     rq->rq_nre++;
     /* wake up any threads waiting for more work */
-    pthread_cond_broadcast( &rq->rq_more );
+    ldap_pvt_thread_cond_broadcast( &rq->rq_more );
 
     /* ... and unlock the queue */
     rq->rq_unlock( rq );
@@ -397,8 +397,8 @@ Rq_init(
     (*rq)->rq_getcount = Rq_getcount;
 
     /* Initialize private data */
-    pthread_mutex_init( &((*rq)->rq_mutex), pthread_mutexattr_default );
-    pthread_cond_init( &((*rq)->rq_more), pthread_condattr_default );
+    ldap_pvt_thread_mutex_init( &((*rq)->rq_mutex) );
+    ldap_pvt_thread_cond_init( &((*rq)->rq_more) );
     (*rq)->rq_head = NULL;
     (*rq)->rq_tail = NULL;
     (*rq)->rq_nre = 0;

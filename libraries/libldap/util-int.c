@@ -32,35 +32,30 @@
 
 #if defined( LDAP_R_COMPILE )
 # include <ldap_pvt_thread.h>
-# if !defined( HAVE_REENTRANT_FUNCTIONS )
-#  if !defined( HAVE_CTIME_R )
-#   define LDAP_INT_CTIME_MUTEX 1
-#  endif
-#  if !defined( HAVE_GETHOSTBYNAME_R )
-#   define LDAP_INT_GETHOSTBYNAME_MUTEX 1
-#  endif
-#  if !defined( HAVE_GETHOSTBYADDR_R )
-#   define LDAP_INT_GETHOSTBYADDR_MUTEX 1
-#  endif
-# endif /* defined( HAVE_REENTRANT_FUNCTIONS ) */
+#else
+# undef HAVE_REENTRANT_FUNCTIONS
+#endif
 
-#if defined( LDAP_INT_CTIME_MUTEX )
-static ldap_pvt_thread_mutex_t ldap_int_ctime_mutex;
+#if (defined( HAVE_CTIME_R ) || defined( HAVE_REENTRANT_FUNCTIONS)) \
+	&& defined( CTIME_R_NARGS )
+#	define USE_CTIME_R
 #endif
-#if defined( LDAP_INT_GETHOSTBYNAME_MUTEX )
-static ldap_pvt_thread_mutex_t ldap_int_gethostbyname_mutex;
-#endif
-#if defined( LDAP_INT_GETHOSTBYADDR_MUTEX )
-static ldap_pvt_thread_mutex_t ldap_int_gethostbyaddr_mutex;
-#endif
-#else /* LDAP_R_COMPILE */
-#undef HAVE_REENTRANT_FUNCTIONS
-#endif
+
+#ifdef LDAP_COMPILING_R
+# ifndef USE_CTIME_R
+	static ldap_pvt_thread_mutex_t ldap_int_ctime_mutex;
+# endif
+# ifndef HAVE_GETHOSTBYNAME_R
+	static ldap_pvt_thread_mutex_t ldap_int_gethostbyname_mutex;
+# endif
+# ifndef HAVE_GETHOSTBYADDR_R
+	static ldap_pvt_thread_mutex_t ldap_int_gethostbyaddr_mutex;
+# endif
+#endif /* LDAP_R_COMPILE */
 
 char *ldap_pvt_ctime( const time_t *tp, char *buf )
 {
-#if (defined( HAVE_CTIME_R ) || defined( HAVE_REENTRANT_FUNCTIONS)) \
-	&& defined( CTIME_R_NARGS )
+#ifdef USE_CTIME_R
 # if (CTIME_R_NARGS > 3) || (CTIME_R_NARGS < 2)
 	choke me!  nargs should have 2 or 3
 # elif CTIME_R_NARGS > 2
@@ -68,14 +63,15 @@ char *ldap_pvt_ctime( const time_t *tp, char *buf )
 # else
 	return ctime_r(tp,buf);
 # endif	  
+
 #else
-# if defined( LDAP_INT_CTIME_MUTEX )
+# ifdef LDAP_COMPILNG_R
 	ldap_pvt_thread_mutex_lock( &ldap_int_ctime_mutex );
-# endif	
+# endif
 	memcpy( buf, ctime(tp), 26 );
-# if defined( LDAP_INT_CTIME_MUTEX )
+# ifdef LDAP_COMPILNG_R
 	ldap_pvt_thread_mutex_unlock( &ldap_int_ctime_mutex );
-# endif	
+# endif
 	return buf;
 #endif	
 }
@@ -93,7 +89,7 @@ int ldap_pvt_gethostbyname_a(
 	struct hostent **result,
 	int *herrno_ptr )
 {
-#if defined( HAVE_GETHOSTBYNAME_R ) || defined( HAVE_REENTRANT_FUNCTIONS )
+#if defined( HAVE_GETHOSTBYNAME_R )
 # define NEED_SAFE_REALLOC 1   
 	int r=-1;
 	int buflen=BUFSTART;
@@ -115,7 +111,7 @@ int ldap_pvt_gethostbyname_a(
 		return r;
 	}
 	return -1;
-#elif defined( LDAP_INT_GETHOSTBYNAME_MUTEX )
+#elif defined( LDAP_COMPILING_R )
 # define NEED_COPY_HOSTENT   
 	struct hostent *he;
 	int	retval;
@@ -160,7 +156,7 @@ int ldap_pvt_gethostbyaddr_a(
 	struct hostent **result,
 	int *herrno_ptr )
 {
-#if defined( HAVE_GETHOSTBYADDR_R ) || defined( HAVE_REENTRANT_FUNCTIONS )
+#if defined( HAVE_GETHOSTBYADDR_R )
 # undef NEED_SAFE_REALLOC
 # define NEED_SAFE_REALLOC   
 	int r=-1;
@@ -184,7 +180,7 @@ int ldap_pvt_gethostbyaddr_a(
 		return r;
 	}
 	return -1;
-#elif defined( LDAP_INT_GETHOSTBYADDR_MUTEX )
+#elif defined( LDAP_COMPILING_R )
 # undef NEED_COPY_HOSTENT
 # define NEED_COPY_HOSTENT   
 	struct hostent *he;
@@ -227,18 +223,23 @@ void ldap_pvt_init_utils( void )
 	if (done)
 	  return;
 	done=1;
-#if defined( LDAP_INT_CTIME_MUTEX )
+
+#ifdef LDAP_COMPILING_R
+
+#if !defined( USE_CTIME_R ) && !defined( HAVE_REENTRANT_FUNCTIONS )
 	ldap_pvt_thread_mutex_init( &ldap_int_ctime_mutex, NULL );
-#endif	
-#if defined( LDAP_INT_GETHOSTBYNAME_MUTEX )
+#endif
+
+#if !defined( HAVE_GETHOSTBYNAME_R )
 	ldap_pvt_thread_mutex_init( &ldap_int_gethostbyname_mutex, NULL );
 #endif
-#if defined( LDAP_INT_GETHOSTBYADDR_MUTEX )
+
+#if !defined( HAVE_GETHOSTBYADDR_R )
 	ldap_pvt_thread_mutex_init( &ldap_int_gethostbyaddr_mutex, NULL );
 #endif
-#if defined( LDAP_R_COMPILE )
+
 	/* call other module init functions here... */
-#endif	
+#endif
 }
 
 #if defined( NEED_COPY_HOSTENT )

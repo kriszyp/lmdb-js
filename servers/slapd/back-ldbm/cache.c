@@ -50,26 +50,26 @@ void
 cache_set_state( struct cache *cache, Entry *e, int state )
 {
 	/* set cache mutex */
-	pthread_mutex_lock( &cache->c_mutex );
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
 	e->e_state = state;
 
 	/* free cache mutex */
-	pthread_mutex_unlock( &cache->c_mutex );
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 }
 
 static void
 cache_return_entry( struct cache *cache, Entry *e )
 {
 	/* set cache mutex */
-	pthread_mutex_lock( &cache->c_mutex );
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
 	if ( --e->e_refcnt == 0 && e->e_state == ENTRY_STATE_DELETED ) {
 		entry_free( e );
 	}
 
 	/* free cache mutex */
-	pthread_mutex_unlock( &cache->c_mutex );
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 }
 
 static void
@@ -136,7 +136,7 @@ cache_add_entry_lock(
 	Entry	*ee;
 
 	/* set cache mutex */
-	pthread_mutex_lock( &cache->c_mutex );
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
 	if ( avl_insert( &cache->c_dntree, (caddr_t) e,
 		cache_entrydn_cmp, avl_dup_error ) != 0 )
@@ -146,7 +146,7 @@ cache_add_entry_lock(
 		    e->e_dn, e->e_id, 0 );
 
 		/* free cache mutex */
-		pthread_mutex_unlock( &cache->c_mutex );
+		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 		return( 1 );
 	}
 
@@ -167,7 +167,7 @@ cache_add_entry_lock(
 		}
 
 		/* free cache mutex */
-		pthread_mutex_unlock( &cache->c_mutex );
+		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 		return( -1 );
 	}
 
@@ -202,7 +202,7 @@ cache_add_entry_lock(
 
 			/* XXX check for writer lock - should also check no readers pending */
 #ifdef LDAP_DEBUG
-			assert(!pthread_rdwr_rwchk_np(&e->e_rdwr));
+			assert(!ldap_pvt_thread_rdwr_rwchk(&e->e_rdwr));
 #endif
 
 			/* delete from cache and lru q */
@@ -213,7 +213,7 @@ cache_add_entry_lock(
 	}
 
 	/* free cache mutex */
-	pthread_mutex_unlock( &cache->c_mutex );
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 	return( 0 );
 }
 
@@ -233,7 +233,7 @@ cache_find_entry_dn2id(
 	ID			id;
 
 	/* set cache mutex */
-	pthread_mutex_lock( &cache->c_mutex );
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
 	e.e_dn = dn;
 	e.e_ndn = dn_normalize_case( ch_strdup( dn ) );
@@ -253,7 +253,7 @@ cache_find_entry_dn2id(
 			ep->e_state == ENTRY_STATE_CREATING )
 		{
 			/* free cache mutex */
-			pthread_mutex_unlock( &cache->c_mutex );
+			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 			return( NOID );
 		}
 
@@ -277,7 +277,7 @@ cache_find_entry_dn2id(
 			/* free reader lock */
 			entry_rdwr_unlock(ep, 0);
 			/* free cache mutex */
-			pthread_mutex_unlock( &cache->c_mutex );
+			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
 			return( NOID );
 		}
@@ -289,7 +289,7 @@ cache_find_entry_dn2id(
 		entry_rdwr_unlock(ep, 0);
 
 		/* free cache mutex */
-		pthread_mutex_unlock( &cache->c_mutex );
+		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
 		cache_return_entry( &li->li_cache, ep );
 
@@ -299,7 +299,7 @@ cache_find_entry_dn2id(
 	free(e.e_ndn);
 
 	/* free cache mutex */
-	pthread_mutex_unlock( &cache->c_mutex );
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
 	return( NOID );
 }
@@ -319,7 +319,7 @@ cache_find_entry_id(
 	Entry	*ep;
 
 	/* set cache mutex */
-	pthread_mutex_lock( &cache->c_mutex );
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
 	e.e_id = id;
 
@@ -337,7 +337,7 @@ cache_find_entry_id(
 			ep->e_state == ENTRY_STATE_CREATING )
 		{
 			/* free cache mutex */
-			pthread_mutex_unlock( &cache->c_mutex );
+			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 			return( NULL );
 		}
 		/* XXX is this safe without writer lock? */
@@ -361,7 +361,7 @@ cache_find_entry_id(
 			entry_rdwr_unlock(ep, 0);
 
 			/* free cache mutex */
-			pthread_mutex_unlock( &cache->c_mutex );
+			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 			return( NULL );
 		}
 
@@ -371,13 +371,13 @@ cache_find_entry_id(
 		}
 
 		/* free cache mutex */
-		pthread_mutex_unlock( &cache->c_mutex );
+		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
 		return( ep );
 	}
 
 	/* free cache mutex */
-	pthread_mutex_unlock( &cache->c_mutex );
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
 	return( NULL );
 }
@@ -405,16 +405,16 @@ cache_delete_entry(
 
 	/* XXX check for writer lock - should also check no readers pending */
 #ifdef LDAP_DEBUG
-	assert(pthread_rdwr_wchk_np(&e->e_rdwr));
+	assert(ldap_pvt_thread_rdwr_wchk(&e->e_rdwr));
 #endif
 
 	/* set cache mutex */
-	pthread_mutex_lock( &cache->c_mutex );
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
 	rc = cache_delete_entry_internal( cache, e );
 
 	/* free cache mutex */
-	pthread_mutex_unlock( &cache->c_mutex );
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 	return( rc );
 }
 

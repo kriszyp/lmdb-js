@@ -23,7 +23,7 @@ LDAP_BEGIN_DECL
 
 typedef struct globals {
     /* Thread ID for file manager thread */
-    pthread_t fm_tid;
+    ldap_pvt_thread_t fm_tid;
     /* The name of the slapd config file (which is also our config file) */
     char *slapd_configfile;
     /* How long the master slurpd sleeps when there's no work to do */
@@ -49,7 +49,7 @@ typedef struct globals {
     /* Current offset into slurpd replica logfile */
     off_t srpos;
     /* mutex to serialize access to reject file */
-    pthread_mutex_t rej_mutex;
+    ldap_pvt_thread_mutex_t rej_mutex;
     /* pointer to status struct */
     St	*st;
     /* Pointer to replication queue */

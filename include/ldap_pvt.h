@@ -21,22 +21,22 @@ LDAP_BEGIN_DECL
 
 struct hostent;	/* avoid pulling in <netdb.h> */
 
-extern char *ldap_pvt_ctime( const time_t *tp, char *buf );
-extern int ldap_pvt_gethostbyname_a(
+LDAP_F char *ldap_pvt_ctime LDAP_P(( const time_t *tp, char *buf ));
+LDAP_F int ldap_pvt_gethostbyname_a LDAP_P((
 	const char *name, 
 	struct hostent *resbuf,
 	char **buf,
 	struct hostent **result,
-	int *herrno_ptr );
-extern int ldap_pvt_gethostbyaddr_a(
+	int *herrno_ptr ));
+LDAP_F int ldap_pvt_gethostbyaddr_a LDAP_P((
 	const char *addr,
 	int len,
 	int type,
 	struct hostent *resbuf,
 	char **buf,
 	struct hostent **result,
-	int *herrno_ptr );
-extern void ldap_pvt_init_utils( void );
+	int *herrno_ptr ));
+LDAP_F void ldap_pvt_init_utils LDAP_P(( void ));
 
 LDAP_END_DECL
 

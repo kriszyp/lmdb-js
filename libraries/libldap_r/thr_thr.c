@@ -21,12 +21,36 @@
  *                 *
  *******************/
 
+int
+ldap_pvt_thread_initialize( void )
+{
+#ifdef LDAP_THREAD_CONCURRENCY
+	thr_setconcurrency( LDAP_THREAD_CONCURRENCY );
+#endif
+	return 0;
+}
+
+int
+ldap_pvt_thread_set_concurrency(int n)
+{
+	return thr_setconcurrency( n );
+}
+
+int
+ldap_pvt_thread_get_concurrency(void)
+{
+	return thr_getconcurrency();
+}
+
 int 
 ldap_pvt_thread_create( ldap_pvt_thread_t * thread, 
-		       ldap_pvt_thread_attr_t *attr,
-		       void *(*start_routine)( void *), void *arg)
+	int detach,
+	void *(*start_routine)( void *),
+	void *arg)
 {
-	return( thr_create( NULL, 0, start_routine, arg, *attr, thread ) );
+	return( thr_create( NULL, 0, start_routine, arg,
+		detach ? THR_DETACHED : 0,
+		thread ) );
 }
 
 void 
@@ -56,31 +80,9 @@ ldap_pvt_thread_yield( void )
 }
 
 int 
-ldap_pvt_thread_attr_init( ldap_pvt_thread_attr_t *attr )
+ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 {
-	*attr = 0;
-	return( 0 );
-}
-
-int 
-ldap_pvt_thread_attr_destroy( ldap_pvt_thread_attr_t *attr )
-{
-	*attr = 0;
-	return( 0 );
-}
-
-int 
-ldap_pvt_thread_attr_setdetachstate( ldap_pvt_thread_attr_t *attr, int dstate )
-{
-	*attr = detachstate;
-	return( 0 );
-}
-
-int 
-ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond, 
-			  ldap_pvt_thread_condattr_t *attr )
-{
-	return( cond_init( cond, attr ? *attr : USYNC_THREAD, NULL ) );
+	return( cond_init( cond, USYNC_THREAD, NULL ) );
 }
 
 int 
@@ -109,10 +111,9 @@ ldap_pvt_thread_cond_destroy( ldap_pvt_thread_cond_t *cv )
 }
 
 int 
-ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex,
-			   ldap_pvt_thread_mutexattr_t *attr )
+ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
-	return( mutex_init( mutex, attr ? *attr : USYNC_THREAD, NULL ) );
+	return( mutex_init( mutex, USYNC_THREAD, NULL ) );
 }
 
 int 

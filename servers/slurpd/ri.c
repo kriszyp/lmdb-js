@@ -60,7 +60,7 @@ Ri_process(
     while ( !sglob->slurpd_shutdown &&
 	    (( re = rq->rq_gethead( rq )) == NULL )) {
 	/* No work - wait on condition variable */
-	pthread_cond_wait( &rq->rq_more, &rq->rq_mutex );
+	ldap_pvt_thread_cond_wait( &rq->rq_more, &rq->rq_mutex );
     }
 
     /*
@@ -84,7 +84,7 @@ Ri_process(
 		rc = do_ldap( ri, re, &errmsg );
 		switch ( rc ) {
 		case DO_LDAP_ERR_RETRYABLE:
-		    tsleep( RETRY_SLEEP_TIME );
+		    ldap_pvt_thread_sleep( RETRY_SLEEP_TIME );
 		    Debug( LDAP_DEBUG_ANY,
 			    "Retrying operation for DN %s on replica %s:%d\n",
 			    re->re_dn, ri->ri_hostname, ri->ri_port );
@@ -120,7 +120,7 @@ Ri_process(
 		return 0;
 	    }
 	    /* No work - wait on condition variable */
-	    pthread_cond_wait( &rq->rq_more, &rq->rq_mutex );
+	    ldap_pvt_thread_cond_wait( &rq->rq_more, &rq->rq_mutex );
 	}
 	re->re_decrefcnt( re );
 	re = new_re;
@@ -145,7 +145,7 @@ Ri_wake(
     if ( ri == NULL ) {
 	return;
     }
-    pthread_kill( ri->ri_tid, LDAP_SIGUSR1 );
+    ldap_pvt_thread_kill( ri->ri_tid, LDAP_SIGUSR1 );
     (void) SIGNAL( LDAP_SIGUSR1, do_nothing );
 }
 

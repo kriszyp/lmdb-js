@@ -32,11 +32,11 @@ perl_back_close(
 	Backend *be
 )
 {
-	pthread_mutex_lock( &perl_interpreter_mutex );	
+	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
 	perl_destruct(perl_interpreter);
 	perl_free(perl_interpreter);
 
-	pthread_mutex_unlock( &perl_interpreter_mutex );	
+	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 }
 

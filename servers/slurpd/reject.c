@@ -51,7 +51,7 @@ write_reject(
     FILE	*rfp, *lfp;
     int		rc;
 
-    pthread_mutex_lock( &sglob->rej_mutex );
+    ldap_pvt_thread_mutex_lock( &sglob->rej_mutex );
     sprintf( rejfile, "%s/%s:%d.rej", sglob->slurpd_rdir,
 	    ri->ri_hostname, ri->ri_port );
 
@@ -63,7 +63,7 @@ write_reject(
 	    Debug( LDAP_DEBUG_ANY,
 		"Error: write_reject: Cannot create \"%s\": %s\n",
 		rejfile, sys_errlist[ errno ], 0 );
-	    pthread_mutex_unlock( &sglob->rej_mutex );
+	    ldap_pvt_thread_mutex_unlock( &sglob->rej_mutex );
 	    return;
 	} else {
 	    close( rjfd );
@@ -89,7 +89,7 @@ write_reject(
 		"Error: ldap operation failed, data written to \"%s\"\n",
 		rejfile, 0, 0 );
     }
-    pthread_mutex_unlock( &sglob->rej_mutex );
+    ldap_pvt_thread_mutex_unlock( &sglob->rej_mutex );
     return;
 }
 

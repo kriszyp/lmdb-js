@@ -99,7 +99,7 @@ fm(
 		}
 	    }
 	} else {
-	    tsleep( sglob->no_work_interval );
+	    ldap_pvt_thread_sleep( sglob->no_work_interval );
 	}
 
 	/* Garbage-collect queue */
@@ -135,9 +135,9 @@ set_shutdown(int x)
     int	i;
 
     sglob->slurpd_shutdown = 1;				/* set flag */
-    pthread_kill( sglob->fm_tid, LDAP_SIGUSR1 );	/* wake up file mgr */
+    ldap_pvt_thread_kill( sglob->fm_tid, LDAP_SIGUSR1 );	/* wake up file mgr */
     sglob->rq->rq_lock( sglob->rq );			/* lock queue */
-    pthread_cond_broadcast( &(sglob->rq->rq_more) );	/* wake repl threads */
+    ldap_pvt_thread_cond_broadcast( &(sglob->rq->rq_more) );	/* wake repl threads */
     for ( i = 0; i < sglob->num_replicas; i++ ) {
 	(sglob->replicas[ i ])->ri_wake( sglob->replicas[ i ]);
     }
@@ -203,7 +203,7 @@ populate_queue(
 		    p, 0, 0 );
 	}
 	free( p );
-	pthread_yield();
+	ldap_pvt_thread_yield();
     }
     sglob->srpos = ftell( fp );
     }

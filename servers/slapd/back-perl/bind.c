@@ -45,7 +45,7 @@ perl_back_bind(
 
 	*edn = NULL;
 
-	pthread_mutex_lock( &perl_interpreter_mutex );	
+	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
 	{
 		dSP; ENTER; SAVETMPS;
@@ -70,7 +70,7 @@ perl_back_bind(
 		PUTBACK; FREETMPS; LEAVE;
 	}
 
-	pthread_mutex_unlock( &perl_interpreter_mutex );	
+	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
 	Debug( LDAP_DEBUG_ANY, "Perl BIND\n", 0, 0, 0 );
 

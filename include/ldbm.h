@@ -37,11 +37,15 @@
 #endif
 
 
+LDAP_BEGIN_DECL
+
 typedef DBT	Datum;
 #define dsize	size
 #define dptr	data
 
 typedef DB	*LDBM;
+
+LDAP_END_DECL
 
 #define DB_TYPE		DB_BTREE
 
@@ -90,11 +94,15 @@ typedef DB	*LDBM;
 #	endif
 #endif
 
+LDAP_BEGIN_DECL
+
 typedef DBT	Datum;
 #define dsize	size
 #define dptr	data
 
 typedef DB	*LDBM;
+
+LDAP_END_DECL
 
 #define DB_TYPE		DB_HASH
 
@@ -129,11 +137,15 @@ typedef DB	*LDBM;
 
 #include <gdbm.h>
 
+LDAP_BEGIN_DECL
+
 typedef datum		Datum;
 
 typedef GDBM_FILE	LDBM;
 
 extern gdbm_error	gdbm_errno;
+
+LDAP_END_DECL
 
 /* for ldbm_open */
 #define LDBM_READER	GDBM_READER
@@ -164,9 +176,13 @@ extern gdbm_error	gdbm_errno;
 #include <fcntl.h>
 #endif
 
+LDAP_BEGIN_DECL
+
 typedef datum	Datum;
 
 typedef DBM	*LDBM;
+
+LDAP_END_DECL
 
 /* for ldbm_open */
 #define LDBM_READER	O_RDONLY
