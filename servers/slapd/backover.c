@@ -267,15 +267,27 @@ overlay_register(
 	return 0;
 }
 
+slap_overinst *
+overlay_next(
+	slap_overinst *on
+)
+{
+	if ( on == NULL ) {
+		return overlays;
+	}
+
+	return on->on_next;
+}
+
 static const char overtype[] = "over";
 
 /* add an overlay to a particular backend. */
 int
 overlay_config( BackendDB *be, const char *ov )
 {
-	slap_overinst *on, *on2, *prev;
-	slap_overinfo *oi;
-	BackendInfo *bi;
+	slap_overinst *on = NULL, *on2 = NULL, *prev = NULL;
+	slap_overinfo *oi = NULL;
+	BackendInfo *bi = NULL;
 
 	for ( on = overlays; on; on=on->on_next ) {
 		if (!strcmp( ov, on->on_bi.bi_type ) )
@@ -316,13 +328,15 @@ overlay_config( BackendDB *be, const char *ov )
 		bi->bi_extended = over_op_extended;
 
 		be->bd_info = bi;
+
+	} else {
+		oi = (slap_overinfo *) be->bd_info;
 	}
 
 #if 0
 	/* Walk to the end of the list of overlays, add the new
 	 * one onto the end
 	 */
-	oi = (slap_overinfo *) be->bd_info;
 	for ( prev=NULL, on2 = oi->oi_list; on2; prev=on2, on2=on2->on_next );
 	on2 = ch_calloc( 1, sizeof(slap_overinst) );
 	if ( !prev ) {
