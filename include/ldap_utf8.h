@@ -9,7 +9,7 @@
  * http://www.OpenLDAP.org/license.html or in file LICENSE in the
  * top-level directory of the distribution.
  */
-/* $Novell: /ldap/src/cldap/include/ldap_utf8.h,v 1.3 2000/12/04 20:23:20 dsteck Exp $ 
+/* $Novell: /ldap/src/cldap/include/ldap_utf8.h,v 1.3 2000/12/04 20:23:20 dsteck Exp $ */
 /******************************************************************************
  * This notice applies to changes, created by or for Novell, Inc.,
  * to preexisting works for which notices appear elsewhere in this file.
