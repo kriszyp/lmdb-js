@@ -83,7 +83,6 @@ main( int argc, char **argv )
 
 		perror( "ber_get_next" );
 		return( EXIT_FAILURE );
-
 	}
 
 	printf("decode: message tag 0x%lx and length %ld\n",
