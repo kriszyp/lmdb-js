@@ -46,25 +46,8 @@
 /*
  * defaults for various global variables
  */
-struct slap_limits_set deflimit = {
-	SLAPD_DEFAULT_TIMELIMIT,	/* backward compatible limits */
-	0,
-
-	SLAPD_DEFAULT_SIZELIMIT,	/* backward compatible limits */
-	0,
-	-1,				/* no limit on unchecked size */
-	0,				/* page limit */
-	0,				/* hide number of entries left */
-	0				/* number of total entries returned by pagedResults equal to hard limit */
-};
-
-AccessControl	*global_acl = NULL;
-slap_access_t		global_default_access = ACL_READ;
-slap_mask_t		global_restrictops = 0;
 slap_mask_t		global_allows = 0;
 slap_mask_t		global_disallows = 0;
-slap_mask_t		global_requires = 0;
-slap_ssf_set_t	global_ssf_set;
 char		*replogfile;
 int		global_gentlehup = 0;
 int		global_idletimeout = 0;
@@ -77,8 +60,6 @@ char	**cargv;
 struct berval default_search_base = BER_BVNULL;
 struct berval default_search_nbase = BER_BVNULL;
 unsigned		num_subordinates = 0;
-struct berval global_schemadn = BER_BVNULL;
-struct berval global_schemandn = BER_BVNULL;
 
 ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
 ber_len_t sockbuf_max_incoming_auth= SLAP_SB_MAX_INCOMING_AUTH;
@@ -747,8 +728,8 @@ read_config( const char *fname, int depth )
 				rc = dnPrettyNormal( NULL, &dn, &be->be_schemadn,
 					&be->be_schemandn, NULL );
 			} else {
-				rc = dnPrettyNormal( NULL, &dn, &global_schemadn,
-					&global_schemandn, NULL );
+				rc = dnPrettyNormal( NULL, &dn, &frontendDB->be_schemadn,
+					&frontendDB->be_schemandn, NULL );
 			}
 			if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -818,7 +799,7 @@ read_config( const char *fname, int depth )
 			}
 
 			if ( be == NULL ) {
-				lim = &deflimit;
+				lim = &frontendDB->be_def_limit;
 			} else {
 				lim = &be->be_def_limit;
 			}
@@ -896,7 +877,7 @@ read_config( const char *fname, int depth )
 			}
 			
 			if ( be == NULL ) {
-				lim = &deflimit;
+				lim = &frontendDB->be_def_limit;
 			} else {
 				lim = &be->be_def_limit;
 			}
@@ -995,16 +976,20 @@ read_config( const char *fname, int depth )
 		/* add an overlay to this backend */
 		} else if ( strcasecmp( cargv[0], "overlay" ) == 0 ) {
 			if ( be == NULL ) {
+				if ( cargv[1][0] == '-' && overlay_config( frontendDB, &cargv[1][1] ) ) {
+					/* log error */
 #ifdef NEW_LOGGING
-				LDAP_LOG( CONFIG, INFO, "%s: line %d: "
-					"overlay keyword must appear inside a database "
-					"definition.\n", fname, lineno, 0 );
+					LDAP_LOG( CONFIG, INFO, "%s: line %d: "
+						"(optional) global overlay \"%s\" configuration "
+						"failed (ignored)\n", fname, lineno, &cargv[1][1] );
 #else
-				Debug( LDAP_DEBUG_ANY, "%s: line %d: overlay keyword "
-					"must appear inside a database definition.\n",
-				    fname, lineno, 0 );
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+						"(optional) global overlay \"%s\" configuration "
+						"failed (ignored)\n", fname, lineno, &cargv[1][1] );
 #endif
-				return 1;
+				} else if ( overlay_config( frontendDB, cargv[1] ) ) {
+					return 1;
+				}
 
 			} else {
 				if ( cargv[1][0] == '-' && overlay_config( be, &cargv[1][1] ) ) {
@@ -1326,10 +1311,11 @@ read_config( const char *fname, int depth )
 			}
 			if ( be == NULL ) {
 				if ( strcasecmp( cargv[1], "on" ) == 0 ) {
-					global_restrictops |= SLAP_RESTRICT_OP_WRITES;
+					frontendDB->be_restrictops |= SLAP_RESTRICT_OP_WRITES;
 				} else {
-					global_restrictops &= ~SLAP_RESTRICT_OP_WRITES;
+					frontendDB->be_restrictops &= ~SLAP_RESTRICT_OP_WRITES;
 				}
+
 			} else {
 				if ( strcasecmp( cargv[1], "on" ) == 0 ) {
 					be->be_restrictops |= SLAP_RESTRICT_OP_WRITES;
@@ -1442,7 +1428,7 @@ restrict_unknown:;
 			}
 
 			if ( be == NULL ) {
-				global_restrictops |= restrict;
+				frontendDB->be_restrictops |= restrict;
 
 			} else {
 				be->be_restrictops |= restrict;
@@ -1637,7 +1623,7 @@ restrict_unknown:;
 			}
 
 			if ( be == NULL ) {
-				global_requires = requires;
+				frontendDB->be_requires = requires;
 			} else {
 				be->be_requires = requires;
 			}
@@ -1661,7 +1647,7 @@ restrict_unknown:;
 			}
 
 			if ( be == NULL ) {
-				set = &global_ssf_set;
+				set = &frontendDB->be_ssf_set;
 			} else {
 				set = &be->be_ssf_set;
 			}
@@ -2810,17 +2796,30 @@ restrict_unknown:;
 				}
 
 			} else {
-#ifdef NEW_LOGGING
-				LDAP_LOG( CONFIG, INFO, 
-					"%s: line %d: unknown directive \"%s\" outside backend "
-					"info and database definitions (ignored).\n",
-					fname, lineno, cargv[0] );
-#else
-				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: unknown directive \"%s\" outside backend info and database definitions (ignored)\n",
-				    fname, lineno, cargv[0] );
-#endif
+				if ( frontendDB->be_config ) {
+					rc = (*frontendDB->be_config)( frontendDB, fname, lineno, cargc, cargv );
 
+					switch ( rc ) {
+					case 0:
+						break;
+
+					case SLAP_CONF_UNKNOWN:
+#ifdef NEW_LOGGING
+						LDAP_LOG( CONFIG, INFO, 
+							"%s: line %d: unknown directive \"%s\" inside "
+							"global database definition (ignored).\n",
+							fname, lineno, cargv[0] );
+#else
+						Debug( LDAP_DEBUG_ANY,
+"%s: line %d: unknown directive \"%s\" inside global database definition (ignored)\n",
+							fname, lineno, cargv[0] );
+#endif
+						break;
+
+					default:
+						return 1;
+					}
+				}
 			}
 		}
 		free( saveline );
@@ -2829,10 +2828,10 @@ restrict_unknown:;
 
 	if ( depth == 0 ) ch_free( cargv );
 
-	if ( !global_schemadn.bv_val ) {
+	if ( BER_BVISNULL( &frontendDB->be_schemadn ) ) {
 		ber_str2bv( SLAPD_SCHEMA_DN, sizeof(SLAPD_SCHEMA_DN)-1, 1,
-			&global_schemadn );
-		dnNormalize( 0, NULL, NULL, &global_schemadn, &global_schemandn, NULL );
+			&frontendDB->be_schemadn );
+		dnNormalize( 0, NULL, NULL, &frontendDB->be_schemadn, &frontendDB->be_schemandn, NULL );
 	}
 
 	if ( load_ucdata( NULL ) < 0 ) return 1;
@@ -3059,8 +3058,8 @@ void
 config_destroy( )
 {
 	ucdata_unload( UCDATA_ALL );
-	free( global_schemandn.bv_val );
-	free( global_schemadn.bv_val );
+	free( frontendDB->be_schemandn.bv_val );
+	free( frontendDB->be_schemadn.bv_val );
 	free( line );
 	if ( slapd_args_file )
 		free ( slapd_args_file );
@@ -3068,7 +3067,7 @@ config_destroy( )
 		free ( slapd_pid_file );
 	if ( default_passwd_hash )
 		ldap_charray_free( default_passwd_hash );
-	acl_destroy( global_acl, NULL );
+	acl_destroy( frontendDB->be_acl, NULL );
 }
 
 static int

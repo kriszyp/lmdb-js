@@ -357,6 +357,23 @@ int backend_startup(Backend *be)
 		return backend_startup_one( be );
 	}
 
+	/* open frontend, if required */
+	if ( frontendDB->bd_info->bi_db_open ) {
+		rc = frontendDB->bd_info->bi_db_open( frontendDB );
+		if ( rc != 0 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACKEND, CRIT, 
+				"backend_startup: bi_db_open(frontend) failed! (%d)\n",
+				rc, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"backend_startup: bi_db_open(frontend) failed! (%d)\n",
+				rc, 0, 0 );
+#endif
+			return rc;
+		}
+	}
+
 	/* open each backend type */
 	for( i = 0; i < nBackendInfo; i++ ) {
 		if( backendInfo[i].bi_nDB == 0) {
@@ -401,7 +418,7 @@ int backend_startup(Backend *be)
 #endif
 		}
 		/* append global access controls */
-		acl_append( &backendDB[i].be_acl, global_acl );
+		acl_append( &backendDB[i].be_acl, frontendDB->be_acl );
 
 		rc = backend_startup_one( &backendDB[i] );
 
@@ -485,11 +502,11 @@ int backend_shutdown( Backend *be )
 		if(rc != 0) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACKEND, NOTICE, 
-				"backend_shutdown: bi_close %s failed!\n",
+				"backend_shutdown: bi_db_close %s failed!\n",
 				backendDB[i].be_type, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"backend_close: bi_close %s failed!\n",
+				"backend_close: bi_db_close %s failed!\n",
 				backendDB[i].be_type, 0, 0 );
 #endif
 		}
@@ -505,6 +522,22 @@ int backend_shutdown( Backend *be )
 		if( backendInfo[i].bi_close ) {
 			backendInfo[i].bi_close(
 				&backendInfo[i] );
+		}
+	}
+
+	/* close frontend, if required */
+	if ( frontendDB->bd_info->bi_db_close ) {
+		rc = frontendDB->bd_info->bi_db_close ( frontendDB );
+		if ( rc != 0 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACKEND, CRIT, 
+				"backend_startup: bi_db_close(frontend) failed! (%d)\n",
+				rc, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"backend_startup: bi_db_close(frontend) failed! (%d)\n",
+				rc, 0, 0 );
+#endif
 		}
 	}
 
@@ -529,7 +562,7 @@ int backend_destroy(void)
 		if ( bd->be_rootndn.bv_val ) free( bd->be_rootndn.bv_val );
 		if ( bd->be_rootpw.bv_val ) free( bd->be_rootpw.bv_val );
 		if ( bd->be_context_csn.bv_val ) free( bd->be_context_csn.bv_val );
-		acl_destroy( bd->be_acl, global_acl );
+		acl_destroy( bd->be_acl, frontendDB->be_acl );
 	}
 	free( backendDB );
 
@@ -549,6 +582,18 @@ int backend_destroy(void)
 
 	nBackendInfo = 0;
 	backendInfo = NULL;
+
+	/* destroy frontend database */
+	bd = frontendDB;
+	if ( bd->bd_info->bi_db_destroy ) {
+		bd->bd_info->bi_db_destroy( bd );
+	}
+	ber_bvarray_free( bd->be_suffix );
+	ber_bvarray_free( bd->be_nsuffix );
+	if ( bd->be_rootdn.bv_val ) free( bd->be_rootdn.bv_val );
+	if ( bd->be_rootndn.bv_val ) free( bd->be_rootndn.bv_val );
+	if ( bd->be_rootpw.bv_val ) free( bd->be_rootpw.bv_val );
+	acl_destroy( bd->be_acl, frontendDB->be_acl );
 
 	return 0;
 }
@@ -590,12 +635,12 @@ backend_db_init(
 	be = &backends[nbackends++];
 
 	be->bd_info = bi;
-	be->be_def_limit = deflimit;
-	be->be_dfltaccess = global_default_access;
+	be->be_def_limit = frontendDB->be_def_limit;
+	be->be_dfltaccess = frontendDB->be_dfltaccess;
 
-	be->be_restrictops = global_restrictops;
-	be->be_requires = global_requires;
-	be->be_ssf_set = global_ssf_set;
+	be->be_restrictops = frontendDB->be_restrictops;
+	be->be_requires = frontendDB->be_requires;
+	be->be_ssf_set = frontendDB->be_ssf_set;
 
 	be->be_context_csn.bv_len = 0;
 	be->be_context_csn.bv_val = NULL;
@@ -630,6 +675,10 @@ be_db_close( void )
 		if ( backends[i].bd_info->bi_db_close ) {
 			(*backends[i].bd_info->bi_db_close)( &backends[i] );
 		}
+	}
+
+	if ( frontendDB->bd_info->bi_db_close ) {
+		(*frontendDB->bd_info->bi_db_close)( frontendDB );
 	}
 }
 
@@ -949,9 +998,9 @@ backend_check_restrictions(
 		ssf = &op->o_bd->be_ssf_set;
 
 	} else {
-		restrictops = global_restrictops;
-		requires = global_requires;
-		ssf = &global_ssf_set;
+		restrictops = frontendDB->be_restrictops;
+		requires = frontendDB->be_requires;
+		ssf = &frontendDB->be_ssf_set;
 	}
 
 	switch( op->o_tag ) {

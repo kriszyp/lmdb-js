@@ -1305,7 +1305,7 @@ slapd_daemon_task(
 			if( slapd_gentle_shutdown == 1 ) {
 				Debug( LDAP_DEBUG_ANY, "slapd gentle shutdown\n", 0, 0, 0 );
 				close_listeners( 1 );
-				global_restrictops |= SLAP_RESTRICT_OP_WRITES;
+				frontendDB->be_restrictops |= SLAP_RESTRICT_OP_WRITES;
 				slapd_gentle_shutdown = 2;
 			}
 

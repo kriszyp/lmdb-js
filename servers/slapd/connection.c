@@ -463,24 +463,18 @@ long connection_init(
 		c->c_send_ldap_intermediate = slap_send_ldap_intermediate;
 #endif
 
-		c->c_authmech.bv_val = NULL;
-		c->c_authmech.bv_len = 0;
-		c->c_dn.bv_val = NULL;
-		c->c_dn.bv_len = 0;
-		c->c_ndn.bv_val = NULL;
-		c->c_ndn.bv_len = 0;
+		BER_BVZERO( &c->c_authmech );
+		BER_BVZERO( &c->c_dn );
+		BER_BVZERO( &c->c_ndn );
 
 		c->c_listener = NULL;
-		c->c_peer_domain.bv_val = NULL;
-		c->c_peer_domain.bv_len = 0;
-		c->c_peer_name.bv_val = NULL;
-		c->c_peer_name.bv_len = 0;
+		BER_BVZERO( &c->c_peer_domain );
+		BER_BVZERO( &c->c_peer_name );
 
 		LDAP_STAILQ_INIT(&c->c_ops);
 		LDAP_STAILQ_INIT(&c->c_pending_ops);
 
-		c->c_sasl_bind_mech.bv_val = NULL;
-		c->c_sasl_bind_mech.bv_len = 0;
+		BER_BVZERO( &c->c_sasl_bind_mech );
 		c->c_sasl_done = 0;
 		c->c_sasl_authctx = NULL;
 		c->c_sasl_sockctx = NULL;
@@ -513,15 +507,15 @@ long connection_init(
 	ldap_pvt_thread_mutex_lock( &c->c_mutex );
 
 	assert( c->c_struct_state == SLAP_C_UNUSED );
-	assert( c->c_authmech.bv_val == NULL );
-	assert( c->c_dn.bv_val == NULL );
-	assert( c->c_ndn.bv_val == NULL );
+	assert( BER_BVISNULL( &c->c_authmech ) );
+	assert( BER_BVISNULL( &c->c_dn ) );
+	assert( BER_BVISNULL( &c->c_ndn ) );
 	assert( c->c_listener == NULL );
-	assert( c->c_peer_domain.bv_val == NULL );
-	assert( c->c_peer_name.bv_val == NULL );
+	assert( BER_BVISNULL( &c->c_peer_domain ) );
+	assert( BER_BVISNULL( &c->c_peer_name ) );
 	assert( LDAP_STAILQ_EMPTY(&c->c_ops) );
 	assert( LDAP_STAILQ_EMPTY(&c->c_pending_ops) );
-	assert( c->c_sasl_bind_mech.bv_val == NULL );
+	assert( BER_BVISNULL( &c->c_sasl_bind_mech ) );
 	assert( c->c_sasl_done == 0 );
 	assert( c->c_sasl_authctx == NULL );
 	assert( c->c_sasl_sockctx == NULL );
@@ -648,20 +642,17 @@ void connection2anonymous( Connection *c )
 
 	if(c->c_authmech.bv_val != NULL ) {
 		free(c->c_authmech.bv_val);
-		c->c_authmech.bv_val = NULL;
 	}
-	c->c_authmech.bv_len = 0;
+	BER_BVZERO( &c->c_authmech );
 
 	if(c->c_dn.bv_val != NULL) {
 		free(c->c_dn.bv_val);
-		c->c_dn.bv_val = NULL;
 	}
-	c->c_dn.bv_len = 0;
+	BER_BVZERO( &c->c_dn );
 	if(c->c_ndn.bv_val != NULL) {
 		free(c->c_ndn.bv_val);
-		c->c_ndn.bv_val = NULL;
 	}
-	c->c_ndn.bv_len = 0;
+	BER_BVZERO( &c->c_ndn );
 
 	c->c_authz_backend = NULL;
 }
@@ -695,21 +686,18 @@ connection_destroy( Connection *c )
 
 	if(c->c_peer_domain.bv_val != NULL) {
 		free(c->c_peer_domain.bv_val);
-		c->c_peer_domain.bv_val = NULL;
 	}
-	c->c_peer_domain.bv_len = 0;
+	BER_BVZERO( &c->c_peer_domain );
 	if(c->c_peer_name.bv_val != NULL) {
 		free(c->c_peer_name.bv_val);
-		c->c_peer_name.bv_val = NULL;
 	}
-	c->c_peer_name.bv_len = 0;
+	BER_BVZERO( &c->c_peer_name );
 
 	c->c_sasl_bind_in_progress = 0;
 	if(c->c_sasl_bind_mech.bv_val != NULL) {
 		free(c->c_sasl_bind_mech.bv_val);
-		c->c_sasl_bind_mech.bv_val = NULL;
 	}
-	c->c_sasl_bind_mech.bv_len = 0;
+	BER_BVZERO( &c->c_sasl_bind_mech );
 
 	slap_sasl_close( c );
 

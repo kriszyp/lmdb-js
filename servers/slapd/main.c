@@ -656,6 +656,10 @@ unhandled_option:;
 	}
 #endif /* LDAP_SLAPI */
 
+	if ( frontend_init() ) {
+		goto destroy;
+	}
+
 	if ( overlay_init() ) {
 		goto destroy;
 	}

@@ -50,25 +50,16 @@ do_modrdn(
     SlapReply	*rs
 )
 {
-	struct berval dn = BER_BVNULL;
-	struct berval newrdn = BER_BVNULL;
-	struct berval newSuperior = BER_BVNULL;
+	struct berval	dn = BER_BVNULL;
+	struct berval	newrdn = BER_BVNULL;
+	struct berval	newSuperior = BER_BVNULL;
 	ber_int_t	deloldrdn;
 
 	struct berval pnewSuperior = BER_BVNULL;
 
 	struct berval nnewSuperior = BER_BVNULL;
 
-	Backend	*newSuperior_be = NULL;
 	ber_len_t	length;
-	int manageDSAit;
-
-	struct berval pdn = BER_BVNULL;
-	struct berval org_req_dn = BER_BVNULL;
-	struct berval org_req_ndn = BER_BVNULL;
-	struct berval org_dn = BER_BVNULL;
-	struct berval org_ndn = BER_BVNULL;
-	int	org_managedsait;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_modrdn: begin\n", 0, 0, 0 );
@@ -193,33 +184,6 @@ do_modrdn(
 		goto cleanup;
 	}
 
-	if( op->o_req_ndn.bv_len == 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"do_modrdn:  attempt to modify root DSE.\n", 0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: root dse!\n", 0, 0, 0 );
-#endif
-
-		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-			"cannot rename the root DSE" );
-		goto cleanup;
-
-	} else if ( bvmatch( &op->o_req_ndn, &global_schemandn ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"do_modrdn: attempt to modify subschema subentry: %s (%ld)\n",
-			global_schemandn.bv_val, (long) global_schemandn.bv_len, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: subschema subentry: %s (%ld)\n",
-			global_schemandn.bv_val, (long) global_schemandn.bv_len, 0 );
-#endif
-
-		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-			"cannot rename subschema subentry" );
-		goto cleanup;
-	}
-
 	/* FIXME: should have/use rdnPretty / rdnNormalize routines */
 
 	rs->sr_err = dnPrettyNormal( NULL, &newrdn, &op->orr_newrdn, &op->orr_nnewrdn, op->o_tmpmemctx );
@@ -267,6 +231,62 @@ do_modrdn(
 		}
 	}
 
+	/* FIXME: temporary? */
+	op->orr_deleteoldrdn = deloldrdn;
+
+	op->o_bd = frontendDB;
+	rs->sr_err = frontendDB->be_modrdn( op, rs );
+
+cleanup:
+
+	slap_graduate_commit_csn( op );
+
+	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+
+	op->o_tmpfree( op->orr_newrdn.bv_val, op->o_tmpmemctx );	
+	op->o_tmpfree( op->orr_nnewrdn.bv_val, op->o_tmpmemctx );	
+
+	if ( pnewSuperior.bv_val ) op->o_tmpfree( pnewSuperior.bv_val, op->o_tmpmemctx );
+	if ( nnewSuperior.bv_val ) op->o_tmpfree( nnewSuperior.bv_val, op->o_tmpmemctx );
+
+	return rs->sr_err;
+}
+
+int
+fe_op_modrdn( Operation *op, SlapReply *rs )
+{
+	Backend		*newSuperior_be = NULL;
+	int		manageDSAit;
+	struct berval	pdn = BER_BVNULL;
+	
+	if( op->o_req_ndn.bv_len == 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, ERR,
+			"do_modrdn:  attempt to modify root DSE.\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: root dse!\n", 0, 0, 0 );
+#endif
+
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"cannot rename the root DSE" );
+		goto cleanup;
+
+	} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, ERR,
+			"do_modrdn: attempt to modify subschema subentry: %s (%ld)\n",
+			frontendDB->be_schemandn.bv_val, (long)frontendDB->be_schemandn.bv_len, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: subschema subentry: %s (%ld)\n",
+			frontendDB->be_schemandn.bv_val, (long)frontendDB->be_schemandn.bv_len, 0 );
+#endif
+
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"cannot rename subschema subentry" );
+		goto cleanup;
+	}
+
 	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MODRDN dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, op->o_req_dn.bv_val, 0, 0 );
 
@@ -310,7 +330,7 @@ do_modrdn(
 	 * the same backend, otherwise we return an error.
 	 */
 	if( op->orr_newSup ) {
-		newSuperior_be = select_backend( &nnewSuperior, 0, 0 );
+		newSuperior_be = select_backend( op->orr_nnewSup, 0, 0 );
 
 		if ( newSuperior_be != op->o_bd ) {
 			/* newSuperior is in different backend */
@@ -325,11 +345,11 @@ do_modrdn(
 #define	pb	op->o_pb
 	if ( pb ) {
 		slapi_int_pblock_set_operation( pb, op );
-		slapi_pblock_set( pb, SLAPI_MODRDN_TARGET, (void *)dn.bv_val );
-		slapi_pblock_set( pb, SLAPI_MODRDN_NEWRDN, (void *)newrdn.bv_val );
+		slapi_pblock_set( pb, SLAPI_MODRDN_TARGET, (void *)op->o_req_dn.bv_val );
+		slapi_pblock_set( pb, SLAPI_MODRDN_NEWRDN, (void *)op->orr_newrdn.bv_val );
 		slapi_pblock_set( pb, SLAPI_MODRDN_NEWSUPERIOR,
-				(void *)newSuperior.bv_val );
-		slapi_pblock_set( pb, SLAPI_MODRDN_DELOLDRDN, (void *)deloldrdn );
+				(void *)op->orr_newSup->bv_val );
+		slapi_pblock_set( pb, SLAPI_MODRDN_DELOLDRDN, (void *)op->orr_deleteoldrdn);
 		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 
 		rs->sr_err = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_MODRDN_FN, pb );
@@ -368,7 +388,6 @@ do_modrdn(
 #endif
 		{
 			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
-			op->orr_deleteoldrdn = deloldrdn;
 #ifdef SLAPD_MULTIMASTER
 			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
 #endif
@@ -379,6 +398,12 @@ do_modrdn(
 			op->o_bd->be_modrdn( op, rs );
 
 			if ( op->o_bd->be_delete ) {
+				struct berval	org_req_dn = BER_BVNULL;
+				struct berval	org_req_ndn = BER_BVNULL;
+				struct berval	org_dn = BER_BVNULL;
+				struct berval	org_ndn = BER_BVNULL;
+				int		org_managedsait;
+
 				org_req_dn = op->o_req_dn;
 				org_req_ndn = op->o_req_ndn;
 				org_dn = op->o_dn;
@@ -390,7 +415,7 @@ do_modrdn(
 
 				while ( rs->sr_err == LDAP_SUCCESS &&
 						op->o_delete_glue_parent ) {
-	                op->o_delete_glue_parent = 0;
+					op->o_delete_glue_parent = 0;
 					if ( !be_issuffix( op->o_bd, &op->o_req_ndn )) {
 						slap_callback cb = { NULL };
 						cb.sc_response = slap_null_cb;
@@ -404,7 +429,7 @@ do_modrdn(
 					}
 				}
 				op->o_managedsait = org_managedsait;
-	            op->o_dn = org_dn;
+	            		op->o_dn = org_dn;
 				op->o_ndn = org_ndn;
 				op->o_req_dn = org_req_dn;
 				op->o_req_ndn = org_req_ndn;
@@ -448,19 +473,7 @@ do_modrdn(
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
-cleanup:
-
-	slap_graduate_commit_csn( op );
-
-	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
-	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-
-	op->o_tmpfree( op->orr_newrdn.bv_val, op->o_tmpmemctx );	
-	op->o_tmpfree( op->orr_nnewrdn.bv_val, op->o_tmpmemctx );	
-
-	if ( pnewSuperior.bv_val ) op->o_tmpfree( pnewSuperior.bv_val, op->o_tmpmemctx );
-	if ( nnewSuperior.bv_val ) op->o_tmpfree( nnewSuperior.bv_val, op->o_tmpmemctx );
-
+cleanup:;
 	return rs->sr_err;
 }
 

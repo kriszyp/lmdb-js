@@ -51,11 +51,6 @@ do_search(
 {
 	struct berval base = BER_BVNULL;
 	ber_len_t	siz, off, i;
-	int			manageDSAit;
-	int			be_manageDSAit;
-#ifdef LDAP_SLAPI
-	char		**attrs = NULL;
-#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_search: conn %d\n", op->o_connid, 0, 0 );
@@ -269,6 +264,44 @@ do_search(
 		}
 	}
 
+	op->o_bd = frontendDB;
+	rs->sr_err = frontendDB->be_search( op, rs );
+
+return_results:;
+	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) ) {
+		return rs->sr_err;
+	}
+	if ( ( op->o_sync_slog_size != -1 ) ) {
+		return rs->sr_err;
+	}
+	if ( !BER_BVISNULL( &op->o_req_dn ) ) {
+		slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	}
+	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
+		slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	}
+	if ( !BER_BVISNULL( &op->ors_filterstr ) ) {
+		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+	}
+	if ( op->ors_filter != NULL) {
+		filter_free_x( op, op->ors_filter );
+	}
+	if ( op->ors_attrs != NULL ) {
+		op->o_tmpfree( op->ors_attrs, op->o_tmpmemctx );
+	}
+
+	return rs->sr_err;
+}
+
+int
+fe_op_search( Operation *op, SlapReply *rs )
+{
+	int			manageDSAit;
+	int			be_manageDSAit;
+#ifdef LDAP_SLAPI
+	char			**attrs = NULL;
+#endif
+
 	manageDSAit = get_manageDSAit( op );
 
 	/* fake while loop to allow breaking out */
@@ -299,7 +332,7 @@ do_search(
 #endif /* LDAP_SLAPI */
 			rs->sr_err = root_dse_info( op->o_conn, &entry, &rs->sr_text );
 
-		} else if ( bvmatch( &op->o_req_ndn, &global_schemandn ) ) {
+		} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
 			/* check restrictions */
 			if( backend_check_restrictions( op, rs, NULL ) != LDAP_SUCCESS ) {
 				send_ldap_result( op, rs );
@@ -429,29 +462,11 @@ do_search(
 	if ( op->o_pb ) call_search_postop_plugins( op );
 #endif /* LDAP_SLAPI */
 
-return_results:;
-	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) ) return rs->sr_err;
-	if ( ( op->o_sync_slog_size != -1 ) ) return rs->sr_err;
-
-	if( !BER_BVISNULL( &op->o_req_dn ) ) {
-		slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
-	}
-	if( !BER_BVISNULL( &op->o_req_ndn ) ) {
-		slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-	}
-
-	if( !BER_BVISNULL( &op->ors_filterstr ) ) {
-		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
-	}
-	if( op->ors_filter != NULL) filter_free_x( op, op->ors_filter );
-	if( op->ors_attrs != NULL ) {
-		op->o_tmpfree( op->ors_attrs, op->o_tmpmemctx );
-	}
-
 #ifdef LDAP_SLAPI
 	if( attrs != NULL) op->o_tmpfree( attrs, op->o_tmpmemctx );
 #endif /* LDAP_SLAPI */
 
+return_results:;
 	return rs->sr_err;
 }
 

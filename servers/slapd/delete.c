@@ -45,13 +45,6 @@ do_delete(
     SlapReply	*rs )
 {
 	struct berval dn = BER_BVNULL;
-	struct berval pdn = BER_BVNULL;
-	struct berval org_req_dn = BER_BVNULL;
-	struct berval org_req_ndn = BER_BVNULL;
-	struct berval org_dn = BER_BVNULL;
-	struct berval org_ndn = BER_BVNULL;
-	int	org_managedsait;
-	int manageDSAit;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
@@ -115,7 +108,7 @@ do_delete(
 			"cannot delete the root DSE" );
 		goto cleanup;
 
-	} else if ( bvmatch( &op->o_req_ndn, &global_schemandn ) ) {
+	} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_delete: conn %d: "
 			"Attempt to delete subschema subentry.\n", op->o_connid, 0, 0 );
@@ -131,6 +124,23 @@ do_delete(
 	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu DEL dn=\"%s\"\n",
 		op->o_connid, op->o_opid, op->o_req_dn.bv_val, 0, 0 );
 
+	op->o_bd = frontendDB;
+	rs->sr_err = frontendDB->be_delete( op, rs );
+
+cleanup:;
+	slap_graduate_commit_csn( op );
+
+	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	return rs->sr_err;
+}
+
+int
+fe_op_delete( Operation *op, SlapReply *rs )
+{
+	struct berval	pdn = BER_BVNULL;
+	int		manageDSAit;
+	
 	manageDSAit = get_manageDSAit( op );
 
 	/*
@@ -172,7 +182,7 @@ do_delete(
 #define pb op->o_pb
 	if ( pb ) {
 		slapi_int_pblock_set_operation( pb, op );
-		slapi_pblock_set( pb, SLAPI_DELETE_TARGET, (void *)dn.bv_val );
+		slapi_pblock_set( pb, SLAPI_DELETE_TARGET, (void *)op->o_req_dn.bv_val );
 		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 
 		rs->sr_err = slapi_int_call_plugins( op->o_bd,
@@ -213,7 +223,12 @@ do_delete(
 		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
 #endif
 		{
-			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
+			struct berval	org_req_dn = BER_BVNULL;
+			struct berval	org_req_ndn = BER_BVNULL;
+			struct berval	org_dn = BER_BVNULL;
+			struct berval	org_ndn = BER_BVNULL;
+			int		org_managedsait;
+			slap_callback 	cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			if ( !repl_user ) {
 				struct berval csn = { 0 , NULL };
@@ -307,10 +322,6 @@ do_delete(
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
-cleanup:
-	slap_graduate_commit_csn( op );
-
-	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
-	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+cleanup:;
 	return rs->sr_err;
 }

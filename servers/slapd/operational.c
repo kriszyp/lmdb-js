@@ -33,12 +33,12 @@ slap_operational_subschemaSubentry( Backend *be )
 	a->a_desc = slap_schema.si_ad_subschemaSubentry;
 
 	a->a_vals = ch_malloc( 2 * sizeof( struct berval ) );
-	ber_dupbv( a->a_vals, &global_schemadn );
+	ber_dupbv( a->a_vals, &frontendDB->be_schemadn );
 	a->a_vals[1].bv_len = 0;
 	a->a_vals[1].bv_val = NULL;
 
 	a->a_nvals = ch_malloc( 2 * sizeof( struct berval ) );
-	ber_dupbv( a->a_nvals, &global_schemandn );
+	ber_dupbv( a->a_nvals, &frontendDB->be_schemandn );
 	a->a_nvals[1].bv_len = 0;
 	a->a_nvals[1].bv_val = NULL;
 

@@ -45,12 +45,10 @@ do_compare(
     Operation	*op,
     SlapReply	*rs )
 {
-	Entry *entry = NULL;
 	struct berval dn = BER_BVNULL;
 	struct berval desc = BER_BVNULL;
 	struct berval value = BER_BVNULL;
 	AttributeAssertion ava = { NULL, BER_BVNULL };
-	int manageDSAit;
 
 	ava.aa_desc = NULL;
 
@@ -144,6 +142,28 @@ do_compare(
 		goto cleanup;
 	}
 
+	op->orc_ava = &ava;
+
+	op->o_bd = frontendDB;
+	rs->sr_err = frontendDB->be_compare( op, rs );
+
+cleanup:;
+	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	if ( ava.aa_value.bv_val ) {
+		op->o_tmpfree( ava.aa_value.bv_val, op->o_tmpmemctx );
+	}
+
+	return rs->sr_err;
+}
+
+int
+fe_op_compare( Operation *op, SlapReply *rs )
+{
+	Entry *entry = NULL;
+	int manageDSAit;
+	AttributeAssertion ava = *op->orc_ava;
+
 	if( strcasecmp( op->o_req_ndn.bv_val, LDAP_ROOT_DSE ) == 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
@@ -173,7 +193,7 @@ do_compare(
 			goto cleanup;
 		}
 
-	} else if ( bvmatch( &op->o_req_ndn, &global_schemandn ) ) {
+	} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
 			"do_compare: dn (%s) attr(%s) value (%s)\n",
@@ -270,10 +290,10 @@ do_compare(
 #define	pb	op->o_pb
 	if ( pb ) {
 		slapi_int_pblock_set_operation( pb, op );
-		slapi_pblock_set( pb, SLAPI_COMPARE_TARGET, (void *)dn.bv_val );
+		slapi_pblock_set( pb, SLAPI_COMPARE_TARGET, (void *)op->o_req_dn.bv_val );
 		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
-		slapi_pblock_set( pb, SLAPI_COMPARE_TYPE, (void *)desc.bv_val );
-		slapi_pblock_set( pb, SLAPI_COMPARE_VALUE, (void *)&value );
+		slapi_pblock_set( pb, SLAPI_COMPARE_TYPE, (void *)ava.aa_desc->ad_cname.bv_val );
+		slapi_pblock_set( pb, SLAPI_COMPARE_VALUE, (void *)&ava.aa_value );
 
 		rs->sr_err = slapi_int_call_plugins( op->o_bd,
 			SLAPI_PLUGIN_PRE_COMPARE_FN, pb );
@@ -323,12 +343,7 @@ do_compare(
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
-cleanup:
-	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
-	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-	if ( ava.aa_value.bv_val ) {
-		op->o_tmpfree( ava.aa_value.bv_val, op->o_tmpmemctx );
-	}
+cleanup:;
 	return rs->sr_err;
 }
 

@@ -112,6 +112,12 @@ do_abandon( Operation *op, SlapReply *rs )
 
 done:
 	op->orn_msgid = id;
+
+	if ( frontendDB->be_abandon ) {
+		op->o_bd = frontendDB;
+		frontendDB->be_abandon( op, rs );
+	}
+
 	for ( i = 0; i < nbackends; i++ ) {
 		op->o_bd = &backends[i];
 		if( op->o_bd->be_abandon ) op->o_bd->be_abandon( op, rs );
@@ -129,3 +135,4 @@ done:
 #endif
 	return LDAP_SUCCESS;
 }
+

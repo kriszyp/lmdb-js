@@ -47,14 +47,13 @@ do_add( Operation *op, SlapReply *rs )
 {
 	BerElement	*ber = op->o_ber;
 	char		*last;
-	struct berval dn = BER_BVNULL;
+	struct berval	dn = BER_BVNULL;
 	ber_len_t	len;
 	ber_tag_t	tag;
 	Entry		*e;
 	Modifications	*modlist = NULL;
 	Modifications	**modtail = &modlist;
 	Modifications	tmp;
-	int	manageDSAit;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_add: conn %d enter\n", op->o_connid,0,0 );
@@ -197,11 +196,44 @@ do_add( Operation *op, SlapReply *rs )
 			"root DSE already exists" );
 		goto done;
 
-	} else if ( bvmatch( &e->e_nname, &global_schemandn ) ) {
+	} else if ( bvmatch( &e->e_nname, &frontendDB->be_schemandn ) ) {
 		send_ldap_error( op, rs, LDAP_ALREADY_EXISTS,
 			"subschema subentry already exists" );
 		goto done;
 	}
+
+	/* temporary; remove if not invoking backend function */
+	op->ora_e = e;
+	op->ora_modlist = modlist;
+
+	op->o_bd = frontendDB;
+	rs->sr_err = frontendDB->be_add( op, rs );
+	if ( rs->sr_err == 0 ) {
+		e = NULL;
+	}
+
+done:;
+	slap_graduate_commit_csn( op );
+
+	if( modlist != NULL ) {
+		slap_mods_free( modlist );
+	}
+	if( e != NULL ) {
+		entry_free( e );
+	}
+	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+
+	return rs->sr_err;
+}
+
+int
+fe_op_add( Operation *op, SlapReply *rs )
+{
+	int		manageDSAit;
+	Entry		*e = op->ora_e;
+	Modifications	*modlist = op->ora_modlist;
+	Modifications	**modtail = &modlist;
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -241,7 +273,7 @@ do_add( Operation *op, SlapReply *rs )
 	}
 
 #ifdef LDAP_SLAPI
-	if ( op->o_pb ) init_add_pblock( op, &dn, e, manageDSAit );
+	if ( op->o_pb ) init_add_pblock( op, &op->o_req_dn, e, manageDSAit );
 #endif /* LDAP_SLAPI */
 
 	/*
@@ -382,18 +414,7 @@ do_add( Operation *op, SlapReply *rs )
 	if ( op->o_pb ) call_add_postop_plugins( op );
 #endif /* LDAP_SLAPI */
 
-done:
-	slap_graduate_commit_csn( op );
-
-	if( modlist != NULL ) {
-		slap_mods_free( modlist );
-	}
-	if( e != NULL ) {
-		entry_free( e );
-	}
-	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
-	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-
+done:;
 	return rs->sr_err;
 }
 

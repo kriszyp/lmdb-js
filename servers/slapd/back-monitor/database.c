@@ -126,8 +126,8 @@ monitor_subsys_database_init(
 		return( -1 );
 	}
 
-	(void)init_readOnly( mi, e_database, global_restrictops );
-	(void)init_restrictedOperation( mi, e_database, global_restrictops );
+	(void)init_readOnly( mi, e_database, frontendDB->be_restrictops );
+	(void)init_restrictedOperation( mi, e_database, frontendDB->be_restrictops );
 
 	e_tmp = NULL;
 	for ( i = nBackendDB; i--; ) {

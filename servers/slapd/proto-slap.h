@@ -1251,18 +1251,13 @@ LDAP_SLAPD_V (ber_len_t) sockbuf_max_incoming_auth;
 LDAP_SLAPD_V (int)		slap_conn_max_pending;
 LDAP_SLAPD_V (int)		slap_conn_max_pending_auth;
 
-LDAP_SLAPD_V (slap_mask_t)	global_restrictops;
 LDAP_SLAPD_V (slap_mask_t)	global_allows;
 LDAP_SLAPD_V (slap_mask_t)	global_disallows;
-LDAP_SLAPD_V (slap_mask_t)	global_requires;
-LDAP_SLAPD_V (slap_ssf_set_t)	global_ssf_set;
 
-LDAP_SLAPD_V (BerVarray)		default_referral;
+LDAP_SLAPD_V (BerVarray)	default_referral;
 LDAP_SLAPD_V (char *)		replogfile;
 LDAP_SLAPD_V (const char) 	Versionstr[];
-LDAP_SLAPD_V (struct slap_limits_set)		deflimit;
 
-LDAP_SLAPD_V (slap_access_t)	global_default_access;
 LDAP_SLAPD_V (int)		global_gentlehup;
 LDAP_SLAPD_V (int)		global_idletimeout;
 LDAP_SLAPD_V (int)		global_schemacheck;
@@ -1273,9 +1268,6 @@ LDAP_SLAPD_V (int)		lber_debug;
 LDAP_SLAPD_V (int)		ldap_syslog;
 LDAP_SLAPD_V (struct berval)	default_search_base;
 LDAP_SLAPD_V (struct berval)	default_search_nbase;
-
-LDAP_SLAPD_V (struct berval)	global_schemadn;
-LDAP_SLAPD_V (struct berval)	global_schemandn;
 
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	num_sent_mutex;
 LDAP_SLAPD_V (unsigned long)		num_bytes_sent;
@@ -1311,8 +1303,6 @@ LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	passwd_mutex;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	gmtime_mutex;
 #endif
 
-LDAP_SLAPD_V (AccessControl *) global_acl;
-
 LDAP_SLAPD_V (ber_socket_t)	dtblsize;
 
 LDAP_SLAPD_V (int)		use_reverse_lookup;
@@ -1334,6 +1324,24 @@ LDAP_SLAPD_F (int) do_modrdn LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) do_search LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) do_unbind LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) do_extended LDAP_P((Operation *op, SlapReply *rs));
+
+/*
+ * frontend operations
+ */
+#if 0
+LDAP_SLAPD_F (int) fe_op_abandon LDAP_P((Operation *op, SlapReply *rs));
+#endif
+LDAP_SLAPD_F (int) fe_op_add LDAP_P((Operation *op, SlapReply *rs));
+LDAP_SLAPD_F (int) fe_op_bind LDAP_P((Operation *op, SlapReply *rs));
+LDAP_SLAPD_F (int) fe_op_compare LDAP_P((Operation *op, SlapReply *rs));
+LDAP_SLAPD_F (int) fe_op_delete LDAP_P((Operation *op, SlapReply *rs));
+LDAP_SLAPD_F (int) fe_op_modify LDAP_P((Operation *op, SlapReply *rs));
+LDAP_SLAPD_F (int) fe_op_modrdn LDAP_P((Operation *op, SlapReply *rs));
+LDAP_SLAPD_F (int) fe_op_search LDAP_P((Operation *op, SlapReply *rs));
+#if 0
+LDAP_SLAPD_F (int) fe_op_unbind LDAP_P((Operation *op, SlapReply *rs));
+#endif
+LDAP_SLAPD_F (int) fe_extended LDAP_P((Operation *op, SlapReply *rs));
 
 LDAP_END_DECL
 

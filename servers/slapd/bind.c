@@ -137,8 +137,7 @@ do_bind(
 				tag = ber_scanf( ber, "m", &op->orb_cred );
 			} else {
 				tag = LDAP_TAG_LDAPCRED;
-				op->orb_cred.bv_val = NULL;
-				op->orb_cred.bv_len = 0;
+				BER_BVZERO( &op->orb_cred );
 			}
 
 			if ( tag != LBER_ERROR ) {
@@ -238,6 +237,38 @@ do_bind(
 	op->o_conn->c_protocol = version;
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
+	op->orb_tmp_mech = mech;
+
+	op->o_bd = frontendDB;
+	rs->sr_err = frontendDB->be_bind( op, rs );
+
+cleanup:
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		if ( op->orb_method != LDAP_AUTH_SASL ) {
+			ber_dupbv( &op->o_conn->c_authmech, &mech );
+		}
+		op->o_conn->c_authtype = op->orb_method;
+	}
+
+	op->o_conn->c_sasl_bindop = NULL;
+
+	if( op->o_req_dn.bv_val != NULL ) {
+		slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
+		BER_BVZERO( &op->o_req_dn );
+	}
+	if( op->o_req_ndn.bv_val != NULL ) {
+		slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+		BER_BVZERO( &op->o_req_ndn );
+	}
+
+	return rs->sr_err;
+}
+
+int
+fe_op_bind( Operation *op, SlapReply *rs )
+{
+	struct berval	mech = op->orb_tmp_mech;
+
 	/* check for inappropriate controls */
 	if( get_manageDSAit( op ) == SLAP_CRITICAL_CONTROL ) {
 		send_ldap_error( op, rs,
@@ -250,14 +281,14 @@ do_bind(
 	op->o_conn->c_sasl_bindop = op;
 
 	if ( op->orb_method == LDAP_AUTH_SASL ) {
-		if ( version < LDAP_VERSION3 ) {
+		if ( op->o_protocol < LDAP_VERSION3 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, INFO, 
 				"do_bind: conn %d  sasl with LDAPv%ld\n",
-				op->o_connid, (unsigned long)version , 0 );
+				op->o_connid, (unsigned long)op->o_protocol, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "do_bind: sasl with LDAPv%ld\n",
-				(unsigned long) version, 0, 0 );
+				(unsigned long)op->o_protocol, 0, 0 );
 #endif
 			send_ldap_discon( op, rs,
 				LDAP_PROTOCOL_ERROR, "SASL bind requires LDAPv3" );
@@ -350,8 +381,7 @@ do_bind(
 		} else {
 			if ( op->o_conn->c_sasl_bind_mech.bv_val ) {
 				free( op->o_conn->c_sasl_bind_mech.bv_val );
-				op->o_conn->c_sasl_bind_mech.bv_val = NULL;
-				op->o_conn->c_sasl_bind_mech.bv_len = 0;
+				BER_BVZERO( &op->o_conn->c_sasl_bind_mech );
 			}
 			op->o_conn->c_sasl_bind_in_progress = 0;
 		}
@@ -367,7 +397,7 @@ do_bind(
 		 */
 		if ( pb ) {
 			slapi_int_pblock_set_operation( pb, op );
-			slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
+			slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)op->o_req_dn.bv_val );
 			slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)op->orb_method );
 			slapi_pblock_set( pb,
 				SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );
@@ -387,8 +417,7 @@ do_bind(
 
 		if ( op->o_conn->c_sasl_bind_mech.bv_val != NULL ) {
 			free(op->o_conn->c_sasl_bind_mech.bv_val);
-			op->o_conn->c_sasl_bind_mech.bv_val = NULL;
-			op->o_conn->c_sasl_bind_mech.bv_len = 0;
+			BER_BVZERO( &op->o_conn->c_sasl_bind_mech );
 		}
 		op->o_conn->c_sasl_bind_in_progress = 0;
 
@@ -433,10 +462,10 @@ do_bind(
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, DETAIL1, 
 				"do_bind: conn %d  v%d anonymous bind\n",
-				op->o_connid, version , 0 );
+				op->o_connid, op->o_protocol, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, "do_bind: v%d anonymous bind\n",
-				version, 0, 0 );
+				op->o_protocol, 0, 0 );
 #endif
 			goto cleanup;
 
@@ -449,11 +478,11 @@ do_bind(
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, INFO, 
 				"do_bind: conn %d  v%d simple bind(%s) disallowed\n",
-				op->o_connid, version, op->o_req_ndn.bv_val );
+				op->o_connid, op->o_protocol, op->o_req_ndn.bv_val );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: v%d simple bind(%s) disallowed\n",
-				version, op->o_req_ndn.bv_val, 0 );
+				op->o_protocol, op->o_req_ndn.bv_val, 0 );
 #endif
 			goto cleanup;
 		}
@@ -470,11 +499,11 @@ do_bind(
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, DETAIL1, 
 				"do_bind: conn %d  v%d Kerberos V4 (step 1) bind refused\n",
-				op->o_connid, version , 0 );
+				op->o_connid, op->o_protocol, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: v%d Kerberos V4 (step 1) bind refused\n",
-				version, 0, 0 );
+				op->o_protocol, 0, 0 );
 #endif
 			goto cleanup;
 		}
@@ -488,11 +517,11 @@ do_bind(
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, DETAIL1, 
 			"do_bind: conn %d  v%d Kerberos V4 (step 2) bind refused\n",
-			op->o_connid, version , 0 );
+			op->o_connid, op->o_protocol, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"do_bind: v%d Kerberos V4 (step 2) bind refused\n",
-			version, 0, 0 );
+			op->o_protocol, 0, 0 );
 #endif
 		goto cleanup;
 #endif
@@ -505,11 +534,11 @@ do_bind(
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, 
 			"do_bind: conn %ld  v%d unknown authentication method (%ld)\n",
-			op->o_connid, version, op->orb_method );
+			op->o_connid, op->o_protocol, op->orb_method );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"do_bind: v%d unknown authentication method (%ld)\n",
-			version, op->orb_method, 0 );
+			op->o_protocol, op->orb_method, 0 );
 #endif
 		goto cleanup;
 	}
@@ -550,7 +579,7 @@ do_bind(
 	if ( pb ) {
 		int rc;
 		slapi_int_pblock_set_operation( pb, op );
-		slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
+		slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)op->o_req_dn.bv_val );
 		slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)op->orb_method );
 		slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );
 		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
@@ -588,13 +617,12 @@ do_bind(
 				rs->sr_err = LDAP_OTHER;
 			}
 
-			op->orb_edn.bv_val = NULL;
-			op->orb_edn.bv_len = 0;
+			BER_BVZERO( &op->orb_edn );
 
 			if ( rs->sr_err == LDAP_SUCCESS ) {
 				slapi_pblock_get( pb, SLAPI_CONN_DN,
 					(void *)&op->orb_edn.bv_val );
-				if ( op->orb_edn.bv_val == NULL ) {
+				if ( BER_BVISNULL( &op->orb_edn ) ) {
 					if ( rc == 1 ) {
 						/* No plugins were called; continue. */
 						break;
@@ -608,11 +636,9 @@ do_bind(
 				ber_dupbv(&op->o_conn->c_dn, &op->o_req_dn);
 				ber_dupbv(&op->o_conn->c_ndn, &op->o_req_ndn);
 				op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
-				op->o_req_dn.bv_val = NULL;
-				op->o_req_dn.bv_len = 0;
+				BER_BVZERO( &op->o_req_dn );
 				op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-				op->o_req_ndn.bv_val = NULL;
-				op->o_req_ndn.bv_len = 0;
+				BER_BVZERO( &op->o_req_ndn );
 				if ( op->o_conn->c_dn.bv_len != 0 ) {
 					ber_len_t max = sockbuf_max_incoming_auth;
 					ber_sockbuf_ctrl( op->o_conn->c_sb,
@@ -667,11 +693,11 @@ do_bind(
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, DETAIL1, 
 				"do_bind: v%d bind: \"%s\" to \"%s\" \n",
-				version, op->o_conn->c_dn.bv_val, op->o_conn->c_dn.bv_val );
+				op->o_protocol, op->o_conn->c_dn.bv_val, op->o_conn->c_dn.bv_val );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: v%d bind: \"%s\" to \"%s\"\n",
-				version, dn.bv_val, op->o_conn->c_dn.bv_val );
+				op->o_protocol, op->o_req_dn.bv_val, op->o_conn->c_dn.bv_val );
 #endif
 
 			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
@@ -704,24 +730,7 @@ do_bind(
 	}
 #endif /* LDAP_SLAPI */
 
-cleanup:
-	if ( rs->sr_err == LDAP_SUCCESS ) {
-		if ( op->orb_method != LDAP_AUTH_SASL ) {
-			ber_dupbv( &op->o_conn->c_authmech, &mech );
-		}
-		op->o_conn->c_authtype = op->orb_method;
-	}
-
-	op->o_conn->c_sasl_bindop = NULL;
-
-	if( op->o_req_dn.bv_val != NULL ) {
-		slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
-		op->o_req_dn.bv_val = NULL;
-	}
-	if( op->o_req_ndn.bv_val != NULL ) {
-		slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-		op->o_req_ndn.bv_val = NULL;
-	}
-
+cleanup:;
 	return rs->sr_err;
 }
+

@@ -1573,7 +1573,7 @@ parse_acl(
 #endif /* LDAP_DEVEL */
 			acl_append( &be->be_acl, a );
 		} else {
-			acl_append( &global_acl, a );
+			acl_append( &frontendDB->be_acl, a );
 		}
 	}
 }

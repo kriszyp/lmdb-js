@@ -61,8 +61,8 @@ schema_info( Entry **entry, const char **text )
 	/* backend-specific schema info should be created by the
 	 * backend itself
 	 */
-	ber_dupbv( &e->e_name, &global_schemadn );
-	ber_dupbv( &e->e_nname, &global_schemandn );
+	ber_dupbv( &e->e_name, &frontendDB->be_schemadn );
+	ber_dupbv( &e->e_nname, &frontendDB->be_schemandn );
 	e->e_private = NULL;
 
 	vals[0].bv_val = "subentry";
@@ -93,7 +93,7 @@ schema_info( Entry **entry, const char **text )
 	{
 		int rc;
 		AttributeDescription *desc = NULL;
-		struct berval rdn = global_schemadn;
+		struct berval rdn = frontendDB->be_schemadn;
 		vals[0].bv_val = strchr( rdn.bv_val, '=' );
 
 		if( vals[0].bv_val == NULL ) {
@@ -113,11 +113,11 @@ schema_info( Entry **entry, const char **text )
 			return LDAP_OTHER;
 		}
 
-		nvals[0].bv_val = strchr( global_schemandn.bv_val, '=' );
+		nvals[0].bv_val = strchr( frontendDB->be_schemandn.bv_val, '=' );
 		assert( nvals[0].bv_val );
 		nvals[0].bv_val++;
-		nvals[0].bv_len = global_schemandn.bv_len -
-			(nvals[0].bv_val - global_schemandn.bv_val);
+		nvals[0].bv_len = frontendDB->be_schemandn.bv_len -
+			(nvals[0].bv_val - frontendDB->be_schemandn.bv_val);
 
 		if( attr_merge_one( e, desc, vals, nvals ) ) {
 			/* Out of memory, do something about it */

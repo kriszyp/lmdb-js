@@ -50,14 +50,7 @@ do_modify(
 	ber_len_t	len;
 	Modifications	*modlist = NULL;
 	Modifications	**modtail = &modlist;
-#ifdef LDAP_DEBUG
-	Modifications *tmp;
-#endif
-#ifdef LDAP_SLAPI
-	LDAPMod		**modv = NULL;
-#endif
-	int manageDSAit;
-	int increment = 0;
+	int		increment = 0;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_modify: enter\n", 0, 0, 0 );
@@ -237,6 +230,37 @@ do_modify(
 		goto cleanup;
 	}
 
+	/* FIXME: temporary */
+	op->orm_modlist = modlist;
+	op->orm_increment = increment;
+
+	op->o_bd = frontendDB;
+	rs->sr_err = frontendDB->be_modify( op, rs );
+
+cleanup:
+	slap_graduate_commit_csn( op );
+
+	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	if ( modlist != NULL ) slap_mods_free( modlist );
+
+	return rs->sr_err;
+}
+
+int
+fe_op_modify( Operation *op, SlapReply *rs )
+{
+#ifdef LDAP_DEBUG
+	Modifications	*tmp;
+#endif
+	int		manageDSAit;
+	Modifications	*modlist = op->orm_modlist;
+	Modifications	**modtail = &modlist;
+#ifdef LDAP_SLAPI
+	LDAPMod		**modv = NULL;
+#endif
+	int		increment = op->orm_increment;
+	
 	if( op->o_req_ndn.bv_len == 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
@@ -249,7 +273,7 @@ do_modify(
 			"modify upon the root DSE not supported" );
 		goto cleanup;
 
-	} else if ( bvmatch( &op->o_req_ndn, &global_schemandn ) ) {
+	} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
 			"do_modify: attempt to modify subschema subentry.\n" , 0, 0, 0  );
@@ -315,7 +339,7 @@ do_modify(
 		int len = 0;
 
 		Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD dn=\"%s\"\n",
-			op->o_connid, op->o_opid, dn.bv_val, 0, 0 );
+			op->o_connid, op->o_opid, op->o_req_dn.bv_val, 0, 0 );
 
 		for ( tmp = modlist; tmp != NULL; tmp = tmp->sml_next ) {
 			if (len + 1 + tmp->sml_type.bv_len > sizeof(abuf)) {
@@ -391,7 +415,7 @@ do_modify(
 #define pb	op->o_pb
 	if ( pb ) {
 		slapi_int_pblock_set_operation( pb, op );
-		slapi_pblock_set( pb, SLAPI_MODIFY_TARGET, (void *)dn.bv_val );
+		slapi_pblock_set( pb, SLAPI_MODIFY_TARGET, (void *)op->o_req_dn.bv_val );
 		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 		modv = slapi_int_modifications2ldapmods( &modlist );
 		slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv );
@@ -550,15 +574,11 @@ do_modify(
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
-cleanup:
-	slap_graduate_commit_csn( op );
-
-	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
-	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-	if ( modlist != NULL ) slap_mods_free( modlist );
+cleanup:;
 #if defined( LDAP_SLAPI )
 	if ( modv != NULL ) slapi_int_free_ldapmods( modv );
 #endif
+
 	return rs->sr_err;
 }
 

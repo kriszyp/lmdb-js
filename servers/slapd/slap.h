@@ -1280,6 +1280,7 @@ LDAP_SLAPD_V (int) nBackendInfo;
 LDAP_SLAPD_V (int) nBackendDB;
 LDAP_SLAPD_V (BackendInfo *) backendInfo;
 LDAP_SLAPD_V (BackendDB *) backendDB;
+LDAP_SLAPD_V (BackendDB *) frontendDB;
 
 LDAP_SLAPD_V (int) slapMode;	
 #define SLAP_UNDEFINED_MODE	0x0000
@@ -1615,6 +1616,7 @@ typedef struct req_bind_s {
 	struct berval rb_cred;
 	struct berval rb_edn;
 	slap_ssf_t rb_ssf;
+	struct berval rb_tmp_mech;	/* FIXME: temporary */
 } req_bind_s;
 
 typedef struct req_search_s {
@@ -1636,6 +1638,7 @@ typedef struct req_compare_s {
 
 typedef struct req_modify_s {
 	Modifications *rs_modlist;
+	int rs_increment;		/* FIXME: temporary */
 } req_modify_s;
 
 typedef struct req_modrdn_s {
@@ -1648,6 +1651,7 @@ typedef struct req_modrdn_s {
 
 typedef struct req_add_s {
 	Entry *rs_e;
+	Modifications *rs_modlist;	/* FIXME: temporary */
 } req_add_s;
 
 typedef struct req_abandon_s {
@@ -2051,6 +2055,7 @@ typedef struct slap_op {
 #define orb_cred oq_bind.rb_cred
 #define orb_edn oq_bind.rb_edn
 #define orb_ssf oq_bind.rb_ssf
+#define orb_tmp_mech oq_bind.rb_tmp_mech
 
 #define ors_scope oq_search.rs_scope
 #define ors_deref oq_search.rs_deref
@@ -2070,8 +2075,10 @@ typedef struct slap_op {
 
 #define orc_ava oq_compare.rs_ava
 #define ora_e oq_add.rs_e
+#define ora_modlist oq_add.rs_modlist
 #define orn_msgid oq_abandon.rs_msgid
 #define orm_modlist oq_modify.rs_modlist
+#define orm_increment oq_modify.rs_increment
 
 #define ore_reqoid oq_extended.rs_reqoid
 #define ore_reqdata oq_extended.rs_reqdata

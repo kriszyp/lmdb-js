@@ -351,6 +351,11 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 	}
 
+	if ( frontend_init() ) {
+		fprintf( stderr, "%s: frontend_init failed!\n", progname );
+		exit( EXIT_FAILURE );
+	}
+
 	if ( overlay_init() ) {
 		fprintf( stderr, "%s: overlay_init failed!\n", progname );
 		exit( EXIT_FAILURE );

@@ -224,7 +224,7 @@ access_allowed_mask(
 		/*
 		 * FIXME: experimental; use first backend rules
 		 * iff there is no global_acl (ITS#3100) */
-		if ( global_acl == NULL ) 
+		if ( frontendDB->be_acl == NULL ) 
 #endif
 		{
 			op->o_bd = be;
@@ -312,20 +312,20 @@ access_allowed_mask(
 #ifdef notdef
 	/* be is always non-NULL */
 	/* use global default access if no global acls */
-	} else if ( be == NULL && global_acl == NULL ) {
+	} else if ( be == NULL && frontendDB->be_acl == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, DETAIL1, 
 			"access_allowed: global default %s access %s to \"%s\"\n",
 		    access2str( access ),
-		    global_default_access >= access ? "granted" : "denied", 
+		    frontendDB->be_dfltaccess >= access ? "granted" : "denied", 
 			op->o_dn.bv_val );
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: global default %s access %s to \"%s\"\n",
 			access2str( access ),
-			global_default_access >= access ? "granted" : "denied", op->o_dn.bv_val );
+			frontendDB->be_dfltaccess >= access ? "granted" : "denied", op->o_dn.bv_val );
 #endif
-		ret = global_default_access >= access;
+		ret = frontendDB->be_dfltaccess >= access;
 
 		if ( maskp ) {
 			int	i;
@@ -496,7 +496,7 @@ acl_get(
 
 	if( a == NULL ) {
 		if( op->o_bd == NULL ) {
-			a = global_acl;
+			a = frontendDB->be_acl;
 		} else {
 			a = op->o_bd->be_acl;
 		}
