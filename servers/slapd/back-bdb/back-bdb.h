@@ -163,6 +163,7 @@ struct bdb_info {
 	Avlnode		*bi_attrs;
 	void		*bi_search_stack;
 	int		bi_search_stack_depth;
+	int		bi_linear_index;
 
 	int			bi_txn_cp;
 	u_int32_t	bi_txn_cp_min;

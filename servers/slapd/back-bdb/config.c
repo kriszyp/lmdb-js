@@ -69,6 +69,10 @@ bdb_db_config(
 		slapMode & SLAP_TOOL_MODE ) {
 		bdb->bi_dbenv_xflags |= DB_TXN_NOT_DURABLE;
 
+	/* slapindex algorithm tuning */
+	} else if ( strcasecmp( argv[0], "linearindex" ) == 0 ) {
+		bdb->bi_linear_index = 1;
+
 	/* transaction checkpoint configuration */
 	} else if ( strcasecmp( argv[0], "checkpoint" ) == 0 ) {
 		if ( argc < 3 ) {

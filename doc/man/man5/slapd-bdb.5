@@ -109,6 +109,14 @@ may be specified to disallow use of this index by named subtypes.
 Note: changing index settings requires rebuilding indices, see
 .BR slapindex (8).
 .TP
+.B linearindex
+Tell slapindex to index one attribute at a time. By default, all indexed
+attributes in an entry are processed at the same time. With this option,
+each indexed attribute is processed individually, using multiple passes
+through the entire database. This option improves slapindex performance
+when the database size exceeds the dbcache size. When the dbcache is
+large enough, this option is not needed and will decrease performance.
+.TP
 .B lockdetect {oldest|youngest|fewest|random|default}
 Specify which transaction to abort when a deadlock is detected.
 The default is the same as

@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <ac/string.h>
 
+#define AVL_INTERNAL
 #include "back-bdb.h"
 #include "external.h"
 
@@ -34,6 +35,8 @@ typedef struct dn_id {
 static dn_id hbuf[HOLE_SIZE], *holes = hbuf;
 static unsigned nhmax = HOLE_SIZE;
 static unsigned nholes;
+
+Avlnode *index_attrs, index_dummy;
 
 int bdb_tool_entry_open(
 	BackendDB *be, int mode )
@@ -79,6 +82,8 @@ int bdb_tool_entry_close(
 	return 0;
 }
 
+static int bdb_reindex_cmp(const void *a, const void *b) { return 0; }
+
 ID bdb_tool_entry_next(
 	BackendDB *be )
 {
@@ -90,6 +95,7 @@ ID bdb_tool_entry_next(
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( bdb != NULL );
 	
+	/* Initialization */
 	if (cursor == NULL) {
 		rc = bdb->bi_id2entry->bdi_db->cursor(
 			bdb->bi_id2entry->bdi_db, NULL, &cursor,
@@ -102,7 +108,22 @@ ID bdb_tool_entry_next(
 	rc = cursor->c_get( cursor, &key, &data, DB_NEXT );
 
 	if( rc != 0 ) {
-		return NOID;
+		/* If we're doing linear indexing and there are more attrs to
+		 * index, and we're at the end of the database, start over.
+		 */
+		if ( bdb->bi_attrs == &index_dummy ) {
+			if ( index_attrs && rc == DB_NOTFOUND ) {
+				/* optional - do a checkpoint here? */
+				index_dummy.avl_data = avl_delete(&index_attrs, NULL, bdb_reindex_cmp);
+				rc = cursor->c_get( cursor, &key, &data, DB_FIRST );
+			}
+			if ( rc ) {
+				bdb->bi_attrs = NULL;
+				return NOID;
+			}
+		} else {
+			return NOID;
+		}
 	}
 
 	if( data.data == NULL ) {
@@ -354,7 +375,8 @@ ID bdb_tool_entry_put(
 		goto done;
 	}
 
-	rc = bdb_index_entry_add( &op, tid, e );
+	if ( !bdb->bi_linear_index )
+		rc = bdb_index_entry_add( &op, tid, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
 				"index_entry_add failed: %s (%d)",
@@ -424,6 +446,20 @@ int bdb_tool_entry_reindex(
 		(long) id, 0, 0 );
 #endif
 
+	/* No indexes configured, nothing to do. Could return an
+	 * error here to shortcut things.
+	 */
+	if (!bi->bi_attrs) {
+		return 0;
+	}
+
+	/* Get the first attribute to index */
+	if (bi->bi_linear_index && !index_attrs && bi->bi_attrs != &index_dummy) {
+		index_attrs = bi->bi_attrs;
+		bi->bi_attrs = &index_dummy;
+		index_dummy.avl_data = avl_delete(&index_attrs, NULL, bdb_reindex_cmp);
+	}
+
 	e = bdb_tool_entry_get( be, id );
 
 	if( e == NULL ) {
@@ -472,7 +508,7 @@ int bdb_tool_entry_reindex(
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
 
-#ifndef BDB_HIER
+#if 0 /* ndef BDB_HIER */
 	/* add dn2id indices */
 	rc = bdb_dn2id_add( &op, tid, NULL, e );
 	if( rc != 0 && rc != DB_KEYEXIST ) {
