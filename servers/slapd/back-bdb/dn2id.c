@@ -1016,6 +1016,7 @@ hdb_dn2idl_internal(
 		/* The in-memory cache is in sync with the on-disk data.
 		 * do we have any kids?
 		 */
+		cx->rc = 0;
 		if ( cx->ei->bei_ckids > 0 ) {
 			struct apply_arg ap;
 
@@ -1051,15 +1052,17 @@ saveit:
 gotit:
 	if ( cx->rc == 0 ) {
 		/* If eilist is NULL, cx->tmp is empty... */
-		if ( cx->prefix == DN_SUBTREE_PREFIX && eilist ) {
-			bdb_idl_union( cx->ids, cx->tmp );
-			for (ptr = eilist; *ptr; ptr++) {
-				cx->ei = *ptr;
-				cx->id = cx->ei->bei_id;
-				hdb_dn2idl_internal( cx );
+		if ( cx->prefix == DN_SUBTREE_PREFIX ) {
+			if ( eilist ) {
+				bdb_idl_union( cx->ids, cx->tmp );
+				for (ptr = eilist; *ptr; ptr++) {
+					cx->ei = *ptr;
+					cx->id = cx->ei->bei_id;
+					hdb_dn2idl_internal( cx );
+				}
+				cx->op->o_tmpfree( eilist, cx->op->o_tmpmemctx );
+				cx->rc = 0;
 			}
-			cx->op->o_tmpfree( eilist, cx->op->o_tmpmemctx );
-			cx->rc = 0;
 		} else {
 			BDB_IDL_CPY( cx->ids, cx->tmp );
 		}
