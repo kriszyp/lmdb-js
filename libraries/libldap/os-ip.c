@@ -781,7 +781,7 @@ ldap_is_write_ready( LDAP *ld, Sockbuf *sb )
 		int i;
 		for(i=0; i < sip->si_maxfd; i++) {
 			if( sip->si_fds[i].fd == sd ) {
-				return sip->si_fds[i].revents == POLLOUT;
+				return sip->si_fds[i].revents & POLLOUT;
 			}
 		}
 
@@ -810,7 +810,7 @@ ldap_is_read_ready( LDAP *ld, Sockbuf *sb )
 		int i;
 		for(i=0; i < sip->si_maxfd; i++) {
 			if( sip->si_fds[i].fd == sd ) {
-				return sip->si_fds[i].revents == POLLIN;
+				return sip->si_fds[i].revents & POLLIN;
 			}
 		}
 
