@@ -1729,19 +1729,16 @@ slapd_daemon_task(
 			/* FALL THRU */
 		}
 
-		/* We don't need to examine the event status for wake_sds;
-		 * if waking is set and we woke up, we'll read whatever
-		 * we can.
-		 */
-		if ( waking ) {
+#if SLAP_EVENTS_ARE_INDEXED
+		if ( SLAP_EVENT_IS_READ( wake_sds[0] )) {
 			char c[BUFSIZ];
 			tcp_read( wake_sds[0], c, sizeof(c) );
 			waking = 0;
 			ns--;
+			SLAP_EVENT_CLR_READ( wake_sds[0] );
 			continue;
 		}
 
-#if SLAP_EVENTS_ARE_INDEXED
 		/* The event slot equals the descriptor number - this is
 		 * true for Unix select and poll. We treat Windows select
 		 * like this too, even though it's a kludge.
@@ -1883,12 +1880,23 @@ slapd_daemon_task(
 	 * all other connections last (as we do for select), we would need
 	 * to use multiple event handles and cascade them.
 	 *
-	 * That seems like a bit of hassle. So the wake_sds check has moved
-	 * above. For epoll and kqueue we can associate arbitrary data with
+	 * That seems like a bit of hassle. So the wake_sds check has been
+	 * skipped. For epoll and kqueue we can associate arbitrary data with
 	 * an event, so we could use pointers to the listener structure
 	 * instead of just the file descriptor. For /dev/poll we have to
 	 * search the listeners array for a matching descriptor.
 	 */
+		/* if waking is set and we woke up, we'll read whatever
+		 * we can.
+		 */
+		if ( waking ) {
+			char c[BUFSIZ];
+			tcp_read( wake_sds[0], c, sizeof(c) );
+			waking = 0;
+			ns--;
+			continue;
+		}
+
 #ifdef LDAP_DEBUG
 		Debug( LDAP_DEBUG_CONNS, "daemon: activity on:", 0, 0, 0 );
 
