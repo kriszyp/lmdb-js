@@ -19,6 +19,7 @@
 
 /* recycled validatation routines */
 #define berValidate						blobValidate
+#define nameUIDValidate					dnValidate
 
 /* unimplemented validators */
 #define bitStringValidate				NULL
@@ -28,6 +29,7 @@
 #define phoneNumberNormalize			numericStringNormalize
 #define telexNumberNormalize			numericStringNormalize
 #define integerNormalize				numericStringNormalize
+#define nameUIDNormalize				dnNormalize
 
 /* unimplemented normalizers */
 #define bitStringNormalize				NULL
@@ -35,6 +37,9 @@
 /* unimplemented pretters */
 #define dnPretty						NULL
 #define integerPretty					NULL
+
+/* recyclied pretters */
+#define nameUIDPretty					dnPretty
 
 /* recycled matching routines */
 #define numericStringMatch				caseIgnoreMatch
@@ -3544,7 +3549,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.33 DESC 'MHS OR Address' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'Name And Optional UID' )",
-		0, NULL, NULL, NULL},
+		0, nameUIDValidate, nameUIDNormalize, nameUIDPretty},
 	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'Name Form Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'Numeric String' )",
