@@ -180,14 +180,16 @@ is always used before
 .B TLS_CACERTDIR.
 .TP
 .B TLS_CERT <filename>
-Specifies the file that contains the client certificate.
+Specifies the file that contains the client certificate. This is
+a user\-only option.
 .TP
 .B TLS_KEY <filename>
 Specifies the file that contains the private key that matches the certificate
 stored in the
 .B TLS_CERT
 file. Currently, the private key must not be protected with a password, so
-it is of critical importance that the key file is protected carefully.
+it is of critical importance that the key file is protected carefully. This
+is a user\-only option.
 .TP
 .B TLS_RANDFILE <filename>
 Specifies the file to obtain random bits from when /dev/[u]random is
