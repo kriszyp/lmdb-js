@@ -37,6 +37,8 @@
 #define integerFirstComponentNormalize NULL
 #define objectIdentifierFirstComponentNormalize NULL
 
+#define	OpenLDAPaciMatch			NULL
+
 /* approx matching rules */
 #ifdef SLAP_NVALUES
 #define directoryStringApproxMatchOID	NULL
