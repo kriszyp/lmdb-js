@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ac/string.h>
-#include <unistd.h>			/* get unlink() */
+#include <ac/unistd.h>
 
 #include <ldbm.h>
 #include <lber.h>
