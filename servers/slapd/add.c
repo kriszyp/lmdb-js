@@ -624,15 +624,14 @@ slap_entry2mods(
 		mod->sml_nvalues[count].bv_val = 0; 
 		mod->sml_nvalues[count].bv_len = 0; 
 
-		mod->sml_desc = NULL;
-		slap_bv2ad(&mod->sml_type, &mod->sml_desc, text);
+		mod->sml_desc = a_new_desc;
 		mod->sml_next =NULL;
 		*modtail = mod;
 		modtail = &mod->sml_next;
 		a_new = a_new->a_next; 
 	}
 
-	mods = &modhead;
+	*mods = modhead;
 
 	return LDAP_SUCCESS;
 }
