@@ -153,7 +153,7 @@ OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verif
 OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no)dnl
 dnl OL_ARG_ENABLE(multimaster,[    --enable-multimaster  enable multimaster replication], no)dnl
 OL_ARG_ENABLE(phonetic,[    --enable-phonetic	  enable phonetic/soundex], no)dnl
-OL_ARG_ENABLE(rlookups,[    --enable-rlookups	  enable reverse lookups], auto)dnl
+OL_ARG_ENABLE(rlookups,[    --enable-rlookups	  enable reverse lookups], no)dnl
 OL_ARG_ENABLE(aci,[    --enable-aci	  enable per-object ACIs], no)dnl
 OL_ARG_ENABLE(wrappers,[    --enable-wrappers	  enable tcp wrapper support], no)dnl
 OL_ARG_ENABLE(dynamic,[    --enable-dynamic	  enable linking built binaries with dynamic libs], no)dnl
