@@ -273,6 +273,22 @@ main( int argc, char **argv )
 	}
 	}
 
+	if( authmethod != LDAP_AUTH_SIMPLE ) {
+		if( version == LDAP_VERSION3 ) {
+			fprintf(stderr, "Kerberos requires LDAPv2\n");
+			return EXIT_FAILURE;
+		}
+		version = LDAP_VERSION2;
+	}
+
+	if( manageDSAit ) {
+		if( version == LDAP_VERSION2 ) {
+			fprintf(stderr, "manage DSA control requires LDAPv3\n");
+			return EXIT_FAILURE;
+		}
+		version = LDAP_VERSION3;
+	}
+
 	if ( argc - optind < 1 ) {
 		usage( argv[ 0 ] );
 	}

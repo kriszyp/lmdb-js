@@ -218,6 +218,22 @@ main( int argc, char **argv )
     if ( argc != optind )
 	usage( prog );
 
+	if( authmethod != LDAP_AUTH_SIMPLE ) {
+		if( version == LDAP_VERSION3 ) {
+			fprintf(stderr, "Kerberos requires LDAPv2\n");
+			return EXIT_FAILURE;
+		}
+		version = LDAP_VERSION2;
+	}
+
+	if( manageDSAit ) {
+		if( version == LDAP_VERSION2 ) {
+			fprintf(stderr, "manage DSA control requires LDAPv3\n");
+			return EXIT_FAILURE;
+		}
+		version = LDAP_VERSION3;
+	}
+
     if ( infile != NULL ) {
 	if (( fp = fopen( infile, "r" )) == NULL ) {
 	    perror( infile );
@@ -255,14 +271,14 @@ main( int argc, char **argv )
 	/* don't chase referrals */
 	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
 
-	if (want_bindpw)
-		passwd = getpass("Enter LDAP Password: ");
-
 	if (version != -1 &&
 		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) != LDAP_OPT_SUCCESS)
 	{
 		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION to %d\n", version );
 	}
+
+	if (want_bindpw)
+		passwd = getpass("Enter LDAP Password: ");
 
 	if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	    ldap_perror( ld, "ldap_bind" );
