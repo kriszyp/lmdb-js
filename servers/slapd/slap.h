@@ -37,7 +37,7 @@
 
 #ifdef LDAP_DEVEL
 #define SLAP_EXTENDED_SCHEMA 1
-//#define LDAP_CACHING
+#define LDAP_CACHING
 #endif
 
 LDAP_BEGIN_DECL
