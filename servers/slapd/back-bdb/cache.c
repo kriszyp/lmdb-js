@@ -794,19 +794,20 @@ bdb_cache_modify(
 	DB_LOCK *lock )
 {
 	EntryInfo *ei = BEI(e);
-	
+	int rc = 0;	
 	/* Get write lock on data */
-	bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
+	rc = bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
 
 	/* If we've done repeated mods on a cached entry, then e_attrs
 	 * is no longer contiguous with the entry, and must be freed.
 	 */
-	if ( (void *)e->e_attrs != (void *)(e+1) ) {
-		attrs_free( e->e_attrs );
+	if ( ! rc ) {
+		if ( (void *)e->e_attrs != (void *)(e+1) ) {
+			attrs_free( e->e_attrs ); 
+		}
+		e->e_attrs = newAttrs;
 	}
-	e->e_attrs = newAttrs;
-
-	return 0;
+	return rc;
 }
 
 /*
