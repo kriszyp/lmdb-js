@@ -251,6 +251,18 @@ struct berval * UTF8bvnormalize(
 
 		last = i;
 
+		/* Allocate more space in out if necessary */
+		if (len - i > outsize - outpos) {
+			outsize = outsize + ((len - i) - (outsize - outpos));
+			outtmp = (char *) realloc(out, outsize);
+			if (outtmp == NULL) {
+				free(out);
+				free(ucs);
+				return NULL;
+			}
+			out = outtmp;
+		}
+
 		/* s[i] is ascii */
 		/* finish off everything up to char before next non-ascii */
 		for ( i++; (i < len) && LDAP_UTF8_ISASCII(s + i); i++ ) {
