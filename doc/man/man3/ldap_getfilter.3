@@ -1,4 +1,4 @@
-.TH LDAP_GETFILTER 3 "22 September 1998" "OpenLDAP LDVERSION"
+.TH LDAP_GETFILTER 3 "23 July 2001" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -17,31 +17,31 @@ ldap_getfirstfilter, ldap_getnextfilter, ldap_build_filter \- LDAP filter genera
 #define LDAP_FILT_MAXSIZ	1024
 
 typedef struct ldap_filt_info {
-        char                    *lfi_filter;
-        char                    *lfi_desc;
-        int                     lfi_scope;
-        int                     lfi_isexact;
-        struct ldap_filt_info   *lfi_next;
+    char                    *lfi_filter;
+    char                    *lfi_desc;
+    int                     lfi_scope;
+    int                     lfi_isexact;
+    struct ldap_filt_info   *lfi_next;
 } LDAPFiltInfo;
 
 typedef struct ldap_filt_list {
-    char                        *lfl_tag;
-    char                        *lfl_pattern;
-    char                        *lfl_delims;
-    LDAPFiltInfo                *lfl_ilist;
-    struct ldap_filt_list       *lfl_next;
+    char                    *lfl_tag;
+    char                    *lfl_pattern;
+    char                    *lfl_delims;
+    LDAPFiltInfo            *lfl_ilist;
+    struct ldap_filt_list   *lfl_next;
 } LDAPFiltList;
 
 typedef struct ldap_filt_desc {
-        LDAPFiltList            *lfd_filtlist;
-        LDAPFiltInfo            *lfd_curfip;
-        LDAPFiltInfo            lfd_retfi;
-        char                    lfd_filter[ LDAP_FILT_MAXSIZ ];
-        char                    *lfd_curval;
-        char                    *lfd_curvalcopy;
-        char                    **lfd_curvalwords;
-        char                    *lfd_filtprefix;
-        char                    *lfd_filtsuffix;
+    LDAPFiltList            *lfd_filtlist;
+    LDAPFiltInfo            *lfd_curfip;
+    LDAPFiltInfo            lfd_retfi;
+    char                    lfd_filter[ LDAP_FILT_MAXSIZ ];
+    char                    *lfd_curval;
+    char                    *lfd_curvalcopy;
+    char                    **lfd_curvalwords;
+    char                    *lfd_filtprefix;
+    char                    *lfd_filtsuffix;
 } LDAPFiltDesc;
 .ft
 .fi

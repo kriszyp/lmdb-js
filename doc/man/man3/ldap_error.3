@@ -1,4 +1,4 @@
-.TH LDAP_ERROR 3 "22 September 1998" "OpenLDAP LDVERSION"
+.TH LDAP_ERROR 3 "23 July 2001" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -10,31 +10,15 @@ ldap_perror, ld_errno, ldap_result2error, ldap_errlist, ldap_err2string \- LDAP 
 #include <ldap.h>
 .LP
 .ft B
-struct ldaperror {
-    int e_code;
-    char *e_reason;
-};
-.LP
-.ft B
-struct ldaperror ldap_errlist[];
-.LP
-.ft B
-char *ldap_err2string(err)
+char *ldap_err2string( int err );
 .ft
 int err;
 .LP
 .ft B
-void ldap_perror(ld, s)
-.ft
-LDAP *ld;
-char *s;
+void ldap_perror( LDAP *ld, const char *s )
 .LP
 .ft B
-int ldap_result2error(ld, res, freeit)
-.ft
-LDAP *ld;
-LDAPMessage *res;
-int freeit;
+int ldap_result2error( LDAP *ld, LDAPMessage *res, int freeit )
 .SH DESCRIPTION
 These routines provide interpretation of the various error codes
 returned by the LDAP protocol and LDAP library routines, and assigned
@@ -59,15 +43,11 @@ field in \fIld\fP is set and returned.
 .LP
 The returned value can be passed to
 .B ldap_err2string()
-or looked up in
-.B ldap_errlist[]
 to get a text description of the message.  The string
 returned from
 .B ldap_err2string()
 is a pointer to a static area that
-should not be modified.  The last element in the
-.B ldap_errlist[]
-array is signaled by an error code of -1.
+should not be modified.
 .LP
 The
 .B ldap_perror()
