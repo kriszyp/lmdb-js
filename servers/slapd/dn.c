@@ -28,6 +28,7 @@
 #define INQUOTEDVALUE	7
 #define B4SEPARATOR		8
 
+#define UTF8DN 1
 
 #ifdef UTF8DN
 /*
