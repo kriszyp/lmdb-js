@@ -147,25 +147,28 @@ ldap_pvt_tls_init_def_ctx( void )
 			tls_report_error();
 			goto error_exit;
 		}
-		if ( !SSL_CTX_load_verify_locations( tls_def_ctx,
-						     tls_opt_cacertfile,
-						     tls_opt_cacertdir ) ||
-		     !SSL_CTX_set_default_verify_paths( tls_def_ctx ) ) {
-			Debug( LDAP_DEBUG_ANY,
-	 	"TLS: could not load verify locations (file:`%s',dir:`%s').\n",
-			       tls_opt_cacertfile,tls_opt_cacertdir,0);
-			tls_report_error();
-			goto error_exit;
+		if (tls_opt_cacertfile != NULL || tls_opt_cacertdir != NULL) {
+			if ( !SSL_CTX_load_verify_locations( tls_def_ctx,
+							     tls_opt_cacertfile,
+							     tls_opt_cacertdir )
+			     || !SSL_CTX_set_default_verify_paths( tls_def_ctx ) )
+			{
+				Debug( LDAP_DEBUG_ANY,
+		 	"TLS: could not load verify locations (file:`%s',dir:`%s').\n",
+				       tls_opt_cacertfile,tls_opt_cacertdir,0);
+				tls_report_error();
+				goto error_exit;
+			}
+			calist = get_ca_list( tls_opt_cacertfile, tls_opt_cacertdir );
+			if ( !calist ) {
+				Debug( LDAP_DEBUG_ANY,
+		 	"TLS: could not load client CA list (file:`%s',dir:`%s').\n",
+				       tls_opt_cacertfile,tls_opt_cacertdir,0);
+				tls_report_error();
+				goto error_exit;
+			}
+			SSL_CTX_set_client_CA_list( tls_def_ctx, calist );
 		}
-		calist = get_ca_list( tls_opt_cacertfile, tls_opt_cacertdir );
-		if ( !calist ) {
-			Debug( LDAP_DEBUG_ANY,
-	 	"TLS: could not load client CA list (file:`%s',dir:`%s').\n",
-			       tls_opt_cacertfile,tls_opt_cacertdir,0);
-			tls_report_error();
-			goto error_exit;
-		}
-		SSL_CTX_set_client_CA_list( tls_def_ctx, calist );
 		if ( tls_opt_keyfile &&
 		     !SSL_CTX_use_PrivateKey_file( tls_def_ctx,
 						   tls_opt_keyfile,
