@@ -99,6 +99,10 @@ cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 	ID id;
 	int refcnt, freeit = 1;
 
+	if ( slapMode != SLAP_SERVER_MODE ) {
+		return;
+	}
+
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 

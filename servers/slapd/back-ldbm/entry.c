@@ -52,6 +52,10 @@ ldbm_back_entry_release_rw(
 #endif
 
 	} else {
+		if ( e->e_private ) {
+			free( e->e_private );
+			e->e_private = NULL;
+		}
 		entry_free( e );
 	}
 

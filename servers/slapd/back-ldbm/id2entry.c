@@ -259,7 +259,9 @@ id2entry_rw( Backend *be, ID id, int rw )
 
 	e->e_id = id;
 
-	if( cache_add_entry_rw( &li->li_cache, e, rw ) != 0 ) {
+	if ( slapMode == SLAP_SERVER_MODE
+			&& cache_add_entry_rw( &li->li_cache, e, rw ) != 0 )
+	{
 		entry_free( e );
 
 		/* XXX this is a kludge.
@@ -300,9 +302,11 @@ id2entry_rw( Backend *be, ID id, int rw )
 		rw ? "w" : "r", id, (unsigned long) e );
 #endif
 
-	/* marks the entry as committed, so it will get added to the cache
-	 * when the lock is released */
-	cache_entry_commit( e );
+	if ( slapMode == SLAP_SERVER_MODE ) {
+		/* marks the entry as committed, so it will get added to the cache
+		 * when the lock is released */
+		cache_entry_commit( e );
+	}
 
 	return( e );
 }
