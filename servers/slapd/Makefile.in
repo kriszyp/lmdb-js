@@ -359,6 +359,11 @@ all-cffiles: slapd $(SLAPD_DYNAMIC_BACKENDS) tools
 
 install-schema: FORCE
 	@-$(MKDIR) $(DESTDIR)$(schemadir)
+	i="$(srcdir)/schema/README" ; \
+	SF=`basename $$i` ; \
+	SD="$(DESTDIR)$(schemadir)/$$SF" ; \
+	echo $(INSTALL) $(INSTALLFLAGS) -m 444 $$i $$SD ; \
+	$(INSTALL) $(INSTALLFLAGS) -m 444 $$i $$SD
 	for i in $(srcdir)/schema/*.schema ; do \
 		SF=`basename $$i` ; \
 		SD="$(DESTDIR)$(schemadir)/$$SF" ; \
