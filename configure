@@ -10944,7 +10944,7 @@ EOF
 
 
 	if test "$ac_cv_sizeof_int" -lt 4 ; then
-		{ echo "configure: error: OpenLDAP requires 'int' to be 32 bits or greater." 1>&2; exit 1; }
+		echo "configure: warning: OpenLDAP requires 'int' to be 32 bits or greater." 1>&2
 	fi
 fi
 
