@@ -393,7 +393,9 @@ parse_acl(
 
 
 					if( !is_at_syntax( b->a_dn_at->ad_type,
-						SLAPD_DN_SYNTAX ) )
+						SLAPD_DN_SYNTAX ) &&
+						!is_at_syntax( b->a_dn_at->ad_type,
+						SLAPD_NAMEUID_SYNTAX ))
 					{
 						fprintf( stderr,
 							"%s: line %d: dnattr \"%s\": "
