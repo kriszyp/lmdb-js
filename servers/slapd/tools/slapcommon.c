@@ -23,9 +23,14 @@ char	*progname	= NULL;
 char	*conffile	= SLAPD_DEFAULT_CONFIGFILE;
 int		truncatemode = 0;
 int		verbose		= 0;
-int		update_ctxcsn = SLAP_TOOL_CTXCSN_NONE;
+int		update_ctxcsn = SLAP_TOOL_CTXCSN_KEEP;
 int		retrieve_ctxcsn = 0;
 int		retrieve_synccookie = 0;
+int		replica_promotion = 0;
+int		replica_demotion = 0;
+char	*replica_id_string = NULL;
+char	**replica_id_strlist = NULL;
+int		*replica_id_list = NULL;
 int		continuemode = 0;
 int		nosubordinates = 0;
 int		dryrun = 0;
@@ -51,7 +56,7 @@ usage( int tool )
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "\t[-l ldiffile] [-u] [-W] [-w]\n";
+		options = "\n\t[-l ldiffile] [-u] [-p [-w] | -r [-i syncreplidlist] [-w]]\n";
 		break;
 
 	case SLAPCAT:
@@ -103,7 +108,7 @@ slap_tool_init(
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "b:cd:f:l:n:tuvWw";
+		options = "b:cd:f:i:l:n:prtuvWw";
 		break;
 
 	case SLAPINDEX:
@@ -144,6 +149,21 @@ slap_tool_init(
 			conffile = strdup( optarg );
 			break;
 
+		case 'i': /* specify syncrepl id list */
+			replica_id_string = strdup( optarg );
+			if ( !isdigit( *replica_id_string )) {
+				usage( tool );
+				exit( EXIT_FAILURE );
+			}
+			str2clist( &replica_id_strlist, replica_id_string, "," );
+			for ( i = 0; replica_id_strlist && replica_id_strlist[i]; i++ ) ;
+			replica_id_list = ch_calloc( i + 1, sizeof( int ) );
+			for ( i = 0; replica_id_strlist && replica_id_strlist[i]; i++ ) {
+				replica_id_list[i] = atoi( replica_id_strlist[i] );
+			}
+			replica_id_list[i] = -1;
+			break;
+
 		case 'k':	/* Retrieve sync cookie entry */
 			retrieve_synccookie = 1;
 			break;
@@ -158,6 +178,14 @@ slap_tool_init(
 
 		case 'n':	/* which config file db to index */
 			dbnum = atoi( optarg ) - 1;
+			break;
+
+		case 'p':	/* replica promotion */
+			replica_promotion = 1;		
+			break;
+
+		case 'r':	/* replica demotion */
+			replica_demotion = 1;		
 			break;
 
 		case 's':	/* dump subtree */
@@ -194,6 +222,14 @@ slap_tool_init(
 
 	if ( ( argc != optind ) || (dbnum >= 0 && base.bv_val != NULL ) ) {
 		usage( tool );
+	}
+
+	if ( replica_promotion && replica_demotion ) {
+		usage( tool );
+	} else if ( !replica_promotion && !replica_demotion ) {
+		if ( update_ctxcsn != SLAP_TOOL_CTXCSN_KEEP ) {
+			usage( tool );
+		}
 	}
 
 	if ( ldiffile == NULL ) {

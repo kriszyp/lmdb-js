@@ -303,6 +303,7 @@ LDAP_SLAPD_F (int) get_supported_controls LDAP_P (( char ***ctrloidsp, slap_mask
  */
 LDAP_SLAPD_F (int) read_config LDAP_P(( const char *fname, int depth ));
 LDAP_SLAPD_F (void) config_destroy LDAP_P ((void));
+LDAP_SLAPD_F (char **) str2clist LDAP_P(( char ***, char *, const char * ));
 
 /*
  * connection.c
@@ -358,6 +359,8 @@ LDAP_SLAPD_F (ContentRule *) cr_bvfind LDAP_P((
  * ctxcsn.c
  */
 
+LDAP_SLAPD_V( const struct berval ) slap_ldapsync_bv;
+LDAP_SLAPD_V( const struct berval ) slap_ldapsync_cn_bv;
 LDAP_SLAPD_F (void) slap_get_commit_csn LDAP_P(( Operation *, struct berval * ));
 LDAP_SLAPD_F (void) slap_rewind_commit_csn LDAP_P(( Operation * ));
 LDAP_SLAPD_F (void) slap_graduate_commit_csn LDAP_P(( Operation * ));
@@ -535,8 +538,6 @@ LDAP_SLAPD_V( const struct berval ) slap_empty_bv;
 LDAP_SLAPD_V( const struct berval ) slap_unknown_bv;
 LDAP_SLAPD_V( const struct berval ) slap_true_bv;
 LDAP_SLAPD_V( const struct berval ) slap_false_bv;
-LDAP_SLAPD_V( const struct berval ) slap_ldapsync_bv;
-LDAP_SLAPD_V( const struct berval ) slap_ldapsync_cn_bv;
 
 /*
  * index.c
@@ -1170,28 +1171,34 @@ LDAP_SLAPD_F (int) do_unbind LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) do_extended LDAP_P((Operation *op, SlapReply *rs));
 
 /*
- * syncrepl
+ * syncrepl.c
  */
+
+LDAP_SLAPD_V( const struct berval ) slap_syncrepl_bvc;
+LDAP_SLAPD_V( const struct berval ) slap_syncrepl_cn_bvc;
 
 LDAP_SLAPD_V (struct runqueue_s) syncrepl_rq;
 
 LDAP_SLAPD_F (void) init_syncrepl LDAP_P(());
 LDAP_SLAPD_F (void*) do_syncrepl LDAP_P((void *, void *));
 LDAP_SLAPD_F (int) ldap_sync_search LDAP_P((
-							syncinfo_t *, LDAP *, LDAPControl **, LDAPControl **, int *));
+					syncinfo_t *, LDAP *, LDAPControl **,
+					LDAPControl **, int *));
 LDAP_SLAPD_F (Entry*) syncrepl_message_to_entry LDAP_P((
-							syncinfo_t *, LDAP *, Operation *, LDAPMessage *,
-							Modifications **, int*, struct berval *, struct berval * ));
+					syncinfo_t *, LDAP *, Operation *, LDAPMessage *,
+					Modifications **, int*, struct berval *, struct berval * ));
 LDAP_SLAPD_F (int) syncrepl_entry LDAP_P((
-							syncinfo_t *, LDAP *, Operation*, Entry*,
-							Modifications*,int, struct berval*, struct berval*, int ));
+					syncinfo_t *, LDAP *, Operation*, Entry*,
+					Modifications*,int, struct berval*, struct berval*, int ));
 LDAP_SLAPD_F (void) syncrepl_updateCookie LDAP_P((
-							syncinfo_t *, LDAP *, Operation *, struct berval *,
-							struct berval * ));
-LDAP_SLAPD_F (char **) str2clist LDAP_P(( char ***, char *, const char * ));
-
-LDAP_SLAPD_F (void)  syncrepl_add_glue LDAP_P(( syncinfo_t *, LDAP *, Operation*, Entry*,
-							Modifications*, int, struct berval*, struct berval* ));
+					syncinfo_t *, LDAP *, Operation *, struct berval *,
+					struct berval * ));
+LDAP_SLAPD_F (void)  syncrepl_add_glue LDAP_P(( syncinfo_t *, LDAP *,
+					Operation*, Entry*, Modifications*, int,
+					struct berval*, struct berval* ));
+LDAP_SLAPD_F (Entry*) slap_create_syncrepl_entry LDAP_P((
+					Backend *, struct berval *,
+					struct berval *, struct berval * ));
 
 LDAP_END_DECL
 

@@ -35,6 +35,9 @@
 
 #include "ldap_rq.h"
 
+const struct berval slap_syncrepl_bvc = BER_BVC("syncreplxxx");
+const struct berval slap_syncrepl_cn_bvc = BER_BVC("cn=syncreplxxx");
+
 static void
 syncrepl_del_nonpresent( LDAP *, Operation * );
 
@@ -1618,47 +1621,45 @@ null_callback(
 	return LDAP_SUCCESS;
 }
 
+static struct berval ocbva[] = {
+    BER_BVC("top"),
+    BER_BVC("subentry"),
+    BER_BVC("syncProviderSubentry"),
+    {0,NULL}
+};
 
-char **
-str2clist( char ***out, char *in, const char *brkstr )
+Entry *
+slap_create_syncrepl_entry(
+	Backend *be,
+	struct berval *context_csn,
+	struct berval *rdn,
+	struct berval *cn
+)
 {
-	char	*str;
-	char	*s;
-	char	*lasts;
-	int	i, j;
-	const char *text;
-	char	**new;
+	Entry* e;
+	int rc;
 
-	/* find last element in list */
-	for (i = 0; *out && *out[i]; i++);
+	struct berval bv;
 
-	/* protect the input string from strtok */
-	str = ch_strdup( in );
+	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
 
-	if ( *str == '\0' ) {
-		free( str );
-		return( *out );
+	attr_merge( e, slap_schema.si_ad_objectClass, ocbva, NULL );
+
+	attr_merge_one( e, slap_schema.si_ad_structuralObjectClass, &ocbva[1], NULL );
+
+	attr_merge_one( e, slap_schema.si_ad_cn, cn, NULL );
+
+	if ( context_csn ) {
+		attr_merge_one( e, slap_schema.si_ad_syncreplCookie,
+			context_csn, NULL );
 	}
 
-	/* Count words in string */
-	j=1;
-	for ( s = str; *s; s++ ) {
-		if ( strchr( brkstr, *s ) != NULL ) {
-			j++;
-		}
-	}
+	bv.bv_val = "{}";
+	bv.bv_len = sizeof("{}")-1;
+	attr_merge_one( e, slap_schema.si_ad_subtreeSpecification, &bv, NULL );
 
-	*out = ch_realloc( *out, ( i + j + 1 ) * sizeof( char * ) );
-	new = *out + i;
-	for ( s = ldap_pvt_strtok( str, brkstr, &lasts );
-		s != NULL;
-		s = ldap_pvt_strtok( NULL, brkstr, &lasts ) )
-	{
-		*new = ch_strdup( s );
-		new++;
-	}
+	build_new_dn( &e->e_name, &be->be_nsuffix[0], rdn, NULL );
+	ber_dupbv( &e->e_nname, &e->e_name );
 
-	*new = NULL;
-	free( str );
-	return( *out );
+	return e;
 }

@@ -3084,3 +3084,47 @@ parse_syncrepl_line(
 
 	return 0;
 }
+
+char **
+str2clist( char ***out, char *in, const char *brkstr )
+{
+	char	*str;
+	char	*s;
+	char	*lasts;
+	int	i, j;
+	const char *text;
+	char	**new;
+
+	/* find last element in list */
+	for (i = 0; *out && *out[i]; i++);
+
+	/* protect the input string from strtok */
+	str = ch_strdup( in );
+
+	if ( *str == '\0' ) {
+		free( str );
+		return( *out );
+	}
+
+	/* Count words in string */
+	j=1;
+	for ( s = str; *s; s++ ) {
+		if ( strchr( brkstr, *s ) != NULL ) {
+			j++;
+		}
+	}
+
+	*out = ch_realloc( *out, ( i + j + 1 ) * sizeof( char * ) );
+	new = *out + i;
+	for ( s = ldap_pvt_strtok( str, brkstr, &lasts );
+		s != NULL;
+		s = ldap_pvt_strtok( NULL, brkstr, &lasts ) )
+	{
+		*new = ch_strdup( s );
+		new++;
+	}
+
+	*new = NULL;
+	free( str );
+	return( *out );
+}
