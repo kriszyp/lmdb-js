@@ -5,6 +5,7 @@ OpenLDAP 2.1.23 Engineering
 	Fixed ldappasswd -y handling bug (ITS#2696)
 	Fixed slapd subordinate replication bug (ITS#2130)
 	Fixed slapd deferring Abandon (ITS#2649)
+	Fixed slapd deprecated code (removed) (ITS#2651)
 	Fixed slapd slave without updateref bug (ITS#2678)
 	Fixed slapd ACL caching (ITS#2679)
 	Fixed back-bdb cache crash (ITS#2682, ITS#2759)
