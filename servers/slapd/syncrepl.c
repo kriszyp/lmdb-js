@@ -722,7 +722,7 @@ do_syncrep2(
 							si_tag == LDAP_TAG_SYNC_REFRESH_PRESENT ?
 							"REFRESH_PRESENT" : "REFRESH_DELETE",
 							"\n" );
-						if ( si->si_tag == LDAP_TAG_SYNC_REFRESH_DELETE ) {
+						if ( si_tag == LDAP_TAG_SYNC_REFRESH_DELETE ) {
 							si->si_refreshDelete = 1;
 						} else {
 							si->si_refreshPresent = 1;
