@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.324 2000/09/06 19:22:55 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.325 2000/09/12 19:19:16 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -2371,7 +2371,7 @@ if test $ol_enable_kbind = yes -o $ol_enable_kpasswd = yes ; then
 	fi
 	ol_with_kerberos=yes
 elif test $ol_enable_kbind = no -o $ol_enable_kpasswd = no ; then
-	if test $ol_with_kerberos != no -a $ol_with_kerberos != no ; then
+	if test $ol_with_kerberos != no -a $ol_with_kerberos != auto ; then
 		echo "configure: warning: Kerberos detection enabled unnecessarily" 1>&2;
 	fi
 	ol_with_kerberos=no

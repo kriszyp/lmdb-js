@@ -364,7 +364,7 @@ if test $ol_enable_kbind = yes -o $ol_enable_kpasswd = yes ; then
 	fi
 	ol_with_kerberos=yes
 elif test $ol_enable_kbind = no -o $ol_enable_kpasswd = no ; then
-	if test $ol_with_kerberos != no -a $ol_with_kerberos != no ; then
+	if test $ol_with_kerberos != no -a $ol_with_kerberos != auto ; then
 		AC_MSG_WARN([Kerberos detection enabled unnecessarily]);
 	fi
 	ol_with_kerberos=no
