@@ -1,9 +1,9 @@
 Tools           ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-ldapdelete        CD    I K M OPQR  U WXYZ  cd f h  k  n p     vwx
-ldapmodify        CD F  I K M OPQR  U WXYZabcd f h  k  n p r t vwx
-ldapmodrdn        CD    I K M OPQR  U WXYZ  cd f h  k  n p rs  vwx
-ldappasswd      A CD    I     O QRS U WXYZa  d   h          s  vwx   
-ldapsearch      A CD    I KLM OPQRSTUVWXYZab*d f h  kl n p  stuvwx z
+ldapdelete        CD   HI K M OPQR  U WXYZ  cd f h  k  n p     vwx
+ldapmodify        CD F HI K M OPQR  U WXYZabcd f h  k  n p r t vwx
+ldapmodrdn        CD   HI K M OPQR  U WXYZ  cd f h  k  n p rs  vwx
+ldappasswd      A CD   HI     O QRS U WXYZa  d   h          s  vwx   
+ldapsearch      A CD   HI KLM OPQRSTUVWXYZab*d f h  kl n p  stuvwx z
 
 Other Clients   ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 fax500                                         f h    m
@@ -17,11 +17,12 @@ ud                 D                 V      cd f     l  p   s uv
 
 
 * reserved
-	EGHIJNOegijmoqy
+	EGJNegijmoqy
 
 * General flags:
 	-C Chase Referrals
 	-D Bind DN
+	-H URI
 	-P protocol version
 	-W prompt for bind password
 	-d debug
@@ -33,7 +34,8 @@ ud                 D                 V      cd f     l  p   s uv
 
 
 * LDAPv3 Only 
-	-x simple bind (not recommended, excepting for anonymous access)
+	-x simple bind (not recommended excepting for
+		anonymous access, w/ -ZZ, or with ldaps://.
 
 	-M ManageDSAIT
 	-Z StartTLS
