@@ -12,11 +12,11 @@
 /* Adapted for incorporatation into OpenLDAP by Kurt Zeilenga */
 
 /*
-** Sorry this file is so scary, but it needs to run on a wide range of
-** platforms.  The only exported routine is lutil_uuidstr() which is all
-** that LDAP cares about.  It generates a new uuid and returns it in
-** in string form.
-*/
+ * Sorry this file is so scary, but it needs to run on a wide range of
+ * platforms.  The only exported routine is lutil_uuidstr() which is all
+ * that LDAP cares about.  It generates a new uuid and returns it in
+ * in string form.
+ */
 #include "portable.h"
 
 #include <stdio.h>
