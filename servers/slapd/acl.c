@@ -24,20 +24,20 @@
  * speed up compares
  */
 static struct berval 
-	aci_bv_entry 		= { sizeof("entry") - 1, 	"entry" },
-	aci_bv_br_entry		= { sizeof("[entry]") - 1,	"[entry]" },
-	aci_bv_br_all		= { sizeof("[all]") - 1,	"[all]" },
-	aci_bv_access_id 	= { sizeof("access-id") - 1, 	"access-id" },
-	aci_bv_anonymous	= { sizeof("anonymous") - 1,	"anonymous" },
-	aci_bv_users		= { sizeof("users") - 1,	"users" },
-	aci_bv_self 		= { sizeof("self") - 1, 	"self" },
-	aci_bv_dnattr 		= { sizeof("dnattr") - 1, 	"dnattr" },
-	aci_bv_group		= { sizeof("group") - 1, 	"group" },
-	aci_bv_role		= { sizeof("role") - 1, 	"role" },
-	aci_bv_set		= { sizeof("set") - 1, 		"set" },
-	aci_bv_set_ref		= { sizeof("set-ref") - 1,	"set-ref"},
-	aci_bv_grant		= { sizeof("grant") - 1,	"grant" },
-	aci_bv_deny		= { sizeof("deny") - 1,		"deny" };
+	aci_bv_entry 		= BER_BVC("entry"),
+	aci_bv_br_entry		= BER_BVC("[entry]"),
+	aci_bv_br_all		= BER_BVC("[all]"),
+	aci_bv_access_id 	= BER_BVC("access-id"),
+	aci_bv_anonymous	= BER_BVC("anonymous"),
+	aci_bv_users		= BER_BVC("users"),
+	aci_bv_self 		= BER_BVC("self"),
+	aci_bv_dnattr 		= BER_BVC("dnattr"),
+	aci_bv_group		= BER_BVC("group"),
+	aci_bv_role		= BER_BVC("role"),
+	aci_bv_set		= BER_BVC("set"),
+	aci_bv_set_ref		= BER_BVC("set-ref"),
+	aci_bv_grant		= BER_BVC("grant"),
+	aci_bv_deny		= BER_BVC("deny");
 
 static AccessControl * acl_get(
 	AccessControl *ac, int *count,

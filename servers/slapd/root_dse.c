@@ -17,15 +17,14 @@
 
 #include "slap.h"
 #include <ldif.h>
-
-#define BVC(x) {sizeof(x)-1, x}
+#include "lber_pvt.h"
 
 static struct berval supportedFeatures[] = {
-	BVC("1.3.6.1.4.1.4203.1.5.1"), /* all Operational Attributes ("+") */
-	BVC("1.3.6.1.4.1.4203.1.5.2"), /* OCs in Attributes List */
-	BVC("1.3.6.1.4.1.4203.1.5.3"), /* (&) and (|) search filters */
-	BVC("1.3.6.1.4.1.4203.1.5.4"), /* Language Tag Options */
-	BVC("1.3.6.1.4.1.4203.1.5.5"), /* Language Range Options */
+	BER_BVC("1.3.6.1.4.1.4203.1.5.1"), /* all Operational Attributes ("+") */
+	BER_BVC("1.3.6.1.4.1.4203.1.5.2"), /* OCs in Attributes List */
+	BER_BVC("1.3.6.1.4.1.4203.1.5.3"), /* (&) and (|) search filters */
+	BER_BVC("1.3.6.1.4.1.4203.1.5.4"), /* Language Tag Options */
+	BER_BVC("1.3.6.1.4.1.4203.1.5.5"), /* Language Range Options */
 	{0,NULL}
 };
 
