@@ -103,6 +103,7 @@ do_abandon( Operation *op, SlapReply *rs )
 	LDAP_STAILQ_FOREACH( o, &op->o_conn->c_pending_ops, o_next ) {
 		if ( o->o_msgid == id ) {
 			LDAP_STAILQ_REMOVE( &op->o_conn->c_pending_ops, o, slap_op, o_next );
+			op->o_conn->c_n_ops_pending--;
 			slap_op_free( o );
 			goto done;
 		}
