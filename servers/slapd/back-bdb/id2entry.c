@@ -121,7 +121,6 @@ int bdb_id2entry_delete(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_id2entry->bdi_db;
 	DBT key;
-	struct berval *bv;
 	int rc;
 
 	DBTzero( &key );
@@ -130,7 +129,6 @@ int bdb_id2entry_delete(
 
 	rc = db->del( db, tid, &key, 0 );
 
-	ber_bvfree( bv );
 	return rc;
 }
 

@@ -35,7 +35,7 @@ bdb_modrdn(
 	const char *text;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
-	DB_TXN *	ltid;
+	DB_TXN *	ltid = NULL;
 	struct bdb_op_info opinfo;
 
 	ID			id;
