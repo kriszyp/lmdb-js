@@ -251,9 +251,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name liblutil
     End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldif
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -292,9 +289,6 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name liblutil
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldif
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name liblber
@@ -360,9 +354,6 @@ Package=<4>
     Project_Dep_Name liblutil
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libldif
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name liblber
     End Project Dependency
 }}}
@@ -385,21 +376,6 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name liblutil
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "libavl"=..\libraries\libavl\libavl.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name setup
     End Project Dependency
 }}}
 
@@ -436,36 +412,6 @@ Package=<4>
 ###############################################################################
 
 Project: "libldap_r"=..\libraries\libldap_r\libldap_r.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name setup
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "libldbm"=..\libraries\libldbm\libldbm.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name setup
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "libldif"=..\libraries\libldif\libldif.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -609,19 +555,10 @@ Package=<4>
     Project_Dep_Name backldbm
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libavl
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name liblber
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libldap_r
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldbm
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldif
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name liblutil
@@ -638,6 +575,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name backmon
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name backldbm
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -651,19 +591,10 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libavl
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name liblber
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libldap_r
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldbm
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldif
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name liblutil
@@ -702,12 +633,6 @@ Package=<4>
     Project_Dep_Name libldap_r
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libavl
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldif
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name liblutil
     End Project Dependency
     Begin Project Dependency
@@ -715,9 +640,6 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name liblber
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldbm
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libslapd
@@ -730,6 +652,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name backmon
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name backldbm
     End Project Dependency
 }}}
 
@@ -747,19 +672,10 @@ Package=<4>
     Project_Dep_Name backldbm
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libavl
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name liblber
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libldap_r
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldbm
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldif
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name liblutil
@@ -776,11 +692,14 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name backmon
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name badldbm
+    End Project Dependency
 }}}
 
 ###############################################################################
 
-Project: "testavl"=..\libraries\libavl\testavl.dsp - Package Owner=<4>
+Project: "testavl"=..\libraries\liblutil\testavl.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -789,10 +708,10 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libavl
+    Project_Dep_Name liblber
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name liblber
+    Project_Dep_Name liblutil
     End Project Dependency
 }}}
 

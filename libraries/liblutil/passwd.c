@@ -185,7 +185,6 @@ int lutil_passwd_add(
 
 void lutil_passwd_init()
 {
-	struct pw_slist *ptr;
 	struct pw_scheme *s;
 
 	for( s=(struct pw_scheme *)pw_schemes_default; s->name.bv_val; s++) {

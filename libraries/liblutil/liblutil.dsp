@@ -293,5 +293,25 @@ SOURCE=.\utils.c
 
 SOURCE=.\uuid.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\avl.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\avl.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\ldif.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\fetch.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldif.h
+# End Source File
 # End Target
 # End Project

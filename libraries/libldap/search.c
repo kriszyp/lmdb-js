@@ -223,7 +223,7 @@ ldap_build_search_req(
 	ber_int_t *idp)
 {
 	BerElement	*ber;
-	int		err, id;
+	int		err;
 
 	/*
 	 * Create the search request.  It looks like this:

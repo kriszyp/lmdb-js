@@ -140,10 +140,6 @@ SOURCE=.\attr.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\attribute.c
-# End Source File
-# Begin Source File
-
 SOURCE=".\back-ldbm.h"
 # End Source File
 # Begin Source File
@@ -196,10 +192,6 @@ SOURCE=.\filterindex.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\group.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\id2children.c
 # End Source File
 # Begin Source File
@@ -240,10 +232,6 @@ SOURCE=.\operational.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\passwd.c
-# End Source File
-# Begin Source File
-
 SOURCE=".\proto-back-ldbm.h"
 # End Source File
 # Begin Source File
@@ -257,6 +245,14 @@ SOURCE=.\search.c
 # Begin Source File
 
 SOURCE=.\tools.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ldbm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ldbm.h
 # End Source File
 # End Target
 # End Project

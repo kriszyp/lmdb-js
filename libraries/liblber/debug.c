@@ -146,8 +146,6 @@ void lutil_log_int(
 	time_t now;
 	struct tm *today;
 #endif
-	size_t i;
-	char * tmp;
 
 #ifdef LDAP_SYSLOG
 	/* we're configured to use syslog */

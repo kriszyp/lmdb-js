@@ -523,7 +523,6 @@ ldap_host_connected_to( Sockbuf *sb, const char *host )
 	struct sockaddr sabuf;
 #endif
 	struct sockaddr	*sa = (struct sockaddr *) &sabuf;
-	int rc;
 	ber_socket_t	sd;
 
 	(void)memset( (char *)sa, '\0', sizeof sabuf );
