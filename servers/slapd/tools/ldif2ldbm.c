@@ -274,9 +274,9 @@ main( int argc, char **argv )
 		}
 	}
 
-	slap_shutdown(dbnum);
-
 	wait4kids( -1 );
+
+	slap_shutdown(dbnum);
 
 	slap_destroy();
 
@@ -315,8 +315,12 @@ fork_child( char *prog, char *args[] )
         perror( "CreateProcess" );
         exit (-1);
     }
+#ifndef IMDARING
+    WaitForSingleObject( proc_info.hProcess, INFINITE );
+#else
     processes[nprocesses] = proc_info.hProcess;
     nprocesses++;
+#endif
 }
 
 static void
