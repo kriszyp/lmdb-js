@@ -220,7 +220,7 @@ service, or run a service all by yourself. Some of slapd's more
 interesting features and capabilities include:
 
 {{B:LDAPv3}}: {{slapd}} implements version 3 of {{TERM[expand]LDAP}}.
-{{slapd}} supports LDAP over both IPv4 and IPv6.
+{{slapd}} supports LDAP over both IPv4 and IPv6 and Unix IPC.
 
 {{B:{{TERM[expand]SASL}}}}: {{slapd}} supports strong authentication
 services through the use of SASL.  {{slapd}}'s SASL implementation
@@ -260,7 +260,7 @@ serve multiple databases at the same time. This means that a single
 portions of the LDAP tree, using the same or different database
 backends.
 
-{{B:Generic modules API}}: If you require even more customization,
+{{B:Generic modules API}}:  If you require even more customization,
 {{slapd}} lets you write your own modules easily. {{slapd}} consists
 of two distinct parts: a front end that handles protocol communication
 with LDAP clients; and modules which handle specific tasks such as
@@ -284,10 +284,10 @@ single {{slapd}} just doesn't provide the necessary availability
 or reliability.  {{slapd}} also includes experimental support for
 {{multi-master}} replication (for use where strong ACID properties
 are not required).  {{slapd}} supports two replication methods:
-{{slurpd}}(8)-based and {{LDAP Sync}}-based replicaton.
+{{LDAP Sync}}-based and {{slurpd}}(8)-based replication .
 
-{{B:Proxy Cache}}: {{slapd}} can be configured as a LDAP proxy
-service.
+{{B:Proxy Cache}}: {{slapd}} can be configured as a caching
+LDAP proxy service.
 
 {{B:Configuration}}: {{slapd}} is highly configurable through a
 single configuration file which allows you to change just about

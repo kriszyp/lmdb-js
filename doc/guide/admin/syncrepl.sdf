@@ -51,18 +51,19 @@ search specification to initiate a synchronization session only for
 the interesting subset of the context.
 
 
-H2: LDAP Content Sync Protocol Description
+H2: The LDAP Content Sychronization Operation
 
-The LDAP Sync replication uses the LDAP Content Sync protocol (refer
-to the Internet Draft entitled "The LDAP Content Synchronization
-Operation") for replica synchronization. The LDAP Content Sync
-protocol operation is based on the replica state which is transmitted
-between replicas as the synchronization cookies. There are two
-operating modes: {{refreshOnly}} and {{refreshAndPersist}}. In both
-modes, a consumer {{slapd}}(8) connects to a provider {{slapd}}(8)
-with a cookie value representing the state of the consumer replica.
-The non-persistent part of the synchronization consists of two
-phases.
+The LDAP Sync replication uses the LDAP Content Synchronization (or
+LDAP Sync) protocol (refer to the Internet Draft titled {{The LDAP
+Content Synchronization Operation}}) for replica synchronization.
+
+The LDAP Sync operation is based on the replica state which is
+transmitted between replicas as the synchronization cookies.  There
+are two operating modes: {{refreshOnly}} and {{refreshAndPersist}}.
+In both modes, a consumer {{slapd}}(8) connects to a provider
+{{slapd}}(8) with a cookie value representing the state of the
+consumer replica.  The non-persistent part of the synchronization
+consists of two phases.
 
 The first is the {{state-based}} phase. The entries updated after
 the point in time the consumer cookie represents will be transmitted
@@ -85,11 +86,11 @@ phase follows the state-base phase. In this mode, the actual directory
 update operations such as delete, modify, and add are transmitted.
 There is no need to send present messages in this log-based phase.
 
-If the protocol operates in the refreshOnly mode, the synchronization
+If the protocol operates in the {{refreshOnly}} mode, the synchronization
 will terminate. The provider will send a synchronization cookie
 which reflects the new state to the consumer. The consumer will
 present the new cookie at the next time it requests a synchronization.
-If the protocol operates in the refreshAndPersist mode, the
+If the protocol operates in the {{refreshAndPersist}} mode, the
 synchronization operation remains persistent in the provider. Every
 updates made to the provider replica will be transmitted to the
 consumer. Cookies can be sent to the consumer at any time by using
@@ -106,16 +107,16 @@ SearchResultReference as a part of the Sync State control.
 
 H2: LDAP Sync Replication Details
 
-The LDAP Sync replication uses both the refreshOnly and the
-refreshAndPersist modes of synchronization. If an LDAP Sync replication
-is specified in a database definition, the {{slapd}}(8) schedules an
-execution of the LDAP Sync replication engine. In the refreshOnly
-mode, the engine will be rescheduled at the interval time after a
-replication session ends. In the refreshAndPersist mode, the engine
-will remain active to process the SearchResultEntry messages from
-the provider.
+The LDAP Sync replication uses both the {{refreshOnly}} and the
+{{refreshAndPersist}} modes of synchronization.  If an LDAP Sync
+replication is specified in a database definition, the {{slapd}}(8)
+schedules an execution of the LDAP Sync replication engine. In the
+{{refreshOnly}} mode, the engine will be rescheduled at the interval
+time after a replication session ends. In the {{refreshAndPersist}}
+mode, the engine will remain active to process the SearchResultEntry
+messages from the provider.
 
-The LDAP Sync replication uses only the state-base synchronization
+The LDAP Sync replication uses only the state-based synchronization
 phase.  Because {{slapd}}(8) does not currently implement history store
 like changelog or tombstone, it depends only on the state-base
 phase. A Null log-base phase follows the state-base phase.
@@ -128,73 +129,76 @@ replica contents.
 
 H3: entryCSN
 
-The LDAP Sync replication implemented in OpenLDAP stores state
-information to ever entry in the entryCSN attribute. entryCSN of
-an entry is the CSN or {{change sequence number}}, which is the
-refined timestamp, at which the entry was updated most lately. The
-CSN consists of three parts: the time, a replica ID, and a change
-count within a single second.
+The LDAP Sync replication implemented in {{slapd}}(8) stores state
+information to ever entry in the {{EX:entryCSN}} attribute.
+{{EX:entryCSN}} of an entry is the CSN or {{change sequence number}},
+which is the refined timestamp, at which the entry was updated most
+lately.  The CSN consists of three parts: the time, a replica ID,
+and a change count within a single second.
 
 H3: contextCSN
 
-contextCSN represents the current state of the provider replica.
-It is the largest entryCSN of all entries in the context such that
-no transaction having smaller entryCSN value remains outstanding.
-Because the entryCSN value is obtained before transaction start and
-transactions are not committed in the entryCSN order, special care
-needed to be taken to manage the proper contextCSN value in the
-transactional environment. Also, the state of the search result set
-is required to correspond to the contextCSN value returned to the
-consumer as a sync cookie.
+{{EX:contextCSN}} represents the current state of the provider
+replica.  It is the largest {{EX:entryCSN}} of all entries in the
+context such that no transaction having smaller {{EX:entryCSN}}
+value remains outstanding.  Because the {{EX:entryCSN}} value is
+obtained before transaction start and transactions are not committed
+in the {{EX:entryCSN}} order, special care needed to be taken to
+manage the proper {EX:contextCSN}} value in the transactional
+environment.  Also, the state of the search result set is required
+to correspond to the {{EX:contextCSN}} value returned to the consumer
+as a sync cookie.
 
-contextCSN, the provider replica state, is stored in the
-syncProviderSubentry. The value of the contextCSN is transmitted
-to the consumer replica as a Sync Cookie. The cookie is stored in
-the syncreplCookie attribute of syncConsumerSubentry subentry. The
-consumer will use the stored cookie value to represent its replica
-state when it connects to the provider in the future.
+{{EX:contextCSN}}, the provider replica state, is stored in the
+{{EX:syncProviderSubentry}}. The value of the {{EX:contextCSN}} is
+transmitted to the consumer replica as a Sync Cookie. The cookie
+is stored in the {{EX:syncreplCookie}} attribute of
+{{EX:syncConsumerSubentry}} subentry. The consumer will use the
+stored cookie value to represent its replica state when it connects
+to the provider in the future.
 
 H3: Glue Entry
 
 Because general search filter can be used in the LDAP Sync replication,
 an entry might be created without a parent, if the parent entry was
-filtered out. The LDAP Sync replication engine creates the glue
-entries for such holes in the replica. The glue entries will not
+filtered out.  The LDAP Sync replication engine creates the glue
+entries for such holes in the replica.  The glue entries will not
 be returned in response to a search to the consumer {{slapd}}(8) if
 manageDSAit is not set. It will be returned if it is set.
 
 H2: Configuring slapd for LDAP Sync Replication
 
-It is relatively simple to start servicing with a replicated OpenLDAP
-environment with the LDAP Sync replication, compared to the replication
-with {{slurpd}}(8). First, we should configure both the provider and
-the consumer {{slapd}}(8) servers appropriately. Then, start the provider
-slapd instance first, and the consumer slapd instance next.
-Administrative tasks such as database copy and temporal shutdown
-(or read-only demotion) of the provider are not required.
+It is relatively simple to start providing a replicated directory
+service with LDAP Sync replication, compared to the replication
+with {{slurpd}}(8).  First, we should configure both the provider
+and the consumer {{slapd}}(8) servers appropriately.  Then, start
+the provider slapd instance first, and the consumer slapd instance
+next.  Administrative tasks such as database copy and temporal
+shutdown (or read-only demotion) of the provider are not required.
 
 H3: Set up the provider slapd
 
-There is no special slapd.conf(5) directive for the provider {{slapd}}(8).
-Because the LDAP Sync searches are subject to access control, proper
-access control privileges should be set up for the replicated
-content.
+There is no special {{slapd.conf}}(5) directive for the provider
+{{slapd}}(8).  Because the LDAP Sync searches are subject to access
+control, proper access control privileges should be set up for the
+replicated content.
 
-When creating a provider database from an ldif file using {{slapadd}}(8),
-you must create and update a state indicator of the database context
-up to date. slapadd(8) will store the contextCSN in the
-syncProviderSubentry if it is given the {{EX:-w}} flag. It is also
-possible to create the syncProviderSubentry with an appropriate
-contextCSN value by directly including it in the ldif file. If
-{{slapadd}}(8) runs without the {{EX:-w}} flag, the provided
-contextCSN will be stored. With the {{EX:-w}} flag, a new value
-based on the current time will be stored as contextCSN. {{slapcat}}(8)
-can be used to retrieve the directory with the contextCSN when it
-is run with the {{EX:-m}} flag.
+When creating a provider database from an {{TERM:LDIF}} file using
+{{slapadd}}(8), you must create and update a state indicator of the
+database context up to date. {{slapadd}}(8) will store the
+{{EX:contextCSN}} in the {{EX:syncProviderSubentry}} if it is given
+the {{EX:-w}} flag. It is also possible to create the
+{{EX:syncProviderSubentry}} with an appropriate {{EX:contextCSN}}
+value by directly including it in the ldif file. If {{slapadd}}(8)
+runs without the {{EX:-w}} flag, the provided {{EX:contextCSN}}
+will be stored. With the {{EX:-w}} flag, a new value based on the
+current time will be stored as {{EX:contextCSN}}. {{slapcat}}(8)
+can be used to retrieve the directory with the {{EX:contextCSN}}
+when it is run with the {{EX:-m}} flag.
 
 Only the BDB (back-bdb) and HDB (back-hdb) backends can perform as
-the LDAP Sync replication provider. Back-ldbm currently does not
-have the LDAP Content Sync protocol functionality.
+the LDAP Sync replication provider.  LDBM (back-ldbm) currently
+does not have the LDAP Sync protocol functionality.
 
 H3: Set up the consumer slapd
 
@@ -202,9 +206,9 @@ The consumer slapd is configured by {{slapd.conf}}(5) configuration
 file. For the configuration directives, see the {{SECT:syncrepl}}
 section of {{SECT:The slapd Configuration File}} chapter. In the
 configuration file, make sure the DN given in the {{EX:updatedn=}}
-directive of the syncrepl specification has permission to write to
-the database. Below is an example syncrepl specification at the
-consumer replica :
+directive of the {{EX:syncrepl}} specification has permission to
+write to the database. Below is an example {{EX:syncrepl}} specification
+at the consumer replica:
 
 >	syncrepl id = 1
 >		provider=ldap://provider.example.com:389
@@ -225,20 +229,20 @@ at port 389 of {{FILE:ldap://provider.example.com}} to perform a
 polling (refreshOnly) mode of synchronization once a day.  It will
 bind as {{EX:cn=syncuser,dc=example,dc=com}} using simple authentication
 with password "secret".  Note that the access control privilege of
-the DN specified by the binddn= directive should be set properly
-to synchronize the desired replica content.  The consumer will write
-to its database with the privilege of the
+the DN specified by the {{EX:binddn=}} directive should be set
+properly to synchronize the desired replica content.  The consumer
+will write to its database with the privilege of the
 {EX:cn=replica,dc=example,dc=com}} entry as specified by the
-{{EX:updatedn=}} directive.  The updatedn entry should have write
-permission to the database.
+{{EX:updatedn=}} directive.  The {{EX:updatedn}} entry should have
+write permission to the database.
 
 The synchronization search in the example will search for entries
 whose objectClass is organizationalPerson in the entire subtree
 under {{EX:dc=example,dc=com}} search base inclusively. The requested
-attributes are cn, sn, ou, telephoneNumber, title, and l. The schema
-checking is turned on, so that the consumer {{slapd}}(8) will enforce
-entry schema checking when it process updates from the provider
-{{slapd}}(8).
+attributes are {{EX:cn}}, {{EX:sn}}, {{EX:ou}}, {{EX:telephoneNumber}},
+{{EX:title}}, and {{EX:l}}. The schema checking is turned on, so
+that the consumer {{slapd}}(8) will enforce entry schema checking
+when it process updates from the provider {{slapd}}(8).
 
 The LDAP Sync replication engine is backend independent. All three
 native backends can perform as the LDAP Sync replication consumer.
@@ -246,14 +250,15 @@ native backends can perform as the LDAP Sync replication consumer.
 H3: Start the provider and the consumer slapd
 
 If the currently running provider {{slapd}}(8) already has the
-syncProviderSubentry in its database, it is not required to restart
-the provider slapd. You don't need to restart the provider {{slapd}}(8)
-when you start a replicated LDAP service. When you run a consumer
-{{slapd}}(8), it will immediately perform either the initial full reload
-if cookie is NULL or too out of date, or incremental synchronization
-if effective cookie is provided. In the refreshOnly mode, the next
-synchronization session is scheduled to run interval time after the
-completion of the current session. In the refreshAndPersist mode,
-the synchronization session is open between the consumer and provider.
-The provider will send update message whenever there are updates
-in the provider replica.
+{{EX:syncProviderSubentry}} in its database, it is not required to
+restart the provider slapd. You don't need to restart the provider
+{{slapd}}(8) when you start a replicated LDAP service. When you run
+a consumer {{slapd}}(8), it will immediately perform either the
+initial full reload if cookie is NULL or too out of date, or
+incremental synchronization if effective cookie is provided.  In
+the {{refreshOnly}} mode, the next synchronization session is
+scheduled to run interval time after the completion of the current
+session. In the {{refreshAndPersist}} mode, the synchronization
+session is open between the consumer and provider.  The provider
+will send update message whenever there are updates in the provider
+replica.
