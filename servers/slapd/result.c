@@ -1210,7 +1210,7 @@ send_search_reference(
 	num_pdu_sent++;
 	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
 
-	Statslog( LDAP_DEBUG_STATS2, "conn=%ld op=%ld ENTRY dn=\"%s\"\n",
+	Statslog( LDAP_DEBUG_STATS2, "conn=%ld op=%ld REF dn=\"%s\"\n",
 	    (long) conn->c_connid, (long) op->o_opid, e->e_dn, 0, 0 );
 
 #ifdef NEW_LOGGING
