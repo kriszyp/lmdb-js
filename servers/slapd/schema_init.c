@@ -1939,8 +1939,6 @@ printableStringValidate(
 {
 	ber_len_t i;
 
-	if( !val->bv_len ) return LDAP_INVALID_SYNTAX;
-
 	for(i=0; i < val->bv_len; i++) {
 		if( !SLAP_PRINTABLE(val->bv_val[i]) ) {
 			return LDAP_INVALID_SYNTAX;
@@ -1956,8 +1954,6 @@ printablesStringValidate(
 	struct berval *val )
 {
 	ber_len_t i;
-
-	if( !val->bv_len ) return LDAP_INVALID_SYNTAX;
 
 	for(i=0; i < val->bv_len; i++) {
 		if( !SLAP_PRINTABLES(val->bv_val[i]) ) {
@@ -1975,10 +1971,10 @@ IA5StringValidate(
 {
 	ber_len_t i;
 
-	if( !val->bv_len ) return LDAP_INVALID_SYNTAX;
-
 	for(i=0; i < val->bv_len; i++) {
-		if( !isascii(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
+		if( !LDAP_ASCII(val->bv_val[i]) ) {
+			return LDAP_INVALID_SYNTAX;
+		}
 	}
 
 	return LDAP_SUCCESS;
@@ -1999,10 +1995,6 @@ IA5StringNormalize(
 		p++;
 	}
 
-	if( *p == '\0' ) {
-		return LDAP_INVALID_SYNTAX;
-	}
-
 	normalized->bv_val = ch_strdup( p );
 	p = q = normalized->bv_val;
 
@@ -2019,11 +2011,8 @@ IA5StringNormalize(
 		}
 	}
 
-	assert( normalized->bv_val < p );
+	assert( normalized->bv_val <= p );
 	assert( q <= p );
-
-	/* cannot start with a space */
-	assert( !ASCII_SPACE(*normalized->bv_val) );
 
 	/*
 	 * If the string ended in space, backup the pointer one
@@ -2034,9 +2023,6 @@ IA5StringNormalize(
 	if ( ASCII_SPACE( q[-1] ) ) {
 		--q;
 	}
-
-	/* cannot end with a space */
-	assert( !ASCII_SPACE( q[-1] ) );
 
 	/* null terminate */
 	*q = '\0';
