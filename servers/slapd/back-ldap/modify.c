@@ -114,6 +114,10 @@ ldap_back_modify(
 	}
 
 	for (i=0, ml=modlist; ml; ml=ml->sml_next) {
+		if ( ml->sml_desc->ad_type->sat_no_user_mod  ) {
+			continue;
+		}
+
 		ldap_back_map(&li->at_map, &ml->sml_desc->ad_cname, &mapped, 0);
 		if (mapped.bv_val == NULL) {
 			continue;

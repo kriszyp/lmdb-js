@@ -148,25 +148,11 @@ meta_back_add(
 
 	for ( i = 0, a = e->e_attrs; a; a = a->a_next ) {
 		int j;
-		/*
-		 * lastmod should always be <off>, so that
-		 * creation/modification operational attrs
-		 * of the target directory are used, if available
-		 */
-#if 0
-		if ( !strcasecmp( a->a_desc->ad_cname.bv_val,
-			slap_schema.si_ad_creatorsName->ad_cname.bv_val )
-			|| !strcasecmp( a->a_desc->ad_cname.bv_val,
-			slap_schema.si_ad_createTimestamp->ad_cname.bv_val )
-			|| !strcasecmp(	a->a_desc->ad_cname.bv_val,
-			slap_schema.si_ad_modifiersName->ad_cname.bv_val )
-			|| !strcasecmp( a->a_desc->ad_cname.bv_val,
-			slap_schema.si_ad_modifyTimestamp->ad_cname.bv_val )
-		) {
+
+		if ( a->a_desc->ad_type->sat_no_user_mod  ) {
 			continue;
 		}
-#endif
-		
+
 		ldap_back_map( &li->targets[ candidate ]->at_map,
 				&a->a_desc->ad_cname, &mapped, 0);
 		if ( mapped.bv_val == NULL ) {

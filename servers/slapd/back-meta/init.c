@@ -95,6 +95,8 @@ meta_back_initialize(
 		BackendInfo	*bi
 )
 {
+	bi->bi_controls = slap_known_controls;
+
 	bi->bi_open = 0;
 	bi->bi_config = 0;
 	bi->bi_close = 0;

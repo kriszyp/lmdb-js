@@ -137,7 +137,14 @@ ldap_back_search(
 		ldap_set_option( lc->ld, LDAP_OPT_TIMELIMIT, (void *)&tlimit);
 	if (slimit != -1)
 		ldap_set_option( lc->ld, LDAP_OPT_SIZELIMIT, (void *)&slimit);
-	
+
+
+	/*
+	 * controls are set in ldap_back_dobind()
+	 * 
+	 * FIXME: in case of values return filter, we might want
+	 * to map attrs and maybe rewrite value
+	 */
 	if ( !ldap_back_dobind( lc, op ) ) {
 		return( -1 );
 	}
@@ -455,12 +462,18 @@ ldap_send_entry(
 			continue;
 		}
 		
-		if (ber_scanf( &ber, "[W]", &attr->a_vals ) == LBER_ERROR ) {
+		if ( ber_scanf( &ber, "[W]", &attr->a_vals ) == LBER_ERROR
+				|| attr->a_vals == NULL ) {
+			/*
+			 * Note: attr->a_vals can be null when using
+			 * values result filter
+			 */
 			attr->a_vals = &dummy;
+
 		} else if ( attr->a_desc == slap_schema.si_ad_objectClass
 				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass ) {
 			int i, last;
-			assert( attr->a_vals );
+
 			for ( last = 0; attr->a_vals[last].bv_val; last++ ) ;
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
 				ldap_back_map(&li->oc_map, bv, &mapped, 1);
@@ -497,7 +510,6 @@ ldap_send_entry(
 		} else if ( strcmp( attr->a_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
 			int i;
-			assert( attr->a_vals );
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
 				struct berval newval;
 				
