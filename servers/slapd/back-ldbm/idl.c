@@ -80,7 +80,7 @@ idl_free( ID_BLOCK *idl )
 	if ( idl == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
-			   "idl_freee: called with NULL pointer\n" ));
+			   "idl_free: called with NULL pointer\n" ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"idl_free: called with NULL pointer\n",

@@ -156,7 +156,7 @@ ID ldbm_tool_entry_put(
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	Datum key, data;
-	int rc, len;
+	int rc, len, rc_id;
 	ID id;
 
 	assert( slapMode & SLAP_TOOL_MODE );
@@ -176,7 +176,7 @@ ID ldbm_tool_entry_put(
 		e->e_id, e->e_dn, 0 );
 #endif
 
-	id = dn2id( be, e->e_ndn );
+	id = dn2id( be, e->e_ndn, &rc_id );
 	if( id != NOID ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
@@ -188,8 +188,10 @@ ID ldbm_tool_entry_put(
 			e->e_ndn, id, 0 );
 #endif
 		return NOID;
+	} else if ( rc_id ) {
+		/* something bad happened to ldbm cache */
+		return NOID;
 	}
-
 
 	rc = index_entry_add( be, e, e->e_attrs );
 	if( rc != 0 ) {

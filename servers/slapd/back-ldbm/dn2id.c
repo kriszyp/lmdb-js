@@ -116,7 +116,8 @@ dn2id_add(
 ID
 dn2id(
     Backend	*be,
-    const char	*dn
+    const char	*dn,
+    int         *rc
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
@@ -124,6 +125,8 @@ dn2id(
 	ID		id;
 	Datum		key, data;
 
+	*rc = 0;
+	
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
 		   "dn2id: (%s)\n", dn ));
@@ -154,7 +157,11 @@ dn2id(
 		Debug( LDAP_DEBUG_ANY, "<= dn2id could not open dn2id%s\n",
 			LDBM_SUFFIX, 0, 0 );
 #endif
-
+		/*
+		 * return code !0 if ldbm cache open failed;
+		 * callers should handle this
+		 */
+		*rc = -1;
 		return( NOID );
 	}
 
@@ -356,6 +363,7 @@ dn2entry_rw(
 	ID		id;
 	Entry		*e = NULL;
 	char		*pdn;
+	int             rc_id = 0;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
@@ -372,7 +380,7 @@ dn2entry_rw(
 		*matched = NULL;
 	}
 
-	if ( (id = dn2id( be, dn )) != NOID &&
+	if ( (id = dn2id( be, dn, &rc_id )) != NOID &&
 		(e = id2entry_rw( be, id, rw )) != NULL )
 	{
 		return( e );
@@ -391,6 +399,9 @@ dn2entry_rw(
 
 		/* must have been deleted from underneath us */
 		/* treat as if NOID was found */
+	} else if ( rc_id ) {
+		/* something bad happened to ldbm cache */
+		return NULL;
 	}
 
 	/* caller doesn't care about match */

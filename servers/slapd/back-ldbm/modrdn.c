@@ -51,7 +51,7 @@ ldbm_back_modrdn(
 	Entry		*e, *p = NULL;
 	Entry		*matched;
 	int			rootlock = 0;
-	int			rc = -1;
+	int			rc = -1, rc_id = 0;
 	const char *text = NULL;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
@@ -380,8 +380,10 @@ ldbm_back_modrdn(
 	}
 
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-	if (dn2id ( be, new_ndn ) != NOID) {
-		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS,
+	if (dn2id ( be, new_ndn, &rc_id ) != NOID || rc_id ) {
+		/* if (rc_id) something bad happened to ldbm cache */
+		send_ldap_result( conn, op, 
+			rc_id ? LDAP_OPERATIONS_ERROR : LDAP_ALREADY_EXISTS,
 			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}
