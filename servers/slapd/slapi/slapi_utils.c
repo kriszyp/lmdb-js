@@ -3456,6 +3456,7 @@ Modifications *slapi_int_ldapmods2modifications (LDAPMod **mods)
 				}
 			}
 			mod->sml_bvalues[i].bv_val = NULL;
+			mod->sml_bvalues[i].bv_len = 0;
 		}
 		mod->sml_nvalues = NULL;
 
