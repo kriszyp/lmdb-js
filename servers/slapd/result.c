@@ -932,12 +932,12 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			{
 #ifdef NEW_LOGGING
 				LDAP_LOG( ACL, INFO, 
-					"send_search_entry: conn %lu  access to attribute %s not "
+					"send_search_entry: conn %lu access to attribute %s not "
 					"allowed\n", op->o_connid, desc->ad_cname.bv_val, 0 );
 #else
-				Debug( LDAP_DEBUG_ACL, "acl: "
-					"access to attribute %s not allowed\n",
-				    desc->ad_cname.bv_val, 0, 0 );
+				Debug( LDAP_DEBUG_ACL, "send_search_entry: "
+					"conn %lu access to attribute %s not allowed\n",
+				        op->o_connid, desc->ad_cname.bv_val, 0 );
 #endif
 				continue;
 			}
@@ -967,13 +967,13 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 #ifdef NEW_LOGGING
 					LDAP_LOG( ACL, INFO, 
 						"send_search_entry: conn %lu "
-						"access to attribute %s, value %d not allowed\n",
+						"access to attribute %s, value #%d not allowed\n",
 						op->o_connid, desc->ad_cname.bv_val, i );
 #else
 					Debug( LDAP_DEBUG_ACL,
-						"acl: access to attribute %s, "
-						"value %d not allowed\n",
-						desc->ad_cname.bv_val, i, 0 );
+						"send_search_entry: conn %lu "
+						"access to attribute %s, value #%d not allowed\n",
+						op->o_connid, desc->ad_cname.bv_val, i );
 #endif
 
 					continue;
@@ -1134,8 +1134,10 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				"access to attribute %s not allowed\n",
 				op->o_connid, desc->ad_cname.bv_val, 0 );
 #else
-			Debug( LDAP_DEBUG_ACL, "send_search_entry: access to attribute %s "
-				"not allowed\n", desc->ad_cname.bv_val, 0, 0 );
+			Debug( LDAP_DEBUG_ACL,
+				"send_search_entry: conn %lu "
+				"access to attribute %s not allowed\n",
+				op->o_connid, desc->ad_cname.bv_val, 0 );
 #endif
 
 			continue;
