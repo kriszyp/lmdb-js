@@ -388,6 +388,7 @@ LDAP_SLAPD_F (void) connection_fake_init LDAP_P((
 	Connection *conn,
 	Operation *op,
 	void *threadctx ));
+LDAP_SLAPD_F (void) connection_assign_nextid LDAP_P((Connection *));
 
 /*
  * cr.c

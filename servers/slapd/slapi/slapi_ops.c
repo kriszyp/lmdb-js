@@ -124,7 +124,7 @@ slapi_int_init_connection(
 	char *DN, 
 	int OpType ) 
 { 
-	Connection *pConn, *c;
+	Connection *pConn;
 	ber_len_t max = sockbuf_max_incoming;
 
 	pConn = (Connection *) slapi_ch_calloc(1, sizeof(Connection));
@@ -149,78 +149,87 @@ slapi_int_init_connection(
 		return (Connection *)NULL;
 	}
 
-	c = pConn;
-
-	/* operation object */
-	c->c_pending_ops.stqh_first->o_tag = OpType;
-	c->c_pending_ops.stqh_first->o_protocol = LDAP_VERSION3; 
-	c->c_pending_ops.stqh_first->o_authmech.bv_val = NULL; 
-	c->c_pending_ops.stqh_first->o_authmech.bv_len = 0; 
-	c->c_pending_ops.stqh_first->o_time = slap_get_time();
-	c->c_pending_ops.stqh_first->o_do_not_cache = 1;
-	c->c_pending_ops.stqh_first->o_threadctx = ldap_pvt_thread_pool_context();
-	c->c_pending_ops.stqh_first->o_tmpmemctx = NULL;
-	c->c_pending_ops.stqh_first->o_tmpmfuncs = &ch_mfuncs;
-	c->c_pending_ops.stqh_first->o_conn = c;
-
 	/* connection object */
-	c->c_authmech.bv_val = NULL;
-	c->c_authmech.bv_len = 0;
-	c->c_dn.bv_val = NULL;
-	c->c_dn.bv_len = 0;
-	c->c_ndn.bv_val = NULL;
-	c->c_ndn.bv_len = 0;
+	pConn->c_authmech.bv_val = NULL;
+	pConn->c_authmech.bv_len = 0;
+	pConn->c_dn.bv_val = NULL;
+	pConn->c_dn.bv_len = 0;
+	pConn->c_ndn.bv_val = NULL;
+	pConn->c_ndn.bv_len = 0;
 
-	c->c_listener = &slap_unknown_listener;
-	ber_dupbv( &c->c_peer_domain, (struct berval *)&slap_unknown_bv );
-	ber_dupbv( &c->c_peer_name, (struct berval *)&slap_unknown_bv );
+	pConn->c_listener = &slap_unknown_listener;
+	ber_dupbv( &pConn->c_peer_domain, (struct berval *)&slap_unknown_bv );
+	ber_dupbv( &pConn->c_peer_name, (struct berval *)&slap_unknown_bv );
 
-	LDAP_STAILQ_INIT( &c->c_ops );
+	LDAP_STAILQ_INIT( &pConn->c_ops );
 
-	c->c_sasl_bind_mech.bv_val = NULL;
-	c->c_sasl_bind_mech.bv_len = 0;
-	c->c_sasl_authctx = NULL;
-	c->c_sasl_sockctx = NULL;
-	c->c_sasl_extra = NULL;
+	pConn->c_sasl_bind_mech.bv_val = NULL;
+	pConn->c_sasl_bind_mech.bv_len = 0;
+	pConn->c_sasl_authctx = NULL;
+	pConn->c_sasl_sockctx = NULL;
+	pConn->c_sasl_extra = NULL;
 
-	c->c_sb = ber_sockbuf_alloc( );
+	pConn->c_sb = ber_sockbuf_alloc( );
 
-	ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
+	ber_sockbuf_ctrl( pConn->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
 
-	c->c_currentber = NULL;
+	pConn->c_currentber = NULL;
 
 	/* should check status of thread calls */
-	ldap_pvt_thread_mutex_init( &c->c_mutex );
-	ldap_pvt_thread_mutex_init( &c->c_write_mutex );
-	ldap_pvt_thread_cond_init( &c->c_write_cv );
+	ldap_pvt_thread_mutex_init( &pConn->c_mutex );
+	ldap_pvt_thread_mutex_init( &pConn->c_write_mutex );
+	ldap_pvt_thread_cond_init( &pConn->c_write_cv );
 
-	c->c_n_ops_received = 0;
-	c->c_n_ops_executing = 0;
-	c->c_n_ops_pending = 0;
-	c->c_n_ops_completed = 0;
+	ldap_pvt_thread_mutex_lock( &pConn->c_mutex );
 
-	c->c_n_get = 0;
-	c->c_n_read = 0;
-	c->c_n_write = 0;
+	pConn->c_n_ops_received = 0;
+	pConn->c_n_ops_executing = 0;
+	pConn->c_n_ops_pending = 0;
+	pConn->c_n_ops_completed = 0;
 
-	c->c_protocol = LDAP_VERSION3; 
+	pConn->c_n_get = 0;
+	pConn->c_n_read = 0;
+	pConn->c_n_write = 0;
 
-	c->c_activitytime = c->c_starttime = slap_get_time();
+	pConn->c_protocol = LDAP_VERSION3; 
 
-	c->c_connid = 0;
+	pConn->c_activitytime = pConn->c_starttime = slap_get_time();
 
-	c->c_conn_state  = 0x01;	/* SLAP_C_ACTIVE */
-	c->c_struct_state = 0x02;	/* SLAP_C_USED */
+	/*
+	 * A real connection ID is required, because syncrepl associates
+	 * pending CSNs with unique ( connection, operation ) tuples.
+	 * Setting a fake connection ID will cause slap_get_commit_csn()
+	 * to return a stale value.
+	 */
+	connection_assign_nextid( pConn );
 
-	c->c_ssf = c->c_transport_ssf = 0;
-	c->c_tls_ssf = 0;
+	pConn->c_conn_state  = 0x01;	/* SLAP_C_ACTIVE */
+	pConn->c_struct_state = 0x02;	/* SLAP_C_USED */
 
-	backend_connection_init( c );
+	pConn->c_ssf = pConn->c_transport_ssf = 0;
+	pConn->c_tls_ssf = 0;
+
+	backend_connection_init( pConn );
 
 	pConn->c_send_ldap_result = internal_result_v3;
 	pConn->c_send_search_entry = internal_search_entry;
 	pConn->c_send_ldap_extended = internal_result_ext;
 	pConn->c_send_search_reference = internal_search_reference;
+
+	/* operation object */
+	pConn->c_pending_ops.stqh_first->o_tag = OpType;
+	pConn->c_pending_ops.stqh_first->o_protocol = LDAP_VERSION3; 
+	pConn->c_pending_ops.stqh_first->o_authmech.bv_val = NULL; 
+	pConn->c_pending_ops.stqh_first->o_authmech.bv_len = 0; 
+	pConn->c_pending_ops.stqh_first->o_time = slap_get_time();
+	pConn->c_pending_ops.stqh_first->o_do_not_cache = 1;
+	pConn->c_pending_ops.stqh_first->o_threadctx = ldap_pvt_thread_pool_context();
+	pConn->c_pending_ops.stqh_first->o_tmpmemctx = NULL;
+	pConn->c_pending_ops.stqh_first->o_tmpmfuncs = &ch_mfuncs;
+	pConn->c_pending_ops.stqh_first->o_conn = pConn;
+	pConn->c_pending_ops.stqh_first->o_connid = pConn->c_connid;
+
+	ldap_pvt_thread_mutex_unlock( &pConn->c_mutex );
 
 	return pConn;
 }
@@ -235,6 +244,8 @@ void slapi_int_connection_destroy( Connection **pConn )
 	}
 
 	op = (Operation *)conn->c_pending_ops.stqh_first;
+
+	slap_graduate_commit_csn( op );
 
 	if ( op->o_req_dn.bv_val != NULL ) {
 		slapi_ch_free( (void **)&op->o_req_dn.bv_val );
@@ -337,6 +348,7 @@ bvptr2obj_copy(
 */
 static Entry *
 slapi_int_ldapmod_to_entry(
+	Connection *pConn,
 	char *ldn, 
 	LDAPMod **mods )
 {
@@ -355,13 +367,7 @@ slapi_int_ldapmod_to_entry(
 
 	const char 		*text = NULL;
 
-
-	op = (Operation *) slapi_ch_calloc(1, sizeof(Operation));
-	if ( op == NULL) {
-		rc = LDAP_NO_MEMORY;
-		goto cleanup;
-	}  
-	op->o_tag = LDAP_REQ_ADD;
+	op = (Operation *)pConn->c_pending_ops.stqh_first;
 
 	pEntry = (Entry *) ch_calloc( 1, sizeof(Entry) );
 	if ( pEntry == NULL) {
@@ -478,8 +484,6 @@ cleanup:
 
 	if ( dn.bv_val )
 		slapi_ch_free( (void **)&dn.bv_val );
-	if ( op )
-		slapi_ch_free( (void **)&op );
 	if ( modlist != NULL )
 		slap_mods_free( modlist );
 	if ( rc != LDAP_SUCCESS ) {
@@ -512,7 +516,6 @@ slapi_delete_internal(
 	Connection		*pConn = NULL;
 	Operation		*op = NULL;
 	Slapi_PBlock		*pPB = NULL;
-	Slapi_PBlock		*pSavePB = NULL;
 	SlapReply		rs = { REP_RESULT };
 	struct berval		dn = BER_BVNULL;
 
@@ -576,13 +579,10 @@ cleanup:
 	if ( dn.bv_val ) {
 		slapi_ch_free( (void **)&dn.bv_val );
 	}
-	if ( pConn != NULL ) {
-		pSavePB = pPB;
-	}
 
 	slapi_int_connection_destroy( &pConn );
 
-	return (pSavePB);
+	return pPB;
 #else
 	return NULL;
 #endif /* LDAP_SLAPI */
@@ -591,13 +591,13 @@ cleanup:
 #ifdef LDAP_SLAPI
 static Slapi_PBlock * 
 slapi_int_add_entry_locked(
+	Connection *pConn,
 	Slapi_Entry **e, 
 	LDAPControl **controls, 
 	int log_changes ) 
 {
-	Connection		*pConn = NULL;
 	Operation		*op = NULL;
-	Slapi_PBlock		*pPB = NULL, *pSavePB = NULL;
+	Slapi_PBlock		*pPB = NULL;
 
 	int			manageDsaIt = 0;
 	int			isCritical;
@@ -605,12 +605,6 @@ slapi_int_add_entry_locked(
 
 	if ( *e == NULL ) {
 		rs.sr_err = LDAP_PARAM_ERROR;
-		goto cleanup;
-	}
-	
-	pConn = slapi_int_init_connection( NULL, LDAP_REQ_ADD );
-	if ( pConn == NULL ) {
-		rs.sr_err = LDAP_NO_MEMORY;
 		goto cleanup;
 	}
 
@@ -650,18 +644,11 @@ slapi_int_add_entry_locked(
 	}
 
 cleanup:
-
 	if ( pPB != NULL ) {
 		slapi_pblock_set( pPB, SLAPI_PLUGIN_INTOP_RESULT, (void *)rs.sr_err );
 	}
 
-	if ( pConn != NULL ) {
-		pSavePB = pPB;
-	}
-
-	slapi_int_connection_destroy( &pConn );
-
-	return( pSavePB );
+	return( pPB );
 }
 #endif /* LDAP_SLAPI */
 
@@ -672,18 +659,27 @@ slapi_add_entry_internal(
 	int log_changes ) 
 {
 #ifdef LDAP_SLAPI
-	Slapi_PBlock *pb;
-	Slapi_Entry *entry;
+	Slapi_PBlock		*pb = NULL;
+	Slapi_Entry		*entry = NULL;
+	Connection		*pConn = NULL;
+
+	pConn = slapi_int_init_connection( NULL, LDAP_REQ_ADD );
+	if ( pConn == NULL ) {
+		return NULL;
+	}
 
 	/*
 	 * We make a copy to avoid an entry that may be freed later
 	 * by the caller being placed in the cache.
 	 */
 	entry = slapi_entry_dup( e );
-	pb = slapi_int_add_entry_locked( &entry, controls, log_changes );
+	pb = slapi_int_add_entry_locked( pConn, &entry, controls, log_changes );
 	if ( entry != NULL ) {
 		slapi_entry_free( entry );
 	}
+
+	slapi_int_connection_destroy( &pConn );
+
 	return pb;
 #else
 	return NULL;
@@ -699,6 +695,7 @@ slapi_add_internal(
 {
 #ifdef LDAP_SLAPI
 	LDAPMod			*pMod = NULL;
+	Connection		*pConn = NULL;
 	Slapi_PBlock		*pb = NULL;
 	Entry			*pEntry = NULL;
 	int			i, rc = LDAP_SUCCESS;
@@ -717,9 +714,12 @@ slapi_add_internal(
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
-		pEntry = slapi_int_ldapmod_to_entry( dn, mods );
-		if ( pEntry == NULL ) {
-			rc = LDAP_OTHER;
+		pConn = slapi_int_init_connection( NULL, LDAP_REQ_ADD );
+		if ( pConn != NULL ) {
+			pEntry = slapi_int_ldapmod_to_entry( pConn, dn, mods );
+			if ( pEntry == NULL ) {
+				rc = LDAP_OTHER;
+			}
 		}
 	}
 
@@ -727,14 +727,16 @@ slapi_add_internal(
 		pb = slapi_pblock_new();
 		slapi_pblock_set( pb, SLAPI_PLUGIN_INTOP_RESULT, (void *)rc );
 	} else {
-		pb = slapi_int_add_entry_locked( &pEntry, controls, log_changes );
+		pb = slapi_int_add_entry_locked( pConn, &pEntry, controls, log_changes );
 	}
 
 	if ( pEntry != NULL ) {
-		slapi_entry_free(pEntry);
+		slapi_entry_free( pEntry );
 	}
 
-	return(pb);
+	slapi_int_connection_destroy( &pConn );
+
+	return pb;
 #else
 	return NULL;
 #endif /* LDAP_SLAPI */
@@ -766,12 +768,11 @@ slapi_modrdn_internal(
 	Connection		*pConn = NULL;
 	Operation		*op = NULL;
 	Slapi_PBlock		*pPB = NULL;
-	Slapi_PBlock		*pSavePB = NULL;
 	int			manageDsaIt = 0;
 	int			isCritical;
 	SlapReply		rs = { REP_RESULT };
 
-	pConn = slapi_int_init_connection( NULL,  LDAP_REQ_MODRDN);
+	pConn = slapi_int_init_connection( NULL,  LDAP_REQ_MODRDN );
 	if ( pConn == NULL) {
 		rs.sr_err = LDAP_NO_MEMORY;
 		goto cleanup;
@@ -855,13 +856,9 @@ cleanup:
 	if ( op->oq_modrdn.rs_nnewrdn.bv_val )
 		slapi_ch_free( (void **)&op->oq_modrdn.rs_nnewrdn.bv_val );
 
-	if ( pConn != NULL ) {
-		pSavePB = pPB;
-	}
-
 	slapi_int_connection_destroy( &pConn );
 
-	return( pSavePB );
+	return pPB;
 #else
 	return NULL;
 #endif /* LDAP_SLAPI */
@@ -889,7 +886,6 @@ slapi_modify_internal(
 	Connection		*pConn = NULL;
 	Operation		*op = NULL;
 	Slapi_PBlock		*pPB = NULL;
-	Slapi_PBlock		*pSavePB = NULL;
 
 	struct berval dn = BER_BVNULL;
 
@@ -1060,13 +1056,9 @@ cleanup:
 	if ( modlist != NULL )
 		slap_mods_free( modlist );
 
-	if ( pConn != NULL ) {
-		pSavePB = pPB;
-	}
-
 	slapi_int_connection_destroy( &pConn );
 
-	return ( pSavePB );
+	return pPB;
 #else
 	return NULL;
 #endif /* LDAP_SLAPI */
@@ -1084,8 +1076,7 @@ slapi_search_internal(
 #ifdef LDAP_SLAPI
 	Connection		*c;
 	Operation		*op = NULL;
-	Slapi_PBlock		*ptr = NULL;		
-	Slapi_PBlock		*pSavePB = NULL;		
+	Slapi_PBlock		*pPB = NULL;		
 	struct berval		dn = BER_BVNULL;
 	Filter			*filter=NULL;
 	struct berval		fstr = BER_BVNULL;
@@ -1105,7 +1096,7 @@ slapi_search_internal(
 	}
 
 	op = (Operation *)c->c_pending_ops.stqh_first;
-	ptr = (Slapi_PBlock *)op->o_pb;
+	pPB = (Slapi_PBlock *)op->o_pb;
 	op->o_ctrls = controls;
 
 	if ( ldn != NULL ) {
@@ -1234,8 +1225,8 @@ slapi_search_internal(
 
 cleanup:
 
-	if ( ptr != NULL )
-		slapi_pblock_set( ptr, SLAPI_PLUGIN_INTOP_RESULT, (void *)rs.sr_err );
+	if ( pPB != NULL )
+		slapi_pblock_set( pPB, SLAPI_PLUGIN_INTOP_RESULT, (void *)rs.sr_err );
 
 	if ( dn.bv_val )
 		slapi_ch_free( (void **)&dn.bv_val );
@@ -1246,13 +1237,9 @@ cleanup:
 	if ( an != NULL )
 		slapi_ch_free( (void **)&an );
 
-	if ( c != NULL ) {
-		pSavePB = ptr;
-    	}
-
 	slapi_int_connection_destroy( &c );
 
-	return( pSavePB );
+	return pPB;
 #else
 	return NULL;
 #endif /* LDAP_SLAPI */

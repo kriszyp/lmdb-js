@@ -45,6 +45,8 @@
 /* protected by connections_mutex */
 static ldap_pvt_thread_mutex_t connections_mutex;
 static Connection *connections = NULL;
+
+static ldap_pvt_thread_mutex_t conn_nextid_mutex;
 static unsigned long conn_nextid = 0;
 
 /* structure state (protected by connections_mutex) */
@@ -109,6 +111,7 @@ int connections_init(void)
 
 	/* should check return of every call */
 	ldap_pvt_thread_mutex_init( &connections_mutex );
+	ldap_pvt_thread_mutex_init( &conn_nextid_mutex );
 
 	connections = (Connection *) ch_calloc( dtblsize, sizeof(Connection) );
 
@@ -176,6 +179,7 @@ int connections_destroy(void)
 	connections = NULL;
 
 	ldap_pvt_thread_mutex_destroy( &connections_mutex );
+	ldap_pvt_thread_mutex_destroy( &conn_nextid_mutex );
 	return 0;
 }
 
@@ -601,7 +605,9 @@ long connection_init(
 #endif
 	}
 
+	ldap_pvt_thread_mutex_lock( &conn_nextid_mutex );
 	id = c->c_connid = conn_nextid++;
+	ldap_pvt_thread_mutex_unlock( &conn_nextid_mutex );
 
 	c->c_conn_state = SLAP_C_INACTIVE;
 	c->c_struct_state = SLAP_C_USED;
@@ -1893,3 +1899,14 @@ connection_fake_init(
 
 	op->o_time = slap_get_time();
 }
+
+void
+connection_assign_nextid( Connection *conn )
+{
+	int rc;
+
+	ldap_pvt_thread_mutex_lock( &conn_nextid_mutex );
+	conn->c_connid = conn_nextid++;
+	ldap_pvt_thread_mutex_unlock( &conn_nextid_mutex );
+}
+
