@@ -1751,6 +1751,7 @@ send_paged_response(
 	rs->sr_ctrls = ctrls;
 	rs->sr_err = LDAP_SUCCESS;
 	send_ldap_result( op, rs );
+	rs->sr_ctrls = NULL;
 
 done:
 	(void) ber_free_buf( ber );
