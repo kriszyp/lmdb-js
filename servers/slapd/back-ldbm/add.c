@@ -113,8 +113,9 @@ ldbm_back_add(
 #endif
 
 
-			send_ldap_result( conn, op, LDAP_REFERRAL,
-			    matched_dn, NULL, refs, NULL );
+			send_ldap_result( conn, op, LDAP_REFERRAL, matched_dn,
+				refs == NULL ? "parent does not exist" : "parent is referral",
+				refs, NULL );
 
 			if( matched != NULL ) {
 				ber_bvecfree( refs );
