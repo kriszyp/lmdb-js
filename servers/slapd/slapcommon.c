@@ -508,7 +508,7 @@ startup:;
 	mal_leaktrace(1);
 #endif
 
-	if ( slap_startup( be ) ) {
+	if ( !dryrun && slap_startup( be ) ) {
 		fprintf( stderr, "slap_startup failed\n" );
 		exit( EXIT_FAILURE );
 	}
@@ -516,7 +516,9 @@ startup:;
 
 void slap_tool_destroy( void )
 {
-	slap_shutdown( be );
+	if ( !dryrun ) {
+		slap_shutdown( be );
+	}
 	slap_destroy();
 #ifdef SLAPD_MODULES
 	if ( slapMode == SLAP_SERVER_MODE ) {
