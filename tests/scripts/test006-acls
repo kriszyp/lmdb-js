@@ -157,6 +157,7 @@ dn: cn=Alumni Assoc Staff, ou=Groups, dc=example, dc=com
 changetype: modify
 add: description
 description: added by jaj (should succeed)
+-
 EOMODS5
 
 $LDAPMODIFY -D "$BABSDN" -h $LOCALHOST -p $PORT1 -w bjensen >> \
@@ -165,6 +166,7 @@ dn: cn=Alumni Assoc Staff, ou=Groups, dc=example, dc=com
 changetype: modify
 add: description
 description: added by bjensen (should fail)
+-
 EOMODS6
 
 echo "Using ldapsearch to retrieve all the entries..."
