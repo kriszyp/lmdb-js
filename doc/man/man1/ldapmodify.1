@@ -1,4 +1,4 @@
-.TH LDAPMODIFY 1 "12 July 2000" "OpenLDAP LDVERSION"
+.TH LDAPMODIFY 1 "20 August 2000" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -188,8 +188,7 @@ standard input.
 Use simple authentication instead of SASL.
 .TP
 .BI \-D \ binddn
-Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be
-a string-represented DN as defined in RFC 1779.
+Use the Distinguished Name \fIbinddn\fP to bind to the LDAP directory.
 .TP
 .B \-W
 Prompt for simple authentication.
@@ -416,12 +415,6 @@ status and a diagnostic message being written to standard error.
 .BR ldap_modify (3),
 .BR ldap_modrdn (3),
 .BR slapd.replog (5)
-.LP
-Kille, S.,
-.IR "A String Representation of Distinguished Names",
-.SM RFC
-1779,
-ISODE Consortium, March 1995.
 .SH BUGS
 There is no interactive mode, but there probably should be.
 .SH AUTHOR
