@@ -65,8 +65,8 @@ bdb_db_config(
 		bdb->bi_dbenv_xflags |= DB_TXN_NOSYNC;
 
 	/* slapadd/slapindex logging configuration */
-	} else if ( strcasecmp( argv[0], "fasttool" ) == 0 &&
-		slapMode & SLAP_TOOL_MODE ) {
+	} else if ( strcasecmp( argv[0], "fasttool" ) == 0 ) {
+		if ( slapMode & SLAP_TOOL_MODE )
 		bdb->bi_dbenv_xflags |= DB_TXN_NOT_DURABLE;
 
 	/* slapindex algorithm tuning */
