@@ -81,15 +81,13 @@ There are five steps to defining new schema:
 
 H3: Object Identifiers
 
-Each schema element is identified by a globally unique
-{{TERM[expand]OID}} (OID).  OIDs are also used to identify
-other objects.
-They are commonly found in protocols described by {{TERM:ASN.1}}.  In
+Each schema element is identified by a globally unique {{TERM[expand]OID}}
+(OID).  OIDs are also used to identify other objects.  They are
+commonly found in protocols described by {{TERM:ASN.1}}.  In
 particular, they are heavily used by the {{TERM[expand]SNMP}} (SNMP).
-As OIDs are hierarchical, your organization
-can obtain one OID and branch it as needed.  For example,
-if your organization were assigned OID {{EX:1.1}}, you could branch
-the tree as follows:
+As OIDs are hierarchical, your organization can obtain one OID and
+branch it as needed.  For example, if your organization were assigned
+OID {{EX:1.1}}, you could branch the tree as follows:
 
 !block table; colaligns="LR"; coltags="EX,N"; align=Center; \
 	title="Table 8.2: Example OID hierarchy"
@@ -129,10 +127,7 @@ you.  OIDs obtained using this form may be used for any purpose
 including identifying LDAP schema elements.
 
 Alternatively, OID name space may be available from a national
-authority (e.g., ANSI, BSI).
-
-For private experiments, OIDs under {{EX:1.1}} may be used.  The
-OID {{EX:1.1}} arc is regarded as dead name space.
+authority (e.g., {{ORG:ANSI}}, {{ORG:BSI}}).
 
 
 H3: Name Prefix
