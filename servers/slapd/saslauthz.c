@@ -753,6 +753,7 @@ exact_match:
 	op.o_req_dn = op.o_req_ndn;
 	op.oq_search.rs_slimit = 1;
 	op.oq_search.rs_tlimit = -1;
+	op.o_sync_slog_size = -1;
 
 	op.o_bd->be_search( &op, &rs );
 
@@ -763,10 +764,10 @@ exact_match:
 	}
 
 CONCLUDED:
-	if( op.o_req_dn.bv_len ) ch_free( op.o_req_dn.bv_val );
-	if( op.o_req_ndn.bv_len ) sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
+	if( op.o_req_dn.bv_val && op.o_req_dn.bv_val != op.o_req_ndn.bv_val ) ch_free( op.o_req_dn.bv_val );
+	if( op.o_req_ndn.bv_val ) sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
 	if( op.oq_search.rs_filter ) filter_free_x( opx, op.oq_search.rs_filter );
-	if( op.ors_filterstr.bv_len ) ch_free( op.ors_filterstr.bv_val );
+	if( op.ors_filterstr.bv_val ) ch_free( op.ors_filterstr.bv_val );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
