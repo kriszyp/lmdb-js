@@ -257,5 +257,13 @@ else
 	exit 1
 fi
 
+echo "Comparing cache output..."
+$CMP $SLAVEOUT $PROXYCACHEOUT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "Comparison failed"
+	exit 1
+fi
+
 echo ">>>>> Test succeeded"
 exit 0
