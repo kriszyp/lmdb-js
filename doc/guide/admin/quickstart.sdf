@@ -163,11 +163,9 @@ example, for {{EX:example.com}}, use:
 ..{{EX:directory       /usr/local/var/openldap-data}}
 
 . Details regarding configuring {{slapd}}(8) can be found
-in the {{slapd.conf}}(5) manual page and the
-{{SECT:The slapd Configuration File}} chapter of this
-document.
-
-Note: the directory specified must exist prior to starting {{slapd}}(8).
+in the {{slapd.conf}}(5) manual page and the {{SECT:The slapd
+Configuration File}} chapter of this document.  Note that the
+specified directory must exist prior to starting {{slapd}}(8).
 
 
 .{{S: }}
