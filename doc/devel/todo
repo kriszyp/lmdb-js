@@ -53,7 +53,7 @@ Small projects
 Add support for simple paged results control
 Add support for duplicate entry control
 Add support for matched values control
-Add support for get-authzid operation
+Add support for whoami? (get-authzid) operation
 Add support for proxy-grp operation/control
 Add tests to test suite (ACI, moddn, manageDSAit, subtyping, etc.)
 Add support for Cyrus pwcheckd/saslauthd
