@@ -23,11 +23,11 @@ ldbm_back_bind(
     Backend		*be,
     Connection		*conn,
     Operation		*op,
-    const char		*dn,
-    const char		*ndn,
+    struct berval	*dn,
+    struct berval	*ndn,
     int			method,
     struct berval	*cred,
-	char**	edn
+    struct berval	*edn
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
@@ -45,17 +45,16 @@ ldbm_back_bind(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		"ldbm_back_bind: dn: %s.\n", dn ));
+		"ldbm_back_bind: dn: %s.\n", dn->bv_val ));
 #else
-	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_bind: dn: %s\n", dn, 0, 0);
+	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_bind: dn: %s\n", dn->bv_val, 0, 0);
 #endif
 
 
-	*edn = NULL;
 	dn = ndn;
 
 	/* get entry with reader lock */
-	if ( (e = dn2entry_r( be, dn, &matched )) == NULL ) {
+	if ( (e = dn2entry_r( be, dn->bv_val, &matched )) == NULL ) {
 		char *matched_dn = NULL;
 		struct berval **refs = NULL;
 
@@ -64,21 +63,21 @@ ldbm_back_bind(
 
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched,
-					dn, LDAP_SCOPE_DEFAULT )
+					dn->bv_val, LDAP_SCOPE_DEFAULT )
 				: NULL;
 
 			cache_return_entry_r( &li->li_cache, matched );
 
 		} else {
 			refs = referral_rewrite( default_referral,
-				NULL, dn, LDAP_SCOPE_DEFAULT );
+				NULL, dn->bv_val, LDAP_SCOPE_DEFAULT );
 		}
 
 		/* allow noauth binds */
 		rc = 1;
 		if ( method == LDAP_AUTH_SIMPLE ) {
 			if ( be_isroot_pw( be, conn, dn, cred ) ) {
-				*edn = ch_strdup( be_root_dn( be ) );
+				ber_dupbv( edn, be_root_dn( be ) );
 				rc = 0; /* front end will send result */
 
 			} else if ( refs != NULL ) {
@@ -104,7 +103,7 @@ ldbm_back_bind(
 		return( rc );
 	}
 
-	*edn = ch_strdup( e->e_dn );
+	ber_dupbv( edn, &e->e_name );
 
 	/* check for deleted */
 
@@ -129,7 +128,7 @@ ldbm_back_bind(
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow bind */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
+			conn, op, e, dn->bv_val, LDAP_SCOPE_DEFAULT );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
@@ -160,8 +159,8 @@ ldbm_back_bind(
 		/* check for root dn/passwd */
 		if ( be_isroot_pw( be, conn, dn, cred ) ) {
 			/* front end will send result */
-			if(*edn != NULL) free( *edn );
-			*edn = ch_strdup( be_root_dn( be ) );
+			if(edn->bv_val != NULL) free( edn->bv_val );
+			ber_dupbv( edn, be_root_dn( be ) );
 			rc = 0;
 			goto return_results;
 		}
@@ -220,7 +219,7 @@ ldbm_back_bind(
 			/*
 			 * no krbname values present:  check against DN
 			 */
-			if ( strcasecmp( dn, krbname ) == 0 ) {
+			if ( strcasecmp( dn->bv_val, krbname ) == 0 ) {
 				rc = 0;
 				break;
 			}

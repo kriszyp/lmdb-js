@@ -369,17 +369,17 @@ glue_back_bind (
 	BackendDB *b0,
 	Connection *conn,
 	Operation *op,
-	const char *dn,
-	const char *ndn,
+	struct berval *dn,
+	struct berval *ndn,
 	int method,
 	struct berval *cred,
-	char **edn
+	struct berval *edn
 )
 {
 	BackendDB *be;
 	int rc;
  
-	be = glue_back_select (b0, ndn);
+	be = glue_back_select (b0, ndn->bv_val);
 
 	if (be && be->be_bind) {
 		conn->c_authz_backend = be;

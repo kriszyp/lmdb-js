@@ -488,21 +488,19 @@ do_bind(
 	if ( be->be_bind ) {
 		int ret;
 		/* alias suffix */
-		char *edn = NULL;
+		struct berval edn = { 0, NULL };
 
 		/* deref suffix alias if appropriate */
 		suffix_alias( be, ndn );
 
 		ret = (*be->be_bind)( be, conn, op,
-			pdn->bv_val, ndn->bv_val,
-			method, &cred, &edn );
+			pdn, ndn, method, &cred, &edn );
 
 		if ( ret == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
-			if(edn != NULL) {
-				conn->c_dn.bv_val = edn;
-				conn->c_dn.bv_len = strlen( edn );
+			if(edn.bv_len) {
+				conn->c_dn = edn;
 			} else {
 				conn->c_dn.bv_val = ch_strdup( pdn->bv_val );
 				conn->c_dn.bv_len = pdn->bv_len;
@@ -537,8 +535,8 @@ do_bind(
 			send_ldap_result( conn, op, LDAP_SUCCESS,
 				NULL, NULL, NULL, NULL );
 
-		} else if (edn != NULL) {
-			free( edn );
+		} else if (edn.bv_val != NULL) {
+			free( edn.bv_val );
 		}
 
 	} else {

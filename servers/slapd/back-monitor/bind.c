@@ -50,11 +50,11 @@ monitor_back_bind(
 	Backend		*be,
 	Connection	*conn,
 	Operation	*op,
-	const char	*dn,
-	const char	*ndn,
+	struct berval	*dn,
+	struct berval	*ndn,
 	int		method,
 	struct berval	*cred,
-	char**		edn
+	struct berval	*edn
 				    
 )
 {
@@ -62,15 +62,15 @@ monitor_back_bind(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		"monitor_back_bind: dn: %s.\n", dn ));
+		"monitor_back_bind: dn: %s.\n", dn->bv_val ));
 #else
 	Debug(LDAP_DEBUG_ARGS, "==> monitor_back_bind: dn: %s\n%s%s", 
-			dn, "", "");
+			dn->bv_val, "", "");
 #endif
 	
 	if ( method == LDAP_AUTH_SIMPLE 
 			&& be_isroot_pw( be, conn, ndn, cred ) ) {
-		*edn = ch_strdup( be_root_dn( be ) );
+		ber_dupbv( edn, be_root_dn( be ) );
 		return( 0 );
 	}
 

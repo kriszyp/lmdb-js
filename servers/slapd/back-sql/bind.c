@@ -20,7 +20,7 @@
 #include "entry-id.h"
 
 int backsql_bind(BackendDB *be,Connection *conn,Operation *op,
-	const char *dn,const char *ndn,int method,struct berval *cred,char** edn)
+	struct berval *dn,struct berval *ndn,int method,struct berval *cred,struct berval *edn)
 {
  backsql_info *bi=(backsql_info*)be->be_private;
  backsql_entryID user_id,*res;
@@ -34,12 +34,12 @@ int backsql_bind(BackendDB *be,Connection *conn,Operation *op,
  
  if ( be_isroot_pw( be, conn, ndn, cred ) )
     {
-     *edn=ch_strdup(be_root_dn(be));
+     ber_dupbv(edn, be_root_dn(be));
      Debug(LDAP_DEBUG_TRACE,"<==backsql_bind() root bind\n",0,0,0);
      return LDAP_SUCCESS;
     }
  
- *edn=ch_strdup(ndn);
+ ber_dupbv(edn, ndn);
  
  if (method == LDAP_AUTH_SIMPLE)
   {	 
@@ -52,7 +52,7 @@ int backsql_bind(BackendDB *be,Connection *conn,Operation *op,
      return 1;
     }
   
-   res=backsql_dn2id(bi,&user_id,dbh,ndn);
+   res=backsql_dn2id(bi,&user_id,dbh,ndn->bv_val);
    if (res==NULL)
     {
      Debug(LDAP_DEBUG_TRACE,"backsql_bind(): could not retrieve bind dn id - no such entry\n",0,0,0);
@@ -60,7 +60,7 @@ int backsql_bind(BackendDB *be,Connection *conn,Operation *op,
      return 1;
     }
     
-   backsql_init_search(&bsi,bi,(char*)ndn,LDAP_SCOPE_BASE,-1,-1,-1,NULL,dbh,
+   backsql_init_search(&bsi,bi,(char*)ndn->bv_val,LDAP_SCOPE_BASE,-1,-1,-1,NULL,dbh,
 		 be,conn,op,NULL);
    e=backsql_id2entry(&bsi,&user_entry,&user_id);
    if (e==NULL)

@@ -20,18 +20,16 @@ shell_back_bind(
     Backend		*be,
     Connection		*conn,
     Operation		*op,
-    const char		*dn,
-    const char		*ndn,
+    struct berval	*dn,
+    struct berval	*ndn,
     int			method,
     struct berval	*cred,
-	char		**edn
+    struct berval	*edn
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
 	FILE			*rfp, *wfp;
 	int			rc;
-
-	*edn = NULL;
 
 	if ( si->si_bind == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
@@ -50,7 +48,7 @@ shell_back_bind(
 	fprintf( wfp, "BIND\n" );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
-	fprintf( wfp, "dn: %s\n", dn );
+	fprintf( wfp, "dn: %s\n", dn->bv_val );
 	fprintf( wfp, "method: %d\n", method );
 	fprintf( wfp, "credlen: %lu\n", cred->bv_len );
 	fprintf( wfp, "cred: %s\n", cred->bv_val ); /* XXX */

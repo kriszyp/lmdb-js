@@ -33,19 +33,17 @@ perl_back_bind(
 	Backend *be,
 	Connection *conn,
 	Operation *op,
-	const char *dn,
-	const char *ndn,
+	struct berval *dn,
+	struct berval *ndn,
 	int method,
 	struct berval *cred,
-	char** edn
+	struct berval *edn
 )
 {
 	int return_code;
 	int count;
 
 	PerlBackend *perl_back = (PerlBackend *) be->be_private;
-
-	*edn = NULL;
 
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
@@ -54,7 +52,7 @@ perl_back_bind(
 
 		PUSHMARK(sp);
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( dn , 0)));
+		XPUSHs(sv_2mortal(newSVpv( dn->bv_val , 0)));
 		XPUSHs(sv_2mortal(newSVpv( cred->bv_val , cred->bv_len)));
 		PUTBACK;
 
@@ -63,7 +61,7 @@ perl_back_bind(
 		SPAGAIN;
 
 		if (count != 1) {
-			croak("Big trouble in back_search\n");
+			croak("Big trouble in back_bind\n");
 		}
 
 		return_code = POPi;

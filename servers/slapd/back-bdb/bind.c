@@ -20,11 +20,11 @@ bdb_bind(
 	Backend		*be,
 	Connection		*conn,
 	Operation		*op,
-	const char		*dn,
-	const char		*ndn,
+	struct berval		*dn,
+	struct berval		*ndn,
 	int			method,
 	struct berval	*cred,
-	char**	edn
+	struct berval	*edn
 )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -40,12 +40,10 @@ bdb_bind(
 
 	AttributeDescription *password = slap_schema.si_ad_userPassword;
 
-	Debug( LDAP_DEBUG_ARGS, "==> bdb_bind: dn: %s\n", dn, 0, 0);
-
-	*edn = NULL;
+	Debug( LDAP_DEBUG_ARGS, "==> bdb_bind: dn: %s\n", dn->bv_val, 0, 0);
 
 	/* get entry */
-	rc = bdb_dn2entry( be, NULL, ndn, &e, &matched, 0 );
+	rc = bdb_dn2entry( be, NULL, ndn->bv_val, &e, &matched, 0 );
 
 	switch(rc) {
 	case DB_NOTFOUND:
@@ -67,7 +65,7 @@ bdb_bind(
 
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched,
-					dn, LDAP_SCOPE_DEFAULT )
+					dn->bv_val, LDAP_SCOPE_DEFAULT )
 				: NULL;
 
 			bdb_entry_return( be, matched );
@@ -75,14 +73,14 @@ bdb_bind(
 
 		} else {
 			refs = referral_rewrite( default_referral,
-				NULL, dn, LDAP_SCOPE_DEFAULT );
+				NULL, dn->bv_val, LDAP_SCOPE_DEFAULT );
 		}
 
 		/* allow noauth binds */
 		rc = 1;
 		if ( method == LDAP_AUTH_SIMPLE ) {
 			if ( be_isroot_pw( be, conn, ndn, cred ) ) {
-				*edn = ch_strdup( be_root_dn( be ) );
+				ber_dupbv( edn, be_root_dn( be ) );
 				rc = LDAP_SUCCESS; /* front end will send result */
 
 			} else if ( refs != NULL ) {
@@ -109,7 +107,7 @@ bdb_bind(
 		return rc;
 	}
 
-	*edn = ch_strdup( e->e_dn );
+	ber_dupbv( edn, &e->e_name );
 
 	/* check for deleted */
 
@@ -127,7 +125,7 @@ bdb_bind(
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow bind */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
+			conn, op, e, dn->bv_val, LDAP_SCOPE_DEFAULT );
 
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 			0, 0 );
@@ -151,8 +149,8 @@ bdb_bind(
 		/* check for root dn/passwd */
 		if ( be_isroot_pw( be, conn, ndn, cred ) ) {
 			/* front end will send result */
-			if(*edn != NULL) free( *edn );
-			*edn = ch_strdup( be_root_dn( be ) );
+			if(edn->bv_val != NULL) free( edn->bv_val );
+			ber_dupbv( edn, be_root_dn( be ) );
 			rc = LDAP_SUCCESS;
 			goto done;
 		}

@@ -174,9 +174,9 @@ LDAP_SLAPD_F (int) be_issuffix LDAP_P(( Backend *be,
 LDAP_SLAPD_F (int) be_isroot LDAP_P(( Backend *be,
 	struct berval *ndn ));
 LDAP_SLAPD_F (int) be_isroot_pw LDAP_P(( Backend *be,
-	Connection *conn, const char *ndn, struct berval *cred ));
+	Connection *conn, struct berval *ndn, struct berval *cred ));
 LDAP_SLAPD_F (int) be_isupdate LDAP_P(( Backend *be, struct berval *ndn ));
-LDAP_SLAPD_F (char *) be_root_dn LDAP_P(( Backend *be ));
+LDAP_SLAPD_F (struct berval *) be_root_dn LDAP_P(( Backend *be ));
 LDAP_SLAPD_F (int) be_entry_release_rw LDAP_P((
 	BackendDB *be, Connection *c, Operation *o, Entry *e, int rw ));
 #define be_entry_release_r( be, c, o, e ) be_entry_release_rw( be, c, o, e, 0 )

@@ -621,29 +621,21 @@ be_isupdate( Backend *be, struct berval *ndn )
 	return strcmp( be->be_update_ndn.bv_val, ndn->bv_val ) ? 0 : 1;
 }
 
-char *
+struct berval *
 be_root_dn( Backend *be )
 {
-	if ( !be->be_rootdn.bv_len ) {
-		return( "" );
-	}
-
-	return be->be_rootdn.bv_val;
+	return &be->be_rootdn;
 }
 
 int
 be_isroot_pw( Backend *be,
 	Connection *conn,
-	const char *dn,
+	struct berval *ndn,
 	struct berval *cred )
 {
 	int result;
 
-	struct berval ndn;
-	ndn.bv_val = (char *) dn;
-	ndn.bv_len = dn ? strlen( dn ) : 0;
-
-	if ( ! be_isroot( be, &ndn ) ) {
+	if ( ! be_isroot( be, ndn ) ) {
 		return 0;
 	}
 

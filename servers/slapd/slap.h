@@ -1033,8 +1033,8 @@ typedef int (BI_db_destroy) LDAP_P((Backend *bd));
 
 typedef int (BI_op_bind)  LDAP_P(( BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		const char *dn, const char *ndn, int method,
-		struct berval *cred, char** edn ));
+		struct berval *dn, struct berval *ndn, int method,
+		struct berval *cred, struct berval *edn ));
 typedef int (BI_op_unbind) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o ));
 typedef int (BI_op_search) LDAP_P((BackendDB *bd,

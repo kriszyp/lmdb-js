@@ -82,11 +82,11 @@ meta_back_bind(
 		Backend		*be,
 		Connection	*conn,
 		Operation	*op,
-		const char	*dn,
-		const char	*ndn,
+		struct berval	*dn,
+		struct berval	*ndn,
 		int		method,
 		struct berval	*cred,
-		char		**edn
+		struct berval	*edn
 )
 {
 	struct metainfo	*li = ( struct metainfo * )be->be_private;
@@ -96,36 +96,34 @@ meta_back_bind(
 	int op_type = META_OP_ALLOW_MULTIPLE;
 	int err = LDAP_SUCCESS;
 
-	char *realdn = (char *)dn;
-	char *realndn = (char *)ndn;
+	char *realdn = (char *)dn->bv_val;
+	char *realndn = (char *)ndn->bv_val;
 	char *realcred = cred->bv_val;
 	int realmethod = method;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-			"meta_back_bind: dn: %s.\n", dn ));
+			"meta_back_bind: dn: %s.\n", dn->bv_val ));
 #else /* !NEW_LOGGING */
-	Debug( LDAP_DEBUG_ARGS, "meta_back_bind: dn: %s.\n%s%s", dn, "", "" );
+	Debug( LDAP_DEBUG_ARGS, "meta_back_bind: dn: %s.\n%s%s", dn->bv_val, "", "" );
 #endif /* !NEW_LOGGING */
-
-	*edn = NULL;
 
 	if ( method == LDAP_AUTH_SIMPLE 
 			&& be_isroot_pw( be, conn, ndn, cred ) ) {
 		isroot = 1;
-		*edn = ch_strdup( be_root_dn( be ) );
+		ber_dupbv( edn, be_root_dn( be ) );
 		op_type = META_OP_REQUIRE_ALL;
 	}
-	lc = meta_back_getconn( li, conn, op, op_type, ndn, NULL );
+	lc = meta_back_getconn( li, conn, op, op_type, ndn->bv_val, NULL );
 	if ( !lc ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_NOTICE,
 				"meta_back_bind: no target for dn %s.\n",
-				dn ));
+				dn->bv_val ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ANY,
 				"meta_back_bind: no target for dn %s.\n%s%s",
-				dn, "", "");
+				dn->bv_val, "", "");
 #endif /* !NEW_LOGGING */
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, 
 				NULL, NULL, NULL, NULL );
@@ -136,7 +134,7 @@ meta_back_bind(
 	 * Each target is scanned ...
 	 */
 	lc->bound_target = META_BOUND_NONE;
-	ndnlen = strlen( ndn );
+	ndnlen = ndn->bv_len;
 	for ( i = 0; i < li->ntargets; i++ ) {
 		int lerr;
 

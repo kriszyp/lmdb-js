@@ -21,18 +21,16 @@ tcl_back_bind (
 	Backend * be,
 	Connection * conn,
 	Operation * op,
-	const char *dn,
-	const char *ndn,
+	struct berval *dn,
+	struct berval *ndn,
 	int method,
 	struct berval *cred,
-	char **edn
+	struct berval *edn
 )
 {
 	char *command, *suf_tcl, *results;
 	int i, code, err = 0;
 	struct tclinfo *ti = (struct tclinfo *) be->be_private;
-
-	*edn = NULL;
 
 	if (ti->ti_bind == NULL) {
 		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
@@ -45,9 +43,9 @@ tcl_back_bind (
 
 	command = (char *) ch_malloc (strlen (ti->ti_bind) + strlen
 		(suf_tcl) +
-		strlen (dn) + strlen (cred->bv_val) + 64);
+		dn->bv_len + cred->bv_len + 64);
 	sprintf (command, "%s BIND {%ld} {%s} {%s} {%d} {%lu} {%s}",
-		ti->ti_bind, op->o_msgid, suf_tcl, dn, method, cred->bv_len,
+		ti->ti_bind, op->o_msgid, suf_tcl, dn->bv_val, method, cred->bv_len,
 		cred->bv_val);
 	Tcl_Free (suf_tcl);
 
