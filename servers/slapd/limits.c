@@ -996,8 +996,15 @@ limits_check( Operation *op, SlapReply *rs )
 	/* FIXME: should this be always true? */
 	assert( op->o_tag == LDAP_REQ_SEARCH);
 
-	/* protocol only allows 0..maxInt; internal searches
-	 * may use SLAP_NO_LIMIT ( = -1 ) to indicate no limits... */
+	/* protocol only allows 0..maxInt;
+	 *
+	 * internal searches:
+	 * - may use SLAP_NO_LIMIT ( = -1 ) to indicate no limits;
+	 * - should use slimit = N and tlimit = SLAP_NO_LIMIT to
+	 *   indicate searches that should return exactly N matches,
+	 *   and handle errors thru a callback (see for instance
+	 *   slap_sasl_match() and slap_sasl2dn())
+	 */
 	if ( op->ors_tlimit == SLAP_NO_LIMIT && op->ors_slimit == SLAP_NO_LIMIT ) {
 		return 0;
 	}
