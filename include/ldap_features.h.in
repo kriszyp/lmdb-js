@@ -60,10 +60,4 @@
 /* LDAP v2 Referrals */
 #undef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 
-/* LDAP Server Side Sort. */
-#define LDAP_API_FEATURE_SERVER_SIDE_SORT 1000
-
-/* LDAP Virtual List View. */ 
-#define LDAP_API_FEATURE_VIRTUAL_LIST_VIEW 1000
-
 #endif /* LDAP_FEATURES */

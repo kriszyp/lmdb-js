@@ -66,6 +66,7 @@ LDAP_BEGIN_DECL
 /* #define LDAP_API_OPERATION_SESSION_SAFE	1	*/
 #endif
 
+
 #define LDAP_PORT		389		/* ldap:///		default LDAP port */
 #define LDAPS_PORT		636		/* ldaps:///	default LDAP over TLS port */
 
@@ -482,13 +483,11 @@ typedef struct ldapcontrol {
 
 #define LDAP_ASSERTION_FAILED			0x10f
 
-#ifdef LDAP_EXOP_X_CANCEL
 /* resultCode for Cancel Response */
 #define LDAP_CANCELLED					0x110
 #define LDAP_NO_SUCH_OPERATION			0x111
 #define LDAP_TOO_LATE					0x112
 #define LDAP_CANNOT_CANCEL				0x113
-#endif
 
 /* LDAP SYNC request type */
 #define LDAP_SYNC_NONE					0x00
@@ -1525,8 +1524,7 @@ ldap_mods_free LDAP_P((
 
 
 /*
- * in sort.c
- *	(deprecated)
+ * in sort.c (deprecated)
  */
 typedef int (LDAP_SORT_AD_CMP_PROC) LDAP_P(( /* deprecated */
 	LDAP_CONST char *left,
@@ -1552,7 +1550,6 @@ LDAP_F( int ) /* deprecated */
 ldap_sort_strcasecmp LDAP_P((
 	LDAP_CONST void *a,
 	LDAP_CONST void *b ));
-
 
 /*
  * in url.c
@@ -1582,12 +1579,14 @@ LDAP_F( void )
 ldap_free_urldesc LDAP_P((
 	LDAPURLDesc *ludp ));
 
+
 /*
- * in sortctrl.c
+ * LDAP Server Side Sort
+ *	in sortctrl.c
  */
-/*
- * structure for a sort-key
- */
+#define LDAP_API_FEATURE_SERVER_SIDE_SORT 1000
+
+/* structure for a sort-key */
 typedef struct ldapsortkey {
 	char *  attributeType;
 	char *  orderingRule;
@@ -1619,21 +1618,21 @@ ldap_parse_sort_control LDAP_P((
 
 
 /*
- * in vlvctrl.c
+ * LDAP Virtual List View
+ *	in vlvctrl.c
  */
+#define LDAP_API_FEATURE_VIRTUAL_LIST_VIEW 1000
 
-/*
- * structure for virtual list.
- */
+/* structure for virtual list */
 typedef struct ldapvlvinfo {
 	int             ldvlv_version;
     unsigned long   ldvlv_before_count;
     unsigned long   ldvlv_after_count;
     unsigned long   ldvlv_offset;
     unsigned long   ldvlv_count;
-    struct berval  *ldvlv_attrvalue;
-    struct berval  *ldvlv_context;
-    void           *ldvlv_extradata;
+    struct berval *	ldvlv_attrvalue;
+    struct berval *	ldvlv_context;
+    void *			ldvlv_extradata;
 } LDAPVLVInfo;
 
 LDAP_F( int )
@@ -1652,7 +1651,8 @@ ldap_parse_vlv_control LDAP_P((
 	int           *errcodep ));
 
 /*
- * LDAP Who Am I? (whoami.c)
+ * LDAP Who Am I?
+ *	in whoami.c
  */
 
 LDAP_F( int )
@@ -1675,7 +1675,8 @@ ldap_whoami_s LDAP_P((
 	LDAPControl **cctrls ));
 
 /*
- * in passwd.c
+ * LDAP Password Modify
+ *	in passwd.c
  */
 
 LDAP_F( int )
@@ -1702,6 +1703,7 @@ ldap_passwd_s LDAP_P((
 	struct berval *newpasswd,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls ));
+
 
 LDAP_END_DECL
 #endif /* _LDAP_H */
