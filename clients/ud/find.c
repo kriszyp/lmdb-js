@@ -213,9 +213,6 @@ find( char *who, int quiet )
 			break;
 	}
 
-	/*
-	 *  It wasn't a UFN, so look it up in the usual method.
-	 */
 	for (fi = ldap_getfirstfilter(lfdp, "ud", who); fi != NULL;
 	     fi = ldap_getnextfilter(lfdp)) {
 #ifdef DEBUG
