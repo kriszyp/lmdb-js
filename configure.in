@@ -504,7 +504,6 @@ dnl ----------------------------------------------------------------
 dnl Initialize vars
 LDAP_LIBS=
 LDIF_LIBS=
-LDBM_LIB=
 LDBM_LIBS=
 LTHREAD_LIBS=
 LUTIL_LIBS=
@@ -2581,7 +2580,6 @@ if test "$ol_link_ldbm" != no -a $ol_enable_ldbm != no; then
 	AC_DEFINE(SLAPD_LDBM,1,[define to support LDBM backend])
 	BUILD_SLAPD=yes
 	BUILD_LDBM=yes
-	LDBM_LIB="-lldbm"
 	if test "$ol_with_ldbm_module" != static ; then
 		AC_DEFINE(SLAPD_LDBM_DYNAMIC,1,
 			[define to support dynamic LDBM backend])
@@ -2775,8 +2773,6 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_SQL_DYNAMIC)
   AC_SUBST(BUILD_TCL_DYNAMIC)
 AC_SUBST(BUILD_SLURPD)
-
-AC_SUBST(LDBM_LIB)
 
 AC_SUBST(LDAP_LIBS)
 AC_SUBST(LDIF_LIBS)
