@@ -40,7 +40,7 @@ static int search_candidates(
 static void send_paged_response( 
 	Operation *op,
 	SlapReply *rs,
-	ID  lastid,
+	ID  *lastid,
 	int tentries );
 
 /* Dereference aliases for a single alias entry. Return the final
@@ -784,7 +784,7 @@ dn2entry_retry:
 				"bdb_search: no paged results candidates\n",
 				0, 0, 0 );
 #endif
-			send_paged_response( sop, rs, lastid, 0 );
+			send_paged_response( sop, rs, &lastid, 0 );
 
 			rs->sr_err = LDAP_OTHER;
 			goto done;
@@ -1135,7 +1135,7 @@ id2entry_retry:
 
 			if ( get_pagedresults(sop) ) {
 				if ( rs->sr_nentries >= sop->o_pagedresults_size ) {
-					send_paged_response( sop, rs, lastid, tentries );
+					send_paged_response( sop, rs, &lastid, tentries );
 					goto done;
 				}
 				lastid = id;
@@ -1456,7 +1456,11 @@ nochange:
 			rs->sr_ref = rs->sr_v2ref;
 			rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS : LDAP_REFERRAL;
 			rs->sr_rspoid = NULL;
-			send_ldap_result( sop, rs );
+			if ( get_pagedresults(sop) ) {
+				send_paged_response( sop, rs, NULL, 0 );
+			} else {
+				send_ldap_result( sop, rs );
+			}
 		}
 	}
 
@@ -1703,23 +1707,23 @@ static void
 send_paged_response( 
 	Operation	*op,
 	SlapReply	*rs,
-	ID		lastid,
+	ID		*lastid,
 	int		tentries )
 {
 	LDAPControl	ctrl, *ctrls[2];
 	BerElementBuffer berbuf;
 	BerElement	*ber = (BerElement *)&berbuf;
-	struct berval	cookie = BER_BVNULL;
+	struct berval	cookie = BER_BVC( "" );
 	PagedResultsCookie respcookie;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY,
 		"send_paged_response: lastid: (0x%08lx) "
 		"nentries: (0x%081x)\n", 
-		lastid, rs->sr_nentries, NULL );
+		lastid ? *lastid : 0, rs->sr_nentries, NULL );
 #else
 	Debug(LDAP_DEBUG_ARGS, "send_paged_response: lastid: (0x%08lx) "
-		"nentries: (0x%081x)\n", lastid, rs->sr_nentries, NULL );
+		"nentries: (0x%081x)\n", lastid ? *lastid : 0, rs->sr_nentries, NULL );
 #endif
 
 	ctrl.ldctl_value.bv_val = NULL;
@@ -1728,12 +1732,18 @@ send_paged_response(
 
 	ber_init2( ber, NULL, LBER_USE_DER );
 
-	respcookie = ( PagedResultsCookie )lastid;
+	if ( lastid ) {
+		respcookie = ( PagedResultsCookie )(*lastid);
+		cookie.bv_len = sizeof( respcookie );
+		cookie.bv_val = (char *)&respcookie;
+
+	} else {
+		respcookie = ( PagedResultsCookie )0;
+	}
+
 	op->o_conn->c_pagedresults_state.ps_cookie = respcookie;
 	op->o_conn->c_pagedresults_state.ps_count =
 		op->o_pagedresults_state.ps_count + rs->sr_nentries;
-	cookie.bv_len = sizeof( respcookie );
-	cookie.bv_val = (char *)&respcookie;
 
 	/*
 	 * FIXME: we should consider sending an estimate of the entries
