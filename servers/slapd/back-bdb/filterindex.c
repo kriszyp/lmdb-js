@@ -420,8 +420,12 @@ ext_candidates(
 	 * Currently Only Component Indexing for componentFilterMatch is supported
 	 * Indexing for an extensible filter is not supported yet
 	 */
-	if ( !mra->ma_cf )
+	if ( !mra->ma_cf ) {
+		struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+		BDB_IDL_ALL( bdb, ids );
 		return 0;
+	}
+
 	return comp_candidates ( op, mra, mra->ma_cf, ids, tmp, stack);
 }
 #endif
