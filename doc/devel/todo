@@ -23,15 +23,16 @@ OpenLDAP 2.0 Projects
 ---------------------
 	client API update
 		schema parsing
-		add TLS/SSL support
+		TLS/SSL support
+		implement LDAP errno draft
 	SASL support
 		DIGEST-MD5/Cyrus SASL Integration
 	SLAPD
 		schema rules
 	clients
-		update to use ldap_*_ext routines
-		remove use of deprecated routines
-		add -C/-CC/-R referral chasing options
+		use ldap_*_ext routines
+		don't use deprecated routines
+		-C/-CC/-R referral chasing options
 	SLAPD/SLURD Admin Guide
 	Update manual pages
 
@@ -52,7 +53,8 @@ Perform a security audit (and fix any hole found)
 Medium projects
 ---------------
 Design and Implement a LDAP C++ API
-Modify -lldap to be reentrant/threadsafe <bart@openldap.org>
+Modify -lldap to be reentrant/threadsafe
+	implement LDAP concurrency draft
 Modify libraries to use application specified logging routines
 Modify servers to use reentrant library functions
 Extend slapd to support identd (RFC1413) information in ACLs
