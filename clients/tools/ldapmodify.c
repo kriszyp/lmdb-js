@@ -805,6 +805,23 @@ process_ldif_rec( char *rbuf, int count )
 	    }
 
 	    if ( strcasecmp( type, T_CHANGETYPESTR ) == 0 ) {
+#ifdef LIBERAL_CHANGETYPE_MODOP
+		/* trim trailing spaces (and log warning ...) */
+
+		int icnt;
+		for ( icnt = val.bv_len; --icnt > 0; ) {
+		    if ( !isspace( val.bv_val[icnt] ) ) {
+			break;
+		    }
+		}
+
+		if ( ++icnt != val.bv_len ) {
+		    fprintf( stderr, "%s: illegal trailing space after \"%s: %s\" trimmed (line %d of entry \"%s\")\n",
+			    prog, T_CHANGETYPESTR, val.bv_val, linenum, dn );
+		    val.bv_val[icnt] = '\0';
+		}
+#endif /* LIBERAL_CHANGETYPE_MODOP */
+
 		if ( strcasecmp( val.bv_val, T_MODIFYCTSTR ) == 0 ) {
 			new_entry = 0;
 			expect_modop = 1;
@@ -833,6 +850,23 @@ process_ldif_rec( char *rbuf, int count )
 	}
 
 	if ( expect_modop ) {
+#ifdef LIBERAL_CHANGETYPE_MODOP
+	    /* trim trailing spaces (and log warning ...) */
+	    
+	    int icnt;
+	    for ( icnt = val.bv_len; --icnt > 0; ) {
+		if ( !isspace( val.bv_val[icnt] ) ) {
+		    break;
+		}
+	    }
+	    
+	    if ( ++icnt != val.bv_len ) {
+		fprintf( stderr, "%s: illegal trailing space after \"%s: %s\" trimmed (line %d of entry \"%s\")\n",
+    			prog, type, val.bv_val, linenum, dn );
+		val.bv_val[icnt] = '\0';
+	    }
+#endif /* LIBERAL_CHANGETYPE_MODOP */
+
 	    expect_modop = 0;
 	    expect_sep = 1;
 	    if ( strcasecmp( type, T_MODOPADDSTR ) == 0 ) {
