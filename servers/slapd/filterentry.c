@@ -351,9 +351,10 @@ test_filter_and(
 		int rc = test_filter( be, conn, op, e, f );
 
 		if ( rc == LDAP_COMPARE_FALSE ) {
-			rtn = LDAP_COMPARE_FALSE;
+			rtn = rc;
 			break;
 		}
+
 		if ( rc != LDAP_COMPARE_TRUE ) {
 			rtn = rc;
 		}
@@ -393,10 +394,11 @@ test_filter_or(
 		int rc = test_filter( be, conn, op, e, f );
 
 		if ( rc == LDAP_COMPARE_TRUE ) {
-			rtn = LDAP_COMPARE_TRUE;
+			rtn = rc;
 			break;
 		}
-		if ( rc != LDAP_COMPARE_TRUE ) {
+
+		if ( rc != LDAP_COMPARE_FALSE ) {
 			rtn = rc;
 		}
 	}
