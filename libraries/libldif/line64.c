@@ -226,6 +226,8 @@ done:
 	if( type == NULL ) {
 		ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
 			"ldif_parse_line: type malloc failed\n");
+		if( url )
+			ber_memfree( value );
 		ber_memfree( freeme );
 		return( -1 );
 	}
