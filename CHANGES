@@ -12,6 +12,7 @@ Changes included in OpenLDAP 1.2.12 Engineering
 	Build Environment
 		Remove extra Digital UNIX symbol (ITS#590)
 		Ignore make clean rm failure
+		Fix ud install mode (ITS#633)
 
 Changes included in OpenLDAP 1.2.11
 	CVS Tag: OPENLDAP_REL_ENG_1_2_11
