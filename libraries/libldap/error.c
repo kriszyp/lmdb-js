@@ -34,7 +34,7 @@ static const struct ldaperror ldap_errlist[] = {
 
 	{LDAP_REFERRAL,					"Referral"},
 	{LDAP_ADMINLIMIT_EXCEEDED,		"Administrative limit exceeded"},
-	{LDAP_UNAVAILABLE_CRITICIAL_EXTENSION,
+	{LDAP_UNAVAILABLE_CRITICAL_EXTENSION,
 									"Criticial extension is unavailable"},
 	{LDAP_CONFIDENTIALITY_REQUIRED,	"Confidentiality required"},
 	{LDAP_SASL_BIND_IN_PROGRESS,	"SASL bind in progress"},
