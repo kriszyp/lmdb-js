@@ -49,7 +49,10 @@ OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
 OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
 	no, [yes no])dnl
 
+
 dnl General "with" options
+OL_ARG_ENABLE(dmalloc,[  --enable-dmalloc	enable debug malloc support], no)dnl
+
 OL_ARG_WITH(kerberos,[  --with-kerberos	use Kerberos],
 	auto, [auto k5 k4 afs yes no])
 OL_ARG_WITH(threads,[  --with-threads	use threads],
@@ -984,6 +987,11 @@ if test $ol_enable_wrappers = yes ; then
 		ol_enable_wrappers=no
 	fi
 
+fi
+
+if test $ol_enable_dmalloc != no ; then
+	AC_CHECK_HEADERS(dmalloc.h)
+	AC_CHECK_LIB(dmalloc, dmalloc_shutdown)
 fi
 
 # ud needs termcap (should insert check here)

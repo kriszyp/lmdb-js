@@ -440,6 +440,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the <dirent.h> header file.  */
 #undef HAVE_DIRENT_H
 
+/* Define if you have the <dmalloc.h> header file.  */
+#undef HAVE_DMALLOC_H
+
 /* Define if you have the <errno.h> header file.  */
 #undef HAVE_ERRNO_H
 
@@ -577,6 +580,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the V3 library (-lV3).  */
 #undef HAVE_LIBV3
+
+/* Define if you have the dmalloc library (-ldmalloc).  */
+#undef HAVE_LIBDMALLOC
 
 /* Define if you have the gen library (-lgen).  */
 #undef HAVE_LIBGEN
