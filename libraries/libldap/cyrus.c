@@ -352,7 +352,7 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 		/* Still have something left?? */
 		if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
 			errno = EAGAIN;
-			return 0;
+			return -1;
 		}
 	}
 
@@ -384,11 +384,10 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	p->buf_out.buf_end = p->buf_out.buf_size;
 
 	ret = ber_pvt_sb_do_write( sbiod, &p->buf_out );
-#if 0 /* retry => re-sasl_encode, that would be bad */
-	if ( ret <= 0 ) {
-		return ret;
-	}
-#endif
+
+	/* return number of bytes encoded, not written, to ensure
+	 * no byte is encoded twice (even if only sent once).
+	 */
 	return len;
 }
 
