@@ -82,7 +82,7 @@ int is_entry_objectclass(
 	}
 
 	for( i=0; attr->a_vals[i]; i++ ) {
-		ObjectClass *objectClass = oc_find( attr->a_vals[i]->bv_val );
+		ObjectClass *objectClass = oc_bvfind( attr->a_vals[i] );
 
 		if( objectClass == oc ) {
 			return 1;
@@ -95,7 +95,7 @@ int is_entry_objectclass(
 
 
 struct oindexrec {
-	char		*oir_name;
+	struct berval	oir_name;
 	ObjectClass	*oir_oc;
 };
 
@@ -107,56 +107,32 @@ oc_index_cmp(
     struct oindexrec	*oir1,
     struct oindexrec	*oir2 )
 {
-	assert( oir1->oir_name );
-	assert( oir1->oir_oc );
-	assert( oir2->oir_name );
-	assert( oir2->oir_oc );
-
-	return strcasecmp( oir1->oir_name, oir2->oir_name );
-}
-
-static int
-oc_index_bvname_cmp(
-    struct berval	*name,
-    struct oindexrec	*oir )
-{
-	int rc;
-
-	assert( oir->oir_name );
-	assert( oir->oir_oc );
-
-	rc = strncasecmp( name->bv_val, oir->oir_name, name->bv_len );
-	if (rc) return rc;
-	return oir->oir_name[name->bv_len] ? -1 : 0;
+	int i = oir1->oir_name.bv_len - oir2->oir_name.bv_len;
+	if (i)
+		return i;
+	return strcasecmp( oir1->oir_name.bv_val, oir2->oir_name.bv_val );
 }
 
 static int
 oc_index_name_cmp(
-    char 		*name,
+    struct berval	*name,
     struct oindexrec	*oir )
 {
-	assert( oir->oir_name );
-	assert( oir->oir_oc );
-
-	return (strcasecmp( name, oir->oir_name ));
+	int i = name->bv_len - oir->oir_name.bv_len;
+	if (i)
+		return i;
+	return strncasecmp( name->bv_val, oir->oir_name.bv_val, name->bv_len );
 }
 
 ObjectClass *
 oc_find( const char *ocname )
 {
-	struct oindexrec	*oir;
+	struct berval bv;
 
-	oir = (struct oindexrec *) avl_find( oc_index, ocname,
-            (AVL_CMP) oc_index_name_cmp );
+	bv.bv_val = (char *)ocname;
+	bv.bv_len = strlen( ocname );
 
-	if ( oir != NULL ) {
-		assert( oir->oir_name );
-		assert( oir->oir_oc );
-
-		return( oir->oir_oc );
-	}
-
-	return( NULL );
+	return( oc_bvfind( &bv ) );
 }
 
 ObjectClass *
@@ -165,12 +141,9 @@ oc_bvfind( struct berval *ocname )
 	struct oindexrec	*oir;
 
 	oir = (struct oindexrec *) avl_find( oc_index, ocname,
-            (AVL_CMP) oc_index_bvname_cmp );
+            (AVL_CMP) oc_index_name_cmp );
 
 	if ( oir != NULL ) {
-		assert( oir->oir_name );
-		assert( oir->oir_oc );
-
 		return( oir->oir_oc );
 	}
 
@@ -347,10 +320,11 @@ oc_insert(
 	if ( soc->soc_oid ) {
 		oir = (struct oindexrec *)
 			ch_calloc( 1, sizeof(struct oindexrec) );
-		oir->oir_name = soc->soc_oid;
+		oir->oir_name.bv_val = soc->soc_oid;
+		oir->oir_name.bv_len = strlen( soc->soc_oid );
 		oir->oir_oc = soc;
 
-		assert( oir->oir_name );
+		assert( oir->oir_name.bv_val );
 		assert( oir->oir_oc );
 
 		if ( avl_insert( &oc_index, (caddr_t) oir,
@@ -363,17 +337,18 @@ oc_insert(
 		}
 
 		/* FIX: temporal consistency check */
-		assert( oc_find(oir->oir_name) != NULL );
+		assert( oc_bvfind(&oir->oir_name) != NULL );
 	}
 
 	if ( (names = soc->soc_names) ) {
 		while ( *names ) {
 			oir = (struct oindexrec *)
 				ch_calloc( 1, sizeof(struct oindexrec) );
-			oir->oir_name = *names;
+			oir->oir_name.bv_val = *names;
+			oir->oir_name.bv_len = strlen( *names );
 			oir->oir_oc = soc;
 
-			assert( oir->oir_name );
+			assert( oir->oir_name.bv_val );
 			assert( oir->oir_oc );
 
 			if ( avl_insert( &oc_index, (caddr_t) oir,
@@ -386,7 +361,7 @@ oc_insert(
 			}
 
 			/* FIX: temporal consistency check */
-			assert( oc_find(oir->oir_name) != NULL );
+			assert( oc_bvfind(&oir->oir_name) != NULL );
 
 			names++;
 		}

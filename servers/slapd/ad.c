@@ -154,7 +154,6 @@ int slap_bv2ad(
 		}
 	}
 
-	ldap_pvt_thread_mutex_lock( &desc.ad_type->sat_ad_mutex );
 	/* see if a matching description is already cached */
 	for (d2 = desc.ad_type->sat_ad; d2; d2=d2->ad_next) {
 		if (d2->ad_flags != desc.ad_flags)
@@ -171,6 +170,23 @@ int slap_bv2ad(
 	/* Not found, add new one */
 	while (d2 == NULL) {
 		int dlen = 0;
+		ldap_pvt_thread_mutex_lock( &desc.ad_type->sat_ad_mutex );
+		/* check again now that we've locked */
+		for (d2 = desc.ad_type->sat_ad; d2; d2=d2->ad_next) {
+			if (d2->ad_flags != desc.ad_flags)
+				continue;
+			if (d2->ad_lang.bv_len != desc.ad_lang.bv_len)
+				continue;
+			if (d2->ad_lang.bv_len == 0)
+				break;
+			if (strncasecmp(d2->ad_lang.bv_val, desc.ad_lang.bv_val,
+				desc.ad_lang.bv_len) == 0)
+				break;
+		}
+		if (d2) {
+			ldap_pvt_thread_mutex_unlock( &desc.ad_type->sat_ad_mutex );
+			break;
+		}
 
 		/* Allocate a single contiguous block. If there are no
 		 * options, we just need space for the AttrDesc structure.
@@ -225,8 +241,8 @@ int slap_bv2ad(
 			d2->ad_next = desc.ad_type->sat_ad->ad_next;
 			desc.ad_type->sat_ad->ad_next = d2;
 		}
+		ldap_pvt_thread_mutex_unlock( &desc.ad_type->sat_ad_mutex );
 	}
-	ldap_pvt_thread_mutex_unlock( &desc.ad_type->sat_ad_mutex );
 
 	if( *ad == NULL ) {
 		*ad = d2;

@@ -18,7 +18,7 @@
 
 
 struct mindexrec {
-	char		*mir_name;
+	struct berval	mir_name;
 	MatchingRule	*mir_mr;
 };
 
@@ -31,20 +31,34 @@ mr_index_cmp(
     struct mindexrec	*mir2
 )
 {
-	return (strcmp( mir1->mir_name, mir2->mir_name ));
+	int i = mir1->mir_name.bv_len - mir2->mir_name.bv_len;
+	if (i) return i;
+	return (strcmp( mir1->mir_name.bv_val, mir2->mir_name.bv_val ));
 }
 
 static int
 mr_index_name_cmp(
-    char		*name,
+    struct berval	*name,
     struct mindexrec	*mir
 )
 {
-	return (strcmp( name, mir->mir_name ));
+	int i = name->bv_len - mir->mir_name.bv_len;
+	if (i) return i;
+	return (strncmp( name->bv_val, mir->mir_name.bv_val, name->bv_len ));
 }
 
 MatchingRule *
 mr_find( const char *mrname )
+{
+	struct berval bv;
+
+	bv.bv_val = mrname;
+	bv.bv_len = strlen( mrname );
+	return mr_bvfind( &bv );
+}
+
+MatchingRule *
+mr_bvfind( struct berval *mrname )
 {
 	struct mindexrec	*mir = NULL;
 
@@ -86,7 +100,8 @@ mr_insert(
 	if ( smr->smr_oid ) {
 		mir = (struct mindexrec *)
 			ch_calloc( 1, sizeof(struct mindexrec) );
-		mir->mir_name = smr->smr_oid;
+		mir->mir_name.bv_val = smr->smr_oid;
+		mir->mir_name.bv_len = strlen( smr->smr_oid );
 		mir->mir_mr = smr;
 		if ( avl_insert( &mr_index, (caddr_t) mir,
 				 (AVL_CMP) mr_index_cmp,
@@ -96,13 +111,14 @@ mr_insert(
 			return SLAP_SCHERR_DUP_RULE;
 		}
 		/* FIX: temporal consistency check */
-		mr_find(mir->mir_name);
+		mr_bvfind(&mir->mir_name);
 	}
 	if ( (names = smr->smr_names) ) {
 		while ( *names ) {
 			mir = (struct mindexrec *)
 				ch_calloc( 1, sizeof(struct mindexrec) );
-			mir->mir_name = *names;
+			mir->mir_name.bv_val = *names;
+			mir->mir_name.bv_len = strlen( *names );
 			mir->mir_mr = smr;
 			if ( avl_insert( &mr_index, (caddr_t) mir,
 					 (AVL_CMP) mr_index_cmp,
@@ -112,7 +128,7 @@ mr_insert(
 				return SLAP_SCHERR_DUP_RULE;
 			}
 			/* FIX: temporal consistency check */
-			mr_find(mir->mir_name);
+			mr_bvfind(&mir->mir_name);
 			names++;
 		}
 	}

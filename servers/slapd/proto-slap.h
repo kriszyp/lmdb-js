@@ -749,6 +749,7 @@ LDAP_SLAPD_F (int) syn_add LDAP_P((
 	const char **err ));
 #endif
 
+LDAP_SLAPD_F (MatchingRule *) mr_bvfind LDAP_P((struct berval *mrname));
 LDAP_SLAPD_F (MatchingRule *) mr_find LDAP_P((const char *mrname));
 LDAP_SLAPD_F (int) mr_add LDAP_P(( LDAPMatchingRule *mr,
 	unsigned usage,

@@ -34,8 +34,8 @@ objectClassMatch(
 	void *assertedValue )
 {
 	struct berval *a = (struct berval *) assertedValue;
-	ObjectClass *oc = oc_find( value->bv_val );
-	ObjectClass *asserted = oc_find( a->bv_val );
+	ObjectClass *oc = oc_bvfind( value );
+	ObjectClass *asserted = oc_bvfind( a );
 
 	if( asserted == NULL ) {
 		if( OID_LEADCHAR( *a->bv_val ) ) {
@@ -87,8 +87,8 @@ structuralObjectClassMatch(
 	void *assertedValue )
 {
 	struct berval *a = (struct berval *) assertedValue;
-	ObjectClass *oc = oc_find( value->bv_val );
-	ObjectClass *asserted = oc_find( a->bv_val );
+	ObjectClass *oc = oc_bvfind( value );
+	ObjectClass *asserted = oc_bvfind( a );
 
 	if( asserted == NULL ) {
 		if( OID_LEADCHAR( *a->bv_val ) ) {

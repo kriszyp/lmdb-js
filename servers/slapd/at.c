@@ -44,7 +44,7 @@ int is_at_subtype(
 }
 
 struct aindexrec {
-	char		*air_name;
+	struct berval	air_name;
 	AttributeType	*air_at;
 };
 
@@ -57,29 +57,23 @@ attr_index_cmp(
     struct aindexrec	*air2
 )
 {
-	return (strcasecmp( air1->air_name, air2->air_name ));
+	int i = air1->air_name.bv_len - air2->air_name.bv_len;
+	if (i)
+		return i;
+	return (strcasecmp( air1->air_name.bv_val, air2->air_name.bv_val ));
 }
 
 static int
 attr_index_name_cmp(
-    const char 		*type,
-    struct aindexrec	*air
-)
-{
-	return (strcasecmp( type, air->air_name ));
-}
-
-/* Uses strncasecmp to allow the input type to be non-terminated */
-static int
-attr_index_bvname_cmp(
     struct berval	*type,
     struct aindexrec	*air
 )
 {
-	int rc = strncasecmp( type->bv_val, air->air_name, type->bv_len );
-	if (rc)
-		return rc;
-	return air->air_name[type->bv_len] ? -1 : 0;
+	int i = type->bv_len - air->air_name.bv_len;
+	if (i)
+		return i;
+	return (strncasecmp( type->bv_val, air->air_name.bv_val,
+		type->bv_len ));
 }
 
 AttributeType *
@@ -87,12 +81,12 @@ at_find(
     const char		*name
 )
 {
-	struct aindexrec *air;
+	struct berval bv;
 
-	air = (struct aindexrec *) avl_find( attr_index, name,
-            (AVL_CMP) attr_index_name_cmp );
+	bv.bv_val = (char *)name;
+	bv.bv_len = strlen( name );
 
-	return air != NULL ? air->air_at : NULL;
+	return at_bvfind( &bv );
 }
 
 AttributeType *
@@ -103,7 +97,7 @@ at_bvfind(
 	struct aindexrec *air;
 
 	air = (struct aindexrec *) avl_find( attr_index, name,
-            (AVL_CMP) attr_index_bvname_cmp );
+            (AVL_CMP) attr_index_name_cmp );
 
 	return air != NULL ? air->air_at : NULL;
 }
@@ -231,7 +225,8 @@ at_insert(
 	if ( sat->sat_oid ) {
 		air = (struct aindexrec *)
 			ch_calloc( 1, sizeof(struct aindexrec) );
-		air->air_name = sat->sat_oid;
+		air->air_name.bv_val = sat->sat_oid;
+		air->air_name.bv_len = strlen(sat->sat_oid);
 		air->air_at = sat;
 		if ( avl_insert( &attr_index, (caddr_t) air,
 				 (AVL_CMP) attr_index_cmp,
@@ -241,14 +236,15 @@ at_insert(
 			return SLAP_SCHERR_DUP_ATTR;
 		}
 		/* FIX: temporal consistency check */
-		at_find(air->air_name);
+		at_bvfind(&air->air_name);
 	}
 
 	if ( (names = sat->sat_names) ) {
 		while ( *names ) {
 			air = (struct aindexrec *)
 				ch_calloc( 1, sizeof(struct aindexrec) );
-			air->air_name = *names;
+			air->air_name.bv_val = *names;
+			air->air_name.bv_len = strlen(*names);
 			air->air_at = sat;
 			if ( avl_insert( &attr_index, (caddr_t) air,
 					 (AVL_CMP) attr_index_cmp,
@@ -258,7 +254,7 @@ at_insert(
 				return SLAP_SCHERR_DUP_ATTR;
 			}
 			/* FIX: temporal consistency check */
-			at_find(air->air_name);
+			at_bvfind(&air->air_name);
 			names++;
 		}
 	}
@@ -387,7 +383,7 @@ at_index_printnode( struct aindexrec *air )
 {
 
 	printf("%s = %s\n",
-		air->air_name,
+		air->air_name.bv_val,
 		ldap_attributetype2str(&air->air_at->sat_atype) );
 	return( 0 );
 }

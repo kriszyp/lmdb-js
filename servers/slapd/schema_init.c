@@ -3296,13 +3296,9 @@ objectIdentifierFirstComponentMatch(
 		rc = objectIdentifierMatch( &match, flags, syntax, mr, &oid, asserted );
 
 	} else {
-		char *stored = ch_malloc( oid.bv_len + 1 );
-		AC_MEMCPY( stored, oid.bv_val, oid.bv_len );
-		stored[oid.bv_len] = '\0';
-
 		if ( !strcmp( syntax->ssyn_oid, SLAP_SYNTAX_MATCHINGRULES_OID ) ) {
-			MatchingRule *asserted_mr = mr_find( asserted->bv_val );
-			MatchingRule *stored_mr = mr_find( stored );
+			MatchingRule *asserted_mr = mr_bvfind( asserted );
+			MatchingRule *stored_mr = mr_bvfind( &oid );
 
 			if( asserted_mr == NULL ) {
 				rc = SLAPD_COMPARE_UNDEFINED;
@@ -3313,8 +3309,8 @@ objectIdentifierFirstComponentMatch(
 		} else if ( !strcmp( syntax->ssyn_oid,
 			SLAP_SYNTAX_ATTRIBUTETYPES_OID ) )
 		{
-			AttributeType *asserted_at = at_find( asserted->bv_val );
-			AttributeType *stored_at = at_find( stored );
+			AttributeType *asserted_at = at_bvfind( asserted );
+			AttributeType *stored_at = at_bvfind( &oid );
 
 			if( asserted_at == NULL ) {
 				rc = SLAPD_COMPARE_UNDEFINED;
@@ -3325,8 +3321,8 @@ objectIdentifierFirstComponentMatch(
 		} else if ( !strcmp( syntax->ssyn_oid,
 			SLAP_SYNTAX_OBJECTCLASSES_OID ) )
 		{
-			ObjectClass *asserted_oc = oc_find( asserted->bv_val );
-			ObjectClass *stored_oc = oc_find( stored );
+			ObjectClass *asserted_oc = oc_bvfind( asserted );
+			ObjectClass *stored_oc = oc_bvfind( &oid );
 
 			if( asserted_oc == NULL ) {
 				rc = SLAPD_COMPARE_UNDEFINED;
@@ -3334,8 +3330,6 @@ objectIdentifierFirstComponentMatch(
 				match = asserted_oc != stored_oc;
 			}
 		}
-
-		ch_free( stored );
 	}
 
 #ifdef NEW_LOGGING

@@ -77,7 +77,7 @@ get_mra(
 			mra_free( ma, 1 );
 			return SLAPD_DISCONNECT;
 		}
-		ma->ma_rule = mr_find( ma->ma_rule_text.bv_val );
+		ma->ma_rule = mr_bvfind( &ma->ma_rule_text );
 
 		rc = ber_scanf( ber, "t", &tag );
 

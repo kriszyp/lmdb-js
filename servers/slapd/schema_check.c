@@ -100,7 +100,7 @@ entry_schema_check(
 	assert( asc->a_vals[0] != NULL );
 	assert( asc->a_vals[1] == NULL );
 
-	sc = oc_find( asc->a_vals[0]->bv_val );
+	sc = oc_bvfind( asc->a_vals[0] );
 	if( sc == NULL ) {
 		snprintf( textbuf, textlen, 
 			"unrecognized structuralObjectClass '%s'",
@@ -165,7 +165,7 @@ entry_schema_check(
 
 	*text = textbuf;
 
-	oc = oc_find( nsc.bv_val );
+	oc = oc_bvfind( &nsc );
 	if ( oc == NULL ) {
 		snprintf( textbuf, textlen, 
 			"unrecognized objectClass '%s'",
@@ -181,7 +181,7 @@ entry_schema_check(
 
 	/* check that the entry has required attrs for each oc */
 	for ( i = 0; aoc->a_vals[i] != NULL; i++ ) {
-		if ( (oc = oc_find( aoc->a_vals[i]->bv_val )) == NULL ) {
+		if ( (oc = oc_bvfind( aoc->a_vals[i] )) == NULL ) {
 			snprintf( textbuf, textlen, 
 				"unrecognized objectClass '%s'",
 				aoc->a_vals[i]->bv_val );
@@ -207,7 +207,7 @@ entry_schema_check(
 				ObjectClass *xc = NULL;
 				for( j=0; aoc->a_vals[j]; j++ ) {
 					if( i != j ) {
-						xc = oc_find( aoc->a_vals[i]->bv_val );
+						xc = oc_bvfind( aoc->a_vals[i] );
 						if( xc == NULL ) {
 							snprintf( textbuf, textlen, 
 								"unrecognized objectClass '%s'",
@@ -415,7 +415,7 @@ int oc_check_allowed(
 	/* check that the type appears as req or opt in at least one oc */
 	for ( i = 0; ocl[i] != NULL; i++ ) {
 		/* if we know about the oc */
-		ObjectClass	*oc = oc_find( ocl[i]->bv_val );
+		ObjectClass	*oc = oc_bvfind( ocl[i] );
 		if ( oc != NULL && oc->soc_kind != LDAP_SCHEMA_ABSTRACT &&
 			( sc == NULL || oc->soc_kind == LDAP_SCHEMA_AUXILIARY ))
 		{
@@ -460,7 +460,7 @@ int structural_class(
 	scbv->bv_len = 0;
 
 	for( i=0; ocs[i]; i++ ) {
-		oc = oc_find( ocs[i]->bv_val );
+		oc = oc_bvfind( ocs[i] );
 
 		if( oc == NULL ) {
 			snprintf( textbuf, textlen,
@@ -481,7 +481,7 @@ int structural_class(
 
 				/* find common superior */
 				for( j=i+1; ocs[j]; j++ ) {
-					xc = oc_find( ocs[j]->bv_val );
+					xc = oc_bvfind( ocs[j] );
 
 					if( xc == NULL ) {
 						snprintf( textbuf, textlen,
