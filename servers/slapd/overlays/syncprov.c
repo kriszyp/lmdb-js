@@ -881,8 +881,12 @@ syncprov_op_abandon( Operation *op, SlapReply *rs )
 	if ( so ) {
 		/* Is this really a Cancel exop? */
 		if ( op->o_tag != LDAP_REQ_ABANDON ) {
+			so->s_op->o_cancel = SLAP_CANCEL_ACK;
 			rs->sr_err = LDAP_CANCELLED;
 			send_ldap_result( so->s_op, rs );
+			while ( so->s_op->o_cancel != SLAP_CANCEL_DONE ) {
+				ldap_pvt_thread_yield();
+			}
 		}
 		syncprov_drop_psearch( so, 0 );
 	}
