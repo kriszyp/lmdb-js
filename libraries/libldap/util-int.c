@@ -413,3 +413,39 @@ char * ldap_pvt_get_fqdn( char *name )
 	LDAP_FREE( ha_buf );
 	return fqdn;
 }
+
+#if defined( HAVE_GETADDRINFO ) && !defined( HAVE_GAI_STRERROR )
+char *ldap_pvt_gai_strerror (int code) {
+	static struct {
+		int code;
+		const char *msg;
+	} values[] = {
+#ifdef EAI_ADDRFAMILY
+		{ EAI_ADDRFAMILY, "Address family for hostname not supported" },
+#endif
+		{ EAI_AGAIN, "Temporary failure in name resolution" },
+		{ EAI_BADFLAGS, "Bad value for ai_flags" },
+		{ EAI_FAIL, "Non-recoverable failure in name resolution" },
+		{ EAI_FAMILY, "ai_family not supported" },
+		{ EAI_MEMORY, "Memory allocation failure" },
+#ifdef EAI_NODATA
+		{ EAI_NODATA, "No address associated with hostname" },
+#endif    
+		{ EAI_NONAME, "Name or service not known" },
+		{ EAI_SERVICE, "Servname not supported for ai_socktype" },
+		{ EAI_SOCKTYPE, "ai_socktype not supported" },
+		{ EAI_SYSTEM, "System error" },
+		{ 0, NULL }
+	};
+
+	int i;
+
+	for ( i = 0; values[i].msg != NULL; i++ ) {
+		if ( values[i].code == code ) {
+			return (char *) values[i].msg;
+		}
+	}
+	
+	return "Unknown error";
+}
+#endif
