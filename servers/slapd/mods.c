@@ -74,7 +74,7 @@ modify_add_values(
 		 * server (whether from LDAP or from the underlying
 		 * database).
 		 */
-		for ( i=0; mod->sm_values[i].bv_val != NULL; i++ ) {
+		for ( i=0; mod->sm_values[i].bv_val; i++ ) {
 			for ( j=0; a->a_vals[j].bv_val; j++ ) {
 				int match;
 				if( mod->sm_nvalues ) {
@@ -89,7 +89,8 @@ modify_add_values(
 						&a->a_vals[j], &mod->sm_values[i], text );
 				}
 
-				if( rc != LDAP_SUCCESS ) {
+				if( rc == LDAP_SUCCESS && match == 0 ) {
+					/* value already exists */
 					*text = textbuf;
 					snprintf( textbuf, textlen,
 						"modify/%s: %s: value #%d already exists",
