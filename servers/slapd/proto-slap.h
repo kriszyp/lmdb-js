@@ -330,6 +330,12 @@ LIBSLAPD_F (void) send_ldap_result LDAP_P((
 	struct berval **refs,
 	LDAPControl **ctrls ));
 
+LIBSLAPD_F (void) send_ldap_sasl LDAP_P((
+	Connection *conn, Operation *op,
+	ber_int_t err, const char *matched,
+	const char *text,
+	struct berval *cred ));
+
 LIBSLAPD_F (void) send_ldap_disconnect LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *text ));
@@ -337,8 +343,8 @@ LIBSLAPD_F (void) send_ldap_disconnect LDAP_P((
 LIBSLAPD_F (void) send_ldap_extended LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched,
-	const char *text, char *rspoid,
-	struct berval *rspdata ));
+	const char *text,
+	char *rspoid, struct berval *rspdata ));
 
 LIBSLAPD_F (void) send_search_result LDAP_P((
 	Connection *conn, Operation *op,

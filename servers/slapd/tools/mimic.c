@@ -40,6 +40,33 @@ send_ldap_disconnect(
 }
 
 void
+send_ldap_extended(
+    Connection	*conn,
+    Operation	*op,
+    ber_int_t	err,
+    const char	*matched,
+    const char	*text,
+    char	*rspoid,
+	struct berval *rspdata
+)
+{
+	assert(0);
+}
+
+void
+send_ldap_sasl(
+    Connection	*conn,
+    Operation	*op,
+    ber_int_t	err,
+    const char	*matched,
+    const char	*text,
+	struct berval *cred
+)
+{
+	assert(0);
+}
+
+void
 send_ldap_result(
 	Connection  *conn, 
 	Operation   *op,
