@@ -23,8 +23,6 @@
 
 LDAP_BEGIN_DECL
 
-extern BER_MEMORY_FN	ber_int_realloc;
-
 struct lber_options {
 	short lbo_valid;
 #define LBER_UNINITIALIZED		0x0
@@ -195,31 +193,17 @@ ber_log_sos_dump LDAP_P((
 
 /* memory.c */
 	/* simple macros to realloc for now */
-#define LBER_MALLOC(s)	\
-	(ber_int_realloc \
-		? (*ber_int_realloc)(NULL,(s)) \
-		: realloc(NULL,(s)))
+extern BerMemoryFunctions*		ber_int_memory_fns;
 
-#define LBER_CALLOC(n,s) \
-	(ber_int_realloc \
-		? ber_int_calloc((n),(s)) \
-		: calloc((n),(s)))
-
-#define LBER_REALLOC(p,s) \
-	(ber_int_realloc \
-		? (*ber_int_realloc)((p),(s)) \
-		: realloc((p),(s)))
-
-#define LBER_FREE(p) \
-	(ber_int_realloc \
-		? (*ber_int_realloc)((p),(size_t)0) \
-		: realloc((p),(size_t)0))
-
-LDAP_F( void * )
-ber_int_calloc LDAP_P((
-	size_t n,
-	size_t size ));
-
+#define LBER_INT_MALLOC(s)		ber_memalloc((s))
+#define LBER_INT_CALLOC(n,s)	ber_memcalloc((n),(s))
+#define LBER_INT_REALLOC(p,s)	ber_memrealloc((p),(s))
+#define LBER_INT_FREE(p)		ber_memfree((p))
+	
+#define LBER_MALLOC(s)		ber_memalloc((s))
+#define LBER_CALLOC(n,s)	ber_memcalloc((n),(s))
+#define LBER_REALLOC(p,s)	ber_memrealloc((p),(s))
+#define LBER_FREE(p)		ber_memfree((p))	
 
 /* sockbuf.c */
 

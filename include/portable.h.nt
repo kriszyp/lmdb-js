@@ -723,6 +723,6 @@ typedef char * caddr_t;
 #include "ldap_cdefs.h"
 #include "ldap_features.h"
 
-#include "ac/assert.h"
+#include <ac/assert.h>
 
 #endif /* _LDAP_PORTABLE_H */

@@ -539,7 +539,7 @@ write_ldif_value( char *type, char *value, unsigned long vallen )
     }
 
     fputs( ldif, stdout );
-    free( ldif );
+    ber_memfree( ldif );
 
     return( 0 );
 }

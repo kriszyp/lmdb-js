@@ -300,14 +300,14 @@ ldif_put_type_and_value(
 char *
 ldif_type_and_value( LDAP_CONST char *type, LDAP_CONST char *val, int vlen )
 /*
- * return malloc'd, zero-terminated LDIF line
+ * return BER malloc'd, zero-terminated LDIF line
  */
 {
     char	*buf, *p;
     int		tlen;
 
     tlen = strlen( type );
-    if (( buf = (char *) malloc( LDIF_SIZE_NEEDED( tlen, vlen ) + 1 ))
+    if (( buf = (char *) ber_memalloc( LDIF_SIZE_NEEDED( tlen, vlen ) + 1 ))
 		== NULL )
 	{
 		ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,

@@ -265,10 +265,17 @@ void ldap_int_initialize LDAP_P((void));
 
 /* memory.c */
 	/* simple macros to realloc for now */
+#define LDAP_INT_MALLOC(s)		(LBER_MALLOC((s)))
+#define LDAP_INT_CALLOC(n,s)	(LBER_CALLOC((n),(s)))
+#define LDAP_INT_REALLOC(p,s)	(LBER_REALLOC((p),(s)))
+#define LDAP_INT_FREE(p)		(LBER_FREE((p)))
+
+#ifndef LDAP_MALLOC
 #define LDAP_MALLOC(s)		(LBER_MALLOC((s)))
 #define LDAP_CALLOC(n,s)	(LBER_CALLOC((n),(s)))
 #define LDAP_REALLOC(p,s)	(LBER_REALLOC((p),(s)))
 #define LDAP_FREE(p)		(LBER_FREE((p)))
+#endif
 
 /*
  * in unit-int.c
@@ -396,11 +403,11 @@ BerElement *ldap_build_search_req LDAP_P((
 	int sizelimit ));
 
 /*
- * in strdup.c
+ * in string.c
  */
-char *ldap_pvt_strdup LDAP_P(( const char * ));
+char *ldap_int_strdup LDAP_P(( const char * ));
 #undef strdup
-#define strdup ldap_pvt_strdup
+#define strdup ldap_int_strdup
 
 /*
  * in unbind.c

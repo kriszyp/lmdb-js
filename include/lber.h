@@ -98,10 +98,21 @@ typedef int (*BERTranslateProc) LDAP_P((
 #define LBER_OPT_DEBUG_LEVEL	LBER_OPT_BER_DEBUG
 
 #define LBER_OPT_LOG_PRINT_FN	0x8001
-#define LBER_OPT_MEMORY_FN		0x8002
+#define LBER_OPT_MEMORY_FNS		0x8002
 
 typedef void (*BER_LOG_PRINT_FN) LDAP_P(( char *buf ));
-typedef void* (*BER_MEMORY_FN) LDAP_P(( void *p, size_t size ));
+
+typedef void* (*BER_MEMALLOC_FN)	LDAP_P(( size_t size ));
+typedef void* (*BER_MEMCALLOC_FN)	LDAP_P(( size_t n, size_t size ));
+typedef void* (*BER_MEMREALLOC_FN)	LDAP_P(( void *p, size_t size ));
+typedef void  (*BER_MEMFREE_FN)		LDAP_P(( void *p ));
+
+typedef struct lber_memory_fns {
+	BER_MEMALLOC_FN	bmf_malloc;
+	BER_MEMCALLOC_FN bmf_calloc;
+	BER_MEMREALLOC_FN bmf_realloc;
+	BER_MEMFREE_FN bmf_free;
+} BerMemoryFunctions;
 
 /* LBER Sockbuf options */ 
 #define LBER_TO_FILE           0x01	/* to a file referenced by sb_fd   */

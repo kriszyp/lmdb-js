@@ -5,6 +5,7 @@
 #include "portable.h"
 
 #include <stdlib.h>
+#include <ac/string.h>
 
 #include "lber-int.h"
 
@@ -68,10 +69,28 @@ ber_set_option(
 	Sockbuf *sb;
 
 	if( (ber_int_options.lbo_valid == LBER_UNINITIALIZED)
-		&& ( option == LBER_OPT_MEMORY_FN )
+		&& ( ber_int_memory_fns == NULL )
+		&& ( option == LBER_OPT_MEMORY_FNS )
 		&& ( invalue != NULL ))
 	{
-		ber_int_realloc = (BER_MEMORY_FN) invalue;
+		BerMemoryFunctions *f = (BerMemoryFunctions *) invalue;
+
+		/* make sure all functions are provided */
+		if(!( f->bmf_malloc && f->bmf_calloc
+			&& f->bmf_realloc && f->bmf_free ))
+		{
+			return LBER_OPT_ERROR;
+		}
+
+		ber_int_memory_fns = (BerMemoryFunctions *)
+			(*(f->bmf_malloc))(sizeof(BerMemoryFunctions));
+
+		if ( ber_int_memory_fns == NULL ) {
+			return LBER_OPT_ERROR;
+		}
+
+		memcpy(ber_int_memory_fns, f, sizeof(BerMemoryFunctions));
+
 		ber_int_options.lbo_valid = LBER_INITIALIZED;
 		return LBER_OPT_SUCCESS;
 	}
