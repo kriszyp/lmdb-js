@@ -21,7 +21,7 @@ sed -e "s/@BACKEND@/${BACKEND}/"	\
 	-e "s/^#${BACKEND}#//"			\
 	-e "s/^#${BACKENDTYPE}#//"			\
 	-e "s/^#${AC_ldap}#//"			\
-	-e "s/^#${AC_meta}#//"			\
+	-e "s/^#${AC_pcache}#//"			\
 	-e "s/^#${MON}#//"				\
 	-e "s/@CACHETTL@/${CACHETTL}/"   \
 	-e "s/@ENTRY_LIMIT@/${CACHE_ENTRY_LIMIT}/"   
