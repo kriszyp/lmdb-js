@@ -40,6 +40,7 @@
 
 static char *style_strings[] = {
 	"regex",
+	"expand",
 	"base",
 	"one",
 	"subtree",
@@ -427,6 +428,9 @@ parse_acl(
 				} else if ( strcasecmp( style, "regex" ) == 0 ) {
 					sty = ACL_STYLE_REGEX;
 
+				} else if ( strcasecmp( style, "expand" ) == 0 ) {
+					sty = ACL_STYLE_EXPAND;
+
 				} else if ( strcasecmp( style, "ip" ) == 0 ) {
 					sty = ACL_STYLE_IP;
 
@@ -448,8 +452,38 @@ parse_acl(
 				if ( style_modifier &&
 					strcasecmp( style_modifier, "expand" ) == 0 )
 				{
-					expand = 1;
+					switch ( sty ) {
+					case ACL_STYLE_REGEX:
+						fprintf( stderr, "%s: line %d: "
+							"\"regex\" style implies "
+							"\"expand\" modifier (ignored)\n",
+							fname, lineno );
+						break;
+
+					case ACL_STYLE_EXPAND:
+						fprintf( stderr, "%s: line %d: "
+							"\"expand\" style used "
+							"in conjunction with "
+							"\"expand\" modifier (ignored)\n",
+							fname, lineno );
+						break;
+
+					default:
+						expand = 1;
+						break;
+					}
 				}
+
+				if ( ( sty == ACL_STYLE_EXPAND || expand )
+						&& ( a->acl_dn_pat.bv_len && a->acl_dn_style != ACL_STYLE_REGEX) ) 
+				{
+					fprintf( stderr, "%s: line %d: "
+						"\"expand\" style or modifier used "
+						"in conjunction with "
+						"a non-regex <what> clause\n",
+						fname, lineno );
+				}
+
 
 				if ( strcasecmp( argv[i], "*" ) == 0 ) {
 					bv.bv_val = ch_strdup( "*" );
@@ -608,10 +642,26 @@ parse_acl(
 					char *name = NULL;
 					char *value = NULL;
 
-					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
+					switch ( sty ) {
+					case ACL_STYLE_REGEX:
+						/* legacy */
+						fprintf( stderr, "%s: line %d: "
+							"deprecated group style \"regex\"; "
+							"use \"expand\" instead\n",
+							fname, lineno, style );
+						sty = ACL_STYLE_EXPAND;
+						break;
+
+					case ACL_STYLE_EXPAND:
+					case ACL_STYLE_BASE:
+						/* legal */
+						break;
+
+					default:
+						/* unhandled */
 						fprintf( stderr, "%s: line %d: "
 							"inappropriate style \"%s\" in by clause\n",
-						    fname, lineno, style );
+							fname, lineno, style );
 						acl_usage();
 					}
 
@@ -640,7 +690,7 @@ parse_acl(
 					}
 
 					b->a_group_style = sty;
-					if (sty == ACL_STYLE_REGEX) {
+					if (sty == ACL_STYLE_EXPAND) {
 						acl_regex_normalized_dn( right, &bv );
 						if ( !ber_bvccmp( &bv, '*' ) ) {
 							regtest(fname, lineno, bv.bv_val);

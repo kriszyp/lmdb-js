@@ -1078,6 +1078,7 @@ typedef enum slap_control_e {
 
 typedef enum slap_style_e {
 	ACL_STYLE_REGEX = 0,
+	ACL_STYLE_EXPAND,
 	ACL_STYLE_BASE,
 	ACL_STYLE_ONE,
 	ACL_STYLE_SUBTREE,

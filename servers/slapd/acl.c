@@ -1193,7 +1193,7 @@ dn_match_cleanup:;
 			 * the values in the attribute group
 			 */
 			/* see if asker is listed in dnattr */
-			if ( b->a_group_style == ACL_STYLE_REGEX ) {
+			if ( b->a_group_style == ACL_STYLE_EXPAND ) {
 				char buf[ACL_BUF_SIZE];
 				bv.bv_len = sizeof(buf) - 1;
 				bv.bv_val = buf; 

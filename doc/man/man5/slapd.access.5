@@ -184,7 +184,7 @@ It can have the forms
 	dn[.<dnstyle>[,<modifier>]]=<DN>
 	dnattr=<attrname>
 	group[/<objectclass>[/<attrname>]]
-		[.<style>]=<group>
+		[.<groupstyle>]=<group>
 	peername[.<peernamestyle>]=<peername>
 	sockname[.<style>]=<sockname>
 	domain[.<domainstyle>[,<modifier>]]=<domain>
@@ -203,6 +203,7 @@ with
 .LP
 .nf
 	<dnstyle>={{exact|base}|regex|sub(tree)|one(level)|children}
+	<groupstyle>={exact|expand}
 	<style>={exact|regex}
 	<peernamestyle>={exact|regex|ip|path}
 	<domainstyle>={exact|regex|sub(tree)}
@@ -286,16 +287,12 @@ define the objectClass and the member attributeType of the group entry.
 The optional style qualifier
 .B <style>
 can be
-.BR regex ,
+.BR expand ,
 which means that
 .B <group>
 will be expanded as a replacement string (but not as a regular expression)
 according to regex (7), and
-.B base
-or
-.B exact
-(an alias of
-.BR base ),
+.BR exact ,
 which means that exact match will be used.
 .LP
 For static groups, the specified attributeType must have
@@ -307,7 +304,7 @@ be a subtype of the
 .B labeledURI
 attributeType. Only LDAP URIs of the form
 .B ldap:///<base>??<scope>?<filter>
-will be evaluated in a dynamic group.
+will be evaluated in a dynamic group, by searching the local server only.
 .LP
 The statements
 .BR peername=<peername> ,
