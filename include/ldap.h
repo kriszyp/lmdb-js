@@ -1135,18 +1135,6 @@ ldap_explode_rdn LDAP_P((
 	int notypes ));
 
 LDAP_F( char * )
-ldap_parent_dn LDAP_P((
-	LDAP_CONST char *dn ));
-
-LDAP_F( char * )
-ldap_relative_dn LDAP_P((
-	LDAP_CONST char *dn ));
-
-LDAP_F( char * )
-ldap_normalize_dn LDAP_P((
-	LDAP_CONST char *dn ));
-
-LDAP_F( char * )
 ldap_dn2dcedn LDAP_P(( LDAP_CONST char *dn ));	/* deprecated */
 
 LDAP_F( char * )

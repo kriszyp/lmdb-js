@@ -244,7 +244,7 @@ ldap_dn_parent(
 	return( LDAP_STRDUP( "" ) );
 }
 
-char * ldap_dn_rdn( 
+char * ldap_dn_relative( 
     const char	*dn )
 {
 	char	*s;
