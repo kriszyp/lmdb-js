@@ -292,7 +292,7 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_GEN	((ber_tag_t) 0x80U)
 
 #define LDAP_EXOP_X_WHO_AM_I	"1.3.6.1.4.1.4203.1.11.3"
-#define LDAP_EXOP_X_CANCEL		"1.3.6.1.4.1.4203.666.6.3"
+#define LDAP_EXOP_X_CANCEL		"1.3.6.1.1.8"
 
 /* LDAP Grouping of Related Operations *//* a work in progress */
 #ifdef LDAP_DEVEL
@@ -523,7 +523,21 @@ typedef struct ldapcontrol {
 #define LDAP_RESULTS_TOO_LARGE		0x46 /* CLDAP */
 #define LDAP_AFFECTS_MULTIPLE_DSAS	0x47 /* LDAPv3 */
 
-#define LDAP_OTHER				0x50
+#define LDAP_OTHER					0x50
+
+/* LCUP operation codes (113-117) - not implemented */
+#define LDAP_CUP_RESOURCES_EXHAUSTED	0x71
+#define LDAP_CUP_SECURITY_VIOLATION		0x72
+#define LDAP_CUP_INVALID_DATA			0x73
+#define LDAP_CUP_UNSUPPORTED_SCHEME		0x74
+#define LDAP_CUP_RELOAD_REQUIRED		0x75
+
+/* Cancel operation codes (118-121) */
+#define LDAP_CANCELLED				0x76
+#define LDAP_NO_SUCH_OPERATION		0x77
+#define LDAP_TOO_LATE				0x78
+#define LDAP_CANNOT_CANCEL			0x79
+
 
 /* Experimental result codes */
 #define LDAP_E_ERROR(n)	LDAP_RANGE((n),0x1000,0x3FFF) /* experimental */
@@ -537,12 +551,6 @@ typedef struct ldapcontrol {
 
 /* for the Assertion control */
 #define LDAP_ASSERTION_FAILED			0x410f
-
-/* for the Cancel operation */
-#define LDAP_CANCELLED					0x4110
-#define LDAP_NO_SUCH_OPERATION			0x4111
-#define LDAP_TOO_LATE					0x4112
-#define LDAP_CANNOT_CANCEL				0x4113
 
 /* API Error Codes
  *
