@@ -403,7 +403,11 @@ ber_bvecfree_x( struct berval **bv, void *ctx )
 
 	BER_MEM_VALID( bv );
 
-	for ( i = 0; bv[i] != NULL; i++ ) {
+	/* count elements */
+	for ( i = 0; bv[i] != NULL; i++ ) ;
+
+	/* free in reverse order */
+	for ( i--; i >= 0; i-- ) {
 		ber_bvfree_x( bv[i], ctx );
 	}
 
@@ -708,7 +712,11 @@ ber_bvarray_free_x( BerVarray a, void *ctx )
 	if (a) {
 		BER_MEM_VALID( a );
 
-		for (i=0; a[i].bv_val; i++) {
+		/* count elements */
+		for (i=0; a[i].bv_val; i++) ;
+		
+		/* free in reverse order */
+		for (i--; i>=0; i--) {
 			ber_memfree_x(a[i].bv_val, ctx);
 		}
 
