@@ -8,12 +8,12 @@
 
 #include <string>
 #include <list>
-typedef std::list<std::string> ListType;
-
 /**
  * Container class to store multiple string-objects
  */
 class StringList{
+    typedef std::list<std::string> ListType;
+
     private:
         ListType m_data;
 

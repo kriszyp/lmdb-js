@@ -28,7 +28,7 @@ LDAPMod** LDAPModList::toLDAPModArray(){
     LDAPMod **ret = (LDAPMod**) malloc(
 		    (m_modList.size()+1) * sizeof(LDAPMod*));
     ret[m_modList.size()]=0;
-    ModList::const_iterator i;
+    LDAPModList::ListType::const_iterator i;
     int j=0;
     for (i=m_modList.begin(); i != m_modList.end(); i++ , j++){
 	    ret[j]=i->toLDAPMod();

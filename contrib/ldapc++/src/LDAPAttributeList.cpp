@@ -90,7 +90,7 @@ const LDAPAttribute* LDAPAttributeList::getAttributeByName(
     DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::getAttributeByName()" << endl);
     DEBUG(LDAP_DEBUG_TRACE | LDAP_DEBUG_PARAMETER,
             "   name:" << name << endl);
-    AttrList::const_iterator i;
+    LDAPAttributeList::const_iterator i;
     for( i = m_attrs.begin(); i != m_attrs.end(); i++){
 	const std::string& tmpType = i->getName();
 	if(name.size() == tmpType.size()){
@@ -112,7 +112,7 @@ void LDAPAttributeList::addAttribute(const LDAPAttribute& attr){
     const std::string::size_type attrLen = attrType.size();
     std::string::size_type tmpAttrLen = 0;
     bool done=false;
-    AttrList::iterator i;
+    LDAPAttributeList::iterator i;
     for( i=m_attrs.begin(); i != m_attrs.end(); i++ ){
 	const std::string tmpAttrType = i->getName();
 	tmpAttrLen = tmpAttrType.size();
@@ -141,7 +141,7 @@ void LDAPAttributeList::addAttribute(const LDAPAttribute& attr){
 LDAPMod** LDAPAttributeList::toLDAPModArray() const{
     DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::toLDAPModArray()" << endl);
     LDAPMod **ret = (LDAPMod**) malloc((m_attrs.size()+1) * sizeof(LDAPMod*));
-    AttrList::const_iterator i;
+    LDAPAttributeList::const_iterator i;
     int j=0;
     for (i=m_attrs.begin(); i!= m_attrs.end(); i++, j++){
         ret[j]=i->toLDAPMod();
@@ -151,7 +151,7 @@ LDAPMod** LDAPAttributeList::toLDAPModArray() const{
 }
 
 ostream& operator << (ostream& s, const LDAPAttributeList& al){
-    AttrList::const_iterator i;
+    LDAPAttributeList::const_iterator i;
     for(i=al.m_attrs.begin(); i!=al.m_attrs.end(); i++){
         s << *i << "; ";
     }

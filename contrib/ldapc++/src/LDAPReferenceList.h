@@ -10,16 +10,16 @@
 
 class LDAPSearchReference;
 
-typedef std::list<LDAPSearchReference> RefList;
-
 /**
  * Container class for storing a list of Search References
  *
  * Used internally only by LDAPSearchResults
  */
 class LDAPReferenceList{
+    typedef std::list<LDAPSearchReference> ListType;
+
     public:
-	typedef RefList::const_iterator const_iterator;
+	typedef ListType::const_iterator const_iterator;
 
         /**
          * Constructs an empty list.
@@ -66,7 +66,7 @@ class LDAPReferenceList{
         void addReference(const LDAPSearchReference& e);
 
     private:
-        RefList m_refs;
+        ListType m_refs;
 };
 #endif // LDAP_REFERENCE_LIST_H
 

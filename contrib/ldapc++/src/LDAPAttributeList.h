@@ -15,18 +15,18 @@ class LDAPAttribute;
 class LDAPAsynConnection;
 class LDAPMsg;
 
-typedef std::list<LDAPAttribute> AttrList;
-
 /**
  * This container class is used to store multiple LDAPAttribute-objects.
  */
 class LDAPAttributeList{
+    typedef std::list<LDAPAttribute> ListType;
+
     private :
-        AttrList m_attrs;
+        ListType m_attrs;
 
     public :
-        typedef AttrList::const_iterator const_iterator;
-	typedef AttrList::iterator iterator;
+        typedef ListType::const_iterator const_iterator;
+	typedef ListType::iterator iterator;
 
 
         /**

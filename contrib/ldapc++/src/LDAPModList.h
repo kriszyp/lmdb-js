@@ -11,18 +11,17 @@
 #include <list>
 #include <LDAPModification.h>
 
-typedef std::list<LDAPModification> ModList;
-
 /**
  * This container class is used to store multiple LDAPModification-objects.
  */
 class LDAPModList{
+        typedef std::list<LDAPModification> ListType;
 
 	public : 
         /**
          * Constructs an empty list.
          */   
-		LDAPModList();
+        LDAPModList();
 		
         /**
          * Copy-constructor
@@ -33,7 +32,7 @@ class LDAPModList{
          * Adds one element to the end of the list.
          * @param mod The LDAPModification to add to the std::list.
          */
-		void addModification(const LDAPModification &mod);
+        void addModification(const LDAPModification &mod);
 
         /**
          * Translates the list to a 0-terminated array of
@@ -42,7 +41,7 @@ class LDAPModList{
         LDAPMod** toLDAPModArray();
 
 	private : 
-		ModList m_modList;
+        ListType m_modList;
 };
 #endif //LDAP_MOD_LIST_H
 
