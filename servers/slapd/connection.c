@@ -115,6 +115,7 @@ connection_activity(
 #ifndef HAVE_PTHREAD_DETACH
 	pthread_attr_t	attr;
 #endif
+	int status;
 	struct co_arg	*arg;
 	unsigned long	tag, len;
 	long		msgid;
@@ -198,9 +199,9 @@ connection_activity(
 	}
 
 #ifdef HAVE_PTHREAD_DETACH
-	if ( pthread_create( &arg->co_op->o_tid, NULL,
+	if ( status = pthread_create( &arg->co_op->o_tid, NULL,
 	    connection_operation, (void *) arg ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "pthread_create failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "pthread_create failed (%d)\n", status, 0, 0 );
 	} else {
 		pthread_mutex_lock( &active_threads_mutex );
 		active_threads++;
@@ -221,9 +222,9 @@ connection_activity(
 	/* POSIX_THREADS or compatible
 	 * This is a draft 10 or standard pthreads implementation
 	 */
-	if ( pthread_create( &arg->co_op->o_tid, &attr,
+	if ( status = pthread_create( &arg->co_op->o_tid, &attr,
 	    connection_operation, (void *) arg ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "pthread_create failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "pthread_create failed (%d)\n", status, 0, 0 );
 	} else {
 		pthread_mutex_lock( &active_threads_mutex );
 		active_threads++;
@@ -233,9 +234,9 @@ connection_activity(
 	/*
 	 * This is a draft 4 or earlier pthreads implementation
 	 */
-	if ( pthread_create( &arg->co_op->o_tid, attr,
+	if ( status = pthread_create( &arg->co_op->o_tid, attr,
 	    connection_operation, (void *) arg ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "pthread_create failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "pthread_create failed (%d)\n", status, 0, 0 );
 	} else {
 		pthread_mutex_lock( &active_threads_mutex );
 		active_threads++;
