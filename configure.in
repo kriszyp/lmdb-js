@@ -430,6 +430,9 @@ AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
 AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
 
+dnl
+dnl Check for module support
+dnl
 ol_link_modules=no
 if test $ol_enable_modules != no ; then
 	AC_PATH_PROG(GLIBCONFIG, glib-config)

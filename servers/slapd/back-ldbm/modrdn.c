@@ -175,13 +175,11 @@ ldbm_back_modrdn(
 		       "ldbm_back_modrdn: no parent, locked root\n",
 		       0, 0, 0 );
 
-	}/* if ( (p_ndn = dn_parent( be, e->e_ndn )) != NULL ) else */
+	}
 
 	new_parent_dn = p_dn;	/* New Parent unless newSuperior given */
 
 	if ( (np_dn = newSuperior) != NULL) {
-
-
 		Debug( LDAP_DEBUG_TRACE, 
 		       "ldbm_back_modrdn: new parent requested...\n",
 		       0, 0, 0 );
@@ -189,9 +187,7 @@ ldbm_back_modrdn(
 		np_ndn = dn_normalize_case( ch_strdup( np_dn ) );
 
 		/* newSuperior == oldParent?, if so ==> ERROR */
-
 		/* newSuperior == entry being moved?, if so ==> ERROR */
-
 		/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
 		if( (np = dn2entry_w( be, np_ndn, &matched )) == NULL) {
@@ -416,13 +412,9 @@ ldbm_back_modrdn(
 			Debug( LDAP_DEBUG_TRACE,
 			       "ldbm_back_modrdn: removing old_rdn_val=%s\n",
 			       old_rdn_val, 0, 0 );
-		
-		}/* if (deleteoldrdn) */
-
+		}
 	
 	} else {
-	    
-
 		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DNS DN\n",
 		       0, 0, 0 );
 		/* XXXV3: not sure of what to do here */
@@ -466,6 +458,7 @@ ldbm_back_modrdn(
 return_results:
 	if( new_dn != NULL ) free( new_dn );
 	if( new_ndn != NULL ) free( new_ndn );
+
 return_results_after:
 	/* NOTE:
 	 * new_dn and new_ndn are not deallocated because they are used by
@@ -487,6 +480,11 @@ return_results_after:
 	/* LDAP v3 Support */
 	if ( np_dn != NULL ) free( np_dn );
 	if ( np_ndn != NULL ) free( np_ndn );
+
+	if( np != NULL ) {
+		/* free new parent and writer lock */
+		cache_return_entry_w( &li->li_cache, np );
+	}
 
 	if( p != NULL ) {
 		/* free parent and writer lock */
