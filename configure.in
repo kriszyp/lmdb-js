@@ -1547,7 +1547,8 @@ if test $am_cv_sys_posix_termios = yes ; then
 fi
 
 AC_CHECK_HEADERS(	\
-	arpa/nameser.h	\
+	arpa/inet.h		\
+	arpa/nameser.h		\
 	crypt.h			\
 	errno.h			\
 	fcntl.h			\
