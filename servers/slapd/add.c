@@ -45,10 +45,6 @@ do_add( Connection *conn, Operation *op )
 	 *	}
 	 */
 
-	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
-	/* initialize reader/writer lock */
-	entry_rdwr_init(e);
-
 	/* get the name */
 	if ( ber_scanf( ber, "{a", &dn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
@@ -56,6 +52,11 @@ do_add( Connection *conn, Operation *op )
 		    "decoding error" );
 		return;
 	}
+
+	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	/* initialize reader/writer lock */
+	entry_rdwr_init(e);
+
 	e->e_dn = dn;
 	dn = dn_normalize( ch_strdup( dn ) );
 	Debug( LDAP_DEBUG_ARGS, "    do_add: dn (%s)\n", dn, 0, 0 );
