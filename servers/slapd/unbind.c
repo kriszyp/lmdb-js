@@ -27,18 +27,14 @@
 #include "slap.h"
 
 int
-do_unbind(
-    Connection	*conn,
-    Operation	*op
-)
+do_unbind( Operation *op, SlapReply *rs )
 {
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
-		"do_unbind: conn %d\n", conn ? conn->c_connid : -1, 0, 0 );
+		"do_unbind: conn %d\n", op->o_connid : -1, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_unbind\n", 0, 0, 0 );
 #endif
-
 
 	/*
 	 * Parse the unbind request.  It looks like this:
@@ -50,7 +46,7 @@ do_unbind(
 	    op->o_opid, 0, 0, 0 );
 
 	/* pass the unbind to all backends */
-	backend_unbind( conn, op );
+	backend_unbind( op, rs );
 
 	return 0;
 }

@@ -31,16 +31,11 @@
 
 int
 do_delete(
-    Connection	*conn,
-    Operation	*op
+    Operation	*op,
+    SlapReply	*rs
 )
 {
 	struct berval dn = { 0, NULL };
-	struct berval pdn = { 0, NULL };
-	struct berval ndn = { 0, NULL };
-	const char *text;
-	Backend	*be;
-	int rc;
 	int manageDSAit;
 
 #ifdef LDAP_SLAPI
@@ -49,7 +44,7 @@ do_delete(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
-		"do_delete: conn %d\n", conn->c_connid, 0, 0 );
+		"do_delete: conn %d\n", op->o_connid, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_delete\n", 0, 0, 0 );
 #endif
@@ -63,68 +58,66 @@ do_delete(
 	if ( ber_scanf( op->o_ber, "m", &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
-			"do_delete: conn: %d  ber_scanf failed\n", conn->c_connid, 0, 0 );
+			"do_delete: conn: %d  ber_scanf failed\n", op->o_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 #endif
-		send_ldap_disconnect( conn, op,
-			LDAP_PROTOCOL_ERROR, "decoding error" );
+		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
-	if( ( rc = get_ctrls( conn, op, 1 ) ) != LDAP_SUCCESS ) {
+	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
-			"do_delete: conn %d  get_ctrls failed\n", conn->c_connid, 0, 0 );
+			"do_delete: conn %d  get_ctrls failed\n", op->o_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_delete: get_ctrls failed\n", 0, 0, 0 );
 #endif
 		goto cleanup;
 	} 
 
-	rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn );
-	if( rc != LDAP_SUCCESS ) {
+	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
+	if( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, 
 			"do_delete: conn %d  invalid dn (%s)\n",
-			conn->c_connid, dn.bv_val, 0 );
+			op->o_connid, dn.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"do_delete: invalid dn (%s)\n", dn.bv_val, 0, 0 );
 #endif
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto cleanup;
 	}
 
-	if( ndn.bv_len == 0 ) {
+	if( op->o_req_ndn.bv_len == 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, 
 			"do_delete: conn %d: Attempt to delete root DSE.\n", 
-			conn->c_connid, 0, 0 );
+			op->o_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_delete: root dse!\n", 0, 0, 0 );
 #endif
 		/* protocolError would likely be a more appropriate error */
-		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "cannot delete the root DSE", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"cannot delete the root DSE" );
 		goto cleanup;
 
-	} else if ( bvmatch( &ndn, &global_schemandn ) ) {
+	} else if ( bvmatch( &op->o_req_ndn, &global_schemandn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_delete: conn %d: "
-			"Attempt to delete subschema subentry.\n", conn->c_connid, 0, 0 );
+			"Attempt to delete subschema subentry.\n", op->o_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_delete: subschema subentry!\n", 0, 0, 0 );
 #endif
 		/* protocolError would likely be a more appropriate error */
-		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "cannot delete the root DSE", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"cannot delete the root DSE" );
 		goto cleanup;
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu DEL dn=\"%s\"\n",
-		op->o_connid, op->o_opid, pdn.bv_val, 0, 0 );
+		op->o_connid, op->o_opid, op->o_req_dn.bv_val, 0, 0 );
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -133,40 +126,39 @@ do_delete(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( &ndn, manageDSAit, 0 )) == NULL ) {
-		BerVarray ref = referral_rewrite( default_referral,
-			NULL, &pdn, LDAP_SCOPE_DEFAULT );
+	if ( (op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 )) == NULL ) {
+		rs->sr_ref = referral_rewrite( default_referral,
+			NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 
-		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
-			NULL, NULL, ref ? ref : default_referral, NULL );
+		if (!rs->sr_ref) rs->sr_ref = default_referral;
+		rs->sr_err = LDAP_REFERRAL;
 
-		ber_bvarray_free( ref );
+		send_ldap_result( op, rs );
+
+		if (rs->sr_ref!= default_referral) ber_bvarray_free( rs->sr_ref );
 		goto cleanup;
 	}
 
 	/* check restrictions */
-	rc = backend_check_restrictions( be, conn, op, NULL, &text ) ;
-	if( rc != LDAP_SUCCESS ) {
-		send_ldap_result( conn, op, rc,
-			NULL, text, NULL, NULL );
+	if( backend_check_restrictions( op, rs, NULL ) != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
 		goto cleanup;
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, &pdn, &ndn );
-	if ( rc != LDAP_SUCCESS ) {
+	if( backend_check_referrals( op, rs ) != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
 
 #if defined( LDAP_SLAPI )
-	slapi_x_backend_set_pb( pb, be );
-	slapi_x_connection_set_pb( pb, conn );
+	slapi_x_backend_set_pb( pb, op->o_bd );
+	slapi_x_connection_set_pb( pb, op->o_conn );
 	slapi_x_operation_set_pb( pb, op );
 	slapi_pblock_set( pb, SLAPI_DELETE_TARGET, (void *)dn.bv_val );
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 
-	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_DELETE_FN, pb );
-	if ( rc != 0 ) {
+	rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_DELETE_FN, pb );
+	if ( rs->sr_err != 0 ) {
 		/*
 		 * A preoperation plugin failure will abort the
 		 * entire operation.
@@ -178,8 +170,8 @@ do_delete(
 		Debug (LDAP_DEBUG_TRACE, "do_delete: delete preoperation plugin failed.\n",
 				0, 0, 0);
 #endif
-		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0 )
-			rc = LDAP_OTHER;
+		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 )
+			rs->sr_err = LDAP_OTHER;
 		goto cleanup;
 	}
 #endif /* defined( LDAP_SLAPI ) */
@@ -190,42 +182,43 @@ do_delete(
 	 * 2) this backend is master for what it holds;
 	 * 3) it's a replica and the dn supplied is the update_ndn.
 	 */
-	if ( be->be_delete ) {
+	if ( op->o_bd->be_delete ) {
 		/* do the update here */
-		int repl_user = be_isupdate( be, &op->o_ndn );
+		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
 #ifndef SLAPD_MULTIMASTER
-		if ( !be->be_update_ndn.bv_len || repl_user )
+		if ( !op->o_bd->be_update_ndn.bv_len || repl_user )
 #endif
 		{
-			if ( (*be->be_delete)( be, conn, op, &pdn, &ndn ) == 0 ) {
+			if ( (op->o_bd->be_delete)( op, rs ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
-				if ( !be->be_update_ndn.bv_len || !repl_user )
+				if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
 #endif
 				{
-					replog( be, op, &pdn, &ndn, NULL );
+					replog( op );
 				}
 			}
 #ifndef SLAPD_MULTIMASTER
 		} else {
-			BerVarray defref = be->be_update_refs
-				? be->be_update_refs : default_referral;
-			BerVarray ref = referral_rewrite( default_referral,
-				NULL, &pdn, LDAP_SCOPE_DEFAULT );
+			BerVarray defref = op->o_bd->be_update_refs
+				? op->o_bd->be_update_refs : default_referral;
+			rs->sr_ref = referral_rewrite( default_referral,
+				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 
-			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
-				ref ? ref : defref, NULL );
+			if (!rs->sr_ref) rs->sr_ref = defref;
+			rs->sr_err = LDAP_REFERRAL;
+			send_ldap_result( op, rs );
 
-			ber_bvarray_free( ref );
+			if (rs->sr_ref != defref) ber_bvarray_free( rs->sr_ref );
 #endif
 		}
 
 	} else {
-		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "operation not supported within namingContext", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"operation not supported within namingContext" );
 	}
 
 #if defined( LDAP_SLAPI )
-	if ( doPluginFNs( be, SLAPI_PLUGIN_POST_DELETE_FN, pb ) != 0) {
+	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_DELETE_FN, pb ) != 0) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_delete: delete postoperation plugins "
 				"failed\n", 0, 0, 0 );
@@ -237,7 +230,7 @@ do_delete(
 #endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
-	free( pdn.bv_val );
-	free( ndn.bv_val );
-	return rc;
+	free( op->o_req_dn.bv_val );
+	free( op->o_req_ndn.bv_val );
+	return rs->sr_err;
 }

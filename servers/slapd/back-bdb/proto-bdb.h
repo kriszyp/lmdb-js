@@ -241,13 +241,12 @@ bdb_index_values LDAP_P((
 	ID id,
 	int op ));
 
-int bdb_index_entry LDAP_P(( Backend *be, DB_TXN *t,
-	int r, Entry *e, Attribute *ap ));
+int bdb_index_entry LDAP_P(( Backend *be, DB_TXN *t, int r, Entry *e ));
 
-#define bdb_index_entry_add(be,t,e,ap) \
-	bdb_index_entry((be),(t),SLAP_INDEX_ADD_OP,(e),(ap))
-#define bdb_index_entry_del(be,t,e,ap) \
-	bdb_index_entry((be),(t),SLAP_INDEX_DELETE_OP,(e),(ap))
+#define bdb_index_entry_add(be,t,e) \
+	bdb_index_entry((be),(t),SLAP_INDEX_ADD_OP,(e))
+#define bdb_index_entry_del(be,t,e) \
+	bdb_index_entry((be),(t),SLAP_INDEX_DELETE_OP,(e))
 
 /*
  * init.c
@@ -284,8 +283,6 @@ int bdb_last_id( BackendDB *be, DB_TXN *tid );
  * modify.c
  */
 int bdb_modify_internal(
-	BackendDB *be,
-	Connection *conn,
 	Operation *op,
 	DB_TXN *tid,
 	Modifications *modlist,
@@ -293,17 +290,6 @@ int bdb_modify_internal(
 	const char **text,
 	char *textbuf,
 	size_t textlen );
-
-/*
- * operational.c
- */
-int
-bdb_hasSubordinates(
-	BackendDB	*be,
-	Connection	*conn, 
-	Operation	*op,
-	Entry		*e,
-	int		*hasSubordinates );
 
 /*
  * passwd.c
@@ -362,46 +348,19 @@ void bdb_cache_release_all( Cache *cache );
  * lcup.c
  */
 
-int bdb_abandon(
-	BackendDB       *be,
-	Connection      *conn,
-	Operation		*op,
-	ber_int_t       id
-);
+BI_op_abandon bdb_abandon;
 
-int bdb_cancel(
-	BackendDB       *be,
-	Connection      *conn,
-	Operation		*op,
-	ber_int_t       id
-);
+BI_op_cancel bdb_cancel;
 
 #if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
-int bdb_add_psearch_spec(
-	BackendDB       *be,
-	Connection      *conn,
+int bdb_do_search(
 	Operation       *op,
-	struct berval   *base,
-	struct berval   *nbase,
-	int             scope,
-	int             deref,
-	int             slimit,
-	int             tlimit,
-	Filter          *filter,
-	struct berval   *fstr,
-	AttributeName   *attrs,
-	int             attrsonly,
-	int		protocol
-);
-
-int bdb_psearch(
-	BackendDB       *be,
-	Connection      *conn,
-	Operation       *op,
+	SlapReply	*rs,
 	Operation       *ps_op,
 	Entry           *entry,
 	int             psearch_type
 );
+#define	bdb_psearch(op, rs, sop, e, ps_type)	bdb_do_search(op, rs, sop, e, ps_type)
 #endif
 
 /*
@@ -411,8 +370,8 @@ int bdb_psearch(
 #ifdef LDAP_CLIENT_UPDATE
 int
 bdb_build_lcup_update_ctrl(
-	Connection      *conn,
 	Operation       *op,
+	SlapReply	*rs,
 	Entry           *e,
 	int             entry_count,
 	LDAPControl     **ctrls,
@@ -422,8 +381,8 @@ bdb_build_lcup_update_ctrl(
 
 int
 bdb_build_lcup_done_ctrl(
-	Connection      *conn,
 	Operation       *op,
+	SlapReply	*rs,
 	LDAPControl     **ctrls,
 	int             num_ctrls,
 	struct berval   *latest_entrycsn_bv     );
@@ -432,8 +391,8 @@ bdb_build_lcup_done_ctrl(
 #ifdef LDAP_SYNC
 int
 bdb_build_sync_state_ctrl(
-	Connection      *conn,
 	Operation       *op,
+	SlapReply	*rs,
 	Entry           *e,
 	int             entry_sync_state,
 	LDAPControl     **ctrls,
@@ -443,8 +402,8 @@ bdb_build_sync_state_ctrl(
 
 int
 bdb_build_sync_done_ctrl(
-	Connection      *conn,
 	Operation       *op,
+	SlapReply	*rs,
 	LDAPControl     **ctrls,
 	int             num_ctrls,
 	int             send_cookie,
@@ -452,16 +411,10 @@ bdb_build_sync_done_ctrl(
 
 int
 bdb_send_ldap_intermediate(
-	Connection  *conn,
 	Operation   *op,
-	ber_int_t   err,
-	const char  *matched,
-	const char  *text,
-	BerVarray   refs,
-	const char  *rspoid,
+	SlapReply	*rs,
 	int         state,
-	struct berval *cookie,
-	LDAPControl **ctrls     );
+	struct berval *cookie );
 #endif
 
 #ifdef BDB_REUSE_LOCKERS

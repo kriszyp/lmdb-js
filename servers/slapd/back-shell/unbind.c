@@ -17,12 +17,11 @@
 
 int
 shell_back_unbind(
-    Backend		*be,
-    Connection		*conn,
-    Operation		*op
+    Operation		*op,
+    SlapReply		*rs
 )
 {
-	struct shellinfo	*si = (struct shellinfo *) be->be_private;
+	struct shellinfo	*si = (struct shellinfo *) op->o_bd->be_private;
 	FILE			*rfp, *wfp;
 
 	if ( si->si_unbind == NULL ) {
@@ -37,8 +36,8 @@ shell_back_unbind(
 	/* write out the request to the unbind process */
 	fprintf( wfp, "UNBIND\n" );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
-	print_suffixes( wfp, be );
-	fprintf( wfp, "dn: %s\n", (conn->c_dn.bv_len ? conn->c_dn.bv_val : "") );
+	print_suffixes( wfp, op->o_bd );
+	fprintf( wfp, "dn: %s\n", (op->o_conn->c_dn.bv_len ? op->o_conn->c_dn.bv_val : "") );
 	fclose( wfp );
 
 	/* no response to unbind */

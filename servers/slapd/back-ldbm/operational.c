@@ -21,13 +21,11 @@
  */
 int
 ldbm_back_hasSubordinates(
-	BackendDB	*be,
-	Connection	*conn, 
 	Operation	*op,
 	Entry		*e,
 	int		*hasSubordinates )
 {
-	if ( has_children( be, e ) ) {
+	if ( has_children( op->o_bd, e ) ) {
 		*hasSubordinates = LDAP_COMPARE_TRUE;
 
 	} else {
@@ -42,22 +40,19 @@ ldbm_back_hasSubordinates(
  */
 int
 ldbm_back_operational(
-	BackendDB	*be,
-	Connection	*conn, 
 	Operation	*op,
-	Entry		*e,
-	AttributeName		*attrs,
+	SlapReply	*rs,
 	int		opattrs,
 	Attribute	**a )
 {
 	Attribute	**aa = a;
 
-	assert( e );
+	assert( rs->sr_entry );
 
-	if ( opattrs || ad_inlist( slap_schema.si_ad_hasSubordinates, attrs ) ) {
+	if ( opattrs || ad_inlist( slap_schema.si_ad_hasSubordinates, rs->sr_attrs ) ) {
 		int	hs;
 
-		hs = has_children( be, e );
+		hs = has_children( op->o_bd, rs->sr_entry );
 		*aa = slap_operational_hasSubordinate( hs );
 		if ( *aa != NULL ) {
 			aa = &(*aa)->a_next;

@@ -18,40 +18,32 @@
 
 int
 dnssrv_back_bind(
-    Backend		*be,
-    Connection		*conn,
     Operation		*op,
-    struct berval	*dn,
-    struct berval	*ndn,
-    int			method,
-    struct berval	*cred,
-    struct berval	*edn )
+    SlapReply		*rs )
 {
 	Debug( LDAP_DEBUG_TRACE, "DNSSRV: bind %s (%d)\n",
-		dn->bv_val == NULL ? "" : dn->bv_val, 
-		method, NULL );
+		op->o_req_dn.bv_val == NULL ? "" : op->o_req_dn.bv_val, 
+		op->oq_bind.rb_method, NULL );
 		
-	if( method == LDAP_AUTH_SIMPLE && cred != NULL && cred->bv_len ) {
+	if( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE && op->oq_bind.rb_cred.bv_val != NULL && op->oq_bind.rb_cred.bv_len ) {
 		Statslog( LDAP_DEBUG_STATS,
 		   	"conn=%lu op=%lu DNSSRV BIND dn=\"%s\" provided passwd\n",
 	   		 op->o_connid, op->o_opid,
-			dn->bv_val == NULL ? "" : dn->bv_val , 0, 0 );
+			op->o_req_dn.bv_val == NULL ? "" : op->o_req_dn.bv_val , 0, 0 );
 
 		Debug( LDAP_DEBUG_TRACE,
 			"DNSSRV: BIND dn=\"%s\" provided cleartext password\n",
-			dn->bv_val == NULL ? "" : dn->bv_val, 0, 0 );
+			op->o_req_dn.bv_val == NULL ? "" : op->o_req_dn.bv_val, 0, 0 );
 
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-			NULL, "you shouldn\'t send strangers your password",
-			NULL, NULL );
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"you shouldn\'t send strangers your password" );
 
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "DNSSRV: BIND dn=\"%s\"\n",
-			dn->bv_val == NULL ? "" : dn->bv_val, 0, 0 );
+			op->o_req_dn.bv_val == NULL ? "" : op->o_req_dn.bv_val, 0, 0 );
 
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-			NULL, "anonymous bind expected",
-			NULL, NULL );
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"anonymous bind expected" );
 	}
 
 	return 1;

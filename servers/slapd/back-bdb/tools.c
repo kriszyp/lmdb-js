@@ -274,7 +274,7 @@ ID bdb_tool_entry_put(
 		goto done;
 	}
 
-	rc = bdb_index_entry_add( be, tid, e, e->e_attrs );
+	rc = bdb_index_entry_add( be, tid, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
 				"index_entry_add failed: %s (%d)",
@@ -408,7 +408,7 @@ int bdb_tool_entry_reindex(
 		goto done;
 	}
 
-	rc = bdb_index_entry_add( be, tid, e, e->e_attrs );
+	rc = bdb_index_entry_add( be, tid, e );
 
 done:
 	if( rc == 0 ) {

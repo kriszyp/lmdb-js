@@ -21,8 +21,6 @@
 
 static int
 test_mra_vrFilter(
-	Backend 	*be,
-	Connection 	*conn,
 	Operation	*op,
 	Attribute	*a,
 	MatchingRuleAssertion *mra,
@@ -31,8 +29,6 @@ test_mra_vrFilter(
 
 static int
 test_substrings_vrFilter(
-	Backend		*be,
-	Connection	*conn,
 	Operation	*op,
 	Attribute	*a,
 	ValuesReturnFilter *f,
@@ -41,8 +37,6 @@ test_substrings_vrFilter(
 
 static int
 test_presence_vrFilter(
-	Backend		*be,
-	Connection	*conn,
 	Operation	*op,
 	Attribute	*a,
 	AttributeDescription *desc,
@@ -51,8 +45,6 @@ test_presence_vrFilter(
 
 static int
 test_ava_vrFilter(
-	Backend		*be,
-	Connection	*conn,
 	Operation	*op,
 	Attribute	*a,
 	AttributeAssertion *ava,
@@ -63,8 +55,6 @@ test_ava_vrFilter(
 
 int
 filter_matched_values( 
-	Backend		*be,
-	Connection	*conn,
 	Operation	*op,
 	Attribute	*a,
 	char		***e_flags
@@ -106,7 +96,7 @@ filter_matched_values(
 #else
 			Debug( LDAP_DEBUG_FILTER, "	EQUALITY\n", 0, 0, 0 );
 #endif
-			rc = test_ava_vrFilter( be, conn, op, a, vrf->vrf_ava,
+			rc = test_ava_vrFilter( op, a, vrf->vrf_ava,
 				LDAP_FILTER_EQUALITY, e_flags );
 			if( rc == -1 ) {
 				return rc;
@@ -120,7 +110,7 @@ filter_matched_values(
 			Debug( LDAP_DEBUG_FILTER, "	SUBSTRINGS\n", 0, 0, 0 );
 #endif
 
-			rc = test_substrings_vrFilter( be, conn, op, a,
+			rc = test_substrings_vrFilter( op, a,
 				vrf, e_flags );
 			if( rc == -1 ) {
 				return rc;
@@ -133,7 +123,7 @@ filter_matched_values(
 #else
 			Debug( LDAP_DEBUG_FILTER, "	PRESENT\n", 0, 0, 0 );
 #endif
-			rc = test_presence_vrFilter( be, conn, op, a,
+			rc = test_presence_vrFilter( op, a,
 				vrf->vrf_desc, e_flags );
 			if( rc == -1 ) {
 				return rc;
@@ -141,7 +131,7 @@ filter_matched_values(
 			break;
 
 		case LDAP_FILTER_GE:
-			rc = test_ava_vrFilter( be, conn, op, a, vrf->vrf_ava,
+			rc = test_ava_vrFilter( op, a, vrf->vrf_ava,
 				LDAP_FILTER_GE, e_flags );
 			if( rc == -1 ) {
 				return rc;
@@ -149,7 +139,7 @@ filter_matched_values(
 			break;
 
 		case LDAP_FILTER_LE:
-			rc = test_ava_vrFilter( be, conn, op, a, vrf->vrf_ava,
+			rc = test_ava_vrFilter( op, a, vrf->vrf_ava,
 				LDAP_FILTER_LE, e_flags );
 			if( rc == -1 ) {
 				return rc;
@@ -162,7 +152,7 @@ filter_matched_values(
 #else
 			Debug( LDAP_DEBUG_FILTER, "	EXT\n", 0, 0, 0 );
 #endif
-			rc = test_mra_vrFilter( be, conn, op, a,
+			rc = test_mra_vrFilter( op, a,
 				vrf->vrf_mra, e_flags );
 			if( rc == -1 ) {
 				return rc;
@@ -191,8 +181,6 @@ filter_matched_values(
 
 static int
 test_ava_vrFilter(
-	Backend		*be,
-	Connection	*conn,
 	Operation	*op,
 	Attribute	*a,
 	AttributeAssertion *ava,
@@ -278,8 +266,6 @@ test_ava_vrFilter(
 
 static int
 test_presence_vrFilter(
-	Backend		*be,
-	Connection	*conn,
 	Operation	*op,
 	Attribute	*a,
 	AttributeDescription *desc,
@@ -304,8 +290,6 @@ test_presence_vrFilter(
 
 static int
 test_substrings_vrFilter(
-	Backend		*be,
-	Connection	*conn,
 	Operation	*op,
 	Attribute	*a,
 	ValuesReturnFilter *vrf,
@@ -354,8 +338,6 @@ test_substrings_vrFilter(
 
 static int
 test_mra_vrFilter(
-	Backend 	*be,
-	Connection 	*conn,
 	Operation	*op,
 	Attribute	*a,
 	MatchingRuleAssertion *mra,

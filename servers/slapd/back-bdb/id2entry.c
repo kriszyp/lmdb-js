@@ -244,13 +244,11 @@ int bdb_entry_return(
 }
 
 int bdb_entry_release(
-	BackendDB *be,
-	Connection *c,
 	Operation *o,
 	Entry *e,
 	int rw )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) o->o_bd->be_private;
 	struct bdb_op_info *boi = NULL;
  
 	/* slapMode : SLAP_SERVER_MODE, SLAP_TOOL_MODE,
@@ -282,8 +280,6 @@ int bdb_entry_release(
 /* return LDAP_SUCCESS IFF we can retrieve the specified entry.
  */
 int bdb_entry_get(
-	BackendDB *be,
-	Connection *c,
 	Operation *op,
 	struct berval *ndn,
 	ObjectClass *oc,
@@ -291,7 +287,7 @@ int bdb_entry_get(
 	int rw,
 	Entry **ent )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	struct bdb_op_info *boi = NULL;
 	DB_TXN *txn = NULL;
 	Entry *e;
@@ -317,7 +313,7 @@ int bdb_entry_get(
 #endif
 
 	if( op ) boi = (struct bdb_op_info *) op->o_private;
-	if( boi != NULL && be == boi->boi_bdb ) {
+	if( boi != NULL && op->o_bd == boi->boi_bdb ) {
 		txn = boi->boi_txn;
 		locker = boi->boi_locker;
 	}
@@ -337,7 +333,7 @@ int bdb_entry_get(
 
 dn2entry_retry:
 	/* can we find entry */
-	rc = bdb_dn2entry_rw( be, txn, ndn, &e, NULL, 0, rw, locker, &lock );
+	rc = bdb_dn2entry_rw( op->o_bd, txn, ndn, &e, NULL, 0, rw, locker, &lock );
 	switch( rc ) {
 	case DB_NOTFOUND:
 	case 0:

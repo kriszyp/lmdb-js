@@ -19,19 +19,8 @@
 
 int
 dnssrv_back_search(
-    Backend	*be,
-    Connection	*conn,
     Operation	*op,
-    struct berval	*dn,
-    struct berval	*ndn,
-    int		scope,
-    int		deref,
-    int		size,
-    int		time,
-    Filter	*filter,
-    struct berval	*filterstr,
-    AttributeName	*attrs,
-    int		attrsonly )
+    SlapReply	*rs )
 {
 	int i;
 	int rc;
@@ -44,20 +33,21 @@ dnssrv_back_search(
 
 	assert( get_manageDSAit( op ) );
 
-	if( ldap_dn2domain( dn->bv_val, &domain ) || domain == NULL ) {
-		send_ldap_result( conn, op, LDAP_REFERRAL,
-			NULL, NULL, default_referral, NULL );
+	if( ldap_dn2domain( op->o_req_dn.bv_val, &domain ) || domain == NULL ) {
+		rs->sr_err = LDAP_REFERRAL;
+		rs->sr_ref = default_referral;
+		send_ldap_result( op, rs );
 		goto done;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "DNSSRV: dn=\"%s\" -> domain=\"%s\"\n",
-		dn->bv_len ? dn->bv_val : "", domain, 0 );
+		op->o_req_dn.bv_len ? op->o_req_dn.bv_val : "", domain, 0 );
 
 	if( ( rc = ldap_domain2hostlist( domain, &hostlist ) ) ) {
 		Debug( LDAP_DEBUG_TRACE, "DNSSRV: domain2hostlist returned %d\n",
 			rc, 0, 0 );
-		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
-			NULL, "no DNS SRV RR available for DN", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_NO_SUCH_OBJECT,
+			"no DNS SRV RR available for DN" );
 		goto done;
 	}
 
@@ -65,8 +55,8 @@ dnssrv_back_search(
 
 	if( hosts == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "DNSSRV: str2charrary error\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, "problem processing DNS SRV records for DN", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_OTHER,
+			"problem processing DNS SRV records for DN" );
 		goto done;
 	}
 
@@ -81,9 +71,8 @@ dnssrv_back_search(
 
 		if( ber_bvarray_add( &urls, &url ) < 0 ) {
 			free( url.bv_val );
-			send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, "problem processing DNS SRV records for DN",
-			NULL, NULL );
+			send_ldap_error( op, rs, LDAP_OTHER,
+			"problem processing DNS SRV records for DN" );
 			goto done;
 		}
 	}
@@ -91,20 +80,19 @@ dnssrv_back_search(
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%lu op=%lu DNSSRV p=%d dn=\"%s\" url=\"%s\"\n",
 	    op->o_connid, op->o_opid, op->o_protocol,
-		dn->bv_len ? dn->bv_val : "", urls[0].bv_val );
+		op->o_req_dn.bv_len ? op->o_req_dn.bv_val : "", urls[0].bv_val );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"DNSSRV: ManageDSAit scope=%d dn=\"%s\" -> url=\"%s\"\n",
-		scope,
-		dn->bv_len ? dn->bv_val : "",
+		op->oq_search.rs_scope,
+		op->o_req_dn.bv_len ? op->o_req_dn.bv_val : "",
 		urls[0].bv_val );
 
 	rc = ldap_domain2dn(domain, &refdn);
 
 	if( rc != LDAP_SUCCESS ) {
-		send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, "DNS SRV problem processing manageDSAit control",
-			NULL, NULL );
+		send_ldap_error( op, rs, LDAP_OTHER,
+			"DNS SRV problem processing manageDSAit control" );
 		goto done;
 
 	} else {
@@ -114,29 +102,27 @@ dnssrv_back_search(
 
 		rc = dnNormalize2( NULL, &bv, &nrefdn );
 		if( rc != LDAP_SUCCESS ) {
-			send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, "DNS SRV problem processing manageDSAit control",
-				NULL, NULL );
+			send_ldap_error( op, rs, LDAP_OTHER,
+				"DNS SRV problem processing manageDSAit control" );
 			goto done;
 		}
 	}
 
-	if( !dn_match( &nrefdn, ndn ) ) {
+	if( !dn_match( &nrefdn, &op->o_req_ndn ) ) {
 		/* requested dn is subordinate */
 
 		Debug( LDAP_DEBUG_TRACE,
-			"DNSSRV: dn=\"%s\" subordindate to refdn=\"%s\"\n",
-			dn->bv_len ? dn->bv_val : "",
+			"DNSSRV: dn=\"%s\" subordinate to refdn=\"%s\"\n",
+			op->o_req_dn.bv_len ? op->o_req_dn.bv_val : "",
 			refdn == NULL ? "" : refdn,
 			NULL );
 
-		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
-			refdn, NULL,
-			NULL, NULL );
+		rs->sr_matched = refdn;
+		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		send_ldap_result( op, rs );
 
-	} else if ( scope == LDAP_SCOPE_ONELEVEL ) {
-		send_ldap_result( conn, op, LDAP_SUCCESS,
-			NULL, NULL, NULL, NULL );
+	} else if ( op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL ) {
+		send_ldap_error( op, rs, LDAP_SUCCESS, NULL );
 
 	} else {
 		struct berval	vals[2];
@@ -144,10 +130,10 @@ dnssrv_back_search(
 		AttributeDescription *ad_objectClass
 			= slap_schema.si_ad_objectClass;
 		AttributeDescription *ad_ref = slap_schema.si_ad_ref;
-		e->e_dn = strdup( dn->bv_val );
-		e->e_name.bv_len = dn->bv_len;
-		e->e_ndn = strdup( ndn->bv_val );
-		e->e_nname.bv_len = ndn->bv_len;
+		e->e_name.bv_val = strdup( op->o_req_dn.bv_val );
+		e->e_name.bv_len = op->o_req_dn.bv_len;
+		e->e_nname.bv_val = strdup( op->o_req_ndn.bv_val );
+		e->e_nname.bv_len = op->o_req_ndn.bv_len;
 
 		e->e_attrs = NULL;
 		e->e_private = NULL;
@@ -204,17 +190,18 @@ dnssrv_back_search(
 
 		attr_mergeit( e, ad_ref, urls );
 
-		rc = test_filter( be, conn, op, e, filter ); 
+		rc = test_filter( op, e, op->oq_search.rs_filter ); 
 
 		if( rc == LDAP_COMPARE_TRUE ) {
-			send_search_entry( be, conn, op,
-				e, attrs, attrsonly, NULL );
+			rs->sr_entry = e;
+			rs->sr_attrs = op->oq_search.rs_attrs;
+			send_search_entry( op, rs );
 		}
 
 		entry_free( e );
-			
-		send_ldap_result( conn, op, LDAP_SUCCESS,
-			NULL, NULL, NULL, NULL );
+
+		rs->sr_err = LDAP_SUCCESS;
+		send_ldap_result( op, rs );
 	}
 
 	if ( refdn ) free( refdn );

@@ -18,38 +18,33 @@
 
 int
 tcl_back_compare (
-	Backend * be,
-	Connection * conn,
 	Operation * op,
-	struct berval *dn,
-	struct berval *ndn,
-	AttributeAssertion * ava
+	SlapReply * rs
 )
 {
 	char *command, *results;
 	struct berval suf_tcl;
-	int code, err = 0;
-	struct tclinfo *ti = (struct tclinfo *) be->be_private;
+	int code;
+	struct tclinfo *ti = (struct tclinfo *) op->o_bd->be_private;
 
 	if (ti->ti_compare.bv_len == 0) {
-		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-			"compare not implemented", NULL, NULL );
+		send_ldap_error (op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"compare not implemented" );
 		return (-1);
 	}
 
-	if (tcl_merge_bvlist (be->be_suffix, &suf_tcl) == NULL) {
-		send_ldap_result (conn, op, LDAP_OTHER, NULL,
-			NULL, NULL, NULL );
+	if (tcl_merge_bvlist (op->o_bd->be_suffix, &suf_tcl) == NULL) {
+		send_ldap_error (op, rs, LDAP_OTHER, NULL );
 		return (-1);
 	}
 
 	command = (char *) ch_malloc (ti->ti_compare.bv_len +
-		suf_tcl.bv_len + dn->bv_len + ava->aa_desc->ad_cname.bv_len +
-		ava->aa_value.bv_len + 84);
+		suf_tcl.bv_len + op->o_req_dn.bv_len + op->oq_compare.rs_ava->aa_desc->ad_cname.bv_len +
+		op->oq_compare.rs_ava->aa_value.bv_len + 84);
 	sprintf (command, "%s COMPARE {%ld/%ld} {%s} {%s} {%s: %s}",
 		ti->ti_compare.bv_val, op->o_connid, (long) op->o_msgid,
-		suf_tcl.bv_val, dn->bv_val,
-		ava->aa_desc->ad_cname.bv_val, ava->aa_value.bv_val);
+		suf_tcl.bv_val, op->o_req_dn.bv_val,
+		op->oq_compare.rs_ava->aa_desc->ad_cname.bv_val, op->oq_compare.rs_ava->aa_value.bv_val);
 	Tcl_Free (suf_tcl.bv_val);
 
 	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);
@@ -59,17 +54,18 @@ tcl_back_compare (
 	free (command);
 
 	if (code != TCL_OK) {
-		err = LDAP_OTHER;
+		rs->sr_err = LDAP_OTHER;
 		Debug (LDAP_DEBUG_SHELL, "tcl_compare_error: %s\n", results,
 			0, 0);
 	} else {
-		interp_send_results (be, conn, op, results, NULL, 0);
+		interp_send_results (op, rs, results);
 	}
 
-	if (err != LDAP_SUCCESS)
-		send_ldap_result (conn, op, err, NULL,
-			"internal backend error", NULL, NULL );
+	if (rs->sr_err != LDAP_SUCCESS) {
+		rs->sr_text = "internal backend error";
+		send_ldap_result (op, rs);
+	}
 
 	free (results);
-	return (err);
+	return (rs->sr_err);
 }

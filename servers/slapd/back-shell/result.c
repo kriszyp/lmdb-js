@@ -19,20 +19,13 @@
 
 int
 read_and_send_results(
-    Backend	*be,
-    Connection	*conn,
     Operation	*op,
-    FILE	*fp,
-    AttributeName *attrs,
-    int		attrsonly
-)
+    SlapReply	*rs,
+    FILE	*fp )
 {
 	int	bsize, len;
 	char	*buf, *bp;
 	char	line[BUFSIZ];
-	Entry	*e;
-	int	err;
-	char	*matched, *info;
 
 	/* read in the result and send it along */
 	buf = (char *) ch_malloc( BUFSIZ );
@@ -78,28 +71,28 @@ read_and_send_results(
 				break;
 			}
 
-			if ( (e = str2entry( buf )) == NULL ) {
+			if ( (rs->sr_entry = str2entry( buf )) == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "str2entry(%s) failed\n",
 				    buf, 0, 0 );
 			} else {
-				send_search_entry( be, conn, op, e,
-					attrs, attrsonly, NULL );
-				entry_free( e );
+				rs->sr_attrs = op->oq_search.rs_attrs;
+				send_search_entry( op, rs );
+				entry_free( rs->sr_entry );
 			}
 
 			bp = buf;
 		}
 	}
-	(void) str2result( buf, &err, &matched, &info );
+	(void) str2result( buf, &rs->sr_err, (char **)&rs->sr_matched, (char **)&rs->sr_text );
 
 	/* otherwise, front end will send this result */
-	if ( err != 0 || op->o_tag != LDAP_REQ_BIND ) {
-		send_ldap_result( conn, op, err, matched, info, NULL, NULL );
+	if ( rs->sr_err != 0 || op->o_tag != LDAP_REQ_BIND ) {
+		send_ldap_result( op, rs );
 	}
 
 	free( buf );
 
-	return( err );
+	return( rs->sr_err );
 }
 
 void

@@ -17,32 +17,29 @@
 
 int
 shell_back_abandon(
-    Backend	*be,
-    Connection	*conn,
     Operation	*op,
-    int		msgid
-)
+    SlapReply	*rs )
 {
-	struct shellinfo	*si = (struct shellinfo *) be->be_private;
+	struct shellinfo	*si = (struct shellinfo *) op->o_bd->be_private;
 	FILE			*rfp, *wfp;
 	pid_t			pid;
 	Operation		*o;
 
 	/* no abandon command defined - just kill the process handling it */
 	if ( si->si_abandon == NULL ) {
-		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 		pid = -1;
-		LDAP_STAILQ_FOREACH( o, &conn->c_ops, o_next ) {
-			if ( o->o_msgid == msgid ) {
+		LDAP_STAILQ_FOREACH( o, &op->o_conn->c_ops, o_next ) {
+			if ( o->o_msgid == op->oq_abandon.rs_msgid ) {
 				pid = (pid_t) o->o_private;
 				break;
 			}
 		}
-		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 	}
 
 	if ( pid == -1 ) {
-		Debug( LDAP_DEBUG_ARGS, "shell could not find op %d\n", msgid, 0, 0 );
+		Debug( LDAP_DEBUG_ARGS, "shell could not find op %d\n", op->oq_abandon.rs_msgid, 0, 0 );
 		return 0;
 	}
 
@@ -52,8 +49,8 @@ shell_back_abandon(
 
 	/* write out the request to the abandon process */
 	fprintf( wfp, "ABANDON\n" );
-	fprintf( wfp, "msgid: %d\n", msgid );
-	print_suffixes( wfp, be );
+	fprintf( wfp, "msgid: %d\n", op->oq_abandon.rs_msgid );
+	print_suffixes( wfp, op->o_bd );
 	fprintf( wfp, "pid: %ld\n", (long) pid );
 	fclose( wfp );
 

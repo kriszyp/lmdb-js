@@ -15,19 +15,9 @@
 #include "lber_pvt.h"
 
 int
-bdb_exop_passwd(
-	Backend		*be,
-	Connection		*conn,
-	Operation		*op,
-	struct berval		*reqoid,
-	struct berval	*reqdata,
-	char			**rspoid,
-	struct berval	**rspdata,
-	LDAPControl		*** rspctrls,
-	const char		**text,
-	BerVarray *refs )
+bdb_exop_passwd( Operation *op, SlapReply *rs )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	int rc;
 	Entry *e = NULL;
 	struct berval hash = { 0, NULL };
@@ -45,11 +35,10 @@ bdb_exop_passwd(
 	u_int32_t	locker = 0;
 	DB_LOCK		lock;
 
-	assert( reqoid != NULL );
-	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, reqoid ) == 0 );
+	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->oq_extended.rs_reqoid ) == 0 );
 
-	rc = slap_passwd_parse( reqdata,
-		&id, NULL, &new, text );
+	rc = slap_passwd_parse( op->oq_extended.rs_reqdata,
+		&id, NULL, &new, &rs->sr_text );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( ACL, ENTRY, 
@@ -67,18 +56,18 @@ bdb_exop_passwd(
 		slap_passwd_generate(&new);
 
 		if( new.bv_len == 0 ) {
-			*text = "password generation failed.";
+			rs->sr_text = "password generation failed.";
 			rc = LDAP_OTHER;
 			goto done;
 		}
 		
-		*rspdata = slap_passwd_return( &new );
+		rs->sr_rspdata = slap_passwd_return( &new );
 	}
 
 	slap_passwd_hash( &new, &hash );
 
 	if( hash.bv_len == 0 ) {
-		*text = "password hash failed";
+		rs->sr_text = "password hash failed";
 		rc = LDAP_OTHER;
 		goto done;
 	}
@@ -98,14 +87,14 @@ bdb_exop_passwd(
 #endif
 
 	if( dn.bv_len == 0 ) {
-		*text = "No password is associated with the Root DSE";
+		rs->sr_text = "No password is associated with the Root DSE";
 		rc = LDAP_UNWILLING_TO_PERFORM;
 		goto done;
 	}
 
 	rc = dnNormalize2( NULL, &dn, &ndn );
 	if( rc != LDAP_SUCCESS ) {
-		*text = "Invalid DN";
+		rs->sr_text = "Invalid DN";
 		goto done;
 	}
 
@@ -126,7 +115,7 @@ retry:	/* transaction retry */
 		op->o_do_not_cache = opinfo.boi_acl_cache;
 		if( rc != 0 ) {
 			rc = LDAP_OTHER;
-			*text = "internal error";
+			rs->sr_text = "internal error";
 			goto done;
 		}
 		ldap_pvt_thread_yield();
@@ -135,7 +124,7 @@ retry:	/* transaction retry */
 	/* begin transaction */
 	rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &ltid, 
 		bdb->bi_db_opflags );
-	*text = NULL;
+	rs->sr_text = NULL;
 	if( rc != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( ACL, ERR, 
@@ -147,13 +136,13 @@ retry:	/* transaction retry */
 			db_strerror(rc), rc, 0 );
 #endif
 		rc = LDAP_OTHER;
-		*text = "internal error";
+		rs->sr_text = "internal error";
 		goto done;
 	}
 
 	locker = TXN_ID ( ltid );
 
-	opinfo.boi_bdb = be;
+	opinfo.boi_bdb = op->o_bd;
 	opinfo.boi_txn = ltid;
 	opinfo.boi_locker = locker;
 	opinfo.boi_err = 0;
@@ -161,7 +150,7 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rc = bdb_dn2entry_w( be, ltid, &ndn, &e, NULL, 0 , locker, &lock);
+	rc = bdb_dn2entry_w( op->o_bd, ltid, &ndn, &e, NULL, 0 , locker, &lock);
 
 	switch(rc) {
 	case DB_LOCK_DEADLOCK:
@@ -171,16 +160,16 @@ retry:	/* transaction retry */
 	case 0:
 		break;
 	case LDAP_BUSY:
-		*text = "ldap server busy";
+		rs->sr_text = "ldap server busy";
 		goto done;
 	default:
 		rc = LDAP_OTHER;
-		*text = "internal error";
+		rs->sr_text = "internal error";
 		goto done;
 	}
 
 	if( e == NULL ) {
-		*text = "could not locate authorization entry";
+		rs->sr_text = "could not locate authorization entry";
 		rc = LDAP_NO_SUCH_OBJECT;
 		goto done;
 	}
@@ -188,7 +177,7 @@ retry:	/* transaction retry */
 #ifdef BDB_SUBENTRIES
 	if( is_entry_subentry( e ) ) {
 		/* entry is an alias, don't allow operation */
-		*text = "authorization entry is subentry";
+		rs->sr_text = "authorization entry is subentry";
 		rc = LDAP_OTHER;
 		goto done;
 	}
@@ -196,7 +185,7 @@ retry:	/* transaction retry */
 #ifdef BDB_ALIASES
 	if( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow operation */
-		*text = "authorization entry is alias";
+		rs->sr_text = "authorization entry is alias";
 		rc = LDAP_ALIAS_PROBLEM;
 		goto done;
 	}
@@ -204,7 +193,7 @@ retry:	/* transaction retry */
 
 	if( is_entry_referral( e ) ) {
 		/* entry is an referral, don't allow operation */
-		*text = "authorization entry is referral";
+		rs->sr_text = "authorization entry is referral";
 		rc = LDAP_OTHER;
 		goto done;
 	}
@@ -224,8 +213,8 @@ retry:	/* transaction retry */
 		ml.sml_op = LDAP_MOD_REPLACE;
 		ml.sml_next = NULL;
 
-		rc = bdb_modify_internal( be, conn, op, ltid,
-			&ml, e, text, textbuf, textlen );
+		rc = bdb_modify_internal( op, ltid,
+			&ml, e, &rs->sr_text, textbuf, textlen );
 
 		if ( (rc == LDAP_INSUFFICIENT_ACCESS) && opinfo.boi_err ) {
 			rc = opinfo.boi_err;
@@ -233,26 +222,26 @@ retry:	/* transaction retry */
 		switch(rc) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
-			*text = NULL;
+			rs->sr_text = NULL;
 			goto retry;
 		case 0:
-			*text = NULL;
+			rs->sr_text = NULL;
 			break;
 		default:
 			rc = LDAP_OTHER;
-			*text = "entry modify failed";
+			rs->sr_text = "entry modify failed";
 			goto done;
 		}
 
 		/* change the entry itself */
-		rc = bdb_id2entry_update( be, ltid, e );
+		rc = bdb_id2entry_update( op->o_bd, ltid, e );
 		if( rc != 0 ) {
 			switch(rc) {
 			case DB_LOCK_DEADLOCK:
 			case DB_LOCK_NOTGRANTED:
 				goto retry;
 			}
-			*text = "entry update failed";
+			rs->sr_text = "entry update failed";
 			rc = LDAP_OTHER;
 		}
 
@@ -267,7 +256,11 @@ retry:	/* transaction retry */
 		op->o_private = NULL;
 
 		if( rc == LDAP_SUCCESS ) {
-			replog( be, op, &e->e_name, &e->e_nname, &ml );
+			op->o_req_dn = e->e_name;
+			op->o_req_ndn = e->e_nname;
+			op->oq_modify.rs_modlist = &ml;
+			replog( op );
+			op->oq_extended.rs_reqoid = slap_EXOP_MODIFY_PASSWD;
 		}
 	}
 

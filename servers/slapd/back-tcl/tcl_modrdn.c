@@ -31,50 +31,41 @@
 
 int
 tcl_back_modrdn (
-	Backend * be,
-	Connection * conn,
 	Operation * op,
-	struct berval *dn,
-	struct berval *ndn,
-	struct berval *newrdn,
-	struct berval *nnewrdn,
-	int deleteoldrdn,
-	struct berval *newSuperior,
-	struct berval *nnewSuperior
+	SlapReply * rs
 )
 {
 	char *command, *results;
 	struct berval suf_tcl;
-	int code, err = 0;
-	struct tclinfo *ti = (struct tclinfo *) be->be_private;
+	int code;
+	struct tclinfo *ti = (struct tclinfo *) op->o_bd->be_private;
 
 	if (ti->ti_modrdn.bv_len == 0) {
-		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-			"modrdn not implemented", NULL, NULL );
+		send_ldap_error (op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"modrdn not implemented" );
 		return (-1);
 	}
 
-	if (tcl_merge_bvlist (be->be_suffix, &suf_tcl) == NULL) {
-		send_ldap_result (conn, op, LDAP_OTHER, NULL,
-			NULL, NULL, NULL );
+	if (tcl_merge_bvlist (op->o_bd->be_suffix, &suf_tcl) == NULL) {
+		send_ldap_error (op, rs, LDAP_OTHER, NULL);
 		return (-1);
 	}
 
 	command = (char *) ch_malloc (ti->ti_modrdn.bv_len + suf_tcl.bv_len
-		+ dn->bv_len + newrdn->bv_len
-		+ (newSuperior ? newSuperior->bv_len : 0) + 84);
-	if ( newSuperior ) {
+		+ op->o_req_dn.bv_len + op->oq_modrdn.rs_newrdn.bv_len
+		+ (op->oq_modrdn.rs_newSup ? op->oq_modrdn.rs_newSup->bv_len : 0) + 84);
+	if ( op->oq_modrdn.rs_newSup ) {
 		sprintf (command, "%s MODRDN {%ld/%ld} {%s} {%s} {%s} %d {%s}",
 			 ti->ti_modrdn.bv_val,
 			 op->o_connid, (long) op->o_msgid, 
-			 suf_tcl.bv_val, dn->bv_val,
-			 newrdn->bv_val, deleteoldrdn ? 1 : 0, 
-			 newSuperior->bv_val );
+			 suf_tcl.bv_val, op->o_req_dn.bv_val,
+			 op->oq_modrdn.rs_newrdn.bv_val, op->oq_modrdn.rs_deleteoldrdn ? 1 : 0, 
+			 op->oq_modrdn.rs_newSup->bv_val );
 	} else {
 		sprintf (command, "%s MODRDN {%ld} {%s} {%s} {%s} %d",
 			 ti->ti_modrdn.bv_val, (long) op->o_msgid, 
-			 suf_tcl.bv_val, dn->bv_val,
-			 newrdn->bv_val, deleteoldrdn ? 1 : 0 );
+			 suf_tcl.bv_val, op->o_req_dn.bv_val,
+			 op->oq_modrdn.rs_newrdn.bv_val, op->oq_modrdn.rs_deleteoldrdn ? 1 : 0 );
 	}	
 	Tcl_Free (suf_tcl.bv_val);
 
@@ -85,17 +76,18 @@ tcl_back_modrdn (
 	free (command);
 
 	if (code != TCL_OK) {
-		err = LDAP_OTHER;
+		rs->sr_err = LDAP_OTHER;
 		Debug (LDAP_DEBUG_SHELL, "tcl_modrdn_error: %s\n", results,
 			0, 0);
 	} else {
-		interp_send_results (be, conn, op, results, NULL, 0);
+		interp_send_results (op, rs, results);
 	}
 
-	if (err != LDAP_SUCCESS)
-		send_ldap_result (conn, op, err, NULL,
-			"internal backend error", NULL, NULL );
+	if (rs->sr_err != LDAP_SUCCESS) {
+		rs->sr_text = "internal backend error";
+		send_ldap_result (op, rs);
+	}
 
 	free (results);
-	return (err);
+	return (rs->sr_err);
 }

@@ -47,15 +47,10 @@
 
 int
 ldap_back_modify(
-    Backend	*be,
-    Connection	*conn,
     Operation	*op,
-    struct berval	*dn,
-    struct berval	*ndn,
-    Modifications	*modlist
-)
+    SlapReply	*rs )
 {
-	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
+	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
 	struct ldapconn *lc;
 	LDAPMod **modv = NULL;
 	LDAPMod *mods;
@@ -65,8 +60,8 @@ ldap_back_modify(
 	struct berval mdn = { 0, NULL };
 	ber_int_t msgid;
 
-	lc = ldap_back_getconn(li, conn, op);
-	if ( !lc || !ldap_back_dobind( li, lc, conn, op ) ) {
+	lc = ldap_back_getconn(li, op, rs);
+	if ( !lc || !ldap_back_dobind( li, lc, op, rs ) ) {
 		return( -1 );
 	}
 
@@ -74,35 +69,35 @@ ldap_back_modify(
 	 * Rewrite the modify dn, if needed
 	 */
 #ifdef ENABLE_REWRITE
-	switch ( rewrite_session( li->rwinfo, "modifyDn", dn->bv_val, conn, &mdn.bv_val ) ) {
+	switch ( rewrite_session( li->rwinfo, "modifyDn", op->o_req_dn.bv_val, op->o_conn, &mdn.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mdn.bv_val == NULL ) {
-			mdn.bv_val = ( char * )dn->bv_val;
+			mdn.bv_val = ( char * )op->o_req_dn.bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDAP, DETAIL1, 
-			"[rw] modifyDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn.bv_val, 0 );
+			"[rw] modifyDn: \"%s\" -> \"%s\"\n", op->o_req_dn.bv_val, mdn.bv_val, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> modifyDn: \"%s\" -> \"%s\"\n%s",
-				dn->bv_val, mdn.bv_val, "" );
+				op->o_req_dn.bv_val, mdn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
 	case REWRITE_REGEXEC_UNWILLING:
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-				NULL, "Operation not allowed", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+				"Operation not allowed" );
 		return( -1 );
 
 	case REWRITE_REGEXEC_ERR:
-		send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, "Rewrite error", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_OTHER,
+				"Rewrite error" );
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */
-	ldap_back_dn_massage( li, dn, &mdn, 0, 1 );
+	ldap_back_dn_massage( li, &op->o_req_dn, &mdn, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 
-	for (i=0, ml=modlist; ml; i++,ml=ml->sml_next)
+	for (i=0, ml=op->oq_modify.rs_modlist; ml; i++,ml=ml->sml_next)
 		;
 
 	mods = (LDAPMod *)ch_malloc(i*sizeof(LDAPMod));
@@ -116,7 +111,7 @@ ldap_back_modify(
 		goto cleanup;
 	}
 
-	for (i=0, ml=modlist; ml; ml=ml->sml_next) {
+	for (i=0, ml=op->oq_modify.rs_modlist; ml; ml=ml->sml_next) {
 		if ( ml->sml_desc->ad_type->sat_no_user_mod  ) {
 			continue;
 		}
@@ -140,7 +135,7 @@ ldap_back_modify(
 		if ( strcmp( ml->sml_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
 			ldap_dnattr_rewrite( li->rwinfo,
-					ml->sml_bvalues, conn );
+					ml->sml_bvalues, op->o_conn );
 		}
 #endif /* ENABLE_REWRITE */
 
@@ -162,7 +157,7 @@ ldap_back_modify(
 	rc = ldap_modify_ext( lc->ld, mdn.bv_val, modv, op->o_ctrls, NULL, &msgid );
 
 cleanup:;
-	if ( mdn.bv_val != dn->bv_val ) {
+	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
 	}
 	for (i=0; modv[i]; i++) {
@@ -171,6 +166,6 @@ cleanup:;
 	ch_free( mods );
 	ch_free( modv );
 
-	return ldap_back_op_result( li, lc, conn, op, msgid, rc, 1 );
+	return ldap_back_op_result( li, lc, op, rs, msgid, rc, 1 );
 }
 

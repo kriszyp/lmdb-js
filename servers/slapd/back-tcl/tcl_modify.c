@@ -18,28 +18,24 @@
 
 int
 tcl_back_modify (
-	Backend * be,
-	Connection * conn,
 	Operation * op,
-	struct berval *dn,
-	struct berval *ndn,
-	Modifications * modlist
+	SlapReply * rs
 )
 {
 	char *command, *bp, *tcl_mods, *results;
 	struct berval suf_tcl;
-	int i, code, err = 0, len, bsize;
-	struct tclinfo *ti = (struct tclinfo *) be->be_private;
+	int i, code, len, bsize;
+	struct tclinfo *ti = (struct tclinfo *) op->o_bd->be_private;
+	Modifications *modlist = op->oq_modify.rs_modlist;
 
 	if (ti->ti_modify.bv_len == 0) {
-		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-			"modify not implemented", NULL, NULL );
+		send_ldap_error (op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"modify not implemented" );
 		return (-1);
 	}
 
-	if (tcl_merge_bvlist (be->be_suffix, &suf_tcl) == NULL) {
-		send_ldap_result (conn, op, LDAP_OTHER, NULL,
-			NULL, NULL, NULL );
+	if (tcl_merge_bvlist (op->o_bd->be_suffix, &suf_tcl) == NULL) {
+		send_ldap_error (op, rs, LDAP_OTHER, NULL);
 		return (-1);
 	}
 
@@ -97,11 +93,11 @@ tcl_back_modify (
 	}
 
 	command = (char *) ch_malloc (ti->ti_modify.bv_len + suf_tcl.bv_len
-		+ dn->bv_len + strlen (tcl_mods) + 84);
+		+ op->o_req_dn.bv_len + strlen (tcl_mods) + 84);
 	/* This space is simply for aesthetics--\  */
 	sprintf (command, "%s MODIFY {%ld/%ld} {%s} {%s} { %s}",
 		ti->ti_modify.bv_val, op->o_connid, (long) op->o_msgid,
-		suf_tcl.bv_val, dn->bv_val, tcl_mods);
+		suf_tcl.bv_val, op->o_req_dn.bv_val, tcl_mods);
 	Tcl_Free (suf_tcl.bv_val);
 	free (tcl_mods);
 
@@ -112,17 +108,18 @@ tcl_back_modify (
 	free (command);
 
 	if (code != TCL_OK) {
-		err = LDAP_OTHER;
+		rs->sr_err = LDAP_OTHER;
 		Debug (LDAP_DEBUG_SHELL, "tcl_modify_error: %s\n", results,
 			0, 0);
 	} else {
-		interp_send_results (be, conn, op, results, NULL, 0);
+		interp_send_results (op, rs, results);
 	}
 
-	if (err != LDAP_SUCCESS)
-		send_ldap_result (conn, op, err, NULL,
-			"internal backend error", NULL, NULL );
+	if (rs->sr_err != LDAP_SUCCESS) {
+		rs->sr_text = "internal backend error";
+		send_ldap_result (op, rs);
+	}
 
 	free (results);
-	return (err);
+	return (rs->sr_err);
 }

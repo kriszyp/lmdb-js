@@ -132,7 +132,7 @@ struct bdb_info {
 	ID			bi_lastid;
 	ldap_pvt_thread_mutex_t	bi_lastid_mutex;
 #if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
-	LDAP_LIST_HEAD(pl, slap_op) psearch_list;
+	LDAP_LIST_HEAD(pl, slap_op) bi_psearch_list;
 #endif
 #ifdef SLAP_IDL_CACHE
 	int		bi_idl_cache_max_size;

@@ -17,48 +17,44 @@
 
 int
 shell_back_add(
-    Backend	*be,
-    Connection	*conn,
     Operation	*op,
-    Entry	*e
-)
+    SlapReply	*rs )
 {
-	struct shellinfo	*si = (struct shellinfo *) be->be_private;
+	struct shellinfo	*si = (struct shellinfo *) op->o_bd->be_private;
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	FILE			*rfp, *wfp;
 	int			len;
 
 	if ( si->si_add == NULL ) {
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-		    "add not implemented", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+		    "add not implemented" );
 		return( -1 );
 	}
 
-	if ( ! access_allowed( be, conn, op, e,
+	if ( ! access_allowed( op, op->oq_add.rs_e,
 		entry, NULL, ACL_WRITE, NULL ) )
 	{
-		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-			NULL, NULL, NULL, NULL );
+		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS, NULL );
 		return -1;
 	}
 
 	if ( (op->o_private = (void *) forkandexec( si->si_add, &rfp, &wfp )) == (void *) -1 ) {
-		send_ldap_result( conn, op, LDAP_OTHER, NULL,
-		    "could not fork/exec", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_OTHER,
+		    "could not fork/exec" );
 		return( -1 );
 	}
 
 	/* write out the request to the add process */
 	fprintf( wfp, "ADD\n" );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
-	print_suffixes( wfp, be );
+	print_suffixes( wfp, op->o_bd );
 	ldap_pvt_thread_mutex_lock( &entry2str_mutex );
-	fprintf( wfp, "%s", entry2str( e, &len ) );
+	fprintf( wfp, "%s", entry2str( op->oq_add.rs_e, &len ) );
 	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 	fclose( wfp );
 
 	/* read in the result and send it along */
-	read_and_send_results( be, conn, op, rfp, NULL, 0 );
+	read_and_send_results( op, rs, rfp );
 
 	fclose( rfp );
 	return( 0 );

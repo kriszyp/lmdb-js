@@ -292,11 +292,11 @@ int index_values(
 
 int
 index_entry(
-    Backend	*be,
+	Backend	*be,
 	int op,
-    Entry *e,
-	Attribute *ap )
+	Entry *e )
 {
+	Attribute *ap = e->e_attrs;
 #ifdef NEW_LOGGING
 	LDAP_LOG( INDEX, ENTRY, 
 		"index_entry: %s (%s)%ld\n", op == SLAP_INDEX_ADD_OP ? "add" : "del",

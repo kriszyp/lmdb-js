@@ -20,73 +20,52 @@
 #include <lutil.h>
 
 int passwd_extop(
-	Connection *conn, Operation *op,
-	struct berval *reqoid,
-	struct berval *reqdata,
-	char **rspoid,
-	struct berval **rspdata,
-	LDAPControl ***rspctrls,
-	const char **text,
-	BerVarray *refs )
+	Operation *op,
+	SlapReply *rs )
 {
-	Backend *be;
-	int rc;
-
-	assert( reqoid != NULL );
-	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, reqoid ) == 0 );
+	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->oq_extended.rs_reqoid ) == 0 );
 
 	if( op->o_dn.bv_len == 0 ) {
-		*text = "only authenticated users may change passwords";
+		rs->sr_text = "only authenticated users may change passwords";
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
-	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-	be = conn->c_authz_backend;
-	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+	op->o_bd = op->o_conn->c_authz_backend;
+	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
-	if( be && !be->be_extended ) {
-		*text = "operation not supported for current user";
+	if( op->o_bd && !op->o_bd->be_extended ) {
+		rs->sr_text = "operation not supported for current user";
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
 
-	{
-		rc = backend_check_restrictions( be, conn, op,
-			(struct berval *)&slap_EXOP_MODIFY_PASSWD, text );
+	if (backend_check_restrictions( op, rs,
+			(struct berval *)&slap_EXOP_MODIFY_PASSWD ) != LDAP_SUCCESS) {
+		return rs->sr_err;
 	}
 
-	if( rc != LDAP_SUCCESS ) {
-		return rc;
-	}
-
-	if( be == NULL ) {
+	if( op->o_bd == NULL ) {
 #ifdef HAVE_CYRUS_SASL
-		rc = slap_sasl_setpass( conn, op,
-			reqoid, reqdata,
-			rspoid, rspdata, rspctrls,
-			text );
+		rs->sr_err = slap_sasl_setpass( op, rs );
 #else
-		*text = "no authz backend";
-		rc = LDAP_OTHER;
+		rs->sr_text = "no authz backend";
+		rs->sr_err = LDAP_OTHER;
 #endif
 
 #ifndef SLAPD_MULTIMASTER
 	/* This does not apply to multi-master case */
-	} else if( be->be_update_ndn.bv_len ) {
+	} else if( op->o_bd->be_update_ndn.bv_len ) {
 		/* we SHOULD return a referral in this case */
-		*refs = referral_rewrite( be->be_update_refs,
+		rs->sr_ref = referral_rewrite( op->o_bd->be_update_refs,
 			NULL, NULL, LDAP_SCOPE_DEFAULT );
-			rc = LDAP_REFERRAL;
+			rs->sr_err = LDAP_REFERRAL;
 #endif /* !SLAPD_MULTIMASTER */
 
 	} else {
-		rc = be->be_extended(
-			be, conn, op,
-			reqoid, reqdata,
-			rspoid, rspdata, rspctrls,
-			text, refs );
+		rs->sr_err = op->o_bd->be_extended( op, rs );
 	}
 
-	return rc;
+	return rs->sr_err;
 }
 
 int slap_passwd_parse( struct berval *reqdata,

@@ -883,6 +883,7 @@ connection_operation( void *ctx, void *arg_v )
 {
 	int rc;
 	Operation *op = arg_v;
+	SlapReply rs = {REP_RESULT};
 	ber_tag_t tag = op->o_tag;
 #ifdef SLAPD_MONITOR
 	ber_tag_t oldtag = tag;
@@ -905,61 +906,60 @@ connection_operation( void *ctx, void *arg_v )
 			"error: SASL bind in progress (tag=%ld).\n",
 			(long) tag, 0, 0 );
 #endif
-		send_ldap_result( conn, op,
-			rc = LDAP_OPERATIONS_ERROR,
-			NULL, "SASL bind in progress", NULL, NULL );
+		send_ldap_error( op, &rs, LDAP_OPERATIONS_ERROR,
+			"SASL bind in progress" );
 		goto operations_error;
 	}
 
 	switch ( tag ) {
 	case LDAP_REQ_BIND:
 		INCR_OP(num_ops_initiated_, SLAP_OP_BIND);
-		rc = do_bind( conn, op );
+		rc = do_bind( op, &rs );
 		break;
 
 	case LDAP_REQ_UNBIND:
 		INCR_OP(num_ops_initiated_, SLAP_OP_UNBIND);
-		rc = do_unbind( conn, op );
+		rc = do_unbind( op, &rs );
 		break;
 
 	case LDAP_REQ_ADD:
 		INCR_OP(num_ops_initiated_, SLAP_OP_ADD);
-		rc = do_add( conn, op );
+		rc = do_add( op, &rs );
 		break;
 
 	case LDAP_REQ_DELETE:
 		INCR_OP(num_ops_initiated_, SLAP_OP_DELETE);
-		rc = do_delete( conn, op );
+		rc = do_delete( op, &rs );
 		break;
 
 	case LDAP_REQ_MODRDN:
 		INCR_OP(num_ops_initiated_, SLAP_OP_MODRDN);
-		rc = do_modrdn( conn, op );
+		rc = do_modrdn( op, &rs );
 		break;
 
 	case LDAP_REQ_MODIFY:
 		INCR_OP(num_ops_initiated_, SLAP_OP_MODIFY);
-		rc = do_modify( conn, op );
+		rc = do_modify( op, &rs );
 		break;
 
 	case LDAP_REQ_COMPARE:
 		INCR_OP(num_ops_initiated_, SLAP_OP_COMPARE);
-		rc = do_compare( conn, op );
+		rc = do_compare( op, &rs );
 		break;
 
 	case LDAP_REQ_SEARCH:
 		INCR_OP(num_ops_initiated_, SLAP_OP_SEARCH);
-		rc = do_search( conn, op );
+		rc = do_search( op, &rs );
 		break;
 
 	case LDAP_REQ_ABANDON:
 		INCR_OP(num_ops_initiated_, SLAP_OP_ABANDON);
-		rc = do_abandon( conn, op );
+		rc = do_abandon( op, &rs );
 		break;
 
 	case LDAP_REQ_EXTENDED:
 		INCR_OP(num_ops_initiated_, SLAP_OP_EXTENDED);
-		rc = do_extended( conn, op );
+		rc = do_extended( op, &rs );
 		break;
 
 	default:
@@ -972,8 +972,9 @@ connection_operation( void *ctx, void *arg_v )
 		    tag, 0, 0 );
 #endif
 		op->o_tag = LBER_ERROR;
-		send_ldap_disconnect( conn, op,
-			LDAP_PROTOCOL_ERROR, "unknown LDAP request" );
+		rs.sr_err = LDAP_PROTOCOL_ERROR;
+		rs.sr_text = "unknown LDAP request";
+		send_ldap_disconnect( op, &rs );
 		rc = -1;
 		break;
 	}

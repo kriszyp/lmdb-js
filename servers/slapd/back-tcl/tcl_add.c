@@ -18,30 +18,27 @@
 
 int
 tcl_back_add (
-	Backend * be,
-	Connection * conn,
 	Operation * op,
-	Entry * e
+	SlapReply * rs
 )
 {
 	char *command, *entrystr, *results;
 	struct berval suf_tcl;
-	int code, err = 0;
-	struct tclinfo *ti = (struct tclinfo *) be->be_private;
+	int code;
+	struct tclinfo *ti = (struct tclinfo *) op->o_bd->be_private;
 
 	if (ti->ti_add.bv_len == 0) {
-		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-			"add not implemented", NULL, NULL );
+		send_ldap_error (op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"add not implemented" );
 		return (-1);
 	}
 
-	if (tcl_merge_bvlist (be->be_suffix, &suf_tcl) == NULL) {
-		send_ldap_result (conn, op, LDAP_OTHER, NULL,
-			NULL, NULL, NULL );
+	if (tcl_merge_bvlist (op->o_bd->be_suffix, &suf_tcl) == NULL) {
+		send_ldap_error (op, rs, LDAP_OTHER, NULL);
 		return (-1);
 	}
 
-	entrystr = tcl_clean_entry(e);
+	entrystr = tcl_clean_entry(op->oq_add.rs_e);
 
 	command = (char *) ch_malloc (ti->ti_add.bv_len + suf_tcl.bv_len +
 		strlen(entrystr) + 52);
@@ -58,16 +55,17 @@ tcl_back_add (
 	free (command);
 
 	if (code != TCL_OK) {
-		err = LDAP_OTHER;
+		rs->sr_err = LDAP_OTHER;
 		Debug (LDAP_DEBUG_SHELL, "tcl_add_error: %s\n", results, 0, 0);
 	} else {
-		interp_send_results (be, conn, op, results, NULL, 0);
+		interp_send_results (op, rs, results);
 	}
 
-	if (err != LDAP_SUCCESS)
-		send_ldap_result (conn, op, err, NULL,
-			"internal backend error", NULL, NULL );
+	if (rs->sr_err != LDAP_SUCCESS) {
+		rs->sr_text = "internal backend error";
+		send_ldap_result (op, rs);
+	}
 
 	free (results);
-	return (err);
+	return (rs->sr_err);
 }

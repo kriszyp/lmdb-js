@@ -19,14 +19,12 @@
 
 int
 ldbm_back_entry_release_rw(
-	Backend *be,
-	Connection *conn,
 	Operation *op,
 	Entry   *e,
 	int     rw
 )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
 
 	if ( slapMode == SLAP_SERVER_MODE ) {
 		/* free entry and reader or writer lock */
@@ -54,8 +52,6 @@ ldbm_back_entry_release_rw(
 /* return LDAP_SUCCESS IFF we can retrieve the specified entry.
  */
 int ldbm_back_entry_get(
-	BackendDB *be,
-	Connection *c,
 	Operation *op,
 	struct berval *ndn,
 	ObjectClass *oc,
@@ -63,7 +59,7 @@ int ldbm_back_entry_get(
 	int rw,
 	Entry **ent )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
 	Entry *e;
 	int	rc;
 	const char *at_name = at->ad_cname.bv_val;
@@ -85,7 +81,7 @@ int ldbm_back_entry_get(
 	/* don't grab the giant lock - our caller has already gotten it. */
 
 	/* can we find entry */
-	e = dn2entry_rw( be, ndn, NULL, rw );
+	e = dn2entry_rw( op->o_bd, ndn, NULL, rw );
 	if (e == NULL) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_BDB, INFO, 

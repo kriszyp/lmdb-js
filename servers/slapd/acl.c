@@ -47,15 +47,13 @@ static struct berval
 
 static AccessControl * acl_get(
 	AccessControl *ac, int *count,
-	Backend *be, Operation *op,
-	Entry *e,
+	Operation *op, Entry *e,
 	AttributeDescription *desc,
 	int nmatches, regmatch_t *matches );
 
 static slap_control_t acl_mask(
 	AccessControl *ac, slap_mask_t *mask,
-	Backend *be, Connection *conn, Operation *op,
-	Entry *e,
+	Operation *op, Entry *e,
 	AttributeDescription *desc,
 	struct berval *val,
 	regmatch_t *matches,
@@ -64,10 +62,7 @@ static slap_control_t acl_mask(
 
 #ifdef SLAPD_ACI_ENABLED
 static int aci_mask(
-	Backend *be,
-    Connection *conn,
-	Operation *op,
-	Entry *e,
+	Operation *op, Entry *e,
 	AttributeDescription *desc,
 	struct berval *val,
 	struct berval *aci,
@@ -83,15 +78,13 @@ static void	string_expand(
 	char *match, regmatch_t *matches);
 
 typedef	struct AciSetCookie {
-	Backend *be;
-	Entry *e;
-	Connection *conn;
 	Operation *op;
+	Entry *e;
 } AciSetCookie;
 
 SLAP_SET_GATHER aci_set_gather;
-static int aci_match_set ( struct berval *subj, Backend *be,
-    Entry *e, Connection *conn, Operation *op, int setref );
+static int aci_match_set ( struct berval *subj, Operation *op,
+    Entry *e, int setref );
 
 /*
  * access_allowed - check whether op->o_ndn is allowed the requested access
@@ -110,18 +103,18 @@ static int aci_match_set ( struct berval *subj, Backend *be,
 
 int
 access_allowed(
-    Backend		*be,
-    Connection		*conn,
-    Operation		*op,
-    Entry		*e,
+	Operation		*op,
+	Entry		*e,
 	AttributeDescription	*desc,
-    struct berval	*val,
-    slap_access_t	access,
+	struct berval	*val,
+	slap_access_t	access,
 	AccessControlState *state )
 {
 	int				ret = 1;
 	int				count;
 	AccessControl			*a = NULL;
+	Backend *be;
+	int	be_null = 0;
 
 #ifdef LDAP_DEBUG
 	char accessmaskbuf[ACCESSMASK_MAXLEN];
@@ -176,7 +169,12 @@ access_allowed(
 		goto done;
 	}
 
-	if ( be == NULL ) be = &backends[0];
+	be = op->o_bd;
+	if ( be == NULL ) {
+		be = &backends[0];
+		be_null = 1;
+		op->o_bd = be;
+	}
 	assert( be != NULL );
 
 	/* grant database root access */
@@ -184,7 +182,7 @@ access_allowed(
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, INFO, 
 			"access_allowed: conn %lu root access granted\n", 
-			conn->c_connid, 0, 0 );
+			op->o_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ACL,
 		    "<= root access granted\n",
@@ -205,7 +203,7 @@ access_allowed(
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, DETAIL1, 
 			"access_allowed: conn %lu NoUserMod Operational attribute: %s "
-			"access granted\n", conn->c_connid, attr , 0 );
+			"access granted\n", op->o_connid, attr , 0 );
 #else
 		Debug( LDAP_DEBUG_ACL, "NoUserMod Operational attribute:"
 			" %s access granted\n",
@@ -272,7 +270,7 @@ access_allowed(
 		memset(matches, '\0', sizeof(matches));
 	}
 
-	while((a = acl_get( a, &count, be, op, e, desc,
+	while((a = acl_get( a, &count, op, e, desc,
 		MAXREMATCHES, matches )) != NULL)
 	{
 		int i;
@@ -312,7 +310,7 @@ access_allowed(
 		}
 
 vd_access:
-		control = acl_mask( a, &mask, be, conn, op,
+		control = acl_mask( a, &mask, op,
 			e, desc, val, matches, count, state );
 
 		if ( control != ACL_BREAK ) {
@@ -326,7 +324,7 @@ vd_access:
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, DETAIL1, 
 			"access_allowed: conn %lu \"%s\" (%s) invalid!\n",
-		    conn->c_connid, e->e_dn, attr );
+		    op->o_connid, e->e_dn, attr );
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: \"%s\" (%s) invalid!\n",
@@ -337,7 +335,7 @@ vd_access:
 	} else if ( control == ACL_BREAK ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, DETAIL1, 
-			"access_allowed: conn %lu	 no more rules\n", conn->c_connid, 0,0 );
+			"access_allowed: conn %lu	 no more rules\n", op->o_connid, 0,0 );
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: no more rules\n", 0, 0, 0);
@@ -369,6 +367,7 @@ done:
 		state->as_recorded |= ACL_STATE_RECORDED;
 		state->as_result = ret;
 	}
+	if (be_null) op->o_bd = NULL;
 	return ret;
 }
 
@@ -382,12 +381,11 @@ static AccessControl *
 acl_get(
 	AccessControl *a,
 	int			*count,
-    Backend		*be,
-    Operation	*op,
-    Entry		*e,
+	Operation	*op,
+	Entry		*e,
 	AttributeDescription *desc,
-    int			nmatch,
-    regmatch_t	*matches )
+	int			nmatch,
+	regmatch_t	*matches )
 {
 	const char *attr;
 	int dnlen, patlen;
@@ -401,10 +399,10 @@ acl_get(
 	assert( attr != NULL );
 
 	if( a == NULL ) {
-		if( be == NULL ) {
+		if( op->o_bd == NULL ) {
 			a = global_acl;
 		} else {
-			a = be->be_acl;
+			a = op->o_bd->be_acl;
 		}
 
 		assert( a != NULL );
@@ -487,7 +485,7 @@ acl_get(
 		}
 
 		if ( a->acl_filter != NULL ) {
-			ber_int_t rc = test_filter( NULL, NULL, NULL, e, a->acl_filter );
+			ber_int_t rc = test_filter( NULL, e, a->acl_filter );
 			if ( rc != LDAP_COMPARE_TRUE ) {
 				continue;
 			}
@@ -550,14 +548,12 @@ acl_get(
 
 static slap_control_t
 acl_mask(
-    AccessControl	*a,
+	AccessControl	*a,
 	slap_mask_t *mask,
-    Backend		*be,
-    Connection	*conn,
-    Operation	*op,
-    Entry		*e,
+	Operation	*op,
+	Entry		*e,
 	AttributeDescription *desc,
-    struct berval	*val,
+	struct berval	*val,
 	regmatch_t	*matches,
 	int	count,
 	AccessControlState *state )
@@ -580,7 +576,7 @@ acl_mask(
 #ifdef NEW_LOGGING
 	LDAP_LOG( ACL, ENTRY, 
 		"acl_mask: conn %lu  access to entry \"%s\", attr \"%s\" requested\n",
-		conn->c_connid, e->e_dn, attr );
+		op->o_connid, e->e_dn, attr );
 
 	LDAP_LOG( ACL, ARGS, 
 		" to %s by \"%s\", (%s) \n", val ? "value" : "all values",
@@ -619,7 +615,7 @@ acl_mask(
 #ifdef NEW_LOGGING
 			LDAP_LOG( ACL, DETAIL1, 
 				"acl_mask: conn %lu  check a_dn_pat: %s\n",
-				conn->c_connid, b->a_dn_pat.bv_val ,0 );
+				op->o_connid, b->a_dn_pat.bv_val ,0 );
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_dn_pat: %s\n",
 				b->a_dn_pat.bv_val, 0, 0);
@@ -740,13 +736,13 @@ dn_match_cleanup:;
 		}
 
 		if ( b->a_sockurl_pat.bv_len ) {
-			if ( ! conn->c_listener ) {
+			if ( ! op->o_conn->c_listener ) {
 				continue;
 			}
 #ifdef NEW_LOGGING
 			LDAP_LOG( ACL, DETAIL1, 
 				   "acl_mask: conn %lu  check a_sockurl_pat: %s\n",
-				   conn->c_connid, b->a_sockurl_pat.bv_val , 0 );
+				   op->o_connid, b->a_sockurl_pat.bv_val , 0 );
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_sockurl_pat: %s\n",
 				b->a_sockurl_pat.bv_val, 0, 0 );
@@ -754,33 +750,33 @@ dn_match_cleanup:;
 
 			if ( !ber_bvccmp( &b->a_sockurl_pat, '*' ) ) {
 				if ( b->a_sockurl_style == ACL_STYLE_REGEX) {
-					if (!regex_matches( &b->a_sockurl_pat, conn->c_listener_url.bv_val,
+					if (!regex_matches( &b->a_sockurl_pat, op->o_conn->c_listener_url.bv_val,
 							e->e_ndn, matches ) ) 
 					{
 						continue;
 					}
 				} else {
-					if ( ber_bvstrcasecmp( &b->a_sockurl_pat, &conn->c_listener_url ) != 0 )
+					if ( ber_bvstrcasecmp( &b->a_sockurl_pat, &op->o_conn->c_listener_url ) != 0 )
 						continue;
 				}
 			}
 		}
 
 		if ( b->a_domain_pat.bv_len ) {
-			if ( !conn->c_peer_domain.bv_val ) {
+			if ( !op->o_conn->c_peer_domain.bv_val ) {
 				continue;
 			}
 #ifdef NEW_LOGGING
 			LDAP_LOG( ACL, DETAIL1, 
 				   "acl_mask: conn %lu  check a_domain_pat: %s\n",
-				   conn->c_connid, b->a_domain_pat.bv_val , 0 );
+				   op->o_connid, b->a_domain_pat.bv_val , 0 );
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_domain_pat: %s\n",
 				b->a_domain_pat.bv_val, 0, 0 );
 #endif
 			if ( !ber_bvccmp( &b->a_domain_pat, '*' ) ) {
 				if ( b->a_domain_style == ACL_STYLE_REGEX) {
-					if (!regex_matches( &b->a_domain_pat, conn->c_peer_domain.bv_val,
+					if (!regex_matches( &b->a_domain_pat, op->o_conn->c_peer_domain.bv_val,
 							e->e_ndn, matches ) ) 
 					{
 						continue;
@@ -788,7 +784,7 @@ dn_match_cleanup:;
 				} else {
 					char buf[ACL_BUF_SIZE];
 
-					struct berval 	cmp = conn->c_peer_domain;
+					struct berval 	cmp = op->o_conn->c_peer_domain;
 					struct berval 	pat = b->a_domain_pat;
 
 					if ( b->a_domain_expand ) {
@@ -824,52 +820,52 @@ dn_match_cleanup:;
 		}
 
 		if ( b->a_peername_pat.bv_len ) {
-			if ( !conn->c_peer_name.bv_val ) {
+			if ( !op->o_conn->c_peer_name.bv_val ) {
 				continue;
 			}
 #ifdef NEW_LOGGING
 			LDAP_LOG( ACL, DETAIL1, 
 				   "acl_mask: conn %lu  check a_peername_path: %s\n",
-				   conn->c_connid, b->a_peername_pat.bv_val , 0 );
+				   op->o_connid, b->a_peername_pat.bv_val , 0 );
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_peername_path: %s\n",
 				b->a_peername_pat.bv_val, 0, 0 );
 #endif
 			if ( !ber_bvccmp( &b->a_peername_pat, '*' ) ) {
 				if ( b->a_peername_style == ACL_STYLE_REGEX) {
-					if (!regex_matches( &b->a_peername_pat, conn->c_peer_name.bv_val,
+					if (!regex_matches( &b->a_peername_pat, op->o_conn->c_peer_name.bv_val,
 							e->e_ndn, matches ) ) 
 					{
 						continue;
 					}
 				} else {
-					if ( ber_bvstrcasecmp( &b->a_peername_pat, &conn->c_peer_name ) != 0 )
+					if ( ber_bvstrcasecmp( &b->a_peername_pat, &op->o_conn->c_peer_name ) != 0 )
 						continue;
 				}
 			}
 		}
 
 		if ( b->a_sockname_pat.bv_len ) {
-			if ( !conn->c_sock_name.bv_val ) {
+			if ( !op->o_conn->c_sock_name.bv_val ) {
 				continue;
 			}
 #ifdef NEW_LOGGING
 			LDAP_LOG( ACL, DETAIL1, 
 				   "acl_mask: conn %lu  check a_sockname_path: %s\n",
-				   conn->c_connid, b->a_sockname_pat.bv_val , 0 );
+				   op->o_connid, b->a_sockname_pat.bv_val , 0 );
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_sockname_path: %s\n",
 				b->a_sockname_pat.bv_val, 0, 0 );
 #endif
 			if ( !ber_bvccmp( &b->a_sockname_pat, '*' ) ) {
 				if ( b->a_sockname_style == ACL_STYLE_REGEX) {
-					if (!regex_matches( &b->a_sockname_pat, conn->c_sock_name.bv_val,
+					if (!regex_matches( &b->a_sockname_pat, op->o_conn->c_sock_name.bv_val,
 							e->e_ndn, matches ) ) 
 					{
 						continue;
 					}
 				} else {
-					if ( ber_bvstrcasecmp( &b->a_sockname_pat, &conn->c_sock_name ) != 0 )
+					if ( ber_bvstrcasecmp( &b->a_sockname_pat, &op->o_conn->c_sock_name ) != 0 )
 						continue;
 				}
 			}
@@ -891,7 +887,7 @@ dn_match_cleanup:;
 #ifdef NEW_LOGGING
 			LDAP_LOG( ACL, DETAIL1, 
 				   "acl_mask: conn %lu  check a_dn_pat: %s\n",
-				   conn->c_connid, attr , 0 );
+				   op->o_connid, attr , 0 );
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_dn_at: %s\n",
 				attr, 0, 0);
@@ -995,7 +991,7 @@ dn_match_cleanup:;
 				bv = b->a_group_pat;
 			}
 
-			rc = backend_group( be, conn, op, e, &bv, &op->o_ndn,
+			rc = backend_group( op, e, &bv, &op->o_ndn,
 				b->a_group_oc, b->a_group_at );
 
 			if ( ndn.bv_val ) free( ndn.bv_val );
@@ -1015,7 +1011,7 @@ dn_match_cleanup:;
 			}else{
 				bv = b->a_set_pat;
 			}
-			if (aci_match_set( &bv, be, e, conn, op, 0 ) == 0) {
+			if (aci_match_set( &bv, op, e, 0 ) == 0) {
 				continue;
 			}
 		}
@@ -1024,7 +1020,7 @@ dn_match_cleanup:;
 #ifdef NEW_LOGGING
 			LDAP_LOG( ACL, DETAIL1, 
 		  		"acl_mask: conn %lu  check a_authz.sai_ssf: ACL %u > OP %u\n",
-				conn->c_connid, b->a_authz.sai_ssf, op->o_ssf  );
+				op->o_connid, b->a_authz.sai_ssf, op->o_ssf  );
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_authz.sai_ssf: ACL %u > OP %u\n",
 				b->a_authz.sai_ssf, op->o_ssf, 0 );
@@ -1039,7 +1035,7 @@ dn_match_cleanup:;
 			LDAP_LOG( ACL, DETAIL1, 
 		   		"acl_mask: conn %lu  check a_authz.sai_transport_ssf: "
 				"ACL %u > OP %u\n",
-				conn->c_connid, b->a_authz.sai_transport_ssf, 
+				op->o_connid, b->a_authz.sai_transport_ssf, 
 				op->o_transport_ssf  );
 #else
 			Debug( LDAP_DEBUG_ACL,
@@ -1056,7 +1052,7 @@ dn_match_cleanup:;
 			LDAP_LOG( ACL, DETAIL1, 
 				"acl_mask: conn %lu  check a_authz.sai_tls_ssf: ACL %u > "
 				"OP %u\n",
-				conn->c_connid, b->a_authz.sai_tls_ssf, op->o_tls_ssf  );
+				op->o_connid, b->a_authz.sai_tls_ssf, op->o_tls_ssf  );
 #else
 			Debug( LDAP_DEBUG_ACL,
 				"<= check a_authz.sai_tls_ssf: ACL %u > OP %u\n",
@@ -1072,7 +1068,7 @@ dn_match_cleanup:;
 			LDAP_LOG( ACL, DETAIL1, 
 			   "acl_mask: conn %lu check a_authz.sai_sasl_ssf: " 
 			   "ACL %u > OP %u\n",
-				conn->c_connid, b->a_authz.sai_sasl_ssf, op->o_sasl_ssf );
+				op->o_connid, b->a_authz.sai_sasl_ssf, op->o_sasl_ssf );
 #else
 			Debug( LDAP_DEBUG_ACL,
 				"<= check a_authz.sai_sasl_ssf: ACL %u > OP %u\n",
@@ -1210,7 +1206,7 @@ dn_match_cleanup:;
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, DETAIL1, 
 			   "acl_mask: conn %lu  [%d] mask: %s\n",
-			   conn->c_connid, i, accessmask2str( *mask, accessmaskbuf)  );
+			   op->o_connid, i, accessmask2str( *mask, accessmaskbuf)  );
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_mask: [%d] mask: %s\n",
@@ -1234,7 +1230,7 @@ dn_match_cleanup:;
 #ifdef NEW_LOGGING
 	LDAP_LOG( ACL, RESULTS, 
 		   "acl_mask: conn %lu  no more <who> clauses, returning %d (stop)\n",
-		   conn->c_connid, accessmask2str( *mask, accessmaskbuf) , 0 );
+		   op->o_connid, accessmask2str( *mask, accessmaskbuf) , 0 );
 #else
 	Debug( LDAP_DEBUG_ACL,
 		"<= acl_mask: no more <who> clauses, returning %s (stop)\n",
@@ -1252,24 +1248,22 @@ dn_match_cleanup:;
 
 int
 acl_check_modlist(
-    Backend	*be,
-    Connection	*conn,
-    Operation	*op,
-    Entry	*e,
-    Modifications	*mlist
+	Operation	*op,
+	Entry	*e,
+	Modifications	*mlist
 )
 {
 	struct berval *bv;
 	AccessControlState state = ACL_STATE_INIT;
 
-	assert( be != NULL );
+	assert( op->o_bd != NULL );
 
 	/* short circuit root database access */
-	if ( be_isroot( be, &op->o_ndn ) ) {
+	if ( be_isroot( op->o_bd, &op->o_ndn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, DETAIL1, 
 			   "acl_check_modlist: conn %lu  access granted to root user\n",
-			   conn->c_connid, 0, 0 );
+			   op->o_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_access_allowed: granted to database root\n",
@@ -1279,25 +1273,25 @@ acl_check_modlist(
 	}
 
 	/* use backend default access if no backend acls */
-	if( be != NULL && be->be_acl == NULL ) {
+	if( op->o_bd != NULL && op->o_bd->be_acl == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, DETAIL1, 
 			"acl_check_modlist: backend default %s access %s to \"%s\"\n",
 			access2str( ACL_WRITE ),
-			be->be_dfltaccess >= ACL_WRITE ? "granted" : "denied", 
+			op->o_bd->be_dfltaccess >= ACL_WRITE ? "granted" : "denied", 
 			op->o_dn.bv_val  );
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: backend default %s access %s to \"%s\"\n",
 			access2str( ACL_WRITE ),
-			be->be_dfltaccess >= ACL_WRITE ? "granted" : "denied", op->o_dn.bv_val );
+			op->o_bd->be_dfltaccess >= ACL_WRITE ? "granted" : "denied", op->o_dn.bv_val );
 #endif
-		return be->be_dfltaccess >= ACL_WRITE;
+		return op->o_bd->be_dfltaccess >= ACL_WRITE;
 
 #ifdef notdef
-	/* be is always non-NULL */
+	/* op->o_bd is always non-NULL */
 	/* use global default access if no global acls */
-	} else if ( be == NULL && global_acl == NULL ) {
+	} else if ( op->o_bd == NULL && global_acl == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, DETAIL1, 
 			"acl_check_modlist: global default %s access %s to \"%s\"\n",
@@ -1324,7 +1318,7 @@ acl_check_modlist(
 #ifdef NEW_LOGGING
 			LDAP_LOG( ACL, DETAIL1, 
 				   "acl_check_modlist: conn %lu  no-user-mod %s: modify access granted\n",
-				   conn->c_connid, mlist->sml_desc->ad_cname.bv_val , 0 );
+				   op->o_connid, mlist->sml_desc->ad_cname.bv_val , 0 );
 #else
 			Debug( LDAP_DEBUG_ACL, "acl: no-user-mod %s:"
 				" modify access granted\n",
@@ -1340,7 +1334,7 @@ acl_check_modlist(
 			 * attribute and permission to add the specific attributes.
 			 * This prevents abuse from selfwriters.
 			 */
-			if ( ! access_allowed( be, conn, op, e,
+			if ( ! access_allowed( op, e,
 				mlist->sml_desc, NULL, ACL_WRITE, &state ) )
 			{
 				return( 0 );
@@ -1361,7 +1355,7 @@ acl_check_modlist(
 			for ( bv = mlist->sml_bvalues; bv->bv_val != NULL; bv++ )
 #endif
 			{
-				if ( ! access_allowed( be, conn, op, e,
+				if ( ! access_allowed( op, e,
 					mlist->sml_desc, bv, ACL_WRITE, &state ) )
 				{
 					return( 0 );
@@ -1371,7 +1365,7 @@ acl_check_modlist(
 
 		case LDAP_MOD_DELETE:
 			if ( mlist->sml_bvalues == NULL ) {
-				if ( ! access_allowed( be, conn, op, e,
+				if ( ! access_allowed( op, e,
 					mlist->sml_desc, NULL, ACL_WRITE, NULL ) )
 				{
 					return( 0 );
@@ -1386,7 +1380,7 @@ acl_check_modlist(
 			for ( bv = mlist->sml_bvalues; bv->bv_val != NULL; bv++ )
 #endif
 			{
-				if ( ! access_allowed( be, conn, op, e,
+				if ( ! access_allowed( op, e,
 					mlist->sml_desc, bv, ACL_WRITE, &state ) )
 				{
 					return( 0 );
@@ -1462,7 +1456,7 @@ aci_set_gather (void *cookie, struct berval *name, struct berval *attr)
 		const char *text;
 		AttributeDescription *desc = NULL;
 		if (slap_bv2ad(attr, &desc, &text) == LDAP_SUCCESS) {
-			backend_attribute(cp->be, NULL, cp->op,
+			backend_attribute(cp->op,
 				cp->e, &ndn, desc, &bvals);
 		}
 		free(ndn.bv_val);
@@ -1473,11 +1467,9 @@ aci_set_gather (void *cookie, struct berval *name, struct berval *attr)
 static int
 aci_match_set (
 	struct berval *subj,
-    Backend *be,
-    Entry *e,
-    Connection *conn,
-    Operation *op,
-    int setref
+	Operation *op,
+	Entry *e,
+	int setref
 )
 {
 	struct berval set = { 0, NULL };
@@ -1511,7 +1503,7 @@ aci_match_set (
 			if ( dnNormalize2(NULL, &subjdn, &ndn) == LDAP_SUCCESS
 				&& slap_bv2ad(&setat, &desc, &text) == LDAP_SUCCESS )
 			{
-				backend_attribute(be, NULL, op, e,
+				backend_attribute(op, e,
 					&ndn, desc, &bvals);
 				if ( bvals != NULL ) {
 					if ( bvals[0].bv_val != NULL ) {
@@ -1531,10 +1523,8 @@ aci_match_set (
 	}
 
 	if (set.bv_val != NULL) {
-		cookie.be = be;
-		cookie.e = e;
-		cookie.conn = conn;
 		cookie.op = op;
+		cookie.e = e;
 		rc = (slap_set_filter(aci_set_gather, &cookie, &set,
 			&op->o_ndn, &e->e_nname, NULL) > 0);
 		ch_free(set.bv_val);
@@ -1703,10 +1693,8 @@ aci_group_member (
 	struct berval *subj,
 	struct berval *defgrpoc,
 	struct berval *defgrpat,
-    Backend		*be,
-    Entry		*e,
-    Connection		*conn,
-    Operation		*op,
+	Operation		*op,
+	Entry		*e,
 	regmatch_t	*matches
 )
 {
@@ -1747,7 +1735,7 @@ aci_group_member (
 		bv.bv_val = (char *)&buf;
 		string_expand(&bv, &subjdn, e->e_ndn, matches);
 		if ( dnNormalize2(NULL, &bv, &ndn) == LDAP_SUCCESS ) {
-			rc = (backend_group(be, conn, op, e, &ndn, &op->o_ndn,
+			rc = (backend_group(op, e, &ndn, &op->o_ndn,
 				grp_oc, grp_ad) == 0);
 			free( ndn.bv_val );
 		}
@@ -1759,8 +1747,6 @@ done:
 
 static int
 aci_mask(
-    Backend			*be,
-    Connection		*conn,
     Operation		*op,
     Entry			*e,
 	AttributeDescription *desc,
@@ -1874,19 +1860,19 @@ aci_mask(
 
 
 	} else if (ber_bvstrcasecmp( &aci_bv_group, &bv ) == 0) {
-		if (aci_group_member(&sdn, &aci_bv_group_class, &aci_bv_group_attr, be, e, conn, op, matches))
+		if (aci_group_member(&sdn, &aci_bv_group_class, &aci_bv_group_attr, op, e, matches))
 			return(1);
 
 	} else if (ber_bvstrcasecmp( &aci_bv_role, &bv ) == 0) {
-		if (aci_group_member(&sdn, &aci_bv_role_class, &aci_bv_role_attr, be, e, conn, op, matches))
+		if (aci_group_member(&sdn, &aci_bv_role_class, &aci_bv_role_attr, op, e, matches))
 			return(1);
 
 	} else if (ber_bvstrcasecmp( &aci_bv_set, &bv ) == 0) {
-		if (aci_match_set(&sdn, be, e, conn, op, 0))
+		if (aci_match_set(&sdn, op, e, 0))
 			return(1);
 
 	} else if (ber_bvstrcasecmp( &aci_bv_set_ref, &bv ) == 0) {
-		if (aci_match_set(&sdn, be, e, conn, op, 1))
+		if (aci_match_set(&sdn, op, e, 1))
 			return(1);
 
 	}

@@ -95,7 +95,7 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_search_stack = NULL;
 
 #if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
-	LDAP_LIST_INIT (&bdb->psearch_list);
+	LDAP_LIST_INIT (&bdb->bi_psearch_list);
 #endif
 
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );

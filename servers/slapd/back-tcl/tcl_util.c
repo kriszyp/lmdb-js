@@ -22,18 +22,14 @@
 
 int
 interp_send_results (
-	Backend * be,
-	Connection * conn,
 	Operation * op,
-	char *result,
-	AttributeName *attrs,
-	int attrsonly
+	SlapReply * rs,
+	char *result
 )
 {
-	int bsize, len, argcPtr, i, err, code;
-	char *buf, *bp, **argvPtr, *line, *matched, *info;
-	Entry *e;
-	struct tclinfo *ti = (struct tclinfo *) be->be_private;
+	int bsize, len, argcPtr, i, code;
+	char *buf, *bp, **argvPtr, *line;
+	struct tclinfo *ti = (struct tclinfo *) op->o_bd->be_private;
 
 	/*
 	 * read in the result and send it along 
@@ -45,8 +41,8 @@ interp_send_results (
 	code = Tcl_SplitList (ti->ti_ii->interp, result, &argcPtr, &argvPtr);
 	if (code != TCL_OK) {
 		argcPtr = 0;
-		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-			"internal backend error", NULL, NULL );
+		send_ldap_error (op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"internal backend error" );
 		return -1;
 	}
 	for (i = 0; i < argcPtr; i++) {
@@ -73,32 +69,32 @@ interp_send_results (
 			if (strncasecmp (buf, "RESULT", 6) == 0) {
 				break;
 			}
-			if ((e = str2entry (buf)) == NULL) {
+			if ((rs->sr_entry = str2entry (buf)) == NULL) {
 				Debug (LDAP_DEBUG_SHELL,
 					"str2entry(%s) failed\n",
 					buf, 0, 0);
 			} else {
-				send_search_entry (be, conn, op, e, attrs,
-					attrsonly, NULL );
-				entry_free (e);
+				rs->sr_attrs = op->oq_search.rs_attrs;
+				send_search_entry (op, rs);
+				entry_free (rs->sr_entry);
 			}
 
 			bp = buf;
 		}
 	}
 
-	(void) str2result (buf, &err, &matched, &info);
+	(void) str2result (buf, &rs->sr_err, (char **)&rs->sr_matched, (char **)&rs->sr_text);
 
 	/*
 	 * otherwise, front end will send this result 
 	 */
-	if (err != 0 || op->o_tag != LDAP_REQ_BIND) {
-		send_ldap_result (conn, op, err, matched, info, NULL, NULL );
+	if (rs->sr_err != 0 || op->o_tag != LDAP_REQ_BIND) {
+		send_ldap_result (op, rs);
 	}
 
 	free (buf);
 	Tcl_Free ((char *) argvPtr);
-	return (err);
+	return (rs->sr_err);
 }
 
 char *

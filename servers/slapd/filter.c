@@ -183,6 +183,7 @@ get_filter(
 			f.f_choice = SLAPD_FILTER_COMPUTED;
 			f.f_result = LDAP_COMPARE_FALSE;
 			err = LDAP_SUCCESS;
+			*text = NULL;
 			break;
 		}
 

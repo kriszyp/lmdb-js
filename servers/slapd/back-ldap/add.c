@@ -47,13 +47,10 @@
 
 int
 ldap_back_add(
-    Backend	*be,
-    Connection	*conn,
     Operation	*op,
-    Entry	*e
-)
+    SlapReply	*rs )
 {
-	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
+	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
 	struct ldapconn *lc;
 	int i, j;
 	Attribute *a;
@@ -63,13 +60,13 @@ ldap_back_add(
 	ber_int_t msgid;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDAP, ENTRY, "ldap_back_add: %s\n", e->e_dn, 0, 0 );
+	LDAP_LOG( BACK_LDAP, ENTRY, "ldap_back_add: %s\n", op->o_req_dn.bv_val, 0, 0 );
 #else /* !NEW_LOGGING */
-	Debug(LDAP_DEBUG_ARGS, "==> ldap_back_add: %s\n", e->e_dn, 0, 0);
+	Debug(LDAP_DEBUG_ARGS, "==> ldap_back_add: %s\n", op->o_req_dn.bv_val, 0, 0);
 #endif /* !NEW_LOGGING */
 	
-	lc = ldap_back_getconn(li, conn, op);
-	if ( !lc || !ldap_back_dobind( li, lc, conn, op ) ) {
+	lc = ldap_back_getconn(li, op, rs);
+	if ( !lc || !ldap_back_dobind( li, lc, op, rs ) ) {
 		return( -1 );
 	}
 
@@ -77,45 +74,45 @@ ldap_back_add(
 	 * Rewrite the add dn, if needed
 	 */
 #ifdef ENABLE_REWRITE
-	switch (rewrite_session( li->rwinfo, "addDn", e->e_dn, conn, 
+	switch (rewrite_session( li->rwinfo, "addDn", op->o_req_dn.bv_val, op->o_conn, 
 				&mdn.bv_val )) {
 	case REWRITE_REGEXEC_OK:
 		if ( mdn.bv_val != NULL && mdn.bv_val[ 0 ] != '\0' ) {
 			mdn.bv_len = strlen( mdn.bv_val );
 		} else {
-			mdn = e->e_name;
+			mdn = op->o_req_ndn;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDAP, DETAIL1, 
-			"[rw] addDn: \"%s\" -> \"%s\"\n", e->e_dn, mdn.bv_val, 0 );		
+			"[rw] addDn: \"%s\" -> \"%s\"\n", op->o_req_dn.bv_val, mdn.bv_val, 0 );		
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> addDn: \"%s\" -> \"%s\"\n%s", 
-				e->e_dn, mdn.bv_val, "" );
+				op->o_req_dn.bv_val, mdn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 		break;
  		
  	case REWRITE_REGEXEC_UNWILLING:
- 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
- 				NULL, "Operation not allowed", NULL, NULL );
+ 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+ 				"Operation not allowed" );
 		return( -1 );
 	       	
 	case REWRITE_REGEXEC_ERR:
- 		send_ldap_result( conn, op, LDAP_OTHER,
- 				NULL, "Rewrite error", NULL, NULL );
+ 		send_ldap_error( op, rs, LDAP_OTHER,
+ 				"Rewrite error" );
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */
-	ldap_back_dn_massage( li, &e->e_name, &mdn, 0, 1 );
+	ldap_back_dn_massage( li, &op->o_req_ndn, &mdn, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 
 	/* Count number of attributes in entry */
-	for (i = 1, a = e->e_attrs; a; i++, a = a->a_next)
+	for (i = 1, a = op->oq_add.rs_e->e_attrs; a; i++, a = a->a_next)
 		;
 	
 	/* Create array of LDAPMods for ldap_add() */
 	attrs = (LDAPMod **)ch_malloc(sizeof(LDAPMod *)*i);
 
-	for (i=0, a=e->e_attrs; a; a=a->a_next) {
+	for (i=0, a=op->oq_add.rs_e->e_attrs; a; a=a->a_next) {
 		/*
 		 * lastmod should always be <off>, so that
 		 * creation/modification operational attrs
@@ -164,7 +161,7 @@ ldap_back_add(
 			 * FIXME: rewrite could fail; in this case
 			 * the operation should give up, right?
 			 */
-			(void)ldap_dnattr_rewrite( li->rwinfo, a->a_vals, conn );
+			(void)ldap_dnattr_rewrite( li->rwinfo, a->a_vals, op->o_conn );
 		}
 #endif /* ENABLE_REWRITE */
 
@@ -183,11 +180,11 @@ ldap_back_add(
 		ch_free(attrs[i]);
 	}
 	ch_free(attrs);
-	if ( mdn.bv_val != e->e_dn ) {
+	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
 	}
 	
-	return( ldap_back_op_result( li, lc, conn, op, msgid, j, 1 ) );
+	return( ldap_back_op_result( li, lc, op, rs, msgid, j, 1 ) );
 }
 
 #ifdef ENABLE_REWRITE

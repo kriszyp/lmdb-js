@@ -22,7 +22,7 @@ const char Versionstr[] = "";
 /* bogus ../results.c */
 int str2result(
 	char* s,
-	int *code, 
+	int *code,
 	char **matched,
 	char **info )
 {
@@ -31,27 +31,14 @@ int str2result(
 }
 
 void
-send_ldap_disconnect(
-    Connection	*conn,
-    Operation	*op,
-    ber_int_t	err,
-    const char	*text
-)
+send_ldap_disconnect( Operation	*op, SlapReply *rs )
 {
 	assert(0);
 }
 
 void
 slap_send_ldap_extended(
-    Connection	*conn,
-    Operation	*op,
-    ber_int_t	err,
-    const char	*matched,
-    const char	*text,
-	BerVarray refs,
-    const char	*rspoid,
-	struct berval *rspdata,
-	LDAPControl **ctrls
+    Operation	*op, SlapReply *rs
 )
 {
 	assert(0);
@@ -59,89 +46,39 @@ slap_send_ldap_extended(
 
 void
 slap_send_ldap_intermediate_resp(
-	Connection  *conn,
-	Operation   *op,
-	ber_int_t   err,
-	const char  *matched,
-	const char  *text,
-	BerVarray refs,
-	const char  *rspoid,
-	struct berval *rspdata,
-	LDAPControl **ctrls
+	Operation *op, SlapReply *rs
 )
 {
 	assert(0);
 }
 
 void
-send_ldap_sasl(
-    Connection	*conn,
-    Operation	*op,
-    ber_int_t	err,
-    const char	*matched,
-    const char	*text,
-	BerVarray refs,
-	LDAPControl **ctrls,
-	struct berval *cred
-)
+send_ldap_sasl( Operation *op, SlapReply *rs )
 {
 	assert(0);
 }
 
 void
-slap_send_ldap_result(
-	Connection  *conn, 
-	Operation   *op,
-	ber_int_t     err,
-	const char    *matched,
-	const char    *text,
-	BerVarray refs,
-	LDAPControl **ctrls
-)        
+slap_send_ldap_result( Operation *op, SlapReply *rs )
 {
 	assert(0);
 }
 
 void
-slap_send_search_result(
-	Connection  *conn, 
-	Operation   *op,
-	ber_int_t     err,
-	const char    *matched,
-	const char    *text,
-	BerVarray refs,
-	LDAPControl **ctrls,
-	int		nentries
-)        
+slap_send_search_result( Operation *op, SlapReply *rs )
 {
 	assert(0);
 }
 
 int
-slap_send_search_entry(
-	Backend *be,
-	Connection  *conn, 
-	Operation   *op,
-	Entry	*e,
-	AttributeName	*attrs,
-	int		attrsonly,
-	LDAPControl **ctrls
-)        
+slap_send_search_entry( Operation *op, SlapReply *rs )
 {
 	assert(0);
 	return -1;
 }
 
 int
-slap_send_search_reference(
-	Backend *be,
-	Connection  *conn, 
-	Operation   *op,
-	Entry	*e,
-	BerVarray	refs,
-	LDAPControl **ctrls,
-	BerVarray	*v2refs
-)
+slap_send_search_reference( Operation *op, SlapReply *rs )
 {
 	assert(0);
 	return -1;
@@ -157,15 +94,7 @@ int slap_sasl_destroy(void)
 	return LDAP_SUCCESS;
 }
 
-int slap_sasl_setpass(
-	Connection      *conn,
-	Operation       *op,
-	struct berval   *reqoid,
-	struct berval   *reqdata,
-	char            **rspoid,
-	struct berval   **rspdata,
-	LDAPControl     *** rspctrls,
-	const char      **text )
+int slap_sasl_setpass( Operation *op, SlapReply *rs )
 {
 	return LDAP_SUCCESS;
 }
@@ -214,8 +143,7 @@ const char * connection_state2str( int state )
 	return NULL;
 }
 
-void replog( Backend *be, Operation *op,
-	struct berval *dn, struct berval *ndn, void *change)
+void replog( Operation *op )
 {
 	assert(0);
 }
@@ -275,13 +203,10 @@ slapd_get_listeners(void)
 
 int
 slap_modrdn2mods(
-	Backend		*be,
-	Connection	*conn,
-	Operation	*op,
+	Operation	*op, SlapReply *rs,
 	Entry		*e,
 	LDAPRDN		*oldrdn,
 	LDAPRDN		*newrdn,
-	int		deleteoldrdn,
 	Modifications	**pmod )
 {
 	return 0;

@@ -54,12 +54,9 @@ int tcl_ldap_debug (
 );
 
 int interp_send_results (
-	Backend * be,
-	Connection * conn,
 	Operation * op,
-	char *result,
-	AttributeName *attrs,
-	int attrsonly
+	SlapReply * rs,
+	char *result
 );
 
 #endif

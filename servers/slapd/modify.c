@@ -33,12 +33,10 @@
 
 int
 do_modify(
-    Connection	*conn,
-    Operation	*op )
+    Operation	*op,
+    SlapReply	*rs )
 {
 	struct berval dn = { 0, NULL };
-	struct berval pdn = { 0, NULL };
-	struct berval ndn = { 0, NULL };
 	char		*last;
 	ber_tag_t	tag;
 	ber_len_t	len;
@@ -51,9 +49,6 @@ do_modify(
 	LDAPMod		**modv = NULL;
 	Slapi_PBlock *pb = op->o_pb;
 #endif
-	Backend		*be;
-	int rc;
-	const char	*text;
 	int manageDSAit;
 
 #ifdef NEW_LOGGING
@@ -88,8 +83,7 @@ do_modify(
 		Debug( LDAP_DEBUG_ANY, "do_modify: ber_scanf failed\n", 0, 0, 0 );
 #endif
 
-		send_ldap_disconnect( conn, op,
-			LDAP_PROTOCOL_ERROR, "decoding error" );
+		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
@@ -117,9 +111,8 @@ do_modify(
 		    &tmp.sml_type, &tmp.sml_values )
 		    == LBER_ERROR )
 		{
-			send_ldap_disconnect( conn, op,
-				LDAP_PROTOCOL_ERROR, "decoding modlist error" );
-			rc = SLAPD_DISCONNECT;
+			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding modlist error" );
+			rs->sr_err = SLAPD_DISCONNECT;
 			goto cleanup;
 		}
 
@@ -147,10 +140,8 @@ do_modify(
 					(long) mop, 0, 0 );
 #endif
 
-				send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
-					NULL, "modify/add operation requires values",
-					NULL, NULL );
-				rc = LDAP_PROTOCOL_ERROR;
+				send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
+					"modify/add operation requires values" );
 				goto cleanup;
 			}
 
@@ -170,9 +161,8 @@ do_modify(
 					(long) mop, 0, 0 );
 #endif
 
-				send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
-					NULL, "unrecognized modify operation", NULL, NULL );
-				rc = LDAP_PROTOCOL_ERROR;
+				send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
+					"unrecognized modify operation" );
 				goto cleanup;
 			}
 		}
@@ -181,7 +171,7 @@ do_modify(
 	}
 	*modtail = NULL;
 
-	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
+	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, "do_modify: get_ctrls failed\n", 0, 0, 0 );
 #else
@@ -191,21 +181,20 @@ do_modify(
 		goto cleanup;
 	}
 
-	rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn );
-	if( rc != LDAP_SUCCESS ) {
+	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
+	if( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_modify: conn %d  invalid dn (%s)\n",
-			conn->c_connid, dn.bv_val, 0 );
+			op->o_connid, dn.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"do_modify: invalid dn (%s)\n", dn.bv_val, 0, 0 );
 #endif
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto cleanup;
 	}
 
-	if( ndn.bv_len == 0 ) {
+	if( op->o_req_ndn.bv_len == 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			"do_modify: attempt to modify root DSE.\n",0, 0, 0 );
@@ -213,11 +202,11 @@ do_modify(
 		Debug( LDAP_DEBUG_ANY, "do_modify: root dse!\n", 0, 0, 0 );
 #endif
 
-		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "modify upon the root DSE not supported", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"modify upon the root DSE not supported" );
 		goto cleanup;
 
-	} else if ( bvmatch( &ndn, &global_schemandn ) ) {
+	} else if ( bvmatch( &op->o_req_ndn, &global_schemandn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
 			"do_modify: attempt to modify subschema subentry.\n" , 0, 0, 0  );
@@ -225,9 +214,8 @@ do_modify(
 		Debug( LDAP_DEBUG_ANY, "do_modify: subschema subentry!\n", 0, 0, 0 );
 #endif
 
-		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "modification of subschema subentry not supported",
-			NULL, NULL );
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+			"modification of subschema subentry not supported" );
 		goto cleanup;
 	}
 
@@ -312,28 +300,26 @@ do_modify(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( &ndn, manageDSAit, 0 )) == NULL ) {
-		BerVarray ref = referral_rewrite( default_referral,
-			NULL, &pdn, LDAP_SCOPE_DEFAULT );
+	if ( (op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 )) == NULL ) {
+		rs->sr_ref = referral_rewrite( default_referral,
+			NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
+		if (!rs->sr_ref) rs->sr_ref = default_referral;
 
-		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
-			NULL, NULL, ref ? ref : default_referral, NULL );
+		rs->sr_err = LDAP_REFERRAL;
+		send_ldap_result( op, rs );
 
-		ber_bvarray_free( ref );
+		if (rs->sr_ref != default_referral) ber_bvarray_free( rs->sr_ref );
 		goto cleanup;
 	}
 
 	/* check restrictions */
-	rc = backend_check_restrictions( be, conn, op, NULL, &text ) ;
-	if( rc != LDAP_SUCCESS ) {
-		send_ldap_result( conn, op, rc,
-			NULL, text, NULL, NULL );
+	if( backend_check_restrictions( op, rs, NULL ) != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
 		goto cleanup;
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, &pdn, &ndn );
-	if ( rc != LDAP_SUCCESS ) {
+	if( backend_check_referrals( op, rs ) != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
 
@@ -346,8 +332,8 @@ do_modify(
 	modv = slapi_x_modifications2ldapmods( &modlist );
 	slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv );
 
-	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
-	if ( rc != 0 ) {
+	rs->sr_err = doPluginFNs( be, SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
+	if ( rs->sr_err != 0 ) {
 		/*
 		 * A preoperation plugin failure will abort the
 		 * entire operation.
@@ -359,8 +345,8 @@ do_modify(
 		Debug(LDAP_DEBUG_TRACE, "do_modify: modify preoperation plugin failed.\n",
 				0, 0, 0);
 #endif
-		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0) {
-			rc = LDAP_OTHER;
+		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0) {
+			rs->sr_err = LDAP_OTHER;
 		}
 		ldap_mods_free( modv, 1 );
 		modv = NULL;
@@ -385,27 +371,25 @@ do_modify(
 	 * 2) this backend is master for what it holds;
 	 * 3) it's a replica and the dn supplied is the update_ndn.
 	 */
-	if ( be->be_modify ) {
+	if ( op->o_bd->be_modify ) {
 		/* do the update here */
-		int repl_user = be_isupdate( be, &op->o_ndn );
+		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
 #ifndef SLAPD_MULTIMASTER
 		/* Multimaster slapd does not have to check for replicator dn
 		 * because it accepts each modify request
 		 */
-		if ( !be->be_update_ndn.bv_len || repl_user )
+		if ( !op->o_bd->be_update_ndn.bv_len || repl_user )
 #endif
 		{
-			int update = be->be_update_ndn.bv_len;
-			const char *text;
+			int update = op->o_bd->be_update_ndn.bv_len;
 			char textbuf[SLAP_TEXT_BUFLEN];
 			size_t textlen = sizeof textbuf;
 
-			rc = slap_mods_check( modlist, update, &text,
+			rs->sr_err = slap_mods_check( modlist, update, &rs->sr_text,
 				textbuf, textlen );
 
-			if( rc != LDAP_SUCCESS ) {
-				send_ldap_result( conn, op, rc,
-					NULL, text, NULL, NULL );
+			if( rs->sr_err != LDAP_SUCCESS ) {
+				send_ldap_result( op, rs );
 				goto cleanup;
 			}
 
@@ -417,47 +401,45 @@ do_modify(
 					/* empty */
 				}
 
-				rc = slap_mods_opattrs( be, op, modlist, modtail, &text,
-					textbuf, textlen );
-				if( rc != LDAP_SUCCESS ) {
-					send_ldap_result( conn, op, rc,
-						NULL, text,
-						NULL, NULL );
+				rs->sr_err = slap_mods_opattrs( op, modlist, modtail,
+					&rs->sr_text, textbuf, textlen );
+				if( rs->sr_err != LDAP_SUCCESS ) {
+					send_ldap_result( op, rs );
 					goto cleanup;
 				}
 			}
 
-			if ( (*be->be_modify)( be, conn, op, &pdn, &ndn, modlist ) == 0
+			op->oq_modify.rs_modlist = modlist;
+			if ( (op->o_bd->be_modify)( op, rs ) == 0
 #ifdef SLAPD_MULTIMASTER
 				&& !repl_user
 #endif
 			) {
 				/* but we log only the ones not from a replicator user */
-				replog( be, op, &pdn, &ndn, modlist );
+				replog( op );
 			}
 
 #ifndef SLAPD_MULTIMASTER
 		/* send a referral */
 		} else {
-			BerVarray defref = be->be_update_refs
-				? be->be_update_refs : default_referral;
-			BerVarray ref = referral_rewrite( defref,
-				NULL, &pdn, LDAP_SCOPE_DEFAULT );
+			BerVarray defref = op->o_bd->be_update_refs
+				? op->o_bd->be_update_refs : default_referral;
+			rs->sr_ref = referral_rewrite( defref,
+				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 
-			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
-				ref ? ref : defref, NULL );
-
-			ber_bvarray_free( ref );
+			if (!rs->sr_ref) rs->sr_ref = defref;
+			rs->sr_err = LDAP_REFERRAL;
+			send_ldap_result( op, rs );
+			if (rs->sr_ref != defref) ber_bvarray_free( rs->sr_ref );
 #endif
 		}
 	} else {
-		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-		    NULL, "operation not supported within namingContext",
-			NULL, NULL );
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+		    "operation not supported within namingContext" );
 	}
 
 #if defined( LDAP_SLAPI )
-	if ( doPluginFNs( be, SLAPI_PLUGIN_POST_MODIFY_FN, pb ) != 0 ) {
+	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_MODIFY_FN, pb ) != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_modify: modify postoperation plugins "
 				"failed\n", 0, 0, 0 );
@@ -469,13 +451,13 @@ do_modify(
 #endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
-	free( pdn.bv_val );
-	free( ndn.bv_val );
+	free( op->o_req_dn.bv_val );
+	free( op->o_req_ndn.bv_val );
 	if ( modlist != NULL ) slap_mods_free( modlist );
 #if defined( LDAP_SLAPI )
 	if ( modv != NULL ) slapi_x_free_ldapmods( modv );
 #endif
-	return rc;
+	return rs->sr_err;
 }
 
 /*
@@ -660,7 +642,6 @@ int slap_mods_check(
 }
 
 int slap_mods_opattrs(
-	Backend *be,
 	Operation *op,
 	Modifications *mods,
 	Modifications **modtail,
@@ -681,7 +662,7 @@ int slap_mods_opattrs(
 	assert( modtail != NULL );
 	assert( *modtail == NULL );
 
-	if( SLAP_LASTMOD(be) ) {
+	if( SLAP_LASTMOD(op->o_bd) ) {
 		struct tm *ltm;
 		time_t now = slap_get_time();
 
@@ -742,7 +723,7 @@ int slap_mods_opattrs(
 			modtail = &mod->sml_next;
 		}
 
-		if( SLAP_LASTMOD(be) ) {
+		if( SLAP_LASTMOD(op->o_bd) ) {
 			char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
 
 			tmpval.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
@@ -801,7 +782,7 @@ int slap_mods_opattrs(
 		}
 	}
 
-	if( SLAP_LASTMOD(be) ) {
+	if( SLAP_LASTMOD(op->o_bd) ) {
 		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		mod->sml_op = mop;
 		mod->sml_type.bv_val = NULL;

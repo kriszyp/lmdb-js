@@ -328,28 +328,21 @@ static int slap_sasl_regexp( struct berval *in, struct berval *out )
 }
 
 /* Two empty callback functions to avoid sending results */
-void slap_cb_null_response( Connection *conn, Operation *o, ber_tag_t tag,
-	ber_int_t msgid, ber_int_t err, const char *matched,
-	const char *text, BerVarray ref, const char *resoid,
-	struct berval *resdata, struct berval *sasldata, LDAPControl **c)
+void slap_cb_null_response( Operation *o, SlapReply *rs )
 {
 }
 
-void slap_cb_null_sresult( Connection *conn, Operation *o, ber_int_t err,
-	const char *matched, const char *text, BerVarray refs, LDAPControl **c,
-	int nentries)
+void slap_cb_null_sresult( Operation *o, SlapReply *rs )
 {
 }
 
-int slap_cb_null_sreference( BackendDB *db, Connection *conn, Operation *o, 
-	Entry *e, BerVarray r, LDAPControl **c, BerVarray *v2)
+int slap_cb_null_sreference( Operation *o, SlapReply *rs )
 {
 	return 0;
 }
 
 /* This callback actually does some work...*/
-static int sasl_sc_sasl2dn( BackendDB *be, Connection *conn, Operation *o,
-	Entry *e, AttributeName *an, int ao, LDAPControl **c)
+static int sasl_sc_sasl2dn( Operation *o, SlapReply *rs )
 {
 	struct berval *ndn = o->o_callback->sc_private;
 
@@ -368,7 +361,7 @@ static int sasl_sc_sasl2dn( BackendDB *be, Connection *conn, Operation *o,
 		return -1;
 	}
 
-	ber_dupbv(ndn, &e->e_nname);
+	ber_dupbv(ndn, &rs->sr_entry->e_nname);
 	return 0;
 }
 
@@ -378,12 +371,11 @@ typedef struct smatch_info {
 	int match;
 } smatch_info;
 
-static int sasl_sc_smatch( BackendDB *be, Connection *conn, Operation *o,
-	Entry *e, AttributeName *an, int ao, LDAPControl **c)
+static int sasl_sc_smatch( Operation *o, SlapReply *rs )
 {
 	smatch_info *sm = o->o_callback->sc_private;
 
-	if (dn_match(sm->dn, &e->e_nname)) {
+	if (dn_match(sm->dn, &rs->sr_entry->e_nname)) {
 		sm->match = 1;
 		return -1;	/* short-circuit the search */
 	}
@@ -403,19 +395,17 @@ static int sasl_sc_smatch( BackendDB *be, Connection *conn, Operation *o,
 static
 int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assertDN, struct berval *authc )
 {
-	struct berval searchbase = {0, NULL};
-	int rc, scope;
-	Backend *be;
-	Filter *filter=NULL;
+	int rc; 
 	regex_t reg;
 	smatch_info sm;
 	slap_callback cb = {
 		slap_cb_null_response,
 		slap_cb_null_sresult,
 		sasl_sc_smatch,
-		NULL
+		slap_cb_null_sreference
 	};
 	Operation op = {0};
+	SlapReply rs = {REP_RESULT};
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
@@ -427,12 +417,12 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 		assertDN->bv_val, rule->bv_val, 0 );
 #endif
 
-	rc = slap_parseURI( rule, &searchbase, &scope, &filter );
+	rc = slap_parseURI( rule, &op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter );
 	if( rc != LDAP_SUCCESS ) goto CONCLUDED;
 
 	/* Massive shortcut: search scope == base */
-	if( scope == LDAP_SCOPE_BASE ) {
-		rc = regcomp(&reg, searchbase.bv_val,
+	if( op.oq_search.rs_scope == LDAP_SCOPE_BASE ) {
+		rc = regcomp(&reg, op.o_req_ndn.bv_val,
 			REG_EXTENDED|REG_ICASE|REG_NOSUB);
 		if ( rc == 0 ) {
 			rc = regexec(&reg, assertDN->bv_val, 0, NULL, 0);
@@ -451,15 +441,15 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, DETAIL1, 
 		"slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
-		searchbase.bv_val, scope,0 );
+		op.o_req_ndn.bv_val, op.oq_search.rs_scope, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
-	   searchbase.bv_val, scope, 0 );
+	   op.o_req_ndn.bv_val, op.oq_search.rs_scope, 0 );
 #endif
 
-	be = select_backend( &searchbase, 0, 1 );
-	if(( be == NULL ) || ( be->be_search == NULL)) {
+	op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
+	if(( op.o_bd == NULL ) || ( op.o_bd->be_search == NULL)) {
 		rc = LDAP_INAPPROPRIATE_AUTH;
 		goto CONCLUDED;
 	}
@@ -476,10 +466,10 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 	op.o_do_not_cache = 1;
 	op.o_is_auth_check = 1;
 	op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
+	op.o_conn = conn;
+	op.o_connid = conn->c_connid;
 
-	(*be->be_search)( be, conn, &op, /*base=*/NULL, &searchbase,
-	   scope, /*deref=*/1, /*sizelimit=*/0, /*time=*/0, filter, /*fstr=*/NULL,
-	   /*attrs=*/NULL, /*attrsonly=*/0 );
+	op.o_bd->be_search( &op, &rs );
 
 	if (sm.match) {
 		rc = LDAP_SUCCESS;
@@ -488,8 +478,8 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 	}
 
 CONCLUDED:
-	if( searchbase.bv_len ) ch_free( searchbase.bv_val );
-	if( filter ) filter_free( filter );
+	if( op.o_req_ndn.bv_len ) ch_free( op.o_req_ndn.bv_val );
+	if( op.oq_search.rs_filter ) filter_free( op.oq_search.rs_filter );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
@@ -531,7 +521,7 @@ slap_sasl_check_authz( Connection *conn,
 	   assertDN->bv_val, ad->ad_cname.bv_val, searchDN->bv_val);
 #endif
 
-	rc = backend_attribute( NULL, NULL, conn->c_sasl_bindop, NULL,
+	rc = backend_attribute( conn->c_sasl_bindop, NULL,
 		searchDN, ad, &vals );
 	if( rc != LDAP_SUCCESS ) goto COMPLETE;
 
@@ -570,13 +560,10 @@ void slap_sasl2dn( Connection *conn,
 	struct berval *saslname, struct berval *sasldn )
 {
 	int rc;
-	Backend *be = NULL;
-	struct berval dn = { 0, NULL };
-	int scope = LDAP_SCOPE_BASE;
-	Filter *filter = NULL;
 	slap_callback cb = { slap_cb_null_response,
 		slap_cb_null_sresult, sasl_sc_sasl2dn, slap_cb_null_sreference, NULL};
 	Operation op = {0};
+	SlapReply rs = {REP_RESULT};
 	struct berval regout = { 0, NULL };
 
 #ifdef NEW_LOGGING
@@ -598,37 +585,39 @@ void slap_sasl2dn( Connection *conn,
 		goto FINISHED;
 	}
 
-	rc = slap_parseURI( &regout, &dn, &scope, &filter );
+	rc = slap_parseURI( &regout, &op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter );
 	if( regout.bv_val ) ch_free( regout.bv_val );
 	if( rc != LDAP_SUCCESS ) {
 		goto FINISHED;
 	}
 
 	/* Must do an internal search */
-	be = select_backend( &dn, 0, 1 );
+	op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
 
 	/* Massive shortcut: search scope == base */
-	if( scope == LDAP_SCOPE_BASE ) {
-		*sasldn = dn;
-		dn.bv_len = 0;
-		dn.bv_val = NULL;
+	if( op.oq_search.rs_scope == LDAP_SCOPE_BASE ) {
+		*sasldn = op.o_req_ndn;
+		op.o_req_ndn.bv_len = 0;
+		op.o_req_ndn.bv_val = NULL;
 		goto FINISHED;
 	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, DETAIL1, 
 		"slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
-		dn.bv_val, scope, 0 );
+		op.o_req_ndn.bv_val, op.oq_search.rs_scope, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
-		dn.bv_val, scope, 0 );
+		op.o_req_ndn.bv_val, op.oq_search.rs_scope, 0 );
 #endif
 
-	if(( be == NULL ) || ( be->be_search == NULL)) {
+	if(( op.o_bd == NULL ) || ( op.o_bd->be_search == NULL)) {
 		goto FINISHED;
 	}
 
+	op.o_conn = conn;
+	op.o_connid = conn->c_connid;
 	op.o_tag = LDAP_REQ_SEARCH;
 	op.o_protocol = LDAP_VERSION3;
 	op.o_ndn = conn->c_ndn;
@@ -638,17 +627,18 @@ void slap_sasl2dn( Connection *conn,
 	op.o_is_auth_check = 1;
 	op.o_threadctx = conn->c_sasl_bindop ? conn->c_sasl_bindop->o_threadctx:
 		ldap_pvt_thread_pool_context( &connection_pool );
+	op.oq_search.rs_deref = LDAP_DEREF_NEVER;
+	op.oq_search.rs_slimit = 1;
+	op.oq_search.rs_attrsonly = 1;
 
-	(*be->be_search)( be, conn, &op, NULL, &dn,
-		scope, LDAP_DEREF_NEVER, 1, 0,
-		filter, NULL, NULL, 1 );
+	op.o_bd->be_search( &op, &rs );
 	
 FINISHED:
 	if( sasldn->bv_len ) {
-		conn->c_authz_backend = be;
+		conn->c_authz_backend = op.o_bd;
 	}
-	if( dn.bv_len ) ch_free( dn.bv_val );
-	if( filter ) filter_free( filter );
+	if( op.o_req_ndn.bv_len ) ch_free( op.o_req_ndn.bv_val );
+	if( op.oq_search.rs_filter ) filter_free( op.oq_search.rs_filter );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 

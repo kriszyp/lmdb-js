@@ -216,7 +216,7 @@ ID ldbm_tool_entry_put(
 		return NOID;
 	}
 
-	rc = index_entry_add( be, e, e->e_attrs );
+	rc = index_entry_add( be, e );
 	if( rc != 0 ) {
 		strncpy( text->bv_val, "index add failed", text->bv_len );
 		return NOID;
@@ -302,7 +302,7 @@ int ldbm_tool_entry_reindex(
 #endif
 
 	dn2id_add( be, &e->e_nname, e->e_id );
-	rc = index_entry_add( be, e, e->e_attrs );
+	rc = index_entry_add( be, e );
 
 	entry_free( e );
 

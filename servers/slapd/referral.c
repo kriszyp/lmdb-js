@@ -292,8 +292,6 @@ BerVarray referral_rewrite(
 
 
 BerVarray get_entry_referrals(
-	Backend *be,
-	Connection *conn,
 	Operation *op,
 	Entry *e )
 {

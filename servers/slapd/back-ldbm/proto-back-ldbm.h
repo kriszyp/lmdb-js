@@ -93,10 +93,7 @@ Entry * dn2entry_rw LDAP_P(( Backend *be, struct berval *dn, Entry **matched, in
 /*
  * entry.c
  */
-int ldbm_back_entry_release_rw LDAP_P(( Backend *be,
-	Connection *conn, Operation *op,
-	Entry *e, int rw ));
-
+BI_entry_release_rw ldbm_back_entry_release_rw;
 BI_entry_get_rw ldbm_back_entry_get;
 
 /*
@@ -166,9 +163,9 @@ index_values LDAP_P((
 	ID id,
 	int op ));
 
-int index_entry LDAP_P(( Backend *be, int r, Entry *e, Attribute *ap ));
-#define index_entry_add(be,e,ap) index_entry((be),SLAP_INDEX_ADD_OP,(e),(ap))
-#define index_entry_del(be,e,ap) index_entry((be),SLAP_INDEX_DELETE_OP,(e),(ap))
+int index_entry LDAP_P(( Backend *be, int r, Entry *e ));
+#define index_entry_add(be,e) index_entry((be),SLAP_INDEX_ADD_OP,(e))
+#define index_entry_del(be,e) index_entry((be),SLAP_INDEX_DELETE_OP,(e))
 
 
 /*
@@ -206,9 +203,8 @@ extern BI_op_extended ldbm_back_exop_passwd;
  */
 
 /* returns LDAP error code indicating error OR SLAPD_ABANDON */
-int ldbm_modify_internal LDAP_P((Backend *be,
-	Connection *conn, Operation *op,
-	const char *dn, Modifications *mods, Entry *e,
+int ldbm_modify_internal LDAP_P(( Operation *op,
+	Modifications *mods, Entry *e,
 	const char **text, char *textbuf, size_t textlen ));
 
 /*

@@ -18,70 +18,64 @@
 
 int
 ldbm_back_add(
-    Backend	*be,
-    Connection	*conn,
     Operation	*op,
-    Entry	*e
-)
+    SlapReply	*rs )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
 	struct berval	pdn;
 	Entry		*p = NULL;
-	int			rc;
 	ID               id = NOID;
-	const char	*text = NULL;
 	AttributeDescription *children = slap_schema.si_ad_children;
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_back_add: %s\n", e->e_dn, 0, 0 );
+	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_back_add: %s\n", op->o_req_dn.bv_val, 0, 0 );
 #else
-	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", e->e_dn, 0, 0);
+	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", op->o_req_dn.bv_val, 0, 0);
 #endif
 	
 #ifndef LDAP_CACHING
-	rc = entry_schema_check( be, e, NULL, &text, textbuf, textlen );
+	rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e, NULL, &rs->sr_text, textbuf, textlen );
 #else /* LDAP_CACHING */
         if ( !op->o_caching_on ) {
-		rc = entry_schema_check( be, e, NULL, &text, textbuf, textlen );
+		rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e, NULL, &rs->sr_text, textbuf, textlen );
 	} else {
-		rc = LDAP_SUCCESS;
+		rs->sr_err = LDAP_SUCCESS;
 	}
 #endif /* LDAP_CACHING */
 
-	if ( rc != LDAP_SUCCESS ) {
+	if ( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, ERR, 
-			"ldbm_back_add: entry (%s) failed schema check.\n", e->e_dn, 0, 0 );
+			"ldbm_back_add: entry (%s) failed schema check.\n", op->o_req_dn.bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "entry failed schema check: %s\n",
-			text, 0, 0 );
+			rs->sr_text, 0, 0 );
 #endif
 
-		send_ldap_result( conn, op, rc,
-			NULL, text, NULL, NULL );
+		send_ldap_result( op, rs );
 		return( -1 );
 	}
 
 #ifdef LDAP_CACHING
 	if ( !op->o_caching_on ) {
 #endif /* LDAP_CACHING */
-	if ( !access_allowed( be, conn, op, e,
+	if ( !access_allowed( op, op->oq_add.rs_e,
 				entry, NULL, ACL_WRITE, NULL ) )
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, ERR, 
 			"ldbm_back_add: No write access to entry (%s).\n", 
-			e->e_dn, 0, 0 );
+			op->o_req_dn.bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "no write access to entry\n", 0,
 		    0, 0 );
 #endif
 
-		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-		    NULL, "no write access to entry", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
+		    "no write access to entry" );
 
 		return -1;
 	}
@@ -92,12 +86,11 @@ ldbm_back_add(
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
 
-	if ( ( rc = dn2id( be, &e->e_nname, &id ) ) || id != NOID ) {
-		/* if (rc) something bad happened to ldbm cache */
+	if ( ( rs->sr_err = dn2id( op->o_bd, &op->o_req_ndn, &id ) ) || id != NOID ) {
+		/* if (rs->sr_err) something bad happened to ldbm cache */
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
-		send_ldap_result( conn, op, 
-			rc ? LDAP_OTHER : LDAP_ALREADY_EXISTS,
-			NULL, NULL, NULL, NULL );
+		rs->sr_err = rs->sr_err ? LDAP_OTHER : LDAP_ALREADY_EXISTS;
+		send_ldap_result( op, rs );
 		return( -1 );
 	}
 
@@ -107,10 +100,10 @@ ldbm_back_add(
 	 * add the entry.
 	 */
 
-	if ( be_issuffix( be, &e->e_nname ) ) {
+	if ( be_issuffix( op->o_bd, &op->o_req_ndn ) ) {
 		pdn = slap_empty_bv;
 	} else {
-		dnParent( &e->e_nname, &pdn );
+		dnParent( &op->o_req_ndn, &pdn );
 	}
 
 #ifndef LDAP_CACHING
@@ -122,20 +115,17 @@ ldbm_back_add(
 		Entry *matched = NULL;
 
 		/* get parent with writer lock */
-		if ( (p = dn2entry_w( be, &pdn, &matched )) == NULL ) {
-			char *matched_dn = NULL;
-			BerVarray refs;
-
+		if ( (p = dn2entry_w( op->o_bd, &pdn, &matched )) == NULL ) {
 			if ( matched != NULL ) {
-				matched_dn = ch_strdup( matched->e_dn );
-				refs = is_entry_referral( matched )
-					? get_entry_referrals( be, conn, op, matched )
+				rs->sr_matched = ch_strdup( matched->e_dn );
+				rs->sr_ref = is_entry_referral( matched )
+					? get_entry_referrals( op, matched )
 					: NULL;
 				cache_return_entry_r( &li->li_cache, matched );
 
 			} else {
-				refs = referral_rewrite( default_referral,
-					NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
+				rs->sr_ref = referral_rewrite( default_referral,
+					NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 			}
 
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
@@ -143,23 +133,23 @@ ldbm_back_add(
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_LDBM, ERR, 
 				"ldbm_back_add: Parent of (%s) does not exist.\n", 
-				e->e_dn, 0, 0 );
+				op->o_req_dn.bv_val, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
 				0, 0, 0 );
 #endif
 
-			send_ldap_result( conn, op, LDAP_REFERRAL, matched_dn,
-				refs == NULL ? "parent does not exist" : "parent is referral",
-				refs, NULL );
+			rs->sr_text = rs->sr_ref ? "parent is referral" : "parent does not exist";
+			rs->sr_err = LDAP_REFERRAL;
+			send_ldap_result( op, rs );
 
-			ber_bvarray_free( refs );
-			free( matched_dn );
+			ber_bvarray_free( rs->sr_ref );
+			free( (char *)rs->sr_matched );
 
 			return -1;
 		}
 
-		if ( ! access_allowed( be, conn, op, p,
+		if ( ! access_allowed( op, p,
 			children, NULL, ACL_WRITE, NULL ) )
 		{
 			/* free parent and writer lock */
@@ -169,14 +159,14 @@ ldbm_back_add(
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_LDBM, ERR, 
 				"ldbm_back_add: No write access to parent (%s).\n", 
-				e->e_dn, 0, 0 );
+				op->o_req_dn.bv_val, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, "no write access to parent\n", 0,
 			    0, 0 );
 #endif
 
-			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-			    NULL, "no write access to parent", NULL, NULL );
+			send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
+			    "no write access to parent" );
 
 			return -1;
 		}
@@ -197,17 +187,17 @@ ldbm_back_add(
 #endif
 
 
-			send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
-			    NULL, "parent is an alias", NULL, NULL );
+			send_ldap_error( op, rs, LDAP_ALIAS_PROBLEM,
+			    "parent is an alias" );
 
 			return -1;
 		}
 
 		if ( is_entry_referral( p ) ) {
 			/* parent is a referral, don't allow add */
-			char *matched_dn = ch_strdup( p->e_dn );
-			BerVarray refs = is_entry_referral( p )
-				? get_entry_referrals( be, conn, op, p )
+			rs->sr_matched = ch_strdup( p->e_dn );
+			rs->sr_ref = is_entry_referral( p )
+				? get_entry_referrals( op, p )
 				: NULL;
 
 			/* free parent and writer lock */
@@ -221,12 +211,11 @@ ldbm_back_add(
 			Debug( LDAP_DEBUG_TRACE, "parent is referral\n", 0,
 			    0, 0 );
 #endif
+			rs->sr_err = LDAP_REFERRAL;
+			send_ldap_result( op, rs );
 
-			send_ldap_result( conn, op, LDAP_REFERRAL,
-			    matched_dn, NULL, refs, NULL );
-
-			ber_bvarray_free( refs );
-			free( matched_dn );
+			ber_bvarray_free( rs->sr_ref );
+			free( (char *)rs->sr_matched );
 			return -1;
 		}
 
@@ -242,19 +231,19 @@ ldbm_back_add(
 
 		/* no parent, must be adding entry to root */
 #ifndef LDAP_CACHING
-		if ( !be_isroot( be, &op->o_ndn ) )
+		if ( !be_isroot( op->o_bd, &op->o_ndn ) )
 #else /* LDAP_CACHING */
-		if ( !be_isroot( be, &op->o_ndn ) && !op->o_caching_on )
+		if ( !be_isroot( op->o_bd, &op->o_ndn ) && !op->o_caching_on )
 #endif /* LDAP_CACHING */
 		{
-			if ( be_issuffix( be, (struct berval *)&slap_empty_bv ) || be_isupdate( be, &op->o_ndn ) ) {
+			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv ) || be_isupdate( op->o_bd, &op->o_ndn ) ) {
 				p = (Entry *)&slap_entry_root;
 				
-				rc = access_allowed( be, conn, op, p,
+				rs->sr_err = access_allowed( op, p,
 					children, NULL, ACL_WRITE, NULL );
 				p = NULL;
 				
-				if ( ! rc ) {
+				if ( ! rs->sr_err ) {
 					ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
@@ -267,11 +256,9 @@ ldbm_back_add(
 						0, 0, 0 );
 #endif
 
-					send_ldap_result( conn, op, 
+					send_ldap_error( op, rs,
 						LDAP_INSUFFICIENT_ACCESS,
-			    			NULL, 
-						"no write access to parent", 
-						NULL, NULL );
+						"no write access to parent" );
 
 					return -1;
 				}
@@ -290,16 +277,15 @@ ldbm_back_add(
 						: "entry at root", 0, 0 );
 #endif
 
-				send_ldap_result( conn, op, 
-						LDAP_INSUFFICIENT_ACCESS,
-			  			NULL, NULL, NULL, NULL );
+				send_ldap_error( op, rs,
+						LDAP_INSUFFICIENT_ACCESS, NULL );
 
 				return -1;
 			}
 		}
 	}
 
-	if ( next_id( be, &e->e_id ) ) {
+	if ( next_id( op->o_bd, &op->oq_add.rs_e->e_id ) ) {
 		if( p != NULL) {
 			/* free parent and writer lock */
 			cache_return_entry_w( &li->li_cache, p ); 
@@ -315,8 +301,8 @@ ldbm_back_add(
 			0, 0, 0 );
 #endif
 
-		send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, "next_id add failed", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_OTHER,
+			"next_id add failed" );
 
 		return( -1 );
 	}
@@ -324,9 +310,9 @@ ldbm_back_add(
 	/*
 	 * Try to add the entry to the cache, assign it a new dnid.
 	 */
-	rc = cache_add_entry_rw(&li->li_cache, e, CACHE_WRITE_LOCK);
+	rs->sr_err = cache_add_entry_rw(&li->li_cache, op->oq_add.rs_e, CACHE_WRITE_LOCK);
 
-	if ( rc != 0 ) {
+	if ( rs->sr_err != 0 ) {
 		if( p != NULL) {
 			/* free parent and writer lock */
 			cache_return_entry_w( &li->li_cache, p ); 
@@ -342,17 +328,17 @@ ldbm_back_add(
 		    0 );
 #endif
 
-		send_ldap_result( conn, op,
-			rc > 0 ? LDAP_ALREADY_EXISTS : LDAP_OTHER,
-			NULL, rc > 0 ? NULL : "cache add failed", NULL, NULL );
+		rs->sr_text = rs->sr_err > 0 ? NULL : "cache add failed";
+		rs->sr_err = rs->sr_err > 0 ? LDAP_ALREADY_EXISTS : LDAP_OTHER;
+		send_ldap_result( op, rs );
 
 		return( -1 );
 	}
 
-	rc = -1;
+	rs->sr_err = -1;
 
 	/* attribute indexes */
-	if ( index_entry_add( be, e, e->e_attrs ) != LDAP_SUCCESS ) {
+	if ( index_entry_add( op->o_bd, op->oq_add.rs_e ) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, ERR,
 			"ldbm_back_add: index_entry_add failed.\n", 0, 0, 0 );
@@ -361,14 +347,14 @@ ldbm_back_add(
 		    0, 0 );
 #endif
 		
-		send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, "index generation failed", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_OTHER,
+			"index generation failed" );
 
 		goto return_results;
 	}
 
 	/* dn2id index */
-	if ( dn2id_add( be, &e->e_nname, e->e_id ) != 0 ) {
+	if ( dn2id_add( op->o_bd, &op->oq_add.rs_e->e_nname, op->oq_add.rs_e->e_id ) != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, ERR,
 			"ldbm_back_add: dn2id_add failed.\n", 0, 0, 0 );
@@ -378,14 +364,14 @@ ldbm_back_add(
 #endif
 		/* FIXME: delete attr indices? */
 
-		send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, "DN index generation failed", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_OTHER,
+			"DN index generation failed" );
 
 		goto return_results;
 	}
 
 	/* id2entry index */
-	if ( id2entry_add( be, e ) != 0 ) {
+	if ( id2entry_add( op->o_bd, op->oq_add.rs_e ) != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, ERR,
 			   "ldbm_back_add: id2entry_add failed.\n", 0, 0, 0 );
@@ -395,22 +381,21 @@ ldbm_back_add(
 #endif
 
 		/* FIXME: delete attr indices? */
-		(void) dn2id_delete( be, &e->e_nname, e->e_id );
+		(void) dn2id_delete( op->o_bd, &op->oq_add.rs_e->e_nname, op->oq_add.rs_e->e_id );
 		
-		send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, "entry store failed", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_OTHER,
+			"entry store failed" );
 
 		goto return_results;
 	}
 
-	send_ldap_result( conn, op, LDAP_SUCCESS,
-		NULL, NULL, NULL, NULL );
+	rs->sr_err = LDAP_SUCCESS;
+	send_ldap_result( op, rs );
 
 	/* marks the entry as committed, so it is added to the cache;
 	 * otherwise it is removed from the cache, but not destroyed;
 	 * it will be destroyed by the caller */
-	rc = 0;
-	cache_entry_commit( e );
+	cache_entry_commit( op->oq_add.rs_e );
 
 return_results:;
 	if (p != NULL) {
@@ -418,15 +403,15 @@ return_results:;
 		cache_return_entry_w( &li->li_cache, p ); 
 	}
 
-	if ( rc ) {
+	if ( rs->sr_err ) {
 		/*
 		 * in case of error, writer lock is freed 
 		 * and entry's private data is destroyed.
 		 * otherwise, this is done when entry is released
 		 */
-		cache_return_entry_w( &li->li_cache, e );
+		cache_return_entry_w( &li->li_cache, op->oq_add.rs_e );
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 	}
 
-	return( rc );
+	return( rs->sr_err );
 }

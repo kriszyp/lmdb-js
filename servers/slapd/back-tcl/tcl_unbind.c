@@ -18,29 +18,28 @@
 
 int
 tcl_back_unbind (
-	Backend * be,
-	Connection * conn,
-	Operation * op
+	Operation * op,
+	SlapReply * rs
 )
 {
 	char *command, *results;
 	struct berval suf_tcl;
 	int code, err = 0;
-	struct tclinfo *ti = (struct tclinfo *) be->be_private;
+	struct tclinfo *ti = (struct tclinfo *) op->o_bd->be_private;
 
 	if (ti->ti_unbind.bv_len == 0) {
 		return (-1);
 	}
 
-	if (tcl_merge_bvlist (be->be_suffix, &suf_tcl) == NULL) {
+	if (tcl_merge_bvlist (op->o_bd->be_suffix, &suf_tcl) == NULL) {
 		return (-1);
 	}
 
 	command = (char *) ch_malloc (ti->ti_unbind.bv_len + suf_tcl.bv_len
-		+ conn->c_dn.bv_len + 84);
+		+ op->o_conn->c_dn.bv_len + 84);
 	sprintf (command, "%s UNBIND {%ld/%ld} {%s} {%s}",
 		ti->ti_unbind.bv_val, op->o_connid, (long) op->o_msgid,
-		suf_tcl.bv_val, conn->c_dn.bv_val ?  conn->c_dn.bv_val : "");
+		suf_tcl.bv_val, op->o_conn->c_dn.bv_val ?  op->o_conn->c_dn.bv_val : "");
 	Tcl_Free (suf_tcl.bv_val);
 
 	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);

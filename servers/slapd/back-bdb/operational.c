@@ -14,6 +14,7 @@
 #include "slap.h"
 #include "back-bdb.h"
 #include "proto-bdb.h"
+#include "external.h"
 
 /*
  * sets *hasSubordinates to LDAP_COMPARE_TRUE/LDAP_COMPARE_FALSE
@@ -21,8 +22,6 @@
  */
 int
 bdb_hasSubordinates(
-	BackendDB	*be,
-	Connection	*conn, 
 	Operation	*op,
 	Entry		*e,
 	int		*hasSubordinates )
@@ -30,10 +29,9 @@ bdb_hasSubordinates(
 	int		rc;
 	
 	assert( e );
-	assert( hasSubordinates );
 
 retry:
-	rc = bdb_dn2id_children( be, NULL, &e->e_nname, 0 );
+	rc = bdb_dn2id_children( op->o_bd, NULL, &e->e_nname, 0 );
 	
 	switch( rc ) {
 	case DB_LOCK_DEADLOCK:
@@ -71,24 +69,20 @@ retry:
  */
 int
 bdb_operational(
-	BackendDB	*be,
-	Connection	*conn, 
 	Operation	*op,
-	Entry		*e,
-	AttributeName		*attrs,
+	SlapReply	*rs,
 	int		opattrs,
 	Attribute	**a )
 {
 	Attribute	**aa = a;
-	int		rc = 0;
 	
-	assert( e );
+	assert( rs->sr_entry );
 
-	if ( opattrs || ad_inlist( slap_schema.si_ad_hasSubordinates, attrs ) ) {
+	if ( opattrs || ad_inlist( slap_schema.si_ad_hasSubordinates, rs->sr_attrs ) ) {
 		int	hasSubordinates;
 
-		rc = bdb_hasSubordinates( be, conn, op, e, &hasSubordinates );
-		if ( rc == LDAP_SUCCESS ) {
+		rs->sr_err = bdb_hasSubordinates( op, rs->sr_entry, &hasSubordinates );
+		if ( rs->sr_err == LDAP_SUCCESS ) {
 			*aa = slap_operational_hasSubordinate( hasSubordinates == LDAP_COMPARE_TRUE );
 			if ( *aa != NULL ) {
 				aa = &(*aa)->a_next;
@@ -96,6 +90,6 @@ bdb_operational(
 		}
 	}
 
-	return rc;
+	return rs->sr_err;
 }
 

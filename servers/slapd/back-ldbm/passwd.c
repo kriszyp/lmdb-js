@@ -19,19 +19,10 @@
 
 int
 ldbm_back_exop_passwd(
-    Backend		*be,
-    Connection		*conn,
-    Operation		*op,
-	struct berval		*reqoid,
-    struct berval	*reqdata,
-	char			**rspoid,
-    struct berval	**rspdata,
-	LDAPControl		*** rspctrls,
-	const char		**text,
-    BerVarray *refs
-)
+	Operation	*op,
+	SlapReply	*rs )
 {
-	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
+	struct ldbminfo *li = (struct ldbminfo *) op->o_bd->be_private;
 	int rc;
 	Entry *e = NULL;
 	struct berval hash = { 0, NULL };
@@ -42,11 +33,10 @@ ldbm_back_exop_passwd(
 	struct berval dn = { 0, NULL };
 	struct berval ndn = { 0, NULL };
 
-	assert( reqoid != NULL );
-	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, reqoid ) == 0 );
+	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->oq_extended.rs_reqoid ) == 0 );
 
-	rc = slap_passwd_parse( reqdata,
-		&id, NULL, &new, text );
+	rc = slap_passwd_parse( op->oq_extended.rs_reqdata,
+		&id, NULL, &new, &rs->sr_text );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDBM, ENTRY,
@@ -65,18 +55,18 @@ ldbm_back_exop_passwd(
 		slap_passwd_generate(&new);
 
 		if( new.bv_len == 0 ) {
-			*text = "password generation failed.";
+			rs->sr_text = "password generation failed.";
 			rc = LDAP_OTHER;
 			goto done;
 		}
 		
-		*rspdata = slap_passwd_return( &new );
+		rs->sr_rspdata = slap_passwd_return( &new );
 	}
 
 	slap_passwd_hash( &new, &hash );
 
 	if( hash.bv_len == 0 ) {
-		*text = "password hash failed";
+		rs->sr_text = "password hash failed";
 		rc = LDAP_OTHER;
 		goto done;
 	}
@@ -97,31 +87,31 @@ ldbm_back_exop_passwd(
 #endif
 
 	if( dn.bv_len == 0 ) {
-		*text = "No password is associated with the Root DSE";
+		rs->sr_text = "No password is associated with the Root DSE";
 		rc = LDAP_UNWILLING_TO_PERFORM;
 		goto done;
 	}
 
 	rc = dnNormalize2( NULL, &dn, &ndn );
 	if( rc != LDAP_SUCCESS ) {
-		*text = "Invalid DN";
+		rs->sr_text = "Invalid DN";
 		goto done;
 	}
 
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
 
-	e = dn2entry_w( be, &ndn, NULL );
+	e = dn2entry_w( op->o_bd, &ndn, NULL );
 	if( e == NULL ) {
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
-		*text = "could not locate authorization entry";
+		rs->sr_text = "could not locate authorization entry";
 		rc = LDAP_NO_SUCH_OBJECT;
 		goto done;
 	}
 
 	if( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow operation */
-		*text = "authorization entry is alias";
+		rs->sr_text = "authorization entry is alias";
 		rc = LDAP_ALIAS_PROBLEM;
 		goto done;
 	}
@@ -130,7 +120,7 @@ ldbm_back_exop_passwd(
 
 	if( is_entry_referral( e ) ) {
 		/* entry is an referral, don't allow operation */
-		*text = "authorization entry is referral";
+		rs->sr_text = "authorization entry is referral";
 		goto done;
 	}
 
@@ -150,30 +140,30 @@ ldbm_back_exop_passwd(
 		ml.sml_op = LDAP_MOD_REPLACE;
 		ml.sml_next = NULL;
 
-		rc = ldbm_modify_internal( be,
-			conn, op, op->o_ndn.bv_val, &ml, e, text, textbuf, 
+		rc = ldbm_modify_internal( op,
+			&ml, e, &rs->sr_text, textbuf, 
 			sizeof( textbuf ) );
 
 		/* FIXME: ldbm_modify_internal may set *text = textbuf,
 		 * which is BAD */
-		if ( *text == textbuf ) {
-			*text = NULL;
+		if ( rs->sr_text == textbuf ) {
+			rs->sr_text = NULL;
 		}
 
 		if( rc ) {
 			/* cannot return textbuf */
-			*text = "entry modify failed";
+			rs->sr_text = "entry modify failed";
 			goto done;
 		}
 
 		/* change the entry itself */
-		if( id2entry_add( be, e ) != 0 ) {
-			*text = "entry update failed";
+		if( id2entry_add( op->o_bd, e ) != 0 ) {
+			rs->sr_text = "entry update failed";
 			rc = LDAP_OTHER;
 		}
 
 		if( rc == LDAP_SUCCESS ) {
-			replog( be, op, &e->e_name, &e->e_nname, &ml );
+			replog( op );
 		}
 	}
 

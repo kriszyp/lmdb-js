@@ -631,29 +631,26 @@ be_root_dn( Backend *be )
 }
 
 int
-be_isroot_pw( Backend *be,
-	Connection *conn,
-	struct berval *ndn,
-	struct berval *cred )
+be_isroot_pw( Operation *op )
 {
 	int result;
 
-	if ( ! be_isroot( be, ndn ) ) {
+	if ( ! be_isroot( op->o_bd, &op->o_req_ndn ) ) {
 		return 0;
 	}
 
-	if( be->be_rootpw.bv_len == 0 ) {
+	if( op->o_bd->be_rootpw.bv_len == 0 ) {
 		return 0;
 	}
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 	ldap_pvt_thread_mutex_lock( &passwd_mutex );
 #ifdef SLAPD_SPASSWD
-	lutil_passwd_sasl_conn = conn->c_sasl_context;
+	lutil_passwd_sasl_conn = op->o_conn->c_sasl_context;
 #endif
 #endif
 
-	result = lutil_passwd( &be->be_rootpw, cred, NULL );
+	result = lutil_passwd( &op->o_bd->be_rootpw, &op->oq_bind.rb_cred, NULL );
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 #ifdef SLAPD_SPASSWD
@@ -667,15 +664,13 @@ be_isroot_pw( Backend *be,
 
 int
 be_entry_release_rw(
-	BackendDB *be,
-	Connection *conn,
 	Operation *op,
 	Entry *e,
 	int rw )
 {
-	if ( be->be_release ) {
+	if ( op->o_bd->be_release ) {
 		/* free and release entry from backend */
-		return be->be_release( be, conn, op, e, rw );
+		return op->o_bd->be_release( op, e, rw );
 	} else {
 		/* free entry */
 		entry_free( e );
@@ -684,17 +679,14 @@ be_entry_release_rw(
 }
 
 int
-backend_unbind(
-	Connection   *conn,
-	Operation    *op
-)
+backend_unbind( Operation *op, SlapReply *rs )
 {
 	int		i;
 #if defined( LDAP_SLAPI )
 	Slapi_PBlock *pb = op->o_pb;
 
 	int     rc;
-	slapi_x_connection_set_pb( pb, conn );
+	slapi_x_connection_set_pb( pb, op->o_conn );
 	slapi_x_operation_set_pb( pb, op );
 #endif /* defined( LDAP_SLAPI ) */
 
@@ -720,7 +712,8 @@ backend_unbind(
 #endif /* defined( LDAP_SLAPI ) */
 
 		if ( backends[i].be_unbind ) {
-			(*backends[i].be_unbind)( &backends[i], conn, op );
+			op->o_bd = &backends[i];
+			(*backends[i].be_unbind)( op, rs );
 		}
 
 #if defined( LDAP_SLAPI )
@@ -774,36 +767,33 @@ backend_connection_destroy(
 
 static int
 backend_check_controls(
-	Backend *be,
-	Connection *conn,
 	Operation *op,
-	const char **text )
+	SlapReply *rs )
 {
 	LDAPControl **ctrls = op->o_ctrls;
+	rs->sr_err = LDAP_SUCCESS;
 
-	if( ctrls == NULL ) return LDAP_SUCCESS;
-
-	for( ; *ctrls != NULL ; ctrls++ ) {
-		if( (*ctrls)->ldctl_iscritical &&
-			!ldap_charray_inlist( be->be_controls, (*ctrls)->ldctl_oid ) )
-		{
-			*text = "control unavailable in context";
-			return LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
+	if( ctrls ) {
+		for( ; *ctrls != NULL ; ctrls++ ) {
+			if( (*ctrls)->ldctl_iscritical &&
+				!ldap_charray_inlist( op->o_bd->be_controls, (*ctrls)->ldctl_oid ) )
+			{
+				rs->sr_text = "control unavailable in context";
+				rs->sr_err = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
+				break;
+			}
 		}
 	}
 
-	return LDAP_SUCCESS;
+	return rs->sr_err;
 }
 
 int
 backend_check_restrictions(
-	Backend *be,
-	Connection *conn,
 	Operation *op,
-	struct berval *opdata,
-	const char **text )
+	SlapReply *rs,
+	struct berval *opdata )
 {
-	int rc;
 	slap_mask_t restrictops;
 	slap_mask_t requires;
 	slap_mask_t opflag;
@@ -812,16 +802,14 @@ backend_check_restrictions(
 	int starttls = 0;
 	int session = 0;
 
-	if( be ) {
-		rc = backend_check_controls( be, conn, op, text );
-
-		if( rc != LDAP_SUCCESS ) {
-			return rc;
+	if( op->o_bd ) {
+		if ( backend_check_controls( op, rs ) != LDAP_SUCCESS ) {
+			return rs->sr_err;
 		}
 
-		restrictops = be->be_restrictops;
-		requires = be->be_requires;
-		ssf = &be->be_ssf_set;
+		restrictops = op->o_bd->be_restrictops;
+		requires = op->o_bd->be_requires;
+		ssf = &op->o_bd->be_ssf_set;
 
 	} else {
 		restrictops = global_restrictops;
@@ -898,29 +886,31 @@ backend_check_restrictions(
 		opflag = 0;
 		break;
 	default:
-		*text = "restrict operations internal error";
-		return LDAP_OTHER;
+		rs->sr_text = "restrict operations internal error";
+		rs->sr_err = LDAP_OTHER;
+		return rs->sr_err;
 	}
 
 	if ( !starttls ) {
 		/* these checks don't apply to StartTLS */
 
+		rs->sr_err = LDAP_CONFIDENTIALITY_REQUIRED;
 		if( op->o_transport_ssf < ssf->sss_transport ) {
-			*text = "transport confidentiality required";
-			return LDAP_CONFIDENTIALITY_REQUIRED;
+			rs->sr_text = "transport confidentiality required";
+			return rs->sr_err;
 		}
 
 		if( op->o_tls_ssf < ssf->sss_tls ) {
-			*text = "TLS confidentiality required";
-			return LDAP_CONFIDENTIALITY_REQUIRED;
+			rs->sr_text = "TLS confidentiality required";
+			return rs->sr_err;
 		}
 
 
 		if( op->o_tag == LDAP_REQ_BIND && opdata == NULL ) {
 			/* simple bind specific check */
 			if( op->o_ssf < ssf->sss_simple_bind ) {
-				*text = "confidentiality required";
-				return LDAP_CONFIDENTIALITY_REQUIRED;
+				rs->sr_text = "confidentiality required";
+				return rs->sr_err;
 			}
 		}
 
@@ -928,49 +918,51 @@ backend_check_restrictions(
 			/* these checks don't apply to SASL bind */
 
 			if( op->o_sasl_ssf < ssf->sss_sasl ) {
-				*text = "SASL confidentiality required";
-				return LDAP_CONFIDENTIALITY_REQUIRED;
+				rs->sr_text = "SASL confidentiality required";
+				return rs->sr_err;
 			}
 
 			if( op->o_ssf < ssf->sss_ssf ) {
-				*text = "confidentiality required";
-				return LDAP_CONFIDENTIALITY_REQUIRED;
+				rs->sr_text = "confidentiality required";
+				return rs->sr_err;
 			}
 		}
 
 		if( updateop ) {
 			if( op->o_transport_ssf < ssf->sss_update_transport ) {
-				*text = "transport update confidentiality required";
-				return LDAP_CONFIDENTIALITY_REQUIRED;
+				rs->sr_text = "transport update confidentiality required";
+				return rs->sr_err;
 			}
 
 			if( op->o_tls_ssf < ssf->sss_update_tls ) {
-				*text = "TLS update confidentiality required";
-				return LDAP_CONFIDENTIALITY_REQUIRED;
+				rs->sr_text = "TLS update confidentiality required";
+				return rs->sr_err;
 			}
 
 			if( op->o_sasl_ssf < ssf->sss_update_sasl ) {
-				*text = "SASL update confidentiality required";
-				return LDAP_CONFIDENTIALITY_REQUIRED;
+				rs->sr_text = "SASL update confidentiality required";
+				return rs->sr_err;
 			}
 
 			if( op->o_ssf < ssf->sss_update_ssf ) {
-				*text = "update confidentiality required";
-				return LDAP_CONFIDENTIALITY_REQUIRED;
+				rs->sr_text = "update confidentiality required";
+				return rs->sr_err;
 			}
 
 			if( !( global_allows & SLAP_ALLOW_UPDATE_ANON ) &&
 				op->o_ndn.bv_len == 0 )
 			{
-				*text = "modifications require authentication";
-				return LDAP_STRONG_AUTH_REQUIRED;
+				rs->sr_text = "modifications require authentication";
+				rs->sr_err = LDAP_STRONG_AUTH_REQUIRED;
+				return rs->sr_err;
 			}
 
 #ifdef SLAP_X_LISTENER_MOD
-			if ( conn->c_listener && ! ( conn->c_listener->sl_perms & S_IWUSR ) ) {
+			if ( op->o_conn->c_listener && ! ( op->o_conn->c_listener->sl_perms & S_IWUSR ) ) {
 				/* no "w" mode means readonly */
-				*text = "modifications not allowed on this listener";
-				return LDAP_UNWILLING_TO_PERFORM;
+				rs->sr_text = "modifications not allowed on this listener";
+				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+				return rs->sr_err;
 			}
 #endif /* SLAP_X_LISTENER_MOD */
 		}
@@ -984,60 +976,67 @@ backend_check_restrictions(
 			if( ( op->o_transport_ssf < ssf->sss_transport
 				&& op->o_authmech.bv_len == 0 ) || op->o_dn.bv_len == 0 )
 			{
-				*text = "strong authentication required";
-				return LDAP_STRONG_AUTH_REQUIRED;
+				rs->sr_text = "strong authentication required";
+				rs->sr_err = LDAP_STRONG_AUTH_REQUIRED;
+				return rs->sr_err;
 			}
 		}
 
 		if( requires & SLAP_REQUIRE_SASL ) {
 			if( op->o_authmech.bv_len == 0 || op->o_dn.bv_len == 0 ) {
-				*text = "SASL authentication required";
-				return LDAP_STRONG_AUTH_REQUIRED;
+				rs->sr_text = "SASL authentication required";
+				rs->sr_err = LDAP_STRONG_AUTH_REQUIRED;
+				return rs->sr_err;
 			}
 		}
 			
 		if( requires & SLAP_REQUIRE_AUTHC ) {
 			if( op->o_dn.bv_len == 0 ) {
-				*text = "authentication required";
-				return LDAP_UNWILLING_TO_PERFORM;
+				rs->sr_text = "authentication required";
+				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+				return rs->sr_err;
 			}
 		}
 
 		if( requires & SLAP_REQUIRE_BIND ) {
 			int version;
-			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-			version = conn->c_protocol;
-			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+			version = op->o_conn->c_protocol;
+			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 			if( !version ) {
 				/* no bind has occurred */
-				*text = "BIND required";
-				return LDAP_OPERATIONS_ERROR;
+				rs->sr_text = "BIND required";
+				rs->sr_err = LDAP_OPERATIONS_ERROR;
+				return rs->sr_err;
 			}
 		}
 
 		if( requires & SLAP_REQUIRE_LDAP_V3 ) {
 			if( op->o_protocol < LDAP_VERSION3 ) {
 				/* no bind has occurred */
-				*text = "operation restricted to LDAPv3 clients";
-				return LDAP_OPERATIONS_ERROR;
+				rs->sr_text = "operation restricted to LDAPv3 clients";
+				rs->sr_err = LDAP_OPERATIONS_ERROR;
+				return rs->sr_err;
 			}
 		}
 
 #ifdef SLAP_X_LISTENER_MOD
 		if ( !starttls && op->o_dn.bv_len == 0 ) {
-			if ( conn->c_listener && ! ( conn->c_listener->sl_perms & S_IXUSR ) ) {
+			if ( op->o_conn->c_listener && ! ( op->o_conn->c_listener->sl_perms & S_IXUSR ) ) {
 				/* no "x" mode means bind required */
-				*text = "bind required on this listener";
-				return LDAP_STRONG_AUTH_REQUIRED;
+				rs->sr_text = "bind required on this listener";
+				rs->sr_err = LDAP_STRONG_AUTH_REQUIRED;
+				return rs->sr_err;
 			}
 		}
 
 		if ( !starttls && !updateop ) {
-			if ( conn->c_listener && ! ( conn->c_listener->sl_perms & S_IRUSR ) ) {
+			if ( op->o_conn->c_listener && ! ( op->o_conn->c_listener->sl_perms & S_IRUSR ) ) {
 				/* no "r" mode means no read */
-				*text = "read not allowed on this listener";
-				return LDAP_UNWILLING_TO_PERFORM;
+				rs->sr_text = "read not allowed on this listener";
+				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+				return rs->sr_err;
 			}
 		}
 #endif /* SLAP_X_LISTENER_MOD */
@@ -1046,44 +1045,35 @@ backend_check_restrictions(
 
 	if( restrictops & opflag ) {
 		if( restrictops == SLAP_RESTRICT_OP_READS ) {
-			*text = "read operations restricted";
+			rs->sr_text = "read operations restricted";
 		} else {
-			*text = "operation restricted";
+			rs->sr_text = "operation restricted";
 		}
-		return LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		return rs->sr_err;
  	}
 
-	return LDAP_SUCCESS;
+	rs->sr_err = LDAP_SUCCESS;
+	return rs->sr_err;
 }
 
-int backend_check_referrals(
-	Backend *be,
-	Connection *conn,
-	Operation *op,
-	struct berval *dn,
-	struct berval *ndn )
+int backend_check_referrals( Operation *op, SlapReply *rs )
 {
-	int rc = LDAP_SUCCESS;
+	rs->sr_err = LDAP_SUCCESS;
 
-	if( be->be_chk_referrals ) {
-		const char *text;
+	if( op->o_bd->be_chk_referrals ) {
+		rs->sr_err = op->o_bd->be_chk_referrals( op, rs );
 
-		rc = be->be_chk_referrals( be,
-			conn, op, dn, ndn, &text );
-
-		if( rc != LDAP_SUCCESS && rc != LDAP_REFERRAL ) {
-			send_ldap_result( conn, op, rc,
-				NULL, text, NULL, NULL );
+		if( rs->sr_err != LDAP_SUCCESS && rs->sr_err != LDAP_REFERRAL ) {
+			send_ldap_result( op, rs );
 		}
 	}
 
-	return rc;
+	return rs->sr_err;
 }
 
 int
 be_entry_get_rw(
-	Backend *be,
-	Connection *conn,
 	Operation *op,
 	struct berval *ndn,
 	ObjectClass *oc,
@@ -1091,24 +1081,26 @@ be_entry_get_rw(
 	int rw,
 	Entry **e )
 {
-	be = select_backend( ndn, 0, 0 );
+	Backend *be = op->o_bd;
+	int rc;
 
-	if (be == NULL) {
-			return LDAP_NO_SUCH_OBJECT;
-	}
+	op->o_bd = select_backend( ndn, 0, 0 );
 
-	if ( be->be_fetch ) {
-		return be->be_fetch( be, conn, op, ndn,
+	if (op->o_bd == NULL) {
+		op->o_bd = be;	
+		rc = LDAP_NO_SUCH_OBJECT;
+	} else if ( op->o_bd->be_fetch ) {
+		rc = op->o_bd->be_fetch( op, ndn,
 			oc, at, rw, e );
+	} else {
+		rc = LDAP_UNWILLING_TO_PERFORM;
 	}
-
-	return LDAP_UNWILLING_TO_PERFORM;
+	op->o_bd = be;
+	return rc;
 }
 
 int 
 backend_group(
-	Backend	*be,
-	Connection *conn,
 	Operation *op,
 	Entry	*target,
 	struct berval *gr_ndn,
@@ -1124,17 +1116,17 @@ backend_group(
 
 	if ( op->o_abandon ) return SLAPD_ABANDON;
 
-	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 
-	for (g = conn->c_groups; g; g=g->ga_next) {
-		if (g->ga_be != be || g->ga_oc != group_oc ||
+	for (g = op->o_conn->c_groups; g; g=g->ga_next) {
+		if (g->ga_be != op->o_bd || g->ga_oc != group_oc ||
 			g->ga_at != group_at || g->ga_len != gr_ndn->bv_len)
 			continue;
 		if (strcmp( g->ga_ndn, gr_ndn->bv_val ) == 0)
 			break;
 	}
 
-	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 	if (g) {
 		return g->ga_res;
@@ -1143,8 +1135,7 @@ backend_group(
 	if ( target && dn_match( &target->e_nname, gr_ndn ) ) {
 		e = target;
 	} else {
-		rc = be_entry_get_rw(be, conn, op, gr_ndn, group_oc, group_at,
-			0, &e );
+		rc = be_entry_get_rw(op, gr_ndn, group_oc, group_at, 0, &e );
 	}
 	if ( e ) {
 		a = attr_find( e->e_attrs, group_at );
@@ -1161,7 +1152,7 @@ backend_group(
 			rc = LDAP_NO_SUCH_ATTRIBUTE;
 		}
 		if (e != target ) {
-			be_entry_release_r( be, conn, op, e );
+			be_entry_release_r( op, e );
 		}
 	} else {
 		rc = LDAP_NO_SUCH_OBJECT;
@@ -1169,16 +1160,16 @@ backend_group(
 
 	if ( op->o_tag != LDAP_REQ_BIND && !op->o_do_not_cache ) {
 		g = ch_malloc(sizeof(GroupAssertion) + gr_ndn->bv_len);
-		g->ga_be = be;
+		g->ga_be = op->o_bd;
 		g->ga_oc = group_oc;
 		g->ga_at = group_at;
 		g->ga_res = rc;
 		g->ga_len = gr_ndn->bv_len;
 		strcpy(g->ga_ndn, gr_ndn->bv_val);
-		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-		g->ga_next = conn->c_groups;
-		conn->c_groups = g;
-		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+		g->ga_next = op->o_conn->c_groups;
+		op->o_conn->c_groups = g;
+		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 	}
 
 	return rc;
@@ -1186,8 +1177,6 @@ backend_group(
 
 int 
 backend_attribute(
-	Backend	*be,
-	Connection *conn,
 	Operation *op,
 	Entry	*target,
 	struct berval	*edn,
@@ -1203,8 +1192,7 @@ backend_attribute(
 	if ( target && dn_match( &target->e_nname, edn ) ) {
 		e = target;
 	} else {
-		rc = be_entry_get_rw(be, conn, op, edn, NULL, entry_at,
-			0, &e );
+		rc = be_entry_get_rw(op, edn, NULL, entry_at, 0, &e );
 		if ( rc != LDAP_SUCCESS ) return rc;
 	} 
 
@@ -1213,8 +1201,8 @@ backend_attribute(
 		if ( a ) {
 			BerVarray v;
 
-			if ( conn && op && access_allowed( be,
-				conn, op, e, entry_at, NULL, ACL_AUTH,
+			if ( op->o_conn && access_allowed( op,
+				e, entry_at, NULL, ACL_AUTH,
 				&acl_state ) == 0 ) {
 				rc = LDAP_INSUFFICIENT_ACCESS;
 				goto freeit;
@@ -1224,8 +1212,8 @@ backend_attribute(
 			
 			v = ch_malloc( sizeof(struct berval) * (i+1) );
 			for ( i=0,j=0; a->a_vals[i].bv_val; i++ ) {
-				if ( conn && op && access_allowed( be,
-					conn, op, e, entry_at,
+				if ( op->o_conn && access_allowed( op,
+					e, entry_at,
 #ifdef SLAP_NVALUES
 					&a->a_nvals[i],
 #else
@@ -1255,7 +1243,7 @@ backend_attribute(
 			}
 		}
 freeit:		if (e != target ) {
-			be_entry_release_r( be, conn, op, e );
+			be_entry_release_r( op, e );
 		}
 	}
 
@@ -1263,11 +1251,8 @@ freeit:		if (e != target ) {
 }
 
 Attribute *backend_operational(
-	Backend *be,
-	Connection *conn,
 	Operation *op,
-	Entry *e,
-	AttributeName *attrs,
+	SlapReply *rs,
 	int opattrs	)
 {
 	Attribute *a = NULL, **ap = &a;
@@ -1277,14 +1262,14 @@ Attribute *backend_operational(
 	 * and the backend supports specific operational attributes, 
 	 * add them to the attribute list
 	 */
-	if ( opattrs || ( attrs &&
-		ad_inlist( slap_schema.si_ad_subschemaSubentry, attrs )) ) {
-		*ap = slap_operational_subschemaSubentry( be );
+	if ( opattrs || ( op->oq_search.rs_attrs &&
+		ad_inlist( slap_schema.si_ad_subschemaSubentry, op->oq_search.rs_attrs )) ) {
+		*ap = slap_operational_subschemaSubentry( op->o_bd );
 		ap = &(*ap)->a_next;
 	}
 
-	if ( ( opattrs || attrs ) && be && be->be_operational != NULL ) {
-		( void )be->be_operational( be, conn, op, e, attrs, opattrs, ap );
+	if ( ( opattrs || op->oq_search.rs_attrs ) && op->o_bd && op->o_bd->be_operational != NULL ) {
+		( void )op->o_bd->be_operational( op, rs, opattrs, ap );
 	}
 
 	return a;

@@ -23,32 +23,25 @@ static struct exop {
 };
 
 int
-bdb_extended(
-	Backend		*be,
-	Connection		*conn,
-	Operation		*op,
-	struct berval		*reqoid,
+bdb_extended( Operation *op, SlapReply *rs )
+/*	struct berval		*reqoid,
 	struct berval	*reqdata,
 	char		**rspoid,
 	struct berval	**rspdata,
 	LDAPControl *** rspctrls,
 	const char**	text,
 	BerVarray	*refs 
-)
+) */
 {
 	int i;
 
 	for( i=0; exop_table[i].extended != NULL; i++ ) {
-		if( ber_bvcmp( exop_table[i].oid, reqoid ) == 0 ) {
-			return (exop_table[i].extended)(
-				be, conn, op,
-				reqoid, reqdata,
-				rspoid, rspdata, rspctrls,
-				text, refs );
+		if( ber_bvcmp( exop_table[i].oid, &op->oq_extended.rs_reqoid ) == 0 ) {
+			return (exop_table[i].extended)( op, rs );
 		}
 	}
 
-	*text = "not supported within naming context";
+	rs->sr_text = "not supported within naming context";
 	return LDAP_UNWILLING_TO_PERFORM;
 }
 

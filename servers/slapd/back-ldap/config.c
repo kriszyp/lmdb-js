@@ -409,36 +409,28 @@ error_return:;
 
 static int
 ldap_back_exop_whoami(
-	Connection *conn,
 	Operation *op,
-	struct berval *reqoid,
-	struct berval *reqdata,
-	char **rspoid,
-	struct berval **rspdata,
-	LDAPControl ***rspctrls,
-	const char **text,
-	BerVarray *refs )
+	SlapReply *rs )
 {
 	struct berval *bv = NULL;
-	int rc = LDAP_SUCCESS;
 
-	if ( reqdata != NULL ) {
+	if ( op->oq_extended.rs_reqdata != NULL ) {
 		/* no request data should be provided */
-		*text = "no request data expected";
+		rs->sr_text = "no request data expected";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
 	{
-		rc = backend_check_restrictions( conn->c_authz_backend,
-			conn, op, (struct berval *)&slap_EXOP_WHOAMI, text );
+		rs->sr_err = backend_check_restrictions( op, rs, 
+			(struct berval *)&slap_EXOP_WHOAMI );
 
-		if( rc != LDAP_SUCCESS ) return rc;
+		if( rs->sr_err != LDAP_SUCCESS ) return rs->sr_err;
 	}
 
 	/* if auth'd by back-ldap and request is proxied, forward it */
-	if ( conn->c_authz_backend && !strcmp(conn->c_authz_backend->be_type, "ldap" ) && !dn_match(&op->o_ndn, &conn->c_ndn)) {
+	if ( op->o_conn->c_authz_backend && !strcmp(op->o_conn->c_authz_backend->be_type, "ldap" ) && !dn_match(&op->o_ndn, &op->o_conn->c_ndn)) {
 		struct ldapinfo *li =
-			(struct ldapinfo *)conn->c_authz_backend->be_private;
+			(struct ldapinfo *)op->o_conn->c_authz_backend->be_private;
 		struct ldapconn *lc;
 
 		LDAPControl c, *ctrls[2] = {&c, NULL};
@@ -446,9 +438,9 @@ ldap_back_exop_whoami(
 		Operation op2 = *op;
 		ber_int_t msgid;
 
-		op2.o_ndn = conn->c_ndn;
-		lc = ldap_back_getconn(li, conn, &op2);
-		if (!lc || !ldap_back_dobind( li, lc, conn, op )) {
+		op2.o_ndn = op->o_conn->c_ndn;
+		lc = ldap_back_getconn(li, &op2, rs);
+		if (!lc || !ldap_back_dobind( li, lc, op, rs )) {
 			return -1;
 		}
 		c.ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
@@ -458,19 +450,19 @@ ldap_back_exop_whoami(
 		strcpy(c.ldctl_value.bv_val, "dn:");
 		strcpy(c.ldctl_value.bv_val+3, op->o_ndn.bv_val);
 
-		rc = ldap_whoami(lc->ld, ctrls, NULL, &msgid);
-		if (rc == LDAP_SUCCESS) {
+		rs->sr_err = ldap_whoami(lc->ld, ctrls, NULL, &msgid);
+		if (rs->sr_err == LDAP_SUCCESS) {
 			if (ldap_result(lc->ld, msgid, 1, NULL, &res) == -1) {
 				ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER,
-					&rc);
+					&rs->sr_err);
 			} else {
-				rc = ldap_parse_whoami(lc->ld, res, &bv);
+				rs->sr_err = ldap_parse_whoami(lc->ld, res, &bv);
 				ldap_msgfree(res);
 			}
 		}
 		ch_free(c.ldctl_value.bv_val);
-		if (rc != LDAP_SUCCESS) {
-			rc = ldap_back_map_result(rc);
+		if (rs->sr_err != LDAP_SUCCESS) {
+			rs->sr_err = ldap_back_map_result(rs->sr_err);
 		}
 	} else {
 	/* else just do the same as before */
@@ -488,8 +480,8 @@ ldap_back_exop_whoami(
 		}
 	}
 
-	*rspdata = bv;
-	return rc;
+	rs->sr_rspdata = bv;
+	return rs->sr_err;
 }
 
 

@@ -100,20 +100,13 @@ add_replica_attrs(
 static void
 print_vals( FILE *fp, struct berval *type, struct berval *bv );
 static void
-replog1( struct slap_replica_info *ri, Operation *op, void *change, FILE *fp, void *first);
+replog1( struct slap_replica_info *ri, Operation *op, FILE *fp, void *first);
 
 void
-replog(
-    Backend	*be,
-    Operation *op,
-    struct berval *dn,
-    struct berval *ndn,
-    void	*change
-)
+replog( Operation *op )
 {
 	Modifications	*ml = NULL;
 	Attribute	*a = NULL;
-	Entry	*e;
 	FILE	*fp, *lfp;
 	int	i;
 /* undef NO_LOG_WHEN_NO_REPLICAS */
@@ -123,35 +116,35 @@ replog(
 	int	subsets = 0;
 	long now = slap_get_time();
 
-	if ( be->be_replogfile == NULL && replogfile == NULL ) {
+	if ( op->o_bd->be_replogfile == NULL && replogfile == NULL ) {
 		return;
 	}
 
 	ldap_pvt_thread_mutex_lock( &replog_mutex );
-	if ( (fp = lock_fopen( be->be_replogfile ? be->be_replogfile :
+	if ( (fp = lock_fopen( op->o_bd->be_replogfile ? op->o_bd->be_replogfile :
 	    replogfile, "a", &lfp )) == NULL ) {
 		ldap_pvt_thread_mutex_unlock( &replog_mutex );
 		return;
 	}
 
-	for ( i = 0; be->be_replica != NULL && be->be_replica[i] != NULL; i++ ) {
+	for ( i = 0; op->o_bd->be_replica != NULL && op->o_bd->be_replica[i] != NULL; i++ ) {
 		/* check if dn's suffix matches legal suffixes, if any */
-		if ( be->be_replica[i]->ri_nsuffix != NULL ) {
+		if ( op->o_bd->be_replica[i]->ri_nsuffix != NULL ) {
 			int j;
 
-			for ( j = 0; be->be_replica[i]->ri_nsuffix[j].bv_val; j++ ) {
-				if ( dnIsSuffix( ndn, &be->be_replica[i]->ri_nsuffix[j] ) ) {
+			for ( j = 0; op->o_bd->be_replica[i]->ri_nsuffix[j].bv_val; j++ ) {
+				if ( dnIsSuffix( &op->o_req_ndn, &op->o_bd->be_replica[i]->ri_nsuffix[j] ) ) {
 					break;
 				}
 			}
 
-			if ( !be->be_replica[i]->ri_nsuffix[j].bv_val ) {
+			if ( !op->o_bd->be_replica[i]->ri_nsuffix[j].bv_val ) {
 				/* do not add "replica:" line */
 				continue;
 			}
 		}
 		/* See if we only want a subset of attributes */
-		if ( be->be_replica[i]->ri_attrs != NULL &&
+		if ( op->o_bd->be_replica[i]->ri_attrs != NULL &&
 			( op->o_tag == LDAP_REQ_MODIFY || op->o_tag == LDAP_REQ_ADD || op->o_tag == LDAP_REQ_EXTENDED ) ) {
 			if ( !subsets ) {
 				subsets = i + 1;
@@ -160,7 +153,7 @@ replog(
 			continue;
 		}
 
-		fprintf( fp, "replica: %s\n", be->be_replica[i]->ri_host );
+		fprintf( fp, "replica: %s\n", op->o_bd->be_replica[i]->ri_host );
 #ifdef NO_LOG_WHEN_NO_REPLICAS
 		++count;
 #endif
@@ -178,30 +171,30 @@ replog(
 #endif
 
 	fprintf( fp, "time: %ld\n", now );
-	fprintf( fp, "dn: %s\n", dn->bv_val );
+	fprintf( fp, "dn: %s\n", op->o_req_dn.bv_val );
 
-	replog1( NULL, op, change, fp, NULL );
+	replog1( NULL, op, fp, NULL );
 
 	if ( subsets > 0 ) {
 		void *first;
-		for ( i = subsets - 1; be->be_replica != NULL && be->be_replica[i] != NULL; i++ ) {
+		for ( i = subsets - 1; op->o_bd->be_replica != NULL && op->o_bd->be_replica[i] != NULL; i++ ) {
 
 			/* If no attrs, we already did this above */
-			if ( be->be_replica[i]->ri_attrs == NULL ) {
+			if ( op->o_bd->be_replica[i]->ri_attrs == NULL ) {
 				continue;
 			}
 
 			/* check if dn's suffix matches legal suffixes, if any */
-			if ( be->be_replica[i]->ri_nsuffix != NULL ) {
+			if ( op->o_bd->be_replica[i]->ri_nsuffix != NULL ) {
 				int j;
 
-				for ( j = 0; be->be_replica[i]->ri_nsuffix[j].bv_val; j++ ) {
-					if ( dnIsSuffix( ndn, &be->be_replica[i]->ri_nsuffix[j] ) ) {
+				for ( j = 0; op->o_bd->be_replica[i]->ri_nsuffix[j].bv_val; j++ ) {
+					if ( dnIsSuffix( &op->o_req_ndn, &op->o_bd->be_replica[i]->ri_nsuffix[j] ) ) {
 						break;
 					}
 				}
 
-				if ( !be->be_replica[i]->ri_nsuffix[j].bv_val ) {
+				if ( !op->o_bd->be_replica[i]->ri_nsuffix[j].bv_val ) {
 					/* do not add "replica:" line */
 					continue;
 				}
@@ -214,11 +207,11 @@ replog(
 				/* assume change parameter is a Modfications* */
 				/* fall thru */
 			case LDAP_REQ_MODIFY:
-				for ( ml = change; ml != NULL; ml = ml->sml_next ) {
+				for ( ml = op->oq_modify.rs_modlist; ml != NULL; ml = ml->sml_next ) {
 					int is_in, exclude;
 
-   					is_in = ad_inlist( ml->sml_desc, be->be_replica[i]->ri_attrs );
-					exclude = be->be_replica[i]->ri_exclude;
+   					is_in = ad_inlist( ml->sml_desc, op->o_bd->be_replica[i]->ri_attrs );
+					exclude = op->o_bd->be_replica[i]->ri_exclude;
 					
 					/*
 					 * there might be a more clever way to do this test,
@@ -235,12 +228,11 @@ replog(
 				}
 				break;
 			case LDAP_REQ_ADD:
-				e = change;
-				for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+				for ( a = op->oq_add.rs_e->e_attrs; a != NULL; a = a->a_next ) {
 					int is_in, exclude;
 
-   					is_in = ad_inlist( a->a_desc, be->be_replica[i]->ri_attrs );
-					exclude = be->be_replica[i]->ri_exclude;
+   					is_in = ad_inlist( a->a_desc, op->o_bd->be_replica[i]->ri_attrs );
+					exclude = op->o_bd->be_replica[i]->ri_exclude;
 					
 					if ( ( is_in && !exclude ) || ( !is_in && exclude ) ) {
 						subsets = 1;
@@ -256,10 +248,10 @@ replog(
 				/* Other operations were logged in the first pass */
 				continue;
 			}
-			fprintf( fp, "replica: %s\n", be->be_replica[i]->ri_host );
+			fprintf( fp, "replica: %s\n", op->o_bd->be_replica[i]->ri_host );
 			fprintf( fp, "time: %ld\n", now );
-			fprintf( fp, "dn: %s\n", dn->bv_val );
-			replog1( be->be_replica[i], op, change, fp, first );
+			fprintf( fp, "dn: %s\n", op->o_req_dn.bv_val );
+			replog1( op->o_bd->be_replica[i], op, fp, first );
 		}
 	}
 
@@ -272,15 +264,12 @@ static void
 replog1(
     struct slap_replica_info *ri,
     Operation *op,
-    void	*change,
     FILE	*fp,
 	void	*first
 )
 {
 	Modifications	*ml;
 	Attribute	*a;
-	Entry		*e;
-	struct slap_replog_moddn *moddn;
 
 	switch ( op->o_tag ) {
 	case LDAP_REQ_EXTENDED:
@@ -290,7 +279,7 @@ replog1(
 
 	case LDAP_REQ_MODIFY:
 		fprintf( fp, "changetype: modify\n" );
-		ml = first ? first : change;
+		ml = first ? first : op->oq_modify.rs_modlist;
 		for ( ; ml != NULL; ml = ml->sml_next ) {
 			char *type;
 			if ( ri && ri->ri_attrs ) {
@@ -321,9 +310,8 @@ replog1(
 		break;
 
 	case LDAP_REQ_ADD:
-		e = change;
 		fprintf( fp, "changetype: add\n" );
-		a = first ? first : e->e_attrs;
+		a = first ? first : op->oq_add.rs_e->e_attrs;
 		for ( ; a != NULL; a=a->a_next ) {
 			if ( ri && ri->ri_attrs ) {
 				int is_in = ad_inlist( a->a_desc, ri->ri_attrs );
@@ -367,13 +355,11 @@ replog1(
 		break;
 
 	case LDAP_REQ_MODRDN:
-		moddn = change;
 		fprintf( fp, "changetype: modrdn\n" );
-		fprintf( fp, "newrdn: %s\n", moddn->newrdn->bv_val );
-		fprintf( fp, "deleteoldrdn: %d\n", moddn->deloldrdn ? 1 : 0 );
-		/* moddn->newsup is never NULL, see modrdn.c */
-		if( moddn->newsup->bv_val != NULL ) {
-			fprintf( fp, "newsuperior: %s\n", moddn->newsup->bv_val );
+		fprintf( fp, "newrdn: %s\n", op->oq_modrdn.rs_newrdn.bv_val );
+		fprintf( fp, "deleteoldrdn: %d\n", op->oq_modrdn.rs_deleteoldrdn ? 1 : 0 );
+		if( op->oq_modrdn.rs_newSup != NULL ) {
+			fprintf( fp, "newsuperior: %s\n", op->oq_modrdn.rs_newSup->bv_val );
 		}
 	}
 	fprintf( fp, "\n" );

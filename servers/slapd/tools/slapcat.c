@@ -19,6 +19,7 @@ main( int argc, char **argv )
 {
 	ID id;
 	int rc = EXIT_SUCCESS;
+	Operation op = {0};
 
 	slap_tool_init( "slapcat", SLAPCAT, argc, argv );
 
@@ -59,7 +60,8 @@ main( int argc, char **argv )
 		}
 
 		data = entry2str( e, &len );
-		be_entry_release_r( be, 0L, 0L, e );
+		op.o_bd = be;
+		be_entry_release_r( &op, e );
 
 		if ( data == NULL ) {
 			printf("# bad data for entry id=%08lx\n\n", (long) id );

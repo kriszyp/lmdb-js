@@ -17,58 +17,47 @@
 
 int
 shell_back_search(
-    Backend	*be,
-    Connection	*conn,
     Operation	*op,
-    struct berval *base,
-    struct berval *nbase,
-    int		scope,
-    int		deref,
-    int		size,
-    int		time,
-    Filter	*filter,
-    struct berval	*filterstr,
-    AttributeName	*attrs,
-    int		attrsonly
-)
+    SlapReply	*rs )
 {
-	struct shellinfo	*si = (struct shellinfo *) be->be_private;
+	struct shellinfo	*si = (struct shellinfo *) op->o_bd->be_private;
 	FILE			*rfp, *wfp;
 	AttributeName		*an;
 
 	if ( si->si_search == NULL ) {
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-		    "search not implemented", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+		    "search not implemented" );
 		return( -1 );
 	}
 
 	if ( (op->o_private = (void *) forkandexec( si->si_search, &rfp, &wfp ))
 	    == (void *) -1 ) {
-		send_ldap_result( conn, op, LDAP_OTHER, NULL,
-		    "could not fork/exec", NULL, NULL );
+		send_ldap_error( op, rs, LDAP_OTHER,
+		    "could not fork/exec" );
 		return( -1 );
 	}
 
 	/* write out the request to the search process */
 	fprintf( wfp, "SEARCH\n" );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
-	print_suffixes( wfp, be );
-	fprintf( wfp, "base: %s\n", base->bv_val );
-	fprintf( wfp, "scope: %d\n", scope );
-	fprintf( wfp, "deref: %d\n", deref );
-	fprintf( wfp, "sizelimit: %d\n", size );
-	fprintf( wfp, "timelimit: %d\n", time );
-	fprintf( wfp, "filter: %s\n", filterstr->bv_val );
-	fprintf( wfp, "attrsonly: %d\n", attrsonly ? 1 : 0 );
-	fprintf( wfp, "attrs:%s", attrs == NULL ? " all" : "" );
-	for ( an = attrs; an && an->an_name.bv_val; an++ ) {
+	print_suffixes( wfp, op->o_bd );
+	fprintf( wfp, "base: %s\n", op->o_req_dn.bv_val );
+	fprintf( wfp, "scope: %d\n", op->oq_search.rs_scope );
+	fprintf( wfp, "deref: %d\n", op->oq_search.rs_deref );
+	fprintf( wfp, "sizelimit: %d\n", op->oq_search.rs_slimit );
+	fprintf( wfp, "timelimit: %d\n", op->oq_search.rs_tlimit );
+	fprintf( wfp, "filter: %s\n", op->oq_search.rs_filterstr.bv_val );
+	fprintf( wfp, "attrsonly: %d\n", op->oq_search.rs_attrsonly ? 1 : 0 );
+	fprintf( wfp, "attrs:%s", op->oq_search.rs_attrs == NULL ? " all" : "" );
+	for ( an = op->oq_search.rs_attrs; an && an->an_name.bv_val; an++ ) {
 		fprintf( wfp, " %s", an->an_name.bv_val );
 	}
 	fprintf( wfp, "\n" );
 	fclose( wfp );
 
 	/* read in the results and send them along */
-	read_and_send_results( be, conn, op, rfp, attrs, attrsonly );
+	rs->sr_attrs = op->oq_search.rs_attrs;
+	read_and_send_results( op, rs, rfp );
 
 	fclose( rfp );
 	return( 0 );

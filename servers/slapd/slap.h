@@ -1207,15 +1207,6 @@ typedef struct slap_acl_state {
 	{ { 0, 0 } }, 0, NULL, 0, 0, NULL }
 
 /*
- * replog moddn param structure
- */
-struct slap_replog_moddn {
-	struct berval *newrdn;
-	int	deloldrdn;
-	struct berval *newsup;
-};
-
-/*
  * Backend-info
  * represents a backend 
  */
@@ -1446,11 +1437,11 @@ typedef int (BI_db_open) LDAP_P((Backend *bd));
 typedef int (BI_db_close) LDAP_P((Backend *bd));
 typedef int (BI_db_destroy) LDAP_P((Backend *bd));
 
-#ifdef SLAP_OP_BLOCKS
 typedef struct req_bind_s {
 	int rb_method;
 	struct berval rb_cred;
 	struct berval rb_edn;
+	slap_ssf_t rb_ssf;
 } req_bind_s;
 
 typedef struct req_search_s {
@@ -1460,7 +1451,7 @@ typedef struct req_search_s {
 	int rs_tlimit;
 	int rs_attrsonly;
 	AttributeName *rs_attrs;
-	Filter *rs_f;
+	Filter *rs_filter;
 	struct berval rs_filterstr;
 } req_search_s;
 
@@ -1468,11 +1459,15 @@ typedef struct req_compare_s {
 	AttributeAssertion *rs_ava;
 } req_compare_s;
 
+typedef struct req_modify_s {
+	Modifications *rs_modlist;
+} req_modify_s;
+
 typedef struct req_modrdn_s {
 	struct berval rs_newrdn;
 	struct berval rs_nnewrdn;
-	struct berval rs_newSup;
-	struct berval rs_nnewSup;
+	struct berval *rs_newSup;
+	struct berval *rs_nnewSup;
 	int rs_deleteoldrdn;
 } req_modrdn_s;
 
@@ -1486,88 +1481,80 @@ typedef struct req_abandon_s {
 
 typedef struct req_extended_s {
 	struct berval rs_reqoid;
-	char *rs_rspoid;
-	struct berval *rs_rspdata;
-	LDAPControl **rs_rspctrls;
-	const char *rs_text;
-	BerVarray rs_refs;
+	struct berval *rs_reqdata;
 } req_extended_s;
-#endif /* SLAP_OP_BLOCKS */
 
-typedef int (BI_op_bind)  LDAP_P(( BackendDB *bd,
-		struct slap_conn *c, struct slap_op *o,
-		struct berval *dn, struct berval *ndn, int method,
-		struct berval *cred, struct berval *edn ));
-typedef int (BI_op_unbind) LDAP_P((BackendDB *bd,
-		struct slap_conn *c, struct slap_op *o ));
-typedef int (BI_op_search) LDAP_P((BackendDB *bd,
-		struct slap_conn *c, struct slap_op *o,
-		struct berval *base, struct berval *nbase,
-		int scope, int deref,
-		int slimit, int tlimit,
-		Filter *f, struct berval *filterstr,
-		AttributeName *attrs, int attrsonly));
-typedef int (BI_op_compare)LDAP_P((BackendDB *bd,
-		struct slap_conn *c, struct slap_op *o,
-		struct berval *dn, struct berval *ndn,
-		AttributeAssertion *ava));
-typedef int (BI_op_modify) LDAP_P((BackendDB *bd,
-		struct slap_conn *c, struct slap_op *o,
-		struct berval *dn, struct berval *ndn,
-		Modifications *m));
-typedef int (BI_op_modrdn) LDAP_P((BackendDB *bd,
-		struct slap_conn *c, struct slap_op *o,
-		struct berval *dn, struct berval *ndn,
-		struct berval *newrdn, struct berval *nnewrdn,
-		int deleteoldrdn,
-		struct berval *newSup, struct berval *nnewSup ));
-typedef int (BI_op_add)    LDAP_P((BackendDB *bd,
-		struct slap_conn *c, struct slap_op *o,
-		Entry *e));
-typedef int (BI_op_delete) LDAP_P((BackendDB *bd,
-		struct slap_conn *c, struct slap_op *o,
-		struct berval *dn, struct berval *ndn));
-typedef int (BI_op_abandon) LDAP_P((BackendDB *bd,
-		struct slap_conn *c, struct slap_op *o,
-		ber_int_t msgid));
-typedef int (BI_op_cancel) LDAP_P((BackendDB *bd,
-		struct slap_conn *c, struct slap_op *o,
-		ber_int_t msgid));
+typedef enum slap_reply_e {
+	REP_RESULT,
+	REP_SASL,
+	REP_SRESULT,
+	REP_EXTENDED,
+	REP_SEARCH,
+	REP_SEARCHREF
+} slap_reply_t;
 
-typedef int (BI_op_extended) LDAP_P((
-	BackendDB		*be,
-	struct slap_conn	*conn,
-	struct slap_op		*op,
-	struct berval		*reqoid,
-	struct berval * reqdata,
-	char		**rspoid,
-	struct berval ** rspdata,
-	LDAPControl *** rspctrls,
-	const char **	text,
-	BerVarray *refs ));
+typedef struct rep_sasl_s {
+	struct berval *r_sasldata;
+} rep_sasl_s;
 
-typedef int (BI_entry_get_rw) LDAP_P((BackendDB *bd,
-		struct slap_conn *c, struct slap_op *o,
-		struct berval *ndn, ObjectClass *oc,
-		AttributeDescription *at, int rw,
-		Entry **e ));
+typedef struct rep_sresult_s {
+	int r_nentries;
+} rep_sresult_s;
 
-typedef int (BI_entry_release_rw) LDAP_P((BackendDB *bd,
-		struct slap_conn *c, struct slap_op *o,
-		Entry *e, int rw));
+typedef struct rep_extended_s {
+	const char *r_rspoid;
+	struct berval *r_rspdata;
+} rep_extended_s;
 
-typedef int (BI_chk_referrals) LDAP_P((BackendDB *bd,
-		struct slap_conn *c, struct slap_op *o,
-		struct berval *dn, struct berval *ndn,
-		const char **text ));
-		
-typedef int (BI_operational)  LDAP_P((Backend *bd,
-		struct slap_conn *c, struct slap_op *o,
-		Entry *e, AttributeName *attrs, int opattrs, Attribute **a ));
+typedef struct rep_search_s {
+	AttributeName *r_attrs;
+	Entry *r_entry;
+	BerVarray r_v2ref;
+} rep_search_s;
 
-typedef int (BI_has_subordinates) LDAP_P((Backend *bd,
-		struct slap_conn *c, struct slap_op *o,
-	        Entry *e, int *has_subordinates ));
+typedef struct slap_rep {
+	slap_reply_t sr_type;
+	ber_tag_t sr_tag;
+	ber_int_t sr_msgid;
+	ber_int_t sr_err;
+	const char *sr_matched;
+	const char *sr_text;
+	BerVarray sr_ref;
+	LDAPControl **sr_ctrls;
+	union sr_u {
+		rep_sasl_s sru_sasl;
+		rep_sresult_s sru_sresult;
+		rep_extended_s sru_extended;
+		rep_search_s sru_search;
+	} sr_un;
+} SlapReply;
+
+/* short hands for response members */
+#define	sr_attrs sr_un.sru_search.r_attrs
+#define	sr_entry sr_un.sru_search.r_entry
+#define	sr_v2ref sr_un.sru_search.r_v2ref
+#define	sr_rspoid sr_un.sru_extended.r_rspoid
+#define	sr_rspdata sr_un.sru_extended.r_rspdata
+#define	sr_sasldata sr_un.sru_sasl.r_sasldata
+#define	sr_nentries sr_un.sru_sresult.r_nentries
+
+typedef int (BI_op_bind) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_op_unbind) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_op_search) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_op_compare) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_op_modify) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_op_modrdn) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_op_add) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_op_delete) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_op_abandon) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_op_cancel) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_op_extended) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_entry_release_rw) LDAP_P(( struct slap_op *op, Entry *e, int rw ));
+typedef int (BI_entry_get_rw) LDAP_P(( struct slap_op *op, struct berval *ndn,
+	ObjectClass *oc, AttributeDescription *at, int rw, Entry **e ));
+typedef int (BI_chk_referrals) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_operational) LDAP_P(( struct slap_op *op, struct slap_rep *rs, int opattrs, Attribute **ap ));
+typedef int (BI_has_subordinates) LDAP_P(( struct slap_op *op, Entry *e, int *hasSubs ));
 
 typedef int (BI_connection_init) LDAP_P((BackendDB *bd,
 		struct slap_conn *c));
@@ -1703,20 +1690,10 @@ struct slap_backend_info {
 #define o_tls_ssf		o_authz.sai_tls_ssf
 #define o_sasl_ssf		o_authz.sai_sasl_ssf
 
-typedef void (slap_response)( struct slap_conn *, struct slap_op *,
-	ber_tag_t, ber_int_t, ber_int_t, const char *, const char *,
-	BerVarray, const char *, struct berval *,
-	struct berval *, LDAPControl ** );
-
-typedef void (slap_sresult)( struct slap_conn *, struct slap_op *,
-	ber_int_t, const char *, const char *, BerVarray,
-	LDAPControl **, int nentries);
-
-typedef int (slap_sendentry)( BackendDB *, struct slap_conn *,
-	struct slap_op *, Entry *, AttributeName *, int, LDAPControl **);
-
-typedef int (slap_sendreference)( BackendDB *, struct slap_conn *,
-	struct slap_op *, Entry *, BerVarray, LDAPControl **, BerVarray * );
+typedef void (slap_response)( struct slap_op *, struct slap_rep * );
+typedef void (slap_sresult)( struct slap_op *, struct slap_rep * );
+typedef int (slap_sendentry)( struct slap_op *, struct slap_rep * );
+typedef int (slap_sendreference)( struct slap_op *, struct slap_rep * );
 
 typedef struct slap_callback {
 	slap_response *sc_response;
@@ -1744,26 +1721,9 @@ typedef struct slap_paged_state {
 #define LDAP_PSEARCH_BY_MODIFY		0x04
 #define LDAP_PSEARCH_BY_SCOPEOUT	0x05
 
-struct ldap_psearch_spec {
-	struct slap_op  *op;
-	struct berval   *base;
-	struct berval   *nbase;
-	int             scope;
-	int             deref;
-	int             slimit;
-	int             tlimit;
-	Filter          *filter;
-	struct berval   *filterstr;
-	AttributeName   *attrs;
-	int             attrsonly;
-	int             protocol;
-	int             entry_count;
-	LDAP_LIST_ENTRY(ldap_psearch_spec) link;
-};
-
 struct psid_entry {
-	struct ldap_psearch_spec* ps;
-	LDAP_LIST_ENTRY(psid_entry) link;
+	struct slap_op *ps_op;
+	LDAP_LIST_ENTRY(psid_entry) ps_link;
 };
 #endif
 
@@ -1775,52 +1735,43 @@ typedef struct slap_op {
 	unsigned long o_opid;	/* id of this operation */
 	unsigned long o_connid; /* id of conn initiating this op */
 	struct slap_conn *o_conn;	/* connection spawning this op */
-#ifdef SLAP_OP_BLOCKS
 	BackendDB	*o_bd;	/* backend DB processing this op */
-#endif
 
 	ber_int_t	o_msgid;	/* msgid of the request */
 	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
 	ber_tag_t	o_tag;		/* tag of the request */
 	time_t		o_time;		/* time op was initiated */
 
-#ifdef SLAP_OP_BLOCKS
 	struct berval	o_req_dn;	/* DN of target of request */
 	struct berval	o_req_ndn;
 
 	union o_req_u {
-		req_bind_s oq_bind;
-		req_search_s oq_search;
-		req_compare_s oq_compare;
-		req_modrdn_s oq_modrdn;
 		req_add_s oq_add;
+		req_bind_s oq_bind;
+		req_compare_s oq_compare;
+		req_modify_s oq_modify;
+		req_modrdn_s oq_modrdn;
+		req_search_s oq_search;
 		req_abandon_s oq_abandon;
 		req_abandon_s oq_cancel;
 		req_extended_s oq_extended;
 	} o_request;
 
 /* short hands for union members */
-#define o_bind o_request.oq_bind
+#define oq_add o_request.oq_add
+#define oq_bind o_request.oq_bind
+#define oq_compare o_request.oq_compare
+#define oq_modify o_request.oq_modify
+#define oq_modrdn o_request.oq_modrdn
+#define oq_search o_request.oq_search
+#define oq_abandon o_request.oq_abandon
+#define oq_cancel o_request.oq_cancel
+#define oq_extended o_request.oq_extended
 /* ... */
 
 /* short hands for inner request members */
-#define o_bind_edn o_bind.rb_edn
+#define o_bind_edn oq_bind.rb_edn
 /* ... */
-
-	struct o_rep_s {
-		ber_tag_t or_tag;
-		ber_int_t or_err;
-		const char *or_matched;
-		const char *or_text;
-		BerVarray or_ref;
-		const char *or_resoid;
-		struct berval *or_resdata;
-		struct berval *or_sasldata;
-		LDAPControl **or_ctrls;
-	} o_response;
-#else
-	char *		o_extendedop;	/* extended operation OID */
-#endif
 
 	ldap_pvt_thread_t	o_tid;	/* thread handling this op */
 
@@ -1895,9 +1846,10 @@ typedef struct slap_op {
 #endif
 
 #if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
-	LDAP_LIST_HEAD(lss, ldap_psearch_spec) psearch_spec;
-	LDAP_LIST_HEAD(pe, psid_entry) premodify_list;
-	LDAP_LIST_ENTRY(slap_op) link;
+	int o_ps_protocol;
+	int o_ps_entries;
+	LDAP_LIST_ENTRY(slap_op) o_ps_link;
+	LDAP_LIST_HEAD(pe, psid_entry) o_pm_list;
 #endif
 
 	AuthorizationInformation o_authz;
@@ -1924,94 +1876,30 @@ typedef struct slap_op {
 #endif
 } Operation;
 
-typedef void (*SEND_LDAP_RESULT)(
-				struct slap_conn *conn,
-				struct slap_op *op,
-				ber_int_t err,
-				const char *matched,
-				const char *text,
-				BerVarray ref,
-				LDAPControl **ctrls
-				);
-
-#define send_ldap_result( conn, op, err, matched, text, ref, ctrls  ) \
-(*conn->c_send_ldap_result)( conn, op, err, matched, text, ref, ctrls )
-
-
-typedef int (*SEND_SEARCH_ENTRY)(
-				struct slap_backend_db *be,
-				struct slap_conn *conn,
-				struct slap_op *op,
-				struct slap_entry *e,
-				AttributeName *attrs,
-				int attrsonly,
-				LDAPControl **ctrls
-				);
-
-#define send_search_entry( be, conn, op, e, attrs, attrsonly, ctrls) \
-(*conn->c_send_search_entry)( be, conn, op, e, attrs, attrsonly, ctrls)
-
-
-typedef void (*SEND_SEARCH_RESULT)(
-				struct slap_conn *conn,
-				struct slap_op *op,
-				ber_int_t err,
-				const char *matched,
-				const char *text,
-				BerVarray   refs,
-				LDAPControl **ctrls,
-				int nentries
-				);
-
-#define send_search_result( conn, op, err, matched, text, refs, ctrls, nentries ) \
-(*conn->c_send_search_result)( conn, op, err, matched, text, refs, ctrls, nentries )
-
-
-typedef int (*SEND_SEARCH_REFERENCE)(
-				struct slap_backend_db *be,
-				struct slap_conn *conn,
-				struct slap_op *op,
-				struct slap_entry *e,
-				BerVarray refs,
-				LDAPControl **ctrls,
-				BerVarray *v2refs
-				);
-
-#define send_search_reference( be, conn, op, e,  refs, ctrls, v2refs ) \
-(*conn->c_send_search_reference)( be, conn, op, e,  refs, ctrls, v2refs )
-
-
-typedef void (*SEND_LDAP_EXTENDED)(
-				struct slap_conn *conn,
-				struct slap_op *op,
-				ber_int_t   err,
-				const char  *matched,
-				const char  *text,
-				BerVarray   refs,
-				const char      *rspoid,
-				struct berval *rspdata,
-				LDAPControl **ctrls
-				);
-
-#define send_ldap_extended( conn, op, err, matched, text, refs, rspoid, rspdata, ctrls) \
-(*conn->c_send_ldap_extended)( conn, op, err, matched, text, refs, rspoid, rspdata, ctrls )
-
-typedef void (*SEND_LDAP_INTERMEDIATE_RESP)(
-				struct slap_conn *conn,
-				struct slap_op *op,
-				ber_int_t   err,
-				const char  *matched,
-				const char  *text,
-				BerVarray   refs,
-				const char      *rspoid,
-				struct berval *rspdata,
-				LDAPControl **ctrls
-				);
-
-#define send_ldap_intermediate_resp( conn, op, err, matched, text, refs, \
-				     rspoid, rspdata, ctrls) \
-	(*conn->c_send_ldap_intermediate_resp)( conn, op, err, matched, text, \
-						refs, rspoid, rspdata, ctrls )
+#define send_ldap_error( op, rs, err, text ) \
+do { (rs)->sr_err = err; (rs)->sr_text = text; \
+(op->o_conn->c_send_ldap_result)( op, rs ); } while (0)
+#define send_ldap_discon( op, rs, err, text ) \
+do { (rs)->sr_err = err; (rs)->sr_text = text; \
+send_ldap_disconnect( op, rs ); } while (0)
+typedef void (SEND_LDAP_RESULT)(struct slap_op *op, struct slap_rep *rs);
+typedef int (SEND_SEARCH_ENTRY)(struct slap_op *op, struct slap_rep *rs);
+typedef void (SEND_SEARCH_RESULT)(struct slap_op *op, struct slap_rep *rs);
+typedef int (SEND_SEARCH_REFERENCE)(struct slap_op *op, struct slap_rep *rs);
+typedef void (SEND_LDAP_EXTENDED)(struct slap_op *op, struct slap_rep *rs);
+typedef void (SEND_LDAP_INTERMEDIATE_RESP)(struct slap_op *op, struct slap_rep *rs);
+#define send_ldap_result( op, rs ) \
+(op->o_conn->c_send_ldap_result)( op, rs )
+#define send_search_entry( op, rs ) \
+(op->o_conn->c_send_search_entry)( op, rs )
+#define send_search_result( op, rs ) \
+(op->o_conn->c_send_search_result)( op, rs )
+#define send_search_reference( op, rs ) \
+(op->o_conn->c_send_search_reference)( op, rs )
+#define send_ldap_extended( op, rs ) \
+(op->o_conn->c_send_ldap_extended)( op, rs )
+#define send_ldap_intermediate_resp( op, rs ) \
+(op->o_conn->c_send_ldap_intermediate_resp)( op, rs )
 
 /*
  * Caches the result of a backend_group check for ACL evaluation
@@ -2101,13 +1989,13 @@ typedef struct slap_conn {
 	 * supply data back to connected clients that are connected
 	 * through the "front-end".
 	 */
-	SEND_LDAP_RESULT c_send_ldap_result;
-	SEND_SEARCH_ENTRY c_send_search_entry;
-	SEND_SEARCH_RESULT c_send_search_result;
-	SEND_SEARCH_REFERENCE c_send_search_reference;
-	SEND_LDAP_EXTENDED c_send_ldap_extended;
+	SEND_LDAP_RESULT *c_send_ldap_result;
+	SEND_SEARCH_ENTRY *c_send_search_entry;
+	SEND_SEARCH_RESULT *c_send_search_result;
+	SEND_SEARCH_REFERENCE *c_send_search_reference;
+	SEND_LDAP_EXTENDED *c_send_ldap_extended;
 #ifdef LDAP_RES_INTERMEDIATE_RESP
-	SEND_LDAP_INTERMEDIATE_RESP c_send_ldap_intermediate_resp;
+	SEND_LDAP_INTERMEDIATE_RESP *c_send_ldap_intermediate_resp;
 #endif
 	
 } Connection;
@@ -2211,10 +2099,9 @@ enum {
 #define SLAP_CTRL_ACCESS	(SLAP_CTRL_INTROGATE|SLAP_CTRL_UPDATE)
 
 typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
-	Connection *conn,
 	Operation *op,
-	LDAPControl *ctrl,
-	const char **text ));
+	SlapReply *rs,
+	LDAPControl *ctrl ));
 
 LDAP_END_DECL
 

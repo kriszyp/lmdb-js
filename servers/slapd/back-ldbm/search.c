@@ -26,33 +26,21 @@ static ID_BLOCK	*search_candidates(
 
 int
 ldbm_back_search(
-    Backend	*be,
-    Connection	*conn,
     Operation	*op,
-    struct berval	*base,
-    struct berval	*nbase,
-    int		scope,
-    int		deref,
-    int		slimit,
-    int		tlimit,
-    Filter	*filter,
-    struct berval	*filterstr,
-    AttributeName	*attrs,
-    int		attrsonly )
+    SlapReply	*rs )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
 	int		rc, err;
 	const char *text = NULL;
 	time_t		stoptime;
 	ID_BLOCK		*candidates;
 	ID		id, cursor;
 	Entry		*e;
-	BerVarray		v2refs = NULL;
 	Entry	*matched = NULL;
 	struct berval	realbase = { 0, NULL };
-	int		nentries = 0;
 	int		manageDSAit = get_manageDSAit( op );
 	int		cscope = LDAP_SCOPE_DEFAULT;
+	int		nentries = 0;
 
 #ifdef LDAP_CACHING
 	Entry 		cache_base_entry; 
@@ -71,7 +59,7 @@ ldbm_back_search(
 	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
 
 #ifndef LDAP_CACHING
-	if ( nbase->bv_len == 0 ) {
+	if ( op->o_req_ndn.bv_len == 0 ) {
 		/* DIT root special case */
 		e = (Entry *) &slap_entry_root;
 
@@ -79,16 +67,16 @@ ldbm_back_search(
 		ber_dupbv( &realbase, &e->e_nname );
 
 #else /* LDAP_CACHING */
-	if ( op->o_caching_on || nbase->bv_len == 0 ) {
-		if (nbase->bv_len == 0) {
+	if ( op->o_caching_on || op->o_req_ndn.bv_len == 0 ) {
+		if (op->o_req_ndn.bv_len == 0) {
 		    e = (Entry *) &slap_entry_root;
 		    /* need normalized dn below */
 		    ber_dupbv( &realbase, &e->e_nname );
 		} else {
 			if ((scope == LDAP_SCOPE_BASE) 
-    					&& (e = dn2entry_r( be, nbase, &matched )))
+    					&& (e = dn2entry_r( op->o_bd, &op->o_req_ndn &matched )))
     			{
-				candidates = base_candidate(be,e);
+				candidates = base_candidate(op->o_bd,e);
 				cache_return_entry_r( &li->li_cache, e );
 				goto searchit;
     			}
@@ -97,57 +85,56 @@ ldbm_back_search(
 		}
 #endif /* LDAP_CACHING */
 
-		candidates = search_candidates( be, e, filter,
-	    			scope, deref,
+		candidates = search_candidates( op->o_bd, e, op->oq_search.rs_filter,
+	    			op->oq_search.rs_scope, op->oq_search.rs_deref,
 				manageDSAit || get_domainScope(op) );
 
 		goto searchit;
 		
-	} else if ( deref & LDAP_DEREF_FINDING ) {
+	} else if ( op->oq_search.rs_deref & LDAP_DEREF_FINDING ) {
 		/* deref dn and get entry with reader lock */
-		e = deref_dn_r( be, nbase, &err, &matched, &text );
+		e = deref_dn_r( op->o_bd, &op->o_req_ndn, &rs->sr_err, &matched, &rs->sr_text );
 
-		if( err == LDAP_NO_SUCH_OBJECT ) err = LDAP_REFERRAL;
+		if( rs->sr_err == LDAP_NO_SUCH_OBJECT ) rs->sr_err = LDAP_REFERRAL;
 
 	} else {
 		/* get entry with reader lock */
-		e = dn2entry_r( be, nbase, &matched );
-		err = e != NULL ? LDAP_SUCCESS : LDAP_REFERRAL;
-		text = NULL;
+		e = dn2entry_r( op->o_bd, &op->o_req_ndn, &matched );
+		rs->sr_err = e != NULL ? LDAP_SUCCESS : LDAP_REFERRAL;
+		rs->sr_text = NULL;
 	}
 
 	if ( e == NULL ) {
 		struct berval matched_dn = { 0, NULL };
-		BerVarray refs = NULL;
 
 		if ( matched != NULL ) {
 			BerVarray erefs;
 			ber_dupbv( &matched_dn, &matched->e_name );
 
 			erefs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched )
+				? get_entry_referrals( op, matched )
 				: NULL;
 
 			cache_return_entry_r( &li->li_cache, matched );
 
 			if( erefs ) {
-				refs = referral_rewrite( erefs, &matched_dn,
-					base, scope );
+				rs->sr_ref = referral_rewrite( erefs, &matched_dn,
+					&op->o_req_dn, op->oq_search.rs_scope );
 
 				ber_bvarray_free( erefs );
 			}
 
 		} else {
-			refs = referral_rewrite( default_referral,
-				NULL, base, scope );
+			rs->sr_ref = referral_rewrite( default_referral,
+				NULL, &op->o_req_dn, op->oq_search.rs_scope );
 		}
 
 		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
-		send_ldap_result( conn, op, err, matched_dn.bv_val, 
-			text, refs, NULL );
+		rs->sr_matched = matched_dn.bv_val;
+		send_ldap_result( op, rs );
 
-		ber_bvarray_free( refs );
+		ber_bvarray_free( rs->sr_ref );
 		ber_memfree( matched_dn.bv_val );
 		return 1;
 	}
@@ -156,11 +143,10 @@ ldbm_back_search(
 		/* entry is a referral, don't allow add */
 		struct berval matched_dn;
 		BerVarray erefs;
-		BerVarray refs;
 
 		ber_dupbv( &matched_dn, &e->e_name );
-		erefs = get_entry_referrals( be, conn, op, e );
-		refs = NULL;
+		erefs = get_entry_referrals( op, e );
+		rs->sr_ref = NULL;
 
 		cache_return_entry_r( &li->li_cache, e );
 		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
@@ -176,21 +162,21 @@ ldbm_back_search(
 #endif
 
 		if( erefs ) {
-			refs = referral_rewrite( erefs, &matched_dn,
-				base, scope );
+			rs->sr_ref = referral_rewrite( erefs, &matched_dn,
+				&op->o_req_dn, op->oq_search.rs_scope );
 
 			ber_bvarray_free( erefs );
 		}
 
-		if( refs ) {
-			send_ldap_result( conn, op, LDAP_REFERRAL,
-				matched_dn.bv_val, NULL, refs, NULL );
-			ber_bvarray_free( refs );
+		rs->sr_matched = matched_dn.bv_val;
+		if( rs->sr_ref ) {
+			rs->sr_err = LDAP_REFERRAL;
+			send_ldap_result( op, rs );
+			ber_bvarray_free( rs->sr_ref );
 
 		} else {
-			send_ldap_result( conn, op, LDAP_OTHER,
-				matched_dn.bv_val,
-			"bad referral object", NULL, NULL );
+			send_ldap_error( op, rs, LDAP_OTHER,
+			"bad referral object" );
 		}
 
 		ber_memfree( matched_dn.bv_val );
@@ -199,18 +185,18 @@ ldbm_back_search(
 
 	if ( is_entry_alias( e ) ) {
 		/* don't deref */
-		deref = LDAP_DEREF_NEVER;
+		op->oq_search.rs_deref = LDAP_DEREF_NEVER;
 	}
 
-	if ( scope == LDAP_SCOPE_BASE ) {
+	if ( op->oq_search.rs_scope == LDAP_SCOPE_BASE ) {
 		cscope = LDAP_SCOPE_BASE;
-		candidates = base_candidate( be, e );
+		candidates = base_candidate( op->o_bd, e );
 
 	} else {
-		cscope = ( scope != LDAP_SCOPE_SUBTREE )
+		cscope = ( op->oq_search.rs_scope != LDAP_SCOPE_SUBTREE )
 			? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE;
-		candidates = search_candidates( be, e, filter,
-		    scope, deref, manageDSAit );
+		candidates = search_candidates( op->o_bd, e, op->oq_search.rs_filter,
+		    op->oq_search.rs_scope, op->oq_search.rs_deref, manageDSAit );
 	}
 
 	/* need normalized dn below */
@@ -234,9 +220,8 @@ searchit:
 		}
 #endif /* LDAP_CACHING */
 
-		send_search_result( conn, op,
-			LDAP_SUCCESS,
-			NULL, NULL, NULL, NULL, 0 );
+		rs->sr_err = LDAP_SUCCESS;
+		send_search_result( op, rs );
 
 #ifdef LDAP_CACHING
                 if ( op->o_caching_on ) {
@@ -250,9 +235,9 @@ searchit:
 
 	/* if not root, get appropriate limits */
 #ifndef LDAP_CACHING
-	if ( be_isroot( be, &op->o_ndn ) )
+	if ( be_isroot( op->o_bd, &op->o_ndn ) )
 #else /* LDAP_CACHING */
- 	if ( op->o_caching_on || be_isroot( be, &op->o_ndn ) )
+ 	if ( op->o_caching_on || be_isroot( op->o_bd, &op->o_ndn ) )
 #endif /* LDAP_CACHING */
 	{
 		/*
@@ -261,14 +246,14 @@ searchit:
 		 */
 		isroot = 1;
 	} else {
-		( void ) get_limits( be, &op->o_ndn, &limit );
+		( void ) get_limits( op->o_bd, &op->o_ndn, &limit );
 	}
 
 	/* if candidates exceed to-be-checked entries, abort */
 	if ( !isroot && limit->lms_s_unchecked != -1 ) {
 		if ( ID_BLOCK_NIDS( candidates ) > (unsigned) limit->lms_s_unchecked ) {
-			send_search_result( conn, op, LDAP_ADMINLIMIT_EXCEEDED,
-					NULL, NULL, NULL, NULL, 0 );
+			send_ldap_error( op, rs, LDAP_ADMINLIMIT_EXCEEDED,
+					NULL );
 			rc = 0;
 			goto done;
 		}
@@ -276,32 +261,32 @@ searchit:
 	
 	/* if root an no specific limit is required, allow unlimited search */
 	if ( isroot ) {
-		if ( tlimit == 0 ) {
-			tlimit = -1;
+		if ( op->oq_search.rs_tlimit == 0 ) {
+			op->oq_search.rs_tlimit = -1;
 		}
 
-		if ( slimit == 0 ) {
-			slimit = -1;
+		if ( op->oq_search.rs_slimit == 0 ) {
+			op->oq_search.rs_slimit = -1;
 		}
 
 	} else {
 		/* if no limit is required, use soft limit */
-		if ( tlimit <= 0 ) {
-			tlimit = limit->lms_t_soft;
+		if ( op->oq_search.rs_tlimit <= 0 ) {
+			op->oq_search.rs_tlimit = limit->lms_t_soft;
 		
 		/* if requested limit higher than hard limit, abort */
-		} else if ( tlimit > limit->lms_t_hard ) {
+		} else if ( op->oq_search.rs_tlimit > limit->lms_t_hard ) {
 			/* no hard limit means use soft instead */
 			if ( limit->lms_t_hard == 0
 					&& limit->lms_t_soft > -1
-					&& tlimit > limit->lms_t_soft ) {
-				tlimit = limit->lms_t_soft;
+					&& op->oq_search.rs_tlimit > limit->lms_t_soft ) {
+				op->oq_search.rs_tlimit = limit->lms_t_soft;
 			
 			/* positive hard limit means abort */
 			} else if ( limit->lms_t_hard > 0 ) {
-				send_search_result( conn, op, 
+				send_ldap_error( op, rs,
 						LDAP_ADMINLIMIT_EXCEEDED,
-						NULL, NULL, NULL, NULL, 0 );
+						NULL );
 				rc = 0; 
 				goto done;
 			}
@@ -310,22 +295,22 @@ searchit:
 		}
 
 		/* if no limit is required, use soft limit */
-		if ( slimit <= 0 ) {
-			slimit = limit->lms_s_soft;
+		if ( op->oq_search.rs_slimit <= 0 ) {
+			op->oq_search.rs_slimit = limit->lms_s_soft;
 
 		/* if requested limit higher than hard limit, abort */
-		} else if ( slimit > limit->lms_s_hard ) {
+		} else if ( op->oq_search.rs_slimit > limit->lms_s_hard ) {
 			/* no hard limit means use soft instead */
 			if ( limit->lms_s_hard == 0
 					&& limit->lms_s_soft > -1
-					&& slimit > limit->lms_s_soft ) {
-				slimit = limit->lms_s_soft;
+					&& op->oq_search.rs_slimit > limit->lms_s_soft ) {
+				op->oq_search.rs_slimit = limit->lms_s_soft;
 
 			/* positive hard limit means abort */
 			} else if ( limit->lms_s_hard > 0 ) {
-				send_search_result( conn, op,
+				send_ldap_error( op, rs,
 						LDAP_ADMINLIMIT_EXCEEDED,
-						NULL, NULL, NULL, NULL, 0 );
+						NULL );
 				rc = 0;
 				goto done;
 			}
@@ -335,7 +320,8 @@ searchit:
 	}
 
 	/* compute it anyway; root does not use it */
-	stoptime = op->o_time + tlimit;
+	stoptime = op->o_time + op->oq_search.rs_tlimit;
+	rs->sr_attrs = op->oq_search.rs_attrs;
 
 	for ( id = idl_firstid( candidates, &cursor ); id != NOID;
 	    id = idl_nextid( candidates, &cursor ) )
@@ -350,15 +336,16 @@ searchit:
 		}
 
 		/* check time limit */
-		if ( tlimit != -1 && slap_get_time() > stoptime ) {
-			send_search_result( conn, op, LDAP_TIMELIMIT_EXCEEDED,
-				NULL, NULL, v2refs, NULL, nentries );
+		if ( op->oq_search.rs_tlimit != -1 && slap_get_time() > stoptime ) {
+			rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
+			rs->sr_nentries = nentries;
+			send_search_result( op, rs );
 			rc = 0;
 			goto done;
 		}
 
 		/* get the entry with reader lock */
-		e = id2entry_r( be, id );
+		e = id2entry_r( op->o_bd, id );
 
 		if ( e == NULL ) {
 #ifdef NEW_LOGGING
@@ -373,16 +360,17 @@ searchit:
 			goto loop_continue;
 		}
 
+		rs->sr_entry = e;
 #ifdef LDAP_CACHING
                 if ( !op->o_caching_on ) {
 #endif /* LDAP_CACHING */
 
-		if ( deref & LDAP_DEREF_SEARCHING && is_entry_alias( e ) ) {
+		if ( op->oq_search.rs_deref & LDAP_DEREF_SEARCHING && is_entry_alias( e ) ) {
 			Entry *matched;
 			int err;
 			const char *text;
 			
-			e = deref_entry_r( be, e, &err, &matched, &text );
+			e = deref_entry_r( op->o_bd, e, &err, &matched, &text );
 
 			if( e == NULL ) {
 				e = matched;
@@ -395,7 +383,7 @@ searchit:
 			}
 
 			/* need to skip alias which deref into scope */
-			if( scope & LDAP_SCOPE_ONELEVEL ) {
+			if( op->oq_search.rs_scope & LDAP_SCOPE_ONELEVEL ) {
 				struct berval pdn;
 				dnParent( &e->e_nname, &pdn );
 				if ( ber_bvcmp( &pdn, &realbase ) ) {
@@ -416,6 +404,8 @@ searchit:
 				goto loop_continue;
 			}
 
+			rs->sr_entry = e;
+
 			scopeok = 1;
 		}
 
@@ -424,21 +414,21 @@ searchit:
 		 * this for non-base searches, and don't check the filter
 		 * explicitly here since it's only a candidate anyway.
 		 */
-		if ( !manageDSAit && scope != LDAP_SCOPE_BASE &&
+		if ( !manageDSAit && op->oq_search.rs_scope != LDAP_SCOPE_BASE &&
 			is_entry_referral( e ) )
 		{
 			struct berval	dn;
 
 			/* check scope */
-			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
-				if ( !be_issuffix( be, &e->e_nname ) ) {
+			if ( !scopeok && op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL ) {
+				if ( !be_issuffix( op->o_bd, &e->e_nname ) ) {
 					dnParent( &e->e_nname, &dn );
 					scopeok = dn_match( &dn, &realbase );
 				} else {
 					scopeok = (realbase.bv_len == 0);
 				}
 
-			} else if ( !scopeok && scope == LDAP_SCOPE_SUBTREE ) {
+			} else if ( !scopeok && op->oq_search.rs_scope == LDAP_SCOPE_SUBTREE ) {
 				scopeok = dnIsSuffix( &e->e_nname, &realbase );
 
 			} else {
@@ -446,18 +436,17 @@ searchit:
 			}
 
 			if( scopeok ) {
-				BerVarray erefs = get_entry_referrals(
-					be, conn, op, e );
-				BerVarray refs = referral_rewrite( erefs,
+				BerVarray erefs = get_entry_referrals( op, e );
+				rs->sr_ref = referral_rewrite( erefs,
 					&e->e_name, NULL,
-					scope == LDAP_SCOPE_SUBTREE
+					op->oq_search.rs_scope == LDAP_SCOPE_SUBTREE
 						? LDAP_SCOPE_SUBTREE
 						: LDAP_SCOPE_BASE );
 
-				send_search_reference( be, conn, op,
-					e, refs, NULL, &v2refs );
+				send_search_reference( op, rs );
 
-				ber_bvarray_free( refs );
+				ber_bvarray_free( rs->sr_ref );
+				rs->sr_ref = NULL;
 
 			} else {
 #ifdef NEW_LOGGING
@@ -479,21 +468,21 @@ searchit:
 #endif /* LDAP_CACHING */
 
 		/* if it matches the filter and scope, send it */
-		result = test_filter( be, conn, op, e, filter );
+		result = test_filter( op, e, op->oq_search.rs_filter );
 
 		if ( result == LDAP_COMPARE_TRUE ) {
 			struct berval	dn;
 
 			/* check scope */
-			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
-				if ( !be_issuffix( be, &e->e_nname ) ) {
+			if ( !scopeok && op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL ) {
+				if ( !be_issuffix( op->o_bd, &e->e_nname ) ) {
 					dnParent( &e->e_nname, &dn );
 					scopeok = dn_match( &dn, &realbase );
 				} else {
 					scopeok = (realbase.bv_len == 0);
 				}
 
-			} else if ( !scopeok && scope == LDAP_SCOPE_SUBTREE ) {
+			} else if ( !scopeok && op->oq_search.rs_scope == LDAP_SCOPE_SUBTREE ) {
 				scopeok = dnIsSuffix( &e->e_nname, &realbase );
 
 			} else {
@@ -502,11 +491,11 @@ searchit:
 
 			if ( scopeok ) {
 				/* check size limit */
-				if ( --slimit == -1 ) {
+				if ( --op->oq_search.rs_slimit == -1 ) {
 					cache_return_entry_r( &li->li_cache, e );
-					send_search_result( conn, op,
-						LDAP_SIZELIMIT_EXCEEDED, NULL, NULL,
-						v2refs, NULL, nentries );
+					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+					rs->sr_nentries = nentries;
+					send_search_result( op, rs );
 					rc = 0;
 					goto done;
 				}
@@ -520,8 +509,7 @@ searchit:
  					}
 #endif /* LDAP_CACHING */
 
-					result = send_search_entry(be, conn, op,
-						e, attrs, attrsonly, NULL);
+					result = send_search_entry( op, rs );
 
 #ifdef LDAP_CACHING
 					if ( op->o_caching_on ) {
@@ -581,9 +569,10 @@ loop_continue:
 		ldap_pvt_thread_yield();
 	}
 
-	send_search_result( conn, op,
-		v2refs == NULL ? LDAP_SUCCESS : LDAP_REFERRAL,
-		NULL, NULL, v2refs, NULL, nentries );
+	rs->sr_err = rs->sr_v2ref ? LDAP_REFERRAL : LDAP_SUCCESS;
+	rs->sr_ref = rs->sr_v2ref;
+	rs->sr_nentries = nentries;
+	send_search_result( op, rs );
 
 	rc = 0;
 
@@ -593,7 +582,7 @@ done:
 	if( candidates != NULL )
 		idl_free( candidates );
 
-	if( v2refs ) ber_bvarray_free( v2refs );
+	if( rs->sr_v2ref ) ber_bvarray_free( rs->sr_v2ref );
 	if( realbase.bv_val ) free( realbase.bv_val );
 
 	return rc;

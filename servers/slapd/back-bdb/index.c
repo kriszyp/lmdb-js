@@ -332,10 +332,10 @@ bdb_index_entry(
 	Backend	*be,
 	DB_TXN *txn,
 	int op,
-	Entry	*e,
-	Attribute *ap )
+	Entry	*e )
 {
 	int rc;
+	Attribute *ap = e->e_attrs;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( INDEX, ENTRY, "index_entry: %s (%s) %ld\n",

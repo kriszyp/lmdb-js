@@ -21,62 +21,53 @@
 #ifdef HAVE_TLS
 
 int
-starttls_extop (
-	Connection *conn,
-	Operation *op,
-	struct berval * reqoid,
-	struct berval * reqdata,
-	char ** rspoid,
-	struct berval ** rspdata,
-	LDAPControl ***rspctrls,
-	const char ** text,
-	BerVarray * refs )
+starttls_extop ( Operation *op, SlapReply *rs )
 {
 	void *ctx;
 	int rc;
 
-	if ( reqdata != NULL ) {
+	if ( op->oq_extended.rs_reqdata != NULL ) {
 		/* no request data should be provided */
-		*text = "no request data expected";
+		rs->sr_text = "no request data expected";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
 	/* acquire connection lock */
-	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 
 	/* can't start TLS if it is already started */
-	if (conn->c_is_tls != 0) {
-		*text = "TLS already started";
+	if (op->o_conn->c_is_tls != 0) {
+		rs->sr_text = "TLS already started";
 		rc = LDAP_OPERATIONS_ERROR;
 		goto done;
 	}
 
 	/* can't start TLS if there are other op's around */
-	if (( !LDAP_STAILQ_EMPTY(&conn->c_ops) &&
-			(LDAP_STAILQ_FIRST(&conn->c_ops) != op ||
+	if (( !LDAP_STAILQ_EMPTY(&op->o_conn->c_ops) &&
+			(LDAP_STAILQ_FIRST(&op->o_conn->c_ops) != op ||
 			LDAP_STAILQ_NEXT(op, o_next) != NULL)) ||
-		( !LDAP_STAILQ_EMPTY(&conn->c_pending_ops) ))
+		( !LDAP_STAILQ_EMPTY(&op->o_conn->c_pending_ops) ))
 	{
-		*text = "cannot start TLS when operations are outstanding";
+		rs->sr_text = "cannot start TLS when operations are outstanding";
 		rc = LDAP_OPERATIONS_ERROR;
 		goto done;
 	}
 
 	if ( !( global_disallows & SLAP_DISALLOW_TLS_2_ANON ) &&
-		( conn->c_dn.bv_len != 0 ) )
+		( op->o_conn->c_dn.bv_len != 0 ) )
 	{
 		Statslog( LDAP_DEBUG_STATS,
 			"conn=%lu op=%lu AUTHZ anonymous mech=starttls ssf=0",
 			op->o_connid, op->o_opid, 0, 0, 0 );
 
 		/* force to anonymous */
-		connection2anonymous( conn );
+		connection2anonymous( op->o_conn );
 	}
 
 	if ( ( global_disallows & SLAP_DISALLOW_TLS_AUTHC ) &&
-		( conn->c_dn.bv_len != 0 ) )
+		( op->o_conn->c_dn.bv_len != 0 ) )
 	{
-		*text = "cannot start TLS after authentication";
+		rs->sr_text = "cannot start TLS after authentication";
 		rc = LDAP_OPERATIONS_ERROR;
 		goto done;
 	}
@@ -91,19 +82,19 @@ starttls_extop (
 			goto done;
 		}
 
-		*text = "Could not initialize TLS";
+		rs->sr_text = "Could not initialize TLS";
 		rc = LDAP_UNAVAILABLE;
 		goto done;
 	}
 
-    conn->c_is_tls = 1;
-    conn->c_needs_tls_accept = 1;
+    op->o_conn->c_is_tls = 1;
+    op->o_conn->c_needs_tls_accept = 1;
 
     rc = LDAP_SUCCESS;
 
 done:
 	/* give up connection lock */
-	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 	/*
 	 * RACE CONDITION: we give up lock before sending result

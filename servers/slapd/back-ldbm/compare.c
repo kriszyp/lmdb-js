@@ -18,55 +18,45 @@
 
 int
 ldbm_back_compare(
-    Backend	*be,
-    Connection	*conn,
-    Operation	*op,
-    struct berval	*dn,
-    struct berval	*ndn,
-	AttributeAssertion *ava
-)
+	Operation	*op,
+	SlapReply	*rs )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
 	Entry		*matched;
 	Entry		*e;
 	Attribute	*a;
-	int		rc;
 	int		manageDSAit = get_manageDSAit( op );
 
 	/* grab giant lock for reading */
 	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
 
 	/* get entry with reader lock */
-	if ( (e = dn2entry_r( be, ndn, &matched )) == NULL ) {
-		char *matched_dn = NULL;
-		BerVarray refs = NULL;
-
+	if ( (e = dn2entry_r( op->o_bd, &op->o_req_ndn, &matched )) == NULL ) {
 		if ( matched != NULL ) {
-			matched_dn = ch_strdup( matched->e_dn );
-			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched )
+			rs->sr_matched = ch_strdup( matched->e_dn );
+			rs->sr_ref = is_entry_referral( matched )
+				? get_entry_referrals( op, matched )
 				: NULL;
 			cache_return_entry_r( &li->li_cache, matched );
 		} else {
-			refs = referral_rewrite( default_referral,
-				NULL, dn, LDAP_SCOPE_DEFAULT );
+			rs->sr_ref = referral_rewrite( default_referral,
+				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
-		send_ldap_result( conn, op, LDAP_REFERRAL,
-			matched_dn, NULL, refs, NULL );
+		rs->sr_err = LDAP_REFERRAL;
+		send_ldap_result( op, rs );
 
-		if ( refs ) ber_bvarray_free( refs );
-		free( matched_dn );
+		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
+		free( (char *)rs->sr_matched );
 
 		return( 1 );
 	}
 
 	if (!manageDSAit && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
-		BerVarray refs = get_entry_referrals( be,
-			conn, op, e );
+		rs->sr_ref = get_entry_referrals( op, e );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, INFO, 
@@ -77,56 +67,56 @@ ldbm_back_compare(
 #endif
 
 
-		send_ldap_result( conn, op, LDAP_REFERRAL,
-		    e->e_dn, NULL, refs, NULL );
+		rs->sr_err = LDAP_REFERRAL;
+		rs->sr_matched = e->e_name.bv_val;
+		send_ldap_result( op, rs );
 
-		if (refs ) ber_bvarray_free( refs );
+		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
 
-		rc = 1;
+		rs->sr_err = 1;
 		goto return_results;
 	}
 
-	if ( ! access_allowed( be, conn, op, e,
-		ava->aa_desc, &ava->aa_value, ACL_COMPARE, NULL ) )
+	if ( ! access_allowed( op, e,
+		op->oq_compare.rs_ava->aa_desc, &op->oq_compare.rs_ava->aa_value, ACL_COMPARE, NULL ) )
 	{
-		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-			NULL, NULL, NULL, NULL );
-		rc = 1;
+		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
+			NULL );
+		rs->sr_err = 1;
 		goto return_results;
 	}
 
-	rc = LDAP_NO_SUCH_ATTRIBUTE;
+	rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
 
-	for(a = attrs_find( e->e_attrs, ava->aa_desc );
+	for(a = attrs_find( e->e_attrs, op->oq_compare.rs_ava->aa_desc );
 		a != NULL;
-		a = attrs_find( a->a_next, ava->aa_desc ))
+		a = attrs_find( a->a_next, op->oq_compare.rs_ava->aa_desc ))
 	{
-		rc = LDAP_COMPARE_FALSE;
+		rs->sr_err = LDAP_COMPARE_FALSE;
 
 #ifdef SLAP_NVALUES
-		if ( value_find_ex( ava->aa_desc,
+		if ( value_find_ex( op->oq_compare.rs_ava->aa_desc,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-			a->a_nvals, &ava->aa_value ) == 0 )
+			a->a_nvals, &op->oq_compare.rs_ava->aa_value ) == 0 )
 #else
-		if ( value_find( ava->aa_desc, a->a_vals, &ava->aa_value ) == 0 )
+		if ( value_find( op->oq_compare.rs_ava->aa_desc, a->a_vals, &op->oq_compare.rs_ava->aa_value ) == 0 )
 #endif
 		{
-			rc = LDAP_COMPARE_TRUE;
+			rs->sr_err = LDAP_COMPARE_TRUE;
 			break;
 		}
 	}
 
-	send_ldap_result( conn, op, rc,
-		NULL, NULL, NULL, NULL );
+	send_ldap_result( op, rs );
 
-	if( rc != LDAP_NO_SUCH_ATTRIBUTE ) {
-		rc = 0;
+	if( rs->sr_err != LDAP_NO_SUCH_ATTRIBUTE ) {
+		rs->sr_err = 0;
 	}
 
 
 return_results:;
 	cache_return_entry_r( &li->li_cache, e );
 	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
-	return( rc );
+	return( rs->sr_err );
 }

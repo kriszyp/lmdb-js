@@ -18,22 +18,20 @@
 
 int
 tcl_back_abandon (
-	Backend * be,
-	Connection * conn,
 	Operation * op,
-	int msgid
+	SlapReply * rs
 )
 {
 	char *results, *command;
 	struct berval suf_tcl;
 	int code, err = 0;
-	struct tclinfo *ti = (struct tclinfo *) be->be_private;
+	struct tclinfo *ti = (struct tclinfo *) op->o_bd->be_private;
 
 	if (ti->ti_abandon.bv_len == 0) {
 		return (-1);
 	}
 
-	if (tcl_merge_bvlist(be->be_suffix, &suf_tcl) == NULL) {
+	if (tcl_merge_bvlist(op->o_bd->be_suffix, &suf_tcl) == NULL) {
 		return (-1);
 	}
 
@@ -41,7 +39,7 @@ tcl_back_abandon (
 		+ 80);
 	sprintf (command, "%s ABANDON {%ld/%ld} {%s} {%ld/%d}",
 		ti->ti_abandon.bv_val, op->o_connid, (long) op->o_msgid,
-		suf_tcl.bv_val, op->o_connid, msgid);
+		suf_tcl.bv_val, op->o_connid, op->oq_abandon.rs_msgid);
 	Tcl_Free (suf_tcl.bv_val);
 
 	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);

@@ -14,86 +14,74 @@
 #include "external.h"
 
 int
-bdb_compare(
-	BackendDB	*be,
-	Connection	*conn,
-	Operation	*op,
-	struct berval	*dn,
-	struct berval	*ndn,
-	AttributeAssertion *ava
-)
+bdb_compare( Operation *op, SlapReply *rs )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	Entry		*matched;
 	Entry		*e;
 	Attribute	*a;
-	int			rc; 
-	const char	*text = NULL;
 	int		manageDSAit = get_manageDSAit( op );
 
 	u_int32_t	locker;
 	DB_LOCK		lock;
 
-	rc = LOCK_ID(bdb->bi_dbenv, &locker);
-	switch(rc) {
+	rs->sr_err = LOCK_ID(bdb->bi_dbenv, &locker);
+	switch(rs->sr_err) {
 	case 0:
 		break;
 	default:
-		send_ldap_result( conn, op, rc=LDAP_OTHER,
-			NULL, "internal error", NULL, NULL );
-		return rc;
+		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
+		return rs->sr_err;
 	}
 
 dn2entry_retry:
 	/* get entry */
-	rc = bdb_dn2entry_r( be, NULL, ndn, &e, &matched, 0, locker, &lock );
+	rs->sr_err = bdb_dn2entry_r( op->o_bd, NULL, &op->o_req_ndn, &e, &matched, 0, locker, &lock );
 
-	switch( rc ) {
+	switch( rs->sr_err ) {
 	case DB_NOTFOUND:
 	case 0:
 		break;
 	case LDAP_BUSY:
-		text = "ldap server busy";
+		rs->sr_text = "ldap server busy";
 		goto return_results;
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
 		goto dn2entry_retry;
 	default:
-		rc = LDAP_OTHER;
-		text = "internal error";
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "internal error";
 		goto return_results;
 	}
 
 	if ( e == NULL ) {
-		char *matched_dn = NULL;
-		BerVarray refs;
-
 		if ( matched != NULL ) {
-			matched_dn = ch_strdup( matched->e_dn );
-			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched )
+			rs->sr_matched = ch_strdup( matched->e_dn );
+			rs->sr_ref = is_entry_referral( matched )
+				? get_entry_referrals( op, matched )
 				: NULL;
 			bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, matched, &lock );
 			matched = NULL;
 
 		} else {
-			refs = referral_rewrite( default_referral,
-				NULL, dn, LDAP_SCOPE_DEFAULT );
+			rs->sr_ref = referral_rewrite( default_referral,
+				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
-		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
-			matched_dn, NULL, refs, NULL );
+		rs->sr_err = LDAP_REFERRAL;
+		send_ldap_result( op, rs );
 
-		ber_bvarray_free( refs );
-		free( matched_dn );
+		ber_bvarray_free( rs->sr_ref );
+		free( (char *)rs->sr_matched );
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
 
 		goto done;
 	}
 
 	if (!manageDSAit && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
-		BerVarray refs = get_entry_referrals( be,
-			conn, op, e );
+		rs->sr_ref = get_entry_referrals( op, e );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, DETAIL1, 
@@ -103,48 +91,50 @@ dn2entry_retry:
 			0, 0 );
 #endif
 
-		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
-			e->e_dn, NULL, refs, NULL );
+		rs->sr_err = LDAP_REFERRAL;
+		rs->sr_matched = e->e_name.bv_val;
+		send_ldap_result( op, rs );
 
-		ber_bvarray_free( refs );
+		ber_bvarray_free( rs->sr_ref );
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
 		goto done;
 	}
 
-	rc = access_allowed( be, conn, op, e,
-		ava->aa_desc, &ava->aa_value, ACL_COMPARE, NULL );
-	if ( ! rc ) {
-		rc = LDAP_INSUFFICIENT_ACCESS;
+	rs->sr_err = access_allowed( op, e,
+		op->oq_compare.rs_ava->aa_desc, &op->oq_compare.rs_ava->aa_value, ACL_COMPARE, NULL );
+	if ( ! rs->sr_err ) {
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		goto return_results;
 	}
 
-	rc = LDAP_NO_SUCH_ATTRIBUTE;
+	rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
 
-	for(a = attrs_find( e->e_attrs, ava->aa_desc );
+	for(a = attrs_find( e->e_attrs, op->oq_compare.rs_ava->aa_desc );
 		a != NULL;
-		a = attrs_find( a->a_next, ava->aa_desc ))
+		a = attrs_find( a->a_next, op->oq_compare.rs_ava->aa_desc ))
 	{
-		rc = LDAP_COMPARE_FALSE;
+		rs->sr_err = LDAP_COMPARE_FALSE;
 
 #ifdef SLAP_NVALUES
-		if ( value_find_ex( ava->aa_desc,
+		if ( value_find_ex( op->oq_compare.rs_ava->aa_desc,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-			a->a_nvals, &ava->aa_value ) == 0 )
+			a->a_nvals, &op->oq_compare.rs_ava->aa_value ) == 0 )
 #else
-		if ( value_find( ava->aa_desc, a->a_vals, &ava->aa_value ) == 0 )
+		if ( value_find( op->oq_compare.rs_ava->aa_desc, a->a_vals, &op->oq_compare.rs_ava->aa_value ) == 0 )
 #endif
 		{
-			rc = LDAP_COMPARE_TRUE;
+			rs->sr_err = LDAP_COMPARE_TRUE;
 			break;
 		}
 	}
 
 return_results:
-	send_ldap_result( conn, op, rc,
-		NULL, text, NULL, NULL );
+	send_ldap_result( op, rs );
 
-	if( rc == LDAP_COMPARE_FALSE || rc == LDAP_COMPARE_TRUE ) {
-		rc = LDAP_SUCCESS;
+	if( rs->sr_err == LDAP_COMPARE_FALSE || rs->sr_err == LDAP_COMPARE_TRUE ) {
+		rs->sr_err = LDAP_SUCCESS;
 	}
 
 done:
@@ -155,5 +145,5 @@ done:
 
 	LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 
-	return rc;
+	return rs->sr_err;
 }

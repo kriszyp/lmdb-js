@@ -38,12 +38,9 @@ extern void print_suffixes LDAP_P((
 	struct slap_backend_db *bd));
 
 extern int read_and_send_results LDAP_P((
-	struct slap_backend_db *bd,
-	struct slap_conn *conn,
 	struct slap_op *op,
-	FILE *fp,
-	AttributeName *attrs,
-	int attrsonly));
+	struct slap_rep *rs,
+	FILE *fp));
 
 LDAP_END_DECL
 
