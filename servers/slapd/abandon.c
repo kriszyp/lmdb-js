@@ -75,26 +75,28 @@ do_abandon( Operation *op, SlapReply *rs )
 	LDAP_STAILQ_FOREACH( o, &op->o_conn->c_ops, o_next ) {
 		if ( o->o_msgid == id ) {
 			o->o_abandon = 1;
-			goto done;
+			break;
 		}
 	}
 
-	LDAP_STAILQ_FOREACH( o, &op->o_conn->c_pending_ops, o_next ) {
-		if ( o->o_msgid == id ) {
-			LDAP_STAILQ_REMOVE( &op->o_conn->c_pending_ops,
-				o, slap_op, o_next );
-			LDAP_STAILQ_NEXT(o, o_next) = NULL;
-			op->o_conn->c_n_ops_pending--;
-			slap_op_free( o );
-			goto done;
+	if ( o ) {
+		op->orn_msgid = id;
+
+		op->o_bd = frontendDB;
+		rs->sr_err = frontendDB->be_abandon( op, rs );
+
+	} else {
+		LDAP_STAILQ_FOREACH( o, &op->o_conn->c_pending_ops, o_next ) {
+			if ( o->o_msgid == id ) {
+				LDAP_STAILQ_REMOVE( &op->o_conn->c_pending_ops,
+					o, slap_op, o_next );
+				LDAP_STAILQ_NEXT(o, o_next) = NULL;
+				op->o_conn->c_n_ops_pending--;
+				slap_op_free( o );
+				break;
+			}
 		}
 	}
-
-done:
-	op->orn_msgid = id;
-
-	op->o_bd = frontendDB;
-	rs->sr_err = frontendDB->be_abandon( op, rs );
 
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 

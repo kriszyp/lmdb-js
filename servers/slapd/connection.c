@@ -1049,7 +1049,10 @@ operations_error:
 	}
 
 	if ( op->o_cancel == SLAP_CANCEL_REQ ) {
-		op->o_cancel = LDAP_TOO_LATE;
+		if ( rc == SLAPD_ABANDON )
+			op->o_cancel = SLAP_CANCEL_ACK;
+		else
+			op->o_cancel = LDAP_TOO_LATE;
 	}
 	while ( op->o_cancel != SLAP_CANCEL_NONE &&
 		op->o_cancel != SLAP_CANCEL_DONE )
