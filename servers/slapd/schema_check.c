@@ -227,14 +227,14 @@ entry_schema_check(
 	}
 
 	/* naming check */
-        if ( !is_entry_objectclass ( e, slap_schema.si_oc_glue, 0 ) ) {
-                rc = entry_naming_check( e, text, textbuf, textlen );
-                if( rc != LDAP_SUCCESS ) {
-                        return rc;
-                }
-        } else {
-			/* Glue Entry */
-        }
+	if ( !is_entry_objectclass ( e, slap_schema.si_oc_glue, 0 ) ) {
+		rc = entry_naming_check( e, text, textbuf, textlen );
+		if( rc != LDAP_SUCCESS ) {
+			return rc;
+		}
+	} else {
+		/* Glue Entry */
+	}
 
 	/* find the content rule for the structural class */
 	cr = cr_find( sc->soc_oid );
