@@ -36,6 +36,10 @@
 #undef _THREAD_SAFE
 #endif
 
+#ifndef _SGI_MP_SOURCE
+#undef _SGI_MP_SOURCE
+#endif
+
 /* define this if cross compiling */
 #undef CROSS_COMPILING
 
