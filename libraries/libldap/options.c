@@ -158,16 +158,14 @@ ldap_get_option(
 
 	case LDAP_OPT_TIMEOUT:
 		/* the caller has to free outvalue ! */
-		if ( ldap_int_timeval_dup( outvalue, lo->ldo_tm_api) != 0 )
-		{
+		if ( ldap_int_timeval_dup( outvalue, lo->ldo_tm_api) != 0 ) {
 			return LDAP_OPT_ERROR;
 		}
 		return LDAP_OPT_SUCCESS;
 		
 	case LDAP_OPT_NETWORK_TIMEOUT:
 		/* the caller has to free outvalue ! */
-		if ( ldap_int_timeval_dup( outvalue, lo->ldo_tm_net ) != 0 )
-		{
+		if ( ldap_int_timeval_dup( outvalue, lo->ldo_tm_net ) != 0 ) {
 			return LDAP_OPT_ERROR;
 		}
 		return LDAP_OPT_SUCCESS;

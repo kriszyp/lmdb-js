@@ -134,6 +134,7 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 static int
 ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 {
+	int rc;
 	struct timeval	tv, *opt_tv=NULL;
 	fd_set		wfds, *z=NULL;
 
@@ -168,11 +169,12 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 	FD_ZERO(&wfds);
 	FD_SET(s, &wfds );
 
-	if ( select(ldap_int_tblsize, z, &wfds, z, opt_tv ? &tv : NULL)
-		== AC_SOCKET_ERROR )
-	{
-		return ( -1 );
-	}
+	do { 
+		rc = select(ldap_int_tblsize, z, &wfds, z, opt_tv ? &tv : NULL);
+	} while( rc == AC_SOCKET_ERROR && errno == EINTR &&
+		LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART ));
+
+	if( rc == AC_SOCKET_ERROR ) return rc;
 
 	if ( FD_ISSET(s, &wfds) ) {
 		if ( ldap_pvt_is_socket_ready(ld, s) == -1 )
