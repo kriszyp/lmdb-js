@@ -49,6 +49,16 @@ starttls_extop (
 		goto done;
 	}
 
+	/* can't start TLS if there are other op's around */
+	if (( conn->c_ops != NULL &&
+			(conn->c_ops != op || op->o_next != NULL)) ||
+		( conn->c_pending_ops != NULL))
+	{
+		*text = "cannot start TLS when operations our outstanding";
+		rc = LDAP_OPERATIONS_ERROR;
+		goto done;
+	}
+
 	/* fail if TLS could not be initialized */
 	if (ldap_pvt_tls_get_option(NULL, LDAP_OPT_X_TLS_CERT, &ctx) != 0
 		|| ctx == NULL)
@@ -61,16 +71,6 @@ starttls_extop (
 
 		*text = "Could not initialize TLS";
 		rc = LDAP_UNAVAILABLE;
-		goto done;
-	}
-
-	/* can't start TLS if there are other op's around */
-	if (( conn->c_ops != NULL &&
-			(conn->c_ops != op || op->o_next != NULL)) ||
-		( conn->c_pending_ops != NULL))
-	{
-		*text = "cannot start TLS when operations our outstanding";
-		rc = LDAP_OPERATIONS_ERROR;
 		goto done;
 	}
 
