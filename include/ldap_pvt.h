@@ -15,6 +15,10 @@
 #ifndef _LDAP_PVT_H
 #define _LDAP_PVT_H 1
 
+#include <ldap_cdefs.h>
+
+LDAP_BEGIN_DECL
+
 struct hostent;	/* avoid pulling in <netdb.h> */
 
 extern char *ldap_pvt_ctime( const time_t *tp, char *buf );
@@ -33,5 +37,8 @@ extern int ldap_pvt_gethostbyaddr_a(
 	struct hostent **result,
 	int *herrno_ptr );
 extern void ldap_pvt_init_utils( void );
+
+LDAP_END_DECL
+
 #endif
 
