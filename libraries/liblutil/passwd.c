@@ -48,6 +48,8 @@
 
 #include <lber.h>
 
+#include "ldap_pvt.h"
+
 #include "lutil_md5.h"
 #include "lutil_sha1.h"
 #include "lutil.h"
@@ -751,7 +753,7 @@ static int chk_kerberos(
 
 		krb5_free_principal( context, client );
 		krb5_free_principal( context, server );
-		krb5_free_creds_contents( context, &creds );
+		krb5_free_cred_contents( context, &creds );
 		krb5_free_context( context );
 
 		rtn = !!ret;
