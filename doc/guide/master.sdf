@@ -8,7 +8,7 @@
 !include "title.sdf"
 
 # Document copyright, publishing info, acknowledgements, preface
-!include "preamble.sdf"
+!include "preamble.sdf"; plain
 
 # Chapters
 !include "intro.sdf"
@@ -26,5 +26,5 @@
 # Appendices 
 
 # Software Copyright/License
-!include "copyright.sdf"
-!include "license.sdf"
+!include "copyright.sdf"; appendix
+!include "license.sdf"; appendix

@@ -6,7 +6,7 @@
 # !include "copyright.sdf"
 
 # acknowledge U-M.  Probably should be placed in a separate file.
-H1: Acknowledgements
+P1: Acknowledgements
 
 The OpenLDAP Project would like to thank the University of Michigan
 LDAP Team for building the foundation of LDAP software and information
