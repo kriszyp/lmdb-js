@@ -91,12 +91,17 @@ monitor_subsys_listener_init(
 		char 		buf[1024];
 
 		snprintf( buf, sizeof( buf ),
-				"dn: cn=%s,%s\n"
+				"dn: cn=%d,%s\n"
 				SLAPD_MONITOR_OBJECTCLASSES
-				"cn: %s\n",
-				l[i]->sl_name,
+				"cn: %d\n"
+				"description: %s\n"
+				"labeledURI: %s",
+				i,
 				monitor_subsys[SLAPD_MONITOR_LISTENER].mss_dn.bv_val,
-				l[i]->sl_name );
+				i,
+				l[i]->sl_name,
+
+				l[i]->sl_url );
 		
 		e = str2entry( buf );
 		if ( e == NULL ) {
@@ -116,12 +121,24 @@ monitor_subsys_listener_init(
 #endif
 			return( -1 );
 		}
-		
-		bv[1].bv_val = NULL;
-		bv[0].bv_val = l[i]->sl_url;
-		bv[0].bv_len = strlen( bv[0].bv_val );
-		attr_merge( e, monitor_ad_desc, bv );
-		
+
+#ifdef HAVE_TLS
+		if ( l[i]->sl_is_tls ) {
+			bv[1].bv_val = NULL;
+			bv[0].bv_val = "TLS";
+			bv[0].bv_len = sizeof("TLS")-1;
+			attr_merge( e, monitor_ad_desc, bv );
+		}
+#endif /* HAVE_TLS */
+#ifdef LDAP_CONNECTIONLESS
+		if ( l[i]->sl_is_udp ) {
+			bv[1].bv_val = NULL;
+			bv[0].bv_val = "UDP";
+			bv[0].bv_len = sizeof("UDP")-1;
+			attr_merge( e, monitor_ad_desc, bv );
+		}
+#endif /* HAVE_TLS */
+
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 		e->e_private = ( void * )mp;
 		mp->mp_next = e_tmp;
