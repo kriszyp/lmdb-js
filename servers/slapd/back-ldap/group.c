@@ -22,20 +22,19 @@
  */
 int
 ldap_back_group(
-	Backend	*be,
-	Connection *conn,
-	Operation *op,
-	Entry	*target,
-	const char	*gr_ndn,
-	const char	*op_ndn,
-	ObjectClass* group_oc,
+	Backend		*be,
+	Connection 	*conn,
+	Operation 	*op,
+	Entry		*target,
+	struct berval	*gr_ndn,
+	struct berval	*op_ndn,
+	ObjectClass	*group_oc,
 	AttributeDescription* group_at
 )
 {
 	struct ldapinfo *li = (struct ldapinfo *) be->be_private;    
 	int rc = 1;
 	Attribute   *attr;
-	struct berval bv;
 
 	LDAPMessage	*result;
 	char *gattr[2];
@@ -53,7 +52,7 @@ ldap_back_group(
 		group_oc_name = group_oc->soc_oid;
 	}
 
-	if (target != NULL && strcmp(target->e_ndn, gr_ndn) == 0) {
+	if (target != NULL && strcmp(target->e_ndn, gr_ndn->bv_val) == 0) {
 		/* we already have a copy of the entry */
 		/* attribute and objectclass mapping has already been done */
 
@@ -81,9 +80,7 @@ ldap_back_group(
 			 * attribute has not been required
 			 */
 			if ((attr = attr_find(target->e_attrs, group_at)) != NULL) {
-				bv.bv_val = (char *) op_ndn;
-				bv.bv_len = strlen( op_ndn );         
-				if( value_find( group_at, attr->a_vals, &bv ) != LDAP_SUCCESS  )
+				if( value_find( group_at, attr->a_vals, op_ndn ) != LDAP_SUCCESS  )
 					return(1);
 				return(0);
 			} /* else: repeat the search */
@@ -95,19 +92,19 @@ ldap_back_group(
 	 */
 #ifdef ENABLE_REWRITE
 	switch ( rewrite_session( li->rwinfo, "bindDn",
-				op_ndn, conn, &mop_ndn ) ) {
+				op_ndn->bv_val, conn, &mop_ndn ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mop_ndn == NULL ) {
-			mop_ndn = ( char * )op_ndn;
+			mop_ndn = ( char * )op_ndn->bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] bindDn (op ndn in group):"
-				" \"%s\" -> \"%s\"\n", op_ndn, mop_ndn ));
+				" \"%s\" -> \"%s\"\n", op_ndn->bv_val, mop_ndn ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 			"rw> bindDn (op ndn in group): \"%s\" -> \"%s\"\n%s",
-			op_ndn, mop_ndn, "" );
+			op_ndn->bv_val, mop_ndn, "" );
 #endif /* !NEW_LOGGING */
 		break;
 	
@@ -121,20 +118,20 @@ ldap_back_group(
 	 * Rewrite the gr ndn if needed
 	 */
         switch ( rewrite_session( li->rwinfo, "searchBase",
-				gr_ndn, conn, &mgr_ndn ) ) {
+				gr_ndn->bv_val, conn, &mgr_ndn ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mgr_ndn == NULL ) {
-			mgr_ndn = ( char * )gr_ndn;
+			mgr_ndn = ( char * )gr_ndn->bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] searchBase (gr ndn in group):"
-				" \"%s\" -> \"%s\"\n%s", gr_ndn, mgr_ndn ));
+				" \"%s\" -> \"%s\"\n%s", gr_ndn->bv_val, mgr_ndn ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 			"rw> searchBase (gr ndn in group):"
 			" \"%s\" -> \"%s\"\n%s",
-			gr_ndn, mgr_ndn, "" );
+			gr_ndn->bv_val, mgr_ndn, "" );
 #endif /* !NEW_LOGGING */
 		break;
 	
@@ -201,12 +198,12 @@ cleanup:;
 	}
 	ch_free(filter);
 #ifdef ENABLE_REWRITE
-	if ( mop_ndn != op_ndn ) {
+	if ( mop_ndn != op_ndn->bv_val ) {
 #endif /* ENABLE_REWRITE */
 		free( mop_ndn );
 #ifdef ENABLE_REWRITE
 	}
-	if ( mgr_ndn != gr_ndn ) {
+	if ( mgr_ndn != gr_ndn->bv_val ) {
 #endif /* ENABLE_REWRITE */
 		free( mgr_ndn );
 #ifdef ENABLE_REWRITE
