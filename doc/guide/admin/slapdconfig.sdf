@@ -822,10 +822,10 @@ means that queries not local to one of the databases defined
 below will be referred to the LDAP server running on the
 standard port (389) at the host {{EX:root.openldap.org}}.
 
-Line 4 is a global access control.  It is applied after any
-applicable database access control.  Note that requests to
-read objects which are not held by any backend (such as
-the Root DSE) are only controlled by global directives.
+Line 4 is a global access control.  It is used only if
+no database access controls match or when the target
+objects are not under the control of any database (such as
+the Root DSE).
 
 The next section of the configuration file defines an LDBM
 backend that will handle queries for things in the
@@ -897,7 +897,9 @@ purposes, but may be read by authenticated users.
 
 The next section of the example configuration file defines
 another LDBM database. This one handles queries involving
-the {{EX:dc=example,dc=net}} subtree.
+the {{EX:dc=example,dc=net}} subtree.  Note that without
+line 38, the read access would be allowed due to the
+global access rule at line 4.
 
 E: 33.	# ldbm definition for example.net
 E: 34.	database ldbm
