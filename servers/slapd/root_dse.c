@@ -90,6 +90,9 @@ root_dse_info(
 	attr_merge( e, ad_objectClass, vals );
 
 	for ( i = 0; i < nbackends; i++ ) {
+		if ( backends[i].be_flags & SLAP_BFLAG_MONITOR ) {
+			continue;
+		}
 		if ( backends[i].be_flags & SLAP_BFLAG_GLUE_SUBORDINATE ) {
 			continue;
 		}
