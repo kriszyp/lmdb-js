@@ -67,7 +67,7 @@ int ldap_int_sasl_init( void )
 	if ( ((rc >> 16) != ((SASL_VERSION_MAJOR << 8)|SASL_VERSION_MINOR)) ||
 		(rc & 0xffff) < SASL_VERSION_STEP) {
 		char version[sizeof("xxx.xxx.xxxxx")];
-		sprintf( version, "%d.%d.%d", rc >> 24, rc >> 16 * 0xff,
+		sprintf( version, "%u.%d.%d", (unsigned)rc >> 24, (rc >> 16) & 0xff,
 			rc & 0xffff );
 
 #ifdef NEW_LOGGING
