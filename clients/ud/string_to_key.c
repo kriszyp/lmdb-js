@@ -3,9 +3,6 @@
 
 #if defined(HAVE_KERBEROS) && !defined(openbsd)
 /*
- * $Source: /repo/OpenLDAP/pkg/ldap/clients/ud/string_to_key.c,v $
- * $Author: hallvard $
- *
  * Copyright 1985, 1986, 1987, 1988, 1989 by the Massachusetts Institute
  * of Technology.
  *
