@@ -28,17 +28,16 @@ shell_back_abandon(
 	pid_t			pid;
 	Operation		*o;
 
-	/* no abandon command defined - just kill the process handling it */
 	if ( si->si_abandon == NULL ) {
-		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-		pid = -1;
-		LDAP_STAILQ_FOREACH( o, &conn->c_ops, o_next ) {
-			if ( o->o_msgid == msgid ) {
-				pid = (pid_t) o->o_private;
-				break;
-			}
+		return 0;
+	}
+
+	pid = -1;
+	LDAP_STAILQ_FOREACH( o, &conn->c_ops, o_next ) {
+		if ( o->o_msgid == msgid ) {
+			pid = (pid_t) o->o_private;
+			break;
 		}
-		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 	}
 
 	if ( pid == -1 ) {
