@@ -180,7 +180,7 @@ do_bind(
 			conn->c_cdn = cdn;
 			cdn = NULL;
 
-			if ( conn->c_cdn != NULL ) {
+			if ( conn->c_dn != NULL ) {
 				free( conn->c_dn );
 			}
 
