@@ -41,7 +41,7 @@ static void
 usage( char *name )
 {
 	fprintf( stderr, "usage: %s -i inputfile [-d debuglevel] [-f configfile] [-j #jobs] [-n databasenumber] [-s sbindir]\n", name );
-	exit( 1 );
+    exit( 1 );
 }
 
 int
@@ -286,7 +286,6 @@ main( int argc, char **argv )
 #ifdef WIN32
 
 static HANDLE processes[MAXIMUM_WAIT_OBJECTS];
-static int nprocesses=0;
 
 static void
 fork_child( char *prog, char *args[] )
@@ -294,9 +293,12 @@ fork_child( char *prog, char *args[] )
     PROCESS_INFORMATION proc_info;
     PROCESS_INFORMATION *pinfo = &proc_info;
     STARTUPINFO  start_info;
-
-    int i = 1;
+    int i;
     char cmdLine[2048];
+
+    wait4kids( maxkids );
+
+    i = 1;
     memset( &start_info, 0, sizeof(STARTUPINFO) );
     memset( cmdLine, 0, sizeof(cmdLine) );
     strcpy( cmdLine, prog );
@@ -315,18 +317,30 @@ fork_child( char *prog, char *args[] )
         perror( "CreateProcess" );
         exit (-1);
     }
-#ifndef IMDARING
-    WaitForSingleObject( proc_info.hProcess, INFINITE );
-#else
-    processes[nprocesses] = proc_info.hProcess;
-    nprocesses++;
-#endif
+
+    processes[nkids] = proc_info.hProcess;
+    nkids++;
+
 }
 
 static void
 wait4kids( int nkidval )
 {
-    WaitForMultipleObjects( nprocesses, processes, TRUE, INFINITE );
+    DWORD  wait_index;
+    while( nkids >= nkidval )
+    {
+        wait_index = WaitForMultipleObjects( nkids, processes, TRUE, INFINITE );
+        /*
+        *  processes[wait_index] completed.  Move any remaining indexes into its
+        *  place in the array so it stays filled.
+        */
+        if ( nkids > 1 )
+        {
+            memcpy ( &processes[wait_index], &processes[wait_index+1], sizeof(HANDLE)*(nkids-1) );
+            processes[nkids] = 0;
+        }
+        nkids--;
+    }
 }
 
 #else
