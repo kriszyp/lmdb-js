@@ -31,26 +31,20 @@
 
 int
 perl_back_compare(
-	Backend	*be,
-	Connection	*conn,
 	Operation	*op,
-	struct berval	*dn,
-	struct berval	*ndn,
-	AttributeAssertion		*ava
-)
+	SlapReply	*rs )
 {
-	int return_code;
 	int count;
 	char *avastr, *ptr;
 
-	PerlBackend *perl_back = (PerlBackend *)be->be_private;
+	PerlBackend *perl_back = (PerlBackend *)op->o_bd->be_private;
 
-	avastr = ch_malloc( ava->aa_desc->ad_cname.bv_len + 1 +
-		ava->aa_value.bv_len + 1 );
+	avastr = ch_malloc( op->orc_ava->aa_desc->ad_cname.bv_len + 1 +
+		op->orc_ava->aa_value.bv_len + 1 );
 	
 	lutil_strcopy( lutil_strcopy( lutil_strcopy( avastr,
-		ava->aa_desc->ad_cname.bv_val ), "=" ),
-		ava->aa_value.bv_val );
+		op->orc_ava->aa_desc->ad_cname.bv_val ), "=" ),
+		op->orc_ava->aa_value.bv_val );
 
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
@@ -59,7 +53,7 @@ perl_back_compare(
 
 		PUSHMARK(sp);
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( dn->bv_val , 0)));
+		XPUSHs(sv_2mortal(newSVpv( op->o_req_dn.bv_val , 0)));
 		XPUSHs(sv_2mortal(newSVpv( avastr , 0)));
 		PUTBACK;
 
@@ -75,8 +69,8 @@ perl_back_compare(
 			croak("Big trouble in back_compare\n");
 		}
 
-		return_code = POPi;
-							 
+		rs->sr_err = POPi;
+
 		PUTBACK; FREETMPS; LEAVE;
 	}
 
@@ -84,8 +78,7 @@ perl_back_compare(
 
 	ch_free( avastr );
 
-	send_ldap_result( conn, op, return_code,
-		NULL, NULL, NULL, NULL );
+	send_ldap_result( op, rs );
 
 	Debug( LDAP_DEBUG_ANY, "Perl COMPARE\n", 0, 0, 0 );
 

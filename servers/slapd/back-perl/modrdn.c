@@ -38,23 +38,11 @@
 
 int
 perl_back_modrdn(
-	Backend	*be,
-	Connection	*conn,
 	Operation	*op,
-	struct berval	*dn,
-	struct berval	*ndn,
-	struct berval	*newrdn,
-	struct berval	*nnewrdn,
-	int		deleteoldrdn,
-	struct berval	*newSuperior,
-	struct berval	*nnewSuperior
-)
+	SlapReply	*rs )
 {
-	int len;
+	PerlBackend *perl_back = (PerlBackend *) op->o_bd->be_private;
 	int count;
-	int return_code;
-
-	PerlBackend *perl_back = (PerlBackend *) be->be_private;
 
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
@@ -63,11 +51,11 @@ perl_back_modrdn(
 		
 		PUSHMARK(sp) ;
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( dn->bv_val , 0 )));
-		XPUSHs(sv_2mortal(newSVpv( newrdn->bv_val , 0 )));
-		XPUSHs(sv_2mortal(newSViv( deleteoldrdn )));
-		if ( newSuperior != NULL ) {
-			XPUSHs(sv_2mortal(newSVpv( newSuperior->bv_val , 0 )));
+		XPUSHs(sv_2mortal(newSVpv( op->o_req_dn.bv_val , 0 )));
+		XPUSHs(sv_2mortal(newSVpv( op->orr_newrdn.bv_val , 0 )));
+		XPUSHs(sv_2mortal(newSViv( op->orr_deleteoldrdn )));
+		if ( op->orr_newSup != NULL ) {
+			XPUSHs(sv_2mortal(newSVpv( op->orr_newSup->bv_val , 0 )));
 		}
 		PUTBACK ;
 
@@ -83,15 +71,14 @@ perl_back_modrdn(
 			croak("Big trouble in back_modrdn\n") ;
 		}
 							 
-		return_code = POPi;
+		rs->sr_err = POPi;
 
 		PUTBACK; FREETMPS; LEAVE ;
 	}
 
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );
 	
-	send_ldap_result( conn, op, return_code,
-		NULL, NULL, NULL, NULL );
+	send_ldap_result( op, rs );
 
 	Debug( LDAP_DEBUG_ANY, "Perl MODRDN\n", 0, 0, 0 );
 	return( 0 );

@@ -32,20 +32,12 @@
  **********************************************************/
 int
 perl_back_bind(
-	Backend *be,
-	Connection *conn,
 	Operation *op,
-	struct berval *dn,
-	struct berval *ndn,
-	int method,
-	struct berval *cred,
-	struct berval *edn
-)
+	SlapReply *rs )
 {
-	int return_code;
 	int count;
 
-	PerlBackend *perl_back = (PerlBackend *) be->be_private;
+	PerlBackend *perl_back = (PerlBackend *) op->o_bd->be_private;
 
 #ifdef HAVE_WIN32_ASPERL
 	PERL_SET_CONTEXT( PERL_INTERPRETER );
@@ -58,8 +50,8 @@ perl_back_bind(
 
 		PUSHMARK(SP);
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( dn->bv_val , 0)));
-		XPUSHs(sv_2mortal(newSVpv( cred->bv_val , cred->bv_len)));
+		XPUSHs(sv_2mortal(newSVpv( op->o_req_dn.bv_val , 0)));
+		XPUSHs(sv_2mortal(newSVpv( op->orb_cred.bv_val , op->orb_cred.bv_len)));
 		PUTBACK;
 
 #ifdef PERL_IS_5_6
@@ -74,7 +66,7 @@ perl_back_bind(
 			croak("Big trouble in back_bind\n");
 		}
 
-		return_code = POPi;
+		rs->sr_err = POPi;
 							 
 
 		PUTBACK; FREETMPS; LEAVE;
@@ -82,11 +74,11 @@ perl_back_bind(
 
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
-	Debug( LDAP_DEBUG_ANY, "Perl BIND returned 0x%04x\n", return_code, 0, 0 );
+	Debug( LDAP_DEBUG_ANY, "Perl BIND returned 0x%04x\n", rs->sr_err, 0, 0 );
 
 	/* frontend will send result on success (0) */
-	if( return_code != LDAP_SUCCESS )
-		send_ldap_result( conn, op, return_code, NULL, NULL, NULL, NULL );
+	if( rs->sr_err != LDAP_SUCCESS )
+		send_ldap_result( op, rs );
 
-	return ( return_code );
+	return ( rs->sr_err );
 }

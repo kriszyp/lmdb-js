@@ -25,17 +25,12 @@
 
 int
 perl_back_add(
-	Backend	*be,
-	Connection	*conn,
 	Operation	*op,
-	Entry	*e
-)
+	SlapReply	*rs )
 {
+	PerlBackend *perl_back = (PerlBackend *) op->o_bd->be_private;
 	int len;
 	int count;
-	int return_code;
-
-	PerlBackend *perl_back = (PerlBackend *) be->be_private;
 
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );
 	ldap_pvt_thread_mutex_lock( &entry2str_mutex );
@@ -45,7 +40,7 @@ perl_back_add(
 
 		PUSHMARK(sp);
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( entry2str( e, &len ), 0 )));
+		XPUSHs(sv_2mortal(newSVpv( entry2str( op->ora_e, &len ), 0 )));
 
 		PUTBACK;
 
@@ -61,7 +56,7 @@ perl_back_add(
 			croak("Big trouble in back_add\n");
 		}
 							 
-		return_code = POPi;
+		rs->sr_err = POPi;
 
 		PUTBACK; FREETMPS; LEAVE;
 	}
@@ -69,8 +64,7 @@ perl_back_add(
 	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
-	send_ldap_result( conn, op, return_code,
-		NULL, NULL, NULL, NULL );
+	send_ldap_result( op, rs );
 
 	Debug( LDAP_DEBUG_ANY, "Perl ADD\n", 0, 0, 0 );
 	return( 0 );

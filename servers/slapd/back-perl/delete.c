@@ -25,18 +25,11 @@
 
 int
 perl_back_delete(
-	Backend	*be,
-	Connection	*conn,
 	Operation	*op,
-	struct berval	*dn,
-	struct berval	*ndn
-)
+	SlapReply	*rs )
 {
-	int len;
+	PerlBackend *perl_back = (PerlBackend *) op->o_bd->be_private;
 	int count;
-	int return_code;
-
-	PerlBackend *perl_back = (PerlBackend *) be->be_private;
 
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
@@ -45,7 +38,7 @@ perl_back_delete(
 
 		PUSHMARK(sp);
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( dn->bv_val , 0 )));
+		XPUSHs(sv_2mortal(newSVpv( op->o_req_dn.bv_val , 0 )));
 
 		PUTBACK;
 
@@ -60,16 +53,15 @@ perl_back_delete(
 		if (count != 1) {
 			croak("Big trouble in perl-back_delete\n");
 		}
-							 
-		return_code = POPi;
+
+		rs->sr_err = POPi;
 
 		PUTBACK; FREETMPS; LEAVE;
 	}
 
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
-	send_ldap_result( conn, op, return_code,
-			NULL, NULL, NULL, NULL );
+	send_ldap_result( op, rs );
 
 	Debug( LDAP_DEBUG_ANY, "Perl DELETE\n", 0, 0, 0 );
 	return( 0 );
