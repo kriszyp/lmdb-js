@@ -24,7 +24,9 @@
 
 #include <portable.h>
 
+#ifdef HAVE_PWD_H
 #include <pwd.h>
+#endif
 
 #include "rewrite-int.h"
 #include "rewrite-map.h"
@@ -519,6 +521,7 @@ rewrite_xmap_apply(
 	val->bv_len = 0;
 	
 	switch ( map->lm_type ) {
+#ifdef HAVE_GETPWNAM
 	case REWRITE_MAP_XPWDMAP: {
 		struct passwd *pwd;
 
@@ -562,6 +565,7 @@ rewrite_xmap_apply(
 			
 		break;
 	}
+#endif /* HAVE_GETPWNAM*/
 	
 	case REWRITE_MAP_XFILEMAP: {
 		char buf[1024];

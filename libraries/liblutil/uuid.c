@@ -27,8 +27,8 @@
 #else
 #  include <ac/socket.h>
 #  include <ac/time.h>
-#  include <net/if.h>
 #  ifdef HAVE_SYS_SYSCTL_H
+#    include <net/if.h>
 #    include <sys/sysctl.h>
 #    include <net/route.h>
 #  endif
