@@ -1020,10 +1020,25 @@ elif test $ol_enable_ipv6 != no ; then
 #			endif
 		], [ol_cv_inet6_addrstrlen=yes], [ol_cv_inet6_addrstrlen=no])])
 
-	if test $ol_cv_inet6_addrstrlen = yes ; then
+
+	AC_CACHE_CHECK([struct sockaddr_storage],ol_cv_struct_sockaddr_storage,[
+		AC_TRY_COMPILE([
+#include <sys/types.h>
+#include <sys/socket.h>
+],[
+			struct sockaddr_storage ss;
+],			[ol_cv_struct_sockaddr_storage=yes],
+			[ol_cv_struct_sockaddr_storage=no])])
+
+	if test $ol_cv_inet6_addrstrlen = yes \
+		-a $ol_cv_struct_sockaddr_storage = yes ; then
 		ol_link_ipv6=yes
-	elif test $ol_enable_ipv6 = yes ; then
+	elif test $ol_enable_ipv6 = yes \
+			-a $ol_cv_inet6_addrstrlen = no ; then
 		AC_MSG_ERROR([IPv6 support requires INET6_ADDRSTRLEN])
+	elif test $ol_enable_ipv6 = yes \
+			-a $ol_cv_struct_sockaddr_storage = no ; then
+		AC_MSG_ERROR([IPv6 support requires struct sockaddr_storage])
 	fi
 fi
 
