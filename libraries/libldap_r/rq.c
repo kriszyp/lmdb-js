@@ -13,6 +13,9 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
+/* This work was initially developed by Jong Hyuk Choi for inclusion
+ * in OpenLDAP Software.
+ */
 
 #include "portable.h"
 
