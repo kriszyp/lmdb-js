@@ -22,7 +22,7 @@ class LDAPUrl{
 
     public : 
         /**
-         * Create a new object from a c-std::string that contains a LDAP-Url
+         * Create a new object from a c-string that contains a LDAP-Url
          */
         LDAPUrl(const char *url);
 
@@ -43,7 +43,7 @@ class LDAPUrl{
         int getScope() const;
 
         /**
-         * @return The complete URL as a std::string
+         * @return The complete URL as a string
          */
         const std::string& getURLString() const;
 

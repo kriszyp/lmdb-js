@@ -19,7 +19,7 @@ class LDAPUrlList{
 	typedef UrlList::const_iterator const_iterator;
 
         /**
-         * Constructs an empty std::list.
+         * Constructs an empty list.
          */   
         LDAPUrlList();
 
@@ -32,7 +32,7 @@ class LDAPUrlList{
          * For internal use only
          *
          * This constructor is used by the library internally to create a
-         * std::list of URLs from a array of C-std::strings that was return by
+         * std::list of URLs from a array of C-strings that was return by
          * the C-API
          */
         LDAPUrlList(char** urls);

@@ -59,7 +59,7 @@ class LDAPEntry{
         /**
          * @returns The current DN of the entry.
          */
-		const std::string getDN() const ;
+		const std::string& getDN() const ;
 
         /**
          * @returns A const pointer to the attributes of the entry.  

@@ -21,7 +21,7 @@ class LDAPReferralException : public LDAPException{
 
     public :
         /**
-         * Creates an object that is initialized with a std::list of URLs
+         * Creates an object that is initialized with a list of URLs
          */
         LDAPReferralException(const LDAPUrlList& urls);
 

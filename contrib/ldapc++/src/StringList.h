@@ -11,7 +11,7 @@
 typedef std::list<std::string> ListType;
 
 /**
- * Container class to store multiple std::string-objects
+ * Container class to store multiple string-objects
  */
 class StringList{
     private:
@@ -21,7 +21,7 @@ class StringList{
 	typedef ListType::const_iterator const_iterator;
    
         /**
-         * Constructs an empty std::list.
+         * Constructs an empty list.
          */   
         StringList();
 
@@ -34,7 +34,7 @@ class StringList{
          * For internal use only
          *
          * This constructor is used by the library internally to create a
-         * std::list of std::string from a array for c-Strings (char*)thar was
+         * list of string from a array for c-Strings (char*)thar was
          * returned by the C-API
          */
         StringList(char** values);

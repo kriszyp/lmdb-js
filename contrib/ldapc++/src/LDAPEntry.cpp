@@ -30,7 +30,7 @@ LDAPEntry::LDAPEntry(const LDAPAsynConnection *ld, LDAPMessage *msg){
     DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPEntry::LDAPEntry()" << endl);
     char* tmp=ldap_get_dn(ld->getSessionHandle(),msg);
     m_dn=string(tmp);
-    free(tmp);
+    ldap_memfree(tmp);
     m_attrs = new LDAPAttributeList(ld, msg);
 }
 
@@ -56,7 +56,7 @@ void LDAPEntry::setAttributes(LDAPAttributeList *attrs){
     m_attrs=attrs;
 }
 
-const string LDAPEntry::getDN() const{
+const string& LDAPEntry::getDN() const{
     DEBUG(LDAP_DEBUG_TRACE,"LDAPEntry::getDN()" << endl);
     return m_dn;
 }

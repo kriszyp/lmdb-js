@@ -40,7 +40,9 @@ LDAPModifyRequest::~LDAPModifyRequest(){
             "LDAPModifyRequest::~LDAPModifyRequest()" << endl);
     delete m_modList;
     // flush this entry from cache.
-    m_connection->uncache_entry(m_dn);
+    //m_connection->uncache_entry(m_dn);
+    // I think we need to do this... (j.costlow)
+    m_connection->flush_cache();
 }
 
 LDAPMessageQueue* LDAPModifyRequest::sendRequest(){

@@ -160,7 +160,8 @@ class LDAPAsynConnection{
          * @param cons  A set of constraints that should be used with this
          *              request
          */
-        LDAPMessageQueue* compare(const std::string& dn, const LDAPAttribute& attr, 
+        LDAPMessageQueue* compare(const std::string& dn, 
+                const LDAPAttribute& attr, 
                 const LDAPConstraints *cons=0);
 
         /** Add an entry to the directory
@@ -179,12 +180,13 @@ class LDAPAsynConnection{
          *      destination server, a LDAPException-object contains the
          *      error that occured.
          * @param dn Distiguished Name of the Entry to modify
-         * @param modstd::list A set of modification that should be applied
+         * @param modlist A set of modification that should be applied
          *      to the Entry
          * @param cons  A set of constraints that should be used with this
          *              request
          */
-        LDAPMessageQueue* modify(const std::string& dn, const LDAPModList *modlist,
+        LDAPMessageQueue* modify(const std::string& dn, 
+                const LDAPModList *modlist,
                 const LDAPConstraints *cons=0);
 
         /** modify the DN of an entry
@@ -201,7 +203,8 @@ class LDAPAsynConnection{
          * @param newParentDN   The DN of the new parent entry of the entry
          *                      0 to keep the old one
          */
-        LDAPMessageQueue* rename(const std::string& dn, const std::string& newRDN,
+        LDAPMessageQueue* rename(const std::string& dn, 
+                const std::string& newRDN,
                 bool delOldRDN=false, const std::string& newParentDN="",
                 const LDAPConstraints* cons=0);
         

@@ -22,7 +22,7 @@ class LDAPException{
         /**
          * Constructs a LDAPException-object from the parameters
          * @param res_code A valid LDAP result code.
-         * @param err_std::string    An addional error message for the error
+         * @param err_string    An addional error message for the error
          *                      that happend (optional)
          */
 		LDAPException(int res_code, const std::string& err_string=std::string());

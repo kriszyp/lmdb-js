@@ -31,6 +31,7 @@ LDAPAsynConnection::LDAPAsynConnection(const string& hostname, int port,
     DEBUG(LDAP_DEBUG_CONSTRUCT | LDAP_DEBUG_PARAMETER,
             "   host:" << hostname << endl << "   port:" << port << endl);
     cur_session=0;
+    m_constr = 0;
     this->init(hostname, port);
     this->setConstraints(cons);
 }

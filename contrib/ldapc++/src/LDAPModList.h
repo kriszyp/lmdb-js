@@ -20,7 +20,7 @@ class LDAPModList{
 
 	public : 
         /**
-         * Constructs an empty std::list.
+         * Constructs an empty list.
          */   
 		LDAPModList();
 		
@@ -30,13 +30,13 @@ class LDAPModList{
         LDAPModList(const LDAPModList&);
 
         /**
-         * Adds one element to the end of the std::list.
+         * Adds one element to the end of the list.
          * @param mod The LDAPModification to add to the std::list.
          */
 		void addModification(const LDAPModification &mod);
 
         /**
-         * Translates the std::list to a 0-terminated array of
+         * Translates the list to a 0-terminated array of
          * LDAPMod-structures as needed by the C-API
          */
         LDAPMod** toLDAPModArray();
