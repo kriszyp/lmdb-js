@@ -1055,6 +1055,13 @@ syncrepl_entry(
 	int ret = LDAP_SUCCESS;
 	const char *text;
 
+	struct berval pdn = { 0, NULL };
+	struct berval org_req_dn = { 0, NULL };
+	struct berval org_req_ndn = { 0, NULL };
+	struct berval org_dn = { 0, NULL };
+	struct berval org_ndn = { 0, NULL };
+	int	org_managedsait;
+
 	if (( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD ))
 	{
 		syncuuid_bv = ber_dupbv( NULL, syncUUID );
@@ -1122,6 +1129,39 @@ syncrepl_entry(
 		op->o_req_ndn = si->si_syncUUID_ndn;
 		op->o_tag = LDAP_REQ_DELETE;
 		rc = be->be_delete( op, &rs );
+
+		org_req_dn = op->o_req_dn;
+		org_req_ndn = op->o_req_ndn;
+		org_dn = op->o_dn;
+		org_ndn = op->o_ndn;
+		org_managedsait = get_manageDSAit( op );
+		op->o_dn = op->o_bd->be_rootdn;
+		op->o_ndn = op->o_bd->be_rootndn;
+		op->o_managedsait = 1;
+
+		while ( rs.sr_err == LDAP_SUCCESS &&
+				op->o_delete_glue_parent ) {
+			op->o_delete_glue_parent = 0;
+			if ( !be_issuffix( op->o_bd, &op->o_req_ndn )) {
+				slap_callback cb = { NULL };
+				cb.sc_response = slap_null_cb;
+				dnParent( &op->o_req_ndn, &pdn );
+				op->o_req_dn = pdn;
+				op->o_req_ndn = pdn;
+				op->o_callback = &cb;
+				op->o_bd->be_delete( op, &rs );
+			} else {
+				break;
+		    }
+		}
+
+		op->o_managedsait = org_managedsait;
+		op->o_dn = org_dn;
+		op->o_ndn = org_ndn;
+		op->o_req_dn = org_req_dn;
+		op->o_req_ndn = org_req_ndn;
+		op->o_delete_glue_parent = 0;
+
 		op->o_no_psearch = 0;
 	}
 
@@ -1249,6 +1289,13 @@ syncrepl_del_nonpresent(
 	Modifications **modtail = &modlist;
 	Attribute	*attr;
 
+	struct berval pdn = { 0, NULL };
+	struct berval org_req_dn = { 0, NULL };
+	struct berval org_req_ndn = { 0, NULL };
+	struct berval org_dn = { 0, NULL };
+	struct berval org_ndn = { 0, NULL };
+	int	org_managedsait;
+
 	op->o_req_dn = si->si_base;
 	op->o_req_ndn = si->si_base;
 
@@ -1315,6 +1362,39 @@ syncrepl_del_nonpresent(
 					free( ml );
 				}
 			}
+
+			org_req_dn = op->o_req_dn;
+			org_req_ndn = op->o_req_ndn;
+			org_dn = op->o_dn;
+			org_ndn = op->o_ndn;
+			org_managedsait = get_manageDSAit( op );
+			op->o_dn = op->o_bd->be_rootdn;
+			op->o_ndn = op->o_bd->be_rootndn;
+			op->o_managedsait = 1;
+
+			while ( rs.sr_err == LDAP_SUCCESS &&
+					op->o_delete_glue_parent ) {
+				op->o_delete_glue_parent = 0;
+				if ( !be_issuffix( op->o_bd, &op->o_req_ndn )) {
+					slap_callback cb = { NULL };
+					cb.sc_response = slap_null_cb;
+					dnParent( &op->o_req_ndn, &pdn );
+					op->o_req_dn = pdn;
+					op->o_req_ndn = pdn;
+					op->o_callback = &cb;
+					/* give it a root privil ? */
+					op->o_bd->be_delete( op, &rs );
+				} else {
+					break;
+			    }
+			}
+
+			op->o_managedsait = org_managedsait;
+			op->o_dn = org_dn;
+			op->o_ndn = org_ndn;
+			op->o_req_dn = org_req_dn;
+			op->o_req_ndn = org_req_ndn;
+			op->o_delete_glue_parent = 0;
 
 			ber_bvfree( np_prev->npe_name );
 			ber_bvfree( np_prev->npe_nname );
