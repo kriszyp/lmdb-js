@@ -19,8 +19,10 @@ NT_OBJS = nt_err.lo
 
 LIB_DEFS = -DSLAPI_LIBRARY
 
-SRCS=  plugin.c slapi_pblock.c slapi_utils.c printmsg.c slapi_ops.c  $(@PLAT@_SRCS)
-OBJS=  plugin.lo slapi_pblock.lo slapi_utils.lo printmsg.lo slapi_ops.lo $(@PLAT@_SRCS)
+SRCS=  plugin.c slapi_pblock.c slapi_utils.c printmsg.c slapi_ops.c \
+	$(@PLAT@_SRCS)
+OBJS=  plugin.lo slapi_pblock.lo slapi_utils.lo printmsg.lo slapi_ops.lo \
+	$(@PLAT@_SRCS)
 
 XSRCS= version.c
 

@@ -26,93 +26,66 @@
 #include <ldap_pvt_thread.h>
 
 /* Single threads access to routine */
-static ldap_pvt_thread_mutex_t PrintMessage_mutex; 
-static int PrintMessage_mutex_inited = 0;
-
-static void
-InitMutex () 
-{
-	if (PrintMessage_mutex_inited == 0) {
-		PrintMessage_mutex_inited = 1;
-		ldap_pvt_thread_mutex_init(&PrintMessage_mutex);
-	}
-}
+ldap_pvt_thread_mutex_t slapi_printmessage_mutex; 
+const char		*slapi_log_file = NULL;
+int			slapi_log_level = SLAPI_LOG_PLUGIN;
 
 int 
 vLogError(
-	int level, 	
-	char *subsystem, 
-	char *fmt, 
-	va_list arglist ) 
+	int		level, 	
+	char		*subsystem, 
+	char		*fmt, 
+	va_list		arglist ) 
 {
-	int rc = 0;
-	char *tmpFmt;
-	FILE * fp = NULL;
-	char *p, *sval;
-	int ival;
+	int		rc = 0;
+	FILE		*fp = NULL;
 
-	char timeStr[100];
-	struct tm *ltm;
-	time_t currentTime;
+	char		timeStr[100];
+	struct tm	*ltm;
+	time_t		currentTime;
 
-	tmpFmt = fmt;
-	fmt = (char*)ch_calloc(strlen(subsystem) + strlen(tmpFmt) + 3, 1);
-	sprintf(fmt, "%s: %s", subsystem, tmpFmt);
+	assert( subsystem != NULL );
+	assert( fmt != NULL );
 
-	InitMutex() ;
-	ldap_pvt_thread_mutex_lock( &PrintMessage_mutex ) ;
+	ldap_pvt_thread_mutex_lock( &slapi_printmessage_mutex ) ;
 
 	/* for now, we log all severities */
-	if ( 1 ) {
-		fp = fopen( LDAP_RUNDIR LDAP_DIRSEP "errors", "a" );
-		if (fp == NULL) 
-			fp = fopen( "errors", "a" );
-			
-		if ( fp != NULL) {
-			while ( lockf(fileno(fp), F_LOCK, 0 ) != 0 ) {}
-
-			time (&currentTime);
-			ltm = localtime( &currentTime );
-			strftime( timeStr, sizeof(timeStr), "%x %X ", ltm );
-			fprintf(fp, timeStr);
-			for (p = fmt; *p; p++) {
-				if (*p != '%') {
-					fprintf(fp, "%c", *p);
-					continue;
-				}
-				switch(*++p) {
-				case 'd':
-					ival = va_arg( arglist, int);
-					fprintf(fp, "%d", ival);
-					break;
-				case 's':
-					for (sval = va_arg(arglist, char *); *sval; sval++)
-						fprintf(fp, "%c", *sval);
-					break;
-				default:
-					fprintf(fp, "%c", *p);
-					break;
-				
-				}
-			}
-	
-			fflush(fp);
-
-			lockf( fileno(fp), F_ULOCK, 0 );
-
-			fclose(fp);
-		} else {
-#if 0 /* unused */
-			int save_errno = (int)errno;
-#endif /* unused */
-			rc = ( -1);
+	if ( level <= slapi_log_level ) {
+		fp = fopen( slapi_log_file, "a" );
+		if ( fp == NULL) {
+			rc = -1;
+			goto done;
 		}
+
+		/*
+		 * FIXME: could block
+		 */
+		while ( lockf( fileno( fp ), F_LOCK, 0 ) != 0 ) {
+			/* DO NOTHING */ ;
+		}
+
+		time( &currentTime );
+		ltm = localtime( &currentTime );
+		strftime( timeStr, sizeof(timeStr), "%x %X", ltm );
+		fputs( timeStr, fp );
+
+		fprintf( fp, " %s: ", subsystem );
+		vfprintf( fp, fmt, arglist );
+		if ( fmt[ strlen( fmt ) - 1 ] != '\n' ) {
+			fputs( "\n", fp );
+		}
+		fflush( fp );
+
+		lockf( fileno( fp ), F_ULOCK, 0 );
+
+		fclose( fp );
+
 	} else {
-		rc = ( -1);
+		rc = -1;
 	}
 
-	ldap_pvt_thread_mutex_unlock( &PrintMessage_mutex );
-	ch_free(fmt);
+done:
+	ldap_pvt_thread_mutex_unlock( &slapi_printmessage_mutex );
 
-	return (rc);
+	return rc;
 }

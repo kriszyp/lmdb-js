@@ -11,7 +11,7 @@ OBJS = init.lo search.lo compare.lo modify.lo bind.lo \
 	backend.lo database.lo thread.lo conn.lo rww.lo log.lo \
 	operation.lo sent.lo listener.lo time.lo
 
-LDAP_INCDIR= ../../../include       
+LDAP_INCDIR= ../../../include
 LDAP_LIBDIR= ../../../libraries
 
 BUILD_OPT = "--enable-monitor"
@@ -27,7 +27,7 @@ UNIX_LINK_LIBS = $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS)
 
 LIBBASE = back_monitor
 
-XINCPATH = -I.. -I$(srcdir)/..
+XINCPATH = -I.. -I$(srcdir)/.. -I../slapi
 XDEFS = $(MODULES_CPPFLAGS)
 
 all-local-lib:	../.backend

@@ -674,6 +674,15 @@ slapi_init(void)
 		return -1;
 	}
 
+	if ( ldap_pvt_thread_mutex_init( &slapi_printmessage_mutex ) ) {
+		return -1;
+	}
+
+	slapi_log_file = ch_strdup( LDAP_RUNDIR LDAP_DIRSEP "errors" );
+	if ( slapi_log_file == NULL ) {
+		return -1;
+	}
+
 	return 0;
 }
 

@@ -36,5 +36,11 @@ void slapi_pblock_check_params(Slapi_PBlock *pb, int flag);
 int slapi_pblock_delete_param(Slapi_PBlock *p, int param);
 void slapi_pblock_clear(Slapi_PBlock *pb); 
 
+/*
+ * OpenLDAP extensions
+ */
+int slapi_x_pblock_get_first( Backend *be, Slapi_PBlock **pb );
+int slapi_x_pblock_get_next( Slapi_PBlock **pb );
+
 #endif /* SLAPI_PBLOCK_H */
 

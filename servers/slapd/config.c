@@ -2361,7 +2361,30 @@ read_config( const char *fname, int depth )
 			
 #endif /* !defined( LDAP_SLAPI ) */
 
+		/* Netscape plugins */
+		} else if ( strcasecmp( cargv[0], "pluginlog" ) == 0 ) {
+#if defined( LDAP_SLAPI )
+			if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: missing file name "
+					"in pluginlog <filename> line.\n",
+					fname, lineno, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, 
+					"%s: line %d: missing file name "
+					"in pluginlog <filename> line.\n",
+					fname, lineno, 0 );
+#endif
+				return( 1 );
+			}
 
+			if ( slapi_log_file != NULL ) {
+				ch_free( slapi_log_file );
+			}
+
+			slapi_log_file = ch_strdup( cargv[1] );
+#endif /* !defined( LDAP_SLAPI ) */
 
 		/* pass anything else to the current backend info/db config routine */
 		} else {

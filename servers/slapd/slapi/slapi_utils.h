@@ -110,6 +110,9 @@ int slapi_audit_send_record( Slapi_PBlock *pb, Connection *conn,
 
 extern ldap_pvt_thread_mutex_t	slapi_hn_mutex;
 extern ldap_pvt_thread_mutex_t	slapi_time_mutex;
+extern ldap_pvt_thread_mutex_t	slapi_printmessage_mutex; 
+extern const char		*slapi_log_file;
+extern int			slapi_log_level;
 
 #endif /* _SLAPI_UTILS_H */
 

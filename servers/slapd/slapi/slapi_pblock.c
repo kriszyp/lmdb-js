@@ -434,3 +434,32 @@ slapi_pblock_check_params( Slapi_PBlock *pb, int flag )
 #endif /* LDAP_SLAPI */
 }
 
+/*
+ * OpenLDAP extension
+ */
+int
+slapi_x_pblock_get_first( Backend *be, Slapi_PBlock **pb )
+{
+#if defined(LDAP_SLAPI)
+	assert( pb );
+	*pb = (Slapi_PBlock *)be->be_pb;
+	return (*pb == NULL ? LDAP_OTHER : LDAP_SUCCESS);
+#else /* LDAP_SLAPI */
+	return LDAP_OTHER;
+#endif /* LDAP_SLAPI */
+}
+
+/*
+ * OpenLDAP extension
+ */
+int
+slapi_x_pblock_get_next( Slapi_PBlock **pb )
+{
+#if defined(LDAP_SLAPI)
+	assert( pb );
+	return slapi_pblock_get( *pb, SLAPI_IBM_PBLOCK, pb );
+#else /* LDAP_SLAPI */
+	return LDAP_OTHER;
+#endif /* LDAP_SLAPI */
+}
+
