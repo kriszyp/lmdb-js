@@ -644,44 +644,22 @@ backend_group(
 #endif
 )
 {
-	int dnlen, i;
-	Backend	*gr_be = NULL;
+	if( strcmp( target->e_ndn, gr_ndn ) != 0 ) {
+		/* we won't attempt to send it to a different backend */
+		
+		be = select_backend(gr_ndn);
 
-	dnlen = strlen( gr_ndn );
-	if (be != NULL && be->be_nsuffix != NULL) {
-		/* search through all the backend suffixes
-		 * to see if the group dn belongs to this
-		 * backend.
-		 */
-		for (	i = 0;
-				be->be_nsuffix[i] != NULL;
-				i++ )
-		{
-			int len = strlen( be->be_nsuffix[i] );
-			if ( len > dnlen )
-				continue;
-
-			if (strcmp(be->be_nsuffix[i], gr_ndn + (dnlen - len)) == 0) {
-				gr_be = be;
-				break;
-			}
+		if (be == NULL) {
+			return LDAP_NO_SUCH_OBJECT;
 		}
+	} 
+
+	if( be->be_group ) {
+		return be->be_group( be, target, gr_ndn, op_ndn,
+			group_oc, group_at );
 	}
 
-	if (gr_be == NULL) {
-		/* if the gr_ndn does not belong to
-		 * the given backend, then find the
-		 * backend that it does belong to.
-		 */
-		gr_be = select_backend(gr_ndn);
-		if (gr_be == NULL)
-			return(1);
-	}
-	if (gr_be->be_group)
-		return( gr_be->be_group(gr_be, target, gr_ndn, op_ndn,
-			group_oc, group_at) );
-	else
-		return LDAP_UNWILLING_TO_PERFORM;
+	return LDAP_UNWILLING_TO_PERFORM;
 }
 
 #ifdef SLAPD_SCHEMA_DN
