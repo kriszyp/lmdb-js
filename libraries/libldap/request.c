@@ -86,7 +86,7 @@ ldap_delayed_open( LDAP *ld )
 #if defined( LDAP_REFERRALS ) || defined( LDAP_DNS )
 		if (( srv = (LDAPServer *)calloc( 1, sizeof( LDAPServer ))) ==
 		    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
-		    strdup( ld->ld_defhost )) == NULL ))
+		    ldap_strdup( ld->ld_defhost )) == NULL ))
 		{
 			if (srv != NULL) free( srv );
 			ld->ld_errno = LDAP_NO_MEMORY;
