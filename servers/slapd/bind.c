@@ -406,7 +406,7 @@ do_bind(
 			goto cleanup;
 
 		} else if (( global_disallows & SLAP_DISALLOW_BIND_SIMPLE_UNPROTECTED )
-			&& ( op->o_transport_ssf < global_ssf_set.sss_transport ))
+			&& ( op->o_ssf < global_ssf_set.sss_ssf ))
 		{
 			rc = LDAP_CONFIDENTIALITY_REQUIRED;
 			text = "unwilling to perform simple authentication "
