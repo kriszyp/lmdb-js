@@ -34,11 +34,13 @@ void bdb2i_attr_index_config LDAP_P(( struct ldbminfo *li, char *fname,
  * cache.c
  */
 
-void bdb2i_cache_set_state LDAP_P(( struct cache *cache, Entry *e, int state ));
-void bdb2i_cache_return_entry_r LDAP_P(( struct cache *cache, Entry *e ));
-void bdb2i_cache_return_entry_w LDAP_P(( struct cache *cache, Entry *e ));
-int bdb2i_cache_add_entry_lock LDAP_P(( struct cache *cache, Entry *e,
- int state ));
+int bdb2i_cache_add_entry_rw LDAP_P(( struct cache *cache, Entry *e, int rw ));
+int bdb2i_cache_update_entry LDAP_P(( struct cache *cache, Entry *e ));
+void bdb2i_cache_return_entry_rw LDAP_P(( struct cache *cache, Entry *e,
+ int rw ));
+#define bdb2i_cache_return_entry_r(c, e) bdb2i_cache_return_entry_rw((c), (e), 0)
+#define bdb2i_cache_return_entry_w(c, e) bdb2i_cache_return_entry_rw((c), (e), 1)
+
 ID bdb2i_cache_find_entry_dn2id LDAP_P(( BackendDB *be, struct cache *cache,
  char *dn ));
 Entry * bdb2i_cache_find_entry_id LDAP_P(( struct cache *cache, ID id, int rw ));
@@ -64,8 +66,11 @@ int bdb2i_cache_delete LDAP_P(( struct dbcache *db, Datum key ));
 int bdb2i_dn2id_add LDAP_P(( BackendDB *be, char *dn, ID id ));
 ID bdb2i_dn2id LDAP_P(( BackendDB *be, char *dn ));
 int bdb2i_dn2id_delete LDAP_P(( BackendDB *be, char *dn ));
-Entry * bdb2i_dn2entry_r LDAP_P(( BackendDB *be, char *dn, char **matched ));
-Entry * bdb2i_dn2entry_w LDAP_P(( BackendDB *be, char *dn, char **matched ));
+
+Entry * bdb2i_dn2entry_rw LDAP_P(( BackendDB *be, char *dn, char **matched,
+ int rw ));
+#define bdb2i_dn2entry_r(be, dn, m) bdb2i_dn2entry_rw((be), (dn), (m), 0)
+#define bdb2i_dn2entry_w(be, dn, m) bdb2i_dn2entry_rw((be), (dn), (m), 1)
 
 /*
  * filterindex.c
@@ -87,9 +92,10 @@ int bdb2i_has_children LDAP_P(( BackendDB *be, Entry *p ));
 
 int bdb2i_id2entry_add LDAP_P(( BackendDB *be, Entry *e ));
 int bdb2i_id2entry_delete LDAP_P(( BackendDB *be, Entry *e ));
-Entry * bdb2i_id2entry LDAP_P(( BackendDB *be, ID id, int rw )); 
-Entry * bdb2i_id2entry_r LDAP_P(( BackendDB *be, ID id ));
-Entry * bdb2i_id2entry_w LDAP_P(( BackendDB *be, ID id ));
+
+Entry * bdb2i_id2entry_rw LDAP_P(( BackendDB *be, ID id, int rw )); 
+#define bdb2i_id2entry_r(be, id)  bdb2i_id2entry_rw((be), (id), 0)
+#define bdb2i_id2entry_w(be, id)  bdb2i_id2entry_rw((be), (id), 1)
 
 /*
  * idl.c

@@ -111,7 +111,7 @@ bdb2i_index_read(
 	if ( ! (indextype & indexmask) ) {
 		idl =  bdb2i_idl_allids( be );
 		Debug( LDAP_DEBUG_TRACE,
-		    "<= bdb2i_index_read %lu candidates (allids - not indexed)\n",
+		    "<= bdb2i_index_read %ld candidates (allids - not indexed)\n",
 		    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 		return( idl );
 	}
@@ -151,7 +151,7 @@ bdb2i_index_read(
 
 	bdb2i_cache_close( be, db );
 
-	Debug( LDAP_DEBUG_TRACE, "<= bdb2i_index_read %lu candidates\n",
+	Debug( LDAP_DEBUG_TRACE, "<= bdb2i_index_read %ld candidates\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }

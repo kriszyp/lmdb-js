@@ -181,7 +181,7 @@ bdb2i_idl_fetch(
 	}
 	free( (char *) tmp );
 
-	Debug( LDAP_DEBUG_TRACE, "<= bdb2i_idl_fetch %lu ids (%lu max)\n",
+	Debug( LDAP_DEBUG_TRACE, "<= bdb2i_idl_fetch %ld ids (%ld max)\n",
 	       ID_BLOCK_NIDS(idl), ID_BLOCK_NMAX(idl), 0 );
 	return( idl );
 }
@@ -500,7 +500,7 @@ bdb2i_idl_insert_key(
 			case 0:		/* id inserted */
 				if ( rc == 2 ) {
 					Debug( LDAP_DEBUG_ANY,
-					    "id %lu already in next block\n",
+					    "id %ld already in next block\n",
 					    id, 0, 0 );
 				}
 				free( kstr );

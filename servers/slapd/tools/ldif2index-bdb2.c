@@ -108,7 +108,7 @@ main( int argc, char **argv )
 	li = (struct ldbminfo *) be->be_private;
 	li->li_dbcachewsync = 0;
 
-	attr_masks( be->be_private, attr, &indexmask, &syntaxmask );
+	bdb2i_attr_masks( be->be_private, attr, &indexmask, &syntaxmask );
 	if ( indexmask == 0 ) {
 		exit( 0 );
 	}
@@ -160,7 +160,7 @@ main( int argc, char **argv )
 					if ( strcasecmp( type, attr ) == 0 ) {
 						bv.bv_val = val;
 						bv.bv_len = vlen;
-						index_add_values( be, attr,
+						bdb2i_index_add_values( be, attr,
 						    vals, id );
 					}
 				}

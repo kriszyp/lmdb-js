@@ -86,7 +86,7 @@ bdb2i_filter_candidates(
 		break;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= bdb2i_filter_candidates %lu\n",
+	Debug( LDAP_DEBUG_TRACE, "<= bdb2i_filter_candidates %ld\n",
 	    result ? ID_BLOCK_NIDS(result) : 0, 0, 0 );
 	return( result );
 }
@@ -117,7 +117,7 @@ ava_candidates(
 		break;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= ava_candidates %lu\n",
+	Debug( LDAP_DEBUG_TRACE, "<= ava_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
@@ -134,7 +134,7 @@ presence_candidates(
 
 	idl = bdb2i_index_read( be, type, 0, "*" );
 
-	Debug( LDAP_DEBUG_TRACE, "<= presence_candidates %lu\n",
+	Debug( LDAP_DEBUG_TRACE, "<= presence_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
@@ -171,7 +171,7 @@ approx_candidates(
 		}
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= approx_candidates %lu\n",
+	Debug( LDAP_DEBUG_TRACE, "<= approx_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
@@ -212,7 +212,7 @@ list_candidates(
 		}
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= list_candidates %lu\n",
+	Debug( LDAP_DEBUG_TRACE, "<= list_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
@@ -279,7 +279,7 @@ substring_candidates(
 		}
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= substring_candidates %lu\n",
+	Debug( LDAP_DEBUG_TRACE, "<= substring_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
@@ -347,7 +347,7 @@ substring_comp_candidates(
 		}
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= substring_comp_candidates %lu\n",
+	Debug( LDAP_DEBUG_TRACE, "<= substring_comp_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }

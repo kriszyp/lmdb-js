@@ -305,6 +305,7 @@ cache_add_entry_rw(
 			e = cache->c_lrutail;
 
 			/* delete from cache and lru q */
+			/* XXX do we need rc ? */
 			rc = cache_delete_entry_internal( cache, e );
 			cache_entry_private_destroy( e );
 			entry_free( e );
@@ -407,6 +408,7 @@ cache_update_entry(
 			e = cache->c_lrutail;
 
 			/* delete from cache and lru q */
+			/* XXX do we need rc ? */
 			rc = cache_delete_entry_internal( cache, e );
 			cache_entry_private_destroy( e );
 			entry_free( e );

@@ -9,6 +9,11 @@
 #include "slap.h"
 #include "back-bdb2.h"
 
+/*
+ * This routine adds (or updates) an entry on disk.
+ * The cache should already be updated.
+ */
+
 int
 bdb2i_id2entry_add( BackendDB *be, Entry *e )
 {
@@ -20,7 +25,7 @@ bdb2i_id2entry_add( BackendDB *be, Entry *e )
 	ldbm_datum_init( key );
 	ldbm_datum_init( data );
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_id2entry_add( %lu, \"%s\" )\n", e->e_id,
+	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_id2entry_add( %ld, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
 
 	if ( (db = bdb2i_cache_open( be, "id2entry", BDB2_SUFFIX, LDBM_WRCREAT ))
@@ -45,11 +50,9 @@ bdb2i_id2entry_add( BackendDB *be, Entry *e )
 	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 
 	bdb2i_cache_close( be, db );
-	(void) bdb2i_cache_add_entry_lock( &li->li_cache, e, 0 );
 
 	Debug( LDAP_DEBUG_TRACE, "<= bdb2i_id2entry_add %d\n", rc, 0, 0 );
 
-	/* XXX should entries be born locked, i.e. apply writer lock here? */
 	return( rc );
 }
 
@@ -61,12 +64,14 @@ bdb2i_id2entry_delete( BackendDB *be, Entry *e )
 	Datum		key;
 	int		rc;
 
-	Debug(LDAP_DEBUG_TRACE, "=> bdb2i_id2entry_delete( %lu, \"%s\" )\n", e->e_id,
+	Debug(LDAP_DEBUG_TRACE, "=> bdb2i_id2entry_delete( %ld, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
 
+#ifdef notdef
 #ifdef LDAP_DEBUG
 	/* check for writer lock */
-	assert(ldap_pvt_thread_rdwr_writers(&e->e_rdwr));
+	assert(ldap_pvt_thread_rdwr_writers(&e->e_rdwr) == 1);
+#endif
 #endif
 
 	ldbm_datum_init( key );
@@ -79,7 +84,7 @@ bdb2i_id2entry_delete( BackendDB *be, Entry *e )
 	}
 
 	if ( bdb2i_cache_delete_entry( &li->li_cache, e ) != 0 ) {
-		Debug(LDAP_DEBUG_ANY, "could not delete %lu (%s) from cache\n",
+		Debug(LDAP_DEBUG_ANY, "could not delete %ld (%s) from cache\n",
 		    e->e_id, e->e_dn, 0 );
 	}
 
@@ -94,9 +99,9 @@ bdb2i_id2entry_delete( BackendDB *be, Entry *e )
 	return( rc );
 }
 
-/* XXX returns entry with reader/writer lock */
+/* returns entry with reader/writer lock */
 Entry *
-bdb2i_id2entry( BackendDB *be, ID id, int rw )
+bdb2i_id2entry_rw( BackendDB *be, ID id, int rw )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	struct dbcache	*db;
@@ -110,8 +115,8 @@ bdb2i_id2entry( BackendDB *be, ID id, int rw )
 		rw ? "w" : "r", id, 0 );
 
 	if ( (e = bdb2i_cache_find_entry_id( &li->li_cache, id, rw )) != NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "<= bdb2i_id2entry_%s 0x%lx (cache)\n",
-			rw ? "w" : "r", (unsigned long)e, 0 );
+		Debug( LDAP_DEBUG_TRACE, "<= bdb2i_id2entry_%s( %ld ) 0x%lx (cache)\n",
+			rw ? "w" : "r", id, (unsigned long)e );
 		return( e );
 	}
 
@@ -145,30 +150,26 @@ bdb2i_id2entry( BackendDB *be, ID id, int rw )
 		return( NULL );
 	}
 
-	/* acquire required reader/writer lock */
-	if (entry_rdwr_lock(e, rw)) {
-		/* XXX set DELETE flag?? */
-		entry_free(e);
-		return(NULL);
+	if ( e->e_id != id ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"<= bdb2i_id2entry_%s( %ld ) (wrong id %ld on disk)\n",
+			rw ? "w" : "r", id, e->e_id );
+		entry_free( e );
+		return( NULL );
 	}
 
-	e->e_id = id;
-	(void) bdb2i_cache_add_entry_lock( &li->li_cache, e, 0 );
+	if ( bdb2i_cache_add_entry_rw( &li->li_cache, e, rw ) != 0 ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"<= bdb2i_id2entry_%s( %ld ) (cache add failed)\n",
+			rw ? "w" : "r", id, 0 );
+		entry_free( e );
+		return( NULL );
+	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= bdb2i_id2entry_%s( %ld ) (disk)\n",
-		rw ? "w" : "r", id, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= bdb2i_id2entry_%s( %ld ) 0x%lx (disk)\n",
+		rw ? "w" : "r", id, (unsigned long) e );
+
 	return( e );
 }
 
-Entry *
-bdb2i_id2entry_r( BackendDB *be, ID id )
-{
-	return( bdb2i_id2entry( be, id, 0 ) );
-}
-
-Entry *
-bdb2i_id2entry_w( BackendDB *be, ID id )
-{
-	return( bdb2i_id2entry( be, id, 1 ) );
-}
 

@@ -25,7 +25,7 @@ bdb2i_id2children_add(
 
 	ldbm_datum_init( key );
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_id2children_add( %lu, %lu )\n",
+	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_id2children_add( %ld, %ld )\n",
 	       p ? p->e_id : 0, e->e_id, 0 );
 
 	if ( (db = bdb2i_cache_open( be, "id2children", BDB2_SUFFIX,
@@ -67,7 +67,7 @@ bdb2i_id2children_remove(
 	ID_BLOCK		*idl;
 	char		buf[20];
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_id2children_remove( %lu, %lu )\n",
+	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_id2children_remove( %ld, %ld )\n",
 		p ? p->e_id : 0, e->e_id, 0 );
 
 	if ( (db = bdb2i_cache_open( be, "id2children", BDB2_SUFFIX,
@@ -110,7 +110,7 @@ bdb2i_has_children(
 
 	ldbm_datum_init( key );
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_has_children( %lu )\n", p->e_id , 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_has_children( %ld )\n", p->e_id , 0, 0 );
 
 	if ( (db = bdb2i_cache_open( be, "id2children", BDB2_SUFFIX,
 	    LDBM_WRCREAT )) == NULL ) {
@@ -133,7 +133,7 @@ bdb2i_has_children(
 		rc = 1;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= bdb2i_has_children( %lu ): %s\n",
+	Debug( LDAP_DEBUG_TRACE, "<= bdb2i_has_children( %ld ): %s\n",
 					p->e_id, rc ? "yes" : "no", 0 );
 	return( rc );
 }

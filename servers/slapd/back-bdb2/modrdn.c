@@ -145,8 +145,9 @@ bdb2i_back_modrdn_internal(
 	free( e->e_ndn );
 	e->e_dn = new_dn;
 	e->e_ndn = new_ndn;
+	(void) bdb2i_cache_update_entry( &li->li_cache, e );
 
-	/* XXX
+	/*
 	 * At some point here we need to update the attribute values in
 	 * the entry itself that were effected by this RDN change
 	 * (respecting the value of the deleteoldrdn parameter).

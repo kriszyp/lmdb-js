@@ -257,7 +257,7 @@ main( int argc, char **argv )
 				    avl_dup_error ) != 0 ) {
 					free( type );
 				} else {
-					attr_masks( be->be_private, type,
+					bdb2i_attr_masks( be->be_private, type,
 					    &indexmask, &syntaxmask );
 					if ( indexmask ) {
 						args[i - 2] = type;

@@ -76,7 +76,7 @@ bdb2i_dn2id(
 	/* first check the cache */
 	if ( (id = bdb2i_cache_find_entry_dn2id( be, &li->li_cache, dn )) != NOID ) {
 		free( dn );
-		Debug( LDAP_DEBUG_TRACE, "<= bdb2i_dn2id %lu (in cache)\n", id,
+		Debug( LDAP_DEBUG_TRACE, "<= bdb2i_dn2id %ld (in cache)\n", id,
 			0, 0 );
 		return( id );
 	}
@@ -106,7 +106,7 @@ bdb2i_dn2id(
 
 	ldbm_datum_free( db->dbc_db, data );
 
-	Debug( LDAP_DEBUG_TRACE, "<= bdb2i_dn2id %lu\n", id, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= bdb2i_dn2id %ld\n", id, 0, 0 );
 	return( id );
 }
 
@@ -153,8 +153,8 @@ bdb2i_dn2id_delete(
  * entry.
  */
 
-static Entry *
-dn2entry(
+Entry *
+bdb2i_dn2entry_rw(
     BackendDB	*be,
     char	*dn,
     char	**matched,
@@ -172,14 +172,14 @@ dn2entry(
 	*matched = NULL;
 
 	if ( (id = bdb2i_dn2id( be, dn )) != NOID &&
-		(e = bdb2i_id2entry( be, id, rw )) != NULL )
+		(e = bdb2i_id2entry_rw( be, id, rw )) != NULL )
 	{
 		return( e );
 	}
 
 	if ( id != NOID ) {
 		Debug(LDAP_DEBUG_ANY,
-			"dn2entry_%s: no entry for valid id (%lu), dn \"%s\"\n",
+			"dn2entry_%s: no entry for valid id (%ld), dn \"%s\"\n",
 			rw ? "w" : "r", id, dn);
 		/* must have been deleted from underneath us */
 		/* treat as if NOID was found */
@@ -207,26 +207,5 @@ dn2entry(
 
 	return( NULL );
 }
-
-Entry *
-bdb2i_dn2entry_r(
-	BackendDB	*be,
-	char	*dn,
-	char	**matched
-)
-{
-	return( dn2entry( be, dn, matched, 0 ) );
-}
-
-Entry *
-bdb2i_dn2entry_w(
-	BackendDB	*be,
-	char	*dn,
-	char	**matched
-)
-{
-	return( dn2entry( be, dn, matched, 1 ) );
-}
-
 
 

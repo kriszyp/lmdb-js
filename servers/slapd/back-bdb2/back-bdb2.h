@@ -20,7 +20,7 @@ LDAP_BEGIN_DECL
 
 #define SUBLEN			3
 
-#define BDB2_SUFFIX     ".dbb"
+#define BDB2_SUFFIX     ".bdb2"
 
 
 /*
@@ -81,6 +81,9 @@ struct cache {
 	Entry		*c_lrutail;	/* lru - rem lru entries from here */
 	ldap_pvt_thread_mutex_t	c_mutex;
 };
+
+#define CACHE_READ_LOCK		1
+#define CACHE_WRITE_LOCK	2
 
 /* for the cache of open index files (re-used for txn) */
 struct dbcache {

@@ -291,9 +291,9 @@ main( int argc, char **argv )
 					sprintf( buf2, "%c%ld", EQ_PREFIX, pid );
 					key.dptr = buf2;
 					key.dsize = strlen( buf2 ) + 1;
-					if ( idl_insert_key( be, db2, key, id )
+					if ( bdb2i_idl_insert_key( be, db2, key, id )
 					    != 0 ) {
-						perror( "idl_insert_key" );
+						perror( "bdb2i_idl_insert_key" );
 						exit( 1 );
 					}
 				}
