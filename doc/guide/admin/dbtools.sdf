@@ -314,7 +314,7 @@ You can also specify a {{TERM:URL}} containing the attribute value.
 For example, the following specifies the {{EX:jpegPhoto}} value
 should be obtained from the file {{F:/path/to/file.jpeg}}.
 
->	cn:< file://path/to/file.jpeg
+>	cn:< file:///path/to/file.jpeg
 
 Multiple entries within the same LDIF file are separated by blank
 lines. Here's an example of an LDIF file containing three entries.
@@ -344,7 +344,7 @@ lines. Here's an example of an LDIF file containing three entries.
 >	objectClass: person
 >	sn: Jensen
 >	# JPEG photo from file
->	jpegPhoto:< file://path/to/file.jpeg
+>	jpegPhoto:< file:///path/to/file.jpeg
 
 Notice that the {{EX:jpegPhoto}} in Bjorn's entry is base 64 encoded
 and the {{EX:jpegPhoto}} in Jennifer's entry is obtained from the
