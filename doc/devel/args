@@ -1,10 +1,11 @@
 Tools           ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+ldapcompare		 * DE *HI*K M*OPQR  U*WXYZ   de *h**k *n*p*    vwx z
 ldapdelete       *CDE *HI*K M*OPQR  U*WXYZ  cdef*h**k *n*p*    vwxy
 ldapmodify       *CDEF*HI*K M*OPQRS U*WXYZabcdef*h**k *n*p*r t vwxy
 ldapmodrdn       *CDE *HI*K M*OPQR  U*WXYZ  cdef*h**k *n*p*rs  vwxy
 ldappasswd      A*CDE *HI*   *O QRS U*WXYZa  de *h**  * * * s  vwxy  
 ldapsearch      A*CDE *HI*KLM*OPQRSTU*WXYZab*def*h**kl*n*p* stuvwxyz
-ldapwhoami
+ldapwhoami		 * DE *HI*   *O QR  U*WXYZ   def*h**  *n*p*    vwx  
 
 
 * reserved
