@@ -1176,7 +1176,7 @@ ppolicy_add(
 		 * security policy for the new entry.
 		 */
 		ppolicy_get( op, op->oq_add.rs_e, &pp );
-		if (pp.pwdCheckQuality > 0 && !be_isroot( op->o_bd, &op->o_ndn )) {
+		if (pp.pwdCheckQuality > 0 && !be_isroot_dn( op )) {
 			struct berval *bv = &(pa->a_vals[0]);
 			int rc, i, send_ctrl = 0; 
 			LDAPPasswordPolicyError pErr = PP_noError;
@@ -1386,7 +1386,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		for(p=tl; p; p=p->next, hsize++); /* count history size */
 	}
 
-	if (be_isroot( op->o_bd, &op->o_ndn)) goto do_modify;
+	if (be_isroot_dn( op )) goto do_modify;
 
 	/* This is a pwdModify exop that provided the old pw.
 	 * We need to create a Delete mod for this old pw and 

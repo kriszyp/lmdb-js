@@ -2461,7 +2461,7 @@ int slapi_int_pblock_set_operation( Slapi_PBlock *pb, Operation *op )
 	char *opAuthType;
 
 	if ( op->o_bd != NULL ) {
-		isRoot = be_isroot( op->o_bd, &op->o_ndn );
+		isRoot = be_isroot_dn( op );
 		isUpdateDn = be_isupdate( op->o_bd, &op->o_ndn );
 	}
 

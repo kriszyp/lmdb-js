@@ -780,7 +780,7 @@ limits_check( Operation *op, SlapReply *rs )
 	assert( op->o_tag == LDAP_REQ_SEARCH);
 	
 	/* allow root to set no limit */
-	if ( be_isroot( op->o_bd, &op->o_ndn ) ) {
+	if ( be_isroot_dn( op ) ) {
 		op->ors_limit = NULL;
 
 		if ( op->ors_tlimit == 0 ) {

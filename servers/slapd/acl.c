@@ -1568,7 +1568,7 @@ acl_check_modlist(
 	assert( be != NULL );
 
 	/* short circuit root database access */
-	if ( be_isroot( op->o_bd, &op->o_ndn ) ) {
+	if ( be_isroot_dn( op ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, DETAIL1, 
 			   "acl_check_modlist: conn %lu  access granted to root user\n",

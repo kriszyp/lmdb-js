@@ -34,34 +34,70 @@
 #include "../back-ldap/back-ldap.h"
 
 static int
+ldap_chain_chk_referrals( Operation *op, SlapReply *rs )
+{
+	return LDAP_SUCCESS;
+}
+
+static int
 ldap_chain_response( Operation *op, SlapReply *rs )
 {
-	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
-	void *private = op->o_bd->be_private;
-	slap_callback *sc = op->o_callback;
-	LDAPControl **prev = op->o_ctrls;
-	LDAPControl **ctrls = NULL, authz;
-	int i, nctrls, rc = 0;
-	int cache = op->o_do_not_cache;
-	char *authzid = NULL;
-	BerVarray ref;
-	struct berval ndn = op->o_ndn;
+	slap_overinst	*on = (slap_overinst *) op->o_bd->bd_info;
+	void		*private = op->o_bd->be_private;
+	slap_callback	*sc = op->o_callback;
+	LDAPControl	**prev = op->o_ctrls;
+	LDAPControl	**ctrls = NULL, authz;
+	int		i, nctrls, rc = 0;
+	int		cache = op->o_do_not_cache;
+	char		*authzid = NULL;
+	BerVarray	ref;
+	struct berval	ndn = op->o_ndn;
+
+	struct ldapinfo	li, *lip = (struct ldapinfo *)on->on_bi.bi_private;
 
 	if ( rs->sr_err != LDAP_REFERRAL && rs->sr_type != REP_SEARCHREF )
 		return SLAP_CB_CONTINUE;
 
-	/* currently we assume only one referral destination.
-	 * we'll have to parse this in the future.
-	 */
-	/* leave in place if result type is search reference;
-	 * will be cleared later */
 	ref = rs->sr_ref;
-	if ( rs->sr_type != REP_SEARCHREF ) {
-		rs->sr_ref = NULL;
-	}
+	rs->sr_ref = NULL;
 
-	op->o_bd->be_private = on->on_bi.bi_private;
 	op->o_callback = NULL;
+
+	if ( lip->url == NULL ) {
+		li = *lip;
+		op->o_bd->be_private = &li;
+
+		if ( rs->sr_type != REP_SEARCHREF ) {
+			LDAPURLDesc	*srv;
+			char		*save_dn;
+
+			/* parse reference and use proto://[host][:port]/ only */
+			rc = ldap_url_parse_ext( ref[0].bv_val, &srv );
+			if ( rc != LDAP_SUCCESS) {
+				/* error */
+				return 1;
+			}
+
+			/* remove DN essentially because later on 
+			 * ldap_initialize() will parse the URL 
+			 * as a comma-separated URL list */
+			save_dn = srv->lud_dn;
+			srv->lud_dn = "";
+			li.url = ldap_url_desc2str( srv );
+			if ( li.url == NULL ) {
+				/* error */
+				srv->lud_dn = save_dn;
+				ldap_free_urldesc( srv );
+				return 1;
+			}
+
+			srv->lud_dn = save_dn;
+			ldap_free_urldesc( srv );
+		}
+
+	} else {
+		op->o_bd->be_private = on->on_bi.bi_private;
+	}
 
 	/* Chaining is performed by a privileged user on behalf
 	 * of a normal user, using the ProxyAuthz control. However,
@@ -84,11 +120,11 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 		authz.ldctl_iscritical = 1;
 		authz.ldctl_value = op->o_dn;
 		if ( op->o_dn.bv_len ) {
-			authzid = op->o_tmpalloc( op->o_dn.bv_len+4,
+			authzid = op->o_tmpalloc( op->o_dn.bv_len + sizeof("dn:") - 1,
 				op->o_tmpmemctx );
-			strcpy(authzid, "dn: ");
-			strcpy(authzid+4, op->o_dn.bv_val);
-			authz.ldctl_value.bv_len = op->o_dn.bv_len + 4;
+			strcpy(authzid, "dn:");
+			strcpy(authzid + sizeof("dn:") - 1, op->o_dn.bv_val);
+			authz.ldctl_value.bv_len = op->o_dn.bv_len + sizeof("dn:") - 1;
 			authz.ldctl_value.bv_val = authzid;
 		}
 		op->o_ctrls = ctrls;
@@ -97,9 +133,11 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 
 	switch( op->o_tag ) {
 	case LDAP_REQ_BIND: {
-		struct berval rndn = op->o_req_ndn;
-		Connection *conn = op->o_conn;
+		struct berval	rndn = op->o_req_ndn;
+		Connection	*conn = op->o_conn;
+
 		op->o_req_ndn = slap_empty_bv;
+
 		op->o_conn = NULL;
 		rc = ldap_back_bind( op, rs );
 		op->o_req_ndn = rndn;
@@ -123,17 +161,13 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 		break;
 	case LDAP_REQ_SEARCH:
 		if ( rs->sr_type == REP_SEARCHREF ) {
-			struct ldapinfo	li;
-			struct berval	*curr = rs->sr_ref,
+			struct berval	*curr = ref,
 					odn = op->o_req_dn,
 					ondn = op->o_req_ndn;
 
-			op->o_bd->be_private = &li;
 			rs->sr_type = REP_SEARCH;
-			rs->sr_ref = NULL;
 
 			/* copy the private info because we need to modify it */
-			AC_MEMCPY( &li, on->on_bi.bi_private, sizeof( struct ldapinfo ) );
 			for ( ; curr[0].bv_val; curr++ ) {
 				LDAPURLDesc	*srv;
 
@@ -141,7 +175,8 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 				rc = ldap_url_parse_ext( curr[0].bv_val, &srv );
 				if ( rc != LDAP_SUCCESS) {
 					/* error */
-					continue;
+					rc = 1;
+					goto end_of_searchref;
 				}
 
 				ber_str2bv(srv->lud_dn, 0, 0, &op->o_req_dn);
@@ -156,7 +191,8 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 					/* error */
 					srv->lud_dn = op->o_req_dn.bv_val;
 					ldap_free_urldesc( srv );
-					continue;
+					rc = 1;
+					goto end_of_searchref;
 				}
 
 				/* FIXME: should we also copy filter and scope?
@@ -164,19 +200,23 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 
 				rc = ldap_back_search( op, rs );
 
+				ldap_memfree( li.url );
+				li.url = NULL;
+
 				srv->lud_dn = op->o_req_dn.bv_val;
 				ldap_free_urldesc( srv );
 
 				if ( rc ) {
 					/* error */
-					continue;
+					rc = 1;
+					goto end_of_searchref;
 				}
 			}
 
+end_of_searchref:;
 			op->o_req_dn = odn;
 			op->o_req_ndn = ondn;
 			rs->sr_type = REP_SEARCHREF;
-			op->o_bd->be_private = on->on_bi.bi_private;
 			
 		} else {
 			rc = ldap_back_search( op, rs );
@@ -197,6 +237,9 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	if ( ctrls ) op->o_tmpfree( ctrls, op->o_tmpmemctx );
 	if ( authzid ) op->o_tmpfree( authzid, op->o_tmpmemctx );
 	rs->sr_ref = ref;
+	if ( lip->url == NULL && li.url ) {
+		ldap_memfree( li.url );
+	}
 
 	return rc;
 }
@@ -240,6 +283,7 @@ static int ldap_chain_init(
 	rc = ldap_back_db_init( be );
 	on->on_bi.bi_private = be->be_private;
 	be->be_private = private;
+
 	return rc;
 }
 
@@ -267,6 +311,8 @@ int chain_init()
 	ldapchain.on_bi.bi_db_config = ldap_chain_config;
 	ldapchain.on_bi.bi_db_destroy = ldap_chain_destroy;
 	ldapchain.on_response = ldap_chain_response;
+
+	ldapchain.on_bi.bi_chk_referrals = ldap_chain_chk_referrals;
 
 	return overlay_register( &ldapchain );
 }
