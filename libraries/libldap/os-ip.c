@@ -130,6 +130,8 @@ ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 	return 0;
 }
 
+#ifndef HAVE_WINSOCK
+
 #undef TRACE
 #define TRACE do { \
 	osip_debug(ld, \
@@ -174,9 +176,6 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 	{
 		/* XXX: needs to be replace with ber_stream_read() */
 		read(s, &ch, 1);
-#ifdef HAVE_WINSOCK
-		ldap_pvt_set_errno( WSAGetLastError() );
-#endif
 		TRACE;
 		return -1;
 	}
@@ -186,6 +185,8 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 	return -1;
 }
 #undef TRACE
+
+#endif /* HAVE_WINSOCK */
 
 static int
 ldap_pvt_connect(LDAP *ld, ber_socket_t s,
@@ -250,15 +251,25 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 #ifdef HAVE_WINSOCK
 	/* This means the connection failed */
 	if ( FD_ISSET(s, &efds) ) {
-	    ldap_pvt_set_errno(WSAECONNREFUSED);
+	    int so_errno;
+	    int dummy = sizeof(so_errno);
+	    if ( getsockopt( s, SOL_SOCKET, SO_ERROR,
+			(char *) &so_errno, &dummy ) == AC_SOCKET_ERROR || !so_errno )
+	    {
+	    	/* impossible */
+	    	so_errno = WSAGetLastError();
+	    }
+	    ldap_pvt_set_errno(so_errno);
 	    osip_debug(ld, "ldap_pvt_connect: error on socket %d: "
 		       "errno: %d (%s)\n", s, errno, sock_errstr(errno));
 	    return -1;
 	}
 #endif
 	if ( FD_ISSET(s, &wfds) ) {
+#ifndef HAVE_WINSOCK
 		if ( ldap_pvt_is_socket_ready(ld, s) == -1 )
 			return ( -1 );
+#endif
 		if ( ldap_pvt_ndelay_off(ld, s) == -1 )
 			return ( -1 );
 		return ( 0 );

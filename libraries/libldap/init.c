@@ -263,11 +263,11 @@ static void openldap_ldap_init_w_userconf(const char *file)
 		/* we assume UNIX path syntax is used... */
 
 		/* try ~/file */
-		sprintf(path, "%s/%s", home, file);
+		sprintf(path, "%s%s%s", home, LDAP_DIRSEP, file);
 		openldap_ldap_init_w_conf(path, 1);
 
 		/* try ~/.file */
-		sprintf(path, "%s/.%s", home, file);
+		sprintf(path, "%s%s.%s", home, LDAP_DIRSEP, file);
 		openldap_ldap_init_w_conf(path, 1);
 	}
 
@@ -364,6 +364,20 @@ static void openldap_ldap_init_w_env(
 	}
 }
 
+static void
+ldap_int_destroy_global_options(void)
+{
+	struct ldapoptions *gopts = LDAP_INT_GLOBAL_OPT();
+
+	if ( gopts->ldo_defludp ) {
+		ldap_free_urllist( gopts->ldo_defludp );
+		gopts->ldo_defludp = NULL;
+	}
+#if defined(HAVE_WINSOCK) || defined(HAVE_WINSOCK2)
+	WSACleanup( );
+#endif
+}
+
 /* 
  * Initialize the global options structure with default values.
  */
@@ -382,11 +396,11 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 	gopts->ldo_tm_api = (struct timeval *)NULL;
 	gopts->ldo_tm_net = (struct timeval *)NULL;
 
-	/* ldo_defludp is leaked, we should have an at_exit() handler
-	 * to free this and whatever else needs to cleaned up. 
+	/* ldo_defludp wll be freed by the atexit() handler
 	 */
 	ldap_url_parselist(&gopts->ldo_defludp, "ldap://localhost/");
 	gopts->ldo_defport = LDAP_PORT;
+	atexit(ldap_int_destroy_global_options);
 
 	gopts->ldo_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
 	gopts->ldo_rebindproc = NULL;
@@ -425,11 +439,44 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 		return;
 	}
 
+#ifdef HAVE_WINSOCK2
+{	WORD wVersionRequested;
+	WSADATA wsaData;
+ 
+	wVersionRequested = MAKEWORD( 2, 0 );
+	if ( WSAStartup( wVersionRequested, &wsaData ) != 0 ) {
+		/* Tell the user that we couldn't find a usable */
+		/* WinSock DLL.                                  */
+		return;
+	}
+ 
+	/* Confirm that the WinSock DLL supports 2.0.*/
+	/* Note that if the DLL supports versions greater    */
+	/* than 2.0 in addition to 2.0, it will still return */
+	/* 2.0 in wVersion since that is the version we      */
+	/* requested.                                        */
+ 
+	if ( LOBYTE( wsaData.wVersion ) != 2 ||
+		HIBYTE( wsaData.wVersion ) != 0 )
+	{
+	    /* Tell the user that we couldn't find a usable */
+	    /* WinSock DLL.                                  */
+	    WSACleanup( );
+	    return; 
+	}
+}	/* The WinSock DLL is acceptable. Proceed. */
+#elif HAVE_WINSOCK
+{	WSADATA wsaData;
+	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) {
+	    return;
+	}
+}
+#endif
+
 #if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
 	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 	ldap_int_hostname = ldap_pvt_get_fqdn( ldap_int_hostname );
 #endif
-
 	ldap_int_utils_init();
 
 	if ( ldap_int_tblsize == 0 )
@@ -450,8 +497,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 		if( user == NULL ) user = getenv("LOGNAME");
 
 		if( user != NULL ) {
-			/* this value is leaked, need at_exit() handler */
-			gopts->ldo_def_sasl_authcid = LDAP_STRDUP( user );
+			gopts->ldo_def_sasl_authcid = user;
 		}
     }
 #endif
