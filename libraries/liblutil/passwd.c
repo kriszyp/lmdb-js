@@ -39,17 +39,19 @@
 #include <ac/param.h>
 
 #ifdef SLAPD_CRYPT
-#include <ac/crypt.h>
-#endif
+# include <ac/crypt.h>
 
-#ifdef HAVE_SHADOW_H
+# if defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD )
+#  ifdef HAVE_SHADOW_H
 #	include <shadow.h>
-#endif
-#ifdef HAVE_PWD_H
+#  endif
+#  ifdef HAVE_PWD_H
 #	include <pwd.h>
-#endif
-#ifdef HAVE_AIX_SECURITY
+#  endif
+#  ifdef HAVE_AIX_SECURITY
 #	include <userpw.h>
+#  endif
+# endif
 #endif
 
 #include <lber.h>
