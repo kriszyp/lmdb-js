@@ -1594,6 +1594,10 @@ parse_page_control(
 			return EXIT_FAILURE;
 		}
 
+		if ( servercookie.bv_len == 0 ) {
+			morePagedResults = 0;
+		}
+
 		ldap_controls_free( ctrl );
 
 	} else {
