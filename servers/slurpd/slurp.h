@@ -31,6 +31,7 @@
 
 #include <ldap.h>
 
+#undef  ldap_debug
 #define ldap_debug slurp_debug
 #include "ldap_log.h"
 

@@ -28,6 +28,11 @@
 
 #include <ac/krb.h>
 
+#if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
+/* Get LDAP->ld_lberoptions.  Must precede slurp.h, both define ldap_debug. */
+#include "../../libraries/libldap/ldap-int.h"
+#endif
+
 #include <lber.h>
 #include <ldap.h>
 
