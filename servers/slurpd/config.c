@@ -523,10 +523,10 @@ parse_replica_line(
 	    fprintf( stderr, "slurpd no longer supports Kerberos.\n" );
 	    exit( EXIT_FAILURE );
 	    } else if ( !strcasecmp( val, SIMPLESTR )) {
-		ri->ri_bind_method = AUTH_SIMPLE;
+		ri->ri_bind_method = LDAP_AUTH_SIMPLE;
 		gots |= GOT_METHOD;
 	    } else if ( !strcasecmp( val, SASLSTR )) {
-		ri->ri_bind_method = AUTH_SASL;
+		ri->ri_bind_method = LDAP_AUTH_SASL;
 		gots |= GOT_METHOD;
 	    } else {
 		ri->ri_bind_method = -1;
@@ -575,14 +575,13 @@ parse_replica_line(
 	}
     }
     
-	if ( ri->ri_bind_method == AUTH_SASL) {
+	if ( ri->ri_bind_method == LDAP_AUTH_SASL) {
 		if ((gots & GOT_MECH) == 0) {
 			fprintf( stderr, "Error: \"replica\" line needs SASLmech flag in " );
 			fprintf( stderr, "slapd config file, line %d\n", lineno );
 			return -1;
 		}
-	}
-	else if ( gots != GOT_ALL ) {
+	} else if ( gots != GOT_ALL ) {
 		fprintf( stderr, "Error: Malformed \"replica\" line in slapd " );
 		fprintf( stderr, "config file, line %d\n", lineno );
 		return -1;

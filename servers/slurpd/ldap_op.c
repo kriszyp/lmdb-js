@@ -913,7 +913,7 @@ retry:
 	}
 
     switch ( ri->ri_bind_method ) {
-    case AUTH_SIMPLE:
+    case LDAP_AUTH_SIMPLE:
 	/*
 	 * Bind with a plaintext password.
 	 */
@@ -944,7 +944,7 @@ retry:
 	}
 	break;
 
-	case AUTH_SASL:
+	case LDAP_AUTH_SASL:
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ARGS, 
 		"do_bind: bind to %s as %s via %s (SASL)\n", 
