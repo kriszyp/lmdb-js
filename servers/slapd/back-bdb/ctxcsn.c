@@ -247,16 +247,13 @@ bdb_get_commit_csn(
 )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
-	struct berval ctxcsn_rdn = BER_BVNULL;
 	struct berval ctxcsn_ndn = BER_BVNULL;
 	struct berval csn = BER_BVNULL;
-	struct berval ctx_nrdn = BER_BVC( "cn=ldapsync" );
 	EntryInfo	*ctxcsn_ei = NULL;
 	EntryInfo	*suffix_ei = NULL;
 	Entry		*ctxcsn_e = NULL;
 	DB_TXN		*ltid = NULL;
 	Attribute	*csn_a;
-	char		substr[67];
 	char		gid[DB_XIDDATASIZE];
 	char		csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 	int			num_retries = 0;
@@ -265,12 +262,13 @@ bdb_get_commit_csn(
 
 	if ( op->o_sync_mode != SLAP_SYNC_NONE ) {
 		if ( op->o_bd->syncinfo ) {
+			char substr[67];
+			struct berval bv;
 			sprintf( substr, "cn=syncrepl%d", op->o_bd->syncinfo->id );
-			ber_str2bv( substr, strlen( substr ), 0, &ctxcsn_rdn );
-			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &ctxcsn_rdn );
+			ber_str2bv( substr, 0, 0, &bv );
+			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &bv );
 		} else {
-			ber_str2bv( "cn=ldapsync", strlen("cn=ldapsync"), 0, &ctxcsn_rdn );
-			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &ctxcsn_rdn );
+			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], (struct berval *)&slap_ldapsync_cn_bv );
 		}
 
 ctxcsn_retry :
@@ -330,7 +328,7 @@ txn_retry:
 					return rs->sr_err;
 				}
 
-				bdb_cache_add( bdb, suffix_ei, ctxcsn_e, &ctx_nrdn, locker );
+				bdb_cache_add( bdb, suffix_ei, ctxcsn_e, (struct berval *)&slap_ldapsync_cn_bv, locker );
 
 				rs->sr_err = TXN_COMMIT( ltid, 0 );
 				if ( rs->sr_err != 0 ) {

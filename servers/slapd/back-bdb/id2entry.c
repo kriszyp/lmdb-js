@@ -231,7 +231,7 @@ int bdb_entry_get(
 	Entry *e = NULL;
 	EntryInfo *ei;
 	int	rc;
-	const char *at_name = at->ad_cname.bv_val;
+	const char *at_name = at ? at->ad_cname.bv_val : "(null)";
 
 	u_int32_t	locker = 0;
 	DB_LOCK		lock;

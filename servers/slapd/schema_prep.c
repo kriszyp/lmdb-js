@@ -742,6 +742,15 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_userPassword) },
 
+	{ "labeledURI", "(  1.3.6.1.4.1.250.1.57 NAME 'labeledURI' "
+			"DESC 'RFC2079: Uniform Resource Identifier with optional label' "
+			"EQUALITY caseExactMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
+		NULL, 0,
+		NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_labeledURI) },
+
 #ifdef SLAPD_AUTHPASSWD
 	{ "authPassword", "( 1.3.6.1.4.1.4203.1.3.4 "
 			"NAME 'authPassword' "

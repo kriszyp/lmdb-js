@@ -50,6 +50,7 @@ static AccessControl * acl_get(
 	AccessControl *ac, int *count,
 	Operation *op, Entry *e,
 	AttributeDescription *desc,
+	struct berval *val,
 	int nmatches, regmatch_t *matches );
 
 static slap_control_t acl_mask(
@@ -286,7 +287,7 @@ access_allowed(
 		memset(matches, '\0', sizeof(matches));
 	}
 
-	while((a = acl_get( a, &count, op, e, desc,
+	while((a = acl_get( a, &count, op, e, desc, val,
 		MAXREMATCHES, matches )) != NULL)
 	{
 		int i;
@@ -379,10 +380,11 @@ vd_access:
 done:
 	if( state != NULL ) {
 		/* If not value-dependent, save ACL in case of more attrs */
-		if ( !(state->as_recorded & ACL_STATE_RECORDED_VD) )
+		if ( !(state->as_recorded & ACL_STATE_RECORDED_VD) ) {
 			state->as_vi_acl = a;
+			state->as_result = ret;
+		}
 		state->as_recorded |= ACL_STATE_RECORDED;
-		state->as_result = ret;
 	}
 	if (be_null) op->o_bd = NULL;
 	return ret;
@@ -401,6 +403,7 @@ acl_get(
 	Operation	*op,
 	Entry		*e,
 	AttributeDescription *desc,
+	struct berval	*val,
 	int			nmatch,
 	regmatch_t	*matches )
 {
@@ -515,7 +518,7 @@ acl_get(
 		Debug( LDAP_DEBUG_ACL, "=> acl_get: [%d] check attr %s\n",
 		       *count, attr, 0);
 #endif
-		if ( attr == NULL || a->acl_attrs == NULL ||
+		if ( a->acl_attrs == NULL ||
 			ad_inlist( desc, a->acl_attrs ) )
 		{
 #ifdef NEW_LOGGING
@@ -611,6 +614,48 @@ acl_mask(
 		op->o_ndn.bv_val ?  op->o_ndn.bv_val : "",
 		accessmask2str( *mask, accessmaskbuf ) );
 #endif
+
+	/* Is this ACL only for a specific value? */
+	if ( a->acl_attrval.bv_len ) {
+		if ( state && !state->as_vd_acl ) {
+			state->as_vd_acl = a;
+			state->as_vd_access = a->acl_access;
+			state->as_vd_access_count = 1;
+		}
+		if ( val == NULL ) {
+			return ACL_BREAK;
+		}
+		if ( a->acl_attrval_style == ACL_STYLE_REGEX ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( ACL, DETAIL1, 
+				"acl_get: valpat %s\n",
+				a->acl_attrval.bv_val, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ACL,
+				"acl_get: valpat %s\n",
+				a->acl_attrval.bv_val, 0, 0 );
+#endif
+			if (regexec(&a->acl_attrval_re, val->bv_val, 0, NULL, 0))
+				return ACL_BREAK;
+		} else {
+			int match = 0;
+			const char *text;
+#ifdef NEW_LOGGING
+			LDAP_LOG( ACL, DETAIL1, 
+				"acl_get: val %s\n",
+				a->acl_attrval.bv_val, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ACL,
+				"acl_get: val %s\n",
+				a->acl_attrval.bv_val, 0, 0 );
+#endif
+			if (value_match( &match, desc,
+				desc->ad_type->sat_equality, 0,
+				val, &a->acl_attrval, &text ) != LDAP_SUCCESS ||
+					match )
+				return ACL_BREAK;
+		}
+	}
 
 	if( state && ( state->as_recorded & ACL_STATE_RECORDED_VD )
 		&& state->as_vd_acl == a )

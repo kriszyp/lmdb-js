@@ -1787,6 +1787,22 @@ numericStringNormalize(
 	return LDAP_SUCCESS;
 }
 
+/*
+ * Integer conversion macros that will use the largest available
+ * type.
+ */
+#if defined(HAVE_STRTOLL) && defined(LLONG_MAX) && defined(LLONG_MIN)
+# define SLAP_STRTOL(n,e,b)  strtoll(n,e,b) 
+# define SLAP_LONG_MAX       LLONG_MAX
+# define SLAP_LONG_MIN       LLONG_MIN
+# define SLAP_LONG           long long
+#else
+# define SLAP_STRTOL(n,e,b)  strtol(n,e,b)
+# define SLAP_LONG_MAX       LONG_MAX
+# define SLAP_LONG_MIN       LONG_MIN
+# define SLAP_LONG           long
+#endif /* HAVE_STRTOLL ... */
+
 static int
 integerBitAndMatch(
 	int *matchp,
@@ -1796,16 +1812,16 @@ integerBitAndMatch(
 	struct berval *value,
 	void *assertedValue )
 {
-	long lValue, lAssertedValue;
+	SLAP_LONG lValue, lAssertedValue;
 
 	/* safe to assume integers are NUL terminated? */
-	lValue = strtol(value->bv_val, NULL, 10);
-	if(( lValue == LONG_MIN || lValue == LONG_MAX) && errno == ERANGE ) {
+	lValue = SLAP_STRTOL(value->bv_val, NULL, 10);
+	if(( lValue == SLAP_LONG_MIN || lValue == SLAP_LONG_MAX) && errno == ERANGE ) {
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
-	lAssertedValue = strtol(((struct berval *)assertedValue)->bv_val, NULL, 10);
-	if(( lAssertedValue == LONG_MIN || lAssertedValue == LONG_MAX)
+	lAssertedValue = SLAP_STRTOL(((struct berval *)assertedValue)->bv_val, NULL, 10);
+	if(( lAssertedValue == SLAP_LONG_MIN || lAssertedValue == SLAP_LONG_MAX )
 		&& errno == ERANGE )
 	{
 		return LDAP_CONSTRAINT_VIOLATION;
@@ -1824,16 +1840,16 @@ integerBitOrMatch(
 	struct berval *value,
 	void *assertedValue )
 {
-	long lValue, lAssertedValue;
+	SLAP_LONG lValue, lAssertedValue;
 
 	/* safe to assume integers are NUL terminated? */
-	lValue = strtol(value->bv_val, NULL, 10);
-	if(( lValue == LONG_MIN || lValue == LONG_MAX) && errno == ERANGE ) {
+	lValue = SLAP_STRTOL(value->bv_val, NULL, 10);
+	if(( lValue == SLAP_LONG_MIN || lValue == SLAP_LONG_MAX ) && errno == ERANGE ) {
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
-	lAssertedValue = strtol(((struct berval *)assertedValue)->bv_val, NULL, 10);
-	if(( lAssertedValue == LONG_MIN || lAssertedValue == LONG_MAX)
+	lAssertedValue = SLAP_STRTOL(((struct berval *)assertedValue)->bv_val, NULL, 10);
+	if(( lAssertedValue == SLAP_LONG_MIN || lAssertedValue == SLAP_LONG_MAX )
 		&& errno == ERANGE )
 	{
 		return LDAP_CONSTRAINT_VIOLATION;

@@ -791,6 +791,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_name;
 	AttributeDescription *si_ad_cn;
 	AttributeDescription *si_ad_userPassword;
+	AttributeDescription *si_ad_labeledURI;
 #ifdef SLAPD_AUTHPASSWD
 	AttributeDescription *si_ad_authPassword;
 #endif
@@ -1173,6 +1174,9 @@ typedef struct slap_acl {
 	regex_t		acl_dn_re;
 	struct berval	acl_dn_pat;
 	AttributeName	*acl_attrs;
+	slap_style_t	acl_attrval_style;
+	regex_t		acl_attrval_re;
+	struct berval	acl_attrval;
 
 	/* "by" part: list of who has what access to the entries */
 	Access	*acl_access;

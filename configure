@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.478.2.3 2003/05/31 19:06:55 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.478.2.4 2003/09/18 15:43:27 kurt Exp  
 
 # Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -20365,10 +20365,10 @@ else
 
 /* require 2.1.3 or later */
 #if SASL_VERSION_MAJOR == 2  && SASL_VERSION_MINOR > 1
-	__sasl_compat "2.2+ or better okay (we guess)";
+	char *__sasl_compat = "2.2+ or better okay (we guess)";
 #elif SASL_VERSION_MAJOR == 2  && SASL_VERSION_MINOR == 1 \
 	&& SASL_VERSION_STEP >=3
-	__sasl_compat = "2.1.3+ or better okay";
+	char *__sasl_compat = "2.1.3+ or better okay";
 #endif
 	
 EOF
@@ -22542,6 +22542,9 @@ for ac_func in \
 	strstr			\
 	strtol			\
 	strtoul			\
+	strtoq			\
+	strtouq			\
+	strtoll			\
 	strspn			\
 	sysconf			\
 	usleep			\
@@ -22554,12 +22557,12 @@ for ac_func in \
 
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:22558: checking for $ac_func" >&5
+echo "configure:22561: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 22563 "configure"
+#line 22566 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -22583,7 +22586,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:22587: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:22590: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -22611,12 +22614,12 @@ done
 for ac_func in getopt getpeereid
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:22615: checking for $ac_func" >&5
+echo "configure:22618: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 22620 "configure"
+#line 22623 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -22640,7 +22643,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:22644: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:22647: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -22672,19 +22675,19 @@ if test "$ac_cv_func_getopt" != yes; then
 fi
 if test "$ac_cv_func_getpeereid" != yes; then
 	echo $ac_n "checking for msg_accrights in msghdr""... $ac_c" 1>&6
-echo "configure:22676: checking for msg_accrights in msghdr" >&5
+echo "configure:22679: checking for msg_accrights in msghdr" >&5
 if eval "test \"\${ol_cv_msghdr_msg_accrights+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 22681 "configure"
+#line 22684 "configure"
 #include "confdefs.h"
 #include <sys/socket.h>
 int main() {
 struct msghdr m; m.msg_accrightslen=0
 ; return 0; }
 EOF
-if { (eval echo configure:22688: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22691: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_msghdr_msg_accrights=yes
 else
@@ -22724,13 +22727,13 @@ fi
 
 # Check Configuration
 echo $ac_n "checking declaration of sys_errlist""... $ac_c" 1>&6
-echo "configure:22728: checking declaration of sys_errlist" >&5
+echo "configure:22731: checking declaration of sys_errlist" >&5
 if eval "test \"\${ol_cv_dcl_sys_errlist+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 22734 "configure"
+#line 22737 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -22743,7 +22746,7 @@ int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:22747: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:22750: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_dcl_sys_errlist=yes
 	ol_cv_have_sys_errlist=yes
@@ -22766,20 +22769,20 @@ EOF
 
 
 	echo $ac_n "checking existence of sys_errlist""... $ac_c" 1>&6
-echo "configure:22770: checking existence of sys_errlist" >&5
+echo "configure:22773: checking existence of sys_errlist" >&5
 if eval "test \"\${ol_cv_have_sys_errlist+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 		cat > conftest.$ac_ext <<EOF
-#line 22776 "configure"
+#line 22779 "configure"
 #include "confdefs.h"
 #include <errno.h>
 int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:22783: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:22786: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_have_sys_errlist=yes
 else
@@ -22807,17 +22810,17 @@ if test "$ol_enable_slapi" != no ; then
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:22811: checking for $ac_hdr" >&5
+echo "configure:22814: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 22816 "configure"
+#line 22819 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:22821: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:22824: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -22848,7 +22851,7 @@ done
 		{ echo "configure: error: could not locate <ltdl.h>" 1>&2; exit 1; }
 	fi
 	echo $ac_n "checking for lt_dlinit in -lltdl""... $ac_c" 1>&6
-echo "configure:22852: checking for lt_dlinit in -lltdl" >&5
+echo "configure:22855: checking for lt_dlinit in -lltdl" >&5
 ac_lib_var=`echo ltdl'_'lt_dlinit | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -22856,7 +22859,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lltdl  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 22860 "configure"
+#line 22863 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -22867,7 +22870,7 @@ int main() {
 lt_dlinit()
 ; return 0; }
 EOF
-if { (eval echo configure:22871: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:22874: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
