@@ -226,7 +226,7 @@ int value_find_ex(
 		mr->smr_normalize )
 	{
 		rc = (mr->smr_normalize)(
-			flags & SLAP_MR_TYPE_MASK|SLAP_MR_SUBTYPE_MASK,
+			flags & (SLAP_MR_TYPE_MASK|SLAP_MR_SUBTYPE_MASK),
 			ad ? ad->ad_type->sat_syntax : NULL,
 			mr, val, &nval, ctx );
 
