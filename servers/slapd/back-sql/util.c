@@ -59,7 +59,7 @@ char backsql_id_query[] = "SELECT id,keyval,oc_map_id FROM ldap_entries WHERE ";
 char backsql_def_concat_func[] = "CONCAT(?,?)";
 
 /* TimesTen */
-char backsql_check_dn_ru_query[] = "SELECT dn_ru from ldap_entries";
+char backsql_check_dn_ru_query[] = "SELECT dn_ru FROM ldap_entries";
 
 struct berbuf *
 backsql_strcat( struct berbuf *dest, ... )

@@ -328,8 +328,10 @@ backsql_open_db_conn( backsql_info *si, unsigned long ldap_cid, backsql_db_conn 
 		return LDAP_UNAVAILABLE;
 	}
 
-	rc = SQLConnect( dbc->dbh, si->dbname, SQL_NTS, si->dbuser, 
-			SQL_NTS, si->dbpasswd, SQL_NTS );
+	rc = SQLConnect( dbc->dbh,
+			(SQLCHAR*)si->dbname, SQL_NTS,
+			(SQLCHAR*)si->dbuser, SQL_NTS,
+			(SQLCHAR*)si->dbpasswd, SQL_NTS );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
 			"SQLConnect() to database \"%s\" as user \"%s\" "

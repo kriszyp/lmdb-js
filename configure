@@ -20951,14 +20951,14 @@ fi
 done
 
 
-	echo $ac_n "checking for SQLDriverConnect in -liodbc""... $ac_c" 1>&6
-echo "configure:20956: checking for SQLDriverConnect in -liodbc" >&5
-ac_lib_var=`echo iodbc'_'SQLDriverConnect | sed 'y%./+-:%__p__%'`
+	echo $ac_n "checking for SQLDriverConnect in -lodbc""... $ac_c" 1>&6
+echo "configure:20956: checking for SQLDriverConnect in -lodbc" >&5
+ac_lib_var=`echo odbc'_'SQLDriverConnect | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   ac_save_LIBS="$LIBS"
-LIBS="-liodbc  $LIBS"
+LIBS="-lodbc  $LIBS"
 cat > conftest.$ac_ext <<EOF
 #line 20964 "configure"
 #include "confdefs.h"
@@ -20986,14 +20986,14 @@ LIBS="$ac_save_LIBS"
 fi
 if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
   echo "$ac_t""yes" 1>&6
-  have_iodbc=yes
+  have_odbc=yes
 else
   echo "$ac_t""no" 1>&6
-have_iodbc=no
+have_odbc=no
 fi
 
-	if test $have_iodbc = yes ; then
-		ol_link_sql="-liodbc"
+	if test $have_odbc = yes ; then
+		ol_link_sql="-lodbc"
 	else
 		echo $ac_n "checking for SQLDriverConnect in -lodbc""... $ac_c" 1>&6
 echo "configure:21000: checking for SQLDriverConnect in -lodbc" >&5
