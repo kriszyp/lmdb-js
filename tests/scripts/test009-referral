@@ -26,7 +26,7 @@ echo "Running slapadd to build slapd database..."
 $LDIF2LDBM -f $CONF -l $LDIF
 RC=$?
 if test $RC != 0 ; then
-	echo "slapadd failed!"
+	echo "slapadd failed ($RC)!"
 	exit $RC
 fi
 
@@ -50,7 +50,7 @@ for i in 0 1 2 3 4 5; do
 done
 
 if test $RC != 0 ; then
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -72,7 +72,7 @@ echo "Testing exact searching..."
 $LDAPSEARCH -C -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
 	'sn=jensen' >> $SEARCHOUT 2>&1
 if test $RC != 0 ; then
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID $SLAVEPID
 	exit $RC
 fi
@@ -81,7 +81,7 @@ echo "Testing OR searching..."
 $LDAPSEARCH -C -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
 	'(|(objectclass=groupofnames)(sn=jones))' >> $SEARCHOUT 2>&1
 if test $RC != 0 ; then
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID $SLAVEPID
 	exit $RC
 fi
@@ -90,7 +90,7 @@ echo "Testing AND matching and ends-with searching..."
 $LDAPSEARCH -C -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
 	'(&(objectclass=groupofnames)(cn=A*))' >> $SEARCHOUT 2>&1
 if test $RC != 0 ; then
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID $SLAVEPID
 	exit $RC
 fi
@@ -99,7 +99,7 @@ echo "Testing NOT searching..."
 $LDAPSEARCH -C -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
 	'(!(objectclass=person))' >> $SEARCHOUT 2>&1
 if test $RC != 0 ; then
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID $SLAVEPID
 	exit $RC
 fi

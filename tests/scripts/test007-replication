@@ -73,7 +73,7 @@ $LDAPADD -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD < \
 	$LDIFORDERED > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapadd failed!"
+	echo "ldapadd failed ($RC)!"
 	kill -HUP $PID $SLAVEPID $SLURPPID
 	exit $RC
 fi
@@ -148,7 +148,7 @@ $LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
 	'objectclass=*' > $MASTEROUT 2>&1
 
 if test $RC != 0 ; then
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID $SLAVEPID $SLURPPID
 	exit $RC
 fi
@@ -158,7 +158,7 @@ $LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
 	'objectclass=*' > $SLAVEOUT 2>&1
 
 if test $RC != 0 ; then
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID $SLAVEPID $SLURPPID
 	exit $RC
 fi

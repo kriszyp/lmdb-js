@@ -37,7 +37,7 @@ $LDAPADD -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD < \
 	$LDIFPASSWD > $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapadd failed!"
+	echo "ldapadd failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -59,7 +59,7 @@ $LDAPPASSWD -h localhost -p $PORT \
 	"cn=md5, $BASEDN" >> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
-	echo "ldappasswd failed!"
+	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -67,7 +67,7 @@ $LDAPPASSWD -h localhost -p $PORT \
 	-w secret -s newsecret \
 	"cn=smd5, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
-	echo "ldappasswd failed!"
+	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -75,7 +75,7 @@ $LDAPPASSWD -h localhost -p $PORT \
 	-w secret -s newsecret \
 	"cn=sha, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
-	echo "ldappasswd failed!"
+	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -83,7 +83,7 @@ $LDAPPASSWD -h localhost -p $PORT \
 	-w secret -s newsecret \
 	"cn=ssha, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
-	echo "ldappasswd failed!"
+	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -95,7 +95,7 @@ $LDAPPASSWD -h localhost -p $PORT \
 	-w newsecret \
 	"cn=md5, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
-	echo "ldappasswd failed!"
+	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -103,7 +103,7 @@ $LDAPPASSWD -h localhost -p $PORT \
 	-w newsecret \
 	"cn=smd5, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
-	echo "ldappasswd failed!"
+	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -111,7 +111,7 @@ $LDAPPASSWD -h localhost -p $PORT \
 	-w newsecret \
 	"cn=sha, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
-	echo "ldappasswd failed!"
+	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -119,7 +119,7 @@ $LDAPPASSWD -h localhost -p $PORT \
 	-w newsecret \
 	"cn=ssha, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
-	echo "ldappasswd failed!"
+	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi

@@ -21,7 +21,7 @@ echo "Running slapadd to build slapd database..."
 $LDIF2LDBM -f $CONF -l $LDIF
 RC=$?
 if test $RC != 0 ; then
-	echo "slapadd failed!"
+	echo "slapadd failed ($RC)!"
 	exit $RC
 fi
 
@@ -41,7 +41,7 @@ for i in 0 1 2 3 4 5; do
 done
 
 if test $RC != 0 ; then
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -113,7 +113,7 @@ EOMODS
 
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapmodify failed!"
+	echo "ldapmodify failed ($RC)!"
 	kill -HUP $PID
 	exit $RC
 fi
@@ -124,7 +124,7 @@ $LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
 RC=$?
 kill -HUP $PID
 if test $RC != 0 ; then
-	echo "ldapsearch failed!"
+	echo "ldapsearch failed ($RC)!"
 	exit $RC
 fi
 
