@@ -29,7 +29,7 @@ charray_add(
 		    (n + 2) * sizeof(char *) );
 	}
 
-	(*a)[n++] = s;
+	(*a)[n++] = ch_strdup(s);
 	(*a)[n] = NULL;
 }
 
@@ -51,7 +51,7 @@ charray_merge(
 	*a = (char **) ch_realloc( (char *) *a, (n + nn + 1) * sizeof(char *) );
 
 	for ( i = 0; i < nn; i++ ) {
-		(*a)[n + i] = s[i];
+		(*a)[n + i] = ch_strdup(s[i]);
 	}
 	(*a)[n + nn] = NULL;
 }

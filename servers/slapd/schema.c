@@ -10,7 +10,7 @@
 #include "slap.h"
 
 static struct objclass	*oc_find(char *ocname);
-static int		oc_check_required(Entry *e, char *ocname);
+static char *	oc_check_required(Entry *e, char *ocname);
 static int		oc_check_allowed(char *type, struct berval **ocl);
 
 /*
@@ -35,10 +35,12 @@ oc_schema_check( Entry *e )
 
 	/* check that the entry has required attrs for each oc */
 	for ( i = 0; aoc->a_vals[i] != NULL; i++ ) {
-		if ( oc_check_required( e, aoc->a_vals[i]->bv_val ) != 0 ) {
+		char *s = oc_check_required( e, aoc->a_vals[i]->bv_val );
+
+		if (s != NULL) {
 			Debug( LDAP_DEBUG_ANY,
-			    "Entry (%s), required attr (%s) missing\n",
-			    e->e_dn, aoc->a_vals[i]->bv_val, 0 );
+			    "Entry (%s), oc \"%s\" requires attr \"%s\"\n",
+			    e->e_dn, aoc->a_vals[i]->bv_val, s );
 			ret = 1;
 		}
 	}
@@ -51,7 +53,7 @@ oc_schema_check( Entry *e )
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		if ( oc_check_allowed( a->a_type, aoc->a_vals ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-			    "Entry (%s), attr (%s) not allowed\n",
+			    "Entry (%s), attr \"%s\" not allowed\n",
 			    e->e_dn, a->a_type, 0 );
 			ret = 1;
 		}
@@ -60,7 +62,7 @@ oc_schema_check( Entry *e )
 	return( ret );
 }
 
-static int
+static char *
 oc_check_required( Entry *e, char *ocname )
 {
 	struct objclass	*oc;
@@ -89,11 +91,25 @@ oc_check_required( Entry *e, char *ocname )
 
 		/* not there => schema violation */
 		if ( a == NULL ) {
-			return( 1 );
+			return oc->oc_required[i];
 		}
 	}
 
-	return( 0 );
+	return( NULL );
+}
+
+/*
+ * check to see if attribute is 'operational' or not.
+ * this function should be externalized...
+ */
+static int
+oc_check_operational( char *type )
+{
+	return ( strcasecmp( type, "modifiersname" ) == 0 ||
+		strcasecmp( type, "modifytimestamp" ) == 0 ||
+		strcasecmp( type, "creatorsname" ) == 0 ||
+		strcasecmp( type, "createtimestamp" ) == 0 )
+		? 1 : 0;
 }
 
 static int
@@ -104,6 +120,10 @@ oc_check_allowed( char *type, struct berval **ocl )
 
 	/* always allow objectclass attribute */
 	if ( strcasecmp( type, "objectclass" ) == 0 ) {
+		return( 0 );
+	}
+
+	if ( oc_check_operational( type ) ) {
 		return( 0 );
 	}
 

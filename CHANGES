@@ -2,9 +2,10 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_1_2
+	Fixed slapd schema check bug
+	Fixed slapd/back-ldbm/search matched initialization bug
 	Fixed misc. overlapping strcpy bugs
 	Fixed misc. memory leaks
-	Fixed slapd/back-ldbm/search matched initialization bug
 
 Changes included in OpenLDAP 1.1.1
 	CVS Tag: OPENLDAP_REL_ENG_1_1_1
