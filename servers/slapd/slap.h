@@ -256,7 +256,7 @@ typedef struct slap_syntax {
 #define slap_syntax_is_ber(s)		slap_syntax_is_flag((s),SLAP_SYNTAX_BER)
 #define slap_syntax_is_hidden(s)	slap_syntax_is_flag((s),SLAP_SYNTAX_HIDE)
 
-/* XXX -> UCS-2 Converter */
+/* X -> Y Converter */
 typedef int slap_mr_convert_func LDAP_P((
 	struct berval * in,
 	struct berval ** out ));

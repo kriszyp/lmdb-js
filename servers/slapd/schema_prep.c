@@ -15,6 +15,7 @@
 
 #include "slap.h"
 #include "ldap_pvt.h"
+#include "../libraries/liblunicode/ucdata.h"
 
 int schema_init_done = 0;
 
@@ -217,6 +218,9 @@ schema_prep( void )
 	int i;
 	/* we should only be called once after schema_init() was called */
 	assert( schema_init_done == 1 );
+
+	ucdata_load( global_ucdata_path ? global_ucdata_path :
+		SLAPD_DEFAULT_UCDATA, UCDATA_CASE|UCDATA_CTYPE|UCDATA_NUM );
 
 	for( i=0; oc_map[i].ssom_name; i++ ) {
 		ObjectClass ** ocp = (ObjectClass **)

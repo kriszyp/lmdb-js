@@ -343,6 +343,62 @@ booleanMatch(
 	return LDAP_SUCCESS;
 }
 
+#if 0
+static int
+UTF8casecmp(
+	struct berval *right,
+	struct berval *left )
+{
+	ber_len_t r, l;
+	int rlen, llen;
+	ldap_unicode_t ru, lu;
+	ldap_unicode_t ruu, luu;
+
+	for( r=0, l=0;
+		r < right->bv_len && l < left->bv_len;
+		r+=rlen, l+=llen )
+	{
+		/*
+		 * XXYYZ: we convert to ucs4 even though -llunicode
+		 * expects ucs2 in an unsigned long
+		 */
+		ru = ldap_utf8_to_ucs4( &right->bv_val[r] );
+		if( ru == LDAP_UCS4_INVALID ) {
+			return 1;
+		}
+
+		lu = ldap_utf8_to_ucs4( &left->bv_val[l] );
+		if( lu == LDAP_UCS4_INVALID ) {
+			return -1;
+		}
+
+		ruu = uctoupper( ru );
+		luu = uctoupper( lu );
+
+		if( ruu > luu ) {
+			return 1;
+		} else if( luu > ruu ) {
+			return -1;
+		}
+
+		rlen = LDAP_UTF8_CHARLEN( &right->bv_val[r] );
+		llen = LDAP_UTF8_CHARLEN( &left->bv_val[l] );
+	}
+
+	if( r < right->bv_len ) {
+		/* less left */
+		return -1;
+	}
+
+	if( l < left->bv_len ) {
+		/* less right */
+		return 1;
+	}
+
+	return 0;
+}
+#endif
+
 static int
 UTF8StringValidate(
 	Syntax *syntax,
@@ -1019,6 +1075,9 @@ caseIgnoreMatch(
 	struct berval *value,
 	void *assertedValue )
 {
+#if 0
+	*matchp = UTF8casecmp( value, (struct berval *) assertedValue );
+#else
 	int match = value->bv_len - ((struct berval *) assertedValue)->bv_len;
 
 	if( match == 0 ) {
@@ -1028,6 +1087,7 @@ caseIgnoreMatch(
 	}
 
 	*matchp = match;
+#endif
 	return LDAP_SUCCESS;
 }
 

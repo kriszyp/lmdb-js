@@ -8,6 +8,7 @@ LIBRARY = liblunicode.a
 
 XXDIR = $(srcdir)/*/
 XXHEADERS = ucdata.h ure.h
+
 XXSRCS	= ucdata.c ucgendat.c ure.c urestubs.c
 SRCS	= 
 OBJS	= ucdata.o ure.o urestubs.o
@@ -20,6 +21,13 @@ LDAP_LIBDIR= ../../libraries
 
 ucgendat: $(LIBRARY) ucgendat.o
 	$(LTLINK) $(LDFLAGS) -o $@ ucgendat.o $(LIBS)
+	./ucgendat $(srcdir)/UnicodeData.txt
+
+install-local: $(PROGRAMS) FORCE
+	-$(MKDIR) $(DESTDIR)$(datadir)/ucdata
+	@for i $(DATFILES); do \
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(DESTDIR)$(datadir)/ucdata \
+	done
 
 .links :
 	@for i in $(XXSRCS) $(XXHEADERS); do \
@@ -31,6 +39,6 @@ ucgendat: $(LIBRARY) ucgendat.o
 $(XXSRCS) : .links
 
 clean-local: FORCE
-	@$(RM) .links
+	@$(RM) *.dat .links
 
 depend-common: .links

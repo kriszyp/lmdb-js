@@ -13,6 +13,7 @@ ldbm: test-ldbm
 test-ldbm:	FORCE
 	@-$(LN_S) $(srcdir)/data .
 	@-$(LN_S) $(top_srcdir)/servers/slapd/schema .
+	@-$(LN_S) ../libraries/liblunicode/ucdata .
 	@if test "$(BUILD_LDBM)" = "yes" ; then \
 		echo "Initiating LDAP tests for LDBM..." ; \
 		$(MKDIR) test-db test-repl || true; \
@@ -25,6 +26,7 @@ passwd: test-passwd
 test-passwd: FORCE
 	@-$(LN_S) $(srcdir)/data .
 	@-$(LN_S) $(top_srcdir)/servers/slapd/schema .
+	@-$(LN_S) ../libraries/liblunicode/ucdata .
 	@echo "Initiating LDAP tests..."
 	@-$(MKDIR) test-db test-repl || true
 	@$(srcdir)/scripts/passwd-search $(srcdir) passwd
@@ -33,6 +35,7 @@ test-nis-schema:        test-nis-schema-ldbm
 test-nis-schema-ldbm:
 	@-$(LN_S) $(srcdir)/data .
 	@-$(LN_S) $(top_srcdir)/servers/slapd/schema .
+	@-$(LN_S) ../libraries/liblunicode/ucdata .
 	@echo "Initiating LDAP server with NIS schema & ldbm backend..."; \
 	$(MKDIR) test-db test-repl ; \
 	$(srcdir)/scripts/startup_nis_ldap_server.sh $(srcdir) ldbm
@@ -41,6 +44,6 @@ clean-local:	FORCE
 	-$(RM) -r test-db/[!C]* test-repl/[!C]* *leak *gmon *core
 
 veryclean-local: FORCE
-	@-$(RM) data schema
+	@-$(RM) data schema ucdata
 	-$(RM) -r test-db test-repl
 

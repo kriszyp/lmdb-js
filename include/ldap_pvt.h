@@ -177,8 +177,19 @@ LDAP_F (int) ldap_pvt_tls_set_option LDAP_P(( struct ldapoptions *lo, int option
  */
 
 typedef ber_int_t ldap_ucs4_t;
+#define LDAP_UCS4_INVALID (0x80000000U)
+
 typedef short ldap_ucs2_t;
-typedef ldap_ucs2_t ldap_unicode_t;
+
+/* UCDATA uses UCS-2 passed in an unsigned long */
+typedef unsigned long ldap_unicode_t;
+
+/* conversion routines  */
+LDAP_F( ldap_ucs4_t ) ldap_utf8_to_ucs4( const char * p );
+LDAP_F( int ) ldap_ucs4_to_utf8( ldap_ucs4_t c, char *buf );
+
+#define ldap_utf8_to_unicode( p ) ldap_utf8_to_ucs4((p))
+#define ldap_unicode_to_utf8( c, buf ) ldap_ucs4_to_ucs4((c),(buf))
 
 /* returns the number of bytes in the UTF-8 string */
 LDAP_F (ber_len_t) ldap_utf8_bytes( const char * );

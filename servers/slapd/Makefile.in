@@ -41,7 +41,7 @@ XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS) $(SLAPD_MODULES)
 
 # $(LTHREAD_LIBS) must be last
-XLIBS = libbackends.a -lavl -lldbm -lldif -llutil -lldap_r -llber
+XLIBS = libbackends.a -lavl -lldbm -lldif -llutil -llunicode -lldap_r -llber
 XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) \
 	 $(SECURITY_LIBS) \
 	 $(LDIF_LIBS) $(LUTIL_LIBS)

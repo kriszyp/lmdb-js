@@ -34,6 +34,7 @@ int		global_lastmod = ON;
 int		global_idletimeout = 0;
 char	*global_host = NULL;
 char	*global_realm = NULL;
+char	*global_ucdata_path = NULL;
 char		*ldap_srvtab = "";
 char		*default_passwd_hash;
 
@@ -281,6 +282,25 @@ read_config( const char *fname )
 	    "%s: line %d: sasl-secprops: %s\n",
 				    fname, lineno, txt );
 				return 1;
+			}
+
+		/* set UCDATA path */
+		} else if ( strcasecmp( cargv[0], "ucdata-path" ) == 0 ) {
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing path in \"ucdata-path <path>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+
+			if ( global_ucdata_path != NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: already set ucdata-path!\n",
+					fname, lineno, 0 );
+				return 1;
+
+			} else {
+				global_ucdata_path = ch_strdup( cargv[1] );
 			}
 
 		/* set time limit */

@@ -25,7 +25,7 @@ SLAPD_MODULES = @SLAPD_MODULES_LIST@
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS) $(SLAPD_MODULES)
 
-XLIBS = -lavl -lldif -lldbm -llutil -lldap_r -llber
+XLIBS = -lavl -lldif -lldbm -llutil -llunicode -lldap_r -llber
 XXLIBS = $(SLAPD_LIBS) \
 	$(LDBM_LIBS) $(SECURITY_LIBS) \
 	$(LDIF_LIBS) $(LUTIL_LIBS)

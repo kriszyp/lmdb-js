@@ -30,8 +30,6 @@
 
 #undef ISASCII
 #define ISASCII(uc)	((uc) < 0x100)
-#undef UCS4_INVALID
-#define UCS4_INVALID	0x80000000U
 
 /*
  * Basic UTF-8 routines
@@ -119,13 +117,13 @@ ldap_ucs4_t ldap_utf8_to_ucs4( const char * p )
 
 	len = LDAP_UTF8_CHARLEN(p);
 
-	if( len == 0 ) return UCS4_INVALID;
+	if( len == 0 ) return LDAP_UCS4_INVALID;
 
 	ch = c[0] & mask[len];
 
 	for(i=1; i < len; i++) {
 		if ((c[i] & 0xc0) != 0x80) {
-			return UCS4_INVALID;
+			return LDAP_UCS4_INVALID;
 		}
 
 		ch <<= 6;
