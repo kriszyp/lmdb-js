@@ -68,7 +68,7 @@ root_dse_info(
 	e->e_attrs = NULL;
 	e->e_dn = ch_strdup( LDAP_ROOT_DSE );
 	e->e_ndn = ch_strdup( LDAP_ROOT_DSE );
-	(void) dn_normalize( e->e_ndn );
+	/* the DN is an empty string so no normalization needed */
 	e->e_private = NULL;
 
 	val.bv_val = "OpenLDAProotDSE";
@@ -185,15 +185,6 @@ int read_root_dse_file( const char *fname )
 		if( e == NULL ) {
 			fprintf( stderr, "root_dse: could not parse entry (line=%d)\n",
 				lineno );
-			entry_free( e );
-			entry_free( usr_attr );
-			usr_attr = NULL;
-			return EXIT_FAILURE;
-		}
-
-		if( dn_normalize( e->e_ndn ) == NULL ) {
-			fprintf( stderr, "root_dse: invalid dn=\"%s\" (line=%d)\n",
-				e->e_dn, lineno );
 			entry_free( e );
 			entry_free( usr_attr );
 			usr_attr = NULL;
