@@ -155,11 +155,20 @@ ID bdb_tool_entry_put(
 	}
 
 	/* add dn2id indices */
-	pdn.bv_val = dn_parent( be, e->e_ndn );
-	if (pdn.bv_val && *pdn.bv_val)
-		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_ndn);
-	else
+	if ( be_issuffix( be, e->e_nname.bv_val ) ) {
 		pdn.bv_len = 0;
+		pdn.bv_val = "";
+	} else {
+		rc = dnParent( e->e_nname.bv_val, &pdn.bv_val );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "=> bdb_tool_entry_put: "
+				"dnParent(\"%s\") failed\n",
+				e->e_nname.bv_val, 0, 0 );
+			
+			goto done;
+		}
+		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_nname.bv_val);
+	}
 	rc = bdb_dn2id_add( be, tid, &pdn, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len, 
@@ -263,11 +272,19 @@ int bdb_tool_entry_reindex(
 		(long) id, e->e_dn, 0 );
 
 	/* add dn2id indices */
-	pdn.bv_val = dn_parent( be, e->e_ndn );
-	if (pdn.bv_val && *pdn.bv_val)
-		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_ndn);
-	else
+	if ( be_issuffix( be, e->e_nname.bv_val ) ) {
 		pdn.bv_len = 0;
+		pdn.bv_val = "";
+	} else {
+		rc = dnParent( e->e_nname.bv_val, &pdn.bv_val );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "=> bdb_tool_entry_reindex: "
+					"dnParent(\"%s\") failed\n",
+					e->e_nname.bv_val, 0, 0 );
+			goto done;
+		}
+		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_nname.bv_val);
+	}
 	rc = bdb_dn2id_add( be, tid, &pdn, e );
 	if( rc != 0 && rc != DB_KEYEXIST ) {
 		Debug( LDAP_DEBUG_ANY,
