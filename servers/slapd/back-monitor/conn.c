@@ -159,6 +159,11 @@ monitor_subsys_conn_init(
 		return( -1 );
 	}
 	
+	bv[1].bv_val = NULL;
+	bv[0].bv_val = "0";
+	bv[0].bv_len = 1;
+	attr_merge( e, monitor_ad_desc, bv );
+	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
 	mp->mp_next = e_tmp;
