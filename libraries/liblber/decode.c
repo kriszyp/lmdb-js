@@ -750,6 +750,8 @@ ber_bvfree( struct berval *bv )
 {
 	assert(bv != NULL);			/* bv damn better point to something */
 
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
+
 	if ( bv->bv_val != NULL )
 		LBER_FREE( bv->bv_val );
 	LBER_FREE( (char *) bv );
@@ -761,6 +763,8 @@ ber_bvecfree( struct berval **bv )
 	int	i;
 
 	assert(bv != NULL);			/* bv damn better point to something */
+
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	for ( i = 0; bv[i] != NULL; i++ )
 		ber_bvfree( bv[i] );
@@ -774,6 +778,8 @@ ber_bvdup(
 	struct berval	*new;
 
 	assert( bv != NULL );
+
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if( bv == NULL ) {
 		return NULL;

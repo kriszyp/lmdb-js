@@ -20,6 +20,8 @@ ber_get_option(
 	BerElement *ber;
 	Sockbuf *sb;
 
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
+
 	if(outvalue == NULL) {
 		/* no place to get to */
 		return LBER_OPT_ERROR;
@@ -64,6 +66,17 @@ ber_set_option(
 {
 	BerElement *ber;
 	Sockbuf *sb;
+
+	if( (ber_int_options.lbo_valid == LBER_UNINITIALIZED)
+		&& ( option == LBER_OPT_MEMORY_FN )
+		&& ( invalue != NULL ))
+	{
+		ber_int_realloc = (BER_MEMORY_FN) invalue;
+		ber_int_options.lbo_valid = LBER_INITIALIZED;
+		return LBER_OPT_SUCCESS;
+	}
+
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if(invalue == NULL) {
 		/* no place to set from */

@@ -330,7 +330,11 @@ sockbuf_copy_out( Sockbuf *sb, char **buf, long len )
 
 Sockbuf *ber_sockbuf_alloc( void )
 {
-	Sockbuf *sb = LBER_CALLOC(1, sizeof(Sockbuf));
+	Sockbuf *sb;
+
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
+
+	sb = LBER_CALLOC(1, sizeof(Sockbuf));
 
 	if( sb == NULL ) return NULL;
 
@@ -693,6 +697,8 @@ sockbuf_buf_destroy( Sockbuf_Buf *buf )
 int ber_pvt_sb_init( Sockbuf *sb )
 {
 	assert( sb != NULL);
+
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
    sb->sb_valid=LBER_VALID_SOCKBUF;
    sb->sb_options = 0;
