@@ -633,45 +633,6 @@ backsql_supad2at( backsql_oc_map_rec *objclass, AttributeDescription *supad,
 	return 0;
 }
 
-
-#if 0
-/*
- * Deprecated
- */
-backsql_at_map_rec *
-backsql_name2at( backsql_oc_map_rec* objclass, struct berval *attr )
-{
-	backsql_at_map_rec	tmp, *res;
-	const char		*text = NULL;
- 
-#ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_name2at(): "
-		"searching for attribute '%s' for objectclass '%s'\n",
-		attr, BACKSQL_OC_NAME( objclass ), 0 );
-#endif /* BACKSQL_TRACE */
-
-	if ( slap_bv2ad( attr, &tmp.bam_ad, &text ) != LDAP_SUCCESS ) {
-		return NULL;
-	}
-
-	res = (backsql_at_map_rec *)avl_find( objclass->bom_attrs, &tmp,
-			backsql_cmp_attr );
-
-#ifdef BACKSQL_TRACE
-	if ( res != NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "<==backsql_name2at(): "
-			"found name='%s', sel_expr='%s'\n",
-			res->bam_name, res->bam_sel_expr.bv_val, 0 );
-	} else {
-		Debug( LDAP_DEBUG_TRACE, "<==backsql_name2at(): "
-			"not found\n", 0, 0, 0 );
-	}
-#endif /* BACKSQL_TRACE */
-
-	return res;
-}
-#endif
-
 static void
 backsql_free_attr( void *v_at )
 {

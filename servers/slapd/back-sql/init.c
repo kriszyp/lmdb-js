@@ -58,11 +58,11 @@ sql_back_initialize(
 #if 0 /* needs updating */
 #ifdef LDAP_CONTROL_NOOP
 		LDAP_CONTROL_NOOP,
-#endif
+#endif /* LDAP_CONTROL_NOOP */
 #endif
 #ifdef LDAP_CONTROL_VALUESRETURNFILTER
  		LDAP_CONTROL_VALUESRETURNFILTER,
-#endif
+#endif /* LDAP_CONTROL_VALUESRETURNFILTER */
 		NULL
 	};
 

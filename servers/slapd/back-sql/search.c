@@ -639,7 +639,7 @@ equality_match:;
 
 		} else {
 			backsql_strfcat( &bsi->bsi_flt_where, "cblbl",
-					'(',
+					'(', /* ) */
 					&at->bam_sel_expr,
 					(ber_len_t)sizeof( "='" ) - 1, "='",
 					filter_value,
@@ -670,7 +670,7 @@ equality_match:;
 
 			if ( at->bam_sel_expr_u.bv_val ) {
 				backsql_strfcat( &bsi->bsi_flt_where, "cbbc",
-						'(',
+						'(', /* ) */
 						&at->bam_sel_expr_u, 
 						&ordering,
 						'\'' );
@@ -1428,16 +1428,15 @@ backsql_search( Operation *op, SlapReply *rs )
 #if 0	/* noop is masked SLAP_CTRL_UPDATE */
 			if ( op->o_noop ) {
 				sres = 0;
-			} else {
+			} else
 #endif
+			{
 				rs->sr_attrs = op->oq_search.rs_attrs;
 				rs->sr_entry = entry;
 				sres = send_search_entry( op, rs );
 				rs->sr_entry = NULL;
 				rs->sr_attrs = NULL;
-#if 0
 			}
-#endif
 
 			switch ( sres ) {
 			case 0:
