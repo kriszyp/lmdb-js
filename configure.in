@@ -2069,6 +2069,9 @@ if test $ol_enable_sql != no ; then
 		AC_MSG_ERROR([could not locate SQL headers])
 	])
 
+	sql_LIBS="$LIBS"
+	LIBS="$LTHREAD_LIBS"
+
 	AC_CHECK_LIB(iodbc,SQLDriverConnect,[have_iodbc=yes],[have_iodbc=no])
 	if test $have_iodbc = yes ; then
 		ol_link_sql="-liodbc"
@@ -2078,6 +2081,8 @@ if test $ol_enable_sql != no ; then
 			ol_link_sql="-lodbc"
 		fi
 	fi
+
+	LIBS="$sql_LIBS"
 
 	if test $ol_link_sql != no ; then
 		SLAPD_SQL_LIBS="$ol_link_sql"
