@@ -117,11 +117,11 @@ install-conf: FORCE
 	@-$(MKDIR) $(sysconfdir)
 	@for i in $(CFFILES); do \
 		tmpcf=/tmp/$$i.$$ ; \
-		if test $$i = slapd.conf ; then
-			mode=600
-		else
-			mode=644
-		fi
+		if test $$i = slapd.conf ; then \
+			mode=600 ; \
+		else \
+			mode=644 ; \
+		fi ; \
 		$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' $(srcdir)/$$i > $$tmpcf ; \
 		if test ! -f $(sysconfdir)/$$i; then \
 			echo "installing $$i in $(sysconfdir)"; \
