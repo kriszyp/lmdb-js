@@ -588,42 +588,42 @@ read_config( char *fname )
 #endif /*SLAPD_MODULES*/
 
 #ifdef HAVE_TLS
-		} else if ( !strcasecmp( cargv[0], "SSLProtocol" ) ) {
+		} else if ( !strcasecmp( cargv[0], "TLSProtocol" ) ) {
 			rc = ldap_pvt_tls_set_option( NULL,
 						      LDAP_OPT_X_TLS_PROTOCOL,
 						      cargv[1] );
 			if ( rc )
 				return rc;
 
-		} else if ( !strcasecmp( cargv[0], "SSLCipherSuite" ) ) {
+		} else if ( !strcasecmp( cargv[0], "TLSCipherSuite" ) ) {
 			rc = ldap_pvt_tls_set_option( NULL,
 						      LDAP_OPT_X_TLS_CIPHER_SUITE,
 						      cargv[1] );
 			if ( rc )
 				return rc;
 
-		} else if ( !strcasecmp( cargv[0], "SSLCertificateFile" ) ) {
+		} else if ( !strcasecmp( cargv[0], "TLSCertificateFile" ) ) {
 			rc = ldap_pvt_tls_set_option( NULL,
 						      LDAP_OPT_X_TLS_CERTFILE,
 						      cargv[1] );
 			if ( rc )
 				return rc;
 
-		} else if ( !strcasecmp( cargv[0], "SSLCertificateKeyFile" ) ) {
+		} else if ( !strcasecmp( cargv[0], "TLSCertificateKeyFile" ) ) {
 			rc = ldap_pvt_tls_set_option( NULL,
 						      LDAP_OPT_X_TLS_KEYFILE,
 						      cargv[1] );
 			if ( rc )
 				return rc;
 
-		} else if ( !strcasecmp( cargv[0], "SSLCACertificatePath" ) ) {
+		} else if ( !strcasecmp( cargv[0], "TLSCACertificatePath" ) ) {
 			rc = ldap_pvt_tls_set_option( NULL,
 						      LDAP_OPT_X_TLS_CACERTDIR,
 						      cargv[1] );
 			if ( rc )
 				return rc;
 
-		} else if ( !strcasecmp( cargv[0], "SSLCACertificateFile" ) ) {
+		} else if ( !strcasecmp( cargv[0], "TLSCACertificateFile" ) ) {
 			rc = ldap_pvt_tls_set_option( NULL,
 						      LDAP_OPT_X_TLS_CACERTFILE,
 						      cargv[1] );
