@@ -19,11 +19,8 @@ DBDIR4=$TESTDIR/db.4.a
 DBDIR5=$TESTDIR/db.5.a
 DBDIR6=$TESTDIR/db.6.a
 
-DBDIR=./test-db
-CACHEDIR=./test-db2
-REPLDIR=./test-repl
-
 CONF=$DATADIR/slapd.conf
+CONFTWO=$DATADIR/slapd2.conf
 MCONF=$DATADIR/slapd-master.conf
 PWCONF=$DATADIR/slapd-pw.conf
 ACLCONF=$DATADIR/slapd-acl.conf

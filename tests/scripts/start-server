@@ -1,23 +1,10 @@
 #! /bin/sh
 # $OpenLDAP$
 
-SRCDIR="."
-if test $# -ge 1 ; then
-	SRCDIR=$1; shift
-fi
-BACKEND=bdb
-if test $# -ge 1 ; then
-	BACKEND=$1; shift
-fi
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-echo "Datadir is $DATADIR"
-
-echo "Cleaning up in $DBDIR..."
-
-rm -f $DBDIR/[!C]*
+mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND < $CONF > $ADDCONF
@@ -28,22 +15,20 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Starting slapd on TCP/IP port $PORT..."
-. $CONFFILTER $BACKEND < $CONF > $DBCONF
-$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING >> /dev/null 2>&1 &
+echo "Starting slapd on TCP/IP port $PORT1..."
+. $CONFFILTER $BACKEND < $CONF > $CONF1
+$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 
 echo "Using ldapsearch to retrieve all the entries..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT > $SEARCHOUT 2>&1
+	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 > $SEARCHOUT 2>&1
 	RC=$?
 	if test $RC = 1 ; then
 		echo "Waiting 5 seconds for slapd to start..."
 		sleep 5
 	fi
 done
-
-# kill -HUP $PID
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -62,7 +47,5 @@ if test $? != 0 ; then
 	exit 1
 fi
 
-echo ">>>>> Master (pid=$PID) started"
-
-
+echo ">>>>> Server1 (pid=$PID) started"
 exit 0

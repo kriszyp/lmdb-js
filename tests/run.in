@@ -37,7 +37,7 @@ fi
 CLEAN=no
 WAIT=0
 KILLSERVERS=yes
-PRESERVE=no
+PRESERVE=${PRESERVE-no}
 USERDATA=no
 
 while test $# -gt 0 ; do
@@ -114,7 +114,7 @@ if test -d testrun ; then
 	if test $PRESERVE = no ; then
 		echo "Cleaning up test run directory leftover from previous run."
 		/bin/rm -rf testrun
-	else
+	elif test $PRESERVE = yes ; then
 		echo "Cleaning up only database directories leftover from previous run."
 		/bin/rm -rf testrun/db.*
 	fi
