@@ -381,7 +381,7 @@ retry:	/* transaction retry */
 	}
 
 	/* This is the first add to a root DB, need to make the suffix glue */
-	if ( pdn.bv_len == 0 && ei->bei_id == 0 ) {
+	if ( op->o_bd->be_nsuffix[0].bv_len == 0 && ei->bei_id == 0 ) {
 		Entry e_root = {0};
 		e_root.e_name.bv_val = "";
 		e_root.e_nname.bv_val = "";
