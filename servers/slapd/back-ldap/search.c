@@ -54,8 +54,8 @@ ldap_back_search(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    const char	*base,
-    const char	*nbase,
+    struct berval	*base,
+    struct berval	*nbase,
     int		scope,
     int		deref,
     int		slimit,
@@ -143,18 +143,18 @@ ldap_back_search(
 	 */
 #ifdef ENABLE_REWRITE
  	switch ( rewrite_session( li->rwinfo, "searchBase",
- 				base, conn, &mbase ) ) {
+ 				base->bv_val, conn, &mbase ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mbase == NULL ) {
-			mbase = ( char * )base;
+			mbase = ( char * )base->bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] searchBase: \"%s\" -> \"%s\"\n%",
-				base, mbase ));
+				base->bv_val, mbase ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> searchBase: \"%s\" -> \"%s\"\n%s",
-				base, mbase, "" );
+				base->bv_val, mbase, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -202,7 +202,7 @@ ldap_back_search(
 		goto finish;
 	}
 #else /* !ENABLE_REWRITE */
-	mbase = ldap_back_dn_massage( li, ch_strdup( base ), 0 );
+	mbase = ldap_back_dn_massage( li, ch_strdup( base->bv_val ), 0 );
 #endif /* !ENABLE_REWRITE */
 
 	mapped_filter = ldap_back_map_filter(&li->at_map, &li->oc_map,
@@ -352,7 +352,7 @@ finish:;
 #endif /* !ENABLE_REWRITE */
 	
 #ifdef ENABLE_REWRITE
-	if ( mbase != base ) {
+	if ( mbase != base->bv_val ) {
 #endif /* ENABLE_REWRITE */
 		free( mbase );
 #ifdef ENABLE_REWRITE

@@ -112,7 +112,7 @@ ldap_back_bind(
 	}
 
 #ifdef ENABLE_REWRITE	
-	if ( mdn != dn ) {
+	if ( mdn != dn->bv_val ) {
 #endif /* ENABLE_REWRITE */
 	free( mdn );
 #ifdef ENABLE_REWRITE
