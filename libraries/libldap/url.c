@@ -228,11 +228,11 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	}
 
 #ifndef LDAP_INT_IN_KERNEL
-		/* Global options may not be created yet
-		 * We can't test if the global options are initialized
-		 * because a call to LDAP_INT_GLOBAL_OPT() will try to allocate
-		 * the options and cause infinite recursion
-		 */
+	/* Global options may not be created yet
+	 * We can't test if the global options are initialized
+	 * because a call to LDAP_INT_GLOBAL_OPT() will try to allocate
+	 * the options and cause infinite recursion
+	 */
 	Debug( LDAP_DEBUG_TRACE, "ldap_url_parse(%s)\n", url_in, 0, 0 );
 #endif
 
@@ -247,8 +247,9 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	assert( scheme );
 
 	/* make working copy of the remainder of the URL */
-	if (( url = LDAP_STRDUP( url_tmp )) == NULL ) {
-		return( LDAP_URL_ERR_MEM );
+	url = LDAP_STRDUP( url_tmp );
+	if ( url == NULL ) {
+		return LDAP_URL_ERR_MEM;
 	}
 
 	if ( enclosed ) {
@@ -295,7 +296,9 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 		*p++ = '\0';
 	}
 
-	if (( q = strchr( url, ':' )) != NULL ) {
+	q = strchr( url, ':' );
+
+	if ( q != NULL ) {
 		*q++ = '\0';
 		ldap_pvt_hex_unescape( q );
 
@@ -326,7 +329,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	 * but we need to account for it. Fortunately it can't be confused with
 	 * anything real.
 	 */
-	if( (p == NULL) && ((q = strchr( q, '?')) != NULL)) {
+	if( (p == NULL) && (q != NULL) && ((q = strchr( q, '?')) != NULL)) {
 		q++;		
 		/* ? immediately followed by question */
 		if( *q == '?') {
