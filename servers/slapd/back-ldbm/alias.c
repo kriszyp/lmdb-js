@@ -221,7 +221,7 @@ char *derefDN ( Backend     *be,
 
 	  Debug( LDAP_DEBUG_TRACE, "<= l&g we have %s vs %s \n", matched, eNew->e_dn, 0 );
 
-	  i = dn_casecmp (matched, eNew->e_dn);
+	  i = strcasecmp (matched, eNew->e_dn);
           /* free reader lock */
           cache_return_entry_r(&li->li_cache, eNew);
 

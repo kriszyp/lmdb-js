@@ -106,7 +106,7 @@ pwdfile_search( struct ldop *op, FILE *ofp )
     for ( pw = getpwent(); pw != NULL; pw = getpwent()) {
 	if (( entry = pw2entry( op, pw )) != NULL ) {
 	    if ( oneentry ) {
-		if ( dn_casecmp( op->ldop_dn, entry->lde_dn ) == 0 ) {
+		if ( strcasecmp( op->ldop_dn, entry->lde_dn ) == 0 ) {
 		    write_entry( op, entry, ofp );
 		    break;
 		}

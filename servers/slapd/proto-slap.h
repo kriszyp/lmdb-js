@@ -130,8 +130,8 @@ void connection_done LDAP_P((Connection *));
  * dn.c
  */
 
-char * dn_normalize_internal LDAP_P(( char *dn, int correct_case ));
-int dn_casecmp LDAP_P(( const char *dn1, const char *dn2 ));
+char * dn_normalize LDAP_P(( char *dn ));
+char * dn_normalize_case LDAP_P(( char *dn ));
 char * dn_parent LDAP_P(( Backend *be, char *dn ));
 char * dn_rdn LDAP_P(( Backend *be, char *dn ));
 int dn_issuffix LDAP_P(( char *dn, char *suffix ));

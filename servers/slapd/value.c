@@ -82,16 +82,18 @@ value_normalize(
     int		syntax
 )
 {
-	char	*d;
+	char	*d, *save;
+
+	if ( ! (syntax & SYNTAX_CIS) ) {
+		return;
+	}
 
 	if ( syntax & SYNTAX_DN ) {
 		(void) dn_normalize_case( s );
 		return;
 	}
-	if ( ! (syntax & SYNTAX_CIS) ) {
-		return;
-	}
 
+	save = s;
 	for ( d = s; *s; s++ ) {
 		if ( (syntax & SYNTAX_TEL) && (*s == ' ' || *s == '-') ) {
 			continue;
@@ -110,16 +112,7 @@ value_cmp(
 )
 {
 	int		rc;
-	unsigned char	*s1, *s2;
 
-	if ( syntax & SYNTAX_DN )	/* #### TEST ### */
-		normalize = 3;
-
-    if ( normalize ) {
-	if ( ! (syntax & ~(SYNTAX_CIS | SYNTAX_CES | SYNTAX_BIN)) )
-		/* Normalization not needed,
-		 * in SYNTAX_CIS's case because it's handled by strcascmp */
-		normalize = 0;
 	if ( normalize & 1 ) {
 		v1 = ber_bvdup( v1 );
 		value_normalize( v1->bv_val, syntax );
@@ -128,22 +121,18 @@ value_cmp(
 		v2 = ber_bvdup( v2 );
 		value_normalize( v2->bv_val, syntax );
 	}
-    }
 
 	switch ( syntax ) {
 	case SYNTAX_CIS:
 	case (SYNTAX_CIS | SYNTAX_TEL):
+	case (SYNTAX_CIS | SYNTAX_DN):
 		rc = strcasecmp( v1->bv_val, v2->bv_val );
 		break;
 
-	case SYNTAX_DN:
 	case SYNTAX_CES:
 		rc = strcmp( v1->bv_val, v2->bv_val );
 		break;
 
-	default:
-		Debug( LDAP_DEBUG_ANY, "value_cmp: unknown syntax %d.\n", syntax, 0, 0);
-		/* Fall through */
 	case SYNTAX_BIN:
 		rc = (v1->bv_len == v2->bv_len
 		      ? memcmp( v1->bv_val, v2->bv_val, v1->bv_len )

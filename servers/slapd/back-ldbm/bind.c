@@ -164,7 +164,6 @@ ldbm_back_bind(
 			/*
 			 * no krbName values present:  check against DN
 			 */
-			/*###??? Should this be some variant of dn_casecmp? */
 			if ( strcasecmp( dn, krbname ) == 0 ) {
 				rc = 0; /* XXX wild ass guess */
 				break;

@@ -502,10 +502,6 @@ generate_new_centroids(
 
 				/* normalize the value */
 				for ( s = val[j]; *s; s++ ) {
-					/* May need other normalization here,
-					 * unless that breaks compatibility
-					 * with other centipedes
-					 */
 					*s = TOLOWER( (unsigned char) *s );
 					last = *s;
 				}

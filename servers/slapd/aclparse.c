@@ -108,7 +108,7 @@ parse_acl(
 					break;
 				}
 
-				if ( strcmp( argv[i], "*" ) == 0 ) {
+				if ( strcasecmp( argv[i], "*" ) == 0 ) {
 					int e;
 					if ((e = regcomp( &a->acl_dnre, ".*",
 						REG_EXTENDED|REG_ICASE)))
@@ -152,7 +152,6 @@ parse_acl(
 						acl_usage();
 
 					} else {
-						/* ### Should be normalized, but how? */
 						a->acl_dnpat = dn_upcase(ch_strdup( right ));
 					}
 				} else if ( strncasecmp( left, "attr", 4 )
@@ -193,13 +192,12 @@ parse_acl(
 
 			/* get <who> */
 			split( argv[i], '=', &left, &right );
-			if ( strcmp( argv[i], "*" ) == 0 ) {
+			if ( strcasecmp( argv[i], "*" ) == 0 ) {
 				b->a_dnpat = ch_strdup( ".*" );
 			} else if ( strcasecmp( argv[i], "self" ) == 0 ) {
 				b->a_dnpat = ch_strdup( "self" );
 			} else if ( strcasecmp( left, "dn" ) == 0 ) {
 				regtest(fname, lineno, right);
-				/* ### Should be normalized, but how? */
 				b->a_dnpat = dn_upcase( ch_strdup( right ) );
 			} else if ( strcasecmp( left, "dnattr" ) == 0 ) {
 				b->a_dnattr = ch_strdup( right );
@@ -218,7 +216,6 @@ parse_acl(
                                             *name++ = '\0';
                                 }
 
-				/* ### Should it be normalized? */
 				b->a_group = dn_upcase(ch_strdup( right ));
 
                                 if (value && *value) {

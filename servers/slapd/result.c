@@ -273,10 +273,6 @@ send_search_entry(
 					! acl_access_allowed( acl, be, conn, e, a->a_vals[i], op,
 						ACL_READ, edn, matches) )
 				{
-				/* ### What the hell? Attributes with DN-syntax
-				 * ### are only returned if we have access to
-				 * ### the entry with that DN?  Or...?
-				 */
 					continue;
 				}
 

@@ -312,19 +312,23 @@ static RETSIGTYPE
 wait4child( int sig )
 {
     int save_errno = errno;
-
-#ifdef WNOHANG
     errno = 0;
-#ifdef HAVE_WAITPID
+    /*
+     * ### The wait3 vs. waitpid choice needs improvement.
+     * ### There are apparently systems where waitpid(-1, ...) fails, and
+     * ### others where waitpid should preferred over wait3 for some reason.
+     * ### Now wait3 is only here for reference, configure does not detect it.
+     */
+#if defined(HAVE_WAITPID) && defined(WNOHANG)
     while ( waitpid( (pid_t)-1, NULL, WNOHANG ) >= 0 || errno == EINTR )
 	;	/* NULL */
-#else
+#elif defined(HAVE_WAIT3) && defined(WNOHANG)
     while ( wait3( NULL, WNOHANG, NULL ) >= 0 || errno == EINTR )
 	;	/* NULL */
-#endif
+#else
     (void) wait( NULL );
 #endif
-    (void) SIGNAL( sig, wait4child );
+    (void) signal( sig, wait4child );
     errno = save_errno;
 }
 
