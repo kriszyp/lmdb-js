@@ -1599,6 +1599,7 @@ typedef struct slap_listener {
 #define sl_addr	sl_sa.sa_in_addr
 } Listener;
 
+#ifdef SLAPD_MONITOR
 /*
  * Operation indices
  */
@@ -1615,6 +1616,7 @@ enum {
 	SLAP_OP_EXTENDED,
 	SLAP_OP_LAST
 };
+#endif /* SLAPD_MONITOR */
 
 LDAP_END_DECL
 

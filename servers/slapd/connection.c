@@ -909,19 +909,26 @@ void connection_done( Connection *c )
  * calls the appropriate stub to handle it.
  */
 
+#ifdef SLAPD_MONITOR
 #define INCR_OP(var,index) \
 	do { \
 		ldap_pvt_thread_mutex_lock( &num_ops_mutex ); \
 		(var)[(index)]++; \
 		ldap_pvt_thread_mutex_unlock( &num_ops_mutex ); \
 	} while (0)
+#else /* !SLAPD_MONITOR */
+#define INCR_OP(var,index) 
+#endif /* !SLAPD_MONITOR */
 
 static void *
 connection_operation( void *arg_v )
 {
 	int rc;
 	struct co_arg	*arg = arg_v;
-	ber_tag_t tag = arg->co_op->o_tag, oldtag = tag;
+	ber_tag_t tag = arg->co_op->o_tag;
+#ifdef SLAPD_MONITOR
+	ber_tag_t oldtag = tag;
+#endif /* SLAPD_MONITOR */
 	Connection *conn = arg->co_conn;
 
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
@@ -1011,12 +1018,15 @@ connection_operation( void *arg_v )
 		break;
 	}
 
+#ifdef SLAPD_MONITOR
 	oldtag = tag;
+#endif /* SLAPD_MONITOR */
 	if( rc == SLAPD_DISCONNECT ) tag = LBER_ERROR;
 
 operations_error:
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
 	num_ops_completed++;
+#ifdef SLAPD_MONITOR
 	switch (oldtag) {
 	case LDAP_REQ_BIND:
 		num_ops_completed_[SLAP_OP_BIND]++;
@@ -1049,6 +1059,7 @@ operations_error:
 		num_ops_completed_[SLAP_OP_EXTENDED]++;
 		break;
 	}
+#endif /* SLAPD_MONITOR */
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );

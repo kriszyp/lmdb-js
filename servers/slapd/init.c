@@ -44,9 +44,11 @@ ldap_pvt_thread_mutex_t	passwd_mutex;
 #endif
 
 unsigned long			num_ops_initiated = 0;
-unsigned long			num_ops_initiated_[SLAP_OP_LAST];
 unsigned long			num_ops_completed = 0;
+#ifdef SLAPD_MONITOR
+unsigned long			num_ops_initiated_[SLAP_OP_LAST];
 unsigned long			num_ops_completed_[SLAP_OP_LAST];
+#endif /* SLAPD_MONITOR */
 ldap_pvt_thread_mutex_t	num_ops_mutex;
 
 unsigned long			num_entries_sent;
