@@ -612,7 +612,7 @@ typedef char * caddr_t;
 /* Define if you have the socket library (-lsocket).  */
 /* #undef HAVE_LIBSOCKET */
 
-/* define if you have -lxttp */
+/* define if you have -lxtpp */
 /* #undef HAVE_XTPP */
 
 /* define if you have -ldsap */
