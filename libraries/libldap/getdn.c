@@ -294,7 +294,7 @@ ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 
 	return( values );
 
-error_return:
+error_return:;
 	LBER_VFREE( values );
 	ldapava_free_dn( tmpDN );
 	return( NULL );
@@ -577,7 +577,7 @@ dn2dn( const char *dnin, unsigned fin, unsigned fout )
 /* States */
 #define B4AVA			0x0000
 
-#define	B4ATTRTYPE		0x0001
+/* #define	B4ATTRTYPE		0x0001 */
 #define B4OIDATTRTYPE		0x0002
 #define B4STRINGATTRTYPE	0x0003
 
@@ -637,6 +637,8 @@ dn2dn( const char *dnin, unsigned fin, unsigned fout )
 	( LDAP_DN_ASCII_SPACE(c) || LDAP_DN_OCTOTHORPE(c) || LDAP_DN_NE(c) )
 #define LDAP_DN_NEEDESCAPE_TRAIL(c) \
 	( LDAP_DN_ASCII_SPACE(c) || LDAP_DN_NEEDESCAPE(c) )
+#define LDAP_DN_WILLESCAPE(c) \
+	( LDAP_DN_RDN_SEP(c) || LDAP_DN_AVA_SEP(c) )
 
 /* LDAPv2 */
 #define	LDAP_DN_VALUE_END_V2(c) \
@@ -696,6 +698,7 @@ dn2dn( const char *dnin, unsigned fin, unsigned fout )
 /* FIXME: no composite rdn or non-"dc" types, right?
  * (what about "dc" in OID form?) */
 /* FIXME: we do not allow binary values in domain, right? */
+/* NOTE: use this macro only when ABSOLUTELY SURE rdn IS VALID! */
 #define LDAP_DN_IS_RDN_DC( rdn ) \
 	( ( rdn ) && ( rdn )[ 0 ][ 0 ] && !( rdn )[ 1 ] \
 	  && ( ( rdn )[ 0 ][ 0 ]->la_flags == LDAP_AVA_STRING ) \
@@ -976,8 +979,14 @@ ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
 		if ( p[ 0 ] ) {
 			switch ( LDAP_DN_FORMAT( flags ) ) {
 			case LDAP_DN_FORMAT_LDAPV3:
-			case LDAP_DN_FORMAT_LDAPV2:
 				if ( !LDAP_DN_RDN_SEP( p[ 0 ] ) ) {
+					rc = LDAP_OTHER;
+					goto parsing_error;
+				}
+				break;
+	
+			case LDAP_DN_FORMAT_LDAPV2:
+				if ( !LDAP_DN_RDN_SEP_V2( p[ 0 ] ) ) {
 					rc = LDAP_OTHER;
 					goto parsing_error;
 				}
@@ -1136,10 +1145,6 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 				}
 			}
 
-			state = B4ATTRTYPE;
-			break;
-
-		case B4ATTRTYPE:
 			/* oid */
 			if ( LDAP_DN_OID_LEADCHAR( p[ 0 ] ) ) {
 				state = B4OIDATTRTYPE;
@@ -1158,8 +1163,8 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 				 * "OID." or "oid."
 				 */
 				if ( flags & LDAP_DN_PEDANTIC ) {
-					if ( !strncmp( p, "oid.", 4 )
-						|| !strncmp( p, "OID.", 4 ) ) {
+					if ( !strncmp( p, "OID.", 4 )
+						|| !strncmp( p, "oid.", 4 ) ) {
 						p += 4;
 						state = B4OIDATTRTYPE;
 						break;
@@ -1205,7 +1210,7 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 			 * the starting char has been found to be
 			 * a LDAP_DN_DESC_LEADCHAR so we don't re-check it
 			 * FIXME: DCE attr types seem to have a more
-			 * restrictive syntax
+			 * restrictive syntax (no '-' ...) 
 			 */
 			for ( startPos = p++; p[ 0 ]; p++ ) {
 				if ( LDAP_DN_DESC_CHAR( p[ 0 ] ) ) {
@@ -1356,17 +1361,14 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 		case B4STRINGVALUE:
 			switch ( LDAP_DN_FORMAT( flags ) ) {
 			case LDAP_DN_FORMAT_LDAPV3:
-				if ( str2strval( p, &attrValue, 
-							&p, flags, 
+				if ( str2strval( p, &attrValue, &p, flags, 
 							&attrValueEncoding ) ) {
 					goto parsing_error;
 				}
 				break;
 
 			case LDAP_DN_FORMAT_DCE:
-				/* FIXME: does DCE use UTF-8? */
-				if ( DCE2strval( p, &attrValue, 
-							&p, flags ) ) {
+				if ( DCE2strval( p, &attrValue, &p, flags ) ) {
 					goto parsing_error;
 				}
 				break;
@@ -1420,7 +1422,7 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 			newRDN = rdn;
 			
 			/* 
-			 * if we got an AVA separator ('+', | ',' * for DCE ) 
+			 * if we got an AVA separator ('+', or ',' for DCE ) 
 			 * we expect a new AVA for this RDN; otherwise 
 			 * we add the RDN to the DN
 			 */
@@ -1938,8 +1940,13 @@ hexstr2binval( const char *str, struct berval **val, const char **next, unsigned
 	for ( startPos = p = str; p[ 0 ]; p += 2 ) {
 		switch ( LDAP_DN_FORMAT( flags ) ) {
 		case LDAP_DN_FORMAT_LDAPV3:
-		case LDAP_DN_FORMAT_LDAPV2:
 			if ( LDAP_DN_VALUE_END( p[ 0 ] ) ) {
+				goto end_of_value;
+			}
+			break;
+
+		case LDAP_DN_FORMAT_LDAPV2:
+			if ( LDAP_DN_VALUE_END_V2( p[ 0 ] ) ) {
 				goto end_of_value;
 			}
 			break;
@@ -1960,8 +1967,13 @@ hexstr2binval( const char *str, struct berval **val, const char **next, unsigned
 			for ( ; p[ 0 ]; p++ ) {
 				switch ( LDAP_DN_FORMAT( flags ) ) {
 				case LDAP_DN_FORMAT_LDAPV3:
-				case LDAP_DN_FORMAT_LDAPV2:
 					if ( LDAP_DN_VALUE_END( p[ 0 ] ) ) {
+						goto end_of_value;
+					}
+					break;
+
+				case LDAP_DN_FORMAT_LDAPV2:
+					if ( LDAP_DN_VALUE_END_V2( p[ 0 ] ) ) {
 						goto end_of_value;
 					}
 					break;
@@ -2096,10 +2108,17 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 			}
 			/* need to escape it */
 			l += 3 * cl;
+		
+		/* 
+		 * there might be some chars we want to escape in form
+		 * of a couple of hexdigits for optimization purposes
+		 */
+		} else if ( LDAP_DN_WILLESCAPE( p[ 0 ] ) ) {
+			l += 3;
 
-		} else if ( ( p == val->bv_val && LDAP_DN_NEEDESCAPE_LEAD( p[ 0 ] ) )
-				|| ( !p[ 1 ] && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) )
-				|| LDAP_DN_NEEDESCAPE( p[ 0 ] ) ) {
+		} else if ( LDAP_DN_NEEDESCAPE( p[ 0 ] )
+				|| ( p == val->bv_val && LDAP_DN_NEEDESCAPE_LEAD( p[ 0 ] ) )
+				|| ( !p[ 1 ] && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) ) ) {
 			l += 2;
 
 		} else {
@@ -2137,7 +2156,11 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 	for ( s = 0, d = 0, end = val->bv_len - 1; s < val->bv_len; ) {
 		ber_len_t	cl = ldap_utf8_charlen( &val->bv_val[ s ] );
 		
-		if ( cl > 1 ) {
+		/* 
+		 * there might be some chars we want to escape in form
+		 * of a couple of hexdigits for optimization purposes
+		 */
+		if ( cl > 1 || LDAP_DN_WILLESCAPE( val->bv_val[ s ] ) ) {
 			for ( ; cl--; ) {
 				str[ d++ ] = '\\';
 				byte2hexpair( &val->bv_val[ s ], &str[ d ] );
@@ -2146,9 +2169,9 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 			}
 
 		} else {
-			if ( ( d == 0 && LDAP_DN_NEEDESCAPE_LEAD( val->bv_val[ s ] ) )
-					|| ( s == end && LDAP_DN_NEEDESCAPE_TRAIL( val->bv_val[ s ] ) )
-					|| LDAP_DN_NEEDESCAPE( val->bv_val[ s ] ) ) {
+			if ( LDAP_DN_NEEDESCAPE( val->bv_val[ s ] )
+					|| ( d == 0 && LDAP_DN_NEEDESCAPE_LEAD( val->bv_val[ s ] ) )
+					|| ( s == end && LDAP_DN_NEEDESCAPE_TRAIL( val->bv_val[ s ] ) ) ) {
 				str[ d++ ] = '\\';
 			}
 			str[ d++ ] = val->bv_val[ s++ ];
@@ -2185,9 +2208,9 @@ strval2IA5strlen( struct berval *val, unsigned flags, ber_len_t *len )
 
 	} else {
 		for ( l = 0, p = val->bv_val; p[ 0 ]; p++ ) {
-			if ( ( p == val->bv_val && LDAP_DN_NEEDESCAPE_LEAD( p[ 0 ] ) )
-					|| ( !p[ 1 ] && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) )
-					|| LDAP_DN_NEEDESCAPE( p[ 0 ] ) ) {
+			if ( LDAP_DN_NEEDESCAPE( p[ 0 ] )
+					|| ( p == val->bv_val && LDAP_DN_NEEDESCAPE_LEAD( p[ 0 ] ) )
+					|| ( !p[ 1 ] && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) ) ) {
 				l += 2;
 
 			} else {
@@ -2233,9 +2256,9 @@ strval2IA5str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 		 */
 
 		for ( s = 0, d = 0, end = val->bv_len - 1; s < val->bv_len; ) {
-			if ( ( s == 0 && LDAP_DN_NEEDESCAPE_LEAD( val->bv_val[ s ] ) )
-					|| ( s == end && LDAP_DN_NEEDESCAPE_TRAIL( val->bv_val[ s ] ) )
-					|| LDAP_DN_NEEDESCAPE( val->bv_val[ s ] ) ) {
+			if ( LDAP_DN_NEEDESCAPE( val->bv_val[ s ] )
+					|| ( s == 0 && LDAP_DN_NEEDESCAPE_LEAD( val->bv_val[ s ] ) )
+					|| ( s == end && LDAP_DN_NEEDESCAPE_TRAIL( val->bv_val[ s ] ) ) ) {
 				str[ d++ ] = '\\';
 			}
 			str[ d++ ] = val->bv_val[ s++ ];
