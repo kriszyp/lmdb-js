@@ -447,12 +447,18 @@ The <hash> must be one of
 .BR {SHA} ,
 .BR {SMD5} ,
 .BR {MD5} ,
+.BR {CRYPT} ,
 and
-.BR {CRYPT} .
+.BR {CLEARTEXT} .
 The default is
 .BR {SSHA} .
 
-Note that this option does not alter the normal user applications
+Note that
+.B {CLEARTEXT}
+indicates that the new password should be
+added to userPassword as clear text.
+
+Also, note that this option does not alter the normal user applications
 handling of userPassword during LDAP Add, Modify, or other LDAP operations.
 .TP
 .B password\-crypt\-salt\-format <format>
