@@ -1,8 +1,9 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.26 Engineering
-	Fixed libldap sort references bug
-	Updated lutil_passwd
+	Fixed slapd bdb error recovery bug (ITS#2865)
+	Fixed libldap sort references bug (ITS#2494)
+	Updated lutil_passwd (ITS#2835, ITS#2869)
 	Updated librewrite (misc bug fixes)
 	Updated slurpd (misc bug fixes)
 
