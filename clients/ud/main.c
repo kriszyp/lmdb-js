@@ -675,11 +675,7 @@ void initialize_client()
 	}
 
 	/* enabled local caching of ldap results, 15 minute lifetime */
-#ifdef DOS
-	ldap_enable_cache( ld, 60 * 15, 100 * 1024 );	/* 100k max memory */
-#else /* DOS */
 	ldap_enable_cache( ld, 60 * 15, 0 );		/* no memory limit */
-#endif /* DOS */
 
 	/* initialize the search filters */
 	if ((lfdp = ldap_init_getfilter(filter_file)) == NULL) {

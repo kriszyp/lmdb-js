@@ -10,11 +10,7 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#ifdef DOS
-#define MAX_VALUES	8
-#else
 #define MAX_VALUES	1000
-#endif /* !DOS */
 
 /*****************************************************************************
  **
