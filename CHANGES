@@ -15,7 +15,7 @@ OpenLDAP 2.1.10 Release
 	Added back-bdb IDL slab cache  (ITS#2183)
 	Removed lint, etc.
 	Build Environment
-		Update to libtool 1.4.3
+		Update to libtool 1.4.3 & shtool 1.6.2
 
 OpenLDAP 2.1.9 Release
 	Fixed back-bdb moddn newSuperior bug

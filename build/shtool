@@ -10,7 +10,7 @@
 ##  See http://www.gnu.org/software/shtool/ for more information.
 ##  See ftp://ftp.gnu.org/gnu/shtool/ for latest version.
 ##
-##  Version:  1.6.1 (12-Jul-2002)
+##  Version:  1.6.2 (02-Nov-2002)
 ##  Contents: 6/19 available modules
 ##
 
@@ -71,7 +71,7 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 if [ ".$1" = ".-h" -o ".$1" = ".--help" ]; then
-    echo "This is GNU shtool, version 1.6.1 (12-Jul-2002)"
+    echo "This is GNU shtool, version 1.6.2 (02-Nov-2002)"
     echo "Copyright (c) 1994-2002 Ralf S. Engelschall <rse@engelschall.com>"
     echo "Report bugs to <bug-shtool@gnu.org>"
     echo ''
@@ -87,12 +87,13 @@ if [ ".$1" = ".-h" -o ".$1" = ".--help" ]; then
     echo '  echo     [-n|--newline] [-e|--expand] [<str> ...]'
     echo '  move     [-v|--verbose] [-t|--trace] [-e|--expand] [-p|--preserve]'
     echo '           <src-file> <dst-file>'
-    echo '  install  [-v|--verbose] [-t|--trace] [-c|--copy] [-C|--compare-copy]'
-    echo '           [-s|--strip] [-m|--mode <mode>] [-o|--owner <owner>]'
-    echo '           [-g|--group <group>] [-e|--exec <sed-cmd>] <file> [<file>'
-    echo '           ...] <path>'
+    echo '  install  [-v|--verbose] [-t|--trace] [-d|--mkdir] [-c|--copy]'
+    echo '           [-C|--compare-copy] [-s|--strip] [-m|--mode <mode>]'
+    echo '           [-o|--owner <owner>] [-g|--group <group>] [-e|--exec'
+    echo '           <sed-cmd>] <file> [<file> ...] <path>'
     echo '  mkdir    [-t|--trace] [-f|--force] [-p|--parents] [-m|--mode'
-    echo '           <mode>] <dir> [<dir> ...]'
+    echo '           <mode>] [-o|--owner <owner>] [-g|--group <group>] <dir>'
+    echo '           [<dir> ...]'
     echo '  mkln     [-t|--trace] [-f|--force] [-s|--symbolic] <src-path>'
     echo '           [<src-path> ...] <dst-path>'
     echo '  subst    [-v|--verbose] [-t|--trace] [-n|--nop] [-s|--stealth]'
@@ -135,7 +136,7 @@ if [ ".$1" = ".-h" -o ".$1" = ".--help" ]; then
     exit 0
 fi
 if [ ".$1" = ".-v" -o ".$1" = ."--version" ]; then
-    echo "GNU shtool 1.6.1 (12-Jul-2002)"
+    echo "GNU shtool 1.6.2 (02-Nov-2002)"
     exit 0
 fi
 if [ ".$1" = ".-r" -o ".$1" = ."--recreate" ]; then
@@ -189,12 +190,13 @@ case $tool in
         ;;
     install )
         str_tool="install"
-        str_usage="[-v|--verbose] [-t|--trace] [-c|--copy] [-C|--compare-copy] [-s|--strip] [-m|--mode <mode>] [-o|--owner <owner>] [-g|--group <group>] [-e|--exec <sed-cmd>] <file> [<file> ...] <path>"
-        arg_spec="2+"
-        opt_spec="v.t.c.C.s.m:o:g:e+"
-        opt_alias="v:verbose,t:trace,c:copy,C:compare-copy,s:strip,m:mode,o:owner,g:group,e:exec"
+        str_usage="[-v|--verbose] [-t|--trace] [-d|--mkdir] [-c|--copy] [-C|--compare-copy] [-s|--strip] [-m|--mode <mode>] [-o|--owner <owner>] [-g|--group <group>] [-e|--exec <sed-cmd>] <file> [<file> ...] <path>"
+        arg_spec="1+"
+        opt_spec="v.t.d.c.C.s.m:o:g:e+"
+        opt_alias="v:verbose,t:trace,d:mkdir,c:copy,C:compare-copy,s:strip,m:mode,o:owner,g:group,e:exec"
         opt_v=no
         opt_t=no
+        opt_d=no
         opt_c=no
         opt_C=no
         opt_s=no
@@ -205,14 +207,16 @@ case $tool in
         ;;
     mkdir )
         str_tool="mkdir"
-        str_usage="[-t|--trace] [-f|--force] [-p|--parents] [-m|--mode <mode>] <dir> [<dir> ...]"
+        str_usage="[-t|--trace] [-f|--force] [-p|--parents] [-m|--mode <mode>] [-o|--owner <owner>] [-g|--group <group>] <dir> [<dir> ...]"
         arg_spec="1+"
-        opt_spec="t.f.p.m:"
-        opt_alias="t:trace,f:force,p:parents,m:mode"
+        opt_spec="t.f.p.m:o:g:"
+        opt_alias="t:trace,f:force,p:parents,m:mode,o:owner,g:group"
         opt_t=no
         opt_f=no
         opt_p=no
         opt_m=""
+        opt_o=""
+        opt_g=""
         ;;
     mkln )
         str_tool="mkln"
@@ -453,7 +457,7 @@ echo )
                 term_bold=`awk 'BEGIN { printf("%c%c%c%c", 27, 91, 49, 109); }' </dev/null 2>/dev/null`
                 term_norm=`awk 'BEGIN { printf("%c%c%c", 27, 91, 109); }' </dev/null 2>/dev/null`
                 ;;
-            vt100|vt100*)
+            vt100|vt100*|cygwin)
                 term_bold=`awk 'BEGIN { printf("%c%c%c%c%c%c", 27, 91, 49, 109, 0, 0); }' </dev/null 2>/dev/null`
                 term_norm=`awk 'BEGIN { printf("%c%c%c%c%c", 27, 91, 109, 0, 0); }' </dev/null 2>/dev/null`
                 ;;
@@ -471,7 +475,7 @@ echo )
                                 fi
                             done
                             if [ ".$term_bold" != . ]; then
-                                for seq in sgr0 me rmso reset; do # 'reset' is last
+                                for seq in sgr0 me rmso init reset; do # 'reset' is last
                                     norm="`$dir/$tool $seq 2>/dev/null`"
                                     if [ ".$norm" != . ]; then
                                         term_norm="$norm"
@@ -490,6 +494,8 @@ echo )
         esac
         if [ ".$term_bold" = . -o ".$term_norm" = . ]; then
             echo "$msgprefix:Warning: unable to determine terminal sequence for bold mode" 1>&2
+            term_bold=''
+            term_norm=''
         fi
     fi
     
@@ -768,6 +774,28 @@ install )
     ##  Originally written for shtool
     ##
     
+    #   special case: "shtool install -d <dir> [...]" internally
+    #   maps to "shtool mkdir -f -p -m 755 <dir> [...]"
+    if [ "$opt_d" = yes ]; then
+        cmd="$0 mkdir -f -p -m 755"
+        if [ ".$opt_o" != . ]; then
+            cmd="$cmd -o '$opt_o'"
+        fi
+        if [ ".$opt_g" != . ]; then
+            cmd="$cmd -g '$opt_g'"
+        fi
+        if [ ".$opt_v" = .yes ]; then
+            cmd="$cmd -v"
+        fi
+        if [ ".$opt_t" = .yes ]; then
+            cmd="$cmd -t"
+        fi
+        for dir in "$@"; do
+            eval "$cmd $dir" || exit $?
+        done
+        exit 0
+    fi
+    
     #   determine source(s) and destination
     argc=$#
     srcs=""
@@ -926,6 +954,18 @@ mkdir )
                 echo "mkdir $p" 1>&2
             fi
             mkdir $p || errstatus=$?
+            if [ ".$opt_o" != . ]; then
+                if [ ".$opt_t" = .yes ]; then
+                    echo "chown $opt_o $p" 1>&2
+                fi
+                chown $opt_o $p || errstatus=$?
+            fi
+            if [ ".$opt_g" != . ]; then
+                if [ ".$opt_t" = .yes ]; then
+                    echo "chgrp $opt_g $p" 1>&2
+                fi
+                chgrp $opt_g $p || errstatus=$?
+            fi
             if [ ".$opt_m" != . ]; then
                 if [ ".$opt_t" = .yes ]; then
                     echo "chmod $opt_m $p" 1>&2
@@ -951,6 +991,18 @@ mkdir )
                         echo "mkdir $pathcomp" 1>&2
                     fi
                     mkdir $pathcomp || errstatus=$?
+                    if [ ".$opt_o" != . ]; then
+                        if [ ".$opt_t" = .yes ]; then
+                            echo "chown $opt_o $pathcomp" 1>&2
+                        fi
+                        chown $opt_o $pathcomp || errstatus=$?
+                    fi
+                    if [ ".$opt_g" != . ]; then
+                        if [ ".$opt_t" = .yes ]; then
+                            echo "chgrp $opt_g $pathcomp" 1>&2
+                        fi
+                        chgrp $opt_g $pathcomp || errstatus=$?
+                    fi
                     if [ ".$opt_m" != . ]; then
                         if [ ".$opt_t" = .yes ]; then
                             echo "chmod $opt_m $pathcomp" 1>&2
