@@ -283,52 +283,10 @@ ldbm_back_search(
 				}
 
 				if (e) {
-					int result;
-#ifdef BROKEN_NUM_SUBORDINATES
-					/* Tack on subordinates attr */
-					ID_BLOCK *idl = NULL;
-					char CATTR_SUBS[] = "numsubordinates";
-
-					if (attrs &&
-					    charray_inlist(attrs,
-							   CATTR_SUBS))
-					{
-					    idl = dn2idl(be, e->e_ndn,
-							 DN_ONE_PREFIX);
-					    if (idl)
-					    {
-						char buf[30];
-						struct berval val, *vals[2];
-
-						vals[0] = &val;
-						vals[1] = NULL;
-
-						sprintf(buf, "%lu",
-							ID_BLOCK_NIDS(idl));
-
-						val.bv_val = buf;
-						val.bv_len = strlen(buf);
-
-						attr_merge(e, CATTR_SUBS,
-							   vals);
-					    }
-					}
-#endif
-
-					result = send_search_entry(be, conn, op,
+					int result = send_search_entry(be, conn, op,
 						e, attrs, attrsonly, NULL);
 
-#ifdef BROKEN_NUM_SUBORDINATES
-					if (idl)
-					{
-					    idl_free(idl);
-					    attr_delete(&e->e_attrs,
-							CATTR_SUBS);
-					}
-#endif
-
-					switch (result)
-					{
+					switch (result) {
 					case 0:		/* entry sent ok */
 						nentries++;
 						break;
