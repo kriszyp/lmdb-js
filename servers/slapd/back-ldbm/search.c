@@ -127,10 +127,12 @@ ldbm_back_search(
 	if (!manageDSAit && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		struct berval matched_dn;
+		BVarray erefs;
+		BVarray refs;
 
 		ber_dupbv( &matched_dn, &e->e_name );
-		BVarray erefs = get_entry_referrals( be, conn, op, e );
-		BVarray refs = NULL;
+		erefs = get_entry_referrals( be, conn, op, e );
+		refs = NULL;
 
 		cache_return_entry_r( &li->li_cache, e );
 
