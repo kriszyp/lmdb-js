@@ -99,38 +99,36 @@ int getpeereid( int s, uid_t *euid, gid_t *egid )
 		}
 	}
 #elif defined(SOCKCREDSIZE)
-        struct msghdr msg;
-        socklen_t crmsgsize;
-        void *crmsg;
-        struct cmsghdr *cmp;
-        struct sockcred *sc;
+	struct msghdr msg;
+	socklen_t crmsgsize;
+	void *crmsg;
+	struct cmsghdr *cmp;
+	struct sockcred *sc;
 
 	memset(&msg, 0, sizeof msg);
 	crmsgsize = CMSG_SPACE(SOCKCREDSIZE(NGROUPS));
-	if (crmsgsize == 0)
-	    goto sc_err;
+	if (crmsgsize == 0) goto sc_err;
 	crmsg = malloc(crmsgsize);
-	if (crmsg == NULL)
-	    goto sc_err;
+	if (crmsg == NULL) goto sc_err;
 	memset(crmsg, 0, crmsgsize);
 	
 	msg.msg_control = crmsg;
 	msg.msg_controllen = crmsgsize;
 	
 	if (recvmsg(s, &msg, 0) < 0) {
-	    free(crmsg);
-	    goto sc_err;
+		free(crmsg);
+		goto sc_err;
 	}	
 
 	if (msg.msg_controllen == 0 || (msg.msg_flags & MSG_CTRUNC) != 0) {
-	    free(crmsg);
-	    goto sc_err;
+		free(crmsg);
+		goto sc_err;
 	}	
 	
 	cmp = CMSG_FIRSTHDR(&msg);
 	if (cmp->cmsg_level != SOL_SOCKET || cmp->cmsg_type != SCM_CREDS) {
-	    printf("nocreds\n");
-	    goto sc_err;
+		printf("nocreds\n");
+		goto sc_err;
 	}	
 	
 	sc = (struct sockcred *)(void *)CMSG_DATA(cmp);
@@ -140,7 +138,8 @@ int getpeereid( int s, uid_t *euid, gid_t *egid )
 
 	free(crmsg);
 	return 0;
- sc_err:	
+
+sc_err:	
 #endif
 #endif /* LDAP_PF_LOCAL */
 

@@ -980,8 +980,8 @@ static int slap_open_listener(
 		case AF_LOCAL:
 #ifdef LOCAL_CREDS
 		{
-		    int one = 1;
-		    setsockopt(l.sl_sd, 0, LOCAL_CREDS, &one, sizeof one);
+			int one = 1;
+			setsockopt(l.sl_sd, 0, LOCAL_CREDS, &one, sizeof one);
 		}
 #endif
 		addrlen = sizeof(struct sockaddr_un);

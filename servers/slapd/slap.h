@@ -66,12 +66,12 @@ LDAP_BEGIN_DECL
 #define LDAP_SYNC_TIMESTAMP
 #define LDAP_COLLECTIVE_ATTRIBUTES
 #define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
+
+#ifdef ENABLE_REWRITE
+#define SLAP_AUTH_REWRITE	1 /* use librewrite for sasl-regexp */
+#endif
 #endif
 
-#if defined(LDAP_DEVEL) && defined(ENABLE_REWRITE)
-/* use librewrite for sasl-regexp */
-#define SLAP_AUTH_REWRITE	1
-#endif /* LDAP_DEVEL && ENABLE_REWRITE */
 
 /*
  * SLAPD Memory allocation macros
