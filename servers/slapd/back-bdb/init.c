@@ -169,13 +169,24 @@ bdb_db_open( BackendDB *be )
 
 	rc = bdb->bi_dbenv->open( bdb->bi_dbenv,
 		bdb->bi_dbenv_home,
-		flags | bdb->bi_dbenv_xflags,
+		flags,
 		bdb->bi_dbenv_mode );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_db_open: dbenv_open failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		return rc;
+	}
+
+	if( bdb->bi_dbenv_xflags != 0 ) {
+		rc = bdb->bi_dbenv->set_flags( bdb->bi_dbenv,
+			bdb->bi_dbenv_xflags, 1);
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+			    "bdb_db_open: dbenv_set_flags failed: %s (%d)\n",
+			    db_strerror(rc), rc, 0 );
+			return rc;
+		}
 	}
 
 	flags = DB_THREAD | DB_CREATE;
