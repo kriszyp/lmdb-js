@@ -247,14 +247,14 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 				oc_map->bom_oc->soc_cname.bv_val, 0 );
 	}
 
-	/* FIXME: whe need to correct the objectClass join_where 
+	/* FIXME: we need to correct the objectClass join_where 
 	 * after the attribute query is built */
 	ch_free( at_map->bam_join_where.bv_val );
 	BER_BVZERO( &bb.bb_val );
 	bb.bb_len = 0;
 	backsql_strfcat( &bb, "lbcblb",
-			(ber_len_t)STRLENOF( "ldap_entries.keyval=" ),
-				"ldap_entries.keyval=",
+			(ber_len_t)STRLENOF( /* "ldap_entries.id=ldap_entry_objclasses.entry_id AND " */ "ldap_entries.keyval=" ),
+				/* "ldap_entries.id=ldap_entry_objclasses.entry_id AND " */ "ldap_entries.keyval=",
 			&oc_map->bom_keytbl, 
 			'.', 
 			&oc_map->bom_keycol,

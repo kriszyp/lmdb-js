@@ -574,8 +574,8 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 				backsql_merge_from_tbls( bsi, &ldap_entry_objclasses );
 
 				backsql_strfcat( &bsi->bsi_flt_where, "lbl",
-						(ber_len_t)STRLENOF( "1=1 OR (ldap_entries.id=ldap_entry_objclasses.entry_id and ldap_entry_objclasses.oc_name='" /* ') */ ),
-							"1=1 OR (ldap_entries.id=ldap_entry_objclasses.entry_id and ldap_entry_objclasses.oc_name='" /* ') */,
+						(ber_len_t)STRLENOF( "1=1 OR (ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entry_objclasses.oc_name='" /* ') */ ),
+							"1=1 OR (ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entry_objclasses.oc_name='" /* ') */,
 						&bsi->bsi_oc->bom_oc->soc_cname,
 						(ber_len_t)STRLENOF( /* (' */ "')" ),
 							/* (' */ "')" );
@@ -873,6 +873,23 @@ equality_match:;
 			(void)backsql_process_filter_like( bsi, at, casefold, &bv );
 			ch_free( bv.bv_val );
 
+			break;
+		}
+
+		/* NOTE: this is required by objectClass inheritance 
+		 * and auxiliary objectClass use in filters for slightly
+		 * more efficient candidate selection. */
+		/* FIXME: a bit too many specializations to deal with
+		 * very specific cases... */
+		if ( at->bam_ad == slap_schema.si_ad_objectClass
+				|| at->bam_ad == slap_schema.si_ad_structuralObjectClass )
+		{
+			backsql_strfcat( &bsi->bsi_flt_where, "lbl",
+					(ber_len_t)STRLENOF( "(ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entry_objclasses.oc_name='" /* ') */ ),
+						"(ldap_entries.id=ldap_entry_objclasses.entry_id AND ldap_entry_objclasses.oc_name='" /* ') */,
+					filter_value,
+					(ber_len_t)STRLENOF( /* (' */ "')" ),
+						/* (' */ "')" );
 			break;
 		}
 
