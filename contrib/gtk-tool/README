@@ -1,0 +1,13 @@
+This is the first version of this README
+gtk-tool v0.5delta
+
+This package has been tested and run with the latest Gtk+/Gtk--
+OpenLDAP 1.1-devel. This thing doesn't run as it should, please
+read TODO!
+
+I really couldn't think of anything else to put here (at the moment
+that is). But please feel free to add whatever else you consider
+neccessary to understanding how this thing works. Enjoy, and I hope
+this can be useful to you in some miniscule way.
+
+Pele

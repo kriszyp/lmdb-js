@@ -1,0 +1,31 @@
+HOME_LOCATION=$(shell pwd)
+CC=	gcc
+CPLUS=	g++
+OPTS=-g -DmyDEBUG
+INCLUDES=`gtkmm-config --cflags` -I/usr/include -I/usr/local/gnome/include -I.
+LDFLAGS=`gtkmm-config --libs` -L/usr/lib -L/usr/X11/lib -L/usr/local/gnome/lib -L/usr/local/ldap/lib -lldap -llber
+LIBS=-lXext -lgtkmm -lX11 -lXt -lXxf86dga
+
+.EXPORT_ALL_VARIABLES:
+
+SOURCES=	My_Window.cc My_Scroller.cc Gtk_LdapTreeItem.cc main.cc
+OBJECTS=	My_Window.o My_Scroller.o Gtk_LdapTreeItem.o main.o
+
+################################################################################
+
+all:	$(OBJECTS) $(SOURCES)
+	$(CPLUS) $(OBJECTS) -o main $(LDFLAGS)
+	exec
+
+exec:	all
+	chmod a+x main
+	ls -al main
+
+%.o: %.c
+	$(CC) -c $(OPTS) $(INCLUDES) $<
+
+%.o: %.cc
+	$(CPLUS) -c $(OPTS) $(INCLUDES) $<
+
+clean:	
+	rm -f main a.out *.o straced core
