@@ -384,8 +384,6 @@ retry:	/* transaction retry */
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
-		default:
-			;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
@@ -407,8 +405,6 @@ retry:	/* transaction retry */
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
-		default:
-			;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
@@ -431,8 +427,6 @@ retry:	/* transaction retry */
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
-		default:
-			;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
