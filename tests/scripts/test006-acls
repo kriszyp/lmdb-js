@@ -108,9 +108,9 @@ dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
 # comment
 changetype: modify
 # comment
-add: telephonenumber
+add: ou
 # comment
-telephonenumber: +1 810 555 1212
+ou: Groups
 # comment
 EOMODS4
 

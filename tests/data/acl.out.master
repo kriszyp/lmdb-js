@@ -45,14 +45,10 @@ member: cn=Ursula Hampster, ou=Alumni Association, ou=People, o=University of
  Michigan, c=US
 member: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=Univ
  ersity of Michigan, c=US
-associateddomain: umich.edu
-requeststo: cn=Manager, o=University of Michigan, c=US
-errorsto: cn=Manager, o=University of Michigan, c=US
 owner: cn=Manager, o=University of Michigan, c=US
 cn: All Staff
-joinable: FALSE
-multilinedescription: Everyone in the sample data
-objectclass: rfc822mailgroup
+description: Everyone in the sample data
+objectclass: groupofnames
 
 dn: cn=Alumni Assoc Staff,ou=Groups,o=University of Michigan,c=US
 member: cn=Manager, o=University of Michigan, c=US
@@ -68,14 +64,10 @@ member: cn=Mark Elliot, ou=Alumni Association, ou=People, o=University of Mich
  igan, c=US
 member: cn=Ursula Hampster, ou=Alumni Association, ou=People, o=University of 
  Michigan, c=US
-associateddomain: umich.edu
-requeststo: cn=Manager, o=University of Michigan, c=US
-errorsto: cn=Manager, o=University of Michigan, c=US
 owner: cn=Manager, o=University of Michigan, c=US
-multilinedescription: All Alumni Assoc Staff
+description: All Alumni Assoc Staff
 cn: Alumni Assoc Staff
-joinable: FALSE
-objectclass: rfc822mailgroup
+objectclass: groupofnames
 
 dn: ou=Alumni Association, ou=People, o=University of Michigan, c=US
 objectclass: top
@@ -149,14 +141,10 @@ objectclass: organizationalUnit
 ou: Information Technology Divisio
 
 dn: cn=ITD Staff,ou=Groups,o=University of Michigan,c=US
-associateddomain: umich.edu
-requeststo: cn=Manager, o=University of Michigan, c=US
-errorsto: cn=Manager, o=University of Michigan, c=US
 owner: cn=Manager, o=University of Michigan, c=US
-multilinedescription: All ITD Staff
+description: All ITD Staff
 cn: ITD Staff
-joinable: FALSE
-objectclass: rfc822mailgroup
+objectclass: groupofnames
 member: cn=Manager, o=University of Michigan, c=US
 member: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=Univ
  ersity of Michigan, c=US
@@ -166,8 +154,7 @@ member: cn=John Doe, ou=Information Technology Division, ou=People, o=Universi
  ty of Michigan, c=US
 member: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of 
  Michigan, c=US
-labeledurl: http://www.itd.umich.edu ITD Home Page
-telephonenumber: +1 810 555 1212
+ou: Groups
 
 dn: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=Unive
  rsity of Michigan, c=US
