@@ -22,6 +22,7 @@
 #include <stdio.h>
 
 #include <ac/stdlib.h>
+#include <ac/string.h>
 #include <ac/signal.h>
 
 #include "slurp.h"
