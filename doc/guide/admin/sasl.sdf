@@ -20,7 +20,7 @@ themselves and then switch their identity to that of another user
 or service.
 
 This chapter assumes you have read {{Cyrus SASL for System
-Administrators}} provided with the {{PROD:Cyrus}} {{PROD::SASL}}
+Administrators}} provided with the {{PRD:Cyrus}} {{PRD:SASL}}
 package (in {{FILE:doc/sysadmin.html}}).
 
 Note that in the following text the term {{user}} is used to describe
