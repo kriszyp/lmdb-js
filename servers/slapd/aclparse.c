@@ -19,7 +19,7 @@
 static void		split(char *line, int splitchar, char **left, char **right);
 static void		acl_append(AccessControl **l, AccessControl *a);
 static void		access_append(Access **l, Access *a);
-static void		acl_usage(void);
+static void		acl_usage(void) LDAP_GCCATTR((noreturn));
 #ifdef LDAP_DEBUG
 static void		print_acl(AccessControl *a);
 static void		print_access(Access *b);

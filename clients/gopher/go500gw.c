@@ -63,10 +63,10 @@ char		*templatefile = TEMPLATEFILE;
 char		*friendlyfile = FRIENDLYFILE;
 int		rdncount = GO500GW_RDNCOUNT;
 
-static void usage	( char *name );
+static void usage	( char *name ) LDAP_GCCATTR((noreturn));
 static int  set_socket	(int port);
 static RETSIGTYPE wait4child(int sig);
-static void do_queries	(int s);
+static void do_queries	(int s)    LDAP_GCCATTR((noreturn));
 static char *pick_oc	( char **oclist );
 static int  isnonleaf	( LDAP *ld, char **oclist, char *dn );
 static void do_menu	(LDAP *ld, FILE *fp, char *dn);

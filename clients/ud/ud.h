@@ -234,7 +234,7 @@ void print_help	LDAP_P(( char *s ));
 #ifdef DEBUG
 #endif
 
-void do_commands	LDAP_P(( void ));
+void do_commands	LDAP_P(( void )) LDAP_GCCATTR((noreturn));
 void status	LDAP_P(( void ));
 void change_base	LDAP_P(( int type, char **base, char *s ));
 void initialize_client	LDAP_P(( void ));
@@ -280,7 +280,7 @@ void ka_StringToKey LDAP_P(( char *str, char *cell, des_cblock *key ));
 /* in util.c: */
 void printbase	LDAP_P(( char *lead, char *s ));
 void fetch_buffer	LDAP_P(( char *buffer, int length, FILE *where ));
-void fatal	LDAP_P(( char *s ));
+void fatal	LDAP_P(( char *s )) LDAP_GCCATTR((noreturn));
 int  isgroup	LDAP_P(( void ));
 void format	LDAP_P(( char *str, int width, int lead ));
 void format2	LDAP_P(( char *s, char *ft, char *t, int fi, int i, int w ));

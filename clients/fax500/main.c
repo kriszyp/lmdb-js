@@ -121,7 +121,7 @@ static void add_to(char ***list, int *nlist, char **new);
 static int  isgroup(LDAPMessage *e);
 static void add_error(Error **err, int *nerr, int code, char *addr, LDAPMessage *msg);
 static void add_group(char *dn, Group **list, int *nlist);
-static void unbind_and_exit(int rc);
+static void unbind_and_exit(int rc) LDAP_GCCATTR((noreturn));
 static int  group_loop(char *dn);
 static void send_group(Group *group, int ngroup);
 static int  has_attributes(LDAPMessage *e, char *attr1, char *attr2);

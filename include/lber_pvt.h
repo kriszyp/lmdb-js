@@ -30,7 +30,7 @@ ber_pvt_log_printf LDAP_P((
 	int errlvl,
 	int loglvl,
 	const char *fmt,
-	... ));
+	... )) LDAP_GCCATTR((format(printf, 3, 4)));
 
 LDAP_END_DECL
 

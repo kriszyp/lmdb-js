@@ -60,7 +60,7 @@ static LDAP	*ld;
 #define T_NEWSUPSTR		"newsuperior"
 
 
-static void usage LDAP_P(( const char *prog ));
+static void usage LDAP_P(( const char *prog )) LDAP_GCCATTR((noreturn));
 static int process_ldapmod_rec LDAP_P(( char *rbuf ));
 static int process_ldif_rec LDAP_P(( char *rbuf, int count ));
 static void addmodifyop LDAP_P(( LDAPMod ***pmodsp, int modop, char *attr,

@@ -62,10 +62,10 @@ char	*templatefile = TEMPLATEFILE;
 char	myhost[MAXHOSTNAMELEN];
 int	myport;
 
-static void usage	( char *name );
+static void usage	( char *name ) LDAP_GCCATTR((noreturn));
 static int  set_socket	(int port);
 static RETSIGTYPE wait4child(int sig);
-static void do_queries	(int s);
+static void do_queries	(int s)    LDAP_GCCATTR((noreturn));
 static void do_error	(FILE *fp, char *s);
 static void do_search	(LDAP *ld, FILE *fp, char *buf);
 static void do_read	(LDAP *ld, FILE *fp, char *dn);

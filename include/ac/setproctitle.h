@@ -19,7 +19,8 @@
 #	include <libutil.h>
 #else
 	/* use lutil version */
-	LDAP_F(void) (setproctitle) LDAP_P((const char *fmt, ...));
+	LDAP_F(void) (setproctitle) LDAP_P((const char *fmt, ...)) \
+	                            LDAP_GCCATTR((format(printf, 1, 2)));
 	LDAP_F(int) Argc;
 	LDAP_F(char) **Argv;
 #endif

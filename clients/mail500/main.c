@@ -178,7 +178,7 @@ static void add_to( char ***list, int *nlist, char **new );
 static void add_single_to( char ***list, char *new );
 static int  isgroup( LDAPMessage *e );
 static void add_error( Error **err, int *nerr, int code, char *addr, LDAPMessage *msg );
-static void unbind_and_exit( int rc );
+static void unbind_and_exit( int rc ) LDAP_GCCATTR((noreturn));
 static void send_group( Group *group, int ngroup );
 
 static int  connect_to_x500( void );
@@ -1829,7 +1829,3 @@ unbind_and_exit( int rc )
 
 	exit( rc );
 }
-
-
-
-

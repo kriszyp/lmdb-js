@@ -56,6 +56,13 @@
 #	define LDAP_F_EXPORT	extern
 #endif
 
+#if (__GNUC__) * 1000 + (__GNUC_MINOR__) >= 2006
+#	define LDAP_GCCATTR(attrs)	__attribute__(attrs)
+#else
+#	define LDAP_GCCATTR(attrs)
+#endif
+
+
 #endif /* _LDAP_CDEFS_H */
 
 /* purposely allow these to be redefined */

@@ -86,7 +86,7 @@ int kerberos_check_mutual LDAP_P(( struct ds_bind_arg *res, u_long nonce ));
  * main.c
  */
 
-RETSIGTYPE log_and_exit LDAP_P(( int exitcode ));
+RETSIGTYPE log_and_exit LDAP_P(( int exitcode )) LDAP_GCCATTR((noreturn));
 
 /*
  * message.c

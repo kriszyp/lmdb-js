@@ -76,7 +76,7 @@ extern int	ldap_syslog_level;
 
 LDAP_F(void) lutil_debug LDAP_P((
 	int debug, int level,
-	const char* fmt, ... ));
+	const char* fmt, ... )) LDAP_GCCATTR((format(printf, 3, 4)));
 
 LDAP_END_DECL
 
