@@ -62,6 +62,6 @@ ldap_back_modrdn(
 			return( -1 );
 	}
 
-	ldap_rename2_s( lc->ld, dn, newrdn, deleteoldrdn, newSuperior );
+	ldap_rename2_s( lc->ld, dn, newrdn, newSuperior, deleteoldrdn );
 	return( ldap_back_op_result( lc, op ) );
 }
