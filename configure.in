@@ -1232,7 +1232,7 @@ if test $ol_with_tls != no ; then
 	fi
 
 else
-	AC_WARN([TLS privacy protection not supported!])
+	AC_WARN([TLS data protection not supported!])
 fi
 
 if test $ol_link_tls = yes ; then
@@ -1240,7 +1240,7 @@ if test $ol_link_tls = yes ; then
 
 elif test $ol_with_tls = auto ; then
 	AC_WARN([Could not locate TLS/SSL package])
-	AC_WARN([TLS privacy protection not supported!])
+	AC_WARN([TLS data protection not supported!])
 
 elif test $ol_with_tls != no ; then
 	AC_ERROR([Could not locate TLS/SSL package])
