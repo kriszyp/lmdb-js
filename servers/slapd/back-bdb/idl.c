@@ -80,34 +80,20 @@ static void idl_check( ID *ids )
 static void idl_dump( ID *ids )
 {
 	if( BDB_IDL_IS_RANGE( ids ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, INFO, "IDL: range (%ld - %ld)\n",
-			(long) BDB_IDL_RANGE_FIRST( ids ),
-			(long) BDB_IDL_RANGE_LAST( ids ), 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"IDL: range ( %ld - %ld )\n",
 			(long) BDB_IDL_RANGE_FIRST( ids ),
 			(long) BDB_IDL_RANGE_LAST( ids ) );
-#endif
 
 	} else {
 		ID i;
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, INFO, "IDL: size %ld", (long) ids[0], 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "IDL: size %ld", (long) ids[0], 0, 0 );
-#endif
 
 		for( i=1; i<=ids[0]; i++ ) {
 			if( i % 16 == 1 ) {
 				Debug( LDAP_DEBUG_ANY, "\n", 0, 0, 0 );
 			}
-#ifdef NEW_LOGGING
-			LDAP_LOG( INDEX, INFO, "%02lx",(long)ids[i], 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "  %02lx", (long) ids[i], 0, 0 );
-#endif
 		}
 
 		Debug( LDAP_DEBUG_ANY, "\n", 0, 0, 0 );
@@ -182,12 +168,8 @@ int bdb_idl_insert( ID *ids, ID id )
 	unsigned x;
 
 #if IDL_DEBUG > 1
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, DETAIL1, "insert: %04lx at %d\n", (long) id, x, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "insert: %04lx at %d\n", (long) id, x, 0 );
 	idl_dump( ids );
-#endif
 #elif IDL_DEBUG > 0
 	idl_check( ids );
 #endif
@@ -248,12 +230,8 @@ static int idl_delete( ID *ids, ID id )
 	unsigned x = bdb_idl_search( ids, id );
 
 #if IDL_DEBUG > 1
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, DETAIL1, "delete: %04lx at %d\n", (long) id, x, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "delete: %04lx at %d\n", (long) id, x, 0 );
 	idl_dump( ids );
-#endif
 #elif IDL_DEBUG > 0
 	idl_check( ids );
 #endif
@@ -381,15 +359,9 @@ bdb_idl_cache_put(
 			ee = bdb->bi_idl_lru_tail;
 			if ( avl_delete( &bdb->bi_idl_tree, (caddr_t) ee,
 				    bdb_idl_entry_cmp ) == NULL ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( INDEX, ERR, 
-					"bdb_idl_cache_put: AVL delete failed\n", 
-					0, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY, "=> bdb_idl_cache_put: "
 					"AVL delete failed\n",
 					0, 0, 0 );
-#endif
 			}
 			IDL_LRU_DELETE( bdb, ee );
 			i++;
@@ -419,15 +391,9 @@ bdb_idl_cache_del(
 	if ( matched_idl_entry != NULL ) {
 		if ( avl_delete( &bdb->bi_idl_tree, (caddr_t) matched_idl_entry,
 				    bdb_idl_entry_cmp ) == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( INDEX, ERR, 
-				"bdb_idl_cache_del: AVL delete failed\n", 
-				0, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_cache_del: "
 				"AVL delete failed\n",
 				0, 0, 0 );
-#endif
 		}
 		--bdb->bi_idl_cache_size;
 		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
@@ -478,15 +444,9 @@ bdb_idl_fetch_key(
 
 	char keybuf[16];
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, ARGS,
-		"bdb_idl_fetch_key: %s\n", 
-		bdb_show_key( key, keybuf ), 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ARGS,
 		"bdb_idl_fetch_key: %s\n", 
 		bdb_show_key( key, keybuf ), 0, 0 );
-#endif
 
 	assert( ids != NULL );
 
@@ -505,14 +465,8 @@ bdb_idl_fetch_key(
 
 	rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
 	if( rc != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_idl_fetch_key: cursor failed: %s (%d)\n", 
-			db_strerror(rc), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
 			"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
-#endif
 		return rc;
 	}
 
@@ -537,16 +491,9 @@ bdb_idl_fetch_key(
 		/* On disk, a range is denoted by 0 in the first element */
 		if (ids[1] == 0) {
 			if (ids[0] != BDB_IDL_RANGE_SIZE) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( INDEX, ERR, 
-					"=> bdb_idl_fetch_key: range size mismatch: "
-					"expected %ld, got %ld\n", 
-					BDB_IDL_RANGE_SIZE, ids[0], 0 );
-#else
 				Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
 					"range size mismatch: expected %d, got %ld\n",
 					BDB_IDL_RANGE_SIZE, ids[0], 0 );
-#endif
 				cursor->c_close( cursor );
 				return -1;
 			}
@@ -557,14 +504,8 @@ bdb_idl_fetch_key(
 
 	rc2 = cursor->c_close( cursor );
 	if (rc2) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_idl_fetch_key: close failed: %s (%d)\n", 
-			db_strerror(rc2), rc2, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
 			"close failed: %s (%d)\n", db_strerror(rc2), rc2, 0 );
-#endif
 		return rc2;
 	}
 
@@ -572,41 +513,23 @@ bdb_idl_fetch_key(
 		return rc;
 
 	} else if( rc != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_idl_fetch_key: get failed: %s (%d)\n", 
-			db_strerror(rc), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
 			"get failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
-#endif
 		return rc;
 
 	} else if ( data.size == 0 || data.size % sizeof( ID ) ) {
 		/* size not multiple of ID size */
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_idl_fetch_key: odd size: expected %ld multiple, got %ld\n", 
-			(long) sizeof( ID ), (long) data.size, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
 			"odd size: expected %ld multiple, got %ld\n",
 			(long) sizeof( ID ), (long) data.size, 0 );
-#endif
 		return -1;
 
 	} else if ( data.size != BDB_IDL_SIZEOF(ids) ) {
 		/* size mismatch */
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_idl_fetch_key: get size mismatch: expected %ld, got %ld\n", 
-			(long) ((1 + ids[0]) * sizeof( ID )), (long) data.size, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
 			"get size mismatch: expected %ld, got %ld\n",
 			(long) ((1 + ids[0]) * sizeof( ID )), (long) data.size, 0 );
-#endif
 		return -1;
 	}
 
@@ -635,15 +558,9 @@ bdb_idl_insert_key(
 
 	{
 		char buf[16];
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ARGS,
-			"bdb_idl_insert_key: %lx %s\n", 
-			(long) id, bdb_show_key( key, buf ), 0 );
-#else
 		Debug( LDAP_DEBUG_ARGS,
 			"bdb_idl_insert_key: %lx %s\n", 
 			(long) id, bdb_show_key( key, buf ), 0 );
-#endif
 	}
 
 	assert( id != NOID );
@@ -659,14 +576,8 @@ bdb_idl_insert_key(
 
 	rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
 	if ( rc != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_idl_insert_key: cursor failed: %s (%d)\n", 
-			db_strerror(rc), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
 			"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
-#endif
 		return rc;
 	}
 	data.data = &tmp;
@@ -788,28 +699,16 @@ put1:		data.data = &id;
 	} else {
 		/* initial c_get failed, nothing was done */
 fail:
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_idl_insert_key: %s failed: %s (%d)\n", 
-			err, db_strerror(rc), rc );
-#else
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
 			"%s failed: %s (%d)\n", err, db_strerror(rc), rc );
-#endif
 		cursor->c_close( cursor );
 		return rc;
 	}
 	rc = cursor->c_close( cursor );
 	if( rc != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_idl_insert_key: c_close failed: %s (%d)\n", 
-			db_strerror(rc), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
 			"c_close failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
-#endif
 	}
 	return rc;
 }
@@ -831,15 +730,9 @@ bdb_idl_delete_key(
 
 	{
 		char buf[16];
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ARGS,
-			"bdb_idl_delete_key: %lx %s\n", 
-			(long) id, bdb_show_key( key, buf ), 0 );
-#else
 		Debug( LDAP_DEBUG_ARGS,
 			"bdb_idl_delete_key: %lx %s\n", 
 			(long) id, bdb_show_key( key, buf ), 0 );
-#endif
 	}
 	assert( id != NOID );
 
@@ -855,14 +748,8 @@ bdb_idl_delete_key(
 
 	rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
 	if ( rc != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_idl_delete_key: cursor failed: %s (%d)\n", 
-			db_strerror(rc), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
 			"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
-#endif
 		return rc;
 	}
 	/* Fetch the first data item for this key, to see if it
@@ -946,28 +833,17 @@ bdb_idl_delete_key(
 		/* initial c_get failed, nothing was done */
 fail:
 		if ( rc != DB_NOTFOUND ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_idl_delete_key: %s failed: %s (%d)\n", 
-			err, db_strerror(rc), rc );
-#else
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
 			"%s failed: %s (%d)\n", err, db_strerror(rc), rc );
-#endif
 		}
 		cursor->c_close( cursor );
 		return rc;
 	}
 	rc = cursor->c_close( cursor );
 	if( rc != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, "bdb_idl_delete_key: c_close failed: %s (%d)\n", 
-			db_strerror(rc), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_idl_delete_key: c_close failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
-#endif
 	}
 
 	return rc;

@@ -733,15 +733,9 @@ parse_idassert(
 	/* identity assertion mode */
 	if ( strcasecmp( argv[0], "idassert-mode" ) == 0 ) {
 		if ( argc != 2 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONFIG, CRIT, 
-				"%s: line %d: illegal args number %d in \"idassert-mode <args>\" line.\n",
-				fname, lineno, argc );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"%s: line %d: illegal args number %d in \"idassert-mode <args>\" line.\n",
 				fname, lineno, argc );
-#endif
 			return 1;
 		}
 
@@ -785,15 +779,9 @@ parse_idassert(
 
 				rc = dnNormalize( 0, NULL, NULL, &id, &dn, NULL );
 				if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG( CONFIG, CRIT, 
-						"%s: line %d: idassert ID \"%s\" is not a valid DN.\n",
-						fname, lineno, argv[1] );
-#else
 					Debug( LDAP_DEBUG_ANY,
 						"%s: line %d: idassert ID \"%s\" is not a valid DN\n",
 						fname, lineno, argv[1] );
-#endif
 					return 1;
 				}
 
@@ -834,15 +822,9 @@ parse_idassert(
 		ber_str2bv( argv[1], 0, 0, &dn );
 		rc = dnNormalize( 0, NULL, NULL, &dn, &li->idassert_authcDN, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONFIG, CRIT, 
-				"%s: line %d: idassert ID \"%s\" is not a valid DN.\n",
-				fname, lineno, argv[1] );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"%s: line %d: idassert ID \"%s\" is not a valid DN\n",
 				fname, lineno, argv[1] );
-#endif
 			return 1;
 		}
 
@@ -949,15 +931,9 @@ parse_idassert(
 					ber_str2bv( val, 0, 0, &dn );
 					rc = dnNormalize( 0, NULL, NULL, &dn, &li->idassert_authcDN, NULL );
 					if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-						LDAP_LOG( CONFIG, CRIT, 
-							"%s: line %d: SASL authcdn \"%s\" is not a valid DN.\n",
-							fname, lineno, val );
-#else
 						Debug( LDAP_DEBUG_ANY,
 							"%s: line %d: SASL authcdn \"%s\" is not a valid DN\n",
 							fname, lineno, val );
-#endif
 						return 1;
 					}
 

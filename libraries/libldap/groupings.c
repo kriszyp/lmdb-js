@@ -40,11 +40,7 @@ int ldap_grouping_create(
 	BerElement *ber = NULL;
 	struct berval bv = BER_BVNULL;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ENTRY, "ldap_grouping_create\n", 0,0,0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_grouping_create\n", 0, 0, 0 );
-#endif
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
@@ -90,11 +86,7 @@ int ldap_grouping_create_s(
     int     msgid;
     LDAPMessage *res;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ENTRY, "ldap_grouping_create_s\n", 0,0,0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_grouping_create_s\n", 0, 0, 0 );
-#endif
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );

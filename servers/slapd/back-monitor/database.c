@@ -111,18 +111,11 @@ monitor_subsys_database_init(
 	if ( monitor_cache_get( mi, 
 				&monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn, 
 				&e_database ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_database_init: "
-			"unable to get entry '%s'\n",
-			monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_database_init: "
 			"unable to get entry '%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val, 
 			"", "" );
-#endif
 		return( -1 );
 	}
 
@@ -175,19 +168,12 @@ monitor_subsys_database_init(
 		
 		e = str2entry( buf );
 		if ( e == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT,
-				"monitor_subsys_database_init: "
-				"unable to create entry 'cn=Database %d,%s'\n",
-				i, monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_database_init: "
 				"unable to create entry 'cn=Database %d,%s'\n%s",
 				i, 
 				monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val,
 				"" );
-#endif
 			return( -1 );
 		}
 		
@@ -273,19 +259,12 @@ monitor_subsys_database_init(
 			| MONITOR_F_SUB;
 
 		if ( monitor_cache_add( mi, e ) ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT,
-				"monitor_subsys_database_init: "
-				"unable to add entry 'cn=Database %d,%s'\n",
-				i, monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_database_init: "
 				"unable to add entry 'cn=Database %d,%s'\n",
 				i, 
 				monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val,
 				0 );
-#endif
 			return( -1 );
 		}
 

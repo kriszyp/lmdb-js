@@ -44,15 +44,9 @@ monitor_subsys_listener_init(
 			return 0;
 		}
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_listener_init: "
-			"unable to get listeners\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_listener_init: "
 			"unable to get listeners\n", 0, 0, 0 );
-#endif
 		return( -1 );
 	}
 
@@ -61,18 +55,11 @@ monitor_subsys_listener_init(
 	if ( monitor_cache_get( mi, 
 				&monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn, 
 				&e_listener ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_listener_init: "
-			"unable to get entry '%s'\n",
-			monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_listener_init: "
 			"unable to get entry '%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val, 
 			"", "" );
-#endif
 		return( -1 );
 	}
 
@@ -107,19 +94,12 @@ monitor_subsys_listener_init(
 		
 		e = str2entry( buf );
 		if ( e == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT,
-				"monitor_subsys_listener_init: "
-				"unable to create entry 'cn=Listener, %d,%s'\n",
-				i, monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_listener_init: "
 				"unable to create entry 'cn=Listener %d,%s'\n%s",
 				i,
 				monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val,
 				"" );
-#endif
 			return( -1 );
 		}
 
@@ -155,19 +135,12 @@ monitor_subsys_listener_init(
 			| MONITOR_F_SUB;
 
 		if ( monitor_cache_add( mi, e ) ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT,
-				"monitor_subsys_listener_init: "
-				"unable to add entry 'cn=Listener %d,%s'\n",
-				i, monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_listener_init: "
 				"unable to add entry 'cn=Listener %d,%s'\n",
 				i,
 				monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val,
 				0 );
-#endif
 			return( -1 );
 		}
 

@@ -74,16 +74,9 @@ limits_get(
 	assert( op );
 	assert( limit );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( SLAPD, DETAIL1, "==> limits_get: conn=%lu op=%lu dn=\"%s\"\n",
-			op->o_connid, op->o_opid,
-			BER_BVISNULL( ndn ) ? "[anonymous]" : ndn->bv_val );
- 
-#else
 	Debug( LDAP_DEBUG_TRACE, "==> limits_get: conn=%lu op=%lu dn=\"%s\"\n",
 			op->o_connid, op->o_opid,
 			BER_BVISNULL( ndn ) ? "[anonymous]" : ndn->bv_val );
-#endif
 	/*
 	 * default values
 	 */
@@ -112,33 +105,20 @@ limits_get(
 						lm[0]->lm_group_ad );
 				if ( rc == 0 ) {
 					*limit = &lm[0]->lm_limits;
-#ifdef NEW_LOGGING
-					LDAP_LOG( SLAPD, DETAIL1, "<== limits_get: type=GROUP match=EXACT "
-							"dn=\"%s\" oc=\"%s\" ad=\"%s\"\n",
-							lm[0]->lm_pat.bv_val,
-							lm[0]->lm_group_oc->soc_cname.bv_val,
-							lm[0]->lm_group_ad->ad_cname.bv_val );
-#else
 					Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=GROUP match=EXACT "
 							"dn=\"%s\" oc=\"%s\" ad=\"%s\"\n",
 							lm[0]->lm_pat.bv_val,
 							lm[0]->lm_group_oc->soc_cname.bv_val,
 							lm[0]->lm_group_ad->ad_cname.bv_val );
 
-#endif
 					return( 0 );
 				}
 			} else {
 			
 				if ( dn_match( &lm[0]->lm_pat, ndn ) ) {
 					*limit = &lm[0]->lm_limits;
-#ifdef NEW_LOGGING
-					LDAP_LOG( SLAPD, DETAIL1, "<== limits_get: type=DN match=EXACT dn=\"%s\"\n",
-							lm[0]->lm_pat.bv_val, 0, 0 );
-#else
 					Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=DN match=EXACT dn=\"%s\"\n",
 							lm[0]->lm_pat.bv_val, 0, 0 );
-#endif
 					return( 0 );
 				}
 			}
@@ -190,13 +170,8 @@ limits_get(
 				}
 
 				*limit = &lm[0]->lm_limits;
-#ifdef NEW_LOGGING
-				LDAP_LOG( SLAPD, DETAIL1, "<== limits_get: type=DN match=%s dn=\"%s\"\n",
-						limits2str( style ), lm[0]->lm_pat.bv_val, 0 );
-#else
 				Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=DN match=%s dn=\"%s\"\n",
 						limits2str( style ), lm[0]->lm_pat.bv_val, 0 );
-#endif
 				return( 0 );
 			}
 
@@ -211,26 +186,16 @@ limits_get(
 						0, NULL, 0 ) == 0 )
 			{
 				*limit = &lm[0]->lm_limits;
-#ifdef NEW_LOGGING
-				LDAP_LOG( SLAPD, DETAIL1, "<== limits_get: type=DN match=%s dn=\"%s\"\n",
-						limits2str( style ), lm[0]->lm_pat.bv_val, 0 );
-#else
 				Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=DN match=%s dn=\"%s\"\n",
 						limits2str( style ), lm[0]->lm_pat.bv_val, 0 );
-#endif
 				return( 0 );
 			}
 			break;
 
 		case SLAP_LIMITS_ANONYMOUS:
 			if ( ndn->bv_len == 0 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( SLAPD, DETAIL1, "<== limits_get: type=DN match=%s\n",
-						limits2str( style ), 0, 0 );
-#else
 				Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=DN match=%s\n",
 						limits2str( style ), 0, 0 );
-#endif
 				*limit = &lm[0]->lm_limits;
 				return( 0 );
 			}
@@ -239,13 +204,8 @@ limits_get(
 		case SLAP_LIMITS_USERS:
 			if ( ndn->bv_len != 0 ) {
 				*limit = &lm[0]->lm_limits;
-#ifdef NEW_LOGGING
-				LDAP_LOG( SLAPD, DETAIL1, "<== limits_get: type=DN match=%s\n",
-						limits2str( style ), 0, 0 );
-#else
 				Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=DN match=%s\n",
 						limits2str( style ), 0, 0 );
-#endif
 				return( 0 );
 			}
 			break;
@@ -384,16 +344,10 @@ limits_parse(
 	assert( be );
 
 	if ( argc < 3 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, CRIT, 
-			"%s : line %d: missing arg(s) in "
-			"\"limits <pattern> <limits>\" line.\n", fname, lineno, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"%s : line %d: missing arg(s) in "
 			"\"limits <pattern> <limits>\" line.\n%s",
 			fname, lineno, "" );
-#endif
 		return( -1 );
 	}
 
@@ -459,17 +413,10 @@ limits_parse(
 					pattern += STRLENOF( "level" );
 
 				} else {
-#ifdef NEW_LOGGING
-					LDAP_LOG( CONFIG, WARNING , 
-						"%s : line %d: deprecated \"one\" style "
-						"\"limits <pattern> <limits>\" line; "
-						"use \"onelevel\" instead.\n", fname, lineno, 0 );
-#else
 					Debug( LDAP_DEBUG_ANY,
 						"%s : line %d: deprecated \"one\" style "
 						"\"limits <pattern> <limits>\" line; "
 						"use \"onelevel\" instead.\n", fname, lineno, 0 );
-#endif
 				}
 
 			} else if ( strncasecmp( pattern, "sub", STRLENOF( "sub" ) ) == 0 ) {
@@ -479,17 +426,10 @@ limits_parse(
 					pattern += STRLENOF( "tree" );
 
 				} else {
-#ifdef NEW_LOGGING
-					LDAP_LOG( CONFIG, WARNING , 
-						"%s : line %d: deprecated \"sub\" style "
-						"\"limits <pattern> <limits>\" line; "
-						"use \"subtree\" instead.\n", fname, lineno, 0 );
-#else
 					Debug( LDAP_DEBUG_ANY,
 						"%s : line %d: deprecated \"sub\" style "
 						"\"limits <pattern> <limits>\" line; "
 						"use \"subtree\" instead.\n", fname, lineno, 0 );
-#endif
 				}
 
 			} else if ( strncasecmp( pattern, "children", STRLENOF( "children" ) ) == 0 ) {
@@ -521,13 +461,6 @@ limits_parse(
 
 		default:
 			if ( pattern[0] != '=' ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( CONFIG, CRIT, 
-					"%s : line %d: missing '=' in "
-					"\"dn[.{exact|base|onelevel|subtree"
-					"|children|regex|anonymous}]" "=<pattern>\" in "
-					"\"limits <pattern> <limits>\" line.\n", fname, lineno, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"%s : line %d: missing '=' in "
 					"\"dn[.{exact|base|onelevel|subtree"
@@ -536,7 +469,6 @@ limits_parse(
 					"\"limits <pattern> <limits>\" "
 					"line.\n%s",
 					fname, lineno, "" );
-#endif
 				return( -1 );
 			}
 
@@ -614,21 +546,12 @@ no_ad:;
 		flags = SLAP_LIMITS_TYPE_GROUP | SLAP_LIMITS_EXACT;
 
 		if ( pattern[0] != '=' ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONFIG, CRIT, 
-				"%s : line %d: missing '=' in "
-				"\"group[/objectClass[/attributeType]]"
-				"=<pattern>\" in "
-				"\"limits <pattern> <limits>\" line.\n",
-				fname, lineno, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"%s : line %d: missing '=' in "
 				"\"group[/objectClass[/attributeType]]"
 				"=<pattern>\" in "
 				"\"limits <pattern> <limits>\" line.\n",
 				fname, lineno, 0 );
-#endif
 			return( -1 );
 		}
 
@@ -640,17 +563,10 @@ no_ad:;
 	for ( i = 2; i < argc; i++ ) {
 		if ( limits_parse_one( argv[i], &limit ) ) {
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONFIG, CRIT, 
-				"%s : line %d: unknown limit values \"%s\" in "
-				"\"limits <pattern> <limits>\" line.\n",
-				fname, lineno, argv[i] );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"%s : line %d: unknown limit values \"%s\" in "
 				"\"limits <pattern> <limits>\" line.\n",
 			fname, lineno, argv[i] );
-#endif
 
 			return( 1 );
 		}
@@ -705,17 +621,10 @@ no_ad:;
 	rc = limits_add( be, flags, pattern, group_oc, group_ad, &limit );
 	if ( rc ) {
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, CRIT, 
-			"%s : line %d: unable to add limit in "
-			"\"limits <pattern> <limits>\" line.\n",
-			fname, lineno, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"%s : line %d: unable to add limit in "
 			"\"limits <pattern> <limits>\" line.\n",
 		fname, lineno, 0 );
-#endif
 	}
 
 	return( rc );

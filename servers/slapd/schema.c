@@ -46,13 +46,8 @@ schema_info( Entry **entry, const char **text )
 	e = (Entry *) SLAP_CALLOC( 1, sizeof(Entry) );
 	if( e == NULL ) {
 		/* Out of memory, do something about it */
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"schema_info: SLAP_CALLOC failed - out of memory.\n", 0, 0,0 );
-#else
 		Debug( LDAP_DEBUG_ANY, 
 			"schema_info: SLAP_CALLOC failed - out of memory.\n", 0, 0, 0 );
-#endif
 		*text = "out of memory";
 		return LDAP_OTHER;
 	}

@@ -40,9 +40,6 @@ slapdn( int argc, char **argv )
 	int			rc = 0;
 	const char		*progname = "slapdn";
 
-#ifdef NEW_LOGGING
-	lutil_log_initialize( argc, argv );
-#endif
 	slap_tool_init( progname, SLAPDN, argc, argv );
 
 	argv = &argv[ optind ];

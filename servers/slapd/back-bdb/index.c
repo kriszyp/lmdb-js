@@ -175,15 +175,9 @@ static int indexer(
 	rc = bdb_db_cache( op->o_bd, atname->bv_val, &db );
 	
 	if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_index_read: Could not open DB %s\n",
-			atname->bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_index_read: Could not open DB %s\n",
 			atname->bv_val, 0, 0 );
-#endif
 		return LDAP_OTHER;
 	}
 
@@ -350,14 +344,9 @@ bdb_index_entry(
 	int rc;
 	Attribute *ap = e->e_attrs;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, ENTRY, "index_entry: %s (%s) %ld\n",
-		opid == SLAP_INDEX_ADD_OP ? "add" : "del", e->e_dn, (long) e->e_id );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> index_entry_%s( %ld, \"%s\" )\n",
 		opid == SLAP_INDEX_ADD_OP ? "add" : "del",
 		(long) e->e_id, e->e_dn );
-#endif
 
 	/* add each attribute to the indexes */
 	for ( ; ap != NULL; ap = ap->a_next ) {
@@ -365,26 +354,17 @@ bdb_index_entry(
 			ap->a_nvals, e->e_id, opid );
 
 		if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( INDEX, ENTRY, 
-				"index_entry: failure (%d)\n", rc, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"<= index_entry_%s( %ld, \"%s\" ) failure\n",
 				opid == SLAP_INDEX_ADD_OP ? "add" : "del",
 				(long) e->e_id, e->e_dn );
-#endif
 			return rc;
 		}
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, ENTRY, "index_entry: success\n", 0, 0, 0  );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<= index_entry_%s( %ld, \"%s\" ) success\n",
 		opid == SLAP_INDEX_ADD_OP ? "add" : "del",
 		(long) e->e_id, e->e_dn );
-#endif
 
 	return LDAP_SUCCESS;
 }

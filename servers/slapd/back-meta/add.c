@@ -43,13 +43,8 @@ meta_back_add( Operation *op, SlapReply *rs )
 	struct berval mdn = BER_BVNULL, mapped;
 	dncookie dc;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_META, ENTRY, "meta_back_add: %s\n",
-			op->o_req_dn.bv_val, 0, 0 );
-#else /* !NEW_LOGGING */
 	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n",
 			op->o_req_dn.bv_val, 0, 0 );
-#endif /* !NEW_LOGGING */
 
 	/*
 	 * get the current connection

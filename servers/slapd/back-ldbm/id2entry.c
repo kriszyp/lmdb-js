@@ -41,24 +41,14 @@ id2entry_add( Backend *be, Entry *e )
 	ldbm_datum_init( key );
 	ldbm_datum_init( data );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, ENTRY, "id2entry_add: (%s)%ld\n", e->e_dn, e->e_id, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> id2entry_add( %ld, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
-#endif
 
 
 	if ( (db = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-		   "id2entry_add: could not open/create id2entry%s\n", 
-		   LDBM_SUFFIX, 0,0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "Could not open/create id2entry%s\n",
 		    LDBM_SUFFIX, 0, 0 );
-#endif
 
 		return( -1 );
 	}
@@ -83,11 +73,7 @@ id2entry_add( Backend *be, Entry *e )
 
 	ldbm_cache_close( be, db );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, ENTRY, "id2entry_add: return %d\n", rc, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<= id2entry_add %d\n", rc, 0, 0 );
-#endif
 
 
 	return( rc );
@@ -104,12 +90,8 @@ id2entry_delete( Backend *be, Entry *e )
 	ID		id;
 #endif
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, ENTRY, "id2entry_delete: (%s)%ld\n", e->e_dn, e->e_id, 0 );
-#else
 	Debug(LDAP_DEBUG_TRACE, "=> id2entry_delete( %ld, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
-#endif
 
 
 #ifdef notdef
@@ -123,27 +105,15 @@ id2entry_delete( Backend *be, Entry *e )
 
 	if ( (db = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, LDBM_WRCREAT ))
 		== NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			   "id2entry_delete: could not open/create id2entry%s\n",
-			   LDBM_SUFFIX, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "Could not open/create id2entry%s\n",
 		    LDBM_SUFFIX, 0, 0 );
-#endif
 
 		return( -1 );
 	}
 
 	if ( cache_delete_entry( &li->li_cache, e ) != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			   "id2entry_delete: Could not delete (%s)%ld from cache\n",
-			   e->e_dn, e->e_id, 0 );
-#else
 		Debug(LDAP_DEBUG_ANY, "could not delete %ld (%s) from cache\n",
 		    e->e_id, e->e_dn, 0 );
-#endif
 
 	}
 
@@ -159,11 +129,7 @@ id2entry_delete( Backend *be, Entry *e )
 
 	ldbm_cache_close( be, db );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, ENTRY, "id2entry_delete: return %d\n", rc, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<= id2entry_delete %d\n", rc, 0, 0 );
-#endif
 
 	return( rc );
 }
@@ -183,37 +149,21 @@ id2entry_rw( Backend *be, ID id, int rw )
 	ldbm_datum_init( key );
 	ldbm_datum_init( data );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, ENTRY, 
-		   "id2entry_rw: %s (%ld)\n", rw ? "write" : "read", id, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> id2entry_%s( %ld )\n",
 		rw ? "w" : "r", id, 0 );
-#endif
 
 
 	if ( (e = cache_find_entry_id( &li->li_cache, id, rw )) != NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, DETAIL1, 
-			   "id2entry_rw: %s (%ld) 0x%lx (cache).\n",
-			   rw ? "write" : "read", id, (unsigned long)e  );
-#else
 		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) 0x%lx (cache)\n",
 			rw ? "w" : "r", id, (unsigned long) e );
-#endif
 
 		return( e );
 	}
 
 	if ( (db = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, LDBM_WRCREAT ))
 		== NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			   "id2entry_rw: could not open id2entry%s\n", LDBM_SUFFIX, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "Could not open id2entry%s\n",
 		    LDBM_SUFFIX, 0, 0 );
-#endif
 
 		return( NULL );
 	}
@@ -229,13 +179,8 @@ id2entry_rw( Backend *be, ID id, int rw )
 	data = ldbm_cache_fetch( db, key );
 
 	if ( data.dptr == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			   "id2entry_rw: (%ld) not found\n", id, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) not found\n",
 			rw ? "w" : "r", id, 0 );
-#endif
 
 		ldbm_cache_close( be, db );
 		return( NULL );
@@ -246,13 +191,8 @@ id2entry_rw( Backend *be, ID id, int rw )
 	ldbm_cache_close( be, db );
 
 	if ( e == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			   "id2entry_rw: %s of %ld failed\n", rw ? "write" : "read", id, 0);
-#else
 		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) (failed)\n",
 			rw ? "w" : "r", id, 0 );
-#endif
 
 		return( NULL );
 	}
@@ -269,38 +209,20 @@ id2entry_rw( Backend *be, ID id, int rw )
 		 * There are many underlying race condtions in the cache/disk code.
 		 */
 		if ( (e = cache_find_entry_id( &li->li_cache, id, rw )) != NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( INDEX, DETAIL1, 
-				   "id2entry_rw: %s of %ld 0x%lx (cache)\n",
-				   rw ? "write" : "read", id, (unsigned long)e  );
-#else
 			Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) 0x%lx (cache)\n",
 				rw ? "w" : "r", id, (unsigned long) e );
-#endif
 
 			return( e );
 		}
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			   "id2entry_rw: %s of %ld (cache add failed)\n",
-			   rw ? "write" : "read", id, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) (cache add failed)\n",
 			rw ? "w" : "r", id, 0 );
-#endif
 
 		return NULL;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, ENTRY, 
-		   "id2entry_rw: %s of %ld 0x%lx (disk)\n",
-		   rw ? "write" : "read", id, (unsigned long)e  );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) 0x%lx (disk)\n",
 		rw ? "w" : "r", id, (unsigned long) e );
-#endif
 
 	if ( slapMode == SLAP_SERVER_MODE ) {
 		/* marks the entry as committed, so it will get added to the cache

@@ -46,12 +46,7 @@ do_delete(
 {
 	struct berval dn = BER_BVNULL;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ENTRY, 
-		"do_delete: conn %d\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "do_delete\n", 0, 0, 0 );
-#endif
 
 	/*
 	 * Parse the delete request.  It looks like this:
@@ -60,61 +55,34 @@ do_delete(
 	 */
 
 	if ( ber_scanf( op->o_ber, "m", &dn ) == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"do_delete: conn: %d  ber_scanf failed\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
-#endif
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"do_delete: conn %d  get_ctrls failed\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_delete: get_ctrls failed\n", 0, 0, 0 );
-#endif
 		goto cleanup;
 	} 
 
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
 		op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, 
-			"do_delete: conn %d  invalid dn (%s)\n",
-			op->o_connid, dn.bv_val, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"do_delete: invalid dn (%s)\n", dn.bv_val, 0, 0 );
-#endif
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto cleanup;
 	}
 
 	if( op->o_req_ndn.bv_len == 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, 
-			"do_delete: conn %d: Attempt to delete root DSE.\n", 
-			op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_delete: root dse!\n", 0, 0, 0 );
-#endif
 		/* protocolError would likely be a more appropriate error */
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"cannot delete the root DSE" );
 		goto cleanup;
 
 	} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_delete: conn %d: "
-			"Attempt to delete subschema subentry.\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_delete: subschema subentry!\n", 0, 0, 0 );
-#endif
 		/* protocolError would likely be a more appropriate error */
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"cannot delete the root DSE" );
@@ -192,13 +160,8 @@ fe_op_delete( Operation *op, SlapReply *rs )
 			 * A preoperation plugin failure will abort the
 			 * entire operation.
 			 */
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO, "do_delete: "
-				"delete preoperation plugin failed\n", 0, 0, 0 );
-#else
 			Debug (LDAP_DEBUG_TRACE, "do_delete: "
 				"delete preoperation plugin failed.\n", 0, 0, 0);
-#endif
 			if ( ( slapi_pblock_get( pb, SLAPI_RESULT_CODE,
 				(void *)&rs->sr_err ) != 0 ) ||
 				rs->sr_err == LDAP_SUCCESS )
@@ -310,15 +273,9 @@ fe_op_delete( Operation *op, SlapReply *rs )
 	if ( pb != NULL && slapi_int_call_plugins( op->o_bd,
 		SLAPI_PLUGIN_POST_DELETE_FN, pb ) < 0)
 	{
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO,
-			"do_delete: delete postoperation plugins failed\n",
-			0, 0, 0 );
-#else
 		Debug(LDAP_DEBUG_TRACE,
 			"do_delete: delete postoperation plugins failed\n",
 			0, 0, 0 );
-#endif
 	}
 #endif /* defined( LDAP_SLAPI ) */
 

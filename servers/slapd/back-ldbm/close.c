@@ -32,20 +32,10 @@ ldbm_back_db_close( Backend *be )
 		li->li_dbshutdown++;
 		ldap_pvt_thread_join( li->li_dbsynctid, (void *) NULL );
 	}
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, CRIT,
-		   "ldbm_back_db_close: ldbm backend syncing\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "ldbm backend syncing\n", 0, 0, 0 );
-#endif
 
 	ldbm_cache_flush_all( be );
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, CRIT,
-		   "ldbm_back_db_close: ldbm backend synch'ed\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "ldbm backend done syncing\n", 0, 0, 0 );
-#endif
 
 
 	cache_release_all( &((struct ldbminfo *) be->be_private)->li_cache );

@@ -93,13 +93,8 @@ overlay_init(void)
 	for ( i=0; funcs[i].name; i++ ) {
 		rc = funcs[i].func();
 		if ( rc ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACKEND, ERR,
-		"%s overlay setup failed, err %d\n", funcs[i].name, rc, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 		"%s overlay setup failed, err %d\n", funcs[i].name, rc, 0 );
-#endif
 			break;
 		}
 	}

@@ -52,11 +52,7 @@ do_compare(
 
 	ava.aa_desc = NULL;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ENTRY, "do_compare: conn %d\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "do_compare\n", 0, 0, 0 );
-#endif
 	/*
 	 * Parse the compare request.  It looks like this:
 	 *
@@ -70,59 +66,33 @@ do_compare(
 	 */
 
 	if ( ber_scanf( op->o_ber, "{m" /*}*/, &dn ) == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"do_compare: conn %d  ber_scanf failed\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
-#endif
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
 	if ( ber_scanf( op->o_ber, "{mm}", &desc, &value ) == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"do_compare: conn %d  get ava failed\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_compare: get ava failed\n", 0, 0, 0 );
-#endif
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
 	if ( ber_scanf( op->o_ber, /*{*/ "}" ) == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"do_compare: conn %d  ber_scanf failed\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
-#endif
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, 
-			"do_compare: conn %d  get_ctrls failed\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_compare: get_ctrls failed\n", 0, 0, 0 );
-#endif
 		goto cleanup;
 	} 
 
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
 		op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, 
-			"do_compare: conn %d  invalid dn (%s)\n",
-			op->o_connid, dn.bv_val, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"do_compare: invalid dn (%s)\n", dn.bv_val, 0, 0 );
-#endif
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto cleanup;
 	}
@@ -165,17 +135,10 @@ fe_op_compare( Operation *op, SlapReply *rs )
 	AttributeAssertion ava = *op->orc_ava;
 
 	if( strcasecmp( op->o_req_ndn.bv_val, LDAP_ROOT_DSE ) == 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ARGS, 
-			"do_compare: dn (%s) attr(%s) value (%s)\n",
-			op->o_req_dn.bv_val,
-			ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
-#else
 		Debug( LDAP_DEBUG_ARGS,
 			"do_compare: dn (%s) attr (%s) value (%s)\n",
 			op->o_req_dn.bv_val,
 			ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
-#endif
 
 		Statslog( LDAP_DEBUG_STATS,
 			"conn=%lu op=%lu CMP dn=\"%s\" attr=\"%s\"\n",
@@ -194,16 +157,9 @@ fe_op_compare( Operation *op, SlapReply *rs )
 		}
 
 	} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ARGS, 
-			"do_compare: dn (%s) attr(%s) value (%s)\n",
-			op->o_req_dn.bv_val,
-			ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
-#else
 		Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
 			op->o_req_dn.bv_val,
 			ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
-#endif
 
 		Statslog( LDAP_DEBUG_STATS,
 			"conn=%lu op=%lu CMP dn=\"%s\" attr=\"%s\"\n",
@@ -271,16 +227,9 @@ fe_op_compare( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, 
-		"do_compare: dn (%s) attr(%s) value (%s)\n",
-		op->o_req_dn.bv_val,
-		ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
-#else
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
 	    op->o_req_dn.bv_val,
 		ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
-#endif
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu CMP dn=\"%s\" attr=\"%s\"\n",
 	    op->o_connid, op->o_opid, op->o_req_dn.bv_val,
@@ -302,15 +251,9 @@ fe_op_compare( Operation *op, SlapReply *rs )
 			 * A preoperation plugin failure will abort the
 			 * entire operation.
 			 */
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO,
-				"do_compare: compare preoperation plugin failed\n",
-				0, 0, 0);
-#else
 			Debug(LDAP_DEBUG_TRACE,
 				"do_compare: compare preoperation plugin failed\n",
 				0, 0, 0);
-#endif
 			if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,
 				(void *)&rs->sr_err ) != 0 ) || rs->sr_err == LDAP_SUCCESS )
 			{
@@ -366,13 +309,8 @@ fe_op_compare( Operation *op, SlapReply *rs )
 	if ( pb != NULL && slapi_int_call_plugins( op->o_bd,
 		SLAPI_PLUGIN_POST_COMPARE_FN, pb ) < 0 )
 	{
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO,
-			"do_compare: compare postoperation plugins failed\n", 0, 0, 0 );
-#else
 		Debug(LDAP_DEBUG_TRACE,
 			"do_compare: compare postoperation plugins failed\n", 0, 0, 0 );
-#endif
 	}
 #endif /* defined( LDAP_SLAPI ) */
 

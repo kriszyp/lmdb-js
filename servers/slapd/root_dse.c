@@ -81,13 +81,8 @@ root_dse_info(
 	e = (Entry *) SLAP_CALLOC( 1, sizeof(Entry) );
 
 	if( e == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"root_dse_info: SLAP_CALLOC failed", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"root_dse_info: SLAP_CALLOC failed", 0, 0, 0 );
-#endif
 		return LDAP_OTHER;
 	}
 
@@ -245,13 +240,8 @@ int read_root_dse_file( const char *fname )
 
 	usr_attr = (Entry *) SLAP_CALLOC( 1, sizeof(Entry) );
 	if( usr_attr == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"read_root_dse_file: SLAP_CALLOC failed", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"read_root_dse_file: SLAP_CALLOC failed", 0, 0, 0 );
-#endif
 		fclose( fp );
 		return LDAP_OTHER;
 	}

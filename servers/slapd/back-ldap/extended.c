@@ -109,13 +109,8 @@ ldap_back_exop_passwd(
 
 	isproxy = ber_bvcmp( &op->o_req_ndn, &op->o_ndn );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( ACL, DETAIL1, "ldap_back_exop_passwd: \"%s\"%s\"\n",
-		op->o_req_dn.bv_val, isproxy ? " (proxy)" : "", 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_back_exop_passwd: \"%s\"%s\n",
 		op->o_req_dn.bv_val, isproxy ? " (proxy)" : "", 0 );
-#endif
 
 	if ( isproxy ) {
 		dc.rwmap = &li->rwmap;

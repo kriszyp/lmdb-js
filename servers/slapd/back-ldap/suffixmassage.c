@@ -53,15 +53,9 @@ ldap_back_dn_massage(
 		} else {
 			*res = *dn;
 		}
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDAP, DETAIL1, 
-			"[rw] %s: \"%s\" -> \"%s\"\n",
-			dc->ctx, dn->bv_val, res->bv_val );		
-#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 			"[rw] %s: \"%s\" -> \"%s\"\n",
 			dc->ctx, dn->bv_val, res->bv_val );		
-#endif /* !NEW_LOGGING */
 		rc = LDAP_SUCCESS;
 		break;
  		
@@ -147,16 +141,10 @@ ldap_back_dn_massage(
 			res->bv_val = ch_malloc( res->bv_len + 1 );
 			strncpy( res->bv_val, dn->bv_val, diff );
 			strcpy( &res->bv_val[diff], dc->rwmap->rwm_suffix_massage[i+dst].bv_val );
-#ifdef NEW_LOGGING
-			LDAP_LOG ( BACK_LDAP, ARGS, 
-				"ldap_back_dn_massage: converted \"%s\" to \"%s\"\n",
-				dn->bv_val, res->bv_val, 0 );
-#else
 			Debug( LDAP_DEBUG_ARGS,
 				"ldap_back_dn_massage:"
 				" converted \"%s\" to \"%s\"\n",
 				dn->bv_val, res->bv_val, 0 );
-#endif
 			break;
 		}
 	}

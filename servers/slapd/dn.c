@@ -686,11 +686,7 @@ dnPretty(
 	assert( val );
 	assert( out );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, ">>> dnPretty: <%s>\n", val->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, ">>> dnPretty: <%s>\n", val->bv_val, 0, 0 );
-#endif
 
 	if ( val->bv_len == 0 ) {
 		ber_dupbv_x( out, val, ctx );
@@ -732,11 +728,7 @@ dnPretty(
 		}
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, "<<< dnPretty: <%s>\n", out->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<<< dnPretty: <%s>\n", out->bv_val, 0, 0 );
-#endif
 
 	return LDAP_SUCCESS;
 }
@@ -751,11 +743,7 @@ rdnPretty(
 	assert( val );
 	assert( out );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, ">>> dnPretty: <%s>\n", val->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, ">>> dnPretty: <%s>\n", val->bv_val, 0, 0 );
-#endif
 
 	if ( val->bv_len == 0 ) {
 		ber_dupbv_x( out, val, ctx );
@@ -799,11 +787,7 @@ rdnPretty(
 		}
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, "<<< dnPretty: <%s>\n", out->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<<< dnPretty: <%s>\n", out->bv_val, 0, 0 );
-#endif
 
 	return LDAP_SUCCESS;
 }
@@ -820,15 +804,9 @@ dnPrettyNormalDN(
 	assert( val );
 	assert( dn );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, ">>> dn%sDN: <%s>\n", 
-			flags == SLAP_LDAPDN_PRETTY ? "Pretty" : "Normal", 
-			val->bv_val, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, ">>> dn%sDN: <%s>\n", 
 			flags == SLAP_LDAPDN_PRETTY ? "Pretty" : "Normal", 
 			val->bv_val, 0 );
-#endif
 
 	if ( val->bv_len == 0 ) {
 		return LDAP_SUCCESS;
@@ -875,11 +853,7 @@ dnPrettyNormal(
 	struct berval *normal,
 	void *ctx)
 {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ENTRY, ">>> dnPrettyNormal: <%s>\n", val->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, ">>> dnPrettyNormal: <%s>\n", val->bv_val, 0, 0 );
-#endif
 
 	assert( val );
 	assert( pretty );
@@ -946,13 +920,8 @@ dnPrettyNormal(
 		}
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG (OPERATION, RESULTS, "<<< dnPrettyNormal: <%s>, <%s>\n",
-		pretty->bv_val, normal->bv_val, 0  );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<<< dnPrettyNormal: <%s>, <%s>\n",
 		pretty->bv_val, normal->bv_val, 0 );
-#endif
 
 	return LDAP_SUCCESS;
 }
@@ -985,13 +954,8 @@ dnMatch(
 				value->bv_len );
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( CONFIG, ENTRY, "dnMatch: %d\n    %s\n    %s\n", 
-		match, value->bv_val, asserted->bv_val  );
-#else
 	Debug( LDAP_DEBUG_ARGS, "dnMatch %d\n\t\"%s\"\n\t\"%s\"\n",
 		match, value->bv_val, asserted->bv_val );
-#endif
 
 	*matchp = match;
 	return( LDAP_SUCCESS );
@@ -1020,13 +984,8 @@ rdnMatch(
 				value->bv_len );
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( CONFIG, ENTRY, "rdnMatch: %d\n    %s\n    %s\n", 
-		match, value->bv_val, asserted->bv_val  );
-#else
 	Debug( LDAP_DEBUG_ARGS, "rdnMatch %d\n\t\"%s\"\n\t\"%s\"\n",
 		match, value->bv_val, asserted->bv_val );
-#endif
 
 	*matchp = match;
 

@@ -36,11 +36,7 @@ key_read(
 	Datum		key;
 	ID_BLOCK		*idl;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, ENTRY, "key_read: enter\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> key_read\n", 0, 0, 0 );
-#endif
 
 
 	ldbm_datum_init( key );
@@ -49,13 +45,8 @@ key_read(
 
 	idl = idl_fetch( be, db, key );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, ENTRY, 
-		   "key_read: %ld candidates\n", idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<= index_read %ld candidates\n",
 	       idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
-#endif
 
 
 	*idout = idl;
@@ -75,13 +66,8 @@ key_change(
 	int	rc;
 	Datum	key;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, ENTRY, "key_change: %s ID %lx\n",
-		   op == SLAP_INDEX_ADD_OP ? "Add" : "Delete", (long)id, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> key_change(%s,%lx)\n",
 		op == SLAP_INDEX_ADD_OP ? "ADD":"DELETE", (long) id, 0 );
-#endif
 
 
 	ldbm_datum_init( key );
@@ -100,11 +86,7 @@ key_change(
 	ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, ENTRY, "key_change: return %d\n", rc, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<= key_change %d\n", rc, 0, 0 );
-#endif
 
 
 	ldap_pvt_thread_yield();

@@ -124,12 +124,7 @@ monitor_back_search( Operation *op, SlapReply *rs )
 	int		rc = LDAP_SUCCESS;
 	Entry		*e, *matched = NULL;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_MON, ENTRY,
-		   "monitor_back_search: enter\n", 0, 0, 0 );
-#else
 	Debug(LDAP_DEBUG_TRACE, "=> monitor_back_search\n%s%s%s", "", "", "");
-#endif
 
 
 	/* get entry with reader lock */

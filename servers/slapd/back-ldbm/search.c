@@ -49,11 +49,7 @@ ldbm_back_search(
 	struct berval	realbase = BER_BVNULL;
 	int		manageDSAit = get_manageDSAit( op );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_back_search: enter\n", 0, 0, 0 );
-#else
 	Debug(LDAP_DEBUG_TRACE, "=> ldbm_back_search\n", 0, 0, 0);
-#endif
 
 	/* grab giant lock for reading */
 	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
@@ -134,15 +130,9 @@ ldbm_back_search(
 		cache_return_entry_r( &li->li_cache, e );
 		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, INFO,
-			"ldbm_search: entry (%s) is a referral.\n",
-			e->e_dn, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"ldbm_search: entry is referral\n",
 			0, 0, 0 );
-#endif
 
 		if( erefs ) {
 			rs->sr_ref = referral_rewrite( erefs, &matched_dn,
@@ -189,13 +179,8 @@ ldbm_back_search(
 searchit:
 	if ( candidates == NULL ) {
 		/* no candidates */
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, INFO,
-			"ldbm_search: no candidates\n" , 0, 0, 0);
-#else
 		Debug( LDAP_DEBUG_TRACE, "ldbm_search: no candidates\n",
 			0, 0, 0 );
-#endif
 
 		rs->sr_err = LDAP_SUCCESS;
 		send_ldap_result( op, rs );
@@ -244,14 +229,9 @@ searchit:
 		e = id2entry_r( op->o_bd, id );
 
 		if ( e == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, INFO,
-				"ldbm_search: candidate %ld not found.\n", id, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"ldbm_search: candidate %ld not found\n",
 				id, 0, 0 );
-#endif
 
 			goto loop_continue;
 		}
@@ -306,15 +286,9 @@ searchit:
 
 			} else if ( dnIsSuffix( &e->e_nname, &realbase ) ) {
 				/* alias is within scope */
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACK_LDBM, DETAIL1,
-					"ldbm_search: alias \"%s\" in subtree\n",
-					e->e_dn, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_TRACE,
 					"ldbm_search: alias \"%s\" in subtree\n",
 					e->e_dn, 0, 0 );
-#endif
 
 				goto loop_continue;
 			}
@@ -375,15 +349,9 @@ searchit:
 				rs->sr_ref = NULL;
 
 			} else {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACK_LDBM, DETAIL2,
-					"ldbm_search: candidate referral %ld scope not okay\n",
-					id, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_TRACE,
 					"ldbm_search: candidate referral %ld scope not okay\n",
 					id, 0, 0 );
-#endif
 			}
 
 			goto loop_continue;
@@ -453,27 +421,15 @@ searchit:
 				}
 
 			} else {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACK_LDBM, DETAIL2,
-					"ldbm_search: candidate entry %ld scope not okay\n", 
-					id, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_TRACE,
 					"ldbm_search: candidate entry %ld scope not okay\n",
 					id, 0, 0 );
-#endif
 			}
 
 		} else {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, DETAIL2,
-				"ldbm_search: candidate entry %ld does not match filter\n", 
-				id, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"ldbm_search: candidate entry %ld does not match filter\n",
 				id, 0, 0 );
-#endif
 		}
 
 loop_continue:
@@ -510,12 +466,8 @@ base_candidate(
 {
 	ID_BLOCK		*idl;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, "base_candidate: base (%s)\n", e->e_dn, 0, 0 );
-#else
 	Debug(LDAP_DEBUG_TRACE, "base_candidates: base: \"%s\"\n",
 		e->e_dn, 0, 0);
-#endif
 
 
 	idl = idl_alloc( 1 );
@@ -543,15 +495,9 @@ search_candidates(
 	AttributeAssertion aa_subentry;
 #endif
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, DETAIL1,
-		"search_candidates: base (%s) scope %d deref %d\n",
-		e->e_ndn, scope, deref );
-#else
 	Debug(LDAP_DEBUG_TRACE,
 		"search_candidates: base=\"%s\" s=%d d=%d\n",
 		e->e_ndn, scope, deref );
-#endif
 
 
 	xf.f_or = filter;

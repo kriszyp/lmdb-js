@@ -45,18 +45,11 @@ monitor_subsys_sent_init(
 
 	if ( monitor_cache_get( mi,
 			&monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn, &e_sent ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_sent_init: "
-			"unable to get entry '%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to get entry '%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val, 
 			"", "" );
-#endif
 		return( -1 );
 	}
 
@@ -84,18 +77,11 @@ monitor_subsys_sent_init(
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_sent_init: "
-			"unable to create entry 'cn=Entries,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to create entry 'cn=Entries,%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val,
 			"", "" );
-#endif
 		return( -1 );
 	}
 	
@@ -112,18 +98,11 @@ monitor_subsys_sent_init(
 		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
 
 	if ( monitor_cache_add( mi, e ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_sent_init: "
-			"unable to add entry 'cn=Entries,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to add entry 'cn=Entries,%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val,
 			"", "" );
-#endif
 		return( -1 );
 	}
 	
@@ -151,18 +130,11 @@ monitor_subsys_sent_init(
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_sent_init: "
-			"unable to create entry 'cn=Referrals,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to create entry 'cn=Referrals,%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val,
 			"", "" );
-#endif
 		return( -1 );
 	}
 
@@ -179,18 +151,11 @@ monitor_subsys_sent_init(
 		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
 
 	if ( monitor_cache_add( mi, e ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_sent_init: "
-			"unable to add entry 'cn=Referrals,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to add entry 'cn=Referrals,%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val,
 			"", "" );
-#endif
 		return( -1 );
 	}
 	
@@ -218,18 +183,11 @@ monitor_subsys_sent_init(
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_sent_init: "
-			"unable to create entry 'cn=PDU,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to create entry 'cn=PDU,%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val,
 			"", "" );
-#endif
 		return( -1 );
 	}
 
@@ -246,18 +204,11 @@ monitor_subsys_sent_init(
 		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
 
 	if ( monitor_cache_add( mi, e ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_sent_init: "
-			"unable to add entry 'cn=PDU,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to add entry 'cn=PDU,%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val,
 			"", "" );
-#endif
 		return( -1 );
 	}
 	
@@ -285,18 +236,11 @@ monitor_subsys_sent_init(
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_sent_init: "
-			"unable to create entry 'cn=Bytes,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to create entry 'cn=Bytes,%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val,
 			"", "" );
-#endif
 		return( -1 );
 	}
 
@@ -313,18 +257,11 @@ monitor_subsys_sent_init(
 		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
 
 	if ( monitor_cache_add( mi, e ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_sent_init: "
-			"unable to add entry 'cn=Bytes,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to add entry 'cn=Bytes,%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val,
 			"", "" );
-#endif
 		return( -1 );
 	}
 	

@@ -43,9 +43,6 @@ slapacl( int argc, char **argv )
 	Operation		op;
 	Entry			e = { 0 };
 
-#ifdef NEW_LOGGING
-	lutil_log_initialize( argc, argv );
-#endif
 	slap_tool_init( progname, SLAPACL, argc, argv );
 
 	argv = &argv[ optind ];

@@ -120,15 +120,9 @@ slap_sl_malloc(
 	size &= ~pad;
 
 	if ((char *) sh->h_last + size >= (char *) sh->h_end ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, 
-			"slap_sl_malloc of %lu bytes failed, using ch_malloc\n",
-			(long)size, 0,0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"slap_sl_malloc of %lu bytes failed, using ch_malloc\n",
 			(long)size, 0,0 );
-#endif
 		return ch_malloc( size );
 	}
 	new = sh->h_last;
@@ -167,13 +161,8 @@ slap_sl_realloc( void *ptr, ber_len_t size, void *ctx )
 		if (new ) {
 			return new;
 		}
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"ch_realloc: reallocation of %lu bytes failed\n", (long)size, 0,0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "ch_realloc of %lu bytes failed\n",
 			(long) size, 0, 0 );
-#endif
 		assert( 0 );
 		exit( EXIT_FAILURE );
 	}

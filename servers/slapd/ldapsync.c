@@ -86,15 +86,9 @@ slap_build_sync_state_ctrl(
 	ber_free_buf( ber );
 
 	if ( ret < 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS, 
-			"slap_build_sync_ctrl: ber_flatten2 failed\n",
-			0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"slap_build_sync_ctrl: ber_flatten2 failed\n",
 			0, 0, 0 );
-#endif
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
 		return ret;
 	}
@@ -137,15 +131,9 @@ slap_build_sync_done_ctrl(
 	ber_free_buf( ber );
 
 	if ( ret < 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS, 
-			"slap_build_sync_done_ctrl: ber_flatten2 failed\n",
-			0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"slap_build_sync_done_ctrl: ber_flatten2 failed\n",
 			0, 0, 0 );
-#endif
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
 		return ret;
 	}
@@ -200,15 +188,9 @@ slap_build_sync_state_ctrl_from_slog(
 	ber_free_buf( ber );
 
 	if ( ret < 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS, 
-			"slap_build_sync_ctrl: ber_flatten2 failed\n",
-			0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"slap_build_sync_ctrl: ber_flatten2 failed\n",
 			0, 0, 0 );
-#endif
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
 		return ret;
 	}
@@ -263,15 +245,9 @@ slap_send_syncinfo(
 			ber_printf( ber, "N}" );
 			break;
 		default:
-#ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, RESULTS,
-				"slap_send_syncinfo: invalid syncinfo type (%d)\n",
-				type, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"slap_send_syncinfo: invalid syncinfo type (%d)\n",
 				type, 0, 0 );
-#endif
 			return LDAP_OTHER;
 		}
 	}
@@ -279,15 +255,9 @@ slap_send_syncinfo(
 	ret = ber_flatten2( ber, &rspdata, 0 );
 
 	if ( ret < 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS,
-			"slap_send_syncinfo: ber_flatten2 failed\n",
-			0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"slap_send_syncinfo: ber_flatten2 failed\n",
 			0, 0, 0 );
-#endif
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
 		return ret;
 	}

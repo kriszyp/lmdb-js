@@ -395,13 +395,8 @@ int get_ctrls(
 		goto return_results;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ENTRY,
-		"get_ctrls: conn %lu\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE,
 		"=> get_ctrls\n", 0, 0, 0 );
-#endif
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
 		rs->sr_err = SLAPD_DISCONNECT;
@@ -459,13 +454,8 @@ int get_ctrls(
 		c->ldctl_oid = bv.bv_val;
 
 		if( tag == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO, "get_ctrls: conn %lu get OID failed.\n",
-				op->o_connid, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get oid failed.\n",
 				0, 0, 0 );
-#endif
 
 			slap_free_ctrls( op, op->o_ctrls );
 			op->o_ctrls = NULL;
@@ -474,15 +464,9 @@ int get_ctrls(
 			goto return_results;
 
 		} else if( c->ldctl_oid == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO,
-				"get_ctrls: conn %lu got emtpy OID.\n",
-				op->o_connid, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"get_ctrls: conn %lu got emtpy OID.\n",
 				op->o_connid, 0, 0 );
-#endif
 
 			slap_free_ctrls( op, op->o_ctrls );
 			op->o_ctrls = NULL;
@@ -498,14 +482,8 @@ int get_ctrls(
 			tag = ber_scanf( ber, "b", &crit );
 
 			if( tag == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, INFO, 
-					"get_ctrls: conn %lu get crit failed.\n", 
-					op->o_connid, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get crit failed.\n",
 					0, 0, 0 );
-#endif
 				slap_free_ctrls( op, op->o_ctrls );
 				op->o_ctrls = NULL;
 				rs->sr_err = SLAPD_DISCONNECT;
@@ -521,17 +499,10 @@ int get_ctrls(
 			tag = ber_scanf( ber, "m", &c->ldctl_value );
 
 			if( tag == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, INFO, "get_ctrls: conn %lu: "
-					"%s (%scritical): get value failed.\n",
-					op->o_connid, c->ldctl_oid,
-					c->ldctl_iscritical ? "" : "non" );
-#else
 				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: conn %lu: "
 					"%s (%scritical): get value failed.\n",
 					op->o_connid, c->ldctl_oid,
 					c->ldctl_iscritical ? "" : "non" );
-#endif
 				slap_free_ctrls( op, op->o_ctrls );
 				op->o_ctrls = NULL;
 				rs->sr_err = SLAPD_DISCONNECT;
@@ -540,15 +511,9 @@ int get_ctrls(
 			}
 		}
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, 
-			"get_ctrls: conn %lu oid=\"%s\" (%scritical)\n",
-			op->o_connid, c->ldctl_oid, c->ldctl_iscritical ? "" : "non" );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"=> get_ctrls: oid=\"%s\" (%scritical)\n",
 			c->ldctl_oid, c->ldctl_iscritical ? "" : "non", 0 );
-#endif
 
 		sc = find_ctrl( c->ldctl_oid );
 		if( sc != NULL ) {
@@ -648,15 +613,9 @@ next_ctrl:;
 	}
 
 return_results:
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, RESULTS, 
-		"get_ctrls: n=%d rc=%d err=\"%s\"\n",
-		nctrls, rs->sr_err, rs->sr_text ? rs->sr_text : "" );
-#else
 	Debug( LDAP_DEBUG_TRACE,
 		"<= get_ctrls: n=%d rc=%d err=\"%s\"\n",
 		nctrls, rs->sr_err, rs->sr_text ? rs->sr_text : "");
-#endif
 
 	if( sendres && rs->sr_err != LDAP_SUCCESS ) {
 		if( rs->sr_err == SLAPD_DISCONNECT ) {
@@ -736,30 +695,16 @@ static int parseProxyAuthz (
 		? SLAP_CRITICAL_CONTROL
 		: SLAP_NONCRITICAL_CONTROL;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, 
-		"parseProxyAuthz: conn %lu authzid=\"%s\"\n", 
-		op->o_connid,
-		ctrl->ldctl_value.bv_len ?  ctrl->ldctl_value.bv_val : "anonymous",
-		0 );
-#else
 	Debug( LDAP_DEBUG_ARGS,
 		"parseProxyAuthz: conn %lu authzid=\"%s\"\n", 
 		op->o_connid,
 		ctrl->ldctl_value.bv_len ?  ctrl->ldctl_value.bv_val : "anonymous",
 		0 );
-#endif
 
 	if( ctrl->ldctl_value.bv_len == 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, RESULTS, 
-			"parseProxyAuthz: conn=%lu anonymous\n", 
-			op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"parseProxyAuthz: conn=%lu anonymous\n", 
 			op->o_connid, 0, 0 );
-#endif
 
 		/* anonymous */
 		free( op->o_dn.bv_val );
@@ -785,17 +730,10 @@ static int parseProxyAuthz (
 		return LDAP_PROXY_AUTHZ_FAILURE;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, RESULTS, 
-		"parseProxyAuthz: conn=%lu \"%s\"\n", 
-		op->o_connid,
-		dn.bv_len ? dn.bv_val : "(NULL)", 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE,
 		"parseProxyAuthz: conn=%lu \"%s\"\n", 
 		op->o_connid,
 		dn.bv_len ? dn.bv_val : "(NULL)", 0 );
-#endif
 
 	rc = slap_sasl_authorized( op, &op->o_ndn, &dn );
 
@@ -1011,14 +949,8 @@ static int parseAssert (
 #ifdef LDAP_DEBUG
 	filter2bv_x( op, op->o_assertion, &fstr );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, 
-		"parseAssert: conn %ld assert: %s\n", 
-		op->o_connid, fstr.bv_len ? fstr.bv_val : "empty" , 0 );
-#else
 	Debug( LDAP_DEBUG_ARGS, "parseAssert: conn %ld assert: %s\n",
 		op->o_connid, fstr.bv_len ? fstr.bv_val : "empty" , 0 );
-#endif
 	op->o_tmpfree( fstr.bv_val, op->o_tmpmemctx );
 #endif
 
@@ -1184,14 +1116,8 @@ int parseValuesReturnFilter (
 		vrFilter2bv( op, op->o_vrFilter, &fstr );
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, 
-		"parseValuesReturnFilter: conn %d	vrFilter: %s\n", 
-		op->o_connid, fstr.bv_len ? fstr.bv_val : "empty" , 0 );
-#else
 	Debug( LDAP_DEBUG_ARGS, "	vrFilter: %s\n",
 		fstr.bv_len ? fstr.bv_val : "empty", 0, 0 );
-#endif
 	op->o_tmpfree( fstr.bv_val, op->o_tmpmemctx );
 #endif
 

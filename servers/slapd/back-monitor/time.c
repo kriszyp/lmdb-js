@@ -48,18 +48,11 @@ monitor_subsys_time_init(
 
 	if ( monitor_cache_get( mi,
 			&monitor_subsys[SLAPD_MONITOR_TIME].mss_ndn, &e_time ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_time_init: "
-			"unable to get entry '%s'\n",
-			monitor_subsys[SLAPD_MONITOR_TIME].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
 			"unable to get entry '%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_TIME].mss_ndn.bv_val, 
 			"", "" );
-#endif
 		return( -1 );
 	}
 
@@ -87,18 +80,11 @@ monitor_subsys_time_init(
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_time_init: "
-			"unable to create entry 'cn=Start,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_TIME].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
 			"unable to create entry 'cn=Start,%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_TIME].mss_ndn.bv_val,
 			"", "" );
-#endif
 		return( -1 );
 	}
 	
@@ -111,18 +97,11 @@ monitor_subsys_time_init(
 		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
 
 	if ( monitor_cache_add( mi, e ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_time_init: "
-			"unable to add entry 'cn=Start,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_TIME].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
 			"unable to add entry 'cn=Start,%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_TIME].mss_ndn.bv_val,
 			"", "" );
-#endif
 		return( -1 );
 	}
 	
@@ -153,18 +132,11 @@ monitor_subsys_time_init(
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_time_init: "
-			"unable to create entry 'cn=Current,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_TIME].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
 			"unable to create entry 'cn=Current,%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_TIME].mss_ndn.bv_val,
 			"", "" );
-#endif
 		return( -1 );
 	}
 
@@ -177,18 +149,11 @@ monitor_subsys_time_init(
 		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
 
 	if ( monitor_cache_add( mi, e ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_time_init: "
-			"unable to add entry 'cn=Current,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_TIME].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_time_init: "
 			"unable to add entry 'cn=Current,%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_TIME].mss_ndn.bv_val,
 			"", "" );
-#endif
 		return( -1 );
 	}
 	

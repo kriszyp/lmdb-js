@@ -55,11 +55,7 @@ do_add( Operation *op, SlapReply *rs )
 	Modifications	**modtail = &modlist;
 	Modifications	tmp;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ENTRY, "do_add: conn %d enter\n", op->o_connid,0,0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
-#endif
 	/*
 	 * Parse the add request.  It looks like this:
 	 *
@@ -74,12 +70,7 @@ do_add( Operation *op, SlapReply *rs )
 
 	/* get the name */
 	if ( ber_scanf( ber, "{m", /*}*/ &dn ) == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"do_add: conn %d ber_scanf failed\n", op->o_connid,0,0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
-#endif
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
@@ -90,12 +81,7 @@ do_add( Operation *op, SlapReply *rs )
 		op->o_tmpmemctx );
 
 	if( rs->sr_err != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"do_add: conn %d invalid dn (%s)\n", op->o_connid, dn.bv_val, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn.bv_val, 0, 0 );
-#endif
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto done;
 	}
@@ -103,12 +89,7 @@ do_add( Operation *op, SlapReply *rs )
 	ber_dupbv( &e->e_name, &op->o_req_dn );
 	ber_dupbv( &e->e_nname, &op->o_req_ndn );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, 
-		"do_add: conn %d  dn (%s)\n", op->o_connid, e->e_dn, 0 );
-#else
 	Debug( LDAP_DEBUG_ARGS, "do_add: dn (%s)\n", e->e_dn, 0, 0 );
-#endif
 
 	/* get the attrs */
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
@@ -122,26 +103,15 @@ do_add( Operation *op, SlapReply *rs )
 		rtag = ber_scanf( ber, "{m{W}}", &tmp.sml_type, &tmp.sml_values );
 
 		if ( rtag == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ERR, 
-				"do_add: conn %d decoding error \n", op->o_connid, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "do_add: decoding error\n", 0, 0, 0 );
-#endif
 			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 			rs->sr_err = SLAPD_DISCONNECT;
 			goto done;
 		}
 
 		if ( tmp.sml_values == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO, 
-				"do_add: conn %d	 no values for type %s\n",
-				op->o_connid, tmp.sml_type.bv_val, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "no values for type %s\n",
 				tmp.sml_type.bv_val, 0, 0 );
-#endif
 			send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
 				"no values for attribute type" );
 			goto done;
@@ -160,24 +130,14 @@ do_add( Operation *op, SlapReply *rs )
 	}
 
 	if ( ber_scanf( ber, /*{*/ "}") == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"do_add: conn %d ber_scanf failed\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
-#endif
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		rs->sr_err = SLAPD_DISCONNECT;
 		goto done;
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, 
-			"do_add: conn %d get_ctrls failed\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
-#endif
 		goto done;
 	} 
 
@@ -400,12 +360,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 			}
 		}
 #endif
-#ifdef NEW_LOGGING
-	    LDAP_LOG( OPERATION, INFO, 
-		       "do_add: conn %d	 no backend support\n", op->o_connid, 0, 0 );
-#else
 	    Debug( LDAP_DEBUG_ARGS, "	 do_add: no backend support\n", 0, 0, 0 );
-#endif
 	    send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"operation not supported within namingContext" );
 	}
@@ -687,15 +642,9 @@ static int call_add_preop_plugins( Operation *op )
 		 * A preoperation plugin failure will abort the
 		 * entire operation.
 		 */
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO,
-			"do_add: add preoperation plugin failed\n",
-			0, 0, 0);
-#else
 		Debug(LDAP_DEBUG_TRACE,
 			"do_add: add preoperation plugin failed.\n",
 			0, 0, 0);
-#endif
 
 		if (( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,
 			(void *)&rc ) != 0 ) || rc == LDAP_SUCCESS )
@@ -715,15 +664,9 @@ static void call_add_postop_plugins( Operation *op )
 
 	rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_ADD_FN, op->o_pb );
 	if ( rc < 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO,
-			"do_add: add postoperation plugin failed\n",
-			0, 0, 0);
-#else
 		Debug(LDAP_DEBUG_TRACE,
 			"do_add: add postoperation plugin failed\n",
 			0, 0, 0);
-#endif
 	}
 }
 #endif /* LDAP_SLAPI */

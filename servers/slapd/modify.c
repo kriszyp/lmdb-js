@@ -52,11 +52,7 @@ do_modify(
 	Modifications	**modtail = &modlist;
 	int		increment = 0;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ENTRY, "do_modify: enter\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "do_modify\n", 0, 0, 0 );
-#endif
 
 	/*
 	 * Parse the modify request.  It looks like this:
@@ -78,21 +74,13 @@ do_modify(
 	 */
 
 	if ( ber_scanf( op->o_ber, "{m" /*}*/, &dn ) == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, "do_modify: ber_scanf failed\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_modify: ber_scanf failed\n", 0, 0, 0 );
-#endif
 
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, "do_modify: dn (%s)\n", dn.bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn.bv_val, 0, 0 );
-#endif
 
 	/* collect modifications & save for later */
 	for ( tag = ber_first_element( op->o_ber, &len, &last );
@@ -125,15 +113,9 @@ do_modify(
 		switch( mop ) {
 		case LDAP_MOD_ADD:
 			if ( mod->sml_values == NULL ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, ERR, 
-					"do_modify: modify/add operation (%ld) requires values\n",
-					(long)mop, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"do_modify: modify/add operation (%ld) requires values\n",
 					(long) mop, 0, 0 );
-#endif
 
 				send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
 					"modify/add operation requires values" );
@@ -150,15 +132,9 @@ do_modify(
 			if( op->o_protocol >= LDAP_VERSION3 ) {
 				increment++;
 				if ( mod->sml_values == NULL ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG( OPERATION, ERR, "do_modify: "
-						"modify/increment operation (%ld) requires value\n",
-						(long)mop, 0, 0 );
-#else
 					Debug( LDAP_DEBUG_ANY, "do_modify: "
 						"modify/increment operation (%ld) requires value\n",
 						(long) mop, 0, 0 );
-#endif
 
 					send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
 						"modify/increment operation requires value" );
@@ -166,15 +142,9 @@ do_modify(
 				}
 
 				if( mod->sml_values[1].bv_val ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG( OPERATION, ERR, "do_modify: modify/increment "
-						"operation (%ld) requires single value\n",
-						(long)mop, 0, 0 );
-#else
 					Debug( LDAP_DEBUG_ANY, "do_modify: modify/increment "
 						"operation (%ld) requires single value\n",
 						(long) mop, 0, 0 );
-#endif
 
 					send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
 						"modify/increment operation requires single value" );
@@ -186,15 +156,9 @@ do_modify(
 			/* fall thru */
 
 		default: {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, ERR, 
-					"do_modify: unrecognized modify operation (%ld)\n",
-					(long)mop, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"do_modify: unrecognized modify operation (%ld)\n",
 					(long) mop, 0, 0 );
-#endif
 
 				send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
 					"unrecognized modify operation" );
@@ -207,11 +171,7 @@ do_modify(
 	*modtail = NULL;
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, "do_modify: get_ctrls failed\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
-#endif
 
 		goto cleanup;
 	}
@@ -219,13 +179,8 @@ do_modify(
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
 		op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_modify: conn %d  invalid dn (%s)\n",
-			op->o_connid, dn.bv_val, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"do_modify: invalid dn (%s)\n", dn.bv_val, 0, 0 );
-#endif
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto cleanup;
 	}
@@ -262,24 +217,14 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	int		increment = op->orm_increment;
 	
 	if( op->o_req_ndn.bv_len == 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"do_modify: attempt to modify root DSE.\n",0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_modify: root dse!\n", 0, 0, 0 );
-#endif
 
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"modify upon the root DSE not supported" );
 		goto cleanup;
 
 	} else if ( bvmatch( &op->o_req_ndn, &frontendDB->be_schemandn ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"do_modify: attempt to modify subschema subentry.\n" , 0, 0, 0  );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_modify: subschema subentry!\n", 0, 0, 0 );
-#endif
 
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"modification of subschema subentry not supported" );
@@ -287,31 +232,9 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	}
 
 #ifdef LDAP_DEBUG
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, DETAIL1, "do_modify: modifications:\n", 0, 0, 0  );
-#else
 	Debug( LDAP_DEBUG_ARGS, "modifications:\n", 0, 0, 0 );
-#endif
 
 	for ( tmp = modlist; tmp != NULL; tmp = tmp->sml_next ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, DETAIL1, "\t%s:  %s\n", 
-			tmp->sml_op == LDAP_MOD_ADD ? "add" :
-				(tmp->sml_op == LDAP_MOD_INCREMENT ? "increment" :
-					(tmp->sml_op == LDAP_MOD_DELETE ? "delete" :
-						"replace")), tmp->sml_type.bv_val, 0 );
-
-		if ( tmp->sml_values == NULL ) {
-			LDAP_LOG( OPERATION, DETAIL1, "\t\tno values", 0, 0, 0 );
-		} else if ( tmp->sml_values[0].bv_val == NULL ) {
-			LDAP_LOG( OPERATION, DETAIL1, "\t\tzero values", 0, 0, 0 );
-		} else if ( tmp->sml_values[1].bv_val == NULL ) {
-			LDAP_LOG( OPERATION, DETAIL1, "\t\tone value", 0, 0, 0 );
-		} else {
-			LDAP_LOG( OPERATION, DETAIL1, "\t\tmultiple values", 0, 0, 0 );
-		}
-
-#else
 		Debug( LDAP_DEBUG_ARGS, "\t%s: %s\n",
 			tmp->sml_op == LDAP_MOD_ADD ? "add" :
 				(tmp->sml_op == LDAP_MOD_INCREMENT ? "increment" :
@@ -331,7 +254,6 @@ fe_op_modify( Operation *op, SlapReply *rs )
 			Debug( LDAP_DEBUG_ARGS, "%s\n",
 			   "\t\tmultiple values", NULL, NULL );
 		}
-#endif
 	}
 
 	if ( StatslogTest( LDAP_DEBUG_STATS ) ) {
@@ -439,15 +361,9 @@ fe_op_modify( Operation *op, SlapReply *rs )
 			 * A preoperation plugin failure will abort the
 			 * entire operation.
 			 */
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO,
-				"do_modify: modify preoperation plugin failed\n",
-				0, 0, 0 );
-#else
 			Debug(LDAP_DEBUG_TRACE,
 				"do_modify: modify preoperation plugin failed.\n",
 				0, 0, 0);
-#endif
 			if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,
 				(void *)&rs->sr_err ) != 0 ) || rs->sr_err == LDAP_SUCCESS )
 			{
@@ -559,13 +475,8 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	if ( pb != NULL && slapi_int_call_plugins( op->o_bd,
 		SLAPI_PLUGIN_POST_MODIFY_FN, pb ) < 0 )
 	{
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO,
-			"do_modify: modify postoperation plugins failed\n", 0, 0, 0 );
-#else
 		Debug(LDAP_DEBUG_TRACE,
 			"do_modify: modify postoperation plugins failed.\n", 0, 0, 0);
-#endif
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
@@ -760,15 +671,9 @@ int slap_mods_check(
 						ad->ad_type->sat_equality,
 						&ml->sml_values[nvals], &ml->sml_nvalues[nvals], ctx );
 					if( rc ) {
-#ifdef NEW_LOGGING
-						LDAP_LOG( OPERATION, DETAIL1,
-							"str2entry:  NULL (ssyn_normalize %d)\n",
-							rc, 0, 0 );
-#else
 						Debug( LDAP_DEBUG_ANY,
 							"<= str2entry NULL (ssyn_normalize %d)\n",
 							rc, 0, 0 );
-#endif
 						snprintf( textbuf, textlen,
 							"%s: value #%ld normalization failed",
 							ml->sml_type.bv_val, (long) nvals );

@@ -68,13 +68,8 @@ ldbm_back_compare(
 		/* entry is a referral, don't allow add */
 		rs->sr_ref = get_entry_referrals( op, e );
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, INFO, 
-			"ldbm_back_compare: entry (%s) is a referral.\n", e->e_dn, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 		    0, 0 );
-#endif
 
 
 		rs->sr_err = LDAP_REFERRAL;

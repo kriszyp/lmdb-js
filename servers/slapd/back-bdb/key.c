@@ -38,11 +38,7 @@ bdb_key_read(
 	int rc;
 	DBT key;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, ENTRY, "key_read: enter\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> key_read\n", 0, 0, 0 );
-#endif
 
 	DBTzero( &key );
 	bv2DBT(k,&key);
@@ -52,20 +48,11 @@ bdb_key_read(
 	rc = bdb_idl_fetch_key( be, db, txn, &key, ids );
 
 	if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, "bdb_key_read: failed (%d)\n", rc, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_index_read: failed (%d)\n",
 			rc, 0, 0 );
-#endif
 	} else {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, DETAIL1, 
-			"bdb_key_read: %ld candidates\n", (long)BDB_IDL_N(ids), 0, 0);
-#else
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_index_read %ld candidates\n",
 			(long) BDB_IDL_N(ids), 0, 0 );
-#endif
 	}
 
 	return rc;
@@ -85,13 +72,8 @@ bdb_key_change(
 	int	rc;
 	DBT	key;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, ENTRY, "key_change: %s ID %lx\n",
-		op == SLAP_INDEX_ADD_OP ? "Add" : "Delete", (long) id, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> key_change(%s,%lx)\n",
 		op == SLAP_INDEX_ADD_OP ? "ADD":"DELETE", (long) id, 0 );
-#endif
 
 	DBTzero( &key );
 	bv2DBT(k,&key);
@@ -108,11 +90,7 @@ bdb_key_change(
 		if ( rc == DB_NOTFOUND ) rc = 0;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( INDEX, RESULTS, "key_change: return %d\n", rc, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<= key_change %d\n", rc, 0, 0 );
-#endif
 
 	return rc;
 }

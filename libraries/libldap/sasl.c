@@ -74,11 +74,7 @@ ldap_sasl_bind(
 	int rc;
 	ber_int_t id;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( TRANSPORT, ENTRY, "ldap_sasl_bind\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_sasl_bind\n", 0, 0, 0 );
-#endif
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
@@ -177,11 +173,7 @@ ldap_sasl_bind_s(
 	LDAPMessage	*result;
 	struct berval	*scredp = NULL;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( TRANSPORT, ENTRY, "ldap_sasl_bind_s\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_sasl_bind_s\n", 0, 0, 0 );
-#endif
 
 	/* do a quick !LDAPv3 check... ldap_sasl_bind will do the rest. */
 	if( servercredp != NULL ) {
@@ -263,11 +255,7 @@ ldap_parse_sasl_bind_result(
 	ber_tag_t tag;
 	BerElement	*ber;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( TRANSPORT, ENTRY, "ldap_parse_sasl_bind_result\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_parse_sasl_bind_result\n", 0, 0, 0 );
-#endif
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
@@ -376,11 +364,7 @@ ldap_pvt_sasl_getmechs ( LDAP *ld, char **pmechlist )
 	char **values, *mechlist;
 	int rc;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( TRANSPORT, ENTRY, "ldap_pvt_sasl_getmech\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_pvt_sasl_getmech\n", 0, 0, 0 );
-#endif
 
 	rc = ldap_search_s( ld, "", LDAP_SCOPE_BASE,
 		NULL, attrs, 0, &res );
@@ -470,28 +454,16 @@ ldap_sasl_interactive_bind_s(
 			goto done;
 		}
 
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TRANSPORT, DETAIL1, 
-			"ldap_sasl_interactive_bind_s: server supports: %s\n", 
-			smechs, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_sasl_interactive_bind_s: server supports: %s\n",
 			smechs, 0, 0 );
-#endif
 
 		mechs = smechs;
 
 	} else {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TRANSPORT, DETAIL1, 
-			"ldap_sasl_interactive_bind_s: user selected: %s\n",
-			mechs, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_sasl_interactive_bind_s: user selected: %s\n",
 			mechs, 0, 0 );
-#endif
 	}
 
 	rc = ldap_int_sasl_bind( ld, dn, mechs,

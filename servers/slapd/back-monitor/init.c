@@ -436,13 +436,8 @@ monitor_back_db_init(
 	 * database monitor can be defined once only
 	 */
 	if ( be_monitor ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"only one monitor backend is allowed\n", 0, 0, 0);
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"only one monitor backend is allowed\n", 0, 0, 0 );
-#endif
 		return( -1 );
 	}
 	be_monitor = be;
@@ -455,15 +450,9 @@ monitor_back_db_init(
 
 	rc = dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL );
 	if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"unable to normalize monitor DN \"%s\"\n",
-			SLAPD_MONITOR_DN, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"unable to normalize monitor DN \"%s\"\n",
 			SLAPD_MONITOR_DN, 0, 0 );
-#endif
 		return -1;
 	}
 
@@ -473,13 +462,8 @@ monitor_back_db_init(
 
 	mi = ( struct monitorinfo * )ch_calloc( sizeof( struct monitorinfo ), 1 );
 	if ( mi == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"unable to initialize monitor backend\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"unable to initialize monitor backend\n", 0, 0, 0 );
-#endif
 		return -1;
 	}
 
@@ -513,15 +497,9 @@ monitor_back_db_init(
 #endif /* INTEGRATE_CORE_SCHEMA */
 
 		default:
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT,
-				"monitor_back_db_init: %s: %s\n",
-				mat_core[i].name, text, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_back_db_init: %s: %s\n",
 				mat_core[i].name, text, 0 );
-#endif
 			return( -1 );
 		}
 	}
@@ -536,42 +514,24 @@ monitor_back_db_init(
 		at = ldap_str2attributetype( mat[i].schema, &code,
 			&err, LDAP_SCHEMA_ALLOW_ALL );
 		if ( !at ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT, "monitor_back_db_init: "
-				"in AttributeType '%s' %s before %s\n",
-				mat[i].name, ldap_scherr2str(code), err );
-#else
 			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
 				"in AttributeType '%s' %s before %s\n",
 				mat[i].name, ldap_scherr2str(code), err );
-#endif
 			return -1;
 		}
 
 		if ( at->at_oid == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT, "monitor_back_db_init: "
-				"null OID for attributeType '%s'\n",
-				mat[i].name, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
 				"null OID for attributeType '%s'\n",
 				mat[i].name, 0, 0 );
-#endif
 			return -1;
 		}
 
 		code = at_add(at, &err);
 		if ( code ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT, "monitor_back_db_init: "
-				"%s in attributeType '%s'\n",
-				scherr2str(code), mat[i].name, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
 				"%s in attributeType '%s'\n",
 				scherr2str(code), mat[i].name, 0 );
-#endif
 			return -1;
 		}
 		ldap_memfree(at);
@@ -579,13 +539,8 @@ monitor_back_db_init(
 		ad = ((AttributeDescription **)&(((char *)mi)[mat[i].offset]));
 		ad[0] = NULL;
 		if ( slap_str2ad( mat[i].name, ad, &text ) ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT,
-				"monitor_back_db_init: %s\n", text, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_back_db_init: %s\n", text, 0, 0 );
-#endif
 			return -1;
 		}
 
@@ -601,44 +556,25 @@ monitor_back_db_init(
 		oc = ldap_str2objectclass(moc[i].schema, &code, &err,
 				LDAP_SCHEMA_ALLOW_ALL );
 		if ( !oc ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT,
-				"unable to parse monitor objectclass '%s': "
-				"%s before %s\n" , moc[i].name,
-				ldap_scherr2str(code), err );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"unable to parse monitor objectclass '%s': "
 				"%s before %s\n" , moc[i].name,
 				ldap_scherr2str(code), err );
-#endif
 			return -1;
 		}
 
 		if ( oc->oc_oid == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT,
-				"objectclass '%s' has no OID\n" ,
-				moc[i].name, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"objectclass '%s' has no OID\n" ,
 				moc[i].name, 0, 0 );
-#endif
 			return -1;
 		}
 
 		code = oc_add(oc, 0, &err);
 		if ( code ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT,
-				"objectclass '%s': %s \"%s\"\n" ,
-				moc[i].name, scherr2str(code), err );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"objectclass '%s': %s \"%s\"\n" ,
 				moc[i].name, scherr2str(code), err );
-#endif
 			return -1;
 		}
 
@@ -646,15 +582,9 @@ monitor_back_db_init(
 
 		Oc = oc_find( moc[i].name );
 		if ( Oc == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT, "monitor_back_db_init: "
-					"unable to find objectClass %s "
-					"(just added)\n", moc[i].name, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
 					"unable to find objectClass %s "
 					"(just added)\n", moc[i].name, 0, 0 );
-#endif
 			return -1;
 		}
 
@@ -734,15 +664,9 @@ monitor_back_db_open(
 		rc = dnPretty( NULL, &dn, &monitor_subsys[ i ].mss_rdn, NULL );
 		free( dn.bv_val );
 		if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT,
-				"monitor RDN \"%s\" is invalid\n", 
-				dn.bv_val, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor RDN \"%s\" is invalid\n", 
 				dn.bv_val, 0, 0 );
-#endif
 			return( -1 );
 		}
 
@@ -754,15 +678,9 @@ monitor_back_db_open(
 			&monitor_subsys[ i ].mss_ndn, NULL );
 		free( dn.bv_val );
 		if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT,
-				"monitor DN \"%s\" is invalid\n", 
-				dn.bv_val, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor DN \"%s\" is invalid\n", 
 				dn.bv_val, 0, 0 );
-#endif
 			return( -1 );
 		}
 
@@ -787,15 +705,9 @@ monitor_back_db_open(
 		e = str2entry( buf );
 		
 		if ( e == NULL) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT,
-				"unable to create '%s' entry\n", 
-				monitor_subsys[ i ].mss_dn.bv_val, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"unable to create '%s' entry\n", 
 				monitor_subsys[ i ].mss_dn.bv_val, 0, 0 );
-#endif
 			return( -1 );
 		}
 
@@ -807,15 +719,9 @@ monitor_back_db_open(
 		mp->mp_flags = monitor_subsys[ i ].mss_flags;
 
 		if ( monitor_cache_add( mi, e ) ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT,
-				"unable to add entry '%s' to cache\n",
-				monitor_subsys[ i ].mss_dn.bv_val, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"unable to add entry '%s' to cache\n",
 				monitor_subsys[ i ].mss_dn.bv_val, 0, 0 );
-#endif
 			return -1;
 		}
 
@@ -856,15 +762,9 @@ monitor_back_db_open(
 
 	e = str2entry( buf );
 	if ( e == NULL) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"unable to create '%s' entry\n",
-			SLAPD_MONITOR_DN, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"unable to create '%s' entry\n",
 			SLAPD_MONITOR_DN, 0, 0 );
-#endif
 		return( -1 );
 	}
 
@@ -878,29 +778,17 @@ monitor_back_db_open(
 
 	if ( attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
 				&bv, NULL ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"unable to add monitoredInfo to '%s' entry\n",
-			SLAPD_MONITOR_DN, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"unable to add monitoredInfo to '%s' entry\n",
 			SLAPD_MONITOR_DN, 0, 0 );
-#endif
 		return( -1 );
 	}
 
 	if ( mi->mi_l.bv_len ) {
 		if ( attr_merge_normalize_one( e, mi->mi_ad_l, &mi->mi_l, NULL ) ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, CRIT,
-				"unable to add locality to '%s' entry\n",
-				SLAPD_MONITOR_DN, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"unable to add locality to '%s' entry\n",
 				SLAPD_MONITOR_DN, 0, 0 );
-#endif
 			return( -1 );
 		}
 	}
@@ -913,15 +801,9 @@ monitor_back_db_open(
 	mp->mp_next = NULL;
 
 	if ( monitor_cache_add( mi, e ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"unable to add entry '%s' to cache\n",
-			SLAPD_MONITOR_DN, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"unable to add entry '%s' to cache\n",
 			SLAPD_MONITOR_DN, 0, 0 );
-#endif
 		return -1;
 	}
 

@@ -88,18 +88,11 @@ monitor_subsys_log_init(
 
 	if ( monitor_cache_get( mi, &monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn, 
 				&e ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_log_init: "
-			"unable to get entry '%s'\n",
-			monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_log_init: "
 			"unable to get entry '%s'\n%s%s",
 			monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn.bv_val, 
 			"", "" );
-#endif
 		return( -1 );
 	}
 

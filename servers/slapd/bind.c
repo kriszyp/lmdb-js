@@ -51,11 +51,7 @@ do_bind(
 	ber_tag_t tag;
 	Backend *be = NULL;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ENTRY, "do_bind: conn %d\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "do_bind\n", 0, 0, 0 );
-#endif
 
 	/*
 	 * Force to connection to "anonymous" until bind succeeds.
@@ -109,12 +105,7 @@ do_bind(
 	tag = ber_scanf( ber, "{imt" /*}*/, &version, &dn, &method );
 
 	if ( tag == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"do_bind: conn %d  ber_scanf failed\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "bind: ber_scanf failed\n", 0, 0, 0 );
-#endif
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		rs->sr_err = SLAPD_DISCONNECT;
 		goto cleanup;
@@ -153,12 +144,7 @@ do_bind(
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, 
-			"do_bind: conn %d  get_ctrls failed\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_bind: get_ctrls failed\n", 0, 0, 0 );
-#endif
 		goto cleanup;
 	} 
 
@@ -169,40 +155,21 @@ do_bind(
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
 		op->o_tmpmemctx );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, 
-			"do_bind: conn %d  invalid dn (%s)\n", 
-			op->o_connid, dn.bv_val, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "bind: invalid dn (%s)\n",
 			dn.bv_val, 0, 0 );
-#endif
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto cleanup;
 	}
 
 	if( op->orb_method == LDAP_AUTH_SASL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION,	 DETAIL1, 
-			"do_sasl_bind: conn %d  dn (%s) mech %s\n", 
-			op->o_connid, op->o_req_dn.bv_val, mech.bv_val );
-#else
 		Debug( LDAP_DEBUG_TRACE, "do_sasl_bind: dn (%s) mech %s\n",
 			op->o_req_dn.bv_val, mech.bv_val, NULL );
-#endif
 
 	} else {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, DETAIL1, 
-			"do_bind: version=%ld dn=\"%s\" method=%ld\n",
-			(unsigned long) version, op->o_req_dn.bv_val,
-			(unsigned long) op->orb_method );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"do_bind: version=%ld dn=\"%s\" method=%ld\n",
 			(unsigned long) version, op->o_req_dn.bv_val,
 			(unsigned long) op->orb_method );
-#endif
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu BIND dn=\"%s\" method=%ld\n",
@@ -210,14 +177,8 @@ do_bind(
 		(unsigned long) op->orb_method, 0 );
 
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, 
-			"do_bind: conn %d  unknown version = %ld\n",
-			op->o_connid, (unsigned long)version, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_bind: unknown version=%ld\n",
 			(unsigned long) version, 0, 0 );
-#endif
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
 			"requested protocol version not supported" );
 		goto cleanup;
@@ -282,14 +243,8 @@ fe_op_bind( Operation *op, SlapReply *rs )
 
 	if ( op->orb_method == LDAP_AUTH_SASL ) {
 		if ( op->o_protocol < LDAP_VERSION3 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO, 
-				"do_bind: conn %d  sasl with LDAPv%ld\n",
-				op->o_connid, (unsigned long)op->o_protocol, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "do_bind: sasl with LDAPv%ld\n",
 				(unsigned long)op->o_protocol, 0, 0 );
-#endif
 			send_ldap_discon( op, rs,
 				LDAP_PROTOCOL_ERROR, "SASL bind requires LDAPv3" );
 			rs->sr_err = SLAPD_DISCONNECT;
@@ -297,15 +252,9 @@ fe_op_bind( Operation *op, SlapReply *rs )
 		}
 
 		if( mech.bv_len == 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO, 
-				   "do_bind: conn %d  no SASL mechanism provided\n",
-				   op->o_connid, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"do_bind: no sasl mechanism provided\n",
 				0, 0, 0 );
-#endif
 			send_ldap_error( op, rs, LDAP_AUTH_METHOD_NOT_SUPPORTED,
 				"no SASL mechanism provided" );
 			goto cleanup;
@@ -361,19 +310,11 @@ fe_op_bind( Operation *op, SlapReply *rs )
 				op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val : "<empty>",
 				op->o_conn->c_authmech.bv_val, op->orb_ssf );
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, DETAIL1, 
-				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
-				op->o_conn->c_authmech.bv_val,
-				op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val : "<empty>",
-				op->orb_ssf );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
 				op->o_conn->c_authmech.bv_val,
 				op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val : "<empty>",
 				op->orb_ssf );
-#endif
 
 		} else if ( rs->sr_err == LDAP_SASL_BIND_IN_PROGRESS ) {
 			op->o_conn->c_sasl_bind_in_progress = 1;
@@ -459,14 +400,8 @@ fe_op_bind( Operation *op, SlapReply *rs )
 			 * just need to send success
 			 */
 			send_ldap_result( op, rs );
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, DETAIL1, 
-				"do_bind: conn %d  v%d anonymous bind\n",
-				op->o_connid, op->o_protocol, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE, "do_bind: v%d anonymous bind\n",
 				op->o_protocol, 0, 0 );
-#endif
 			goto cleanup;
 
 		} else if ( global_disallows & SLAP_DISALLOW_BIND_SIMPLE ) {
@@ -475,15 +410,9 @@ fe_op_bind( Operation *op, SlapReply *rs )
 			rs->sr_text = "unwilling to perform simple authentication";
 
 			send_ldap_result( op, rs );
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO, 
-				"do_bind: conn %d  v%d simple bind(%s) disallowed\n",
-				op->o_connid, op->o_protocol, op->o_req_ndn.bv_val );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: v%d simple bind(%s) disallowed\n",
 				op->o_protocol, op->o_req_ndn.bv_val, 0 );
-#endif
 			goto cleanup;
 		}
 
@@ -496,15 +425,9 @@ fe_op_bind( Operation *op, SlapReply *rs )
 
 			send_ldap_result( op, rs );
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, DETAIL1, 
-				"do_bind: conn %d  v%d Kerberos V4 (step 1) bind refused\n",
-				op->o_connid, op->o_protocol, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: v%d Kerberos V4 (step 1) bind refused\n",
 				op->o_protocol, 0, 0 );
-#endif
 			goto cleanup;
 		}
 		ber_str2bv( "KRBV4", sizeof("KRBV4")-1, 0, &mech );
@@ -514,15 +437,9 @@ fe_op_bind( Operation *op, SlapReply *rs )
 		rs->sr_text = "Kerberos V4 (step 2) bind not supported";
 		send_ldap_result( op, rs );
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, DETAIL1, 
-			"do_bind: conn %d  v%d Kerberos V4 (step 2) bind refused\n",
-			op->o_connid, op->o_protocol, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"do_bind: v%d Kerberos V4 (step 2) bind refused\n",
 			op->o_protocol, 0, 0 );
-#endif
 		goto cleanup;
 #endif
 
@@ -531,15 +448,9 @@ fe_op_bind( Operation *op, SlapReply *rs )
 		rs->sr_text = "unknown authentication method";
 
 		send_ldap_result( op, rs );
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, 
-			"do_bind: conn %ld  v%d unknown authentication method (%ld)\n",
-			op->o_connid, op->o_protocol, op->orb_method );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"do_bind: v%d unknown authentication method (%ld)\n",
 			op->o_protocol, op->orb_method, 0 );
-#endif
 		goto cleanup;
 	}
 
@@ -575,15 +486,9 @@ fe_op_bind( Operation *op, SlapReply *rs )
 
 		rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_BIND_FN, pb );
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO,
-			"do_bind: Bind preoperation plugin returned %d\n",
-			rs->sr_err, 0, 0);
-#else
 		Debug(LDAP_DEBUG_TRACE,
 			"do_bind: Bind preoperation plugin returned %d.\n",
 			rs->sr_err, 0, 0);
-#endif
 
 		switch ( rc ) {
 		case SLAPI_BIND_SUCCESS:
@@ -678,15 +583,9 @@ fe_op_bind( Operation *op, SlapReply *rs )
 				op->o_connid, op->o_opid,
 				op->o_conn->c_dn.bv_val, mech.bv_val, 0 );
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, DETAIL1, 
-				"do_bind: v%d bind: \"%s\" to \"%s\" \n",
-				op->o_protocol, op->o_conn->c_dn.bv_val, op->o_conn->c_dn.bv_val );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: v%d bind: \"%s\" to \"%s\"\n",
 				op->o_protocol, op->o_req_dn.bv_val, op->o_conn->c_dn.bv_val );
-#endif
 
 			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
@@ -706,15 +605,9 @@ fe_op_bind( Operation *op, SlapReply *rs )
 	if ( pb != NULL &&
 		slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_BIND_FN, pb ) < 0 )
 	{
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO,
-			"do_bind: Bind postoperation plugins failed\n",
-			0, 0, 0);
-#else
 		Debug(LDAP_DEBUG_TRACE,
 			"do_bind: Bind postoperation plugins failed.\n",
 			0, 0, 0);
-#endif
 	}
 #endif /* LDAP_SLAPI */
 

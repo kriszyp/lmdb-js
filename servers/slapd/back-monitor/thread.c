@@ -45,16 +45,10 @@ monitor_subsys_thread_init(
 	if ( monitor_cache_get( mi, 
 		&monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn, &e ) )
 	{
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_thread_init: unable to get entry '%s'\n",
-			monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_thread_init: unable to get entry '%s'\n",
 			monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn.bv_val, 
 			0, 0 );
-#endif
 		return( -1 );
 	}
 

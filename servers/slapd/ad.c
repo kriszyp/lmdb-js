@@ -880,15 +880,9 @@ ad_define_option( const char *name, const char *fname, int lineno )
 	optlen = 0;
 	do {
 		if ( !DESC_CHAR( name[optlen] ) ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONFIG, CRIT,
-			          "%s: line %d: illegal option name \"%s\"\n",
-			          fname, lineno, name );
-#else
 			Debug( LDAP_DEBUG_ANY,
 			       "%s: line %d: illegal option name \"%s\"\n",
 				    fname, lineno, name );
-#endif
 			return 1;
 		}
 	} while ( name[++optlen] );
@@ -898,15 +892,9 @@ ad_define_option( const char *name, const char *fname, int lineno )
 
 	if ( strcasecmp( name, "binary" ) == 0
 	     || ad_find_option_definition( name, optlen ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, CRIT,
-		          "%s: line %d: option \"%s\" is already defined\n",
-		          fname, lineno, name );
-#else
 		Debug( LDAP_DEBUG_ANY,
 		       "%s: line %d: option \"%s\" is already defined\n",
 		       fname, lineno, name );
-#endif
 		return 1;
 	}
 
@@ -924,15 +912,9 @@ ad_define_option( const char *name, const char *fname, int lineno )
 	     options[i].prefix &&
 	     optlen < options[i+1].name.bv_len &&
 	     strncasecmp( name, options[i+1].name.bv_val, optlen ) == 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONFIG, CRIT,
-			          "%s: line %d: option \"%s\" overrides previous option\n",
-			          fname, lineno, name );
-#else
 			Debug( LDAP_DEBUG_ANY,
 			       "%s: line %d: option \"%s\" overrides previous option\n",
 				    fname, lineno, name );
-#endif
 			return 1;
 	}
 

@@ -107,13 +107,8 @@ bdb_csn_commit(
 									&rs->sr_text, textbuf, textlen );						       
 			op->o_tmpfree( max_committed_csn.bv_val, op->o_tmpmemctx );
 			if ( ret != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG ( OPERATION, ERR,
-						"bdb_csn_commit: modify failed (%d)\n", rs->sr_err, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_TRACE,
 						"bdb_csn_commit: modify failed (%d)\n", rs->sr_err, 0, 0 );
-#endif
 				switch( ret ) {
 				case DB_LOCK_DEADLOCK:
 				case DB_LOCK_NOTGRANTED:
@@ -151,13 +146,8 @@ bdb_csn_commit(
 		/* This serializes add. But this case is very rare : only once. */
 		rs->sr_err = bdb_next_id( op->o_bd, tid, &ctxcsn_id );
 		if ( rs->sr_err != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, ERR,
-				"bdb_add: next_id failed (%d)\n", rs->sr_err, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_add: next_id failed (%d)\n", rs->sr_err, 0, 0 );
-#endif
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "internal error";
 			return BDB_CSN_ABORT;
@@ -216,13 +206,8 @@ bdb_csn_commit(
 		break;
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-				"bdb_csn_commit : bdb_dn2entry retry\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 				"bdb_csn_commit : bdb_dn2entry retry\n", 0, 0, 0 );
-#endif
 		goto rewind;
 	case LDAP_BUSY:
 		rs->sr_err = rc;

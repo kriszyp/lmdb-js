@@ -106,26 +106,16 @@ fm(
     while ( !sglob->slurpd_shutdown ) {
 	if ( file_nonempty( sglob->slapd_replogfile )) {
 	    /* New work found - copy to slurpd replog file */
-#ifdef NEW_LOGGING
-    	LDAP_LOG ( SLURPD, ARGS, 
-			"fm: new work in %s\n", sglob->slapd_replogfile, 0, 0 );
-#else
 	    Debug( LDAP_DEBUG_ARGS, "new work in %s\n",
 		    sglob->slapd_replogfile, 0, 0 );
-#endif
 	    if (( rc = copy_replog( sglob->slapd_replogfile,
 		    sglob->slurpd_replogfile )) == 0 )  {
 		populate_queue( sglob->slurpd_replogfile );
 	    } else {
 		if ( rc < 0 ) {
-#ifdef NEW_LOGGING
-    		LDAP_LOG ( SLURPD, CRIT, 
-				"fm: Fatal error while copying replication log\n" , 0, 0, 0);
-#else
 		    Debug( LDAP_DEBUG_ANY,
 			    "Fatal error while copying replication log\n",
 			    0, 0, 0 );
-#endif
 		    sglob->slurpd_shutdown = 1;
 		}
 	    }
@@ -147,15 +137,9 @@ fm(
 	    FILE *fp, *lfp;
 	    if (( rc = acquire_lock( sglob->slurpd_replogfile, &fp,
 		    &lfp )) < 0 ) {
-#ifdef NEW_LOGGING
-   		LDAP_LOG ( SLURPD, ERR, 
-			"fm: Error: cannot acquire lock on \"%s\" for trimming\n",
-			sglob->slurpd_replogfile, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: cannot acquire lock on \"%s\" for trimming\n",
 			sglob->slurpd_replogfile, 0, 0 );
-#endif
 	    } else {
 		sglob->rq->rq_write( sglob->rq, fp );
 		(void) relinquish_lock( sglob->slurpd_replogfile, fp, lfp );
@@ -168,11 +152,7 @@ fm(
 	(sglob->replicas[ i ])->ri_wake( sglob->replicas[ i ]);
     }
     sglob->rq->rq_unlock( sglob->rq );			/* unlock queue */
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, RESULTS, "fm: exiting\n", 0, 0, 0 );
-#else
     Debug( LDAP_DEBUG_ARGS, "fm: exiting\n", 0, 0, 0 );
-#endif
     return NULL;
 }
 
@@ -219,15 +199,9 @@ populate_queue(
     char	*p;
 
     if ( acquire_lock( f, &fp, &lfp ) < 0 ) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ERR, 
-		"populate_queue: error: can't lock file \"%s\": %s\n", 
-		f, sys_errlist[ errno ], 0 );
-#else
 	Debug( LDAP_DEBUG_ANY,
 		"error: can't lock file \"%s\": %s\n",
 		f, sys_errlist[ errno ], 0 );
-#endif
 	return;
     }
 
@@ -236,15 +210,9 @@ populate_queue(
      * the queue.
      */
     if ( fseek( fp, sglob->srpos, 0 ) < 0 ) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ERR, 
-		"populate_queue: error: can't seek to offset %ld in file \"%s\"\n", 
-		sglob->srpos, f, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY,
 		"error: can't seek to offset %ld in file \"%s\"\n",
 		sglob->srpos, f, 0 );
-#endif
     } else {
     while (( p = get_record( fp )) != NULL ) {
 	if ( sglob->rq->rq_add( sglob->rq, p ) < 0 ) {
@@ -253,15 +221,9 @@ populate_queue(
 	    if (( t = strchr( p, '\n' )) != NULL ) {
 		*t = '\0';
 	    }
-#ifdef NEW_LOGGING
-		LDAP_LOG ( SLURPD, ERR, 
-			"populate_queue: error: malformed replog entry "
-			"(begins with \"%s\")\n", p, 0, 0 );
-#else
 	    Debug( LDAP_DEBUG_ANY,
 		    "error: malformed replog entry (begins with \"%s\")\n",
 		    p, 0, 0 );
-#endif
 	}
 	free( p );
 	ldap_pvt_thread_yield();

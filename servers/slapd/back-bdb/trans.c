@@ -49,11 +49,7 @@ bdb_trans_backoff( int num_retries )
 	delay = 16384 * (key * (double) pow_retries / (double) max_key);
 	delay = delay ? delay : 1;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ERR, "delay = %d, num_retries = %d\n", delay, num_retries, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE,  "delay = %d, num_retries = %d\n", delay, num_retries, 0 );
-#endif
 
 	timeout.tv_sec = delay / 1000000;
 	timeout.tv_usec = delay % 1000000;

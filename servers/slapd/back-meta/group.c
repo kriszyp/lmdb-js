@@ -127,16 +127,10 @@ meta_back_group(
 		} else {
 			mop_ndn = *op_ndn;
 		}
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_META, DETAIL1,
-			"[rw] bindDn (op ndn in group): \"%s\" -> \"%s\"\n",
-			op_ndn->bv_val, mop_ndn.bv_val, 0 );
-#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 				"rw> bindDn (op ndn in group):"
 				" \"%s\" -> \"%s\"\n%s",
 				op_ndn->bv_val, mop_ndn.bv_val, "" );
-#endif /* !NEW_LOGGING */
 		break;
 		
 	case REWRITE_REGEXEC_UNWILLING:
@@ -158,16 +152,10 @@ meta_back_group(
 		} else {
 			mgr_ndn = *gr_ndn;
 		}
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_META, DETAIL1,
-			"[rw] searchBase (gr ndn in group): \"%s\" -> \"%s\"\n",
-			gr_ndn->bv_val, mgr_ndn.bv_val, 0 );
-#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 				"rw> searchBase (gr ndn in group):"
 				" \"%s\" -> \"%s\"\n%s",
 				gr_ndn->bv_val, mgr_ndn.bv_val, "" );
-#endif /* !NEW_LOGGING */
 		break;
 		
 	case REWRITE_REGEXEC_UNWILLING:

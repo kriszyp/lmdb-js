@@ -923,11 +923,7 @@ nameUIDPretty(
 	assert( out );
 
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, ">>> nameUIDPretty: <%s>\n", val->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, ">>> nameUIDPretty: <%s>\n", val->bv_val, 0, 0 );
-#endif
 
 	if( val->bv_len == 0 ) {
 		ber_dupbv_x( out, val, ctx );
@@ -1000,11 +996,7 @@ nameUIDPretty(
 		}
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, "<<< nameUIDPretty: <%s>\n", out->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<<< nameUIDPretty: <%s>\n", out->bv_val, 0, 0 );
-#endif
 
 	return LDAP_SUCCESS;
 }
@@ -2203,13 +2195,8 @@ serialNumberAndIssuerPretty(
 	assert( val );
 	assert( out );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, ">>> serialNumberAndIssuerPretty: <%s>\n",
-		val->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, ">>> serialNumberAndIssuerPretty: <%s>\n",
 		val->bv_val, 0, 0 );
-#endif
 
 	if( val->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
@@ -2254,13 +2241,8 @@ serialNumberAndIssuerPretty(
 	/* terminate */
 	out->bv_val[out->bv_len] = '\0';
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, "<<< serialNumberAndIssuerPretty: <%s>\n",
-		out->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<<< serialNumberAndIssuerPretty: <%s>\n",
 		out->bv_val, 0, 0 );
-#endif
 
 	return LDAP_SUCCESS;
 }
@@ -2288,13 +2270,8 @@ serialNumberAndIssuerNormalize(
 	assert( val );
 	assert( out );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, ">>> serialNumberAndIssuerNormalize: <%s>\n",
-		val->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, ">>> serialNumberAndIssuerNormalize: <%s>\n",
 		val->bv_val, 0, 0 );
-#endif
 
 	if( val->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
@@ -2341,13 +2318,8 @@ serialNumberAndIssuerNormalize(
 	/* terminate */
 	out->bv_val[out->bv_len] = '\0';
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, "<<< serialNumberAndIssuerNormalize: <%s>\n",
-		out->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<<< serialNumberAndIssuerNormalize: <%s>\n",
 		out->bv_val, 0, 0 );
-#endif
 
 	return rc;
 }
@@ -2404,13 +2376,8 @@ certificateExactNormalize(
 	p += issuer_dn.bv_len;
 	*p = '\0';
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( CONFIG, ARGS, "certificateExactNormalize: %s\n",
-		normalized->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "certificateExactNormalize: %s\n",
 		normalized->bv_val, NULL, NULL );
-#endif
 
 done:
 	if (xcert) X509_free(xcert);

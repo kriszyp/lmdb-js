@@ -818,13 +818,8 @@ ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 
 		default:
 			if( ber->ber_debug ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BER, ERR, 
-					"ber_printf: unknown fmt %c\n", *fmt, 0, 0 );
-#else
 				ber_log_printf( LDAP_DEBUG_ANY, ber->ber_debug,
 					"ber_printf: unknown fmt %c\n", *fmt );
-#endif
 			}
 			rc = -1;
 			break;

@@ -38,23 +38,14 @@ dn2id_add(
 	char		*buf;
 	struct berval	ptr, pdn;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, "dn2id_add: (%s):%ld\n", dn->bv_val, id, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id_add( \"%s\", %ld )\n", dn->bv_val, id, 0 );
-#endif
 
 	assert( id != NOID );
 
 	db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT );
 	if ( db == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR, 
-			"dn2id_add: couldn't open/create dn2id%s\n", LDBM_SUFFIX, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "Could not open/create dn2id%s\n",
 		    LDBM_SUFFIX, 0, 0 );
-#endif
 
 		return( -1 );
 	}
@@ -112,11 +103,7 @@ dn2id_add(
 	free( buf );
 	ldbm_cache_close( be, db );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, "dn2id_add: return %d\n", rc, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<= dn2id_add %d\n", rc, 0, 0 );
-#endif
 
 	return( rc );
 }
@@ -133,36 +120,23 @@ dn2id(
 	Datum		key, data;
 	unsigned char	*tmp;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, "dn2id: (%s)\n", dn->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id( \"%s\" )\n", dn->bv_val, 0, 0 );
-#endif
 
 	assert( idp );
 
 	/* first check the cache */
 	*idp = cache_find_entry_ndn2id( be, &li->li_cache, dn );
 	if ( *idp != NOID ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, DETAIL1, "dn2id: (%s)%ld in cache.\n", dn, *idp, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld (in cache)\n", *idp,
 			0, 0 );
-#endif
 
 		return( 0 );
 	}
 
 	db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT );
 	if ( db == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR, 
-			   "dn2id: couldn't open dn2id%s\n", LDBM_SUFFIX, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "<= dn2id could not open dn2id%s\n",
 			LDBM_SUFFIX, 0, 0 );
-#endif
 		/*
 		 * return code !0 if ldbm cache open failed;
 		 * callers should handle this
@@ -188,11 +162,7 @@ dn2id(
 	free( key.dptr );
 
 	if ( data.dptr == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, INFO, "dn2id: (%s) NOID\n", dn, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "<= dn2id NOID\n", 0, 0, 0 );
-#endif
 
 		*idp = NOID;
 		return( 0 );
@@ -204,11 +174,7 @@ dn2id(
 
 	ldbm_datum_free( db->dbc_db, data );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, "dn2id: %ld\n", *idp, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld\n", *idp, 0, 0 );
-#endif
 
 	return( 0 );
 }
@@ -225,11 +191,7 @@ dn2idl(
 	Datum		key;
 	unsigned char	*tmp;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, "dn2idl: \"%c%s\"\n", prefix, dn->bv_val, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> dn2idl( \"%c%s\" )\n", prefix, dn->bv_val, 0 );
-#endif
 
 	assert( idlp != NULL );
 	*idlp = NULL;
@@ -241,13 +203,8 @@ dn2idl(
 
 	db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT );
 	if ( db == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR, 
-			   "dn2idl: could not open dn2id%s\n", LDBM_SUFFIX, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "<= dn2idl could not open dn2id%s\n",
 			LDBM_SUFFIX, 0, 0 );
-#endif
 
 		return -1;
 	}
@@ -285,26 +242,16 @@ dn2id_delete(
 	char		*buf;
 	struct berval	ptr, pdn;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, 
-		   "dn2id_delete: (%s)%ld\n", dn->bv_val, id, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id_delete( \"%s\", %ld )\n", dn->bv_val, id, 0 );
-#endif
 
 
 	assert( id != NOID );
 
 	db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT );
 	if ( db == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR, 
-			   "dn2id_delete: couldn't open db2id%s\n", LDBM_SUFFIX, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 		    "<= dn2id_delete could not open dn2id%s\n", LDBM_SUFFIX,
 		    0, 0 );
-#endif
 
 		return( -1 );
 	}
@@ -356,11 +303,7 @@ dn2id_delete(
 
 	ldbm_cache_close( be, db );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, "dn2id_delete: return %d\n", rc, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<= dn2id_delete %d\n", rc, 0, 0 );
-#endif
 
 	return( rc );
 }
@@ -382,13 +325,8 @@ dn2entry_rw(
 	Entry		*e = NULL;
 	struct berval	pdn;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, 
-		   "dn2entry_rw: %s entry %s\n", rw ? "w" : "r", dn->bv_val, 0 );
-#else
 	Debug(LDAP_DEBUG_TRACE, "dn2entry_%s: dn: \"%s\"\n",
 		rw ? "w" : "r", dn->bv_val, 0);
-#endif
 
 
 	if( matched != NULL ) {
@@ -408,15 +346,9 @@ dn2entry_rw(
 			return( e );
 		}
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR, 
-			"dn2entry_rw: no entry for valid id (%ld), dn (%s)\n", 
-			id, dn->bv_val, 0 );
-#else
 		Debug(LDAP_DEBUG_ANY,
 			"dn2entry_%s: no entry for valid id (%ld), dn \"%s\"\n",
 			rw ? "w" : "r", id, dn->bv_val);
-#endif
 
 		/* must have been deleted from underneath us */
 		/* treat as if NOID was found */

@@ -73,11 +73,7 @@ get_filter(
 	int		err;
 	Filter		f;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY, "get_filter: conn %d\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "begin get_filter\n", 0, 0, 0 );
-#endif
 	/*
 	 * A filter looks like this coming in:
 	 *	Filter ::= CHOICE {
@@ -125,12 +121,7 @@ get_filter(
 
 	switch ( f.f_choice ) {
 	case LDAP_FILTER_EQUALITY:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL2, 
-			"get_filter: conn %d  EQUALITY\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "EQUALITY\n", 0, 0, 0 );
-#endif
 		err = get_ava( op, ber, &f.f_ava, SLAP_MR_EQUALITY, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -140,12 +131,7 @@ get_filter(
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL1, 
-			"get_filter: conn %d  SUBSTRINGS\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "SUBSTRINGS\n", 0, 0, 0 );
-#endif
 		err = get_ssa( op, ber, &f.f_sub, text );
 		if( err != LDAP_SUCCESS ) {
 			break;
@@ -154,12 +140,7 @@ get_filter(
 		break;
 
 	case LDAP_FILTER_GE:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL1, 
-			"get_filter: conn %d  GE\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "GE\n", 0, 0, 0 );
-#endif
 		err = get_ava( op, ber, &f.f_ava, SLAP_MR_ORDERING, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -168,12 +149,7 @@ get_filter(
 		break;
 
 	case LDAP_FILTER_LE:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL1, 
-			"get_filter: conn %d  LE\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "LE\n", 0, 0, 0 );
-#endif
 		err = get_ava( op, ber, &f.f_ava, SLAP_MR_ORDERING, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -184,12 +160,7 @@ get_filter(
 	case LDAP_FILTER_PRESENT: {
 		struct berval type;
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL1, 
-			"get_filter: conn %d PRESENT\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "PRESENT\n", 0, 0, 0 );
-#endif
 		if ( ber_scanf( ber, "m", &type ) == LBER_ERROR ) {
 			err = SLAPD_DISCONNECT;
 			*text = "error decoding filter";
@@ -201,17 +172,10 @@ get_filter(
 
 		if( err != LDAP_SUCCESS ) {
 			/* unrecognized attribute description or other error */
-#ifdef NEW_LOGGING
-			LDAP_LOG( FILTER, ERR, 
-				"get_filter: conn %d unknown attribute "
-				"type=%s (%d)\n",
-				op->o_connid, type.bv_val, err );
-#else
 			Debug( LDAP_DEBUG_ANY, 
 				"get_filter: conn %d unknown attribute "
 				"type=%s (%d)\n",
 				op->o_connid, type.bv_val, err );
-#endif
 
 			f.f_choice = SLAPD_FILTER_COMPUTED;
 			f.f_result = LDAP_COMPARE_FALSE;
@@ -224,12 +188,7 @@ get_filter(
 		} break;
 
 	case LDAP_FILTER_APPROX:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL1, 
-			"get_filter: conn %d  APPROX\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "APPROX\n", 0, 0, 0 );
-#endif
 		err = get_ava( op, ber, &f.f_ava, SLAP_MR_EQUALITY_APPROX, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -238,12 +197,7 @@ get_filter(
 		break;
 
 	case LDAP_FILTER_AND:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL1, 
-			"get_filter: conn %d  AND\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "AND\n", 0, 0, 0 );
-#endif
 		err = get_filter_list( op, ber, &f.f_and, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -256,12 +210,7 @@ get_filter(
 		break;
 
 	case LDAP_FILTER_OR:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL1, 
-			"get_filter: conn %d  OR\n", op->o_connid, 0, 0  );
-#else
 		Debug( LDAP_DEBUG_FILTER, "OR\n", 0, 0, 0 );
-#endif
 		err = get_filter_list( op, ber, &f.f_or, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -274,12 +223,7 @@ get_filter(
 		break;
 
 	case LDAP_FILTER_NOT:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL1, 
-			"get_filter: conn %d  NOT\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "NOT\n", 0, 0, 0 );
-#endif
 		(void) ber_skip_tag( ber, &len );
 		err = get_filter( op, ber, &f.f_not, text );
 		if ( err != LDAP_SUCCESS ) {
@@ -307,12 +251,7 @@ get_filter(
 		break;
 
 	case LDAP_FILTER_EXT:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL1, 
-			"get_filter: conn %d  EXTENSIBLE\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "EXTENSIBLE\n", 0, 0, 0 );
-#endif
 
 		err = get_mra( op, ber, &f.f_mra, text );
 		if ( err != LDAP_SUCCESS ) {
@@ -324,14 +263,8 @@ get_filter(
 
 	default:
 		(void) ber_scanf( ber, "x" ); /* skip the element */
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, ERR, 
-			"get_filter: conn %d unknown filter type=%lu\n",
-			op->o_connid, f.f_choice, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "get_filter: unknown filter type=%lu\n",
 			f.f_choice, 0, 0 );
-#endif
 		f.f_choice = SLAPD_FILTER_COMPUTED;
 		f.f_result = SLAPD_COMPARE_UNDEFINED;
 		break;
@@ -350,12 +283,7 @@ get_filter(
 		**filt = f;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, DETAIL2, 
-		"get_filter: conn %d exit\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "end get_filter %d\n", err, 0, 0 );
-#endif
 
 	return( err );
 }
@@ -371,12 +299,7 @@ get_filter_list( Operation *op, BerElement *ber,
 	ber_len_t	len;
 	char		*last;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY, 
-		"get_filter_list: conn %d start\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "begin get_filter_list\n", 0, 0, 0 );
-#endif
 	new = f;
 	for ( tag = ber_first_element( ber, &len, &last );
 		tag != LBER_DEFAULT;
@@ -389,12 +312,7 @@ get_filter_list( Operation *op, BerElement *ber,
 	}
 	*new = NULL;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY, 
-		"get_filter_list: conn %d exit\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "end get_filter_list\n", 0, 0, 0 );
-#endif
 	return( LDAP_SUCCESS );
 }
 
@@ -415,12 +333,7 @@ get_ssa(
 	*text = "error decoding filter";
 	*out = NULL;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY, 
-		"get_ssa: conn %d  begin\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "begin get_ssa\n", 0, 0, 0 );
-#endif
 	if ( ber_scanf( ber, "{m" /*}*/, &desc ) == LBER_ERROR ) {
 		return SLAPD_DISCONNECT;
 	}
@@ -435,15 +348,9 @@ get_ssa(
 	rc = slap_bv2ad( &desc, &ssa.sa_desc, text );
 
 	if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, ERR, 
-			"get_ssa: conn %d d unknown attribute type=%s (%d)\n",
-			op->o_connid, desc.bv_val, rc );
-#else
 		Debug( LDAP_DEBUG_ANY, 
 			"get_ssa: conn %d unknown attribute type=%s (%d)\n",
 			op->o_connid, desc.bv_val, rc );
-#endif
 
 		/* skip over the rest of this filter */
 		for ( tag = ber_first_element( ber, &len, &last );
@@ -489,15 +396,9 @@ get_ssa(
 		default:
 			rc = LDAP_PROTOCOL_ERROR;
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( FILTER, ERR,
-				"get_filter_substring: conn %d  unknown substring choice=%ld\n",
-				op->o_connid, (long)tag, 0 );
-#else
 			Debug( LDAP_DEBUG_FILTER,
 				"  unknown substring choice=%ld\n",
 				(long) tag, 0, 0 );
-#endif
 
 			goto return_error;
 		}
@@ -515,13 +416,7 @@ get_ssa(
 
 		switch ( tag ) {
 		case LDAP_SUBSTRING_INITIAL:
-#ifdef NEW_LOGGING
-			LDAP_LOG( FILTER, DETAIL1,
-				"get_ssa: conn %d  INITIAL\n",
-				op->o_connid, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_FILTER, "  INITIAL\n", 0, 0, 0 );
-#endif
 
 			if ( ssa.sa_initial.bv_val != NULL
 				|| ssa.sa_any != NULL 
@@ -535,13 +430,7 @@ get_ssa(
 			break;
 
 		case LDAP_SUBSTRING_ANY:
-#ifdef NEW_LOGGING
-			LDAP_LOG( FILTER, DETAIL1,
-				"get_ssa: conn %d  ANY\n",
-				op->o_connid, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_FILTER, "  ANY\n", 0, 0, 0 );
-#endif
 
 			if ( ssa.sa_final.bv_val != NULL ) {
 				slap_sl_free( nvalue.bv_val, op->o_tmpmemctx );
@@ -552,13 +441,7 @@ get_ssa(
 			break;
 
 		case LDAP_SUBSTRING_FINAL:
-#ifdef NEW_LOGGING
-			LDAP_LOG( FILTER, DETAIL1, 
-				"get_ssa: conn %d  FINAL\n",
-				op->o_connid, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_FILTER, "  FINAL\n", 0, 0, 0 );
-#endif
 
 			if ( ssa.sa_final.bv_val != NULL ) {
 				slap_sl_free( nvalue.bv_val, op->o_tmpmemctx );
@@ -569,28 +452,16 @@ get_ssa(
 			break;
 
 		default:
-#ifdef NEW_LOGGING
-			LDAP_LOG( FILTER, INFO, 
-				"get_ssa: conn %d  unknown substring type %ld\n",
-				op->o_connid, (long)tag, 0 );
-#else
 			Debug( LDAP_DEBUG_FILTER,
 				"  unknown substring type=%ld\n",
 				(long) tag, 0, 0 );
-#endif
 
 			assert( 0 );
 			slap_sl_free( nvalue.bv_val, op->o_tmpmemctx );
 
 return_error:
-#ifdef NEW_LOGGING
-			LDAP_LOG( FILTER, INFO, 
-				"get_ssa: conn %d  error %ld\n",
-				op->o_connid, (long)rc, 0 );
-#else
 			Debug( LDAP_DEBUG_FILTER, "  error=%ld\n",
 				(long) rc, 0, 0 );
-#endif
 			slap_sl_free( ssa.sa_initial.bv_val, op->o_tmpmemctx );
 			ber_bvarray_free_x( ssa.sa_any, op->o_tmpmemctx );
 			slap_sl_free( ssa.sa_final.bv_val, op->o_tmpmemctx );
@@ -605,12 +476,7 @@ return_error:
 		**out = ssa;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY, 
-		"get_ssa: conn %d exit\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "end get_ssa\n", 0, 0, 0 );
-#endif
 
 	return rc /* LDAP_SUCCESS */ ;
 }
@@ -663,13 +529,8 @@ filter_free_x( Operation *op, Filter *f )
 		break;
 
 	default:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, ERR, 
-			"filter_free: unknown filter type %lu\n", f->f_choice, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "filter_free: unknown filter type=%lu\n",
 			f->f_choice, 0, 0 );
-#endif
 		break;
 	}
 
@@ -969,12 +830,7 @@ get_simple_vrFilter(
 	int		err;
 	ValuesReturnFilter vrf;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY, 
-		"get_simple_vrFilter: conn %d\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "begin get_simple_vrFilter\n", 0, 0, 0 );
-#endif
 
 	tag = ber_peek_tag( ber, &len );
 
@@ -990,12 +846,7 @@ get_simple_vrFilter(
 
 	switch ( vrf.vrf_choice ) {
 	case LDAP_FILTER_EQUALITY:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL2, 
-			"get_simple_vrFilter: conn %d  EQUALITY\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "EQUALITY\n", 0, 0, 0 );
-#endif
 		err = get_ava( op, ber, &vrf.vrf_ava, SLAP_MR_EQUALITY, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -1005,22 +856,12 @@ get_simple_vrFilter(
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL1, 
-			"get_simple_vrFilter: conn %d  SUBSTRINGS\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "SUBSTRINGS\n", 0, 0, 0 );
-#endif
 		err = get_ssa( op, ber, &vrf.vrf_sub, text );
 		break;
 
 	case LDAP_FILTER_GE:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL1, 
-			"get_simple_vrFilter: conn %d  GE\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "GE\n", 0, 0, 0 );
-#endif
 		err = get_ava( op, ber, &vrf.vrf_ava, SLAP_MR_ORDERING, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -1028,12 +869,7 @@ get_simple_vrFilter(
 		break;
 
 	case LDAP_FILTER_LE:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL1, 
-			"get_simple_vrFilter: conn %d  LE\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "LE\n", 0, 0, 0 );
-#endif
 		err = get_ava( op, ber, &vrf.vrf_ava, SLAP_MR_ORDERING, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -1043,12 +879,7 @@ get_simple_vrFilter(
 	case LDAP_FILTER_PRESENT: {
 		struct berval type;
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL1, 
-			"get_simple_vrFilter: conn %d PRESENT\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "PRESENT\n", 0, 0, 0 );
-#endif
 		if ( ber_scanf( ber, "m", &type ) == LBER_ERROR ) {
 			err = SLAPD_DISCONNECT;
 			*text = "error decoding filter";
@@ -1060,17 +891,10 @@ get_simple_vrFilter(
 
 		if( err != LDAP_SUCCESS ) {
 			/* unrecognized attribute description or other error */
-#ifdef NEW_LOGGING
-			LDAP_LOG( FILTER, ERR, 
-				"get_simple_vrFilter: conn %d unknown "
-				"attribute type=%s (%d)\n",
-				op->o_connid, type.bv_val, err );
-#else
 			Debug( LDAP_DEBUG_ANY, 
 				"get_simple_vrFilter: conn %d unknown "
 				"attribute type=%s (%d)\n",
 				op->o_connid, type.bv_val, err );
-#endif
 
 			vrf.vrf_choice = SLAPD_FILTER_COMPUTED;
 			vrf.vrf_result = LDAP_COMPARE_FALSE;
@@ -1080,12 +904,7 @@ get_simple_vrFilter(
 		} break;
 
 	case LDAP_FILTER_APPROX:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL1, 
-			"get_simple_vrFilter: conn %d  APPROX\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "APPROX\n", 0, 0, 0 );
-#endif
 		err = get_ava( op, ber, &vrf.vrf_ava, SLAP_MR_EQUALITY_APPROX, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -1093,12 +912,7 @@ get_simple_vrFilter(
 		break;
 
 	case LDAP_FILTER_EXT:
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, DETAIL1, 
-			"get_simple_vrFilter: conn %d  EXTENSIBLE\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_FILTER, "EXTENSIBLE\n", 0, 0, 0 );
-#endif
 
 		err = get_mra( op, ber, &vrf.vrf_mra, text );
 		if ( err != LDAP_SUCCESS ) {
@@ -1110,14 +924,8 @@ get_simple_vrFilter(
 
 	default:
 		(void) ber_scanf( ber, "x" ); /* skip the element */
-#ifdef NEW_LOGGING
-		LDAP_LOG( FILTER, ERR, 
-			"get_simple_vrFilter: conn %d unknown filter type=%lu\n",
-			op->o_connid, vrf.vrf_choice, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "get_simple_vrFilter: unknown filter type=%lu\n",
 			vrf.vrf_choice, 0, 0 );
-#endif
 		vrf.vrf_choice = SLAPD_FILTER_COMPUTED;
 		vrf.vrf_result = SLAPD_COMPARE_UNDEFINED;
 		break;
@@ -1135,12 +943,7 @@ get_simple_vrFilter(
 		**filt = vrf;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, DETAIL2, 
-		"get_simple_vrFilter: conn %d exit\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "end get_simple_vrFilter %d\n", err, 0, 0 );
-#endif
 
 	return err;
 }
@@ -1184,12 +987,7 @@ get_vrFilter( Operation *op, BerElement *ber,
 	ber_len_t	len;
 	char		*last;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY, 
-		"get_vrFilter: conn %d start\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "begin get_vrFilter\n", 0, 0, 0 );
-#endif
 
 	tag = ber_peek_tag( ber, &len );
 
@@ -1216,12 +1014,7 @@ get_vrFilter( Operation *op, BerElement *ber,
 	}
 	*n = NULL;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY, 
-		"get_vrFilter: conn %d exit\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "end get_vrFilter\n", 0, 0, 0 );
-#endif
 	return( LDAP_SUCCESS );
 }
 
@@ -1267,13 +1060,8 @@ vrFilter_free( Operation *op, ValuesReturnFilter *vrf )
 			break;
 
 		default:
-#ifdef NEW_LOGGING
-			LDAP_LOG( FILTER, ERR, "filter_free: unknown filter type %lu\n",
-				vrf->vrf_choice, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "filter_free: unknown filter type=%lu\n",
 				vrf->vrf_choice, 0, 0 );
-#endif
 			break;
 		}
 

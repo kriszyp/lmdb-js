@@ -349,13 +349,8 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 	
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDAP, INFO, 
-			"ldap_back_getconn: conn %p inserted\n", (void *) lc, 0, 0);
-#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_getconn: conn %p inserted\n", (void *) lc, 0, 0 );
-#endif /* !NEW_LOGGING */
 	
 		/* Err could be -1 in case a duplicate ldapconn is inserted */
 		if ( rs->sr_err != 0 ) {
@@ -367,14 +362,8 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 			return( NULL );
 		}
 	} else {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDAP, INFO, 
-			"ldap_back_getconn: conn %p fetched\n", 
-			(void *) lc, 0, 0 );
-#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_getconn: conn %p fetched\n", (void *) lc, 0, 0 );
-#endif /* !NEW_LOGGING */
 	}
 	
 	return( lc );

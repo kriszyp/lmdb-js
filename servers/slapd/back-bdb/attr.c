@@ -188,14 +188,8 @@ bdb_attr_index_config(
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_BDB, DETAIL1, 
-			"attr_index_config: index %s 0x%04lx\n",
-			ad->ad_cname.bv_val, mask, 0 );
-#else
 		Debug( LDAP_DEBUG_CONFIG, "index %s 0x%04lx\n",
 			ad->ad_cname.bv_val, mask, 0 ); 
-#endif
 
 
 		a->ai_desc = ad;

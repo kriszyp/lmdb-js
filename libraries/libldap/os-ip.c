@@ -768,11 +768,7 @@ ldap_int_select( LDAP *ld, struct timeval *timeout )
 {
 	struct selectinfo	*sip;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( CONNECTION, ENTRY, "ldap_int_select\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_int_select\n", 0, 0, 0 );
-#endif
 
 #ifndef HAVE_POLL
 	if ( ldap_int_tblsize == 0 ) ldap_int_ip_init();

@@ -250,19 +250,11 @@ int bdb_entry_get(
 	DB_LOCK		lock;
 	int		free_lock_id = 0;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_BDB, ARGS, 
-		"bdb_entry_get: ndn: \"%s\"\n", ndn->bv_val, 0, 0 );
-	LDAP_LOG( BACK_BDB, ARGS, 
-		"bdb_entry_get: oc: \"%s\", at: \"%s\"\n",
-		oc ? oc->soc_cname.bv_val : "(null)", at_name, 0);
-#else
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_entry_get: ndn: \"%s\"\n", ndn->bv_val, 0, 0 ); 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_entry_get: oc: \"%s\", at: \"%s\"\n",
 		oc ? oc->soc_cname.bv_val : "(null)", at_name, 0);
-#endif
 
 	if( op ) boi = (struct bdb_op_info *) op->o_private;
 	if( boi != NULL && op->o_bd->be_private == boi->boi_bdb->be_private ) {
@@ -308,66 +300,40 @@ dn2entry_retry:
 	}
 	if (ei) e = ei->bei_e;
 	if (e == NULL) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_BDB, INFO, 
-			"bdb_entry_get: cannot find entry (%s)\n", 
-			ndn->bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ACL,
 			"=> bdb_entry_get: cannot find entry: \"%s\"\n",
 				ndn->bv_val, 0, 0 ); 
-#endif
 		if ( free_lock_id ) {
 			LOCK_ID_FREE( bdb->bi_dbenv, locker );
 		}
 		return LDAP_NO_SUCH_OBJECT; 
 	}
 	
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_BDB, DETAIL1, "bdb_entry_get: found entry (%s)\n",
-		ndn->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ACL,
 		"=> bdb_entry_get: found entry: \"%s\"\n",
 		ndn->bv_val, 0, 0 ); 
-#endif
 
 #ifdef BDB_ALIASES
 	/* find attribute values */
 	if( is_entry_alias( e ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_BDB, INFO, 
-			"bdb_entry_get: entry (%s) is an alias\n", e->e_name.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ACL,
 			"<= bdb_entry_get: entry is an alias\n", 0, 0, 0 );
-#endif
 		rc = LDAP_ALIAS_PROBLEM;
 		goto return_results;
 	}
 #endif
 
 	if( is_entry_referral( e ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_BDB, INFO, 
-			"bdb_entry_get: entry (%s) is a referral.\n", e->e_name.bv_val, 0, 0);
-#else
 		Debug( LDAP_DEBUG_ACL,
 			"<= bdb_entry_get: entry is a referral\n", 0, 0, 0 );
-#endif
 		rc = LDAP_REFERRAL;
 		goto return_results;
 	}
 
 	if ( oc && !is_entry_objectclass( e, oc, 0 )) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_BDB, INFO, 
-			"bdb_entry_get: failed to find objectClass.\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ACL,
 			"<= bdb_entry_get: failed to find objectClass\n",
 			0, 0, 0 ); 
-#endif
 		rc = LDAP_NO_SUCH_ATTRIBUTE;
 		goto return_results;
 	}
@@ -400,12 +366,8 @@ return_results:
 		LOCK_ID_FREE( bdb->bi_dbenv, locker );
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_BDB, ENTRY, "bdb_entry_get: rc=%d\n", rc, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE,
 		"bdb_entry_get: rc=%d\n",
 		rc, 0, 0 ); 
-#endif
 	return(rc);
 }

@@ -342,15 +342,9 @@ meta_back_getconn(
 			return NULL;
 		}
 				
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_META, INFO,
-			"meta_back_getconn: got target %d for ndn=\"%s\" from cache\n", 
-			i, ndn->bv_val, 0 );
-#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_CACHE,
 	"==>meta_back_getconn: got target %d for ndn=\"%s\" from cache\n%s",
 				i, ndn->bv_val, "" );
-#endif /* !NEW_LOGGING */
 
 		/*
 		 * Clear all other candidates
@@ -456,14 +450,9 @@ meta_back_getconn(
 		
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_META, INFO,
-			"meta_back_getconn: conn %ld inserted\n", lc->conn->c_connid, 0, 0);
-#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
 			"=>meta_back_getconn: conn %ld inserted\n%s%s",
 			lc->conn->c_connid, "", "" );
-#endif /* !NEW_LOGGING */
 		
 		/*
 		 * Err could be -1 in case a duplicate metaconn is inserted
@@ -475,14 +464,9 @@ meta_back_getconn(
 			return NULL;
 		}
 	} else {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_META, INFO,
-			"meta_back_getconn: conn %ld fetched\n", lc->conn->c_connid, 0, 0 );
-#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
 			"=>meta_back_getconn: conn %ld fetched\n%s%s",
 			lc->conn->c_connid, "", "" );
-#endif /* !NEW_LOGGING */
 	}
 	
 	return lc;

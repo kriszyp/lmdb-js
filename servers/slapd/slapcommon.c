@@ -484,15 +484,9 @@ slap_tool_init(
 		}
 		
 		if ( nosubordinates == 0 && dbnum > 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACKEND, ERR, 
-"The first database does not allow %s; using the first available one (%d)\n",
-				progname, dbnum + 1, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 "The first database does not allow %s; using the first available one (%d)\n",
 				progname, dbnum + 1, 0 );
-#endif
 		}
 
 	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {

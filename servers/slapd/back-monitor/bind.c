@@ -38,13 +38,8 @@ monitor_back_bind( Operation *op, SlapReply *rs )
 		= (struct monitorinfo *) op->o_bd->be_private;
 #endif
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_MON, ENTRY, "monitor_back_bind: dn: %s.\n",
-			op->o_req_dn.bv_val, 0, 0 );
-#else
 	Debug(LDAP_DEBUG_ARGS, "==> monitor_back_bind: dn: %s\n", 
 			op->o_req_dn.bv_val, 0, 0 );
-#endif
 	
 	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE 
 			&& be_isroot_pw( op ) ) {

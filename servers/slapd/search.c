@@ -52,11 +52,7 @@ do_search(
 	struct berval base = BER_BVNULL;
 	ber_len_t	siz, off, i;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ENTRY, "do_search: conn %d\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "do_search\n", 0, 0, 0 );
-#endif
 
 	/*
 	 * Parse the search request.  It looks like this:
@@ -129,29 +125,16 @@ do_search(
 
 	rs->sr_err = dnPrettyNormal( NULL, &base, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"do_search: conn %d  invalid dn (%s)\n",
-			op->o_connid, base.bv_val, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"do_search: invalid dn (%s)\n", base.bv_val, 0, 0 );
-#endif
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto return_results;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, "SRCH \"%s\" %d %d",
-		base.bv_val, op->ors_scope, op->ors_deref );
-	LDAP_LOG( OPERATION, ARGS, "    %d %d %d\n",
-		op->ors_slimit, op->ors_tlimit, op->ors_attrsonly);
-#else
 	Debug( LDAP_DEBUG_ARGS, "SRCH \"%s\" %d %d",
 		base.bv_val, op->ors_scope, op->ors_deref );
 	Debug( LDAP_DEBUG_ARGS, "    %d %d %d\n",
 		op->ors_slimit, op->ors_tlimit, op->ors_attrsonly);
-#endif
 
 	/* filter - returns a "normalized" version */
 	rs->sr_err = get_filter( op, op->o_ber, &op->ors_filter, &rs->sr_text );
@@ -167,15 +150,8 @@ do_search(
 	}
 	filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, 
-		"do_search: conn %d	filter: %s\n", 
-		op->o_connid, !BER_BVISEMPTY( &op->ors_filterstr ) ? op->ors_filterstr.bv_val : "empty",
-		0 );
-#else
 	Debug( LDAP_DEBUG_ARGS, "    filter: %s\n",
 		!BER_BVISEMPTY( &op->ors_filterstr ) ? op->ors_filterstr.bv_val : "empty", 0, 0 );
-#endif
 
 	/* attributes */
 	siz = sizeof(AttributeName);
@@ -194,40 +170,20 @@ do_search(
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, 
-			"do_search: conn %d  get_ctrls failed (%d)\n",
-			op->o_connid, rs->sr_err, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_search: get_ctrls failed\n", 0, 0, 0 );
-#endif
 
 		goto return_results;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, 
-		"do_search: conn %d	attrs:", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ARGS, "    attrs:", 0, 0, 0 );
-#endif
 
 	if ( siz != 0 ) {
 		for ( i = 0; i<siz; i++ ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ARGS, 
-				"do_search: %s", op->ors_attrs[i].an_name.bv_val, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ARGS, " %s", op->ors_attrs[i].an_name.bv_val, 0, 0 );
-#endif
 		}
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ARGS, "\n" , 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ARGS, "\n", 0, 0, 0 );
-#endif
 
 	if ( StatslogTest( LDAP_DEBUG_STATS ) ) {
 		char abuf[BUFSIZ/2], *ptr = abuf;
@@ -518,13 +474,8 @@ static int call_search_preop_plugins( Operation *op )
 		 * A preoperation plugin failure will abort the
 		 * entire operation.
 		 */
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "call_search_preop_plugins: search preoperation plugin "
-				"returned %d\n", rc, 0, 0 );
-#else
 		Debug(LDAP_DEBUG_TRACE, "call_search_preop_plugins: search preoperation plugin "
 				"returned %d.\n", rc, 0, 0);
-#endif
 		if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0 ) ||
 		     rc == LDAP_SUCCESS ) {
 			rc = LDAP_OTHER;
@@ -569,14 +520,8 @@ static int call_search_rewrite_plugins( Operation *op )
 		slapi_pblock_get( op->o_pb, SLAPI_SEARCH_SCOPE, (void **)&op->ors_scope );
 		slapi_pblock_get( op->o_pb, SLAPI_SEARCH_DEREF, (void **)&op->ors_deref );
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ARGS, 
-			"call_search_rewrite_plugins: after compute_rewrite_search filter: %s\n", 
-			!BER_BVISEMPTY( &op->ors_filterstr ) ? op->ors_filterstr.bv_val : "empty", 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ARGS, "    after compute_rewrite_search filter: %s\n",
 			!BER_BVISEMPTY( &op->ors_filterstr ) ? op->ors_filterstr.bv_val : "empty", 0, 0 );
-#endif
 	}
 
 	return LDAP_SUCCESS;
@@ -585,13 +530,8 @@ static int call_search_rewrite_plugins( Operation *op )
 static void call_search_postop_plugins( Operation *op )
 {
 	if ( slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_SEARCH_FN, op->o_pb ) < 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "call_search_postop_plugins: search postoperation plugins "
-				"failed\n", 0, 0, 0 );
-#else
 		Debug(LDAP_DEBUG_TRACE, "call_search_postop_plugins: search postoperation plugins "
 				"failed.\n", 0, 0, 0);
-#endif
 	}
 }
 

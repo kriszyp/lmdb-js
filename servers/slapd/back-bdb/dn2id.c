@@ -38,13 +38,8 @@ bdb_dn2id_add(
 	char		*buf;
 	struct berval	ptr, pdn;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( INDEX, ARGS, "bdb_dn2id_add( \"%s\", 0x%08lx )\n",
-		e->e_ndn, (long) e->e_id, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_add( \"%s\", 0x%08lx )\n",
 		e->e_ndn, (long) e->e_id, 0 );
-#endif
 	assert( e->e_id != NOID );
 
 	DBTzero( &key );
@@ -66,13 +61,8 @@ bdb_dn2id_add(
 	/* store it -- don't override */
 	rc = db->put( db, txn, &key, &data, DB_NOOVERWRITE );
 	if( rc != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ERR, "bdb_dn2id_add: put failed: %s %d\n",
-			db_strerror(rc), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "=> bdb_dn2id_add: put failed: %s %d\n",
 			db_strerror(rc), rc, 0 );
-#endif
 		goto done;
 	}
 
@@ -83,15 +73,9 @@ bdb_dn2id_add(
 		buf[0] = DN_SUBTREE_PREFIX;
 		rc = db->put( db, txn, &key, &data, DB_NOOVERWRITE );
 		if( rc != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( INDEX, ERR, 
-				"=> bdb_dn2id_add: subtree (%s) put failed: %d\n",
-				ptr.bv_val, rc, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 			"=> bdb_dn2id_add: subtree (%s) put failed: %d\n",
 			ptr.bv_val, rc, 0 );
-#endif
 			goto done;
 		}
 		
@@ -110,15 +94,9 @@ bdb_dn2id_add(
 		rc = bdb_idl_insert_key( op->o_bd, db, txn, &key, e->e_id );
 
 		if( rc != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( INDEX, ERR, 
-				"=> bdb_dn2id_add: parent (%s) insert failed: %d\n",
-				ptr.bv_val, rc, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"=> bdb_dn2id_add: parent (%s) insert failed: %d\n",
 					ptr.bv_val, rc, 0 );
-#endif
 			goto done;
 		}
 	}
@@ -134,15 +112,9 @@ bdb_dn2id_add(
 		rc = bdb_idl_insert_key( op->o_bd, db, txn, &key, e->e_id );
 
 		if( rc != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( INDEX, ERR, 
-				"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
-				ptr.bv_val, rc, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
 					ptr.bv_val, rc, 0 );
-#endif
 			break;
 		}
 #ifdef BDB_MULTIPLE_SUFFIXES
@@ -159,11 +131,7 @@ bdb_dn2id_add(
 
 done:
 	op->o_tmpfree( buf, op->o_tmpmemctx );
-#ifdef NEW_LOGGING
-	LDAP_LOG ( INDEX, RESULTS, "<= bdb_dn2id_add: %d\n", rc, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_add: %d\n", rc, 0, 0 );
-#endif
 	return rc;
 }
 
@@ -181,13 +149,8 @@ bdb_dn2id_delete(
 	char		*buf;
 	struct berval	pdn, ptr;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( INDEX, ARGS, 
-		"=> bdb_dn2id_delete ( \"%s\", 0x%08lx )\n", e->e_ndn, e->e_id, 0);
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_delete( \"%s\", 0x%08lx )\n",
 		e->e_ndn, e->e_id, 0 );
-#endif
 
 	DBTzero( &key );
 	key.size = e->e_nname.bv_len + 2;
@@ -203,14 +166,8 @@ bdb_dn2id_delete(
 	/* delete it */
 	rc = db->del( db, txn, &key, 0 );
 	if( rc != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ERR, 
-			"=> bdb_dn2id_delete: delete failed: %s %d\n", 
-			db_strerror(rc), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "=> bdb_dn2id_delete: delete failed: %s %d\n",
 			db_strerror(rc), rc, 0 );
-#endif
 		goto done;
 	}
 
@@ -221,15 +178,9 @@ bdb_dn2id_delete(
 		buf[0] = DN_SUBTREE_PREFIX;
 		rc = db->del( db, txn, &key, 0 );
 		if( rc != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( INDEX, ERR, 
-				"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n", 
-				ptr.bv_val, rc, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 			"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n",
 			ptr.bv_val, rc, 0 );
-#endif
 			goto done;
 		}
 
@@ -248,15 +199,9 @@ bdb_dn2id_delete(
 		rc = bdb_idl_delete_key( op->o_bd, db, txn, &key, e->e_id );
 
 		if( rc != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( INDEX, ERR, 
-				"=> bdb_dn2id_delete: parent (%s) delete failed: %d\n", 
-				ptr.bv_val, rc, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"=> bdb_dn2id_delete: parent (%s) delete failed: %d\n",
 				ptr.bv_val, rc, 0 );
-#endif
 			goto done;
 		}
 	}
@@ -271,15 +216,9 @@ bdb_dn2id_delete(
 
 		rc = bdb_idl_delete_key( op->o_bd, db, txn, &key, e->e_id );
 		if( rc != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( INDEX, ERR, 
-				"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n", 
-				ptr.bv_val, rc, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n",
 				ptr.bv_val, rc, 0 );
-#endif
 			goto done;
 		}
 #ifdef BDB_MULTIPLE_SUFFIXES
@@ -296,11 +235,7 @@ bdb_dn2id_delete(
 
 done:
 	op->o_tmpfree( buf, op->o_tmpmemctx );
-#ifdef NEW_LOGGING
-	LDAP_LOG ( INDEX, RESULTS, "<= bdb_dn2id_delete %d\n", rc, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_delete %d\n", rc, 0, 0 );
-#endif
 	return rc;
 }
 
@@ -316,11 +251,7 @@ bdb_dn2id(
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( INDEX, ARGS, "=> bdb_dn2id( \"%s\" )\n", dn->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id( \"%s\" )\n", dn->bv_val, 0, 0 );
-#endif
 	DBTzero( &key );
 	key.size = dn->bv_len + 2;
 	key.data = op->o_tmpalloc( key.size, op->o_tmpmemctx );
@@ -337,21 +268,11 @@ bdb_dn2id(
 	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
 
 	if( rc != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ERR, "<= bdb_dn2id: get failed %s (%d)\n", 
-			db_strerror(rc), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: get failed: %s (%d)\n",
 			db_strerror( rc ), rc, 0 );
-#endif
 	} else {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, RESULTS, 
-			"<= bdb_dn2id: got id=0x%08lx\n", ei->bei_id, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: got id=0x%08lx\n",
 			ei->bei_id, 0, 0 );
-#endif
 	}
 
 	op->o_tmpfree( key.data, op->o_tmpmemctx );
@@ -370,13 +291,8 @@ bdb_dn2id_children(
 	ID		id;
 	int		rc;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( INDEX, ARGS, 
-		"=> bdb_dn2id_children( %s )\n", e->e_nname.bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_children( %s )\n",
 		e->e_nname.bv_val, 0, 0 );
-#endif
 	DBTzero( &key );
 	key.size = e->e_nname.bv_len + 2;
 	key.data = op->o_tmpalloc( key.size, op->o_tmpmemctx );
@@ -401,17 +317,10 @@ bdb_dn2id_children(
 	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
 	op->o_tmpfree( key.data, op->o_tmpmemctx );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( INDEX, DETAIL1, 
-		"<= bdb_dn2id_children( %s ): %s (%d)\n", 
-		e->e_nname.bv_val, rc == 0 ? "" : ( rc == DB_NOTFOUND ? "no " :
-		db_strerror(rc)), rc );
-#else
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_children( %s ): %s (%d)\n",
 		e->e_nname.bv_val,
 		rc == 0 ? "" : ( rc == DB_NOTFOUND ? "no " :
 			db_strerror(rc) ), rc );
-#endif
 
 	return rc;
 }
@@ -430,13 +339,8 @@ bdb_dn2idl(
 	int prefix = ( op->ors_scope == LDAP_SCOPE_ONELEVEL )
 		? DN_ONE_PREFIX : DN_SUBTREE_PREFIX;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( INDEX, ARGS, "=> bdb_dn2ididl( \"%s\" )\n",
-		e->e_nname.bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2idl( \"%s\" )\n",
 		e->e_nname.bv_val, 0, 0 );
-#endif
 
 #ifndef	BDB_MULTIPLE_SUFFIXES
 	if ( prefix == DN_SUBTREE_PREFIX && BEI(e)->bei_parent->bei_id == 0 ) {
@@ -456,27 +360,15 @@ bdb_dn2idl(
 	rc = bdb_idl_fetch_key( op->o_bd, db, NULL, &key, ids );
 
 	if( rc != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ERR, 
-			"<= bdb_dn2ididl: get failed: %s (%d)\n", db_strerror(rc), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb_dn2idl: get failed: %s (%d)\n",
 			db_strerror( rc ), rc, 0 );
-#endif
 
 	} else {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, RESULTS, 
-			"<= bdb_dn2ididl: id=%ld first=%ld last=%ld\n", 
-			(long) ids[0], (long) BDB_IDL_FIRST( ids ), 
-			(long) BDB_IDL_LAST( ids ) );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb_dn2idl: id=%ld first=%ld last=%ld\n",
 			(long) ids[0],
 			(long) BDB_IDL_FIRST( ids ), (long) BDB_IDL_LAST( ids ) );
-#endif
 	}
 
 	op->o_tmpfree( key.data, op->o_tmpmemctx );
@@ -1085,13 +977,8 @@ hdb_dn2idl(
 	struct bdb_info *bdb = (struct bdb_info *)op->o_bd->be_private;
 	struct dn2id_cookie cx;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( INDEX, ARGS, 
-		"=> hdb_dn2ididl( \"%s\" )\n", e->e_nname.bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=> hdb_dn2idl( \"%s\" )\n",
 		e->e_nname.bv_val, 0, 0 );
-#endif
 
 #ifndef BDB_MULTIPLE_SUFFIXES
 	if ( op->ors_scope != LDAP_SCOPE_ONELEVEL && 

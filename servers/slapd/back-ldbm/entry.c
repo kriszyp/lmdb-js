@@ -77,82 +77,48 @@ int ldbm_back_entry_get(
 	int	rc;
 	const char *at_name = at ? at->ad_cname.bv_val : "(null)";
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ARGS, 
-		"ldbm_back_entry_get: ndn: \"%s\"\n", ndn->bv_val, 0, 0 );
-	LDAP_LOG( BACK_LDBM, ARGS, 
-		"ldbm_back_entry_get: oc: \"%s\", at: \"%s\"\n",
-		oc ? oc->soc_cname.bv_val : "(null)", at_name, 0);
-#else
 	Debug( LDAP_DEBUG_ARGS,
 		"=> ldbm_back_entry_get: ndn: \"%s\"\n", ndn->bv_val, 0, 0 ); 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> ldbm_back_entry_get: oc: \"%s\", at: \"%s\"\n",
 		oc ? oc->soc_cname.bv_val : "(null)", at_name, 0);
-#endif
 
 	/* don't grab the giant lock - our caller has already gotten it. */
 
 	/* can we find entry */
 	e = dn2entry_rw( op->o_bd, ndn, NULL, rw );
 	if (e == NULL) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, INFO, 
-			"ldbm_back_entry_get: cannot find entry (%s)\n", 
-			ndn->bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ACL,
 			"=> ldbm_back_entry_get: cannot find entry: \"%s\"\n",
 				ndn->bv_val, 0, 0 ); 
-#endif
 		return LDAP_NO_SUCH_OBJECT; 
 	}
 	
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, DETAIL1, "ldbm_back_entry_get: found entry (%s)\n",
-		ndn->bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ACL,
 		"=> ldbm_back_entry_get: found entry: \"%s\"\n",
 		ndn->bv_val, 0, 0 ); 
-#endif
 
 #ifdef BDB_ALIASES
 	/* find attribute values */
 	if( is_entry_alias( e ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, INFO, 
-			"ldbm_back_entry_get: entry (%s) is an alias\n", e->e_name.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_entry_get: entry is an alias\n", 0, 0, 0 );
-#endif
 		rc = LDAP_ALIAS_PROBLEM;
 		goto return_results;
 	}
 #endif
 
 	if( is_entry_referral( e ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, INFO, 
-			"ldbm_back_entry_get: entry (%s) is a referral.\n", e->e_name.bv_val, 0, 0);
-#else
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_entry_get: entry is a referral\n", 0, 0, 0 );
-#endif
 		rc = LDAP_REFERRAL;
 		goto return_results;
 	}
 
 	if ( oc && !is_entry_objectclass( e, oc, 0 )) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, INFO, 
-			"ldbm_back_entry_get: failed to find objectClass.\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_entry_get: failed to find objectClass\n",
 			0, 0, 0 ); 
-#endif
 		rc = LDAP_NO_SUCH_ATTRIBUTE;
 		goto return_results;
 	}
@@ -167,12 +133,8 @@ return_results:
 		*ent = e;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_back_entry_get: rc=%d\n", rc, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE,
 		"ldbm_back_entry_get: rc=%d\n",
 		rc, 0, 0 ); 
-#endif
 	return(rc);
 }

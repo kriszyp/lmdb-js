@@ -85,11 +85,7 @@ get_comp_filter ( Operation* op, struct berval* bv, ComponentFilter** filt,
 {
 	ComponentAssertionValue cav;
 	int len, rc;
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY, "get_comp_filter\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "get_comp_filter\n", 0, 0, 0 );
-#endif
 	slapd_ber2cav(bv, &cav);
 	rc = parse_comp_filter( op, &cav, filt, text );
 	bv->bv_val = cav.cav_ptr;
@@ -155,11 +151,7 @@ get_comp_filter_list( Operation *op, ComponentAssertionValue *cav,
 	ber_len_t	len;
 	char		*last;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY, "get_comp_filter_list\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "get_comp_filter_list\n", 0, 0, 0 );
-#endif
 	new = f;
 	for ( tag = comp_first_element( cav ); tag != LDAP_COMP_FILTER_UNDEFINED;
 		tag = comp_next_element( cav ) )
@@ -185,11 +177,7 @@ get_componentId( Operation *op, ComponentAssertionValue* cav,
 
 	type = peek_componentId_type( cav );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY, "get_compId [%d]\n", type, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "get_compId [%d]\n", type, 0, 0 );
-#endif
 	len = 0;
 	_cid.ci_type = type;
 	_cid.ci_next = NULL;
@@ -226,11 +214,7 @@ get_componentId( Operation *op, ComponentAssertionValue* cav,
 	case LDAP_COMPREF_ALL :
 		_cid.ci_val.ci_all = '*';
 		cav->cav_ptr++;
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY, "get_compId : ALL\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "get_compId : ALL\n", 0, 0, 0 );
-#endif
 		break;
 	default :
 		return LDAP_COMPREF_UNDEFINED;
@@ -359,11 +343,7 @@ get_matching_rule( Operation *op, ComponentAssertionValue* cav,
 	rule_text.bv_val = cav->cav_ptr;
 	*mr = mr_bvfind( &rule_text );
 	cav->cav_ptr += count;
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY,  "get_matching_rule: %s\n", (*mr)->smr_mrule.mr_oid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "get_matching_rule: %s\n", (*mr)->smr_mrule.mr_oid, 0, 0 );
-#endif
 	if ( *mr == NULL ) {
 		*text = "component matching rule not recognized";
 		return LDAP_INAPPROPRIATE_MATCHING;
@@ -512,11 +492,7 @@ get_item( Operation *op, ComponentAssertionValue* cav, ComponentAssertion** ca,
 	int rc;
 	ComponentAssertion* _ca;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY,  "get_item: %s\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "get_item: %s\n", 0, 0, 0 );
-#endif
 	_ca = op->o_tmpalloc( sizeof( ComponentAssertion ), op->o_tmpmemctx );
 
 	rc = peek_cav_str( cav, "component" );
@@ -610,11 +586,7 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 
 	switch ( f.cf_choice ) {
 	case LDAP_COMP_FILTER_AND:
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY,  "LDAP_COMP_FILTER_AND\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "LDAP_COMP_FILTER_AND\n", 0, 0, 0 );
-#endif
 		err = get_comp_filter_list( op, cav, &f.cf_and, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -626,11 +598,7 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 		break;
 
 	case LDAP_COMP_FILTER_OR:
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY,  "LDAP_COMP_FILTER_OR\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "LDAP_COMP_FILTER_OR\n", 0, 0, 0 );
-#endif
 		err = get_comp_filter_list( op, cav, &f.cf_or, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -643,11 +611,7 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 		break;
 
 	case LDAP_COMP_FILTER_NOT:
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY,  "LDAP_COMP_FILTER_NOT\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "LDAP_COMP_FILTER_NOT\n", 0, 0, 0 );
-#endif
 		err = parse_comp_filter( op, cav, &f.cf_not, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -674,11 +638,7 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 		break;
 
 	case LDAP_COMP_FILTER_ITEM:
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY,  "LDAP_COMP_FILTER_ITEM\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "LDAP_COMP_FILTER_ITEM\n", 0, 0, 0 );
-#endif
 		err = get_item( op, cav, &f.cf_ca, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
@@ -807,11 +767,7 @@ test_comp_filter_entry(
 
 	mra->cf->cf_ca->ca_mra = mra;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY,  "test_comp_filter_entry\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "test_comp_filter_entry\n", 0, 0, 0 );
-#endif
 	if ( mra->ma_desc ) {
 		/*
 		 * ma_desc is available, so filtering for one attribute
@@ -882,11 +838,7 @@ test_comp_filter_attr(
 {
 	int	rc;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY,  "test_comp_filter_attr\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_FILTER, "test_comp_filter_attr\n", 0, 0, 0 );
-#endif
 	switch ( f->cf_choice ) {
 	case SLAPD_FILTER_COMPUTED:
 		rc = f->cf_result;

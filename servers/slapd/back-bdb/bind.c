@@ -43,13 +43,8 @@ bdb_bind( Operation *op, SlapReply *rs )
 	u_int32_t	locker;
 	DB_LOCK		lock;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ARGS,
-		"==> bdb_bind: dn: %s\n", op->o_req_dn.bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ARGS,
 		"==> bdb_bind: dn: %s\n", op->o_req_dn.bv_val, 0, 0);
-#endif
 
 	/* allow noauth binds */
 	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE && be_isroot_pw( op )) {
@@ -112,13 +107,8 @@ dn2entry_retry:
 #ifdef BDB_SUBENTRIES
 	if ( is_entry_subentry( e ) ) {
 		/* entry is an subentry, don't allow bind */
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, DETAIL1, 
-			"bdb_bind: entry is subentry\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "entry is subentry\n", 0,
 			0, 0 );
-#endif
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		goto done;
 	}
@@ -127,12 +117,7 @@ dn2entry_retry:
 #ifdef BDB_ALIASES
 	if ( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow bind */
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, DETAIL1,
-			"bdb_bind: entry is alias\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0, 0, 0 );
-#endif
 
 #if 1
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
@@ -145,13 +130,8 @@ dn2entry_retry:
 #endif
 
 	if ( is_entry_referral( e ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, DETAIL1, 
-			"bdb_bind: entry is referral\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 			0, 0 );
-#endif
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		goto done;
 	}

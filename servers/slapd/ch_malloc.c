@@ -52,13 +52,8 @@ ch_malloc(
 	void	*new;
 
 	if ( (new = (void *) ber_memalloc_x( size, NULL )) == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			   "ch_malloc: allocation of %lu bytes failed\n", (long)size, 0,0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "ch_malloc of %lu bytes failed\n",
 			(long) size, 0, 0 );
-#endif
 		assert( 0 );
 		exit( EXIT_FAILURE );
 	}
@@ -88,13 +83,8 @@ ch_realloc(
 	}
 
 	if ( (new = (void *) ber_memrealloc_x( block, size, NULL )) == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			   "ch_realloc: reallocation of %lu bytes failed\n", (long)size, 0,0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "ch_realloc of %lu bytes failed\n",
 			(long) size, 0, 0 );
-#endif
 		assert( 0 );
 		exit( EXIT_FAILURE );
 	}
@@ -111,14 +101,8 @@ ch_calloc(
 	void	*new;
 
 	if ( (new = (void *) ber_memcalloc_x( nelem, size, NULL )) == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			   "ch_calloc: allocation of %lu elements of %lu bytes faild\n",
-			   (long)nelem, (long)size, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "ch_calloc of %lu elems of %lu bytes failed\n",
 		  (long) nelem, (long) size, 0 );
-#endif
 		assert( 0 );
 		exit( EXIT_FAILURE );
 	}
@@ -134,12 +118,7 @@ ch_strdup(
 	char	*new;
 
 	if ( (new = ber_strdup_x( string, NULL )) == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"chr_strdup: duplication of \"%s\" failed\n", string, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "ch_strdup(%s) failed\n", string, 0, 0 );
-#endif
 		assert( 0 );
 		exit( EXIT_FAILURE );
 	}

@@ -318,50 +318,28 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	if ( ldap_bv2rdn( &op->oq_modrdn.rs_newrdn, &new_rdn, &next, 
 				LDAP_DN_FORMAT_LDAP ) )
 	{
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, ERR, 
-			"   backsql_modrdn: can't figure out "
-			"type(s)/values(s) of newrdn\n", 
-			0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_modrdn: can't figure out "
 			"type(s)/values(s) of newrdn\n", 
 			0, 0, 0 );
-#endif
 		rs->sr_err = LDAP_INVALID_DN_SYNTAX;
 		goto done;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, RESULTS, 
-		"   backsql_modrdn: new_rdn_type=\"%s\", "
-		"new_rdn_val=\"%s\"\n",
-		new_rdn[ 0 ]->la_attr.bv_val, 
-		new_rdn[ 0 ]->la_value.bv_val, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE,
 		"   backsql_modrdn: new_rdn_type=\"%s\", "
 		"new_rdn_val=\"%s\"\n",
 		new_rdn[ 0 ]->la_attr.bv_val,
 		new_rdn[ 0 ]->la_value.bv_val, 0 );
-#endif
 
 	if ( op->oq_modrdn.rs_deleteoldrdn ) {
 		if ( ldap_bv2rdn( &op->o_req_dn, &old_rdn, &next,
 					LDAP_DN_FORMAT_LDAP ) )
 		{
-#ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, ERR, 
-				"   backsql_modrdn: can't figure out "
-				"type(s)/values(s) of old_rdn\n", 
-				0, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"   backsql_modrdn: can't figure out "
 				"the old_rdn type(s)/value(s)\n", 
 				0, 0, 0 );
-#endif
 			rs->sr_err = LDAP_OTHER;
 			goto done;		
 		}

@@ -216,23 +216,12 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 	towrite = ber->ber_ptr - ber->ber_rwptr;
 
 	if ( sb->sb_debug ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BER, DETAIL1,
-			   "ber_flush: %ld bytes to sd %ld%s\n",
-			   towrite, (long)sb->sb_fd,
-			   ber->ber_rwptr != ber->ber_buf ? " (re-flush)" : "" );
-
-		if(LDAP_LOGS_TEST(BER, DETAIL2))
-				BER_DUMP(( "liblber", LDAP_LEVEL_DETAIL2, ber, 1 ));
-
-#else
 		ber_log_printf( LDAP_DEBUG_TRACE, sb->sb_debug,
 			"ber_flush: %ld bytes to sd %ld%s\n",
 			towrite, (long) sb->sb_fd,
 			ber->ber_rwptr != ber->ber_buf ?  " (re-flush)" : "" );
 		ber_log_bprint( LDAP_DEBUG_PACKETS, sb->sb_debug,
 			ber->ber_rwptr, towrite );
-#endif
 	}
 
 	while ( towrite > 0 ) {
@@ -484,12 +473,8 @@ ber_get_next(
 	assert( SOCKBUF_VALID( sb ) );
 	assert( LBER_VALID( ber ) );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BER, ENTRY, "ber_get_next: enter\n", 0, 0, 0 );
-#else
 	ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
 		"ber_get_next\n" );
-#endif
 
 	/*
 	 * Any ber element looks like this: tag length contents.
@@ -622,15 +607,9 @@ ber_get_next(
 		}
 
 		if ( sb->sb_max_incoming && ber->ber_len > sb->sb_max_incoming ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BER, ERR, 
-				"ber_get_next: sockbuf_max_incoming exceeded "
-				"(%d > %d)\n", ber->ber_len, sb->sb_max_incoming, 0 );
-#else
 			ber_log_printf( LDAP_DEBUG_CONNS, ber->ber_debug,
 				"ber_get_next: sockbuf_max_incoming exceeded "
 				"(%ld > %ld)\n", ber->ber_len, sb->sb_max_incoming );
-#endif
 			errno = ERANGE;
 			return LBER_DEFAULT;
 		}
@@ -691,18 +670,10 @@ done:
 		ber->ber_rwptr = NULL;
 		*len = ber->ber_len;
 		if ( ber->ber_debug ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BER, DETAIL1, 
-				"ber_get_next: tag 0x%lx len %ld\n", 
-				ber->ber_tag, ber->ber_len, 0  );
-			if(LDAP_LOGS_TEST(BER, DETAIL2))
-					BER_DUMP(( "liblber", LDAP_LEVEL_DETAIL2, ber, 1 ));
-#else
 			ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
 				"ber_get_next: tag 0x%lx len %ld contents:\n",
 				ber->ber_tag, ber->ber_len );
 			ber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );
-#endif
 		}
 		return (ber->ber_tag);
 	}

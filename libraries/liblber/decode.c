@@ -669,17 +669,9 @@ ber_scanf ( BerElement *ber,
 
 	fmt_reset = fmt;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BER, ENTRY, "ber_scanf fmt (%s) ber:\n", fmt, 0, 0 );
-
-	if ( LDAP_LOGS_TEST(BER, DETAIL2 )) {
-			BER_DUMP(( "liblber", LDAP_LEVEL_DETAIL2, ber, 1 ));
-	}
-#else
 	ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
 		"ber_scanf fmt (%s) ber:\n", fmt );
 	ber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );
-#endif
 
 	for ( rc = 0; *fmt && rc != LBER_DEFAULT; fmt++ ) {
 		/* When this is modified, remember to update
@@ -824,13 +816,8 @@ ber_scanf ( BerElement *ber,
 
 		default:
 			if( ber->ber_debug ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BER, ERR, 
-					"ber_scanf: unknown fmt %c\n", *fmt, 0, 0 );
-#else
 				ber_log_printf( LDAP_DEBUG_ANY, ber->ber_debug,
 					"ber_scanf: unknown fmt %c\n", *fmt );
-#endif
 			}
 			rc = LBER_DEFAULT;
 			break;

@@ -50,12 +50,7 @@ lock_fopen( const char *fname, const char *type, FILE **lfp )
 	snprintf( buf, sizeof buf, "%s.lock", fname );
 
 	if ( (*lfp = fopen( buf, "w" )) == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"lock_fopen: could not open lock file \"%s\".\n", buf, 0, 0);
-#else
 		Debug( LDAP_DEBUG_ANY, "could not open \"%s\"\n", buf, 0, 0 );
-#endif
 
 		return( NULL );
 	}
@@ -65,12 +60,7 @@ lock_fopen( const char *fname, const char *type, FILE **lfp )
 
 	/* open the log file */
 	if ( (fp = fopen( fname, type )) == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"lock_fopen: could not open log file \"%s\".\n", buf, 0, 0);
-#else
 		Debug( LDAP_DEBUG_ANY, "could not open \"%s\"\n", fname, 0, 0 );
-#endif
 
 		ldap_unlockf( fileno(*lfp) );
 		fclose( *lfp );

@@ -723,42 +723,24 @@ lastmod_db_init(
 			at = ldap_str2attributetype( mat[i].schema, &code,
 				&err, LDAP_SCHEMA_ALLOW_ALL );
 			if ( !at ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, CRIT, "lastmod_init: "
-					"in AttributeType '%s' %s before %s\n",
-					mat[i].name, ldap_scherr2str(code), err );
-#else
 				Debug( LDAP_DEBUG_ANY, "lastmod_init: "
 					"in AttributeType '%s' %s before %s\n",
 					mat[i].name, ldap_scherr2str(code), err );
-#endif
 				return -1;
 			}
 	
 			if ( at->at_oid == NULL ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, CRIT, "lastmod_init: "
-					"null OID for attributeType '%s'\n",
-					mat[i].name, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY, "lastmod_init: "
 					"null OID for attributeType '%s'\n",
 					mat[i].name, 0, 0 );
-#endif
 				return -1;
 			}
 	
 			code = at_add(at, &err);
 			if ( code ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, CRIT, "lastmod_init: "
-					"%s in attributeType '%s'\n",
-					scherr2str(code), mat[i].name, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY, "lastmod_init: "
 					"%s in attributeType '%s'\n",
 					scherr2str(code), mat[i].name, 0 );
-#endif
 				return -1;
 			}
 			ldap_memfree(at);
@@ -766,13 +748,8 @@ lastmod_db_init(
 			ad = ((AttributeDescription **)&(((char *)&lastmod_schema)[mat[i].offset]));
 			ad[0] = NULL;
 			if ( slap_str2ad( mat[i].name, ad, &text ) ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, CRIT,
-					"lastmod_init: %s\n", text, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"lastmod_init: %s\n", text, 0, 0 );
-#endif
 				return -1;
 			}
 	
@@ -788,44 +765,25 @@ lastmod_db_init(
 			oc = ldap_str2objectclass(moc[i].schema, &code, &err,
 					LDAP_SCHEMA_ALLOW_ALL );
 			if ( !oc ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, CRIT,
-					"unable to parse lastmod objectClass '%s': "
-					"%s before %s\n" , moc[i].name,
-					ldap_scherr2str(code), err );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"unable to parse lastmod objectClass '%s': "
 					"%s before %s\n" , moc[i].name,
 					ldap_scherr2str(code), err );
-#endif
 				return -1;
 			}
 
 			if ( oc->oc_oid == NULL ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, CRIT,
-					"objectClass '%s' has no OID\n" ,
-					moc[i].name, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"objectClass '%s' has no OID\n" ,
 					moc[i].name, 0, 0 );
-#endif
 				return -1;
 			}
 
 			code = oc_add(oc, 0, &err);
 			if ( code ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, CRIT,
-					"objectClass '%s': %s \"%s\"\n" ,
-					moc[i].name, scherr2str(code), err );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"objectClass '%s': %s \"%s\"\n" ,
 					moc[i].name, scherr2str(code), err );
-#endif
 				return -1;
 			}
 	
@@ -833,15 +791,9 @@ lastmod_db_init(
 	
 			Oc = oc_find( moc[i].name );
 			if ( Oc == NULL ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, CRIT, "lastmod_init: "
-						"unable to find objectClass %s "
-						"(just added)\n", moc[i].name, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY, "lastmod_init: "
 						"unable to find objectClass %s "
 						"(just added)\n", moc[i].name, 0, 0 );
-#endif
 				return -1;
 			}
 

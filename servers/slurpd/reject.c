@@ -83,15 +83,9 @@ write_reject(
 	int rjfd;
 	if (( rjfd = open( rejfile, O_RDWR|O_APPEND|O_CREAT|O_EXCL,
 		S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP )) < 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( SLURPD, ERR, "write_reject: "
-			"Error: Cannot create \"%s\":%s\n", 
-			rejfile, sys_errlist[ errno ], 0 );
-#else
 	    Debug( LDAP_DEBUG_ANY,
 		"Error: write_reject: Cannot create \"%s\": %s\n",
 		rejfile, sys_errlist[ errno ], 0 );
-#endif
 	    ldap_pvt_thread_mutex_unlock( &sglob->rej_mutex );
 	    return;
 	} else {
@@ -99,13 +93,8 @@ write_reject(
 	}
     }
     if (( rc = acquire_lock( rejfile, &rfp, &lfp )) < 0 ) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ERR, "write_reject: "
-		"Error: Cannot open reject file \"%s\"\n", rejfile, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "Error: cannot open reject file \"%s\"\n",
 		rejfile, 0, 0 );
-#endif
     } else {
 	fseek( rfp, 0, 2 );
 	fprintf( rfp, "%s: %s", ERROR_STR, ldap_err2string( lderr ));
@@ -114,25 +103,14 @@ write_reject(
 	}
 	fprintf( rfp, "\n" );
 	if ((rc = re->re_write( ri, re, rfp )) < 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( SLURPD, ERR, "write_reject: "
-			"Error: Cannot write reject file \"%s\"\n", rejfile, 0, 0 );
-#else
 	    Debug( LDAP_DEBUG_ANY,
 		    "Error: cannot write reject file \"%s\"\n",
 		    rejfile, 0, 0 );
-#endif
 	}
 	(void) relinquish_lock( rejfile, rfp, lfp );
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ERR, "write_reject: "
-		"Error: ldap operation failed, data written to \"%s\"\n", 
-		rejfile, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY,
 		"Error: ldap operation failed, data written to \"%s\"\n",
 		rejfile, 0, 0 );
-#endif
     }
     ldap_pvt_thread_mutex_unlock( &sglob->rej_mutex );
     return;

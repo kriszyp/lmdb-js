@@ -105,12 +105,7 @@ syn_insert(
 		sir = (struct sindexrec *)
 			SLAP_CALLOC( 1, sizeof(struct sindexrec) );
 		if( sir == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ERR, 
-				"syn_insert: SLAP_CALLOC Error\n", 0, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "SLAP_CALLOC Error\n", 0, 0, 0 );
-#endif
 			return LDAP_OTHER;
 		}
 		sir->sir_name = ssyn->ssyn_oid;
@@ -139,12 +134,7 @@ syn_add(
 
 	ssyn = (Syntax *) SLAP_CALLOC( 1, sizeof(Syntax) );
 	if( ssyn == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"syn_add: SLAP_CALLOC Error\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "SLAP_CALLOC Error\n", 0, 0, 0 );
-#endif
 		return LDAP_OTHER;
 	}
 
@@ -181,14 +171,8 @@ register_syntax(
 
 	syn = ldap_str2syntax( def->sd_desc, &code, &err, LDAP_SCHEMA_ALLOW_ALL);
 	if ( !syn ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, ERR, 
-			"register_syntax: Error - %s before %s in %s.\n",
-			ldap_scherr2str(code), err, def->sd_desc );
-#else
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s before %s in %s\n",
 		    ldap_scherr2str(code), err, def->sd_desc );
-#endif
 
 		return( -1 );
 	}
@@ -198,14 +182,8 @@ register_syntax(
 	ldap_memfree( syn );
 
 	if ( code ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, ERR, 
-			"register_syntax: Error - %s %s in %s\n", 
-			scherr2str(code), err, def->sd_desc );
-#else
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s %s in %s\n",
 		    scherr2str(code), err, def->sd_desc );
-#endif
 
 		return( -1 );
 	}
@@ -235,14 +213,8 @@ syn_schema_info( Entry *e )
 			return -1;
 		}
 #if 0
-#ifdef NEW_LOGGING
-		LDAP_LOG( config, ENTRY,
-			   "syn_schema_info: Merging syn [%ld] %s\n",
-			   (long)val.bv_len, val.bv_val, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "Merging syn [%ld] %s\n",
 	       (long) val.bv_len, val.bv_val, 0 );
-#endif
 #endif
 
 		nval.bv_val = syn->ssyn_oid;

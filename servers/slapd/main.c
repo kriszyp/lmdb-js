@@ -303,15 +303,8 @@ int main( int argc, char **argv )
 		i = (int*)lutil_getRegParam( regService, "DebugLevel" );
 		if ( i != NULL ) {
 			slap_debug = *i;
-#ifdef NEW_LOGGING
-			lutil_log_initialize( argc, argv );
-			LDAP_LOG( SLAPD, INFO, 
-				"main: new debug level from registry is: %d\n", 
-				slap_debug, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"new debug level from registry is: %d\n", slap_debug, 0, 0 );
-#endif
 		}
 
 		newUrls = (char *) lutil_getRegParam(regService, "Urls");
@@ -320,24 +313,14 @@ int main( int argc, char **argv )
 			ch_free(urls);
 
 		    urls = ch_strdup(newUrls);
-#ifdef NEW_LOGGING
-		    LDAP_LOG( SLAPD, INFO, 
-				"main: new urls from registry: %s\n", urls, 0, 0 );
-#else
 		    Debug(LDAP_DEBUG_ANY, "new urls from registry: %s\n",
 				urls, 0, 0);
-#endif
 		}
 
 		newConfigFile = (char*)lutil_getRegParam( regService, "ConfigFile" );
 		if ( newConfigFile != NULL ) {
 			configfile = newConfigFile;
-#ifdef NEW_LOGGING
-			LDAP_LOG( SLAPD, INFO, 
-				"main: new config file from registry is: %s\n", configfile, 0, 0 );
-#else
 			Debug ( LDAP_DEBUG_ANY, "new config file from registry is: %s\n", configfile, 0, 0 );
-#endif
 		}
 	}
 #endif
@@ -381,15 +364,9 @@ int main( int argc, char **argv )
 
 			LDAP_STAILQ_FOREACH( scp_entry, &slap_sync_cookie, sc_next ) {
 				if ( scp->rid == scp_entry->rid ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG( OPERATION, CRIT,
-							"main: duplicated replica id in cookies\n",
-							0, 0, 0 );
-#else
 					Debug( LDAP_DEBUG_ANY,
 						    "main: duplicated replica id in cookies\n",
 							0, 0, 0 );
-#endif
 					slap_sync_cookie_free( scp, 1 );
 					goto destroy;
 				}
@@ -524,14 +501,10 @@ unhandled_option:;
 		}
 	}
 
-#ifdef NEW_LOGGING
-	lutil_log_initialize( argc, argv );
-#else
 	lutil_set_debug_level( "slapd", slap_debug );
 	ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &slap_debug);
 	ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &slap_debug);
 	ldif_debug = slap_debug;
-#endif
 
 	if ( version ) {
 		fprintf( stderr, "%s\n", Versionstr );
@@ -557,11 +530,7 @@ unhandled_option:;
 #endif
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( SLAPD, INFO, "%s", Versionstr, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "%s", Versionstr, 0, 0 );
-#endif
 
 	if( check == CHECK_NONE && slapd_daemon_init( urls ) != 0 ) {
 		rc = 1;
@@ -603,13 +572,9 @@ unhandled_option:;
 #endif
 
 	if ( slap_schema_init( ) != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT, "main: schema initialization error\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 		    "schema initialization error\n",
 		    0, 0, 0 );
-#endif
 
 		goto destroy;
 	}
@@ -621,13 +586,9 @@ unhandled_option:;
 	}
 
 	if ( slap_controls_init( ) != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT, "main: controls initialization error\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 		    "controls initialization error\n",
 		    0, 0, 0 );
-#endif
 
 		goto destroy;
 	}
@@ -644,13 +605,9 @@ unhandled_option:;
 
 #ifdef LDAP_SLAPI
 	if ( slapi_int_initialize() != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT, "main: slapi initialization error\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 		    "slapi initialization error\n",
 		    0, 0, 0 );
-#endif
 
 		goto destroy;
 	}
@@ -686,24 +643,16 @@ unhandled_option:;
 	}
 
 	if ( glue_sub_init( ) != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( SLAPD, CRIT, "main: subordinate config error\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 		    "subordinate config error\n",
 		    0, 0, 0 );
-#endif
 		goto destroy;
 	}
 
 	if ( slap_schema_check( ) != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( SLAPD, CRIT, "main: schema prep error\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 		    "schema prep error\n",
 		    0, 0, 0 );
-#endif
 
 		goto destroy;
 	}
@@ -711,13 +660,9 @@ unhandled_option:;
 #ifdef HAVE_TLS
 	rc = ldap_pvt_tls_init();
 	if( rc != 0) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( SLAPD, CRIT, "main: tls init failed: %d\n", rc, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 		    "main: TLS init failed: %d\n",
 		    0, 0, 0 );
-#endif
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
 		goto destroy;
@@ -734,13 +679,9 @@ unhandled_option:;
 
 		rc = ldap_pvt_tls_init_def_ctx();
 		if( rc != 0) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( SLAPD, CRIT, "main: tls init def ctx failed: %d\n", rc, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 			    "main: TLS init def ctx failed: %d\n",
 			    rc, 0, 0 );
-#endif
 			rc = 1;
 			SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
 			goto destroy;
@@ -791,11 +732,7 @@ unhandled_option:;
 		goto shutdown;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( SLAPD, INFO, "main: slapd starting.\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
-#endif
 
 
 	if ( slapd_pid_file != NULL ) {
@@ -867,11 +804,7 @@ stop:
 	lutil_LogStoppedEvent( serverName );
 #endif
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( SLAPD, CRIT, "main: slapd stopped.\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "slapd stopped.\n", 0, 0, 0 );
-#endif
 
 
 #ifdef HAVE_NT_SERVICE_MANAGER

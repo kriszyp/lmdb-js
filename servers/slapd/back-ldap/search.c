@@ -420,13 +420,8 @@ ldap_build_entry(
 			if ( slap_bv2undef_ad( &mapped, &attr->a_desc, &text ) 
 					!= LDAP_SUCCESS )
 			{
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACK_LDAP, DETAIL1, 
-					"slap_bv2undef_ad(%s):	%s\n", mapped.bv_val, text, 0 );
-#else /* !NEW_LOGGING */
 				Debug( LDAP_DEBUG_ANY, 
 					"slap_bv2undef_ad(%s):	%s\n", mapped.bv_val, text, 0 );
-#endif /* !NEW_LOGGING */
 				ch_free( attr );
 				continue;
 			}

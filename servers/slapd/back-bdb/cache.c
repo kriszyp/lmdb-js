@@ -89,15 +89,9 @@ bdb_cache_entry_db_relock(
 		list, 2, NULL );
 
 	if (rc && !tryOnly) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CACHE, DETAIL1, 
-			"bdb_cache_entry_db_relock: entry %ld, rw %d, rc %d\n",
-			ei->bei_id, rw, rc );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_cache_entry_db_relock: entry %ld, rw %d, rc %d\n",
 			ei->bei_id, rw, rc );
-#endif
 	} else {
 		*lock = list[1].lock;
 	}
@@ -129,15 +123,9 @@ bdb_cache_entry_db_lock( DB_ENV *env, u_int32_t locker, EntryInfo *ei,
 	rc = LOCK_GET(env, locker, tryOnly ? DB_LOCK_NOWAIT : 0,
 					&lockobj, db_rw, lock);
 	if (rc && !tryOnly) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CACHE, DETAIL1, 
-			"bdb_cache_entry_db_lock: entry %ld, rw %d, rc %d\n",
-			ei->bei_id, rw, rc );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_cache_entry_db_lock: entry %ld, rw %d, rc %d\n",
 			ei->bei_id, rw, rc );
-#endif
 	}
 	return rc;
 #endif /* NO_THREADS */
@@ -1002,13 +990,8 @@ bdb_cache_delete(
 	/* Lock the parent's kids tree */
 	bdb_cache_entryinfo_lock( ei->bei_parent );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( CACHE, ENTRY, 
-		"bdb_cache_delete: delete %ld.\n", e->e_id, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "====> bdb_cache_delete( %ld )\n",
 		e->e_id, 0, 0 );
-#endif
 
 	/* set lru mutex */
 	ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
@@ -1117,11 +1100,7 @@ bdb_cache_release_all( Cache *cache )
 	/* set lru mutex */
 	ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( CACHE, ENTRY, "bdb_cache_release_all: enter\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "====> bdb_cache_release_all\n", 0, 0, 0 );
-#endif
 
 	avl_free( cache->c_dntree.bei_kids, NULL );
 	avl_free( cache->c_idtree, bdb_entryinfo_release );
@@ -1195,13 +1174,8 @@ bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn )
 		if ( ( rc = ldap_pvt_thread_pool_setkey( ctx, ((char *)env)+1,
 			*txn, bdb_txn_free ) ) ) {
 			TXN_ABORT( *txn );
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_BDB, ERR, "bdb_txn_get: err %s(%d)\n",
-				db_strerror(rc), rc, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "bdb_txn_get: err %s(%d)\n",
 				db_strerror(rc), rc, 0 );
-#endif
 
 			return rc;
 		}
@@ -1222,15 +1196,9 @@ bdb_locker_id_free( void *key, void *data )
 	rc = XLOCK_ID_FREE( env, lockid );
 	if ( rc == EINVAL ) {
 		DB_LOCKREQ lr;
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_BDB, ERR,
-			"bdb_locker_id_free: %d err %s(%d)\n",
-			lockid, db_strerror(rc), rc );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_locker_id_free: %d err %s(%d)\n",
 			lockid, db_strerror(rc), rc );
-#endif
 		/* release all locks held by this locker. */
 		lr.op = DB_LOCK_PUT_ALL;
 		lr.obj = NULL;
@@ -1273,13 +1241,8 @@ bdb_locker_id( Operation *op, DB_ENV *env, int *locker )
 		if ( ( rc = ldap_pvt_thread_pool_setkey( ctx, env,
 			data, bdb_locker_id_free ) ) ) {
 			XLOCK_ID_FREE( env, lockid );
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_BDB, ERR, "bdb_locker_id: err %s(%d)\n",
-				db_strerror(rc), rc, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "bdb_locker_id: err %s(%d)\n",
 				db_strerror(rc), rc, 0 );
-#endif
 
 			return rc;
 		}

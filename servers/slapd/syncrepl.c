@@ -81,11 +81,7 @@ init_syncrepl(syncinfo_t *si)
 		for ( n = 0; si->si_attrs[ n ] != NULL; n++ ) /* empty */;
 		tmp = ( char ** ) ch_realloc( si->si_attrs, (n + 4)*sizeof( char * ));
 		if ( tmp == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ERR, "out of memory\n", 0,0,0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "out of memory\n", 0,0,0 );
-#endif
 		}
 
 		/* Add Attributes */
@@ -97,11 +93,7 @@ init_syncrepl(syncinfo_t *si)
 	} else {
 		tmp = ( char ** ) ch_realloc( si->si_attrs, 3 * sizeof( char * ));
 		if ( tmp == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ERR, "out of memory\n", 0,0,0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "out of memory\n", 0,0,0 );
-#endif
 		}
 		tmp[ n++ ] = ch_strdup( "*" );
 		tmp[ n++ ] = ch_strdup( "+" );
@@ -207,15 +199,9 @@ do_syncrep1(
 	/* Init connection to master */
 	rc = ldap_initialize( &si->si_ld, si->si_provideruri );
 	if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"do_syncrep1: ldap_initialize failed (%s)\n",
-			si->si_provideruri, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"do_syncrep1: ldap_initialize failed (%s)\n",
 			si->si_provideruri, 0, 0 );
-#endif
 		return rc;
 	}
 
@@ -227,17 +213,10 @@ do_syncrep1(
 	if ( si->si_tls ) {
 		rc = ldap_start_tls_s( si->si_ld, NULL, NULL );
 		if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, ERR, "do_syncrep1: "
-				"%s: ldap_start_tls failed (%d)\n",
-				si->si_tls == SYNCINFO_TLS_CRITICAL ? "Error" : "Warning",
-				rc, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"%s: ldap_start_tls failed (%d)\n",
 				si->si_tls == SYNCINFO_TLS_CRITICAL ? "Error" : "Warning",
 				rc, 0 );
-#endif
 			if( si->si_tls == SYNCINFO_TLS_CRITICAL ) goto done;
 		}
 	}
@@ -251,15 +230,9 @@ do_syncrep1(
 				LDAP_OPT_X_SASL_SECPROPS, si->si_secprops);
 
 			if( rc != LDAP_OPT_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG ( OPERATION, ERR, "do_bind: Error: "
-					"ldap_set_option(%s,SECPROPS,\"%s\") failed!\n",
-					si->si_provideruri, si->si_secprops, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY, "Error: ldap_set_option "
 					"(%s,SECPROPS,\"%s\") failed!\n",
 					si->si_provideruri, si->si_secprops, 0 );
-#endif
 				goto done;
 			}
 		}
@@ -282,15 +255,9 @@ do_syncrep1(
 		 *	2) on err policy : exit, retry, backoff ...
 		 */
 		if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, ERR, "do_syncrep1: "
-				"ldap_sasl_interactive_bind_s failed (%d)\n",
-				rc, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
 				"ldap_sasl_interactive_bind_s failed (%d)\n",
 				rc, 0, 0 );
-#endif
 
 			/* FIXME (see above comment) */
 			/* if Kerberos credentials cache is not active, retry */
@@ -314,13 +281,8 @@ do_syncrep1(
 		rc = ldap_bind_s( si->si_ld,
 			si->si_binddn, si->si_passwd, si->si_bindmethod );
 		if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, ERR, "do_syncrep1: "
-				"ldap_bind_s failed (%d)\n", rc, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
 				"ldap_bind_s failed (%d)\n", rc, 0, 0 );
-#endif
 			goto done;
 		}
 	}
@@ -433,13 +395,8 @@ do_syncrep1(
 	rc = ldap_sync_search( si, op->o_tmpmemctx );
 
 	if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, ERR, "do_syncrep1: "
-			"ldap_search_ext: %s (%d)\n", ldap_err2string( rc ), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
 			"ldap_search_ext: %s (%d)\n", ldap_err2string( rc ), rc, 0 );
-#endif
 	}
 
 done:
@@ -505,11 +462,7 @@ do_syncrep2(
 	ber_init2( ber, NULL, LBER_USE_DER );
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, DETAIL1, "do_syncrep2\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=>do_syncrep2\n", 0, 0, 0 );
-#endif
 
 	psub = &si->si_be->be_nsuffix[0];
 
@@ -575,13 +528,8 @@ do_syncrep2(
 				break;
 
 			case LDAP_RES_SEARCH_REFERENCE:
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, ERR,
-					"do_syncrep2 : reference received\n", 0, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"do_syncrep2 : reference received\n", 0, 0, 0 );
-#endif
 				break;
 
 			case LDAP_RES_SEARCH_RESULT:
@@ -723,15 +671,9 @@ do_syncrep2(
 						ber_memfree_x( syncUUIDs, op->o_tmpmemctx );
 						break;
 					default:
-#ifdef NEW_LOGGING
-					LDAP_LOG( OPERATION, ERR,
-						"do_syncrep2 : unknown syncinfo tag (%ld)\n",
-						(long) si_tag, 0, 0 );
-#else
 					Debug( LDAP_DEBUG_ANY,
 						"do_syncrep2 : unknown syncinfo tag (%ld)\n",
 						(long) si_tag, 0, 0 );
-#endif
 						ldap_memfree( retoid );
 						ber_bvfree( retdata );
 						continue;
@@ -766,15 +708,9 @@ do_syncrep2(
 					break;
 
 				} else {
-#ifdef NEW_LOGGING
-					LDAP_LOG( OPERATION, ERR, "do_syncrep2 :"
-						" unknown intermediate "
-						"response\n", 0, 0, 0 );
-#else
 					Debug( LDAP_DEBUG_ANY, "do_syncrep2 : "
 						"unknown intermediate response (%d)\n",
 						rc, 0, 0 );
-#endif
 					ldap_memfree( retoid );
 					ber_bvfree( retdata );
 					break;
@@ -782,13 +718,8 @@ do_syncrep2(
 				break;
 
 			default:
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, ERR, "do_syncrep2 : "
-					"unknown message\n", 0, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY, "do_syncrep2 : "
 					"unknown message\n", 0, 0, 0 );
-#endif
 				break;
 
 			}
@@ -808,13 +739,8 @@ do_syncrep2(
 		ldap_get_option( si->si_ld, LDAP_OPT_ERROR_NUMBER, &rc );
 		errstr = ldap_err2string( rc );
 		
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"do_syncrep2 : %s\n", errstr, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"do_syncrep2 : %s\n", errstr, 0, 0 );
-#endif
 	}
 
 done:
@@ -849,11 +775,7 @@ do_syncrepl(
 	ber_socket_t s;
 	int i, defer = 1;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, DETAIL1, "do_syncrepl\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "=>do_syncrepl\n", 0, 0, 0 );
-#endif
 
 	if ( si == NULL )
 		return NULL;
@@ -999,13 +921,8 @@ syncrepl_message_to_entry(
 	*modlist = NULL;
 
 	if ( ldap_msgtype( msg ) != LDAP_RES_SEARCH_ENTRY ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"Message type should be entry (%d)", ldap_msgtype( msg ), 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"Message type should be entry (%d)", ldap_msgtype( msg ), 0, 0 );
-#endif
 		return -1;
 	}
 
@@ -1014,13 +931,8 @@ syncrepl_message_to_entry(
 	rc = ldap_get_dn_ber( si->si_ld, msg, &ber, &bdn );
 
 	if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"syncrepl_message_to_entry : dn get failed (%d)", rc, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"syncrepl_message_to_entry : dn get failed (%d)", rc, 0, 0 );
-#endif
 		return rc;
 	}
 
@@ -1066,13 +978,8 @@ syncrepl_message_to_entry(
 	}
 
 	if ( *modlist == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"syncrepl_message_to_entry: no attributes\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: no attributes\n",
 			0, 0, 0 );
-#endif
 		rc = -1;
 		goto done;
 	}
@@ -1080,13 +987,8 @@ syncrepl_message_to_entry(
 	rc = slap_mods_check( *modlist, 1, &text, txtbuf, textlen, NULL );
 
 	if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"syncrepl_message_to_entry: mods check (%s)\n", text, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: mods check (%s)\n",
 			text, 0, 0 );
-#endif
 		goto done;
 	}
 
@@ -1117,13 +1019,8 @@ syncrepl_message_to_entry(
 	
 	rc = slap_mods2entry( *modlist, &e, 1, 1, &text, txtbuf, textlen);
 	if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-   		LDAP_LOG( OPERATION, ERR,
-			"syncrepl_message_to_entry: mods2entry (%s)\n", text, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: mods2entry (%s)\n",
 			text, 0, 0 );
-#endif
 	}
 
 done:
@@ -1331,15 +1228,9 @@ syncrepl_entry(
 
 					rc = be->be_modify( op, &rs_modify );
 					if ( rs_modify.sr_err != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-						LDAP_LOG( OPERATION, ERR,
-							"syncrepl_entry : be_modify failed (%d)\n",
-							rs_modify.sr_err, 0, 0 );
-#else
 						Debug( LDAP_DEBUG_ANY,
 							"syncrepl_entry : be_modify failed (%d)\n",
 							rs_modify.sr_err, 0, 0 );
-#endif
 					}
 					ret = 1;
 					goto done;
@@ -1349,15 +1240,9 @@ syncrepl_entry(
 					ret = 0;
 					goto done;
 				} else {
-#ifdef NEW_LOGGING
-					LDAP_LOG( OPERATION, ERR,
-						"syncrepl_entry : be_add failed (%d)\n",
-						rs_add.sr_err, 0, 0 );
-#else
 					Debug( LDAP_DEBUG_ANY,
 						"syncrepl_entry : be_add failed (%d)\n",
 						rs_add.sr_err, 0, 0 );
-#endif
 					ret = 1;
 					goto done;
 				}
@@ -1367,15 +1252,9 @@ syncrepl_entry(
 				goto done;
 			}
 		} else {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ERR,
-				"syncrepl_entry : be_search failed (%d)\n",
-				rs_search.sr_err, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"syncrepl_entry : be_search failed (%d)\n",
 				rs_search.sr_err, 0, 0 );
-#endif
 			ret = 1;
 			goto done;
 		}
@@ -1386,13 +1265,8 @@ syncrepl_entry(
 		goto done;
 
 	default :
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"syncrepl_entry : unknown syncstate\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"syncrepl_entry : unknown syncstate\n", 0, 0, 0 );
-#endif
 		ret = 1;
 		goto done;
 	}
@@ -1797,13 +1671,8 @@ syncrepl_updateCookie(
 	}
 
 	if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"syncrepl_updateCookie: mods opattrs (%s)\n", text, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "syncrepl_updateCookie: mods opattrs (%s)\n",
 			 text, 0, 0 );
-#endif
 	}
 
 	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
@@ -1828,13 +1697,8 @@ syncrepl_updateCookie(
 	rc = slap_mods2entry( modlist, &e, 1, 1, &text, txtbuf, textlen );
 
 	if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"syncrepl_updateCookie: mods2entry (%s)\n", text, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "syncrepl_updateCookie: mods2entry (%s)\n",
 			 text, 0, 0 );
-#endif
 	}
 
 	cb.sc_response = null_callback;
@@ -1862,36 +1726,20 @@ update_cookie_retry:
 					goto update_cookie_retry;
 				} else if ( rs_add.sr_err == LDAP_REFERRAL ||
 							rs_add.sr_err == LDAP_NO_SUCH_OBJECT ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG( OPERATION, ERR,
-						"cookie will be non-persistent\n",
-						0, 0, 0 );
-#else
 					Debug( LDAP_DEBUG_ANY,
 						"cookie will be non-persistent\n",
 						0, 0, 0 );
-#endif
 				} else {
-#ifdef NEW_LOGGING
-					LDAP_LOG( OPERATION, ERR,
-						"be_add failed (%d)\n", rs_add.sr_err, 0, 0 );
-#else
 					Debug( LDAP_DEBUG_ANY,
 						"be_add failed (%d)\n", rs_add.sr_err, 0, 0 );
-#endif
 				}
 			} else {
 				be_entry_release_w( op, e );
 				goto done;
 			}
 		} else {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ERR,
-				"be_modify failed (%d)\n", rs_modify.sr_err, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"be_modify failed (%d)\n", rs_modify.sr_err, 0, 0 );
-#endif
 		}
 	}
 
@@ -1956,25 +1804,15 @@ dn_callback(
 
 	if ( rs->sr_type == REP_SEARCH ) {
 		if ( si->si_syncUUID_ndn.bv_val != NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ERR,
-				"dn_callback : consistency error - entryUUID is not unique\n", 0, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"dn_callback : consistency error - entryUUID is not unique\n", 0, 0, 0 );
-#endif
 		} else {
 			ber_dupbv_x( &si->si_syncUUID_ndn, &rs->sr_entry->e_nname, op->o_tmpmemctx );
 		}
 	} else if ( rs->sr_type == REP_RESULT ) {
 		if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ERR,
-				"dn_callback : consistency error - entryUUID is not unique\n", 0, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"dn_callback : consistency error - entryUUID is not unique\n", 0, 0, 0 );
-#endif
 		}
 	}
 
@@ -2032,15 +1870,9 @@ null_callback(
 		rs->sr_err != LDAP_NO_SUCH_OBJECT &&
 		rs->sr_err != LDAP_NOT_ALLOWED_ON_NONLEAF )
 	{
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"null_callback : error code 0x%x\n",
-			rs->sr_err, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"null_callback : error code 0x%x\n",
 			rs->sr_err, 0, 0 );
-#endif
 	}
 	return LDAP_SUCCESS;
 }

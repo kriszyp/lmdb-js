@@ -45,19 +45,11 @@ int ldbm_modify_internal(
 	Attribute	*save_attrs;
 	Attribute 	*ap;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY,
-		"ldbm_modify_internal: %s\n",
-		e->e_name.bv_val,
-		get_permissiveModify(op) ? " (permissive)" : "",
-		0 );
-#else
 	Debug(LDAP_DEBUG_TRACE,
 		"ldbm_modify_internal: %s\n",
 		e->e_name.bv_val,
 		get_permissiveModify(op) ? " (permissive)" : "",
 		0 );
-#endif
 
 	if ( !acl_check_modlist( op, e, modlist )) {
 		return LDAP_INSUFFICIENT_ACCESS;
@@ -71,102 +63,57 @@ int ldbm_modify_internal(
 
 		switch ( mod->sm_op ) {
 		case LDAP_MOD_ADD:
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, DETAIL1,
-				"ldbm_modify_internal: add\n", 0, 0, 0);
-#else
 			Debug(LDAP_DEBUG_ARGS,
 				"ldbm_modify_internal: add\n", 0, 0, 0);
-#endif
 
 			rc = modify_add_values( e, mod, get_permissiveModify( op ),
 				text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACK_LDBM, INFO, 
-					"ldbm_modify_internal: failed %d (%s)\n", rc, *text, 0 );
-#else
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 					rc, *text, 0);
-#endif
 			}
 			break;
 
 		case LDAP_MOD_DELETE:
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, DETAIL1,
-				"ldbm_modify_internal: delete\n", 0,0,0);
-#else
 			Debug(LDAP_DEBUG_ARGS,
 				"ldbm_modify_internal: delete\n", 0, 0, 0);
-#endif
 
 			rc = modify_delete_values( e, mod, get_permissiveModify( op ),
 				text, textbuf, textlen );
 			assert( rc != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACK_LDBM, INFO, 
-					"ldbm_modify_internal: failed %d (%s)\n", rc, *text, 0 );
-#else
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 					rc, *text, 0);
-#endif
 			}
 			break;
 
 		case LDAP_MOD_REPLACE:
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, DETAIL1,
-				"ldbm_modify_internal:  replace\n",0,0,0);
-#else
 			Debug(LDAP_DEBUG_ARGS,
 				"ldbm_modify_internal: replace\n", 0, 0, 0);
-#endif
 
 			rc = modify_replace_values( e, mod, get_permissiveModify( op ),
 				text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACK_LDBM, INFO, 
-					"ldbm_modify_internal: failed %d (%s)\n", rc, *text, 0 );
-#else
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 					rc, *text, 0);
-#endif
 			}
 			break;
 
 		case LDAP_MOD_INCREMENT:
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, DETAIL1,
-				"ldbm_modify_internal:  increment\n",0,0,0);
-#else
 			Debug(LDAP_DEBUG_ARGS,
 				"ldbm_modify_internal:  increment\n",0,0,0);
-#endif
 
 			rc = modify_increment_values( e, mod, get_permissiveModify( op ),
 				text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACK_LDBM, INFO, 
-					"ldbm_modify_internal: failed %d (%s)\n", rc, *text, 0 );
-#else
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 					rc, *text, 0);
-#endif
 			}
 			break;
 
 		case SLAP_MOD_SOFTADD:
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, DETAIL1, 
-				"ldbm_modify_internal: softadd\n", 0, 0, 0 );
-#else
 			Debug(LDAP_DEBUG_ARGS,
 				"ldbm_modify_internal: softadd\n", 0, 0, 0);
-#endif
 
 			/* Avoid problems in index_add_mods()
 			 * We need to add index if necessary.
@@ -181,34 +128,19 @@ int ldbm_modify_internal(
 			}
 
 			if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACK_LDBM, INFO, 
-				   "ldbm_modify_internal: failed %d (%s)\n", rc, *text, 0 );
-#else
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 					rc, *text, 0);
-#endif
 			}
 			break;
 
 		default:
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, ERR, 
-				"ldbm_modify_internal: invalid op %d\n", mod->sm_op, 0, 0 );
-#else
 			Debug(LDAP_DEBUG_ANY, "ldbm_modify_internal: invalid op %d\n",
 				mod->sm_op, 0, 0);
-#endif
 
 			rc = LDAP_OTHER;
 			*text = "Invalid modify operation";
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, INFO, 
-				"ldbm_modify_internal: %d (%s)\n", rc, *text, 0 );
-#else
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 				rc, *text, 0);
-#endif
 		}
 
 		if ( rc != LDAP_SUCCESS ) {
@@ -235,14 +167,8 @@ int ldbm_modify_internal(
 	rc = entry_schema_check( op->o_bd, e, save_attrs, text, textbuf, textlen );
 
 	if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR, 
-			"ldbm_modify_internal: entry failed schema check: %s\n", 
-			*text, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "entry failed schema check: %s\n",
 			*text, 0, 0 );
-#endif
 
 		goto exit;
 	}
@@ -262,15 +188,9 @@ int ldbm_modify_internal(
 				ap->a_nvals,
 				e->e_id, SLAP_INDEX_DELETE_OP );
 			if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACK_LDBM, ERR,
-					"ldbm_modify_internal: Attribute index delete failure\n",
-					0, 0, 0	);
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"ldbm_modify_internal: Attribute index delete failure\n",
 					0, 0, 0 );
-#endif
 				goto exit;
 			}
 			ap->a_flags &= ~SLAP_ATTR_IXDEL;
@@ -284,15 +204,9 @@ int ldbm_modify_internal(
 				ap->a_nvals,
 				e->e_id, SLAP_INDEX_ADD_OP );
 			if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACK_LDBM, ERR,
-					"ldbm_modify_internal: Attribute index add failure\n",
-					0, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"ldbm_modify_internal: Attribute index add failure\n",
 					0, 0, 0 );
-#endif
 				goto exit;
 			}
 			ap->a_flags &= ~SLAP_ATTR_IXADD;
@@ -325,11 +239,7 @@ ldbm_back_modify(
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_back_modify: enter\n", 0, 0, 0);
-#else
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
-#endif
 
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
@@ -379,13 +289,8 @@ ldbm_back_modify(
 		/* parent is an alias, don't allow add */
 		rs->sr_ref = get_entry_referrals( op, e );
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, INFO, 
-			   "ldbm_back_modify: entry (%s) is referral\n", op->o_req_ndn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 		    0, 0 );
-#endif
 
 		rs->sr_err = LDAP_REFERRAL;
 		rs->sr_matched = e->e_name.bv_val;

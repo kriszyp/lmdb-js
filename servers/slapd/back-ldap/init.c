@@ -174,13 +174,8 @@ ldap_back_db_open( BackendDB *be )
 {
 	struct ldapinfo	*li = (struct ldapinfo *)be->be_private;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDAP, DETAIL1, 
-		"ldap_back_db_open: URI=%s\n",  li->url, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE,
 		"ldap_back_db_open: URI=%s\n",  li->url, 0, 0 );
-#endif
 
 #ifdef LDAP_BACK_PROXY_AUTHZ
 	/* by default, use proxyAuthz control on each operation */

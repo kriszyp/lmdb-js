@@ -40,9 +40,6 @@ slaptest( int argc, char **argv )
 	int			rc = EXIT_SUCCESS;
 	const char		*progname = "slaptest";
 
-#ifdef NEW_LOGGING
-	lutil_log_initialize( argc, argv );
-#endif
 	slap_tool_init( progname, SLAPTEST, argc, argv );
 
 	fprintf( stderr, "config file testing succeeded\n");

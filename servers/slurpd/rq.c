@@ -144,13 +144,8 @@ Rq_delhead(
     }
 
     if ( savedhead->re_getrefcnt( savedhead ) != 0 ) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, WARNING, "Rq_delhead: "
-		"Warning: attempt to delete when refcnt != 0\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "Warning: attempt to delete when refcnt != 0\n",
 		0, 0, 0 );
-#endif
 	return( -1 );
     }
 
@@ -233,11 +228,7 @@ Rq_gc(
 )
 {
     if ( rq == NULL ) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, DETAIL1, "Rq_gc: rq is NULL!\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "Rq_gc: rq is NULL!\n", 0, 0, 0 );
-#endif
 	return;
     }
     rq->rq_lock( rq ); 
@@ -265,42 +256,23 @@ Rq_dump(
     int		tmpfd;
 
     if ( rq == NULL ) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ARGS, "Rq_dump: rq is NULL!\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "Rq_dump: rq is NULL!\n", 0, 0, 0 );
-#endif
 	return;
     }
 
     if (unlink(SLURPD_DUMPFILE) == -1 && errno != ENOENT) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ERR, "Rq_dump: "
-		"\"%s\" exists, cannot unlink\n", SLURPD_DUMPFILE, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "Rq_dump: \"%s\" exists, and cannot unlink\n",
 		SLURPD_DUMPFILE, 0, 0 );
-#endif
 	return;
     }
     if (( tmpfd = open(SLURPD_DUMPFILE, O_CREAT|O_RDWR|O_EXCL, 0600)) == -1) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ERR, "Rq_dump: "
-		"cannot open \"%s\" for write\n", SLURPD_DUMPFILE, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "Rq_dump: cannot open \"%s\" for write\n",
 		SLURPD_DUMPFILE, 0, 0 );
-#endif
 	return;
     }
     if (( fp = fdopen( tmpfd, "w" )) == NULL ) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ERR, "Rq_dump: "
-		"cannot fdopen \"%s\" for write\n", SLURPD_DUMPFILE, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "Rq_dump: cannot fdopen \"%s\" for write\n",
 		SLURPD_DUMPFILE, 0, 0 );
-#endif
 	return;
     }
 
@@ -332,13 +304,8 @@ Rq_write(
 	return -1;
     }
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ENTRY, "Rq_write: "
-		"re-write on-disk replication log\n", 0, 0, 0 );
-#else
     Debug( LDAP_DEBUG_ARGS, "re-write on-disk replication log\n",
 	    0, 0, 0 );
-#endif
 #ifndef SEEK_SET
 #define SEEK_SET 0
 #endif
@@ -356,13 +323,8 @@ Rq_write(
     sglob->srpos = ftell( fp );	/* update replog file position */
     /* and truncate to correct len */
     if ( ftruncate( fileno( fp ), sglob->srpos ) < 0 ) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ERR, "Rq_write: "
-		"Error truncating replication log: %s\n", sys_errlist[ errno ], 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "Error truncating replication log: %s\n",
 		sys_errlist[ errno ], 0, 0 );
-#endif
     }
     rq->rq_ndel = 0;	/* reset count of deleted re's */
     time( &now );

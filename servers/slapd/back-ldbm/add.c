@@ -42,26 +42,15 @@ ldbm_back_add(
 	int subentry;
 #endif
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_back_add: %s\n",
-		op->o_req_dn.bv_val, 0, 0 );
-#else
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n",
 		op->o_req_dn.bv_val, 0, 0);
-#endif
 	
 	rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e, NULL,
 		&rs->sr_text, textbuf, textlen );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR,
-			"ldbm_back_add: entry (%s) failed schema check.\n",
-			op->o_req_dn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "entry failed schema check: %s\n",
 			rs->sr_text, 0, 0 );
-#endif
 
 		send_ldap_result( op, rs );
 		return rs->sr_err;
@@ -74,14 +63,8 @@ ldbm_back_add(
 	if ( !access_allowed( op, op->oq_add.rs_e,
 				entry, NULL, ACL_WRITE, NULL ) )
 	{
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR, 
-			"ldbm_back_add: No write access to entry (%s).\n", 
-			op->o_req_dn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "no write access to entry\n", 0,
 		    0, 0 );
-#endif
 
 		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
 		    "no write access to entry" );
@@ -132,14 +115,8 @@ ldbm_back_add(
 
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, ERR, 
-				"ldbm_back_add: Parent of (%s) does not exist.\n", 
-				op->o_req_dn.bv_val, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
 				0, 0, 0 );
-#endif
 
 			rs->sr_text = rs->sr_ref
 				? "parent is referral" : "parent does not exist";
@@ -158,14 +135,8 @@ ldbm_back_add(
 			cache_return_entry_w( &li->li_cache, p ); 
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, ERR, 
-				"ldbm_back_add: No write access to parent (%s).\n", 
-				op->o_req_dn.bv_val, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE, "no write access to parent\n", 0,
 			    0, 0 );
-#endif
 
 			send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
 			    "no write access to parent" );
@@ -175,13 +146,8 @@ ldbm_back_add(
 
 #ifdef LDBM_SUBENTRIES
 		if ( is_entry_subentry( p )) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, DETAIL1,
-				"bdb_add: parent is subentry\n", 0, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent is subentry\n",
 				0, 0, 0 );
-#endif
 			rs->sr_err = LDAP_OBJECT_CLASS_VIOLATION;
 			rs->sr_text = "parent is a subentry";
 			goto return_results;
@@ -195,13 +161,8 @@ ldbm_back_add(
 			cache_return_entry_w( &li->li_cache, p );
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
-#ifdef NEW_LOGGING
-			LDAP_LOG(BACK_LDBM, ERR, 
-				"ldbm_back_add:  Parent is an alias.\n", 0, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE, "parent is alias\n", 0,
 			    0, 0 );
-#endif
 
 			send_ldap_error( op, rs, LDAP_ALIAS_PROBLEM,
 			    "parent is an alias" );
@@ -220,13 +181,8 @@ ldbm_back_add(
 			cache_return_entry_w( &li->li_cache, p );
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, ERR,
-			   "ldbm_back_add: Parent is referral.\n", 0, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE, "parent is referral\n", 0,
 			    0, 0 );
-#endif
 			rs->sr_err = LDAP_REFERRAL;
 			send_ldap_result( op, rs );
 
@@ -252,14 +208,8 @@ ldbm_back_add(
 		{
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, ERR,
-			   "ldbm_back_add: %s add denied.\n",
-			   pdn.bv_val == NULL ? "suffix" : "entry at root", 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE, "%s add denied\n",
 				pdn.bv_val == NULL ? "suffix" : "entry at root", 0, 0 );
-#endif
 
 			send_ldap_error( op, rs, LDAP_NO_SUCH_OBJECT, NULL );
 			return LDAP_NO_SUCH_OBJECT;
@@ -274,13 +224,8 @@ ldbm_back_add(
 
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR,
-			"ldbm_back_add: next_id failed.\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "ldbm_add: next_id failed\n",
 			0, 0, 0 );
-#endif
 
 		send_ldap_error( op, rs, LDAP_OTHER,
 			"next_id add failed" );
@@ -302,13 +247,8 @@ ldbm_back_add(
 
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR,
-			"ldbm_back_add: cache_add_entry_lock failed.\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "cache_add_entry_lock failed\n", 0, 0,
 		    0 );
-#endif
 
 		rs->sr_text = rs->sr_err > 0 ? NULL : "cache add failed";
 		rs->sr_err = rs->sr_err > 0 ? LDAP_ALREADY_EXISTS : LDAP_OTHER;
@@ -321,13 +261,8 @@ ldbm_back_add(
 
 	/* attribute indexes */
 	if ( index_entry_add( op, op->oq_add.rs_e ) != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR,
-			"ldbm_back_add: index_entry_add failed.\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "index_entry_add failed\n", 0,
 		    0, 0 );
-#endif
 		
 		send_ldap_error( op, rs, LDAP_OTHER,
 			"index generation failed" );
@@ -339,13 +274,8 @@ ldbm_back_add(
 	if ( dn2id_add( op->o_bd, &op->oq_add.rs_e->e_nname,
 		op->oq_add.rs_e->e_id ) != 0 )
 	{
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR,
-			"ldbm_back_add: dn2id_add failed.\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "dn2id_add failed\n", 0,
 		    0, 0 );
-#endif
 		/* FIXME: delete attr indices? */
 
 		send_ldap_error( op, rs, LDAP_OTHER,
@@ -356,13 +286,8 @@ ldbm_back_add(
 
 	/* id2entry index */
 	if ( id2entry_add( op->o_bd, op->oq_add.rs_e ) != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR,
-			   "ldbm_back_add: id2entry_add failed.\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "id2entry_add failed\n", 0,
 		    0, 0 );
-#endif
 
 		/* FIXME: delete attr indices? */
 		(void) dn2id_delete( op->o_bd, &op->oq_add.rs_e->e_nname,

@@ -70,14 +70,9 @@ copy_replog(
     static char	rbuf[ 1024 ];
     char	*p;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ARGS, "copy_replog: "
-		"copy replog \"%s\" to \"%s\"\n", src, dst, 0 );
-#else
     Debug( LDAP_DEBUG_ARGS,
 	    "copy replog \"%s\" to \"%s\"\n", 
 	    src, dst, 0 );
-#endif
 
     /*
      * Make sure the destination directory is writable.  If not, exit
@@ -90,15 +85,9 @@ copy_replog(
 	*p = '\0';
     }
     if ( access( buf, W_OK ) < 0 ) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ERR, "copy_replog: "
-		"Error: (%ld): Directory %s is not writable\n",
-		(long) getpid(), buf, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY,
 		"Error: copy_replog (%ld): Directory %s is not writable\n",
 		(long) getpid(), buf, 0 );
-#endif
 	return( -1 );
     }
     strcpy( buf, dst );
@@ -108,45 +97,27 @@ copy_replog(
 	*p = '\0';
     }
     if ( access( buf, W_OK ) < 0 ) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ERR, "copy_replog: "
-		"Error: (%ld): Directory %s is not writable\n",
-		(long) getpid(), buf, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY,
 		"Error: copy_replog (%ld): Directory %s is not writable\n",
 		(long) getpid(), buf, 0 );
-#endif
 	return( -1 );
     }
 
     /* lock src */
     rfp = lock_fopen( src, "r", &lfp );
     if ( rfp == NULL ) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ERR, "copy_replog: "
-		"Error: Can't lock replog \"%s\" for read: %s\n",
-		src, sys_errlist[ errno ], 0 );
-#else
 	Debug( LDAP_DEBUG_ANY,
 		"Error: copy_replog: Can't lock replog \"%s\" for read: %s\n",
 		src, sys_errlist[ errno ], 0 );
-#endif
 	return( 1 );
     }
 
     /* lock dst */
     dfp = lock_fopen( dst, "a", &dlfp );
     if ( dfp == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( SLURPD, ERR,
-			"copy_replog: Error: Can't lock replog \"%s\" for write: %s\n",
-			dst, sys_errlist[ errno ], 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: copy_replog: Can't lock replog \"%s\" for write: %s\n",
 			dst, sys_errlist[ errno ], 0 );
-#endif
 	lock_fclose( rfp, lfp );
 	return( 1 );
     }
@@ -164,25 +135,14 @@ copy_replog(
     }
 
     if ( lock_fclose( dfp, dlfp ) == EOF ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( SLURPD, ERR,
-			"copy_replog: Error: Error closing \"%s\"\n",
-			dst, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: copy_replog: Error closing \"%s\"\n",
 			dst, 0, 0 );
-#endif
     }
     if ( lock_fclose( rfp, lfp ) == EOF ) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ERR, "copy_replog: "
-		"Error: Error closing \"%s\"\n", src, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY,
 		"Error: copy_replog: Error closing \"%s\"\n",
 		src, 0, 0 );
-#endif
     }
     return( rc );
 }

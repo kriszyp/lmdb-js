@@ -91,15 +91,9 @@ rwm_dn_massage(
 			rc = LDAP_SUCCESS;
 		}
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDAP, DETAIL1, 
-			"[rw] %s: \"%s\" -> \"%s\"\n",
-			dc->ctx, in->bv_val, dn ? dn->bv_val : ndn->bv_val );
-#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 			"[rw] %s: \"%s\" -> \"%s\"\n",
 			dc->ctx, in->bv_val, dn ? dn->bv_val : ndn->bv_val );
-#endif /* !NEW_LOGGING */
 		break;
  		
  	case REWRITE_REGEXEC_UNWILLING:
@@ -232,16 +226,10 @@ rwm_dn_massage(
 			out->bv_val = ch_malloc( out->bv_len + 1 );
 			strncpy( out->bv_val, in->bv_val, diff );
 			strcpy( &out->bv_val[diff], dc->rwmap->rwm_suffix_massage[i+dst].bv_val );
-#ifdef NEW_LOGGING
-			LDAP_LOG ( BACK_LDAP, ARGS, 
-				"rwm_dn_massage: converted \"%s\" to \"%s\"\n",
-				in->bv_val, out->bv_val, 0 );
-#else
 			Debug( LDAP_DEBUG_ARGS,
 				"rwm_dn_massage:"
 				" converted \"%s\" to \"%s\"\n",
 				in->bv_val, out->bv_val, 0 );
-#endif
 			if ( dn && ndn ) {
 				rc = dnNormalize( 0, NULL, NULL, dn, ndn, NULL );
 			}

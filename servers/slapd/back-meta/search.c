@@ -438,17 +438,10 @@ new_candidate:;
 				ldap_get_option( lsc->ld,
 						LDAP_OPT_MATCHED_DN, &match.bv_val );
 
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACK_META, ERR,
-					"meta_back_search [%d] "
-					"match=\"%s\" err=\"%s\"\n",
-					i, match.bv_val, err );
-#else /* !NEW_LOGGING */
 				Debug( LDAP_DEBUG_ANY,
 					"=>meta_back_search [%d] "
 					"match=\"%s\" err=\"%s\"\n",
      					i, match.bv_val, err );	
-#endif /* !NEW_LOGGING */
 				candidate_match++;
 				last = i;
 				rc = 0;
@@ -618,14 +611,9 @@ meta_send_entry(
 				!= LDAP_SUCCESS) {
 			if ( slap_bv2undef_ad( &mapped, &attr->a_desc, &text ) 
 					!= LDAP_SUCCESS) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACK_META, DETAIL1,
-					"slap_bv2undef_ad(%s): %s\n", mapped.bv_val, text, 0 );
-#else /* !NEW_LOGGING */
 				Debug( LDAP_DEBUG_ANY,
 						"slap_bv2undef_ad(%s): "
 						"%s\n%s", mapped.bv_val, text, "" );
-#endif /* !NEW_LOGGING */
 				ch_free( attr );
 				continue;
 			}

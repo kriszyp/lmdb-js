@@ -70,12 +70,7 @@ Ri_process(
     (void) SIGNAL( SIGPIPE, SIG_IGN );
 #endif
     if ( ri == NULL ) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ERR, "Ri_process: "
-		"Error: ri == NULL!\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "Error: Ri_process: ri == NULL!\n", 0, 0, 0 );
-#endif
 	return -1;
     }
 
@@ -105,40 +100,22 @@ Ri_process(
 	if ( re != NULL ) {
 	    if ( !ismine( ri, re )) {
 		/* The Re doesn't list my host:port */
-#ifdef NEW_LOGGING
-		LDAP_LOG ( SLURPD, DETAIL1, "Ri_process: "
-			"Replica %s:%d, skip repl record for %s (not mine)\n",
-			ri->ri_hostname, ri->ri_port, re->re_dn );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"Replica %s:%d, skip repl record for %s (not mine)\n",
 			ri->ri_hostname, ri->ri_port, re->re_dn );
-#endif
 	    } else if ( !isnew( ri, re )) {
 		/* This Re is older than my saved status information */
-#ifdef NEW_LOGGING
-		LDAP_LOG ( SLURPD, DETAIL1, "Ri_process: "
-			"Replica %s:%d, skip repl record for %s (old)\n",
-			ri->ri_hostname, ri->ri_port, re->re_dn );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"Replica %s:%d, skip repl record for %s (old)\n",
 			ri->ri_hostname, ri->ri_port, re->re_dn );
-#endif
 	    } else {
 		rc = do_ldap( ri, re, &errmsg, &errfree );
 		switch ( rc ) {
 		case DO_LDAP_ERR_RETRYABLE:
 		    ldap_pvt_thread_sleep( RETRY_SLEEP_TIME );
-#ifdef NEW_LOGGING
-			LDAP_LOG ( SLURPD, DETAIL1, "Ri_process: "
-				"Retrying operation for DN %s on replica %s:%d\n",
-			    re->re_dn, ri->ri_hostname, ri->ri_port );
-#else
 		    Debug( LDAP_DEBUG_ANY,
 			    "Retrying operation for DN %s on replica %s:%d\n",
 			    re->re_dn, ri->ri_hostname, ri->ri_port );
-#endif
 		    continue;
 		    break;
 		case DO_LDAP_ERR_FATAL: {
@@ -163,13 +140,8 @@ Ri_process(
 		}
 	    }
 	} else {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( SLURPD, ERR, "Ri_process: "
-			"Error: re is null in Ri_process\n", 0, 0, 0 );
-#else
 	    Debug( LDAP_DEBUG_ANY, "Error: re is null in Ri_process\n",
 		    0, 0, 0 );
-#endif
 	}
 	rq->rq_lock( rq );
 	while ( !sglob->slurpd_shutdown &&

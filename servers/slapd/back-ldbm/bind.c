@@ -45,13 +45,8 @@ ldbm_back_bind(
 
 	AttributeDescription *password = slap_schema.si_ad_userPassword;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, 
-		"ldbm_back_bind: dn: %s.\n", op->o_req_dn.bv_val, 0, 0 );
-#else
 	Debug(LDAP_DEBUG_ARGS,
 		"==> ldbm_back_bind: dn: %s\n", op->o_req_dn.bv_val, 0, 0);
-#endif
 
 	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE && be_isroot_pw( op ) ) {
 		ber_dupbv( &op->oq_bind.rb_edn, be_root_dn( op->o_bd ) );
@@ -80,13 +75,8 @@ ldbm_back_bind(
 #ifdef LDBM_SUBENTRIES
 	if ( is_entry_subentry( e ) ) {
 		/* entry is an subentry, don't allow bind */
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, DETAIL1,
-				"bdb_bind: entry is subentry\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 				"entry is subentry\n", 0, 0, 0 );
-#endif
 		rc = LDAP_INVALID_CREDENTIALS;
 		goto return_results;
 	}
@@ -94,13 +84,7 @@ ldbm_back_bind(
 
 	if ( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow bind */
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, INFO, 
-			"ldbm_back_bind: entry (%s) is an alias.\n",
-			e->e_name.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0, 0, 0 );
-#endif
 
 #if 1
 		rc = LDAP_INVALID_CREDENTIALS;
@@ -113,12 +97,7 @@ ldbm_back_bind(
 
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow bind */
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, INFO, 
-			"ldbm_back_bind: entry(%s) is a referral.\n", e->e_dn, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0, 0, 0 );
-#endif
 
 		rc = LDAP_INVALID_CREDENTIALS;
 		goto return_results;

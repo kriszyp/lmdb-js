@@ -28,11 +28,7 @@ void bdb_errcall( const char *pfx, char * msg )
 	if ( msg[0] > 0x7f )
 		__etoa( msg );
 #endif
-#ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, INFO, "bdb(%s): %s\n", pfx, msg, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "bdb(%s): %s\n", pfx, msg, 0 );
-#endif
 }
 
 #ifdef HAVE_EBCDIC

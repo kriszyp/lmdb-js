@@ -440,13 +440,8 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	} else {
 		vals = a->a_nvals;
 		if (vals[0].bv_val == NULL) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ERR,
-				"ppolicy_get: NULL value for policySubEntry\n", 0, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"ppolicy_get: NULL value for policySubEntry\n", 0, 0, 0 );
-#endif
 			goto defaultpol;
 		}
 	}
@@ -510,13 +505,8 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	return;
 
 defaultpol:
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, DETAIL1,
-		"ppolicy_get: using default policy\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY,
 		"ppolicy_get: using default policy\n", 0, 0, 0 );
-#endif
 	op->o_private = opr;
 	return;
 }
@@ -607,15 +597,9 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 		if ((mod = lt_dlopen( pp->pwdCheckModule )) == NULL) {
 			err = lt_dlerror();
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( SLAPD, CRIT,
-			"check_password_quality: lt_dlopen failed: (%s) %s.\n",
-				pp->pwdCheckModule, err, 0 );
-#else
 			Debug(LDAP_DEBUG_ANY,
 			"check_password_quality: lt_dlopen failed: (%s) %s.\n",
 				pp->pwdCheckModule, err, 0 );
-#endif
 			ok = LDAP_OTHER; /* internal error */
 		} else {
 			int (*prog)( char *passwd, char **text, void *arg );
@@ -623,15 +607,9 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 			if ((prog = lt_dlsym( mod, "check_password" )) == NULL) {
 				err = lt_dlerror();
 			    
-#ifdef NEW_LOGGING
-				LDAP_LOG( SLAPD, CRIT,
-					"check_password_quality: lt_dlsym failed: (%s) %s.\n",
-					pp->pwdCheckModule, err, 0 );
-#else
 				Debug(LDAP_DEBUG_ANY,
 					"check_password_quality: lt_dlsym failed: (%s) %s.\n",
 					pp->pwdCheckModule, err, 0 );
-#endif
 				ok = LDAP_OTHER;
 			} else {
 				char *txt = NULL;
@@ -640,15 +618,9 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 				ok = prog( cred->bv_val, &txt, NULL );
 				ldap_pvt_thread_mutex_unlock( &chk_syntax_mutex );
 				if (txt) {
-#ifdef NEW_LOGGING
-					LDAP_LOG( SLAPD, CRIT,
-						"check_password_quality: module error (%s) %s[%d].\n",
-						pp->pwdCheckModule, txt, ok );
-#else
 					Debug(LDAP_DEBUG_ANY,
 						"check_password_quality: module error: (%s) %s.[%d]\n",
 						pp->pwdCheckModule, txt, ok );
-#endif
 					free(txt);
 				} else
 					ok = LDAP_SUCCESS;
@@ -955,16 +927,10 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 				 * missing if the DIT was established via
 				 * an import process.
 				 */
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, ERR,
-					"ppolicy_bind: Entry %s does not have valid pwdChangedTime attribute - assuming password expired\n",
-					e->e_name.bv_val, 0, 0);
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"ppolicy_bind: Entry %s does not have valid pwdChangedTime attribute - assuming password expired\n",
 					e->e_name.bv_val, 0, 0);
 				
-#endif
 				pwExpired = 1;
 			} else {
 				/*
@@ -989,15 +955,9 @@ grace:
 		/*
 		 * ngut is the number of remaining grace logins
 		 */
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-			"ppolicy_bind: Entry %s has an expired password: %d grace logins\n",
-			e->e_name.bv_val, ngut, 0);
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"ppolicy_bind: Entry %s has an expired password: %d grace logins\n",
 			e->e_name.bv_val, ngut, 0);
-#endif
 		
 		if (ngut < 1) {
 			ppb->pErr = PP_passwordExpired;
@@ -1057,15 +1017,9 @@ check_expiring_password:
 			warn = ppb->pp.pwdMaxAge - age; /* seconds left until expiry */
 			if (warn < 0) warn = 0; /* something weird here - why is pwExpired not set? */
 			
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATIONS, DETAIL1,
-				"ppolicy_bind: Setting warning for password expiry for %s = %d seconds\n",
-				op->o_req_dn.bv_val, warn, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"ppolicy_bind: Setting warning for password expiry for %s = %d seconds\n",
 				op->o_req_dn.bv_val, warn, 0 );
-#endif
 		}
 	}
 
@@ -1198,13 +1152,8 @@ ppolicy_restrict(
 	}
 
 	if ( op->o_conn && pwcons[op->o_conn->c_conn_idx].restrict ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ENTRY,
-			"connection restricted to password changing only\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"connection restricted to password changing only\n", 0, 0, 0);
-#endif
 		if ( send_ctrl ) {
 			LDAPControl **ctrls = NULL;
 
@@ -1391,13 +1340,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	}
 	
 	if (pwcons[op->o_conn->c_conn_idx].restrict && !mod_pw_only) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ENTRY,
-			"connection restricted to password changing only\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"connection restricted to password changing only\n", 0, 0, 0 );
-#endif
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		rs->sr_text = "Operations are restricted to bind/unbind/abandon/StartTLS/modify password";
 		pErr = PP_changeAfterReset;
@@ -1421,13 +1365,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	if (!addmod) {
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "Internal Error";
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ENTRY,
-			"cannot locate modification supplying new password\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"cannot locate modification supplying new password\n", 0, 0, 0 );
-#endif
 		goto return_results;
 	}
 
@@ -1480,15 +1419,9 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	}
 
 	if (pp.pwdSafeModify && deladd != 2) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ENTRY,
-			"change password must use DELETE followed by ADD/REPLACE\n",
-			0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"change password must use DELETE followed by ADD/REPLACE\n",
 			0, 0, 0 );
-#endif
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		rs->sr_text = "Must supply old password to be changed as well as new one";
 		pErr = PP_mustSupplyOldPassword;
@@ -1528,13 +1461,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		bv = oldpw.bv_val ? &oldpw : delmod->sml_values;
 		rc = slap_passwd_check( op->o_conn, pa, bv, &txt );
 		if (rc != LDAP_SUCCESS) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ENTRY,
-				"old password check failed: %s\n", txt, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"old password check failed: %s\n", txt, 0, 0 );
-#endif
 			
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			rs->sr_text = "Must supply correct old password to change to new one";
@@ -1747,13 +1675,8 @@ do_modify:
 				modtail->sml_next = mods;
 				modtail = mods;
 			} else {
-#ifdef NEW_LOGGING
-				LDAP_LOG ( OPERATION, ERR, 
-				"ppolicy_modify: password attr lookup failed\n", 0, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_TRACE,
 				"ppolicy_modify: password attr lookup failed\n", 0, 0, 0 );
-#endif
 			}
 		}
 

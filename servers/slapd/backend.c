@@ -169,13 +169,8 @@ int backend_init(void)
 
 	if((nBackendInfo != 0) || (backendInfo != NULL)) {
 		/* already initialized */
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACKEND, ERR, 
-			"backend_init:  backend already initialized\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"backend_init: already initialized.\n", 0, 0, 0 );
-#endif
 		return -1;
 	}
 
@@ -188,15 +183,9 @@ int backend_init(void)
 		rc = binfo[nBackendInfo].bi_init( &binfo[nBackendInfo] );
 
 		if(rc != 0) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACKEND, INFO, 
-				"backend_init:  initialized for type \"%s\"\n",
-				binfo[nBackendInfo].bi_type, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"backend_init: initialized for type \"%s\"\n",
 				binfo[nBackendInfo].bi_type, 0, 0 );
-#endif
 			/* destroy those we've already inited */
 			for( nBackendInfo--;
 				nBackendInfo >= 0 ;
@@ -220,13 +209,9 @@ int backend_init(void)
 	return 0;
 #else
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACKEND, ERR, "backend_init: failed\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY,
 		"backend_init: failed\n",
 		0, 0, 0 );
-#endif
 
 	return rc;
 #endif /* SLAPD_MODULES */
@@ -237,28 +222,16 @@ int backend_add(BackendInfo *aBackendInfo)
 	int rc = 0;
 
 	if ( aBackendInfo->bi_init == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACKEND, ERR, "backend_add: "
-			"backend type \"%s\" does not have the (mandatory)init function\n",
-			aBackendInfo->bi_type, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "backend_add: "
 			"backend type \"%s\" does not have the (mandatory)init function\n",
 			aBackendInfo->bi_type, 0, 0 );
-#endif
 		return -1;
 	}
 
    if ((rc = aBackendInfo->bi_init(aBackendInfo)) != 0) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACKEND, ERR, 
-			"backend_add:  initialization for type \"%s\" failed\n",
-			aBackendInfo->bi_type, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"backend_add:  initialization for type \"%s\" failed\n",
 			aBackendInfo->bi_type, 0, 0 );
-#endif
 		return rc;
    }
 
@@ -298,27 +271,16 @@ int backend_startup_one(Backend *be)
 
 	LDAP_TAILQ_INIT( be->be_pending_csn_list );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACKEND, DETAIL1, "backend_startup:  starting \"%s\"\n",
-		be->be_suffix ? be->be_suffix[0].bv_val : "(unknown)",
-		0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE,
 		"backend_startup: starting \"%s\"\n",
 		be->be_suffix ? be->be_suffix[0].bv_val : "(unknown)",
 		0, 0 );
-#endif
 	if ( be->bd_info->bi_db_open ) {
 		rc = be->bd_info->bi_db_open( be );
 		if ( rc != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACKEND, CRIT, 
-				"backend_startup: bi_db_open failed! (%d)\n", rc, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_db_open failed! (%d)\n",
 				rc, 0, 0 );
-#endif
 		}
 	}
 	return rc;
@@ -331,14 +293,9 @@ int backend_startup(Backend *be)
 
 	if( ! ( nBackendDB > 0 ) ) {
 		/* no databases */
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACKEND, INFO, 
-			"backend_startup: %d databases to startup. \n", nBackendDB, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"backend_startup: %d databases to startup.\n",
 			nBackendDB, 0, 0 );
-#endif
 		return 1;
 	}
 
@@ -346,14 +303,9 @@ int backend_startup(Backend *be)
 		if ( be->bd_info->bi_open ) {
 			rc = be->bd_info->bi_open( be->bd_info );
 			if ( rc != 0 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACKEND, CRIT,
-					"backend_startup: bi_open failed!\n", 0, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"backend_startup: bi_open failed!\n",
 					0, 0, 0 );
-#endif
 
 				return rc;
 			}
@@ -366,15 +318,9 @@ int backend_startup(Backend *be)
 	if ( frontendDB->bd_info->bi_db_open ) {
 		rc = frontendDB->bd_info->bi_db_open( frontendDB );
 		if ( rc != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACKEND, CRIT, 
-				"backend_startup: bi_db_open(frontend) failed! (%d)\n",
-				rc, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_db_open(frontend) failed! (%d)\n",
 				rc, 0, 0 );
-#endif
 			return rc;
 		}
 	}
@@ -390,14 +336,9 @@ int backend_startup(Backend *be)
 			rc = backendInfo[i].bi_open(
 				&backendInfo[i] );
 			if ( rc != 0 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACKEND, CRIT, 
-					"backend_startup: bi_open %d failed!\n", i, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"backend_startup: bi_open %d failed!\n",
 					i, 0, 0 );
-#endif
 				return rc;
 			}
 		}
@@ -410,17 +351,10 @@ int backend_startup(Backend *be)
 	/* open each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
 		if ( backendDB[i].be_suffix == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACKEND, CRIT, 
-				"backend_startup: warning, database %d (%s) "
-				"has no suffix\n",
-				i, backendDB[i].bd_info->bi_type, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: warning, database %d (%s) "
 				"has no suffix\n",
 				i, backendDB[i].bd_info->bi_type, 0 );
-#endif
 		}
 		/* append global access controls */
 		acl_append( &backendDB[i].be_acl, frontendDB->be_acl );
@@ -435,15 +369,9 @@ int backend_startup(Backend *be)
 
 			if ( !( backendDB[i].be_search && backendDB[i].be_add &&
 				backendDB[i].be_modify && backendDB[i].be_delete )) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACKEND, CRIT, 
-					"backend_startup: database(%d) does not support "
-					"operations required for syncrepl", i, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"backend_startup: database(%d) does not support "
 					"operations required for syncrepl", i, 0, 0 );
-#endif
 				continue;
 			}
 
@@ -505,15 +433,9 @@ int backend_shutdown( Backend *be )
 		}
 
 		if(rc != 0) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACKEND, NOTICE, 
-				"backend_shutdown: bi_db_close %s failed!\n",
-				backendDB[i].be_type, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"backend_close: bi_db_close %s failed!\n",
 				backendDB[i].be_type, 0, 0 );
-#endif
 		}
 	}
 
@@ -534,15 +456,9 @@ int backend_shutdown( Backend *be )
 	if ( frontendDB->bd_info->bi_db_close ) {
 		rc = frontendDB->bd_info->bi_db_close ( frontendDB );
 		if ( rc != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACKEND, CRIT, 
-				"backend_startup: bi_db_close(frontend) failed! (%d)\n",
-				rc, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_db_close(frontend) failed! (%d)\n",
 				rc, 0, 0 );
-#endif
 		}
 	}
 
@@ -896,15 +812,9 @@ backend_unbind( Operation *op, SlapReply *rs )
 				 * A preoperation plugin failure will abort the
 				 * entire operation.
 				 */
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, INFO,
-					"do_bind: Unbind preoperation plugin failed\n",
-					0, 0, 0);
-#else
 				Debug(LDAP_DEBUG_TRACE,
 					"do_bind: Unbind preoperation plugin failed\n",
 					0, 0, 0);
-#endif
 				return 0;
 			}
 		}
@@ -919,15 +829,9 @@ backend_unbind( Operation *op, SlapReply *rs )
 		if ( op->o_pb != NULL && slapi_int_call_plugins( &backends[i],
 			SLAPI_PLUGIN_POST_UNBIND_FN, (Slapi_PBlock *)op->o_pb ) < 0 )
 		{
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO,
-				"do_unbind: Unbind postoperation plugins failed\n",
-				0, 0, 0);
-#else
 			Debug(LDAP_DEBUG_TRACE,
 				"do_unbind: Unbind postoperation plugins failed\n",
 				0, 0, 0);
-#endif
 		}
 #endif /* defined( LDAP_SLAPI ) */
 	}

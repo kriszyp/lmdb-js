@@ -51,25 +51,13 @@ replicate(
 {
     Ri		*ri = (Ri *) ri_arg;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ARGS, "replicate: "
-		"begin replication thread for %s:%d\n",
-	    ((Ri *)ri)->ri_hostname, ((Ri *)ri)->ri_port, 0 );
-#else
     Debug( LDAP_DEBUG_ARGS, "begin replication thread for %s:%d\n",
 	    ((Ri *)ri)->ri_hostname, ((Ri *)ri)->ri_port, 0 );
-#endif
 
     ri->ri_process( ri );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ARGS, "replicate: "
-		"begin replication thread for %s:%d\n",
-	    ri->ri_hostname, ri->ri_port, 0 );
-#else
     Debug( LDAP_DEBUG_ARGS, "end replication thread for %s:%d\n",
 	    ri->ri_hostname, ri->ri_port, 0 );
-#endif
     return NULL;
 }
 
@@ -86,14 +74,8 @@ start_replica_thread(
     /* POSIX_THREADS or compatible */
     if ( ldap_pvt_thread_create( &(ri->ri_tid), 0, replicate,
 	    (void *) ri ) != 0 ) {
-#ifdef NEW_LOGGING
-	LDAP_LOG ( SLURPD, ERR, "start_replica_thread: "
-		"replica %s:%d ldap_pvt_thread_create failed\n",
-	    ri->ri_hostname, ri->ri_port, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY, "replica \"%s:%d\" ldap_pvt_thread_create failed\n",
 		ri->ri_hostname, ri->ri_port, 0 );
-#endif
 	return -1;
     }
 

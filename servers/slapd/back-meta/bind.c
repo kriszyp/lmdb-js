@@ -54,13 +54,8 @@ meta_back_bind( Operation *op, SlapReply *rs )
 
 	rs->sr_err = LDAP_SUCCESS;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_META, ENTRY, "meta_back_bind: dn: %s.\n",
-			op->o_req_dn.bv_val, 0, 0 );
-#else /* !NEW_LOGGING */
 	Debug( LDAP_DEBUG_ARGS, "meta_back_bind: dn: %s.\n%s%s",
 			op->o_req_dn.bv_val, "", "" );
-#endif /* !NEW_LOGGING */
 
 	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE && be_isroot_pw( op ) ) {
 		isroot = 1;
@@ -70,15 +65,9 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	lc = meta_back_getconn( op, rs, op_type,
 			&op->o_req_ndn, NULL );
 	if ( !lc ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_META, NOTICE,
-				"meta_back_bind: no target for dn %s.\n",
-				op->o_req_dn.bv_val, 0, 0 );
-#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ANY,
 				"meta_back_bind: no target for dn %s.\n%s%s",
 				op->o_req_dn.bv_val, "", "");
-#endif /* !NEW_LOGGING */
 
 		send_ldap_result( op, rs );
 		return -1;
@@ -111,18 +100,11 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			 * A bind operation is expected to have
 			 * ONE CANDIDATE ONLY!
 			 */
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, WARNING,
-					"==>meta_back_bind: more than one"
-					" candidate is attempting to bind"
-					" ...\n" , 0, 0, 0 );
-#else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ANY,
 					"==>meta_back_bind: more than one"
 					" candidate is attempting to bind"
 					" ...\n%s%s%s", 
 					"", "", "" );
-#endif /* !NEW_LOGGING */
 		}
 
 		if ( isroot && li->targets[ i ]->pseudorootdn.bv_val != NULL ) {
@@ -333,19 +315,11 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 				op->o_ctrls, NULL, NULL);
 		if ( rc != LDAP_SUCCESS ) {
 			
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, WARNING,
-					"meta_back_dobind: (anonymous)"
-					" bind failed"
-					" with error %d (%s)\n",
-					rc, ldap_err2string( rc ), 0 );
-#else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ANY,
 					"==>meta_back_dobind: (anonymous)"
 					" bind failed"
 					" with error %d (%s)\n",
 					rc, ldap_err2string( rc ), 0 );
-#endif /* !NEW_LOGGING */
 
 			/*
 			 * null cred bind should always succeed
@@ -438,21 +412,12 @@ meta_back_op_result( struct metaconn *lc, Operation *op, SlapReply *rs )
 					LDAP_OPT_MATCHED_DN, &match );
 			rs->sr_err = slap_map_api2result( rs );
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, RESULTS,
-					"meta_back_op_result: target"
-					" <%d> sending msg \"%s\""
-					" (matched \"%s\")\n",
-					i, ( msg ? msg : "" ),
-					( match ? match : "" ) );
-#else /* !NEW_LOGGING */
 			Debug(LDAP_DEBUG_ANY,
 					"==> meta_back_op_result: target"
 					" <%d> sending msg \"%s\""
 					" (matched \"%s\")\n", 
 					i, ( msg ? msg : "" ),
 					( match ? match : "" ) );
-#endif /* !NEW_LOGGING */
 
 			/*
 			 * FIXME: need to rewrite "match" (need rwinfo)

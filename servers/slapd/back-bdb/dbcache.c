@@ -100,15 +100,9 @@ bdb_db_cache(
 
 	rc = db_create( &db->bdi_db, bdb->bi_dbenv, 0 );
 	if( rc != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( CACHE, ERR, 
-			"bdb_db_cache: db_create(%s) failed: %s (%d)\n", 
-			bdb->bi_dbenv_home, db_strerror(rc), rc );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_db_cache: db_create(%s) failed: %s (%d)\n",
 			bdb->bi_dbenv_home, db_strerror(rc), rc );
-#endif
 		ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
 		return rc;
 	}
@@ -134,15 +128,9 @@ bdb_db_cache(
 	ch_free( file );
 
 	if( rc != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( CACHE, ERR, 
-			"bdb_db_cache: db_open(%s) failed: %s (%d)\n", 
-			name, db_strerror(rc), rc );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_db_cache: db_open(%s) failed: %s (%d)\n",
 			name, db_strerror(rc), rc );
-#endif
 		ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
 		return rc;
 	}

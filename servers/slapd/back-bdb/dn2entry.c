@@ -40,12 +40,8 @@ bdb_dn2entry(
 	EntryInfo *ei = NULL;
 	int rc, rc2;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( CACHE, ARGS, "bdb_dn2entry(\"%s\")\n", dn->bv_val, 0, 0 );
-#else
 	Debug(LDAP_DEBUG_TRACE, "bdb_dn2entry(\"%s\")\n",
 		dn->bv_val, 0, 0 );
-#endif
 
 	*e = NULL;
 

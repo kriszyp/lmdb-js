@@ -238,17 +238,10 @@ static void slapd_add(ber_socket_t s, int isactive) {
 	FD_SET( s, &slap_daemon.sd_actives );
 	FD_SET( s, &slap_daemon.sd_readers );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( CONNECTION, DETAIL1, 
-		"slapd_add: added %ld%s%s\n", (long)s,
-		FD_ISSET(s, &slap_daemon.sd_readers) ? "r" : "",
-		FD_ISSET(s, &slap_daemon.sd_writers) ? "w" : "" );
-#else
 	Debug( LDAP_DEBUG_CONNS, "daemon: added %ld%s%s\n",
 		(long) s,
 	    FD_ISSET(s, &slap_daemon.sd_readers) ? "r" : "",
 		FD_ISSET(s, &slap_daemon.sd_writers) ? "w" : "" );
-#endif
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 }
 
@@ -262,17 +255,10 @@ void slapd_remove(ber_socket_t s, int wasactive, int wake) {
 		slap_daemon.sd_nactives--;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( CONNECTION, DETAIL1, 
-		"slapd_remove: removing %ld%s%s\n", (long) s,
-		FD_ISSET(s, &slap_daemon.sd_readers) ? "r" : "",
-		FD_ISSET(s, &slap_daemon.sd_writers) ? "w" : ""  );
-#else
 	Debug( LDAP_DEBUG_CONNS, "daemon: removing %ld%s%s\n",
 		(long) s,
 	    FD_ISSET(s, &slap_daemon.sd_readers) ? "r" : "",
 		FD_ISSET(s, &slap_daemon.sd_writers) ? "w" : "" );
-#endif
 	FD_CLR( s, &slap_daemon.sd_actives );
 	FD_CLR( s, &slap_daemon.sd_readers );
 	FD_CLR( s, &slap_daemon.sd_writers );
@@ -346,12 +332,8 @@ void slapd_set_read(ber_socket_t s, int wake) {
 }
 
 static void slapd_close(ber_socket_t s) {
-#ifdef NEW_LOGGING
-	LDAP_LOG( CONNECTION, DETAIL1, "slapd_close: closing %ld\n", (long)s, 0, 0);
-#else
 	Debug( LDAP_DEBUG_CONNS, "daemon: closing %ld\n",
 		(long) s, 0, 0 );
-#endif
 	tcp_close(s);
 }
 
@@ -476,15 +458,9 @@ static int slap_get_listener_addresses(
 
 		if ( strlen(host) >
 		     (sizeof(((struct sockaddr_un *)*sap)->sun_path) - 1) ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, INFO, 
-				"slap_get_listener_addresses: domain socket path (%s) "
-				"too long in URL\n", host, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 			       "daemon: domain socket path (%s) too long in URL",
 			       host, 0, 0);
-#endif
 			goto errexit;
 		}
 
@@ -506,14 +482,8 @@ static int slap_get_listener_addresses(
 		snprintf(serv, sizeof serv, "%d", port);
 
 		if ( (err = getaddrinfo(host, serv, &hints, &res)) ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, INFO, 
-				   "slap_get_listener_addresses: getaddrinfo failed: %s\n",
-				   AC_GAI_STRERROR(err), 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo failed: %s\n",
 				AC_GAI_STRERROR(err), 0, 0);
-#endif
 			return -1;
 		}
 
@@ -531,14 +501,8 @@ static int slap_get_listener_addresses(
 
 		for ( sai=res; sai; sai=sai->ai_next ) {
 			if( sai->ai_addr == NULL ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( CONNECTION, INFO,
-					"slap_get_listener_addresses: "
-					"getaddrinfo ai_addr is NULL?\n", 0, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY, "slap_get_listener_addresses: "
 					"getaddrinfo ai_addr is NULL?\n", 0, 0, 0 );
-#endif
 				freeaddrinfo(res);
 				goto errexit;
 			}
@@ -588,13 +552,8 @@ static int slap_get_listener_addresses(
 		} else if ( !inet_aton( host, &in ) ) {
 			he = gethostbyname( host );
 			if( he == NULL ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( CONNECTION, INFO, 
-					"slap_get_listener_addresses: invalid host %s\n", host, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY,
 				       "daemon: invalid host %s", host, 0, 0);
-#endif
 				return -1;
 			}
 			for (n = 0; he->h_addr_list[n]; n++) ;
@@ -656,15 +615,9 @@ static int slap_open_listener(
 	rc = ldap_url_parse( url, &lud );
 
 	if( rc != LDAP_URL_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONNECTION, ERR, 
-			"slap_open_listener: listen URL \"%s\" parse error %d\n",
-			url, rc , 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: listen URL \"%s\" parse error=%d\n",
 			url, rc, 0 );
-#endif
 		return rc;
 	}
 
@@ -673,14 +626,9 @@ static int slap_open_listener(
 
 #ifndef HAVE_TLS
 	if( ldap_pvt_url_scheme2tls( lud->lud_scheme ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONNECTION, INFO, 
-			   "slap_open_listener: TLS is not supported (%s)\n", url, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: TLS not supported (%s)\n",
 			url, 0, 0 );
-#endif
 		ldap_free_urldesc( lud );
 		return -1;
 	}
@@ -709,13 +657,8 @@ static int slap_open_listener(
 		}
 #else
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONNECTION, INFO, 
-			"slap_open_listener: URL scheme is not supported: %s\n", url, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "daemon: URL scheme not supported: %s",
 			url, 0, 0);
-#endif
 		ldap_free_urldesc( lud );
 		return -1;
 #endif
@@ -781,29 +724,17 @@ static int slap_open_listener(
 		l.sl_sd = socket( (*sal)->sa_family, socktype, 0);
 		if ( l.sl_sd == AC_SOCKET_INVALID ) {
 			int err = sock_errno();
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, ERR, 
-				"slap_open_listener: %s socket() failed errno=%d (%s)\n",
-				af, err, sock_errstr(err) );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: %s socket() failed errno=%d (%s)\n",
 				af, err, sock_errstr(err) );
-#endif
 			sal++;
 			continue;
 		}
 #ifndef HAVE_WINSOCK
 		if ( l.sl_sd >= dtblsize ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, ERR, 
-				"slap_open_listener: listener descriptor %ld is too "
-				"great %ld\n", (long)l.sl_sd, (long)dtblsize, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: listener descriptor %ld is too great %ld\n",
 				(long) l.sl_sd, (long) dtblsize, 0 );
-#endif
 			tcp_close( l.sl_sd );
 			sal++;
 			continue;
@@ -822,16 +753,9 @@ static int slap_open_listener(
 				(char *) &tmp, sizeof(tmp) );
 			if ( rc == AC_SOCKET_ERROR ) {
 				int err = sock_errno();
-#ifdef NEW_LOGGING
-				LDAP_LOG( CONNECTION, INFO, 
-					"slap_open_listener: setsockopt( %ld, SO_REUSEADDR ) "
-					"failed errno %d (%s)\n", (long)l.sl_sd, err, 
-					sock_errstr(err) );
-#else
 				Debug( LDAP_DEBUG_ANY,
 				       "slapd(%ld): setsockopt(SO_REUSEADDR) failed errno=%d (%s)\n",
 				       (long) l.sl_sd, err, sock_errstr(err) );
-#endif
 			}
 #endif
 		}
@@ -849,15 +773,9 @@ static int slap_open_listener(
 					 (char *) &tmp, sizeof(tmp) );
 			if ( rc == AC_SOCKET_ERROR ) {
 				int err = sock_errno();
-#ifdef NEW_LOGGING
-				LDAP_LOG( CONNECTION, INFO,
-					   "slap_open_listener: setsockopt( %ld, IPV6_V6ONLY ) failed errno %d (%s)\n",
-					   (long)l.sl_sd, err, sock_errstr(err) );
-#else
 				Debug( LDAP_DEBUG_ANY,
 				       "slapd(%ld): setsockopt(IPV6_V6ONLY) failed errno=%d (%s)\n",
 				       (long) l.sl_sd, err, sock_errstr(err) );
-#endif
 			}
 #endif
 			addrlen = sizeof(struct sockaddr_in6);
@@ -872,14 +790,8 @@ static int slap_open_listener(
 
 		if (bind(l.sl_sd, *sal, addrlen)) {
 			err = sock_errno();
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONNECTION, INFO, 
-			"slap_open_listener: bind(%ld) failed errno=%d (%s)\n",
-			(long)l.sl_sd, err, sock_errstr(err) );
-#else
 		Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed errno=%d (%s)\n",
 		       (long) l.sl_sd, err, sock_errstr(err) );
-#endif
 			tcp_close( l.sl_sd );
 			sal++;
 			continue;
@@ -892,14 +804,8 @@ static int slap_open_listener(
 #if 0 /* don't muck with socket perms */
 		if ( chmod( addr, l.sl_perms ) < 0 && crit ) {
 			int err = sock_errno();
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, INFO, 
-				"slap_open_listener: fchmod(%ld) failed errno=%d (%s)\n",
-				(long)l.sl_sd, err, sock_errstr(err) );
-#else
 			Debug( LDAP_DEBUG_ANY, "daemon: fchmod(%ld) failed errno=%d (%s)",
 			       (long) l.sl_sd, err, sock_errstr(err) );
-#endif
 			tcp_close( l.sl_sd );
 			slap_free_listener_addresses(psal);
 			return -1;
@@ -945,14 +851,8 @@ static int slap_open_listener(
 #endif /* LDAP_PF_INET6 */
 
 	default:
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONNECTION, INFO, 
-			"slap_open_listener: unsupported address family (%d)\n",
-			(int)(*sal)->sa_family, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "daemon: unsupported address family (%d)\n",
 			(int) (*sal)->sa_family, 0, 0 );
-#endif
 		break;
 	}
 
@@ -970,24 +870,13 @@ static int slap_open_listener(
 
 	if ( l.sl_url.bv_val == NULL )
 	{
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONNECTION, RESULTS, 
-			"slap_open_listener: failed on %s\n", url, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"slap_open_listener: failed on %s\n", url, 0, 0 );
-#endif
 		return -1;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( CONNECTION, RESULTS, 
-		"slap_open_listener: daemon initialized %s\n",
-		l.sl_url.bv_val, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "daemon: initialized %s\n",
 		l.sl_url.bv_val, 0, 0 );
-#endif
 	return 0;
 }
 
@@ -999,13 +888,8 @@ int slapd_daemon_init( const char *urls )
 	int i, j, n, rc;
 	char **u;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( CONNECTION, ARGS, 
-		"slapd_daemon_init: %s\n", urls ? urls : "<null>", 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ARGS, "daemon_init: %s\n",
 		urls ? urls : "<null>", 0, 0 );
-#endif
 	if( (rc = sockinit()) != 0 ) {
 		return rc;
 	}
@@ -1030,13 +914,8 @@ int slapd_daemon_init( const char *urls )
 	 * this byte arrives.
 	 */
 	if( (rc = lutil_pair( wake_sds )) < 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONNECTION, ERR, 
-			"slap_daemon_init: lutil_pair() failed rc=%d\n", rc, 0, 0);
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: lutil_pair() failed rc=%d\n", rc, 0, 0 );
-#endif
 		return rc;
 	}
 
@@ -1050,45 +929,25 @@ int slapd_daemon_init( const char *urls )
 	u = ldap_str2charray( urls, " " );
 
 	if( u == NULL || u[0] == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONNECTION, ERR, 
-			"slap_daemon_init: no urls (%s) provided.\n", urls, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "daemon_init: no urls (%s) provided.\n",
 			urls, 0, 0 );
-#endif
 		return -1;
 	}
 
 	for( i=0; u[i] != NULL; i++ ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONNECTION, DETAIL1, 
-			"slap_daemon_init: listen on %s\n", u[i], 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "daemon_init: listen on %s\n",
 			u[i], 0, 0 );
-#endif
 	}
 
 	if( i == 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONNECTION, INFO, 
-			 "slap_daemon_init: no listeners to open (%s)\n", urls, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "daemon_init: no listeners to open (%s)\n",
 			urls, 0, 0 );
-#endif
 		ldap_charray_free( u );
 		return -1;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( CONNECTION, INFO, 
-		"slap_daemon_init: %d listeners to open...\n", i, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "daemon_init: %d listeners to open...\n",
 		i, 0, 0 );
-#endif
 	slap_listeners = ch_malloc( (i+1)*sizeof(Listener *) );
 
 	for(n = 0, j = 0; u[n]; n++ ) {
@@ -1099,13 +958,8 @@ int slapd_daemon_init( const char *urls )
 	}
 	slap_listeners[j] = NULL;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( CONNECTION, DETAIL1, 
-		"slap_daemon_init: %d listeners opened\n", i, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "daemon_init: %d listeners opened\n",
 		i, 0, 0 );
-#endif
 
 #ifdef HAVE_SLP
 	if( slapd_register_slp ) {
@@ -1230,14 +1084,9 @@ slapd_daemon_task(
 
 					if ( i < l ) {
 						/* We are already listening to in6addr_any */
-#ifdef NEW_LOGGING
-						LDAP_LOG(CONNECTION, WARNING,
-							   "slapd_daemon_task: Attempt to listen to 0.0.0.0 failed, already listening on ::, assuming IPv4 included\n", 0, 0, 0 );
-#else
 						Debug( LDAP_DEBUG_CONNS,
 						       "daemon: Attempt to listen to 0.0.0.0 failed, already listening on ::, assuming IPv4 included\n",
 						       0, 0, 0 );
-#endif
 						slapd_close( slap_listeners[l]->sl_sd );
 						slap_listeners[l]->sl_sd = AC_SOCKET_INVALID;
 						continue;
@@ -1245,16 +1094,10 @@ slapd_daemon_task(
 				}
 			}
 #endif				
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, ERR, 
-				"slapd_daemon_task: listen( %s, 5 ) failed errno=%d (%s)\n",
-				slap_listeners[l]->sl_url.bv_val, err, sock_errstr(err) );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: listen(%s, 5) failed errno=%d (%s)\n",
 					slap_listeners[l]->sl_url.bv_val, err,
 					sock_errstr(err) );
-#endif
 			return( (void*)-1 );
 		}
 
@@ -1404,17 +1247,10 @@ slapd_daemon_task(
 			    slap_listeners[l]->sl_is_mute )
 				continue;
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, DETAIL1, 
-				"slapd_daemon_task: select: listen=%d "
-				"active_threads=%d tvp=%s\n",
-				slap_listeners[l]->sl_sd, at, tvp == NULL ? "NULL" : "zero" );
-#else
 			Debug( LDAP_DEBUG_CONNS,
 				"daemon: select: listen=%d active_threads=%d tvp=%s\n",
 					slap_listeners[l]->sl_sd, at,
 					tvp == NULL ? "NULL" : "zero" );
-#endif
 		}
 
 		switch(ns = select( nfds, &readfds,
@@ -1440,15 +1276,9 @@ slapd_daemon_task(
 				}
 
 				if( err != EINTR ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG( CONNECTION, INFO, 
-						"slapd_daemon_task: select failed (%d): %s\n",
-						err, sock_errstr(err), 0 );
-#else
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: select failed (%d): %s\n",
 						err, sock_errstr(err), 0 );
-#endif
 					slapd_shutdown = 2;
 				}
 			}
@@ -1456,13 +1286,8 @@ slapd_daemon_task(
 
 		case 0:		/* timeout - let threads run */
 			ebadf = 0;
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, DETAIL2,
-				   "slapd_daemon_task: select timeout - yielding\n", 0, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_CONNS, "daemon: select timeout - yielding\n",
 			    0, 0, 0 );
-#endif
 
 			ldap_pvt_thread_yield();
 			continue;
@@ -1471,13 +1296,8 @@ slapd_daemon_task(
 			if( slapd_shutdown ) continue;
 
 			ebadf = 0;
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, DETAIL2, 
-				   "slapd_daemon_task: activity on %d descriptors\n", ns, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_CONNS, "daemon: activity on %d descriptors\n",
 				ns, 0, 0 );
-#endif
 			/* FALL THRU */
 		}
 
@@ -1566,17 +1386,10 @@ slapd_daemon_task(
 					ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 				}
 
-#ifdef NEW_LOGGING
-				LDAP_LOG( CONNECTION, ERR, 
-					"slapd_daemon_task: accept(%ld) failed errno=%d (%s)\n",
-					(long)slap_listeners[l]->sl_sd, 
-					err, sock_errstr(err) );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: accept(%ld) failed errno=%d (%s)\n",
 					(long) slap_listeners[l]->sl_sd, err,
 					sock_errstr(err) );
-#endif
 				ldap_pvt_thread_yield();
 				continue;
 			}
@@ -1584,15 +1397,9 @@ slapd_daemon_task(
 #ifndef HAVE_WINSOCK
 			/* make sure descriptor number isn't too great */
 			if ( s >= dtblsize ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( CONNECTION, ERR, 
-				   "slapd_daemon_task: %ld beyond descriptor table size %ld\n",
-				   (long)s, (long)dtblsize, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: %ld beyond descriptor table size %ld\n",
 					(long) s, (long) dtblsize, 0 );
-#endif
 
 				slapd_close(s);
 				ldap_pvt_thread_yield();
@@ -1626,16 +1433,9 @@ slapd_daemon_task(
 					(char *) &tmp, sizeof(tmp) );
 				if ( rc == AC_SOCKET_ERROR ) {
 					int err = sock_errno();
-#ifdef NEW_LOGGING
-					LDAP_LOG( CONNECTION, ERR, 
-						"slapd_daemon_task: setsockopt( %ld, SO_KEEPALIVE)"
-					   " failed errno=%d (%s)\n",
-						(long)s, err, sock_errstr(err) );
-#else
 					Debug( LDAP_DEBUG_ANY,
 						"slapd(%ld): setsockopt(SO_KEEPALIVE) failed "
 						"errno=%d (%s)\n", (long) s, err, sock_errstr(err) );
-#endif
 				}
 #endif
 #ifdef TCP_NODELAY
@@ -1645,28 +1445,16 @@ slapd_daemon_task(
 					(char *)&tmp, sizeof(tmp) );
 				if ( rc == AC_SOCKET_ERROR ) {
 					int err = sock_errno();
-#ifdef NEW_LOGGING
-					LDAP_LOG( CONNECTION, ERR, 
-						"slapd_daemon_task: setsockopt( %ld, "
-						"TCP_NODELAY) failed errno=%d (%s)\n",
-						(long)s, err, sock_errstr(err) );
-#else
 					Debug( LDAP_DEBUG_ANY,
 						"slapd(%ld): setsockopt(TCP_NODELAY) failed "
 						"errno=%d (%s)\n", (long) s, err, sock_errstr(err) );
-#endif
 				}
 #endif
 			}
 #endif
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, DETAIL1, 
-				"slapd_daemon_task: new connection on %ld\n", (long)s, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_CONNS, "daemon: new connection on %ld\n",
 				(long) s, 0, 0 );
-#endif
 			switch ( from.sa_addr.sa_family ) {
 #  ifdef LDAP_PF_LOCAL
 			case AF_LOCAL:
@@ -1783,21 +1571,12 @@ slapd_daemon_task(
 			if( authid.bv_val ) ch_free(authid.bv_val);
 
 			if( id < 0 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( CONNECTION, INFO, 
-					"slapd_daemon_task: "
-					"connection_init(%ld, %s, %s) "
-					"failed.\n",
-					(long)s, peername, 
-					slap_listeners[l]->sl_name.bv_val );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: connection_init(%ld, %s, %s) "
 					"failed.\n",
 					(long) s,
 					peername,
 					slap_listeners[l]->sl_name.bv_val );
-#endif
 				slapd_close(s);
 				continue;
 			}
@@ -1814,30 +1593,15 @@ slapd_daemon_task(
 		}
 
 #ifdef LDAP_DEBUG
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONNECTION, DETAIL2,
-			   "slapd_daemon_task: activity on ", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_CONNS, "daemon: activity on:", 0, 0, 0 );
-#endif
 #ifdef HAVE_WINSOCK
 		for ( i = 0; i < readfds.fd_count; i++ ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, DETAIL2, 
-				" %d%s", readfds.fd_array[i], "r", 0, 0 );
-#else
 			Debug( LDAP_DEBUG_CONNS, " %d%s",
 				readfds.fd_array[i], "r", 0 );
-#endif
 		}
 		for ( i = 0; i < writefds.fd_count; i++ ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, DETAIL2, 
-				" %d%s", writefds.fd_array[i], "w" , 0 );
-#else
 			Debug( LDAP_DEBUG_CONNS, " %d%s",
 				writefds.fd_array[i], "w", 0 );
-#endif
 		}
 
 #else
@@ -1847,21 +1611,12 @@ slapd_daemon_task(
 			r = FD_ISSET( i, &readfds );
 			w = FD_ISSET( i, &writefds );
 			if ( r || w ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( CONNECTION, DETAIL2, 
-					" %d%s%s", i, r ? "r" : "", w ? "w" : "" );
-#else
 				Debug( LDAP_DEBUG_CONNS, " %d%s%s", i,
 				    r ? "r" : "", w ? "w" : "" );
-#endif
 			}
 		}
 #endif
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONNECTION, DETAIL2, "\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_CONNS, "\n", 0, 0, 0 );
-#endif
 
 #endif
 
@@ -1882,14 +1637,9 @@ slapd_daemon_task(
 			wd = i;
 #endif
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, DETAIL2, 
-				"slapd_daemon_task: write active on %d\n", wd, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_CONNS,
 				"daemon: write active on %d\n",
 				wd, 0, 0 );
-#endif
 			/*
 			 * NOTE: it is possible that the connection was closed
 			 * and that the stream is now inactive.
@@ -1919,13 +1669,8 @@ slapd_daemon_task(
 			rd = i;
 #endif
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, DETAIL2, 
-				"slapd_daemon_task: read activity on %d\n", rd, 0, 0 );
-#else
 			Debug ( LDAP_DEBUG_CONNS,
 				"daemon: read activity on %d\n", rd, 0, 0 );
-#endif
 			/*
 			 * NOTE: it is possible that the connection was closed
 			 * and that the stream is now inactive.
@@ -1941,47 +1686,24 @@ slapd_daemon_task(
 	}
 
 	if( slapd_shutdown == 1 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONNECTION, CRIT,
-		   "slapd_daemon_task: shutdown requested and initiated.\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"daemon: shutdown requested and initiated.\n",
 			0, 0, 0 );
-#endif
 
 	} else if ( slapd_shutdown == 2 ) {
 #ifdef HAVE_NT_SERVICE_MANAGER
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, CRIT,
-			   "slapd_daemon_task: shutdown initiated by Service Manager.\n",
-			   0, 0, 0);
-#else
 			Debug( LDAP_DEBUG_TRACE,
 			       "daemon: shutdown initiated by Service Manager.\n",
 			       0, 0, 0);
-#endif
 #else /* !HAVE_NT_SERVICE_MANAGER */
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, CRIT,
-			   "slapd_daemon_task: abnormal condition, "
-			   "shutdown initiated.\n", 0, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 			       "daemon: abnormal condition, shutdown initiated.\n",
 			       0, 0, 0 );
-#endif
 #endif /* !HAVE_NT_SERVICE_MANAGER */
 	} else {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONNECTION, CRIT,
-		   "slapd_daemon_task: no active streams, shutdown initiated.\n", 
-		   0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 		       "daemon: no active streams, shutdown initiated.\n",
 		       0, 0, 0 );
-#endif
 	}
 
 	if( slapd_gentle_shutdown != 2 ) {
@@ -1996,15 +1718,9 @@ slapd_daemon_task(
 		connections_shutdown();
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( CONNECTION, CRIT, 
-		"slapd_daemon_task: shutdown waiting for %d threads to terminate.\n",
-		ldap_pvt_thread_pool_backload(&connection_pool), 0, 0 );
-#else
 	Debug( LDAP_DEBUG_ANY,
 	    "slapd shutdown: waiting for %d threads to terminate\n",
 	    ldap_pvt_thread_pool_backload(&connection_pool), 0, 0 );
-#endif
 	ldap_pvt_thread_pool_destroy(&connection_pool, 1);
 
 	return NULL;
@@ -2027,14 +1743,8 @@ int slapd_daemon( void )
 			0, slapd_daemon_task, NULL );
 
 		if ( rc != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONNECTION, ERR, 
-				"slapd_daemon: listener ldap_pvt_thread_create failed (%d).\n",
-				rc, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 			"listener ldap_pvt_thread_create failed (%d)\n", rc, 0, 0 );
-#endif
 			return rc;
 		}
  
@@ -2103,12 +1813,7 @@ RETSIGTYPE
 slap_sig_shutdown( int sig )
 {
 #if 0
-#ifdef NEW_LOGGING
-	LDAP_LOG( CONNECTION, CRIT, 
-		"slap_sig_shutdown: signal %d\n", sig, 0, 0 );
-#else
 	Debug(LDAP_DEBUG_TRACE, "slap_sig_shutdown: signal %d\n", sig, 0, 0);
-#endif
 #endif
 
 	/*

@@ -112,13 +112,8 @@ static char * referral_dn_muck(
 			muck.bv_len = ntargetDN.bv_len + nrefDN.bv_len - nbaseDN.bv_len;
 			muck.bv_val = SLAP_MALLOC( muck.bv_len + 1 );
 			if( muck.bv_val == NULL ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, CRIT, 
-					"referral_dn_muck: SLAP_MALLOC failed\n", 0, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"referral_dn_muck: SLAP_MALLOC failed\n", 0, 0, 0 );
-#endif
 				return NULL;
 			}
 
@@ -164,61 +159,36 @@ int validate_global_referral( const char *url )
 
 	default:
 		/* other error, bail */
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, CRIT, 
-			"referral: invalid URL (%s): %s (%d)\n",
-			url, "" /* ldap_url_error2str(rc) */, rc );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"referral: invalid URL (%s): %s (%d)\n",
 			url, "" /* ldap_url_error2str(rc) */, rc );
-#endif
 		return 1;
 	}
 
 	rc = 0;
 
 	if( lurl->lud_dn && *lurl->lud_dn ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, CRIT, "referral: URL (%s): contains DN\n", url, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"referral: URL (%s): contains DN\n",
 			url, 0, 0 );
-#endif
 		rc = 1;
 
 	} else if( lurl->lud_attrs ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, CRIT, 
-			"referral: URL (%s): requests attributes\n", url, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"referral: URL (%s): requests attributes\n",
 			url, 0, 0 );
-#endif
 		rc = 1;
 
 	} else if( lurl->lud_scope != LDAP_SCOPE_DEFAULT ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, CRIT, 
-			"referral: URL (%s): contains explicit scope\n", url, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"referral: URL (%s): contains explicit scope\n",
 			url, 0, 0 );
-#endif
 		rc = 1;
 
 	} else if( lurl->lud_filter ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, CRIT, 
-			"referral: URL (%s): contains explicit filter\n", url, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"referral: URL (%s): contains explicit filter\n",
 			url, 0, 0 );
-#endif
 		rc = 1;
 	}
 
@@ -246,13 +216,8 @@ BerVarray referral_rewrite(
 
 	refs = SLAP_MALLOC( (i+1) * sizeof( struct berval ) );
 	if( refs == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT, 
-			"referral_rewrite: SLAP_MALLOC failed\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"referral_rewrite: SLAP_MALLOC failed\n", 0, 0, 0 );
-#endif
 		return NULL;
 	}
 
@@ -323,13 +288,8 @@ BerVarray get_entry_referrals(
 
 	refs = SLAP_MALLOC( (i + 1) * sizeof(struct berval));
 	if( refs == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT, 
-			"get_entry_referrals: SLAP_MALLOC failed\n", 0, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"get_entry_referrals: SLAP_MALLOC failed\n", 0, 0, 0 );
-#endif
 		return NULL;
 	}
 

@@ -51,11 +51,7 @@ ldap_back_add(
 	int rc = LDAP_SUCCESS;
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDAP, ENTRY, "ldap_back_add: %s\n", op->o_req_dn.bv_val, 0, 0 );
-#else /* !NEW_LOGGING */
 	Debug(LDAP_DEBUG_ARGS, "==> ldap_back_add: %s\n", op->o_req_dn.bv_val, 0, 0);
-#endif /* !NEW_LOGGING */
 	
 	lc = ldap_back_getconn(op, rs);
 	if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {

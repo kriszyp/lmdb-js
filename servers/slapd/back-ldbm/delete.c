@@ -39,11 +39,7 @@ ldbm_back_delete(
 	AttributeDescription *children = slap_schema.si_ad_children;
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_back_delete: %s\n", op->o_req_dn.bv_val, 0, 0 );
-#else
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_delete: %s\n", op->o_req_dn.bv_val, 0, 0);
-#endif
 
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
@@ -53,13 +49,8 @@ ldbm_back_delete(
 
 	/* FIXME : dn2entry() should return non-glue entry */
 	if ( e == NULL || ( !manageDSAit && is_entry_glue( e ))) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, INFO, 
-			"ldbm_back_delete: no such object %s\n", op->o_req_dn.bv_val, 0, 0 );
-#else
 		Debug(LDAP_DEBUG_ARGS, "<=- ldbm_back_delete: no such object %s\n",
 			op->o_req_dn.bv_val, 0, 0);
-#endif
 
 		if ( matched != NULL ) {
 			rs->sr_matched = ch_strdup( matched->e_dn );
@@ -100,15 +91,9 @@ ldbm_back_delete(
 	if ( ! access_allowed( op, e,
 		entry, NULL, ACL_WRITE, NULL ) )
 	{
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR, 
-			"ldbm_back_delete: no write access to entry of (%s)\n", 
-			op->o_req_dn.bv_val, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"<=- ldbm_back_delete: no write access to entry\n", 0,
 			0, 0 );
-#endif
 
 		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
 			"no write access to entry" );
@@ -122,13 +107,8 @@ ldbm_back_delete(
 		/* parent is an alias, don't allow add */
 		rs->sr_ref = get_entry_referrals( op, e );
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, INFO, 
-			"ldbm_back_delete: entry (%s) is a referral.\n", e->e_dn, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 		    0, 0 );
-#endif
 
 		rs->sr_err = LDAP_REFERRAL;
 		rs->sr_matched = e->e_name.bv_val;
@@ -142,13 +122,8 @@ ldbm_back_delete(
 	}
 
 	if ( has_children( op->o_bd, e ) ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR, 
-			   "ldbm_back_delete: (%s) is a non-leaf node.\n", op->o_req_dn.bv_val, 0,0);
-#else
 		Debug(LDAP_DEBUG_ARGS, "<=- ldbm_back_delete: non leaf %s\n",
 			op->o_req_dn.bv_val, 0, 0);
-#endif
 
 		send_ldap_error( op, rs, LDAP_NOT_ALLOWED_ON_NONLEAF,
 			"subtree delete not supported" );
@@ -159,14 +134,9 @@ ldbm_back_delete(
 	if( !be_issuffix( op->o_bd, &e->e_nname ) && (dnParent( &e->e_nname, &pdn ),
 		pdn.bv_len) ) {
 		if( (p = dn2entry_w( op->o_bd, &pdn, NULL )) == NULL) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, ERR, 
-				"ldbm_back_delete: parent of (%s) does not exist\n", op->o_req_dn, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- ldbm_back_delete: parent does not exist\n",
 				0, 0, 0);
-#endif
 
 			send_ldap_error( op, rs, LDAP_OTHER,
 				"could not locate parent of entry" );
@@ -177,15 +147,9 @@ ldbm_back_delete(
 		if ( ! access_allowed( op, p,
 			children, NULL, ACL_WRITE, NULL ) )
 		{
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, ERR, 
-				"ldbm_back_delete: no access to parent of (%s)\n", 
-				op->o_req_dn.bv_val, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- ldbm_back_delete: no access to parent\n", 0,
 				0, 0 );
-#endif
 
 			send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
 				"no write access to parent" );
@@ -205,15 +169,9 @@ ldbm_back_delete(
 								
 				/* check parent for "children" acl */
 				if ( ! rc ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG( BACK_LDBM, ERR,
-						"ldbm_back_delete: no access "
-						"to parent of ("")\n", 0, 0, 0 );
-#else
 					Debug( LDAP_DEBUG_TRACE,
 						"<=- ldbm_back_delete: no "
 						"access to parent\n", 0, 0, 0 );
-#endif
 
 					send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
 						"no write access to parent" );
@@ -221,15 +179,9 @@ ldbm_back_delete(
 				}
 
 			} else {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACK_LDBM, ERR, 
-					"ldbm_back_delete: (%s) has no "
-					"parent & not a root.\n", op->o_ndn, 0, 0 );
-#else
 				Debug( LDAP_DEBUG_TRACE,
 					"<=- ldbm_back_delete: no parent & "
 					"not root\n", 0, 0, 0);
-#endif
 
 				send_ldap_error( op, rs,
 					LDAP_INSUFFICIENT_ACCESS,
@@ -241,14 +193,9 @@ ldbm_back_delete(
 
 	/* delete from dn2id mapping */
 	if ( dn2id_delete( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR, 
-			"ldbm_back_delete: (%s) operations error\n", op->o_req_dn.bv_val, 0, 0 );
-#else
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- ldbm_back_delete: operations error %s\n",
 			op->o_req_dn.bv_val, 0, 0);
-#endif
 
 		send_ldap_error( op, rs, LDAP_OTHER,
 			"DN index delete failed" );
@@ -257,14 +204,9 @@ ldbm_back_delete(
 
 	/* delete from disk and cache */
 	if ( id2entry_delete( op->o_bd, e ) != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, ERR, 
-			"ldbm_back_delete: (%s) operations error\n", op->o_req_dn.bv_val, 0, 0 );
-#else
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- ldbm_back_delete: operations error %s\n",
 			op->o_req_dn.bv_val, 0, 0);
-#endif
 
 		send_ldap_error( op, rs, LDAP_OTHER,
 			"entry delete failed" );

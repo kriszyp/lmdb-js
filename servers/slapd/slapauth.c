@@ -82,9 +82,6 @@ slapauth( int argc, char **argv )
 	Connection		conn;
 	Operation		op;
 
-#ifdef NEW_LOGGING
-	lutil_log_initialize( argc, argv );
-#endif
 	slap_tool_init( progname, SLAPAUTH, argc, argv );
 
 	argv = &argv[ optind ];

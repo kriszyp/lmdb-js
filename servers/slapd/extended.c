@@ -139,33 +139,19 @@ do_extended(
 	ber_tag_t tag;
 	ber_len_t len;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ENTRY, "do_extended: conn %d\n", op->o_connid, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "do_extended\n", 0, 0, 0 );
-#endif
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"do_extended: protocol version (%d) too low.\n", op->o_protocol, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"do_extended: protocol version (%d) too low\n",
 			op->o_protocol, 0 ,0 );
-#endif
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "requires LDAPv3" );
 		rs->sr_err = SLAPD_DISCONNECT;
 		goto done;
 	}
 
 	if ( ber_scanf( op->o_ber, "{m" /*}*/, &op->ore_reqoid ) == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, "do_extended: conn %d  ber_scanf failed\n", 
-			op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
-#endif
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		rs->sr_err = SLAPD_DISCONNECT;
 		goto done;
@@ -175,13 +161,7 @@ do_extended(
 	
 	if( ber_peek_tag( op->o_ber, &len ) == LDAP_TAG_EXOP_REQ_VALUE ) {
 		if( ber_scanf( op->o_ber, "m", &reqdata ) == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ERR, 
-				"do_extended: conn %d  ber_scanf failed\n", 
-				op->o_connid, 0, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
-#endif
 			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 			rs->sr_err = SLAPD_DISCONNECT;
 			goto done;
@@ -189,12 +169,7 @@ do_extended(
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"do_extended: conn %d  get_ctrls failed\n", op->o_connid, 0, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_extended: get_ctrls failed\n", 0, 0 ,0 );
-#endif
 		return rs->sr_err;
 	} 
 
@@ -243,27 +218,15 @@ fe_extended( Operation *op, SlapReply *rs )
 	if( !(ext = find_extop(supp_ext_list, &op->ore_reqoid )))
 #endif
 	{
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			"do_extended: conn %d  unsupported operation \"%s\"\n",
-			op->o_connid, op->ore_reqoid.bv_val, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY, "do_extended: unsupported operation \"%s\"\n",
 			op->ore_reqoid.bv_val, 0 ,0 );
-#endif
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
 			"unsupported extended operation" );
 		goto done;
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, DETAIL1, 
-		"do_extended: conn %d  oid=%s\n.",
-		op->o_connid, op->ore_reqoid.bv_val, 0 );
-#else
 	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n",
 		op->ore_reqoid.bv_val, 0 ,0 );
-#endif
 
 #if defined(LDAP_SLAPI)
 	if ( funcAddr != NULL ) {

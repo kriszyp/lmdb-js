@@ -81,9 +81,6 @@ slapadd( int argc, char **argv )
 	int i;
 	struct berval mc;
 	struct sync_cookie sc;
-#ifdef NEW_LOGGING
-	lutil_log_initialize(argc, argv );
-#endif
 	slap_tool_init( progname, SLAPADD, argc, argv );
 
 	LDAP_SLIST_INIT( &consumer_subentry );

@@ -195,58 +195,34 @@ bdb_db_config(
 		int se_id = 0, se_size = 0;
 		struct slap_session_entry *sent;
 		if ( argc < 3 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONFIG, CRIT,
-				"%s: line %d: missing arguments in \"sessionlog <id> <size>\""
-				" line.\n", fname, lineno , 0 );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"%s: line %d: missing arguments in \"sessionlog <id> <size>\""
 				" line\n", fname, lineno, 0 );
-#endif
 			return( 1 );
 		}
 
 		se_id = atoi( argv[1] );
 
 		if ( se_id < 0 || se_id > 999 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONFIG, CRIT,
-				"%s: line %d: session log id %d is out of range [0..999]\n",
-				fname, lineno , se_id );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"%s: line %d: session log id %d is out of range [0..999]\n",
 				fname, lineno , se_id );
-#endif
 			return( 1 );
 		}
 
 		se_size = atoi( argv[2] );
 		if ( se_size < 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONFIG, CRIT,
-				"%s: line %d: session log size %d is negative\n",
-				fname, lineno , se_size );
-#else
 			Debug( LDAP_DEBUG_ANY,
 				"%s: line %d: session log size %d is negative\n",
 				fname, lineno , se_size );
-#endif
 			return( 1 );
 		}
 
 		LDAP_LIST_FOREACH( sent, &bdb->bi_session_list, se_link ) {
 			if ( sent->se_id == se_id ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( CONFIG, CRIT,
-					"%s: line %d: session %d already exists\n",
-					fname, lineno , se_id );
-#else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: session %d already exists\n",
 					fname, lineno , se_id );
-#endif
 				return( 1 );
 			}
 		}

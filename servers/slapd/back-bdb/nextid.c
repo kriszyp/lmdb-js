@@ -66,14 +66,9 @@ int bdb_last_id( BackendDB *be, DB_TXN *tid )
 		break;
 
 	default:
-#ifdef NEW_LOGGING
-		LDAP_LOG ( INDEX, ERR, "bdb_last_id: get failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_last_id: get failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
-#endif
 		goto done;
 	}
 

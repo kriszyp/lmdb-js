@@ -40,14 +40,9 @@ ldap_back_conn_destroy(
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc = NULL, lc_curr;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDAP, INFO,
-		"ldap_back_conn_destroy: fetching conn %ld\n", conn->c_connid, 0, 0 );
-#else /* !NEW_LOGGING */
 	Debug( LDAP_DEBUG_TRACE,
 		"=>ldap_back_conn_destroy: fetching conn %ld\n",
 		conn->c_connid, 0, 0 );
-#endif /* !NEW_LOGGING */
 
 	lc_curr.conn = conn;
 	lc_curr.local_dn = conn->c_ndn;
@@ -64,15 +59,9 @@ ldap_back_conn_destroy(
 #endif /* ENABLE_REWRITE */
 
 	if (lc) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDAP, DETAIL1, 
-			"ldap_back_conn_destroy: destroying conn %ld\n", 
-			conn->c_connid, 0, 0 );
-#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_conn_destroy: destroying conn %ld\n",
 			lc->conn->c_connid, 0, 0 );
-#endif
 
 		/*
 		 * Needs a test because the handler may be corrupted,

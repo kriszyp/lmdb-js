@@ -67,15 +67,9 @@ dn2entry_retry:
 	case DB_LOCK_NOTGRANTED:
 		goto dn2entry_retry;
 	default:
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, ERR, 
-			"bdb_referrals: dn2entry failed: %s (%d)\n", 
-			db_strerror(rc), rc, 0 );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_referrals: dn2entry failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 ); 
-#endif
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
 		LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 		return rs->sr_err;
@@ -85,15 +79,9 @@ dn2entry_retry:
 		rc = 0;
 		rs->sr_matched = NULL;
 		if ( e != NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, DETAIL1, 
-			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-			(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
 				(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
-#endif
 
 			if( is_entry_referral( e ) ) {
 				rc = LDAP_OTHER;
@@ -138,15 +126,9 @@ dn2entry_retry:
 		rs->sr_ref = referral_rewrite(
 			refs, &e->e_name, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, DETAIL1, 
-			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-			(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
 			(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
-#endif
 
 		rs->sr_matched = e->e_name.bv_val;
 		if( rs->sr_ref != NULL ) {

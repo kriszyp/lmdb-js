@@ -51,15 +51,9 @@ ldbm_back_referrals(
 		if ( matched != NULL ) {
 			rs->sr_matched = ch_strdup( matched->e_dn );
 
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, DETAIL1,
-				"ldbm_back_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-				op->o_tag, op->o_req_dn.bv_val, rs->sr_matched );
-#else
 			Debug( LDAP_DEBUG_TRACE,
 				"ldbm_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
 				op->o_tag, op->o_req_dn.bv_val, rs->sr_matched );
-#endif
 
 			if( is_entry_referral( matched ) ) {
 				rs->sr_err = LDAP_OTHER;
@@ -99,15 +93,9 @@ ldbm_back_referrals(
 		rs->sr_ref = referral_rewrite(
 			refs, &e->e_name, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDBM, DETAIL1,
-			"ldbm_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-			op->o_tag, op->o_req_dn.bv_val, e->e_dn );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"ldbm_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
 			op->o_tag, op->o_req_dn.bv_val, e->e_dn );
-#endif
 
 		rs->sr_matched = e->e_name.bv_val;
 		if( rs->sr_ref != NULL ) {
