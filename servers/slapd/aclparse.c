@@ -246,7 +246,8 @@ parse_acl(
 						acl_usage();
 					}
 
-				} else if ( strncasecmp( left, "attr", 4 ) == 0 ) {
+				} else if ( strcasecmp( left, "attr" ) == 0
+						|| strcasecmp( left, "attrs" ) == 0 ) {
 					a->acl_attrs = str2anlist( a->acl_attrs,
 						right, "," );
 					if ( a->acl_attrs == NULL ) {
