@@ -11,9 +11,10 @@
 /* thr_stub.c - stubs for the threads */
 
 #include "portable.h"
-#include "ldap_pvt_thread.h"
 
 #if defined( NO_THREADS )
+
+#include "ldap_pvt_thread.h"
 
 /***********************************************************************
  *                                                                     *

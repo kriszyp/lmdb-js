@@ -16,7 +16,6 @@
  */
 
 #include "portable.h"
-#include "ldap_pvt_thread.h"
 
 #if defined( HAVE_LWP )
 
@@ -33,9 +32,9 @@
 #include <ac/time.h>
 #include <ac/socket.h>
 
-#include "lber.h"
-#include "ldap.h"
-#include "ldap_log.h"
+#include "ldap-int.h"
+
+#include "ldap_pvt_thread.h"
 
 #include <lwp/lwp.h>
 #include <lwp/stackdep.h>
@@ -81,7 +80,7 @@ static stkalign_t * ldap_pvt_thread_get_stack( int *stacknop )
 	int	i;
 
 	if ( stacks == NULL ) {
-		stacks = (struct stackinfo *) ch_calloc( 1, MAX_THREADS *
+		stacks = (struct stackinfo *) LDAP_CALLOC( 1, MAX_THREADS *
 		    sizeof(struct stackinfo) );
 	}
 

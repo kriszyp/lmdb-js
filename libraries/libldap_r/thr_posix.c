@@ -13,11 +13,12 @@
 
 #include "portable.h"
 
+#if defined( HAVE_PTHREADS )
+
 #include <ac/errno.h>
 
 #include "ldap_pvt_thread.h"
 
-#if defined( HAVE_PTHREADS )
 
 #if HAVE_PTHREADS_D4
 #  define LDAP_PVT_THREAD_ATTR_DEFAULT		pthread_attr_default

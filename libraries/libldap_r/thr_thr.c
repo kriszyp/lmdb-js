@@ -11,9 +11,10 @@
 /* thr_thr.c - wrappers around solaris threads */
 
 #include "portable.h"
-#include "ldap_pvt_thread.h"
 
 #if defined( HAVE_THR )
+
+#include "ldap_pvt_thread.h"
 
 /*******************
  *                 *

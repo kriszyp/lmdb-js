@@ -11,9 +11,9 @@
 /* thr_cthreads.c - wrapper for mach cthreads */
 
 #include "portable.h"
-#include "ldap_pvt_thread.h"
 
 #if defined( HAVE_MACH_CTHREADS )
+#include "ldap_pvt_thread.h"
 
 /***********************************************************************
  *                                                                     *

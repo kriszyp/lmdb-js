@@ -11,9 +11,10 @@
 /* thr_nt.c - wrapper around NT threads */
 
 #include "portable.h"
-#include "ldap_pvt_thread.h"
 
 #if defined( HAVE_NT_THREADS )
+
+#include "ldap_pvt_thread.h"
 
 int
 ldap_pvt_thread_initialize( void )
