@@ -158,14 +158,6 @@ static Connection* connection_get( int s )
 
 	assert( c->c_struct_state != SLAP_C_UNINITIALIZED );
 
-	if( c->c_struct_state != SLAP_C_USED ) {
-		/* connection must have been closed */
-		assert( c->c_conn_state == SLAP_C_INVALID );
-		assert( !ber_pvt_sb_in_use( c->c_sb ) );
-
-		return NULL;
-	}
-
 #else
 	c = NULL;
 	{
@@ -199,7 +191,18 @@ static Connection* connection_get( int s )
 	if( c != NULL ) {
 		ldap_pvt_thread_mutex_lock( &c->c_mutex );
 
-		/* we do this AFTER locking to aid in debugging */
+		if( c->c_struct_state != SLAP_C_USED ) {
+			/* connection must have been closed due to resched */
+			assert( c->c_conn_state == SLAP_C_INVALID );
+			assert( !ber_pvt_sb_in_use( c->c_sb ) );
+
+			Debug( LDAP_DEBUG_TRACE,
+				"connection_get(%d): connection not used.\n",
+				s, c->c_connid, 0 );
+
+			return NULL;
+		}
+
 		Debug( LDAP_DEBUG_TRACE,
 			"connection_get(%d): got connid=%ld\n",
 			s, c->c_connid, 0 );
