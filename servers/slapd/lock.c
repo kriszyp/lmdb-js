@@ -30,14 +30,14 @@ lock_fopen( char *fname, char *type, FILE **lfp )
 	}
 
 	/* acquire the lock */
-	while ( ldap_lockf( *lfp ) != 0 ) {
+	while ( ldap_lockf( fileno(*lfp) ) != 0 ) {
 		;	/* NULL */
 	}
 
 	/* open the log file */
 	if ( (fp = fopen( fname, type )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "could not open \"%s\"\n", fname, 0, 0 );
-		ldap_unlockf( *lfp );
+		ldap_unlockf( fileno(*lfp) );
 		fclose( *lfp );
 		*lfp = NULL;
 		return( NULL );
@@ -50,7 +50,7 @@ int
 lock_fclose( FILE *fp, FILE *lfp )
 {
 	/* unlock */
-	ldap_unlockf( lfp );
+	ldap_unlockf( fileno(lfp) );
 	fclose( lfp );
 
 	return( fclose( fp ) );

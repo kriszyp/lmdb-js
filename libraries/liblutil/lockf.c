@@ -7,33 +7,86 @@
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
  */
-/* Simple file locking method for systems without */
+
+/*
+ * File Locking Routines
+ *
+ * Implementations (in order of preference)
+ *	- lockf
+ *	- fcntl
+ *  - flock
+ *
+ * Other implementations will be added as needed.
+ */
 
 #include "portable.h"
 
 #include <stdio.h>
 #include <ac/unistd.h>
 
-#ifdef NEED_SIMPLE_LOCKING
+#undef LOCK_API
 
-int lutil_lockf ( FILE *fp ) {
+#if HAVE_LOCKF && defined(F_LOCK)
+#	define USE_LOCKF 1
+#	define LOCK_API	"lockf"
+#endif
+
+#if !defined(LOCK_API) && HAVE_FCNTL
+#	ifdef HAVE_FCNTL_H
+#		include <fcntl.h>
+#	endif
+#	ifdef F_WRLCK
+#		define USE_FCNTL 1
+#		define LOCK_API	"fcntl"
+#	endif
+#endif
+
+#if !defined(LOCK_API) && HAVE_FLOCK
+#	if HAVE_SYS_FILE_H
+#		include <sys/file.h>
+#	endif
+#	define USE_FLOCK 1
+#	define LOCK_API	"flock"
+#endif
+
+#ifdef USE_LOCKF
+int lutil_lockf ( int fd ) {
+	return lockf( fd, F_LOCK, 0 );
+}
+
+int lutil_unlockf ( int fd ) {
+	return lockf( fd, F_ULOCK, 0 );
+}
+#endif
+
+#ifdef USE_FCNTL
+int lutil_lockf ( int fd ) {
 	struct flock file_lock;
 	memset( &file_lock, 0, sizeof( file_lock ) );
 	file_lock.l_type = F_WRLCK;
 	file_lock.l_whence = SEEK_SET;
 	file_lock.l_start = 0;
 	file_lock.l_len = 0;
-	return( fcntl( fileno(fp), F_SETLKW, &file_lock ) );
+	return( fcntl( fd, F_SETLKW, &file_lock ) );
 }
 
-int lutil_unlockf ( FILE *fp ) {
+int lutil_unlockf ( int fd ) {
 	struct flock file_lock;
 	memset( &file_lock, 0, sizeof( file_lock ) );
 	file_lock.l_type = F_UNLCK;
 	file_lock.l_whence = SEEK_SET;
 	file_lock.l_start = 0;
 	file_lock.l_len = 0;
-	return ( fcntl( fileno(fp), F_SETLK, &file_lock ) );
+	return( fcntl ( fd, F_SETLK, &file_lock ) );
+}
+#endif
+
+#ifdef USE_FLOCK
+int lutil_lockf ( int fd ) {
+	return flock( fd, LOCK_EX );
 }
 
-#endif /* NEED_SIMPLE_LOCKING */
+int lutil_unlockf ( int fd ) {
+	return flock( fd, LOCK_UN );
+}
+#endif
