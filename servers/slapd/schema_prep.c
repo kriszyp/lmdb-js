@@ -318,7 +318,7 @@ static struct slap_schema_oc_map {
 		"DESC 'OpenLDAP system monitoring' "
 		"STRUCTURAL "
 		"MUST cn )",
-		0, SLAP_OC_OPERATIONAL,
+		0, SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 		offsetof(struct slap_internal_schema, si_oc_monitor) },
 #ifdef LDAP_DEVEL
 	{ "collectiveAttributeSubentry", "( 2.5.17.2 "
