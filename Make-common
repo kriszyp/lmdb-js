@@ -197,6 +197,10 @@ LDAP_DEBUG=-DLDAP_DEBUG
 # uncomment this line to enable support for LDAP referrals in libldap
 LDAP_REFERRALS=-DLDAP_REFERRALS
 
+# uncomment this line to enable support for CRYPT passwords in LDBM
+# requires UNIX crypt(3)
+LDAP_CRYPT=-DLDAP_CRYPT
+
 # uncomment this line to use soundex for approximate matches in slapd.
 # the default is to use the metaphone algorithm.
 #PHONETIC=-DSOUNDEX
