@@ -12,6 +12,8 @@ OpenLDAP 2.1.16 Engineering
 	Removed lint
 	Build Environment
 		Regenerated configure script for IPv6 fix (ITS#2347)
+	Documentation
+		Misc man page updates
 
 OpenLDAP 2.1.15 Release
 	Fixed slapd saslauthz null backend crash
