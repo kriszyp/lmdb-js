@@ -1,6 +1,12 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.12 Engineering
+	Fixed slapd first component bug (ITS#3118)
+	Fixed slapd TOLOWER macro use bug (ITS#3115)
+	Fixed slapd TLS context clash bug (ITS#3109)
+	Build Environment
+		Fixed liblber memory debug portability bug (ITS#3116)
+		Fixed back-perl perl portability bug (ITS#2554,2946)
 
 OpenLDAP 2.2.11 Release
 	Fixed slapd undefined objectclass bug (ITS#3097)
