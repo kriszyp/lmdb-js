@@ -277,7 +277,7 @@ refint_delete_cb(
 	ip->mm = NULL;
 	ma = NULL;
 	for(ia = da; ia; ia = ia->next) {
-	    if(a = attr_find(rs->sr_entry->e_attrs, ia->attr))
+	    if ( (a = attr_find(rs->sr_entry->e_attrs, ia->attr) ) )
 		for(i = 0, b = a->a_nvals; b[i].bv_val; i++)
 		    if(bvmatch(&dd->dn, &b[i])) {
 			if(!ip->dn.bv_val) ber_dupbv(&ip->dn, &rs->sr_entry->e_nname);
@@ -377,7 +377,7 @@ refint_modrdn_cb(
 	*/
 
 	for(ia = da; ia; ia = ia->next) {
-	    if(a = attr_find(rs->sr_entry->e_attrs, ia->attr)) {
+	    if((a = attr_find(rs->sr_entry->e_attrs, ia->attr))) {
 		    for(fix = 0, i = 0, b = a->a_nvals; b[i].bv_val; i++)
 			if(bvmatch(&dd->dn, &b[i])) { fix++; break; }
 		    if(fix) {
@@ -450,6 +450,7 @@ refint_response(
 	BerValue ndn, moddn, pdn;
 	BerVarray b = NULL;
 	int rc, ac, i, j, ksize;
+	AttributeName	an[2];
 
 	id->message = "_refint_response";
 
@@ -553,6 +554,13 @@ refint_response(
 	nop.ors_deref	= LDAP_DEREF_NEVER;
 	nop.ors_slimit	= SLAP_NO_LIMIT;
 	nop.ors_tlimit	= SLAP_NO_LIMIT;
+
+	/* no attrs! */
+	memset( &an[0], 0, sizeof( AttributeName ) );
+	BER_BVSTR( &an[0].an_name, LDAP_NO_ATTRS );
+	BER_BVZERO( &an[1].an_name );
+	nop.ors_attrs = an;
+
 	nop.o_req_ndn = id->dn;
 	nop.o_req_dn = id->dn;
 
