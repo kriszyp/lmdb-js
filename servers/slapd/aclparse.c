@@ -185,7 +185,7 @@ parse_acl(
 					} else if ( strcasecmp( style, "one" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_ONE;
 						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
-					} else if ( strcasecmp( style, "subtree" ) == 0 ) {
+					} else if ( strcasecmp( style, "subtree" ) == 0 || strcasecmp( style, "sub" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_SUBTREE;
 						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
 					} else if ( strcasecmp( style, "children" ) == 0 ) {
@@ -307,7 +307,7 @@ parse_acl(
 					sty = ACL_STYLE_BASE;
 				} else if ( strcasecmp( style, "one" ) == 0 ) {
 					sty = ACL_STYLE_ONE;
-				} else if ( strcasecmp( style, "subtree" ) == 0 ) {
+				} else if ( strcasecmp( style, "subtree" ) == 0 || strcasecmp( style, "sub" ) == 0 ) {
 					sty = ACL_STYLE_SUBTREE;
 				} else if ( strcasecmp( style, "children" ) == 0 ) {
 					sty = ACL_STYLE_CHILDREN;
@@ -1282,7 +1282,7 @@ acl_usage( void )
 			"\t[aci=<attrname>]\n"
 #endif
 			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n"
-		"<dnstyle> ::= regex | base | exact (alias of base) | one | sub | children\n"
+		"<dnstyle> ::= regex | base | exact (alias of base) | one | sub[tree] | children\n"
 		"<style> ::= regex | base | exact (alias of base)\n"
 		"<groupflags> ::= R\n"
 		"<access> ::= [self]{<level>|<priv>}\n"
