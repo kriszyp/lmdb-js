@@ -163,13 +163,6 @@ from table \fIldap_objclasses\fP; see "METAINFORMATION USED" for details.
 The default is
 \fB""DELETE FROM ldap_entry_objclasses WHERE entry_id=?"\fP.
 
-.TP
-.B delreferrals_stmt <SQL expression>
-The statement that is used to delete an existing entry's ID
-from table \fIldap_referrals\fP; see "METAINFORMATION USED" for details.
-The default is
-\fB""DELETE FROM ldap_referrals WHERE entry_id=?"\fP.
-
 .RE
 .SH HELPER CONFIGURATION
 These statements are used to modify the default behavior of the backend
@@ -599,9 +592,8 @@ First of all, let's remember that among other major differences to the
 complete LDAP data model, the concept above does not directly support
 such things as multiple objectclasses per entry, and referrals.
 Fortunately, they are easy to adopt in this scheme.
-The SQL backend suggests two more tables being added to the schema -
-ldap_entry_objectclasses(entry_id,oc_name), and
-ldap_referrals(entry_id,url).
+The SQL backend suggests one more table being added to the schema:
+ldap_entry_objectclasses(entry_id,oc_name).
 .LP
 The first contains any number of objectclass names that corresponding
 entries will be found by, in addition to that mentioned in
@@ -611,13 +603,19 @@ attribute to each objectclass mapping that loads values from this table.
 So, you may, for instance, have a mapping for inetOrgPerson, and use it
 for queries for "person" objectclass...
 .LP
-The second table contains any number of referrals associated with a given entry.
-The SQL backend automatically adds attribute mapping for "ref" attribute
-to each objectclass mapping that loads values from this table.
-So, if you add objectclass "referral" to this entry, and make one or
-more tuples in ldap_referrals for this entry (they will be seen as
-values of "ref" attribute), you will have slapd return a referral, as
-described in the Administrators Guide.
+Referrals used to be implemented in a loose manner by adding an extra
+table that allowed any entry to host a "ref" attribute, along with
+a "referral" extra objectClass in table ldap_entry_objclasses.
+In the current implementation, referrals are treated like any other
+user-defined schema, since "referral" is a structural objectclass.
+The suggested practice is to define a "referral" entry in ldap_oc_mappings,
+holding a naming attribute, e.g. "ou" or "cn", a "ref" attribute,
+containing the url; in case multiple referrals per entry are needed,
+a separate table for urls can be created, where urls are mapped
+to the respective entries.
+The use of the naming attribute usually requires to add 
+an "extensibleObject" value to ldap_entry_objclasses.
+
 .LP
 .SH Caveats
 As previously stated, this backend should not be considered
