@@ -224,10 +224,6 @@ SOURCE=.\monitor.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\nt_debug.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\operation.c
 # End Source File
 # Begin Source File

@@ -76,13 +76,16 @@ do_modrdn(
 
 	if ( ber_peek_tag( op->o_ber, &length ) == LDAP_TAG_NEWSUPERIOR ) {
 
-		if ( conn->c_protocol ==  0 ) {
+		if ( op->o_protocol ==  0 ) {
 			/*
 			 * Promote to LDAPv3
 			 */
+			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 			conn->c_protocol = LDAP_VERSION3;
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+			op->o_protocol = LDAP_VERSION3;
 
-		} else if ( conn->c_protocol < LDAP_VERSION3 ) {
+		} else if ( op->o_protocol < LDAP_VERSION3 ) {
 			/* Conection record indicates v2 but field 
 			 * newSuperior is present: report error.
 			 */
@@ -103,7 +106,7 @@ do_modrdn(
 				      "" );
 		    return;
 
-		}/* if ( ber_scanf( ber, { "a}", &newSuperior ) == ... ) */
+		}
 
 
 		Debug( LDAP_DEBUG_ARGS, "do_modrdn: newSuperior=(%s)\n",
@@ -138,7 +141,7 @@ do_modrdn(
 			
 		}
 
-	}/* if ( ber_peek_tag( op->o_ber, &length ) == LDAP_TAG_NEWSUPERIOR )*/
+	}
 
 	dn_normalize_case( ndn );
 
@@ -180,7 +183,7 @@ do_modrdn(
 	    
 		return;
 
-	}/* if ( (newSuperior_be != NULL) && ( be != newSuperior_be) ) */
+	}
 
 
 	/* alias suffix if approp */

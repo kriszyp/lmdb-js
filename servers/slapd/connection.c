@@ -898,6 +898,8 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	arg->co_op->o_dn = ch_strdup( tmpdn != NULL ? tmpdn : "" );
 	arg->co_op->o_ndn = dn_normalize_case( ch_strdup( arg->co_op->o_dn ) );
 
+	arg->co_op->o_protocol = conn->c_protocol;
+
 	slap_op_add( &conn->c_ops, arg->co_op );
 
 	if(tag == LDAP_REQ_BIND) {

@@ -64,6 +64,7 @@ ldbm_back_bind(
     Operation		*op,
     char		*dn,
     int			method,
+	char		*mech,
     struct berval	*cred,
 	char**	edn
 )

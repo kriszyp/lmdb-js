@@ -164,7 +164,7 @@ do_bind(
 
 		ndn = suffixAlias( ndn, op, be );
 
-		if ( (*be->be_bind)( be, conn, op, ndn, method, &cred, &edn ) == 0 ) {
+		if ( (*be->be_bind)( be, conn, op, ndn, method, NULL, &cred, &edn ) == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 			conn->c_protocol = version;

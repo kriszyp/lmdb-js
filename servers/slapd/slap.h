@@ -427,7 +427,8 @@ struct backend_info {
 	/* LDAP Operations Handling Routines */
 	int	(*bi_op_bind)  LDAP_P(( BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		char *dn, int method, struct berval *cred, char** edn ));
+		char *dn, int method, char* mechanism,
+		struct berval *cred, char** edn ));
 	int (*bi_op_unbind) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o ));
 	int	(*bi_op_search) LDAP_P((BackendDB *bd,
@@ -491,9 +492,13 @@ typedef struct slap_op {
 	time_t		o_time;		/* time op was initiated	  */
 	char		*o_dn;		/* dn bound when op was initiated */
 	char		*o_ndn;		/* normalized dn bound when op was initiated */
+	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
 	ber_tag_t	o_authtype;	/* auth method used to bind dn	  */
 					/* values taken from ldap.h	  */
 					/* LDAP_AUTH_*			  */
+	char		*o_authmech; /* SASL mechanism used to bind dn */
+
+	LDAPControl	**o_ctrls;	 /* controls */
 
 /*	 long	o_connid;	*//* id of conn initiating this op  */
 
@@ -533,6 +538,7 @@ typedef struct slap_conn {
 	char	*c_dn;		/* DN bound to this conn  */
 	ber_int_t	c_protocol;	/* version of the LDAP protocol used by client */
 	ber_tag_t	c_authtype;	/* auth method used to bind c_dn  */
+	char	*c_authmech;	/* SASL mechanism used to bind c_dn */
 
 	Operation	*c_ops;			/* list of operations being processed */
 	Operation	*c_pending_ops;	/* list of pending operations */
