@@ -260,7 +260,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 		if( opt_tv != NULL ) timeout = TV2MILLISEC( &tv );
 
 		fd.fd = s;
-		fd.events = POLLOUT;
+		fd.events = POLLWRITE;
 
 		do {
 			fd.revents = 0;
@@ -270,7 +270,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 
 		if( rc == AC_SOCKET_ERROR ) return rc;
 
-		if( fd.revents & POLLOUT ) {
+		if( fd.revents & POLLWRITE ) {
 			if ( ldap_pvt_is_socket_ready(ld, s) == -1 ) return -1;
 			if ( ldap_pvt_ndelay_off(ld, s) == -1 ) return -1;
 			return ( 0 );
@@ -638,6 +638,12 @@ struct selectinfo {
 	/* for UNIX poll(2) */
 	int si_maxfd;
 	struct pollfd si_fds[FD_SETSIZE];
+#undef POLLOTHER
+#define POLLOTHER	(POLLERR|POLLHUP)
+#undef POLLREAD
+#define POLLREAD	(POLLIN|POLLPRI|POLLOTHER)
+#undef POLLWRITE
+#define POLLWRITE	(POLLOUT|POLLOTHER)
 #else
 	/* for UNIX select(2) */
 	fd_set	si_readfds;
@@ -664,7 +670,7 @@ ldap_mark_select_write( LDAP *ld, Sockbuf *sb )
 		int i;
 		for(i=0; i < sip->si_maxfd; i++) {
 			if( sip->si_fds[i].fd == sd ) {
-				sip->si_fds[i].events |= POLLIN;
+				sip->si_fds[i].events |= POLLWRITE;
 				return;
 			}
 			if( empty==-1 && sip->si_fds[i].fd == -1 ) {
@@ -681,7 +687,7 @@ ldap_mark_select_write( LDAP *ld, Sockbuf *sb )
 		}
 
 		sip->si_fds[empty].fd = sd;
-		sip->si_fds[empty].events = POLLOUT;
+		sip->si_fds[empty].events = POLLWRITE;
 	}
 #else
 	/* for UNIX select(2) */
@@ -709,7 +715,7 @@ ldap_mark_select_read( LDAP *ld, Sockbuf *sb )
 		int i;
 		for(i=0; i < sip->si_maxfd; i++) {
 			if( sip->si_fds[i].fd == sd ) {
-				sip->si_fds[i].events |= POLLIN;
+				sip->si_fds[i].events |= POLLREAD;
 				return;
 			}
 			if( empty==-1 && sip->si_fds[i].fd == -1 ) {
@@ -726,7 +732,7 @@ ldap_mark_select_read( LDAP *ld, Sockbuf *sb )
 		}
 
 		sip->si_fds[empty].fd = sd;
-		sip->si_fds[empty].events = POLLIN;
+		sip->si_fds[empty].events = POLLREAD;
 	}
 #else
 	/* for UNIX select(2) */
@@ -781,7 +787,7 @@ ldap_is_write_ready( LDAP *ld, Sockbuf *sb )
 		int i;
 		for(i=0; i < sip->si_maxfd; i++) {
 			if( sip->si_fds[i].fd == sd ) {
-				return sip->si_fds[i].revents & POLLOUT;
+				return sip->si_fds[i].revents & POLLWRITE;
 			}
 		}
 
@@ -810,7 +816,7 @@ ldap_is_read_ready( LDAP *ld, Sockbuf *sb )
 		int i;
 		for(i=0; i < sip->si_maxfd; i++) {
 			if( sip->si_fds[i].fd == sd ) {
-				return sip->si_fds[i].revents & POLLIN;
+				return sip->si_fds[i].revents & POLLREAD;
 			}
 		}
 
