@@ -86,6 +86,11 @@ ber_get_option(
 		*((ber_len_t *) outvalue) = ber_pvt_ber_write(ber);
 		return LBER_OPT_SUCCESS;
 
+	case LBER_OPT_BER_MEMCTX:
+		assert( LBER_VALID( ber ) );
+		*((void **) outvalue) = ber->ber_memctx;
+		return LBER_OPT_SUCCESS;
+	
 	default:
 		/* bad param */
 		ber_errno = LBER_ERROR_PARAM;
@@ -121,7 +126,7 @@ ber_set_option(
 		}
 
 		ber_int_memory_fns = (BerMemoryFunctions *)
-			(*(f->bmf_malloc))(sizeof(BerMemoryFunctions));
+			(*(f->bmf_malloc))(sizeof(BerMemoryFunctions), NULL);
 
 		if ( ber_int_memory_fns == NULL ) {
 			ber_errno = LBER_ERROR_MEMORY;
@@ -202,6 +207,11 @@ ber_set_option(
 	case LBER_OPT_BER_BYTES_TO_WRITE:
 		assert( LBER_VALID( ber ) );
 		ber->ber_ptr = &ber->ber_buf[* (const ber_len_t *) invalue];
+		return LBER_OPT_SUCCESS;
+
+	case LBER_OPT_BER_MEMCTX:
+		assert( LBER_VALID( ber ) );
+		ber->ber_memctx = (void *)invalue;
 		return LBER_OPT_SUCCESS;
 
 	default:

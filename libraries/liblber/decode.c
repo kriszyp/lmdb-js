@@ -340,25 +340,25 @@ ber_get_stringbvl( bgbvr *b, ber_len_t *rlen )
 	/* Allocate the result vector */
 	switch (b->choice) {
 	case ChArray:
-		*b->res.c = LBER_MALLOC( (n+1) * sizeof( char * ));
+		*b->res.c = ber_memalloc_x( (n+1) * sizeof( char * ), b->ber->ber_memctx);
 		if ( *b->res.c == NULL )
 			return LBER_DEFAULT;
 		(*b->res.c)[n] = NULL;
 		break;
 	case BvArray:
-		*b->res.ba = LBER_MALLOC( (n+1) * sizeof( struct berval ));
+		*b->res.ba = ber_memalloc_x( (n+1) * sizeof( struct berval ), b->ber->ber_memctx);
 		if ( *b->res.ba == NULL )
 			return LBER_DEFAULT;
 		(*b->res.ba)[n].bv_val = NULL;
 		break;
 	case BvVec:
-		*b->res.bv = LBER_MALLOC( (n+1) * sizeof( struct berval *));
+		*b->res.bv = ber_memalloc_x( (n+1) * sizeof( struct berval *), b->ber->ber_memctx);
 		if ( *b->res.bv == NULL )
 			return LBER_DEFAULT;
 		(*b->res.bv)[n] = NULL;
 		break;
 	case BvOff:
-		*b->res.ba = LBER_MALLOC( (n+1) * b->siz );
+		*b->res.ba = ber_memalloc_x( (n+1) * b->siz, b->ber->ber_memctx );
 		if ( *b->res.ba == NULL )
 			return LBER_DEFAULT;
 		((struct berval *)((long)(*b->res.ba) + n*b->siz +
@@ -384,7 +384,7 @@ ber_get_stringbvl( bgbvr *b, ber_len_t *rlen )
 			(*b->res.ba)[n] = bv;
 			break;
 		case BvVec:
-			bvp = LBER_MALLOC( sizeof( struct berval ));
+			bvp = ber_memalloc_x( sizeof( struct berval ), b->ber->ber_memctx);
 			if ( !bvp ) {
 				LBER_FREE(bv.bv_val);
 				goto nomem;
@@ -437,7 +437,7 @@ ber_get_stringbv( BerElement *ber, struct berval *bv, int alloc )
 	}
 
 	if ( alloc ) {
-		if ( (bv->bv_val = (char *) LBER_MALLOC( bv->bv_len + 1 )) == NULL ) {
+		if ( (bv->bv_val = (char *) ber_memalloc_x( bv->bv_len + 1, ber->ber_memctx )) == NULL ) {
 			return LBER_DEFAULT;
 		}
 
@@ -479,7 +479,7 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 	assert( ber != NULL );
 	assert( bv != NULL );
 
-	*bv = (struct berval *) LBER_MALLOC( sizeof(struct berval) );
+	*bv = (struct berval *) ber_memalloc_x( sizeof(struct berval), ber->ber_memctx );
 	if ( *bv == NULL ) {
 		return LBER_DEFAULT;
 	}
@@ -514,7 +514,7 @@ ber_get_bitstringa(
 	}
 	--datalen;
 
-	if ( (*buf = (char *) LBER_MALLOC( datalen )) == NULL ) {
+	if ( (*buf = (char *) ber_memalloc_x( datalen, ber->ber_memctx )) == NULL ) {
 		return LBER_DEFAULT;
 	}
 

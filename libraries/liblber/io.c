@@ -123,7 +123,7 @@ ber_realloc( BerElement *ber, ber_len_t len )
 
 	oldbuf = ber->ber_buf;
 
-	ber->ber_buf = (char *) LBER_REALLOC( oldbuf, total );
+	ber->ber_buf = (char *) ber_memrealloc_x( oldbuf, total, ber->ber_memctx );
 	
 	if ( ber->ber_buf == NULL ) {
 		ber->ber_buf = oldbuf;
@@ -391,7 +391,7 @@ int ber_flatten2(
 		ber_len_t len = ber_pvt_ber_write( ber );
 
 		if ( alloc ) {
-			bv->bv_val = (char *) LBER_MALLOC( len + 1 );
+			bv->bv_val = (char *) ber_memalloc_x( len + 1, ber->ber_memctx );
 			if ( bv->bv_val == NULL ) {
 				return -1;
 			}
@@ -420,13 +420,13 @@ int ber_flatten(
 		return -1;
 	}
 
-	bv = LBER_MALLOC( sizeof(struct berval) );
+	bv = ber_memalloc_x( sizeof(struct berval), ber->ber_memctx );
 	if ( bv == NULL ) {
 		return -1;
 	}
 	rc = ber_flatten2(ber, bv, 1);
 	if (rc == -1) {
-		LBER_FREE(bv);
+		ber_memfree_x(bv, ber->ber_memctx);
 	} else {
 		*bvPtr = bv;
 	}
@@ -618,7 +618,7 @@ ber_get_next(
 				errno = ERANGE;
 				return LBER_DEFAULT;
 			}
-			ber->ber_buf = (char *) LBER_MALLOC( ber->ber_len + 1 );
+			ber->ber_buf = (char *) ber_memalloc_x( ber->ber_len + 1, ber->ber_memctx );
 			if (ber->ber_buf==NULL) {
 				return LBER_DEFAULT;
 			}

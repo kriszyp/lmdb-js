@@ -84,6 +84,7 @@ struct berelement {
 
 	struct seqorset	*ber_sos;
 	char		*ber_rwptr;
+	void		*ber_memctx;
 };
 #define LBER_VALID(ber)	((ber)->ber_valid==LBER_VALID_BERELEMENT)
 
@@ -169,18 +170,8 @@ LBER_V (FILE *) ber_pvt_err_file;
 	/* simple macros to realloc for now */
 LBER_V (BerMemoryFunctions *)	ber_int_memory_fns;
 LBER_F (char *)	ber_strndup( LDAP_CONST char *, ber_len_t );
-LBER_F (char *)	ber_strndup__( LDAP_CONST char *, size_t );
+LBER_F (char *)	ber_strndup_x( LDAP_CONST char *, ber_len_t, void *ctx );
 
-#ifdef CSRIMALLOC
-#define LBER_MALLOC			malloc
-#define LBER_CALLOC			calloc
-#define LBER_REALLOC		realloc
-#define LBER_FREE			free
-#define LBER_VFREE			ber_memvfree
-#define LBER_STRDUP			strdup
-#define LBER_STRNDUP		ber_strndup__
-
-#else
 #define LBER_MALLOC(s)		ber_memalloc((s))
 #define LBER_CALLOC(n,s)	ber_memcalloc((n),(s))
 #define LBER_REALLOC(p,s)	ber_memrealloc((p),(s))
@@ -188,7 +179,6 @@ LBER_F (char *)	ber_strndup__( LDAP_CONST char *, size_t );
 #define LBER_VFREE(v)		ber_memvfree((void**)(v))
 #define LBER_STRDUP(s)		ber_strdup((s))
 #define LBER_STRNDUP(s,l)	ber_strndup((s),(l))
-#endif
 
 /* sockbuf.c */
 
