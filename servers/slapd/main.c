@@ -133,7 +133,8 @@ usage( char *name )
 	fprintf( stderr,
 		"\t-4\t\tIPv4 only\n"
 		"\t-6\t\tIPv6 only\n"
-		"\t-T {acdipt}\tRun in Tool mode\n"
+		"\t-T {add|auth|cat|dn|index|passwd|test}\n"
+		"\t\t\tRun in Tool mode\n"
 		"\t-c cookie\tSync cookie of consumer\n"
 		"\t-d level\tDebug level" "\n"
 		"\t-f filename\tConfiguration file\n"
@@ -387,7 +388,7 @@ int main( int argc, char **argv )
 
 		case 'T':
 			for (i=0; tools[i].name; i++) {
-				if ( optarg[0] == tools[i].name[4] ) {
+				if ( strcmp( optarg, &tools[i].name[4] ) == 0 ) {
 					rc = tools[i].func(argc, argv);
 					MAIN_RETURN(rc);
 				}
