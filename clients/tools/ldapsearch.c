@@ -925,8 +925,6 @@ static int dosearch(
 	rc = ldap_search_ext( ld, base, scope, filter, attrs, attrsonly,
 		sctrls, cctrls, timeout, sizelimit, &msgid );
 
-	printf("msgid = %d\n", msgid);
-
 	if ( filtpatt != NULL ) {
 		free( filter );
 	}
