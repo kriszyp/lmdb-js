@@ -1,7 +1,11 @@
 OpenLDAP 1.x Change Log
 
-Changes included in OpenLDAP 1.2.12
+Changes included in OpenLDAP 1.2.12 Engineering
 	CVS Tag: OPENLDAP_REL_ENG_1_2
+	Fixed libldap result error memory leak (ITS#1161)
+
+Changes included in OpenLDAP 1.2.12
+	CVS Tag: OPENLDAP_REL_ENG_1_2_12
 	Fixed slapd sb_max_incoming bug
 	Fixed ldapmodify ldaphost NULL bug
 	Fixed ldapsearch uninitialized fp bug

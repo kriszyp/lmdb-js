@@ -280,22 +280,24 @@ read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 	ldap_set_ber_options( ld, &ber );
 
 	/* get the next message */
-	if ( (tag = ber_get_next( sb, &len, &ber ))
-	    != LDAP_TAG_MESSAGE ) {
-		ld->ld_errno = (tag == LBER_DEFAULT ? LDAP_SERVER_DOWN :
-		    LDAP_LOCAL_ERROR);
+	if ( (tag = ber_get_next( sb, &len, &ber )) != LDAP_TAG_MESSAGE ) {
+		ld->ld_errno = (tag == LBER_DEFAULT)
+			? LDAP_SERVER_DOWN
+			: LDAP_LOCAL_ERROR;
+		free( ber.ber_buf );
 		return( -1 );
 	}
 
 	/* message id */
 	if ( ber_get_int( &ber, &id ) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
+		free( ber.ber_buf );
 		return( -1 );
 	}
 
 	/* if it's been abandoned, toss it */
 	if ( ldap_abandoned( ld, (int)id ) ) {
-		free( ber.ber_buf );	/* gack! */
+		free( ber.ber_buf );
 		return( -2 );	/* continue looking */
 	}
 
@@ -304,7 +306,7 @@ read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 		Debug( LDAP_DEBUG_ANY,
 		    "no request for response with msgid %ld (tossing)\n",
 		    id, 0, 0 );
-		free( ber.ber_buf );	/* gack! */
+		free( ber.ber_buf );
 		return( -2 );	/* continue looking */
 	}
 	Debug( LDAP_DEBUG_TRACE, "got %s msgid %ld, original id %d\n",
@@ -316,6 +318,7 @@ read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 	/* the message type */
 	if ( (tag = ber_peek_tag( &ber, &len )) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
+		free( ber.ber_buf );
 		return( -1 );
 	}
 
@@ -372,7 +375,7 @@ Debug( LDAP_DEBUG_TRACE,
 				simple_request = ( hadref ? 0 : 1 );
 			} else {
 				/* request with referrals or child request */
-				free( ber.ber_buf );	/* gack! */
+				free( ber.ber_buf );
 				ber.ber_buf = NULL;
 			}
 
@@ -416,7 +419,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	}
 
 	if ( ber.ber_buf == NULL ) {
-		return( rc );
+		return rc;
 	}
 
 #endif /* LDAP_REFERRALS */
@@ -424,6 +427,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	if ( (new = (LDAPMessage *) calloc( 1, sizeof(LDAPMessage) ))
 	    == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
+		free( ber.ber_buf );
 		return( -1 );
 	}
 	new->lm_msgid = (int)id;
