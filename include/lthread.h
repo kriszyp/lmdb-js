@@ -30,7 +30,7 @@ LDAP_BEGIN_DECL
 #endif
 
 #if !defined( HAVE_PTHREAD_ATTR_SETDETACHSTATE ) && \
-	defined( HAVE_PTHREAD_ATTR_SETDETACHSTATE_NP )
+	defined( HAVE_PTHREAD_ATTR_SETDETACH_NP )
 #define pthread_attr_setdetachstate( a, b ) \
 					pthread_attr_setdetach_np( a, b )
 #endif
