@@ -493,7 +493,29 @@ static int chk_crypt(
 	const struct berval * passwd,
 	const struct berval * cred )
 {
-	return strcmp(passwd, crypt(cred, passwd));
+	int i;
+
+	for( i=0; i<cred->bv_len; i++) {
+		if(cred->bv_val[i] == '\0') {
+			return 1;	/* NUL character in password */
+		}
+	}
+
+	if( cred->bv_val[i] != '\0' ) {
+		return 1;	/* cred must behave like a string */
+	}
+
+	for( i=0; i<passwd->bv_len; i++) {
+		if(passwd->bv_val[i] == '\0') {
+			return 1;	/* NUL character in password */
+		}
+	}
+
+	if( passwd->bv_val[i] != '\0' ) {
+		return 1;	/* passwd must behave like a string */
+	}
+
+	return strcmp(passwd->bv_val, crypt(cred->bv_val, passwd->bv_val));
 }
 
 # if defined( HAVE_GETSPNAM ) \
@@ -515,9 +537,19 @@ static int chk_unix(
 		return 1;	/* cred must behave like a string */
 	}
 
+	for( i=0; i<passwd->bv_len; i++) {
+		if(passwd->bv_val[i] == '\0') {
+			return 1;	/* NUL character in password */
+		}
+	}
+
+	if( passwd->bv_val[i] != '\0' ) {
+		return 1;	/* passwd must behave like a string */
+	}
+
 #  ifdef HAVE_GETSPNAM
 	{
-		struct spwd *spwd = getspnam(p);
+		struct spwd *spwd = getspnam(passwd->bv_val);
 
 		if(spwd == NULL) {
 			return 1;	/* not found */
@@ -528,7 +560,7 @@ static int chk_unix(
 
 #  else
 	{
-		struct passwd *pwd = getpwnam(p);
+		struct passwd *pwd = getpwnam(passwd->bv_val);
 
 		if(pwd == NULL) {
 			return 1;	/* not found */
@@ -652,8 +684,19 @@ static struct berval *gen_crypt(
 	static const unsigned char crypt64[] =
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890./";
 
-	char *hash = NULL;
-	unsigned char salt[2];
+	struct berval hash;
+	unsigned char salt[3];
+	int i;
+
+	for( i=0; i<passwd->bv_len; i++) {
+		if(passwd->bv_val[i] == '\0') {
+			return NULL;	/* NUL character in password */
+		}
+	}
+
+	if( passwd->bv_val[i] != '\0' ) {
+		return NULL;	/* passwd must behave like a string */
+	}
 
 	if( lutil_entropy( salt, sizeof(salt)) < 0 ) {
 		return NULL; 
@@ -661,11 +704,13 @@ static struct berval *gen_crypt(
 
 	salt[0] = crypt64[ salt[0] % (sizeof(crypt64)-1) ];
 	salt[1] = crypt64[ salt[1] % (sizeof(crypt64)-1) ];
+	salt[2] = '\0';
 
-	hash = crypt( passwd, salt );
+	hash.bv_val = crypt( passwd->bv_val, salt );
 
-	if( hash = NULL ) return NULL;
+	if( hash.bv_val = NULL ) return NULL;
+	hash.bv_len = strlen( hash.bv_val );
 
-	return pw_string( scheme, hash );
+	return pw_string( scheme, &hash );
 }
 #endif
