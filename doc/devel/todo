@@ -30,8 +30,9 @@ OpenLDAP 2.x Projects
 
 Large projects
 --------------
-Redesign slapd memory allocation fault handling
 Localize slapd
+Implement X.500 administrative models (e.g. subentries, etc.)
+Implement LDAP component matching
 
 
 Medium projects
@@ -41,6 +42,7 @@ Implement DIT Structure Rules and Name Forms
 Implement LDAP Cancel extension
 Implement LDAP Transactions extension
 Implement Proxy Authorization Control extension
+Redesign slapd memory allocation fault handling
 Localize tools
 
 
