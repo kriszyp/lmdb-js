@@ -1,5 +1,5 @@
 /* Generic socket.h */
-/* $Id: socket.h,v 1.28 1999/08/29 18:35:22 kdz Exp $ */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
