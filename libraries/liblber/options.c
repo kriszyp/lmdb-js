@@ -71,14 +71,17 @@ ber_get_option(
 		return LBER_OPT_SUCCESS;
 
 	case LBER_OPT_BER_REMAINING_BYTES:
+		assert( BER_VALID( ber ) );
 		*((ber_len_t *) outvalue) = ber_pvt_ber_remaining(ber);
 		return LBER_OPT_SUCCESS;
 
 	case LBER_OPT_BER_TOTAL_BYTES:
+		assert( BER_VALID( ber ) );
 		*((ber_len_t *) outvalue) = ber_pvt_ber_total(ber);
 		return LBER_OPT_SUCCESS;
 
 	case LBER_OPT_BER_BYTES_TO_WRITE:
+		assert( BER_VALID( ber ) );
 		*((ber_len_t *) outvalue) = ber_pvt_ber_write(ber);
 		return LBER_OPT_SUCCESS;
 
@@ -184,14 +187,17 @@ ber_set_option(
 		return LBER_OPT_SUCCESS;
 
 	case LBER_OPT_BER_REMAINING_BYTES:
+		assert( BER_VALID( ber ) );
 		ber->ber_end = &ber->ber_ptr[* (const ber_len_t *) invalue];
 		return LBER_OPT_SUCCESS;
 
 	case LBER_OPT_BER_TOTAL_BYTES:
+		assert( BER_VALID( ber ) );
 		ber->ber_end = &ber->ber_buf[* (const ber_len_t *) invalue];
 		return LBER_OPT_SUCCESS;
 
 	case LBER_OPT_BER_BYTES_TO_WRITE:
+		assert( BER_VALID( ber ) );
 		ber->ber_ptr = &ber->ber_buf[* (const ber_len_t *) invalue];
 		return LBER_OPT_SUCCESS;
 
