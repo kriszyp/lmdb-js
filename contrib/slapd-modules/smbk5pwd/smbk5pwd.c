@@ -199,8 +199,9 @@ static int smbk5pwd_op_bind(
 	return SLAP_CB_CONTINUE;
 }
 
-static LUTIL_PASSWD_CHK_FUNC chk_k5key;
-static const struct berval scheme = BER_BVC("{K5KEY}");
+static LUTIL_PASSWD_CHK_FUNC k5key_chk;
+static LUTIL_PASSWD_HASH_FUNC k5key_hash;
+static const struct berval k5key_scheme = BER_BVC("{K5KEY}");
 
 /* This password scheme stores no data in the userPassword attribute
  * other than the scheme name. It assumes the invoking entry is a
@@ -216,7 +217,7 @@ static const struct berval scheme = BER_BVC("{K5KEY}");
  * storage so we can retrieve it here. The Operation provides all
  * the necessary context for us to get Entry from the database.
  */
-static int chk_k5key(
+static int k5key_chk(
 	const struct berval *sc,
 	const struct berval *passwd,
 	const struct berval *cred,
@@ -280,6 +281,16 @@ static int chk_k5key(
 	} while(0);
 	be_entry_release_r( op, e );
 	return rc;
+}
+
+static int k5key_hash(
+	const struct berval *scheme,
+	const struct berval *passwd,
+	struct berval *hash,
+	const char **text )
+{
+	ber_dupbv( hash, (struct berval *)&k5key_scheme );
+	return LUTIL_PASSWD_OK;
 }
 #endif /* DO_KRB5 */
 
@@ -522,7 +533,7 @@ int smbk5pwd_init() {
 #ifdef DO_KRB5
 	smbk5pwd.on_bi.bi_op_bind = smbk5pwd_op_bind;
 
-	lutil_passwd_add( (struct berval *)&scheme, chk_k5key, NULL );
+	lutil_passwd_add( (struct berval *)&k5key_scheme, k5key_chk, k5key_hash );
 #endif
 
 	return overlay_register( &smbk5pwd );
