@@ -552,7 +552,7 @@ main( int argc, char **argv )
 		if ( ldap_negotiated_sasl_bind_s( ld, binddn, sasl_authc_id,
 				sasl_authz_id, sasl_mech, NULL, NULL, NULL )
 					!= LDAP_SUCCESS ) {
-			ldap_perror( ld, "ldap_sasl_bind" );
+			ldap_perror( ld, "ldap_negotiated_sasl_bind_s" );
 			return( EXIT_FAILURE );
 		}
 #else

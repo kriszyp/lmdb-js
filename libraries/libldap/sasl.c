@@ -540,13 +540,15 @@ sasl_err2ldap( int saslerr )
 }
 
 int
-ldap_pvt_sasl_getmechs ( LDAP *ld, LDAP_CONST char *desired, char **pmechlist )
+ldap_pvt_sasl_getmechs ( LDAP *ld, char **pmechlist )
 {
 	/* we need to query the server for supported mechs anyway */
 	LDAPMessage *res, *e;
 	char *attrs[] = { "supportedSASLMechanisms", NULL };
 	char **values, *mechlist, **p;
 	int rc;
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_pvt_sasl_getmech\n", 0, 0, 0 );
 
 	rc = ldap_search_s( ld, NULL, LDAP_SCOPE_BASE,
 		NULL, attrs, 0, &res );
@@ -570,27 +572,6 @@ ldap_pvt_sasl_getmechs ( LDAP *ld, LDAP_CONST char *desired, char **pmechlist )
 		return ld->ld_errno;
 	}
 
-	if ( desired != NULL ) {
-		rc = LDAP_INAPPROPRIATE_AUTH;
-
-		for ( p = values; *p != NULL; p++ ) {
-			if ( strcmp( *p, desired ) == 0 ) {
-				rc = LDAP_SUCCESS;
-				break;
-			}
-		}
-
-		if ( rc == LDAP_SUCCESS ) {
-			/* just return this */
-			*pmechlist = LDAP_STRDUP( desired );
-			return LDAP_SUCCESS;
-		} else {
-			/* couldn't find it */
-			ld->ld_errno = LDAP_INAPPROPRIATE_AUTH;
-			return ld->ld_errno;
-		}
-	}
-
 	mechlist = array2str( values );
 	if ( mechlist == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
@@ -611,14 +592,14 @@ int
 ldap_pvt_sasl_bind(
 	LDAP			*ld,
 	LDAP_CONST char		*dn,
-	LDAP_CONST char		*mechanism,
+	LDAP_CONST char		*mechs,
 	LDAP_CONST sasl_callback_t	*callbacks,
 	LDAPControl		**sctrls,
 	LDAPControl		**cctrls )
 {
+	const char *mech;
 	int	saslrc, rc, msgid, ssf = 0;
 	struct berval ccred, *scred;
-	char *mechlist = NULL;
 	char *host;
 	sasl_interact_t *client_interact = NULL;
 
@@ -630,26 +611,22 @@ ldap_pvt_sasl_bind(
 		return ld->ld_errno;
 	}
 
-	/*
-	 * This connects to the host, side effect being that
-	 * ldap_host_connected_to() works.
-	 */
-	rc = ldap_pvt_sasl_getmechs( ld, mechanism, &mechlist );
-	if ( rc != LDAP_SUCCESS ) {
-		return ld->ld_errno;
-	}
+	if( ! ber_pvt_sb_in_use( &ld->ld_sb ) ) {
+ 		/* not connected yet */
+ 		int rc = ldap_open_defconn( ld );
+  
+		if( rc < 0 ) return ld->ld_errno;
+	}   
 
 	/* XXX this doesn't work with PF_LOCAL hosts */
 	host = ldap_host_connected_to( &ld->ld_sb );
 
 	if ( host == NULL ) {
-		LDAP_FREE( mechlist );
 		ld->ld_errno = LDAP_UNAVAILABLE;
 		return ld->ld_errno;
 	}
 
 	if ( ld->ld_sasl_context != NULL ) {
-		LDAP_FREE( mechlist );
 		sasl_dispose( &ld->ld_sasl_context );
 	}
 
@@ -658,7 +635,6 @@ ldap_pvt_sasl_bind(
 	LDAP_FREE( host );
 
 	if ( (saslrc != SASL_OK) && (saslrc != SASL_CONTINUE) ) {
-		LDAP_FREE( mechlist );
 		ld->ld_errno = sasl_err2ldap( rc );
 		sasl_dispose( &ld->ld_sasl_context );
 		return ld->ld_errno;
@@ -668,14 +644,12 @@ ldap_pvt_sasl_bind(
 	ccred.bv_len = 0;
 
 	saslrc = sasl_client_start( ld->ld_sasl_context,
-		mechlist,
+		mechs,
 		NULL,
 		&client_interact,
 		&ccred.bv_val,
 		(unsigned int *)&ccred.bv_len,
-		&mechanism );
-
-	LDAP_FREE( mechlist );
+		&mech );
 
 	if ( (saslrc != SASL_OK) && (saslrc != SASL_CONTINUE) ) {
 		ld->ld_errno = sasl_err2ldap( saslrc );
@@ -688,7 +662,7 @@ ldap_pvt_sasl_bind(
 	do {
 		sasl_interact_t *client_interact = NULL;
 
-		rc = ldap_sasl_bind_s( ld, dn, mechanism, &ccred, sctrls, cctrls, &scred );
+		rc = ldap_sasl_bind_s( ld, dn, mech, &ccred, sctrls, cctrls, &scred );
 		if ( rc == LDAP_SUCCESS ) {
 			break;
 		} else if ( rc != LDAP_SASL_BIND_IN_PROGRESS ) {
@@ -732,7 +706,8 @@ ldap_pvt_sasl_bind(
 
 /* based on sample/sample-client.c */
 static int
-ldap_pvt_sasl_getsecret(sasl_conn_t *conn, void *context, int id, sasl_secret_t **psecret)
+ldap_pvt_sasl_getsecret(sasl_conn_t *conn,
+	void *context, int id, sasl_secret_t **psecret)
 {
 	struct berval *passphrase = (struct berval *)context;
 	size_t len;           
@@ -805,9 +780,11 @@ ldap_pvt_sasl_get_option( LDAP *ld, int option, void *arg )
 				*(int *)arg = -1;
 				break;
 			}
-			if ( sasl_getprop( ld->ld_sasl_context, SASL_SSF, &ssf )
-					!= SASL_OK )
+			if ( sasl_getprop( ld->ld_sasl_context, SASL_SSF,
+				(void **) &ssf ) != SASL_OK )
+			{
 				return -1;
+			}
 			*(int *)arg = *ssf;
 			break;
 		default:
@@ -855,11 +832,15 @@ ldap_pvt_sasl_set_option( LDAP *ld, int option, void *arg )
  *
  * Examples:
  *	ldap_negotiated_sasl_bind_s( ld, NULL,
+ *	    NULL, NULL, NULL,
+ *		NULL, NULL, NULL, NULL );
+ *
+ *	ldap_negotiated_sasl_bind_s( ld, NULL,
  *	    "user@OPENLDAP.ORG", NULL, NULL,
  *		"GSSAPI", NULL, NULL, NULL );
  *
  *	ldap_negotiated_sasl_bind_s( ld, NULL,
- *	    "manager", "cn=user,dc=openldap,dc=org", NULL,
+ *	    "manager", "dn:cn=user,dc=openldap,dc=org", NULL,
  *		"DIGEST-MD5", NULL, NULL, NULL );
  *
  *	ldap_negotiated_sasl_bind_s( ld, NULL,
@@ -884,6 +865,19 @@ ldap_negotiated_sasl_bind_s(
 	int n;
 	sasl_callback_t callbacks[4];
 	int rc;
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_negotiated_sasl_bind_s\n", 0, 0, 0 );
+
+	if( saslMechanism == NULL || *saslMechanism == '\0' ) {
+		char *mechs;
+		rc = ldap_pvt_sasl_getmechs( ld, &mechs );
+
+		if( rc != LDAP_SUCCESS ) {
+			return rc;
+		}
+
+		saslMechanism = mechs;
+	}
 
 	/* SASL Authentication Identity */
 	callbacks[n=0].id = SASL_CB_AUTHNAME;

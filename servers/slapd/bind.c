@@ -239,7 +239,7 @@ do_bind(
 		edn = NULL;
 		rc = sasl_bind( conn, op, dn, ndn, mech, &cred, &edn );
 
-		if( rc == LDAP_SUCCESS && edn != NULL ) {
+		if( rc == LDAP_SUCCESS ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 #ifdef HAVE_CYRUS_SASL
 			assert( conn->c_sasl_bind_context == NULL );
