@@ -12,7 +12,7 @@
 #ifndef _LDAP_CDEFS_H
 #define _LDAP_CDEFS_H
 
-#if defined(__cplusplus)
+#if defined(__cplusplus) || defined(c_plusplus)
 #	define LDAP_BEGIN_DECL	extern "C" {
 #	define LDAP_END_DECL	}
 #else
@@ -20,9 +20,8 @@
 #	define LDAP_END_DECL	/* end declarations */
 #endif
 
-#if !defined(__NO_PROTOTYPES) && ( \
-	defined(__STDC__) || defined(__cplusplus) || \
-	defined(__NEED_PROTOTYPES) )
+#if !defined(__NO_PROTOTYPES) && ( defined(__NEED_PROTOTYPES) || \
+	defined(__STDC__) || defined(__cplusplus) || defined(c_plusplus) )
 
 	/* ANSI C or C++ */
 #	define LDAP_P(protos)	protos
