@@ -249,10 +249,10 @@ int ldap_pvt_gethostbyaddr_a(
 #endif	
 }
 /* 
- * ldap_pvt_init_utils() should be called before any other function.
+ * ldap_int_utils_init() should be called before any other function.
  */
 
-void ldap_pvt_init_utils( void )
+void ldap_int_utils_init( void )
 {
 	static int done=0;
 	if (done)

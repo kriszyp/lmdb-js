@@ -249,6 +249,13 @@ extern int openldap_ldap_initialized;
 extern struct ldapoptions openldap_ldap_global_options;
 void openldap_ldap_initialize LDAP_P((void));
 
+
+/*
+ * in unit-int.c
+ */
+void ldap_int_utils_init LDAP_P(( void ));
+
+
 /*
  * in print.c
  */

@@ -290,7 +290,7 @@ void openldap_ldap_initialize( void )
 		return;
 	}
 
-	ldap_pvt_init_utils();
+	ldap_int_utils_init();
 
 	gopts.ldo_version =	LDAP_VERSION2;
 	gopts.ldo_deref =	LDAP_DEREF_NEVER;
