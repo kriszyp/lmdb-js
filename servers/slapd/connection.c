@@ -1349,8 +1349,7 @@ connection_input(
 #ifdef LDAP_CONNECTIONLESS
 	op->o_peeraddr = peeraddr;
 	if (cdn) {
-	    op->o_dn.bv_val = ch_strdup( cdn );
-	    op->o_dn.bv_len = strlen( op->o_dn.bv_val );
+	    ber_str2bv( cdn, 0, 1, &op->o_dn );
 	    op->o_protocol = LDAP_VERSION2;
 	}
 #endif
