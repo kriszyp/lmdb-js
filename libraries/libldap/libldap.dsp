@@ -90,7 +90,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Debug\oldap32.lib"
-# ADD LIB32 /nologo /out:"..\Debug\oldap32.lib"
+# ADD LIB32 /nologo /out:"..\SDebug\oldap32.lib"
 
 !ELSEIF  "$(CFG)" == "libldap - Win32 Single Release"
 
@@ -111,7 +111,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Release\oldap32.lib"
-# ADD LIB32 /nologo /out:"..\Release\oldap32.lib"
+# ADD LIB32 /nologo /out:"..\SRelease\oldap32.lib"
 
 !ENDIF 
 

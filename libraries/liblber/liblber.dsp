@@ -90,7 +90,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Debug\olber32.lib"
-# ADD LIB32 /nologo /out:"..\Debug\olber32.lib"
+# ADD LIB32 /nologo /out:"..\SDebug\olber32.lib"
 
 !ELSEIF  "$(CFG)" == "liblber - Win32 Single Release"
 
@@ -111,7 +111,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Release\olber32.lib"
-# ADD LIB32 /nologo /out:"..\Release\olber32.lib"
+# ADD LIB32 /nologo /out:"..\SRelease\olber32.lib"
 
 !ENDIF 
 

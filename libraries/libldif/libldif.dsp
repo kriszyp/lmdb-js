@@ -90,7 +90,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Debug\oldif32.lib"
-# ADD LIB32 /nologo /out:"..\Debug\oldif32.lib"
+# ADD LIB32 /nologo /out:"..\SDebug\oldif32.lib"
 
 !ELSEIF  "$(CFG)" == "libldif - Win32 Single Release"
 
@@ -111,7 +111,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Release\oldif32.lib"
-# ADD LIB32 /nologo /out:"..\Release\oldif32.lib"
+# ADD LIB32 /nologo /out:"..\SRelease\oldif32.lib"
 
 !ENDIF 
 

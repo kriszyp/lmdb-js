@@ -91,7 +91,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Debug\olutil32.lib"
-# ADD LIB32 /nologo /out:"..\Debug\olutil32.lib"
+# ADD LIB32 /nologo /out:"..\SDebug\olutil32.lib"
 
 !ELSEIF  "$(CFG)" == "liblutil - Win32 Single Release"
 
@@ -112,7 +112,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Release\olutil32.lib"
-# ADD LIB32 /nologo /out:"..\Release\olutil32.lib"
+# ADD LIB32 /nologo /out:"..\SRelease\olutil32.lib"
 
 !ENDIF 
 
