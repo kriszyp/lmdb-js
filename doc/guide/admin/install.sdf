@@ -52,13 +52,14 @@ on prerequisite software and installation procedures.
 H2: Prerequisite software
 
 OpenLDAP Software relies upon a number of software packages distributed
-by third parties.  Depending on the features you intend to use,
-you may have to download and install a number of additional
-software packages.  This section details commonly needed third party
-software packages you might have to install.  Note that some of
-these third party packages may depend on additional software
-packages.  Install each package per the installation instructions
-provided with it.
+by third parties.  Depending on the features you intend to use, you
+may have to download and install a number of additional software
+packages.  This section details commonly needed third party software
+packages you might have to install.  However, for an up-to-date
+prerequisite information, the {{F:README}} document should be
+consulted.  Note that some of these third party packages may depend
+on additional software packages.  Install each package per the
+installation instructions provided with it.
 
 
 H3: {{TERM[expand]TLS}}
@@ -112,13 +113,14 @@ configure detects a usable Cyrus SASL installation.
 H3: Database Software
 
 OpenLDAP's {{slapd}}(8) primary database backend, {{TERM:BDB}},
-requires {{ORG[expand]Sleepycat}} {{PRD:Berkeley DB}}, version 4.2.
+requires {{ORG[expand]Sleepycat}} {{PRD:Berkeley DB}}.
 If not available at configure time, you will not be able build
 {{slapd}}(8) with this primary database backend.
 
-Your operating system may provide {{PRD:Berkeley DB}}, version 4.2,
-in the base system or as an optional software component.  If not,
-you'll have to obtain and install it yourself.
+Your operating system may provide a supported version of
+{{PRD:Berkeley DB}} in the base system or as an optional
+software component.  If not, you'll have to obtain and
+install it yourself.
 
 {{PRD:Berkeley DB}} is available from {{ORG[expand]Sleepycat}}'s
 download page {{URL: http://www.sleepycat.com/download/}}.  There
