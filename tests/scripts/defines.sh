@@ -13,6 +13,7 @@ ACLCONF=$DATADIR/slapd-acl.conf
 MASTERCONF=$DATADIR/slapd-repl-master.conf
 SLAVECONF=$DATADIR/slapd-repl-slave.conf
 REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
+SUBMASTERCONF=$DATADIR/slapd-repl-submaster.conf
 SCHEMACONF=$DATADIR/slapd-schema.conf
 
 DBCONF=$DBDIR/slapd.conf
@@ -52,6 +53,7 @@ MASTERURI="ldap://localhost:$PORT/"
 SLAVEURI="ldap://localhost:$SLAVEPORT/"
 LDIF=$DATADIR/test.ldif
 LDIFORDERED=$DATADIR/test-ordered.ldif
+LDIFBASE=$DATADIR/test-base.ldif
 LDIFPASSWD=$DATADIR/passwd.ldif
 LDIFPASSWDOUT=$DATADIR/passwd-out.ldif
 MONITOR=""
