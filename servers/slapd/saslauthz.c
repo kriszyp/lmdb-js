@@ -2,6 +2,7 @@
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2003 The OpenLDAP Foundation.
+ * Portions Copyright 2000 Mark Adamson, Carnegie Mellon.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -11,16 +12,6 @@
  * A copy of this license is available in the file LICENSE in the
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
- */
-/* Portions Copyright (c) 2000, Mark Adamson, Carnegie Mellon.
- * All rights reserved.
- * This software is not subject to any license of Carnegie Mellon University.
- *
- * Redistribution and use in source and binary forms are permitted without 
- * restriction or fee of any kind as long as this notice is preserved.
- *
- * The name "Carnegie Mellon" must not be used to endorse or promote
- * products derived from this software without prior written permission.
  */
 
 #include "portable.h"
