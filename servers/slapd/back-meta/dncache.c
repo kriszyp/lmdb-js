@@ -77,10 +77,10 @@
  */
 
 struct metadncacheentry {
-	char *dn;
-	int target;
+	struct berval	*dn;
+	int 		target;
 
-	time_t lastupdated;
+	time_t 		lastupdated;
 };
 
 /*
@@ -98,11 +98,13 @@ meta_dncache_cmp(
 {
 	struct metadncacheentry *cc1 = ( struct metadncacheentry * )c1;
 	struct metadncacheentry *cc2 = ( struct metadncacheentry * )c2;
+
+	int			d = cc1->dn->bv_len - cc2->dn->bv_len;
 	
 	/*
 	 * case sensitive, because the dn MUST be normalized
 	 */
- 	return strcmp( cc1->dn, cc2->dn );
+ 	return d != 0 ? d : strcmp( cc1->dn->bv_val, cc2->dn->bv_val );
 }
 
 /*
@@ -120,10 +122,15 @@ meta_dncache_dup(
 	struct metadncacheentry *cc1 = ( struct metadncacheentry * )c1;
 	struct metadncacheentry *cc2 = ( struct metadncacheentry * )c2;
 	
+	int			d = cc1->dn->bv_len - cc2->dn->bv_len;
+	int			cmp;
+	
 	/*
 	 * case sensitive, because the dn MUST be normalized
 	 */
- 	return ( strcmp( cc1->dn, cc2->dn ) == 0 ) ? -1 : 0;
+	cmp = d != 0 ? d : strcmp( cc1->dn->bv_val, cc2->dn->bv_val );
+
+ 	return ( cmp == 0 ) ? -1 : 0;
 }
 
 /*
@@ -135,14 +142,14 @@ meta_dncache_dup(
 int
 meta_dncache_get_target(
 		struct metadncache	*cache,
-		const char		*ndn
+		struct berval		*ndn
 )
 {
 	struct metadncacheentry tmp_entry, *entry;
 	time_t curr_time;
 	int target = -1;
 
-	tmp_entry.dn = ( char * )ndn;
+	tmp_entry.dn = ndn;
 	ldap_pvt_thread_mutex_lock( &cache->mutex );
 	entry = ( struct metadncacheentry * )avl_find( cache->tree,
 			( caddr_t )&tmp_entry, meta_dncache_cmp );
@@ -182,7 +189,7 @@ meta_dncache_get_target(
 int
 meta_dncache_update_entry(
 		struct metadncache      *cache,
-		const char              *ndn,
+		struct berval		*ndn,
 		int 			target
 )
 {
@@ -203,7 +210,7 @@ meta_dncache_update_entry(
 		curr_time = time( NULL );
 	}
 
-	tmp_entry.dn = ( char * )ndn;
+	tmp_entry.dn = ndn;
 
 	ldap_pvt_thread_mutex_lock( &cache->mutex );
 	entry = ( struct metadncacheentry * )avl_find( cache->tree,
@@ -219,7 +226,7 @@ meta_dncache_update_entry(
 			return -1;
 		}
 
-		entry->dn = ch_strdup( ndn );
+		entry->dn = ber_bvdup( ndn );
 		if ( entry->dn == NULL ) {
 			ldap_pvt_thread_mutex_unlock( &cache->mutex );
 			return -1;
@@ -244,12 +251,12 @@ meta_dncache_update_entry(
 int
 meta_dncache_delete_entry(
 		struct metadncache      *cache,
-		const char              *ndn
+		struct berval		*ndn
 )
 {
 	struct metadncacheentry *entry, tmp_entry;
 
-	tmp_entry.dn = ( char * )ndn;
+	tmp_entry.dn = ndn;
 
 	ldap_pvt_thread_mutex_lock( &cache->mutex );
 	entry = avl_delete( &cache->tree, ( caddr_t )&tmp_entry,
@@ -276,6 +283,6 @@ meta_dncache_free(
 {
 	struct metadncacheentry *entry = ( struct metadncacheentry * )e;
 
-	free( entry->dn );
+	ber_bvfree( entry->dn );
 }
 

@@ -89,7 +89,7 @@ struct metasingleconn {
 #define	META_CANDIDATE		1
 	
 	LDAP            	*ld;
-	char            	*bound_dn;
+	struct berval          	*bound_dn;
 	int             	bound;
 #define META_UNBOUND		0
 #define META_BOUND		1
@@ -113,12 +113,13 @@ struct metaconn {
 
 struct metatarget {
 	char			*uri;
-	char			*suffix;/* normalized suffix */
-	char			*binddn;
-	char			*bindpw;
+	struct berval		*psuffix;	/* pretty suffix */
+	struct berval		*suffix;	/* normalized suffix */
+	struct berval		*binddn;
+	struct berval		*bindpw;
 
-	char                    *pseudorootdn;
-	char                    *pseudorootpw;
+	struct berval           *pseudorootdn;
+	struct berval           *pseudorootpw;
 
 	struct rewrite_info	*rwinfo;
 
@@ -151,9 +152,9 @@ extern int
 meta_back_do_single_bind(
 		struct metainfo         *li,
 		struct metaconn         *lc,
-		const char              *dn,
-		const char		*ndn,
-		const char		*cred,
+		struct berval		*dn,
+		struct berval		*ndn,
+		struct berval		*cred,
 		int			method,
 		int                     candidate
 );
@@ -168,7 +169,7 @@ meta_back_getconn(
 	       	struct			slap_conn *conn,
 		struct			slap_op *op,
 		int			op_type,
-		const			char *dn,
+		struct berval		*dn,
 		int			*candidate
 );
 
@@ -176,6 +177,12 @@ extern int
 meta_back_dobind(
 		struct metaconn		*lc,
 		Operation		*op
+);
+
+extern int
+meta_back_is_valid(
+		struct metaconn 	*lc, 
+		int 			candidate 
 );
 
 extern int
@@ -207,27 +214,26 @@ meta_back_conn_dup(
  */
 extern int
 meta_back_is_candidate(
-		const char		*nsuffix,
-		const char		*ndn,
-		int			ndnlen
+		struct berval		*nsuffix,
+		struct berval		*ndn
 );
 
 extern int
 meta_back_count_candidates(
 		struct metainfo		*li,
-		const char		*ndn
+		struct berval		*ndn
 );
 
 extern int
 meta_back_is_candidate_unique(
 		struct metainfo		*li,
-		const char 		*ndn
+		struct berval		*ndn
 );
 
 extern int
 meta_back_select_unique_candidate(
 		struct metainfo		*li,
-		const char		*ndn
+		struct berval		*ndn
 );
 
 extern int
@@ -262,20 +268,20 @@ meta_dncache_dup(
 extern int
 meta_dncache_get_target(
 		struct metadncache	*cache,
-		const char		*ndn
+		struct berval		*ndn
 );
 
 extern int
 meta_dncache_update_entry(
 		struct metadncache	*cache,
-		const char		*ndn,
+		struct berval		*ndn,
 		int			target
 );
 
 extern int
 meta_dncache_delete_entry(
 		struct metadncache	*cache,
-		const char		*ndn
+		struct berval		*ndn
 );
 
 extern void

@@ -1,7 +1,9 @@
-dn: ou=People, dc=bar, dc=example, dc=com
+dn: ou=People,dc=bar,dc=example,dc=com
 objectClass: top
+objectClass: organizationalUnit
+ou: People
 
-dn: cn=Ando, ou=People, dc=bar, dc=example, dc=com
+dn: cn=Ando,ou=People,dc=bar,dc=example,dc=com
 objectClass: top
 objectClass: person
 cn: Ando

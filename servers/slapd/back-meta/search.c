@@ -84,14 +84,14 @@ meta_send_entry(
 		struct metaconn	*lc,
 		int 		i,
 		LDAPMessage 	*e,
-		struct berval 		**attrs,
+		struct berval 	**attrs,
 		int 		attrsonly
 );
 
 static int
 is_one_level_rdn(
-		const char *rdn,
-		int len
+		const char	*rdn,
+		int		from
 );
 
 int
@@ -99,15 +99,15 @@ meta_back_search(
 		Backend		*be,
 		Connection	*conn,
 		Operation	*op,
-		const char	*base,
-		const char	*nbase,
+		struct berval	*base,
+		struct berval	*nbase,
 		int		scope,
 		int		deref,
 		int		slimit,
 		int		tlimit,
 		Filter		*filter,
 		const char	*filterstr,
-		struct berval		**attrs,
+		struct berval	**attrs,
 		int		attrsonly
 )
 {
@@ -121,7 +121,7 @@ meta_back_search(
 	char *mbase = NULL, *mfilter = NULL, *mmatch = NULL, 
 		*mapped_filter = NULL, **mapped_attrs = NULL;
 		
-	int i, last = 0, candidates = 0, nbaselen, op_type;
+	int i, last = 0, candidates = 0, op_type;
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 
@@ -146,8 +146,6 @@ meta_back_search(
 		return -1;
 	}
 	
-	nbaselen = strlen( nbase );
-
 	/* if not root, get appropriate limits */
 	if ( be_isroot( be, &op->o_ndn ) ) {
 		isroot = 1;
@@ -195,7 +193,7 @@ meta_back_search(
 	 * Inits searches
 	 */
 	for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; ++i, ++lsc ) {
-		char *realbase = ( char * )base;
+		char *realbase = ( char * )base->bv_val;
 		int realscope = scope;
 		int suffixlen;
 		
@@ -219,8 +217,8 @@ meta_back_search(
 		/*
 		 * modifies the base according to the scope, if required
 		 */
-		suffixlen = strlen( li->targets[ i ]->suffix );
-		if ( suffixlen > nbaselen ) {
+		suffixlen = li->targets[ i ]->suffix->bv_len;
+		if ( suffixlen > nbase->bv_len ) {
 			switch ( scope ) {
 			case LDAP_SCOPE_SUBTREE:
 				/*
@@ -229,9 +227,9 @@ meta_back_search(
 				 * illegal bases may be turned into 
 				 * the suffix of the target.
 				 */
-				if ( dn_issuffix( li->targets[ i ]->suffix,
+				if ( dnIsSuffix( li->targets[ i ]->suffix,
 						nbase ) ) {
-					realbase = li->targets[ i ]->suffix;
+					realbase = li->targets[ i ]->suffix->bv_val;
 				} else {
 					/*
 					 * this target is no longer candidate
@@ -242,15 +240,15 @@ meta_back_search(
 				break;
 
 			case LDAP_SCOPE_ONELEVEL:
-				if ( is_one_level_rdn( li->targets[ i ]->suffix,
-						suffixlen-nbaselen-1) 
-			&& dn_issuffix( li->targets[ i ]->suffix, nbase ) ) {
+				if ( is_one_level_rdn( li->targets[ i ]->suffix->bv_val,
+						suffixlen - nbase->bv_len - 1 ) 
+			&& dnIsSuffix( li->targets[ i ]->suffix, nbase ) ) {
 					/*
 					 * if there is exactly one level,
 					 * make the target suffix the new
 					 * base, and make scope "base"
 					 */
-					realbase = li->targets[ i ]->suffix;
+					realbase = li->targets[ i ]->suffix->bv_val;
 					realscope = LDAP_SCOPE_BASE;
 					break;
 				} /* else continue with the next case */
@@ -278,10 +276,10 @@ meta_back_search(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] searchBase: \"%s\" -> \"%s\"\n",
-				base, mbase ));
+				base->bv_val, mbase ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> searchBase: \"%s\" -> \"%s\"\n%s",
-				base, mbase, "" );
+				base->bv_val, mbase, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -352,8 +350,13 @@ meta_back_search(
 		 */
 		mapped_attrs = ldap_back_map_attrs( &li->targets[ i ]->at_map,
 				attrs, 0 );
-		if ( mapped_attrs == NULL ) {
-			mapped_attrs = attrs;
+		if ( mapped_attrs == NULL && attrs) {
+			for ( count = 0; attrs[ count ]; count++ );
+			mapped_attrs = ch_malloc( ( count + 1 ) * sizeof(char *));
+			for ( count = 0; attrs[ count ]; count++ ) {
+				mapped_attrs[ count ] = attrs[ count ]->bv_val;
+			}
+			mapped_attrs[ count ] = NULL;
 		}
 
 		/*
@@ -366,8 +369,8 @@ meta_back_search(
 			continue;
 		}
 
-		if ( mapped_attrs != attrs ) {
-			charray_free( mapped_attrs );
+		if ( mapped_attrs ) {
+			free( mapped_attrs );
 			mapped_attrs = NULL;
 		}
 		if ( mapped_filter != mfilter ) {
@@ -564,24 +567,25 @@ finish:;
 
 static void
 meta_send_entry(
-		Backend *be,
-		Operation *op,
+		Backend 	*be,
+		Operation 	*op,
 		struct metaconn *lc,
-		int target,
-		LDAPMessage *e,
-		struct berval **attrs,
-		int attrsonly
+		int 		target,
+		LDAPMessage 	*e,
+		struct berval 	**attrs,
+		int 		attrsonly
 )
 {
-	struct metainfo *li = ( struct metainfo * )be->be_private;
-	char *a, *mapped;
-	Entry ent;
-	BerElement *ber = NULL;
-	Attribute *attr, **attrp;
-	struct berval *dummy = NULL;
-	struct berval *bv;
-	const char *text;
-	char *dn;
+	struct metainfo 	*li = ( struct metainfo * )be->be_private;
+	char 			*a, *mapped;
+	Entry 			ent;
+	BerElement 		*ber = NULL;
+	Attribute 		*attr, **attrp;
+	struct berval 		*dummy = NULL;
+	struct berval 		*bv;
+	const char 		*text;
+	char 			*dn, *edn = NULL;
+	struct berval		tdn, *pdn = NULL, *ndn = NULL;
 
 	struct metasingleconn *lsc = lc->conns[ target ];
 
@@ -594,19 +598,20 @@ meta_send_entry(
 	 * Rewrite the dn of the result, if needed
 	 */
 	switch ( rewrite_session( li->targets[ target ]->rwinfo,
-				"searchResult", dn, lc->conn, &ent.e_dn ) ) {
+				"searchResult", dn, lc->conn, &edn ) ) {
 	case REWRITE_REGEXEC_OK:
-		if ( ent.e_dn == NULL ) {
-			ent.e_dn = dn;
+		if ( edn == NULL ) {
+			edn = dn;
+
 		} else {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 					"[rw] searchResult[%d]:"
 					" \"%s\" -> \"%s\"\n",
-					target, dn, ent.e_dn ));
+					target, dn, edn ));
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> searchResult[%d]: \"%s\""
- 					" -> \"%s\"\n", target, dn, ent.e_dn );
+ 					" -> \"%s\"\n", target, dn, edn );
 #endif /* !NEW_LOGGING */
 			free( dn );
 			dn = NULL;
@@ -619,15 +624,27 @@ meta_send_entry(
 		return;
 	}
 
-	ent.e_ndn = ch_strdup( ent.e_dn );
-	( void )dn_normalize( ent.e_ndn );
+	tdn.bv_val = edn;
+	tdn.bv_len = strlen( edn );
+	if ( dnPretty( NULL, &tdn, &pdn ) != LDAP_SUCCESS ) {
+
+	}
+
+	if ( dnNormalize( NULL, &tdn, &ndn ) != LDAP_SUCCESS ) {
+
+	}
+
+	ent.e_name = *pdn;
+	free( pdn );
+	ent.e_nname = *ndn;
+	free( ndn );
 
 	/*
 	 * cache dn
 	 */
 	if ( li->cache.ttl != META_DNCACHE_DISABLED ) {
 		( void )meta_dncache_update_entry( &li->cache,
-						   ch_strdup( ent.e_ndn ),
+						   ber_bvdup( &ent.e_nname ),
 						   target );
 	}
 
@@ -779,12 +796,13 @@ meta_send_entry(
 
 static int
 is_one_level_rdn(
-		const char *rdn,
-		int len
+		const char 	*rdn,
+		int 		from
 )
 {
-	for ( ; len--; ) {
-		if ( DN_SEPARATOR( rdn[ len ] ) ) {
+	for ( ; from--; ) {
+		if ( DN_SEPARATOR( rdn[ from ] ) 
+				&& ! DN_ESCAPE( rdn[ from ] - 1 ) ) {
 			return 0;
 		}
 	}

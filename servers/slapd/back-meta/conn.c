@@ -275,26 +275,27 @@ init_one_conn(
 	/*
 	 * If the connection dn is not null, an attempt to rewrite it is made
 	 */
-	if ( conn->c_cdn != NULL && conn->c_cdn[ 0 ] != '\0' ) {
+	if ( conn->c_cdn != 0 ) {
+		char *mdn = NULL;
+		
 		/*
 		 * Rewrite the bind dn if needed
 		 */
 		lsc->bound_dn = NULL;
 		switch ( rewrite_session( lt->rwinfo, "bindDn",
-					conn->c_cdn, conn,
-					&lsc->bound_dn ) ) {
+					conn->c_cdn, conn, &mdn ) ) {
 		case REWRITE_REGEXEC_OK:
-			if ( lsc->bound_dn == NULL ) {
-				lsc->bound_dn = ch_strdup( conn->c_cdn );
+			if ( mdn == NULL ) {
+				lsc->bound_dn = ber_bvstrdup( conn->c_cdn );
 			}
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 					"[rw] bindDn: \"%s\" -> \"%s\"\n",
-					conn->c_cdn, lsc->bound_dn ));
+					conn->c_cdn, lsc->bound_dn->bv_val ));
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
-				       	"rw> bindDn: \"%s\" -> \"%s\"\n%s",
-					conn->c_cdn, lsc->bound_dn, "" );
+				       	"rw> bindDn: \"%s\" -> \"%s\"\n",
+					conn->c_cdn, lsc->bound_dn->bv_val, 0 );
 #endif /* !NEW_LOGGING */
 			break;
 			
@@ -312,8 +313,15 @@ init_one_conn(
 					NULL, NULL );
 			return LDAP_OPERATIONS_ERROR;
 		}
+
+		if ( mdn ) {
+			lsc->bound_dn = ber_bvstr( mdn );
+		} else {
+			lsc->bound_dn = ber_bvstrdup( "" );
+		}
+
 	} else {
-		lsc->bound_dn = NULL;
+		lsc->bound_dn = ber_bvstrdup( "" );
 	}
 
 	lsc->bound = META_UNBOUND;
@@ -340,12 +348,11 @@ init_one_conn(
 struct metaconn *
 meta_back_getconn(
 		struct metainfo *li,
-	       	Connection *conn,
-	       	Operation *op,
-		int op_type,
-		const char *ndn,
-		int *candidate
-		)
+	       	Connection 	*conn,
+	       	Operation 	*op,
+		int 		op_type,
+		struct berval	*ndn,
+		int 		*candidate )
 {
 	struct metaconn *lc, lc_curr;
 	int vers, cached = -1, i = -1, err = LDAP_SUCCESS;
@@ -401,11 +408,12 @@ meta_back_getconn(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 				"meta_back_getconn: got target %d"
-				" for ndn=\"%s\" from cache\n", i, ndn ));
+				" for ndn=\"%s\" from cache\n", 
+				i, ndn->bv_val ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_CACHE,
 	"==>meta_back_getconn: got target %d for ndn=\"%s\" from cache\n%s",
-				i, ndn, "" );
+				i, ndn->bv_val, "" );
 #endif /* !NEW_LOGGING */
 
 		/*
@@ -467,11 +475,9 @@ meta_back_getconn(
 	 * if no unique candidate ...
 	 */
 	} else {
-		int ndnlen = strlen( ndn );	
 		for ( i = 0; i < li->ntargets; i++ ) {
 			if ( i == cached 
-		|| meta_back_is_candidate( li->targets[ i ]->suffix,
-					ndn, ndnlen ) ) {
+		|| meta_back_is_candidate( li->targets[ i ]->suffix, ndn ) ) {
 
 				/*
 				 * The target is activated; if needed, it is

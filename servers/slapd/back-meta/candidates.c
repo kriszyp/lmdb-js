@@ -101,42 +101,13 @@
  */
 int 
 meta_back_is_candidate(
-		const char	*nsuffix,
-		const char	*ndn,
-		int		ndnlen
+		struct berval	*nsuffix,
+		struct berval	*ndn
 )
 {
-	int len = strlen( nsuffix );
-
-	if ( len > ndnlen ) {
+	if ( dnIsSuffix( nsuffix, ndn ) || dnIsSuffix( ndn, nsuffix ) ) {
 		/*
 		 * suffix longer than dn
-		 */
-		if ( ! DN_SEPARATOR( nsuffix[ ( len - ndnlen ) - 1 ] ) ) {
-			/*
-			 * not a separator begins the possible common part
-			 */
-			return META_NOT_CANDIDATE;
-		}
-
-		if ( strcmp( &nsuffix[ len - ndnlen ] , ndn ) == 0 ) {
-			/*
-			 * Got it!
-			 */
-			return META_CANDIDATE;
-		}
-	}
-
-	if ( len < ndnlen && ! DN_SEPARATOR( ndn[ ( ndnlen - len ) - 1 ] ) ) {
-		/*
-		 * not a separator begins the possible common part
-		 */
-		return META_NOT_CANDIDATE;
-	}
-
-	if ( strcmp( nsuffix, &ndn[ ndnlen - len ] ) == 0 ) {
-		/*
-		 * Got it!
 		 */
 		return META_CANDIDATE;
 	}
@@ -154,10 +125,10 @@ meta_back_is_candidate(
 int
 meta_back_count_candidates(
 		struct metainfo		*li,
-		const char		*ndn
+		struct berval		*ndn
 )
 {
-	int i, cnt = 0, ndnlen = strlen( ndn );
+	int i, cnt = 0;
 
 	/*
 	 * I know assertions should not check run-time values;
@@ -168,8 +139,7 @@ meta_back_count_candidates(
 	assert( li->ntargets != 0 );
 
 	for ( i = 0; i < li->ntargets; ++i ) {
-		if ( meta_back_is_candidate( li->targets[ i ]->suffix,
-					ndn, ndnlen ) ) {
+		if ( meta_back_is_candidate( li->targets[ i ]->suffix, ndn ) ) {
 			++cnt;
 		}
 	}
@@ -186,7 +156,7 @@ meta_back_count_candidates(
 int
 meta_back_is_candidate_unique(
 		struct metainfo		*li,
-		const char		*ndn
+		struct berval		*ndn
 )
 {
 	return ( meta_back_count_candidates( li, ndn ) == 1 );
@@ -202,10 +172,10 @@ meta_back_is_candidate_unique(
 int
 meta_back_select_unique_candidate(
 		struct metainfo		*li,
-		const char		*ndn
+		struct berval		*ndn
 )
 {
-	int i, ndnlen;
+	int i;
 	
 	switch ( meta_back_count_candidates( li, ndn ) ) {
 	case 1:
@@ -216,10 +186,8 @@ meta_back_select_unique_candidate(
 			       	? -1 : li->defaulttarget );
 	}
 
-	ndnlen = strlen( ndn );
 	for ( i = 0; i < li->ntargets; ++i ) {
-		if ( meta_back_is_candidate( li->targets[ i ]->suffix,
-					ndn, ndnlen ) ) {
+		if ( meta_back_is_candidate( li->targets[ i ]->suffix, ndn ) ) {
 			return i;
 		}
 	}
@@ -275,7 +243,7 @@ meta_clear_one_candidate(
 	}
 
 	if ( lsc->bound_dn != NULL ) {
-		free( lsc->bound_dn );
+		ber_bvfree( lsc->bound_dn );
 		lsc->bound_dn = NULL;
 	}
 

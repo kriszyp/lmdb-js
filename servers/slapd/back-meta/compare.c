@@ -80,8 +80,8 @@ meta_back_compare(
 		Backend			*be,
 		Connection		*conn,
 		Operation		*op,
-		const char		*dn,
-		const char		*ndn,
+		struct berval		*dn,
+		struct berval		*ndn,
 		AttributeAssertion 	*ava
 )
 {
@@ -120,19 +120,20 @@ meta_back_compare(
 		 * Rewrite the compare dn, if needed
 		 */
 		switch ( rewrite_session( li->targets[ i ]->rwinfo,
-					"compareDn", dn, conn, &mdn ) ) {
+					"compareDn", 
+					dn->bv_val, conn, &mdn ) ) {
 		case REWRITE_REGEXEC_OK:
 			if ( mdn == NULL ) {
-				mdn = ( char * )dn;
+				mdn = ( char * )dn->bv_val;
 			}
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 					"[rw] compareDn: \"%s\" -> \"%s\"\n",
-					dn, mdn ));
+					dn->bv_val, mdn ));
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
 				     	"rw> compareDn: \"%s\" -> \"%s\"\n%s",
-					dn, mdn, "" );
+					dn->bv_val, mdn, "" );
 #endif /* !NEW_LOGGING */
 			break;
 		
@@ -185,7 +186,7 @@ meta_back_compare(
 			continue;
 		}
 
-		if ( mdn != dn ) {
+		if ( mdn != dn->bv_val ) {
 			free( mdn );
 		}
 		if ( mapped_attr != ava->aa_desc->ad_cname.bv_val ) {
@@ -243,7 +244,7 @@ meta_back_compare(
 					 * sending to cache ...
 					 */
 					if ( li->cache.ttl != META_DNCACHE_DISABLED ) {
-						( void )meta_dncache_update_entry( &li->cache, ch_strdup( ndn ), i );
+						( void )meta_dncache_update_entry( &li->cache, ber_bvdup( ndn ), i );
 					}
 
 					count++;

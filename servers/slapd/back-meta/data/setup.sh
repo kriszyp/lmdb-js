@@ -27,7 +27,7 @@ ln -s "$SRCDIR/libraries/liblunicode" ucdata
 for i in 1 2 3 ; do
 	echo "Feeding directory $i"
 	mkdir -p "$METADBDIR/$i"
-	$SLAPADD -f $ADDCONF -n $i -l meta-$i.ldif
+	$SLAPADD -f $ADDCONF -n `expr $i + 1` -l meta-$i.ldif
 done
 
 echo ""

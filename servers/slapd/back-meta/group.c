@@ -86,8 +86,8 @@ meta_back_group(
 		Connection 		*conn,
 		Operation 		*op,
 		Entry			*target,
-		const char		*gr_ndn,
-		const char		*op_ndn,
+		struct berval		*gr_ndn,
+		struct berval		*op_ndn,
 		ObjectClass		*group_oc,
 		AttributeDescription	*group_at
 )
@@ -95,8 +95,6 @@ meta_back_group(
 	struct metainfo *li = ( struct metainfo * )be->be_private;    
 	int rc = 1, candidate;
 	Attribute   *attr;
-	struct berval bv;
-
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 	LDAPMessage	*result;
 	char *gattr[ 2 ];
@@ -113,7 +111,7 @@ meta_back_group(
 		group_oc_name = group_oc->soc_oid;
 	}
 
-	if ( target != NULL && strcmp( target->e_ndn, gr_ndn ) == 0 ) {
+	if ( target != NULL && strcmp( target->e_nname.bv_val, gr_ndn->bv_val ) == 0 ) {
 		/* we already have a copy of the entry */
 		/* attribute and objectclass mapping has already been done */
 
@@ -142,9 +140,8 @@ meta_back_group(
 			 */
 			attr = attr_find( target->e_attrs, group_at );
 			if ( attr != NULL ) {
-				bv.bv_val = ( char * )op_ndn;
-				bv.bv_len = strlen( op_ndn );         
-				rc = value_find( group_at, attr->a_vals, &bv );
+				rc = value_find( group_at, attr->a_vals, 
+						op_ndn );
 				if ( rc != LDAP_SUCCESS ) {
 					return 1;
 				}
@@ -162,21 +159,21 @@ meta_back_group(
 	 * Rewrite the op ndn if needed
 	 */
 	switch ( rewrite_session( li->targets[ candidate ]->rwinfo, "bindDn",
-				op_ndn, conn, &mop_ndn ) ) {
+				op_ndn->bv_val, conn, &mop_ndn ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mop_ndn == NULL ) {
-			mop_ndn = ( char * )op_ndn;
+			mop_ndn = ( char * )op_ndn->bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] bindDn (op ndn in group):"
 				 \"%s\" -> \"%s\"\n",
-				 op_ndn, mop_ndn ));
+				 op_ndn->bv_val, mop_ndn));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 				"rw> bindDn (op ndn in group):"
 				" \"%s\" -> \"%s\"\n%s",
-				op_ndn, mop_ndn, "" );
+				op_ndn->bv_val, mop_ndn, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -192,21 +189,21 @@ meta_back_group(
 	 */
 	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
 				"searchBase",
-				gr_ndn, conn, &mgr_ndn ) ) {
+				gr_ndn->bv_val, conn, &mgr_ndn ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mgr_ndn == NULL ) {
-			mgr_ndn = ( char * )gr_ndn;
+			mgr_ndn = ( char * )gr_ndn->bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] searchBase (gr ndn in group):"
 				" \"%s\" -> \"%s\"\n",
-				gr_ndn, mgr_ndn ));
+				gr_ndn->bv_val, mgr_ndn ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 				"rw> searchBase (gr ndn in group):"
 				" \"%s\" -> \"%s\"\n%s",
-				gr_ndn, mgr_ndn, "" );
+				gr_ndn->bv_val, mgr_ndn, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -241,8 +238,9 @@ meta_back_group(
 		goto cleanup;
 	}
 
-	rc = ldap_bind_s( ld, li->targets[ candidate ]->binddn,
-			li->targets[ candidate ]->bindpw, LDAP_AUTH_SIMPLE );
+	rc = ldap_bind_s( ld, li->targets[ candidate ]->binddn->bv_val,
+			li->targets[ candidate ]->bindpw->bv_val, 
+			LDAP_AUTH_SIMPLE );
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -274,10 +272,10 @@ cleanup:;
 	if ( filter != NULL ) {
 		ch_free( filter );
 	}
-	if ( mop_ndn != op_ndn ) {
+	if ( mop_ndn != op_ndn->bv_val ) {
 		free( mop_ndn );
 	}
-	if ( mgr_ndn != gr_ndn ) {
+	if ( mgr_ndn != gr_ndn->bv_val ) {
 		free( mgr_ndn );
 	}
 

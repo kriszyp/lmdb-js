@@ -165,7 +165,7 @@ conn_free(
 			ldap_unbind( lsc[ 0 ]->ld );
 		}
 		if ( lsc[ 0 ]->bound_dn ) {
-			free( lsc[ 0 ]->bound_dn );
+			ber_bvfree( lsc[ 0 ]->bound_dn );
 		}
 		free( lsc[ 0 ] );
 	}
@@ -181,11 +181,23 @@ target_free(
 	if ( lt->uri ) {
 		free( lt->uri );
 	}
+	if ( lt->psuffix ) {
+		ber_bvfree( lt->psuffix );
+	}
+	if ( lt->suffix ) {
+		ber_bvfree( lt->suffix );
+	}
 	if ( lt->binddn ) {
-		free( lt->binddn );
+		ber_bvfree( lt->binddn );
 	}
 	if ( lt->bindpw ) {
-		free( lt->bindpw );
+		ber_bvfree( lt->bindpw );
+	}
+	if ( lt->pseudorootdn ) {
+		ber_bvfree( lt->pseudorootdn );
+	}
+	if ( lt->pseudorootpw ) {
+		ber_bvfree( lt->pseudorootpw );
 	}
 	if ( lt->rwinfo ) {
 		rewrite_info_delete( lt->rwinfo );

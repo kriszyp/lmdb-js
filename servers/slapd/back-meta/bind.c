@@ -96,9 +96,9 @@ meta_back_bind(
 	int op_type = META_OP_ALLOW_MULTIPLE;
 	int err = LDAP_SUCCESS;
 
-	char *realdn = (char *)dn->bv_val;
-	char *realndn = (char *)ndn->bv_val;
-	char *realcred = cred->bv_val;
+	struct berval *realdn = dn;
+	struct berval *realndn = ndn;
+	struct berval *realcred = cred;
 	int realmethod = method;
 
 #ifdef NEW_LOGGING
@@ -114,7 +114,7 @@ meta_back_bind(
 		ber_dupbv( edn, be_root_dn( be ) );
 		op_type = META_OP_REQUIRE_ALL;
 	}
-	lc = meta_back_getconn( li, conn, op, op_type, ndn->bv_val, NULL );
+	lc = meta_back_getconn( li, conn, op, op_type, ndn, NULL );
 	if ( !lc ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_NOTICE,
@@ -214,9 +214,9 @@ int
 meta_back_do_single_bind(
 		struct metainfo		*li,
 		struct metaconn		*lc,
-		const char		*dn,
-		const char		*ndn,
-		const char		*cred,
+		struct berval		*dn,
+		struct berval		*ndn,
+		struct berval		*cred,
 		int			method,
 		int			candidate
 )
@@ -228,18 +228,18 @@ meta_back_do_single_bind(
 	 * Rewrite the bind dn if needed
 	 */
 	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
-				"bindDn", dn, lc->conn, &mdn ) ) {
+				"bindDn", dn->bv_val, lc->conn, &mdn ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mdn == NULL ) {
-			mdn = ( char * )dn;
+			mdn = ( char * )dn->bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] bindDn: \"%s\" -> \"%s\"\n", dn, mdn ));
+				"[rw] bindDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 				"rw> bindDn: \"%s\" -> \"%s\"\n%s",
-				dn, mdn, "" );
+				dn->bv_val, mdn, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -250,22 +250,22 @@ meta_back_do_single_bind(
 		return LDAP_OPERATIONS_ERROR;
 	}
 
-	rc = ldap_bind_s( lc->conns[ candidate ]->ld, mdn, cred, method );
+	rc = ldap_bind_s( lc->conns[ candidate ]->ld, mdn, cred->bv_val, method );
 	if ( rc != LDAP_SUCCESS ) {
 		rc = ldap_back_map_result( rc );
 	} else {
-		lc->conns[ candidate ]->bound_dn = ch_strdup( dn );
+		lc->conns[ candidate ]->bound_dn = ber_bvdup( dn );
 		lc->conns[ candidate ]->bound = META_BOUND;
 		lc->bound_target = candidate;
 
 		if ( li->cache.ttl != META_DNCACHE_DISABLED
-				&& ndn[ 0 ] != '\0' ) {
+				&& ndn->bv_len != 0 ) {
 			( void )meta_dncache_update_entry( &li->cache,
-					ch_strdup( ndn ), candidate );
+					ber_bvdup( ndn ), candidate );
 		}
 	}
 	
-	if ( mdn != dn ) {
+	if ( mdn != dn->bv_val ) {
 		free( mdn );
 	}
 
@@ -311,7 +311,7 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 		 * (note: if the target was already bound, the anonymous
 		 * bind clears the previous bind).
 		 */
-		rc = ldap_bind_s( lsc[ 0 ]->ld, lsc[ 0 ]->bound_dn,
+		rc = ldap_bind_s( lsc[ 0 ]->ld, lsc[ 0 ]->bound_dn->bv_val,
 				NULL, LDAP_AUTH_SIMPLE );
 		if ( rc != LDAP_SUCCESS ) {
 			
@@ -320,14 +320,14 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 					"meta_back_dobind: (anonymous)"
 					" bind as \"%s\" failed"
 					" with error \"%s\"\n",
-					lsc[ 0 ]->bound_dn,
+					lsc[ 0 ]->bound_dn->bv_val,
 					ldap_err2string( rc ) ));
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ANY,
 					"==>meta_back_dobind: (anonymous)"
 					" bind as \"%s\" failed"
 					" with error \"%s\"\n%s",
-					lsc[ 0 ]->bound_dn,
+					lsc[ 0 ]->bound_dn->bv_val,
 					ldap_err2string( rc ), "" );
 #endif /* !NEW_LOGGING */
 
@@ -347,6 +347,32 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 	}
 
 	return( bound > 0 );
+}
+
+/*
+ *
+ */
+int
+meta_back_is_valid( struct metaconn *lc, int candidate )
+{
+	struct metasingleconn 	**lsc;
+	int			i;
+
+	assert( lc );
+
+	if ( candidate < 0 ) {
+		return 0;
+	}
+
+	for ( i = 0, lsc = lc->conns; 
+			lsc[ 0 ] != NULL && i < candidate; 
+			++i, ++lsc );
+	
+	if ( lsc[ 0 ] ) {
+		return( lsc[ 0 ]->ld != NULL );
+	}
+
+	return 0;
 }
 
 /*

@@ -80,11 +80,13 @@ meta_back_modrdn(
 		Backend		*be,
 		Connection	*conn,
 		Operation	*op,
-		const char	*dn,
-		const char	*ndn,
-		const char	*newrdn,
+		struct berval	*dn,
+		struct berval	*ndn,
+		struct berval	*newrdn,
+		struct berval	*nnewrdn,
 		int		deleteoldrdn,
-		const char	*newSuperior
+		struct berval	*newSuperior,
+		struct berval	*nnewSuperior
 )
 {
 	struct metainfo *li = ( struct metainfo * )be->be_private;
@@ -95,7 +97,9 @@ meta_back_modrdn(
 
 	lc = meta_back_getconn( li, conn, op, META_OP_REQUIRE_SINGLE,
 			ndn, &candidate );
-	if ( !lc || !meta_back_dobind( lc, op ) ) {
+	if ( !lc || !meta_back_dobind( lc, op ) || !meta_back_is_valid( lc, candidate ) ) {
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+				NULL, NULL, NULL, NULL );
 		return -1;
 	}
 
@@ -131,7 +135,9 @@ meta_back_modrdn(
 	 	 */
 		switch ( rewrite_session( li->targets[ nsCandidate ]->rwinfo,
 					"newSuperiorDn",
-					newSuperior, conn, &mnewSuperior ) ) {
+					newSuperior->bv_val, 
+					conn, 
+					&mnewSuperior ) ) {
 		case REWRITE_REGEXEC_OK:
 			if ( mnewSuperior == NULL ) {
 				mnewSuperior = ( char * )newSuperior;
@@ -144,7 +150,7 @@ meta_back_modrdn(
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> newSuperiorDn:"
 					" \"%s\" -> \"%s\"\n%s",
-					newSuperior, mnewSuperior, "" );
+					newSuperior->bv_val, mnewSuperior, "" );
 #endif /* !NEW_LOGGING */
 			break;
 
@@ -164,18 +170,18 @@ meta_back_modrdn(
 	 * Rewrite the modrdn dn, if required
 	 */
 	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
-				"modrDn", dn, conn, &mdn ) ) {
+				"modrDn", dn->bv_val, conn, &mdn ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mdn == NULL ) {
-			mdn = ( char * )dn;
+			mdn = ( char * )dn->bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] modrDn: \"%s\" -> \"%s\"\n",
-				dn, mdn ));
+				dn->bv_val, mdn ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> modrDn: \"%s\" -> \"%s\"\n%s",
-				dn, mdn, "" );
+				dn->bv_val, mdn, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -190,13 +196,13 @@ meta_back_modrdn(
 		return -1;
 	}
 
-	ldap_rename2_s( lc->conns[ candidate ]->ld, mdn, newrdn,
+	ldap_rename2_s( lc->conns[ candidate ]->ld, mdn, newrdn->bv_val,
 			mnewSuperior, deleteoldrdn );
 
-	if ( mdn != dn ) {
+	if ( mdn != dn->bv_val ) {
 		free( mdn );
 	}
-	if ( mnewSuperior != NULL && mnewSuperior != newSuperior ) {
+	if ( mnewSuperior != NULL && mnewSuperior != newSuperior->bv_val ) {
 		free( mnewSuperior );
 	}
 	

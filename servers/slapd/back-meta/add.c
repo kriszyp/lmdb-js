@@ -102,8 +102,10 @@ meta_back_add(
 	 * get the current connection
 	 */
 	lc = meta_back_getconn( li, conn, op, META_OP_REQUIRE_SINGLE,
-			e->e_ndn, &candidate );
-	if ( !lc || !meta_back_dobind( lc, op ) ) {
+			&e->e_nname, &candidate );
+	if ( !lc || !meta_back_dobind( lc, op ) || !meta_back_is_valid( lc, candidate ) ) {
+ 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+ 				NULL, NULL, NULL, NULL );
 		return -1;
 	}
 

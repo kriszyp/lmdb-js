@@ -80,8 +80,8 @@ meta_back_modify(
 		Backend	*be,
 		Connection	*conn,
 		Operation	*op,
-		const char	*dn,
-		const char	*ndn,
+		struct berval	*dn,
+		struct berval	*ndn,
 		Modifications	*modlist
 )
 {
@@ -95,7 +95,9 @@ meta_back_modify(
 
 	lc = meta_back_getconn( li, conn, op, META_OP_REQUIRE_SINGLE,
 			ndn, &candidate );
-	if ( !lc || !meta_back_dobind( lc, op ) ) {
+	if ( !lc || !meta_back_dobind( lc, op ) || !meta_back_is_valid( lc, candidate ) ) {
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+				NULL, NULL, NULL, NULL );
 		return -1;
 	}
 
@@ -103,18 +105,18 @@ meta_back_modify(
 	 * Rewrite the modify dn, if needed
 	 */
 	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
-				"modifyDn", dn, conn, &mdn ) ) {
+				"modifyDn", dn->bv_val, conn, &mdn ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mdn == NULL ) {
-			mdn = ( char * )dn;
+			mdn = ( char * )dn->bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] modifyDn: \"%s\" -> \"%s\"\n",
-				dn, mdn ));
+				dn->bv_val, mdn ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> modifyDn: \"%s\" -> \"%s\"\n%s",
-				dn, mdn, "" );
+				dn->bv_val, mdn, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -134,7 +136,7 @@ meta_back_modify(
 
 	mods = ch_malloc( sizeof( LDAPMod )*i );
 	if ( mods == NULL ) {
-		if ( mdn != dn ) {
+		if ( mdn != dn->bv_val ) {
 			free( mdn );
 		}
 		return -1;
@@ -142,7 +144,7 @@ meta_back_modify(
 	modv = ( LDAPMod ** )ch_malloc( ( i + 1 )*sizeof( LDAPMod * ) );
 	if ( modv == NULL ) {
 		free( mods );
-		if ( mdn != dn ) {
+		if ( mdn != dn->bv_val ) {
 			free( mdn );
 		}
 		return -1;
@@ -194,7 +196,7 @@ meta_back_modify(
 
 	ldap_modify_s( lc->conns[ candidate ]->ld, mdn, modv );
 
-	if ( mdn != dn ) {
+	if ( mdn != dn->bv_val ) {
 		free( mdn );
 	}
 	free( mods );

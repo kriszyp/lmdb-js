@@ -80,8 +80,8 @@ meta_back_delete(
 		Backend		*be,
 		Connection	*conn,
 		Operation	*op,
-		const char	*dn,
-		const char	*ndn
+		struct berval	*dn,
+		struct berval	*ndn
 )
 {
 	struct metainfo *li = ( struct metainfo * )be->be_private;
@@ -92,7 +92,9 @@ meta_back_delete(
 
 	lc = meta_back_getconn( li, conn, op, META_OP_REQUIRE_SINGLE,
 			ndn, &candidate );
-	if ( !lc || !meta_back_dobind( lc, op ) ) {
+	if ( !lc || !meta_back_dobind( lc, op ) || !meta_back_is_valid( lc, candidate ) ) {
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+				NULL, NULL, NULL, NULL );
 		return -1;
 	}
 
@@ -100,18 +102,18 @@ meta_back_delete(
 	 * Rewrite the compare dn, if needed
 	 */
 	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
-				"deleteDn", dn, conn, &mdn ) ) {
+				"deleteDn", dn->bv_val, conn, &mdn ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mdn == NULL ) {
-			mdn = ( char * )dn;
+			mdn = ( char * )dn->bv_val;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] deleteDn: \"%s\" -> \"%s\"\n",
-				dn, mdn ));
+				dn->bv_val, mdn ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> deleteDn: \"%s\" -> \"%s\"\n%s",
-				dn, mdn, "" );
+				dn->bv_val, mdn, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -128,7 +130,7 @@ meta_back_delete(
 	
 	ldap_delete_s( lc->conns[ candidate ]->ld, mdn );
 
-	if ( mdn != dn ) {
+	if ( mdn != dn->bv_val ) {
 		free( mdn );
 	}
 	
