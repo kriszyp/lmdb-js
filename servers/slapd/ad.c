@@ -275,17 +275,48 @@ int ad_inlist(
 {
 	int i;
 	for( i=0; attrs[i] != NULL; i++ ) {
+		ObjectClass *oc;
 		AttributeDescription *ad = NULL;
 		const char *text;
 		int rc;
 		
 		rc = slap_str2ad( attrs[i], &ad, &text );
+		if( rc == LDAP_SUCCESS ) {
+			rc = is_ad_subtype( desc, ad );
+			if( rc ) return 1;
+			continue;
+		}
 
-		if( rc != LDAP_SUCCESS ) continue;
+		/*
+		 * EXTENSION: see if requested description is an object class
+		 * if so, return attributes which the class requires/allows
+		 */
+		oc = oc_find( attrs[i] );
+		if( oc != NULL ) {
+			if ( oc == slap_schema.si_oc_extensibleObject ) {
+				/* extensibleObject allows the return of anything */
+				return 1;
+			}
 
-		rc = is_ad_subtype( desc, ad );
-
-		if( rc ) return 1;
+			if( oc->soc_required ) {
+				/* allow return of required attributes */
+				int i;
+   				for ( i = 0; oc->soc_required[i] != NULL; i++ ) {
+					rc = is_at_subtype( desc->ad_type,
+						oc->soc_allowed[i] );
+					if( rc ) return 1;
+				}
+			}
+			if( oc->soc_allowed ) {
+				/* allow return of allowed attributes */
+				int i;
+   				for ( i = 0; oc->soc_allowed[i] != NULL; i++ ) {
+					rc = is_at_subtype( desc->ad_type,
+						oc->soc_allowed[i] );
+					if( rc ) return 1;
+				}
+			}
+		}
 	}
 
 	return 0;
