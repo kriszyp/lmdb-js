@@ -4,15 +4,16 @@
 ##
 ## tests Makefile.in for OpenLDAP
 
-UNIX_PRGS = slapd-tester slapd-search slapd-read slapd-addel
-PROGRAMS = $(@PLAT@_PRGS)
+PROGRAMS = slapd-tester slapd-search slapd-read slapd-addel
 
 SRCS     = slapd-tester.c slapd-search.c slapd-read.c slapd-addel.c
 
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
-XLIBS    = $(LDAP_LIBLDAP_LA) $(LDAP_LIBLBER_LA)
+NT_XLIBS = $(LDAP_LIBLUTIL_A)
+
+XLIBS    = $(LDAP_LIBLDAP_LA) $(LDAP_LIBLBER_LA) $(@PLAT@_XLIBS)
 XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
 
 # build-tools: FORCE

@@ -41,6 +41,14 @@ static void	wait4kids( int nkidval );
 static int      maxkids = 20;
 static int      nkids;
 
+#ifdef HAVE_WINSOCK
+static HANDLE	*children;
+static char argbuf[BUFSIZ];
+#define	ArgDup(x) strdup(strcat(strcat(strcpy(argbuf,"\""),x),"\""))
+#else
+#define	ArgDup(x) strdup(x)
+#endif
+
 static void
 usage( char *name )
 {
@@ -91,15 +99,15 @@ main( int argc, char **argv )
 				break;
 
 			case 'D':		/* slapd manager */
-				manager = strdup( optarg );
+				manager = ArgDup( optarg );
 			break;
 
 			case 'w':		/* the managers passwd */
-				passwd = strdup( optarg );
+				passwd = ArgDup( optarg );
 				break;
 
 			case 'b':		/* the base DN */
-				sbase = strdup( optarg );
+				sbase = ArgDup( optarg );
 				break;
 
 			case 'd':		/* data directory */
@@ -128,6 +136,9 @@ main( int argc, char **argv )
 			( manager == NULL ) || ( passwd == NULL ) || ( progdir == NULL ))
 		usage( argv[0] );
 
+#ifdef HAVE_WINSOCK
+	children = malloc( maxkids * sizeof(HANDLE) );
+#endif
 	/* get the file list */
 	if ( ( datadir = opendir( dirname )) == NULL ) {
 
@@ -227,21 +238,21 @@ main( int argc, char **argv )
 		if ( j < snum ) {
 
 			sargs[sanum - 2] = sreqs[j];
-			fork_child( scmd, sargs );
+			fork_child( scmd, &sargs[0] );
 
 		}
 
 		if ( j < rnum ) {
 
 			rargs[ranum - 2] = rreqs[j];
-			fork_child( rcmd, rargs );
+			fork_child( rcmd, &rargs[0] );
 
 		}
 
 		if ( j < anum ) {
 
 			aargs[aanum - 2] = afiles[j];
-			fork_child( acmd, aargs );
+			fork_child( acmd, &aargs[0] );
 
 		}
 
@@ -276,7 +287,7 @@ get_search_filters( char *filename, char *filters[] )
 
 			if (( nl = strchr( line, '\r' )) || ( nl = strchr( line, '\n' )))
 				*nl = '\0';
-			filters[filter++] = strdup( line );
+			filters[filter++] = ArgDup( line );
 
 		}
 		fclose( fp );
@@ -300,7 +311,7 @@ get_read_entries( char *filename, char *entries[] )
 
 			if (( nl = strchr( line, '\r' )) || ( nl = strchr( line, '\n' )))
 				*nl = '\0';
-			entries[entry++] = strdup( line );
+			entries[entry++] = ArgDup( line );
 
 		}
 		fclose( fp );
@@ -309,7 +320,7 @@ get_read_entries( char *filename, char *entries[] )
 	return( entry );
 }
 
-
+#ifndef HAVE_WINSOCK
 static void
 fork_child( char *prog, char *args[] )
 {
@@ -372,3 +383,35 @@ wait4kids( int nkidval )
 		}
 	}
 }
+#else
+
+static void
+wait4kids( int nkidval )
+{
+	int rc, i;
+
+	while ( nkids >= nkidval ) {
+		rc = WaitForMultipleObjects( nkids, children, FALSE, INFINITE );
+		for ( i=rc - WAIT_OBJECT_0; i<nkids-1; i++)
+			children[i] = children[i+1];
+		nkids--;
+	}
+}
+
+static void
+fork_child( char *prog, char *args[] )
+{
+	int rc;
+
+	wait4kids( maxkids );
+
+	rc = _spawnvp( _P_NOWAIT, prog, args );
+
+	if ( rc == -1 ) {
+		fprintf( stderr, "%s: ", prog );
+		perror("spawnvp");
+	} else {
+		children[nkids++] = (HANDLE)rc;
+	}
+}
+#endif
