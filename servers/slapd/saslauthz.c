@@ -368,21 +368,27 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 		group_dn.bv_val++;
 		group_dn.bv_len = uri->bv_len - ( group_dn.bv_val - uri->bv_val );
 
-		fstr->bv_len = STRLENOF( "(&(objectClass=)(=" ) + group_oc.bv_len + member_at.bv_len;
-		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
-
-		tmp = lutil_strncopy( fstr->bv_val, "(&(objectClass=", STRLENOF( "(&(objectClass=" ) );
-		tmp = lutil_strncopy( tmp, group_oc.bv_val, group_oc.bv_len );
-		tmp = lutil_strncopy( tmp, ")(", STRLENOF( ")(" ) );
-		tmp = lutil_strncopy( tmp, member_at.bv_val, member_at.bv_len );
-		tmp = lutil_strncopy( tmp, "=", STRLENOF( "=" ) );
-
 		rc = dnNormalize( 0, NULL, NULL, &group_dn, nbase, op->o_tmpmemctx );
 		if ( rc != LDAP_SUCCESS ) {
 			*scope = -1;
-		} else {
-			*scope = LDAP_X_SCOPE_GROUP;
+			return rc;
 		}
+		*scope = LDAP_X_SCOPE_GROUP;
+
+		/* FIXME: caller needs to add value of member attribute
+		 * and close brackets twice */
+		fstr->bv_len = STRLENOF( "(&(objectClass=)(=" /* )) */ )
+			+ group_oc.bv_len + member_at.bv_len;
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+
+		tmp = lutil_strncopy( fstr->bv_val, "(&(objectClass=" /* )) */ ,
+				STRLENOF( "(&(objectClass=" /* )) */ ) );
+		tmp = lutil_strncopy( tmp, group_oc.bv_val, group_oc.bv_len );
+		tmp = lutil_strncopy( tmp, /* ( */ ")(" /* ) */ ,
+				STRLENOF( /* ( */ ")(" /* ) */ ) );
+		tmp = lutil_strncopy( tmp, member_at.bv_val, member_at.bv_len );
+		tmp = lutil_strncopy( tmp, "=", STRLENOF( "=" ) );
+
 		return rc;
 	}
 
@@ -675,7 +681,7 @@ static void slap_sasl_rx_exp(
    LDAP URI to find the matching LDAP entry, using the pattern matching
    strings given in the saslregexp config file directive(s) */
 
-static int slap_sasl_regexp( struct berval *in, struct berval *out,
+static int slap_authz_regexp( struct berval *in, struct berval *out,
 		int flags, void *ctx )
 {
 #ifdef SLAP_AUTH_REWRITE
@@ -725,9 +731,9 @@ static int slap_sasl_regexp( struct berval *in, struct berval *out,
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
-		"slap_sasl_regexp: converting SASL name %s\n", saslname, 0, 0 );
+		"slap_authz_regexp: converting SASL name %s\n", saslname, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "slap_sasl_regexp: converting SASL name %s\n",
+	Debug( LDAP_DEBUG_TRACE, "slap_authz_regexp: converting SASL name %s\n",
 	   saslname, 0, 0 );
 #endif
 
@@ -754,11 +760,11 @@ static int slap_sasl_regexp( struct berval *in, struct berval *out,
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
-		"slap_sasl_regexp: converted SASL name to %s\n",
+		"slap_authz_regexp: converted SASL name to %s\n",
 		BER_BVISEMPTY( out ) ? "" : out->bv_val, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
-		"slap_sasl_regexp: converted SASL name to %s\n",
+		"slap_authz_regexp: converted SASL name to %s\n",
 		BER_BVISEMPTY( out ) ? "" : out->bv_val, 0, 0 );
 #endif
 
@@ -950,7 +956,7 @@ exact_match:
 		 * with scope "base", and the filter ensures that <assertDN> is
 		 * member of the group */
 		tmp = ch_realloc( op.ors_filterstr.bv_val,
-				op.ors_filterstr.bv_len + assertDN->bv_len + STRLENOF( "))" ) + 1 );
+				op.ors_filterstr.bv_len + assertDN->bv_len + STRLENOF( /* (( */ "))" ) + 1 );
 		if ( tmp == NULL ) {
 			rc = LDAP_NO_MEMORY;
 			goto CONCLUDED;
@@ -958,7 +964,7 @@ exact_match:
 		op.ors_filterstr.bv_val = tmp;
 		
 		tmp = lutil_strcopy( &tmp[ op.ors_filterstr.bv_len ], assertDN->bv_val );
-		tmp = lutil_strcopy( tmp, "))" );
+		tmp = lutil_strcopy( tmp, /* (( */ "))" );
 
 		/* pass opx because str2filter_x may (and does) use o_tmpmfuncs */
 		op.ors_filter = str2filter_x( opx, op.ors_filterstr.bv_val );
@@ -1139,7 +1145,7 @@ void slap_sasl2dn( Operation *opx,
 	cb.sc_private = sasldn;
 
 	/* Convert the SASL name into a minimal URI */
-	if( !slap_sasl_regexp( saslname, &regout, flags, opx->o_tmpmemctx ) ) {
+	if( !slap_authz_regexp( saslname, &regout, flags, opx->o_tmpmemctx ) ) {
 		goto FINISHED;
 	}
 
