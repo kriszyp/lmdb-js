@@ -150,7 +150,7 @@ LDAP_SLAPD_F (int) attr_merge_one LDAP_P(( Entry *e,
 	struct berval *nval ));
 #else
 #define attr_mergeit( e, d, v ) attr_merge( e, d, v )
-#define attr_mergeit_one( e, d, v ) attr_merge( e, d, v )
+#define attr_mergeit_one( e, d, v ) attr_merge_one( e, d, v )
 LDAP_SLAPD_F (int) attr_merge LDAP_P(( Entry *e,
 	AttributeDescription *desc,
 	BerVarray vals ));
