@@ -10,7 +10,13 @@ BUILD_LDBM=@BUILD_LDBM@
 BUILD_MONITOR=@BUILD_MONITOR@
 
 test: tests
-tests: bdb hdb ldbm
+tests: int-bdb
+
+int-bdb: test-bdb
+	@$(MAKE) int-hdb
+int-hdb: test-hdb
+	@$(MAKE) int-ldbm
+int-ldbm: test-ldbm
 
 bdb: test-bdb
 test-bdb:	FORCE
