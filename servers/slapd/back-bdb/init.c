@@ -23,6 +23,7 @@
 
 #include "back-bdb.h"
 #include <lutil.h>
+#include <ldap_rq.h>
 
 static const struct bdbi_database {
 	char *file;
@@ -123,6 +124,17 @@ bdb_bt_compare(
 	}
 
 	return 0;
+}
+
+static void *
+bdb_checkpoint( void *ctx, void *arg )
+{
+	struct re_s *rtask = arg;
+	struct bdb_info *bdb = rtask->arg;
+	
+	TXN_CHECKPOINT( bdb->bi_dbenv, bdb->bi_txn_cp_kbyte,
+		bdb->bi_txn_cp_min, 0 );
+	return NULL;
 }
 
 static int
@@ -377,6 +389,17 @@ bdb_db_open( BackendDB *be )
 	}
 
 	XLOCK_ID(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
+
+	/* If we're in server mode and time-based checkpointing is enabled,
+	 * submit a task to perform periodic checkpoints.
+	 */
+	if ( slapMode & SLAP_SERVER_MODE && bdb->bi_txn_cp &&
+		bdb->bi_txn_cp_min )  {
+		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+		ldap_pvt_runqueue_insert( &slapd_rq, bdb->bi_txn_cp_min*60,
+			bdb_checkpoint, bdb );
+		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+	}
 
 	/* <insert> open (and create) index databases */
 	return 0;
