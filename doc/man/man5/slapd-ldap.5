@@ -83,9 +83,9 @@ This requires the entry with
 identity on the remote server to have
 .B proxyAuthz
 privileges on a wide set of DNs, e.g.
-.BR saslAuthzTo=dn.regex:.* ,
+.BR authzTo=dn.regex:.* ,
 and the remote server to have
-.B sasl-authz-policy
+.B authz-policy
 set to 
 .B to
 or 
@@ -96,7 +96,7 @@ for details on these statements and for remarks and drawbacks about
 their usage.
 .TP
 .B proxyauthzpw <password>
-Password used with the proxy authz DN above.
+Password used with the proxy authzDN above.
 .TP
 .B proxy-whoami
 Turns on proxying of the WhoAmI extended operation. If this option is

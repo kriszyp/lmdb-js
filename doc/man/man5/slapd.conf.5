@@ -149,6 +149,197 @@ attribute syntax OID.
 description.) 
 .RE
 .TP
+.B authz-policy <policy>
+Used to specify which rules to use for Proxy Authorization.  Proxy
+authorization allows a client to authenticate to the server using one
+user's credentials, but specify a different identity to use for authorization
+and access control purposes. It essentially allows user A to login as user
+B, using user A's password.
+The
+.B none
+flag disables proxy authorization. This is the default setting.
+The
+.B from
+flag will use rules in the
+.I authzFrom
+attribute of the authorization DN.
+The
+.B to
+flag will use rules in the
+.I authzTo
+attribute of the authentication DN.
+The
+.B any
+flag, an alias for the deprecated value of
+.BR both ,
+will allow any of the above, whatever succeeds first (checked in
+.BR to ,
+.B from
+sequence.
+The
+.B all
+flag requires both authorizations to succeed.
+The rules are simply regular expressions specifying which DNs are allowed 
+to perform proxy authorization.
+The
+.I authzFrom
+attribute in an entry specifies which other users
+are allowed to proxy login to this entry. The
+.I authzTo
+attribute in
+an entry specifies which other users this user can authorize as.  Use of
+.I authzTo
+rules can be easily
+abused if users are allowed to write arbitrary values to this attribute.
+In general the
+.I authzTo
+attribute must be protected with ACLs such that
+only privileged users can modify it.
+The value of
+.I authzFrom
+and
+.I authzTo
+describes an 
+.B identity 
+or a set of identities; it can take three forms:
+.RS
+.RS
+.TP
+.B ldap:///<base>??[<scope>]?<filter>
+.RE
+.RS
+.B dn[.<dnstyle>]:<pattern>
+.RE
+.RS
+.B u[<mech>[<realm>]]:<pattern>
+.RE
+.RS
+.B <pattern>
+.RE
+.RS
+
+.B <dnstyle>:={exact|onelevel|children|subtree|regex}
+
+.RE
+The first form is a valid LDAP
+.B URI
+where the 
+.IR <host>:<port> ,
+the
+.I <attrs>
+and the
+.I <extensions>
+portions must be absent, so that the search occurs locally on either
+.I authzFrom
+or 
+.IR authzTo .
+The second form is a 
+.BR DN ,
+with the optional style modifiers
+.IR exact ,
+.IR onelevel ,
+.IR children ,
+and
+.I subtree
+for exact, onelevel, children and subtree matches, which cause 
+.I <pattern>
+to be normalized according to the DN normalization rules, or the special
+.I regex
+style, which causes
+.I <pattern>
+to be compiled according to 
+.BR regex (7).
+The third form is a SASL
+.BR id ,
+with the optional fields
+.I <mech>
+and
+.I <realm>
+that allow to specify a SASL
+.BR mechanism ,
+and eventually a SASL
+.BR realm ,
+for those mechanisms that support one.
+The need to allow the specification of a mechanism is still debated, 
+and users are strongly discouraged to rely on this possibility.
+For backwards compatibility, if no identity type is provided, i.e. only
+.B <pattern>
+is present, an
+.I exact DN
+is assumed; as a consequence, 
+.B <pattern>
+is subjected to DN normalization.
+Since the interpretation of
+.I authzFrom
+and
+.I authzTo
+can impact security, users are strongly encouraged 
+to explicitly set the type of identity specification that is being used.
+.RE
+.TP
+.B authz-regexp <match> <replace>
+Used by the authentication framework to convert simple user names,
+such as provided by SASL subsystem, to an LDAP DN used for
+authorization purposes.  Note that the resultant DN need not refer
+to an existing entry to be considered valid.  When an authorization
+request is received from the SASL subsystem, the SASL 
+.BR USERNAME ,
+.BR REALM , 
+and
+.B MECHANISM
+are taken, when available, and combined into a name of the form
+.RS
+.RS
+.TP
+.B UID=<username>[[,CN=<realm>],CN=<mechanism>,]CN=auth
+
+.RE
+This name is then compared against the
+.B match
+regular expression, and if the match is successful, the name is
+replaced with the
+.B replace
+string.  If there are wildcard strings in the 
+.B match
+regular expression that are enclosed in parenthesis, e.g. 
+.RS
+.TP
+.B UID=([^,]*),CN=.*
+
+.RE
+then the portion of the name that matched the wildcard will be stored
+in the numbered placeholder variable $1. If there are other wildcard strings
+in parenthesis, the matching strings will be in $2, $3, etc. up to $9. The 
+placeholders can then be used in the 
+.B replace
+string, e.g. 
+.RS
+.TP
+.B UID=$1,OU=Accounts,DC=example,DC=com 
+
+.RE
+The replaced name can be either a DN or an LDAP URI. If the
+latter, the server will use the URI to search its own database(s)
+and, if the search returns exactly one entry, the name is
+replaced by the DN of that entry.   The LDAP URI must have no
+hostport, attrs, or extensions components, e.g.
+.RS
+.TP
+.B ldap:///OU=Accounts,DC=example,DC=com??one?(UID=$1)
+
+.RE
+Multiple 
+.B authz-regexp 
+options can be given in the configuration file to allow for multiple matching 
+and replacement patterns. The matching patterns are checked in the order they 
+appear in the file, stopping at the first successful match.
+
+.\".B Caution:
+.\"Because the plus sign + is a character recognized by the regular expression engine,
+.\"and it will appear in names that include a REALM, be careful to escape the
+.\"plus sign with a backslash \\+ to remove the character's special meaning.
+.RE
+.TP
 .B concurrency <integer>
 Specify a desired level of concurrency.  Provided to the underlying
 thread system as a hint.  The default is not to provide any hint.
@@ -491,201 +682,11 @@ Specify the name of an LDIF(5) file containing user defined attributes
 for the root DSE.  These attributes are returned in addition to the
 attributes normally produced by slapd.
 .TP
-.B sasl-authz-policy <policy>
-Used to specify which rules to use for SASL Proxy Authorization. Proxy
-authorization allows a client to authenticate to the server using one
-user's credentials, but specify a different identity to use for authorization
-and access control purposes. It essentially allows user A to login as user
-B, using user A's password.
-The
-.B none
-flag disables proxy authorization. This is the default setting.
-The
-.B from
-flag will use rules in the
-.I saslAuthzFrom
-attribute of the authorization DN.
-The
-.B to
-flag will use rules in the
-.I saslAuthzTo
-attribute of the authentication DN.
-The
-.B any
-flag, an alias for the deprecated value of
-.BR both ,
-will allow any of the above, whatever succeeds first (checked in
-.BR to ,
-.B from
-sequence.
-The
-.B all
-flag requires both authorizations to succeed.
-The rules are simply regular expressions specifying which DNs are allowed 
-to perform proxy authorization.
-The
-.I saslAuthzFrom
-attribute in an entry specifies which other users
-are allowed to proxy login to this entry. The
-.I saslAuthzTo
-attribute in
-an entry specifies which other users this user can authorize as.  Use of
-.I saslAuthzTo
-rules can be easily
-abused if users are allowed to write arbitrary values to this attribute.
-In general the
-.I saslAuthzTo
-attribute must be protected with ACLs such that
-only privileged users can modify it.
-The value of
-.I saslAuthzFrom
-and
-.I saslAuthzTo
-describes an 
-.B identity 
-or a set of identities; it can take three forms:
-.RS
-.RS
-.TP
-.B ldap:///<base>??[<scope>]?<filter>
-.RE
-.RS
-.B dn[.<dnstyle>]:<pattern>
-.RE
-.RS
-.B u[<mech>[<realm>]]:<pattern>
-.RE
-.RS
-.B <pattern>
-.RE
-.RS
-
-.B <dnstyle>:={exact|onelevel|children|subtree|regex}
-
-.RE
-The first form is a valid LDAP
-.B uri
-where the 
-.IR <host>:<port> ,
-the
-.I <attrs>
-and the
-.I <extensions>
-portions must be absent, so that the search occurs locally on either
-.I saslAuthzFrom
-or 
-.IR saslAuthzTo .
-The second form is a 
-.BR DN ,
-with the optional style modifiers
-.IR exact ,
-.IR onelevel ,
-.IR children ,
-and
-.I subtree
-for exact, onelevel, children and subtree matches, which cause 
-.I <pattern>
-to be normalized according to the DN normalization rules, or the special
-.I regex
-style, which causes
-.I <pattern>
-to be compiled according to 
-.BR regex (7).
-The third form is a SASL
-.BR id ,
-with the optional fields
-.I <mech>
-and
-.I <realm>
-that allow to specify a SASL
-.BR mechanism ,
-and eventually a SASL
-.BR realm ,
-for those mechanisms that support one.
-The need to allow the specification of a mechanism is still debated, 
-and users are strongly discouraged to rely on this possibility.
-For backwards compatibility, if no identity type is provided, i.e. only
-.B <pattern>
-is present, an
-.I exact DN
-is assumed; as a consequence, 
-.B <pattern>
-is subjected to DN normalization.
-Since the interpretation of
-.I saslAuthzFrom
-and
-.I saslAuthzTo
-can impact security, users are strongly encouraged 
-to explicitly set the type of identity specification that is being used.
-.RE
-.TP
 .B sasl-host <fqdn>
 Used to specify the fully qualified domain name used for SASL processing.
 .TP
 .B sasl-realm <realm>
 Specify SASL realm.  Default is empty.
-.TP
-.B sasl-regexp <match> <replace>
-Used by the SASL mechanism to convert a SASL authenticated 
-username to an LDAP DN used for authorization purposes.  Note that
-the resultant DN need not refer to an existing entry to be considered
-valid.  When an authorization request is received, the SASL 
-.B USERNAME, REALM, 
-and
-.B MECHANISM
-are taken, when available, and combined into a SASL name of the 
-form
-.RS
-.RS
-.TP
-.B UID=<username>[[,CN=<realm>],CN=<mechanism>,]CN=auth
-
-.RE
-This SASL name is then compared against the
-.B match
-regular expression, and if the match is successful, the SASL name is
-replaced with the
-.B replace
-string. If there are wildcard strings in the 
-.B match
-regular expression that are enclosed in parenthesis, e.g. 
-.RS
-.TP
-.B UID=([^,]*),CN=.*
-
-.RE
-then the portion of the SASL name that matched the wildcard will be stored
-in the numbered placeholder variable $1. If there are other wildcard strings
-in parenthesis, the matching strings will be in $2, $3, etc. up to $9. The 
-placeholders can then be used in the 
-.B replace
-string, e.g. 
-.RS
-.TP
-.B UID=$1,OU=Accounts,DC=example,DC=com 
-
-.RE
-The replaced SASL name can be either a DN or an LDAP URI. If the
-latter, the server will use the URI to search its own database(s)
-and, if the search returns exactly one entry, the SASL name is
-replaced by the DN of that entry.   The LDAP URI must have no
-hostport, attrs, or extensions components, e.g.
-.RS
-.TP
-.B ldap:///OU=Accounts,DC=example,DC=com??one?(UID=$1)
-
-.RE
-Multiple 
-.B sasl-regexp 
-options can be given in the configuration file to allow for multiple matching 
-and replacement patterns. The matching patterns are checked in the order they 
-appear in the file, stopping at the first successful match.
-
-.\".B Caution:
-.\"Because the plus sign + is a character recognized by the regular expression engine,
-.\"and it will appear in SASL names that include a REALM, be careful to escape the
-.\"plus sign with a backslash \\+ to remove the character's special meaning.
-.RE
 .TP
 .B sasl-secprops <properties>
 Used to specify Cyrus SASL security properties.
