@@ -3,7 +3,8 @@ OpenLDAP Change Log
 Changes included in OpenLDAP 1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2
 	Add ldappasswd() tool
-	Add client/tools password prompting
+	Add salted MD5/SHA1 password support
+	Add client/tools password prompting (-W)
 	Fix lber leaking ber_scanf
 	Update client/tools Kerberos option handling
 
