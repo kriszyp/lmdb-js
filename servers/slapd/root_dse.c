@@ -32,7 +32,8 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 
 	e->e_attrs = NULL;
 	e->e_dn = ch_strdup( LDAP_ROOT_DSE );
-	e->e_ndn = dn_normalize_case( ch_strdup( LDAP_ROOT_DSE ));
+	e->e_ndn = ch_strdup( LDAP_ROOT_DSE );
+	(void) dn_normalize_case( e->e_ndn );
 	e->e_private = NULL;
 
 	for ( i = 0; i < nbackends; i++ ) {

@@ -77,6 +77,24 @@ do_modrdn(
 		return -1;
 	}
 
+	if( dn_normalize_case( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid dn (%s)\n", ndn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		free( ndn );
+		free( newrdn );
+		return rc;
+	}
+
+	if( !rdn_validate( newrdn ) ) {
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid rdn (%s)\n", newrdn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid RDN", NULL, NULL );
+		free( ndn );
+		free( newrdn );
+		return rc;
+	}
+
 	/* Check for newSuperior parameter, if present scan it */
 
 	if ( ber_peek_tag( op->o_ber, &length ) == LDAP_TAG_NEWSUPERIOR ) {
@@ -110,7 +128,18 @@ do_modrdn(
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
 		    return -1;
+		}
 
+		nnewSuperior = ch_strdup( newSuperior );
+
+		if( dn_normalize_case( nnewSuperior ) == NULL ) {
+			Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid new superior (%s)\n",
+				newSuperior, 0, 0 );
+			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+				"invalid (new superior) DN", NULL, NULL );
+			free( ndn );
+			free( newrdn );
+			return rc;
 		}
 
 	}
@@ -124,6 +153,7 @@ do_modrdn(
 		free( ndn );
 		free( newrdn );	
 		free( newSuperior );
+		free( nnewSuperior );
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
@@ -137,37 +167,6 @@ do_modrdn(
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: get_ctrls failed\n", 0, 0, 0 );
 		return rc;
 	} 
-
-	if( newSuperior != NULL ) {
-		/* GET BACKEND FOR NEW SUPERIOR */
-
-		nnewSuperior = strdup( newSuperior );
-		dn_normalize_case( nnewSuperior );
-
-		if ( (newSuperior_be = select_backend( nnewSuperior )) 
-		     == NULL ) {
-		    
-			/* We do not have a backend for newSuperior so we send
-			 * a referral.
-			 * XXX: We may need to do something else here, not sure
-			 * what though.
-			 */
-
-			Debug( LDAP_DEBUG_ARGS,
-			       "do_modrdn: cant find backend for=(%s)\n",
-			       newSuperior, 0, 0 );
-			
-			free( ndn );
-			free( newrdn );
-			free( newSuperior );
-			free( nnewSuperior );
-			send_ldap_result( conn, op, LDAP_REFERRAL,
-				NULL, NULL, default_referral, NULL );
-			return 0;
-		}
-	}
-
-	dn_normalize_case( ndn );
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d MODRDN dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, ndn, 0, 0 );
@@ -188,25 +187,27 @@ do_modrdn(
 		return rc;
 	}
 
+
 	/* Make sure that the entry being changed and the newSuperior are in 
 	 * the same backend, otherwise we return an error.
 	 */
+	if( newSuperior != NULL ) {
+		newSuperior_be = select_backend( nnewSuperior );
 
-	if ( (newSuperior_be != NULL) && ( be != newSuperior_be) ) {
+		if ( newSuperior != be ) {
+			/* newSuperior is in same backend */
+			rc = LDAP_AFFECTS_MULTIPLE_DSAS;
 
-		Debug( LDAP_DEBUG_ANY, "dn=(%s), newSuperior=(%s)\n", ndn,
-		       newSuperior, 0 );
-		
-		free( ndn );
-		free( newrdn );
-		free( newSuperior );
-		free( nnewSuperior );
-		
-		send_ldap_result( conn, op, rc = LDAP_AFFECTS_MULTIPLE_DSAS,
-			NULL, NULL, NULL, NULL );
-	    
-		return rc;
+			send_ldap_result( conn, op, rc,
+				NULL, NULL, NULL, NULL );
 
+			free( ndn );
+			free( newrdn );
+			free( newSuperior );
+			free( nnewSuperior );
+
+			return rc;
+		}
 	}
 
 	/*

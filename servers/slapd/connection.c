@@ -1022,7 +1022,8 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	arg->co_op->o_bind_in_progress = conn->c_bind_in_progress;
 
 	arg->co_op->o_dn = ch_strdup( tmpdn != NULL ? tmpdn : "" );
-	arg->co_op->o_ndn = dn_normalize_case( ch_strdup( arg->co_op->o_dn ) );
+	arg->co_op->o_ndn = ch_strdup( arg->co_op->o_dn );
+	(void) dn_normalize_case( arg->co_op->o_ndn );
 
 	arg->co_op->o_protocol = conn->c_protocol;
 	arg->co_op->o_connid = conn->c_connid;

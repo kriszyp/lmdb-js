@@ -110,7 +110,8 @@ str2entry( char	*s )
 				    e->e_id, e->e_ndn, value );
 				free( e->e_ndn );
 			}
-			e->e_ndn = dn_normalize_case( ch_strdup( value ) );
+			e->e_ndn = ch_strdup( value );
+			(void) dn_normalize_case( e->e_ndn );
 			continue;
 		}
 

@@ -170,7 +170,8 @@ bdb2i_back_modrdn_internal(
 		       "ldbm_back_modrdn: new parent requested...\n",
 		       0, 0, 0 );
 
-		np_ndn = dn_normalize_case( ch_strdup( np_dn ) );
+		np_ndn = ch_strdup( np_dn );
+		(void) dn_normalize_case( np_ndn );
 
 		/* newSuperior == oldParent?, if so ==> ERROR */
 
@@ -218,7 +219,8 @@ bdb2i_back_modrdn_internal(
 	build_new_dn( &new_dn, e->e_dn, new_parent_dn, newrdn ); 
 
 
-	new_ndn = dn_normalize_case( ch_strdup( new_dn ) );
+	new_ndn = ch_strdup( new_dn );
+	(void) dn_normalize_case( new_ndn );
 
 	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: new ndn=%s\n",
 	       new_ndn, 0, 0 );
@@ -321,7 +323,9 @@ bdb2i_back_modrdn_internal(
 	    
 	}		
 
+#ifdef DNS_DN
 	if ( dn_type( old_rdn ) == DN_X500 ) {
+#endif
 
 		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DN_X500\n",
 		       0, 0, 0 );
@@ -383,6 +387,7 @@ bdb2i_back_modrdn_internal(
 		
 		}/* if (deleteoldrdn) */
 
+#ifdef DNS_DN
 	} else {
 	    
 
@@ -394,6 +399,7 @@ bdb2i_back_modrdn_internal(
 		       0, 0, 0 );  
 
 	}
+#endif
 
 	/* modify memory copy of entry */
 	if ( bdb2i_back_modify_internal( be, conn, op, dn, &mod[0], e )

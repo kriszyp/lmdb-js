@@ -105,7 +105,12 @@ do_search(
 		goto return_results;
 	}
 
-	(void) dn_normalize_case( base );
+	if( dn_normalize_case( base ) == NULL ) {
+		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX,
+			NULL, "invalid DN", NULL, NULL );
+		rc = -1;
+		goto return_results;
+	}
 
 	Debug( LDAP_DEBUG_ARGS, "SRCH \"%s\" %d %d", base, scope, deref );
 	Debug( LDAP_DEBUG_ARGS, "    %d %d %d\n", sizelimit, timelimit,

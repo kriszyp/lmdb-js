@@ -11,17 +11,18 @@
 
 #include "slap.h"
 
-#define B4TYPE		0
-#define INTYPE		1
-#define B4EQUAL		2
-#define B4VALUE		3
-#define INVALUE		4
-#define INQUOTEDVALUE	5
-#define B4SEPARATOR	6
+#define B4LEADTYPE		0
+#define B4TYPE			1
+#define INTYPE			2
+#define B4EQUAL			3
+#define B4VALUE			4
+#define INVALUE			5
+#define INQUOTEDVALUE	6
+#define B4SEPARATOR		7
 
 /*
  * dn_normalize - put dn into a canonical format.  the dn is
- * normalized in place, as well as returned.
+ * normalized in place, as well as returned if valid.
  */
 
 char *
@@ -30,12 +31,11 @@ dn_normalize( char *dn )
 	char	*d, *s;
 	int	state, gotesc;
 
-	/* Debug( LDAP_DEBUG_TRACE, "=> dn_normalize \"%s\"\n", dn, 0, 0 ); */
-
 	gotesc = 0;
-	state = B4TYPE;
+	state = B4LEADTYPE;
 	for ( d = s = dn; *s; s++ ) {
 		switch ( state ) {
+		case B4LEADTYPE:
 		case B4TYPE:
 			if ( ! SPACE( *s ) ) {
 				state = INTYPE;
@@ -59,6 +59,7 @@ dn_normalize( char *dn )
 			} else if ( ! SPACE( *s ) ) {
 				/* not a valid dn - but what can we do here? */
 				*d++ = *s;
+				dn = NULL;
 			}
 			break;
 		case B4VALUE:
@@ -106,6 +107,7 @@ dn_normalize( char *dn )
 			}
 			break;
 		default:
+			dn = NULL;
 			Debug( LDAP_DEBUG_ANY,
 			    "dn_normalize - unknown state %d\n", state, 0, 0 );
 			break;
@@ -118,24 +120,40 @@ dn_normalize( char *dn )
 	}
 	*d = '\0';
 
-	/* Debug( LDAP_DEBUG_TRACE, "<= dn_normalize \"%s\"\n", dn, 0, 0 ); */
+	if( gotesc ) {
+		/* shouldn't be left in escape */
+		dn = NULL;
+	}
+
+	/* check end state */
+	switch( state ) {
+	case B4LEADTYPE:	/* looking for first type */
+	case B4SEPARATOR:	/* looking for separator */
+	case INVALUE:		/* inside value */
+		break;
+	default:
+		dn = NULL;
+	}
+
 	return( dn );
 }
 
 /*
  * dn_normalize_case - put dn into a canonical form suitable for storing
  * in a hash database.  this involves normalizing the case as well as
- * the format.  the dn is normalized in place as well as returned.
+ * the format.  the dn is normalized in place as well as returned if valid.
  */
 
 char *
 dn_normalize_case( char *dn )
 {
+	str2upper( dn );
+
 	/* normalize format */
-	dn_normalize( dn );
+	dn = dn_normalize( dn );
 
 	/* and upper case it */
-	return( str2upper( dn ) );
+	return( dn );
 }
 
 /*
@@ -239,6 +257,7 @@ char * dn_rdn(
 
 	dn = ch_strdup( dn );
 
+#ifdef DNS_DN
 	/*
 	 * no =, assume it is a dns name, like blah@some.domain.name
 	 * if the blah@ part is there, return some.domain.name.  if
@@ -253,6 +272,7 @@ char * dn_rdn(
 		*s = '\0';
 		return( dn );
 	}
+#endif
 
 	/*
 	 * else assume it is an X.500-style name, which looks like
@@ -312,6 +332,7 @@ dn_issuffix(
 	return( strcmp( dn + dnlen - suffixlen, suffix ) == 0 );
 }
 
+#ifdef DNS_DN
 /*
  * dn_type - tells whether the given dn is an X.500 thing or DNS thing
  * returns (defined in slap.h):	DN_DNS          dns-style thing
@@ -323,6 +344,7 @@ dn_type( char *dn )
 {
 	return( strchr( dn, '=' ) == NULL ? DN_DNS : DN_X500 );
 }
+#endif
 
 char *
 str2upper( char *str )
@@ -386,7 +408,7 @@ get_next_substring( char * s, char d )
 	    
 		s++;
 	    
-	}/* while ( *s && SPACE(*s) ) */
+	}
 	
 	/* Copy word */
 
@@ -398,13 +420,13 @@ get_next_substring( char * s, char d )
 
 		*str++ = *s++;
 	    
-	}/* while ( *s && (*s != d) ) */
+	}
 	
 	*str = '\0';
 	
 	return r;
 	
-}/* char * get_word() */
+}
 
 
 /* rdn_attr_type:
@@ -421,7 +443,7 @@ char * rdn_attr_type( char * s )
 
 	return get_next_substring( s, '=' );
 
-}/* char * rdn_attr_type() */
+}
 
 
 /* rdn_attr_value:
@@ -443,11 +465,18 @@ rdn_attr_value( char * rdn )
 
 		return get_next_substring(++str, '\0');
 
-	}/* if ( (str = strpbrk( rdn, "=" )) != NULL ) */
+	}
 
 	return NULL;
 
-}/* char * rdn_attr_value() */
+}
+
+
+int rdn_validate( const char * rdn )
+{
+	/* just a simple check for now */
+	return strchr( rdn, '=' ) != NULL;
+}
 
 
 /* build_new_dn:
@@ -471,12 +500,15 @@ build_new_dn( char ** new_dn, char *e_dn, char * p_dn, char * newrdn )
     
     *new_dn = (char *) ch_malloc( strlen( p_dn ) + strlen( newrdn ) + 3 );
 
+#ifdef DNS_DN
     if ( dn_type( e_dn ) == DN_X500 ) {
+#endif
 
 	strcpy( *new_dn, newrdn );
 	strcat( *new_dn, "," );
 	strcat( *new_dn, p_dn );
 
+#ifdef DNS_DN
     } else {
 
 	char	*s;
@@ -494,12 +526,13 @@ build_new_dn( char ** new_dn, char *e_dn, char * p_dn, char * newrdn )
 		sep[1] = '\0';
 		strcat( *new_dn, sep );
 
-	    }/* if ( (s = strpbrk( dn, ".@" )) != NULL ) */
+	    }
 
-	}/* if ( *s != '.' && *s != '@' ) */
+	}
 
 	strcat( *new_dn, p_dn );
 
-    }/* if ( dn_type( e_dn ) == DN_X500 ) {}else */
+    }
+#endif
     
-}/* void build_new_dn() */
+}

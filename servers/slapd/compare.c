@@ -59,6 +59,15 @@ do_compare(
 		return -1;
 	}
 
+	if( dn_normalize_case( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_compare: invalid dn (%s)\n", ndn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		free( ndn );
+		ava_free( &ava, 0 );
+		return rc;
+	}
+
 	if( ( rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		free( ndn );
 		ava_free( &ava, 0 );
@@ -70,8 +79,6 @@ do_compare(
 
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
 	    ndn, ava.ava_type, ava.ava_value.bv_val );
-
-	ndn = dn_normalize_case( ndn );
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d CMP dn=\"%s\" attr=\"%s\"\n",
 	    op->o_connid, op->o_opid, ndn, ava.ava_type, 0 );

@@ -36,7 +36,7 @@ do_bind(
 	ber_int_t		version;
 	ber_tag_t method;
 	char		*mech;
-	char		*cdn, *ndn;
+	char		*dn, *ndn;
 	ber_tag_t	tag;
 	int			rc = LDAP_SUCCESS;
 	struct berval	cred;
@@ -44,7 +44,7 @@ do_bind(
 
 	Debug( LDAP_DEBUG_TRACE, "do_bind\n", 0, 0, 0 );
 
-	cdn = NULL;
+	dn = NULL;
 	ndn = NULL;
 	mech = NULL;
 	cred.bv_val = NULL;
@@ -98,13 +98,22 @@ do_bind(
 	 *	}
 	 */
 
-	tag = ber_scanf( ber, "{iat" /*}*/, &version, &cdn, &method );
+	tag = ber_scanf( ber, "{iat" /*}*/, &version, &dn, &method );
 
 	if ( tag == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "bind: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
 		rc = -1;
+		goto cleanup;
+	}
+
+	ndn = ch_strdup( dn );
+
+	if ( dn_normalize_case( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "bind: invalid dn (%s)\n", dn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
 		goto cleanup;
 	}
 
@@ -145,13 +154,11 @@ do_bind(
 
 	if( method == LDAP_AUTH_SASL ) {
 		Debug( LDAP_DEBUG_TRACE, "do_sasl_bind: dn (%s) mech %s\n",
-			cdn, mech, NULL );
+			dn, mech, NULL );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "do_bind: version %d dn (%s) method %d\n",
-			version, cdn, method );
+			version, dn, method );
 	}
-
-	ndn = dn_normalize_case( ch_strdup( cdn ) );
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d BIND dn=\"%s\" method=%d\n",
 	    op->o_connid, op->o_opid, ndn, method, 0 );
@@ -277,8 +284,8 @@ do_bind(
 		if ( (*be->be_bind)( be, conn, op, ndn, method, mech, &cred, &edn ) == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
-			conn->c_cdn = cdn;
-			cdn = NULL;
+			conn->c_cdn = dn;
+			dn = NULL;
 
 			if(edn != NULL) {
 				conn->c_dn = edn;
@@ -306,8 +313,8 @@ do_bind(
 	}
 
 cleanup:
-	if( cdn != NULL ) {
-		free( cdn );
+	if( dn != NULL ) {
+		free( dn );
 	}
 	if( ndn != NULL ) {
 		free( ndn );

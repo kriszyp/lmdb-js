@@ -360,7 +360,10 @@ acl_access_allowed(
 			 */
 			/* see if asker is listed in dnattr */
 			string_expand(buf, sizeof(buf), b->a_group_pat, edn, matches);
-			(void) dn_normalize_case(buf);
+			if ( dn_normalize_case(buf) == NULL ) {
+				/* did not expand to a valid dn */
+				continue;
+			}
 
 			if (backend_group(be, e, buf, op->o_ndn,
 				b->a_group_oc, b->a_group_at) != 0)

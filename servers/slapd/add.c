@@ -26,7 +26,7 @@ int
 do_add( Connection *conn, Operation *op )
 {
 	BerElement	*ber = op->o_ber;
-	char		*dn, *last;
+	char		*dn, *ndn, *last;
 	ber_len_t	len;
 	ber_tag_t	tag;
 	Entry		*e;
@@ -62,10 +62,21 @@ do_add( Connection *conn, Operation *op )
 		return -1;
 	}
 
+	ndn = ch_strdup( dn );
+
+	if ( dn_normalize_case( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn, 0, 0 );
+		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		free( dn );
+		free( ndn );
+		return LDAP_INVALID_DN_SYNTAX;
+	}
+
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 
 	e->e_dn = dn;
-	e->e_ndn = dn_normalize_case( ch_strdup( dn ) );
+	e->e_ndn = ndn;
 	e->e_private = NULL;
 
 	dn = NULL;

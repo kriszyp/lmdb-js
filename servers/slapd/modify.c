@@ -70,7 +70,7 @@ do_modify(
 	 */
 
 	if ( ber_scanf( op->o_ber, "{a" /*}*/, &ndn ) == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "do_modify: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
 		return -1;
@@ -78,7 +78,13 @@ do_modify(
 
 	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", ndn, 0, 0 );
 
-	(void) dn_normalize_case( ndn );
+	if(	dn_normalize_case( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_modify: invalid dn (%s)\n", ndn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		free( ndn );
+		return rc;
+	}
 
 	/* collect modifications & save for later */
 	modlist = NULL;

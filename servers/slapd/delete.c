@@ -52,6 +52,14 @@ do_delete(
 		return -1;
 	}
 
+	if(	dn_normalize_case( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_delete: invalid dn (%s)\n", ndn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		free( ndn );
+		return rc;
+	}
+
 	if( ( rc = get_ctrls( conn, op, 1 ) ) != LDAP_SUCCESS ) {
 		free( ndn );
 		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
@@ -59,9 +67,6 @@ do_delete(
 	} 
 
 	Debug( LDAP_DEBUG_ARGS, "do_delete: dn (%s)\n", ndn, 0, 0 );
-
-	dn_normalize_case( ndn );
-
 	Debug( LDAP_DEBUG_STATS, "DEL dn=\"%s\"\n", ndn, 0, 0 );
 
 	/*
@@ -70,9 +75,9 @@ do_delete(
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( ndn )) == NULL ) {
-		free( ndn );
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
+		free( ndn );
 		return rc;
 	}
 

@@ -358,7 +358,8 @@ bdb2i_cache_find_entry_dn2id(
 	int		count = 0;
 
 	e.e_dn = dn;
-	e.e_ndn = dn_normalize_case( ch_strdup( dn ) );
+	e.e_ndn = ch_strdup( dn )
+	(void) dn_normalize_case( e.e_ndn );
 
 try_again:
 	/* set cache mutex */

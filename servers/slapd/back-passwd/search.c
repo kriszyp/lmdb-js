@@ -238,7 +238,8 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 	/* rdn attribute type should be a configuratable item */
 	sprintf( buf, "uid=%s,%s", pw->pw_name, be->be_suffix[0] );
 	e->e_dn = ch_strdup( buf );
-	e->e_ndn = dn_normalize_case( ch_strdup( buf ) );
+	e->e_ndn = ch_strdup( buf );
+	(void) dn_normalize_case( e->e_ndn );
 
 	val.bv_val = pw->pw_name;
 	val.bv_len = strlen( pw->pw_name );

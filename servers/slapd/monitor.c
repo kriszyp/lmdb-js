@@ -46,7 +46,8 @@ monitor_info( Connection *conn, Operation *op )
 	/* initialize reader/writer lock */
 	e->e_attrs = NULL;
 	e->e_dn = ch_strdup( SLAPD_MONITOR_DN );
-	e->e_ndn = dn_normalize_case( ch_strdup(SLAPD_MONITOR_DN) );
+	e->e_ndn = ch_strdup(SLAPD_MONITOR_DN);
+	(void) dn_normalize_case( e->e_ndn );
 	e->e_private = NULL;
 
 	val.bv_val = (char *) Versionstr;

@@ -36,7 +36,7 @@ bdb2i_dn2id_add(
 	}
 
 	dn = ch_strdup( dn );
-	dn_normalize_case( dn );
+	(void) dn_normalize_case( dn );
 
 	key.dptr = dn;
 	key.dsize = strlen( dn ) + 1;
@@ -71,7 +71,7 @@ bdb2i_dn2id(
 
 	dn = ch_strdup( dn );
 	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_dn2id( \"%s\" )\n", dn, 0, 0 );
-	dn_normalize_case( dn );
+	(void) dn_normalize_case( dn );
 
 	/* first check the cache */
 	if ( (id = bdb2i_cache_find_entry_dn2id( be, &li->li_cache, dn )) != NOID ) {
@@ -133,7 +133,7 @@ bdb2i_dn2id_delete(
 	}
 
 	dn = ch_strdup( dn );
-	dn_normalize_case( dn );
+	(void) dn_normalize_case( dn );
 	key.dptr = dn;
 	key.dsize = strlen( dn ) + 1;
 

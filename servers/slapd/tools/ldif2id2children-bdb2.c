@@ -177,7 +177,8 @@ main( int argc, char **argv )
 					fprintf( stderr, "entry %ld has no dn\n",
 					    id );
 				} else {
-					key.dptr = dn_normalize_case( val );
+					(void) dn_normalize_case( val );
+					key.dptr = val;
 					key.dsize = strlen( val ) + 1;
 					data.dptr = (char *) &id;
 					data.dsize = sizeof(ID);
@@ -262,15 +263,15 @@ main( int argc, char **argv )
 					    == NULL ) {
 						pid = 0;
 					} else {
-						key.dptr =
-						    dn_normalize_case( dn );
+						(void) dn_normalize_case( dn );
+						key.dptr = dn;
 						key.dsize = strlen( dn ) + 1;
 
 						data = ldbm_fetch( db->dbc_db,
 						    key );
 						free( dn );
 						if ( data.dptr == NULL ) {
-							dn_normalize_case( val );
+							(void) dn_normalize_case( val );
 							if ( ! be_issuffix( be,
 							    val ) ) {
 	Debug( LDAP_DEBUG_PARSE, "no parent \"%s\" of \"%s\"\n", dn, val, 0 );

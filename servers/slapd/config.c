@@ -264,7 +264,16 @@ read_config( char *fname )
 				    fname, lineno, 0 );
 			} else {
 				be->be_root_dn = ch_strdup( cargv[1] );
-				be->be_root_ndn = dn_normalize_case( ch_strdup( cargv[1] ) );
+				be->be_root_ndn = ch_strdup( cargv[1] );
+
+				if( dn_normalize_case( be->be_root_ndn ) == NULL ) {
+					free( be->be_root_dn );
+					free( be->be_root_ndn );
+					Debug( LDAP_DEBUG_ANY,
+"%s: line %d: rootdn DN is invalid\n",
+					   fname, lineno, 0 );
+					return( 1 );
+				}
 			}
 
 		/* set super-secret magic database password */
@@ -465,7 +474,12 @@ read_config( char *fname )
 				    fname, lineno, 0 );
 			} else {
 				be->be_update_ndn = ch_strdup( cargv[1] );
-				(void) dn_normalize_case( be->be_update_ndn );
+				if( dn_normalize_case( be->be_update_ndn ) == NULL ) {
+					Debug( LDAP_DEBUG_ANY,
+"%s: line %d: updatedn DN is invalid\n",
+					    fname, lineno, 0 );
+					return 1;
+				}
 			}
 
 		} else if ( strcasecmp( cargv[0], "updateref" ) == 0 ) {
