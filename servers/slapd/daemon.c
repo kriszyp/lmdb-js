@@ -36,20 +36,6 @@ int deny_severity = LOG_NOTICE;
 time_t starttime;
 ber_socket_t dtblsize;
 
-typedef struct slap_listener {
-	char* sl_url;
-	char* sl_name;
-#ifdef HAVE_TLS
-	int		sl_is_tls;
-#endif
-#ifdef LDAP_CONNECTIONLESS
-	int	sl_is_udp;		/* UDP listener is also data port */
-#endif
-	ber_socket_t		sl_sd;
-	Sockaddr sl_sa;
-#define sl_addr	sl_sa.sa_in_addr
-} Listener;
-
 Listener **slap_listeners = NULL;
 
 #define SLAPD_LISTEN 10

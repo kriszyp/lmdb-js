@@ -1063,7 +1063,8 @@ LDAP_SLAPD_F (int) do_unbind LDAP_P((Connection *conn, Operation *op));
 LDAP_SLAPD_F (int) do_extended LDAP_P((Connection *conn, Operation *op));
 
 
-LDAP_SLAPD_V (ber_socket_t) dtblsize;
+LDAP_SLAPD_V (ber_socket_t)	dtblsize;
+LDAP_SLAPD_V (Listener **)	slap_listeners;
 
 LDAP_END_DECL
 

@@ -1491,6 +1491,23 @@ typedef struct sasl_regexp {
 #define FLAG_GETDN_AUTHCID 2
 #define FLAG_GETDN_AUTHZID 4
 
+/*
+ * listener; need to access it from monitor backend
+ */
+typedef struct slap_listener {
+	char* sl_url;
+	char* sl_name;
+#ifdef HAVE_TLS
+	int		sl_is_tls;
+#endif
+#ifdef LDAP_CONNECTIONLESS
+	int	sl_is_udp;		/* UDP listener is also data port */
+#endif
+	ber_socket_t		sl_sd;
+	Sockaddr sl_sa;
+#define sl_addr	sl_sa.sa_in_addr
+} Listener;
+
 LDAP_END_DECL
 
 #include "proto-slap.h"
