@@ -159,6 +159,9 @@ usage( char *name )
 		"\t-r directory\tSandbox directory to chroot to\n"
 #endif
 		"\t-s level\tSyslog level\n"
+#ifdef HAVE_SLP
+		"\t-S enable SLP registration\n"
+#endif
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		"\t-u user\t\tUser (id or name) to run as\n"
 		"\t-V\t\tprint version info (-VV only)\n"
@@ -237,8 +240,7 @@ int main( int argc, char **argv )
 		}
 
 		i = (int*)lutil_getRegParam( regService, "DebugLevel" );
-		if ( i != NULL ) 
-		{
+		if ( i != NULL ) {
 			slap_debug = *i;
 #ifdef NEW_LOGGING
 			lutil_log_initialize( argc, argv );
@@ -246,13 +248,13 @@ int main( int argc, char **argv )
 				"main: new debug level from registry is: %d\n", 
 				slap_debug, 0, 0 );
 #else
-			Debug( LDAP_DEBUG_ANY, "new debug level from registry is: %d\n", slap_debug, 0, 0 );
+			Debug( LDAP_DEBUG_ANY,
+				"new debug level from registry is: %d\n", slap_debug, 0, 0 );
 #endif
 		}
 
 		newUrls = (char *) lutil_getRegParam(regService, "Urls");
-		if (newUrls)
-		{
+		if (newUrls) {
 		    if (urls)
 			ch_free(urls);
 
@@ -262,14 +264,12 @@ int main( int argc, char **argv )
 				"main: new urls from registry: %s\n", urls, 0, 0 );
 #else
 		    Debug(LDAP_DEBUG_ANY, "new urls from registry: %s\n",
-			  urls, 0, 0);
+				urls, 0, 0);
 #endif
-
 		}
 
 		newConfigFile = (char*)lutil_getRegParam( regService, "ConfigFile" );
-		if ( newConfigFile != NULL ) 
-		{
+		if ( newConfigFile != NULL ) {
 			configfile = newConfigFile;
 #ifdef NEW_LOGGING
 			LDAP_LOG( SLAPD, INFO, 
@@ -277,13 +277,12 @@ int main( int argc, char **argv )
 #else
 			Debug ( LDAP_DEBUG_ANY, "new config file from registry is: %s\n", configfile, 0, 0 );
 #endif
-
 		}
 	}
 #endif
 
 	while ( (i = getopt( argc, argv,
-			     "c:d:f:h:s:n:tT:V"
+			     "c:d:f:h:s:n:StT:V"
 #if LDAP_PF_INET6
 				"46"
 #endif
@@ -356,10 +355,18 @@ int main( int argc, char **argv )
 			ldap_syslog = atoi( optarg );
 			break;
 
+		case 'S':	/* enable SLP */
+#ifdef HAVE_SLP
+			slapd_register_slp++;
+#else
+			fputs( "slapd: SLP support is not available\n", stderr );
+#endif
+			break;
+
 #ifdef LOG_LOCAL4
 		case 'l':	/* set syslog local user */
 			syslogUser = cnvt_str2int( optarg,
-				syslog_types, DEFAULT_SYSLOG_USER );
+			syslog_types, DEFAULT_SYSLOG_USER );
 			break;
 #endif
 

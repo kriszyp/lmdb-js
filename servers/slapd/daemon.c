@@ -114,6 +114,7 @@ static struct slap_daemon {
 #define LDAPS_SRVTYPE_PREFIX "service:ldaps://"
 static char** slapd_srvurls = NULL;
 static SLPHandle slapd_hslp = 0;
+int slapd_register_slp = 0;
 
 void slapd_slp_init( const char* urls ) {
 	int i;
@@ -1107,8 +1108,10 @@ int slapd_daemon_init( const char *urls )
 #endif
 
 #ifdef HAVE_SLP
-	slapd_slp_init( urls );
-	slapd_slp_reg();
+	if( slapd_register_slp ) {
+		slapd_slp_init( urls );
+		slapd_slp_reg();
+	}
 #endif
 
 	ldap_charray_free( u );
@@ -1126,8 +1129,10 @@ slapd_daemon_destroy(void)
 	sockdestroy();
 
 #ifdef HAVE_SLP
-	slapd_slp_dereg();
-	slapd_slp_deinit();
+	if( slapd_register_slp ) {
+		slapd_slp_dereg();
+		slapd_slp_deinit();
+	}
 #endif
 
 	return 0;
