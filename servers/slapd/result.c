@@ -24,8 +24,7 @@ static char *v2ref( struct berval **ref, const char *text )
 	size_t len = 0, i = 0;
 	char *v2;
 
-	if(ref == NULL)
-	{
+	if(ref == NULL) {
 	    if (text)
 		return ch_strdup(text);
 	    else
@@ -34,14 +33,16 @@ static char *v2ref( struct berval **ref, const char *text )
 	
 	if (text) {
 		len = strlen( text );
-		if (text[len-1] != '\n')
+		if (text[len-1] != '\n') {
 		    i = 1;
+		}
 	}
 	v2 = ch_malloc( len+i+sizeof("Referral:") );
 	if (text) {
 		strcpy(v2, text);
-		if (i)
+		if (i) {
 			v2[len++] = '\n';
+		}
 	}
 	strcpy( v2+len, "Referral:" );
 	len += sizeof("Referral:");
@@ -51,8 +52,9 @@ static char *v2ref( struct berval **ref, const char *text )
 		v2[len-1] = '\n';
 		AC_MEMCPY(&v2[len], ref[i]->bv_val, ref[i]->bv_len );
 		len += ref[i]->bv_len;
-		if (ref[i]->bv_val[ref[i]->bv_len-1] != '/')
+		if (ref[i]->bv_val[ref[i]->bv_len-1] != '/') {
 			++len;
+		}
 	}
 
 	v2[len-1] = '\0';
@@ -274,40 +276,38 @@ send_ldap_response(
 		return;
 	}
 
-	{
-		rc = ber_printf( ber, "{it{ess",
-			msgid, tag, err,
-			matched == NULL ? "" : matched,
-			text == NULL ? "" : text );
+	rc = ber_printf( ber, "{it{ess",
+		msgid, tag, err,
+		matched == NULL ? "" : matched,
+		text == NULL ? "" : text );
 
-		if( rc != -1 ) {
-			if ( ref != NULL ) {
-				assert( err == LDAP_REFERRAL );
-				rc = ber_printf( ber, "t{V}",
-					LDAP_TAG_REFERRAL, ref );
-			} else {
-				assert( err != LDAP_REFERRAL );
-			}
+	if( rc != -1 ) {
+		if ( ref != NULL ) {
+			assert( err == LDAP_REFERRAL );
+			rc = ber_printf( ber, "t{V}",
+				LDAP_TAG_REFERRAL, ref );
+		} else {
+			assert( err != LDAP_REFERRAL );
 		}
+	}
 
-		if( rc != -1 && sasldata != NULL ) {
-			rc = ber_printf( ber, "tO",
-				LDAP_TAG_SASL_RES_CREDS, sasldata );
-		}
+	if( rc != -1 && sasldata != NULL ) {
+		rc = ber_printf( ber, "tO",
+			LDAP_TAG_SASL_RES_CREDS, sasldata );
+	}
 
-		if( rc != -1 && resoid != NULL ) {
-			rc = ber_printf( ber, "ts",
-				LDAP_TAG_EXOP_RES_OID, resoid );
-		}
+	if( rc != -1 && resoid != NULL ) {
+		rc = ber_printf( ber, "ts",
+			LDAP_TAG_EXOP_RES_OID, resoid );
+	}
 
-		if( rc != -1 && resdata != NULL ) {
-			rc = ber_printf( ber, "tO",
-				LDAP_TAG_EXOP_RES_VALUE, resdata );
-		}
+	if( rc != -1 && resdata != NULL ) {
+		rc = ber_printf( ber, "tO",
+			LDAP_TAG_EXOP_RES_VALUE, resdata );
+	}
 
-		if( rc != -1 ) {
-			rc = ber_printf( ber, "N}N}" );
-		}
+	if( rc != -1 ) {
+		rc = ber_printf( ber, "N}N}" );
 	}
 
 	if ( rc == -1 ) {
@@ -400,10 +400,11 @@ send_ldap_result(
 		(long) op->o_connid, (long) op->o_opid, op->o_protocol );
 	Debug( LDAP_DEBUG_ARGS, "send_ldap_result: %d:%s:%s\n",
 		err, matched ?  matched : "", text ? text : "" );
+
 	if( ref ) {
-	Debug( LDAP_DEBUG_ARGS, "send_ldap_result: referral: %s\n",
-		ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL",
-		NULL, NULL );
+		Debug( LDAP_DEBUG_ARGS, "send_ldap_result: referral: %s\n",
+			ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL",
+			NULL, NULL );
 	}
 
 	assert( err != LDAP_PARTIAL_RESULTS );
@@ -533,6 +534,7 @@ send_search_result(
 		tmp = v2ref( refs, text );
 		text = tmp;
 		refs = NULL;
+
 	} else {
 		/* don't send references in search results */
 		assert( refs == NULL );
@@ -555,8 +557,9 @@ send_search_result(
 		(long) op->o_connid, (long) op->o_opid,
 		(long) tag, (long) err, text ? text : "" );
 
-	if (tmp != NULL)
+	if (tmp != NULL) {
 	    ch_free(tmp);
+	}
 }
 
 
@@ -626,18 +629,17 @@ send_search_entry(
 
 		if ( attrs == NULL ) {
 			/* all addrs request, skip operational attributes */
-			if( is_at_operational( desc->ad_type ) )
-			{
+			if( is_at_operational( desc->ad_type ) ) {
 				continue;
 			}
 
 		} else {
 			/* specific addrs requested */
-			if ( is_at_operational( desc->ad_type ) )
-			{
+			if ( is_at_operational( desc->ad_type ) ) {
 				if( !opattrs && !ad_inlist( desc, attrs ) ) {
 					continue;
 				}
+
 			} else {
 				if (!userattrs && !ad_inlist( desc, attrs ) ) {
 					continue;
@@ -706,8 +708,7 @@ send_search_entry(
 		} else {
 			/* specific addrs requested */
 			if( is_at_operational( desc->ad_type ) ) {
-				if( !opattrs && !ad_inlist( desc, attrs ) )
-				{
+				if( !opattrs && !ad_inlist( desc, attrs ) ) {
 					continue;
 				}
 			} else {
