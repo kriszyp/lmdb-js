@@ -29,6 +29,9 @@
 
 LDAP_BEGIN_DECL
 
+/* define if si_ad_labeledURI is removed from slap_schema */
+#undef MONITOR_DEFINE_LABELEDURI
+
 typedef struct monitor_callback_t {
 	int			(*mc_update)( Operation *op, Entry *e, void *priv );
 						/* update callback
@@ -106,7 +109,10 @@ typedef struct monitor_info_t {
 	AttributeDescription	*mi_ad_description;
 	AttributeDescription	*mi_ad_seeAlso;
 	AttributeDescription	*mi_ad_l;
+#ifdef MONITOR_DEFINE_LABELEDURI
+	/* enable if si_ad_labeledURI is removed from slap_schema */
 	AttributeDescription	*mi_ad_labeledURI;
+#endif /* MONITOR_DEFINE_LABELEDURI */
 	AttributeDescription	*mi_ad_readOnly;
 	AttributeDescription	*mi_ad_restrictedOperation;
 

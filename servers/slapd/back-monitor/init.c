@@ -392,7 +392,7 @@ monitor_filter2ndn( struct berval *base, int scope, struct berval *filter,
 	Operation	op = { 0 };
 	SlapReply	rs = { 0 };
 	slap_callback	cb = { NULL, monitor_filter2ndn_cb, NULL, NULL };
-	AttributeName	anlist[ 2 ] = { { 0 }, { 0 } };
+	AttributeName	anlist[ 2 ];
 	int		rc;
 
 	BER_BVZERO( ndn );
@@ -431,6 +431,7 @@ monitor_filter2ndn( struct berval *base, int scope, struct berval *filter,
 	op.ors_filter = str2filter_x( &op, filter->bv_val );
 	op.ors_attrs = anlist;
 	BER_BVSTR( &anlist[ 0 ].an_name, LDAP_NO_ATTRS );
+	BER_BVZERO( &anlist[ 1 ].an_name );
 	op.ors_attrsonly = 0;
 	op.ors_tlimit = SLAP_NO_LIMIT;
 	op.ors_slimit = 1;
@@ -943,12 +944,14 @@ monitor_back_db_init(
 			"DESC 'RFC2256: locality which this object resides in' "
 			"SUP name )", 0,
 			offsetof(monitor_info_t, mi_ad_l) },
+#ifdef MONITOR_DEFINE_LABELEDURI
 		{ "labeledURI", "( 1.3.6.1.4.1.250.1.57 "
 			"NAME 'labeledURI' "
 			"DESC 'RFC2079: Uniform Resource Identifier with optional label' "
 			"EQUALITY caseExactMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )", 0,
 			offsetof(monitor_info_t, mi_ad_labeledURI) },
+#endif /* MONITOR_DEFINE_LABELEDURI */
 		{ NULL, NULL, 0, -1 }
 	};
 	
