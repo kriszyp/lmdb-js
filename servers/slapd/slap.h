@@ -787,10 +787,9 @@ struct slap_backend_db {
 #define		be_entry_close bd_info->bi_tool_entry_close
 #define		be_entry_first bd_info->bi_tool_entry_first
 #define		be_entry_next bd_info->bi_tool_entry_next
+#define		be_entry_reindex bd_info->bi_tool_entry_reindex
 #define		be_entry_get bd_info->bi_tool_entry_get
 #define		be_entry_put bd_info->bi_tool_entry_put
-#define		be_index_attr bd_info->bi_tool_index_attr
-#define		be_index_change bd_info->bi_tool_index_change
 #define		be_sync bd_info->bi_tool_sync
 #endif
 
@@ -960,11 +959,7 @@ struct slap_backend_info {
 	ID (*bi_tool_entry_next) LDAP_P(( BackendDB *be ));
 	Entry* (*bi_tool_entry_get) LDAP_P(( BackendDB *be, ID id ));
 	ID (*bi_tool_entry_put) LDAP_P(( BackendDB *be, Entry *e ));
-	int (*bi_tool_index_attr) LDAP_P(( BackendDB *be,
-		AttributeDescription *desc ));
-	int (*bi_tool_index_change) LDAP_P(( BackendDB *be,
-		AttributeDescription *desc,
-		struct berval **bv, ID id, int op ));
+	int (*bi_tool_entry_reindex) LDAP_P(( BackendDB *be, ID id ));
 	int (*bi_tool_sync) LDAP_P(( BackendDB *be ));
 
 #define SLAP_INDEX_ADD_OP		0x0001

@@ -54,7 +54,7 @@ usage( int tool )
 		break;
 
 	case SLAPINDEX:
-		options = "\tattributetype\n";
+		options = "\n";
 		break;
 	}
 
@@ -161,9 +161,7 @@ slap_tool_init(
 		}
 	}
 
-	if ( ( argc != optind + (tool == SLAPINDEX ? 1 : 0) )
-		|| (dbnum >= 0 && base != NULL ) )
-	{
+	if ( ( argc != optind ) || (dbnum >= 0 && base != NULL ) ) {
 		usage( tool );
 	}
 

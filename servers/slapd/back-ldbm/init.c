@@ -79,7 +79,7 @@ ldbm_back_initialize(
 	bi->bi_tool_entry_next = ldbm_tool_entry_next;
 	bi->bi_tool_entry_get = ldbm_tool_entry_get;
 	bi->bi_tool_entry_put = ldbm_tool_entry_put;
-	bi->bi_tool_index_attr = ldbm_tool_index_attr;
+	bi->bi_tool_entry_reindex = ldbm_tool_entry_reindex;
 	bi->bi_tool_sync = ldbm_tool_sync;
 
 	bi->bi_connection_init = 0;

@@ -96,11 +96,7 @@ extern ID ldbm_tool_entry_next LDAP_P(( BackendDB *be ));
 extern Entry* ldbm_tool_entry_get LDAP_P(( BackendDB *be, ID id ));
 extern ID ldbm_tool_entry_put LDAP_P(( BackendDB *be, Entry *e ));
 
-extern int ldbm_tool_index_attr LDAP_P(( BackendDB *be,
-	AttributeDescription* desc ));
-extern int ldbm_tool_index_change LDAP_P(( BackendDB *be,
-	AttributeDescription* desc,
-	struct berval **bv, ID id, int op ));
+extern int ldbm_tool_entry_reindex LDAP_P(( BackendDB *be, ID id ));
 extern int ldbm_tool_sync LDAP_P(( BackendDB *be ));
 
 extern int ldbm_back_referrals LDAP_P(( BackendDB *bd,

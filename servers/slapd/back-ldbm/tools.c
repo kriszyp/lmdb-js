@@ -192,48 +192,11 @@ ID ldbm_tool_entry_put(
 	return e->e_id;
 }
 
-int ldbm_tool_index_attr(
+int ldbm_tool_entry_reindex(
 	BackendDB *be,
-	AttributeDescription *desc
-)
+	ID id )
 {
-	static DBCache *db = NULL;
-	slap_index indexmask;
-	char *at_cname;
-
-	assert( slapMode & SLAP_TOOL_MODE );
-
-	at_cname = desc->ad_cname->bv_val;
-
-	assert( desc != NULL );
-	attr_mask( be->be_private, at_cname, &indexmask );
-
-	if ( (db = ldbm_cache_open( be, at_cname, LDBM_SUFFIX, LDBM_NEWDB ))
-	    == NULL )
-	{
-		Debug( LDAP_DEBUG_ANY,
-		    "<= index_attr NULL (could not open %s%s)\n", at_cname,
-		    LDBM_SUFFIX, 0 );
-		return 0;
-	}
-
-	ldbm_cache_close( be, db );
-
-	return indexmask != 0;
-}
-
-int ldbm_tool_index_change(
-	BackendDB *be,
-	AttributeDescription *desc,
-	struct berval **bv,
-	ID id,
-	int op )
-{
-	assert( slapMode & SLAP_TOOL_MODE );
-
-	index_values( be, desc, bv, id, op );
-
-	return 0;
+	return LDAP_OTHER;
 }
 
 int ldbm_tool_sync( BackendDB *be )
