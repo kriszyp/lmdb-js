@@ -138,9 +138,14 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	DB_INFO dbinfo;
 
 	memset( &dbinfo, 0, sizeof( dbinfo ));
-	dbinfo.db_cachesize = dbcachesize;
+
 	dbinfo.db_pagesize  = DEFAULT_DB_PAGE_SIZE;
 	dbinfo.db_malloc    = ldbm_malloc;
+
+	if( ldbm_Env.mp_info == NULL ) {
+		/* set a cachesize if we aren't using a memory pool */
+		dbinfo.db_cachesize = dbcachesize;
+	}
 
 	LDBM_LOCK;
     (void) db_open( name, DB_TYPE, rw, mode, &ldbm_Env, &dbinfo, &ret );
