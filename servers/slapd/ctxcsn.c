@@ -87,6 +87,8 @@ slap_graduate_commit_csn( Operation *op )
 	if ( op == NULL ) return;
 	if ( op->o_bd == NULL ) return;
 
+	assert( op->o_bd->be_pcl_mutexp != NULL );
+
 	ldap_pvt_thread_mutex_lock( op->o_bd->be_pcl_mutexp );
 
 	LDAP_TAILQ_FOREACH( csne, op->o_bd->be_pending_csn_list, ce_csn_link ) {
