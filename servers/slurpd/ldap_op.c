@@ -621,6 +621,15 @@ do_bind(
     }
 
     /*
+     * Disable string translation if enabled by default.
+     * The replication log is written in the internal format,
+     * so this would do another translation, breaking havoc.
+     */
+#if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
+        ri->ri_ldp->ld_lberoptions &= ~LBER_TRANSLATE_STRINGS;
+#endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
+
+    /*
      * Set ldap library options to (1) not follow referrals, and 
      * (2) restart the select() system call.
      */
