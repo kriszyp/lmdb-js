@@ -25,6 +25,9 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 
+#undef LDAP_F_PRE
+#define LDAP_F_PRE LDAP_F_EXPORT
+
 #include "lber-int.h"
 
 static int ber_put_len LDAP_P(( BerElement *ber,

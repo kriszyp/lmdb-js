@@ -48,23 +48,24 @@
 
 #endif /* no prototypes */
 
+#if _WIN32 && _DLL
+#	define LDAP_F_IMPORT	extern __declspec( dllimport )
+#	define LDAP_F_EXPORT	extern __declspec( dllexport )
+#else
+#	define LDAP_F_IMPORT	extern
+#	define LDAP_F_EXPORT	extern
+#endif
 
+#endif /* _LDAP_CDEFS_H */
+
+/* purposely allow these to be redefined */
 #ifndef LDAP_F_PRE
-#	ifdef _WIN32
-#		define LDAP_F_PRE	extern __declspec( dllexport )
-#	else /* ! _WIN32 */
-#		define LDAP_F_PRE	extern
-#	endif /* _WIN32 */
-#endif /* LDAP_FDECL */
+#	define LDAP_F_PRE	LDAP_F_IMPORT
+#endif
 #ifndef LDAP_F_POST
-#	ifdef _WIN32
-#		define LDAP_F_POST
-#	else /* ! _WIN32 */
-#		define LDAP_F_POST	
-#	endif /* _WIN32 */
-#endif /* LDAP_FDECL */
+#	define LDAP_F_POST	/* no post */
+#endif
 #ifndef LDAP_F
 #define LDAP_F(type)	LDAP_F_PRE type LDAP_F_POST
 #endif
 
-#endif /* _LDAP_CDEFS_H */

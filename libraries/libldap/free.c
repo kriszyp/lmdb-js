@@ -54,6 +54,12 @@ ldap_memrealloc( void* p, size_t s )
 	return LDAP_REALLOC( p, s );
 }
 
+char *
+ldap_strdup( LDAP_CONST char *p )
+{
+	return LDAP_STRDUP( p );
+}
+
 void
 ldap_getfilter_free( LDAPFiltDesc *lfdp )
 {

@@ -31,6 +31,9 @@
 #include <io.h>
 #endif
 
+#undef LDAP_F_PRE
+#define LDAP_F_PRE LDAP_F_EXPORT
+
 #include "lber-int.h"
 
 static long BerRead LDAP_P(( Sockbuf *sb, char *buf, long len ));

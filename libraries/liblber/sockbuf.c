@@ -26,6 +26,9 @@
 #include <sys/ioctl.h>
 #endif
 
+#undef LDAP_F_PRE
+#define LDAP_F_PRE LDAP_F_EXPORT
+
 #include "lber-int.h"
 
 #ifdef LDAP_TEST
