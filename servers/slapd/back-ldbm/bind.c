@@ -45,7 +45,8 @@ crypted_value_find(
 			ldap_pvt_thread_mutex_unlock( &crypt_mutex );
 #endif
 
-			return result;
+			if( !result )
+				return result;
 
 		} else {
                 if ( value_cmp( vals[i], v, syntax, normalize ) == 0 ) {
