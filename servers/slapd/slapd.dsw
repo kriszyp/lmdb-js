@@ -221,6 +221,30 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name backldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libavl
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldap_r
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldif
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libslapd
+    End Project Dependency
 }}}
 
 ###############################################################################
