@@ -13,6 +13,8 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
+set -x
+
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
@@ -94,20 +96,24 @@ fi
 echo "Testing password expiration..."
 $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
-dn: uid=nd, dc=example, dc=com
+dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
 replace: pwdChangedTime
 pwdChangedTime: 20031231000001Z
 
 EOMODS
 
-$LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS > $SEARCHOUT 2>&1
+$LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS \
+	-b "$BASEDN" -s base > $SEARCHOUT 2>&1
 sleep 2
-$LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS >> $SEARCHOUT 2>&1
+$LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS \
+	-b "$BASEDN" -s base >> $SEARCHOUT 2>&1
 sleep 2
-$LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS >> $SEARCHOUT 2>&1
+$LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS \
+	-b "$BASEDN" -s base >> $SEARCHOUT 2>&1
 sleep 2
-$LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS >> $SEARCHOUT 2>&1
+$LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS \
+	-b "$BASEDN" -s base >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC = 0 ; then
 	echo "Password expiration failed ($RC)!"
