@@ -723,6 +723,8 @@ AC_CHECK_HEADERS(	\
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
 
+AC_CHECK_FUNC(dlopen, :, [AC_CHECK_LIB(dl, dlopen)])
+
 dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)
 
