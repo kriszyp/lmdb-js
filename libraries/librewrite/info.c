@@ -244,7 +244,7 @@ rewrite_session(
 		}
 	}
 
-rc_return:
+rc_return:;
 	if ( op.lo_vars ) {
 		rewrite_var_delete( op.lo_vars );
 	}

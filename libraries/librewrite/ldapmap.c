@@ -250,7 +250,7 @@ map_ldap_apply(
 		goto rc_return;
 	}
 
-do_bind:
+do_bind:;
 	if ( data->binddn != NULL ) {
 		rc = ldap_simple_bind_s( ld, data->binddn, data->bindpw );
 		if ( rc == LDAP_SERVER_DOWN && first_try ) {
@@ -316,7 +316,7 @@ do_bind:
 	}
 	val->bv_len = strlen( val->bv_val );
 
-rc_return:
+rc_return:;
 	if ( data->when == MAP_LDAP_EVERYTIME ) {
 		if ( ld != NULL ) {
 			ldap_unbind_s( ld );

@@ -269,7 +269,7 @@ rewrite_rule_compile(
 	 */
 	rule = calloc( sizeof( struct rewrite_rule ), 1 );
 	if ( rule == NULL ) {
-		// charray_free( res );
+		/* charray_free( res ); */
 		/*
 		 * XXX need to free the value subst stuff!
 		 */
@@ -280,7 +280,7 @@ rewrite_rule_compile(
 	 * REGEX compilation (luckily I don't need to take care of this ...)
 	 */
 	if ( regcomp( &rule->lr_regex, ( char * )pattern, flags ) != 0 ) {
-		// charray_free( res );
+		/* charray_free( res ); */
 		/*
 		 *XXX need to free the value subst stuff!
 		 */

@@ -696,7 +696,7 @@ rewrite_xmap_apply(
 	}
 	}
 
-rc_return:
+rc_return:;
 	return rc;
 }
 

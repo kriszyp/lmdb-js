@@ -396,11 +396,11 @@ rewrite_context_apply(
 
 		}
 		
-rc_continue:	/* sent here by actions that require to continue */
+rc_continue:;	/* sent here by actions that require to continue */
 
 	}
 
-rc_end_of_context:
+rc_end_of_context:;
 	*result = res;
 
 	Debug( LDAP_DEBUG_TRACE, "==> rewrite_context_apply"
