@@ -15,12 +15,20 @@
  *   34AA973C D4C4DAA4 F61EEB2B DBAD2731 6534016F
  */
 
-#define SHA1HANDSOFF		/* Copies data before messing with it. */
 
+#include "portable.h"
+#include <ac/string.h>
+
+/* include socket.h to get sys/types.h and/or winsock2.h */
+#include <ac/socket.h>
+
+#if defined(HAVE_SYS_PARAM_H)
 #include <sys/param.h>
-#include <string.h>
+#endif
+
 #include "lutil_sha1.h"
 
+#define SHA1HANDSOFF		/* Copies data before messing with it. */
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
 
 /*
@@ -113,7 +121,7 @@ void ldap_SHA1Transform(state, buffer)
  * ldap_SHA1Init - Initialize new context
  */
 void ldap_SHA1Init(context)
-    SHA1_CTX *context;
+    ldap_SHA1_CTX *context;
 {
 
     /* SHA1 initialization constants */
@@ -130,7 +138,7 @@ void ldap_SHA1Init(context)
  * Run your data through this.
  */
 void ldap_SHA1Update(context, data, len)
-    SHA1_CTX *context;
+    ldap_SHA1_CTX *context;
     const unsigned char *data;
     u_int len;
 {
@@ -158,7 +166,7 @@ void ldap_SHA1Update(context, data, len)
  */
 void ldap_SHA1Final(digest, context)
     unsigned char digest[20];
-    SHA1_CTX* context;
+    ldap_SHA1_CTX* context;
 {
     u_int i;
     unsigned char finalcount[8];
@@ -193,18 +201,32 @@ void ldap_SHA1Final(digest, context)
 static char rcsid[] = "$OpenBSD: sha1hl.c,v 1.1 1997/07/12 20:06:03 millert Exp $";
 #endif /* LIBC_SCCS and not lint */
 
-#include <stdlib.h>
 #include <stdio.h>
-#include <errno.h>
+#include <stdlib.h>
+
+#include <ac/errno.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_UIO_H
 #include <sys/uio.h>
-#include <unistd.h>
+#endif
+
+#ifdef HAVE_IO_H
+#include <io.h>
+#endif
+
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+
 
 /* ARGSUSED */
 char *
 ldap_SHA1End(ctx, buf)
-    SHA1_CTX *ctx;
+    ldap_SHA1_CTX *ctx;
     char *buf;
 {
     int i;
@@ -230,7 +252,7 @@ ldap_SHA1File (filename, buf)
     char *buf;
 {
     unsigned char buffer[BUFSIZ];
-    SHA1_CTX ctx;
+    ldap_SHA1_CTX ctx;
     int fd, num, oerrno;
 
     ldap_SHA1Init(&ctx);
@@ -253,7 +275,7 @@ ldap_SHA1Data (data, len, buf)
     size_t len;
     char *buf;
 {
-    SHA1_CTX ctx;
+    ldap_SHA1_CTX ctx;
 
     ldap_SHA1Init(&ctx);
     ldap_SHA1Update(&ctx, data, len);

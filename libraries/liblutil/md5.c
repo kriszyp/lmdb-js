@@ -29,9 +29,14 @@
    copyright in any changes I have made; this code remains in the
    public domain.  */
 
-#include <string.h>
+#include "portable.h"
 
-#include "lutil_md5.h"
+#include <ac/string.h>
+
+/* include socket.h to get sys/types.h and/or winsock2.h */
+#include <ac/socket.h>
+
+#include <lutil_md5.h>
 
 /* Little-endian byte-swapping routines.  Note that these do not
    depend on the size of datatypes such as uint32, nor do they require
@@ -64,7 +69,7 @@ putu32 (data, addr)
  */
 void
 ldap_MD5Init(ctx)
-     struct MD5Context *ctx;
+     struct ldap_MD5Context *ctx;
 {
 	ctx->buf[0] = 0x67452301;
 	ctx->buf[1] = 0xefcdab89;
@@ -81,7 +86,7 @@ ldap_MD5Init(ctx)
  */
 void
 ldap_MD5Update(ctx, buf, len)
-     struct MD5Context *ctx;
+     struct ldap_MD5Context *ctx;
      unsigned char const *buf;
      unsigned len;
 {
@@ -133,7 +138,7 @@ ldap_MD5Update(ctx, buf, len)
 void
 ldap_MD5Final(digest, ctx)
      unsigned char digest[16];
-     struct MD5Context *ctx;
+     struct ldap_MD5Context *ctx;
 {
 	unsigned count;
 	unsigned char *p;
@@ -293,7 +298,7 @@ ldap_MD5Transform(buf, inraw)
 int
 main (int argc, char **argv)
 {
-	struct MD5Context context;
+	struct ldap_MD5Context context;
 	unsigned char checksum[16];
 	int i;
 	int j;
