@@ -196,7 +196,22 @@ int ldbm_tool_entry_reindex(
 	BackendDB *be,
 	ID id )
 {
-	return LDAP_OTHER;
+	int rc;
+	Entry *e = ldbm_tool_entry_get( be, id );
+
+	if( e == NULL ) return -1;
+
+	/*
+	 * just (re)add them for now
+	 * assume that some other routine (not yet implemented)
+	 * will zap index databases
+	 *
+	 */
+	rc = index_entry_add( be, e, e->e_attrs );
+
+	entry_free( e );
+
+	return rc;
 }
 
 int ldbm_tool_sync( BackendDB *be )
