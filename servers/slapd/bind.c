@@ -30,6 +30,7 @@ do_bind(
 	BerElement	*ber = op->o_ber;
 	ber_int_t		version;
 	ber_tag_t method;
+	char		*mech;
 	char		*cdn, *ndn;
 	ber_tag_t	rc;
 	struct berval	cred;
@@ -51,7 +52,7 @@ do_bind(
 	 *	}
 	 */
 
-	rc = ber_scanf( ber, "{iato}", &version, &cdn, &method, &cred );
+	rc = ber_scanf( ber, "{iat" /*}*/, &version, &cdn, &method );
 
 	if ( rc == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "bind: ber_scanf failed\n", 0, 0, 0 );
@@ -60,13 +61,54 @@ do_bind(
 		return;
 	}
 
+	mech = NULL;
+	cred.bv_val = NULL;
+
+	if( method != LDAP_AUTH_SASL ) {
+		rc = ber_scanf( ber, /*{*/ "o}", &cred );
+
+	} else {
+		rc = ber_scanf( ber, "{a" /*}*/, &mech );
+
+		if ( rc != LBER_ERROR ) {
+			ber_len_t len;
+			rc = ber_peek_tag( ber, &len );
+
+			if ( rc == LDAP_TAG_LDAPCRED ) { 
+				rc = ber_scanf( ber, "o", &cred );
+			}
+
+			if ( rc != LBER_ERROR ) {
+				rc = ber_scanf( ber, /*{{*/ "}}" );
+			}
+		}
+	}
+
+	if ( rc == LBER_ERROR ) {
+		if ( cdn != NULL ) {
+			free( cdn );
+		}
+		if ( mech != NULL ) {
+			free( mech );
+		}
+		if ( cred.bv_val != NULL ) {
+			free( cred.bv_val );
+		}
+
+		Debug( LDAP_DEBUG_ANY, "bind: ber_scanf failed\n", 0, 0, 0 );
+		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
+    		"decoding error" );
+
+		return;
+	}
+
 #ifdef GET_CTRLS
 	if( get_ctrls( conn, op, 1 ) == -1 ) {
 		if ( cdn != NULL ) {
 			free( cdn );
 		}
-		if ( ndn != NULL ) {
-			free( ndn );
+		if ( mech != NULL ) {
+			free( mech );
 		}
 		if ( cred.bv_val != NULL ) {
 			free( cred.bv_val );
@@ -91,6 +133,9 @@ do_bind(
 		if ( ndn != NULL ) {
 			free( ndn );
 		}
+		if ( mech != NULL ) {
+			free( mech );
+		}
 		if ( cred.bv_val != NULL ) {
 			free( cred.bv_val );
 		}
@@ -108,6 +153,9 @@ do_bind(
 		}
 		if ( ndn != NULL ) {
 			free( ndn );
+		}
+		if ( mech != NULL ) {
+			free( mech );
 		}
 		if ( cred.bv_val != NULL ) {
 			free( cred.bv_val );
@@ -180,7 +228,7 @@ do_bind(
 
 		ndn = suffixAlias( ndn, op, be );
 
-		if ( (*be->be_bind)( be, conn, op, ndn, method, NULL, &cred, &edn ) == 0 ) {
+		if ( (*be->be_bind)( be, conn, op, ndn, method, mech, &cred, &edn ) == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 			conn->c_protocol = version;
@@ -225,6 +273,9 @@ do_bind(
 	}
 	if( ndn != NULL ) {
 		free( ndn );
+	}
+	if ( mech != NULL ) {
+		free( mech );
 	}
 	if ( cred.bv_val != NULL ) {
 		free( cred.bv_val );
