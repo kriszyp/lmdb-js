@@ -365,6 +365,7 @@ main(int argc, char **argv)
 	{
 		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n",
 			version );
+		return EXIT_FAILURE;
 	}
 
 	if ( use_tls && ldap_start_tls_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {
