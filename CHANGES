@@ -7,6 +7,7 @@ OpenLDAP 2.1.24 Engineering
 	Fixed slapd extended op referrals (ITS#2678, ITS#2781)
 	Fixed slapd group ACL caching (ITS#2779)
 	Fixed slurpd memory leaks (ITS#2423, ITS#2620)
+	Fixed slurpd TLS retry (ITS#2570)
 	Fixed back-bdb compatibility with BDB 4.2 (ITS#2848)
 	Fixed lunicode insufficient buffer allocation bug (ITS#2727)
 	Fixed libldap destructor bug (ITS#2758)
@@ -18,6 +19,7 @@ OpenLDAP 2.1.24 Engineering
 	Build Environment
 		Added Berkeley DB 4.2 detection (ITS#2839)
 		Fixed liblber libdir handling (ITS#2797)
+		Fixed libldbm dependency (ITS#2726)
 		Fixed perl LDFLAGS (ITS#2764)
 	Documentation
 		Updated release documents
