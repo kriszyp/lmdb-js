@@ -229,6 +229,24 @@ slap_strcopy(
 	return a-1;
 }
 
+/* strncopy is like strcpy except it returns a pointer to the trailing NUL of
+ * the result string. This allows fast construction of catenated strings
+ * without the overhead of strlen/strcat.
+ */
+char *
+slap_strncopy(
+	char *a,
+	const char *b,
+	size_t n
+)
+{
+	if (!a || !b || n == 0)
+		return a;
+	
+	while ((*a++ = *b++) && n-- > 0) ;
+	return a-1;
+}
+
 /* Unlike charray_add, bvarray_add does not make a new copy of the
  * source string. Typically it is used where ber_bvecadd was before,
  * and ber_bvecadd didn't duplicate its source either.
