@@ -53,43 +53,69 @@ static const unsigned char b642nib[0x80] = {
 int
 ldif_parse_line(
     LDAP_CONST char	*line,
-    char	**type,
-    char	**value,
-    ber_len_t *vlen
+    char	**typep,
+    char	**valuep,
+    ber_len_t *vlenp
 )
 {
-	char	*p, *s, *d, *byte, *stop;
+	char	*s, *p, *d; 
 	char	nib;
-	int	i, b64;
+	int	b64, url;
+	char	*freeme, *type, *value;
+	ber_len_t vlen;
+
+	*typep = NULL;
+	*valuep = NULL;
+	*vlenp = NULL;
 
 	/* skip any leading space */
 	while ( isspace( (unsigned char) *line ) ) {
 		line++;
 	}
-	*type = line;
 
-	for ( s = line; *s && *s != ':'; s++ )
-		/* EMPTY */;
-	if ( *s == '\0' ) {
+	freeme = ber_strdup( line );
+
+	if( freeme == NULL ) {
+		ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
+			"ldif_parse_line: line malloc failed\n");
+		return( -1 );
+	}
+
+	type = freeme;
+
+	s = strchr( type, ':' );
+
+	if ( s == NULL ) {
 		ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
-			"ldif_parse_line missing ':'\n");
+			"ldif_parse_line: missing ':' after %s\n",
+			type );
+		ber_memfree( freeme );
 		return( -1 );
 	}
 
 	/* trim any space between type and : */
-	for ( p = s - 1; p > line && isspace( (unsigned char) *p ); p-- ) {
+	for ( p = &s[-1]; p > type && isspace( * (unsigned char *) p ); p-- ) {
 		*p = '\0';
 	}
 	*s++ = '\0';
 
-	/* check for double : - indicates base 64 encoded value */
-	if ( *s == ':' ) {
+	if ( *s == '\0' ) {
+		/* no value */
+		value = NULL;
+		vlen = 0;
+		goto done;
+	}
+		
+	url = 0;
+	b64 = 0;
+
+	if ( *s == '<' ) {
+		s++;
+		url = 1;
+	} else if ( *s == ':' ) {
+		/* base 64 encoded value */
 		s++;
 		b64 = 1;
-
-	/* single : - normally encoded value */
-	} else {
-		b64 = 0;
 	}
 
 	/* skip space between : and value */
@@ -100,8 +126,11 @@ ldif_parse_line(
 	/* if no value is present, error out */
 	if ( *s == '\0' ) {
 		ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
-			"ldif_parse_line missing value\n");
-		return( -1 );
+			"ldif_parse_line: %s missing %svalue\n", type,
+				url ? "URL " : b64 ? "base64 " : "" );
+		value = NULL;
+		vlen = 0;
+		goto done;
 	}
 
 	/* check for continued line markers that should be deleted */
@@ -111,17 +140,21 @@ ldif_parse_line(
 	}
 	*d = '\0';
 
-	*value = s;
 	if ( b64 ) {
-		stop = strchr( s, '\0' );
-		byte = s;
-		for ( p = s, *vlen = 0; p < stop; p += 4, *vlen += 3 ) {
+		char *byte = s;
+
+		value = s;
+
+		for ( p = s, vlen = 0; p < d; p += 4, vlen += 3 ) {
+			int i;
 			for ( i = 0; i < 4; i++ ) {
 				if ( p[i] != '=' && (p[i] & 0x80 ||
 				    b642nib[ p[i] & 0x7f ] > 0x3f) ) {
 					ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
-"ldif_parse_line: invalid base 64 encoding char (%c) 0x%x\n",
-					    p[i], p[i] );
+						"ldif_parse_line: %s: invalid base64 encoding"
+						" char (%c) 0x%x\n",
+					    type, p[i], p[i] );
+					ber_memfree( freeme );
 					return( -1 );
 				}
 			}
@@ -135,7 +168,7 @@ ldif_parse_line(
 			byte[1] = (nib & RIGHT4) << 4;
 			/* third digit */
 			if ( p[2] == '=' ) {
-				*vlen += 1;
+				vlen += 1;
 				break;
 			}
 			nib = b642nib[ p[2] & 0x7f ];
@@ -143,7 +176,7 @@ ldif_parse_line(
 			byte[2] = (nib & RIGHT2) << 6;
 			/* fourth digit */
 			if ( p[3] == '=' ) {
-				*vlen += 2;
+				vlen += 2;
 				break;
 			}
 			nib = b642nib[ p[3] & 0x7f ];
@@ -151,10 +184,48 @@ ldif_parse_line(
 
 			byte += 3;
 		}
-		s[ *vlen ] = '\0';
+		s[ vlen ] = '\0';
+
+	} else if ( url ) {
+		if( ldif_fetch_url( s, &value, &vlen ) ) {
+			ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
+				"ldif_parse_line: %s: URL \"%s\" fetch failed\n",
+				type, s );
+			ber_memfree( freeme );
+			return( -1 );
+		}
+
 	} else {
-		*vlen = (int) (d - s);
+		value = s;
+		vlen = (int) (d - s);
 	}
+
+done:
+	type = ber_strdup( type );
+
+	if( type == NULL ) {
+		ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
+			"ldif_parse_line: type malloc failed\n");
+		ber_memfree( freeme );
+		return( -1 );
+	}
+
+	if( !url && value != NULL ) {
+		value = ber_strdup( value );
+		if( value == NULL ) {
+			ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
+				"ldif_parse_line: value malloc failed\n");
+			ber_memfree( type );
+			ber_memfree( freeme );
+			return( -1 );
+		}
+	}
+
+	ber_memfree( freeme );
+
+	*typep = type;
+	*valuep = value;
+	*vlenp = vlen;
 
 	return( 0 );
 }
@@ -202,6 +273,18 @@ ldif_getline( char **next )
 	} while( *line == '#' );
 
 	return( line );
+}
+
+int
+ldif_fetch_url(
+    LDAP_CONST char	*url,
+    char	**valuep,
+    ber_len_t *vlenp
+)
+{
+	*valuep = NULL;
+	*vlenp = NULL;
+	return -1;
 }
 
 /* compatibility with U-Mich off by one bug */

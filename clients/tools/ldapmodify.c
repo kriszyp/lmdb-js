@@ -374,7 +374,7 @@ process_ldif_rec( char *rbuf, int count )
 	}
 	
 	if ( ldif_parse_line( line, &type, &value, &vlen ) < 0 ) {
-	    fprintf( stderr, "%s: invalid format (line %d of entry: %s\n",
+	    fprintf( stderr, "%s: invalid format (line %d) entry: \"%s\"\n",
 		    prog, linenum, dn == NULL ? "" : dn );
 	    rc = LDAP_PARAM_ERROR;
 	    break;
