@@ -43,7 +43,6 @@
 /*
  * used by many functions to add description to entries
  */
-AttributeDescription *monitor_ad_desc = NULL;
 BackendDB *be_monitor = NULL;
 
 /*
@@ -250,6 +249,7 @@ monitor_back_db_init(
 		char	*schema;
 		int	offset;
 	} moc[] = {
+#ifdef MONITOR_DEVEL
 		{ "monitorServer", "( 1.3.6.1.4.1.4203.666.XXX "
 			"NAME 'monitorServer' "
 			"DESC 'Server monitoring root entry' "
@@ -285,8 +285,10 @@ monitor_back_db_init(
 			"DESC 'monitor monitored entity class' "
 			"SUP monitor STRUCTURAL)",
 			offsetof(struct monitorinfo, monitor_oc_monitoredObject) },
+#endif /* MONITOR_DEVEL */
 		{ NULL, NULL, -1 }
 	}, mat[] = {
+#ifdef MONITOR_DEVEL
 		{ "monitoredInfo", "( 1.3.6.1.4.1.4203.666.XXX"
 			"NAME 'monitoredInfo' "
 			"DESC 'monitored info' "
@@ -336,6 +338,7 @@ monitor_back_db_init(
 			"DESC 'monitor connection peer address' "
 			"SUP monitoredInfo)",
 			offsetof(struct monitorinfo, monitor_ad_monitorConnectionPeerAddress) },
+#endif /* MONITOR_DEVEL */
 		{ NULL, NULL, -1 }
 	};
 
@@ -380,6 +383,13 @@ monitor_back_db_init(
 
 	mi = ( struct monitorinfo * )ch_calloc( sizeof( struct monitorinfo ), 1 );
 	if ( mi == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, CRIT,
+			"unable to initialize monitor backend\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"unable to initialize monitor backend\n", 0, 0, 0 );
+#endif
 		return -1;
 	}
 
@@ -396,13 +406,13 @@ monitor_back_db_init(
 		if ( !oc ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, CRIT,
-				"unable to parse monitor objectclass '%s' "
-				"(%s before %s)\n" , moc[i].name,
+				"unable to parse monitor objectclass '%s': "
+				"%s before %s\n" , moc[i].name,
 				ldap_scherr2str(code), err );
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"unable to parse monitor objectclass '%s' "
-				"(%s before %s)\n" , moc[i].name,
+				"unable to parse monitor objectclass '%s': "
+				"%s before %s\n" , moc[i].name,
 				ldap_scherr2str(code), err );
 #endif
 			return -1;
@@ -425,11 +435,11 @@ monitor_back_db_init(
 		if ( code ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, CRIT,
-				"objectclass '%s' (%s before %s)\n" ,
+				"objectclass '%s': %s before %s\n" ,
 				moc[i].name, scherr2str(code), err );
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"objectclass '%s' (%s before %s)\n" ,
+				"objectclass '%s': %s before %s\n" ,
 				moc[i].name, scherr2str(code), err );
 #endif
 			return -1;
@@ -453,20 +463,9 @@ monitor_back_db_init(
 
 		at = ldap_str2attributetype( mat[i].schema, &code,
 				&err, LDAP_SCHEMA_ALLOW_ALL );
-		if ( !at ) {
+		if ( !at || at->at_oid == NULL ) {
 			return 1;
 		}
-
-		if ( at->at_oid == NULL ) {
-			return 1;
-		}
-
-		/* operational attributes should be defined internally
-		if ( at->at_usage ) {
-			fprintf( stderr, "%s: line %d: attribute type \"%s\" is operational\n",
-				 fname, lineno, at->at_oid );
-			return 1;
-		} */
 
 		code = at_add(at,&err);
 		if ( code ) {
@@ -482,8 +481,7 @@ monitor_back_db_init(
 				"monitor_back_db_init: %s\n", text, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"monitor_subsys_backend_init: %s\n%s%s", 
-				text, "", "" );
+				"monitor_back_db_init: %s\n", text, 0, 0 );
 #endif
 			return -1;
 		}
@@ -495,8 +493,7 @@ monitor_back_db_init(
 			"monitor_back_db_init: %s\n", text, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_backend_init: %s\n%s%s", 
-			text, "", "" );
+			"monitor_back_db_init: %s\n", text, 0, 0 );
 #endif
 		return( -1 );
 	}
@@ -625,7 +622,8 @@ monitor_back_db_init(
 	} else {
 		bv.bv_len = strlen( Versionstr );
 	}
-	if ( attr_merge_normalize_one( e, monitor_ad_desc, &bv, NULL ) ) {
+	if ( attr_merge_normalize_one( e, mi->monitor_ad_description,
+				&bv, NULL ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, CRIT,
 			"unable to add description to '%s' entry\n",

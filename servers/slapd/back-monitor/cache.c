@@ -169,14 +169,14 @@ monitor_cache_get(
  */
 int
 monitor_cache_dn2entry(
-		struct monitorinfo      *mi,
+		Operation		*op,
 		struct berval		*ndn,
 		Entry			**ep,
 		Entry			**matched
 )
 {
-	int 		rc;
-
+	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
+	int 			rc;
 	struct berval		p_ndn = { 0L, NULL };
 	Entry 			*e_parent;
 	struct monitorentrypriv *mp;
@@ -207,7 +207,7 @@ monitor_cache_dn2entry(
 			- ( ber_len_t ) ( p_ndn.bv_val - ndn->bv_val );
 	}
 
-	rc = monitor_cache_dn2entry( mi, &p_ndn, &e_parent, matched );
+	rc = monitor_cache_dn2entry( op, &p_ndn, &e_parent, matched );
 	if ( rc || e_parent == NULL) {
 		return( -1 );
 	}
@@ -216,7 +216,7 @@ monitor_cache_dn2entry(
 	rc = -1;
 	if ( mp->mp_flags & MONITOR_F_VOLATILE_CH ) {
 		/* parent entry generates volatile children */
-		rc = monitor_entry_create( mi, ndn, e_parent, ep );
+		rc = monitor_entry_create( op, ndn, e_parent, ep );
 	}
 
 	if ( !rc ) {

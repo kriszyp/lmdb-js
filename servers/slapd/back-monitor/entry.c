@@ -87,8 +87,7 @@ monitor_entry_create(
 int
 monitor_entry_modify(
 	Operation		*op,
-	Entry 			*e,
-	Modifications		*modlist
+	Entry 			*e
 )
 {
 	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
@@ -101,7 +100,7 @@ monitor_entry_modify(
 	mp = ( struct monitorentrypriv * )e->e_private;
 
 	if ( mp->mp_info && mp->mp_info->mss_modify ) {
-		return ( *mp->mp_info->mss_modify )( op, e, modlist );
+		return ( *mp->mp_info->mss_modify )( op, e );
 	}
 
 	return( 0 );

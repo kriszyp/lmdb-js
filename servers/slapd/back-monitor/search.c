@@ -144,7 +144,7 @@ monitor_back_search( Operation *op, SlapReply *rs )
 
 
 	/* get entry with reader lock */
-	monitor_cache_dn2entry( mi, &op->o_req_ndn, &e, &matched );
+	monitor_cache_dn2entry( op, &op->o_req_ndn, &e, &matched );
 	if ( e == NULL ) {
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		if ( matched ) {

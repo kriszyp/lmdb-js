@@ -41,8 +41,6 @@
 
 LDAP_BEGIN_DECL
 
-#define MONITOR_DEVEL
-
 /*
  * The cache maps DNs to Entries.
  * Each entry, on turn, holds the list of its children in the e_private field.
@@ -218,8 +216,7 @@ struct monitorsubsys {
 	int		( *mss_create )( Operation *,
 				struct berval *ndn, Entry *, Entry ** );
 	/* modify entry and subentries */
-	int		( *mss_modify )( Operation *, Entry *, 
-				Modifications *modlist );
+	int		( *mss_modify )( Operation *, Entry * );
 };
 
 extern struct monitorsubsys monitor_subsys[];
@@ -234,7 +231,7 @@ extern int monitor_cache_cmp LDAP_P(( const void *c1, const void *c2 ));
 extern int monitor_cache_dup LDAP_P(( void *c1, void *c2 ));
 extern int monitor_cache_add LDAP_P(( struct monitorinfo *mi, Entry *e ));
 extern int monitor_cache_get LDAP_P(( struct monitorinfo *mi, struct berval *ndn, Entry **ep ));
-extern int monitor_cache_dn2entry LDAP_P(( struct monitorinfo *mi, struct berval *ndn, Entry **ep, Entry **matched ));
+extern int monitor_cache_dn2entry LDAP_P(( Operation *op, struct berval *ndn, Entry **ep, Entry **matched ));
 extern int monitor_cache_lock LDAP_P(( Entry *e ));
 extern int monitor_cache_release LDAP_P(( struct monitorinfo *mi, Entry *e ));
 
@@ -243,8 +240,9 @@ extern int monitor_cache_release LDAP_P(( struct monitorinfo *mi, Entry *e ));
  */
 
 extern int monitor_entry_update LDAP_P(( Operation *op, Entry *e ));
-extern int monitor_entry_create LDAP_P(( Operation *op, struct berval *ndn, Entry *e_parent, Entry **ep ));
-extern int monitor_entry_modify LDAP_P(( Operation *op, Entry *e, Modifications *modlist ));
+extern int monitor_entry_create LDAP_P(( Operation *op, struct berval *ndn,
+		Entry *e_parent, Entry **ep ));
+extern int monitor_entry_modify LDAP_P(( Operation *op, Entry *e ));
 
 LDAP_END_DECL
 

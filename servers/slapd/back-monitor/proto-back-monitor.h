@@ -82,8 +82,7 @@ int monitor_subsys_writew_update LDAP_P(( Operation *op, Entry *e ));
  * log
  */
 int monitor_subsys_log_init LDAP_P(( BackendDB *be ));
-int monitor_subsys_log_modify LDAP_P(( Operation *op, Entry *e,
-			Modifications *modlist	));
+int monitor_subsys_log_modify LDAP_P(( Operation *op, Entry *e ));
 
 /*
  * operations

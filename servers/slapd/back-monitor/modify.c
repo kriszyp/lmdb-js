@@ -66,7 +66,7 @@ monitor_back_modify( Operation *op, SlapReply *rs )
 #endif
 
 	/* acquire and lock entry */
-	monitor_cache_dn2entry( mi, &op->o_req_ndn, &e, &matched );
+	monitor_cache_dn2entry( op, &op->o_req_ndn, &e, &matched );
 	if ( e == NULL ) {
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		if ( matched ) {
@@ -83,7 +83,7 @@ monitor_back_modify( Operation *op, SlapReply *rs )
 	if ( !acl_check_modlist( op, e, op->oq_modify.rs_modlist )) {
 		rc = LDAP_INSUFFICIENT_ACCESS;
 	} else {
-		rc = monitor_entry_modify( op, e, op->oq_modify.rs_modlist );
+		rc = monitor_entry_modify( op, e );
 	}
 
 	rs->sr_err = rc;

@@ -47,7 +47,7 @@ monitor_back_compare( struct slap_op *op, struct slap_rep *rs)
 	Attribute	*a;
 
 	/* get entry with reader lock */
-	monitor_cache_dn2entry( mi, &op->o_req_ndn, &e, &matched );
+	monitor_cache_dn2entry( op, &op->o_req_ndn, &e, &matched );
 	if ( e == NULL ) {
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		if ( matched ) {
