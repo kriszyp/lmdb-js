@@ -425,7 +425,8 @@ dnPretty(
 /*
  * dnMatch routine
  *
- * FIXME: strcasecmp should be replaced with schema aware checks
+ * FIXME: strcasecmp should be replaced with strcmp once
+ * value normalization issues are sorted out.
  */
 int
 dnMatch(
