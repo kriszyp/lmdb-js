@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.458 2003/02/10 05:36:12 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.459 2003/02/15 16:51:51 kurt Exp  
 
 # Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -30,7 +30,7 @@ ac_help="$ac_help
 ac_help="$ac_help
   --enable-debug 	  enable debugging [yes]"
 ac_help="$ac_help
-    --enable-dynamic	  enable linking built binaries with dynamic libs [no]"
+  --enable-dynamic	  enable linking built binaries with dynamic libs [no]"
 ac_help="$ac_help
   --enable-syslog	  enable syslog support [auto]"
 ac_help="$ac_help
