@@ -88,11 +88,11 @@ static void ldapdb_auxprop_lookup(void *glob_context,
     int ret, i, n, *aindx;
     const struct propval *pr;
     LDAP *ld = NULL;
-    gluectx gc = { ctx, sparams };
+    gluectx gc;
     struct berval *dn = NULL, **bvals;
     LDAPMessage *msg, *res;
     char **attrs = NULL, *authzid = NULL;
-    LDAPControl c, *ctrl[2] = {&c, NULL};
+    LDAPControl c, *ctrl[2];
     
     if(!ctx || !sparams || !user) return;
 
@@ -151,14 +151,21 @@ static void ldapdb_auxprop_lookup(void *glob_context,
     	if (ctx->use_tls > 1) goto done;
     }
 
+    gc.lc = ctx;
+    gc.lp = sparams;
     ret = ldap_sasl_interactive_bind_s(ld, NULL, ctx->mech.bv_val, NULL, NULL,
     	LDAP_SASL_QUIET, ldapdb_interact, &gc);
     if (ret != LDAP_SUCCESS) goto done;
     
+    ctrl[0] = &c;
+    ctrl[1] = NULL;
     ret = ldap_whoami_s(ld, &dn, ctrl, NULL);
     if (ret != LDAP_SUCCESS || !dn) goto done;
     
-    if (dn->bv_val && !strncmp(dn->bv_val, "dn:", 3))
+    if (!dn->bv_val || strncmp(dn->bv_val, "dn:", 3)) {
+    	ber_bvfree(dn);
+	goto done;
+    }
     ret = ldap_search_s(ld, dn->bv_val+3, LDAP_SCOPE_BASE, "(objectclass=*)",
     	attrs, 0, &res);
     ber_bvfree(dn);
