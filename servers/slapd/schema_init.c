@@ -71,6 +71,8 @@
 /* recycled indexing/filtering routines */
 #define dnIndexer				caseExactIgnoreIndexer
 #define dnFilter				caseExactIgnoreFilter
+#define bitStringFilter			octetStringFilter
+#define bitStringIndexer		octetStringIndexer
 
 #define telephoneNumberIndexer			caseIgnoreIA5Indexer
 #define telephoneNumberFilter			caseIgnoreIA5Filter
@@ -437,19 +439,71 @@ bitStringValidate(
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	if( in->bv_val[0] != 'B' ||
-		in->bv_val[1] != '\'' ||
-		in->bv_val[in->bv_len-1] != '\'' )
+	/*
+	 * rfc 2252 section 6.3 Bit String
+	 * bitstring = "'" *binary-digit "'"
+	 * binary-digit = "0" / "1"
+	 * example: '0101111101'B
+	 */
+	
+	if( in->bv_val[0] != '\'' ||
+		in->bv_val[in->bv_len-2] != '\'' ||
+		in->bv_val[in->bv_len-1] != 'B' )
 	{
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	for( i=in->bv_len-2; i>1; i-- ) {
+	for( i=in->bv_len-3; i>0; i-- ) {
 		if( in->bv_val[i] != '0' && in->bv_val[i] != '1' ) {
 			return LDAP_INVALID_SYNTAX;
 		}
 	}
 
+	return LDAP_SUCCESS;
+}
+
+static int
+bitStringNormalize(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval **normalized )
+{
+	/*
+     * A normalized bitString is has no extaneous (leading) zero bits.
+	 * That is, '00010'B is normalized to '10'B
+	 * However, as a special case, '0'B requires no normalization.
+     */
+	struct berval *newval;
+	char *p;
+
+	/* start at the first bit */
+	p = &val->bv_val[1];
+
+	/* Find the first non-zero bit */
+	while ( *p == '0' ) p++;
+
+	newval = (struct berval *) ch_malloc( sizeof(struct berval) );
+
+	if( *p == '\'' ) {
+		/* no non-zero bits */
+		newval->bv_val = ch_strdup("\'0\'B");
+		newval->bv_len = sizeof("\'0\'B") - 1;
+		goto done;
+	}
+
+	newval->bv_val = ch_malloc( val->bv_len + 1 );
+
+	newval->bv_val[0] = '\'';
+	newval->bv_len = 1;
+
+	for( ; *p != '\0'; p++ ) {
+		newval->bv_val[newval->bv_len++] = *p;
+	}
+
+	newval->bv_val[newval->bv_len] = '\0';
+
+done:
+	*normalized = newval;
 	return LDAP_SUCCESS;
 }
 
@@ -4217,7 +4271,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.5 DESC 'Binary' " X_NOT_H_R ")",
 		SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )",
-		0, bitStringValidate, NULL, NULL },
+		0, bitStringValidate, bitStringNormalize, NULL },
 	{"( 1.3.6.1.4.1.1466.115.121.1.7 DESC 'Boolean' )",
 		0, booleanValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' "
@@ -4519,7 +4573,7 @@ struct mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
-		bitStringMatch, NULL, NULL,
+		bitStringMatch, bitStringIndexer, bitStringFilter,
 		NULL},
 
 	{"( 2.5.13.17 NAME 'octetStringMatch' "
