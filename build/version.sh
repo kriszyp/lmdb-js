@@ -4,13 +4,8 @@
 ## COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
 ## of this package for details.
 #
-ol_package=OpenLDAP
-ol_major=2
-ol_minor=X
-ol_patch=X
-ol_api_inc=000000
-ol_api_lib=0:0:0
-ol_release_date="00/00/0000"
+DIR=`dirname $0`
+. $DIR/version.var
 
 if test $ol_patch != X ; then
 	ol_version=${ol_major}.${ol_minor}.${ol_patch}
