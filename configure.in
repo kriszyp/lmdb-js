@@ -1741,9 +1741,7 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = gdbm ; then
 	fi
 fi
 
-if test $ol_with_ldbm_api = auto ; then
-	AC_MSG_WARN([skipping automatic checking for NDBM, must be manually enabled.])
-elif test $ol_with_ldbm_api = ndbm ; then
+if test $ol_with_ldbm_api != auto -a $ol_with_ldbm_api = ndbm ; then
 	OL_NDBM
 
 	if test $ol_cv_ndbm = yes ; then
