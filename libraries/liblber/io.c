@@ -227,7 +227,6 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 	}
 
 	while ( towrite > 0 ) {
-#define LBER_TRICKLE
 #ifdef LBER_TRICKLE
 		sleep(1);
 		rc = ber_int_sb_write( sb, ber->ber_rwptr, 1 );

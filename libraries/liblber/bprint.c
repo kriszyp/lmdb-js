@@ -32,10 +32,9 @@ FILE *ber_pvt_err_file = NULL;
  */
 BER_ERRNO_FN ber_int_errno_fn = NULL;
 
-static int ber_int_errno = LBER_ERROR_NONE;
-
 int * ber_errno_addr(void)
 {
+	static int ber_int_errno = LBER_ERROR_NONE;
 
 	if( ber_int_errno_fn ) {
 		return (*ber_int_errno_fn)();
