@@ -382,6 +382,7 @@ matching_rule_use_init( void )
 
 		at = NULL;
 		for ( at_start( &at ); at; at_next( &at ) ) {
+			if( at->sat_flags & SLAP_AT_HIDE ) continue;
 			if( mr->smr_usage & SLAP_MR_EXT && ( 
 				mr->smr_syntax == at->sat_syntax ||
 				mr == at->sat_equality ||
