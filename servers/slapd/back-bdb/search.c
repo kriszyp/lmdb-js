@@ -997,9 +997,6 @@ id2entry_retry:
 		} else {
 			e = ps_e;
 		}
-#if 0
-		assert( BEI(e) );
-#endif
 
 		rs->sr_entry = e;
 
@@ -1053,15 +1050,13 @@ id2entry_retry:
 			if ( id == base.e_id ) break;
 			/* Fall-thru */
 		case LDAP_SCOPE_SUBTREE: {
-			EntryInfo *tmp = BEI(e);
-			if ( tmp ) for (; tmp->bei_parent; tmp = tmp->bei_parent ) {
+			EntryInfo *tmp;
+			for (tmp = BEI(e); tmp->bei_parent;
+				 tmp = tmp->bei_parent ) {
 				if ( tmp->bei_id == base.e_id ) {
 					scopeok = 1;
 					break;
 				}
-			} else {
-				/* FIXME */
-				scopeok = 1;
 			}
 			} break;
 		}
