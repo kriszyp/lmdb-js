@@ -1691,22 +1691,21 @@ read_config( const char *fname )
 				} else {
 					for ( i = 1; i < cargc; i++ ) {
 						if ( strncasecmp( cargv[i], "suffix=", 7 ) == 0 ) {
-							char *nsuffix = ch_strdup( cargv[i] + 7 );
-							if ( dn_normalize( nsuffix ) != NULL ) {
-								if ( select_backend( nsuffix, 0 ) == be ) {
-									charray_add( &be->be_replica[nr]->ri_nsuffix, nsuffix );
-								} else {
+
+							switch ( add_replica_suffix( be, nr, cargv[i] + 7 ) ) {
+							case 1:
 #ifdef NEW_LOGGING
-									LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-												"%s: line %d: suffix \"%s\" in \"replica\" line is not valid for backend (ignored)\n",
-												fname, lineno, cargv[i] + 7 ));
+								LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+										"%s: line %d: suffix \"%s\" in \"replica\" line is not valid for backend (ignored)\n",
+										fname, lineno, cargv[i] + 7 ));
 #else
-									Debug( LDAP_DEBUG_ANY,
-											"%s: line %d: suffix \"%s\" in \"replica\" line is not valid for backend (ignored)\n",
-											fname, lineno, cargv[i] + 7 );
+								Debug( LDAP_DEBUG_ANY,
+										"%s: line %d: suffix \"%s\" in \"replica\" line is not valid for backend (ignored)\n",
+										fname, lineno, cargv[i] + 7 );
 #endif
-								}
-							} else {
+								break;
+
+							case 2:
 #ifdef NEW_LOGGING
 								LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 											"%s: line %d: unable to normalize suffix in \"replica\" line (ignored)\n",
@@ -1716,8 +1715,8 @@ read_config( const char *fname )
 										 "%s: line %d: unable to normalize suffix in \"replica\" line (ignored)\n",
 										 fname, lineno, 0 );
 #endif
+								break;
 							}
-							free( nsuffix );
 						}
 					}
 				}
