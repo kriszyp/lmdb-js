@@ -2498,6 +2498,11 @@ config_find_base( CfEntryInfo *root, struct berval *dn, CfEntryInfo **last )
 	struct berval cdn;
 	char *c;
 
+	if ( !root ) {
+		*last = NULL;
+		return NULL;
+	}
+
 	if ( dn_match( &root->ce_entry->e_nname, dn ))
 		return root;
 
@@ -2602,7 +2607,6 @@ config_setup_ldif( BackendDB *be, const char *dir ) {
 	if ( backend_startup_one( &cfb->cb_db ))
 		return 1;
 
-#if 0	/* not yet */
 	op = (Operation *)opbuf;
 	connection_fake_init( &conn, op, cfb );
 
@@ -2631,7 +2635,6 @@ config_setup_ldif( BackendDB *be, const char *dir ) {
 
 	op->o_bd = &cfb->cb_db;
 	op->o_bd->be_search( op, &rs );
-#endif
 	
 	return 0;
 }
@@ -2649,6 +2652,11 @@ read_config(const char *fname, const char *dir) {
 	if ( config_setup_ldif( be, dir ))
 		return 1;
 
+#if 0	/* not yet
+	/* If we read the config from back-ldif, nothing to do here */
+	if ( cfb->cb_got_ldif )
+		return 0;
+#endif
 	ber_str2bv( fname, 0, 1, &cf_prv.c_file );
 
 	return read_config_file(fname, 0, NULL);
