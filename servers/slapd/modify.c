@@ -361,6 +361,20 @@ do_modify(
 	 */
 	slapi_pblock_get( pb, SLAPI_MODIFY_MODS, (void **)&modv );
 	modlist = slapi_x_ldapmods2modifications( modv );
+
+	/*
+	 * NB: it is valid for the plugin to return no modifications
+	 * (for example, a plugin might store some attributes elsewhere
+	 * and remove them from the modification list; if only those
+	 * attribute types were included in the modification request,
+	 * then slapi_x_ldapmods2modifications() above will return
+	 * NULL).
+	 */
+	if ( modlist == NULL ) {
+		rs->sr_err = LDAP_SUCCESS;
+		send_ldap_result( op, rs );
+		goto cleanup;
+	}
 #endif /* defined( LDAP_SLAPI ) */
 
 	/*
