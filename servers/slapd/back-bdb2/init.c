@@ -66,6 +66,9 @@ bdb2_back_initialize(
 	bi->bi_acl_group = bdb2_back_group;
 #endif
 
+	bi->bi_connection_init = 0;
+	bi->bi_connection_destroy = 0;
+
 	ret = bdb2i_back_init_private( bi );
 
 	Debug( LDAP_DEBUG_TRACE, "bdb2_back_initialize: done (%d).\n", ret, 0, 0 );

@@ -89,6 +89,9 @@ int be_entry_release_rw LDAP_P(( Backend *be, Entry *e, int rw ));
 
 extern int	backend_unbind LDAP_P((Connection *conn, Operation *op));
 
+extern int	backend_connection_init LDAP_P((Connection *conn));
+extern int	backend_connection_destroy LDAP_P((Connection *conn));
+
 extern int	backend_group LDAP_P((Backend *be,
 	Entry *target,
 	char *gr_ndn, char *op_ndn,

@@ -39,5 +39,8 @@ passwd_back_initialize(
 	bi->bi_acl_group = 0;
 #endif
 
+	bi->bi_connection_init = 0;
+	bi->bi_connection_destroy = 0;
+
 	return 0;
 }

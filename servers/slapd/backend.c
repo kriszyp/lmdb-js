@@ -518,6 +518,38 @@ backend_unbind(
 	return 0;
 }
 
+int
+backend_connection_init(
+	Connection   *conn
+)
+{
+	int	i;
+
+	for ( i = 0; i < nbackends; i++ ) {
+		if ( backends[i].be_connection_init ) {
+			(*backends[i].be_connection_init)( &backends[i], conn);
+		}
+	}
+
+	return 0;
+}
+
+int
+backend_connection_destroy(
+	Connection   *conn
+)
+{
+	int	i;
+
+	for ( i = 0; i < nbackends; i++ ) {
+		if ( backends[i].be_connection_destroy ) {
+			(*backends[i].be_connection_destroy)( &backends[i], conn);
+		}
+	}
+
+	return 0;
+}
+
 #ifdef SLAPD_ACLGROUPS
 int 
 backend_group(

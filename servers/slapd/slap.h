@@ -341,6 +341,10 @@ struct backend_db {
 #define		be_release	bd_info->bi_entry_release_rw
 #define		be_group	bd_info->bi_acl_group
 
+#define		be_connection_init	bd_info->bi_connection_init
+#define		be_connection_destroy	bd_info->bi_connection_destroy
+
+
 	/* these should be renamed from be_ to bd_ */
 	char	**be_suffix;	/* the DN suffixes of data in this backend */
 	char	**be_nsuffix;	/* the normalized DN suffixes in this backend */
@@ -460,6 +464,12 @@ struct backend_info {
 		Entry *e, char *bdn, char *edn,
 		char *objectclassValue, char *groupattrName ));
 #endif
+
+	int	(*bi_connection_init) LDAP_P((BackendDB *bd,
+		struct slap_conn *c));
+	int	(*bi_connection_destroy) LDAP_P((BackendDB *bd,
+		struct slap_conn *c));
+
 
 	unsigned int bi_nDB;	/* number of databases of this type */
 	void	*bi_private;	/* anything the backend type needs */

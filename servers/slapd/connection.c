@@ -374,6 +374,8 @@ long connection_init(
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
     ldap_pvt_thread_mutex_unlock( &connections_mutex );
 
+    backend_connection_init(c);
+
     return id;
 }
 
@@ -387,6 +389,8 @@ connection_destroy( Connection *c )
     assert( c->c_struct_state != SLAP_C_UNUSED );
     assert( c->c_conn_state != SLAP_C_INVALID );
     assert( c->c_ops == NULL );
+
+    backend_connection_destroy(c);
 
 #ifdef LDAP_COMPAT30
     c->c_version = 0;
