@@ -100,11 +100,14 @@ to basename of argv[0], i.e.: "slapd".
 .BI \-l " syslog\-local\-user"
 Selects the local user of the
 .BR syslog (8)
-facility. Values can be 
+facility. Value can be 
 .BR LOCAL0 , 
-.BR LOCAL1 , 
-and so on, up to 
-.BR LOCAL7 . 
+through
+.BR LOCAL7 ,
+as well as
+.B USER
+and
+.BR DAEMON .
 The default is
 .BR LOCAL4 .
 However, this option is only permitted on systems that support
