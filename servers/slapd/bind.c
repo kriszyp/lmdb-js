@@ -312,6 +312,16 @@ do_bind(
 					LBER_SB_OPT_SET_MAX_INCOMING, &max );
 			}
 
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, DETAIL1, 
+				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
+				conn->c_authmech.bv_val, conn->c_dn.bv_val, ssf );
+#else
+			Debug( LDAP_DEBUG_TRACE,
+				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
+				conn->c_authmech.bv_val, conn->c_dn.bv_val, ssf );
+#endif
+
 		} else if ( rc == LDAP_SASL_BIND_IN_PROGRESS ) {
 			conn->c_sasl_bind_in_progress = 1;
 
