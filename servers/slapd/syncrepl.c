@@ -1109,15 +1109,13 @@ syncrepl_add_glue(
 			ptr++;
 			i++;
 		}
-		suffrdns = i+1;
+		suffrdns = i;
 	} else {
 		/* suffix is "" */
 		suffrdns = 0;
 	}
 
-	/* advance to first child: count RDN separators since the prettyDNs
-	 * may not be exactly the same length
-	 */
+	/* Start with BE suffix */
 	for ( i = 0, ptr = NULL; i < suffrdns; i++ ) {
 		comma = strrchr(dn.bv_val, ',');
 		if ( ptr ) *ptr = ',';
@@ -1133,12 +1131,8 @@ syncrepl_add_glue(
 	 * required.
 	 */
 	if ( ndn.bv_len > be->be_nsuffix[0].bv_len ) {
-		comma = ndn.bv_val + ndn.bv_len - be->be_nsuffix[0].bv_len - 1;
-		*comma = '\0';
-		ptr = strrchr( ndn.bv_val, ',' ) + 1;
-		*comma = ',';
-		ndn.bv_len -= ptr - ndn.bv_val;
-		ndn.bv_val = ptr;
+		ndn.bv_val += ndn.bv_len - be->be_nsuffix[0].bv_len;
+		ndn.bv_len = be->be_nsuffix[0].bv_len;
 	}
 
 	while ( ndn.bv_val > e->e_nname.bv_val ) {
@@ -1187,10 +1181,10 @@ syncrepl_add_glue(
 		/* Move to next child */
 		for (ptr = dn.bv_val-2; ptr > e->e_name.bv_val && *ptr != ','; ptr--);
 		if ( ptr == e->e_name.bv_val ) break;
-		dn.bv_val = ptr+1;
+		dn.bv_val = ++ptr;
 		dn.bv_len = e->e_name.bv_len - (ptr-e->e_name.bv_val);
 		for (ptr = ndn.bv_val-2; ptr > e->e_nname.bv_val && *ptr != ','; ptr--);
-		ndn.bv_val = ptr+1;
+		ndn.bv_val = ++ptr;
 		ndn.bv_len = e->e_nname.bv_len - (ptr-e->e_nname.bv_val);
 	}
 
