@@ -152,24 +152,20 @@ syncprov_state_ctrl(
 
 	ctrls[num_ctrls] = op->o_tmpalloc( sizeof ( LDAPControl ), op->o_tmpmemctx );
 	
-	/* NOTE: this function is called also for referrals;
-	 * in this case, e is null, right? */
-	if ( e ) {
-		for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-			AttributeDescription *desc = a->a_desc;
-			if ( desc == slap_schema.si_ad_entryUUID ) {
-				entryuuid_bv = a->a_nvals[0];
-				break;
-			}
+	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+		AttributeDescription *desc = a->a_desc;
+		if ( desc == slap_schema.si_ad_entryUUID ) {
+			entryuuid_bv = a->a_nvals[0];
+			break;
 		}
+	}
 
-		if ( send_cookie && cookie ) {
-			ber_printf( ber, "{eOON}",
-				entry_sync_state, &entryuuid_bv, cookie );
-		} else {
-			ber_printf( ber, "{eON}",
-				entry_sync_state, &entryuuid_bv );
-		}
+	if ( send_cookie && cookie ) {
+		ber_printf( ber, "{eOON}",
+			entry_sync_state, &entryuuid_bv, cookie );
+	} else {
+		ber_printf( ber, "{eON}",
+			entry_sync_state, &entryuuid_bv );
 	}
 
 	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_STATE;
@@ -431,6 +427,9 @@ findbase_cb( Operation *op, SlapReply *rs )
 			}
 		}
 	}
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "findbase failed! %d\n", rs->sr_err,0,0 );
+	}
 	return LDAP_SUCCESS;
 }
 
@@ -456,6 +455,7 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 	fop.o_tag = LDAP_REQ_SEARCH;
 	fop.ors_scope = LDAP_SCOPE_BASE;
 	fop.ors_deref = fc->fss->s_op->ors_deref;
+	fop.ors_limit = NULL;
 	fop.ors_slimit = 1;
 	fop.ors_tlimit = SLAP_NO_LIMIT;
 	fop.ors_attrs = slap_anlist_no_attrs;
@@ -599,6 +599,7 @@ syncprov_findcsn( Operation *op, int mode )
 		srs->sr_state.ctxcsn->bv_val );
 
 	fop.o_callback = &cb;
+	fop.ors_limit = NULL;
 	fop.ors_tlimit = SLAP_NO_LIMIT;
 	fop.ors_filter = &cf;
 	fop.ors_filterstr = fbuf;
@@ -1262,9 +1263,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 
 	if ( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF ) {
 		int i;
-		/* FIXME: when rs->sr_type == REP_SEARCHREF,
-		 * rs->sr_entry is NULL! */
-		if ( srs->sr_state.ctxcsn && rs->sr_entry ) {
+		if ( srs->sr_state.ctxcsn ) {
 			Attribute *a = attr_find( rs->sr_entry->e_attrs,
 				slap_schema.si_ad_entryCSN );
 			/* Don't send the ctx entry twice */
@@ -1630,10 +1629,6 @@ syncprov_db_open(
 	rc = be_entry_get_rw( op, be->be_nsuffix, NULL,
 		slap_schema.si_ad_contextCSN, 0, &e );
 
-	BER_BVZERO( &si->si_ctxcsn );
-
-	/* FIXME: when rs->sr_type == REP_SEARCHREF,
-	 * rs->sr_entry == NULL! */
 	if ( e ) {
 		a = attr_find( e->e_attrs, slap_schema.si_ad_contextCSN );
 		if ( a ) {
@@ -1647,7 +1642,7 @@ syncprov_db_open(
 		be_entry_release_r( op, e );
 	}
 
-	if ( BER_BVISNULL( &si->si_ctxcsn ) ) {
+	if ( BER_BVISEMPTY( &si->si_ctxcsn ) ) {
 		slap_get_csn( op, si->si_ctxcsnbuf, sizeof(si->si_ctxcsnbuf),
 				&si->si_ctxcsn, 0 );
 	}
