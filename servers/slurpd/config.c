@@ -213,7 +213,39 @@ slurpd_read_config(
 
 		LUTIL_SLASHPATH( cargv[1] );
 		slurpd_args_file = ch_strdup( cargv[1] );
-	}
+
+		} else if ( strcasecmp( cargv[0], "replicationinterval" ) == 0 ) {
+			int c;
+			if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, "%s: %d: missing interval in "
+					"\"replicationinterval <seconds>\" line.\n",
+					fname, lineno, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: missing interval in "
+					"\"replicationinterval <seconds>\" line\n",
+					fname, lineno, 0 );
+#endif
+				return( 1 );
+			}
+
+			c = atoi( cargv[1] );
+			if( c < 1 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, "%s: line %d: invalid interval "
+					"(%d) in \"replicationinterval <seconds>\" line\n",
+					fname, lineno, c );
+#else
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: invalid interval "
+					"(%d) in \"replicationinterval <seconds>\" line\n",
+					fname, lineno, c );
+#endif
+
+				return( 1 );
+			}
+
+			sglob->no_work_interval = c;
+		}
     }
     fclose( fp );
 #ifdef NEW_LOGGING

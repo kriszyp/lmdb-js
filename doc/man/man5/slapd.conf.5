@@ -625,6 +625,11 @@ server's process ID ( see
 .BR getpid (2)
 ) if started without the debugging command line option.
 .TP
+.B replicationinterval
+The number of seconds 
+.B slurpd 
+waits before checking the replogfile for changes.
+.TP
 .B require <conditions>
 Specify a set of conditions (separated by white space) to
 require (default none).

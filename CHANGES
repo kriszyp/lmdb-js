@@ -1,7 +1,7 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.7 Engineering
-	<insert changes here>
+	Added slurpd replication interval config option (ITS#2768)
 	Build Environment
 		Fixed shared library soname issues (ITS#3035)
 		  May requires changes in link practices of dependent apps
