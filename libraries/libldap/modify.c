@@ -41,7 +41,9 @@
  * Example:
  *	LDAPMod	*mods[] = { 
  *			{ LDAP_MOD_ADD, "cn", { "babs jensen", "babs", 0 } },
- *			{ LDAP_MOD_REPLACE, "sn", { "jensen", 0 } },
+ *			{ LDAP_MOD_REPLACE, "sn", { "babs jensen", "babs", 0 } },
+ *			{ LDAP_MOD_DELETE, "ou", 0 },
+ *			{ LDAP_MOD_INCREMENT, "uidNumber, { "1", 0 } }
  *			0
  *		}
  *	rc=  ldap_modify_ext( ld, dn, mods, sctrls, cctrls, &msgid );
@@ -65,8 +67,9 @@ ldap_modify_ext( LDAP *ld,
 	 *		modifications	SEQUENCE OF SEQUENCE {
 	 *			operation	ENUMERATED {
 	 *				add	(0),
-	 *				delete	(1),
-	 *				replace	(2)
+	 *				delete (1),
+	 *				replace	(2),
+	 *				increment (3) -- extension
 	 *			},
 	 *			modification	SEQUENCE {
 	 *				type	AttributeType,
@@ -155,7 +158,9 @@ ldap_modify_ext( LDAP *ld,
  * Example:
  *	LDAPMod	*mods[] = { 
  *			{ LDAP_MOD_ADD, "cn", { "babs jensen", "babs", 0 } },
- *			{ LDAP_MOD_REPLACE, "sn", { "jensen", 0 } },
+ *			{ LDAP_MOD_REPLACE, "sn", { "babs jensen", "babs", 0 } },
+ *			{ LDAP_MOD_DELETE, "ou", 0 },
+ *			{ LDAP_MOD_INCREMENT, "uidNumber, { "1", 0 } }
  *			0
  *		}
  *	msgid = ldap_modify( ld, dn, mods );

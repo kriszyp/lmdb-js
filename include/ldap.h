@@ -248,6 +248,7 @@ typedef struct ldapcontrol {
 #define LDAP_FEATURE_ABSOLUTE_FILTERS "1.3.6.1.4.1.4203.1.5.3"  /* (&) (|) */
 #define LDAP_FEATURE_LANGUAGE_TAG_OPTIONS "1.3.6.1.4.1.4203.1.5.4"
 #define LDAP_FEATURE_LANGUAGE_RANGE_OPTIONS "1.3.6.1.4.1.4203.1.5.5"
+#define LDAP_FEATURE_MODIFY_INCREMENT "1.3.6.1.4.1.4203.1.5.6"
 
 /*
  * specific LDAP instantiations of BER types we know about
@@ -506,9 +507,11 @@ typedef struct ldapmsg LDAPMessage;
 typedef struct ldapmod {
 	int		mod_op;
 
+#define LDAP_MOD_OP			(0x0007)
 #define LDAP_MOD_ADD		(0x0000)
 #define LDAP_MOD_DELETE		(0x0001)
 #define LDAP_MOD_REPLACE	(0x0002)
+#define LDAP_MOD_INCREMENT	(0x0003)
 #define LDAP_MOD_BVALUES	(0x0080)
 /* IMPORTANT: do not use code 0x1000 (or above),
  * it is used internally by the backends!
