@@ -32,7 +32,8 @@ rfc3112.txt LDAP Authentication Password Schema (I)
 rfc3296.txt Named Subordinate References in LDAP (PS)
 rfc3377.txt LDAP(v3): Technical Specification (PS)
 rfc3383.txt IANA Considerations for LDAP (BCP)
-
+rfc3673.txt LDAPv3: All Operational Attributes (PS)
+rfc3674.txt Feature Discovery in LDAP (PS)
 
 Legend:
 STD	Standard
@@ -42,5 +43,7 @@ I	Information
 E	Experimental
 FYI	For Your Information 
 BCP	Best Common Practice
+
+Please see http://www.rfc-editor.org/ for up-to-date status information.
 
 $OpenLDAP$
