@@ -1163,6 +1163,10 @@ schema_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 	val.bv_len = sizeof("top")-1;
 	attr_merge( e, "objectClass", vals );
 
+	val.bv_val = "LDAPsubentry";
+	val.bv_len = sizeof("LDAPsubentry")-1;
+	attr_merge( e, "objectClass", vals );
+
 	val.bv_val = "subschema";
 	val.bv_len = sizeof("subschema")-1;
 	attr_merge( e, "objectClass", vals );

@@ -272,6 +272,10 @@ monitor_info(
 	val.bv_len = sizeof("top")-1;
 	attr_merge( e, "objectClass", vals );
 
+	val.bv_val = "LDAPsubentry";
+	val.bv_len = sizeof("LDAPsubentry")-1;
+	attr_merge( e, "objectClass", vals );
+
 	val.bv_val = "extensibleObject";
 	val.bv_len = sizeof("extensibleObject")-1;
 	attr_merge( e, "objectClass", vals );

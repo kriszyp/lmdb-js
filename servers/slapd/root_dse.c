@@ -104,6 +104,10 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 	val.bv_len = sizeof("top")-1;
 	attr_merge( e, "objectClass", vals );
 
+	val.bv_val = "LDAPsubentry";
+	val.bv_len = sizeof("LDAPsubentry")-1;
+	attr_merge( e, "objectClass", vals );
+
 	val.bv_val = "extenisbleObject";
 	val.bv_len = sizeof("extenisbleObject")-1;
 	attr_merge( e, "objectClass", vals );
