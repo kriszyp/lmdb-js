@@ -2413,7 +2413,6 @@ AC_CHECK_FUNCS(		\
 	read			\
 	recv			\
 	recvfrom		\
-	recvmsg			\
 	setpwfile		\
 	setgid			\
 	setegid			\
