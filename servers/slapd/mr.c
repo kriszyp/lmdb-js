@@ -240,6 +240,41 @@ register_matching_rule(
 
 			return -1;
 		}
+
+		if (( def->mrd_usage & SLAP_MR_EQUALITY ) &&
+			(( def->mrd_usage & SLAP_MR_SUBTYPE_MASK ) == SLAP_MR_NONE ))
+		{
+			if (( def->mrd_usage & SLAP_MR_EQUALITY ) &&
+				(( def->mrd_usage & SLAP_MR_SUBTYPE_MASK ) != SLAP_MR_NONE ))
+			{
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, ERR,
+				   "register_matching_rule: inappropriate (approx) association "
+						"%s for %s\n",
+					def->mrd_associated, def->mrd_desc, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+				   "register_matching_rule: inappropriate (approx) association "
+						"%s for %s\n",
+					def->mrd_associated, def->mrd_desc, 0 );
+#endif
+				return -1;
+			}
+
+		} else if (!( amr->smr_usage & SLAP_MR_EQUALITY )) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, ERR,
+				   "register_matching_rule: inappropriate (equalilty) association "
+						"%s for %s\n",
+					def->mrd_associated, def->mrd_desc, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+				   "register_matching_rule: inappropriate (equalilty) association "
+						"%s for %s\n",
+					def->mrd_associated, def->mrd_desc, 0 );
+#endif
+				return -1;
+		}
 	}
 
 	mr = ldap_str2matchingrule( def->mrd_desc, &code, &err,
@@ -255,8 +290,9 @@ register_matching_rule(
 		    ldap_scherr2str(code), err, def->mrd_desc );
 #endif
 
-		return( -1 );
+		return -1;
 	}
+
 
 	code = mr_add( mr, def, amr, &err );
 
@@ -273,10 +309,10 @@ register_matching_rule(
 		    scherr2str(code), err, def->mrd_desc );
 #endif
 
-		return( -1 );
+		return -1;
 	}
 
-	return( 0 );
+	return 0;
 }
 
 void
