@@ -196,13 +196,37 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_SUBENTRIES			"1.3.6.1.4.1.4203.1.10.1" /* RFC 3672 */
 #define LDAP_CONTROL_PAGEDRESULTS		"1.2.840.113556.1.4.319"  /* RFC 2696 */
 
-#define LDAP_CONTROL_ASSERT				"1.3.6.1.4.1.4203.666.5.9"
-#define LDAP_CONTROL_NOOP				"1.3.6.1.4.1.4203.1.10.2"
-#define LDAP_CONTROL_PRE_READ			"1.3.6.1.4.1.4203.666.5.10.1"
-#define LDAP_CONTROL_POST_READ			"1.3.6.1.4.1.4203.666.5.10.2"
+/*  standard track - not implemented in slapd(8) */
+#define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473" /* RFC 2891 */
+#define LDAP_CONTROL_SORTRESPONSE	"1.2.840.113556.1.4.474" /* RFC 2891 */
+
+/* but not yet formalized controls */
 #define LDAP_CONTROL_PROXY_AUTHZ		"2.16.840.1.113730.3.4.18"
 #define LDAP_CONTROL_VALUESRETURNFILTER	"1.2.826.0.1.334810.2.3"
 
+/* various works in progress */
+#define LDAP_CONTROL_ASSERT				"1.3.6.1.4.1.4203.666.5.9"
+#define LDAP_CONTROL_NOOP				"1.3.6.1.4.1.4203.666.5.2"
+#define LDAP_CONTROL_PRE_READ			"1.3.6.1.4.1.4203.666.5.10.1"
+#define LDAP_CONTROL_POST_READ			"1.3.6.1.4.1.4203.666.5.10.2"
+
+#if 0
+/* LDAP Duplicated Entry Control Extension *//* not implemented in slapd(8) */
+#define LDAP_CONTROL_DUPENT_REQUEST		"2.16.840.1.113719.1.27.101.1"
+#define LDAP_CONTROL_DUPENT_RESPONSE	"2.16.840.1.113719.1.27.101.2"
+#define LDAP_CONTROL_DUPENT_ENTRY		"2.16.840.1.113719.1.27.101.3"
+#define LDAP_CONTROL_DUPENT	LDAP_CONTROL_DUPENT_REQUEST
+#endif
+
+/* LDAP VLV *//* not implemented in slapd(8) */
+#define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"
+#define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
+
+/* Password policy Controls *//* work in progress */
+#define LDAP_CONTROL_PASSWORDPOLICYREQUEST	"1.3.6.1.4.1.42.2.27.8.5.1"
+#define LDAP_CONTROL_PASSWORDPOLICYRESPONSE	"1.3.6.1.4.1.42.2.27.8.5.1"
+
+/* LDAP Sync -- draft-zeilenga-ldup-sync *//* submitted for publication */
 #define LDAP_SYNC_OID			"1.3.6.1.4.1.4203.1.9.1"
 #define LDAP_CONTROL_SYNC		LDAP_SYNC_OID ".1"
 #define LDAP_CONTROL_SYNC_STATE	LDAP_SYNC_OID ".2"
@@ -232,18 +256,6 @@ typedef struct ldapcontrol {
 #define LDAP_SYNC_MODIFY				2
 #define LDAP_SYNC_DELETE				3
 
-#if 0
-/* LDAP Duplicated Entry Control Extension */
-#define LDAP_CONTROL_DUPENT_REQUEST		"2.16.840.1.113719.1.27.101.1"
-#define LDAP_CONTROL_DUPENT_RESPONSE	"2.16.840.1.113719.1.27.101.2"
-#define LDAP_CONTROL_DUPENT_ENTRY		"2.16.840.1.113719.1.27.101.3"
-#define LDAP_CONTROL_DUPENT	LDAP_CONTROL_DUPENT_REQUEST
-#endif
-
-/* Password policy Controls */
-#define LDAP_CONTROL_PASSWORDPOLICYREQUEST	"1.3.6.1.4.1.42.2.27.8.5.1"
-#define LDAP_CONTROL_PASSWORDPOLICYRESPONSE	"1.3.6.1.4.1.42.2.27.8.5.1"
-
 /* MS ActiveDirectory controls (for compatibility) */
 #define LDAP_CONTROL_X_DOMAIN_SCOPE		"1.2.840.113556.1.4.1339"
 #define LDAP_CONTROL_X_PERMISSIVE_MODIFY	"1.2.840.113556.1.4.1413"
@@ -252,14 +264,6 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_X_SEARCH_OPTIONS		"1.2.840.113556.1.4.1340"
 #define LDAP_SEARCH_FLAG_DOMAIN_SCOPE		1 /* do not generate referrals */
 #define LDAP_SEARCH_FLAG_PHANTOM_ROOT		2 /* search all NCs subordinate to base */
-
-/* not implemented in slapd(8) */
-#define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473" /* RFC 2891 */
-#define LDAP_CONTROL_SORTRESPONSE	"1.2.840.113556.1.4.474" /* RFC 2891 */
-
-/* not implemented in slapd(8) */
-#define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"
-#define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
 
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036" /* RFC 2251 */
@@ -277,7 +281,7 @@ typedef struct ldapcontrol {
 #define LDAP_EXOP_X_WHO_AM_I	"1.3.6.1.4.1.4203.1.11.3"
 #define LDAP_EXOP_X_CANCEL		"1.3.6.1.4.1.4203.666.6.3"
 
-/* LDAP Grouping of Related Operations */
+/* LDAP Grouping of Related Operations *//* a work in progress */
 #define LDAP_X_GROUPING_BASE		"1.3.6.1.4.1.4203.666.10.3"
 #define LDAP_EXOP_GROUPING_CREATE	LDAP_X_GROUPING_BASE ".1"
 #define LDAP_EXOP_GROUPING_END		LDAP_X_GROUPING_BASE ".2"
@@ -286,7 +290,7 @@ typedef struct ldapcontrol {
 #define LDAP_NOTICE_GROUPING_INFO	LDAP_X_GROUPING_BASE ".5"
 #define LDAP_CONTROL_GROUPING		LDAP_X_GROUPING_BASE ".6"
 
-/* LDAP Grouping Types */
+/* LDAP Grouping Types *//* a work in progress */
 #define LDAP_GROUP_TRANSACTION		 "1.3.6.1.4.1.4203.666.10.4"
 
 /* LDAP Features */
