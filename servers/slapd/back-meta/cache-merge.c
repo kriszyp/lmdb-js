@@ -120,7 +120,14 @@ merge_entry(
 	sreply.sr_nentries = 0; 
 
 	e = ( Entry * ) ch_calloc( 1, sizeof( Entry )); 
-	dnPrettyNormal(0, &rs->sr_entry->e_name, &e->e_name, &e->e_nname, op->o_tmpmemctx);
+
+	dnPrettyNormal(0, &rs->sr_entry->e_name, &op_tmp.o_req_dn, &op_tmp.o_req_ndn, op->o_tmpmemctx);
+	ber_dupbv( &e->e_name, &op_tmp.o_req_dn );
+	ber_dupbv( &e->e_nname, &op_tmp.o_req_ndn );
+	sl_free( op_tmp.o_req_ndn.bv_val, op->o_tmpmemctx );
+	sl_free( op_tmp.o_req_dn.bv_val, op->o_tmpmemctx );
+	op_tmp.o_req_dn = e->e_name;
+	op_tmp.o_req_ndn = e->e_nname;
 
 	e->e_private = NULL;
 	e->e_attrs = NULL; 
@@ -163,8 +170,6 @@ merge_entry(
 	op_tmp.o_do_not_cache = 1;
 
 	op_tmp.ora_e = e;
-	op_tmp.o_req_dn = e->e_name;
-	op_tmp.o_req_ndn = e->e_nname;
 	rc = op->o_bd->be_add( &op_tmp, &sreply );
 
 	if ( rc != LDAP_SUCCESS ) {
