@@ -43,15 +43,13 @@ ldbm_back_modrdn(
 	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
 	struct berval	p_dn, p_ndn;
 	struct berval	new_dn = { 0, NULL}, new_ndn = { 0, NULL };
+	struct berval	old_ndn = { 0, NULL };
 	Entry		*e, *p = NULL;
 	Entry		*matched;
 	/* LDAP v2 supporting correct attribute handling. */
 	LDAPRDN		new_rdn = NULL;
 	LDAPRDN		old_rdn = NULL;
 	int		isroot = -1;
-#define CAN_ROLLBACK	-1
-#define MUST_DESTROY	1
-	int		rc = CAN_ROLLBACK;
 	int 		rc_id = 0;
 	ID              id = NOID;
 	const char	*text = NULL;
@@ -598,12 +596,11 @@ ldbm_back_modrdn(
 	}
 
 	(void) cache_delete_entry( &li->li_cache, e );
-	rc = MUST_DESTROY;
 
 	/* XXX: there is no going back! */
 
 	free( e->e_dn );
-	free( e->e_ndn );
+	old_ndn = e->e_nname;
 	e->e_name = new_dn;
 	e->e_nname = new_ndn;
 	new_dn.bv_val = NULL;
@@ -633,7 +630,8 @@ ldbm_back_modrdn(
 	
 	default:
 		/* here we may try to delete the newly added dn */
-		if ( dn2id_delete( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {
+		if ( dn2id_delete( op->o_bd, &e->e_nname, e->e_id ) != 0 ||
+			dn2id_add( op->o_bd, &old_ndn, e->e_id ) != 0 ) {
 			/* we already are in trouble ... */
 			;
 		}
@@ -653,12 +651,12 @@ ldbm_back_modrdn(
 	rs->sr_err = LDAP_SUCCESS;
 	rs->sr_text = NULL;
 	send_ldap_result( op, rs );
-	rc = 0;
 	cache_entry_commit( e );
 
 return_results:
 	if( new_dn.bv_val != NULL ) free( new_dn.bv_val );
 	if( new_ndn.bv_val != NULL ) free( new_ndn.bv_val );
+	if( old_ndn.bv_val != NULL ) free( old_ndn.bv_val );
 
 	/* LDAP v2 supporting correct attribute handling. */
 	if ( new_rdn != NULL ) {
@@ -695,13 +693,7 @@ return_results:
 
 	/* free entry and writer lock */
 	cache_return_entry_w( &li->li_cache, e );
-	if ( rc == MUST_DESTROY ) {
-		/* if rc == MUST_DESTROY the entry is uncached 
-		 * and its private data is destroyed; 
-		 * the entry must be freed */
-		entry_free( e );
-	}
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 	rs->sr_text = NULL;
-	return( rc );
+	return( rs->sr_err );
 }
