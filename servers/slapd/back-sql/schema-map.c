@@ -142,6 +142,18 @@ backsql_make_attr_query(
 				&at_map->bam_join_where );
 	}
 
+#ifdef BACKSQL_ALIASING_QUOTE
+	backsql_strfcat( &bb, "lcbc", 
+			(ber_len_t)STRLENOF( " ORDER BY " ), " ORDER BY ",
+			BACKSQL_ALIASING_QUOTE,
+			&at_map->bam_sel_expr,
+			BACKSQL_ALIASING_QUOTE );
+#else /* ! BACKSQL_ALIASING_QUOTE */
+	backsql_strfcat( &bb, "lb", 
+			(ber_len_t)STRLENOF( " ORDER BY " ), " ORDER BY ",
+			&at_map->bam_sel_expr );
+#endif /* ! BACKSQL_ALIASING_QUOTE */
+
 	at_map->bam_query = bb.bb_val.bv_val;
 	
 	return 0;
