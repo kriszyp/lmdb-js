@@ -87,6 +87,8 @@ relay_back_db_init( Backend *be )
 {
 	relay_back_info		*ri;
 
+	be->be_private = NULL;
+
 	ri = (relay_back_info *)ch_calloc( 1, sizeof( relay_back_info ) );
 	if ( ri == NULL ) {
  		return -1;
@@ -107,8 +109,6 @@ relay_back_db_open( Backend *be )
 	assert( ri != NULL );
 
 #if 0
-	be->bd_info = ri->ri_bd->bd_info;
-
 	if ( !ri->ri_do_not_massage ) {
 		char	*argv[ 4 ];
 

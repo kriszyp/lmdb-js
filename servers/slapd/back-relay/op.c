@@ -36,20 +36,28 @@ relay_back_select_backend( struct slap_op *op, struct slap_rep *rs, int err )
 
 	if ( bd == NULL ) {
 		bd = select_backend( &op->o_req_ndn, 0, 1 );
+		if ( bd == op->o_bd ) {
+			if ( err != LDAP_SUCCESS ) {
+				send_ldap_error( op, rs,
+						LDAP_UNWILLING_TO_PERFORM, 
+						"would call self" );
+			}
+			return NULL;
+		}
 	}
 
 	if ( bd == NULL ) {
 		if ( default_referral ) {
 			rs->sr_ref = referral_rewrite( default_referral,
 				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
-			if (!rs->sr_ref) {
+			if ( !rs->sr_ref ) {
 				rs->sr_ref = default_referral;
 			}
 
 			rs->sr_err = LDAP_REFERRAL;
 			send_ldap_result( op, rs );
 
-			if (rs->sr_ref != default_referral) {
+			if ( rs->sr_ref != default_referral ) {
 				ber_bvarray_free( rs->sr_ref );
 			}
 
@@ -425,16 +433,12 @@ relay_back_entry_get_rw( struct slap_op *op, struct berval *ndn,
 int
 relay_back_chk_referrals( struct slap_op *op, struct slap_rep *rs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd;
-	int			rc = 1;
+	int			rc = 0;
 
-	bd = ri->ri_bd;
-	if ( bd == NULL) {
-		bd = select_backend( &op->o_req_ndn, 0, 1 );
-		if ( bd == NULL ) {
-			return 1;
-		}
+	bd = relay_back_select_backend( op, rs, LDAP_SUCCESS );
+	if ( bd == NULL ) {
+		return 0;
 	}
 
 	if ( bd->be_chk_referrals ) {
@@ -509,12 +513,16 @@ relay_back_connection_init( BackendDB *bd, struct slap_conn *c )
 {
 	relay_back_info		*ri = (relay_back_info *)bd->be_private;
 
-	if ( ri->ri_bd->be_connection_init ) {
-		return ( ri->ri_bd->be_connection_init )( ri->ri_bd, c );
+	bd = ri->ri_bd;
+	if ( bd == NULL ) {
+		return 0;
 	}
 
-	return 1;
+	if ( bd->be_connection_init ) {
+		return ( bd->be_connection_init )( bd, c );
+	}
 
+	return 0;
 }
 
 int
@@ -522,11 +530,16 @@ relay_back_connection_destroy( BackendDB *bd, struct slap_conn *c )
 {
 	relay_back_info		*ri = (relay_back_info *)bd->be_private;
 
-	if ( ri->ri_bd->be_connection_destroy ) {
-		return ( ri->ri_bd->be_connection_destroy )( ri->ri_bd, c );
+	bd = ri->ri_bd;
+	if ( bd == NULL) {
+		return 0;
 	}
 
-	return 1;
+	if ( bd->be_connection_destroy ) {
+		return ( bd->be_connection_destroy )( bd, c );
+	}
+
+	return 0;
 
 }
 

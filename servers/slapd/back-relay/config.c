@@ -50,6 +50,7 @@ relay_back_db_config(
 	if ( strcasecmp( argv[0], "relay" ) == 0 ) {
 		struct berval	dn, ndn, pdn;
 		int		rc;
+		char		*cargv[ 4 ];
 
 		if (argc != 2) {
 			fprintf( stderr,
@@ -63,7 +64,7 @@ relay_back_db_config(
 		rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, NULL );
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
-					"relay dn '%s' is invalid\n",
+					"relay dn \"%s\" is invalid\n",
 					fname, lineno, argv[ 1 ] );
 			return 1;
 		}
@@ -72,11 +73,17 @@ relay_back_db_config(
 		if ( ri->ri_bd == NULL ) {
 			fprintf( stderr, "%s: line %d: "
 					"cannot find database "
-					"of relay dn '%s'\n",
+					"of relay dn \"%s\"\n",
 					fname, lineno, argv[ 1 ] );
 			return 1;
-		}
-		
+
+		} else if ( ri->ri_bd == be ) {
+			fprintf( stderr, "%s: line %d: "
+					"relay dn \"%s\" would call self\n",
+					fname, lineno, pdn.bv_val );
+			return 1;
+		} 
+
 		if ( overlay_config( be, "rewrite-remap" ) ) {
 			fprintf( stderr, "unable to install "
 					"rewrite-remap overlay "
@@ -84,6 +91,16 @@ relay_back_db_config(
 					be->be_suffix[0].bv_val,
 					ri->ri_bd->be_suffix[0].bv_val ? 
 					ri->ri_bd->be_suffix[0].bv_val : "<unknown>" );
+			return 1;
+		}
+
+		cargv[ 0 ] = "suffixmassage";
+		cargv[ 1 ] = be->be_suffix[0].bv_val;
+		cargv[ 2 ] = ri->ri_bd->be_suffix[0].bv_val;
+		cargv[ 3 ] = NULL;
+
+		if ( be->be_config( be, "back-relay", 1, 3, cargv ) ) {
+			return 1;
 		}
 
 	/* anything else */
