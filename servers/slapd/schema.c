@@ -311,11 +311,13 @@ oc_check_allowed( char *type, struct berval **ocl )
 			}
 			/* maybe the next oc allows it */
 
+#ifdef OC_UNDEFINED_IMPLES_EXTENSIBLE
 		/* we don't know about the oc. assume it allows it */
 		} else {
 			if ( t != type )
 				ldap_memfree( t );
 			return( 0 );
+#endif
 		}
 	}
 
