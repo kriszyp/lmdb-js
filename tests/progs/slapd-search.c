@@ -81,7 +81,7 @@ main( int argc, char **argv )
 
 	}
 
-	do_search( host, port, sbase, filter, ( 5 * loops ));
+	do_search( host, port, sbase, filter, ( 10 * loops ));
 	exit( EXIT_SUCCESS );
 }
 
