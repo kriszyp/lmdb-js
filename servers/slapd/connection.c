@@ -362,7 +362,7 @@ long connection_init(
 	const char* peername,
 	int flags,
 	slap_ssf_t ssf,
-	const char *authid )
+	struct berval *authid )
 {
 	unsigned long id;
 	Connection *c;
@@ -1336,8 +1336,8 @@ int connection_read(ber_socket_t s)
 				s, rc, c->c_connid );
 #endif
 			}
-			slap_sasl_external( c, c->c_tls_ssf, authid.bv_val );
-			if ( authid.bv_val )	free( authid.bv_val );
+			slap_sasl_external( c, c->c_tls_ssf, &authid );
+			if ( authid.bv_val ) free( authid.bv_val );
 		}
 
 		/* if success and data is ready, fall thru to data input loop */

@@ -44,16 +44,27 @@
 #  define	SASL_CONST
 # endif
 
-static sasl_security_properties_t sasl_secprops;
-
 #define SASL_VERSION_FULL	((SASL_VERSION_MAJOR << 16) |\
 	(SASL_VERSION_MINOR << 8) | SASL_VERSION_STEP)
 
-#endif /* HAVE_CYRUS_SASL */
+static sasl_security_properties_t sasl_secprops;
+#else
+/*
+ * built-in SASL implementation
+ *	only supports EXTERNAL
+ */
+typedef struct sasl_ctx {
+	slap_ssf_t sc_external_ssf;
+	struct berval sc_external_id;
+} SASL_CTX;
+
+#endif
 
 #include "ldap_pvt.h"
 #include "lber_pvt.h"
 #include <lutil.h>
+
+static struct berval ext_bv = BER_BVC( "EXTERNAL" );
 
 int slap_sasl_config( int cargc, char **cargv, char *line,
 	const char *fname, int lineno )
@@ -1098,7 +1109,8 @@ int slap_sasl_init( void )
 
 	sasl_version( NULL, &rc );
 	if ( ((rc >> 16) != ((SASL_VERSION_MAJOR << 8)|SASL_VERSION_MINOR)) ||
-		(rc & 0xffff) < SASL_VERSION_STEP) {
+		(rc & 0xffff) < SASL_VERSION_STEP)
+	{
 		char version[sizeof("xxx.xxx.xxxxx")];
 		sprintf( version, "%u.%d.%d", (unsigned)rc >> 24, (rc >> 16) & 0xff,
 			rc & 0xffff );
@@ -1163,7 +1175,6 @@ int slap_sasl_init( void )
 		0, 0, 0 );
 #endif
 
-
 	/* default security properties */
 	memset( &sasl_secprops, '\0', sizeof(sasl_secprops) );
 	sasl_secprops.max_ssf = INT_MAX;
@@ -1187,14 +1198,16 @@ int slap_sasl_destroy( void )
 
 int slap_sasl_open( Connection *conn, int reopen )
 {
-	int cb, sc = LDAP_SUCCESS;
+	int sc = LDAP_SUCCESS;
+#ifdef HAVE_CYRUS_SASL
+	int cb;
+
+	sasl_conn_t *ctx = NULL;
+	sasl_callback_t *session_callbacks;
+
 #if SASL_VERSION_MAJOR >= 2
 	char *ipremoteport = NULL, *iplocalport = NULL;
 #endif
-
-#ifdef HAVE_CYRUS_SASL
-	sasl_conn_t *ctx = NULL;
-	sasl_callback_t *session_callbacks;
 
 	assert( conn->c_sasl_authctx == NULL );
 
@@ -1325,14 +1338,26 @@ int slap_sasl_open( Connection *conn, int reopen )
 	}
 
 	sc = slap_sasl_err2ldap( sc );
+
+#else
+	/* built-in SASL implementation */
+	SASL_CTX *ctx = (SASL_CTX *) SLAP_MALLOC(sizeof(SASL_CTX));
+	if( ctx == NULL ) return -1;
+
+	ctx->sc_external_ssf = 0;
+	ctx->sc_external_id.bv_len = 0;
+	ctx->sc_external_id.bv_val = NULL;
+
+	conn->c_sasl_authctx = ctx;
 #endif
+
 	return sc;
 }
 
 int slap_sasl_external(
 	Connection *conn,
 	slap_ssf_t ssf,
-	const char *auth_id )
+	struct berval *auth_id )
 {
 #if SASL_VERSION_MAJOR >= 2
 	int sc;
@@ -1348,7 +1373,8 @@ int slap_sasl_external(
 		return LDAP_OTHER;
 	}
 
-	sc = sasl_setprop( ctx, SASL_AUTH_EXTERNAL, auth_id );
+	sc = sasl_setprop( ctx, SASL_AUTH_EXTERNAL,
+		auth_id ? auth_id->bv_val : NULL );
 
 	if ( sc != SASL_OK ) {
 		return LDAP_OTHER;
@@ -1365,13 +1391,27 @@ int slap_sasl_external(
 
 	memset( &extprops, '\0', sizeof(extprops) );
 	extprops.ssf = ssf;
-	extprops.auth_id = (char *) auth_id;
+	extprops.auth_id = auth_id ? auth_id->bv_val : NULL;
 
 	sc = sasl_setprop( ctx, SASL_SSF_EXTERNAL,
 		(void *) &extprops );
 
 	if ( sc != SASL_OK ) {
 		return LDAP_OTHER;
+	}
+#else
+	/* built-in SASL implementation */
+	SASL_CTX *ctx = conn->c_sasl_authctx;
+	if ( ctx == NULL ) return LDAP_UNAVAILABLE;
+
+	ctx->sc_external_ssf = ssf;
+	if( auth_id ) {
+		ctx->sc_external_id = *auth_id;
+		auth_id->bv_len = 0;
+		auth_id->bv_val = NULL;
+	} else {
+		ctx->sc_external_id.bv_len = 0;
+		ctx->sc_external_id.bv_val = NULL;
 	}
 #endif
 
@@ -1418,6 +1458,13 @@ char ** slap_sasl_mechs( Connection *conn )
 		ch_free( mechstr );
 #endif
 	}
+#else
+	/* builtin SASL implementation */
+	SASL_CTX *ctx = conn->c_sasl_authctx;
+	if ( ctx != NULL && ctx->sc_external_id.bv_val ) {
+		/* should check ssf */
+		mechs = ldap_str2charray( "EXTERNAL", "," );
+	}
 #endif
 
 	return mechs;
@@ -1431,7 +1478,9 @@ int slap_sasl_close( Connection *conn )
 	if( ctx != NULL ) {
 		sasl_dispose( &ctx );
 	}
-	if ( conn->c_sasl_sockctx && conn->c_sasl_authctx != conn->c_sasl_sockctx ) {
+	if ( conn->c_sasl_sockctx &&
+		conn->c_sasl_authctx != conn->c_sasl_sockctx )
+	{
 		ctx = conn->c_sasl_sockctx;
 		sasl_dispose( &ctx );
 	}
@@ -1442,6 +1491,17 @@ int slap_sasl_close( Connection *conn )
 
 	free( conn->c_sasl_extra );
 	conn->c_sasl_extra = NULL;
+
+#else
+	SASL_CTX *ctx = conn->c_sasl_authctx;
+	if( ctx ) {
+		if( ctx->sc_external_id.bv_val ) {
+			free( ctx->sc_external_id.bv_val );
+			ctx->sc_external_id.bv_val = NULL;
+		}
+		free( ctx );
+		conn->c_sasl_authctx = NULL;
+	}
 #endif
 
 	return LDAP_SUCCESS;
@@ -1470,7 +1530,6 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 		op->o_conn->c_sasl_bind_mech.bv_val,
 		op->orb_cred.bv_len );
 #endif
-
 
 	if( ctx == NULL ) {
 		send_ldap_error( op, rs, LDAP_UNAVAILABLE,
@@ -1602,8 +1661,32 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 
 
 #else
-	send_ldap_error( op, rs, LDAP_UNAVAILABLE,
-		"SASL not supported" );
+	/* built-in SASL implementation */
+	SASL_CTX *ctx = op->o_conn->c_sasl_authctx;
+
+	if ( ctx == NULL ) {
+		send_ldap_error( op, rs, LDAP_OTHER,
+			"Internal SASL Error" );
+
+	} else if ( bvmatch( &ext_bv, &op->o_conn->c_sasl_bind_mech ) ) {
+		/* EXTERNAL */
+
+		if( op->orb_cred.bv_len ) {
+			rs->sr_text = "proxy authorization not support";
+			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			send_ldap_result( op, rs );
+
+		} else {
+			op->orb_edn = ctx->sc_external_id;
+			rs->sr_err = LDAP_SUCCESS;
+			rs->sr_sasldata = NULL;
+			send_ldap_sasl( op, rs );
+		}
+
+	} else {
+		send_ldap_error( op, rs, LDAP_AUTH_METHOD_NOT_SUPPORTED,
+			"requested SASL mechanism not supported" );
+	}
 #endif
 
 	return rs->sr_err;
@@ -1709,8 +1792,6 @@ done:
 #define	SET_DN		1
 #define	SET_U		2
 
-static struct berval ext_bv = BER_BVC( "EXTERNAL" );
-
 int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 	char *user_realm, struct berval *dn, int flags )
 {
@@ -1759,9 +1840,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 	 * is already normalized, so copy it and skip normalization.
 	 */
 	if( flags & SLAP_GETDN_AUTHCID ) {
-		if( mech->bv_len == ext_bv.bv_len &&
-			strcasecmp( ext_bv.bv_val, mech->bv_val ) == 0 )
-		{
+		if( bvmatch( mech, &ext_bv )) {
 			/* EXTERNAL DNs are already normalized */
 			do_norm = 0;
 			is_dn = SET_DN;

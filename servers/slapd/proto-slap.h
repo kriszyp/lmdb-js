@@ -353,7 +353,7 @@ LDAP_SLAPD_F (long) connection_init LDAP_P((
 	const char* peername,
 	int use_tls,
 	slap_ssf_t ssf,
-	const char *id ));
+	struct berval *id ));
 
 LDAP_SLAPD_F (void) connection_closing LDAP_P(( Connection *c ));
 LDAP_SLAPD_F (int) connection_state_closing LDAP_P(( Connection *c ));
@@ -958,7 +958,7 @@ LDAP_SLAPD_F (char **) slap_sasl_mechs( Connection *c );
 
 LDAP_SLAPD_F (int) slap_sasl_external( Connection *c,
 	slap_ssf_t ssf,	/* relative strength of external security */
-	const char *authid );	/* asserted authenication id */
+	struct berval *authid );	/* asserted authenication id */
 
 LDAP_SLAPD_F (int) slap_sasl_reset( Connection *c );
 LDAP_SLAPD_F (int) slap_sasl_close( Connection *c );
