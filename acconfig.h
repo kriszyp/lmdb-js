@@ -113,6 +113,19 @@
 #define vsprintf ber_pvt_vsprintf
 #endif
 
+#ifdef OPENLDAP_FD_SETSIZE
+	/* assume installer desires to enlarge fd_set */
+#ifdef HAVE_BITS_TYPES_H
+#include <bits/types.h>
+#endif
+#ifdef	__FD_SETSIZE
+#undef	__FD_SETSIZE
+#define	__FD_SETSIZE OPENLDAP_FD_SETSIZE
+#else
+#define	FD_SETSIZE OPENLDAP_FD_SETSIZE
+#endif
+#endif
+
 #include "ldap_cdefs.h"
 #include "ldap_features.h"
 

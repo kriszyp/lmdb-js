@@ -847,6 +847,7 @@ AC_CHECK_HEADERS(	\
 	arpa/inet.h		\
 	arpa/nameser.h	\
 	assert.h		\
+	bits/types.h	\
 	conio.h			\
 	crypt.h			\
 	direct.h		\

@@ -350,6 +350,9 @@
 /* Define if you have the <assert.h> header file.  */
 #undef HAVE_ASSERT_H
 
+/* Define if you have the <bits/types.h> header file.  */
+#undef HAVE_BITS_TYPES_H
+
 /* Define if you have the <conio.h> header file.  */
 #undef HAVE_CONIO_H
 
@@ -1022,6 +1025,9 @@
 /* define for Proxy Cache overlay */
 #undef SLAPD_OVER_PROXYCACHE
 
+/* define for Rewrite/Remap overlay */
+#undef SLAPD_OVER_RWM
+
 /* define to enable rewriting in back-ldap and back-meta */
 #undef ENABLE_REWRITE
 
@@ -1065,6 +1071,19 @@
 #define fprintf ber_pvt_fprintf
 #define vfprintf ber_pvt_vfprintf
 #define vsprintf ber_pvt_vsprintf
+#endif
+
+#ifdef OPENLDAP_FD_SETSIZE
+	/* assume installer desires to enlarge fd_set */
+#ifdef HAVE_BITS_TYPES_H
+#include <bits/types.h>
+#endif
+#ifdef	__FD_SETSIZE
+#undef	__FD_SETSIZE
+#define	__FD_SETSIZE OPENLDAP_FD_SETSIZE
+#else
+#define	FD_SETSIZE OPENLDAP_FD_SETSIZE
+#endif
 #endif
 
 #include "ldap_cdefs.h"
