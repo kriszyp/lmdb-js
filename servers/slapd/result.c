@@ -650,8 +650,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	computed_attr_context	 ctx;
 	AttributeName	*anp;
 #endif
-	void		*mark = NULL;
-
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
 	/* a_flags: array of flags telling if the i-th element will be
@@ -675,8 +673,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		rs->sr_entry->e_name.bv_val,
 		op->ors_attrsonly ? " (attrsOnly)" : "", 0 );
 #endif
-
-	mark = sl_mark( op->o_tmpmemctx );
 
 	if ( !access_allowed( op, rs->sr_entry, ad_entry, NULL, ACL_READ, NULL )) {
 #ifdef NEW_LOGGING
@@ -1231,7 +1227,6 @@ error_return:;
 		rs->sr_flags &= ~REP_ENTRY_MUSTBEFREED;
 	}
 
-	sl_release( mark, op->o_tmpmemctx );
 	if ( e_flags ) sl_free( e_flags, op->o_tmpmemctx );
 
 	return( rc );
@@ -1244,7 +1239,6 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	BerElement	*ber = (BerElement *) &berbuf;
 	int rc = 0;
 	int bytes;
-	void *mark;
 
 	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
@@ -1254,8 +1248,6 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 		rc = op->o_callback->sc_response( op, rs );
 		if ( rc != SLAP_CB_CONTINUE ) return rc;
 	}
-
-	mark = sl_mark( op->o_tmpmemctx );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
@@ -1281,8 +1273,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 			"send_search_reference: access to entry not allowed\n",
 		    0, 0, 0 );
 #endif
-		rc = 1;
-		goto rel;
+		return 1;
 	}
 
 	if ( rs->sr_entry && ! access_allowed( op, rs->sr_entry,
@@ -1298,8 +1289,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 			"to reference not allowed\n",
 		    0, 0, 0 );
 #endif
-		rc = 1;
-		goto rel;
+		return 1;
 	}
 
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
@@ -1313,8 +1303,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 			"send_search_reference: domainScope control in (%s)\n", 
 			rs->sr_entry->e_dn, 0, 0 );
 #endif
-		rc = 0;
-		goto rel;
+		return 0;
 	}
 #endif
 
@@ -1328,8 +1317,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 			"send_search_reference: null ref in (%s)\n", 
 			rs->sr_entry ? rs->sr_entry->e_dn : "(null)", 0, 0 );
 #endif
-		rc = 1;
-		goto rel;
+		return 1;
 	}
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
@@ -1338,8 +1326,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 			if( value_add( &rs->sr_v2ref, rs->sr_ref ) )
 				return LDAP_OTHER;
 		}
-		rc = 0;
-		goto rel;
+		return 0;
 	}
 
 #ifdef LDAP_CONNECTIONLESS
@@ -1378,7 +1365,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 #endif
 		ber_free_buf( ber );
 		send_ldap_error( op, rs, LDAP_OTHER, "encode DN error" );
-		goto rel;
+		return rc;
 	}
 
 #ifdef LDAP_CONNECTIONLESS
@@ -1406,8 +1393,6 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_reference\n", 0, 0, 0 );
 #endif
 
-rel:
-	sl_release( mark, op->o_tmpmemctx );
 	return rc;
 }
 
