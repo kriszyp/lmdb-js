@@ -79,9 +79,11 @@ main( int argc, char **argv )
 
 		/* check backend */
 		if( select_backend( e->e_ndn ) != be ) {
-			fprintf( stderr, "%s: database not configured to "
+			fprintf( stderr, "%s: database (%s) not configured to "
 				"hold dn=\"%s\" (line=%d)\n",
-				progname, e->e_dn, lineno );
+				progname,
+				be ? be->be_suffix[0] : "<none>",
+				e->e_dn, lineno );
 			rc = EXIT_FAILURE;
 			entry_free( e );
 			if( continuemode ) continue;
