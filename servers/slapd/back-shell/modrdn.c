@@ -1,5 +1,9 @@
 /* modrdn.c - shell backend modrdn function */
 /* $OpenLDAP$ */
+/*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 /*
  * LDAP v3 newSuperior support.

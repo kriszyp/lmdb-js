@@ -1,5 +1,9 @@
 /* shell.h - shell backend header file */
 /* $OpenLDAP$ */
+/*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 #ifndef SLAPD_SHELL_H
 #define SLAPD_SHELL_H

@@ -1,5 +1,9 @@
 /* result.c - shell backend result reading function */
 /* $OpenLDAP$ */
+/*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 #include "portable.h"
 
