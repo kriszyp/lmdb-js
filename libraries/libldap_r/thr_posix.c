@@ -162,9 +162,10 @@ ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 int 
 ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 {
-#if HAVE_PTHREADS > 6
+#if ( HAVE_PTHREAD_KILL && HAVE_PTHREADS > 6 )
+	/* MacOS 10.1 is detected as v10 but has no pthread_kill() */
 	return pthread_kill( thread, signo );
-#elif HAVE_PTHREADS > 4
+#elif ( HAVE_PTHREAD_KILL && HAVE_PTHREADS > 4 )
 	if ( pthread_kill( thread, signo ) < 0 ) return errno;
 	return 0;
 #else
