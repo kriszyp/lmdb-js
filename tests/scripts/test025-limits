@@ -161,7 +161,7 @@ case $RC in
 	;;
 	4)
 		if test "x$COUNT" != "x" ; then
-			if test $SIZELIMIT = $COUNT ; then
+			if test "x$SIZELIMIT" = "x$COUNT" ; then
 				echo "...bumped into requested ($SIZELIMIT) size limit"
 			else
 				echo "...bumped into server-side size limit ($COUNT)"
@@ -190,7 +190,7 @@ case $RC in
 	;;
 	4)
 		if test "x$COUNT" != "x" ; then
-			if test $SIZELIMIT = $COUNT ; then
+			if test "x$SIZELIMIT" = "x$COUNT" ; then
 				echo "...bumped into requested ($SIZELIMIT) size limit"
 			else
 				echo "...bumped into server-side size limit ($COUNT)"
@@ -323,7 +323,7 @@ case $RC in
 	;;
 	4)
 		if test "x$COUNT" != "x" ; then
-			if test $SIZELIMIT = $COUNT ; then
+			if test "x$SIZELIMIT" = "x$COUNT" ; then
 				echo "...bumped into requested ($SIZELIMIT) size limit"
 			else
 				echo "...bumped into server-side size limit ($COUNT)"
@@ -351,7 +351,7 @@ case $RC in
 	;;
 	4)
 		if test "x$COUNT" != "x" ; then
-			if test $SIZELIMIT = $COUNT ; then
+			if test "x$SIZELIMIT" = "x$COUNT" ; then
 				echo "...bumped into requested ($SIZELIMIT) size limit"
 			else
 				echo "...bumped into server-side size limit ($COUNT)"
@@ -379,7 +379,7 @@ case $RC in
 	;;
 	4)
 		if test "x$COUNT" != "x" ; then
-			if test $SIZELIMIT = $COUNT ; then
+			if test "x$SIZELIMIT" = "x$COUNT" ; then
 				echo "...bumped into requested ($SIZELIMIT) size limit"
 			else
 				echo "...bumped into server-side size limit ($COUNT)"
@@ -407,7 +407,7 @@ case $RC in
 	;;
 	4)
 		if test "x$COUNT" != "x" ; then
-			if test $SIZELIMIT = $COUNT ; then
+			if test "x$SIZELIMIT" = "x$COUNT" ; then
 				echo "...bumped into requested ($SIZELIMIT) size limit"
 			else
 				echo "...bumped into server-side size limit ($COUNT)"
@@ -435,7 +435,7 @@ case $RC in
 	;;
 	4)
 		if test "x$COUNT" != "x" ; then
-			if test $SIZELIMIT = $COUNT ; then
+			if test "x$SIZELIMIT" = "x$COUNT" ; then
 				echo "...bumped into requested ($SIZELIMIT) size limit"
 			else
 				echo "...bumped into server-side size limit ($COUNT)"
@@ -462,7 +462,7 @@ case $RC in
 	;;
 	4)
 		if test "x$COUNT" != "x" ; then
-			if test $SIZELIMIT = $COUNT ; then
+			if test "x$SIZELIMIT" = "x$COUNT" ; then
 				echo "...bumped into requested ($SIZELIMIT) size limit"
 			else
 				echo "...bumped into server-side size limit ($COUNT)"
@@ -587,7 +587,7 @@ case $RC in
 	;;
 	4)
 		if test "x$COUNT" != "x" ; then
-			if test $SIZELIMIT = $COUNT ; then
+			if test "x$SIZELIMIT" = "x$COUNT" ; then
 				echo "...bumped into requested ($SIZELIMIT) size limit"
 			else
 				echo "...bumped into server-side size limit ($COUNT)"
@@ -616,7 +616,7 @@ case $RC in
 	;;
 	4)
 		if test "x$COUNT" != "x" ; then
-			if test $SIZELIMIT = $COUNT ; then
+			if test "x$SIZELIMIT" = "x$COUNT" ; then
 				echo "...bumped into requested ($SIZELIMIT) size limit"
 			else
 				echo "...bumped into server-side size limit ($COUNT)"
@@ -823,7 +823,7 @@ case $RC in
 	;;
 	4)
 		if test "x$COUNT" != "x" ; then
-			if test $SIZELIMIT = $COUNT ; then
+			if test "x$SIZELIMIT" = "x$COUNT" ; then
 				echo "...bumped into requested ($SIZELIMIT) size limit"
 			else
 				echo "...bumped into server-side size limit ($COUNT)"
@@ -855,7 +855,7 @@ case $RC in
 	;;
 	4)
 		if test "x$COUNT" != "x" ; then
-			if test $SIZELIMIT = $COUNT ; then
+			if test "x$SIZELIMIT" = "x$COUNT" ; then
 				echo "...bumped into requested ($SIZELIMIT) size limit"
 			else
 				echo "...bumped into server-side size limit ($COUNT)"
