@@ -43,7 +43,7 @@ ldap_pvt_thread_t		start_status_tid,	stop_status_tid;
 
 void (*stopfunc)(int);
 
-char *GetLastErrorString( void );
+static char *GetLastErrorString( void );
 
 int srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszDisplayName,
 		LPCTSTR lpszBinaryPathName, BOOL auto_start)
@@ -428,7 +428,7 @@ void ReportSlapdShutdownComplete(  )
 	}
 }
 
-char *GetErrorString( int err )
+static char *GetErrorString( int err )
 {
 	static char msgBuf[1024];
 
@@ -441,7 +441,7 @@ char *GetErrorString( int err )
 	return msgBuf;
 }
 
-char *GetLastErrorString( void )
+static char *GetLastErrorString( void )
 {
 	return GetErrorString( GetLastError() );
 }

@@ -7,6 +7,7 @@
 #include <winsock.h>
 #endif /* HAVE_WINSOCK(2) */
 
+#undef __RETSTR
 #define __RETSTR( x ) case x: return #x;
 
 char *ber_pvt_wsa_err2string( int err )
@@ -79,7 +80,5 @@ char *ber_pvt_wsa_err2string( int err )
 		__RETSTR( WSANO_RECOVERY )
 		__RETSTR( WSANO_DATA )
 	}
-	return "unknown";
+	return "unknown WSA error";
 }
-
-#undef __RETSTR
