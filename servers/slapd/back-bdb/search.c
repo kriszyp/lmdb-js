@@ -51,7 +51,6 @@ bdb_search(
 	ID		id, cursor;
 	ID		candidates[BDB_IDL_UM_SIZE];
 	Entry		*e = NULL;
-	const static Entry roote = { NOID, "", "", NULL, NULL };
 	struct berval **v2refs = NULL;
 	Entry	*matched = NULL;
 	char	*realbase = NULL;
@@ -68,7 +67,7 @@ bdb_search(
 
 	if ( *nbase == '\0' ) {
 		/* DIT root special case */
-		e = (Entry *) &roote;
+		e = (Entry *) &slap_entry_root;
 		rc = 0;
 	} else						
 #ifdef BDB_ALIASES
@@ -128,7 +127,7 @@ bdb_search(
 		return rc;
 	}
 
-	if (!manageDSAit &&  e != &roote && is_entry_referral( e ) ) {
+	if (!manageDSAit &&  e != &slap_entry_root && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		char *matched_dn = ch_strdup( e->e_dn );
 		struct berval **erefs = get_entry_referrals( be,
@@ -243,7 +242,7 @@ bdb_search(
 	 * FIXME: hack to make "" base work */
 	cursor = e->e_id == NOID ? 1 : e->e_id;
 
-	if ( e != &roote ) {
+	if ( e != &slap_entry_root ) {
 		bdb_entry_return( be, e );
 	}
 	e = NULL;

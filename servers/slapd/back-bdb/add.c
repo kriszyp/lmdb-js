@@ -196,9 +196,8 @@ retry:	rc = txn_abort( ltid );
 		 */
 		if ( !be_isroot( be, op->o_ndn )) {
 			if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn ) ) {
-				static const Entry rootp = { NOID, "", "", NULL, NULL };
 
-				p = (Entry *)&rootp;
+				p = (Entry *)&slap_entry_root;
 
 				/* check parent for "children" acl */
 				rc = access_allowed( be, conn, op, p,

@@ -21,6 +21,11 @@ static unsigned char	*ebuf;	/* buf returned by entry2str		 */
 static unsigned char	*ecur;	/* pointer to end of currently used ebuf */
 static int		emaxsize;/* max size of ebuf			 */
 
+/*
+ * Empty root entry
+ */
+const Entry slap_entry_root = { NOID, "", "", NULL, NULL };
+
 int entry_destroy(void)
 {
 	free( ebuf );

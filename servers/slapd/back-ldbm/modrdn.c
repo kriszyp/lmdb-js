@@ -210,8 +210,7 @@ ldbm_back_modrdn(
 		if ( ! be_isroot ) {
 			if ( be_issuffix( be, "" )
 					|| be_isupdate( be, op->o_ndn ) ) {
-				static const Entry rootp = { NOID, "", "", NULL, NULL };
-				p = (Entry *)&rootp;
+				p = (Entry *)&slap_entry_root;
 				
 				rc = access_allowed( be, conn, op, p,
 						children, NULL, ACL_WRITE );
@@ -390,8 +389,7 @@ ldbm_back_modrdn(
 			if ( ! be_isroot ) {
 				if ( be_issuffix( be, "" )
 						|| be_isupdate( be, op->o_ndn ) ) {
-					static const Entry rootp = { NOID, "", "", NULL, NULL };
-					np = (Entry *)&rootp;
+					np = (Entry *)&slap_entry_root;
 				
 					rc = access_allowed( be, conn, op, np,
 							children, NULL, ACL_WRITE );

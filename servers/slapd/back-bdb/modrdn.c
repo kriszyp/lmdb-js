@@ -30,7 +30,6 @@ bdb_modrdn(
 	char		*p_dn = NULL, *p_ndn = NULL;
 	char		*new_dn = NULL, *new_ndn = NULL;
 	int		isroot = -1;
-	const static Entry roote = { NOID, "", "", NULL, NULL };
 	Entry		*e, *p = NULL;
 	Entry		*matched;
 	int			rc;
@@ -214,7 +213,7 @@ retry:	/* transaction retry */
 		if ( ! isroot ) {
 			if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn ) ) {
 
-				p = (Entry *)&roote;
+				p = (Entry *)&slap_entry_root;
 
 				/* check parent for "children" acl */
 				rc = access_allowed( be, conn, op, p,
@@ -335,7 +334,7 @@ retry:	/* transaction retry */
 			if ( ! isroot ) {
 				if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn ) ) {
 
-					np = (Entry *)&roote;
+					np = (Entry *)&slap_entry_root;
 
 					/* check parent for "children" acl */
 					rc = access_allowed( be, conn, op, np,

@@ -212,8 +212,7 @@ ldbm_back_add(
 		if ( !be_isroot( be, op->o_ndn ) ) {
 			if ( be_issuffix( be, "" ) 
 					|| be_isupdate( be, op->o_ndn ) ) {
-				static const Entry rootp = { NOID, "", "", NULL, NULL };
-				p = (Entry *)&rootp;
+				p = (Entry *)&slap_entry_root;
 				
 				rc = access_allowed( be, conn, op, p,
 					children, NULL, ACL_WRITE );

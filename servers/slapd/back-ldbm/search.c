@@ -67,8 +67,7 @@ ldbm_back_search(
 
 	if ( *nbase == '\0' ) {
 		/* DIT root special case */
-		static const Entry root = { NOID, "", "", NULL, NULL };
-		e = (Entry *) &root;
+		e = (Entry *) &slap_entry_root;
 
 		/* need normalized dn below */
 		realbase = ch_strdup( e->e_ndn );

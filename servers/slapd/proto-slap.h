@@ -333,6 +333,8 @@ LDAP_SLAPD_F (void) build_new_dn LDAP_P(( char ** new_dn,
  * entry.c
  */
 
+extern const Entry slap_entry_root;
+
 LDAP_SLAPD_F (int) entry_destroy LDAP_P((void));
 
 LDAP_SLAPD_F (Entry *) str2entry LDAP_P(( char	*s ));
