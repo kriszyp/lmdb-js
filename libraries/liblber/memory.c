@@ -27,7 +27,7 @@ struct ber_mem_hdr {
 #define bm_junk	ber_align.bmu_len_t
 #define bm_data	ber_align.bmu_char[1]
 };
-#define BER_MEM_JUNK 0xddeeddeeU
+#define BER_MEM_JUNK 0xdeaddadaU
 static const struct ber_mem_hdr ber_int_mem_hdr = { BER_MEM_JUNK };
 #define BER_MEM_BADADDR	((void *) &ber_int_mem_hdr.bm_data)
 #define BER_MEM_VALID(p)	do { \
