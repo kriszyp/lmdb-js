@@ -608,7 +608,7 @@ ldap_pvt_sasl_bind(
 	LDAP			*ld,
 	LDAP_CONST char		*dn,
 	LDAP_CONST char		*mechanism,
-	const sasl_callback_t	*callbacks,
+	LDAP_CONST sasl_callback_t	*callbacks,
 	LDAPControl		**sctrls,
 	LDAPControl		**cctrls )
 {
