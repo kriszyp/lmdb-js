@@ -42,7 +42,7 @@ main( int argc, char **argv )
 	Datum		savekey, key, data, last;
 	char		*fname;
 	ID		id;
-	IDList		*idl;
+	ID_BLOCK		*idl;
 	Backend		*tbe;
 	int		i;
 	char 		*tailorfile;
@@ -127,7 +127,7 @@ main( int argc, char **argv )
 			get_keydata( stdin, buf[1], &key, NULL );
 			if ( (idl = idl_fetch( be, dbc, key )) != NULL ) {
 				data.dptr = (char *) idl;
-				data.dsize = (idl->b_nmax + 1) * sizeof(ID);
+				data.dsize = (ID_BLOCK_NMAX(idl) + 1) * sizeof(ID);
 				print_entry( stdout, buf[1], &key, "key: ",
 				    &data, "data:\n" );
 			}
@@ -266,7 +266,7 @@ main( int argc, char **argv )
 
 			get_keydata( stdin, buf[1], &key, &data );
 
-			idl = (IDList *) data.dptr;
+			idl = (ID_BLOCK *) data.dptr;
 			for ( id = idl_firstid( idl ); id != NOID;
 			    id = idl_nextid( idl, id ) ) {
 				if ( idl_insert_key( be, dbc, key, id )
@@ -390,7 +390,7 @@ get_idlist( FILE *fp, Datum *data )
 {
 	char	buf[20];
 	int	i, j, fd, tty;
-	IDList	*p;
+	ID_BLOCK	*p;
 	int	psize, pmax;
 	int	nmax, nids;
 
@@ -415,7 +415,7 @@ get_idlist( FILE *fp, Datum *data )
 
 		if ( psize + sizeof(ID) > pmax ) {
 			pmax += BUFSIZ;
-			p = (IDList *) myrealloc( (char *) p, pmax );
+			p = (ID_BLOCK *) myrealloc( (char *) p, pmax );
 		}
 
 		if ( strncmp( buf, "nids=0", 6 ) == 0 ) {
@@ -423,7 +423,7 @@ get_idlist( FILE *fp, Datum *data )
 			continue;
 		}
 
-		p->b_ids[i++] = atol( buf );
+		ID_BLOCK_ID(p,i++) = atol( buf );
 		psize += sizeof(ID);
 	}
 	if ( nmax == 0 ) {
@@ -440,19 +440,19 @@ get_idlist( FILE *fp, Datum *data )
 		}
 	}
 	if ( i > 0 ) {
-		p->b_nmax = nmax;
+		ID_BLOCK_NMAX(p) = nmax;
 		if ( nids != 0 ) {
-			p->b_nids = 0;
-			p->b_ids[i] = NOID;
+			ID_BLOCK_NIDS(p) = 0;
+			ID_BLOCK_ID(p,i) = NOID;
 		} else {
-			p->b_nids = i;
+			ID_BLOCK_NIDS(p) = i;
 		}
 
-		qsort( (void *) p->b_ids, i, sizeof(ID), dnid_cmp );
+		qsort( (void *) &ID_BLOCK_ID(p, 0), i, sizeof(ID), dnid_cmp );
 	}
 
 	data->dptr = (char *) p;
-	data->dsize = (nmax + 2) * sizeof(ID);
+	data->dsize = (nmax + ID_BLOCK_IDS_OFFSET) * sizeof(ID);
 }
 
 static void
@@ -630,7 +630,7 @@ print_entry(
 )
 {
 	ID	id;
-	IDList	*idl;
+	ID_BLOCK	*idl;
 	int	i;
 	char	msg[2];
 
@@ -677,22 +677,22 @@ print_entry(
 			fprintf( fp, "%s%s (len %d)\n", klabel, key->dptr,
 			    key->dsize );
 		if ( data != NULL ) {
-			idl = (IDList *) data->dptr;
+			idl = (ID_BLOCK *) data->dptr;
 
 			if ( dlabel )
 				fprintf( fp, "%s\tnmax=%ld\n\tncur=%ld\n", dlabel,
-				    idl->b_nmax, idl->b_nids );
+				    ID_BLOCK_NMAX(idl), ID_BLOCK_NIDS(idl) );
 
-			if ( INDIRECT_BLOCK( idl ) ) {
-				for ( i = 0; idl->b_ids[i] != NOID; i++ ) {
-					fprintf( fp, "\t%ld\n", idl->b_ids[i] );
+			if ( ID_BLOCK_INDIRECT( idl ) ) {
+				for ( i = 0; !ID_BLOCK_NOID(idl, i); i++ ) {
+					fprintf( fp, "\t%ld\n", ID_BLOCK_ID(idl, i) );
 				}
-			} else if ( ALLIDS( idl ) ) {
+			} else if ( ID_BLOCK_ALLIDS( idl ) ) {
 				fprintf( fp, "\tALLIDS (1..%ld)\n",
-				    idl->b_nids - 1 );
+				    ID_BLOCK_NIDS(idl) - 1 );
 			} else {
-				for ( i = 0; i < idl->b_nids; i++ ) {
-					fprintf( fp, "\t%ld\n", idl->b_ids[i] );
+				for ( i = 0; i < ID_BLOCK_NIDS(idl); i++ ) {
+					fprintf( fp, "\t%ld\n", ID_BLOCK_ID(idl,i) );
 				}
 			}
 		}

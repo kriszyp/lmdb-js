@@ -10,12 +10,12 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-static IDList	*ava_candidates( Backend *be, Ava *ava, int type );
-static IDList	*presence_candidates( Backend *be, char *type );
-static IDList	*approx_candidates( Backend *be, Ava *ava );
-static IDList	*list_candidates( Backend *be, Filter *flist, int ftype );
-static IDList	*substring_candidates( Backend *be, Filter *f );
-static IDList	*substring_comp_candidates( Backend *be, char *type, char *val, int prepost );
+static ID_BLOCK	*ava_candidates( Backend *be, Ava *ava, int type );
+static ID_BLOCK	*presence_candidates( Backend *be, char *type );
+static ID_BLOCK	*approx_candidates( Backend *be, Ava *ava );
+static ID_BLOCK	*list_candidates( Backend *be, Filter *flist, int ftype );
+static ID_BLOCK	*substring_candidates( Backend *be, Filter *f );
+static ID_BLOCK	*substring_comp_candidates( Backend *be, char *type, char *val, int prepost );
 
 /*
  * test_filter - test a filter against a single entry.
@@ -24,13 +24,13 @@ static IDList	*substring_comp_candidates( Backend *be, char *type, char *val, in
  *		>0	an ldap error code
  */
 
-IDList *
+ID_BLOCK *
 filter_candidates(
     Backend	*be,
     Filter	*f
 )
 {
-	IDList	*result, *tmp1, *tmp2;
+	ID_BLOCK	*result, *tmp1, *tmp2;
 
 	Debug( LDAP_DEBUG_TRACE, "=> filter_candidates\n", 0, 0, 0 );
 
@@ -87,18 +87,18 @@ filter_candidates(
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= filter_candidates %lu\n",
-	    result ? result->b_nids : 0, 0, 0 );
+	    result ? ID_BLOCK_NIDS(result) : 0, 0, 0 );
 	return( result );
 }
 
-static IDList *
+static ID_BLOCK *
 ava_candidates(
     Backend	*be,
     Ava		*ava,
     int		type
 )
 {
-	IDList	*idl;
+	ID_BLOCK	*idl;
 
 	Debug( LDAP_DEBUG_TRACE, "=> ava_candidates 0x%x\n", type, 0, 0 );
 
@@ -118,35 +118,35 @@ ava_candidates(
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= ava_candidates %lu\n",
-	    idl ? idl->b_nids : 0, 0, 0 );
+	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
 
-static IDList *
+static ID_BLOCK *
 presence_candidates(
     Backend	*be,
     char	*type
 )
 {
-	IDList	*idl;
+	ID_BLOCK	*idl;
 
 	Debug( LDAP_DEBUG_TRACE, "=> presence_candidates\n", 0, 0, 0 );
 
 	idl = index_read( be, type, 0, "*" );
 
 	Debug( LDAP_DEBUG_TRACE, "<= presence_candidates %lu\n",
-	    idl ? idl->b_nids : 0, 0, 0 );
+	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
 
-static IDList *
+static ID_BLOCK *
 approx_candidates(
     Backend	*be,
     Ava		*ava
 )
 {
 	char	*w, *c;
-	IDList	*idl, *tmp;
+	ID_BLOCK	*idl, *tmp;
 
 	Debug( LDAP_DEBUG_TRACE, "=> approx_candidates\n", 0, 0, 0 );
 
@@ -172,18 +172,18 @@ approx_candidates(
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= approx_candidates %lu\n",
-	    idl ? idl->b_nids : 0, 0, 0 );
+	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
 
-static IDList *
+static ID_BLOCK *
 list_candidates(
     Backend	*be,
     Filter	*flist,
     int		ftype
 )
 {
-	IDList	*idl, *tmp, *tmp2;
+	ID_BLOCK	*idl, *tmp, *tmp2;
 	Filter	*f;
 
 	Debug( LDAP_DEBUG_TRACE, "=> list_candidates 0x%x\n", ftype, 0, 0 );
@@ -213,18 +213,18 @@ list_candidates(
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= list_candidates %lu\n",
-	    idl ? idl->b_nids : 0, 0, 0 );
+	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
 
-static IDList *
+static ID_BLOCK *
 substring_candidates(
     Backend	*be,
     Filter	*f
 )
 {
 	int	i;
-	IDList	*idl, *tmp, *tmp2;
+	ID_BLOCK	*idl, *tmp, *tmp2;
 
 	Debug( LDAP_DEBUG_TRACE, "=> substring_candidates\n", 0, 0, 0 );
 
@@ -280,11 +280,11 @@ substring_candidates(
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= substring_candidates %lu\n",
-	    idl ? idl->b_nids : 0, 0, 0 );
+	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
 
-static IDList *
+static ID_BLOCK *
 substring_comp_candidates(
     Backend	*be,
     char	*type,
@@ -293,7 +293,7 @@ substring_comp_candidates(
 )
 {
 	int	i, len;
-	IDList	*idl, *tmp, *tmp2;
+	ID_BLOCK	*idl, *tmp, *tmp2;
 	char	*p;
 	char	buf[SUBLEN + 1];
 
@@ -348,6 +348,6 @@ substring_comp_candidates(
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= substring_comp_candidates %lu\n",
-	    idl ? idl->b_nids : 0, 0, 0 );
+	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }

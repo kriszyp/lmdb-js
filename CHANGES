@@ -6,6 +6,8 @@ Changes included in OpenLDAP 1.2
 	Fixed slapd/ldbm/add,modrdn,delete e_ndn handling
 	Fixed -lldap/ldap_init() bug
 	Fixed -lldap/ldap_sort_entries() zero entries bug
+	Fixed slapd/slap_op memory/lock leak bug
+	Updated slapd/back-ldbm IDList handling
 	Updated ldap_open(3) man page to note ldap_init() is preferred.
 	Updated internal thread library
 	Updated slapd/back-shell to use void* private and pid_t

@@ -11,9 +11,9 @@
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
 
-static IDList	*base_candidates(Backend *be, Connection *conn, Operation *op, char *base, Filter *filter, char **attrs, int attrsonly, char **matched, int *err);
-static IDList	*onelevel_candidates(Backend *be, Connection *conn, Operation *op, char *base, Filter *filter, char **attrs, int attrsonly, char **matched, int *err);
-static IDList	*subtree_candidates(Backend *be, Connection *conn, Operation *op, char *base, Filter *filter, char **attrs, int attrsonly, char **matched, Entry *e, int *err, int lookupbase);
+static ID_BLOCK	*base_candidates(Backend *be, Connection *conn, Operation *op, char *base, Filter *filter, char **attrs, int attrsonly, char **matched, int *err);
+static ID_BLOCK	*onelevel_candidates(Backend *be, Connection *conn, Operation *op, char *base, Filter *filter, char **attrs, int attrsonly, char **matched, int *err);
+static ID_BLOCK	*subtree_candidates(Backend *be, Connection *conn, Operation *op, char *base, Filter *filter, char **attrs, int attrsonly, char **matched, Entry *e, int *err, int lookupbase);
 
 #define GRABSIZE	BUFSIZ
 
@@ -45,7 +45,7 @@ ldbm_back_search(
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	int		err;
 	time_t		stoptime;
-	IDList		*candidates;
+	ID_BLOCK		*candidates;
 	ID		id;
 	Entry		*e;
 	Attribute	*ref;
@@ -311,7 +311,7 @@ ldbm_back_search(
 	return( 0 );
 }
 
-static IDList *
+static ID_BLOCK *
 base_candidates(
     Backend	*be,
     Connection	*conn,
@@ -327,7 +327,7 @@ base_candidates(
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	int		rc;
 	ID		id;
-	IDList		*idl;
+	ID_BLOCK		*idl;
 	Entry		*e;
 
 	Debug(LDAP_DEBUG_TRACE, "base_candidates: base: \"%s\"\n", base, 0, 0);
@@ -352,7 +352,7 @@ base_candidates(
 	return( idl );
 }
 
-static IDList *
+static ID_BLOCK *
 onelevel_candidates(
     Backend	*be,
     Connection	*conn,
@@ -369,7 +369,7 @@ onelevel_candidates(
 	Entry		*e = NULL;
 	Filter		*f;
 	char		buf[20];
-	IDList		*candidates;
+	ID_BLOCK		*candidates;
 
 	Debug(LDAP_DEBUG_TRACE, "onelevel_candidates: base: \"%s\"\n", base, 0, 0);
 
@@ -415,7 +415,7 @@ onelevel_candidates(
 	return( candidates );
 }
 
-static IDList *
+static ID_BLOCK *
 subtree_candidates(
     Backend	*be,
     Connection	*conn,
@@ -432,7 +432,7 @@ subtree_candidates(
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	Filter		*f, **filterarg_ptr;
-	IDList		*candidates;
+	ID_BLOCK		*candidates;
 
 	Debug(LDAP_DEBUG_TRACE, "subtree_candidates: base: \"%s\" %s\n",
 		base ? base : "NULL", lookupbase ? "lookupbase" : "", 0);

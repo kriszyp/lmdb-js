@@ -47,16 +47,26 @@ LDAP_BEGIN_DECL
  *		the list is terminated by an id of NOID.
  *	b_ids	a list of the actual ids themselves
  */
-typedef struct block {
-	ID		b_nmax;		/* max number of ids in this list  */
-#define ALLIDSBLOCK	0		/* == 0 => this is an allid block  */
-	ID		b_nids;		/* current number of ids used	   */
-#define INDBLOCK	0		/* == 0 => this is an indirect blk */
-	ID		b_ids[1];	/* the ids - actually bigger 	   */
-} Block, IDList;
 
-#define ALLIDS( idl )		((idl)->b_nmax == ALLIDSBLOCK)
-#define INDIRECT_BLOCK( idl )	((idl)->b_nids == INDBLOCK)
+typedef ID ID_BLOCK;
+
+#define ID_BLOCK_NMAX_OFFSET	0
+#define ID_BLOCK_NIDS_OFFSET	1
+#define ID_BLOCK_IDS_OFFSET		2
+
+/* all ID_BLOCK macros operate on a pointer to a ID_BLOCK */
+
+#define ID_BLOCK_NMAX(b)		((b)[ID_BLOCK_NMAX_OFFSET])
+#define ID_BLOCK_NIDS(b)		((b)[ID_BLOCK_NIDS_OFFSET])
+#define ID_BLOCK_ID(b, n)		((b)[ID_BLOCK_IDS_OFFSET+(n)])
+
+#define ID_BLOCK_NOID(b, n)		(ID_BLOCK_ID((b),(n)) == NOID)
+
+#define ID_BLOCK_ALLIDS_VALUE	0
+#define ID_BLOCK_ALLIDS(b)		(ID_BLOCK_NMAX(b) == ID_BLOCK_ALLIDS_VALUE)
+
+#define ID_BLOCK_INDIRECT_VALUE	0
+#define ID_BLOCK_INDIRECT(b)	(ID_BLOCK_NIDS(b) == ID_BLOCK_INDIRECT_VALUE)
 
 /* for the in-core cache of entries */
 struct cache {
