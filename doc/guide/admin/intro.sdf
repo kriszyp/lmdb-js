@@ -19,7 +19,7 @@ H2: What is a directory service?
 A directory is specialized database optimized for reading, browsing and
 searching.  Directories tend to contain descriptive, attribute-based
 information and support sophisticated filtering capabilities.  Directories
-are generally do not support complicated transaction or roll-back schemes
+generally do not support complicated transaction or roll-back schemes
 found in database management systems designed for handling high-volume
 complex updates.  Directory updates are typically simple all-or-nothing
 changes, if they are allowed at all.  Directories are tuned to give
@@ -225,7 +225,7 @@ H2: What about X.500?
 
 Technically, LDAP is a directory access protocol to an {{TERM:X.500}}
 directory service, the {{TERM:OSI}} directory service.  Initial
-LDAP servers were gateway between LDAP and the X.500 {{TERM[expand]DAP}}
+LDAP servers were gateways between LDAP and the X.500 {{TERM[expand]DAP}}
 ({{TERM:DAP}}).  DAP is a heavyweight protocol that operates over a full
 OSI protocol stack and requires a significant amount of computing
 resources.  LDAP is designed to operate over {{TERM:TCP}}/{{TERM:IP}}

@@ -43,7 +43,7 @@ following commands:
 
 . then relocate yourself into the distribution directory:
 
-..{{EX:cd openldap-VERSION.tgz}}
+..{{EX:cd openldap-VERSION}}
 
 . You'll have to replace {{F:VERSION}} with the version
 name of the release.
@@ -130,12 +130,12 @@ whatever installation prefix was used by {{EX:configure}}.
 +{{B:Edit the configuration file}}.
 
 . Use your favorite editor to edit the provided {{slapd.conf}}(5)
-example (usually installed as {{F:/usr/local/etc/slapd.conf}}) to
-contain an LDBM database definition of the form:
+example (usually installed as {{F:/usr/local/etc/openldap/slapd.conf}})
+to contain an LDBM database definition of the form:
 
 ..{{EX:database        ldbm}}
 ..{{EX:suffix          "dc=<MY-DOMAIN>, dc=<COM>"}}
-..{{EX:rootdn          "cn=Manager, dc=<MY-DOMAIN, dc=<COM>"}}
+..{{EX:rootdn          "cn=Manager, dc=<MY-DOMAIN>, dc=<COM>"}}
 ..{{EX:rootpw          secret}}
 ..{{EX:directory       /usr/local/var/openldap-ldbm}}
 
