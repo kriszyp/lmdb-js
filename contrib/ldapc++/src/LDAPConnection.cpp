@@ -137,7 +137,7 @@ void LDAPConnection::del(const string& dn, const LDAPConstraints* cons){
 
 }
 
-void LDAPConnection::add(const LDAPEntry* le, const LDAPConstraints* cons=0){
+void LDAPConnection::add(const LDAPEntry* le, const LDAPConstraints* cons){
     DEBUG(LDAP_DEBUG_TRACE,"LDAPConnection::add" << endl);
     LDAPMessageQueue* msg=0;
     LDAPResult* res=0;
@@ -207,7 +207,7 @@ void LDAPConnection::modify(const string& dn, const LDAPModList* mods,
 
 void LDAPConnection::rename(const string& dn, const string& newRDN,
         bool delOldRDN, const string& newParentDN, 
-        const LDAPConstraints* cons=0){
+        const LDAPConstraints* cons){
     DEBUG(LDAP_DEBUG_TRACE,"LDAPConnection::rename" << endl);
     LDAPMessageQueue* msg=0;
     LDAPResult* res=0;
@@ -287,7 +287,7 @@ LDAPSearchResults* LDAPConnection::search(const string& base, int scope,
 }
 
 LDAPExtResult* LDAPConnection::extOperation(const string& oid, 
-        const string& value, const LDAPConstraints *cons = 0){
+        const string& value, const LDAPConstraints *cons){
     DEBUG(LDAP_DEBUG_TRACE,"LDAPConnection::extOperation" << endl);
     LDAPMessageQueue* msg=0;
     LDAPExtResult* res=0;

@@ -22,7 +22,7 @@ LDAPBindRequest::LDAPBindRequest(const LDAPBindRequest& req) :
 
 LDAPBindRequest::LDAPBindRequest(const string& dn,const string& passwd, 
         LDAPAsynConnection *connect, const LDAPConstraints *cons,
-        bool isReferral=false) : LDAPRequest(connect, cons, isReferral){
+        bool isReferral) : LDAPRequest(connect, cons, isReferral){
    DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPBindRequest::LDAPBindRequest()" << endl);
    DEBUG(LDAP_DEBUG_CONSTRUCT | LDAP_DEBUG_PARAMETER, "   dn:" << dn << endl
            << "   passwd:" << passwd << endl);
