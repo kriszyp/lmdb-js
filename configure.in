@@ -87,6 +87,7 @@ OL_ARG_WITH(ldbm_type,[      --with-ldbm-type	use LDBM type], auto,
 OL_ARG_ENABLE(passwd,[    --enable-passwd	enable passwd backend], no)dnl
 OL_ARG_ENABLE(perl,[    --enable-perl	enable perl backend], no)dnl
 OL_ARG_ENABLE(shell,[    --enable-shell	enable shell backend], no)dnl
+OL_ARG_ENABLE(tcl,[    --enable-tcl	enable tcl backend], no)dnl
 
 dnl SLURPD OPTIONS
 AC_ARG_WITH(xxslurpdoptions,[SLURPD Options:])
@@ -126,6 +127,9 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_shell = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable_shell argument])
 	fi
+	if test $ol_enable_tcl = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_tcl argument])
+	fi
 	if test $ol_enable_aclgroups = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable_aclgroups argument])
 	fi
@@ -154,6 +158,7 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_passwd=no
 	ol_enable_perl=no
 	ol_enable_shell=no
+	ol_enable_tcl=no
 	ol_enable_aclgroups=no
 	ol_enable_wrappers=no
 	ol_enable_phonetic=no
@@ -179,7 +184,8 @@ elif test $ol_enable_ldbm = no ; then
 
 	if test $ol_enable_passwd = no -a \
 		$ol_enable_perl = no -a \
-		$ol_enable_shell = no ; then
+		$ol_enable_shell = no -a \
+		$ol_enable_tcl = no ; then
 		AC_MSG_ERROR([slapd requires a backend])
 	fi
 
@@ -247,6 +253,7 @@ BUILD_LDBM=no
 BUILD_PASSWD=no
 BUILD_PERL=no
 BUILD_SHELL=no
+BUILD_TCL=no
 BUILD_THREAD=no
 
 SLAPD_PERL_LDFLAGS=
@@ -1291,6 +1298,39 @@ if test $ol_enable_dmalloc != no ; then
 	AC_CHECK_LIB(dmalloc, dmalloc_shutdown)
 fi
 
+if test $ol_enable_tcl != no ; then
+	AC_CHECK_HEADERS(tcl.h)
+
+	if test $ac_cv_header_tcl_h != yes ; then
+		have_tcl=no
+	else
+		AC_CHECK_LIB(tcl,main,
+			[have_tcl=yes; SLAPD_LIBS="$SLAPD_LIBS -ltcl"],
+			[have_tcl=no])
+
+		if test $have_tcl != yes; then
+			AC_CHECK_LIB(tcl7.6,main,
+				[have_tcl=yes; SLAPD_LIBS="$SLAPD_LIBS -ltcl7.6"],
+				[have_tcl=no])
+		fi
+
+		if test $have_tcl != yes; then
+			AC_CHECK_LIB(tcl8.0,main,
+				[have_tcl=yes; SLAPD_LIBS="$SLAPD_LIBS -ltcl8.0"],
+				[have_tcl=no])
+		fi
+	fi
+
+	if test $have_tcl != yes ; then
+		AC_MSG_WARN([could not find -ltcl])
+		if test $ol_enable_tcl = yes ; then
+			AC_MSG_ERROR([could not find tcl, select appropriate options or disable])
+		fi
+
+		ol_enable_tcl=no
+	fi
+fi
+
 # ud needs termcap (should insert check here)
 ol_link_termcap=no
 AC_CHECK_HEADERS(termcap.h ncurses.h)
@@ -1584,6 +1624,12 @@ if test "$ol_enable_shell" != no ; then
 	BUILD_SHELL=yes
 fi
 
+if test "$ol_enable_tcl" != no ; then
+	AC_DEFINE(SLAPD_TCL,1)
+	BUILD_SLAPD=yes
+	BUILD_TCL=yes
+fi
+
 if test "$ol_enable_slurpd" != no -a "$ol_link_threads" != no -a \
 	$BUILD_SLAPD = yes ; then
 	BUILD_SLURPD=yes
@@ -1602,6 +1648,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_PASSWD)
   AC_SUBST(BUILD_PERL)
   AC_SUBST(BUILD_SHELL)
+  AC_SUBST(BUILD_TCL)
 AC_SUBST(BUILD_SLURPD)
 
 AC_SUBST(LDAP_LIBS)
@@ -1655,6 +1702,7 @@ servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.i
 servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/srv.mk \
 servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/srv.mk \
 servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/srv.mk \
+servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:build/srv.mk \
 servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \

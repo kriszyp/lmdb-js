@@ -27,6 +27,9 @@
 #ifdef SLAPD_SHELL
 #include "back-shell/external.h"
 #endif
+#ifdef SLAPD_TCL
+#include "back-tcl/external.h"
+#endif
 
 static BackendInfo binfo[] = {
 #ifdef SLAPD_LDBM
@@ -43,6 +46,9 @@ static BackendInfo binfo[] = {
 #endif
 #ifdef SLAPD_SHELL
 	{"shell",	shell_back_initialize},
+#endif
+#ifdef SLAPD_TCL
+	{"tcl",		tcl_back_initialize},
 #endif
 	{NULL}
 };

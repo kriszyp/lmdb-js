@@ -198,7 +198,7 @@
 /* define this to use SLAPD passwd backend */
 #undef SLAPD_PASSWD
 
-/* define this to use SLAPD perl backend */
+/* define this to use SLAPD Perl backend */
 #undef SLAPD_PERL
 
 /* define this for phonetic support */
@@ -209,6 +209,9 @@
 
 /* define this to use SLAPD shell backend */
 #undef SLAPD_SHELL
+
+/* define this to use SLAPD TCL backend */
+#undef SLAPD_TCL
 
 /* define this to be empty if your compiler doesn't support volatile */
 #undef volatile
