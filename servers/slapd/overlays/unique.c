@@ -62,7 +62,6 @@ static int unique_db_init(
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	unique_data *ud   = ch_malloc(sizeof(unique_data));
-	unique_attrs *up;
 
 	/* Debug(LDAP_DEBUG_TRACE, "==> unique_init\n", 0, 0, 0); */
 
@@ -74,6 +73,8 @@ static int unique_db_init(
 	/* default to the base of our configured database */
 	ber_dupbv(&ud->dn, &be->be_nsuffix[0]);
 	on->on_bi.bi_private = ud;
+
+	return 0;
 }
 
 
@@ -257,10 +258,8 @@ static int unique_add(
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 
 	Attribute *a;
-	AttributeDescription *st;
 	BerVarray b = NULL;
-	char *fstr, *key, *kp;
-	const char *why;
+	char *key, *kp;
 	int i, rc, ks = 16;
 	unique_attrs *up;
 	unique_counter uq = { 0 };
@@ -387,12 +386,9 @@ static int unique_modify(
 	slap_callback cb = { NULL, (slap_response*)count_attr_cb, NULL, NULL };
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 
-	Attribute *a;
-	AttributeDescription *st;
 	BerVarray b = NULL;
 	Modifications *m;
-	char *fstr, *key, *kp;
-	const char *why;
+	char *key, *kp;
 	int i, rc, ks = 16;		/* a handful of extra bytes */
 	unique_attrs *up;
 	unique_counter uq = { 0 };
@@ -520,8 +516,7 @@ static int unique_modrdn(
 	slap_callback cb = { NULL, (slap_response*)count_attr_cb, NULL, NULL };
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 
-	char *fstr, *key, *kp;
-	const char *why;
+	char *key, *kp;
 	int i, rc, ks = 16;		/* a handful of extra bytes */
 	unique_attrs *up;
 	unique_counter uq = { 0 };
