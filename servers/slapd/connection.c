@@ -1279,7 +1279,7 @@ int connection_read(ber_socket_t s)
 
 #ifdef HAVE_TLS
 	if ( c->c_is_tls && c->c_needs_tls_accept ) {
-		rc = ldap_pvt_tls_accept( c->c_sb, NULL );
+		rc = ldap_pvt_tls_accept( c->c_sb, slap_tls_ctx );
 		if ( rc < 0 ) {
 #if 0 /* required by next #if 0 */
 			struct timeval tv;
