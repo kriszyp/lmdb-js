@@ -197,6 +197,8 @@ monitor_subsys_thread_update(
 	a->a_vals[ 0 ].bv_len = len;
 	AC_MEMCPY( a->a_vals[ 0 ].bv_val, buf, len + 1 );
 
+	/* FIXME: touch modifyTimestamp? */
+
 	return( 0 );
 }
 

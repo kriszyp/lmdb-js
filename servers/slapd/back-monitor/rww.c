@@ -217,6 +217,8 @@ monitor_subsys_rww_update(
 	AC_MEMCPY( a->a_vals[ 0 ].bv_val, buf, len + 1 );
 	a->a_vals[ 0 ].bv_len = len;
 
+	/* FIXME: touch modifyTimestamp? */
+
 	return( 0 );
 }
 

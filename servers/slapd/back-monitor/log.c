@@ -148,7 +148,9 @@ monitor_subsys_log_modify(
 		Modification	*mod = &ml->sml_mod;
 
 		/*
-		 * accept all operational attributes
+		 * accept all operational attributes;
+		 * this includes modifersName and modifyTimestamp
+		 * if lastmod is "on"
 		 */
 		if ( is_at_operational( mod->sm_desc->ad_type ) ) {
 			( void ) attr_delete( &e->e_attrs, mod->sm_desc );

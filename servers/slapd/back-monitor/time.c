@@ -224,6 +224,8 @@ monitor_subsys_time_update(
 
 		assert( len == a->a_vals[ 0 ].bv_len );
 		AC_MEMCPY( a->a_vals[ 0 ].bv_val, tmbuf, len );
+
+		/* FIXME: touch modifyTimestamp? */
 	}
 
 	return( 0 );

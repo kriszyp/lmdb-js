@@ -201,6 +201,8 @@ monitor_subsys_sent_update(
 	UI2BV( &a->a_vals[ 0 ], n );
 	ldap_pvt_mp_clear( n );
 
+	/* FIXME: touch modifyTimestamp? */
+
 	return 0;
 }
 
