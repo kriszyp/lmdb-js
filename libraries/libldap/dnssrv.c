@@ -37,8 +37,90 @@ int ldap_dn2domain(
 	LDAP_CONST char *dn_in,
 	char **domainp)
 {
-	/* not yet implemented */
-	return LDAP_NOT_SUPPORTED;
+	int i;
+	char* domain = NULL;
+	char ** dn;
+
+	if( dn_in == NULL || domainp == NULL ) {
+		return -1;
+	}
+
+	dn = ldap_explode_dn( dn_in, 0 );
+
+	if( dn == NULL ) {
+		return -2;
+	}
+
+	for( i=0; dn[i] != NULL; i++ ) {
+		char ** rdn = ldap_explode_rdn( dn[i], 0 );
+
+		if( rdn == NULL || *rdn == NULL ) {
+			LDAP_FREE( rdn );
+			LDAP_FREE( domain );
+			LDAP_VFREE( dn );
+			return -3;
+		}
+
+#define LDAP_DC "dc="
+#define LDAP_DCOID "0.9.2342.19200300.100.1.25="
+
+		if( *rdn[1] == NULL ) {
+			char *dc;
+			/* single RDN */
+
+			if( strncasecmp( rdn[0],
+				LDAP_DC, sizeof(LDAP_DC)-1 ) == 0 )
+			{
+				dc = &rdn[0][sizeof(LDAP_DC)-1];
+
+			} else if( strncmp( rdn[0],
+				LDAP_DCOID, sizeof(LDAP_DCOID)-1 ) == 0 )
+			{
+				dc = &rdn[0][sizeof(LDAP_DCOID)-1];
+
+			} else {
+				dc == NULL;
+			}
+
+			if( dc != NULL ) {
+				char *ndomain;
+
+				if( *dc == '\0' ) {
+					/* dc value is empty! */
+					LDAP_FREE( rdn );
+					LDAP_FREE( domain );
+					LDAP_VFREE( dn );
+					LDAP_VFREE( rdn );
+					return -4;
+				}
+
+				ndomain = realloc( domain,
+					strlen(domain) + strlen(dc) + 2 );
+
+				if( ndomain == NULL ) {
+					LDAP_FREE( rdn );
+					LDAP_FREE( domain );
+					LDAP_VFREE( dn );
+					LDAP_VFREE( rdn );
+					return -5;
+				}
+
+				if( domain != NULL ) {
+					strcat( ndomain, "." );
+				}
+				strcat( ndomain, dc );
+				domain = ndomain;
+				continue;
+			}
+		}
+
+		LDAP_VFREE( rdn );
+		LDAP_FREE( domain );
+		domain = NULL;
+	} 
+
+	*domainp = domain;
+	return 0;
 }
 
 int ldap_domain2dn(
