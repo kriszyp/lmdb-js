@@ -538,8 +538,9 @@ send_ldap_disconnect( Operation	*op, SlapReply *rs )
 
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
 		Statslog( LDAP_DEBUG_STATS,
-	    "conn=%lu op=%lu DISCONNECT tag=%lu err=%d text=%s\n",
-		op->o_connid, op->o_opid, rs->sr_tag, rs->sr_err, rs->sr_text ? rs->sr_text : "" );
+			"conn=%lu op=%lu DISCONNECT tag=%lu err=%d text=%s\n",
+			op->o_connid, op->o_opid, rs->sr_tag, rs->sr_err,
+			rs->sr_text ? rs->sr_text : "" );
 	}
 }
 
@@ -556,7 +557,7 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
-		"send_ldap_result: conn %lu op=%lu p=%d\n",
+		"send_ldap_result: conn=%lu op=%lu p=%d\n",
 		op->o_connid, op->o_opid, op->o_protocol );
 #else
 	Debug( LDAP_DEBUG_TRACE,
