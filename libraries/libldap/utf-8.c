@@ -400,7 +400,6 @@ ber_len_t (ldap_utf8_strspn)( const char *str, const char *set )
 	const char *cset;
 
 	for( cstr = str; *cstr != '\0'; LDAP_UTF8_INCR(cstr) ) {
-
 		for( cset = set; ; LDAP_UTF8_INCR(cset) ) {
 			if( *cset == '\0' ) {
 				return cstr - str;
