@@ -2,10 +2,11 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2 Release Engineering
 	CVS Tag: OPENLDAP_REL_ENG_1_2
-	Fixed slapd memory leaks (ITS#249 ITS#250)
 	Added ldapsearch -W password prompting
 	Added dcObject, uidObject, referral object classes to slapd.oc.conf
 	Added ref attribute type to slapd.at.conf
+	Fixed slapd memory leaks (ITS#249 ITS#250)
+	Fixed test005-modrdn to properly report failure in delete rdn case 
 	Build environment
 		Disable config.cache to ensure consistent detection
 	Documentation

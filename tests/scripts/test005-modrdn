@@ -144,7 +144,7 @@ RC=$?
 if test $RC = 0 ; then
 	echo "failure: ldapsearch found attribute that was to be removed!"
 	kill -HUP $PID
-	exit $RC
+	exit 1
 fi
 
 echo "Using ldapsearch to retrieve all the entries..."
