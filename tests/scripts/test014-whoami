@@ -405,7 +405,7 @@ fi
 BINDDN="dc=example,dc=com"
 BINDPW=example
 AUTHZID="dn:"
-echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID} (dn.exact; should succeed)..."
+echo "Testing ldapwhoami as ${BINDDN} for ${AUTHZID}\"\" (dn.exact; should succeed)..."
 $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW \
 	-e \!authzid="$AUTHZID"
 
