@@ -511,7 +511,7 @@ ldbm_back_modrdn(
 
 		val.bv_val = new_rdn_vals[a_cnt];
 		val.bv_len = strlen( val.bv_val );
-		if ( ! access_allowed( be, conn, op, p, 
+		if ( ! access_allowed( be, conn, op, e, 
 				desc, &val, ACL_WRITE ) ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
@@ -587,7 +587,7 @@ ldbm_back_modrdn(
 
 			val.bv_val = old_rdn_vals[d_cnt];
 			val.bv_len = strlen( val.bv_val );
-			if ( ! access_allowed( be, conn, op, p, 
+			if ( ! access_allowed( be, conn, op, e, 
 					desc, &val, ACL_WRITE ) ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
