@@ -53,7 +53,7 @@ shell_back_compare(
 	fprintf( wfp, "dn: %s\n", dn->bv_val );
 	fprintf( wfp, "%s: %s\n",
 		ava->aa_desc->ad_cname.bv_val,
-		ava->aa_value->bv_val /* could be binary! */ );
+		ava->aa_value.bv_val /* could be binary! */ );
 	fclose( wfp );
 
 	/* read in the result and send it along */
