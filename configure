@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP 
+# from OpenLDAP: pkg/ldap/configure.in,v 1.223.2.14 2000/09/08 15:02:52 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -15929,7 +15929,6 @@ tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
 tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
 contrib/Makefile:build/top.mk:contrib/Makefile.in:build/dir.mk \
 contrib/saucer/Makefile:build/top.mk:contrib/saucer/Makefile.in:build/rules.mk \
-contrib/web_ldap/Makefile:build/top.mk:contrib/web_ldap/Makefile.in:build/rules.mk \
  include/portable.h include/ldap_features.h include/lber_types.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
@@ -16136,7 +16135,6 @@ tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
 tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
 contrib/Makefile:build/top.mk:contrib/Makefile.in:build/dir.mk \
 contrib/saucer/Makefile:build/top.mk:contrib/saucer/Makefile.in:build/rules.mk \
-contrib/web_ldap/Makefile:build/top.mk:contrib/web_ldap/Makefile.in:build/rules.mk \
 "}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
