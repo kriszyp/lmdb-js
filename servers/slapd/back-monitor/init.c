@@ -312,6 +312,7 @@ monitor_back_db_open(
 	struct m_s {
 		char	*name;
 		char	*schema;
+		slap_mask_t flags;
 		int	offset;
 	} moc[] = {
 		{ "monitor", "( 1.3.6.1.4.1.4203.666.3.2 "
@@ -331,44 +332,44 @@ monitor_back_db_open(
 				"$ seeAlso "
 				"$ monitoredInfo "
 				"$ managedInfo "
-			") )",
+			") )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(struct monitorinfo, mi_oc_monitor) },
 		{ "monitorServer", "( 1.3.6.1.4.1.4203.666.3.7 "
 			"NAME 'monitorServer' "
 			"DESC 'Server monitoring root entry' "
-			"SUP monitor STRUCTURAL )",
+			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(struct monitorinfo, mi_oc_monitorServer) },
 		{ "monitorContainer", "( 1.3.6.1.4.1.4203.666.3.8 "
 			"NAME 'monitorContainer' "
 			"DESC 'monitor container class' "
-			"SUP monitor STRUCTURAL )",
+			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(struct monitorinfo, mi_oc_monitorContainer) },
 		{ "monitorCounterObject", "( 1.3.6.1.4.1.4203.666.3.9 "
 			"NAME 'monitorCounterObject' "
 			"DESC 'monitor counter class' "
-			"SUP monitor STRUCTURAL )",
+			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(struct monitorinfo, mi_oc_monitorCounterObject) },
 		{ "monitorOperation", "( 1.3.6.1.4.1.4203.666.3.10 "
 			"NAME 'monitorOperation' "
 			"DESC 'monitor operation class' "
-			"SUP monitor STRUCTURAL )",
+			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(struct monitorinfo, mi_oc_monitorOperation) },
 		{ "monitorConnection", "( 1.3.6.1.4.1.4203.666.3.11 "
 			"NAME 'monitorConnection' "
 			"DESC 'monitor connection class' "
-			"SUP monitor STRUCTURAL )",
+			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(struct monitorinfo, mi_oc_monitorConnection) },
 		{ "managedObject", "( 1.3.6.1.4.1.4203.666.3.12 "
 			"NAME 'managedObject' "
 			"DESC 'monitor managed entity class' "
-			"SUP monitor STRUCTURAL )",
+			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(struct monitorinfo, mi_oc_managedObject) },
 		{ "monitoredObject", "( 1.3.6.1.4.1.4203.666.3.13 "
 			"NAME 'monitoredObject' "
 			"DESC 'monitor monitored entity class' "
-			"SUP monitor STRUCTURAL )",
+			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(struct monitorinfo, mi_oc_monitoredObject) },
-		{ NULL, NULL, -1 }
+		{ NULL, NULL, 0, -1 }
 	}, mat[] = {
 		{ "monitoredInfo", "( 1.3.6.1.4.1.4203.666.1.14 "
 			"NAME 'monitoredInfo' "
@@ -378,12 +379,12 @@ monitor_back_db_open(
 			"SUBSTR caseIgnoreSubstringsMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )",
+			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(struct monitorinfo, mi_ad_monitoredInfo) },
 		{ "managedInfo", "( 1.3.6.1.4.1.4203.666.1.15 "
 			"NAME 'managedInfo' "
 			"DESC 'monitor managed info' "
-			"SUP name )",
+			"SUP name )", SLAP_AT_HIDE,
 			offsetof(struct monitorinfo, mi_ad_managedInfo) },
 		{ "monitorCounter", "( 1.3.6.1.4.1.4203.666.1.16 "
 			"NAME 'monitorCounter' "
@@ -392,28 +393,28 @@ monitor_back_db_open(
 			"ORDERING integerOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )",
+			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(struct monitorinfo, mi_ad_monitorCounter) },
 		{ "monitorOpCompleted", "( 1.3.6.1.4.1.4203.666.1.17 "
 			"NAME 'monitorOpCompleted' "
 			"DESC 'monitor completed operations' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )",
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(struct monitorinfo, mi_ad_monitorOpCompleted) },
 		{ "monitorOpInitiated", "( 1.3.6.1.4.1.4203.666.1.18 "
 			"NAME 'monitorOpInitiated' "
 			"DESC 'monitor initiated operations' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )",
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(struct monitorinfo, mi_ad_monitorOpInitiated) },
 		{ "monitorConnectionNumber", "( 1.3.6.1.4.1.4203.666.1.19 "
 			"NAME 'monitorConnectionNumber' "
 			"DESC 'monitor connection number' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )",
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(struct monitorinfo, mi_ad_monitorConnectionNumber) },
 		{ "monitorConnectionAuthzDN", "( 1.3.6.1.4.1.4203.666.1.20 "
 			"NAME 'monitorConnectionAuthzDN' "
@@ -422,21 +423,21 @@ monitor_back_db_open(
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )",
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(struct monitorinfo, mi_ad_monitorConnectionAuthzDN) },
 		{ "monitorConnectionLocalAddress", "( 1.3.6.1.4.1.4203.666.1.21 "
 			"NAME 'monitorConnectionLocalAddress' "
 			"DESC 'monitor connection local address' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )",
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(struct monitorinfo, mi_ad_monitorConnectionLocalAddress) },
 		{ "monitorConnectionPeerAddress", "( 1.3.6.1.4.1.4203.666.1.22 "
 			"NAME 'monitorConnectionPeerAddress' "
 			"DESC 'monitor connection peer address' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )",
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(struct monitorinfo, mi_ad_monitorConnectionPeerAddress) },
 		{ "monitorTimestamp", "( 1.3.6.1.4.1.4203.666.1.24 "
 			"NAME 'monitorTimestamp' "
@@ -446,33 +447,33 @@ monitor_back_db_open(
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
 			"SINGLE-VALUE "
 			"NO-USER-MODIFICATION "
-			"USAGE directoryOperation )",
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(struct monitorinfo, mi_ad_monitorTimestamp) },
 #ifdef INTEGRATE_CORE_SCHEMA
-		{ NULL, NULL, -1 },	/* description */
-		{ NULL, NULL, -1 },	/* seeAlso */
-		{ NULL, NULL, -1 },	/* l */
+		{ NULL, NULL, 0, -1 },	/* description */
+		{ NULL, NULL, 0, -1 },	/* seeAlso */
+		{ NULL, NULL, 0, -1 },	/* l */
 #endif /* INTEGRATE_CORE_SCHEMA */
-		{ NULL, NULL, -1 }
+		{ NULL, NULL, 0, -1 }
 	}, mat_core[] = {
 		{ "description", "( 2.5.4.13 "
 			"NAME 'description' "
 			"DESC 'RFC2256: descriptive information' "
 			"EQUALITY caseIgnoreMatch "
 			"SUBSTR caseIgnoreSubstringsMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{1024} )",
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{1024} )", 0,
 			offsetof(struct monitorinfo, mi_ad_description) },
 		{ "seeAlso", "( 2.5.4.34 "
 			"NAME 'seeAlso' "
 			"DESC 'RFC2256: DN of related object' "
-			"SUP distinguishedName )",
+			"SUP distinguishedName )", 0,
 			offsetof(struct monitorinfo, mi_ad_seeAlso) },
 		{ "l", "( 2.5.4.7 "
 			"NAME ( 'l' 'localityName' ) "
 			"DESC 'RFC2256: locality which this object resides in' "
-			"SUP name )",
+			"SUP name )", 0,
 			offsetof(struct monitorinfo, mi_ad_l) },
-		{ NULL, NULL, -1 }
+		{ NULL, NULL, 0, -1 }
 	};
 	
 	struct tm		*tms;
@@ -539,7 +540,7 @@ monitor_back_db_open(
 		AttributeDescription	**ad;
 
 		at = ldap_str2attributetype( mat[i].schema, &code,
-				&err, LDAP_SCHEMA_ALLOW_ALL );
+			&err, LDAP_SCHEMA_ALLOW_ALL );
 		if ( !at ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, CRIT, "monitor_back_db_init: "
