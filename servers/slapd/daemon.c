@@ -663,9 +663,6 @@ static int slap_open_listener(
 		return -1;
 #endif
 	} else {
-#ifdef LDAP_CONNECTIONLESS
-		l.sl_is_udp = ( tmp == LDAP_PROTO_UDP );
-#endif
 		if( lud->lud_host == NULL || lud->lud_host[0] == '\0'
 			|| strcmp(lud->lud_host, "*") == 0 )
 		{
@@ -674,6 +671,9 @@ static int slap_open_listener(
 			err = slap_get_listener_addresses(lud->lud_host, port, &sal);
 		}
 	}
+#ifdef LDAP_CONNECTIONLESS
+	l.sl_is_udp = ( tmp == LDAP_PROTO_UDP );
+#endif
 
 #if defined(LDAP_PF_LOCAL) || defined(SLAP_X_LISTENER_MOD)
 	if ( lud->lud_exts ) {
