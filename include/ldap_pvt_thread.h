@@ -188,8 +188,7 @@ ldap_pvt_thread_pool_setkey LDAP_P((
 	ldap_pvt_thread_pool_keyfree_t *kfree ));
 
 LDAP_F( void *)
-ldap_pvt_thread_pool_context LDAP_P((
-	ldap_pvt_thread_pool_t *pool ));
+ldap_pvt_thread_pool_context LDAP_P(( void ));
 
 LDAP_END_DECL
 

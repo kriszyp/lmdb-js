@@ -156,7 +156,7 @@ slapiConnectionInit(
 	c->c_pending_ops.stqh_first->o_authmech.bv_len = 0; 
 	c->c_pending_ops.stqh_first->o_time = slap_get_time();
 	c->c_pending_ops.stqh_first->o_do_not_cache = 1;
-	c->c_pending_ops.stqh_first->o_threadctx = ldap_pvt_thread_pool_context( &connection_pool );
+	c->c_pending_ops.stqh_first->o_threadctx = ldap_pvt_thread_pool_context();
 	c->c_pending_ops.stqh_first->o_tmpmemctx = NULL;
 	c->c_pending_ops.stqh_first->o_tmpmfuncs = &ch_mfuncs;
 	c->c_pending_ops.stqh_first->o_conn = c;

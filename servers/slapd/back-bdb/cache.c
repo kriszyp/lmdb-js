@@ -1151,7 +1151,7 @@ bdb_locker_id( Operation *op, DB_ENV *env, int *locker )
 	if ( op ) {
 		ctx = op->o_threadctx;
 	} else {
-		ctx = ldap_pvt_thread_pool_context( &connection_pool );
+		ctx = ldap_pvt_thread_pool_context();
 	}
 
 	/* Shouldn't happen unless we're single-threaded */
