@@ -989,7 +989,12 @@ locked:
 
 	if ( ppb->send_ctrl ) {
 		LDAPControl **ctrls = NULL;
+		pp_info *pi = on->on_bi.bi_private;
 
+		/* Do we really want to tell that the account is locked? */
+		if ( ppb->pErr == PP_accountLocked && !pi->use_lockout ) {
+			ppb->pErr = PP_noError;
+		}
 		ctrls = ch_calloc( sizeof( LDAPControl *) , 2 );
 		ctrls[0] = create_passcontrol( warn, ngut, ppb->pErr );
 		ctrls[1] = NULL;
@@ -1048,9 +1053,8 @@ ppolicy_bind( Operation *op, SlapReply *rs )
 		be_entry_release_r( op, e );
 
 		if ( rc ) {
-			pp_info *pi = on->on_bi.bi_private;
 			/* This will be the Draft 8 response, Unwilling is bogus */
-			if ( pi->use_lockout ) ppb->pErr = PP_accountLocked;
+			ppb->pErr = PP_accountLocked;
 			send_ldap_error( op, rs, LDAP_INVALID_CREDENTIALS, NULL );
 			return rs->sr_err;
 		}
