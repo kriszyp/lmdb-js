@@ -21,7 +21,9 @@ mra_free(
     int	freeit
 )
 {
+#if 0	/* no longer a malloc'd string */
 	ch_free( mra->ma_rule_text.bv_val );
+#endif
 	ch_free( mra->ma_value.bv_val );
 	if ( freeit ) {
 		ch_free( (char *) mra );
@@ -64,7 +66,7 @@ get_mra(
 	}
 
 	if ( tag == LDAP_FILTER_EXT_OID ) {
-		rc = ber_scanf( ber, "o", &ma->ma_rule_text );
+		rc = ber_scanf( ber, "m", &ma->ma_rule_text );
 		if ( rc == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
