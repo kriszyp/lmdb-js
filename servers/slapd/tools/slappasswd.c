@@ -42,12 +42,10 @@ usage(const char *s)
 int
 main( int argc, char *argv[] )
 {
-	int rc;
 	char	*scheme = "{SSHA}";
 	char	*newpw = NULL;
 
 	int		i;
-	int		version = -1;
 	struct berval passwd;
 	struct berval *hash = NULL;
 
@@ -97,7 +95,7 @@ main( int argc, char *argv[] )
 		newpw = strdup(getpassphrase("New password: "));
 		cknewpw = getpassphrase("Re-enter new password: ");
 
-		if( strncmp( newpw, cknewpw, strlen(newpw) )) {
+		if( strcmp( newpw, cknewpw )) {
 			fprintf( stderr, "Password values do not match\n" );
 			return EXIT_FAILURE;
 		}

@@ -1,15 +1,19 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.19 Engineering
-	Fixed -lldap cacertfile bug (ITS#1406)
 	Fixed back-ldbm not filter indexing (ITS#1405)
 	Fixed back-passwd e_ndn bug (ITS#1467)
 	Fixed back-ldap undef ad bug (ITS#1367)
 	Fixed slapd suffix "" bugs (ITS#1430)
 	Fixed slapd zero length replace bug (ITS#1364)
 	Fixed slapd teletex string printables bug (ITS#1419)
+	Fixed slapd unallocated sockets bug (ITS#1415)
 	Fixed slapd undefined present filter bug (ITS#1439)
-	Fixed lber realloc bug (ITS#1410)
+	Fixed -lldap cacertfile bug (ITS#1406)
+	Fixed -lldap ldap_url_seach_s bug (ITS#1429)
+	Fixed -lldap unbind free bug (ITS#1442)
+	Fixed -llber realloc bug (ITS#1410)
+	Fixed ldappasswd/slappasswd strncmp bug (ITS#1497)
 	Fixed various memory leaks
 	Updated slapd emfile/enfile handling
 	Build environment
