@@ -225,7 +225,7 @@ slap_passwd_check(
 	int result = 1;
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_PASSWD )
-	ldap_pvt_thread_mutex_lock( &crypt_mutex );
+	ldap_pvt_thread_mutex_lock( &passwd_mutex );
 #ifdef SLAPD_SPASSWD
 	lutil_passwd_sasl_conn = conn->c_sasl_context;
 #endif
