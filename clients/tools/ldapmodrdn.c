@@ -1,17 +1,22 @@
 /* ldapmodrdn.c - generic program to modify an entry's RDN using LDAP */
 
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
+#include <ac/string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <ac/time.h>
+
 #include <lber.h>
 #include <ldap.h>
 
 #include "ldapconfig.h"
 
 static char	*binddn = LDAPMODRDN_BINDDN;
+static char	*passwd = LDAPMODRDN_BIND_CRED;
 static char	*base = LDAPMODRDN_BASE;
-static char	*passwd = NULL;
 static char	*ldaphost = LDAPHOST;
 static int	ldapport = LDAP_PORT;
 static int	not, verbose, contoper;

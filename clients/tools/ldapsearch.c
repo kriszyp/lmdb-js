@@ -1,6 +1,11 @@
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
+#include <ac/string.h>
 #include <ctype.h>
+#include <ac/time.h>
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldif.h>
@@ -52,7 +57,7 @@ char	*s;
 }
 
 static char	*binddn = LDAPSEARCH_BINDDN;
-static char	*passwd = NULL;
+static char	*passwd = LDAPSEARCH_BIND_CRED;
 static char	*base = LDAPSEARCH_BASE;
 static char	*ldaphost = LDAPHOST;
 static int	ldapport = LDAP_PORT;

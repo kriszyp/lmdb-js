@@ -1,17 +1,22 @@
 /* ldapdelete.c - simple program to delete an entry using LDAP */
 
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
+#include <ac/string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <ac/time.h>
+
 #include <lber.h>
 #include <ldap.h>
 
 #include "ldapconfig.h"
 
 static char	*binddn = LDAPDELETE_BINDDN;
+static char	*passwd = LDAPDELETE_BIND_CRED;
 static char	*base = LDAPDELETE_BASE;
-static char	*passwd = NULL;
 static char	*ldaphost = LDAPHOST;
 static int	ldapport = LDAP_PORT;
 static int	not, verbose, contoper;

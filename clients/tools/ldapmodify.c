@@ -11,9 +11,8 @@
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <fcntl.h>
-#ifndef VMS
-#include <unistd.h>
-#endif /* VMS */
+
+#include <ac/unistd.h>
 
 #include <lber.h>
 #include <ldap.h>
