@@ -254,7 +254,7 @@ passwd	Provides read-only access to {{passwd}}(5)
 perl	Perl Programmable backend
 shell	Shell (extern program) backend
 sql	SQL Programmable backend
-tcp	TCP Programmable backend
+tcl	TCL Programmable backend
 !endblock
 
 \Example:
@@ -274,7 +274,7 @@ H4: database <type>
 
 This directive marks the beginning of a database instance
 declaration.
-{{EX:<type>}} should be one of {{EX:bdb}} or one of other
+{{EX:<type>}} should be one of {{EX:bdb}} or one of the other
 supported backend types listed in Table 5.2.
 
 \Example:
@@ -440,7 +440,7 @@ If specified multiple times, each {{TERM:URL}} is provided.
 
 H3: BDB Database Directives
 
-Directives in this category only apply a BDB database. That is,
+Directives in this category only apply to a BDB database. That is,
 they must follow a "database bdb" line and come before any
 subsequent "backend" or "database" line.
 
@@ -456,7 +456,7 @@ containing the database and associated indexes live.
 
 H3: LDBM Database Directives
 
-Directives in this category only apply a LDBM database. That is,
+Directives in this category only apply to a LDBM database. That is,
 they must follow a "database ldbm" line and come before any
 subsequent "backend" or "database" line.
 
