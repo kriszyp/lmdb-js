@@ -1,4 +1,4 @@
-/* $Id: external.h,v 1.6 1999/03/05 02:42:17 gomez Exp $ */
+/* $Id: external.h,v 1.7 1999/06/29 01:29:27 kdz Exp $ */
 
 #ifndef _TCL_EXTERNAL_H
 #define _TCL_EXTERNAL_H
@@ -16,7 +16,7 @@ extern int tcl_back_db_close LDAP_P ((BackendDB * bd));
 extern int tcl_back_db_destroy LDAP_P ((BackendDB * bd));
 
 extern int tcl_back_db_config LDAP_P ((BackendDB * bd,
-		char *fname, int lineno, int argc, char **argv));
+		const char *fname, int lineno, int argc, char **argv));
 
 extern int tcl_back_bind LDAP_P ((BackendDB * bd,
 		Connection * conn, Operation * op,

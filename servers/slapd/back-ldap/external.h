@@ -12,7 +12,7 @@ extern int	ldap_back_db_init LDAP_P(( BackendDB *bd ));
 extern int	ldap_back_db_destroy LDAP_P(( BackendDB *bd ));
 
 extern int	ldap_back_db_config LDAP_P(( BackendDB *bd,
-	char *fname, int lineno, int argc, char **argv ));
+	const char *fname, int lineno, int argc, char **argv ));
 
 extern int ldap_back_bind LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,

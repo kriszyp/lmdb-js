@@ -9,7 +9,7 @@ extern int	bdb2_back_close LDAP_P(( BackendInfo *bi ));
 extern int	bdb2_back_destroy LDAP_P(( BackendInfo *bi ));
 
 extern int	bdb2_back_config LDAP_P(( BackendInfo *bt,
-	char *fname, int lineno, int argc, char **argv ));
+	const char *fname, int lineno, int argc, char **argv ));
 
 extern int	bdb2_back_db_init LDAP_P(( BackendDB *bd ));
 extern int	bdb2_back_db_open LDAP_P(( BackendDB *bd ));

@@ -13,7 +13,7 @@
 static int
 bdb2i_back_config_internal(
     BackendInfo	*bi,
-    char		*fname,
+    const char		*fname,
     int			lineno,
     int			argc,
     char		**argv
@@ -64,7 +64,7 @@ bdb2i_back_config_internal(
 int
 bdb2_back_config(
     BackendInfo	*bi,
-    char	*fname,
+    const char	*fname,
     int		lineno,
     int		argc,
     char	**argv
@@ -85,7 +85,7 @@ bdb2_back_config(
 static int
 bdb2i_back_db_config_internal(
     BackendDB	*be,
-    char	*fname,
+    const char	*fname,
     int		lineno,
     int		argc,
     char	**argv

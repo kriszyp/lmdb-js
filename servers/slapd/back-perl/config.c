@@ -30,7 +30,7 @@
 int
 perl_back_db_config(
 	 BackendDB *be,
-	 char *fname,
+	 const char *fname,
 	 int lineno,
 	 int argc,
 	 char **argv

@@ -1,6 +1,6 @@
 /* config.c - tcl backend configuration file routine
  *
- * $Id: tcl_config.c,v 1.5 1999/02/19 06:55:20 bcollins Exp $
+ * $Id: tcl_config.c,v 1.6 1999/02/23 02:51:33 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -22,7 +22,7 @@ struct i_info *global_i;
 int
 tcl_back_db_config (
 	BackendDB * bd,
-	char *fname,
+	const char *fname,
 	int lineno,
 	int argc,
 	char **argv

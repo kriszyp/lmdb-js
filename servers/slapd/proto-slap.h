@@ -416,7 +416,7 @@ int value_find LDAP_P(( struct berval **vals, struct berval *v, int syntax,
  * user.c
  */
 #if defined(HAVE_PWD_H) && defined(HAVE_GRP_H)
-void slap_init_user LDAP_P(( const char *username, const char *groupname ));
+void slap_init_user LDAP_P(( char *username, char *groupname ));
 #endif
 
 /*
