@@ -22,7 +22,7 @@
 
 #include "ldap-int.h"
 
-static char **explode_name( LDAP_CONST char *name, int notypes, int is_dn );
+static char **explode_name( const char *name, int notypes, int is_dn );
 
 char *
 ldap_get_dn( LDAP *ld, LDAPMessage *entry )
@@ -182,7 +182,7 @@ ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 }
 
 static char **
-explode_name( LDAP_CONST char *name, int notypes, int is_dn )
+explode_name( const char *name, int notypes, int is_dn )
 {
 	const char *p, *q;
 	char **parts = NULL;
