@@ -28,10 +28,10 @@
 #include "back-monitor.h"
 
 enum {
-	MONITOR_SENT_ENTRIES = 0,
-	MONITOR_SENT_REFERRALS,
+	MONITOR_SENT_BYTES = 0,
 	MONITOR_SENT_PDU,
-	MONITOR_SENT_BYTES,
+	MONITOR_SENT_ENTRIES,
+	MONITOR_SENT_REFERRALS,
 
 	MONITOR_SENT_LAST
 };
@@ -40,11 +40,11 @@ struct monitor_sent_t {
 	struct berval	rdn;
 	struct berval	nrdn;
 } monitor_sent[] = {
-	{ BER_BVC("cn=Bytes"),		BER_BVC("cn=bytes")		},
-	{ BER_BVC("cn=PDU"),		BER_BVC("cn=pdu")		},
-	{ BER_BVC("cn=Entries"),	BER_BVC("cn=entries")		},
-	{ BER_BVC("cn=Referrals"),	BER_BVC("cn=referrals")		},
-	{ BER_BVNULL,			BER_BVNULL			}
+	{ BER_BVC("cn=Bytes"),		BER_BVNULL },
+	{ BER_BVC("cn=PDU"),		BER_BVNULL },
+	{ BER_BVC("cn=Entries"),	BER_BVNULL },
+	{ BER_BVC("cn=Referrals"),	BER_BVNULL },
+	{ BER_BVNULL,			BER_BVNULL }
 };
 
 int
@@ -76,7 +76,7 @@ monitor_subsys_sent_init(
 
 	for ( i = MONITOR_SENT_LAST; --i >= 0; ) {
 		char			buf[ BACKMONITOR_BUFSIZE ];
-		struct berval		bv;
+		struct berval		rdn, bv;
 		Entry			*e;
 
 		snprintf( buf, sizeof( buf ),
@@ -107,9 +107,12 @@ monitor_subsys_sent_init(
 				monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
+
+		/* steal normalized RDN */
+		dnRdn( &e->e_nname, &rdn );
+		ber_dupbv( &monitor_sent[i].nrdn, &rdn );
 	
-		bv.bv_val = "0";
-		bv.bv_len = 1;
+		BER_BVSTR( &bv, "0" );
 		attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
 	
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
