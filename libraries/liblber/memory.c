@@ -9,8 +9,20 @@
 
 #include "lber-int.h"
 
-BerMemoryFunctions *ber_int_memory_fns = NULL;
+#ifdef LDAP_MEMORY_DEBUG
+struct ber_mem_hdr {
+	union bmu_align_u {
+		size_t	bmu_size_t;
+		void *	bmu_voidp;
+		double	bmu_double;
+		long	bmu_long;
+	} ber_align;
+#define bm_junk	ber_align.bmu_size_t
+};
+#define BER_MEM_JUNK 0xddeeddeeU
+#endif
 
+BerMemoryFunctions *ber_int_memory_fns = NULL;
 
 void
 ber_memfree( void *p )
@@ -26,12 +38,20 @@ ber_memfree( void *p )
 	}
 
 	if( ber_int_memory_fns == NULL ) {
+#ifdef LDAP_MEMORY_DEBUG
+		struct ber_mem_hdr *mh = (struct ber_mem_hdr *)
+			((char *)p - sizeof(struct ber_mem_hdr));
+		assert( mh->bm_junk == BER_MEM_JUNK );
+		free( mh );
+#else
 		free( p );
+#endif
 		return;
 	}
 
 	assert( ber_int_memory_fns->bmf_free );
 
+		
 	(*ber_int_memory_fns->bmf_free)( p );
 }
 
@@ -65,7 +85,17 @@ ber_memalloc( size_t s )
 	}
 
 	if( ber_int_memory_fns == NULL ) {
+#ifdef LDAP_MEMORY_DEBUG
+		struct ber_mem_hdr *mh = malloc(s + sizeof(struct ber_mem_hdr));
+
+		if( mh == NULL ) return NULL;
+
+		mh->bm_junk = BER_MEM_JUNK;
+
+		return &mh[1];
+#else
 		return malloc( s );
+#endif
 	}
 
 	assert( ber_int_memory_fns->bmf_malloc );
@@ -88,7 +118,15 @@ ber_memcalloc( size_t n, size_t s )
 	}
 
 	if( ber_int_memory_fns == NULL ) {
+#ifdef LDAP_MEMORY_DEBUG
+		struct ber_mem_hdr *mh = calloc(1,
+			(n * s) + sizeof(struct ber_mem_hdr) );
+
+		mh->bm_junk = BER_MEM_JUNK;
+		return &mh[1];
+#else
 		return calloc( n, s );
+#endif
 	}
 
 	assert( ber_int_memory_fns->bmf_calloc );
@@ -114,7 +152,21 @@ ber_memrealloc( void* p, size_t s )
 	}
 
 	if( ber_int_memory_fns == NULL ) {
+#ifdef LDAP_MEMORY_DEBUG
+		struct ber_mem_hdr *mh = (struct ber_mem_hdr *)
+			((char *)p - sizeof(struct ber_mem_hdr));
+		assert( mh->bm_junk == BER_MEM_JUNK );
+
+		p = realloc( mh, s );
+
+		if( p == NULL ) return NULL;
+
+		mh = p;
+
+		return &mh[1];
+#else
 		return realloc( p, s );
+#endif
 	}
 
 	assert( ber_int_memory_fns->bmf_realloc );
