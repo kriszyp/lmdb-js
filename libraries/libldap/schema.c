@@ -572,7 +572,12 @@ get_token(const char ** sp, char ** token_val)
 	default:
 		kind = TK_BAREWORD;
 		p = *sp;
-		while ( !isspace(**sp) && **sp != '\0' )
+		while ( !isspace(**sp) &&
+			**sp != '(' &&
+			**sp != ')' &&
+			**sp != '$' &&
+			**sp != '\'' &&
+			**sp != '\0' )
 			(*sp)++;
 		q = *sp;
 		res = LDAP_MALLOC(q-p+1);
