@@ -8,7 +8,7 @@ This file provides brief instructions on how to build and install
 OpenLDAP on UNIX (and UNIX-{{like}}) system.  More detailed
 information and instructions can be found in
 {{The OpenLDAP Administrator's Guide}}
-({{URL:http://www.openldap.org/doc/admin/}}).
+(available from {{URL:http://www.openldap.org/doc/}}).
 
 It is recommended that you read, or at least skim through, ALL of
 the instructions in this file before attempting to build the
