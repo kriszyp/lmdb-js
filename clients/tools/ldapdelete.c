@@ -35,11 +35,12 @@ static int	not, verbose, contoper;
 static LDAP	*ld;
 
 static int dodelete LDAP_P((
-    LDAP	*ld,
-    char	*dn));
+    LDAP *ld,
+    const char *dn));
 
-static int deletechildren LDAP_P(( LDAP *ld,
-                                   char *dn ));
+static int deletechildren LDAP_P((
+	LDAP *ld,
+	const char *dn ));
 
 static void
 usage( const char *s )
@@ -51,6 +52,7 @@ usage( const char *s )
 "	    or from the file specified with \"-f file\".\n"
 "options:\n"
 "	-c\t\tcontinuous operation mode (do not stop on errors)\n"
+"	-C\t\tchase referrals\n"
 "	-d level\tset LDAP debugging level to `level'\n"
 "	-D binddn\tbind DN\n"
 "	-E\t\trequest SASL privacy (-EE to make it critical)\n"
@@ -83,14 +85,14 @@ main( int argc, char **argv )
 {
 	char		buf[ 4096 ];
 	FILE		*fp;
-	int		i, rc, authmethod, want_bindpw, version, debug, manageDSAit;
+	int		i, rc, authmethod, referrals, want_bindpw, version, debug, manageDSAit;
 
-    not = verbose = contoper = want_bindpw = debug = manageDSAit = 0;
+    not = verbose = contoper = want_bindpw = debug = manageDSAit = referrals = 0;
     fp = NULL;
     authmethod = LDAP_AUTH_SIMPLE;
 	version = -1;
 
-    while (( i = getopt( argc, argv, "cD:d:Ef:h:IKkMnP:p:rU:vWw:X:Y:Z" )) != EOF ) {
+    while (( i = getopt( argc, argv, "cCD:d:Ef:h:IKMnP:p:rU:vWw:X:Y:Z" )) != EOF ) {
 	switch( i ) {
 	case 'k':	/* kerberos bind */
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
@@ -111,6 +113,9 @@ main( int argc, char **argv )
 	case 'c':	/* continuous operation mode */
 	    ++contoper;
 	    break;
+	case 'C':
+		referrals++;
+		break;
 	case 'h':	/* ldap host */
 	    ldaphost = strdup( optarg );
 	    break;
@@ -290,18 +295,24 @@ main( int argc, char **argv )
 #endif
 
     if (( ld = ldap_init( ldaphost, ldapport )) == NULL ) {
-	perror( "ldap_init" );
-	return( EXIT_FAILURE );
+		perror( "ldap_init" );
+		return( EXIT_FAILURE );
     }
 
 	{
-		/* this seems prudent */
+		/* this seems prudent for searches below */
 		int deref = LDAP_DEREF_NEVER;
 		ldap_set_option( ld, LDAP_OPT_DEREF, &deref );
 	}
 
-	/* don't chase referrals */
-	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
+	/* chase referrals */
+	if( ldap_set_option( ld, LDAP_OPT_REFERRALS,
+		referrals ? LDAP_OPT_ON : LDAP_OPT_OFF ) != LDAP_OPT_SUCCESS )
+	{
+		fprintf( stderr, "Could not set LDAP_OPT_REFERRALS %s\n",
+			referrals ? "on" : "off" );
+		return EXIT_FAILURE;
+	}
 
 	if (version == -1 ) {
 		version = 3;
@@ -312,13 +323,15 @@ main( int argc, char **argv )
 	{
 		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n",
 			version );
+		return EXIT_FAILURE;
 	}
 
 	if ( use_tls && ldap_start_tls_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {
 		if ( use_tls > 1 ) {
 			ldap_perror( ld, "ldap_start_tls" );
-			return( EXIT_FAILURE );
+			return EXIT_FAILURE;
 		}
+		fprintf( stderr, "WARNING: could not start TLS\n" );
 	}
 
 	if (want_bindpw) {
@@ -390,7 +403,8 @@ main( int argc, char **argv )
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, &ctrls );
 
 		if( err != LDAP_OPT_SUCCESS ) {
-			fprintf( stderr, "Could not set Manage DSA IT Control\n" );
+			fprintf( stderr, "Could not set ManageDSAit %scontrol\n",
+				c.ldctl_iscritical ? "critical " : "" );
 			if( c.ldctl_iscritical ) {
 				exit( EXIT_FAILURE );
 			}
@@ -419,83 +433,105 @@ main( int argc, char **argv )
 
 static int dodelete(
     LDAP	*ld,
-    char	*dn)
+    const char	*dn)
 {
-    int	rc;
+	int	rc;
 
-    if ( verbose ) {
-	printf( "%sdeleting entry \"%s\"\n",
-		(not ? "!" : ""), dn );
-    }
-    if ( not ) {
-	rc = LDAP_SUCCESS;
-    } else {
-		/* If prune is on, remove a whole subtree.  Delete the children of the
-		 * DN recursively, then the DN requested.
-		 */
-		if ( prune ) deletechildren( ld, dn );
-		if (( rc = ldap_delete_s( ld, dn )) != LDAP_SUCCESS ) {
-			ldap_perror( ld, "ldap_delete" );
-	} else if ( verbose ) {
-	    printf( "\tremoved\n" );
+	if ( verbose ) {
+		printf( "%sdeleting entry \"%s\"\n",
+			(not ? "!" : ""), dn );
 	}
-    }
 
-    return( rc );
+	if ( not ) {
+		return LDAP_SUCCESS;
+	}
+
+	/* If prune is on, remove a whole subtree.  Delete the children of the
+	 * DN recursively, then the DN requested.
+	 */
+	if ( prune ) deletechildren( ld, dn );
+
+	rc = ldap_delete_s( ld, dn );
+	if ( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_delete" );
+	}
+
+	if ( verbose ) {
+		printf( "\tremoved\n" );
+	}
+
+	return rc;
 }
 
 /*
  * Delete all the children of an entry recursively until leaf nodes are reached.
  *
  */
-static int deletechildren( LDAP *ld,
-                           char *dn )
+static int deletechildren(
+	LDAP *ld,
+	const char *dn )
 {
-    LDAPMessage *res, *e;
-    int entries;
-    int rc;
-	int timeout = 30 * 10000;
+	LDAPMessage *res, *e;
+	int entries;
+	int rc;
+	static char *attrs[] = { "1.1", NULL };
 
-    ldap_set_option( ld, LDAP_OPT_TIMEOUT, &timeout );
-    if ( verbose ) printf ( "deleting children of: %s\n", dn );
-    /*
-     * Do a one level search at dn for children.  For each, delete its children.
-     */
-    if ( ldap_search_s( ld, dn, LDAP_SCOPE_ONELEVEL, NULL, NULL, 0, &res ) == -1 )
-    {
-        ldap_perror( ld, "ldap_search" );
-		ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &rc );
-        return( rc );
-    }
+	if ( verbose ) printf ( "deleting children of: %s\n", dn );
+	/*
+	 * Do a one level search at dn for children.  For each, delete its children.
+	 */
 
-    entries = ldap_count_entries( ld, res );
-    if ( entries > 0 )
-    {
-        int i;
+	rc = ldap_search_ext_s( ld, dn, LDAP_SCOPE_ONELEVEL, NULL, attrs, 1,
+		NULL, NULL, NULL, -1, &res );
+	if ( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_search" );
+		return( rc );
+	}
 
-        for (e = ldap_first_entry( ld, res ), i = 0; e != NULL;
-             e = ldap_next_entry( ld, e ), i++ )
-        {
-            if ( (rc = deletechildren( ld, ldap_get_dn( ld, e) )) == -1 )
-            {
-                ldap_perror( ld, "ldap_prune" );
-                return rc;
-            }
-            if ( verbose )
-            {
-                printf( "\tremoving %s\n", ldap_get_dn( ld, e ) );
-            }
-            if ( ( rc = ldap_delete_s( ld, ldap_get_dn( ld, e ) ) ) == -1 )
-            {
-                ldap_perror( ld, "ldap_delete" );
-                return rc;
-            }
-            else if ( verbose )
-            {
-                printf( "\t%s removed\n", ldap_get_dn( ld, e ) );
-            }
-        }
-    }
-    ldap_msgfree( res );
-    return rc;
+	entries = ldap_count_entries( ld, res );
+
+	if ( entries > 0 ) {
+		int i;
+
+		for (e = ldap_first_entry( ld, res ), i = 0; e != NULL;
+			e = ldap_next_entry( ld, e ), i++ )
+		{
+			char *dn = ldap_get_dn( ld, e );
+
+			if( dn == NULL ) {
+				ldap_perror( ld, "ldap_prune" );
+				ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &rc );
+				ber_memfree( dn );
+				return rc;
+			}
+
+			rc = deletechildren( ld, dn );
+			if ( rc == -1 ) {
+				ldap_perror( ld, "ldap_prune" );
+				ber_memfree( dn );
+				return rc;
+			}
+
+			if ( verbose ) {
+				printf( "\tremoving %s\n", dn );
+			}
+
+			rc = ldap_delete_s( ld, dn );
+			if ( rc == -1 ) {
+				ldap_perror( ld, "ldap_delete" );
+				ber_memfree( dn );
+				return rc;
+
+			}
+			
+			if ( verbose ) {
+				printf( "\t%s removed\n", dn );
+			}
+
+			ber_memfree( dn );
+		}
+	}
+
+	ldap_msgfree( res );
+	return rc;
 }

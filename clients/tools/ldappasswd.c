@@ -34,6 +34,7 @@ usage(const char *s)
 "	-a secret\told password\n"
 "	-A\t\tprompt for old password\n"
 "	-d level\tdebugging level\n"
+"	-C\t\tchase referrals\n"
 "	-D binddn\tbind DN\n"
 "	-E\t\trequest SASL privacy (-EE to make it critical)\n"
 "	-h host\t\tLDAP server (default: localhost)\n"
@@ -86,6 +87,7 @@ main( int argc, char *argv[] )
 	int		sasl_privacy = 0;
 #endif
 	int		use_tls = 0;
+	int		referrals = 0;
 	LDAP	       *ld;
 	struct berval *bv = NULL;
 
@@ -96,7 +98,7 @@ main( int argc, char *argv[] )
 		usage (argv[0]);
 
 	while( (i = getopt( argc, argv,
-		"Aa:D:d:EIh:np:Ss:U:vWw:X:Y:Z" )) != EOF )
+		"Aa:CD:d:EIh:np:Ss:U:vWw:X:Y:Z" )) != EOF )
 	{
 		switch (i) {
 		case 'A':	/* prompt for oldr password */
@@ -112,6 +114,9 @@ main( int argc, char *argv[] )
 					*p = '*';
 				}
 			}
+			break;
+		case 'C':
+			referrals++;
 			break;
 		case 'D':	/* bind distinguished name */
 			binddn = strdup (optarg);
@@ -139,7 +144,6 @@ main( int argc, char *argv[] )
 
 		case 's':	/* new password (secret) */
 			newpw = strdup (optarg);
-
 			{
 				char* p;
 
@@ -307,8 +311,14 @@ main( int argc, char *argv[] )
 		return EXIT_FAILURE;
 	}
 
-	/* don't chase referrals */
-	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
+	/* referrals */
+	if (ldap_set_option( ld, LDAP_OPT_REFERRALS,
+		referrals ? LDAP_OPT_ON : LDAP_OPT_OFF ) != LDAP_OPT_SUCCESS )
+	{
+		fprintf( stderr, "Could not set LDAP_OPT_REFERRALS %s\n",
+			referrals ? "on" : "off" );
+		return EXIT_FAILURE;
+	}
 
 	/* LDAPv3 only */
 	version = 3;
@@ -323,6 +333,7 @@ main( int argc, char *argv[] )
 			ldap_perror( ld, "ldap_start_tls" );
 			return( EXIT_FAILURE );
 		}
+		fprintf( stderr, "WARNING: could not start TLS\n" );
 	}
 
 	if ( authmethod == LDAP_AUTH_SASL ) {

@@ -66,7 +66,6 @@ usage( const char *s )
 "\t-n\t\tshow what would be done but don't actually search\n"
 "\t-p port\t\tport on LDAP server\n"
 "\t-P version\tprocotol version (default: 3)\n"
-"\t-R\t\tdo not automatically follow referrals\n"
 "\t-s scope\tone of base, one, or sub (search scope)\n"
 "\t-S attr\t\tsort the results by attribute `attr'\n"
 "\t-t\t\twrite binary values to files in temporary directory\n"
@@ -123,10 +122,14 @@ static int dosearch LDAP_P((
 	LDAP	*ld,
 	char	*base,
 	int		scope,
+	char	*filtpatt,
+	char	*value,
 	char	**attrs,
 	int		attrsonly,
-	char	*filtpatt,
-	char	*value));
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	struct timeval *timelimit,
+	int	sizelimit ));
 
 static char *tmpdir = NULL;
 static char *urlpre = NULL;
@@ -158,19 +161,16 @@ main( int argc, char **argv )
 	LDAP		*ld;
 
 	infile = NULL;
-	debug = verbose = not = vals2tmp =
+	debug = verbose = not = vals2tmp = referrals =
 		attrsonly = manageDSAit = ldif = want_bindpw = 0;
 
 	deref = sizelimit = timelimit = version = -1;
-
-	/* default should be off */
-	referrals = 1;
 
 	scope = LDAP_SCOPE_SUBTREE;
 	authmethod = LDAP_AUTH_SIMPLE;
 
 	while (( i = getopt( argc, argv,
-		"Aa:b:D:d:Ef:h:IKkLl:MnP:p:RS:s:T:tU:uV:vWw:X:Y:Zz:")) != EOF )
+		"Aa:b:CD:d:Ef:h:IKkLl:MnP:p:RS:s:T:tU:uV:vWw:X:Y:Zz:")) != EOF )
 	{
 	switch( i ) {
 	case 'n':	/* do nothing */
@@ -209,8 +209,10 @@ main( int argc, char **argv )
 		/* enable Manage DSA IT */
 		manageDSAit++;
 		break;
-	case 'R':	/* don't automatically chase referrals */
-		referrals = 0;
+	case 'C':
+		referrals++;
+		break;
+	case 'R':	/* ignore */
 		break;
 	case 'A':	/* retrieve attribute names only -- no values */
 		++attrsonly;
@@ -471,30 +473,35 @@ main( int argc, char **argv )
 
 	if (( ld = ldap_init( ldaphost, ldapport )) == NULL ) {
 		perror( "ldap_init" );
-		return( EXIT_FAILURE );
+		return EXIT_FAILURE;
 	}
 
 	if (deref != -1 &&
 		ldap_set_option( ld, LDAP_OPT_DEREF, (void *) &deref ) != LDAP_OPT_SUCCESS )
 	{
 		fprintf( stderr, "Could not set LDAP_OPT_DEREF %d\n", deref );
+		return EXIT_FAILURE;
 	}
 	if (timelimit != -1 &&
 		ldap_set_option( ld, LDAP_OPT_TIMELIMIT, (void *) &timelimit ) != LDAP_OPT_SUCCESS )
 	{
 		fprintf( stderr, "Could not set LDAP_OPT_TIMELIMIT %d\n", timelimit );
+		return EXIT_FAILURE;
 	}
 	if (sizelimit != -1 &&
 		ldap_set_option( ld, LDAP_OPT_SIZELIMIT, (void *) &sizelimit ) != LDAP_OPT_SUCCESS )
 	{
 		fprintf( stderr, "Could not set LDAP_OPT_SIZELIMIT %d\n", sizelimit );
+		return EXIT_FAILURE;
 	}
-	if (referrals != -1 &&
-		ldap_set_option( ld, LDAP_OPT_REFERRALS,
-				 (referrals ? LDAP_OPT_ON : LDAP_OPT_OFF) ) != LDAP_OPT_SUCCESS )
+
+	/* referrals */
+	if (ldap_set_option( ld, LDAP_OPT_REFERRALS,
+		referrals ? LDAP_OPT_ON : LDAP_OPT_OFF ) != LDAP_OPT_SUCCESS )
 	{
 		fprintf( stderr, "Could not set LDAP_OPT_REFERRALS %s\n",
 			referrals ? "on" : "off" );
+		return EXIT_FAILURE;
 	}
 
 	if (version == -1 ) {
@@ -506,13 +513,15 @@ main( int argc, char **argv )
 	{
 		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n",
 			version );
+		return EXIT_FAILURE;
 	}
 
 	if ( use_tls && ldap_start_tls_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {
 		if ( use_tls > 1 ) {
 			ldap_perror( ld, "ldap_start_tls" );
-			return( EXIT_FAILURE );
+			return EXIT_FAILURE;
 		}
+		fprintf( stderr, "WARNING: could not start TLS\n" );
 	}
 
 	if (want_bindpw) {
@@ -583,7 +592,8 @@ main( int argc, char **argv )
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, &ctrls );
 
 		if( err != LDAP_OPT_SUCCESS ) {
-			fprintf( stderr, "Could not set Manage DSA IT Control\n" );
+			fprintf( stderr, "Could not set ManageDSAit %scontrol\n",
+				c.ldctl_iscritical ? "critical " : "" );
 			if( c.ldctl_iscritical ) {
 				exit( EXIT_FAILURE );
 			}
@@ -631,7 +641,8 @@ main( int argc, char **argv )
 	}
 
 	if ( infile == NULL ) {
-		rc = dosearch( ld, base, scope, attrs, attrsonly, NULL, filtpattern );
+		rc = dosearch( ld, base, scope, NULL, filtpattern,
+			attrs, attrsonly, NULL, NULL, NULL, -1 );
 
 	} else {
 		rc = 0;
@@ -643,8 +654,8 @@ main( int argc, char **argv )
 			} else {
 				first = 0;
 			}
-			rc = dosearch( ld, base, scope, attrs, attrsonly,
-				filtpattern, line );
+			rc = dosearch( ld, base, scope, filtpattern, line,
+				attrs, attrsonly, NULL, NULL, NULL, -1 );
 		}
 		if ( fp != stdin ) {
 			fclose( fp );
@@ -660,10 +671,14 @@ static int dosearch(
 	LDAP	*ld,
 	char	*base,
 	int		scope,
+	char	*filtpatt,
+	char	*value,
 	char	**attrs,
 	int		attrsonly,
-	char	*filtpatt,
-	char	*value)
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	struct timeval *timelimit,
+	int sizelimit )
 {
 	char		filter[ BUFSIZ ];
 	int			rc, first;
@@ -694,12 +709,12 @@ static int dosearch(
 		return LDAP_SUCCESS;
 	}
 
-	msgid = ldap_search( ld, base, scope, filter, attrs, attrsonly );
-	if( msgid == -1 ) {
-		int ld_errno;
+	rc = ldap_search_ext( ld, base, scope, filter, attrs, attrsonly,
+		sctrls, cctrls, timelimit, sizelimit, &msgid );
+
+	if( rc != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_search" );
-		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
-		return( ld_errno );
+		return( rc );
 	}
 
 	nresponses = nentries = nreferences = nextended = npartial = 0;

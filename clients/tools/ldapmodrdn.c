@@ -63,6 +63,7 @@ usage( const char *s )
 "		from the file specified by \"-f file\" (see man page).\n"
 "options:\n"
 "	-c\t\tcontinuous operation mode (do not stop on errors)\n"
+"	-C\t\tchase referrals\n"
 "	-d level\tset LDAP debugging level to `level'\n"
 "	-D binddn\tbind DN\n"
 "	-E\t\trequest SASL privacy (-EE to make it critical)\n"
@@ -96,16 +97,18 @@ main(int argc, char **argv)
     char		*myname,*infile, *entrydn = NULL, *rdn = NULL, buf[ 4096 ];
     FILE		*fp;
 	int		rc, i, remove, havedn, authmethod, version, want_bindpw, debug, manageDSAit;
+	int		referrals;
     char	*newSuperior=NULL;
 
     infile = NULL;
-    not = contoper = verbose = remove = want_bindpw = debug = manageDSAit = 0;
+    not = contoper = verbose = remove = want_bindpw =
+		debug = manageDSAit = referrals = 0;
     authmethod = LDAP_AUTH_SIMPLE;
 	version = -1;
 
     myname = (myname = strrchr(argv[0], '/')) == NULL ? argv[0] : ++myname;
 
-    while (( i = getopt( argc, argv, "cD:d:Ef:h:IKkMnP:p:rs:U:vWw:X:Y:Z" )) != EOF ) {
+    while (( i = getopt( argc, argv, "cCD:d:Ef:h:IKkMnP:p:rs:U:vWw:X:Y:Z" )) != EOF ) {
 	switch( i ) {
 	case 'k':	/* kerberos bind */
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
@@ -126,6 +129,9 @@ main(int argc, char **argv)
 	case 'c':	/* continuous operation mode */
 	    ++contoper;
 	    break;
+	case 'C':
+		referrals++;
+		break;
 	case 'h':	/* ldap host */
 	    ldaphost = strdup( optarg );
 	    break;
@@ -341,8 +347,14 @@ main(int argc, char **argv)
 	return( EXIT_FAILURE );
     }
 
-	/* don't chase referrals */
-	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
+	/* referrals */
+	if( ldap_set_option( ld, LDAP_OPT_REFERRALS,
+		referrals ? LDAP_OPT_ON : LDAP_OPT_OFF ) != LDAP_OPT_SUCCESS )
+	{
+		fprintf( stderr, "Could not set LDAP_OPT_REFERRALS %s\n",
+			referrals ? "on" : "off" );
+		return EXIT_FAILURE;
+	}
 
 	if (version == -1 ) {
 		version = 3;
@@ -360,6 +372,7 @@ main(int argc, char **argv)
 			ldap_perror( ld, "ldap_start_tls" );
 			return( EXIT_FAILURE );
 		}
+		fprintf( stderr, "WARNING: could not start TLS\n" );
 	}
 
 	if (want_bindpw) {
@@ -431,7 +444,8 @@ main(int argc, char **argv)
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, &ctrls );
 
 		if( err != LDAP_OPT_SUCCESS ) {
-			fprintf( stderr, "Could not set Manage DSA IT Control\n" );
+			fprintf( stderr, "Could not set ManageDSAit %scontrol\n",
+				c.ldctl_iscritical ? "critical " : "" );
 			if( c.ldctl_iscritical ) {
 				exit( EXIT_FAILURE );
 			}
