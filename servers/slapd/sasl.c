@@ -1140,6 +1140,10 @@ int slap_sasl_init( void )
 		Debug( LDAP_DEBUG_ANY, "sasl_server_init failed\n",
 			0, 0, 0 );
 #endif
+#if SASL_VERSION_MAJOR < 2
+		/* A no-op used to make sure we linked with Cyrus 1.5 */
+		sasl_client_auth( NULL, NULL, NULL, 0, NULL, NULL );
+#endif
 
 		return -1;
 	}
