@@ -1,6 +1,6 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.9 Engineering
+OpenLDAP 2.0.9 Release
 	Add slapd obsolete schema check
 	Add slapd collective schema check
 	Fix slapd printableString syntax bug
