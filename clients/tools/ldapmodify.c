@@ -814,6 +814,11 @@ domodify(
     int			i, j, k, notascii, op;
     struct berval	*bvp;
 
+	if ( dn == NULL ) {
+	fprintf( stderr, _("%s: no DN specified\n"), prog );
+	return( LDAP_PARAM_ERROR );
+	}
+
     if ( pmods == NULL ) {
 	fprintf( stderr, _("%s: no attributes to change or add (entry=\"%s\")\n"),
 		prog, dn );
