@@ -586,7 +586,7 @@ ldap_dnfree( LDAPDN *dn )
  * and readable as soon as it works as expected.
  */
 
-#define	TMP_SLOTS	256
+#define	TMP_SLOTS	1024
 
 int
 ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
