@@ -228,7 +228,7 @@ E:		CPPFLAGS="-I/usr/local/include" \
 E:		LDFLAGS="-L/usr/local/lib" \
 E:		./configure
 
-Note: You may have add additional flags if your system
+Note: You may have to add additional flags if your system
 supports shared libraries.
 
 
