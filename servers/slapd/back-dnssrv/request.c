@@ -1,4 +1,4 @@
-/* compare.c - DNS SRV backend compare function */
+/* add.c - DNS SRV backend request handler */
 /* $OpenLDAP$ */
 /*
  * Copyright 2000 The OpenLDAP Foundation, All Rights Reserved.
@@ -16,14 +16,12 @@
 #include "back-dnssrv.h"
 
 int
-dnssrv_back_compare(
+dnssrv_back_request(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn,
-    char	*ndn,
-    Ava		*ava
-)
+    const char *dn,
+    const char *ndn )
 {
-	return dnssrv_back_request( be, conn, op, dn, ndn );
+	return -1;
 }

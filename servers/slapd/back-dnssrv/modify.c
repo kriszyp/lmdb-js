@@ -26,5 +26,5 @@ dnssrv_back_modify(
     LDAPModList	*ml
 )
 {
-	return -1;
+	return dnssrv_back_request( be, conn, op, dn, ndn );
 }

@@ -14,6 +14,14 @@
 #include "external.h"
 
 LDAP_BEGIN_DECL
+
+int dnssrv_result();
+	
+extern int dnssrv_back_request LDAP_P((
+	BackendDB *bd,
+	Connection *conn, Operation *op,
+	const char *dn, const char *ndn ));
+
 LDAP_END_DECL
 
 #endif /* DNSSRV_BACK_H */

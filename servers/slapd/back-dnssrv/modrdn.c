@@ -27,5 +27,5 @@ dnssrv_back_modrdn(
     char	*newSuperior
 )
 {
-	return -1;
+	return dnssrv_back_request( be, conn, op, dn, ndn );
 }

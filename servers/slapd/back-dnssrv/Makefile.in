@@ -10,10 +10,10 @@
 # DNSSRV backend written by Kurt Zeilenga
 ##########################################################################
 
-SRCS	= init.c search.c config.c bind.c compare.c \
-		modify.c add.c modrdn.c delete.c
-OBJS	= init.lo search.lo config.lo bind.lo compare.lo \
-		modify.lo add.lo modrdn.lo delete.lo
+SRCS	= init.c search.c config.c compare.c \
+		modify.c add.c modrdn.c delete.c request.c
+OBJS	= init.lo search.lo config.lo compare.lo \
+		modify.lo add.lo modrdn.lo delete.lo request.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries

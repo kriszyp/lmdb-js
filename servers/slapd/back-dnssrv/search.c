@@ -22,8 +22,8 @@ dnssrv_back_search(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*base,
-    char	*nbase,
+    char	*dn,
+    char	*ndn,
     int		scope,
     int		deref,
     int		size,
@@ -34,5 +34,5 @@ dnssrv_back_search(
     int		attrsonly
 )
 {
-	return -1;
+	return dnssrv_back_request( be, conn, op, dn, ndn );
 }

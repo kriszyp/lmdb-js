@@ -23,5 +23,5 @@ dnssrv_back_add(
     Entry	*e
 )
 {
-	return -1;
+	return dnssrv_back_request( be, conn, op, e->e_dn, e->e_ndn );
 }
