@@ -80,6 +80,12 @@ int   protocol = -1;
 int   verbose = 0;
 int   version = 0;
 
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+int chaining = 0;
+static int chainingResolve = -1;
+static int chainingContinuation = -1;
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
 /* Set in main() */
 char *prog = NULL;
 
@@ -107,6 +113,11 @@ N_("             [!]noop\n")
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 N_("             ppolicy\n")
 #endif
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+N_("             [!]chaining[=<resolveBehavior>[,<continuationBehavior>]]\n")
+N_("                     one of \"chainingPreferred\", \"chainingRequired\",\n")
+N_("                     \"referralsPreferred\", \"referralsRequired\"\n")
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 N_("             [!]postread[=<attrs>]  (a comma-separated attribute list)\n")
 N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n"),
 N_("  -f file    read operations from `file'\n"),
@@ -285,6 +296,52 @@ tool_args( int argc, char **argv )
 
 				postread = 1 + crit;
 				postread_attrs = cvalue;
+
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+			} else if ( strcasecmp( control, "chaining" ) == 0 ) {
+				chaining = 1 + crit;
+
+				if ( cvalue != NULL ) {
+					char	*continuation;
+
+					continuation = strchr( cvalue, ',' );
+					if ( continuation ) {
+						/* FIXME: this makes sense only in searches */
+						*continuation++ = '\0';
+						if ( strcasecmp( continuation, "chainingPreferred" ) == 0 ) {
+							chainingContinuation = LDAP_CHAINING_PREFERRED;
+						} else if ( strcasecmp( continuation, "chainingRequired" ) == 0 ) {
+							chainingContinuation = LDAP_CHAINING_REQUIRED;
+						} else if ( strcasecmp( continuation, "referralsPreferred" ) == 0 ) {
+							chainingContinuation = LDAP_REFERRALS_PREFERRED;
+						} else if ( strcasecmp( continuation, "referralsRequired" ) == 0 ) {
+							chainingContinuation = LDAP_REFERRALS_REQUIRED;
+						} else {
+							fprintf( stderr,
+								"chaining behavior control "
+								"continuation value \"%s\" invalid\n",
+								continuation );
+							exit( EXIT_FAILURE );
+						}
+					}
+	
+					if ( strcasecmp( cvalue, "chainingPreferred" ) == 0 ) {
+						chainingResolve = LDAP_CHAINING_PREFERRED;
+					} else if ( strcasecmp( cvalue, "chainingRequired" ) == 0 ) {
+						chainingResolve = LDAP_CHAINING_REQUIRED;
+					} else if ( strcasecmp( cvalue, "referralsPreferred" ) == 0 ) {
+						chainingResolve = LDAP_REFERRALS_PREFERRED;
+					} else if ( strcasecmp( cvalue, "referralsRequired" ) == 0 ) {
+						chainingResolve = LDAP_REFERRALS_REQUIRED;
+					} else {
+						fprintf( stderr,
+							"chaining behavior control "
+							"resolve value \"%s\" invalid\n",
+							cvalue);
+						exit( EXIT_FAILURE );
+					}
+				}
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
 			} else {
 				fprintf( stderr, "Invalid general control name: %s\n",
@@ -867,7 +924,7 @@ void
 tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 {
 	int i = 0, j, crit = 0, err;
-	LDAPControl c[8], **ctrls;
+	LDAPControl c[9], **ctrls;
 
 	ctrls = (LDAPControl**) malloc(sizeof(c) + (count+1)*sizeof(LDAPControl*));
 	if ( ctrls == NULL ) {
@@ -915,8 +972,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 
 	if ( manageDSAit ) {
 		c[i].ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
-		c[i].ldctl_value.bv_val = NULL;
-		c[i].ldctl_value.bv_len = 0;
+		BER_BVZERO( &c[i].ldctl_value );
 		c[i].ldctl_iscritical = manageDSAit > 1;
 		ctrls[i] = &c[i];
 		i++;
@@ -924,8 +980,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 
 	if ( noop ) {
 		c[i].ldctl_oid = LDAP_CONTROL_NOOP;
-		c[i].ldctl_value.bv_val = NULL;
-		c[i].ldctl_value.bv_len = 0;
+		BER_BVZERO( &c[i].ldctl_value );
 		c[i].ldctl_iscritical = noop > 1;
 		ctrls[i] = &c[i];
 		i++;
@@ -990,6 +1045,52 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 
 		if( attrs ) ldap_charray_free( attrs );
 	}
+
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+	if ( chaining ) {
+		if ( chainingResolve > -1 ) {
+			BerElementBuffer berbuf;
+			BerElement *ber = (BerElement *)&berbuf;
+
+			ber_init2( ber, NULL, LBER_USE_DER );
+
+			err = ber_printf( ber, "{e" /* } */, chainingResolve );
+		    	if ( err == -1 ) {
+				ber_free( ber, 1 );
+				fprintf( stderr, _("Chaining behavior control encoding error!\n") );
+				exit( EXIT_FAILURE );
+			}
+
+			if ( chainingContinuation > -1 ) {
+				err = ber_printf( ber, "e", chainingContinuation );
+		    		if ( err == -1 ) {
+					ber_free( ber, 1 );
+					fprintf( stderr, _("Chaining behavior control encoding error!\n") );
+					exit( EXIT_FAILURE );
+				}
+			}
+
+			err = ber_printf( ber, /* { */ "N}" );
+		    	if ( err == -1 ) {
+				ber_free( ber, 1 );
+				fprintf( stderr, _("Chaining behavior control encoding error!\n") );
+				exit( EXIT_FAILURE );
+			}
+
+			if ( ber_flatten2( ber, &c[i].ldctl_value, 0 ) == -1 ) {
+				exit( EXIT_FAILURE );
+			}
+
+		} else {
+			BER_BVZERO( &c[i].ldctl_value );
+		}
+
+		c[i].ldctl_oid = LDAP_CONTROL_X_CHAINING_BEHAVIOR;
+		c[i].ldctl_iscritical = chaining > 1;
+		ctrls[i] = &c[i];
+		i++;
+	}
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
 	while ( count-- ) {
 		ctrls[i++] = extra_c++;

@@ -277,6 +277,18 @@ typedef struct ldapcontrol {
 #define LDAP_SEARCH_FLAG_DOMAIN_SCOPE		1 /* do not generate referrals */
 #define LDAP_SEARCH_FLAG_PHANTOM_ROOT		2 /* search all NCs subordinate to base */
 
+/* LDAP Chaining Behavior Control *//* work in progress */
+/* <draft-sermersheim-ldap-chaining>;
+ * see also LDAP_REQUIRES_CHAINING, LDAP_CANNOT_CHAIN */
+#ifdef LDAP_DEVEL
+#define LDAP_CONTROL_X_CHAINING_BEHAVIOR	"1.3.6.1.4.1.4203.666.11.3"
+
+#define	LDAP_CHAINING_PREFERRED				0
+#define	LDAP_CHAINING_REQUIRED				1
+#define LDAP_REFERRALS_PREFERRED			2
+#define LDAP_REFERRALS_REQUIRED				3
+#endif
+
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036" /* RFC 2251 */
 #define LDAP_NOTICE_DISCONNECT LDAP_NOTICE_OF_DISCONNECTION
@@ -549,6 +561,13 @@ typedef struct ldapcontrol {
 
 /* for the Assertion control */
 #define LDAP_ASSERTION_FAILED			0x410f
+
+/* for the Chaining Behavior control (consecutive result codes requested;
+ * see <draft-sermersheim-ldap-chaining> ) */
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+#define	LDAP_REQUIRES_CHAINING			0x4110
+#define LDAP_CANNOT_CHAIN			0x4111
+#endif
 
 /* API Error Codes
  *
