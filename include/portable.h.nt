@@ -56,6 +56,9 @@ typedef char * caddr_t;
 /* we have winsock */
 #define HAVE_WINSOCK 1
 
+/* we have <conio.h> */
+#define HAVE_CONIO_H 1
+
 /* we have <io.h> */
 #define HAVE_IO_H 1
 

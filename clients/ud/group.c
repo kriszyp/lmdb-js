@@ -20,6 +20,10 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
+#ifdef HAVE_IO_H
+#include <io.h>
+#endif
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldapconfig.h>
@@ -31,7 +35,7 @@ static char * bind_and_fetch(char *name);
 void
 add_group( char *name )
 {
-	register int i, idx = 0, prompt = 0;
+	int idx = 0, prompt = 0;
 	char tmp[BUFSIZ], dn[BUFSIZ];
 	static LDAPMod *attrs[9];
 	LDAPMod init_rdn,    init_owner,   init_domain,
@@ -152,9 +156,9 @@ add_group( char *name )
 
 #ifdef DEBUG
 	if (debug & D_GROUPS) {
-		register LDAPMod **lpp;
-		register char **cpp;
-		register int j;
+		LDAPMod **lpp;
+		char **cpp;
+		int i, j;
 		printf("  About to call ldap_add()\n");
 		printf("  ld = 0x%x\n", ld);
 		printf("  dn = [%s]\n", dn);
@@ -728,7 +732,6 @@ mod_addrDN( char *group, int offset )
 {
 	char s[BUFSIZ], *new_value /* was member */, *values[2];
 	char attrtype[ 64 ];
-	int i;
 	LDAPMod mod, *mods[2];
 	LDAPMessage *mp;
 
@@ -867,7 +870,7 @@ mod_addrDN( char *group, int offset )
 			 *	"Bryan Beecher" <bryan@umich.edu>
 			 *	 Bryan Beecher  <bryan@umich.edu>
 			 */
-			register char *cp;
+			char *cp;
 			if (strchr(s, '<') == NULL) {
 				for (cp = s; *cp != '@'; cp++)
 					if (isspace(*cp))
@@ -895,9 +898,9 @@ mod_addrDN( char *group, int offset )
 
 #ifdef DEBUG
 		if (debug & D_GROUPS) {
-			register LDAPMod **lpp;
-			register char **cp;
-			register int i, j;
+			LDAPMod **lpp;
+			char **cp;
+			int i, j;
 			printf("  About to call ldap_modify_s()\n");
 			printf("  ld = 0x%x\n", ld);
 			printf("  dn = [%s]\n", group);
@@ -954,9 +957,9 @@ mod_addrDN( char *group, int offset )
 			mod.mod_op = LDAP_MOD_DELETE;
 #ifdef DEBUG
 			if (debug & D_GROUPS) {
-				register LDAPMod **lpp;
-				register char **cp;
-				register int i, j;
+				LDAPMod **lpp;
+				char **cp;
+				int i, j;
 				printf("  About to call ldap_modify_s()\n");
 				printf("  ld = 0x%x\n", ld);
 				printf("  dn = [%s]\n", group);

@@ -114,10 +114,11 @@ load_editor( void )
 	FILE *fp;
 	char *cp, *editor = UD_DEFAULT_EDITOR;
 	static char template[MED_BUF_SIZE];
+#ifndef HAVE_SPAWNLP
 	int pid;
 	int status;
+#endif
 	int rc;
-	void (*handler)();
 	
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -186,6 +187,7 @@ load_editor( void )
 	}
 	else if (pid > 0) {
 		/* parent - wait until the child proc is done editing */
+		void (*handler)();
 		handler = SIGNAL(SIGINT, SIG_IGN);
 		(void) wait(&status);
 		(void) SIGNAL(SIGINT, handler);
@@ -204,8 +206,12 @@ print_attrs_and_values( FILE *fp, struct attribute *attrs, short int flag )
 	register int i, j;
 
 	for (i = 0; attrs[i].quipu_name != NULL; i++) {
-		if (!modifiable(attrs[i].quipu_name, flag|ATTR_FLAG_MAY_EDIT))
+		if (!modifiable(attrs[i].quipu_name,
+			(short) (flag|ATTR_FLAG_MAY_EDIT)))
+		{
 			continue;
+		}
+
 		fprintf(fp, "%s\n", attrs[i].quipu_name);
 		if ( attrs[i].number_of_values > MAX_VALUES ) {
 			printf("  The %s attribute has more than %d values.\n",
