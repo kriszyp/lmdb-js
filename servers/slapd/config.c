@@ -128,13 +128,14 @@ int config_plugin(ConfigArgs *c);
 int config_pluginlog(ConfigArgs *c);
 
 enum {
-	CFG_BACKEND = 1,
+	CFG_ACL = 1,
+	CFG_BACKEND,
 	CFG_DATABASE,
 	CFG_TLS_RAND,
 	CFG_TLS_CIPHER,
 	CFG_TLS_CERT_FILE,
 	CFG_TLS_CERT_KEY,
-	CFG_TLS_CERT_PATH,
+	CFG_TLS_CA_PATH,
 	CFG_TLS_CA_FILE,
 	CFG_TLS_VERIFY,
 	CFG_TLS_CRLCHECK,
@@ -153,7 +154,6 @@ enum {
 	CFG_ATTR,
 	CFG_ATOPT,
 	CFG_CHECK,
-	CFG_ACL,
 	CFG_AUDITLOG,
 	CFG_REPLOG,
 	CFG_ROOTDSE,
@@ -167,120 +167,315 @@ enum {
 	CFG_SASLSECP
 };
 
-/* original config.c ordering */
+typedef struct {
+	char *name, *oid;
+} OidRec;
+
+static OidRec OidMacros[] = {
+	{ "OLcfg", "1.3.6.1.4.1.4203.666.11.1" },
+	{ "OLcfgAt", "OLcfg:3" },
+	{ "OLcfgOc", "OLcfg:4" },
+	{ "OMsyn", "1.3.6.1.4.1.1466.115.121.1" },
+	{ "OMsInteger", "OMsyn:2" },
+	{ "OMsBoolean", "OMsyn:7" },
+	{ "OMsDN", "OMsyn:12" },
+	{ "OMsDirectoryString", "OMsyn:15" },
+	{ "OMsOctetString", "OMsyn:40" },
+	{ NULL, NULL }
+};
+
+/* alphabetical ordering */
 
 ConfigTable SystemConfiguration[] = {
-  { "backend", "type",	2,  2,  0,  ARG_PRE_DB|ARG_MAGIC|CFG_BACKEND, &config_generic,	NULL, NULL, NULL },
-  { "database", "type",		2,  2,  0,  ARG_MAGIC|CFG_DATABASE,	&config_generic,		NULL, NULL, NULL },
-  { "localSSF",	"ssf",			2,  2,  0,  ARG_LONG,		&local_ssf,			NULL, NULL, NULL },
-  { "concurrency",	"level",		2,  2,  0,  ARG_LONG|ARG_NONZERO|ARG_MAGIC|CFG_CONCUR, &config_generic, NULL, NULL, NULL },
-  { "index_substr_if_minlen","min",		2,  2,  0,  ARG_INT|ARG_NONZERO,	&index_substr_if_minlen,	NULL, NULL, NULL },
-  { "index_substr_if_maxlen","max",		2,  2,  0,  ARG_INT|ARG_NONZERO|ARG_SPECIAL, &index_substr_if_maxlen, NULL, NULL, NULL },
-  { "index_substr_any_len",	"len",	2,  2,  0,  ARG_INT|ARG_NONZERO,	&index_substr_any_len,		NULL, NULL, NULL },
-  { "index_substr_step",	"step",	2,  2,  0,  ARG_INT|ARG_NONZERO,	&index_substr_any_step,		NULL, NULL, NULL },
-  { "sockbuf_max_incoming",	"max",	2,  2,  0,  ARG_LONG,		&sockbuf_max_incoming,		NULL, NULL, NULL },
-  { "sockbuf_max_incoming_auth","max",	2,  2,  0,  ARG_LONG,		&sockbuf_max_incoming_auth, 	NULL, NULL, NULL },
-  { "conn_max_pending",	"max",		2,  2,  0,  ARG_LONG,		&slap_conn_max_pending,		NULL, NULL, NULL },
-  { "conn_max_pending_auth",	"max",	2,  2,  0,  ARG_LONG,		&slap_conn_max_pending_auth,	NULL, NULL, NULL },
-  { "defaultSearchBase",	"dn",	2,  2,  0,  ARG_DN|ARG_MAGIC,		&config_search_base,		NULL, NULL, NULL },
-  { "threads",	"count",			2,  2,  0,  ARG_INT|ARG_MAGIC|CFG_THREADS, &config_generic,		NULL, NULL, NULL },
-  { "pidfile",	"file",			2,  2,  0,  ARG_STRING,		&slapd_pid_file,		NULL, NULL, NULL },
-  { "argsfile",	"file",			2,  2,  0,  ARG_STRING,		&slapd_args_file,		NULL, NULL, NULL },
-  { "password-hash",	"hash",		2,  2,  0,  ARG_MAGIC,		&config_passwd_hash,		NULL, NULL, NULL },
-  { "password-crypt-salt-format","salt",	2, 2,  0,  ARG_MAGIC|CFG_SALT,	&config_generic,		NULL, NULL, NULL },
+	{ "access",	NULL, 0, 0, 0, ARG_MAGIC|CFG_ACL,
+		&config_generic, "( OLcfgAt:1 NAME 'olcAccess' "
+			"DESC 'Access Control List' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
+	{ "allows",	"features", 2, 0, 5, ARG_PRE_DB|ARG_MAGIC,
+		&config_allows, "( OLcfgAt:2 NAME 'olcAllows' "
+			"DESC 'Allowed set of deprecated features' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "argsfile", "file", 2, 2, 0, ARG_STRING,
+		&slapd_args_file, "( OLcfgAt:3 NAME 'olcArgsFile' "
+			"DESC 'File for slapd command line options' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	/* Use standard 'attributeTypes' attr */
+	{ "attribute",	"attribute", 2, 0, 9, ARG_PAREN|ARG_MAGIC|CFG_ATTR,
+		&config_generic, NULL, NULL, NULL },
+	{ "attributeoptions", NULL, 0, 0, 0, ARG_MAGIC|CFG_ATOPT,
+		&config_generic, "( OLcfgAt:5 NAME 'olcAttributeOptions' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 #ifdef SLAP_AUTH_REWRITE
-  { "auth-rewrite",	NULL,		2,  2, 14,  ARG_MAGIC|CFG_REWRITE,	&config_generic,		NULL, NULL, NULL },
+	{ "auth-rewrite", NULL, 2, 2, 14, ARG_MAGIC|CFG_REWRITE,
+		&config_generic, "( OLcfgAt:6 NAME 'olcAuthRewrite' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 #endif
-  { "authz-policy", "policy",		2,  2,  0,  ARG_MAGIC|CFG_AZPOLICY,	&config_generic,		NULL, NULL, NULL },
-  { "authz-regexp",	NULL,			3,  3,  0,  ARG_MAGIC|CFG_AZREGEXP,	&config_generic,		NULL, NULL, NULL },
-  { "sasl-authz-policy",	NULL,			2,  2,  0,  ARG_MAGIC|CFG_AZPOLICY,	&config_generic,		NULL, NULL, NULL },
-  { "sasl-regexp",	NULL,			2,  2,  0,  ARG_MAGIC|CFG_AZREGEXP,	&config_generic,		NULL, NULL, NULL },
-  { "saslRegexp",	NULL,			2,  2,  0,  ARG_MAGIC|CFG_AZREGEXP,	&config_generic,		NULL, NULL, NULL },
-#ifdef HAVE_CYRUS_SASL
-  { "sasl-host", "host",			2,  2,  0,  ARG_STRING|ARG_UNIQUE,	&global_host,		NULL, NULL, NULL },
-  { "sasl-realm", "realm",			2,  2,  0,  ARG_STRING|ARG_UNIQUE,	&global_realm,		NULL, NULL, NULL },
-  { "sasl-secprops", "properties",	2,  2,  0,  ARG_MAGIC|CFG_SASLSECP,	&config_generic,		NULL, NULL, NULL },
-#else
-  { "sasl-host",	NULL,		2,  2,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
-  { "sasl-realm",	NULL,		2,  2,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
-  { "sasl-secprops",	NULL,		2,  2,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
-#endif
-  { "schemadn",		"dn",		2,  2,  0,  ARG_DN|ARG_MAGIC,		&config_schema_dn,		NULL, NULL, NULL },
-  { "ucdata-path",	"path",		2,  2,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
-  { "sizelimit",	"limit",		2,  2,  0,  ARG_MAGIC|CFG_SIZE,	&config_sizelimit,		NULL, NULL, NULL },
-  { "timelimit",	"limit",		2,  2,  0,  ARG_MAGIC|CFG_TIME,	&config_timelimit,		NULL, NULL, NULL },
-  { "limits",	"limits",			2,  0,  0,  ARG_DB|ARG_MAGIC|CFG_LIMITS, &config_generic,		NULL, NULL, NULL },
-  { "overlay",	"overlay",			2,  2,  0,  ARG_MAGIC,		&config_overlay,		NULL, NULL, NULL },
-  { "suffix",	"suffix",			2,  2,  0,  ARG_DB|ARG_DN|ARG_MAGIC,	&config_suffix,			NULL, NULL, NULL },
-  { "maxDerefDepth",	"depth",		2,  2,  0,  ARG_DB|ARG_INT|ARG_MAGIC|CFG_DEPTH, &config_generic,	NULL, NULL, NULL },
-  { "rootdn",	"dn",			2,  2,  0,  ARG_DB|ARG_DN|ARG_MAGIC,	&config_rootdn,			NULL, NULL, NULL },
-  { "rootpw",	"password",			2,  2,  0,  ARG_DB|ARG_MAGIC,	&config_rootpw,			NULL, NULL, NULL },
-  { "readonly",		"on|off",		2,  2,  0,  ARG_ON_OFF|ARG_MAGIC|CFG_RO, &config_generic,		NULL, NULL, NULL },
-  { "restrict",	"op_list",			2,  0,  0,  ARG_MAGIC,		&config_restrict,		NULL, NULL, NULL },
-  { "allows",	"features",			2,  0,  5,  ARG_PRE_DB|ARG_MAGIC,	&config_allows,			NULL, NULL, NULL },
-  { "disallows",	"features",		2,  0,  8,  ARG_PRE_DB|ARG_MAGIC,	&config_disallows,		NULL, NULL, NULL },
-  { "require",	"features",			2,  0,  7,  ARG_MAGIC,		&config_requires,		NULL, NULL, NULL },
-  { "security",	"factors",			2,  0,  0,  ARG_MAGIC,		&config_security,		NULL, NULL, NULL },
-  { "referral",		"url",	2,  2,  0,  ARG_MAGIC,	&config_referral,		NULL, NULL, NULL },
-  { "logfile",	"file",			2,  2,  0,  ARG_MAGIC|CFG_LOGFILE,	&config_generic,		NULL, NULL, NULL },
-  { "objectidentifier",	NULL,		0,  0,  0,  ARG_MAGIC|CFG_OID,	&config_generic, 		NULL, NULL, NULL },
-  { "objectclass",	"objectclass", 	2,  0,  0,  ARG_PAREN|ARG_MAGIC|CFG_OC, &config_generic,		NULL, NULL, NULL },
-  { "ditcontentrule",	NULL,		0,  0,  0,  ARG_MAGIC|CFG_DIT,	&config_generic,		NULL, NULL, NULL },
-  { "attribute",	"attribute", 	2,  0,  9,  ARG_PAREN|ARG_MAGIC|CFG_ATTR, &config_generic,		NULL, NULL, NULL },
-  { "attributeoptions",	NULL,		0,  0,  0,  ARG_MAGIC|CFG_ATOPT,	&config_generic, 		NULL, NULL, NULL },
-  { "schemacheck",	"on|off",		2,  2,  0,  ARG_ON_OFF|ARG_MAGIC|CFG_CHECK,	&config_generic,	NULL, NULL, NULL },
-  { "access",	NULL,			0,  0,  0,  ARG_MAGIC|CFG_ACL,	&config_generic,		NULL, NULL, NULL },
-  { "loglevel",	"level",			2,  0,  0,  ARG_MAGIC,		&config_loglevel,		NULL, NULL, NULL },
-  { "syncrepl",	NULL,			0,  0,  0,  ARG_DB|ARG_MAGIC,	&config_syncrepl,		NULL, NULL, NULL },
-  { "replica",	"host or uri", 		2,  0,  0,  ARG_DB|ARG_MAGIC,	&config_replica,		NULL, NULL, NULL },
-  { "replicationInterval",	NULL,	0,  0,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
-  { "updatedn",	"dn",			2,  2,  0,  ARG_DB|ARG_MAGIC,	&config_updatedn,		NULL, NULL, NULL },
-  { "updateref",	"url",		2,  2,  0,  ARG_DB|ARG_MAGIC,	&config_updateref,		NULL, NULL, NULL },
-  { "replogfile",	"filename", 	2,  2,  0,  ARG_MAGIC|ARG_STRING|CFG_REPLOG,	&config_generic,		NULL, NULL, NULL },
-  { "rootDSE",	"filename", 		2,  2,  0,  ARG_MAGIC|CFG_ROOTDSE,	&config_generic,		NULL, NULL, NULL },
-  { "lastmod",	"on|off",			2,  2,  0,  ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_LASTMOD, &config_generic, NULL, NULL, NULL },
+	{ "authz-policy", "policy", 2, 2, 0, ARG_MAGIC|CFG_AZPOLICY,
+		&config_generic, "( OLcfgAt:7 NAME 'olcAuthzPolicy' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "authz-regexp", NULL, 3, 3, 0, ARG_MAGIC|CFG_AZREGEXP,
+		&config_generic, "( OLcfgAt:8 NAME 'olcAuthzRegexp' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
+	{ "backend", "type", 2, 2, 0, ARG_PRE_DB|ARG_MAGIC|CFG_BACKEND,
+		&config_generic, "( OLcfgAt:9 NAME 'olcBackend' "
+			"DESC 'A type of backend' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "concurrency", "level", 2, 2, 0, ARG_LONG|ARG_NONZERO|ARG_MAGIC|CFG_CONCUR,
+		&config_generic, "( OLcfgAt:10 NAME 'olcConcurrency' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "conn_max_pending", "max", 2, 2, 0, ARG_LONG,
+		&slap_conn_max_pending, "( OLcfgAt:11 NAME 'olcConnMaxPending' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "conn_max_pending_auth", "max", 2, 2, 0, ARG_LONG,
+		&slap_conn_max_pending_auth, "( OLcfgAt:12 NAME 'olcConnMaxPendingAuth' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "database", "type", 2, 2, 0, ARG_MAGIC|CFG_DATABASE,
+		&config_generic, "( OLcfgAt:13 NAME 'olcDatabase' "
+			"DESC 'The backend type for a database instance' "
+			"SUP olcBackend )", NULL, NULL },
+	{ "defaultSearchBase", "dn", 2, 2, 0, ARG_DN|ARG_MAGIC,
+		&config_search_base, "( OLcfgAt:14 NAME 'olcDefaultSearchBase' "
+			"SYNTAX OMsDN )", NULL, NULL },
+	{ "disallows", "features", 2, 0, 8, ARG_PRE_DB|ARG_MAGIC,
+		&config_disallows, "( OLcfgAt:15 NAME 'olcDisallows' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	/* use standard schema */
+	{ "ditcontentrule",	NULL, 0, 0, 0, ARG_MAGIC|CFG_DIT,
+		&config_generic, NULL, NULL, NULL },
 #ifdef SIGHUP
-  { "gentlehup",	"on|off",		2,  2,  0,  ARG_ON_OFF,		&global_gentlehup,		NULL, NULL, NULL },
+	{ "gentlehup", "on|off", 2, 2, 0, ARG_ON_OFF,
+		&global_gentlehup, "( OLcfgAt:17 NAME 'olcGentleHUP' "
+			"SYNTAX OMsBoolean )", NULL, NULL },
 #else
-  { "gentlehup",	NULL,		2,  2,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
+	{ "gentlehup", NULL, 2, 2, 0, ARG_IGNORED,
+		NULL, NULL, NULL, NULL },
 #endif
-  { "idletimeout",	"timeout",		2,  2,  0,  ARG_INT,		&global_idletimeout,		NULL, NULL, NULL },
+	{ "idletimeout", "timeout", 2, 2, 0, ARG_INT,
+		&global_idletimeout, "( OLcfgAt:18 NAME 'olcIdleTimeout' "
+			"SYNTAX OMsInteger )", NULL, NULL },
 /* XXX -- special case? */
-  { "include",	"filename",			2,  2,  0,  ARG_MAGIC,		&config_include,		NULL, NULL, NULL },
-  { "srvtab",	"filename",			2,  2,  0,  ARG_STRING,		&ldap_srvtab,			NULL, NULL, NULL },
+	{ "include", "file", 2, 2, 0, ARG_MAGIC,
+		&config_include, "( OLcfgAt:19 NAME 'olcInclude' "
+			"SUP labeledURI )", NULL, NULL },
+	{ "index_substr_if_minlen", "min", 2, 2, 0, ARG_INT|ARG_NONZERO,
+		&index_substr_if_minlen, "( OLcfgAt:20 NAME 'olcIndexSubstrIfMinLen' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "index_substr_if_maxlen", "max", 2, 2, 0, ARG_INT|ARG_NONZERO|ARG_SPECIAL,
+		&index_substr_if_maxlen, "( OLcfgAt:21 NAME 'olcIndexSubstrIfMaxLen' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "index_substr_any_len", "len", 2, 2, 0, ARG_INT|ARG_NONZERO,
+		&index_substr_any_len, "( OLcfgAt:22 NAME 'olcIndexSubstrAnyLen' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "index_substr_step", "step", 2, 2, 0, ARG_INT|ARG_NONZERO,
+		&index_substr_any_step, "( OLcfgAt:23 NAME 'olcIndexSubstrAnyStep' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "lastmod", "on|off", 2, 2, 0, ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_LASTMOD,
+		&config_generic, "( OLcfgAt:24 NAME 'olcLastMod' "
+			"SYNTAX OMsBoolean )", NULL, NULL },
+	{ "limits", "limits", 2, 0, 0, ARG_DB|ARG_MAGIC|CFG_LIMITS,
+		&config_generic, "( OLcfgAt:25 NAME 'olcLimits' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "localSSF", "ssf", 2, 2, 0, ARG_LONG,
+		&local_ssf, "( OLcfgAt:26 NAME 'olcLocalSSF' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "logfile", "file", 2, 2, 0, ARG_MAGIC|CFG_LOGFILE,
+		&config_generic, "( OLcfgAt:27 NAME 'olcLogFile' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "loglevel", "level", 2, 0, 0, ARG_MAGIC,
+		&config_loglevel, "( OLcfgAt:28 NAME 'olcLogLevel' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "maxDerefDepth", "depth", 2, 2, 0, ARG_DB|ARG_INT|ARG_MAGIC|CFG_DEPTH,
+		&config_generic, "( OLcfgAt:29 NAME 'olcMaxDerefDepth' "
+			"SYNTAX OMsInteger )", NULL, NULL },
 #ifdef SLAPD_MODULES
-  { "moduleload",	"filename",		2,  2,  0,  ARG_MAGIC|CFG_MODLOAD,	&config_generic,		NULL, NULL, NULL },
-  { "modulepath",	"path",		2,  2,  0,  ARG_MAGIC|CFG_MODPATH,	&config_generic,		NULL, NULL, NULL },
+	{ "moduleload",	"file", 2, 2, 0, ARG_MAGIC|CFG_MODLOAD,
+		&config_generic, "( OLcfgAt:30 NAME 'olcModuleLoad' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "modulepath", "path", 2, 2, 0, ARG_MAGIC|CFG_MODPATH,
+		&config_generic, "( OLcfgAt:31 NAME 'olcModulePath' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 #endif
-#ifdef HAVE_TLS
-  { "TLSRandFile",	NULL,		0,  0,  0,  CFG_TLS_RAND|ARG_MAGIC,		&config_tls_option,	NULL, NULL, NULL },
-  { "TLSCipherSuite",	NULL,		0,  0,  0,  CFG_TLS_CIPHER|ARG_MAGIC, 	&config_tls_option,	NULL, NULL, NULL },
-  { "TLSCertificateFile",	NULL,	0,  0,  0,  CFG_TLS_CERT_FILE|ARG_MAGIC,	&config_tls_option,	NULL, NULL, NULL },
-  { "TLSCertificateKeyFile",	NULL,	0,  0,  0,  CFG_TLS_CERT_KEY|ARG_MAGIC,	&config_tls_option,	NULL, NULL, NULL },
-  { "TLSCertificatePath",	NULL,	0,  0,  0,  CFG_TLS_CERT_PATH|ARG_MAGIC,	&config_tls_option,	NULL, NULL, NULL },
-  { "TLSCACertificateFile",	NULL,	0,  0,  0,  CFG_TLS_CA_FILE|ARG_MAGIC,	&config_tls_option,	NULL, NULL, NULL },
-#ifdef HAVE_OPENSSL_CRL
-  { "TLSCRLCheck",	NULL,		0,  0,  0,  CFG_TLS_CRLCHECK|ARG_MAGIC,	&config_tls_option,	NULL, NULL, NULL },
-#else
-  { "TLSCRLCheck",	NULL,		0,  0,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
-#endif
-  { "TLSVerifyClient",	NULL,		0,  0,  0,  CFG_TLS_VERIFY|ARG_MAGIC,	&config_tls_verify,	NULL, NULL, NULL },
-#endif
-#ifdef SLAPD_RLOOKUPS
-  { "reverse-lookup",	"on|off",		2,  2,  0,  ARG_ON_OFF,		&use_reverse_lookup,		NULL, NULL, NULL },
-#else
-  { "reverse-lookup",	NULL,		2,  2,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
-#endif
+	/* use standard schema */
+	{ "objectclass", "objectclass", 2, 0, 0, ARG_PAREN|ARG_MAGIC|CFG_OC,
+		&config_generic, NULL, NULL, NULL },
+	{ "objectidentifier", NULL,	0, 0, 0, ARG_MAGIC|CFG_OID,
+		&config_generic, "( OLcfgAt:33 NAME 'olcObjectIdentifier' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "overlay", "overlay", 2, 2, 0, ARG_MAGIC,
+		&config_overlay, "( OLcfgAt:34 NAME 'olcOverlay' "
+			"SUP olcDatabase )", NULL, NULL },
+	{ "password-crypt-salt-format", "salt", 2, 2, 0, ARG_MAGIC|CFG_SALT,
+		&config_generic, "( OLcfgAt:35 NAME 'olcPasswordCryptSaltFormat' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "password-hash", "hash", 2, 2, 0, ARG_MAGIC,
+		&config_passwd_hash, "( OLcfgAt:36 NAME 'olcPasswordHash' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "pidfile", "file", 2, 2, 0, ARG_STRING,
+		&slapd_pid_file, "( OLcfgAt:37 NAME 'olcPidFile' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 #ifdef LDAP_SLAPI
-  { "plugin",	NULL,			0,  0,  0,  ARG_MAGIC|CFG_PLUGIN,	&config_generic,		NULL, NULL, NULL },
-  { "pluginlog",	"filename",		2,  2,  0,  ARG_STRING,		&slapi_log_file,		NULL, NULL, NULL },
+	{ "plugin", NULL, 0, 0, 0, ARG_MAGIC|CFG_PLUGIN,
+		&config_generic, "( OLcfgAt:38 NAME 'olcPlugin' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "pluginlog", "filename", 2, 2, 0, ARG_STRING,
+		&slapi_log_file, "( OLcfgAt:39 NAME 'olcPluginLogFile' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 #else
-  { "plugin",	NULL,			0,  0,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
-  { "pluginlog",	NULL,		0,  0,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
+	{ "plugin", NULL, 0, 0, 0, ARG_IGNORED,
+		NULL, NULL, NULL, NULL },
+	{ "pluginlog", NULL, 0, 0, 0, ARG_IGNORED,
+		NULL, NULL, NULL, NULL },
 #endif
-  { "replica-pidfile",	NULL,		0,  0,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
-  { "replica-argsfile",	NULL,		0,  0,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL },
-  { NULL,	NULL,			0,  0,  0,  ARG_IGNORED,		NULL,				NULL, NULL, NULL }
+	{ "readonly", "on|off", 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|CFG_RO,
+		&config_generic, "( OLcfgAt:40 NAME 'olcReadOnly' "
+			"SYNTAX OMsBoolean )", NULL, NULL },
+	{ "referral", "url", 2, 2, 0, ARG_MAGIC,
+		&config_referral, "( OLcfgAt:41 NAME 'olcReferral' "
+			"SUP labeledURI )", NULL, NULL },
+	{ "replica", "host or uri", 2, 0, 0, ARG_DB|ARG_MAGIC,
+		&config_replica, "( OLcfgAt:42 NAME 'olcReplica' "
+			"SUP labeledURI )", NULL, NULL },
+	{ "replica-pidfile", NULL, 0, 0, 0, ARG_IGNORED,
+		NULL, "( OLcfgAt:43 NAME 'olcReplicaPidFile' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "replica-argsfile", NULL, 0, 0, 0, ARG_IGNORED,
+		NULL, "( OLcfgAt:44 NAME 'olcReplicaArgsFile' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "replicationInterval", NULL, 0, 0, 0, ARG_IGNORED,
+		NULL, "( OLcfgAt:45 NAME 'olcReplicationInterval' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "replogfile", "filename", 2, 2, 0, ARG_MAGIC|ARG_STRING|CFG_REPLOG,
+		&config_generic, "( OLcfgAt:46 NAME 'olcReplogFile' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "require", "features", 2, 0, 7, ARG_MAGIC,
+		&config_requires, "( OLcfgAt:47 NAME 'olcRequires' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "restrict", "op_list", 2, 0, 0, ARG_MAGIC,
+		&config_restrict, "( OLcfgAt:48 NAME 'olcRestrict' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+#ifdef SLAPD_RLOOKUPS
+	{ "reverse-lookup", "on|off", 2, 2, 0, ARG_ON_OFF,
+		&use_reverse_lookup, "( OLcfgAt:49 NAME 'olcReverseLookup' "
+			"SYNTAX OMsBoolean )", NULL, NULL },
+#else
+	{ "reverse-lookup", NULL, 2, 2, 0, ARG_IGNORED,
+		NULL, NULL, NULL, NULL },
+#endif
+	{ "rootdn", "dn", 2, 2, 0, ARG_DB|ARG_DN|ARG_MAGIC,
+		&config_rootdn, "( OLcfgAt:50 NAME 'olcRootDN' "
+			"SYNTAX OMsDN )", NULL, NULL },
+	{ "rootDSE", "file", 2, 2, 0, ARG_MAGIC|CFG_ROOTDSE,
+		&config_generic, "( OLcfgAt:51 NAME 'olcRootDSE' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "rootpw", "password", 2, 2, 0, ARG_DB|ARG_MAGIC,
+		&config_rootpw, "( OLcfgAt:52 NAME 'olcRootPW' "
+			"SYNTAX OMsOctetString )", NULL, NULL },
+	{ "sasl-authz-policy", NULL, 2, 2, 0, ARG_MAGIC|CFG_AZPOLICY,
+		&config_generic, NULL, NULL, NULL },
+#ifdef HAVE_CYRUS_SASL
+	{ "sasl-host", "host", 2, 2, 0, ARG_STRING|ARG_UNIQUE,
+		&global_host, "( OLcfgAt:53 NAME 'olcSaslHost' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "sasl-realm", "realm", 2, 2, 0, ARG_STRING|ARG_UNIQUE,
+		&global_realm, "( OLcfgAt:54 NAME 'olcSaslRealm' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "sasl-regexp", NULL, 2, 2, 0, ARG_MAGIC|CFG_AZREGEXP,
+		&config_generic, NULL, NULL, NULL },
+	{ "sasl-secprops", "properties", 2, 2, 0, ARG_MAGIC|CFG_SASLSECP,
+		&config_generic, "( OLcfgAt:56 NAME 'olcSaslSecProps' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+#else
+	{ "sasl-host", NULL, 2, 2, 0, ARG_IGNORED,
+		NULL, NULL, NULL, NULL },
+	{ "sasl-realm",	NULL, 2, 2, 0, ARG_IGNORED,
+		NULL, NULL, NULL, NULL },
+	{ "sasl-regexp", NULL, 2, 2, 0, ARG_MAGIC|CFG_AZREGEXP,
+		&config_generic, NULL, NULL, NULL },
+	{ "sasl-secprops", NULL, 2, 2, 0, ARG_IGNORED,
+		NULL, NULL, NULL, NULL },
+#endif
+	{ "saslRegexp",	NULL, 2, 2, 0, ARG_MAGIC|CFG_AZREGEXP,
+		&config_generic, NULL, NULL, NULL },
+	{ "schemacheck", "on|off", 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|CFG_CHECK,
+		&config_generic, "( OLcfgAt:57 NAME 'olcSchemaCheck' "
+			"SYNTAX OMsBoolean )", NULL, NULL },
+	{ "schemadn", "dn", 2, 2, 0, ARG_DN|ARG_MAGIC,
+		&config_schema_dn, "( OLcfgAt:58 NAME 'olcSchemaDN' "
+			"SYNTAX OMsDN )", NULL, NULL },
+	{ "security", "factors", 2, 0, 0, ARG_MAGIC,
+		&config_security, "( OLcfgAt:59 NAME 'olcSecurity' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "sizelimit", "limit",	2, 2, 0, ARG_MAGIC|CFG_SIZE,
+		&config_sizelimit, "( OLcfgAt:60 NAME 'olcSizeLimit' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "sockbuf_max_incoming", "max", 2, 2, 0, ARG_LONG,
+		&sockbuf_max_incoming, "( OLcfgAt:61 NAME 'olcSockbufMaxIncoming' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "sockbuf_max_incoming_auth", "max", 2, 2, 0, ARG_LONG,
+		&sockbuf_max_incoming_auth, "( OLcfgAt:62 NAME 'olcSuckbufMaxIncomingAuth' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+	{ "srvtab", "file", 2, 2, 0, ARG_STRING,
+		&ldap_srvtab, "( OLcfgAt:63 NAME 'olcSrvtab' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+#endif
+	{ "suffix",	"suffix", 2, 2, 0, ARG_DB|ARG_DN|ARG_MAGIC,
+		&config_suffix, "( OLcfgAt:64 NAME 'olcSuffix' "
+			"SYNTAX OMsDN )", NULL, NULL },
+	{ "syncrepl", NULL, 0, 0, 0, ARG_DB|ARG_MAGIC,
+		&config_syncrepl, "( OLcfgAt:65 NAME 'olcSyncrepl' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "threads", "count", 2, 2, 0, ARG_INT|ARG_MAGIC|CFG_THREADS,
+		&config_generic, "( OLcfgAt:66 NAME 'olcThreads' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+	{ "timelimit", "limit", 2, 2, 0, ARG_MAGIC|CFG_TIME,
+		&config_timelimit, "( OLcfgAt:67 NAME 'olcTimeLimit' "
+			"SYNTAX OMsInteger )", NULL, NULL },
+#ifdef HAVE_TLS
+	{ "TLSCACertificateFile", NULL, 0, 0, 0, CFG_TLS_CA_FILE|ARG_MAGIC,
+		&config_tls_option, "( OLcfgAt:68 NAME 'olcTLSCACertificateFile' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSCACertificatePath", NULL,	0, 0, 0, CFG_TLS_CA_PATH|ARG_MAGIC,
+		&config_tls_option, "( OLcfgAt:69 NAME 'olcTLSCACertificatePath' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSCertificateFile", NULL, 0, 0, 0, CFG_TLS_CERT_FILE|ARG_MAGIC,
+		&config_tls_option, "( OLcfgAt:70 NAME 'olcTLSCertificateFile' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSCertificateKeyFile", NULL, 0, 0, 0, CFG_TLS_CERT_KEY|ARG_MAGIC,
+		&config_tls_option, "( OLcfgAt:71 NAME 'olcTLSCertificateKeyFile' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSCipherSuite",	NULL, 0, 0, 0, CFG_TLS_CIPHER|ARG_MAGIC,
+		&config_tls_option, "( OLcfgAt:72 NAME 'olcTLSCipherSuite' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSCRLCheck", NULL, 0, 0, 0, CFG_TLS_CRLCHECK|ARG_MAGIC,
+		&config_tls_option,	"( OLcfgAt:73 NAME 'olcTLSCRLCheck' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSRandFile", NULL, 0, 0, 0, CFG_TLS_RAND|ARG_MAGIC,
+		&config_tls_option, "( OLcfgAt:74 NAME 'olcTLSRandFile' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "TLSVerifyClient", NULL, 0, 0, 0, CFG_TLS_VERIFY|ARG_MAGIC,
+		&config_tls_verify, "( OLcfgAt:75 NAME 'olcTLSVerifyClient' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+#endif
+	{ "ucdata-path", "path", 2, 2, 0, ARG_IGNORED,
+		NULL, NULL, NULL, NULL },
+	{ "updatedn", "dn", 2, 2, 0, ARG_DB|ARG_MAGIC,
+		&config_updatedn, "( OLcfgAt:76 NAME 'olcUpdateDN' "
+			"SYNTAX OMsDN )", NULL, NULL },
+	{ "updateref", "url", 2, 2, 0, ARG_DB|ARG_MAGIC,
+		&config_updateref, "( OLcfgAt:77 NAME 'olcUpdateRef' "
+			"SUP labeledURI )", NULL, NULL },
+	{ NULL,	NULL, 0, 0, 0, ARG_IGNORED,
+		NULL, NULL, NULL, NULL }
 };
 
 
@@ -425,7 +620,47 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 }
 
 int
+init_config_schema(ConfigTable *ct) {
+	LDAPAttributeType *at;
+	int i, code;
+	const char *err;
+
+	for (i=0; ct[i].name; i++ ) {
+		if ( !ct[i].attribute ) continue;
+		at = ldap_str2attributetype( ct[i].attribute,
+			&code, &err, LDAP_SCHEMA_ALLOW_ALL );
+		if ( !at ) {
+			fprintf( stderr, "init_config_schema: AttributeType \"%s\": %s, %s\n",
+				ct[i].attribute, ldap_scherr2str(code), err );
+			return code;
+		}
+		code = at_add( at, &err );
+		if ( code ) {
+			fprintf( stderr, "init_config_schema: AttributeType \"%s\": %s, %s\n",
+				ct[i].attribute, scherr2str(code), err );
+			return code;
+		}
+		code = slap_str2ad( at->at_names[0], &ct[i].ad, &err );
+		if ( code ) {
+			fprintf( stderr, "init_config_schema: AttributeType \"%s\": %s\n",
+				ct[i].attribute, err );
+			return code;
+		}
+	}
+}
+
+int
 read_config(const char *fname, int depth) {
+	int i;
+	char *argv[3];
+
+	for (i=0; OidMacros[i].name; i++ ) {
+		argv[1] = OidMacros[i].name;
+		argv[2] = OidMacros[i].oid;
+		parse_oidm( "slapd", i, 3, argv );
+	}
+	i = init_config_schema(SystemConfiguration);
+	if ( i ) return i;
 	return read_config_file(fname, depth, NULL);
 }
 
@@ -1418,7 +1653,7 @@ config_tls_option(ConfigArgs *c) {
 	case CFG_TLS_CIPHER:		flag = LDAP_OPT_X_TLS_CIPHER_SUITE;	break;
 	case CFG_TLS_CERT_FILE:	flag = LDAP_OPT_X_TLS_CERTFILE;		break;	
 	case CFG_TLS_CERT_KEY:	flag = LDAP_OPT_X_TLS_KEYFILE;		break;
-	case CFG_TLS_CERT_PATH:	flag = LDAP_OPT_X_TLS_CACERTDIR;	break;
+	case CFG_TLS_CA_PATH:	flag = LDAP_OPT_X_TLS_CACERTDIR;	break;
 	case CFG_TLS_CA_FILE:	flag = LDAP_OPT_X_TLS_CACERTFILE;	break;
 #ifdef HAVE_OPENSSL_CRL
 	case CFG_TLS_CRLCHECK:	flag = LDAP_OPT_X_TLS_CRLCHECK;		break;
