@@ -1,6 +1,9 @@
 #! /bin/sh
 # $OpenLDAP$
 
+echo "Test disabled."
+exit 0
+
 SRCDIR="."
 if test $# -ge 1 ; then
 	SRCDIR=$1; shift

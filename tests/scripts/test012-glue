@@ -53,6 +53,8 @@ done
 cd ..
 
 kill -HUP $PID
+echo "Sleeping for 5 seconds to let slapd exit..."
+sleep 5
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
