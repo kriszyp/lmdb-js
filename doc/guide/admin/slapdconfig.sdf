@@ -284,7 +284,7 @@ perform" error.
 
 H4: replica
 
->	replica host=<hostname>[:<port>]
+>	replica uri=ldap[s]://<hostname>[:<port>] | host=<hostname>[:<port>]
 >		[bindmethod={simple|kerberos|sasl}]
 >		["binddn=<DN>"]
 >		[saslmech=<mech>]
@@ -294,10 +294,16 @@ H4: replica
 >		[srvtab=<filename>]
 
 This directive specifies a replication site for this database. The
-{{EX:host=}} parameter specifies a host and optionally a port where
+{{EX:uri=}} parameter specifies a scheme, a host and optionally a port where
 the slave slapd instance can be found. Either a domain name
 or IP address may be used for <hostname>. If <port> is not
-given, the standard LDAP port number (389) is used.
+given, the standard LDAP port number (389 or 636) is used.
+
+{{EX:host}} is deprecated in favor of the {{EX:uri}} parameter.
+
+{{EX:uri}} allows the replica LDAP server to be specified as an LDAP 
+URI such as {{EX:ldap://slave.example.com:389}} or
+{{EX:ldaps://slave.example.com:636}}.
 
 The {{EX:binddn=}} parameter gives the DN to bind as for updates to
 the slave slapd. It should be a DN which has read/write
@@ -983,10 +989,10 @@ E:  9.	rootdn "cn=Manager,dc=example,dc=com"
 E: 10.	rootpw secret
 E: 11.	# replication directives
 E: 12.	replogfile /usr/local/var/openldap/slapd.replog
-E: 13.	replica host=slave1.example.com:389
+E: 13.	replica uri=ldap://slave1.example.com:389
 E: 14.		binddn="cn=Replicator,dc=example,dc=com"
 E: 15.		bindmethod=simple credentials=secret
-E: 16.	replica host=slave2.example.com
+E: 16.	replica uri=ldaps://slave2.example.com:636
 E: 17.		binddn="cn=Replicator,dc=example,dc=com"
 E: 18.		bindmethod=simple credentials=secret
 E: 19.	# indexed attribute definitions

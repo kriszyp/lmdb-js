@@ -239,14 +239,29 @@ To configure slapd to generate a replication logfile, you add a
 file. For example, if we wish to propagate changes to the slapd
 instance running on host {{EX:slave.example.com}}:
 
->	replica host=slave.example.com:389
+>	replica uri=ldap://slave.example.com:389
 >		binddn="cn=Replicator,dc=example,dc=com"
 >		bindmethod=simple credentials=secret
 
 In this example, changes will be sent to port 389 (the standard
 LDAP port) on host slave.example.com. The slurpd process will bind
 to the slave slapd as "{{EX:cn=Replicator,dc=example,dc=com}}" using
-simple authentication with password "{{EX:secret}}".  Note that the
+simple authentication with password "{{EX:secret}}".
+
+If we wish to perform the same replication using ldaps on port 636:  
+
+>	replica uri=ldaps://slave.example.com:636
+>		binddn="cn=Replicator,dc=example,dc=com"
+>		bindmethod=simple credentials=secret
+
+The host option is deprecated in favor of uri, but the following 
+replica configuration is still supported:
+
+>	replica host=slave.example.com:389
+>		binddn="cn=Replicator,dc=example,dc=com"
+>		bindmethod=simple credentials=secret
+
+Note that the
 DN given by the {{EX:binddn=}} directive must exist in the slave
 slapd's database (or be the rootdn specified in the slapd config
 file) in order for the bind operation to succeed.  The DN should
