@@ -50,7 +50,7 @@ done
 
 if test $RC = 0 -a $MONITORDB = yes ; then
 	echo "Using ldapsearch to retrieve the cn=Monitor..."
-	$LDAPSEARCH -b "cn=Monitor" -s base -h $LOCALHOST -p $PORT -- '-extensibleObject' >> $SEARCHOUT 2>&1
+	$LDAPSEARCH -b "cn=Monitor" -s base -h $LOCALHOST -p $PORT '+extensibleObject' >> $SEARCHOUT 2>&1
 	RC=$?
 fi
 
