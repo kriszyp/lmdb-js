@@ -5,6 +5,9 @@
  *  cache.c - local caching support for LDAP
  */
 
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #ifndef NO_CACHE
 
 #ifndef lint 
@@ -12,9 +15,10 @@ static char copyright[] = "@(#) Copyright (c) 1993 The Regents of the University
 #endif
 
 #include <stdio.h>
-#include <string.h>
-#ifdef MACOS
+#include <ac/string.h>
 #include <stdlib.h>
+
+#ifdef MACOS
 #include <time.h>
 #include "macos.h"
 #else /* MACOS */
@@ -32,28 +36,18 @@ static char copyright[] = "@(#) Copyright (c) 1993 The Regents of the University
 #include <sys/socket.h>
 #endif /* DOS */
 #endif /* MACOS */
+
 #include "lber.h"
 #include "ldap.h"
 #include "ldap-int.h"
 
-#ifdef NEEDPROTOS
-static int		cache_hash( BerElement *ber );
-static LDAPMessage	*msg_dup( LDAPMessage *msg );
-static int		request_cmp( BerElement	*req1, BerElement *req2 );
-static int		chain_contains_dn( LDAPMessage *msg, char *dn );
-static long		msg_size( LDAPMessage *msg );
-static void		check_cache_memused( LDAPCache *lc );
-static void		uncache_entry_or_req( LDAP *ld, char *dn, int msgid );
-#else /* NEEDPROTOS */
-static int		cache_hash();
-static LDAPMessage	*msg_dup();
-static int		request_cmp();
-static int		chain_contains_dn();
-static long		msg_size();
-static void		check_cache_memused();
-static void		uncache_entry_or_req();
-#endif /* NEEDPROTOS */
-
+static int		cache_hash LDAP_P(( BerElement *ber ));
+static LDAPMessage	*msg_dup LDAP_P(( LDAPMessage *msg ));
+static int		request_cmp LDAP_P(( BerElement	*req1, BerElement *req2 ));
+static int		chain_contains_dn LDAP_P(( LDAPMessage *msg, char *dn ));
+static long		msg_size LDAP_P(( LDAPMessage *msg ));
+static void		check_cache_memused LDAP_P(( LDAPCache *lc ));
+static void		uncache_entry_or_req LDAP_P(( LDAP *ld, char *dn, int msgid ));
 
 int
 ldap_enable_cache( LDAP *ld, long timeout, long maxmem )
@@ -139,8 +133,8 @@ ldap_flush_cache( LDAP *ld )
 void
 ldap_uncache_request( LDAP *ld, int msgid )
 {
-	Debug( LDAP_DEBUG_TRACE, "ldap_uncache_request %d ld_cache %x\n",
-	    msgid, ld->ld_cache, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_uncache_request %d ld_cache %lx\n",
+	    msgid, (long) ld->ld_cache, 0 );
 
 	uncache_entry_or_req( ld, NULL, msgid );
 }
@@ -149,8 +143,8 @@ ldap_uncache_request( LDAP *ld, int msgid )
 void
 ldap_uncache_entry( LDAP *ld, char *dn )
 {
-	Debug( LDAP_DEBUG_TRACE, "ldap_uncache_entry %s ld_cache %x\n",
-	    dn, ld->ld_cache, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_uncache_entry %s ld_cache %lx\n",
+	    dn, (long) ld->ld_cache, 0 );
 
 	uncache_entry_or_req( ld, dn, 0 );
 }
@@ -165,8 +159,8 @@ uncache_entry_or_req( LDAP *ld,
 	LDAPMessage	*m, *prev, *next;
 
 	Debug( LDAP_DEBUG_TRACE,
-	    "ldap_uncache_entry_or_req  dn %s  msgid %d  ld_cache %x\n",
-	    dn, msgid, ld->ld_cache );
+	    "ldap_uncache_entry_or_req  dn %s  msgid %d  ld_cache %lx\n",
+	    dn, msgid, (long) ld->ld_cache );
 
 	if ( ld->ld_cache == NULLLDCACHE ) {
 	    return;
@@ -214,12 +208,12 @@ uncache_entry_or_req( LDAP *ld,
 
 
 void
-add_request_to_cache( LDAP *ld, unsigned long msgtype, BerElement *request )
+ldap_add_request_to_cache( LDAP *ld, unsigned long msgtype, BerElement *request )
 {
 	LDAPMessage	*new;
 	long		len;
 
-	Debug( LDAP_DEBUG_TRACE, "add_request_to_cache\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_add_request_to_cache\n", 0, 0, 0 );
 
 	ld->ld_errno = LDAP_SUCCESS;
 	if ( ld->ld_cache == NULLLDCACHE ||
@@ -229,7 +223,7 @@ add_request_to_cache( LDAP *ld, unsigned long msgtype, BerElement *request )
 
 	if (( new = (LDAPMessage *) calloc( 1, sizeof(LDAPMessage) ))
 	    != NULL ) {
-		if (( new->lm_ber = alloc_ber_with_options( ld )) == NULLBER ) {
+		if (( new->lm_ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 			free( (char *)new );
 			return;
 		}
@@ -256,12 +250,12 @@ add_request_to_cache( LDAP *ld, unsigned long msgtype, BerElement *request )
 
 
 void
-add_result_to_cache( LDAP *ld, LDAPMessage *result )
+ldap_add_result_to_cache( LDAP *ld, LDAPMessage *result )
 {
 	LDAPMessage	*m, **mp, *req, *new, *prev;
 	int		err, keep;
 
-	Debug( LDAP_DEBUG_TRACE, "add_result_to_cache: id %d, type %d\n", 
+	Debug( LDAP_DEBUG_TRACE, "ldap_add_result_to_cache: id %d, type %d\n", 
 		result->lm_msgid, result->lm_msgtype, 0 );
 
 	if ( ld->ld_cache == NULLLDCACHE ||
@@ -369,14 +363,14 @@ add_result_to_cache( LDAP *ld, LDAPMessage *result )
  * will find them.
  */
 int
-check_cache( LDAP *ld, unsigned long msgtype, BerElement *request )
+ldap_check_cache( LDAP *ld, unsigned long msgtype, BerElement *request )
 {
 	LDAPMessage	*m, *new, *prev, *next;
 	BerElement	reqber;
 	int		first, hash;
 	unsigned long	validtime;
 
-	Debug( LDAP_DEBUG_TRACE, "check_cache\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_check_cache\n", 0, 0, 0 );
 
 	if ( ld->ld_cache == NULLLDCACHE ||
 	    ( ld->ld_cache->lc_enabled == 0 )) {

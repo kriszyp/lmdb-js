@@ -5,6 +5,8 @@
  *  cldap.c - synchronous, retrying interface to the cldap protocol
  */
 
+#define DISABLE_BRIDGE
+#include "portable.h"
 
 #ifdef CLDAP
 
@@ -13,22 +15,22 @@ static char copyright[] = "@(#) Copyright (c) 1990, 1994 Regents of the Universi
 #endif
 
 #include <stdio.h>
-#include <string.h>
+#include <ac/string.h>
 #include <errno.h>
-#ifdef MACOS
 #include <stdlib.h>
+
+#ifdef MACOS
 #include "macos.h"
-#else /* MACOS */
+#endif /* MACOS */
 #ifdef DOS
 #include "msdos.h"
-#else /* DOS */
+#endif /* DOS */
+
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#endif /* DOS */
-#endif /* MACOS */
 
 #include "lber.h"
 #include "ldap.h"
@@ -170,7 +172,7 @@ cldap_open( char *host, int port )
 
     if ( ld->ld_sb.sb_addrs == NULL
 #ifdef LDAP_REFERRALS
-	    || ( ld->ld_defconn = new_connection( ld, NULL, 1,0,0 )) == NULL
+	    || ( ld->ld_defconn = ldap_new_connection( ld, NULL, 1,0,0 )) == NULL
 #endif /* LDAP_REFERRALS */
 	    ) {
 	free( ld );
@@ -316,7 +318,7 @@ cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
 	    "cldap_result waiting up to %d seconds for a response\n",
 	    tv.tv_sec, 0, 0 );
     ber_init( &ber, 0 );
-    set_ber_options( ld, &ber );
+    ldap_set_ber_options( ld, &ber );
 
     if ( cldap_getmsg( ld, &tv, &ber ) == -1 ) {
 	ret = ld->ld_errno;
@@ -432,7 +434,7 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 	    tag != LBER_DEFAULT && rc != LDAP_SUCCESS;
 	    tag = ber_next_element( ber, &len, cookie )) {
 	if (( ldm = (LDAPMessage *)calloc( 1, sizeof(LDAPMessage)))
-		== NULL || ( ldm->lm_ber = alloc_ber_with_options( ld ))
+		== NULL || ( ldm->lm_ber = ldap_alloc_ber_with_options( ld ))
 		== NULLBER ) {
 	    rc = LDAP_NO_MEMORY;
 	    break;	/* return w/error*/
@@ -506,7 +508,7 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 
 #ifndef NO_CACHE
 	    if ( ld->ld_cache != NULL ) {
-		add_result_to_cache( ld, ldm );
+		ldap_add_result_to_cache( ld, ldm );
 	    }
 #endif /* NO_CACHE */
 

@@ -41,7 +41,7 @@ static void populate_queue LDAP_P(( char *f ));
 static void set_shutdown LDAP_P((void));
 void do_nothing LDAP_P((void));
 
-#ifndef DECL_SYS_ERRLIST
+#ifdef DECL_SYS_ERRLIST
 extern char *sys_errlist[];
 #endif /* DECL_SYS_ERRLIST */
 

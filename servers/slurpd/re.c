@@ -34,7 +34,7 @@
 extern char *str_getline LDAP_P(( char **next ));
 extern void ch_free LDAP_P(( char *p ));
 
-#ifndef	DECL_SYS_ERRLIST
+#ifdef	DECL_SYS_ERRLIST
 extern char *sys_errlist[];
 #endif /* DECL_SYS_ERRLIST */
 

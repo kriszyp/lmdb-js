@@ -16,30 +16,26 @@
 
 #include <stdio.h>
 
-#ifdef MACOS
+#ifdef STDC_HEADERS
 #include <stdlib.h>
 #include <stdarg.h>
-#include "macos.h"
-#else /* MACOS */
-
-#if defined(NeXT) || defined(VMS) || defined(__FreeBSD__)
-#include <stdlib.h>
-#else /* next || vms || freebsd */
-#include <malloc.h>
-#endif /* next || vms || freebsd */
-#if defined(BC31) || defined(_WIN32)
-#include <stdarg.h>
-#else /* BC31 || _WIN32 */
+#else
 #include <varargs.h>
-#endif /* BC31 || _WIN32 */
+#endif
+
+#include <ac/string.h>
+
+#ifdef MACOS
+#include "macos.h"
+#endif /* MACOS */
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+
 #ifdef PCNFS
 #include <tklib.h>
 #endif /* PCNFS */
-#endif /* MACOS */
-
 #if defined( DOS ) || defined( _WIN32 )
 #include "msdos.h"
 #endif /* DOS */
@@ -387,16 +383,16 @@ ber_next_element( BerElement *ber, unsigned long *len, char *last )
 
 /* VARARGS */
 unsigned long
-ber_scanf(
-#if defined( MACOS ) || defined( BC31 ) || defined( _WIN32 )
-	BerElement *ber, char *fmt, ... )
+ber_scanf
+#ifdef STDC_HEADERS
+	( BerElement *ber, char *fmt, ... )
 #else
-	va_alist )
+	( va_alist )
 va_dcl
 #endif
 {
 	va_list		ap;
-#if !defined( MACOS ) && !defined( BC31 ) && !defined( _WIN32 )
+#ifndef STDC_HEADERS
 	BerElement	*ber;
 	char		*fmt;
 #endif
@@ -407,7 +403,7 @@ va_dcl
 	long		*l, rc, tag;
 	unsigned long	len;
 
-#if defined( MACOS ) || defined( BC31 ) || defined( _WIN32 )
+#if STDC_HEADERS
 	va_start( ap, fmt );
 #else
 	va_start( ap );
@@ -541,9 +537,9 @@ va_dcl
 			break;
 
 		default:
-#ifndef NO_USERINTERFACE
+#ifdef LDAP_LIBUI
 			fprintf( stderr, "unknown fmt %c\n", *fmt );
-#endif /* NO_USERINTERFACE */
+#endif /* LDAP_LIBUI */
 			rc = LBER_DEFAULT;
 			break;
 		}

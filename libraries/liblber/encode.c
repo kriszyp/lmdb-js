@@ -11,45 +11,47 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #include <stdio.h>
-#ifdef MACOS
 #include <stdlib.h>
+#include <ac/string.h>
+
+#ifdef STDC_HEADERS
 #include <stdarg.h>
-#include "macos.h"
-#else /* MACOS */
-#if defined(NeXT) || defined(VMS)
-#include <stdlib.h>
-#else /* next || vms */
-#include <malloc.h>
-#endif /* next || vms */
-#if defined( BC31 ) || defined( _WIN32 )
-#include <stdarg.h>
-#else /* BC31 || _WIN32 */
+#else
 #include <varargs.h>
-#endif /* BC31 || _WIN32 */
+#endif
+
+#ifdef MACOS
+#include "macos.h"
+#endif /* MACOS */
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+
 #ifdef PCNFS
 #include <tklib.h>
 #endif /* PCNFS */
-#endif /* MACOS */
-#ifndef VMS
-#include <memory.h>
-#endif
-#include <string.h>
-#include "lber.h"
 
 #if defined( DOS ) || defined( _WIN32 )
 #include "msdos.h"
 #endif /* DOS */
 
-#ifdef NEEDPROTOS
-static int ber_put_len( BerElement *ber, unsigned long len, int nosos );
-static int ber_start_seqorset( BerElement *ber, unsigned long tag );
-static int ber_put_seqorset( BerElement *ber );
-static int ber_put_int_or_enum( BerElement *ber, long num, unsigned long tag );
-#endif /* NEEDPROTOS */
+#include "lber.h"
+
+static int ber_put_len LDAP_P(( BerElement *ber,
+	unsigned long len, int nosos ));
+
+static int ber_start_seqorset LDAP_P(( BerElement *ber,
+	unsigned long tag ));
+
+static int ber_put_seqorset LDAP_P(( BerElement *ber ));
+
+static int ber_put_int_or_enum LDAP_P(( BerElement *ber,
+	long num, unsigned long tag ));
 
 
 static int
@@ -519,31 +521,31 @@ ber_put_set( BerElement *ber )
 
 /* VARARGS */
 int
-ber_printf(
-#if defined( MACOS ) || defined( _WIN32 ) || defined( BC31 )
-	BerElement *ber, char *fmt, ... )
-#else /* MACOS || _WIN32 || BC31 */
-	va_alist )
+ber_printf
+#ifdef STDC_HEADERS
+	( BerElement *ber, char *fmt, ... )
+#else
+	( va_alist )
 va_dcl
-#endif /* MACOS || _WIN32 || BC31 */
+#endif
 {
 	va_list		ap;
-#if !defined( MACOS ) && !defined( _WIN32 ) && !defined( BC31 )
+#ifndef STDC_HEADERS
 	BerElement	*ber;
 	char		*fmt;
-#endif /* !MACOS && !_WIN32 && !BC31 */
+#endif
 	char		*s, **ss;
 	struct berval	**bv;
 	int		rc, i;
 	unsigned long	len;
 
-#if defined( MACOS ) || defined( _WIN32 ) || defined( BC31 )
+#ifdef STDC_HEADERS 
 	va_start( ap, fmt );
-#else /* MACOS || _WIN32 || BC31 */
+#else
 	va_start( ap );
 	ber = va_arg( ap, BerElement * );
 	fmt = va_arg( ap, char * );
-#endif /* MACOS || _WIN32 || BC31 */
+#endif
 
 	for ( rc = 0; *fmt && rc != -1; fmt++ ) {
 		switch ( *fmt ) {
@@ -625,9 +627,9 @@ va_dcl
 			break;
 
 		default:
-#ifndef NO_USERINTERFACE
+#ifdef LDAP_LIBUI
 			fprintf( stderr, "unknown fmt %c\n", *fmt );
-#endif /* NO_USERINTERFACE */
+#endif /* LDAP_LIBUI */
 			rc = -1;
 			break;
 		}

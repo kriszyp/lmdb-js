@@ -43,7 +43,7 @@
 /* externs */
 extern void Re_dump LDAP_P(( Re *re ));
 
-#ifndef DECL_SYS_ERRLIST
+#ifdef DECL_SYS_ERRLIST
 extern char *sys_errlist[];
 #endif /* DECL_SYS_ERRLIST */
 

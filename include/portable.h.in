@@ -121,6 +121,9 @@
 /* define this for phonetic support */
 #undef SLAPD_PHONETIC
 
+/* Define if you have the bcopy function.  */
+#undef HAVE_BCOPY
+
 /* Define if you have the flock function.  */
 #undef HAVE_FLOCK
 
@@ -138,6 +141,9 @@
 
 /* Define if you have the memcpy function.  */
 #undef HAVE_MEMCPY
+
+/* Define if you have the memmove function.  */
+#undef HAVE_MEMMOVE
 
 /* Define if you have the mktime function.  */
 #undef HAVE_MKTIME
@@ -318,5 +324,6 @@
 #endif
 
 #include "bridge.h"
+#include "ldap_cdefs.h"
 
 #endif /* _LDAP_PORTABLE_H */

@@ -54,7 +54,7 @@ static int do_unbind LDAP_P(( Ri * ));
 
 
 /* External references */
-#ifndef DECL_SYS_ERRLIST
+#ifdef DECL_SYS_ERRLIST
 extern char *sys_errlist[];
 #endif /* DECL_SYS_ERRLIST */
 

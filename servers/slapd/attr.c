@@ -298,7 +298,7 @@ attr_syntax_config(
 	a->asi_names = charray_dup( argv );
 	argv[lasti] = save;
 
-	switch ( avl_insert( &attr_syntaxes, a, attr_syntax_cmp,
+	switch ( avl_insert( &attr_syntaxes, (caddr_t) a, attr_syntax_cmp,
 	    attr_syntax_dup ) ) {
 	case -1:	/* duplicate - different syntaxes */
 		Debug( LDAP_DEBUG_ARGS, "%s: line %d: duplicate attribute\n",

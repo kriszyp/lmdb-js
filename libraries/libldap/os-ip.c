@@ -9,8 +9,12 @@
 static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
+#include <ac/string.h>
 #include <errno.h>
 
 #ifdef _WIN32
@@ -21,7 +25,9 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
+#include <unistd.h>
 #endif /* _WIN32 */
 #ifdef _AIX
 #include <sys/select.h>
@@ -29,6 +35,7 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 #ifdef VMS
 #include "ucx_select.h"
 #endif /* VMS */
+
 #include "portable.h"
 #include "lber.h"
 #include "ldap.h"
@@ -64,9 +71,10 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 #endif /* DOS */
 #endif /* MACOS */
 
+#include "ldap-int.h"
 
 int
-connect_to_host( Sockbuf *sb, char *host, unsigned long address,
+ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 	int port, int async )
 /*
  * if host == NULL, connect using address
@@ -76,16 +84,17 @@ connect_to_host( Sockbuf *sb, char *host, unsigned long address,
  * XXX async is not used yet!
  */
 {
-	int			rc, i, s, connected, use_hp;
+	int			rc, i, s = 0;
+	int			connected, use_hp;
 	struct sockaddr_in	sin;
-	struct hostent		*hp;
+	struct hostent		*hp = NULL;
 #ifdef notyet
 #ifdef LDAP_REFERRALS
 	int			status;	/* for ioctl call */
 #endif /* LDAP_REFERRALS */
 #endif /* notyet */
 
-	Debug( LDAP_DEBUG_TRACE, "connect_to_host: %s:%d\n",
+	Debug( LDAP_DEBUG_TRACE, "ldap_connect_to_host: %s:%d\n",
 	    ( host == NULL ) ? "(by address)" : host, ntohs( port ), 0 );
 
 	connected = use_hp = 0;
@@ -174,7 +183,7 @@ connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 
 
 void
-close_connection( Sockbuf *sb )
+ldap_close_connection( Sockbuf *sb )
 {
     tcp_close( sb->sb_sd );
 }
@@ -182,7 +191,7 @@ close_connection( Sockbuf *sb )
 
 #ifdef KERBEROS
 char *
-host_connected_to( Sockbuf *sb )
+ldap_host_connected_to( Sockbuf *sb )
 {
 	struct hostent		*hp;
 	char			*p;
@@ -223,7 +232,7 @@ struct selectinfo {
 
 
 void
-mark_select_write( LDAP *ld, Sockbuf *sb )
+ldap_mark_select_write( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
 
@@ -236,7 +245,7 @@ mark_select_write( LDAP *ld, Sockbuf *sb )
 
 
 void
-mark_select_read( LDAP *ld, Sockbuf *sb )
+ldap_mark_select_read( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
 
@@ -249,7 +258,7 @@ mark_select_read( LDAP *ld, Sockbuf *sb )
 
 
 void
-mark_select_clear( LDAP *ld, Sockbuf *sb )
+ldap_mark_select_clear( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
 
@@ -261,7 +270,7 @@ mark_select_clear( LDAP *ld, Sockbuf *sb )
 
 
 int
-is_write_ready( LDAP *ld, Sockbuf *sb )
+ldap_is_write_ready( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
 
@@ -272,7 +281,7 @@ is_write_ready( LDAP *ld, Sockbuf *sb )
 
 
 int
-is_read_ready( LDAP *ld, Sockbuf *sb )
+ldap_is_read_ready( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
 
@@ -283,7 +292,7 @@ is_read_ready( LDAP *ld, Sockbuf *sb )
 
 
 void *
-new_select_info()
+ldap_new_select_info()
 {
 	struct selectinfo	*sip;
 
@@ -298,7 +307,7 @@ new_select_info()
 
 
 void
-free_select_info( void *sip )
+ldap_free_select_info( void *sip )
 {
 	free( sip );
 }
@@ -315,9 +324,15 @@ do_ldap_select( LDAP *ld, struct timeval *timeout )
 	if ( tblsize == 0 ) {
 #ifdef USE_SYSCONF
 		tblsize = sysconf( _SC_OPEN_MAX );
-#else /* USE_SYSCONF */
+#else /* !USE_SYSCONF */
 		tblsize = getdtablesize();
-#endif /* USE_SYSCONF */
+#endif /* !USE_SYSCONF */
+
+#ifdef FD_SETSIZE
+		if( tblsize > FD_SETSIZE ) {
+			tblsize = FD_SETSIZE;
+		}
+#endif	/* FD_SETSIZE*/
 	}
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;

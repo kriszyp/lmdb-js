@@ -9,11 +9,15 @@
 static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #include <stdio.h>
 #include <ctype.h>
-#include <string.h>
-#ifdef MACOS
+#include <ac/string.h>
 #include <stdlib.h>
+
+#ifdef MACOS
 #include "macos.h"
 #else /* MACOS */
 #if defined( DOS ) || defined( _WIN32 )

@@ -45,7 +45,7 @@ extern char *ch_malloc LDAP_P(( unsigned long ));
 int file_nonempty LDAP_P(( char * ));
 
 
-#ifndef DECL_SYS_ERRLIST
+#ifdef DECL_SYS_ERRLIST
 extern char *sys_errlist[];
 #endif
 

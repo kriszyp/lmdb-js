@@ -18,27 +18,28 @@ static char avl_version[] = "AVL library version 1.0\n";
 
 #include <sys/types.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "avl.h"
 
 #define ROTATERIGHT(x)	{ \
 	Avlnode *tmp;\
-	if ( *x == NULL || (*x)->avl_left == NULL ) {\
+	if ( *(x) == NULL || (*(x))->avl_left == NULL ) {\
 		(void) printf("RR error\n"); exit(1); \
 	}\
-	tmp = (*x)->avl_left;\
-	(*x)->avl_left = tmp->avl_right;\
-	tmp->avl_right = *x;\
-	*x = tmp;\
+	tmp = (*(x))->avl_left;\
+	(*(x))->avl_left = tmp->avl_right;\
+	tmp->avl_right = *(x);\
+	*(x) = tmp;\
 }
 #define ROTATELEFT(x)	{ \
 	Avlnode *tmp;\
-	if ( *x == NULL || (*x)->avl_right == NULL ) {\
+	if ( *(x) == NULL || (*(x))->avl_right == NULL ) {\
 		(void) printf("RL error\n"); exit(1); \
 	}\
-	tmp = (*x)->avl_right;\
-	(*x)->avl_right = tmp->avl_left;\
+	tmp = (*(x))->avl_right;\
+	(*(x))->avl_right = tmp->avl_left;\
 	tmp->avl_left = *x;\
-	*x = tmp;\
+	*(x) = tmp;\
 }
 
 /*
@@ -47,7 +48,7 @@ static char avl_version[] = "AVL library version 1.0\n";
  */
 
 static
-ravl_insert( iroot, data, taller, fcmp, fdup, depth )
+int ravl_insert( iroot, data, taller, fcmp, fdup, depth )
     Avlnode 	**iroot;
     caddr_t	data;
     int		*taller;
@@ -200,7 +201,7 @@ ravl_insert( iroot, data, taller, fcmp, fdup, depth )
  * NOTE: this routine may malloc memory
  */
 
-avl_insert( root, data, fcmp, fdup )
+int avl_insert( root, data, fcmp, fdup )
     Avlnode	**root;
     caddr_t	data;
     IFP		fcmp;
@@ -216,11 +217,11 @@ avl_insert( root, data, fcmp, fdup )
  * been shortened because of a deletion.
  */
 
-static
+static int
 right_balance( root )
     Avlnode	**root;
 {
-	int	shorter;
+	int	shorter = -1;
 	Avlnode	*r, *l;
 
 	switch( (*root)->avl_bf ) {
@@ -282,10 +283,10 @@ right_balance( root )
  */
 
 static
-left_balance( root )
+int left_balance( root )
     Avlnode	**root;
 {
-	int	shorter;
+	int	shorter = -1;
 	Avlnode	*r, *l;
 
 	switch( (*root)->avl_bf ) {
@@ -453,7 +454,7 @@ avl_delete( root, data, fcmp )
 }
 
 static
-avl_inapply( root, fn, arg, stopflag )
+int avl_inapply( root, fn, arg, stopflag )
     Avlnode	*root;
     IFP		fn;
     caddr_t	arg;
@@ -477,7 +478,7 @@ avl_inapply( root, fn, arg, stopflag )
 }
 
 static
-avl_postapply( root, fn, arg, stopflag )
+int avl_postapply( root, fn, arg, stopflag )
     Avlnode	*root;
     IFP		fn;
     caddr_t	arg;
@@ -500,7 +501,7 @@ avl_postapply( root, fn, arg, stopflag )
 }
 
 static
-avl_preapply( root, fn, arg, stopflag )
+int avl_preapply( root, fn, arg, stopflag )
     Avlnode	*root;
     IFP		fn;
     caddr_t	arg;
@@ -531,7 +532,7 @@ avl_preapply( root, fn, arg, stopflag )
  * of nodes.
  */
 
-avl_apply( root, fn, arg, stopflag, type )
+int avl_apply( root, fn, arg, stopflag, type )
     Avlnode	*root;
     IFP		fn;
     caddr_t	arg;
@@ -564,7 +565,7 @@ avl_apply( root, fn, arg, stopflag, type )
  * AVL_NOMORE is returned.
  */
 
-avl_prefixapply( root, data, fmatch, marg, fcmp, carg, stopflag )
+int avl_prefixapply( root, data, fmatch, marg, fcmp, carg, stopflag )
     Avlnode	*root;
     caddr_t	data;
     IFP		fmatch;
@@ -613,7 +614,7 @@ avl_prefixapply( root, data, fmatch, marg, fcmp, carg, stopflag )
  * number of items actually freed is returned.
  */
 
-avl_free( root, dfree )
+int avl_free( root, dfree )
     Avlnode	*root;
     IFP		dfree;
 {
@@ -700,7 +701,7 @@ static int	avl_nextlist;
 
 /* ARGSUSED */
 static
-avl_buildlist( data, arg )
+int avl_buildlist( data, arg )
     caddr_t	data;
     int	arg;
 {
@@ -767,12 +768,12 @@ avl_getnext()
 	return( avl_list[ avl_nextlist++ ] );
 }
 
-avl_dup_error()
+int avl_dup_error()
 {
 	return( -1 );
 }
 
-avl_dup_ok()
+int avl_dup_ok()
 {
 	return( 0 );
 }

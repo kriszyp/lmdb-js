@@ -1,7 +1,10 @@
 /* ldapmodify.c - generic program to modify or add entries using LDAP */
 
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
+#include <ac/string.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <sys/types.h>
@@ -11,6 +14,7 @@
 #ifndef VMS
 #include <unistd.h>
 #endif /* VMS */
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldif.h>
@@ -19,7 +23,7 @@
 
 static char	*prog;
 static char	*binddn = LDAPMODIFY_BINDDN;
-static char	*passwd = NULL;
+static char	*passwd = LDAPMODIFY_BIND_CRED;
 static char	*ldaphost = LDAPHOST;
 static int	ldapport = LDAP_PORT;
 static int	new, replace, not, verbose, contoper, force, valsfromfiles;

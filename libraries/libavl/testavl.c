@@ -1,20 +1,13 @@
 /* testavl.c - Test Tim Howes AVL code */
-#include <sys/types.h>
+
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #include <stdio.h>
+#include <ac/string.h>
+#include <sys/types.h>
+
 #include "avl.h"
-
-char *strdup( s )
-char	*s;
-{
-	char	*new;
-
-	if ( (new = (char *) malloc( strlen( s ) + 1 )) == NULL )
-		return( NULL );
-
-	strcpy( new, s );
-
-	return( new );
-}
 
 main( argc, argv )
 int	argc;
@@ -39,7 +32,7 @@ char	**argv;
 		case 't':	/* traverse with first, next */
 			printf( "***\n" );
 			for ( p = (char * ) avl_getfirst( tree );
-			    p != NULL; p = (char *) avl_getnext( tree, p ) )
+			    p != NULL; p = (char *) avl_getnext( /* tree, p */ ) )
 				printf( "%s\n", p );
 			printf( "***\n" );
 			break;
@@ -60,7 +53,7 @@ char	**argv;
 				exit( 0 );
 			name[ strlen( name ) - 1 ] = '\0';
 			if ( avl_insert( &tree, strdup( name ), strcmp, 
-			    avl_dup_error ) != OK )
+			    avl_dup_error ) != 0 )
 				printf( "\nNot inserted!\n" );
 			break;
 		case 'd':	/* delete */

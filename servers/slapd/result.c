@@ -13,7 +13,7 @@
 #include <signal.h>
 #include "slap.h"
 
-#ifndef DECL_SYS_ERRLIST
+#ifdef DECL_SYS_ERRLIST
 extern int		sys_nerr;
 extern char		*sys_errlist[];
 #endif

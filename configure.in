@@ -28,7 +28,7 @@ OL_ARG_ENABLE(libui,[  --enable-libui	enable library user interface], yes)dnl
 OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
 OL_ARG_ENABLE(dns,[  --enable-dns	enable dns support], no)dnl
 OL_ARG_ENABLE(referrals,[  --enable-referrals	enable referrals], yes)dnl
-OL_ARG_ENABLE(cldap,[  --enable-clapd	enable connectionless ldap], no)dnl
+OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
 
 dnl General "with" options
 OL_ARG_WITH(kerberos,[  --with-kerberos	use Kerberos],
@@ -746,12 +746,14 @@ AC_FUNC_VPRINTF
 AC_FUNC_WAIT3
 
 AC_CHECK_FUNCS(		\
+	bcopy			\
 	flock			\
 	gethostname		\
 	gettimeofday	\
 	getdtablesize	\
 	lockf			\
 	memcpy			\
+	memmove			\
 	mktime			\
 	select			\
 	setpwfile		\
