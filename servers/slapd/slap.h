@@ -331,11 +331,16 @@ typedef int slap_syntax_transform_func LDAP_P((
 	struct berval * out,
 	void *memctx));
 
+#ifdef LDAP_DEVEL
+#define LDAP_COMP_MATCH
+#endif
+
 #ifdef LDAP_COMP_MATCH
 typedef void* slap_component_transform_func LDAP_P((
 	struct berval * in ));
 struct ComponentDesc;
 #endif
+
 typedef struct slap_syntax {
 	LDAPSyntax			ssyn_syn;
 #define ssyn_oid		ssyn_syn.syn_oid
