@@ -369,8 +369,8 @@ parse_replica_line(
     char	*hp, *val;
 
     for ( i = 1; i < cargc; i++ ) {
-	if ( !strncasecmp( cargv[ i ], HOSTSTR, strlen( HOSTSTR ))) {
-	    val = cargv[ i ] + strlen( HOSTSTR ) + 1;
+	if ( !strncasecmp( cargv[ i ], HOSTSTR, sizeof( HOSTSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( HOSTSTR ); /* '\0' string terminator accounts for '=' */
 	    if (( hp = strchr( val, ':' )) != NULL ) {
 		*hp = '\0';
 		hp++;
@@ -381,23 +381,24 @@ parse_replica_line(
 	    }
 	    ri->ri_hostname = strdup( val );
 	    gots |= GOT_HOST;
-	} else if ( !strncasecmp( cargv[ i ], SUFFIXSTR, strlen( HOSTSTR ))) {
+	} else if ( !strncasecmp( cargv[ i ], 
+			SUFFIXSTR, sizeof( SUFFIXSTR ) - 1 ) ) {
 	    /* ignore it */ ;
-	} else if ( !strncasecmp( cargv[ i ], TLSSTR, strlen( TLSSTR ))) {
-	    val = cargv[ i ] + strlen( TLSSTR ) + 1;
+	} else if ( !strncasecmp( cargv[ i ], TLSSTR, sizeof( TLSSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( TLSSTR );
 		if( !strcasecmp( val, TLSCRITICALSTR ) ) {
 			ri->ri_tls = TLS_CRITICAL;
 		} else {
 			ri->ri_tls = TLS_ON;
 		}
 	} else if ( !strncasecmp( cargv[ i ],
-		BINDDNSTR, strlen( BINDDNSTR ))) { 
-	    val = cargv[ i ] + strlen( BINDDNSTR ) + 1;
+			BINDDNSTR, sizeof( BINDDNSTR ) - 1 ) ) { 
+	    val = cargv[ i ] + sizeof( BINDDNSTR );
 	    ri->ri_bind_dn = strdup( val );
 	    gots |= GOT_DN;
 	} else if ( !strncasecmp( cargv[ i ], BINDMETHSTR,
-		strlen( BINDMETHSTR ))) {
-	    val = cargv[ i ] + strlen( BINDMETHSTR ) + 1;
+		sizeof( BINDMETHSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( BINDMETHSTR );
 	    if ( !strcasecmp( val, KERBEROSSTR )) {
 	    fprintf( stderr, "Error: a bind method of \"kerberos\" was\n" );
 	    fprintf( stderr, "specified in the slapd configuration file.\n" );
@@ -412,31 +413,39 @@ parse_replica_line(
 	    } else {
 		ri->ri_bind_method = -1;
 	    }
-	} else if ( !strncasecmp( cargv[ i ], SASLMECHSTR, strlen( SASLMECHSTR ))) {
-	    val = cargv[ i ] + strlen( SASLMECHSTR ) + 1;
+	} else if ( !strncasecmp( cargv[ i ], 
+			SASLMECHSTR, sizeof( SASLMECHSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( SASLMECHSTR );
 	    gots |= GOT_MECH;
 	    ri->ri_saslmech = strdup( val );
-	} else if ( !strncasecmp( cargv[ i ], CREDSTR, strlen( CREDSTR ))) {
-	    val = cargv[ i ] + strlen( CREDSTR ) + 1;
+	} else if ( !strncasecmp( cargv[ i ], 
+			CREDSTR, sizeof( CREDSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( CREDSTR );
 	    ri->ri_password = strdup( val );
-	} else if ( !strncasecmp( cargv[ i ], SECPROPSSTR, strlen( SECPROPSSTR ))) {
-	    val = cargv[ i ] + strlen( SECPROPSSTR ) + 1;
+	} else if ( !strncasecmp( cargv[ i ], 
+			SECPROPSSTR, sizeof( SECPROPSSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( SECPROPSSTR );
 	    ri->ri_secprops = strdup( val );
-	} else if ( !strncasecmp( cargv[ i ], REALMSTR, strlen( REALMSTR ))) {
-	    val = cargv[ i ] + strlen( REALMSTR ) + 1;
+	} else if ( !strncasecmp( cargv[ i ], 
+			REALMSTR, sizeof( REALMSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( REALMSTR );
 	    ri->ri_realm = strdup( val );
-	} else if ( !strncasecmp( cargv[ i ], AUTHCSTR, strlen( AUTHCSTR ))) {
-	    val = cargv[ i ] + strlen( AUTHCSTR ) + 1;
+	} else if ( !strncasecmp( cargv[ i ], 
+			AUTHCSTR, sizeof( AUTHCSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( AUTHCSTR );
 	    ri->ri_authcId = strdup( val );
-	} else if ( !strncasecmp( cargv[ i ], OLDAUTHCSTR, strlen( OLDAUTHCSTR ))) {
+	} else if ( !strncasecmp( cargv[ i ], 
+			OLDAUTHCSTR, sizeof( OLDAUTHCSTR ) - 1 ) ) {
 	    /* Old authcID is provided for some backwards compatibility */
-	    val = cargv[ i ] + strlen( OLDAUTHCSTR ) + 1;
+	    val = cargv[ i ] + sizeof( OLDAUTHCSTR );
 	    ri->ri_authcId = strdup( val );
-	} else if ( !strncasecmp( cargv[ i ], AUTHZSTR, strlen( AUTHZSTR ))) {
-	    val = cargv[ i ] + strlen( AUTHZSTR ) + 1;
+	} else if ( !strncasecmp( cargv[ i ], 
+			AUTHZSTR, sizeof( AUTHZSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( AUTHZSTR );
 	    ri->ri_authzId = strdup( val );
-	} else if ( !strncasecmp( cargv[ i ], SRVTABSTR, strlen( SRVTABSTR ))) {
-	    val = cargv[ i ] + strlen( SRVTABSTR ) + 1;
+	} else if ( !strncasecmp( cargv[ i ], 
+			SRVTABSTR, sizeof( SRVTABSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( SRVTABSTR );
 	    if ( ri->ri_srvtab != NULL ) {
 		free( ri->ri_srvtab );
 	    }
