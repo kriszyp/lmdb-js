@@ -13,6 +13,7 @@ install-local: FORCE
 		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/disptmpl.h $(includedir)
 		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/srchpref.h $(includedir)
 		$(INSTALL) $(INSTALLFLAGS) -m 644 ldap_features.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 ldap_schema.h $(includedir)
 
 clean-local: FORCE 
 	$(RM) ldapconfig.h
