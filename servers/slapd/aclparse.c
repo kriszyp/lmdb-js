@@ -504,7 +504,7 @@ parse_acl(
 									a->acl_attrs[0].an_desc->ad_cname.bv_val );
 								a->acl_attrval_style = ACL_STYLE_BASE;
 							}
-							
+
 						} else {
 							fprintf( stderr, 
 								"%s: line %d: unknown val.<style> \"%s\" "
@@ -1898,7 +1898,7 @@ acl_usage( void )
 		"<access clause> ::= access to <what> "
 				"[ by <who> <access> [ <control> ] ]+ \n"
 		"<what> ::= * | [dn[.<dnstyle>]=<DN>] [filter=<filter>] [attrs=<attrlist>]\n"
-		"<attrlist> ::= <attr> [val[.<style>]=<value>] | <attr> , <attrlist>\n"
+		"<attrlist> ::= <attr> [val[.<attrstyle>]=<value>] | <attr> , <attrlist>\n"
 		"<attr> ::= <attrname> | entry | children\n",
 		"<who> ::= [ * | anonymous | users | self | dn[.<dnstyle>]=<DN> ]\n"
 			"\t[dnattr=<attrname>]\n"
@@ -1909,9 +1909,11 @@ acl_usage( void )
 			"\t[aci=<attrname>]\n"
 #endif
 			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n",
+		"<style> ::= exact | regex | base(Object)\n"
 		"<dnstyle> ::= base(Object) | one(level) | sub(tree) | children | "
 			"exact | regex\n"
-		"<style> ::= exact | regex | base(Object)\n"
+		"<attrstyle> ::= exact | regex | base(Object) | one(level) | "
+			"sub(tree) | children\n"
 		"<peernamestyle> ::= exact | regex | ip | path\n"
 		"<domainstyle> ::= exact | regex | base(Object) | sub(tree)\n"
 		"<access> ::= [self]{<level>|<priv>}\n"

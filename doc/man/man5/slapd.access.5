@@ -190,20 +190,19 @@ form is given,
 is implied, i.e. all attributes are addressed.
 .LP
 Using the form
-.B attrs=<attr> val[.<style>]=<attrval>
+.B attrs=<attr> val[.<attrstyle>]=<attrval>
 specifies access to a particular value of a single attribute.
-In this case, only a single attribute type may be given. A value
-.B <style>
-of
+In this case, only a single attribute type may be given. The
+.B <attrstyle>
 .B exact
 (the default) uses the attribute's equality matching rule to compare the
-value. If the value
-.B <style>
+value. If the
+.B <attrstyle>
 is
 .BR regex ,
 the provided value is used as a POSIX (''extended'') regular
-expression pattern.  If the attribute has DN syntax, the value
-.B <style>
+expression pattern.  If the attribute has DN syntax, the 
+.B <attrstyle>
 can be any of
 .BR base ,
 .BR onelevel ,

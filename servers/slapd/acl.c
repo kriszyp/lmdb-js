@@ -541,8 +541,11 @@ acl_get(
 				Debug( LDAP_DEBUG_ACL,
 					"acl_get: valpat %s\n",
 					a->acl_attrval.bv_val, 0, 0 );
-				if (regexec(&a->acl_attrval_re, val->bv_val, 0, NULL, 0))
+				if ( regexec( &a->acl_attrval_re, val->bv_val, 0, NULL, 0 ) )
+				{
 					continue;
+				}
+
 			} else {
 				int match = 0;
 				const char *text;
@@ -2113,8 +2116,9 @@ aci_match_set (
 	int		rc = 0;
 	AciSetCookie	cookie;
 
-	if (setref == 0) {
+	if ( setref == 0 ) {
 		ber_dupbv_x( &set, subj, op->o_tmpmemctx );
+
 	} else {
 		struct berval		subjdn, ndn = BER_BVNULL;
 		struct berval		setat;
@@ -2124,7 +2128,7 @@ aci_match_set (
 
 		/* format of string is "entry/setAttrName" */
 		if ( aci_get_part( subj, 0, '/', &subjdn ) < 0 ) {
-			return(0);
+			return 0;
 		}
 
 		if ( aci_get_part( subj, 1, '/', &setat ) < 0 ) {
