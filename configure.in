@@ -502,12 +502,11 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		dnl 	pthread_create() in -lc_r (FreeBSD)
 		dnl 	pthread_create() in -lpthreads (many)
 		dnl 	pthread_join() -Wl,-woff,85 -lpthreads (IRIX)
-		dnl 	pthread_create() in HP-UX -lpthread (HP-UX 11)
 		dnl
-		dnl Check pthread (draft4) flags (to be depreciated)
+		dnl Check pthread (draft4) flags (depreciated)
 		dnl 	pthread_create() with -threads (OSF/1)
 		dnl
-		dnl Check pthread (final) libraries (to be depreciated)
+		dnl Check pthread (final) libraries (depreciated)
 		dnl 	pthread_mutex_unlock() in -lpthreads -lmach -lexc -lc_r (OSF/1)
 		dnl 	pthread_mutex_lock() in -lpthreads -lmach -lexc (OSF/1)
 		dnl 	pthread_mutex_trylock() in -lpthreads -lexc (OSF/1)
@@ -671,37 +670,6 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads"
 				],:,[-Wl,-woff,85])
 			LIBS="$save_LIBS"
-		fi
-
-		dnl HP-UX 11 Pthread check
-		if test $ol_link_threads = no; then
-			save_LIBS="$LIBS"
-			LIBS="$LIBS -lpthread"
-			AC_MSG_CHECKING([for pthread_create() in HP-UX -lpthread])
-			ol_try_pthread_hpux_11=no
-			AC_CACHE_VAL(ol_cv_pthread_hpux_11,[
-				AC_TRY_LINK([
-#include <pthread.h>
-#include <elf.h>
-#ifndef ELFABI_HPUX_REL11
-	die horribly
-#endif
-				], [pthread_create(NULL, NULL, NULL, NULL);],
-					ol_try_pthread_hpux_11=yes
-					ol_cv_pthread_hpux_11=yes,
-					ol_cv_pthread_hpux_11=no)])
-			AC_MSG_RESULT(yes)
-			LIBS="$save_LIBS"
-
-			if test $ol_cv_pthread_hpux_11=yes ; then
-				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread"
-				if test $ol_try_pthread_hpux_11=yes ; then
-					dnl Some tests below may fail, cause we aint including
-					dnl pthread.h. Force appropriate ones to yes
-					ac_cv_func_pthread_attr_init=yes
-				fi
-			fi
 		fi
 
 		if test $ol_link_threads = no ; then
@@ -1133,7 +1101,6 @@ dnl	save_CPPFLAGS="$CPPFLAGS"
 dnl	save_LIBS="$LIBS"
 dnl	LIBS="$LTHREAD_LIBS $LIBS"
 dnl	AC_CHECK_FUNCS(	\
-dnl		strtok_r \
 dnl		gmtime_r \
 dnl		gethostbyaddr_r gethostbyname_r \
 dnl		feof_unlocked unlocked_feof \
@@ -1507,7 +1474,6 @@ AC_CHECK_FUNCS(		\
 	strrchr			\
 	strsep			\
 	strstr			\
-	strtok			\
 	strtol			\
 	strtoul			\
 	strspn			\
@@ -1517,7 +1483,6 @@ AC_CHECK_FUNCS(		\
 
 # these functions are required to build a thread_safe -lldap
 AC_CHECK_FUNCS(		\
-	strtok_r		\
 	ctime_r			\
 	gethostbyaddr_r \
 	gethostbyname_r	\
@@ -1529,8 +1494,7 @@ else
 	ol_cv_func_ctime_r=0
 fi
 
-if test "$ac_cv_func_strtok_r" = yes \
-	-a "$ac_cv_func_ctime_r" = yes \
+if test "$ac_cv_func_ctime_r" = yes \
 	-a "$ol_cv_func_ctime_r_nargs" -ge 2 -a "$ol_cv_func_ctime_r_nargs" -le 3 \
 	-a "$ac_cv_func_gethostbyaddr_r" = yes \
 	-a "$ac_cv_func_gethostbyname_r" = yes \

@@ -58,9 +58,6 @@ static char *(int_strpbrk)( const char *str, const char *accept )
 
 char *(ldap_pvt_strtok)( char *str, const char *delim, char **pos )
 {
-#if defined( HAVE_STRTOK_R ) || defined( HAVE_REENTRANT_FUNCTIONS )
-	return strtok_r(str, delim, pos);
-#else
 	char *p;
 
 	if (pos==NULL) {
@@ -91,7 +88,6 @@ char *(ldap_pvt_strtok)( char *str, const char *delim, char **pos )
 	}
 
 	return str;
-#endif
 }
 
 char *

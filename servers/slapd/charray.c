@@ -130,9 +130,9 @@ str2charray( char *str, char *brkstr )
 	res = (char **) ch_malloc( (i + 1) * sizeof(char *) );
 	i = 0;
 
-	for ( s = strtok_r( str, brkstr, &lasts );
+	for ( s = ldap_pvt_strtok( str, brkstr, &lasts );
 		s != NULL;
-		s = strtok_r( NULL, brkstr, &lasts ) )
+		s = ldap_pvt_strtok( NULL, brkstr, &lasts ) )
 	{
 		res[i++] = ch_strdup( s );
 	}

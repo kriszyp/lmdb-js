@@ -46,11 +46,8 @@
 #	endif
 #endif
 
+/* use ldap_pvt_strtok instead of strtok or strtok_r! */
 extern char *ldap_pvt_strtok( char *str, const char *delim, char **pos );
-#ifndef HAVE_STRTOK_R
-#	undef strtok_r
-#	define strtok_r(s, d, p) ldap_pvt_strtok((s),(d),(p))
-#endif
 
 extern char *ldap_pvt_strdup( const char * s );
 #ifndef HAVE_STRDUP

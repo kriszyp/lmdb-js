@@ -330,12 +330,6 @@
 /* Define if you have the strstr function.  */
 #undef HAVE_STRSTR
 
-/* Define if you have the strtok function.  */
-#undef HAVE_STRTOK
-
-/* Define if you have the strtok_r function.  */
-#undef HAVE_STRTOK_R
-
 /* Define if you have the strtol function.  */
 #undef HAVE_STRTOL
 
