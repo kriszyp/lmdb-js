@@ -426,8 +426,10 @@ int	s;
 
 	fprintf( fp, ".\r\n" );
 	rewind(fp);
-	if ( ld )
+
+	if ( ld == NULL) {
 		ldap_unbind( ld );
+	}
 
 	exit( 1 );
 	/* NOT REACHED */
