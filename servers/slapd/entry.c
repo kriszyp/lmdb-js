@@ -33,12 +33,13 @@ Entry *
 str2entry( char *s )
 {
 	Entry		*e;
-	Attribute	**a;
+	Attribute	**a = NULL;
 	char		*type;
 	char		*value;
 	char		*next;
 	ber_len_t	vlen;
-	int		nvals, maxvals;
+	int		nvals = 0;
+	int		maxvals = 0;
 	struct berval	bval;
 	struct berval	*vals[2];
 	char		ptype[64];
