@@ -190,54 +190,20 @@ int backend_add(BackendInfo *aBackendInfo)
 	}
 }
 
-/* startup a specific backend database */
-int backend_startup_one(Backend *be)
+static int
+backend_set_controls( BackendDB *be )
 {
-	int		rc = 0;
 	BackendInfo	*bi = be->bd_info;
 
-	assert(be);
-
-	be->be_pending_csn_list = (struct be_pcl *)
-		ch_calloc( 1, sizeof( struct be_pcl ));
-
-	LDAP_TAILQ_INIT( be->be_pending_csn_list );
-
 	/* back-relay takes care of itself; so may do other */
-	if ( be->be_ctrls[ SLAP_MAX_CIDS ] == 0 ) {
-		if ( overlay_is_over( be ) ) {
-			bi = ((slap_overinfo *)be->bd_info->bi_private)->oi_orig;
-		}
-
-		if ( bi->bi_controls ) {
-			AC_MEMCPY( be->be_ctrls, bi->bi_ctrls, sizeof( be->be_ctrls ) );
-		}
-
-		be->be_ctrls[ SLAP_MAX_CIDS ] = 1;
-	}
-
-	Debug( LDAP_DEBUG_TRACE,
-		"backend_startup_one: starting \"%s\"\n",
-		be->be_suffix ? be->be_suffix[0].bv_val : "(unknown)",
-		0, 0 );
-	if ( be->bd_info->bi_db_open ) {
-		rc = be->bd_info->bi_db_open( be );
-		if ( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"backend_startup_one: bi_db_open failed! (%d)\n",
-				rc, 0, 0 );
-		}
-	}
-
-	/* back-relay takes care of itself; so may do other */
-	bi = be->bd_info;
 	if ( overlay_is_over( be ) ) {
 		bi = ((slap_overinfo *)be->bd_info->bi_private)->oi_orig;
 	}
 
 	if ( bi->bi_controls ) {
 		if ( be->be_ctrls[ SLAP_MAX_CIDS ] == 0 ) {
-			AC_MEMCPY( be->be_ctrls, bi->bi_ctrls, sizeof( be->be_ctrls ) );
+			AC_MEMCPY( be->be_ctrls, bi->bi_ctrls,
+					sizeof( be->be_ctrls ) );
 			be->be_ctrls[ SLAP_MAX_CIDS ] = 1;
 
 		} else {
@@ -245,9 +211,40 @@ int backend_startup_one(Backend *be)
 
 			for ( i = 0; i < SLAP_MAX_CIDS; i++ ) {
 				if ( bi->bi_ctrls[ i ] ) {
-					be->be_ctrls[ i ] = 1;
+					be->be_ctrls[ i ] = bi->bi_ctrls[ i ];
 				}
 			}
+		}
+	}
+
+	return 0;
+}
+
+
+/* startup a specific backend database */
+int backend_startup_one(Backend *be)
+{
+	int		rc = 0;
+
+	be->be_pending_csn_list = (struct be_pcl *)
+		ch_calloc( 1, sizeof( struct be_pcl ));
+
+	LDAP_TAILQ_INIT( be->be_pending_csn_list );
+
+	Debug( LDAP_DEBUG_TRACE,
+		"backend_startup_one: starting \"%s\"\n",
+		be->be_suffix ? be->be_suffix[0].bv_val : "(unknown)",
+		0, 0 );
+	(void)backend_set_controls( be );
+	if ( be->bd_info->bi_db_open ) {
+		rc = be->bd_info->bi_db_open( be );
+		if ( rc == 0 ) {
+			(void)backend_set_controls( be );
+
+		} else {
+			Debug( LDAP_DEBUG_ANY,
+				"backend_startup_one: bi_db_open failed! (%d)\n",
+				rc, 0, 0 );
 		}
 	}
 

@@ -223,6 +223,7 @@ enum op_which {
 	op_extended,
 	op_aux_operational,
 	op_aux_chk_referrals,
+	op_aux_chk_controls,
 	op_last
 };
 
@@ -243,7 +244,8 @@ static int op_rc[] = {
 	LDAP_UNWILLING_TO_PERFORM,	/* cancel */
 	LDAP_UNWILLING_TO_PERFORM,	/* extended */
 	LDAP_SUCCESS,			/* aux_operational */
-	LDAP_SUCCESS			/* aux_chk_referrals */
+	LDAP_SUCCESS,			/* aux_chk_referrals */
+	LDAP_SUCCESS			/* aux_chk_controls */
 };
 
 static int
@@ -375,6 +377,12 @@ static int
 over_aux_chk_referrals( Operation *op, SlapReply *rs )
 {
 	return over_op_func( op, rs, op_aux_chk_referrals );
+}
+
+static int
+over_aux_chk_controls( Operation *op, SlapReply *rs )
+{
+	return over_op_func( op, rs, op_aux_chk_controls );
 }
 
 int
@@ -564,6 +572,7 @@ overlay_config( BackendDB *be, const char *ov )
 		 */
 		bi->bi_operational = over_aux_operational;
 		bi->bi_chk_referrals = over_aux_chk_referrals;
+		bi->bi_chk_controls = over_aux_chk_controls;
 
 		be->bd_info = bi;
 
