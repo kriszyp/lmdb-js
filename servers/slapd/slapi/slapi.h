@@ -51,6 +51,19 @@ LDAP_BEGIN_DECL
 #define SLAPI_ATTR_FLAG_NOUSERMOD	0x0100
 
 /*
+ * ACL levels
+ */
+#define SLAPI_ACL_COMPARE	0x01
+#define SLAPI_ACL_SEARCH	0x02
+#define SLAPI_ACL_READ		0x04
+#define SLAPI_ACL_WRITE		0x08
+#define SLAPI_ACL_DELETE	0x10
+#define SLAPI_ACL_ADD		0x20
+#define SLAPI_ACL_SELF		0x40
+#define SLAPI_ACL_PROXY		0x80
+#define SLAPI_ACL_ALL		0x7f
+
+/*
  * Plugin types universally supported by SLAPI
  * implementations
  */

@@ -69,6 +69,8 @@ int slapi_x_attrset_merge_bervals( Slapi_AttrSet *as, const char *type, struct b
 int slapi_x_attrset_delete( Slapi_AttrSet *as, const char *type );
 
 /* DS 5.x SLAPI */
+int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr, struct berval *val, int access );
+int slapi_acl_check_mods( Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char **errbuf );
 Slapi_Attr *slapi_attr_new( void );
 Slapi_Attr *slapi_attr_init( Slapi_Attr *a, const char *type );
 void slapi_attr_free( Slapi_Attr **a );
@@ -128,6 +130,7 @@ void slapi_valueset_set_valueset(Slapi_ValueSet *vs1, const Slapi_ValueSet *vs2)
 
 char *slapi_ch_malloc( unsigned long size );
 void slapi_ch_free( void **ptr );
+void slapi_ch_free_string( char **s );
 char *slapi_ch_calloc( unsigned long nelem, unsigned long size );
 char *slapi_ch_realloc( char *block, unsigned long size );
 char *slapi_ch_strdup( char *s );
@@ -185,6 +188,10 @@ int slapi_audit_send_record( Slapi_PBlock *pb, Connection *conn,
 int slapi_x_backend_set_pb( Slapi_PBlock *pb, Backend *be );
 int slapi_x_connection_set_pb( Slapi_PBlock *pb, Connection *conn );
 int slapi_x_operation_set_pb( Slapi_PBlock *pb, Operation *op );
+
+LDAPMod **slapi_x_modifications2ldapmods(Modifications **);
+Modifications *slapi_x_ldapmods2modifications(LDAPMod **);
+void slapi_x_free_ldapmods(LDAPMod **);
 
 extern ldap_pvt_thread_mutex_t	slapi_hn_mutex;
 extern ldap_pvt_thread_mutex_t	slapi_time_mutex;

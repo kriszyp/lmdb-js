@@ -423,6 +423,14 @@ slapi_ch_free( void **ptr )
 #endif /* defined(LDAP_SLAPI) */
 }
 
+void 
+slapi_ch_free_string( char **ptr ) 
+{
+#if defined(LDAP_SLAPI)
+	slapi_ch_free( (void **)ptr );
+#endif /* defined(LDAP_SLAPI) */
+}
+
 char *
 slapi_ch_calloc(
 	unsigned long nelem, 
@@ -2064,9 +2072,113 @@ void slapi_valueset_set_valueset(Slapi_ValueSet *vs1, const Slapi_ValueSet *vs2)
 #endif
 }
 
+int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr,
+	struct berval *val, int access )
+{
+#ifdef LDAPI_SLAPI
+	Backend *be;
+	Connection *conn;
+	Operation *op;
+	int ret;
+	slap_access_t slap_access;
+	AttributeDescription *ad = NULL;
+	char *text;
+
+	ret = slap_str2ad( attr, &ad, &text );
+	if ( ret != LDAP_SUCCESS ) {
+		return ret;
+	}
+
+	switch ( access & SLAPI_ACL_ALL ) {
+	case SLAPI_ACL_COMPARE:
+		slap_access = ACL_COMPARE;
+		break;
+	case SLAPI_ACL_SEARCH:
+		slap_access = ACL_SEARCH;
+		break;
+	case SLAPI_ACL_READ:
+		slap_access = ACL_READ;
+		break;
+	case SLAPI_ACL_WRITE:
+	case SLAPI_ACL_DELETE:
+	case SLAPI_ACL_ADD:
+	case SLAPI_ACL_SELF:
+		slap_access = ACL_WRITE;
+		break;
+	default:
+		return LDAP_INSUFFICIENT_ACCESS;
+		break;
+	}
+
+	if ( slapi_pblock_get( pb, SLAPI_BACKEND, (void *)&be ) != 0 ) {
+		return LDAP_PARAM_ERROR;
+	}
+
+	if ( slapi_pblock_get( pb, SLAPI_CONNECTION, (void *)&conn ) != 0 ) {
+		return LDAP_PARAM_ERROR;
+	}
+
+	if ( slapi_pblock_get( pb, SLAPI_OPERATION, (void *)&op ) != 0 ) {
+		return LDAP_PARAM_ERROR;
+	}
+
+	ret = access_allowed( be, conn, op, e, desc, val, slap_access, NULL );
+
+	return ret ? LDAP_SUCCESS : LDAP_INSUFFICIENT_ACCESS;
+#else
+	return LDAP_UNWILLING_TO_PERFORM;
+#endif
+}
+
+int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char **errbuf)
+{
+#ifdef LDAP_SLAPI
+	Backend *be;
+	Connection *conn;
+	Operation *op;
+	int ret;
+	Modifications *ml;
+        Modifications *next;
+
+	if ( slapi_pblock_get( pb, SLAPI_BACKEND, (void *)&be ) != 0 ) {
+		return LDAP_PARAM_ERROR;
+	}
+
+	if ( slapi_pblock_get( pb, SLAPI_CONNECTION, (void *)&conn ) != 0 ) {
+		return LDAP_PARAM_ERROR;
+	}
+
+	if ( slapi_pblock_get( pb, SLAPI_OPERATION, (void *)&op ) != 0 ) {
+		return LDAP_PARAM_ERROR;
+	}
+
+	ml = slapi_x_ldapmods2modifications( mods );
+	if ( ml == NULL ) {
+		return LDAP_OTHER;
+	}
+
+	ret = acl_check_modlist( be, conn, op, e, ml );
+
+	/* Careful when freeing the modlist because it has pointers into the mods array. */
+	for ( ; ml != NULL; ml = next ) {
+		next = ml->sml_next;
+
+		/* just free the containing array */
+		slapi_ch_free( (void **)&ml->sml_bvalues );
+		slapi_ch_free( (void **)&ml );
+	}
+
+	return ret ? LDAP_SUCCESS : LDAP_INSUFFICIENT_ACCESS;
+#else
+	return LDAP_UNWILLING_TO_PERFORM;
+#endif
+}
+
 /*
  * Attribute sets are an OpenLDAP extension for the 
- * virtual operational attribute coalescing plugin 
+ * virtual operational attribute coalescing plugin  
+ *
+ * Subject to going away very soon; do not use
  */
 Slapi_AttrSet *slapi_x_attrset_new( void )
 {
@@ -2264,3 +2376,162 @@ int slapi_x_attrset_delete( Slapi_AttrSet *as, const char *type )
 	return -1;
 #endif
 }
+
+/*
+ * Synthesise an LDAPMod array from a Modifications list to pass
+ * to SLAPI. This synthesis is destructive and as such the 
+ * Modifications list may not be used after calling this 
+ * function.
+ * 
+ * This function must also be called before slap_mods_check().
+ */
+LDAPMod **slapi_x_modifications2ldapmods(Modifications **pmodlist)
+{
+#ifdef LDAP_SLAPI
+	Modifications *ml, *modlist;
+	LDAPMod **mods, *modp;
+	int i, j;
+
+	modlist = *pmodlist;
+
+	for( i = 0, ml = modlist; ml != NULL; i++, ml = ml->sml_next )
+		;
+
+	mods = (LDAPMod **)ch_malloc( (i + 1) * sizeof(LDAPMod *) );
+
+	for( i = 0, ml = modlist; ml != NULL; ml = ml->sml_next ) {
+		modp = mods[i];
+		modp->mod_op = ml->sml_op | LDAP_MOD_BVALUES;
+
+		/* Take ownership of original type. */
+		modp->mod_type = ml->sml_type.bv_val;
+		ml->sml_type.bv_val = NULL;
+
+		if ( ml->sml_bvalues != NULL ) {
+			for( j = 0; ml->sml_bvalues[j].bv_val != NULL; j++ )
+				;
+			modp->mod_bvalues = (struct berval **)ch_malloc( (j + 1) *
+				sizeof(struct berval *) );
+			for( j = 0; ml->sml_bvalues[j].bv_val != NULL; j++ ) {
+				/* Take ownership of original values. */
+				modp->mod_bvalues[j] = (struct berval *)ch_malloc( sizeof(struct berval) );
+				modp->mod_bvalues[j]->bv_len = ml->sml_bvalues[j].bv_len;
+				modp->mod_bvalues[j]->bv_val = ml->sml_bvalues[j].bv_val;
+				ml->sml_bvalues[j].bv_len = 0;
+				ml->sml_bvalues[j].bv_val = NULL;
+			}
+			modp->mod_bvalues[j] = NULL;
+		} else {
+			modp->mod_bvalues = NULL;
+		}
+		i++;
+	}
+
+	mods[i] = NULL;
+
+	slap_mods_free( modlist );
+	*pmodlist = NULL;
+
+	return mods;
+#else
+	return NULL;
+#endif
+}
+
+/*
+ * Convert a potentially modified array of LDAPMods back to a
+ * Modification list. 
+ * 
+ * The returned Modification list contains pointers into the
+ * LDAPMods array; the latter MUST be freed with
+ * slapi_x_free_ldapmods() (see below).
+ */
+Modifications *slapi_x_ldapmods2modifications (LDAPMod **mods)
+{
+#ifdef LDAP_SLAPI
+	Modifications *modlist, **modtail;
+	LDAPMod **modp;
+
+	modtail = &modlist;
+
+	for( modp = mods; *modp != NULL; modp++ ) {
+		Modifications *mod;
+		int i;
+		char **p;
+		struct berval **bvp;
+
+		mod = (Modifications *) ch_malloc( sizeof(Modifications) );
+		mod->sml_op = (*modp)->mod_op & (~LDAP_MOD_BVALUES);
+		mod->sml_type.bv_val = (*modp)->mod_type;
+		mod->sml_type.bv_len = strlen( mod->sml_type.bv_val );
+		mod->sml_desc = NULL;
+		mod->sml_next = NULL;
+
+		if ( (*modp)->mod_op & LDAP_MOD_BVALUES ) {
+			for( i = 0, bvp = (*modp)->mod_bvalues; *bvp != NULL; bvp++, i++ )
+				;
+		} else {
+			for( i = 0, p = (*modp)->mod_values; *p != NULL; p++, i++ )
+				;
+		}
+
+		mod->sml_bvalues = (BerVarray) ch_malloc( (i + 1) * sizeof(struct berval) );
+
+		/* NB: This implicitly trusts a plugin to return valid modifications. */
+		if ( (*modp)->mod_op & LDAP_MOD_BVALUES ) {
+			for( i = 0, bvp = (*modp)->mod_bvalues; *bvp != NULL; bvp++, i++ ) {
+				mod->sml_bvalues[i].bv_val = (*bvp)->bv_val;
+				mod->sml_bvalues[i].bv_len = (*bvp)->bv_len;
+			}
+		} else {
+			for( i = 0, p = (*modp)->mod_values; *p != NULL; p++, i++ ) {
+				mod->sml_bvalues[i].bv_val = *p;
+				mod->sml_bvalues[i].bv_len = strlen( *p );
+			}
+		}
+		mod->sml_bvalues[i].bv_val = NULL;
+
+		*modtail = mod;
+		modtail = &mod->sml_next;
+	}
+	
+	return modlist;
+#else
+	return NULL;
+#endif 
+}
+
+/*
+ * This function only frees the parts of the mods array that
+ * are not shared with the Modification list that was created
+ * by slapi_x_ldapmods2modifications(). 
+ *
+ */
+void slapi_x_free_ldapmods (LDAPMod **mods)
+{
+#ifdef LDAP_SLAPI
+	int i, j;
+
+	if (mods == NULL)
+		return;
+
+	for ( i = 0; mods[i] != NULL; i++ ) {
+		/*
+		 * Don't free values themselves; they're owned by the
+		 * Modification list. Do free the containing array.
+		 */
+		if ( mods[i]->mod_op & LDAP_MOD_BVALUES ) {
+			for ( j = 0; mods[i]->mod_bvalues[j] != NULL; j++ ) {
+				ch_free( mods[i]->mod_bvalues[j] );
+			}
+			ch_free( mods[i]->mod_bvalues );
+		} else {
+			ch_free( mods[i]->mod_values );
+		}
+		/* Don't free type, for same reasons. */
+		ch_free( mods[i] );
+	}
+	ch_free( mods );
+#endif /* LDAP_SLAPI */
+}
+
