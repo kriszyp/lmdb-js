@@ -355,7 +355,7 @@ int entry_decode( struct berval *bv, Entry **entry )
 	e = (Entry *) ch_malloc( sizeof(Entry) );
 
 	if( e == NULL ) {
-		Debug( LDAP_DEBUG_TRACE,
+		Debug( LDAP_DEBUG_ANY,
 		    "<= entry_encode: entry allocation failed\n",
 		    0, 0, 0 );
 		return LDAP_LOCAL_ERROR;
@@ -368,11 +368,15 @@ int entry_decode( struct berval *bv, Entry **entry )
 	e->e_attrs = NULL;
 	e->e_private = NULL;
 
-	rc = ber_scanf( ber, "{ss" /*"}"*/, &e->e_dn, &e->e_ndn );
-	if( rc < 0 ) {
+	tag = ber_scanf( ber, "{aa" /*"}"*/, &e->e_dn, &e->e_ndn );
+	if( tag == LBER_ERROR ) {
 		free( e );
 		return LDAP_PROTOCOL_ERROR;
 	}
+
+	Debug( LDAP_DEBUG_TRACE,
+	    "entry_encode: \"%s\"\n",
+	    e->e_dn, 0, 0 );
 
 	/* get the attrs */
 	for ( tag = ber_first_element( ber, &len, &last );
@@ -384,9 +388,9 @@ int entry_decode( struct berval *bv, Entry **entry )
 		AttributeDescription *ad;
 		const char *text;
 
-		rc = ber_scanf( ber, "{O{V}}", &type, &vals );
+		tag = ber_scanf( ber, "{O{V}}", &type, &vals );
 
-		if ( rc == LBER_ERROR ) {
+		if ( tag == LBER_ERROR ) {
 			Debug( LDAP_DEBUG_ANY, "entry_decode: decoding error\n", 0, 0, 0 );
 			entry_free( e );
 			return LDAP_PROTOCOL_ERROR;

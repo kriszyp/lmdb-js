@@ -33,7 +33,10 @@ bdb_dn2entry(
 	Debug(LDAP_DEBUG_TRACE, "bdb_dn2entry: dn: \"%s\"\n",
 		dn, 0, 0 );
 
+	*e = NULL;
+
 	if( matched != NULL ) {
+		*matched = NULL;
 		rc = bdb_dn2id_matched( be, tid, dn, &id, &matchedDN );
 	} else {
 		rc = bdb_dn2id( be, tid, dn, &id );
