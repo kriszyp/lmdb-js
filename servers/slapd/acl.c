@@ -309,7 +309,7 @@ acl_get(
 		a = a->acl_next;
 	}
 
-	dnlen = strlen(e->e_ndn);
+	dnlen = e->e_nname.bv_len;
 
 	for ( ; a != NULL; a = a->acl_next ) {
 		(*count) ++;
