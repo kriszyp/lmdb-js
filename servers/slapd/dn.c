@@ -476,7 +476,7 @@ rdn_attr_value( const char * rdn )
 int
 rdn_attrs( const char * rdn_in, char ***ptypes, char ***pvalues)
 {
-	char **parts, **p;
+	char **parts, **p, **types = NULL, **values = NULL;
 
 	*ptypes = NULL;
 	*pvalues = NULL;
@@ -496,14 +496,14 @@ rdn_attrs( const char * rdn_in, char ***ptypes, char ***pvalues)
 		/* split each rdn part in type value */
 		s = strchr( p[0], '=' );
 		if ( s == NULL ) {
-			charray_free( *ptypes );
-			charray_free( *pvalues );
+			charray_free( types );
+			charray_free( values );
 			charray_free( parts );
 			return( -1 );
 		}
 		
 		/* type should be fine */
-		charray_add_n( ptypes, p[0], ( s-p[0] ) );
+		charray_add_n( &types, p[0], ( s-p[0] ) );
 
 		/* value needs to be unescaped 
 		 * (maybe this should be moved to ldap_explode_rdn?) */
@@ -513,11 +513,14 @@ rdn_attrs( const char * rdn_in, char ***ptypes, char ***pvalues)
 			}
 		}
 		d[0] = '\0';
-		charray_add( pvalues, s + 1 );
+		charray_add( &values, s + 1 );
 	}
 
 	/* free array */
 	charray_free( parts );
+
+	*ptypes = types;
+	*pvalues = values;
 
 	return( 0 );
 }
