@@ -105,7 +105,7 @@ usage( char *name )
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		"\t-g group\tGroup (id or name) to ran as\n"
 #endif
-		"\t-h URLs\tList of URLs to serve"
+		"\t-h URLs\tList of URLs to serve\n"
 #ifdef LOG_LOCAL4
 		"\t-l sysloguser\tSyslog User (default: LOCAL4)\n"
 #endif
