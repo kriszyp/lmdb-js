@@ -1,6 +1,7 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.x Engineering
+	Fixed -lldap SASL interoperability bug
 	Removed lint
 
 OpenLDAP 2.0.3 Release
