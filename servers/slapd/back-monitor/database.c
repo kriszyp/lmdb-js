@@ -46,6 +46,14 @@ static int monitor_back_add_plugin( Backend *be, Entry *e );
 #include "../back-ldbm/back-ldbm.h"
 #endif /* defined(SLAPD_LDBM) */
 
+/* for PATH_MAX on some systems (e.g. Solaris) */
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif /* HAVE_LIMITS_H */
+#ifndef PATH_MAX
+#define PATH_MAX	4095
+#endif /* ! PATH_MAX */
+
 static struct restricted_ops_t {
 	struct berval	op;
 	unsigned int	tag;
@@ -274,10 +282,6 @@ monitor_subsys_database_init(
 		{
 			struct berval	bv;
 			ber_len_t	pathlen = 0, len = 0;
-/* FIXME: need a cleaner solution */
-#ifndef PATH_MAX
-#define PATH_MAX	4095
-#endif /* ! PATH_MAX */
 			char		path[ PATH_MAX ] = { '\0' };
 			char		*fname = NULL;
 
