@@ -751,7 +751,7 @@ ldap_int_sasl_bind(
 done:
 	if( interact ) {
 		/* cleanup */
-		(void) (interact)( NULL, flags, defaults, prompts );
+		(void) (interact)( NULL, 0, NULL, prompts );
 	}
 
 	return rc;
