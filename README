@@ -13,5 +13,15 @@ OpenLDAP Devel README
 	should use "release" or "stable" versions.
 		http://www.openldap.org/software/
 
+Contributing
+
+	See http://www.openldap.org/devel/contributing.html for how to
+	contribute code or documentation to OpenLDAP.  Use the Issue Tracking
+	System <http://www.openldap.org/its/> to submit contributions.
+	While you are encouraged to coordinate and discuss the development
+	activities on the openldap-devel@openldap.org mailing list prior
+	to submission, it is noted that contributions must be submitted
+	using the Issue Tracking System to be considered.
+
 ---
 $OpenLDAP$
