@@ -143,8 +143,9 @@
 #define	SASLMECHSTR		"saslmech"
 #define	REALMSTR		"realm"
 #define	SECPROPSSTR		"secprops"
+#define STARTTLSSTR		"starttls"
 #define TLSSTR			"tls"
-#define TLSCRITICALSTR	"critical"
+#define CRITICALSTR		"critical"
 
 #define	REPLICA_SLEEP_TIME	( 10 )
 

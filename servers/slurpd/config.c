@@ -462,9 +462,16 @@ parse_replica_line(
 	} else if ( !strncasecmp( cargv[ i ], 
 			SUFFIXSTR, sizeof( SUFFIXSTR ) - 1 ) ) {
 	    /* ignore it */ ;
+	} else if ( !strncasecmp( cargv[i], STARTTLSSTR, sizeof(STARTTLSSTR)-1 )) {
+	    val = cargv[ i ] + sizeof( STARTTLSSTR );
+		if( !strcasecmp( val, CRITICALSTR ) ) {
+			ri->ri_tls = TLS_CRITICAL;
+		} else {
+			ri->ri_tls = TLS_ON;
+		}
 	} else if ( !strncasecmp( cargv[ i ], TLSSTR, sizeof( TLSSTR ) - 1 ) ) {
 	    val = cargv[ i ] + sizeof( TLSSTR );
-		if( !strcasecmp( val, TLSCRITICALSTR ) ) {
+		if( !strcasecmp( val, CRITICALSTR ) ) {
 			ri->ri_tls = TLS_CRITICAL;
 		} else {
 			ri->ri_tls = TLS_ON;
