@@ -19,6 +19,12 @@
  */
 
 #include "portable.h"
+
+#include <ac/string.h>
+#include <ac/stdarg.h>
+#include <ac/ctype.h>
+#include <ac/unistd.h>
+
 #include <slap.h>
 #include <lber_pvt.h>
 #include <slapi.h>
@@ -31,8 +37,6 @@ static struct slap_listener slap_unknown_listener = {
 	BER_BVC("unknown"),	/* FIXME: use a URI form? (e.g. slapi://) */
 	BER_BVC("UNKNOWN")
 };
-
-int bvptr2obj( struct berval **bvptr, struct berval **bvobj );
 
 static void
 internal_result_v3(
@@ -258,9 +262,9 @@ static void slapiConnectionDestroy( Connection **pConn )
  * the strings.
  */
 static int
-values2obj(
+values2obj_copy(
 	char **ppValue,
-	BerVarray *bvobj)
+	BerVarray *bvobj )
 {
 	int i;
 	BerVarray tmpberval;
@@ -278,8 +282,11 @@ values2obj(
 		return LDAP_NO_MEMORY;
 	}
 	for ( i = 0; ppValue[i] != NULL; i++ ) {
-		tmpberval[i].bv_val = ppValue[i];
-		tmpberval[i].bv_len = strlen( ppValue[i] );
+		size_t len = strlen( ppValue[i] );
+
+		tmpberval[i].bv_val = slapi_ch_malloc( len + 1 );
+		AC_MEMCPY( tmpberval[i].bv_val, ppValue[i], len + 1 );
+		tmpberval[i].bv_len = len;
 	}
 	tmpberval[i].bv_val = NULL;
 	tmpberval[i].bv_len = 0;
@@ -289,23 +296,41 @@ values2obj(
 	return LDAP_SUCCESS;
 }
 
-static void
-freeMods( Modifications *ml )
+static int
+bvptr2obj_copy(
+	struct berval	**bvptr, 
+	BerVarray	*bvobj )
 {
-	/*
-	 * Free a modification list whose values have been 
-	 * set with bvptr2obj() or values2obj() (ie. they
-	 * do not own the pointer to the underlying values)
-	 */
-	Modifications *next;
+	int		rc = LDAP_SUCCESS;
+	int		i;
+	BerVarray	tmpberval;
 
-	for ( ; ml != NULL; ml = next ) {
-		next = ml->sml_next;
-
-		if ( ml->sml_bvalues ) slapi_ch_free( (void **)&ml->sml_bvalues );
-		if ( ml->sml_nvalues ) slapi_ch_free( (void **)&ml->sml_nvalues );
-		slapi_ch_free( (void **)&ml );
+	if ( bvptr == NULL || *bvptr == NULL ) {
+		return LDAP_OTHER;
 	}
+
+	for ( i = 0; bvptr != NULL && bvptr[i] != NULL; i++ ) {
+		; /* EMPTY */
+	}
+
+	tmpberval = (BerVarray)slapi_ch_malloc( (i + 1)*sizeof(struct berval));
+	if ( tmpberval == NULL ) {
+		return LDAP_NO_MEMORY;
+	} 
+
+	for ( i = 0; bvptr[i] != NULL; i++ ) {
+		tmpberval[i].bv_val = slapi_ch_malloc( bvptr[i]->bv_len );
+		tmpberval[i].bv_len = bvptr[i]->bv_len;
+		AC_MEMCPY( tmpberval[i].bv_val, bvptr[i]->bv_val, bvptr[i]->bv_len );
+	}
+	tmpberval[i].bv_val = NULL;
+	tmpberval[i].bv_len = 0;
+
+	if ( rc == LDAP_SUCCESS ) {
+		*bvobj = tmpberval;
+	}
+
+	return rc;
 }
 
 /*
@@ -338,7 +363,7 @@ LDAPModToEntry(
 
 
 	op = (Operation *) slapi_ch_calloc(1, sizeof(Operation));
-	if ( pEntry == NULL) {
+	if ( op == NULL) {
 		rc = LDAP_NO_MEMORY;
 		goto cleanup;
 	}  
@@ -354,17 +379,25 @@ LDAPModToEntry(
 	dn.bv_len = strlen(ldn);
 
 	rc = dnPrettyNormal( NULL, &dn, &pEntry->e_name, &pEntry->e_nname, NULL );
-	if ( rc != LDAP_SUCCESS )
+	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
+	}
 
 	if ( rc == LDAP_SUCCESS ) {
-		for ( i=0, pMod=mods[0]; rc == LDAP_SUCCESS && pMod != NULL; pMod=mods[++i]) {
+		for ( i = 0, pMod = mods[0]; rc == LDAP_SUCCESS && pMod != NULL; pMod = mods[++i]) {
 			Modifications *mod;
+
 			if ( (pMod->mod_op & LDAP_MOD_BVALUES) != 0 ) {
-				/* attr values are in berval format */
-				/* convert an array of pointers to bervals to an array of bervals */
-				rc = bvptr2obj(pMod->mod_bvalues, &bv);
-				if (rc != LDAP_SUCCESS) goto cleanup;
+				/*
+				 * Convert an array of pointers to bervals to
+				 * an array of bervals. Note that we need to copy the
+				 * values too, as the slap_mods_check() will free the
+			 	 * original values after prettying; the modifications
+				 * being passed in may not have been allocated on the
+				 * heap.
+				 */
+				rc = bvptr2obj_copy( pMod->mod_bvalues, &bv );
+				if ( rc != LDAP_SUCCESS ) goto cleanup;
 				tmp.sml_type.bv_val = pMod->mod_type;
 				tmp.sml_type.bv_len = strlen( pMod->mod_type );
 				tmp.sml_bvalues = bv;
@@ -388,8 +421,8 @@ LDAPModToEntry(
 				if ( pMod->mod_values == NULL ) {
 					rc = LDAP_OTHER;
 				} else {
-					rc = values2obj( pMod->mod_values, &bv );
-					if (rc != LDAP_SUCCESS) goto cleanup;
+					rc = values2obj_copy( pMod->mod_values, &bv );
+					if ( rc != LDAP_SUCCESS ) goto cleanup;
 					tmp.sml_type.bv_val = pMod->mod_type;
 					tmp.sml_type.bv_len = strlen( pMod->mod_type );
 					tmp.sml_bvalues = bv;
@@ -436,12 +469,8 @@ LDAPModToEntry(
 				}
 			}
 
-			/*
-			 * FIXME: slap_mods2entry is declared static 
-			 * in servers/slapd/add.c
-			 */
 			rc = slap_mods2entry( modlist, &pEntry, repl_user,
-									0, &text, textbuf, textlen );
+					      0, &text, textbuf, textlen );
 			if (rc != LDAP_SUCCESS) {
 				goto cleanup;
 			}
@@ -458,7 +487,7 @@ cleanup:
 	if ( op )
 		slapi_ch_free( (void **)&op );
 	if ( modlist != NULL )
-		freeMods( modlist );
+		slap_mods_free( modlist );
 	if ( rc != LDAP_SUCCESS ) {
 		if ( pEntry != NULL ) {
 			slapi_entry_free( pEntry );
@@ -567,13 +596,13 @@ cleanup:
 #endif /* LDAP_SLAPI */
 }
 
-Slapi_PBlock * 
-slapi_add_entry_internal(
-	Slapi_Entry *e, 
+#ifdef LDAP_SLAPI
+static Slapi_PBlock * 
+slapi_add_entry_internal_locked(
+	Slapi_Entry **e, 
 	LDAPControl **controls, 
 	int log_changes ) 
 {
-#ifdef LDAP_SLAPI
 	Connection		*pConn = NULL;
 	Operation		*op = NULL;
 	Slapi_PBlock		*pPB = NULL, *pSavePB = NULL;
@@ -582,7 +611,7 @@ slapi_add_entry_internal(
 	int			isCritical;
 	SlapReply		rs = { REP_RESULT };
 
-	if ( e == NULL ) {
+	if ( *e == NULL ) {
 		rs.sr_err = LDAP_PARAM_ERROR;
 		goto cleanup;
 	}
@@ -602,7 +631,7 @@ slapi_add_entry_internal(
 	pPB = (Slapi_PBlock *)op->o_pb;
 	op->o_ctrls = controls;
 
-	op->o_bd = select_backend( &e->e_nname, manageDsaIt, 0 );
+	op->o_bd = select_backend( &((*e)->e_nname), manageDsaIt, 0 );
 	if ( op->o_bd == NULL ) {
 		rs.sr_err = LDAP_PARTIAL_RESULTS;
 		goto cleanup;
@@ -610,15 +639,17 @@ slapi_add_entry_internal(
 
 	op->o_dn = pConn->c_dn = op->o_bd->be_rootdn;
 	op->o_ndn = pConn->c_ndn = op->o_bd->be_rootndn;
-	op->oq_add.rs_e = e;
+	op->oq_add.rs_e = *e;
 
 	if ( op->o_bd->be_add ) {
 		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
-		if ( !op->o_bd->be_update_ndn.bv_len || repl_user ){
+		if ( !op->o_bd->be_update_ndn.bv_len || repl_user ) {
 			if ( (*op->o_bd->be_add)( op, &rs ) == 0 ) {
 				if ( log_changes ) {
 					replog( op );
 				}
+				be_entry_release_w( op, *e );
+				*e = NULL;
 			}
 		} else {
 			rs.sr_err = LDAP_REFERRAL;
@@ -640,11 +671,33 @@ cleanup:
 	slapiConnectionDestroy( &pConn );
 
 	return( pSavePB );
+}
+#endif /* LDAP_SLAPI */
+
+Slapi_PBlock * 
+slapi_add_entry_internal(
+	Slapi_Entry *e, 
+	LDAPControl **controls, 
+	int log_changes ) 
+{
+#ifdef LDAP_SLAPI
+	Slapi_PBlock *pb;
+	Slapi_Entry *entry;
+
+	/*
+	 * We make a copy to avoid an entry that may be freed later
+	 * by the caller being placed in the cache.
+	 */
+	entry = slapi_entry_dup( e );
+	pb = slapi_add_entry_internal_locked( &entry, controls, log_changes );
+	if ( entry != NULL ) {
+		slapi_entry_free( entry );
+	}
+	return pb;
 #else
 	return NULL;
-#endif /* LDAP_SLAPI */
+#endif
 }
-
 
 Slapi_PBlock *
 slapi_add_internal(
@@ -673,7 +726,8 @@ slapi_add_internal(
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
-		if((pEntry = LDAPModToEntry( dn, mods )) == NULL) {
+		pEntry = LDAPModToEntry( dn, mods );
+		if ( pEntry == NULL ) {
 			rc = LDAP_OTHER;
 		}
 	}
@@ -682,10 +736,10 @@ slapi_add_internal(
 		pb = slapi_pblock_new();
 		slapi_pblock_set( pb, SLAPI_PLUGIN_INTOP_RESULT, (void *)rc );
 	} else {
-		pb = slapi_add_entry_internal( pEntry, controls, log_changes );
+		pb = slapi_add_entry_internal_locked( &pEntry, controls, log_changes );
 	}
 
-	if ( pEntry ) {
+	if ( pEntry != NULL ) {
 		slapi_entry_free(pEntry);
 	}
 
@@ -909,7 +963,7 @@ slapi_modify_internal(
 			 * convert an array of pointers to bervals
 			 * to an array of bervals
 			 */
-			rs.sr_err = bvptr2obj( pMod->mod_bvalues, &bv );
+			rs.sr_err = bvptr2obj_copy( pMod->mod_bvalues, &bv );
 			if ( rs.sr_err != LDAP_SUCCESS )
 				goto cleanup;
 			tmp.sml_type.bv_val = pMod->mod_type;
@@ -926,7 +980,7 @@ slapi_modify_internal(
 			mod->sml_bvalues = tmp.sml_bvalues;
 			mod->sml_nvalues = tmp.sml_nvalues;
 		} else { 
-			rs.sr_err = values2obj( pMod->mod_values, &bv );
+			rs.sr_err = values2obj_copy( pMod->mod_values, &bv );
 			if ( rs.sr_err != LDAP_SUCCESS )
 				goto cleanup;
 			tmp.sml_type.bv_val = pMod->mod_type;
@@ -1017,7 +1071,7 @@ cleanup:
 		slapi_ch_free( (void **)&dn.bv_val );
 
 	if ( modlist != NULL )
-		freeMods( modlist );
+		slap_mods_free( modlist );
 
 	if ( pConn != NULL ) {
 		pSavePB = pPB;
