@@ -426,19 +426,27 @@ long connection_init(
 
     c->c_activitytime = c->c_starttime = slap_get_time();
 
-    ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_tcp, LBER_SBIOD_LEVEL_PROVIDER,
-	(void *)&s );
-    ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_readahead,
-	LBER_SBIOD_LEVEL_PROVIDER, NULL );
 #ifdef LDAP_DEBUG
-    ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug, INT_MAX, NULL );
+	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
+		LBER_SBIOD_LEVEL_PROVIDER, (void*)"tcp_" );
 #endif
-    if( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_NONBLOCK, c /* non-NULL */ ) < 0 ) {
-        Debug( LDAP_DEBUG_ANY,
-            "connection_init(%d, %s): set nonblocking failed\n",
-            s, c->c_peer_name, 0 );
-    }
+	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_tcp,
+		LBER_SBIOD_LEVEL_PROVIDER, (void *)&s );
+	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_readahead,
+		LBER_SBIOD_LEVEL_PROVIDER, NULL );
 
+#ifdef LDAP_DEBUG
+	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
+		INT_MAX, (void*)"ldap_" );
+#endif
+
+	if( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_NONBLOCK,
+		c /* non-NULL */ ) < 0 )
+	{
+		Debug( LDAP_DEBUG_ANY,
+			"connection_init(%d, %s): set nonblocking failed\n",
+			s, c->c_peer_name, 0 );
+	}
 
     id = c->c_connid = conn_nextid++;
 
