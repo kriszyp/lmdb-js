@@ -283,6 +283,7 @@ LDAP_SLAPD_F (int) glue_sub_init( void );
 
 LDAP_SLAPD_F (int) overlay_register( slap_overinst *on );
 LDAP_SLAPD_F (int) overlay_config( BackendDB *be, const char *ov );
+LDAP_SLAPD_F (slap_overinst *) overlay_next( slap_overinst *on );
 
 /*
  * ch_malloc.c
@@ -339,7 +340,6 @@ LDAP_SLAPD_F (int) connections_timeout_idle LDAP_P((time_t));
 
 LDAP_SLAPD_F (int) connection_client_setup LDAP_P((
 	ber_socket_t s,
-	Listener *l,
 	ldap_pvt_thread_start_t *func,
 	void *arg ));
 LDAP_SLAPD_F (void) connection_client_enable LDAP_P(( ber_socket_t s ));
@@ -371,6 +371,10 @@ LDAP_SLAPD_F (Connection *) connection_next LDAP_P((
 LDAP_SLAPD_F (void) connection_done LDAP_P((Connection *));
 
 LDAP_SLAPD_F (void) connection2anonymous LDAP_P((Connection *));
+LDAP_SLAPD_F (void) connection_fake_init LDAP_P((
+	Connection *conn,
+	Operation *op,
+	void *threadctx ));
 
 /*
  * cr.c
@@ -528,8 +532,8 @@ LDAP_SLAPD_F (int) extops_kill LDAP_P(( void ));
 LDAP_SLAPD_F (struct berval *) get_supported_extop LDAP_P((int index));
 
 /*
- *  * cancel.c
- *   */
+ * cancel.c
+ */
 LDAP_SLAPD_F ( SLAP_EXTOP_MAIN_FN ) cancel_extop;
 
 /*
@@ -864,9 +868,14 @@ LDAP_SLAPD_F (int) slap_passwd_check(
 LDAP_SLAPD_F (void) slap_passwd_generate( struct berval * );
 
 LDAP_SLAPD_F (void) slap_passwd_hash(
-	char			*type,
 	struct berval		*cred,
 	struct berval		*hash,
+	const char		**text );
+
+LDAP_SLAPD_F (void) slap_passwd_hash_type(
+	struct berval		*cred,
+	struct berval		*hash,
+	char				*htype,
 	const char		**text );
 
 LDAP_SLAPD_F (struct berval *) slap_passwd_return(

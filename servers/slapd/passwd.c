@@ -168,7 +168,7 @@ int passwd_extop(
 	}
 	ml->sml_values = ch_malloc( (nhash+1)*sizeof(struct berval) );
 	for ( i=0; hashes[i]; i++ ) {
-		slap_passwd_hash( hashes[i], &qpw->rs_new, &hash, &rs->sr_text );
+		slap_passwd_hash_type( &qpw->rs_new, &hash, hashes[i], &rs->sr_text );
 		if ( hash.bv_len == 0 ) {
 			if ( !rs->sr_text ) {
 				rs->sr_text = "password hash failed";
@@ -183,9 +183,7 @@ int passwd_extop(
 	ml->sml_op = LDAP_MOD_REPLACE;
 	ml->sml_next = qpw->rs_mods;
 	qpw->rs_mods = ml;
-	if ( rsp ) {
-		free( qpw->rs_new.bv_val );
-	}
+
 	if ( hashes[i] ) {
 		rs->sr_err = LDAP_OTHER;
 	} else {
@@ -194,6 +192,8 @@ int passwd_extop(
 		op2.o_tag = LDAP_REQ_MODIFY;
 		op2.o_callback = &cb2;
 		op2.orm_modlist = qpw->rs_mods;
+		cb2.sc_private = qpw;	/* let Modify know this was pwdMod,
+					 * if it cares... */
 
 		rs->sr_err = slap_mods_opattrs( &op2, ml, qpw->rs_modtail, &rs->sr_text,
 			NULL, 0 );
@@ -208,6 +208,9 @@ int passwd_extop(
 		}
 	}
 	slap_mods_free( qpw->rs_mods );
+	if ( rsp ) {
+		free( qpw->rs_new.bv_val );
+	}
 
 	return rs->sr_err;
 }
@@ -452,14 +455,16 @@ slap_passwd_generate( struct berval *pass )
 }
 
 void
-slap_passwd_hash(
-	char *hash,
+slap_passwd_hash_type(
 	struct berval * cred,
 	struct berval * new,
+	char *hash,
 	const char **text )
 {
 	new->bv_len = 0;
 	new->bv_val = NULL;
+
+	assert( hash );
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 	ldap_pvt_thread_mutex_lock( &passwd_mutex );
@@ -471,4 +476,20 @@ slap_passwd_hash(
 	ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 #endif
 
+}
+void
+slap_passwd_hash(
+	struct berval * cred,
+	struct berval * new,
+	const char **text )
+{
+	char *hash = NULL;
+	if ( default_passwd_hash ) {
+		hash = default_passwd_hash[0];
+	}
+	if ( !hash ) {
+		hash = (char *)defhash[0];
+	}
+
+	slap_passwd_hash_type( cred, new, hash, text );
 }
