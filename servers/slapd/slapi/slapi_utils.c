@@ -49,6 +49,22 @@ struct slapi_condvar {
 	ldap_pvt_thread_mutex_t mutex;
 };
 
+#ifdef LDAP_SLAPI
+static int checkBVString(const struct berval *bv)
+{
+	int i;
+
+	for ( i = 0; i < bv->bv_len; i++ ) {
+		if ( bv->bv_val[i] == '\0' )
+			return 0;
+	}
+	if ( bv->bv_val[i] != '\0' )
+		return 0;
+
+	return 1;
+}
+#endif /* LDAP_SLAPI */
+
 /*
  * This function converts an array of pointers to berval objects to
  * an array of berval objects.
@@ -3012,30 +3028,15 @@ int slapi_value_set_int(Slapi_Value *value, int intVal)
 const char *slapi_value_get_string(const Slapi_Value *value)
 {
 #ifdef LDAP_SLAPI
-	if ( value == NULL ) {
-		return NULL;
-	}
+	if ( value == NULL ) return NULL;
+	if ( value->bv_val == NULL ) return NULL;
+	if ( !checkBVString( value ) ) return NULL;
+
 	return value->bv_val;
 #else
 	return NULL;
 #endif
 }
-
-#ifdef LDAP_SLAPI
-static int checkBVString(const struct berval *bv)
-{
-	int i;
-
-	for ( i = 0; i < bv->bv_len; i++ ) {
-		if ( bv->bv_val[i] == '\0' )
-			return 0;
-	}
-	if ( bv->bv_val[i] != '\0' )
-		return 0;
-
-	return 1;
-}
-#endif /* LDAP_SLAPI */
 
 int slapi_value_get_int(const Slapi_Value *value)
 {
