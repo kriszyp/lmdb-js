@@ -728,7 +728,7 @@ LDAP_F int ldap_count_messages LDAP_P(( LDAP *ld, LDAPMessage *chain ));
  */
 LDAP_F LDAPMessage *ldap_first_reference LDAP_P(( LDAP *ld, LDAPMessage *chain ));
 LDAP_F LDAPMessage *ldap_next_reference LDAP_P(( LDAP *ld, LDAPMessage *ref ));
-LDAP_F int ldap_count_reference LDAP_P(( LDAP *ld, LDAPMessage *chain ));
+LDAP_F int ldap_count_references LDAP_P(( LDAP *ld, LDAPMessage *chain ));
 LDAP_F int ldap_parse_reference LDAP_P((
 	LDAP			*ld,
 	LDAPMessage		*ref,
