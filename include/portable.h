@@ -120,7 +120,7 @@
  * Are sys_errlist and sys_nerr declared in stdio.h?
  */
 #ifndef SYSERRLIST_IN_STDIO
-#if defined( freebsd ) 
+#if defined( freebsd ) || defined( linux )
 #define SYSERRLIST_IN_STDIO
 #endif
 #endif
