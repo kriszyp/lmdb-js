@@ -70,7 +70,7 @@ glue_back_select (
 			return gi->n[i].be;
 		}
 	}
-	return be;
+	return NULL;
 }
 
 /* This function will only be called in tool mode */
