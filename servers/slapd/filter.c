@@ -268,15 +268,14 @@ get_filter(
 
 		*fstr = ch_malloc( sizeof("(:dn::=)")
 			+ (f->f_mr_desc ? f->f_mr_desc->ad_cname->bv_len : 0)
-			+ (f->f_mr_rule ? strlen(f->f_mr_rule) : 0)
+			+ (f->f_mr_rule_text ? strlen(f->f_mr_rule_text) : 0)
 			+ escaped.bv_len );
 
 		sprintf( *fstr, "(%s%s%s%s:=%s)",
 			 (f->f_mr_desc ? f->f_mr_desc->ad_cname->bv_val : ""),
 			 (f->f_mr_dnattrs ? ":dn" : ""),
-			 (f->f_mr_rule ? ":" : ""),
-			 (f->f_mr_rule ? f->f_mr_rule : ""),
-			 f->f_mr_desc->ad_cname->bv_val,
+			 (f->f_mr_rule_text ? ":" : ""),
+			 (f->f_mr_rule_text ? f->f_mr_rule_text : ""),
 			 escaped.bv_val );
 
 		ber_memfree( escaped.bv_val );
