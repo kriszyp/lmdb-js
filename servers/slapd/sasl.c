@@ -61,9 +61,9 @@ slap_sasl_log(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "SASL [conn=%d] %s: %s\n",
-		   conn ? conn->c_connid : -1,
-		   label, message ));
+		"SASL [conn=%d] %s: %s\n",
+		conn ? conn->c_connid : -1,
+		label, message ));
 #else
 	Debug( level, "SASL [conn=%d] %s: %s\n",
 		conn ? conn->c_connid: -1,
@@ -84,15 +84,15 @@ slap_sasl_log(
 int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 {
 	char *c, *c1, *dn=NULL;
-	int rc, len, len1;
+	int rc, len;
 	sasl_conn_t *ctx;
 
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_sasl_getdn: conn %d id=%s\n",
-		   conn ? conn->c_connid : -1,
-		   id ? (*id ? id : "<empty>") : "NULL" ));
+		"slap_sasl_getdn: conn %d id=%s\n",
+		conn ? conn->c_connid : -1,
+		id ? (*id ? id : "<empty>") : "NULL" ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: id=%s\n", 
       id?(*id?id:"<empty>"):"NULL",0,0 );
@@ -128,16 +128,16 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 	}
 
 	/* Username strings */
-	len1  = strlen( ",cn=auth" );
 	if( !strncasecmp( dn, "u:", 2 ) ) {
+		int len1  = strlen( ",cn=auth" );
 		len += strlen( "dn:uid=" ) + len1;
 
 		/* Figure out how much data we have for the dn */
 		rc = sasl_getprop( ctx,	SASL_REALM, (void **)&c );
-		if( rc != SASL_OK ) {
+		if( rc != SASL_OK && rc != SASL_NOTDONE ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-				   "slap_sasl_getdn: getprop(REALM) failed.\n" ));
+				"slap_sasl_getdn: getprop(REALM) failed.\n" ));
 #else
 			Debug(LDAP_DEBUG_TRACE,
 				"getdn: getprop(REALM) failed!\n", 0,0,0);
@@ -147,11 +147,13 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 			*dnptr = NULL;
 			return( LDAP_OPERATIONS_ERROR );
 		}
-		if( c ) {
+
+		if( c && *c ) {
 			len += strlen( c ) + strlen(",cn=" );
 		}
+
 		if( conn->c_sasl_bind_mech ) {
-			len += strlen( conn->c_sasl_bind_mech ) + strlen( ",cn=mech" );
+			len += strlen( conn->c_sasl_bind_mech ) + strlen( ",cn=" );
 		}
 
 		/* Build the new dn */
@@ -168,13 +170,13 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 		}
 		strcpy(	dn+len, ",cn=auth" );
 		len += len1;
+
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-			   "getdn: u:id converted to %s.\n", dn ));
+			"slap_sasl_getdn: u:id converted to %s.\n", dn ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "getdn: u:id converted to %s\n", dn,0,0 );
 #endif
-
 	}
 
 	/* DN strings that are a cn=auth identity to run through regexp */
@@ -190,13 +192,13 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 				sprintf( dn, "dn:%s", c1 );
 				ch_free( c1 );
 			}
+
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
 				   "slap_sasl_getdn: dn:id converted to %s.\n", dn ));
 #else
 			Debug( LDAP_DEBUG_TRACE, "getdn: dn:id converted to %s\n", dn,0,0 );
 #endif
-
 		}
 	}
 
