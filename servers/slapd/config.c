@@ -960,7 +960,7 @@ read_config( const char *fname, int depth )
 				return 1;
 
 			} else {
-				be->be_flags |= SLAP_BFLAG_GLUE_SUBORDINATE;
+				be->be_flags |= SLAP_DBFLAG_GLUE_SUBORDINATE;
 				num_subordinates++;
 			}
 
@@ -2156,13 +2156,13 @@ read_config( const char *fname, int depth )
 			}
 			if ( strcasecmp( cargv[1], "on" ) == 0 ) {
 				if ( be ) {
-					be->be_flags &= ~SLAP_BFLAG_NOLASTMOD;
+					be->be_flags &= ~SLAP_DBFLAG_NOLASTMOD;
 				} else {
 					lastmod = 1;
 				}
 			} else {
 				if ( be ) {
-					be->be_flags |= SLAP_BFLAG_NOLASTMOD;
+					be->be_flags |= SLAP_DBFLAG_NOLASTMOD;
 				} else {
 					lastmod = 0;
 				}
@@ -2913,7 +2913,7 @@ add_syncrepl(
 			si->si_provideruri == NULL ? "(null)" : si->si_provideruri, 0, 0 );
 #endif
 		if ( !si->si_schemachecking ) {
-			be->be_flags |= SLAP_BFLAG_NO_SCHEMA_CHECK;
+			be->be_flags |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
 		}
 		si->si_be = be;
 		LDAP_STAILQ_INSERT_TAIL( &be->be_syncinfo, si, si_next );

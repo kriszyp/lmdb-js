@@ -1829,7 +1829,7 @@ proxy_cache_init(
 	qm = (query_manager*)ch_malloc(sizeof(query_manager));
 
 	cm->db = *be;
-	cm->db.be_flags |= SLAP_BFLAG_NO_SCHEMA_CHECK;
+	SLAP_DBFLAGS(&cm->db) |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
 	cm->db.be_private = NULL;
 	cm->qm = qm;
 	cm->numattrsets = 0;

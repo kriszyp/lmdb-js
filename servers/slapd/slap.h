@@ -1445,33 +1445,24 @@ struct slap_backend_db {
 #define		be_entry_modify	bd_info->bi_tool_entry_modify
 #endif
 
-#define SLAP_BFLAG_NOLASTMOD		0x0001U
-#define SLAP_BFLAG_NO_SCHEMA_CHECK	0x0002U
-#define	SLAP_BFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
-#define	SLAP_BFLAG_GLUE_SUBORDINATE	0x0020U	/* child of a glue hierarchy */
-#define	SLAP_BFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
-#define SLAP_BFLAG_MONITOR			0x0080U /* a monitor backend */
-#define SLAP_BFLAG_INCREMENT		0x0100U
-#define SLAP_BFLAG_ALIASES			0x1000U
-#define SLAP_BFLAG_REFERRALS		0x2000U
-#define SLAP_BFLAG_SUBENTRIES		0x4000U
-#define SLAP_BFLAG_DYNAMIC			0x8000U
+/* Database flags */
+#define SLAP_DBFLAG_NOLASTMOD		0x0001U
+#define SLAP_DBFLAG_NO_SCHEMA_CHECK	0x0002U
+#define	SLAP_DBFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
+#define	SLAP_DBFLAG_GLUE_SUBORDINATE 0x0020U	/* child of a glue hierarchy */
+#define	SLAP_DBFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
 	slap_mask_t	be_flags;
-#define SLAP_LASTMOD(be)	(!((be)->be_flags & SLAP_BFLAG_NOLASTMOD))
-#define SLAP_NO_SCHEMA_CHECK(be)	(((be)->be_flags & SLAP_BFLAG_NO_SCHEMA_CHECK))
-#define	SLAP_GLUE_INSTANCE(be)	((be)->be_flags & SLAP_BFLAG_GLUE_INSTANCE)
-#define	SLAP_GLUE_SUBORDINATE(be) \
-	((be)->be_flags & SLAP_BFLAG_GLUE_SUBORDINATE)
-#define	SLAP_GLUE_LINKED(be)	((be)->be_flags & SLAP_BFLAG_GLUE_LINKED)
-
-#define SLAP_MONITOR(be)	((be)->be_flags & SLAP_BFLAG_MONITOR)
-#define SLAP_INCREMENT(be)	((be)->be_flags & SLAP_BFLAG_INCREMENT)
-
-#define SLAP_ALIASES(be)	((be)->be_flags & SLAP_BFLAG_ALIASES)
-#define SLAP_REFERRALS(be)	((be)->be_flags & SLAP_BFLAG_REFERRALS)
-#define SLAP_SUBENTRIES(be)	((be)->be_flags & SLAP_BFLAG_SUBENTRIES)
-#define SLAP_DYNAMIC(be)	((be)->be_flags & SLAP_BFLAG_DYNAMIC)
-
+#define SLAP_DBFLAGS(be)			((be)->be_flags)
+#define SLAP_NOLASTMOD(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_NOLASTMOD)
+#define SLAP_LASTMOD(be)			(!SLAP_NOLASTMOD(be))
+#define SLAP_NO_SCHEMA_CHECK(be)	\
+	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_NO_SCHEMA_CHECK)
+#define	SLAP_GLUE_INSTANCE(be)		\
+	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_INSTANCE)
+#define	SLAP_GLUE_SUBORDINATE(be)	\
+	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_SUBORDINATE)
+#define	SLAP_GLUE_LINKED(be)		\
+	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_LINKED)
 
 	slap_mask_t	be_restrictops;		/* restriction operations */
 #define SLAP_RESTRICT_OP_ADD		0x0001U
@@ -1532,19 +1523,22 @@ struct slap_backend_db {
 	struct slap_limits **be_limits; /* regex-based size and time limits */
 	AccessControl *be_acl;	/* access control list for this backend	   */
 	slap_access_t	be_dfltaccess;	/* access given if no acl matches	   */
+
+	/* Replica Information */
 	struct slap_replica_info **be_replica;	/* replicas of this backend (in master)	*/
 	char	*be_replogfile;	/* replication log file (in master)	   */
 	struct berval be_update_ndn;	/* allowed to make changes (in replicas) */
 	BerVarray	be_update_refs;	/* where to refer modifying clients to */
-	char	*be_realm;
-	void	*be_private;	/* anything the backend database needs 	   */
-
-	void    *be_pb;         /* Netscape plugin */
 	LDAP_TAILQ_HEAD( be_pcl, slap_csn_entry )	be_pending_csn_list;
 	ldap_pvt_thread_mutex_t					be_pcl_mutex;
 	struct berval							be_context_csn;
 	ldap_pvt_thread_mutex_t					be_context_csn_mutex;
 	LDAP_STAILQ_HEAD( be_si, syncinfo_s )	be_syncinfo; /* For syncrepl */
+
+	char	*be_realm;
+	void    *be_pb;         /* Netscape plugin */
+
+	void	*be_private;	/* anything the backend database needs 	   */
 };
 
 struct slap_conn;
@@ -1812,6 +1806,22 @@ struct slap_backend_info {
 
 #define SLAP_INDEX_ADD_OP		0x0001
 #define SLAP_INDEX_DELETE_OP	0x0002
+
+	slap_mask_t	bi_flags; /* backend flags */
+#define SLAP_BFLAG_MONITOR			0x0001U /* a monitor backend */
+#define SLAP_BFLAG_INCREMENT		0x0100U
+#define SLAP_BFLAG_ALIASES			0x1000U
+#define SLAP_BFLAG_REFERRALS		0x2000U
+#define SLAP_BFLAG_SUBENTRIES		0x4000U
+#define SLAP_BFLAG_DYNAMIC			0x8000U
+
+#define SLAP_BFLAGS(be)		((be)->bd_info->bi_flags)
+#define SLAP_MONITOR(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_MONITOR)
+#define SLAP_INCREMENT(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_INCREMENT)
+#define SLAP_ALIASES(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_ALIASES)
+#define SLAP_REFERRALS(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_REFERRALS)
+#define SLAP_SUBENTRIES(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_SUBENTRIES)
+#define SLAP_DYNAMIC(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_DYNAMIC)
 
 	char **bi_controls;		/* supported controls */
 
