@@ -71,7 +71,6 @@
 #define integerFirstComponentMatch		NULL
 
 #define OpenLDAPaciMatch				NULL
-#define authPasswordMatch				NULL
 
 /* recycled indexing/filtering routines */
 #define caseIgnoreIndexer				caseIgnoreIA5Indexer
@@ -2302,15 +2301,10 @@ struct syntax_defs_rec syntax_defs[] = {
 
 	/* OpenLDAP Experimental Syntaxes */
 	{"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
-		0, IA5StringValidate /* THIS WILL CHANGE FOR NEW ACI SYNTAX */, NULL, NULL},
-	{"( 1.3.6.1.4.1.4203.666.2.2 DESC 'OpenLDAP authPassword' )",
-		0, NULL, NULL, NULL},
+		0, IA5StringValidate /* THIS WILL CHANGE FOR NEW ACI SYNTAX */,
+		NULL, NULL},
 	{"( 1.3.6.1.4.1.4203.666.2.3 DESC 'OpenLDAP void' " X_HIDE ")" ,
 		SLAP_SYNTAX_HIDE, inValidate, NULL, NULL},
-#if 0 /* not needed */
-	{"( 1.3.6.1.4.1.4203.666.2.4 DESC 'OpenLDAP DN' " X_HIDE ")" ,
-		SLAP_SYNTAX_HIDE, inValidate, NULL, NULL},
-#endif
 
 	{NULL, 0, NULL, NULL, NULL}
 };
@@ -2587,13 +2581,6 @@ struct mrule_defs_rec mrule_defs[] = {
 		caseExactIA5SubstringsMatch,
 		caseExactIA5SubstringsIndexer,
 		caseExactIA5SubstringsFilter,
-		NULL},
-
-	{"( 1.3.6.1.4.1.4203.666.4.1 NAME 'authPasswordMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
-		SLAP_MR_EQUALITY,
-		NULL, NULL,
-		authPasswordMatch, NULL, NULL,
 		NULL},
 
 	{"( 1.3.6.1.4.1.4203.666.4.2 NAME 'OpenLDAPaciMatch' "

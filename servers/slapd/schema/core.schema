@@ -572,19 +572,6 @@ attributetype ( 1.3.6.1.4.1.250.1.32
 #
 # OpenLDAP specific schema items
 #
-attributetype ( 1.3.6.1.4.1.4203.666.1.1
-	NAME 'authPassword'
-	DESC 'OpenLDAP authentication password attribute'
-	SYNTAX 1.3.6.1.4.1.4203.666.2.2
-	USAGE dSAOperation )
-
-attributetype ( 1.3.6.1.4.1.4203.666.1.2
-	NAME 'supportedAuthPasswordSchemes'
-	DESC 'OpenLDAP supported authPassword schemes'
-	EQUALITY caseIgnoreIA5Match
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{32}
-	NO-USER-MODIFICATION USAGE dSAOperation )
-
 attributetype ( 1.3.6.1.4.1.4203.666.1.3
 	NAME 'entry'
 	DESC 'OpenLDAP ACL entry pseudo attribute'
@@ -603,8 +590,3 @@ attributetype ( 1.3.6.1.4.1.4203.666.1.5
 	EQUALITY OpenLDAPaciMatch
 	SYNTAX 1.3.6.1.4.1.4203.666.2.1
 	USAGE directoryOperation )
-
-objectclass ( 1.3.6.1.4.1.4203.666.3.1 NAME 'authPasswordObject'
-	DESC 'OpenLDAP authPassword mixin class'
-	MAY authPassword
-	AUXILIARY )

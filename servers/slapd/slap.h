@@ -435,7 +435,6 @@ struct slap_internal_schema {
 
 	/* Other attributes descriptions */
 	AttributeDescription *si_ad_userPassword;
-	AttributeDescription *si_ad_authPassword;
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	AttributeDescription *si_ad_krbName;
 #endif
