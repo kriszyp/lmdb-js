@@ -83,15 +83,6 @@
 #define G_RESIGN	1
 
 /*
- *  Authentication method we will be using.
- */
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-#define UD_AUTH_METHOD		LDAP_AUTH_KRBV4
-#else
-#define UD_AUTH_METHOD		LDAP_AUTH_SIMPLE
-#endif
-
-/*
  *  TRUE and FALSE - just in case we need them.
  */
 #ifndef TRUE
@@ -193,10 +184,6 @@ extern char Version[];
 
 /* in auth.c: */
 int  auth	LDAP_P(( char *who, int implicit ));
-#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) && defined(_AC_KRB_H)
-int  krbgetpass LDAP_P(( char *u, char *in, char *re, char *pw, C_Block key ));
-void destroy_tickets LDAP_P(( void ));
-#endif
 
 /* in edit.c: */
 void edit	LDAP_P(( char *who ));
@@ -262,16 +249,6 @@ int  attr_to_index	LDAP_P(( char *s ));
 void initialize_attribute_strings	LDAP_P(( void ));
 void print_URL	LDAP_P(( struct attribute A ));
 void print_one_URL	LDAP_P(( char *s, int l_lead, char *tag, int u_lead ));
-
-/* in string_to_key.c: */
-#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) && !defined(openbsd) && defined(_AC_KRB_H)
-#if defined(HAVE_AFS_KERBEROS) || !defined(HAVE_KERBEROS_V)
-void  des_string_to_key	LDAP_P(( char *str, des_cblock *key ));
-#endif
-#if defined(HAVE_AFS_KERBEROS)
-void ka_StringToKey LDAP_P(( char *str, char *cell, des_cblock *key ));
-#endif
-#endif
 
 /* in util.c: */
 void printbase	LDAP_P(( char *lead, char *s ));

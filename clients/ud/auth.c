@@ -36,12 +36,6 @@
 #include "ldap_defaults.h"
 #include "ud.h"
 
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-static char tktpath[20];	/* ticket file path */
-static int kinit();
-static int valid_tgt();
-#endif
-
 static void set_bound_dn(char *s);
 
 
@@ -59,12 +53,6 @@ auth( char *who, int implicit )
 	char *user;
 #endif
 	char uidname[20];
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	char **krbnames;	/* for kerberos names */
-	int kinited, ikrb;
-	char buf[5];
-	extern int krb_debug;
-#endif
 	LDAPMessage *mp;	/* returned from find() */
 	static char prompt[MED_BUF_SIZE];	/* place for us to sprintf the prompt */
 	static char name[MED_BUF_SIZE];	/* place to store the user's name */
@@ -155,88 +143,21 @@ auth( char *who, int implicit )
 	 */
 
 	if ( (krbnames = ldap_get_values( ld, mp, "krbName" )) != NULL ) {
-		int 	choice, hassimple;
-
-		hassimple = (ldap_compare_s( ld, Entry.DN, 
-				"userPassword", "x" ) == LDAP_COMPARE_FALSE);
-		(void) ldap_msgfree(mp);
-
-		/* if we're running as a server (e.g., out of inetd) */
-		if ( ! isatty( 1 ) ) {
-			strcpy( tktpath, LDAP_TMPDIR LDAP_DIRSEP "ud_tktXXXXXX" );
-			mktemp( tktpath );
-			krb_set_tkt_string( tktpath );
-		}
-
-		kinited = valid_tgt( krbnames );
-
-		if ( hassimple && !kinited ) {
-			printf("  Which password would you like to use?\n");
-			printf("    1 -> LDAP password\n");
-#ifdef UOFM
-			printf("    2 -> UMICH password (aka Uniqname or Kerberos password)\n");
-#else
-			printf("    2 -> Kerberos password\n");
-#endif
-
-			do {
-				printf("  Enter 1 or 2: ");
-				fflush(stdout);
-
-				fetch_buffer(buf, sizeof(buf), stdin);
-				choice = atoi(buf);
-			} while (choice != 1 && choice != 2);
-
-			authmethod = (choice == 1 ? LDAP_AUTH_SIMPLE :
-			    LDAP_AUTH_KRBV4);
-		} else {
-			authmethod = LDAP_AUTH_KRBV4;
-		}
+		authmethod = LDAP_AUTH_KRBV4;
+		(void) ldap_value_free(krbnames);
 	} else {
 		authmethod = LDAP_AUTH_SIMPLE;
-		(void) ldap_msgfree(mp);
 	}
+	(void) ldap_msgfree(mp);
 
 	/*
 	 * if they are already kinited, we don't need to ask for a 
 	 * password.
 	 */
 
-	if ( authmethod == LDAP_AUTH_KRBV4 ) {
-		if ( ! kinited ) {
-			if ( krbnames[1] != NULL ) {
-				int	i;
-
-				/* ask which one to use */
-#ifdef UOFM
-				printf("  Which UMICH (aka Kerberos or uniqname) name would you like to use?\n");
-#else
-				printf("  Which Kerberos name would you like to use?\n");
+	if ( authmethod != LDAP_AUTH_KRBV4 )
 #endif
-				for ( i = 0; krbnames[i] != NULL; i++ ) {
-					printf( "    %d -> %s\n", i + 1,
-					    krbnames[i] );
-				}
-				do {
-					printf("  Enter a number between 1 and %d: ", i );
-					fflush( stdout );
-
-					fetch_buffer(buf, sizeof(buf), stdin);
-					ikrb = atoi(buf) - 1;
-				} while ( ikrb > i - 1 || ikrb < 0 );
-			} else {
-				ikrb = 0;
-			}
-
-			/* kinit */
-			if ( kinit( krbnames[ikrb] ) != 0 ) {
-				(void) ldap_value_free(rdns);
-				(void) ldap_value_free(krbnames);
-				return(-1);
-			}
-		}
-	} else {
-#endif
+	{
 		authmethod = LDAP_AUTH_SIMPLE;
 		sprintf(prompt, "  Enter your LDAP password: ");
 		do {
@@ -246,10 +167,8 @@ auth( char *who, int implicit )
 			(void) ldap_value_free(rdns);
 			return(0);
 		}
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	}
-	(void) ldap_value_free(krbnames);
-#endif
+
 	ldap_flush_cache( ld );
 	rc = ldap_bind_s(ld, Entry.DN, passwd, authmethod);
 	if (rc != LDAP_SUCCESS) {
@@ -261,12 +180,11 @@ auth( char *who, int implicit )
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 			if ( authmethod == LDAP_AUTH_KRBV4 ) {
 				fprintf(stderr, "  The Kerberos credentials are invalid.\n");
-			} else {
+			} else
 #endif
+			{
 				fprintf(stderr, "  The password you provided is incorrect.\n");
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 			}
-#endif
 		else
 			ldap_perror(ld, "ldap_bind_s" );
 		(void) ldap_bind_s(ld, default_bind_object,
@@ -292,138 +210,6 @@ auth( char *who, int implicit )
 	(void) ldap_value_free(rdns);
 	return(0);
 }
-
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-
-#define FIVEMINS	( 5 * 60 )
-#define TGT		"krbtgt"
-
-static int
-valid_tgt( char **names )
-{
-	int		i;
-	char		name[ ANAME_SZ ], inst[ INST_SZ ], realm[ REALM_SZ ];
-	CREDENTIALS	cred;
-
-	for ( i = 0; names[i] != NULL; i++ ) {
-		if ( kname_parse( name, inst, realm, names[i] ) != KSUCCESS ) {
-			fprintf( stderr, "Bad format for krbName %s\n",
-			    names[i] );
-			fprintf( stderr, "Contact x500@umich.edu\n" );
-			return( 0 );
-		}
-
-#ifdef HAVE_AFS_KERBEROS
-		/*
-		 * realm must be uppercase for krb_ routines
-		 */
-		ldap_pvt_str2upper( realm );
-#endif /* HAVE_AFS_KERBEROS */
-
-		/*
-		* check ticket file for a valid ticket granting ticket
-		* my check is: have ticket granting ticket and it is good for
-		* at least 5 more minutes
-		*/
-		if ( krb_get_cred( TGT, realm, realm,
-		    &cred ) == KSUCCESS && time( 0 ) + FIVEMINS <
-		    cred.issue_date + (u_char)cred.lifetime * FIVEMINS ) {
-			return( 1 );
-		}
-	}
-
-	return( 0 );
-}
-
-static char *kauth_name;
-
-#ifndef HAVE_KTH_KERBEROS
-
-/*ARGSUSED*/
-int
-krbgetpass( char *user, char *inst, char *realm, char *pw, C_Block key )
-{
-	char	*p, lcrealm[ REALM_SZ ], prompt[256], *passwd;
-
-#ifdef UOFM
-	sprintf(prompt, "  Enter the UMICH password (same as Uniqname or Kerberos password)\n  for %s: ", kauth_name );
-#else
-	sprintf(prompt, "  Enter Kerberos password for %s: ", kauth_name );
-#endif
-	do {
-		passwd = getpassphrase(prompt);
-	} while (passwd != NULL && *passwd == '\0');
-	if (passwd == NULL) {
-		return(-1);
-	}
-
-#ifdef HAVE_AFS_KERBEROS
-	strcpy( lcrealm, realm );
-	for ( p = lcrealm; *p != '\0'; ++p ) {
-		*p = TOLOWER( (unsigned char) *p );
-	}
-
-	ka_StringToKey( passwd, lcrealm, key );
-#else /* HAVE_AFS_KERBEROS */
-	string_to_key( passwd, key );
-#endif /* HAVE_AFS_KERBEROS */
-
-	return( 0 );
-}
-#endif /* HAVE_KTH_KERBEROS */
-
-static int
-kinit( char *kname )
-{
-	int	rc;
-	char	name[ ANAME_SZ ], inst[ INST_SZ ], realm[ REALM_SZ ];
-
-	kauth_name = kname;
-
-	if ( kname_parse( name, inst, realm, kname ) != KSUCCESS ) {
-		fprintf( stderr, "Bad format for krbName %s\n",
-		    kname );
-		fprintf( stderr, "Contact x500@umich.edu\n" );
-		return( -1 );
-	}
-
-#ifdef HAVE_AFS_KERBEROS
-	/* realm must be uppercase for AFS krb_ routines */
-	ldap_pvt_str2upper( realm );
-#endif /* HAVE_AFS_KERBEROS */
-
-#ifdef HAVE_KTH_KERBEROS
-	/* Kth kerberos knows how to do both string to keys */
-	rc = krb_get_pw_in_tkt( name, inst, realm, TGT, realm,
-		DEFAULT_TKT_LIFE, 0 );
-#else
-	rc = krb_get_in_tkt( name, inst, realm, TGT, realm,
-	    DEFAULT_TKT_LIFE, krbgetpass, NULL, NULL );
-#endif
-
-	if ( rc != KSUCCESS ) {
-		switch ( rc ) {
-		case SKDC_CANT:
-			fprintf( stderr, "Can't contact Kerberos server for %s\n", realm );
-			break;
-		default:
-			fprintf( stderr, "%s: %s\n", name, krb_err_txt[ rc ] );
-			break;
-		}
-		return( -1 );
-	}
-
-	return( 0 );
-}
-
-void
-destroy_tickets( void )
-{
-	if ( *tktpath != '\0' ) {
-		unlink( tktpath );
-	}
-}
-#endif
 
 static void
 set_bound_dn( char *s )
