@@ -98,6 +98,7 @@ int ber_pvt_log_printf( int errlvl, int loglvl, const char *fmt, ... )
 	(*ber_pvt_log_print)( buf );
 	return 1;
 }
+
 #if 0
 static int ber_log_puts(int errlvl, int loglvl, char *buf)
 {
@@ -111,6 +112,7 @@ static int ber_log_puts(int errlvl, int loglvl, char *buf)
 	return 1;
 }
 #endif
+
 /*
  * Print arbitrary stuff, for debugging.
  */
@@ -168,7 +170,7 @@ ber_bprint(
 			line[ 6 ] = ':';
 		}
 
-		off = BP_OFFSET + n*3;
+		off = BP_OFFSET + n*3 + ((n >= 8)?1:0);
 		line[ off   ] = hexdig[ ( data[i] & 0xf0U ) >> 4 ];
 		line[ off+1 ] = hexdig[ data[i] & 0x0fU ];
 		
