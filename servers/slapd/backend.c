@@ -445,15 +445,17 @@ int backend_destroy(void)
 
 	/* destroy frontend database */
 	bd = frontendDB;
-	if ( bd->bd_info->bi_db_destroy ) {
-		bd->bd_info->bi_db_destroy( bd );
+	if ( bd ) {
+		if ( bd->bd_info->bi_db_destroy ) {
+			bd->bd_info->bi_db_destroy( bd );
+		}
+		ber_bvarray_free( bd->be_suffix );
+		ber_bvarray_free( bd->be_nsuffix );
+		if ( bd->be_rootdn.bv_val ) free( bd->be_rootdn.bv_val );
+		if ( bd->be_rootndn.bv_val ) free( bd->be_rootndn.bv_val );
+		if ( bd->be_rootpw.bv_val ) free( bd->be_rootpw.bv_val );
+		acl_destroy( bd->be_acl, frontendDB->be_acl );
 	}
-	ber_bvarray_free( bd->be_suffix );
-	ber_bvarray_free( bd->be_nsuffix );
-	if ( bd->be_rootdn.bv_val ) free( bd->be_rootdn.bv_val );
-	if ( bd->be_rootndn.bv_val ) free( bd->be_rootndn.bv_val );
-	if ( bd->be_rootpw.bv_val ) free( bd->be_rootpw.bv_val );
-	acl_destroy( bd->be_acl, frontendDB->be_acl );
 
 	return 0;
 }
