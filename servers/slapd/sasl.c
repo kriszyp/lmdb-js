@@ -466,8 +466,6 @@ int slap_sasl_bind(
 				realm ? realm : "",
 				(unsigned long) ( ssf ? *ssf : 0 ) );
 
-			*ssfp = ssf ? *ssf : 0;
-
 			rc = LDAP_SUCCESS;
 
 			if( username == NULL || (
@@ -538,7 +536,9 @@ int slap_sasl_bind(
 			}
 
 			if( rc == LDAP_SUCCESS ) {
-				if( ssf ) {
+				*ssfp = ssf ? *ssf : 0;
+
+				if( *ssfp ) {
 					ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 					conn->c_sasl_layers++;
 					ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
