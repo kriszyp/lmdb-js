@@ -2028,11 +2028,11 @@ read_config( const char *fname )
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT, "%s: line %d: "
-					"missing filename in \"rootDSEfile <filename>\" line.\n",
+					"missing filename in \"rootDSE <filename>\" line.\n",
 					fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"missing filename in \"rootDSEfile <filename>\" line.\n",
+					"missing filename in \"rootDSE <filename>\" line.\n",
 				    fname, lineno, 0 );
 #endif
 				return 1;
@@ -2041,11 +2041,11 @@ read_config( const char *fname )
 			if( read_root_dse_file( cargv[1] ) ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT, "%s: line %d: "
-					"could not read \"rootDSEfile <filename>\" line.\n",
+					"could not read \"rootDSE <filename>\" line.\n",
 					fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"could not read \"rootDSEfile <filename>\" line\n",
+					"could not read \"rootDSE <filename>\" line\n",
 				    fname, lineno, 0 );
 #endif
 				return 1;
