@@ -148,7 +148,7 @@ homepostaladdress: 844 Brown St. Apt. 4 $ Ann Arbor, MI 48104
 description: Very odd
 facsimiletelephonenumber: +1 313 555 7557
 telephonenumber: +1 313 555 8343
-mail: gjensen@mailgw.umich.edu
+mail: gjensen@mailgw.example.com
 homephone: +1 313 555 8844
 
 dn: ou=Retired, ou=People, o=University of Michigan, c=US
