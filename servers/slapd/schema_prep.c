@@ -301,7 +301,7 @@ static struct slap_schema_oc_map {
 			"SUP top STRUCTURAL MAY cn )",
 		rootDseObjectClass, SLAP_OC_OPERATIONAL,
 		offsetof(struct slap_internal_schema, si_oc_rootdse) },
-	{ "subentry", "( 2.5.20.0 NAME 'subentry' "
+	{ "subentry", "( 2.5.17.0 NAME 'subentry' "
 			"SUP top STRUCTURAL "
 			"MUST ( cn $ subtreeSpecification ) )",
 		subentryObjectClass, SLAP_OC_SUBENTRY|SLAP_OC_OPERATIONAL,
@@ -320,7 +320,7 @@ static struct slap_schema_oc_map {
 		"MUST cn )",
 		0, SLAP_OC_OPERATIONAL,
 		offsetof(struct slap_internal_schema, si_oc_monitor) },
-	{ "collectiveAttributeSubentry", "( 2.5.20.2 "
+	{ "collectiveAttributeSubentry", "( 2.5.17.2 "
 			"NAME 'collectiveAttributeSubentry' "
 			"AUXILIARY )",
 		subentryObjectClass,
