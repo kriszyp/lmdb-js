@@ -732,6 +732,20 @@ ldap_pvt_tls_get_strength( void *s )
 }
 
 
+static X509 *
+tls_get_cert( SSL *s )
+{
+    /* If peer cert was bad, treat as if no cert was given */
+    if (SSL_get_verify_result(s)) {
+    	/* If we can send an alert, do so */
+    	if (SSL_version(s) != SSL2_VERSION) {
+		ssl3_send_alert(s,SSL3_AL_WARNING,SSL3_AD_BAD_CERTIFICATE);
+	}
+    	return NULL;
+    }
+    return SSL_get_peer_certificate(s);
+}
+
 char *
 ldap_pvt_tls_get_peer( void *s )
 {
@@ -739,11 +753,8 @@ ldap_pvt_tls_get_peer( void *s )
     X509_NAME *xn;
     char buf[2048], *p;
 
-    /* If peer cert was bad, treat as if no cert was given */
-    if (SSL_get_verify_result((SSL *)s))
-    	return NULL;
 
-    x = SSL_get_peer_certificate((SSL *)s);
+    x = tls_get_cert((SSL *)s);
 
     if (!x)
     	return NULL;
@@ -761,10 +772,7 @@ ldap_pvt_tls_get_peer_dn( void *s )
 	X509_NAME *xn;
 	char buf[2048], *p, *dn;
 
-	if (SSL_get_verify_result((SSL *)s))
-    		return NULL;
-
-	x = SSL_get_peer_certificate((SSL *)s);
+	x = tls_get_cert((SSL *)s);
 
 	if (!x) return NULL;
     
@@ -785,10 +793,7 @@ ldap_pvt_tls_get_peer_hostname( void *s )
 	char buf[2048], *p;
 	int ret;
 
-	if (SSL_get_verify_result((SSL *)s))
-    		return NULL;
-
-	x = SSL_get_peer_certificate((SSL *)s);
+	x = tls_get_cert((SSL *)s);
 
 	if (!x)
 		return NULL;
@@ -821,10 +826,7 @@ ldap_pvt_tls_check_hostname( void *s, const char *name_in )
 		name = name_in;
 	}
 
-	if (SSL_get_verify_result((SSL *)s))
-    		return LDAP_CONNECT_ERROR;
-
-    x = SSL_get_peer_certificate((SSL *)s);
+    x = tls_get_cert((SSL *)s);
     if (!x)
     {
 	Debug( LDAP_DEBUG_ANY,
@@ -1243,10 +1245,10 @@ tls_verify_cb( int ok, X509_STORE_CTX *ctx )
 	sname = X509_NAME_oneline( subject, NULL, 0 );
 	iname = X509_NAME_oneline( issuer, NULL, 0 );
 	Debug( LDAP_DEBUG_TRACE,
-	       "TLS certificate verification: depth: %d, subject: %s, issuer: %s\n",
-	       errdepth,
-	       sname ? sname : "-unknown-",
-	       iname ? iname : "-unknown-" );
+	       "TLS certificate verification: depth: %d, err: %d, subject: %s,",
+	       errdepth, errnum,
+	       sname ? sname : "-unknown-" );
+	Debug( LDAP_DEBUG_TRACE, " issuer: %s\n", iname ? iname : "-unknown-", 0, 0 );
 	if ( sname )
 		CRYPTO_free ( sname );
 	if ( iname )
