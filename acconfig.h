@@ -212,6 +212,5 @@
 #endif
 
 #include "ldap_cdefs.h"
-#include "ldap_features.h"
 
 #endif /* _LDAP_PORTABLE_H */
