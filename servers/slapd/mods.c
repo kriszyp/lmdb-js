@@ -73,7 +73,17 @@ modify_check_duplicates(
 			/* count existing values */ ;
 
 		if ( numvals < nummods ) {
-			nvals = ch_calloc( numvals + 1, sizeof( struct berval ) );
+			nvals = SLAP_CALLOC( numvals + 1, sizeof( struct berval ) );
+			if( nvals == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, ERR,
+					"modify_check_duplicates: SLAP_CALLOC failed", 0, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, 
+					"modify_check_duplicates: SLAP_CALLOC failed", 0, 0, 0 );
+#endif
+				goto return_results;
+			}
 
 			/* normalize the existing values first */
 			for ( j = 0; vals[ j ].bv_val != NULL; j++ ) {
@@ -98,7 +108,17 @@ modify_check_duplicates(
 	 * values and test each new value against them first,
 	 * then to other already normalized values
 	 */
-	nmods = ch_calloc( nummods + 1, sizeof( struct berval ) );
+	nmods = SLAP_CALLOC( nummods + 1, sizeof( struct berval ) );
+	if( nmods == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, ERR,
+			"modify_check_duplicates: SLAP_CALLOC failed", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY, 
+			"modify_check_duplicates: SLAP_CALLOC failed", 0, 0, 0 );
+#endif
+				goto return_results;
+	}
 
 	for ( i = 0; mods[ i ].bv_val != NULL; i++ ) {
 		rc = value_normalize( ad, SLAP_MR_EQUALITY,
@@ -430,7 +450,17 @@ modify_delete_values(
 	for ( j = 0; a->a_vals[ j ].bv_val != NULL; j++ )
 		/* count existing values */ ;
 
-	nvals = (BerVarray)ch_calloc( j + 1, sizeof ( struct berval ) );
+	nvals = (BerVarray)SLAP_CALLOC( j + 1, sizeof ( struct berval ) );
+	if( nvals == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, ERR,
+			"modify_delete_values: SLAP_CALLOC failed", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY, 
+			"modify_delete_values: SLAP_CALLOC failed", 0, 0, 0 );
+#endif
+				goto return_results;
+	}
 
 	/* normalize existing values */
 	for ( j = 0; a->a_vals[ j ].bv_val != NULL; j++ ) {
