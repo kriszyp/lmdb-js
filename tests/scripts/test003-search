@@ -112,7 +112,7 @@ fi
 
 echo "Testing objectClass/attributeType inheritance ..."
 $LDAPSEARCH -M -a never -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
-	'(&(objectClass=inetorgperson)(uid=uham))' \
+	'(&(objectClass=inetorgperson)(userid=uham))' \
 	"2.5.4.0" "userid" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
