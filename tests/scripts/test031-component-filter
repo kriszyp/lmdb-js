@@ -252,7 +252,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(x509CertificateIssuer:distinguishedNameMatch:=c=US)"
+FILTER="(x509CertificateIssuer=c=US)"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -265,7 +265,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(x509CertificateSerial:integerMatch:=0)"
+FILTER="(x509CertificateSerial=0)"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
