@@ -23,7 +23,7 @@
  * Requests for permission may be sent to NeoSoft Inc, 1770 St. James Place,
  * Suite 500, Houston, TX, 77056.
  *
- * $Id$
+ * $Id: neoXldap.c,v 1.4 1999/07/27 05:29:27 kunkee Exp $
  *
  */
 
@@ -34,7 +34,7 @@
  * Umich-3.3 client code.  The UMICH_LDAP define is used to include
  * code that will work with the Umich-3.3 LDAP, but not with Netscape's
  * SDK.  OpenLDAP may support some of these, but they have not been tested.
- * Current support is by Randy Kunkee.
+ * Currently supported by Randy Kunkee (kunkee@OpenLDAP.org).
  */
 
 /*
@@ -57,6 +57,8 @@
 
 #define STREQU(str1, str2) \
 	(((str1) [0] == (str2) [0]) && (strcmp (str1, str2) == 0))
+#define STRNEQU(str1, str2, n) \
+	(((str1) [0] == (str2) [0]) && (strncmp (str1, str2, n) == 0))
 
 /*
  * The following section defines some common macros used by the rest
@@ -76,8 +78,13 @@
        */
 #define ldap_attributefree(p) ldap_memfree(p)
 #define ldap_memfree(p) free(p)
+#ifdef LDAP_OPT_ERROR_NUMBER
+#define ldap_get_lderrno(ld)	(ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &lderrno), lderrno)
+#else
+#define ldap_get_lderrno(ld) (ld->ld_errno)
+#endif
 #define LDAP_ERR_STRING(ld)  \
-	ldap_err2string(ldap->ld_errno)
+	ldap_err2string(ldap_get_lderrno(ld))
 #elif defined( LDAP_OPT_SIZELIMIT )
        /*
        ** Netscape SDK w/ ldap_set_option, ldap_get_option
@@ -93,11 +100,38 @@
 #define ldap_ber_free(p, n) ber_free(p, n)
 #define ldap_value_free_len(bvals) ber_bvecfree(bvals)
 #define ldap_attributefree(p) 
+#define ldap_get_lderrno(ld) (ld->ld_errno)
 #define LDAP_ERR_STRING(ld)  \
 	ldap_err2string(ld->ld_errno)
 #endif
 
+typedef struct ldaptclobj {
+    LDAP	*ldap;
+    int		flags
+} LDAPTCL;
 
+#define LDAPTCL_INTERRCODES	0x001
+
+#include "ldaptclerr.h"
+
+static
+LDAP_SetErrorCode(LDAPTCL *ldaptcl, int code, Tcl_Interp *interp)
+{
+    char shortbuf[6];
+    char *errp;
+    int   lderrno;
+
+    if (code == -1)
+	code = ldap_get_lderrno(ldaptcl->ldap);
+    if ((ldaptcl->flags & LDAPTCL_INTERRCODES) || code > LDAPTCL_MAXERR ||
+      ldaptclerrorcode[code] == NULL) {
+	sprintf(shortbuf, "0x%03x", code);
+	errp = shortbuf;
+    } else
+	errp = ldaptclerrorcode[code];
+
+    Tcl_SetErrorCode(interp, errp, NULL);
+}
 
 /*-----------------------------------------------------------------------------
  * LDAP_ProcessOneSearchResult --
@@ -130,6 +164,7 @@ LDAP_ProcessOneSearchResult (interp, ldap, entry, destArrayNameObj, evalCodeObj)
     BerElement     *ber; 
     struct berval **bvals;
     char	   *dn;
+    int		    lderrno;
 
     Tcl_UnsetVar (interp, Tcl_GetStringFromObj (destArrayNameObj, NULL), 0);
 
@@ -210,9 +245,9 @@ LDAP_ProcessOneSearchResult (interp, ldap, entry, destArrayNameObj, evalCodeObj)
  *-----------------------------------------------------------------------------
  */
 static int 
-LDAP_PerformSearch (interp, ldap, base, scope, attrs, filtpatt, value, destArrayNameObj, evalCodeObj, timeout_p)
+LDAP_PerformSearch (interp, ldaptcl, base, scope, attrs, filtpatt, value, destArrayNameObj, evalCodeObj, timeout_p)
     Tcl_Interp     *interp;
-    LDAP           *ldap;
+    LDAPTCL        *ldaptcl;
     char           *base;
     int             scope;
     char          **attrs;
@@ -222,6 +257,7 @@ LDAP_PerformSearch (interp, ldap, base, scope, attrs, filtpatt, value, destArray
     Tcl_Obj        *evalCodeObj;
     struct timeval *timeout_p;
 {
+    LDAP	 *ldap = ldaptcl->ldap;
     char          filter[BUFSIZ];
     int           resultCode;
     int           errorCode;
@@ -232,7 +268,7 @@ LDAP_PerformSearch (interp, ldap, base, scope, attrs, filtpatt, value, destArray
     LDAPMessage  *entryMessage;
 
     Tcl_Obj      *resultObj;
-    int		  lderr;
+    int		  lderrno;
 
     resultObj = Tcl_GetObjResult (interp);
 
@@ -243,6 +279,7 @@ LDAP_PerformSearch (interp, ldap, base, scope, attrs, filtpatt, value, destArray
 			        "LDAP start search error: ",
 					LDAP_ERR_STRING(ldap),
 			        (char *)NULL);
+	LDAP_SetErrorCode(ldaptcl, -1, interp);
 	return TCL_ERROR;
     }
 
@@ -297,6 +334,7 @@ LDAP_PerformSearch (interp, ldap, base, scope, attrs, filtpatt, value, destArray
 				      ldap_err2string(errorCode),
 				      (char *)NULL);
 	      ldap_msgfree(resultMessage);
+	      LDAP_SetErrorCode(ldaptcl, errorCode, interp);
 	      return TCL_ERROR;
 	    }
 	}
@@ -307,6 +345,7 @@ LDAP_PerformSearch (interp, ldap, base, scope, attrs, filtpatt, value, destArray
 				    "LDAP result search error: ",
 				    LDAP_ERR_STRING(ldap),
 				    (char *)NULL);
+	    LDAP_SetErrorCode(ldaptcl, -1, interp);
 	    return TCL_ERROR;
 	} else
 	    ldap_msgfree(resultMessage);
@@ -336,7 +375,8 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 {
     char         *command;
     char         *subCommand;
-    LDAP         *ldap = (LDAP *)clientData;
+    LDAPTCL      *ldaptcl = (LDAPTCL *)clientData;
+    LDAP         *ldap = ldaptcl->ldap;
     char         *dn;
     int           is_add = 0;
     int           is_add_or_modify = 0;
@@ -422,6 +462,7 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 			            "LDAP bind error: ",
 				    ldap_err2string(errcode),
 				    (char *)NULL);
+	    LDAP_SetErrorCode(ldaptcl, errcode, interp);
 	    return TCL_ERROR;
 	}
 	return TCL_OK;
@@ -445,6 +486,7 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 			           "LDAP delete error: ",
 				   ldap_err2string(errcode),
 				   (char *)NULL);
+	   LDAP_SetErrorCode(ldaptcl, errcode, interp);
 	   return TCL_ERROR;
        }
        return TCL_OK;
@@ -473,6 +515,7 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 				    " error: ",
 				    ldap_err2string(errcode),
 				    (char *)NULL);
+	    LDAP_SetErrorCode(ldaptcl, errcode, interp);
 	    return TCL_ERROR;
 	}
 	return TCL_OK;
@@ -594,6 +637,7 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 				    " error: ",
 				    ldap_err2string(result),
 				    (char *)NULL);
+	    LDAP_SetErrorCode(ldaptcl, result, interp);
 	    return TCL_ERROR;
 	}
 	return TCL_OK;
@@ -657,14 +701,7 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 				           "filter",
 				           0);
 	if (filterPatternString == (char *)NULL) {
-	    Tcl_AppendStringsToObj (resultObj,
-				    "required element \"filter\" ",
-				    "is missing from ldap control array \"",
-				    controlArrayName,
-				    "\"",
-				    (char *)NULL);
-
-	    return TCL_ERROR;
+	    filterPatternString = "objectclass=*";
 	}
 
 	/* Fetch scope setting from control array.
@@ -676,16 +713,16 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	} else {
 	    if (STREQU(scopeString, "base")) 
 		scope = LDAP_SCOPE_BASE;
-	    else if (STREQU(scopeString, "onelevel"))
+	    else if (STRNEQU(scopeString, "one", 3))
 		scope = LDAP_SCOPE_ONELEVEL;
-	    else if (STREQU(scopeString, "subtree"))
+	    else if (STRNEQU(scopeString, "sub", 3))
 		scope = LDAP_SCOPE_SUBTREE;
 	    else {
 		Tcl_AppendStringsToObj (resultObj,
 				        "\"scope\" element of \"",
 				        controlArrayName,
 				        "\" array is not one of ",
-				        "\"base\", \"one_level\", ",
+				        "\"base\", \"onelevel\", ",
 					"or \"subtree\"",
 				      (char *) NULL);
 		return TCL_ERROR;
@@ -766,7 +803,7 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 #endif
 
 	 return LDAP_PerformSearch (interp, 
-			            ldap, 
+			            ldaptcl, 
 			            baseString, 
 			            scope, 
 			            attributesArray, 
@@ -777,7 +814,7 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 				    timeout_p);
     }
 
-#if UMICH_LDAP
+#if defined(UMICH_LDAP) || (defined(OPEN_LDAP) && !defined(LDAP_API_VERSION))
     if (STREQU (subCommand, "cache")) {
 	char *cacheCommand;
 
@@ -822,6 +859,7 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 					"LDAP cache enable error: ",
 					LDAP_ERR_STRING(ldap),
 					(char *)NULL);
+		LDAP_SetErrorCode(ldaptcl, -1, interp);
 		return TCL_ERROR;
 	    }
 	    return TCL_OK;
@@ -907,9 +945,11 @@ static void
 NeoX_LdapObjDeleteCmd(clientData)
     ClientData    clientData;
 {
-    LDAP         *ldap = (LDAP *)clientData;
+    LDAPTCL      *ldaptcl = (LDAPTCL *)clientData;
+    LDAP         *ldap = ldaptcl->ldap;
 
     ldap_unbind(ldap);
+    ckfree((char*) ldaptcl);
 }
 
 /*-----------------------------------------------------------------------------
@@ -939,6 +979,7 @@ NeoX_LdapObjCmd (clientData, interp, objc, objv)
     char         *ldapHost;
     int           ldapPort = 389;
     LDAP         *ldap;
+    LDAPTCL	 *ldaptcl;
 
     Tcl_Obj      *resultObj = Tcl_GetObjResult (interp);
 
@@ -1040,10 +1081,14 @@ NeoX_LdapObjCmd (clientData, interp, objc, objv)
     ldap->ld_deref = LDAP_DEREF_NEVER;  /* Turn off alias dereferencing */
 #endif
 
+    ldaptcl = (LDAPTCL *) ckalloc(sizeof(LDAPTCL));
+    ldaptcl->ldap = ldap;
+    ldaptcl->flags = 0;
+
     Tcl_CreateObjCommand (interp,
 			  newCommand,
                           NeoX_LdapTargetObjCmd,
-                          (ClientData) ldap,
+                          (ClientData) ldaptcl,
                           NeoX_LdapObjDeleteCmd);
     return TCL_OK;
 }
@@ -1062,6 +1107,6 @@ Tcl_Interp   *interp;
                           NeoX_LdapObjCmd,
                           (ClientData) NULL,
                           (Tcl_CmdDeleteProc*) NULL);
-    Tcl_PkgProvide(interp, "Ldaptcl", "1.1");
+    Tcl_PkgProvide(interp, "Ldaptcl", VERSION);
     return TCL_OK;
 }

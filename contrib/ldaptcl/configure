@@ -539,11 +539,11 @@ else
 fi
 
 
-# $Id: configure.in,v 1.1 1999/02/10 22:56:49 kunkee Exp $
+# $Id: configure.in,v 1.2 1999/07/27 05:29:27 kunkee Exp $
 
-NEO_VERSION=1.1
+NEO_VERSION=1.2
 NEO_MAJOR_VERSION=1
-NEO_MINOR_VERSION=1
+NEO_MINOR_VERSION=2
 VERSION=${NEO_VERSION}
 
 if test "${prefix}" = "NONE"; then
@@ -1387,6 +1387,7 @@ ldapbuild=yes
 
 
 
+
 VERSION=${NEO_VERSION}
 # Note:  in the following variable, it's important to use the absolute
 # path name of the Tcl directory rather than "..":  this is because
@@ -1596,6 +1597,7 @@ s%@ldaplibflags@%$ldaplibflags%g
 s%@ldapinclude@%$ldapinclude%g
 s%@ldapbuild@%$ldapbuild%g
 s%@ldapdir@%$ldapdir%g
+s%@ldapincdir@%$ldapincdir%g
 s%@DL_LIBS@%$DL_LIBS%g
 s%@LD_FLAGS@%$LD_FLAGS%g
 s%@MATH_LIBS@%$MATH_LIBS%g

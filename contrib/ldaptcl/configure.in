@@ -2,11 +2,11 @@ dnl	This file is an input file used by the GNU "autoconf" program to
 dnl	generate the file "configure", which is run during Tk installation
 dnl	to configure the system for the local environment.
 AC_INIT(neoXldap.c)
-# $Id: configure.in,v 1.1 1999/02/10 22:56:49 kunkee Exp $
+# $Id: configure.in,v 1.2 1999/07/27 05:29:27 kunkee Exp $
 
-NEO_VERSION=1.1
+NEO_VERSION=1.2
 NEO_MAJOR_VERSION=1
-NEO_MINOR_VERSION=1
+NEO_MINOR_VERSION=2
 VERSION=${NEO_VERSION}
 
 if test "${prefix}" = "NONE"; then
@@ -169,6 +169,7 @@ AC_SUBST(ldaplibflags)
 AC_SUBST(ldapinclude)
 AC_SUBST(ldapbuild)
 AC_SUBST(ldapdir)
+AC_SUBST(ldapincdir)
 
 
 VERSION=${NEO_VERSION}

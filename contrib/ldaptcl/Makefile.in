@@ -85,6 +85,7 @@ SHLIB_LD = @SHLIB_LD@
 
 LDAP_LIBFLAGS	= @ldaplibflags@
 LDAP_CFLAGS	= @ldapinclude@
+LDAP_INCDIR	= @ldapincdir@
 LDAP_BUILD	= @ldapbuild@
 LDAP_DIR	= @ldapdir@
 
@@ -120,13 +121,11 @@ LIBS= @LIBS@ @TCLX_LIB_SPEC@ @TCL_LIB_SPEC@ @TCL_LIBS@ $(LDAP_LIBFLAGS) -lc
 TK_LIBS=@TKX_LIB_SPEC@ @TK_LIB_SPEC@ @TK_LIBS@
 TK_VERSION=@TK_VERSION@
 
-LDAPINCDIR=/usr/local/include
-
 CC =        @CC@
 CC_SWITCHES =   ${CFLAGS} @NEO_SHLIB_CFLAGS@ -I. \
 -I@prefix@/include ${AC_FLAGS} ${PROTO_FLAGS} \
 ${SECURITY_FLAGS} ${MEM_DEBUG_FLAGS} ${KEYSYM_FLAGS} \
--DNEO_LIBRARY=\"${NEO_LIBRARY}\"
+-DNEO_LIBRARY=\"${NEO_LIBRARY}\" -DVERSION=\"${VERSION}\" 
 
 TK_SWITCHES = ${CC_SWITCHES} @TK_XINCLUDES@
 
@@ -140,15 +139,20 @@ all:	@NEO_LIB_FILE@ ldaptclsh @LDAPWISH@
 	@MAKE_LIB@
 	$(RANLIB) @NEO_LIB_FILE@
 
-neoXldap.o: neoXldap.c
+neoXldap.o: neoXldap.c ldaptclerr.h
 	$(CC) -c $(LDAP_CFLAGS) $(CC_SWITCHES) $<
+
+ldaptclerr.h: ldaperr.tcl
+	tcl ldaperr.tcl $(LDAP_INCDIR)/ldap.h > ldaptclerr.h
+	
 
 clean:
 	-rm -f ldaptclsh ldapwish
 	-rm -f *.o *.a *.so*
 
 distclean: clean
-	rm -f Makefile pkgIndex.tcl config.cache config.log config.status
+	rm -f Makefile pkgIndex.tcl config.cache config.log config.status \
+		ldaptclerr.h
 
 install: install-binaries install-man
 
