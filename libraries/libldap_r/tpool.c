@@ -138,7 +138,7 @@ ldap_pvt_thread_pool_init (
 		/* couldn't start one?  then don't start any */
 		ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
 		STAILQ_REMOVE(ldap_int_thread_pool_list, pool, 
-			ldap_int_thread_element_s, ltp_next);
+			ldap_int_thread_pool_s, ltp_next);
 		ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 		ldap_pvt_thread_cond_destroy(&pool->ltp_cond);
 		ldap_pvt_thread_mutex_destroy(&pool->ltp_mutex);
