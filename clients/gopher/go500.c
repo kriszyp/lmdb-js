@@ -427,7 +427,7 @@ int	s;
 	fprintf( fp, ".\r\n" );
 	rewind(fp);
 
-	if ( ld == NULL) {
+	if ( ld != NULL) {
 		ldap_unbind( ld );
 	}
 
