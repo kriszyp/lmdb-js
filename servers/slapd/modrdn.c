@@ -181,6 +181,14 @@ do_modrdn(
 		return rc;
 	}
 
+	if ( global_readonly || be->be_readonly ) {
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: database is read-only\n",
+		       0, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+		                  NULL, "database is read-only", NULL, NULL );
+		goto done;
+	}
+
 	/* Make sure that the entry being changed and the newSuperior are in 
 	 * the same backend, otherwise we return an error.
 	 */
@@ -247,6 +255,7 @@ do_modrdn(
 			NULL, "Function not implemented", NULL, NULL );
 	}
 
+done:
 	free( ndn );
 	free( newrdn );	
 	free( newSuperior );

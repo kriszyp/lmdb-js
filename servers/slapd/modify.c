@@ -178,6 +178,14 @@ do_modify(
 		return rc;
 	}
 
+	if ( global_readonly || be->be_readonly ) {
+		Debug( LDAP_DEBUG_ANY, "do_modify: database is read-only\n",
+		       0, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+		                  NULL, "database is read-only", NULL, NULL );
+		goto done;
+	}
+
 	/* deref suffix alias if appropriate */
 	ndn = suffix_alias( be, ndn );
 
@@ -235,6 +243,7 @@ do_modify(
 		    NULL, "Function not implemented", NULL, NULL );
 	}
 
+done:
 	free( ndn );
 	modlist_free( modlist );
 	return rc;

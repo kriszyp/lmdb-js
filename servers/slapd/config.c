@@ -28,6 +28,7 @@ int		defsize = SLAPD_DEFAULT_SIZELIMIT;
 int		deftime = SLAPD_DEFAULT_TIMELIMIT;
 AccessControl	*global_acl = NULL;
 int		global_default_access = ACL_READ;
+int		global_readonly = 0;
 char		*replogfile;
 int		global_lastmod = ON;
 int		global_idletimeout = 0;
@@ -366,9 +367,7 @@ read_config( const char *fname )
 				return( 1 );
 			}
 			if ( be == NULL ) {
-				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: readonly line must appear inside a database definition (ignored)\n",
-				    fname, lineno, 0 );
+				global_readonly = (strcasecmp( cargv[1], "on" ) == 0);
 			} else {
 				if ( strcasecmp( cargv[1], "on" ) == 0 ) {
 					be->be_readonly = 1;
