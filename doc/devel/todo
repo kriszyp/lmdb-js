@@ -29,7 +29,6 @@ OpenLDAP 2.0 Projects
 		Implement LDAP errno draft (deferred)
 		Implement per referral callback
 	clients
-		Update clients to use above SASL API
 		use _ext API, avoid deprecated routines
 		referral chasing options/rebind proc
 	Add TLS SASL/EXTERNAL support
