@@ -296,7 +296,7 @@ TLS_LIBS=
 dnl ----------------------------------------------------------------
 dnl Checks for programs
 
-AC_PROG_INSTALL
+dnl AC_PROG_INSTALL
 
 dnl The default compiler is cc (NOT gcc)
 CC=${CC-"cc"}
