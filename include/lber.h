@@ -470,6 +470,14 @@ LIBLBER_F( struct berval * )
 ber_bvdup LDAP_P((
 	LDAP_CONST struct berval *bv ));
 
+LIBLBER_F( struct berval * )
+ber_bvstr LDAP_P((
+	LDAP_CONST char * ));
+
+LIBLBER_F( struct berval * )
+ber_bvstrdup LDAP_P((
+	LDAP_CONST char * ));
+
 LIBLBER_F( char * )
 ber_strdup LDAP_P((
 	LDAP_CONST char * ));

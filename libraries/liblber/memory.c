@@ -292,6 +292,66 @@ ber_bvdup(
 	return( new );
 }
 
+struct berval *
+ber_bvstr(
+	LDAP_CONST char *s )
+{
+	struct berval *new;
+
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
+
+	if( s == NULL ) {
+		ber_errno = LBER_ERROR_PARAM;
+		return NULL;
+	}
+
+	if(( new = LBER_MALLOC( sizeof(struct berval) )) == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
+		return NULL;
+	}
+
+	if ( *s == '\0' ) {
+		new->bv_val = NULL;
+		new->bv_len = 0;
+		return new;
+	}
+
+	new->bv_val = (char *) s;
+	new->bv_len = strlen( s );
+
+	return( new );
+}
+
+struct berval *
+ber_bvstrdup(
+	LDAP_CONST char *s )
+{
+	struct berval *new;
+	char *p;
+
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
+
+	if( s == NULL ) {
+		ber_errno = LBER_ERROR_PARAM;
+		return NULL;
+	}
+
+	p = LBER_STRDUP( s );
+
+	if( p == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
+		return NULL;
+	}
+
+	new = ber_bvstr( p );
+
+	if( new == NULL || *p == '\0' ) {
+		LBER_FREE( p );
+	}
+
+	return( new );
+}
+
 char *
 ber_strdup( LDAP_CONST char *s )
 {

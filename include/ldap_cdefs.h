@@ -118,7 +118,7 @@
 #	define LIBLUTIL_F(type)	extern type
 #endif
 
-/* SLAPD (as a module exporting symbols */
+/* SLAPD (as a module exporting symbols) */
 #if defined(LIBSLAPD_DECL) && defined(_WIN32)
 #	define LIBSLAPD_F(type)	extern __declspec(LIBSLAPD_DECL) type
 #else
