@@ -268,6 +268,9 @@ static void fullpath(struct berval *base, struct berval *name, struct berval *re
 typedef struct bvlist {
 	struct bvlist *next;
 	struct berval bv;
+	struct berval num;
+	unsigned int inum;
+	int off;
 } bvlist;
 
 typedef struct enumCookie {
@@ -331,7 +334,7 @@ static void r_enum_tree(enumCookie *ck, struct berval *path,
 		}
 	
 		while(1) {
-			struct berval fname;
+			struct berval fname, itmp;
 			struct dirent * dir;
 			bvlist *bvl, *prev;
 
@@ -346,10 +349,27 @@ static void r_enum_tree(enumCookie *ck, struct berval *path,
 
 			bvl = ch_malloc( sizeof(bvlist) );
 			ber_dupbv( &bvl->bv, &fname );
+			BER_BVZERO( &bvl->num );
+			itmp.bv_val = strchr( bvl->bv.bv_val, '{' );
+			if ( itmp.bv_val ) {
+				char *ptr;
+				itmp.bv_val++;
+				ptr = strchr( itmp.bv_val, '}' );
+				if ( ptr ) {
+					itmp.bv_len = ptr - itmp.bv_val;
+					ber_dupbv( &bvl->num, &itmp );
+					bvl->inum = strtoul( itmp.bv_val, NULL, 0 );
+					itmp.bv_val[0] = '\0';
+					bvl->off = itmp.bv_val - bvl->bv.bv_val;
+				}
+			}
 
 			for (ptr = list, prev = (bvlist *)&list; ptr;
 				prev = ptr, ptr = ptr->next) {
-				if ( strcmp( bvl->bv.bv_val, ptr->bv.bv_val ) < 0 )
+				int cmp = strcmp( bvl->bv.bv_val, ptr->bv.bv_val );
+				if ( !cmp && bvl->num.bv_val )
+					cmp = bvl->inum - ptr->inum;
+				if ( cmp < 0 )
 					break;
 			}
 			prev->next = bvl;
@@ -363,11 +383,21 @@ static void r_enum_tree(enumCookie *ck, struct berval *path,
 		else if ( ck->scope == LDAP_SCOPE_SUBORDINATE)
 			ck->scope = LDAP_SCOPE_SUBTREE;
 
-		for ( ptr = list; ptr; ptr=ptr->next ) {
+		while ( ptr=list ) {
 			struct berval fpath;
+
+			list = ptr->next;
+
+			if ( ptr->num.bv_val )
+				AC_MEMCPY( ptr->bv.bv_val + ptr->off, ptr->num.bv_val,
+					ptr->num.bv_len );
 			fullpath( path, &ptr->bv, &fpath );
 			r_enum_tree(ck, &fpath, &e->e_name, &e->e_nname );
 			free(fpath.bv_val);
+			if ( ptr->num.bv_val )
+				free( ptr->num.bv_val );
+			free(ptr->bv.bv_val);
+			free(ptr);
 		}
 	}
 leave:
