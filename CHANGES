@@ -3,7 +3,7 @@ OpenLDAP 2.0 Change Log
 OpenLDAP 2.0.22 Release
 	Fixed slapd passwd modify referral bug
 	Fixed back-ldbm index threading bug
-	Fixed back-ldbm ordering presense index bug
+	Fixed back-ldbm ordering presence index bug
 	Fixed back-ldap modify bug (ITS#1547)
 	Fixed -lldap TLS errno bug
 	Fixed ud v2 kind bug
