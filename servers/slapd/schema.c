@@ -138,15 +138,22 @@ oc_check_required( Entry *e, char *ocname )
 	return( NULL );
 }
 
-static char *oc_usermod_attrs[] = {
+#ifdef SLAPD_SCHEMA_COMPAT
+	/* these shouldn't be hardcoded */
+
+static char *oc_op_usermod_attrs[] = {
 	/*
-	 * OpenLDAP doesn't support any user modification of
-	 * operational attributes.
+	 * these are operational attributes which are
+	 * not defined as NO-USER_MODIFICATION and
+	 * which slapd supports modification of.
+	 *
+	 * Currently none.
+	 * Likely candidate, "aci"
 	 */
 	NULL
 };
 
-static char *oc_operational_attrs[] = {
+static char *oc_op_attrs[] = {
 	/*
 	 * these are operational attributes 
 	 * most could be user modifiable
@@ -171,7 +178,7 @@ static char *oc_operational_attrs[] = {
 };
 
 /* this list should be extensible  */
-static char *oc_no_usermod_attrs[] = {
+static char *oc_op_no_usermod_attrs[] = {
 	/*
 	 * Operational and 'no user modification' attributes
 	 * which are STORED in the directory server.
@@ -185,35 +192,57 @@ static char *oc_no_usermod_attrs[] = {
 
 	NULL
 };
+#endif
 
 
 /*
  * check to see if attribute is 'operational' or not.
  */
 int
-oc_check_operational_attr( const char *type )
+oc_check_op_attr( const char *type )
 {
-	return charray_inlist( oc_operational_attrs, type )
-		|| charray_inlist( oc_usermod_attrs, type )
-		|| charray_inlist( oc_no_usermod_attrs, type );
+#ifdef SLAPD_SCHEMA_COMPAT
+	return charray_inlist( oc_op_attrs, type )
+		|| charray_inlist( oc_op_usermod_attrs, type )
+		|| charray_inlist( oc_op_no_usermod_attrs, type );
+#else
+	AttributeType *at = at_find( type );
+
+	if( at == NULL ) return 0;
+
+	return at->sat_usage != 0;
+#endif
 }
 
 /*
  * check to see if attribute can be user modified or not.
  */
 int
-oc_check_usermod_attr( const char *type )
+oc_check_op_usermod_attr( const char *type )
 {
-	return charray_inlist( oc_usermod_attrs, type );
+#ifdef SLAPD_SCHEMA_COMPAT
+	return charray_inlist( oc_op_usermod_attrs, type );
+#else
+	/* not (yet) in schema */
+	return 0;
+#endif
 }
 
 /*
  * check to see if attribute is 'no user modification' or not.
  */
 int
-oc_check_no_usermod_attr( const char *type )
+oc_check_op_no_usermod_attr( const char *type )
 {
-	return charray_inlist( oc_no_usermod_attrs, type );
+#ifdef SLAPD_SCHEMA_COMPAT
+	return charray_inlist( oc_op_no_usermod_attrs, type );
+#else
+	AttributeType *at = at_find( type );
+
+	if( at == NULL ) return 0;
+
+	return at->sat_no_user_mod;
+#endif
 }
 
 
@@ -235,15 +264,6 @@ oc_check_allowed( char *type, struct berval **ocl )
 	}
 
 	/*
-	 * All operational attributions are allowed by schema rules.
-	 * However, we only check attributions which are stored in the
-	 * the directory regardless if they are user or non-user modified.
-	 */
-	if ( oc_check_usermod_attr( type ) || oc_check_no_usermod_attr( type ) ) {
-		return( 0 );
-	}
-
-	/*
 	 * The "type" we have received is actually an AttributeDescription.
 	 * Let's find out the corresponding type.
 	 */
@@ -258,6 +278,13 @@ oc_check_allowed( char *type, struct berval **ocl )
 
 	} else {
 		t = type;
+	}
+
+	/*
+	 * All operational attributions are allowed by schema rules.
+	 */
+	if ( oc_check_op_attr( t ) ) {
+		return( 0 );
 	}
 
 	/* check that the type appears as req or opt in at least one oc */

@@ -661,13 +661,13 @@ send_search_entry(
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		if ( attrs == NULL ) {
 			/* all addrs request, skip operational attributes */
-			if( !opattrs && oc_check_operational_attr( a->a_type ) ) {
+			if( !opattrs && oc_check_op_attr( a->a_type ) ) {
 				continue;
 			}
 
 		} else {
 			/* specific addrs requested */
-			if (  oc_check_operational_attr( a->a_type ) ) {
+			if (  oc_check_op_attr( a->a_type ) ) {
 				if( !opattrs && !charray_inlist( attrs, a->a_type ) )
 				{
 					continue;
@@ -735,13 +735,13 @@ send_search_entry(
 	do {
 		if ( attrs == NULL ) {
 			/* all addrs request, skip operational attributes */
-			if( !opattrs && oc_check_operational_attr( a->a_type ) ) {
+			if( !opattrs && oc_check_op_attr( a->a_type ) ) {
 				continue;
 			}
 
 		} else {
 			/* specific addrs requested */
-			if (  oc_check_operational_attr( a->a_type ) ) {
+			if (  oc_check_op_attr( a->a_type ) ) {
 				if( !opattrs && !charray_inlist( attrs, a->a_type ) )
 				{
 					continue;

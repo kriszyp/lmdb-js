@@ -272,7 +272,7 @@ add_modified_attrs( Operation *op, LDAPModList **modlist )
 
 	/* remove any attempts by the user to modify these attrs */
 	for ( m = *modlist; m != NULL; m = m->ml_next ) {
-		if ( oc_check_no_usermod_attr( m->ml_type ) ) {
+		if ( oc_check_op_no_usermod_attr( m->ml_type ) ) {
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
 	}

@@ -242,7 +242,7 @@ add_created_attrs( Operation *op, Entry *e )
 
 	/* return error on any attempts by the user to add these attrs */
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		if ( oc_check_no_usermod_attr( a->a_type ) ) {
+		if ( oc_check_op_no_usermod_attr( a->a_type ) ) {
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
 	}

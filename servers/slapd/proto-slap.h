@@ -439,9 +439,9 @@ LIBSLAPD_F (int) sasl_bind LDAP_P((Backend *,
  */
 
 LIBSLAPD_F (int) oc_schema_check LDAP_P(( Entry *e ));
-LIBSLAPD_F (int) oc_check_operational_attr LDAP_P(( const char *type ));
-LIBSLAPD_F (int) oc_check_usermod_attr LDAP_P(( const char *type ));
-LIBSLAPD_F (int) oc_check_no_usermod_attr LDAP_P(( const char *type ));
+LIBSLAPD_F (int) oc_check_op_attr LDAP_P(( const char *type ));
+LIBSLAPD_F (int) oc_check_op_usermod_attr LDAP_P(( const char *type ));
+LIBSLAPD_F (int) oc_check_op_no_usermod_attr LDAP_P(( const char *type ));
 LIBSLAPD_F (ObjectClass *) oc_find LDAP_P((const char *ocname));
 LIBSLAPD_F (int) oc_add LDAP_P((LDAP_OBJECT_CLASS *oc, const char **err));
 
