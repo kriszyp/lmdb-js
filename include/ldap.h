@@ -17,8 +17,6 @@
 
 LDAP_BEGIN_DECL
 
-#define LDAP_PORT	389
-
 #define LDAP_VERSION1	1
 #define LDAP_VERSION2	2
 #define LDAP_VERSION3	3
@@ -52,6 +50,18 @@ LDAP_BEGIN_DECL
 /* #define LDAP_API_FEATURE_SESSION_SAFE	1	*/
 /* #define LDAP_API_OPERATION_SESSION_SAFE	1	*/
 #endif
+
+#define LDAP_PORT		389
+#define LDAP_MAX_PORT	65535
+
+#define LDAP_ROOT_DSE				""
+#define LDAP_NO_ATTRS				"1.1"
+#define LDAP_ALL_USER_ATTRIBUTES	"*"
+
+#define LDAP_URL_PREFIX			"ldap://"
+#define LDAP_URL_PREFIX_LEN		(sizeof(LDAP_URL_PREFIX) - 1)
+#define LDAP_REFERRAL_STR		"Referral:\n"
+#define LDAP_RERERRAL_STR_LEN	(sizeof(LDAP_REFERRAL_STR) - 1)
 
 #define LDAP_COMPAT20
 #define LDAP_COMPAT30
@@ -118,6 +128,7 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_MESSAGE	0x30L	/* tag is 16 + constructed bit */
 #define OLD_LDAP_TAG_MESSAGE	0x10L	/* forgot the constructed bit  */
 #define LDAP_TAG_MSGID		0x02L
+/* need to add other LDAP_TAGs here */
 
 /* possible operations a client can invoke */
 #define LDAP_REQ_BIND			0x60L	/* application + constructed */
@@ -127,10 +138,13 @@ typedef struct ldapcontrol {
 #define LDAP_REQ_ADD			0x68L	/* application + constructed */
 #define LDAP_REQ_DELETE			0x4aL	/* application + primitive   */
 #define LDAP_REQ_MODRDN			0x6cL	/* application + constructed */
+#define LDAP_REQ_MODDN			LDAP_REQ_MODRDN	
+#define LDAP_REQ_RENAME			LDAP_REQ_MODRDN	
 #define LDAP_REQ_COMPARE		0x6eL	/* application + constructed */
 #define LDAP_REQ_ABANDON		0x50L	/* application + primitive   */
+#define LDAP_REQ_ABANDON		0x77L	/* application + constructed */
 
-/* version 3.0 compatibility stuff */
+/* U-Mich version 3.0 compatibility stuff */
 #define LDAP_REQ_UNBIND_30		0x62L
 #define LDAP_REQ_DELETE_30		0x6aL
 #define LDAP_REQ_ABANDON_30		0x70L
@@ -158,6 +172,8 @@ typedef struct ldapcontrol {
 #define LDAP_RES_ADD			0x69L	/* application + constructed */
 #define LDAP_RES_DELETE			0x6bL	/* application + constructed */
 #define LDAP_RES_MODRDN			0x6dL	/* application + constructed */
+#define LDAP_RES_MODDN			LDAP_RES_MODRDN	/* application + constructed */
+#define LDAP_RES_RENAME			LDAP_RES_MODRDN	/* application + constructed */
 #define LDAP_RES_COMPARE		0x6fL	/* application + constructed */
 #define LDAP_RES_EXTENDED		0x78L	/* V3: application + constructed */
 #define LDAP_RES_ANY			(-1L)
@@ -170,16 +186,18 @@ typedef struct ldapcontrol {
 #define OLD_LDAP_RES_ADD		0x09L
 #define OLD_LDAP_RES_DELETE		0x0bL
 #define OLD_LDAP_RES_MODRDN		0x0dL
+#define OLD_LDAP_RES_MODDN		OLD_LDAP_RES_MODRDN
 #define OLD_LDAP_RES_COMPARE		0x0fL
 
 /* authentication methods available */
 #define LDAP_AUTH_NONE		0x00L	/* no authentication		  */
 #define LDAP_AUTH_SIMPLE	0x80L	/* context specific + primitive   */
+#define LDAP_AUTH_SASL		0xa3L	/* context specific + primitive   */
 #define LDAP_AUTH_KRBV4		0xffL	/* means do both of the following */
 #define LDAP_AUTH_KRBV41	0x81L	/* context specific + primitive   */
 #define LDAP_AUTH_KRBV42	0x82L	/* context specific + primitive   */
 
-/* 3.0 compatibility auth methods */
+/* U-Mich version 3.0 compatibility auth methods */
 #define LDAP_AUTH_SIMPLE_30	0xa0L	/* context specific + constructed */
 #define LDAP_AUTH_KRBV41_30	0xa1L	/* context specific + constructed */
 #define LDAP_AUTH_KRBV42_30	0xa2L	/* context specific + constructed */
@@ -199,8 +217,9 @@ typedef struct ldapcontrol {
 #define LDAP_FILTER_LE		0xa6L	/* context specific + constructed */
 #define LDAP_FILTER_PRESENT	0x87L	/* context specific + primitive   */
 #define LDAP_FILTER_APPROX	0xa8L	/* context specific + constructed */
+#define LDAP_FILTER_EXTENDED	0xa9L	/* context specific + constructed */
 
-/* 3.0 compatibility filter types */
+/* U-Mich version 3.0 compatibility filter types */
 #define LDAP_FILTER_PRESENT_30	0xa7L	/* context specific + constructed */
 
 /* old broken stuff */
@@ -214,12 +233,18 @@ typedef struct ldapcontrol {
 #define OLD_LDAP_FILTER_PRESENT		0x07L
 #define OLD_LDAP_FILTER_APPROX		0x08L
 
+/* extended filter component types */
+#define LDAP_FILTER_EXTENDED_OID	0x81L	/* context specific */
+#define LDAP_FILTER_EXTENDED_TYPE	0x82L	/* context specific */
+#define LDAP_FILTER_EXTENDED_VALUE	0x83L	/* context specific */
+#define LDAP_FILTER_EXTENDED_DNATTRS	0x84L	/* context specific */
+
 /* substring filter component types */
 #define LDAP_SUBSTRING_INITIAL	0x80L	/* context specific */
 #define LDAP_SUBSTRING_ANY	0x81L	/* context specific */
 #define LDAP_SUBSTRING_FINAL	0x82L	/* context specific */
 
-/* 3.0 compatibility substring filter component types */
+/* U-Mich version 3.0 compatibility substring filter component types */
 #define LDAP_SUBSTRING_INITIAL_30	0xa0L	/* context specific */
 #define LDAP_SUBSTRING_ANY_30		0xa1L	/* context specific */
 #define LDAP_SUBSTRING_FINAL_30		0xa2L	/* context specific */
@@ -450,6 +475,10 @@ typedef struct ldap LDAP;
 
 #define LDAP_NO_LIMIT		0
 
+/* how many messages to retrieve results for */
+#define LDAP_MSG_ONE		0x00
+#define LDAP_MSG_ALL		0x01
+#define LDAP_MSG_RECEIVED	0x02
 
 /*
  * structure for ldap friendly mapping routines
