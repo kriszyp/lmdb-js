@@ -995,7 +995,7 @@ done:
 	return( rc );
 }
 
-#if 1
+#ifdef OLD_WAY
 /* This is the original version, the old way of doing things. */
 static void
 print_entry(
