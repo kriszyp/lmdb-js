@@ -21,11 +21,6 @@ if test $PPOLICY = ppolicyno; then
 	exit 0
 fi 
 
-if test "$BACKEND" = "ldbm" ; then
-	echo "Test does not support $BACKEND"
-	exit 0
-fi
-
 mkdir -p $TESTDIR $DBDIR1
 
 echo "Starting slapd on TCP/IP port $PORT1..."
