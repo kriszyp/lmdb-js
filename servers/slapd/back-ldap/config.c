@@ -431,10 +431,40 @@ suffix_massage_config(
 		 * walk the filter looking for DN-valued attributes,
 		 * and only rewrite those that require rewriting
 		 */
-		char vbuf[LDAP_FILT_MAXSIZ], rbuf[LDAP_FILT_MAXSIZ];
+		char 	vbuf_[BUFSIZ], *vbuf = vbuf_,
+			rbuf_[BUFSIZ], *rbuf = rbuf_;
+		int 	len;
 
-		snprintf( vbuf, sizeof( vbuf ), "(.*)%s\\)(.*)", nvnc->bv_val );
-		snprintf( rbuf, sizeof( rbuf ), "%%1%s)%%2", nrnc->bv_val );
+		len = snprintf( vbuf, sizeof( vbuf_ ), 
+				"(.*)%s\\)(.*)", nvnc->bv_val );
+		if ( len == -1 ) {
+			/* 
+			 * traditional behavior: snprintf returns -1 
+			 * if buffer is insufficient
+			 */
+			return -1;
+
+		} else if ( len >= sizeof( vbuf_ ) ) {
+			/* 
+			 * C99: snprintf returns the required size 
+			 */
+			vbuf = ch_malloc( len + 1 );
+			len = snprintf( vbuf, len,
+					"(.*)%s\\)(.*)", nvnc->bv_val );
+			assert( len > 0 );
+		}
+
+		len = snprintf( rbuf, sizeof( rbuf_ ), "%%1%s)%%2", 
+				nrnc->bv_val );
+		if ( len == -1 ) {
+			return -1;
+
+		} else if ( len >= sizeof( rbuf_ ) ) {
+			rbuf = ch_malloc( len + 1 );
+			len = snprintf( rbuf, sizeof( rbuf_ ), "%%1%s)%%2", 
+					nrnc->bv_val );
+			assert( len > 0 );
+		}
 		
 		rargv[ 0 ] = "rewriteRule";
 		rargv[ 1 ] = vbuf;
@@ -442,6 +472,14 @@ suffix_massage_config(
 		rargv[ 3 ] = ":";
 		rargv[ 4 ] = NULL;
 		rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
+
+		if ( vbuf != vbuf_ ) {
+			ch_free( vbuf );
+		}
+
+		if ( rbuf != rbuf_ ) {
+			ch_free( rbuf );
+		}
 	}
 #endif /* rewrite filters */
 
