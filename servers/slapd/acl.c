@@ -326,10 +326,10 @@ acl_get(
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
 					   "acl_get: dnpat [%d] %s nsub: %d\n",
-					   *count, a->acl_dn_pat, (int) a->acl_dn_re.re_nsub ));
+					   *count, a->acl_dn_pat.bv_val, (int) a->acl_dn_re.re_nsub ));
 #else
 				Debug( LDAP_DEBUG_ACL, "=> dnpat: [%d] %s nsub: %d\n", 
-					*count, a->acl_dn_pat, (int) a->acl_dn_re.re_nsub );
+					*count, a->acl_dn_pat.bv_val, (int) a->acl_dn_re.re_nsub );
 #endif
 				if (regexec(&a->acl_dn_re, e->e_ndn, nmatch, matches, 0))
 					continue;
@@ -338,10 +338,10 @@ acl_get(
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
 					   "acl_get: dn [%d] %s\n",
-					   *count, a->acl_dn_pat ));
+					   *count, a->acl_dn_pat.bv_val ));
 #else
 				Debug( LDAP_DEBUG_ACL, "=> dn: [%d] %s\n", 
-					*count, a->acl_dn_pat, 0 );
+					*count, a->acl_dn_pat.bv_val, 0 );
 #endif
 				patlen = a->acl_dn_pat.bv_len;
 				if ( dnlen < patlen )
