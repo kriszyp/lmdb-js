@@ -164,7 +164,12 @@ void lutil_log_int(
 #ifdef LDAP_SYSLOG
 	/* we're configured to use syslog */
 	if( use_syslog ) {
+#ifdef HAVE_VSYSLOG
 		vsyslog( debug2syslog(level), fmt, vl );
+#else
+		vsnprintf( data, sizeof(data), fmt, vl );
+		syslog( debug2syslog(level), data );
+#endif
 		return;
 	}
 #endif
@@ -317,6 +322,6 @@ void (lutil_debug)( int debug, int level, const char *fmt, ... )
 		fflush( log_file );
 	}
 
-    fputs( buffer, stderr );
+	fputs( buffer, stderr );
 	va_end( vl );
 }
