@@ -13,8 +13,10 @@
 #include <pwd.h>
 
 #include "slap.h"
-#include "external.h"
+#include "back-passwd.h"
 #include <ldap_pvt.h>
+
+stativ void pw_start( Backend *be );
 
 static Entry *pw2entry(
 	Backend *be,
@@ -58,14 +60,6 @@ passwd_back_search(
 	stoptime = op->o_time + tlimit;
 	slimit = (slimit > be->be_sizelimit || slimit < 1) ? be->be_sizelimit
 	    : slimit;
-
-	endpwent();
-
-#ifdef HAVE_SETPWFILE
-	if ( be->be_private != NULL ) {
-		(void) setpwfile( (char *) be->be_private );
-	}
-#endif /* HAVE_SETPWFILE */
 
 	/* Handle a query for the base of this backend */
 	if ( be_issuffix( be, nbase ) ) {
@@ -130,10 +124,13 @@ passwd_back_search(
 		if ( scope != LDAP_SCOPE_BASE ) {
 			/* check all our "children" */
 
+			ldap_pvt_thread_mutex_lock( &passwd_mutex );
+			pw_start( be );
 			for ( pw = getpwent(); pw != NULL; pw = getpwent() ) {
 				/* check for abandon */
 				if ( op->o_abandon ) {
 					endpwent();
+					ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 					return( -1 );
 				}
 
@@ -142,12 +139,14 @@ passwd_back_search(
 					send_ldap_result( conn, op, LDAP_TIMELIMIT_EXCEEDED,
 			    		NULL, NULL, NULL, NULL );
 					endpwent();
+					ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 					return( 0 );
 				}
 
 				if ( !(e = pw2entry( be, pw, &text )) ) {
 					err = LDAP_OPERATIONS_ERROR;
 					endpwent();
+					ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 					goto done;
 				}
 
@@ -157,6 +156,7 @@ passwd_back_search(
 						send_ldap_result( conn, op, LDAP_SIZELIMIT_EXCEEDED,
 				    		NULL, NULL, NULL, NULL );
 						endpwent();
+						ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 						return( 0 );
 					}
 
@@ -168,6 +168,7 @@ passwd_back_search(
 				entry_free( e );
 			}
 			endpwent();
+			ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 		}
 
 	} else {
@@ -201,13 +202,18 @@ passwd_back_search(
 			goto done;
 		}
 
+		ldap_pvt_thread_mutex_lock( &passwd_mutex );
+		pw_start( be );
 		if ( (pw = getpwnam( rdn[0][0]->la_value.bv_val )) == NULL ) {
 			matched = parent.bv_val;
 			err = LDAP_NO_SUCH_OBJECT;
+			ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 			goto done;
 		}
 
-		if ( !(e = pw2entry( be, pw, &text )) ) {
+		e = pw2entry( be, pw, &text );
+		ldap_pvt_thread_mutex_unlock( &passwd_mutex );
+		if ( !e ) {
 			err = LDAP_OPERATIONS_ERROR;
 			goto done;
 		}
@@ -229,6 +235,20 @@ done:
 	if( rdn != NULL ) ldap_rdnfree( rdn );
 
 	return( 0 );
+}
+
+static void
+pw_start(
+	Backend *be
+)
+{
+	endpwent();
+
+#ifdef HAVE_SETPWFILE
+	if ( be->be_private != NULL ) {
+		(void) setpwfile( (char *) be->be_private );
+	}
+#endif /* HAVE_SETPWFILE */
 }
 
 static Entry *

@@ -5,6 +5,7 @@
 LDAP_BEGIN_DECL
 
 extern BI_init	passwd_back_initialize;
+extern BI_destroy	passwd_back_destroy;
 
 extern BI_op_search	passwd_back_search;
 
