@@ -29,10 +29,6 @@
 #include <slap.h>
 #include <slapi.h>
 
-#ifdef _SPARC  
-#include <sys/systeminfo.h>
-#endif
-
 #include <netdb.h>
 
 /*
@@ -1406,7 +1402,7 @@ slapi_register_supported_saslmechanism( char *mechanism )
 {
 #ifdef LDAP_SLAPI
 	/* FIXME -- can not add saslmechanism to OpenLDAP dynamically */
-	slapi_log_error( SLAPI_LOG_FATAL, "SLAPI_SASL",
+	slapi_log_error( SLAPI_LOG_FATAL, "slapi_register_supported_saslmechanism",
 			"OpenLDAP does not support dynamic registration of SASL mechanisms\n" );
 #endif /* LDAP_SLAPI */
 }
@@ -1416,7 +1412,7 @@ slapi_get_supported_saslmechanisms( void )
 {
 #ifdef LDAP_SLAPI
 	/* FIXME -- can not get the saslmechanism without a connection. */
-	slapi_log_error( SLAPI_LOG_FATAL, "SLAPI_SASL",
+	slapi_log_error( SLAPI_LOG_FATAL, "slapi_get_supported_saslmechanisms",
 			"can not get the SASL mechanism list "
 			"without a connection\n" );
 	return NULL;
@@ -2117,24 +2113,6 @@ slapi_get_hostname( void )
 {
 #ifdef LDAP_SLAPI
 	char		*hn = NULL;
-
-	/*
-	 * FIXME: I'd prefer a different check ...
-	 */
-#if defined _SPARC 
-	hn = (char *)slapi_ch_malloc( MAX_HOSTNAME );
-	if ( hn == NULL) {
-		slapi_log_error( SLAPI_LOG_FATAL, "SLAPI_SYSINFO",
-				"can't malloc memory for hostname\n" );
-		hn = NULL;
-		
-	} else if ( sysinfo( SI_HOSTNAME, hn, MAX_HOSTNAME ) < 0 ) {
-		slapi_log_error( SLAPI_LOG_FATAL, "SLAPI_SYSINFO",
-				"can't get hostname\n" );
-		slapi_ch_free( (void **)&hn );
-		hn = NULL;
-	}
-#else /* !_SPARC */
 	static int	been_here = 0;   
 	static char	*static_hn = NULL;
 
@@ -2142,8 +2120,8 @@ slapi_get_hostname( void )
 	if ( !been_here ) {
 		static_hn = (char *)slapi_ch_malloc( MAX_HOSTNAME );
 		if ( static_hn == NULL) {
-			slapi_log_error( SLAPI_LOG_FATAL, "SLAPI_SYSINFO",
-					"can't malloc memory for hostname\n" );
+			slapi_log_error( SLAPI_LOG_FATAL, "slapi_get_hostname",
+					"Cannot allocate memory for hostname\n" );
 			static_hn = NULL;
 			ldap_pvt_thread_mutex_unlock( &slapi_hn_mutex );
 
@@ -2152,7 +2130,7 @@ slapi_get_hostname( void )
 		} else { 
 			if ( gethostname( static_hn, MAX_HOSTNAME ) != 0 ) {
 				slapi_log_error( SLAPI_LOG_FATAL,
-						"SLAPI_SYSINFO",
+						"SLAPI",
 						"can't get hostname\n" );
 				slapi_ch_free( (void **)&static_hn );
 				static_hn = NULL;
@@ -2168,7 +2146,6 @@ slapi_get_hostname( void )
 	ldap_pvt_thread_mutex_unlock( &slapi_hn_mutex );
 	
 	hn = ch_strdup( static_hn );
-#endif /* !_SPARC */
 
 	return hn;
 #else /* LDAP_SLAPI */
@@ -3594,7 +3571,7 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 	}
 
 	if ( !access_allowed( op, e, desc, NULL, ACL_READ, &c->cac_acl_state) ) {
-		slapi_log_error( SLAPI_LOG_ACL, "SLAPI_COMPUTE",
+		slapi_log_error( SLAPI_LOG_ACL, "slapi_x_compute_output_ber",
 			"acl: access to attribute %s not allowed\n",
 			desc->ad_cname.bv_val );
 		return 0;
@@ -3602,7 +3579,7 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 
 	rc = ber_printf( ber, "{O[" /*]}*/ , &desc->ad_cname );
 	if (rc == -1 ) {
-		slapi_log_error( SLAPI_LOG_BER, "SLAPI_COMPUTE",
+		slapi_log_error( SLAPI_LOG_BER, "slapi_x_compute_output_ber",
 			"ber_printf failed\n");
 		return 1;
 	}
@@ -3611,15 +3588,15 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 		for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
 			if ( !access_allowed( op, e,
 				desc, &a->a_vals[i], ACL_READ, &c->cac_acl_state)) {
-				slapi_log_error( SLAPI_LOG_ACL, "SLAPI_COMPUTE",
-					"slapi_x_compute_output_ber: conn %lu "
+				slapi_log_error( SLAPI_LOG_ACL, "slapi_x_compute_output_ber",
+					"conn %lu "
 					"acl: access to %s, value %d not allowed\n",
 					op->o_connid, desc->ad_cname.bv_val, i  );
 				continue;
 			}
 	
 			if (( rc = ber_printf( ber, "O", &a->a_vals[i] )) == -1 ) {
-				slapi_log_error( SLAPI_LOG_BER, "SLAPI_COMPUTE",
+				slapi_log_error( SLAPI_LOG_BER, "slapi_x_compute_output_ber",
 					"ber_printf failed\n");
 				return 1;
 			}
@@ -3627,7 +3604,7 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 	}
 
 	if (( rc = ber_printf( ber, /*{[*/ "]N}" )) == -1 ) {
-		slapi_log_error( SLAPI_LOG_BER, "SLAPI_COMPUTE",
+		slapi_log_error( SLAPI_LOG_BER, "slapi_x_compute_output_ber",
 			"ber_printf failed\n" );
 		return 1;
 	}

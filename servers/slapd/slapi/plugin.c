@@ -60,6 +60,7 @@ newPlugin(
 	char *argv[] ) 
 {
 	Slapi_PBlock	*pPlugin = NULL; 
+	Slapi_PluginDesc *pPluginDesc = NULL;
 	lt_dlhandle	hdLoadHandle;
 	int		rc;
 
@@ -70,28 +71,37 @@ newPlugin(
 	}
 
 	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_TYPE, (void *)type );
-	if ( rc != LDAP_SUCCESS ) {
+	if ( rc != 0 ) {
 		goto done;
 	}
 
 	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_ARGC, (void *)argc );
-	if ( rc != LDAP_SUCCESS ) {
+	if ( rc != 0 ) {
 		goto done;
 	}
 
 	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_ARGV, (void *)argv );
-	if ( rc != LDAP_SUCCESS ) { 
+	if ( rc != 0 ) { 
 		goto done;
 	}
 
 	rc = loadPlugin( pPlugin, path, initfunc, TRUE, NULL, &hdLoadHandle );
 	if ( rc != 0 ) {
-		rc = LDAP_OTHER;
 		goto done;
 	}
 
+	if ( slapi_pblock_get( pPlugin, SLAPI_PLUGIN_DESCRIPTION, (void **)&pPluginDesc ) == 0 &&
+	     pPluginDesc != NULL ) {
+		slapi_log_error(SLAPI_LOG_TRACE, "newPlugin",
+				"Registered plugin %s %s [%s] (%s)\n",
+				pPluginDesc->spd_id,
+				pPluginDesc->spd_version,
+				pPluginDesc->spd_vendor,
+				pPluginDesc->spd_description);
+	}
+
 done:
-	if ( rc != LDAP_SUCCESS && pPlugin != NULL ) {
+	if ( rc != 0 && pPlugin != NULL ) {
 		slapi_pblock_destroy( pPlugin );
 		pPlugin = NULL;
 	}
