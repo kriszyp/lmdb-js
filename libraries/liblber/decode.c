@@ -56,7 +56,7 @@ ber_get_tag( BerElement *ber )
 		if ( ber_read( ber, (char *) &xbyte, 1 ) != 1 )
 			return( LBER_DEFAULT );
 
-		tag << 8;
+		tag <<= 8;
 		tag |= 0x00ffUL & (ber_tag_t) xbyte;
 
 		if ( ! (xbyte & LBER_MORE_TAG_MASK) )
