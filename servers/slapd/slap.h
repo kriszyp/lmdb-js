@@ -1442,49 +1442,49 @@ typedef int (BI_db_destroy) LDAP_P((Backend *bd));
 
 #ifdef SLAP_OP_BLOCKS
 typedef struct req_bind_s {
-	int method;
-	struct berval cred;
-	struct berval edn;
+	int rb_method;
+	struct berval rb_cred;
+	struct berval rb_edn;
 } req_bind_s;
 
 typedef struct req_search_s {
-	int scope;
-	int deref;
-	int slimit;
-	int tlimit;
-	int attrsonly;
-	AttributeName *attrs;
-	Filter *f;
-	struct berval filterstr;
+	int rs_scope;
+	int rs_deref;
+	int rs_slimit;
+	int rs_tlimit;
+	int rs_attrsonly;
+	AttributeName *rs_attrs;
+	Filter *rs_f;
+	struct berval rs_filterstr;
 } req_search_s;
 
 typedef struct req_compare_s {
-	AttributeAssertion *ava;
+	AttributeAssertion *rs_ava;
 } req_compare_s;
 
 typedef struct req_modrdn_s {
-	struct berval newrdn;
-	struct berval nnewrdn;
-	struct berval newSup;
-	struct berval nnewSup;
-	int deleteoldrdn;
+	struct berval rs_newrdn;
+	struct berval rs_nnewrdn;
+	struct berval rs_newSup;
+	struct berval rs_nnewSup;
+	int rs_deleteoldrdn;
 } req_modrdn_s;
 
 typedef struct req_add_s {
-	Entry *e;
+	Entry *rs_e;
 } req_add_s;
 
 typedef struct req_abandon_s {
-	ber_int_t msgid;
+	ber_int_t rs_msgid;
 } req_abandon_s;
 
 typedef struct req_extended_s {
-	struct berval reqoid;
-	char *rspoid;
-	struct berval *rspdata;
-	LDAPControl **rspctrls;
-	const char *text;
-	BerVarray refs;
+	struct berval rs_reqoid;
+	char *rs_rspoid;
+	struct berval *rs_rspdata;
+	LDAPControl **rs_rspctrls;
+	const char *rs_text;
+	BerVarray rs_refs;
 } req_extended_s;
 #endif /* SLAP_OP_BLOCKS */
 
@@ -1792,19 +1792,28 @@ typedef struct slap_op {
 	struct berval	o_req_dn;	/* DN of target of request */
 	struct berval	o_req_ndn;
 
-	union {
-		req_bind_s bind;
-		req_search_s srch;
-		req_compare_s comp;
-		req_modrdn_s mrdn;
-		req_add_s add;
-		req_abandon_s aban;
-		req_abandon_s cncl;
-		req_extended_s xtnd;
-	} o_req;
-#endif
+	union o_req_u {
+		req_bind_s or_bind;
+		req_search_s or_search;
+		req_compare_s or_compare;
+		req_modrdn_s or_modrdn;
+		req_add_s or_add;
+		req_abandon_s or_abandon;
+		req_abandon_s or_cancel;
+		req_extended_s or_extended;
+	} o_request;
 
+/* short hands for union members */
+#define o_bind o_request.or_bind
+/* ... */
+
+/* short hands for inner request members */
+#define o_bind_edn o_bind.rb_edn
+/* ... */
+
+#else
 	char *		o_extendedop;	/* extended operation OID */
+#endif
 
 	ldap_pvt_thread_t	o_tid;	/* thread handling this op */
 
