@@ -4,10 +4,13 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
- * lutil_password(credentials, password)
+ * int lutil_passwd(
+ *	const struct berval *passwd,
+ *	const struct berval *cred,
+ *	const char **schemes )
  *
- * Returns true if user supplied credentials matches
- * the stored password. 
+ * Returns true if user supplied credentials (cred) matches
+ * the stored password (passwd). 
  *
  * Due to the use of the crypt(3) function 
  * this routine is NOT thread-safe.
