@@ -464,7 +464,8 @@ glue_tool_entry_next (
 
 	/* If we ran out of entries in one database, move on to the next */
 	while (rc == NOID) {
-		glueBack->be_entry_close (glueBack);
+		if ( glueBack && glueBack->be_entry_close )
+			glueBack->be_entry_close (glueBack);
 		for (i=0; i<gi->nodes; i++) {
 			if (gi->n[i].be == glueBack)
 				break;
