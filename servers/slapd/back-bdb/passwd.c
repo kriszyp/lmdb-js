@@ -280,6 +280,10 @@ done:
 		free( hash.bv_val );
 	}
 
+	if( ndn.bv_val != NULL ) {
+		free( ndn.bv_val );
+	}
+
 	if( ltid != NULL ) {
 		TXN_ABORT( ltid );
 		op->o_private = NULL;
