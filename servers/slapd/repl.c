@@ -27,7 +27,6 @@ replog(
 	LDAPModList	*ml;
 	Entry	*e;
 	char	*newrdn, *tmp;
-	int	deleteoldrdn;
 	FILE	*fp, *lfp;
 	int	len, i;
 
