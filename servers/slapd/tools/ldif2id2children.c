@@ -270,7 +270,7 @@ main( int argc, char **argv )
 						    key );
 						free( dn );
 						if ( data.dptr == NULL ) {
-							dn_normalize( val );
+							dn_normalize_case( val );
 							if ( ! be_issuffix( be,
 							    val ) ) {
 	Debug( LDAP_DEBUG_PARSE, "no parent \"%s\" of \"%s\"\n", dn, val, 0 );

@@ -64,7 +64,8 @@ ldbm_back_bind(
     Operation		*op,
     char		*dn,
     int			method,
-    struct berval	*cred
+    struct berval	*cred,
+	char**	edn
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
@@ -79,6 +80,8 @@ ldbm_back_bind(
 
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_bind: dn: %s\n", dn, 0, 0);
 
+	*edn = NULL;
+
 	/* get entry with reader lock */
 	if ( (e = dn2entry_r( be, dn, &matched )) == NULL ) {
 		/* allow noauth binds */
@@ -91,6 +94,7 @@ ldbm_back_bind(
 			rc = 1;
 		} else if ( be_isroot_pw( be, dn, cred ) ) {
 			/* front end will send result */
+			*edn = ch_strdup( be_root_dn( be ) );
 			rc = 0;
 		} else {
 			send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched, NULL );
@@ -101,6 +105,8 @@ ldbm_back_bind(
 		}
 		return( rc );
 	}
+
+	*edn = ch_strdup( e->e_dn );
 
 	/* check for deleted */
 
@@ -114,6 +120,7 @@ ldbm_back_bind(
 			goto return_results;
 		} else if ( be_isroot_pw( be, dn, cred ) ) {
 			/* front end will send result */
+			*edn = ch_strdup( be_root_dn( be ) );
 			rc = 0;
 			goto return_results;
 		}
@@ -121,6 +128,7 @@ ldbm_back_bind(
 		if ( (a = attr_find( e->e_attrs, "userpassword" )) == NULL ) {
 			if ( be_isroot_pw( be, dn, cred ) ) {
 				/* front end will send result */
+				*edn = ch_strdup( be_root_dn( be ) );
 				rc = 0;
 				goto return_results;
 			}
@@ -130,14 +138,11 @@ ldbm_back_bind(
 			goto return_results;
 		}
 
-#ifdef SLAPD_CRYPT
 		if ( crypted_value_find( a->a_vals, cred, a->a_syntax, 0, cred ) != 0 )
-#else
-		if ( value_find( a->a_vals, cred, a->a_syntax, 0 ) != 0 )
-#endif
 		{
 			if ( be_isroot_pw( be, dn, cred ) ) {
 				/* front end will send result */
+				*edn = ch_strdup( be_root_dn( be ) );
 				rc = 0;
 				goto return_results;
 			}

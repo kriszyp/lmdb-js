@@ -193,14 +193,15 @@ send_search_entry(
 
 	Debug( LDAP_DEBUG_TRACE, "=> send_search_entry (%s)\n", e->e_dn, 0, 0 );
 
-	if ( ! access_allowed( be, conn, op, e, "entry", NULL, op->o_dn,
-	    ACL_READ ) ) {
+	if ( ! access_allowed( be, conn, op, e,
+		"entry", NULL, ACL_READ ) )
+	{
 		Debug( LDAP_DEBUG_ACL, "acl: access to entry not allowed\n",
 		    0, 0, 0 );
 		return( 1 );
 	}
 
-	edn = dn_normalize_case( ch_strdup( e->e_dn ) );
+	edn = e->e_ndn;
 
 #ifdef LDAP_COMPAT30
 	if ( (ber = ber_alloc_t( conn->c_version == 30 ? 0 : LBER_USE_DER ))
@@ -251,12 +252,12 @@ send_search_entry(
 				a->a_type, 0, 0 );
 			acl = NULL;
 		} else {
-			acl = acl_get_applicable( be, op, e, a->a_type, edn,
+			acl = acl_get_applicable( be, op, e, a->a_type,
 				MAXREMATCHES, matches );
 		}
 
-		if ( ! acl_access_allowed( acl, be, conn, e, NULL, op, ACL_READ,
-			edn, matches ) ) 
+		if ( ! acl_access_allowed( acl, be, conn, e,
+			NULL, op, ACL_READ, edn, matches ) ) 
 		{
 			continue;
 		}
@@ -301,8 +302,6 @@ send_search_entry(
 			goto error_return;
 		}
 	}
-
-	free(edn);
 
 #ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
@@ -382,7 +381,6 @@ send_search_entry(
 	return( rc );
 
 error_return:;
-	free(edn);
 	return( 1 );
 }
 

@@ -30,7 +30,7 @@ do_modify(
     Operation	*op
 )
 {
-	char		*dn, *odn;
+	char		*ndn;
 	char		*last;
 	unsigned long	tag, len;
 	LDAPMod		*mods, *tmp;
@@ -58,15 +58,15 @@ do_modify(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{a", &dn ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{a" /*}*/, &ndn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
 		return;
 	}
-	odn = ch_strdup( dn );
-	dn_normalize( dn );
 
-	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", ndn, 0, 0 );
+
+	(void) dn_normalize_case( ndn );
 
 	/* collect modifications & save for later */
 	mods = NULL;
@@ -83,8 +83,7 @@ do_modify(
 		{
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
 			    "decoding error" );
-			free( dn );
-			free( odn );
+			free( ndn );
 			free( *modtail );
 			*modtail = NULL;
 			modlist_free( mods );
@@ -97,8 +96,7 @@ do_modify(
 		{
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
 			    "unrecognized modify operation" );
-			free( dn );
-			free( odn );
+			free( ndn );
 			modlist_free( mods );
 			return;
 		}
@@ -107,8 +105,7 @@ do_modify(
 		  != LDAP_MOD_DELETE ) {
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
 			    "no values given" );
-			free( dn );
-			free( odn );
+			free( ndn );
 			modlist_free( mods );
 			return;
 		}
@@ -128,42 +125,41 @@ do_modify(
 #endif
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d MOD dn=\"%s\"\n",
-	    conn->c_connid, op->o_opid, dn, 0, 0 );
+	    conn->c_connid, op->o_opid, ndn, 0, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( dn )) == NULL ) {
-		free( dn );
-		free( odn );
+	if ( (be = select_backend( ndn )) == NULL ) {
+		free( ndn );
 		modlist_free( mods );
 		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
 		    default_referral );
 		return;
 	}
 
-        /* alias suffix if approp */
-        dn = suffixAlias ( dn, op, be );
+	/* alias suffix if approp */
+	ndn = suffixAlias ( ndn, op, be );
 
 	/*
 	 * do the modify if 1 && (2 || 3)
 	 * 1) there is a modify function implemented in this backend;
 	 * 2) this backend is master for what it holds;
-	 * 3) it's a replica and the dn supplied is the updatedn.
+	 * 3) it's a replica and the dn supplied is the update_ndn.
 	 */
 	if ( be->be_modify != NULL ) {
 		/* do the update here */
-		if ( be->be_updatedn == NULL ||
-			strcasecmp( be->be_updatedn, op->o_dn ) == 0 ) {
-
+		if ( be->be_update_ndn == NULL ||
+			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
+		{
 			if ( (be->be_lastmod == ON || ( be->be_lastmod == UNDEFINED &&
-				global_lastmod == ON ) ) && be->be_updatedn == NULL ) {
+				global_lastmod == ON ) ) && be->be_update_ndn == NULL ) {
 				add_lastmods( op, &mods );
 			}
-			if ( (*be->be_modify)( be, conn, op, odn, mods ) == 0 ) {
-				replog( be, LDAP_REQ_MODIFY, dn, mods, 0 );
+			if ( (*be->be_modify)( be, conn, op, ndn, mods ) == 0 ) {
+				replog( be, LDAP_REQ_MODIFY, ndn, mods, 0 );
 			}
 
 		/* send a referral */
@@ -176,8 +172,7 @@ do_modify(
 		    "Function not implemented" );
 	}
 
-	free( dn );
-	free( odn );
+	free( ndn );
 	modlist_free( mods );
 }
 

@@ -73,7 +73,8 @@ do_search(
 		    "Unknown search scope" );
 		goto return_results;
 	}
-	(void) dn_normalize( base );
+
+	(void) dn_normalize_case( base );
 
 	Debug( LDAP_DEBUG_ARGS, "SRCH \"%s\" %d %d", base, scope, deref );
 	Debug( LDAP_DEBUG_ARGS, "    %d %d %d\n", sizelimit, timelimit,
@@ -108,19 +109,19 @@ do_search(
 #if defined( SLAPD_MONITOR_DN ) || defined( SLAPD_CONFIG_DN ) || defined( SLAPD_SCHEMA_DN )
 	if ( scope == LDAP_SCOPE_BASE ) {
 #if defined( SLAPD_MONITOR_DN )
-		if ( strcasecmp( base, SLAPD_MONITOR_DN ) == 0 ) {
+		if ( strcmp( base, SLAPD_MONITOR_DN ) == 0 ) {
 			monitor_info( conn, op );
 			goto return_results;
 		}
 #endif
 #if defined( SLAPD_CONFIG_DN )
-		if ( strcasecmp( base, SLAPD_CONFIG_DN ) == 0 ) {
+		if ( strcmp( base, SLAPD_CONFIG_DN ) == 0 ) {
 			config_info( conn, op );
 			goto return_results;
 		}
 #endif
 #if defined( SLAPD_SCHEMA_DN )
-		if ( strcasecmp( base, SLAPD_SCHEMA_DN ) == 0 ) {
+		if ( strcmp( base, SLAPD_SCHEMA_DN ) == 0 ) {
 			schema_info( conn, op );
 			goto return_results;
 		}

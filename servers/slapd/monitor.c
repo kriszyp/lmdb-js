@@ -49,7 +49,7 @@ monitor_info( Connection *conn, Operation *op )
 	entry_rdwr_init(e);
 	e->e_attrs = NULL;
 	e->e_dn = ch_strdup( SLAPD_MONITOR_DN );
-	e->e_ndn = NULL;
+	e->e_ndn = dn_normalize_case( ch_strdup(SLAPD_MONITOR_DN) );
 
 	val.bv_val = Versionstr;
 	if (( p = strchr( Versionstr, '\n' )) == NULL ) {
@@ -91,7 +91,7 @@ monitor_info( Connection *conn, Operation *op )
 			pthread_mutex_lock( &c[i].c_dnmutex );
 			sprintf( buf, "%d : %s : %d : %d : %s : %s%s", i,
 			    buf2, c[i].c_opsinitiated, c[i].c_opscompleted,
-			    c[i].c_dn ? c[i].c_dn : "NULLDN",
+			    c[i].c_cdn ? c[i].c_cdn : "NULLDN",
 			    c[i].c_gettingber ? "r" : "",
 			    c[i].c_writewaiter ? "w" : "" );
 			pthread_mutex_unlock( &c[i].c_dnmutex );

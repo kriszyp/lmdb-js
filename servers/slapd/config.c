@@ -34,7 +34,7 @@ void
 read_config( char *fname, Backend **bep, FILE *pfp )
 {
 	FILE	*fp;
-	char	*line, *savefname, *dn;
+	char	*line, *savefname;
 	int	cargc, savelineno;
 	char	*cargv[MAXARGS];
 	int	lineno, i;
@@ -128,8 +128,8 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: suffix line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
-				dn = ch_strdup( cargv[1] );
-				(void) dn_normalize( dn );
+				char *dn = ch_strdup( cargv[1] );
+				(void) dn_normalize_case( dn );
 				charray_add( &be->be_suffix, dn );
 			}
 
@@ -155,13 +155,28 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: suffixAlias line must appear inside a database definition (ignored)\n",
                                     fname, lineno, 0 );
                         } else {
-                                dn = ch_strdup( cargv[1] );
-                                (void) dn_normalize( dn );
-                                charray_add( &be->be_suffixAlias, dn );
+                                char *alias, *aliased_dn;
 
-                                dn = ch_strdup( cargv[2] );
-                                (void) dn_normalize( dn );
-                                charray_add( &be->be_suffixAlias, dn );
+								alias = ch_strdup( cargv[1] );
+                                (void) dn_normalize( alias );
+
+                                aliased_dn = ch_strdup( cargv[2] );
+                                (void) dn_normalize( aliased_dn );
+
+
+								if ( strcasecmp( alias, aliased_dn) ) {
+                                	Debug( LDAP_DEBUG_ANY,
+"%s: line %d: suffixAlias %s is not different from aliased dn (ignored)\n",
+                                    fname, lineno, alias );
+								} else {
+                                	(void) dn_normalize_case( alias );
+                                	(void) dn_normalize_case( aliased_dn );
+                                	charray_add( &be->be_suffixAlias, alias );
+                                	charray_add( &be->be_suffixAlias, aliased_dn );
+								}
+
+								free(alias);
+								free(aliased_dn);
                         }
 
                /* set max deref depth */
@@ -194,9 +209,8 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: rootdn line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
-				dn = ch_strdup( cargv[1] );
-				(void) dn_normalize( dn );
-				be->be_rootdn = dn;
+				be->be_root_dn = ch_strdup( cargv[1] );
+				be->be_root_ndn = dn_normalize_case( ch_strdup( cargv[1] ) );
 			}
 
 		/* set super-secret magic database password */
@@ -212,7 +226,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: rootpw line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
-				be->be_rootpw = ch_strdup( cargv[1] );
+				be->be_root_pw = ch_strdup( cargv[1] );
 			}
 
 		/* make this database read-only */
@@ -352,8 +366,8 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: updatedn line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
-				be->be_updatedn = ch_strdup( cargv[1] );
-				(void) dn_normalize( be->be_updatedn );
+				be->be_update_ndn = ch_strdup( cargv[1] );
+				(void) dn_normalize_case( be->be_update_ndn );
 			}
 
 		/* replication log file to which changes are appended */

@@ -7,11 +7,14 @@
  * acl.c
  */
 
-int access_allowed LDAP_P(( Backend *be, Connection *conn, Operation *op, Entry *e,
-	char *attr, struct berval *val, char *dn, int  access ));
+int access_allowed LDAP_P(( Backend *be, Connection *conn,
+	Operation *op, Entry *e,
+	char *attr, struct berval *val, int access ));
 
-struct acl * acl_get_applicable LDAP_P(( Backend *be, Operation *op, Entry *e,
-	char *attr, char *edn, int nmatches, regmatch_t *matches ));
+struct acl * acl_get_applicable LDAP_P(( Backend *be,
+	Operation *op, Entry *e,
+	char *attr, int nmatches, regmatch_t *matches ));
+
 int acl_access_allowed LDAP_P(( struct acl *a, Backend *be, Connection *conn, Entry *e,
 	struct berval *val, Operation *op, int  access, char *edn,
 	regmatch_t *matches ));
@@ -55,8 +58,9 @@ void ava_free LDAP_P(( Ava *ava, int freeit ));
 Backend * new_backend LDAP_P(( char *type ));
 Backend * select_backend LDAP_P(( char * dn ));
 int be_issuffix LDAP_P(( Backend *be, char *suffix ));
-int be_isroot LDAP_P(( Backend *be, char *dn ));
-int be_isroot_pw LDAP_P(( Backend *be, char *dn, struct berval *cred ));
+int be_isroot LDAP_P(( Backend *be, char *ndn ));
+int be_isroot_pw LDAP_P(( Backend *be, char *ndn, struct berval *cred ));
+char* be_root_dn LDAP_P(( Backend *be ));
 void be_close LDAP_P(( void ));
 
 /*
@@ -259,8 +263,9 @@ extern struct acl	*global_acl;
 extern struct objclass	*global_oc;
 extern time_t		currenttime;
 
-extern int	be_group LDAP_P((Backend *be, Entry *e,
-	char *bdn, char *edn, char *objectclassValue, char *groupattrName));
+extern int	be_group LDAP_P((Backend *be, Entry *target,
+	char *gr_ndn, char *op_ndn,
+	char *objectclassValue, char *groupattrName));
 extern void	init LDAP_P((void));
 extern void	be_unbind LDAP_P((Connection *conn, Operation *op));
 extern void	config_info LDAP_P((Connection *conn, Operation *op));
@@ -287,7 +292,9 @@ extern time_t		starttime;
 #endif
 
 #ifdef SLAPD_LDBM
-extern int  ldbm_back_bind   LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, int method, struct berval *cred ));
+extern int  ldbm_back_bind   LDAP_P((Backend *be,
+	Connection *c, Operation *o,
+	char *dn, int method, struct berval *cred, char** edn ));
 extern void ldbm_back_unbind LDAP_P((Backend *be, Connection *c, Operation *o ));
 extern int  ldbm_back_search LDAP_P((Backend *be, Connection *c, Operation *o, char *base, int scope, int deref, int slimit, int tlimit, Filter *f, char *filterstr, char **attrs, int attrsonly));
 extern int  ldbm_back_compare LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, Ava *ava));
@@ -300,7 +307,8 @@ extern void ldbm_back_config LDAP_P((Backend *be, char *fname, int lineno, int a
 extern void ldbm_back_init   LDAP_P((Backend *be));
 extern void ldbm_back_close  LDAP_P((Backend *be));
 extern int  ldbm_back_group  LDAP_P((Backend *be, Entry *target,
-	char *bdn, char *edn, char *objectclassValue, char *groupattrName ));
+	char *gr_ndn, char *op_ndn,
+	char *objectclassValue, char *groupattrName ));
 #endif
 
 #ifdef SLAPD_PASSWD
@@ -309,7 +317,9 @@ extern void passwd_back_config LDAP_P((Backend *be, char *fname, int lineno, int
 #endif
 
 #ifdef SLAPD_SHELL
-extern int  shell_back_bind   LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, int method, struct berval *cred ));
+extern int  shell_back_bind   LDAP_P((Backend *be,
+	Connection *c, Operation *o,
+	char *dn, int method, struct berval *cred, char** edn ));
 extern void shell_back_unbind LDAP_P((Backend *be, Connection *c, Operation *o ));
 extern int  shell_back_search LDAP_P((Backend *be, Connection *c, Operation *o, char *base, int scope, int deref, int slimit, int tlimit, Filter *f, char *filterstr, char **attrs, int attrsonly));
 extern int  shell_back_compare LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, Ava *ava));

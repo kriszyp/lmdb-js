@@ -57,14 +57,14 @@ ldbm_back_search(
 
 	Debug(LDAP_DEBUG_ARGS, "=> ldbm_back_search\n", 0, 0, 0);
 
-	if ( tlimit == 0 && be_isroot( be, op->o_dn ) ) {
+	if ( tlimit == 0 && be_isroot( be, op->o_ndn ) ) {
 		tlimit = -1;	/* allow root to set no limit */
 	} else {
 		tlimit = (tlimit > be->be_timelimit || tlimit < 1) ?
 		    be->be_timelimit : tlimit;
 		stoptime = op->o_time + tlimit;
 	}
-	if ( slimit == 0 && be_isroot( be, op->o_dn ) ) {
+	if ( slimit == 0 && be_isroot( be, op->o_ndn ) ) {
 		slimit = -1;	/* allow root to set no limit */
 	} else {
 		slimit = (slimit > be->be_sizelimit || slimit < 1) ?
@@ -89,7 +89,7 @@ ldbm_back_search(
 		realBase = ch_strdup(base);
 #endif
 
-	(void) dn_normalize (realBase);
+	(void) dn_normalize_case( realBase );
 
 	Debug( LDAP_DEBUG_TRACE, "using base \"%s\"\n",
 		realBase, 0, 0 );
@@ -185,10 +185,10 @@ ldbm_back_search(
 		 * this for subtree searches, and don't check the filter explicitly
 		 * here since it's only a candidate anyway.
 		 */
-		if ( e->e_dn != NULL &&
-			strncasecmp( e->e_dn, "ref=", 4 ) == 0 &&
-			(ref = attr_find( e->e_attrs, "ref" )) != NULL &&
-			scope == LDAP_SCOPE_SUBTREE )
+		if ( scope == LDAP_SCOPE_SUBTREE &&
+			e->e_ndn != NULL &&
+			strncmp( e->e_ndn, "REF=", 4 ) == 0 &&
+			(ref = attr_find( e->e_attrs, "ref" )) != NULL )
 		{
 			int	i, len;
 
@@ -219,15 +219,16 @@ ldbm_back_search(
 				scopeok = 1;
 				if ( scope == LDAP_SCOPE_ONELEVEL ) {
 					if ( (dn = dn_parent( be, e->e_dn )) != NULL ) {
-						(void) dn_normalize( dn );
-						scopeok = (dn == realBase) ? 1 : (! strcasecmp( dn, realBase ));
+						(void) dn_normalize_case( dn );
+						scopeok = (dn == realBase)
+							? 1
+							: (strcmp( dn, realBase ) ? 0 : 1 );
+						free( dn );
 					} else {
 						scopeok = (realBase == NULL || *realBase == '\0');
 					}
-					free( dn );
 				} else if ( scope == LDAP_SCOPE_SUBTREE ) {
-					dn = ch_strdup( e->e_dn );
-					(void) dn_normalize( dn );
+					dn = ch_strdup( e->e_ndn );
 					scopeok = dn_issuffix( dn, realBase );
 					free( dn );
 				}

@@ -134,7 +134,7 @@ select_backend( char * dn )
 				continue;
 			}
 
-			if ( strcasecmp( backends[i].be_suffix[j],
+			if ( strcmp( backends[i].be_suffix[j],
 			    dn + (dnlen - len) ) == 0 ) {
 				return( &backends[i] );
 			}
@@ -154,7 +154,7 @@ select_backend( char * dn )
                                 continue;
                         }
 
-                        if ( strcasecmp( backends[i].be_suffixAlias[j],
+                        if ( strcmp( backends[i].be_suffixAlias[j],
                             dn + (dnlen - len) ) == 0 ) {
                                 return( &backends[i] );
                         }
@@ -187,7 +187,7 @@ be_issuffix(
 	int	i;
 
 	for ( i = 0; be->be_suffix != NULL && be->be_suffix[i] != NULL; i++ ) {
-		if ( strcasecmp( be->be_suffix[i], suffix ) == 0 ) {
+		if ( strcmp( be->be_suffix[i], suffix ) == 0 ) {
 			return( 1 );
 		}
 	}
@@ -196,22 +196,37 @@ be_issuffix(
 }
 
 int
-be_isroot( Backend *be, char *dn )
+be_isroot( Backend *be, char *ndn )
 {
-	if ( dn == NULL ) {
+	int rc;
+
+	if ( ndn == NULL || be->be_root_ndn == NULL ) {
 		return( 0 );
 	}
 
-	return( be->be_rootdn ? strcasecmp( be->be_rootdn, dn ) == 0
-	    : 0 );
+	rc = strcmp( be->be_root_ndn, ndn ) ? 0 : 1;
+
+	return(rc);
+}
+
+char *
+be_root_dn( Backend *be )
+{
+	int rc;
+
+	if ( be->be_root_dn == NULL ) {
+		return( "" );
+	}
+
+	return be->be_root_dn;
 }
 
 int
-be_isroot_pw( Backend *be, char *dn, struct berval *cred )
+be_isroot_pw( Backend *be, char *ndn, struct berval *cred )
 {
 	int result;
 
-	if ( ! be_isroot( be, dn ) ) {
+	if ( ! be_isroot( be, ndn ) ) {
 		return( 0 );
 	}
 
@@ -219,7 +234,7 @@ be_isroot_pw( Backend *be, char *dn, struct berval *cred )
 	pthread_mutex_lock( &crypt_mutex );
 #endif
 
-	result = lutil_passwd( cred->bv_val, be->be_rootpw );
+	result = lutil_passwd( cred->bv_val, be->be_root_pw );
 
 #ifdef SLAPD_CRYPT
 	pthread_mutex_unlock( &crypt_mutex );
@@ -260,17 +275,17 @@ be_unbind(
 int 
 be_group(
 	Backend	*be,
-	Entry	*e,
-	char	*bdn,
-	char	*edn,
+	Entry	*target,
+	char	*gr_ndn,
+	char	*op_ndn,
 	char	*objectclassValue,
 	char	*groupattrName
 )
 {
-        if (be->be_group)
-                return(be->be_group(be, e, bdn, edn,
-					objectclassValue, groupattrName));
-        else
-                return(1);
+	if (be->be_group)
+		return( be->be_group(be, target, gr_ndn, op_ndn,
+			objectclassValue, groupattrName) );
+	else
+		return(1);
 }
 #endif

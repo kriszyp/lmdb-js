@@ -20,12 +20,12 @@ ldbm_back_add(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char		*dn = NULL, *pdn;
+	char		*dn, *pdn;
 	Entry		*p = NULL;
 	int			rootlock = 0;
 	int			rc = -1; 
 
-	dn = dn_normalize( ch_strdup( e->e_dn ) );
+	dn = e->e_ndn;
 
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", dn, 0, 0);
 
@@ -35,7 +35,6 @@ ldbm_back_add(
 	if ( ( dn2id( be, dn ) ) != NOID ) {
 		pthread_mutex_unlock(&li->li_add_mutex);
 		entry_free( e );
-		free( dn );
 		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, "", "" );
 		return( -1 );
 	}
@@ -47,7 +46,6 @@ ldbm_back_add(
 			0, 0, 0 );
 
 		entry_free( e );
-		free( dn );
 		send_ldap_result( conn, op, LDAP_OBJECT_CLASS_VIOLATION, "",
 		    "" );
 		return( -1 );
@@ -75,7 +73,6 @@ ldbm_back_add(
 			}
 
 			entry_free( e );
-			free( dn );
 			free( pdn );
 			return -1;
 		}
@@ -89,8 +86,8 @@ ldbm_back_add(
 			free( matched );
 		}
 
-		if ( ! access_allowed( be, conn, op, p, "children", NULL,
-		    op->o_dn, ACL_WRITE ) )
+		if ( ! access_allowed( be, conn, op, p,
+			"children", NULL, ACL_WRITE ) )
 		{
 			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
 			    0, 0 );
@@ -101,13 +98,12 @@ ldbm_back_add(
 			cache_return_entry_w( &li->li_cache, p ); 
 
 			entry_free( e );
-			free( dn );
 			return -1;
 		}
 
 	} else {
 		/* no parent, must be adding entry to root */
-		if ( ! be_isroot( be, op->o_dn ) ) {
+		if ( ! be_isroot( be, op->o_ndn ) ) {
 			pthread_mutex_unlock(&li->li_add_mutex);
 			Debug( LDAP_DEBUG_TRACE, "no parent & not root\n", 0,
 			    0, 0 );
@@ -115,7 +111,6 @@ ldbm_back_add(
 			    "", "" );
 
 			entry_free( e );
-			free( dn );
 			return -1;
 		}
 
@@ -152,7 +147,6 @@ ldbm_back_add(
 		 * because e hasn't been added to the cache yet
 		 */
 		entry_free( e );
-		free( dn );
 		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, "", "" );
 		return( -1 );
 	}
@@ -209,9 +203,6 @@ ldbm_back_add(
 	rc = 0;
 
 return_results:;
-	if ( dn != NULL )
-		free( dn );
-
 	cache_set_state( &li->li_cache, e, 0 );
 
 	if (p != NULL) {

@@ -11,10 +11,6 @@
 
 #include "slap.h"
 
-#define DNSEPARATOR(c)	(c == ',' || c == ';')
-#define SEPARATOR(c)	(c == ',' || c == ';' || c == '+')
-#define SPACE(c)	(c == ' ' || c == '\n')
-#define NEEDSESCAPE(c)	(c == '\\' || c == '"')
 #define B4TYPE		0
 #define INTYPE		1
 #define B4EQUAL		2
@@ -233,7 +229,7 @@ dn_issuffix(
 		return( 0 );
 	}
 
-	return( strcasecmp( dn + dnlen - suffixlen, suffix ) == 0 );
+	return( strcmp( dn + dnlen - suffixlen, suffix ) == 0 );
 }
 
 /*

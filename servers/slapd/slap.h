@@ -35,6 +35,11 @@
 
 #define MAXREMATCHES 10
 
+#define DNSEPARATOR(c)	((c) == ',' || (c) == ';')
+#define SEPARATOR(c)	((c) == ',' || (c) == ';' || (c) == '+')
+#define SPACE(c)	((c) == ' ' || (c) == '\n')
+#define NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
+
 LDAP_BEGIN_DECL
 
 struct slap_op;
@@ -196,8 +201,9 @@ typedef struct backend Backend;
 struct backend {
 	char	**be_suffix;	/* the DN suffixes of data in this backend */
         char    **be_suffixAlias;       /* the DN suffix aliases of data in this backend */
-	char	*be_rootdn;	/* the magic "root" dn for this db   	   */
-	char	*be_rootpw;	/* the magic "root" password for this db   */
+	char	*be_root_dn;	/* the magic "root" dn for this db 	*/
+	char	*be_root_ndn;	/* the magic "root" normalized dn for this db	*/
+	char	*be_root_pw;	/* the magic "root" password for this db	*/
 	int	be_readonly;	/* 1 => db is in "read only" mode	   */
         int     be_maxDerefDepth;       /* limit for depth of an alias deref  */
 	int	be_sizelimit;	/* size limit for this backend   	   */
@@ -206,7 +212,7 @@ struct backend {
 	int	be_dfltaccess;	/* access given if no acl matches	   */
 	char	**be_replica;	/* replicas of this backend (in master)	   */
 	char	*be_replogfile;	/* replication log file (in master)	   */
-	char	*be_updatedn;	/* allowed to make changes (in replicas)   */
+	char	*be_update_ndn;	/* allowed to make changes (in replicas)   */
 	int	be_lastmod;	/* keep track of lastmodified{by,time}	   */
 	char	*be_type;	/* type of database			   */
 
@@ -215,7 +221,7 @@ struct backend {
 	/* backend routines */
 	int	(*be_bind)   LDAP_P((Backend *be,
 		struct slap_conn *c, struct slap_op *o,
-		char *dn, int method, struct berval *cred ));
+		char *dn, int method, struct berval *cred, char** edn ));
 	void	(*be_unbind) LDAP_P((Backend *be,
 		struct slap_conn *c, struct slap_op *o ));
 	int	(*be_search) LDAP_P((Backend *be,
@@ -263,8 +269,7 @@ typedef struct slap_op {
 	unsigned long	o_tag;		/* tag of the request		  */
 	time_t		o_time;		/* time op was initiated	  */
 	char		*o_dn;		/* dn bound when op was initiated */
-        char            *o_suffix;      /* suffix if aliased              */
-        char            *o_suffixAliased;       /* pending suffix translation     */
+	char		*o_ndn;		/* normalized dn bound when op was initiated */
 	int		o_authtype;	/* auth method used to bind dn	  */
 					/* values taken from ldap.h	  */
 					/* LDAP_AUTH_*			  */
@@ -289,7 +294,8 @@ typedef struct slap_op {
 
 typedef struct slap_conn {
 	Sockbuf		c_sb;		/* ber connection stuff		  */
-	char		*c_dn;		/* current DN bound to this conn  */
+	char		*c_cdn;		/* DN provided by the client */
+	char		*c_dn;		/* DN bound to this conn  */
 	pthread_mutex_t	c_dnmutex;	/* mutex for c_dn field		  */
 	int		c_authtype;	/* auth method used to bind c_dn  */
 #ifdef LDAP_COMPAT

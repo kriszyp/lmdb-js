@@ -110,8 +110,9 @@ test_ava_filter(
 	int		i, rc;
 	Attribute	*a;
 
-	if ( be != NULL && ! access_allowed( be, conn, op, e, ava->ava_type,
-	    &ava->ava_value, op->o_dn, ACL_SEARCH ) ) {
+	if ( be != NULL && ! access_allowed( be, conn, op, e,
+		ava->ava_type, &ava->ava_value, ACL_SEARCH ) )
+	{
 		return( -2 );
 	}
 
@@ -159,8 +160,9 @@ test_presence_filter(
     char	*type
 )
 {
-	if ( be != NULL && ! access_allowed( be, conn, op, e, type, NULL,
-	    op->o_dn, ACL_SEARCH ) ) {
+	if ( be != NULL && ! access_allowed( be, conn, op, e,
+		type, NULL, ACL_SEARCH ) )
+	{
 		return( -2 );
 	}
 
@@ -180,8 +182,9 @@ test_approx_filter(
 	int		i, rc, match;
 	Attribute	*a;
 
-	if ( be != NULL && ! access_allowed( be, conn, op, e, ava->ava_type,
-	    NULL, op->o_dn, ACL_SEARCH ) ) {
+	if ( be != NULL && ! access_allowed( be, conn, op, e,
+		ava->ava_type, NULL, ACL_SEARCH ) )
+	{
 		return( -2 );
 	}
 
@@ -316,8 +319,9 @@ test_substring_filter(
 
 	Debug( LDAP_DEBUG_FILTER, "begin test_substring_filter\n", 0, 0, 0 );
 
-	if ( be != NULL && ! access_allowed( be, conn, op, e, f->f_sub_type,
-	    NULL, op->o_dn, ACL_SEARCH ) ) {
+	if ( be != NULL && ! access_allowed( be, conn, op, e,
+		f->f_sub_type, NULL, ACL_SEARCH ) )
+	{
 		return( -2 );
 	}
 

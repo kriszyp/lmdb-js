@@ -25,7 +25,7 @@ do_modrdn(
     Operation	*op
 )
 {
-	char	*dn, *odn, *newrdn;
+	char	*ndn, *newrdn;
 	int	deloldrdn;
 	Backend	*be;
 
@@ -40,21 +40,21 @@ do_modrdn(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{aab}", &dn, &newrdn, &deloldrdn )
+	if ( ber_scanf( op->o_ber, "{aab}", &ndn, &newrdn, &deloldrdn )
 	    == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
 		return;
 	}
-	odn = ch_strdup( dn );
-	dn_normalize( dn );
 
 	Debug( LDAP_DEBUG_ARGS,
-	    "do_modrdn: dn (%s) newrdn (%s) deloldrdn (%d)\n", dn, newrdn,
+	    "do_modrdn: dn (%s) newrdn (%s) deloldrdn (%d)\n", ndn, newrdn,
 	    deloldrdn );
 
+	dn_normalize_case( ndn );
+
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d MODRDN dn=\"%s\"\n",
-	    conn->c_connid, op->o_opid, dn, 0, 0 );
+	    conn->c_connid, op->o_opid, ndn, 0, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
@@ -62,28 +62,31 @@ do_modrdn(
 	 * if we don't hold it.
 	 */
 
-	if ( (be = select_backend( dn )) == NULL ) {
-		free( dn );
-		free( odn );
+	if ( (be = select_backend( ndn )) == NULL ) {
+		free( ndn );
 		free( newrdn );
 		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
 		    default_referral );
 		return;
 	}
 
+	/* alias suffix if approp */
+	ndn = suffixAlias( ndn, op, be );
+
 	/*
 	 * do the add if 1 && (2 || 3)
 	 * 1) there is an add function implemented in this backend;
 	 * 2) this backend is master for what it holds;
-	 * 3) it's a replica and the dn supplied is the updatedn.
+	 * 3) it's a replica and the dn supplied is the update_ndn.
 	 */
 	if ( be->be_modrdn != NULL ) {
 		/* do the update here */
-		if ( be->be_updatedn == NULL || strcasecmp( be->be_updatedn,
-		    op->o_dn ) == 0 ) {
-			if ( (*be->be_modrdn)( be, conn, op, dn, newrdn,
+		if ( be->be_update_ndn == NULL ||
+			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
+		{
+			if ( (*be->be_modrdn)( be, conn, op, ndn, newrdn,
 			    deloldrdn ) == 0 ) {
-				replog( be, LDAP_REQ_MODRDN, odn, newrdn,
+				replog( be, LDAP_REQ_MODRDN, ndn, newrdn,
 				    deloldrdn );
 			}
 		} else {
@@ -95,7 +98,6 @@ do_modrdn(
 		    "Function not implemented" );
 	}
 
-	free( dn );
-	free( odn );
+	free( ndn );
 	free( newrdn );
 }

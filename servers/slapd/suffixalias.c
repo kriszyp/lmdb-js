@@ -1,4 +1,10 @@
 /*
+ * Copyright 1999 The OpenLDAP Foundation, All Rights Reserved.
+ *
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file in the top level
+ * directory of this package.
+ */
+/* Portions
  * Copyright (c) 1998 Will Ballantyne, ITSD, Government of BC
  * All rights reserved.
  *
@@ -18,7 +24,7 @@
 #include "slap.h"
 
 /* 
- * given a dn (or root part), return an aliased dn if any of the 
+ * given a normalized uppercased dn (or root part), return an aliased dn if any of the 
  * alias suffixes match
  */
 char *suffixAlias (char *dn, Operation *op, Backend *be)
@@ -28,26 +34,31 @@ char *suffixAlias (char *dn, Operation *op, Backend *be)
 	if(dn == NULL) return NULL;
 
 	dnLength = strlen ( dn );
-        op->o_suffix = NULL;
-        op->o_suffixAliased = NULL;
         for ( i = 0;
               be->be_suffixAlias != NULL && be->be_suffixAlias[i] != NULL;
               i += 2) {
                 int aliasLength = strlen (be->be_suffixAlias[i]);
-                if (aliasLength > dnLength) {
-                        continue;
-                }
+		int diff = dnLength - aliasLength;
 
-                if (!strcasecmp(be->be_suffixAlias[i], 
-				dn + (dnLength - aliasLength))) {
+		if ( diff < 0 ) {
+			/* alias is longer than dn */
+			continue;
+		} else if ( diff > 0 ) {
+			if ( ! DNSEPARATOR(dn[diff-1]) ) {
+				/* boundary is not at a DN separator */
+				continue;
+			}
+			/* At a DN Separator */
+			/* XXX or an escaped separator... oh well */
+		}
+
+		if (!strcmp(be->be_suffixAlias[i], &dn[diff])) {
                         char *oldDN = dn;
-                        op->o_suffixAliased = ch_strdup ( be->be_suffixAlias[i] );
-                        dn = ch_malloc ( (dnLength - aliasLength) +
-                                          strlen (be->be_suffixAlias[ i+1 ]) + 1);
-                        strncpy (dn, oldDN, dnLength - aliasLength);
-                        strcpy  (dn + (dnLength - aliasLength), be->be_suffixAlias[ i+1 ]);
-                        op->o_suffix = ch_strdup (dn);
-                        Debug( LDAP_DEBUG_ARGS, "ALIAS: converted %s to %s", oldDN, dn, 0);
+			dn = ch_malloc( diff + strlen(be->be_suffixAlias[i+1]) + 1 );
+			strncpy( dn, oldDN, diff );
+			strcpy( &dn[diff], be->be_suffixAlias[i+1] );
+			Debug( LDAP_DEBUG_ARGS, "SuffixAlias: converted \"%s\" to \"%s\"",
+				oldDN, dn, 0);
                         free (oldDN);
 			break;
 		}

@@ -25,7 +25,7 @@ do_delete(
     Operation	*op
 )
 {
-	char	*dn, *odn;
+	char	*ndn;
 	Backend	*be;
 
 	Debug( LDAP_DEBUG_TRACE, "do_delete\n", 0, 0, 0 );
@@ -36,46 +36,46 @@ do_delete(
 	 *	DelRequest := DistinguishedName
 	 */
 
-	if ( ber_scanf( op->o_ber, "a", &dn ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "a", &ndn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
 		return;
 	}
-	odn = ch_strdup( dn );
-	dn_normalize( dn );
 
-	Debug( LDAP_DEBUG_ARGS, "do_delete: dn (%s)\n", dn, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "do_delete: dn (%s)\n", ndn, 0, 0 );
 
-	Debug( LDAP_DEBUG_STATS, "DEL dn=\"%s\"\n", dn, 0, 0 );
+	dn_normalize_case( ndn );
+
+	Debug( LDAP_DEBUG_STATS, "DEL dn=\"%s\"\n", ndn, 0, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( dn )) == NULL ) {
-		free( dn );
-		free( odn );
+	if ( (be = select_backend( ndn )) == NULL ) {
+		free( ndn );
 		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
 		    default_referral );
 		return;
 	}
 
-        /* alias suffix if approp */
-        dn = suffixAlias ( dn, op, be );
+	/* alias suffix if approp */
+	ndn = suffixAlias( ndn, op, be );
 
 	/*
 	 * do the delete if 1 && (2 || 3)
 	 * 1) there is a delete function implemented in this backend;
 	 * 2) this backend is master for what it holds;
-	 * 3) it's a replica and the dn supplied is the updatedn.
+	 * 3) it's a replica and the dn supplied is the update_ndn.
 	 */
 	if ( be->be_delete != NULL ) {
 		/* do the update here */
-		if ( be->be_updatedn == NULL || strcasecmp( be->be_updatedn,
-		    op->o_dn ) == 0 ) {
-			if ( (*be->be_delete)( be, conn, op, dn ) == 0 ) {
-				replog( be, LDAP_REQ_DELETE, odn, NULL, 0 );
+		if ( be->be_update_ndn == NULL ||
+			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
+		{
+			if ( (*be->be_delete)( be, conn, op, ndn ) == 0 ) {
+				replog( be, LDAP_REQ_DELETE, ndn, NULL, 0 );
 			}
 		} else {
 			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
@@ -86,6 +86,5 @@ do_delete(
 		    "Function not implemented" );
 	}
 
-	free( dn );
-	free( odn );
+	free( ndn );
 }
