@@ -10,6 +10,7 @@ slapacl \- Check access to a list of attributes.
 .B [\-f slapd.conf]
 .B [\-D authcDN | \-U authcID]
 .B \-b DN
+.B [\-u]
 .B [attr[/access][:value]] [...]
 .LP
 .SH DESCRIPTION
@@ -65,10 +66,26 @@ for details); mutually exclusive with
 .BI \-b " DN"
 specify the 
 .B DN 
-access to is requested; the corresponding entry is not fetched 
-from the database, and thus it must not exist.
-However, a database must be selected to determine what rules 
-apply; thus, it must be in the naming context of a configured database.
+which access is requested to; the corresponding entry is fetched 
+from the database, and thus it must exist.
+The DN is also used to determine what rules apply; thus, it must be
+in the naming context of a configured database.  See also
+.BR \-u .
+.TP
+.BI \-u
+do not fetch the entry from the database.
+In this case, if the entry does not exist, a fake entry with the DN
+given with the
+.B \-b
+option is used, with no attributes.
+As a consequence, those rules that depend on the contents 
+of the target object will not behave as with the real object.
+The DN given with the
+.B \-b
+option is still used to select what rules apply; thus, it must be
+in the naming context of a configured database.
+See also
+.BR \-b .
 .SH EXAMPLES
 The command
 .LP
