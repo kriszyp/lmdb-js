@@ -13,9 +13,6 @@ extern int	ldbm_back_initialize LDAP_P(( BackendInfo *bi ));
 extern int	ldbm_back_open LDAP_P(( BackendInfo *bi ));
 extern int	ldbm_back_close LDAP_P(( BackendInfo *bi ));
 extern int	ldbm_back_destroy LDAP_P(( BackendInfo *bi ));
-extern int	ldbm_back_config LDAP_P(( BackendInfo *bi,
-	const char *fname, int lineno,
-	int argc, char **argv ));
 
 extern int	ldbm_back_db_init LDAP_P(( BackendDB *bd ));
 extern int	ldbm_back_db_open LDAP_P(( BackendDB *bd ));

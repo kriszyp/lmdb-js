@@ -121,10 +121,6 @@ struct ldbminfo {
 	int			li_envdirok;
 };
 
-struct ldbm_backend_info {
-	char	*lbi_directory;
-};
-
 LDAP_END_DECL
 
 #include "proto-back-ldbm.h"

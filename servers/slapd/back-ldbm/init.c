@@ -43,7 +43,7 @@ ldbm_back_initialize(
 	bi->bi_controls = controls;
 
 	bi->bi_open = ldbm_back_open;
-	bi->bi_config = ldbm_back_config;
+	bi->bi_config = NULL;
 	bi->bi_close = ldbm_back_close;
 	bi->bi_destroy = ldbm_back_destroy;
 
@@ -86,14 +86,6 @@ ldbm_back_initialize(
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
 
-	{
-		struct ldbm_backend_info *lbi = malloc(
-			sizeof( struct ldbm_backend_info ) );
-
-		bi->bi_private = lbi;
-		lbi->lbi_directory = NULL;
-	}
-
 	return 0;
 }
 
@@ -116,7 +108,7 @@ ldbm_back_open(
 		= (struct ldbm_backend_info *) bi->bi_private;
 
 	/* initialize the underlying database system */
-	rc = ldbm_initialize( lbi->lbi_directory );
+	rc = ldbm_initialize( NULL );
 	return rc;
 }
 
@@ -186,8 +178,8 @@ ldbm_back_db_open(
 )
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
-	li->li_dbenv = ldbm_initialize_env(li->li_directory,
-		li->li_dbcachesize, &li->li_envdirok);
+	li->li_dbenv = ldbm_initialize_env( li->li_directory,
+		li->li_dbcachesize, &li->li_envdirok );
 	return 0;
 }
 
