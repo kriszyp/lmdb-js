@@ -1023,7 +1023,6 @@ get_vrFilter( Connection *conn, BerElement *ber,
 	 */
 
 	ValuesReturnFilter **new;
-	int		err;
 	ber_tag_t	tag;
 	ber_len_t	len;
 	char		*last;
@@ -1051,7 +1050,7 @@ get_vrFilter( Connection *conn, BerElement *ber,
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 		tag = ber_next_element( ber, &len, last ) )
 	{
-		err = get_simple_vrFilter( conn, ber, new, text );
+		int err = get_simple_vrFilter( conn, ber, new, text );
 		if ( err != LDAP_SUCCESS )
 			return( err );
 		new = &(*new)->f_next;
@@ -1062,7 +1061,7 @@ get_vrFilter( Connection *conn, BerElement *ber,
 	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
 		"get_vrFilter: conn %d exit\n", conn->c_connid ));
 #else
-	Debug( LDAP_DEBUG_FILTER, "end get_vrFilter %d\n", err, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "end get_vrFilter\n", 0, 0, 0 );
 #endif
 	return( LDAP_SUCCESS );
 }
