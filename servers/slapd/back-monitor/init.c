@@ -250,94 +250,97 @@ monitor_back_db_init(
 		int	offset;
 	} moc[] = {
 #ifdef MONITOR_DEVEL
-		{ "monitorServer", "( 1.3.6.1.4.1.4203.666.XXX "
+		{ "monitorServer", "( 1.3.6.1.4.1.4203.666.3.7 "
 			"NAME 'monitorServer' "
 			"DESC 'Server monitoring root entry' "
-			"SUP monitor STRUCTURAL)",
+			"SUP monitor STRUCTURAL )",
 			offsetof(struct monitorinfo, monitor_oc_monitorServer) },
-		{ "monitorContainer", "( 1.3.6.1.4.1.4203.666.XXX "
+		{ "monitorContainer", "( 1.3.6.1.4.1.4203.666.3.8 "
 			"NAME 'monitorContainer' "
 			"DESC 'monitor container class' "
-			"SUP monitor STRUCTURAL)",
+			"SUP monitor STRUCTURAL )",
 			offsetof(struct monitorinfo, monitor_oc_monitorContainer) },
-		{ "monitorCounter", "( 1.3.6.1.4.1.4203.666.XXX "
+		{ "monitorCounter", "( 1.3.6.1.4.1.4203.666.3.8 "
 			"NAME 'monitorCounter' "
 			"DESC 'monitor counter class' "
-			"SUP monitor STRUCTURAL)",
+			"SUP monitor STRUCTURAL )",
 			offsetof(struct monitorinfo, monitor_oc_monitorCounter) },
-		{ "monitorOperation", "( 1.3.6.1.4.1.4203.666.XXX "
+		{ "monitorOperation", "( 1.3.6.1.4.1.4203.666.3.9 "
 			"NAME 'monitorOperation' "
 			"DESC 'monitor operation class' "
-			"SUP monitor STRUCTURAL)",
+			"SUP monitor STRUCTURAL )",
 			offsetof(struct monitorinfo, monitor_oc_monitorOperation) },
-		{ "monitorConnection", "( 1.3.6.1.4.1.4203.666.XXX "
+		{ "monitorConnection", "( 1.3.6.1.4.1.4203.666.3.10 "
 			"NAME 'monitorConnection' "
 			"DESC 'monitor connection class' "
-			"SUP monitor STRUCTURAL)",
+			"SUP monitor STRUCTURAL )",
 			offsetof(struct monitorinfo, monitor_oc_monitorConnection) },
-		{ "managedObject", "( 1.3.6.1.4.1.4203.666.XXX "
+		{ "managedObject", "( 1.3.6.1.4.1.4203.666.3.11 "
 			"NAME 'managedObject' "
 			"DESC 'monitor managed entity class' "
-			"SUP monitor STRUCTURAL)",
+			"SUP monitor STRUCTURAL )",
 			offsetof(struct monitorinfo, monitor_oc_managedObject) },
-		{ "monitoredObject", "( 1.3.6.1.4.1.4203.666.XXX "
+		{ "monitoredObject", "( 1.3.6.1.4.1.4203.666.3.12 "
 			"NAME 'monitoredObject' "
 			"DESC 'monitor monitored entity class' "
-			"SUP monitor STRUCTURAL)",
+			"SUP monitor STRUCTURAL )",
 			offsetof(struct monitorinfo, monitor_oc_monitoredObject) },
 #endif /* MONITOR_DEVEL */
 		{ NULL, NULL, -1 }
 	}, mat[] = {
 #ifdef MONITOR_DEVEL
-		{ "monitoredInfo", "( 1.3.6.1.4.1.4203.666.XXX"
+		{ "monitoredInfo", "( 1.3.6.1.4.1.4203.666.1.14"
 			"NAME 'monitoredInfo' "
 			"DESC 'monitored info' "
 			"SUP name "
 			"NO-USER-MODIFICATION )",
 			offsetof(struct monitorinfo, monitor_ad_monitoredInfo) },
-		{ "managedInfo", "( 1.3.6.1.4.1.4203.666.XXX"
+		{ "managedInfo", "( 1.3.6.1.4.1.4203.666.1.15 "
 			"NAME 'managedInfo' "
 			"DESC 'monitor managed info' "
 			"SUP name )",
 			offsetof(struct monitorinfo, monitor_ad_managedInfo) },
-		{ "monitorCounter", "( 1.3.6.1.4.1.4203.666.XXX"
+		{ "monitorCounter", "( 1.3.6.1.4.1.4203.666.1.16 "
 			"NAME 'monitorCounter' "
 			"DESC 'monitor counter' "
 			"EQUALITY integerMatch "
+			"ORDERING integerOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
 			"NO-USER-MODIFICATION )",
 			offsetof(struct monitorinfo, monitor_ad_monitorCounter) },
-		{ "monitorOpCompleted", "( 1.3.6.1.4.1.4203.666.XXX"
+		{ "monitorOpCompleted", "( 1.3.6.1.4.1.4203.666.1.17 "
 			"NAME 'monitorOpCompleted' "
 			"DESC 'monitor completed operations' "
 			"SUP monitorCounter )",
 			offsetof(struct monitorinfo, monitor_ad_monitorOpCompleted) },
-		{ "monitorOpInitiated", "( 1.3.6.1.4.1.4203.666.XXX"
+		{ "monitorOpInitiated", "( 1.3.6.1.4.1.4203.666.1.18 "
 			"NAME 'monitorOpInitiated' "
 			"DESC 'monitor initiated operations' "
 			"SUP monitorCounter )",
 			offsetof(struct monitorinfo, monitor_ad_monitorOpInitiated) },
-		{ "monitorConnectionNumber", "( 1.3.6.1.4.1.4203.666.XXX"
+		{ "monitorConnectionNumber", "( 1.3.6.1.4.1.4203.666.1.19 "
 			"NAME 'monitorConnectionNumber' "
 			"DESC 'monitor connection number' "
 			"SUP monitorCounter )",
 			offsetof(struct monitorinfo, monitor_ad_monitorConnectionNumber) },
-		{ "monitorConnectionAuthzDN", "( 1.3.6.1.4.1.4203.666.XXX"
+		{ "monitorConnectionAuthzDN", "( 1.3.6.1.4.1.4203.666.1.20 "
 			"NAME 'monitorConnectionAuthzDN' "
 			"DESC 'monitor connection authorization DN' "
 			"SUP distinguishedName "
 			"NO-USER-MODIFICATION )",
 			offsetof(struct monitorinfo, monitor_ad_monitorConnectionAuthzDN) },
-		{ "monitorConnectionLocalAddress", "( 1.3.6.1.4.1.4203.666.XXX"
+		{ "monitorConnectionLocalAddress", "( 1.3.6.1.4.1.4203.666.1.21 "
 			"NAME 'monitorConnectionLocalAddress' "
 			"DESC 'monitor connection local address' "
-			"SUP monitoredInfo)",
-			offsetof(struct monitorinfo, monitor_ad_monitorConnectionLocalAddress) },
-		{ "monitorConnectionPeerAddress", "( 1.3.6.1.4.1.4203.666.XXX"
+			"SUP monitoredInfo )",
+			offsetof(struct monitorinfo,
+				monitor_ad_monitorConnectionLocalAddress) },
+		{ "monitorConnectionPeerAddress", "( 1.3.6.1.4.1.4203.666.1.22 "
 			"NAME 'monitorConnectionPeerAddress' "
 			"DESC 'monitor connection peer address' "
-			"SUP monitoredInfo)",
-			offsetof(struct monitorinfo, monitor_ad_monitorConnectionPeerAddress) },
+			"SUP monitoredInfo )",
+			offsetof(struct monitorinfo,
+				monitor_ad_monitorConnectionPeerAddress) },
 #endif /* MONITOR_DEVEL */
 		{ NULL, NULL, -1 }
 	};
