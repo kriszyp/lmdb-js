@@ -219,7 +219,15 @@ access_allowed_mask(
 	if ( be == NULL ) {
 		be = &backends[0];
 		be_null = 1;
-		op->o_bd = be;
+#ifdef LDAP_DEVEL
+		/*
+		 * FIXME: experimental; use first backend rules
+		 * iff there is no global_acl (ITS#3100) */
+		if ( global_acl == NULL ) 
+#endif
+		{
+			op->o_bd = be;
+		}
 	}
 	assert( be != NULL );
 
