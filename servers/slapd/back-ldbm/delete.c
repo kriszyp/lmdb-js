@@ -22,7 +22,7 @@ ldbm_back_delete(
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	char		*matched;
         char            *pdn = NULL;
-	Entry		*e, *p;
+	Entry		*e, *p = NULL;
 
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_delete: %s\n", dn, 0, 0);
 
