@@ -10,6 +10,7 @@ OpenLDAP 2.2.12 Engineering
 	Fixed slapd set acl recursion (ITS#3140)
 	Fixed slapd entry2mods normalization bug (ITS#3144,3152)
 	Fixed slapd extended match memory leak (ITS#3146)
+	Fixed slapd syncrepl persist interval issue (ITS#3064)
 	Fixed back-ldap normalization bug 
 	Fixed pcache cache_entries init bug (ITS#3150)
 	Fixed pcache consistency_check bug (ITS#3151)
