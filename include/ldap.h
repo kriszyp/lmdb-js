@@ -131,13 +131,16 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_TLS_TRY		4
 
 /* OpenLDAP SASL options */
-#define LDAP_OPT_X_SASL_SSF				0x6100 /* read-only */
-#define LDAP_OPT_X_SASL_SSF_EXTERNAL	0x6101 /* write-only */
-#define LDAP_OPT_X_SASL_SECPROPS		0x6102 /* write-only */
-
-#define LDAP_OPT_X_SASL_SSF_MIN			0x6103
-#define LDAP_OPT_X_SASL_SSF_MAX			0x6104
-#define	LDAP_OPT_X_SASL_MAXBUFSIZE		0x6105
+#define LDAP_OPT_X_SASL_MECH			0x6100
+#define LDAP_OPT_X_SASL_REALM			0x6101
+#define LDAP_OPT_X_SASL_AUTHCID			0x6102
+#define LDAP_OPT_X_SASL_AUTHZID			0x6103
+#define LDAP_OPT_X_SASL_SSF				0x6104 /* read-only */
+#define LDAP_OPT_X_SASL_SSF_EXTERNAL	0x6105 /* write-only */
+#define LDAP_OPT_X_SASL_SECPROPS		0x6106 /* write-only */
+#define LDAP_OPT_X_SASL_SSF_MIN			0x6107
+#define LDAP_OPT_X_SASL_SSF_MAX			0x6108
+#define	LDAP_OPT_X_SASL_MAXBUFSIZE		0x6109
 
 
 /* on/off values */
@@ -695,7 +698,7 @@ ldap_sasl_bind LDAP_P((
 /* V3 SASL Interaction Function Callback Prototype */
 /*	when using Cyrus SASL, interact is pointer to sasl_interact_t */
 typedef int (LDAP_SASL_INTERACT_PROC) LDAP_P((
-	LDAP *ld, void *interact ));
+	LDAP *ld, void* defaults, void *interact ));
 
 LDAP_F( int )
 ldap_sasl_interactive_bind_s LDAP_P((
@@ -704,7 +707,8 @@ ldap_sasl_interactive_bind_s LDAP_P((
 	LDAP_CONST char *saslMechanism,
 	LDAPControl **serverControls,
 	LDAPControl **clientControls,
-	LDAP_SASL_INTERACT_PROC *proc ));
+	LDAP_SASL_INTERACT_PROC *proc,
+	LDAP_CONST void *defaults ));
 
 LDAP_F( int )
 ldap_sasl_bind_s LDAP_P((

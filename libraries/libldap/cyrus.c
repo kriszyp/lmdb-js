@@ -455,7 +455,8 @@ ldap_int_sasl_bind(
 	const char		*mechs,
 	LDAPControl		**sctrls,
 	LDAPControl		**cctrls,
-	LDAP_SASL_INTERACT_PROC *interact )
+	LDAP_SASL_INTERACT_PROC *interact,
+	void * defaults )
 {
 	char *data;
 	const char *mech = NULL;
@@ -525,7 +526,7 @@ ldap_int_sasl_bind(
 
 		if( saslrc == SASL_INTERACT ) {
 			if( !interact ) break;
-			rc = (interact)( ld, prompts );
+			rc = (interact)( ld, defaults, prompts );
 			if( rc != LDAP_SUCCESS ) {
 				break;
 			}
@@ -574,7 +575,7 @@ ldap_int_sasl_bind(
 			if( saslrc == SASL_INTERACT ) {
 				int res;
 				if( !interact ) break;
-				res = (interact)( ld, prompts );
+				res = (interact)( ld, defaults, prompts );
 				if( res != LDAP_SUCCESS ) {
 					break;
 				}
@@ -740,6 +741,23 @@ ldap_int_sasl_get_option( LDAP *ld, int option, void *arg )
 		return -1;
 
 	switch ( option ) {
+		case LDAP_OPT_X_SASL_MECH: {
+			*(char **)arg = ld->ld_options.ldo_def_sasl_mech
+				? LDAP_STRDUP( ld->ld_options.ldo_def_sasl_mech ) : NULL;
+		} break;
+		case LDAP_OPT_X_SASL_REALM: {
+			*(char **)arg = ld->ld_options.ldo_def_sasl_realm
+				? LDAP_STRDUP( ld->ld_options.ldo_def_sasl_realm ) : NULL;
+		} break;
+		case LDAP_OPT_X_SASL_AUTHCID: {
+			*(char **)arg = ld->ld_options.ldo_def_sasl_authcid
+				? LDAP_STRDUP( ld->ld_options.ldo_def_sasl_authcid ) : NULL;
+		} break;
+		case LDAP_OPT_X_SASL_AUTHZID: {
+			*(char **)arg = ld->ld_options.ldo_def_sasl_authzid
+				? LDAP_STRDUP( ld->ld_options.ldo_def_sasl_authzid ) : NULL;
+		} break;
+
 		case LDAP_OPT_X_SASL_SSF: {
 			int sc;
 			sasl_ssf_t	*ssf;

@@ -140,9 +140,19 @@ ldap_create( LDAP **ldp )
 	ld->ld_valid = LDAP_VALID_SESSION;
 
 	/* but not pointers to malloc'ed items */
-	ld->ld_options.ldo_defludp = NULL;
 	ld->ld_options.ldo_sctrls = NULL;
 	ld->ld_options.ldo_cctrls = NULL;
+
+#ifdef HAVE_CYRUS_SASL
+	ld->ld_options.ldo_def_sasl_mech = gopts->ldo_def_sasl_mech
+		? LDAP_STRDUP( gopts->ldo_def_sasl_mech ) : NULL;
+	ld->ld_options.ldo_def_sasl_realm = gopts->ldo_def_sasl_realm
+		? LDAP_STRDUP( gopts->ldo_def_sasl_realm ) : NULL;
+	ld->ld_options.ldo_def_sasl_authcid = gopts->ldo_def_sasl_authcid
+		? LDAP_STRDUP( gopts->ldo_def_sasl_authcid ) : NULL;
+	ld->ld_options.ldo_def_sasl_authzid = gopts->ldo_def_sasl_authzid
+		? LDAP_STRDUP( gopts->ldo_def_sasl_authzid ) : NULL;
+#endif
 
 	ld->ld_options.ldo_defludp = ldap_url_duplist(gopts->ldo_defludp);
 

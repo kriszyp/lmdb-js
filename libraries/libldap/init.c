@@ -69,17 +69,25 @@ static const struct ol_attribute {
 	{0, ATTR_BOOL,		"RESTART",		NULL,	LDAP_BOOL_RESTART},
 
 #ifdef HAVE_CYRUS_SASL
-	{0, ATTR_SASL,		"SASL_SECPROPS",NULL,	LDAP_OPT_X_SASL_SECPROPS},
+	{1, ATTR_STRING,	"SASL_MECH",		NULL,
+		offsetof(struct ldapoptions, ldo_def_sasl_mech)},
+	{1, ATTR_STRING,	"SASL_REALM",		NULL,
+		offsetof(struct ldapoptions, ldo_def_sasl_realm)},
+	{1, ATTR_STRING,	"SASL_AUTHCID",		NULL,
+		offsetof(struct ldapoptions, ldo_def_sasl_authcid)},
+	{1, ATTR_STRING,	"SASL_AUTHZID",		NULL,
+		offsetof(struct ldapoptions, ldo_def_sasl_authzid)},
+	{0, ATTR_SASL,		"SASL_SECPROPS",	NULL,	LDAP_OPT_X_SASL_SECPROPS},
 #endif
 
 #ifdef HAVE_TLS
   	{0, ATTR_TLS,		"TLS",			NULL,	LDAP_OPT_X_TLS},
-	{0, ATTR_TLS,		"TLS_CERT",		NULL,	LDAP_OPT_X_TLS_CERTFILE},
-	{0, ATTR_TLS,		"TLS_KEY",		NULL,	LDAP_OPT_X_TLS_KEYFILE},
+	{1, ATTR_TLS,		"TLS_CERT",		NULL,	LDAP_OPT_X_TLS_CERTFILE},
+	{1, ATTR_TLS,		"TLS_KEY",		NULL,	LDAP_OPT_X_TLS_KEYFILE},
   	{0, ATTR_TLS,		"TLS_CACERT",	NULL,	LDAP_OPT_X_TLS_CACERTFILE},
   	{0, ATTR_TLS,		"TLS_CACERTDIR",NULL,	LDAP_OPT_X_TLS_CACERTDIR},
-  	{0, ATTR_TLS,		"TLS_REQCERT",	NULL,	LDAP_OPT_X_TLS_REQUIRE_CERT},
-	{0, ATTR_TLS,		"TLS_RANDFILE",	NULL,	LDAP_OPT_X_TLS_RANDOM_FILE},
+  	{1, ATTR_TLS,		"TLS_REQCERT",	NULL,	LDAP_OPT_X_TLS_REQUIRE_CERT},
+	{1, ATTR_TLS,		"TLS_RANDFILE",	NULL,	LDAP_OPT_X_TLS_RANDOM_FILE},
 #endif
 
 	{0, ATTR_NONE,		NULL,		NULL,	0}
@@ -395,15 +403,21 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 
 	LDAP_BOOL_SET(gopts, LDAP_BOOL_REFERRALS);
 
-#ifdef HAVE_TLS
-   	gopts->ldo_tls_ctx = NULL;
-#endif
 #ifdef HAVE_CYRUS_SASL
+	gopts->ldo_def_sasl_mech = NULL;
+	gopts->ldo_def_sasl_realm = NULL;
+	gopts->ldo_def_sasl_authcid = NULL;
+	gopts->ldo_def_sasl_authzid = NULL;
+
 	memset( &gopts->ldo_sasl_secprops, '\0', sizeof(gopts->ldo_sasl_secprops) );
 
 	gopts->ldo_sasl_secprops.max_ssf = INT_MAX;
 	gopts->ldo_sasl_secprops.maxbufsize = 65536;
 	gopts->ldo_sasl_secprops.security_flags = SASL_SEC_NOPLAINTEXT|SASL_SEC_NOANONYMOUS;
+#endif
+
+#ifdef HAVE_TLS
+   	gopts->ldo_tls_ctx = NULL;
 #endif
 
 	gopts->ldo_valid = LDAP_INITIALIZED;
@@ -449,6 +463,21 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	if( getenv("LDAPNOINIT") != NULL ) {
 		return;
 	}
+
+#ifdef HAVE_CYRUS_SASL
+	{
+		/* set authentication identity to current user name */
+		char *user = getenv("USER");
+
+		if( user == NULL ) user = getenv("USERNAME");
+		if( user == NULL ) user = getenv("LOGNAME");
+
+		if( user != NULL ) {
+			/* this value is leaked, need at_exit() handler */
+			gopts->ldo_def_sasl_authcid = LDAP_STRDUP( user );
+		}
+    }
+#endif
 
 	openldap_ldap_init_w_sysconf(LDAP_CONF_FILE);
 	openldap_ldap_init_w_userconf(LDAP_USERRC_FILE);

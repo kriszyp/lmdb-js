@@ -18,15 +18,80 @@
 #include <ldap.h>
 #include "lutil_ldap.h"
 
-static int interaction(
-	sasl_interact_t *interact )
+
+typedef struct lutil_sasl_defaults_s {
+	unsigned flags;
+	char *mech;
+	char *realm;
+	char *authcid;
+	char *passwd;
+	char *authzid;
+} lutilSASLdefaults;
+
+
+void *
+lutil_sasl_defaults(
+	LDAP *ld,
+	unsigned flags,
+	char *mech,
+	char *realm,
+	char *authcid,
+	char *passwd,
+	char *authzid )
 {
+	lutilSASLdefaults *defaults;
+	
+	defaults = ber_memalloc( sizeof( lutilSASLdefaults ) );
+
+	if( defaults == NULL ) return NULL;
+
+	defaults->flags = flags;
+	defaults->mech = mech;
+	defaults->realm = realm;
+	defaults->authcid = authcid;
+	defaults->passwd = passwd;
+	defaults->authzid = authzid;
+
+	if( defaults->mech == NULL ) {
+		ldap_get_option( ld, LDAP_OPT_X_SASL_MECH, &defaults->mech );
+	}
+	if( defaults->realm == NULL ) {
+		ldap_get_option( ld, LDAP_OPT_X_SASL_REALM, &defaults->realm );
+	}
+	if( defaults->authcid == NULL ) {
+		ldap_get_option( ld, LDAP_OPT_X_SASL_AUTHCID, &defaults->authcid );
+	}
+	if( defaults->authzid == NULL ) {
+		ldap_get_option( ld, LDAP_OPT_X_SASL_AUTHZID, &defaults->authzid );
+	}
+
+	return defaults;
+}
+
+static int interaction(
+	sasl_interact_t *interact, lutilSASLdefaults *defaults )
+{
+	unsigned flags = defaults ? defaults->flags : 0;
+	const char *dflt = interact->defresult;
 	char input[1024];
 
 	int noecho=0;
 	int challenge=0;
 
 	switch( interact->id ) {
+	case SASL_CB_GETREALM:
+		if( defaults ) dflt = defaults->realm;
+		break;
+	case SASL_CB_AUTHNAME:
+		if( defaults ) dflt = defaults->authcid;
+		break;
+	case SASL_CB_PASS:
+		if( defaults ) dflt = defaults->passwd;
+		noecho = 1;
+		break;
+	case SASL_CB_USER:
+		if( defaults ) dflt = defaults->authzid;
+		break;
 	case SASL_CB_NOECHOPROMPT:
 		noecho = 1;
 		challenge = 1;
@@ -34,22 +99,31 @@ static int interaction(
 	case SASL_CB_ECHOPROMPT:
 		challenge = 1;
 		break;
-	case SASL_CB_PASS:
-		noecho = 1;
-		break;
+	}
+
+	if( dflt && !*dflt ) dflt = NULL;
+
+	if( flags != LUTIL_SASL_INTERACTIVE && dflt ) {
+		goto use_default;
+	}
+
+	if( flags == LUTIL_SASL_QUIET ) {
+		/* don't prompt */
+		return LDAP_OTHER;
 	}
 
 	if( challenge ) {
 		if( interact->challenge ) {
 			fprintf( stderr, "Challenge: %s\n", interact->challenge );
 		}
-		if( interact->defresult ) {
-			fprintf( stderr, "Default Result: %s\n", interact->defresult );
-		}
+	}
+
+	if( dflt ) {
+		fprintf( stderr, "Default: %s\n", dflt );
 	}
 
 	sprintf( input, "%s: ",
-		interact->prompt ? interact->prompt : "Interaction required" );
+		interact->prompt ? interact->prompt : "Interact" );
 
 	if( noecho ) {
 		interact->result = (char *) getpassphrase( input );
@@ -88,8 +162,17 @@ static int interaction(
 		memset( p, '\0', interact->len );
 
 	} else {
+use_default:
 		/* must be empty */
-		interact->result = strdup("");
+		interact->result = strdup( (dflt && *dflt) ? dflt : "" );
+		interact->len = interact->result
+			? strlen( interact->result ) : 0;
+	}
+
+	if( defaults && defaults->passwd && interact->id == SASL_CB_PASS ) {
+		/* zap password after first use */
+		memset( defaults->passwd, '\0', strlen(defaults->passwd) );
+		defaults->passwd = NULL;
 	}
 
 	return LDAP_SUCCESS;
@@ -97,6 +180,7 @@ static int interaction(
 
 int lutil_sasl_interact(
 	LDAP *ld,
+	void *defaults,
 	void *in )
 {
 	sasl_interact_t *interact = in;
@@ -104,7 +188,7 @@ int lutil_sasl_interact(
 	fputs( "SASL Interaction\n", stderr );
 
 	while( interact->id != SASL_CB_LIST_END ) {
-		int rc = interaction( interact );
+		int rc = interaction( interact, defaults );
 
 		if( rc )  return rc;
 		interact++;
@@ -112,5 +196,4 @@ int lutil_sasl_interact(
 	
 	return LDAP_SUCCESS;
 }
-
 #endif

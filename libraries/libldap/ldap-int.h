@@ -125,7 +125,17 @@ struct ldapoptions {
 	LDAPURLDesc *ldo_defludp;
 	int		ldo_defport;
 	char*	ldo_defbase;
-	char*	ldo_defbinddn;	/* simple bind dn */
+	char*	ldo_defbinddn;	/* bind dn */
+
+#ifdef HAVE_CYRUS_SASL
+	char*	ldo_def_sasl_mech;		/* SASL Mechanism(s) */
+	char*	ldo_def_sasl_realm;		/* SASL realm */
+	char*	ldo_def_sasl_authcid;	/* SASL authentication identity */
+	char*	ldo_def_sasl_authzid;	/* SASL authorization identity */
+
+	/* SASL Security Properties */
+	struct sasl_security_properties	ldo_sasl_secprops;
+#endif
 
 #ifdef LDAP_CONNECTIONLESS
 	int		ldo_cldaptries;	/* connectionless search retry count */
@@ -145,9 +155,6 @@ struct ldapoptions {
    	/* tls context */
    	void		*ldo_tls_ctx;
    	int		ldo_tls_mode;
-#endif
-#ifdef HAVE_CYRUS_SASL
-	struct sasl_security_properties	ldo_sasl_secprops;
 #endif
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
 };
@@ -545,9 +552,12 @@ LDAP_F (int) ldap_int_sasl_config LDAP_P(( struct ldapoptions *lo,
 	int option, const char *arg ));
 
 LDAP_F (int) ldap_int_sasl_bind LDAP_P((
-	struct ldap *, LDAP_CONST char *,
-	const char *, LDAPControl **, LDAPControl **,
-	LDAP_SASL_INTERACT_PROC *interact ));
+	struct ldap *ld,
+	const char *,
+	const char *,
+	LDAPControl **, LDAPControl **,
+	LDAP_SASL_INTERACT_PROC *interact,
+	void *defaults));
 
 /*
  * in tls.c

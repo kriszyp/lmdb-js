@@ -21,9 +21,28 @@
 
 LDAP_BEGIN_DECL
 
+/*
+ * Automatic (default): use defaults, prompt otherwise
+ * Interactive: prompt always
+ * Quiet: never prompt
+ */
+#define LUTIL_SASL_AUTOMATIC	0U
+#define LUTIL_SASL_INTERACTIVE	1U
+#define LUTIL_SASL_QUIET		2U
+
+LDAP_LUTIL_F( void * )
+lutil_sasl_defaults LDAP_P((
+	LDAP *ld,
+	unsigned flags,
+	char *mech,
+	char *realm,
+	char *authcid,
+	char *passwd,
+	char *authzid ));
+
 LDAP_LUTIL_F( int )
 lutil_sasl_interact LDAP_P((
-	LDAP *ld, void *p ));
+	LDAP *ld, void *defaults, void *p ));
 
 LDAP_END_DECL
 
