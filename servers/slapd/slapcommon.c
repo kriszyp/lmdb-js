@@ -394,8 +394,6 @@ slap_tool_init(
 	switch ( tool ) {
 	case SLAPDN:
 	case SLAPTEST:
-		return;
-
 	case SLAPAUTH:
 		be = NULL;
 		goto startup;
