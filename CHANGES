@@ -4,8 +4,9 @@ OpenLDAP 2.0.24 Engineering
 	Fixed slapd max incoming macro bug (ITS#1828)
 	Fixed slapd acl group/dnaddr bug (ITS#1607)
 	Fixed slapd connection management bug (ITS#1655)
-	Fixed slapd port ntoh / addr init bugs (ITS#1615)
+	Fixed slapd port ntoh / addr init bugs (ITS#1615, ITS#1728)
 	Fixed slapd PF_lOCAL typo (ITS#1660)
+	Fixed slapd extended ops with NULL reqdata bug (ITS#1721)
 	Fixed slurpd tls init bug (ITS#1613)
 	Fixed back-ldbm dn normalization bug in onelevel searches (ITS#1654)
 	Fixed back-ldbm modrdn root dn check (ITS#1761)
@@ -16,6 +17,7 @@ OpenLDAP 2.0.24 Engineering
 	Fixed ldapsearch filter bug (ITS#1649)
 	Fixed maildap NULL domain bug (ITS#1022)
 	Fixed libldap hostless URL bug (ITS#1697)
+	Fixed sasl writes > 64K (ITS#1861)
 	Build environment
 		Removed lint (ITS#1744)
 	Documentation
