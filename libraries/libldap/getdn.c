@@ -713,7 +713,7 @@ ldap_bv2dn( struct berval *bv, LDAPDN *dn, unsigned flags )
 }
 
 int
-ldap_bv2dn_x( struct berval *bv, LDAPDN *dn, unsigned flags, void *ctx )
+ldap_bv2dn_x( struct berval *bvin, LDAPDN *dn, unsigned flags, void *ctx )
 {
 	const char 	*p;
 	int		rc = LDAP_DECODING_ERROR;
@@ -722,12 +722,16 @@ ldap_bv2dn_x( struct berval *bv, LDAPDN *dn, unsigned flags, void *ctx )
 	LDAPDN		newDN = NULL;
 	LDAPRDN		newRDN = NULL, tmpDN_[TMP_RDN_SLOTS], *tmpDN = tmpDN_;
 	int		num_slots = TMP_RDN_SLOTS;
-	char		*str = bv->bv_val;
-	char		*end = str + bv->bv_len;
+	char		*str, *end;
+	struct berval	bvtmp, *bv = &bvtmp;
 	
-	assert( bv );
-	assert( bv->bv_val );
+	assert( bvin );
+	assert( bvin->bv_val );
 	assert( dn );
+
+	*bv = *bvin;
+	str = bv->bv_val;
+	end = str + bv->bv_len;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ARGS, "ldap_bv2dn(%s,%u)\n%s", str, flags, "" );
@@ -740,8 +744,21 @@ ldap_bv2dn_x( struct berval *bv, LDAPDN *dn, unsigned flags, void *ctx )
 	switch ( LDAP_DN_FORMAT( flags ) ) {
 	case LDAP_DN_FORMAT_LDAP:
 	case LDAP_DN_FORMAT_LDAPV3:
-	case LDAP_DN_FORMAT_LDAPV2:
 	case LDAP_DN_FORMAT_DCE:
+		break;
+
+		/* allow DN enclosed in brackets */
+	case LDAP_DN_FORMAT_LDAPV2:
+		if ( str[0] == '<' ) {
+			if ( bv->bv_len < 2 || end[ -1 ] != '>' ) {
+				rc = LDAP_DECODING_ERROR;
+				goto parsing_error;
+			}
+			bv->bv_val++;
+			bv->bv_len -= 2;
+			str++;
+			end--;
+		}
 		break;
 
 	/* unsupported in str2dn */
