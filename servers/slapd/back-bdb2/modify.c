@@ -127,6 +127,20 @@ bdb2i_back_modify_internal(
 		case LDAP_MOD_REPLACE:
 			err = bdb2i_replace_values( e, mod, op->o_ndn );
 			break;
+		
+		case LDAP_MOD_SOFTADD:
+ 			/* Avoid problems in index_add_mods()
+ 			 * We need to add index if necessary.
+ 			 */
+ 			mod->mod_op = LDAP_MOD_ADD;
+ 			if ( (err = bdb2i_add_values( e, mod, op->o_ndn ))
+ 				==  LDAP_TYPE_OR_VALUE_EXISTS ) {
+ 
+ 				err = LDAP_SUCCESS;
+ 				mod->mod_op = LDAP_MOD_SOFTADD;
+ 
+ 			}
+ 			break;
 		}
 
 		if ( err != LDAP_SUCCESS ) {
