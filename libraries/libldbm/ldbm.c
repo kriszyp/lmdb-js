@@ -91,6 +91,12 @@ static ldap_pvt_thread_mutex_t ldbm_big_mutex;
 DB_ENV *ldbm_Env = NULL;	/* real or fake, depending on db and version */
 #endif
 
+/* Let's make the version comparisons a little easier... */
+#undef DB_VERSION_X
+#ifdef HAVE_BERKELEY_DB
+#define	DB_VERSION_X	((DB_VERSION_MAJOR<<16)|(DB_VERSION_MINOR<<8)|DB_VERSION_PATCH)
+#endif
+
 /*******************************************************************
  *                                                                 *
  *  Create some special functions to initialize Berkeley DB for    *
@@ -231,7 +237,7 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 		return NULL;
 	}
 
-#if DB_VERSION_MAJOR > 3 || DB_VERSION_MINOR >= 3
+#if DB_VERSION_X >= 0x030300
 	/* This interface appeared in 3.3 */
 	env->set_alloc( env, ldbm_malloc, NULL, NULL );
 #endif
@@ -253,7 +259,7 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 	envFlags |= DB_THREAD;
 #endif
 
-#if DB_VERSION_MAJOR > 3 || DB_VERSION_MINOR > 0
+#if DB_VERSION_X >= 0x030100
 	err = env->open( env, home, envFlags, 0 );
 #else
 	/* 3.0.x requires an extra argument */
@@ -321,7 +327,7 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 		return NULL;
 	}
 
-#if DB_VERSION_MAJOR == 3 && DB_VERSION_MINOR < 3
+#if DB_VERSION_X < 0x030300
 	ret->set_malloc( ret, ldbm_malloc );
 #endif
 
@@ -335,7 +341,7 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 	__atoe(n2);
 	name = n2;
 #endif
-#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR > 0 && DB_VERSION_PATCH >= 17
+#if DB_VERSION_X >= 0x040111
 	err = ret->open( ret, NULL, name, NULL, DB_TYPE, rw, mode);
 #else
 	err = ret->open( ret, name, NULL, DB_TYPE, rw, mode);
@@ -514,7 +520,7 @@ ldbm_firstkey( LDBM ldbm, LDBMCursor **dbch )
 	LDBM_RLOCK;
 
 	/* acquire a cursor for the DB */
-# if DB_VERSION_MAJOR >= 3 || (DB_VERSION_MAJOR == 2 && DB_VERSION_MINOR > 5)
+# if DB_VERSION_X >= 0x020600
 	rc = ldbm->cursor( ldbm, NULL, &dbci, 0 );
 # else
 	rc = ldbm->cursor( ldbm, NULL, &dbci );
