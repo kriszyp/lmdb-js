@@ -404,7 +404,7 @@ ldap_int_sasl_open(
 	assert( lc->lconn_sasl_ctx == NULL );
 
 	if ( host == NULL ) {
-		ld->ld_errno = LDAP_UNAVAILABLE;
+		ld->ld_errno = LDAP_LOCAL_ERROR;
 		return ld->ld_errno;
 	}
 
@@ -483,13 +483,15 @@ ldap_int_sasl_bind(
 
 	if ( sd == AC_SOCKET_INVALID ) {
  		/* not connected yet */
- 		int rc = ldap_open_defconn( ld );
-  
+ 		int rc;
+
+		rc = ldap_open_defconn( ld );
 		if( rc < 0 ) return ld->ld_errno;
+
 		ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, &sd );
 
 		if( sd == AC_SOCKET_INVALID ) {
-			ld->ld_errno = LDAP_UNAVAILABLE;
+			ld->ld_errno = LDAP_LOCAL_ERROR;
 			return ld->ld_errno;
 		}
 	}   
@@ -497,7 +499,7 @@ ldap_int_sasl_bind(
 	ctx = ld->ld_defconn->lconn_sasl_ctx;
 
 	if( ctx == NULL ) {
-		ld->ld_errno = LDAP_UNAVAILABLE;
+		ld->ld_errno = LDAP_LOCAL_ERROR;
 		return ld->ld_errno;
 	}
 
