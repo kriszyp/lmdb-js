@@ -208,7 +208,12 @@ get_filter(
 		err = slap_bv2ad( &type, &f->f_desc, text );
 
 		if( err != LDAP_SUCCESS ) {
+			/* unrecognized attribute description or other error */
+			f->f_choice = SLAPD_FILTER_COMPUTED;
+			f->f_result = SLAPD_COMPARE_UNDEFINED;
+			*fstr = ch_strdup( "(unrecogized=*)" );
 			ch_free( type.bv_val );
+			err = LDAP_SUCCESS;
 			break;
 		}
 
@@ -370,7 +375,7 @@ get_filter(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL2,
-		   "get_filter: conn %d	 exit\n", conn->c_connid ));
+		"get_filter: conn %d exit\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "end get_filter %d\n", err, 0, 0 );
 #endif
