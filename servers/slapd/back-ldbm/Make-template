@@ -27,9 +27,9 @@ OBJS	= idl.o add.o search.o cache.o dbcache.o dn2id.o id2entry.o \
 		filterindex.o unbind.o kerberos.o close.o
 
 INCLUDES= -I. -I.. -I$(HDIR) $(KRBINCLUDEFLAG)
-DEFINES = $(DEFS) $(THREADS)
+DEFINES = $(DEFS) $(LDAP_CRYPT) $(THREADS)
 CFLAGS	= $(INCLUDES) $(THREADSINCLUDE) $(DEFINES) $(ACFLAGS)
-LDFLAGS	= -L$(LDIR) $(KRBLIBFLAG)
+LDFLAGS	= -L$(LDIR) $(KRBLIBFLAG) $(LDAP_CRYPT_LIB)
 
 all:	FORCE
 	-@echo "$(SLAPD_BACKENDS)" | grep LDAP_LDBM 2>&1 > /dev/null; \

@@ -15,5 +15,3 @@ CC	= cc
 
 PLATFORMCFLAGS=	-Dfreebsd
 
-# uncomment this line if using for LDAP_CRYPT
-#PLATFORMLIBS=	-lcrypt

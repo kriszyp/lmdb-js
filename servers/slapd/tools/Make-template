@@ -27,12 +27,12 @@ OBJS2	= ../config.o ../ch_malloc.o ../backend.o ../charray.o \
 		../schemaparse.o ../regex.o ../strdup.o
 
 INCLUDES= -I. -I$(HDIR) $(EXINCLUDES)
-DEFINES = $(DEFS) $(SERVERDEFS) $(THREADS)
+DEFINES = $(DEFS) $(LDAP_CRYPT) $(SERVERDEFS) $(THREADS)
 CFLAGS	= $(INCLUDES) $(DEFINES) $(ACFLAGS)
 LDFLAGS	= -L$(LDIR) $(EXLDFLAGS)
 LIBS	= -lldif -lldap -llber -lldbm -lavl $(LDBMLIB) $(EXLIBS) $(ALIBS)
 LIBS2	= -lldif -lldbm -lavl $(LDBMLIB) -llber $(KRBLIBFLAG) $(KRBLIBS) \
-		-llthread $(THREADSLIB) $(ALIBS)
+		-llthread $(THREADSLIB) $(ALIBS) $(LDAP_CRYPT_LIB)
 
 all:	build-edb2ldif ldif2index ldif2ldbm ldbmcat ldif2id2entry \
 		ldif2id2children centipede ldbmtest ldif

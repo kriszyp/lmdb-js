@@ -42,6 +42,13 @@
 #include <unistd.h>
 #endif /* USE_SYSCONF */
 
+#ifdef TCP_WRAPPERS
+#include <tcpd.h>
+
+int allow_severity = LOG_INFO;
+int deny_severity = LOG_NOTICE;
+#endif /* TCP_WRAPPERS */
+
 void log_and_exit();
 static set_socket();
 static do_queries();
@@ -393,9 +400,30 @@ char	**argv;
 
 		hp = gethostbyaddr( (char *) &(from.sin_addr.s_addr),
 		    sizeof(from.sin_addr.s_addr), AF_INET );
+
+#ifdef TCP_WRAPPERS
+		if ( !hosts_ctl("ldapd", (hp == NULL) ? "unknown" : hp->h_name,
+			inet_ntoa( from.sin_addr ), STRING_UNKNOWN ) {
+
+			Debug( LDAP_DEBUG_ARGS, "connection from %s (%s) denied.\n",
+		   		(hp == NULL) ? "unknown" : hp->h_name,
+		   		inet_ntoa( from.sin_addr ), 0 );
+
+			if ( dosyslog ) {
+				syslog( LOG_NOTICE, "connection from %s (%s) denied.",
+				    (hp == NULL) ? "unknown" : hp->h_name,
+				    inet_ntoa( from.sin_addr ) );
+			}
+
+			close(ns);
+			continue;
+		}
+#endif /* TCP_WRAPPERS */
+
 		Debug( LDAP_DEBUG_ARGS, "connection from %s (%s)\n",
 		    (hp == NULL) ? "unknown" : hp->h_name,
 		    inet_ntoa( from.sin_addr ), 0 );
+
 
 		if ( dosyslog ) {
 			syslog( LOG_INFO, "connection from %s (%s)",

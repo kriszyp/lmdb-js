@@ -33,11 +33,11 @@ OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
 		schema.o schemaparse.o monitor.o configinfo.o
 
 INCLUDES= -I. -I$(HDIR) $(KRBINCLUDEFLAG)
-DEFINES = $(DEFS) $(SERVERDEFS)
+DEFINES = $(DEFS) $(LDAP_CRYPT) $(LDAP_TCP_WRAPPERS) $(SERVERDEFS)
 CFLAGS	= $(INCLUDES) $(THREADSINCLUDE) $(DEFINES) $(ACFLAGS) $(THREADS)
 LDFLAGS	= -L$(LDIR) $(KRBLIBFLAG)
 LIBS	= $(KRBLIBS) -llber -lldbm -lavl -llthread -lldif $(THREADSLIB) \
-		$(LDBMLIB) $(ALIBS)
+		$(LDBMLIB) $(LDAP_CRYPT_LIB) $(LDAP_TCP_WRAPPERS_LIB) $(ALIBS)
 
 all: FORCE
 	@if [ -z "$(MAKESLAPD)" ]; then \

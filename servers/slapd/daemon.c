@@ -30,6 +30,13 @@
 #include <unistd.h>
 #endif /* USE_SYSCONF */
 
+#ifdef TCP_WRAPPERS
+#include <tcpd.h>
+
+int allow_severity = LOG_INFO;
+int deny_severity = LOG_NOTICE;
+#endif /* TCP_WRAPPERS */
+
 extern Operation	*op_add();
 
 #ifndef SYSERRLIST_IN_STDIO
@@ -177,6 +184,9 @@ slapd_daemon(
 		struct timeval		*tvp;
 		int			len, pid;
 
+		char	*client_name;
+		char	*client_addr;
+
 		FD_ZERO( &writefds );
 		FD_ZERO( &readfds );
 		FD_SET( tcps, &readfds );
@@ -251,6 +261,7 @@ slapd_daemon(
 				Debug( LDAP_DEBUG_ANY,
 				    "FIONBIO ioctl on %d failed\n", ns, 0, 0 );
 			}
+
 			c[ns].c_sb.sb_sd = ns;
 			Debug( LDAP_DEBUG_CONNS, "new connection on %d\n", ns,
 			    0, 0 );
@@ -258,43 +269,76 @@ slapd_daemon(
 			pthread_mutex_lock( &ops_mutex );
 			c[ns].c_connid = num_conns++;
 			pthread_mutex_unlock( &ops_mutex );
+
 			len = sizeof(from);
+
 			if ( getpeername( ns, (struct sockaddr *) &from, &len )
 			    == 0 ) {
-				char	*s;
-#ifdef REVERSE_LOOKUP
+				char *s;
+				client_addr = inet_ntoa( from.sin_addr );
+
+#if defined(REVERSE_LOOKUP) || defined(TCP_WRAPPERS)
 				hp = gethostbyaddr( (char *)
 				    &(from.sin_addr.s_addr),
 				    sizeof(from.sin_addr.s_addr), AF_INET );
+
+				if(hp) {
+					client_name = hp->h_name;
+
+					/* normalize the domain */
+					for ( s = client_name; *s; s++ ) {
+						*s = TOLOWER( *s );
+					}
+
+				} else {
+					client_name = NULL;
+				}
 #else
-				hp = NULL;
+				client_name = NULL;
 #endif
 
-				Statslog( LDAP_DEBUG_STATS,
-				    "conn=%d fd=%d connection from %s (%s)\n",
-				    c[ns].c_connid, ns, hp == NULL ? "unknown"
-				    : hp->h_name, inet_ntoa( from.sin_addr ),
-				    0 );
-
-				if ( c[ns].c_addr != NULL ) {
-					free( c[ns].c_addr );
-				}
-				c[ns].c_addr = strdup( inet_ntoa(
-				    from.sin_addr ) );
-				if ( c[ns].c_domain != NULL ) {
-					free( c[ns].c_domain );
-				}
-				c[ns].c_domain = strdup( hp == NULL ? "" :
-				    hp->h_name );
-				/* normalize the domain */
-				for ( s = c[ns].c_domain; *s; s++ ) {
-					*s = TOLOWER( *s );
-				}
 			} else {
-				Statslog( LDAP_DEBUG_STATS,
-				    "conn=%d fd=%d connection from unknown\n",
-				    c[ns].c_connid, ns, 0, 0, 0 );
+				client_name = NULL;;
+				client_addr = NULL;
 			}
+
+#ifdef TCP_WRAPPERS
+			if(!hosts_ctl("slapd", client_name, client_addr,
+				STRING_UNKNOWN))
+			{
+				/* DENY ACCESS */
+				Statslog( LDAP_DEBUG_STATS,
+			   	 "conn=%d fd=%d connection from %s (%s) denied.\n",
+			   	 	c[ns].c_connid, ns,
+						client_name == NULL ? "unknown" : client_name,
+						client_addr == NULL ? "unknown" : client_addr,
+			   	  0 );
+
+				close(ns);
+				pthread_mutex_unlock( &new_conn_mutex );
+				continue;
+			}
+#endif /* TCP_WRAPPERS */
+
+			Statslog( LDAP_DEBUG_STATS,
+			    "conn=%d fd=%d connection from %s (%s) accepted.\n",
+			    	c[ns].c_connid, ns,
+					client_name == NULL ? "unknown" : client_name,
+					client_addr == NULL ? "unknown" : client_addr,
+			     0 );
+
+			if ( c[ns].c_addr != NULL ) {
+				free( c[ns].c_addr );
+			}
+			c[ns].c_addr = strdup( client_addr );
+
+			if ( c[ns].c_domain != NULL ) {
+				free( c[ns].c_domain );
+			}
+
+			c[ns].c_domain = strdup( client_name == NULL
+				? "" : client_name );
+
 			pthread_mutex_lock( &c[ns].c_dnmutex );
 			if ( c[ns].c_dn != NULL ) {
 				free( c[ns].c_dn );
