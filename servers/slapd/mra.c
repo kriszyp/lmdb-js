@@ -17,13 +17,10 @@
 
 void
 mra_free(
-    MatchingRuleAssertion *mra,
-    int	freeit
+	MatchingRuleAssertion *mra,
+	int	freeit
 )
 {
-#if 0	/* no longer a malloc'd string */
-	ch_free( mra->ma_rule_text.bv_val );
-#endif
 	ch_free( mra->ma_value.bv_val );
 	if ( freeit ) {
 		ch_free( (char *) mra );
@@ -32,22 +29,23 @@ mra_free(
 
 int
 get_mra(
-    BerElement	*ber,
-    MatchingRuleAssertion	**mra,
+	BerElement	*ber,
+	MatchingRuleAssertion	**mra,
 	const char **text
 )
 {
 	int rc, tag;
 	ber_len_t length;
-	struct berval type, value;
+	struct berval type = { 0, NULL }, value;
 	MatchingRuleAssertion *ma;
 
 	ma = ch_malloc( sizeof( MatchingRuleAssertion ) );
 	ma->ma_rule = NULL;
-	ma->ma_rule_text.bv_val = NULL;
 	ma->ma_rule_text.bv_len = 0;
+	ma->ma_rule_text.bv_val = NULL;
 	ma->ma_desc = NULL;
 	ma->ma_dnattrs = 0;
+	ma->ma_value.bv_len = 0;
 	ma->ma_value.bv_val = NULL;
 
 	rc = ber_scanf( ber, "{t", &tag );
@@ -79,10 +77,8 @@ get_mra(
 			mra_free( ma, 1 );
 			return SLAPD_DISCONNECT;
 		}
-		ma->ma_rule = mr_bvfind( &ma->ma_rule_text );
 
 		rc = ber_scanf( ber, "t", &tag );
-
 		if( rc == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
@@ -111,15 +107,7 @@ get_mra(
 			return SLAPD_DISCONNECT;
 		}
 
-		rc = slap_bv2ad( &type, &ma->ma_desc, text );
-
-		if( rc != LDAP_SUCCESS ) {
-			mra_free( ma, 1 );
-			return rc;
-		}
-
 		rc = ber_scanf( ber, "t", &tag );
-
 		if( rc == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
@@ -162,25 +150,12 @@ get_mra(
 		return SLAPD_DISCONNECT;
 	}
 
-	/*
-	 * OK, if no matching rule, normalize for equality, otherwise
-	 * normalize for the matching rule.
-	 */
-	rc = value_validate_normalize( ma->ma_desc, SLAP_MR_EQUALITY,
-		&value, &ma->ma_value, text );
-
-	if( rc != LDAP_SUCCESS ) {
-		mra_free( ma, 1 );
-		return rc;
-	}
-
 	tag = ber_peek_tag( ber, &length );
 
 	if ( tag == LDAP_FILTER_EXT_DNATTRS ) {
 		rc = ber_scanf( ber, "b}", &ma->ma_dnattrs );
 	} else {
 		rc = ber_scanf( ber, "}" );
-		ma->ma_dnattrs = 0;
 	}
 
 	if( rc == LBER_ERROR ) {
@@ -196,8 +171,69 @@ get_mra(
 		return SLAPD_DISCONNECT;
 	}
 
-	*mra = ma;
+	if( ma->ma_dnattrs ) {
+		*text = "matching with \":dn\" not supported";
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
 
+	if( type.bv_val != NULL ) {
+		rc = slap_bv2ad( &type, &ma->ma_desc, text );
+		if( rc != LDAP_SUCCESS ) {
+			mra_free( ma, 1 );
+			return rc;
+		}
+
+	} else {
+		*text = "matching without attribute description rule not supported";
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	if( ma->ma_rule_text.bv_val != NULL ) {
+		ma->ma_rule = mr_bvfind( &ma->ma_rule_text );
+		if( ma->ma_rule == NULL ) {
+			mra_free( ma, 1 );
+			*text = "matching rule not recognized";
+			return LDAP_INAPPROPRIATE_MATCHING;
+		}
+	}
+
+	if( ma->ma_desc != NULL &&
+		ma->ma_desc->ad_type->sat_equality != NULL &&
+		ma->ma_desc->ad_type->sat_equality->smr_usage & SLAP_MR_EXT )
+	{
+		/* no matching rule was provided, use the attribute's
+		   equality rule if it supports extensible matching. */
+		ma->ma_rule = ma->ma_desc->ad_type->sat_equality;
+
+	} else {
+		mra_free( ma, 1 );
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	/* check to see if the matching rule is appropriate for
+	   the syntax of the attribute.  This check will need
+	   to be extended to support other kinds of extensible
+	   matching rules */
+	if( strcmp( ma->ma_rule->smr_syntax->ssyn_oid,
+		ma->ma_desc->ad_type->sat_syntax->ssyn_oid ) != 0 )
+	{
+		mra_free( ma, 1 );
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	/*
+	 * OK, if no matching rule, normalize for equality, otherwise
+	 * normalize for the matching rule.
+	 */
+	rc = value_validate_normalize( ma->ma_desc, SLAP_MR_EQUALITY,
+		&value, &ma->ma_value, text );
+
+	if( rc != LDAP_SUCCESS ) {
+		mra_free( ma, 1 );
+		return rc;
+	}
+
+	*mra = ma;
 	return LDAP_SUCCESS;
 }
 

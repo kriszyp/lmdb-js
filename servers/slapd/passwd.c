@@ -151,7 +151,7 @@ int slap_passwd_parse( struct berval *reqdata,
 			goto decoding_error;
 		}
 
-		tag = ber_peek_tag( ber, &len);
+		tag = ber_peek_tag( ber, &len );
 	}
 
 	if( tag == LDAP_TAG_EXOP_MODIFY_PASSWD_NEW ) {
