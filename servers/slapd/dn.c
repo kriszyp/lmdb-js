@@ -65,7 +65,7 @@ LDAPDN_validate( LDAPDN *dn )
 			if ( ( ad = AVA_PRIVATE( ava ) ) == NULL ) {
 				const char	*text = NULL;
 
-				rc = slap_bv2ad( ava->la_attr, &ad, &text );
+				rc = slap_bv2ad( &ava->la_attr, &ad, &text );
 				if ( rc != LDAP_SUCCESS ) {
 					return LDAP_INVALID_SYNTAX;
 				}
@@ -76,8 +76,8 @@ LDAPDN_validate( LDAPDN *dn )
 			/* 
 			 * Replace attr oid/name with the canonical name
 			 */
-			ber_bvfree( ava->la_attr );
-			ava->la_attr = ber_bvdup( &ad->ad_cname );
+			free( ava->la_attr.bv_val );
+			ber_dupbv( &ava->la_attr, &ad->ad_cname );
 
 			validate = ad->ad_type->sat_syntax->ssyn_validate;
 
@@ -86,7 +86,7 @@ LDAPDN_validate( LDAPDN *dn )
 			 	 * validate value by validate function
 				 */
 				rc = ( *validate )( ad->ad_type->sat_syntax,
-					ava->la_value );
+					&ava->la_value );
 			
 				if ( rc != LDAP_SUCCESS ) {
 					return LDAP_INVALID_SYNTAX;
@@ -158,7 +158,7 @@ AVA_Sort( LDAPRDN *rdn, int iAVA )
 
 		assert( ava );
 
-		a = strcmp( ava_in->la_attr->bv_val, ava->la_attr->bv_val );
+		a = strcmp( ava_in->la_attr.bv_val, ava->la_attr.bv_val );
 
 		if ( a > 0 ) {
 			break;
@@ -167,12 +167,12 @@ AVA_Sort( LDAPRDN *rdn, int iAVA )
 		while ( a == 0 ) {
 			int		v, d;
 
-			d = ava_in->la_value->bv_len - ava->la_value->bv_len;
+			d = ava_in->la_value.bv_len - ava->la_value.bv_len;
 
-			v = memcmp( ava_in->la_value->bv_val, 
-					ava->la_value->bv_val,
-					d <= 0 ? ava_in->la_value->bv_len 
-						: ava->la_value->bv_len );
+			v = memcmp( ava_in->la_value.bv_val, 
+					ava->la_value.bv_val,
+					d <= 0 ? ava_in->la_value.bv_len 
+						: ava->la_value.bv_len );
 
 			if ( v == 0 && d != 0 ) {
 				v = d;
@@ -193,8 +193,8 @@ AVA_Sort( LDAPRDN *rdn, int iAVA )
 			}
 
 			ava = rdn[ i ][ 0 ];
-			a = strcmp( ava_in->la_value->bv_val, 
-					ava->la_value->bv_val );
+			a = strcmp( ava_in->la_value.bv_val, 
+					ava->la_value.bv_val );
 		}
 
 		/*
@@ -239,7 +239,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			if ( ( ad = AVA_PRIVATE( ava ) ) == NULL ) {
 				const char	*text = NULL;
 
-				rc = slap_bv2ad( ava->la_attr, &ad, &text );
+				rc = slap_bv2ad( &ava->la_attr, &ad, &text );
 				if ( rc != LDAP_SUCCESS ) {
 					return LDAP_INVALID_SYNTAX;
 				}
@@ -250,8 +250,8 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			/* 
 			 * Replace attr oid/name with the canonical name
 			 */
-			ber_bvfree( ava->la_attr );
-			ava->la_attr = ber_bvdup( &ad->ad_cname );
+			free( ava->la_attr.bv_val );
+			ber_dupbv( &ava->la_attr, &ad->ad_cname );
 
 			if( flags & SLAP_LDAPDN_PRETTY ) {
 				transf = ad->ad_type->sat_syntax->ssyn_pretty;
@@ -266,7 +266,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			 	 * transform value by normalize/pretty function
 				 */
 				rc = ( *transf )( ad->ad_type->sat_syntax,
-					ava->la_value, &bv );
+					&ava->la_value, &bv );
 			
 				if ( rc != LDAP_SUCCESS ) {
 					return LDAP_INVALID_SYNTAX;
@@ -276,15 +276,16 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			if( mr && ( mr->smr_usage & SLAP_MR_DN_FOLD ) ) {
 				struct berval *s = bv;
 
-				bv = ber_bvstr( UTF8normalize( bv ? bv : ava->la_value, 
+				bv = ber_bvstr( UTF8normalize( bv ? bv : &ava->la_value, 
 					UTF8_CASEFOLD ) );
 
 				ber_bvfree( s );
 			}
 
 			if( bv ) {
-				ber_bvfree( ava->la_value );
-				ava->la_value = bv;
+				free( ava->la_value.bv_val );
+				ava->la_value = *bv;
+				free( bv );
 			}
 
 			AVA_Sort( rdn, iAVA );
@@ -917,15 +918,15 @@ rdn_attrs( const char * rdn, char ***types, char ***values)
 		LDAPAVA		*ava = tmpRDN[ iAVA ][ 0 ];
 
 		assert( ava );
-		assert( ava->la_attr );
-		assert( ava->la_value );
+		assert( ava->la_attr.bv_val );
+		assert( ava->la_value.bv_val );
 
 		if ( types ) {
-			charray_add_n( types, ava->la_attr->bv_val, 
-					ava->la_attr->bv_len );
+			charray_add_n( types, ava->la_attr.bv_val, 
+					ava->la_attr.bv_len );
 		}
-		charray_add_n( values, ava->la_value->bv_val, 
-				ava->la_value->bv_len );
+		charray_add_n( values, ava->la_value.bv_val, 
+				ava->la_value.bv_len );
 	}
 
 	ldap_rdnfree( tmpRDN );

@@ -1164,8 +1164,8 @@ ldap_get_dn LDAP_P((
 	LDAPMessage *entry ));
 
 typedef struct ldap_ava {
-	struct berval *la_attr;
-	struct berval *la_value;
+	struct berval la_attr;
+	struct berval la_value;
 	unsigned la_flags;
 #define LDAP_AVA_STRING		0x0000U
 #define LDAP_AVA_BINARY		0x0001U
