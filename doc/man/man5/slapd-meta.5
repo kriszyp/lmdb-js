@@ -332,8 +332,8 @@ server will possibly enforce additional restrictions to "foo".
 A string is rewritten according to a set of rules, called a `rewrite
 context'.
 The rules are based on Regular Expressions (POSIX regex) with
-substring matching; extensions are planned to allow basic variable
-substitution and map resolution of substrings.
+substring matching; basic variable substitution and map resolution 
+of substrings is allowed by specific mechanisms detailed in the following.
 The behavior of pattern matching/substitution can be altered by a set
 of flags.
 .LP
@@ -341,14 +341,17 @@ The underlying concept is to build a lightweight rewrite module
 for the slapd server (initially dedicated to the LDAP backend).
 .SH Passes
 An incoming string is matched agains a set of rules.
-Rules are made of a match pattern, a substitution pattern and a set of
-actions.
+Rules are made of a regex match pattern, a substitution pattern
+and a set of actions, described by a set of flags.
 In case of match a string rewriting is performed according to the
 substitution pattern that allows to refer to substrings matched in the
 incoming string.
 The actions, if any, are finally performed.
 The substitution pattern allows map resolution of substrings.
 A map is a generic object that maps a substitution pattern to a value.
+The flags are divided in "Pattern matching Flags" and "Action Flags";
+the former alter the regex match pattern behaviorm while the latter
+alter the action that is taken after substitution.
 .SH "Pattern Matching Flags"
 .TP
 .B `C'
@@ -356,6 +359,12 @@ honors case in matching (default is case insensitive)
 .TP
 .B `R'
 use POSIX Basic Regular Expressions (default is Extended)
+.TP
+.B `M{n}'
+allow no more than
+.B n
+recursive passes for a specific rule; does not alter the max total count
+of passes, so it can only enforce a stricter limit for a specific rule.
 .SH "Action Flags"
 .TP
 .B `:'
@@ -398,7 +407,7 @@ or, in other words, `@' is equivalent to `U{0}'.
 By convention, the freely available codes are above 16 included;
 the others are reserved.
 .LP
-The ordering of the flags is significant.
+The ordering of the flags can be significant.
 For instance: `IG{2}' means ignore errors and jump two lines ahead
 both in case of match and in case of error, while `G{2}I' means ignore
 errors, but jump two lines ahead only in case of match.
@@ -549,7 +558,7 @@ In this case the alias context contains no rule, and any reference to
 it will result in accessing the aliased one.
 .TP
 .B rewriteRule "<regex match pattern>" "<substitution pattern>" "[ <flags> ]"
-Determines how a tring can be rewritten if a pattern is matched.
+Determines how a string can be rewritten if a pattern is matched.
 Examples are reported below.
 .SH "Additional configuration syntax:"
 .TP
@@ -562,9 +571,16 @@ The map is referenced inside the substitution pattern of a rule.
 Sets a value with global scope, that can be dereferenced by the
 command `%{$paramName}'.
 .TP
-.B rewriteMaxPasses <number of passes>
+.B rewriteMaxPasses <number of passes> [<number of passes per rule>]
 Sets the maximum number of total rewriting passes that can be
 performed in a single rewrite operation (to avoid loops).
+A safe default is set to 100; note that reaching this limit is still
+treated as a success; recursive invocation of rules is simply 
+interrupted.
+The count applies to the rewriting operation as a whole, not 
+to any single rule; an optional per-rule limit can be set.
+This limit is overridden by setting specific per-rule limits
+with the `M{n}' flag.
 .SH "Configuration examples:"
 .nf
 # set to `off' to disable rewriting

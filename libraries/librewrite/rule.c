@@ -116,6 +116,7 @@ rewrite_rule_compile(
 {
 	int flags = REWRITE_REGEX_EXTENDED | REWRITE_REGEX_ICASE;
 	int mode = REWRITE_RECURSE;
+	int max_passes = info->li_max_passes_per_rule;
 
 	struct rewrite_rule *rule = NULL;
 	struct rewrite_subst *subst = NULL;
@@ -264,6 +265,33 @@ rewrite_rule_compile(
 			break;
 		}
 
+		case REWRITE_FLAG_MAX_PASSES: {			/* 'U' */
+			/*
+			 * Set the number of max passes per rule
+			 */
+			char *next = NULL;
+			
+			if ( p[ 1 ] != '{' ) {
+				/* XXX Need to free stuff */
+				return REWRITE_ERR;
+			}
+
+			max_passes = strtol( &p[ 2 ], &next, 0 );
+			if ( next == NULL || next == &p[ 2 ] || next[0] != '}' ) {
+				/* XXX Need to free stuff */
+				return REWRITE_ERR;
+			}
+
+			if ( max_passes < 1 ) {
+				/* FIXME: nonsense ... */
+				max_passes = 1;
+			}
+
+			p = next;	/* p is incremented by the for ... */
+		
+			break;
+		}
+
 		case REWRITE_FLAG_IGNORE_ERR:               /* 'I' */
 			/*
 			 * Ignore errors!
@@ -337,6 +365,7 @@ rewrite_rule_compile(
 	 */
 	rule->lr_flags = flags;		/* don't really need any longer ... */
 	rule->lr_mode = mode;
+	rule->lr_max_passes = max_passes;
 	rule->lr_action = first_action;
 	
 	/*
@@ -387,8 +416,8 @@ rewrite_rule_apply(
 recurse:;
 
 	Debug( LDAP_DEBUG_TRACE, "==> rewrite_rule_apply"
-			" rule='%s' string='%s'\n", 
-			rule->lr_pattern, string, 0 );
+			" rule='%s' string='%s' [%s pass(es)]\n", 
+			rule->lr_pattern, string, strcnt + 1 );
 	
 	op->lo_num_passes++;
 	if ( regexec( &rule->lr_regex, string, nmatch, match, 0 ) != 0 ) {
@@ -418,9 +447,9 @@ recurse:;
 	}
 
 	if ( ( rule->lr_mode & REWRITE_RECURSE ) == REWRITE_RECURSE 
-			&& op->lo_num_passes <= info->li_max_passes ) {
+			&& op->lo_num_passes < info->li_max_passes
+			&& ++strcnt < rule->lr_max_passes ) {
 		string = *result;
-		strcnt++;
 
 		goto recurse;
 	}

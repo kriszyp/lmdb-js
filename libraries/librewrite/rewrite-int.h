@@ -72,6 +72,7 @@
 #define REWRITE_FLAG_UNWILLING			'#'
 #define REWRITE_FLAG_GOTO			'G'	/* requires an arg */
 #define REWRITE_FLAG_USER			'U'	/* requires an arg */
+#define REWRITE_FLAG_MAX_PASSES			'M'	/* requires an arg */
 #define REWRITE_FLAG_IGNORE_ERR			'I'
 
 /*
@@ -219,6 +220,7 @@ struct rewrite_rule {
 #define REWRITE_RECURSE			0x0001
 #define REWRITE_EXEC_ONCE          	0x0002
 	int				lr_mode;
+	int				lr_max_passes;
 
 	struct rewrite_action          *lr_action;
 };
@@ -304,6 +306,7 @@ struct rewrite_info {
 	 */
 #define REWRITE_MAXPASSES		100
 	int                             li_max_passes;
+	int                             li_max_passes_per_rule;
 
 	/*
 	 * Behavior in case a NULL or non-existent context is required
