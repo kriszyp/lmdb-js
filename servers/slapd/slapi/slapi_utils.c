@@ -3204,7 +3204,7 @@ LDAPMod **slapi_x_modifications2ldapmods(Modifications **pmodlist)
 Modifications *slapi_x_ldapmods2modifications (LDAPMod **mods)
 {
 #ifdef LDAP_SLAPI
-	Modifications *modlist, **modtail;
+	Modifications *modlist = NULL, **modtail;
 	LDAPMod **modp;
 
 	modtail = &modlist;
