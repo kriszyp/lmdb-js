@@ -10,7 +10,7 @@ LIBRARY = $(LIBBASE).la
 LIBSTAT = lib$(LIBBASE).a
 LTFLAGS = --only-$(LINKAGE)
 
-all-no lint-no 5lint-no depend-no install-no:
+all-no lint-no 5lint-no depend-no install-no: FORCE
 	@echo "run configure with $(BUILD_OPT) to make $(LIBBASE)"
 
 all-common: all-$(BUILD_MOD)
