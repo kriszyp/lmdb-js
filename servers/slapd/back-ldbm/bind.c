@@ -72,9 +72,9 @@ crypted_value_find(
 
 				char *userpassword = vals[i]->bv_val + sizeof("{MD5}") - 1;
 
-				MD5Init(&MD5context);
-				MD5Update(&MD5context, cred->bv_val, strlen(cred->bv_val));
-				MD5Final(MD5digest, &MD5context);
+				ldap_MD5Init(&MD5context);
+				ldap_MD5Update(&MD5context, cred->bv_val, strlen(cred->bv_val));
+				ldap_MD5Final(MD5digest, &MD5context);
 
 				if (b64_ntop(MD5digest, sizeof(MD5digest),
 					base64digest, sizeof(base64digest)) < 0)
