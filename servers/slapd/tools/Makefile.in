@@ -29,6 +29,8 @@ XXLIBS = $(SLAPD_LIBS) \
 	$(LDIF_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(MODULES_LIBS) $(LTHREAD_LIBS)
 
+STATIC_DEPENDS=@SLAPD_NO_STATIC@ ../libbackends.a
+
 PROGRAMS=slapadd slapcat slapindex slappasswd
 
 SRCS = mimic.c slapcommon.c \
@@ -53,14 +55,14 @@ build-progs: $(PROGRAMS)
 #
 # SLAP Tools
 #
-slapadd:	slapadd.o ../libbackends.a $(SLAPOBJS) $(SLAPD_L) 
-	$(LTLINK) -o $@ slapadd.o $(SLAPOBJS) ../libbackends.a $(LIBS)
+slapadd:	slapadd.o $(STATIC_DEPENDS) $(SLAPOBJS) $(SLAPD_L) 
+	$(LTLINK) -o $@ slapadd.o $(SLAPOBJS) $(STATIC_DEPENDS) $(LIBS)
 
-slapcat:	slapcat.o ../libbackends.a $(SLAPOBJS) $(SLAPD_L) 
-	$(LTLINK) -o $@ slapcat.o $(SLAPOBJS) ../libbackends.a $(LIBS)
+slapcat:	slapcat.o $(STATIC_DEPENDS) $(SLAPOBJS) $(SLAPD_L) 
+	$(LTLINK) -o $@ slapcat.o $(SLAPOBJS) $(STATIC_DEPENDS) $(LIBS)
 
-slapindex:	slapindex.o ../libbackends.a $(SLAPOBJS) $(SLAPD_L) 
-	$(LTLINK) -o $@ slapindex.o $(SLAPOBJS) ../libbackends.a $(LIBS)
+slapindex:	slapindex.o $(STATIC_DEPENDS) $(SLAPOBJS) $(SLAPD_L) 
+	$(LTLINK) -o $@ slapindex.o $(SLAPOBJS) $(STATIC_DEPENDS) $(LIBS)
 
 slappasswd:		slappasswd.o $(SLAPD_L) 
 	$(LTLINK) -o $@ slappasswd.o $(LIBS)
