@@ -22,6 +22,12 @@
 void
 schema_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
+#else
+	char *ad_objectClass = "objectClass";
+#endif
+
 	Entry		*e;
 	struct berval	val;
 	struct berval	*vals[2];
@@ -37,17 +43,59 @@ schema_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 	(void) dn_normalize( e->e_ndn );
 	e->e_private = NULL;
 
+	val.bv_val = "top";
+	val.bv_len = sizeof("top")-1;
+	attr_merge( e, ad_objectClass, vals );
+
+	val.bv_val = "LDAPsubentry";
+	val.bv_len = sizeof("LDAPsubentry")-1;
+	attr_merge( e, ad_objectClass, vals );
+
+	val.bv_val = "subschema";
+	val.bv_len = sizeof("subschema")-1;
+	attr_merge( e, ad_objectClass, vals );
+
+	val.bv_val = "extensibleObject";
+	val.bv_len = sizeof("extensibleObject")-1;
+	attr_merge( e, ad_objectClass, vals );
+
 	{
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		int rc;
+		char *text;
+		AttributeDescription *desc = NULL;
+#else
+		char *desc;
+#endif
 		char *rdn = ch_strdup( SLAPD_SCHEMA_DN );
 		val.bv_val = strchr( rdn, '=' );
 
-		if( val.bv_val != NULL ) {
-			*val.bv_val = '\0';
-			val.bv_len = strlen( ++val.bv_val );
-
-			attr_merge( e, rdn, vals );
+		if( val.bv_val == NULL ) {
+			send_ldap_result( conn, op, LDAP_OTHER,
+				NULL, "improperly configured subschema subentry",
+				NULL, NULL );
+			free( rdn );
+			return;
 		}
 
+		*val.bv_val = '\0';
+		val.bv_len = strlen( ++val.bv_val );
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		rc = slap_str2ad( rdn, &desc, &text );
+
+		if( rc != LDAP_SUCCESS ) {
+			send_ldap_result( conn, op, LDAP_OTHER,
+				NULL, "improperly configured subschema subentry",
+				NULL, NULL );
+			free( rdn );
+			return;
+		}
+#else
+		desc = rdn;
+#endif
+
+		attr_merge( e, desc, vals );
 		free( rdn );
 	}
 
@@ -63,22 +111,6 @@ schema_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 		return;
 	}
 	
-	val.bv_val = "top";
-	val.bv_len = sizeof("top")-1;
-	attr_merge( e, "objectClass", vals );
-
-	val.bv_val = "LDAPsubentry";
-	val.bv_len = sizeof("LDAPsubentry")-1;
-	attr_merge( e, "objectClass", vals );
-
-	val.bv_val = "subschema";
-	val.bv_len = sizeof("subschema")-1;
-	attr_merge( e, "objectClass", vals );
-
-	val.bv_val = "extensibleObject";
-	val.bv_len = sizeof("extensibleObject")-1;
-	attr_merge( e, "objectClass", vals );
-
 	send_search_entry( &backends[0], conn, op,
 		e, attrs, attrsonly, NULL );
 	send_search_result( conn, op, LDAP_SUCCESS,

@@ -129,7 +129,7 @@ struct berval **get_entry_referrals(
 	unsigned i, j;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	static AttributeDescription *ref = NULL;
+	AttributeDescription *ref = slap_schema.si_ad_ref;
 #else
 	static const char *ref = "ref";
 #endif
@@ -901,8 +901,8 @@ send_search_reference(
 	int bytes;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	static AttributeDescription *ref = NULL;
-	static AttributeDescription *entry = NULL;
+	AttributeDescription *ref = slap_schema.si_ad_ref;
+	AttributeDescription *entry = slap_schema.si_ad_entry;
 #else
 	static const char *ref = "ref";
 	static const char *entry = "entry";

@@ -39,7 +39,7 @@ get_filter(
 	ber_len_t	len;
 	int		err;
 	Filter		*f;
-	char		*ftmp;
+	char		*ftmp = NULL;
 
 	Debug( LDAP_DEBUG_FILTER, "begin get_filter\n", 0, 0, 0 );
 
@@ -157,7 +157,6 @@ get_filter(
 		}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-
 		*fstr = ch_malloc( sizeof("(<=)")
 			+ f->f_av_desc->ad_cname->bv_len
 			+ f->f_av_value->bv_len );
@@ -205,6 +204,7 @@ get_filter(
 			+ f->f_desc->ad_cname->bv_len );
 		sprintf( *fstr, "(%s=*)",
 			f->f_desc->ad_cname->bv_val );
+
 #else
 		f->f_type = type.bv_val;
 		err = LDAP_SUCCESS;
@@ -247,10 +247,10 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
-		if (ftmp == NULL) ftmp = ch_strdup("");
-		*fstr = ch_malloc( 4 + strlen( ftmp ) );
-		sprintf( *fstr, "(&%s)", ftmp );
-		free( ftmp );
+		*fstr = ch_malloc( sizeof("(&)")
+			+ ( ftmp == NULL ? 0 : strlen( ftmp ) ) );
+		sprintf( *fstr, "(&%s)",
+			ftmp == NULL ? "" : ftmp );
 		break;
 
 	case LDAP_FILTER_OR:
@@ -259,10 +259,10 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
-		if (ftmp == NULL) ftmp = ch_strdup("");
-		*fstr = ch_malloc( 4 + strlen( ftmp ) );
-		sprintf( *fstr, "(|%s)", ftmp );
-		free( ftmp );
+		*fstr = ch_malloc( sizeof("(!)")
+			+ ( ftmp == NULL ? 0 : strlen( ftmp ) ) );
+		sprintf( *fstr, "(|%s)",
+			ftmp == NULL ? "" : ftmp );
 		break;
 
 	case LDAP_FILTER_NOT:
@@ -272,25 +272,27 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
-		if (ftmp == NULL) ftmp = ch_strdup("");
-		*fstr = ch_malloc( 4 + strlen( ftmp ) );
-		sprintf( *fstr, "(!%s)", ftmp );
-		free( ftmp );
+		*fstr = ch_malloc( sizeof("(!)")
+			+ ( ftmp == NULL ? 0 : strlen( ftmp ) ) );
+		sprintf( *fstr, "(!%s)",
+			ftmp == NULL ? "" : ftmp );
 		break;
 
 	case LDAP_FILTER_EXT:
 		/* not yet implemented */
 		Debug( LDAP_DEBUG_ANY, "extensible match not yet implemented.\n",
 		       f->f_choice, 0, 0 );
-		err = LDAP_PROTOCOL_ERROR;
-		*text = "extensible match not yet implemented";
+		f->f_choice = SLAPD_FILTER_COMPUTED;
+		f->f_result = SLAPD_COMPARE_UNDEFINED;
+		*fstr = ch_strdup( "(extended)" );
 		break;
 
 	default:
 		Debug( LDAP_DEBUG_ANY, "get_filter: unknown filter type=%lu\n",
 		       f->f_choice, 0, 0 );
-		err = LDAP_PROTOCOL_ERROR;
-		*text = "unknown filter type";
+		f->f_choice = SLAPD_FILTER_COMPUTED;
+		f->f_result = SLAPD_COMPARE_UNDEFINED;
+		*fstr = ch_strdup( "(undefined)" );
 		break;
 	}
 
@@ -302,6 +304,8 @@ get_filter(
 	} else {
 		*filt = f;
 	}
+
+	free( ftmp );
 
 	Debug( LDAP_DEBUG_FILTER, "end get_filter %d\n", err, 0, 0 );
 	return( err );
@@ -599,7 +603,8 @@ filter_print( Filter *f )
 			f->f_av_desc->ad_cname->bv_val,
 		    f->f_av_value->bv_val );
 #else
-		fprintf( stderr, "(%s=%s)", f->f_ava.ava_type,
+		fprintf( stderr, "(%s=%s)",
+			f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
 #endif
 		break;
@@ -610,7 +615,8 @@ filter_print( Filter *f )
 			f->f_av_desc->ad_cname->bv_val,
 		    f->f_av_value->bv_val );
 #else
-		fprintf( stderr, "(%s>=%s)", f->f_ava.ava_type,
+		fprintf( stderr, "(%s>=%s)",
+			f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
 #endif
 		break;
@@ -621,7 +627,8 @@ filter_print( Filter *f )
 			f->f_ava->aa_desc->ad_cname->bv_val,
 		    f->f_ava->aa_value->bv_val );
 #else
-		fprintf( stderr, "(%s<=%s)", f->f_ava.ava_type,
+		fprintf( stderr, "(%s<=%s)",
+			f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
 #endif
 		break;
@@ -632,7 +639,8 @@ filter_print( Filter *f )
 			f->f_ava->aa_desc->ad_cname->bv_val,
 		    f->f_ava->aa_value->bv_val );
 #else
-		fprintf( stderr, "(%s~=%s)", f->f_ava.ava_type,
+		fprintf( stderr, "(%s~=%s)",
+			f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
 #endif
 		break;
@@ -642,18 +650,22 @@ filter_print( Filter *f )
 		fprintf( stderr, "(%s=" /*)*/,
 			f->f_sub_desc->ad_cname->bv_val );
 #else
-		fprintf( stderr, "(%s=" /*)*/, f->f_sub_type );
+		fprintf( stderr, "(%s=" /*)*/,
+			f->f_sub_type );
 #endif
 		if ( f->f_sub_initial != NULL ) {
-			fprintf( stderr, "%s", f->f_sub_initial->bv_val );
+			fprintf( stderr, "%s",
+				f->f_sub_initial->bv_val );
 		}
 		if ( f->f_sub_any != NULL ) {
 			for ( i = 0; f->f_sub_any[i] != NULL; i++ ) {
-				fprintf( stderr, "*%s", f->f_sub_any[i]->bv_val );
+				fprintf( stderr, "*%s",
+					f->f_sub_any[i]->bv_val );
 			}
 		}
 		if ( f->f_sub_final != NULL ) {
-			fprintf( stderr, "*%s", f->f_sub_final->bv_val );
+			fprintf( stderr,
+				"*%s", f->f_sub_final->bv_val );
 		}
 		fprintf( stderr, /*(*/ ")" );
 		break;
@@ -663,7 +675,8 @@ filter_print( Filter *f )
 		fprintf( stderr, "(%s=*)",
 			f->f_desc->ad_cname->bv_val );
 #else
-		fprintf( stderr, "(%s=*)", f->f_type );
+		fprintf( stderr, "(%s=*)",
+			f->f_type );
 #endif
 		break;
 
@@ -680,7 +693,7 @@ filter_print( Filter *f )
 		break;
 
 	case SLAPD_FILTER_COMPUTED:
-		fprintf( stderr, "(%s)",
+		fprintf( stderr, "(?=%s)",
 			f->f_result == LDAP_COMPARE_FALSE ? "false" :
 			f->f_result == LDAP_COMPARE_TRUE ? "true" :
 			f->f_result == SLAPD_COMPARE_UNDEFINED ? "undefined" :
@@ -688,7 +701,7 @@ filter_print( Filter *f )
 		break;
 
 	default:
-		fprintf( stderr, "(unknown filter %lu)", f->f_choice );
+		fprintf( stderr, "(unknown-filter=%lu)", f->f_choice );
 		break;
 	}
 }

@@ -194,20 +194,27 @@ int mr_schema_info( Entry *e )
 	struct berval	*vals[2];
 	MatchingRule	*mr;
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription *ad_matchingRules = slap_schema.si_ad_matchingRules;
+#else
+	char *ad_matchingRules = "matchingRules";
+#endif
+
 	vals[0] = &val;
 	vals[1] = NULL;
 
 	for ( mr = mr_list; mr; mr = mr->smr_next ) {
 		val.bv_val = ldap_matchingrule2str( &mr->smr_mrule );
-		if ( val.bv_val ) {
-			val.bv_len = strlen( val.bv_val );
-			Debug( LDAP_DEBUG_TRACE, "Merging mr [%ld] %s\n",
-			       (long) val.bv_len, val.bv_val, 0 );
-			attr_merge( e, "matchingRules", vals );
-			ldap_memfree( val.bv_val );
-		} else {
+
+		if ( val.bv_val == NULL ) {
 			return -1;
 		}
+
+		val.bv_len = strlen( val.bv_val );
+		Debug( LDAP_DEBUG_TRACE, "Merging mr [%ld] %s\n",
+	       (long) val.bv_len, val.bv_val, 0 );
+		attr_merge( e, ad_matchingRules, vals );
+		ldap_memfree( val.bv_val );
 	}
 	return 0;
 }

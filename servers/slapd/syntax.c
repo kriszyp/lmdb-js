@@ -161,20 +161,25 @@ syn_schema_info( Entry *e )
 	struct berval	*vals[2];
 	Syntax		*syn;
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription *ad_ldapSyntaxes = slap_schema.si_ad_ldapSyntaxes;
+#else
+	char *ad_ldapSyntaxes = "ldapSyntaxes";
+#endif
+
 	vals[0] = &val;
 	vals[1] = NULL;
 
 	for ( syn = syn_list; syn; syn = syn->ssyn_next ) {
 		val.bv_val = ldap_syntax2str( &syn->ssyn_syn );
-		if ( val.bv_val ) {
-			val.bv_len = strlen( val.bv_val );
-			Debug( LDAP_DEBUG_TRACE, "Merging syn [%ld] %s\n",
-			       (long) val.bv_len, val.bv_val, 0 );
-			attr_merge( e, "ldapSyntaxes", vals );
-			ldap_memfree( val.bv_val );
-		} else {
+		if ( val.bv_val == NULL ) {
 			return -1;
 		}
+		val.bv_len = strlen( val.bv_val );
+		Debug( LDAP_DEBUG_TRACE, "Merging syn [%ld] %s\n",
+	       (long) val.bv_len, val.bv_val, 0 );
+		attr_merge( e, ad_ldapSyntaxes, vals );
+		ldap_memfree( val.bv_val );
 	}
 	return 0;
 }

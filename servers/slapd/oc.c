@@ -23,7 +23,7 @@ int is_entry_objectclass(
 	Attribute *attr;
 	struct berval bv;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	static AttributeDescription *objectClass = NULL;
+	AttributeDescription *objectClass = slap_schema.si_ad_objectClass;
 #else
 	static const char *objectClass = "objectclass";
 #endif
@@ -440,20 +440,25 @@ oc_schema_info( Entry *e )
 	struct berval	*vals[2];
 	ObjectClass	*oc;
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription *ad_objectClasses = slap_schema.si_ad_objectClasses;
+#else
+	char *ad_objectClasses = "objectClasses";
+#endif
+
 	vals[0] = &val;
 	vals[1] = NULL;
 
 	for ( oc = oc_list; oc; oc = oc->soc_next ) {
 		val.bv_val = ldap_objectclass2str( &oc->soc_oclass );
-		if ( val.bv_val ) {
-			val.bv_len = strlen( val.bv_val );
-			Debug( LDAP_DEBUG_TRACE, "Merging oc [%ld] %s\n",
-			       (long) val.bv_len, val.bv_val, 0 );
-			attr_merge( e, "objectClasses", vals );
-			ldap_memfree( val.bv_val );
-		} else {
+		if ( val.bv_val == NULL ) {
 			return -1;
 		}
+		val.bv_len = strlen( val.bv_val );
+		Debug( LDAP_DEBUG_TRACE, "Merging oc [%ld] %s\n",
+	       (long) val.bv_len, val.bv_val, 0 );
+		attr_merge( e, ad_objectClasses, vals );
+		ldap_memfree( val.bv_val );
 	}
 	return 0;
 }

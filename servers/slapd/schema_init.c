@@ -650,6 +650,15 @@ struct slap_schema_ad_map {
 	{ "supportedSASLMechanisms",
 		offsetof(struct slap_internal_schema, si_ad_supportedSASLMechanisms) },
 
+	{ "attributeTypes",
+		offsetof(struct slap_internal_schema, si_ad_attributeTypes) },
+	{ "ldapSyntaxes",
+		offsetof(struct slap_internal_schema, si_ad_ldapSyntaxes) },
+	{ "matchingRules",
+		offsetof(struct slap_internal_schema, si_ad_matchingRules) },
+	{ "objectClasses",
+		offsetof(struct slap_internal_schema, si_ad_objectClasses) },
+
 	{ "ref",
 		offsetof(struct slap_internal_schema, si_ad_ref) },
 

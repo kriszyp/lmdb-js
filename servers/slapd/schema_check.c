@@ -41,15 +41,15 @@ entry_schema_check(
 	int		i;
 	int		ret;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	static AttributeDescription *objectClass = NULL;
+	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 #else
-	static const char *objectClass = "objectclass";
+	static const char *ac_objectClass = "objectclass";
 #endif
 
 	if( !global_schemacheck ) return LDAP_SUCCESS;
 
 	/* find the object class attribute - could error out here */
-	if ( (aoc = attr_find( e->e_attrs, objectClass )) == NULL ) {
+	if ( (aoc = attr_find( e->e_attrs, ad_objectClass )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "No object class for entry (%s)\n",
 		    e->e_dn, 0, 0 );
 

@@ -984,7 +984,7 @@ aci_group_member (
 	char *grpoc;
 	char *grpat;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeDescription *grpad;
+	AttributeDescription *grpad = NULL;
 	char *text;
 #else
 	char *grpad;
@@ -1133,7 +1133,7 @@ aci_mask(
 		Attribute *at;
 		char *dnattr = aci_bvstrdup(&sdn);
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		AttributeDescription *dnad;
+		AttributeDescription *dnad = NULL;
 		char *text;
 		rc = slap_str2ad( dnattr, &dnad, &text );
 		ch_free( dnattr );

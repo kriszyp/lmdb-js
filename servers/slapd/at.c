@@ -554,20 +554,25 @@ at_schema_info( Entry *e )
 	struct berval	*vals[2];
 	AttributeType	*at;
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription *ad_attributeTypes = slap_schema.si_ad_attributeTypes;
+#else
+	char *ad_attributeTypes = "attributeTypes";
+#endif
+
 	vals[0] = &val;
 	vals[1] = NULL;
 
 	for ( at = attr_list; at; at = at->sat_next ) {
 		val.bv_val = ldap_attributetype2str( &at->sat_atype );
-		if ( val.bv_val ) {
-			val.bv_len = strlen( val.bv_val );
-			Debug( LDAP_DEBUG_TRACE, "Merging at [%ld] %s\n",
-			       (long) val.bv_len, val.bv_val, 0 );
-			attr_merge( e, "attributeTypes", vals );
-			ldap_memfree( val.bv_val );
-		} else {
+		if ( val.bv_val == NULL ) {
 			return -1;
 		}
+		val.bv_len = strlen( val.bv_val );
+		Debug( LDAP_DEBUG_TRACE, "Merging at [%ld] %s\n",
+		       (long) val.bv_len, val.bv_val, 0 );
+		attr_merge( e, ad_attributeTypes, vals );
+		ldap_memfree( val.bv_val );
 	}
 	return 0;
 }
