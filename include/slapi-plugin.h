@@ -170,6 +170,7 @@ void slapi_register_supported_control(char *controloid,
 #define SLAPI_OPERATION_ANY             0xFFFFFFFFL
 #define SLAPI_OPERATION_NONE            0x00000000L
 int slapi_get_supported_controls(char ***ctrloidsp, unsigned long **ctrlopsp);
+LDAPControl *slapi_dup_control(LDAPControl *ctrl);
 void slapi_register_supported_saslmechanism(char *mechanism);
 char **slapi_get_supported_saslmechanisms();
 char **slapi_get_supported_extended_ops(void);
