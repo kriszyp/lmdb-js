@@ -218,10 +218,11 @@ in the {{slapd}}(8) manual page and the
 ..{{EX:objectclass: organizationalRole}}
 ..{{EX:cn: Manager}}
 
-. Be sure to replace {{EX:<MY-DOMAIN>}} and {{EX:<COM>}} with the appropriate domain
-components of your domain name.  {{EX:<MY ORGANIZATION>}} should be replaced
-with the name of your organization.  If you cut and paste, be sure
-to trim any leading and trailing whitespace from the example.
+. Be sure to replace {{EX:<MY-DOMAIN>}} and {{EX:<COM>}} with the
+appropriate domain components of your domain name.  {{EX:<MY
+ORGANIZATION>}} should be replaced with the name of your organization.
+When you cut and paste, be sure to trim any leading and trailing
+whitespace from the example.
 
 ..{{EX:dn: dc=example,dc=com}}
 ..{{EX:objectclass: dcObject}}
