@@ -329,8 +329,15 @@ ldap_int_open_connection(
 	if (ld->ld_options.ldo_tls_mode == LDAP_OPT_X_TLS_HARD ||
 		strcmp( srv->lud_scheme, "ldaps" ) == 0 )
 	{
+		LDAPConn	*savedefconn = ld->ld_defconn;
+		++conn->lconn_refcnt;	/* avoid premature free */
+		ld->ld_defconn = conn;
+
 		rc = ldap_pvt_tls_start( ld, conn->lconn_sb,
 			ld->ld_options.ldo_tls_ctx );
+
+		ld->ld_defconn = savedefconn;
+		--conn->lconn_refcnt;
 
 		if (rc != LDAP_SUCCESS) {
 			return -1;
