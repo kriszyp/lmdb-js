@@ -198,17 +198,6 @@ query at that server, but note that most of these clients are
 only going to know how to handle simple LDAP URLs that
 contain a host part and optionally a distinguished name part.
 
-H4: schemacheck { on | off }
-
-This directive turns schema checking on or off. If schema
-checking is on, entries added or modified through LDAP operations
-will be checked to ensure they obey the schema rules implied
-by their object class(es) as defined by the corresponding objectclass
-directive(s). If schema checking is off this check is not done.
-
-\Default:
-
->	schemacheck on
 
 H4: sizelimit <integer>
 
@@ -253,15 +242,6 @@ database.
 This marks the beginning of a new LDBM backend database
 instance definition.
 
-H4: lastmod { on | off }
-
-This directive controls whether slapd will automatically maintain
-the modifiersName, modifyTimestamp, creatorsName, and
-createTimestamp attributes for entries.
-
-\Default:
-
->	lastmod on
 
 H4: readonly { on | off }
 
@@ -342,18 +322,6 @@ Entry-based Example:
 SASL-based Example:
 
 >	rootdn "uid=root@EXAMPLE.COM"
-
-
-H4: rootkrbname <kerberosname>
-
-This directive specifies a Kerberos name for the DN given above
-that will always work, regardless of whether an entry with the
-given DN exists or has a {{EX:krbName}} attribute.
-This directive is deprecated in favor of SASL based authentication.
-
-\Example:
-
->	rootkrbname admin@EXAMPLE.COM
 
 
 H4: rootpw <password>
@@ -621,10 +589,7 @@ attribute(s) in the entry:
 >	filter=<ldap filter>
 
 where <ldap filter> is a string representation of an LDAP
-search filter, as described in RFC 2254.
-
-The special entry selector "*" is used to select any entry,
-and is a convenient shorthand for the equivalent "dn=.*" selector.
+search filter, as described in {{REF:RFC2254}}.
 
 Attributes within an entry are selected by including a
 comma-separated list of attribute names in the <what>
@@ -638,25 +603,39 @@ attribute is not enough; access to the entry itself through the
 {{EX:entry}} attribute is also required. The complete examples at
 the end of this section should help clear things up.
 
+Lastly, there is a special entry selector {{EX:"*"}} is used to
+select any entry.  It is used when no other {{EX:<what>}}
+selector has been provided.  It's equivalent to "{{EX:dn=.*}}"
 
 
 H3: Who to grant access to
 
 The <who> part identifies the entity or entities being granted
 access. Note that access is granted to "entities" not "entries."
-Entities can be specified by the special "*" identifier, matching
-any entry, the keyword "self" matching the entry protected by
-the access, or by a regular expression matching an entry's
-distinguished name:
+The follow table summaries entity specifiers:
+
+!block table; align=Center; \
+	title="Table 5.2: Access Entity Specifiers"
+Specifier	Entities
+*		All, including anonymous and authenticated users
+anonymous	Anonymous (non-authenticated) users
+users		Authenticated users
+self		User associated with target entry
+dn=<regex>	Users matching regular expression
+!endblock
+
+The DN specifier takes a regular expression which is used
+to match against the "normalized" DN of the current entity.
 
 >	dn=<regular expression>
 
-Note:  The DN pattern specified should be "normalized",
-meaning that there should be no extra spaces, and commas
-should be used to separate components.
+By "normalized", we mean that all extra spaces have been
+removed from the entities DN and commas are used to
+separate RDN components.
 
-Or entities can be specified by a regular expression matching
-the client's IP address or domain name:
+Other control factors forms are also supported.
+For example, a {{EX:<what>}} can be restricted by a
+regular expression matching the client's IP address or domain name:
 
 >	addr=<regular expression>
 >	domain=<regular expression>
@@ -672,7 +651,6 @@ access to a group entry to whoever is listed as the owner of
 the group entry).
 
 
-
 H3: The access to grant
 
 
@@ -680,7 +658,7 @@ The kind of <access> granted can be one of the following:
 
 
 !block table; colaligns="LRL"; align=Center; \
-	title="Table 5.2: Access Levels"
+	title="Table 5.3: Access Levels"
 Level	Privledges	Description
 none			no access
 auth	=x		needed to bind
@@ -750,6 +728,7 @@ This directive allows users to modify their own entries,
 allows authenticate, and allows authenticated users to read.
 Note that only the first {{EX:by <who>}} clause which matches applies.
 Hence, the anonymous users are granted {{EX:auth}}, not {{EX:read}}.
+The last clause just as well have been "{{EX:by users read}}".
 
 The following example shows the use of a regular expression
 to select the entries by DN in two access directives where
@@ -816,11 +795,10 @@ own DN from the attribute, not other values. The addition of
 the entry attribute is required because access to the entry is
 required to access any of the entry's attributes.
 
-Note that the {{EX:attr=member}} construct in the {{EX:<what>}}
-clause is a shorthand for the clause "{{EX:dn=.* attr=member}}"
-(i.e., it matches the {{EX:member}} attribute in all entries).
-
-
+!if 0
+For more details on how to use the {{EX:access}} directive,
+consult the {{Advanced Access Control}} chapter.
+!endif
 
 H2: Schema Specification
 
@@ -841,8 +819,8 @@ if your organization were assigned OID {{EX:1.1}}, you could branch
 the tree as follows:
 
 !block table; colaligns="LR"; coltags="EX,N"; align=Center; \
-	title="Table 5.1: Debugging Levels"
-{{N:OID}}		Assignment
+	title="Table 5.4: Example OID hierarchy"
+OID		Assignment
 1.1		Organization's OID
 1.1.1		SNMP Elements
 1.1.2		LDAP Elements
@@ -937,35 +915,35 @@ truelies, the other on judgmentday. Indexes are to be
 maintained for several attributes, and the {{EX:userPassword}}
 attribute is to be protected from unauthorized access.
 
-E:  4. # ldbm definition for the example.com
-E:  5. database ldbm
-E:  6. suffix "dc=example, dc=com"
-E:  7. directory /usr/local/var/openldap
-E:  8. rootdn "cn=Manager, dc=example, dc=com"
-E:  9. rootpw secret
-E: 10. replogfile /usr/local/var/openldap/slapd.replog
-E: 11. replica host=slave1.example.com:389
-E: 12.   binddn="cn=Replicator, dc=example, dc=com"
-E: 13.   bindmethod=simple credentials=secret
-E: 14. replica host=slave2.example.com
-E: 15.   binddn="cn=Replicator, dc=example, dc=com"
-E: 16.   bindmethod=kerberos
-E: 17.   srvtab=/etc/srvtab.slave2
-E: 18. # ldbm indexed attribute definitions
-E: 19. index uid pres,eq
-E: 20. index cn,sn,uid pres,eq,approx,sub
-E: 21. index objectClass eq
-E: 22. # ldbm access control definitions
-E: 23. access to attr=userPassword
-E: 24.   by self write
-E: 25.   by anonymous auth
-E: 26.   by dn="cn=Admin,dc=example,dc=com" write
-E: 27.   by * none
-E: 28. access to *
-E: 29.   by self write
-E: 30.   by anonymous auth
-E: 31.   by dn="cn=Admin,dc=example,dc=com" write
-E: 32.   by * read
+E:  4.	# ldbm definition for the example.com
+E:  5.	database ldbm
+E:  6.	suffix "dc=example, dc=com"
+E:  7.	directory /usr/local/var/openldap
+E:  8.	rootdn "cn=Manager, dc=example, dc=com"
+E:  9.	rootpw secret
+E: 10.	# replication directives
+E: 11.	replogfile /usr/local/var/openldap/slapd.replog
+E: 12.	replica host=slave1.example.com:389
+E: 13.		binddn="cn=Replicator, dc=example, dc=com"
+E: 14.		bindmethod=simple credentials=secret
+E: 15.	replica host=slave2.example.com
+E: 16.		binddn="cn=Replicator, dc=example, dc=com"
+E: 17.		bindmethod=simple credentials=secret
+E: 18.	# indexed attribute definitions
+E: 19.	index uid pres,eq
+E: 20.	index cn,sn,uid pres,eq,approx,sub
+E: 21.	index objectClass eq
+E: 22.	# ldbm access control definitions
+E: 23.	access to attr=userPassword
+E: 24.		by self write
+E: 25.		by anonymous auth
+E: 26.		by dn="cn=Admin,dc=example,dc=com" write
+E: 27.		by * none
+E: 28.	access to *
+E: 29.		by self write
+E: 30.		by anonymous auth
+E: 31.		by dn="cn=Admin,dc=example,dc=com" write
+E: 32.		by * read
 
 Line 4 is a comment. The start of the database definition is
 marked by the database keyword on line 5. Line 6 specifies
@@ -982,9 +960,9 @@ replication log file (where changes to the database are logged
 through 13 specify the hostname and port for a replicated
 host, the DN to bind as when performing updates, the bind
 method (simple) and the credentials (password) for the
-binddn. Lines 14 through 17 specify a second replication site,
-using Kerberos instead of simple authentication. See Section
-10 on slurpd for more information on these directives.
+binddn. Lines 14 through 17 specify a second replication site.
+See the {{SECT:Replication with slurpd}} chapter for more
+information on these directives.
 
 Lines 19 through 21 indicate the indexes to maintain for
 various attributes.
@@ -1001,9 +979,9 @@ The next section of the example configuration file defines
 another LDBM database. This one handles queries involving
 the {{EX:dc=example,dc=net}} subtree.
 
-E: 33. # ldbm definition for example.net
-E: 34. database ldbm
-E: 35. suffix "dc=example, dc=net"
-E: 36. directory /usr/local/var/ldbm-example-net
-E: 37. rootdn "cn=Manager, dc=example, dc=net"
-
+E: 33.	# ldbm definition for example.net
+E: 34.	database ldbm
+E: 35.	suffix "dc=example, dc=net"
+E: 36.	directory /usr/local/var/ldbm-example-net
+E: 37.	rootdn "cn=Manager, dc=example, dc=com"
+E: 38.	access to * by users read
