@@ -169,6 +169,8 @@ merge_entry(
 	op->o_do_not_cache = 1;
 
 	op->ora_e = e;
+	op->o_req_dn = e->e_name;
+	op->o_req_ndn = e->e_nname;
 	rc = op->o_bd->be_add( op, &sreply );
 
 	if ( rc != LDAP_SUCCESS ) {
@@ -177,8 +179,6 @@ merge_entry(
 			modlist->sml_op = LDAP_MOD_ADD;
 			op->o_tag = LDAP_REQ_MODIFY;
 			op->orm_modlist = modlist;
-			op->o_req_dn = e->e_name;
-			op->o_req_ndn = e->e_nname;
 			rc = op->o_bd->be_modify( op, &sreply );
 			slap_mods_free( modlist );
 		} else if ( rc == LDAP_REFERRAL ||
@@ -187,6 +187,8 @@ merge_entry(
 		} else {
 			rc = 0;
 		}
+	} else {
+		be_entry_release_w( op, e );
 	}
 
 	return rc;
