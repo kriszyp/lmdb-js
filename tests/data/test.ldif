@@ -1,4 +1,4 @@
-dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
+dn: CN=All Staff,ou=Groups,o=University of Michigan,c=US
 member: cn=Manager,o=University of Michigan,c=US
 member: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Unive
  rsity of Michigan,c=US
