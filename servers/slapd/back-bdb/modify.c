@@ -240,9 +240,13 @@ int bdb_modify_internal(
 			/* A nullified replace still does its delete action */
 			case LDAP_MOD_REPLACE | NULLIFIED:
 				ap = attr_find( save_attrs, ml->sml_desc );
-				rc = bdb_index_values( op, tid, ap->a_desc,
-					ap->a_nvals,
-					e->e_id, SLAP_INDEX_DELETE_OP );
+				if ( ap != NULL ) {
+					rc = bdb_index_values( op, tid, ap->a_desc,
+						ap->a_nvals,
+						e->e_id, SLAP_INDEX_DELETE_OP );
+				} else {
+					rc = LDAP_SUCCESS;
+				}
 				if ( rc || ml->sml_op == LDAP_MOD_DELETE ||
 					(ml->sml_op & NULLIFIED))
 					break;
