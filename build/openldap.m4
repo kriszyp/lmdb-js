@@ -95,9 +95,11 @@ EOF
 				if AC_TRY_COMMAND($OL_MKDEP $flag conftest.c) \
 					| egrep '^conftest\.'"${ac_objext}" >/dev/null 2>&1
 				then
-					ol_cv_mkdep=$flag
-					OL_MKDEP_FLAGS="$flag"
-					break
+					if test ! -f conftest."${ac_object}" ; then
+						ol_cv_mkdep=$flag
+						OL_MKDEP_FLAGS="$flag"
+						break
+					fi
 				fi
 			done
 			rm -f conftest*
