@@ -914,17 +914,6 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		i++;
 	}
 
-#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
-	if ( ppolicy ) {
-		c[i].ldctl_oid = LDAP_CONTROL_PASSWORDPOLICYREQUEST;
-		c[i].ldctl_value.bv_val = NULL;
-		c[i].ldctl_value.bv_len = 0;
-		c[i].ldctl_iscritical = 0;
-		ctrls[i] = &c[i];
-		i++;
-	}
-#endif
-	
 	if ( preread ) {
 		char berbuf[LBER_ELEMENT_SIZEOF];
 		BerElement *ber = (BerElement *)berbuf;
