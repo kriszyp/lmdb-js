@@ -3,6 +3,8 @@ Sun Solaris Hints
 ** This file covers Solaris 2 and later releases.  **
 ** Solaris 1.X is covered in the SunOS hints file. **
 
+Latest Solaris hints are available at:
+  http://www.openldap.org/faq/index.cgi?file=10
 
 Solaris 2.6, pthread_create() in -lc
 
@@ -16,13 +18,15 @@ out-of-the-box settings with the error:
 
 To resolve this problem, the installer must specify the
 proper Pthreads libraries:
-  LIBS="-lpthread -lposix4"
+  LIBS="-lpthread -lposix4"; export LIBS
   ./configure
 
-OR use Solaris (LWP) Threads
+On some versions of Solaris, you may be able to use Solaris LWP
+Threads:
   ./configure --with-threads=lwp
 
-OR disable threads: 
+On some versions of Solaris, you may be able to build without
+threads.
   ./configure --without-threads
 
 
