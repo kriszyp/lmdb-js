@@ -10,14 +10,11 @@ OpenLDAP 2.0 README
 	rough around the edges, use with appropriate care.  Those
 	seeking stable LDAP servers may want to use 1.2.
 
-	For a more detailed description of how to make an install the
-	distribution, see the INSTALL file in this directory.  Additional
-	installation information can be found on the OpenLDAP website:
-		http://www.openldap.org/
-
 
 REQUIRED SOFTWARE
-	Build OpenLDAP requires the following software components:
+	Build OpenLDAP requires a number of software packages to be
+	preinstalled.  Additional information regarding prerequisite
+	software can be found in the OpenLDAP Administrator's Guide.
 
 	Base system (libraries and tools):
 		Standard C compiler (required)
@@ -35,10 +32,12 @@ REQUIRED SOFTWARE
 
 	CLIENTS/CONTRIB ware:
 		Depends on package.  See per package README.
-		
+
 
 MAKING AND INSTALLING THE DISTRIBUTION
-	Please see the INSTALL file for details.
+	Please see the INSTALL file for basic instructions.  More
+	detailed instructions can be found in the OpenLDAP
+	Admnistrator's Guide (see DOCUMENTATION section).
 
 
 DOCUMENTATION
