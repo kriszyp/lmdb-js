@@ -74,6 +74,7 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 
 	/* Looks like we didn't get a bind. Open a new session... */
 	if (!lc) {
+		int vers = conn->c_protocol;
 		int err = ldap_initialize(&ld, li->url);
 		if (err != LDAP_SUCCESS) {
 			err = ldap_back_map_result(err);
@@ -81,6 +82,11 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 				NULL, "ldap_init failed", NULL, NULL );
 			return( NULL );
 		}
+		/* Set LDAP version. This will always succeed: If the client
+		 * bound with a particular version, then so can we.
+		 */
+		ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &vers);
+
 		lc = (struct ldapconn *)ch_malloc(sizeof(struct ldapconn));
 		lc->conn = conn;
 		lc->ld = ld;
