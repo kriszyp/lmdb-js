@@ -177,12 +177,24 @@ chkResponseList(
 				break;
 			}
 
-			for ( tmp = lm; tmp != NULL; tmp = tmp->lm_chain ) {
-				if ( tmp->lm_msgtype != LDAP_RES_SEARCH_ENTRY
-				    && tmp->lm_msgtype != LDAP_RES_SEARCH_REFERENCE
-					&& tmp->lm_msgtype != LDAP_RES_INTERMEDIATE )
-				{
-					break;
+			if ( lm->lm_chain == NULL ) {
+				if ((lm->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
+					(lm->lm_msgtype == LDAP_RES_SEARCH_REFERENCE) ||
+					(lm->lm_msgtype == LDAP_RES_INTERMEDIATE)) {
+					tmp = NULL;
+				} else {
+					tmp = lm;
+				}
+			} else {
+				if ((lm->lm_chain_tail->lm_chain->lm_msgtype
+						== LDAP_RES_SEARCH_ENTRY) ||
+					(lm->lm_chain_tail->lm_chain->lm_msgtype
+						== LDAP_RES_SEARCH_REFERENCE) ||
+					(lm->lm_chain_tail->lm_chain->lm_msgtype
+						== LDAP_RES_INTERMEDIATE)) {
+					tmp = NULL;
+				} else {
+					tmp = lm->lm_chain_tail->lm_chain;
 				}
 			}
 
@@ -365,7 +377,7 @@ try_read1msg(
 	LDAPMessage **result )
 {
 	BerElement	*ber;
-	LDAPMessage	*new, *l, *prev, *tmp;
+	LDAPMessage	*new, *l, *prev, *tmp, *chain_head;
 	ber_int_t	id;
 	ber_tag_t	tag;
 	ber_len_t	len;
@@ -758,8 +770,11 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 				firstmsg = 0;
 				new->lm_next = ld->ld_responses;
 				ld->ld_responses = new;
+				new->lm_chain_tail = new;
+				chain_head = new;
 			} else {
 				tmp->lm_chain = new;
+				chain_head->lm_chain_tail = tmp;
 			}
 			tmp = new;
 			/* "ok" means there's more to parse */
@@ -781,6 +796,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 		 * first response off the head of the chain.
 		 */
 			tmp->lm_chain = new;
+			chain_head->lm_chain_tail = tmp;
 			*result = chkResponseList( ld, msgid, all );
 			ld->ld_errno = LDAP_SUCCESS;
 			return( (*result)->lm_msgtype );
@@ -824,6 +840,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 
 		new->lm_next = ld->ld_responses;
 		ld->ld_responses = new;
+		new->lm_chain_tail = new;
 		goto exit;
 	}
 
@@ -831,13 +848,31 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	    (long) new->lm_msgid, (long) new->lm_msgtype, 0 );
 
 	/* part of a search response - add to end of list of entries */
-	for ( tmp = l; (tmp->lm_chain != NULL) &&
-	    	((tmp->lm_chain->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
-	    	 (tmp->lm_chain->lm_msgtype == LDAP_RES_SEARCH_REFERENCE) ||
-			 (tmp->lm_chain->lm_msgtype == LDAP_RES_INTERMEDIATE ));
-	    tmp = tmp->lm_chain )
-		;	/* NULL */
-	tmp->lm_chain = new;
+	if (l->lm_chain == NULL) {
+		if ((l->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
+			(l->lm_msgtype == LDAP_RES_SEARCH_REFERENCE) ||
+			(l->lm_msgtype == LDAP_RES_INTERMEDIATE)) {
+			/* do not advance lm_chain_tail in this case */
+			l->lm_chain = new;
+		} else {
+			/*FIXME: ldap_msgfree( l );*/
+			l = new;
+			l->lm_chain_tail = new;
+		}
+	} else {
+		if ((l->lm_chain_tail->lm_chain->lm_msgtype
+				== LDAP_RES_SEARCH_ENTRY) ||
+			(l->lm_chain_tail->lm_chain->lm_msgtype
+				== LDAP_RES_SEARCH_REFERENCE) ||
+			(l->lm_chain_tail->lm_chain->lm_msgtype
+				== LDAP_RES_INTERMEDIATE)) {
+			l->lm_chain_tail->lm_chain->lm_chain = new;
+			l->lm_chain_tail = l->lm_chain_tail->lm_chain;
+		} else {
+			/*FIXME: ldap_msgfree( l->lm_chain_tail->lm_chain );*/
+			l->lm_chain_tail->lm_chain = new;
+		}
+	}
 
 	/* return the whole chain if that's what we were looking for */
 	if ( foundit ) {

@@ -137,6 +137,7 @@ struct ldapmsg {
 	ber_tag_t		lm_msgtype;	/* the message type */
 	BerElement	*lm_ber;	/* the ber encoded message contents */
 	struct ldapmsg	*lm_chain;	/* for search - next msg in the resp */
+	struct ldapmsg	*lm_chain_tail;
 	struct ldapmsg	*lm_next;	/* next response */
 	time_t	lm_time;	/* used to maintain cache */
 };

@@ -255,13 +255,24 @@ ldap_parse_result(
 	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
 #endif
 	/* Find the next result... */
-	for ( lm = r; lm != NULL; lm = lm->lm_chain ) {
-		/* skip over entries and references */
-		if( lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY &&
-			lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE &&
-			lm->lm_msgtype != LDAP_RES_INTERMEDIATE )
-		{
-			break;
+	if ( r->lm_chain == NULL ) {
+		if ((r->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
+			(r->lm_msgtype == LDAP_RES_SEARCH_REFERENCE) ||
+			(r->lm_msgtype == LDAP_RES_INTERMEDIATE)) {
+			lm = NULL;	
+		} else {
+			lm = r;
+		}
+	} else {
+		if ((r->lm_chain_tail->lm_chain->lm_msgtype
+				== LDAP_RES_SEARCH_ENTRY) ||
+			(r->lm_chain_tail->lm_chain->lm_msgtype
+				== LDAP_RES_SEARCH_REFERENCE) ||
+			(r->lm_chain_tail->lm_chain->lm_msgtype
+				== LDAP_RES_INTERMEDIATE)) {
+			lm = NULL;
+		} else {
+			lm = r->lm_chain_tail->lm_chain;
 		}
 	}
 
@@ -368,15 +379,24 @@ ldap_parse_result(
 		}
 
 		/* Find the next result... */
-		for ( lm = lm->lm_chain; lm != NULL; lm = lm->lm_chain ) {
-			/* skip over entries and references */
-			if( lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY &&
-				lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE &&
-				lm->lm_msgtype != LDAP_RES_INTERMEDIATE )
-			{
-				/* more results to return */
-				errcode = LDAP_MORE_RESULTS_TO_RETURN;
-				break;
+		lm = lm->lm_chain;
+		if ( lm ) {
+			if ( lm->lm_chain == NULL ) {
+				if ((lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY) &&
+					(lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE) &&
+					(lm->lm_msgtype != LDAP_RES_INTERMEDIATE)) {
+					/* more results to return */
+					errcode = LDAP_MORE_RESULTS_TO_RETURN;
+				}
+			} else {
+				if ((lm->lm_chain_tail->lm_chain->lm_msgtype
+						!= LDAP_RES_SEARCH_ENTRY) &&
+					(lm->lm_chain_tail->lm_chain->lm_msgtype
+						!= LDAP_RES_SEARCH_REFERENCE) &&
+					(lm->lm_chain_tail->lm_chain->lm_msgtype
+						!= LDAP_RES_INTERMEDIATE)) {
+					errcode = LDAP_MORE_RESULTS_TO_RETURN;
+				}
 			}
 		}
 	}
