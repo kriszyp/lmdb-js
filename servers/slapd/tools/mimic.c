@@ -54,6 +54,14 @@ send_ldap_disconnect( Operation	*op, SlapReply *rs )
 	assert(0);
 }
 
+int
+slap_null_cb(
+    Operation	*op, SlapReply *rs
+)
+{
+	assert(0);
+}
+
 void
 slap_send_ldap_extended(
     Operation	*op, SlapReply *rs
