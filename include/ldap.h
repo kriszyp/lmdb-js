@@ -171,8 +171,7 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_MANAGEDSAIT "2.16.840.1.113730.3.4.2"
 
 /* Experimental Controls */
-#define LDAP_CONTROL_X_PASSWD_MOD_REQ "1.3.6.1.4.1.4203.666.5.1"
-#define LDAP_CONTROL_X_PASSWD_MOD_RES "1.3.6.1.4.1.4203.666.5.1"
+#define LDAP_CONTROL_X_CHANGE_PASSWD "1.3.6.1.4.1.4203.666.5.1"
 
 
 /* LDAP Unsolicited Notifications */
