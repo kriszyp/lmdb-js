@@ -286,7 +286,12 @@ oc_add_sups(
 				&& soc1->soc_kind != LDAP_SCHEMA_ABSTRACT )
 			{
 				*err = *sups1;
-				return SLAP_SCHERR_CLASS_BAD_USAGE;
+				return SLAP_SCHERR_CLASS_BAD_SUP;
+			}
+
+			if( soc1->soc_obsolete && !soc->soc_obsolete ) {
+				*err = *sups1;
+				return SLAP_SCHERR_CLASS_BAD_SUP;
 			}
 
 			if( soc->soc_flags & SLAP_OC_OPERATIONAL ) (*op)++;
@@ -465,31 +470,6 @@ oc_add(
 	return code;
 }
 
-#ifdef LDAP_DEBUG
-static void
-oc_print( ObjectClass *oc )
-{
-	int	i;
-	const char *mid;
-
-	printf( "objectclass %s\n", ldap_objectclass2name( &oc->soc_oclass ) );
-	if ( oc->soc_required != NULL ) {
-		mid = "\trequires ";
-		for ( i = 0; oc->soc_required[i] != NULL; i++, mid = "," )
-			printf( "%s%s", mid,
-			        ldap_attributetype2name( &oc->soc_required[i]->sat_atype ) );
-		printf( "\n" );
-	}
-	if ( oc->soc_allowed != NULL ) {
-		mid = "\tallows ";
-		for ( i = 0; oc->soc_allowed[i] != NULL; i++, mid = "," )
-			printf( "%s%s", mid,
-			        ldap_attributetype2name( &oc->soc_allowed[i]->sat_atype ) );
-		printf( "\n" );
-	}
-}
-#endif
-
 int
 oc_schema_info( Entry *e )
 {
@@ -501,11 +481,11 @@ oc_schema_info( Entry *e )
 	vals[1].bv_val = NULL;
 
 	for ( oc = oc_list; oc; oc = oc->soc_next ) {
+		if( oc->soc_flags & SLAP_OC_HIDE ) continue;
+
 		if ( ldap_objectclass2bv( &oc->soc_oclass, vals ) == NULL ) {
 			return -1;
 		}
-
-		if( oc->soc_flags & SLAP_OC_HIDE ) continue;
 
 #if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging oc [%ld] %s\n",

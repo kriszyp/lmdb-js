@@ -1,23 +1,30 @@
 /* phonetic.c - routines to do phonetic matching */
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include "portable.h"
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/time.h>
+
 #include "slap.h"
 
-#if !defined(METAPHONE) && !defined(SOUNDEX)
-#define METAPHONE
+#if !defined(SLAPD_METAPHONE) && !defined(SLAPD_PHONETIC)
+#define SLAPD_METAPHONE
 #endif
 
 #define iswordbreak(x)  (!isascii(x) || isspace((unsigned char) (x)) || \
 			 ispunct((unsigned char) (x)) || \
-			 isdigit((unsigned char) (x)) || x == '\0')
+			 isdigit((unsigned char) (x)) || (x) == '\0')
 
-char *
+static char *
 first_word( char *s )
 {
 	if ( s == NULL ) {
@@ -35,7 +42,7 @@ first_word( char *s )
 	return( s );
 }
 
-char *
+static char *
 next_word( char *s )
 {
 	if ( s == NULL ) {
@@ -57,7 +64,7 @@ next_word( char *s )
 	return( s );
 }
 
-char *
+static char *
 word_dup( char *w )
 {
 	char	*s, *ret;
@@ -67,7 +74,7 @@ word_dup( char *w )
 		;	/* NULL */
 	save = *s;
 	*s = '\0';
-	ret = strdup( w );
+	ret = ch_strdup( w );
 	*s = save;
 
 	return( ret );
@@ -77,7 +84,7 @@ word_dup( char *w )
 #define MAXPHONEMELEN	4
 #endif
 
-#if defined(SOUNDEX)
+#if defined(SLAPD_PHONETIC)
 
 /* lifted from isode-8.0 */
 char *
@@ -85,8 +92,7 @@ phonetic( char *s )
 {
         char	code, adjacent, ch;
 	char	*p;
-	char	**c;
-        int	i, cmax;
+        int	i;
 	char	phoneme[MAXPHONEMELEN + 1];
 
         p = s;
@@ -95,11 +101,11 @@ phonetic( char *s )
         }
 
         adjacent = '0';
-	phoneme[0] = TOUPPER(*p);
+	phoneme[0] = TOUPPER((unsigned char)*p);
 
 	phoneme[1]  = '\0';
         for ( i = 0; i < 99 && (! iswordbreak(*p)); p++ ) {
-		ch = TOUPPER (*p);
+		ch = TOUPPER ((unsigned char)*p);
 
                 code = '0';
 
@@ -152,11 +158,10 @@ phonetic( char *s )
 	if ( i > 0 )
 		phoneme[i] = '\0';
 
-        return( strdup( phoneme ) );
+        return( ch_strdup( phoneme ) );
 }
 
-#else
-#if defined(METAPHONE)
+#elif defined(SLAPD_METAPHONE)
 
 /*
  * Metaphone copied from C Gazette, June/July 1991, pp 56-57,
@@ -166,7 +171,7 @@ phonetic( char *s )
  */
 
 /* Character coding array */
-static char     vsvfn[26] = {
+static const char  vsvfn[26] = {
 	   1, 16, 4, 16, 9, 2, 4, 16, 9, 2, 0, 2, 2,
 	/* A   B  C   D  E  F  G   H  I  J  K  L  M  */
 	   2, 1, 4, 0, 2, 4, 4, 1, 0, 0, 0, 8, 0};
@@ -183,9 +188,8 @@ char *
 phonetic( char *Word )
 {
 	char           *n, *n_start, *n_end;	/* pointers to string */
-	char           *metaph, *metaph_end;	/* pointers to metaph */
+	char           *metaph_end;	/* pointers to metaph */
 	char            ntrans[40];	/* word with uppercase letters */
-	char            newm[8];/* new metaph for comparison */
 	int             KSflag;	/* state flag for X -> KS */
 	char		buf[MAXPHONEMELEN + 2];
 	char		*Metaph;
@@ -197,13 +201,13 @@ phonetic( char *Word )
 
 	for (n = ntrans + 4, n_end = ntrans + 35; !iswordbreak( *Word ) &&
 	    n < n_end; Word++) {
-		if (isalpha(*Word))
-			*n++ = TOUPPER(*Word);
+		if (isalpha((unsigned char)*Word))
+			*n++ = TOUPPER((unsigned char)*Word);
 	}
 	Metaph = buf;
 	*Metaph = '\0';
 	if (n == ntrans + 4) {
-		return( strdup( buf ) );		/* Return if null */
+		return( ch_strdup( buf ) );		/* Return if null */
 	}
 	n_end = n;		/* Set n_end to end of string */
 
@@ -424,8 +428,7 @@ phonetic( char *Word )
 	}
 
 	*Metaph = 0;		/* Null terminate */
-	return( strdup( buf ) );
+	return( ch_strdup( buf ) );
 }
 
-#endif /* metaphone */
-#endif /* soundex */
+#endif /* SLAPD_METAPHONE */

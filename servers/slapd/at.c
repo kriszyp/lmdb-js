@@ -408,6 +408,11 @@ at_add(
 			return SLAP_SCHERR_ATTR_BAD_USAGE;
 		}
 
+		if ( supsat->sat_obsolete && !sat->sat_obsolete ) {
+			/* subtypes must be obsolete if super is */
+			return SLAP_SCHERR_ATTR_BAD_SUP;
+		}
+
 		if ( sat->sat_flags & SLAP_AT_FINAL ) {
 			/* cannot subtype a "final" attribute type */
 			return SLAP_SCHERR_ATTR_BAD_SUP;
@@ -594,11 +599,11 @@ at_schema_info( Entry *e )
 	vals[1].bv_val = NULL;
 
 	for ( at = attr_list; at; at = at->sat_next ) {
+		if( at->sat_flags & SLAP_AT_HIDE ) continue;
+
 		if ( ldap_attributetype2bv( &at->sat_atype, vals ) == NULL ) {
 			return -1;
 		}
-
-		if( at->sat_flags & SLAP_AT_HIDE ) continue;
 
 		attr_merge( e, ad_attributeTypes, vals );
 		ldap_memfree( vals[0].bv_val );
