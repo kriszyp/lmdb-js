@@ -206,7 +206,7 @@ do_syncrepl(
 	Modifications	*ml, *mlnext;
 	char *def_filter_str = NULL;
 
-	struct berval slap_syncrepl_bv = BER_BVNULL;
+	struct berval slap_syncrepl_cn_bv = BER_BVNULL;
 
 	const char		*text;
 	int				match;
@@ -379,12 +379,12 @@ do_syncrepl(
 	ber_str2bv( si->base, 0, 0, &base_bv ); 
 	dnPrettyNormal( 0, &base_bv, &pbase, &nbase, op.o_tmpmemctx );
 
-	ber_dupbv( &slap_syncrepl_bv, (struct berval *) &slap_syncrepl_bvc );
-	slap_syncrepl_bv.bv_len = snprintf( slap_syncrepl_bv.bv_val,
-									slap_syncrepl_bvc.bv_len,
-									"syncrepl%d", si->id );
-	build_new_dn( &op.o_req_dn, &pbase, &slap_syncrepl_bv, op.o_tmpmemctx );
-	build_new_dn( &op.o_req_ndn, &nbase, &slap_syncrepl_bv, op.o_tmpmemctx );
+	ber_dupbv( &slap_syncrepl_cn_bv, (struct berval *) &slap_syncrepl_cn_bvc );
+	slap_syncrepl_cn_bv.bv_len = snprintf( slap_syncrepl_cn_bv.bv_val,
+										slap_syncrepl_cn_bvc.bv_len,
+										"cn=syncrepl%d", si->id );
+	build_new_dn( &op.o_req_dn, &pbase, &slap_syncrepl_cn_bv, op.o_tmpmemctx );
+	build_new_dn( &op.o_req_ndn, &nbase, &slap_syncrepl_cn_bv, op.o_tmpmemctx );
 
 	/* set callback function */
 	cb.sc_response = cookie_callback;
@@ -402,8 +402,8 @@ do_syncrepl(
 		filter_free( op.ors_filter );
 	if ( op.ors_filterstr.bv_val )
 		ch_free( op.ors_filterstr.bv_val );
-	if ( slap_syncrepl_bv.bv_val )
-		ch_free( slap_syncrepl_bv.bv_val );
+	if ( slap_syncrepl_cn_bv.bv_val )
+		ch_free( slap_syncrepl_cn_bv.bv_val );
 	if ( pbase.bv_val )
 		ch_free( pbase.bv_val );
 	if ( nbase.bv_val )
