@@ -285,7 +285,7 @@ process_ldif_rec( char *rbuf )
 		    *p++ = '\0';
 		    replicaport = atoi( p );
 		}
-		if ( strcasecmp( value, ldaphost ) == 0 &&
+		if ( ldaphost != NULL && strcasecmp( value, ldaphost ) == 0 &&
 			replicaport == ldapport ) {
 		    use_record = 1;
 		}
