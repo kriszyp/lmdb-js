@@ -29,6 +29,7 @@ extern BI_close	ldap_back_close;
 extern BI_destroy	ldap_back_destroy;
 
 extern BI_db_init	ldap_back_db_init;
+extern BI_db_open	ldap_back_db_open;
 extern BI_db_destroy	ldap_back_db_destroy;
 
 extern BI_db_config	ldap_back_db_config;

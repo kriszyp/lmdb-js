@@ -60,7 +60,7 @@ ldap_back_initialize(
 
 	bi->bi_db_init = ldap_back_db_init;
 	bi->bi_db_config = ldap_back_db_config;
-	bi->bi_db_open = 0;
+	bi->bi_db_open = ldap_back_db_open;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = ldap_back_db_destroy;
 
@@ -158,6 +158,29 @@ ldap_back_db_init(
 
 	be->be_private = li;
 	SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NOLASTMOD;
+
+	return 0;
+}
+
+int
+ldap_back_db_open( BackendDB *be )
+{
+	struct ldapinfo	*li = (struct ldapinfo *)be->be_private;
+
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	/* by default, use proxyAuthz control on each operation */
+	switch ( li->idassert_mode ) {
+	case LDAP_BACK_IDASSERT_LEGACY:
+	case LDAP_BACK_IDASSERT_SELF:
+		/* however, since admin connections are pooled and shared,
+		 * only static authzIDs can be native */
+		li->idassert_flags &= ~LDAP_BACK_AUTH_NATIVE_AUTHZ;
+		break;
+
+	default:
+		break;
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	return 0;
 }

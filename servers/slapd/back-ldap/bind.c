@@ -403,8 +403,7 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 		 * control to every operation with the dn bound 
 		 * to the connection as control value.
 		 */
-		if ( op->o_conn != NULL && ( ( BER_BVISNULL( &lc->bound_dn ) || BER_BVISEMPTY( &lc->bound_dn ) ) ) )
-		{
+		if ( op->o_conn != NULL && BER_BVISNULL( &lc->bound_dn ) ) {
 			struct berval	binddn = slap_empty_bv;
 			struct berval	bindcred = slap_empty_bv;
 			int		dobind = 0;
@@ -464,6 +463,7 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 					case LDAP_BACK_IDASSERT_SELF:
 						if ( BER_BVISNULL( &op->o_conn->c_dn ) ) {
 							/* connection is not authc'd, so don't idassert */
+							BER_BVSTR( &authzID, "dn:" );
 							break;
 						}
 						authzID.bv_len = STRLENOF( "dn:" ) + op->o_conn->c_dn.bv_len;
@@ -772,23 +772,26 @@ ldap_back_proxy_authz_ctrl(
 			goto done;
 		}
 
-		if ( !BER_BVISNULL( &lc->bound_dn ) && !BER_BVISEMPTY( &lc->bound_dn ) ) {
+		if ( !BER_BVISNULL( &lc->bound_dn ) ) {
 			goto done;
 		}
 
-		if ( BER_BVISNULL( &op->o_conn->c_dn ) || BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
+		if ( BER_BVISNULL( &op->o_conn->c_dn ) ) {
 			goto done;
 		}
 
-		if ( BER_BVISNULL( &li->idassert_authcDN ) || BER_BVISEMPTY( &li->idassert_authcDN ) ) {
+		if ( BER_BVISNULL( &li->idassert_authcDN ) ) {
 			goto done;
 		}
 
 	} else if ( li->idassert_authmethod == LDAP_AUTH_SASL ) {
 		if ( ( li->idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ )
-				&& !BER_BVISNULL( &op->o_conn->c_dn ) && !BER_BVISEMPTY( &op->o_conn->c_dn ) )
+				/* && ( !BER_BVISNULL( &op->o_conn->c_dn ) || lc->bound ) */ )
 		{
 			/* already asserted in SASL via native authz */
+			/* NOTE: the test on lc->bound is used to trap
+			 * native authorization of anonymous users,
+			 * since in that case op->o_conn->c_dn is NULL */
 			goto done;
 		}
 
