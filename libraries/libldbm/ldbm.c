@@ -35,7 +35,6 @@ ldbm_datum_free( LDBM ldbm, Datum data )
 	}
 }
 
-
 Datum
 ldbm_datum_dup( LDBM ldbm, Datum data )
 {
@@ -60,7 +59,8 @@ ldbm_datum_dup( LDBM ldbm, Datum data )
 
 static int ldbm_initialized = 0;
 
-#ifdef HAVE_BERKELEY_DB_THREAD
+#ifdef USE_BERKELEY_CDB
+	/* not currently supported */
 #define LDBM_LOCK	((void) 0)
 #define LDBM_UNLOCK	((void) 0)
 #else
@@ -70,7 +70,7 @@ static ldap_pvt_thread_mutex_t ldbm_big_mutex;
 #endif
 
 #if !defined( HAVE_BERKELEY_DB ) || (DB_VERSION_MAJOR < 3)
-				/*  a dbEnv for BERKELEYv2  */
+	/*  a dbEnv for BERKELEYv2  */
 DB_ENV *ldbm_Env = NULL;	/* real or fake, depending on db and version */
 #endif
 
@@ -118,25 +118,20 @@ int ldbm_initialize( const char* home )
 			minor < DB_VERSION_MINOR )
 		{
 #ifdef LDAP_SYSLOG
-			char error[BUFSIZ];
-
-			sprintf( error, "%s (%d)\n", STRERROR( err ), err );
-
 			syslog( LOG_INFO,
 				"ldbm_initialize(): version mismatch\nexpected: %s\ngot: %s\n",
-				DB_VERSION_STRING,
-				version );
+				DB_VERSION_STRING, version );
 #endif
-
 			return 1;
 		}
 	}
 
-#if DB_VERSION_MAJOR < 3
-#ifndef HAVE_BERKELEY_DB_THREAD
+#ifndef USE_BERKELEY_CDB
 	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
 #endif
 
+
+#if DB_VERSION_MAJOR < 3
 	ldbm_Env = calloc( 1, sizeof( DB_ENV ));
 
 	if( ldbm_Env == NULL ) return 1;
@@ -144,32 +139,23 @@ int ldbm_initialize( const char* home )
 	ldbm_Env->db_errcall	= ldbm_db_errcall;
 	ldbm_Env->db_errpfx		= "==>";
 
-	envFlags = DB_CREATE;
+	envFlags = DB_CREATE | DB_USE_ENVIRON;
 
 	/* add optional flags */
 #ifdef DB_PRIVATE
 	envFlags |= DB_PRIVATE;
 #endif
-
 #ifdef HAVE_BERKELEY_DB_THREAD
-	envFlags |= DB_THREAD | DB_INIT_CDB | DB_INIT_MPOOL;
-#ifdef DB_MPOOL_PRIVATE
-	envFlags |= DB_MPOOL_PRIVATE;
-#endif
+	envFlags |= DB_THREAD; 
 #endif
 
-	envFlags |= DB_USE_ENVIRON;
 	err = db_appinit( home, NULL, ldbm_Env, envFlags );
 
 	if ( err ) {
 #ifdef LDAP_SYSLOG
-		char error[BUFSIZ];
-
-		sprintf( error, "%s (%d)\n", STRERROR( err ), err );
-
-		syslog( LOG_INFO,
-			"ldbm_initialize(): FATAL error in db_appinit() : %s\n",
-			error );
+		syslog( LOG_INFO, "ldbm_initialize(): "
+			"FATAL error in db_appinit() : %s (%d)\n",
+			db_strerror( err ), err );
 #endif
 	 	return( 1 );
 	}
@@ -184,12 +170,11 @@ int ldbm_shutdown( void )
 
 #if DB_VERSION_MAJOR < 3
 	db_appexit( ldbm_Env );
+#endif
 
-#ifndef HAVE_BERKELEY_DB_THREAD
+#ifndef USE_BERKELEY_CDB
 	ldap_pvt_thread_mutex_destroy( &ldbm_big_mutex );
 #endif
-#endif
-
 	return 0;
 }
 
@@ -224,34 +209,33 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 	int     err;
 	u_int32_t	envFlags;
 
-	envFlags = 
-#if defined( DB_PRIVATE )	/* comment out DB_PRIVATE setting to use */
-	DB_PRIVATE |		/* db_stat to view cache behavior */
-#endif
-#if defined( HAVE_BERKELEY_DB_THREAD )
-	DB_THREAD |
-#endif
-	DB_CREATE;
-	
 	err = db_env_create( &env, 0 );
 
 	if ( err ) {
-		char error[BUFSIZ];
-
-		sprintf( error, "%s (%d)\n", STRERROR( err ), err );
-
 #ifdef LDAP_SYSLOG
-		syslog( LOG_INFO, "ldbm_initialize_env(): FATAL error in db_env_create() : %s\n", error );
+		syslog( LOG_INFO, "ldbm_initialize_env(): "
+			"FATAL error in db_env_create() : %s (%d)\n",
+			db_strerror( err ), err );
 #endif
-		return( NULL );
+		return NULL;
 	}
 
 	env->set_errcall( env, ldbm_db_errcall );
 	env->set_errpfx( env, "==>" );
-	if (dbcachesize)
+	if (dbcachesize) {
 		env->set_cachesize( env, 0, dbcachesize, 0 );
+	}
 
-	envFlags |= DB_INIT_MPOOL | DB_INIT_CDB | DB_USE_ENVIRON;
+	envFlags = DB_CREATE | DB_INIT_MPOOL | DB_USE_ENVIRON;
+#ifdef DB_PRIVATE
+	envFlags |= DB_PRIVATE;
+#endif
+#ifdef DB_MPOOL_PRIVATE
+	envFlags |= DB_MPOOL_PRIVATE;
+#endif
+#ifdef HAVE_BERKELEY_DB_THREAD
+	envFlags |= DB_THREAD;
+#endif
 
 #if DB_VERSION_MAJOR > 3 || DB_VERSION_MINOR > 0
 	err = env->open( env, home, envFlags, 0 );
@@ -260,19 +244,14 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 	err = env->open( env, home, NULL, envFlags, 0 );
 #endif
 
-	if ( err != 0 )
-	{
-		char error[BUFSIZ];
-
-		sprintf( error, "%s (%d)\n", STRERROR( err ), err );
-
+	if ( err != 0 ) {
 #ifdef LDAP_SYSLOG
-		syslog(	LOG_INFO,
-			"ldbm_initialize_env(): FATAL error in dbEnv->open() : %s\n",
-			error );
+		syslog(	LOG_INFO, "ldbm_initialize_env(): "
+			"FATAL error in dbEnv->open() : %s (%d)\n",
+			db_strerror( err ), err );
 #endif
 		env->close( env, 0 );
-		return( NULL );
+		return NULL;
 	}
 
 	*envdirok = 1;

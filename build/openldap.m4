@@ -333,12 +333,9 @@ AC_DEFUN([OL_BERKELEY_DB_THREAD],
 main()
 {
 	int rc;
-	u_int32_t flags = DB_CREATE | DB_INIT_CDB | DB_INIT_MPOOL |
+	u_int32_t flags = DB_CREATE |
 #ifdef DB_PRIVATE
 		DB_PRIVATE |
-#endif
-#ifdef DB_MPOOL_PRIVATE
-		DB_MPOOL_PRIVATE |
 #endif
 		DB_THREAD;
 
@@ -347,19 +344,15 @@ main()
 
 	rc = db_env_create( &env, 0 );
 
-	if( rc ) {
-		printf("BerkeleyDB: %s\n", db_strerror(rc) );
-		return rc;
-	}
-
-#ifdef DB_CDB_ALLDB
-	rc = env->set_flags( env, DB_CDB_ALLDB, 1 );
-
-	if( rc ) {
-		printf("BerkeleyDB: %s\n", db_strerror(rc) );
-		return rc;
-	}
+	flags |= DB_INIT_MPOOL;
+#ifdef DB_MPOOL_PRIVATE
+	flags |= DB_MPOOL_PRIVATE;
 #endif
+
+	if( rc ) {
+		printf("BerkeleyDB: %s\n", db_strerror(rc) );
+		return rc;
+	}
 
 #if (DB_VERSION_MAJOR > 3) || (DB_VERSION_MINOR >= 1)
 	rc = env->open( env, NULL, flags, 0 );
