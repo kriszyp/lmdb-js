@@ -1097,8 +1097,8 @@ print_entry(
 
 		} else if (( bvals = ldap_get_values_len( ld, entry, a )) != NULL ) {
 			for ( i = 0; bvals[i] != NULL; i++ ) {
-				if ( vals2tmp > 1 || ( vals2tmp
-					&& ldif_is_not_printable( bvals[i]->bv_val, bvals[i]->bv_len ) ))
+				if ( vals2tmp > 1 || ( vals2tmp && ldif_is_not_printable(
+					bvals[i]->bv_val, bvals[i]->bv_len ) ))
 				{
 					int tmpfd;
 					/* write value to file */
