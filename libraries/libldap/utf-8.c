@@ -76,36 +76,22 @@ int ldap_utf8_offset( const char * p )
  *
  * This function should use a table lookup.
  */
+const char ldap_utf8_lentab[] = {
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+	3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+	4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 0, 0 };
+
 int ldap_utf8_charlen( const char * p )
 {
-	unsigned c = * (const unsigned char *) p;
+	if (!(*p & 0x80))
+		return 1;
 
-	if ((c & 0xfe ) == 0xfc) {
-		return 6;
-	}
-
-	if ((c & 0xfc ) == 0xf8) {
-		return 5;
-	}
-
-	if ((c & 0xf8 ) == 0xf0) {
-		return 4;
-	}
-
-	if ((c & 0xf0 ) == 0xe0) {
-		return 3;
-	}
-
-	if ((c & 0xe0 ) == 0xc0) {
-		return 2;
-	}
-
-	if ((c & 0x80 ) == 0x80) {
-		/* INVALID */
-		return 0;
-	}
-
-	return 1;
+	return ldap_utf8_lentab[*(unsigned char *)p ^ 0x80];
 }
 
 /* conv UTF-8 to UCS-4, useful for comparisons */

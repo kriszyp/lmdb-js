@@ -1950,7 +1950,7 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 	}
 
 	for ( l = 0, p = val->bv_val; p[ 0 ]; p += cl ) {
-		cl = ldap_utf8_charlen( p );
+		cl = LDAP_UTF8_CHARLEN( p );
 		if ( cl == 0 ) {
 			/* illegal utf-8 char! */
 			return( -1 );
@@ -2018,7 +2018,7 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 	 * of the value
 	 */
 	for ( s = 0, d = 0, end = val->bv_len - 1; s < val->bv_len; ) {
-		ber_len_t	cl = ldap_utf8_charlen( &val->bv_val[ s ] );
+		ber_len_t	cl = LDAP_UTF8_CHARLEN( &val->bv_val[ s ] );
 		
 		/* 
 		 * there might be some chars we want to escape in form
