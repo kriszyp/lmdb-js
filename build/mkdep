@@ -26,6 +26,7 @@ set -e				# exit immediately if any errors occur
 MAKE=Makefile			# default makefile name is "Makefile"
 NOSLASH="no"			# by default, / dependencies are included
 CC=${CC-cc}				# default compiler is cc
+: ${CC_MKDEP_FLAGS="-M"}	# cc -M usually produces dependencies
 SRCDIR=""
 SED=cat
 
@@ -127,7 +128,7 @@ cat << _EOF_ >> $TMP
 
 _EOF_
 
-$CC -M $files | \
+$CC $CC_MKDEP_FLAGS $files | \
 	sed -e 's; \./; ;g' | \
 	$SED | \
 awk '
