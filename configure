@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.323 2000/08/29 22:03:29 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.324 2000/09/06 19:22:55 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -37,7 +37,7 @@ ac_help="$ac_help
 ac_help="$ac_help
   --enable-referrals	  enable V2 Referrals extension (yes)"
 ac_help="$ac_help
-  --enable-kbind	  enable V2 Kerberos IV bind (auto)"
+  --enable-kbind	  enable V2 Kerberos IV bind (no)"
 ac_help="$ac_help
   --enable-ipv6 	  enable IPv6 support (auto)"
 ac_help="$ac_help
@@ -1292,7 +1292,7 @@ if test "${enable_kbind+set}" = set; then
 	ol_enable_kbind="$ol_arg"
 
 else
-  	ol_enable_kbind="auto"
+  	ol_enable_kbind="no"
 fi
 # end --enable-kbind
 # OpenLDAP --enable-ipv6

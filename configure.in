@@ -105,7 +105,7 @@ OL_ARG_ENABLE(syslog,[  --enable-syslog	  enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	  enable proctitle support], yes)dnl
 OL_ARG_ENABLE(cache,[  --enable-cache	  enable caching], yes)dnl
 OL_ARG_ENABLE(referrals,[  --enable-referrals	  enable V2 Referrals extension], yes)dnl
-OL_ARG_ENABLE(kbind,[  --enable-kbind	  enable V2 Kerberos IV bind], auto)dnl
+OL_ARG_ENABLE(kbind,[  --enable-kbind	  enable V2 Kerberos IV bind], no)dnl
 OL_ARG_ENABLE(ipv6,[  --enable-ipv6 	  enable IPv6 support], auto)dnl
 OL_ARG_ENABLE(local,[  --enable-local	  enable AF_LOCAL (AF_UNIX) socket support], auto)dnl
 OL_ARG_ENABLE(x_compile,[  --enable-x-compile	  enable cross compiling],
