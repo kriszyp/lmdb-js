@@ -14,11 +14,6 @@
 
 /* end of preamble */
 
-#if !defined( SLAPD_SCHEMA_COMPAT ) && !defined( SLAPD_SCHEMA_NOT_COMPAT )
-	/* use new schema codes */
-#define SLAPD_SCHEMA_NOT_COMPAT 1
-#endif
-
 
 /* Define if on AIX 3.
    System headers sometimes define this.
@@ -351,9 +346,6 @@
 /* Define if you have the <dirent.h> header file.  */
 #undef HAVE_DIRENT_H
 
-/* Define if you have the <dmalloc.h> header file.  */
-#undef HAVE_DMALLOC_H
-
 /* Define if you have the <errno.h> header file.  */
 #undef HAVE_ERRNO_H
 
@@ -566,9 +558,6 @@
 
 /* Define if you have the bind library (-lbind).  */
 #undef HAVE_LIBBIND
-
-/* Define if you have the dmalloc library (-ldmalloc).  */
-#undef HAVE_LIBDMALLOC
 
 /* Define if you have the gen library (-lgen).  */
 #undef HAVE_LIBGEN
