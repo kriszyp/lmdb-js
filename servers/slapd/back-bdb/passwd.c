@@ -38,8 +38,8 @@ bdb_exop_passwd(
 	struct berval id = { 0, NULL };
 	struct berval new = { 0, NULL };
 
-	struct berval dn;
-	struct berval ndn;
+	struct berval dn = { 0, NULL };
+	struct berval ndn = { 0, NULL };
 
 	u_int32_t	locker = 0;
 	DB_LOCK		lock;
@@ -274,6 +274,10 @@ done:
 		
 	if( hash.bv_val != NULL ) {
 		free( hash.bv_val );
+	}
+
+	if( ndn.bv_val != NULL ) {
+		free( ndn.bv_val );
 	}
 
 	if( ltid != NULL ) {

@@ -349,13 +349,16 @@ sasl_ap_lookup(
 		}
 		a = attr_find( e->e_attrs, ad );
 		if ( !a ) continue;
-		if ( ! access_allowed( be, conn, op, e, ad, NULL, ACL_AUTH, NULL ) )
+		if ( ! access_allowed( be, conn, op, e, ad, NULL, ACL_AUTH, NULL ) ) {
 			continue;
-		if ( sl->list[i].values && ( sl->flags & SASL_AUXPROP_OVERRIDE ) )
-			sl->sparams->utils->prop_erase( sl->sparams->propctx, sl->list[i].name );
+		}
+		if ( sl->list[i].values && ( sl->flags & SASL_AUXPROP_OVERRIDE ) ) {
+			sl->sparams->utils->prop_erase( sl->sparams->propctx,
+			sl->list[i].name );
+		}
 		for ( bv = a->a_vals; bv->bv_val; bv++ ) {
-			sl->sparams->utils->prop_set( sl->sparams->propctx, sl->list[i].name,
-				bv->bv_val, bv->bv_len );
+			sl->sparams->utils->prop_set( sl->sparams->propctx,
+				sl->list[i].name, bv->bv_val, bv->bv_len );
 		}
 	}
 	return LDAP_SUCCESS;

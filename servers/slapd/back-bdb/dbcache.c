@@ -46,11 +46,13 @@ bdb_db_hash(
 int
 bdb_db_cache(
 	Backend	*be,
+	DB_TXN *tid,
 	const char *name,
 	DB **dbout )
 {
 	int i;
 	int rc;
+	int flags;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct bdb_db_info *db;
 	char *file;
@@ -110,9 +112,11 @@ bdb_db_cache(
 #ifdef HAVE_EBCDIC
 	__atoe( file );
 #endif
-	rc = DB_OPEN( db->bdi_db,
+	flags = bdb->bi_db_opflags | DB_CREATE | DB_THREAD;
+	if ( !tid ) flags |= DB_AUTO_COMMIT;
+	rc = DB_OPEN( db->bdi_db, tid,
 		file, name,
-		DB_HASH, bdb->bi_db_opflags | DB_CREATE | DB_THREAD,
+		DB_HASH, flags,
 		bdb->bi_dbenv_mode );
 
 	ch_free( file );

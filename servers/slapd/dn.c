@@ -266,6 +266,11 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			ava->la_attr = ad->ad_cname;
 
 			if( ava->la_flags & LDAP_AVA_BINARY ) {
+				if( ava->la_value.bv_len == 0 ) {
+					/* BER encoding is empty */
+					return LDAP_INVALID_SYNTAX;
+				}
+
 				/* AVA is binary encoded, don't muck with it */
 				validf = NULL;
 				transf = NULL;

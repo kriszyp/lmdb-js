@@ -103,7 +103,7 @@ int bdb_index_param(
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
-	rc = bdb_db_cache( be, dbname, &db );
+	rc = bdb_db_cache( be, NULL, dbname, &db );
 
 	if( rc != LDAP_SUCCESS ) {
 		return rc;
@@ -165,7 +165,7 @@ static int indexer(
 
 	assert( mask );
 
-	rc = bdb_db_cache( be, dbname, &db );
+	rc = bdb_db_cache( be, txn, dbname, &db );
 	
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING

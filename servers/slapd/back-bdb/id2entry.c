@@ -24,13 +24,14 @@ int bdb_id2entry_put(
 	struct berval bv;
 	int rc;
 #ifdef BDB_HIER
-	char *odn, *ondn;
+	struct berval odn, ondn;
 
 	/* We only store rdns, and they go in the id2parent database. */
 
-	odn = e->e_dn; ondn = e->e_ndn;
+	odn = e->e_name; ondn = e->e_nname;
 
-	e->e_dn = ""; e->e_ndn = "";
+	e->e_name = slap_empty_bv;
+	e->e_nname = slap_empty_bv;
 #endif
 	DBTzero( &key );
 	key.data = (char *) &e->e_id;
@@ -38,7 +39,7 @@ int bdb_id2entry_put(
 
 	rc = entry_encode( e, &bv );
 #ifdef BDB_HIER
-	e->e_dn = odn; e->e_ndn = ondn;
+	e->e_name = odn; e->e_nname = ondn;
 #endif
 	if( rc != LDAP_SUCCESS ) {
 		return -1;
