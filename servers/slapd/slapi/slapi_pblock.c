@@ -196,6 +196,8 @@ isOkNetscapeParam( int param )
 	case SLAPI_RESULT_CODE:
 	case SLAPI_RESULT_TEXT:
 	case SLAPI_RESULT_MATCHED:
+	case SLAPI_PLUGIN_OPATTR_COALESCE_FN:
+	case SLAPI_PLUGIN_OPATTR_COALESCE_DATA:
 		return LDAP_SUCCESS;
 	default:
 		return INVALID_PARAM;
@@ -413,9 +415,11 @@ slapi_pblock_set( Slapi_PBlock *pb, int arg, void *value )
 
 	switch ( arg ) {
         case SLAPI_CONN_DN:
-        case SLAPI_CONN_AUTHTYPE:
+        case SLAPI_CONN_AUTHMETHOD:
         case SLAPI_IBM_CONN_DN_ALT:
         case SLAPI_IBM_CONN_DN_ORIG:
+        case SLAPI_RESULT_TEXT:
+        case SLAPI_RESULT_MATCHED:
 		if ( value != NULL ) {
 			pTmp = (void *)slapi_ch_strdup((char *)value);
 			if ( pTmp == NULL ) {
