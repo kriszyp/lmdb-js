@@ -164,7 +164,6 @@ static int indexer(
 	const char *text;
 	DB *db;
 	struct berval *keys;
-	void *mark;
 
 	assert( mask );
 
@@ -182,10 +181,6 @@ static int indexer(
 #endif
 		return LDAP_OTHER;
 	}
-
-#if 0	/* No longer needed, our frees are in order so nothing accumulates */
-	mark = sl_mark(op->o_tmpmemctx);
-#endif
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
 		rc = bdb_key_change( op->o_bd, db, txn, &presence_key, id, opid );
@@ -260,9 +255,6 @@ static int indexer(
 	}
 
 done:
-#if 0
-	sl_release( mark, op->o_tmpmemctx );
-#endif
 	return rc;
 }
 

@@ -353,26 +353,6 @@ int backend_startup(Backend *be)
 
 	/* open each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
-#ifndef SLAPD_MULTIMASTER
-		if ( backendDB[i].be_update_ndn.bv_val && (
-			!backendDB[i].be_update_refs &&
-			LDAP_STAILQ_EMPTY( &backendDB[i].be_syncinfo ) &&
-			!default_referral ) )
-		{
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACKEND, CRIT, 
-				"backend_startup: slave \"%s\" updateref missing\n",
-				backendDB[i].be_suffix[0].bv_val, 0, 0 );
-				
-#else
-			Debug( LDAP_DEBUG_ANY,
-				"backend_startup: slave \"%s\" updateref missing\n",
-				backendDB[i].be_suffix[0].bv_val, 0, 0 );
-#endif
-			return -1;
-		}
-#endif
-
 		/* append global access controls */
 		acl_append( &backendDB[i].be_acl, global_acl );
 
@@ -1055,7 +1035,7 @@ backend_check_restrictions(
 		if( requires & SLAP_REQUIRE_STRONG ) {
 			/* should check mechanism */
 			if( ( op->o_transport_ssf < ssf->sss_transport
-				&& op->o_authmech.bv_len == 0 ) || op->o_dn.bv_len == 0 )
+				&& op->o_authtype == LDAP_AUTH_SIMPLE ) || op->o_dn.bv_len == 0 )
 			{
 				rs->sr_text = "strong authentication required";
 				rs->sr_err = LDAP_STRONG_AUTH_REQUIRED;
@@ -1064,7 +1044,7 @@ backend_check_restrictions(
 		}
 
 		if( requires & SLAP_REQUIRE_SASL ) {
-			if( op->o_authmech.bv_len == 0 || op->o_dn.bv_len == 0 ) {
+			if( op->o_authtype != LDAP_AUTH_SASL || op->o_dn.bv_len == 0 ) {
 				rs->sr_text = "SASL authentication required";
 				rs->sr_err = LDAP_STRONG_AUTH_REQUIRED;
 				return rs->sr_err;

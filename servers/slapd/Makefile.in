@@ -14,8 +14,10 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 PROGRAMS=slapd
-XPROGRAMS=sslapd libbackends.a .backend
+XPROGRAMS=sslapd libbackends.a .backend liboverlays.a
 XSRCS=version.c
+
+SUBDIRS=back-* shell-backends slapi overlays tools
 
 NT_SRCS = nt_svc.c
 NT_OBJS = nt_svc.o ../../libraries/liblutil/slapdmsg.res
@@ -52,7 +54,7 @@ LDAP_INCDIR= ../../include -I$(srcdir)/slapi
 LDAP_LIBDIR= ../../libraries
 
 SLAP_DIR=
-SLAPD_STATIC_DEPENDS=@SLAPD_NO_STATIC@ libbackends.a
+SLAPD_STATIC_DEPENDS=@SLAPD_NO_STATIC@ libbackends.a liboverlays.a
 SLAPD_STATIC_BACKENDS=@SLAPD_STATIC_BACKENDS@
 SLAPD_DYNAMIC_BACKENDS=@SLAPD_DYNAMIC_BACKENDS@
 
@@ -297,6 +299,9 @@ libbackends.a: .backend
 	fi
 	@ls -l libbackends.a; echo ""
 
+liboverlays.a: FORCE
+	@cd overlays; $(MAKE) $(MFLAGS) all
+
 version.c: Makefile
 	@-$(RM) $@
 	$(MKVERSION) -s -n Versionstr slapd > $@
@@ -304,7 +309,7 @@ version.c: Makefile
 version.o: version.c $(OBJS) $(SLAPD_LIBDEPEND) 
 
 depend-local-srv: FORCE
-	@for i in back-* shell-backends slapi tools; do \
+	@for i in $(SUBDIRS); do \
 		if test -d $$i -a -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) depend"; \
 			( cd $$i; $(MAKE) $(MFLAGS) depend ); \
@@ -317,7 +322,7 @@ clean-local:
 	rm -f *.exp *.def *.base *.a *.objs symdummy.c
 
 clean-local-srv: FORCE
-	@for i in back-* shell-backends slapi tools; do \
+	@for i in $(SUBDIRS); do \
 		if test -d $$i -a -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 			( cd $$i; $(MAKE) $(MFLAGS) clean ); \
@@ -327,7 +332,7 @@ clean-local-srv: FORCE
 	rm -f *.tmp all-cffiles
 
 veryclean-local-srv: FORCE
-	@for i in back-* shell-backends slapi tools; do \
+	@for i in $(SUBDIRS); do \
 		if test -d $$i -a -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 			( cd $$i; $(MAKE) $(MFLAGS) veryclean ); \
@@ -341,7 +346,7 @@ install-slapd: FORCE
 	-$(MKDIR) $(DESTDIR)$(localstatedir)
 	$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 \
 		slapd$(EXEEXT) $(DESTDIR)$(libexecdir)
-	@for i in back-* shell-backends slapi tools; do \
+	@for i in $(SUBDIRS); do \
 	    if test -d $$i -a -f $$i/Makefile ; then \
 		echo; echo "  cd $$i; $(MAKE) $(MFLAGS) install"; \
 		( cd $$i; $(MAKE) $(MFLAGS) install ); \

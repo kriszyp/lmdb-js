@@ -51,7 +51,7 @@ sslurpd:	version.o
 
 version.c: Makefile
 	@-$(RM) $@
-	$(MKVERSION) slurpd > $@
+	$(MKVERSION) -s -n Versionstr slurpd > $@
 
 version.o: version.c $(OBJS) $(SLURPD_L)
 

@@ -976,12 +976,11 @@ connection_operation( void *ctx, void *arg_v )
 	/* We can use Thread-Local storage for most mallocs. We can
 	 * also use TL for ber parsing, but not on Add or Modify.
 	 */
-#define	SLAB_SIZE	1048576
 #if 0
 	memsiz = ber_len( op->o_ber ) * 64;
-	if ( SLAB_SIZE > memsiz ) memsiz = SLAB_SIZE;
+	if ( SLMALLOC_SLAB_SIZE > memsiz ) memsiz = SLMALLOC_SLAB_SIZE;
 #endif
-	memsiz = SLAB_SIZE;
+	memsiz = SLMALLOC_SLAB_SIZE;
 
 	memctx = sl_mem_create( memsiz, ctx );
 	op->o_tmpmemctx = memctx;
@@ -1389,13 +1388,12 @@ int connection_read(ber_socket_t s)
 #define CONNECTION_INPUT_LOOP 1
 /* #define	DATA_READY_LOOP 1 */
 
-	do
-	{
+	do {
 		/* How do we do this without getting into a busy loop ? */
 		rc = connection_input( c );
 	}
 #ifdef DATA_READY_LOOP
-	while( !rc && ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ) );
+	while( !rc && ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ));
 #elif CONNECTION_INPUT_LOOP
 	while(!rc);
 #else
@@ -1568,10 +1566,7 @@ connection_input(
 	op->o_preread_attrs = NULL;
 	op->o_postread_attrs = NULL;
 	op->o_vrFilter = NULL;
-
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 	op->o_pagedresults_state = conn->c_pagedresults_state;
-#endif
 
 	op->o_res_ber = NULL;
 

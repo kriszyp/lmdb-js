@@ -118,7 +118,8 @@ LDAP_SLAPD_F (int) slap_mods2entry LDAP_P(( Modifications *mods, Entry **e,
 	int repl_user, int dup, const char **text, char *textbuf, size_t textlen ));
 
 LDAP_SLAPD_F (int) slap_entry2mods LDAP_P(( Entry *e,
-						Modifications **mods, const char **text ));
+						Modifications **mods, const char **text,
+						char *textbuf, size_t textlen ));
 
 /*
  * at.c
@@ -844,6 +845,11 @@ LDAP_SLAPD_F (Attribute *) slap_operational_subschemaSubentry( Backend *be );
 LDAP_SLAPD_F (Attribute *) slap_operational_hasSubordinate( int has );
 
 /*
+ * overlays.c
+ */
+LDAP_SLAPD_F (int) overlay_init( void );
+
+/*
  * passwd.c
  */
 LDAP_SLAPD_F (SLAP_EXTOP_MAIN_FN) passwd_extop;
@@ -919,6 +925,7 @@ LDAP_SLAPD_F (void) slap_send_ldap_intermediate LDAP_P(( Operation *op, SlapRepl
 LDAP_SLAPD_F (void) slap_send_search_result LDAP_P(( Operation *op, SlapReply *rs ));
 LDAP_SLAPD_F (int) slap_send_search_reference LDAP_P(( Operation *op, SlapReply *rs ));
 LDAP_SLAPD_F (int) slap_send_search_entry LDAP_P(( Operation *op, SlapReply *rs ));
+LDAP_SLAPD_F (int) slap_null_cb LDAP_P(( Operation *op, SlapReply *rs ));
 
 LDAP_SLAPD_V( const struct berval ) slap_pre_read_bv;
 LDAP_SLAPD_V( const struct berval ) slap_post_read_bv;
@@ -976,6 +983,9 @@ LDAP_SLAPD_F (int) slap_sasl_getdn( Connection *conn, Operation *op,
 /*
  * saslauthz.c
  */
+LDAP_SLAPD_F (int) slap_parse_user LDAP_P((
+	struct berval *id, struct berval *user,
+	struct berval *realm, struct berval *mech ));
 LDAP_SLAPD_F (void) slap_sasl2dn LDAP_P((
 	Operation *op,
 	struct berval *saslname,
@@ -1073,8 +1083,6 @@ LDAP_SLAPD_F (void) sl_mem_init LDAP_P(( void ));
 LDAP_SLAPD_F (void *) sl_mem_create LDAP_P(( ber_len_t size, void *ctx ));
 LDAP_SLAPD_F (void) sl_mem_detach LDAP_P(( void *ctx, void *memctx ));
 LDAP_SLAPD_F (void) sl_mem_destroy LDAP_P(( void *key, void *data ));
-LDAP_SLAPD_F (void *) sl_mark LDAP_P(( void *ctx ));
-LDAP_SLAPD_F (void) sl_release LDAP_P(( void *, void *ctx ));
 LDAP_SLAPD_F (void *) sl_context LDAP_P(( void *ptr ));
 
 /*
@@ -1240,7 +1248,9 @@ LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	replog_mutex;
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	passwd_mutex;
 #endif
+#ifndef HAVE_GMTIME_R
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	gmtime_mutex;
+#endif
 
 LDAP_SLAPD_V (AccessControl *) global_acl;
 

@@ -132,6 +132,9 @@ schema_info( Entry **entry, const char **text )
 
 	{
 		struct		tm *ltm;
+#ifdef HAVE_GMTIME_R
+		struct		tm ltm_buf;
+#endif
 		char		timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 
 		/*
@@ -145,10 +148,16 @@ schema_info( Entry **entry, const char **text )
 		 * AND modified at server startup time ...
 		 */
 
+#ifdef HAVE_GMTIME_R
+		ltm = gmtime_r( &starttime, &ltm_buf );
+#else
 		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 		ltm = gmtime( &starttime );
+#endif /* HAVE_GMTIME_R */
 		lutil_gentime( timebuf, sizeof(timebuf), ltm );
+#ifndef HAVE_GMTIME_R
 		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+#endif
 
 		vals[0].bv_val = timebuf;
 		vals[0].bv_len = strlen( timebuf );

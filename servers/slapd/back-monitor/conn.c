@@ -2,7 +2,8 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2003 The OpenLDAP Foundation.
+ * Copyright 2001-2003 The OpenLDAP Foundation.
+ * Portions Copyright 2001-2003 Pierangelo Masarati.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -16,34 +17,6 @@
 /* ACKNOWLEDGEMENTS:
  * This work was initially developed by Pierangelo Masarati for inclusion
  * in OpenLDAP Software.
- */
-/* This is an altered version */
-/*
- * Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
- * 
- * This work has beed deveolped for the OpenLDAP Foundation 
- * in the hope that it may be useful to the Open Source community, 
- * but WITHOUT ANY WARRANTY.
- * 
- * Permission is granted to anyone to use this software for any purpose
- * on any computer system, and to alter it and redistribute it, subject
- * to the following restrictions:
- * 
- * 1. The author and SysNet s.n.c. are not responsible for the consequences
- *    of use of this software, no matter how awful, even if they arise from
- *    flaws in it.
- * 
- * 2. The origin of this software must not be misrepresented, either by
- *    explicit claim or by omission.  Since few users ever read sources,
- *    credits should appear in the documentation.
- * 
- * 3. Altered versions must be plainly marked as such, and must not be
- *    misrepresented as being the original software.  Since few users
- *    ever read sources, credits should appear in the documentation.
- *    SysNet s.n.c. cannot be responsible for the consequences of the
- *    alterations.
- * 
- * 4. This notice may not be removed or altered.
  */
 
 #include "portable.h"
@@ -295,23 +268,44 @@ conn_create(
 	char		ctmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 	struct tm	*mtm;
 	char		mtmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+#ifdef HAVE_GMTIME_R
+	struct tm	tm_buf;
+#endif /* HAVE_GMTIME_R */
 
 	assert( c != NULL );
 	assert( ep != NULL );
 
+#ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+#endif
 #ifdef HACK_LOCAL_TIME
+# ifdef HAVE_LOCALTIME_R
+	ctm = localtime_r( &c->c_starttime, &tm_buf );
+	lutil_localtime( ctmbuf, sizeof( ctmbuf ), ctm, -timezone );
+	mtm = localtime_r( &c->c_activitytime, &tm_buf );
+	lutil_localtime( mtmbuf, sizeof( mtmbuf ), mtm, -timezone );
+# else
 	ctm = localtime( &c->c_starttime );
 	lutil_localtime( ctmbuf, sizeof( ctmbuf ), ctm, -timezone );
 	mtm = localtime( &c->c_activitytime );
 	lutil_localtime( mtmbuf, sizeof( mtmbuf ), mtm, -timezone );
+# endif /* HAVE_LOCALTIME_R */
 #else /* !HACK_LOCAL_TIME */
+# ifdef HAVE_GMTIME_R
+	ctm = gmtime_r( &c->c_starttime, &tm_buf );
+	lutil_gentime( ctmbuf, sizeof( ctmbuf ), ctm );
+	mtm = gmtime_r( &c->c_activitytime, &tm_buf );
+	lutil_gentime( mtmbuf, sizeof( mtmbuf ), mtm );
+# else
 	ctm = gmtime( &c->c_starttime );
 	lutil_gentime( ctmbuf, sizeof( ctmbuf ), ctm );
 	mtm = gmtime( &c->c_activitytime );
 	lutil_gentime( mtmbuf, sizeof( mtmbuf ), mtm );
+# endif /* HAVE_GMTIME_R */
 #endif /* !HACK_LOCAL_TIME */
+#ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+#endif
 
 	snprintf( buf, sizeof( buf ),
 		"dn: cn=" CONN_CN_PREFIX " %ld,%s\n"
@@ -346,15 +340,27 @@ conn_create(
 		return( -1 );
 	}
 
+#ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-	
+#endif
+
+#ifdef HAVE_GMTIME_R
+	ltm = gmtime_r( &c->c_starttime, &tm_buf );
+#else
 	ltm = gmtime( &c->c_starttime );
+#endif
 	lutil_gentime( buf2, sizeof( buf2 ), ltm );
-			
+
+#ifdef HAVE_GMTIME_R
+	ltm = gmtime_r( &c->c_activitytime, &tm_buf );
+#else
 	ltm = gmtime( &c->c_activitytime );
+#endif
 	lutil_gentime( buf3, sizeof( buf3 ), ltm );
-			
+
+#ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+#endif /* HAVE_GMTIME_R */
 
 	/* monitored info */
 	sprintf( buf,

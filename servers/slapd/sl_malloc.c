@@ -206,27 +206,6 @@ sl_free( void *ptr, void *ctx )
 	}
 }
 
-void
-sl_release( void *ptr, void *ctx )
-{
-	struct slab_heap *sh = ctx;
-
-	if ( sh && ptr >= sh->h_base && ptr <= sh->h_end ) {
-		sh->h_last = ptr;
-	}
-}
-
-void *
-sl_mark( void *ctx )
-{
-	struct slab_heap *sh = ctx;
-	void *ret = NULL;
-
-	if (sh) ret = sh->h_last;
-
-	return ret;
-}
-
 void *
 sl_context( void *ptr )
 {

@@ -80,7 +80,7 @@ doargs(
 	g->myname = strdup( g->myname + 1 );
     }
 
-    while ( (i = getopt( argc, argv, "d:f:n:or:t:" )) != EOF ) {
+    while ( (i = getopt( argc, argv, "d:f:n:or:t:V" )) != EOF ) {
 	switch ( i ) {
 	case 'd':	/* set debug level and 'do not detach' flag */
 	    g->no_detach = 1;
@@ -140,6 +140,9 @@ doargs(
 	    snprintf(g->slurpd_rdir, sz,
 			"%s" LDAP_DIRSEP "replica", optarg);
 	    } break;
+	case 'V':
+	    (g->version)++;
+	    break;
 	default:
 	    usage( g->myname );
 	    return( -1 );

@@ -107,4 +107,7 @@ int tsleep	LDAP_P((time_t interval));
 void start_lwp_scheduler LDAP_P(( void ));
 #endif
 
+/*main.c */
+extern const char Versionstr[];
+
 #endif /* _PROTO_SLURP */

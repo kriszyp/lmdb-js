@@ -20,7 +20,7 @@
  *  additional notices.
  */
 /* ACKNOWLEDGEMENTS:
- * This work was initially developed by John Doe (of FOO Corporation).
- * Additional significant contributors include:
- *   Jane Doe of BAR, Inc. (added this and that)
+ * This work was initially developed by Jane Doe for inclusion in
+ * OpenLDAP Software.  Additional significant contributors include:
+ *   John Doe
  */

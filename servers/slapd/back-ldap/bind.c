@@ -3,6 +3,8 @@
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1999-2003 The OpenLDAP Foundation.
+ * Portions Copyright 2000-2003 Pierangelo Masarati.
+ * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -17,36 +19,6 @@
  * This work was initially developed by the Howard Chu for inclusion
  * in OpenLDAP Software and subsequently enhanced by Pierangelo
  * Masarati.
- */
-/* This is an altered version */
-/*
- * Copyright 1999, Howard Chu, All rights reserved. <hyc@highlandsun.com>
- * 
- * Permission is granted to anyone to use this software for any purpose
- * on any computer system, and to alter it and redistribute it, subject
- * to the following restrictions:
- * 
- * 1. The author is not responsible for the consequences of use of this
- *    software, no matter how awful, even if they arise from flaws in it.
- * 
- * 2. The origin of this software must not be misrepresented, either by
- *    explicit claim or by omission.  Since few users ever read sources,
- *    credits should appear in the documentation.
- * 
- * 3. Altered versions must be plainly marked as such, and must not be
- *    misrepresented as being the original software.  Since few users
- *    ever read sources, credits should appear in the documentation.
- * 
- * 4. This notice may not be removed or altered.
- *
- *
- *
- * Copyright 2000, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
- * 
- * This software is being modified by Pierangelo Masarati.
- * The previously reported conditions apply to the modified code as well.
- * Changes in the original code are highlighted where required.
- * Credits for the original code go to the author, Howard Chu.
  */
 
 #include "portable.h"
@@ -404,13 +376,51 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 int
 ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 {	
+	struct ldapinfo *li = (struct ldapinfo *)op->o_bd->be_private;
 	int rc;
 	ber_int_t msgid;
 
 	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
 	if ( !lc->bound ) {
-		rs->sr_err = ldap_sasl_bind(lc->ld, lc->bound_dn.bv_val,
-			LDAP_SASL_SIMPLE, &lc->cred, NULL, NULL, &msgid);
+#ifdef LDAP_BACK_PROXY_AUTHZ
+		int	gotit = 0;
+#if 0
+		/*
+		 * FIXME: we need to let clients use proxyAuthz
+		 * otherwise we cannot do symmetric pools of servers;
+		 * we have to live with the fact that a user can
+		 * authorize itself as any ID that is allowed
+		 * by the saslAuthzTo directive of the "proxyauthzdn".
+		 */
+		/*
+		 * NOTE: current Proxy Authorization specification
+		 * and implementation do not allow proxy authorization
+		 * control to be provided with Bind requests
+		 */
+		gotit = op->o_proxy_authz;
+#endif
+
+		/*
+		 * if no bind took place yet, but the connection is bound
+		 * and the "proxyauthzdn" is set, then bind as 
+		 * "proxyauthzdn" and explicitly add the proxyAuthz 
+		 * control to every operation with the dn bound 
+		 * to the connection as control value.
+		 */
+		if ( ( lc->bound_dn.bv_val == NULL || lc->bound_dn.bv_len == 0 )
+	      			&& ( op->o_conn && op->o_conn->c_dn.bv_val != NULL && op->o_conn->c_dn.bv_len != 0 )
+	      			&& ( li->proxyauthzdn.bv_val != NULL && li->proxyauthzdn.bv_len != 0 ) 
+	      			&& ! gotit ) {
+			rs->sr_err = ldap_sasl_bind(lc->ld, li->proxyauthzdn.bv_val,
+				LDAP_SASL_SIMPLE, &li->proxyauthzpw, NULL, NULL, &msgid);
+
+		} else
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+		{
+			rs->sr_err = ldap_sasl_bind(lc->ld, lc->bound_dn.bv_val,
+				LDAP_SASL_SIMPLE, &lc->cred, NULL, NULL, &msgid);
+		}
+		
 		rc = ldap_back_op_result( lc, op, rs, msgid, 0 );
 		if (rc == LDAP_SUCCESS) {
 			lc->bound = 1;
@@ -550,3 +560,89 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 	return( (rs->sr_err == LDAP_SUCCESS) ? 0 : -1 );
 }
 
+#ifdef LDAP_BACK_PROXY_AUTHZ
+/*
+ * ldap_back_proxy_authz_ctrl() prepends a proxyAuthz control
+ * to existing server-side controls if required; if not,
+ * the existing server-side controls are placed in *pctrls.
+ * The caller, after using the controls in client API 
+ * operations, if ( *pctrls != op->o_ctrls ), should
+ * free( (*pctrls)[ 0 ] ) and free( *pctrls ).
+ * The function returns success if the control could
+ * be added if required, or if it did nothing; in the future,
+ * it might return some error if it failed.
+ * 
+ * if no bind took place yet, but the connection is bound
+ * and the "proxyauthzdn" is set, then bind as "proxyauthzdn" 
+ * and explicitly add proxyAuthz the control to every operation
+ * with the dn bound to the connection as control value.
+ *
+ * If no server-side controls are defined for the operation,
+ * simply add the proxyAuthz control; otherwise, if the
+ * proxyAuthz control is not already set, add it as
+ * the first one (FIXME: is controls order significant
+ * for security?).
+ */
+int
+ldap_back_proxy_authz_ctrl(
+		struct ldapconn	*lc,
+		Operation	*op,
+		SlapReply	*rs,
+		LDAPControl	***pctrls )
+{
+	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
+	LDAPControl	**ctrls = NULL;
+
+	*pctrls = NULL;
+
+	if ( ( lc->bound_dn.bv_val == NULL || lc->bound_dn.bv_len == 0 )
+	      		&& ( op->o_conn && op->o_conn->c_dn.bv_val != NULL && op->o_conn->c_dn.bv_len != 0 )
+	      		&& ( li->proxyauthzdn.bv_val != NULL && li->proxyauthzdn.bv_len != 0 ) ) {
+		int	i = 0;
+
+		if ( !op->o_proxy_authz ) {
+			ctrls = ch_malloc( sizeof( LDAPControl * ) * (i + 2) );
+			ctrls[ 0 ] = ch_malloc( sizeof( LDAPControl ) );
+			
+			ctrls[ 0 ]->ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
+			ctrls[ 0 ]->ldctl_iscritical = 1;
+			ctrls[ 0 ]->ldctl_value.bv_len = op->o_conn->c_dn.bv_len + 3;
+			ctrls[ 0 ]->ldctl_value.bv_val = ch_malloc( ctrls[ 0 ]->ldctl_value.bv_len + 1 );
+			AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val, "dn:", sizeof( "dn:" ) - 1 );
+			AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val + sizeof( "dn:") - 1,
+					op->o_conn->c_dn.bv_val, op->o_conn->c_dn.bv_len + 1 );
+
+			if ( op->o_ctrls ) {
+				for ( i = 0; op->o_ctrls[ i ]; i++ ) {
+					ctrls[ i + 1 ] = op->o_ctrls[ i ];
+				}
+			}
+			ctrls[ i + 1 ] = NULL;
+
+		} else {
+			/*
+			 * FIXME: we do not want to perform proxyAuthz
+			 * on behalf of the client, because this would
+			 * be performed with "proxyauthzdn" privileges.
+			 *
+			 * This might actually be too strict, since
+			 * the "proxyauthzdn" saslAuthzTo, and each entry's
+			 * saslAuthzFrom attributes may be crafted
+			 * to avoid unwanted proxyAuthz to take place.
+			 */
+#if 0
+			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			rs->sr_text = "proxyAuthz not allowed within namingContext";
+#endif
+		}
+	}
+
+	if ( ctrls == NULL ) {
+		ctrls = op->o_ctrls;
+	}
+
+	*pctrls = ctrls;
+	
+	return rs->sr_err;
+}
+#endif /* LDAP_BACK_PROXY_AUTHZ */

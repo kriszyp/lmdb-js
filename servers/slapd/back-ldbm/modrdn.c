@@ -43,15 +43,13 @@ ldbm_back_modrdn(
 	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
 	struct berval	p_dn, p_ndn;
 	struct berval	new_dn = { 0, NULL}, new_ndn = { 0, NULL };
+	struct berval	old_ndn = { 0, NULL };
 	Entry		*e, *p = NULL;
 	Entry		*matched;
 	/* LDAP v2 supporting correct attribute handling. */
 	LDAPRDN		new_rdn = NULL;
 	LDAPRDN		old_rdn = NULL;
 	int		isroot = -1;
-#define CAN_ROLLBACK	-1
-#define MUST_DESTROY	1
-	int		rc = CAN_ROLLBACK;
 	int 		rc_id = 0;
 	ID              id = NOID;
 	const char	*text = NULL;
@@ -532,6 +530,8 @@ ldbm_back_modrdn(
 			"type(s)/values(s) of newrdn\n", 
 			0, 0, 0 );
 #endif
+		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX,
+				    "unknown type(s) used in RDN" );
 		goto return_results;		
 	}
 
@@ -564,6 +564,8 @@ ldbm_back_modrdn(
 				"the old_rdn type(s)/value(s)\n", 
 				0, 0, 0 );
 #endif
+			send_ldap_error( op, rs, LDAP_OTHER,
+				    "cannot parse RDN from old DN" );
 			goto return_results;		
 		}
 	}
@@ -576,29 +578,19 @@ ldbm_back_modrdn(
 #endif
 	
 	if ( slap_modrdn2mods( op, rs, e, old_rdn, new_rdn, &mod ) != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
 		goto return_results;
 	}
-
 
 	/* check for abandon */
 	if ( op->o_abandon ) {
 		goto return_results;
 	}
 
-	/* delete old one */
-	if ( dn2id_delete( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {
-		send_ldap_error( op, rs, LDAP_OTHER,
-			"DN index delete fail" );
-		goto return_results;
-	}
-
 	(void) cache_delete_entry( &li->li_cache, e );
-	rc = MUST_DESTROY;
-
-	/* XXX: there is no going back! */
 
 	free( e->e_dn );
-	free( e->e_ndn );
+	old_ndn = e->e_nname;
 	e->e_name = new_dn;
 	e->e_nname = new_ndn;
 	new_dn.bv_val = NULL;
@@ -608,53 +600,56 @@ ldbm_back_modrdn(
 	 * They are used by cache.
 	 */
 
+	/* modify memory copy of entry */
+	rs->sr_err = ldbm_modify_internal( op, &mod[0], e,
+		&rs->sr_text, textbuf, textlen );
+	switch ( rs->sr_err ) {
+	case LDAP_SUCCESS:
+		break;
+
+	default:
+		send_ldap_result( op, rs );
+		/* FALLTHRU */
+	case SLAPD_ABANDON:
+    		goto return_results;
+	}
+	
 	/* add new one */
 	if ( dn2id_add( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {
 		send_ldap_error( op, rs, LDAP_OTHER,
 			"DN index add failed" );
 		goto return_results;
 	}
-
-	/* modify memory copy of entry */
-	rc_id = ldbm_modify_internal( op, &mod[0], e,
-		&rs->sr_text, textbuf, textlen );
-	switch ( rc_id ) {
-	case LDAP_SUCCESS:
-		break;
-
-	case SLAPD_ABANDON:
-		/* too late ... */
-		rs->sr_err = rc_id;
-		send_ldap_result( op, rs );
+	/* delete old one */
+	if ( dn2id_delete( op->o_bd, &old_ndn, e->e_id ) != 0 ) {
+		/* undo add of new one */
+		dn2id_delete( op->o_bd, &e->e_nname, e->e_id );
+		send_ldap_error( op, rs, LDAP_OTHER,
+			"DN index delete fail" );
 		goto return_results;
-	
-	default:
-		/* here we may try to delete the newly added dn */
-		if ( dn2id_delete( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {
-			/* we already are in trouble ... */
-			;
-		}
-    		goto return_results;
 	}
-	
-	(void) cache_update_entry( &li->li_cache, e );
 
 	/* id2entry index */
 	if ( id2entry_add( op->o_bd, e ) != 0 ) {
+		/* Try to undo */
+		dn2id_delete( op->o_bd, &e->e_nname, e->e_id );
+		dn2id_add( op->o_bd, &old_ndn, e->e_id );
 		send_ldap_error( op, rs, LDAP_OTHER,
 			"entry update failed" );
 		goto return_results;
 	}
 
+	(void) cache_update_entry( &li->li_cache, e );
+
 	rs->sr_err = LDAP_SUCCESS;
 	rs->sr_text = NULL;
 	send_ldap_result( op, rs );
-	rc = 0;
 	cache_entry_commit( e );
 
 return_results:
 	if( new_dn.bv_val != NULL ) free( new_dn.bv_val );
 	if( new_ndn.bv_val != NULL ) free( new_ndn.bv_val );
+	if( old_ndn.bv_val != NULL ) free( old_ndn.bv_val );
 
 	/* LDAP v2 supporting correct attribute handling. */
 	if ( new_rdn != NULL ) {
@@ -691,13 +686,7 @@ return_results:
 
 	/* free entry and writer lock */
 	cache_return_entry_w( &li->li_cache, e );
-	if ( rc == MUST_DESTROY ) {
-		/* if rc == MUST_DESTROY the entry is uncached 
-		 * and its private data is destroyed; 
-		 * the entry must be freed */
-		entry_free( e );
-	}
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 	rs->sr_text = NULL;
-	return( rc );
+	return( rs->sr_err );
 }

@@ -33,7 +33,7 @@ const struct berval slap_ldapsync_cn_bv = BER_BVC("cn=ldapsync");
 void
 slap_get_commit_csn( Operation *op, struct berval *csn )
 {
-	struct slap_csn_entry *csne = NULL, *committed_csne = NULL;
+	struct slap_csn_entry *csne, *committed_csne = NULL;
 	int i = 0;
 
 	csn->bv_val = NULL;
@@ -42,11 +42,10 @@ slap_get_commit_csn( Operation *op, struct berval *csn )
 	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
 
 	LDAP_TAILQ_FOREACH( csne, &op->o_bd->be_pending_csn_list, csn_link ) {
-		if ( csne->opid == op->o_opid && csne->connid == op->o_connid ) break;
-	}
-
-	if ( csne ) {
-		csne->state = SLAP_CSN_COMMIT;
+		if ( csne->opid == op->o_opid && csne->connid == op->o_connid ) {
+			csne->state = SLAP_CSN_COMMIT;
+			break;
+		}
 	}
 
 	LDAP_TAILQ_FOREACH( csne, &op->o_bd->be_pending_csn_list, csn_link ) {
@@ -54,35 +53,35 @@ slap_get_commit_csn( Operation *op, struct berval *csn )
 		if ( csne->state == SLAP_CSN_PENDING ) break;
 	}
 
-	ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
-
 	if ( committed_csne ) {
 		ber_dupbv( csn, committed_csne->csn );
 	}
+
+	ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
+
 }
 
 void
 slap_rewind_commit_csn( Operation *op )
 {
-	struct slap_csn_entry *csne = NULL;
+	struct slap_csn_entry *csne;
 
 	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
 
 	LDAP_TAILQ_FOREACH( csne, &op->o_bd->be_pending_csn_list, csn_link ) {
-		if ( csne->opid == op->o_opid && csne->connid == op->o_connid ) break;
+		if ( csne->opid == op->o_opid && csne->connid == op->o_connid ) {
+			csne->state = SLAP_CSN_PENDING;
+			break;
+		}
 	}
 
-	if ( csne ) {
-		csne->state = SLAP_CSN_PENDING;
-	}
-	
 	ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
 }
 
 void
 slap_graduate_commit_csn( Operation *op )
 {
-	struct slap_csn_entry *csne = NULL;
+	struct slap_csn_entry *csne;
 
 	if ( op == NULL )
 		return;
@@ -93,14 +92,13 @@ slap_graduate_commit_csn( Operation *op )
 	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
 
 	LDAP_TAILQ_FOREACH( csne, &op->o_bd->be_pending_csn_list, csn_link ) {
-		if ( csne->opid == op->o_opid && csne->connid == op->o_connid ) break;
-	}
-
-	if ( csne ) {
-		LDAP_TAILQ_REMOVE( &op->o_bd->be_pending_csn_list, csne, csn_link );
-		ch_free( csne->csn->bv_val );
-		ch_free( csne->csn );
-		ch_free( csne );
+		if ( csne->opid == op->o_opid && csne->connid == op->o_connid ) {
+			LDAP_TAILQ_REMOVE( &op->o_bd->be_pending_csn_list, csne, csn_link );
+			ch_free( csne->csn->bv_val );
+			ch_free( csne->csn );
+			ch_free( csne );
+			break;
+		}
 	}
 
 	ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
@@ -149,20 +147,6 @@ slap_create_context_csn_entry(
 	ber_dupbv( &e->e_nname, &e->e_name );
 
 	return e;
-}
-
-static int
-slap_contextcsn_callback(
-	Operation* op,
-	SlapReply* rs
-)
-{
-	if ( rs->sr_type != REP_SEARCH ) {
-		*((int*)op->o_callback->sc_private) = 0;
-	} else {
-		*((int*)op->o_callback->sc_private) = 1;
-	}
-	return LDAP_SUCCESS;
 }
 
 int

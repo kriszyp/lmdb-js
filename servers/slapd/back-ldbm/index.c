@@ -155,10 +155,9 @@ static int indexer(
 {
 	int rc, i;
 	const char *text;
-    DBCache	*db;
+	DBCache	*db;
 	AttributeDescription *ad = NULL;
 	struct berval *keys;
-	void *mark;
 
 	assert( mask );
 
@@ -180,8 +179,6 @@ static int indexer(
 
 		return LDAP_OTHER;
 	}
-
-	mark = sl_mark( op->o_tmpmemctx );
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
 		key_change( op->o_bd, db, atname, id, opid );
@@ -236,8 +233,6 @@ static int indexer(
 	}
 
 	ldbm_cache_close( op->o_bd, db );
-
-	sl_release( mark, op->o_tmpmemctx );
 
 	return LDAP_SUCCESS;
 }

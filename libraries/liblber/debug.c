@@ -32,12 +32,6 @@
 #include "lber.h"
 #include "ldap_pvt.h"
 
-struct DEBUGLEVEL
-{
-	char *subsystem;
-	int  level;
-};
-
 int ldap_loglevels[LDAP_SUBSYS_NUM];
 
 static FILE *log_file = NULL;
@@ -60,26 +54,26 @@ static int debug2syslog(int l) {
 }
 #endif
 
-static char *lutil_levels[] = {
+static char *debug_levels[] = {
 	"emergency", "alert", "critical",
 	"error", "warning", "notice",
 	"information", "entry", "args",
 	"results", "detail1", "detail2",
 	NULL };
 
-static char *lutil_subsys[LDAP_SUBSYS_NUM] = {
-	"global","operation", "transport",
-	"connection", "filter", "ber", 
-	"config", "acl", "cache", "index", 
-	"ldif", "tools", "slapd", "slurpd",
-	"backend", "back_bdb", "back_ldbm", 
-	"back_ldap", "back_meta", "back_mon" };
+static char *debug_subsys[LDAP_SUBSYS_NUM] = {
+	"GLOBAL", "OPERATION", "TRANSPORT",
+	"CONNECTION", "FILTER", "BER", 
+	"CONFIG", "ACL", "CACHE", "INDEX", 
+	"LDIF", "TOOLS", "SLAPD", "SLURPD",
+	"BACKEND", "BACK_BDB", "BACK_LDBM", 
+	"BACK_LDAP", "BACK_META", "BACK_MON" };
 
 int lutil_mnem2subsys( const char *subsys )
 {
 	int i;
 	for( i = 0; i < LDAP_SUBSYS_NUM; i++ ) {
-		if ( !strcasecmp( subsys, lutil_subsys[i] ) ) {
+		if ( !strcasecmp( subsys, debug_subsys[i] ) ) {
 			return i;
 		}
 	}
@@ -89,9 +83,8 @@ int lutil_mnem2subsys( const char *subsys )
 void lutil_set_all_backends( int level )
 {
 	int i;
-
 	for( i = 0; i < LDAP_SUBSYS_NUM; i++ ) {
-		if ( !strncasecmp( "back_", lutil_subsys[i], strlen("back_") ) ) {
+		if ( !strncasecmp( "BACK_", debug_subsys[i], sizeof("BACK_")-1 ) ) {
 			ldap_loglevels[i] = level;
 		}
 	}
@@ -100,8 +93,8 @@ void lutil_set_all_backends( int level )
 int lutil_mnem2level( const char *level )
 {
 	int i;
-	for( i = 0; lutil_levels[i] != NULL; i++ ) {
-		if ( !strcasecmp( level, lutil_levels[i] ) ) {
+	for( i = 0; debug_levels[i] != NULL; i++ ) {
+		if ( !strcasecmp( level, debug_levels[i] ) ) {
 			return i;
 		}
 	}
@@ -112,7 +105,7 @@ static int addSubsys( const char *subsys, int level )
 {
 	int subsys_num;
 
-	if ( !strcasecmp( subsys, "backend" ) ) {
+	if ( !strcasecmp( subsys, "BACKEND" ) ) {
 		lutil_set_all_backends( level );
 		return level;
 
@@ -154,14 +147,7 @@ void lutil_log_int(
 	struct tm *today;
 #endif
 	size_t i;
-	char * t_subsys;
 	char * tmp;
-
-	t_subsys = strdup(subsys);
-	
-	for(tmp = t_subsys, i = 0; i < strlen(t_subsys); i++, tmp++) {
-		*tmp = TOUPPER( (unsigned char) *tmp );
-	}
 
 #ifdef LDAP_SYSLOG
 	/* we're configured to use syslog */
@@ -218,7 +204,7 @@ void lutil_log_int(
 	 * format the output data.
 	 */
 
-	fprintf(file, "\n%s:: ", t_subsys ); 
+	fprintf(file, "\n%s:: ", subsys ); 
 	vfprintf( file, fmt, vl );
 	fflush( file );
 }
@@ -234,7 +220,7 @@ void lutil_log( const int subsys, int level, const char *fmt, ... )
 	va_list vl;
 	va_start( vl, fmt );
 	ber_get_option( NULL, LBER_OPT_LOG_PRINT_FILE, &outfile );
-	lutil_log_int( outfile, lutil_subsys[subsys], level, fmt, vl );
+	lutil_log_int( outfile, debug_subsys[subsys], level, fmt, vl );
 	va_end( vl );
 }
 
@@ -274,9 +260,9 @@ void lutil_log_initialize(int argc, char **argv)
 				global_level = atoi( optarg );
 				ldap_loglevels[0] = global_level;
 				/* 
-		 		* if a negative number was used, make the global level the
-		 		* maximum sane level.
-		 		*/
+		 		 * if a negative number was used, make the global level the
+		 		 * maximum sane level.
+		 		 */
 				if ( global_level < 0 ) {
 					global_level = 65535;
 					ldap_loglevels[0] = 65535;
@@ -305,16 +291,14 @@ void (lutil_debug)( int debug, int level, const char *fmt, ... )
 		ber_set_option( NULL, LBER_OPT_LOG_PRINT_FILE, log_file );
 	}
 #endif
-	va_start( vl, fmt );
 
+	va_start( vl, fmt );
 	vsnprintf( buffer, sizeof(buffer), fmt, vl );
 	buffer[sizeof(buffer)-1] = '\0';
-
 	if( log_file != NULL ) {
 		fputs( buffer, log_file );
 		fflush( log_file );
 	}
-
 	fputs( buffer, stderr );
 	va_end( vl );
 }

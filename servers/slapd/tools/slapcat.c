@@ -66,6 +66,13 @@ main( int argc, char **argv )
 		Entry* e = be->be_entry_get( be, id );
 		op.o_bd = be;
 
+		if ( e == NULL ) {
+			printf("# no data for entry id=%08lx\n\n", (long) id );
+			rc = EXIT_FAILURE;
+			if( continuemode ) continue;
+			break;
+		}
+
 		if( sub_ndn.bv_len && !dnIsSuffix( &e->e_nname, &sub_ndn ) ) {
 			be_entry_release_r( &op, e );
 			continue;
@@ -87,13 +94,6 @@ main( int argc, char **argv )
 
 		if( verbose ) {
 			printf( "# id=%08lx\n", (long) id );
-		}
-
-		if ( e == NULL ) {
-			printf("# no data for entry id=%08lx\n\n", (long) id );
-			rc = EXIT_FAILURE;
-			if( continuemode ) continue;
-			break;
 		}
 
 		data = entry2str( e, &len );

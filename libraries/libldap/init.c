@@ -611,6 +611,4 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	}
 
 	openldap_ldap_init_w_env(gopts, NULL);
-
-	ldap_int_sasl_init();
 }

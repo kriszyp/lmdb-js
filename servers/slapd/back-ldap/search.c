@@ -2,7 +2,9 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003 The OpenLDAP Foundation.
+ * Copyright 1999-2003 The OpenLDAP Foundation.
+ * Portions Copyright 1999-2003 Howard Chu.
+ * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -17,36 +19,6 @@
  * This work was initially developed by the Howard Chu for inclusion
  * in OpenLDAP Software and subsequently enhanced by Pierangelo
  * Masarati.
- */
-/* This is an altered version */
-/*
- * Copyright 1999, Howard Chu, All rights reserved. <hyc@highlandsun.com>
- * 
- * Permission is granted to anyone to use this software for any purpose
- * on any computer system, and to alter it and redistribute it, subject
- * to the following restrictions:
- * 
- * 1. The author is not responsible for the consequences of use of this
- *    software, no matter how awful, even if they arise from flaws in it.
- * 
- * 2. The origin of this software must not be misrepresented, either by
- *    explicit claim or by omission.  Since few users ever read sources,
- *    credits should appear in the documentation.
- * 
- * 3. Altered versions must be plainly marked as such, and must not be
- *    misrepresented as being the original software.  Since few users
- *    ever read sources, credits should appear in the documentation.
- * 
- * 4. This notice may not be removed or altered.
- *
- *
- *
- * Copyright 2000, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
- * 
- * This software is being modified by Pierangelo Masarati.
- * The previously reported conditions apply to the modified code as well.
- * Changes in the original code are highlighted where required.
- * Credits for the original code go to the author, Howard Chu.
  */
 
 #include "portable.h"
@@ -88,7 +60,11 @@ ldap_back_search(
 	struct berval mfilter = { 0, NULL };
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
+	int dontfreetext = 0;
 	dncookie dc;
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	LDAPControl **ctrls = NULL;
+#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	lc = ldap_back_getconn(op, rs);
 	if ( !lc ) {
@@ -181,6 +157,7 @@ ldap_back_search(
 	if ( rc ) {
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "Rewrite error";
+		dontfreetext = 1;
 		rc = -1;
 		goto finish;
 	}
@@ -193,27 +170,26 @@ ldap_back_search(
 		goto finish;
 	}
 
-#if 0
-	if ( mapped_attrs == NULL && op->oq_search.rs_attrs) {
-		int count;
-
-		/* this can happen only if ch_calloc() fails
-		 * in ldap_back_map_attrs() */
-		for (count=0; op->oq_search.rs_attrs[count].an_name.bv_val; count++);
-		mapped_attrs = ch_malloc( (count+1) * sizeof(char *));
-		for (count=0; op->oq_search.rs_attrs[count].an_name.bv_val; count++) {
-			mapped_attrs[count] = op->oq_search.rs_attrs[count].an_name.bv_val;
-		}
-		mapped_attrs[count] = NULL;
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
+	if ( rc != LDAP_SUCCESS ) {
+		dontfreetext = 1;
+		goto finish;
 	}
-#endif
-
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+	
 	rs->sr_err = ldap_search_ext(lc->ld, mbase.bv_val,
 			op->oq_search.rs_scope, mfilter.bv_val,
 			mapped_attrs, op->oq_search.rs_attrsonly,
-			op->o_ctrls, NULL,
+#ifdef LDAP_BACK_PROXY_AUTHZ
+			ctrls,
+#else /* ! LDAP_BACK_PROXY_AUTHZ */
+			op->o_ctrls,
+#endif /* ! LDAP_BACK_PROXY_AUTHZ */
+			NULL,
 			tv.tv_sec ? &tv : NULL, op->oq_search.rs_slimit,
-			&msgid);
+			&msgid );
+
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 fail:;
 		rc = ldap_back_op_result(lc, op, rs, msgid, 0);
@@ -240,7 +216,7 @@ fail:;
 			ldap_pvt_thread_yield();
 
 		} else if (rc == LDAP_RES_SEARCH_ENTRY) {
-			Entry ent;
+			Entry ent = {0};
 			struct berval bdn;
 			e = ldap_first_entry(lc->ld,res);
 			if ( ldap_build_entry(op, e, &ent, &bdn,
@@ -347,6 +323,13 @@ fail:;
 finish:;
 	send_ldap_result( op, rs );
 
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	if ( ctrls && ctrls != op->o_ctrls ) {
+		free( ctrls[ 0 ] );
+		free( ctrls );
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+
 	if ( match.bv_val ) {
 		if ( rs->sr_matched != match.bv_val ) {
 			free( (char *)rs->sr_matched );
@@ -355,7 +338,9 @@ finish:;
 		LDAP_FREE( match.bv_val );
 	}
 	if ( rs->sr_text ) {
-		LDAP_FREE( (char *)rs->sr_text );
+		if ( !dontfreetext ) {
+			LDAP_FREE( (char *)rs->sr_text );
+		}
 		rs->sr_text = NULL;
 	}
 	if ( mapped_attrs ) {
@@ -428,9 +413,6 @@ ldap_build_entry(
 		return LDAP_INVALID_DN_SYNTAX;
 	}
 	
-	ent->e_id = 0;
-	ent->e_attrs = 0;
-	ent->e_private = 0;
 	attrp = &ent->e_attrs;
 
 #ifdef ENABLE_REWRITE
@@ -536,7 +518,6 @@ ldap_build_entry(
 		} else if ( attr->a_desc->ad_type->sat_syntax ==
 				slap_schema.si_syn_distinguishedName ) {
 			ldap_dnattr_result_rewrite( &dc, attr->a_vals );
-
 		}
 
 		if ( normalize && last && attr->a_desc->ad_type->sat_equality &&
@@ -550,7 +531,7 @@ ldap_build_entry(
 					attr->a_desc->ad_type->sat_syntax,
 					attr->a_desc->ad_type->sat_equality,
 					&attr->a_vals[i], &attr->a_nvals[i],
-					op->o_tmpmemctx );
+					NULL /* op->o_tmpmemctx */ );
 			}
 			attr->a_nvals[i].bv_val = NULL;
 			attr->a_nvals[i].bv_len = 0;
@@ -560,6 +541,7 @@ ldap_build_entry(
 		*attrp = attr;
 		attrp = &attr->a_next;
 	}
+
 	/* make sure it's free'able */
 	if (!private && ent->e_name.bv_val == bdn->bv_val)
 		ber_dupbv( &ent->e_name, bdn );
@@ -646,7 +628,7 @@ ldap_back_entry_get(
 		*ptr++ = ')';
 		*ptr++ = '\0';
 	}
-		
+
 	if (ldap_search_ext_s(lc->ld, mdn.bv_val, LDAP_SCOPE_BASE, filter,
 				gattr, 0, NULL, NULL, LDAP_NO_LIMIT,
 				LDAP_NO_LIMIT, &result) != LDAP_SUCCESS)

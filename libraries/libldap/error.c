@@ -121,7 +121,7 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_CANNOT_CANCEL,			N_("Cannot Cancel")},
 #endif
 
-	{-1, NULL}
+	{0, NULL}
 };
 
 static struct ldaperror *ldap_errlist = ldap_builtin_errlist; 

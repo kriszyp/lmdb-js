@@ -103,11 +103,13 @@ LDAP_BEGIN_DECL
 #define SLAP_TEXT_BUFLEN (256)
 
 /* psuedo error code indicating abandoned operation */
-#define SLAPD_ABANDON (-1)
+#define SLAPD_ABANDON (-1024)
 
 /* psuedo error code indicating disconnect */
-#define SLAPD_DISCONNECT (-2)
+#define SLAPD_DISCONNECT (-1025)
 
+/* unknown config file directive */
+#define SLAP_CONF_UNKNOWN (-1026)
 
 /* We assume "C" locale, that is US-ASCII */
 #define ASCII_SPACE(c)	( (c) == ' ' )
@@ -763,9 +765,6 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_entryCSN;
 	AttributeDescription *si_ad_namingCSN;
 	AttributeDescription *si_ad_superiorUUID;
-
-	/* LDAP cache specific operational attribute */
-	AttributeDescription *si_ad_queryid;
 
 	AttributeDescription *si_ad_dseType;
 	AttributeDescription *si_ad_syncreplCookie;
@@ -1629,6 +1628,10 @@ typedef struct slap_rep {
 		rep_extended_s sru_extended;
 		rep_search_s sru_search;
 	} sr_un;
+	slap_mask_t sr_flags;
+#define REP_ENTRY_MODIFIABLE	0x00000001
+#define REP_ENTRY_MUSTBEFREED	0x00000002
+#define REP_MATCHED_MUSTBEFREED	0x00000010
 } SlapReply;
 
 /* short hands for response members */
@@ -1802,7 +1805,9 @@ struct slap_backend_info {
 typedef int (slap_response)( struct slap_op *, struct slap_rep * );
 
 typedef struct slap_callback {
+	struct slap_callback *sc_next;
 	slap_response *sc_response;
+	slap_response *sc_cleanup;
 	void *sc_private;
 } slap_callback;
 
@@ -2004,21 +2009,17 @@ typedef struct slap_op {
 	AttributeName *o_preread_attrs;
 	AttributeName *o_postread_attrs;
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 	char o_pagedresults;
 #define get_pagedresults(op)			((int)(op)->o_pagedresults)
 	ber_int_t o_pagedresults_size;
 	PagedResultsState o_pagedresults_state;
-#else
-#define get_pagedresults(op)			(0)
-#endif
 
 	char o_sync;
 	char o_sync_mode;
-#define SLAP_SYNC_NONE					(0x0)
-#define SLAP_SYNC_REFRESH				(0x1)
-#define SLAP_SYNC_PERSIST				(0x2)
-#define SLAP_SYNC_REFRESH_AND_PERSIST	(0x3)
+#define SLAP_SYNC_NONE					LDAP_SYNC_NONE
+#define SLAP_SYNC_REFRESH				LDAP_SYNC_REFRESH_ONLY
+#define SLAP_SYNC_PERSIST				LDAP_SYNC_RESERVED
+#define SLAP_SYNC_REFRESH_AND_PERSIST	LDAP_SYNC_REFRESH_AND_PERSIST
 	struct sync_cookie	o_sync_state;
 	int					o_sync_rhint;
 	struct berval		o_sync_cid;
@@ -2290,6 +2291,8 @@ typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
 	Operation *op,
 	SlapReply *rs,
 	LDAPControl *ctrl ));
+
+#define SLMALLOC_SLAB_SIZE	(1024*1024)
 
 LDAP_END_DECL
 

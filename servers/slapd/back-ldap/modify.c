@@ -2,7 +2,9 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003 The OpenLDAP Foundation.
+ * Copyright 1999-2003 The OpenLDAP Foundation.
+ * Portions Copyright 1999-2003 Howard Chu.
+ * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -17,36 +19,6 @@
  * This work was initially developed by the Howard Chu for inclusion
  * in OpenLDAP Software and subsequently enhanced by Pierangelo
  * Masarati.
- */
-/* This is an altered version */
-/*
- * Copyright 1999, Howard Chu, All rights reserved. <hyc@highlandsun.com>
- * 
- * Permission is granted to anyone to use this software for any purpose
- * on any computer system, and to alter it and redistribute it, subject
- * to the following restrictions:
- * 
- * 1. The author is not responsible for the consequences of use of this
- *    software, no matter how awful, even if they arise from flaws in it.
- * 
- * 2. The origin of this software must not be misrepresented, either by
- *    explicit claim or by omission.  Since few users ever read sources,
- *    credits should appear in the documentation.
- * 
- * 3. Altered versions must be plainly marked as such, and must not be
- *    misrepresented as being the original software.  Since few users
- *    ever read sources, credits should appear in the documentation.
- * 
- * 4. This notice may not be removed or altered.
- *
- *
- *
- * Copyright 2000, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
- * 
- * This software is being modified by Pierangelo Masarati.
- * The previously reported conditions apply to the modified code as well.
- * Changes in the original code are highlighted where required.
- * Credits for the original code go to the author, Howard Chu.
  */
 
 #include "portable.h"
@@ -74,6 +46,9 @@ ldap_back_modify(
 	struct berval mdn = { 0, NULL };
 	ber_int_t msgid;
 	dncookie dc;
+#ifdef LDAP_BACK_PROXY_AUTHZ 
+	LDAPControl **ctrls = NULL;
+#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	lc = ldap_back_getconn(op, rs);
 	if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
@@ -181,10 +156,29 @@ ldap_back_modify(
 	}
 	modv[i] = 0;
 
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
+	if ( rc != LDAP_SUCCESS ) {
+		goto cleanup;
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+
 	rs->sr_err = ldap_modify_ext( lc->ld, mdn.bv_val, modv,
-			op->o_ctrls, NULL, &msgid );
+#ifdef LDAP_BACK_PROXY_AUTHZ
+			ctrls,
+#else /* ! LDAP_BACK_PROXY_AUTHZ */
+			op->o_ctrls,
+#endif /* ! LDAP_BACK_PROXY_AUTHZ */
+			NULL, &msgid );
 
 cleanup:;
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	if ( ctrls && ctrls != op->o_ctrls ) {
+		free( ctrls[ 0 ] );
+		free( ctrls );
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
 	}
@@ -193,6 +187,13 @@ cleanup:;
 	}
 	ch_free( mods );
 	ch_free( modv );
+
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	if ( rc != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		return -1;
+	}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	return ldap_back_op_result( lc, op, rs, msgid, 1 );
 }

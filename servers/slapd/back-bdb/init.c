@@ -104,6 +104,7 @@ bdb_db_init( BackendDB *be )
 
 	ldap_pvt_thread_mutex_init( &bdb->bi_database_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
+	ldap_pvt_thread_rdwr_init ( &bdb->bi_pslist_rwlock );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_dntree.bei_kids_mutex );
 	ldap_pvt_thread_rdwr_init ( &bdb->bi_cache.c_rwlock );
@@ -411,14 +412,14 @@ bdb_db_open( BackendDB *be )
 			path,
 		/*	bdbi_databases[i].name, */ NULL,
 			bdbi_databases[i].type,
-			bdbi_databases[i].flags | flags | DB_AUTO_COMMIT,
+			bdbi_databases[i].flags | flags,
 			bdb->bi_dbenv_mode );
 #else
 		rc = DB_OPEN( db->bdi_db,
 			bdbi_databases[i].file,
 		/*	bdbi_databases[i].name, */ NULL,
 			bdbi_databases[i].type,
-			bdbi_databases[i].flags | flags | DB_AUTO_COMMIT,
+			bdbi_databases[i].flags | flags,
 			bdb->bi_dbenv_mode );
 #endif
 
@@ -548,6 +549,7 @@ bdb_db_destroy( BackendDB *be )
 	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_cache.c_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.c_dntree.bei_kids_mutex );
+	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_pslist_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_database_mutex );
 #ifdef SLAP_IDL_CACHE
@@ -590,9 +592,7 @@ bdb_initialize(
 		LDAP_CONTROL_ASSERT,
 		LDAP_CONTROL_MANAGEDSAIT,
 		LDAP_CONTROL_NOOP,
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 		LDAP_CONTROL_PAGEDRESULTS,
-#endif
 #ifdef LDAP_CONTROL_SUBENTRIES
 		LDAP_CONTROL_SUBENTRIES,
 #endif

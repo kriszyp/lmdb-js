@@ -60,6 +60,11 @@
 #define	MAIN_RETURN(x)	return(x)
 #endif
 
+#ifndef HAVE_MKVERSION
+const char Versionstr[] =
+	OPENLDAP_PACKAGE " " OPENLDAP_VERSION " Standalone LDAP Replicator (slurpd)";
+#endif
+
 #ifdef HAVE_NT_SERVICE_MANAGER
 void WINAPI ServiceMain( DWORD argc, LPTSTR *argv )
 #else
@@ -139,6 +144,20 @@ int main( int argc, char **argv )
 	goto stop;
     }
 
+    if ( sglob->version ) {
+		fprintf(stderr, "%s\n", Versionstr);
+		if (sglob->version > 1 ) {
+			rc = 1;
+			goto stop;
+		}
+    }
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( SLURPD, INFO, "%s\n", Versionstr, 0, 0 );
+#else
+	Debug ( LDAP_DEBUG_ANY, "%s\n", Versionstr, 0, 0 );
+#endif
+    
     /*
      * Read slapd config file and initialize Re (per-replica) structs.
      */

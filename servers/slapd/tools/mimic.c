@@ -54,6 +54,14 @@ send_ldap_disconnect( Operation	*op, SlapReply *rs )
 	assert(0);
 }
 
+int
+slap_null_cb(
+    Operation	*op, SlapReply *rs
+)
+{
+	assert(0);
+}
+
 void
 slap_send_ldap_extended(
     Operation	*op, SlapReply *rs
@@ -272,7 +280,8 @@ int root_dse_info( Connection *conn, Entry **entry, const char **text )
 	return -1;
 }
 
-int slap_entry2mods( Entry *e, Modifications **mods, const char **text )
+int slap_entry2mods( Entry *e, Modifications **mods, const char **text,
+					 char *textbuf, size_t textlen )
 {
 	return -1;
 }
@@ -280,21 +289,26 @@ int slap_entry2mods( Entry *e, Modifications **mods, const char **text )
 volatile sig_atomic_t slapd_abrupt_shutdown;
 
 int slap_mods_check( Modifications *ml, int update, const char **text,
-					char *textbuf, size_t textlen, void *ctx )
+		char *textbuf, size_t textlen, void *ctx )
 {
 	return -1;
 }
 
 int slap_mods2entry( Modifications *mods, Entry **e, int repl_user,
-				    int dup, const char **text, char *textbuf, size_t textlen )
+		int dup, const char **text, char *textbuf, size_t textlen )
 {
 	return -1;
 }
 
 int slap_mods_opattrs( Operation *op, Modifications *mods,
-					   Modifications **modtail, const char **text,
-					   char *textbuf, size_t textlen )
+		Modifications **modtail, const char **text,
+		char *textbuf, size_t textlen )
 {
 	return -1;
 }
 
+int slap_parse_user( struct berval *id, struct berval *user,
+		struct berval *realm, struct berval *mech )
+{
+	return -1;
+}

@@ -497,6 +497,14 @@ retry:	/* transaction retry */
 				}
 			}
 
+			if ( rs->sr_err == LDAP_SUCCESS && !noop && !op->o_no_psearch ) {
+				ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
+				LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
+					bdb_psearch( op, rs, ps_list, op->oq_add.rs_e, LDAP_PSEARCH_BY_ADD );
+				}
+				ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
+			}
+
 			if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
 				rs->sr_text = "txn_commit failed";
 			} else {
@@ -537,12 +545,6 @@ retry:	/* transaction retry */
 
 return_results:
 	send_ldap_result( op, rs );
-
-	if ( rs->sr_err == LDAP_SUCCESS && !noop && !op->o_no_psearch ) {
-		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-			bdb_psearch( op, rs, ps_list, op->oq_add.rs_e, LDAP_PSEARCH_BY_ADD );
-		}
-	}
 
 	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();

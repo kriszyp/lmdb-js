@@ -17,7 +17,6 @@
  * in OpenLDAP Software and subsequently enhanced by Pierangelo
  * Masarati.
  */
-/* This is an altered version */
 
 #ifndef _LDAP_EXTERNAL_H
 #define _LDAP_EXTERNAL_H

@@ -240,6 +240,15 @@ OL_ARG_WITH(sql_module,[    --with-sql-module	  module type static|dynamic], sta
 	[static dynamic])
 
 dnl ----------------------------------------------------------------
+dnl SLAPD Overlay Options
+AC_ARG_WITH(xxslapoverlays,[
+SLAPD Overlay Options:])
+OL_ARG_WITH(dyngroup,[    --with-dyngroup	  Dynamic Group overlay no|yes|mod], no,
+	[no yes mod])
+OL_ARG_WITH(proxycache,[    --with-proxycache	  Proxy Cache overlay no|yes|mod], no,
+	[no yes mod])
+
+dnl ----------------------------------------------------------------
 dnl SLURPD OPTIONS
 AC_ARG_WITH(xxslurpdoptions,[
 SLURPD (Replication Daemon) Options:])
@@ -359,6 +368,12 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_rewrite = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-rewrite argument])
 	fi
+	if test $ol_with_dyngroup != no ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-dyngroup argument])
+	fi
+	if test $ol_with_proxycache != no ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-proxycache argument])
+	fi
 
 	# force settings to no
 	ol_enable_slapi=no
@@ -380,7 +395,6 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_rlookups=no
 	ol_enable_aci=no
 	ol_enable_wrappers=no
-	ol_enable_dynamic=no
 
 	ol_with_ldbm_api=no
 	ol_with_ldbm_type=no
@@ -401,6 +415,9 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_slurpd=no
 
 	ol_enable_rewrite=no
+
+	ol_with_dyngroup=no
+	ol_with_proxycache=no
 
 elif test $ol_enable_ldbm = no ; then
 	dnl SLAPD without LDBM
@@ -540,7 +557,6 @@ BUILD_LDAP=no
 BUILD_LDBM=no
 BUILD_META=no
 BUILD_MONITOR=no
-BUILD_CACHE=no
 BUILD_NULL=no
 BUILD_PASSWD=no
 BUILD_PERL=no
@@ -560,6 +576,11 @@ BUILD_PERL_DYNAMIC=static
 BUILD_SHELL_DYNAMIC=static
 BUILD_SQL_DYNAMIC=static
 
+BUILD_DYNGROUP=no
+BUILD_PROXYCACHE=no
+
+SLAPD_DYNAMIC_OVERLAYS=
+
 SLAPD_MODULES_LDFLAGS=
 SLAPD_MODULES_CPPFLAGS=
 
@@ -577,7 +598,6 @@ SLAPD_SQL_INCLUDES=
 KRB4_LIBS=
 KRB5_LIBS=
 SASL_LIBS=
-TERMCAP_LIBS=
 TLS_LIBS=
 MODULES_LIBS=
 SLAPI_LIBS=
@@ -676,7 +696,7 @@ if test $ol_enable_perl != no ; then
 
 	else
 		PERL_CPPFLAGS="`$PERLBIN -MExtUtils::Embed -e ccopts`"
-		PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e 's/ -lc / /'`"
+		PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e 's/ -lc / /' -e 's/ -lc$//'`"
 
 		if test x"$ol_with_perl_module" = "xstatic" ; then
 			SLAPD_PERL_LDFLAGS="$PERL_LDFLAGS"
@@ -786,6 +806,14 @@ else
 	ol_with_perl_module=static
 	ol_with_shell_module=static
 	ol_with_sql_module=static
+	if test $ol_with_dyngroup = mod ; then
+		AC_MSG_WARN([building static dyngroup overlay])
+		ol_with_dyngroup = yes
+	fi
+	if test $ol_with_proxycache = mod ; then
+		AC_MSG_WARN([building static proxycache overlay])
+		ol_with_proxycache = yes
+	fi
 fi
 
 dnl ----------------------------------------------------------------
@@ -808,6 +836,7 @@ AC_CHECK_HEADERS(	\
 	arpa/inet.h		\
 	arpa/nameser.h	\
 	assert.h		\
+	bits/types.h	\
 	conio.h			\
 	crypt.h			\
 	direct.h		\
@@ -2080,7 +2109,7 @@ hosts_access(req)
 		AC_DEFINE(HAVE_TCPD,1, [define if you have -lwrap])
 		WRAP_LIBS="-lwrap"
 	elif test $ol_enable_wrappers = yes ; then
-		AC_MSG_ERROR([could not find TCP wrappers, select apppropriate options ore disable])
+		AC_MSG_ERROR([could not find TCP wrappers, select apppropriate options or disable])
 	else
 		AC_MSG_WARN([could not find TCP wrappers, support disabled])
 		WRAP_LIBS=""
@@ -2127,34 +2156,6 @@ if test $ol_enable_sql != no ; then
 	elif test $ol_enable_sql != auto ; then
 		AC_MSG_ERROR([could not locate suitable ODBC library])
 	fi
-fi
-
-dnl ----------------------------------------------------------------
-dnl ud needs termcap (should insert check here)
-ol_link_termcap=no
-AC_CHECK_HEADERS(termcap.h ncurses.h)
-
-if test $ol_link_termcap = no ; then
-	AC_CHECK_LIB(termcap, tputs, [have_termcap=yes], [have_termcap=no])
-	if test $have_termcap = yes ; then
-		AC_DEFINE(HAVE_TERMCAP, 1, [define if you have -ltermcap])
-		ol_link_termcap=yes
-		TERMCAP_LIBS=-ltermcap
-	fi
-fi
-
-if test $ol_link_termcap = no ; then
-	AC_CHECK_LIB(ncurses, initscr, [have_ncurses=yes], [have_ncurses=no])
-	if test $have_ncurses = yes ; then
-		AC_DEFINE(HAVE_NCURSES, 1, [define if you have -lncurses])
-		ol_link_termcap=yes
-		TERMCAP_LIBS=-lncurses
-	fi
-fi
-
-if test $ol_link_termcap = no ; then
-	AC_DEFINE(NO_TERMCAP,1, [define if you have no termcap support])
-	TERMCAP_LIBS=
 fi
 
 dnl ----------------------------------------------------------------
@@ -2551,6 +2552,9 @@ if test "$ol_link_modules" != no ; then
 	SLAPD_MODULES_LDFLAGS="-dlopen self"
 fi
 
+AC_DEFINE(SLAPD_MOD_STATIC,1,[statically linked module])
+AC_DEFINE(SLAPD_MOD_DYNAMIC,2,[dynamically linked module])
+
 if test "$ol_enable_bdb" != no ; then
 	AC_DEFINE(SLAPD_BDB,1,[define to support BDB backend])
 	BUILD_SLAPD=yes
@@ -2637,10 +2641,6 @@ if test "$ol_enable_meta" != no ; then
 	BUILD_SLAPD=yes
 	BUILD_META=yes
 	BUILD_REWRITE=yes
-        if test $ol_enable_ldbm = yes -o \
-		$ol_enable_bdb = yes ; then 
-                BUILD_CACHE=yes
-        fi
 	if test "$ol_with_meta_module" != static ; then
 		AC_DEFINE(SLAPD_META_DYNAMIC,1,
 			[define to support dynamic LDAP Metadirectory backend])
@@ -2745,6 +2745,28 @@ if test "$ol_link_sql" != no ; then
 	fi
 fi
 
+if test "$ol_with_dyngroup" != no ; then
+	BUILD_DYNGROUP=$ol_with_dyngroup
+	if test "$ol_with_dyngroup" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS dyngroup.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_DYNGROUP,$MFLAG,[define for Dynamic Group overlay])
+fi
+
+if test "$ol_with_proxycache" != no ; then
+	BUILD_PROXYCACHE=$ol_with_proxycache
+	if test "$ol_with_proxycache" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS pcache.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_PROXYCACHE,$MFLAG,[define for Proxy Cache overlay])
+fi
+
 if test "$ol_enable_slurpd" != no -a "$ol_link_threads" != no -a \
 	$BUILD_SLAPD = yes ; then
 	BUILD_SLURPD=yes
@@ -2796,7 +2818,6 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_LDBM)
   AC_SUBST(BUILD_META)
   AC_SUBST(BUILD_MONITOR)
-  AC_SUBST(BUILD_CACHE)
   AC_SUBST(BUILD_NULL)
   AC_SUBST(BUILD_PASSWD)
   AC_SUBST(BUILD_PERL)
@@ -2814,6 +2835,8 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_PERL_DYNAMIC)
   AC_SUBST(BUILD_SHELL_DYNAMIC)
   AC_SUBST(BUILD_SQL_DYNAMIC)
+  AC_SUBST(BUILD_DYNGROUP)
+  AC_SUBST(BUILD_PROXYCACHE)
 AC_SUBST(BUILD_SLURPD)
 
 AC_SUBST(LDAP_LIBS)
@@ -2830,6 +2853,7 @@ AC_SUBST(SLAPD_MODULES_LDFLAGS)
 AC_SUBST(SLAPD_NO_STATIC)
 AC_SUBST(SLAPD_STATIC_BACKENDS)
 AC_SUBST(SLAPD_DYNAMIC_BACKENDS)
+AC_SUBST(SLAPD_DYNAMIC_OVERLAYS)
 
 AC_SUBST(PERL_CPPFLAGS)
 AC_SUBST(SLAPD_PERL_LDFLAGS)
@@ -2838,7 +2862,6 @@ AC_SUBST(MOD_PERL_LDFLAGS)
 AC_SUBST(KRB4_LIBS)
 AC_SUBST(KRB5_LIBS)
 AC_SUBST(SASL_LIBS)
-AC_SUBST(TERMCAP_LIBS)
 AC_SUBST(TLS_LIBS)
 AC_SUBST(MODULES_LIBS)
 AC_SUBST(SLAPI_LIBS)
@@ -2876,7 +2899,6 @@ libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
 libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk:build/lib-shared.mk	\
 libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk:build/lib-shared.mk	\
 libraries/libldap_r/Makefile:build/top.mk:libraries/libldap_r/Makefile.in:build/lib.mk:build/lib-shared.mk	\
-libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblunicode/Makefile:build/top.mk:libraries/liblunicode/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/librewrite/Makefile:build/top.mk:libraries/librewrite/Makefile.in:build/lib.mk:build/lib-static.mk \
@@ -2896,6 +2918,7 @@ servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile
 servers/slapd/back-sql/Makefile:build/top.mk:servers/slapd/back-sql/Makefile.in:build/mod.mk \
 servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
 servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/lib.mk:build/lib-shared.mk  \
+servers/slapd/overlays/Makefile:build/top.mk:servers/slapd/overlays/Makefile.in:build/lib.mk \
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \

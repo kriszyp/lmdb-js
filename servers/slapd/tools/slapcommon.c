@@ -412,7 +412,10 @@ slap_tool_init(
 	mal_leaktrace(1);
 #endif
 
-	slap_startup( be );
+	if ( slap_startup( be ) ) {
+		fprintf( stderr, "slap_startup failed\n" );
+		exit( EXIT_FAILURE );
+	}
 }
 
 void slap_tool_destroy( void )

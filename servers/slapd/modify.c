@@ -801,15 +801,24 @@ int slap_mods_opattrs(
 
 	if ( SLAP_LASTMOD( op->o_bd )) {
 		struct tm *ltm;
+#ifdef HAVE_GMTIME_R
+		struct tm ltm_buf;
+#endif
 		time_t now = slap_get_time();
 
+#ifdef HAVE_GMTIME_R
+		ltm = gmtime_r( &now, &ltm_buf );
+#else
 		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 		ltm = gmtime( &now );
+#endif /* HAVE_GMTIME_R */
 		lutil_gentime( timebuf, sizeof(timebuf), ltm );
 
 		slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
 
+#ifndef HAVE_GMTIME_R
 		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+#endif
 
 		timestamp.bv_val = timebuf;
 		timestamp.bv_len = strlen(timebuf);

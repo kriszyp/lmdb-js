@@ -65,7 +65,9 @@ struct berval NoAttrs = BER_BVC( LDAP_NO_ATTRS );
  */
 ldap_pvt_thread_pool_t	connection_pool;
 int			connection_pool_max = SLAP_MAX_WORKER_THREADS;
+#ifndef HAVE_GMTIME_R
 ldap_pvt_thread_mutex_t	gmtime_mutex;
+#endif
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 ldap_pvt_thread_mutex_t	passwd_mutex;
 #endif
@@ -153,7 +155,9 @@ slap_init( int mode, const char *name )
 			}
 #endif
 
+#ifndef HAVE_GMTIME_R
 			ldap_pvt_thread_mutex_init( &gmtime_mutex );
+#endif
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 			ldap_pvt_thread_mutex_init( &passwd_mutex );
 #endif

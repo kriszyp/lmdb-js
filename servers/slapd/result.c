@@ -41,6 +41,11 @@
 #include "slapi.h"
 #endif
 
+int slap_null_cb( Operation *op, SlapReply *rs )
+{
+	return 0;
+}
+
 static char *v2ref( BerVarray ref, const char *text )
 {
 	size_t len = 0, i = 0;
@@ -247,9 +252,17 @@ send_ldap_response(
 	int		rc;
 	long	bytes;
 
-	if (op->o_callback && op->o_callback->sc_response) {
-		rc = op->o_callback->sc_response( op, rs );
-		if ( rc != SLAP_CB_CONTINUE ) return;
+	if (op->o_callback) {
+		slap_callback *sc = op->o_callback;
+		for ( ; op->o_callback; ) {
+			if ( op->o_callback->sc_response ) {
+				rc = op->o_callback->sc_response( op, rs );
+				if ( rc != SLAP_CB_CONTINUE ) break;
+			}
+			op->o_callback = op->o_callback->sc_next;
+		}
+		op->o_callback = sc;
+		if ( rc != SLAP_CB_CONTINUE ) goto cleanup;
 	}
 		
 #ifdef LDAP_CONNECTIONLESS
@@ -365,7 +378,7 @@ send_ldap_response(
 		if (!op->o_conn || op->o_conn->c_is_udp == 0)
 #endif
 		ber_free_buf( ber );
-		return;
+		goto cleanup;
 	}
 
 	/* send BER */
@@ -386,7 +399,7 @@ send_ldap_response(
 			0, 0, 0 );
 #endif
 
-		return;
+		goto cleanup;
 	}
 
 #ifdef LDAP_SLAPI
@@ -401,6 +414,23 @@ send_ldap_response(
 	num_bytes_sent += bytes;
 	num_pdu_sent++;
 	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
+
+cleanup:;
+	if ( rs->sr_matched && rs->sr_flags & REP_MATCHED_MUSTBEFREED ) {
+		free( (char *)rs->sr_matched );
+		rs->sr_matched = NULL;
+	}
+
+	if (op->o_callback) {
+		slap_callback *sc = op->o_callback;
+		for ( ; op->o_callback; op->o_callback = op->o_callback->sc_next ) {
+			if ( op->o_callback->sc_cleanup ) {
+				op->o_callback->sc_cleanup( op, rs );
+			}
+		}
+		op->o_callback = sc;
+	}
+
 	return;
 }
 
@@ -638,8 +668,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	computed_attr_context	 ctx;
 	AttributeName	*anp;
 #endif
-	void		*mark = NULL;
-
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
 	/* a_flags: array of flags telling if the i-th element will be
@@ -649,9 +677,17 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	char **e_flags = NULL;
 
 	rs->sr_type = REP_SEARCH;
-	if (op->o_callback && op->o_callback->sc_response) {
-		rc = op->o_callback->sc_response( op, rs );
-		if ( rc != SLAP_CB_CONTINUE ) return rc;
+	if (op->o_callback) {
+		slap_callback *sc = op->o_callback;
+		for ( ; op->o_callback; ) {
+			if ( op->o_callback->sc_response ) {
+				rc = op->o_callback->sc_response( op, rs );
+				if ( rc != SLAP_CB_CONTINUE ) break;
+			}
+			op->o_callback = op->o_callback->sc_next;
+		}
+		op->o_callback = sc;
+		if ( rc != SLAP_CB_CONTINUE ) goto error_return;
 	}
 
 #ifdef NEW_LOGGING
@@ -664,8 +700,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		op->ors_attrsonly ? " (attrsOnly)" : "", 0 );
 #endif
 
-	mark = sl_mark( op->o_tmpmemctx );
-
 	if ( !access_allowed( op, rs->sr_entry, ad_entry, NULL, ACL_READ, NULL )) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, INFO, 
@@ -677,8 +711,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		    0, 0, 0 );
 #endif
 
-		sl_release( mark, op->o_tmpmemctx );
-		return( 1 );
+		rc = 1;
+		goto error_return;
 	}
 
 	edn = rs->sr_entry->e_nname.bv_val;
@@ -1166,8 +1200,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 		if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 		send_ldap_error( op, rs, LDAP_OTHER, "encode entry end error" );
-		sl_release( mark, op->o_tmpmemctx );
-		return( 1 );
+		rc = 1;
+		goto error_return;
 	}
 
 	if ( op->o_res_ber == NULL ) {
@@ -1185,8 +1219,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				0, 0, 0 );
 #endif
 
-			sl_release( mark, op->o_tmpmemctx );
-			return -1;
+			rc = -1;
+			goto error_return;
 		}
 		rs->sr_nentries++;
 
@@ -1210,8 +1244,32 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	rc = 0;
 
 error_return:;
-	sl_release( mark, op->o_tmpmemctx );
+	/* FIXME: I think rs->sr_type should be explicitly set to
+	 * REP_SEARCH here. That's what it was when we entered this
+	 * function. send_ldap_error may have changed it, but we
+	 * should set it back so that the cleanup functions know
+	 * what they're doing.
+	 */
+	if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_SEARCH 
+		&& rs->sr_entry 
+		&& (rs->sr_flags & REP_ENTRY_MUSTBEFREED) ) 
+	{
+		entry_free( rs->sr_entry );
+		rs->sr_entry = NULL;
+		rs->sr_flags &= ~REP_ENTRY_MUSTBEFREED;
+	}
+
 	if ( e_flags ) sl_free( e_flags, op->o_tmpmemctx );
+
+	if (op->o_callback) {
+		slap_callback *sc = op->o_callback;
+		for ( ; op->o_callback; op->o_callback = op->o_callback->sc_next ) {
+			if ( op->o_callback->sc_cleanup ) {
+				op->o_callback->sc_cleanup( op, rs );
+			}
+		}
+		op->o_callback = sc;
+	}
 	return( rc );
 }
 
@@ -1222,18 +1280,23 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	BerElement	*ber = (BerElement *) &berbuf;
 	int rc = 0;
 	int bytes;
-	void *mark;
 
 	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
 	rs->sr_type = REP_SEARCHREF;
-	if (op->o_callback && op->o_callback->sc_response) {
-		rc = op->o_callback->sc_response( op, rs );
-		if ( rc != SLAP_CB_CONTINUE ) return rc;
+	if (op->o_callback) {
+		slap_callback *sc = op->o_callback;
+		for ( ; op->o_callback; ) {
+			if ( op->o_callback->sc_response ) {
+				rc = op->o_callback->sc_response( op, rs );
+				if ( rc != SLAP_CB_CONTINUE ) break;
+			}
+			op->o_callback = op->o_callback->sc_next;
+		}
+		op->o_callback = sc;
+		if ( rc != SLAP_CB_CONTINUE ) goto rel;
 	}
-
-	mark = sl_mark( op->o_tmpmemctx );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
@@ -1311,12 +1374,12 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	}
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
+		rc = 0;
 		/* save the references for the result */
 		if( rs->sr_ref[0].bv_val != NULL ) {
 			if( value_add( &rs->sr_v2ref, rs->sr_ref ) )
-				return LDAP_OTHER;
+				rc = LDAP_OTHER;
 		}
-		rc = 0;
 		goto rel;
 	}
 
@@ -1385,7 +1448,15 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 #endif
 
 rel:
-	sl_release( mark, op->o_tmpmemctx );
+	if (op->o_callback) {
+		slap_callback *sc = op->o_callback;
+		for ( ; op->o_callback; op->o_callback = op->o_callback->sc_next ) {
+			if ( op->o_callback->sc_cleanup ) {
+				op->o_callback->sc_cleanup( op, rs );
+			}
+		}
+		op->o_callback = sc;
+	}
 	return rc;
 }
 

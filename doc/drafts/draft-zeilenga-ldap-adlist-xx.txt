@@ -6,11 +6,11 @@
 
 INTERNET-DRAFT                                      Kurt D. Zeilenga
 Intended Category: Informational                    OpenLDAP Foundation
-Expires in six months                               20 December 2002
+Expires in six months                               26 October 2003
 
 
                LDAP: Requesting Attributes by Object Class
-                   <draft-zeilenga-ldap-adlist-04.txt>
+                   <draft-zeilenga-ldap-adlist-06.txt>
 
 
 Status of this Memo
@@ -21,9 +21,9 @@ Status of this Memo
   This document is intended to be, after appropriate review and
   revision, submitted to the RFC Editor as an Informational document.
   Distribution of this memo is unlimited.  Technical discussion of this
-  document will take place on the IETF LDAP Extensions Working Group
-  mailing list <ldapext@ietf.org>.  Please send editorial comments
-  directly to the author <Kurt@OpenLDAP.org>.
+  document will take place on the IETF LDAP Extensions mailing list
+  <ldapext@ietf.org>.  Please send editorial comments directly to the
+  author <Kurt@OpenLDAP.org>.
 
   Internet-Drafts are working documents of the Internet Engineering Task
   Force (IETF), its areas, and its working groups.  Note that other
@@ -38,10 +38,10 @@ Status of this Memo
   Internet-Draft Shadow Directories can be accessed at
   <http://www.ietf.org/shadow.html>.
 
-  Copyright 2002, The Internet Society.  All Rights Reserved.
+  Copyright (C) The Internet Society (2003).  All Rights Reserved.
 
-  Please see the Copyright section near the end of this document for
-  more information.
+  Please see the Full Copyright section near the end of this document
+  for more information.
 
 
 Abstract
@@ -57,7 +57,7 @@ Abstract
 
 Zeilenga          Requesting Attributes by Object Class         [Page 1]
 
-INTERNET-DRAFT        draft-zeilenga-ldap-adlist-04     20 December 2002
+INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
 
 
 1.  Overview
@@ -82,14 +82,21 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-04     20 December 2002
   [RFC2256].
 
   This extension is intended to be used where the user is in direct
-  control of the parameters of the LDAP search operation.
+  control of the parameters of the LDAP search operation, such as when
+  entering a LDAP URL [RFC2255] into a web browser.
+
+
+2. Terminology
 
   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
   document are to be interpreted as described in BCP 14 [RFC2119].
 
+  DSA stands for Directory System Agent (or server).
+  DSE stands for DSA-specific Entry.
 
-2.  Return of all Attributes of an Object Class
+
+3.  Return of all Attributes of an Object Class
 
   This extension allows object class identifiers is to be provided in
   the attributes field of the LDAP SearchRequest [RFC2251].  For each
@@ -101,6 +108,14 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-04     20 December 2002
   unrecognized attribute description.
 
   This extension redefines the attributes field of the SearchRequest to
+
+
+
+Zeilenga          Requesting Attributes by Object Class         [Page 2]
+
+INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
+
+
   be a DescriptionList described by the following ASN.1 [X.680] data
   type:
 
@@ -108,13 +123,6 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-04     20 December 2002
        Description ::= LDAPString
 
   The Description is string conforming to the ABNF [RFC2234]:
-
-
-
-Zeilenga          Requesting Attributes by Object Class         [Page 2]
-
-INTERNET-DRAFT        draft-zeilenga-ldap-adlist-04     20 December 2002
-
 
        Description = AttributeDescription | ObjectClassDescription.
        ObjectClassDescription = "+" ObjectClass *( ";" options )
@@ -129,9 +137,11 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-04     20 December 2002
   zero options in the attributes field of a SearchRequest.  Other uses
   may be defined in future specifications.
 
-  Servers supporting this feature SHOULD publish the Object Identifier
-  1.3.6.1.4.1.4203.1.11.2 as a value of the 'supportedFeatures'
-  [FEATURES] attribute in the root DSE.
+  Servers supporting this feature SHOULD publish the object identifier
+  (OID) 1.3.6.1.4.1.4203.1.11.2 as a value of the 'supportedFeatures'
+  [FEATURES] attribute in the root DSE.  Clients supporting this feature
+  SHOULD NOT use the feature unless they have knowledge the server
+  supports it.
 
 
 3.  Security Considerations
@@ -147,29 +157,30 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-04     20 December 2002
 
 4.  IANA Considerations
 
-  This OID 1.3.6.1.4.1.4203.1.11.2 to identify the LDAP "OC AD List?
-  feature.  This OID was assigned [ASSIGN] by OpenLDAP Foundation, under
-  its IANA-assigned private enterprise allocation [PRIVATE], for use in
-  this specification.
+  The OID 1.3.6.1.4.1.4203.1.11.2 is used to identify the LDAP "OC AD
+  List" feature.  This OID was assigned [ASSIGN] by OpenLDAP Foundation,
+  under its IANA-assigned private enterprise allocation [PRIVATE], for
+  use in this specification.
 
-  Registration of this protocol mechansism is requested per BCP 64
+  Registration of this protocol mechanism is requested per BCP 64
   [RFC3383].
-
-      Subject: Request for LDAP Protocol Mechansism Registration
-      Object Identifier: 1.3.6.1.4.1.4203.1.5.2
-      Description: OC AD Lists
-      Person & email address to contact for further information:
-           Kurt Zeilenga <kurt@openldap.org>
-      Usage: Feature
-      Specification: RFCxxxx
-      Author/Change Controller: Kurt Zeilenga <kurt@openldap.org>
-      Comments: none
 
 
 
 Zeilenga          Requesting Attributes by Object Class         [Page 3]
 
-INTERNET-DRAFT        draft-zeilenga-ldap-adlist-04     20 December 2002
+INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
+
+
+      Subject: Request for LDAP Protocol Mechanism Registration
+      Object Identifier: 1.3.6.1.4.1.4203.1.5.2
+      Description: OC AD Lists
+      Person & email address to contact for further information:
+           Kurt Zeilenga <kurt@openldap.org>
+      Usage: Feature
+      Specification: RFC XXXX
+      Author/Change Controller: Kurt Zeilenga <kurt@openldap.org>
+      Comments: none
 
 
 5.  Author's Address
@@ -181,58 +192,66 @@ INTERNET-DRAFT        draft-zeilenga-ldap-adlist-04     20 December 2002
 
 6. Normative References
 
-  [RFC2119]  S. Bradner, "Key words for use in RFCs to Indicate
-             Requirement Levels", BCP 14 (also RFC 2119), March 1997.
+  [RFC2119]     Bradner, S., "Key words for use in RFCs to Indicate
+                Requirement Levels", BCP 14 (also RFC 2119), March 1997.
 
-  [RFC2234]  D. Crocker, P. Overell, "Augmented BNF for Syntax
-             Specifications: ABNF", RFC 2234, November 1997.
+  [RFC2234]     Crocker, D. and P. Overell, "Augmented BNF for Syntax
+                Specifications: ABNF", RFC 2234, November 1997.
 
-  [RFC2251]  M. Wahl, T. Howes, S. Kille, "Lightweight Directory Access
-             Protocol (v3)", RFC 2251, December 1997.
+  [RFC2251]     Wahl, M., T. Howes and S. Kille, "Lightweight Directory
+                Access Protocol (v3)", RFC 2251, December 1997.
 
-  [RFC2252]  M. Wahl, A. Coulbeck, T. Howes, S. Kille, "Lightweight
-             Directory Access Protocol (v3):  Attribute Syntax
-             Definitions", RFC 2252, December 1997.
+  [RFC2252]     Wahl, M., A. Coulbeck, T. Howes, and S. Kille,
+                "Lightweight Directory Access Protocol (v3):  Attribute
+                Syntax Definitions", RFC 2252, December 1997.
 
-  [RFC3377]  J. Hodges, R. Morgan, "Lightweight Directory Access
-             Protocol (v3): Technical Specification", RFC 3377,
-             September 2002.
+  [RFC3377]     Hodges, J. and R. Morgan, "Lightweight Directory Access
+                Protocol (v3): Technical Specification", RFC 3377,
+                September 2002.
 
-  [FEATURES] K. Zeilenga, "Feature Discovery in LDAP",
-             draft-zeilenga-ldap-features-xx.txt (a work in progress).
+  [FEATURES]    Zeilenga, K., "Feature Discovery in LDAP",
+                draft-zeilenga-ldap-features-xx.txt, a work in progress.
 
-  [X.680]    ITU-T, "Abstract Syntax Notation One (ASN.1) -
-             Specification of Basic Notation", X.680, 1994.
+  [X.680]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "Abstract
+                Syntax Notation One (ASN.1) - Specification of Basic
+                Notation", X.680(1997) (also ISO/IEC 8824-1:1998).
 
 
 7. Informative References
-
-  [RFC2256]  M. Wahl, "A Summary of the X.500(96) User Schema for use
-             with LDAPv3", RFC 2256, December 1997.
-
-  [RFC3383]  K. Zeilenga, "IANA Considerations for LDAP", RFC 3383,
-             September 2002.
-
-  [ASSIGN]   OpenLDAP Foundation, "OpenLDAP OID Delegations",
-             http://www.openldap.org/foundation/oid-delegate.txt.
-
-  [PRIVATE]  IANA, "Private Enterprise Numbers",
-             http://www.iana.org/assignments/enterprise-numbers.
-
 
 
 
 
 Zeilenga          Requesting Attributes by Object Class         [Page 4]
 
-INTERNET-DRAFT        draft-zeilenga-ldap-adlist-04     20 December 2002
+INTERNET-DRAFT        draft-zeilenga-ldap-adlist-06      26 October 2003
 
 
-Copyright 2002, The Internet Society.  All Rights Reserved.
+  [RFC2255]     Howes, T. and M. Smith, "The LDAP URL Format", RFC 2255,
+                December, 1997.
+
+  [RFC2256]     Wahl, M., "A Summary of the X.500(96) User Schema for
+                use with LDAPv3", RFC 2256, December 1997.
+
+  [RFC3383]     Zeilenga, K., "IANA Considerations for LDAP", BCP 64
+                (also RFC 3383), September 2002.
+
+  [ASSIGN]      OpenLDAP Foundation, "OpenLDAP OID Delegations",
+                http://www.openldap.org/foundation/oid-delegate.txt.
+
+  [PRIVATE]     IANA, "Private Enterprise Numbers",
+                http://www.iana.org/assignments/enterprise-numbers.
+
+
+
+Full Copyright
+
+  Copyright (C) The Internet Society (2003). All Rights Reserved.
 
   This document and translations of it may be copied and furnished to
   others, and derivative works that comment on or otherwise explain it
-  or assist in its implementation may be prepared, copied, published and
+  or assist in its implmentation may be prepared, copied, published and
   distributed, in whole or in part, without restriction of any kind,
   provided that the above copyright notice and this paragraph are
   included on all such copies and derivative works.  However, this
@@ -242,25 +261,6 @@ Copyright 2002, The Internet Society.  All Rights Reserved.
   developing Internet standards in which case the procedures for
   copyrights defined in the Internet Standards process must be followed,
   or as required to translate it into languages other than English.
-
-  The limited permissions granted above are perpetual and will not be
-  revoked by the Internet Society or its successors or assigns.
-
-  This document and the information contained herein is provided on an
-  "AS IS" basis and THE AUTHORS, THE INTERNET SOCIETY, AND THE INTERNET
-  ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED,
-  INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
-  INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
-  WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
-
-
-
-
-
-
-
-
-
 
 
 

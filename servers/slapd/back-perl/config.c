@@ -1,16 +1,18 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1999-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
- */
-/*
- *	 Copyright 1999, John C. Quillan, All rights reserved.
- *	 Portions Copyright 2002, myinternet Limited. All rights reserved.
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- *	 Redistribution and use in source and binary forms are permitted only
- *	 as authorized by the OpenLDAP Public License.	A copy of this
- *	 license is available at http://www.OpenLDAP.org/license.html or
- *	 in file LICENSE in the top-level directory of the distribution.
+ * Copyright 1999-2003 The OpenLDAP Foundation.
+ * Portions Copyright 1999 John C. Quillan.
+ * Portions Copyright 2002 myinternet Limited.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
 
 #include <EXTERN.h>
@@ -120,6 +122,7 @@ perl_back_db_config(
 	} else if ( strcasecmp( argv[0], "filterSearchResults" ) == 0 ) {
 		perl_back->pb_filter_search_results = 1;
 	} else {
+		return_code = SLAP_CONF_UNKNOWN;
 		/*
 		 * Pass it to Perl module if defined
 		 */
@@ -155,12 +158,7 @@ perl_back_db_config(
 
 		}
 
-		/* if the module rejected it then we should reject it */
-		if ( return_code != 0 ) {
-			fprintf( stderr,
-				 "Unknown perl backend config: %s\n", argv[0]);
-			exit( EXIT_FAILURE );
-		}
+		return return_code;
 	}
 
 	return 0;

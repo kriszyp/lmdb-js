@@ -55,7 +55,7 @@
  * A header written to the output file with the byte-order-mark and the number
  * of property nodes.
  */
-static unsigned short hdr[2] = {0xfeff, 0};
+static ac_uint2 hdr[2] = {0xfeff, 0};
 
 #define NUMPROPS 50
 #define NEEDPROPS (NUMPROPS + (4 - (NUMPROPS & 3)))
@@ -92,9 +92,9 @@ static _prop_t props[NUMPROPS] = {
 };
 
 typedef struct {
-    unsigned long *ranges;
-    unsigned short used;
-    unsigned short size;
+    ac_uint4 *ranges;
+    ac_uint2 used;
+    ac_uint2 size;
 } _ranges_t;
 
 static _ranges_t proptbl[NUMPROPS];
@@ -102,20 +102,20 @@ static _ranges_t proptbl[NUMPROPS];
 /*
  * Make sure this array is sized to be on a 4-byte boundary at compile time.
  */
-static unsigned short propcnt[NEEDPROPS];
+static ac_uint2 propcnt[NEEDPROPS];
 
 /*
  * Array used to collect a decomposition before adding it to the decomposition
  * table.
  */
-static unsigned long dectmp[64];
-static unsigned long dectmp_size;
+static ac_uint4 dectmp[64];
+static ac_uint4 dectmp_size;
 
 typedef struct {
-    unsigned long code;
-    unsigned short size;
-    unsigned short used;
-    unsigned long *decomp;
+    ac_uint4 code;
+    ac_uint2 size;
+    ac_uint2 used;
+    ac_uint4 *decomp;
 } _decomp_t;
 
 /*
@@ -124,70 +124,70 @@ typedef struct {
  * compatibility mappings.
  */
 static _decomp_t *decomps;
-static unsigned long decomps_used;
-static unsigned long decomps_size;
+static ac_uint4 decomps_used;
+static ac_uint4 decomps_size;
 
 static _decomp_t *kdecomps;
-static unsigned long kdecomps_used;
-static unsigned long kdecomps_size;
+static ac_uint4 kdecomps_used;
+static ac_uint4 kdecomps_size;
 
 /*
  * Composition exclusion table stuff.
  */
 #define COMPEX_SET(c) (compexs[(c) >> 5] |= (1 << ((c) & 31)))
 #define COMPEX_TEST(c) (compexs[(c) >> 5] & (1 << ((c) & 31)))
-static unsigned long compexs[2048];
+static ac_uint4 compexs[2048];
 
 /*
  * Struct for holding a composition pair, and array of composition pairs
  */
 typedef struct {
-    unsigned long comp;
-    unsigned long count;
-    unsigned long code1;
-    unsigned long code2;
+    ac_uint4 comp;
+    ac_uint4 count;
+    ac_uint4 code1;
+    ac_uint4 code2;
 } _comp_t;
 
 static _comp_t *comps;
-static unsigned long comps_used;
+static ac_uint4 comps_used;
 
 /*
  * Types and lists for handling lists of case mappings.
  */
 typedef struct {
-    unsigned long key;
-    unsigned long other1;
-    unsigned long other2;
+    ac_uint4 key;
+    ac_uint4 other1;
+    ac_uint4 other2;
 } _case_t;
 
 static _case_t *upper;
 static _case_t *lower;
 static _case_t *title;
-static unsigned long upper_used;
-static unsigned long upper_size;
-static unsigned long lower_used;
-static unsigned long lower_size;
-static unsigned long title_used;
-static unsigned long title_size;
+static ac_uint4 upper_used;
+static ac_uint4 upper_size;
+static ac_uint4 lower_used;
+static ac_uint4 lower_size;
+static ac_uint4 title_used;
+static ac_uint4 title_size;
 
 /*
  * Array used to collect case mappings before adding them to a list.
  */
-static unsigned long cases[3];
+static ac_uint4 cases[3];
 
 /*
  * An array to hold ranges for combining classes.
  */
-static unsigned long *ccl;
-static unsigned long ccl_used;
-static unsigned long ccl_size;
+static ac_uint4 *ccl;
+static ac_uint4 ccl_used;
+static ac_uint4 ccl_size;
 
 /*
  * Structures for handling numbers.
  */
 typedef struct {
-    unsigned long code;
-    unsigned long idx;
+    ac_uint4 code;
+    ac_uint4 idx;
 } _codeidx_t;
 
 typedef struct {
@@ -199,22 +199,22 @@ typedef struct {
  * Arrays to hold the mapping of codes to numbers.
  */
 static _codeidx_t *ncodes;
-static unsigned long ncodes_used;
-static unsigned long ncodes_size;
+static ac_uint4 ncodes_used;
+static ac_uint4 ncodes_size;
 
 static _num_t *nums;
-static unsigned long nums_used;
-static unsigned long nums_size;
+static ac_uint4 nums_used;
+static ac_uint4 nums_size;
 
 /*
  * Array for holding numbers.
  */
 static _num_t *nums;
-static unsigned long nums_used;
-static unsigned long nums_size;
+static ac_uint4 nums_used;
+static ac_uint4 nums_size;
 
 static void
-add_range(unsigned long start, unsigned long end, char *p1, char *p2)
+add_range(ac_uint4 start, ac_uint4 end, char *p1, char *p2)
 {
     int i, j, k, len;
     _ranges_t *rlp;
@@ -247,12 +247,12 @@ add_range(unsigned long start, unsigned long end, char *p1, char *p2)
          */
         if (rlp->used == rlp->size) {
             if (rlp->size == 0)
-              rlp->ranges = (unsigned long *)
-                  malloc(sizeof(unsigned long) << 3);
+              rlp->ranges = (ac_uint4 *)
+                  malloc(sizeof(ac_uint4) << 3);
             else
-              rlp->ranges = (unsigned long *)
+              rlp->ranges = (ac_uint4 *)
                   realloc((char *) rlp->ranges,
-                          sizeof(unsigned long) * (rlp->size + 8));
+                          sizeof(ac_uint4) * (rlp->size + 8));
             rlp->size += 8;
         }
 
@@ -312,10 +312,10 @@ add_range(unsigned long start, unsigned long end, char *p1, char *p2)
 }
 
 static void
-ordered_range_insert(unsigned long c, char *name, int len)
+ordered_range_insert(ac_uint4 c, char *name, int len)
 {
     int i, j;
-    unsigned long s, e;
+    ac_uint4 s, e;
     _ranges_t *rlp;
 
     if (len == 0)
@@ -355,12 +355,12 @@ ordered_range_insert(unsigned long c, char *name, int len)
      */
     if (rlp->used == rlp->size) {
         if (rlp->size == 0)
-          rlp->ranges = (unsigned long *)
-              malloc(sizeof(unsigned long) << 3);
+          rlp->ranges = (ac_uint4 *)
+              malloc(sizeof(ac_uint4) << 3);
         else
-          rlp->ranges = (unsigned long *)
+          rlp->ranges = (ac_uint4 *)
               realloc((char *) rlp->ranges,
-                      sizeof(unsigned long) * (rlp->size + 8));
+                      sizeof(ac_uint4) * (rlp->size + 8));
         rlp->size += 8;
     }
 
@@ -437,12 +437,12 @@ ordered_range_insert(unsigned long c, char *name, int len)
 }
 
 static void
-add_decomp(unsigned long code, short compat)
+add_decomp(ac_uint4 code, short compat)
 {
-    unsigned long i, j, size;
+    ac_uint4 i, j, size;
     _decomp_t **pdecomps;
-    unsigned long *pdecomps_used;
-    unsigned long *pdecomps_size;
+    ac_uint4 *pdecomps_used;
+    ac_uint4 *pdecomps_size;
 
     if (compat) {
 	pdecomps = &kdecomps;
@@ -496,12 +496,12 @@ add_decomp(unsigned long code, short compat)
     size = dectmp_size + (4 - (dectmp_size & 3));
     if ((*pdecomps)[i].size < size) {
         if ((*pdecomps)[i].size == 0)
-          (*pdecomps)[i].decomp = (unsigned long *)
-              malloc(sizeof(unsigned long) * size);
+          (*pdecomps)[i].decomp = (ac_uint4 *)
+              malloc(sizeof(ac_uint4) * size);
         else
-          (*pdecomps)[i].decomp = (unsigned long *)
+          (*pdecomps)[i].decomp = (ac_uint4 *)
               realloc((char *) (*pdecomps)[i].decomp,
-                      sizeof(unsigned long) * size);
+                      sizeof(ac_uint4) * size);
         (*pdecomps)[i].size = size;
     }
 
@@ -511,7 +511,7 @@ add_decomp(unsigned long code, short compat)
     (*pdecomps)[i].code = code;
     (*pdecomps)[i].used = dectmp_size;
     (void) AC_MEMCPY((char *) (*pdecomps)[i].decomp, (char *) dectmp,
-                  sizeof(unsigned long) * dectmp_size);
+                  sizeof(ac_uint4) * dectmp_size);
 
     /*
      * NOTICE: This needs changing later so it is more general than simply
@@ -522,9 +522,9 @@ add_decomp(unsigned long code, short compat)
 }
 
 static void
-add_title(unsigned long code)
+add_title(ac_uint4 code)
 {
-    unsigned long i, j;
+    ac_uint4 i, j;
 
     /*
      * Always map the code to itself.
@@ -562,9 +562,9 @@ add_title(unsigned long code)
 }
 
 static void
-add_upper(unsigned long code)
+add_upper(ac_uint4 code)
 {
-    unsigned long i, j;
+    ac_uint4 i, j;
 
     /*
      * Always map the code to itself.
@@ -609,9 +609,9 @@ add_upper(unsigned long code)
 }
 
 static void
-add_lower(unsigned long code)
+add_lower(ac_uint4 code)
 {
-    unsigned long i, j;
+    ac_uint4 i, j;
 
     /*
      * Always map the code to itself.
@@ -656,16 +656,16 @@ add_lower(unsigned long code)
 }
 
 static void
-ordered_ccl_insert(unsigned long c, unsigned long ccl_code)
+ordered_ccl_insert(ac_uint4 c, ac_uint4 ccl_code)
 {
-    unsigned long i, j;
+    ac_uint4 i, j;
 
     if (ccl_used == ccl_size) {
         if (ccl_size == 0)
-          ccl = (unsigned long *) malloc(sizeof(unsigned long) * 24);
+          ccl = (ac_uint4 *) malloc(sizeof(ac_uint4) * 24);
         else
-          ccl = (unsigned long *)
-              realloc((char *) ccl, sizeof(unsigned long) * (ccl_size + 24));
+          ccl = (ac_uint4 *)
+              realloc((char *) ccl, sizeof(ac_uint4) * (ccl_size + 24));
         ccl_size += 24;
     }
 
@@ -728,10 +728,10 @@ ordered_ccl_insert(unsigned long c, unsigned long ccl_code)
  * Adds a number if it does not already exist and returns an index value
  * multiplied by 2.
  */
-static unsigned long
+static ac_uint4
 make_number(short num, short denom)
 {
-    unsigned long n;
+    ac_uint4 n;
 
     /*
      * Determine if the number already exists.
@@ -758,9 +758,9 @@ make_number(short num, short denom)
 }
 
 static void
-add_number(unsigned long code, short num, short denom)
+add_number(ac_uint4 code, short num, short denom)
 {
-    unsigned long i, j;
+    ac_uint4 i, j;
 
     /*
      * Insert the code in order.
@@ -811,7 +811,7 @@ add_number(unsigned long code, short num, short denom)
 static void
 read_cdata(FILE *in)
 {
-    unsigned long i, lineno, skip, code, ccl_code;
+    ac_uint4 i, lineno, skip, code, ccl_code;
     short wnum, neg, number[2], compat;
     char line[512], *s, *e;
 
@@ -1096,7 +1096,7 @@ read_cdata(FILE *in)
 }
 
 static _decomp_t *
-find_decomp(unsigned long code, short compat)
+find_decomp(ac_uint4 code, short compat)
 {
     long l, r, m;
     _decomp_t *decs;
@@ -1119,7 +1119,7 @@ find_decomp(unsigned long code, short compat)
 static void
 decomp_it(_decomp_t *d, short compat)
 {
-    unsigned long i;
+    ac_uint4 i;
     _decomp_t *dp;
 
     for (i = 0; i < d->used; i++) {
@@ -1137,7 +1137,7 @@ decomp_it(_decomp_t *d, short compat)
 static void
 expand_decomp(void)
 {
-    unsigned long i;
+    ac_uint4 i;
 
     for (i = 0; i < decomps_used; i++) {
         dectmp_size = 0;
@@ -1171,10 +1171,10 @@ cmpcomps(const void *v_comp1, const void *v_comp2)
 static void
 read_compexdata(FILE *in)
 {
-    unsigned short i, code;
+    ac_uint2 i, code;
     char line[512], *s;
 
-    (void) memset((char *) compexs, 0, sizeof(unsigned long) << 11);
+    (void) memset((char *) compexs, 0, sizeof(ac_uint4) << 11);
 
     while (fgets(line, sizeof(line), in)) {
 	if( (s=strchr(line, '\n')) ) *s = '\0';
@@ -1207,7 +1207,7 @@ read_compexdata(FILE *in)
 static void
 create_comps(void)
 {
-    unsigned long i, cu;
+    ac_uint4 i, cu;
 
     comps = (_comp_t *) malloc(comps_used * sizeof(_comp_t));
 
@@ -1229,8 +1229,8 @@ write_cdata(char *opath)
 {
     FILE *out;
 	ac_uint4 bytes;
-    unsigned long i, idx, nprops;
-    unsigned short casecnt[2];
+    ac_uint4 i, idx, nprops;
+    ac_uint2 casecnt[2];
     char path[BUFSIZ];
 
     /*****************************************************************
@@ -1273,10 +1273,10 @@ write_cdata(char *opath)
      * Calculate the byte count needed and pad the property counts array to a
      * 4-byte boundary.
      */
-    if ((bytes = sizeof(unsigned short) * (NUMPROPS + 1)) & 3)
+    if ((bytes = sizeof(ac_uint2) * (NUMPROPS + 1)) & 3)
       bytes += 4 - (bytes & 3);
-    nprops = bytes / sizeof(unsigned short);
-    bytes += sizeof(unsigned long) * idx;
+    nprops = bytes / sizeof(ac_uint2);
+    bytes += sizeof(ac_uint4) * idx;
         
     /*
      * Write the header.
@@ -1286,19 +1286,19 @@ write_cdata(char *opath)
     /*
      * Write the byte count.
      */
-    fwrite((char *) &bytes, sizeof(unsigned long), 1, out);
+    fwrite((char *) &bytes, sizeof(ac_uint4), 1, out);
 
     /*
      * Write the property list counts.
      */
-    fwrite((char *) propcnt, sizeof(unsigned short), nprops, out);
+    fwrite((char *) propcnt, sizeof(ac_uint2), nprops, out);
 
     /*
      * Write the property lists.
      */
     for (i = 0; i < NUMPROPS; i++) {
         if (proptbl[i].used > 0)
-          fwrite((char *) proptbl[i].ranges, sizeof(unsigned long),
+          fwrite((char *) proptbl[i].ranges, sizeof(ac_uint4),
                  proptbl[i].used, out);
     }
 
@@ -1327,12 +1327,12 @@ write_cdata(char *opath)
     /*
      * Write the header.
      */
-    fwrite((char *) hdr, sizeof(unsigned short), 2, out);
+    fwrite((char *) hdr, sizeof(ac_uint2), 2, out);
 
     /*
      * Write the upper and lower case table sizes.
      */
-    fwrite((char *) casecnt, sizeof(unsigned short), 2, out);
+    fwrite((char *) casecnt, sizeof(ac_uint2), 2, out);
 
     if (upper_used > 0)
       /*
@@ -1375,14 +1375,14 @@ write_cdata(char *opath)
     /*
      * Write the header.
      */
-    hdr[1] = (unsigned short) comps_used * 4;
-    fwrite((char *) hdr, sizeof(unsigned short), 2, out);
+    hdr[1] = (ac_uint2) comps_used * 4;
+    fwrite((char *) hdr, sizeof(ac_uint2), 2, out);
     
     /*
      * Write out the byte count to maintain header size.
      */
     bytes = comps_used * sizeof(_comp_t);
-    fwrite((char *) &bytes, sizeof(unsigned long), 1, out);
+    fwrite((char *) &bytes, sizeof(ac_uint4), 1, out);
     
     /*
      * Now, if comps exist, write them out.
@@ -1415,44 +1415,44 @@ write_cdata(char *opath)
     /*
      * Write the header.
      */
-    fwrite((char *) hdr, sizeof(unsigned short), 2, out);
+    fwrite((char *) hdr, sizeof(ac_uint2), 2, out);
 
     /*
      * Write a temporary byte count which will be calculated as the
      * decompositions are written out.
      */
     bytes = 0;
-    fwrite((char *) &bytes, sizeof(unsigned long), 1, out);
+    fwrite((char *) &bytes, sizeof(ac_uint4), 1, out);
 
     if (decomps_used) {
         /*
          * Write the list of decomp nodes.
          */
         for (i = idx = 0; i < decomps_used; i++) {
-            fwrite((char *) &decomps[i].code, sizeof(unsigned long), 1, out);
-            fwrite((char *) &idx, sizeof(unsigned long), 1, out);
+            fwrite((char *) &decomps[i].code, sizeof(ac_uint4), 1, out);
+            fwrite((char *) &idx, sizeof(ac_uint4), 1, out);
             idx += decomps[i].used;
         }
 
         /*
          * Write the sentinel index as the last decomp node.
          */
-        fwrite((char *) &idx, sizeof(unsigned long), 1, out);
+        fwrite((char *) &idx, sizeof(ac_uint4), 1, out);
 
         /*
          * Write the decompositions themselves.
          */
         for (i = 0; i < decomps_used; i++)
-          fwrite((char *) decomps[i].decomp, sizeof(unsigned long),
+          fwrite((char *) decomps[i].decomp, sizeof(ac_uint4),
                  decomps[i].used, out);
 
         /*
          * Seek back to the beginning and write the byte count.
          */
-        bytes = (sizeof(unsigned long) * idx) +
-            (sizeof(unsigned long) * ((hdr[1] << 1) + 1));
-        fseek(out, sizeof(unsigned short) << 1, 0L);
-        fwrite((char *) &bytes, sizeof(unsigned long), 1, out);
+        bytes = (sizeof(ac_uint4) * idx) +
+            (sizeof(ac_uint4) * ((hdr[1] << 1) + 1));
+        fseek(out, sizeof(ac_uint2) << 1, 0L);
+        fwrite((char *) &bytes, sizeof(ac_uint4), 1, out);
 
         fclose(out);
     }
@@ -1469,44 +1469,44 @@ write_cdata(char *opath)
     /*
      * Write the header.
      */
-    fwrite((char *) hdr, sizeof(unsigned short), 2, out);
+    fwrite((char *) hdr, sizeof(ac_uint2), 2, out);
 
     /*
      * Write a temporary byte count which will be calculated as the
      * decompositions are written out.
      */
     bytes = 0;
-    fwrite((char *) &bytes, sizeof(unsigned long), 1, out);
+    fwrite((char *) &bytes, sizeof(ac_uint4), 1, out);
 
     if (kdecomps_used) {
         /*
          * Write the list of kdecomp nodes.
          */
         for (i = idx = 0; i < kdecomps_used; i++) {
-            fwrite((char *) &kdecomps[i].code, sizeof(unsigned long), 1, out);
-            fwrite((char *) &idx, sizeof(unsigned long), 1, out);
+            fwrite((char *) &kdecomps[i].code, sizeof(ac_uint4), 1, out);
+            fwrite((char *) &idx, sizeof(ac_uint4), 1, out);
             idx += kdecomps[i].used;
         }
 
         /*
          * Write the sentinel index as the last decomp node.
          */
-        fwrite((char *) &idx, sizeof(unsigned long), 1, out);
+        fwrite((char *) &idx, sizeof(ac_uint4), 1, out);
 
         /*
          * Write the decompositions themselves.
          */
         for (i = 0; i < kdecomps_used; i++)
-          fwrite((char *) kdecomps[i].decomp, sizeof(unsigned long),
+          fwrite((char *) kdecomps[i].decomp, sizeof(ac_uint4),
                  kdecomps[i].used, out);
 
         /*
          * Seek back to the beginning and write the byte count.
          */
-        bytes = (sizeof(unsigned long) * idx) +
-            (sizeof(unsigned long) * ((hdr[1] << 1) + 1));
-        fseek(out, sizeof(unsigned short) << 1, 0L);
-        fwrite((char *) &bytes, sizeof(unsigned long), 1, out);
+        bytes = (sizeof(ac_uint4) * idx) +
+            (sizeof(ac_uint4) * ((hdr[1] << 1) + 1));
+        fseek(out, sizeof(ac_uint2) << 1, 0L);
+        fwrite((char *) &bytes, sizeof(ac_uint4), 1, out);
 
         fclose(out);
     }
@@ -1533,19 +1533,19 @@ write_cdata(char *opath)
     /*
      * Write the header.
      */
-    fwrite((char *) hdr, sizeof(unsigned short), 2, out);
+    fwrite((char *) hdr, sizeof(ac_uint2), 2, out);
 
     /*
      * Write out the byte count to maintain header size.
      */
-    bytes = ccl_used * sizeof(unsigned long);
-    fwrite((char *) &bytes, sizeof(unsigned long), 1, out);
+    bytes = ccl_used * sizeof(ac_uint4);
+    fwrite((char *) &bytes, sizeof(ac_uint4), 1, out);
 
     if (ccl_used > 0)
       /*
        * Write the combining class ranges out.
        */
-      fwrite((char *) ccl, sizeof(unsigned long), ccl_used, out);
+      fwrite((char *) ccl, sizeof(ac_uint4), ccl_used, out);
 
     fclose(out);
 
@@ -1566,18 +1566,18 @@ write_cdata(char *opath)
      * The count part of the header will be the total number of codes that
      * have numbers.
      */
-    hdr[1] = (unsigned short) (ncodes_used << 1);
+    hdr[1] = (ac_uint2) (ncodes_used << 1);
     bytes = (ncodes_used * sizeof(_codeidx_t)) + (nums_used * sizeof(_num_t));
 
     /*
      * Write the header.
      */
-    fwrite((char *) hdr, sizeof(unsigned short), 2, out);
+    fwrite((char *) hdr, sizeof(ac_uint2), 2, out);
 
     /*
      * Write out the byte count to maintain header size.
      */
-    fwrite((char *) &bytes, sizeof(unsigned long), 1, out);
+    fwrite((char *) &bytes, sizeof(ac_uint4), 1, out);
 
     /*
      * Now, if number mappings exist, write them out.

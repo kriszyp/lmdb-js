@@ -2470,45 +2470,57 @@ read_config( const char *fname, int depth )
 		/* pass anything else to the current backend info/db config routine */
 		} else {
 			if ( bi != NULL ) {
-				if ( bi->bi_config == 0 ) {
+				if ( bi->bi_config ) {
+					rc = (*bi->bi_config)( bi, fname, lineno, cargc, cargv );
+
+					switch ( rc ) {
+					case 0:
+						break;
+
+					case SLAP_CONF_UNKNOWN:
 #ifdef NEW_LOGGING
-					LDAP_LOG( CONFIG, INFO, 
-						"%s: line %d: unknown directive \"%s\" inside "
-						"backend info definition (ignored).\n",
-						fname, lineno, cargv[0] );
+						LDAP_LOG( CONFIG, INFO, 
+							"%s: line %d: unknown directive \"%s\" inside "
+							"backend info definition (ignored).\n",
+							fname, lineno, cargv[0] );
 #else
-					Debug( LDAP_DEBUG_ANY,
+						Debug( LDAP_DEBUG_ANY,
 "%s: line %d: unknown directive \"%s\" inside backend info definition (ignored)\n",
-				   		fname, lineno, cargv[0] );
+				   			fname, lineno, cargv[0] );
 #endif
+						break;
 
-				} else {
-					if ( (*bi->bi_config)( bi, fname, lineno, cargc, cargv )
-						!= 0 )
-					{
-						return( 1 );
+					default:
+						return 1;
 					}
 				}
+
 			} else if ( be != NULL ) {
-				if ( be->be_config == 0 ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG( CONFIG, INFO, 
-						"%s: line %d: uknown directive \"%s\" inside "
-						"backend database definition (ignored).\n",
-						fname, lineno, cargv[0] );
-#else
-					Debug( LDAP_DEBUG_ANY,
-"%s: line %d: unknown directive \"%s\" inside backend database definition (ignored)\n",
-				    	fname, lineno, cargv[0] );
-#endif
+				if ( be->be_config ) {
+					rc = (*be->be_config)( be, fname, lineno, cargc, cargv );
 
-				} else {
-					if ( (*be->be_config)( be, fname, lineno, cargc, cargv )
-						!= 0 )
-					{
-						return( 1 );
+					switch ( rc ) {
+					case 0:
+						break;
+
+					case SLAP_CONF_UNKNOWN:
+#ifdef NEW_LOGGING
+						LDAP_LOG( CONFIG, INFO, 
+							"%s: line %d: unknown directive \"%s\" inside "
+							"backend database definition (ignored).\n",
+							fname, lineno, cargv[0] );
+#else
+						Debug( LDAP_DEBUG_ANY,
+"%s: line %d: unknown directive \"%s\" inside backend database definition (ignored)\n",
+							fname, lineno, cargv[0] );
+#endif
+						break;
+
+					default:
+						return 1;
 					}
 				}
+
 			} else {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, INFO, 

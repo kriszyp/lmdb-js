@@ -3,6 +3,8 @@
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 2003 The OpenLDAP Foundation.
+ * Portions Copyright 1999-2003 Howard Chu.
+ * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -17,36 +19,6 @@
  * This work was initially developed by the Howard Chu for inclusion
  * in OpenLDAP Software and subsequently enhanced by Pierangelo
  * Masarati.
- */
-/* This is an altered version */
-/*
- * Copyright 1999, Howard Chu, All rights reserved. <hyc@highlandsun.com>
- * 
- * Permission is granted to anyone to use this software for any purpose
- * on any computer system, and to alter it and redistribute it, subject
- * to the following restrictions:
- * 
- * 1. The author is not responsible for the consequences of use of this
- *    software, no matter how awful, even if they arise from flaws in it.
- * 
- * 2. The origin of this software must not be misrepresented, either by
- *    explicit claim or by omission.  Since few users ever read sources,
- *    credits should appear in the documentation.
- * 
- * 3. Altered versions must be plainly marked as such, and must not be
- *    misrepresented as being the original software.  Since few users
- *    ever read sources, credits should appear in the documentation.
- * 
- * 4. This notice may not be removed or altered.
- *
- *
- *
- * Copyright 2000, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
- * 
- * This software is being modified by Pierangelo Masarati.
- * The previously reported conditions apply to the modified code as well.
- * Changes in the original code are highlighted where required.
- * Credits for the original code go to the author, Howard Chu.
  */
 
 #include "portable.h"
@@ -127,7 +99,29 @@ ldap_back_db_config(
 			return( 1 );
 		}
 		ber_str2bv( argv[1], 0, 1, &li->bindpw );
-	
+
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	/* name to use for proxyAuthz propagation */
+	} else if ( strcasecmp( argv[0], "proxyauthzdn" ) == 0 ) {
+		if (argc != 2) {
+			fprintf( stderr,
+	"%s: line %d: missing name in \"proxyauthzdn <name>\" line\n",
+			    fname, lineno );
+			return( 1 );
+		}
+		ber_str2bv( argv[1], 0, 1, &li->proxyauthzdn );
+
+	/* password to use for proxyAuthz propagation */
+	} else if ( strcasecmp( argv[0], "proxyauthzpw" ) == 0 ) {
+		if (argc != 2) {
+			fprintf( stderr,
+	"%s: line %d: missing password in \"proxyauthzpw <password>\" line\n",
+			    fname, lineno );
+			return( 1 );
+		}
+		ber_str2bv( argv[1], 0, 1, &li->proxyauthzpw );
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+
 	/* save bind creds for referral rebinds? */
 	} else if ( strcasecmp( argv[0], "rebind-as-user" ) == 0 ) {
 		if (argc != 1) {
@@ -262,9 +256,7 @@ ldap_back_db_config(
 
 	/* anything else */
 	} else {
-		fprintf( stderr, "%s: line %d: unknown directive \"%s\" "
-			"in ldap database definition (ignored)\n",
-		    fname, lineno, argv[0] );
+		return SLAP_CONF_UNKNOWN;
 	}
 	return 0;
 }

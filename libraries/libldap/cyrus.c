@@ -499,6 +499,11 @@ ldap_int_sasl_open(
 		return ld->ld_errno;
 	}
 
+	if ( ldap_int_sasl_init() ) {
+		ld->ld_errno = LDAP_LOCAL_ERROR;
+		return ld->ld_errno;
+	}
+
 #if SASL_VERSION_MAJOR >= 2
 	rc = sasl_client_new( "ldap", host, NULL, NULL,
 		NULL, 0, &ctx );

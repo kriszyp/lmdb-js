@@ -56,7 +56,7 @@
 	 *  Note: Deallocate structure when the process exits
 	 */
 #	define LDAP_INT_GLOBAL_OPT() ldap_int_global_opt()
-   struct ldapoptions *ldap_int_global_opt(void);
+	struct ldapoptions *ldap_int_global_opt(void);
 #else
 #	define LDAP_INT_GLOBAL_OPT() (&ldap_int_global_options)
 #endif
@@ -84,6 +84,7 @@
 
 #endif /* LDAP_DEBUG */
 
+#define LDAP_DEPRECATED 1
 #include "ldap.h"
 
 #include "ldap_pvt.h"

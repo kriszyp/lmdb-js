@@ -1,10 +1,21 @@
-/*
- *	 Copyright 1999, Dmitry Kovalev <mit@openldap.org>, All rights reserved.
+/* $OpenLDAP$ */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- *	 Redistribution and use in source and binary forms are permitted only
- *	 as authorized by the OpenLDAP Public License.	A copy of this
- *	 license is available at http://www.OpenLDAP.org/license.html or
- *	 in file LICENSE in the top-level directory of the distribution.
+ * Copyright 1999-2003 The OpenLDAP Foundation.
+ * Portions Copyright 1999 Dmitry Kovalev.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
+ */
+/* ACKNOWLEDGEMENTS:
+ * This work was initially developed by Dmitry Kovalev for inclusion
+ * by OpenLDAP Software.
  */
 
 #include "portable.h"
@@ -325,9 +336,7 @@ backsql_db_config(
 			BACKSQL_FAIL_IF_NO_MAPPING( si ) ? "yes" : "no", 0, 0 );
 
 	} else {
-		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config (%s line %d): "
-			"unknown directive \"%s\" (ignored)\n",
-			fname, lineno, argv[ 0 ] );
+		return SLAP_CONF_UNKNOWN;
 	}
 
 	return 0;

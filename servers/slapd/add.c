@@ -588,15 +588,15 @@ int
 slap_entry2mods(
 	Entry *e,
 	Modifications **mods,
-	const char **text
-)
+	const char **text,
+	char *textbuf, size_t textlen )
 {
 	Modifications	*modhead = NULL;
 	Modifications	*mod;
 	Modifications	**modtail = &modhead;
 	Attribute		*a_new;
 	AttributeDescription	*a_new_desc;
-	int				i, count, rc;
+	int				i, count;
 
 	a_new = e->e_attrs;
 
@@ -604,12 +604,9 @@ slap_entry2mods(
 		a_new_desc = a_new->a_desc;
 		mod = (Modifications *) malloc( sizeof( Modifications ));
 		
-		if ( a_new_desc != slap_schema.si_ad_queryid )
-			mod->sml_op = LDAP_MOD_REPLACE;
-		else
-			mod->sml_op = LDAP_MOD_ADD;
+		mod->sml_op = LDAP_MOD_REPLACE;
 
-		ber_dupbv( &mod->sml_type, &a_new_desc->ad_cname );
+		mod->sml_type = a_new_desc->ad_cname;
 
 		for ( count = 0; a_new->a_vals[count].bv_val; count++ );
 
@@ -675,16 +672,20 @@ static int doPreAddPluginFNs( Operation *op )
 		 * entire operation.
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_add: add preoperation plugin failed\n",
-				0, 0, 0);
+		LDAP_LOG( OPERATION, INFO,
+			"do_add: add preoperation plugin failed\n",
+			0, 0, 0);
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_add: add preoperation plugin failed.\n",
-				0, 0, 0);
-		if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0 ) ||
-		     rc == LDAP_SUCCESS ) {
+		Debug(LDAP_DEBUG_TRACE,
+			"do_add: add preoperation plugin failed.\n",
+			0, 0, 0);
+#endif
+
+		if (( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,
+			(void *)&rc ) != 0 ) || rc == LDAP_SUCCESS )
+		{
 			rc = LDAP_OTHER;
 		}
-#endif
 	} else {
 		rc = LDAP_SUCCESS;
 	}
@@ -699,11 +700,13 @@ static void doPostAddPluginFNs( Operation *op )
 	rc = doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_ADD_FN, op->o_pb );
 	if ( rc < 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_add: add postoperation plugin failed\n",
-				0, 0, 0);
+		LDAP_LOG( OPERATION, INFO,
+			"do_add: add postoperation plugin failed\n",
+			0, 0, 0);
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_add: add postoperation plugin failed.\n",
-				0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE,
+			"do_add: add postoperation plugin failed\n",
+			0, 0, 0);
 #endif
 	}
 }

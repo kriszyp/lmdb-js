@@ -195,11 +195,6 @@ key_read LDAP_P((
 	ID_BLOCK **idout ));
 
 /*
- * passwd.c
- */
-extern BI_op_extended ldbm_back_exop_passwd;
-
-/*
  * modify.c
  * These prototypes are placed here because they are used by modify and
  * modify rdn which are implemented in different files. 

@@ -40,7 +40,7 @@ UNIX_LINK_LIBS = $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS)
 
 LIBBASE = back_monitor
 
-XINCPATH = -I.. -I$(srcdir)/.. -I../slapi
+XINCPATH = -I.. -I$(srcdir)/.. -I$(srcdir)/../slapi
 XDEFS = $(MODULES_CPPFLAGS)
 
 all-local-lib:	../.backend

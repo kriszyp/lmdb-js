@@ -350,6 +350,9 @@
 /* Define if you have the <assert.h> header file.  */
 #undef HAVE_ASSERT_H
 
+/* Define if you have the <bits/types.h> header file.  */
+#undef HAVE_BITS_TYPES_H
+
 /* Define if you have the <conio.h> header file.  */
 #undef HAVE_CONIO_H
 
@@ -442,9 +445,6 @@
 
 /* Define if you have the <memory.h> header file.  */
 #undef HAVE_MEMORY_H
-
-/* Define if you have the <ncurses.h> header file.  */
-#undef HAVE_NCURSES_H
 
 /* Define if you have the <ndbm.h> header file.  */
 #undef HAVE_NDBM_H
@@ -580,9 +580,6 @@
 
 /* Define if you have the <tcpd.h> header file.  */
 #undef HAVE_TCPD_H
-
-/* Define if you have the <termcap.h> header file.  */
-#undef HAVE_TERMCAP_H
 
 /* Define if you have the <termios.h> header file.  */
 #undef HAVE_TERMIOS_H
@@ -797,15 +794,6 @@
 /* define if you have -lwrap */
 #undef HAVE_TCPD
 
-/* define if you have -ltermcap */
-#undef HAVE_TERMCAP
-
-/* define if you have -lncurses */
-#undef HAVE_NCURSES
-
-/* define if you have no termcap support */
-#undef NO_TERMCAP
-
 /* define if you have Cyrus SASL */
 #undef HAVE_CYRUS_SASL
 
@@ -953,6 +941,12 @@
 /* define to support modules */
 #undef SLAPD_MODULES
 
+/* statically linked module */
+#undef SLAPD_MOD_STATIC
+
+/* dynamically linked module */
+#undef SLAPD_MOD_DYNAMIC
+
 /* define to support BDB backend */
 #undef SLAPD_BDB
 
@@ -1025,6 +1019,12 @@
 /* define to support dynamic SQL backend */
 #undef SLAPD_SQL_DYNAMIC
 
+/* define for Dynamic Group overlay */
+#undef SLAPD_OVER_DYNGROUP
+
+/* define for Proxy Cache overlay */
+#undef SLAPD_OVER_PROXYCACHE
+
 /* define to enable rewriting in back-ldap and back-meta */
 #undef ENABLE_REWRITE
 
@@ -1068,6 +1068,19 @@
 #define fprintf ber_pvt_fprintf
 #define vfprintf ber_pvt_vfprintf
 #define vsprintf ber_pvt_vsprintf
+#endif
+
+#ifdef OPENLDAP_FD_SETSIZE
+	/* assume installer desires to enlarge fd_set */
+#ifdef HAVE_BITS_TYPES_H
+#include <bits/types.h>
+#endif
+#ifdef	__FD_SETSIZE
+#undef	__FD_SETSIZE
+#define	__FD_SETSIZE OPENLDAP_FD_SETSIZE
+#else
+#define	FD_SETSIZE OPENLDAP_FD_SETSIZE
+#endif
 #endif
 
 #include "ldap_cdefs.h"

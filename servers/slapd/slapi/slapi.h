@@ -446,6 +446,8 @@ extern Backend * slapi_cl_get_be(char *dn);
 #define	SLAPI_ENTRY_POST_OP			53
 
 #define SLAPI_RESCONTROLS			55
+/* This is the spelling in the SunOne 5.2 docs */
+#define	SLAPI_RES_CONTROLS	SLAPI_RESCONTROLS
 #define SLAPI_ADD_RESCONTROL			56
 
 #define SLAPI_ADD_TARGET			SLAPI_TARGET_DN

@@ -2,6 +2,8 @@
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1999-2003 The OpenLDAP Foundation.
+ * Portions Copyright 2001-2003 Pierangelo Masarati.
+ * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -11,74 +13,6 @@
  * A copy of this license is available in the file LICENSE in the
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
- */
-/* ACKNOWLEDGEMENTS:
- * This work was initially developed by the Howard Chu for inclusion
- * in OpenLDAP Software and subsequently enhanced by Pierangelo
- * Masarati.
- */
-/* This is an altered version */
-/*
- * Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
- *
- * This work has been developed to fulfill the requirements
- * of SysNet s.n.c. <http:www.sys-net.it> and it has been donated
- * to the OpenLDAP Foundation in the hope that it may be useful
- * to the Open Source community, but WITHOUT ANY WARRANTY.
- *
- * Permission is granted to anyone to use this software for any purpose
- * on any computer system, and to alter it and redistribute it, subject
- * to the following restrictions:
- *
- * 1. The author and SysNet s.n.c. are not responsible for the consequences
- *    of use of this software, no matter how awful, even if they arise from 
- *    flaws in it.
- *
- * 2. The origin of this software must not be misrepresented, either by
- *    explicit claim or by omission.  Since few users ever read sources,
- *    credits should appear in the documentation.
- *
- * 3. Altered versions must be plainly marked as such, and must not be
- *    misrepresented as being the original software.  Since few users
- *    ever read sources, credits should appear in the documentation.
- *    SysNet s.n.c. cannot be responsible for the consequences of the
- *    alterations.
- *
- * 4. This notice may not be removed or altered.
- *
- *
- * This software is based on the backend back-ldap, implemented
- * by Howard Chu <hyc@highlandsun.com>, and modified by Mark Valence
- * <kurash@sassafras.com>, Pierangelo Masarati <ando@sys-net.it> and other
- * contributors. The contribution of the original software to the present
- * implementation is acknowledged in this copyright statement.
- *
- * A special acknowledgement goes to Howard for the overall architecture
- * (and for borrowing large pieces of code), and to Mark, who implemented
- * from scratch the attribute/objectclass mapping.
- *
- * The original copyright statement follows.
- *
- * Copyright 1999, Howard Chu, All rights reserved. <hyc@highlandsun.com>
- *
- * Permission is granted to anyone to use this software for any purpose
- * on any computer system, and to alter it and redistribute it, subject
- * to the following restrictions:
- *
- * 1. The author is not responsible for the consequences of use of this
- *    software, no matter how awful, even if they arise from flaws in it.
- *
- * 2. The origin of this software must not be misrepresented, either by
- *    explicit claim or by omission.  Since few users ever read sources,
- *    credits should appear in the documentation.
- *
- * 3. Altered versions must be plainly marked as such, and must not be
- *    misrepresented as being the original software.  Since few users
- *    ever read sources, credits should appear in the
- *    documentation.
- *
- * 4. This notice may not be removed or altered.
- *
  */
 
 #include "portable.h"
@@ -154,69 +88,24 @@ meta_back_db_init(
 	struct metainfo	*li;
 
 	struct rewrite_info	*rwinfo;
-	cache_manager		*cm;
-	query_manager		*qm;
 
 	rwinfo = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
 	if ( rwinfo == NULL ) {
 		return -1;
 	}
-		
-	cm = (cache_manager *)ch_malloc(sizeof(cache_manager)); 
-	if ( cm == NULL ) {
-		rewrite_info_delete( &rwinfo );
-		return -1;
-	}
-
-	qm = (query_manager*)ch_malloc(sizeof(query_manager)); 
-	if ( qm == NULL ) {
-		rewrite_info_delete( &rwinfo );
-		ch_free( cm );
-		return -1;
-	}
-
-	cm->caching = 0; 
-	cm->qm = qm; 
-	cm->numattrsets = 0; 
-	cm->numtemplates = 0; 	
-	cm->num_entries_limit = 5;
-	cm->cache_size = 0;
-	cm->thresh_hi = 500000;
-	cm->thresh_lo = 700000;
-	cm->num_cached_queries = 0; 
-	cm->total_entries = 0; 
-	cm->max_queries = 10000; 
-	cm->threads = 0; 
-	cm->cc_thread_started = 0; 
-	cm->cc_period = 1000; 
-       
-	qm->attr_sets = NULL; 
-	qm->templates = NULL; 
-	qm->lru_top = NULL;
-	qm->lru_bottom = NULL;
-
-	qm->qcfunc = query_containment; 
-	qm->crfunc = cache_replacement; 
-	qm->addfunc = add_query; 
-	ldap_pvt_thread_mutex_init(&qm->lru_mutex); 
-        
-	ldap_pvt_thread_mutex_init(&cm->cache_mutex); 
-	ldap_pvt_thread_mutex_init(&cm->remove_mutex); 
-	ldap_pvt_thread_mutex_init( &cm->cc_mutex );
 
 	li = ch_calloc( 1, sizeof( struct metainfo ) );
 	if ( li == NULL ) {
+		rewrite_info_delete( &rwinfo );
  		return -1;
  	}
-	
+
 	/*
 	 * At present the default is no default target;
 	 * this may change
 	 */
 	li->defaulttarget = META_DEFAULT_TARGET_NONE;
-	li->cm = cm; 
 	li->rwinfo = rwinfo;
-	/* FIXME: what about qm ? */
 
 	ldap_pvt_thread_mutex_init( &li->conn_mutex );
 	ldap_pvt_thread_mutex_init( &li->cache.mutex );

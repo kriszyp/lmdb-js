@@ -252,9 +252,7 @@ bdb_db_config(
 
 	/* anything else */
 	} else {
-		fprintf( stderr, "%s: line %d: "
-			"unknown directive \"%s\" in bdb database definition (ignored)\n",
-			fname, lineno, argv[0] );
+		return SLAP_CONF_UNKNOWN;
 	}
 
 	return 0;

@@ -24,6 +24,7 @@
 
 #include <lber.h>				/* get ber_slen_t */
 
+#include <ac/bytes.h>
 #include "../libraries/liblunicode/ucdata/ucdata.h"
 
 LDAP_BEGIN_DECL

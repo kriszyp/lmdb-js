@@ -18,6 +18,5 @@ SUBDIRS= \
 	liblber \
 	liblunicode \
 	libldap libldap_r \
-	libldbm \
 	librewrite
 
