@@ -484,16 +484,50 @@ idl_insert_key(
 		/* is there a next block? */
 		if ( !first && !ID_BLOCK_NOID(idl, i + 1) ) {
 			/* read it in */
-			sprintf( kstr, "%c%ld%s", CONT_PREFIX,
+			k2.dptr = (char *) ch_malloc( key.dsize + CONT_SIZE );
+			sprintf( k2.dptr, "%c%ld%s", CONT_PREFIX,
 				ID_BLOCK_ID(idl, i + 1), key.dptr );
-			k2.dptr = kstr;
-			k2.dsize = strlen( kstr ) + 1;
+			k2.dsize = strlen( k2.dptr ) + 1;
 			if ( (tmp2 = idl_fetch_one( be, db, k2 )) == NULL ) {
 				Debug( LDAP_DEBUG_ANY,
 				    "idl_fetch_one (%s) returns NULL\n",
 				    k2.dptr, 0, 0 );
 				/* split the original block */
+				free( k2.dptr );
 				goto split;
+			}
+
+			/* If the new id is less than the last id in the
+			 * current block, it must not be put into the next
+			 * block. Push the last id of the current block
+			 * into the next block instead.
+			 */
+			if (id < ID_BLOCK_ID(tmp, ID_BLOCK_NIDS(tmp) - 1)) {
+			    ID id2 = ID_BLOCK_ID(tmp, ID_BLOCK_NIDS(tmp) - 1);
+			    Datum k3;
+
+			    ldbm_datum_init( k3 );
+
+			    --ID_BLOCK_NIDS(tmp);
+			    /* This must succeed since we just popped one
+			     * ID off the end of it.
+			     */
+			    rc = idl_insert( &tmp, id, db->dbc_maxids );
+			    assert( rc == 0 );
+			    k3.dptr = kstr;
+			    k3.dsize = strlen( kstr ) + 1;
+			    if ( (rc = idl_store( be, db, k3, tmp )) != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+			    "idl_store of (%s) returns %d\n", k3.dptr, rc, 0 );
+			    }
+			    free( kstr );
+			    kstr = k2.dptr;
+
+			    id = id2;
+			    /* This new id will necessarily be inserted
+			     * as the first id of the next block by the
+			     * following switch() statement.
+			     */
 			}
 
 			switch ( (rc = idl_insert( &tmp2, id,
@@ -504,7 +538,11 @@ idl_insert_key(
 				/* FALL */
 
 			case 2:		/* id already there - how? */
-			case 0:		/* id inserted */
+			case 0:		/* id inserted: this can never be
+					 * the result of idl_insert, because
+					 * we guaranteed that idl_change_first
+					 * will always be called.
+					 */
 				if ( rc == 2 ) {
 					Debug( LDAP_DEBUG_ANY,
 					    "id %ld already in next block\n",
