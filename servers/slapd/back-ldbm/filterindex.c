@@ -187,6 +187,18 @@ filter_candidates(
 		 */
 		result = idl_allids( be );
 		break;
+	default:
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "filter_candidates:  UNKNOWN\n" ));
+#else
+		Debug( LDAP_DEBUG_FILTER, "\tUNKNOWN\n", 0, 0, 0 );
+#endif
+		/* unknown filters must not return NULL, to allow
+		 * extended filter processing to be done later.
+		 */
+		result = idl_allids( be );
+		break;
 	}
 
 #ifdef NEW_LOGGING
