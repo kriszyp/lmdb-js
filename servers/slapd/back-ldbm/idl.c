@@ -45,6 +45,27 @@ static void cont_free( Datum *cont )
 	ch_free( cont->dptr );
 }
 
+#ifdef LDBM_DEBUG_IDL
+static void idl_check(ID_BLOCK *idl)
+{
+	int i;
+	ID_BLOCK last;
+
+	if( ID_BLOCK_INDIRECT(idl) || ID_BLOCK_ALLIDS(idl)
+		|| ID_BLOCK_NIDS(idl) <= 1 )
+	{
+		return;
+	}
+
+	for( last = ID_BLOCK_ID(idl, 0), i = 1;
+		i < ID_BLOCK_NIDS(idl);
+		last = ID_BLOCK_ID(idl, i), i++ )
+	{
+		assert (last < ID_BLOCK_ID(idl, i) );
+	}
+}
+#endif
+
 /* Allocate an ID_BLOCK with room for nids ids */
 ID_BLOCK *
 idl_alloc( unsigned int nids )
@@ -210,6 +231,10 @@ idl_fetch(
 	}
 	free( (char *) tmp );
 
+#ifdef LDBM_DEBUG_IDL
+	idl_check(idl);
+#endif
+
 	Debug( LDAP_DEBUG_TRACE, "<= idl_fetch %ld ids (%ld max)\n",
 	       ID_BLOCK_NIDS(idl), ID_BLOCK_NMAX(idl), 0 );
 	return( idl );
@@ -228,6 +253,10 @@ idl_store(
 	int	rc, flags;
 	Datum	data;
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
+
+#ifdef LDBM_DEBUG_IDL
+	idl_check(idl);
+#endif
 
 	ldbm_datum_init( data );
 
@@ -293,6 +322,11 @@ idl_split_block(
 	    (char *) &ID_BLOCK_ID(b, nr),
 		nl * sizeof(ID) );
 	ID_BLOCK_NIDS(*left) = nl + (nr == 0 ? 0 : 1);
+
+#ifdef LDBM_DEBUG_IDL
+	idl_check(*right);
+	idl_check(*left);
+#endif
 }
 
 
@@ -703,6 +737,10 @@ idl_insert( ID_BLOCK **idl, ID id, unsigned int maxids )
 		'\0',
 	    (ID_BLOCK_NMAX(*idl) - ID_BLOCK_NIDS(*idl)) * sizeof(ID) );
 
+#ifdef LDBM_DEBUG_IDL
+	idl_check(*idl);
+#endif
+
 	return( i == 0 ? 1 : 0 );	/* inserted - first id changed or not */
 }
 
@@ -837,6 +875,10 @@ idl_dup( ID_BLOCK *idl )
 		(char *) idl,
 		(ID_BLOCK_NMAX(idl) + ID_BLOCK_IDS_OFFSET) * sizeof(ID) );
 
+#ifdef LDBM_DEBUG_IDL
+	idl_check(new);
+#endif
+
 	return( new );
 }
 
@@ -874,6 +916,11 @@ idl_intersection(
 
 	n = idl_dup( idl_min( a, b ) );
 
+#ifdef LDBM_DEBUG_IDL
+	idl_check(a);
+	idl_check(b);
+#endif
+
 	for ( ni = 0, ai = 0, bi = 0; ai < ID_BLOCK_NIDS(a); ai++ ) {
 		for ( ;
 			bi < ID_BLOCK_NIDS(b) && ID_BLOCK_ID(b, bi) < ID_BLOCK_ID(a, ai);
@@ -896,6 +943,10 @@ idl_intersection(
 		return( NULL );
 	}
 	ID_BLOCK_NIDS(n) = ni;
+
+#ifdef LDBM_DEBUG_IDL
+	idl_check(n);
+#endif
 
 	return( n );
 }
@@ -923,6 +974,11 @@ idl_union(
 	if ( ID_BLOCK_ALLIDS( a ) || ID_BLOCK_ALLIDS( b ) ) {
 		return( idl_allids( be ) );
 	}
+
+#ifdef LDBM_DEBUG_IDL
+	idl_check(a);
+	idl_check(b);
+#endif
 
 	if ( ID_BLOCK_NIDS(b) < ID_BLOCK_NIDS(a) ) {
 		n = a;
@@ -955,6 +1011,10 @@ idl_union(
 		ID_BLOCK_ID(n, ni++) = ID_BLOCK_ID(b, bi);
 	}
 	ID_BLOCK_NIDS(n) = ni;
+
+#ifdef LDBM_DEBUG_IDL
+	idl_check(n);
+#endif
 
 	return( n );
 }
@@ -1032,6 +1092,10 @@ idl_notin(
 		ID_BLOCK_ID(n, ni++) = ID_BLOCK_ID(a, ai);
 	}
 	ID_BLOCK_NIDS(n) = ni;
+
+#ifdef LDBM_DEBUG_IDL
+	idl_check(n);
+#endif
 
 	return( n );
 }

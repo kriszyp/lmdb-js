@@ -11,6 +11,7 @@ OpenLDAP 2.0.16 Engineering
 	Updated -lldap_r pthread stack size
 	Updated slapd acl assert checks
 	Removed -lldbm use of Berkeley CDB
+	Added back-ldbm idl_check() code
 	Build environment
 		Updated ltconfig for MacOS X 10.1 (ITS#1361)
 		Updated slapd.conf with ACL example
