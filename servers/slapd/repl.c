@@ -73,6 +73,23 @@ add_replica_suffix(
 	return 0;
 }
 
+int
+add_replica_attrs(
+	Backend	*be,
+	int	nr,
+	char	*attrs
+)
+{
+	be->be_replica[nr]->ri_attrs = str2anlist( be->be_replica[nr]->ri_attrs,
+		attrs, "," );
+	return ( be->be_replica[nr]->ri_attrs == NULL );
+}
+   
+static void
+print_vals( FILE *fp, struct berval *type, struct berval *bv );
+static void
+replog1( struct slap_replica_info *ri, Operation *op, void *change, FILE *fp, void *first);
+
 void
 replog(
     Backend	*be,
@@ -82,16 +99,17 @@ replog(
     void	*change
 )
 {
-	Modifications	*ml;
+	Modifications	*ml = NULL;
+	Attribute	*a = NULL;
 	Entry	*e;
-	struct slap_replog_moddn *moddn;
-	char *tmp;
 	FILE	*fp, *lfp;
-	int	len, i;
+	int	i;
 /* undef NO_LOG_WHEN_NO_REPLICAS */
 #ifdef NO_LOG_WHEN_NO_REPLICAS
 	int     count = 0;
 #endif
+	int	subsets = 0;
+	long now = slap_get_time();
 
 	if ( be->be_replogfile == NULL && replogfile == NULL ) {
 		return;
@@ -120,6 +138,15 @@ replog(
 				continue;
 			}
 		}
+		/* See if we only want a subset of attributes */
+		if ( be->be_replica[i]->ri_attrs != NULL &&
+			( op->o_tag == LDAP_REQ_MODIFY || op->o_tag == LDAP_REQ_ADD || op->o_tag == LDAP_REQ_EXTENDED ) ) {
+			if ( !subsets ) {
+				subsets = i + 1;
+			}
+			/* Do attribute subsets by themselves in a second pass */
+			continue;
+		}
 
 		fprintf( fp, "replica: %s\n", be->be_replica[i]->ri_host );
 #ifdef NO_LOG_WHEN_NO_REPLICAS
@@ -128,7 +155,7 @@ replog(
 	}
 
 #ifdef NO_LOG_WHEN_NO_REPLICAS
-	if ( count == 0 ) {
+	if ( count == 0 && subsets == 0 ) {
 		/* if no replicas matched, drop the log 
 		 * (should we log it anyway?) */
 		lock_fclose( fp, lfp );
@@ -138,8 +165,96 @@ replog(
 	}
 #endif
 
-	fprintf( fp, "time: %ld\n", (long) slap_get_time() );
+	fprintf( fp, "time: %ld\n", now );
 	fprintf( fp, "dn: %s\n", dn->bv_val );
+
+	replog1( NULL, op, change, fp, NULL );
+
+	if ( subsets > 0 ) {
+		void *first;
+		for ( i = subsets - 1; be->be_replica != NULL && be->be_replica[i] != NULL; i++ ) {
+
+			/* If no attrs, we already did this above */
+			if ( be->be_replica[i]->ri_attrs == NULL ) {
+				continue;
+			}
+
+			/* check if dn's suffix matches legal suffixes, if any */
+			if ( be->be_replica[i]->ri_nsuffix != NULL ) {
+				int j;
+
+				for ( j = 0; be->be_replica[i]->ri_nsuffix[j]; j++ ) {
+					if ( dnIsSuffix( ndn, be->be_replica[i]->ri_nsuffix[j] ) ) {
+						break;
+					}
+				}
+
+				if ( !be->be_replica[i]->ri_nsuffix[j] ) {
+					/* do not add "replica:" line */
+					continue;
+				}
+			}
+			subsets = 0;
+			first = NULL;
+			switch( op->o_tag ) {
+			case LDAP_REQ_EXTENDED:
+				/* quick hack for extended operations */
+				/* assume change parameter is a Modfications* */
+				/* fall thru */
+			case LDAP_REQ_MODIFY:
+				for ( ml = change; ml != NULL; ml = ml->sml_next ) {
+					if ( ad_inlist( ml->sml_desc, be->be_replica[i]->ri_attrs ) ) {
+						subsets = 1;
+						first = ml;
+						break;
+					}
+				}
+				if ( !subsets ) {
+					continue;
+				}
+				break;
+			case LDAP_REQ_ADD:
+				e = change;
+				for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+					if ( ad_inlist( a->a_desc, be->be_replica[i]->ri_attrs ) ) {
+						subsets = 1;
+						first = a;
+						break;
+					}
+				}
+				if ( !subsets ) {
+					continue;
+				}
+				break;
+			default:
+				/* Other operations were logged in the first pass */
+				continue;
+			}
+			fprintf( fp, "replica: %s\n", be->be_replica[i]->ri_host );
+			fprintf( fp, "time: %ld\n", now );
+			fprintf( fp, "dn: %s\n", dn->bv_val );
+			replog1( be->be_replica[i], op, change, fp, first );
+		}
+	}
+
+	lock_fclose( fp, lfp );
+	ldap_pvt_thread_mutex_unlock( &replog_mutex );
+}
+
+
+static void
+replog1(
+    struct slap_replica_info *ri,
+    Operation *op,
+    void	*change,
+    FILE	*fp,
+	void	*first
+)
+{
+	Modifications	*ml;
+	Attribute	*a;
+	Entry		*e;
+	struct slap_replog_moddn *moddn;
 
 	switch ( op->o_tag ) {
 	case LDAP_REQ_EXTENDED:
@@ -149,10 +264,12 @@ replog(
 
 	case LDAP_REQ_MODIFY:
 		fprintf( fp, "changetype: modify\n" );
-		ml = change;
+		ml = first ? first : change;
 		for ( ; ml != NULL; ml = ml->sml_next ) {
 			char *type;
-			struct berval *bv;
+			if ( ri && ri->ri_attrs && !ad_inlist( ml->sml_desc, ri->ri_attrs ) ) {
+				continue;
+			}
 			type = ml->sml_desc->ad_cname.bv_val;
 			switch ( ml->sml_op ) {
 			case LDAP_MOD_ADD:
@@ -168,24 +285,7 @@ replog(
 				break;
 			}
 
-			for ( bv = ml->sml_bvalues; bv && bv->bv_val; bv++ )
-			{
-				char	*buf, *bufp;
-
-				len = ml->sml_desc->ad_cname.bv_len;
-				len = LDIF_SIZE_NEEDED( len,
-				    bv->bv_len ) + 1;
-				buf = (char *) ch_malloc( len );
-
-				bufp = buf;
-				ldif_sput( &bufp, LDIF_PUT_VALUE, type,
-				    bv->bv_val, bv->bv_len );
-				*bufp = '\0';
-
-				fputs( buf, fp );
-
-				free( buf );
-			}
+			print_vals( fp, &ml->sml_desc->ad_cname, ml->sml_bvalues );
 			fprintf( fp, "-\n" );
 		}
 		break;
@@ -193,15 +293,13 @@ replog(
 	case LDAP_REQ_ADD:
 		e = change;
 		fprintf( fp, "changetype: add\n" );
-		ldap_pvt_thread_mutex_lock( &entry2str_mutex );
-		tmp = entry2str( e, &len );
-		while ( (tmp = strchr( tmp, '\n' )) != NULL ) {
-			tmp++;
-			if ( ! isspace( (unsigned char) *tmp ) )
-				break;
+		a = first ? first : e->e_attrs;
+		for ( ; a != NULL; a=a->a_next ) {
+			if ( ri && ri->ri_attrs && !ad_inlist( a->a_desc, ri->ri_attrs ) ) {
+				continue;
+			}
+			print_vals( fp, &a->a_desc->ad_cname, a->a_vals );
 		}
-		fprintf( fp, "%s", tmp );
-		ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 		break;
 
 	case LDAP_REQ_DELETE:
@@ -218,7 +316,30 @@ replog(
 		}
 	}
 	fprintf( fp, "\n" );
+}
 
-	lock_fclose( fp, lfp );
-	ldap_pvt_thread_mutex_unlock( &replog_mutex );
+static void
+print_vals(
+	FILE *fp,
+	struct berval *type,
+	struct berval *bv )
+{
+	int len;
+	char	*buf, *bufp;
+
+	for ( ; bv && bv->bv_val; bv++ )
+	{
+		len = type->bv_len;
+		len = LDIF_SIZE_NEEDED( len, bv->bv_len ) + 1;
+		buf = (char *) ch_malloc( len );
+
+		bufp = buf;
+		ldif_sput( &bufp, LDIF_PUT_VALUE, type->bv_val,
+				    bv->bv_val, bv->bv_len );
+		*bufp = '\0';
+
+		fputs( buf, fp );
+
+		free( buf );
+	}
 }

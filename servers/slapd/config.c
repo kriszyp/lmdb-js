@@ -1817,6 +1817,19 @@ read_config( const char *fname )
 #endif
 								break;
 							}
+						} else if ( strncasecmp( cargv[i], "attr=", 5 ) == 0 ) {
+							if ( add_replica_attrs( be, nr, cargv[i] + 5 ) ) {
+#ifdef NEW_LOGGING
+								LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+										"%s: line %d: attribute \"%s\" in \"replica\" line is unknown\n",
+										fname, lineno, cargv[i] + 5 ));
+#else
+								Debug( LDAP_DEBUG_ANY,
+										"%s: line %d: attribute \"%s\" in \"replica\" line is unknown\n",
+										fname, lineno, cargv[i] + 5 );
+#endif
+								return( 1 );
+							}
 						}
 					}
 				}

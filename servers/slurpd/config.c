@@ -382,6 +382,9 @@ parse_replica_line(
 	    ri->ri_hostname = strdup( val );
 	    gots |= GOT_HOST;
 	} else if ( !strncasecmp( cargv[ i ], 
+			ATTRSTR, sizeof( ATTRSTR ) - 1 ) ) {
+	    /* ignore it */ ;
+	} else if ( !strncasecmp( cargv[ i ], 
 			SUFFIXSTR, sizeof( SUFFIXSTR ) - 1 ) ) {
 	    /* ignore it */ ;
 	} else if ( !strncasecmp( cargv[ i ], TLSSTR, sizeof( TLSSTR ) - 1 ) ) {

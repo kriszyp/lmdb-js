@@ -119,6 +119,7 @@
 
 /* Config file keywords */
 #define	HOSTSTR			"host"
+#define	ATTRSTR			"attr"
 #define	SUFFIXSTR		"suffix"
 #define	BINDDNSTR		"binddn"
 #define	BINDMETHSTR		"bindmethod"

@@ -981,6 +981,7 @@ LDAP_SLAPD_V (int) slapMode;
 struct slap_replica_info {
 	char *ri_host;				/* supersedes be_replica */
 	struct berval **ri_nsuffix;	/* array of suffixes this replica accepts */
+	AttributeName *ri_attrs;	/* attrs to replicate, NULL=all */
 };
 
 struct slap_limits_set {
