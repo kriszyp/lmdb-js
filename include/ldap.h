@@ -201,17 +201,30 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_SUBENTRIES			"1.3.6.1.4.1.4203.1.10.1" /* RFC 3672 */
 #define LDAP_CONTROL_PAGEDRESULTS		"1.2.840.113556.1.4.319"  /* RFC 2696 */
 
-#define LDAP_CONTROL_ASSERT				"1.3.6.1.4.1.4203.666.5.9"
-#define LDAP_CONTROL_NOOP				"1.3.6.1.4.1.4203.1.10.2"
-#define LDAP_CONTROL_PRE_READ			"1.3.6.1.4.1.4203.666.5.10.1"
-#define LDAP_CONTROL_POST_READ			"1.3.6.1.4.1.4203.666.5.10.2"
+/*  standard track - not implemented in slapd(8) */
+#define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473" /* RFC 2891 */
+#define LDAP_CONTROL_SORTRESPONSE	"1.2.840.113556.1.4.474" /* RFC 2891 */
+
+/* but not yet formalized controls */
 #define LDAP_CONTROL_PROXY_AUTHZ		"2.16.840.1.113730.3.4.18"
 #define LDAP_CONTROL_VALUESRETURNFILTER	"1.2.826.0.1.334810.2.3"
 
-#define LDAP_CONTROL_SYNC		"1.3.6.1.4.1.4203.666.5.6"
-#define LDAP_CONTROL_SYNC_STATE	"1.3.6.1.4.1.4203.666.5.7"
-#define LDAP_CONTROL_SYNC_DONE	"1.3.6.1.4.1.4203.666.5.8"
-#define LDAP_SYNC_INFO			"1.3.6.1.4.1.4203.666.10.2"
+/* various works in progress */
+#define LDAP_CONTROL_ASSERT				"1.3.6.1.4.1.4203.666.5.9"
+#define LDAP_CONTROL_NOOP				"1.3.6.1.4.1.4203.666.5.2"
+#define LDAP_CONTROL_PRE_READ			"1.3.6.1.4.1.4203.666.5.10.1"
+#define LDAP_CONTROL_POST_READ			"1.3.6.1.4.1.4203.666.5.10.2"
+
+/* LDAP VLV *//* not implemented in slapd(8) */
+#define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"
+#define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
+
+/* LDAP Sync -- draft-zeilenga-ldup-sync *//* submitted for publication */
+#define LDAP_SYNC_OID			"1.3.6.1.4.1.4203.1.9.1"
+#define LDAP_CONTROL_SYNC		LDAP_SYNC_OID ".1"
+#define LDAP_CONTROL_SYNC_STATE	LDAP_SYNC_OID ".2"
+#define LDAP_CONTROL_SYNC_DONE	LDAP_SYNC_OID ".3"
+#define LDAP_SYNC_INFO			LDAP_SYNC_OID ".4"
 
 #define LDAP_SYNC_NONE					0x00
 #define LDAP_SYNC_REFRESH_ONLY			0x01
@@ -236,17 +249,9 @@ typedef struct ldapcontrol {
 #define LDAP_SYNC_MODIFY				2
 #define LDAP_SYNC_DELETE				3
 
-/* controls for MSAD compatibility */
-#define LDAP_CONTROL_X_DOMAIN_SCOPE			"1.2.840.113556.1.4.1339"
+/* MS ActiveDirectory controls (for compatibility) */
+#define LDAP_CONTROL_X_DOMAIN_SCOPE		"1.2.840.113556.1.4.1339"
 #define LDAP_CONTROL_X_PERMISSIVE_MODIFY	"1.2.840.113556.1.4.1413"
-
-/* not implemented in slapd(8) */
-#define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473" /* RFC 2891 */
-#define LDAP_CONTROL_SORTRESPONSE	"1.2.840.113556.1.4.474" /* RFC 2891 */
-
-/* not implemented in slapd(8) */
-#define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"
-#define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
 
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036" /* RFC 2251 */
@@ -314,7 +319,7 @@ typedef struct ldapcontrol {
 
 #define LDAP_TAG_SASL_RES_CREDS	((ber_tag_t) 0x87U)	/* context specific + primitive */
 
-/* possible operations a client can invoke */
+/* LDAP Request Messages */
 #define LDAP_REQ_BIND		((ber_tag_t) 0x60U)	/* application + constructed */
 #define LDAP_REQ_UNBIND		((ber_tag_t) 0x42U)	/* application + primitive   */
 #define LDAP_REQ_SEARCH		((ber_tag_t) 0x63U)	/* application + constructed */
@@ -328,7 +333,7 @@ typedef struct ldapcontrol {
 #define LDAP_REQ_ABANDON	((ber_tag_t) 0x50U)	/* application + primitive   */
 #define LDAP_REQ_EXTENDED	((ber_tag_t) 0x77U)	/* application + constructed */
 
-/* possible result types a server can return */
+/* LDAP Response Messages */
 #define LDAP_RES_BIND		((ber_tag_t) 0x61U)	/* application + constructed */
 #define LDAP_RES_SEARCH_ENTRY	((ber_tag_t) 0x64U)	/* application + constructed */
 #define LDAP_RES_SEARCH_REFERENCE	((ber_tag_t) 0x73U)	/* V3: application + constructed */
@@ -399,12 +404,12 @@ typedef struct ldapcontrol {
 #define LDAP_SUBSTRING_FINAL	((ber_tag_t) 0x82U)	/* context specific */
 
 /*
- * possible error codes we can return
+ * LDAP Result Codes
  */
+#define LDAP_SUCCESS				0x00
 
 #define LDAP_RANGE(n,x,y)	(((x) <= (n)) && ((n) <= (y)))
 
-#define LDAP_SUCCESS				0x00
 #define LDAP_OPERATIONS_ERROR		0x01
 #define LDAP_PROTOCOL_ERROR			0x02
 #define LDAP_TIMELIMIT_EXCEEDED		0x03
@@ -634,6 +639,11 @@ ldap_create_control LDAP_P((
 	BerElement *ber,
 	int iscritical,
 	LDAPControl **ctrlp ));
+
+LDAP_F( LDAPControl * )
+ldap_find_control LDAP_P((
+	LDAP_CONST char *oid,
+	LDAPControl **ctrls ));
 
 LDAP_F( void )
 ldap_control_free LDAP_P((
@@ -1313,7 +1323,8 @@ ldap_explode_rdn LDAP_P(( /* deprecated */
 	LDAP_CONST char *rdn,
 	int notypes ));
 
-typedef int LDAPDN_rewrite_func LDAP_P(( LDAPDN dn, unsigned flags, void *ctx ));
+typedef int LDAPDN_rewrite_func
+	LDAP_P(( LDAPDN dn, unsigned flags, void *ctx ));
 
 LDAP_F( int )
 ldap_X509dn2bv LDAP_P(( void *x509_name, struct berval *dn,
@@ -1696,6 +1707,7 @@ ldap_parse_vlv_control LDAP_P((
 	struct berval **contextp,
 	int           *errcodep ));
 
+
 /*
  * LDAP Who Am I?
  *	in whoami.c
@@ -1751,7 +1763,6 @@ ldap_passwd_s LDAP_P((
 	struct berval *newpasswd,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls ));
-
 
 LDAP_END_DECL
 #endif /* _LDAP_H */
