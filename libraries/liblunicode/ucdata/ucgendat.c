@@ -1229,7 +1229,7 @@ write_cdata(char *opath)
     /*
      * Open the ctype.dat file.
      */
-    snprintf(path, sizeof path, "%s%sctype.dat", opath, LDAP_DIRSEP);
+    snprintf(path, sizeof path, "%s" LDAP_DIRSEP "ctype.dat", opath);
     if ((out = fopen(path, "wb")) == 0)
       return;
 
@@ -1300,7 +1300,7 @@ write_cdata(char *opath)
     /*
      * Open the case.dat file.
      */
-    snprintf(path, sizeof path, "%s%scase.dat", opath, LDAP_DIRSEP);
+    snprintf(path, sizeof path, "%s" LDAP_DIRSEP "case.dat", opath);
     if ((out = fopen(path, "wb")) == 0)
       return;
 
@@ -1355,7 +1355,7 @@ write_cdata(char *opath)
     /*
      * Open the comp.dat file.
      */
-    sprintf(path, sizeof path, "%s%scomp.dat", opath, LDAP_DIRSEP);
+    snprintf(path, sizeof path, "%s" LDAP_DIRSEP "comp.dat", opath);
     if ((out = fopen(path, "wb")) == 0)
 	return;
     
@@ -1393,7 +1393,7 @@ write_cdata(char *opath)
     /*
      * Open the decomp.dat file.
      */
-    snprintf(path, sizeof path, "%s%sdecomp.dat", opath, LDAP_DIRSEP);
+    snprintf(path, sizeof path, "%s" LDAP_DIRSEP "decomp.dat", opath);
     if ((out = fopen(path, "wb")) == 0)
       return;
 
@@ -1447,7 +1447,7 @@ write_cdata(char *opath)
     /*
      * Open the kdecomp.dat file.
      */
-    snprintf(path, sizeof path, "%s%skdecomp.dat", opath, LDAP_DIRSEP);
+    snprintf(path, sizeof path, "%s" LDAP_DIRSEP "kdecomp.dat", opath);
     if ((out = fopen(path, "wb")) == 0)
       return;
 
@@ -1507,7 +1507,7 @@ write_cdata(char *opath)
     /*
      * Open the cmbcl.dat file.
      */
-    snprintf(path, sizeof path, "%s%scmbcl.dat", opath, LDAP_DIRSEP);
+    snprintf(path, sizeof path, "%s" LDAP_DIRSEP "cmbcl.dat", opath);
     if ((out = fopen(path, "wb")) == 0)
       return;
 
@@ -1545,7 +1545,7 @@ write_cdata(char *opath)
     /*
      * Open the num.dat file.
      */
-    snprintf(path, sizeof path, "%s%snum.dat", opath, LDAP_DIRSEP);
+    snprintf(path, sizeof path, "%s" LDAP_DIRSEP "num.dat", opath);
     if ((out = fopen(path, "wb")) == 0)
       return;
 
