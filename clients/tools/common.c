@@ -820,7 +820,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 	if ( preread ) {
 		char berbuf[LBER_ELEMENT_SIZEOF];
 		BerElement *ber = (BerElement *)berbuf;
-		char **attrs;
+		char **attrs = NULL;
 
 		if( preread_attrs ) {
 			attrs = ldap_str2charray( preread_attrs, "," );
@@ -850,7 +850,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 	if ( postread ) {
 		char berbuf[LBER_ELEMENT_SIZEOF];
 		BerElement *ber = (BerElement *)berbuf;
-		char **attrs;
+		char **attrs = NULL;
 
 		if( postread_attrs ) {
 			attrs = ldap_str2charray( postread_attrs, "," );
