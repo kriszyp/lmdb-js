@@ -51,6 +51,25 @@ static long   numLevels = 0;
 
 int global_level = 0;
 
+static char *lutil_levels[] = {"emergency", "alert", "critical",
+                           "error", "warning", "notice",
+                           "information", "entry", "args",
+                           "results", "detail1", "detail2",
+                           NULL};
+
+int lutil_mnem2level( char *level )
+{
+    int i;
+    for( i = 0; lutil_levels[i] != NULL; i++ )
+    {
+        if ( !strcasecmp( level, lutil_levels[i] ) )
+        {
+            return i;
+        }
+    }
+    return 0;
+}
+
 static void addSubsys( const char *subsys, int level )
 {
 	int i, j;
@@ -103,6 +122,7 @@ void lutil_log_int(FILE* file, char *subsys, int level, const char *fmt, va_list
 	struct tm *today;
 	int i;
 
+        if ( levelArray == NULL ) return; /* logging isn't set up */
         /*
          * Look for the subsystem in the level array.  When we find it, break out of the
          * loop.
@@ -232,14 +252,13 @@ void lutil_log_initialize(int argc, char **argv)
                 *index = 0;
                 strcpy ( subsys, optarg );
                 level = atoi( index+1 );
+                if ( level <= 0 ) level = lutil_mnem2level( index + 1 );
                 lutil_set_debug_level( subsys, level );
-                printf( "setting debug level of %s to %d\n", subsys, level );
                 *index = '=';
             }
             else
             {
                 global_level = atoi( optarg );
-                printf( "setting global level to %d\n", global_level );
             }
         }
     }
