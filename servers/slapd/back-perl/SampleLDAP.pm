@@ -31,7 +31,8 @@ following actions that you wish to handle.
    * add        # adds an entry to back end
    * modrdn     # modifies a an entries rdn
    * delete     # deletes an ldap entry
-   * config     # process unknow config file lines
+   * config     # process unknown config file lines
+   * init       # called after backend is initialized
 
 =head2 new
 
@@ -52,9 +53,12 @@ This method is called when a search request comes from a client.
 It arguments are as follow.
 
   * obj reference
-  * filter string
+  * base DN
+  * scope
+  * alias deferencing policy
   * size limit
   * time limit
+  * filter string
   * attributes only flag ( 1 for yes )
   * list of attributes that are to be returned. (could be empty)
 
@@ -122,6 +126,12 @@ RETURN:
 
 RETURN: non zero value if this is not a valid option.
 
+=head2 init
+
+  * obj reference
+
+RETURN: non zero value if initialization failed.
+
 =head1 Configuration
 
 The perl section of the config file recognizes the following 
@@ -138,7 +148,9 @@ above.
 
   perlModule ModName       # use the module name ModName from ModName.pm
 
-
+  filterSearchResults      # search results are candidates that need to be
+                           # filtered, rather than search results to be 
+                           # returned directly to the client
 
 =cut
 
@@ -160,7 +172,7 @@ sub new
 sub search
 {
 	my $this = shift;
-	my( $filterStr, $sizeLim, $timeLim, $attrOnly, @attrs ) = @_;
+	my($base, $scope, $deref, $sizeLim, $timeLim, $filterStr, $attrOnly, @attrs ) = @_;
         print STDERR "====$filterStr====\n";
 	$filterStr =~ s/\(|\)//g;
 	$filterStr =~ s/=/: /;
@@ -188,12 +200,12 @@ sub compare
 {
 	my $this = shift;
 	my ( $dn, $avaStr ) = @_;
-	my $rc = 0;
+	my $rc = 5; # LDAP_COMPARE_FALSE
 
 	$avaStr =~ s/=/: /;
 
 	if ( $this->{ $dn } =~ /$avaStr/im ) {
-		$rc = 1;
+		$rc = 6; # LDAP_COMPARE_TRUE
 	}
 
 	return $rc;

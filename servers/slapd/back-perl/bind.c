@@ -1,6 +1,7 @@
 /* $OpenLDAP$ */
 /*
  *	 Copyright 1999, John C. Quillan, All rights reserved.
+ *	 Portions Copyright 2002, myinternet pty ltd. All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this
@@ -56,7 +57,11 @@ perl_back_bind(
 		XPUSHs(sv_2mortal(newSVpv( cred->bv_val , cred->bv_len)));
 		PUTBACK;
 
+#ifdef PERL_IS_5_6
+		count = call_method("bind", G_SCALAR);
+#else
 		count = perl_call_method("bind", G_SCALAR);
+#endif
 
 		SPAGAIN;
 

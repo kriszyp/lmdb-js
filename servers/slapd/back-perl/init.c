@@ -1,6 +1,7 @@
 /* $OpenLDAP$ */
 /*
  *	 Copyright 1999, John C. Quillan, All rights reserved.
+ *	 Portions Copyright 2002, myinternet pty ltd. All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this
@@ -33,15 +34,16 @@ ldap_pvt_thread_mutex_t	perl_interpreter_mutex;
 
 #ifdef SLAPD_PERL_DYNAMIC
 
-int back_perl_LTX_init_module(int argc, char *argv[]) {
-    BackendInfo bi;
+int back_perl_LTX_init_module(int argc, char *argv[])
+{
+	BackendInfo bi;
 
-    memset( &bi, '\0', sizeof(bi) );
-    bi.bi_type = "perl";
-    bi.bi_init = perl_back_initialize;
+	memset( &bi, '\0', sizeof(bi) );
+	bi.bi_type = "perl";
+	bi.bi_init = perl_back_initialize;
 
-    backend_add(&bi);
-    return 0;
+	backend_add(&bi);
+	return 0;
 }
 
 #endif /* SLAPD_PERL_DYNAMIC */
@@ -80,7 +82,7 @@ perl_back_initialize(
 
 	bi->bi_db_init = perl_back_db_init;
 	bi->bi_db_config = perl_back_db_config;
-	bi->bi_db_open = 0;
+	bi->bi_db_open = perl_back_db_open;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = perl_back_db_destroy;
 
@@ -117,22 +119,66 @@ perl_back_open(
 
 int
 perl_back_db_init(
-	Backend	*be
+	BackendDB	*be
 )
 {
 	be->be_private = (PerlBackend *) ch_malloc( sizeof(PerlBackend) );
 	memset( be->be_private, '\0', sizeof(PerlBackend));
+
+	((PerlBackend *)be->be_private)->pb_filter_search_results = 0;
 
 	Debug( LDAP_DEBUG_TRACE, "perl backend db init\n", 0, 0, 0 );
 
 	return 0;
 }
 
+int
+perl_back_db_open(
+	BackendDB	*be
+)
+{
+	int count;
+	int return_code;
+
+	PerlBackend *perl_back = (PerlBackend *) be->be_private;
+
+	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );
+
+	{
+		dSP; ENTER; SAVETMPS;
+
+		PUSHMARK(sp);
+		XPUSHs( perl_back->pb_obj_ref );
+
+		PUTBACK;
+
+#ifdef PERL_IS_5_6
+		count = call_method("init", G_SCALAR);
+#else
+		count = perl_call_method("init", G_SCALAR);
+#endif
+
+		SPAGAIN;
+
+		if (count != 1) {
+			croak("Big trouble in perl_back_db_open\n");
+		}
+
+		return_code = POPi;
+
+		PUTBACK; FREETMPS; LEAVE;
+	}
+
+	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );
+
+	return return_code;
+}
+
 
 static void
 perl_back_xs_init()
 {
-    char *file = __FILE__;
-    dXSUB_SYS;
-        newXS("DynaLoader::boot_DynaLoader", boot_DynaLoader, file);
+	char *file = __FILE__;
+	dXSUB_SYS;
+	newXS("DynaLoader::boot_DynaLoader", boot_DynaLoader, file);
 }

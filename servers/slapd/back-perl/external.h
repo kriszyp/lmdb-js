@@ -10,6 +10,7 @@ extern BI_close	perl_back_close;
 extern BI_destroy	perl_back_destroy;
 
 extern BI_db_init	perl_back_db_init;
+extern BI_db_open	perl_back_db_open;
 extern BI_db_destroy	perl_back_db_destroy;
 
 extern BI_db_config	perl_back_db_config;

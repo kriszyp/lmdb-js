@@ -1,6 +1,7 @@
 /* $OpenLDAP$ */
 /*
  *	 Copyright 1999, John C. Quillan, All rights reserved.
+ *	 Portions Copyright 2002, myinternet pty ltd. All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this

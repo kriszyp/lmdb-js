@@ -1,6 +1,7 @@
 /* $OpenLDAP$ */
 /*
  *	 Copyright 1999, John C. Quillan, All rights reserved.
+ *	 Portions Copyright 2002, myinternet pty ltd. All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this
@@ -61,9 +62,12 @@ perl_back_search(
 
 		PUSHMARK(sp) ;
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( filterstr->bv_val , 0)));
+		XPUSHs(sv_2mortal(newSVpv( nbase->bv_val , 0)));
+		XPUSHs(sv_2mortal(newSViv( scope )));
+		XPUSHs(sv_2mortal(newSViv( deref )));
 		XPUSHs(sv_2mortal(newSViv( sizelimit )));
 		XPUSHs(sv_2mortal(newSViv( timelimit )));
+		XPUSHs(sv_2mortal(newSVpv( filterstr->bv_val , 0)));
 		XPUSHs(sv_2mortal(newSViv( attrsonly )));
 
 		for ( an = attrs; an && an->an_name.bv_val; an++ ) {
@@ -71,7 +75,11 @@ perl_back_search(
 		}
 		PUTBACK;
 
+#ifdef PERL_IS_5_6
+		count = call_method("search", G_ARRAY );
+#else
 		count = perl_call_method("search", G_ARRAY );
+#endif
 
 		SPAGAIN;
 
@@ -89,9 +97,18 @@ perl_back_search(
 					Debug( LDAP_DEBUG_ANY, "str2entry(%s) failed\n", buf, 0, 0 );
 
 				} else {
-					send_search_entry( be, conn, op,
-						e, attrs, attrsonly, NULL );
-							 
+					int send_entry;
+
+					if (perl_back->pb_filter_search_results)
+						send_entry = (test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE);
+					else
+						send_entry = 1;
+
+					if (send_entry) {
+						send_search_entry( be, conn, op,
+							e, attrs, attrsonly, NULL );
+					}
+
 					entry_free( e );
 				}
 			}
@@ -115,13 +132,7 @@ perl_back_search(
 
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
-	if( return_code != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
-
-	} else {
-		send_ldap_result( conn, op, LDAP_SUCCESS,
-			NULL, NULL, NULL, NULL );
-	}
+	send_ldap_result( conn, op, return_code,
+		NULL, NULL, NULL, NULL );
 }
 

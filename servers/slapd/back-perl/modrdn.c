@@ -1,6 +1,7 @@
 /* $OpenLDAP$ */
 /*
  *	 Copyright 1999, John C. Quillan, All rights reserved.
+ *	 Portions Copyright 2002, myinternet pty ltd. All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this
@@ -69,7 +70,11 @@ perl_back_modrdn(
 		}
 		PUTBACK ;
 
+#ifdef PERL_IS_5_6
+		count = call_method("modrdn", G_SCALAR);
+#else
 		count = perl_call_method("modrdn", G_SCALAR);
+#endif
 
 		SPAGAIN ;
 
@@ -84,14 +89,8 @@ perl_back_modrdn(
 
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );
 	
-	if( return_code != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
-
-	} else {
-		send_ldap_result( conn, op, LDAP_SUCCESS,
-			NULL, NULL, NULL, NULL );
-	}
+	send_ldap_result( conn, op, return_code,
+		NULL, NULL, NULL, NULL );
 
 	Debug( LDAP_DEBUG_ANY, "Perl MODRDN\n", 0, 0, 0 );
 	return( 0 );

@@ -1,6 +1,7 @@
 /* $OpenLDAP$ */
 /*
  *	 Copyright 1999, John C. Quillan, All rights reserved.
+ *	 Portions Copyright 2002, myinternet pty ltd. All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this
@@ -53,21 +54,32 @@ perl_back_db_config(
 			return( 1 );
 		}
 
-		strncpy(eval_str, argv[1], EVAL_BUF_SIZE );
+#ifdef PERL_IS_5_6
+		snprintf( eval_str, EVAL_BUF_SIZE, "use %s;", argv[1] );
+		eval_pv( eval_str, 0 );
+
+		if (SvTRUE(ERRSV)) {
+			fprintf(stderr , "Error %s\n", SvPV(ERRSV,  na)) ;
+#else
+		snprintf( eval_str, EVAL_BUF_SIZE, "%s", argv[1] );
 
 		perl_require_pv( strcat( eval_str, ".pm" ));
 
 		if (SvTRUE(GvSV(errgv))) {
 			fprintf(stderr , "Error %s\n", SvPV(GvSV(errgv), na)) ;
-
+#endif /* PERL_IS_5_6 */
 		} else {
 			dSP; ENTER; SAVETMPS;
 			PUSHMARK(sp);
 			XPUSHs(sv_2mortal(newSVpv(argv[1], 0)));
 			PUTBACK;
 
+#ifdef PERL_IS_5_6
+			count = call_method("new", G_SCALAR);
+#else
 			count = perl_call_method("new", G_SCALAR);
-			
+#endif
+
 			SPAGAIN;
 
 			if (count != 1) {
@@ -87,9 +99,15 @@ perl_back_db_config(
 			return( 1 );
 		}
 
-		sprintf( eval_str, "push @INC, '%s';", argv[1] );
+		snprintf( eval_str, EVAL_BUF_SIZE, "push @INC, '%s';", argv[1] );
+#ifdef PERL_IS_5_6
+		loc_sv = eval_pv( eval_str, 0 );
+#else
 		loc_sv = perl_eval_pv( eval_str, 0 );
+#endif
 
+	} else if ( strcasecmp( argv[0], "filterSearchResults" ) == 0 ) {
+		perl_back->pb_filter_search_results = 1;
 	} else {
 		/*
 		 * Pass it to Perl module if defined
@@ -108,7 +126,11 @@ perl_back_db_config(
 
 			PUTBACK ;
 
+#ifdef PERL_IS_5_6
+			count = call_method("config", G_SCALAR);
+#else
 			count = perl_call_method("config", G_SCALAR);
+#endif
 
 			SPAGAIN ;
 
