@@ -16,8 +16,6 @@ extern BI_db_config	perl_back_db_config;
 
 extern BI_op_bind	perl_back_bind;
 
-extern BI_op_unbind	perl_back_unbind;
-
 extern BI_op_search	perl_back_search;
 
 extern BI_op_compare	perl_back_compare;
