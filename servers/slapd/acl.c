@@ -72,7 +72,8 @@ static struct berval
 	aci_bv_group_class 	= BER_BVC(SLAPD_GROUP_CLASS),
 	aci_bv_group_attr 	= BER_BVC(SLAPD_GROUP_ATTR),
 	aci_bv_role_class	= BER_BVC(SLAPD_ROLE_CLASS),
-	aci_bv_role_attr	= BER_BVC(SLAPD_ROLE_ATTR);
+	aci_bv_role_attr	= BER_BVC(SLAPD_ROLE_ATTR),
+	aci_bv_set_attr		= BER_BVC(SLAPD_ACI_SET_ATTR);
 
 
 static AccessControl * acl_get(
@@ -1706,8 +1707,7 @@ aci_get_part(
 	char *p;
 
 	if (bv) {
-		bv->bv_len = 0;
-		bv->bv_val = NULL;
+		BER_BVZERO( bv );
 	}
 	len = list->bv_len;
 	p = list->bv_val;
@@ -1769,9 +1769,13 @@ aci_match_set (
 	struct berval set = BER_BVNULL;
 	int rc = 0;
 	AciSetCookie cookie;
+	Operation op2 = *op;
+
+	op2.o_conn = NULL;
 
 	if (setref == 0) {
-		ber_dupbv_x( &set, subj, op->o_tmpmemctx );
+		ber_dupbv_x( &set, subj, op2.o_tmpmemctx );
+
 	} else {
 		struct berval subjdn, ndn = BER_BVNULL;
 		struct berval setat;
@@ -1785,44 +1789,39 @@ aci_match_set (
 		}
 
 		if ( aci_get_part(subj, 1, '/', &setat) < 0 ) {
-			setat.bv_val = SLAPD_ACI_SET_ATTR;
-			setat.bv_len = sizeof(SLAPD_ACI_SET_ATTR)-1;
+			setat = aci_bv_set_attr;
 		}
 
-		if ( setat.bv_val != NULL ) {
-			/*
-			 * NOTE: dnNormalize honors the ber_len field
-			 * as the length of the dn to be normalized
-			 */
-			if ( dnNormalize(0, NULL, NULL, &subjdn, &ndn, op->o_tmpmemctx) == LDAP_SUCCESS
-				&& slap_bv2ad(&setat, &desc, &text) == LDAP_SUCCESS )
+		/*
+		 * NOTE: dnNormalize honors the ber_len field
+		 * as the length of the dn to be normalized
+		 */
+		if ( slap_bv2ad(&setat, &desc, &text) == LDAP_SUCCESS ) {
+			if ( dnNormalize(0, NULL, NULL, &subjdn, &ndn, op2.o_tmpmemctx) == LDAP_SUCCESS )
 			{
-				backend_attribute(op, e,
-					&ndn, desc, &bvals);
-				if ( bvals != NULL ) {
-					if ( bvals[0].bv_val != NULL ) {
-						int i;
-						set = bvals[0];
-						bvals[0].bv_val = NULL;
-						for (i=1;bvals[i].bv_val;i++);
-						bvals[0].bv_val = bvals[i-1].bv_val;
-						bvals[i-1].bv_val = NULL;
-					}
-					ber_bvarray_free_x(bvals, op->o_tmpmemctx);
+				backend_attribute(&op2, e, &ndn, desc, &bvals);
+				if ( bvals != NULL && bvals[0].bv_val != NULL ) {
+					int i;
+					set = bvals[0];
+					bvals[0].bv_val = NULL;
+					for (i=1;bvals[i].bv_val;i++);
+					bvals[0].bv_val = bvals[i-1].bv_val;
+					bvals[i-1].bv_val = NULL;
 				}
+				ber_bvarray_free_x(bvals, op2.o_tmpmemctx);
+				sl_free(ndn.bv_val, op2.o_tmpmemctx);
 			}
-			if (ndn.bv_val)
-				free(ndn.bv_val);
 		}
 	}
 
 	if (set.bv_val != NULL) {
-		cookie.op = op;
+		cookie.op = &op2;
 		cookie.e = e;
 		rc = (slap_set_filter(aci_set_gather, (SetCookie *)&cookie, &set,
-			&op->o_ndn, &e->e_nname, NULL) > 0);
-		sl_free(set.bv_val, op->o_tmpmemctx);
+			&op2.o_ndn, &e->e_nname, NULL) > 0);
+		sl_free(set.bv_val, op2.o_tmpmemctx);
 	}
+
 	return(rc);
 }
 
