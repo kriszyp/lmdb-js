@@ -33,6 +33,7 @@ Large projects
 Localize slapd
 Implement X.500 administrative models (e.g. subentries, etc.)
 Implement LDAP component matching
+Implement LDAP sorted search results control
 
 
 Medium projects
