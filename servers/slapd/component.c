@@ -263,8 +263,7 @@ dup_comp_filter (
 	ComponentFilter **out_f )
 {
 	int	rc;
-	ComponentFilter dup_f;
-	bzero( &dup_f, sizeof(dup_f));
+	ComponentFilter dup_f = {0};
 
 	if ( !in_f ) return LDAP_PROTOCOL_ERROR;
 
