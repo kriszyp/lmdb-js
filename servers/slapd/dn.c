@@ -527,28 +527,9 @@ dn_normalize( char *dn )
 	return( dn );
 }
 
-int
-dn_match( const char *val, const char *asserted )
-{
-	struct berval	bval, basserted;
-
-	if ( val == NULL || asserted == NULL ) {
-		return 0;
-	}
-
-	bval.bv_val = ( char * )val;
-	bval.bv_len = strlen( val );
-
-	basserted.bv_val = ( char * )asserted;
-	basserted.bv_len = strlen( asserted);
-
-	return dnMatch( NULL, 0, NULL, NULL, &bval, &basserted);
-}
-
 /*
  * dn_parent - return the dn's parent, in-place
  */
-
 char *
 dn_parent(
 	Backend	*be,
