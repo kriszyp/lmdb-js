@@ -624,7 +624,6 @@ acl_mask(
 			}
 		}
 
-#ifdef SLAPD_ACI_ENABLED
 		if ( b->a_set_pat != NULL ) {
 			struct berval bv;
 
@@ -635,6 +634,7 @@ acl_mask(
 			}
 		}
 
+#ifdef SLAPD_ACI_ENABLED
 		if ( b->a_aci_at != NULL ) {
 			Attribute	*at;
 			slap_access_t grant, deny, tgrant, tdeny;
@@ -870,7 +870,6 @@ acl_check_modlist(
 	return( 1 );
 }
 
-#ifdef SLAPD_ACI_ENABLED
 static char *
 aci_bvstrdup( struct berval *bv )
 {
@@ -941,6 +940,126 @@ aci_get_part(
 	return(bv->bv_len);
 }
 
+char **
+aci_set_gather (void *cookie, char *name, char *attr)
+{
+	struct {
+    	Backend *be;
+    	Entry *e;
+    	Connection *conn;
+    	Operation *op;
+	} *cp = (void *)cookie;
+	struct berval **bvals = NULL;
+	char **vals = NULL;
+	char *ndn;
+	int i;
+
+	/* this routine needs to return the bervals instead of
+	 * plain strings, since syntax is not known.  It should
+	 * also return the syntax or some "comparison cookie".
+	 */
+
+	if ((ndn = ch_strdup(name)) != NULL) {
+		if (dn_normalize(ndn) != NULL) {
+			char *text;
+			AttributeDescription *desc = NULL;
+			if (slap_str2ad(attr, &desc, &text) == 0) {
+				backend_attribute(cp->be, NULL /*cp->conn*/,
+									NULL /*cp->op*/, cp->e,
+									ndn, desc, &bvals);
+				if (bvals != NULL) {
+					for (i = 0; bvals[i] != NULL; i++) { }
+					vals = ch_calloc(i + 1, sizeof(char *));
+					if (vals != NULL) {
+						while (--i >= 0) {
+							vals[i] = bvals[i]->bv_val;
+							bvals[i]->bv_val = NULL;
+						}
+					}
+					ber_bvecfree(bvals);
+				}
+				ad_free(desc, 1);
+			}
+		}
+		ch_free(ndn);
+	}
+	return(vals);
+}
+
+static int
+aci_match_set (
+	struct berval *subj,
+    Backend *be,
+    Entry *e,
+    Connection *conn,
+    Operation *op,
+    int setref
+)
+{
+	char *set = NULL;
+	int rc = 0;
+	struct {
+    	Backend *be;
+    	Entry *e;
+    	Connection *conn;
+    	Operation *op;
+	} cookie;
+
+	if (setref == 0) {
+		set = aci_bvstrdup(subj);
+	} else {
+		struct berval bv;
+		char *subjdn;
+		char *setat;
+		struct berval **bvals;
+		char *text;
+		AttributeDescription *desc = NULL;
+
+		/* format of string is "entry/setAttrName" */
+		if (aci_get_part(subj, 0, '/', &bv) < 0) {
+			return(0);
+		}
+
+		subjdn = aci_bvstrdup(&bv);
+		if ( subjdn == NULL ) {
+			return(0);
+		}
+
+		if ( aci_get_part(subj, 1, '/', &bv) < 0 ) {
+			setat = ch_strdup( SLAPD_ACI_SET_ATTR );
+		} else {
+			setat = aci_bvstrdup(&bv);
+		}
+		if ( setat != NULL ) {
+			if ( dn_normalize(subjdn) != NULL
+				&& slap_str2ad(setat, &desc, &text) == 0 )
+			{
+				backend_attribute(be, NULL, NULL, e,
+								subjdn, desc, &bvals);
+				ad_free(desc, 1);
+				if ( bvals != NULL ) {
+					if ( bvals[0] != NULL )
+						set = ch_strdup(bvals[0]->bv_val);
+					ber_bvecfree(bvals);
+				}
+			}
+			ch_free(setat);
+		}
+		ch_free(subjdn);
+	}
+
+	if (set != NULL) {
+		cookie.be = be;
+		cookie.e = e;
+		cookie.conn = conn;
+		cookie.op = op;
+		rc = (set_filter(aci_set_gather, &cookie, set, op->o_ndn, e->e_ndn, NULL) > 0);
+		ch_free(set);
+	}
+	return(rc);
+}
+
+#ifdef SLAPD_ACI_ENABLED
 static int
 aci_list_map_rights(
 	struct berval *list )
@@ -1160,125 +1279,6 @@ done:
 	ch_free(grpat);
 	ch_free(grpoc);
 	ch_free(subjdn);
-	return(rc);
-}
-
-char **
-aci_set_gather (void *cookie, char *name, char *attr)
-{
-	struct {
-    	Backend *be;
-    	Entry *e;
-    	Connection *conn;
-    	Operation *op;
-	} *cp = (void *)cookie;
-	struct berval **bvals = NULL;
-	char **vals = NULL;
-	char *ndn;
-	int i;
-
-	/* this routine needs to return the bervals instead of
-	 * plain strings, since syntax is not known.  It should
-	 * also return the syntax or some "comparison cookie".
-	 */
-
-	if ((ndn = ch_strdup(name)) != NULL) {
-		if (dn_normalize(ndn) != NULL) {
-			char *text;
-			AttributeDescription *desc = NULL;
-			if (slap_str2ad(attr, &desc, &text) == 0) {
-				backend_attribute(cp->be, NULL /*cp->conn*/,
-									NULL /*cp->op*/, cp->e,
-									ndn, desc, &bvals);
-				if (bvals != NULL) {
-					for (i = 0; bvals[i] != NULL; i++) { }
-					vals = ch_calloc(i + 1, sizeof(char *));
-					if (vals != NULL) {
-						while (--i >= 0) {
-							vals[i] = bvals[i]->bv_val;
-							bvals[i]->bv_val = NULL;
-						}
-					}
-					ber_bvecfree(bvals);
-				}
-				ad_free(desc, 1);
-			}
-		}
-		ch_free(ndn);
-	}
-	return(vals);
-}
-
-static int
-aci_match_set (
-	struct berval *subj,
-    Backend *be,
-    Entry *e,
-    Connection *conn,
-    Operation *op,
-    int setref
-)
-{
-	char *set = NULL;
-	int rc = 0;
-	struct {
-    	Backend *be;
-    	Entry *e;
-    	Connection *conn;
-    	Operation *op;
-	} cookie;
-
-	if (setref == 0) {
-		set = aci_bvstrdup(subj);
-	} else {
-		struct berval bv;
-		char *subjdn;
-		char *setat;
-		struct berval **bvals;
-		char *text;
-		AttributeDescription *desc = NULL;
-
-		/* format of string is "entry/setAttrName" */
-		if (aci_get_part(subj, 0, '/', &bv) < 0) {
-			return(0);
-		}
-
-		subjdn = aci_bvstrdup(&bv);
-		if ( subjdn == NULL ) {
-			return(0);
-		}
-
-		if ( aci_get_part(subj, 1, '/', &bv) < 0 ) {
-			setat = ch_strdup( SLAPD_ACI_SET_ATTR );
-		} else {
-			setat = aci_bvstrdup(&bv);
-		}
-		if ( setat != NULL ) {
-			if ( dn_normalize(subjdn) != NULL
-				&& slap_str2ad(setat, &desc, &text) == 0 )
-			{
-				backend_attribute(be, NULL, NULL, e,
-								subjdn, desc, &bvals);
-				ad_free(desc, 1);
-				if ( bvals != NULL ) {
-					if ( bvals[0] != NULL )
-						set = ch_strdup(bvals[0]->bv_val);
-					ber_bvecfree(bvals);
-				}
-			}
-			ch_free(setat);
-		}
-		ch_free(subjdn);
-	}
-
-	if (set != NULL) {
-		cookie.be = be;
-		cookie.e = e;
-		cookie.conn = conn;
-		cookie.op = op;
-		rc = (set_filter(aci_set_gather, &cookie, set, op->o_ndn, e->e_ndn, NULL) > 0);
-		ch_free(set);
-	}
 	return(rc);
 }
 
