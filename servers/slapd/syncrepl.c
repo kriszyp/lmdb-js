@@ -976,7 +976,7 @@ syncrepl_entry(
 	cb.sc_response = dn_callback;
 	cb.sc_private = si;
 
-	be->be_search( op, &rs );
+	rc = be->be_search( op, &rs );
 
 	ch_free( op->o_req_dn.bv_val );
 	ch_free( op->o_req_ndn.bv_val );
@@ -986,13 +986,15 @@ syncrepl_entry(
 	cb.sc_response = null_callback;
 	cb.sc_private = si;
 
-	rc = LDAP_SUCCESS;
-
-	if ( si->syncUUID_ndn ) {
+	if ( rc == LDAP_SUCCESS && si->syncUUID_ndn ) {
 		op->o_req_dn = *si->syncUUID_ndn;
 		op->o_req_ndn = *si->syncUUID_ndn;
 		op->o_tag = LDAP_REQ_DELETE;
 		rc = be->be_delete( op, &rs );
+	}
+
+	if ( si->syncUUID_ndn ) {
+		ber_bvfree( si->syncUUID_ndn );
 	}
 
 	switch ( syncstate ) {
@@ -1044,6 +1046,7 @@ syncrepl_entry(
 				}
 			} else {
 				si->e = NULL;
+				be_entry_release_w( op, e );
 				return 0;
 			}
 		} else {
@@ -1392,6 +1395,12 @@ syncrepl_updateCookie(
 	rc = slap_mods_opattrs( op, modlist, modtail,
 							 &text,txtbuf, textlen );
 
+	for ( ml = modlist; ml != NULL; ml = mlnext ) {
+		mlnext = ml->sml_next;
+		if ( ml->sml_desc == slap_schema.si_ad_structuralObjectClass )
+			ml->sml_op = LDAP_MOD_REPLACE;
+	}
+
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
@@ -1467,6 +1476,7 @@ update_cookie_retry:
 #endif
 				}
 			} else {
+				be_entry_release_w( op, e );
 				goto done;
 			}
 		} else {
@@ -1535,7 +1545,7 @@ dn_callback(
 	syncinfo_t *si = op->o_callback->sc_private;
 	
 	if ( rs->sr_type == REP_SEARCH ) {
-		si->syncUUID_ndn = &rs->sr_entry->e_nname;
+		si->syncUUID_ndn = ber_dupbv( NULL, &rs->sr_entry->e_nname );
 	}
 
 	return LDAP_SUCCESS;
