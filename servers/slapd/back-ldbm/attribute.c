@@ -32,7 +32,7 @@ ldbm_back_attribute(
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;    
 	Entry	     *e;
-	int	     i, j, rc;
+	int	     rc;
 	Attribute   *attr;
 	BVarray v;
 	const char *entry_at_name = entry_at->ad_cname.bv_val;
@@ -158,11 +158,11 @@ ldbm_back_attribute(
 		goto return_results;
 	}
 
-	for ( i = 0; attr->a_vals[i].bv_val != NULL; i++ ) {
+	for ( iv = attr->a_vals; iv->bv_val != NULL; iv++ ) {
 		/* count them */
 	}
 
-	v = (BVarray) ch_malloc( sizeof(struct berval) * (i+1) );
+	v = (BVarray) ch_malloc( sizeof(struct berval) * ((iv - attr->a_vals)+1) );
 
 	for ( iv=attr->a_vals, jv=v; iv->bv_val; iv++ ) {
 		if( conn != NULL
@@ -196,11 +196,11 @@ return_results:
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
 		   "ldbm_back_attribute: rc=%d nvals=%d.\n",
-		   rc, j ));
+		   rc, jv - v ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"ldbm_back_attribute: rc=%d nvals=%d\n",
-		rc, j, 0 ); 
+		rc, jv - v, 0 ); 
 #endif
 
 	return(rc);
