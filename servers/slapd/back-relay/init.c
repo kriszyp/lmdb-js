@@ -37,7 +37,9 @@ relay_back_initialize( BackendInfo *bi )
 	bi->bi_db_init = relay_back_db_init;
 	bi->bi_db_config = relay_back_db_config;
 	bi->bi_db_open = relay_back_db_open;
-	bi->bi_db_close = 0 /* relay_back_db_close */ ;
+#if 0
+	bi->bi_db_close =relay_back_db_close;
+#endif
 	bi->bi_db_destroy = relay_back_db_destroy;
 
 	bi->bi_op_bind = relay_back_op_bind;
@@ -48,12 +50,16 @@ relay_back_initialize( BackendInfo *bi )
 	bi->bi_op_modrdn = relay_back_op_modrdn;
 	bi->bi_op_add = relay_back_op_add;
 	bi->bi_op_delete = relay_back_op_delete;
-	bi->bi_op_abandon = 0 /* relay_back_op_abandon */ ;
+#if 0	/* causes a deadlock */
+	bi->bi_op_abandon = relay_back_op_abandon;
+#endif
 	bi->bi_op_cancel = relay_back_op_cancel;
 	bi->bi_extended = relay_back_op_extended;
 	bi->bi_entry_release_rw = relay_back_entry_release_rw;
 	bi->bi_entry_get_rw = relay_back_entry_get_rw;
+#if 0	/* see comment in op.c */
 	bi->bi_chk_referrals = relay_back_chk_referrals;
+#endif
 	bi->bi_operational = relay_back_operational;
 	bi->bi_has_subordinates = relay_back_has_subordinates;
 

@@ -522,6 +522,13 @@ relay_back_entry_get_rw( struct slap_op *op, struct berval *ndn,
 
 }
 
+/*
+ * NOTE: even the existence of this function is questionable: we cannot
+ * pass the bi_chk_referrals() call thru the rwm overlay because there
+ * is no way to rewrite the req_dn back; but then relay_back_chk_referrals()
+ * is passing the target database a DN that likely does not belong to its
+ * naming context... mmmh.
+ */
 int
 relay_back_chk_referrals( struct slap_op *op, struct slap_rep *rs )
 {
@@ -529,8 +536,20 @@ relay_back_chk_referrals( struct slap_op *op, struct slap_rep *rs )
 	int			rc = 0;
 
 	bd = relay_back_select_backend( op, rs, LDAP_SUCCESS );
+	/* FIXME: this test only works if there are no overlays, so
+	 * it is nearly useless; if made stricter, no nested back-relays
+	 * can be instantiated... too bad. */
 	if ( bd == NULL || bd == op->o_bd ) {
 		return 0;
+	}
+
+	/* no nested back-relays... */
+	if ( overlay_is_over( bd ) ) {
+		slap_overinfo	*oi = (slap_overinfo *)bd->bd_info->bi_private;
+
+		if ( oi->oi_orig == op->o_bd->bd_info ) {
+			return 0;
+		}
 	}
 
 	if ( bd->be_chk_referrals ) {
