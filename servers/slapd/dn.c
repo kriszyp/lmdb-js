@@ -635,41 +635,6 @@ dn_normalize( char *dn )
 	return dn;
 }
 
-/*
- * dn_parent - return the dn's parent, in-place
- * FIXME: should be replaced by dnParent()
- */
-char *
-dn_parent(
-	Backend		*be,
-	const char	*dn )
-{
-	struct berval	bv, pdn;
-
-	if ( dn == NULL ) {
-		return NULL;
-	}
-
-	while ( dn[ 0 ] != '\0' && ASCII_SPACE( dn[ 0 ] ) ) {
-		dn++;
-	}
-
-	if ( dn[ 0 ] == '\0' ) {
-		return NULL;
-	}
-
-	bv.bv_val = (char *)dn;
-	bv.bv_len = strlen(bv.bv_val);
-	if ( be != NULL && be_issuffix( be, &bv ) ) {
-		return NULL;
-	}
-
-	if ( dnParent( &bv, &pdn ) != LDAP_SUCCESS ) {
-		return NULL;
-	}
-	
-	return pdn.bv_val;
-}
 #endif /* SLAP_DN_MIGRATION */
 
 
@@ -711,7 +676,6 @@ dn_rdnlen(
 	Backend		*be,
 	struct berval	*dn_in )
 {
-	int		rc;
 	const char	*p;
 
 	assert( dn_in );

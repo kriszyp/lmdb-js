@@ -406,11 +406,12 @@ LDAP_SLAPD_F (void) build_new_dn LDAP_P((
 
 LDAP_SLAPD_F (int) dnParent LDAP_P(( struct berval *dn, struct berval *pdn ));
 
-#define SLAP_DN_MIGRATION
+#ifdef HAVE_CYRUS_SASL
+#define SLAP_DN_MIGRATION 1
+#endif
 #ifdef SLAP_DN_MIGRATION
 	/* These routines are deprecated!!! */
 LDAP_SLAPD_F (char *) dn_normalize LDAP_P(( char *dn ));
-LDAP_SLAPD_F (char *) dn_parent LDAP_P(( Backend *be, const char *dn ));
 #endif
 
 /*
