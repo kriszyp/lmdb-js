@@ -448,11 +448,6 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 
 	ldap_int_error_init();
 
-#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
-	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
-	ldap_int_hostname = ldap_pvt_get_fqdn( ldap_int_hostname );
-#endif
-
 #ifdef HAVE_WINSOCK2
 {	WORD wVersionRequested;
 	WSADATA wsaData;
@@ -485,6 +480,11 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	    return;
 	}
 }
+#endif
+
+#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
+	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+	ldap_int_hostname = ldap_pvt_get_fqdn( ldap_int_hostname );
 #endif
 	ldap_int_utils_init();
 
