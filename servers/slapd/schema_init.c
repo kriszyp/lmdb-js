@@ -513,7 +513,7 @@ Directory String -
   In later versions, more CHOICEs were added.  In all cases the string
   must be non-empty.
 
-  In LDPAv3, a directory string is a UTF-8 encoded UCS string.
+  In LDAPv3, a directory string is a UTF-8 encoded UCS string.
 
   For matching, there are both case ignore and exact rules.  Both
   also require that "insignificant" spaces be ignored.
@@ -4803,5 +4803,6 @@ schema_destroy( void )
 	for ( i=0; i < (int)(sizeof(mr_ptr)/sizeof(mr_ptr[0])); i++ )
 		*mr_ptr[i].mr = NULL;
 	mr_destroy();
+	mru_destroy();
 	syn_destroy();
 }

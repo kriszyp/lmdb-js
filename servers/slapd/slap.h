@@ -278,7 +278,16 @@ typedef struct slap_syntax {
 #define ssyn_oid		ssyn_syn.syn_oid
 #define ssyn_desc		ssyn_syn.syn_desc
 #define ssyn_extensions		ssyn_syn.syn_extensions
+	/*
+	 * Note: the former
 	ber_len_t	ssyn_oidlen;
+	 * has been replaced by a struct berval that uses the value
+	 * provided by ssyn_syn.syn_oid; a macro that expands to
+	 * the bv_len field of the berval is provided for backward
+	 * compatibility.  CAUTION: NEVER FREE THE BERVAL
+	 */
+	struct berval	ssyn_bvoid;
+#define	ssyn_oidlen	ssyn_bvoid.bv_len
 
 	unsigned int ssyn_flags;
 
@@ -361,9 +370,24 @@ typedef int slap_mr_filter_func LDAP_P((
 	void * assertValue,
 	BerVarray *keys ));
 
+typedef struct slap_matching_rule_use MatchingRuleUse;
+
 typedef struct slap_matching_rule {
 	LDAPMatchingRule		smr_mrule;
-	ber_len_t				smr_oidlen;
+	MatchingRuleUse			*smr_mru;
+	/* RFC2252 string representation */
+	struct berval			smr_str;
+	/*
+	 * Note: the former
+	ber_len_t	smr_oidlen;
+	 * has been replaced by a struct berval that uses the value
+	 * provided by smr_mrule.mr_oid; a macro that expands to
+	 * the bv_len field of the berval is provided for backward
+	 * compatibility.  CAUTION: NEVER FREE THE BERVAL
+	 */
+	struct berval			smr_bvoid;
+#define	smr_oidlen			smr_bvoid.bv_len
+
 	slap_mask_t				smr_usage;
 
 #define SLAP_MR_HIDE			0x8000U
@@ -425,6 +449,23 @@ typedef struct slap_matching_rule {
 #define smr_syntax_oid		smr_mrule.mr_syntax_oid
 #define smr_extensions		smr_mrule.mr_extensions
 } MatchingRule;
+
+struct slap_matching_rule_use {
+	LDAPMatchingRuleUse		smru_mruleuse;
+	MatchingRule			*smru_mr;
+	/* RFC2252 string representation */
+	struct berval			smru_str;
+
+	struct slap_matching_rule_use	*smru_next;
+
+#define smru_oid			smru_mruleuse.mru_oid
+#define smru_names			smru_mruleuse.mru_names
+#define smru_desc			smru_mruleuse.mru_desc
+#define smru_obsolete			smru_mruleuse.mru_obsolete
+#define smru_applies_oids		smru_mruleuse.mru_applies_oids
+
+#define smru_usage			smru_mr->smr_usage
+} /* MatchingRuleUse */ ;
 
 typedef struct slap_mrule_defs_rec {
 	char *						mrd_desc;

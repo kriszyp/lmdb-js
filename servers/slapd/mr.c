@@ -15,6 +15,7 @@
 
 #include "slap.h"
 #include "ldap_pvt.h"
+#include "../../libraries/libldap/ldap-int.h"
 
 struct mindexrec {
 	struct berval	mir_name;
@@ -23,6 +24,7 @@ struct mindexrec {
 
 static Avlnode	*mr_index = NULL;
 static MatchingRule *mr_list = NULL;
+static MatchingRuleUse *mru_list = NULL;
 
 static int
 mr_index_cmp(
@@ -76,6 +78,7 @@ mr_destroy( void )
 	avl_free(mr_index, ldap_memfree);
 	for (m=mr_list; m; m=n) {
 		n = m->smr_next;
+		ch_free( m->smr_str.bv_val );
 		ldap_matchingrule_free((LDAPMatchingRule *)m);
 	}
 }
@@ -149,6 +152,11 @@ mr_add(
 	smr = (MatchingRule *) ch_calloc( 1, sizeof(MatchingRule) );
 	AC_MEMCPY( &smr->smr_mrule, mr, sizeof(LDAPMatchingRule));
 
+	/*
+	 * note: smr_bvoid uses the same memory of smr_mrule.mr_oid;
+	 * smr_oidlen is #defined as smr_bvoid.bv_len
+	 */
+	smr->smr_bvoid.bv_val = smr->smr_mrule.mr_oid;
 	smr->smr_oidlen = strlen( mr->mr_oid );
 	smr->smr_usage = def->mrd_usage;
 	smr->smr_convert = def->mrd_convert;
@@ -172,7 +180,6 @@ mr_add(
 	code = mr_insert(smr,err);
 	return code;
 }
-
 
 int
 register_matching_rule(
@@ -252,17 +259,286 @@ register_matching_rule(
 	return( 0 );
 }
 
+void
+mru_destroy( void )
+{
+	MatchingRuleUse *m, *n;
+
+	for (m=mru_list; m; m=n) {
+		n = m->smru_next;
+		if ( m->smru_str.bv_val ) {
+			ch_free( m->smru_str.bv_val );
+		}
+		/* memory borrowed from m->smru_mr */
+		m->smru_oid = NULL;
+		m->smru_names = NULL;
+		m->smru_desc = NULL;
+
+		/* free what's left (basically 
+		 * smru_mruleuse.mru_applies_oids) */
+		ldap_matchingruleuse_free((LDAPMatchingRuleUse *)m);
+	}
+}
+
+/*
+ * Appends a string to an array of char *,
+ * and returns the newly allocated char **.
+ * Maybe we can find a substitute, or borrow
+ * a helper from somewhere else
+ */
+static char **
+ch_append( char **array, char *value )
+{
+	int	cnt;
+	char	**tmp;
+
+	if ( array == NULL ) {
+		cnt = 0;
+	} else {
+		for ( cnt = 0; array[ cnt ]; cnt++ )
+			/* NO OP */ ;
+	}
+
+	tmp = LDAP_REALLOC( array, ( cnt + 2 ) * sizeof( char * ) );
+
+	tmp[ cnt++ ] = ch_strdup( value );
+	tmp[ cnt ] = NULL;
+
+	return tmp;
+}
+
+int
+matching_rule_use_init( void )
+{
+	MatchingRule	*mr;
+	MatchingRuleUse	**mru_ptr = &mru_list;
+
+#define MR_TYPE_MASK		( SLAP_MR_TYPE_MASK & ~SLAP_MR_EXT )
+#define MR_TYPE_SUBTYPE_MASK	( MR_TYPE_MASK | SLAP_MR_SUBTYPE_MASK ) 
+#if 0	/* all types regardless of EXT */
+#define MR_TYPE(x)		( (x) & MR_TYPE_MASK )
+#define MR_TYPE_SUBTYPE(x)	( (x) & MR_TYPE_SUBTYPE_MASK )
+#else	/* only those marked as EXT (as per RFC 2252) */
+#define MR_TYPE(x)		( ( (x) & SLAP_MR_EXT ) ? ( (x) & MR_TYPE_MASK ) : SLAP_MR_NONE )
+#define MR_TYPE_SUBTYPE(x)	( ( (x) & SLAP_MR_EXT ) ? ( (x) & MR_TYPE_SUBTYPE_MASK ) : SLAP_MR_NONE )
+#endif
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, INFO, "matching_rule_use_init\n", 0, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "matching_rule_use_init\n", 0, 0, 0 );
+#endif
+
+	for ( mr = mr_list; mr; mr = mr->smr_next ) {
+		slap_mask_t	um = MR_TYPE( mr->smr_usage );
+		slap_mask_t	usm = MR_TYPE_SUBTYPE( mr->smr_usage );
+
+		AttributeType	*at;
+		MatchingRuleUse	_mru, *mru = &_mru;
+
+		mr->smr_mru = NULL;
+
+		/* hide rules marked as HIDE */
+		if ( mr->smr_usage & SLAP_MR_HIDE ) {
+			continue;
+		}
+
+		/* hide rules with no type */
+		if ( um == SLAP_MR_NONE ) {
+			continue;
+		}
+
+		memset( mru, 0, sizeof( MatchingRuleUse ) );
+
+		/*
+		 * Note: we're using the same values of the corresponding 
+		 * MatchingRule structure; maybe we'd copy them ...
+		 */
+		mru->smru_mr = mr;
+		mru->smru_obsolete = mr->smr_obsolete;
+		mru->smru_applies_oids = NULL;
+		mru->smru_next = NULL;
+		mru->smru_oid = mr->smr_oid;
+		mru->smru_names = mr->smr_names;
+		mru->smru_desc = mr->smr_desc;
+
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, INFO, "    %s (%s): ", 
+				mru->smru_oid, 
+				mru->smru_names ? mru->smru_names[ 0 ] : "", 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE, "    %s (%s): ", 
+				mru->smru_oid, 
+				mru->smru_names ? mru->smru_names[ 0 ] : "", 0 );
+#endif
+
+		switch ( um ) {
+		case SLAP_MR_EQUALITY:
+			at = NULL;
+			if ( usm == SLAP_MR_EQUALITY_APPROX ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, INFO, "APPROX%s\n",
+						( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
+						0, 0 );
+#else
+				Debug( LDAP_DEBUG_TRACE, "APPROX%s\n",
+						( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
+						0, 0 );
+#endif
+
+				for ( at_start( &at ); at; at_next( &at ) ) {
+					if ( mr == at->sat_approx ) {
+#ifdef NEW_LOGGING
+						LDAP_LOG( OPERATION, INFO, "        %s (%s)\n",
+								at->sat_oid,
+								at->sat_cname.bv_val, 0 );
+#else
+						Debug( LDAP_DEBUG_TRACE, "        %s (%s)\n",
+								at->sat_oid,
+								at->sat_cname.bv_val, 0 );
+#endif
+						mru->smru_applies_oids
+							= ch_append( mru->smru_applies_oids, at->sat_oid );
+					}
+				}
+
+			} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, INFO, "EQUALITY%s\n",
+						( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
+						0, 0 );
+#else
+				Debug( LDAP_DEBUG_TRACE, "EQUALITY%s\n",
+						( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
+						0, 0 );
+#endif
+				for ( at_start( &at ); at; at_next( &at ) ) {
+					if ( mr == at->sat_equality ) {
+#ifdef NEW_LOGGING
+						LDAP_LOG( OPERATION, INFO, "        %s (%s)\n",
+								at->sat_oid,
+								at->sat_cname.bv_val, 0 );
+#else
+						Debug( LDAP_DEBUG_TRACE, "        %s (%s)\n",
+								at->sat_oid,
+								at->sat_cname.bv_val, 0 );
+#endif
+						mru->smru_applies_oids
+							= ch_append( mru->smru_applies_oids, at->sat_oid );
+					}
+				}
+			}
+			break;
+
+		case SLAP_MR_ORDERING:
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, INFO, "ORDERING%s\n",
+					( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
+					0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE, "ORDERING%s\n",
+					( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
+					0, 0 );
+#endif
+			at = NULL;
+			for ( at_start( &at ); at; at_next( &at ) ) {
+				if ( mr == at->sat_ordering ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG( OPERATION, INFO, "        %s (%s)\n",
+							at->sat_oid,
+							at->sat_cname.bv_val, 0 );
+#else
+					Debug( LDAP_DEBUG_TRACE, "        %s (%s)\n",
+							at->sat_oid,
+							at->sat_cname.bv_val, 0 );
+#endif
+					mru->smru_applies_oids
+						= ch_append( mru->smru_applies_oids, at->sat_oid );
+				}
+			}
+			break;
+
+		case SLAP_MR_SUBSTR:
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, INFO, "SUBSTR%s\n",
+					( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
+					0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE, "SUBSTR%s\n",
+					( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
+					0, 0 );
+#endif
+			at = NULL;
+			for ( at_start( &at ); at; at_next( &at ) ) {
+				if ( mr == at->sat_substr ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG( OPERATION, INFO, "        %s (%s)\n",
+							at->sat_oid,
+							at->sat_cname.bv_val, 0 );
+#else
+					Debug( LDAP_DEBUG_TRACE, "        %s (%s)\n",
+							at->sat_oid,
+							at->sat_cname.bv_val, 0 );
+#endif
+					mru->smru_applies_oids
+						= ch_append( mru->smru_applies_oids, at->sat_oid );
+				}
+			}
+			break;
+
+		default:
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, ERR, "        unknown matching rule type "
+					"(type mask %d, subtype mask %d%s)\n", um, usm,
+					( mr->smr_usage & SLAP_MR_EXT ) ? ", EXT" : "" );
+#else
+			Debug( LDAP_DEBUG_ANY, "        unknown matching rule type "
+					"(type mask %d, subtype mask %d%s)\n", um, usm,
+					( mr->smr_usage & SLAP_MR_EXT ) ? ", EXT" : "" );
+#endif
+			fprintf ( stderr, "    %d (%d)\n", um, usm );
+			assert( 0 );
+		}
+
+		/*
+		 * Note: the matchingRules that are not used
+		 * by any attributeType are not listed as
+		 * matchingRuleUse
+		 */
+		if ( mru->smru_applies_oids != NULL ) {
+#ifdef NEW_LOGGING
+			{
+				char	*str = ldap_matchingruleuse2str( &mru->smru_mruleuse );
+				LDAP_LOG( OPERATION, INFO, "matchingRuleUse: %s\n", str, 0, 0 );
+				ldap_memfree( str );
+			}
+#else
+			{
+				char	*str = ldap_matchingruleuse2str( &mru->smru_mruleuse );
+				Debug( LDAP_DEBUG_TRACE, "matchingRuleUse: %s\n", str, 0, 0 );
+				ldap_memfree( str );
+			}
+#endif
+
+			mru = (MatchingRuleUse *)LDAP_MALLOC( sizeof( MatchingRuleUse ) );
+			mr->smr_mru = mru;
+			*mru = _mru;
+			*mru_ptr = mru;
+			mru_ptr = &mru->smru_next;
+		}
+	}
+
+	return( 0 );
+}
+
 
 #if defined( SLAPD_SCHEMA_DN )
 
 int mr_schema_info( Entry *e )
 {
-	struct berval	vals[2];
 	MatchingRule	*mr;
 
 	AttributeDescription *ad_matchingRules = slap_schema.si_ad_matchingRules;
-
-	vals[1].bv_val = NULL;
 
 	for ( mr = mr_list; mr; mr = mr->smr_next ) {
 		if ( mr->smr_usage & SLAP_MR_HIDE ) {
@@ -275,21 +551,44 @@ int mr_schema_info( Entry *e )
 			continue;
 		}
 
-		if ( ldap_matchingrule2bv( &mr->smr_mrule, vals ) == NULL ) {
-			return -1;
+		if ( mr->smr_str.bv_val == NULL ) {
+			if ( ldap_matchingrule2bv( &mr->smr_mrule, &mr->smr_str ) == NULL ) {
+				return -1;
+			}
 		}
 #if 0
-		Debug( LDAP_DEBUG_TRACE, "Merging mr [%ld] %s\n",
-	       (long) vals[0].bv_len, vals[0].bv_val, 0 );
+		Debug( LDAP_DEBUG_TRACE, "Merging mr [%lu] %s\n",
+			mr->smr_str.bv_len, mr->smr_str.bv_val, 0 );
 #endif
-		attr_merge( e, ad_matchingRules, vals );
-		ldap_memfree( vals[0].bv_val );
+		attr_merge_one( e, ad_matchingRules, &mr->smr_str );
 	}
 	return 0;
 }
 
 int mru_schema_info( Entry *e )
 {
+	MatchingRuleUse	*mru;
+
+	AttributeDescription *ad_matchingRuleUse 
+		= slap_schema.si_ad_matchingRuleUse;
+
+	for ( mru = mru_list; mru; mru = mru->smru_next ) {
+
+		assert( !( mru->smru_usage & SLAP_MR_HIDE ) );
+
+		if ( mru->smru_str.bv_val == NULL ) {
+			if ( ldap_matchingruleuse2bv( &mru->smru_mruleuse, &mru->smru_str )
+					== NULL ) {
+				return -1;
+			}
+		}
+
+#if 0
+		Debug( LDAP_DEBUG_TRACE, "Merging mru [%lu] %s\n",
+			mru->smru_str.bv_len, mru->smru_str.bv_val, 0 );
+#endif
+		attr_merge_one( e, ad_matchingRuleUse, &mru->smru_str );
+	}
 	return 0;
 }
 

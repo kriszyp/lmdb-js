@@ -115,6 +115,9 @@ LDAP_SLAPD_F (int) is_at_syntax LDAP_P((
 	AttributeType *at,
 	const char *oid ));
 
+LDAP_SLAPD_F (int) at_start LDAP_P(( AttributeType **at ));
+LDAP_SLAPD_F (int) at_next LDAP_P(( AttributeType **at ));
+
 /*
  * attr.c
  */
@@ -620,6 +623,9 @@ LDAP_SLAPD_F (void) mr_destroy LDAP_P(( void ));
 
 LDAP_SLAPD_F (int) register_matching_rule LDAP_P((
 	slap_mrule_defs_rec *def ));
+
+LDAP_SLAPD_F (void) mru_destroy LDAP_P(( void ));
+LDAP_SLAPD_F (int) matching_rule_use_init LDAP_P(( void ));
 
 LDAP_SLAPD_F (int) mr_schema_info( Entry *e );
 LDAP_SLAPD_F (int) mru_schema_info( Entry *e );
