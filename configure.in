@@ -1492,6 +1492,7 @@ AC_CHECK_HEADERS(	\
 	sys/ioctl.h		\
 	sys/param.h		\
 	sys/resource.h	\
+	sys/select.h	\
 	sys/socket.h	\
 	sys/syslog.h	\
 	sys/time.h		\
