@@ -76,16 +76,18 @@ main( int argc, char **argv )
 
 	for (;;) {
 		tag = ber_get_next( sb, &len, ber);
-		if( tag == LBER_ERROR ) {
-			if( errno == EWOULDBLOCK ) continue;
-			if( errno == EAGAIN ) continue;
-			perror( "ber_get_next" );
-			return( EXIT_FAILURE );
-		}
+		if( tag != LBER_ERROR ) break;
+
+		if( errno == EWOULDBLOCK ) continue;
+		if( errno == EAGAIN ) continue;
+
+		perror( "ber_get_next" );
+		return( EXIT_FAILURE );
+
 	}
 
 	printf("decode: message tag 0x%lx and length %ld\n",
-	        (unsigned long) tag, (long) len );
+		(unsigned long) tag, (long) len );
 
 	for( s = argv[1]; *s; s++ ) {
 		char buf[128];
