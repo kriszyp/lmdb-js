@@ -22,7 +22,7 @@ static void remove_old_locks( char *home );
 
 
 static void
-bdb2i_db_errcall( char *prefix, char *message )
+bdb2i_db_errcall( const char *prefix, char *message )
 {
 	Debug( LDAP_DEBUG_ANY, "bdb2_db_errcall(): %s %s", prefix, message, 0 );
 }
@@ -234,7 +234,7 @@ remove_old_locks( char *home )
 	int     err;
 
 	memset( &dbEnv, 0, sizeof( DB_ENV ));
-	dbEnv.db_errcall = stderr;
+	dbEnv.db_errcall = bdb2i_db_errcall;
 	dbEnv.db_errpfx  = "remove_old_locks(): db_appinit:";
 	dbEnv.lk_max     = 0;
 
