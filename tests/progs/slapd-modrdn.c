@@ -116,6 +116,8 @@ do_modrdn( char *uri, char *host, int port, char *manager,
 	pid_t	pid;
 	char *DNs[2];
 	char *rdns[2];
+	int         rc = LDAP_SUCCESS;
+
 
 	pid = getpid();
 	DNs[0] = entry;
@@ -166,8 +168,6 @@ do_modrdn( char *uri, char *host, int port, char *manager,
 		 (long) pid, maxloop, entry );
 
 	for ( i = 0; i < maxloop; i++ ) {
-		int         rc;
-
 		if (( rc = ldap_modrdn2_s( ld, DNs[0], rdns[0], 0 ))
 			!= LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_modrdn" );
@@ -182,7 +182,7 @@ do_modrdn( char *uri, char *host, int port, char *manager,
 		}
 	}
 
-	fprintf( stderr, " PID=%ld - Modrdn done.\n", (long) pid );
+	fprintf( stderr, " PID=%ld - Modrdn done (%d).\n", (long) pid, rc );
 
 	ldap_unbind( ld );
 }

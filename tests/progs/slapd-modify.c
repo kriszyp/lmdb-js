@@ -130,6 +130,7 @@ do_modify( char *uri, char *host, int port, char *manager,
 	LDAP	*ld = NULL;
 	int  	i;
 	pid_t	pid;
+	int     rc = LDAP_SUCCESS;
 
 	struct ldapmod mod;
 	struct ldapmod *mods[2];
@@ -170,8 +171,6 @@ do_modify( char *uri, char *host, int port, char *manager,
 		 (long) pid, maxloop, entry );
 
 	for ( i = 0; i < maxloop; i++ ) {
-		int         rc;
-
 		mod.mod_op = LDAP_MOD_ADD;
 		if (( rc = ldap_modify_s( ld, entry, mods )) != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_modify" );
@@ -188,7 +187,7 @@ do_modify( char *uri, char *host, int port, char *manager,
 
 	}
 
-	fprintf( stderr, " PID=%ld - Modify done.\n", (long) pid );
+	fprintf( stderr, " PID=%ld - Modify done (%d).\n", (long) pid, rc );
 
 	ldap_unbind( ld );
 }

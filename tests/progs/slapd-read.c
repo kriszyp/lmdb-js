@@ -106,6 +106,7 @@ do_read( char *uri, char *host, int port, char *entry, int maxloop )
 	int  	i;
 	char	*attrs[] = { "1.1", NULL };
 	pid_t	pid = getpid();
+	int     rc = LDAP_SUCCESS;
 
 	if ( uri ) {
 		ldap_initialize( &ld, uri );
@@ -134,11 +135,10 @@ do_read( char *uri, char *host, int port, char *entry, int maxloop )
 
 	for ( i = 0; i < maxloop; i++ ) {
 		LDAPMessage *res;
-		int         rc;
 
-		if (( rc = ldap_search_s( ld, entry, LDAP_SCOPE_BASE,
-				NULL, attrs, 1, &res )) != LDAP_SUCCESS ) {
-
+		rc = ldap_search_s( ld, entry, LDAP_SCOPE_BASE,
+				NULL, attrs, 1, &res );
+		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_read" );
 			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
 			continue;
@@ -148,7 +148,7 @@ do_read( char *uri, char *host, int port, char *entry, int maxloop )
 		ldap_msgfree( res );
 	}
 
-	fprintf( stderr, " PID=%ld - Read done.\n", (long) pid );
+	fprintf( stderr, " PID=%ld - Read done (%d).\n", (long) pid, rc );
 
 	ldap_unbind( ld );
 }

@@ -36,7 +36,7 @@
 #define LOOPS	100
 
 static void
-do_search( char *uri, char *host, int port, char *sbase, char *filter, int maxloop );
+do_search( char *uri, char *host, int port, char *manager, char *passwd, char *sbase, char *filter, int maxloop );
 
 static void
 usage( char *name )
@@ -53,11 +53,13 @@ main( int argc, char **argv )
 	char		*uri = NULL;
 	char        *host = "localhost";
 	int			port = -1;
+	char		*manager = NULL;
+	char		*passwd = NULL;
 	char        *sbase = NULL;
 	char		*filter  = NULL;
 	int			loops = LOOPS;
 
-	while ( (i = getopt( argc, argv, "H:h:p:b:f:l:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "b:D:f:H:h:l:p:w:" )) != EOF ) {
 		switch( i ) {
 			case 'H':		/* the server uri */
 				uri = strdup( optarg );
@@ -69,6 +71,14 @@ main( int argc, char **argv )
 			case 'p':		/* the servers port */
 				port = atoi( optarg );
 				break;
+
+			case 'D':		/* the servers manager */
+				manager = strdup( optarg );
+			break;
+
+			case 'w':		/* the server managers password */
+				passwd = strdup( optarg );
+			break;
 
 			case 'b':		/* file with search base */
 				sbase = strdup( optarg );
@@ -99,18 +109,19 @@ main( int argc, char **argv )
 
 	}
 
-	do_search( uri, host, port, sbase, filter, ( 10 * loops ));
+	do_search( uri, host, port, manager, passwd, sbase, filter, ( 10 * loops ));
 	exit( EXIT_SUCCESS );
 }
 
 
 static void
-do_search( char *uri, char *host, int port, char *sbase, char *filter, int maxloop )
+do_search( char *uri, char *host, int port, char *manager, char *passwd, char *sbase, char *filter, int maxloop )
 {
 	LDAP	*ld = NULL;
 	int  	i;
 	char	*attrs[] = { "cn", "sn", NULL };
 	pid_t	pid = getpid();
+	int     rc = LDAP_SUCCESS;
 
 	if ( uri ) {
 		ldap_initialize( &ld, uri );
@@ -128,7 +139,7 @@ do_search( char *uri, char *host, int port, char *sbase, char *filter, int maxlo
 			&version ); 
 	}
 
-	if ( ldap_bind_s( ld, NULL, NULL, LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
+	if ( ldap_bind_s( ld, manager, passwd, LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_bind" );
 		 exit( EXIT_FAILURE );
 	}
@@ -139,11 +150,10 @@ do_search( char *uri, char *host, int port, char *sbase, char *filter, int maxlo
 
 	for ( i = 0; i < maxloop; i++ ) {
 		LDAPMessage *res;
-		int         rc;
 
-		if (( rc = ldap_search_s( ld, sbase, LDAP_SCOPE_SUBTREE,
-				filter, attrs, 0, &res )) != LDAP_SUCCESS ) {
-
+		rc = ldap_search_s( ld, sbase, LDAP_SCOPE_SUBTREE,
+				filter, attrs, 0, &res );
+		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_search" );
 			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
 			continue;
@@ -153,7 +163,7 @@ do_search( char *uri, char *host, int port, char *sbase, char *filter, int maxlo
 		ldap_msgfree( res );
 	}
 
-	fprintf( stderr, " PID=%ld - Search done.\n", (long) pid );
+	fprintf( stderr, " PID=%ld - Search done (%d).\n", (long) pid, rc );
 
 	ldap_unbind( ld );
 }

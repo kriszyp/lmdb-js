@@ -40,8 +40,8 @@
 #define ADDCMD			"slapd-addel"
 #define MODRDNCMD		"slapd-modrdn"
 #define MODIFYCMD		"slapd-modify"
-#define MAXARGS      	100
-#define MAXREQS			20
+#define MAXARGS      		100
+#define MAXREQS			5000
 #define LOOPS			"100"
 
 #define TSEARCHFILE		"do_search.0"
@@ -240,6 +240,10 @@ main( int argc, char **argv )
 		sargs[sanum++] = "-p";
 		sargs[sanum++] = port;
 	}
+	sargs[sanum++] = "-D";
+	sargs[sanum++] = manager;
+	sargs[sanum++] = "-w";
+	sargs[sanum++] = passwd;
 	sargs[sanum++] = "-l";
 	sargs[sanum++] = loops;
 	sargs[sanum++] = "-b";

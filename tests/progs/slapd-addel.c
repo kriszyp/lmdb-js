@@ -255,6 +255,7 @@ do_addel(
 	LDAP	*ld = NULL;
 	int  	i;
 	pid_t	pid = getpid();
+	int	rc = LDAP_SUCCESS;
 
 	if ( uri ) {
 		ldap_initialize( &ld, uri );
@@ -285,8 +286,8 @@ do_addel(
 	for ( i = 0; i < maxloop; i++ ) {
 
 		/* add the entry */
-		if ( ldap_add_s( ld, entry, attrs ) != LDAP_SUCCESS ) {
-
+		rc = ldap_add_s( ld, entry, attrs );
+		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_add" );
 			break;
 
@@ -299,8 +300,8 @@ do_addel(
 #endif
 
 		/* now delete the entry again */
-		if ( ldap_delete_s( ld, entry ) != LDAP_SUCCESS ) {
-
+		rc = ldap_delete_s( ld, entry );
+		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_delete" );
 			break;
 
@@ -308,7 +309,7 @@ do_addel(
 
 	}
 
-	fprintf( stderr, " PID=%ld - Add/Delete done.\n", (long) pid );
+	fprintf( stderr, " PID=%ld - Add/Delete done (%d).\n", (long) pid, rc );
 
 	ldap_unbind( ld );
 }
