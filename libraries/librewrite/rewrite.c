@@ -32,6 +32,7 @@
 #include <ac/unistd.h>
 #include <ac/ctype.h>
 #include <ac/string.h>
+#include <stdio.h>
 
 #include <rewrite.h>
 
