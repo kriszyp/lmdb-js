@@ -152,6 +152,8 @@ ber_log_sos_dump LDAP_P((
 	int loglvl,
 	Seqorset *sos ));
 
+LBER_V (BER_LOG_FN) ber_int_log_proc;
+LBER_V (FILE *) ber_pvt_err_file;
 
 /* memory.c */
 	/* simple macros to realloc for now */
