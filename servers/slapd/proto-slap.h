@@ -26,6 +26,8 @@ int acl_check_modlist LDAP_P(( Backend *be,
 
 void acl_append( AccessControl **l, AccessControl *a );
 
+char *get_supported_acimech LDAP_P((int index));
+
 /*
  * aclparse.c
  */
