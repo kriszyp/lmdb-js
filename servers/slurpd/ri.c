@@ -1,10 +1,18 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/*
- * Copyright (c) 1996 Regents of the University of Michigan.
+/* Portions Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted
@@ -13,6 +21,10 @@
  * may not be used to endorse or promote products derived from this
  * software without specific prior written permission. This software
  * is provided ``as is'' without express or implied warranty.
+ */
+/* ACKNOWLEDGEMENTS:
+ * This work was originally developed by the University of Michigan
+ * (as part of U-MICH LDAP).
  */
 
 /*
@@ -51,6 +63,7 @@ Ri_process(
     Re		*re = NULL, *new_re = NULL;
     int		rc ;
     char	*errmsg;
+    int		errfree;
 
     (void) SIGNAL( LDAP_SIGUSR1, do_nothing );
 #ifdef SIGPIPE
@@ -113,7 +126,7 @@ Ri_process(
 			ri->ri_hostname, ri->ri_port, re->re_dn );
 #endif
 	    } else {
-		rc = do_ldap( ri, re, &errmsg );
+		rc = do_ldap( ri, re, &errmsg, &errfree );
 		switch ( rc ) {
 		case DO_LDAP_ERR_RETRYABLE:
 		    ldap_pvt_thread_sleep( RETRY_SLEEP_TIME );
@@ -145,6 +158,9 @@ Ri_process(
 		    (void) sglob->st->st_write( sglob->st );
 		    break;
 		}
+		if ( errfree && errmsg ) {
+		    ch_free( errmsg );
+		}
 	    }
 	} else {
 #ifdef NEW_LOGGING
@@ -169,7 +185,7 @@ Ri_process(
 	re = new_re;
 	rq->rq_unlock( rq );
 	if ( sglob->slurpd_shutdown ) {
-	    if ( ri->ri_ldp ) { 
+	    if ( ri->ri_ldp ) {
 	    	ldap_unbind( ri->ri_ldp );
 		ri->ri_ldp = NULL;
 	    }

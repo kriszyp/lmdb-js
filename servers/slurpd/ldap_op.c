@@ -1,10 +1,19 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * Portions Copyright 2003 Mark Benson.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/*
- * Copyright (c) 1996 Regents of the University of Michigan.
+/* Portions Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted
@@ -13,6 +22,12 @@
  * may not be used to endorse or promote products derived from this
  * software without specific prior written permission. This software
  * is provided ``as is'' without express or implied warranty.
+ */
+/* ACKNOWLEDGEMENTS:
+ * This work was originally developed by the University of Michigan
+ * (as part of U-MICH LDAP).  Additional significant contributors
+ * include:
+ *     Mark Benson
  */
 
 /*
@@ -31,16 +46,17 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
+#define LDAP_DEPRECATED 1
 #include <ldap.h>
 #include "lutil_ldap.h"
 #include "slurp.h"
 
 /* Forward references */
 static struct berval **make_singlevalued_berval LDAP_P(( char	*, int ));
-static int op_ldap_add LDAP_P(( Ri *, Re *, char ** ));
-static int op_ldap_modify LDAP_P(( Ri *, Re *, char ** ));
-static int op_ldap_delete LDAP_P(( Ri *, Re *, char ** ));
-static int op_ldap_modrdn LDAP_P(( Ri *, Re *, char ** ));
+static int op_ldap_add LDAP_P(( Ri *, Re *, char **, int * ));
+static int op_ldap_modify LDAP_P(( Ri *, Re *, char **, int * ));
+static int op_ldap_delete LDAP_P(( Ri *, Re *, char **, int * ));
+static int op_ldap_modrdn LDAP_P(( Ri *, Re *, char **, int * ));
 static LDAPMod *alloc_ldapmod LDAP_P(( void ));
 static void free_ldapmod LDAP_P(( LDAPMod * ));
 static void free_ldmarr LDAP_P(( LDAPMod ** ));
@@ -64,11 +80,13 @@ int
 do_ldap(
 	Ri		*ri,
 	Re		*re,
-	char	**errmsg
+	char	**errmsg,
+	int	*errfree
 )
 {
 	int	retry = 2;
 	*errmsg = NULL;
+	*errfree = 0;
 
 	do {
 		int lderr;
@@ -82,7 +100,7 @@ do_ldap(
 
 		switch ( re->re_changetype ) {
 		case T_ADDCT:
-			lderr = op_ldap_add( ri, re, errmsg );
+			lderr = op_ldap_add( ri, re, errmsg, errfree );
 			if ( lderr != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR, "do_ldap: "
@@ -99,7 +117,7 @@ do_ldap(
 			break;
 
 		case T_MODIFYCT:
-			lderr = op_ldap_modify( ri, re, errmsg );
+			lderr = op_ldap_modify( ri, re, errmsg, errfree );
 			if ( lderr != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR, "do_ldap: "
@@ -116,7 +134,7 @@ do_ldap(
 			break;
 
 		case T_DELETECT:
-			lderr = op_ldap_delete( ri, re, errmsg );
+			lderr = op_ldap_delete( ri, re, errmsg, errfree );
 			if ( lderr != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR, "do_ldap: "
@@ -133,7 +151,7 @@ do_ldap(
 			break;
 
 		case T_MODRDNCT:
-			lderr = op_ldap_modrdn( ri, re, errmsg );
+			lderr = op_ldap_modrdn( ri, re, errmsg, errfree );
 			if ( lderr != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR, "do_ldap: "
@@ -192,7 +210,8 @@ static int
 op_ldap_add(
     Ri		*ri,
     Re		*re,
-    char	**errmsg
+    char	**errmsg,
+    int		*errfree
 )
 {
     Mi		*mi;
@@ -235,6 +254,8 @@ op_ldap_add(
 	rc = ldap_add_s( ri->ri_ldp, re->re_dn, ldmarr );
 
 	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &lderr);
+	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_STRING, errmsg);
+	*errfree = 1;
 
     } else {
 	*errmsg = "No modifications to do";
@@ -261,7 +282,8 @@ static int
 op_ldap_modify(
     Ri		*ri,
     Re		*re,
-    char	**errmsg
+    char	**errmsg,
+    int		*errfree
 )
 {
     Mi		*mi;
@@ -331,6 +353,18 @@ op_ldap_modify(
 	    nvals = 0;
 	    nops++;
 	    break;
+#ifdef LDAP_MOD_INCREMENT
+	case T_MODOPINCREMENT:
+	    state = T_MODOPINCREMENT;
+	    ldmarr = ( LDAPMod ** )
+		    ch_realloc(ldmarr, (( nops + 2 ) * ( sizeof( LDAPMod * ))));
+	    ldmarr[ nops ] = ldm = alloc_ldapmod();
+	    ldm->mod_op = LDAP_MOD_INCREMENT | LDAP_MOD_BVALUES;
+	    ldm->mod_type = value;
+	    nvals = 0;
+	    nops++;
+	    break;
+#endif
 	default:
 	    if ( state == AWAITING_OP ) {
 #ifdef NEW_LOGGING
@@ -387,6 +421,8 @@ op_ldap_modify(
 		ri->ri_hostname, ri->ri_port, re->re_dn );
 #endif
 	rc = ldap_modify_s( ri->ri_ldp, re->re_dn, ldmarr );
+	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_STRING, errmsg);
+	*errfree = 1;
     }
     free_ldmarr( ldmarr );
     return( rc );
@@ -402,7 +438,8 @@ static int
 op_ldap_delete(
     Ri		*ri,
     Re		*re,
-    char	**errmsg
+    char	**errmsg,
+    int		*errfree
 )
 {
     int		rc;
@@ -416,6 +453,8 @@ op_ldap_delete(
 	    ri->ri_hostname, ri->ri_port, re->re_dn );
 #endif
     rc = ldap_delete_s( ri->ri_ldp, re->re_dn );
+    ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_STRING, errmsg);
+    *errfree = 1;
 
     return( rc );
 }
@@ -436,7 +475,8 @@ static int
 op_ldap_modrdn(
     Ri		*ri,
     Re		*re,
-    char	**errmsg
+    char	**errmsg,
+    int		*errfree
 )
 {
     int		rc = 0;
@@ -593,6 +633,8 @@ op_ldap_modrdn(
     rc = ldap_rename2_s( ri->ri_ldp, re->re_dn, newrdn, newsup, drdnflag );
 
 	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &lderr);
+	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_STRING, errmsg);
+	*errfree = 1;
     return( lderr );
 }
 
@@ -695,6 +737,9 @@ char *type )
     }
     if ( !strcmp( type, T_MODOPDELETESTR )) {
 	return( T_MODOPDELETE );
+    }
+    if ( !strcmp( type, T_MODOPINCREMENTSTR )) {
+	return( T_MODOPINCREMENT );
     }
     return( T_ERR );
 }
@@ -874,8 +919,7 @@ retry:
 	ldap_set_option(ri->ri_ldp, LDAP_OPT_RESTART, LDAP_OPT_ON);
 
 	if( do_tls ) {
-		int err;
-		err = ldap_start_tls_s(ri->ri_ldp, NULL, NULL);
+		int err = ldap_start_tls_s(ri->ri_ldp, NULL, NULL);
 
 		if( err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -891,6 +935,7 @@ retry:
 #endif
 
 			if( ri->ri_tls == TLS_CRITICAL ) {
+				*lderr = err;
 				ldap_unbind( ri->ri_ldp );
 				ri->ri_ldp = NULL;
 				return BIND_ERR_TLS_FAILED;
@@ -901,7 +946,7 @@ retry:
 	}
 
     switch ( ri->ri_bind_method ) {
-    case AUTH_SIMPLE:
+    case LDAP_AUTH_SIMPLE:
 	/*
 	 * Bind with a plaintext password.
 	 */
@@ -932,7 +977,7 @@ retry:
 	}
 	break;
 
-	case AUTH_SASL:
+	case LDAP_AUTH_SASL:
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ARGS, 
 		"do_bind: bind to %s as %s via %s (SASL)\n", 
@@ -948,9 +993,8 @@ retry:
 
 #ifdef HAVE_CYRUS_SASL
 	if( ri->ri_secprops != NULL ) {
-		int err;
-		err = ldap_set_option(ri->ri_ldp, LDAP_OPT_X_SASL_SECPROPS,
-			ri->ri_secprops);
+		int err = ldap_set_option(ri->ri_ldp,
+			LDAP_OPT_X_SASL_SECPROPS, ri->ri_secprops);
 
 		if( err != LDAP_OPT_SUCCESS ) {
 #ifdef NEW_LOGGING

@@ -1,10 +1,18 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/*
- * Copyright (c) 1996 Regents of the University of Michigan.
+/* Portions Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted
@@ -13,6 +21,12 @@
  * may not be used to endorse or promote products derived from this
  * software without specific prior written permission. This software
  * is provided ``as is'' without express or implied warranty.
+ */
+/* ACKNOWLEDGEMENTS:
+ * This work was originally developed by the University of Michigan
+ * (as part of U-MICH LDAP).  Additional significant contributors
+ * include:
+ *     Howard Chu
  */
 
 
@@ -44,6 +58,11 @@
 #else
 #define SERVICE_EXIT( e, n )
 #define	MAIN_RETURN(x)	return(x)
+#endif
+
+#ifndef HAVE_MKVERSION
+const char Versionstr[] =
+	OPENLDAP_PACKAGE " " OPENLDAP_VERSION " Standalone LDAP Replicator (slurpd)";
 #endif
 
 #ifdef HAVE_NT_SERVICE_MANAGER
@@ -125,6 +144,20 @@ int main( int argc, char **argv )
 	goto stop;
     }
 
+    if ( sglob->version ) {
+		fprintf(stderr, "%s\n", Versionstr);
+		if (sglob->version > 1 ) {
+			rc = 1;
+			goto stop;
+		}
+    }
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( SLURPD, INFO, "%s\n", Versionstr, 0, 0 );
+#else
+	Debug ( LDAP_DEBUG_ANY, "%s\n", Versionstr, 0, 0 );
+#endif
+    
     /*
      * Read slapd config file and initialize Re (per-replica) structs.
      */
@@ -161,7 +194,7 @@ int main( int argc, char **argv )
      */
     if ( sglob->st->st_read( sglob->st )) {
 	fprintf( stderr, "Malformed slurpd status file \"%s\"\n",
-		sglob->slurpd_status_file, 0, 0 );
+		sglob->slurpd_status_file );
 	SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 17 );
 	rc = 1;
 	goto stop;

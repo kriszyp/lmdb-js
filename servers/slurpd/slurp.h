@@ -1,10 +1,18 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/*
- * Copyright (c) 1996 Regents of the University of Michigan.
+/* Portions Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted
@@ -13,6 +21,10 @@
  * may not be used to endorse or promote products derived from this
  * software without specific prior written permission. This software
  * is provided ``as is'' without express or implied warranty.
+ */
+/* ACKNOWLEDGEMENTS:
+ * This work was originally developed by the University of Michigan
+ * (as part of U-MICH LDAP).
  */
 
 /* slurp.h - Standalone Ldap Update Replication Daemon (slurpd) */
@@ -43,6 +55,7 @@
 #include "ldif.h"
 
 #ifdef HAVE_WINSOCK
+	/* should be moved to portable.h.nt */
 #define ftruncate(a,b) _chsize(a,b)
 #define truncate(a,b) _lclose( _lcreat(a, 0))
 #define S_IRGRP 0
@@ -64,9 +77,6 @@
 /* slurpd dump file - contents of rq struct are written here (debugging) */
 #define	SLURPD_DUMPFILE			LDAP_TMPDIR LDAP_DIRSEP "slurpd.dump"
 
-/* default srvtab file.  Can be overridden */
-#define	SRVTAB				"/etc/srvtab"
-
 /* Amount of time to sleep if no more work to do */
 #define	DEFAULT_NO_WORK_INTERVAL	3
 
@@ -83,11 +93,6 @@
 #define TLS_OFF			0
 #define TLS_ON			1
 #define TLS_CRITICAL	2
-
-/* We support simple (plaintext password) and SASL authentication */
-#define	AUTH_SIMPLE	1
-#define	AUTH_KERBEROS	2
-#define	AUTH_SASL 3
 
 /* Rejection records are prefaced with this string */
 #define	ERROR_STR	"ERROR"
@@ -117,8 +122,10 @@
 #define	T_MODOPREPLACE		9
 #define	T_MODOPDELETESTR	"delete"
 #define	T_MODOPDELETE		10
+#define	T_MODOPINCREMENTSTR	"increment"
+#define	T_MODOPINCREMENT	11
 #define	T_MODSEPSTR		"-"
-#define	T_MODSEP		11
+#define	T_MODSEP		12
 
 #define	T_NEWRDNSTR		"newrdn"
 #define	T_DELOLDRDNSTR	"deleteoldrdn"
@@ -144,8 +151,9 @@
 #define	SASLMECHSTR		"saslmech"
 #define	REALMSTR		"realm"
 #define	SECPROPSSTR		"secprops"
+#define STARTTLSSTR		"starttls"
 #define TLSSTR			"tls"
-#define TLSCRITICALSTR		"critical"
+#define CRITICALSTR		"critical"
 
 #define	REPLICA_SLEEP_TIME	( 10 )
 
@@ -236,7 +244,6 @@ struct ri {
     int (*ri_process) LDAP_P(( Ri * ));	/* process the next repl entry */
     void (*ri_wake)   LDAP_P(( Ri * ));	/* wake up a sleeping thread */
 };
-    
 
 
 
@@ -245,12 +252,10 @@ struct ri {
  * be considered private to routines in re.c, and to routines in ri.c.
  */
 typedef struct mi {
-    
     /* Private data */
     char	*mi_type;		/* attr or type */
     char	*mi_val;		/* value */
     int		mi_len;			/* length of mi_val */
-
 } Mi;
 
 
@@ -262,7 +267,6 @@ typedef struct mi {
  */
 typedef struct re Re;
 struct re {
-
     /* Private data */
     ldap_pvt_thread_mutex_t
 		re_mutex;		/* mutex for this Re */

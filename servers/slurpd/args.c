@@ -1,10 +1,18 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/*
- * Copyright (c) 1996 Regents of the University of Michigan.
+/* Portions Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted
@@ -13,6 +21,10 @@
  * may not be used to endorse or promote products derived from this
  * software without specific prior written permission. This software
  * is provided ``as is'' without express or implied warranty.
+ */
+/* ACKNOWLEDGEMENTS:
+ * This work was originally developed by the University of Michigan
+ * (as part of U-MICH LDAP).
  */
 
 /*
@@ -68,7 +80,7 @@ doargs(
 	g->myname = strdup( g->myname + 1 );
     }
 
-    while ( (i = getopt( argc, argv, "d:f:n:or:t:" )) != EOF ) {
+    while ( (i = getopt( argc, argv, "d:f:n:or:t:V" )) != EOF ) {
 	switch ( i ) {
 	case 'd':	/* set debug level and 'do not detach' flag */
 	    g->no_detach = 1;
@@ -128,6 +140,9 @@ doargs(
 	    snprintf(g->slurpd_rdir, sz,
 			"%s" LDAP_DIRSEP "replica", optarg);
 	    } break;
+	case 'V':
+	    (g->version)++;
+	    break;
 	default:
 	    usage( g->myname );
 	    return( -1 );

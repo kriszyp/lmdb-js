@@ -1,7 +1,12 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.25 Release
-	Update librewrite (misc bug fixes)
+OpenLDAP 2.1.26 Engineering
+	Fixed libldap sort references bug
+	Updated lutil_passwd
+	Updated librewrite (misc bug fixes)
+	Updated slurpd (misc bug fixes)
+
+OpenLDAP 2.1.25 Engineering
 	Build Environment
 		Fix LDBM link bug (ITS#2863)
 

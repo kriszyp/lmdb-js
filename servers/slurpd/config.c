@@ -1,10 +1,20 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * Portions Copyright 2003 Mark Benson.
+ * Portions Copyright 2002 John Morrissey.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/*
- * Copyright (c) 1996 Regents of the University of Michigan.
+/* Portions Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted
@@ -13,6 +23,13 @@
  * may not be used to endorse or promote products derived from this
  * software without specific prior written permission. This software
  * is provided ``as is'' without express or implied warranty.
+ */
+/* ACKNOWLEDGEMENTS:
+ * This work was originally developed by the University of Michigan
+ * (as part of U-MICH LDAP).  Additional signficant contributors
+ * include:
+ *    John Morrissey
+ *    Mark Benson
  */
 
 
@@ -64,8 +81,10 @@ slurpd_read_config(
     FILE	*fp;
     char	*line;
 
+	if ( cargv == NULL ) {
 	cargv = ch_calloc( ARGS_STEP + 1, sizeof(*cargv) );
 	cargv_size = ARGS_STEP + 1;
+	}
 
 #ifdef NEW_LOGGING
     LDAP_LOG ( CONFIG, ARGS, 
@@ -442,9 +461,16 @@ parse_replica_line(
     int		gots = 0;
     int		i;
     char	*hp, *val;
+    LDAPURLDesc *ludp;
 
     for ( i = 1; i < cargc; i++ ) {
 	if ( !strncasecmp( cargv[ i ], HOSTSTR, sizeof( HOSTSTR ) - 1 ) ) {
+		if ( gots & GOT_HOST ) {
+			fprintf( stderr, "Error: Malformed \"replica\" line in slapd config " );
+			fprintf( stderr, "file, too many host or uri names specified, line %d\n",
+				lineno );
+			return -1;
+		}	
 	    val = cargv[ i ] + sizeof( HOSTSTR ); /* '\0' string terminator accounts for '=' */
 	    if (( hp = strchr( val, ':' )) != NULL ) {
 		*hp = '\0';
@@ -456,15 +482,46 @@ parse_replica_line(
 	    }
 	    ri->ri_hostname = strdup( val );
 	    gots |= GOT_HOST;
+	} else if ( !strncasecmp( cargv[ i ], URISTR, sizeof( URISTR ) - 1 ) ) {
+		if ( gots & GOT_HOST ) {
+			fprintf( stderr, "Error: Malformed \"replica\" line in slapd config " );
+			fprintf( stderr, "file, too many host or uri names specified, line %d\n",
+				lineno );
+			return -1;
+		}		
+		if ( ldap_url_parse( cargv[ i ] + sizeof( URISTR ), &ludp ) != LDAP_SUCCESS ) {
+			fprintf( stderr, "Error: Malformed \"replica\" line in slapd config " );
+			fprintf( stderr, "file, bad uri format specified, line %d\n",
+				lineno );
+			return -1;
+		}
+		if (ludp->lud_host == NULL) {
+			fprintf( stderr, "Error: Malformed \"replica\" line in slapd config " );
+			fprintf( stderr, "file, missing uri hostname, line %d\n",
+				lineno );
+			return -1;
+		}
+		ri->ri_hostname = strdup ( ludp->lud_host );
+		ri->ri_port = ludp->lud_port;
+		ri->ri_uri = strdup ( cargv[ i ] + sizeof( URISTR ) );		
+		ldap_free_urldesc( ludp );				
+	    gots |= GOT_HOST;
 	} else if ( !strncasecmp( cargv[ i ], 
 			ATTRSTR, sizeof( ATTRSTR ) - 1 ) ) {
 	    /* ignore it */ ;
 	} else if ( !strncasecmp( cargv[ i ], 
 			SUFFIXSTR, sizeof( SUFFIXSTR ) - 1 ) ) {
 	    /* ignore it */ ;
+	} else if ( !strncasecmp( cargv[i], STARTTLSSTR, sizeof(STARTTLSSTR)-1 )) {
+	    val = cargv[ i ] + sizeof( STARTTLSSTR );
+		if( !strcasecmp( val, CRITICALSTR ) ) {
+			ri->ri_tls = TLS_CRITICAL;
+		} else {
+			ri->ri_tls = TLS_ON;
+		}
 	} else if ( !strncasecmp( cargv[ i ], TLSSTR, sizeof( TLSSTR ) - 1 ) ) {
 	    val = cargv[ i ] + sizeof( TLSSTR );
-		if( !strcasecmp( val, TLSCRITICALSTR ) ) {
+		if( !strcasecmp( val, CRITICALSTR ) ) {
 			ri->ri_tls = TLS_CRITICAL;
 		} else {
 			ri->ri_tls = TLS_ON;
@@ -483,10 +540,10 @@ parse_replica_line(
 	    fprintf( stderr, "slurpd no longer supports Kerberos.\n" );
 	    exit( EXIT_FAILURE );
 	    } else if ( !strcasecmp( val, SIMPLESTR )) {
-		ri->ri_bind_method = AUTH_SIMPLE;
+		ri->ri_bind_method = LDAP_AUTH_SIMPLE;
 		gots |= GOT_METHOD;
 	    } else if ( !strcasecmp( val, SASLSTR )) {
-		ri->ri_bind_method = AUTH_SASL;
+		ri->ri_bind_method = LDAP_AUTH_SASL;
 		gots |= GOT_METHOD;
 	    } else {
 		ri->ri_bind_method = -1;
@@ -535,14 +592,13 @@ parse_replica_line(
 	}
     }
     
-	if ( ri->ri_bind_method == AUTH_SASL) {
+	if ( ri->ri_bind_method == LDAP_AUTH_SASL) {
 		if ((gots & GOT_MECH) == 0) {
 			fprintf( stderr, "Error: \"replica\" line needs SASLmech flag in " );
 			fprintf( stderr, "slapd config file, line %d\n", lineno );
 			return -1;
 		}
-	}
-	else if ( gots != GOT_ALL ) {
+	} else if ( gots != GOT_ALL ) {
 		fprintf( stderr, "Error: Malformed \"replica\" line in slapd " );
 		fprintf( stderr, "config file, line %d\n", lineno );
 		return -1;
