@@ -101,7 +101,7 @@ by taking the name of the entry itself (called the {{TERM[expand]RDN}}
 or RDN) and concatenating the names of its ancestor entries. For
 example, the entry for Barbara Jensen in the Internet naming example
 above has an RDN of {{EX:uid=babs}} and a DN of
-{{EX:uid=babs, ou=People, dc=example, dc=com}}". The full DN format is
+{{EX:uid=babs,ou=People,dc=example,dc=com}}". The full DN format is
 described in {{REF:RFC2253}}, "Lightweight Directory Access Protocol (v3):
 UTF-8 String Representation of Distinguished Names."
 
@@ -119,7 +119,7 @@ For example, you might want to search the entire directory subtree at
 and below {{EX:dc=example,dc=com}} for people with the name {{EX:Barbara
 Jensen}}, retrieving the email address of each entry found. LDAP lets
 you do this easily.  Or you might want to search the entries directly
-below the {{EX:st=California, c=US}} entry for organizations with the
+below the {{EX:st=California,c=US}} entry for organizations with the
 string {{EX:Acme}} in their name, and that have a fax number. LDAP lets
 you do this too. The next section describes in more detail what you can
 do with LDAP and how it might be useful to you.

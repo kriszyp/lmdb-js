@@ -73,13 +73,13 @@ will be propagated to the slave slapd.
 
 >	replica: slave.example.com:389
 >	time: 809618633
->	dn: uid=bjensen, dc=example, dc=com
+>	dn: uid=bjensen,dc=example,dc=com
 >	changetype: modify
 >	replace: multiLineDescription
 >	description: A dreamer...
 >	-
 >	replace: modifiersName
->	modifiersName: uid=bjensen, dc=example, dc=com
+>	modifiersName: uid=bjensen,dc=example,dc=com
 >	-
 >	replace: modifyTimestamp
 >	modifyTimestamp: 20000805073308Z
@@ -309,13 +309,13 @@ A sample rejection log entry follows:
 >	ERROR: No such attribute
 >	replica: slave.example.com:389
 >	time: 809618633
->	dn: uid=bjensen, dc=example, dc=com
+>	dn: uid=bjensen,dc=example,dc=com
 >	changetype: modify
 >	replace: description
 >	description: A dreamer...
 >	-
 >	replace: modifiersName
->	modifiersName: uid=bjensen, dc=example, dc=com
+>	modifiersName: uid=bjensen,dc=example,dc=com
 >	-
 >	replace: modifyTimestamp
 >	modifyTimestamp: 20000805073308Z

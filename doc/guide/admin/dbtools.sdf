@@ -35,7 +35,7 @@ this option defines which entries are to be held by this database.
 You should set this to the DN of the root of the subtree you are
 trying to create.  For example:
 
->	suffix "dc=example, dc=com"
+>	suffix "dc=example,dc=com"
 
 You should be sure to specify a directory where the index files
 should be created:
@@ -60,7 +60,7 @@ options in the database definition:
 
 For example:
 
->	rootdn "cn=Manager, dc=example, dc=com"
+>	rootdn "cn=Manager,dc=example,dc=com"
 >	rootpw secret
 
 These options specify a DN and password that can be used to
@@ -91,7 +91,7 @@ using the {{I:ldapadd}} tool, you could create an {{TERM:LDIF}} file
 called {{EX:entries.ldif}} with the contents:
 
 >	# Organization for Example Corporation
->	dn: dc=example, dc=com
+>	dn: dc=example,dc=com
 >	objectClass: dcObject
 >	objectClass: organization
 >	dc: example
@@ -99,7 +99,7 @@ called {{EX:entries.ldif}} with the contents:
 >	description: The Example Corporation
 >
 >	# Organizational Role for Directory Manager
->	dn: cn=Manager, dc=example, dc=com
+>	dn: cn=Manager,dc=example,dc=com
 >	objectClass: organizationalRole
 >	cn: Manager
 >	description: Directory Manager
@@ -131,7 +131,7 @@ this option defines which entries are to be held by this database.
 You should set this to the DN of the root of the subtree you are
 trying to create.  For example:
 
->	suffix "dc=example, dc=com"
+>	suffix "dc=example,dc=com"
 
 You should be sure to specify a directory where the index files
 should be created:
@@ -287,14 +287,14 @@ or {{EX:userCertificate;binary}}.
 A line may be continued by starting the next line with a {{single}}
 space or tab character.  For example:
 
->	dn: cn=Barbara J Jensen, dc=example, dc=
+>	dn: cn=Barbara J Jensen,dc=example,dc=
 >	 com
 >	cn: Barbara J
 >	  Jensen
 
 is equivalent to:
 
->	dn: cn=Barbara J Jensen, dc=example, dc=com
+>	dn: cn=Barbara J Jensen,dc=example,dc=com
 >	cn: Barbara J Jensen
 
 Multiple attribute values are specified on separate lines. e.g.,
@@ -320,14 +320,14 @@ Multiple entries within the same LDIF file are separated by blank
 lines. Here's an example of an LDIF file containing three entries.
 
 >	# Barbara's Entry
->	dn: cn=Barbara J Jensen, dc=example, dc=com
+>	dn: cn=Barbara J Jensen,dc=example,dc=com
 >	cn: Barbara J Jensen
 >	cn: Babs Jensen
 >	objectClass: person
 >	sn: Jensen
 >
 >	# Bjorn's Entry
->	dn: cn=Bjorn J Jensen, dc=example, dc=com
+>	dn: cn=Bjorn J Jensen,dc=example,dc=com
 >	cn: Bjorn J Jensen
 >	cn: Bjorn Jensen
 >	objectClass: person
@@ -338,7 +338,7 @@ lines. Here's an example of an LDIF file containing three entries.
 >	 ERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVG
 >
 >	# Jennifer's Entry
->	dn: cn=Jennifer J Jensen, dc=example, dc=com
+>	dn: cn=Jennifer J Jensen,dc=example,dc=com
 >	cn: Jennifer J Jensen
 >	cn: Jennifer Jensen
 >	objectClass: person

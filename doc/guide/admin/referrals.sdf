@@ -40,7 +40,7 @@ and wished to delegate the subtree {{EX:ou=subtree,dc=example,dc=net}}
 to another server {{EX:b.example.net}}, the following named referral
 object would be added to {{EX:a.example.net}}:
 
->	dn: dc=subtree, dc=example, dc=net
+>	dn: dc=subtree,dc=example,dc=net
 >	objectClass: referral
 >	objectClass: extensibleObject
 >	dc: subtree
@@ -64,7 +64,7 @@ Extending the example above, a {{ref}} attribute can be added
 to the entry {{EX:dc=subtree,dc=example,dc=net}} in server B indicating
 that A holds the immediate superior naming context.
 
->	dn: dc=subtree, dc=example, dc=net
+>	dn: dc=subtree,dc=example,dc=net
 >	changetype: modify
 >	add: ref
 >	ref: ldap://a.example.net/

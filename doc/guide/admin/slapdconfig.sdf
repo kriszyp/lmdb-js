@@ -347,7 +347,7 @@ identity.
 
 Entry-based Example:
 
->	rootdn "cn=Manager, dc=example, dc=com"
+>	rootdn "cn=Manager,dc=example,dc=com"
 
 SASL-based Example:
 
@@ -375,9 +375,9 @@ definition.
 
 \Example:
 
->	suffix "dc=example, dc=com"
+>	suffix "dc=example,dc=com"
 
-Queries with a DN ending in "dc=example, dc=com"
+Queries with a DN ending in "dc=example,dc=com"
 will be passed to this backend.
 
 Note: When the backend to pass a query to is selected, slapd
@@ -394,7 +394,7 @@ associated with a SASL identity.
 
 Entry-based Example:
 
->	updatedn "cn=Update Daemon, dc=example, dc=com"
+>	updatedn "cn=Update Daemon,dc=example,dc=com"
 
 SASL-based Example:
 
@@ -568,7 +568,7 @@ meaning that there should be no extra spaces, and commas
 should be used to separate components. An example
 normalized DN is "cn=Babs Jensen,dc=example,dc=com".
 An example of a non-normalized DN is
-"cn=Babs Jensen; dc=example, dc=com".
+"cn=Babs Jensen,dc=example,dc=com".
 
 Or, entries may be selected by a filter matching some
 attribute(s) in the entry:
@@ -756,7 +756,7 @@ to a specific attribute and various {{EX:<who>}} selectors.
 >		by dn=".*,dc=example,dc=com" search
 >		by anonymous auth
 
-This example applies to entries in the "{{EX:dc=example, dc=com}}"
+This example applies to entries in the "{{EX:dc=example,dc=com}}"
 subtree. To all attributes except {{EX:homePhone}}, the entry itself
 can write them, other {{EX:example.com}} entries can search by them,
 anybody else has no access ((implicit {{EX:by * none}}) excepting for
@@ -825,17 +825,17 @@ attribute is to be protected from unauthorized access.
 
 E:  5.	# ldbm definition for the example.com
 E:  6.	database ldbm
-E:  7.	suffix "dc=example, dc=com"
+E:  7.	suffix "dc=example,dc=com"
 E:  8.	directory /usr/local/var/openldap
-E:  9.	rootdn "cn=Manager, dc=example, dc=com"
+E:  9.	rootdn "cn=Manager,dc=example,dc=com"
 E: 10.	rootpw secret
 E: 11.	# replication directives
 E: 12.	replogfile /usr/local/var/openldap/slapd.replog
 E: 13.	replica host=slave1.example.com:389
-E: 14.		binddn="cn=Replicator, dc=example, dc=com"
+E: 14.		binddn="cn=Replicator,dc=example,dc=com"
 E: 15.		bindmethod=simple credentials=secret
 E: 16.	replica host=slave2.example.com
-E: 17.		binddn="cn=Replicator, dc=example, dc=com"
+E: 17.		binddn="cn=Replicator,dc=example,dc=com"
 E: 18.		bindmethod=simple credentials=secret
 E: 19.	# indexed attribute definitions
 E: 20.	index uid pres,eq
@@ -889,7 +889,7 @@ global access rule at line 4.
 
 E: 33.	# ldbm definition for example.net
 E: 34.	database ldbm
-E: 35.	suffix "dc=example, dc=net"
+E: 35.	suffix "dc=example,dc=net"
 E: 36.	directory /usr/local/var/ldbm-example-net
-E: 37.	rootdn "cn=Manager, dc=example, dc=com"
+E: 37.	rootdn "cn=Manager,dc=example,dc=com"
 E: 38.	access to * by users read

@@ -138,8 +138,8 @@ example (usually installed as {{F:/usr/local/etc/openldap/slapd.conf}})
 to contain an LDBM database definition of the form:
 
 ..{{EX:database        ldbm}}
-..{{EX:suffix          "dc=<MY-DOMAIN>, dc=<COM>"}}
-..{{EX:rootdn          "cn=Manager, dc=<MY-DOMAIN>, dc=<COM>"}}
+..{{EX:suffix          "dc=<MY-DOMAIN>,dc=<COM>"}}
+..{{EX:rootdn          "cn=Manager,dc=<MY-DOMAIN>,dc=<COM>"}}
 ..{{EX:rootpw          secret}}
 ..{{EX:directory       /usr/local/var/openldap-ldbm}}
 
@@ -148,8 +148,8 @@ the appropriate domain components of your domain name.  For
 example, for {{EX:example.com}}, use:
 
 ..{{EX:database        ldbm}}
-..{{EX:suffix          "dc=example, dc=com"}}
-..{{EX:rootdn          "cn=Manager, dc=example, dc=com"}}
+..{{EX:suffix          "dc=example,dc=com"}}
+..{{EX:rootdn          "cn=Manager,dc=example,dc=com"}}
 ..{{EX:rootpw          secret}}
 ..{{EX:directory       /usr/local/var/openldap-ldbm}}
 
@@ -157,8 +157,8 @@ example, for {{EX:example.com}}, use:
 {{EX:eng.uni.edu.eu}}, use:
 
 ..{{EX:database        ldbm}}
-..{{EX:suffix          "dc=eng, dc=uni, dc=edu, dc=eu"}}
-..{{EX:rootdn          "cn=Manager, dc=eng, dc=uni, dc=edu, dc=eu"}}
+..{{EX:suffix          "dc=eng,dc=uni,dc=edu,dc=eu"}}
+..{{EX:rootdn          "cn=Manager,dc=eng,dc=uni,dc=edu,dc=eu"}}
 ..{{EX:rootpw          secret}}
 ..{{EX:directory       /usr/local/var/openldap-ldbm}}
 
@@ -186,7 +186,7 @@ ldapsearch is installed as {{F:/usr/local/bin/ldapsearch}}:
 special characters from being interpreted by the shell.  This should return:
 
 ..{{EX:dn:}}
-..{{EX:namingContexts: dc=example, dc=com}}
+..{{EX:namingContexts: dc=example,dc=com}}
 
 . Details regarding running {{slapd}}(8) can be found
 in the {{slapd}}(8) manual page and the
@@ -204,13 +204,13 @@ in the {{slapd}}(8) manual page and the
 
 . Use your favorite editor and create an LDIF file that contains:
 
-..{{EX:dn: dc=<MY-DOMAIN>, dc=<COM>}}
+..{{EX:dn: dc=<MY-DOMAIN>,dc=<COM>}}
 ..{{EX:objectclass: dcObject}}
 ..{{EX:objectclass: organization}}
 ..{{EX:o: <MY ORGANIZATION>}}
 ..{{EX:dc: <MY-DOMAIN>}}
 ..{{EX:}}
-..{{EX:dn: cn=Manager, dc=<MY-DOMAIN>, dc=<COM>}}
+..{{EX:dn: cn=Manager,dc=<MY-DOMAIN>,dc=<COM>}}
 ..{{EX:objectclass: organizationalRole}}
 ..{{EX:cn: Manager}}
 
@@ -219,27 +219,27 @@ components of your domain name.  <MY ORGANIZATION> should be replaced
 with the name of your organization.  If you cut and paste, be sure
 to trim any leading and trailing whitespace from the example.
 
-..{{EX:dn: dc=example, dc=com}}
+..{{EX:dn: dc=example,dc=com}}
 ..{{EX:objectclass: dcObject}}
 ..{{EX:objectclass: organization}}
 ..{{EX:o: Example Company}}
 ..{{EX:dc: example}}
 ..{{EX:}}
-..{{EX:dn: cn=Manager, dc=example, dc=com}}
+..{{EX:dn: cn=Manager,dc=example,dc=com}}
 ..{{EX:objectclass: organizationalRole}}
 ..{{EX:cn: Manager}}
 
 . Now, you may run {{ldapadd}}(1) to insert these entries into
 your directory.
 
-..{{EX:ldapadd -D "cn=Manager, dc=<MY-DOMAIN>, dc=<COM>" -W -f example.ldif}}
+..{{EX:ldapadd -D "cn=Manager,dc=<MY-DOMAIN>,dc=<COM>" -W -f example.ldif}}
 
 . Be sure to replace {{EX:<MY-DOMAIN>}} and {{EX:<COM>}} with the
 appropriate domain components of your domain name.  You will be
 prompted for the "{{EX:secret}}" specified in {{F:slapd.conf}}. 
 For example, for {{EX:example.com}}, use:
 
-..{{EX:ldapadd -x -D "cn=Manager, dc=example, dc=com" -W -f example.ldif}}
+..{{EX:ldapadd -x -D "cn=Manager,dc=example,dc=com" -W -f example.ldif}}
 
 . where {{F:example.ldif}} is the file you created above.
 ..{{EX: }}

@@ -225,7 +225,7 @@ listing commonly used supported syntax and matching rules.
 Name			OID				Description
 binary			1.3.6.1.4.1.1466.115.121.1.5	BER/DER data
 boolean			1.3.6.1.4.1.1466.115.121.1.7	boolean value
-distinguishedName	1.3.6.1.4.1.1466.115.121.1.15	DN
+distinguishedName	1.3.6.1.4.1.1466.115.121.1.12	DN
 directoryString		1.3.6.1.4.1.1466.115.121.1.15	UTF-8 string
 IA5String		1.3.6.1.4.1.1466.115.121.1.26	ASCII string
 Integer			1.3.6.1.4.1.1466.115.121.1.27	integer
