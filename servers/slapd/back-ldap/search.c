@@ -364,7 +364,7 @@ finish:;
 	if ( mfilter.bv_val != op->oq_search.rs_filterstr.bv_val ) {
 		ch_free( mfilter.bv_val );
 	}
-	if ( mbase.bv_val != op->o_req_dn.bv_val ) {
+	if ( mbase.bv_val != op->o_req_ndn.bv_val ) {
 		free( mbase.bv_val );
 	}
 	
