@@ -314,18 +314,18 @@ bdb_idl_fetch_key(
 	 */
 	ID buf[BDB_IDL_DB_SIZE*5];
 
-	{
-		char buf[16];
+	char keybuf[16];
+
 #ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ARGS,
-			"bdb_idl_fetch_key: %s\n", 
-			bdb_show_key( key, buf ), 0, 0 );
+	LDAP_LOG( INDEX, ARGS,
+		"bdb_idl_fetch_key: %s\n", 
+		bdb_show_key( key, keybuf ), 0, 0 );
 #else
-		Debug( LDAP_DEBUG_ARGS,
-			"bdb_idl_fetch_key: %s\n", 
-			bdb_show_key( key, buf ), 0, 0 );
+	Debug( LDAP_DEBUG_ARGS,
+		"bdb_idl_fetch_key: %s\n", 
+		bdb_show_key( key, keybuf ), 0, 0 );
 #endif
-	}
+
 	assert( ids != NULL );
 
 #ifdef SLAP_IDL_CACHE
@@ -353,8 +353,7 @@ bdb_idl_fetch_key(
 	data.ulen = sizeof(buf);
 	data.flags = DB_DBT_USERMEM;
 
-	if ( tid )
-		flags |= DB_RMW;
+	if ( tid ) flags |= DB_RMW;
 
 	rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
 	if( rc != 0 ) {
@@ -368,6 +367,7 @@ bdb_idl_fetch_key(
 #endif
 		return rc;
 	}
+
 	rc = cursor->c_get( cursor, key, &data, flags | DB_SET );
 	if (rc == 0) {
 		i = ids;
@@ -406,6 +406,7 @@ bdb_idl_fetch_key(
 		}
 		data.size = BDB_IDL_SIZEOF(ids);
 	}
+
 	rc2 = cursor->c_close( cursor );
 	if (rc2) {
 #ifdef NEW_LOGGING
@@ -418,6 +419,7 @@ bdb_idl_fetch_key(
 #endif
 		return rc2;
 	}
+
 	if( rc == DB_NOTFOUND ) {
 		return rc;
 
@@ -463,19 +465,21 @@ bdb_idl_fetch_key(
 #ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_max_size ) {
 		bdb_idl_cache_entry_t *ee;
-		ee = (bdb_idl_cache_entry_t *) malloc( sizeof( bdb_idl_cache_entry_t ) );
+		ee = (bdb_idl_cache_entry_t *) ch_malloc(
+			sizeof( bdb_idl_cache_entry_t ) );
 		ee->db = db;
-		ee->idl = (ID*) malloc ( BDB_IDL_SIZEOF ( ids ) );
+		ee->idl = (ID*) ch_malloc( BDB_IDL_SIZEOF ( ids ) );
 		ee->idl_lru_prev = NULL;
 		ee->idl_lru_next = NULL;
 		BDB_IDL_CPY( ee->idl, ids );
 		ber_dupbv( &ee->kstr, &idl_tmp.kstr );
 		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
 		if ( avl_insert( &bdb->bi_idl_tree, (caddr_t) ee,
-		                 bdb_idl_entry_cmp, avl_dup_error )) {
-			free( ee->kstr.bv_val );
-			free( ee->idl );
-			free( ee );
+			bdb_idl_entry_cmp, avl_dup_error ))
+		{
+			ch_free( ee->kstr.bv_val );
+			ch_free( ee->idl );
+			ch_free( ee );
 		} else {
 			IDL_LRU_ADD( bdb, ee );
 			if ( ++bdb->bi_idl_cache_size > bdb->bi_idl_cache_max_size ) {
@@ -487,9 +491,9 @@ bdb_idl_fetch_key(
 					IDL_LRU_DELETE( bdb, ee );
 					i++;
 					--bdb->bi_idl_cache_size;
-					free( ee->kstr.bv_val );
-					free( ee->idl );
-					free( ee );
+					ch_free( ee->kstr.bv_val );
+					ch_free( ee->idl );
+					ch_free( ee );
 				}
 			}
 		}
