@@ -422,7 +422,7 @@ ber_get_stringbv( BerElement *ber, struct berval *bv, int alloc )
 		return LBER_DEFAULT;
 	}
 
-	if ( ber_pvt_ber_remaining( ber ) < bv->bv_len ) {
+	if ( (ber_len_t) ber_pvt_ber_remaining( ber ) < bv->bv_len ) {
 		return LBER_DEFAULT;
 	}
 
