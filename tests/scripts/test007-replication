@@ -151,7 +151,7 @@ $LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID $SLAVEPID $SLURPPID
+	kill -INT $PID $SLAVEPID $SLURPPID
 	exit $RC
 fi
 
@@ -161,11 +161,11 @@ $LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
-	kill -HUP $PID $SLAVEPID $SLURPPID
+	kill -INT $PID $SLAVEPID $SLURPPID
 	exit $RC
 fi
 
-kill -HUP $PID $SLAVEPID $SLURPPID
+kill -INT $PID $SLAVEPID $SLURPPID
 
 SEARCHOUT=$MASTEROUT
 LDIF=$SLAVEOUT
