@@ -226,14 +226,14 @@ bdb_idl_fetch_key(
 #ifdef BDB_IDL_MULTI
 	{
 		DBC *cursor;
-		ID buf[BDB_IDL_UM_SIZE];
+		ID buf[BDB_IDL_DB_SIZE];
 		ID *i;
 		void *ptr;
 		size_t len;
 		int rc2;
 		int flags = bdb->bi_db_opflags | DB_MULTIPLE;
 		data.data = buf;
-		data.ulen = BDB_IDL_UM_SIZEOF;
+		data.ulen = sizeof(buf);
 		data.flags = DB_DBT_USERMEM;
 
 		if ( tid )
@@ -343,7 +343,7 @@ bdb_idl_insert_key(
 	DBTzero( &data );
 #ifdef BDB_IDL_MULTI
 	{
-		ID buf[BDB_IDL_DB_MAX];
+		ID buf[BDB_IDL_DB_SIZE];
 		DBC *cursor;
 		ID lo, hi;
 		char *err;
