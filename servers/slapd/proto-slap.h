@@ -800,6 +800,8 @@ LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
 	is_entry_objectclass((e), slap_schema.si_oc_alias)
 #define is_entry_referral(e)	\
 	is_entry_objectclass((e), slap_schema.si_oc_referral)
+#define is_entry_subentry(e)	\
+	is_entry_objectclass((e), slap_schema.si_oc_subentry)
 
 
 /*

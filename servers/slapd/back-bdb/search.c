@@ -309,6 +309,23 @@ bdb_search(
 			goto loop_continue;
 		}
 
+		if ( is_entry_subentry( e ) ) {
+			if( scope != LDAP_SCOPE_BASE ) {
+				if(!get_subentries_visibility( op )) {
+					/* only subentries are visible */
+					goto loop_continue;
+				}
+			} else if ( get_subentries( op ) &&
+				!get_subentries_visibility( op ))
+			{
+				/* only subentries are visible */
+				goto loop_continue;
+			}
+		} else if ( get_subentries_visibility( op )) {
+			/* only subentries are visible */
+			goto loop_continue;
+		}
+
 #ifdef BDB_ALIASES
 		if ( deref & LDAP_DEREF_SEARCHING && is_entry_alias( e ) ) {
 			Entry *matched;

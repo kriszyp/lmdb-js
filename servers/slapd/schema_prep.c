@@ -124,7 +124,7 @@ static struct slap_schema_oc_map {
 	{ "alias", offsetof(struct slap_internal_schema, si_oc_alias) },
 	{ "referral", offsetof(struct slap_internal_schema, si_oc_referral) },
 	{ "LDAProotDSE", offsetof(struct slap_internal_schema, si_oc_rootdse) },
-	{ "LDAPsubentry", offsetof(struct slap_internal_schema, si_oc_subentry) },
+	{ "subentry", offsetof(struct slap_internal_schema, si_oc_subentry) },
 	{ "subschema", offsetof(struct slap_internal_schema, si_oc_subschema) },
 	{ NULL, 0 }
 };
