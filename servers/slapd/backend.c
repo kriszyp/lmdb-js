@@ -815,9 +815,6 @@ backend_check_controls(
 				 * Here we find that operation extended by the control
 				 * is not unavailable in a particular context, hence the
 				 * return of unwillingToPerform.
-				 *
-				 * Note that criticality of the control is irrelevant to
-				 * this condition.
 				 */
 				rs->sr_text = "control unavailable in context";
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
