@@ -664,25 +664,55 @@ read_config( const char *fname, int depth )
 			for ( i = 1; i < cargc; i++ ) {
 				if ( strncasecmp( cargv[i], "size", 4 ) == 0 ) {
 					rc = parse_limit( cargv[i], lim );
-				} else {
-					lim->lms_s_soft = atoi( cargv[i] );
-					lim->lms_s_hard = 0;
-				}
-
-				if ( rc ) {
+					if ( rc ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG( CONFIG, CRIT, 
-					    	"%s: line %d: unable "
-						   "to parse value \"%s\" in \"sizelimit "
-						   "<limit>\" line.\n", fname, lineno, cargv[i] );
+						LDAP_LOG( CONFIG, CRIT, 
+						    	"%s: line %d: unable "
+							   "to parse value \"%s\" in \"sizelimit "
+							   "<limit>\" line.\n", fname, lineno, cargv[i] );
 #else
-					Debug( LDAP_DEBUG_ANY,
-					    	"%s: line %d: unable "
-						"to parse value \"%s\" "
-						"in \"sizelimit "
-						"<limit>\" line\n",
-    						fname, lineno, cargv[i] );
+						Debug( LDAP_DEBUG_ANY,
+						    	"%s: line %d: unable "
+							"to parse value \"%s\" "
+							"in \"sizelimit "
+							"<limit>\" line\n",
+    							fname, lineno, cargv[i] );
 #endif
+						return( 1 );
+					}
+
+				} else {
+					if ( strcasecmp( cargv[i], "unlimited" ) == 0 ) {
+						lim->lms_s_soft = -1;
+					} else {
+						char *next;
+
+						lim->lms_s_soft = strtol( cargv[i] , &next, 0 );
+						if ( next == cargv[i] ) {
+#ifdef NEW_LOGGING
+							LDAP_LOG( CONFIG, CRIT, 
+							   "%s: line %d: unable to parse limit \"%s\" in \"sizelimit <limit>\" "
+							   "line.\n", fname, lineno, cargv[i] );
+#else
+							Debug( LDAP_DEBUG_ANY,
+							    "%s: line %d: unable to parse limit \"%s\" in \"sizelimit <limit>\" line\n",
+							    fname, lineno, cargv[i] );
+#endif
+							return( 1 );
+
+						} else if ( next[0] != '\0' ) {
+#ifdef NEW_LOGGING
+							LDAP_LOG( CONFIG, CRIT, 
+							   "%s: line %d: trailing chars \"%s\" in \"sizelimit <limit>\" "
+							   "line ignored.\n", fname, lineno, next );
+#else
+							Debug( LDAP_DEBUG_ANY,
+							    "%s: line %d: trailing chars \"%s\" in \"sizelimit <limit>\" line ignored\n",
+							    fname, lineno, next );
+#endif
+						}
+					}
+					lim->lms_s_hard = 0;
 				}
 			}
 
@@ -714,25 +744,55 @@ read_config( const char *fname, int depth )
 			for ( i = 1; i < cargc; i++ ) {
 				if ( strncasecmp( cargv[i], "time", 4 ) == 0 ) {
 					rc = parse_limit( cargv[i], lim );
-				} else {
-					lim->lms_t_soft = atoi( cargv[i] );
-					lim->lms_t_hard = 0;
-				}
-
-				if ( rc ) {
+					if ( rc ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG( CONFIG, CRIT, 
-						    "%s: line %d: unable to parse value \"%s\" "
-						   "in \"timelimit <limit>\" line.\n",
-						   fname, lineno, cargv[i] );
+						LDAP_LOG( CONFIG, CRIT, 
+							    "%s: line %d: unable to parse value \"%s\" "
+							   "in \"timelimit <limit>\" line.\n",
+							   fname, lineno, cargv[i] );
 #else
-					Debug( LDAP_DEBUG_ANY,
-						"%s: line %d: unable "
-						"to parse value \"%s\" "
-						"in \"timelimit "
-						"<limit>\" line\n",
-						fname, lineno, cargv[i] );
+						Debug( LDAP_DEBUG_ANY,
+							"%s: line %d: unable "
+							"to parse value \"%s\" "
+							"in \"timelimit "
+							"<limit>\" line\n",
+							fname, lineno, cargv[i] );
 #endif
+						return( 1 );
+					}
+
+				} else {
+					if ( strcasecmp( cargv[i], "unlimited" ) == 0 ) {
+						lim->lms_t_soft = -1;
+					} else {
+						char *next;
+
+						lim->lms_t_soft = strtol( cargv[i] , &next, 0 );
+						if ( next == cargv[i] ) {
+#ifdef NEW_LOGGING
+							LDAP_LOG( CONFIG, CRIT, 
+							   "%s: line %d: unable to parse limit \"%s\" in \"timelimit <limit>\" "
+							   "line.\n", fname, lineno, cargv[i] );
+#else
+							Debug( LDAP_DEBUG_ANY,
+							    "%s: line %d: unable to parse limit \"%s\" in \"timelimit <limit>\" line\n",
+							    fname, lineno, cargv[i] );
+#endif
+							return( 1 );
+
+						} else if ( next[0] != '\0' ) {
+#ifdef NEW_LOGGING
+							LDAP_LOG( CONFIG, CRIT, 
+							   "%s: line %d: trailing chars \"%s\" in \"timelimit <limit>\" "
+							   "line ignored.\n", fname, lineno, next );
+#else
+							Debug( LDAP_DEBUG_ANY,
+							    "%s: line %d: trailing chars \"%s\" in \"timelimit <limit>\" line ignored\n",
+							    fname, lineno, next );
+#endif
+						}
+					}
+					lim->lms_t_hard = 0;
 				}
 			}
 

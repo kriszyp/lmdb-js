@@ -712,7 +712,7 @@ Note that the
 factor is measure of security provided by the underlying transport,
 e.g. ldapi:// (and eventually IPSEC).  It is not normally used.
 .TP
-.B sizelimit <integer> 
+.B sizelimit {<integer>|unlimited}
 .TP
 .B sizelimit size[.{soft|hard|unchecked}]=<integer> [...]
 Specify the maximum number of entries to return from a search operation.
@@ -740,7 +740,7 @@ meaningful if you are using Kerberos authentication.
 Specify the maximum size of the primary thread pool.
 The default is 32.
 .TP
-.B timelimit <integer>
+.B timelimit {<integer>|unlimited}
 .TP
 .B timelimit time[.{soft|hard}]=<integer> [...]
 Specify the maximum number of seconds (in real time)
