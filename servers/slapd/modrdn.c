@@ -111,16 +111,20 @@ do_modrdn(
 			       0, 0, 0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "newSuperior requires LDAPv3" );
+			free( ndn );
+			free( newrdn );
 			return -1;
 		}
 
 		if ( ber_scanf( op->o_ber, "a", &newSuperior ) 
 		     == LBER_ERROR ) {
 
-		    Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\"}) failed\n",
+		    Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\") failed\n",
 			   0, 0, 0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
+			free( ndn );
+			free( newrdn );
 		    return -1;
 		}
 
@@ -131,9 +135,7 @@ do_modrdn(
 				newSuperior, 0, 0 );
 			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 				"invalid (new superior) DN", NULL, NULL );
-			free( ndn );
-			free( newrdn );
-			return rc;
+			goto done;
 		}
 
 	}
@@ -155,11 +157,9 @@ do_modrdn(
 	}
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
-		free( ndn );
-		free( newrdn );	
-		free( newSuperior );
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: get_ctrls failed\n", 0, 0, 0 );
-		return rc;
+		/* get_ctrls has sent results.  Now clean up. */
+		goto done;
 	} 
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MODRDN dn=\"%s\"\n",
