@@ -71,10 +71,12 @@ LDAP_BEGIN_DECL
 
 /* We assume "C" locale, that is US-ASCII */
 #define ASCII_SPACE(c)	( (c) == ' ' )
+#define ASCII_WHITESPACE(c)	( (c) == ' ' || (c) == '\f' || (c) == '\n' || (c) == '\r' || (c) == '\t' || (c) == '\v' )
 #define ASCII_LOWER(c)	( (c) >= 'a' && (c) <= 'z' )
 #define ASCII_UPPER(c)	( (c) >= 'A' && (c) <= 'Z' )
 #define ASCII_ALPHA(c)	( ASCII_LOWER(c) || ASCII_UPPER(c) )
 #define ASCII_DIGIT(c)	( (c) >= '0' && (c) <= '9' )
+#define	ASCII_XDIGIT(c)	( ASCII_DIGIT(c) || ( (c) >= 'A' && (c) <= 'F') || ( (c) >= 'a' && (c) <= 'f' ) )
 #define ASCII_ALNUM(c)	( ASCII_ALPHA(c) || ASCII_DIGIT(c) )
 #define ASCII_PRINTABLE(c) ( (c) >= ' ' && (c) <= '~' )
 
@@ -90,6 +92,7 @@ LDAP_BEGIN_DECL
 #define RDN_ATTRTYPEANDVALUE_SEPARATOR(c) ((c) == '+') /* RFC 2253 */
 #define RDN_SEPARATOR(c) (DN_SEPARATOR(c) || RDN_ATTRTYPEANDVALUE_SEPARATOR(c))
 #define RDN_NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
+#define RDN_SPECIAL(c)	( (c) == ',' || (c) == '+' || (c) == '<' || (c) == '>' || (c) == ';' )
 
 #define DESC_LEADCHAR(c)	( ASCII_ALPHA(c) )
 #define DESC_CHAR(c)	( ASCII_ALNUM(c) || (c) == '-' )
@@ -110,6 +113,7 @@ LDAP_BEGIN_DECL
 	(c) == '-' || (c) == '.' || (c) == '/' || (c) == ':' || \
 	(c) == '?' || (c) == ' ' || (c) == '=' )
 #define SLAP_PRINTABLES(c)	( SLAP_PRINTABLE(c) || (c) == '$' )
+#define	SLAP_IA5(c)		( (c) <= 127 )
 
 /* must match in schema_init.c */
 #define SLAPD_DN_SYNTAX			"1.3.6.1.4.1.1466.115.121.1.12"

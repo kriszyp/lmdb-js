@@ -233,12 +233,13 @@ dnValidate(
 
 	if( in->bv_len == 0 ) return LDAP_SUCCESS;
 
-	dn = ch_strdup( in->bv_val );
+	dn = get_validated_dn( in->bv_val, 0, 0 );
 
-	rc = dn_validate( dn ) == NULL
-		? LDAP_INVALID_SYNTAX : LDAP_SUCCESS;
+	rc = ( dn == NULL ) ? LDAP_INVALID_SYNTAX : LDAP_SUCCESS;
 
-	ch_free( dn );
+	if ( dn != NULL )
+		ch_free( dn );
+
 	return rc;
 }
 
@@ -250,25 +251,22 @@ dnNormalize(
 {
 	struct berval *out;
 
-	if ( val->bv_len != 0 ) {
-		char *dn;
-#ifdef USE_DN_NORMALIZE
-		out = ber_bvstr( UTF8normalize( val->bv_val, UTF8_CASEFOLD ) );
-#else
+	if ( val->bv_len == 0 ) {
 		out = ber_bvdup( val );
-		ldap_pvt_str2upper( out->bv_val );
-#endif
-		dn = dn_validate( out->bv_val );
-
-		if( dn == NULL ) {
-			ber_bvfree( out );
-			return LDAP_INVALID_SYNTAX;
-		}
-
-		out->bv_val = dn;
-		out->bv_len = strlen( dn );
 	} else {
-		out = ber_bvdup( val );
+ 		char *dn;
+#ifdef USE_DN_NORMALIZE
+		dn = get_validated_dn( val->bv_val, 1, 1 );
+#else
+		dn = get_validated_dn( val->bv_val, 0, 0 );
+#endif
+		if( dn == NULL ) {
+ 			return LDAP_INVALID_SYNTAX;
+ 		}
+
+		out = (struct berval *)ch_malloc(sizeof(struct berval));
+ 		out->bv_val = dn;
+ 		out->bv_len = strlen( dn );
 	}
 
 	*normalized = out;

@@ -313,6 +313,7 @@ LDAP_SLAPD_F (void) connection_internal_close( Connection *conn );
  * dn.c
  */
 
+LDAP_SLAPD_F (char *) get_validated_dn LDAP_P(( char *dn, int make_uppercase, int normalize ));
 LDAP_SLAPD_F (char *) dn_validate LDAP_P(( char *dn ));
 LDAP_SLAPD_F (char *) dn_normalize LDAP_P(( char *dn ));
 LDAP_SLAPD_F (char *) dn_parent LDAP_P(( Backend *be, const char *dn ));
