@@ -90,6 +90,10 @@ main( int argc, char **argv )
 	}
 
 	fprintf(stderr, "encode: start\n" );
+	if( ber_printf( ber, "{" /*}*/ ) ) {
+		perror( "ber_printf {" /*}*/ );
+		return( EXIT_FAILURE );
+	}
 
 	for ( s = argv[1]; *s; s++ ) {
 		char *buf;
@@ -140,6 +144,10 @@ main( int argc, char **argv )
 	}
 
 	fprintf(stderr, "encode: end\n" );
+	if( ber_printf( ber, /*{*/ "N}" ) == -1 ) {
+		perror( /*{*/ "ber_printf }" );
+		return( EXIT_FAILURE );
+	}
 
 	if ( ber_flush( sb, ber, 1 ) == -1 ) {
 		perror( "ber_flush" );
