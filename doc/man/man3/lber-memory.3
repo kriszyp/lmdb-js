@@ -1,4 +1,4 @@
-.TH LBER_MEMORY 3 "12 July 2000" "OpenLDAP LDVERSION"
+.TH LBER_MEMORY 3 "29 August 2001" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -13,30 +13,15 @@ ber_memalloc, ber_memcalloc, ber_memrealloc, ber_memfree \- LBER memory allocato
 .LP
 .nf
 .ft B
-void * ber_memalloc(
-	ber_len_t bytes )
-.ft
-.fi
-.LP
-.nf
-.ft B
-void * ber_memcalloc(
-	ber_len_t nelems, ber_len_t bytes )
-.ft
-.fi
-.LP
-.nf
-.ft B
-void * ber_memrealloc(
-	void \(**ptr,
-	ber_len_t bytes);
-.ft
-.fi
-.LP
-.nf
-.ft B
-void * ber_memfree(
-	void \(**ptr );
+void * ber_memalloc( ber_len_t bytes )
+
+void * ber_memcalloc( ber_len_t nelems, ber_len_t bytes )
+
+void * ber_memrealloc( void *ptr, ber_len_t bytes);
+
+void ber_memfree( void *ptr );
+
+void ber_memvfree( void **vec );
 .ft
 .fi
 .SH DESCRIPTION

@@ -19,17 +19,33 @@ typedef impl_uint_t ber_uint_t;
 typedef impl_len_t ber_len_t;
 typedef impl_slen_t ber_slen_t;
 
+
 typedef struct berval {
     ber_len_t bv_len;
     char *bv_val;
 } BerValue;
 
+void ber_bvfree( struct berval *bv );
+
+void ber_bvecfree( struct berval **bvec );
+
+struct berval *ber_bvdup( const struct berval *bv );
+
+struct berval *ber_bvstr( const char *str );
+
+struct berval *ber_bvstrdup( const char *str );
+
+
 typedef struct berelement BerElement;
+
+void ber_free( BerElement *ber, int freebuf );
+
 .ft
 .fi
 .SH DESCRIPTION
 .LP
-The are basic types defined for use with the Lightweight BER library.
+The following are the basic types and structures defined for use
+with the Lightweight BER library.  
 .LP
 .B ber_int_t
 is a signed integer of at least 32 bits.  It is commonly equivalent to
@@ -64,10 +80,29 @@ points to
 octets.
 .B bv_val
 is not necessarly terminated by a NULL (zero) octet.
+.BR ber_bvfree ()
+frees a BerValue, pointed to by bv, returned from this API.  If bv
+is NULL, the routine does nothing.
+.BR ber_bvecfree ()
+frees an array of BerValues (and the array), pointed to by bvec,
+returned from this API.  If bvec is NULL, the routine does nothing.
+.BR ber_bvdup ()
+returns a copy of a BerValue.  The routine returns NULL upon error
+(e.g. out of memory).
+.BR ber_bvstr ()
+returns a BerValue containing the string pointed to by str.
+.BR ber_bvstrdup ()
+returns a BerValue containing a copy of the string pointed to by str.
 .LP
 .B BerElement
-is an opaque structure used to hold state information for LBER encoding
-and decoding routines.
+is an opaque structure used to maintain state information used in
+encoding and decoding.  BerElement structures are created using
+.BR ber_alloc_t (3)
+and
+.BR ber_init (3).
+.BR ber_free ()
+frees a BerElement pointed to by ber.  If ber is NULL, the routine
+does nothing.  If freebuf is zero, the internal buffer is not freed.
 .SH SEE ALSO
 .BR lber-encode (3)
 .BR lber-decode (3)
