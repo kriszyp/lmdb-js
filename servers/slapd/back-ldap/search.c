@@ -58,8 +58,8 @@ ldap_back_search(
     const char	*nbase,
     int		scope,
     int		deref,
-    int		size,
-    int		time,
+    int		slimit,
+    int		tlimit,
     Filter	*filter,
     const char	*filterstr,
     char	**attrs,
@@ -76,18 +76,63 @@ ldap_back_search(
 #ifdef ENABLE_REWRITE
 	char *mfilter = NULL, *mmatch = NULL;
 #endif /* ENABLE_REWRITE */
+	struct slap_limits_set *limit = NULL;
+	int isroot = 0;
 
 	lc = ldap_back_getconn(li, conn, op);
 	if ( !lc ) {
 		return( -1 );
 	}
 
+	/* if not root, get appropriate limits */
+	if ( be_isroot( be, op->o_ndn ) ) {
+		isroot = 1;
+	} else {
+		( void ) get_limits( be, op->o_ndn, &limit );
+	}
+	
+	/* if no time limit requested, rely on remote server limits */
+	/* if requested limit higher than hard limit, abort */
+	if ( !isroot && tlimit > limit->lms_t_hard ) {
+		/* no hard limit means use soft instead */
+		if ( limit->lms_t_hard == 0 ) {
+			tlimit = limit->lms_t_soft;
+			
+		/* positive hard limit means abort */
+		} else if ( limit->lms_t_hard > 0 ) {
+			send_search_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+					NULL, NULL, NULL, NULL, 0 );
+			rc = 0;
+			goto finish;
+		}
+		
+		/* negative hard limit means no limit */
+	}
+	
+	/* if no size limit requested, rely on remote server limits */
+	/* if requested limit higher than hard limit, abort */
+	if ( !isroot && slimit > limit->lms_s_hard ) {
+		/* no hard limit means use soft instead */
+		if ( limit->lms_s_hard == 0 ) {
+			slimit = limit->lms_s_soft;
+			
+		/* positive hard limit means abort */
+		} else if ( limit->lms_s_hard > 0 ) {
+			send_search_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+					NULL, NULL, NULL, NULL, 0 );
+			rc = 0;
+			goto finish;
+		}
+		
+		/* negative hard limit means no limit */
+	}
+
 	if (deref != -1)
 		ldap_set_option( lc->ld, LDAP_OPT_DEREF, (void *)&deref);
-	if (time != -1)
-		ldap_set_option( lc->ld, LDAP_OPT_TIMELIMIT, (void *)&time);
-	if (size != -1)
-		ldap_set_option( lc->ld, LDAP_OPT_SIZELIMIT, (void *)&size);
+	if (tlimit != -1)
+		ldap_set_option( lc->ld, LDAP_OPT_TIMELIMIT, (void *)&tlimit);
+	if (slimit != -1)
+		ldap_set_option( lc->ld, LDAP_OPT_SIZELIMIT, (void *)&slimit);
 	
 	if ( !ldap_back_dobind( lc, op ) ) {
 		return( -1 );
