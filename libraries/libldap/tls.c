@@ -231,6 +231,9 @@ ldap_pvt_tls_init_def_ctx( void )
 			goto error_exit;
 		}
 
+		SSL_CTX_set_session_id_context( tls_def_ctx,
+			"OpenLDAP", sizeof("OpenLDAP")-1 );
+
 		if ( tls_opt_ciphersuite &&
 			!SSL_CTX_set_cipher_list( tls_def_ctx, ciphersuite ) )
 		{
