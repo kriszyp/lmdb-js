@@ -859,11 +859,8 @@ acl_mask(
 			 * to first check b->a_access_mask, the ACL's access level.
 			 */
 
-			if( op->o_ndn.bv_len == 0 ) {
-				continue;
-			}
-
-			if ( e->e_dn == NULL ) {
+			if ( e->e_nname.bv_len == 0 ) {
+				/* no ACIs in the root DSE */
 				continue;
 			}
 
