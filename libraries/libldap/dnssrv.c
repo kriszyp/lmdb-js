@@ -200,11 +200,10 @@ int ldap_domain2hostlist(
     int rc, len, cur = 0;
     unsigned char reply[1024];
 
-	if( domain == NULL || *domain == '\0' ) {
-		return LDAP_PARAM_ERROR;
-	}
+	assert( domain != NULL );
+	assert( list != NULL );
 
-	if( list == NULL ) {
+	if( *domain == '\0' ) {
 		return LDAP_PARAM_ERROR;
 	}
 

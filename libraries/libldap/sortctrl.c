@@ -177,9 +177,9 @@ ldap_create_sort_keylist ( LDAPSortKey ***sortKeyList, char *keyString )
 	char        *nextKey;
 	LDAPSortKey **keyList = NULL;
 
-	if (( sortKeyList == NULL ) || ( keyString == NULL )) {
-		return LDAP_PARAM_ERROR;
-	}
+	assert( sortKeyList != NULL );
+	assert( keyString != NULL );
+
 	*sortKeyList = NULL;
 
 	/* Determine the number of sort keys so we can allocate memory. */

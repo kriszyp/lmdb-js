@@ -90,13 +90,11 @@ ldap_sort_entries(
 	LDAPMessage		*e, *last;
 	LDAPMessage		**ep;
 
+	assert( ld != NULL );
+
 	count = ldap_count_entries( ld, *chain );
 
-
 	if ( count < 0 ) {
-		if( ld != NULL ) {
-			ld->ld_errno = LDAP_PARAM_ERROR;
-		}
 		return -1;
 
 	} else if ( count < 2 ) {

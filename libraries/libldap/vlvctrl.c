@@ -79,10 +79,9 @@ ldap_create_vlv_control( LDAP *ld,
 	ber_tag_t tag;
 	BerElement *ber;
 
-	if ( (ld==NULL) || (vlvinfop==NULL) || (ctrlp == NULL) ) {
-		ld->ld_errno =  LDAP_PARAM_ERROR;
-		return(ld->ld_errno);
-	}
+	assert( ld != NULL );
+	assert( vlvinfop != NULL );
+	assert( ctrlp != NULL );
 
 	if ((ber = ldap_alloc_ber_with_options(ld)) == NULL) {
 		ld->ld_errno = LDAP_NO_MEMORY;
@@ -203,13 +202,10 @@ ldap_parse_vlv_control(
 	ber_tag_t tag, berTag;
 	ber_len_t berLen;
 
+	assert( ld != NULL );
+
 	if (contextp) {
 		*contextp = NULL;	 /* Make sure we return a NULL if error occurs. */
-	}
-
-	if (ld == NULL) {
-		ld->ld_errno = LDAP_PARAM_ERROR;
-		return(ld->ld_errno);
 	}
 
 	if (ctrls == NULL) {

@@ -172,11 +172,6 @@ ldap_perror( LDAP *ld, LDAP_CONST char *str )
 	assert( LDAP_VALID( ld ) );
 	assert( str );
 
-	if ( ld == NULL ) {
-		fprintf( stderr, "ldap_perror: invalid session handle\n" );
-		return;
-	}
-
 	e = ldap_int_error( ld->ld_errno );
 
 	fprintf( stderr, "%s: %s (%d)\n",
@@ -256,10 +251,6 @@ ldap_parse_result(
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
 	assert( r != NULL );
-
-	if ( ld == NULL || r == NULL ) {
-		return LDAP_PARAM_ERROR;
-	}
 
 	if(errcodep != NULL) *errcodep = LDAP_SUCCESS;
 	if(matcheddnp != NULL) *matcheddnp = NULL;
