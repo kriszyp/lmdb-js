@@ -5582,7 +5582,7 @@ done
 
 
 ol_link_ipv6=no
-if test $ac_cv_func_getaddrinfo = no -o $ac_cv_func_inet_ntop ; then
+if test $ac_cv_func_getaddrinfo = no -o $ac_cv_func_inet_ntop = no ; then
 	if test $ol_enable_ipv6 = yes ; then
 		{ echo "configure: error: IPv6 support requires getaddrinfo() and inet_ntop()" 1>&2; exit 1; }
 	fi

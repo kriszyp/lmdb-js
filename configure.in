@@ -739,7 +739,7 @@ dnl PF_LOCAL may use getaddrinfo in available
 AC_CHECK_FUNCS( getaddrinfo inet_ntop )
 
 ol_link_ipv6=no
-if test $ac_cv_func_getaddrinfo = no -o $ac_cv_func_inet_ntop ; then
+if test $ac_cv_func_getaddrinfo = no -o $ac_cv_func_inet_ntop = no ; then
 	if test $ol_enable_ipv6 = yes ; then
 		AC_MSG_ERROR([IPv6 support requires getaddrinfo() and inet_ntop()])
 	fi

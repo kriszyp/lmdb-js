@@ -1,5 +1,9 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.9 Engineering
+	Build Environment
+		Fix inet_ntop configure test
+
 OpenLDAP 2.0.8 Release
 	Fixed slapd empty OID value bug (ITS#882)
 	Fixed slapd waitpid() bug (ITS#900)
