@@ -93,9 +93,6 @@ components.  These configuration files are located in the OpenLDAP
 configuration directory (normally /usr/local/etc/openldap).
 
         ldap.conf               client defaults
-        ldapfilter.conf         search filter configuration
-        ldapsearchprefs.conf    search object definitions
-        ldaptemplates.conf      display template definitions
         slapd.conf              Standalone LDAP daemon
         schema/*.schema         Schema Definitions
 
