@@ -57,12 +57,6 @@ static slap_mask_t index_mask(
 
 		bdb_attr_mask( be->be_private, at->sat_ad, &mask );
 
-		if ( mask & SLAP_INDEX_AUTO_SUBTYPES ) {
-			*atname = desc->ad_type->sat_cname;
-			*dbname = at->sat_cname.bv_val;
-			return mask;
-		}
-
 		if ( mask && ( mask ^ SLAP_INDEX_NOSUBTYPES ) ) {
 			*atname = at->sat_cname;
 			*dbname = at->sat_cname.bv_val;
@@ -271,21 +265,16 @@ static int index_at_values(
 	struct berval *lang,
 	BerVarray vals,
 	ID id,
-	int op,
-	char ** dbnamep,
-	slap_mask_t *maskp )
+	int op )
 {
 	int rc;
 	slap_mask_t mask = 0;
-	slap_mask_t tmpmask = 0;
-	int lindex = 0;
 
 	if( type->sat_sup ) {
 		/* recurse */
 		rc = index_at_values( be, txn,
 			type->sat_sup, lang,
-			vals, id, op,
-			dbnamep, &tmpmask );
+			vals, id, op );
 
 		if( rc ) return rc;
 	}
@@ -296,50 +285,30 @@ static int index_at_values(
 	}
 
 	if( mask ) {
-		*dbnamep = type->sat_cname.bv_val;
-	} else if ( tmpmask & SLAP_INDEX_AUTO_SUBTYPES ) {
-		mask = tmpmask;
-	}
-
-	if( mask ) {
-		rc = indexer( be, txn, *dbnamep,
+		rc = indexer( be, txn, type->sat_cname.bv_val,
 			&type->sat_cname,
 			vals, id, op,
 			mask );
 
 		if( rc ) return rc;
-		if( mask & SLAP_INDEX_AUTO_SUBTYPES ) {
-			*maskp = mask;
-		}
 	}
 
 	if( lang->bv_len ) {
-		char *dbname = NULL;
-		struct berval lname;
 		AttributeDescription *desc;
 
-		tmpmask = 0;
-		lname.bv_val = NULL;
+		mask = 0;
 
 		desc = ad_find_lang( type, lang );
 		if( desc ) {
-			bdb_attr_mask( be->be_private, desc, &tmpmask );
+			bdb_attr_mask( be->be_private, desc, &mask );
 		}
 
-		if( tmpmask ) {
-			dbname = desc->ad_cname.bv_val;
-			lname = desc->ad_cname;
-			mask = tmpmask;
-		}
-
-		if( dbname != NULL ) {
-			rc = indexer( be, txn, dbname, &lname,
+		if( mask ) {
+			rc = indexer( be, txn, desc->ad_cname.bv_val,
+				&desc->ad_cname,
 				vals, id, op,
 				mask );
 
-			if( !tmpmask ) {
-				ch_free( lname.bv_val );
-			}
 			if( rc ) {
 				return rc;
 			}
@@ -358,13 +327,10 @@ int bdb_index_values(
 	int op )
 {
 	int rc;
-	char *dbname = NULL;
-	slap_mask_t mask;
 
 	rc = index_at_values( be, txn,
 		desc->ad_type, &desc->ad_lang,
-		vals, id, op,
-		&dbname, &mask );
+		vals, id, op );
 
 	return rc;
 }
