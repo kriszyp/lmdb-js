@@ -944,6 +944,10 @@ acl_check_modlist(
 			}
 			break;
 
+		case SLAP_MOD_SOFTADD:
+			/* allow adding attribute via modrdn thru */
+			break;
+
 		default:
 			assert( 0 );
 			return( 0 );
