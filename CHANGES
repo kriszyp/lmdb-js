@@ -6,6 +6,10 @@ OpenLDAP 2.0.X Engineering
 	Build Environment
 		Fixed make comment bug (ITS#811)
 		Fixed $(DESTDIR) install (ITS#806)
+		Added proxy check to passwd test
+	Documentation
+		Updated slapd(8)
+		Updated slapd.conf(5)
 
 OpenLDAP 2.0.6 Release
 	Build Environment
