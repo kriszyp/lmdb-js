@@ -1,6 +1,6 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.X Engineering
+OpenLDAP 2.0.5 Release
 	Fixed slapd/ldbm/search confusing log message (ITS#771)
 	Fixed slapd/sasl no cred bug
 	Fixed slapd idletimeout lock bug (ITS#767)
@@ -17,8 +17,9 @@ OpenLDAP 2.0.X Engineering
 		Fixed LDFLAGS/-rpath usage
 		Fixed IPv6 detection (ITS#669,ITS#770)
 		Fixed VPATH schema install
-		Updated libtool to version 1.3.5
+		Updated libtool to 1.3.5
 		Added Darwin support
+		Disabled module support
 
 OpenLDAP 2.0.4 Release
 	Fixed clients printf/usage bugs (ITS#749)
