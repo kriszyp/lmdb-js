@@ -132,7 +132,6 @@ ID idl_nextid LDAP_P(( ID_BLOCK *idl, ID *cursor ));
  */
 
 int index_add_entry LDAP_P(( Backend *be, Entry *e ));
-int index_add_mods LDAP_P(( Backend *be, Modifications *ml, ID id ));
 ID_BLOCK * index_read LDAP_P(( Backend *be,
 	char *type, int indextype, char *val ));
 /* Possible operations supported (op) by index_change_values() */

@@ -127,39 +127,89 @@ int ldbm_modify_internal(
 	}
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
-	/* remove old indices */
-	if( save_attrs != NULL ) {
-		for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
-			mod = &ml->sml_mod;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-			if ( mod->sm_op == LDAP_MOD_REPLACE )
-#else
-			if ( mod->mod_op == LDAP_MOD_REPLACE )
-#endif
-			{
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-				/* not yet implemented */
-#else
-				/* Need to remove all values from indexes */
-				Attribute *a = attr_find( save_attrs, mod->mod_type );
+	/* run through the attributes removing old indices */
+	for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
+		mod = &ml->sml_mod;
 
-				if( a != NULL ) {
-					(void) index_change_values( be,
-						mod->mod_type,
-						a->a_vals,
-						e->e_id,
-						SLAP_INDEX_DELETE_OP);
-				}
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		switch ( mod->sm_op )
+#else
+		switch ( mod->mod_op )
 #endif
+		{
+		case LDAP_MOD_REPLACE: {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			/* not yet implemented */
+#else
+			/* Need to remove all values from indexes */
+			Attribute *a = save_attrs
+				? attr_find( save_attrs, mod->mod_type )
+				: NULL;
+
+			if( a != NULL ) {
+				(void) index_change_values( be,
+					mod->mod_type,
+					a->a_vals,
+					e->e_id,
+					SLAP_INDEX_DELETE_OP );
 			}
+#endif
+			} break;
+
+		case LDAP_MOD_DELETE:
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			/* not yet implemented */
+#else
+			/* remove deleted values */
+			(void) index_change_values( be,
+				mod->mod_type,
+				mod->mod_bvalues,
+				e->e_id,
+				SLAP_INDEX_DELETE_OP );
+#endif
+			break;
 		}
-		attrs_free( save_attrs );
 	}
 
-	/* modify indexes */
-	if ( index_add_mods( be, modlist, e->e_id ) != 0 ) {
-		/* our indices are likely hosed */
-		return LDAP_OTHER;
+	attrs_free( save_attrs );
+
+	/* run through the attributes adding new indices */
+	for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
+		mod = &ml->sml_mod;
+
+		switch ( mod->mod_op ) {
+		case LDAP_MOD_REPLACE:
+		case LDAP_MOD_ADD:
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		/* not yet implemented */
+#else
+			(void) index_change_values( be,
+				mod->mod_type,
+				mod->mod_bvalues,
+				e->e_id,
+				SLAP_INDEX_ADD_OP );
+#endif
+			break;
+
+		case LDAP_MOD_DELETE: {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		/* not yet implemented */
+#else
+			/* Need to add all remaining values */
+			Attribute *a = e->e_attrs
+				? attr_find( e->e_attrs, mod->mod_type )
+				: NULL;
+#endif
+
+			if( a != NULL ) {
+				(void) index_change_values( be,
+					mod->mod_type,
+					a->a_vals,
+					e->e_id,
+					SLAP_INDEX_ADD_OP );
+			}
+			} break;
+		}
 	}
 
 	return LDAP_SUCCESS;

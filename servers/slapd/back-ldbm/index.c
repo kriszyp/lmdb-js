@@ -77,57 +77,6 @@ index_add_entry(
 	return( 0 );
 }
 
-int
-index_add_mods(
-    Backend	*be,
-    Modifications	*ml,
-    ID		id
-)
-{
-	int	rc;
-
-	for ( ; ml != NULL; ml = ml->sml_next ) {
-		Modification *mod = &ml->sml_mod;
-
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
-		rc = -1;
-#else
-		switch ( mod->mod_op ) {
-		case LDAP_MOD_REPLACE:
-			/* XXX: Delete old index data==>problem when this 
-			 * gets called we lost values already!
-			 */
-		case LDAP_MOD_ADD:
-			rc = index_change_values( be,
-					       mod->mod_type,
-					       mod->mod_bvalues,
-					       id,
-					       SLAP_INDEX_ADD_OP );
-			break;
-		case LDAP_MOD_DELETE:
-			rc =  index_change_values( be,
-						   mod->mod_type,
-						   mod->mod_bvalues,
-						   id,
-						   SLAP_INDEX_DELETE_OP );
-			break;
- 		case SLAP_MOD_SOFTADD:	/* SOFTADD means index was there */
-			rc = 0;
-			break;
-
-		default:
-			rc = -1;
-		}
-#endif
-
-		if ( rc != 0 ) {
-			return( rc );
-		}
-	}
-
-	return( 0 );
-}
 
 ID_BLOCK *
 index_read(
