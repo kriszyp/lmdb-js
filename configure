@@ -32495,9 +32495,9 @@ if test "$ac_cv_func_getopt" != yes; then
 	LIBSRCS="$LIBSRCS getopt.c"
 fi
 if test "$ac_cv_func_getpeereid" != yes; then
-	echo "$as_me:$LINENO: checking for msg_accrights in msghdr" >&5
-echo $ECHO_N "checking for msg_accrights in msghdr... $ECHO_C" >&6
-if test "${ol_cv_msghdr_msg_accrights+set}" = set; then
+	echo "$as_me:$LINENO: checking for struct msghdr.msg_accrights" >&5
+echo $ECHO_N "checking for struct msghdr.msg_accrights... $ECHO_C" >&6
+if test "${ac_cv_member_struct_msghdr_msg_accrights+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   cat >conftest.$ac_ext <<_ACEOF
@@ -32508,10 +32508,13 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 #include <sys/socket.h>
+
 int
 main ()
 {
-struct msghdr m; m.msg_accrightslen=0
+static struct msghdr ac_aggr;
+if (ac_aggr.msg_accrights)
+return 0;
   ;
   return 0;
 }
@@ -32528,25 +32531,63 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ol_cv_msghdr_msg_accrights=yes
+  ac_cv_member_struct_msghdr_msg_accrights=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ol_cv_msghdr_msg_accrights=no
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <sys/socket.h>
+
+int
+main ()
+{
+static struct msghdr ac_aggr;
+if (sizeof ac_aggr.msg_accrights)
+return 0;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_member_struct_msghdr_msg_accrights=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_member_struct_msghdr_msg_accrights=no
 fi
 rm -f conftest.$ac_objext conftest.$ac_ext
-
 fi
-echo "$as_me:$LINENO: result: $ol_cv_msghdr_msg_accrights" >&5
-echo "${ECHO_T}$ol_cv_msghdr_msg_accrights" >&6
-  if test $ol_cv_msghdr_msg_accrights = "yes" ; then
+rm -f conftest.$ac_objext conftest.$ac_ext
+fi
+echo "$as_me:$LINENO: result: $ac_cv_member_struct_msghdr_msg_accrights" >&5
+echo "${ECHO_T}$ac_cv_member_struct_msghdr_msg_accrights" >&6
+
+   if test $ac_cv_member_struct_msghdr_msg_accrights = "yes" ; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_MSGHDR_MSG_ACCRIGHTS 1
 _ACEOF
 
-  fi
+   fi
 
 	LIBSRCS="$LIBSRCS getpeereid.c"
 fi
