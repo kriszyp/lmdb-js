@@ -16,6 +16,7 @@
 
 #include <ac/stdlib.h>
 #include <ac/string.h>
+#include <ac/unistd.h>
 
 #include "ldap_pvt_thread.h"
 
