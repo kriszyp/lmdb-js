@@ -88,7 +88,7 @@ main( int argc, char **argv )
 			break;
 		}
 
-		if( !noschemacheck ) {
+		if( global_schemacheck ) {
 			/* check schema */
 			const char *text;
 			if ( entry_schema_check( e, NULL, &text ) != LDAP_SUCCESS ) {

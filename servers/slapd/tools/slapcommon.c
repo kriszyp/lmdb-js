@@ -23,7 +23,6 @@ char	*progname	= NULL;
 char	*conffile	= SLAPD_DEFAULT_CONFIGFILE;
 int		truncatemode = 0;
 int		verbose		= 0;
-int		noschemacheck = 0;
 int		continuemode = 0;
 
 char	*ldiffile	= NULL;
@@ -42,11 +41,11 @@ usage( int tool )
 	char *options = NULL;
 	fprintf( stderr,
 		"usage: %s [-v] [-c] [-d debuglevel] [-f configfile]\n"
-			 "\t[-n databasenumber | -b suffix]", progname );
+			"\t[-n databasenumber | -b suffix]", progname );
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "\t[-s] [-l ldiffile]\n";
+		options = "\t[-l ldiffile]\n";
 		break;
 
 	case SLAPCAT:
@@ -97,7 +96,7 @@ slap_tool_init(
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "b:cd:f:l:n:stv";
+		options = "b:cd:f:l:n:tv";
 		break;
 
 	case SLAPINDEX:
@@ -140,10 +139,6 @@ slap_tool_init(
 
 		case 'n':	/* which config file db to index */
 			dbnum = atoi( optarg ) - 1;
-			break;
-
-		case 's':	/* disable schema checking */
-			noschemacheck++;
 			break;
 
 		case 't':	/* turn on truncate */
