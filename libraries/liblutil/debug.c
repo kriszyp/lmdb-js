@@ -13,6 +13,10 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
+#ifdef LDAP_SYSLOG
+#include <ac/syslog.h>
+#endif
+
 #include "ldap_log.h"
 #include "ldap_defaults.h"
 #include "lber.h"
@@ -29,18 +33,21 @@ static long   numLevels = 0;
 static FILE *log_file = NULL;
 static int global_level = 0;
 
-#if 0
 #ifdef LDAP_SYSLOG
 static int use_syslog = 0;
 
 static int debug2syslog(int l) {
 	switch (l) {
-	/* insert mapping cases here */
-	default:
+	case LDAP_LEVEL_EMERG:	return LOG_EMERG;
+	case LDAP_LEVEL_ALERT:	return LOG_ALERT;
+	case LDAP_LEVEL_CRIT:	return LOG_CRIT;
+	case LDAP_LEVEL_ERR:	return LOG_ERR;
+	case LDAP_LEVEL_WARNING:	return LOG_WARNING;
+	case LDAP_LEVEL_NOTICE:	return LOG_NOTICE;
+	case LDAP_LEVEL_INFO:	return LOG_INFO;
 	}
-	return LOG_DEBUG
+	return LOG_DEBUG;
 }
-#endif
 #endif
 
 static char *lutil_levels[] = {"emergency", "alert", "critical",
@@ -142,14 +149,12 @@ void lutil_log_int(
 		return;
 	}
 
-#if 0
 #ifdef LDAP_SYSLOG
 	/* we're configured to use syslog */
 	if( use_syslog ) {
 		vsyslog( debug2syslog(level), fmt, vl );
 		return;
 	}
-#endif
 #endif
 
 #if 0
