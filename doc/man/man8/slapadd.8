@@ -8,6 +8,7 @@ slapadd \- Add entries to a SLAPD database
 .B SBINDIR/slapadd
 .B [\-v]
 .B [\-c]
+.B [\-u]
 .B [\-d level]
 .B [\-b suffix]
 .B [\-n dbnum]
@@ -42,6 +43,9 @@ enable verbose mode.
 .TP
 .B \-c
 enable continue (ignore errors) mode.
+.TP
+.B \-u
+enable dry-run (don't write to backend) mode.
 .TP
 .BI \-d " level"
 enable debugging messages as defined by the specified
