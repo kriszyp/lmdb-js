@@ -69,16 +69,14 @@ slap_op_free( Operation *op )
 		free( op->o_sync_state.bv_val );
 	}
 
-#if 0	/* needless, since it was allocated in tmpmem */
 	{
 		GroupAssertion *g, *n;
 		for (g = op->o_groups; g; g=n) {
 			n = g->ga_next;
-			free(g);
+			sl_free(g, op->o_tmpmemctx);
 		}
 		op->o_groups = NULL;
 	}
-#endif
 
 #if defined( LDAP_SLAPI )
 	if ( op->o_pb != NULL ) {
