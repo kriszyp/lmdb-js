@@ -582,54 +582,6 @@ dn_parent(
 	Backend		*be,
 	const char	*dn )
 {
-#if 0
-	const char	*s;
-	int	inquote;
-
-	if( dn == NULL ) {
-		return NULL;
-	}
-
-	while(*dn != '\0' && ASCII_SPACE(*dn)) {
-		dn++;
-	}
-
-	if( *dn == '\0' ) {
-		return NULL;
-	}
-
-	if ( be != NULL && be_issuffix( be, dn ) ) {
-		return NULL;
-	}
-
-	/*
-	 * assume it is an X.500-style name, which looks like
-	 * foo=bar,sha=baz,...
-	 */
-
-	inquote = 0;
-	for ( s = dn; *s; s++ ) {
-		if ( *s == '\\' ) {
-			if ( *(s + 1) ) {
-				s++;
-			}
-			continue;
-		}
-		if ( inquote ) {
-			if ( *s == '"' ) {
-				inquote = 0;
-			}
-		} else {
-			if ( *s == '"' ) {
-				inquote = 1;
-			} else if ( DN_SEPARATOR( *s ) ) {
-				return (char *)s + 1;
-			}
-		}
-	}
-
-	return "";
-#endif
 	const char	*pdn;
 
 	if ( dn == NULL ) {
@@ -696,50 +648,6 @@ dn_rdnlen(
 	Backend		*be,
 	const char	*dn_in )
 {
-#if 0
-	char	*s;
-	int	inquote;
-
-	if( dn_in == NULL ) {
-		return 0;
-	}
-
-	while(*dn_in && ASCII_SPACE(*dn_in)) {
-		dn_in++;
-	}
-
-	if( *dn_in == '\0' ) {
-		return( 0 );
-	}
-
-	if ( be != NULL && be_issuffix( be, dn_in ) ) {
-		return( 0 );
-	}
-
-	inquote = 0;
-
-	for ( s = (char *)dn_in; *s; s++ ) {
-		if ( *s == '\\' ) {
-			if ( *(s + 1) ) {
-				s++;
-			}
-			continue;
-		}
-		if ( inquote ) {
-			if ( *s == '"' ) {
-				inquote = 0;
-			}
-		} else {
-			if ( *s == '"' ) {
-				inquote = 1;
-			} else if ( DN_SEPARATOR( *s ) ) {
-				break;
-			}
-		}
-	}
-
-	return( s - dn_in );
-#endif
 	struct berval	*rdn = NULL;
 	int		retval = 0;
 
@@ -779,15 +687,6 @@ char * dn_rdn(
 	Backend	*be,
 	const char	*dn_in )
 {
-#if 0
-	char *rdn;
-	int i = dn_rdnlen( be, dn_in );
-
-	rdn = ch_malloc( i + 1 );
-	strncpy(rdn, dn_in, i);
-	rdn[i] = '\0';
-	return rdn;
-#endif 
 	struct berval	*rdn = NULL;
 	char		*retval;
 
@@ -863,59 +762,6 @@ dn_issuffix(
 	return dnIsSuffix( &bvdn, &bvsuffix );
 }
 
-/*
- * get_next_substring(), rdn_attr_type(), rdn_attr_value(), and
- * build_new_dn().
- *
- * Copyright 1999, Juan C. Gomez, All rights reserved.
- * This software is not subject to any license of Silicon Graphics
- * Inc. or Purdue University.
- *
- * Redistribution and use in source and binary forms are permitted
- * without restriction or fee of any kind as long as this notice
- * is preserved.
- *
- */
-
-/* get_next_substring:
- *
- * Gets next substring in s, using d (or the end of the string '\0') as a
- * string delimiter, and places it in a duplicated memory space. Leading
- * spaces are ignored. String s **must** be null-terminated.
- */
-
-static char *
-get_next_substring( const char * s, char d )
-{
-
-	char	*str, *r;
-
-	r = str = ch_malloc( strlen(s) + 1 );
-
-	/* Skip leading spaces */
-	
-	while ( *s && ASCII_SPACE(*s) ) {
-		s++;
-	}
-	
-	/* Copy word */
-
-	while ( *s && (*s != d) ) {
-
-		/* Don't stop when you see trailing spaces may be a multi-word
-		* string, i.e. name=John Doe!
-		*/
-
-		*str++ = *s++;
-	}
-	
-	*str = '\0';
-	
-	return r;
-	
-}
-
-
 /* rdn_attr_type:
  *
  * Given a string (i.e. an rdn) of the form:
@@ -923,11 +769,24 @@ get_next_substring( const char * s, char d )
  * this function returns the type of an attribute, that is the
  * string "attribute_type" which is placed in newly allocated
  * memory. The returned string will be null-terminated.
+ *
+ * Deprecated
  */
 
 char * rdn_attr_type( const char * s )
 {
-	return get_next_substring( s, '=' );
+	char 	**attrs, **values, *retval;
+
+	if ( rdn_attrs( s, &attrs, &values ) != LDAP_SUCCESS ) {
+		return NULL;
+	}
+
+	retval = ch_strdup( attrs[ 0 ] );
+
+	charray_free( attrs );
+	charray_free( values );
+
+	return retval;
 }
 
 
@@ -938,20 +797,25 @@ char * rdn_attr_type( const char * s )
  * this function returns "attribute_type" which is placed in newly allocated
  * memory. The returned string will be null-terminated and may contain
  * spaces (i.e. "John Doe\0").
+ *
+ * Deprecated
  */
 
 char *
 rdn_attr_value( const char * rdn )
 {
+	char 	**attrs, **values, *retval;
 
-	const char	*str;
-
-	if ( (str = strchr( rdn, '=' )) != NULL ) {
-		return get_next_substring(++str, '\0');
+	if ( rdn_attrs( rdn, &attrs, &values ) != LDAP_SUCCESS ) {
+		return NULL;
 	}
 
-	return NULL;
+	retval = ch_strdup( values[ 0 ] );
 
+	charray_free( attrs );
+	charray_free( values );
+
+	return retval;
 }
 
 
@@ -966,55 +830,43 @@ rdn_attr_value( const char * rdn )
  * memory. Returns 0 on success, -1 on failure.
  *
  * note: got part of the code from dn_validate
+ *
+ * Deprecated; directly use LDAPRDN from ldap_str2rdn
  */
 
 int
-rdn_attrs( const char * rdn_in, char ***ptypes, char ***pvalues)
+rdn_attrs( const char * rdn, char ***types, char ***values)
 {
-	char **parts, **p;
+	LDAPRDN		*tmpRDN;
+	const char	*p;
+	int		iAVA;
+	int		rc;
+	
+	assert( rdn );
+	assert( types );
+	assert( values );
 
-	*ptypes = NULL;
-	*pvalues = NULL;
-
-	/*
-	 * explode the rdn in parts
-	 */
-	parts = ldap_explode_rdn( rdn_in, 0 );
-
-	if ( parts == NULL ) {
-		return( -1 );
+	rc = ldap_str2rdn( rdn, &tmpRDN, &p, LDAP_DN_FORMAT_LDAP );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
 	}
 
-	for ( p = parts; p[0]; p++ ) {
-		char *s, *e, *d;
-		
-		/* split each rdn part in type value */
-		s = strchr( p[0], '=' );
-		if ( s == NULL ) {
-			charray_free( *ptypes );
-			charray_free( *pvalues );
-			charray_free( parts );
-			return( -1 );
-		}
-		
-		/* type should be fine */
-		charray_add_n( ptypes, p[0], ( s-p[0] ) );
+	for ( iAVA = 0; tmpRDN[ iAVA ]; iAVA++ ) {
+		LDAPAVA		*ava = tmpRDN[ iAVA ][ 0 ];
 
-		/* value needs to be unescaped
-		 * (maybe this should be moved to ldap_explode_rdn?) */
-		for ( e = d = s + 1; e[0]; e++ ) {
-			if ( *e != '\\' ) {
-				*d++ = *e;
-			}
-		}
-		d[0] = '\0';
-		charray_add( pvalues, s + 1 );
+		assert( ava );
+		assert( ava->la_attr );
+		assert( ava->la_value );
+
+		charray_add_n( types, ava->la_attr->bv_val, 
+				ava->la_attr->bv_len );
+		charray_add_n( values, ava->la_value->bv_val, 
+				ava->la_value->bv_len );
 	}
 
-	/* free array */
-	charray_free( parts );
+	ldap_rdnfree( tmpRDN );
 
-	return( 0 );
+	return LDAP_SUCCESS;
 }
 
 
@@ -1022,54 +874,48 @@ rdn_attrs( const char * rdn_in, char ***ptypes, char ***pvalues)
  *
  * 1 if rdn is a legal rdn;
  * 0 otherwise (including a sequence of rdns)
- *
- * note: got it from dn_rdn; it should be rewritten
- * according to dn_validate
  */
 int
-rdn_validate( const char * rdn )
+rdn_validate( const char *rdn )
 {
-	int	inquote;
+	LDAPRDN		*RDN, **DN[ 2 ] = { &RDN, NULL };
+	const char	*p;
+	int		rc;
 
-	if ( rdn == NULL ) {
-		return( 0 );
+	/*
+	 * must be non-empty
+	 */
+	if ( rdn == NULL || rdn == '\0' ) {
+		return 0;
 	}
 
-	if ( strchr( rdn, '=' ) == NULL ) {
-		return( 0 );
+	/*
+	 * must be parsable
+	 */
+	rc = ldap_str2rdn( rdn, &RDN, &p, LDAP_DN_FORMAT_LDAP );
+	if ( rc != LDAP_SUCCESS ) {
+		return 0;
 	}
 
-	while ( *rdn && ASCII_SPACE( *rdn ) ) {
-		rdn++;
+	/*
+	 * Must be one-level
+	 */
+	if ( p[ 0 ] != '\0' ) {
+		return 0;
 	}
 
-	if( *rdn == '\0' ) {
-		return( 0 );
+	/*
+	 * Schema-aware validate
+	 */
+	if ( rc == LDAP_SUCCESS ) {
+		rc = LDAPDN_validate( DN );
 	}
+	ldap_rdnfree( RDN );
 
-	inquote = 0;
-
-	for ( ; *rdn; rdn++ ) {
-		if ( *rdn == '\\' ) {
-			if ( *(rdn + 1) ) {
-				rdn++;
-			}
-			continue;
-		}
-		if ( inquote ) {
-			if ( *rdn == '"' ) {
-				inquote = 0;
-			}
-		} else {
-			if ( *rdn == '"' ) {
-				inquote = 1;
-			} else if ( DN_SEPARATOR( *rdn ) ) {
-				return( 0 );
-			}
-		}
-	}
-
-	return( 1 );
+	/*
+	 * Must validate (there's a repeated parsing ...)
+	 */
+	return ( rc == LDAP_SUCCESS );
 }
 
 
@@ -1078,7 +924,7 @@ rdn_validate( const char * rdn )
  * Used by ldbm/bdb2 back_modrdn to create the new dn of entries being
  * renamed.
  *
- * new_dn = parent (p_dn) + separator(s) + rdn (newrdn) + null.
+ * new_dn = parent (p_dn) + separator + rdn (newrdn) + null.
  */
 
 void
@@ -1094,7 +940,7 @@ build_new_dn( char ** new_dn,
 	}
 
 	*new_dn = (char *) ch_malloc(
-		strlen( parent_dn ) + strlen( newrdn ) + 3 );
+		strlen( parent_dn ) + strlen( newrdn ) + 2 );
 
 	strcpy( *new_dn, newrdn );
 	strcat( *new_dn, "," );
