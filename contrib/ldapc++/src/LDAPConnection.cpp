@@ -198,9 +198,10 @@ void LDAPConnection::modify(const string& dn, const LDAPModList* mods,
         }
         break;
         default :
+            string srvMsg = res->getErrMsg();
             delete res;
             delete msg;
-            throw LDAPException(resCode);
+            throw LDAPException(resCode,srvMsg);
     }
     
 }
