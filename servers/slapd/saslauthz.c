@@ -218,7 +218,7 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 				bv.bv_val += sizeof( "regex:" ) - 1;
 				*scope = LDAP_X_SCOPE_REGEX;
 
-			} else if ( !strncasecmp( bv.bv_val, "children:", sizeof( "chldren:" ) - 1 ) ) {
+			} else if ( !strncasecmp( bv.bv_val, "children:", sizeof( "children:" ) - 1 ) ) {
 				bv.bv_val += sizeof( "children:" ) - 1;
 				*scope = LDAP_X_SCOPE_CHILDREN;
 
