@@ -664,7 +664,7 @@ id2entry_retry:
 								/* Send cookie */
 								for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 									AttributeDescription *desc = a->a_desc;
-									if ( desc == slap_schema.si_ad_entryCSN ) ) {
+									if ( desc == slap_schema.si_ad_entryCSN ) {
 										ber_dupbv( &entrycsn_bv, &a->a_vals[0] );
 										if ( latest_entrycsn_bv.bv_val == NULL ) {
 											ber_dupbv( &latest_entrycsn_bv, &entrycsn_bv );
@@ -697,9 +697,9 @@ id2entry_retry:
 								}
 
 								ber_printf( ber,
-									"{bb{sON}N}" );
-									SLAP_LCUP_STATE_UPDATE_FALSE );
-									SLAP_LCUP_ENTRY_DELETED_FALSE );
+									"{bb{sON}N}",
+									SLAP_LCUP_STATE_UPDATE_FALSE,
+									SLAP_LCUP_ENTRY_DELETED_FALSE,
 									LCUP_COOKIE_OID, &entrycsn_bv );
 
 								ch_free( entrycsn_bv.bv_val );
