@@ -69,7 +69,13 @@ is currently ignored).
 .RE
 .TP
 .B subtree_cond <SQL expression>
-Specifies a where-clause template used to form a subtree search condition.
+Specifies a where-clause template used to form a subtree search condition
+(dn=".*<dn>").
+It may differ from one SQL dialect to another (see samples).
+.TP
+.B children_cond <SQL expression>
+Specifies a where-clause template used to form a children search condition
+(dn="\.+,<dn>").
 It may differ from one SQL dialect to another (see samples).
 .TP
 .B oc_query <SQL expression>
@@ -167,7 +173,7 @@ and may change in future releases.
 .LP
 Almost everything mentioned later is illustrated in examples located
 in the
-.B slapd/back-sql/rdbms_depend/
+.B servers/slapd/back-sql/rdbms_depend/
 directory in the OpenLDAP source tree, and contains scripts for
 generating sample database for Oracle, MS SQL Server, mySQL and more
 (including PostgreSQL and IBM db2).
