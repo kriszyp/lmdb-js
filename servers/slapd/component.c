@@ -62,7 +62,7 @@ static void
 free_comp_filter( ComponentFilter* f );
 
 static int
-test_comp_filter( Syntax *syn, Attribute	*a, struct berval *bv,
+test_comp_filter( Syntax *syn, ComponentSyntaxInfo *a, struct berval *bv,
 			ComponentFilter *f );
 
 int
@@ -98,29 +98,61 @@ componentFilterMatch (
 	struct berval *value, 
 	void *assertedValue )
 {
+	struct berval* bv;
 	Attribute *a = (Attribute*)value;
 	MatchingRuleAssertion * ma = (MatchingRuleAssertion*)assertedValue;
+	void* assert_nm;
+	int num_attr, rc, i;
 
-	int rc;
-
-	if ( !(mr && mr->smr_usage & SLAP_MR_COMPONENT) || !ma->ma_cf )
+	if ( !mr || !ma->ma_cf )
 		return LDAP_INAPPROPRIATE_MATCHING;
-		
-	rc = test_comp_filter( syntax, a, a->a_vals, ma->ma_cf );
-
-	if ( rc == LDAP_COMPARE_TRUE ) {
-		*matchp = 0;
-		return LDAP_SUCCESS;
-	}
-	else if ( rc == LDAP_COMPARE_FALSE ) {
-		*matchp = 1;
-		return LDAP_SUCCESS;
-	}
-	else {
+	/* Check if the component module is loaded */
+	if ( !attr_converter || !nibble_mem_allocator )
 		return LDAP_INAPPROPRIATE_MATCHING;
+
+	/* Check if decoded component trees are already linked */
+	num_attr = 0;
+	if ( !a->a_comp_data ) {
+		for ( ; a->a_vals[num_attr].bv_val != NULL; num_attr++ );
+		if ( num_attr <= 0 )/* no attribute value */
+			return LDAP_INAPPROPRIATE_MATCHING;
+		num_attr++;
+		/* following malloced will be freed by comp_tree_free () */
+		a->a_comp_data = malloc( sizeof( ComponentData ) + sizeof( ComponentSyntaxInfo* )*num_attr );
+		if ( !a->a_comp_data )
+			return LDAP_NO_MEMORY;
+		a->a_comp_data->cd_tree = (ComponentSyntaxInfo**)((char*)a->a_comp_data + sizeof(ComponentData));
+		a->a_comp_data->cd_tree[ num_attr - 1] = (ComponentSyntaxInfo*)NULL;
+		a->a_comp_data->cd_mem_op = nibble_mem_allocator ( 1024*16, 1024 );
 	}
+
+	for ( bv = a->a_vals, i = 0 ; bv->bv_val != NULL; bv++, i++ ) {
+		/* decodes current attribute into components */
+		if ( num_attr != 0 ) {
+			a->a_comp_data->cd_tree[i] = attr_converter (a, syntax, bv);
+		}
+		/* decoding error */
+		if ( !a->a_comp_data->cd_tree[i] )
+			return LDAP_OPERATIONS_ERROR;
+
+		rc = test_comp_filter( syntax, a->a_comp_data->cd_tree[i], bv, ma->ma_cf );
+
+		if ( rc == LDAP_COMPARE_TRUE ) {
+			*matchp = 0;
+			return LDAP_SUCCESS;
+		}
+		else if ( rc == LDAP_COMPARE_FALSE ) {
+			continue;
+		}
+		else {
+			return LDAP_INAPPROPRIATE_MATCHING;
+		}
+	}
+	*matchp = 1;
+	return LDAP_SUCCESS;
 	
 }
+
 int
 directoryComponentsMatch( 
 	int *matchp, 
@@ -1113,7 +1145,7 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 static int
 test_comp_filter_and(
 	Syntax *syn,
-	Attribute *a,
+	ComponentSyntaxInfo *a,
 	struct berval  *bv,
 	ComponentFilter *flist )
 {
@@ -1138,7 +1170,7 @@ test_comp_filter_and(
 static int
 test_comp_filter_or(
 	Syntax *syn,
-	Attribute *a,
+	ComponentSyntaxInfo *a,
 	struct berval	  *bv,
 	ComponentFilter *flist )
 {
@@ -1188,34 +1220,18 @@ csi_value_match( MatchingRule *mr, struct berval* bv_attr,
 static int
 test_comp_filter_item(
 	Syntax *syn,
-	Attribute	*a,
+	ComponentSyntaxInfo *csi_attr,
 	struct berval	*bv,
 	ComponentAssertion *ca )
 {
 	int rc, len;
-	ComponentSyntaxInfo* csi_attr, *csi_assert=NULL;
 	void *attr_nm, *assert_nm;
 
 	if ( strcmp(ca->ca_ma_rule->smr_mrule.mr_oid,
 		OID_COMP_FILTER_MATCH ) == 0 && ca->ca_cf ) {
 		/* componentFilterMatch inside of componentFilterMatch */
-		rc = test_comp_filter( syn, a, bv, ca->ca_cf );
+		rc = test_comp_filter( syn, csi_attr, bv, ca->ca_cf );
 		return rc;
-	}
-
-	/* load attribute containg components */
-	if ( !a->a_comp_data && attr_converter && nibble_mem_allocator ) {
-		a->a_comp_data = malloc( sizeof( ComponentData ) );
-		/* Memory chunk pre-allocation for decoders */
-		a->a_comp_data->cd_mem_op = nibble_mem_allocator ( 1024*16, 1024 );
-		a->a_comp_data->cd_tree = attr_converter (a, syn, bv);
-	}
-
-	if ( a->a_comp_data->cd_tree == NULL ) {
-		nibble_mem_free( a->a_comp_data->cd_mem_op );
-		free ( a->a_comp_data );
-		a->a_comp_data = NULL;
-		return LDAP_PROTOCOL_ERROR;
 	}
 
 	/* Memory for storing will-be-extracted attribute values */
@@ -1238,7 +1254,7 @@ test_comp_filter_item(
 	/* component reference initialization */
 	if ( ca->ca_comp_ref )
 		ca->ca_comp_ref->cr_curr = ca->ca_comp_ref->cr_list;
-	rc = test_components( attr_nm, assert_nm, (ComponentSyntaxInfo*)a->a_comp_data->cd_tree, ca );
+	rc = test_components( attr_nm, assert_nm, csi_attr, ca );
 
 	/* free memory used for storing extracted attribute value */
 	nibble_mem_free ( attr_nm );
@@ -1248,7 +1264,7 @@ test_comp_filter_item(
 static int
 test_comp_filter(
     Syntax *syn,
-    Attribute	*a,
+    ComponentSyntaxInfo *a,
     struct berval *bv,
     ComponentFilter *f )
 {

@@ -1030,9 +1030,10 @@ typedef struct slap_valuesreturnfilter {
 } ValuesReturnFilter;
 
 #ifdef LDAP_COMP_MATCH
+struct slap_component_syntax_info;
 typedef struct 	slap_component_data {
 	void* cd_mem_op;/* nibble memory handler */
-	void* cd_tree;	/* component tree */
+	struct slap_component_syntax_info** cd_tree;/* component tree */
 } ComponentData;
 #endif
 

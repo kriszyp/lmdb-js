@@ -193,6 +193,23 @@ static int test_mra_filter(
 			a = attrs_find( a->a_next, mra->ma_desc ) )
 		{
 			struct berval *bv;
+#ifdef LDAP_COMP_MATCH
+			/* Component Matching */
+			if( mra->ma_cf &&
+				mra->ma_rule->smr_usage & SLAP_MR_COMPONENT )
+			{
+				int ret;
+				int rc;
+				const char *text;
+
+				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+					(struct berval *)a,(void*) mra , &text );
+				if ( rc != LDAP_SUCCESS ) return rc;
+				if ( ret == 0 ) return LDAP_COMPARE_TRUE;
+				else return LDAP_COMPARE_FALSE;
+			}
+#endif
+
 			/* If ma_rule is not the same as the attribute's
 			 * normal rule, then we can't use the a_nvals.
 			 */
@@ -207,19 +224,8 @@ static int test_mra_filter(
 				int rc;
 				const char *text;
 	
-#ifdef LDAP_COMP_MATCH
-				/* Component Matching */
-				if( mra->ma_cf &&
-					mra->ma_rule->smr_usage & SLAP_MR_COMPONENT )
-				{
-					rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-						(struct berval *)a,(void*) mra , &text );
-				} else
-#endif
-				{
-					rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-						bv, &mra->ma_value, &text );
-				}
+				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+					bv, &mra->ma_value, &text );
 
 				if( rc != LDAP_SUCCESS ) return rc;
 				if ( ret == 0 ) return LDAP_COMPARE_TRUE;
@@ -252,6 +258,24 @@ static int test_mra_filter(
 				memfree( value.bv_val, memctx );
 				continue;
 			}
+#ifdef LDAP_COMP_MATCH
+			/* Component Matching */
+			if( mra->ma_cf &&
+				mra->ma_rule->smr_usage & SLAP_MR_COMPONENT)
+			{
+				int ret;
+
+				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+					(struct berval*)a, (void*)mra, &text );
+				if( rc != LDAP_SUCCESS ) break;
+	
+				if ( ret == 0 ) {
+					rc = LDAP_COMPARE_TRUE;
+					break;
+				}
+
+			}
+#endif
 
 			/* check match */
 			if (mra->ma_rule == a->a_desc->ad_type->sat_equality) {
@@ -263,19 +287,8 @@ static int test_mra_filter(
 			for ( ; bv->bv_val != NULL; bv++ ) {
 				int ret;
 	
-#ifdef LDAP_COMP_MATCH
-				/* Component Matching */
-				if( mra->ma_cf &&
-					mra->ma_rule->smr_usage & SLAP_MR_COMPONENT)
-				{
-					rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-						(struct berval*)a, (void*)mra, &text );
-				} else
-#endif
-				{
-					rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-						bv, &value, &text );
-				}
+				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+					bv, &value, &text );
 
 				if( rc != LDAP_SUCCESS ) break;
 	
