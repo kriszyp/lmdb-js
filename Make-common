@@ -122,6 +122,7 @@ SLAPD_BACKENDS= -DLDAP_LDBM -DLDAP_SHELL -DLDAP_PASSWD
 # If you have included -DLDAP_LDBM in the SLAPD_BACKENDS line you need
 # to specify which low-level database package to use.  There are
 # four choices: Berkeley db b-tree, Berkeley db hash, GNU dbm, or ndbm.
+# You will also need to edit the include and lib strings appropriately.
 #
 # berkeley db btree package
 LDBMBACKEND=-DLDBM_USE_DBBTREE
