@@ -1,6 +1,6 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.14 Engineering
+OpenLDAP 2.1.14 Release
 	Fixed slapd schema_check name check crash (ITS#2330)
 	Fixed slapd DirectoryString extraneous space index bug (ITS#2328)
 	Fixed back-bdb bdb_cache_find_entry* retry bug
