@@ -213,8 +213,6 @@ typedef struct ldapmod {
 	struct ldapmod	*mod_next;
 } LDAPMod;
 
-typedef struct timeval * LDAP_timeval_p;
-
 /* 
  * possible error codes we can return
  */
@@ -713,9 +711,10 @@ LDAP_F void cldap_setretryinfo LDAP_P(( LDAP *ld, int tries, int timeout ));
 /*
  * in sort.c
  */
-LDAP_F int ldap_sort_entries LDAP_P(( LDAP *ld, LDAPMessage **chain, char *attr,
-	int (*cmp)() ));
-LDAP_F int ldap_sort_values LDAP_P(( LDAP *ld, char **vals, int (*cmp)() ));
+LDAP_F int ldap_sort_entries LDAP_P(( LDAP *ld,
+	LDAPMessage **chain, char *attr, int (*cmp) () ));
+LDAP_F int ldap_sort_values LDAP_P(( LDAP *ld,
+	char **vals, int (*cmp) LDAP_P((const void *, const void *)) ));
 LDAP_F int ldap_sort_strcasecmp LDAP_P(( char **a, char **b ));
 
 
