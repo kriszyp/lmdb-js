@@ -240,7 +240,7 @@ main( int argc, char *argv[] )
 					LDAPAVA		*a2 = r2[ 0 ][ iAVA ];
 
 					if ( a->la_attr.bv_len != a2->la_attr.bv_len ) {
-						fprintf( stdout, "ava(%d), rdn(%d) attr len mismatch (%d->%d)\n", 
+						fprintf( stdout, "ava(%d), rdn(%d) attr len mismatch (%ld->%ld)\n", 
 								iAVA + 1, iRDN + 1,
 								a->la_attr.bv_len, a2->la_attr.bv_len );
 					} else if ( memcmp( a->la_attr.bv_val, a2->la_attr.bv_val, a->la_attr.bv_len ) ) {
@@ -250,7 +250,7 @@ main( int argc, char *argv[] )
 						fprintf( stdout, "ava(%d), rdn(%d) flag mismatch (%x->%x)\n", 
 								iAVA + 1, iRDN + 1, a->la_flags, a2->la_flags );
 					} else if ( a->la_value.bv_len != a2->la_value.bv_len ) {
-						fprintf( stdout, "ava(%d), rdn(%d) value len mismatch (%d->%d)\n", 
+						fprintf( stdout, "ava(%d), rdn(%d) value len mismatch (%ld->%ld)\n", 
 								iAVA + 1, iRDN + 1, 
 								a->la_value.bv_len, a2->la_value.bv_len );
 					} else if ( memcmp( a->la_value.bv_val, a2->la_value.bv_val, a->la_value.bv_len ) ) {
