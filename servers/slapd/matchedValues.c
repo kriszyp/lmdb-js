@@ -339,39 +339,44 @@ test_mra_vrFilter(
 	int i, j;
 
 	for ( i=0; a != NULL; a = a->a_next, i++ ) {
-		struct berval *bv, value;
+		struct berval *bv, assertedValue;
 
 		if ( mra->ma_desc ) {
 			if ( !is_ad_subtype( a->a_desc, mra->ma_desc ) ) {
 				continue;
 			}
-			value = mra->ma_value;
+			assertedValue = mra->ma_value;
 
 		} else {
 			int rc;
 			const char	*text = NULL;
 
 			/* check if matching is appropriate */
-			if ( strcmp( mra->ma_rule->smr_syntax->ssyn_oid,
-				a->a_desc->ad_type->sat_syntax->ssyn_oid ) != 0 ) {
+			if ( !mr_usable_with_at( mra->ma_rule, a->a_desc->ad_type ) ) {
 				continue;
 			}
 
 			rc = asserted_value_validate_normalize( a->a_desc, mra->ma_rule,
 				SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
-				&mra->ma_value, &value, &text, op->o_tmpmemctx );
+				&mra->ma_value, &assertedValue, &text, op->o_tmpmemctx );
 
 			if( rc != LDAP_SUCCESS ) continue;
 		}
 
-		bv = a->a_nvals;
+		/* check match */
+		if (mra->ma_rule == a->a_desc->ad_type->sat_equality) {
+			bv = a->a_nvals;
+		} else {
+			bv = a->a_vals;
+		}
+					
 		for ( j = 0; bv->bv_val != NULL; bv++, j++ ) {
 			int ret;
 			int rc;
 			const char *text;
 
 			rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-				bv, &value, &text );
+				bv, &assertedValue, &text );
 			if( rc != LDAP_SUCCESS ) {
 				return rc;
 			}
@@ -384,3 +389,4 @@ test_mra_vrFilter(
 
 	return LDAP_SUCCESS;
 }
+
