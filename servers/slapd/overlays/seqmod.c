@@ -54,12 +54,13 @@ seqmod_op_cleanup( Operation *op, SlapReply *rs )
 {
 	slap_callback *sc = op->o_callback;
 	seqmod_info *sm = sc->sc_private;
-	modtarget *mt;
+	modtarget *mt, mtdummy;
 	Avlnode	 *av;
 
+	mtdummy.mt_op = op;
 	/* This op is done, remove it */
 	ldap_pvt_thread_mutex_lock( &sm->sm_mutex );
-	av = avl_find2( sm->sm_mods, mt, sm_avl_cmp );
+	av = avl_find2( sm->sm_mods, &mtdummy, sm_avl_cmp );
 	assert(av);
 
 	mt = av->avl_data;
