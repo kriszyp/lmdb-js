@@ -19,6 +19,8 @@
 
 /* recycled validatation routines */
 #define berValidate						blobValidate
+#define nisNetgroupTripleValidate		printableStringValidate
+#define bootParameterValidate			printableStringValidate
 
 /* unimplemented validators */
 #define bitStringValidate				NULL
@@ -2291,6 +2293,12 @@ struct syntax_defs_rec syntax_defs[] = {
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.58 DESC 'Substring Assertion' )",
 		0, NULL, NULL, NULL},
+
+	/* RFC 2307 NIS Syntaxes */
+	{"( 1.3.6.1.1.1.0.0  DESC 'RFC2307 NIS Triple' )",
+		0, nisNetgroupTripleValidate, NULL, NULL},
+	{"( 1.3.6.1.1.1.0.1  DESC 'RFC2307 Boot Parameter' )",
+		0, bootParameterValidate, NULL, NULL},
 
 	/* OpenLDAP Experimental Syntaxes */
 	{"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
