@@ -913,8 +913,9 @@ connection_operation( void *ctx, void *arg_v )
 	/* For all operations besides Add, we can use thread-local
 	 * storage for most mallocs.
 	 */
+#define	SLAB_SIZE	1048576
 	if ( tag == LDAP_REQ_SEARCH ) {
-		sl_mem_create( ber_len( op->o_ber ) * 16, ctx );
+		sl_mem_create( SLAB_SIZE, ctx );
 		ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, ctx );
 		op->o_tmpmemctx = ctx;
 		op->o_tmpalloc = sl_malloc;
