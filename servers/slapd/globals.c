@@ -25,7 +25,3 @@ const struct berval slap_unknown_bv = BER_BVC("unknown");
 /* normalized boolean values */
 const struct berval slap_true_bv = BER_BVC("TRUE");
 const struct berval slap_false_bv = BER_BVC("FALSE");
-
-/* ldapsync items */
-const struct berval slap_ldapsync_bv = BER_BVC("ldapsync");
-const struct berval slap_ldapsync_cn_bv = BER_BVC("cn=ldapsync");
