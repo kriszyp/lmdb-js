@@ -81,7 +81,7 @@ o: EX
 o: Ex.
 description: The Example, Inc. at Anytown
 postalAddress: Example, Inc. $ 535 W. William St. $ Anytown, MI 48109 $ US
-telephoneNumber: +1 313 764-1817
+telephoneNumber: +1 313 555 1817
 associatedDomain: example.com
 cACertificate;binary:: MIIDVDCCAr2gAwIBAgIBADANBgkqhkiG9w0BAQQFADB3MQswCQYDVQQ
  GEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEfMB0GA1UEChMWT3BlbkxEQVAgRXhhbXBsZSwgTHRk
@@ -183,7 +183,7 @@ o: EX
 o: Ex.
 description: The Example, Inc. at Anytown
 postalAddress: Example, Inc. $ 535 W. William St. $ Anytown, MI 48109 $ US
-telephoneNumber: +1 313 764-1817
+telephoneNumber: +1 313 555 1817
 associatedDomain: example.com
 cACertificate;binary:: MIIDVDCCAr2gAwIBAgIBADANBgkqhkiG9w0BAQQFADB3MQswCQYDVQQ
  GEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEfMB0GA1UEChMWT3BlbkxEQVAgRXhhbXBsZSwgTHRk
