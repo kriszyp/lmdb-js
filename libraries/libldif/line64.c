@@ -223,7 +223,7 @@ done:
 	}
 
 	if( !url && value != NULL ) {
-		p = ber_memalloc( vlen );
+		p = ber_memalloc( vlen + 1 );
 		if( p == NULL ) {
 			ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
 				"ldif_parse_line: value malloc failed\n");
@@ -232,6 +232,7 @@ done:
 			return( -1 );
 		}
 		memcpy( p, value, vlen );
+		p[vlen] = '\0';
 		value = p;
 	}
 
