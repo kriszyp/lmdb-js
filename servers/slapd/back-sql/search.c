@@ -35,7 +35,12 @@
 #define BACKSQL_CONTINUE	1
 
 static int backsql_process_filter( backsql_srch_info *bsi, Filter *f );
-
+static int backsql_process_filter_eq( backsql_srch_info *bsi, 
+		backsql_at_map_rec *at,
+		int casefold, struct berval *filter_value );
+static int backsql_process_filter_like( backsql_srch_info *bsi, 
+		backsql_at_map_rec *at,
+		int casefold, struct berval *filter_value );
 static int backsql_process_filter_attr( backsql_srch_info *bsi, Filter *f, 
 		backsql_at_map_rec *at );
 
@@ -215,9 +220,7 @@ static int
 backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 	backsql_at_map_rec *at )
 {
-#ifdef BACKSQL_UPPERCASE_FILTER
 	backsql_info		*bi = (backsql_info *)bsi->bsi_op->o_bd->be_private;
-#endif /* BACKSQL_UPPERCASE_FILTER */
 	int			i;
 	int			casefold = 0;
 
@@ -232,6 +235,77 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 #endif /* BACKSQL_UPPERCASE_FILTER */
 	{
 		casefold = 1;
+	}
+
+	if ( SLAP_MR_ASSOCIATED( f->f_sub_desc->ad_type->sat_substr,
+			bi->bi_telephoneNumberMatch ) )
+	{
+
+		struct berval	bv;
+		ber_len_t	i, s, a;
+
+		/*
+		 * to check for matching telephone numbers
+		 * with intermized chars, e.g. val='1234'
+		 * use
+		 * 
+		 * val LIKE '%1%2%3%4%'
+		 */
+
+		bv.bv_len = 0;
+		if ( f->f_sub_initial.bv_val ) {
+			bv.bv_len += f->f_sub_initial.bv_len;
+		}
+		if ( f->f_sub_any != NULL ) {
+			for ( a = 0; f->f_sub_any[ a ].bv_val != NULL; a++ ) {
+				bv.bv_len += f->f_sub_any[ a ].bv_len;
+			}
+		}
+		if ( f->f_sub_final.bv_val ) {
+			bv.bv_len += f->f_sub_final.bv_len;
+		}
+		bv.bv_len = 2 * bv.bv_len - 1;
+		bv.bv_val = ch_malloc( bv.bv_len + 1 );
+
+		s = 0;
+		if ( f->f_sub_initial.bv_val ) {
+			bv.bv_val[ s ] = f->f_sub_initial.bv_val[ 0 ];
+			for ( i = 1; i < f->f_sub_initial.bv_len; i++ ) {
+				bv.bv_val[ s + 2 * i - 1 ] = '%';
+				bv.bv_val[ s + 2 * i ] = f->f_sub_initial.bv_val[ i ];
+			}
+			bv.bv_val[ s + 2 * i - 1 ] = '%';
+			s += 2 * i;
+		}
+
+		if ( f->f_sub_any != NULL ) {
+			for ( a = 0; f->f_sub_any[ a ].bv_val != NULL; a++ ) {
+				bv.bv_val[ s ] = f->f_sub_any[ a ].bv_val[ 0 ];
+				for ( i = 1; i < f->f_sub_any[ a ].bv_len; i++ ) {
+					bv.bv_val[ s + 2 * i - 1 ] = '%';
+					bv.bv_val[ s + 2 * i ] = f->f_sub_any[ a ].bv_val[ i ];
+				}
+				bv.bv_val[ s + 2 * i - 1 ] = '%';
+				s += 2 * i;
+			}
+		}
+
+		if ( f->f_sub_final.bv_val ) {
+			bv.bv_val[ s ] = f->f_sub_final.bv_val[ 0 ];
+			for ( i = 1; i < f->f_sub_final.bv_len; i++ ) {
+				bv.bv_val[ s + 2 * i - 1 ] = '%';
+				bv.bv_val[ s + 2 * i ] = f->f_sub_final.bv_val[ i ];
+			}
+				bv.bv_val[ s + 2 * i - 1 ] = '%';
+			s += 2 * i;
+		}
+
+		bv.bv_val[ s - 1 ] = '\0';
+
+		(void)backsql_process_filter_like( bsi, at, casefold, &bv );
+		ch_free( bv.bv_val );
+
+		return 1;
 	}
 
 	/*
@@ -557,8 +631,92 @@ done:;
 }
 
 static int
+backsql_process_filter_eq( backsql_srch_info *bsi, backsql_at_map_rec *at,
+		int casefold, struct berval *filter_value )
+{
+	/*
+	 * maybe we should check type of at->sel_expr here somehow,
+	 * to know whether upper_func is applicable, but for now
+	 * upper_func stuff is made for Oracle, where UPPER is
+	 * safely applicable to NUMBER etc.
+	 */
+	if ( casefold && BACKSQL_AT_CANUPPERCASE( at ) ) {
+		ber_len_t	start;
+
+		backsql_strfcat( &bsi->bsi_flt_where, "cbl",
+				'(', /* ) */
+				&at->bam_sel_expr_u, 
+				(ber_len_t)sizeof( "='" ) - 1,
+					"='" );
+
+		start = bsi->bsi_flt_where.bb_val.bv_len;
+
+		backsql_strfcat( &bsi->bsi_flt_where, "bl",
+				filter_value, 
+				(ber_len_t)sizeof( /* (' */ "')" ) - 1,
+					/* (' */ "')" );
+
+		ldap_pvt_str2upper( &bsi->bsi_flt_where.bb_val.bv_val[ start ] );
+
+	} else {
+		backsql_strfcat( &bsi->bsi_flt_where, "cblbl",
+				'(', /* ) */
+				&at->bam_sel_expr,
+				(ber_len_t)sizeof( "='" ) - 1, "='",
+				filter_value,
+				(ber_len_t)sizeof( /* (' */ "')" ) - 1,
+					/* (' */ "')" );
+	}
+
+	return 1;
+}
+	
+static int
+backsql_process_filter_like( backsql_srch_info *bsi, backsql_at_map_rec *at,
+		int casefold, struct berval *filter_value )
+{
+	/*
+	 * maybe we should check type of at->sel_expr here somehow,
+	 * to know whether upper_func is applicable, but for now
+	 * upper_func stuff is made for Oracle, where UPPER is
+	 * safely applicable to NUMBER etc.
+	 */
+	if ( casefold && BACKSQL_AT_CANUPPERCASE( at ) ) {
+		ber_len_t	start;
+
+		backsql_strfcat( &bsi->bsi_flt_where, "cbl",
+				'(', /* ) */
+				&at->bam_sel_expr_u, 
+				(ber_len_t)sizeof( " LIKE '%" ) - 1,
+					" LIKE '%" );
+
+		start = bsi->bsi_flt_where.bb_val.bv_len;
+
+		backsql_strfcat( &bsi->bsi_flt_where, "bl",
+				filter_value, 
+				(ber_len_t)sizeof( /* (' */ "%')" ) - 1,
+					/* (' */ "%')" );
+
+		ldap_pvt_str2upper( &bsi->bsi_flt_where.bb_val.bv_val[ start ] );
+
+	} else {
+		backsql_strfcat( &bsi->bsi_flt_where, "cblbl",
+				'(', /* ) */
+				&at->bam_sel_expr,
+				(ber_len_t)sizeof( " LIKE '%" ) - 1,
+					" LIKE '%",
+				filter_value,
+				(ber_len_t)sizeof( /* (' */ "%')" ) - 1,
+					/* (' */ "%')" );
+	}
+
+	return 1;
+}
+
+static int
 backsql_process_filter_attr( backsql_srch_info *bsi, Filter *f, backsql_at_map_rec *at )
 {
+	backsql_info		*bi = (backsql_info *)bsi->bsi_op->o_bd->be_private;
 	int			casefold = 0;
 	struct berval		*filter_value = NULL;
 	MatchingRule		*matching_rule = NULL;
@@ -605,39 +763,43 @@ equality_match:;
 			casefold = 1;
 		}
 
+		if ( SLAP_MR_ASSOCIATED( matching_rule,
+					bi->bi_telephoneNumberMatch ) )
+		{
+			struct berval	bv;
+			ber_len_t	i;
+
+			/*
+			 * to check for matching telephone numbers
+			 * with intermized chars, e.g. val='1234'
+			 * use
+			 * 
+			 * val LIKE '%1%2%3%4%'
+			 */
+
+			bv.bv_len = 2 * filter_value->bv_len - 1;
+			bv.bv_val = ch_malloc( bv.bv_len + 1 );
+
+			bv.bv_val[ 0 ] = filter_value->bv_val[ 0 ];
+			for ( i = 1; i < filter_value->bv_len; i++ ) {
+				bv.bv_val[ 2 * i - 1 ] = '%';
+				bv.bv_val[ 2 * i ] = filter_value->bv_val[ i ];
+			}
+			bv.bv_val[ 2 * i - 1 ] = '\0';
+
+			(void)backsql_process_filter_like( bsi, at, casefold, &bv );
+			ch_free( bv.bv_val );
+
+			break;
+		}
+
 		/*
 		 * maybe we should check type of at->sel_expr here somehow,
 		 * to know whether upper_func is applicable, but for now
 		 * upper_func stuff is made for Oracle, where UPPER is
 		 * safely applicable to NUMBER etc.
 		 */
-		if ( casefold && BACKSQL_AT_CANUPPERCASE( at ) ) {
-			ber_len_t	start;
-
-			backsql_strfcat( &bsi->bsi_flt_where, "cbl",
-					'(', /* ) */
-					&at->bam_sel_expr_u, 
-					(ber_len_t)sizeof( "='" ) - 1,
-						"='" );
-
-			start = bsi->bsi_flt_where.bb_val.bv_len;
-
-			backsql_strfcat( &bsi->bsi_flt_where, "bl",
-					filter_value, 
-					(ber_len_t)sizeof( /* (' */ "')" ) - 1,
-						/* (' */ "')" );
-
-			ldap_pvt_str2upper( &bsi->bsi_flt_where.bb_val.bv_val[ start ] );
-
-		} else {
-			backsql_strfcat( &bsi->bsi_flt_where, "cblbl",
-					'(', /* ) */
-					&at->bam_sel_expr,
-					(ber_len_t)sizeof( "='" ) - 1, "='",
-					filter_value,
-					(ber_len_t)sizeof( /* (' */ "')" ) - 1,
-						/* (' */ "')" );
-		}
+		(void)backsql_process_filter_eq( bsi, at, casefold, filter_value );
 		break;
 
 	case LDAP_FILTER_GE:
@@ -710,34 +872,7 @@ equality_match:;
 		 * upper_func stuff is made for Oracle, where UPPER is
 		 * safely applicable to NUMBER etc.
 		 */
-		if ( at->bam_sel_expr_u.bv_val ) {
-			ber_len_t	start;
-
-			backsql_strfcat( &bsi->bsi_flt_where, "cbl",
-					'(', /* ) */
-					&at->bam_sel_expr_u, 
-					(ber_len_t)sizeof( " LIKE '%" ) - 1,
-						" LIKE '%" );
-
-			start = bsi->bsi_flt_where.bb_val.bv_len;
-
-			backsql_strfcat( &bsi->bsi_flt_where, "bl",
-					&f->f_av_value, 
-					(ber_len_t)sizeof( /* (' */ "%')" ) - 1,
-						/* (' */ "%')" );
-
-			ldap_pvt_str2upper( &bsi->bsi_flt_where.bb_val.bv_val[ start ] );
-
-		} else {
-			backsql_strfcat( &bsi->bsi_flt_where, "cblbl",
-					'(', /* ) */
-					&at->bam_sel_expr,
-					(ber_len_t)sizeof( " LIKE '%" ) - 1,
-						" LIKE '%",
-					&f->f_av_value,
-					(ber_len_t)sizeof( /* (' */ "%')" ) - 1,
-						/* (' */ "%')" );
-		}
+		(void)backsql_process_filter_like( bsi, at, 1, &f->f_av_value );
 		break;
 
 	default:
@@ -820,14 +955,11 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 
 	switch ( bsi->bsi_scope ) {
 	case LDAP_SCOPE_BASE:
-		if ( bi->upper_func.bv_val ) {
-      			backsql_strfcat( &bsi->bsi_join_where, "blbcb",
+		if ( BACKSQL_CANUPPERCASE( bi ) ) {
+			backsql_strfcat( &bsi->bsi_join_where, "bl",
 					&bi->upper_func,
-					(ber_len_t)sizeof( "(ldap_entries.dn)=" ) - 1,
-						"(ldap_entries.dn)=",
-					&bi->upper_func_open,
-					'?', 
-					&bi->upper_func_close );
+					(ber_len_t)sizeof( "(ldap_entries.dn)=?" ) - 1,
+						"(ldap_entries.dn)=?" );
 		} else {
 			backsql_strfcat( &bsi->bsi_join_where, "l",
 					(ber_len_t)sizeof( "ldap_entries.dn=?" ) - 1,
@@ -842,14 +974,11 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 		break;
 
 	case LDAP_SCOPE_SUBTREE:
-		if ( bi->upper_func.bv_val ) {
-      			backsql_strfcat( &bsi->bsi_join_where, "blbcb",
+		if ( BACKSQL_CANUPPERCASE( bi ) ) {
+			backsql_strfcat( &bsi->bsi_join_where, "bl",
 					&bi->upper_func,
-					(ber_len_t)sizeof( "(ldap_entries.dn) LIKE " ) - 1,
-						"(ldap_entries.dn) LIKE ",
-					&bi->upper_func_open,
-					'?', 
-					&bi->upper_func_close );
+					(ber_len_t)sizeof( "(ldap_entries.dn) LIKE ?" ) - 1,
+						"(ldap_entries.dn) LIKE ?"  );
 		} else {
 			backsql_strfcat( &bsi->bsi_join_where, "l",
 					(ber_len_t)sizeof( "ldap_entries.dn LIKE ?" ) - 1,
@@ -1050,7 +1179,11 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			AC_MEMCPY( &temp_base_dn[ 1 ], bsi->bsi_base_dn->bv_val,
 				bsi->bsi_base_dn->bv_len + 1 );
 		}
-		ldap_pvt_str2upper( temp_base_dn );
+		/* uppercase DN only if the stored DN can be uppercased
+		 * for comparison */
+		if ( BACKSQL_CANUPPERCASE( bi ) ) {
+			ldap_pvt_str2upper( temp_base_dn );
+		}
 
 		Debug( LDAP_DEBUG_TRACE, "(sub)dn: '%s'\n", temp_base_dn,
 				0, 0 );
@@ -1080,11 +1213,19 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			bsi->bsi_status = res;
 			return BACKSQL_CONTINUE;
 		}
-		
-		Debug( LDAP_DEBUG_TRACE, "(one)id: '%lu'\n", base_id.id,
+
+#ifdef BACKSQL_ARBITRARY_KEY
+		Debug( LDAP_DEBUG_TRACE, "(one)id: '%s'\n",
+				base_id.eid_id.bv_val, 0, 0 );
+
+		rc = backsql_BindParamStr( sth, 2, base_id.eid_id.bv_val,
+				BACKSQL_MAX_KEY_LEN );
+#else /* ! BACKSQL_ARBITRARY_KEY */
+		Debug( LDAP_DEBUG_TRACE, "(one)id: '%lu'\n", base_id.eid_id,
 				0, 0 );
 
-		rc = backsql_BindParamID( sth, 2, &base_id.id );
+		rc = backsql_BindParamID( sth, 2, &base_id.eid_id );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 		backsql_free_entryID( &base_id, 0 );
 		if ( rc != SQL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
@@ -1110,17 +1251,29 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 	for ( ; BACKSQL_SUCCESS( rc ); rc = SQLFetch( sth ) ) {
 		c_id = (backsql_entryID *)ch_calloc( 1, 
 				sizeof( backsql_entryID ) );
-		c_id->id = strtol( row.cols[ 0 ], NULL, 0 );
-		c_id->keyval = strtol( row.cols[ 1 ], NULL, 0 );
-		c_id->oc_id = bsi->bsi_oc->bom_id;
-		ber_str2bv( row.cols[ 3 ], 0, 1, &c_id->dn );
-		c_id->next = bsi->bsi_id_list;
+#ifdef BACKSQL_ARBITRARY_KEY
+		ber_str2bv( row.cols[ 0 ], 0, 1, &c_id->eid_id );
+		ber_str2bv( row.cols[ 1 ], 0, 1, &c_id->eid_keyval );
+#else /* ! BACKSQL_ARBITRARY_KEY */
+		c_id->eid_id = strtol( row.cols[ 0 ], NULL, 0 );
+		c_id->eid_keyval = strtol( row.cols[ 1 ], NULL, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+		c_id->eid_oc_id = bsi->bsi_oc->bom_id;
+		ber_str2bv( row.cols[ 3 ], 0, 1, &c_id->eid_dn );
+		c_id->eid_next = bsi->bsi_id_list;
 		bsi->bsi_id_list = c_id;
 		bsi->bsi_n_candidates--;
 
+#ifdef BACKSQL_ARBITRARY_KEY
+		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
+			"added entry id=%s, keyval=%s dn='%s'\n",
+			c_id->eid_id.bv_val, c_id->eid_keyval.bv_val,
+			row.cols[ 3 ] );
+#else /* ! BACKSQL_ARBITRARY_KEY */
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 			"added entry id=%ld, keyval=%ld dn='%s'\n",
-			c_id->id, c_id->keyval, row.cols[ 3 ] );
+			c_id->eid_id, c_id->eid_keyval, row.cols[ 3 ] );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 
 		if ( bsi->bsi_n_candidates == -1 ) {
 			break;
@@ -1240,9 +1393,16 @@ backsql_search( Operation *op, SlapReply *rs )
 			goto end_of_search;
 		}
 
+#ifdef BACKSQL_ARBITRARY_KEY
+		Debug(LDAP_DEBUG_TRACE, "backsql_search(): loading data "
+			"for entry id=%s, oc_id=%ld, keyval=%s\n",
+			eid->eid_id.bv_val, eid->eid_oc_id,
+			eid->eid_keyval.bv_val );
+#else /* ! BACKSQL_ARBITRARY_KEY */
 		Debug(LDAP_DEBUG_TRACE, "backsql_search(): loading data "
 			"for entry id=%ld, oc_id=%ld, keyval=%ld\n",
-			eid->id, eid->oc_id, eid->keyval );
+			eid->eid_id, eid->eid_oc_id, eid->eid_keyval );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 
 		entry = (Entry *)ch_calloc( sizeof( Entry ), 1 );
 		res = backsql_id2entry( &srch_info, entry, eid );

@@ -72,11 +72,17 @@ backsql_modify( Operation *op, SlapReply *rs )
 		return 1;
 	}
 
+#ifdef BACKSQL_ARBITRARY_KEY
+	Debug( LDAP_DEBUG_TRACE, "   backsql_modify(): "
+		"modifying entry \"%s\" (id=%s)\n", 
+		e_id.eid_dn.bv_val, e_id.eid_id.bv_val, 0 );
+#else /* ! BACKSQL_ARBITRARY_KEY */
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modify(): "
 		"modifying entry \"%s\" (id=%ld)\n", 
-		e_id.dn.bv_val, e_id.id, 0 );
+		e_id.eid_dn.bv_val, e_id.eid_id, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 
-	oc = backsql_id2oc( bi, e_id.oc_id );
+	oc = backsql_id2oc( bi, e_id.eid_oc_id );
 	if ( oc == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modify(): "
 			"cannot determine objectclass of entry -- aborting\n",

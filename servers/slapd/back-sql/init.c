@@ -29,7 +29,7 @@
 #include "ldap_pvt.h"
 #include "proto-sql.h"
 
-#if SLAPD_SQL == SLAPD_MOD_DYNAMIC
+#if defined(SLAPD_SQL_DYNAMIC)
 
 int
 init_module(
@@ -46,7 +46,7 @@ init_module(
 	return 0;
 }
 
-#endif /* SLAPD_SQL */
+#endif /* SLAPD_SQL_DYNAMIC */
 
 int
 sql_back_initialize(
@@ -229,6 +229,10 @@ backsql_db_open(
 
 	/* normalize filter values only if necessary */
 	si->bi_caseIgnoreMatch = mr_find( "caseIgnoreMatch" );
+	assert( si->bi_caseIgnoreMatch );
+
+	si->bi_telephoneNumberMatch = mr_find( "telephoneNumberMatch" );
+	assert( si->bi_telephoneNumberMatch );
 
 	if ( si->dbuser == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "

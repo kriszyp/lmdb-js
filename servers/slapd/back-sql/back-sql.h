@@ -94,14 +94,32 @@
 #undef BACKSQL_TRACE
 
 /*
+ * define to enable varchars as unique keys in user tables
+ */
+#undef BACKSQL_ARBITRARY_KEY
+
+/*
  * Entry ID structure
  */
 typedef struct backsql_entryID {
-	unsigned long		id;
-	unsigned long		keyval;
-	unsigned long		oc_id;
-	struct berval		dn;
-	struct backsql_entryID	*next;
+	/* #define BACKSQL_ARBITRARY_KEY to allow a non-numeric key.
+	 * It is required by some special applications that use
+	 * strings as keys for the main table.
+	 * In this case, #define BACKSQL_MAX_KEY_LEN consistently
+	 * with the key size definition */
+#ifdef BACKSQL_ARBITRARY_KEY
+	struct berval		eid_id;
+	struct berval		eid_keyval;
+#define BACKSQL_MAX_KEY_LEN	64
+#else /* ! BACKSQL_ARBITRARY_KEY */
+	/* The original numeric key is maintained as default. */
+	unsigned long		eid_id;
+	unsigned long		eid_keyval;
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+
+	unsigned long		eid_oc_id;
+	struct berval		eid_dn;
+	struct backsql_entryID	*eid_next;
 } backsql_entryID;
 
 /*
@@ -253,6 +271,7 @@ typedef struct {
 	char		*has_children_query;
 
 	MatchingRule	*bi_caseIgnoreMatch;
+	MatchingRule	*bi_telephoneNumberMatch;
 
 	struct berval	upper_func;
 	struct berval	upper_func_open;
@@ -282,6 +301,8 @@ typedef struct {
 	((si)->bsql_flags & BSQLF_DONTCHECK_LDAPINFO_DN_RU)
 #define BACKSQL_USE_REVERSE_DN(si) \
 	((si)->bsql_flags & BSQLF_USE_REVERSE_DN)
+#define BACKSQL_CANUPPERCASE(si) \
+	((si)->upper_func.bv_val)
 	
 	struct berval	strcast_func;
 	Avlnode		*db_conns;

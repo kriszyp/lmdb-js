@@ -95,7 +95,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	oc = backsql_id2oc( bi, e_id.oc_id );
+	oc = backsql_id2oc( bi, e_id.eid_oc_id );
 	if ( oc == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"cannot determine objectclass of entry -- aborting\n",
@@ -137,8 +137,15 @@ backsql_delete( Operation *op, SlapReply *rs )
 		pno = 0;
 	}
 
+#ifdef BACKSQL_ARBITRARY_KEY
 	SQLBindParameter( sth, pno + 1, SQL_PARAM_INPUT, 
-			SQL_C_ULONG, SQL_INTEGER, 0, 0, &e_id.keyval, 0, 0 );
+			SQL_C_CHAR, SQL_VARCHAR, 0, 0, e_id.eid_keyval.bv_val,
+			0, 0 );
+#else /* ! BACKSQL_ARBITRARY_KEY */
+	SQLBindParameter( sth, pno + 1, SQL_PARAM_INPUT, 
+			SQL_C_ULONG, SQL_INTEGER, 0, 0, &e_id.eid_keyval,
+			0, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 
 	rc = SQLExecute( sth );
 	if ( rc != SQL_SUCCESS ) {
@@ -170,8 +177,13 @@ backsql_delete( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
+#ifdef BACKSQL_ARBITRARY_KEY
+	SQLBindParameter( sth, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR,
+			0, 0, e_id.eid_id.bv_val, 0, 0 );
+#else /* ! BACKSQL_ARBITRARY_KEY */
 	SQLBindParameter( sth, 1, SQL_PARAM_INPUT, SQL_C_ULONG, SQL_INTEGER,
-			0, 0, &e_id.id, 0, 0 );
+			0, 0, &e_id.eid_id, 0, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 	rc = SQLExecute( sth );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
