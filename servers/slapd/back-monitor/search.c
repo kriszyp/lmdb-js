@@ -172,6 +172,7 @@ monitor_back_search( Operation *op, SlapReply *rs )
  		if ( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
 			send_search_entry( op, rs );
+			rs->sr_entry = NULL;
 		}
 		rc = LDAP_SUCCESS;
 		monitor_cache_release( mi, e );
@@ -189,7 +190,9 @@ monitor_back_search( Operation *op, SlapReply *rs )
 		monitor_entry_update( mi, e );
 		rc = test_filter( op, e, op->oq_search.rs_filter );
 		if ( rc == LDAP_COMPARE_TRUE ) {
+			rs->sr_entry = e;
 			send_search_entry( op, rs );
+			rs->sr_entry = NULL;
 		}
 
 		rc = monitor_send_children( op, rs, e, 1 );
