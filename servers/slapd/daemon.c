@@ -33,6 +33,8 @@ int deny_severity = LOG_NOTICE;
 #define LDAPI_MOD_URLEXT		"x-mod"
 #endif /* LDAP_PF_LOCAL */
 
+int slap_inet4or6 = AF_UNSPEC;
+
 /* globals */
 time_t starttime;
 ber_socket_t dtblsize;
@@ -414,7 +416,7 @@ static int slap_get_listener_addresses(
 		memset( &hints, '\0', sizeof(hints) );
 		hints.ai_flags = AI_PASSIVE;
 		hints.ai_socktype = SOCK_STREAM;
-		hints.ai_family = AF_UNSPEC;
+		hints.ai_family = slap_inet4or6;
 		snprintf(serv, sizeof serv, "%d", port);
 
 		if ( (err = getaddrinfo(host, serv, &hints, &res)) ) {

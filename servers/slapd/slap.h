@@ -250,6 +250,10 @@ typedef union slap_sockaddr {
 #endif
 } Sockaddr;
 
+#ifdef LDAP_PF_INET6
+extern int slap_inet4or6;
+#endif
+
 typedef struct slap_oid_macro {
 	struct berval som_oid;
 	char **som_names;
