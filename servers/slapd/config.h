@@ -29,15 +29,15 @@ typedef struct ConfigTable {
 
 #define ARGS_USERLAND	0x00000fff
 #define ARGS_TYPES	0x000ff000
-#define ARGS_POINTER	0x0001f000
+#define ARGS_POINTER	0x0003f000
 #define ARGS_NUMERIC	0x0000f000
 #define ARG_INT		0x00001000
 #define ARG_LONG	0x00002000
 #define ARG_BER_LEN_T	0x00004000
 #define ARG_ON_OFF	0x00008000
 #define ARG_STRING	0x00010000
-#define ARG_DN		0x00020000
-#define ARG_EXISTS	0x00040000	/* XXX not yet */
+#define ARG_BERVAL	0x00020000
+#define ARG_DN		0x00040000
 #define ARG_IGNORED	0x00080000
 
 #define ARGS_SYNTAX	0xfff00000
@@ -77,6 +77,7 @@ typedef struct config_args_s {
 		long v_long;
 		ber_len_t v_ber_t;
 		char *v_string;
+		struct berval v_bv;
 		struct {
 			struct berval vdn_dn;
 			struct berval vdn_ndn;
@@ -85,7 +86,8 @@ typedef struct config_args_s {
 	/* return values for emit mode */
 	BerVarray rvalue_vals;
 	BerVarray rvalue_nvals;
-	int emit;	/* emit instead of setting */
+#define	SLAP_CONFIG_EMIT	0x2000	/* emit instead of set */
+	int op;
 	int type;	/* ConfigTable.arg_type & ARGS_USERLAND */
 	BackendDB *be;
 	BackendInfo *bi;
@@ -95,9 +97,12 @@ typedef struct config_args_s {
 #define value_long values.v_long
 #define value_ber_t values.v_ber_t
 #define value_string values.v_string
+#define value_bv values.v_bv
 #define value_dn values.v_dn.vdn_dn
 #define value_ndn values.v_dn.vdn_ndn
 
 typedef int (ConfigDriver)(ConfigArgs *c);
 
 int config_get_vals(ConfigTable *ct, ConfigArgs *c);
+int config_add_vals(ConfigTable *ct, ConfigArgs *c);
+ConfigTable * config_find_keyword(ConfigTable *ct, ConfigArgs *c);

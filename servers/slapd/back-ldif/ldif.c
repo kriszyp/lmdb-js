@@ -29,6 +29,7 @@
 #include <ac/unistd.h>
 #include "slap.h"
 #include "lutil.h"
+#include "config.h"
 
 struct ldif_info {
 	struct berval li_base_path;
@@ -42,6 +43,43 @@ struct ldif_info {
 #define LDIF	".ldif"
 
 #define ENTRY_BUFF_INCREMENT 500
+
+static ObjectClass *ldif_oc;
+
+static ConfigDriver ldif_cf;
+
+static ConfigTable ldifcfg[] = {
+	{ "", "", 0, 0, 0, ARG_MAGIC,
+		ldif_cf, NULL, NULL, NULL },
+	{ "directory", "dir", 2, 2, 0, ARG_BERVAL|ARG_OFFSET,
+		(void *)offsetof(struct ldif_info, li_base_path),
+		"( OLcfgAt:1.1 NAME 'dbDirectory' "
+			"DESC 'Directory for database content' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
+		NULL, NULL, NULL, NULL }
+};
+
+static ConfigOCs ldifocs[] = {
+	{ "( OLcfgOc:2.1 "
+		"NAME 'ldifConfig' "
+		"DESC 'LDIF backend configuration' "
+		"AUXILIARY "
+		"MAY ( dbDirectory ) )",
+		&ldif_oc },
+	{ NULL, NULL }
+};
+
+static int
+ldif_cf( ConfigArgs *c )
+{
+	if ( c->op == SLAP_CONFIG_EMIT ) {
+		value_add_one( &c->rvalue_vals, &ldif_oc->soc_cname );
+		return 0;
+	}
+	return 1;
+}
 
 static char *
 dn2path(struct berval * dn, struct berval * rootdn, struct berval * base_path)
@@ -552,7 +590,7 @@ static int ldif_back_modify(Operation *op, SlapReply *rs) {
 	  SLAP_FREE(path);
 	if(entry != NULL)
 	  entry_free(entry);
-	rs->sr_text = "";
+	rs->sr_text = NULL;
 	ldap_pvt_thread_mutex_unlock(&ni->li_mutex);
 	ldap_pvt_thread_mutex_unlock(&entry2str_mutex);
 	send_ldap_result(op, rs);
@@ -884,37 +922,13 @@ static ID ldif_tool_entry_put(BackendDB * be, Entry * e, struct berval *text) {
 }
 
 static int
-ldif_back_db_config(
-		    BackendDB	*be,
-		    const char	*fname,
-		    int			lineno,
-		    int			argc,
-		    char		**argv )
-{
-	struct ldif_info *ni = (struct ldif_info *) be->be_private;
-
-	if ( strcasecmp( argv[0], "directory" ) == 0 ) {
-	  if ( argc < 2 ) {
-	    fprintf( stderr,
-	       "%s: line %d: missing <path> in \"directory <path>\" line\n",
-	       fname, lineno );
-	    return 1;
-	  }
-	  ber_str2bv(argv[1], 0, 1, &ni->li_base_path);
-	} else {
-	  return SLAP_CONF_UNKNOWN;
-	}
-	return 0;
-}
-
-
-static int
 ldif_back_db_init( BackendDB *be )
 {
 	struct ldif_info *ni;
 
 	ni = ch_calloc( 1, sizeof(struct ldif_info) );
 	be->be_private = ni;
+	be->be_cf_table = be->bd_info->bi_cf_table;
 	ldap_pvt_thread_mutex_init(&ni->li_mutex);
 	return 0;
 }
@@ -948,13 +962,17 @@ ldif_back_initialize(
 		     BackendInfo	*bi
 		     )
 {
+	int rc;
+
+	bi->bi_cf_table = ldifcfg;
+
 	bi->bi_open = 0;
 	bi->bi_close = 0;
 	bi->bi_config = 0;
 	bi->bi_destroy = 0;
 
 	bi->bi_db_init = ldif_back_db_init;
-	bi->bi_db_config = ldif_back_db_config;
+	bi->bi_db_config = config_generic_wrapper;
 	bi->bi_db_open = ldif_back_db_open;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = ldif_back_db_destroy;
@@ -989,5 +1007,9 @@ ldif_back_initialize(
 	bi->bi_tool_id2entry_get = 0;
 	bi->bi_tool_entry_modify = 0;
 
-	return 0;
+	rc = init_config_attrs( ldifcfg );
+	if ( rc ) return rc;
+	ldifcfg[0].ad = slap_schema.si_ad_objectClass;
+	rc = init_config_ocs( ldifocs );
+	return rc;
 }
