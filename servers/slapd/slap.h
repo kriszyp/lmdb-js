@@ -43,6 +43,11 @@
 
 #define MAXREMATCHES 10
 
+#define DNSEPARATOR(c)	((c) == ',' || (c) == ';')
+#define SEPARATOR(c)	((c) == ',' || (c) == ';' || (c) == '+')
+#define SPACE(c)	((c) == ' ' || (c) == '\n')
+#define NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
+
 LDAP_BEGIN_DECL
 
 extern int slap_debug;

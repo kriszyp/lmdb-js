@@ -11,10 +11,6 @@
 
 #include "slap.h"
 
-#define DNSEPARATOR(c)	(c == ',' || c == ';')
-#define SEPARATOR(c)	(c == ',' || c == ';' || c == '+')
-#define SPACE(c)	(c == ' ' || c == '\n')
-#define NEEDSESCAPE(c)	(c == '\\' || c == '"')
 #define B4TYPE		0
 #define INTYPE		1
 #define B4EQUAL		2
