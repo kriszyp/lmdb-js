@@ -43,11 +43,6 @@
 #include "proto-slap.h"
 #include "back-monitor.h"
 
-#ifdef HACK_LOCAL_TIME
-static int
-local_time( const struct tm *ztm, long delta, char *buf, size_t len );
-#endif /* HACK_LOCAL_TIME */
-
 int
 monitor_subsys_time_init(
 	BackendDB		*be
@@ -58,12 +53,6 @@ monitor_subsys_time_init(
 	Entry			*e, *e_tmp, *e_time;
 	struct monitorentrypriv	*mp;
 	char			buf[ BACKMONITOR_BUFSIZE ];
-	struct tm		*tms;
-	char			tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
-
-	/*
-	 * Note: ltmbuf, ltm are used only if HACK_LOCAL_TIME is defined
-	 */
 
 	assert( be != NULL );
 
@@ -88,28 +77,21 @@ monitor_subsys_time_init(
 
 	e_tmp = NULL;
 
-	/*
-	 * Start
-	 */
-	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-#ifdef HACK_LOCAL_TIME
-	tms = localtime( &starttime );
-	local_time( tms, -timezone, tmbuf, sizeof( tmbuf ) );
-#else /* !HACK_LOCAL_TIME */
-	tms = gmtime( &starttime );
-	lutil_gentime( tmbuf, sizeof(tmbuf), tms );
-#endif /* !HACK_LOCAL_TIME */
-	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 	snprintf( buf, sizeof( buf ),
 			"dn: cn=Start,%s\n"
 			"objectClass: %s\n"
 			"structuralObjectClass: %s\n"
 			"cn: Start\n"
-			"createTimestamp: %s", 
+			"%s: %s\n"
+			"createTimestamp: %s\n"
+			"modifyTimestamp: %s\n", 
 			monitor_subsys[SLAPD_MONITOR_TIME].mss_dn.bv_val,
 			mi->oc_monitoredObject->soc_cname.bv_val,
 			mi->oc_monitoredObject->soc_cname.bv_val,
-			tmbuf );
+			mi->ad_monitorTimestamp->ad_cname.bv_val,
+			mi->mi_startTime.bv_val,
+			mi->mi_startTime.bv_val,
+			mi->mi_startTime.bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -162,12 +144,16 @@ monitor_subsys_time_init(
 			"objectClass: %s\n"
 			"structuralObjectClass: %s\n"
 			"cn: Current\n"
+			"%s: %s\n"
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_TIME].mss_dn.bv_val,
 			mi->oc_monitoredObject->soc_cname.bv_val,
 			mi->oc_monitoredObject->soc_cname.bv_val,
-			tmbuf, tmbuf );
+			mi->ad_monitorTimestamp->ad_cname.bv_val,
+			mi->mi_startTime.bv_val,
+			mi->mi_startTime.bv_val,
+			mi->mi_startTime.bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -227,115 +213,41 @@ monitor_subsys_time_update(
 )
 {
 	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
-	char		stmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ],
-			ctmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
-	struct tm	*stm, *ctm;
-	Attribute	*a;
-	ber_len_t	len;
-
-	static int	init_start = 0, init_current = 0;
-#define ENTRY_TIME	0
-#define ENTRY_START	1
-#define ENTRY_CURRENT	2
-	int		entry = ENTRY_TIME;
 
 	assert( mi );
 	assert( e );
 	
-	if ( strncmp( e->e_nname.bv_val, "cn=start", 
-				sizeof("cn=start")-1 ) == 0 ) {
-		entry = ENTRY_START;
-		if ( init_start == 1 ) {
-			return( 0 );
-		}
+	if ( strncmp( e->e_nname.bv_val, "cn=current",
+				sizeof("cn=current") - 1 ) == 0 ) {
+		struct tm	*tm;
+		char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+		Attribute	*a;
+		ber_len_t	len;
+		time_t		currtime;
 
-	} else if ( strncmp( e->e_nname.bv_val, "cn=current",
-				sizeof("cn=current")-1 ) == 0 ) {
-		entry = ENTRY_CURRENT;
-	}
-	
-	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-	if ( init_start == 0 ) {
+		currtime = slap_get_time();
+
+		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 #ifdef HACK_LOCAL_TIME
-		stm = localtime( &starttime );
-		local_time( stm, -timezone, stmbuf, sizeof( stmbuf ) );
+		tm = localtime( &currtime );
+		lutil_localtime( tmbuf, sizeof( tmbuf ), tm, -timezone );
 #else /* !HACK_LOCAL_TIME */
-		stm = gmtime( &starttime );
-		lutil_gentime( stmbuf, sizeof( stmbuf ), stm );
+		tm = gmtime( &currtime );
+		lutil_gentime( tmbuf, sizeof( tmbuf ), tm );
 #endif /* !HACK_LOCAL_TIME */
-	}
+		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
-	if ( entry == ENTRY_CURRENT ) {
-		time_t currentTime = slap_get_time();
-#ifdef HACK_LOCAL_TIME
-		ctm = localtime( &currentTime );
-		local_time( ctm, -timezone, ctmbuf, sizeof( ctmbuf ) );
-#else /* !HACK_LOCAL_TIME */
-		ctm = gmtime( &currentTime );
-		lutil_gentime( ctmbuf, sizeof( ctmbuf ), ctm );
-#endif /* !HACK_LOCAL_TIME */
-	}
-	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+		len = strlen( tmbuf );
 
-	if ( ( entry == ENTRY_START && init_start == 0 ) 
-			|| ( entry == ENTRY_CURRENT && init_current == 0 ) ) {
-		a = attr_find( e->e_attrs, slap_schema.si_ad_createTimestamp );
+		a = attr_find( e->e_attrs, mi->ad_monitorTimestamp );
 		if ( a == NULL ) {
 			return( -1 );
 		}
 
-		len = strlen( stmbuf );
 		assert( len == a->a_vals[0].bv_len );
-		AC_MEMCPY( a->a_vals[0].bv_val, stmbuf, len );
-
-		if ( entry == ENTRY_START ) {
-			init_start = 1;
-		} else if ( entry == ENTRY_CURRENT ) {
-			init_current = 1;
-		}
-	}
-
-	if ( entry == ENTRY_CURRENT ) {
-		a = attr_find( e->e_attrs, slap_schema.si_ad_modifyTimestamp );
-		if ( a == NULL ) {
-			return( -1 );
-		}
-
-		len = strlen( ctmbuf );
-		assert( len == a->a_vals[0].bv_len );
-		AC_MEMCPY( a->a_vals[0].bv_val, ctmbuf, len );
+		AC_MEMCPY( a->a_vals[0].bv_val, tmbuf, len );
 	}
 
 	return( 0 );
 }
-
-#ifdef HACK_LOCAL_TIME
-/*
- * assumes gmtime_mutex is locked
- */
-static int
-local_time( const struct tm *ltm, long delta, char *buf, size_t len )
-{
-	char *p;
-
-	if ( len < 20 ) {
-		return -1;
-	}
-	strftime( buf, len, "%Y%m%d%H%M%S", ltm );
-
-	p = buf + 14;
-
-	if ( delta < 0 ) {
-		p[ 0 ] = '-';
-		delta = -delta;
-	} else {
-		p[ 0 ] = '+';
-	}
-	p++;
-
-	snprintf( p, len - 15, "%02ld%02ld", delta / 3600, delta % 3600 );
-	
-	return 0;
-}
-#endif /* HACK_LOCAL_TIME */
 

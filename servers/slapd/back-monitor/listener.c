@@ -95,7 +95,9 @@ monitor_subsys_listener_init(
 				"structuralObjectClass: %s\n"
 				"cn: Listener %d\n"
 				"%s: %s\n"
-				"labeledURI: %s",
+				"labeledURI: %s\n"
+				"createTimestamp: %s\n"
+				"modifyTimestamp: %s\n",
 				i,
 				monitor_subsys[SLAPD_MONITOR_LISTENER].mss_dn.bv_val,
 				mi->oc_monitoredObject->soc_cname.bv_val,
@@ -103,7 +105,9 @@ monitor_subsys_listener_init(
 				i,
 				mi->ad_monitorConnectionLocalAddress->ad_cname.bv_val,
 				l[i]->sl_name.bv_val,
-				l[i]->sl_url.bv_val );
+				l[i]->sl_url.bv_val,
+				mi->mi_startTime.bv_val,
+				mi->mi_startTime.bv_val );
 		
 		e = str2entry( buf );
 		if ( e == NULL ) {

@@ -84,10 +84,14 @@ monitor_subsys_conn_init(
 		"dn: cn=Total,%s\n"
 		"objectClass: %s\n"
 		"structuralObjectClass: %s\n"
-		"cn: Total\n",
+		"cn: Total\n"
+		"createTimestamp: %s\n"
+		"modifyTimestamp: %s\n",
 		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
 		mi->oc_monitorCounterObject->soc_cname.bv_val,
-		mi->oc_monitorCounterObject->soc_cname.bv_val );
+		mi->oc_monitorCounterObject->soc_cname.bv_val,
+		mi->mi_startTime.bv_val,
+		mi->mi_startTime.bv_val );
 	
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -144,10 +148,14 @@ monitor_subsys_conn_init(
 		"dn: cn=Current,%s\n"
 		"objectClass: %s\n"
 		"structuralObjectClass: %s\n"
-		"cn: Current\n",
+		"cn: Current\n"
+		"createTimestamp: %s\n"
+		"modifyTimestamp: %s\n",
 		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
 		mi->oc_monitorCounterObject->soc_cname.bv_val,
-		mi->oc_monitorCounterObject->soc_cname.bv_val );
+		mi->oc_monitorCounterObject->soc_cname.bv_val,
+		mi->mi_startTime.bv_val,
+		mi->mi_startTime.bv_val );
 	
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -268,18 +276,41 @@ conn_create(
 
 	Entry			*e;
 
+	struct tm	*ctm;
+	char		ctmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+	struct tm	*mtm;
+	char		mtmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+
 	assert( c != NULL );
 	assert( ep != NULL );
+
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+#ifdef HACK_LOCAL_TIME
+	ctm = localtime( &c->c_starttime );
+	lutil_localtime( ctmbuf, sizeof( ctmbuf ), ctm, -timezone );
+	mtm = localtime( &c->c_activitytime );
+	lutil_localtime( mtmbuf, sizeof( mtmbuf ), mtm, -timezone );
+#else /* !HACK_LOCAL_TIME */
+	ctm = gmtime( &c->c_starttime );
+	lutil_gentime( ctmbuf, sizeof( ctmbuf ), ctm );
+	mtm = gmtime( &c->c_activitytime );
+	lutil_gentime( mtmbuf, sizeof( mtmbuf ), mtm );
+#endif /* !HACK_LOCAL_TIME */
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
 	snprintf( buf, sizeof( buf ),
 		"dn: cn=" CONN_CN_PREFIX " %ld,%s\n"
 		"objectClass: %s\n"
 		"structuralObjectClass: %s\n"
-		"cn: " CONN_CN_PREFIX " %ld\n",
+		"cn: " CONN_CN_PREFIX " %ld\n"
+		"createTimestamp: %s\n"
+		"modifyTimestamp: %s\n",
 		c->c_connid, monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
 		mi->oc_monitorConnection->soc_cname.bv_val,
 		mi->oc_monitorConnection->soc_cname.bv_val,
-		c->c_connid );
+		c->c_connid,
+		ctmbuf, mtmbuf );
+		
 	e = str2entry( buf );
 
 	if ( e == NULL) {

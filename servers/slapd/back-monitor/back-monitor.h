@@ -81,7 +81,8 @@ struct monitorinfo {
 	/*
 	 * Config parameters
 	 */
-	struct berval		l;
+	struct berval		mi_l;
+	struct berval		mi_startTime;	/* don't free it */
 
 	/*
 	 * Specific schema entities
@@ -104,6 +105,7 @@ struct monitorinfo {
 	AttributeDescription *ad_monitorConnectionAuthzDN;
 	AttributeDescription *ad_monitorConnectionLocalAddress;
 	AttributeDescription *ad_monitorConnectionPeerAddress;
+	AttributeDescription *ad_monitorTimestamp;
 
 	/*
 	 * Generic description attribute

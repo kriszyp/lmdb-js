@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <ac/string.h>
 
+#include <lutil.h>
 #include "slap.h"
 #include "lber_pvt.h"
 #include "back-monitor.h"
@@ -433,14 +434,41 @@ monitor_back_db_open(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )",
 			offsetof(struct monitorinfo, ad_monitorConnectionPeerAddress) },
+		{ "monitorTimestamp", "( 1.3.6.1.4.1.4203.666.1.24 "
+			"NAME 'monitorTimestamp' "
+			"DESC 'monitor timestamp' "
+			"EQUALITY generalizedTimeMatch "
+			"ORDERING generalizedTimeOrderingMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
+			"SINGLE-VALUE )",
+			offsetof(struct monitorinfo, ad_monitorTimestamp) },
 		{ NULL, NULL, -1 }
 	};
 
+	struct tm		*tms;
+	static char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+
+	/*
+	 * Start
+	 */
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+#ifdef HACK_LOCAL_TIME
+	tms = localtime( &starttime );
+	lutil_localtime( tmbuf, sizeof(tmbuf), tms, -timezone );
+#else /* !HACK_LOCAL_TIME */
+	tms = gmtime( &starttime );
+	lutil_gentime( tmbuf, sizeof(tmbuf), tms );
+#endif /* !HACK_LOCAL_TIME */
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+
+	mi->mi_startTime.bv_val = tmbuf;
+	mi->mi_startTime.bv_len = strlen( tmbuf );
+
 	for ( i = 0; mat[i].name; i++ ) {
-		LDAPAttributeType *at;
-		int		code;
-		const char	*err;
-		AttributeDescription **ad;
+		LDAPAttributeType	*at;
+		int			code;
+		const char		*err;
+		AttributeDescription	**ad;
 
 		at = ldap_str2attributetype( mat[i].schema, &code,
 				&err, LDAP_SCHEMA_ALLOW_ALL );
@@ -642,11 +670,15 @@ monitor_back_db_open(
 				"dn: %s\n"
 				"objectClass: %s\n"
 				"structuralObjectClass: %s\n"
-				"cn: %s\n",
+				"cn: %s\n"
+				"createTimestamp: %s\n"
+				"modifyTimestamp: %s\n",
 				monitor_subsys[ i ].mss_dn.bv_val,
 				mi->oc_monitorContainer->soc_cname.bv_val,
 				mi->oc_monitorContainer->soc_cname.bv_val,
-				monitor_subsys[ i ].mss_name );
+				monitor_subsys[ i ].mss_name,
+				mi->mi_startTime.bv_val,
+				mi->mi_startTime.bv_val );
 		
 		e = str2entry( buf );
 		
@@ -696,14 +728,18 @@ monitor_back_db_open(
 		"cn: Monitor\n"
 		"%s: This subtree contains monitoring/managing objects.\n"
 		"%s: This object contains information about this server.\n"
-		"%s: createTimeStamp reflects the time this server instance was created.\n"
-		"%s: modifyTimeStamp reflects the current time.\n",
+		"%s: createTimestamp reflects the time this server instance was created.\n"
+		"%s: modifyTimestamp reflects the current time.\n"
+		"createTimestamp: %s\n"
+		"modifyTimestamp: %s\n",
 		mi->oc_monitorServer->soc_cname.bv_val,
 		mi->oc_monitorServer->soc_cname.bv_val,
 		mi->ad_description->ad_cname.bv_val,
 		mi->ad_description->ad_cname.bv_val,
 		mi->ad_description->ad_cname.bv_val,
-		mi->ad_description->ad_cname.bv_val );
+		mi->ad_description->ad_cname.bv_val,
+		mi->mi_startTime.bv_val,
+		mi->mi_startTime.bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL) {
@@ -741,7 +777,7 @@ monitor_back_db_open(
 		return( -1 );
 	}
 
-	if ( mi->l.bv_len ) {
+	if ( mi->mi_l.bv_len ) {
 		AttributeDescription	*ad = NULL;
 		const char		*text = NULL;
 
@@ -756,7 +792,7 @@ monitor_back_db_open(
 			return( -1 );
 		}
 		
-		if ( attr_merge_normalize_one( e, ad, &mi->l, NULL ) ) {
+		if ( attr_merge_normalize_one( e, ad, &mi->mi_l, NULL ) ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, CRIT,
 				"unable to add locality to '%s' entry\n",
@@ -840,7 +876,7 @@ monitor_back_db_config(
 			return 1;
 		}
 		
-		ber_str2bv( argv[ 1 ], 0, 1, &mi->l );
+		ber_str2bv( argv[ 1 ], 0, 1, &mi->mi_l );
 
 	} else {
 #ifdef NEW_LOGGING

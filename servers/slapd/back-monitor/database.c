@@ -53,7 +53,6 @@ monitor_subsys_database_init(
 	Entry			*e, *e_database, *e_tmp;
 	int			i;
 	struct monitorentrypriv	*mp;
-	const char		*text = NULL;
 
 	assert( be != NULL );
 
@@ -95,14 +94,18 @@ monitor_subsys_database_init(
 				"structuralObjectClass: %s\n"
 				"cn: Database %d\n"
 				"description: This object contains the type of the database.\n"
-				"%s: %s",
+				"%s: %s\n"
+				"createTimestamp: %s\n"
+				"modifyTimestamp: %s\n",
 				i,
 				monitor_subsys[SLAPD_MONITOR_DATABASE].mss_dn.bv_val,
 				mi->oc_monitoredObject->soc_cname.bv_val,
 				mi->oc_monitoredObject->soc_cname.bv_val,
 				i,
 				mi->ad_monitoredInfo->ad_cname.bv_val,
-				be->bd_info->bi_type );
+				be->bd_info->bi_type,
+				mi->mi_startTime.bv_val,
+				mi->mi_startTime.bv_val );
 		
 		e = str2entry( buf );
 		if ( e == NULL ) {

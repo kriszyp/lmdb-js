@@ -51,7 +51,8 @@ static struct berval
 		BER_BVC( "Compare" ),
 		BER_BVC( "Search" ),
 		BER_BVC( "Abandon" ),
-		BER_BVC( "Extended" )
+		BER_BVC( "Extended" ),
+		{ 0, NULL }
 	};
 
 int
@@ -100,14 +101,18 @@ monitor_subsys_ops_init(
 				"structuralObjectClass: %s\n"
 				"cn: %s\n"
 				"%s: 0\n"
-				"%s: 0\n",
+				"%s: 0\n"
+				"createTimestamp: %s\n"
+				"modifyTimestamp: %s\n",
 				bv_op[ i ].bv_val,
 				monitor_subsys[SLAPD_MONITOR_OPS].mss_dn.bv_val,
 				mi->oc_monitorOperation->soc_cname.bv_val,
 				mi->oc_monitorOperation->soc_cname.bv_val,
 				bv_op[ i ].bv_val,
 				mi->ad_monitorOpInitiated->ad_cname.bv_val,
-				mi->ad_monitorOpCompleted->ad_cname.bv_val );
+				mi->ad_monitorOpCompleted->ad_cname.bv_val,
+				mi->mi_startTime.bv_val,
+				mi->mi_startTime.bv_val );
 
 		e = str2entry( buf );
 		if ( e == NULL ) {
@@ -173,7 +178,6 @@ monitor_subsys_ops_update(
 	long 		nInitiated = -1, nCompleted = -1;
 	char 		*rdnvalue;
 	int 		i;
-	ber_len_t 	len;
 	Attribute	*a;
 	char		buf[] = "+9223372036854775807L";
 
@@ -183,9 +187,8 @@ monitor_subsys_ops_update(
 	rdnvalue = e->e_dn + ( sizeof( "cn=" ) - 1 );
 
 	for (i = 0; i < SLAP_OP_LAST; i++ ) {
-		len = bv_op[ i ].bv_len;
-
-		if ( strncmp( rdnvalue, bv_op[ i ].bv_val, len ) == 0 ) {
+		if ( strncmp( rdnvalue, bv_op[ i ].bv_val, 
+					bv_op[ i ].bv_len ) == 0 ) {
 			nInitiated = num_ops_initiated_[ i ];
 			nCompleted = num_ops_completed_[ i ];
 			break;

@@ -81,10 +81,14 @@ monitor_subsys_sent_init(
 			"dn: cn=Entries,%s\n"
 			"objectClass: %s\n"
 			"structuralObjectClass: %s\n"
-			"cn: Entries\n",
+			"cn: Entries\n"
+			"createTimestamp: %s\n"
+			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
 			mi->oc_monitorCounterObject->soc_cname.bv_val,
-			mi->oc_monitorCounterObject->soc_cname.bv_val );
+			mi->oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_startTime.bv_val,
+			mi->mi_startTime.bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -140,10 +144,14 @@ monitor_subsys_sent_init(
 			"dn: cn=Referrals,%s\n"
 			"objectClass: %s\n"
 			"structuralObjectClass: %s\n"
-			"cn: Referrals\n",
+			"cn: Referrals\n"
+			"createTimestamp: %s\n"
+			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
 			mi->oc_monitorCounterObject->soc_cname.bv_val,
-			mi->oc_monitorCounterObject->soc_cname.bv_val );
+			mi->oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_startTime.bv_val,
+			mi->mi_startTime.bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -199,10 +207,14 @@ monitor_subsys_sent_init(
 			"dn: cn=PDU,%s\n"
 			"objectClass: %s\n"
 			"structuralObjectClass: %s\n"
-			"cn: PDU\n",
+			"cn: PDU\n"
+			"createTimestamp: %s\n"
+			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
 			mi->oc_monitorCounterObject->soc_cname.bv_val,
-			mi->oc_monitorCounterObject->soc_cname.bv_val );
+			mi->oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_startTime.bv_val,
+			mi->mi_startTime.bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -258,10 +270,14 @@ monitor_subsys_sent_init(
 			"dn: cn=Bytes,%s\n"
 			"objectClass: %s\n"
 			"structuralObjectClass: %s\n"
-			"cn: Bytes\n",
+			"cn: Bytes\n"
+			"createTimestamp: %s\n"
+			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
 			mi->oc_monitorCounterObject->soc_cname.bv_val,
-			mi->oc_monitorCounterObject->soc_cname.bv_val );
+			mi->oc_monitorCounterObject->soc_cname.bv_val,
+			mi->mi_startTime.bv_val,
+			mi->mi_startTime.bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {

@@ -82,10 +82,14 @@ monitor_subsys_rww_init(
 		"dn: cn=Read,%s\n"
 		"objectClass: %s\n"
 		"structuralObjectClass: %s\n"
-		"cn: Read\n",
+		"cn: Read\n"
+		"createTimestamp: %s\n"
+		"modifyTimestamp: %s\n",
 		monitor_subsys[SLAPD_MONITOR_RWW].mss_dn.bv_val,
 		mi->oc_monitorCounterObject->soc_cname.bv_val,
-		mi->oc_monitorCounterObject->soc_cname.bv_val );
+		mi->oc_monitorCounterObject->soc_cname.bv_val,
+		mi->mi_startTime.bv_val,
+		mi->mi_startTime.bv_val );
 	
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -139,10 +143,14 @@ monitor_subsys_rww_init(
 		"dn: cn=Write,%s\n"
 		"objectClass: %s\n"
 		"structuralObjectClass: %s\n"
-		"cn: Write\n",
+		"cn: Write\n"
+		"createTimestamp: %s\n"
+		"modifyTimestamp: %s\n",
 		monitor_subsys[SLAPD_MONITOR_RWW].mss_dn.bv_val,
 		mi->oc_monitorCounterObject->soc_cname.bv_val,
-		mi->oc_monitorCounterObject->soc_cname.bv_val );
+		mi->oc_monitorCounterObject->soc_cname.bv_val,
+		mi->mi_startTime.bv_val,
+		mi->mi_startTime.bv_val );
 	
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -214,10 +222,7 @@ monitor_subsys_rww_update(
 	int			type = RWW_NONE;
 	
 	Attribute		*a;
-	struct berval           *b = NULL;
 	char 			buf[] = "+9223372036854775807L";
-	
-	char			*str = NULL;
 	long			num = 0;
 
 	assert( mi != NULL );

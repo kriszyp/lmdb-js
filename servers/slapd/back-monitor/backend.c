@@ -86,12 +86,16 @@ monitor_subsys_backend_init(
 				"dn: cn=Backend %d,%s\n"
 				"objectClass: %s\n"
 				"structuralObjectClass: %s\n"
-				"cn: Backend %d\n",
+				"cn: Backend %d\n"
+				"createTimestamp: %s\n"
+				"modifyTimestamp: %s\n",
 				i,
 				monitor_subsys[SLAPD_MONITOR_BACKEND].mss_dn.bv_val,
 				mi->oc_monitoredObject->soc_cname.bv_val,
 				mi->oc_monitoredObject->soc_cname.bv_val,
-				i );
+				i,
+				mi->mi_startTime.bv_val,
+				mi->mi_startTime.bv_val );
 		
 		e = str2entry( buf );
 		if ( e == NULL ) {
