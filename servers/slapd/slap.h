@@ -536,9 +536,9 @@ typedef struct slap_attr_name {
 } AttributeName;
 
 #define slap_ad_is_lang(ad)			( (ad)->ad_lang.bv_len != 0 )
-#define slap_ad_is_binary(ad)		\
-	( ((ad)->ad_flags & SLAP_DESC_LANG_RANGE) ? 1 : 0 )
 #define slap_ad_is_lang_range(ad)	\
+	( ((ad)->ad_flags & SLAP_DESC_LANG_RANGE) ? 1 : 0 )
+#define slap_ad_is_binary(ad)		\
 	( ((ad)->ad_flags & SLAP_DESC_BINARY) ? 1 : 0 )
 
 /*
