@@ -53,11 +53,15 @@ dnssrv_back_search(
 		/* FIXME: need some means to determine whether the database
 		 * is a glue instance; if we got here with empty DN, then
 		 * we passed this same test in dnssrv_back_referrals() */
-		if ( SLAP_GLUE_INSTANCE( op->o_bd ) ) {
-			return LDAP_SUCCESS;
-		}
+		if ( !SLAP_GLUE_INSTANCE( op->o_bd ) ) {
+			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			rs->sr_err = "DNS SRV operation upon null (empty) DN disallowed";
+		} else
 #endif
-		return LDAP_SUCCESS;
+		{
+			rs->sr_err = LDAP_SUCCESS;
+		}
+		goto done;
 #endif /* LDAP_DEVEL */
 	}
 
