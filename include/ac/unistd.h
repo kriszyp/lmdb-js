@@ -27,7 +27,13 @@
 	extern char *crypt();
 #endif
 
-#ifndef HAVE_GETPASS
+#if defined( HAVE_GETPASSPHRASE )
+extern char* (getpassphrase)();
+#define getpass(x) getpassphrase(x)
+#elif defined( HAVE_GETPASS )
+extern char* (getpass)();
+#else
+#define NEED_GETPASS
 extern char* getpass LDAP_P((const char* prompt));
 #endif
 

@@ -1396,6 +1396,8 @@ AC_CHECK_FUNCS(		\
 	bcopy			\
 	closesocket		\
 	flock			\
+	getpass			\
+	getpassphrase	\
 	getdtablesize	\
 	gethostname		\
 	getpwuid		\

@@ -12,8 +12,6 @@
 
 #include "portable.h"
 
-#ifndef HAVE_GETPASS
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -24,6 +22,8 @@
 #include <ac/termios.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
+
+#ifdef NEED_GETPASS
 
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
@@ -149,4 +149,4 @@ getpass( const char *prompt )
 #endif /* DOS */
 }
 
-#endif /* !HAVE_GETPASS */
+#endif /* !NEED_GETPASS */

@@ -10,6 +10,7 @@ Changes included in OpenLDAP 1.2.11 Release Engineering
 	Fixed NULL prefix bug in libldap/ufn.c
 	Fixed slapd_shutdown extern reference bug (ITS#527)
 	Build Environment
+		Detect and use getpassphrase() and getpass()
 		Change GNU Pth to enable soft syscalls
 		Changed RCPT cmds symbol to avoid link conflict (ITS#526)
 		Changed LDBM directory to $localstatedir/openldap-ldbm
