@@ -40,6 +40,60 @@
 
 static char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 static char maxcsnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+static const char *progname = "slapadd";
+
+static ldap_pvt_thread_cond_t put_cond;
+static ldap_pvt_thread_mutex_t put_mutex;
+static Entry *put_e;
+static struct berval bvtext;
+static int put_lineno;
+static int put_rc;
+
+static int use_thread = 0;	/*FIXME need a new switch for this */
+static int put_wait;
+
+static void *do_put(void *ptr)
+{
+	ID id;
+	Entry *e;
+	int lineno;
+
+
+	do {
+		ldap_pvt_thread_cond_wait( &put_cond, &put_mutex );
+		if ( put_rc ) break;
+
+		e = put_e;
+		lineno = put_lineno;
+
+		if ( !dryrun ) {
+			id = be->be_entry_put( be, e, &bvtext );
+			if( id == NOID ) {
+				fprintf( stderr, "%s: could not add entry dn=\"%s\" "
+								 "(line=%d): %s\n", progname, e->e_dn,
+								 lineno, bvtext.bv_val );
+				entry_free( e );
+				if ( continuemode ) continue;
+				put_rc = EXIT_FAILURE;
+				break;
+			}
+		}
+
+		if ( verbose ) {
+			if ( dryrun ) {
+				fprintf( stderr, "added: \"%s\"\n",
+					e->e_dn );
+			} else {
+				fprintf( stderr, "added: \"%s\" (%08lx)\n",
+					e->e_dn, (long) id );
+			}
+		}
+
+		entry_free( e );
+		ldap_pvt_thread_cond_signal( &put_cond );
+
+	} while (1);
+}
 
 int
 slapadd( int argc, char **argv )
@@ -52,7 +106,6 @@ slapadd( int argc, char **argv )
 	const char *text;
 	char textbuf[SLAP_TEXT_BUFLEN] = { '\0' };
 	size_t textlen = sizeof textbuf;
-	const char *progname = "slapadd";
 
 	struct berval csn;
 	struct berval maxcsn;
@@ -61,9 +114,10 @@ slapadd( int argc, char **argv )
 	Entry *ctxcsn_e;
 	ID	ctxcsn_id, id;
 	int ret;
-	struct berval bvtext;
 	int i;
 	struct berval mc;
+	ldap_pvt_thread_t put_tid;
+
 	slap_tool_init( progname, SLAPADD, argc, argv );
 
 	if( !be->be_entry_open ||
@@ -76,6 +130,18 @@ slapadd( int argc, char **argv )
 			fprintf( stderr, "\t(dry) continuing...\n" );
 
 		} else {
+			exit( EXIT_FAILURE );
+		}
+	}
+
+	if ( use_thread ) {
+		ldap_pvt_thread_initialize();
+		ldap_pvt_thread_cond_init( &put_cond );
+		ldap_pvt_thread_mutex_init( &put_mutex );
+		rc = ldap_pvt_thread_create( &put_tid, 0, do_put, NULL );
+		if ( rc ) {
+			fprintf( stderr, "%s: could not create thread.\n",
+				progname );
 			exit( EXIT_FAILURE );
 		}
 	}
@@ -292,6 +358,21 @@ slapadd( int argc, char **argv )
 			}
 		}
 
+		if ( use_thread ) {
+			if ( put_wait ) {
+				ldap_pvt_thread_cond_wait( &put_cond, &put_mutex );
+				if (put_rc) {
+					rc = put_rc;
+					break;
+				}
+			}
+			put_e = e;
+			put_lineno = lineno;
+			put_wait = 1;
+			ldap_pvt_thread_cond_signal( &put_cond );
+			continue;
+		}
+
 		if ( !dryrun ) {
 			id = be->be_entry_put( be, e, &bvtext );
 			if( id == NOID ) {
@@ -315,8 +396,13 @@ slapadd( int argc, char **argv )
 			}
 		}
 
-done:;
 		entry_free( e );
+	}
+
+	if ( use_thread ) {
+		put_rc = EXIT_FAILURE;
+		ldap_pvt_thread_cond_signal( &put_cond );
+		ldap_pvt_thread_join( put_tid, NULL );
 	}
 
 	bvtext.bv_len = textlen;
