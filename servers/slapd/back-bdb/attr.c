@@ -81,7 +81,7 @@ bdb_attr_mask_cr(
 		*indexmask = a->ai_indexmask;
 		*cr = a->ai_cr;
 	} else {
-		*indexmask = NULL;
+		*indexmask = 0;
 		*cr = NULL;
 	}
 }

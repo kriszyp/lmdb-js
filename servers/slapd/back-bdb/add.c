@@ -42,12 +42,6 @@ bdb_add(Operation *op, SlapReply *rs )
 
 	int		num_retries = 0;
 
-	Operation* ps_list;
-	int		rc;
-	EntryInfo	*suffix_ei = NULL;
-	Entry		*ctxcsn_e;
-	int			ctxcsn_added = 0;
-
 	LDAPControl **postread_ctrl = NULL;
 	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
 	int num_ctrls = 0;
@@ -403,10 +397,6 @@ retry:	/* transaction retry */
 		}
 
 		bdb_cache_add( bdb, ei, e, &nrdn, locker );
-
-		if ( suffix_ei == NULL ) {
-			suffix_ei = BEI(e);
-		}
 
 		if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
 			rs->sr_text = "txn_commit failed";

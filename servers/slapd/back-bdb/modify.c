@@ -282,12 +282,7 @@ bdb_modify( Operation *op, SlapReply *rs )
 	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
 	int num_ctrls = 0;
 
-	Operation* ps_list;
-	struct psid_entry *pm_list, *pm_prev;
 	int rc;
-	EntryInfo	*suffix_ei;
-	Entry		*ctxcsn_e;
-	int			ctxcsn_added = 0;
 
 	Debug( LDAP_DEBUG_ARGS, LDAP_XSTRING(bdb_modify) ": %s\n",
 		op->o_req_dn.bv_val, 0, 0 );

@@ -224,7 +224,6 @@ comp_list_candidates(
 	ID *tmp,
 	ID *save )
 {
-	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	int rc = 0;
 	ComponentFilter	*f;
 
@@ -485,7 +484,6 @@ list_candidates(
 	ID *tmp,
 	ID *save )
 {
-	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	int rc = 0;
 	Filter	*f;
 

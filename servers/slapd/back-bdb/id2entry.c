@@ -99,7 +99,7 @@ int bdb_id2entry(
 	DB *db = bdb->bi_id2entry->bdi_db;
 	DBT key, data;
 	struct berval bv;
-	int rc = 0, ret = 0;
+	int rc = 0;
 	ID nid;
 
 	*e = NULL;

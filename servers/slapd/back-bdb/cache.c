@@ -373,8 +373,6 @@ hdb_cache_find_parent(
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	EntryInfo ei, eip, *ei2 = NULL, *ein = NULL, *eir = NULL;
-	char ndn[SLAP_LDAPDN_MAXLEN];
-	ID parent;
 	int rc;
 	int addlru = 1;
 
@@ -1236,7 +1234,7 @@ bdb_txn_free( void *key, void *data )
 static int
 bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn, int reset )
 {
-	int i, rc, lockid;
+	int i, rc;
 	void *ctx, *data = NULL;
 
 	/* If no op was provided, try to find the ctx anyway... */

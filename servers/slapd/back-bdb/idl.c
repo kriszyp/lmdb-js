@@ -611,7 +611,7 @@ bdb_idl_insert_key(
 	int	rc;
 	DBT data;
 	DBC *cursor;
-	ID lo, hi, tmp, nlo, nhi, nid;
+	ID lo, hi, nlo, nhi, nid;
 	char *err;
 
 	{

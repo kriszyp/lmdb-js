@@ -416,9 +416,6 @@ bdb_db_destroy( BackendDB *be )
 {
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	Operation *ps = NULL;
-	Operation *psn = NULL;
-	void *saved_tmpmemctx = NULL;
 
 	/* close db environment */
 	if( bdb->bi_dbenv ) {

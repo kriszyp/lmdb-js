@@ -43,9 +43,6 @@ static void send_paged_response(
 	ID  *lastid,
 	int tentries );
 
-static int bdb_pfid_cmp( const void *v_id1, const void *v_id2 );
-static ID* bdb_id_dup( Operation *op, ID *id );
-
 /* Dereference aliases for a single alias entry. Return the final
  * dereferenced entry on success, NULL on any failure.
  */
@@ -637,13 +634,10 @@ dn2entry_retry:
 		goto loop_begin;
 	}
 
-loop_start:
-
 	for ( id = bdb_idl_first( candidates, &cursor );
 		  id != NOID ; id = bdb_idl_next( candidates, &cursor ) )
 	{
 		int scopeok = 0;
-		ID* idhole = NULL;
 
 loop_begin:
 
@@ -1276,18 +1270,3 @@ done:
 	(void) ber_free_buf( ber );
 }
 
-static int
-bdb_pfid_cmp( const void *v_id1, const void *v_id2 )
-{
-    const ID *p1 = v_id1, *p2 = v_id2;
-	return *p1 - *p2;
-}
-
-static ID*
-bdb_id_dup( Operation *op, ID *id )
-{
-	ID *new;
-	new = ch_malloc( sizeof(ID) );
-	*new = *id;
-	return new;
-}

@@ -42,8 +42,6 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 	struct bdb_op_info opinfo = {0};
 	Entry dummy = {0};
 
-	ID			id;
-
 	Entry		*np = NULL;			/* newSuperior Entry */
 	struct berval	*np_dn = NULL;			/* newSuperior dn */
 	struct berval	*np_ndn = NULL;			/* newSuperior ndn */
@@ -64,12 +62,7 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
 	int num_ctrls = 0;
 
-	Operation *ps_list;
-	struct psid_entry *pm_list, *pm_prev;
 	int	rc;
-	EntryInfo	*suffix_ei;
-	Entry		*ctxcsn_e;
-	int			ctxcsn_added = 0;
 
 	int parent_is_glue = 0;
 	int parent_is_leaf = 0;

@@ -42,11 +42,7 @@ bdb_delete( Operation *op, SlapReply *rs )
 
 	int		num_retries = 0;
 
-	Operation* ps_list;
 	int     rc;
-	EntryInfo   *suffix_ei;
-	Entry       *ctxcsn_e;
-	int         ctxcsn_added = 0;
 
 	LDAPControl **preread_ctrl = NULL;
 	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];

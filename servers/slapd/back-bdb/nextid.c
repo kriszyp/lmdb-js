@@ -35,7 +35,7 @@ int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *out )
 int bdb_last_id( BackendDB *be, DB_TXN *tid )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int i, rc;
+	int rc;
 	ID id = 0;
 	unsigned char idbuf[sizeof(ID)];
 	DBT key, data;
