@@ -180,6 +180,8 @@ register_matching_rule(
 		convert, normalize, match, indexer, filter,
 		&err );
 
+	ldap_memfree( mr );
+
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s for %s in %s\n",
 		    scherr2str(code), err, desc );

@@ -156,6 +156,9 @@ register_syntax(
 	}
 
 	code = syn_add( syn, flags, validate, ber2str, str2ber, &err );
+
+	ldap_memfree( syn );
+
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s %s in %s\n",
 		    scherr2str(code), err, desc );
