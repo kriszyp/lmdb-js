@@ -1,5 +1,7 @@
 OpenLDAP 2.1 Change Log
 
+OpenLDAP 2.1.27 Engineering
+
 OpenLDAP 2.1.26 Release
 	Fixed slapd bdb error recovery bug (ITS#2865)
 	Fixed slapd bdb IDL cache cleanup bug (ITS#2917)
