@@ -66,7 +66,9 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_dbenv_xflags = 0;
 	bdb->bi_dbenv_mode = DEFAULT_MODE;
 
+#ifndef NO_THREADS
 	bdb->bi_lock_detect = DB_LOCK_NORUN;
+#endif
 
 	be->be_private = bdb;
 	return 0;
