@@ -66,7 +66,7 @@ LIBVERSION = @OPENLDAP_LIBVERSION@
 LTVERSION = -version-info $(LIBVERSION)
 
 # libtool --only flag for libraries: platform specific
-NT_LTONLY_LIB = --only-$(BUILD_LIBS_DYNAMIC)
+NT_LTONLY_LIB = # --only-$(BUILD_LIBS_DYNAMIC)
 LTONLY_LIB = $(@PLAT@_LTONLY_LIB)
 
 # libtool --only flag for modules: depends on linkage of module

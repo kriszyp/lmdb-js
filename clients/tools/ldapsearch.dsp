@@ -55,7 +55,7 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 oldap32.lib olber32.lib oldif32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\libraries\Debug"
+# ADD BASE LINK32 oldap32.lib olber32.lib oldif32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 libsasl.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\SDebug"
 
 !ELSEIF  "$(CFG)" == "ldapsearch - Win32 Single Release"
@@ -80,7 +80,7 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 oldap32.lib olber32.lib oldif32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\libraries\Release"
+# ADD BASE LINK32 oldap32.lib olber32.lib oldif32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /machine:I386
 # ADD LINK32 sasl.lib libsasl.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\SRelease"
 
 !ELSEIF  "$(CFG)" == "ldapsearch - Win32 Release"
@@ -105,7 +105,7 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapsearch.exe" /libpath:"..\..\libraries\SRelease"
+# ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386
 # ADD LINK32 sasl.lib libsasl.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\Release"
 
 !ELSEIF  "$(CFG)" == "ldapsearch - Win32 Debug"
@@ -130,7 +130,7 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapsearch.exe" /libpath:"..\..\libraries\SRelease"
+# ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386
 # ADD LINK32 libsasl.lib ws2_32.lib /nologo /subsystem:console /incremental:yes /debug /machine:I386 /libpath:"..\..\Debug"
 
 !ENDIF 
@@ -148,6 +148,57 @@ SOURCE=.\common.c
 # Begin Source File
 
 SOURCE=.\ldapsearch.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ldsversion.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\build\version.h
+
+USERDEP__VERSI="common.c"	"ldapsearch.c"	"$(OUTDIR)\oldap32.lib"	"$(OUTDIR)\olber32.lib"	"$(OUTDIR)\oldif32.lib"	"$(OUTDIR)\olutil32.lib"
+InputDir=..\..\build
+InputPath=..\..\build\version.h
+
+!IF  "$(CFG)" == "ldapsearch - Win32 Single Debug"
+
+# Begin Custom Build
+
+"ldsversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) ldsversion.c ldapsearch /**/
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "ldapsearch - Win32 Single Release"
+
+# Begin Custom Build
+
+"ldsversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) ldsversion.c ldapsearch /**/
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "ldapsearch - Win32 Release"
+
+# Begin Custom Build
+
+"ldsversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) ldsversion.c ldapsearch /**/
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "ldapsearch - Win32 Debug"
+
+# Begin Custom Build
+
+"ldsversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) ldsversion.c ldapsearch /**/
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # End Target
 # End Project

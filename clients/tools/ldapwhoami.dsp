@@ -37,8 +37,8 @@ RSC=rc.exe
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
-# PROP BASE Output_Dir "ldappass"
-# PROP BASE Intermediate_Dir "ldappass"
+# PROP BASE Output_Dir "ldapwhoa"
+# PROP BASE Intermediate_Dir "ldapwhoa"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
@@ -61,8 +61,8 @@ LINK32=link.exe
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
-# PROP BASE Output_Dir "ldappas0"
-# PROP BASE Intermediate_Dir "ldappas0"
+# PROP BASE Output_Dir "ldapwho0"
+# PROP BASE Intermediate_Dir "ldapwho0"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
@@ -144,6 +144,57 @@ SOURCE=.\common.c
 # Begin Source File
 
 SOURCE=.\ldapwhoami.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ldwversion.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\build\version.h
+
+USERDEP__VERSI="common.c"	"ldapwhoami.c"	"$(OUTDIR)\oldap32.lib"	"$(OUTDIR)\olber32.lib"	"$(OUTDIR)\olutil32.lib"
+InputDir=..\..\build
+InputPath=..\..\build\version.h
+
+!IF  "$(CFG)" == "ldapwhoami - Win32 Single Debug"
+
+# Begin Custom Build
+
+"ldwversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) ldwversion.c ldapwhoami /**/
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "ldapwhoami - Win32 Single Release"
+
+# Begin Custom Build
+
+"ldwversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) ldwversion.c ldapwhoami /**/
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "ldapwhoami - Win32 Release"
+
+# Begin Custom Build
+
+"ldwversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) ldwversion.c ldapwhoami /**/
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "ldapwhoami - Win32 Debug"
+
+# Begin Custom Build
+
+"ldwversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) ldwversion.c ldapwhoami /**/
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # End Target
 # End Project

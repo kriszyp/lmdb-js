@@ -21,13 +21,13 @@
 static ldap_pvt_thread_mutex_t	slap_op_mutex;
 static LDAP_STAILQ_HEAD(s_o, slap_op)	slap_free_ops;
 
-void slap_op_init()
+void slap_op_init(void)
 {
 	ldap_pvt_thread_mutex_init( &slap_op_mutex );
 	LDAP_STAILQ_INIT(&slap_free_ops);
 }
 
-void slap_op_destroy()
+void slap_op_destroy(void)
 {
 	Operation *o;
 

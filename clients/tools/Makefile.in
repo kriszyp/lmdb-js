@@ -43,34 +43,47 @@ ldapwhoami:	ldwversion.o
 ldapcompare: ldcversion.o
 	$(LTLINK) -o $@ ldapcompare.o common.o ldcversion.o $(LIBS)
 
-ldsversion.c: ldapsearch.o common.o $(XLIBS)
+ldsversion.c: Makefile
 	@-$(RM) $@
 	$(MKVERSION) $(MKVOPTS) ldapsearch > $@
 
-ldmversion.c: ldapmodify.o common.o $(XLIBS)
+ldsversion.o: ldapsearch.o common.o $(XLIBS)
+
+ldmversion.c: Makefile
 	@-$(RM) $@
 	$(MKVERSION) $(MKVOPTS) ldapmodify > $@
 
-lddversion.c: ldapdelete.o common.o $(XLIBS)
+ldmversion.o: ldapmodify.o common.o $(XLIBS)
+
+lddversion.c: Makefile
 	@-$(RM) $@
 	$(MKVERSION) $(MKVOPTS) ldapdelete > $@
 
-ldpversion.c: ldappasswd.o common.o $(XLIBS)
+lddversion.o: ldapdelete.o common.o $(XLIBS)
+
+ldpversion.c: Makefile
 	@-$(RM) $@
 	$(MKVERSION) $(MKVOPTS) ldappasswd > $@
 
-ldrversion.c: ldapmodrdn.o common.o $(XLIBS)
+ldpversion.o: ldappasswd.o common.o $(XLIBS)
+
+ldrversion.c: Makefile
 	@-$(RM) $@
 	$(MKVERSION) $(MKVOPTS) ldapmodrdn > $@
 
-ldwversion.c: ldapwhoami.o common.o $(XLIBS)
+ldrversion.o: ldapmodrdn.o common.o $(XLIBS)
+
+ldwversion.c: Makefile
 	@-$(RM) $@
 	$(MKVERSION) $(MKVOPTS) ldapwhoami > $@
 
-ldcversion.c: ldapcompare.o common.o $(XLIBS)
+ldwversion.o: ldapwhoami.o common.o $(XLIBS)
+
+ldcversion.c: Makefile
 	@-$(RM) $@
 	$(MKVERSION) $(MKVOPTS) ldapcompare > $@
 
+ldcversion.o: ldapcompare.o common.o $(XLIBS)
 
 install-local:	FORCE
 	-$(MKDIR) $(DESTDIR)$(bindir)

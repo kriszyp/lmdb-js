@@ -42,7 +42,6 @@ if test $# != 1 ; then
 fi
 
 APPLICATION=$1
-WHEN=`date`
 WHOWHERE="$USER@`uname -n`:`pwd`"
 
 cat << __EOF__
@@ -56,6 +55,6 @@ static const char copyright[] =
 "COPYING RESTRICTIONS APPLY\n";
 
 $static $const char $SYMBOL[] =
-"@(#) \$$PACKAGE: $APPLICATION $VERSION ($WHEN) \$\n\t$WHOWHERE\n";
+"@(#) \$$PACKAGE: $APPLICATION $VERSION (" __DATE__ " " __TIME__ ") \$\n\t$WHOWHERE\n";
 
 __EOF__

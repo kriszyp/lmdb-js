@@ -37,8 +37,8 @@ RSC=rc.exe
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
-# PROP BASE Output_Dir "ldapdele"
-# PROP BASE Intermediate_Dir "ldapdele"
+# PROP BASE Output_Dir "ldapcomp"
+# PROP BASE Intermediate_Dir "ldapcomp"
 # PROP BASE Ignore_Export_Lib 0
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
@@ -55,15 +55,15 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 oldap32.lib olber32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\libraries\Debug"
+# ADD BASE LINK32 oldap32.lib olber32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 libsasl.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\SDebug"
 
 !ELSEIF  "$(CFG)" == "ldapcompare - Win32 Single Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
-# PROP BASE Output_Dir "ldapdel0"
-# PROP BASE Intermediate_Dir "ldapdel0"
+# PROP BASE Output_Dir "ldapcom0"
+# PROP BASE Intermediate_Dir "ldapcom0"
 # PROP BASE Ignore_Export_Lib 0
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
@@ -80,15 +80,15 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 oldap32.lib olber32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\libraries\Release"
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib sasl.lib libsasl.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"SRelease/ldapcompare.exe" /libpath:"..\..\SRelease"
+# ADD BASE LINK32 oldap32.lib olber32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /machine:I386
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib sasl.lib libsasl.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\SRelease"
 
 !ELSEIF  "$(CFG)" == "ldapcompare - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
-# PROP BASE Output_Dir "ldapdel1"
-# PROP BASE Intermediate_Dir "ldapdel1"
+# PROP BASE Output_Dir "ldapcom1"
+# PROP BASE Intermediate_Dir "ldapcom1"
 # PROP BASE Ignore_Export_Lib 0
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
@@ -105,15 +105,15 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\libraries\Debug"
+# ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 libsasl.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\Debug"
 
 !ELSEIF  "$(CFG)" == "ldapcompare - Win32 Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
-# PROP BASE Output_Dir "ldapdel2"
-# PROP BASE Intermediate_Dir "ldapdel2"
+# PROP BASE Output_Dir "ldapcom2"
+# PROP BASE Intermediate_Dir "ldapcom2"
 # PROP BASE Ignore_Export_Lib 0
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
@@ -130,8 +130,8 @@ BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LINK32=link.exe
-# ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapcompare.exe" /libpath:"..\..\libraries\Release"
-# ADD LINK32 sasl.lib libsasl.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapcompare.exe" /libpath:"..\..\Release"
+# ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386
+# ADD LINK32 sasl.lib libsasl.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\Release"
 
 !ENDIF 
 
@@ -148,6 +148,57 @@ SOURCE=.\common.c
 # Begin Source File
 
 SOURCE=.\ldapcompare.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ldcversion.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\build\version.h
+
+USERDEP__VERSI="common.c"	"ldapcompare.c"	"$(OUTDIR)\oldap32.lib"	"$(OUTDIR)\olber32.lib"	"$(OUTDIR)\oldif32.lib"	"$(OUTDIR)\olutil32.lib"
+InputDir=..\..\build
+InputPath=..\..\build\version.h
+
+!IF  "$(CFG)" == "ldapcompare - Win32 Single Debug"
+
+# Begin Custom Build
+
+"ldcversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) ldcversion.c ldapcompare /**/
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "ldapcompare - Win32 Single Release"
+
+# Begin Custom Build
+
+"ldcversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) ldcversion.c ldapcompare /**/
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "ldapcompare - Win32 Release"
+
+# Begin Custom Build
+
+"ldcversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) ldcversion.c ldapcompare /**/
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "ldapcompare - Win32 Debug"
+
+# Begin Custom Build
+
+"ldcversion.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	$(InputDir)\mkvers.bat $(InputPath) ldcversion.c ldapcompare /**/
+
+# End Custom Build
+
+!ENDIF 
+
 # End Source File
 # End Target
 # End Project

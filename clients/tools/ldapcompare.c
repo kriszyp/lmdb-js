@@ -28,7 +28,6 @@
 
 #include <ldap.h>
 
-#include "ldif.h"
 #include "lutil.h"
 #include "lutil_ldap.h"
 #include "ldap_defaults.h"
@@ -158,9 +157,6 @@ main( int argc, char **argv )
 			exit(-1);
 		}
 	}
-
-	if ( debug )
-		ldif_debug = debug;
 
 	ld = tool_conn_setup( 0, 0 );
 

@@ -1143,16 +1143,24 @@ bdb_locker_id( Operation *op, DB_ENV *env, int *locker )
 {
 	int i, rc, lockid;
 	void *data;
+	void *ctx;
 
-	if ( !env || !op || !locker ) return -1;
+	if ( !env || !locker ) return -1;
+
+	/* If no op was provided, try to find the ctx anyway... */
+	if ( op ) {
+		ctx = op->o_threadctx;
+	} else {
+		ctx = ldap_pvt_thread_pool_context( &connection_pool );
+	}
 
 	/* Shouldn't happen unless we're single-threaded */
-	if ( !op->o_threadctx ) {
+	if ( !ctx ) {
 		*locker = 0;
 		return 0;
 	}
 
-	if ( ldap_pvt_thread_pool_getkey( op->o_threadctx, env, &data, NULL ) ) {
+	if ( ldap_pvt_thread_pool_getkey( ctx, env, &data, NULL ) ) {
 		for ( i=0, rc=1; rc != 0 && i<4; i++ ) {
 			rc = XLOCK_ID( env, &lockid );
 			if (rc) ldap_pvt_thread_yield();
@@ -1161,7 +1169,7 @@ bdb_locker_id( Operation *op, DB_ENV *env, int *locker )
 			return rc;
 		}
 		data = (void *)lockid;
-		if ( ( rc = ldap_pvt_thread_pool_setkey( op->o_threadctx, env,
+		if ( ( rc = ldap_pvt_thread_pool_setkey( ctx, env,
 			data, bdb_locker_id_free ) ) ) {
 			XLOCK_ID_FREE( env, lockid );
 #ifdef NEW_LOGGING

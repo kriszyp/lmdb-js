@@ -42,9 +42,11 @@ slurpd:	version.o
 sslurpd:	version.o
 	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS)
 
-version.c: $(OBJS) $(SLURPD_L)
+version.c: Makefile
 	@-$(RM) $@
 	$(MKVERSION) slurpd > $@
+
+version.o: version.c $(OBJS) $(SLURPD_L)
 
 install-local-srv: FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
