@@ -112,7 +112,8 @@ main(int argc, char **argv)
 {
     char		*infile, *entrydn = NULL, *rdn = NULL, buf[ 4096 ];
     FILE		*fp;
-	int		rc, i, remove, havedn, authmethod, version, want_bindpw, debug, manageDSAit, noop, crit;
+	int		rc, retval, i, remove, havedn, authmethod, version;
+	int		want_bindpw, debug, manageDSAit, noop, crit;
 	int		referrals;
     char	*newSuperior=NULL;
 	char	*pw_file = NULL;
@@ -805,9 +806,9 @@ main(int argc, char **argv)
 		}
 	}
 
-    rc = 0;
+    retval = rc = 0;
     if (havedn)
-	rc = domodrdn( ld, entrydn, rdn, newSuperior, remove );
+	retval = domodrdn( ld, entrydn, rdn, newSuperior, remove );
     else while ((rc == 0 || contoper) && fgets(buf, sizeof(buf), fp) != NULL) {
 	if ( *buf != '\0' ) {	/* blank lines optional, skip */
 	    buf[ strlen( buf ) - 1 ] = '\0';	/* remove nl */
@@ -818,6 +819,8 @@ main(int argc, char **argv)
                     return( EXIT_FAILURE );
 		}
 		rc = domodrdn(ld, entrydn, rdn, newSuperior, remove );
+		if ( rc != 0 )
+			retval = rc;
 		havedn = 0;
 	    } else if ( !havedn ) {	/* don't have DN yet */
 	        if (( entrydn = strdup( buf )) == NULL ) {
@@ -831,8 +834,7 @@ main(int argc, char **argv)
 
     ldap_unbind( ld );
 
-	/* UNREACHABLE */
-	return( rc );
+    return( retval );
 }
 
 static int domodrdn(

@@ -99,7 +99,8 @@ main( int argc, char **argv )
 {
 	char		buf[ 4096 ];
 	FILE		*fp;
-	int		i, rc, authmethod, referrals, want_bindpw, version, debug, manageDSAit, noop, crit;
+	int		i, rc, retval, authmethod, referrals, want_bindpw;
+	int		version, debug, manageDSAit, noop, crit;
 	char	*pw_file;
 	char	*control, *cvalue;
 	char	*authzid = NULL;
@@ -770,14 +771,17 @@ main( int argc, char **argv )
 		}
 	}
 
-	rc = 0;
+	retval = rc = 0;
 
     if ( fp == NULL ) {
 		for ( ; optind < argc; ++optind ) {
 			rc = dodelete( ld, argv[ optind ] );
 
 			/* Stop on error and no -c option */
-			if( rc != 0 && contoper == 0) break;
+			if( rc != 0 ) {
+				retval = rc;
+				if( contoper == 0 ) break;
+			}
 		}
 	} else {
 		while ((rc == 0 || contoper) && fgets(buf, sizeof(buf), fp) != NULL) {
@@ -785,13 +789,15 @@ main( int argc, char **argv )
 
 			if ( *buf != '\0' ) {
 				rc = dodelete( ld, buf );
+				if ( rc != 0 )
+					retval = rc;
 			}
 		}
 	}
 
     ldap_unbind( ld );
 
-	return( rc );
+    return( retval );
 }
 
 
