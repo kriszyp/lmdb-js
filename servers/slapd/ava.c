@@ -53,9 +53,9 @@ get_ava(
 	aa->aa_value = NULL;
 
 	rc = slap_bv2ad( &type, &aa->aa_desc, text );
+	ch_free( type.bv_val );
 
 	if( rc != LDAP_SUCCESS ) {
-		ch_free( type.bv_val );
 		ch_free( value.bv_val );
 		ch_free( aa );
 		return rc;
@@ -65,7 +65,6 @@ get_ava(
 	ch_free( value.bv_val );
 
 	if( rc != LDAP_SUCCESS ) {
-		ch_free( type.bv_val );
 		ad_free( aa->aa_desc, 1 );
 		ch_free( aa );
 		return rc;
