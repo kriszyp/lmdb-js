@@ -1857,7 +1857,11 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 				|| ( p == val->bv_val && LDAP_DN_NEEDESCAPE_LEAD( p[ 0 ] ) )
 				|| ( !p[ 1 ] && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) ) ) {
 #ifdef PRETTY_ESCAPE
+#if 0
 			if ( LDAP_DN_WILLESCAPE_HEX( flags, p[ 0 ] ) ) {
+#else
+			if ( LDAP_DN_WILLESCAPE_CHAR( p[ 0 ] ) ) {
+#endif
 
 				/* 
 				 * there might be some chars we want 
@@ -1928,7 +1932,11 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 		 */
 		if ( ( cl > 1 && !LDAP_DN_IS_PRETTY( flags ) ) 
 #ifdef PRETTY_ESCAPE
+#if 0
 				|| LDAP_DN_WILLESCAPE_HEX( flags, val->bv_val[ s ] ) 
+#else
+				|| LDAP_DN_WILLESCAPE_CHAR( val->bv_val[ s ] ) 
+#endif
 #else /* ! PRETTY_ESCAPE */
 				|| LDAP_DN_NEEDESCAPE( val->bv_val[ s ] )
 				|| ( d == 0 && LDAP_DN_NEEDESCAPE_LEAD( val->bv_val[ s ] ) )
