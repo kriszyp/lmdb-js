@@ -67,7 +67,7 @@ usage( void )
 {
 	fprintf( stderr, _("Change password of an LDAP user\n\n"));
 	fprintf( stderr,_("usage: %s [options] [user]\n"), prog);
-	fprintf( stderr, _("  user: the autentication identity, commonly a DN\n"));
+	fprintf( stderr, _("  user: the authentication identity, commonly a DN\n"));
 	fprintf( stderr, _("Password change options:\n"));
 	fprintf( stderr, _("  -a secret  old password\n"));
 	fprintf( stderr, _("  -A         prompt for old password\n"));
