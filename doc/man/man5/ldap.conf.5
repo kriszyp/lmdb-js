@@ -8,13 +8,15 @@ ldap.conf, .ldaprc \- ldap configuration file
 .SH SYNOPSIS
 ETCDIR/ldap.conf, .ldaprc
 .SH DESCRIPTION
+If the environment variable \fBLDAPNOINIT\fP is defined, all
+defaulting is disabled.
+.LP
 The
 .I ldap.conf
 configuration file is used to set system-wide defaults to be applied when
 running
 .I ldap
-clients.  If the environment variable \fBLDAPNOINIT\fP is defined, all
-defaulting is disabled.
+clients.
 .LP
 Users may create an optional configuration file,
 .I ldaprc
@@ -25,6 +27,7 @@ defaults file.
 The file
 .I ldaprc
 in the current working directory is also used.
+.LP
 .LP
 Additional configuration files can be specified using
 the \fBLDAPCONF\fP and \fBLDAPRC\fP environment variables.
