@@ -584,6 +584,25 @@ access to the attribute holding the referral information
 (generally the
 .B ref
 attribute).
+.LP
+Some
+.B controls
+require specific access privileges.
+The
+.B proxyAuthz
+control requires
+.B auth (=x)
+privileges on all the attributes that are present in the search filter
+of the URI regexp maps (the right-hand side of the
+.B sasl-regexp
+directives).
+It also requires
+.B auth (=x)
+privileges on the
+.B saslAuthzTo
+attribute of the authorizing identity and/or on the 
+.B saslAuthzFrom
+attribute of the authorized identity.
 .SH CAVEATS
 It is strongly recommended to explicitly use the most appropriate
 .BR <dnstyle> ,
