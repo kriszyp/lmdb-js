@@ -159,7 +159,7 @@ do_search(
 
 	/* attributes */
 	siz = sizeof(AttributeName);
-	off = 0;
+	off = offsetof(AttributeName,an_name);
 	if ( ber_scanf( op->o_ber, "{M}}", &op->ors_attrs, &siz, off ) == LBER_ERROR ) {
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding attrs error" );
 		rs->sr_err = SLAPD_DISCONNECT;

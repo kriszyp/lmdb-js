@@ -986,7 +986,7 @@ static int parsePreRead (
 	}
 
 	siz = sizeof( AttributeName );
-	off = 0;
+	off = offsetof( AttributeName, an_name );
 	if ( ber_scanf( ber, "{M}", &an, &siz, off ) == LBER_ERROR ) {
 		rs->sr_text = "preread control: decoding error";
 		return LDAP_PROTOCOL_ERROR;
@@ -1035,7 +1035,7 @@ static int parsePostRead (
 	}
 
 	siz = sizeof( AttributeName );
-	off = 0;
+	off = offsetof( AttributeName, an_name );
 	if ( ber_scanf( ber, "{M}", &an, &siz, off ) == LBER_ERROR ) {
 		rs->sr_text = "postread control: decoding error";
 		return LDAP_PROTOCOL_ERROR;
