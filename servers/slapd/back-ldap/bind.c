@@ -411,8 +411,13 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op)
 #ifdef ENABLE_REWRITE
 	
 	/*
-	 * need rewrite info; mmmh ...
+	 * FIXME: need rewrite info for match; mmmh ...
 	 */
+	send_ldap_result( lc->conn, op, err, match, msg, NULL, NULL );
+	/* better test the pointers before freeing? */
+	if ( match ) {
+		free( match );
+	}
 
 #else /* !ENABLE_REWRITE */
 
@@ -421,6 +426,7 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op)
 	if ( match ) {
 		free( match );
 	}
+
 #endif /* !ENABLE_REWRITE */
 
 	if ( msg ) free( msg );
