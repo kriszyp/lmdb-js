@@ -129,7 +129,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				    fname, lineno, 0 );
 			} else {
 				char *dn = ch_strdup( cargv[1] );
-				(void) dn_normalize( dn );
+				(void) dn_normalize_case( dn );
 				charray_add( &be->be_suffix, dn );
 			}
 

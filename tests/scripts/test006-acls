@@ -21,7 +21,7 @@ if [ $RC != 0 ]; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT..."
-$SLAPD -f $ACLCONF -p $PORT -d 1 > $MASTERLOG 2>&1 &
+$SLAPD -f $ACLCONF -p $PORT -d $LVL > $MASTERLOG 2>&1 &
 PID=$!
 
 echo "Testing slapd access control..."
