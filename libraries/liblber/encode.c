@@ -24,7 +24,7 @@
 #include <malloc.h>
 #endif
 #endif /* next || vms */
-#if defined( BC31 ) || defined( _WIN32 )
+#if defined( BC31 ) || defined( _WIN32 ) 
 #include <stdarg.h>
 #else /* BC31 || _WIN32 */
 #include <varargs.h>

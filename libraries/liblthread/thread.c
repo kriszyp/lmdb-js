@@ -328,6 +328,7 @@ pthread_cond_broadcast( pthread_cond_t *cv )
  *                                                                     *
  ***********************************************************************/
 
+#if !defined(__SunOS_5_6)
 int
 pthread_attr_init( pthread_attr_t *attr )
 {
@@ -367,6 +368,7 @@ pthread_create(
 {
 	return( thr_create( NULL, 0, func, arg, attr, tid ) );
 }
+#endif /* ! sunos56 */
 
 void
 pthread_yield()
@@ -374,6 +376,7 @@ pthread_yield()
 	thr_yield();
 }
 
+#if !defined(__SunOS_5_6)
 void
 pthread_exit()
 {
@@ -452,6 +455,7 @@ pthread_cond_broadcast( pthread_cond_t *cv )
 {
 	return( cond_broadcast( cv ) );
 }
+#endif /* ! sunos56 */
 
 
 #else /* end sunos5 threads */
