@@ -79,11 +79,14 @@ attr_masks(
 		}
 	}
 	*indexmask = a->ai_indexmask;
+
+#ifdef SLAPD_SCHEMA_COMPAT
 	if ( strcasecmp( a->ai_type, "default" ) == 0 ) {
 		*syntaxmask = attr_syntax( type );
 	} else {
 		*syntaxmask = a->ai_syntaxmask;
 	}
+#endif
 }
 
 void
@@ -107,7 +110,9 @@ attr_index_config(
 	for ( i = 0; attrs[i] != NULL; i++ ) {
 		a = (AttrInfo *) ch_malloc( sizeof(AttrInfo) );
 		a->ai_type = ch_strdup( attrs[i] );
+#ifdef SLAPD_SCHEMA_COMPAT
 		a->ai_syntaxmask = attr_syntax( a->ai_type );
+#endif
 		if ( argc == 1 ) {
 			a->ai_indexmask = (INDEX_PRESENCE | INDEX_EQUALITY |
 			    INDEX_APPROX | INDEX_SUB);

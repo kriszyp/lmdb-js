@@ -248,10 +248,12 @@ add_values(
 	/* check if the values we're adding already exist */
 	if ( (a = attr_find( e->e_attrs, mod->mod_type )) != NULL ) {
 		for ( i = 0; mod->mod_bvalues[i] != NULL; i++ ) {
+#ifdef SLAPD_SCHEMA_COMPAT
 			if ( value_find( a->a_vals, mod->mod_bvalues[i],
 			    a->a_syntax, 3 ) == 0 ) {
 				return( LDAP_TYPE_OR_VALUE_EXISTS );
 			}
+#endif
 		}
 	}
 
@@ -292,10 +294,12 @@ delete_values(
 	for ( i = 0; mod->mod_bvalues[i] != NULL; i++ ) {
 		found = 0;
 		for ( j = 0; a->a_vals[j] != NULL; j++ ) {
+#ifdef SLAPD_SCHEMA_COMPAT
 			if ( value_cmp( mod->mod_bvalues[i], a->a_vals[j],
 			    a->a_syntax, 3 ) != 0 ) {
 				continue;
 			}
+#endif
 			found = 1;
 
 			/* found a matching value - delete it */

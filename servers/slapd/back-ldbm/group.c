@@ -80,6 +80,8 @@ ldbm_back_group(
         
 	rc = 1;
         
+#ifdef SLAPD_SCHEMA_COMPAT
+
 	if ((attr = attr_find(e->e_attrs, "objectclass")) == NULL)  {
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_group: failed to find objectClass\n", 0, 0, 0 );
@@ -142,6 +144,7 @@ ldbm_back_group(
 		op_ndn, gr_ndn, groupattrName ); 
 
 	rc = 0;
+#endif
 
 return_results:
 	if( target != e ) {

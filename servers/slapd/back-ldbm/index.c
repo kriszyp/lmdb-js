@@ -321,6 +321,7 @@ index_change_values(
 		return( -1 );
 	}
 
+#ifdef SLAPD_SCHEMA_COMPAT
 	if ( (db = ldbm_cache_open( be, at_cn, LDBM_SUFFIX, mode ))
 	     == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -444,6 +445,7 @@ index_change_values(
 	}
 
 	ldbm_cache_close( be, db );
+#endif
 
 	return( 0 );
 
