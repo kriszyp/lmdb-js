@@ -1741,13 +1741,9 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		sop = ch_malloc( sizeof( syncops ));
 		*sop = so;
 		ldap_pvt_thread_mutex_init( &sop->s_mutex );
-		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 		sop->s_sid = srs->sr_state.sid;
 		sop->s_rid = srs->sr_state.rid;
-		sop->s_next = si->si_ops;
 		sop->s_inuse = 1;
-		si->si_ops = sop;
-		ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 	}
 
 	/* snapshot the ctxcsn */
@@ -1760,31 +1756,32 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	/* If we have a cookie, handle the PRESENT lookups */
 	if ( srs->sr_state.ctxcsn ) {
 		sessionlog *sl;
+		int valid = 0;
 
 		/* Is the CSN in a valid format? */
 		/* FIXME: should use csnValidate when that is implemented */
-		{
+		while (!valid) {
 			char *ptr;
 			struct berval timestamp;
 			slap_syntax_validate_func *validate;
 			AttributeDescription *ad = slap_schema.si_ad_modifyTimestamp;
 
-			if ( srs->sr_state.ctxcsn->bv_len >= LDAP_LUTIL_CSNSTR_BUFSIZE ) {
-				send_ldap_error( op, rs, LDAP_OTHER, "invalid sync cookie" );
-				return rs->sr_err;
-			}
+			if ( srs->sr_state.ctxcsn->bv_len >= LDAP_LUTIL_CSNSTR_BUFSIZE )
+				break;
 			ptr = strchr( srs->sr_state.ctxcsn->bv_val, '#' );
-			if ( !ptr ) {
-				send_ldap_error( op, rs, LDAP_OTHER, "invalid sync cookie" );
-				return rs->sr_err;
-			}
+			if ( !ptr )
+				break;
 			timestamp.bv_val = srs->sr_state.ctxcsn->bv_val;
 			timestamp.bv_len = ptr - timestamp.bv_val;
 			validate = ad->ad_type->sat_syntax->ssyn_validate;
-			if ( validate( ad->ad_type->sat_syntax, &timestamp )) {
-				send_ldap_error( op, rs, LDAP_OTHER, "invalid sync cookie" );
-				return rs->sr_err;
-			}
+			if ( validate( ad->ad_type->sat_syntax, &timestamp ))
+				break;
+			valid = 1;
+		}
+		if ( !valid ) {
+			if ( sop ) ch_free( sop );
+			send_ldap_error( op, rs, LDAP_OTHER, "invalid sync cookie" );
+			return rs->sr_err;
 		}
 		/* If just Refreshing and nothing has changed, shortcut it */
 		if ( bvmatch( srs->sr_state.ctxcsn, &ctxcsn )) {
@@ -1843,6 +1840,12 @@ shortcut:
 	 */
 	if ( sop ) {
 		sop->s_filterstr= op->ors_filterstr;
+
+		/* insert record of psearch now */
+		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+		sop->s_next = si->si_ops;
+		si->si_ops = sop;
+		ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 	}
 
 	fand = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
