@@ -218,5 +218,49 @@ ldap_int_thread_mutex_unlock( ldap_int_thread_mutex_t *mutex )
 	return pthread_mutex_unlock( mutex );
 }
 
+#ifdef HAVE_PTHREAD_RWLOCK_DESTROY
+int 
+ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_init( rw, NULL );
+}
+
+int 
+ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_destroy( rw );
+}
+
+int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_rdlock( rw );
+}
+
+int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_tryrdlock( rw );
+}
+
+int ldap_pvt_thread_rdwr_runlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_unlock( rw );
+}
+
+int ldap_pvt_thread_rdwr_wlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_wrlock( rw );
+}
+
+int ldap_pvt_thread_rdwr_wtrylock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_trywrlock( rw );
+}
+
+int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_unlock( rw );
+}
+
+#endif /* LDAP_THREAD_HAVE_RDWR */
 #endif /* HAVE_PTHREADS */
 

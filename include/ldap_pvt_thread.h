@@ -96,6 +96,7 @@ ldap_pvt_thread_mutex_trylock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 LIBLDAP_F( int )
 ldap_pvt_thread_mutex_unlock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
+#ifndef LDAP_THREAD_HAVE_RDWR
 typedef struct ldap_pvt_thread_rdwr_var {
 	ldap_pvt_thread_mutex_t ltrw_mutex;	
 	ldap_pvt_thread_cond_t ltrw_read;	/* wait for read */
@@ -107,6 +108,7 @@ typedef struct ldap_pvt_thread_rdwr_var {
 	int ltrw_r_wait;
 	int ltrw_w_wait;
 } ldap_pvt_thread_rdwr_t;
+#endif
 
 LIBLDAP_F( int )
 ldap_pvt_thread_rdwr_init LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));

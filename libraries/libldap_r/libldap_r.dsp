@@ -336,6 +336,10 @@ SOURCE=.\thr_stub.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\threads.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\libldap\tls.c
 # End Source File
 # Begin Source File

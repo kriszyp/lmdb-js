@@ -14,6 +14,12 @@
 
 /* end of preamble */
 
+#if !defined(SLAPD_SCHEMA_COMPAT) && !defined(SLAPD_SCHEMA_NOT_COMPAT)
+	/* define SLAPD_SCHEMA_COMPAT if you want old schema codes */
+#define SLAPD_SCHEMA_NOT_COMPAT 1
+#endif
+
+
 /* Define if on AIX 3.
    System headers sometimes define this.
    We just want to avoid a redefinition error message.  */
@@ -202,6 +208,9 @@
 
 /* Define if you have the pthread_kill function.  */
 #undef HAVE_PTHREAD_KILL
+
+/* Define if you have the pthread_rwlock_destroy function.  */
+#undef HAVE_PTHREAD_RWLOCK_DESTROY
 
 /* Define if you have the pthread_setconcurrency function.  */
 #undef HAVE_PTHREAD_SETCONCURRENCY

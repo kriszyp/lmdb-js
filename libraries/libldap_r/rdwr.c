@@ -226,7 +226,7 @@ int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rw )
 	return 0;
 }
 
-#ifdef LDAP_DEBUG
+#ifdef LDAP_RDWR_DEBUG
 
 /* just for testing, 
  * return 0 if false, suitable for assert(ldap_pvt_thread_rdwr_Xchk(rdwr))
