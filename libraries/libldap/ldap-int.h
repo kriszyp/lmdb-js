@@ -55,7 +55,6 @@ LDAP_BEGIN_DECL
 
 #define LDAP_BOOL_REFERRALS		0
 #define LDAP_BOOL_RESTART		1
-#define LDAP_BOOL_DNS			2
 #define LDAP_BOOL_TLS			3
 
 #define LDAP_BOOLEANS	unsigned long

@@ -63,12 +63,6 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 		return NULL;
 	}
 
-	if ( ldap_is_dns_dn( dn ) ||
-		( p = ldap_utf8_strpbrk( dn, "=" ) ) == NULL )
-	{
-		return( LDAP_STRDUP( dn ) );
-	}
-
 	ufn = LDAP_STRDUP( ++p );
 
 	if( ufn == NULL ) return NULL;
@@ -142,57 +136,10 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 }
 
 char **
-ldap_explode_dns( LDAP_CONST char *dn_in )
-{
-	char	*s;
-	char	**rdns;
-   	char    *tok_r;
-	char	*dn;
-
-	int ncomps;
-	int maxcomps = 8;
-
-	if ( (dn = LDAP_STRDUP( dn_in )) == NULL ) {
-		return( NULL );
-	}
-
-	if ( (rdns = (char **) LDAP_MALLOC( maxcomps * sizeof(char *) )) == NULL ) {
-		LDAP_FREE( dn );
-		return( NULL );
-	}
-
-	ncomps = 0;
-	for ( s = ldap_pvt_strtok( dn, "@.", &tok_r ); s != NULL; 
-	      s = ldap_pvt_strtok( NULL, "@.", &tok_r ) )
-	{
-		if ( ncomps == maxcomps ) {
-			maxcomps *= 2;
-			if ( (rdns = (char **) LDAP_REALLOC( rdns, maxcomps *
-			    sizeof(char *) )) == NULL )
-			{
-				LDAP_FREE( dn );
-				return NULL;
-			}
-		}
-		rdns[ncomps++] = LDAP_STRDUP( s );
-	}
-	LDAP_FREE(dn);
-
-	rdns[ncomps] = NULL;
-
-	/* trim rdns */
-	rdns = (char **) LDAP_REALLOC( rdns, (ncomps+1) * sizeof(char*) );
-	return( rdns );
-}
-
-char **
 ldap_explode_dn( LDAP_CONST char *dn, int notypes )
 {
 	Debug( LDAP_DEBUG_TRACE, "ldap_explode_dn\n", 0, 0, 0 );
 
-	if ( ldap_is_dns_dn( dn ) ) {
-		return( ldap_explode_dns( dn ) );
-	}
 	return explode_name( dn, notypes, NAME_TYPE_LDAP_DN );
 }
 
@@ -415,11 +362,3 @@ explode_name( const char *name, int notypes, int is_type )
 
 	return( parts );
 }
-
-
-int
-ldap_is_dns_dn( LDAP_CONST char *dn )
-{
-	return dn[ 0 ] != '\0' && ldap_utf8_strpbrk( dn, "=,;" ) == NULL;
-}
-

@@ -388,9 +388,7 @@ get_next_substring( const char * s, char d )
 	/* Skip leading spaces */
 	
 	while ( *s && ASCII_SPACE(*s) ) {
-	    
 		s++;
-	    
 	}
 	
 	/* Copy word */
@@ -423,9 +421,7 @@ get_next_substring( const char * s, char d )
 
 char * rdn_attr_type( const char * s )
 {
-
 	return get_next_substring( s, '=' );
-
 }
 
 
@@ -445,9 +441,7 @@ rdn_attr_value( const char * rdn )
 	const char	*str;
 
 	if ( (str = strchr( rdn, '=' )) != NULL ) {
-
 		return get_next_substring(++str, '\0');
-
 	}
 
 	return NULL;
@@ -478,10 +472,8 @@ build_new_dn( char ** new_dn,
 {
 
     if ( p_dn == NULL ) {
-
 	*new_dn = ch_strdup( newrdn );
 	return;
-
     }
     
     *new_dn = (char *) ch_malloc( strlen( p_dn ) + strlen( newrdn ) + 3 );

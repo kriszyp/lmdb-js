@@ -188,10 +188,6 @@ ldap_get_option(
 		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_RESTART);
 		return LDAP_OPT_SUCCESS;
 
-	case LDAP_OPT_DNS:	/* LDAPv2 */
-		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_DNS);
-		return LDAP_OPT_SUCCESS;
-
 	case LDAP_OPT_PROTOCOL_VERSION:
 		* (int *) outvalue = lo->ldo_version;
 		return LDAP_OPT_SUCCESS;

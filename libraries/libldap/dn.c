@@ -217,25 +217,7 @@ ldap_dn_parent(
 	}
 
 	/*
-	 * no =, assume it is a dns name, like blah@some.domain.name
-	 * if the blah@ part is there, return some.domain.name.  if
-	 * it's just some.domain.name, return domain.name.
-	 */
-	if ( strchr( dn, '=' ) == NULL ) {
-		if ( (s = strchr( dn, '@' )) == NULL ) {
-			if ( (s = strchr( dn, '.' )) == NULL ) {
-				return( NULL );
-			}
-		}
-		if ( *(s + 1) == '\0' ) {
-			return( NULL );
-		} else {
-			return( LDAP_STRDUP( &s[1] ) );
-		}
-	}
-
-	/*
-	 * else assume it is an X.500-style name, which looks like
+	 * assume it is an X.500-style name, which looks like
 	 * foo=bar,sha=baz,...
 	 */
 
@@ -288,25 +270,8 @@ char * ldap_dn_rdn(
 		return NULL;
 	}
 
-#ifdef DNS_DN
 	/*
-	 * no =, assume it is a dns name, like blah@some.domain.name
-	 * if the blah@ part is there, return some.domain.name.  if
-	 * it's just some.domain.name, return domain.name.
-	 */
-	if ( strchr( rdn, '=' ) == NULL ) {
-		if ( (s = strchr( rdn, '@' )) == NULL ) {
-			if ( (s = strchr( rdn, '.' )) == NULL ) {
-				return( rdn );
-			}
-		}
-		*s = '\0';
-		return( rdn );
-	}
-#endif
-
-	/*
-	 * else assume it is an X.500-style name, which looks like
+	 * assume it is an X.500-style name, which looks like
 	 * foo=bar,sha=baz,...
 	 */
 

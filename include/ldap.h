@@ -105,8 +105,6 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_PRIVATE_EXTENSION_BASE 0x4000  /* to 0x7FFF inclusive */
 
 /* private and experimental options */
-#define LDAP_OPT_DNS				0x4001	/* use DN & DNS */
-
 /* OpenLDAP specific options */
 #define LDAP_OPT_DEBUG_LEVEL		0x5001	/* debug level */
 #define LDAP_OPT_TIMEOUT			0x5002	/* default timeout */
@@ -1156,14 +1154,6 @@ ldap_relative_dn LDAP_P((
 
 LIBLDAP_F( char * )
 ldap_normalize_dn LDAP_P((
-	LDAP_CONST char *dn ));
-
-LIBLDAP_F( char ** )
-ldap_explode_dns LDAP_P(( /* deprecated */
-	LDAP_CONST char *dn ));
-
-LIBLDAP_F( int )
-ldap_is_dns_dn LDAP_P((	/* deprecated */
 	LDAP_CONST char *dn ));
 
 LIBLDAP_F( char * )
