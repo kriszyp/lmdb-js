@@ -788,8 +788,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 
 	len = strlen( *errstrp );
 	for ( p = *errstrp; len >= LDAP_REF_STR_LEN; ++p, --len ) {
-		if (( *p == 'R' || *p == 'r' ) && strncasecmp( p,
-		    LDAP_REF_STR, LDAP_REF_STR_LEN ) == 0 ) {
+		if ( strncasecmp( p, LDAP_REF_STR, LDAP_REF_STR_LEN ) == 0 ) {
 			*p = '\0';
 			p += LDAP_REF_STR_LEN;
 			break;
@@ -826,6 +825,9 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 			p = NULL;
 		}
 
+		/* copy the complete referral for rebind process */
+		rinfo.ri_url = LDAP_STRDUP( ref );
+
 		ldap_pvt_hex_unescape( ref );
 		len = strlen( ref );
 
@@ -841,11 +843,10 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 			    "ignoring unknown referral <%s>\n", ref, 0, 0 );
 			rc = ldap_append_referral( ld, &unfollowed, ref );
 			*hadrefp = 1;
+			LDAP_FREE( rinfo.ri_url );
+			rinfo.ri_url = NULL;
 			continue;
 		}
-
-		/* copy the complete referral for rebind process */
-		rinfo.ri_url = LDAP_STRDUP( ref );
 
 		*hadrefp = 1;
 
@@ -952,9 +953,9 @@ ldap_append_referral( LDAP *ld, char **referralsp, char *s )
 static BerElement *
 re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp, int *type )
 {
-/*
- * XXX this routine knows way too much about how the lber library works!
- */
+	/*
+	 * XXX this routine knows way too much about how the lber library works!
+	 */
 	ber_int_t	along;
 	ber_tag_t	tag;
 	ber_int_t	ver;
@@ -1049,7 +1050,7 @@ re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp, i
 LDAPRequest *
 ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid )
 {
-    	LDAPRequest	*lr;
+	LDAPRequest	*lr;
 
 	for ( lr = ld->ld_requests; lr != NULL; lr = lr->lr_next ) {
 		if( lr->lr_status == LDAP_REQST_COMPLETED ) {
