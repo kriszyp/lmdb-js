@@ -205,6 +205,12 @@ AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
 
+AC_CHECK_FUNC(socket, :,  
+[	AC_CHECK_LIB(nsl, gethostname)
+	AC_CHECK_LIB(socket, socket)
+	AC_CHECK_LIB(inet, socket)
+])
+
 ol_link_threads=no
 if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 	AC_CHECK_HEADERS(pthread.h sched.h)
@@ -552,7 +558,6 @@ AC_CHECK_FUNCS(		\
 	mktime			\
 	select			\
 	socket			\
-	strdup			\
 	strerror		\
 	strstr			\
 	strrchr			\
