@@ -64,7 +64,7 @@ str2entry( char *s )
 	next = s;
 
 	/* initialize reader/writer lock */
-	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	e = (Entry *) ch_malloc( sizeof(Entry) );
 
 	if( e == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -73,14 +73,18 @@ str2entry( char *s )
 		return( NULL );
 	}
 
+	/* initialize entry */
 	e->e_id = NOID;
+	e->e_dn = NULL;
+	e->e_ndn = NULL;
+	e->e_attrs = NULL;
 	e->e_private = NULL;
 
 	/* dn + attributes */
-	e->e_attrs = NULL;
 	vals[0] = &bval;
 	vals[1] = NULL;
 	ptype[0] = '\0';
+
 	while ( (s = ldif_getline( &next )) != NULL ) {
 		if ( *s == '\n' || *s == '\0' ) {
 			break;
