@@ -2,16 +2,20 @@
 .SH NAME
 slapd \- Stand-alone LDAP Daemon
 .SH SYNOPSIS
-.B LIBEXECDIR/slapd [\-d debug\-level]
-.B [\-f slapd\-config\-file] [\-a address] [\-p port\-number]
-.B [\-s syslog\-level] [\-l syslog\-local\-user] [\-i]
+.B LIBEXECDIR/slapd 
+.B [\-f slapd\-config\-file]
+.B [\-h URLs]
+.B [\-d debug\-level]
+.B [\-p port\-number]
+.B [\-P tls\-port\-number]
+.B [\-s syslog\-level] [\-l syslog\-local\-user]
 .B [\-u user] [\-g group]
 .B 
 .SH DESCRIPTION
 .LP
 .B Slapd
 is the stand-alone LDAP daemon. It listens for LDAP connections on
-port 389, responding
+any number of ports (default 389), responding
 to the LDAP operations it receives over these connections.
 .B slapd
 is typically invoked at boot time, usually out of
@@ -88,24 +92,35 @@ facility.
 Specifies the slapd configuration file. The default is
 .BR ETCDIR/slapd.conf .
 .TP
-.BI \-a " address"
+.BI \-h " URLlist"
 .B slapd
-will listen on all addresses (INADDR_ANY) unless this option
-is given to override the default.  The address is expected in 
-Internet standard '.' format.
+will serve
+.B ldap:///
+(LDAP over TCP on all interfaces on default LDAP port).  As such,
+it will bind to INADDR_ANY, port 389.
+The
+.B \-h
+option may be used to specify LDAP (and LDAPS) URLs to serve.
+For example, if slapd is given
+.B \-h " ldap://127.0.0.1:9009/ ldaps:///", 
+It will bind 127.0.0.1:9009 for LDAP and INADDR_ANY:636 for LDAP over TLS.
+A space separated list of URLs is expected.  The URLS should be of
+LDAP (ldap://) or, if supported, LDAP over TLS (ldaps://) type without
+a DN or other optional parameters.  Hosts may be specified in either
+Internet '.' format (preferred) or by name.  Ports, if specfied,
+must be numeric.
 .TP
 .BI \-p " port\-number"
 .B slapd
-will listen on the default LDAP port (389) unless this option is given
-to override the default.  A numeric port number is expected.
+will use on the default port (389) for LDAP URLs unless this
+option is given to override the default.
+A numeric port number is expected.
 .TP
-.BI \-T
-If
+.BI \-P " tls\-port\-number"
 .B slapd
-is built with support for Transport Layer Security and this option is
-given, it will bind on an additional port for TLS/SSL connections.
-Notice that this is LDAP over raw TLS, not TLS with SASL that works
-on the normal port.
+will use on the default port (636) for LDAPS (LDAP over TLS) URLs
+unless this option is given to override the default.  A numeric port
+number is expected.
 .TP
 .BI \-P " port\-number"
 Changes the port where 
@@ -124,13 +139,6 @@ override.
 .BI \-g " group"
 .B slapd
 will run with the specified group name or id.
-.TP
-.B \-i
-This option tells
-.B slapd
-that it is being run from
-.BR inetd(8) ,
-the Internet protocol daemon.
 .LP
 Note that on some systems, running as a non-privileged user will prevent
 passwd back-ends from accessing the encrypted passwords.  Note also that
