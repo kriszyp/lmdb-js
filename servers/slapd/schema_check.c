@@ -854,7 +854,31 @@ entry_naming_check(
 			break;
 		}
 
-		if( desc->ad_type->sat_equality == NULL ) {
+		if( desc->ad_type->sat_usage ) {
+			snprintf( textbuf, textlen, 
+				"naming attribute '%s' is operational",
+				ava->la_attr.bv_val );
+			rc = LDAP_NAMING_VIOLATION;
+			break;
+		}
+ 
+		if( desc->ad_type->sat_collective ) {
+			snprintf( textbuf, textlen, 
+				"naming attribute '%s' is collective",
+				ava->la_attr.bv_val );
+			rc = LDAP_NAMING_VIOLATION;
+			break;
+		}
+
+		if( desc->ad_type->sat_obsolete ) {
+			snprintf( textbuf, textlen, 
+				"naming attribute '%s' is collective",
+				ava->la_attr.bv_val );
+			rc = LDAP_NAMING_VIOLATION;
+			break;
+		}
+
+		if( !desc->ad_type->sat_equality ) {
 			snprintf( textbuf, textlen, 
 				"naming attribute '%s' has no equality matching rule",
 				ava->la_attr.bv_val );
@@ -862,7 +886,7 @@ entry_naming_check(
 			break;
 		}
 
-		if( desc->ad_type->sat_equality->smr_match == NULL ) {
+		if( !desc->ad_type->sat_equality->smr_match ) {
 			snprintf( textbuf, textlen, 
 				"naming attribute '%s' has unsupported equality matching rule",
 				ava->la_attr.bv_val );
