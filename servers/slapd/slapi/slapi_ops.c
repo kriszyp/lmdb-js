@@ -49,7 +49,7 @@ internal_search_entry(
 	
 	ent2str = slapi_entry2str( e, &len );
 	if ( ent2str == NULL ) {
-		return SLAPD_NO_MEMORY;
+		return 1;
 	}
 
 	slapi_pblock_get( (Slapi_PBlock *)op->o_pb,
@@ -61,23 +61,23 @@ internal_search_entry(
 	if ( nentries == 0 ) {
 		tp = (Slapi_Entry **)slapi_ch_malloc( 2 * sizeof(Slapi_Entry *) );
 		if ( tp == NULL ) {
-			return SLAPD_NO_MEMORY;
+			return 1;
 		}
 
 		tp[ 0 ] = (Slapi_Entry *)str2entry( ent2str );
 		if ( tp[ 0 ] == NULL ) { 
-			return SLAPD_NO_MEMORY;
+			return 1;
 		}
 
 	} else {
 		tp = (Slapi_Entry **)slapi_ch_realloc( (char *)head,
 				sizeof(Slapi_Entry *) * ( i + 1 ) );
 		if ( tp == NULL ) {
-			return SLAPD_NO_MEMORY;
+			return 1;
 		}
 		tp[ i - 1 ] = (Slapi_Entry *)str2entry( ent2str );
 		if ( tp[ i - 1 ] == NULL ) { 
-			return SLAPD_NO_MEMORY;
+			return 1;
 		}
 	}
 	tp[ i ] = NULL;
@@ -86,7 +86,6 @@ internal_search_entry(
 			SLAPI_PLUGIN_INTOP_SEARCH_ENTRIES, (void *)tp );
 	slapi_pblock_set( (Slapi_PBlock *)op->o_pb,
 			SLAPI_NENTRIES, (void *)i );
-	slapi_ch_free( (void **)&ent2str );
 
 	return LDAP_SUCCESS;
 }
@@ -174,6 +173,13 @@ fakeConnection(
 	c->c_pending_ops.stqh_first->o_authmech.bv_val = NULL; 
 	c->c_pending_ops.stqh_first->o_authmech.bv_len = 0; 
 	c->c_pending_ops.stqh_first->o_time = slap_get_time();
+	c->c_pending_ops.stqh_first->o_do_not_cache = 1;
+
+	/*
+	 * XXX this needs to be set otherwise back-bdb goes
+	 * into an infinite loop.
+	 */
+	c->c_pending_ops.stqh_first->o_threadctx = NULL;
 
 	/* connection object */
 	c->c_authmech.bv_val = NULL;
@@ -1203,7 +1209,7 @@ slapi_search_internal_bind(
 		manageDsaIt = 1;
 	}
 
-	be = select_backend( &dn, manageDsaIt, 0 );
+	be = select_backend( &ndn, manageDsaIt, 0 );
 	if ( be == NULL ) {
 		if ( manageDsaIt == 1 ) {
 			rc = LDAP_NO_SUCH_OBJECT;
