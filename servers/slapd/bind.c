@@ -199,7 +199,7 @@ do_bind(
 			Debug( LDAP_DEBUG_ANY,
 				"do_bind: no sasl mechanism provided\n",
 				0, 0, 0 );
-			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
+			send_ldap_result( conn, op, rc = LDAP_AUTH_METHOD_NOT_SUPPORTED,
 				NULL, "no SASL mechanism provided", NULL, NULL );
 			goto cleanup;
 		}
