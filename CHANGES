@@ -1,6 +1,7 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.20 Engineering
+	Fixed slapd ACL empty replace bug (ITS#1530)
 	Fixed slapd ACL peername/sockname exact match bug (ITS#1516)
 	Fixed back-passwd db_config bug
 	Fixed -lldap cache debug bug (ITS#1501)
