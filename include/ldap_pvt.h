@@ -179,6 +179,11 @@ struct ldap;
 LDAP_F (int) ldap_open_internal_connection LDAP_P((
 	struct ldap **ldp, ber_socket_t *fdp ));
 
+/* messages.c */
+LDAP_F( BerElement * )
+ldap_get_message_ber LDAP_P((
+	struct ldapmsg * ));
+
 /* search.c */
 LDAP_F( int ) ldap_pvt_put_filter LDAP_P((
 	BerElement *ber,
