@@ -144,10 +144,6 @@ SOURCE=.\csn.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\debug.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\entropy.c
 # End Source File
 # Begin Source File

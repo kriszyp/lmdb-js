@@ -179,6 +179,10 @@ SOURCE=.\bprint.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\debug.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\decode.c
 # End Source File
 # Begin Source File

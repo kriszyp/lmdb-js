@@ -267,7 +267,7 @@ static void openldap_ldap_init_w_userconf(const char *file)
 		Debug(LDAP_DEBUG_TRACE, "ldap_init: HOME env is %s\n",
 		      home, 0, 0);
 #endif
-		path = LDAP_MALLOC(strlen(home) + strlen(file) + 3);
+		path = LDAP_MALLOC(strlen(home) + strlen(file) + sizeof( LDAP_DIRSEP "."));
 	} else {
 #ifdef NEW_LOGGING
 	LDAP_LOG ( CONFIG, ARGS, "openldap_init_w_userconf: HOME env is NULL\n",
@@ -282,11 +282,11 @@ static void openldap_ldap_init_w_userconf(const char *file)
 		/* we assume UNIX path syntax is used... */
 
 		/* try ~/file */
-		sprintf(path, "%s%s%s", home, LDAP_DIRSEP, file);
+		sprintf(path, "%s" LDAP_DIRSEP "%s", home, file);
 		openldap_ldap_init_w_conf(path, 1);
 
 		/* try ~/.file */
-		sprintf(path, "%s%s.%s", home, LDAP_DIRSEP, file);
+		sprintf(path, "%s" LDAP_DIRSEP ".%s", home, file);
 		openldap_ldap_init_w_conf(path, 1);
 	}
 

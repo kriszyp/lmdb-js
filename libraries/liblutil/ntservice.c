@@ -83,7 +83,8 @@ int srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszDisplayName,
 			CloseServiceHandle(schService);
 			CloseServiceHandle(schSCManager);
 
-			sprintf( regpath, "SYSTEM\\CurrentControlSet\\Services\\EventLog\\Application\\%s",
+			snprintf( regpath, sizeof regpath,
+				"SYSTEM\\CurrentControlSet\\Services\\EventLog\\Application\\%s",
 				lpszServiceName );
 			/* Create the registry key for event logging to the Windows NT event log. */
 			if ( RegCreateKeyEx(HKEY_LOCAL_MACHINE, 
@@ -357,9 +358,9 @@ void *getRegParam( char *svc, char *value )
 	DWORD valLen = sizeof( vValue );
 
 	if ( svc != NULL )
-		sprintf ( path, "SOFTWARE\\%s", svc );
+		snprintf ( path, sizeof path, "SOFTWARE\\%s", svc );
 	else
-		strcpy (path, "SOFTWARE\\OpenLDAP\\Parameters" );
+		snprintf ( path, sizeof path, "SOFTWARE\\OpenLDAP\\Parameters" );
 	
 	if ( RegOpenKeyEx( HKEY_LOCAL_MACHINE, path, 0, KEY_READ, &hkey ) != ERROR_SUCCESS )
 	{

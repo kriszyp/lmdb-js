@@ -126,7 +126,7 @@ static int interaction(
 		fprintf( stderr, "Default: %s\n", dflt );
 	}
 
-	sprintf( input, "%s: ",
+	snprintf( input, sizeof input, "%s: ",
 		interact->prompt ? interact->prompt : "Interact" );
 
 	if( noecho ) {

@@ -281,7 +281,7 @@ print_noidlen(safe_string *ss, char *s, int l)
 
 	ret = print_numericoid(ss,s);
 	if ( l ) {
-		sprintf(buf,"{%d}",l);
+		snprintf(buf, sizeof buf, "{%d}",l);
 		ret = print_literal(ss,buf);
 	}
 	return(ret);

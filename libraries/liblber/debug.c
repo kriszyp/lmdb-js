@@ -106,7 +106,7 @@ int lutil_mnem2level( const char *level )
 
 static int addSubsys( const char *subsys, int level )
 {
-	int i, j, subsys_num;
+	int subsys_num;
 
 	if ( !strcasecmp( subsys, "backend" ) )
 	{
@@ -152,8 +152,7 @@ void lutil_log_int(
 	time_t now;
 	struct tm *today;
 #endif
-	int i;
-	char data[4096];
+	size_t i;
 	char * t_subsys;
 	char * tmp;
 
