@@ -261,6 +261,8 @@ ldbm_errno( LDBM ldbm )
 
 #elif defined( HAVE_GDBM )
 
+#include <sys/stat.h>
+
 /*****************************************************************
  *                                                               *
  * use gdbm							 *
