@@ -66,48 +66,6 @@ index_add_entry(
 	return( 0 );
 }
 
-int
-index_add_mods(
-    Backend	*be,
-    LDAPMod	*mods,
-    ID		id
-)
-{
-	int	rc;
-
-	for ( ; mods != NULL; mods = mods->mod_next ) {
-		switch ( mods->mod_op & ~LDAP_MOD_BVALUES ) {
-		case LDAP_MOD_REPLACE:
-			/* XXX: Delete old index data==>problem when this 
-			 * gets called we lost values already!
-			 */
-		case LDAP_MOD_ADD:
-			rc = index_change_values( be,
-						  mods->mod_type,
-						  mods->mod_bvalues,
-						  id,
-						  __INDEX_ADD_OP);
-			break;
-		case LDAP_MOD_DELETE:
-			rc =  index_change_values( be,
-						   mods->mod_type,
-						   mods->mod_bvalues,
-						   id,
-						   __INDEX_DEL_OP );
-			break;
-		case LDAP_MOD_SOFTADD:	/* SOFTADD means index was there */
-			rc = 0;
-			break;
-		}
-
-		if ( rc != 0 ) {
-			return( rc );
-		}
-	}
-
-	return( 0 );
-}
-
 ID_BLOCK *
 index_read(
     Backend	*be,

@@ -11,6 +11,8 @@ Changes included in OpenLDAP 1.2.10 Release Engineering
 	Fixed -lldap chasing of delete referrals (ITS#471)
 	Fixed back-ldbm/bind invalid credentials vs no such object bug 
 	Fixed slapd str2entry uninitialized varible bug (ITS#482)
+	Fixed back-ldbm/modify mutlivalued indexing bug
+	Fixed -llber seqorset buffer overrun bug (ITS#479)
 	Build Environment
 		Do not list unsupported LDBM API option NDBM
 

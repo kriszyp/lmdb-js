@@ -190,6 +190,7 @@ LDAP_F BerElement *ber_alloc LDAP_P(( void ));
 LDAP_F BerElement *der_alloc LDAP_P(( void ));
 LDAP_F BerElement *ber_alloc_t LDAP_P(( int options ));
 LDAP_F BerElement *ber_dup LDAP_P(( BerElement *ber ));
+LDAP_F int ber_realloc LDAP_P(( BerElement *ber, unsigned long len ));
 LDAP_F void ber_dump LDAP_P(( BerElement *ber, int inout ));
 LDAP_F void ber_sos_dump LDAP_P(( Seqorset *sos ));
 LDAP_F unsigned long ber_get_next LDAP_P(( Sockbuf *sb, unsigned long *len,

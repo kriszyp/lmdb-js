@@ -32,7 +32,6 @@
 
 #include "lber.h"
 
-static int ber_realloc LDAP_P(( BerElement *ber, unsigned long len ));
 static int ber_filbuf LDAP_P(( Sockbuf *sb, long len ));
 static long BerRead LDAP_P(( Sockbuf *sb, char *buf, long len ));
 #ifdef PCNFS
@@ -214,7 +213,7 @@ ber_write( BerElement *ber, char *buf, unsigned long len, int nosos )
 	}
 }
 
-static int
+int
 ber_realloc( BerElement *ber, unsigned long len )
 {
 	unsigned long	need, have, total;

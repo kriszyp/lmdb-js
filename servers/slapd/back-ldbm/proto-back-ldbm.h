@@ -110,7 +110,6 @@ ID idl_nextid LDAP_P(( ID_BLOCK *idl, ID id ));
  */
 
 int index_add_entry LDAP_P(( Backend *be, Entry *e ));
-int index_add_mods LDAP_P(( Backend *be, LDAPMod *mods, ID id ));
 ID_BLOCK * index_read LDAP_P(( Backend *be, char *type, int indextype, char *val ));
 
 /* To keep index files up-to-date we needed a index_delete_values() but since

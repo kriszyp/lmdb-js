@@ -442,6 +442,20 @@ ber_put_seqorset( BerElement *ber )
 	} else {
 		unsigned long	ntag;
 
+		if ( ber->ber_sos->sos_ptr > ber->ber_ptr ) {
+			/* The sos_ptr exceeds the end of the BerElement
+			 * this can happen, for example, when the sos_ptr
+			 * is near the end and no data was written for the
+			 * 'V'.  We must realloc the BerElement to ensure
+			 * we don't overwrite the buffer when writing
+			 * the tag and length fields.
+			 */          
+			unsigned long ext = ber->ber_sos->sos_ptr - ber->ber_end;
+			if( ber_realloc( ber, ext ) != 0 ) {
+				return -1;
+			}
+		}
+
 		/* the tag */
 		taglen = ber_calc_taglen( (*sos)->sos_tag );
 		ntag = AC_HTONL( (*sos)->sos_tag );

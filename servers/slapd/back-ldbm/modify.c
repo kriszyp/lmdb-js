@@ -58,16 +58,13 @@ int ldbm_internal_modify(
 			break;
 
  		case LDAP_MOD_SOFTADD:
- 			/* Avoid problems in index_add_mods()
+ 			/* 
  			 * We need to add index if necessary.
  			 */
  			mod->mod_op = LDAP_MOD_ADD;
- 			if ( (err = add_values( e, mod, op->o_ndn ))
- 				==  LDAP_TYPE_OR_VALUE_EXISTS ) {
- 
+ 			err = add_values( e, mod, op->o_ndn );
+ 			if ( err ==  LDAP_TYPE_OR_VALUE_EXISTS ) {
  				err = LDAP_SUCCESS;
- 				mod->mod_op = LDAP_MOD_SOFTADD;
- 
  			}
  			break;
 		}
@@ -111,42 +108,64 @@ int ldbm_internal_modify(
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 	/* remove old indices */
-	if( save_attrs != NULL ) {
-		for ( mod = mods; mod != NULL; mod = mod->mod_next ) {
-			if( ( mod->mod_op & ~LDAP_MOD_BVALUES )
-				== LDAP_MOD_REPLACE )
-			{
-				/* Need to remove all values from indexes */
-				a = attr_find( save_attrs, mod->mod_type );
+	for ( mod = mods; mod != NULL; mod = mod->mod_next ) {
+		switch( mod->mod_op & ~LDAP_MOD_BVALUES ) {
+		case LDAP_MOD_REPLACE:
+			/* Need to remove all values from indexes */
+			a = save_attrs
+				? attr_find( save_attrs, mod->mod_type )
+				: NULL;
 
-				if( a != NULL ) {
-					(void) index_change_values( be,
-						mod->mod_type,
-						a->a_vals,
-						e->e_id,
-						__INDEX_DEL_OP);
-				}
-
+			if( a != NULL ) {
+				(void) index_change_values( be,
+					mod->mod_type,
+					a->a_vals,
+					e->e_id,
+					__INDEX_DEL_OP);
 			}
+			break;
+
+		case LDAP_MOD_DELETE:
+			(void) index_change_values( be,
+				mod->mod_type,
+				mod->mod_bvalues,
+				e->e_id,
+				__INDEX_DEL_OP);
+			break;
 		}
-		attrs_free( save_attrs );
 	}
 
-	/* modify indexes */
-	if ( index_add_mods( be, mods, e->e_id ) != 0 ) {
-		/* our indices are likely hosed */
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL );
-		return -1;
-	}
+	attrs_free( save_attrs );
 
-	/* check for abandon */
-	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
-	if ( op->o_abandon ) {
-		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-		return -1;
+	/* add new indices */
+	for ( mod = mods; mod != NULL; mod = mod->mod_next ) {
+		switch( mod->mod_op & ~LDAP_MOD_BVALUES ) {
+		case LDAP_MOD_ADD:
+		case LDAP_MOD_REPLACE:
+			(void) index_change_values( be,
+				mod->mod_type,
+				mod->mod_bvalues,
+				e->e_id,
+				__INDEX_ADD_OP);
+
+			break;
+
+		case LDAP_MOD_DELETE:
+			/* Need to add all remaining values */
+			a = e->e_attrs
+				? attr_find( e->e_attrs, mod->mod_type )
+				: NULL;
+
+			if( a != NULL ) {
+				(void) index_change_values( be,
+					mod->mod_type,
+					a->a_vals,
+					e->e_id,
+					__INDEX_ADD_OP);
+			}
+			break;
+		}
 	}
-	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 	return 0;
 }
