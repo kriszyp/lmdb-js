@@ -310,11 +310,12 @@ consumer_ctxcsn_retry :
 					ber_bvarray_add( &syncCookie.octet_str, &cookie );
 					slap_parse_sync_cookie( &syncCookie );
 					if ( *search_context_csn &&
-						 (*search_context_csn)->bv_val != NULL ) {
+						(*search_context_csn)->bv_val != NULL )
+					{
 						value_match( &match, slap_schema.si_ad_entryCSN,
 							slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
 							SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-							&syncCookie.ctxcsn, *search_context_csn, &text );
+							syncCookie.ctxcsn, *search_context_csn, &text );
 					}
 					if ( match < 0 ) {
 						/* set search_context_csn to the
@@ -324,7 +325,7 @@ consumer_ctxcsn_retry :
 							ch_free( *search_context_csn );
 						}
 						*search_context_csn = ber_dupbv( NULL,
-												syncCookie.ctxcsn );
+							syncCookie.ctxcsn );
 					}
 					slap_sync_cookie_free( &syncCookie, 0 );
 				} else {
