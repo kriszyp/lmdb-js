@@ -61,6 +61,7 @@ bdb2_back_initialize(
 	bi->bi_op_delete = bdb2_back_delete;
 	bi->bi_op_abandon = bdb2_back_abandon;
 
+	bi->bi_entry_release_rw = bdb2_back_entry_release_rw;
 #ifdef SLAPD_ACLGROUPS
 	bi->bi_acl_group = bdb2_back_group;
 #endif

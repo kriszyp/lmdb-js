@@ -75,6 +75,11 @@ Entry * bdb2i_dn2entry_rw LDAP_P(( BackendDB *be, char *dn, char **matched,
 #define bdb2i_dn2entry_w(be, dn, m) bdb2i_dn2entry_rw((be), (dn), (m), 1)
 
 /*
+ * entry.c
+ */
+int bdb2_back_entry_release_rw LDAP_P(( BackendDB *be, Entry *e, int rw ));
+
+/*
  * filterindex.c
  */
 
