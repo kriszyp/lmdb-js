@@ -2544,5 +2544,7 @@ config_destroy( )
 		free ( slapd_args_file );
 	if ( slapd_pid_file )
 		free ( slapd_pid_file );
+	if ( default_passwd_hash )
+		free( default_passwd_hash );
 	acl_destroy( global_acl, NULL );
 }
