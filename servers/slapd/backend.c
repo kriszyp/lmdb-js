@@ -41,7 +41,12 @@
 
 #ifdef LDAP_SLAPI
 #include "slapi/slapi.h"
-#endif
+
+static void init_group_pblock( Operation *op, Entry *target,
+	Entry *e, struct berval *op_ndn, AttributeDescription *group_at );
+static int call_group_preop_plugins( Operation *op );
+static void call_group_postop_plugins( Operation *op );
+#endif /* LDAP_SLAPI */
 
 /*
  * If a module is configured as dynamic, its header should not
@@ -1359,6 +1364,17 @@ backend_group(
 		rc = be_entry_get_rw(op, gr_ndn, group_oc, group_at, 0, &e );
 	}
 	if ( e ) {
+#ifdef LDAP_SLAPI
+		if ( op->o_pb != NULL ) {
+			init_group_pblock( op, target, e, op_ndn, group_at );
+
+			rc = call_group_preop_plugins( op );
+			if ( rc == LDAP_SUCCESS ) {
+				goto done;
+			}
+		}
+#endif /* LDAP_SLAPI */
+
 		a = attr_find( e->e_attrs, group_at );
 		if ( a ) {
 			/* If the attribute is a subtype of labeledURI, treat this as
@@ -1459,6 +1475,10 @@ loopit:
 	} else {
 		rc = LDAP_NO_SUCH_OBJECT;
 	}
+
+#ifdef LDAP_SLAPI
+	if ( op->o_pb ) call_group_postop_plugins( op );
+#endif /* LDAP_SLAPI */
 
 	if ( op->o_tag != LDAP_REQ_BIND && !op->o_do_not_cache ) {
 		g = op->o_tmpalloc(sizeof(GroupAssertion) + gr_ndn->bv_len,
@@ -1588,4 +1608,39 @@ int backend_operational(
 
 	return rc;
 }
+
+#ifdef LDAP_SLAPI
+static void init_group_pblock( Operation *op, Entry *target,
+	Entry *e, struct berval *op_ndn, AttributeDescription *group_at )
+{
+	slapi_int_pblock_set_operation( op->o_pb, op );
+	slapi_pblock_set( op->o_pb, SLAPI_TARGET_DN, (void *)target->e_nname.bv_val );
+	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_ENTRY, (void *)e );
+	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_OPERATION_DN, (void *)op_ndn->bv_val );
+	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_ATTRIBUTE, (void *)group_at->ad_cname.bv_val );
+}
+
+static int call_group_preop_plugins( Operation *op )
+{
+	int rc;
+
+	rc = slapi_int_call_plugins( op->o_bd, SLAPI_X_PLUGIN_PRE_GROUP_FN, op->o_pb );
+	if ( rc < 0 ) {
+		if (( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,
+			(void *)&rc ) != 0 ) || rc == LDAP_SUCCESS )
+		{
+			rc = LDAP_NO_SUCH_ATTRIBUTE;
+		}
+	} else {
+		rc = LDAP_SUCCESS;
+	}
+
+	return rc;
+}
+
+static void call_group_postop_plugins( Operation *op )
+{
+	(void) slapi_int_call_plugins( op->o_bd, SLAPI_X_PLUGIN_POST_GROUP_FN, op->o_pb );
+}
+#endif /* LDAP_SLAPI */
 

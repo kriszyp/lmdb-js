@@ -430,6 +430,14 @@ extern Backend * slapi_cl_get_be(char *dn);
 #define SLAPI_PLUGIN_COMPUTE_EVALUATOR_FN	1200
 #define SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN	1201
 
+#define SLAPI_X_PLUGIN_PRE_GROUP_FN		1202 
+#define SLAPI_X_PLUGIN_POST_GROUP_FN		1203
+
+/* backend_group extension */
+#define SLAPI_X_GROUP_ENTRY			1250		/* e */
+#define SLAPI_X_GROUP_ATTRIBUTE			1251		/* group_at */
+#define SLAPI_X_GROUP_OPERATION_DN		1252		/* op_ndn */
+
 #define SLAPI_MANAGEDSAIT       		1000
 
 #define SLAPI_CONFIG_FILENAME			40
