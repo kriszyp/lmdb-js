@@ -17,6 +17,7 @@ SRCS = overlays.c \
 	chain.c \
 	denyop.c \
 	dyngroup.c \
+	glue.c \
 	lastmod.c \
 	pcache.c \
 	ppolicy.c \
@@ -28,6 +29,7 @@ OBJS = overlays.lo \
 	chain.lo \
 	denyop.lo \
 	dyngroup.lo \
+	glue.lo \
 	lastmod.lo \
 	pcache.lo \
 	ppolicy.lo \
@@ -59,6 +61,9 @@ denyop.la : denyop.lo $(@PLAT@_LINK_LIBS)
 
 dyngroup.la : dyngroup.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ dyngroup.lo version.lo $(LINK_LIBS)
+
+glue.la : glue.lo $(@PLAT@_LINK_LIBS)
+	$(LTLINK_MOD) -module -o $@ glue.lo version.lo $(LINK_LIBS)
 
 lastmod.la : lastmod.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ lastmod.lo version.lo $(LINK_LIBS)
