@@ -745,7 +745,7 @@ AC_DEFUN(OL_TYPE_SIG_ATOMIC_T,
  ])dnl
 dnl
 dnl ====================================================================
-dnl Define socklen_t if not defined in signal.h
+dnl Define socklen_t if not defined in sys/types.h or sys/socket.h
 AC_DEFUN(OL_TYPE_SOCKLEN_T,
  [AC_CACHE_CHECK(for socklen_t, ol_cv_type_socklen_t,
     [AC_TRY_COMPILE([
