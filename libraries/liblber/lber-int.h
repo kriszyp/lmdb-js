@@ -61,8 +61,9 @@ struct berelement {
 };
 #define BER_VALID(ber)	((ber)->ber_valid==LBER_VALID_BERELEMENT)
 
-#define ber_pvt_ber_bytes(ber)		((ber)->ber_ptr - (ber)->ber_buf)
 #define ber_pvt_ber_remaining(ber)	((ber)->ber_end - (ber)->ber_ptr)
+#define ber_pvt_ber_total(ber)		((ber)->ber_end - (ber)->ber_buf)
+#define ber_pvt_ber_write(ber)		((ber)->ber_ptr - (ber)->ber_buf)
 
 struct sockbuf {
 	struct lber_options sb_opts;

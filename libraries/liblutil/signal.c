@@ -14,7 +14,6 @@
 lutil_sig_t
 lutil_sigaction(int sig, lutil_sig_t func)
 {
-	int rc;
 	struct sigaction action, oaction;
 
 	memset( &action, '\0', sizeof(action) );
