@@ -50,10 +50,11 @@ BDB2SRCS =
 
 QUIPUSRCS	= edb2ldif.c ldapsyntax.c chlog2replog.c
 SLAPD_OBJS = ../config.o ../ch_malloc.o ../backend.o ../charray.o \
-		../module.o ../aclparse.o ../schema.o ../filterentry.o \
+		../module.o ../aclparse.o ../filterentry.o \
+		../schema.o ../schema_init.o ../schemaparse.o \
 		../acl.o ../phonetic.o ../attr.o ../value.o ../entry.o \
 		../dn.o ../filter.o ../str2filter.o ../ava.o ../init.o \
-		../controls.o ../schemaparse.o ../kerberos.o ../passwd.o \
+		../controls.o ../kerberos.o ../passwd.o \
 		../extended.o ../starttls.o
 
 SLAPOBJS = $(SLAPD_OBJS) slapcommon.o mimic.o
