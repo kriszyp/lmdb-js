@@ -12,6 +12,7 @@ OpenLDAP 2.2.24 Engineering
 	Fixed back-hdb dn2id crash (ITS#3559)
 	Fixed back-ldap search with stale connection (ITS#3537)
 	Fixed libldap fdset re-init for restart (ITS#3524)
+	Fixed libldap ldap_extended_operation_s (ITS#3552)
 	Added libldap fast synchronous search result processing
 	Build Environment
 		Updated BDB version check (ITS#3581)
