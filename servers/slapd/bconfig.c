@@ -3163,6 +3163,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 			rc = LDAP_CONSTRAINT_VIOLATION;
 			goto leave;
 		}
+		break;
 #ifdef SLAPD_MODULES
 	case Cft_Module:
 		if ( !last || last->ce_type != Cft_Global ) {
@@ -3205,11 +3206,13 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 	case Cft_Overlay:
 		ca.be = last->ce_be;
 		type_ad = cfAd_overlay;
+		break;
 
 	case Cft_Include:
 		if ( !rs )	/* ignored */
 			break;
 		type_ad = cfAd_include;
+		break;
 #ifdef SLAPD_MODULES
 	case Cft_Module: {
 		ModPaths *mp;
