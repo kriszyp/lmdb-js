@@ -7,6 +7,7 @@
 
 #include <ac/string.h>
 
+#define AVL_INTERNAL
 #define AVL_NONREENTRANT 
 #include "avl.h"
 
@@ -16,7 +17,7 @@ static void myprint LDAP_P(( Avlnode *root ));
 int
 main( int argc, char **argv )
 {
-	Avlnode	*tree = NULLAVL;
+	Avlnode	*tree = NULL;
 	char	command[ 10 ];
 	char	name[ 80 ];
 	char	*p;
@@ -26,7 +27,7 @@ main( int argc, char **argv )
 		switch( *command ) {
 		case 'n':	/* new tree */
 			( void ) avl_free( tree, (AVL_FREE) free );
-			tree = NULLAVL;
+			tree = NULL;
 			break;
 		case 'p':	/* print */
 			( void ) myprint( tree );

@@ -32,12 +32,15 @@
 
 LDAP_BEGIN_DECL
 
-typedef struct avlnode {
+typedef struct avlnode Avlnode;
+
+#ifdef AVL_INTERNAL
+struct avlnode {
 	void*		avl_data;
 	signed char		avl_bf;
 	struct avlnode	*avl_left;
 	struct avlnode	*avl_right;
-} Avlnode;
+};
 
 #define NULLAVL	((Avlnode *) NULL)
 
@@ -45,6 +48,7 @@ typedef struct avlnode {
 #define LH 	(-1)
 #define EH 	0
 #define RH 	1
+#endif
 
 /* avl routines */
 #define avl_getone(x)	((x) == 0 ? 0 : (x)->avl_data)
