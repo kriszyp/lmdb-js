@@ -257,7 +257,12 @@ makeconfig:	.makefiles buildtools
 		    echo "SunOS release $$OSRELEASE unknown..."; exit 1; \
 		fi; \
 		if [ $$OSRELEASE -ge "5" ]; then \
-		    PLATFORM="sunos5"; \
+			MINORVER=`echo $$OSRELEASE|sed 's/^.*\.//'` ; \
+			if [ $$MINORVER -ge "6" ]; then \
+				PLATFORM="sunos56" ; \
+			else \
+		    	PLATFORM="sunos5"; \
+			fi; \
 		else \
 		    PLATFORM="sunos4"; \
 		fi; \
