@@ -4,11 +4,7 @@ This directory contains source for two programs:
 
 	go500gw		A more general gopher to X.500 gateway
 
-Both programs use the LDAP protocol to talk to X.500.  If you did not
-get this software with the U-M LDAP software distribution, you will
-need to have the LDAP libraries on hand to be able to make this software.
-The LDAP distribution is available for anonymous ftp from the host
-terminator.rs.itd.umich.edu in the x500/ directory.
+Both programs use the LDAP protocol to talk to X.500.
 
 What you are trying to set up looks like this:
 
