@@ -1333,14 +1333,13 @@ int connection_read(ber_socket_t s)
 			rc = dnX509peerNormalize( ssl, &authid );
 			if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG( CONNECTION, INFO, 
-					"connection_read: conn %lu unable to get TLS client DN, "
-					"error %d\n", c->c_connid, rc, 0 );
+				LDAP_LOG( CONNECTION, INFO, "connection_read: "
+					"conn %lu unable to get TLS client DN, error %d\n",
+					c->c_connid, rc, 0 );
 #else
-				Debug( LDAP_DEBUG_TRACE,
-				"connection_read(%d): unable to get TLS client DN "
-				"error=%d id=%lu\n",
-				s, rc, c->c_connid );
+				Debug( LDAP_DEBUG_TRACE, "connection_read(%d): "
+					"unable to get TLS client DN, error=%d id=%lu\n",
+					s, rc, c->c_connid );
 #endif
 			}
 			slap_sasl_external( c, c->c_tls_ssf, &authid );
