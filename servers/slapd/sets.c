@@ -141,7 +141,7 @@ set_chase (SLAP_SET_GATHER gatherer,
 		return(NULL);
 	}
 	for (i = 0; set[i].bv_val; i++) {
-		vals = (gatherer)(cookie, set[i].bv_val, &bv);
+		vals = (gatherer)(cookie, &set[i], &bv);
 		if (vals != NULL)
 			nset = set_join(nset, '|', vals);
 	}
@@ -149,7 +149,7 @@ set_chase (SLAP_SET_GATHER gatherer,
 
 	if (closure) {
 		for (i = 0; nset[i].bv_val; i++) {
-			vals = (gatherer)(cookie, nset[i].bv_val, &bv);
+			vals = (gatherer)(cookie, &nset[i], &bv);
 			if (vals != NULL) {
 				nset = set_join(nset, '|', vals);
 				if (nset == NULL)
@@ -194,7 +194,7 @@ set_samedn (char *dn1, char *dn2)
 int
 slap_set_filter (SLAP_SET_GATHER gatherer,
 	void *cookie, struct berval *fbv,
-	char *user, char *this, BerVarray *results)
+	struct berval *user, struct berval *this, BerVarray *results)
 {
 #define IS_SET(x)	( (long)(x) >= 256 )
 #define IS_OP(x)	( (long)(x) < 256 )
@@ -331,7 +331,7 @@ slap_set_filter (SLAP_SET_GATHER gatherer,
 				set = ch_calloc(2, sizeof(struct berval));
 				if (set == NULL)
 					SF_ERROR(memory);
-				ber_str2bv( this, 0, 1, set );
+				ber_dupbv( set, this );
 				if (set->bv_val == NULL)
 					SF_ERROR(memory);
 			} else if (len == 4
@@ -342,7 +342,7 @@ slap_set_filter (SLAP_SET_GATHER gatherer,
 				set = ch_calloc(2, sizeof(struct berval));
 				if (set == NULL)
 					SF_ERROR(memory);
-				ber_str2bv( user, 0, 1, set );
+				ber_dupbv( set, user );
 				if (set->bv_val == NULL)
 					SF_ERROR(memory);
 			} else if (SF_TOP() != (void *)'/') {

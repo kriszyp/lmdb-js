@@ -79,7 +79,7 @@ typedef	struct AciSetCookie {
 	Operation *op;
 } AciSetCookie;
 
-BerVarray aci_set_gather (void *cookie, char *name, struct berval *attr);
+SLAP_SET_GATHER aci_set_gather;
 static int aci_match_set ( struct berval *subj, Backend *be,
     Entry *e, Connection *conn, Operation *op, int setref );
 
@@ -1233,20 +1233,18 @@ aci_get_part(
 }
 
 BerVarray
-aci_set_gather (void *cookie, char *name, struct berval *attr)
+aci_set_gather (void *cookie, struct berval *name, struct berval *attr)
 {
 	AciSetCookie *cp = cookie;
 	BerVarray bvals = NULL;
-	struct berval bv, ndn;
+	struct berval ndn;
 
 	/* this routine needs to return the bervals instead of
 	 * plain strings, since syntax is not known.  It should
 	 * also return the syntax or some "comparison cookie".
 	 */
 
-	bv.bv_val = name;
-	bv.bv_len = strlen( name );
-	if (dnNormalize2(NULL, &bv, &ndn) == LDAP_SUCCESS) {
+	if (dnNormalize2(NULL, name, &ndn) == LDAP_SUCCESS) {
 		const char *text;
 		AttributeDescription *desc = NULL;
 		if (slap_bv2ad(attr, &desc, &text) == LDAP_SUCCESS) {
@@ -1329,7 +1327,7 @@ aci_match_set (
 		cookie.conn = conn;
 		cookie.op = op;
 		rc = (slap_set_filter(aci_set_gather, &cookie, &set,
-			op->o_ndn.bv_val, e->e_ndn, NULL) > 0);
+			&op->o_ndn, &e->e_nname, NULL) > 0);
 		ch_free(set.bv_val);
 	}
 	return(rc);
