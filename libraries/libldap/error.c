@@ -161,6 +161,7 @@ ldap_err2string( int err )
 void
 ldap_perror( LDAP *ld, LDAP_CONST char *str )
 {
+    int i;
 	const struct ldaperror *e;
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "ldap_perror\n", 0,0,0 );
@@ -185,6 +186,13 @@ ldap_perror( LDAP *ld, LDAP_CONST char *str )
 
 	if ( ld->ld_error != NULL && ld->ld_error[0] != '\0' ) {
 		fprintf( stderr, "\tadditional info: %s\n", ld->ld_error );
+	}
+
+	if ( ld->ld_referrals != NULL && ld->ld_referrals[0] != NULL) {
+		fprintf( stderr, "\treferrals:\n" );
+		for (i=0; ld->ld_referrals[i]; i++) {
+			fprintf( stderr, "\t\t%s\n", ld->ld_referrals[i] );
+		}
 	}
 
 	fflush( stderr );
@@ -282,6 +290,10 @@ ldap_parse_result(
 		LDAP_FREE( ld->ld_matched );
 		ld->ld_matched = NULL;
 	}
+	if ( ld->ld_referrals ) {
+		LDAP_VFREE( ld->ld_referrals );
+		ld->ld_referrals = NULL;
+	}
 
 	/* parse results */
 
@@ -298,13 +310,7 @@ ldap_parse_result(
 		if( tag != LBER_ERROR ) {
 			/* peek for referrals */
 			if( ber_peek_tag(ber, &len) == LDAP_TAG_REFERRAL ) {
-				if( referralsp != NULL ) {
-					tag = ber_scanf( ber, "v", referralsp );
-
-				} else {
-					/* no place to put them so skip 'em */
-					tag = ber_scanf( ber, "x" );
-				}
+				tag = ber_scanf( ber, "v", &ld->ld_referrals );
 			}
 		}
 
@@ -364,6 +370,10 @@ ldap_parse_result(
 		}
 		if( errmsgp != NULL ) {
 			*errmsgp = LDAP_STRDUP( ld->ld_error );
+		}
+
+		if( referralsp != NULL) {
+			*referralsp = ldap_value_dup( ld->ld_referrals );
 		}
 
 		/* Find the next result... */

@@ -187,31 +187,25 @@ int ldap_int_get_controls(
 
 		tag = ber_scanf( ber, "{a" /*}*/, &tctrl->ldctl_oid );
 
-		if( tag != LBER_ERROR ) {
-			tag = ber_peek_tag( ber, &len );
+		if( tag == LBER_ERROR ) {
+			*ctrls = NULL;
+			ldap_controls_free( tctrls );
+			return LDAP_DECODING_ERROR;
 		}
+
+		tag = ber_peek_tag( ber, &len );
 
 		if( tag == LBER_BOOLEAN ) {
 			ber_int_t crit;
 			tag = ber_scanf( ber, "b", &crit );
 			tctrl->ldctl_iscritical = crit ? (char) 0 : (char) ~0;
-		}
-
-		if( tag != LBER_ERROR ) {
 			tag = ber_peek_tag( ber, &len );
 		}
 
 		if( tag == LBER_OCTETSTRING ) {
 			tag = ber_scanf( ber, "o", &tctrl->ldctl_value );
-
 		} else {
 			tctrl->ldctl_value.bv_val = NULL;
-		}
-
-		if( tag == LBER_ERROR ) {
-			*ctrls = NULL;
-			ldap_controls_free( tctrls );
-			return LDAP_DECODING_ERROR;
 		}
 
 		*ctrls = tctrls;

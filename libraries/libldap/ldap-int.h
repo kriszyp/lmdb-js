@@ -295,6 +295,7 @@ struct ldap {
 	ber_int_t	ld_errno;
 	char	*ld_error;
 	char	*ld_matched;
+	char	**ld_referrals;
 	ber_len_t		ld_msgid;
 
 	/* do not mess with these */
@@ -573,6 +574,12 @@ LDAP_F (int) ldap_int_tls_config LDAP_P(( LDAP *ld,
 
 LDAP_F (int) ldap_int_tls_start LDAP_P(( LDAP *ld,
 	LDAPConn *conn, LDAPURLDesc *srv ));
+
+/*
+ *	in getvalues.c
+ */
+LDAP_F (char **) ldap_value_dup LDAP_P((
+	char *const *vals ));
 
 LDAP_END_DECL
 
