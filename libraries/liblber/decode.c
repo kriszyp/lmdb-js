@@ -297,23 +297,33 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 
 	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT ) {
 		*bv = NULL;
-		return( LBER_DEFAULT );
+		return LBER_DEFAULT;
 	}
 
-	if ( (*bv = (struct berval *) LBER_MALLOC( sizeof(struct berval) )) == NULL )
-		return( LBER_DEFAULT );
+	*bv = (struct berval *) LBER_MALLOC( sizeof(struct berval) );
+	if ( *bv == NULL ) {
+		return LBER_DEFAULT;
+	}
 
-	if ( ((*bv)->bv_val = (char *) LBER_MALLOC( len + 1 )) == NULL ) {
+	if( len == 0 ) {
+		(*bv)->bv_val = NULL;
+		(*bv)->bv_len = 0;
+		return tag;
+	}
+
+	(*bv)->bv_val = (char *) LBER_MALLOC( len + 1 );
+	if ( (*bv)->bv_val == NULL ) {
 		LBER_FREE( *bv );
 		*bv = NULL;
-		return( LBER_DEFAULT );
+		return LBER_DEFAULT;
 	}
 
 	if ( (ber_len_t) ber_read( ber, (*bv)->bv_val, len ) != len ) {
 		ber_bvfree( *bv );
 		*bv = NULL;
-		return( LBER_DEFAULT );
+		return LBER_DEFAULT;
 	}
+
 	((*bv)->bv_val)[len] = '\0';
 	(*bv)->bv_len = len;
 
