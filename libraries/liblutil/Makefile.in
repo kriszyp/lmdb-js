@@ -5,3 +5,5 @@
 LIBRARY	= liblutil.a
 SRCS	= base64.c md5.c sha1.c
 OBJS	= base64.o md5.o sha1.o
+
+XDEFS	= @LUTIL_DEFS@

@@ -60,7 +60,7 @@ CF_ARG_OPTION(md5,[    --enable-md5	enable MD5 passwords (yes)],[
 CF_ARG_OPTION(sha1,[    --enable-sha1	enable SHA1 passwords (yes)],[
 	SLAPD_SHA1=no],[SLAPD_SHA1=yes],yes)dnl
 CF_ARG_OPTION(wrappers,[    --enable-wrappers	enable tcp wrapper support (no)],[
-	SLAPD_TCP_WRAPPERS=yes],[LDAP_TCP_WRAPPERS=no],no)dnl
+	SLAPD_TCP_WRAPPERS=yes],[SLAPD_TCP_WRAPPERS=no],no)dnl
 CF_ARG_OPTION(phonetic,[    --enable-phonetic	enable phonetic/soundex  (no)],[
 	SLAPD_PHONETIC=yes],[SLAPD_PHONETIC=no],no)dnl
 CF_ARG_OPTION(rlookups,[    --enable-rlookups	enable reverse lookups (yes)],[
@@ -151,9 +151,20 @@ LDAPD_LIBS=
 ## slapd arguments
 SLAPD_DEFS=
 SLAPD_LIBS=
+LUTIL_DEFS=
 if test "$SLAPD_PHONETIC" = "yes" ; then
 	AC_DEFINE(SLAPD_PHONETIC,1)
 	SLAPD_DEFS="$SLAPD_DEFS -DSOUNDEX"
+fi
+
+if test "$SLAPD_MD5" = "yes" ; then
+	AC_DEFINE(SLAPD_MD5,1)
+	LUTIL_DEFS="$LUTIL_DEFS -DLDAP_MD5"
+fi
+
+if test "$SLAPD_SHA1" = "yes" ; then
+	AC_DEFINE(SLAPD_SHA1,1)
+	LUTIL_DEFS="$LUTIL_DEFS -DLDAP_SHA1"
 fi
 
 if test "$SLAPD_LDBM" = "yes" ; then
@@ -175,7 +186,8 @@ SLURPD_LIBS=
 
 dnl End Args
 
-dnl Checks for programs.
+dnl ----------------------------------------------------------------
+dnl Checks for programs
 AC_PROG_CC
 AC_PROG_GCC_TRADITIONAL
 
@@ -188,6 +200,9 @@ AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
 AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
 AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
+
+dnl ----------------------------------------------------------------
+dnl Checks for libraries
 
 ldbm_use="none"
 LDBM_DEFS=
@@ -275,18 +290,32 @@ dnl			AC_DEFINE(LDBM_USE_NDBM,1)
 	fi
 fi
 
+if test "$SLAPD_TCP_WRAPPERS" = "yes" ; then
+	AC_CHECK_LIB(wrap, hosts_access, [LIBTCPD="-lwrap"
+		AC_DEFINE(HAVE_TCPD)
+		SLAPD_DEFS="$SLAPD_DEFS -DTCP_WRAPPERS"
+	])
+fi
+
 # ud needs termcap (should insert check here)
 LIBTERMCAP="-ltermcap"
 AC_SUBST(LIBTERMCAP)
 
 # FreeBSD (and others) have crypt(3) in -lcrypt
-LIBCRYPT=
-AC_CHECK_FUNC(crypt, AC_DEFINE(HAVE_CRYPT), [
-	AC_CHECK_LIB(crypt, crypt, [LIBCRYPT="-lcrypt"
-	AC_DEFINE(HAVE_CRYPT)])
-])
-AC_SUBST(LIBCRYPT)
+if test "$SLAPD_CRYPT" = "yes" ; then
+	AC_CHECK_FUNC(crypt, have_crypt=yes, [
+		AC_CHECK_LIB(crypt, crypt, [LUTIL_LIBS="$LUTIL_LIBS -lcrypt"
+			have_crypt=yes], [have_crypt=no])])
 
+	if test $have_crypt = yes ; then
+		AC_DEFINE(SLAPD_CRYPT,1)
+		LUTIL_DEFS="$LUTIL_DEFS -DLDAP_CRYPT"
+	else
+		AC_MSG_WARN(could not find crypt, disabling crypt support)
+	fi
+fi
+
+dnl ----------------------------------------------------------------
 dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
@@ -305,6 +334,7 @@ AC_CHECK_HEADERS( \
 	unistd.h	\
 )
 
+dnl ----------------------------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_GETGROUPS
 AC_TYPE_MODE_T
@@ -320,6 +350,7 @@ AC_STRUCT_TM
 dnl AC_C_BIGENDIAN
 AC_C_CONST
 
+dnl ----------------------------------------------------------------
 dnl Checks for library functions.
 AC_FUNC_MEMCMP
 AC_TYPE_SIGNAL
@@ -345,6 +376,7 @@ AC_CHECK_FUNCS(		\
 
 AC_REPLACE_FUNCS(strdup)
 
+dnl ----------------------------------------------------------------
 # Check Configuration
 CF_SYS_ERRLIST
 
@@ -369,6 +401,8 @@ AC_SUBST(LDBM_DEFS)
 AC_SUBST(LDBM_LIBS)
 AC_SUBST(LTHREAD_DEFS)
 AC_SUBST(LTHREAD_LIBS)
+AC_SUBST(LUTIL_DEFS)
+AC_SUBST(LUTIL_LIBS)
 
 dnl AC_OUTPUT( \
 dnl contrib/Makefile:build/top.mk:contrib/Makefile.in:build/dir.mk \

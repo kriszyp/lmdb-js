@@ -26,9 +26,9 @@ all-local: FORCE
 	$(MAKE) $(MFLAGS) slapd
 	(cd tools; $(MAKE) $(MFLAGS) all)
 
-XDEFS = @SLAPD_DEFS@ @LDBM_DEFS@ @LTHREAD_DEFS@
+XDEFS = @SLAPD_DEFS@ @LDBM_DEFS@ @LTHREAD_DEFS@ @LUTIL_DEFS@
 XLIBS = @SLAPD_LIBS@ libbackends.a \
-	-lavl -llutil -lldbm @LDBM_LIBS@ -llthread @LTHREAD_LIBS@
+	-lavl -llutil -lldbm @LDBM_LIBS@ -llthread @LTHREAD_LIBS@ @LUTIL_LIBS@
 
 slapd: version.o
 	$(CC) $(LDFLGS) -o $@ $(OBJS) version.o $(LIBS)
