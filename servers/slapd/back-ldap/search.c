@@ -294,7 +294,6 @@ fail:;
 			if ( ldap_back_retry( lc, op, rs ))
 				goto retry;
 		}
-		/* FIXME: invalidate the connection? */
 		rs->sr_err = LDAP_SERVER_DOWN;
 		goto fail;
 	}
