@@ -564,10 +564,10 @@ the several hours of the ticket lifetime.
 
 H3: SASL Authorization Identities
 
-The SASL authorization identity is sent to the slapd server via the
--X switch for {{ldapsearch}}(1) and other tools, or in the *authzid
-parameter to the {{lutil_sasl_defaults}}() call. The identity can
-be in one of two forms, either
+The SASL authorization identity is sent to the LDAP server via the
+{{EX:-X}} switch for {{ldapsearch}}(1) and other tools, or in the
+{{EX:*authzid}} parameter to the {{lutil_sasl_defaults}}() call.
+The identity can be in one of two forms, either
 
 >	u:<username>
 
