@@ -126,7 +126,7 @@ main( int argc, char **argv )
 	 */
 #ifdef LOG_DAEMON
 	openlog( prog, OPENLOG_OPTIONS, LOG_DAEMON );
-#else
+#elif LOG_DEBUG
 	openlog( prog, OPENLOG_OPTIONS );
 #endif
     }

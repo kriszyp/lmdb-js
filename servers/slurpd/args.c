@@ -152,7 +152,7 @@ doargs(
 
 #ifdef LOG_LOCAL4
     openlog( g->myname, OPENLOG_OPTIONS, LOG_LOCAL4 );
-#else
+#elif LOG_DEBUG
     openlog( g->myname, OPENLOG_OPTIONS );
 #endif
 

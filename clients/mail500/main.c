@@ -204,7 +204,7 @@ main ( int argc, char **argv )
 
 #ifdef LOG_MAIL
 	openlog( myname, OPENLOG_OPTIONS, LOG_MAIL );
-#else
+#elif LOG_DEBUG
 	openlog( myname, OPENLOG_OPTIONS );
 #endif
 

@@ -58,10 +58,6 @@ typedef char * caddr_t;
 
 #define ssize_t signed int
 
-#define LOG_DEBUG 0
-#define openlog( a, b )
-#define closelog()
-
 /* we have NT threads */
 #ifdef _MT
 #define HAVE_NT_THREADS 1

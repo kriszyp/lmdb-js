@@ -337,7 +337,7 @@ int main( int argc, char **argv )
 
 #ifdef LOG_LOCAL4
 	openlog( serverName, OPENLOG_OPTIONS, syslogUser );
-#else
+#elif LOG_DEBUG
 	openlog( serverName, OPENLOG_OPTIONS );
 #endif
 
@@ -457,7 +457,9 @@ stop:
 	ReportSlapdShutdownComplete();
 #endif
 
+#ifdef LOG_DEBUG
     closelog();
+#endif
 	slapd_daemon_destroy();
 
 #ifdef CSRIMALLOC

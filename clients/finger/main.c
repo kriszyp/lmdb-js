@@ -130,7 +130,7 @@ main( int argc, char **argv )
 	if ( dosyslog ) {
 #ifdef LOG_LOCAL4
 		openlog( myname, OPENLOG_OPTIONS, LOG_LOCAL4 );
-#else
+#elif LOG_DEBUG
 		openlog( myname, OPENLOG_OPTIONS );
 #endif
 	}

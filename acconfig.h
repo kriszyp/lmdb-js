@@ -11,29 +11,8 @@
 #ifndef _LDAP_PORTABLE_H
 #define _LDAP_PORTABLE_H
 
-/* --------------------------------------------------- */
-/* begin of WINNT specific entries */
-
-#if defined(WINNT) || defined(_WIN32)
-
-/* don't suck in all of the win32 api */
-#define WIN32_LEAN_AND_MEAN
-
-/* preprocess out undefined functions */
-#define LOG_DEBUG 0
-#define openlog(a, b)
-#define closelog()
-
-/* define undefined types */
-#define ssize_t signed int
-typedef char * caddr_t;
-
-#endif
-
-/* end of WINNT specific entries */
-/* --------------------------------------------------- */
-
 /* end of preamble */
+
 @TOP@
 
 /* define this if needed to get reentrant functions */
@@ -81,11 +60,23 @@ typedef char * caddr_t;
 	LBER_TAG_T
 */
 
+/* define to character address type */
+#undef caddr_t
+
+/* define to signed size type */
+#undef ssize_t
+
 
 /* Leave that blank line there!!  Autoheader needs it. */
 
 @BOTTOM@
+
 /* begin of postamble */
+
+#ifdef _WIN32
+	/* don't suck in all of the win32 api */
+#	define WIN32_LEAN_AND_MEAN
+#endif
 
 #ifndef __NEED_PROTOTYPES
 /* force LDAP_P to always include prototypes */
