@@ -165,6 +165,7 @@ main( int argc, char **argv )
 {
 	char		*infile, *filtpattern, **attrs = NULL, line[BUFSIZ];
 	FILE		*fp = NULL;
+	FILE		*log = NULL;
 	int			rc, i, first, scope, deref, attrsonly, manageDSAit;
 	int			referrals, timelimit, sizelimit, debug;
 	int		authmethod, version, want_bindpw;
@@ -173,6 +174,11 @@ main( int argc, char **argv )
 	infile = NULL;
 	debug = verbose = not = vals2tmp = referrals =
 		attrsonly = manageDSAit = ldif = want_bindpw = 0;
+
+	lutil_log_initialize(argc, argv);
+	lutil_set_debug_level( "LIBLBER", 8 );
+	/* log = fopen( "ldapsearch.log", "w" ); */
+	/* ber_set_option( NULL, LBER_OPT_LOG_PRINT_FILE, log ); */
 
 	deref = sizelimit = timelimit = version = -1;
 
@@ -727,6 +733,7 @@ main( int argc, char **argv )
 			version );
 		return EXIT_FAILURE;
 	}
+
 
 	if ( use_tls && ldap_start_tls_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {
 		if ( use_tls > 1 ) {
