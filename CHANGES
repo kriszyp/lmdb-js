@@ -5,7 +5,10 @@ OpenLDAP 2.1.16 Engineering
 	Fixed liblber BER decoding bug (ITS#2365)
 	Fixed slurpd TLS failure handling (ITS#2253)
 	Fixed slapd sasl internal search "auth" issue
+	Fixed back-meta NULL deref bug (ITS#2359)
+	Fixed back-ldap memory corruption (ITS#2362)
 	Removed ldaptcl from distribution
+	Removed lint
 	Build Environment
 		Regenerated configure script for IPv6 fix (ITS#2347)
 
