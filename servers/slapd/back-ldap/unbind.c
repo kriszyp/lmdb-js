@@ -85,7 +85,7 @@ ldap_back_conn_destroy(
 		/*
 		 * Cleanup rewrite session
 		 */
-		rewrite_session_delete( li->rwinfo, conn );
+		rewrite_session_delete( li->rwmap.rwm_rw, conn );
 #endif /* ENABLE_REWRITE */
 
 		/*

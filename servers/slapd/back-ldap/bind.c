@@ -72,13 +72,12 @@ ldap_back_bind(
 	/*
 	 * Rewrite the bind dn if needed
 	 */
+	dc.rwmap = &li->rwmap;
 #ifdef ENABLE_REWRITE
-	dc.rw = li->rwinfo;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "bindDn";
 #else
-	dc.li = li;
 	dc.tofrom = 1;
 	dc.normalized = 0;
 #endif
@@ -290,7 +289,7 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 		 * since we may have different entries
 		 * for the same connection
 		 */
-		( void )rewrite_session_init( li->rwinfo, op->o_conn );
+		( void )rewrite_session_init( li->rwmap.rwm_rw, op->o_conn );
 #endif /* ENABLE_REWRITE */
 
 		ldap_pvt_thread_mutex_init( &lc->lc_mutex );
@@ -312,8 +311,8 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 				/*
 				 * Rewrite the bind dn if needed
 				 */
+				dc.rwmap = &li->rwmap;
 #ifdef ENABLE_REWRITE
-				dc.rw = li->rwinfo;
 				dc.conn = op->o_conn;
 				dc.rs = rs;
 				dc.ctx = "bindDn";
@@ -503,13 +502,12 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 			struct berval dn, mdn;
 			dncookie dc;
 
+			dc.rwmap = &li->rwmap;
 #ifdef ENABLE_REWRITE
-			dc.rw = li->rwinfo;
 			dc.conn = op->o_conn;
 			dc.rs = rs;
 			dc.ctx = "matchedDn";
 #else
-			dc.li = li;
 			dc.tofrom = 0;
 			dc.normalized = 0;
 #endif

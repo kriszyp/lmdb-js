@@ -66,13 +66,12 @@ ldap_back_compare(
 	/*
 	 * Rewrite the compare dn, if needed
 	 */
+	dc.rwmap = &li->rwmap;
 #ifdef ENABLE_REWRITE
-	dc.rw = li->rwinfo;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "compareDn";
 #else
-	dc.li = li;
 	dc.tofrom = 1;
 	dc.normalized = 0;
 #endif
@@ -82,14 +81,15 @@ ldap_back_compare(
 	}
 
 	if ( op->oq_compare.rs_ava->aa_desc == slap_schema.si_ad_objectClass ) {
-		ldap_back_map(&li->oc_map, &op->orc_ava->aa_value, &mapped_val,
-				BACKLDAP_MAP);
+		ldap_back_map(&li->rwmap.rwm_oc, &op->orc_ava->aa_value,
+				&mapped_val, BACKLDAP_MAP);
 		if (mapped_val.bv_val == NULL || mapped_val.bv_val[0] == '\0') {
 			return( -1 );
 		}
 		mapped_at = op->orc_ava->aa_desc->ad_cname;
 	} else {
-		ldap_back_map(&li->at_map, &op->orc_ava->aa_desc->ad_cname, &mapped_at, 
+		ldap_back_map(&li->rwmap.rwm_at,
+				&op->orc_ava->aa_desc->ad_cname, &mapped_at, 
 				BACKLDAP_MAP);
 		if (mapped_at.bv_val == NULL || mapped_at.bv_val[0] == '\0') {
 			return( -1 );

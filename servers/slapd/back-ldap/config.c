@@ -211,7 +211,8 @@ ldap_back_db_config(
 		 * FIXME: no extra rewrite capabilities should be added
 		 * to the database
 		 */
-	 	rc = suffix_massage_config( li->rwinfo, &pvnc, &nvnc, &prnc, &nrnc );
+	 	rc = suffix_massage_config( li->rwmap.rwm_rw,
+				&pvnc, &nvnc, &prnc, &nrnc );
 		free( nvnc.bv_val );
 		free( pvnc.bv_val );
 		free( nrnc.bv_val );
@@ -230,7 +231,8 @@ ldap_back_db_config(
 	/* rewrite stuff ... */
  	} else if ( strncasecmp( argv[0], "rewrite", 7 ) == 0 ) {
 #ifdef ENABLE_REWRITE
- 		return rewrite_parse( li->rwinfo, fname, lineno, argc, argv );
+ 		return rewrite_parse( li->rwmap.rwm_rw,
+				fname, lineno, argc, argv );
 
 #else /* !ENABLE_REWRITE */
 		fprintf( stderr, "%s: line %d: rewrite capabilities "
@@ -239,7 +241,8 @@ ldap_back_db_config(
 		
 	/* objectclass/attribute mapping */
 	} else if ( strcasecmp( argv[0], "map" ) == 0 ) {
-		return ldap_back_map_config( &li->oc_map, &li->at_map,
+		return ldap_back_map_config( &li->rwmap.rwm_oc,
+				&li->rwmap.rwm_at,
 				fname, lineno, argc, argv );
 
 	/* anything else */

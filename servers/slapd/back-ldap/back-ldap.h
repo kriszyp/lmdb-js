@@ -73,6 +73,25 @@ struct ldapmapping {
 	struct berval dst;
 };
 
+struct ldaprwmap {
+	/*
+	 * DN rewriting
+	 */
+#ifdef ENABLE_REWRITE
+	struct rewrite_info *rwm_rw;
+#else /* !ENABLE_REWRITE */
+	/* some time the suffix massaging without librewrite
+	 * will be disabled */
+	BerVarray rwm_suffix_massage;
+#endif /* !ENABLE_REWRITE */
+
+	/*
+	 * Attribute/objectClass mapping
+	 */
+	struct ldapmap rwm_oc;
+	struct ldapmap rwm_at;
+};
+
 struct ldapinfo {
 	struct slap_backend_db	*be;
 	char *url;
@@ -81,6 +100,8 @@ struct ldapinfo {
 	ldap_pvt_thread_mutex_t		conn_mutex;
 	int savecred;
 	Avlnode *conntree;
+
+#if 0
 #ifdef ENABLE_REWRITE
 	struct rewrite_info *rwinfo;
 #else /* !ENABLE_REWRITE */
@@ -89,7 +110,24 @@ struct ldapinfo {
 
 	struct ldapmap oc_map;
 	struct ldapmap at_map;
+#endif
+
+	struct ldaprwmap rwmap;
 };
+
+/* Whatever context ldap_back_dn_massage needs... */
+typedef struct dncookie {
+	struct ldaprwmap *rwmap;
+
+#ifdef ENABLE_REWRITE
+	Connection *conn;
+	char *ctx;
+	SlapReply *rs;
+#else
+	int normalized;
+	int tofrom;
+#endif
+} dncookie;
 
 struct ldapconn *ldap_back_getconn(struct slap_op *op, struct slap_rep *rs);
 int ldap_back_dobind(struct ldapconn *lc, Operation *op, SlapReply *rs);
@@ -97,20 +135,6 @@ int ldap_back_map_result(SlapReply *rs);
 int ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 	ber_int_t msgid, int sendok);
 int	back_ldap_LTX_init_module(int argc, char *argv[]);
-
-/* Whatever context ldap_back_dn_massage needs... */
-typedef struct dncookie {
-#ifdef ENABLE_REWRITE
-	struct rewrite_info *rw;
-	Connection *conn;
-	char *ctx;
-	SlapReply *rs;
-#else
-	struct ldapinfo *li;
-	int normalized;
-	int tofrom;
-#endif
-} dncookie;
 
 int ldap_back_dn_massage(dncookie *dc, struct berval *dn,
 	struct berval *res);
@@ -155,13 +179,8 @@ extern int ldap_back_map_config(
 		char		**argv );
 
 extern int
-ldap_back_filter_map_rewrite_(
-#ifdef ENABLE_REWRITE
-		struct rewrite_info	*info,
-		void			*cookie,
-#endif /* ENABLE_REWRITE */
-		struct ldapmap		*at_map,
-		struct ldapmap		*oc_map,
+ldap_back_filter_map_rewrite(
+		dncookie		*dc,
 		Filter			*f,
 		struct berval		*fstr,
 		int			remap );

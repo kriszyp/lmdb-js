@@ -118,102 +118,6 @@ ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
 	return;
 }
 
-char *
-ldap_back_map_filter(
-		struct ldapmap *at_map,
-		struct ldapmap *oc_map,
-		struct berval *f,
-		int remap
-)
-{
-	char *nf, *p, *q, *s, c;
-	int len, extra, plen, in_quote;
-	struct berval m, tmp;
-
-	if (f == NULL)
-		return(NULL);
-
-	len = f->bv_len;
-	extra = len;
-	len *= 2;
-	nf = ch_malloc( len + 1 );
-	if (nf == NULL)
-		return(NULL);
-
-	/* this loop assumes the filter ends with one
-	 * of the delimiter chars -- probably ')'.
-	 */
-
-	s = nf;
-	q = NULL;
-	in_quote = 0;
-	for (p = f->bv_val; (c = *p); p++) {
-		if (c == '"') {
-			in_quote = !in_quote;
-			if (q != NULL) {
-				plen = p - q;
-				AC_MEMCPY(s, q, plen);
-				s += plen;
-				q = NULL;
-			}
-			*s++ = c;
-		} else if (in_quote) {
-			/* ignore everything in quotes --
-			 * what about attrs in DNs?
-			 */
-			*s++ = c;
-		} else if (c != '(' && c != ')'
-			&& c != '=' && c != '>' && c != '<'
-			&& c != '|' && c != '&')
-		{
-			if (q == NULL)
-				q = p;
-		} else {
-			if (q != NULL) {
-				*p = 0;
-				tmp.bv_len = p - q;
-				tmp.bv_val = q;
-				ldap_back_map(at_map, &tmp, &m, remap);
-				if (m.bv_val == NULL || m.bv_val[0] == '\0') {
-					/*
-					 * FIXME: are we sure we need to search 
-					 * oc_map if at_map fails?
-					 */
-					ldap_back_map(oc_map, &tmp, &m, remap);
-					if (m.bv_val == NULL || m.bv_val[0] == '\0') {
-						m = tmp;
-					}
-				}
-				extra += p - q;
-				plen = m.bv_len;
-				extra -= plen;
-				if (extra < 0) {
-					char *tmpnf;
-					while (extra < 0) {
-						extra += len;
-						len *= 2;
-					}
-					s -= (long)nf;
-					tmpnf = ch_realloc(nf, len + 1);
-					if (tmpnf == NULL) {
-						ch_free(nf);
-						return(NULL);
-					}
-					nf = tmpnf;
-					s += (long)nf;
-				}
-				AC_MEMCPY(s, m.bv_val, plen);
-				s += plen;
-				*p = c;
-				q = NULL;
-			}
-			*s++ = c;
-		}
-	}
-	*s = 0;
-	return(nf);
-}
-
 int
 ldap_back_map_attrs(
 		struct ldapmap *at_map,
@@ -254,14 +158,9 @@ ldap_back_map_attrs(
 	return LDAP_SUCCESS;
 }
 
-#ifdef ENABLE_REWRITE
-
-static int
-map_attr_value_(
-		struct rewrite_info	*info,
-		void			*cookie,
-		struct ldapmap		*at_map,
-		struct ldapmap		*oc_map,
+int
+map_attr_value(
+		dncookie		*dc,
 		AttributeDescription 	*ad,
 		struct berval		*mapped_attr,
 		struct berval		*value,
@@ -271,12 +170,12 @@ map_attr_value_(
 	struct berval		vtmp;
 	int			freeval = 0;
 
-	ldap_back_map( at_map, &ad->ad_cname, mapped_attr, remap );
+	ldap_back_map( &dc->rwmap->rwm_at, &ad->ad_cname, mapped_attr, remap );
 	if ( mapped_attr->bv_val == NULL || mapped_attr->bv_val[0] == '\0') {
 		/*
 		 * FIXME: are we sure we need to search oc_map if at_map fails?
 		 */
-		ldap_back_map( oc_map, &ad->ad_cname, mapped_attr, remap );
+		ldap_back_map( &dc->rwmap->rwm_oc, &ad->ad_cname, mapped_attr, remap );
 		if ( mapped_attr->bv_val == NULL || mapped_attr->bv_val[0] == '\0' ) {
 			*mapped_attr = ad->ad_cname;
 		}
@@ -288,25 +187,16 @@ map_attr_value_(
 
 	if ( strcmp( ad->ad_type->sat_syntax->ssyn_oid, SLAPD_DN_SYNTAX ) == 0 )
 	{
-	 	switch ( rewrite_session( info, "searchFilter",
- 					value->bv_val, cookie, &vtmp.bv_val ) ) {
+		dncookie fdc = *dc;
+
+		fdc.ctx = "searchFilter";
+
+		switch ( ldap_back_dn_massage( &fdc, value, &vtmp ) ) {
 		case REWRITE_REGEXEC_OK:
-			if ( vtmp.bv_val == NULL ) {
-				vtmp = *value;
-			} else {
-				vtmp.bv_len = strlen( vtmp.bv_val );
+			if ( vtmp.bv_val != value->bv_val ) {
 				freeval = 1;
 			}
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDAP, DETAIL1, 
-				"[rw] searchFilter: \"%s\" -> \"%s\"\n", 
-				value->bv_val, vtmp.bv_val, 0 );
-#else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ARGS, "rw> searchFilter: \"%s\" -> \"%s\"\n%s",
-					value->bv_val, vtmp.bv_val, "" );
-#endif /* !NEW_LOGGING */
 			break;
-
 		
 		case REWRITE_REGEXEC_UNWILLING:
 			return -1;
@@ -316,7 +206,7 @@ map_attr_value_(
 		}
 
 	} else if ( ad == slap_schema.si_ad_objectClass || ad == slap_schema.si_ad_structuralObjectClass ) {
-		ldap_back_map( oc_map, value, &vtmp, remap );
+		ldap_back_map( &dc->rwmap->rwm_oc, value, &vtmp, remap );
 		if ( vtmp.bv_val == NULL || vtmp.bv_val[0] == '\0' ) {
 			vtmp = *value;
 		}
@@ -334,75 +224,9 @@ map_attr_value_(
 	return 0;
 }
 
-#define map_attr_value(at_map, oc_map, ad, mapped_attr, value, mapped_value, remap) \
-	map_attr_value_(info, cookie, (at_map), (oc_map), (ad), (mapped_attr), (value), (mapped_value), (remap))
-#define ldap_back_filter_map_rewrite(at_map, oc_map, f, fstr, remap) \
-	ldap_back_filter_map_rewrite_(info, cookie, (at_map), (oc_map), (f), (fstr), (remap))
-
-#else /* ! ENABLE_REWRITE */
-
-static int
-map_attr_value_(
-		struct ldapmap		*at_map,
-		struct ldapmap		*oc_map,
-		AttributeDescription 	*ad,
-		struct berval		*mapped_attr,
-		struct berval		*value,
-		struct berval		*mapped_value,
-		int			remap )
-{
-	struct berval		vtmp;
-
-	ldap_back_map( at_map, &ad->ad_cname, mapped_attr, remap );
-	if ( mapped_attr->bv_val == NULL || mapped_attr->bv_val[0] == '\0') {
-		/*
-		 * FIXME: are we sure we need to search oc_map if at_map fails?
-		 */
-		ldap_back_map( oc_map, &ad->ad_cname, mapped_attr, remap );
-		if ( mapped_attr->bv_val == NULL || mapped_attr->bv_val[0] == '\0' ) {
-			*mapped_attr = ad->ad_cname;
-		}
-	}
-
-	if ( value == NULL ) {
-		return 0;
-	}
-
-	if ( strcmp( ad->ad_type->sat_syntax->ssyn_oid, SLAPD_DN_SYNTAX ) == 0 )
-	{
-		/* FIXME: use suffix massage capabilities */
-		vtmp = *value;
-
-	} else if ( ad == slap_schema.si_ad_objectClass || ad == slap_schema.si_ad_structuralObjectClass ) {
-		ldap_back_map( oc_map, value, &vtmp, remap );
-		if ( vtmp.bv_val == NULL || vtmp.bv_val[0] == '\0' ) {
-			vtmp = *value;
-		}
-		
-	} else {
-		vtmp = *value;
-	}
-
-	filter_escape_value( &vtmp, mapped_value );
-
-	return 0;
-}
-
-#define map_attr_value(at_map, oc_map, ad, mapped_attr, value, mapped_value, remap) \
-	map_attr_value_((at_map), (oc_map), (ad), (mapped_attr), (value), (mapped_value), (remap))
-#define ldap_back_filter_map_rewrite(at_map, oc_map, f, fstr, remap) \
-	ldap_back_filter_map_rewrite_((at_map), (oc_map), (f), (fstr), (remap))
-
-#endif /* ! ENABLE_REWRITE */
-
 int
-ldap_back_filter_map_rewrite_(
-#ifdef ENABLE_REWRITE
-		struct rewrite_info	*info,
-		void			*cookie,
-#endif /* ENABLE_REWRITE */
-		struct ldapmap		*at_map,
-		struct ldapmap		*oc_map,
+ldap_back_filter_map_rewrite(
+		dncookie		*dc,
 		Filter			*f,
 		struct berval		*fstr,
 		int			remap )
@@ -420,7 +244,7 @@ ldap_back_filter_map_rewrite_(
 
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_EQUALITY:
-		if ( map_attr_value( at_map, oc_map, f->f_av_desc, &atmp,
+		if ( map_attr_value( dc, f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, remap ) )
 		{
 			return -1;
@@ -437,8 +261,8 @@ ldap_back_filter_map_rewrite_(
 		break;
 
 	case LDAP_FILTER_GE:
-		if ( map_attr_value( at_map, oc_map, f->f_av_desc, &atmp,
-				&f->f_av_value, &vtmp, remap ) )
+		if ( map_attr_value( dc, f->f_av_desc, &atmp,
+					&f->f_av_value, &vtmp, remap ) )
 		{
 			return -1;
 		}
@@ -454,7 +278,7 @@ ldap_back_filter_map_rewrite_(
 		break;
 
 	case LDAP_FILTER_LE:
-		if ( map_attr_value( at_map, oc_map, f->f_av_desc, &atmp,
+		if ( map_attr_value( dc, f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, remap ) )
 		{
 			return -1;
@@ -471,7 +295,7 @@ ldap_back_filter_map_rewrite_(
 		break;
 
 	case LDAP_FILTER_APPROX:
-		if ( map_attr_value( at_map, oc_map, f->f_av_desc, &atmp,
+		if ( map_attr_value( dc, f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, remap ) )
 		{
 			return -1;
@@ -488,7 +312,7 @@ ldap_back_filter_map_rewrite_(
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
-		if ( map_attr_value( at_map, oc_map, f->f_sub_desc, &atmp,
+		if ( map_attr_value( dc, f->f_sub_desc, &atmp,
 					NULL, NULL, remap ) )
 		{
 			return -1;
@@ -550,7 +374,7 @@ ldap_back_filter_map_rewrite_(
 		break;
 
 	case LDAP_FILTER_PRESENT:
-		if ( map_attr_value( at_map, oc_map, f->f_desc, &atmp,
+		if ( map_attr_value( dc, f->f_desc, &atmp,
 					NULL, NULL, remap ) )
 		{
 			return -1;
@@ -576,7 +400,7 @@ ldap_back_filter_map_rewrite_(
 		for ( p = f->f_list; p != NULL; p = p->f_next ) {
 			len = fstr->bv_len;
 
-			if ( ldap_back_filter_map_rewrite( at_map, oc_map, p, &vtmp, remap ) )
+			if ( ldap_back_filter_map_rewrite( dc, p, &vtmp, remap ) )
 			{
 				return -1;
 			}
@@ -594,7 +418,7 @@ ldap_back_filter_map_rewrite_(
 
 	case LDAP_FILTER_EXT: {
 		if ( f->f_mr_desc ) {
-			if ( map_attr_value( at_map, oc_map, f->f_mr_desc, &atmp,
+			if ( map_attr_value( dc, f->f_mr_desc, &atmp,
 						&f->f_mr_value, &vtmp, remap ) )
 			{
 				return -1;
@@ -643,3 +467,4 @@ ldap_back_filter_map_rewrite_(
 
 	return 0;
 }
+

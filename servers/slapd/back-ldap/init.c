@@ -117,8 +117,8 @@ ldap_back_db_init(
 	li->bindpw.bv_len = 0;
 
 #ifdef ENABLE_REWRITE
- 	li->rwinfo = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
-	if ( li->rwinfo == NULL ) {
+ 	li->rwmap.rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
+	if ( li->rwmap.rwm_rw == NULL ) {
  		ch_free( li );
  		return -1;
  	}
@@ -126,7 +126,8 @@ ldap_back_db_init(
 
 	ldap_pvt_thread_mutex_init( &li->conn_mutex );
 
-	ldap_back_map_init( &li->at_map, &mapping );
+	ldap_back_map_init( &li->rwmap.rwm_oc, &mapping );
+	ldap_back_map_init( &li->rwmap.rwm_at, &mapping );
 
 	li->be = be;
 	be->be_private = li;
@@ -192,8 +193,8 @@ ldap_back_db_destroy(
 			avl_free( li->conntree, ldap_back_conn_free );
 		}
 #ifdef ENABLE_REWRITE
-		if (li->rwinfo) {
-			rewrite_info_delete( li->rwinfo );
+		if (li->rwmap.rwm_rw) {
+			rewrite_info_delete( li->rwmap.rwm_rw );
 		}
 #else /* !ENABLE_REWRITE */
 		if (li->suffix_massage) {
@@ -201,10 +202,10 @@ ldap_back_db_destroy(
  		}
 #endif /* !ENABLE_REWRITE */
 
-		avl_free( li->oc_map.remap, NULL );
-		avl_free( li->oc_map.map, mapping_free );
-		avl_free( li->at_map.remap, NULL );
-		avl_free( li->at_map.map, mapping_free );
+		avl_free( li->rwmap.rwm_oc.remap, NULL );
+		avl_free( li->rwmap.rwm_oc.map, mapping_free );
+		avl_free( li->rwmap.rwm_at.remap, NULL );
+		avl_free( li->rwmap.rwm_at.map, mapping_free );
 		
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->conn_mutex );

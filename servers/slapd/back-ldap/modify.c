@@ -69,13 +69,12 @@ ldap_back_modify(
 	/*
 	 * Rewrite the modify dn, if needed
 	 */
+	dc.rwmap = &li->rwmap;
 #ifdef ENABLE_REWRITE
-	dc.rw = li->rwinfo;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "modifyDn";
 #else
-	dc.li = li;
 	dc.tofrom = 1;
 	dc.normalized = 0;
 #endif
@@ -102,32 +101,64 @@ ldap_back_modify(
 	dc.ctx = "modifyAttrDN";
 #endif
 	for (i=0, ml=op->oq_modify.rs_modlist; ml; ml=ml->sml_next) {
+		int	is_oc = 0;
+
 		if ( ml->sml_desc->ad_type->sat_no_user_mod  ) {
 			continue;
 		}
 
-		ldap_back_map(&li->at_map, &ml->sml_desc->ad_cname, &mapped,
-				BACKLDAP_MAP);
-		if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
-			continue;
+		if ( ml->sml_desc == slap_schema.si_ad_objectClass 
+				|| ml->sml_desc == slap_schema.si_ad_structuralObjectClass ) {
+			is_oc = 1;
+			mapped = ml->sml_desc->ad_cname;
+
+		} else {
+			ldap_back_map(&li->rwmap.rwm_at,
+					&ml->sml_desc->ad_cname,
+					&mapped, BACKLDAP_MAP);
+			if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
+				continue;
+			}
 		}
 
 		modv[i] = &mods[i];
 		mods[i].mod_op = ml->sml_op | LDAP_MOD_BVALUES;
 		mods[i].mod_type = mapped.bv_val;
 
-		if ( ml->sml_desc->ad_type->sat_syntax ==
-			slap_schema.si_syn_distinguishedName ) {
-			ldap_dnattr_rewrite( &dc, ml->sml_bvalues );
-		}
+		if ( ml->sml_bvalues != NULL ) {
+			if ( is_oc ) {
+				for (j = 0; ml->sml_bvalues[j].bv_val; j++);
+				mods[i].mod_bvalues = (struct berval **)ch_malloc((j+1) *
+					sizeof(struct berval *));
+				for (j = 0; ml->sml_bvalues[j].bv_val; j++) {
+					ldap_back_map(&li->rwmap.rwm_oc,
+							&ml->sml_bvalues[j],
+							&mapped, BACKLDAP_MAP);
+					if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
+						continue;
+					}
+					mods[i].mod_bvalues[j] = &mapped;
+				}
+				mods[i].mod_bvalues[j] = NULL;
 
-		if ( ml->sml_bvalues != NULL ) {	
-			for (j = 0; ml->sml_bvalues[j].bv_val; j++);
-			mods[i].mod_bvalues = (struct berval **)ch_malloc((j+1) *
-				sizeof(struct berval *));
-			for (j = 0; ml->sml_bvalues[j].bv_val; j++)
-				mods[i].mod_bvalues[j] = &ml->sml_bvalues[j];
-			mods[i].mod_bvalues[j] = NULL;
+			} else {
+				if ( ml->sml_desc->ad_type->sat_syntax ==
+					slap_schema.si_syn_distinguishedName ) {
+					ldap_dnattr_rewrite( &dc, ml->sml_bvalues );
+				}
+
+				if ( ml->sml_bvalues == NULL ) {	
+					continue;
+				}
+
+				for (j = 0; ml->sml_bvalues[j].bv_val; j++);
+				mods[i].mod_bvalues = (struct berval **)ch_malloc((j+1) *
+					sizeof(struct berval *));
+				for (j = 0; ml->sml_bvalues[j].bv_val; j++)
+					mods[i].mod_bvalues[j] = &ml->sml_bvalues[j];
+				mods[i].mod_bvalues[j] = NULL;
+			}
+
 		} else {
 			mods[i].mod_bvalues = NULL;
 		}

@@ -74,13 +74,12 @@ ldap_back_add(
 	/*
 	 * Rewrite the add dn, if needed
 	 */
+	dc.rwmap = &li->rwmap;
 #ifdef ENABLE_REWRITE
-	dc.rw = li->rwinfo;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "addDn";
 #else
-	dc.li = li;
 	dc.tofrom = 1;
 	dc.normalized = 0;
 #endif
@@ -104,7 +103,7 @@ ldap_back_add(
 			continue;
 		}
 
-		ldap_back_map(&li->at_map, &a->a_desc->ad_cname, &mapped,
+		ldap_back_map(&li->rwmap.rwm_at, &a->a_desc->ad_cname, &mapped,
 				BACKLDAP_MAP);
 		if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
 			continue;

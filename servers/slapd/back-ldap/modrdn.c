@@ -62,12 +62,11 @@ ldap_back_modrdn(
 		return( -1 );
 	}
 
+	dc.rwmap = &li->rwmap;
 #ifdef ENABLE_REWRITE
-	dc.rw = li->rwinfo;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 #else
-	dc.li = li;
 	dc.tofrom = 1;
 	dc.normalized = 0;
 #endif

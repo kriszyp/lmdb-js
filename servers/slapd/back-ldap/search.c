@@ -147,13 +147,12 @@ ldap_back_search(
 	/*
 	 * Rewrite the search base, if required
 	 */
+	dc.rwmap = &li->rwmap;
 #ifdef ENABLE_REWRITE
-	dc.rw = li->rwinfo;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "searchBase";
 #else
-	dc.li = li;
 	dc.tofrom = 1;
 	dc.normalized = 0;
 #endif
@@ -162,14 +161,8 @@ ldap_back_search(
 		return -1;
 	}
 
-#ifdef ENABLE_REWRITE
-	rc = ldap_back_filter_map_rewrite_( li->rwinfo, op->o_conn,
-			&li->at_map, &li->oc_map, op->oq_search.rs_filter, &mfilter, 
-			BACKLDAP_MAP );
-#else /* ! ENABLE_REWRITE */
-	rc = ldap_back_filter_map_rewrite_( &li->at_map, &li->oc_map, 
-			op->oq_search.rs_filter, &mfilter, BACKLDAP_MAP );
-#endif /* ! ENABLE_REWRITE */
+	rc = ldap_back_filter_map_rewrite( &dc, op->oq_search.rs_filter,
+			&mfilter, BACKLDAP_MAP );
 
 	if ( rc ) {
 		rs->sr_err = LDAP_OTHER;
@@ -178,7 +171,8 @@ ldap_back_search(
 		goto finish;
 	}
 
-	rs->sr_err = ldap_back_map_attrs( &li->at_map, op->oq_search.rs_attrs,
+	rs->sr_err = ldap_back_map_attrs( &li->rwmap.rwm_at,
+			op->oq_search.rs_attrs,
 			BACKLDAP_MAP, &mapped_attrs );
 	if ( rs->sr_err ) {
 		rc = -1;
@@ -393,13 +387,12 @@ ldap_build_entry(
 	/*
 	 * Rewrite the dn of the result, if needed
 	 */
+	dc.rwmap = &li->rwmap;
 #ifdef ENABLE_REWRITE
-	dc.rw = li->rwinfo;
 	dc.conn = op->o_conn;
 	dc.rs = NULL;
 	dc.ctx = "searchResult";
 #else
-	dc.li = li;
 	dc.tofrom = 0;
 	dc.normalized = 0;
 #endif
@@ -427,7 +420,7 @@ ldap_build_entry(
 	dc.ctx = "searchAttrDN";
 #endif
 	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
-		ldap_back_map(&li->at_map, &a, &mapped, BACKLDAP_REMAP);
+		ldap_back_map(&li->rwmap.rwm_at, &a, &mapped, BACKLDAP_REMAP);
 		if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0')
 			continue;
 		attr = (Attribute *)ch_malloc( sizeof(Attribute) );
@@ -490,7 +483,7 @@ ldap_build_entry(
 		} else if ( attr->a_desc == slap_schema.si_ad_objectClass
 				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass ) {
 			for ( bv = attr->a_vals; bv->bv_val; bv++ ) {
-				ldap_back_map(&li->oc_map, bv, &mapped,
+				ldap_back_map(&li->rwmap.rwm_oc, bv, &mapped,
 						BACKLDAP_REMAP);
 				if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
 					LBER_FREE(bv->bv_val);
@@ -558,8 +551,6 @@ ldap_build_entry(
 			}
 		}
 
-next_attr:;
-
 		if ( normalize && last && attr->a_desc->ad_type->sat_equality &&
 			attr->a_desc->ad_type->sat_equality->smr_normalize ) {
 			int i;
@@ -626,13 +617,12 @@ ldap_back_entry_get(
 	/*
 	 * Rewrite the search base, if required
 	 */
+	dc.rwmap = &li->rwmap;
 #ifdef ENABLE_REWRITE
-	dc.rw = li->rwinfo;
 	dc.conn = op->o_conn;
 	dc.rs = &rs;
 	dc.ctx = "searchBase";
 #else
-	dc.li = li;
 	dc.tofrom = 1;
 	dc.normalized = 1;
 #endif
@@ -640,7 +630,7 @@ ldap_back_entry_get(
 		return 1;
 	}
 
-	ldap_back_map(&li->at_map, &at->ad_cname, &mapped, BACKLDAP_MAP);
+	ldap_back_map(&li->rwmap.rwm_at, &at->ad_cname, &mapped, BACKLDAP_MAP);
 	if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
 		rc = 1;
 		goto cleanup;
@@ -657,7 +647,7 @@ ldap_back_entry_get(
 	}
 	if (oc) {
 		char *ptr;
-		ldap_back_map(&li->oc_map, &oc->soc_cname, &mapped,
+		ldap_back_map(&li->rwmap.rwm_oc, &oc->soc_cname, &mapped,
 						BACKLDAP_MAP);
 		filter = ch_malloc(sizeof("(objectclass=)") + mapped.bv_len);
 		ptr = lutil_strcopy(filter, "(objectclass=");
