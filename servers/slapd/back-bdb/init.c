@@ -37,13 +37,13 @@ struct berval bdb_uuid = { 0, NULL };
 typedef void * db_malloc(size_t);
 typedef void * db_realloc(void *, size_t);
 
+#if 0
 static int
 bdb_open( BackendInfo *bi )
 {
 	return 0;
 }
 
-#if 0
 static int
 bdb_destroy( BackendInfo *bi )
 {
@@ -516,7 +516,7 @@ bdb_initialize(
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_BDB, ENTRY, "bdb_db_initialize\n", 0, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "bdb_open: initialize BDB backend\n",
+	Debug( LDAP_DEBUG_TRACE, "bdb_initialize: initialize BDB backend\n",
 		0, 0, 0 );
 #endif
 
@@ -545,7 +545,7 @@ bdb_initialize(
 				"\texpected: %s \tgot: %s\n", DB_VERSION_STRING, version, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"bdb_open: version mismatch\n"
+				"bdb_initialize: version mismatch\n"
 				"\texpected: " DB_VERSION_STRING "\n"
 				"\tgot: %s \n", version, 0, 0 );
 #endif
@@ -553,9 +553,9 @@ bdb_initialize(
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_BDB, DETAIL1, 
-			"bdb_db_initialize: bdb_open: %s\n", version, 0, 0 );
+			"bdb_db_initialize: %s\n", version, 0, 0 );
 #else
-		Debug( LDAP_DEBUG_ANY, "bdb_open: %s\n",
+		Debug( LDAP_DEBUG_ANY, "bdb_initialize: %s\n",
 			version, 0, 0 );
 #endif
 	}

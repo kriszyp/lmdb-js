@@ -296,13 +296,14 @@ meta_back_search(
 		
 		case REWRITE_REGEXEC_UNWILLING:
 			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, NULL, NULL, NULL );
+					NULL, "Operation not allowed",
+					NULL, NULL );
 			rc = -1;
 			goto finish;
 
 		case REWRITE_REGEXEC_ERR:
 			send_ldap_result( conn, op, LDAP_OTHER,
-					NULL, NULL, NULL, NULL );
+					NULL, "rewrite error", NULL, NULL );
 			rc = -1;
 			goto finish;
 		}
@@ -335,13 +336,14 @@ meta_back_search(
 		
 		case REWRITE_REGEXEC_UNWILLING:
 			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, NULL, NULL, NULL );
+					NULL, "Operation not allowed",
+					NULL, NULL );
 			rc = -1;
 			goto finish;
 
 		case REWRITE_REGEXEC_ERR:
 			send_ldap_result( conn, op, LDAP_OTHER,
-					NULL, NULL, NULL, NULL );
+					NULL, "Rewrite error", NULL, NULL );
 			rc = -1;
 			goto finish;
 		}
@@ -601,16 +603,11 @@ meta_back_search(
 			break;
 			
 		case REWRITE_REGEXEC_UNWILLING:
-			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, NULL, NULL, NULL );
-			rc = -1;
-			goto finish;
 			
 		case REWRITE_REGEXEC_ERR:
-			send_ldap_result( conn, op, LDAP_OTHER,
-					NULL, NULL, NULL, NULL );
-			rc = -1;
-			goto finish;
+			/* FIXME: no error, but no matched ... */
+			mmatch = NULL;
+			break;
 		}
 	}
 
@@ -691,8 +688,10 @@ meta_send_entry(
 		}
 		break;
 		
-	case REWRITE_REGEXEC_ERR:
 	case REWRITE_REGEXEC_UNWILLING:
+		return LDAP_UNWILLING_TO_PERFORM;
+
+	case REWRITE_REGEXEC_ERR:
 		return LDAP_OTHER;
 	}
 

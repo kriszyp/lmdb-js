@@ -31,15 +31,35 @@ value_add(
 		;	/* NULL */
 
 	if ( *vals == NULL ) {
-		*vals = (BerVarray) ch_malloc( (nn + 1)
+		*vals = (BerVarray) SLAP_MALLOC( (nn + 1)
 		    * sizeof(struct berval) );
+		if( *vals == NULL ) {
+#ifdef NEW_LOGGING
+			 LDAP_LOG( OPERATION, ERR,
+		      "value_add: SLAP_MALLOC failed.\n", 0, 0, 0 );
+#else
+			Debug(LDAP_DEBUG_TRACE,
+		      "value_add: SLAP_MALLOC failed.\n", 0, 0, 0 );
+#endif
+			return LBER_ERROR_MEMORY;
+		}
 		n = 0;
 	} else {
 		for ( n = 0; (*vals)[n].bv_val != NULL; n++ ) {
 			;	/* Empty */
 		}
-		*vals = (BerVarray) ch_realloc( (char *) *vals,
+		*vals = (BerVarray) SLAP_REALLOC( (char *) *vals,
 		    (n + nn + 1) * sizeof(struct berval) );
+		if( *vals == NULL ) {
+#ifdef NEW_LOGGING
+			 LDAP_LOG( OPERATION, ERR,
+		      "value_add: SLAP_MALLOC failed.\n", 0, 0, 0 );
+#else
+			Debug(LDAP_DEBUG_TRACE,
+		      "value_add: SLAP_MALLOC failed.\n", 0, 0, 0 );
+#endif
+			return LBER_ERROR_MEMORY;
+		}
 	}
 
 	v2 = *vals + n;
@@ -63,14 +83,34 @@ value_add_one(
 	BerVarray v2;
 
 	if ( *vals == NULL ) {
-		*vals = (BerVarray) ch_malloc( 2 * sizeof(struct berval) );
+		*vals = (BerVarray) SLAP_MALLOC( 2 * sizeof(struct berval) );
+		if( *vals == NULL ) {
+#ifdef NEW_LOGGING
+			 LDAP_LOG( OPERATION, ERR,
+		      "value_add_one: SLAP_MALLOC failed.\n", 0, 0, 0 );
+#else
+			Debug(LDAP_DEBUG_TRACE,
+		      "value_add_one: SLAP_MALLOC failed.\n", 0, 0, 0 );
+#endif
+			return LBER_ERROR_MEMORY;
+		}
 		n = 0;
 	} else {
 		for ( n = 0; (*vals)[n].bv_val != NULL; n++ ) {
 			;	/* Empty */
 		}
-		*vals = (BerVarray) ch_realloc( (char *) *vals,
+		*vals = (BerVarray) SLAP_REALLOC( (char *) *vals,
 		    (n + 2) * sizeof(struct berval) );
+		if( *vals == NULL ) {
+#ifdef NEW_LOGGING
+			 LDAP_LOG( OPERATION, ERR,
+		      "value_add_one: SLAP_MALLOC failed.\n", 0, 0, 0 );
+#else
+			Debug(LDAP_DEBUG_TRACE,
+		      "value_add_one: SLAP_MALLOC failed.\n", 0, 0, 0 );
+#endif
+			return LBER_ERROR_MEMORY;
+		}
 	}
 
 	v2 = *vals + n;

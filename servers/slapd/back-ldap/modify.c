@@ -89,12 +89,12 @@ ldap_back_modify(
 		
 	case REWRITE_REGEXEC_UNWILLING:
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-				NULL, "Unwilling to perform", NULL, NULL );
+				NULL, "Operation not allowed", NULL, NULL );
 		return( -1 );
 
 	case REWRITE_REGEXEC_ERR:
 		send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, "Operations error", NULL, NULL );
+				NULL, "Rewrite error", NULL, NULL );
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */
@@ -139,13 +139,18 @@ ldap_back_modify(
 					ml->sml_bvalues, conn );
 		}
 #endif /* ENABLE_REWRITE */
-	
-		for (j = 0; ml->sml_bvalues[j].bv_val; j++);
-		mods[i].mod_bvalues = (struct berval **)ch_malloc((j+1) *
-			sizeof(struct berval *));
-		for (j = 0; ml->sml_bvalues[j].bv_val; j++)
-			mods[i].mod_bvalues[j] = &ml->sml_bvalues[j];
-		mods[i].mod_bvalues[j] = NULL;
+
+		if ( ml->sml_bvalues != NULL ) {	
+			for (j = 0; ml->sml_bvalues[j].bv_val; j++);
+			mods[i].mod_bvalues = (struct berval **)ch_malloc((j+1) *
+				sizeof(struct berval *));
+			for (j = 0; ml->sml_bvalues[j].bv_val; j++)
+				mods[i].mod_bvalues[j] = &ml->sml_bvalues[j];
+			mods[i].mod_bvalues[j] = NULL;
+		} else {
+			mods[i].mod_bvalues = NULL;
+		}
+
 		i++;
 	}
 	modv[i] = 0;

@@ -45,6 +45,7 @@ static int	bdb_cache_delete_entry_internal(Cache *cache, Entry *e);
 static void	bdb_lru_print(Cache *cache);
 #endif
 
+#if 0	/* unused */
 static int
 bdb_cache_entry_rdwr_lock(Entry *e, int rw)
 {
@@ -98,6 +99,7 @@ bdb_cache_entry_rdwr_unlock(Entry *e, int rw)
 	else
 		return ldap_pvt_thread_rdwr_runlock(&BEI(e)->bei_rdwr);
 }
+#endif	/* unused */
 
 static int
 bdb_cache_entry_rdwr_init(Entry *e)

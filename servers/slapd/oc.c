@@ -491,7 +491,8 @@ oc_schema_info( Entry *e )
 		Debug( LDAP_DEBUG_TRACE, "Merging oc [%ld] %s\n",
 	       (long) vals[0].bv_len, vals[0].bv_val, 0 );
 #endif
-		attr_merge( e, ad_objectClasses, vals );
+		if( attr_merge( e, ad_objectClasses, vals ) )
+			return -1;
 		ldap_memfree( vals[0].bv_val );
 	}
 	return 0;

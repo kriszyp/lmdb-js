@@ -171,7 +171,7 @@ int module_load(const char* file_name, int argc, char *argv[])
 #ifdef NEW_LOGGING
 		LDAP_LOG( SLAPD, ERR, 
 			"module_load: module %s: unknown registration type (%d).\n", 
-			file_name, 0);
+			file_name, rc, 0);
 #else
 		Debug(LDAP_DEBUG_CONFIG, "module %s: unknown registration type (%d)\n",
 			file_name, rc, 0);

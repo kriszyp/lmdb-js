@@ -33,7 +33,19 @@ schema_info( Entry **entry, const char **text )
 	Entry		*e;
 	struct berval	vals[5];
 
-	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	e = (Entry *) SLAP_CALLOC( 1, sizeof(Entry) );
+	if( e == NULL ) {
+		/* Out of memory, do something about it */
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, ERR, 
+			"schema_info: SLAP_CALLOC failed - out of memory.\n", 0, 0,0 );
+#else
+		Debug( LDAP_DEBUG_ANY, 
+			"schema_info: SLAP_CALLOC failed - out of memory.\n", 0, 0, 0 );
+#endif
+		*text = "out of memory";
+		return LDAP_OTHER;
+	}
 
 	e->e_attrs = NULL;
 	/* backend-specific schema info should be created by the
@@ -45,7 +57,12 @@ schema_info( Entry **entry, const char **text )
 
 	vals[0].bv_val = "subentry";
 	vals[0].bv_len = sizeof("subentry")-1;
-	attr_merge_one( e, ad_structuralObjectClass, vals );
+	if( attr_merge_one( e, ad_structuralObjectClass, vals ) ) {
+		/* Out of memory, do something about it */
+		entry_free( e );
+		*text = "out of memory";
+		return LDAP_OTHER;
+	}
 
 	vals[0].bv_val = "top";
 	vals[0].bv_len = sizeof("top")-1;
@@ -56,7 +73,12 @@ schema_info( Entry **entry, const char **text )
 	vals[3].bv_val = "extensibleObject";
 	vals[3].bv_len = sizeof("extensibleObject")-1;
 	vals[4].bv_val = NULL;
-	attr_merge( e, ad_objectClass, vals );
+	if( attr_merge( e, ad_objectClass, vals ) ) {
+		/* Out of memory, do something about it */
+		entry_free( e );
+		*text = "out of memory";
+		return LDAP_OTHER;
+	}
 
 	{
 		int rc;
@@ -81,7 +103,12 @@ schema_info( Entry **entry, const char **text )
 			return LDAP_OTHER;
 		}
 
-		attr_merge_one( e, desc, vals );
+		if( attr_merge_one( e, desc, vals ) ) {
+			/* Out of memory, do something about it */
+			entry_free( e );
+			*text = "out of memory";
+			return LDAP_OTHER;
+		}
 	}
 
 	{
@@ -107,8 +134,18 @@ schema_info( Entry **entry, const char **text )
 		vals[0].bv_val = timebuf;
 		vals[0].bv_len = strlen( timebuf );
 
-		attr_merge_one( e, ad_createTimestamp, vals );
-		attr_merge_one( e, ad_modifyTimestamp, vals );
+		if( attr_merge_one( e, ad_createTimestamp, vals ) ) {
+			/* Out of memory, do something about it */
+			entry_free( e );
+			*text = "out of memory";
+			return LDAP_OTHER;
+		}
+		if( attr_merge_one( e, ad_modifyTimestamp, vals ) ) {
+			/* Out of memory, do something about it */
+			entry_free( e );
+			*text = "out of memory";
+			return LDAP_OTHER;
+		}
 	}
 
 	if ( syn_schema_info( e ) 

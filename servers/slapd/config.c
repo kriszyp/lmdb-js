@@ -1605,7 +1605,8 @@ read_config( const char *fname, int depth )
 
 			vals[0].bv_val = cargv[1];
 			vals[0].bv_len = strlen( vals[0].bv_val );
-			value_add( &default_referral, vals );
+			if( value_add( &default_referral, vals ) )
+				return LDAP_OTHER;
 
 #ifdef NEW_LOGGING
                 } else if ( strcasecmp( cargv[0], "logfile" ) == 0 ) {
@@ -1989,7 +1990,8 @@ read_config( const char *fname, int depth )
 
 			vals[0].bv_val = cargv[1];
 			vals[0].bv_len = strlen( vals[0].bv_val );
-			value_add( &be->be_update_refs, vals );
+			if( value_add( &be->be_update_refs, vals ) )
+				return LDAP_OTHER;
 
 		/* replication log file to which changes are appended */
 		} else if ( strcasecmp( cargv[0], "replogfile" ) == 0 ) {

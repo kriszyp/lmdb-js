@@ -386,7 +386,6 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 				&bsi->oc->oc->soc_cname, 
 				'\'' );
 
-#if defined(SLAP_X_FILTER_HASSUBORDINATES) || defined(SLAP_X_MRA_MATCH_DNATTRS)
 	} else if ( ad == slap_schema.si_ad_hasSubordinates || ad == NULL ) {
 		/*
 		 * FIXME: this is not robust; e.g. a filter
@@ -416,7 +415,6 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 			backsql_attrlist_add( bsi, NULL );
 		}
 		goto done;
-#endif /* SLAP_X_FILTER_HASSUBORDINATES || SLAP_X_MRA_MATCH_DNATTRS */
 		
 	} else {
 		at = backsql_ad2at( bsi->oc, ad );
@@ -1145,10 +1143,8 @@ backsql_search(
 	 */
 	for ( eid = srch_info.id_list; eid != NULL; 
 			eid = backsql_free_entryID( eid, 1 ) ) {
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
 		Attribute	*hasSubordinate = NULL,
 				*a = NULL;
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 		/* check for abandon */
 		if ( op->o_abandon ) {
@@ -1186,7 +1182,6 @@ backsql_search(
 			continue;
 		}
 
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
 		/*
 		 * We use this flag since we need to parse the filter
 		 * anyway; we should have used the frontend API function
@@ -1224,18 +1219,15 @@ backsql_search(
 				continue;
 			}
 		}
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 		if ( test_filter( be, conn, op, entry, filter ) 
 				== LDAP_COMPARE_TRUE ) {
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
 			if ( hasSubordinate && !( srch_info.bsi_flags & BSQL_SF_ALL_OPER ) 
 					&& !ad_inlist( slap_schema.si_ad_hasSubordinates, attrs ) ) {
 				a->a_next = NULL;
 				attr_free( hasSubordinate );
 				hasSubordinate = NULL;
 			}
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 #if 0	/* noop is masked SLAP_CTRL_UPDATE */
 			if ( op->o_noop ) {

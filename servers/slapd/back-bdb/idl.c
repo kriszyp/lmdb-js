@@ -185,6 +185,7 @@ int bdb_idl_insert( ID *ids, ID id )
 	return 0;
 }
 
+#if 0	/* unused */
 static int idl_delete( ID *ids, ID id )
 {
 	unsigned x = bdb_idl_search( ids, id );
@@ -228,6 +229,7 @@ static int idl_delete( ID *ids, ID id )
 
 	return 0;
 }
+#endif	/* unused */
 
 static char *
 bdb_show_key(

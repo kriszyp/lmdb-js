@@ -172,13 +172,13 @@ ldap_back_search(
 		
 	case REWRITE_REGEXEC_UNWILLING:
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-				NULL, "Unwilling to perform", NULL, NULL );
+				NULL, "Operation not allowed", NULL, NULL );
 		rc = -1;
 		goto finish;
 
 	case REWRITE_REGEXEC_ERR:
 		send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, "Operations error", NULL, NULL );
+				NULL, "Rewrite error", NULL, NULL );
 		rc = -1;
 		goto finish;
 	}
@@ -211,8 +211,13 @@ ldap_back_search(
 		
 	case REWRITE_REGEXEC_UNWILLING:
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-				NULL, "Unwilling to perform", NULL, NULL );
+				NULL, "Operation not allowed", NULL, NULL );
+		rc = -1;
+		goto finish;
+
 	case REWRITE_REGEXEC_ERR:
+		send_ldap_result( conn, op, LDAP_OTHER,
+				NULL, "Rewrite error", NULL, NULL );
 		rc = -1;
 		goto finish;
 	}
@@ -251,9 +256,9 @@ ldap_back_search(
 		mapped_attrs[count] = NULL;
 	}
 
-	if ((msgid = ldap_search(lc->ld, mbase.bv_val, scope, mapped_filter, mapped_attrs,
-		attrsonly)) == -1)
-	{
+	msgid = ldap_search(lc->ld, mbase.bv_val, scope, mapped_filter,
+			mapped_attrs, attrsonly);
+	if ( msgid == -1 ) {
 fail:;
 		rc = ldap_back_op_result(lc, op);
 		goto finish;
@@ -364,19 +369,18 @@ fail:;
 			break;
 			
 		case REWRITE_REGEXEC_UNWILLING:
-			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, "Unwilling to perform",
-				       	NULL, NULL );
 			
 		case REWRITE_REGEXEC_ERR:
-			rc = -1;
-			goto finish;
+			/* FIXME: no error, but no matched ... */
+			mmatch = NULL;
+			break;
 		}
 	}
 
 	if ( v2refs ) {
 		sres = LDAP_REFERRAL;
 	}
+
 	send_search_result( conn, op, sres,
 		mmatch, err, v2refs, NULL, count );
 

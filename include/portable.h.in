@@ -482,6 +482,12 @@
 /* Define if you have the <slp.h> header file.  */
 #undef HAVE_SLP_H
 
+/* Define if you have the <sql.h> header file.  */
+#undef HAVE_SQL_H
+
+/* Define if you have the <sqlext.h> header file.  */
+#undef HAVE_SQLEXT_H
+
 /* Define if you have the <ssl.h> header file.  */
 #undef HAVE_SSL_H
 

@@ -95,12 +95,12 @@ ldap_back_add(
  		
  	case REWRITE_REGEXEC_UNWILLING:
  		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
- 				NULL, "Unwilling to perform", NULL, NULL );
+ 				NULL, "Operation not allowed", NULL, NULL );
 		return( -1 );
 	       	
 	case REWRITE_REGEXEC_ERR:
  		send_ldap_result( conn, op, LDAP_OTHER,
- 				NULL, "Operations error", NULL, NULL );
+ 				NULL, "Rewrite error", NULL, NULL );
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */
@@ -154,12 +154,15 @@ ldap_back_add(
 #ifdef ENABLE_REWRITE
 		/*
 		 * FIXME: dn-valued attrs should be rewritten
-		 * to allow their use in ACLs at the back-ldap
-		 * level.
+		 * to allow their use in ACLs at back-ldap level.
 		 */
 		if ( strcmp( a->a_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
-			ldap_dnattr_rewrite( li->rwinfo, a->a_vals, conn );
+			/*
+			 * FIXME: rewrite could fail; in this case
+			 * the operation should give up, right?
+			 */
+			(void)ldap_dnattr_rewrite( li->rwinfo, a->a_vals, conn );
 		}
 #endif /* ENABLE_REWRITE */
 

@@ -102,12 +102,12 @@ ldap_back_bind(
 		
 	case REWRITE_REGEXEC_UNWILLING:
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-				NULL, "Unwilling to perform", NULL, NULL );
+				NULL, "Operation not allowed", NULL, NULL );
 		return( -1 );
 
 	case REWRITE_REGEXEC_ERR:
 		send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, "Operations error", NULL, NULL );
+				NULL, "Rewrite error", NULL, NULL );
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */
@@ -228,7 +228,7 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 		if (err != LDAP_SUCCESS) {
 			err = ldap_back_map_result(err);
 			send_ldap_result( conn, op, err,
-				NULL, "ldap_init failed", NULL, NULL );
+				NULL, "ldap_initialize() failed", NULL, NULL );
 			return( NULL );
 		}
 		/* Set LDAP version. This will always succeed: If the client
@@ -263,7 +263,8 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 						&lc->bound_dn.bv_val ) ) {
 			case REWRITE_REGEXEC_OK:
 				if ( lc->bound_dn.bv_val == NULL ) {
-					ber_dupbv( &lc->bound_dn, &lc->conn->c_dn );
+					ber_dupbv( &lc->bound_dn,
+							&lc->conn->c_dn );
 				}
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_LDAP, DETAIL1, 
@@ -283,25 +284,28 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 			case REWRITE_REGEXEC_UNWILLING:
 				send_ldap_result( conn, op,
 						LDAP_UNWILLING_TO_PERFORM,
-						NULL, "Unwilling to perform",
+						NULL, "Operation not allowed",
 						NULL, NULL );
 				return( NULL );
 				
 			case REWRITE_REGEXEC_ERR:
 				send_ldap_result( conn, op,
 						LDAP_OTHER,
-						NULL, "Operations error",
+						NULL, "Rewrite error",
 						NULL, NULL );
 				return( NULL );
 			}
+
 #else /* !ENABLE_REWRITE */
 			struct berval bv;
 			ldap_back_dn_massage( li, &lc->conn->c_dn, &bv, 0, 1 );
-			if ( bv.bv_val == lc->conn->c_dn.bv_val )
+			if ( bv.bv_val == lc->conn->c_dn.bv_val ) {
 				ber_dupbv( &lc->bound_dn, &bv );
-			else
+			} else {
 				lc->bound_dn = bv;
+			}
 #endif /* !ENABLE_REWRITE */
+
 		} else {
 			lc->bound_dn.bv_val = NULL;
 			lc->bound_dn.bv_len = 0;

@@ -409,7 +409,8 @@ cr_schema_info( Entry *e )
 		Debug( LDAP_DEBUG_TRACE, "Merging cr [%ld] %s\n",
 	       (long) vals[0].bv_len, vals[0].bv_val, 0 );
 #endif
-		attr_merge( e, ad_ditContentRules, vals );
+		if( attr_merge( e, ad_ditContentRules, vals ) )
+			return -1;
 		ldap_memfree( vals[0].bv_val );
 	}
 #endif
