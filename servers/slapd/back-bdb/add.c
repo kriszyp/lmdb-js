@@ -135,8 +135,6 @@ retry:	/* transaction retry */
 	
 	/*
 	 * Get the parent dn and see if the corresponding entry exists.
-	 * If the parent does not exist, only allow the "root" user to
-	 * add the entry.
 	 */
 	if ( be_issuffix( op->o_bd, &op->oq_add.rs_e->e_nname ) ) {
 		pdn = slap_empty_bv;
@@ -285,40 +283,12 @@ retry:	/* transaction retry */
 	} else {
 		/*
 		 * no parent!
-		 *	must be adding entry at suffix or with parent ""
+		 *  if not attempting to add entry at suffix or with parent ""
 		 */
-		if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
-			|| be_isupdate( op->o_bd, &op->o_ndn ) )
+		if (( !be_isroot( op->o_bd, &op->o_ndn )
+			|| !dn_match( &pdn, &slap_empty_bv ))
+			&& !is_entry_glue( op->oq_add.rs_e ))
 		{
-			p = (Entry *)&slap_entry_root;
-
-			/* check parent for "children" acl */
-			rs->sr_err = access_allowed( op, p,
-				children, NULL, ACL_WRITE, NULL );
-
-			p = NULL;
-
-			if ( ! rs->sr_err ) {
-				switch( opinfo.boi_err ) {
-				case DB_LOCK_DEADLOCK:
-				case DB_LOCK_NOTGRANTED:
-					goto retry;
-				}
-
-#ifdef NEW_LOGGING
-				LDAP_LOG ( OPERATION, DETAIL1, 
-					"bdb_add: no write access to parent\n", 0, 0, 0 );
-#else
-				Debug( LDAP_DEBUG_TRACE,
-					"bdb_add: no write access to parent\n",
-					0, 0, 0 );
-#endif
-				rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-				rs->sr_text = "no write access to parent";
-				goto return_results;
-			}
-
-		} else if ( !is_entry_glue( op->oq_add.rs_e )) {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1, "bdb_add: %s denied\n", 
 				pdn.bv_len == 0 ? "suffix" : "entry at root", 0, 0 );

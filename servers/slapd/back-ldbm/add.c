@@ -99,8 +99,7 @@ ldbm_back_add(
 		dnParent( &op->o_req_ndn, &pdn );
 	}
 
-	if( pdn.bv_len )
-	{
+	if( pdn.bv_len ) {
 		Entry *matched = NULL;
 
 		/* get parent with writer lock */
@@ -191,7 +190,6 @@ ldbm_back_add(
 			    0, 0 );
 #endif
 
-
 			send_ldap_error( op, rs, LDAP_ALIAS_PROBLEM,
 			    "parent is an alias" );
 
@@ -234,39 +232,12 @@ ldbm_back_add(
 #endif
 
 	} else {
-		if( pdn.bv_val != NULL ) {
-			assert( *pdn.bv_val == '\0' );
-		}
+		assert( pdn.bv_val == NULL || *pdn.bv_val != '\0' );
 
-		/* no parent */
-		if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv ) ||
-			be_isupdate( op->o_bd, &op->o_ndn ) )
+		if (( !be_isroot( op->o_bd, &op->o_ndn )
+			|| !dn_match( &pdn, &slap_empty_bv ))
+			&& !is_entry_glue( op->oq_add.rs_e ))
 		{
-			p = (Entry *)&slap_entry_root;
-				
-			rs->sr_err = access_allowed( op, p,
-				children, NULL, ACL_WRITE, NULL );
-			p = NULL;
-				
-			if ( ! rs->sr_err ) {
-				ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
-
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACK_LDBM, ERR,
-					"ldbm_back_add: No write "
-					"access to parent (\"\").\n", 0, 0, 0 );
-#else
-				Debug( LDAP_DEBUG_TRACE, 
-					"no write access to parent\n", 0, 0, 0 );
-#endif
-
-				send_ldap_error( op, rs,
-					LDAP_INSUFFICIENT_ACCESS,
-					"no write access to parent" );
-
-				return LDAP_INSUFFICIENT_ACCESS;
-			}
-		} else if ( !is_entry_glue( op->oq_add.rs_e )) {
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
