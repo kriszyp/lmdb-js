@@ -505,14 +505,12 @@ at_add(
 	}
 
 	if ( at->at_syntax_oid ) {
-#if 0
 		if ( (syn = syn_find(sat->sat_syntax_oid)) ) {
 			sat->sat_syntax = syn;
 		} else {
 			*err = sat->sat_syntax_oid;
 			return SLAP_SCHERR_SYN_NOT_FOUND;
 		}
-#endif
 		if ( !strcmp(at->at_syntax_oid,
 			     "1.3.6.1.4.1.1466.115.121.1.15") ) {
 			if ( at->at_equality_oid &&
@@ -537,7 +535,6 @@ at_add(
 		sat->sat_syntax_compat = DEFAULT_SYNTAX;
 	}
 
-#if 0
 	if ( sat->sat_equality_oid ) {
 		if ( (mr = mr_find(sat->sat_equality_oid)) ) {
 			sat->sat_equality = mr;
@@ -562,7 +559,26 @@ at_add(
 			return SLAP_SCHERR_MR_NOT_FOUND;
 		}
 	}
-#endif
+
+	/*
+	 * Now inherit definitions from superiors.  We only check the
+	 * direct superior since that one has already inherited from
+	 * its own superiorss
+	 */
+	if ( sat->sat_sup ) {
+		if ( !sat->sat_syntax ) {
+			sat->sat_syntax = sat->sat_sup->sat_syntax;
+		}
+		if ( !sat->sat_equality ) {
+			sat->sat_equality = sat->sat_sup->sat_equality;
+		}
+		if ( !sat->sat_ordering ) {
+			sat->sat_ordering = sat->sat_sup->sat_ordering;
+		}
+		if ( !sat->sat_substr ) {
+			sat->sat_substr = sat->sat_sup->sat_substr;
+		}
+	}
 	code = at_insert(sat,err);
 	return code;
 }
