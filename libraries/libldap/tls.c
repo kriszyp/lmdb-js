@@ -974,8 +974,7 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 	} else 
 #endif
 	if ((ptr = strrchr(name, '.')) && isdigit((unsigned char)ptr[1])) {
-		if (inet_aton(name, (struct in_addr *)&addr))
-			ntype = IS_IP4;
+		if (inet_aton(name, (struct in_addr *)&addr)) ntype = IS_IP4;
 	}
 	
 	i = X509_get_ext_by_NID(x, NID_subject_alt_name, -1);
@@ -1008,24 +1007,21 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 					sn = (char *) ASN1_STRING_data(gn->d.ia5);
 					sl = ASN1_STRING_length(gn->d.ia5);
 
+					/* ignore empty */
+					if (sl == 0) continue;
+
 					/* Is this an exact match? */
 					if ((len1 == sl) && !strncasecmp(name, sn, len1)) {
 						break;
 					}
 
 					/* Is this a wildcard match? */
-					if ((*sn == '*') && domain && (len2 == sl-1) &&
-						!strncasecmp(domain, sn+1, len2)) {
+					if (domain && (sn[0] == '*') && (sn[1] == '.') &&
+						(len2 == sl-1) && !strncasecmp(domain, &sn[1], len2))
+					{
 						break;
 					}
 
-#if 0
-					/* Is this a RFC 2459 style wildcard match? */
-					if ((*sn == '.') && domain && (len2 == sl) &&
-						!strncasecmp(domain, sn, len2)) {
-						break;
-					}
-#endif
 				} else if (gn->type == GEN_IPADD) {
 					if (ntype == IS_DNS) continue;
 
@@ -1056,9 +1052,9 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 	if (ret != LDAP_SUCCESS) {
 		X509_NAME *xn;
 		char buf[2048];
+		buf[0] = '\0';
 
 		xn = X509_get_subject_name(x);
-
 		if( X509_NAME_get_text_by_NID( xn, NID_commonName,
 			buf, sizeof(buf)) == -1)
 		{
@@ -1071,25 +1067,43 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 				"TLS: unable to get common name from peer certificate.\n",
 				0, 0, 0 );
 #endif
+       		ret = LDAP_CONNECT_ERROR;
 			ld->ld_error = LDAP_STRDUP(
 				_("TLS: unable to get CN from peer certificate"));
 
-		} else if (strcasecmp(name, buf)) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( TRANSPORT, ERR, "ldap_pvt_tls_check_hostname: "
-				"TLS hostname (%s) does not match "
-				"common name in certificate (%s).\n", name, buf, 0 );
-#else
-			Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
-				"common name in certificate (%s).\n", 
-				name, buf, 0 );
-#endif
-			ret = LDAP_CONNECT_ERROR;
-			ld->ld_error = LDAP_STRDUP(
-				_("TLS: hostname does not match CN in peer certificate"));
-
-		} else {
+		} else if (strcasecmp(name, buf) == 0 ) {
 			ret = LDAP_SUCCESS;
+
+		} else if (( buf[0] == '*' ) && ( buf[1] == '.' )) {
+			char *domain = strchr(name, '.');
+			if( domain ) {
+				size_t dlen = 0;
+				size_t sl;
+
+				sl = strlen(name);
+				dlen = sl - (domain-name);
+				sl = strlen(buf);
+
+				/* Is this a wildcard match? */
+				if ((dlen == sl-1) && !strncasecmp(domain, &buf[1], dlen)) {
+					ret = LDAP_SUCCESS;
+				}
+			}
+		}
+
+		if( ret == LDAP_LOCAL_ERROR ) {
+#ifdef NEW_LOGGING
+       		 LDAP_LOG ( TRANSPORT, ERR, "ldap_pvt_tls_check_hostname: "
+      			 "TLS hostname (%s) does not match "
+       			 "common name in certificate (%s).\n", name, buf, 0 );
+#else
+       		 Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
+       			 "common name in certificate (%s).\n", 
+       			 name, buf, 0 );
+#endif
+       		 ret = LDAP_CONNECT_ERROR;
+       		 ld->ld_error = LDAP_STRDUP(
+       		  	 _("TLS: hostname does not match CN in peer certificate"));
 		}
 	}
 	X509_free(x);
