@@ -13,10 +13,13 @@ corresponding to search filters instead of subtrees.
 
 H2: Overview
 
-The proxy cache extension of slapd handles a search request (query)
+The proxy cache extension of slapd is designed to improve the
+responseiveness of the ldap and meta backends. It handles a search
+request (query)
 by first determining whether it is contained in any cached search
 filter. Contained requests are answered from the proxy cache's local
-database.
+database. Other requests are passed on to the underlying ldap or
+meta backend and processed as usual.
 
 E.g. {{EX:(shoesize>=9)}} is contained in {{EX:(shoesize>=8)}} and
 {{EX:(sn=Richardson)}} is contained in {{EX:(sn=Richards*)}}
@@ -28,10 +31,7 @@ at configuration time. A query is cached or answered only if it
 belongs to one of these templates. The entries corresponding to
 cached queries are stored in the proxy cache local database while
 its associated meta information (filter, scope, base, attributes)
-is stored in main memory. Instead of sending a referral for requests
-which are not contained, it acts as a proxy and obtains the result
-by querying one or more target servers. The proxy cache extends the
-meta backend and uses it to connect to target servers.
+is stored in main memory. 
 
 A template is a prototype for generating LDAP search requests.
 Templates are described by a prototype search filter and a list of
@@ -44,7 +44,7 @@ search filters (sn=Doe) and (&(sn=Doe)(givenname=John)) respectively.
 The cache replacement policy removes the least recently used (LRU)
 query and entries belonging to only that query. Queries are allowed
 a maximum time to live (TTL) in the cache thus providing weak
-consistency. A background thread periodically checks the cache for
+consistency. A background task periodically checks the cache for
 expired queries and removes them.
 
 The Proxy Cache paper
@@ -55,7 +55,7 @@ design and implementation details.
 H2: Proxy Cache Configuration
 
 The cache configuration specific directives described below must
-appear after {{EX:overlay proxycache}} directive within a
+appear after a {{EX:overlay proxycache}} directive within a
 {{EX:"database meta"}} or {{EX:database ldap}} section of
 the server's {{slapd.conf}}(5) file.
 
@@ -63,15 +63,15 @@ H3: Setting cache parameters
 
 > proxyCache <DB> <maxentries> <nattrsets> <entrylimit> <period>
 
-The directive enables proxy caching and sets general cache parameters.
+This directive enables proxy caching and sets general cache parameters.
 The <DB> parameter specifies which underlying database is to be
 used to hold cached entries.  It should be set to {{EX:bdb}},
 {{EX:hdb}}, or {{EX:ldbm}}.  The <maxentries> parameter specifies
 the total number of entries which may be held in the cache.  The
 <nattrsets> parameter specifies the total number of attribute sets
-(as specified by the {{EX:proxyAttrSet}} directive) may be defined.
+(as specified by the {{EX:proxyAttrSet}} directive) that may be defined.
 The <entrylimit> parameter specifies the maximum number of entries
-in a cachable query.  The <period> specifies the duration consistency
+in a cachable query.  The <period> specifies the consistency
 check period (in seconds).  In each period, queries with expired
 TTLs are removed.
 
@@ -102,7 +102,7 @@ at server {{EX:ldap.example.com}}.
  
 >	database 	ldap
 >	suffix 		"dc=example,dc=com" 
->	uri    		ldap://ldap.example.com/dc=example,dc=com
+>	uri    		ldap://ldap.example.com/dc=example%2cdc=com
 >	overlay proxycache
 >	proxycache    bdb 100000 1 1000 100
 >	proxyAttrset  0 mail postaladdress telephonenumber 
