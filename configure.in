@@ -1723,8 +1723,6 @@ if test $ol_with_ldbm_api = auto \
 	fi
 fi
 
-exit
-
 if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then
 	AC_MSG_WARN(Could not find LDBM with BTREE support)
 	ol_with_ldbm_api=none

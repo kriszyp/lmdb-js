@@ -265,7 +265,9 @@ AC_DEFUN([OL_BERKELEY_DB_TRY],
 #define NULL ((void*)0)
 #endif
 ],[
-#if DB_VERSION_MAJOR > 1
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
 	db_appexit( NULL );
 #else
 	(void) dbopen( NULL, 0, 0, 0, NULL);
