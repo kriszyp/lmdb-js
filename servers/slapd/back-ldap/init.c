@@ -112,9 +112,17 @@ ldap_back_db_destroy(
 
 	if (be->be_private) {
 		li = (struct ldapinfo *)be->be_private;
-		if (li->host) {
-			free(li->host);
-			li->host = NULL;
+		if (li->url) {
+			free(li->url);
+			li->url = NULL;
+		}
+		if (li->binddn) {
+			free(li->binddn);
+			li->binddn = NULL;
+		}
+		if (li->bindpw) {
+			free(li->bindpw);
+			li->bindpw = NULL;
 		}
 		ldap_pvt_thread_mutex_destroy( &li->conn_mutex );
 	}

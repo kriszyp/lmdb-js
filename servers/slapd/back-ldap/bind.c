@@ -74,8 +74,7 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 
 	/* Looks like we didn't get a bind. Open a new session... */
 	if (!lc) {
-		ld = ldap_init(li->host, li->port);
-		if (!ld) {
+		if (ldap_initialize(&ld, li->url) != LDAP_SUCCESS) {
 			send_ldap_result( conn, op, LDAP_OTHER,
 				NULL, "ldap_init failed", NULL, NULL );
 			return( NULL );

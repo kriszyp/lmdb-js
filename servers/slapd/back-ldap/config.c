@@ -42,7 +42,6 @@ ldap_back_db_config(
 )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
-	char *port;
 
 	if ( li == NULL ) {
 		fprintf( stderr, "%s: line %d: ldap backend info is null!\n",
@@ -50,7 +49,7 @@ ldap_back_db_config(
 		return( 1 );
 	}
 
-	/* server address to query */
+	/* server address to query (depricated, use "uri" directive) */
 	if ( strcasecmp( argv[0], "server" ) == 0 ) {
 		if (argc != 2) {
 			fprintf( stderr,
@@ -58,12 +57,47 @@ ldap_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		port=strchr(argv[1],':');
-		if (port) {
-			*port++ = '\0';
-			li->port = atoi(port);
+		if (li->url != NULL)
+			ch_free(li->url);
+		li->url = ch_calloc(strlen(argv[1]) + 9, sizeof(char));
+		if (li->url != NULL) {
+			strcpy(li->url, "ldap://");
+			strcat(li->url, argv[1]);
+			strcat(li->url, "/");
 		}
-		li->host = ch_strdup(argv[1]);
+
+	/* URI of server to query (preferred over "server" directive) */
+	} else if ( strcasecmp( argv[0], "uri" ) == 0 ) {
+		if (argc != 2) {
+			fprintf( stderr,
+	"%s: line %d: missing address in \"uri <address>\" line\n",
+			    fname, lineno );
+			return( 1 );
+		}
+		if (li->url != NULL)
+			ch_free(li->url);
+		li->url = ch_strdup(argv[1]);
+
+	/* name to use for ldap_back_group */
+	} else if ( strcasecmp( argv[0], "binddn" ) == 0 ) {
+		if (argc != 2) {
+			fprintf( stderr,
+	"%s: line %d: missing name in \"binddn <name>\" line\n",
+			    fname, lineno );
+			return( 1 );
+		}
+		li->binddn = ch_strdup(argv[1]);
+
+	/* password to use for ldap_back_group */
+	} else if ( strcasecmp( argv[0], "bindpw" ) == 0 ) {
+		if (argc != 2) {
+			fprintf( stderr,
+	"%s: line %d: missing password in \"bindpw <password>\" line\n",
+			    fname, lineno );
+			return( 1 );
+		}
+		li->bindpw = ch_strdup(argv[1]);
+
 	/* anything else */
 	} else {
 		fprintf( stderr,

@@ -40,9 +40,10 @@ struct ldapconn {
 };
 
 struct ldapinfo {
-	char *host;
-	int port;
+	char *url;
 	char *suffix;
+	char *binddn;
+	char *bindpw;
 	ldap_pvt_thread_mutex_t		conn_mutex;
 	struct ldapconn *lcs;
 };
