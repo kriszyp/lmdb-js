@@ -150,7 +150,7 @@ static struct slap_schema_oc_map {
 		0, offsetof(struct slap_internal_schema, si_oc_subentry) },
 	{ "subschema", "( 2.5.20.1 NAME 'subschema' "
 		"DESC 'RFC2252: controlling subschema (sub)entry' "
-		"AUXILIARY"
+		"AUXILIARY "
 		"MAY ( dITStructureRules $ nameForms $ ditContentRules $ "
 			"objectClasses $ attributeTypes $ matchingRules $ "
 			"matchingRuleUse ) )",
@@ -577,36 +577,37 @@ slap_schema_load( void )
 	}
 
 	for( i=0; oc_map[i].ssom_name; i++ ) {
-		LDAPObjectClass *oc;
-		int		code;
-		const char	*err;
+		if( oc_map[i].ssom_defn != NULL ) {
+			LDAPObjectClass *oc;
+			int		code;
+			const char	*err;
 
-		oc = ldap_str2objectclass( oc_map[i].ssom_defn, &code, &err,
-			LDAP_SCHEMA_ALLOW_ALL );
-		if ( !oc ) {
-			fprintf( stderr, "slap_schema_load: "
-				"%s: %s before %s\n",
-				 oc_map[i].ssom_name, ldap_scherr2str(code), err );
-			return code;
+			oc = ldap_str2objectclass( oc_map[i].ssom_defn, &code, &err,
+				LDAP_SCHEMA_ALLOW_ALL );
+			if ( !oc ) {
+				fprintf( stderr, "slap_schema_load: "
+					"%s: %s before %s\n",
+				 	oc_map[i].ssom_name, ldap_scherr2str(code), err );
+				return code;
+			}
+
+			if ( oc->oc_oid == NULL ) {
+				fprintf( stderr, "slap_schema_load: "
+					"%s: objectclass has no OID\n",
+					oc_map[i].ssom_name );
+				return LDAP_OTHER;
+			}
+
+			code = oc_add(oc,&err);
+			if ( code ) {
+				fprintf( stderr, "slap_schema_load: "
+					"%s: %s: \"%s\"\n",
+				 	oc_map[i].ssom_name, scherr2str(code), err);
+				return code;
+			}
+
+			ldap_memfree(oc);
 		}
-
-		if ( oc->oc_oid == NULL ) {
-			fprintf( stderr, "slap_schema_load: "
-				"%s: objectclass has no OID\n",
-				oc_map[i].ssom_name );
-			return LDAP_OTHER;
-		}
-
-		code = oc_add(oc,&err);
-		if ( code ) {
-			fprintf( stderr, "slap_schema_load: "
-				"%s: %s: \"%s\"\n",
-				 oc_map[i].ssom_name, scherr2str(code), err);
-			return code;
-		}
-
-		ldap_memfree(oc);
-		return 0;
 	}
 
 	return LDAP_SUCCESS;

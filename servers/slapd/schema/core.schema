@@ -304,14 +304,11 @@ attributetype ( 2.5.4.54 NAME 'dmdName'
 
 # Standard object classes from RFC2256
 
-objectclass ( 2.5.6.0 NAME 'top'
-	DESC 'RFC2256: most superior class in superclass chain of all objects'
-	ABSTRACT MUST objectClass )
-
-objectclass ( 2.5.6.1 NAME 'alias'
-	DESC 'RFC2256: an alias'
-	SUP top STRUCTURAL
-	MUST aliasedObjectName )
+# system schema
+#objectclass ( 2.5.6.1 NAME 'alias'
+#	DESC 'RFC2256: an alias'
+#	SUP top STRUCTURAL
+#	MUST aliasedObjectName )
 
 objectclass ( 2.5.6.2 NAME 'country'
 	DESC 'RFC2256: a country'
@@ -456,21 +453,6 @@ objectclass ( 2.5.6.20 NAME 'dmd'
 		physicalDeliveryOfficeName $ st $ l $ description ) )
 
 #
-# Object Classes from RFC 2252
-#
-
-objectclass ( 1.3.6.1.4.1.1466.101.120.111 NAME 'extensibleObject'
-	DESC 'RFC2252: extensible object'
-	SUP top AUXILIARY )
-
-objectclass ( 2.5.20.1 NAME 'subschema'
-	DESC 'RFC2252: controlling subschema (sub)entry'
-	AUXILIARY
-	MAY ( dITStructureRules $ nameForms $ ditContentRules $
-		objectClasses $ attributeTypes $ matchingRules $
-		matchingRuleUse ) )
-
-#
 # Object Classes from RFC 2587
 #
 
@@ -555,37 +537,12 @@ objectclass ( 1.3.6.1.1.3.1 NAME 'uidObject'
 	SUP top AUXILIARY MUST uid )
 
 #
-# From draft-zeilenga-ldap-namedref-00.txt
-#	used to represent referrals in the directory
-
-objectclass ( 2.16.840.1.113730.3.2.6 NAME 'referral'
-	DESC 'namedref: named subordinate referral'
-	SUP top STRUCTURAL MUST ref )
-
-#
-# LDAP/X.500 subentry schema
-#	draft-zeilenga-ldap-subentry-xx.txt
-
-objectclass ( 2.5.20.0 NAME 'subentry'
-	SUP top STRUCTURAL
-	MUST ( cn $ subtreeSpecification ) )
-
-
-#
 # LDAPsubEntry
 #	deprecated!
 objectclass ( 2.16.840.1.113719.2.142.6.1.1
 	NAME 'LDAPsubEntry'
 	DESC 'LDAP Subentry'
 	OBSOLETE
-	SUP top STRUCTURAL MAY cn )
-
-#
-# OpenLDAProotDSE
-#	likely to change!
-objectclass ( 1.3.6.1.4.1.4203.1.4.1
-	NAME ( 'OpenLDAProotDSE' 'LDAProotDSE' )
-	DESC 'OpenLDAP Root DSE object'
 	SUP top STRUCTURAL MAY cn )
 
 #
