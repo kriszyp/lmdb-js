@@ -312,7 +312,7 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	ber_pvt_sb_buf_destroy( &p->buf_out );
 #endif
 	sasl_getprop( p->sasl_context, SASL_MAXOUTBUF, (const void **)&max );
-	if ( len > *max )
+	if ( len > *max - 100 )
 		len = *max - 100;	/* For safety margin */
 	ret = sasl_encode( p->sasl_context, buf, len,
 		(SASL_CONST char **)&p->buf_out.buf_base,
