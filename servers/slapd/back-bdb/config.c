@@ -111,7 +111,7 @@ bdb_db_config(
 		}
 		bdb->bi_dbenv_mode = strtol( argv[1], NULL, 0 );
 
-#if 0
+#if BDB_CONFIG_INDICES
 	/* attribute to index */
 	} else if ( strcasecmp( argv[0], "index" ) == 0 ) {
 		int rc;
