@@ -10,7 +10,7 @@
 ##  See http://www.gnu.org/software/shtool/ for more information.
 ##  See ftp://ftp.gnu.org/gnu/shtool/ for latest version.
 ##
-##  Version:  1.6.0 (01-Feb-2002)
+##  Version:  1.6.1 (12-Jul-2002)
 ##  Contents: 6/19 available modules
 ##
 
@@ -71,7 +71,7 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 if [ ".$1" = ".-h" -o ".$1" = ".--help" ]; then
-    echo "This is GNU shtool, version 1.6.0 (01-Feb-2002)"
+    echo "This is GNU shtool, version 1.6.1 (12-Jul-2002)"
     echo "Copyright (c) 1994-2002 Ralf S. Engelschall <rse@engelschall.com>"
     echo "Report bugs to <bug-shtool@gnu.org>"
     echo ''
@@ -108,7 +108,7 @@ if [ ".$1" = ".-h" -o ".$1" = ".--help" ]; then
     echo '  mkshadow [-v|--verbose] [-t|--trace] [-a|--all] <src-dir> <dst-dir>'
     echo '  fixperm  [-v|--verbose] [-t|--trace] <path> [<path> ...]'
     echo '  rotate   [-v|--verbose] [-t|--trace] [-f|--force] [-n|--num-files'
-    echo '           <count>] [-s|--min-size <size>] [-c|--copy] [-r|--remove]'
+    echo '           <count>] [-s|--size <size>] [-c|--copy] [-r|--remove]'
     echo '           [-a|--archive-dir <dir>] [-z|--compress [<tool>:]<level>]'
     echo '           [-b|--background] [-d|--delay] [-p|--pad <len>] [-o|--owner'
     echo '           <owner>] [-g|--group <group>] [-m|--mode <mode>] [-M|--migrate'
@@ -135,7 +135,7 @@ if [ ".$1" = ".-h" -o ".$1" = ".--help" ]; then
     exit 0
 fi
 if [ ".$1" = ".-v" -o ".$1" = ."--version" ]; then
-    echo "GNU shtool 1.6.0 (01-Feb-2002)"
+    echo "GNU shtool 1.6.1 (12-Jul-2002)"
     exit 0
 fi
 if [ ".$1" = ".-r" -o ".$1" = ."--recreate" ]; then
@@ -589,13 +589,13 @@ echo )
     if [ ".$opt_e" = .yes -a ".`echo $text | egrep '%d'`" != . ]; then
         if [ ".$domainname" = . ]; then
             if [ -f /etc/resolv.conf ]; then
-                domainname="`egrep '^[ 	]*domain' /etc/resolv.conf | head -1 |\
+                domainname="`egrep '^[ 	]*domain' /etc/resolv.conf | sed -e 'q' |\
                              sed -e 's/.*domain//' \
                                  -e 's/^[ 	]*//' -e 's/^ *//' -e 's/^	*//' \
                                  -e 's/^\.//' -e 's/^/./' |\
                              awk '{ printf("%s", $1); }'`"
                 if [ ".$domainname" = . ]; then
-                    domainname="`egrep '^[ 	]*search' /etc/resolv.conf | head -1 |\
+                    domainname="`egrep '^[ 	]*search' /etc/resolv.conf | sed -e 'q' |\
                                  sed -e 's/.*search//' \
                                      -e 's/^[ 	]*//' -e 's/^ *//' -e 's/^	*//' \
                                      -e 's/ .*//' -e 's/	.*//' \
@@ -1167,7 +1167,7 @@ subst )
                     rm -f $file.new
                     skip=yes
                 else
-                    (diff -u1 $file $file.new >$tmpfile) 2>/dev/null
+                    (diff -U1 $file $file.new >$tmpfile) 2>/dev/null
                     if [ ".`cat $tmpfile`" = . ]; then
                         (diff -C1 $file $file.new >$tmpfile) 2>/dev/null
                         if [ ".`cat $tmpfile`" = . ]; then
