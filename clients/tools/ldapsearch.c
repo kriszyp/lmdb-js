@@ -1087,8 +1087,14 @@ main( int argc, char **argv )
 	}
 
 	if (ldif < 2 ) {
-		printf( "#\n# LDAPv%d\n# filter%s: %s\n# requesting: ",
+		printf( "#\n"
+			"# LDAPv%d\n"
+			"# base <%s> with scope %s\n"
+			"# filter%s: %s\n"
+			"# requesting: ",
 			version,
+			base, (scope == LDAP_SCOPE_BASE) ? "base"
+				: ((scope == LDAP_SCOPE_ONELEVEL) ? "one" : "sub"),
 			infile != NULL ? " pattern" : "",
 			filtpattern );
 
