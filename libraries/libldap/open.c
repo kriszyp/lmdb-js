@@ -235,8 +235,8 @@ ldap_start_tls ( LDAP *ld,
 #ifdef HAVE_TLS
 	LDAPConn *lc;
 	int rc;
-	char *rspoid;
-	struct berval *rspdata;
+	char *rspoid = NULL;
+	struct berval *rspdata = NULL;
 
 	if (ld->ld_conns == NULL) {
 		rc = ldap_open_defconn( ld );
@@ -251,6 +251,10 @@ ldap_start_tls ( LDAP *ld,
 							NULL, serverctrls, clientctrls, &rspoid, &rspdata);
 		if (rc != LDAP_SUCCESS)
 			return rc;
+		if (rspoid != NULL)
+			LDAP_FREE(rspoid);
+		if (rspdata != NULL)
+			ber_bvfree(rspdata);
 		rc = ldap_pvt_tls_start( lc->lconn_sb, ld->ld_options.ldo_tls_ctx );
 		if (rc != LDAP_SUCCESS)
 			return rc;
@@ -277,7 +281,7 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 	port = htons( (short) port );
 
 	addr = 0;
-	if ( srv->lud_host == NULL )
+	if ( srv->lud_host == NULL || *srv->lud_host == 0 )
 		addr = htonl( INADDR_LOOPBACK );
 
 	rc = ldap_connect_to_host( ld, sb, srv->lud_host, addr, port, async );
@@ -291,12 +295,13 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 	tls = srv->lud_ldaps;
 	if (tls == -1)
 		tls = ld->ld_options.ldo_tls_mode;
-   	if ( tls != 0 )	{
-   		rc = ldap_pvt_tls_start( sb, ld->ld_options.ldo_tls_ctx );
-   		if (rc != LDAP_SUCCESS)
-   			return rc;
+	if ( tls != 0 ) {
+		rc = ldap_pvt_tls_start( sb, ld->ld_options.ldo_tls_ctx );
+		if (rc != LDAP_SUCCESS)
+			return rc;
 	}
 #endif
+
 	if ( krbinstancep != NULL ) {
 #ifdef HAVE_KERBEROS
 		char *c;
