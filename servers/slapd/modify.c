@@ -423,7 +423,7 @@ int slap_modlist2mods(
 					"%s: multiple value provided",
 					ml->ml_type );
 				*text = textbuf;
-				return LDAP_INVALID_SYNTAX;
+				return LDAP_CONSTRAINT_VIOLATION;
 			}
 		}
 

@@ -33,9 +33,32 @@ entry_schema_check(
 	Attribute	*a, *aoc;
 	ObjectClass *oc;
 	int		i;
-	int		ret;
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 	int extensible = 0;
+
+	/* check single-valued attrs for multiple values */
+	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+		/* there should be at least one value */
+		assert( a->a_vals );
+		assert( a->a_vals[0] != NULL ); 
+
+		/* if single value type, check for multiple values */
+		if( is_at_single_value( a->a_desc->ad_type ) &&
+			a->a_vals[1] != NULL )
+		{
+			char *type = a->a_desc->ad_cname->bv_val;
+
+			snprintf( textbuf, textlen, 
+				"attribute '%s' cannot have multiple values",
+				type );
+
+			Debug( LDAP_DEBUG_ANY,
+			    "Entry (%s), %s\n",
+			    e->e_dn, textbuf, 0 );
+
+			return LDAP_CONSTRAINT_VIOLATION;
+		}
+	}
 
 	if( !global_schemacheck ) return LDAP_SUCCESS;
 
@@ -88,13 +111,10 @@ entry_schema_check(
 		return LDAP_SUCCESS;
 	}
 
-	/* optimistic */
-	ret = LDAP_SUCCESS;
-
 	/* check that each attr in the entry is allowed by some oc */
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		ret = oc_check_allowed( a->a_desc->ad_type, aoc->a_vals );
-		if ( ret != 0 ) {
+		int ret = oc_check_allowed( a->a_desc->ad_type, aoc->a_vals );
+		if ( ret != LDAP_SUCCESS ) {
 			char *type = a->a_desc->ad_cname->bv_val;
 
 			snprintf( textbuf, textlen, 
@@ -105,11 +125,11 @@ entry_schema_check(
 			    "Entry (%s), %s\n",
 			    e->e_dn, textbuf, 0 );
 
-			break;
+			return ret;
 		}
 	}
 
-	return( ret );
+	return LDAP_SUCCESS;
 }
 
 static char *
