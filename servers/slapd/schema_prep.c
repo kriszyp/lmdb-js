@@ -229,7 +229,7 @@ static struct slap_schema_oc_map {
 			"NAME 'glue' "
 			"DESC 'Glue Entry' "
 			"SUP top STRUCTURAL )",
-		0, SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
+		0, SLAP_OC_GLUE|SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 		offsetof(struct slap_internal_schema, si_oc_glue) },
 	{ "syncConsumerSubentry", "( 1.3.6.1.4.1.4203.666.3.5 "
 			"NAME 'syncConsumerSubentry' "

@@ -230,7 +230,7 @@ entry_schema_check(
                         return rc;
                 }
         } else {
-                printf("glue !!!\n");
+			/* Glue Entry */
         }
 #else
         rc = entry_naming_check( e, text, textbuf, textlen );
