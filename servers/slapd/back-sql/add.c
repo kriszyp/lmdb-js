@@ -957,6 +957,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	Entry			p = { 0 }, *e = NULL;
 	Attribute		*at,
 				*at_objectClass = NULL;
+	struct berval		scname = BER_BVNULL;
 	struct berval		pdn;
 	struct berval		realdn = BER_BVNULL;
 	int			colnum;
@@ -1000,7 +1001,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		}
 	}
 
-	/* search structural objectClass */
+	/* search structuralObjectClass */
 	for ( at = op->ora_e->e_attrs; at != NULL; at = at->a_next ) {
 		if ( at->a_desc == slap_schema.si_ad_structuralObjectClass ) {
 			break;
@@ -1008,16 +1009,48 @@ backsql_add( Operation *op, SlapReply *rs )
 	}
 
 	/* there must exist */
-	assert( at != NULL );
+	if ( at == NULL ) {
+		char		buf[ SLAP_TEXT_BUFLEN ];
+		const char	*text;
+
+		/* search structuralObjectClass */
+		for ( at = op->ora_e->e_attrs; at != NULL; at = at->a_next ) {
+			if ( at->a_desc == slap_schema.si_ad_objectClass ) {
+				break;
+			}
+		}
+
+		if ( at == NULL ) {
+			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
+				"no objectClass\n",
+				op->ora_e->e_name.bv_val, 0, 0 );
+			rs->sr_err = LDAP_OBJECT_CLASS_VIOLATION;
+			e = NULL;
+			goto done;
+		}
+
+		rs->sr_err = structural_class( at->a_vals, &scname, NULL,
+				&text, buf, sizeof( buf ) );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
+				"%s (%d)\n",
+				op->ora_e->e_name.bv_val, text, rs->sr_err );
+			e = NULL;
+			goto done;
+		}
+
+	} else {
+		scname = at->a_vals[0];
+	}
 
 	/* I guess we should play with sub/supertypes to find a suitable oc */
-	oc = backsql_name2oc( bi, &at->a_vals[0] );
+	oc = backsql_name2oc( bi, &scname );
 
 	if ( oc == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"cannot map structuralObjectClass \"%s\" -- aborting\n",
 			op->ora_e->e_name.bv_val,
-			at->a_vals[0].bv_val, 0 );
+			scname.bv_val, 0 );
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		rs->sr_text = "operation not permitted within namingContext";
 		e = NULL;
@@ -1029,7 +1062,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			"create procedure is not defined "
 			"for structuralObjectClass \"%s\" - aborting\n",
 			op->ora_e->e_name.bv_val,
-			at->a_vals[0].bv_val, 0 );
+			scname.bv_val, 0 );
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		rs->sr_text = "operation not permitted within namingContext";
 		e = NULL;
@@ -1042,7 +1075,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			"but none is defined for structuralObjectClass \"%s\" "
 			"- aborting\n",
 			op->ora_e->e_name.bv_val,
-			at->a_vals[0].bv_val, 0 );
+			scname.bv_val, 0 );
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		rs->sr_text = "operation not permitted within namingContext";
 		e = NULL;
@@ -1314,34 +1347,6 @@ backsql_add( Operation *op, SlapReply *rs )
 		"create_proc returned keyval=%ld\n",
 		op->ora_e->e_name.bv_val, new_keyval, 0 );
 
-	for ( at = op->ora_e->e_attrs; at != NULL; at = at->a_next ) {
-		Debug( LDAP_DEBUG_TRACE, "   backsql_add(): "
-			"adding attribute \"%s\"\n", 
-			at->a_desc->ad_cname.bv_val, 0, 0 );
-
-		/*
-		 * Skip:
-		 * - the first occurrence of objectClass, which is used
-		 *   to determine how to build the SQL entry (FIXME ?!?)
-		 * - operational attributes
-		 * - empty attributes (FIXME ?!?)
-		 */
-		if ( backsql_attr_skip( at->a_desc, at->a_vals ) ) {
-			continue;
-		}
-
-		if ( at->a_desc == slap_schema.si_ad_objectClass ) {
-			at_objectClass = at;
-			continue;
-		}
-
-		rs->sr_err = backsql_add_attr( op, rs, dbh, oc, at, new_keyval );
-		if ( rs->sr_err != LDAP_SUCCESS ) {
-			e = op->ora_e;
-			goto done;
-		}
-	}
-
 	rc = backsql_Prepare( dbh, &sth, bi->sql_insentry_stmt, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		rs->sr_err = LDAP_OTHER;
@@ -1446,6 +1451,34 @@ backsql_add( Operation *op, SlapReply *rs )
 	}
 
 	SQLFreeStmt( sth, SQL_DROP );
+
+	for ( at = op->ora_e->e_attrs; at != NULL; at = at->a_next ) {
+		Debug( LDAP_DEBUG_TRACE, "   backsql_add(): "
+			"adding attribute \"%s\"\n", 
+			at->a_desc->ad_cname.bv_val, 0, 0 );
+
+		/*
+		 * Skip:
+		 * - the first occurrence of objectClass, which is used
+		 *   to determine how to build the SQL entry (FIXME ?!?)
+		 * - operational attributes
+		 * - empty attributes (FIXME ?!?)
+		 */
+		if ( backsql_attr_skip( at->a_desc, at->a_vals ) ) {
+			continue;
+		}
+
+		if ( at->a_desc == slap_schema.si_ad_objectClass ) {
+			at_objectClass = at;
+			continue;
+		}
+
+		rs->sr_err = backsql_add_attr( op, rs, dbh, oc, at, new_keyval );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			e = op->ora_e;
+			goto done;
+		}
+	}
 
 	if ( at_objectClass ) {
 		rs->sr_err = backsql_add_attr( op, rs, dbh, oc,
