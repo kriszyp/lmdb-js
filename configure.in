@@ -2348,7 +2348,7 @@ AC_CACHE_CHECK([long long], ol_cv_type_long_long, [
 		[ol_cv_type_long_long=yes],
 		[ol_cv_type_long_long=no])])
 if test $ol_cv_type_long_long = yes; then
-	AC_DEFINE(HAVE_LONG_LONG, 1, [define if you have `long long'])
+	AC_DEFINE(HAVE_LONG_LONG, 1, [define if you have 'long long'])
 fi
 
 AC_TYPE_MODE_T
