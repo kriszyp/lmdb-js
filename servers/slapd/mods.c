@@ -238,6 +238,7 @@ modify_check_duplicates(
 					snprintf( textbuf, textlen,
 						"%s: matching rule failed",
 						ad->ad_cname.bv_val );
+					free( asserted.bv_val );
 					goto return_results;
 				}
 
@@ -251,9 +252,11 @@ modify_check_duplicates(
 						"%s: value #%d provided more than once",
 						ad->ad_cname.bv_val, j );
 					rc = LDAP_TYPE_OR_VALUE_EXISTS;
+					free( asserted.bv_val );
 					goto return_results;
 				}
 			}
+			free( asserted.bv_val );
 
 			if ( permissive && matched == i ) {
 				rc = LDAP_TYPE_OR_VALUE_EXISTS;
@@ -421,6 +424,7 @@ modify_add_values(
 						return LDAP_TYPE_OR_VALUE_EXISTS;
 					}
 				}
+				free( asserted.bv_val );
 				if ( permissive && matched == i ) {
 					/* values already exist; do nothing */
 					return LDAP_SUCCESS;
