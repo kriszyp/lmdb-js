@@ -1263,6 +1263,7 @@ id2entry_retry:
 						rs->sr_attrs = sop->oq_search.rs_attrs;
 						rs->sr_ctrls = NULL;
 						rs->sr_flags = 0;
+						rs->sr_err = LDAP_SUCCESS;
 						result = send_search_entry( sop, rs );
 					}
 				}
