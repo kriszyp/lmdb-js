@@ -21,6 +21,10 @@
 #include <sys/types.h>
 #endif
 
+#ifdef HAVE_POLL_H
+#include <poll.h>
+#endif
+
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 

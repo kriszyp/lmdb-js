@@ -14,6 +14,11 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
+/*
+ * This header is to be included by portable.h to ensure
+ * tweaking of FD_SETSIZE is done early enough to be effective.
+ */
+
 #ifndef _AC_FDSET_H
 #define _AC_FDSET_H
 
