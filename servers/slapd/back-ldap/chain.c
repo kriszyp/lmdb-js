@@ -139,7 +139,9 @@ ldap_chain_op(
 {
 	slap_overinst	*on = (slap_overinst *) op->o_bd->bd_info;
 	struct ldapinfo	li, *lip = (struct ldapinfo *)on->on_bi.bi_private;
-	int		rc;
+
+	/* NOTE: returned if ref is empty... */
+	int		rc = LDAP_OTHER;
 
 	if ( lip->url != NULL ) {
 		op->o_bd->be_private = on->on_bi.bi_private;
@@ -692,7 +694,7 @@ chain_init( void )
 	int	rc;
 
 	rc = register_supported_control( LDAP_CONTROL_X_CHAINING_BEHAVIOR,
-			SLAP_CTRL_ACCESS, NULL,
+			SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE, NULL,
 			ldap_chain_parse_ctrl, &sc_chainingBehavior );
 	if ( rc != LDAP_SUCCESS ) {
 		fprintf( stderr, "Failed to register chaining behavior control: %d\n", rc );
