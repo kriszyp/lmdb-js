@@ -66,7 +66,7 @@ starttls_extop (
 		( conn->c_dn.bv_len != 0 ) )
 	{
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu AUTHZ anonymous mech=starttls ssf=0",
+			"conn=%lu op=%lu AUTHZ anonymous mech=starttls ssf=0\n",
 			op->o_connid, op->o_opid, 0, 0, 0 );
 
 		/* force to anonymous */
