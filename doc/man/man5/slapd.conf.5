@@ -418,7 +418,7 @@ conditions are currently same.
 may be used to require no conditions (useful for clearly globally
 set conditions within a particular database).
 .TP
-.B rootDSEfile <file>
+.B rootDSE <file>
 Specify the name of an LDIF(5) file containing user defined attributes
 for the root DSE.  These attributes are returned in addition to the
 attributes normally produced by slapd.
@@ -479,7 +479,7 @@ Multiple
 options can be given in the configuration file to allow for multiple matching 
 and replacement patterns. The matching patterns are checked in the order they 
 appear in the file, stopping at the first successful match.
-.LP
+
 .B Caution:
 Because the plus sign + is a character recognized by the regular expression engine,
 and it will appear in SASL names that include a REALM, be careful to escape the
@@ -667,7 +667,7 @@ the session is immediately terminated.
 These keywords are all equivalent, for compatibility reasons.
 The client certificate is requested.  If no certificate is provided,
 or a bad certificate is provided, the session is immediately terminated.
-.LP
+
 Note that a valid client certificate is required in order to use the
 SASL EXTERNAL authentication mechanism with a TLS session.  As such,
 a non-default
@@ -696,6 +696,7 @@ type of backend.
 .B database <databasetype>
 Mark the beginning of a new database instance definition. <databasetype>
 should be one of
+.B bdb,
 .B ldbm,
 .B shell,
 or
@@ -821,6 +822,10 @@ If specified multiple times, each url is provided.
 .\" "backend" or "database" lines.  The LDBM backend is a high-performance
 .\" database that makes extensive use of indexing and caching to speed
 .\" data access. 
+.SH BDB DATABASE-SPECIFIC OPTIONS
+Options in this category only apply to the BDB databases. That is,
+they must follow "database ldbm" line and come before any subsequent
+"backend" or "database" lines.
 .SH LDBM DATABASE-SPECIFIC OPTIONS
 Options in this category only apply to the LDBM databases. That is,
 they must follow "database ldbm" line and come before any subsequent
@@ -878,15 +883,16 @@ must be 1 or greater.
 Specify the directory where the LDBM files containing this database and
 associated indexes live.  A separate directory must be specified for
 each database.  The default is
-.BR LOCALSTATEDIR/openldap-ldbm .
+.BR LOCALSTATEDIR/openldap-data .
 .TP
 .B
 index {<attrlist>|default} [pres,eq,approx,sub,<special>]
-Specify the indexes to maintain for the given attribute. If only 
-an <attr> is given, the indices specified for \fBdefault\fR
-are maintained.  Note that setting a default does not imply that
-all attributes will be indexed.
-.LP
+Specify the indexes to maintain for the given attribute (or
+list of attributes).  Some attributes only support a subset
+of indexes.  If only an <attr> is given, the indices specified
+for \fBdefault\fR are maintained.  Note that setting a default
+does not imply that all attributes will be indexed.
+
 A number of special index parameters may be
 specified.
 The index type
@@ -936,7 +942,7 @@ front-end.
 .B abandon <pathname>
 These options specify the pathname of the command to execute in response 
 to the given LDAP operation.
-.LP
+
 Note that you need only supply configuration lines for those commands you
 want the backend to handle. Operations for which a command is not
 supplied will be refused with an "unwilling to perform" error.
