@@ -1,0 +1,67 @@
+Written by Ganesan Rajagopal <rganesan@debian.org> and placed in the public
+domain.
+
+Replication in OpenLDAP
+-----------------------
+
+Please read "Section 10. Replication with slurpd" in the OpenLDAP guide for
+an overview and configuration of single-master replication. This document
+describes the internals of the replication mechanism.
+
+slapd/repl.c contains routines add_replica_info() and
+add_replica_suffix(). add_replica_info() adds a new host to the list of
+replicas for a backend. add_replica_info() returns a number for the
+replica. add_replica_suffix() must then be called with the replica number to
+add a suffix that is hosted on this replica. add_replica_info() and add_replica_suffix() do not lock the
+replog_mutex.
+
+Replicas are specified in the slapd.conf file. When slapd/config.c sees a
+"replica" line in slapd.conf, it calls add_replica_info() with the host
+specified in the "host=" directive and then calls add_replica_suffix() with
+the replica number and and the suffix specified in the "suffix="
+directive. 
+
+slapd writes out a replication log file containing LDIF change records for
+each configured replica for a suffix. The change records are generated for
+add, modify, delete and modrdn operations. A function called replog() is
+called at the end of the routines do_add (slapd/add.c),
+do_modify(slapd/modify.c), do_delete(slapd/delete.c) and
+do_modrdn(slapd/modrnd.c) to write out the change records.
+
+In master/slave replication, updates are not allowed on slave
+replicas. Therefore replog() is not called if the suffix is configured with
+a updatedn (which indicates that this is a slave replica), instead a
+referral is returned back to the client. If multi-master replication is
+enabled, replog() is always called whenever any of the above updates happen
+unless the dn which is making the change is the updatedn. When the dn making
+the change is the same as the updatedn, it is assumed that this entry is
+being replicated by a slurpd instance on another host. (Note: For this
+reason, the updatedn must not be a "regular" admin/user object in
+multi-master replication).
+
+The function replog() in slapd/repl.c generates the actual change
+records. Each change record is preceded by the list of replicas to which
+this change record needs to be replicated, the time when this change
+happened and the dn this change applies to. The pseudo code for replog() is
+follows
+
+1. Check that a replog exists.
+2. Lock the replog mutex.
+3. Open and lock the replog file. 
+4. Normalize the dn for the entry and write out a "replica:" entry for each
+   replica with a matching suffix. 
+5. Write out the the timestamp and the dn for the entry.
+6. Depending on the type of change, write out an appropriate changetype
+   record.
+7. Close the replication log
+8. Unlock the replog mutex
+
+slurpd has a file manager routine (function fm()) which watches for any
+change in the replication log. Whenever fm() detects a change in the
+replication log it locks the log, appends the records to slurpd's private
+copy of the replication log and truncates the log. See the slurpd/DESIGN
+file for a description of how slurpd works. 
+
+slapd can be configured to write out a replication log even if no replicas
+are configured. In this case the administrator has to truncate the
+replication log manually (under a lock!).
