@@ -151,9 +151,11 @@ oc_check_allowed( char *type, struct berval **ocl )
 			}
 			/* maybe the next oc allows it */
 
+#ifndef SLAPD_UNDEFINED_OC_IS_NOT_EXTENSIBLE
 		/* we don't know about the oc. assume it allows it */
 		} else {
 			return( 0 );
+#endif
 		}
 	}
 
