@@ -2,7 +2,18 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP Stable 
 	CVS Tag: OPENLDAP_STABLE 
-	Fixed gmake RUNDIR not defaulting problem. 
+	Updated README, INSTALL files 
+	Updated Linux platform defaults
+	Updated FreeBSD 2 & 3 platform defaults
+	Added SCHED_YIELD_MISSING flag
+	Added LDAP_ALLOW_NULL_SEARCH_BASE flag
+	Added core removal to tests/Make-template
+	Fixed slapd/acl debug trace problem
+	Fixed ud/auth.c bound_dn problem 
+	Fixed back-ldbm/idl.c CLDAP include <sys/socket.h> problem.
+	Fixed Makefile $(CC) problem
+	Fixed LIBEXEC/SBIN creation problem
+	Fixed gmake RUNDIR not defaulting problem 
 
 Changes included in OpenLDAP 1.0.1 
 CVS Tag: OPENLDAP_STABLE_980907 
