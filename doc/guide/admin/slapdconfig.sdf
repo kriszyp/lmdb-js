@@ -741,11 +741,25 @@ This access directive grants read access to everyone.
 >		by anonymous auth
 >		by * read
 
-This directive allows users to modify their own entries,
-allows authenticate, and allows all others to read.
-Note that only the first {{EX:by <who>}} clause which matches applies.
-Hence, the anonymous users are granted {{EX:auth}}, not {{EX:read}}.
-The last clause could just as well have been "{{EX:by users read}}".
+This directive allows users to modify their own entries, allows
+authenticate, and allows all others to read.  Note that only the
+first {{EX:by <who>}} clause which matches applies.  Hence, the
+anonymous users are granted {{EX:auth}}, not {{EX:read}}.  The last
+clause could just as well have been "{{EX:by users read}}".
+
+It is often desirable to restrict operations based upon the level
+of protection in place.  The following shows how security strength
+factors (SSF) can be used.
+
+>	access to *
+>		by ssf=128 self write
+>		by ssf=64 anonymous auth
+>		by ssf=64 users read
+
+This directive allows users to modify their own entries if security
+protections have of strength 128 or better have been established,
+allows simple authentication and read access when 64 or better
+security protections have been established.
 
 The following example shows the use of a regular expression
 to select the entries by DN in two access directives where
