@@ -49,6 +49,7 @@ read_and_send_results(
 	int	bsize, len;
 	char	*buf, *bp;
 	char	line[BUFSIZ];
+	char	ebuf[128];
 
 	/* read in the result and send it along */
 	buf = (char *) ch_malloc( BUFSIZ );
@@ -61,7 +62,7 @@ read_and_send_results(
 			if ( errno == EINTR ) continue;
 
 			Debug( LDAP_DEBUG_ANY, "shell: fgets failed: %s (%d)\n",
-				strerror(errno), errno, 0 ); 
+				AC_STRERROR_R(errno, ebuf, sizeof ebuf), errno, 0 ); 
 			break;
 		}
 
