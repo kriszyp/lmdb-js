@@ -39,8 +39,8 @@ CPP=cl.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "..\Release"
-# PROP Intermediate_Dir "Release\liblutil"
+# PROP Output_Dir "..\..\Release"
+# PROP Intermediate_Dir "..\..\Release\liblutil"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
@@ -60,8 +60,8 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "..\Debug"
-# PROP Intermediate_Dir "Debug\liblutil"
+# PROP Output_Dir "..\..\Debug"
+# PROP Intermediate_Dir "..\..\Debug\liblutil"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
@@ -205,7 +205,7 @@ SOURCE=.\slapdmsg.mc
 !IF  "$(CFG)" == "liblutil - Win32 Release"
 
 # Begin Custom Build - Building slapd message file
-IntDir=.\Release\liblutil
+IntDir=.\..\..\Release\liblutil
 InputPath=.\slapdmsg.mc
 
 "slapdmsg.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -218,7 +218,7 @@ InputPath=.\slapdmsg.mc
 !ELSEIF  "$(CFG)" == "liblutil - Win32 Debug"
 
 # Begin Custom Build - Building slapd message file
-IntDir=.\Debug\liblutil
+IntDir=.\..\..\Debug\liblutil
 InputPath=.\slapdmsg.mc
 
 "slapdmsg.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"

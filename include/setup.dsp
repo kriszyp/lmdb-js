@@ -4,7 +4,7 @@
 
 # TARGTYPE "Win32 (x86) External Target" 0x0106
 
-CFG=setup - Win32 Debug
+CFG=setup - Win32 Single Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
@@ -13,12 +13,15 @@ CFG=setup - Win32 Debug
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "setup.mak" CFG="setup - Win32 Debug"
+!MESSAGE NMAKE /f "setup.mak" CFG="setup - Win32 Single Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
 !MESSAGE "setup - Win32 Release" (based on "Win32 (x86) External Target")
 !MESSAGE "setup - Win32 Debug" (based on "Win32 (x86) External Target")
+!MESSAGE "setup - Win32 Single Debug" (based on "Win32 (x86) External Target")
+!MESSAGE "setup - Win32 Single Release" (based on\
+ "Win32 (x86) External Target")
 !MESSAGE 
 
 # Begin Project
@@ -63,16 +66,60 @@ CFG=setup - Win32 Debug
 # PROP Bsc_Name "setup.bsc"
 # PROP Target_Dir ""
 
+!ELSEIF  "$(CFG)" == "setup - Win32 Single Debug"
+
+# PROP BASE Use_Debug_Libraries 1
+# PROP BASE Output_Dir "setup___"
+# PROP BASE Intermediate_Dir "setup___"
+# PROP BASE Cmd_Line "NMAKE /f setup.mak"
+# PROP BASE Rebuild_Opt "/a"
+# PROP BASE Target_File "setup.txt"
+# PROP BASE Bsc_Name "setup.bsc"
+# PROP BASE Target_Dir ""
+# PROP Use_Debug_Libraries 1
+# PROP Output_Dir "setup___"
+# PROP Intermediate_Dir "setup___"
+# PROP Cmd_Line "NMAKE /f setup.mak"
+# PROP Rebuild_Opt "/a"
+# PROP Target_File "setup.txt"
+# PROP Bsc_Name "setup.bsc"
+# PROP Target_Dir ""
+
+!ELSEIF  "$(CFG)" == "setup - Win32 Single Release"
+
+# PROP BASE Use_Debug_Libraries 0
+# PROP BASE Output_Dir "setup__0"
+# PROP BASE Intermediate_Dir "setup__0"
+# PROP BASE Cmd_Line "NMAKE /f setup.mak"
+# PROP BASE Rebuild_Opt "/a"
+# PROP BASE Target_File "setup.txt"
+# PROP BASE Bsc_Name "setup.bsc"
+# PROP BASE Target_Dir ""
+# PROP Use_Debug_Libraries 0
+# PROP Output_Dir "setup__0"
+# PROP Intermediate_Dir "setup__0"
+# PROP Cmd_Line "NMAKE /f setup.mak"
+# PROP Rebuild_Opt "/a"
+# PROP Target_File "setup.txt"
+# PROP Bsc_Name "setup.bsc"
+# PROP Target_Dir ""
+
 !ENDIF 
 
 # Begin Target
 
 # Name "setup - Win32 Release"
 # Name "setup - Win32 Debug"
+# Name "setup - Win32 Single Debug"
+# Name "setup - Win32 Single Release"
 
 !IF  "$(CFG)" == "setup - Win32 Release"
 
 !ELSEIF  "$(CFG)" == "setup - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "setup - Win32 Single Debug"
+
+!ELSEIF  "$(CFG)" == "setup - Win32 Single Release"
 
 !ENDIF 
 
