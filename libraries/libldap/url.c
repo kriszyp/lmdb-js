@@ -881,6 +881,12 @@ ldap_url_duplist (LDAPURLDesc *ludlist)
 int
 ldap_url_parselist (LDAPURLDesc **ludlist, const char *url )
 {
+	return ldap_url_parselist_ext( ludlist, url, ", " );
+}
+
+int
+ldap_url_parselist_ext (LDAPURLDesc **ludlist, const char *url, const char *sep )
+{
 	int i, rc;
 	LDAPURLDesc *ludp;
 	char **urls;
@@ -890,7 +896,7 @@ ldap_url_parselist (LDAPURLDesc **ludlist, const char *url )
 
 	*ludlist = NULL;
 
-	urls = ldap_str2charray(url, ", ");
+	urls = ldap_str2charray(url, sep);
 	if (urls == NULL)
 		return LDAP_NO_MEMORY;
 

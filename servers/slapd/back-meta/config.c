@@ -157,7 +157,7 @@ meta_back_db_config(
 		/*
 		 * uri MUST be legal!
 		 */
-		if ( ldap_url_parselist( &ludp, argv[ 1 ] ) != LDAP_SUCCESS ) {
+		if ( ldap_url_parselist_ext( &ludp, argv[ 1 ], "\t" ) != LDAP_SUCCESS ) {
 			fprintf( stderr,
 	"%s: line %d: unable to parse URI"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
