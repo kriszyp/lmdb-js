@@ -519,37 +519,8 @@ ldap_build_entry(
 		 */
 		} else if ( attr->a_desc->ad_type->sat_syntax ==
 				slap_schema.si_syn_distinguishedName ) {
-			int	last, i;
+			ldap_dnattr_result_rewrite( &dc, attr->a_vals );
 
-			/*
-			 * FIXME: should use ldap_dnattr_rewrite(),
-			 * but need a different free() callback ...
-			 */
-
-			for ( last = 0; attr->a_vals[last].bv_val; last++ );
-
-			for ( i = 0; attr->a_vals[i].bv_val; i++ ) {
-				struct berval	newval = { 0, NULL };
-
-				bv = &attr->a_vals[i];
-				switch ( ldap_back_dn_massage( &dc, bv, &newval ) ) {
-				case LDAP_UNWILLING_TO_PERFORM:
-					LBER_FREE( bv->bv_val );
-					if ( last > i ) {
-						*bv = attr->a_vals[last];
-					}
-					attr->a_vals[last].bv_val = NULL;
-					last--;
-					break;
-
-				default:
-					if ( newval.bv_val && bv->bv_val != newval.bv_val ) {
-						LBER_FREE( bv->bv_val );
-						*bv = newval;
-					}
-					break;
-				}
-			}
 		}
 
 		if ( normalize && last && attr->a_desc->ad_type->sat_equality &&

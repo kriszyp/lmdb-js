@@ -192,6 +192,7 @@ extern int suffix_massage_config( struct rewrite_info *info,
 		struct berval *prnc, struct berval *nrnc);
 #endif /* ENABLE_REWRITE */
 extern int ldap_dnattr_rewrite( dncookie *dc, BerVarray a_vals );
+extern int ldap_dnattr_result_rewrite( dncookie *dc, BerVarray a_vals );
 
 LDAP_END_DECL
 

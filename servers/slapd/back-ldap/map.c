@@ -44,6 +44,9 @@
 #include "slap.h"
 #include "back-ldap.h"
 
+#undef ldap_debug	/* silence a warning in ldap-int.h */
+#include "../../../libraries/libldap/ldap-int.h"
+
 int
 mapping_cmp ( const void *c1, const void *c2 )
 {
@@ -468,6 +471,13 @@ ldap_back_filter_map_rewrite(
 	return 0;
 }
 
+/*
+ * I don't like this much, but we need two different
+ * functions because different heap managers may be
+ * in use in back-ldap/meta to reduce the amount of
+ * calls to malloc routines, and some of the free()
+ * routines may be macros with args
+ */
 int
 ldap_dnattr_rewrite(
 	dncookie		*dc,
@@ -482,21 +492,11 @@ ldap_dnattr_rewrite(
 
 	for ( i = 0; a_vals[i].bv_val != NULL; i++ ) {
 		switch ( ldap_back_dn_massage( dc, &a_vals[i], &bv ) ) {
-		case LDAP_SUCCESS:
-		case LDAP_OTHER:	/* ? */
-		default:		/* ??? */
-			/* leave attr untouched if massage failed */
-			if ( bv.bv_val && bv.bv_val != a_vals[i].bv_val ) {
-				ch_free( a_vals[i].bv_val );
-				a_vals[i] = bv;
-			}
-			break;
-
 		case LDAP_UNWILLING_TO_PERFORM:
 			/*
 			 * FIXME: need to check if it may be considered 
 			 * legal to trim values when adding/modifying;
-			 * it should be when searching (see ACLs).
+			 * it should be when searching (e.g. ACLs).
 			 */
 			ch_free( a_vals[i].bv_val );
 			if (last > i ) {
@@ -506,9 +506,59 @@ ldap_dnattr_rewrite(
 			a_vals[last].bv_val = NULL;
 			last--;
 			break;
+
+		default:
+			/* leave attr untouched if massage failed */
+			if ( bv.bv_val && bv.bv_val != a_vals[i].bv_val ) {
+				ch_free( a_vals[i].bv_val );
+				a_vals[i] = bv;
+			}
+			break;
 		}
 	}
 	
+	return 0;
+}
+
+int
+ldap_dnattr_result_rewrite(
+	dncookie		*dc,
+	BerVarray		a_vals
+)
+{
+	struct berval	bv;
+	int		i, last;
+
+	for ( last = 0; a_vals[last].bv_val; last++ );
+	last--;
+
+	for ( i = 0; a_vals[i].bv_val; i++ ) {
+		switch ( ldap_back_dn_massage( dc, &a_vals[i], &bv ) ) {
+		case LDAP_UNWILLING_TO_PERFORM:
+			/*
+			 * FIXME: need to check if it may be considered 
+			 * legal to trim values when adding/modifying;
+			 * it should be when searching (e.g. ACLs).
+			 */
+			LBER_FREE( &a_vals[i].bv_val );
+			if ( last > i ) {
+				a_vals[i] = a_vals[last];
+			}
+			a_vals[last].bv_val = NULL;
+			a_vals[last].bv_len = 0;
+			last--;
+			break;
+
+		default:
+			/* leave attr untouched if massage failed */
+			if ( bv.bv_val && a_vals[i].bv_val != bv.bv_val ) {
+				LBER_FREE( a_vals[i].bv_val );
+				a_vals[i] = bv;
+			}
+			break;
+		}
+	}
+
 	return 0;
 }
 
