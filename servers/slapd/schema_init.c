@@ -368,6 +368,7 @@ caseExactIA5SubstringsMatch(
 
 		left.bv_val += sub->sa_initial->bv_len;
 		left.bv_len -= sub->sa_initial->bv_len;
+		inlen -= sub->sa_initial->bv_len;
 	}
 
 	if( sub->sa_final ) {
@@ -380,10 +381,61 @@ caseExactIA5SubstringsMatch(
 		}
 
 		left.bv_len -= sub->sa_final->bv_len;
+		inlen -= sub->sa_initial->bv_len;
 	}
 
 	if( sub->sa_any ) {
-		return LDAP_OTHER;
+		for(i=0; sub->sa_any[i]; i++) {
+			ber_len_t idx;
+			char *p;
+
+retry:
+			if( inlen < left.bv_len ) {
+				/* not enough length */
+				match = 1;
+				goto done;
+			}
+
+			if( sub->sa_any[i]->bv_len == 0 ) {
+				continue;
+			}
+
+			p = strchr( left.bv_val, *sub->sa_any[i]->bv_val );
+
+			if( p == NULL ) {
+				match = 1;
+				goto done;
+			}
+
+			idx = p - left.bv_val;
+			assert( idx < left.bv_len );
+
+			if( idx >= left.bv_len ) {
+				/* this shouldn't happen */
+				return LDAP_OTHER;
+			}
+
+			left.bv_val = p;
+			left.bv_len -= idx;
+
+			if( sub->sa_any[i]->bv_len > left.bv_len ) {
+				/* not enough left */
+				match = 1;
+				goto done;
+			}
+
+			match = strncmp( left.bv_val,
+				sub->sa_any[i]->bv_val,
+				sub->sa_any[i]->bv_len );
+
+
+			if( match != 0 ) {
+				goto retry;
+			}
+
+			left.bv_val += sub->sa_any[i]->bv_len;
+			left.bv_len -= sub->sa_any[i]->bv_len;
+		}
 	}
 
 done:
@@ -407,6 +459,20 @@ caseIgnoreIA5Match(
 }
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+static char *strcasechr( const char *str, int c )
+{
+	char *lower = strchr( str, TOLOWER(c) );
+	char *upper = strchr( str, TOUPPER(c) );
+
+	if( lower && upper ) {
+		return lower < upper ? lower : upper;
+	} else if ( lower ) {
+		return lower;
+	} else {
+		return upper;
+	}
+}
+
 static int
 caseIgnoreIA5SubstringsMatch(
 	int *matchp,
@@ -464,7 +530,57 @@ caseIgnoreIA5SubstringsMatch(
 	}
 
 	if( sub->sa_any ) {
-		return LDAP_OTHER;
+		for(i=0; sub->sa_any[i]; i++) {
+			ber_len_t idx;
+			char *p;
+
+retry:
+			if( inlen < left.bv_len ) {
+				/* not enough length */
+				match = 1;
+				goto done;
+			}
+
+			if( sub->sa_any[i]->bv_len == 0 ) {
+				continue;
+			}
+
+			p = strcasechr( left.bv_val, *sub->sa_any[i]->bv_val );
+
+			if( p == NULL ) {
+				match = 1;
+				goto done;
+			}
+
+			idx = p - left.bv_val;
+			assert( idx < left.bv_len );
+
+			if( idx >= left.bv_len ) {
+				/* this shouldn't happen */
+				return LDAP_OTHER;
+			}
+
+			left.bv_val = p;
+			left.bv_len -= idx;
+
+			if( sub->sa_any[i]->bv_len > left.bv_len ) {
+				/* not enough left */
+				match = 1;
+				goto done;
+			}
+
+			match = strncasecmp( left.bv_val,
+				sub->sa_any[i]->bv_val,
+				sub->sa_any[i]->bv_len );
+
+
+			if( match != 0 ) {
+				goto retry;
+			}
+
+			left.bv_val += sub->sa_any[i]->bv_len;
+			left.bv_len -= sub->sa_any[i]->bv_len;
+		}
 	}
 
 done:
