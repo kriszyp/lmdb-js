@@ -221,32 +221,41 @@ The statement
 .B dnattr=<attrname>
 means that access is granted to requests whose DN is listed in the
 entry being accessed under the 
-.B attrname
+.B <attrname>
 attribute.
 .LP
 The statement
 .B group=<group>
 means that access is granted to requests whose DN is listed
 in the group entry whose DN is given by
-.BR group .
+.BR <group> .
 The optional parameters
-.B objectclass
+.B <objectclass>
 and
-.B attrname
+.B <attrname>
 define the objectClass and the member attributeType of the group entry.
 The optional style qualifier
-.B style
+.B <style>
 can be
 .BR regex ,
 which means that
-.B pattern
-will be expanded accorging to regex (7), and
+.B <group>
+will be expanded according to regex (7), and
 .B base
 or
 .B exact
 (an alias of
 .BR base ),
 which means that exact match will be used.
+.LP
+For static groups, the specified attributeType must have
+.B DistinguishedName
+or
+.B NameAndOptionalUID
+syntax. For dynamic groups the attributeType must
+be a subtype of the
+.B labeledURI
+attributeType.
 .LP
 The statements
 .BR peername=<peername> ,
