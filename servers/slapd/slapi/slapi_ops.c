@@ -1218,8 +1218,8 @@ slapi_search_internal(
 
 	op->oq_search.rs_scope = scope;
 	op->oq_search.rs_deref = 0;
-	op->oq_search.rs_slimit = LDAP_NO_LIMIT;
-	op->oq_search.rs_tlimit = LDAP_NO_LIMIT;
+	op->oq_search.rs_slimit = SLAP_NO_LIMIT;
+	op->oq_search.rs_tlimit = SLAP_NO_LIMIT;
 	op->oq_search.rs_attrsonly = attrsonly;
 	op->oq_search.rs_attrs = an;
 	op->oq_search.rs_filter = filter;

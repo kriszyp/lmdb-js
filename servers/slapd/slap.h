@@ -1300,6 +1300,9 @@ struct slap_limits_set {
 	int	lms_s_pr_total;
 };
 
+/* Note: this is different from LDAP_NO_LIMIT (0); slapd internal use only */
+#define SLAP_NO_LIMIT			-1
+
 struct slap_limits {
 	unsigned		lm_flags;	/* type of pattern */
 #define SLAP_LIMITS_UNDEFINED		0x0000U
@@ -1836,6 +1839,7 @@ struct slap_backend_info {
 
 	slap_mask_t	bi_flags; /* backend flags */
 #define SLAP_BFLAG_MONITOR			0x0001U /* a monitor backend */
+#define SLAP_BFLAG_NOLASTMODCMD		0x0010U
 #define SLAP_BFLAG_INCREMENT		0x0100U
 #define SLAP_BFLAG_ALIASES			0x1000U
 #define SLAP_BFLAG_REFERRALS		0x2000U
@@ -1849,6 +1853,8 @@ struct slap_backend_info {
 #define SLAP_REFERRALS(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_REFERRALS)
 #define SLAP_SUBENTRIES(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_SUBENTRIES)
 #define SLAP_DYNAMIC(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_DYNAMIC)
+#define SLAP_NOLASTMODCMD(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_NOLASTMODCMD)
+#define SLAP_LASTMODCMD(be)	(!SLAP_NOLASTMODCMD(be))
 
 	char **bi_controls;		/* supported controls */
 
@@ -2046,6 +2052,7 @@ typedef struct slap_op {
 	char o_do_not_cache;	/* don't cache groups from this op */
 	char o_is_auth_check;	/* authorization in progress */
 
+#define SLAP_IGNORED_CONTROL -1
 #define SLAP_NO_CONTROL 0
 #define SLAP_NONCRITICAL_CONTROL 1
 #define SLAP_CRITICAL_CONTROL 2

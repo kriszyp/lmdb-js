@@ -630,6 +630,18 @@ hdb_dn2id_add(
 	key.size = sizeof(ID);
 	key.flags = DB_DBT_USERMEM;
 
+	/* Need to make dummy root node once. Subsequent attempts
+	 * will fail harmlessly.
+	 */
+	if ( eip->bei_id == 0 ) {
+		diskNode dummy = {0};
+		data.data = &dummy;
+		data.size = sizeof(diskNode);
+		data.flags = DB_DBT_USERMEM;
+
+		db->put( db, txn, &key, &data, DB_NODUPDATA );
+	}
+
 #ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_size ) {
 		bdb_idl_cache_del( bdb, db, &key );
@@ -1102,7 +1114,7 @@ hdb_dn2idl(
 #endif
 
 	cx.id = e->e_id;
-	cx.ei = BEI(e);
+	cx.ei = e->e_id ? BEI(e) : &bdb->bi_cache.c_dntree;
 	cx.bdb = bdb;
 	cx.db = cx.bdb->bi_dn2id->bdi_db;
 	cx.prefix = op->ors_scope == LDAP_SCOPE_ONELEVEL

@@ -290,6 +290,16 @@ bdb_cache_find_ndn(
 		ptr = ndn->bv_val + ndn->bv_len - op->o_bd->be_nsuffix[0].bv_len;
 		ei.bei_nrdn.bv_val = ptr;
 		ei.bei_nrdn.bv_len = op->o_bd->be_nsuffix[0].bv_len;
+		/* Skip to next rdn if suffix is empty */
+		if ( ei.bei_nrdn.bv_len == 0 ) {
+			for (ptr = ei.bei_nrdn.bv_val - 2; ptr > ndn->bv_val
+				&& !DN_SEPARATOR(*ptr); ptr--) /* empty */;
+			if ( ptr >= ndn->bv_val ) {
+				if (DN_SEPARATOR(*ptr)) ptr++;
+				ei.bei_nrdn.bv_len = ei.bei_nrdn.bv_val - ptr;
+				ei.bei_nrdn.bv_val = ptr;
+			}
+		}
 		eip = &bdb->bi_cache.c_dntree;
 	}
 	
@@ -784,19 +794,20 @@ bdb_cache_modify(
 	DB_LOCK *lock )
 {
 	EntryInfo *ei = BEI(e);
-	
+	int rc;
 	/* Get write lock on data */
-	bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
+	rc = bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
 
 	/* If we've done repeated mods on a cached entry, then e_attrs
 	 * is no longer contiguous with the entry, and must be freed.
 	 */
-	if ( (void *)e->e_attrs != (void *)(e+1) ) {
-		attrs_free( e->e_attrs );
+	if ( ! rc ) {
+		if ( (void *)e->e_attrs != (void *)(e+1) ) {
+			attrs_free( e->e_attrs ); 
+		}
+		e->e_attrs = newAttrs;
 	}
-	e->e_attrs = newAttrs;
-
-	return 0;
+	return rc;
 }
 
 /*
@@ -814,10 +825,11 @@ bdb_cache_modrdn(
 {
 	EntryInfo *ei = BEI(e), *pei;
 	struct berval rdn;
-	int rc = 0;
+	int rc;
 
 	/* Get write lock on data */
-	bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
+	rc =  bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
+	if ( rc ) return rc;
 
 	/* If we've done repeated mods on a cached entry, then e_attrs
 	 * is no longer contiguous with the entry, and must be freed.
@@ -900,7 +912,13 @@ bdb_cache_delete(
 	bdb_cache_entryinfo_lock( ei );
 
 	/* Get write lock on the data */
-	bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
+	rc = bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
+	if ( rc ) {
+		/* couldn't lock, undo and give up */
+		ei->bei_state ^= CACHE_ENTRY_DELETED;
+		bdb_cache_entryinfo_unlock( ei );
+		return rc;
+	}
 
 	/* set cache write lock */
 	ldap_pvt_thread_rdwr_wlock( &cache->c_rwlock );

@@ -124,11 +124,11 @@ meta_back_search( Operation *op, SlapReply *rs )
 			ldap_set_option( lsc->ld, LDAP_OPT_DEREF,
 					( void * )&op->ors_deref);
 		}
-		if ( op->ors_tlimit != -1 ) {
+		if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
 			ldap_set_option( lsc->ld, LDAP_OPT_TIMELIMIT,
 					( void * )&op->ors_tlimit);
 		}
-		if ( op->ors_slimit != -1 ) {
+		if ( op->ors_slimit != SLAP_NO_LIMIT ) {
 			ldap_set_option( lsc->ld, LDAP_OPT_SIZELIMIT,
 					( void * )&op->ors_slimit);
 		}

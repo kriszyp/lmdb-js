@@ -204,21 +204,25 @@ static int bdb_tool_next_id(
 	int hole )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
-	struct berval dn = e->e_nname;
-	struct berval pdn;
+	struct berval dn = e->e_name;
+	struct berval ndn = e->e_nname;
+	struct berval pdn, npdn;
 	EntryInfo *ei = NULL;
 	int rc;
 
-	rc = bdb_cache_find_ndn( op, tid, &dn, &ei );
+	if (ndn.bv_len == 0) return 0;
+
+	rc = bdb_cache_find_ndn( op, tid, &ndn, &ei );
 	if ( ei ) bdb_cache_entryinfo_unlock( ei );
 	if ( rc == DB_NOTFOUND ) {
-		if ( be_issuffix( op->o_bd, &dn ) ) {
-			pdn = slap_empty_bv;
-		} else {
+		if ( !be_issuffix( op->o_bd, &ndn ) ) {
 			dnParent( &dn, &pdn );
-			e->e_nname = pdn;
+			dnParent( &ndn, &npdn );
+			e->e_name = pdn;
+			e->e_nname = npdn;
 			rc = bdb_tool_next_id( op, tid, e, text, 1 );
-			e->e_nname = dn;
+			e->e_name = dn;
+			e->e_nname = ndn;
 			if ( rc ) {
 				return rc;
 			}
@@ -259,7 +263,7 @@ static int bdb_tool_next_id(
 				}
 				nhmax *= 2;
 			}
-			ber_dupbv( &holes[nholes].dn, &dn );
+			ber_dupbv( &holes[nholes].dn, &ndn );
 			holes[nholes++].id = e->e_id;
 		}
 	} else if ( !hole ) {

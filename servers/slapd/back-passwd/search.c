@@ -69,11 +69,9 @@ passwd_back_search(
 
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 
-	op->ors_tlimit = (op->ors_tlimit > op->o_bd->be_timelimit || op->ors_tlimit < 1) ? op->o_bd->be_timelimit
-	    : op->ors_tlimit;
-	stoptime = op->o_time + op->ors_tlimit;
-	op->ors_slimit = (op->ors_slimit > op->o_bd->be_sizelimit || op->ors_slimit < 1) ? op->o_bd->be_sizelimit
-	    : op->ors_slimit;
+	if (op->ors_tlimit != SLAP_NO_LIMIT ) {
+		stoptime = op->o_time + op->ors_tlimit;
+	}
 
 	/* Handle a query for the base of this backend */
 	if ( be_issuffix( op->o_bd, &op->o_req_ndn ) ) {
@@ -150,7 +148,9 @@ passwd_back_search(
 				}
 
 				/* check time limit */
-				if ( slap_get_time() > stoptime ) {
+				if ( op->ors_tlimit != SLAP_NO_LIMIT
+						&& slap_get_time() > stoptime )
+				{
 					send_ldap_error( op, rs, LDAP_TIMELIMIT_EXCEEDED, NULL );
 					endpwent();
 					ldap_pvt_thread_mutex_unlock( &passwd_mutex );
