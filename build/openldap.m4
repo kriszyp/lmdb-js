@@ -6,7 +6,7 @@ dnl
 dnl OpenLDAP Autoconf Macros
 dnl
 dnl --------------------------------------------------------------------
-AC_DEFUN([OL_RCS_ID], "[$]$1[$]")dnl
+AC_DEFUN([OL_RCS_ID], '[$]$1[$]')dnl
 dnl --------------------------------------------------------------------
 dnl Restricted form of AC_ARG_ENABLE that limits user options
 dnl

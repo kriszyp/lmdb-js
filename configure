@@ -642,7 +642,7 @@ fi
 ac_config_guess="$SHELL $ac_aux_dir/config.guess"
 ac_config_sub="$SHELL $ac_aux_dir/config.sub"
 ac_configure="$SHELL $ac_aux_dir/configure" # This should be Cygnus configure.
-OPENLDAP_ID="$OpenLDAP$"
+OPENLDAP_ID='$OpenLDAP$'
 
 OL_VERSION=`cat $ac_aux_dir/version`
 if test -z "$OL_VERSION"; then
