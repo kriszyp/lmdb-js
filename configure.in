@@ -27,7 +27,7 @@ dnl OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl
 OL_ARG_ENABLE(libui,[  --enable-libui	enable library user interface], yes)dnl
 OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
-OL_ARG_ENABLE(dns,[  --enable--dns		enable V2 DNS  extension], no)dnl
+OL_ARG_ENABLE(dns,[  --enable-dns		enable V2 DNS  extension], no)dnl
 OL_ARG_ENABLE(referrals,[  --enable-referrals	enable V2 Referrals extension], yes)dnl
 OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
 OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
@@ -68,6 +68,14 @@ OL_ARG_ENABLE(shell,[    --enable-shell	enable shell backend], no)dnl
 
 dnl SLURPD OPTIONS
 OL_ARG_ENABLE(slurpd,[  --enable-slurpd	enable building slurpd], auto)dnl
+
+# validate options
+if test $ol_enable_referrals = no ; then
+	if test $ol_enable_dns = yes ; then
+		AC_MSG_WARN([dns disabled, ignoring --enable-dns argument])
+	fi
+	ol_enable_dns=no
+fi
 
 if test $ol_enable_slapd = no ; then
 	dnl SLAPD was specificallly disabled
@@ -348,12 +356,11 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 			dnl try -pthread
 			AC_CACHE_CHECK([for pthread_create with -pthread],
 				[ol_cv_pthread_flag], [
-				dnl save the CPPFLAGS
+				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-pthread $LIBS"
-				AC_TRY_LINK([#include <pthread.h>],[
-					pthread_create((pthread_t*) 0,
-						(pthread_attr_t*) 0, 0, 0);
+				AC_TRY_LINK([char pthread();],[
+					pthread_create();
 					], ol_cv_pthread_flag=yes, ol_cv_pthread_flag=no)
 				dnl restore the LIBS
 				LIBS="$save_LIBS"
@@ -363,6 +370,40 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 				LTHREAD_LIBS="$LTHREAD_LIBS -pthread"
 				ol_link_threads=posix
 			fi
+		fi
+
+		if test $ol_link_threads = no ; then
+			dnl try -thread
+			AC_CACHE_CHECK([for pthread_create with -thread],
+				[ol_cv_thread_flag], [
+				dnl save the flags
+				save_LIBS="$LIBS"
+				LIBS="-thread $LIBS"
+				AC_TRY_LINK([char pthread();],[
+					pthread_create();
+					], ol_cv_thread_flag=yes, ol_cv_thread_flag=no)
+				dnl restore the LIBS
+				LIBS="$save_LIBS"
+			])
+
+			if test $ol_cv_thread_flag = yes ; then
+				LTHREAD_LIBS="$LTHREAD_LIBS -thread"
+				ol_link_threads=posix
+			fi
+		fi
+
+		if test $ol_link_threads = no ; then
+			dnl try DEC Threads
+			save_LIBS="$LIBS"
+			AC_CHECK_LIB(pthread, pthread_create, [
+				AC_DEFINE(HAVE_DCE)
+				ol_link_threads=posix
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc_r"
+				if test $ol_with_preemptive = auto ; then
+					ol_with_preemptive=yes
+				fi
+				],,[-lmach -lexc -lc_r])
+			LIBS="$save_LIBS"
 		fi
 
 		if test $ol_link_threads = no ; then
@@ -383,24 +424,10 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 			LIBS="$save_LIBS"
 		fi
 
-		if test $ol_link_threads = no ; then
-			dnl try DEC Threads
-			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthread, pthread_create, [
-				AC_DEFINE(HAVE_DCE)
-				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc"
-				if test $ol_with_preemptive = auto ; then
-					ol_with_preemptive=yes
-				fi
-				],,[-lmach -lexc -lc])
-			LIBS="$save_LIBS"
-		fi
-
 		if test $ol_link_threads != no ; then
 			AC_DEFINE(HAVE_PTHREADS)
 
-			dnl save DEFS/LIBS
+			dnl save flags
 			save_CPPFLAGS="$CPPFLAGS"
 			save_LIBS="$LIBS"
 			LIBS="$LTHREAD_LIBS $LIBS"
@@ -522,7 +549,7 @@ dnl				gmtime_r \
 dnl				strtok_r \
 dnl			)
 
-			dnl restore DEFS/LIBS
+			dnl restore flags
 			CPPFLAGS="$save_CPPFLAGS"
 			LIBS="$save_LIBS"
 		else
@@ -549,7 +576,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = mach ; then
 			dnl this test needs work
 			AC_CACHE_CHECK([for cthread_fork with -all_load],
 				[ol_cv_cthread_all_load], [
-				dnl save the CPPFLAGS
+				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-all_load $LIBS"
 				AC_TRY_LINK([#include <mach/cthreads.h>],[
