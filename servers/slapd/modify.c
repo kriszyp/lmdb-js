@@ -310,6 +310,9 @@ int slap_modlist2mods(
 		mod = (Modifications *)
 			ch_calloc( 1, sizeof(Modifications) );
 
+		/* copy the op */
+		mod->sml_op = ml->ml_op;
+
 		/* convert to attribute description */
 		rc = slap_str2ad( ml->ml_type, &mod->sml_desc, text );
 
@@ -379,7 +382,7 @@ int slap_modlist2mods(
 			 * a rough single value check... an additional check is needed
 			 * to catch add of single value to existing single valued attribute
 			 */
-			if( ( ml->ml_op == LDAP_MOD_ADD || ml->ml_op == LDAP_MOD_REPLACE )
+			if( ( mod->sml_op == LDAP_MOD_ADD || mod->sml_op == LDAP_MOD_REPLACE )
 				&& nvals > 1 && is_at_single_value( ad->ad_type ))
 			{
 				slap_mods_free( mod );
