@@ -14,7 +14,6 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "sets.h"
 
 static AccessControl * acl_get(
 	AccessControl *ac, int *count,
@@ -51,7 +50,6 @@ static void	string_expand(
 	char *newbuf, int bufsiz, char *pattern,
 	char *match, regmatch_t *matches);
 
-char **aci_set_gather (void *cookie, char *name, char *attr);
 
 /*
  * access_allowed - check whether op->o_ndn is allowed the requested access
@@ -193,7 +191,7 @@ access_allowed(
 		"=> access_allowed: %s access %s by %s\n",
 		access2str( access ),
 		ACL_GRANT(mask, access) ? "granted" : "denied",
-		""/*accessmask2str( mask, accessmaskbuf )*/ );
+		accessmask2str( mask, accessmaskbuf ) );
 
 	return ACL_GRANT(mask, access);
 }
@@ -365,7 +363,7 @@ acl_mask(
 		"=> acl_mask: to value \"%s\" by \"%s\", (%s) \n",
 		val ? val->bv_val : "*",
 		op->o_ndn ?  op->o_ndn : "",
-		""/*accessmask2str( *mask, accessmaskbuf )*/ );
+		accessmask2str( *mask, accessmaskbuf ) );
 
 	for ( i = 1, b = a->acl_access; b != NULL; b = b->a_next, i++ ) {
 		slap_access_mask_t oldmask, modmask;
@@ -686,7 +684,7 @@ acl_mask(
 
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_mask: [%d] applying %s (%s)\n",
-			i, ""/*accessmask2str( modmask, accessmaskbuf )*/, 
+			i, accessmask2str( modmask, accessmaskbuf ), 
 			b->a_type == ACL_CONTINUE
 				? "continue"
 				: b->a_type == ACL_BREAK
@@ -717,7 +715,7 @@ acl_mask(
 
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_mask: [%d] mask: %s\n",
-			i, ""/*accessmask2str(*mask, accessmaskbuf)*/, 0 );
+			i, accessmask2str(*mask, accessmaskbuf), 0 );
 
 		if( b->a_type == ACL_CONTINUE ) {
 			continue;
@@ -732,7 +730,7 @@ acl_mask(
 
 	Debug( LDAP_DEBUG_ACL,
 		"<= acl_mask: no more <who> clauses, returning %s (stop)\n",
-		""/*accessmask2str(*mask, accessmaskbuf)*/, 0, 0 );
+		accessmask2str(*mask, accessmaskbuf), 0, 0 );
 	return ACL_STOP;
 }
 
@@ -1130,73 +1128,6 @@ done:
 	return(rc);
 }
 
-char **
-aci_set_gather (void *cookie, char *name, char *attr)
-{
-	struct {
-    	Backend *be;
-    	Entry *e;
-    	Connection *conn;
-    	Operation *op;
-	} *cp = (void *)cookie;
-	struct {
-		char tag[16];
-		char **vals;
-    	Connection *conn;
-    	Operation *op;
-	} hack;
-	char *ndn;
-
-	strcpy(hack.tag, "DKSDoc_Template");
-	hack.vals = NULL;
-	hack.conn = NULL;
-	hack.op = NULL;
-	if ((ndn = ch_strdup(name)) != NULL) {
-		if (dn_normalize(ndn) != NULL) {
-			char *text;
-			ObjectClass oc;
-			AttributeDescription *desc = NULL;
-			if (slap_str2ad(attr, &desc, &text) == 0) {
-				memset(&oc, 0, sizeof(oc));
-				oc.soc_oid = (char *)&hack;
-				backend_group(cp->be, cp->e, ndn, cp->op->o_ndn, &oc, desc);
-				ad_free(desc, 1);
-			}
-		}
-		ch_free(ndn);
-	}
-	return(hack.vals);
-}
-
-static int
-aci_match_template (
-	struct berval *subj,
-    Backend *be,
-    Entry *e,
-    Connection *conn,
-    Operation *op
-)
-{
-	char *template;
-	int rc = 0;
-	struct {
-    	Backend *be;
-    	Entry *e;
-    	Connection *conn;
-    	Operation *op;
-	} cookie;
-
-	if ((template = aci_bvstrdup(subj))) {
-		cookie.be = be;
-		cookie.e = e;
-		cookie.conn = conn;
-		cookie.op = op;
-		rc = (set_filter(aci_set_gather, &cookie, template, op->o_ndn, e->e_ndn, NULL) > 0);
-		ch_free(template);
-	}
-	return(rc);
-}
-
 static int
 aci_mask(
     Backend			*be,
@@ -1309,10 +1240,6 @@ aci_mask(
 
 	} else if (aci_strbvcmp( "role", &bv ) == 0) {
 		if (aci_group_member(&sdn, SLAPD_ROLE_CLASS, SLAPD_ROLE_ATTR, be, e, op, matches))
-			return(1);
-
-	} else if (aci_strbvcmp( "template", &bv ) == 0) {
-		if (aci_match_template(&sdn, be, e, conn, op))
 			return(1);
 
 	}
