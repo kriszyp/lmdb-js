@@ -363,10 +363,10 @@ bdb_index_entry(
 		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
-				"index_entry: success\n" ));
+				"index_entry: failure (%d)\n", rc ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
-				"<= index_entry_%s( %ld, \"%s\" ) success\n",
+				"<= index_entry_%s( %ld, \"%s\" ) failure\n",
 				op == SLAP_INDEX_ADD_OP ? "add" : "del",
 				(long) e->e_id, e->e_dn );
 #endif
