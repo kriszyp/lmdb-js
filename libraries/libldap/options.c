@@ -198,11 +198,7 @@ ldap_get_option(
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_PROTOCOL_VERSION:
-		if ((ld != NULL) && ld->ld_version) {
-			* (int *) outvalue = ld->ld_version;
-		} else { 
-			* (int *) outvalue = lo->ldo_version;
-		}
+		* (int *) outvalue = lo->ldo_version;
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_SERVER_CONTROLS:

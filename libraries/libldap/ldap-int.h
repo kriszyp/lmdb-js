@@ -99,7 +99,7 @@ struct ldapoptions {
 	struct timeval		*ldo_tm_api;
 	struct timeval		*ldo_tm_net;
 
-	ber_int_t		ldo_version;	/* version to connect at */
+	ber_int_t		ldo_version;
 	ber_int_t		ldo_deref;
 	ber_int_t		ldo_timelimit;
 	ber_int_t		ldo_sizelimit;
@@ -234,7 +234,7 @@ struct ldap {
 #define ld_sctrls		ld_options.ldo_sctrls
 #define ld_cctrls		ld_options.ldo_cctrls
 
-	ber_int_t		ld_version;		/* version connected at */
+#define ld_version		ld_options.ldo_version	
 	char	*ld_host;
 	int		ld_port;
 

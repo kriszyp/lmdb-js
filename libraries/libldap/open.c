@@ -161,9 +161,6 @@ ldap_create( LDAP **ldp )
 #endif /* LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET */
 #endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
 
-	/* we'll assume we're talking version 2 for now */
-	ld->ld_version = LDAP_VERSION2;
-
 	ber_pvt_sb_init( &(ld->ld_sb) );
 
 	*ldp = ld;
