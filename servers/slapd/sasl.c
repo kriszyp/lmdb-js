@@ -517,7 +517,7 @@ int slap_sasl_bind(
 
 	} else if ( sc == SASL_CONTINUE ) {
 		send_ldap_sasl( conn, op, rc = LDAP_SASL_BIND_IN_PROGRESS,
-			NULL, NULL, NULL, NULL,  &response );
+			NULL, NULL, NULL, NULL, &response );
 
 	} else {
 		send_ldap_result( conn, op, rc = slap_sasl_err2ldap( sc ),
