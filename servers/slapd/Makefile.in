@@ -251,17 +251,17 @@ all-cffiles: slapd
 	touch all-cffiles
 
 install-schema: FORCE
-	@-$(MKDIR) $(DESTDIR)$(sysconfdir)/schema
-	@cd $(srcdir) ; \
-	for i in schema/*.schema ; do \
-		if test ! -f $(DESTDIR)$(sysconfdir)/$$i; then \
-			echo "installing $$i in $(sysconfdir)"; \
-			echo $(INSTALL) $(INSTALLFLAGS) -m 444 $$i $(DESTDIR)$(sysconfdir)/$$i; \
-			$(INSTALL) $(INSTALLFLAGS) -m 444 $$i $(DESTDIR)$(sysconfdir)/$$i; \
+	@-$(MKDIR) $(DESTDIR)$(schemadir)
+	@cd $(srcdir)/schema ; \
+	for i in *.schema ; do \
+		if test ! -f $(DESTDIR)$(schemadir)/$$i; then \
+			echo "installing $$i in $(schemadir)"; \
+			echo $(INSTALL) $(INSTALLFLAGS) -m 444 $$i $(DESTDIR)$(schemadir)/$$i; \
+			$(INSTALL) $(INSTALLFLAGS) -m 444 $$i $(DESTDIR)$(schemadir)/$$i; \
 		else \
-			echo "PRESERVING EXISTING SCHEMA FILE $(DESTDIR)$(sysconfdir)/$$i"; \
+			echo "PRESERVING EXISTING SCHEMA FILE $(DESTDIR)$(schemadir)/$$i"; \
 		fi; \
-		$(INSTALL) $(INSTALLFLAGS) $$i $(DESTDIR)$(sysconfdir)/$$i.default ; \
+		$(INSTALL) $(INSTALLFLAGS) $$i $(DESTDIR)$(schemadir)/$$i.default ; \
 	done
 
 install-conf: FORCE
