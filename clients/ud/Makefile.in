@@ -17,7 +17,7 @@ ud : version.o
 
 version.c: ${OBJS} $(LDAP_LIBDEPEND)
 	@-$(RM) $@
-	$(MKVERSION) ud > $@
+	$(MKVERSION) -s -c -n Version UserDirectory > $@
 
 install-local: FORCE
 	-$(MKDIR) $(bindir)
