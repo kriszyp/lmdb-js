@@ -190,6 +190,9 @@
 /* define this to use SLAPD passwd backend */
 #undef SLAPD_PASSWD
 
+/* define this to use SLAPD perl backend */
+#undef SLAPD_PERL
+
 /* define this for phonetic support */
 #undef SLAPD_PHONETIC
 

@@ -85,6 +85,7 @@ OL_ARG_WITH(ldbm_type,[      --with-ldbm-type	use LDBM type], auto,
 	[auto btree hash])
 
 OL_ARG_ENABLE(passwd,[    --enable-passwd	enable passwd backend], no)dnl
+OL_ARG_ENABLE(perl,[    --enable-perl	enable perl backend], no)dnl
 OL_ARG_ENABLE(shell,[    --enable-shell	enable shell backend], no)dnl
 
 dnl SLURPD OPTIONS
@@ -113,6 +114,9 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_passwd = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable_passwd argument])
 	fi
+	if test $ol_enable_perl = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_perl argument])
+	fi
 	if test $ol_enable_shell = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable_shell argument])
 	fi
@@ -140,8 +144,9 @@ if test $ol_enable_slapd = no ; then
 
 	# force settings to no
 	ol_enable_ldbm=no
-	ol_enable_shell=no
 	ol_enable_passwd=no
+	ol_enable_perl=no
+	ol_enable_shell=no
 	ol_enable_aclgroups=no
 	ol_enable_wrappers=no
 	ol_enable_phonetic=no
@@ -161,7 +166,9 @@ elif test $ol_enable_ldbm = no ; then
 		AC_MSG_WARN([LDBM disabled, ignoring --with_ldbm_type argument])
 	fi
 
-	if test $ol_enable_passwd = no -a $ol_enable_shell = no ; then
+	if test $ol_enable_passwd = no -a \
+		$ol_enable_perl = no -a
+		$ol_enable_shell = no ; then
 		AC_MSG_ERROR([slapd requires a backend])
 	fi
 
@@ -208,8 +215,12 @@ BUILD_SLURPD=no
 
 BUILD_LDBM=no
 BUILD_PASSWD=no
+BUILD_PERL=no
 BUILD_SHELL=no
 BUILD_THREAD=no
+
+SLAPD_PERL_LDFLAGS=
+SLAPD_PERL_CPPFLAGS=
 
 KRB_LIBS=
 TERMCAP_LIBS=
@@ -225,6 +236,17 @@ AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
 AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
 AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
+
+if test $ol_enable_perl = yes ; then
+	AC_PATH_PROG(PERLBIN, perl, /usr/bin/perl)
+
+	if test "no$PERLBIN" = "no" ; then
+		ol_enable_perl=no
+	fi
+
+	SLAPD_PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e s/-lc//`"
+	SLAPD_PERL_CPPFLAGS="`$PERLBIN -MExtUtils::Embed -e perl_inc`"
+fi
 
 dnl Checks the compiler and UNIX Variants
 
@@ -1323,6 +1345,12 @@ if test "$ol_enable_passwd" != no ; then
 	BUILD_PASSWD=yes
 fi
 
+if test "$ol_enable_perl" != no ; then
+	AC_DEFINE(SLAPD_PERL,1)
+	BUILD_SLAPD=yes
+	BUILD_PERL=yes
+fi
+
 if test "$ol_enable_shell" != no ; then
 	AC_DEFINE(SLAPD_SHELL,1)
 	BUILD_SLAPD=yes
@@ -1344,6 +1372,7 @@ AC_SUBST(BUILD_LDAPD)
 AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_LDBM)
   AC_SUBST(BUILD_PASSWD)
+  AC_SUBST(BUILD_PERL)
   AC_SUBST(BUILD_SHELL)
 AC_SUBST(BUILD_SLURPD)
 
@@ -1354,6 +1383,9 @@ AC_SUBST(SLURPD_LIBS)
 AC_SUBST(LDBM_LIBS)
 AC_SUBST(LTHREAD_LIBS)
 AC_SUBST(LUTIL_LIBS)
+
+AC_SUBST(SLAPD_PERL_CPPFLAGS)
+AC_SUBST(SLAPD_PERL_LDFLAGS)
 
 AC_SUBST(KRB_LIBS)
 AC_SUBST(TERMCAP_LIBS)
@@ -1393,6 +1425,7 @@ servers/ldapd/Makefile:build/top.mk:servers/ldapd/Makefile.in:build/srv.mk \
 servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
 servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/srv.mk \
 servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/srv.mk \
+servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/srv.mk \
 servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/srv.mk \
 servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \

@@ -324,5 +324,21 @@ extern void shell_back_config LDAP_P((Backend *be, char *fname, int lineno, int 
 extern void shell_back_init   LDAP_P((Backend *be));
 #endif
 
+#ifdef SLAPD_PERL
+extern int	perl_back_bind LDAP_P(( Backend *be, Connection *conn, Operation *op, char *dn, int method,    struct berval *crede ));
+extern void	perl_back_unbind LDAP_P(( Backend *be, Connection *conn, Operation *op ));
+extern int	perl_back_search LDAP_P(( Backend *be, Connection *conn, Operation *op, char *base, int scope, int deref, int sizelimit, int timelimit,  Filter *filter, char *filterstr, char **attrs, int attrsonly ));
+extern int	perl_back_compare LDAP_P((Backend *be, Connection *conn, Operation *op, char *dn, Ava 	*ava ));
+extern int	perl_back_modify LDAP_P(( Backend *be, Connection *conn, Operation *op, char *dn, LDAPModList *ml ));
+extern int	perl_back_modrdn LDAP_P(( Backend *be, Connection *conn, Operation *op, char *dn, char*newrdn, int deleteoldrdn ));
+extern int	perl_back_add LDAP_P(( Backend *be, Connection *conn, Operation *op, Entry *e ));
+extern int	perl_back_delete LDAP_P(( Backend *be, Connection *conn, Operation *op, char *dn ));
+/* extern int	perl_back_abandon(); */
+extern void	perl_back_config LDAP_P(( Backend *be, char *fname, int lineno, int argc, char **argv ));
+extern void	perl_back_init LDAP_P(( Backend *be ));
+extern void	perl_back_close LDAP_P(( Backend *be ));
+/* extern int      perl_back_group(); */
+#endif 
+
 #endif /* _proto_slap */
 

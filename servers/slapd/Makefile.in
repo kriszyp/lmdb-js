@@ -25,7 +25,7 @@ LDAP_LIBDIR= ../../libraries
 # $(LTHREAD_LIBS) must be last
 XLIBS = libbackends.a -lavl -lldbm -lldif -lldap -llber -llthread -llutil
 XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) \
-	$(KRB_LIBS) $(LUTIL_LIBS)
+	$(PERL_LDFLAGS) $(KRB_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS)
 
 BUILD_OPT = "--enable-slapd"

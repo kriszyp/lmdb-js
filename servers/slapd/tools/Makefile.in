@@ -20,7 +20,7 @@ LDAP_LIBDIR= ../../../libraries
 
 XLIBS = -lavl -lldif -lldap -llber -lldbm -llthread -llutil
 XXLIBS = $(LDAPD_LIBS) $(SLAPD_LIBS) \
-	$(LDBM_LIBS) $(KRB_LIBS) $(LUTIL_LIBS)
+	$(PERL_LDFLAGS) $(LDBM_LIBS) $(KRB_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS)
 
 PROGRAMS=ldif2index ldif2ldbm ldbmcat ldif2id2entry \

@@ -106,6 +106,33 @@ new_backend(
 	}
 #endif
 
+
+#ifdef SLAPD_PERL
+	if ( strcasecmp( type, "perl" ) == 0 ) {
+#ifdef notdef
+		be->be_abandon = perl_back_abandon;
+		be->be_bind = perl_back_bind;
+#else
+		be->be_abandon = NULL;
+		be->be_bind = NULL;
+#endif
+		be->be_unbind = perl_back_unbind;
+		be->be_search = perl_back_search;
+		be->be_compare = perl_back_compare;
+		be->be_modify = perl_back_modify;
+		be->be_modrdn = perl_back_modrdn;
+		be->be_add = perl_back_add;
+		be->be_delete = perl_back_delete;
+		be->be_config = perl_back_config;
+		be->be_init = perl_back_init;
+		be->be_close = perl_back_close;
+		be->be_type = "perl";
+		foundit = 1;
+	}
+#endif
+
+
+
 	if ( be->be_init != NULL ) {
 		(*be->be_init)( be );
 	}
