@@ -601,7 +601,7 @@ acl_mask(
 			 * the values in the attribute group
 			 */
 			/* see if asker is listed in dnattr */
-			if ( b->a_group_style != ACL_STYLE_REGEX ) {
+			if ( b->a_group_style == ACL_STYLE_REGEX ) {
 				string_expand(buf, sizeof(buf), b->a_group_pat, e->e_ndn, matches);
 				if ( dn_normalize(buf) == NULL ) {
 					/* did not expand to a valid dn */
