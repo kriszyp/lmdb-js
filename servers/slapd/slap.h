@@ -144,6 +144,10 @@ typedef struct slap_syntax {
 #define ssyn_desc			ssyn_syn.syn_desc
 } Syntax;
 
+/* XXX -> UCS-2 Converter */
+typedef int slap_mr_convert_func LDAP_P((
+	struct berval * in,
+	struct berval ** out ));
 
 /* Normalizer */
 typedef int slap_mr_normalize_func LDAP_P((
@@ -161,6 +165,7 @@ typedef int slap_mr_match_func LDAP_P((
 
 typedef struct slap_matching_rule {
 	LDAP_MATCHING_RULE		smr_mrule;
+	slap_mr_convert_func	*smr_convert;
 	slap_mr_normalize_func	*smr_normalize;
 	slap_mr_match_func		*smr_match;
 	Syntax					*smr_syntax;

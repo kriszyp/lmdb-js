@@ -455,6 +455,7 @@ LIBSLAPD_F (int) syn_add LDAP_P((LDAP_SYNTAX *syn,
 
 LIBSLAPD_F (MatchingRule *) mr_find LDAP_P((const char *mrname));
 LIBSLAPD_F (int) mr_add LDAP_P((LDAP_MATCHING_RULE *mr,
+	slap_mr_convert_func *convert,
 	slap_mr_normalize_func *normalize,
 	slap_mr_match_func *match,
 	const char **err));
@@ -463,7 +464,9 @@ LIBSLAPD_F (int) register_syntax LDAP_P((char *desc,
 	slap_syntax_validate_func *validate,
 	slap_syntax_transform_func *ber2str,
 	slap_syntax_transform_func *str2ber ));
+
 LIBSLAPD_F (int) register_matching_rule LDAP_P((char * desc,
+	slap_mr_convert_func *convert,
 	slap_mr_normalize_func *normalize,
 	slap_mr_match_func *match ));
 

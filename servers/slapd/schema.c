@@ -763,6 +763,7 @@ mr_insert(
 int
 mr_add(
     LDAP_MATCHING_RULE		*mr,
+	slap_mr_convert_func *convert,
 	slap_mr_normalize_func *normalize,
     slap_mr_match_func	*match,
     const char		**err
@@ -775,6 +776,7 @@ mr_add(
 	smr = (MatchingRule *) ch_calloc( 1, sizeof(MatchingRule) );
 	memcpy( &smr->smr_mrule, mr, sizeof(LDAP_MATCHING_RULE));
 
+	smr->smr_convert = convert;
 	smr->smr_normalize = normalize;
 	smr->smr_match = match;
 
@@ -1040,6 +1042,7 @@ register_syntax(
 int
 register_matching_rule(
 	char * desc,
+	slap_mr_convert_func *convert,
 	slap_mr_normalize_func *normalize,
 	slap_mr_match_func *match )
 {
@@ -1054,7 +1057,7 @@ register_matching_rule(
 		return( -1 );
 	}
 
-	code = mr_add( mr, normalize, match, &err );
+	code = mr_add( mr, convert, normalize, match, &err );
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s for %s in %s\n",
 		    scherr2str(code), err, desc );
@@ -1159,6 +1162,7 @@ struct syntax_defs_rec syntax_defs[] = {
 
 struct mrule_defs_rec {
 	char *mrd_desc;
+	slap_mr_convert_func *mrd_convert;
 	slap_mr_normalize_func *mrd_normalize;
 	slap_mr_match_func *mrd_match;
 };
@@ -1221,110 +1225,110 @@ struct mrule_defs_rec {
 struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
-		NULL, objectIdentifierMatch},
+		NULL, NULL, objectIdentifierMatch},
 
 	{"( 2.5.13.1 NAME 'distinguishedNameMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
-		NULL, distinguishedNameMatch},
+		NULL, NULL, distinguishedNameMatch},
 
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		UTF8StringNormalize, caseIgnoreMatch},
+		NULL, UTF8StringNormalize, caseIgnoreMatch},
 
 	{"( 2.5.13.3 NAME 'caseIgnoreOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		UTF8StringNormalize, caseIgnoreOrderingMatch},
+		NULL, UTF8StringNormalize, caseIgnoreOrderingMatch},
 
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		UTF8StringNormalize, caseIgnoreSubstringsMatch},
+		NULL, UTF8StringNormalize, caseIgnoreSubstringsMatch},
 
 	/* Next three are not in the RFC's, but are needed for compatibility */
 	{"( 2.5.13.5 NAME 'caseExactMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		UTF8StringNormalize, caseExactMatch},
+		NULL, UTF8StringNormalize, caseExactMatch},
 
 	{"( 2.5.13.6 NAME 'caseExactOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		UTF8StringNormalize, caseExactOrderingMatch},
+		NULL, UTF8StringNormalize, caseExactOrderingMatch},
 
 	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		UTF8StringNormalize, caseExactSubstringsMatch},
+		NULL, UTF8StringNormalize, caseExactSubstringsMatch},
 
 	{"( 2.5.13.8 NAME 'numericStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
-		NULL, numericStringMatch},
+		NULL, NULL, numericStringMatch},
 
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		NULL, numericStringSubstringsMatch},
+		NULL, NULL, numericStringSubstringsMatch},
 
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )",
-		NULL, caseIgnoreListMatch},
+		NULL, NULL, caseIgnoreListMatch},
 
 	{"( 2.5.13.14 NAME 'integerMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		NULL, integerMatch},
+		NULL, NULL, integerMatch},
 
 	{"( 2.5.13.16 NAME 'bitStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 )",
-		NULL, bitStringMatch},
+		NULL, NULL, bitStringMatch},
 
 	{"( 2.5.13.17 NAME 'octetStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
-		NULL, octetStringMatch},
+		NULL, NULL, octetStringMatch},
 
 	{"( 2.5.13.20 NAME 'telephoneNumberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )",
-		NULL, telephoneNumberMatch},
+		NULL, NULL, telephoneNumberMatch},
 
 	{"( 2.5.13.21 NAME 'telephoneNumberSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-		NULL, telephoneNumberSubstringsMatch},
+		NULL, NULL, telephoneNumberSubstringsMatch},
 
 	{"( 2.5.13.22 NAME 'presentationAddressMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.43 )",
-		NULL, presentationAddressMatch},
+		NULL, NULL, presentationAddressMatch},
 
 	{"( 2.5.13.23 NAME 'uniqueMemberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 )",
-		NULL, uniqueMemberMatch},
+		NULL, NULL, uniqueMemberMatch},
 
 	{"( 2.5.13.24 NAME 'protocolInformationMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.42 )",
-		NULL, protocolInformationMatch},
+		NULL, NULL, protocolInformationMatch},
 
 	{"( 2.5.13.27 NAME 'generalizedTimeMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
-		NULL, generalizedTimeMatch},
+		NULL, NULL, generalizedTimeMatch},
 
 	{"( 2.5.13.28 NAME 'generalizedTimeOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
-		NULL, generalizedTimeOrderingMatch},
+		NULL, NULL, generalizedTimeOrderingMatch},
 
 	{"( 2.5.13.29 NAME 'integerFirstComponentMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		NULL, integerFirstComponentMatch},
+		NULL, NULL, integerFirstComponentMatch},
 
 	{"( 2.5.13.30 NAME 'objectIdentifierFirstComponentMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
-		NULL, objectIdentifierFirstComponentMatch},
+		NULL, NULL, objectIdentifierFirstComponentMatch},
 
 	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		IA5StringNormalize, caseExactIA5Match},
+		NULL, IA5StringNormalize, caseExactIA5Match},
 
 	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		IA5StringNormalize, caseIgnoreIA5Match},
+		NULL, IA5StringNormalize, caseIgnoreIA5Match},
 
 	{"( 1.3.6.1.4.1.1466.109.114.3 NAME 'caseIgnoreIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		IA5StringNormalize, caseIgnoreIA5SubstringsMatch},
+		NULL, IA5StringNormalize, caseIgnoreIA5SubstringsMatch},
 
-	{NULL, NULL, NULL}
+	{NULL, NULL, NULL, NULL}
 };
 
 int
@@ -1352,12 +1356,15 @@ schema_init( void )
 	}
 
 	for ( i=0; mrule_defs[i].mrd_desc != NULL; i++ ) {
-		res = register_matching_rule( mrule_defs[i].mrd_desc,
+		res = register_matching_rule(
+			mrule_defs[i].mrd_desc,
+			mrule_defs[i].mrd_convert,
 			mrule_defs[i].mrd_normalize,
 		    mrule_defs[i].mrd_match );
 
 		if ( res ) {
-			fprintf( stderr, "schema_init: Error registering matching rule %s\n",
+			fprintf( stderr,
+				"schema_init: Error registering matching rule %s\n",
 				 mrule_defs[i].mrd_desc );
 			exit( EXIT_FAILURE );
 		}
