@@ -22,6 +22,9 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
+#include <unistd.h>
+#include <sys/types.h>
+
 #include "ldap-int.h"
 #include "ldap_log.h"
 
