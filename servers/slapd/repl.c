@@ -383,6 +383,7 @@ replog1(
 		break;
 
 	case LDAP_REQ_ADD:
+		e = change;
 		for ( a = e->e_attrs; a != NULL; a=a->a_next ) {
 			if ( ri && ri->ri_attrs ) {
 				int is_in = ad_inlist( a->a_desc, ri->ri_attrs );
