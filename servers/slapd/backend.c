@@ -59,7 +59,7 @@ static BackendInfo binfo[] = {
 #if defined(SLAPD_SHELL) && !defined(SLAPD_SHELL_DYNAMIC)
 	{"shell",	shell_back_initialize},
 #endif
-#if defined(SLAPD_TCL) && !defined(SLAPD_LDAP_TCL)
+#if defined(SLAPD_TCL) && !defined(SLAPD_TCL_DYNAMIC)
 	{"tcl",		tcl_back_initialize},
 #endif
 	{NULL}
