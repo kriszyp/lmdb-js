@@ -61,7 +61,6 @@ main( int argc, char **argv )
 {
 	int			i;
 	char			*myname;
-	unsigned long		mypeer = -1;
 	struct hostent		*hp;
 	struct sockaddr_in	peername;
 	int			peernamelen;
@@ -110,7 +109,6 @@ main( int argc, char **argv )
 			perror( "getpeername" );
 			exit( 1 );
 		}
-		mypeer = (unsigned long) peername.sin_addr.s_addr;
 	}
 
 #ifdef FINGER_BANNER
@@ -133,13 +131,12 @@ main( int argc, char **argv )
 #endif
 	}
 
-	if ( dosyslog && mypeer != (unsigned long) -1 ) {
-		struct in_addr	addr;
-
-		hp = gethostbyaddr( (char *) &mypeer, sizeof(mypeer), AF_INET );
-		addr.s_addr = mypeer;
-		syslog( LOG_INFO, "connection from %s (%s)", (hp == NULL) ?
-		    "unknown" : hp->h_name, inet_ntoa( addr ) );
+	if ( dosyslog && !interactive ) {
+		hp = gethostbyaddr( (char *) &peername.sin_addr.s_addr,
+				    sizeof(peername.sin_addr.s_addr), AF_INET );
+		syslog( LOG_INFO, "connection from %s (%s)",
+			(hp == NULL) ? "unknown" : hp->h_name,
+			inet_ntoa( peername.sin_addr ) );
 	}
 
 	do_query();
