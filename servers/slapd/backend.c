@@ -1387,22 +1387,41 @@ backend_attribute(
 	BerVarray *vals,
 	slap_access_t access )
 {
-	Entry *e;
-	Attribute *a;
-	int i, j, rc = LDAP_SUCCESS;
-	AccessControlState acl_state = ACL_STATE_INIT;
-	Backend *be = op->o_bd;
+	Entry			*e = NULL;
+	Attribute		*a = NULL;
+	int			freeattr = 0, i, j, rc = LDAP_SUCCESS;
+	AccessControlState	acl_state = ACL_STATE_INIT;
+	Backend			*be = op->o_bd;
 
 	op->o_bd = select_backend( edn, 0, 0 );
 
 	if ( target && dn_match( &target->e_nname, edn ) ) {
 		e = target;
+
 	} else {
-		rc = be_entry_get_rw(op, edn, NULL, entry_at, 0, &e );
+		rc = be_entry_get_rw( op, edn, NULL, entry_at, 0, &e );
 	} 
 
 	if ( e ) {
 		a = attr_find( e->e_attrs, entry_at );
+		if ( a == NULL ) {
+			SlapReply	rs = { 0 };
+			AttributeName	anlist[ 2 ];
+
+			anlist[ 0 ].an_name = entry_at->ad_cname;
+			anlist[ 0 ].an_desc = entry_at;
+			BER_BVZERO( &anlist[ 1 ].an_name );
+			rs.sr_attrs = anlist;
+			
+			rs.sr_attr_flags = slap_attr_flags( rs.sr_attrs );
+
+			rc = backend_operational( op, &rs );
+
+			if ( rc == LDAP_SUCCESS ) {
+				a = rs.sr_operational_attrs;
+			}
+		}
+
 		if ( a ) {
 			BerVarray v;
 
@@ -1413,28 +1432,35 @@ backend_attribute(
 				goto freeit;
 			}
 
-			for ( i=0; a->a_vals[i].bv_val; i++ ) ;
+			for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ )
+				;
 			
-			v = op->o_tmpalloc( sizeof(struct berval) * (i+1),
+			v = op->o_tmpalloc( sizeof(struct berval) * ( i + 1 ),
 				op->o_tmpmemctx );
-			for ( i=0,j=0; a->a_vals[i].bv_val; i++ ) {
-				if ( op->o_conn && access > ACL_NONE && access_allowed( op,
-					e, entry_at,
-					&a->a_nvals[i],
-					access, &acl_state ) == 0 ) {
+			for ( i = 0,j = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ )
+			{
+				if ( op->o_conn && access > ACL_NONE && 
+						access_allowed( op, e,
+							entry_at,
+							&a->a_nvals[i],
+							access,
+							&acl_state ) == 0 )
+				{
 					continue;
 				}
-				ber_dupbv_x( &v[j],
-					&a->a_nvals[i], op->o_tmpmemctx );
-				if (v[j].bv_val ) j++;
+				ber_dupbv_x( &v[j], &a->a_nvals[i],
+						op->o_tmpmemctx );
+				if ( !BER_BVISNULL( &v[j] ) ) {
+					j++;
+				}
 			}
-			if (j == 0) {
+			if ( j == 0 ) {
 				op->o_tmpfree( v, op->o_tmpmemctx );
 				*vals = NULL;
 				rc = LDAP_INSUFFICIENT_ACCESS;
+
 			} else {
-				v[j].bv_val = NULL;
-				v[j].bv_len = 0;
+				BER_BVZERO( &v[j] );
 				*vals = v;
 				rc = LDAP_SUCCESS;
 			}
@@ -1442,8 +1468,7 @@ backend_attribute(
 #ifdef LDAP_SLAPI
 		else if ( op->o_pb ) {
 			/* try any computed attributes */
-			computed_attr_context ctx;
-			AttributeName aname;
+			computed_attr_context	ctx;
 
 			slapi_int_pblock_set_operation( op->o_pb, op );
 
@@ -1454,14 +1479,20 @@ backend_attribute(
 			ctx.cac_acl_state = acl_state;
 			ctx.cac_private = (void *)vals;
 
-			if ( compute_evaluator( &ctx, entry_at->ad_cname.bv_val, e, backend_compute_output_attr ) == 1)
+			rc = compute_evaluator( &ctx, entry_at->ad_cname.bv_val, e, backend_compute_output_attr );
+			if ( rc == 1 ) {
 				rc = LDAP_INSUFFICIENT_ACCESS;
-			else
+
+			} else {
 				rc = LDAP_SUCCESS;
+			}
 		}
 #endif /* LDAP_SLAPI */
-freeit:		if (e != target ) {
+freeit:		if ( e != target ) {
 			be_entry_release_r( op, e );
+		}
+		if ( freeattr ) {
+			attr_free( a );
 		}
 	}
 
@@ -1475,7 +1506,7 @@ int backend_operational(
 {
 	Attribute	**ap;
 	int		rc = 0;
-	BackendDB *be_orig;
+	BackendDB	*be_orig;
 
 	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
 		/* just count them */ ;
