@@ -172,16 +172,16 @@ parse_acl(
 						}
 					} else if ( strcasecmp( style, "base" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_BASE;
-						ber_str2bv( right, 1, &a->acl_dn_pat );
+						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
 					} else if ( strcasecmp( style, "one" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_ONE;
-						ber_str2bv( right, 1, &a->acl_dn_pat );
+						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
 					} else if ( strcasecmp( style, "subtree" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_SUBTREE;
-						ber_str2bv( right, 1, &a->acl_dn_pat );
+						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
 					} else if ( strcasecmp( style, "children" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_CHILDREN;
-						ber_str2bv( right, 1, &a->acl_dn_pat );
+						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
 					} else {
 						fprintf( stderr,
 	"%s: line %d: unknown dn style \"%s\" in to clause\n",
@@ -296,36 +296,39 @@ parse_acl(
 					bv.bv_len = 1;
 
 				} else if ( strcasecmp( argv[i], "anonymous" ) == 0 ) {
-					bv.bv_val = ch_strdup( "anonymous" );
-					bv.bv_len = sizeof("anonymous")-1;
+					ber_str2bv("anonymous",
+						sizeof("anonymous")-1,
+						1, &bv);
 
 				} else if ( strcasecmp( argv[i], "self" ) == 0 ) {
-					bv.bv_val = ch_strdup( "self" );
-					bv.bv_len = sizeof("self")-1;
+					ber_str2bv("self",
+						sizeof("self")-1,
+						1, &bv);
 
 				} else if ( strcasecmp( argv[i], "users" ) == 0 ) {
-					bv.bv_val = ch_strdup( "users" );
-					bv.bv_len = sizeof("users")-1;
+					ber_str2bv("users",
+						sizeof("users")-1,
+						1, &bv);
 
 				} else if ( strcasecmp( left, "dn" ) == 0 ) {
 					if ( sty == ACL_STYLE_REGEX ) {
 						b->a_dn_style = ACL_STYLE_REGEX;
 						if( right == NULL ) {
 							/* no '=' */
-							bv.bv_val = ch_strdup( "users" );
-							bv.bv_len = sizeof("users")-1;
-
+							ber_str2bv("users",
+								sizeof("users")-1,
+								1, &bv);
 						} else if (*right == '\0' ) {
 							/* dn="" */
-							bv.bv_val = ch_strdup( "anonymous" );
-							bv.bv_len = sizeof("anonymous")-1;
-
+							ber_str2bv("anonymous",
+								sizeof("anonymous")-1,
+								1, &bv);
 						} else if ( strcmp( right, "*" ) == 0 ) {
 							/* dn=* */
 							/* any or users?  users for now */
-							bv.bv_val = ch_strdup( "users" );
-							bv.bv_len = sizeof("users")-1;
-
+							ber_str2bv("users",
+								sizeof("users")-1,
+								1, &bv);
 						} else if ( strcmp( right, ".+" ) == 0
 							|| strcmp( right, "^.+" ) == 0
 							|| strcmp( right, ".+$" ) == 0
@@ -333,9 +336,9 @@ parse_acl(
 							|| strcmp( right, ".+$$" ) == 0
 							|| strcmp( right, "^.+$$" ) == 0 )
 						{
-							bv.bv_val = ch_strdup( "users" );
-							bv.bv_len = sizeof("users")-1;
-
+							ber_str2bv("users",
+								sizeof("users")-1,
+								1, &bv);
 						} else if ( strcmp( right, ".*" ) == 0
 							|| strcmp( right, "^.*" ) == 0
 							|| strcmp( right, ".*$" ) == 0
@@ -343,8 +346,9 @@ parse_acl(
 							|| strcmp( right, ".*$$" ) == 0
 							|| strcmp( right, "^.*$$" ) == 0 )
 						{
-							bv.bv_val = ch_strdup( "*" );
-							bv.bv_len = 1;
+							ber_str2bv("*",
+								sizeof("*")-1,
+								1, &bv);
 
 						} else {
 							bv.bv_val = right;
@@ -358,7 +362,7 @@ parse_acl(
 						acl_usage();
 
 					} else {
-						ber_str2bv( right, 1, &bv );
+						ber_str2bv( right, 0, 1, &bv );
 					}
 
 				} else {
@@ -470,7 +474,7 @@ parse_acl(
 						b->a_group_pat = bv;
 					} else {
 						struct berval *ndn = NULL;
-						ber_str2bv( right, 0, &bv );
+						ber_str2bv( right, 0, 0, &bv );
 						dnNormalize( NULL, &bv, &ndn );
 						b->a_group_pat = *ndn;
 						free(ndn);
@@ -702,7 +706,7 @@ parse_acl(
 					}
 
 					b->a_set_style = sty;
-					ber_str2bv( right, 1, &b->a_set_pat );
+					ber_str2bv( right, 0, 1, &b->a_set_pat );
 
 					continue;
 				}

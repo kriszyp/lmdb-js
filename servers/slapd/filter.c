@@ -18,14 +18,14 @@ static int	get_filter_list(
 	Connection *conn,
 	BerElement *ber,
 	Filter **f,
-	char **fstr,
+	struct berval *fstr,
 	const char **text );
 
 static int	get_substring_filter(
 	Connection *conn,
 	BerElement *ber,
 	Filter *f,
-	char **fstr,
+	struct berval *fstr,
 	const char **text );
 
 static int filter_escape_value(
@@ -37,14 +37,14 @@ get_filter(
 	Connection *conn,
 	BerElement *ber,
 	Filter **filt,
-	char **fstr,
+	struct berval *fstr,
 	const char **text )
 {
 	ber_tag_t	tag;
 	ber_len_t	len;
 	int		err;
 	Filter		*f;
-	char		*ftmp = NULL;
+	struct berval	ftmp = { 0, NULL };
 	struct berval escaped;
 
 #ifdef NEW_LOGGING
@@ -97,7 +97,7 @@ get_filter(
 	f->f_next = NULL;
 
 	err = LDAP_SUCCESS;
-	*fstr = NULL;
+	*fstr = ftmp;
 	f->f_choice = tag; 
 
 	switch ( f->f_choice ) {
@@ -117,11 +117,13 @@ get_filter(
 
 		filter_escape_value( f->f_av_value, &escaped );
 
-		*fstr = ch_malloc( sizeof("(=)")
+		fstr->bv_len = sizeof("(=)")-1
 			+ f->f_av_desc->ad_cname.bv_len
-			+ escaped.bv_len );
+			+ escaped.bv_len;
 
-		sprintf( *fstr, "(%s=%s)",
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+
+		sprintf( fstr->bv_val, "(%s=%s)",
 			f->f_av_desc->ad_cname.bv_val,
 		    escaped.bv_val );
 
@@ -152,11 +154,13 @@ get_filter(
 
 		filter_escape_value( f->f_av_value, &escaped );
 
-		*fstr = ch_malloc( sizeof("(>=)")
+		fstr->bv_len = sizeof("(>=)")-1
 			+ f->f_av_desc->ad_cname.bv_len
-			+ escaped.bv_len );
+			+ escaped.bv_len;
 
-		sprintf( *fstr, "(%s>=%s)",
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+
+		sprintf( fstr->bv_val, "(%s>=%s)",
 			f->f_av_desc->ad_cname.bv_val,
 		    escaped.bv_val );
 
@@ -178,11 +182,13 @@ get_filter(
 
 		filter_escape_value( f->f_av_value, &escaped );
 
-		*fstr = ch_malloc( sizeof("(<=)")
+		fstr->bv_len = sizeof("(<=)")-1
 			+ f->f_av_desc->ad_cname.bv_len
-			+ escaped.bv_len );
+			+ escaped.bv_len;
 
-		sprintf( *fstr, "(%s<=%s)",
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+
+		sprintf( fstr->bv_val, "(%s<=%s)",
 			f->f_av_desc->ad_cname.bv_val,
 		    escaped.bv_val );
 
@@ -211,7 +217,8 @@ get_filter(
 			/* unrecognized attribute description or other error */
 			f->f_choice = SLAPD_FILTER_COMPUTED;
 			f->f_result = LDAP_COMPARE_FALSE;
-			*fstr = ch_strdup( "(unrecogized=*)" );
+			ber_str2bv("(unrecognized=*)",
+				sizeof("(unrecognized=*)")-1, 1, fstr);
 			ch_free( type.bv_val );
 			err = LDAP_SUCCESS;
 			break;
@@ -219,9 +226,10 @@ get_filter(
 
 		ch_free( type.bv_val );
 
-		*fstr = ch_malloc( sizeof("(=*)")
-			+ f->f_desc->ad_cname.bv_len );
-		sprintf( *fstr, "(%s=*)",
+		fstr->bv_len = sizeof("(=*)") - 1 
+			+ f->f_desc->ad_cname.bv_len;
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1);
+		sprintf( fstr->bv_val, "(%s=*)",
 			f->f_desc->ad_cname.bv_val );
 
 		} break;
@@ -240,11 +248,12 @@ get_filter(
 
 		filter_escape_value( f->f_av_value, &escaped );
 
-		*fstr = ch_malloc( sizeof("(~=)")
+		fstr->bv_len = sizeof("(~=)") - 1
 			+ f->f_av_desc->ad_cname.bv_len
-			+ escaped.bv_len );
+			+ escaped.bv_len;
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1);
 
-		sprintf( *fstr, "(%s~=%s)",
+		sprintf( fstr->bv_val, "(%s~=%s)",
 			f->f_av_desc->ad_cname.bv_val,
 		    escaped.bv_val );
 
@@ -262,10 +271,10 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
-		*fstr = ch_malloc( sizeof("(&)")
-			+ ( ftmp == NULL ? 0 : strlen( ftmp ) ) );
-		sprintf( *fstr, "(&%s)",
-			ftmp == NULL ? "" : ftmp );
+		fstr->bv_len = sizeof("(&)") - 1 + ftmp.bv_len;
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+		sprintf( fstr->bv_val, "(&%s)",
+			ftmp.bv_len ? ftmp.bv_val : "" );
 		break;
 
 	case LDAP_FILTER_OR:
@@ -279,10 +288,10 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
-		*fstr = ch_malloc( sizeof("(!)")
-			+ ( ftmp == NULL ? 0 : strlen( ftmp ) ) );
-		sprintf( *fstr, "(|%s)",
-			ftmp == NULL ? "" : ftmp );
+		fstr->bv_len = sizeof("(|)") - 1 + ftmp.bv_len;
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+		sprintf( fstr->bv_val, "(|%s)",
+			ftmp.bv_len ? ftmp.bv_val : "" );
 		break;
 
 	case LDAP_FILTER_NOT:
@@ -297,10 +306,10 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
-		*fstr = ch_malloc( sizeof("(!)")
-			+ ( ftmp == NULL ? 0 : strlen( ftmp ) ) );
-		sprintf( *fstr, "(!%s)",
-			ftmp == NULL ? "" : ftmp );
+		fstr->bv_len = sizeof("(!)") - 1 + ftmp.bv_len;
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+		sprintf( fstr->bv_val, "(!%s)",
+			ftmp.bv_len ? ftmp.bv_val : "" );
 		break;
 
 	case LDAP_FILTER_EXT:
@@ -320,16 +329,17 @@ get_filter(
 
 		filter_escape_value( f->f_mr_value, &escaped );
 
-		*fstr = ch_malloc( sizeof("(:dn::=)")
+		fstr->bv_len = sizeof("(:dn::=)") - 1
 			+ (f->f_mr_desc ? f->f_mr_desc->ad_cname.bv_len : 0)
-			+ (f->f_mr_rule_text ? strlen(f->f_mr_rule_text) : 0)
-			+ escaped.bv_len );
+			+ f->f_mr_rule_text.bv_len
+			+ escaped.bv_len;
 
-		sprintf( *fstr, "(%s%s%s%s:=%s)",
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+		sprintf( fstr->bv_val, "(%s%s%s%s:=%s)",
 			 (f->f_mr_desc ? f->f_mr_desc->ad_cname.bv_val : ""),
 			 (f->f_mr_dnattrs ? ":dn" : ""),
-			 (f->f_mr_rule_text ? ":" : ""),
-			 (f->f_mr_rule_text ? f->f_mr_rule_text : ""),
+			 (f->f_mr_rule_text.bv_len ? ":" : ""),
+			 (f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_val : ""),
 			 escaped.bv_val );
 
 		ber_memfree( escaped.bv_val );
@@ -347,22 +357,24 @@ get_filter(
 #endif
 		f->f_choice = SLAPD_FILTER_COMPUTED;
 		f->f_result = SLAPD_COMPARE_UNDEFINED;
-		*fstr = ch_strdup( "(undefined)" );
+		ber_str2bv( "(undefined)", sizeof("(undefined)") - 1,
+			1, fstr );
 		break;
 	}
 
-	free( ftmp );
+	free( ftmp.bv_val );
 
 	if ( err != LDAP_SUCCESS ) {
-		if ( *fstr != NULL ) {
-			free( *fstr );
+		if ( fstr->bv_val != NULL ) {
+			free( fstr->bv_val );
 		}
 
 		if( err != SLAPD_DISCONNECT ) {
 			/* ignore error */
 			f->f_choice = SLAPD_FILTER_COMPUTED;
 			f->f_result = SLAPD_COMPARE_UNDEFINED;
-			*fstr = ch_strdup( "(badfilter)" );
+			ber_str2bv( "(badfilter)", sizeof("(badfilter)") - 1,
+				1, fstr );
 			err = LDAP_SUCCESS;
 			*filt = f;
 
@@ -384,14 +396,15 @@ get_filter(
 
 static int
 get_filter_list( Connection *conn, BerElement *ber,
-	Filter **f, char **fstr,
+	Filter **f, struct berval *fstr,
 	const char **text )
 {
 	Filter		**new;
 	int		err;
 	ber_tag_t	tag;
 	ber_len_t	len;
-	char		*last, *ftmp;
+	char		*last;
+	struct berval	ftmp;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
@@ -399,7 +412,6 @@ get_filter_list( Connection *conn, BerElement *ber,
 #else
 	Debug( LDAP_DEBUG_FILTER, "begin get_filter_list\n", 0, 0, 0 );
 #endif
-	*fstr = NULL;
 	new = f;
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) )
@@ -408,13 +420,15 @@ get_filter_list( Connection *conn, BerElement *ber,
 		if ( err != LDAP_SUCCESS )
 			return( err );
 
-		if ( *fstr == NULL ) {
+		if ( !fstr->bv_len ) {
 			*fstr = ftmp;
 		} else {
-			*fstr = ch_realloc( *fstr, strlen( *fstr ) +
-			    strlen( ftmp ) + 1 );
-			strcat( *fstr, ftmp );
-			free( ftmp );
+			int i = fstr->bv_len;
+			fstr->bv_len += ftmp.bv_len;
+			fstr->bv_val = ch_realloc( fstr->bv_val,
+				fstr->bv_len + 1 );
+			strcpy( fstr->bv_val+i, ftmp.bv_val );
+			free( ftmp.bv_val );
 		}
 		new = &(*new)->f_next;
 	}
@@ -434,7 +448,7 @@ get_substring_filter(
     Connection	*conn,
     BerElement	*ber,
     Filter	*f,
-    char	**fstr,
+    struct berval	*fstr,
 	const char	**text
 )
 {
@@ -469,7 +483,7 @@ get_substring_filter(
 		ch_free( f->f_sub );
 		f->f_choice = SLAPD_FILTER_COMPUTED;
 		f->f_result = SLAPD_COMPARE_UNDEFINED;
-		*fstr = ch_strdup( "(undefined)" );
+		ber_str2bv( "(undefined)", sizeof("(undefined)")-1, 1, fstr );
 		return LDAP_SUCCESS;
 	}
 
@@ -477,11 +491,10 @@ get_substring_filter(
 	f->f_sub_any = NULL;
 	f->f_sub_final = NULL;
 
-	if( fstr ) {
-		*fstr = ch_malloc( sizeof("(=" /*)*/) +
-			f->f_sub_desc->ad_cname.bv_len );
-		sprintf( *fstr, "(%s=" /*)*/, f->f_sub_desc->ad_cname.bv_val );
-	}
+	fstr->bv_len = sizeof("(=" /*)*/) - 1 +
+		f->f_sub_desc->ad_cname.bv_len;
+	fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
+	sprintf( fstr->bv_val, "(%s=" /*)*/, f->f_sub_desc->ad_cname.bv_val );
 
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) )
@@ -560,11 +573,13 @@ get_substring_filter(
 
 			f->f_sub_initial = value;
 
-			if( fstr ) {
+			if( fstr->bv_val ) {
+				int i = fstr->bv_len;
 				filter_escape_value( value, &escaped );
-				*fstr = ch_realloc( *fstr,
-					strlen( *fstr ) + escaped.bv_len + 1 );
-				strcat( *fstr, escaped.bv_val );
+				fstr->bv_len += escaped.bv_len;
+				fstr->bv_val = ch_realloc( fstr->bv_val,
+					fstr->bv_len + 1 );
+				strcpy( fstr->bv_val+i, escaped.bv_val );
 				ber_memfree( escaped.bv_val );
 			}
 			break;
@@ -588,12 +603,14 @@ get_substring_filter(
 				goto return_error;
 			}
 
-			if( fstr ) {
+			if( fstr->bv_val ) {
+				int i = fstr->bv_len;
 				filter_escape_value( value, &escaped );
-				*fstr = ch_realloc( *fstr,
-					strlen( *fstr ) + escaped.bv_len + 2 );
-				strcat( *fstr, "*" );
-				strcat( *fstr, escaped.bv_val );
+				fstr->bv_len += escaped.bv_len + 2;
+				fstr->bv_val = ch_realloc( fstr->bv_val,
+					fstr->bv_len + 1 );
+				strcpy( fstr->bv_val+i, "*" );
+				strcpy( fstr->bv_val+i+1, escaped.bv_val );
 				ber_memfree( escaped.bv_val );
 			}
 			break;
@@ -614,12 +631,14 @@ get_substring_filter(
 
 			f->f_sub_final = value;
 
-			if( fstr ) {
+			if( fstr->bv_val ) {
+				int i = fstr->bv_len;
 				filter_escape_value( value, &escaped );
-				*fstr = ch_realloc( *fstr,
-					strlen( *fstr ) + escaped.bv_len + 2 );
-				strcat( *fstr, "*" );
-				strcat( *fstr, escaped.bv_val );
+				fstr->bv_len += escaped.bv_len + 2;
+				fstr->bv_val = ch_realloc( fstr->bv_val,
+					fstr->bv_len + 1 );
+				strcpy( fstr->bv_val+i, "*" );
+				strcpy( fstr->bv_val+i+1, escaped.bv_val );
 				ber_memfree( escaped.bv_val );
 			}
 			break;
@@ -646,9 +665,10 @@ return_error:
 			Debug( LDAP_DEBUG_FILTER, "  error=%ld\n",
 				(long) rc, 0, 0 );
 #endif
-			if( fstr ) {
-				free( *fstr );
-				*fstr = NULL;
+			if( fstr->bv_val ) {
+				free( fstr->bv_val );
+				fstr->bv_val = NULL;
+				fstr->bv_len = 0;
 			}
 
 			ber_bvfree( f->f_sub_initial );
@@ -659,12 +679,15 @@ return_error:
 		}
 	}
 
-	if( fstr ) {
-		*fstr = ch_realloc( *fstr, strlen( *fstr ) + 3 );
+	if( fstr->bv_val ) {
+		int i = fstr->bv_len;
+		fstr->bv_len += 3;
+		fstr->bv_val = ch_realloc( fstr->bv_val, fstr->bv_len + 3 );
 		if ( f->f_sub_final == NULL ) {
-			strcat( *fstr, "*" );
+			strcpy( fstr->bv_val+i, "*" );
+			i++;
 		}
-		strcat( *fstr, /*(*/ ")" );
+		strcpy( fstr->bv_val+i, /*(*/ ")" );
 	}
 
 #ifdef NEW_LOGGING

@@ -445,7 +445,7 @@ LDAP_SLAPD_F (int) get_filter LDAP_P((
 	Connection *conn,
 	BerElement *ber,
 	Filter **filt,
-	char **fstr,
+	struct berval *fstr,
 	const char **text ));
 
 LDAP_SLAPD_F (void) filter_free LDAP_P(( Filter *f ));

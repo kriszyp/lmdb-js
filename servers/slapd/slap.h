@@ -543,7 +543,7 @@ typedef struct slap_ss_assertion {
 
 typedef struct slap_mr_assertion {
 	MatchingRule				*ma_rule;	/* optional */
-	char					*ma_rule_text;  /* optional */
+	struct berval				ma_rule_text;  /* optional */
 	AttributeDescription	*ma_desc;	/* optional */
 	int						ma_dnattrs; /* boolean */
 	struct berval			*ma_value;	/* required */

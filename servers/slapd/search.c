@@ -36,7 +36,7 @@ do_search(
 	struct berval base = { 0, NULL };
 	struct berval *pbase = NULL;
 	struct berval *nbase = NULL;
-	char		*fstr = NULL;
+	struct berval	fstr = { 0, NULL };
 	Filter		*filter = NULL;
 	struct berval	**attrs = NULL;
 	Backend		*be;
@@ -165,9 +165,9 @@ do_search(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		"do_search: conn %d	filter: %s\n", conn->c_connid, fstr ));
+		"do_search: conn %d	filter: %s\n", conn->c_connid, fstr.bv_val ));
 #else
-	Debug( LDAP_DEBUG_ARGS, "    filter: %s\n", fstr, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "    filter: %s\n", fstr.bv_val, 0, 0 );
 #endif
 
 
@@ -221,7 +221,7 @@ do_search(
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
-	    op->o_connid, op->o_opid, pbase->bv_val, scope, fstr );
+	    op->o_connid, op->o_opid, pbase->bv_val, scope, fstr.bv_val );
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -329,7 +329,7 @@ do_search(
 	if ( be->be_search ) {
 		(*be->be_search)( be, conn, op, pbase->bv_val, nbase->bv_val,
 			scope, deref, sizelimit,
-		    timelimit, filter, fstr, attrs, attrsonly );
+		    timelimit, filter, fstr.bv_val, attrs, attrsonly );
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "operation not supported within namingContext", NULL, NULL );
@@ -340,7 +340,7 @@ return_results:;
 	if( pbase != NULL) ber_bvfree( pbase );
 	if( nbase != NULL) ber_bvfree( nbase );
 
-	if( fstr != NULL) free( fstr );
+	if( fstr.bv_val != NULL) free( fstr.bv_val );
 	if( filter != NULL) filter_free( filter );
 	if ( attrs != NULL ) {
 		ber_bvecfree( attrs );

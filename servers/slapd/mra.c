@@ -21,7 +21,7 @@ mra_free(
     int	freeit
 )
 {
-	ch_free( mra->ma_rule_text );
+	ch_free( mra->ma_rule_text.bv_val );
 	ber_bvfree( mra->ma_value );
 	if ( freeit ) {
 		ch_free( (char *) mra );
@@ -42,7 +42,8 @@ get_mra(
 
 	ma = ch_malloc( sizeof( MatchingRuleAssertion ) );
 	ma->ma_rule = NULL;
-	ma->ma_rule_text = NULL;
+	ma->ma_rule_text.bv_val = NULL;
+	ma->ma_rule_text.bv_len = 0;
 	ma->ma_desc = NULL;
 	ma->ma_dnattrs = 0;
 	ma->ma_value = NULL;
@@ -63,11 +64,11 @@ get_mra(
 	}
 
 	if ( tag == LDAP_FILTER_EXT_OID ) {
-		rc = ber_scanf( ber, "a", &ma->ma_rule_text );
+		rc = ber_scanf( ber, "o", &ma->ma_rule_text );
 		if ( rc == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "get_mra: ber_scanf(\"a\") failure.\n" ));
+				   "get_mra: ber_scanf(\"o\") failure.\n" ));
 #else
 			Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf for mr\n", 0, 0, 0 );
 #endif
@@ -76,7 +77,7 @@ get_mra(
 			mra_free( ma, 1 );
 			return SLAPD_DISCONNECT;
 		}
-		ma->ma_rule = mr_find( ma->ma_rule_text );
+		ma->ma_rule = mr_find( ma->ma_rule_text.bv_val );
 
 		rc = ber_scanf( ber, "t", &tag );
 
