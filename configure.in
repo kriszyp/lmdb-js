@@ -858,8 +858,15 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl Check for resolver routines
+dnl	  need to check for both res_query and __res_query
+dnl   need to check -lc, -lbind, and -lresolv
 ol_link_dnssrv=no
 AC_CHECK_FUNC(res_query,:)
+if test $ac_cv_func_res_query = no ; then 
+	AC_CHECK_FUNC(__res_query,:)
+	ac_cv_func_res_query=$ac_cv_func___res_query
+fi
+
 if test $ac_cv_func_res_query = no ; then 
 	AC_CHECK_LIB(bind, res_query)
 	ac_cv_func_res_query=$ac_cv_lib_bind_res_query
@@ -2283,6 +2290,7 @@ AC_CHECK_FUNCS(		\
 	strtoul			\
 	strspn			\
 	sysconf			\
+	usleep			\
 	waitpid			\
 	wait4			\
 	write			\
