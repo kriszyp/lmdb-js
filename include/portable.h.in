@@ -160,15 +160,6 @@ typedef char * caddr_t;
  LBER_TAG_T
 */
 
-/* The number of bytes in a int.  */
-#undef SIZEOF_INT
-
-/* The number of bytes in a long.  */
-#undef SIZEOF_LONG
-
-/* The number of bytes in a short.  */
-#undef SIZEOF_SHORT
-
 /* Define if you have the bcopy function.  */
 #undef HAVE_BCOPY
 
@@ -810,6 +801,15 @@ typedef char * caddr_t;
 
 /* define if cross compiling */
 #undef CROSS_COMPILING
+
+/* The number of bytes in type short */
+#undef SIZEOF_SHORT
+
+/* The number of bytes in type int */
+#undef SIZEOF_INT
+
+/* The number of bytes in type long */
+#undef SIZEOF_LONG
 
 /* define to you inet_aton(3) is available */
 #undef HAVE_INET_ATON
