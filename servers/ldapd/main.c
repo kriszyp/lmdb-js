@@ -653,10 +653,10 @@ wait4child( int sig )
 	Debug( LDAP_DEBUG_TRACE, "parent: catching child status\n", 0, 0, 0 );
 
 #ifdef HAVE_WAITPID
-	while( waitpid( (pid_t) -1, NULL, WAIT_FLAGS ) > 0 )
+	while( waitpid( (pid_t) -1, (int *) NULL, WAIT_FLAGS ) > 0 )
 		;       /* NULL */
 #else
-	while ( wait3( &status, WAIT_FLAGS, 0 ) > 0 )
+	while ( wait4( (pid_t) -1, &status, WAIT_FLAGS, 0 ) > 0 )
 		;       /* NULL */
 #endif
 

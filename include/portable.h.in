@@ -47,9 +47,6 @@
 /* Define if you have the vprintf function.  */
 #undef HAVE_VPRINTF
 
-/* Define if you have the wait3 system call.  */
-#undef HAVE_WAIT3
-
 /* Define if on MINIX.  */
 #undef _MINIX
 

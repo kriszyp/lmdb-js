@@ -325,10 +325,10 @@ wait4child( int sig )
         if ( debug ) printf( "parent: catching child status\n" );
 
 #ifdef HAVE_WAITPID
-	while (waitpid ((pid_t) -1, 0, WAIT_FLAGS) > 0)
+	while (waitpid ((pid_t) -1, (int *) NULL, WAIT_FLAGS) > 0)
 		;	/* NULL */
 #else
-	while ( wait3( &status, WAIT_FLAGS, 0 ) > 0 )
+	while ( wait4((pid_t) -1, &status, WAIT_FLAGS, 0 ) > 0 )
 		;	/* NULL */
 #endif
 
