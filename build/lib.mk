@@ -38,3 +38,5 @@ veryclean-common: veryclean-local clean-common
 
 lint-local: FORCE
 lint5-local: FORCE
+
+Makefile: $(top_srcdir)/build/lib.mk

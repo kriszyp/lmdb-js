@@ -160,6 +160,9 @@
 /* Define if you have the <db_185.h> header file.  */
 #undef HAVE_DB_185_H
 
+/* Define if you have the <des.h> header file.  */
+#undef HAVE_DES_H
+
 /* Define if you have the <dirent.h> header file.  */
 #undef HAVE_DIRENT_H
 
@@ -171,6 +174,15 @@
 
 /* Define if you have the <gdbm.h> header file.  */
 #undef HAVE_GDBM_H
+
+/* Define if you have the <kerberosIV/des.h> header file.  */
+#undef HAVE_KERBEROSIV_DES_H
+
+/* Define if you have the <kerberosIV/krb.h> header file.  */
+#undef HAVE_KERBEROSIV_KRB_H
+
+/* Define if you have the <krb.h> header file.  */
+#undef HAVE_KRB_H
 
 /* Define if you have the <limits.h> header file.  */
 #undef HAVE_LIMITS_H

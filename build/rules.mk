@@ -24,3 +24,5 @@ lint5: lint5-local
 # these could be empty
 lint-local: FORCE
 lint5-local: FORCE
+
+Makefile: $(top_srcdir)/build/rules.mk

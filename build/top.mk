@@ -73,6 +73,8 @@ AC_LIBS = @LDFLAGS@ @LIBS@
 AC_CFLAGS = @CFLAGS@
 AC_LDFLAGS =
 
+KRB_DEFS = @KRB_DEFS@
+KRB_LIBS = @KRB_LIBS@
 TERMCAP_DEFS = @TERMCAP_DEFS@
 TERMCAP_LIBS = @TERMCAP_LIBS@
 
@@ -99,13 +101,7 @@ depend-local:
 lint-local:
 lint5-local:
 
-Makefile: Makefile.in ${top_srcdir}/config.status
-	@if test "$(top_srcdir)" = "$(srcdir)" ; then ; \
-		./config.status	; \
-	else ; \
-		echo "Makefile out of date, run config.status from $top_srcdir" ; \
-		exit 1 ; \
-	fi
+Makefile: Makefile.in $(top_srcdir)/build/top.mk
 
 # empty rule for forcing rules
 FORCE:

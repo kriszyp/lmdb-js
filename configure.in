@@ -186,6 +186,11 @@ BUILD_LDBM=no
 BUILD_PASSWD=no
 BUILD_SHELL=no
 
+KRB_DEFS=
+KRB_LIBS=
+TERMCAP_DEFS=
+TERMCAP_LIBS=
+
 dnl ----------------------------------------------------------------
 dnl Checks for programs
 
@@ -211,11 +216,44 @@ AC_CHECK_FUNC(socket, :,
 	AC_CHECK_LIB(inet, socket)
 ])
 
+if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 ; then
+	AC_CHECK_HEADERS(kerberosIV/krb.h kerberosIV/des.h)
+
+	if test $ac_cv_header_kerberosIV_krb_h = yes ; then
+		AC_CHECK_LIB(krb4, main, [have_k5=yes], [have_k5=no],
+			[-lkrb5 -ldes425])
+
+		if test $have_k5 = yes ; then
+			ol_with_kerberos=found
+			ol_link_kerberos=yes
+
+			KRB_DEFS="-DKERBEROS"
+			KRB_LIBS="-lkrb4 -lkrb5 -ldes425"
+		fi
+	fi
+fi
+if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 ; then
+	AC_CHECK_HEADERS(krb.h des.h)
+
+	if test $ac_cv_header_krb_h = yes ; then
+		AC_CHECK_LIB(krb, main, [have_k4=yes], [have_k4=no], [-ldes])
+
+		if test $have_k4 = yes ; then
+			ol_with_kerberos=found
+			ol_link_kerberos=yes
+
+			KRB_DEFS="-DKERBEROS"
+			KRB_LIBS="-lkrb -ldes"
+		fi
+	fi
+fi
+
+
 ol_link_threads=no
 if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 	AC_CHECK_HEADERS(pthread.h sched.h)
 
-	if test "$ac_cv_header_pthread_h" = yes ; then
+	if test $ac_cv_header_pthread_h = yes ; then
 		OL_POSIX_THREAD_VERSION
 
 		if test $ol_cv_pthread_version = final ; then
@@ -472,9 +510,6 @@ fi
 # ud needs termcap (should insert check here)
 ol_link_termcap=no
 
-TERMCAP_DEFS=
-TERMCAP_LIBS=
-
 AC_CHECK_HEADERS(termcap.h ncurses.h)
 
 if test $ol_link_termcap = no ; then
@@ -497,9 +532,6 @@ if test $ol_link_termcap = no ; then
 	TERMCAP_DEFS="-DNOTERMCAP"
 	TERMCAP_LIBS=
 fi
-
-AC_SUBST(TERMCAP_DEFS)
-AC_SUBST(TERMCAP_LIBS)
 
 # FreeBSD (and others) have crypt(3) in -lcrypt
 if test $ol_enable_crypt != no ; then
@@ -694,6 +726,11 @@ AC_SUBST(LTHREAD_DEFS)
 AC_SUBST(LTHREAD_LIBS)
 AC_SUBST(LUTIL_DEFS)
 AC_SUBST(LUTIL_LIBS)
+
+AC_SUBST(KRB_DEFS)
+AC_SUBST(KRB_LIBS)
+AC_SUBST(TERMCAP_DEFS)
+AC_SUBST(TERMCAP_LIBS)
 
 dnl ----------------------------------------------------------------
 dnl final output

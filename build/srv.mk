@@ -69,3 +69,5 @@ depend-srv: depend-local
 	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS)
 
 veryclean-srv: 	clean-srv veryclean-local
+
+Makefile: $(top_srcdir)/build/srv.mk

@@ -43,3 +43,5 @@ depend-common: depend-local FORCE
 		( cd $$i; $(MAKE) $(MFLAGS) depend );	\
 		echo " ";								\
 	done
+
+Makefile: $(top_srcdir)/build/dir.mk
