@@ -28,6 +28,7 @@ static struct berval
 	aci_bv_br_all		= BER_BVC("[all]"),
 	aci_bv_access_id 	= BER_BVC("access-id"),
 	aci_bv_anonymous	= BER_BVC("anonymous"),
+	aci_bv_public		= BER_BVC("public"),
 	aci_bv_users		= BER_BVC("users"),
 	aci_bv_self 		= BER_BVC("self"),
 	aci_bv_dnattr 		= BER_BVC("dnattr"),
@@ -1707,6 +1708,8 @@ aci_mask(
 
 	   See draft-ietf-ldapext-aci-model-04.txt section 9.1 for
 	   a full description of the format for this attribute.
+	   Differences: "this" in the draft is "self" here, and
+	   "self" and "public" is in the position of dnType.
 
 	   For now, this routine only supports scope=entry.
 	 */
@@ -1743,13 +1746,16 @@ aci_mask(
 
 	if (ber_bvstrcasecmp( &aci_bv_access_id, &bv ) == 0) {
 		struct berval ndn;
-		rc = 1;
+		rc = 0;
 		if ( dnNormalize2(NULL, &sdn, &ndn) == LDAP_SUCCESS ) {
-			if (!dn_match( &op->o_ndn, &ndn))
-				rc = 0;
+			if (dn_match( &op->o_ndn, &ndn))
+				rc = 1;
 			free(ndn.bv_val);
 		}
 		return (rc);
+
+	} else if (ber_bvstrcasecmp( &aci_bv_public, &bv ) == 0) {
+		return(1);
 
 	} else if (ber_bvstrcasecmp( &aci_bv_self, &bv ) == 0) {
 		if (dn_match(&op->o_ndn, &e->e_nname))
