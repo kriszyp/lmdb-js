@@ -138,8 +138,10 @@ bdb_db_open( BackendDB *be )
 		return rc;
 	}
 
-	flags = DB_INIT_MPOOL | DB_THREAD | DB_CREATE
-		| DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN;
+	flags = DB_INIT_MPOOL | DB_THREAD | DB_CREATE | DB_INIT_LOCK;
+
+if ( !( slapMode & SLAP_TOOL_QUICK ))
+		flags |= DB_INIT_LOG | DB_INIT_TXN;
 	
 #if 0
 	/* Never do automatic recovery, must perform it manually.
@@ -272,6 +274,11 @@ bdb_db_open( BackendDB *be )
 	}
 
 	flags = DB_THREAD | bdb->bi_db_opflags;
+
+#ifdef DB_AUTO_COMMIT
+	if ( !( slapMode & SLAP_TOOL_QUICK ))
+		flags |= DB_AUTO_COMMIT;
+#endif
 
 	bdb->bi_databases = (struct bdb_db_info **) ch_malloc(
 		BDB_INDICES * sizeof(struct bdb_db_info *) );

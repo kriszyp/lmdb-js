@@ -241,7 +241,7 @@ struct bdb_op_info {
 #if DB_VERSION_FULL >= 0x04010011
 #undef DB_OPEN
 #define	DB_OPEN(db, file, name, type, flags, mode) \
-	(db)->open(db, NULL, file, name, type, (flags)|DB_AUTO_COMMIT, mode)
+	(db)->open(db, NULL, file, name, type, flags, mode)
 #endif
 
 #endif

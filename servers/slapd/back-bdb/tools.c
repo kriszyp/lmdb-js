@@ -307,6 +307,7 @@ ID bdb_tool_entry_put(
 	Debug( LDAP_DEBUG_TRACE, "=> " LDAP_XSTRING(bdb_tool_entry_put)
 		"( %ld, \"%s\" )\n", (long) e->e_id, e->e_dn, 0 );
 
+	if (! (slapMode & SLAP_TOOL_QUICK)) {
 	rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &tid, 
 		bdb->bi_db_opflags );
 	if( rc != 0 ) {
@@ -317,6 +318,7 @@ ID bdb_tool_entry_put(
 			"=> " LDAP_XSTRING(bdb_tool_entry_put) ": %s\n",
 			 text->bv_val, 0, 0 );
 		return NOID;
+	}
 	}
 
 	op.o_hdr = &ohdr;
@@ -356,6 +358,7 @@ ID bdb_tool_entry_put(
 
 done:
 	if( rc == 0 ) {
+		if ( !( slapMode & SLAP_TOOL_QUICK )) {
 		rc = TXN_COMMIT( tid, 0 );
 		if( rc != 0 ) {
 			snprintf( text->bv_val, text->bv_len,
@@ -366,8 +369,10 @@ done:
 				text->bv_val, 0, 0 );
 			e->e_id = NOID;
 		}
+		}
 
 	} else {
+		if ( !( slapMode & SLAP_TOOL_QUICK )) {
 		TXN_ABORT( tid );
 		snprintf( text->bv_val, text->bv_len,
 			"txn_aborted! %s (%d)",
@@ -375,6 +380,7 @@ done:
 		Debug( LDAP_DEBUG_ANY,
 			"=> " LDAP_XSTRING(bdb_tool_entry_put) ": %s\n",
 			text->bv_val, 0, 0 );
+		}
 		e->e_id = NOID;
 	}
 

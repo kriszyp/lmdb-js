@@ -63,7 +63,7 @@ bdb_db_cache(
 	const char *name,
 	DB **dbout )
 {
-	int i;
+	int i, flags;
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct bdb_db_info *db;
@@ -119,10 +119,14 @@ bdb_db_cache(
 #ifdef HAVE_EBCDIC
 	__atoe( file );
 #endif
+	flags = DB_CREATE | DB_THREAD;
+#ifdef DB_AUTO_COMMIT
+	if ( !( slapMode & SLAP_TOOL_QUICK ))
+		flags |= DB_AUTO_COMMIT;
+#endif
 	rc = DB_OPEN( db->bdi_db,
 		file, NULL /* name */,
-		BDB_INDEXTYPE, bdb->bi_db_opflags | DB_CREATE | DB_THREAD,
-		bdb->bi_dbenv_mode );
+		BDB_INDEXTYPE, bdb->bi_db_opflags | flags, bdb->bi_dbenv_mode );
 
 	ch_free( file );
 
