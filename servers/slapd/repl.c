@@ -295,8 +295,37 @@ replog1(
 		fprintf( fp, "changetype: add\n" );
 		a = first ? first : e->e_attrs;
 		for ( ; a != NULL; a=a->a_next ) {
-			if ( ri && ri->ri_attrs && !ad_inlist( a->a_desc, ri->ri_attrs ) ) {
-				continue;
+			if ( ri && ri->ri_attrs ) {
+				if ( !ad_inlist( a->a_desc, ri->ri_attrs ) ) {
+					continue;
+				}
+				/* If the list includes objectClass names,
+				 * only include those classes in the
+				 * objectClass attribute
+				 */
+				if ( a->a_desc == slap_schema.si_ad_objectClass ) {
+					int ocs = 0;
+					AttributeName *an;
+					struct berval vals[2];
+					vals[1].bv_val = NULL;
+					vals[1].bv_len = 0;
+					for ( an = ri->ri_attrs; an->an_name.bv_val; an++ ) {
+						if ( an->an_oc ) {
+							int i;
+							for ( i=0; a->a_vals[i].bv_val; i++ ) {
+								if ( a->a_vals[i].bv_len == an->an_name.bv_len
+									&& !strcasecmp(a->a_vals[i].bv_val,
+										an->an_name.bv_val ) ) {
+									ocs = 1;
+									vals[0] = an->an_name;
+									print_vals( fp, &a->a_desc->ad_cname, vals );
+									break;
+								}
+							}
+						}
+					}
+					if ( ocs ) continue;
+				}
 			}
 			print_vals( fp, &a->a_desc->ad_cname, a->a_vals );
 		}
