@@ -27,6 +27,9 @@ ldap_delete_result_entry( LDAPMessage **list, LDAPMessage *e )
 {
 	LDAPMessage	*tmp, *prev = NULL;
 
+	assert( list != NULL );
+	assert( e != NULL );
+
 	for ( tmp = *list; tmp != NULL && tmp != e; tmp = tmp->lm_chain )
 		prev = tmp;
 
@@ -45,6 +48,9 @@ ldap_delete_result_entry( LDAPMessage **list, LDAPMessage *e )
 void
 ldap_add_result_entry( LDAPMessage **list, LDAPMessage *e )
 {
+	assert( list != NULL );
+	assert( e != NULL );
+
 	e->lm_chain = *list;
 	*list = e;
 }

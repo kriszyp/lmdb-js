@@ -46,7 +46,7 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **ber )
 	 * positioned right before the next attribute type/value sequence.
 	 */
 
-	if ( ber_scanf( *ber, "{x{{ax}", &attr )
+	if ( ber_scanf( *ber, "{x{{ax}" /*}}*/, &attr )
 	    == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		ber_free( *ber, 0 );

@@ -19,11 +19,11 @@
 
 #include "ldap-int.h"
 
-/* ARGSUSED */
 LDAPMessage *
 ldap_first_reference( LDAP *ld, LDAPMessage *chain )
 {
 	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
 	assert( chain !=  NULL );
 
 	if ( ld == NULL || chain == NULL ) {
@@ -39,6 +39,7 @@ LDAPMessage *
 ldap_next_reference( LDAP *ld, LDAPMessage *ref )
 {
 	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
 	assert( ref !=  NULL );
 
 	if ( ld == NULL || ref == NULL ) {
@@ -64,12 +65,14 @@ ldap_count_references( LDAP *ld, LDAPMessage *chain )
 	int	i;
 
 	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
 	assert( chain !=  NULL );
 
 	if ( ld == NULL ) {
 		return -1;
 	}
 
+	
 	for ( i = 0; chain != NULL; chain = chain->lm_chain ) {
 		if( chain->lm_msgtype == LDAP_RES_SEARCH_REFERENCE ) {
 			i++;
@@ -92,6 +95,7 @@ ldap_parse_reference(
 	int rc;
 
 	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
 	assert( ref !=  NULL );
 
 	if( ld == NULL || ref == NULL ||

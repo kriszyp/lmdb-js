@@ -27,6 +27,7 @@ ldap_first_entry( LDAP *ld, LDAPMessage *chain )
 {
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
+	assert( chain != NULL );
 
 	if( ld == NULL || chain == NULL ) {
 		return NULL;
@@ -42,6 +43,7 @@ ldap_next_entry( LDAP *ld, LDAPMessage *entry )
 {
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
+	assert( entry != NULL );
 
 	if ( ld == NULL || entry == NULL ) {
 		return NULL;
