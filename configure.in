@@ -322,15 +322,6 @@ AC_REPLACE_FUNCS(strdup)
 # Check Configuration
 CF_SYS_ERRLIST
 
-dnl need do this early
-test "x$prefix" = xNONE && prefix=$ac_default_prefix
-test "x$exec_prefix" = xNONE && exec_prefix='${prefix}'
-
-dnl append /ldap to $sysconfdir, probably should make this a settable option.
-sysconfdir="$sysconfdir/ldap"
-SYSCONFDIR=`eval echo $sysconfdir`
-AC_SUBST(SYSCONFDIR)
-
 dnl AC_OUTPUT( \
 dnl clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
 dnl clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
@@ -343,7 +334,6 @@ dnl clients/rcpt500/Makefile:build/top.mk:clients/rcpt500/Makefile.in:build/rule
 dnl contrib/Makefile:build/top.mk:contrib/Makefile.in:build/dir.mk \
 dnl contrib/saucer/Makefile:build/top.mk:contrib/saucer/Makefile.in:build/rules.mk \
 dnl contrib/whois++/Makefile:build/top.mk:contrib/whois++/Makefile.in:build/rules.mk \
-dnl libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
 dnl libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk \
 dnl libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk \
 dnl libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk \
@@ -364,7 +354,7 @@ dnl Makefile:build/top.mk:Makefile.in:build/dir.mk, \
 dnl [date > stamp-h])
 
 AC_OUTPUT( \
-include/ldapconfig.h \
 include/Makefile:build/top.mk:include/Makefile.in \
+libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
 Makefile:build/top.mk:Makefile.in:build/dir.mk \
 ,[date > stamp-h])

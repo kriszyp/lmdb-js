@@ -11,8 +11,29 @@ install: all FORCE
 		$(INSTALL) $(INSTALLFLAGS) -m 644 disptmpl.h $(includedir)
 		$(INSTALL) $(INSTALLFLAGS) -m 644 srchpref.h $(includedir)
 
-all: FORCE
+all: ldapconfig.h FORCE
+
 clean: FORCE 
 veryclean: FORCE
 depend: FORCE
+
+ldapconfig.h: ldapconfig.h.edit Makefile
+	@$(RM) $@
+	@echo "/*" > $@;  \
+        echo " * This file was automatically generated.  Do not edit it." >> $@; \
+        echo " * Instead, edit the file ldapconfig.h.edit.  See the LDAP" >> $@; \
+        echo " * INSTALL file for more information." >> $@; \
+        echo " */ " >> $@; \
+        echo "" >> $@; \
+	$(SED) \
+			-e 's;%SYSCONFDIR%;$(sysconfdir);' \
+			-e 's;%BINDIR%;$(bindir);' \
+			-e 's;%SBINDIR%;$(sbindir);' \
+			-e 's;%LIBEXECDIR%;$(libexecdir);' \
+			-e 's;%RUNDIR%;$(localstatedir);' \
+			-e 's;%EDITOR%;$(EDITOR);' \
+			-e 's;%FINGER%;$(FINGER);' \
+			-e 's;%SENDMAIL%;$(SENDMAIL);' \
+			 ldapconfig.h.edit >> $@; \
+	$(CHMOD) 444 $@
 
