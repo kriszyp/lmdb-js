@@ -1726,8 +1726,10 @@ slapi_filter_apply( Slapi_Filter *f, FILTER_APPLY_FN fn, void *arg, int *error_c
 	case LDAP_FILTER_NOT:
 	case LDAP_FILTER_OR: {
 		int rc;
-		Filter *f;
 
+		/*
+		 * FIXME: altering f; should we use a temporary?
+		 */
 		for ( f = f->f_list; f != NULL; f = f->f_next ) {
 			rc = slapi_filter_apply( f, fn, arg, error_code );
 			if ( rc != 0 ) {
@@ -3118,10 +3120,10 @@ Modifications *slapi_x_ldapmods2modifications (LDAPMod **mods)
 		mod->sml_next = NULL;
 
 		if ( (*modp)->mod_op & LDAP_MOD_BVALUES ) {
-			for( i = 0, bvp = (*modp)->mod_bvalues; *bvp != NULL; bvp++, i++ )
+			for( i = 0, bvp = (*modp)->mod_bvalues; bvp != NULL && *bvp != NULL; bvp++, i++ )
 				;
 		} else {
-			for( i = 0, p = (*modp)->mod_values; *p != NULL; p++, i++ )
+			for( i = 0, p = (*modp)->mod_values; p != NULL && *p != NULL; p++, i++ )
 				;
 		}
 
@@ -3129,12 +3131,12 @@ Modifications *slapi_x_ldapmods2modifications (LDAPMod **mods)
 
 		/* NB: This implicitly trusts a plugin to return valid modifications. */
 		if ( (*modp)->mod_op & LDAP_MOD_BVALUES ) {
-			for( i = 0, bvp = (*modp)->mod_bvalues; *bvp != NULL; bvp++, i++ ) {
+			for( i = 0, bvp = (*modp)->mod_bvalues; bvp != NULL && *bvp != NULL; bvp++, i++ ) {
 				mod->sml_bvalues[i].bv_val = (*bvp)->bv_val;
 				mod->sml_bvalues[i].bv_len = (*bvp)->bv_len;
 			}
 		} else {
-			for( i = 0, p = (*modp)->mod_values; *p != NULL; p++, i++ ) {
+			for( i = 0, p = (*modp)->mod_values; p != NULL && *p != NULL; p++, i++ ) {
 				mod->sml_bvalues[i].bv_val = *p;
 				mod->sml_bvalues[i].bv_len = strlen( *p );
 			}
@@ -3171,7 +3173,7 @@ void slapi_x_free_ldapmods (LDAPMod **mods)
 		 * Modification list. Do free the containing array.
 		 */
 		if ( mods[i]->mod_op & LDAP_MOD_BVALUES ) {
-			for ( j = 0; mods[i]->mod_bvalues[j] != NULL; j++ ) {
+			for ( j = 0; mods[i]->mod_bvalues != NULL && mods[i]->mod_bvalues[j] != NULL; j++ ) {
 				ch_free( mods[i]->mod_bvalues[j] );
 			}
 			ch_free( mods[i]->mod_bvalues );
