@@ -61,7 +61,7 @@ char* backsql_make_attr_query(backsql_oc_map_rec *oc_map,backsql_at_map_rec *at_
 int backsql_add_sysmaps(backsql_oc_map_rec *oc_map)
 {
  backsql_at_map_rec *at_map;
- long len;
+ int len;
  char s[30]; 
 
  sprintf(s,"%d",oc_map->id);
