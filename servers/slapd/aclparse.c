@@ -1875,7 +1875,7 @@ print_acl( Backend *be, AccessControl *a )
 	}
 
 	if ( a->acl_filter != NULL ) {
-		struct berval bv = { 0, NULL };
+		struct berval bv = BER_BVNULL;
 		to++;
 		filter2bv( a->acl_filter, &bv );
 		fprintf( stderr, " filter=%s\n", bv.bv_val );

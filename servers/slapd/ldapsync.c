@@ -54,7 +54,7 @@ slap_build_sync_state_ctrl(
 	BerElementBuffer berbuf;
 	BerElement *ber = (BerElement *)&berbuf;
 
-	struct berval entryuuid_bv	= { 0, NULL };
+	struct berval entryuuid_bv	= BER_BVNULL;
 
 	ber_init2( ber, 0, LBER_USE_DER );
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
@@ -173,7 +173,7 @@ slap_build_sync_state_ctrl_from_slog(
 	BerElementBuffer berbuf;
 	BerElement *ber = (BerElement *)&berbuf;
 
-	struct berval entryuuid_bv	= { 0, NULL };
+	struct berval entryuuid_bv	= BER_BVNULL;
 
 	ber_init2( ber, NULL, LBER_USE_DER );
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
@@ -444,9 +444,9 @@ slap_init_sync_cookie_ctxcsn(
 )
 {
 	char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE + 4 ];
-	struct berval octet_str = { 0, NULL };
-	struct berval ctxcsn = { 0, NULL };
-	struct berval ctxcsn_dup = { 0, NULL };
+	struct berval octet_str = BER_BVNULL;
+	struct berval ctxcsn = BER_BVNULL;
+	struct berval ctxcsn_dup = BER_BVNULL;
 	struct berval slap_syncCookie;
 
 	if ( cookie == NULL )
@@ -523,7 +523,7 @@ slap_build_syncUUID_set(
 	int ret;
 	Attribute* a;
 
-	struct berval entryuuid_bv	= { 0, NULL };
+	struct berval entryuuid_bv	= BER_BVNULL;
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		AttributeDescription *desc = a->a_desc;

@@ -810,12 +810,12 @@ int mods_structural_class(
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
 
-	if( ocmod->sml_bvalues == NULL || ocmod->sml_bvalues[0].bv_val == NULL ) {
+	if( ocmod->sml_values == NULL || ocmod->sml_values[0].bv_val == NULL ) {
 		*text = "objectClass attribute has no values";
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
 
-	return structural_class( ocmod->sml_bvalues, sc, NULL,
+	return structural_class( ocmod->sml_values, sc, NULL,
 		text, textbuf, textlen );
 }
 

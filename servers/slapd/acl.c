@@ -1207,7 +1207,7 @@ dn_match_cleanup:;
 
 		if ( b->a_group_pat.bv_len ) {
 			struct berval bv;
-			struct berval ndn = { 0, NULL };
+			struct berval ndn = BER_BVNULL;
 			int rc;
 
 			if ( op->o_ndn.bv_len == 0 ) {
@@ -1632,12 +1632,12 @@ acl_check_modlist(
 				goto done;
 			}
 
-			if ( mlist->sml_bvalues == NULL ) break;
+			if ( mlist->sml_values == NULL ) break;
 
 			/* fall thru to check value to add */
 
 		case LDAP_MOD_ADD:
-			assert( mlist->sml_bvalues != NULL );
+			assert( mlist->sml_values != NULL );
 
 			for ( bv = mlist->sml_nvalues
 					? mlist->sml_nvalues : mlist->sml_values;
@@ -1653,7 +1653,7 @@ acl_check_modlist(
 			break;
 
 		case LDAP_MOD_DELETE:
-			if ( mlist->sml_bvalues == NULL ) {
+			if ( mlist->sml_values == NULL ) {
 				if ( ! access_allowed( op, e,
 					mlist->sml_desc, NULL, ACL_WRITE, NULL ) )
 				{
@@ -1763,14 +1763,14 @@ aci_match_set (
 	int setref
 )
 {
-	struct berval set = { 0, NULL };
+	struct berval set = BER_BVNULL;
 	int rc = 0;
 	AciSetCookie cookie;
 
 	if (setref == 0) {
 		ber_dupbv_x( &set, subj, op->o_tmpmemctx );
 	} else {
-		struct berval subjdn, ndn = { 0, NULL };
+		struct berval subjdn, ndn = BER_BVNULL;
 		struct berval setat;
 		BerVarray bvals;
 		const char *text;

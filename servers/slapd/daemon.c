@@ -1490,7 +1490,7 @@ slapd_daemon_task(
 			socklen_t len = sizeof(from);
 			long id;
 			slap_ssf_t ssf = 0;
-			struct berval authid = { 0, NULL };
+			struct berval authid = BER_BVNULL;
 #ifdef SLAPD_RLOOKUPS
 			char hbuf[NI_MAXHOST];
 #endif

@@ -437,8 +437,7 @@ test_ava_filter(
 			continue;
 		}
 
-		for ( bv = a->a_nvals; bv->bv_val != NULL; bv++ )
-		{
+		for ( bv = a->a_nvals; bv->bv_val != NULL; bv++ ) {
 			int ret;
 			int rc;
 			const char *text;

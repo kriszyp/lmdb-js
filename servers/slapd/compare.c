@@ -47,10 +47,10 @@ do_compare(
 )
 {
 	Entry *entry = NULL;
-	struct berval dn = { 0, NULL };
-	struct berval desc = { 0, NULL };
-	struct berval value = { 0, NULL };
-	AttributeAssertion ava = { NULL, { 0, NULL } };
+	struct berval dn = BER_BVNULL;
+	struct berval desc = BER_BVNULL;
+	struct berval value = BER_BVNULL;
+	AttributeAssertion ava = { NULL, BER_BVNULL };
 	int manageDSAit;
 
 	ava.aa_desc = NULL;

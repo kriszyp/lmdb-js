@@ -53,8 +53,7 @@ get_ava(
 	BerElement	*ber,
 	AttributeAssertion	**ava,
 	unsigned usage,
-	const char **text
-)
+	const char **text )
 {
 	int rc;
 	ber_tag_t rtag;

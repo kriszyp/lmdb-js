@@ -49,7 +49,7 @@ do_search(
     Operation	*op,	/* info about the op to which we're responding */
     SlapReply	*rs	/* all the response data we'll send */
 ) {
-	struct berval base = { 0, NULL };
+	struct berval base = BER_BVNULL;
 	ber_len_t	siz, off, i;
 	int			manageDSAit;
 	int			be_manageDSAit;
