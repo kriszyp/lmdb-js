@@ -310,15 +310,15 @@ equality_candidates(
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"<= bdb_equality_candidates: (%s%s) MR filter failed (%d)\n",
-			"", "", rc );
+			"<= bdb_equality_candidates: MR filter failed (%d)\n",
+			rc, 0, 0 );
 		return 0;
 	}
 
 	if( keys == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"<= bdb_equality_candidates: no keys (%s%s)\n",
-			"", "", 0 );
+			"<= bdb_equality_candidates: no keys\n",
+			0, 0, 0 );
 		return 0;
 	}
 
@@ -417,22 +417,22 @@ approx_candidates(
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"<= approx_candidates: (%s%s) MR filter failed (%d)\n",
-			dbname, LDBM_SUFFIX, rc );
+			"<= approx_candidates: (%s) MR filter failed (%d)\n",
+			dbname, rc, 0 );
 		return idl;
 	}
 
 	if( keys == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"<= approx_candidates: no keys (%s%s)\n",
-			dbname, LDBM_SUFFIX, 0 );
+			"<= approx_candidates: no keys (%s)\n",
+			dbname, 0, 0 );
 		return idl;
 	}
 
 	if ( db == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"<= approx_candidates db open failed (%s%s)\n",
-			dbname, LDBM_SUFFIX, 0 );
+			"<= approx_candidates db open failed (%s)\n",
+			dbname, 0, 0 );
 		return idl;
 	}
 
@@ -537,24 +537,24 @@ substring_candidates(
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"<= substrings_candidates: (%s%s) MR filter failed (%d)\n",
-			dbname, LDBM_SUFFIX, rc );
+			"<= substrings_candidates: (%s) MR filter failed (%d)\n",
+			dbname, rc, 0 );
 		return idl;
 	}
 
 	if( keys == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"<= substrings_candidates: (0x%04lx) no keys (%s%s)\n",
-			mask, dbname, LDBM_SUFFIX );
+			"<= substrings_candidates: (0x%04lx) no keys (%s)\n",
+			mask, dbname, 0 );
 		return idl;
 	}
 
-	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_READER );
+	rc = bdb_db_cache( be, dbname, &db );
 	
 	if ( db == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"<= substrings_candidates db open failed (%s%s)\n",
-			dbname, LDBM_SUFFIX, 0 );
+			"<= substrings_candidates db open failed (%s)\n",
+			dbname, 0, 0 );
 		return idl;
 	}
 

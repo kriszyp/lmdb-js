@@ -1,4 +1,4 @@
-/* config.c - ldbm backend configuration file routine */
+/* config.c - bdb backend configuration file routine */
 /* $OpenLDAP$ */
 /*
  * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.

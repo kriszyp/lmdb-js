@@ -23,36 +23,45 @@ bdb_key_read(
 	DB *db,
 	DB_TXN *txn,
     struct berval *k,
-	ID **idout
+	ID *ids
 )
 {
-	Datum		key;
-	ID_BLOCK		*idl;
+	DBT		key;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
-		   "key_read: enter\n" ));
+		"key_read: enter\n" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> key_read\n", 0, 0, 0 );
 #endif
 
-	ldbm_datum_init( key );
-	key.dptr = k->bv_val;
-	key.dsize = k->bv_len;
+	DBzero( &key );
+	key.data = k->bv_val;
+	key.size = k->bv_len;
 
-	rc = bdb_idl_fetch_key( be, db, key, idl );
+	rc = bdb_idl_fetch_key( be, db, txn, key, ids );
 
+	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
-		   "key_read: %ld candidates\n",
-		   idl ? ID_BLOCK_NIDS(idl) : 0 ));
+		LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
+			"bdb_key_read: failed (%d)\n",
+			rc ));
 #else
-	Debug( LDAP_DEBUG_TRACE, "<= index_read %ld candidates\n",
-	       idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "<= bdb_index_read: failed (%d)\n",
+			rc, 0, 0 );
 #endif
+	} else {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
+			"bdb_key_read: %ld candidates\n",
+			idl ? ID_BLOCK_NIDS(idl) : 0 ));
+#else
+		Debug( LDAP_DEBUG_TRACE, "<= bdb_index_read %ld candidates\n",
+	    	idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
+#endif
+	}
 
-	*idout = idl;
-	return LDAP_SUCCESS;
+	return rc;
 }
 #endif
 

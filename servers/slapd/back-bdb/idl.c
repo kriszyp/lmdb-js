@@ -212,6 +212,30 @@ static int idl_delete( ID *ids, ID id )
 }
 
 int
+bdb_idl_fetch_key(
+	BackendDB	*be,
+	DB			*db,
+	DB_TXN		*tid,
+	DBT			*key,
+	ID			*ids )
+{
+	int rc;
+	DBT data;
+
+	assert( ids != NULL );
+
+	DBTzero( &data );
+	data.data = ids;
+	data.ulen = BDB_IDL_SIZE * sizeof( ID );
+	data.flags = DB_DBT_USERMEM;
+
+	/* fetch it */
+	rc = db->get( db, tid, key, &data, 0 );
+
+	return rc;
+}
+
+int
 bdb_idl_insert_key(
 	BackendDB	*be,
 	DB			*db,

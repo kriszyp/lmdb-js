@@ -1,4 +1,4 @@
-/* extended.c - ldbm backend extended routines */
+/* extended.c - bdb backend extended routines */
 /* $OpenLDAP$ */
 /*
  * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
@@ -50,3 +50,4 @@ bdb_extended(
 	*text = "not supported within naming context";
 	return LDAP_OPERATIONS_ERROR;
 }
+

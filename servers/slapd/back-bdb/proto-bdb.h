@@ -142,6 +142,13 @@ int bdb_id2entry(
  */
 unsigned bdb_idl_search( ID *ids, ID id );
 
+int bdb_idl_fetch_key(
+	BackendDB *be,
+	DB *db,
+	DB_TXN *txn,
+	DBT *key,
+	ID *ids );
+
 int bdb_idl_insert_key(
 	BackendDB *be,
 	DB *db,
