@@ -86,7 +86,7 @@ modify_add_values(
 				} else {
 					rc = value_match( &match, mod->sm_desc, mr,
 						SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-						&a->a_vals[i], &mod->sm_values[i], text );
+						&a->a_vals[j], &mod->sm_values[i], text );
 				}
 
 				if( rc != LDAP_SUCCESS ) {
