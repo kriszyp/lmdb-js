@@ -1,0 +1,25 @@
+#
+# LDAP OSF1 gcc Make-platform file
+#
+
+#
+# add any platform-specific overrides below here
+#
+
+
+#
+# -------------------------------------------------------------------------
+# you will probably not need to edit anything below this point
+# -------------------------------------------------------------------------
+
+CC = gcc
+
+PLATFORMCFLAGS=	-Dosf1
+PLATFORMLDFLAGS=
+
+THREADS= -DTHREAD_DCE_PTHREADS
+THREADSLIB= -lpthreads
+
+# the BSD-like install under OSF/1 is called installbsd
+INSTALL=installbsd
+
