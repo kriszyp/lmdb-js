@@ -40,15 +40,17 @@ ldap_get_option(
 				return -1;
 			}
 
-			if(info->ldapai_info_version != 1) {
-				/* version mismatch */
+			if(info->ldapai_info_version != LDAP_API_INFO_VERSION) {
+				/* api info version mismatch */
+				info->ldapai_info_version = LDAP_API_INFO_VERSION;
 				return -1;
 			}
 
 			info->ldapai_api_version = LDAP_API_VERSION;
+			info->ldapai_api_version = LDAP_API_VERSION;
 			info->ldapai_protocol_version = LDAP_VERSION_MAX;
 			info->ldapai_extensions = NULL;
-			info->ldapai_vendor_name = strdup(LDAP_VENDOR);
+			info->ldapai_vendor_name = strdup(LDAP_VENDOR_NAME);
 			info->ldapai_vendor_version = LDAP_VENDOR_VERSION;
 
 			return 0;
@@ -175,7 +177,7 @@ ldap_set_option(
 
 	case LDAP_OPT_PROTOCOL_VERSION: {
 			int vers = * (int *) invalue;
-			if (vers > LDAP_VERSION_MAX) {
+			if (vers < LDAP_VERSION_MIN || vers > LDAP_VERSION_MAX) {
 				/* not supported */
 				break;
 			}
