@@ -112,6 +112,16 @@ add: member
 member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,dc=example,dc=com
 -
 delete: description
+-
+add: objectClass
+objectClass: OpenLDAPdisplayableObject
+objectClass: pkiUser
+objectClass: userSecurityInformation
+-
+delete: objectClass
+objectClass: OpenLDAPdisplayableObject
+objectClass: pkiUser
+objectClass: userSecurityInformation
 
 dn: cn=Gern Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
 changetype: add
