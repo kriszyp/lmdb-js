@@ -1122,7 +1122,17 @@ if test $ol_link_threads != no ; then
 			[ol_cv_errno_thread_specific=no])
 	])
 
-	if test $ol_cv_errno_thread_specific != yes ; then
+	dnl The h_errno declaration may dependent upon _REENTRANT.
+	dnl If it does, we must link with thread support.
+	AC_CACHE_CHECK([for thread specific h_errno],
+		[ol_cv_h_errno_thread_specific], [
+		AC_TRY_LINK([#include <netdb.h>], [h_errno = 0;],
+			[ol_cv_h_errno_thread_specific=yes],
+			[ol_cv_h_errno_thread_specific=no])
+	])
+
+	if test $ol_cv_errno_thread_specific != yes \
+		-o $ol_cv_h_errno_thread_specific != yes ; then
 		LIBS="$LTHREAD_LIBS $LIBS"
 		LTHREAD_LIBS=""
 	fi
