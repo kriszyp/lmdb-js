@@ -525,7 +525,7 @@ be_isroot_pw( Backend *be, char *ndn, struct berval *cred )
 	ldap_pvt_thread_mutex_lock( &crypt_mutex );
 #endif
 
-	result = lutil_passwd( cred->bv_val, be->be_root_pw );
+	result = lutil_passwd( cred->bv_val, be->be_root_pw, NULL );
 
 #ifdef SLAPD_CRYPT
 	ldap_pvt_thread_mutex_unlock( &crypt_mutex );

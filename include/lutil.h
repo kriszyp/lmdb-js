@@ -39,7 +39,8 @@ lutil_detach LDAP_P((
 LDAP_F( int )
 lutil_passwd LDAP_P((
 	const char *cred,
-	const char *passwd));
+	const char *passwd,
+	const char **methods ));
 
 LDAP_END_DECL
 

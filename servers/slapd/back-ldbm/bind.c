@@ -39,7 +39,8 @@ crypted_value_find(
 
 			result = lutil_passwd(
 				(char*) cred->bv_val,
-				(char*) vals[i]->bv_val);
+				(char*) vals[i]->bv_val,
+				NULL );
 
 #ifdef SLAPD_CRYPT
 			ldap_pvt_thread_mutex_unlock( &crypt_mutex );
