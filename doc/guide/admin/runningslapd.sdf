@@ -3,15 +3,10 @@
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: Running slapd
 
-Slapd can be run in two different modes, stand-alone or from
-inetd(8). Stand-alone operation is recommended, especially if you
-are using the LDBM backend. This allows the backend to take
-advantage of caching and avoids concurrency problems with the
-LDBM index files. If you are running only a PASSWD or SHELL
-backend, running from inetd is an option. How to do this is
-described in the next section, after the command-line options and
-stand-alone daemon operation are described.
-
+{{Slapd}}(8) is designed to be run as a stand-alone server.  This allows
+the server to take advantage of caching, manage concurrency issues
+with underlying databases, and conserve system resources.  Running
+from {{inetd}}(8) is {{NOT}} an option.
 
 
 H2: Command-Line Options
@@ -39,10 +34,14 @@ E:  1024 print communication with shell backends
 E:  2048 print entry parsing debugging
 E: 65535 enable all debugging
 
-Debugging levels are additive. That is, if you want to trace function
-calls and watch the config file being processed, you would set
-level to the sum of those two levels (in this case, 65). Consult
-{{EX: <ldap.h>}} for more details.
+You may enable multiple levels by specifying the debug option
+once for each desired level.  Or, since debugging levels are
+additive, you can do the math yourself. That is, if you want
+to trace function calls and watch the config file being
+processed, you could set level to the sum of those two levels
+(in this case, {{EX: -d 65}}).  Or, you can let slapd do the
+math, (e.g. {{EX: -d 1 -d 64}}).  Consult {{EX: <ldap.h>}} for
+more details.
 
 Note: slapd must have been compiled with {{EX:-DLDAP_DEBUG}}
 defined for any debugging information beyond the two stats levels
@@ -52,20 +51,13 @@ E: -f <filename>
 
 This option specifies an alternate configuration file for slapd.
 
-E: -i
-
-This option tells slapd that it is running from inetd instead of as a
-stand-alone server. See the next section on running slapd from
-inetd for more details.
-
 E: -p <port>
 
 This option specifies an alternate TCP port on which slapd should
 listen for connections. The default port is 389.
 
 
-
-H2: Running slapd as a Stand-Alone Daemon
+H2: Starting slapd
 
 In general, slapd is run like this:
 
@@ -78,6 +70,8 @@ level, slapd will automatically fork and detach itself from its
 controlling terminal and run in the background. Any of the options
 given above can be given to slapd to point it at a different
 configuration file, listen on another port, etc.
+
+H2: Stopping slapd
 
 To kill off slapd safely, you should give a command like this
 
@@ -96,27 +90,4 @@ variable in {{EX: include/ldapconfig.h.edit}}.
 in {{EX: Make-common}}. You can change the
 location of the args file by changing the {{EX: SLAPD_ARGSFILE}}
 variable in {{EX: include/ldapconfig.h.edit}}.
-
-
-
-H2: Running slapd from inetd
-
-First, make sure that running from {{I: inetd}}(8) is a good idea. If you
-are using the LDBM backend, it is not. If you are in a high-volume
-environment, the overhead of running from inetd also makes it a
-bad idea. Otherwise, you may proceed with the two steps
-necessary.
-
-Step 1 is to add a line like this to your {{EX: /etc/services}} file:
-
-E: 	ldap 389 # ldap directory service
-
-Step 2 is to add a line like this to your /etc/inetd.conf file:
-
-E: 	ldap stream tcp nowait nobody $(ETCDIR)/slapd slapd -i
-
-where {{EX: ETCDIR}} has the value you gave it in the 
-{{EX: Make-common}} file
-during pre-build configuration. Finally, send inetd a HUP signal,
-and you should be all set.
 

@@ -24,7 +24,7 @@
 !define DOC_LOF_TITLE	"Figures"
 !define DOC_LOF
 
-!define HTML_URL_HOME		 "http://www.openldap.org/"
+!define HTML_URL_HOME		"http://www.openldap.org/"
 !define HTML_URL_CATALOG	"../index.html"
 
 !block organisations; data
