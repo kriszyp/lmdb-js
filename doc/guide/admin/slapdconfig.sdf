@@ -416,7 +416,7 @@ prefix of another, it must appear after it in the config file.
 
 H4: syncrepl
 
->	syncrepl id=<replica ID>
+>	syncrepl rid=<replica ID>
 >		provider=ldap[s]://<hostname>[:port]
 >		[type=refreshOnly|refreshAndPersist]
 >		[interval=dd:hh:mm:ss]
@@ -448,11 +448,11 @@ kept up-to-date with the master content using the LDAP Content
 Synchronization protocol. See {{EX:draft-zeilenga-ldup-sync-xx.txt}}
 ({{a work in progress}}) for more information on the protocol.
 
-The {{EX:id}} parameter is used for identification of the current
-{{EX:syncrepl}} directive in the database, where {{EX:<replica ID>}}
-uniquely identifies the syncrepl specification described by the current
-{{EX:syncrepl}} directive. {{EX:<replica ID>}} is non-negative and is no
-more than three digits in length.
+The {{EX:rid}} parameter is used for identification of the current
+{{EX:syncrepl}} directive within the replication consumer site,
+where {{EX:<replica ID>}} uniquely identifies the syncrepl specification
+described by the current {{EX:syncrepl}} directive. {{EX:<replica ID>}}
+is non-negative and is no more than three digits in length.
 
 The {{EX:provider}} parameter specifies the replication provider site
 containing the master content as an LDAP URI. The {{EX:provider}}
