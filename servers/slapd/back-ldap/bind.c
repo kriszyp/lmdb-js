@@ -413,8 +413,6 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 #ifdef LDAP_BACK_PROXY_AUTHZ
 		int	gotit = 0;
 #if 0
-		int	i;
-
 		/*
 		 * FIXME: we need to let clients use proxyAuthz
 		 * otherwise we cannot do symmetric pools of servers;
@@ -422,12 +420,12 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 		 * authorize itself as any ID that is allowed
 		 * by the saslAuthzTo directive of the "binddn".
 		 */
-		for ( i = 0; op->o_ctrls && op->o_ctrls[ i ]; i++ ) {
-			if ( strcmp( op->o_ctrls[i]->ldctl_oid, LDAP_CONTROL_PROXY_AUTHZ ) == 0 ) {
-				gotit = 1;
-				break;
-			}
-		}
+		/*
+		 * NOTE: current Proxy Authorization specification
+		 * and implementation do not allow proxy authorization
+		 * control to be provided with Bind requests
+		 */
+		gotit = op->o_proxy_authz;
 #endif
 
 		/*
@@ -627,18 +625,9 @@ ldap_back_proxy_authz_ctrl(
 	if ( ( lc->bound_dn.bv_val == NULL || lc->bound_dn.bv_len == 0 )
 	      		&& ( op->o_conn && op->o_conn->c_dn.bv_val != NULL && op->o_conn->c_dn.bv_len != 0 )
 	      		&& ( li->binddn.bv_val != NULL && li->binddn.bv_len != 0 ) ) {
-		int	i = 0, gotit = 0;
-		
-		if ( op->o_ctrls ) {
-			for ( i = 0; op->o_ctrls[i]; i++ ) {
-				if ( strcmp( op->o_ctrls[i]->ldctl_oid, LDAP_CONTROL_PROXY_AUTHZ ) == 0 ) {
-					gotit = 1;
-					break;
-				}
-			}
-		}
+		int	i = 0;
 
-		if ( ! gotit ) {
+		if ( !op->o_proxy_authz ) {
 			ctrls = ch_malloc( sizeof( LDAPControl * ) * (i + 2) );
 			ctrls[ 0 ] = ch_malloc( sizeof( LDAPControl ) );
 			
