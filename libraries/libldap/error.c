@@ -50,7 +50,7 @@ static const struct ldaperror ldap_errlist[] = {
 	{LDAP_NO_SUCH_OBJECT, 			"No such object" },
 	{LDAP_ALIAS_PROBLEM, 			"Alias problem" },
 	{LDAP_INVALID_DN_SYNTAX,		"Invalid DN syntax" },
-	{LDAP_IS_LEAF, 					"Object is a leaf" },
+	{LDAP_IS_LEAF, 					"Entry is a leaf" },
 	{LDAP_ALIAS_DEREF_PROBLEM,	 	"Alias dereferencing problem" },
 
 	{LDAP_INAPPROPRIATE_AUTH, 		"Inappropriate authentication" },
@@ -71,6 +71,8 @@ static const struct ldaperror ldap_errlist[] = {
 	{LDAP_AFFECTS_MULTIPLE_DSAS,	"Operation affects multiple DSAs" },
 
 	{LDAP_OTHER, 					"Unknown error" },
+
+	/* API ResultCodes */
 	{LDAP_SERVER_DOWN,				"Can't contact LDAP server" },
 	{LDAP_LOCAL_ERROR,				"Local error" },
 	{LDAP_ENCODING_ERROR,			"Encoding error" },
