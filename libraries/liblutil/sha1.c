@@ -20,6 +20,9 @@
  *   34AA973C D4C4DAA4 F61EEB2B DBAD2731 6534016F
  */
 
+/*
+ * This code assumes uint32 is 32 bits and char is 8 bits
+ */
 
 #include "portable.h"
 #include <ac/string.h>
@@ -67,13 +70,11 @@ lutil_SHA1Transform( uint32 *state, const unsigned char *buffer )
 {
     uint32 a, b, c, d, e;
 
-	/* Assumes u_int is 32 bits and char 8 bits.
-	 * I don't know why uint32 isn't used (or what the difference is). */
 #ifdef SHA1HANDSOFF
-    u_int block[16];
+    uint32 block[16];
     (void)memcpy(block, buffer, 64);
 #else
-    u_int *block = (u_int *)buffer;
+    uint32 *block = (u_int32 *) buffer;
 #endif
 
     /* Copy context->state[] to working vars */
