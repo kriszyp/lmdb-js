@@ -9,10 +9,6 @@ ldap_get_values, ldap_get_values_len, ldap_count_values \- LDAP attribute value 
 .ft B
 #include <ldap.h>
 
-typedef struct berval {
-    unsigned long bv_len;
-    char *bv_val;
-};
 .LP
 .ft B
 char **ldap_get_values(ld, entry, attr)
