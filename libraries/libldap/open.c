@@ -148,8 +148,28 @@ ldap_init( char *defhost, int defport )
 		return( NULL );
 	}
 
+	/* copy the global options */
+	ld->ld_defport = openldap_ldap_global_options.ldo_defport;
+	ld->ld_deref = openldap_ldap_global_options.ldo_deref;
+	ld->ld_sizelimit = openldap_ldap_global_options.ldo_sizelimit;
+	ld->ld_timelimit = openldap_ldap_global_options.ldo_timelimit;
+
+	if ( defhost != NULL ) {
+		ld->ld_defhost = ldap_strdup( defhost );
+	} else {
+		ld->ld_defhost = ldap_strdup(
+				openldap_ldap_global_options.ldo_defhost);
+	}
+
+	if( ld->ld_defhost == NULL ) {
+		free( (char*)ld );
+	    WSACleanup( );
+		return( NULL );
+	}
+
 #ifdef LDAP_REFERRALS
 	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
+		free( (char*) ld->ld_defhost );
 		free( (char*)ld );
 	    WSACleanup( );
 		return( NULL );
@@ -157,26 +177,13 @@ ldap_init( char *defhost, int defport )
 	ld->ld_options = LDAP_OPT_REFERRALS;
 #endif /* LDAP_REFERRALS */
 
-	if ( defhost != NULL &&
-	    ( ld->ld_defhost = ldap_strdup( defhost )) == NULL ) {
-#ifdef LDAP_REFERRALS
-		ldap_free_select_info( ld->ld_selectinfo );
-#endif /* LDAP_REFERRALS */
-		free( (char*)ld );
-	    WSACleanup( );
-		return( NULL );
+	if(defport != 0) {
+		ld->ld_defport = defport;
 	}
 
-
-	ld->ld_defport = ( defport == 0 ) ?
-		openldap_ldap_global_options.ldo_defport : defport;
 	ld->ld_version = LDAP_VERSION;
 	ld->ld_lberoptions = LBER_USE_DER;
 	ld->ld_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
-
-#ifdef LDAP_REFERRALS
-        ld->ld_options |= LDAP_OPT_REFERRALS;
-#endif /* LDAP_REFERRALS */
 
 #if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
 	ld->ld_lberoptions |= LBER_TRANSLATE_STRINGS;

@@ -77,7 +77,7 @@ ac_help="$ac_help
   --enable-static=PKGS    only build shared libraries if the current package
                           appears as an element in the PKGS list"
 ac_help="$ac_help
-  --enable-shared         build shared libraries [default=yes]
+  --enable-shared         build shared libraries [default=no]
   --enable-shared=PKGS    only build shared libraries if the current package
                           appears as an element in the PKGS list"
 ac_help="$ac_help
@@ -1434,7 +1434,7 @@ no) enable_shared=no ;;
   ;;
 esac
 else
-  enable_shared=yes
+  enable_shared=no
 fi
 
 

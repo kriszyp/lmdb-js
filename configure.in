@@ -89,8 +89,8 @@ OL_ARG_ENABLE(slurpd,[  --enable-slurpd	enable building slurpd], auto)dnl
 
 AC_ARG_WITH(xxliboptions,[Library Generation & Linking Options])
 AM_ENABLE_STATIC
-dnl AM_DISABLE_SHARED
-AM_ENABLE_SHARED
+AM_DISABLE_SHARED
+dnl AM_ENABLE_SHARED
 
 dnl General "enable" options
 # validate options
