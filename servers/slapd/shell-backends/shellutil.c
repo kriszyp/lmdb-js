@@ -28,6 +28,8 @@
 #include <pwd.h>
 
 #include <ac/string.h>
+#include <ac/ctype.h>
+extern long int random (void);
 
 #include <lber.h>
 #include <ldap.h>

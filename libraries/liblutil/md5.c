@@ -45,17 +45,14 @@
    surprised if they were a performance bottleneck for MD5.  */
 
 static uint32
-getu32 (addr)
-     const unsigned char *addr;
+getu32( const unsigned char *addr )
 {
 	return (((((unsigned long)addr[3] << 8) | addr[2]) << 8)
 		| addr[1]) << 8 | addr[0];
 }
 
 static void
-putu32 (data, addr)
-     uint32 data;
-     unsigned char *addr;
+putu32( uint32 data, unsigned char *addr )
 {
 	addr[0] = (unsigned char)data;
 	addr[1] = (unsigned char)(data >> 8);
@@ -68,8 +65,7 @@ putu32 (data, addr)
  * initialization constants.
  */
 void
-ldap_MD5Init(ctx)
-     struct ldap_MD5Context *ctx;
+ldap_MD5Init( struct ldap_MD5Context *ctx )
 {
 	ctx->buf[0] = 0x67452301;
 	ctx->buf[1] = 0xefcdab89;
@@ -85,10 +81,11 @@ ldap_MD5Init(ctx)
  * of bytes.
  */
 void
-ldap_MD5Update(ctx, buf, len)
-     struct ldap_MD5Context *ctx;
-     unsigned char const *buf;
-     unsigned len;
+ldap_MD5Update(
+    struct ldap_MD5Context	*ctx,
+    const unsigned char		*buf,
+    unsigned int		len
+)
 {
 	uint32 t;
 
@@ -136,9 +133,7 @@ ldap_MD5Update(ctx, buf, len)
  * 1 0* (64-bit count of bits processed, MSB-first)
  */
 void
-ldap_MD5Final(digest, ctx)
-     unsigned char digest[16];
-     struct ldap_MD5Context *ctx;
+ldap_MD5Final( unsigned char *digest, struct ldap_MD5Context *ctx )
 {
 	unsigned count;
 	unsigned char *p;
@@ -199,9 +194,7 @@ ldap_MD5Final(digest, ctx)
  * the data and converts bytes into longwords for this routine.
  */
 void
-ldap_MD5Transform(buf, inraw)
-     uint32 buf[4];
-     const unsigned char inraw[64];
+ldap_MD5Transform( uint32 *buf, const unsigned char *inraw )
 {
 	register uint32 a, b, c, d;
 	uint32 in[16];
@@ -296,7 +289,7 @@ ldap_MD5Transform(buf, inraw)
 #include <stdio.h>
 
 int
-main (int argc, char **argv)
+main (int  argc, char **argv )
 {
 	struct ldap_MD5Context context;
 	unsigned char checksum[16];

@@ -17,19 +17,15 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
-#include "slap.h"
 #include "ldapconfig.h"
+#include "slap.h"
 
-extern int	get_filter();
-extern Backend	*select_backend();
-extern char	*suffixAlias();
-
-extern char	*default_referral;
 
 void
-do_search( conn, op )
-    Connection	*conn;	/* where to send results 		       */
-    Operation	*op;	/* info about the op to which we're responding */
+do_search(
+    Connection	*conn,	/* where to send results 		       */
+    Operation	*op	/* info about the op to which we're responding */
+)
 {
 	int		i, err;
 	int		scope, deref, attrsonly;

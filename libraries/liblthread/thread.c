@@ -72,7 +72,7 @@ pthread_create(
 }
 
 void
-pthread_yield()
+pthread_yield( void )
 {
 	cthread_yield();
 }
@@ -223,7 +223,7 @@ pthread_create(
 #endif /* ! sunos56 */
 
 void
-pthread_yield()
+pthread_yield( void )
 {
 	thr_yield();
 }
@@ -372,7 +372,7 @@ pthread_create(
 }
 
 void
-pthread_yield()
+pthread_yield( void )
 {
 	lwp_yield( SELF );
 }
@@ -525,7 +525,7 @@ pthread_create(
 }
 
 void
-pthread_yield()
+pthread_yield( void )
 {
 	return;
 }

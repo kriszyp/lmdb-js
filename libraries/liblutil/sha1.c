@@ -57,9 +57,8 @@
 /*
  * Hash a single 512-bit block. This is the core of the algorithm.
  */
-void ldap_SHA1Transform(state, buffer)
-    uint32 state[5];
-    const unsigned char buffer[64];
+void
+ldap_SHA1Transform( uint32 *state, const unsigned char *buffer )
 {
     uint32 a, b, c, d, e;
     typedef union {
@@ -69,8 +68,8 @@ void ldap_SHA1Transform(state, buffer)
     CHAR64LONG16 *block;
 
 #ifdef SHA1HANDSOFF
-    static unsigned char workspace[64];
-    block = (CHAR64LONG16 *)workspace;
+    CHAR64LONG16 workspace;
+    block = &workspace;
     (void)memcpy(block, buffer, 64);
 #else
     block = (CHAR64LONG16 *)buffer;
@@ -120,8 +119,8 @@ void ldap_SHA1Transform(state, buffer)
 /*
  * ldap_SHA1Init - Initialize new context
  */
-void ldap_SHA1Init(context)
-    ldap_SHA1_CTX *context;
+void
+ldap_SHA1Init( ldap_SHA1_CTX *context )
 {
 
     /* SHA1 initialization constants */
@@ -137,10 +136,12 @@ void ldap_SHA1Init(context)
 /*
  * Run your data through this.
  */
-void ldap_SHA1Update(context, data, len)
-    ldap_SHA1_CTX *context;
-    const unsigned char *data;
-    u_int len;
+void
+ldap_SHA1Update(
+    ldap_SHA1_CTX	*context,
+    const unsigned char	*data,
+    u_int		len
+)
 {
     u_int i, j;
 
@@ -164,9 +165,8 @@ void ldap_SHA1Update(context, data, len)
 /*
  * Add padding and return the message digest.
  */
-void ldap_SHA1Final(digest, context)
-    unsigned char digest[20];
-    ldap_SHA1_CTX* context;
+void
+ldap_SHA1Final( unsigned char *digest, ldap_SHA1_CTX *context )
 {
     u_int i;
     unsigned char finalcount[8];
@@ -225,9 +225,7 @@ static char rcsid[] = "$OpenBSD: sha1hl.c,v 1.1 1997/07/12 20:06:03 millert Exp 
 
 /* ARGSUSED */
 char *
-ldap_SHA1End(ctx, buf)
-    ldap_SHA1_CTX *ctx;
-    char *buf;
+ldap_SHA1End( ldap_SHA1_CTX *ctx, char *buf )
 {
     int i;
     char *p = buf;
@@ -247,9 +245,7 @@ ldap_SHA1End(ctx, buf)
 }
 
 char *
-ldap_SHA1File (filename, buf)
-    char *filename;
-    char *buf;
+ldap_SHA1File( char *filename, char *buf )
 {
     unsigned char buffer[BUFSIZ];
     ldap_SHA1_CTX ctx;
@@ -270,10 +266,7 @@ ldap_SHA1File (filename, buf)
 }
 
 char *
-ldap_SHA1Data (data, len, buf)
-    const unsigned char *data;
-    size_t len;
-    char *buf;
+ldap_SHA1Data( const unsigned char *data, size_t len, char *buf )
 {
     ldap_SHA1_CTX ctx;
 

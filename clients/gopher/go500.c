@@ -13,6 +13,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <ac/ctype.h>
 #include <ac/signal.h>
@@ -22,6 +23,9 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 #include <ac/wait.h>
+extern char *strdup (const char *);
+extern int strcasecmp(const char *, const char *);
+extern int gethostname (char *, int);
 
 #include <ac/setproctitle.h>
 
@@ -53,24 +57,23 @@ char	*templatefile = TEMPLATEFILE;
 char	myhost[MAXHOSTNAMELEN];
 int	myport;
 
-static set_socket();
-static RETSIGTYPE wait4child();
-static do_queries();
-static do_error();
-static do_search();
-static do_read();
-extern int strcasecmp();
+static void usage	( char *name );
+static int  set_socket	(int port);
+static RETSIGTYPE wait4child(int sig);
+static void do_queries	(int s);
+static void do_error	(FILE *fp, char *s);
+static void do_search	(LDAP *ld, FILE *fp, char *buf);
+static void do_read	(LDAP *ld, FILE *fp, char *dn);
 
-static usage( name )
-char	*name;
+static void
+usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-d debuglevel] [-f filterfile] [-t templatefile]\r\n\t[-a] [-l] [-p port] [-x ldaphost] [-b searchbase] [-c rdncount]\r\n", name );
 	exit( 1 );
 }
 
-main (argc, argv)
-int	argc;
-char	**argv;
+int
+main( int argc, char **argv )
 {
 	int			s, ns, rc;
 	int			port = -1;
@@ -80,7 +83,6 @@ char	**argv;
 	struct hostent		*hp;
 	struct sockaddr_in	from;
 	int			fromlen;
-	RETSIGTYPE			wait4child();
 	extern char		*optarg;
 
 #if defined( LDAP_PROCTITLE ) && !defined( HAVE_SETPROCTITLE )
@@ -261,9 +263,8 @@ char	**argv;
 	/* NOT REACHED */
 }
 
-static
-set_socket( port )
-int	port;
+static int
+set_socket( int port )
 {
 	int			s, one;
 	struct sockaddr_in	addr;
@@ -306,7 +307,7 @@ int	port;
 }
 
 static RETSIGTYPE
-wait4child()
+wait4child( int sig )
 {
 #ifndef HAVE_WAITPID
         WAITSTATUSTYPE     status;
@@ -325,9 +326,8 @@ wait4child()
 	(void) SIGNAL( SIGCHLD, wait4child );
 }
 
-static
-do_queries( s )
-int	s;
+static void
+do_queries( int s )
 {
 	char		buf[1024], *query;
 	int		len;
@@ -435,10 +435,8 @@ int	s;
 	/* NOT REACHED */
 }
 
-static
-do_error( fp, s )
-FILE	*fp;
-char	*s;
+static void
+do_error( FILE *fp, char *s )
 {
 	int	code;
 
@@ -450,11 +448,8 @@ char	*s;
 	fprintf( fp, ".\r\n" );
 }
 
-static
-do_search( ld, fp, buf )
-LDAP	*ld;
-FILE	*fp;
-char	*buf;
+static void
+do_search( LDAP *ld, FILE *fp, char *buf )
 {
 	char		*dn, *rdn;
 	char		**title;
@@ -567,11 +562,8 @@ entry2textwrite( void *fp, char *buf, int len )
         return( fwrite( buf, len, 1, (FILE *)fp ) == 0 ? -1 : len );
 }
 
-static
-do_read( ld, fp, dn )
-LDAP	*ld;
-FILE	*fp;
-char	*dn;
+static void
+do_read( LDAP *ld, FILE *fp, char *dn )
 {
 	static struct ldap_disptmpl *tmpllist;
 

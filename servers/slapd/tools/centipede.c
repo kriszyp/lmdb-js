@@ -8,6 +8,10 @@
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/unistd.h>		/* get link(), unlink() */
+extern char *strdup (const char *);
+extern char *strtok (char *, const char *);
+extern char *strpbrk (const char *, const char *);
 
 #include <lber.h>
 #include <ldap.h>
@@ -40,13 +44,13 @@ int		destldapauthmethod;
 int		verbose;
 int		not;
 
-static LDAP		*start_ldap_search();
-static LDAP		*bind_to_destination_ldap();
-static int		create_tmp_files();
-static int		generate_new_centroids();
-static LDAPMod	**diff_centroids();
-static LDAPMod	**full_centroid();
-static char		**charray_add_dup();
+static LDAP		*start_ldap_search(char *ldapsrcurl, char *ldapfilter, char **attrs);
+static LDAP		*bind_to_destination_ldap(char *ldapsrcurl, char *ldapdesturl);
+static int		create_tmp_files(char **attrs, char ***tmpfile, LDBM **ldbm);
+static int		generate_new_centroids(LDAP *ld, char **attrs, LDBM *ldbm);
+static LDAPMod	**diff_centroids(char *attr, LDBM oldbm, LDBM nldbm, int nentries);
+static LDAPMod	**full_centroid(char *attr, LDBM ldbm, int nentries);
+static char		**charray_add_dup(char ***a, int *cur, int *max, char *s);
 
 static void usage( char *name )
 {
@@ -71,6 +75,7 @@ static void usage( char *name )
 	fprintf( stderr, "\t-c size\t\tldbm cache size\n" );
 }
 
+int
 main( int argc, char **argv )
 {
 	char		*ldapfilter;
@@ -555,7 +560,6 @@ diff_centroids(
 	Datum	olast, nlast;
 	Datum	lastkey, key;
 	Datum	data;
-	int		rc;
 	LDAPMod	**mods;
 	char	**avals, **dvals;
 	int		amax, acur, dmax, dcur;
@@ -619,7 +623,7 @@ diff_centroids(
 	      okey.dptr != NULL && nkey.dptr != NULL; )
 #endif
 	{
-		rc = strcmp( okey.dptr, nkey.dptr );
+		int	rc = strcmp( okey.dptr, nkey.dptr );
 
 		if ( rc == 0 ) {
 			/* value is in both places - leave it */

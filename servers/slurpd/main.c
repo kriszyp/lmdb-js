@@ -24,16 +24,6 @@
 #include "lutil.h"
 
 
-extern int		doargs( int, char **, Globals * );
-extern void		fm();
-extern int		start_replica_thread( Ri * );
-extern Globals		*init_globals();
-extern int		sanity();
-
-#if defined( HAVE_LWP )
-extern void		start_lwp_scheduler();
-#endif /* HAVE_LWP */
-
 int
 main(
     int		argc,

@@ -8,6 +8,7 @@
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
+extern char *strdup (const char *);
 
 #include <sys/stat.h>
 
@@ -26,6 +27,13 @@
  */
 #include "ldap-int.h"
 
+/* local functions */
+#ifndef HAVE_GETLINE
+static char *getline LDAP_P(( char *line, int len, FILE *fp, char *prompt ));
+#endif
+static char **get_list LDAP_P(( char *prompt ));
+static int file_read LDAP_P(( char *path, struct berval *bv ));
+static LDAPMod **get_modlist LDAP_P(( char *prompt1, char *prompt2, char *prompt3 ));
 static void handle_result LDAP_P(( LDAP *ld, LDAPMessage *lm ));
 static void print_ldap_result LDAP_P(( LDAP *ld, LDAPMessage *lm, char *s ));
 static void print_search_entry LDAP_P(( LDAP *ld, LDAPMessage *res ));
@@ -33,7 +41,7 @@ static void free_list LDAP_P(( char **list ));
 
 #define NOCACHEERRMSG	"don't compile with -DLDAP_NOCACHE if you desire local caching"
 
-char *dnsuffix;
+static char *dnsuffix;
 
 #ifndef HAVE_GETLINE
 static char *
@@ -215,7 +223,7 @@ get_modlist( char *prompt1, char *prompt2, char *prompt3 )
 
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
-int
+static int
 bind_prompt( LDAP *ld, char **dnp, char **passwdp, int *authmethodp,
 	int freeit )
 {

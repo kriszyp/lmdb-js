@@ -29,13 +29,11 @@
 #include "ldap.h"
 #include "common.h"
 
-static int	get_filter();
-static int	get_filter_list();
-static int	get_substring_filter();
+static int	get_filter( BerElement *ber, Filter *filt );
+static int	get_filter_list( BerElement *ber, Filter f );
+static int	get_substring_filter( BerElement *ber, Filter f );
 
 #ifdef LDAP_COMPAT
-extern int	version;
-extern int 	ldap_compat;
 #define SEARCHRESTAG	(ldap_compat == 20 ? OLD_LDAP_RES_SEARCH_RESULT : LDAP_RES_SEARCH_RESULT)
 #else
 #define SEARCHRESTAG	LDAP_RES_SEARCH_RESULT
@@ -55,7 +53,6 @@ do_search(
 	char			**attrs;
 	struct ds_search_arg	sa;
 	static CommonArgs	common = default_common_args;
-	extern DN		ldap_str2dn();
 
 	Debug( LDAP_DEBUG_TRACE, "do_search\n", 0, 0, 0 );
 
@@ -426,7 +423,6 @@ get_substring_filter( BerElement *ber, Filter f )
 	AttributeType	type;
 	char		*valstr, *last;
 	AttributeValue	value;
-	extern short	ldap_dn_syntax;
 
 	Debug( LDAP_DEBUG_TRACE, "get_substring_filter\n", 0, 0, 0 );
 

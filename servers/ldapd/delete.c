@@ -30,7 +30,6 @@
 #include "common.h"
 
 #ifdef HAVE_COMPAT20
-extern int 	ldap_compat;
 #define DELTAG	(ldap_compat == 20 ? OLD_LDAP_RES_DELETE : LDAP_RES_DELETE)
 #else
 #define DELTAG	LDAP_RES_DELETE
@@ -54,7 +53,6 @@ do_delete(
 	int				rc;
 	struct ds_removeentry_arg	ra;
 	static CommonArgs		common = default_common_args;
-	extern DN			ldap_str2dn();
 
 	Debug( LDAP_DEBUG_TRACE, "do_delete\n", 0, 0, 0 );
 

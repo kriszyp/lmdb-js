@@ -9,16 +9,9 @@
 
 #include "slap.h"
 
-extern Attribute	*attr_find();
-extern char		**str2charray();
-extern void		charray_merge();
-
-extern struct objclass	*global_oc;
-extern int		global_schemacheck;
-
-static struct objclass	*oc_find();
-static int		oc_check_required();
-static int		oc_check_allowed();
+static struct objclass	*oc_find(char *ocname);
+static int		oc_check_required(Entry *e, char *ocname);
+static int		oc_check_allowed(char *type, struct berval **ocl);
 
 /*
  * oc_check - check that entry e conforms to the schema required by
@@ -164,7 +157,7 @@ oc_find( char *ocname )
 
 #ifdef LDAP_DEBUG
 
-static
+static void
 oc_print( struct objclass *oc )
 {
 	int	i;

@@ -20,16 +20,8 @@
 
 #include "slap.h"
 
-extern Backend	*select_backend();
-
-extern char		*default_referral;
-extern time_t		currenttime;
-extern pthread_mutex_t	currenttime_mutex;
-extern int		global_lastmod;
-
-static void	modlist_free();
-static void	add_lastmods();
-extern char     *suffixAlias();
+static void	modlist_free(LDAPMod *mods);
+static void	add_lastmods(Operation *op, LDAPMod **mods);
 
 
 void

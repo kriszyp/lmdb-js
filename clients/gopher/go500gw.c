@@ -13,6 +13,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <ac/ctype.h>
 #include <ac/signal.h>
@@ -22,6 +23,7 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 #include <ac/wait.h>
+extern int strcasecmp(const char *, const char *);
 
 #include <ac/setproctitle.h>
 
@@ -54,31 +56,35 @@ char		*templatefile = TEMPLATEFILE;
 char		*friendlyfile = FRIENDLYFILE;
 int		rdncount = GO500GW_RDNCOUNT;
 
-static set_socket();
-static RETSIGTYPE wait4child();
-static do_queries();
-static do_menu();
-static do_list();
-static do_search();
-static do_read();
-static do_help();
-static do_sizelimit();
-static do_error();
-extern int strcasecmp();
+static void usage	( char *name );
+static int  set_socket	(int port);
+static RETSIGTYPE wait4child(int sig);
+static void do_queries	(int s);
+static char *pick_oc	( char **oclist );
+static int  isnonleaf	( LDAP *ld, char **oclist, char *dn );
+static void do_menu	(LDAP *ld, FILE *fp, char *dn);
+static void do_list	(LDAP *ld, FILE *fp, char *dn);
+static int  isoc	( char **ocl, char *oc );
+static int  make_scope	( LDAP *ld, char *dn );
+static void do_search	(LDAP *ld, FILE *fp, char *query);
+static int  entry2textwrite( void *fp, char *buf, int len );
+static void do_read	(LDAP *ld, FILE *fp, char *dn);
+static void do_help	(FILE *op);
+static void do_sizelimit(FILE *fp, char type);
+static void do_error	(FILE *fp, char *s);
 
 char	myhost[MAXHOSTNAMELEN];
 int	myport = GO500GW_PORT;
 
-static usage( name )
-char	*name;
+static void
+usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-d debuglevel] [-I] [-p port] [-P ldapport] [-l]\r\n\t[-x ldaphost] [-a] [-h helpfile] [-f filterfile] [-t templatefile] [-c rdncount]\r\n", name );
 	exit( 1 );
 }
 
-main (argc, argv)
-int	argc;
-char	**argv;
+int
+main (int  argc, char **argv )
 {
 	int			s, ns, rc;
 	int			port = -1;
@@ -88,7 +94,6 @@ char	**argv;
 	struct hostent		*hp;
 	struct sockaddr_in	from;
 	int			fromlen;
-	RETSIGTYPE			wait4child();
 	extern char		*optarg;
 
 #if defined( LDAP_PROCTITLE ) && !defined( HAVE_SETPROCTITLE )
@@ -285,8 +290,8 @@ char	**argv;
 	/* NOT REACHED */
 }
 
-static set_socket( port )
-int	port;
+static int
+set_socket( int port )
 {
 	int			s, one;
 	struct sockaddr_in	addr;
@@ -330,7 +335,7 @@ int	port;
 }
 
 static RETSIGTYPE
-wait4child()
+wait4child( int sig )
 {
 #ifndef HAVE_WAITPID
 	WAITSTATUSTYPE     status;
@@ -349,8 +354,8 @@ wait4child()
 	(void) SIGNAL( SIGCHLD, wait4child );
 }
 
-static do_queries( s )
-int	s;
+static void
+do_queries( int s )
 {
 	char		buf[1024], *query;
 	int		len;
@@ -456,7 +461,7 @@ int	s;
 		break;
 
 	case 'S':	/* search */
-		do_search( ld, fp, query, 1 );
+		do_search( ld, fp, query );
 		break;
 
 	case 'M':	/* X.500 menu */
@@ -475,8 +480,8 @@ int	s;
 	/* NOT REACHED */
 }
 
-static char *pick_oc( oclist )
-char	**oclist;
+static char *
+pick_oc( char **oclist )
 {
 	int	i;
 
@@ -493,10 +498,8 @@ char	**oclist;
 	return( "unknown" );
 }
 
-static isnonleaf( ld, oclist, dn )
-LDAP	*ld;
-char	**oclist;
-char	*dn;
+static int
+isnonleaf( LDAP *ld, char **oclist, char *dn )
 {
 	int	i, quipuobject = 0;
 
@@ -547,10 +550,8 @@ char	*dn;
 #endif
 }
 
-static do_menu( ld, fp, dn )
-LDAP	*ld;
-FILE	*fp;
-char	*dn;
+static void
+do_menu( LDAP *ld, FILE *fp, char *dn )
 {
 	char		**s;
 	char		*rdn = NULL;
@@ -580,10 +581,8 @@ char	*dn;
 	ldap_free_friendlymap( &fm );
 }
 
-static do_list( ld, fp, dn )
-LDAP	*ld;
-FILE	*fp;
-char	*dn;
+static void
+do_list( LDAP *ld, FILE *fp, char *dn )
 {
 	int		rc;
 	LDAPMessage	*e, *res;
@@ -658,9 +657,8 @@ char	*dn;
 	}
 }
 
-static isoc( ocl, oc )
-char	**ocl;
-char	*oc;
+static int
+isoc( char **ocl, char *oc )
 {
 	int	i;
 
@@ -672,9 +670,8 @@ char	*oc;
 	return( 0 );
 }
 
-static int make_scope( ld, dn )
-LDAP	*ld;
-char	*dn;
+static int
+make_scope( LDAP *ld, char *dn )
 {
 	int		scope;
 	char		**oc;
@@ -705,10 +702,8 @@ char	*dn;
 	return( scope );
 }
 
-static do_search( ld, fp, query )
-LDAP	*ld;
-FILE	*fp;
-char	*query;
+static void
+do_search( LDAP *ld, FILE *fp, char *query )
 {
 	int deref;
 	int		scope;
@@ -778,7 +773,7 @@ char	*query;
 			    != LDAP_SUCCESS && rc != LDAP_SIZELIMIT_EXCEEDED ) {
 				fprintf(fp, "0An error occurred (explanation)\tE%d\t%s\t%d\r\n",
 				    rc, myhost, myport );
-				return( 1 );
+				return;
 			}
 			if ( (count = ldap_count_entries( ld, res )) != 0 )
 				break;
@@ -791,7 +786,7 @@ char	*query;
 #endif
 
 	if ( count == 0 ) {
-		return( 0 );
+		return;
 	}
 
 	if ( count == 1 ) {
@@ -803,10 +798,10 @@ char	*query;
 		dn = ldap_get_dn( ld, e );
 
 		if ( isnonleaf( ld, oc, dn ) ) {
-			rc = do_menu( ld, fp, dn );
+			do_menu( ld, fp, dn );
 
 			free( dn );
-			return( rc );
+			return;
 		}
 
 		free( dn );
@@ -851,10 +846,8 @@ entry2textwrite( void *fp, char *buf, int len )
         return( fwrite( buf, len, 1, (FILE *)fp ) == 0 ? -1 : len );
 }
 
-static do_read( ld, fp, dn )
-LDAP	*ld;
-FILE	*fp;
-char	*dn;
+static void
+do_read( LDAP *ld, FILE *fp, char *dn )
 {
 	static struct ldap_disptmpl *tmpllist;
 
@@ -876,8 +869,8 @@ char	*dn;
 	}
 }
 
-static do_help( op )
-FILE	*op;
+static void
+do_help( FILE *op )
 {
 	FILE	*fp;
 	char	line[BUFSIZ];
@@ -896,9 +889,8 @@ FILE	*op;
 	fclose( fp );
 }
 
-static do_sizelimit( fp, type )
-FILE	*fp;
-char	type;
+static void
+do_sizelimit( FILE *fp, char type )
 {
 	if ( type == 'S' ) {
 		fprintf( fp, "The query you specified was not specific enough, causing a size limit\r\n" );
@@ -914,9 +906,8 @@ char	type;
 	fprintf( fp, ".\r\n" );
 }
 
-static do_error( fp, s )
-FILE	*fp;
-char	*s;
+static void
+do_error( FILE *fp, char *s )
 {
 	int	code;
 

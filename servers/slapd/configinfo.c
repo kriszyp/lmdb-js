@@ -17,14 +17,10 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
-#include "slap.h"
 #include "ldapconfig.h"
+#include "slap.h"
 
 #if defined( SLAPD_CONFIG_DN )
-
-extern int		nbackends;
-extern Backend		*backends;
-extern char		*default_referral;
 
 /*
  * no mutex protection in here - take our chances!

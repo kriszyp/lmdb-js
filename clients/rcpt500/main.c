@@ -14,6 +14,8 @@
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/syslog.h>
+extern char *strdup (const char *);
+extern char *strstr (const char *, const char *);
 
 #include "ldapconfig.h"
 #include "rcpt500.h"
@@ -32,24 +34,23 @@ char *searchbase = NULL;
 char *dapuser = NULL;
 char *filterfile = FILTERFILE;
 char *templatefile = TEMPLATEFILE;
-char reply[ MAXSIZE * RCPT500_LISTLIMIT ];
-
+static char reply[ MAXSIZE * RCPT500_LISTLIMIT ];
 
 
 /*
  * functions
  */
-int	read_msg();
-char	*read_hdr();
-int 	send_reply();
+static int  read_msg(FILE *fp, struct msginfo *msgp);
+static char *read_hdr(FILE *fp, int off, char *buf, int MAXSIZEe, char **ln_p);
+static int  send_reply(struct msginfo *msgp, char *body);
+static int  find_command(char *text, char **argp);
 
 /*
  * main is invoked by sendmail via the alias file
  * the entire incoming message gets piped to our standard input
  */
-main( argc, argv )
-    int		argc;
-    char	**argv;
+int
+main( int argc, char **argv )
 {
     char		*prog, *usage = "%s [-l] [-U] [-h ldaphost] [-p ldapport] [-b searchbase] [-a] [-z sizelimit] [-u dapuser] [-f filterfile] [-t templatefile] [-c rdncount]\n";
     struct msginfo	msg;
@@ -168,10 +169,8 @@ main( argc, argv )
 }
 
 
-int
-read_msg( fp, msgp )
-    FILE		*fp;
-    struct msginfo	*msgp;
+static int
+read_msg( FILE *fp, struct msginfo *msgp )
 {
     char	buf[ MAXSIZE ], *line;
     int		command = -1;
@@ -231,13 +230,8 @@ read_msg( fp, msgp )
 }
 
 
-char *
-read_hdr( fp, offset, buf, MAXSIZEe, linep )
-    FILE	*fp;
-    int		offset;
-    char	*buf;
-    int		MAXSIZEe;
-    char	**linep;
+static char *
+read_hdr( FILE *fp, int offset, char *buf, int MAXSIZEe, char **linep )
 {
     char	*hdr;
 
@@ -272,10 +266,8 @@ read_hdr( fp, offset, buf, MAXSIZEe, linep )
 }
 
 
-int
-send_reply( msgp, body )
-    struct msginfo	*msgp;
-    char		*body;
+static int
+send_reply( struct msginfo *msgp, char *body )
 {
     char	buf[ MAXSIZE ];
     FILE	*cmdpipe;
@@ -353,10 +345,8 @@ send_reply( msgp, body )
 }
 
 
-int
-find_command( text, argp )
-    char	*text;
-    char	**argp;
+static int
+find_command( char *text, char **argp )
 {
     int		i;
     char	*s, *p;

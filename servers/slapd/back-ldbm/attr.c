@@ -10,8 +10,6 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-extern char	**str2charray();
-
 static int
 ainfo_type_cmp(
     char		*type,

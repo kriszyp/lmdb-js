@@ -12,27 +12,22 @@
 
 #include "slap.h"
 
-extern Filter		*str2filter();
-extern struct acl	*global_acl;
-extern char		**str2charray();
-extern char		*dn_upcase();
-
-static void		split();
-static void		acl_append();
-static void		access_append();
-static void		acl_usage();
+static void		split(char *line, int splitchar, char **left, char **right);
+static void		acl_append(struct acl **l, struct acl *a);
+static void		access_append(struct access **l, struct access *a);
+static void		acl_usage(void);
 #ifdef LDAP_DEBUG
-static void		print_acl();
-static void		print_access();
+static void		print_acl(struct acl *a);
+static void		print_access(struct access *b);
 #endif
 
-int
+static int
 regtest(char *fname, int lineno, char *pat) {
 	int e;
 	regex_t re;
 
 	char buf[512];
-	int size;
+	unsigned size;
 
 	char *sp;
 	char *dp;
@@ -369,7 +364,7 @@ str2access( char *str )
 }
 
 static void
-acl_usage()
+acl_usage( void )
 {
 	fprintf( stderr, "\n<access clause> ::= access to <what> [ by <who> <access> ]+ \n" );
 	fprintf( stderr, "<what> ::= * | [dn=<regex>] [filter=<ldapfilter>] [attrs=<attrlist>]\n" );

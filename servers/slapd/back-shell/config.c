@@ -10,8 +10,7 @@
 #include "slap.h"
 #include "shell.h"
 
-extern char	**charray_dup();
-
+void
 shell_back_config(
     Backend	*be,
     char	*fname,

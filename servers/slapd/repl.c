@@ -5,20 +5,13 @@
 #include <stdio.h>
 
 #include <ac/string.h>
+#include <ac/ctype.h>
 #include <ac/socket.h>
 
 #include <sys/file.h>
 
 #include "slap.h"
 
-extern pthread_mutex_t	replog_mutex;
-extern pthread_mutex_t	entry2str_mutex;
-extern time_t		currenttime;
-extern char		*replogfile;
-
-extern FILE	*lock_fopen();
-extern int	lock_fclose();
-extern char	*entry2str();
 
 void
 replog(

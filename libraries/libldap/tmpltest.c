@@ -15,8 +15,8 @@
 #include "disptmpl.h"
 #include "srchpref.h"
 
-void dump_tmpl LDAP_P(( struct ldap_disptmpl *tmpl ));
-void dump_srchpref LDAP_P(( struct ldap_searchobj *sp ));
+static void dump_tmpl	 ( struct ldap_disptmpl *tmpl );
+static void dump_srchpref( struct ldap_searchobj *sp );
 
 #define NULLSTRINGIFNULL( s )	( s == NULL ? "(null)" : s )
 

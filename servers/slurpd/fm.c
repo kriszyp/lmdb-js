@@ -17,6 +17,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>			/* get free() */
 
 #include <ac/string.h>
 #include <ac/signal.h>
@@ -26,20 +27,11 @@
 
 
 /*
- * Externs
- */
-extern RETSIGTYPE do_admin LDAP_P((int));
-extern int file_nonempty LDAP_P(( char * ));
-extern int acquire_lock LDAP_P((char *, FILE **, FILE ** ));
-extern int relinquish_lock LDAP_P((char *, FILE *, FILE * ));
-
-/*
  * Forward references
  */
 static char *get_record LDAP_P(( FILE * ));
 static void populate_queue LDAP_P(( char *f ));
 static RETSIGTYPE set_shutdown LDAP_P((int));
-RETSIGTYPE do_nothing LDAP_P((int));
 
 
 /*
@@ -50,7 +42,7 @@ RETSIGTYPE do_nothing LDAP_P((int));
  *  - adds items to the internal queue of replication work to do
  *  - signals the replication threads to let them know new work has arrived.
  */
-void
+void *
 fm(
     void *arg
 )
@@ -83,7 +75,7 @@ fm(
 		sglob->rq->rq_getcount( sglob->rq, RQ_COUNT_ALL ));
 	printf( "%d replication records to process.\n",
 		sglob->rq->rq_getcount( sglob->rq, RQ_COUNT_NZRC ));
-	return;
+	return NULL;
     }
     /*
      * There may be some leftover replication records in our own
@@ -133,6 +125,7 @@ fm(
 	}
     }
     Debug( LDAP_DEBUG_ARGS, "fm: exiting\n", 0, 0, 0 );
+    return NULL;
 }
 
 
@@ -260,4 +253,3 @@ get_record(
     }
     return( buf );
 }
-

@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ac/string.h>
 #include <ac/errno.h>
 
 #include "ldbm.h"
@@ -317,7 +318,7 @@ ldbm_datum_dup( LDBM ldbm, Datum data )
 		return( dup );
 	}
 	dup.dsize = data.dsize;
-	if ( dup.dptr = (char *) malloc( data.dsize ) )
+	if ( (dup.dptr = (char *) malloc( data.dsize )) != NULL )
 		memcpy( dup.dptr, data.dptr, data.dsize );
 
 	return( dup );

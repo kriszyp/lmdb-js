@@ -470,9 +470,13 @@ typedef struct ldap_url_desc {
 /* avoid pulling in headers */
 struct timeval;
 
+/*
+ * in options.c:
+ */
 LDAP_F int ldap_get_option LDAP_P((LDAP *ld, int option, void *outvalue));
 LDAP_F int ldap_set_option LDAP_P((LDAP *ld, int option, void *invalue));
 
+/* Not yet */
 LDAP_F void ldap_control_free LDAP_P(( LDAPControl *ctrl ));
 LDAP_F void ldap_controls_free LDAP_P(( LDAPControl **ctrls ));
   
@@ -693,10 +697,10 @@ LDAP_F void cldap_setretryinfo LDAP_P(( LDAP *ld, int tries, int timeout ));
  */
 LDAP_F int ldap_sort_entries LDAP_P(( LDAP *ld,
 	LDAPMessage **chain, char *attr,
-	int (*cmp) LDAP_P((const char *, const char *)) ));
+	int (*cmp) (const char *, const char *) ));
 LDAP_F int ldap_sort_values LDAP_P(( LDAP *ld,
-	char **vals, int (*cmp) LDAP_P((const void *, const void *)) ));
-LDAP_F int ldap_sort_strcasecmp LDAP_P(( char **a, char **b ));
+	char **vals, int (*cmp) (const void *, const void *) ));
+LDAP_F int ldap_sort_strcasecmp LDAP_P(( const void *a, const void *b ));
 
 
 /*

@@ -58,4 +58,64 @@ struct msg {
 #include "proto-ldapd.h"
 #include "ldap_log.h"
 
+/* from ISODE */
+extern char	*dsa_address;
+extern char	*bound_dn, *bound_pw;
+struct PSAPaddr	*psap_cpy(struct PSAPaddr *);
+
+/* in association.c */
+extern struct conn	*conns;
+
+/* in main.c */
+#ifdef LDAP_DEBUG
+extern int	ldap_debug;
+#endif
+extern int	version;
+#ifdef LDAP_COMPAT
+extern int	ldap_compat;
+#endif
+extern int	dosyslog;
+extern int	do_tcp;
+#ifdef LDAP_CONNECTIONLESS
+extern int	do_udp;
+#endif
+extern int	idletime;
+extern int	referral_connection_timeout;
+extern struct timeval	conn_start_tv;
+#ifdef HAVE_KERBEROS
+extern char	*krb_ldap_service;
+extern char	*krb_x500_service;
+extern char	*krb_x500_instance;
+extern char	*krb_x500_nonce;
+extern char	*kerberos_keyfile;
+#endif
+
+/* syntax.c */
+extern short	ldap_photo_syntax;
+extern short	ldap_jpeg_syntax;
+extern short	ldap_jpeg_nonfile_syntax;
+extern short	ldap_audio_syntax;
+extern short	ldap_dn_syntax;
+extern short	ldap_postaladdress_syntax;
+extern short	ldap_acl_syntax;
+extern short	ldap_mtai_syntax;
+extern short	ldap_rts_cred_syntax;
+extern short	ldap_rtl_syntax;
+extern short	ldap_mailbox_syntax;
+extern short	ldap_caseignorelist_syntax;
+extern short	ldap_caseexactstring_syntax;
+extern short	ldap_certif_syntax;
+extern short	ldap_iattr_syntax;
+extern short	ldap_telex_syntax;
+extern short	ldap_octetstring_syntax;
+extern short	ldap_deliverymethod_syntax;
+extern short	ldap_facsimileTelephoneNumber_syntax;
+extern short	ldap_presentationAddress_syntax;
+extern short	ldap_teletexTerminalIdentifier_syntax;
+extern short	ldap_searchGuide_syntax;
+extern short	ldap_dLSubmitPermission_syntax;
+
+/* Version.c */
+extern char	Versionstr[];
+
 #endif

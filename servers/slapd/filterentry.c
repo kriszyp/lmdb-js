@@ -10,16 +10,11 @@
 
 #include "slap.h"
 
-extern Attribute	*attr_find();
-extern char		*first_word();
-extern char		*next_word();
-extern char		*phonetic();
-
-static int	test_filter_list();
-static int	test_substring_filter();
-static int	test_ava_filter();
-static int	test_approx_filter();
-static int	test_presence_filter();
+static int	test_filter_list(Backend *be, Connection *conn, Operation *op, Entry *e, Filter *flist, int ftype);
+static int	test_substring_filter(Backend *be, Connection *conn, Operation *op, Entry *e, Filter *f);
+static int	test_ava_filter(Backend *be, Connection *conn, Operation *op, Entry *e, Ava *ava, int type);
+static int	test_approx_filter(Backend *be, Connection *conn, Operation *op, Entry *e, Ava *ava);
+static int	test_presence_filter(Backend *be, Connection *conn, Operation *op, Entry *e, char *type);
 
 /*
  * test_filter - test a filter against a single entry.
@@ -93,7 +88,7 @@ test_filter(
 		break;
 
 	default:
-		Debug( LDAP_DEBUG_ANY, "    unknown filter type %d\n",
+		Debug( LDAP_DEBUG_ANY, "    unknown filter type %lu\n",
 		    f->f_choice, 0, 0 );
 		rc = -1;
 	}

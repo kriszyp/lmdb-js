@@ -27,11 +27,6 @@
 #include "ldap.h"
 #include "common.h"
 
-extern int	dosyslog;
-#ifdef LDAP_COMPAT
-extern int	ldap_compat;
-#endif
-
 /*
  * dsa_response - called by do_queries() when there is activity on one of
  * the DSA associations.  It is passed the association descriptor on which
@@ -310,10 +305,6 @@ send_ldap_result(
 	int		rc;
 #ifdef LDAP_CONNECTIONLESS
 	int		cldap;
-#endif
-	extern int	version;
-
-#ifdef LDAP_CONNECTIONLESS
 	cldap = ( sb->sb_naddr > 0 );
 #endif
 

@@ -38,8 +38,6 @@ kerberosv4_ldap_auth( char *cred, long	len )
 	char		instance[INST_SZ];
 	int		err;
 	AUTH_DAT	ad;
-	extern char	*krb_ldap_service;
-	extern char	*kerberos_keyfile;
 
 	Debug( LDAP_DEBUG_TRACE, "kerberosv4_ldap_auth\n", 0, 0, 0 );
 
@@ -72,8 +70,6 @@ kerberosv4_bindarg(
 	struct timeval			tv;
 	char				realm[REALM_SZ];
 	int				err;
-	extern char			*krb_x500_service;
-	extern char			*krb_x500_instance;
 
 	Debug( LDAP_DEBUG_TRACE, "kerberosv4_bindarg\n", 0, 0, 0 );
 

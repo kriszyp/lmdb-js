@@ -18,12 +18,14 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
 
 #include <ac/socket.h>
 #include <ac/time.h>
+extern char *strdup (const char *);
 
 #include "ldap-int.h"
 #include "ldapconfig.h"
 
 typedef int (*cancelptype) LDAP_P(( void *cancelparm ));
 
+/* local functions */
 static int ldap_ufn_search_ctx LDAP_P(( LDAP *ld, char **ufncomp, int ncomp, 
 	char *prefix, char **attrs, int attrsonly, LDAPMessage **res, 
 	cancelptype cancelproc, void *cancelparm, char *tag1, char *tag2,
@@ -71,7 +73,6 @@ ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, char *prefix,
 	LDAPFiltInfo	*fi;
 	LDAPMessage	*tmpcand;
 	LDAPMessage	*candidates;
-	LDAPMessage	*ldap_msg_merge(), *ldap_ufn_expand();
 	static char	*objattrs[] = { "objectClass", NULL };
 
 	/* 

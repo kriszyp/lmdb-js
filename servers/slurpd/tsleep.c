@@ -27,6 +27,8 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <ac/unistd.h>		/* get sleep() */
 
 #include "slurp.h"
 #include "globals.h"
@@ -36,7 +38,7 @@
 
 int
 tsleep(
-    int	interval
+    time_t	interval
 )
 {
     thread_t	mylwp;
@@ -54,7 +56,7 @@ tsleep(
 	for ( t = sglob->tsl_list; t != NULL; t = t->tl_next ) {
 	    if ( SAMETHREAD( t->tl_tid, mylwp )) {
 		/* We're already sleeping? */
-		t->tl_wake = now + (time_t) interval;
+		t->tl_wake = now + interval;
 		mon_exit( &sglob->tsl_mon );
 		lwp_suspend( mylwp );
 		return 0;
@@ -64,7 +66,7 @@ tsleep(
     nt = (tl_t *) malloc( sizeof( tl_t ));
 
     nt->tl_next = sglob->tsl_list;
-    nt->tl_wake = now + (time_t) interval;
+    nt->tl_wake = now + interval;
     nt->tl_tid = mylwp;
     sglob->tsl_list = nt;
     mon_exit( &sglob->tsl_mon );
@@ -125,7 +127,7 @@ lwp_scheduler(
  * Create the lwp_scheduler thread.
  */
 void
-start_lwp_scheduler()
+start_lwp_scheduler( void )
 {
     thread_t	tid;
     stkalign_t	*stack;
@@ -153,6 +155,3 @@ tsleep(
     sleep( interval );
 }
 #endif /* !HAVE_LWP */
-
-
-

@@ -28,6 +28,8 @@ static char copyright[] = "Copyright 1992 The University of Adelaide";
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <signal.h>
 #include <ctype.h>
@@ -41,12 +43,12 @@ static char copyright[] = "Copyright 1992 The University of Adelaide";
 #include <langinfo.h>
 #include <locale.h>
 #endif
+#include <ac/unistd.h>
 
-static void	handler();
+static void	handler(int sig);
 
-char	*lowerCase( string )
-char	*string;
-
+char *
+lowerCase( char *string )
 {
 	char	*s;
 
@@ -56,9 +58,8 @@ char	*string;
 	return string;
 }
 
-char	*convertTime( date, locale )
-char	*date, *locale;
-
+char *
+convertTime( char *date, char *locale )
 {
 	/*
 	 * A quick hack to convert the time from the format Quipu uses into
@@ -96,9 +97,8 @@ char	*date, *locale;
 
 static long	interrupt;
 
-char	*getPassword( prompt )
-char	*prompt;
-
+char *
+getPassword( char *prompt )
 {
 #if defined(SYS5) || defined(XOS_2)
 	struct termios	ttyb;
@@ -107,7 +107,6 @@ char	*prompt;
 #endif
 	FILE		*input;
 	struct sigvec	ovec, vec;
-	void		handler();
 	unsigned long	flags;
 	int		c, idx;
 	static char	buffer[BUFSIZ + 1];
@@ -160,8 +159,8 @@ char	*prompt;
 	return buffer;
 }
 
-static void	handler()
-
+static void
+handler( int sig )
 {
 	++interrupt;
 }

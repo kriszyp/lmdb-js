@@ -10,20 +10,9 @@
 
 #include "slap.h"
 
-extern Attribute	*attr_find();
-extern struct acl	*global_acl;
-extern int		global_default_access;
-extern char		*access2str();
-extern char		*dn_normalize_case();
-
-int		acl_access_allowed();
-int		access_allowed();
-struct acl	*acl_get_applicable();
-
-static int	regex_matches();
-
-static string_expand(char *newbuf, int bufsiz, char *pattern,
-	char *match, regmatch_t *matches);
+static int	regex_matches(char *pat, char *str, char *buf, regmatch_t *matches);
+static void	string_expand(char *newbuf, int bufsiz, char *pattern,
+			      char *match, regmatch_t *matches);
 
 
 /*
@@ -472,7 +461,8 @@ acl_check_mods(
 	return( LDAP_SUCCESS );
 }
 
-static string_expand(
+static void
+string_expand(
 	char *newbuf,
 	int bufsiz,
 	char *pat,

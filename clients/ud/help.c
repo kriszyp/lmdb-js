@@ -23,12 +23,9 @@
 
 #include "ud.h"
 
-#ifdef DEBUG
-extern int debug;
-#endif
 
-print_help(s)
-char *s;
+void
+print_help( char *s )
 {
 	int len;			/* command length */
 

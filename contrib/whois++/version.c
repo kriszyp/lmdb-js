@@ -28,8 +28,7 @@ static char copyright[] = "Copyright 1992 The University of Adelaide";
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-char	*version()
-
+char *version( void )
 {
 	return "1.7";
 }

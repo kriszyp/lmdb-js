@@ -10,17 +10,8 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-extern char		*first_word();
-extern char		*next_word();
-extern char		*phonetic();
-extern IDList		*idl_fetch();
-extern IDList		*idl_allids();
-extern struct dbcache	*ldbm_cache_open();
-
-int	index_add_values();
-
-static int	add_value();
-static int	index2prefix();
+static int	add_value(Backend *be, struct dbcache *db, char *type, int indextype, char *val, ID id);
+static int	index2prefix(int indextype);
 
 int
 index_add_entry(
@@ -120,7 +111,7 @@ index_read(
 	if ( ! (indextype & indexmask) ) {
 		idl =  idl_allids( be );
 		Debug( LDAP_DEBUG_TRACE,
-		    "<= index_read %d candidates (allids - not indexed)\n",
+		    "<= index_read %lu candidates (allids - not indexed)\n",
 		    idl ? idl->b_nids : 0, 0, 0 );
 		return( idl );
 	}
@@ -160,7 +151,7 @@ index_read(
 
 	ldbm_cache_close( be, db );
 
-	Debug( LDAP_DEBUG_TRACE, "<= index_read %d candidates\n",
+	Debug( LDAP_DEBUG_TRACE, "<= index_read %lu candidates\n",
 	    idl ? idl->b_nids : 0, 0, 0 );
 	return( idl );
 }
@@ -231,7 +222,7 @@ index_add_values(
 )
 {
 	char		*val, *p, *code, *w;
-	int		i, j, len;
+	unsigned	i, j, len;
 	int		indexmask, syntax;
 	char		buf[SUBLEN + 1];
 	char		vbuf[BUFSIZ];

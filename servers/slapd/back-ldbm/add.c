@@ -11,10 +11,6 @@
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
 
-extern int	global_schemacheck;
-extern char	*dn_parent();
-extern char	*dn_normalize();
-
 int
 ldbm_back_add(
     Backend	*be,

@@ -30,10 +30,12 @@ static char copyright[] = "@(#) Copyright (c) 1996 Regents of the University of 
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
+extern char *strdup (const char *);
 
 #include "ldap-int.h"
 
 
+/* local functions */
 static int skip_url_prefix LDAP_P(( char **urlp, int *enclosedp ));
 static void hex_unescape LDAP_P(( char *s ));
 static int unhex( char c );

@@ -12,6 +12,7 @@
 
 #include <ac/syslog.h>
 #include <ac/string.h>
+#include <ac/unistd.h>
 
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
@@ -20,13 +21,9 @@
 #include "ldapconfig.h"
 #include "rcpt500.h"
 
-extern int dosyslog;
-
 
 int
-help_cmd( msgp, reply )
-    struct msginfo	*msgp;
-    char		*reply;
+help_cmd(struct msginfo *msgp, char *reply)
 {
     int		fd, len;
 

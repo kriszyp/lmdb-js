@@ -13,6 +13,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <signal.h>
 
@@ -22,6 +23,8 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 #include <ac/wait.h>
+extern char *strdup (const char *);
+extern int strcasecmp(const char *, const char *);
 
 #include <sys/resource.h>
 
@@ -42,21 +45,19 @@ char	*filterfile = FILTERFILE;
 char	*templatefile = TEMPLATEFILE;
 int	rdncount = FINGER_RDNCOUNT;
 
-static do_query();
-static do_search();
-static do_read();
-static print_attr();
+static void do_query(void);
+static void do_search(LDAP *ld, char *buf);
+static void do_read(LDAP *ld, LDAPMessage *e);
 
-static usage( name )
-char	*name;
+static void
+usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-l] [-x ldaphost] [-p ldapport] [-f filterfile] [-t templatefile] [-c rdncount]\r\n", name );
 	exit( 1 );
 }
 
-main (argc, argv)
-int	argc;
-char	**argv;
+int
+main( int argc, char **argv )
 {
 	int			i;
 	char			*myname;
@@ -133,7 +134,7 @@ char	**argv;
 #endif
 	}
 
-	if ( dosyslog && mypeer != -1 ) {
+	if ( dosyslog && mypeer != (unsigned long) -1 ) {
 		struct in_addr	addr;
 
 		hp = gethostbyaddr( (char *) &mypeer, sizeof(mypeer), AF_INET );
@@ -147,7 +148,8 @@ char	**argv;
 	return( 0 );
 }
 
-static do_query()
+static void
+do_query( void )
 {
 	char		buf[256];
 	int		len, rc, tblsize;
@@ -239,8 +241,7 @@ static do_query()
 }
 
 static void
-spaces2dots( s )
-    char	*s;
+spaces2dots( char *s )
 {
 	for ( ; *s; s++ ) {
 		if ( *s == ' ' ) {
@@ -249,9 +250,8 @@ spaces2dots( s )
 	}
 }
 
-static do_search( ld, buf )
-LDAP	*ld;
-char	*buf;
+static void
+do_search( LDAP *ld, char *buf )
 {
 	char		*dn, *rdn;
 	char		**title;
@@ -265,7 +265,6 @@ char	*buf;
 					FINGER_SORT_ATTR,
 #endif
 					0 };
-	extern int	strcasecmp();
 
 	ufn = 0;
 #ifdef FINGER_UFN
@@ -417,9 +416,8 @@ entry2textwrite( void *fp, char *buf, int len )
 }
 
 
-static do_read( ld, e )
-LDAP		*ld;
-LDAPMessage	*e;
+static void
+do_read( LDAP *ld, LDAPMessage *e )
 {
 	static struct ldap_disptmpl *tmpllist;
 	static char	*defattrs[] = { "mail", NULL };

@@ -14,10 +14,7 @@
 #include "portable.h"
 
 #include <stdio.h>
-
-#ifdef STDC_HEADERS
 #include <stdlib.h>
-#endif
 
 #include <ac/stdarg.h>
 

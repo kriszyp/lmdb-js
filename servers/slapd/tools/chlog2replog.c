@@ -23,14 +23,15 @@
 
 #include <ac/ctype.h>
 #include <ac/string.h>
+#include <ac/unistd.h>
 
 #include <quipu/commonarg.h>
 #include <quipu/attrvalue.h>
 
 #include "ldif.h"
 
-static int dn2ldif();
-static void de_t61();
+static int dn2ldif(PS ps, DN dn);
+static void de_t61(char *s, int t61mark);
 
 extern FILE *lock_fopen( char *, char *, FILE ** );
 extern int lock_fclose( FILE *, FILE * );
@@ -228,9 +229,7 @@ dn2ldif( PS ps, DN dn )
 
 
 static void
-de_t61( s, t61mark )
-char	*s;
-int	t61mark;
+de_t61(char *s, int t61mark)
 {
 	char	*next = s;
 	int	c, hex;
@@ -295,9 +294,7 @@ int	t61mark;
 
 
 char *
-getattr( buf, sep )
-char *buf;
-char sep;
+getattr(char *buf, char sep)
 {
     char *val;
 #define RBSIZE 255
@@ -314,24 +311,20 @@ char sep;
 
 
 char *
-getattr_ldif( buf )
-char *buf;
+getattr_ldif(char *buf)
 {
     return( getattr( buf, ':' ));
 }
 
 
 char *
-getattr_edb( buf )
-char *buf;
+getattr_edb(char *buf)
 {
     return( getattr( buf, '=' ));
 }
 
 char *
-getval( buf, sep )
-char *buf;
-char sep;
+getval(char *buf, char sep)
 {
     char *val;
 
@@ -343,16 +336,14 @@ char sep;
 }
 
 char *
-getval_ldif( buf )
-char *buf;
+getval_ldif(char *buf)
 {
     return( getval( buf, ':' ));
 }
 
 
 char *
-getval_edb( buf )
-char *buf;
+getval_edb(char *buf)
 {
     return( getval( buf, '=' ));
 }
@@ -361,10 +352,9 @@ char *buf;
 
 
 int
-isDNsyntax( attr )
-char *attr;
+isDNsyntax(char *attr)
 {
-    oid_table_attr *p, *name2attr();
+    oid_table_attr *p, *name2attr(char *);
 
     p = name2attr( attr );
     if ( p == ( oid_table_attr * ) 0 ) {
@@ -380,10 +370,7 @@ char *attr;
 
 
 void
-print_as( as, modtype, ofp )
-Attr_Sequence as;
-int modtype;
-FILE *ofp;
+print_as(Attr_Sequence as, int modtype, FILE *ofp)
 {
     Attr_Sequence p;
     AV_Sequence	av;

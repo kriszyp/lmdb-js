@@ -29,6 +29,7 @@ static char copyright[] = "Copyright 1992 The University of Adelaide";
  */
 
 #include "whois++.h"
+#include <stdlib.h>
 
 static struct {
 	char	*str;
@@ -59,8 +60,8 @@ static struct {
 		NULL,		NULL
 	};
 
-static	nextLine(fp)
-FILE	*fp;
+static void
+nextLine( FILE *fp )
 {
 	/*
 	 * We probably should check that the user hasn't put anything else
@@ -75,10 +76,8 @@ FILE	*fp;
 /*
  * Get next word, skipping blanks & comments.
  */
-static int	getWord(buffer, size, fp)
-char		*buffer;
-int		size;
-FILE		*fp;
+static int
+getWord( char *buffer, int size, FILE *fp )
 {
 	char	*cp;
 	int	c, string;
@@ -119,9 +118,8 @@ FILE		*fp;
 	return (cp != buffer);
 }
 
-void 	readConfiguration( config )
-FILE	*config;
-
+void
+readConfiguration( FILE *config )
 {
 	char		buffer[BUFSIZ];
 	char		*s;

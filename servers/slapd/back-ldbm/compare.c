@@ -11,8 +11,6 @@
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
 
-extern Attribute	*attr_find();
-
 int
 ldbm_back_compare(
     Backend	*be,

@@ -36,7 +36,7 @@
  * queue to the disk file given by SLURPD_DUMPFILE.
  */
 RETSIGTYPE
-do_admin()
+do_admin( int sig )
 {
     sglob->rq->rq_dump( sglob->rq );
     (void) SIGNAL( SIGUSR2, do_admin );

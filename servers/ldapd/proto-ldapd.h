@@ -14,21 +14,22 @@ int do_abandon LDAP_P(( struct conn *dsaconn, BerElement *ber, int msgid ));
  */
 
 int do_add LDAP_P(( Sockbuf *clientsb, struct msg *m, BerElement *ber ));
+void add_result LDAP_P(( Sockbuf *sb, struct msg *m ));
 
 /*
  * association.c
  */
 
 struct conn *conn_dup LDAP_P(( struct conn *cn ));
-int conn_init LDAP_P(());
+int conn_init LDAP_P(( void ));
 void conn_free LDAP_P(( struct conn *conn ));
 void conn_del LDAP_P(( struct conn *conn ));
-void conn_badfds LDAP_P(());
+void conn_setfds LDAP_P(( fd_set *fds ));
+void conn_badfds LDAP_P(( void ));
 struct conn *conn_getfd LDAP_P(( fd_set *fds ));
 void conn_add LDAP_P(( struct conn *new ));
 struct conn *conn_find LDAP_P(( struct conn *c ));
-void conn_add LDAP_P(( struct conn *new ));
-void conn_close LDAP_P(());
+void conn_close LDAP_P(( void ));
 int isclosed LDAP_P(( int ad ));
 
 /*
@@ -46,19 +47,23 @@ int ldap_certif_print LDAP_P(( PS ps, struct certificate *parm, int format ));
 void ldap_print_algid LDAP_P(( PS ps, struct alg_id *parm, int format ));
 struct certificate *ldap_str2cert LDAP_P(( char *str ));
 void ldap_str2alg LDAP_P(( char *str, struct alg_id *alg ));
-void certif_init LDAP_P(());
+void certif_init LDAP_P(( void ));
 
 /*
  * compare.c
  */
 
+struct ds_compare_result;
 int do_compare LDAP_P(( Sockbuf *clientsb, struct msg *m, BerElement *ber ));
+void compare_result LDAP_P(( Sockbuf *sb, struct msg *m,
+			     struct ds_compare_result *cr ));
 
 /*
  * delete.c
  */
 
 int do_delete LDAP_P(( Sockbuf *clientsb, struct msg *m, BerElement *ber ));
+void delete_result LDAP_P(( Sockbuf *sb, struct msg *m ));
 
 /*
  * error.c
@@ -71,13 +76,17 @@ int x500err2ldaperr LDAP_P(( struct DSError *e, char **matched ));
  * kerberos.c
  */
 
+struct ds_bind_arg;
 int kerberosv4_ldap_auth LDAP_P(( char *cred, long len ));
+int kerberosv4_bindarg   LDAP_P(( struct ds_bind_arg *ba, DN dn, char *cred,
+				  long len, u_long *nonce ));
+int kerberos_check_mutual LDAP_P(( struct ds_bind_arg *res, u_long nonce ));
 
 /*
  * main.c
  */
 
-void log_and_exit LDAP_P(( int exitcode ));
+RETSIGTYPE log_and_exit LDAP_P(( int exitcode ));
 
 /*
  * message.c
@@ -94,9 +103,12 @@ struct msg * get_cldap_msg LDAP_P(( int msgid, int msgtype, struct sockaddr *fro
  * modify.c
  */
 
+struct ds_read_result;
 int do_modify LDAP_P(( Sockbuf *clientsb, struct msg *m, BerElement *ber ));
+int do_modify2 LDAP_P((Sockbuf *sb, struct msg *m, struct ds_read_result *rr));
 Attr_Sequence get_as LDAP_P(( Sockbuf *clientsb, unsigned long op, struct msg *m,
-	char *type, struct berval **bvals ));
+			      char *type, struct berval **bvals ));
+void modify_result LDAP_P(( Sockbuf *sb, struct msg *m ));
 void modlist_free LDAP_P(( LDAPMod *mods ));
 
 /*
@@ -104,6 +116,7 @@ void modlist_free LDAP_P(( LDAPMod *mods ));
  */
 
 int do_modrdn LDAP_P(( Sockbuf *clientsb, struct msg *m, BerElement *ber ));
+void modrdn_result  LDAP_P((Sockbuf *sb, struct msg *m));
 
 /*
  * request.c
@@ -113,6 +126,10 @@ void client_request LDAP_P(( Sockbuf *clientsb, struct conn *dsaconn, int  udp )
 int do_request LDAP_P(( Sockbuf *clientsb, struct msg *m, BerElement *ber,
 	int *bound ));
 int initiate_dap_operation LDAP_P(( int op, struct msg *m, void *arg ));
+#ifdef LDAP_DEBUG
+int trace_ber LDAP_P(( int tag, int len, char *ber,
+		       FILE *trace_file, int prepend, int read_pdu ));
+#endif
 
 /*
  * result.c
@@ -128,13 +145,17 @@ int send_ldap_result LDAP_P(( Sockbuf *sb, unsigned long tag, int msgid, int err
  * search.c
  */
 
+struct ds_search_result;
 int do_search LDAP_P(( Sockbuf *clientsb, struct msg *m, BerElement *ber ));
+void search_result LDAP_P(( Sockbuf *sb, struct msg *m,
+			    struct ds_search_result *sr ));
+
 
 /*
  * syntax.c
  */
 
-void get_syntaxes LDAP_P(());
+void get_syntaxes LDAP_P(( void ));
 int dn_print_real LDAP_P(( PS ps, DN dn, int format));
 void ldap_dn_print LDAP_P(( PS ps, DN dn, DN base, int format));
 int encode_dn LDAP_P(( BerElement *ber, DN dn, DN base));

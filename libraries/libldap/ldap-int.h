@@ -156,7 +156,7 @@ void ldap_add_result_to_cache LDAP_P(( LDAP *ld, LDAPMessage *result ));
 int ldap_check_cache LDAP_P(( LDAP *ld, unsigned long msgtype, BerElement *request ));
 
 /*
- * in dparse.c
+ * in dsparse.c
  */
 int next_line_tokens LDAP_P(( char **bufp, long *blenp, char ***toksp ));
 void free_strarray LDAP_P(( char **sap ));
@@ -227,6 +227,12 @@ int ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadref
 int ldap_append_referral( LDAP *ld, char **referralsp, char *s );
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
+/*
+ * in result.c:
+ */
+#ifdef LDAP_CONNECTIONLESS
+LDAP_F int cldap_getmsg	( LDAP *ld, struct timeval *timeout, BerElement *ber );
+#endif
 
 /*
  * in search.c

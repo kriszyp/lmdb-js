@@ -17,7 +17,7 @@ ch_malloc(
 	void	*new;
 
 	if ( (new = (void *) malloc( size )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "malloc of %d bytes failed\n", size, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "malloc of %lu bytes failed\n", size, 0, 0 );
 		exit( 1 );
 	}
 
@@ -37,7 +37,7 @@ ch_realloc(
 	}
 
 	if ( (new = (void *) realloc( block, size )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "realloc of %d bytes failed\n", size, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "realloc of %lu bytes failed\n", size, 0, 0 );
 		exit( 1 );
 	}
 
@@ -53,7 +53,7 @@ ch_calloc(
 	void	*new;
 
 	if ( (new = (void *) calloc( nelem, size )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "calloc of %d elems of %d bytes failed\n",
+		Debug( LDAP_DEBUG_ANY, "calloc of %lu elems of %lu bytes failed\n",
 		  nelem, size, 0 );
 		exit( 1 );
 	}

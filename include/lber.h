@@ -147,7 +147,6 @@ LDAP_F int ber_start_set LDAP_P(( BerElement *ber, unsigned long tag ));
 LDAP_F int ber_put_seq LDAP_P(( BerElement *ber ));
 LDAP_F int ber_put_set LDAP_P(( BerElement *ber ));
 LDAP_F int ber_printf LDAP_P(( BerElement *ber, char *fmt, ... ));
-LDAP_F int ber_fatten LDAP_P(( BerElement *ber, struct berval **bvPtr));
 /*
  * in io.c:
  */

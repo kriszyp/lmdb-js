@@ -259,7 +259,7 @@ ldap_is_read_ready( LDAP *ld, Sockbuf *sb )
 
 
 void *
-ldap_new_select_info()
+ldap_new_select_info( void )
 {
 	struct selectinfo	*sip;
 

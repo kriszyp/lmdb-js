@@ -9,16 +9,15 @@
 #include "ldbm.h"
 #include "../slap.h"
 
-usage( name )
-char	*name;
+static void
+usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-n] <filename>\n", name );
 	exit( 1 );
 }
 
-main( argc, argv )
-    int		argc;
-    char	**argv;
+int
+main( int argc, char **argv )
 {
 	Datum		key, last, data;
 	LDBM		dbp;

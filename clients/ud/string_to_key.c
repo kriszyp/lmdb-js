@@ -43,9 +43,7 @@ extern void des_fixup_key_parity();
  * convert an arbitrary length string to a DES key
  */
 int
-des_string_to_key(str,key)
-    char *str;
-    register des_cblock *key;
+des_string_to_key( char *str, register des_cblock *key )
 {
     register char *in_str;
     register unsigned temp,i;
@@ -145,10 +143,12 @@ des_string_to_key(str,key)
    encryption key.  It is compatible with the original Andrew authentication
    service password database. */
 
-static void Andrew_StringToKey (str, cell, key)
-  char          *str;
-  char          *cell;                  /* cell for password */
-  des_cblock *key;
+static void
+Andrew_StringToKey(
+  char          *str,
+  char          *cell,                  /* cell for password */
+  des_cblock *key
+)
 {   char  password[8+1];                /* crypt is limited to 8 chars anyway */
     int   i;
     int   passlen;
@@ -184,10 +184,12 @@ static void Andrew_StringToKey (str, cell, key)
     des_fixup_key_parity (key);
 }
 
-static void StringToKey (str, cell, key)
-  char          *str;
-  char          *cell;                  /* cell for password */
-  des_cblock *key;
+static void
+StringToKey(
+  char          *str,
+  char          *cell,                  /* cell for password */
+  des_cblock	*key
+)
 {   des_key_schedule schedule;
     char temp_key[8];
     char ivec[8];
@@ -213,16 +215,19 @@ static void StringToKey (str, cell, key)
     des_fixup_key_parity (key);
 }
 
-/* static */  void
-ka_StringToKey (str, cell, key)
-  char          *str;
-  char          *cell;                  /* cell for password */
-  des_cblock	*key;
+void
+ka_StringToKey (
+  char          *str,
+  char          *cell,                  /* cell for password */
+  des_cblock	*key
+)
 {   char  realm[REALM_SZ];
 
 #if NOWAYOUTTODAY
     long  code;
-    /* code = ka_CellToRealm (cell, realm, 0/*local*/); */
+#if 0
+    code = ka_CellToRealm (cell, realm, 0/*local*/);
+#endif
     if (code) strcpy (realm, "");
     else lcstring (realm, realm, sizeof(realm)); /* for backward compatibility */
 #else
@@ -237,9 +242,7 @@ ka_StringToKey (str, cell, key)
  * convert an arbitrary length string to a DES key
  */
 int
-des_string_to_key(str,key)
-    char *str;
-    register des_cblock *key;
+des_string_to_key( char *str, register des_cblock *key )
 {
 	/* NB: i should probably call routine to get local cell here */
 	ka_StringToKey(str, "umich.edu", key);

@@ -9,6 +9,7 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
+void
 ldbm_back_close( Backend *be )
 {
 	Debug( LDAP_DEBUG_TRACE, "ldbm backend syncing\n", 0, 0, 0 );

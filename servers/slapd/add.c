@@ -20,20 +20,10 @@
 
 #include "slap.h"
 
-extern Backend	*select_backend();
-extern char	*dn_normalize();
-
-extern char		*default_referral;
-extern time_t		currenttime;
-extern pthread_mutex_t	currenttime_mutex;
-extern int		global_lastmod;
-
-static void	add_created_attrs();
+static void	add_created_attrs(Operation *op, Entry *e);
 
 void
-do_add( conn, op )
-    Connection	*conn;
-    Operation	*op;
+do_add( Connection *conn, Operation *op )
 {
 	BerElement	*ber = op->o_ber;
 	char		*dn, *last;

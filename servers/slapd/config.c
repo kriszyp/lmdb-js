@@ -5,17 +5,13 @@
 #include <stdio.h>
 
 #include <ac/string.h>
+#include <ac/ctype.h>
 #include <ac/socket.h>
 
-#include "slap.h"
 #include "ldapconfig.h"
+#include "slap.h"
 
 #define MAXARGS	100
-
-extern Backend	*new_backend();
-extern char	*default_referral;
-extern int	ldap_syslog;
-extern int	global_schemacheck;
 
 /*
  * defaults for various global variables
@@ -28,11 +24,11 @@ char		*replogfile;
 int		global_lastmod;
 char		*ldap_srvtab = "";
 
-static char	*fp_getline();
-static void	fp_getline_init();
-static void	fp_parse_line();
+static char	*fp_getline(FILE *fp, int *lineno);
+static void	fp_getline_init(int *lineno);
+static void	fp_parse_line(char *line, int *argcp, char **argv);
 
-static char	*strtok_quote();
+static char	*strtok_quote(char *line, char *sep);
 
 void
 read_config( char *fname, Backend **bep, FILE *pfp )

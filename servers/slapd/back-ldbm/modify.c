@@ -11,12 +11,9 @@
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
 
-extern int		global_schemacheck;
-extern Attribute	*attr_find();
-
-static int	add_values();
-static int	delete_values();
-static int	replace_values();
+static int	add_values(Entry *e, LDAPMod *mod, char *dn);
+static int	delete_values(Entry *e, LDAPMod *mod, char *dn);
+static int	replace_values(Entry *e, LDAPMod *mod, char *dn);
 
 int
 ldbm_back_modify(

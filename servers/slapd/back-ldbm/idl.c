@@ -7,11 +7,9 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
-#include "slap.h"
 #include "ldapconfig.h"
+#include "slap.h"
 #include "back-ldbm.h"
-
-extern Datum	ldbm_cache_fetch();
 
 IDList *
 idl_alloc( int nids )
@@ -163,8 +161,8 @@ idl_fetch(
 	}
 	free( (char *) tmp );
 
-	Debug( LDAP_DEBUG_TRACE, "<= idl_fetch %d ids (%d max)\n", idl->b_nids,
-	    idl->b_nmax, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= idl_fetch %lu ids (%lu max)\n",
+	       idl->b_nids, idl->b_nmax, 0 );
 	return( idl );
 }
 
@@ -466,7 +464,7 @@ idl_insert_key(
 			case 0:		/* id inserted */
 				if ( rc == 2 ) {
 					Debug( LDAP_DEBUG_ANY,
-					    "id %d already in next block\n",
+					    "id %lu already in next block\n",
 					    id, 0, 0 );
 				}
 				free( kstr );
@@ -628,7 +626,8 @@ idl_delete_key (
 {
 	Datum  k2;
 	IDList *idl, *tmp;
-	int i, j, nids;
+	unsigned i;
+	int j, nids;
 	char	*kstr;
 
 	if ( (idl = idl_fetch_one( be, db, key ) ) == NULL )
@@ -666,7 +665,7 @@ idl_delete_key (
 	for ( j = 0; idl->b_ids[j] != NOID; j++ ) 
 	{
 		memset( &k2, 0, sizeof(k2) );
-		sprintf( kstr, "%c%s%d", CONT_PREFIX, key.dptr, idl->b_ids[j] );
+		sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr, idl->b_ids[j] );
 		k2.dptr = kstr;
 		k2.dsize = strlen( kstr ) + 1;
 

@@ -5,6 +5,7 @@
 
 #include <ac/socket.h>
 #include <ac/string.h>
+extern char *strdup (const char *);
 
 #include "ldap-int.h"
 

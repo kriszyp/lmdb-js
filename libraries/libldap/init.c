@@ -5,7 +5,9 @@
 
 #include <ac/socket.h>
 #include <ac/string.h>
+#include <ac/ctype.h>
 #include <ac/time.h>
+extern char *strdup (const char *);
 
 #include "ldap-int.h"
 #include "ldapconfig.h"
@@ -28,7 +30,7 @@ struct ol_keyvalue {
 	int			value;
 };
 
-struct ol_keyvalue deref_kv[] = {
+static struct ol_keyvalue deref_kv[] = {
 	{"never", LDAP_DEREF_NEVER},
 	{"searching", LDAP_DEREF_SEARCHING},
 	{"finding", LDAP_DEREF_FINDING},
@@ -36,7 +38,7 @@ struct ol_keyvalue deref_kv[] = {
 	{NULL, 0}
 };
 
-struct ol_attribute {
+static struct ol_attribute {
 	int			type;
 	char*		name;
 	void*		data;

@@ -8,6 +8,7 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
+extern char *crypt ();
 
 #include "slap.h"
 #include "back-ldbm.h"
@@ -22,8 +23,6 @@
 #endif /* SLAPD_MD5 */
 
 #include <lutil.h>
-
-extern Attribute	*attr_find();
 
 #ifdef HAVE_KERBEROS
 extern int	krbv4_ldap_auth();

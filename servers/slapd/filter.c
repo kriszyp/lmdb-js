@@ -9,10 +9,8 @@
 
 #include "slap.h"
 
-static int	get_filter_list();
-static int	get_substring_filter();
-
-extern int	get_ava();
+static int	get_filter_list(Connection *conn, BerElement *ber, Filter **f, char **fstr);
+static int	get_substring_filter(Connection *conn, BerElement *ber, Filter *f, char **fstr);
 
 int
 get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
@@ -166,8 +164,8 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 		break;
 
 	default:
-		Debug( LDAP_DEBUG_ANY, "unknown filter type %d\n", f->f_choice,
-		    0, 0 );
+		Debug( LDAP_DEBUG_ANY, "unknown filter type %lu\n",
+		       f->f_choice, 0, 0 );
 		err = LDAP_PROTOCOL_ERROR;
 		break;
 	}
@@ -373,8 +371,8 @@ filter_free( Filter *f )
 		break;
 
 	default:
-		Debug( LDAP_DEBUG_ANY, "unknown filter type %d\n", f->f_choice,
-		    0, 0 );
+		Debug( LDAP_DEBUG_ANY, "unknown filter type %lu\n",
+		       f->f_choice, 0, 0 );
 		break;
 	}
 	free( f );
@@ -445,7 +443,7 @@ filter_print( Filter *f )
 		break;
 
 	default:
-		fprintf( stderr, "unknown type %d", f->f_choice );
+		fprintf( stderr, "unknown type %lu", f->f_choice );
 		break;
 	}
 }

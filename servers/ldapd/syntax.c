@@ -24,6 +24,8 @@
 #include <quipu/ds_search.h>
 #include <quipu/dap2.h>
 #include <quipu/dua.h>
+extern oid_table_attr *name2attr( char * );
+/*extern AttributeValue str_at2AttrV( char *, IF_AttributeType * );*/
 
 #include "lber.h"
 #include "../../libraries/liblber/lber-int.h"	/* get struct berelement */
@@ -60,7 +62,7 @@ static int	syntax_is_string( short syntax );
 static int
 get_one_syntax( char *attrib, int required )
 {
-	oid_table_attr	*p, *name2attr();
+	oid_table_attr	*p;
 
 	if ( (p = name2attr( attrib )) != (oid_table_attr *) 0 )
 	    return( p->oa_syntax );
@@ -75,10 +77,8 @@ get_one_syntax( char *attrib, int required )
 }
 
 void
-get_syntaxes()
+get_syntaxes( void )
 {
-	oid_table_attr	*name2attr();
-
 	Debug( LDAP_DEBUG_TRACE, "get_syntaxes\n", 0, 0, 0 );
 
 	ldap_photo_syntax = get_one_syntax( "photo", 0 );
@@ -135,7 +135,8 @@ get_syntaxes()
  *       notation.  (e.g., OID.2.6.53).
  *
  */
-static void attr_key_rfc1779 (
+static void
+attr_key_rfc1779(
     AttributeType   at,
     char            *key    /* return key, caller allocated */
 )
@@ -182,7 +183,6 @@ dn_print_real(
 	int	firstrdn;
 	char	*value;
 	PS	rps;
-	void	ldap_dn_print();
         char    key[512];
 
 	if ( dn == NULLDN )
@@ -554,9 +554,6 @@ int
 encode_attrs( BerElement *ber, Attr_Sequence as )
 {
 	PS		ps;
-#ifdef LDAP_COMPAT20
-	extern int	ldap_compat;
-#endif
 
 	Debug( LDAP_DEBUG_TRACE, "encode_attrs\n", 0, 0, 0 );
 
@@ -623,7 +620,8 @@ trim_trailing_spaces( char *s )
 	}
 }
 
-DN ldap_str2dn( char *str )
+DN
+ldap_str2dn( char *str )
 {
 	DN		dn, save;
 	RDN		rdn, newrdn, tmprdn;
@@ -786,7 +784,8 @@ DN ldap_str2dn( char *str )
 #define T61	"{T.61}"
 #define T61LEN	6
 
-static void de_t61( char *s, int t61mark )
+static void
+de_t61( char *s, int t61mark )
 {
 	char	*next = s;
 	int	c, hex;
@@ -966,7 +965,6 @@ AttributeValue
 ldap_str_at2AttrV( char *str, AttributeType type )
 {
 	char		*s, *res, *r;
-	AttributeValue	str_at2AttrV();
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_str_at2AttrV str (%s) type (%s)\n", str,
 	    type->oa_ot.ot_name, 0 );

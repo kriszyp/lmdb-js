@@ -28,7 +28,6 @@
 #include "common.h"
 
 #ifdef LDAP_COMPAT20
-extern int 	ldap_compat;
 #define MODRDNTAG	(ldap_compat == 20 ? OLD_LDAP_RES_MODRDN : LDAP_RES_MODRDN)
 #else
 #define MODRDNTAG	LDAP_RES_MODRDN
@@ -45,8 +44,6 @@ do_modrdn(
 	int			rc, deleteoldrdn;
 	struct ds_modifyrdn_arg	ma;
 	static CommonArgs	common = default_common_args;
-	extern DN		ldap_str2dn();
-	extern RDN		ldap_str2rdn();
 
 	Debug( LDAP_DEBUG_TRACE, "do_modrdn\n", 0, 0, 0 );
 

@@ -13,28 +13,23 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/time.h>
+extern char *strdup (const char *);
 
 #include <lber.h>
 #include <ldap.h>
 
 #include "ud.h"
 
-extern char *search_base;	/* search base */
-extern int verbose;		/* verbose mode flag */
-extern LDAP *ld;		/* our ldap descriptor */
-	
 static int num_picked = 0;	/* used when user picks entry at More prompt */
 
-#ifdef DEBUG
-extern int debug;		/* debug flag */
-#endif
 
-vrfy(dn)
-char *dn;
+int
+vrfy( char *dn )
 {
 	LDAPMessage *results;
 	static char *attrs[2] = { "objectClass", NULL };
@@ -61,11 +56,8 @@ char *dn;
 }
 	
 
-static LDAPMessage * disambiguate( result, matches, read_attrs, who )
-LDAPMessage *result;
-int matches;
-char **read_attrs;
-char *who;
+static LDAPMessage *
+disambiguate( LDAPMessage *result, int matches, char **read_attrs, char *who )
 {
 	int choice;			/* entry that user chooses */
 	int i;
@@ -74,7 +66,6 @@ char *who;
 	char *name = NULL;		/* DN to lookup */
 	LDAPMessage *mp;
 	int ld_errno = 0;
-	extern void Free();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -161,9 +152,8 @@ char *who;
 	}
 }
 
-LDAPMessage * find(who, quiet)
-char *who;
-int quiet;
+LDAPMessage *
+find( char *who, int quiet )
 {
 	register int i, j, k;		/* general ints */
 	int matches;			/* from ldap_count_entries() */
@@ -177,9 +167,6 @@ int quiet;
 	char response[SMALL_BUF_SIZE];
 	char *cp, *dn, **rdns;
 	LDAPFiltInfo *fi;
-	extern LDAPFiltDesc *lfdp;		/* LDAP filter descriptor */
-	extern struct attribute attrlist[];	/* complete list of attrs */
-	extern void Free();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -342,8 +329,8 @@ int quiet;
 	return(NULL);
 }
 
-pick_one(i)
-int i;
+int
+pick_one( int i )
 {
 	int n;
 	char user_pick[SMALL_BUF_SIZE];
@@ -368,13 +355,10 @@ int i;
 	/* NOTREACHED */
 }
 
-print_list(list, names, matches)
-LDAPMessage *list;
-char *names[];
-int *matches;
+void
+print_list( LDAPMessage *list, char **names, int *matches )
 {
 	char **rdns, **cpp;
-	extern int lpp;
 	char resp[SMALL_BUF_SIZE];
 	register LDAPMessage *ep;
 	register int i = 1;
@@ -418,9 +402,8 @@ again:
 	return;
 }
 
-find_all_subscribers(sub, group)
-char *sub[];
-char *group;
+int
+find_all_subscribers( char **sub, char *group )
 {
 	int count;
 	LDAPMessage *result;
@@ -465,9 +448,8 @@ char *group;
 	return(count);
 }
 
-char * fetch_boolean_value(who, attr)
-char *who;
-struct attribute attr;
+char *
+fetch_boolean_value( char *who, struct attribute attr )
 {
 	LDAPMessage *result;		/* from the search below */
 	register LDAPMessage *ep;	/* entry pointer */

@@ -2,6 +2,7 @@
 
 #ifndef HAVE_SETPROCTITLE
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <ac/string.h>
 

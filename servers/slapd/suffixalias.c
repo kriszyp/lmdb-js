@@ -21,10 +21,7 @@
  * given a dn (or root part), return an aliased dn if any of the 
  * alias suffixes match
  */
-char *suffixAlias ( dn, op, be )
-	char *dn;
-	Operation *op;
-	Backend *be;
+char *suffixAlias (char *dn, Operation *op, Backend *be)
 {
 	int 	i, dnLength;
 

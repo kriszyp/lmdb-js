@@ -9,19 +9,10 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/unistd.h>		/* get close() */
 
 #include "slap.h"
 
-extern int		active_threads;
-extern pthread_mutex_t	active_threads_mutex;
-extern pthread_mutex_t	new_conn_mutex;
-extern pthread_t	listener_tid;
-extern struct acl	*acl_get_applicable();
-extern long		num_entries_sent;
-extern long		num_bytes_sent;
-extern pthread_mutex_t	num_sent_mutex;
-
-void	close_connection();
 
 static void
 send_ldap_result2(

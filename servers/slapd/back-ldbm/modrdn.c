@@ -11,8 +11,6 @@
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
 
-extern char	*dn_parent();
-
 int
 ldbm_back_modrdn(
     Backend	*be,

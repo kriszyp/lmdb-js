@@ -3,17 +3,15 @@
 #include "portable.h"
 
 #include <stdio.h>
-
 #include <ac/socket.h>
 
 #include "slap.h"
 
-int
+void
 ldbm_back_unbind(
 	Backend     *be,
 	Connection  *conn,
 	Operation   *op
 )
 {
-	return( 0 );
 }

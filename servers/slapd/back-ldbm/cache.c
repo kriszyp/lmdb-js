@@ -3,15 +3,16 @@
 #include "portable.h"
 
 #include <stdio.h>
+int strcasecmp( const char *, const char *);
 
 #include <ac/socket.h>
 #include "slap.h"
 
 #include "back-ldbm.h"
 
-static int	cache_delete_entry_internal();
+static int	cache_delete_entry_internal(struct cache *cache, Entry *e);
 #ifdef LDAP_DEBUG
-static void	lru_print();
+static void	lru_print(struct cache *cache);
 #endif
 
 /*
@@ -139,7 +140,7 @@ cache_add_entry_lock(
 		cache_entrydn_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_TRACE,
-			"====> cache_add_entry lock: entry %20s id %d already in dn cache\n",
+			"====> cache_add_entry lock: entry %20s id %lu already in dn cache\n",
 		    e->e_dn, e->e_id, 0 );
 
 		/* free cache mutex */
@@ -152,7 +153,7 @@ cache_add_entry_lock(
 		cache_entryid_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_ANY,
-			"====> entry %20s id %d already in id cache\n",
+			"====> entry %20s id %lu already in id cache\n",
 		    e->e_dn, e->e_id, 0 );
 
 		/* delete from dn tree inserted above */
@@ -451,12 +452,12 @@ lru_print( struct cache *cache )
 
 	fprintf( stderr, "LRU queue (head to tail):\n" );
 	for ( e = cache->c_lruhead; e != NULL; e = e->e_lrunext ) {
-		fprintf( stderr, "\tdn %20s id %d refcnt %d\n", e->e_dn,
+		fprintf( stderr, "\tdn %20s id %lu refcnt %d\n", e->e_dn,
 		    e->e_id, e->e_refcnt );
 	}
 	fprintf( stderr, "LRU queue (tail to head):\n" );
 	for ( e = cache->c_lrutail; e != NULL; e = e->e_lruprev ) {
-		fprintf( stderr, "\tdn %20s id %d refcnt %d\n", e->e_dn,
+		fprintf( stderr, "\tdn %20s id %lu refcnt %d\n", e->e_dn,
 		    e->e_id, e->e_refcnt );
 	}
 }

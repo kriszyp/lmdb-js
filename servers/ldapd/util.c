@@ -53,8 +53,8 @@ bprint( char *data, int len )
 	    out[ i ] = ' ';
 	    out[ i+1 ] = *data;
 	} else {
-	    out[ i ] = hexdig[ ( *data & 0xf0 ) >> 4 ];
-	    out[ i+1 ] = hexdig[ *data & 0x0f ];
+	    out[ i ] = hexdig[ ( (unsigned char)*data & 0xf0 ) >> 4 ];
+	    out[ i+1 ] = hexdig[ (unsigned char)*data & 0x0f ];
 	}
 	i += 2;
 	len--;
@@ -70,7 +70,8 @@ bprint( char *data, int len )
     }
 }
 
-void charlist_free( char **cl )
+void
+charlist_free( char **cl )
 {
 	int	i;
 
@@ -86,7 +87,6 @@ int
 get_ava( BerElement *ber, AVA *tava )
 {
 	char			*type, *value;
-	extern short		ldap_dn_syntax;
 
 	Debug( LDAP_DEBUG_TRACE, "get_ava\n", 0, 0, 0 );
 
@@ -132,7 +132,6 @@ chase_referral(
 	struct access_point	*ap;
 	int			rc, bound;
 	struct conn		*save, *dup, *found;
-	struct PSAPaddr		*psap_cpy();
 
 	Debug( LDAP_DEBUG_TRACE, "chase_referral\n", 0, 0, 0 );
 

@@ -34,6 +34,7 @@ static struct ldentry *pw2entry LDAP_P(( struct ldop *op, struct passwd *pw ));
 static char	tmpbuf[ MAXLINELEN * 2 ];
 
 
+int
 main( int argc, char **argv )
 {
     int			c, errflg;

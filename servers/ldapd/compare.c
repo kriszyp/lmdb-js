@@ -28,7 +28,6 @@
 #include "common.h"
 
 #ifdef HAVE_COMPAT20
-extern int 	ldap_compat;
 #define COMPTAG	(ldap_compat == 20 ? OLD_LDAP_RES_COMPARE : LDAP_RES_COMPARE)
 #else
 #define COMPTAG	LDAP_RES_COMPARE
@@ -46,7 +45,6 @@ do_compare(
 	struct ds_compare_arg	ca;
 	AttributeType		type;
 	static CommonArgs	common = default_common_args;
-	extern short		ldap_dn_syntax;
 
 	Debug( LDAP_DEBUG_TRACE, "do_compare\n", 0, 0, 0 );
 

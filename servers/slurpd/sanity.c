@@ -56,7 +56,7 @@ static unsigned int filecheck LDAP_P(( char * ));
  */
 
 int
-sanity()
+sanity( void )
 {
     int	err = 0;
     int rc;
@@ -199,4 +199,3 @@ filecheck(
 
     return ret;
 }
-

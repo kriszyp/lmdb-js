@@ -6,9 +6,12 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
+#include <ac/unistd.h>
 
 #include "slap.h"
+#include "shell.h"
 
+int
 forkandexec(
     char	**args,
     FILE	**rfp,

@@ -35,13 +35,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ac/unistd.h>		/* get ftruncate() */
 
 #include "slurp.h"
 #include "globals.h"
 
-
-/* externs */
-extern void Re_dump LDAP_P(( Re *re ));
 
 /*
  * Lock the replication queue.
@@ -409,4 +407,3 @@ Rq_init(
 
     return 0;
 }
-

@@ -8,6 +8,7 @@
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
+extern char *strdup (const char *);
 
 #include <sys/stat.h>
 
@@ -29,10 +30,6 @@ static char	*ldaphost = NULL;
 static int	ldapport = 0;
 static int	new, replace, not, verbose, contoper, force, valsfromfiles;
 static LDAP	*ld;
-
-#ifdef LDAP_DEBUG
-extern int ldap_debug, lber_debug;
-#endif /* LDAP_DEBUG */
 
 #define safe_realloc( ptr, size )	( ptr == NULL ? malloc( size ) : \
 					 realloc( ptr, size ))

@@ -17,11 +17,13 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <ac/errno.h>
 #include <ac/string.h>
 #include <ac/ctype.h>
 #include <ac/time.h>
+#include <ac/unistd.h>		/* Get_t getpid() */
 
 #include <ac/krb.h>
 
@@ -36,7 +38,7 @@ static int op_ldap_add LDAP_P(( Ri *, Re *, char ** ));
 static int op_ldap_modify LDAP_P(( Ri *, Re *, char ** ));
 static int op_ldap_delete LDAP_P(( Ri *, Re *, char ** ));
 static int op_ldap_modrdn LDAP_P(( Ri *, Re *, char ** ));
-static LDAPMod *alloc_ldapmod LDAP_P(());
+static LDAPMod *alloc_ldapmod LDAP_P(( void ));
 static void free_ldapmod LDAP_P(( LDAPMod * ));
 static void free_ldmarr LDAP_P(( LDAPMod ** ));
 static int getmodtype LDAP_P(( char * ));
@@ -438,7 +440,7 @@ op_ldap_modrdn(
  * Allocate and initialize an ldapmod struct.
  */
 static LDAPMod *
-alloc_ldapmod()
+alloc_ldapmod( void )
 {
     LDAPMod	*ldm;
 
@@ -553,7 +555,7 @@ do_unbind(
 	if ( rc != LDAP_SUCCESS ) {
 	    Debug( LDAP_DEBUG_ANY,
 		    "Error: do_unbind: ldap_unbind failed for %s:%d: %s\n",
-		    ldap_err2string( rc ), ri->ri_hostname, ri->ri_port );
+		    ri->ri_hostname, ri->ri_port, ldap_err2string( rc ) );
 	}
 	ri->ri_ldp = NULL;
     }
@@ -752,7 +754,8 @@ kexit:	if ( krbnames != NULL ) {
  */
 static void
 dump_ldm_array(
-LDAPMod **ldmarr )
+    LDAPMod **ldmarr
+)
 {
     int			 i, j;
     LDAPMod		*ldm;
@@ -762,21 +765,21 @@ LDAPMod **ldmarr )
     for ( i = 0; ldmarr[ i ] != NULL; i++ ) {
 	ldm = ldmarr[ i ];
 	Debug( LDAP_DEBUG_TRACE,
-		"Trace (%d): *** ldmarr[ %d ] contents:\n",
-		getpid(), i, 0 );
+		"Trace (%ld): *** ldmarr[ %d ] contents:\n",
+		(long) getpid(), i, 0 );
 	Debug( LDAP_DEBUG_TRACE,
-		"Trace (%d): *** ldm->mod_op: %d\n",
-		getpid(), ldm->mod_op, 0 );
+		"Trace (%ld): *** ldm->mod_op: %d\n",
+		(long) getpid(), ldm->mod_op, 0 );
 	Debug( LDAP_DEBUG_TRACE,
-		"Trace (%d): *** ldm->mod_type: %s\n",
-		getpid(), ldm->mod_type, 0 );
+		"Trace (%ld): *** ldm->mod_type: %s\n",
+		(long) getpid(), ldm->mod_type, 0 );
 	if ( ldm->mod_bvalues != NULL ) {
 	    for ( j = 0; ( b = ldm->mod_bvalues[ j ] ) != NULL; j++ ) {
 		msgbuf = ch_malloc( b->bv_len + 512 );
 		sprintf( msgbuf, "***** bv[ %d ] len = %ld, val = <%s>",
 			j, b->bv_len, b->bv_val );
 		Debug( LDAP_DEBUG_TRACE,
-			"Trace (%d):%s\n", getpid(), msgbuf, 0 );
+			"Trace (%ld):%s\n", (long) getpid(), msgbuf, 0 );
 		free( msgbuf );
 	    }
 	}
@@ -848,7 +851,8 @@ read_krbnames(
  */
 static void
 upcase(
-char *s )
+    char *s
+)
 {
     char *p;
 

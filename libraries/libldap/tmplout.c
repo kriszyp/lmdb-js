@@ -25,6 +25,7 @@
 #include "ldap-int.h"
 #include "ldapconfig.h"
 
+/* local functions */
 static int do_entry2text LDAP_P((
 	LDAP *ld, char *buf, char *base, LDAPMessage *entry,
 	struct ldap_disptmpl *tmpl, char **defattrs, char ***defvals,

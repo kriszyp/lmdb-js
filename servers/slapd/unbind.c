@@ -21,11 +21,6 @@
 
 #include "slap.h"
 
-extern Backend	*select_backend();
-extern void      be_unbind();
-
-extern char		*default_referral;
-extern pthread_mutex_t	new_conn_mutex;
 
 void
 do_unbind(

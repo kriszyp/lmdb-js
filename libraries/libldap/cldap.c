@@ -20,6 +20,7 @@ static char copyright[] = "@(#) Copyright (c) 1990, 1994 Regents of the Universi
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/unistd.h>
 
 #include "ldap-int.h"
 
@@ -291,8 +292,8 @@ cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
     tv.tv_usec = 0;
 
     Debug( LDAP_DEBUG_TRACE,
-	    "cldap_result waiting up to %d seconds for a response\n",
-	    tv.tv_sec, 0, 0 );
+	    "cldap_result waiting up to %ld seconds for a response\n",
+	    (long) tv.tv_sec, 0, 0 );
     ber_init_w_nullc( &ber, 0 );
     ldap_set_ber_options( ld, &ber );
 
@@ -464,7 +465,7 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 	    bv = NULL;
 		
 	} else {
-	    Debug( LDAP_DEBUG_TRACE, "cldap_parsemsg got unknown tag %d\n",
+	    Debug( LDAP_DEBUG_TRACE, "cldap_parsemsg got unknown tag %lu\n",
 		    tag, 0, 0 );
 	    rc = LDAP_PROTOCOL_ERROR;
 	    break;	/* return w/error */

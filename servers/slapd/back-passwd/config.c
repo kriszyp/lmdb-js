@@ -10,6 +10,7 @@
 
 #include "slap.h"
 
+void
 passwd_back_config(
     Backend	*be,
     char	*fname,

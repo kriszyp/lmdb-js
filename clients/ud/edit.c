@@ -17,8 +17,12 @@
 
 #include <ac/signal.h>
 #include <ac/string.h>
+#include <ac/ctype.h>
 #include <ac/time.h>
 #include <ac/wait.h>
+#include <ac/unistd.h>
+extern char *strdup (const char *);
+extern char * mktemp(char *);
 
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
@@ -31,33 +35,22 @@
 #include <ldap.h>
 #include <ldapconfig.h>
 #include "ud.h"
-extern void *Malloc();
 
-extern struct entry Entry; 
-extern int verbose;
-extern LDAP *ld;
-
-extern LDAPMessage *find();
-
-static int load_editor();
-static int modifiable();
-static int print_attrs_and_values();
-static int ovalues();
-static int write_entry();
+static int  load_editor( void );
+static int  modifiable( char *s, short flag );
+static int  print_attrs_and_values( FILE *fp, struct attribute *attrs, short flag );
+static int  ovalues( char *attr );
+static void write_entry( void );
 
 static char *entry_temp_file;
 
-#ifdef DEBUG
-extern int debug;
-#endif
 
-edit(who)
-char *who;
+void
+edit( char *who )
 {
 	LDAPMessage *mp;			/* returned from find() */
 	char *dn, **rdns;			/* distinguished name */
 	char name[MED_BUF_SIZE];		/* entry to modify */
-	extern int bind_status;
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -111,19 +104,18 @@ char *who;
 	(void) ldap_value_free(rdns);
 	if (load_editor() < 0)
 		return;
-	(void) write_entry();
+	write_entry();
 	(void) unlink(entry_temp_file);
 	ldap_uncache_entry(ld, Entry.DN);
 	return;
 }
 
-static load_editor()
+static int
+load_editor( void )
 {
 	FILE *fp;
 	char *cp, *editor = UD_DEFAULT_EDITOR;
 	static char template[MED_BUF_SIZE];
-	extern char * mktemp();
-	extern int isgroup(), fatal();
 	int pid;
 	int status;
 	int rc;
@@ -208,10 +200,8 @@ static load_editor()
 	return(0);
 }
 
-static int print_attrs_and_values(fp, attrs, flag)
-FILE *fp;
-struct attribute attrs[];
-short flag;
+static int
+print_attrs_and_values( FILE *fp, struct attribute *attrs, short int flag )
 {
 	register int i, j;
 
@@ -231,12 +221,10 @@ short flag;
 	return( 0 );
 }
 
-static modifiable(s, flag)
-char *s;
-short flag;
+static int
+modifiable( char *s, short int flag )
 {
 	register int i;
-	extern struct attribute attrlist[];
 
 	for (i = 0; attrlist[i].quipu_name != NULL; i++) {
 		if (strcasecmp(s, attrlist[i].quipu_name))
@@ -249,7 +237,8 @@ short flag;
 	return(FALSE);
 }
 
-static write_entry()
+static void
+write_entry( void )
 {
 	int i = 0, j, number_of_values = -1;
 
@@ -258,9 +247,6 @@ static write_entry()
 
 	LDAPMod *mods[MAX_ATTRS + 1];
 	LDAPMod *modp = NULL;
-
-	extern char * code_to_str();
-	extern void free_mod_struct();
 
 	/* parse the file and write the values to the Directory */
 	if ((fp = fopen(entry_temp_file, "r")) == NULL) {
@@ -455,8 +441,8 @@ static write_entry()
 	return;
 }
 
-static ovalues(attr)
-char *attr;
+static int
+ovalues( char *attr )
 {
 	struct attribute *ap;
 

@@ -9,8 +9,6 @@
 
 #include "slap.h"
 
-extern time_t		currenttime;
-extern pthread_mutex_t	currenttime_mutex;
 
 void
 op_free( Operation *op )
@@ -67,7 +65,7 @@ op_delete( Operation **olist, Operation *op )
 		;	/* NULL */
 
 	if ( *tmp == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "op_delete: can't find op %d\n",
+		Debug( LDAP_DEBUG_ANY, "op_delete: can't find op %ld\n",
 		    op->o_msgid, 0, 0 );
 		return; 
 	}

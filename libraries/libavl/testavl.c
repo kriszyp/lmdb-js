@@ -7,15 +7,15 @@
 
 #include <ac/string.h>
 #include <sys/types.h>
+extern char *strdup (const char *);
 
 #include "avl.h"
 
 static void ravl_print LDAP_P(( Avlnode *root, int depth ));
 static void myprint LDAP_P(( Avlnode *root ));
 
-main( argc, argv )
-int	argc;
-char	**argv;
+int
+main( int argc, char **argv )
 {
 	Avlnode	*tree = NULLAVL;
 	char	command[ 10 ];

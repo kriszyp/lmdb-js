@@ -47,6 +47,7 @@ int cache_delete_entry LDAP_P(( struct cache *cache, Entry *e ));
 struct dbcache * ldbm_cache_open LDAP_P(( Backend *be, char *name, char *suffix,
  int flags ));
 void ldbm_cache_close LDAP_P(( Backend *be, struct dbcache *db ));
+void ldbm_cache_really_close LDAP_P(( Backend *be, struct dbcache *db ));
 void ldbm_cache_flush_all LDAP_P(( Backend *be ));
 Datum ldbm_cache_fetch LDAP_P(( struct dbcache *db, Datum key ));
 int ldbm_cache_store LDAP_P(( struct dbcache *db, Datum key, Datum data, int flags ));
@@ -73,6 +74,7 @@ IDList * filter_candidates LDAP_P(( Backend *be, Filter *f ));
  */
 
 int id2children_add LDAP_P(( Backend *be, Entry *p, Entry *e ));
+int id2children_remove LDAP_P(( Backend *be, Entry *p, Entry *e ));
 int has_children LDAP_P(( Backend *be, Entry *p ));
 
 /*
@@ -95,6 +97,7 @@ void idl_free LDAP_P(( IDList *idl ));
 IDList * idl_fetch LDAP_P(( Backend *be, struct dbcache *db, Datum key ));
 int idl_insert_key LDAP_P(( Backend *be, struct dbcache *db, Datum key, ID id ));
 int idl_insert LDAP_P(( IDList **idl, ID id, int maxids ));
+int idl_delete_key LDAP_P(( Backend *be, struct dbcache *db, Datum key, ID id ));
 IDList * idl_intersection LDAP_P(( Backend *be, IDList *a, IDList *b ));
 IDList * idl_union LDAP_P(( Backend *be, IDList *a, IDList *b ));
 IDList * idl_notin LDAP_P(( Backend *be, IDList *a, IDList *b ));

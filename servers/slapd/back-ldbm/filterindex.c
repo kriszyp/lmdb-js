@@ -10,21 +10,12 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-extern char	*first_word();
-extern char	*next_word();
-extern char	*phonetic();
-extern IDList	*index_read();
-extern IDList	*idl_intersection();
-extern IDList	*idl_union();
-extern IDList	*idl_notin();
-extern IDList	*idl_allids();
-
-static IDList	*ava_candidates();
-static IDList	*presence_candidates();
-static IDList	*approx_candidates();
-static IDList	*list_candidates();
-static IDList	*substring_candidates();
-static IDList	*substring_comp_candidates();
+static IDList	*ava_candidates( Backend *be, Ava *ava, int type );
+static IDList	*presence_candidates( Backend *be, char *type );
+static IDList	*approx_candidates( Backend *be, Ava *ava );
+static IDList	*list_candidates( Backend *be, Filter *flist, int ftype );
+static IDList	*substring_candidates( Backend *be, Filter *f );
+static IDList	*substring_comp_candidates( Backend *be, char *type, char *val, int prepost );
 
 /*
  * test_filter - test a filter against a single entry.
@@ -92,7 +83,7 @@ filter_candidates(
 		break;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= filter_candidates %d\n",
+	Debug( LDAP_DEBUG_TRACE, "<= filter_candidates %lu\n",
 	    result ? result->b_nids : 0, 0, 0 );
 	return( result );
 }
@@ -123,7 +114,7 @@ ava_candidates(
 		break;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= ava_candidates %d\n",
+	Debug( LDAP_DEBUG_TRACE, "<= ava_candidates %lu\n",
 	    idl ? idl->b_nids : 0, 0, 0 );
 	return( idl );
 }
@@ -140,7 +131,7 @@ presence_candidates(
 
 	idl = index_read( be, type, 0, "*" );
 
-	Debug( LDAP_DEBUG_TRACE, "<= presence_candidates %d\n",
+	Debug( LDAP_DEBUG_TRACE, "<= presence_candidates %lu\n",
 	    idl ? idl->b_nids : 0, 0, 0 );
 	return( idl );
 }
@@ -177,7 +168,7 @@ approx_candidates(
 		}
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= approx_candidates %d\n",
+	Debug( LDAP_DEBUG_TRACE, "<= approx_candidates %lu\n",
 	    idl ? idl->b_nids : 0, 0, 0 );
 	return( idl );
 }
@@ -218,7 +209,7 @@ list_candidates(
 		}
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= list_candidates %d\n",
+	Debug( LDAP_DEBUG_TRACE, "<= list_candidates %lu\n",
 	    idl ? idl->b_nids : 0, 0, 0 );
 	return( idl );
 }
@@ -285,7 +276,7 @@ substring_candidates(
 		}
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= substring_candidates %d\n",
+	Debug( LDAP_DEBUG_TRACE, "<= substring_candidates %lu\n",
 	    idl ? idl->b_nids : 0, 0, 0 );
 	return( idl );
 }
@@ -353,7 +344,7 @@ substring_comp_candidates(
 		}
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= substring_comp_candidates %d\n",
+	Debug( LDAP_DEBUG_TRACE, "<= substring_comp_candidates %lu\n",
 	    idl ? idl->b_nids : 0, 0, 0 );
 	return( idl );
 }

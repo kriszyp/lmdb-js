@@ -57,7 +57,7 @@ Backend * select_backend LDAP_P(( char * dn ));
 int be_issuffix LDAP_P(( Backend *be, char *suffix ));
 int be_isroot LDAP_P(( Backend *be, char *dn ));
 int be_isroot_pw LDAP_P(( Backend *be, char *dn, struct berval *cred ));
-void be_close LDAP_P(());
+void be_close LDAP_P(( void ));
 
 /*
  * ch_malloc.c
@@ -216,5 +216,101 @@ int value_find LDAP_P(( struct berval **vals, struct berval *v, int syntax,
  * suffixAlias.c
  */
 char *suffixAlias LDAP_P(( char *dn, Operation *op, Backend *be ));
+
+/*
+ * Other...
+ */
+
+extern char		**g_argv;
+extern char		*default_referral;
+extern char		*replogfile;
+extern char		Versionstr[];
+extern int		active_threads;
+extern int		defsize;
+extern int		deftime;
+extern int		g_argc;
+extern int		global_default_access;
+extern int		global_lastmod;
+extern int		global_schemacheck;
+extern int		lber_debug;
+extern int		ldap_syslog;
+extern int		num_conns;
+extern int		slapd_shutdown;
+extern long		num_bytes_sent;
+extern long		num_entries_sent;
+extern long		ops_completed;
+extern long		ops_initiated;
+extern pthread_mutex_t	active_threads_mutex;
+extern pthread_mutex_t	currenttime_mutex;
+extern pthread_mutex_t	entry2str_mutex;
+extern pthread_mutex_t	new_conn_mutex;
+extern pthread_mutex_t	num_sent_mutex;
+extern pthread_mutex_t	ops_mutex;
+extern pthread_mutex_t	replog_mutex;
+extern pthread_t	listener_tid;
+extern struct acl	*global_acl;
+extern struct objclass	*global_oc;
+extern time_t		currenttime;
+
+extern int	be_group LDAP_P((Backend *be, char *bdn, char *edn, char *objectclassValue, char *groupattrName));
+extern void	init LDAP_P((void));
+extern void	be_unbind LDAP_P((Connection *conn, Operation *op));
+extern void	config_info LDAP_P((Connection *conn, Operation *op));
+extern void	do_abandon LDAP_P((Connection *conn, Operation *op));
+extern void	do_add LDAP_P((Connection *conn, Operation *op));
+extern void	do_bind LDAP_P((Connection *conn, Operation *op));
+extern void	do_compare LDAP_P((Connection *conn, Operation *op));
+extern void	do_delete LDAP_P((Connection *conn, Operation *op));
+extern void	do_modify LDAP_P((Connection *conn, Operation *op));
+extern void	do_modrdn LDAP_P((Connection *conn, Operation *op));
+extern void	do_search LDAP_P((Connection *conn, Operation *op));
+extern void	do_unbind LDAP_P((Connection *conn, Operation *op));
+extern void *	slapd_daemon LDAP_P((void *port));
+
+extern int		nbackends;
+extern Backend		*backends;
+extern int send_search_entry LDAP_P((Backend *be, Connection *conn, Operation *op, Entry *e, char **attrs, int attrsonly));
+extern int str2result LDAP_P(( char *s, int *code, char **matched, char **info ));
+
+#if defined( SLAPD_MONITOR_DN )
+extern Connection	*c;
+extern int		dtblsize;
+extern time_t		starttime;
+#endif
+
+#ifdef SLAPD_LDBM
+extern int  ldbm_back_bind   LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, int method, struct berval *cred ));
+extern void ldbm_back_unbind LDAP_P((Backend *be, Connection *c, Operation *o ));
+extern int  ldbm_back_search LDAP_P((Backend *be, Connection *c, Operation *o, char *base, int scope, int deref, int slimit, int tlimit, Filter *f, char *filterstr, char **attrs, int attrsonly));
+extern int  ldbm_back_compare LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, Ava *ava));
+extern int  ldbm_back_modify LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, LDAPMod *m));
+extern int  ldbm_back_modrdn LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, char *newrdn, int deleteoldrdn ));
+extern int  ldbm_back_add    LDAP_P((Backend *be, Connection *c, Operation *o, Entry *e));
+extern int  ldbm_back_delete LDAP_P((Backend *be, Connection *c, Operation *o, char *dn));
+extern void ldbm_back_abandon LDAP_P((Backend *be, Connection *c, Operation *o, int msgid));
+extern void ldbm_back_config LDAP_P((Backend *be, char *fname, int lineno, int argc, char **argv ));
+extern void ldbm_back_init   LDAP_P((Backend *be));
+extern void ldbm_back_close  LDAP_P((Backend *be));
+extern int  ldbm_back_group  LDAP_P((Backend *be, char *bdn, char *edn, char *objectclassValue, char *groupattrName ));
+#endif
+
+#ifdef SLAPD_PASSWD
+extern int  passwd_back_search LDAP_P((Backend *be, Connection *c, Operation *o, char *base, int scope, int deref, int slimit, int tlimit, Filter *f, char *filterstr, char **attrs, int attrsonly));
+extern void passwd_back_config LDAP_P((Backend *be, char *fname, int lineno, int argc, char **argv ));
+#endif
+
+#ifdef SLAPD_SHELL
+extern int  shell_back_bind   LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, int method, struct berval *cred ));
+extern void shell_back_unbind LDAP_P((Backend *be, Connection *c, Operation *o ));
+extern int  shell_back_search LDAP_P((Backend *be, Connection *c, Operation *o, char *base, int scope, int deref, int slimit, int tlimit, Filter *f, char *filterstr, char **attrs, int attrsonly));
+extern int  shell_back_compare LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, Ava *ava));
+extern int  shell_back_modify LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, LDAPMod *m));
+extern int  shell_back_modrdn LDAP_P((Backend *be, Connection *c, Operation *o, char *dn, char *newrdn, int deleteoldrdn ));
+extern int  shell_back_add    LDAP_P((Backend *be, Connection *c, Operation *o, Entry *e));
+extern int  shell_back_delete LDAP_P((Backend *be, Connection *c, Operation *o, char *dn));
+extern void shell_back_abandon LDAP_P((Backend *be, Connection *c, Operation *o, int msgid));
+extern void shell_back_config LDAP_P((Backend *be, char *fname, int lineno, int argc, char **argv ));
+extern void shell_back_init   LDAP_P((Backend *be));
+#endif
 
 #endif /* _proto_slap */

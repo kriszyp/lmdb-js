@@ -19,10 +19,6 @@
 
 #include "slap.h"
 
-extern Backend	*select_backend();
-
-extern char	*default_referral;
-
 void
 do_modrdn(
     Connection	*conn,

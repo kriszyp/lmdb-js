@@ -1,10 +1,16 @@
 #include "portable.h"
 
-#ifndef HAVE_TEMPNAME
+#ifndef HAVE_TEMPNAM
 
+#include <stdlib.h>
+#include <stdlib.h>
 #include <ac/string.h>
+extern char *mktemp (char *);
 
-char *tempnam( char *dir, char *pfx )
+#include "lutil.h"
+
+char *
+tempnam( char *dir, char *pfx )
 {
     char	*s;
 

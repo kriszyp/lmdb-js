@@ -31,8 +31,6 @@
 #include "ldap.h"
 #include "common.h"
 
-extern int	dosyslog;
-
 #ifdef PEPSY_DUMP
 #ifndef DEBUG
 #define DEBUG
@@ -70,11 +68,6 @@ client_request(
 	BerElement	ber, *copyofber;
 	struct msg	*m;
 	static int	bound;
-	extern char	*bound_dn, *bound_pw;
-	struct PSAPaddr	*psap_cpy();
-#ifdef LDAP_COMPAT
-	extern int	ldap_compat;
-#endif
 
 	Debug( LDAP_DEBUG_TRACE, "client_request%s\n",
 	    udp ? " udp" : "", 0, 0 );
@@ -203,7 +196,7 @@ client_request(
 		 * duplicate request: toss this one
 		 */
 		Debug( LDAP_DEBUG_TRACE,
-		    "client_request tossing dup request id %d from %s\n",
+		    "client_request tossing dup request id %ld from %s\n",
 		    msgid, inet_ntoa( ((struct sockaddr_in *)
 		    clientsb->sb_fromaddr)->sin_addr ), 0 );
 		free( ber.ber_buf );

@@ -5,29 +5,21 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
+#include "ldapconfig.h"
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 
-#include "ldapconfig.h"
 #include "ldif.h"
 
 #define MAXARGS      		100
-
-extern struct dbcache	*ldbm_cache_open();
-extern void		attr_index_config();
-extern char		*dn_parent();
-extern char		*dn_normalize_case();
-extern int		nbackends;
-extern Backend		*backends;
-extern int		ldap_debug;
 
 int		lineno;
 int		ldap_debug;
 int		ldap_syslog;
 int		ldap_syslog_level;
 int		global_schemacheck;
-int		num_entries_sent;
-int		num_bytes_sent;
+long		num_entries_sent;
+long		num_bytes_sent;
 int		active_threads;
 char		*default_referral;
 struct objclass	*global_oc;
@@ -52,6 +44,7 @@ usage( char *name )
 	exit( 1 );
 }
 
+int
 main( int argc, char **argv )
 {
 	int		i, cargc, indb, stop, status;
@@ -188,7 +181,7 @@ main( int argc, char **argv )
 				}
 
 				if ( linep == NULL ) {
-					fprintf( stderr, "entry %d has no dn\n",
+					fprintf( stderr, "entry %lu has no dn\n",
 					    id );
 				} else {
 					key.dptr = dn_normalize_case( val );
@@ -264,7 +257,7 @@ main( int argc, char **argv )
 				}
 
 				if ( linep == NULL ) {
-					fprintf( stderr, "entry %d has no dn\n",
+					fprintf( stderr, "entry %lu has no dn\n",
 					    id );
 				} else {
 					if ( (dn = dn_parent( be, val ))
@@ -292,7 +285,7 @@ main( int argc, char **argv )
 						    data.dptr, sizeof(ID) );
 					}
 
-					sprintf( buf2, "%c%d", EQ_PREFIX, pid );
+					sprintf( buf2, "%c%ld", EQ_PREFIX, pid );
 					key.dptr = buf2;
 					key.dsize = strlen( buf2 ) + 1;
 					if ( idl_insert_key( be, db2, key, id )

@@ -29,7 +29,7 @@ next_id( Backend *be )
 	if ( li->li_nextid == -1 ) {
 		if ( (fp = fopen( buf, "r" )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-			    "next_id %d: could not open \"%s\"\n",
+			    "next_id %lu: could not open \"%s\"\n",
 			    li->li_nextid, buf, 0 );
 			li->li_nextid = 1;
 		} else {
@@ -37,7 +37,7 @@ next_id( Backend *be )
 				li->li_nextid = atol( buf2 );
 			} else {
 				Debug( LDAP_DEBUG_ANY,
-			    "next_id %d: could not fgets nextid from \"%s\"\n",
+			   "next_id %lu: could not fgets nextid from \"%s\"\n",
 				    li->li_nextid, buf2, 0 );
 				li->li_nextid = 1;
 			}
@@ -47,15 +47,15 @@ next_id( Backend *be )
 
 	li->li_nextid++;
 	if ( (fp = fopen( buf, "w" )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "next_id %d: could not open \"%s\"\n",
+		Debug( LDAP_DEBUG_ANY, "next_id %lu: could not open \"%s\"\n",
 		    li->li_nextid, buf, 0 );
 	} else {
 		if ( fprintf( fp, "%ld\n", li->li_nextid ) == EOF ) {
-			Debug( LDAP_DEBUG_ANY, "next_id %d: cannot fprintf\n",
+			Debug( LDAP_DEBUG_ANY, "next_id %lu: cannot fprintf\n",
 			    li->li_nextid, 0, 0 );
 		}
 		if( fclose( fp ) != 0 ) {
-			Debug( LDAP_DEBUG_ANY, "next_id %d: cannot fclose\n",
+			Debug( LDAP_DEBUG_ANY, "next_id %lu: cannot fclose\n",
 			    li->li_nextid, 0, 0 );
 		}
 	}
@@ -83,17 +83,17 @@ next_id_return( Backend *be, ID id )
 	li->li_nextid--;
 	if ( (fp = fopen( buf, "w" )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-		    "next_id_return of %d: could not open \"%s\" next id %d\n",
+		  "next_id_return of %lu: could not open \"%s\" next id %lu\n",
 		    id, buf, li->li_nextid );
 	} else {
 		if ( fprintf( fp, "%ld\n", li->li_nextid ) == EOF ) {
 			Debug( LDAP_DEBUG_ANY,
-		    "next_id_return of %d: cannot fprintf \"%s\" next id %d\n",
+		  "next_id_return of %lu: cannot fprintf \"%s\" next id %lu\n",
 			    id, buf, li->li_nextid );
 		}
 		if( fclose( fp ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-		    "next_id_return of %d: cannot fclose \"%s\" next id %d\n",
+		  "next_id_return of %lu: cannot fclose \"%s\" next id %lu\n",
 			    id, buf, li->li_nextid );
 		}
 	}
@@ -116,7 +116,7 @@ next_id_get( Backend *be )
 	if ( li->li_nextid == -1 ) {
 		if ( (fp = fopen( buf, "r" )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-			    "next_id %d: could not open \"%s\"\n",
+			    "next_id %lu: could not open \"%s\"\n",
 			    li->li_nextid, buf, 0 );
 			li->li_nextid = 1;
 		} else {
@@ -124,7 +124,7 @@ next_id_get( Backend *be )
 				li->li_nextid = atol( buf2 );
 			} else {
 				Debug( LDAP_DEBUG_ANY,
-			    "next_id %d: cannot fgets nextid from \"%s\"\n",
+			    "next_id %lu: cannot fgets nextid from \"%s\"\n",
 				    li->li_nextid, buf2, 0 );
 				li->li_nextid = 1;
 			}

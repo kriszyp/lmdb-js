@@ -9,6 +9,7 @@
 #include "slap.h"
 #include "shell.h"
 
+void
 shell_back_init(
     Backend	*be
 )

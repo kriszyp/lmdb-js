@@ -4,27 +4,20 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
+extern int strcasecmp(const char *, const char *);
 
+#include "ldapconfig.h"
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 
-#include "ldapconfig.h"
-
 #define MAXARGS      		100
-
-extern struct dbcache	*ldbm_cache_open();
-extern void		attr_index_config();
-extern int		strcasecmp();
-extern int		nbackends;
-extern Backend		*backends;
-extern int		ldap_debug;
 
 int		ldap_debug;
 int		ldap_syslog;
 int		ldap_syslog_level;
 int		global_schemacheck;
-int		num_entries_sent;
-int		num_bytes_sent;
+long		num_entries_sent;
+long		num_bytes_sent;
 int		active_threads;
 char		*default_referral;
 struct objclass	*global_oc;
@@ -39,8 +32,6 @@ pthread_mutex_t	replog_mutex;
 pthread_mutex_t	ops_mutex;
 pthread_mutex_t	regex_mutex;
 
-static int	make_index();
-
 static char	*tailorfile;
 static char	*inputfile;
  
@@ -51,6 +42,7 @@ usage( char *name )
 	exit( 1 );
 }
 
+int
 main( int argc, char **argv )
 {
 	int		i, cargc, indb, stop, status;
@@ -153,7 +145,7 @@ main( int argc, char **argv )
 
 			len = strlen( line );
 			if ( buf == NULL || *buf == '\0' ) {
-				sprintf( idbuf, "%d\n", id + 1 );
+				sprintf( idbuf, "%lu\n", id + 1 );
 				idlen = strlen( idbuf );
 			} else {
 				idlen = 0;

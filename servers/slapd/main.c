@@ -5,15 +5,11 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/unistd.h>
 
-#include "slap.h"
 #include "ldapconfig.h"
+#include "slap.h"
 #include "lutil.h"			/* Get lutil_detach() */
-
-extern void	slapd_daemon();
-extern int	lber_debug;
-
-extern char Versionstr[];
 
 
 /*
@@ -58,16 +54,13 @@ pthread_mutex_t	entry2str_mutex;
 pthread_mutex_t	replog_mutex;
 
 static void
-usage( name )
-    char	*name;
+usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-d ?|debuglevel] [-f configfile] [-p portnumber] [-s sysloglevel]\n", name );
 }
 
 int
-main( argc, argv )
-    int		argc;
-    char	**argv;
+main( int argc, char **argv )
 {
 	int		i;
 	int		inetd = 0;
@@ -269,7 +262,7 @@ main( argc, argv )
 			    != LDAP_TAG_MSGID ) {
 				/* log and send error */
 				Debug( LDAP_DEBUG_ANY,
-				    "ber_get_int returns 0x%x\n", tag, 0, 0 );
+				   "ber_get_int returns 0x%lx\n", tag, 0, 0 );
 				return 1;
 			}
 
@@ -277,7 +270,7 @@ main( argc, argv )
 			    == LBER_ERROR ) {
 				/* log, close and send error */
 				Debug( LDAP_DEBUG_ANY,
-				    "ber_peek_tag returns 0x%x\n", tag, 0, 0 );
+				   "ber_peek_tag returns 0x%lx\n", tag, 0, 0 );
 				ber_free( &ber, 1 );
 				close( c.c_sb.sb_sd );
 				c.c_sb.sb_sd = -1;

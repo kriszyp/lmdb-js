@@ -9,13 +9,10 @@
 
 #include "slap.h"
 
-extern char		**str2charray();
-extern void		charray_merge();
-
 struct objclass		*global_oc;
 int			global_schemacheck;
 
-static void		oc_usage();
+static void		oc_usage(void);
 
 void
 parse_oc(
@@ -72,7 +69,7 @@ parse_oc(
 }
 
 static void
-oc_usage()
+oc_usage( void )
 {
 	fprintf( stderr, "<oc clause> ::= objectclass <ocname>\n" );
 	fprintf( stderr, "                [ requires <attrlist> ]\n" );

@@ -11,8 +11,6 @@
 
 #include "slap.h"
 
-static char	**dn_explode();
-
 #define DNSEPARATOR(c)	(c == ',' || c == ';')
 #define SEPARATOR(c)	(c == ',' || c == ';' || c == '+')
 #define SPACE(c)	(c == ' ' || c == '\n')

@@ -94,6 +94,8 @@ void add_strval( char ***sp, char *val );
 char *ecalloc( unsigned nelem, unsigned elsize );
 void *erealloc( void *s, unsigned size );
 char *estrdup( char *s );
+extern void dump_ldop (struct ldop *op);
+
 
 /*
  * global variables

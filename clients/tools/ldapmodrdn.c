@@ -8,6 +8,7 @@
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
+extern char *strdup (const char *);
 
 #include <lber.h>
 #include <ldap.h>
@@ -20,10 +21,6 @@ static int	ldapport = 0;
 static int	not, verbose, contoper;
 static LDAP	*ld;
 
-#ifdef LDAP_DEBUG
-extern int ldap_debug, lber_debug;
-#endif /* LDAP_DEBUG */
-
 #define safe_realloc( ptr, size )	( ptr == NULL ? malloc( size ) : \
 					 realloc( ptr, size ))
 
@@ -34,9 +31,7 @@ static int domodrdn LDAP_P((
     int		remove));	/* flag: remove old RDN */
 
 int
-main( argc, argv )
-    int		argc;
-    char	**argv;
+main(int argc, char **argv)
 {
     char		*usage = "usage: %s [-nvkc] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile | dn newrdn ]\n";
     char		*myname,*infile, *entrydn, *rdn, buf[ 4096 ];

@@ -17,8 +17,8 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
-#include "slap.h"
 #include "ldapconfig.h"
+#include "slap.h"
 
 #ifdef HAVE_SYS_FILIO_H
 #include <sys/filio.h>
@@ -33,29 +33,15 @@ int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
 #endif /* TCP Wrappers */
 
-extern Operation	*op_add();
-
-extern time_t		currenttime;
-extern pthread_mutex_t	currenttime_mutex;
-extern int		active_threads;
-extern pthread_mutex_t	active_threads_mutex;
-extern pthread_mutex_t	new_conn_mutex;
-extern int		slapd_shutdown;
-extern pthread_t	listener_tid;
-extern int		num_conns;
-extern pthread_mutex_t	ops_mutex;
-extern int		g_argc;
-extern char		**g_argv;
-
 int		dtblsize;
 Connection	*c;
 
-static void	set_shutdown();
-static void	do_nothing();
+static void	set_shutdown(int sig);
+static void	do_nothing  (int sig);
 
-void
+void *
 slapd_daemon(
-    int	port
+    void *port
 )
 {
 	Operation		*o;
@@ -125,7 +111,7 @@ slapd_daemon(
 	(void) memset( (void *) &addr, '\0', sizeof(addr) );
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = INADDR_ANY;
-	addr.sin_port = htons( port );
+	addr.sin_port = htons( (int)port );
 	if ( bind( tcps, (struct sockaddr *) &addr, sizeof(addr) ) == -1 ) {
 		Debug( LDAP_DEBUG_ANY, "bind() failed errno %d (%s)\n",
 		    errno, errno > -1 && errno < sys_nerr ? sys_errlist[errno] :
@@ -159,7 +145,7 @@ slapd_daemon(
 	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
 #ifdef SLAPD_PIDFILE
 	if ( (fp = fopen( SLAPD_PIDFILE, "w" )) != NULL ) {
-		fprintf( fp, "%d\n", getpid() );
+		fprintf( fp, "%d\n", (int) getpid() );
 		fclose( fp );
 	}
 #endif
@@ -407,12 +393,13 @@ slapd_daemon(
 	    0 );
 	be_close();
 	Debug( LDAP_DEBUG_ANY, "slapd stopping\n", 0, 0, 0 );
+	return NULL;
 }
 
 static void
-set_shutdown()
+set_shutdown( int sig )
 {
-	Debug( LDAP_DEBUG_ANY, "slapd got shutdown signal\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ANY, "slapd got shutdown signal %d\n", sig, 0, 0 );
 	slapd_shutdown = 1;
 #ifdef HAVE_LINUX_THREADS
 	/*
@@ -431,9 +418,9 @@ set_shutdown()
 }
 
 static void
-do_nothing()
+do_nothing( int sig )
 {
-	Debug( LDAP_DEBUG_TRACE, "slapd got do_nothing signal\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "slapd got do_nothing signal %d\n", sig, 0, 0 );
 #ifdef HAVE_LINUX_THREADS
 	/*
 	 * LinuxThreads are implemented using SIGUSR1/USR2,

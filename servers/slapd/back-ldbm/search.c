@@ -11,17 +11,9 @@
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
 
-extern time_t		currenttime;
-extern pthread_mutex_t	currenttime_mutex;
-
-extern IDList		*idl_alloc();
-extern Attribute	*attr_find();
-extern IDList		*filter_candidates();
-extern char		*dn_parent();
-
-static IDList	*base_candidates();
-static IDList	*onelevel_candidates();
-static IDList	*subtree_candidates();
+static IDList	*base_candidates(Backend *be, Connection *conn, Operation *op, char *base, Filter *filter, char **attrs, int attrsonly, char **matched, int *err);
+static IDList	*onelevel_candidates(Backend *be, Connection *conn, Operation *op, char *base, Filter *filter, char **attrs, int attrsonly, char **matched, int *err);
+static IDList	*subtree_candidates(Backend *be, Connection *conn, Operation *op, char *base, Filter *filter, char **attrs, int attrsonly, char **matched, Entry *e, int *err, int lookupbase);
 
 #define GRABSIZE	BUFSIZ
 
@@ -162,7 +154,8 @@ ldbm_back_search(
 
 		/* get the entry with reader lock */
 		if ( (e = id2entry_r( be, id )) == NULL ) {
-			Debug( LDAP_DEBUG_ARGS, "candidate %d not found\n", id, 0, 0 );
+			Debug( LDAP_DEBUG_ARGS, "candidate %lu not found\n",
+			       id, 0, 0 );
 			continue;
 		}
 

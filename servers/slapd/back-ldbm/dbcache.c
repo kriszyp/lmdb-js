@@ -15,17 +15,9 @@
 #include <sys/param.h>
 #endif
 
+#include "ldapconfig.h"
 #include "slap.h"
 #include "back-ldbm.h"
-#include "ldapconfig.h"
-
-#ifdef DECL_SYS_ERRLIST
-extern int		sys_nerr;
-extern char		*sys_errlist[];
-#endif
-
-extern time_t		currenttime;
-extern pthread_mutex_t	currenttime_mutex;
 
 struct dbcache *
 ldbm_cache_open(
@@ -122,7 +114,7 @@ ldbm_cache_open(
 	    li->li_dbcache[i].dbc_maxids) + 1;
 
 	Debug( LDAP_DEBUG_ARGS,
-	    "ldbm_cache_open (blksize %d) (maxids %d) (maxindirect %d)\n",
+	    "ldbm_cache_open (blksize %ld) (maxids %d) (maxindirect %d)\n",
 	    li->li_dbcache[i].dbc_blksize, li->li_dbcache[i].dbc_maxids,
 	    li->li_dbcache[i].dbc_maxindirect );
 	Debug( LDAP_DEBUG_TRACE, "<= ldbm_cache_open (opened %d)\n", i, 0, 0 );

@@ -14,10 +14,7 @@ void
 shell_back_unbind(
     Backend		*be,
     Connection		*conn,
-    Operation		*op,
-    char		*dn,
-    int			method,
-    struct berval	*cred
+    Operation		*op
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
@@ -38,9 +35,9 @@ shell_back_unbind(
 
 	/* write out the request to the unbind process */
 	fprintf( wfp, "UNBIND\n" );
-	fprintf( wfp, "msgid: %d\n", op->o_msgid );
+	fprintf( wfp, "msgid: %ld\n", op->o_msgid );
 	print_suffixes( wfp, be );
-	fprintf( wfp, "dn: %s\n", dn );
+	fprintf( wfp, "dn: %s\n", (conn->c_dn ? conn->c_dn : "") );
 	fclose( wfp );
 
 	/* no response to unbind */

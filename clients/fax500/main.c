@@ -11,16 +11,18 @@
  */
 
 #include "portable.h"
+#include "fax500.h"
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 
 #include <ac/socket.h>
-#include <ac/string.h>
 #include <ac/syslog.h>
 #include <ac/time.h>
 #include <ac/wait.h>
+#include <ac/unistd.h>
+#include <ac/errno.h>
+extern int	optind, errno;
+extern char	*optarg;
 
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -48,7 +50,6 @@ char	*errorsfrom = NULL;
 char	*mailfrom = NULL;
 char	*host = NULL;
 int	hostlen = 0;
-char	*faxtotpc();
 
 int	identity;
 #define	MAIL500	1	
@@ -104,27 +105,33 @@ static char	*attrs[] = { "objectClass", "title", "postaladdress",
 			"rfc822RequestsTo", "joinable", "cn", "member",
 			"facsimileTelephoneNumber", NULL };
 
-static do_address();
-static do_group();
-static do_group_members();
-static send_message();
-static send_errors();
-static do_noemailorfax();
-static do_ambiguous();
-static add_to();
-static isgroup();
-static add_error();
-static add_group();
-static unbind_and_exit();
-static group_loop();
-static send_group();
-static has_attributes();
-static char **get_attributes_mail_dn();
-static char *canonical();
 
-main (argc, argv)
-int	argc;
-char	**argv;
+static void do_address(char *name, char ***to, int *nto, Group **togroups, int *ngroups, Error **err, int *nerr, int type);
+static int  do_group(LDAPMessage *e, char *dn, char ***to, int *nto, Group **togroups, int *ngroups, Error **err, int *nerr);
+static void do_group_members(LDAPMessage *e, char *dn, char ***to, int *nto, Group **togroups, int *ngroups, Error **err, int *nerr);
+static void send_message(char **to);
+static void send_errors(Error *err, int nerr);
+static void do_noemailorfax(FILE *fp, Error *err, int namelen, int errtype);
+static void do_ambiguous(FILE *fp, Error *err, int namelen);
+static int  count_values(char **list);
+static void add_to(char ***list, int *nlist, char **new);
+static int  isgroup(LDAPMessage *e);
+static void add_error(Error **err, int *nerr, int code, char *addr, LDAPMessage *msg);
+static void add_group(char *dn, Group **list, int *nlist);
+static void unbind_and_exit(int rc);
+static int  group_loop(char *dn);
+static void send_group(Group *group, int ngroup);
+static int  has_attributes(LDAPMessage *e, char *attr1, char *attr2);
+static char **get_attributes_mail_dn(LDAPMessage *e, char *attr1, char *attr2);
+static char *canonical(char *s);
+static int  connect_to_x500 (void);
+static void do_group_errors (LDAPMessage *e, char *dn, char ***to, int *nto, Error **err, int *nerr);
+static void do_group_request (LDAPMessage *e, char *dn, char ***to, int *nto, Error **err, int *nerr);
+static void add_member (char *gdn, char *dn, char ***to, int *nto, Group **togroups, int *ngroups, Error **err, int *nerr);
+
+
+int
+main ( int argc, char **argv )
 {
 	char		*myname;
 	char		**tolist;
@@ -132,9 +139,6 @@ char	**argv;
 	Group		*togroups;
 	int		numto, ngroups, numerr, nargs;
 	int		i, j;
-	FILE		*fp;
-	extern int	optind, errno;
-	extern char	*optarg;
 
 	while ( (i = getopt( argc, argv, "f:h:m:" )) != EOF ) {
 		switch( i ) {
@@ -256,7 +260,7 @@ char	**argv;
 	 */
 
 	if ( numerr > 0 && numto > nargs || ngroups > 0 ) {
-		int	fd;
+		FILE	*fp;
 		char	buf[BUFSIZ];
 
 		umask( 077 );
@@ -304,7 +308,8 @@ char	**argv;
 	return( EX_OK );
 }
 
-connect_to_x500()
+static int
+connect_to_x500( void )
 {
 	int sizelimit = FAX_MAXAMBIGUOUS;
 	int deref = LDAP_DEREF_ALWAYS;
@@ -326,16 +331,17 @@ connect_to_x500()
 }
 
 
-static
-do_address( name, to, nto, togroups, ngroups, err, nerr, type )
-    char	*name;
-    char	***to;
-    int		*nto;
-    Group	**togroups;
-    int		*ngroups;
-    Error	**err;
-    int		*nerr;
-    int		type;
+static void
+do_address(
+	char		*name,
+	char		***to,
+	int		*nto,
+	Group		**togroups,
+	int		*ngroups,
+	Error		**err,
+	int		*nerr,
+	int		type
+)
 {
 	int		rc, b, f, match;
 	LDAPMessage	*e, *res;
@@ -577,16 +583,17 @@ do_address( name, to, nto, togroups, ngroups, err, nerr, type )
 	return;
 }
 
-static
-do_group( e, dn, to, nto, togroups, ngroups, err, nerr )
-    LDAPMessage	*e;
-    char	*dn;
-    char	***to;
-    int		*nto;
-    Group	**togroups;
-    int		*ngroups;
-    Error	**err;
-    int		*nerr;
+static int
+do_group(
+	LDAPMessage	*e,
+	char		*dn,
+	char		***to,
+	int		*nto,
+	Group		**togroups,
+	int		*ngroups,
+	Error		**err,
+	int		*nerr
+)
 {
 	/*
 	 * If this group has an rfc822ErrorsTo attribute, we need to
@@ -615,16 +622,17 @@ do_group( e, dn, to, nto, togroups, ngroups, err, nerr )
 }
 
 /* ARGSUSED */
-static
-do_group_members( e, dn, to, nto, togroups, ngroups, err, nerr )
-    LDAPMessage	*e;
-    char	*dn;
-    char	***to;
-    int		*nto;
-    Group	**togroups;
-    int		*ngroups;
-    Error	**err;
-    int		*nerr;
+static void
+do_group_members(
+	LDAPMessage	*e,
+	char		*dn,
+	char		***to,
+	int		*nto,
+	Group		**togroups,
+	int		*ngroups,
+	Error		**err,
+	int		*nerr
+)
 {
 	int		i, rc;
 	char		*ndn;
@@ -796,15 +804,17 @@ do_group_members( e, dn, to, nto, togroups, ngroups, err, nerr )
 	return;
 }
 
-add_member( gdn, dn, to, nto, togroups, ngroups, err, nerr )
-    char	*gdn;
-    char	*dn;
-    char	***to;
-    int		*nto;
-    Group	**togroups;
-    int		*ngroups;
-    Error	**err;
-    int		*nerr;
+static void
+add_member(
+	char		*gdn,
+	char		*dn,
+	char		***to,
+	int		*nto,
+	Group		**togroups,
+	int		*ngroups,
+	Error		**err,
+	int		*nerr
+)
 {
 	char		*ndn;
 	char		**mail;
@@ -887,13 +897,15 @@ add_member( gdn, dn, to, nto, togroups, ngroups, err, nerr )
 	return;
 }
 
-do_group_request( e, dn, to, nto, err, nerr )
-    LDAPMessage	*e;
-    char	*dn;
-    char	***to;
-    int		*nto;
-    Error	**err;
-    int		*nerr;
+static void
+do_group_request(
+	LDAPMessage	*e,
+	char		*dn,
+	char		***to,
+	int		*nto,
+	Error		**err,
+	int		*nerr
+)
 {
 	char		**requeststo;
 
@@ -905,17 +917,17 @@ do_group_request( e, dn, to, nto, err, nerr )
 	} else {
 		add_error( err, nerr, E_NOREQUEST, dn, NULLMSG );
 	}
-
-	return;
 }
 
-do_group_errors( e, dn, to, nto, err, nerr )
-    LDAPMessage	*e;
-    char	*dn;
-    char	***to;
-    int		*nto;
-    Error	**err;
-    int		*nerr;
+static void
+do_group_errors(
+	LDAPMessage	*e,
+	char		*dn,
+	char		***to,
+	int		*nto,
+	Error		**err,
+	int		*nerr
+)
 {
 	char		**errorsto;
 
@@ -927,13 +939,10 @@ do_group_errors( e, dn, to, nto, err, nerr )
 	} else {
 		add_error( err, nerr, E_NOERRORS, dn, NULLMSG );
 	}
-
-	return;
 }
 
-static
-send_message( to )
-    char	**to;
+static void
+send_message( char **to )
 {
 	int	pid;
 #ifndef HAVE_WAITPID
@@ -942,7 +951,7 @@ send_message( to )
 
 
 	/* parent */
-	if ( pid = fork() ) {
+	if ( (pid = fork()) != 0 ) {
 #ifdef HAVE_WAITPID
 		waitpid( pid, (int *) NULL, 0 );
 #else
@@ -959,10 +968,8 @@ send_message( to )
 	}
 }
 
-static
-send_group( group, ngroup )
-    Group	*group;
-    int		ngroup;
+static void
+send_group( Group *group, int ngroup )
 {
 	int	i, pid;
 	char	**argv;
@@ -990,7 +997,7 @@ send_group( group, ngroup )
 
 
 		/* parent */
-		if ( pid = fork() ) {
+		if ( (pid = fork()) != 0 ) {
 #ifdef HAVE_WAITPID
 			waitpid( pid, (int *) NULL, 0 );
 #else
@@ -1009,10 +1016,8 @@ send_group( group, ngroup )
 	return;
 }
 
-static
-send_errors( err, nerr )
-    Error	*err;
-    int		nerr;
+static void
+send_errors( Error *err, int nerr )
 {
 	int		i, namelen;
 	FILE		*fp;
@@ -1108,12 +1113,8 @@ send_errors( err, nerr )
 }
 
 
-static
-do_noemailorfax( fp, err, namelen, errtype )
-    FILE	*fp;
-    Error	*err;
-    int		namelen;
-    int		errtype;
+static void
+do_noemailorfax( FILE *fp, Error *err, int namelen, int errtype )
 {
 	int		i, last;
 	char		*dn, *rdn;
@@ -1202,11 +1203,8 @@ do_noemailorfax( fp, err, namelen, errtype )
 }
 
 /* ARGSUSED */
-static
-do_ambiguous( fp, err, namelen )
-    FILE	*fp;
-    Error	*err;
-    int		namelen;
+static void
+do_ambiguous( FILE *fp, Error *err, int namelen )
 {
 	int		i, last;
 	char		*dn, *rdn;
@@ -1257,9 +1255,8 @@ do_ambiguous( fp, err, namelen )
 	}
 }
 
-static
-count_values( list )
-    char	**list;
+static int
+count_values( char **list )
 {
 	int	i;
 
@@ -1269,11 +1266,8 @@ count_values( list )
 	return( i );
 }
 
-static
-add_to( list, nlist, new )
-    char	***list;
-    int		*nlist;
-    char	**new;
+static void
+add_to( char ***list, int *nlist, char **new )
 {
 	int	i, nnew, oldnlist;
 
@@ -1297,9 +1291,8 @@ add_to( list, nlist, new )
 	return;
 }
 
-static
-isgroup( e )
-    LDAPMessage	*e;
+static int
+isgroup( LDAPMessage *e )
 {
 	int	i;
 	char	**oclist;
@@ -1317,13 +1310,8 @@ isgroup( e )
 	return( 0 );
 }
 
-static
-add_error( err, nerr, code, addr, msg )
-    Error	**err;
-    int		*nerr;
-    int		code;
-    char	*addr;
-    LDAPMessage	*msg;
+static void
+add_error( Error **err, int *nerr, int code, char *addr, LDAPMessage *msg )
 {
 	if ( *nerr == 0 ) {
 		*err = (Error *) malloc( sizeof(Error) );
@@ -1339,11 +1327,8 @@ add_error( err, nerr, code, addr, msg )
 	return;
 }
 
-static
-add_group( dn, list, nlist )
-    char	*dn;
-    Group	**list;
-    int		*nlist;
+static void
+add_group( char *dn, Group **list, int *nlist )
 {
 	int	i, namelen;
 	char	**ufn;
@@ -1390,9 +1375,8 @@ add_group( dn, list, nlist )
 	return;
 }
 
-static
-unbind_and_exit( rc )
-    int	rc;
+static void
+unbind_and_exit( int rc )
 {
 	int	i;
 
@@ -1403,8 +1387,7 @@ unbind_and_exit( rc )
 }
 
 static char *
-canonical( s )
-    char	*s;
+canonical( char *s )
 {
 	char	*saves = s;
 
@@ -1416,9 +1399,8 @@ canonical( s )
 	return( saves );
 }
 
-static
-group_loop( dn )
-    char	*dn;
+static int
+group_loop( char *dn )
 {
 	int		i;
 	static char	**groups;
@@ -1440,11 +1422,8 @@ group_loop( dn )
 	return( 0 );
 }
 
-static
-has_attributes( e, attr1, attr2 )
-    LDAPMessage	*e;
-    char	*attr1;
-    char	*attr2;
+static int
+has_attributes( LDAPMessage *e, char *attr1, char *attr2 )
 {
 	char	**attr;
 
@@ -1462,10 +1441,7 @@ has_attributes( e, attr1, attr2 )
 }
 
 static char **
-get_attributes_mail_dn( e, attr1, attr2 )
-    LDAPMessage	*e;
-    char	*attr1;
-    char	*attr2;		/* this one is dn-valued */
+get_attributes_mail_dn( LDAPMessage *e, char *attr1, char *attr2 )
 {
 	LDAPMessage	*ee, *res;
 	char		**vals, **dnlist, **mail;

@@ -25,6 +25,7 @@
 #include "lber.h"
 #include "ldap.h"
 #include "ldap_log.h"
+#include "common.h"			/* get ldap_dn_print() */
 
 void
 print_error( struct DSError *e )
