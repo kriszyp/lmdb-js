@@ -302,6 +302,11 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 	}
 
+	if ( overlay_init() ) {
+		fprintf( stderr, "%s: overlay_init failed!\n", progname );
+		exit( EXIT_FAILURE );
+	}
+
 	rc = read_config( conffile, 0 );
 
 	if ( rc != 0 ) {
