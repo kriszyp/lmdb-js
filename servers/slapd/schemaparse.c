@@ -22,6 +22,7 @@ static void		oc_usage(void);
 static void		at_usage(void);
 
 static char *const err2text[] = {
+	"Success",
 	"Out of memory",
 	"ObjectClass not found",
 	"ObjectClass inappropriate SUPerior",
