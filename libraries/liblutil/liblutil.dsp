@@ -172,6 +172,14 @@ SOURCE=.\md5.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\nt_err.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ntservice.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\passwd.c
 # End Source File
 # Begin Source File
@@ -181,6 +189,41 @@ SOURCE=..\..\include\portable.h
 # Begin Source File
 
 SOURCE=.\sha1.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\slapdmsg.mc
+
+!IF  "$(CFG)" == "liblutil - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "liblutil - Win32 Debug"
+
+# Begin Custom Build
+IntDir=.\Debug\liblutil
+InputPath=.\slapdmsg.mc
+
+"slapdmsg.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	mc -v slapdmsg.mc -r $(IntDir) 
+	rc /v /r $(IntDir)\slapdmsg.rc 
+	
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "liblutil - Win32 Single Debug"
+
+# Begin Custom Build
+IntDir=.\SDebug\liblutil
+InputPath=.\slapdmsg.mc
+
+"slapdmsg.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	mc -v slapdmsg.mc -r $(IntDir) 
+	rc /v /r $(IntDir)slapdmsg.rc 
+	
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "liblutil - Win32 Single Release"
+
+!ENDIF 
+
 # End Source File
 # End Target
 # End Project
