@@ -7,6 +7,7 @@ Changes included in OpenLDAP 1.2
 	Fixed -lldap/ldap_init() bug
 	Fixed -lldap/ldap_sort_entries() zero entries bug
 	Fixed slapd/slap_op memory/lock leak bug
+	Updated slapd/back-ldbm/id2children has_children logging
 	Updated slapd/back-ldbm IDList handling
 	Updated ldap_open(3) man page to note ldap_init() is preferred.
 	Updated internal thread library
@@ -18,6 +19,7 @@ Changes included in OpenLDAP 1.2
 		Fixed HAVE_PHREAD_FINAL typo
 		Fixed pthread detection on Digital UNIX
 		Updated to Autoconf 1.3 with aclocal from automake 1.4
+		Removed autoconf dependencies from main makefile
 
 Changes included in OpenLDAP 1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2_BETA
