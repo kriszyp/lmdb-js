@@ -306,12 +306,17 @@ acl_mask(
 			 * user is bound as somebody in the same namespace as
 			 * the entry, OR the given dn matches the dn pattern
 			 */
-			if ( strcasecmp( b->a_dn_pat, "anonymous" ) == 0 ) {
+			if ( strcmp( b->a_dn_pat, "anonymous" ) == 0 ) {
 				if (op->o_ndn != NULL && op->o_ndn[0] != '\0' ) {
 					continue;
 				}
 
-			} else if ( strcasecmp( b->a_dn_pat, "self" ) == 0 ) {
+			} else if ( strcmp( b->a_dn_pat, "users" ) == 0 ) {
+				if (op->o_ndn == NULL || op->o_ndn[0] == '\0' ) {
+					continue;
+				}
+
+			} else if ( strcmp( b->a_dn_pat, "self" ) == 0 ) {
 				if( op->o_ndn == NULL || op->o_ndn[0] == '\0' ) {
 					continue;
 				}
@@ -320,10 +325,13 @@ acl_mask(
 					continue;
 				}
 
-			} else if ( strcmp( b->a_dn_pat, ".*" ) != 0 &&
-				!regex_matches( b->a_dn_pat, op->o_ndn, e->e_ndn, matches ) )
-			{
-				continue;
+			} else if ( strcmp( b->a_dn_pat, "*" ) != 0 ) {
+				int ret = regex_matches( b->a_dn_pat,
+					op->o_ndn, e->e_ndn, matches );
+
+				if( ret == 0 ) {
+					continue;
+				}
 			}
 		}
 
@@ -331,7 +339,7 @@ acl_mask(
 			Debug( LDAP_DEBUG_ACL, "<= check a_sockurl_pat: %s\n",
 				b->a_sockurl_pat, 0, 0 );
 
-			if ( strcmp( b->a_sockurl_pat, ".*" ) != 0 &&
+			if ( strcmp( b->a_sockurl_pat, "*" ) != 0 &&
 				!regex_matches( b->a_sockurl_pat, conn->c_listener_url,
 				e->e_ndn, matches ) ) 
 			{
@@ -343,7 +351,7 @@ acl_mask(
 			Debug( LDAP_DEBUG_ACL, "<= check a_domain_pat: %s\n",
 				b->a_domain_pat, 0, 0 );
 
-			if ( strcmp( b->a_domain_pat, ".*" ) != 0 &&
+			if ( strcmp( b->a_domain_pat, "*" ) != 0 &&
 				!regex_matches( b->a_domain_pat, conn->c_peer_domain,
 				e->e_ndn, matches ) ) 
 			{
@@ -355,7 +363,7 @@ acl_mask(
 			Debug( LDAP_DEBUG_ACL, "<= check a_peername_path: %s\n",
 				b->a_peername_pat, 0, 0 );
 
-			if ( strcmp( b->a_peername_pat, ".*" ) != 0 &&
+			if ( strcmp( b->a_peername_pat, "*" ) != 0 &&
 				!regex_matches( b->a_peername_pat, conn->c_peer_name,
 				e->e_ndn, matches ) )
 			{
@@ -367,7 +375,7 @@ acl_mask(
 			Debug( LDAP_DEBUG_ACL, "<= check a_sockname_path: %s\n",
 				b->a_sockname_pat, 0, 0 );
 
-			if ( strcmp( b->a_sockname_pat, ".*" ) != 0 &&
+			if ( strcmp( b->a_sockname_pat, "*" ) != 0 &&
 				!regex_matches( b->a_sockname_pat, conn->c_sock_name,
 				e->e_ndn, matches ) )
 			{

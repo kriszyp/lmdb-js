@@ -119,11 +119,54 @@ parse_acl(
 				}
 
 				if ( strcasecmp( argv[i], "*" ) == 0 ) {
-					a->acl_dn_pat = ch_strdup( ".*" );
+					if( a->acl_dn_pat != NULL ) {
+						fprintf( stderr,
+							"%s: line %d: dn pattern"
+							" already specified in to clause.\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					a->acl_dn_pat = ch_strdup( "*" );
 					continue;
 				}
 
 				split( argv[i], '=', &left, &right );
+
+				if ( strcasecmp( left, "dn" ) == 0 ) {
+					if( a->acl_dn_pat != NULL ) {
+						fprintf( stderr,
+							"%s: line %d: dn pattern"
+							" already specified in to clause.\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					if ( right == NULL ) {
+						fprintf( stderr,
+	"%s: line %d: missing \"=\" in \"%s\" in to clause\n",
+						    fname, lineno, left );
+						acl_usage();
+					}
+
+					if( *right == '\0' ) {
+						a->acl_dn_pat = ch_strdup("^$");
+
+					} else if ( strcmp(right, "*") == 0 
+						|| strcmp(right, ".*") == 0 
+						|| strcmp(right, ".*$") == 0 
+						|| strcmp(right, "^.*") == 0 
+						|| strcmp(right, "^.*$") == 0 )
+					{
+						a->acl_dn_pat = ch_strdup( "*" );
+
+					} else {
+						a->acl_dn_pat = ch_strdup( right );
+					}
+
+					continue;
+				}
+
 				if ( right == NULL || *right == '\0' ) {
 					fprintf( stderr,
 	"%s: line %d: missing \"=\" in (or value after) \"%s\" in to clause\n",
@@ -140,9 +183,6 @@ parse_acl(
 						acl_usage();
 					}
 
-				} else if ( strcasecmp( left, "dn" ) == 0 ) {
-						a->acl_dn_pat = ch_strdup( right );
-
 				} else if ( strncasecmp( left, "attr", 4 ) == 0 ) {
 					char	**alist;
 
@@ -158,7 +198,12 @@ parse_acl(
 				}
 			}
 
-			if ( a->acl_dn_pat != NULL ) {
+			if ( a->acl_dn_pat != NULL && strcmp(a->acl_dn_pat, "*") == 0) {
+				free( a->acl_dn_pat );
+				a->acl_dn_pat = NULL;
+			}
+			
+			if( a->acl_dn_pat != NULL ) {
 				int e = regcomp( &a->acl_dn_re, a->acl_dn_pat,
 				                 REG_EXTENDED | REG_ICASE );
 				if ( e ) {
@@ -201,14 +246,50 @@ parse_acl(
 				split( argv[i], '=', &left, &right );
 
 				if ( strcasecmp( argv[i], "*" ) == 0 ) {
-					pat = ch_strdup( ".*" );
+					pat = ch_strdup( "*" );
+
 				} else if ( strcasecmp( argv[i], "anonymous" ) == 0 ) {
 					pat = ch_strdup( "anonymous" );
+
 				} else if ( strcasecmp( argv[i], "self" ) == 0 ) {
 					pat = ch_strdup( "self" );
+
+				} else if ( strcasecmp( argv[i], "users" ) == 0 ) {
+					pat = ch_strdup( "users" );
+
 				} else if ( strcasecmp( left, "dn" ) == 0 ) {
-					regtest(fname, lineno, right);
-					pat = ch_strdup( right );
+					if( right == NULL ) {
+						/* no '=' */
+						pat = ch_strdup( "users" );
+
+					} else if (*right == '\0' ) {
+						/* dn="" */
+						pat = ch_strdup( "anonymous" );
+
+					} else if ( strcmp( right, "*" ) == 0 ) {
+						/* dn=* /
+						/* any or users?  any for now */
+						pat = ch_strdup( "users" );
+
+					} else if ( strcmp( right, ".+" ) == 0
+						|| strcmp( right, "^.+" ) == 0
+						|| strcmp( right, ".+$" ) == 0
+						|| strcmp( right, "^.+$" ) == 0 )
+					{
+						pat = ch_strdup( "users" );
+
+					} else if ( strcmp( right, ".*" ) == 0
+						|| strcmp( right, "^.*" ) == 0
+						|| strcmp( right, ".*$" ) == 0
+						|| strcmp( right, "^.*$" ) == 0 )
+					{
+						pat = ch_strdup( "*" );
+
+					} else {
+						regtest(fname, lineno, right);
+						pat = ch_strdup( right );
+					}
+
 				} else {
 					pat = NULL;
 				}
@@ -448,10 +529,9 @@ parse_acl(
 			    fname, lineno );
 
 	} else {
-
 #ifdef LDAP_DEBUG
-                if (ldap_debug & LDAP_DEBUG_ACL)
-                    print_acl(be, a);
+		if (ldap_debug & LDAP_DEBUG_ACL)
+			print_acl(be, a);
 #endif
 	
 		if ( a->acl_access == NULL ) {
@@ -637,7 +717,7 @@ acl_usage( void )
 		"<what> ::= * | [dn=<regex>] [filter=<ldapfilter>] [attrs=<attrlist>]\n"
 		"<attrlist> ::= <attr> | <attr> , <attrlist>\n"
 		"<attr> ::= <attrname> | entry | children\n"
-		"<who> ::= [ * | anonymous | self | dn=<regex> ]\n"
+		"<who> ::= [ * | anonymous | users | self | dn=<regex> ]\n"
 			"\t[dnattr=<attrname>]\n"
 			"\t[group[/<objectclass>[/<attrname>]]=<regex>]\n"
 			"\t[peername=<regex>] [sockname=<regex>]\n"
@@ -695,11 +775,12 @@ print_access( Access *b )
 	fprintf( stderr, "\tby" );
 
 	if ( b->a_dn_pat != NULL ) {
-		if( strcmp(b->a_dn_pat, "anonymous") == 0 ) {
-			fprintf( stderr, " anonymous" );
-
-		} else if( strcmp(b->a_dn_pat, "self") == 0 ) {
-			fprintf( stderr, " self" );
+		if( strcmp(b->a_dn_pat, "*") == 0
+			|| strcmp(b->a_dn_pat, "users") == 0 
+			|| strcmp(b->a_dn_pat, "anonymous") == 0 
+			|| strcmp(b->a_dn_pat, "self") == 0 )
+		{
+			fprintf( stderr, " %s", b->a_dn_pat );
 
 		} else {
 			fprintf( stderr, " dn=%s", b->a_dn_pat );
