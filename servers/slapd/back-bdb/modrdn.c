@@ -447,7 +447,7 @@ retry:	/* transaction retry */
 		/*  newSuperior == oldParent? */
 		if( dn_match( &p_ndn, nnewSuperior ) ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDBM, INFO, "bdb_back_modrdn: "
+			LDAP_LOG( BACK_BDB, INFO, "bdb_back_modrdn: "
 				"new parent \"%s\" same as the old parent \"%s\"\n",
 				newSuperior->bv_val, p_dn.bv_val, 0 );
 #else
