@@ -232,7 +232,7 @@ searchit:
 
 		/* check for abandon */
 		if ( op->o_abandon ) {
-			rc = LDAP_SUCCESS;
+			rc = SLAPD_ABANDON;
 			goto done;
 		}
 

@@ -138,7 +138,7 @@ fail:;
 		/* check for abandon */
 		if ( op->o_abandon ) {
 			ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
-			rc = 0;
+			rc = SLAPD_ABANDON;
 			goto finish;
 		}
 
@@ -291,7 +291,9 @@ fail:;
 	}
 
 finish:;
-	send_ldap_result( op, rs );
+	if ( rc != SLAPD_ABANDON ) {
+		send_ldap_result( op, rs );
+	}
 
 	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 

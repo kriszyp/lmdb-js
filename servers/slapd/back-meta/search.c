@@ -303,7 +303,7 @@ new_candidate:;
 			
 			if ( ab ) {
 				ldap_abandon_ext( lsc->msc_ld, msgid[ i ], NULL, NULL );
-				rc = 0;
+				rc = SLAPD_ABANDON;
 				break;
 			}
 

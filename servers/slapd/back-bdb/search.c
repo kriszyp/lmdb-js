@@ -649,7 +649,7 @@ loop_begin:
 
 		/* check for abandon */
 		if ( op->o_abandon ) {
-			rs->sr_err = LDAP_SUCCESS;
+			rs->sr_err = SLAPD_ABANDON;
 			goto done;
 		}
 
