@@ -51,6 +51,7 @@ CFFILES=ldap.conf
 install-local: $(CFFILES) FORCE
 	-$(MKDIR) $(DESTDIR)$(libdir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(DESTDIR)$(libdir)
+	$(LTFINISH) $(DESTDIR)$(libdir)
 	-$(MKDIR) $(DESTDIR)$(sysconfdir)
 	@for i in $(CFFILES); do \
 		if test ! -f $(DESTDIR)$(sysconfdir)/$$i; then \
