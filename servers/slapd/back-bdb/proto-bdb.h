@@ -490,7 +490,7 @@ int bdb_cache_delete(
 );
 void bdb_cache_delete_cleanup(
 	Cache	*cache,
-	Entry	*e
+	EntryInfo *ei
 );
 void bdb_cache_release_all( Cache *cache );
 void bdb_cache_delete_entry(

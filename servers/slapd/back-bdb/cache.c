@@ -244,6 +244,7 @@ bdb_entryinfo_add_internal(
 		ei->bei_rdn.bv_val = NULL;
 #endif
 	} else {
+		bdb->bi_cache.c_eiused++;
 		ber_dupbv( &ei2->bei_nrdn, &ei->bei_nrdn );
 		avl_insert( &ei->bei_parent->bei_kids, ei2, bdb_rdn_cmp,
 			avl_dup_error );
@@ -438,6 +439,7 @@ hdb_cache_find_parent(
 		} else {
 			ei2 = &bdb->bi_cache.c_dntree;
 		}
+		bdb->bi_cache.c_eiused++;
 		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
 
 		/* Got the parent, link in and we're done. */
@@ -567,7 +569,7 @@ bdb_cache_lru_add(
 				 */
 				} else {
 					bdb_cache_delete_internal( &bdb->bi_cache, elru, 0 );
-					bdb_cache_delete_cleanup( &bdb->bi_cache, elru->bei_e );
+					bdb_cache_delete_cleanup( &bdb->bi_cache, elru );
 
 					/* break the loop, unsafe to muck with more than one */
 					elprev = NULL;
@@ -1044,13 +1046,13 @@ bdb_cache_delete(
 void
 bdb_cache_delete_cleanup(
 	Cache *cache,
-	Entry *e )
+	EntryInfo *ei )
 {
-	EntryInfo *ei = BEI(e);
-
-	ei->bei_e = NULL;
-	e->e_private = NULL;
-	bdb_entry_return( e );
+	if ( ei->bei_e ) {
+		ei->bei_e->e_private = NULL;
+		bdb_entry_return( ei->bei_e );
+		ei->bei_e = NULL;
+	}
 
 	free( ei->bei_nrdn.bv_val );
 	ei->bei_nrdn.bv_val = NULL;
@@ -1106,9 +1108,11 @@ bdb_cache_delete_internal(
 		return rc;
 	}
 
+	cache->c_eiused--;
+
 	/* lru */
 	LRU_DELETE( cache, e );
-	cache->c_cursize--;
+	if ( e->bei_e ) cache->c_cursize--;
 
 	/* free cache write lock */
 	ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
