@@ -28,7 +28,7 @@ extern BI_op_compare	shell_back_compare;
 
 extern BI_op_modify	shell_back_modify;
 
-extern BI_op_modrdn	shell_back_modrdn:
+extern BI_op_modrdn	shell_back_modrdn;
 
 extern BI_op_add	shell_back_add;
 
