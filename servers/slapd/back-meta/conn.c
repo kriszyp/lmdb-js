@@ -170,7 +170,6 @@ static struct metaconn *
 metaconn_alloc( int ntargets )
 {
 	struct metaconn *lc;
-	int i;
 
 	assert( ntargets > 0 );
 
@@ -182,22 +181,12 @@ metaconn_alloc( int ntargets )
 	/*
 	 * make it a null-terminated array ...
 	 */
-	lc->conns = ch_calloc( sizeof( struct metasingleconn * ), ntargets+1 );
+	lc->conns = ch_calloc( sizeof( struct metasingleconn ), ntargets+1 );
 	if ( lc->conns == NULL ) {
 		free( lc );
 		return NULL;
 	}
-
-	for ( i = 0; i < ntargets; i++ ) {
-		lc->conns[ i ] =
-			ch_calloc( sizeof( struct metasingleconn ), 1 );
-		if ( lc->conns[ i ] == NULL ) {
-			charray_free( ( char ** )lc->conns );
-			free( lc->conns );
-			free( lc );
-			return NULL;
-		}
-	}
+	lc->conns[ ntargets ].candidate = META_LAST_CONN;
 
 	lc->bound_target = META_BOUND_NONE;
 
@@ -219,12 +208,7 @@ metaconn_free(
 	}
 	
 	if ( lc->conns ) {
-		int i;
-
-		for ( i = 0; lc->conns[ i ] != NULL; ++i ) {
-			free( lc->conns[ i ] );
-		}
-		charray_free( ( char ** )lc->conns );
+		ch_free( lc->conns );
 	}
 
 	free( lc );
@@ -422,7 +406,7 @@ meta_back_getconn(
 		 * sends the appropriate result.
 		 */
 		err = init_one_conn( conn, op, li->targets[ i ],
-				vers, lc->conns[ i ] );
+				vers, &lc->conns[ i ] );
 		if ( err != LDAP_SUCCESS ) {
 		
 			/*
@@ -430,7 +414,7 @@ meta_back_getconn(
 			 * be init'd, should the other ones
 			 * be tried?
 			 */
-			( void )meta_clear_one_candidate( lc->conns[ i ], 1 );
+			( void )meta_clear_one_candidate( &lc->conns[ i ], 1 );
 			if ( new_conn ) {
 				metaconn_free( lc );
 			}
@@ -452,7 +436,7 @@ meta_back_getconn(
 			 * also init'd
 			 */
 			int lerr = init_one_conn( conn, op, li->targets[ i ],
-					vers, lc->conns[ i ] );
+					vers, &lc->conns[ i ] );
 			if ( lerr != LDAP_SUCCESS ) {
 				
 				/*
@@ -460,7 +444,7 @@ meta_back_getconn(
 				 * be init'd, should the other ones
 				 * be tried?
 				 */
-				( void )meta_clear_one_candidate( lc->conns[ i ], 1 );
+				( void )meta_clear_one_candidate( &lc->conns[ i ], 1 );
 				err = lerr;
 				continue;
 			}
@@ -480,7 +464,7 @@ meta_back_getconn(
 				 */
 				int lerr = init_one_conn( conn, op,
 						li->targets[ i ],
-						vers, lc->conns[ i ] );
+						vers, &lc->conns[ i ] );
 				if ( lerr != LDAP_SUCCESS ) {
 				
 					/*
@@ -488,7 +472,7 @@ meta_back_getconn(
 					 * be init'd, should the other ones
 					 * be tried?
 					 */
-					( void )meta_clear_one_candidate( lc->conns[ i ], 1 );
+					( void )meta_clear_one_candidate( &lc->conns[ i ], 1 );
 					err = lerr;
 					continue;
 				}

@@ -158,16 +158,16 @@ conn_free(
 	struct metaconn *lc
 )
 {
-	struct metasingleconn **lsc;
+	struct metasingleconn *lsc;
 
-	for ( lsc = lc->conns; lsc[ 0 ] != NULL; lsc++ ) {
-		if ( lsc[ 0 ]->ld != NULL ) {
-			ldap_unbind( lsc[ 0 ]->ld );
+	for ( lsc = lc->conns; !META_LAST(lsc); lsc++ ) {
+		if ( lsc->ld != NULL ) {
+			ldap_unbind( lsc->ld );
 		}
-		if ( lsc[ 0 ]->bound_dn.bv_val ) {
-			ber_memfree( lsc[ 0 ]->bound_dn.bv_val );
+		if ( lsc->bound_dn.bv_val ) {
+			ber_memfree( lsc->bound_dn.bv_val );
 		}
-		free( lsc[ 0 ] );
+		free( lsc );
 	}
 	free( lc->conns );
 	free( lc );

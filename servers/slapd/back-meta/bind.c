@@ -140,7 +140,7 @@ meta_back_bind(
 		/*
 		 * Skip non-candidates
 		 */
-		if ( lc->conns[ i ]->candidate != META_CANDIDATE ) {
+		if ( lc->conns[ i ].candidate != META_CANDIDATE ) {
 			continue;
 		}
 
@@ -181,7 +181,7 @@ meta_back_bind(
 				realdn, realndn, realcred, realmethod, i );
 		if ( lerr != LDAP_SUCCESS ) {
 			err = lerr;
-			( void )meta_clear_one_candidate( lc->conns[ i ], 1 );
+			( void )meta_clear_one_candidate( &lc->conns[ i ], 1 );
 		} else {
 			rc = LDAP_SUCCESS;
 		}
@@ -263,12 +263,12 @@ meta_back_do_single_bind(
 		return LDAP_OTHER;
 	}
 
-	rc = ldap_bind_s( lc->conns[ candidate ]->ld, mdn.bv_val, cred->bv_val, method );
+	rc = ldap_bind_s( lc->conns[ candidate ].ld, mdn.bv_val, cred->bv_val, method );
 	if ( rc != LDAP_SUCCESS ) {
 		rc = ldap_back_map_result( rc );
 	} else {
-		ber_dupbv( &lc->conns[ candidate ]->bound_dn, dn );
-		lc->conns[ candidate ]->bound = META_BOUND;
+		ber_dupbv( &lc->conns[ candidate ].bound_dn, dn );
+		lc->conns[ candidate ].bound = META_BOUND;
 		lc->bound_target = candidate;
 
 		if ( li->cache.ttl != META_DNCACHE_DISABLED
@@ -291,7 +291,7 @@ meta_back_do_single_bind(
 int
 meta_back_dobind( struct metaconn *lc, Operation *op )
 {
-	struct metasingleconn **lsc;
+	struct metasingleconn *lsc;
 	int bound = 0, i;
 
 	/*
@@ -301,20 +301,20 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 		return 1;
 	}
 
-	for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; ++i, ++lsc ) {
+	for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
 		int rc;
 
 		/*
 		 * Not a candidate or something wrong with this target ...
 		 */
-		if ( lsc[ 0 ]->ld == NULL ) {
+		if ( lsc->ld == NULL ) {
 			continue;
 		}
 
 		/*
 		 * If the target is already bound it is skipped
 		 */
-		if ( lsc[ 0 ]->bound == META_BOUND && lc->bound_target == i ) {
+		if ( lsc->bound == META_BOUND && lc->bound_target == i ) {
 			++bound;
 			continue;
 		}
@@ -324,12 +324,12 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 		 * (note: if the target was already bound, the anonymous
 		 * bind clears the previous bind).
 		 */
-		if ( lsc[ 0 ]->bound_dn.bv_val ) {
-			ch_free( lsc[ 0 ]->bound_dn.bv_val );
-			lsc[ 0 ]->bound_dn.bv_val = NULL;
-			lsc[ 0 ]->bound_dn.bv_len = 0;
+		if ( lsc->bound_dn.bv_val ) {
+			ch_free( lsc->bound_dn.bv_val );
+			lsc->bound_dn.bv_val = NULL;
+			lsc->bound_dn.bv_len = 0;
 		}
-		rc = ldap_bind_s( lsc[ 0 ]->ld, 0, NULL, LDAP_AUTH_SIMPLE );
+		rc = ldap_bind_s( lsc->ld, 0, NULL, LDAP_AUTH_SIMPLE );
 		if ( rc != LDAP_SUCCESS ) {
 			
 #ifdef NEW_LOGGING
@@ -337,14 +337,14 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 					"meta_back_dobind: (anonymous)"
 					" bind as \"%s\" failed"
 					" with error \"%s\"\n",
-					lsc[ 0 ]->bound_dn.bv_val,
+					lsc->bound_dn.bv_val,
 					ldap_err2string( rc ), 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ANY,
 					"==>meta_back_dobind: (anonymous)"
 					" bind as \"%s\" failed"
 					" with error \"%s\"\n%s",
-					lsc[ 0 ]->bound_dn.bv_val,
+					lsc->bound_dn.bv_val,
 					ldap_err2string( rc ), "" );
 #endif /* !NEW_LOGGING */
 
@@ -355,11 +355,11 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 			 * due to technical reasons (remote host down?)
 			 * so better clear the handle
 			 */
-			( void )meta_clear_one_candidate( lsc[ 0 ], 1 );
+			( void )meta_clear_one_candidate( lsc, 1 );
 			continue;
 		} /* else */
 		
-		lsc[ 0 ]->bound = META_ANONYMOUS;
+		lsc->bound = META_ANONYMOUS;
 		++bound;
 	}
 
@@ -372,7 +372,7 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 int
 meta_back_is_valid( struct metaconn *lc, int candidate )
 {
-	struct metasingleconn 	**lsc;
+	struct metasingleconn 	*lsc;
 	int			i;
 
 	assert( lc );
@@ -381,12 +381,11 @@ meta_back_is_valid( struct metaconn *lc, int candidate )
 		return 0;
 	}
 
-	for ( i = 0, lsc = lc->conns; 
-			lsc[ 0 ] != NULL && i < candidate; 
+	for ( i = 0, lsc = lc->conns; !META_LAST(lsc) && i < candidate; 
 			++i, ++lsc );
 	
-	if ( lsc[ 0 ] ) {
-		return( lsc[ 0 ]->ld != NULL );
+	if ( !META_LAST(lsc) ) {
+		return( lsc->ld != NULL );
 	}
 
 	return 0;
@@ -399,16 +398,16 @@ int
 meta_back_op_result( struct metaconn *lc, Operation *op )
 {
 	int i, rerr = LDAP_SUCCESS;
-	struct metasingleconn **lsc;
+	struct metasingleconn *lsc;
 	char *rmsg = NULL;
 	char *rmatch = NULL;
 
-	for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; ++i, ++lsc ) {
+	for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
 		int err = LDAP_SUCCESS;
 		char *msg = NULL;
 		char *match = NULL;
 
-		ldap_get_option( lsc[ 0 ]->ld, LDAP_OPT_ERROR_NUMBER, &err );
+		ldap_get_option( lsc->ld, LDAP_OPT_ERROR_NUMBER, &err );
 		if ( err != LDAP_SUCCESS ) {
 			/*
 			 * better check the type of error. In some cases
@@ -416,9 +415,9 @@ meta_back_op_result( struct metaconn *lc, Operation *op )
 			 * success if at least one of the targets gave
 			 * positive result ...
 			 */
-			ldap_get_option( lsc[ 0 ]->ld,
+			ldap_get_option( lsc->ld,
 					LDAP_OPT_ERROR_STRING, &msg );
-			ldap_get_option( lsc[ 0 ]->ld,
+			ldap_get_option( lsc->ld,
 					LDAP_OPT_MATCHED_DN, &match );
 			err = ldap_back_map_result( err );
 

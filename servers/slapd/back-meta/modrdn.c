@@ -127,7 +127,7 @@ meta_back_modrdn(
 			return -1;
 		}
 
-		ldap_set_option( lc->conns[ nsCandidate ]->ld,
+		ldap_set_option( lc->conns[ nsCandidate ].ld,
 				LDAP_OPT_PROTOCOL_VERSION, &version );
 		
 		/*
@@ -194,7 +194,7 @@ meta_back_modrdn(
 		return -1;
 	}
 
-	ldap_rename2_s( lc->conns[ candidate ]->ld, mdn, newrdn->bv_val,
+	ldap_rename2_s( lc->conns[ candidate ].ld, mdn, newrdn->bv_val,
 			mnewSuperior, deleteoldrdn );
 
 	if ( mdn != dn->bv_val ) {

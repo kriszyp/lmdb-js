@@ -14,7 +14,7 @@
 
 #include "slap.h"
 #include "back-ldap.h"
-
+#include "lutil.h"
 
 /* return 0 IFF op_dn is a value in group_at (member) attribute
  * of entry with gr_dn AND that entry has an objectClass

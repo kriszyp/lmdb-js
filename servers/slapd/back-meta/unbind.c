@@ -117,14 +117,12 @@ meta_back_conn_destroy(
 		 * Cleanup rewrite session
 		 */
 		for ( i = 0; i < li->ntargets; ++i ) {
-			if ( lc->conns[ i ]->ld == NULL ) {
-				free( lc->conns[ i ] );
+			if ( lc->conns[ i ].ld == NULL ) {
 				continue;
 			}
 
 			rewrite_session_delete( li->targets[ i ]->rwinfo, conn );
-			meta_clear_one_candidate( lc->conns[ i ], 1 );
-			free( lc->conns[ i ] );
+			meta_clear_one_candidate( &lc->conns[ i ], 1 );
 		}
 
 		free( lc->conns );

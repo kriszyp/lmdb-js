@@ -200,7 +200,7 @@ meta_back_modify(
 	}
 	modv[ i ] = 0;
 
-	ldap_modify_s( lc->conns[ candidate ]->ld, mdn, modv );
+	ldap_modify_s( lc->conns[ candidate ].ld, mdn, modv );
 
 	if ( mdn != dn->bv_val ) {
 		free( mdn );
