@@ -1270,7 +1270,7 @@ parse_acl(
 						acl_usage();
 					}
 
-					b->a_authz.sai_ssf = strtol( right, *next, 10 );
+					b->a_authz.sai_ssf = strtol( right, &next, 10 );
 					if ( next == NULL || next[0] != '\0' ) {
 						fprintf( stderr,
 							"%s: line %d: unable to parse ssf value (%s)\n",
