@@ -114,7 +114,7 @@ str2charray( char *str, char *brkstr )
 	int	i;
 
 	/* protect the input string from strtok */
-	char *str = strdup( str );
+	str = strdup( str );
 
 	i = 1;
 	for ( s = str; *s; s++ ) {
