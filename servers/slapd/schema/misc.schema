@@ -5,27 +5,33 @@
 #
 
 #
-# draft-lachman-ldap-mail-routing-03.txt
+# draft-lachman-laser-ldap-mail-routing-00.txt
 #
 attribute ( 2.16.840.1.113730.3.1.13 NAME 'mailAlternateAddress'
 	DESC 'RFC 822 email address of this recipient'
 	EQUALITY caseIgnoreIA5Match
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256}
 	SINGLE-VALUE )
 
 attribute ( 2.16.840.1.113730.3.1.18 NAME 'mailHost'
 	DESC 'alternate RFC 822 email address of this recipient' 
 	EQUALITY caseIgnoreIA5Match
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} 
 	SINGLE-VALUE )
 
 attribute ( 2.16.840.1.113730.3.1.47 NAME 'mailRoutingAddress'
 	DESC 'fully qualified hostname of the SMTP MTA that handles messages for this recipient' 
-	EQUALITY caseIgnoreIA5Match )
+	EQUALITY caseIgnoreIA5Match 
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256}
+	SINGLE-VALUE )
 
 objectclass ( 2.16.840.1.113730.3.2.3 NAME 'mailRecipient'
 	SUP top AUXILIARY
 	MAY	( cn $ mail $ mailAlternateAddress $ mailHost $ mailRoutingAddress )
+
+#objectclass ( 2.16.840.1.113730.3.2.[[TBD]] NAME 'inetLocalMailRecipient'
+#	SUP top AUXILIARY
+#	MAY	( mail $ mailAlternateAddress $ mailHost $ mailRoutingAddress )
 
 
 #
