@@ -1,4 +1,4 @@
-.TH LDAPSEARCH 1 "3 October 2000" "OpenLDAP LDVERSION"
+.TH LDAPSEARCH 1 "20 August 2001" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -105,15 +105,15 @@ in the output.
 Run in verbose mode, with many diagnostics written to standard output.
 .TP
 .B \-k
-Use Kerberos authentication instead of simple authentication.  It is
+Use Kerberos IV authentication instead of simple authentication.  It is
 assumed that you already have a valid ticket granting ticket.
 .B ldapsearch
 must be compiled with Kerberos support for this option to have any effect.
 .TP
 .B \-K
-Same as \-k, but only does step 1 of the Kerberos bind.  This is useful
+Same as \-k, but only does step 1 of the Kerberos IV bind.  This is useful
 when connecting to a slapd and there is no x500dsa.hostname principal
-registered with your Kerberos servers.
+registered with your Kerberos Domain Controller(s).
 .TP
 .B \-t
 Write retrieved values to a set of temporary files.  This is useful for
