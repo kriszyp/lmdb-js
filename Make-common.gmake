@@ -78,7 +78,7 @@ endif
 ifndef LDAP_LIBEXECDIR
 LDAP_LIBEXECDIR= $(LDAP_INSTROOT)/libexec
 endif
-ifndef LDAP_ETCDIR
+ifndef LDAP_RUNDIR
 LDAP_RUNDIR= $(LDAP_ETCDIR)
 endif
 
