@@ -780,6 +780,8 @@ init_config_attrs(ConfigTable *ct) {
 		}
 		ldap_memfree( at );
 	}
+
+	return 0;
 }
 
 int
