@@ -1,0 +1,24 @@
+Sun Solaris Hints
+
+** This file covers Solaris 2 and later releases.  **
+** Solaris 1.X is covered in the SunOS hints file. **
+
+
+Solaris 2.6, pthread_create() in -lc
+
+The Standard C library (-lc) contains pthread functions which
+are not compatible with <pthread.h> and are not useable.  The
+autoconf system does not detect this incompatibility nor
+attempts to resolve it.  Consequently, slapd/slurpd will not
+work correctly using out-of-the-box settings.  Slapd will
+report an error such as:
+	listener pthread_create failed
+
+To resolve this problem, the installer must specify the
+proper Pthreads libraries:
+	LIBS="-lpthread -lposix4"
+	./configure
+
+to use OR disable threads: 
+	./configure --without-threads
+
