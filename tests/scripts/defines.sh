@@ -81,4 +81,4 @@ ACLOUTMASTER=$DATADIR/acl.out.master
 REPLOUTMASTER=$DATADIR/repl.out.master
 MODSRCHFILTERS=$DATADIR/modify.search.filters
 # Just in case we linked the binaries dynamically
-export LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH}
+LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH
