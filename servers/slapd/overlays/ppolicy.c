@@ -698,16 +698,22 @@ free_pwd_history_list( pw_hist **l )
 	*l = NULL;
 }
 
+typedef struct ppbind {
+	slap_overinst *on;
+	int send_ctrl;
+	Modifications *mod;
+	LDAPPasswordPolicyError pErr;
+	PassPolicy pp;
+} ppbind;
+
 static int
 ppolicy_bind_resp( Operation *op, SlapReply *rs )
 {
-	slap_overinst *on = op->o_callback->sc_private;
-	PassPolicy pp;
-	int send_ctrl;
-	Modifications *mod = NULL, *m;
+	ppbind *ppb = op->o_callback->sc_private;
+	slap_overinst *on = ppb->on;
+	Modifications *mod = ppb->mod, *m;
 	int pwExpired = 0;
 	int ngut = -1, warn = -1, age, rc, i;
-	LDAPPasswordPolicyError pErr = PP_noError;
 	Attribute *a;
 	struct tm *tm;
 	time_t now, then, pwtime = (time_t)-1;
@@ -716,30 +722,17 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 	BackendInfo *bi = op->o_bd->bd_info;
 	Entry *e;
 
+	/* If we already know it's locked, just get on with it */
+	if ( ppb->pErr != PP_noError ) {
+		goto locked;
+	}
+
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
 	op->o_bd->bd_info = bi;
 
 	if ( rc != LDAP_SUCCESS ) {
 		return SLAP_CB_CONTINUE;
-	}
-
-	/* Did we receive a password policy request control? */
-	for ( i=0; op->o_ctrls && op->o_ctrls[i]; i++ ) {
-		if ( !strcmp( op->o_ctrls[i]->ldctl_oid, LDAP_CONTROL_PASSWORDPOLICYREQUEST ) ) {
-			send_ctrl = 1;
-			break;
-		}
-	}
-
-	op->o_bd->bd_info = (BackendInfo *)on;
-	ppolicy_get( op, e, &pp );
-
-	if ( account_locked( op, e, &pp, &mod )) {
-		/* This will be the Draft 8 response, Unwilling is bogus */
-		rs->sr_err = LDAP_INVALID_CREDENTIALS;
-		pErr = PP_accountLocked;
-		goto done;
 	}
 
 	now = slap_get_time(); /* stored for later consideration */
@@ -774,11 +767,11 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 				 * stay on the record until explicitly
 				 * reset by successful authentication.
 				 */
-				if (pp.pwdFailureCountInterval == 0) {
+				if (ppb->pp.pwdFailureCountInterval == 0) {
 					fc++;
 				} else if (now <=
 							parse_time(a->a_nvals[i].bv_val) +
-							pp.pwdFailureCountInterval) {
+							ppb->pp.pwdFailureCountInterval) {
 
 					fc++;
 				}
@@ -789,8 +782,8 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 			}
 		}
 		
-		if ((pp.pwdMaxFailure > 0) &&
-			(fc >= pp.pwdMaxFailure - 1)) {
+		if ((ppb->pp.pwdMaxFailure > 0) &&
+			(fc >= ppb->pp.pwdMaxFailure - 1)) {
 
 			/*
 			 * We subtract 1 from the failure max
@@ -823,7 +816,7 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 		/*
 		 * check to see if the password must be changed
 		 */
-		if ( pp.pwdMustChange &&
+		if ( ppb->pp.pwdMustChange &&
 			(a = attr_find( e->e_attrs, ad_pwdReset )) &&
 			!strcmp( a->a_nvals[0].bv_val, "TRUE" ) ) {
 			/*
@@ -834,7 +827,7 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 			 */
 			pwcons[op->o_conn->c_conn_idx].restrict = 1;
 
-			pErr = PP_changeAfterReset;
+			ppb->pErr = PP_changeAfterReset;
 
 		} else {
 			/*
@@ -844,7 +837,7 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 			 * We can skip this bit if passwords don't age in
 			 * the policy.
 			 */
-			if (pp.pwdMaxAge == 0) goto grace;
+			if (ppb->pp.pwdMaxAge == 0) goto grace;
 
 			if (pwtime == (time_t)-1) {
 				/*
@@ -873,7 +866,7 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 				 * the password older than the maximum age
 				 * allowed. (Ignore case 2 from I-D, it's just silly.)
 				 */
-				if (now - pwtime > pp.pwdMaxAge ) pwExpired = 1;
+				if (now - pwtime > ppb->pp.pwdMaxAge ) pwExpired = 1;
 			}
 		}
 
@@ -881,10 +874,10 @@ grace:
 		if (!pwExpired) goto check_expiring_password;
 		
 		if ((a = attr_find( e->e_attrs, ad_pwdGraceUseTime )) == NULL)
-			ngut = pp.pwdGraceLoginLimit;
+			ngut = ppb->pp.pwdGraceLoginLimit;
 		else {
 			for(ngut=0; a->a_nvals[ngut].bv_val; ngut++);
-			ngut = pp.pwdGraceLoginLimit - ngut;
+			ngut = ppb->pp.pwdGraceLoginLimit - ngut;
 		}
 
 		/*
@@ -901,7 +894,7 @@ grace:
 #endif
 		
 		if (ngut < 1) {
-			pErr = PP_passwordExpired;
+			ppb->pErr = PP_passwordExpired;
 			rs->sr_err = LDAP_INVALID_CREDENTIALS;
 			goto done;
 		}
@@ -928,7 +921,7 @@ check_expiring_password:
 		 * we don't need to do this bit. Similarly, if we don't have password
 		 * aging, then there's no need to do this bit either.
 		 */
-		if ((pp.pwdMaxAge < 1) || (pwExpired) || (pp.pwdExpireWarning < 1))
+		if ((ppb->pp.pwdMaxAge < 1) || (pwExpired) || (ppb->pp.pwdExpireWarning < 1))
 			goto done;
 
 		age = (int)(now - pwtime);
@@ -940,7 +933,7 @@ check_expiring_password:
 		 * then this section isn't called anyway - you can't have an
 		 * expiring password if there's no limit to expire.
 		 */
-		if (pp.pwdMaxAge - age < pp.pwdExpireWarning ) {
+		if (ppb->pp.pwdMaxAge - age < ppb->pp.pwdExpireWarning ) {
 			/*
 			 * Set the warning value, add expiration warned timestamp to the entry.
 			 */
@@ -955,7 +948,7 @@ check_expiring_password:
 				mod = m;
 			}
 			
-			warn = pp.pwdMaxAge - age; /* seconds left until expiry */
+			warn = ppb->pp.pwdMaxAge - age; /* seconds left until expiry */
 			if (warn < 0) warn = 0; /* something weird here - why is pwExpired not set? */
 			
 #ifdef NEW_LOGGING
@@ -974,6 +967,7 @@ done:
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	be_entry_release_r( op, e );
 
+locked:
 	if ( mod ) {
 		Operation op2 = *op;
 		SlapReply r2 = { REP_RESULT };
@@ -992,11 +986,11 @@ done:
 		slap_mods_free( mod );
 	}
 
-	if ( send_ctrl ) {
+	if ( ppb->send_ctrl ) {
 		LDAPControl **ctrls = NULL;
 
 		ctrls = ch_calloc( sizeof( LDAPControl *) , 2 );
-		ctrls[0] = create_passcontrol( warn, ngut, pErr );
+		ctrls[0] = create_passcontrol( warn, ngut, ppb->pErr );
 		ctrls[1] = NULL;
 		rs->sr_ctrls = ctrls;
 	}
@@ -1011,16 +1005,54 @@ ppolicy_bind( Operation *op, SlapReply *rs )
 
 	/* Root bypasses policy */
 	if ( !be_isroot( op->o_bd, &op->o_req_ndn )) {
+		Entry *e;
+		int i, rc;
+		ppbind *ppb;
 		slap_callback *cb;
 
-		cb = sl_calloc( sizeof(slap_callback), 1, op->o_tmpmemctx );
+		op->o_bd->bd_info = (BackendInfo *)on->on_info;
+		rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
+
+		if ( rc != LDAP_SUCCESS ) {
+			return SLAP_CB_CONTINUE;
+		}
+
+		cb = op->o_tmpcalloc( sizeof(ppbind)+sizeof(slap_callback),
+			1, op->o_tmpmemctx );
+		ppb = (ppbind *)(cb+1);
+		ppb->on = on;
+		ppb->pErr = PP_noError;
 
 		/* Setup a callback so we can munge the result */
 
 		cb->sc_response = ppolicy_bind_resp;
 		cb->sc_next = op->o_callback->sc_next;
-		cb->sc_private = on;
+		cb->sc_private = ppb;
 		op->o_callback->sc_next = cb;
+
+		/* Did we receive a password policy request control? */
+		for ( i=0; op->o_ctrls && op->o_ctrls[i]; i++ ) {
+			if ( !strcmp( op->o_ctrls[i]->ldctl_oid, LDAP_CONTROL_PASSWORDPOLICYREQUEST ) ) {
+				ppb->send_ctrl = 1;
+				break;
+			}
+		}
+
+		op->o_bd->bd_info = (BackendInfo *)on;
+		ppolicy_get( op, e, &ppb->pp );
+
+		rc = account_locked( op, e, &ppb->pp, &ppb->mod );
+
+		op->o_bd->bd_info = (BackendInfo *)on->on_info;
+		be_entry_release_r( op, e );
+
+		if ( rc ) {
+			/* This will be the Draft 8 response, Unwilling is bogus */
+			ppb->pErr = PP_accountLocked;
+			send_ldap_error( op, rs, LDAP_INVALID_CREDENTIALS, NULL );
+			return rs->sr_err;
+		}
+
 	}
 
 	return SLAP_CB_CONTINUE;
