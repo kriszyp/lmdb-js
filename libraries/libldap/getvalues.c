@@ -147,25 +147,11 @@ ldap_count_values_len( struct berval **vals )
 void
 ldap_value_free( char **vals )
 {
-	int	i;
-
-	if ( vals == NULL )
-		return;
-	for ( i = 0; vals[i] != NULL; i++ )
-		LDAP_FREE( vals[i] );
-	LDAP_FREE( (char *) vals );
+	LDAP_VFREE( vals );
 }
 
 void
 ldap_value_free_len( struct berval **vals )
 {
-	int	i;
-
-	if ( vals == NULL )
-		return;
-	for ( i = 0; vals[i] != NULL; i++ ) {
-		LDAP_FREE( vals[i]->bv_val );
-		LDAP_FREE( vals[i] );
-	}
-	LDAP_FREE( (char *) vals );
+	ber_bvecfree( vals );
 }

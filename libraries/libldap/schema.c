@@ -42,14 +42,17 @@ new_safe_string(int size)
 	ss = LDAP_MALLOC(sizeof(safe_string));
 	if ( !ss )
 		return(NULL);
-	ss->size = size;
-	ss->pos = 0;
+
 	ss->val = LDAP_MALLOC(size);
-	ss->at_whsp = 0;
 	if ( !ss->val ) {
 		LDAP_FREE(ss);
 		return(NULL);
 	}
+
+	ss->size = size;
+	ss->pos = 0;
+	ss->at_whsp = 0;
+
 	return ss;
 }
 
@@ -58,8 +61,8 @@ safe_string_free(safe_string * ss)
 {
 	if ( !ss )
 		return;
-	ldap_memfree(ss->val);
-	ldap_memfree(ss);
+	LDAP_FREE(ss->val);
+	LDAP_FREE(ss);
 }
 
 static char *
@@ -432,27 +435,6 @@ ldap_attributetype2str( LDAP_ATTRIBUTE_TYPE * at )
 }
 
 /*
- * This is ripped from servers/slapd/charray.c that should be promoted
- * to -lldap or something so that it is used everywhere.
- */
-static void
-charray_free( char **array )
-{
-	char	**a;
-
-	if ( array == NULL ) {
-		return;
-	}
-
-	for ( a = array; *a != NULL; a++ ) {
-		if ( *a != NULL ) {
-			LDAP_FREE( *a );
-		}
-	}
-	LDAP_FREE( (char *) array );
-}
-
-/*
  * Now come the parsers.  There is one parser for each entity type:
  * objectclasses, attributetypes, etc.
  *
@@ -644,7 +626,7 @@ parse_qdescrs(char **sp, int *code)
 					size++;
 					res1 = LDAP_REALLOC(res,size*sizeof(char *));
 					if ( !res1 ) {
-						charray_free(res);
+						LDAP_VFREE(res);
 						*code = LDAP_SCHERR_OUTOFMEM;
 						return(NULL);
 					}
@@ -654,7 +636,7 @@ parse_qdescrs(char **sp, int *code)
 				pos++;
 				parse_whsp(sp);
 			} else {
-				charray_free(res);
+				LDAP_VFREE(res);
 				*code = LDAP_SCHERR_UNEXPTOKEN;
 				return(NULL);
 			}
@@ -716,7 +698,7 @@ parse_noidlen(char **sp, int *code, int *len)
 		(*sp)++;
 		if ( **sp != '}' ) {
 			*code = LDAP_SCHERR_UNEXPTOKEN;
-			ldap_memfree(sval);
+			LDAP_FREE(sval);
 			return NULL;
 		}
 		(*sp)++;
@@ -766,7 +748,7 @@ parse_oids(char **sp, int *code)
 			pos++;
 		} else {
 			*code = LDAP_SCHERR_UNEXPTOKEN;
-			charray_free(res);
+			LDAP_VFREE(res);
 			return NULL;
 		}
 		parse_whsp(sp);
@@ -783,7 +765,7 @@ parse_oids(char **sp, int *code)
 						size++;
 						res1 = LDAP_REALLOC(res,size*sizeof(char *));
 						if ( !res1 ) {
-						  charray_free(res);
+						  LDAP_VFREE(res);
 						  *code = LDAP_SCHERR_OUTOFMEM;
 						  return(NULL);
 						}
@@ -793,13 +775,13 @@ parse_oids(char **sp, int *code)
 					pos++;
 				} else {
 					*code = LDAP_SCHERR_UNEXPTOKEN;
-					charray_free(res);
+					LDAP_VFREE(res);
 					return NULL;
 				}
 				parse_whsp(sp);
 			} else {
 				*code = LDAP_SCHERR_UNEXPTOKEN;
-				charray_free(res);
+				LDAP_VFREE(res);
 				return NULL;
 			}
 		}
@@ -825,9 +807,9 @@ parse_oids(char **sp, int *code)
 static void
 free_syn(LDAP_SYNTAX * syn)
 {
-	ldap_memfree(syn->syn_oid);
-	ldap_memfree(syn->syn_desc);
-	ldap_memfree(syn);
+	LDAP_FREE(syn->syn_oid);
+	LDAP_FREE(syn->syn_desc);
+	LDAP_FREE(syn);
 }
 
 LDAP_SYNTAX *
@@ -930,15 +912,15 @@ ldap_str2syntax( char * s, int * code, char ** errp )
 static void
 free_at(LDAP_ATTRIBUTE_TYPE * at)
 {
-	ldap_memfree(at->at_oid);
-	charray_free(at->at_names);
-	ldap_memfree(at->at_desc);
-	ldap_memfree(at->at_sup_oid);
-	ldap_memfree(at->at_equality_oid);
-	ldap_memfree(at->at_ordering_oid);
-	ldap_memfree(at->at_substr_oid);
-	ldap_memfree(at->at_syntax_oid);
-	ldap_memfree(at);
+	LDAP_FREE(at->at_oid);
+	LDAP_VFREE(at->at_names);
+	LDAP_FREE(at->at_desc);
+	LDAP_FREE(at->at_sup_oid);
+	LDAP_FREE(at->at_equality_oid);
+	LDAP_FREE(at->at_ordering_oid);
+	LDAP_FREE(at->at_substr_oid);
+	LDAP_FREE(at->at_syntax_oid);
+	LDAP_FREE(at);
 }
 
 LDAP_ATTRIBUTE_TYPE *
@@ -1212,13 +1194,13 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 static void
 free_oc(LDAP_OBJECT_CLASS * oc)
 {
-	ldap_memfree(oc->oc_oid);
-	charray_free(oc->oc_names);
-	ldap_memfree(oc->oc_desc);
-	charray_free(oc->oc_sup_oids);
-	charray_free(oc->oc_at_oids_must);
-	charray_free(oc->oc_at_oids_may);
-	ldap_memfree(oc);
+	LDAP_FREE(oc->oc_oid);
+	LDAP_VFREE(oc->oc_names);
+	LDAP_FREE(oc->oc_desc);
+	LDAP_VFREE(oc->oc_sup_oids);
+	LDAP_VFREE(oc->oc_at_oids_must);
+	LDAP_VFREE(oc->oc_at_oids_may);
+	LDAP_FREE(oc);
 }
 
 LDAP_OBJECT_CLASS *

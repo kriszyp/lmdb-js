@@ -126,8 +126,8 @@ main(int argc, char **argv)
 #else
 			printf("                     %s\n",
 				api.ldapai_extensions[i]);
-
 #endif
+
 			ldap_memfree(api.ldapai_extensions[i]);
 		}
 		ldap_memfree(api.ldapai_extensions);

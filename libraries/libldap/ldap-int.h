@@ -32,22 +32,24 @@
 LDAP_BEGIN_DECL
 
 #define LDAP_URL_PREFIX         "ldap://"
-#define LDAP_URL_PREFIX_LEN     7
-#define LDAP_URL_URLCOLON	"URL:"
-#define LDAP_URL_URLCOLON_LEN	4
+#define LDAP_URL_PREFIX_LEN     (sizeof(LDAP_URL_PREFIX)-1)
+#define LDAPS_URL_PREFIX		"ldaps://"
+#define LDAPS_URL_PREFIX_LEN	(sizeof(LDAPS_URL_PREFIX)-1)
+#define LDAP_URL_URLCOLON		"URL:"
+#define LDAP_URL_URLCOLON_LEN	(sizeof(LDAP_URL_URLCOLON)-1)
 #define NULLLDAPURLDESC ((LDAPURLDesc *)NULL)
 
 #define LDAP_REF_STR		"Referral:\n"
-#define LDAP_REF_STR_LEN	10
+#define LDAP_REF_STR_LEN	(sizeof(LDAP_REF_STR)-1)
 #define LDAP_LDAP_REF_STR	LDAP_URL_PREFIX
-#define LDAP_LDAP_REF_STR_LEN	LDAP_URL_PREFIX_LEN
-
-#define LDAP_DEFAULT_REFHOPLIMIT 5
+#define LDAP_LDAP_REF_STR_LEN	(sizeof(LDAP_LDAP_REF_STR)-1)
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 #define LDAP_DX_REF_STR		"dx://"
-#define LDAP_DX_REF_STR_LEN	5
+#define LDAP_DX_REF_STR_LEN	(sizeof(LDAP_DX_REF_STR)-1)
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
+
+#define LDAP_DEFAULT_REFHOPLIMIT 5
 
 #define LDAP_BOOL_REFERRALS		0
 #define LDAP_BOOL_RESTART		1
@@ -269,12 +271,14 @@ void ldap_int_initialize LDAP_P((void));
 #define LDAP_INT_CALLOC(n,s)	(LBER_CALLOC((n),(s)))
 #define LDAP_INT_REALLOC(p,s)	(LBER_REALLOC((p),(s)))
 #define LDAP_INT_FREE(p)		(LBER_FREE((p)))
+#define LDAP_INT_VFREE(v)		(LBER_VFREE((v)))
 
 #ifndef LDAP_MALLOC
 #define LDAP_MALLOC(s)		(LBER_MALLOC((s)))
 #define LDAP_CALLOC(n,s)	(LBER_CALLOC((n),(s)))
 #define LDAP_REALLOC(p,s)	(LBER_REALLOC((p),(s)))
 #define LDAP_FREE(p)		(LBER_FREE((p)))
+#define LDAP_VFREE(v)		(LBER_VFREE((v)))
 #endif
 
 /*

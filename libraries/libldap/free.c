@@ -30,6 +30,12 @@ ldap_memfree( void *p )
 	LDAP_FREE( p );
 }
 
+void
+ldap_memvfree( void **v )
+{
+	LDAP_VFREE( v );
+}
+
 void *
 ldap_memalloc( size_t s )
 {
