@@ -1,0 +1,12 @@
+doc/Presentation/README
+=======================
+
+This directory contains documentation concerning TWEB that was presented 
+at different occasions.
+
+- DANTE-01-99.ps
+
+  Presentation of the dynamic features of TWEB (i.e., gateway-switching
+  and dynamic re-configuration) at the DANTE NameFlow meeting, January,
+  18th, 1999, in Utrecht, NL.
+

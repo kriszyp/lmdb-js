@@ -1,0 +1,233 @@
+#*_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+#                                                                          *
+# tweb.rc....                                                              *
+#                                                                          *
+# Function:..Ressource-File for TWEB                                       *
+#                                                                          *
+#                                                                          *
+#                                                                          *
+# Authors:...Dr. Kurt Spanier & Bernhard Winkler,                          *
+#            Zentrum fuer Datenverarbeitung, Bereich Entwicklung           *
+#            neuer Dienste, Universitaet Tuebingen, GERMANY                *
+#                                                                          *
+#                                       ZZZZZ  DDD    V   V                *
+#            Creation date:                Z   D  D   V   V                *
+#            July 26 1995                 Z    D   D   V V                 *
+#            Last modification:          Z     D  D    V V                 *
+#            January 11 1999            ZZZZ   DDD      V                  *
+#                                                                          *
+#/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/*/
+#==========================================================================
+# $Id: tweb.rc.dist,v 1.6 1999/09/10 15:01:22 zrnsk01 Exp $
+
+
+##########################################################################
+#                                                                        #
+#    set the following variables to your local addresses (NEEDED)        #
+#    check also for the location of certain help files                   #
+#    and proper timeout                                                  #
+#                                                                        #
+##########################################################################
+
+#  the base port, TWEB is listening on;
+#  indizes for the languages are added to this base port number
+#  (e.g., TWEB with language 1 is listening on port (WEBPORT + 1))
+WEBPORT        <the-base-port-tweb-should-listen-to>
+
+#  the host and port, your x500 server (e.g., UMICH slapd) is listening on
+LDAPD          <the-host-running-your-ldap-server>
+LDAPPORT       <the-port-of-that-ldapserver>
+
+
+#------------------------------------------------------------------------#
+
+#  the DN, TWEB will consider it´s home, together with header and
+#  footer files to be display´ed at that position
+#
+#  the BASEDN will be accessed, when NO DN is given (http://host:port/
+#  the BASEDN will be stripped off from hyperlinks beeing display´ed
+#  access to DIT areas NOT below BASEDN will be denied, if STRICT-BASEDN
+#    (see tweb.rc(.dist)) is activ
+#
+#  BEWARE: HEADER AND FOORTER FILE NAMES ARE ONLY THE BASE NAMES; THE
+#          CORRESPONDING WORKING FILES MUST HAVE EXTENSIONS OF '.x'
+#          WITH x INDICATING THE DESIRED GATEWAY LANGUAGE NUMBER (0-9)
+
+BASEDN  "o=<my-organization>, c=<my-country-ID>" tweb-base.head  tweb-base.foot
+
+
+#------------------------------------------------------------------------#
+
+#  assuming you have copied the binary into the TWEB_conFiles directory,
+#  the ETCDIR directory should be a parallel directory of the current one
+ETCDIR         ../LDAP_etc/
+
+#  the filter file directs the mode, TWEB will search for entries
+#  (e.g., first search input as is in attribute cn, then search
+#         for any one word in attributes cn and/or sn ... )
+FILTERFILE     ldapfilter.conf
+
+#  the time in secs, TWEB will try to get a connection to the x500 server
+TIMEOUT        240
+
+
+##########################################################################
+#                                                                        #
+#    check the following variables for proper access rights              #
+#    and handling of entry lists/legal hints                             #
+#    (NOT NEEDED FOR FIRST START-UP)                                     #
+#                                                                        #
+##########################################################################
+
+#  DN and password of an x500 entry, TWEB will use, when access of the
+#  user to the servers data is without restrictions
+#
+# WEBDN          "cn=<TWEB-DN-1>, o=<your-organization>, c=<your-country>"
+# WEBPW          <TWEB-PW-1>
+
+#  DN (and password) of an x500 entry, TWEB will use, when access of the
+#  user to the servers data is restricted (e.g., external users);
+#  a NULL password (by not configuring) will lead to anonymous access,
+#  irrespective, whether the DN is given or not
+#
+# WEBDN2         "cn=<TWEB-DN-2>, o=<your-organization>, c=<your-country>"
+# WEBPW2         <TWEB-PW-2>
+
+#  Refuse/grant service to certain IP hosts/domains names;
+#  both settings will be checked when deciding deniel of service;
+#  the most special definition for the host given will dominate
+#  (settings can be given by using regular expressions, to cover more than
+#   one host/domain with one expression; alternatives, which should be
+#   or'ed must be seperated by '|')
+#  (continuations can be given on follow-up lines, whith no additional
+#   character at the end of the previous line, and an indentation by
+#   TAB or SPACE on the follow-up line)
+#  
+# REFUSE some-host(\.some-sub-domain)?\.some-domain$|another-domain$|
+#          ^some-initial-char[0-9]+.+\.some-domain$
+
+# GRANT	(host1|host2|host3).*\.another-domain$
+
+#  When service is granted to the requesting host, allow-string/deny-string
+#  decide on full or restricted access to the servers data; in both cases
+#  one of WEBDN1/WEBDN2 (or anonymous if not configured) is used for
+#  accessing the server;
+#  ACLs on the server must be set accourding to the required visibility of
+#  data (see description of ACLs in the servers documentation)
+#  (host/domain names are given as with GRANT/REFUSE)
+#
+# ALLOW-STRING    my-domain$
+# DENY-STRING     some-special-host/sub-domain-in-my-domain\.my-domain$
+
+#  Consider WWW proxies as not authorized to get un-restricted access
+# NO-PROXY
+
+#  Consider the explicit list of proxies as authorized to get full access
+#  (the list is as colon-seperated list of host names)
+# ALLOW-PROXY    proxy.in.my.domain:some-proxy.in.another.domain
+
+#  Refuse access to DNs, outside the scope of TWEBs BASEDN
+#  (this is necessary, if no referral mechanism is working on the
+#   x500 server level; e.g., with slapd in the UMICH package)
+# STRICT-BASEDN
+
+#  Activate anti-hacking code: count access from a range of IP adresses
+#  (IP-Group) to the gateway during a timeslice (randomly selected between
+#  a minimum and maximum number of secs); if the count exceeds a pre-
+#  defined maximum, refuse service for a certain number of timeslices;
+#  after that resume service for the IP-Group
+#  Print statistics for number of accesses from all IP-Groups to file,
+#  at regular intervalls
+#
+# COMREFUSE   TMIN TMAX MAX_ACCEPT SUSPEND_CYCLE STAT_CYCLE STAT_FILE
+COMREFUSE   100 200 40 12 43200 /LDAP/ldap-3.0/tweb-1.0/hack-stats
+
+#------------------------------------------------------------------------#
+
+#  The maximum number of entries display'ed on any one HTML page
+MAXCOUNT        2000
+
+#  During searching/browsing restrict the number of person entries to the
+#  given number; numbers apply to each of the person groups given by the
+#  SORT parameter
+#  STRICT means, even allowed access will be restricted in numbers
+#  NO-BROWSE means, during browsing no person entries are shown at all
+#  MAX-PERSON      5    STRICT  NO-BROWSE
+
+#  List of (parts of ) RDNs, which should not be display'ed
+#  For the current release, strings are seperated by BLANK, with forced
+#  matching to the beginning or end of an RDN signalled by '|';
+#  in a future release, this will be replaced by regular expressions,
+#  very like as in GRANT/REFUSE and beasts
+NO-SHOW-RDN     "|cn=Dummy| netz| LDAP-SAP Mail500|"
+
+
+#  Print a legal message for restricted users; 
+#  normally, this message is printed at the end of the HTML page,
+#  with ON-TOP, the message can be printed near the top of the page
+#
+# LEGAL ON-TOP
+
+
+##########################################################################
+#                                                                        #
+#    configure TWEB gateway-switching                                    #
+#                                                                        #
+##########################################################################
+
+#  Gateway-switching is an original feature of the TWEB, www-x500-gateway.
+#  Switching enables TWEB to generate hyper-links, that are directed towards
+#  other well-known gateways. Following those hyper-links will lead the
+#  user to those gateways, effectively balancing the load between a net
+#  of gateways. Another benefit is the 'Corporate Identity' each gateway
+#  can implement for an organizations own directory data.
+#
+#  Gateway-switching can be configured statically, in the config files
+#  tweb.rc and/or tweb.conf.? , or dynamically, via hints in the 
+#  directory data to be display'ed.
+#
+#  Select dynamic gateway-switching: TWEB will look for labeleduri
+#  attributes within each entry to be display'ed as a hyper-link
+#  before constructing the host-part of the hyper-link URL; the
+#  labelleduri attribut must follow the syntax:
+#      <base-url-of-the-other-gateway> <some-label> (gw[-<language-key>])
+#  The DN of the entry will be appended to the base-url, if the language
+#  selection matches, or no specific selection is given (gw)
+#
+DYNAMIC-GW
+
+#  Configure static gateway switches; they may be replaced at run-time by
+#  dynamic switches (in tweb.rc, gateways, which only support one language
+#  are given; gatways supporting more languages are defined in the
+#  tweb.conf.? files)
+GW-SWITCH   "l=DFN,c=DE"           http://ambix.uni-tuebingen.de:8889/
+
+
+##########################################################################
+#                                                                        #
+#    some miscelleneous configuration parameters                         #
+#                                                                        #
+##########################################################################
+
+#  the labelling of buttons/links leading to gateways with other languages
+LANGUAGE        Deutsch
+                English
+
+#  the hierarchy above the current DIT position is presented as a
+#  pull down menu and an action button, or as a list of hyperlinks
+PULL-DOWN-MENUS
+
+#  entries are kept for some time in a WWW browser´s or proxy´s cache,
+#  before expiring
+CACHE-EXPIRE-DEFAULT 900
+
+#  digits at the end of RDNs (e.g., to make RDNs unique) are stripped
+#  off before displaying; in the config parameter a list of object
+#  classes with stripping in the RDN parts is given
+# STRIP-PIN |toc_profs|person|toc_primas|toc_cperson|toc_funcs|toc_pextra|
+
+#  when MODIFY is configured (in tweb.conf.x), entries belonging to
+#  the object class(es) given here can NOT be modified
+# NO-MODIFY      |toc_primas|
+
+

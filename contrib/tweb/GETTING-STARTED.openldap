@@ -1,0 +1,75 @@
+TWEB WWW-X500 GATEWAY   -   GETTING STARTED
+
+With the information provided by this file you should be able to start
+an initial version of TWEB. Please follow the steps below:
+
+1. Copy the distribution Makefile onto Makefile:
+
+     > cp Makefile.openldap Makefile
+
+2. Edit the Makefile. You have to change the variables in the first block of
+   the file to your appropriate settings:
+
+     > vi Makefile
+
+3. Now type in make:
+
+     > make
+
+   This should make a binary called tweb whithout severe problems
+
+4. Running the TWEB www-x500 gateway
+
+4.1. Testing the newly compiled binary
+
+     Copy the tweb binary to the sub-directory TWEB_conFiles and
+     change to that directory:
+
+       > cp tweb TWEB_conFiles
+       > cd TWEB_conFiles
+
+     Copy the config files with extension .dist to their respective
+     basefiles:
+
+       > cp tweb.rc.dist tweb.rc
+       > cp tweb.conf.0.dist tweb.conf.0
+       > cp tweb.conf.1.dist tweb.conf.1
+       > cp tweb.lang.0.dist tweb.lang.0
+       > cp tweb.lang.1.dist tweb.lang.1
+
+     Edit tweb.rc to adjust the variables in the
+     first block to your appropriate settings:
+
+       > vi tweb.rc
+
+     Run TWEB with language 0 and 1 (i.e., german and english)
+
+       > ./tweb -L01
+
+     This will run two TWEB server processes, one for german language, the
+     other for english language, whithout syslog logging;
+     you can assess them with your WWW browser by giving the URL
+
+         http://<your-tweb-host>:<your-tweb-port>/
+
+4.2. Adapting TWEB to your local requirements
+
+     When you reached this point you have a running TWEB with basic
+     functionality. Have a look to the FEATURE-LIST file for a
+     description of all features, TWEB does provide. The least, you
+     might want to change are the several header and footer files
+     in order to build up your organizational identity with TWEB.
+     But check also the security features, and the performance (i.e.,
+     load balancing) features. By setting the respective parameters,
+     TWEB can provide for a very special appearance with local require-
+     ments enforced as far as possible. Should you want more reasonable
+     features, please don't hesitate to contact the development team.
+
+
+   Have fun,
+
+   TWEB development team, Tuebingen, September, 9th, 1999
+
+   email: tweb-support@mail500.uni-tuebingen.de
+
+

@@ -1,0 +1,105 @@
+#*_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+#                                                                          *
+# Makefile...                                                              *
+#                                                                          *
+# Function:..TWEB WWW to X.500-GATEWAY SERVER MAKEFILE                     *
+#                                                                          *
+#                                                                          *
+#                                                                          *
+# Authors:...Dr. Kurt Spanier & Bernhard Winkler,                          *
+#            Zentrum fuer Datenverarbeitung,                               *
+#            Bereich Entwicklungneuer Dienste,                             *
+#            Universitaet Tuebingen, GERMANY                               *
+#                                                                          *
+#                                       ZZZZZ  DDD    V   V                *
+#            Creation date:                Z   D  D   V   V                *
+#            August 16 1995               Z    D   D   V V                 *
+#            Last modification:          Z     D  D    V V                 *
+#            September 9 1999           ZZZZ   DDD      V                  *
+#                                                                          *
+#/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/*/
+#-----------------------------------------------------------------------------
+#
+#  based on web500gw.c of Frank Richter, TU Chemnitz-Zwickau, DE
+#
+#  first edition: 95/07/28, /KSp
+#
+#  $Id: Makefile.openldap,v 1.6 1999/09/10 15:01:15 zrnsk01 Exp $
+#
+#-----------------------------------------------------------------------------
+
+#########################################################################
+###
+###  Tailor the following to your local settings
+###
+#########################################################################
+
+# where is your LDAP client library located
+LDAP_RUNTIME=/LDAP
+LDAP_SOURCE =/LDAP/ldap-3.3
+
+LIBDIR= $(LDAP_RUNTIME)/lib
+INCDIR= $(LDAP_RUNTIME)/include
+
+# where is some version information for your LDAP client library
+LDAPDIR= $(LDAP_SOURCE)/build
+
+# select your compiler (DEFAULT=cc) and uncomment ACFLAGS and/or COPTS
+# to have options for the linker and/or compiler
+CC= gcc
+# ACFLAGS= 
+# COPTS= -Aa -O  # cc  on a HP box
+COPTS= -Wall -ansi -pedantic -O2
+
+# uncomment next line when compiling on SUN
+# LXNET = -lxnet
+
+# we don't have any special definitions for the current distribution
+# DEFINES= 
+
+#########################################################################
+###
+###  You should leave the following definitions untouched
+###
+#########################################################################
+
+SRCS	= tweb.c strng.c init.c queries.c server.c \
+		  x500.c html.c support.c checkclient.c \
+		  charray.c ch_malloc.c dn.c regular.c
+OBJS	= tweb.o strng.o init.o queries.o server.o \
+		  x500.o html.o support.o checkclient.o \
+		  charray.o ch_malloc.o dn.o regular.o
+GWOBJS	= $(OBJS) gwversion.o
+
+CFLAGS	= $(COPTS) -I$(INCDIR) $(ACFLAGS) $(DEFINES) $(GWVERS)
+LIBS	= -lldap -llber $(KRBLIBFLAG) $(KRBLIBS) $(LXNET)
+DLIBS	= $(LIBDIR)/libldap.a $(LIBDIR)/liblber.a
+
+gw:	gwversion.o
+	$(CC) $(ALDFLAGS) -o $@ $(GWOBJS) -L$(LIBDIR) $(LIBS)
+	mv $@ tweb
+
+gwversion.c: $(OBJS) $(DLIBS)
+	rm -f $@
+	(u=$${USER-root} v=`cat $(LDAPDIR)/version` d=`pwd` h=`hostname` t=`date`; \
+	sed -e "s|%WHEN%|$${t}|" \
+	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
+	-e "s|%VERSION%|$${v}|" \
+	< Versiongw.c > $@)
+
+lint:;
+	lint -I. $(SRCS)
+
+5lint:;
+	/usr/5bin/lint -I. $(SRCS)
+
+clean:;
+	rm -f *.o core a.out gwversion.c tweb 
+
+depend:;
+	$(LDAPDIR)/mkdep $(CFLAGS) $(SRCS)
+
+# DO NOT DELETE THIS LINE -- mkdep uses it.
+# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
+
+# IF YOU PUT ANYTHING HERE IT WILL GO AWAY

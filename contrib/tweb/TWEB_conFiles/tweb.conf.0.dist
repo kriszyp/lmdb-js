@@ -1,0 +1,267 @@
+#*_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+#                                                                          *
+# tweb.conf.0                                                              *
+#                                                                          *
+# Function:..Configuration-file for TWEB                                   *
+#                                                                          *
+#                                                                          *
+#                                                                          *
+# Authors:...Dr. Kurt Spanier & Bernhard Winkler,                          *
+#            Zentrum fuer Datenverarbeitung, Bereich Entwicklung           *
+#            neuer Dienste, Universitaet Tuebingen, GERMANY                *
+#                                                                          *
+#                                       ZZZZZ  DDD    V   V                *
+#            Creation date:                Z   D  D   V   V                *
+#            July 26 1996                 Z    D   D   V V                 *
+#            Last modification:          Z     D  D    V V                 *
+#            December 18 1998           ZZZZ   DDD      V                  *
+#                                                                          *
+#/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/*/
+#==========================================================================
+# $Id: tweb.conf.0.dist,v 1.6 1999/09/10 15:01:21 zrnsk01 Exp $
+
+
+#  THE PARAMETERS IN THIS FILE AND THE CORRESPONDING CONFIG-FILE.1
+#  ARE PRE-SET TO PROVIDE A BASIC FUNCTIONALITY.
+#
+#  IF YOU LIKE, YOU CAN CHECK FOR FURTHER DISPLAY-OBJECTs, SORT,
+#  SEARCH-ONLY AND MODIFY DEFINITIONS IN THE SECOND PART OF THE FILE.
+#
+#  TO ACTIVATE A CERTAIN FEATURE, THE CORRESPONDING LINES HAVE TO
+#  BE DE-COMMENTED
+
+
+#########################################################################
+
+
+###
+###  the description, how to display an object upon read
+###
+
+#  FIRST-PAGE is the main view, SECOND-PAGE a linked page with more
+#  (e.g., not so important) information
+#
+#  given is a list of attributes, with labels for each and the method,
+#  how to display the content of the attribute
+
+DISPLAY-OBJECT  pers
+# 1.Bild
+FIRST-PAGE      cn                          Name             DEFAULT
+                personalTitle               Titel            DEFAULT
+                organizationalStatus        Dienststellung   DEFAULT
+                description                 Arbeitsgebiet    DEFAULT
+                telephoneNumber             Gesch&auml;fts-Telefon  DEFAULT
+                facsimileTelephoneNumber    Fax              DEFAULT
+                mail                        E-Mail-Adresse   MAILTO
+                textEncodedORaddress        X400-Adresse     DEFAULT
+                postalAddress               Anschrift        MULTILINE
+                roomNumber                  Raum             DEFAULT
+                labeledURI                  URL              URI
+# 2.Bild (see more)
+SECOND-PAGE     sn                          Nachname         DEFAULT
+                roleOccupant                Funktionstr&auml;ger HREF
+                memberOfGroup               E-Mail-Verteiler DEFAULT
+                homepostalAddress           Heimat-Anschrift MULTILINE
+                homePhone                   Privat-Telefon   DEFAULT
+                pager                       Pager            DEFAULT
+                lastModifiedTime   "letztmalig ge&auml;ndert"  DATE
+                lastModifiedBy     "letztmalig ge&auml;ndert von"  DEFAULT
+
+DISPLAY-OBJECT  organization
+# 1.Bild
+FIRST-PAGE      o                           Name             DEFAULT
+                ou                          Name             DEFAULT
+                l                           Ort              DEFAULT
+                description                 Beschreibung     DEFAULT
+                postalAddress               Postanschrift    MULTILINE
+                telephoneNumber             Telefon          DEFAULT
+                facsimileTelephoneNumber    Fax              DEFAULT
+                labeledURI                  URL              URI
+# 2.Bild (see more)
+SECOND-PAGE     st                          Bundesland       DEFAULT
+                seeAlso                     "weitere Informationen" MOVETO
+                lastModifiedTime   "letztmalig ge&auml;ndert"  DATE
+                lastModifiedBy     "letztmalig ge&auml;ndert von"  DEFAULT
+
+DISPLAY-OBJECT   rfc822MailList
+# 1. Bild
+FIRST-PAGE      description                 Beschreibung     DEFAULT
+                joinable                    abonnierbar      BOOLEAN
+                associatedDomain            E-Mail-Domain    DEFAULT
+                rfc822RequestsTo            "Anfragen an"    MAILTO
+                requestsTo                  "Anfragen an"    HREF
+                owner                       Eigent&uuml;mer  HREF
+# 2. Bild
+SECOND-PAGE     lastModifiedTime   "letzte &Auml;nderung"    DATE
+                lastModifiedBy      "ge&auml;ndert durch"    DEFAULT
+
+DISPLAY-OBJECT  country
+# 1.Bild
+FIRST-PAGE      friendlyCountryName         L&auml;ndernamen DEFAULT
+                associatedDomain            Domain           DEFAULT
+                manager                     Manager          HREF
+                labeledURI                  URL              URI
+# 2.Bild (see more)
+SECOND-PAGE     masterDSA                   Master-DSA       HREF
+                slaveDSA                    Slave-DSA        HREF
+                lastModifiedTime  "letztmalig ge&auml;ndert"      DATE
+                lastModifiedBy    "letztmalig ge&auml;ndert von"  DEFAULT
+                lastUpdateTime    "letztmalig ge&auml;ndert"      DATE
+
+DISPLAY-OBJECT   default
+# 1.Bild
+FIRST-PAGE      jpegPhoto                   Foto            JPEG
+                photo                       Foto            BMP
+                cn                          Name            DEFAULT
+                sn                          Nachname        DEFAULT
+                textEncodedMtaName          MTA-Name        DEFAULT
+                relatedMHSdomain            MHS-Domain      DEFAULT
+                description                 Beschreibung    DEFAULT
+                multiLineDescription        Beschreibung    MULTILINE
+                info                        "Allgemeines"   DEFAULT
+                productName                 Produktname     DEFAULT
+                mail                        Mail-Adresse    MAILTO
+                telephoneNumber             Telefon         DEFAULT
+                facsimileTelephoneNumber    Fax             DEFAULT
+                labeledURL                  URL             URL
+                memberOfGroup               E-Mail-Verteiler DEFAULT
+                member                      Mitglied        HREF
+                owner                       Eigent&uuml;mer HREF
+                requestsTo                  "Anfragen an"   HREF
+                errorsTo                    "Fehler an"     HREF
+                krbName                     Kerberos-Name   DEFAULT
+                postalAddress               Postanschrift   MULTILINE
+                l                           Ort             DEFAULT
+                textEncodedPSAP             Netz-Adresse    DEFAULT
+                presentationAddress         Netz-Adresse    DEFAULT
+                supportedApplicationContext Anwendung       DEFAULT
+                publicAccess                Zugang          DEFAULT
+                availability                Verf&uuml;gbarkeit  DEFAULT
+                knowledgeInformation        Kontakt         DEFAULT
+                seeAlso                     "siehe auch"    HREF
+                roleOccupant                Stelleninhabr   HREF
+                manager                     Manager         HREF
+                administrator               Manager         HREF
+                secretary                   Sekretariat     HREF
+                associatedName              "zugeordneter Name" HREF
+                responsiblePerson           Verantwortlicher HREF
+                domainComponent             Domain          DEFAULT
+                labeledURI                  URL             URI
+# 2.Bild (see more)
+SECOND-PAGE     source                      Quelle          DEFAULT
+                homePostalAddress           Heimat-Anschrift MULTILINE
+                masterDSA                   Master-DSA      HREF
+                slaveDSA                    Slave-DSA       HREF
+                lastModifiedTime   "letztmalig ge&auml;ndert"      DATE
+                lastModifiedBy     "letztmalig ge&auml;ndert von"  DEFAULT
+                lastUpdateTime     "letztmalig ge&auml;ndert"      DATE
+
+
+###
+###  sorting and display of groups of entries
+###
+
+#  while browsing and searching, entries below the current position
+#  in the DIT, or the search results, can be grouped according to some
+#  SORT rules; these rules determine,
+#     1. which objectclass should signal a specific group, and in what
+#        order the entries should be checked for those objectclasses
+#        (the sequential order of the objectclasses given below),
+#     2. what label should be applied to a group (" " means none),
+#     3. the order of groups during output,
+#     4. the display type for an object of the given object class
+#         when display´ing a read result, and
+#     5.  the attribute, that will control sort order of entries
+#          within each group
+#  the last two parameters are optional, and will default to display
+#  type ´default´ (see DISPLAY-OBJECTS), and sort attribute sn (surname)
+#  (if given in the entry, otherwise the RDN itself)
+#
+#  When an entry has none of the listed object classes, it will NOT be
+#  included into the display !!!
+
+SORT   dNSDomain               Dom&auml;ne             8
+       domain                  Faxanschl&uuml;sse      9
+       rfc822MailList          X.500-E-Mail-Verteiler 10 rfc822MailList
+       organizationalPerson    Mitarbeiter             1 pers registeredAddress
+       residentialPerson       Privat-Personen         2 pers registeredAddress
+       person                  "sonstige Personen"     3 pers registeredAddress
+       locality                Gebiete                 7 organization
+       organization            Organisationen          5 organization
+       organizationalUnit      Unterorganisationen     6 organization 
+       alias                   Verweise               11
+       country                 L&auml;nder             4 country
+
+
+###
+###  the position of certain language-specific support-files
+###
+
+#    a help file (accessible via http://host:port/H)
+HELPFILE       tweb.help.0
+
+#    converting certain RDNs to a more user-friendly form)
+FRIENDLYFILE   ldapfriendly.0
+
+#    header and footer beeing attached to every HTML page (not BASEDN)
+HEADER         tweb.header.0
+FOOTER         tweb.footer.0
+
+#    a special message beeing attached to a HTML page when a allowed
+#    user accesses the gateway (see ALLOW-STRING/DENY-STRING in tweb.rc)
+ALLOW-MSG      allow.msg.0
+
+
+###
+###  some more settings for (language-specific) gateway-switches (see tweb.rc)
+###
+
+# GW-SWITCH  "ROOT"                http://<my-world-relay.my-domain>:<port0>/M
+#            "c=<my-country-ID>"   http://<my-country-relay.my-domain>:<port0>/
+
+
+###
+###  where to prevent listing and provide for searching only
+###
+
+#  a (list of) DN(s), where no person lists should be display´ed, but
+#  a search box only (e.g., because to many person are contained in
+#  here, so list results would be too long); also, which header and 
+#  footer files will be display´ed at that position
+
+# SEARCH-ONLY "ou=<some-ou>, o=<my-organization>, c=<my-country-ID>"  search-only.head.0 search-only.foot.0
+
+
+###
+###  modifying entries via TWEB
+###
+
+#  when the user is allowed to modify her own entry, MODIFY/MODATTR will
+#  describe, what can be modified
+#
+#  BEWARE: this feature is not allowed at the University of Tuebingen,
+#          so the code is not tested very well; usage is on own risc
+
+#  objects of what class can be modified
+#  (for each class a seperate description>)
+# MODIFY          person
+
+#  what attributes can be modified
+#  a label in the HTTP formular is given for each attribute,
+#  together with the maximum count of values, beeing accepted
+#  in the input area
+
+# MODATTR         personalTitle        Titel                      1
+#                 organizationalStatus Dienststellung             1
+#                 description          Beschreibung               2
+#                 telephoneNumber      Telefon                    2
+#                 facsimileTelephoneNumber FAX                    2
+#                 mail                 Mail-Adresse               2
+#                 roomNumber           Raum                       1
+#                 memberOfGroup        Mailgruppe                10
+#                 homePostalAddress    Heimatanschrift            1
+#                 homePhone            "privat Telefon"           2
+#                 pager                Pager                      2
+#                 info                 Information                2
+
+

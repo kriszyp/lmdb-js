@@ -1,0 +1,150 @@
+#*_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+#                                                                          *
+# tweb.lang.0                                                              *
+#                                                                          *
+# Function:..Language-File for TWEB-SOFTWARE                               *
+#                                                                          *
+#                                                                          *
+#                                                                          *
+# Authors:...Dr. Kurt Spanier & Bernhard Winkler,                          *
+#            Zentrum fuer Datenverarbeitung, Bereich Entwicklung           *
+#            neuer Dienste, Universitaet Tuebingen, GERMANY                *
+#                                                                          *
+#                                       ZZZZZ  DDD    V   V                *
+#            Creation date:                Z   D  D   V   V                *
+#            February 14 1996             Z    D   D   V V                 *
+#            Last modification:          Z     D  D    V V                 *
+#            February 20 1997           ZZZZ   DDD      V                  *
+#                                                                          *
+#/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/*/
+#
+# $Id: tweb.lang.0.dist,v 1.6 1999/09/10 15:01:22 zrnsk01 Exp $
+
+0  de
+1  [not used]
+2  [not used]
+3  [not used]
+4  [not used]
+5  Kommando nicht implementiert!
+6  Nicht gefunden
+7  Last-Modified
+8  &Auml;ndere Ergebnisse:
+9  &Auml;nderungs-Ergebnisse f&uuml;r
+10 &Auml;nderungen:
+11 Fehler w&auml;hrend &Auml;nderungs-Operation:
+12 L&Ouml;SCHE alten Wert
+13 von Attribut
+14 Der Fehler-Kode war
+15 &Auml;nderung
+16 Erfolgreich ausgef&uuml;hrt
+17 Lese diesen ge&auml;nderten Wert
+18 Benutzer-Passwort
+19 &Auml;ndere diesen Eintrag erneut
+20 Die angegebene Abfrage war nicht spezifisch genug, wodurch ein Sizelimit 
+	&uuml;berschritten wurde, wobei die ersten paar &Uuml;bereinstimmungen 
+	zur&uuml;ckgegeben wurden. Falls Sie nicht den gesuchten Eintrag 
+	gefunden haben, machen Sie bitte eine genauere Abfrage, 
+	zum Beispiel mit Vor- und Nachnamen.
+21 Die Anzahl der gefundenen Eintr&auml;ge hat eine systemseitig
+	vorgegebene Obergrenze &uuml;berschritten. Falls der gesuchte Eintrag
+	in der dargestellten Liste nicht vorhanden ist, nutzen Sie die
+	<STRONG>Such</STRONG>-Option, um das Gesuchte genauer zu spezifizieren.
+22 Fehler
+23 X.500 - WWW Fehler:
+24 Beim Durchsuchen von X.500 tauchte ein Fehler auf
+25 Der Fehlercode war
+26 Es ist keine zus&auml;tzliche Information erh&auml;ltlich.
+27 Liste unterhalb von
+28 aktuelle Position:
+29 About
+30 Suche:
+31 Wir haben nicht die entsprechenden Zugriffsrechte, um hier eine globale 
+	Suche zu starten, aber wenn Sie wissen, wen Sie suchen, benutzen Sie die
+	<STRONG>Such</STRONG>-Option oben mit dem Namen des
+	gew&uuml;nschten Eintrages.
+32 Habe nichts unter diesem Eintrag gefunden. Sie k&ouml;nnen den Eintrag
+	selbst lesen, oder eine Suche probieren ...
+33 (eingeschr&auml;nkte Liste
+34 siehe Fu&szlig;note
+35 suche in
+36 Keine Suchergebnisse:
+37 Habe nichts gefunden ...
+38 f&uuml;r
+39 Suchergebnisse:
+40 Suchergebnisse f&uuml;r
+41 <H2>X.500 - WWW Fehler:</H2><P>Bei der Darstellung des X.500 Eintrages 
+	tauchte ein Fehler auf. <P>Keine bekannte Object-Klasse 
+	f&uuml;r diesen Eintrag.<P>
+42 Weitere Informationen
+43 VORSICHT: Dies ist noch <B>EXPERIMENTELL</B>!!!
+44 Geben Sie das Passwort f&uuml;r diesen Eintrag ein
+45 wenn Sie ihn
+46 &uuml;bermitteln wollen
+47 &Auml;NDERN
+48 wollen
+49 Fehlendes Passwort!
+50 Unbekanntes Argument
+51 &Auml;ndern
+52 altes Passwort
+53 VORSICHT: Dies ist noch EXPERIMENTELL!!!
+54 Fehler in der Abfrage: Kein Wert
+55 f&uuml;r
+56 Fehler in der Abfrage: Kein alter Wert
+57 <B>Fehler w&auml;hrend der Modifikation:</B><P>Neuen Wert HINZUF&Uuml;GEN
+58 zum Attribut
+59 Der Fehlercode war
+60 <B>Fataler Fehler:</B><BR>Konnte den alten Wert nicht zur&uuml;cksetzen
+61 auf Attribut
+62 Setze den alten Wert wieder
+63 auf Attribut
+64 Mail an:
+65 Aus datenschutzrechtlichen Gr&uuml;nden werden <strong>keine</strong> 
+	umfangreichen Personenlisten ausgegeben. Falls die gesuchte Person 
+	in der angezeigten Teilliste nicht vorhanden ist, verwenden Sie die
+	<STRONG>Such</STRONG>-Option, um die gesuchte Person genauer 
+	zu spezifizieren.<BR>
+66 Einstufige Suche
+67 suche unterhalb nach...
+68 SUCHEN
+69 Eingabe l&ouml;schen
+70 Eintrag
+71 Eintr&auml;ge
+72 Eintr&auml;ge zuruecksetzen
+73 en
+74 gel&ouml;scht
+75 ersetzt
+76 hinzugef&uuml;gt
+77 Welt
+78 Ja
+79 Nein
+80 <B>Fataler Fehler:</B><BR>Konnte den Wert nicht modifizieren
+81 bei Attribut
+82 http://ambix.uni-tuebingen.de/cgi-bin/selbst
+83 http://ambix.uni-tuebingen.de/selbstinfo.html
+84 <FORM METHOD=POST ACTION=%s>Selbsteintrag:
+85      <INPUT type=hidden name="aloc" value="%s">
+	<INPUT TYPE="submit" name="worker" VALUE="Angestellte">
+86      <INPUT type=hidden name="sloc" value="%s">
+	<INPUT TYPE="submit" name="studie" VALUE="Studierende">
+87 </FORM>
+88 Ung&uuml;ltige Anfrage
+89 <EM>Fehlender Such-Filter!</EM>
+90 <EM>Fehlender Scope!</EM>
+91 [not used]
+92 <EM>Fehlender Suchbegriff!</EM> <P>Bitte geben Sie einen Suchbegriff an!
+93 <EM>Fehlender DN!</EM>
+94 <EM>Fehlendes Passwort!</EM>
+95 <EM>Unbekannte Abfrage!</EM>
+96 <H1>ZUGRIFF VERWEIGERT</H1>
+	Die angefragten Daten stehen &uuml;ber diesen Server nicht zur
+	Verf&uuml;gung!<br>Bitte benutzen Sie folgende URL:
+97 <H1>ZUGRIFF VERWEIGERT</H1>
+98 ...lesen
+99 %s<H6>Daten erstellt durch %s <br>
+	&copy; TWEB: Zentrum f&uuml;r Datenverarbeitung,
+	Universit&auml;t T&uuml;bingen, Deutschland</H6>
+100 BODY BGCOLOR=#ffffe0 TEXT=#000000 LINK=#0000a0 VLINK=#00a000 font-family="times serif"
+101 <HR>
+102 <BR><H1>Der Name Ihres Hosts ist nicht verfuegbar. Sie sehen deshalb nicht alle Daten!</H1><BR>
+103 [not used]
+104 Wenn Sie mehr Daten sehen wollen, schalten Sie Ihren Proxy-Server aus !

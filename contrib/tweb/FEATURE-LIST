@@ -1,0 +1,1138 @@
+/*_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+*                                                                          *
+* FEATURE-LIST                                                             *
+*                                                                          *
+* Function:..A description of the basic of TWEB,                           *
+*            the Tuebinger Web-X.500 gateway                               *
+*                                                                          *
+*                                                                          *
+* Authors:...Dr. Kurt Spanier & Bernhard Winkler,                          *
+*            Zentrum fuer Datenverarbeitung, Bereich Entwicklung           *
+*            neuer Dienste, Universitaet Tuebingen, GERMANY                *
+*                                                                          *
+*                                       ZZZZZ  DDD    V   V                *
+*            Creation date:                Z   D  D   V   V                *
+*            September 14 1995            Z    D   D   V V                 *
+*            Last modification:          Z     D  D    V V                 *
+*            January 15 1999            ZZZZ   DDD      V                  *
+*                                                                          *
+_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/*/
+
+
+
+0 TABLE OF CONTENTS
+
+   1      Introduction
+   2      General overview
+   2.1    A case of Public Relations
+   2.2    Configuration files and TWEB start-up
+   2.3    The running gateway
+   2.4    check4access: who is allowed to see (what) data
+   2.5    Preparing the data
+   2.6    Searching for data
+   2.7    Data based behaviour: the dynamic gateway
+   2.8    Restricting the service
+   2.8.1  Restricting the number of entries
+   2.8.2  Suppression of certain entries by RDN
+   2.8.3  Defining DIT areas for search-only operations
+   2.8.4  Controlling the hackers
+   3      Configuration of TWEB features in detail
+   3.1    Technical configuration options
+   3.2    Political configuration options
+   3.3    Load balancing configuration options
+   3.4    Display configuration options
+   4      Support and discussion list
+
+
+1 INTRODUCTION
+
+   TWEB is based on the Web500gw implementation by Frank Richter, 
+   Technische Universitaet Chemnitz-Zwickau, which is based on the 
+   go500gw implementation by Tim Howes, University of Michigan.
+
+   TWEB was compiled and tested on LINUX with cc, HPUX 9.05 with the
+   HP-ANSI C compiler, as well as SunOS 4.1.2 with the SUN C compiler.
+   TWEB was also compiled with gcc on all platforms. On SUN Solaris
+   2.6.x TWEB was also compiled with gcc 2.7.2.
+
+   The UMICH LDAP client library version 3.0 or 3.3
+   ( URL:ftp://terminator.rs.itd.umich.edu/ldap/ldap-3.3.tar.Z )
+   must be installed on the machine (library path and include file 
+   path is configured in Makefile). With QUIPU ICR-2.x the ISODE-
+   provided LDAP libraries should be used. As such, TWEB only supports
+   LDAP version 2 with the University of Michigan type C API. TWEB is
+   also adapted for the OpenLDAP LDAP library, release version 1.1.2
+   (http://www.openldap.org).
+
+   An upgrade to LDAP version 3 and a C API standadized by the IETF
+   is planned for a not so far away future, most probably in step 
+   with the OpenLDAP package.
+
+   TWEB, as provided here is a fully functional core gateway, which
+   is extended at the author's site by some local features. These
+   extensions are included into the same code base, so that some
+   "#ifdef TUE_TEL" or "#ifdef AMBIX" pre-processor statements can
+   be found throughout the code. 
+
+
+2 GENERAL OVERVIEW
+
+2.1 A case of Public Relations
+
+   TWEB is a gateway between the HTML-based World-Wide-Web (WWW 
+   for short) and the X.500-based wordlwide directory, nowadays
+   mainly accessed through LDAP, the Leightweight Directory Access
+   Protocoll. As such, TWEB is a mediator between these worlds,
+   providing run-time access to a lively database and preparing
+   results in a usable format.
+
+   Why not access the directory directly via my browser-built-in
+   LDAP functionality, you may ask. One answer is, that TWEB with
+   it's build-in security features may provide access to more
+   internal data for permitted users, while denying these data for
+   outside users. This might be very handy from the database
+   administration point of view, easing the task of checking
+   for consistencies between seperate inside and outside databases.
+
+   Secondly, TWEB provides for a flexible display of results,
+   not just showing the pure data. Corporate identity, even when
+   using a staff's directory, can be implemented by an organization.
+   Furtheron, important messages and hints can be added on the fly,
+   that are relevant to the directory user. This is also possible
+   via HTTP links, provided either through the directory data (e.g.,
+   links to personal home pages) or embeded into HTML text loaded
+   during result page preparation. Thus, the integration of WWW and
+   the directory can be two-ways, not just one-way.
+
+   Thirdly, TWEB can, with some extensions not yet provided in
+   the current distribution, easily be configured to access the
+   directory more than once, in order to return results for a
+   single request. For example, this can be used to build a page
+   with the phoenbook entries of a whole department, institute, or
+   faculty, spanning many hierarchies is the underlying directory
+   database, as implemented at the University of Tuebingen.
+
+   When running TWEB with some of the configuration options, one
+   might easily find more points that are in favor of a gateway
+   solution, rather than purely accessing the data of a single
+   directory entry at a time.
+
+   BUT AFTER THIS SHORT EXCURSION INTO THE WORLD OF PR, LET'S
+   HAVE A LOOK AT WHAT TWEB PROVIDES AND WHAT FEATURES CAN
+   BE USED.
+
+
+2.2 Configuration files and TWEB start-up
+
+   Allmost anything what TWEB provides is determined by a set of
+   configuration files during start-up, or at run-time. There is 
+   the main ressource file (tweb.rc) that provides for basic,
+   language-independant features, like host and port of the connected
+   directory server. Language-specific configuration parameters
+   are located in the config files (tweb.conf.x), with x (0-9)
+   standing for any of a set of supported languages. Language 
+   strings, that are used to build an HTML result page are taken
+   from the language files (tweb.lang.x), again with x indicating
+   the language in question. Those files are located in the 
+   TWEB_conFiles subdirectory; the TWEB binary, probably via a
+   symbolic link, should also reside within that directory.
+
+   Header and footer files, and certain message files are loaded
+   during run-time, so that the content can be updated on-the-fly,
+   without restarting the gateway. Those files can be found in the
+   LDAP_etc subdirectory, but can also be located elsewhere, after
+   setting the ETCDIR parameter in the tweb.rc file.
+
+   Certain configuration parameters can be overridden by command
+   line parameters during start-up. Type 'tweb -h' to get a short
+   description of each command line parameter, or have a look at
+   the description below. The important parameters are '-l' for
+   selection of the LOCAL user of the syslog facility, and '-L'
+   for selection of languages.
+
+   When starting, TWEB first of all determines which languages should
+   be supported. A sub-process is created for each language by the
+   fork() system call, and the starting process is terminated. (In case
+   of only one language, TWEB will not fork, but instead use the first
+   process for the gateway service.) Each sub-process is responsible for
+   one of the languages, and presents hyperlinks to the other languages'
+   HTTP addresses on HTML pages, so that the user can switch from one
+   language to the other. When language hints are provided within the
+   directory data (see below) even attribute values may be presented
+   language-specific. (This is not to be mixed up with the LDAPv3
+   standard, which provides for language specification via attribute
+   options.)
+
+   The starting TWEB initializes itself by reading the tweb.rc, the
+   tweb.conf.x, and the tweb.lang.x files, and stores the configuration
+   in a global data structure that can be used by all parts of the
+   program. Command line options are considered last, and can override
+   previously defined parameters. In the tweb.rc and tweb.conf.x files
+   parameters are generally additive, meaning that configuration can be
+   spread across those files (e.g., GW-SWITCH can be set to language-
+   independant gateways in tweb.rc and extended by language-specific
+   gateways in the tweb.conf.x files.)
+
+   Also, message, header and footer files are checked for presence, and
+   a warning is printed to standard output, if they are missing. After
+   some more sanity checks of the configuration, TWEB connects to the
+   port it was configured for and starts listening for HTTP requests.
+   (In the tweb.rc config file only a base port is given; the gateway
+   process serving for language 0 will listen at this port; the gateway
+   for language 1 at port+1, for language 2 at port+2, and so on, upto
+   the language with number 9.)
+
+
+2.3 The running gateway
+
+   When a request is started by an external HTTP client, TWEB checks
+   for access rights of that client (see below), and decides, whether
+   the request can be handled by the process itself (mainly simple
+   requests, like, e.g., sending the help file), or whether another
+   sub-process should be started. In both cases the TWEB master process
+   returns to listening for requests, so that new request can be
+   handled while old ones are still in progress.
+
+   A request is encoded into the URL, the Universial Ressource Locater,
+   the HTTP client sends to the gateway process. Such an URL is build
+   of different parts, as follows:
+
+      http://host:port/request
+
+   First of all, 'http://' defines the HTTP protocoll itself. As
+   TWEB is the mediator between WWW and the directory, it is an HTTP
+   server towards the browser, accepting normal HTTP request, but is an
+   LDAP client towards the directory server, sending LDAP requests.
+
+   Host and port are the same as in the tweb.rc configuration file,
+   and tell the browser, where to direct the request.
+
+   The request for TWEB is given in the last part of the URL, in a more
+   or less complicated format. The most simple request is the EMPTY
+   request ( http://host:port/ ), which will cause TWEB to return a
+   listing of directory entries just below it's BASEDN. (Besides beeing
+   the "home" for TWEB when sending an URL without further specification,
+   the BASEDN can also be configured as beeing the root entry of an DIT
+   area, and TWEB will only serve requests within, but not outside that
+   area; STRICT-BASEDN.)
+
+   All other requests are given by a starting letter (beware: that
+   letter is CASE-SENSITIVE) and possibly a further specification.
+   That letter directs TWEB to one of several actions, like returning
+   a directory listing, reading a specified entry, or sending a 
+   formular for modification of an entry. If a directory look-up
+   is necessary, TWEB will perform that via LDAP, prepare the results
+   as an HTML page, and return it to the requesting client. After
+   that the process will die, unless it was the master process, that
+   returns to listening for further requests. Thus, TWEB's action is
+   as state-less as the HTTP protocoll itself, but some information
+   for subsequent client requests can be embedded into the result,
+   like for example a gateway-switch (see below) or an entries' old
+   data in a modification formular.
+
+   Like in HTTP, the TWEB request URL should contain no space characters,
+   and certain special chars should be HTML escaped. TWEB will allways
+   prepare such URLs in its own results, e.g., when returning a list of
+   entries, with each one beeing a clickable hyperlink for the next data
+   retrieval. Thus, during interaction with TWEB, the user has not to
+   consider such special characters, for they are converted automatically.
+   Only the very first link to TWEB, be it embedded into a web page, or
+   entered directly into the browser's 'goto URL' field, or whatever it is
+   called, should be checked for those characters.
+
+
+2.4 check4access: who is allowed to see (what) data
+
+   A requesting client not only gives the URL to TWEB, but also it's
+   IP or Internet address. This is an address needed by computers to
+   find each other in the world-wide network. Normally, computers
+   have also so-called Internet Names, that are more human-readable.
+   To match IP addresses and internet names, the Domain Name Service
+   (DNS) is run on the Internet. When TWEB receives an IP adress,
+   it will try to look up the corresponding internet name of the
+   requesting client and use that information to decide on access
+   rights of the client. If a host's name cannot be found in the
+   DNS, this is also used as a bit of information. The configuration
+   parameters GRANT, REFUSE, ALLOW-STRING, and DENY-STRING can be
+   set to specify access rights based on internet names in a very
+   flexible way. Furtheron, the HTTP information of proxy access
+   is considered, if the parameters NO-PROXY and ALLOW-PROXY are set.
+
+   When TWEB has decided on access rights, it will continue depending 
+   on these rights. When service is totally refused to a requesting
+   host, or a complete IP domain, a corresponding message is send to
+   the client and the TWEB process terminates. Otherwise, TWEB selects
+   one of two configured WEBDNs (the directory names of corresponding
+   entries in the local directory) and WEBPWs (corresponding passwords)
+   and sends the LDAP requests with these DNs to the directory server.
+   The server should of course be configured in a way, that the one DN
+   has access to internal data, whereas the other has not. Thus, data
+   retrieval can be controlled by the server, not only by TWEB itself.
+
+
+2.5 Preparing the data
+
+   Almost any result page is build by combining different areas, as
+   appropriate for the result returned. A header and footer is located
+   at the top and the bottom of the HTML page, respectively. (In fact,
+   the footer is followed by a tiny TWEB version info, so the footer
+   is only the second-last element.) Below the header some internal
+   message can follow (ALLOW-MESSAGE), which will not be shown to an
+   outside requestor, and in front of the footer there can be a Legal
+   Message for the outsider (LEGAL; actually, if the ON-TOP parameter
+   is specified for the LEGAL option, this Legal Message will also be
+   printed at the beginning of the result page). Below the header/
+   internal message, an area for navigation, reading the current base
+   position and a search box may follow, that can be used for entering
+   further requests.  Below that, the results of the current request
+   are shown.
+
+   If there are more than one result entries to the current request (e.g.,
+   due to a listing of entries below the current DIT position, or multiple
+   matches for a search request), a hyperlink for each entry is displayed,
+   to give the user the possibility to follow the link and obtain the
+   results for the next request. The HREF within the hyperlink is a
+   complete URL, with host:port, and the directory entries' distinguished
+   name (DN) for the next request to TWEB.
+
+   Results can be grouped to different lists and sorted within each
+   group, according to the settings of the SORT configuration parameter,
+   and the entries' objectclasses. The objectclasses given in the SORT
+   configuration parameter are scanned for in each result entry,
+   sequentially, and an entry is placed into the appropriate group, as
+   soon as an objectclass is found. (Entries having none of the SORT
+   objectclasses will only be shown, if the SHOW-DEFOC configuration
+   parameter as well as a DEFAULT DISPLAY-TYPE is given.) After scanning
+   for groups, each group of entries is sorted according to the contents
+   of the sort attribute listed within the group's SORT clause, or by the
+   attribute "sn" (surname), if no explicite sort attribute is given, or
+   according to the entries' relative distinguished name, if there is no
+   sn attribute within the entries. The sorted groups are displayed in
+   the order, that is given numerically in the SORT clauses. Thus, the
+   order while scanning for objectclasses (i.e., preparing the groups)
+   is distinct from the order during display. Each group is prepanded
+   by the label given in the SORT clause, with a label consisting only
+   of space characters meaning no label. (Labels containing space
+   characters must be surrounded by double quote characters, i.e., '"'.)
+
+   If there is only one result to a request, TWEB will perform a read
+   request for the X.500 entry and display the attributes of the entry.
+   Since access rights are also checked at the server (see above), the
+   attribute list for a permitted user can differ from the list of an
+   external user. In each case, the attributes are sorted according to
+   the DISPLAY-OBJECT given in the SORT configuration parameter, after
+   classification of the entry to one of the SORT groups in much the 
+   same way, as described above. The DISPLAY-OBJECT selects the attributes
+   to be displayed and determines the order of, as well as labels for
+   the attributes. (If the DISPLAY-OBJECT parameter is not given to the
+   SORT configuration option, DISPLAY-OBJECT DEFAULT will be used; if
+   that, however, is not given by the configuration files, the entry
+   will NOT be displayed!) The method for displaying is also given. Thus,
+   attributes can be displayed as simple strings, prepared as HTTP URLs,
+   or as mailto hyperlinks. A complete list of display methods is given
+   below with the description of the FIRST-PAGE configuration parameter.
+   Within the DISPLAY-OBJECT definition, FIRST-PAGE describes attributes
+   to be shown on a first HTML page, and SECOND-PAGE lists attributes
+   for a second HTML page, if given. To obtain the second page, a hyper-
+   link that directs TWEB to read the same entry again with additional
+   attributes, is placed at the end of the first page's attribute list.
+
+
+2.6 Searching for data
+
+   As described above, one element of a result page may be a search box
+   that can be used to enter appropriate search strings. The input is
+   taken by TWEB and used according to the definitions of the
+   ldapfilter.conf file (a basic version is located in the LDAP_etc
+   sub directory.) In that file, rather complicated search algorithms
+   can be defined, but the most simple ones will be to look for cn or
+   sn attributes. By default, the search scope is restricted to one
+   level below the current DIT position, unless the base entry (the
+   current position) containes objectclasses 'organization' or
+   'organizationalUnit'. In this case, the search will cover the whole
+   DIT area rooted at the current position. (Subtree search.) This
+   scope also determines which search rules are taken from the 
+   ldapfilter.conf file. (Look for "web500gw onelevel" and "web500gw
+   subtree".)
+
+   One word for a warning: since TWEB is currently based on LDAPv2 and
+   servers that are NOT aware of special characters, like german umlaute,
+   such characters should NOT be entered to the search box. Depending
+   on the server's implementation and configuration, these characters
+   might crash the server, since they are not one of the expected ASCII
+   characters. TWEB, on the other hand, can hardly figure out the
+   character entered because of differrent code tables in use with 
+   the browsers and the platforms housing TWEB itself. If someone has
+   a simple sollution to the latter problem, the authers would welcome
+   a hint, so they could implement a safe character conversion method.
+
+
+2.7 Data based behaviour: the dynamic gateway
+
+   In the 'preparing data' section, the construction of hyperlinks for
+   further requests was described for situations, when more than one
+   entry matches the previous request. For these hyperlinks, the under-
+   lying URL will normally contain the TWEB's own host and port address,
+   so that requests will be directed towards the same gateway. This, 
+   however, can be modified by a feature called "gateway-switching",
+   directing further requests to other gateways.
+
+   Gateway-switching exists in two flavors: static (via the GW-SWITCH
+   configuration option) and dynamic (selected by the configuration
+   option DYNAMIC-GW) due to data contents. In both cases, a new host
+   and corresponding port address is inserted into the URL of a hyperlink.
+
+   Static gateway-switching is performed, if a DN given in the configu-
+   ration file, or an entry below that DN, is referred to in the hyperlink.
+   In that case, the beginning of the URL is taken from the configuration
+   file and the DN of the referred-to X.500 entry is appended. Like other
+   configuration options, GW-SWITCH in the tweb.rc file will refer to one
+   such external gateway for all TWEB languages, whereas GW-SWITCH in the
+   tweb.conf.x files will be language-specific.
+
+   When the configuration option DYNAMIC-GW is given, TWEB will scan each
+   entry to be referred to, for the presence of a so-called gateway-
+   switch-URL. For the time beeing, this is encoded in the attribute
+   "labeledURI", with the value having a special syntax. Normal syntax
+   is an URL of the from "http://host/ label". With the gateway-switching
+   option, this format is extended to "http://host:port/ label (gw)",
+   for a language-independant switch, and "http://host:port/ label (gw-xx)",
+   for a languager-specific switch. The "xx" has to be replaced by the
+   international 2-letter language tag, as defined in ISO 639, "Code for
+   the representation of names of languages" (see also RFC-1766). Thus,
+   "gw-de" means "german language", "gw-en" means "english", "gw-fr"
+   means "frensh". When displaying the contents of a labeledURI attribute,
+   TWEB will suppress values that follow the above syntax. For performance
+   reasons, searching of entries, as well as listing entries below the
+   current position (i.e., browsing through the directory), will allways
+   include look-up of the labeledURI and other attributes.
+
+   If both static and dynamic gateway-switching are active, the dynamic
+   switch will be considerred first; if no gateway-switch URL, first testing
+   for a language-specific one, than testing for an independant one, is
+   found within an entry, static switching is tested, again the specific
+   case prior to the un-specific.
+
+   The most prominent usage of the gateway-switching feature is to direct
+   requests for other organizations' data within a country (or for sub-
+   organizations within one organization) to specific gateways, thus
+   giving the option to implement a Corporate Identity for each organi-
+   zation via organization-specific header and footer files. Beside that,
+   of course, specific access policies can be implemented by each orga-
+   nization, and network traffic is reduced by accessing an organization's
+   data directly with a HTTP browser, not via an intermittant gateway
+   and X.500 server of another organization. This latter point may also
+   mean a much reduced response time, when unnecessary data transfers are
+   ommited.
+
+
+2.8 Restricting the service
+
+   A number of configuration options can be used to restrict the display
+   of certain information, or to deny service totally for certain users.
+   These options are described in the following sub-chapters.
+
+2.8.1 Restricting the number of entries
+
+   Normally, an X.500 server will have an option "sizelimit" set to
+   some small or medium value, e.g., 100 or 500. This sizelimit will
+   prevent the number of entries returned for any one request, to
+   exceed that number. This is mainly set by the server's administrator
+   to reduce system and network load.
+
+   When displaying all entries returned from the server, TWEB might
+   produce a very large HTML file. That file may take some time for
+   transfer, and may be very un-handy, because of the long list of
+   entries.
+
+   To prevent the possibiloty of such large files, the TWEB administrator
+   can reduce the number of entries displayed even further, by use of
+   the MAXCOUNT configuration option. This will reduce the number of
+   ALL entries returned from the server.
+
+   If this restriction should only apply to person's entries, the
+   configuration option MAX-PERSON can be used. This option will
+   apply to each sub list of person's entries seperately. Thus, the
+   total number of persons may exceed the MAX-PERSON limit, if more
+   sub lists containing person's entries are given.
+
+   Each restriction of the number of entries to be displayed, will
+   lead to a random list of entries, cutting the results as soon as
+   the maximum count is reached. However, rhis is also true for the
+   sizelimit option at the server itself.
+
+2.8.2 Suppression of certain entries by RDN
+
+   The server's access control rules will normally define, which entries
+   can be obtained by the TWEB gateway. In some situations, the TWEB
+   administrator might want to suppress even more entries, e.g., DSA
+   entries or other mere technical ones. (This can also mean, that
+   complete DIT areas could be hided from the user.)
+
+   To invoke that, the configuration option NO-SHOW-RDN can be defined
+   to reflect a space-seperated collection of RDNs, or parts of RDNs,
+   which will not be shown to the user. This, of course, is a very
+   crude method, but normally will give the results, the TWEB admin
+   may be interested in.
+
+2.8.3 Defining DIT areas for search-only operations
+
+   As described allready in the "Restricting the number of entries"
+   section, large lists of entries may be cumbersome to read, if at
+   all they are returned completely by the server. To exclude the
+   possibility of such partial, or ultra-long lists, TWEB can be
+   configured to display the search box only at certain DIT positions.
+   This is done via the SEARCH-ONLY configuration option, which defines
+   the DIT area(s) for this restriction, as well as certain message
+   files, which should explain the local restriction to the user, and
+   tell him, how to find the information, he is looking for. The
+   SEARCH-ONLY configuration option will only take effect, when
+   browsing the directory, but not prevent a normal subtree search.
+
+   This configuration option, of course, can also be used to implement
+   certain access policies. The option will be active for both the
+   internal and the external user.
+
+2.8.4 Controlling the hackers
+
+   From time to time, users will direct tools to the world-wide-web,
+   that will screen through all, what is supplied in the system. This
+   tools are known as robots, or crawles, and normally the collect data
+   to build indices for faster information retrieval.
+
+   Sometimes, however, these tools can be very ugly, especially, when 
+   they try to collect data as fast as possible. This might cause
+   severe performance decrease, preventing other users to get data 
+   at all. In order to have some mechanisms against this type of
+   data harvest, TWEB can be configured with the COMREFUSE option
+   activated, which will control the number of accesses to the gate-
+   way by a certain number of IP ranges within a selected time-slice.
+
+   Those IP ranges are constructed by reducing the requesting host's
+   32-bit Internet address to a 13-bit number, thus giving 8192
+   different IP ranges. Each IP range is controlled seperately during
+   a pre-set time-slice, and each IP range can be excluded from
+   further service (returning an appropriate error message), when
+   a pre-set number of accesses is reached within that time-slice.
+   All hosts of that IP range are suspended from TWEB's service for
+   a number of time-slices, and resumed for service afterwards.
+
+
+3 Configuration of TWEB features in detail
+
+   Runtime configuration is provided by the files tweb.rc (general
+   configuration) and tweb.conf.x (language-specific configuration).
+   For each supported language there must be a tweb.conf.x and 
+   tweb.lang.x file, with 0 <= x <= 9.
+
+   Remark: most of the features are best configured in the files as given
+           below, but there may be situations, where transfer, or even
+           splitting to other configuration files could be used, e.g.,
+           static gateway-switching may be configured in tweb.rc listing
+           organizations which support only one gateway, whereas organi-
+           zations supporting different language-specific gateways may be
+           configured in the appropriate tweb.conf.x files; the resulting
+           gw-switch list will contain all organizations, regardless of the
+           originating files.
+
+           In order to keep off WWW robots from blocking the gateway put
+           a file with name robots.txt into the directory, together with
+           the tweb binary, containing the following:
+
+                   # go away
+                   User-agent: *
+                   Disallow: /
+
+           This is the same behaviour as if there were a www-server with a
+           corresponding public directory containing the file robots.txt.
+
+
+   The following sections will list TWEB's configuration options.
+   (See also the example configuration files.)
+
+
+3.1 Technical configuration options
+
+   This section lists options, which define the technical parameters of
+   TWEB's operation. Most of them are located in the tweb.rc configuration
+   file, but some could also go into the tweb.conf.x files.
+
+        LDAPD             -- The host running the LDAP daemon
+                             ( usually located in tweb.rc )
+
+                     example:   LDAPD            x500.zdv.uni-tuebingen.de
+
+        LDAPPORT          -- The port the LDAP daemon is listening on
+                             ( usually located in tweb.rc )
+
+                     example:   LDAPPORT         389
+
+        WEBPORT           -- The base port the gateway is attached to
+                             (the language-specific offset x is added
+                              to this number for every running GW)
+                             ( usually located in tweb.rc )
+
+                     example:   WEBPORT          7000
+
+        TIMEOUT           -- Timeout in seconds for any one LDAP
+                             operation
+                             ( usually located in tweb.rc )
+
+                     example:   TIMEOUT         240
+
+        ETCDIR            -- The directory containing support files
+                             (help files, header/footer files ...)
+                             ( usually located in tweb.rc )
+
+                     example:   ETCDIR  ./LDAP_etc/
+
+        FILTERFILE        -- The LDAP filterfile
+                             ( usually located in tweb.rc )
+
+                     example:   FILTERFILE     ldapfilter.conf
+
+        BASEDN            -- The default starting point of DIB access, when 
+                             no other directory position is given
+                             At this position, optional header and footer
+                             information (HTML code in file) can be displayed
+                             ( usually located in tweb.conf.x )
+
+                     example:   BASEDN  "o=Universitaet Tuebingen, c=DE"
+                                        tweb-base.head.0 tweb-base.foot.0
+
+        HELPFILE          -- Name and path of the help-file
+                             ( usually located in tweb.conf.x )
+
+                     example:   HELPFILE       tweb.help.0
+
+        FRIENDLYFILE      -- Name and path of the friendly-file
+                             ( usually located in tweb.conf.x )
+
+                     example:   FRIENDLYFILE   ldapfriendly.0
+
+        HEADER/FOOTER     -- General header/footer information displayed on
+                             every HTML-page, except when other headers/footers
+                             apply
+                             ( usually located in tweb.conf.x )
+
+                     example:   HEADER         tweb.header.0
+                                FOOTER         tweb.footer.0
+
+        ALLOW-MSG         -- Option to specify a special file located in the
+                             ETCDIRectory containing a message to be displayed
+                             in case of an allowed access to TWEB
+                             (see next section)
+                             ( usually located in tweb.conf )
+
+                     example:   ALLOW-MSG      allow.msg.0
+
+
+3.2 Political configuration options
+
+   This section lists options to implement a certain access policy with the
+   TWEB web-X.500 gateway, or to alter the behaviour of the gateway when
+   displaying data from certain DIT areas. 
+
+        WEBDN             -- The DN of a technical webgw X.500 entry,
+                             which is used for a permitted (internal) user
+                             (for logging AND access control)
+                             ( usually located in tweb.rc )
+
+                     example:   WEBDN          "cn=TWEB-quickie-intern,
+                                               ou=SERVICES, o=Universitaet
+                                               Tuebingen, c=DE"
+
+        WEBPW             -- The Password in the WEBDN entry
+                             ( usually located in tweb.rc )
+
+                     example:   WEBPW          password4quickie-intern
+
+        WEBDN2*           -- The DN of a technical webgw X.500 entry,
+                             which is used for a not-permitted (external) user
+                             (for logging AND access control)
+                             ( usually located in tweb.rc )
+
+                     example:   WEBDN2         cn=TWEB-quickie-extern,
+                                               ou=SERVICES, o=Universitaet
+                                               Tuebingen, c=DE"
+
+        WEBPW2*           -- The Password in the WEBDN2 entry
+                             ( usually located in tweb.rc )
+
+                     example:   WEBPW2         password4quickie-extern
+
+            *  setting WEBDN2 as well as WEBPW2 to real values is useful,
+               if the X.500 service in the background is also used by other
+               directory user agents; in this case, a clean distinction,
+               even on the ACL level, can be made between TWEB and those
+               other DUAs.
+               To fully exploit the feature of two different WEBDNs the
+               DSA must support an ACL policy, which can reduce access
+               rights for a specified DN, while at the same time defining
+               broader access rights for a group of other DN, which may
+               also include the specific DN; such a behaviour is NOT
+               implemented in Isode's QUIPU 2.x DSA; a patch introducing
+               such a policy was developped at the University of Tuebingen
+               for QUIPU 2.2v4, and can be optained seperately.
+               Slapd stand-alone LDAP servers implement a different ACL
+               mechanism and can be configured more easily by use of the
+               first matching access-rule in the slapd.conf configuration file
+
+        GRANT**           -- A string describing IP domains allowed to access
+                             the gateway
+                             ( usually located in tweb.rc )
+
+                     example:   GRANT   (www9|mog|x500server|meal)
+                                        \.zdv\.uni-tuebingen\.de$|
+                                        (abcde01|xyz)\.modem\.org\.de$
+
+        REFUSE**          -- A string describing IP domains refused to access
+                             the gateway
+                             ( usually located in tweb.rc )
+
+                     example:   REFUSE hackhost\.(org1\.)?uni-xyz\.de$
+
+        ALLOW-STRING**    -- A string describing IP domains allowed to
+                             access the DIB authorized by WEBDN (see above)
+                             example: "\.de$|\.us$|\.edu$"
+                             ==> host of domains de, us and edu will
+                             have authorized access to the DSA, others NOT
+                             ( usually located in tweb.rc )
+
+                     example:   ALLOW-STRING    uni-tuebingen\.de$
+
+        DENY-STRING**     -- The opposite of ALLOW-STRING. Here, access for
+                             subsets of the ALLOW-STRING may be reduced.
+                             ( usually located in tweb.rc )
+
+                     example:   DENY-STRING     not\.secure\.host
+                                                \.uni-tuebingen\.de$
+
+            **  GRANT/REFUSE are considered first to decide, whether the
+                requesting host will be served at all; only hosts granted
+                the service will be checked against ALLOW-STRING/DENY-STRING
+                to classify as internal or external user (hence, giving
+                WEBDN or WEBDN2 as the DN during X.500 look-up);
+                both, GRANT and ALLOW-STRING are used as positive-lists,
+                whereas REFUSE and DENY-STRING are used as negative-lists;
+                if the positive-lists are defined, and the requesting host's
+                IP domain is NOT covered by the list's description, the
+                host is considered as not-permitted; only when the host
+                is accepted by the positive-list, the negative-list will
+                be considered to decide on a more specific exclusion of
+                the host's IP domain;
+                if the positive-lists are not defined, each host will be
+                accepted, as if contained within the list; if the negative-
+                lists are not defined, each host will be accepted, as if
+                NOT contained within the list;
+                hosts NOT found in the Domain Name Service (DNS) will be
+                granted access, but will NEVER have authorized access
+                via WEBDN
+
+        TWEBHOST          -- Supplies a constant hostname in the returned URL
+                             of HTTP links independant from the local one
+                             ( usually located in tweb.rc )
+
+                     example:   TWEBHOST        x500.zdv.uni-tuebingen.de
+
+        NO-PROXY          -- Access restrictions for WWW-PROXY-Servers
+                             ( usually located in tweb.rc )
+
+                     example:   NO-PROXY
+
+        ALLOW-PROXY       -- if NO-PROXY is configured
+                             access from a given set of proxy-hosts
+                             ('host1:host2') is allowed
+                             ( usually located in tweb.rc )
+
+                     example:   ALLOW-PROXY    www1.zdv.uni-tuebingen.de:
+                                               www2.zdv.uni-tuebingen.de
+
+        COMREFUSE         -- If configured, implements an interrupt-driven
+                             time-slicing of the gateway. During these
+                             slices only a maximum number of accesses
+                             from a given group of IP-addresses is permitted;
+                             additional accesses will lead to immediate
+                             suspension of the IP connection to the WWW
+                             client; this suspension will last for a con-
+                             figured number of time-slices, and service
+                             for the IP domain in question will resume
+                             afterwards. Additionally, access statistics will
+                             be dumped to a file at given intervals;
+                             the duration of a time-slice will be computed
+                             randomly between a minimum and maximum;
+                             all times are given in seconds
+                             ( usually located in tweb.rc )
+
+                     example:   COMREFUSE   100 200 40 12 43200
+                                            ./stats/hack-stats
+
+                     i.e.:      minimum timeslice -> 100 secs
+                                maximum timeslice -> 200 secs
+                                number of accesses to tolerate in slice -> 40
+                                how long will be blocked -> 12 slices
+                                period to write a stat-file -> 43200 secs
+                                name of stat-file -> ./stats/hack-stats
+                                   (i.e., file relative to TWEB binary)
+
+        STRICT-BASEDN     -- Access to entries not below basedn is relayed
+                             to another gateway ( ->  GW-SWITCH must be set)
+                             ( usually located in tweb.rc )
+
+                     example:   STRICT-BASEDN
+
+        MAXCOUNT          -- The maximum number of displayed entries
+                             ( usually located in tweb.rc )
+
+                     example:   MAXCOUNT        200
+
+        MAX-PERSON        -- Maximum number of persons displayed in any of
+                             the configured sub-lists ( -> SORT option),
+                             if access is not allowed;
+                             if STRICT is given, this number of persons is
+                             shown at maximum, even in case of an
+                             allowed access;
+                             if NO-BROWSE is given, only non-person entries
+                             will be displayed while browsing, whereas persons
+                             have to be searched for
+                             ( usually located in tweb.rc )
+
+                     example:   MAX-PERSON      5    STRICT  NO-BROWSE
+
+        NO-SHOW-RDN       -- Matching rules for RDNs that will NOT be displayed
+                             (e.g., technical entries in the DIT or internal
+                              OUs not to be displayed by the GW)
+                             words surrounded by spaces will be matched as
+                             substrings; allignment to the start or end of
+                             the tested RDN can be enforced by surrounding
+                             the words with "|", on either side
+                             ( usually located in tweb.rc )
+
+                     example:   NO-SHOW-RDN     "|cn=Dummy notToBeShownRDN"
+
+        SEARCH-ONLY       -- Defines the root of a DIT area, where browsing
+                             is restricted to non-person entries; person
+                             entries can only be found by explicite searching
+                             (with appropriate header and footer information)
+                             ( usually located in tweb.conf )
+
+                     example:   SEARCH-ONLY    "ou=students, o=my-university,
+                                                c=my" search-only.head.0
+                                                search-only.foot.0
+
+        LEGAL             -- Flag for displaying of a comment concerning
+                             Peoples Rights
+                             (the text is configured in the tweb.lang.x files,
+                             string numbered 65 of the gateway)
+                             (Comment: certainly, it would be better to have
+                              that text in an external file)
+                             Sub-option ON-TOP directs TWEB to display the
+                             message immediately below the HEADER information,
+                             not above the FOOTER message
+                             ( usually located in tweb.rc )
+
+                     example:   LEGAL ON-TOP
+
+        CACHE-EXPIRE-DEFAULT -- The default value for the expire time
+                             in seconds. After this time the page is no
+                             longer cached by a browser or WWW cache.
+                             ( usually located in tweb.rc )
+
+                     example:   CACHE-EXPIRE-DEFAULT 900
+
+        CACHING-TERMS     -- A more detailed description of caching directives.
+                             Format:
+                                <expire-time> READ|MENU|L2ND RDN|OC <value>
+                                ...
+
+                             To specify for a given access-type: 
+                             READ|MENU|L2ND (L2ND = second page) the expire-time
+                             in seconds for given RDN|OC values
+                             ( usually located in tweb.rc )
+
+                             BEWARE: THIS OPTION IS NOT USED AT THE AUTHOR'S
+                                     SITE, ROUTINELY. THUS, CORRECT BEHAVIOUR
+                                     CANNOT BE GARANTEED !
+
+                     example:   CACHING-TERMS  3600    READ    RDN     Fax
+                                               7200    MENU    OC      person
+                                               10800   menu    RDN     Mueller
+
+        MODIFY/MODATTR    -- Selects for specified object-class (MODIFY) the 
+                             attributes permitted for modification, their 
+                             labels and the maximum number of values to be 
+                             handled by TWEB (MODATTR)
+                             ( usually located in tweb.conf )
+
+                             BEWARE: THIS OPTION IS NOT USED AT THE AUTHOR'S
+                                     SITE, ROUTINELY. THUS, CORRECT BEHAVIOUR
+                                     CANNOT BE GARANTEED !
+
+                     example:   MODIFY          person
+                                MODATTR         personalTitle        title 1
+                                                telephoneNumber      phone 2
+                                                ...
+
+        NO-MODIFY         -- Entries that contain one of the named
+                            ObjectClasses will be displayed without
+                            the possibility for modification.
+                             ( usually located in tweb.rc )
+
+                     example:   NO-MODIFY      |toc_primas|
+
+
+3.3 Load balancing configuration options
+
+   This section lists configuration options related to gateway-switching.
+
+        GW-SWITCH         -- Defines DIT areas, which will direct TWEB to
+                             introduce other gateway addresses for the
+                             so-called gateway-switching
+                             (STATIC gateway-switching; see section 2.7)
+                             ( usually located in tweb.conf )
+
+                          REMARK: A set of slides explaining gateway-switching,
+                                  presented at the January-1999 DANTE meeting
+                                  in Utrecht, NL, can be found at the TWEB FTP
+                                  site at
+                                    ftp://ftp-x500.uni-tuebingen.de/tweb
+
+                     example:   GW-SWITCH   "ROOT" HTTP://x500-relay.
+                                                   uni-tuebingen.de:8901/M
+                                            "c=DE" HTTP://x500-relay.
+                                                   uni-tuebingen.de:8911/
+
+        DYNAMIC-GW        -- If given, tells TWEB to use dynamic gateway-
+                             switching; if not given, only static switching
+                             will be used, if configured;
+                             a labeledURI attribute in an X.500 entry con-
+                             taining (gw), (gw-de), or (gw-en) in its label
+                             part is used to link this entry to another gateway
+                             ( usually located in tweb.rc )
+
+                     example:   DYNAMIC-GW
+
+3.4 Display configuration options
+
+   This section lists options related to the displaying of results on an
+   HTML page. The options direct display of entries, attributes, as well
+   as styles for displaying.
+
+        SORT              -- Classification of a list of entries into sub-lists
+                             according to their object classes; generating of
+                             sub-lists will be according to the order the
+                             OCs are given in the SORT option; displaying the
+                             sub-lists will be according to the numbers given
+                             as third parameter; sub-lists without an intro-
+                             ducing label (second parameter) should have a
+                             label of " "; the fourth parameter is the DISPLAY-
+                             TYPE for a given object (see below) and the fifth
+                             parameter is the attribute used for sorting;
+                             parameters four and five are optional;
+                             if not given reasonable defaults will be used;
+                             if none of the entries objectclasses is given
+                             in the SORT option, TWEB will randomly select
+                             one of the entry's OCs as a new entry to the 
+                             SORT list, using DISPLAY-TYPE "default"; if that
+                             type is not defined, the entry will NOT be
+                             displayed at all
+                             (see also section 2.5)
+                             ( usually located in tweb.conf.x )
+
+                     example:   SORT person             Staff 4  person tat_sort
+                                     organization       Organizations 3 orgs
+                                     organizationalUnit "O Units"     2  ous
+                                     ...
+
+        DISPLAY-OBJECT    -- For specified DISPLAY-TYPES define the order, 
+                             labels and type of HTML-code produced for given
+                             attributes (see FIRST-PAGE, SECOND-PAGE below);
+                             a DISPLAY-TYPE "default" will match all types
+                             NOT specifically listed; when the default type
+                             is not giving, some X.500 entries might NOT be
+                             displayed (see also SHOW-DEFOC below)
+                             ( usually located in tweb.conf.x )
+
+                     example:   DISPLAY-OBJECT  person
+                                FIRST-PAGE      ....
+
+            FIRST-PAGE    -- Attributes to be displayed for a specified
+                             DISPLAY-TYPE
+                             Format: <attribute> <label> <display-type>
+                             Display-types:
+                                 MULTILINE    -- attribute with multiple lines
+                                 DATE         -- attribute as date
+                                 HREF         -- attribute with syntax DN
+                                                 as hyperlink (READ DN entry)
+                                 URI          -- attribute with syntax URL
+                                                 as hyperlink
+                                 MAILTO       -- attribute as mailto (must be
+                                                 supported by WWW client)
+                                 MOVETO       -- like HREF, but the link will
+                                                 be a LIST, instead of a READ
+                                                 hyperlink
+                                 BMP          -- phote as bitmap
+                                 JPEG         -- photo as jpeg
+                                 JPEG2GIF     -- convert jpeg to gif
+                                 BOOLEAN      -- binary attribute
+                                 PGPKEY       -- display PGPKey for cut&paste
+                                 DYNAMICDN    -- uses DIT-CONFIG to show
+                                                 attribute as hyperlink
+                                 INDEXURL     -- show this hyperlink as defined
+                                                 with INDEX-URL
+                                 DEFAULT      -- anything else
+
+                     example:   DISPLAY-OBJECT  person
+                                FIRST-PAGE      cn            Name  DEFAULT
+                                                personalTitle Title DEFAULT
+                                                ...
+
+            SECOND-PAGE   -- show additional attributes not displayed on
+                             the first page
+
+                     example:   DISPLAY-OBJECT  person
+                                FIRST-PAGE      ...
+                                                ...
+                                SECOND-PAGE     sn           Surname     DEFAULT
+                                                info         Information DEFAULT
+
+        SHOW-DEFOC        -- Show Default Objectclass. If no objectclass
+                             did match -> show entry with attributes as
+                             defined in default-display
+                             ( usually located in tweb.rc )
+
+                     example:   SHOW-DEFOC
+
+        PULL-DOWN-MENUS   -- Use BUTTONS and PULL-DOWN-MENUS instead of links
+                             in order to support: help, language-switch,
+                             move-upwards and read-entry functionalities
+                             ( usually located in tweb.rc )
+
+                     example:   PULL-DOWN-MENUS
+
+        LANGUAGE          -- The labels of buttons for the switch to
+                             the other started language-specific gateways
+                             ( usually located in tweb.rc )
+
+                     example:   LANGUAGE        Deutsch
+                                                English
+                                                Fran&ccedil;ais
+
+        STRIP-PIN         -- Specify here the object-classes where numbers
+                             ( PINs, personal ident numbers, etc. ) following
+                             an RDN will be stripped when displayed
+                             ( usually located in tweb.rc )
+
+                     example:   STRIP-PIN |toc_profs|person|toc_primas|
+                                          toc_cperson|toc_funcs|toc_pextra|
+
+        INDIRECT-ATTRS    -- Format:
+                               INDIRECT-ATTRS <ref-attribute>
+                               IND_ATTRS <selection> REPLACE|APPEND <attribute>
+                                                       <host> <port> <baseDN>
+
+                             If there is an attribute with name <ref-attribute>
+                             in a given entry, values of attribute <attribute>
+                             in this entry will be REPLACEed|APPENDed by values
+                             taken from the same attribute <attribute> of
+                             an entry with DN:
+                                 "cn=<ref-attribute-value>,<baseDN>",
+                             looked-up at an LDAP server <host>:<port>,
+                             but only when some value in <ref-attribute>
+                             matches <selection> at its beginning
+                             ( usually located in tweb.rc )
+
+                     example:   INDIRECT-ATTRS  tat_refattr
+                                IND_ATTRS  POST-  append postaladdress
+                                          x500.uni-tuebingen.de 10100
+                                          "ou=POST,ou=INTERNA,ou=NETZWERK,
+                                          o=Universitaet Tuebingen,c=DE"
+
+        DISP-SEA-RDN      -- Make search-results to be displayed only by RDN
+                             and not by DN relative to the search-base
+                             ( usually located in tweb.rc )
+
+                     example:   DISP-SEA-RDN
+
+        INDEX-URL         -- Display labels of hyperlinks only with selected
+                             RDN parts in the order configured by INDEX-URL;
+                             this option applies to URL attributes within an
+                             entry, which are directed towards other X.500
+                             entries; an application of that might be an
+                             index of entries
+                             DISPLAY-TYPE must be set to INDEXURL.
+                             ( usually located in tweb.rc )
+
+                     example:   INDEX-URL 0,-2 "o=Universitaet Tuebingen, c=DE"
+
+                     i.e.:      labels of a hyperlink below the University
+                                of Tuebingen are shown as follows:
+
+                                1. lowest part of the DN (e.g., a person's name)
+                                2. third-top-most part of the DN (e.g., faculty)
+
+                                all other DN parts will be supressed
+
+        TABLES            -- Format:
+                              TABLES <ALLOW|ALL> <objectclass> <Button-label>
+                                    <mode-selection>:<attribute>,<col-width>
+                                                    [&<attribute>,<col-width>]*
+
+                              During browsing, the entries listed below a
+                              base object (i.e., DIT position) can be displayed
+                              together with some selected attributes in a
+                              tabular format; the SORT configuration option
+                              will be applied to the entries; attribute mail
+                              will be displayed as mailto: and the RDN will
+                              be displayed as a link to the respective entry;
+                              in order to select the tabular format, TWEB will
+                              display a button with a given label, that, if
+                              pressed, will request the tabular format;
+                              however, the button will only be displayed, if
+                              the requesting user is allowed to get this
+                              feature (i.e., ALLOW will select internal users
+                              only, whereas ALL will select all users)
+                              
+                     example:   TABLES ALLOW oleaf Tabelle persontable:rdn,28
+                                          &telephonenumber,25&tat_dummyattr,2
+                                          &mail,45
+
+                     i.e.:      ALLOW -> only allowed users will see the table
+                                oleaf -> table button is shown on presence of
+                                         the objectclass oleaf in the base entry
+                                Tabelle -> the label for the table-request-
+                                         button
+                                persontable -> the keyword for function-
+                                               selection of a persons' table
+                                rdn,28 -> first the rdn-attribute is shown
+                                         in the table with width 28 percent
+                                telephonenumber,25 -> telephonenumber,
+                                         width 25
+                                tat_dummyattr,2 -> a separating column, width 2
+                                mail,45 -> the e-mail-address with width 45
+
+                                (all width values are given in percentage of
+                                 the width of the browsers window, and should
+                                 sum up to 100 %)
+
+
+4 Support and discussion list
+
+   Bug reports and flames (but also critical comments) send to 
+
+      tweb-support@mail500.uni-tuebingen.de. 
+    
+   For general discussion (e.g., about interesting new features,
+   which should be supported), there is a discussion list at
+
+      tweb-l@mail500.uni-tuebingen.de.
+
+   Send requests for subscription to
+
+      tweb-l-request@mail500.uni-tuebingen.de.
+
+
+
+TWEB development team, Tuebingen, January, 15th, 1999
+
+
