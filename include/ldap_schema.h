@@ -30,6 +30,7 @@ LDAP_BEGIN_DECL
 #define LDAP_SCHERR_BADDESC		7
 #define LDAP_SCHERR_BADSUP		8
 #define LDAP_SCHERR_DUPOPT		9
+#define LDAP_SCHERR_EMPTY		10
 
 typedef struct ldap_attributetype {
 	char *at_oid;		/* REQUIRED */
