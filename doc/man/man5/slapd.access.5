@@ -77,7 +77,17 @@ It can have the forms
 .nf
 	[dn[.<dnstyle>]=]<dnpattern>
 	filter=<ldapfilter>
-	attrs=<attrlist>[ val[.<style>]=<attrval>]
+	attrs=<attrlist>[ val[.<attrstyle>]=<attrval>]
+.fi
+.LP
+with
+.LP
+.nf
+	<dnstyle>={{exact|base(object)}|regex
+		|one(level)|sub(tree)|children}
+	<attrlist>={<attr>|[{!|@}]<objectClass>}[,<attrlist>]
+	<attrstyle>={{exact|base(object)}|regex
+		|one(level)|sub(tree)|children}
 .fi
 .LP
 The statement
@@ -85,7 +95,7 @@ The statement
 selects the entries based on their naming context.
 The 
 .B dn=
-part is optional
+part is optional.
 The
 .B <dnpattern>
 is a string representation of the entry's DN.
@@ -236,9 +246,10 @@ It can have the forms
 with
 .LP
 .nf
-	<dnstyle>={{exact|base}|regex|sub(tree)|one(level)|children}
-	<groupstyle>={exact|expand}
 	<style>={exact|regex|expand}
+	<dnstyle>={{exact|base(object)}|regex
+		|one(level)|sub(tree)|children}
+	<groupstyle>={exact|expand}
 	<peernamestyle>={<style>|ip|path}
 	<domainstyle>={exact|regex|sub(tree)}
 	<setstyle>={exact|regex}
