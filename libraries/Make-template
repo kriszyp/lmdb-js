@@ -26,7 +26,7 @@
 all:	FORCE
 	@echo "making all in `$(PWD)`"
 	@for i in *; do \
-	    if [ -d $$i -a $$i != "RCS" ]; then \
+	    if [ -d $$i -a $$i != "CVS" ]; then \
 		echo; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
 		( cd $$i; $(MAKE) $(MFLAGS) all ); \
 	    fi; \
@@ -40,7 +40,7 @@ all:	FORCE
 install:	FORCE
 	@echo "making install in `$(PWD)`"
 	@for i in *; do \
-	    if [ -d $$i -a $$i != "RCS" ]; then \
+	    if [ -d $$i -a $$i != "CVS" ]; then \
 		echo; echo "  cd $$i; $(MAKE) $(MFLAGS) install"; \
 		( cd $$i; $(MAKE) $(MFLAGS) install ); \
 	    fi; \
@@ -52,7 +52,7 @@ install:	FORCE
 clean:	FORCE
 	@echo "making clean in `$(PWD)`"
 	@for i in *; do \
-	    if [ -d $$i -a $$i != "RCS" ]; then \
+	    if [ -d $$i -a $$i != "CVS" ]; then \
 		echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 		( cd $$i; $(MAKE) $(MFLAGS) clean ); \
 	    fi; \
@@ -67,7 +67,7 @@ veryclean:	clean
 depend:	FORCE
 	@echo "making depend in `$(PWD)`"
 	@for i in *; do \
-	    if [ -d $$i -a $$i != "RCS" ]; then \
+	    if [ -d $$i -a $$i != "CVS" ]; then \
 		echo; echo "  cd $$i; $(MAKE) $(MFLAGS) depend"; \
 		( cd $$i; $(MAKE) $(MFLAGS) depend ); \
 	    fi; \
@@ -76,7 +76,7 @@ depend:	FORCE
 links:
 	@echo "making links in `$(PWD)`"; \
 	for i in .src/*; do \
-	    if [ -d $$i -a $$i != ".src/RCS" ]; then \
+	    if [ -d $$i -a $$i != ".src/CVS" ]; then \
 		d=`basename $$i`; \
 		( $(MKDIR) $$d; cd $$d; $(LN) ../.src/$$d .src; \
 		  $(LN) ../.src/$$d/Make-template . ; \
