@@ -31,7 +31,6 @@
 #include <io.h>
 #endif
 
-#include "ldap_defaults.h"
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 

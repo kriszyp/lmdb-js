@@ -15,7 +15,6 @@
 #include <direct.h>
 #endif
 
-#include "ldap_defaults.h"
 #include "slap.h"
 #include "back-bdb2.h"
 

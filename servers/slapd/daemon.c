@@ -16,7 +16,6 @@
 #include <ac/unistd.h>
 
 #include "ldap_pvt.h"
-#include "ldap_defaults.h"
 #include "lutil.h"
 #include "slap.h"
 

@@ -23,7 +23,6 @@
 #endif
 
 #include "ldap_pvt.h"
-#include "ldap_defaults.h"
 #include "slap.h"
 
 #ifdef LDAP_DEBUG

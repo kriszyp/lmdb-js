@@ -19,7 +19,6 @@
 #include <sys/param.h>
 #endif
 
-#include "ldap_defaults.h"
 #include "slap.h"
 #include "back-ldbm.h"
 

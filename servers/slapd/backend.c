@@ -17,8 +17,6 @@
 #include "slap.h"
 #include "lutil.h"
 
-#include "ldap_defaults.h"
-
 #ifdef SLAPD_LDAP
 #include "back-ldap/external.h"
 #endif

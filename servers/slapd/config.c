@@ -16,7 +16,6 @@
 #include <ac/socket.h>
 
 #include "ldap_pvt.h"
-#include "ldap_defaults.h"
 #include "slap.h"
 
 #define MAXARGS	100

@@ -8,7 +8,6 @@
 #define SLAPCOMMON_H_ 1
 
 #define SLAPD_TOOLS 1
-#include "ldap_defaults.h"
 #include "../slap.h"
 
 enum slaptool {

@@ -4,7 +4,6 @@
 
 #include <ac/string.h>
 
-#include "ldap_defaults.h"
 #include "slap.h"
 
 ldap_pvt_thread_cond_t	started_event,		stopped_event;

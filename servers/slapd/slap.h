@@ -7,6 +7,8 @@
 #ifndef _SLDAPD_H_
 #define _SLDAPD_H_
 
+#include "ldap_defaults.h"
+
 #include <ac/stdlib.h>
 
 #include <sys/types.h>

@@ -15,7 +15,6 @@
 #include <ac/signal.h>
 #include <ac/errno.h>
 
-#include "ldap_defaults.h"
 #include "slap.h"
 #include "lutil.h"
 

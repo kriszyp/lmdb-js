@@ -15,7 +15,6 @@
 
 #include <ac/string.h>
 
-#include "ldap_defaults.h"
 #include "slap.h"
 
 void
