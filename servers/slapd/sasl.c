@@ -1495,7 +1495,7 @@ int slap_sasl_bind(
 	if ( !conn->c_sasl_bind_in_progress ) {
 		sc = START( ctx,
 			conn->c_sasl_bind_mech.bv_val,
-			cred->bv_len ? cred->bv_val : "",
+			cred->bv_len ? cred->bv_val : NULL,
 			cred->bv_len,
 			(SASL_CONST char **)&response.bv_val, &reslen, &errstr );
 
