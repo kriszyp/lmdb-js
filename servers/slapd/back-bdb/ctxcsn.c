@@ -266,7 +266,7 @@ bdb_get_commit_csn(
 		struct berval bv;
 
 		LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
-			sprintf( substr, "cn=syncrepl%d", si->si_rid );
+			sprintf( substr, "cn=syncrepl%ld", si->si_rid );
 			ber_str2bv( substr, 0, 0, &bv );
 			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &bv, NULL );
 
