@@ -100,7 +100,7 @@ main( int argc, char *argv[] )
 	char	*control, *cvalue;
 	int		crit;
 
-	int id, code = LDAP_OTHER;
+	int id;
 	LDAPMessage *res;
 	char *matcheddn = NULL, *text = NULL, **refs = NULL;
 	char	*retoid = NULL;
@@ -720,40 +720,7 @@ main( int argc, char *argv[] )
 		}
 	}
 
-#if 0
 	rc = ldap_whoami_s( ld, &retdata, NULL, NULL ); 
-
-#else
-	rc = ldap_extended_operation( ld,
-		LDAP_EXOP_X_WHO_AM_I, NULL, 
-		NULL, NULL, &id );
-
-	if( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_extended_operation" );
-		ldap_unbind( ld );
-		return EXIT_FAILURE;
-	}
-
-	rc = ldap_result( ld, LDAP_RES_ANY, LDAP_MSG_ALL, NULL, &res );
-	if ( rc < 0 ) {
-		ldap_perror( ld, "ldappasswd: ldap_result" );
-		return rc;
-	}
-
-	rc = ldap_parse_result( ld, res, &code, &matcheddn, &text, &refs, NULL, 0 );
-
-	if( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_parse_result" );
-		return rc;
-	}
-
-	rc = ldap_parse_extended_result( ld, res, &retoid, &retdata, 1 );
-#endif
-
-	if( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_parse_result" );
-		return rc;
-	}
 
 	if( retdata != NULL ) {
 		if( retdata->bv_len == 0 ) {
@@ -763,8 +730,8 @@ main( int argc, char *argv[] )
 		}
 	}
 
-	if( verbose || ( code != LDAP_SUCCESS ) || matcheddn || text || refs ) {
-		printf( "Result: %s (%d)\n", ldap_err2string( code ), code );
+	if( verbose || ( rc != LDAP_SUCCESS ) || matcheddn || text || refs ) {
+		printf( "Result: %s (%d)\n", ldap_err2string( rc ), rc );
 
 		if( text && *text ) {
 			printf( "Additional info: %s\n", text );
@@ -792,5 +759,5 @@ skip:
 	/* disconnect from server */
 	ldap_unbind (ld);
 
-	return code == LDAP_SUCCESS ? EXIT_SUCCESS : EXIT_FAILURE;
+	return rc == LDAP_SUCCESS ? EXIT_SUCCESS : EXIT_FAILURE;
 }
