@@ -12,7 +12,7 @@
 
 #ifdef LDAP_NEED_ASSERT
 
-#include <ac/stdio.h>
+#include <stdio.h>
 
 /*
  * helper for our private assert() macro
@@ -22,7 +22,8 @@
  * issue for now.
  */
 
-void ber_pvt_assert(char* file, int line, char* test)
+void
+ber_pvt_assert( LDAP_CONST char *file, int line, LDAP_CONST char *test )
 {
 	fprintf(stderr,
 		"Assertion failed: %s, file %s, line %d\n",

@@ -17,9 +17,12 @@
 #ifdef LDAP_DEBUG
 
 #if defined( HAVE_ASSERT_H ) || defined( STDC_HEADERS )
+
 #undef NDEBUG
 #include <assert.h>
-#else
+
+#else /* !(HAVE_ASSERT_H || STDC_HEADERS) */
+
 #define LDAP_NEED_ASSERT 1
 
 /*
@@ -27,19 +30,23 @@
  * create a replacement and hope it works
  */
 
-LDAP_F(void) ber_pvt_assert LDAP_F((
+LDAP_F(void) ber_pvt_assert LDAP_P((
 	char* file, int line, char* test));
 
+/* Can't use LDAP_STRING(test), that'd expand to "test" */
+#if defined(__STDC__) || defined(__cplusplus)
 #define assert(test) \
-	((test) \
-		? (void)0 \
-		: ber_pvt_assert( __FILE__, __LINE__, LDAP_STRING(test)) )
-
+	((test) ? (void)0 : ber_pvt_assert( __FILE__, __LINE__, #test ) )
+#else
+#define assert(test) \
+	((test) ? (void)0 : ber_pvt_assert( __FILE__, __LINE__, "test" ) )
 #endif
 
-#else
+#endif /* (HAVE_ASSERT_H || STDC_HEADERS) */
+
+#else /* !LDAP_DEBUG */
 /* no asserts */
 #define assert(test) ((void)0)
-#endif
+#endif /* LDAP_DEBUG */
 
 #endif /* _AC_ASSERT_H */
