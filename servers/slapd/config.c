@@ -2326,48 +2326,54 @@ add_syncrepl(
 	}
 }
 
+/* NOTE: used & documented in slapd.conf(5) */
 #define IDSTR			"rid"
 #define PROVIDERSTR		"provider"
-#define SUFFIXSTR		"suffix"
-#define UPDATEDNSTR		"updatedn"
-#define BINDMETHSTR		"bindmethod"
-#define SIMPLESTR		"simple"
-#define SASLSTR			"sasl"
-#define BINDDNSTR		"binddn"
-#define CREDSTR			"credentials"
-#define OLDAUTHCSTR		"bindprincipal"
-#define AUTHCSTR		"authcID"
-#define AUTHZSTR		"authzID"
-#define SRVTABSTR		"srvtab"
-#define SASLMECHSTR		"saslmech"
-#define REALMSTR		"realm"
-#define SECPROPSSTR		"secprops"
-#define STARTTLSSTR		"starttls"
-#define CRITICALSTR		"critical"
-
-#define SCHEMASTR		"schemachecking"
-#define FILTERSTR		"filter"
-#define SEARCHBASESTR	"searchbase"
-#define SCOPESTR		"scope"
-#define ATTRSSTR		"attrs"
-#define EXATTRSSTR		"exattrs"
-#define ATTRSONLYSTR	"attrsonly"
 #define TYPESTR			"type"
 #define INTERVALSTR		"interval"
-#define LASTMODSTR		"lastmod"
-#define LMREQSTR		"req"
-#define LMGENSTR		"gen"
-#define LMNOSTR			"no"
-#define MANAGEDSAITSTR	"manageDSAit"
+#define SEARCHBASESTR		"searchbase"
+#define FILTERSTR		"filter"
+#define SCOPESTR		"scope"
+#define ATTRSSTR		"attrs"
+#define ATTRSONLYSTR		"attrsonly"
 #define SLIMITSTR		"sizelimit"
 #define TLIMITSTR		"timelimit"
+#define SCHEMASTR		"schemachecking"
+#define UPDATEDNSTR		"updatedn"
+#define BINDMETHSTR		"bindmethod"
+#define SIMPLESTR			"simple"
+#define SASLSTR				"sasl"
+#define BINDDNSTR		"binddn"
+#define SASLMECHSTR		"saslmech"
+#define AUTHCSTR		"authcID"
+#define AUTHZSTR		"authzID"
+#define CREDSTR			"credentials"
+#define REALMSTR		"realm"
+#define SECPROPSSTR		"secprops"
 
+/* FIXME: undocumented */
+#define OLDAUTHCSTR		"bindprincipal"
+#define STARTTLSSTR		"starttls"
+#define CRITICALSTR			"critical"
+#define EXATTRSSTR		"exattrs"
+#define MANAGEDSAITSTR		"manageDSAit"
 #define RETRYSTR		"retry"
 
+/* FIXME: unused */
+#define LASTMODSTR		"lastmod"
+#define LMGENSTR		"gen"
+#define LMNOSTR			"no"
+#define LMREQSTR		"req"
+#define SRVTABSTR		"srvtab"
+#define SUFFIXSTR		"suffix"
+
+/* mandatory */
 #define GOT_ID			0x0001
-#define GOT_PROVIDER	0x0002
+#define GOT_PROVIDER		0x0002
 #define GOT_METHOD		0x0004
-#define GOT_ALL			0x0007
+
+/* check */
+#define GOT_ALL			(GOT_ID|GOT_PROVIDER|GOT_METHOD)
 
 static int
 parse_syncrepl_line(
@@ -2382,10 +2388,12 @@ parse_syncrepl_line(
 	int	nr_attr = 0;
 
 	for ( i = 1; i < cargc; i++ ) {
-		if ( !strncasecmp( cargv[ i ], IDSTR, sizeof( IDSTR ) - 1 )) {
+		if ( !strncasecmp( cargv[ i ], IDSTR "=",
+					STRLENOF( IDSTR "=" ) ) )
+		{
 			int tmp;
 			/* '\0' string terminator accounts for '=' */
-			val = cargv[ i ] + sizeof( IDSTR );
+			val = cargv[ i ] + STRLENOF( IDSTR "=" );
 			tmp= atoi( val );
 			if ( tmp >= 1000 || tmp < 0 ) {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
@@ -2394,9 +2402,10 @@ parse_syncrepl_line(
 			}
 			si->si_rid = tmp;
 			gots |= GOT_ID;
-		} else if ( !strncasecmp( cargv[ i ], PROVIDERSTR,
-					sizeof( PROVIDERSTR ) - 1 )) {
-			val = cargv[ i ] + sizeof( PROVIDERSTR );
+		} else if ( !strncasecmp( cargv[ i ], PROVIDERSTR "=",
+					STRLENOF( PROVIDERSTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( PROVIDERSTR "=" );
 			si->si_provideruri = ch_strdup( val );
 			si->si_provideruri_bv = (BerVarray)
 				ch_calloc( 2, sizeof( struct berval ));
@@ -2405,27 +2414,28 @@ parse_syncrepl_line(
 			si->si_provideruri_bv[1].bv_len = 0;
 			si->si_provideruri_bv[1].bv_val = NULL;
 			gots |= GOT_PROVIDER;
-		} else if ( !strncasecmp( cargv[ i ], STARTTLSSTR,
-			sizeof(STARTTLSSTR) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], STARTTLSSTR "=",
+					STRLENOF(STARTTLSSTR "=") ) )
 		{
-			val = cargv[ i ] + sizeof( STARTTLSSTR );
+			val = cargv[ i ] + STRLENOF( STARTTLSSTR "=" );
 			if( !strcasecmp( val, CRITICALSTR ) ) {
 				si->si_tls = SYNCINFO_TLS_CRITICAL;
 			} else {
 				si->si_tls = SYNCINFO_TLS_ON;
 			}
-		} else if ( !strncasecmp( cargv[ i ],
-			UPDATEDNSTR, sizeof( UPDATEDNSTR ) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], UPDATEDNSTR "=",
+					STRLENOF( UPDATEDNSTR "=" ) ) )
 		{
-			struct berval updatedn = {0, NULL};
-			val = cargv[ i ] + sizeof( UPDATEDNSTR );
+			struct berval updatedn = BER_BVNULL;
+
+			val = cargv[ i ] + STRLENOF( UPDATEDNSTR "=" );
 			ber_str2bv( val, 0, 0, &updatedn );
 			ch_free( si->si_updatedn.bv_val );
 			dnNormalize( 0, NULL, NULL, &updatedn, &si->si_updatedn, NULL );
-		} else if ( !strncasecmp( cargv[ i ], BINDMETHSTR,
-				sizeof( BINDMETHSTR ) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], BINDMETHSTR "=",
+				STRLENOF( BINDMETHSTR "=" ) ) )
 		{
-			val = cargv[ i ] + sizeof( BINDMETHSTR );
+			val = cargv[ i ] + STRLENOF( BINDMETHSTR "=" );
 			if ( !strcasecmp( val, SIMPLESTR )) {
 				si->si_bindmethod = LDAP_AUTH_SIMPLE;
 				gots |= GOT_METHOD;
@@ -2441,47 +2451,55 @@ parse_syncrepl_line(
 			} else {
 				si->si_bindmethod = -1;
 			}
-		} else if ( !strncasecmp( cargv[ i ],
-				BINDDNSTR, sizeof( BINDDNSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( BINDDNSTR );
-			si->si_binddn = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ],
-				CREDSTR, sizeof( CREDSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( CREDSTR );
-			si->si_passwd = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ],
-				SASLMECHSTR, sizeof( SASLMECHSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( SASLMECHSTR );
-			si->si_saslmech = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ],
-				SECPROPSSTR, sizeof( SECPROPSSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( SECPROPSSTR );
-			si->si_secprops = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ],
-				REALMSTR, sizeof( REALMSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( REALMSTR );
-			si->si_realm = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ],
-				AUTHCSTR, sizeof( AUTHCSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( AUTHCSTR );
-			if ( si->si_authcId )
-				ch_free( si->si_authcId );
-			si->si_authcId = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ],
-				OLDAUTHCSTR, sizeof( OLDAUTHCSTR ) - 1 ) ) {
-			/* Old authcID is provided for some backwards compatibility */
-			val = cargv[ i ] + sizeof( OLDAUTHCSTR );
-			if ( si->si_authcId )
-				ch_free( si->si_authcId );
-			si->si_authcId = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ],
-				AUTHZSTR, sizeof( AUTHZSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( AUTHZSTR );
-			si->si_authzId = ch_strdup( val );
-		} else if ( !strncasecmp( cargv[ i ],
-				SCHEMASTR, sizeof( SCHEMASTR ) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], BINDDNSTR "=",
+					STRLENOF( BINDDNSTR "=" ) ) )
 		{
-			val = cargv[ i ] + sizeof( SCHEMASTR );
+			val = cargv[ i ] + STRLENOF( BINDDNSTR "=" );
+			si->si_binddn = ch_strdup( val );
+		} else if ( !strncasecmp( cargv[ i ], CREDSTR "=",
+					STRLENOF( CREDSTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( CREDSTR "=" );
+			si->si_passwd = ch_strdup( val );
+		} else if ( !strncasecmp( cargv[ i ], SASLMECHSTR "=",
+					STRLENOF( SASLMECHSTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( SASLMECHSTR "=" );
+			si->si_saslmech = ch_strdup( val );
+		} else if ( !strncasecmp( cargv[ i ], SECPROPSSTR "=",
+					STRLENOF( SECPROPSSTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( SECPROPSSTR "=" );
+			si->si_secprops = ch_strdup( val );
+		} else if ( !strncasecmp( cargv[ i ], REALMSTR "=",
+					STRLENOF( REALMSTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( REALMSTR "=" );
+			si->si_realm = ch_strdup( val );
+		} else if ( !strncasecmp( cargv[ i ], AUTHCSTR "=",
+					STRLENOF( AUTHCSTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( AUTHCSTR "=" );
+			if ( si->si_authcId )
+				ch_free( si->si_authcId );
+			si->si_authcId = ch_strdup( val );
+		} else if ( !strncasecmp( cargv[ i ], OLDAUTHCSTR "=",
+					STRLENOF( OLDAUTHCSTR "=" ) ) ) 
+		{
+			/* Old authcID is provided for some backwards compatibility */
+			val = cargv[ i ] + STRLENOF( OLDAUTHCSTR "=" );
+			if ( si->si_authcId )
+				ch_free( si->si_authcId );
+			si->si_authcId = ch_strdup( val );
+		} else if ( !strncasecmp( cargv[ i ], AUTHZSTR "=",
+					STRLENOF( AUTHZSTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( AUTHZSTR "=" );
+			si->si_authzId = ch_strdup( val );
+		} else if ( !strncasecmp( cargv[ i ], SCHEMASTR "=",
+					STRLENOF( SCHEMASTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( SCHEMASTR "=" );
 			if ( !strncasecmp( val, "on", STRLENOF( "on" ) )) {
 				si->si_schemachecking = 1;
 			} else if ( !strncasecmp( val, "off", STRLENOF( "off" ) ) ) {
@@ -2489,16 +2507,16 @@ parse_syncrepl_line(
 			} else {
 				si->si_schemachecking = 1;
 			}
-		} else if ( !strncasecmp( cargv[ i ],
-			FILTERSTR, sizeof( FILTERSTR ) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], FILTERSTR "=",
+					STRLENOF( FILTERSTR "=" ) ) )
 		{
-			val = cargv[ i ] + sizeof( FILTERSTR );
+			val = cargv[ i ] + STRLENOF( FILTERSTR "=" );
 			ber_str2bv( val, 0, 1, &si->si_filterstr );
-		} else if ( !strncasecmp( cargv[ i ],
-			SEARCHBASESTR, sizeof( SEARCHBASESTR ) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], SEARCHBASESTR "=",
+					STRLENOF( SEARCHBASESTR "=" ) ) )
 		{
 			struct berval bv;
-			val = cargv[ i ] + sizeof( SEARCHBASESTR );
+			val = cargv[ i ] + STRLENOF( SEARCHBASESTR "=" );
 			if ( si->si_base.bv_val ) {
 				ch_free( si->si_base.bv_val );
 			}
@@ -2507,10 +2525,10 @@ parse_syncrepl_line(
 				fprintf( stderr, "Invalid base DN \"%s\"\n", val );
 				return 1;
 			}
-		} else if ( !strncasecmp( cargv[ i ],
-			SCOPESTR, sizeof( SCOPESTR ) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], SCOPESTR "=",
+					STRLENOF( SCOPESTR "=" ) ) )
 		{
-			val = cargv[ i ] + sizeof( SCOPESTR );
+			val = cargv[ i ] + STRLENOF( SCOPESTR "=" );
 			if ( !strncasecmp( val, "base", STRLENOF( "base" ) )) {
 				si->si_scope = LDAP_SCOPE_BASE;
 			} else if ( !strncasecmp( val, "one", STRLENOF( "one" ) )) {
@@ -2528,19 +2546,18 @@ parse_syncrepl_line(
 					"unknown scope \"%s\"\n", val);
 				return 1;
 			}
-		} else if ( !strncasecmp( cargv[ i ],
-			ATTRSONLYSTR, sizeof( ATTRSONLYSTR ) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], ATTRSONLYSTR "=",
+					STRLENOF( ATTRSONLYSTR "=" ) ) )
 		{
 			si->si_attrsonly = 1;
-		} else if ( !strncasecmp( cargv[ i ],
-			ATTRSSTR, sizeof( ATTRSSTR ) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], ATTRSSTR "=",
+					STRLENOF( ATTRSSTR "=" ) ) )
 		{
-			val = cargv[ i ] + sizeof( ATTRSSTR );
-			if ( !strncasecmp( val, ":include:", STRLENOF(":include:") )) {
+			val = cargv[ i ] + STRLENOF( ATTRSSTR "=" );
+			if ( !strncasecmp( val, ":include:", STRLENOF(":include:") ) ) {
 				char *attr_fname;
 				attr_fname = ch_strdup( val + STRLENOF(":include:") );
-				si->si_anlist = file2anlist(
-								si->si_anlist, attr_fname, " ,\t" );
+				si->si_anlist = file2anlist( si->si_anlist, attr_fname, " ,\t" );
 				if ( si->si_anlist == NULL ) {
 					ch_free( attr_fname );
 					return -1;
@@ -2551,8 +2568,9 @@ parse_syncrepl_line(
 				char delimstr[] = " ,\t";
 				str = ch_strdup( val );
 				for ( s = ldap_pvt_strtok( str, delimstr, &next );
-					  s != NULL;
-					  s = ldap_pvt_strtok( NULL, delimstr, &next )) {
+						s != NULL;
+						s = ldap_pvt_strtok( NULL, delimstr, &next ) )
+				{
 					if ( strlen(s) == 1 && *s == '*' ) {
 						si->si_allattrs = 1;
 						*(val + ( s - str )) = delimstr[0];
@@ -2568,10 +2586,10 @@ parse_syncrepl_line(
 					return -1;
 				}
 			}
-		} else if ( !strncasecmp( cargv[ i ],
-			EXATTRSSTR, sizeof( EXATTRSSTR ) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], EXATTRSSTR "=",
+					STRLENOF( EXATTRSSTR "=" ) ) )
 		{
-			val = cargv[ i ] + sizeof( EXATTRSSTR );
+			val = cargv[ i ] + STRLENOF( EXATTRSSTR "=" );
 			if ( !strncasecmp( val, ":include:", STRLENOF(":include:") )) {
 				char *attr_fname;
 				attr_fname = ch_strdup( val + STRLENOF(":include:") );
@@ -2589,14 +2607,16 @@ parse_syncrepl_line(
 					return -1;
 				}
 			}
-		} else if ( !strncasecmp( cargv[ i ],
-			TYPESTR, sizeof( TYPESTR ) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], TYPESTR "=",
+					STRLENOF( TYPESTR "=" ) ) )
 		{
-			val = cargv[ i ] + sizeof( TYPESTR );
-			if ( !strncasecmp( val, "refreshOnly", STRLENOF("refreshOnly") )) {
+			val = cargv[ i ] + STRLENOF( TYPESTR "=" );
+			if ( !strncasecmp( val, "refreshOnly",
+						STRLENOF("refreshOnly") ))
+			{
 				si->si_type = LDAP_SYNC_REFRESH_ONLY;
 			} else if ( !strncasecmp( val, "refreshAndPersist",
-				STRLENOF("refreshAndPersist") ))
+						STRLENOF("refreshAndPersist") ))
 			{
 				si->si_type = LDAP_SYNC_REFRESH_AND_PERSIST;
 				si->si_interval = 60;
@@ -2605,10 +2625,10 @@ parse_syncrepl_line(
 					"unknown sync type \"%s\"\n", val);
 				return 1;
 			}
-		} else if ( !strncasecmp( cargv[ i ],
-			INTERVALSTR, sizeof( INTERVALSTR ) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], INTERVALSTR "=",
+					STRLENOF( INTERVALSTR "=" ) ) )
 		{
-			val = cargv[ i ] + sizeof( INTERVALSTR );
+			val = cargv[ i ] + STRLENOF( INTERVALSTR "=" );
 			if ( si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST ) {
 				si->si_interval = 0;
 			} else {
@@ -2659,14 +2679,14 @@ parse_syncrepl_line(
 					(long) si->si_interval);
 				return 1;
 			}
-		} else if ( !strncasecmp( cargv[ i ],
-			RETRYSTR, sizeof( RETRYSTR ) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], RETRYSTR "=",
+					STRLENOF( RETRYSTR "=" ) ) )
 		{
 			char *str;
 			char **retry_list;
 			int j, k, n;
 
-			val = cargv[ i ] + sizeof( RETRYSTR );
+			val = cargv[ i ] + STRLENOF( RETRYSTR "=" );
 			retry_list = (char **) ch_calloc( 1, sizeof( char * ));
 			retry_list[0] = NULL;
 
@@ -2706,20 +2726,20 @@ parse_syncrepl_line(
 				ch_free( retry_list[k] );
 			}
 			ch_free( retry_list );
-		} else if ( !strncasecmp( cargv[ i ],
-			MANAGEDSAITSTR, sizeof( MANAGEDSAITSTR ) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], MANAGEDSAITSTR "=",
+					STRLENOF( MANAGEDSAITSTR "=" ) ) )
 		{
-			val = cargv[ i ] + sizeof( MANAGEDSAITSTR );
+			val = cargv[ i ] + STRLENOF( MANAGEDSAITSTR "=" );
 			si->si_manageDSAit = atoi( val );
-		} else if ( !strncasecmp( cargv[ i ],
-			SLIMITSTR, sizeof( SLIMITSTR ) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], SLIMITSTR "=",
+					STRLENOF( SLIMITSTR "=") ) )
 		{
-			val = cargv[ i ] + sizeof( SLIMITSTR );
+			val = cargv[ i ] + STRLENOF( SLIMITSTR "=" );
 			si->si_slimit = atoi( val );
-		} else if ( !strncasecmp( cargv[ i ],
-			TLIMITSTR, sizeof( TLIMITSTR ) - 1 ) )
+		} else if ( !strncasecmp( cargv[ i ], TLIMITSTR "=",
+					STRLENOF( TLIMITSTR "=" ) ) )
 		{
-			val = cargv[ i ] + sizeof( TLIMITSTR );
+			val = cargv[ i ] + STRLENOF( TLIMITSTR "=" );
 			si->si_tlimit = atoi( val );
 		} else {
 			fprintf( stderr, "Error: parse_syncrepl_line: "
