@@ -15,3 +15,6 @@ CC	= gcc
 RANLIB	= "ranlib"
 
 PLATFORMCFLAGS=	-Dlinux
+
+# uncomment this if -DLDAP_CRYPT is defined
+#PLATFORMLIBS= -lcrypt
