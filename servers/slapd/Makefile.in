@@ -145,7 +145,7 @@ SLAPD_OBJECTS = $(@PLAT@_SLAPD_OBJECTS)
 # Thus, we do the best we can by depending on version.o, which depends
 # on its own very long list of dependencies.
 #
-slapd.def: libbackends.a version.o
+slapd.def: libbackends.a liboverlays.a version.o
 	@for i in $(LDFLAGS) ; do \
 	    path=`expr "$$i" : "-L\(.*\)"`; \
 	    if test $$? != 0; then continue; fi; \
