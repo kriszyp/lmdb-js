@@ -532,16 +532,12 @@ bdb_cache_lru_add(
 			/* Too many probes, not enough idle, give up */
 			if (i > 10) break;
 
-			/* Leave DB root alone, BDB_HIER needs this */
-			if ( elru->bei_parent && !elru->bei_parent->bei_parent )
-				continue;
-
 			/* If we can successfully writelock it, then
 			 * the object is idle.
 			 */
 			if ( bdb_cache_entry_db_lock( bdb->bi_dbenv, bdb->bi_cache.c_locker, elru, 1, 1,
 				lockp ) == 0 ) {
-				int lstat;
+				int stop = 0;
 
 				/* If there's no entry, or this node is in
 				 * the process of linking into the cache,
@@ -552,32 +548,17 @@ bdb_cache_lru_add(
 					bdb_cache_entry_db_unlock( bdb->bi_dbenv, lockp );
 					continue;
 				}
-				/* If this node is in use or has children, just free the
-				 * entry and unlink from the LRU list.
-				 */
-				lstat = ldap_pvt_thread_mutex_trylock( &elru->bei_kids_mutex );
-				if ( lstat || elru->bei_kids ) {
-					LRU_DELETE( &bdb->bi_cache, elru );
-					elru->bei_e->e_private = NULL;
-					bdb_entry_return( elru->bei_e );
-					elru->bei_e = NULL;
-
-					if ( !lstat )
-						bdb_cache_entryinfo_unlock( elru );
-
-				/* Else free the entry and its entryinfo.
-				 */
-				} else {
-					bdb_cache_delete_internal( &bdb->bi_cache, elru, 0 );
-					bdb_cache_delete_cleanup( &bdb->bi_cache, elru );
-
-					/* break the loop, unsafe to muck with more than one */
-					elprev = NULL;
-				}
-				bdb_cache_entry_db_unlock( bdb->bi_dbenv, lockp );
+				LRU_DELETE( &bdb->bi_cache, elru );
+				elru->bei_e->e_private = NULL;
+				bdb_entry_return( elru->bei_e );
+				elru->bei_e = NULL;
+				ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
 				--bdb->bi_cache.c_cursize;
-				if (bdb->bi_cache.c_cursize < bdb->bi_cache.c_maxsize)
-					break;
+				if (bdb->bi_cache.c_cursize <= bdb->bi_cache.c_maxsize)
+					stop = 1;
+				ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
+				bdb_cache_entry_db_unlock( bdb->bi_dbenv, lockp );
+				if (stop) break;
 			}
 		}
 	}
@@ -620,7 +601,7 @@ bdb_cache_find_id(
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	Entry	*ep = NULL;
-	int	rc = 0;
+	int	rc = 0, load = 0;
 	EntryInfo ei = { 0 };
 
 	ei.bei_id = id;
@@ -683,7 +664,6 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 		if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
 			rc = DB_NOTFOUND;
 		} else {
-			int load = 0;
 			/* Make sure only one thread tries to load the entry */
 load1:		if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
 				load = 1;
@@ -794,17 +774,30 @@ load1:		if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
 		bdb_entry_return( ep );
 	}
 	if ( rc == 0 ) {
-		/* set lru mutex */
-		ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_mutex );
-		/* if entry is on LRU list, remove from old spot */
-		if ( (*eip)->bei_lrunext || (*eip)->bei_lruprev ) {
-			LRU_DELETE( &bdb->bi_cache, *eip );
-		} else {
-		/* if entry is new, bump cache size */
+
+		if ( load ) {
+			ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
 			bdb->bi_cache.c_cursize++;
+			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
 		}
-		/* lru_mutex is unlocked for us */
-		bdb_cache_lru_add( bdb, locker, *eip );
+
+		ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_mutex );
+
+		/* If the LRU list has only one entry and this is it, it
+		 * doesn't need to be added again.
+		 */
+		if ( bdb->bi_cache.c_lruhead == bdb->bi_cache.c_lrutail &&
+			bdb->bi_cache.c_lruhead == *eip ) {
+			ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.lru_mutex );
+		} else {
+
+			/* if entry is on LRU list, remove from old spot */
+			if ( (*eip)->bei_lrunext || (*eip)->bei_lruprev ) {
+				LRU_DELETE( &bdb->bi_cache, *eip );
+			}
+			/* lru_mutex is unlocked for us */
+			bdb_cache_lru_add( bdb, locker, *eip );
+		}
 	}
 
 	return rc;
