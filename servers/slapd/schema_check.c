@@ -219,9 +219,9 @@ entry_schema_check(
 	}
 
 	{	/* naming check */
-		LDAPRDN *rdn;
-		const char *p;
-		ber_len_t cnt;
+		LDAPRDN		*rdn = NULL;
+		const char	*p = NULL;
+		ber_len_t	cnt;
 
 		/*
 		 * Get attribute type(s) and attribute value(s) of our RDN
@@ -230,7 +230,8 @@ entry_schema_check(
 			LDAP_DN_FORMAT_LDAP ) )
 		{
 			*text = "unrecongized attribute type(s) in RDN";
-			return LDAP_INVALID_DN_SYNTAX;
+			rc = LDAP_INVALID_DN_SYNTAX;
+			goto rdn_check_done;
 		}
 
 		/* Check that each AVA of the RDN is present in the entry */
@@ -244,7 +245,7 @@ entry_schema_check(
 			rc = slap_bv2ad( &ava->la_attr, &desc, &errtext );
 			if ( rc != LDAP_SUCCESS ) {
 				snprintf( textbuf, textlen, "%s (in RDN)", errtext );
-				return rc;
+				goto rdn_check_done;
 			}
 
 			/* find the naming attribute */
@@ -252,16 +253,24 @@ entry_schema_check(
 			if ( attr == NULL ) {
 				snprintf( textbuf, textlen, 
 					"naming attribute '%s' is not present in entry",
-					ava->la_attr );
-				return LDAP_NO_SUCH_ATTRIBUTE;
+					ava->la_attr.bv_val );
+				rc = LDAP_NO_SUCH_ATTRIBUTE;
+				goto rdn_check_done;
 			}
 
 			if ( value_find( desc, attr->a_vals, &ava->la_value ) != 0 ) {
 				snprintf( textbuf, textlen, 
 					"value of naming attribute '%s' is not present in entry",
-					ava->la_attr );
-				return LDAP_NO_SUCH_ATTRIBUTE;
+					ava->la_attr.bv_val );
+				rc = LDAP_NO_SUCH_ATTRIBUTE;
+				goto rdn_check_done;
 			}
+		}
+
+rdn_check_done:;
+		ldap_rdnfree( rdn );
+		if ( rc != LDAP_SUCCESS ) {
+			return rc;
 		}
 	}
 
