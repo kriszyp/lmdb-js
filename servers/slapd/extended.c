@@ -149,7 +149,7 @@ do_extended(
 	refs = NULL;
 
 	rc = (ext->ext_main)( conn, op,
-		reqoid, reqdata,
+		reqoid, reqdata->bv_val ? reqdata : NULL,
 		&rspoid, &rspdata, &rspctrls, &text, &refs );
 
 	if( rc != SLAPD_ABANDON ) {
