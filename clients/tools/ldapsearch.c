@@ -339,7 +339,8 @@ main( int argc, char **argv )
 #endif
 
 	if ( verbose ) {
-		fprintf( stderr, "ldap_init( %s, %d )\n",
+		fprintf( stderr,
+			(ldapport ? "ldap_init( %s, %d )\n" : "ldap_init( %s, <DEFAULT> )\n"),
 			(ldaphost != NULL) ? ldaphost : "<DEFAULT>",
 			ldapport );
 	}
