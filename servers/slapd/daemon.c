@@ -486,6 +486,9 @@ static Listener * slap_open_listener(
 	int err, addrlen = 0;
 	struct sockaddr **sal, **psal;
 	int socktype = SOCK_STREAM;	/* default to COTS */
+#ifdef LDAP_PF_LOCAL
+	mode_t perms = S_IRWXU;
+#endif
 
 	rc = ldap_url_parse( url, &lud );
 
@@ -693,7 +696,7 @@ static Listener * slap_open_listener(
 #ifdef LDAP_PF_LOCAL
 	case AF_LOCAL: {
 		char *addr = ((struct sockaddr_un *)*sal)->sun_path;
-		if ( chmod( addr, S_IRWXU ) < 0 ) {
+		if ( chmod( addr, perms ) < 0 ) {
 			int err = sock_errno();
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
