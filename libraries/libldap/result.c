@@ -169,7 +169,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 			rc = ldap_select1( ld, tvp );
 
 			if ( rc == 0 || ( rc == -1 && (
-				(LDAP_BOOL_GET(ld, LDAP_BOOL_RESTART) = LDAP_OPT_OFF)
+				(LDAP_BOOL_GET(ld, LDAP_BOOL_RESTART) == LDAP_OPT_OFF)
 			    || errno != EINTR ))) {
 				ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
 				    LDAP_TIMEOUT);
