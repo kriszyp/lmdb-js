@@ -47,7 +47,7 @@ member: cn=Mark Elliot,ou=Alumni Association,ou=People,dc=example,dc=com
 member: cn=Ursula Hampster,ou=Alumni Association,ou=People,dc=example,dc=com
 owner: cn=Manager,dc=example,dc=com
 description: All Alumni Assoc Staff
-description: added by jaj
+description: added by jaj (should succeed)
 cn: Alumni Assoc Staff
 objectClass: groupOfNames
 
