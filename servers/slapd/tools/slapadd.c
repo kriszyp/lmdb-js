@@ -69,7 +69,7 @@ main( int argc, char **argv )
 
 			/* check schema */
 			if ( global_schemacheck && oc_schema_check( e ) != 0 ) {
-				fprintf( stderr, "%s: entry dn=\"%s\" violates schema violation (line=%d)\n",
+				fprintf( stderr, "%s: schema violation in entry dn=\"%s\" (line=%d)\n",
 					progname, e->e_dn, lineno );
 				rc = EXIT_FAILURE;
 				entry_free( e );
