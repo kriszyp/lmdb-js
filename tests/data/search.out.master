@@ -4,7 +4,6 @@ objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: newPilotPerson
-objectclass: umichPerson
 cn: Barbara Jensen
 cn: Babs Jensen
 sn: Jensen
@@ -12,16 +11,10 @@ title: Mythical Manager, Research Systems
 postaladdress: ITD Prod Dev & Deployment $ 535 W. William St. Room 4212 $ Ann 
  Arbor, MI 48103-4943
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
-uid: bjensen
 userpassword:: YmplbnNlbg==
 mail: bjensen@mailgw.umich.edu
 homepostaladdress: 123 Wesley $ Ann Arbor, MI 48103
-krbname: bjensen@umich.edu
-multilinedescription: Mythical manager of the rsdd unix project
-nobatchupdates: TRUE
-notice: Off sailing this month.
-onvacation: FALSE
-labeledurl: http://www.umich.edu/ U-M Home Page
+description: Mythical manager of the rsdd unix project
 drink: water
 homephone: +1 313 555 2333
 pager: +1 313 555 3233
@@ -34,19 +27,14 @@ objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: newPilotPerson
-objectclass: umichPerson
 cn: Bjorn Jensen
 cn: Biiff Jensen
 sn: Jensen
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
-uid: bjorn
 userpassword:: Ympvcm4=
-krbname: jdoe@umich.edu
-nobatchupdates: TRUE
-onvacation: FALSE
 homepostaladdress: 19923 Seven Mile Rd. $ South Lyon, MI 49999
 drink: Iced Tea
-multilinedescription: Hiker, biker
+description: Hiker, biker
 title: Director, Embedded Systems
 postaladdress: Info Tech Division $ 535 W. William St. $ Ann Arbor, MI 48103
 mail: bjorn@mailgw.umich.edu
@@ -119,21 +107,16 @@ objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: newPilotPerson
-objectclass: umichPerson
 cn: James A Jones 1
 cn: James Jones
 cn: Jim Jones
 sn: Jones
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
-uid: jaj
-krbname: jaj@umich.edu
 userpassword:: amFq
-nobatchupdates: TRUE
-onvacation: FALSE
 homepostaladdress: 3882 Beverly Rd. $ Ann Arbor, MI 48105
 homephone: +1 313 555 4772
-multilinedescription: Outstanding
+description: Outstanding
 title: Mad Cow Researcher, UM Alumni Association
 pager: +1 313 555 3923
 mail: jaj@mail.alumni.umich.edu

@@ -55,7 +55,6 @@ objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: newPilotPerson
-objectclass: umichPerson
 cn: Barbara Jensen
 cn: Babs Jensen
 sn: Jensen
@@ -63,16 +62,10 @@ title: Mythical Manager, Research Systems
 postaladdress: ITD Prod Dev & Deployment $ 535 W. William St. Room 4212 $ Ann 
  Arbor, MI 48103-4943
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
-uid: bjensen
 userpassword:: YmplbnNlbg==
 mail: bjensen@mailgw.umich.edu
 homepostaladdress: 123 Wesley $ Ann Arbor, MI 48103
-krbname: bjensen@umich.edu
-multilinedescription: Mythical manager of the rsdd unix project
-nobatchupdates: TRUE
-notice: Off sailing this month.
-onvacation: FALSE
-labeledurl: http://www.umich.edu/ U-M Home Page
+description: Mythical manager of the rsdd unix project
 drink: water
 homephone: +1 313 555 2333
 pager: +1 313 555 3233
@@ -85,19 +78,14 @@ objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: newPilotPerson
-objectclass: umichPerson
 cn: Bjorn Jensen
 cn: Biiff Jensen
 sn: Jensen
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
-uid: bjorn
 userpassword:: Ympvcm4=
-krbname: jdoe@umich.edu
-nobatchupdates: TRUE
-onvacation: FALSE
 homepostaladdress: 19923 Seven Mile Rd. $ South Lyon, MI 49999
 drink: Iced Tea
-multilinedescription: Hiker, biker
+description: Hiker, biker
 title: Director, Embedded Systems
 postaladdress: Info Tech Division $ 535 W. William St. $ Ann Arbor, MI 48103
 mail: bjorn@mailgw.umich.edu
@@ -112,20 +100,15 @@ objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: newPilotPerson
-objectclass: umichPerson
 cn: Dorothy Stevens
 cn: Dot Stevens
 sn: Stevens
 title: Secretary, UM Alumni Association
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
-uid: dots
-krbname: jdoe@umich.edu
-nobatchupdates: TRUE
-onvacation: FALSE
 drink: Lemonade
 homepostaladdress: 377 White St. Apt. 3 $ Ann Arbor, MI 48104
-multilinedescription: Very tall
+description: Very tall
 facsimiletelephonenumber: +1 313 555 3223
 telephonenumber: +1 313 555 3664
 mail: dots@mail.alumni.umich.edu
@@ -161,20 +144,15 @@ objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: newPilotPerson
-objectclass: umichPerson
 cn: James Jones
 cn: Jim Jones
 cn: James A Jones II
 sn: Doe
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
-uid: jjones
-krbname: jdoe@umich.edu
-nobatchupdates: TRUE
-onvacation: FALSE
 homepostaladdress: 933 Brooks $ Ann Arbor, MI 48104
 homephone: +1 313 555 8838
 title: Senior Manager, Information Technology Division
-multilinedescription: Not around very much
+description: Not around very much
 mail: jjones@mailgw.umich.edu
 postaladdress: Info Tech Division $ 535 W William $ Ann Arbor, MI 48103
 pager: +1 313 555 2833
@@ -187,7 +165,6 @@ objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: newPilotPerson
-objectclass: umichPerson
 cn: James A Jones 1
 cn: James Jones
 cn: Jim Jones
@@ -195,14 +172,10 @@ cn: James A Jones III
 sn: Jones
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
-uid: jaj
-krbname: jaj@umich.edu
 userpassword:: amFq
-nobatchupdates: TRUE
-onvacation: FALSE
 homepostaladdress: 3882 Beverly Rd. $ Ann Arbor, MI 48105
 homephone: +1 313 555 4772
-multilinedescription: Outstanding
+description: Outstanding
 title: Mad Cow Researcher, UM Alumni Association
 pager: +1 313 555 3923
 mail: jaj@mail.alumni.umich.edu
@@ -215,20 +188,15 @@ objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: newPilotPerson
-objectclass: umichPerson
 cn: Jane Doe
 cn: Jane Alverson
 sn: Doe
 title: Programmer Analyst, UM Alumni Association
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
-uid: jdoe
 homepostaladdress: 123 Anystreet $ Ann Arbor, MI 48104
-krbname: jdoe@umich.edu
-nobatchupdates: TRUE
-onvacation: FALSE
 drink: diet coke
-multilinedescription: Enthusiastic
+description: Enthusiastic
 mail: jdoe@woof.net
 homephone: +1 313 555 5445
 pager: +1 313 555 1220
@@ -241,16 +209,11 @@ objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: newPilotPerson
-objectclass: umichPerson
 cn: Jennifer Smith
 cn: Jen Smith
 sn: Smith
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
-uid: jen
-krbname: jdoe@umich.edu
-nobatchupdates: TRUE
-onvacation: FALSE
 drink: Sam Adams
 homepostaladdress: 1000 Maple #44 $ Ann Arbor, MI 48103
 title: Telemarketer, UM Alumni Association
@@ -266,19 +229,14 @@ objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: newPilotPerson
-objectclass: umichPerson
 cn: John Doe
 cn: Jonathon Doe
 sn: Doe
 postaladdress: ITD $ 535 W. William $ Ann Arbor, MI 48109
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
-uid: johnd
-krbname: johnd@umich.edu
-nobatchupdates: TRUE
-onvacation: FALSE
 homepostaladdress: 912 East Bllvd $ Ann Arbor, MI 48104
 title: System Administrator, Information Technology Division
-multilinedescription: overworked!
+description: overworked!
 mail: johnd@mailgw.umich.edu
 homephone: +1 313 555 3774
 pager: +1 313 555 6573
@@ -288,14 +246,12 @@ telephonenumber: +1 313 555 9394
 dn: cn=Manager, o=University of Michigan, c=US
 objectclass: top
 objectclass: person
-objectclass: kerberosSecurityObject
 cn: Manager
 cn: Directory Manager
 cn: Dir Man
 sn: Manager
 description: Manager of the directory
 userpassword:: c2VjcmV0
-krbname: bjensen@umich.edu
 
 dn: cn=Mark Elliot, ou=Alumni Association, ou=People, o=University of Michigan
  , c=US
@@ -303,16 +259,11 @@ objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: newPilotPerson
-objectclass: umichPerson
 cn: Mark Elliot
 cn: Mark A Elliot
 sn: Elliot
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
-uid: melliot
-krbname: jdoe@umich.edu
-nobatchupdates: TRUE
-onvacation: FALSE
 homepostaladdress: 199 Outer Drive $ Ypsilanti, MI 48198
 homephone: +1 313 555 0388
 drink: Gasoline
@@ -351,17 +302,12 @@ objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: newPilotPerson
-objectclass: umichPerson
 cn: Ursula Hampster
 sn: Hampster
 title: Secretary, UM Alumni Association
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
-uid: uham
 homepostaladdress: 123 Anystreet $ Ann Arbor, MI 48104
-krbname: jdoe@umich.edu
-nobatchupdates: TRUE
-onvacation: FALSE
 mail: uham@mail.alumni.umich.edu
 homephone: +1 313 555 8421
 pager: +1 313 555 2844
