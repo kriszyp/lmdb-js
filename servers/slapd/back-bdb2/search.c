@@ -40,7 +40,7 @@ bdb2i_back_search_internal(
 	char *text;
 	time_t		stoptime;
 	ID_BLOCK		*candidates;
-	ID		id;
+	ID		id, cursor;
 	Entry		*e;
 	struct berval **v2refs = NULL;
 	Entry	*matched = NULL;
@@ -147,8 +147,8 @@ bdb2i_back_search_internal(
 		goto done;
 	}
 
-	for ( id = bdb2i_idl_firstid( candidates ); id != NOID;
-	    id = bdb2i_idl_nextid( candidates, id ) )
+	for ( id = bdb2i_idl_firstid( candidates, &cursor ); id != NOID;
+	    id = bdb2i_idl_nextid( candidates, &cursor ) )
 	{
 		int		scopeok = 0;
 

@@ -646,7 +646,7 @@ bdb2i_idl_insert( ID_BLOCK **idl, ID id, unsigned int maxids )
 
 	/* make a slot for the new id */
 	SAFEMEMCPY( &ID_BLOCK_ID(*idl, i), &ID_BLOCK_ID(*idl, i+1),
-		ID_BLOCKS_NIDS(*idl) - i );
+		ID_BLOCK_NIDS(*idl) - i );
 
 	ID_BLOCK_ID(*idl, i) = id;
 	ID_BLOCK_NIDS(*idl)++;
@@ -993,10 +993,14 @@ bdb2i_idl_notin(
  *		NIDS > 1 return 1
  *		otherwise return NOID 
  *	otherwise return first ID
+ *
+ *  cursor is set to 1
  */         
 ID
-bdb2i_idl_firstid( ID_BLOCK *idl )
+bdb2i_idl_firstid( ID_BLOCK *idl, ID *cursor )
 {
+	*cursor = 1;
+
 	if ( idl == NULL || ID_BLOCK_NIDS(idl) == 0 ) {
 		return( NOID );
 	}
@@ -1010,27 +1014,27 @@ bdb2i_idl_firstid( ID_BLOCK *idl )
 
 
 /*	return next ID after id
- *	if ALLIDS block, increment id. 
+ *	if ALLIDS block, cursor is id
+ *		increment id
  *		if id < NIDS return id
  *		otherwise NOID.
- *	otherwise SEARCH for next id (ugh!)
+ *	otherwise cursor is index into block
+ *		if index < nids
+ *			return id at index then increment
  */ 
 ID
-bdb2i_idl_nextid( ID_BLOCK *idl, ID id )
+bdb2i_idl_nextid( ID_BLOCK *idl, ID *cursor )
 {
-	unsigned int	i;
-
 	if ( ID_BLOCK_ALLIDS( idl ) ) {
-		return( ++id < ID_BLOCK_NIDS(idl) ? id : NOID );
+		if( ++(*cursor) < ID_BLOCK_NIDS(idl) ) {
+			return *cursor;
+		} else {
+			return NOID;
+		}
 	}
 
-	for ( i = 0; i < ID_BLOCK_NIDS(idl) && ID_BLOCK_ID(idl, i) <= id; i++ ) {
-		;	/* NULL */
+	if ( *cursor < ID_BLOCK_NIDS(idl) ) {
+		return ID_BLOCK_ID(idl, (*cursor)++);
 	}
-
-	if ( i >= ID_BLOCK_NIDS(idl) ) {
-		return( NOID );
-	} else {
-		return( ID_BLOCK_ID(idl, i) );
-	}
+	return NOID;
 }

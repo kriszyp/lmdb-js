@@ -130,8 +130,8 @@ int bdb2i_idl_delete_key LDAP_P(( BackendDB *be, struct dbcache *db, Datum key, 
 ID_BLOCK * bdb2i_idl_intersection LDAP_P(( BackendDB *be, ID_BLOCK *a, ID_BLOCK *b ));
 ID_BLOCK * bdb2i_idl_union LDAP_P(( BackendDB *be, ID_BLOCK *a, ID_BLOCK *b ));
 ID_BLOCK * bdb2i_idl_notin LDAP_P(( BackendDB *be, ID_BLOCK *a, ID_BLOCK *b ));
-ID bdb2i_idl_firstid LDAP_P(( ID_BLOCK *idl ));
-ID bdb2i_idl_nextid LDAP_P(( ID_BLOCK *idl, ID id ));
+ID bdb2i_idl_firstid LDAP_P(( ID_BLOCK *idl, ID *cursor ));
+ID bdb2i_idl_nextid LDAP_P(( ID_BLOCK *idl, ID *cursor ));
 
 /*
  * index.c
