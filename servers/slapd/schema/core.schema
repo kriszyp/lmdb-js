@@ -452,7 +452,7 @@ objectclass ( 2.5.6.20 NAME 'dmd'
 objectclass ( 2.5.6.21 NAME 'pkiUser'
 	DESC 'RFC2587: a PKI user'
 	SUP top AUXILIARY
-	MUST userCertificate )
+	MAY userCertificate )
 
 objectclass ( 2.5.6.22 NAME 'pkiCA'
 	DESC 'RFC2587: PKI certificate authority'
