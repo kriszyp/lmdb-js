@@ -73,17 +73,22 @@ ber_put_tag(
 {
 	int rc;
 	ber_len_t	taglen;
-	ber_tag_t	ntag;
+	ber_len_t	i;
+	unsigned char nettag[sizeof(ber_tag_t)];
+	ber_tag_t	xtag;
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
 	taglen = ber_calc_taglen( tag );
 
-	ntag = LBER_TAG_HTON( tag );
+	for( i=0; i<taglen; i++ ) {
+		nettag[(sizeof(ber_tag_t)-1) - i] = tag & 0xffU;
+		tag >>= 8;
+	}
 
 	rc = ber_write( ber,
-		((char *) &ntag) + sizeof(ber_tag_t) - taglen,
+		&nettag[sizeof(ber_tag_t) - taglen],
 	    taglen, nosos );
 
 	return rc;
@@ -118,10 +123,12 @@ ber_calc_lenlen( ber_len_t len )
 static int
 ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 {
-	int		i;
+	int rc;
+	int		i,j;
 	char		lenlen;
 	ber_len_t	mask;
-	ber_len_t	netlen;
+	unsigned char netlen[sizeof(ber_len_t)];
+	ber_len_t	xlen;
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
@@ -151,19 +158,24 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 	lenlen = (unsigned char) ++i;
 	if ( lenlen > 4 )
 		return( -1 );
+
 	lenlen |= 0x80UL;
 
 	/* write the length of the length */
 	if ( ber_write( ber, &lenlen, 1, nosos ) != 1 )
 		return( -1 );
 
-	/* write the length itself */
-	netlen = LBER_LEN_HTON( len );
-	if ( ber_write( ber, (char *) &netlen + (sizeof(ber_len_t) - i), i, nosos )
-	    != i )
-		return( -1 );
+	for( j=0; j<i; j++) {
+		netlen[(sizeof(ber_len_t)-1) - j] = len & 0xffU;
+		len >>= 8;
+	}
 
-	return( i + 1 );
+	/* write the length itself */
+	rc = ber_write( ber,
+		&netlen[sizeof(ber_len_t)-i],
+		i, nosos );
+
+	return rc == i ?  i+1 : -1;
 }
 
 static int
@@ -172,9 +184,11 @@ ber_put_int_or_enum(
 	ber_int_t num,
 	ber_tag_t tag )
 {
-	int	i, sign;
+	int rc;
+	int	i, j, sign;
 	ber_len_t	len, lenlen, taglen;
-	ber_uint_t	unum, netnum, mask;
+	ber_uint_t	unum, xnum, mask;
+	unsigned char netnum[sizeof(ber_uint_t)];
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
@@ -216,13 +230,18 @@ ber_put_int_or_enum(
 	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 )
 		return( -1 );
 	i++;
-	netnum = LBER_INT_HTON( unum );
-	if ( ber_write( ber, (char *) &netnum + (sizeof(ber_int_t) - i), i, 0 )
-	   != i )
-		return( -1 );
+
+	for( j=0; j<i; j++ ) {
+		netnum[(sizeof(ber_int_t)-1) - j] = unum & 0xffU;
+		unum >>= 8;
+	}
+
+	rc = ber_write( ber,
+		&netnum[sizeof(ber_int_t) - i],
+		i, 0 );
 
 	/* length of tag + length + contents */
-	return( taglen + lenlen + i );
+	return rc == i ? taglen + lenlen + i : -1;
 }
 
 int
@@ -484,7 +503,9 @@ ber_start_set( BerElement *ber, ber_tag_t tag )
 static int
 ber_put_seqorset( BerElement *ber )
 {
-	ber_len_t	len, netlen;
+	int rc, i;
+	ber_len_t	len;
+	unsigned char netlen[sizeof(ber_len_t)];
 	ber_len_t	taglen, lenlen;
 	unsigned char	ltag = 0x80U + FOUR_BYTE_LEN - 1;
 	Seqorset	*next;
@@ -502,14 +523,23 @@ ber_put_seqorset( BerElement *ber )
 	 */
 
 	len = (*sos)->sos_clen;
-	netlen = LBER_LEN_HTON( len );
+
 	if ( sizeof(ber_len_t) > 4 && len > 0xffffffffUL )
 		return( -1 );
 
 	if ( ber->ber_options & LBER_USE_DER ) {
 		lenlen = ber_calc_lenlen( len );
+
 	} else {
 		lenlen = FOUR_BYTE_LEN;
+	}
+
+	if( lenlen > 1 ) {
+		for( i=0; i < lenlen-1; i++ ) {
+			netlen[(sizeof(ber_len_t)-1) - i] = (len >> i*8) & 0xffU;
+		}
+	} else {
+		netlen[sizeof(ber_len_t)-1] = len & 0x7fU;
 	}
 
 	if ( (next = (*sos)->sos_next) == NULL ) {
@@ -539,21 +569,33 @@ ber_put_seqorset( BerElement *ber )
 				return( -1 );
 
 			/* the length itself */
-			if ( ber_write( ber, (char *) (&netlen + 1)
-			    - (FOUR_BYTE_LEN - 1), FOUR_BYTE_LEN - 1, 1 )
-			    != FOUR_BYTE_LEN - 1 )
+			rc  = ber_write( ber,
+				&netlen[sizeof(ber_len_t) - (FOUR_BYTE_LEN-1)],
+				FOUR_BYTE_LEN-1, 1 );
+
+			if( rc != FOUR_BYTE_LEN - 1 ) {
 				return( -1 );
+			}
 		}
 		/* The ber_ptr is at the set/seq start - move it to the end */
 		(*sos)->sos_ber->ber_ptr += len;
+
 	} else {
-		ber_tag_t	ntag;
+		int i;
+		unsigned char nettag[sizeof(ber_tag_t)];
+		ber_tag_t tmptag = (*sos)->sos_tag;
 
 		/* the tag */
-		taglen = ber_calc_taglen( (*sos)->sos_tag );
-		ntag = LBER_TAG_HTON( (*sos)->sos_tag );
-		SAFEMEMCPY( (*sos)->sos_first, (char *) &ntag +
-		    sizeof(ber_tag_t) - taglen, taglen );
+		taglen = ber_calc_taglen( tmptag );
+
+		for( i = 0; i < taglen; i++ ) {
+			nettag[(sizeof(ber_tag_t)-1) - i] = tmptag & 0xffU;
+			tmptag >>= 8;
+		}
+
+		SAFEMEMCPY( (*sos)->sos_first,
+			&nettag[sizeof(ber_tag_t) - taglen],
+			taglen );
 
 		if ( ber->ber_options & LBER_USE_DER ) {
 			ltag = (lenlen == 1)
@@ -568,9 +610,8 @@ ber_put_seqorset( BerElement *ber )
 			if (lenlen > 1) {
 				/* Write the length itself */
 				SAFEMEMCPY( (*sos)->sos_first + 2,
-				    (char *)&netlen + sizeof(ber_len_t) -
-				    (lenlen - 1),
-				    lenlen - 1 );
+				    &netlen[sizeof(ber_len_t) - (lenlen - 1)],
+					lenlen - 1 );
 			}
 			if (lenlen != FOUR_BYTE_LEN) {
 				/*
@@ -585,8 +626,8 @@ ber_put_seqorset( BerElement *ber )
 		} else {
 			/* the length itself */
 			SAFEMEMCPY( (*sos)->sos_first + taglen + 1,
-			    (char *) &netlen + sizeof(ber_len_t) -
-			    (FOUR_BYTE_LEN - 1), FOUR_BYTE_LEN - 1 );
+			    &netlen[sizeof(ber_len_t) - (FOUR_BYTE_LEN - 1)],
+				FOUR_BYTE_LEN - 1 );
 		}
 
 		next->sos_clen += (taglen + lenlen + len);

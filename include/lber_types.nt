@@ -26,7 +26,7 @@ LDAP_BEGIN_DECL
  *
  *	bitsof(short) == 2
  *	bitsof(int)	== 4
- *	bitsof(long) == 4
+ *	bitsof(long) == 4	/* or larger */
  *
  *  typedef unsigned int size_t;
  *	typedef unsigned int SOCKET;
@@ -35,7 +35,7 @@ LDAP_BEGIN_DECL
  */
 
 /* LBER boolean, enum, integers - 32 bits or larger*/
-#define LBER_INT_T	long
+#define LBER_INT_T	int
 
 /* LBER tags - 32 bits or larger */
 #define LBER_TAG_T	long

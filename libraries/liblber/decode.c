@@ -79,9 +79,8 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 {
 	ber_tag_t	tag;
 	unsigned char	lc;
-	ber_len_t	noctets;
-	int		diff;
-	ber_len_t	netlen;
+	ber_len_t	i, noctets;
+	unsigned char netlen[sizeof(ber_len_t)];
 
 	assert( ber != NULL );
 	assert( len != NULL );
@@ -111,18 +110,27 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 	 * greater than what we can hold in a ber_len_t.
 	 */
 
-	*len = netlen = 0;
+	*len = 0;
+
 	if ( ber_read( ber, (char *) &lc, 1 ) != 1 )
 		return( LBER_DEFAULT );
+
 	if ( lc & 0x80U ) {
 		noctets = (lc & 0x7fU);
-		if ( noctets > sizeof(ber_len_t) )
+
+		if ( noctets > sizeof(ber_len_t) ) {
 			return( LBER_DEFAULT );
-		diff = sizeof(ber_len_t) - noctets;
-		if ( (unsigned) ber_read( ber, (char *) &netlen + diff, noctets )
-		    != noctets )
+		}
+
+		if( (unsigned) ber_read( ber, netlen, noctets ) != noctets ) {
 			return( LBER_DEFAULT );
-		*len = LBER_LEN_NTOH( netlen );
+		}
+
+		for( i = 0; i < noctets; i++ ) {
+			*len <<= 8;
+			*len |= netlen[i];
+		}
+
 	} else {
 		*len = lc;
 	}

@@ -523,8 +523,9 @@ ber_get_next(
 		ber->ber_tag = 0;
 	}
 
-#define PTR_IN_VAR( ptr, var )\
-(((ptr)>=(char *) &(var)) && ((ptr)< (char *) &(var)+sizeof(var)))
+#undef PTR_IN_VAR
+#define PTR_IN_VAR( ptr, var ) \
+	(((ptr)>=(char *) &(var)) && ((ptr)< (char *) &(var)+sizeof(var)))
 	
 	if (PTR_IN_VAR(ber->ber_rwptr, ber->ber_tag)) {
 		if (ber->ber_rwptr == (char *) &ber->ber_tag) {
@@ -548,10 +549,11 @@ ber_get_next(
 				ber->ber_rwptr = (char *) &ber->ber_usertag;
 				goto get_lenbyte;
 			}
-		} while (PTR_IN_VAR(ber->ber_rwptr,ber->ber_tag));
+		} while( PTR_IN_VAR(ber->ber_rwptr, ber->ber_tag ));
 		errno = ERANGE; /* this is a serious error. */
 		return LBER_DEFAULT;
 	}
+
 get_lenbyte:
 	if (ber->ber_rwptr==(char *) &ber->ber_usertag) {
 		unsigned char c;
@@ -571,19 +573,28 @@ get_lenbyte:
 			goto fill_buffer;
 		}
 	}
+
 	if (PTR_IN_VAR(ber->ber_rwptr, ber->ber_len)) {
+		unsigned char netlen[sizeof(ber_len_t)];
+
 		ber_slen_t res;
 		ber_slen_t to_go;
 		to_go = (char *) &ber->ber_len + sizeof( ber->ber_len ) -
 			ber->ber_rwptr;
 		assert( to_go > 0 );
-		res = ber_pvt_sb_read( sb, ber->ber_rwptr, to_go );
-		if (res <=0)
+		res = ber_pvt_sb_read( sb, netlen, to_go );
+		if (res <= 0) {
 			return LBER_DEFAULT;
+		}
 		ber->ber_rwptr += res;
+
 		if (res==to_go) {
 			/* convert length. */
-			ber->ber_len = LBER_LEN_NTOH( ber->ber_len );
+			ber->ber_len = 0;
+			for( to_go = 0; to_go < res ; to_go++ ) {
+				ber->ber_len <<= 8;
+				ber->ber_len |= netlen[to_go];
+			}
 			goto fill_buffer;
 		} else {
 #if defined( EWOULDBLOCK )
@@ -594,6 +605,7 @@ get_lenbyte:
 			return LBER_DEFAULT;
 		}
 	}
+
 fill_buffer:	
 	/* now fill the buffer. */
 	if (ber->ber_buf==NULL) {
@@ -608,6 +620,7 @@ fill_buffer:
 		ber->ber_ptr = ber->ber_buf;
 		ber->ber_end = ber->ber_buf + ber->ber_len;
 	}
+
 	if ((ber->ber_rwptr>=ber->ber_buf) && (ber->ber_rwptr<ber->ber_end)) {
 		ber_slen_t res;
 		ber_slen_t to_go;

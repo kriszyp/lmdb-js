@@ -144,26 +144,14 @@ LDAP_F( int ) ldap_pvt_inet_aton LDAP_P(( const char *, struct in_addr * ));
 
 #if	defined(__WIN32) && defined(_ALPHA)
 /* NT on Alpha is hosed. */
-#define AC_HTONL( l ) \
-        ((((l)&0xff)<<24) + (((l)&0xff00)<<8) + \
-         (((l)&0xff0000)>>8) + (((l)&0xff000000)>>24))
-#define AC_NTOHL(l) AC_HTONL(l)
-
-#elif defined(__alpha) && !defined(VMS)
-/*
- * htonl and ntohl on the DEC Alpha under OSF 1 seem to only swap the
- * lower-order 32-bits of a (64-bit) long, so we define correct versions
- * here.
- */ 
-#define AC_HTONL( l )	(((long)htonl( (l) & 0x00000000FFFFFFFF )) << 32 \
-	| htonl( ( (l) & 0xFFFFFFFF00000000 ) >> 32 ))
-
-#define AC_NTOHL( l ) (((long)ntohl( (l) & 0x00000000FFFFFFFF )) << 32 \
-	| ntohl( ( (l) & 0xFFFFFFFF00000000 ) >> 32 ))
+#	define AC_HTONL( l ) \
+        ((((l)&0xffU)<<24) + (((l)&0xff00U)<<8) + \
+         (((l)&0xff0000U)>>8) + (((l)&0xff000000U)>>24))
+#	define AC_NTOHL(l) AC_HTONL(l)
 
 #else
-#define AC_HTONL( l ) htonl( l )
-#define AC_NTOHL( l ) ntohl( l )
+#	define AC_HTONL( l ) htonl( l )
+#	define AC_NTOHL( l ) ntohl( l )
 #endif
 
 /* htons()/ntohs() may be broken much like htonl()/ntohl() */
