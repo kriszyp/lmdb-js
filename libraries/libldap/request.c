@@ -78,7 +78,7 @@ ldap_send_initial_request(
 	const char *dn,
 	BerElement *ber )
 {
-	LDAPServer	*servers, *srv;
+	LDAPServer	*servers;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_initial_request\n", 0, 0, 0 );
 
