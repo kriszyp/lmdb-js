@@ -15,9 +15,14 @@
 #include <ac/wait.h>
 #include <ac/errno.h>
 
+#include "ldap_pvt.h"
+
 #include "slap.h"
 #include "lutil.h"
 #include "ldif.h"
+
+/* I guess this should be declared in ldap_pvt.h */
+extern int ldap_pvt_tls_init_def_ctx( void );
 
 #ifdef LDAP_SIGCHLD
 static RETSIGTYPE wait4child( int sig );
@@ -127,7 +132,7 @@ int main( int argc, char **argv )
 #endif
 {
 	int		i, no_detach = 0;
-	int		rc;
+	int		rc = 1;
 	char *urls = NULL;
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 	char *username = NULL;

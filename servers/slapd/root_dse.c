@@ -16,6 +16,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
+#include <ldif.h>
 
 static char *supportedFeatures[] = {
 	"1.3.6.1.4.1.4203.1.5.1", /* All Operational Attributes ("+") */
@@ -146,7 +147,6 @@ root_dse_info(
 int read_root_dse_file( const char *fname )
 {
 	FILE	*fp;
-	char	*line, *savefname, *saveline;
 	int rc = 0, lineno = 0, lmax = 0;
 	char	*buf = NULL;
 
@@ -164,7 +164,6 @@ int read_root_dse_file( const char *fname )
 	usr_attr->e_attrs = NULL;
 
 	while( ldif_read_record( fp, &lineno, &buf, &lmax ) ) {
-		ID id;
 		Entry *e = str2entry( buf );
 
 		if( e == NULL ) {

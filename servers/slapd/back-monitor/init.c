@@ -310,7 +310,7 @@ monitor_back_db_init(
 			"cn: Monitor\n"
 			"description: %s",
 			SLAPD_MONITOR_DN,
-			(char *) Versionstr
+			/* (char *) Versionstr */ "slapd 2.0"
 			);
 	e = str2entry( buf );
 	if ( e == NULL) {

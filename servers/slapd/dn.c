@@ -28,6 +28,10 @@
 #define INQUOTEDVALUE	7
 #define B4SEPARATOR		8
 
+/* schema_init.c */
+extern int 
+dnNormalize( Syntax *syntax, struct berval *val, struct berval **normalized );
+
 /*
  * dn_validate - validate and compress dn.  the dn is
  * compressed in place are returned if valid.

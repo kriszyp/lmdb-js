@@ -43,8 +43,8 @@
 void
 slap_init_user( char *user, char *group )
 {
-    uid_t	uid;
-    gid_t	gid;
+    uid_t	uid = 0;
+    gid_t	gid = 0;
     int		got_uid = 0, got_gid = 0;
 
     if ( user ) {

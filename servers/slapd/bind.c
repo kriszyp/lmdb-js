@@ -412,11 +412,11 @@ do_bind(
 			NULL, text, NULL, NULL );
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			   "do_bind: conn %d  v%d unknown authentication method (%d)\n",
+			   "do_bind: conn %ld  v%d unknown authentication method (%ld)\n",
 			   conn->c_connid, version, method ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"do_bind: v%d unknown authentication method (%d)\n",
+			"do_bind: v%d unknown authentication method (%ld)\n",
 			version, method, 0 );
 #endif
 		goto cleanup;

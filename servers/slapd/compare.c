@@ -36,7 +36,6 @@ do_compare(
 )
 {
 	Entry *entry = NULL;
-	Attribute	*a = NULL;
 	char	*dn = NULL, *ndn=NULL;
 	struct berval desc;
 	struct berval value;

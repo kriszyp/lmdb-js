@@ -134,7 +134,6 @@ value_match(
 	int rc;
 	struct berval *nv1 = NULL;
 	struct berval *nv2 = NULL;
-	Syntax *syntax;
 
 	if( !mr->smr_match ) {
 		return LDAP_INAPPROPRIATE_MATCHING;

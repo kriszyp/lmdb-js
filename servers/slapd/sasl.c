@@ -60,11 +60,11 @@ slap_sasl_log(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		"SASL [conn=%d] %s: %s\n",
+		"SASL [conn=%ld] %s: %s\n",
 		conn ? conn->c_connid : -1,
 		label, message ));
 #else
-	Debug( level, "SASL [conn=%d] %s: %s\n",
+	Debug( level, "SASL [conn=%ld] %s: %s\n",
 		conn ? conn->c_connid: -1,
 		label, message );
 #endif
@@ -617,13 +617,13 @@ int slap_sasl_bind(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "sasl_bind: conn %ld dn=\"%s\" mech=%s datalen=%d\n",
+		   "sasl_bind: conn %ld dn=\"%s\" mech=%s datalen=%ld\n",
 		   conn->c_connid, dn,
 		   conn->c_sasl_bind_in_progress ? "<continuing>" : conn->c_sasl_bind_mech,
 		   cred ? cred->bv_len : 0 ));
 #else
 	Debug(LDAP_DEBUG_ARGS,
-	  "==> sasl_bind: dn=\"%s\" mech=%s datalen=%d\n", dn,
+	  "==> sasl_bind: dn=\"%s\" mech=%s datalen=%ld\n", dn,
 	  conn->c_sasl_bind_in_progress ? "<continuing>":conn->c_sasl_bind_mech,
 	  cred ? cred->bv_len : 0 );
 #endif

@@ -1104,7 +1104,7 @@ caseExactIgnoreSubstringsMatch(
 	void *assertedValue )
 {
 	int match = 0;
-	SubstringsAssertion *sub;
+	SubstringsAssertion *sub = NULL;
 	struct berval left;
 	int i;
 	ber_len_t inlen=0;
@@ -3530,7 +3530,6 @@ asn1_integer2str(ASN1_INTEGER *a)
 		 */
 		while (base < n) {
 			unsigned int carry;
-			unsigned int temp;
 
 			carry = 0;
 			for (i = base; i<n; i++ ) {
@@ -3602,7 +3601,6 @@ certificateExactConvert(
 	struct berval *serial;
 	struct berval *issuer_dn;
 	struct berval *bv_tmp;
-	int ret;
 
 	xcert = d2i_X509(NULL, &p, in->bv_len);
 	if ( !xcert ) {
@@ -4090,7 +4088,7 @@ utcTimeNormalize(
 		return LBER_ERROR_MEMORY;
 	}
 
-	sprintf( out->bv_val, "%02ld%02ld%02ld%02ld%02ld%02ldZ",
+	sprintf( out->bv_val, "%02d%02d%02d%02d%02d%02dZ",
 		parts[1], parts[2] + 1, parts[3] + 1,
 		parts[4], parts[5], parts[6] );
 	out->bv_len = 13;
@@ -4145,7 +4143,7 @@ generalizedTimeNormalize(
 		return LBER_ERROR_MEMORY;
 	}
 
-	sprintf( out->bv_val, "%02ld%02ld%02ld%02ld%02ld%02ld%02ldZ",
+	sprintf( out->bv_val, "%02d%02d%02d%02d%02d%02d%02dZ",
 		parts[0], parts[1], parts[2] + 1, parts[3] + 1,
 		parts[4], parts[5], parts[6] );
 	out->bv_len = 15;

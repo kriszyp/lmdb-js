@@ -219,7 +219,7 @@ set_filter (SET_GATHER gatherer,
 		*results = NULL;
 
 	stp = -1;
-	while (c = *filter++) {
+	while ((c = *filter++)) {
 		set = NULL;
 		switch (c) {
 		case ' ':
@@ -390,7 +390,7 @@ set_filter (SET_GATHER gatherer,
 _error:
 	if (IS_SET(set))
 		set_dispose(set);
-	while (set = SF_POP()) {
+	while ((set = SF_POP())) {
 		if (IS_SET(set))
 			set_dispose(set);
 	}

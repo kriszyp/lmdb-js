@@ -374,7 +374,7 @@ static int slap_get_listener_addresses(
 		hints.ai_family = AF_UNSPEC;
 		snprintf(serv, sizeof serv, "%d", port);
 
-		if (err = getaddrinfo(host, serv, &hints, &res)) {
+		if ( (err = getaddrinfo(host, serv, &hints, &res)) ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
 				   "slap_get_listener_addresses: getaddrinfo failed: %s\n",
@@ -502,7 +502,7 @@ static Listener * slap_open_listener(
 	Listener *li;
 	LDAPURLDesc *lud;
 	unsigned short port;
-	int err, addrlen;
+	int err, addrlen = 0;
 	struct sockaddr **sal, **psal;
 	int socktype = SOCK_STREAM;	/* default to COTS */
 
@@ -940,7 +940,7 @@ slapd_daemon_task(
 )
 {
 	int l;
-	time_t	last_idle_check;
+	time_t	last_idle_check = 0;
 	time( &starttime );
 
 	if ( global_idletimeout > 0 ) {
@@ -1162,7 +1162,7 @@ slapd_daemon_task(
 			slap_ssf_t ssf = 0;
 			char *authid = NULL;
 
-			char	*dnsname;
+			char	*dnsname = NULL;
 			char	*peeraddr;
 #ifdef LDAP_PF_LOCAL
 			char	peername[MAXPATHLEN + sizeof("PATH=")];

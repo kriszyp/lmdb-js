@@ -41,7 +41,6 @@ str2entry( char *s )
 {
 	int rc;
 	Entry		*e;
-	Attribute	**a = NULL;
 	char		*type;
 	struct berval value;
 	struct berval	*vals[2];

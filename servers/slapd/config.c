@@ -865,11 +865,11 @@ read_config( const char *fname )
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
 "%s: line %d: \"%s\" is reserved for monitoring slapd\n", 
-					SLAPD_MONITOR_DN, fname, lineno ));
+					fname, lineno, SLAPD_MONITOR_DN ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 "%s: line %d: \"%s\" is reserved for monitoring slapd\n",
-					SLAPD_MONITOR_DN, fname, lineno );
+					fname, lineno, SLAPD_MONITOR_DN );
 #endif
 				return( 1 );
 #endif /* SLAPD_MONITOR_DN */

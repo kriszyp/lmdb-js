@@ -48,7 +48,6 @@ monitor_subsys_conn_init(
 {
 	struct monitorinfo	*mi;
 	
-	char			buf[1024];
 	Entry			*e;
 	struct berval           *bv[2], val;
 

@@ -14,10 +14,14 @@
 #include <ac/signal.h>
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/unistd.h>
 
 #include "ldap_pvt.h"
 #include "lutil.h"
 #include "slap.h"
+
+/* I guess this should be declared in ldap_pvt.h */
+extern void * ldap_pvt_tls_sb_ctx( Sockbuf *sb );
 
 /* protected by connections_mutex */
 static ldap_pvt_thread_mutex_t connections_mutex;
@@ -1063,8 +1067,10 @@ int connection_read(ber_socket_t s)
 	if ( c->c_is_tls && c->c_needs_tls_accept ) {
 		rc = ldap_pvt_tls_accept( c->c_sb, NULL );
 		if ( rc < 0 ) {
+#if 0 /* required by next #if 0 */
 			struct timeval tv;
 			fd_set rfd;
+#endif
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "connection", LDAP_LEVEL_ERR,

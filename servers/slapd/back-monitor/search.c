@@ -61,6 +61,7 @@ monitor_send_children(
 	struct monitorinfo	*mi = (struct monitorinfo *) be->be_private;
 	Entry 			*e, *e_tmp;
 	struct monitorentrypriv *mp;
+	int			nentries;
 	int			rc;
 
 	mp = ( struct monitorentrypriv * )e_parent->e_private;
@@ -74,7 +75,7 @@ monitor_send_children(
 	}
 	monitor_cache_release( mi, e_parent );
 
-	for ( ; e != NULL; ) {
+	for ( nentries = *nentriesp; e != NULL; ) {
 		mp = ( struct monitorentrypriv * )e->e_private;
 
 		monitor_entry_update( mi, e );
@@ -83,14 +84,14 @@ monitor_send_children(
 		if ( rc == LDAP_COMPARE_TRUE ) {
 			send_search_entry( be, conn, op, e, 
 					attrs, attrsonly, NULL );
-			*nentriesp++;
+			nentries++;
 		}
 
 		if ( ( mp->mp_children || MONITOR_HAS_VOLATILE_CH( mp ) )
 				&& sub ) {
 			rc = monitor_send_children( be, conn, op, filter, 
 					attrs, attrsonly, 
-					e, sub, nentriesp );
+					e, sub, &nentries );
 			if ( rc ) {
 				return( rc );
 			}
