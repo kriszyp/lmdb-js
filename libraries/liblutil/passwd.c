@@ -459,9 +459,8 @@ static int chk_ssha1(
 	int rc;
 	unsigned char *orig_pass = NULL;
 
-	/* safety check */
-	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) <
-		sizeof(SHA1digest)+SALT_SIZE) {
+	/* safety check -- must have some salt */
+	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) <= sizeof(SHA1digest)) {
 		return LUTIL_PASSWD_ERR;
 	}
 
@@ -473,7 +472,8 @@ static int chk_ssha1(
 
 	rc = lutil_b64_pton(passwd->bv_val, orig_pass, passwd->bv_len);
 
-	if (rc < (int)(sizeof(SHA1digest)+SALT_SIZE)) {
+	/* safety check -- must have some salt */
+	if (rc <= (int)(sizeof(SHA1digest))) {
 		ber_memfree(orig_pass);
 		return LUTIL_PASSWD_ERR;
 	}
