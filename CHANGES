@@ -2,6 +2,7 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2
+	Add ldappasswd() tool
 
 Changes included in OpenLDAP 1.1.3
 	CVS Tag: OPENLDAP_REL_ENG_1_1_3
