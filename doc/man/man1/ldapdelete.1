@@ -111,6 +111,12 @@ Specify an alternate TCP port where the ldap server is listening.
 .TP
 .BI \-P \ 2\fR\||\|\fI3
 Specify the LDAP protocol version to use.
+.TP
+.BI \-r
+Do a recursive delete.  If the DN specified isn't a leaf, its
+children, and all their children are deleted down the tree.  No
+verification is done, so if you add this switch, ldapdelete will
+happily delete large portions of your tree.  Use with care.
 .SH EXAMPLE
 The following command:
 .LP
