@@ -11,16 +11,18 @@ OpenLDAP 2.0.8 Release Engineering
 	Fixed back-shell unbind response bug
 	Fixed back-ldbm oldSuperior bug (ITS#951)
 	Fixed libldap SASL GSSAPI interop bug (ITS#884)
-	Fixed libldap TLS/SASL crash bug (ITS#889)
-	Update libldap TLS seeding (ITS#948) 
-	Update libldap TLS certificate handling
-	Update libldap referral/reference handling (ITS#905)
+	Fixed libldap TLS/SASL crash bugs (ITS#889)
+	Updated libldap TLS seeding (ITS#948) 
+	Updated libldap TLS certificate handling
+	Updated libldap referral/reference handling (ITS#905)
 	Updated maildap
 	Updated ldaptcl
+	Updated client usage messages
 	Build Environment
 		Added MacOS support (ITS#943)
 		Update schema files (ITS#955)
 		Trim experimental options
+		Updated pthread join/detach test
 	Documentation
 		Update tool pages (ITS#938)
 
