@@ -416,6 +416,7 @@ try_read1msg(
 	Debug( LDAP_DEBUG_TRACE, "read1msg: msgid %d, all %d\n", msgid, all, 0 );
 #endif
 
+retry:
     if ( lc->lconn_ber == NULL ) {
 		lc->lconn_ber = ldap_alloc_ber_with_options(ld);
 
@@ -427,6 +428,7 @@ try_read1msg(
 	ber = lc->lconn_ber;
 	assert( LBER_VALID (ber) );
 
+retry2:
 	/* get the next message */
 	errno = 0;
 #ifdef LDAP_CONNECTIONLESS
@@ -475,12 +477,17 @@ try_read1msg(
 
 	/* if it's been abandoned, toss it */
 	if ( ldap_abandoned( ld, id ) ) {
-		ber_free( ber, 1 );
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, DETAIL1, "read1msg: abandoned\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "abandoned\n", 0, 0, 0);
 #endif
+retry_ber:
+		if ( ber_sockbuf_ctrl( sb, LBER_SB_OPT_DATA_READY, NULL ) ) {
+			ber_init2( ber, NULL, ld->ld_lberoptions );
+			goto retry2;
+		}
+		ber_free( ber, 1 );
 		return( -2 );	/* continue looking */
 	}
 
@@ -494,8 +501,7 @@ try_read1msg(
 		    "no request for response with msgid %ld (tossing)\n",
 		    (long) id, 0, 0 );
 #endif
-		ber_free( ber, 1 );
-		return( -2 );	/* continue looking */
+		goto retry_ber;
 	}
 #ifdef LDAP_CONNECTIONLESS
 	if (LDAP_IS_UDP(ld) && ld->ld_options.ldo_version == LDAP_VERSION2) {
@@ -843,7 +849,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 
 		new->lm_next = ld->ld_responses;
 		ld->ld_responses = new;
-		return( -2 );	/* continue looking */
+		goto leave;
 	}
 
 #ifdef NEW_LOGGING
@@ -886,6 +892,10 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 #endif	/* !LDAP_WORLD_P16 */
 	}
 
+leave:
+	if ( ber_sockbuf_ctrl( sb, LBER_SB_OPT_DATA_READY, NULL ) ) {
+		goto retry;
+	}
 	return( -2 );	/* continue looking */
 }
 
