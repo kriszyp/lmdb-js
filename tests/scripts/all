@@ -44,12 +44,18 @@ else
 	PROXYCACHE=$1; shift
 fi
 
+if test $# -eq 0 ; then
+	SYNCREPL=no
+else
+	SYNCREPL=$1; shift
+fi
+
 TB=`$SHTOOL echo -e "%B"`
 TN=`$SHTOOL echo -e "%b"`
 
 for CMD in $SRCDIR/scripts/test*; do
 	echo ">>>>> Starting ${TB}`basename $CMD`${TN} ..."
-	$CMD $SRCDIR $BACKEND $BACKENDTYPE $MONITOR $PROXYCACHE
+	$CMD $SRCDIR $BACKEND $BACKENDTYPE $MONITOR $PROXYCACHE $SYNCREPL
 	RC=$?
 	if test $RC -eq 0 ; then
 		echo ">>>>> $CMD completed ${TB}OK${TN}."

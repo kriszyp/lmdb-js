@@ -27,7 +27,7 @@ test-bdb:	FORCE
 	@if test "$(BUILD_BDB)" != "no"; then \
 		echo "Initiating LDAP tests for BDB..." ; \
 		$(MKDIR) test-db test-repl || true; \
-		$(srcdir)/scripts/all $(srcdir) bdb $(BUILD_BDB) $(BUILD_MONITOR) $(BUILD_CACHE) ; \
+		$(srcdir)/scripts/all $(srcdir) bdb $(BUILD_BDB) $(BUILD_MONITOR) $(BUILD_CACHE) bdb ; \
 	else \
 		echo "run configure with --enable-bdb" ; \
 	fi
@@ -40,7 +40,7 @@ test-hdb:	FORCE
 	@if test "$(BUILD_HDB)" != "no" ; then \
 		echo "Initiating LDAP tests for HDB..." ; \
 		$(MKDIR) test-db test-repl || true; \
-		$(srcdir)/scripts/all $(srcdir) hdb $(BUILD_HDB) $(BUILD_MONITOR) $(BUILD_CACHE) ; \
+		$(srcdir)/scripts/all $(srcdir) hdb $(BUILD_HDB) $(BUILD_MONITOR) $(BUILD_CACHE) hdb ; \
 	else \
 		echo "run configure with --enable-hdb" ; \
 	fi
@@ -50,10 +50,18 @@ test-ldbm:	FORCE
 	@-$(LN_S) $(srcdir)/data .
 	@-$(LN_S) $(top_srcdir)/servers/slapd/schema .
 	@-$(LN_S) ../libraries/liblunicode ucdata
-	@if test "$(BUILD_LDBM)" != "no"; then \
+	@if test "$(BUILD_LDBM)" != "no" ; then \
 		echo "Initiating LDAP tests for LDBM..." ; \
 		$(MKDIR) test-db test-repl || true; \
-		$(srcdir)/scripts/all $(srcdir) ldbm $(BUILD_LDBM) $(BUILD_MONITOR) $(BUILD_CACHE); \
+		if test "$(BUILD_BDB)" != "no"; then \
+			$(srcdir)/scripts/all $(srcdir) ldbm $(BUILD_LDBM) $(BUILD_MONITOR) $(BUILD_CACHE) bdb ; \
+		else \
+			if test "$(BUILD_HDB)" != "no"; then \
+				$(srcdir)/scripts/all $(srcdir) ldbm $(BUILD_LDBM) $(BUILD_MONITOR) $(BUILD_CACHE) hdb ; \
+			else \
+				$(srcdir)/scripts/all $(srcdir) ldbm $(BUILD_LDBM) $(BUILD_MONITOR) $(BUILD_CACHE) no ; \
+			fi ; \
+		fi ; \
 	else \
 		echo "run configure with --enable-ldbm" ; \
 	fi
