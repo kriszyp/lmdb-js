@@ -22,9 +22,9 @@
 
 #include "portable.h"
 
-#include <ac/stdlib.h>
-
 #include <stdio.h>
+#include <sys/stat.h>
+#include <ac/stdlib.h>
 
 #include "slurp.h"
 #include "globals.h"
