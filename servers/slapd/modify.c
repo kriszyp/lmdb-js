@@ -101,9 +101,7 @@ do_modify(
 	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn.bv_val, 0, 0 );
 #endif
 
-
 	/* collect modifications & save for later */
-
 	for ( tag = ber_first_element( op->o_ber, &len, &last );
 	    tag != LBER_DEFAULT;
 	    tag = ber_next_element( op->o_ber, &len, last ) )
@@ -117,7 +115,8 @@ do_modify(
 		    &tmp.sml_type, &tmp.sml_values )
 		    == LBER_ERROR )
 		{
-			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding modlist error" );
+			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR,
+				"decoding modlist error" );
 			rs->sr_err = SLAPD_DISCONNECT;
 			goto cleanup;
 		}
@@ -539,19 +538,20 @@ do_modify(
 #if defined( LDAP_SLAPI )
 	} /* modlist != NULL */
 
-	if ( pb != NULL && slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_MODIFY_FN, pb ) < 0 ) {
+	if ( pb != NULL && slapi_int_call_plugins( op->o_bd,
+		SLAPI_PLUGIN_POST_MODIFY_FN, pb ) < 0 )
+	{
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_modify: modify postoperation plugins "
-				"failed\n", 0, 0, 0 );
+		LDAP_LOG( OPERATION, INFO,
+			"do_modify: modify postoperation plugins failed\n", 0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_modify: modify postoperation plugins "
-				"failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE,
+			"do_modify: modify postoperation plugins failed.\n", 0, 0, 0);
 #endif
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
-
 	slap_graduate_commit_csn( op );
 
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
