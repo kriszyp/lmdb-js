@@ -238,11 +238,13 @@ static struct slap_schema_oc_map {
 			"MAY syncreplCookie )",
 		0, SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 		offsetof(struct slap_internal_schema, si_oc_syncConsumerSubentry) },
+#endif
+#ifdef LDAP_SYNC
 	{ "syncProviderSubentry", "( 1.3.6.1.4.1.4203.666.3.6 "
 			"NAME 'syncProviderSubentry' "
 			"DESC 'Persistent Info for SyncRepl Producer' "
 			"AUXILIARY "
-			"MAY syncreplCookie )",
+			"MAY contextCSN )",
 		0, SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 		offsetof(struct slap_internal_schema, si_oc_syncProviderSubentry) },
 #endif
@@ -433,6 +435,19 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_syncreplCookie) },
+#endif
+#ifdef LDAP_SYNC
+	{ "contextCSN", "( 1.3.6.1.4.1.4203.666.1.25 "
+			"NAME 'contextCSN' "
+			"DESC 'the largest committed CSN of a context' "
+			"EQUALITY octetStringMatch "
+			"ORDERING octetStringOrderingMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
+			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
+		NULL, SLAP_AT_HIDE,
+		NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_contextCSN) },
 #endif
 
 	/* root DSE attributes */
