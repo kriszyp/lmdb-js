@@ -188,7 +188,7 @@ charray_strcmp( const char **a1, const char **a2 )
 		}
 	}
 
-	if ( ! ( a1[0] && a2[0] ) ) {
+	if ( a1[0] || a2[0] ) {
 		return( !0 );
 	}
 
@@ -205,7 +205,7 @@ charray_strcasecmp( const char **a1, const char **a2 )
 		}
 	}
 
-	if ( ! ( a1[0] && a2[0] ) ) {
+	if ( a1[0] || a2[0] ) {
 		return( !0 );
 	}
 
