@@ -227,10 +227,38 @@ replog( Operation *op )
 				/* fall thru */
 			case LDAP_REQ_MODIFY:
 				for ( ml = op->orm_modlist; ml != NULL; ml = ml->sml_next ) {
-					int is_in, exclude;
+					int is_in, exclude, ocs = 0;
+ 
+					exclude = op->o_bd->be_replica[i]->ri_exclude;
+
+					if ( ml->sml_desc == slap_schema.si_ad_objectClass
+						&& ml->sml_bvalues ) {
+						AttributeName *an;
+						for ( an = op->o_bd->be_replica[i]->ri_attrs; an->an_name.bv_val; an++ ) {
+							if ( an->an_oc ) {
+								int i, match = 0;
+								ocs = 1;
+								for ( i=0; ml->sml_bvalues[i].bv_val; i++ ) {
+									if ( ml->sml_bvalues[i].bv_len == an->an_name.bv_len
+										&& !strcasecmp(ml->sml_bvalues[i].bv_val,
+											an->an_name.bv_val ) ) {
+										match = 1;
+										break;
+									}
+								}
+								match ^= exclude;
+								match ^= an->an_oc_exclude;
+								/* Found a match, stop looking */
+								if ( match ) {
+									ocs = 2;
+									break;
+								}
+							}
+						}
+						if ( ocs == 1 ) continue;
+					}
 
    					is_in = ad_inlist( ml->sml_desc, op->o_bd->be_replica[i]->ri_attrs );
-					exclude = op->o_bd->be_replica[i]->ri_exclude;
 					
 					/*
 					 * there might be a more clever way to do this test,
@@ -289,6 +317,8 @@ replog1(
 {
 	Modifications	*ml;
 	Attribute	*a;
+	AttributeName	*an;
+	int		domod = 1;
 
 	switch ( op->o_tag ) {
 	case LDAP_REQ_EXTENDED:
@@ -297,10 +327,10 @@ replog1(
 		/* fall thru */
 
 	case LDAP_REQ_MODIFY:
-		fprintf( fp, "changetype: modify\n" );
 		ml = first ? first : op->orm_modlist;
 		for ( ; ml != NULL; ml = ml->sml_next ) {
 			char *type;
+			int ocs = 0;
 			if ( ri && ri->ri_attrs ) {
 				int is_in = ad_inlist( ml->sml_desc, ri->ri_attrs );
 
@@ -309,6 +339,39 @@ replog1(
 				{
 					continue;
 				}
+				/* If this is objectClass, see if the value is included
+				 * in any subset, otherwise drop it.
+				 */
+				if ( ml->sml_desc == slap_schema.si_ad_objectClass
+					&& ml->sml_bvalues ) {
+					for ( an = ri->ri_attrs; an->an_name.bv_val; an++ ) {
+						if ( an->an_oc ) {
+							int i, match = 0;
+							ocs = 1;
+							for ( i=0; ml->sml_bvalues[i].bv_val; i++ ) {
+								if ( ml->sml_bvalues[i].bv_len == an->an_name.bv_len
+									&& !strcasecmp(ml->sml_bvalues[i].bv_val,
+										an->an_name.bv_val ) ) {
+									match = 1;
+									break;
+								}
+							}
+							match ^= ri->ri_exclude;
+							match ^= an->an_oc_exclude;
+							/* Found a match, stop looking */
+							if ( match ) {
+								ocs = 2;
+								break;
+							}
+						}
+					}
+				}
+				/* Have explicit objectClasses, but none matched - forget it */
+				if ( ocs == 1 ) continue;
+			}
+			if ( domod ) {
+				fprintf( fp, "changetype: modify\n" );
+				domod = 0;
 			}
 			type = ml->sml_desc->ad_cname.bv_val;
 			switch ( ml->sml_op ) {
@@ -328,7 +391,29 @@ replog1(
 				fprintf( fp, "increment: %s\n", type );
 				break;
 			}
-			if ( ml->sml_bvalues ) {
+			if ( ocs == 2 ) {
+				int i;
+				struct berval vals[2];
+				vals[1].bv_val = NULL;
+				vals[1].bv_len = 0;
+				for ( i=0; ml->sml_bvalues[i].bv_val; i++ ) {
+					int match = 0;
+					for ( an = ri->ri_attrs; an->an_name.bv_val; an++ ) {
+						if ( an->an_oc
+							&& ml->sml_bvalues[i].bv_len == an->an_name.bv_len
+							&& !strcasecmp(ml->sml_bvalues[i].bv_val,
+								an->an_name.bv_val ) ) {
+							match = 1 ^ an->an_oc_exclude;
+							break;
+						}
+					}
+					match ^= ri->ri_exclude;
+					if ( match ) {
+						vals[0] = an->an_name;
+						print_vals( fp, &ml->sml_desc->ad_cname, vals );
+					}
+				}
+			} else if ( ml->sml_bvalues ) {
 				print_vals( fp, &ml->sml_desc->ad_cname, ml->sml_bvalues );
 			}
 			fprintf( fp, "-\n" );
@@ -350,37 +435,27 @@ replog1(
 				 * objectClass attribute
 				 */
 				if ( a->a_desc == slap_schema.si_ad_objectClass ) {
-					int ocs = 0;
-					AttributeName *an;
+					int i, ocs = 0;
 					struct berval vals[2];
 					vals[1].bv_val = NULL;
 					vals[1].bv_len = 0;
-					for ( an = ri->ri_attrs; an->an_name.bv_val; an++ ) {
-						if ( an->an_oc ) {
-							int i;
-
-							for ( i=0; a->a_vals[i].bv_val; i++ ) {
-								if ( an->an_oc_exclude ) {
-									if ( a->a_vals[i].bv_len != an->an_name.bv_len
-										|| strcasecmp(a->a_vals[i].bv_val,
-											an->an_name.bv_val ) ) {
-										ocs = 1;
-									}
-
-								} else {
-									if ( a->a_vals[i].bv_len == an->an_name.bv_len
-										&& !strcasecmp(a->a_vals[i].bv_val,
-											an->an_name.bv_val ) ) {
-										ocs = 1;
-									}
-								}
-
-								if ( ocs )  {
-									vals[0] = an->an_name;
-									print_vals( fp, &a->a_desc->ad_cname, vals );
+					for ( i=0; a->a_vals[i].bv_val; i++ ) {
+						int match = 0;
+						for ( an = ri->ri_attrs; an->an_name.bv_val; an++ ) {
+							if ( an->an_oc ) {
+								ocs = 1;
+								if ( a->a_vals[i].bv_len == an->an_name.bv_len
+									&& !strcasecmp(a->a_vals[i].bv_val,
+										an->an_name.bv_val ) ) {
+									match = 1 ^ an->an_oc_exclude;
 									break;
 								}
 							}
+						}
+						match ^= ri->ri_exclude;
+						if ( ocs && match ) {
+							vals[0] = an->an_name;
+							print_vals( fp, &a->a_desc->ad_cname, vals );
 						}
 					}
 					if ( ocs ) continue;
