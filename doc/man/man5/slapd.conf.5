@@ -387,10 +387,13 @@ Specify the size in bytes of the in-memory cache associated
 with each open index file. If not supported by the underlying database 
 method, this option is ignored without comment.  The default is 100000 bytes.
 .TP
-.B dbcachenowsync
-Specify that database writes should not be immediately synchronized
-with in memory changes.  Enabling this option may improve performance
-at the expense of data security.
+.B dbnolocking
+Specify that no database locking should be performed.  
+Enabling this option may improve performance at the expense of data security.
+.B dbnosync
+Specify that on-disk database contents should not be immediately
+synchronized with in memory changes.  Enabling this option may improve
+performance at the expense of data security.
 .TP
 .B directory <directory>
 Specify the directory where the LDBM files containing the database and

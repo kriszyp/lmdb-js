@@ -49,7 +49,6 @@ id2entry_add( Backend *be, Entry *e )
 
 	/* store it */
 	flags = LDBM_REPLACE;
-	if ( li->li_dbcachewsync ) flags |= LDBM_SYNC;
 	rc = ldbm_cache_store( db, key, data, flags );
 
 	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );

@@ -169,9 +169,6 @@ bdb2i_back_db_init_internal(
 	/* default database cache size */
 	li->li_dbcachesize = DEFAULT_DBCACHE_SIZE;
 
-	/* default cache mode is sync on write */
-	li->li_dbcachewsync = 1;
-
 	/* default file creation mode */
 	li->li_mode = DEFAULT_MODE;
 

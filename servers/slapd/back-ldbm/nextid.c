@@ -77,8 +77,6 @@ next_id_write( Backend *be, ID id )
 	data.dsize = sizeof(ID);
 
 	flags = LDBM_REPLACE;
-	if( li->li_dbcachewsync ) flags |= LDBM_SYNC;
-
 	if ( ldbm_cache_store( db, key, data, flags ) != 0 ) {
 		id = NOID;
 	}

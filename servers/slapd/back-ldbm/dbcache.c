@@ -42,6 +42,18 @@ ldbm_cache_open(
 	sprintf( buf, "%s" LDAP_DIRSEP "%s%s",
 		li->li_directory, name, suffix );
 
+	if( li->li_dblocking ) {
+		flags |= LDBM_LOCKING;
+	} else {
+		flags |= LDBM_NOLOCKING;
+	}
+	
+	if( li->li_dbwritesync ) {
+		flags |= LDBM_SYNC;
+	} else {
+		flags |= LDBM_NOSYNC;
+	}
+	
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_cache_open( \"%s\", %d, %o )\n", buf,
 	    flags, li->li_mode );
 
@@ -134,6 +146,10 @@ void
 ldbm_cache_close( Backend *be, DBCache *db )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+
+	if( li->li_dbwritesync ) {
+		ldbm_sync( db->dbc_db );
+	}
 
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	if ( --db->dbc_refcnt == 0 ) {

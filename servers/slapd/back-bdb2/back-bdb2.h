@@ -192,11 +192,9 @@ struct ldbminfo {
 	struct cache		li_cache;
 	Avlnode			*li_attrs;
 	int			li_dbcachesize;
-	int			li_dbcachewsync;
 
 	/*  a list of all files of the database  */
 	BDB2_TXN_HEAD		li_txn_head;
-
 };
 
 

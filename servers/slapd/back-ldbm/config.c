@@ -89,9 +89,15 @@ ldbm_back_db_config(
 		}
 		li->li_dbcachesize = atoi( argv[1] );
 
-	/* no write sync */
-	} else if ( strcasecmp( argv[0], "dbcachenowsync" ) == 0 ) {
-		li->li_dbcachewsync = 0;
+	/* no locking (not safe) */
+	} else if ( strcasecmp( argv[0], "dbnolocking" ) == 0 ) {
+		li->li_dblocking = 0;
+
+	/* no write sync (not safe) */
+	} else if ( ( strcasecmp( argv[0], "dbnosync" ) == 0 )
+		|| ( strcasecmp( argv[0], "dbcachenowsync" ) == 0 ) )
+	{
+		li->li_dbwritesync = 0;
 
 	/* anything else */
 	} else {

@@ -138,8 +138,9 @@ struct ldbminfo {
 	char			*li_directory;
 	Cache		li_cache;
 	Avlnode			*li_attrs;
+	int			li_dblocking;	/* lock databases */
+	int			li_dbwritesync;	/* write sync */
 	int			li_dbcachesize;
-	int			li_dbcachewsync;
 	DBCache		li_dbcache[MAXDBCACHE];
 	ldap_pvt_thread_mutex_t		li_dbcache_mutex;
 	ldap_pvt_thread_cond_t		li_dbcache_cv;

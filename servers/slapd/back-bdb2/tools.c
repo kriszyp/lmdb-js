@@ -42,8 +42,6 @@ int bdb2_tool_entry_open(
 		flags = LDBM_READER;
 	}
 
-	li->li_dbcachewsync = 0;
-
 	if ( (id2entry = bdb2i_cache_open( be, "id2entry", BDB2_SUFFIX, flags ))
 	    == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "Could not open/create id2entry" BDB2_SUFFIX "\n",
@@ -63,7 +61,6 @@ int bdb2_tool_entry_close(
 	assert( id2entry != NULL );
 
 	bdb2i_cache_close( be, id2entry );
-	li->li_dbcachewsync = 1;
 	id2entry = NULL;
 
 	return 0;

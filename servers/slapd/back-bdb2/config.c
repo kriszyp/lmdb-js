@@ -163,10 +163,6 @@ bdb2i_back_db_config_internal(
 		if ( li->li_dbcachesize < DEFAULT_DBCACHE_SIZE )
 			li->li_dbcachesize = DEFAULT_DBCACHE_SIZE;
 
-	/* no write sync */
-	} else if ( strcasecmp( argv[0], "dbcachenowsync" ) == 0 ) {
-		li->li_dbcachewsync = 0;
-
 	/* anything else */
 	} else {
 		fprintf( stderr,

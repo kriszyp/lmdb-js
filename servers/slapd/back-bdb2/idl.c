@@ -214,7 +214,6 @@ idl_store(
 #endif
 
 	flags = LDBM_REPLACE;
-	if( li->li_dbcachewsync ) flags |= LDBM_SYNC;
 	rc = bdb2i_cache_store( db, key, data, flags );
 
 	/* Debug( LDAP_DEBUG_TRACE, "<= idl_store %d\n", rc, 0, 0 ); */

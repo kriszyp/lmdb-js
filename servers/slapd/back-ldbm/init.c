@@ -130,8 +130,11 @@ ldbm_back_db_init(
 	/* default database cache size */
 	li->li_dbcachesize = DEFAULT_DBCACHE_SIZE;
 
-	/* default cache mode is sync on write */
-	li->li_dbcachewsync = 1;
+	/* default db mode is with locking */ 
+	li->li_dblocking = 1;
+
+	/* default db mode is with write synchronization */ 
+	li->li_dbwritesync = 1;
 
 	/* default file creation mode */
 	li->li_mode = DEFAULT_MODE;

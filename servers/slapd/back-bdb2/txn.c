@@ -481,8 +481,6 @@ bdb2i_put_nextid( BackendDB *be, ID id )
 	data.size = sizeof( buf );
 
 	flags = LDBM_REPLACE;
-	if ( li->li_dbcachewsync ) flags |= LDBM_SYNC;
-
 	if (( rc = bdb2i_db_store( head->nextidFile, key, data, flags )) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "next_id_write(%ld): store failed (%d)\n",
 			id, rc, 0 );
@@ -522,7 +520,7 @@ bdb2i_db_store( LDBM ldbm, Datum key, Datum data, int flags )
 {
 	int     rc;
 
-	rc = (*ldbm->put)( ldbm, txnid, &key, &data, flags & ~LDBM_SYNC );
+	rc = (*ldbm->put)( ldbm, txnid, &key, &data, flags );
 	rc = (-1 ) * rc;
 
 	if ( txnid != NULL ) {

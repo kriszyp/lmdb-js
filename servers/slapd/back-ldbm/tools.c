@@ -42,7 +42,7 @@ int ldbm_tool_entry_open(
 		flags = LDBM_READER;
 	}
 
-	li->li_dbcachewsync = 0;
+	li->li_dbwritesync = 0;
 
 	if ( (id2entry = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, flags ))
 	    == NULL ) {
@@ -63,7 +63,7 @@ int ldbm_tool_entry_close(
 	assert( id2entry != NULL );
 
 	ldbm_cache_close( be, id2entry );
-	li->li_dbcachewsync = 1;
+	li->li_dbwritesync = 1;
 	id2entry = NULL;
 
 	return 0;

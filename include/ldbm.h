@@ -15,11 +15,11 @@
 
 #include <ldap_cdefs.h>
 
-#ifdef LDBM_USE_DBBTREE
+#if defined( LDBM_USE_DBBTREE ) || defined( LDBM_USE_DBHASH )
 
 /*****************************************************************
  *                                                               *
- * use berkeley db btree package                                 *
+ * use berkeley db btree or hash package                         *
  *                                                               *
  *****************************************************************/
 
@@ -51,8 +51,6 @@ typedef DBT	Datum;
 typedef DB	*LDBM;
 
 
-#define DB_TYPE		DB_BTREE
-
 /* for ldbm_open */
 #ifdef HAVE_BERKELEY_DB2
 typedef DBC	LDBMCursor;
@@ -77,76 +75,24 @@ typedef int LDBMCursor;
 
 LDAP_END_DECL
 
-#  define LDBM_FAST	0
-
-#define LDBM_SUFFIX	".dbb"
-#define LDBM_ORDERED	1
-
-/* for ldbm_insert */
-#define LDBM_INSERT	R_NOOVERWRITE
-#define LDBM_REPLACE	0
-#define LDBM_SYNC	0x80000000
-
-#elif defined( LDBM_USE_DBHASH )
-
-/*****************************************************************
- *                                                               *
- * use berkeley db hash package                                  *
- *                                                               *
- *****************************************************************/
-
-#include <sys/types.h>
-#include <limits.h>
-#include <fcntl.h>
-
-#ifdef HAVE_DB_185_H
-#	include <db_185.h>
-#else
-#	ifdef HAVE_DB1_DB_H
-#		include <db1/db.h>
-#	else
-#		include <db.h>
-#	endif
-#	ifdef LDBM_USE_DB2
-#		define R_NOOVERWRITE DB_NOOVERWRITE
-#		define DEFAULT_DB_PAGE_SIZE 1024
-#	endif
-#endif
-
-LDAP_BEGIN_DECL
-
-typedef DBT	Datum;
-#define dsize	size
-#define dptr	data
-
-typedef DB	*LDBM;
-
-#define DB_TYPE		DB_HASH
-
 /* for ldbm_open */
-#ifdef LDBM_USE_DB2
-typedef DBC	LDBMCursor;
-#	define LDBM_READER	DB_RDONLY
-#	define LDBM_WRITER	0x00000      /* hopefully */
-#	define LDBM_WRCREAT	(DB_NOMMAP|DB_CREATE|DB_THREAD)
-#	define LDBM_NEWDB	(DB_TRUNCATE|DB_CREATE|DB_THREAD)
-#else
-typedef int LDBMCursor;
-#	define LDBM_READER	O_RDONLY
-#	define LDBM_WRITER	O_RDWR
-#	define LDBM_WRCREAT	(O_RDWR|O_CREAT)
-#	define LDBM_NEWDB	(O_RDWR|O_TRUNC|O_CREAT)
-#	define LDBM_FAST	0
-#endif
-
-LDAP_END_DECL
-
-#define LDBM_SUFFIX	".dbh"
+#define LDBM_NOSYNC	0
+#define LDBM_SYNC	0
+#define LDBM_LOCKING	0
+#define LDBM_NOLOCKING	0
 
 /* for ldbm_insert */
 #define LDBM_INSERT	R_NOOVERWRITE
 #define LDBM_REPLACE	0
-#define LDBM_SYNC	0x80000000
+
+#ifdef LDBM_USE_DBBTREE
+#	define LDBM_ORDERED	1
+#	define LDBM_SUFFIX	".dbb"
+#	define DB_TYPE		DB_BTREE
+#else
+#	define LDBM_SUFFIX	".dbh"
+#	define DB_TYPE		DB_HASH
+#endif
 
 #elif defined( HAVE_GDBM )
 
@@ -173,14 +119,29 @@ LDAP_END_DECL
 #define LDBM_WRITER	GDBM_WRITER
 #define LDBM_WRCREAT	GDBM_WRCREAT
 #define LDBM_NEWDB	GDBM_NEWDB
-#define LDBM_FAST	GDBM_FAST
+
+#ifdef GDBM_FAST
+#define LDBM_NOSYNC	GDBM_FAST
+#else
+#define LDBM_NOSYNC	0
+#endif
+
+#ifdef GDBM_SYNC
+#define LDBM_SYNC	GDBM_SYNC
+#else
+#define LDBM_SYNC	0
+#endif
+
+#define LDBM_LOCKING	0
+#ifdef GDBM_NOLOCK
+#define LDBM_NOLOCKING	GDBM_NOLOCK
+#endif
 
 #define LDBM_SUFFIX	".gdbm"
 
 /* for ldbm_insert */
 #define LDBM_INSERT	GDBM_INSERT
 #define LDBM_REPLACE	GDBM_REPLACE
-#define LDBM_SYNC	0x80000000
 
 #elif defined( HAVE_MDBM )
 
@@ -209,15 +170,17 @@ LDAP_END_DECL
 #define LDBM_WRITER	O_RDWR
 #define LDBM_WRCREAT	(O_RDWR|O_CREAT)
 #define LDBM_NEWDB	(O_RDWR|O_TRUNC|O_CREAT)
-#define LDBM_FAST	0
+
+#define LDBM_SYNC	0
+#define LDBM_NOSYNC	0
+#define LDBM_LOCKING	0
+#define LDBM_NOLOCKING	0
 
 #define LDBM_SUFFIX	".mdbm"
 
 /* for ldbm_insert */
 #define LDBM_INSERT	MDBM_INSERT
 #define LDBM_REPLACE	MDBM_REPLACE
-#define LDBM_SYNC	0x80000000
-
 
 #elif defined( HAVE_NDBM )
 
@@ -246,14 +209,17 @@ LDAP_END_DECL
 #define LDBM_WRITER	O_WRONLY
 #define LDBM_WRCREAT	(O_RDWR|O_CREAT)
 #define LDBM_NEWDB	(O_RDWR|O_TRUNC|O_CREAT)
-#define LDBM_FAST	0
+
+#define LDBM_NOSYNC	0
+#define LDBM_SYNC	0
+#define LDBM_NOLOCK	0
+#define LDBM_SYNC	0
 
 #define LDBM_SUFFIX	".ndbm"
 
 /* for ldbm_insert */
 #define LDBM_INSERT	DBM_INSERT
 #define LDBM_REPLACE	DBM_REPLACE
-#define LDBM_SYNC	0
 
 #endif
 
