@@ -148,9 +148,9 @@ LDAP_BEGIN_DECL
 #define OID_CHAR(c)	( OID_LEADCHAR(c) || OID_SEPARATOR(c) )
 
 #define ATTR_LEADCHAR(c)	( DESC_LEADCHAR(c) || OID_LEADCHAR(c) )
-#define ATTR_CHAR(c)	( DESC_CHAR((c)) || (c) == '.' )
+#define ATTR_CHAR(c)	( DESC_CHAR((c)) || OID_SEPARATOR(c) )
 
-#define AD_LEADCHAR(c)	( ATTR_CHAR(c) )
+#define AD_LEADCHAR(c)	( ATTR_LEADCHAR(c) )
 #define AD_CHAR(c)		( ATTR_CHAR(c) || (c) == ';' )
 
 #define SLAP_NUMERIC(c) ( ASCII_DIGIT(c) || ASCII_SPACE(c) )

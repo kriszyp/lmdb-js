@@ -46,7 +46,7 @@ static int ad_keystring(
 {
 	ber_len_t i;
 
-	if( !AD_CHAR( bv->bv_val[0] ) ) {
+	if( !AD_LEADCHAR( bv->bv_val[0] ) ) {
 		return 1;
 	}
 
@@ -138,13 +138,13 @@ int slap_bv2ad(
 	assert( *ad == NULL ); /* temporary */
 
 	if( bv == NULL || BER_BVISNULL( bv ) || BER_BVISEMPTY( bv ) ) {
-		*text = "empty attribute description";
+		*text = "empty AttributeDescription";
 		return rtn;
 	}
 
 	/* make sure description is IA5 */
 	if( ad_keystring( bv ) ) {
-		*text = "attribute description contains inappropriate characters";
+		*text = "AttributeDescription contains inappropriate characters";
 		return rtn;
 	}
 
