@@ -29,6 +29,40 @@ ava_free(
 	}
 }
 
+int
+get_ava(
+    BerElement	*ber,
+    AttributeAssertion	**ava
+)
+{
+	int rc;
+	char *text;
+	struct berval type, *value;
+	AttributeAssertion *aa;
+
+	rc = ber_scanf( ber, "{oO}", &type, &value );
+
+	if( rc == LBER_ERROR ) {
+		Debug( LDAP_DEBUG_ANY, "  get_ava ber_scanf\n", 0, 0, 0 );
+		return SLAPD_DISCONNECT;
+	}
+
+	aa = ch_malloc( sizeof( AttributeAssertion ) );
+
+	rc = slap_bv2ad( &type, &aa->aa_desc, &text );
+
+	if( rc != LDAP_SUCCESS ) {
+		ch_free( type.bv_val );
+		ber_bvfree( value );
+		ch_free( aa );
+		return rc;
+	}
+
+	aa->aa_value = value;
+
+	return LDAP_SUCCESS;
+}
+
 #else
 
 void

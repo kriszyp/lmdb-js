@@ -137,7 +137,7 @@ LIBSLAPD_F (Attribute *) attrs_dup LDAP_P(( Attribute *a ));
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F (int) get_ava LDAP_P((
 	BerElement *ber,
-	AttributeAssertion *ava ));
+	AttributeAssertion **ava ));
 LIBSLAPD_F (void) ava_free LDAP_P((
 	AttributeAssertion *ava,
 	int freeit ));

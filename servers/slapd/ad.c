@@ -88,18 +88,18 @@ int slap_bv2ad(
 	AttributeDescription desc;
 	char **tokens;
 
-	assert( *ad != NULL );
+	assert( ad != NULL );
 	assert( *text != NULL );
 
 	if( bv == NULL || bv->bv_len == 0 ) {
 		*text = "empty attribute description";
-		return LDAP_UNDEFINED_TYPE;
+		return rtn;
 	}
 
 	/* make sure description is IA5 */
 	if( ad_keystring( bv ) ) {
 		*text = "attribute description contains inappropriate characters";
-		return LDAP_UNDEFINED_TYPE;
+		return rtn;
 	}
 
 	tokens = str2charray( bv->bv_val, ";");
@@ -161,13 +161,12 @@ int slap_bv2ad(
 		desc.ad_cname->bv_len += sizeof("binary");
 	}
 	if( desc.ad_lang != NULL ) {
-		desc.ad_cname->bv_len += strlen( desc.ad_lang );
+		desc.ad_cname->bv_len += 1 + strlen( desc.ad_lang );
 	}
 
-	desc.ad_cname = ch_malloc( desc.ad_cname->bv_len + 1 );
+	desc.ad_cname->bv_val = ch_malloc( desc.ad_cname->bv_len + 1 );
 
 	strcpy( desc.ad_cname->bv_val, desc.ad_type->sat_cname );
-	strcat( desc.ad_cname->bv_val, ";binary" );
 	if( desc.ad_flags & SLAP_DESC_BINARY ) {
 		strcat( desc.ad_cname->bv_val, ";binary" );
 	}

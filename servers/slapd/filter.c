@@ -91,19 +91,34 @@ get_filter(
 	f->f_choice = tag; 
 
 	switch ( f->f_choice ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
-#else
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "EQUALITY\n", 0, 0, 0 );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
 			*text = "error decoding filter";
 			break;
 		}
-		*fstr = ch_malloc(4 + strlen( f->f_avtype ) +
-		    f->f_avvalue.bv_len);
+
+		*fstr = ch_malloc( sizeof("(=)")
+			+ f->f_av_desc->ad_cname->bv_len
+			+ f->f_av_value->bv_len );
+
+		sprintf( *fstr, "(%s=%s)",
+			f->f_av_desc->ad_cname->bv_val,
+		    f->f_av_value->bv_val );
+
+#else
+		if ( (err = get_ava( ber, f->f_ava )) != LDAP_SUCCESS ) {
+			*text = "error decoding filter";
+			break;
+		}
+
+		*fstr = ch_malloc( sizeof("(=)")
+			+ strlen( f->f_avtype )
+			+ f->f_avvalue.bv_len);
 		sprintf( *fstr, "(%s=%s)", f->f_avtype,
 		    f->f_avvalue.bv_val );
+#endif
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
@@ -113,54 +128,131 @@ get_filter(
 
 	case LDAP_FILTER_GE:
 		Debug( LDAP_DEBUG_FILTER, "GE\n", 0, 0, 0 );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
 			*text = "decoding filter error";
 			break;
 		}
-		*fstr = ch_malloc(5 + strlen( f->f_avtype ) +
-		    f->f_avvalue.bv_len);
+
+		*fstr = ch_malloc( sizeof("(>=)")
+			+ f->f_av_desc->ad_cname->bv_len
+			+ f->f_av_value->bv_len );
+
+		sprintf( *fstr, "(%s>=%s)",
+			f->f_av_desc->ad_cname->bv_val,
+		    f->f_av_value->bv_val );
+
+#else
+		if ( (err = get_ava( ber, f->f_ava )) != LDAP_SUCCESS ) {
+			*text = "decoding filter error";
+			break;
+		}
+
+		*fstr = ch_malloc( sizeof("(>=)"
+			+ strlen( f->f_avtype )
+			+ f->f_avvalue.bv_len);
 		sprintf( *fstr, "(%s>=%s)", f->f_avtype,
 		    f->f_avvalue.bv_val );
+#endif
 		break;
 
 	case LDAP_FILTER_LE:
 		Debug( LDAP_DEBUG_FILTER, "LE\n", 0, 0, 0 );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
+			*text = "decoding filter error";
+			break;
+		}
+
+		*fstr = ch_malloc( sizeof("(<=)")
+			+ f->f_av_desc->ad_cname->bv_len
+			+ f->f_av_value->bv_len );
+
+		sprintf( *fstr, "(%s<=%s)",
+			f->f_av_desc->ad_cname->bv_val,
+		    f->f_av_value->bv_val );
+
+#else
+		if ( (err = get_ava( ber, f->f_ava )) != LDAP_SUCCESS ) {
 			*text = "error decoding filter";
 			break;
 		}
-		*fstr = ch_malloc(5 + strlen( f->f_avtype ) +
-		    f->f_avvalue.bv_len);
+		*fstr = ch_malloc( sizeof("(<=)"
+			+ strlen( f->f_avtype )
+			+ f->f_avvalue.bv_len);
 		sprintf( *fstr, "(%s<=%s)", f->f_avtype,
 		    f->f_avvalue.bv_val );
+#endif
 		break;
 
-	case LDAP_FILTER_PRESENT:
+	case LDAP_FILTER_PRESENT: {
+		struct berval type;
+
 		Debug( LDAP_DEBUG_FILTER, "PRESENT\n", 0, 0, 0 );
-		if ( ber_scanf( ber, "a", &f->f_type ) == LBER_ERROR ) {
+
+		if ( ber_scanf( ber, "o", &type ) == LBER_ERROR ) {
 			err = SLAPD_DISCONNECT;
 			*text = "error decoding filter";
 			break;
 		}
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		{
+			char *text;
+			int rc;
+
+			err = slap_bv2ad( &type, &f->f_desc, &text );
+
+			if( err != LDAP_SUCCESS ) {
+				ch_free( type.bv_val );
+				break;
+			}
+
+			ch_free( type.bv_val );
+		}
+
+		*fstr = ch_malloc( sizeof("(=*)")
+			+ f->f_desc->ad_cname->bv_len );
+		sprintf( *fstr, "(%s=*)",
+			f->f_desc->ad_cname->bv_val );
+#else
+		f->f_type = type.bv_val;
 		err = LDAP_SUCCESS;
 		attr_normalize( f->f_type );
-		*fstr = ch_malloc( 5 + strlen( f->f_type ) );
+		*fstr = ch_malloc( sizeof("(=*)")
+			+ strlen( f->f_type ) );
 		sprintf( *fstr, "(%s=*)", f->f_type );
-		break;
+#endif
+		} break;
 
 	case LDAP_FILTER_APPROX:
 		Debug( LDAP_DEBUG_FILTER, "APPROX\n", 0, 0, 0 );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
+			*text = "decoding filter error";
+			break;
+		}
+
+		*fstr = ch_malloc( sizeof("(~=)")
+			+ f->f_av_desc->ad_cname->bv_len
+			+ f->f_av_value->bv_len );
+
+		sprintf( *fstr, "(%s~=%s)",
+			f->f_av_desc->ad_cname->bv_val,
+		    f->f_av_value->bv_val );
+
+#else
+		if ( (err = get_ava( ber, f->f_ava )) != LDAP_SUCCESS ) {
 			*text = "error decoding filter";
 			break;
 		}
-		*fstr = ch_malloc(5 + strlen( f->f_avtype ) +
-		    f->f_avvalue.bv_len);
+		*fstr = ch_malloc( sizeof("(~=)"
+			+ strlen( f->f_avtype )
+			+ f->f_avvalue.bv_len);
 		sprintf( *fstr, "(%s~=%s)", f->f_avtype,
 		    f->f_avvalue.bv_val );
-		break;
 #endif
+		break;
 
 	case LDAP_FILTER_AND:
 		Debug( LDAP_DEBUG_FILTER, "AND\n", 0, 0, 0 );
@@ -208,7 +300,7 @@ get_filter(
 		break;
 
 	default:
-		Debug( LDAP_DEBUG_ANY, "unknown filter type %lu\n",
+		Debug( LDAP_DEBUG_ANY, "get_filter: unknown filter type=%lu\n",
 		       f->f_choice, 0, 0 );
 		err = LDAP_PROTOCOL_ERROR;
 		*text = "unknown filter type";
@@ -264,8 +356,6 @@ get_filter_list( Connection *conn, BerElement *ber, Filter **f, char **fstr, cha
 	return( LDAP_SUCCESS );
 }
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-
 static int
 get_substring_filter(
     Connection	*conn,
@@ -280,19 +370,21 @@ get_substring_filter(
 	ber_tag_t	rc;
 	struct berval *val;
 	char		*last;
+	char		*type;
 	int		syntax;
 
 	*text = "error decoding filter";
 
 	Debug( LDAP_DEBUG_FILTER, "begin get_substring_filter\n", 0, 0, 0 );
 
-	if ( ber_scanf( ber, "{a" /*}*/, &f->f_sub_type ) == LBER_ERROR ) {
+	if ( ber_scanf( ber, "{a" /*}*/, &type ) == LBER_ERROR ) {
 		return SLAPD_DISCONNECT;
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	/* not yet implemented */
 #else
+	f->f_sub_type = type;
 	attr_normalize( f->f_sub_type );
 
 	/* should get real syntax and see if we have a substring matching rule */
@@ -303,10 +395,14 @@ get_substring_filter(
 	f->f_sub_any = NULL;
 	f->f_sub_final = NULL;
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 	if( fstr ) {
 		*fstr = ch_malloc( strlen( f->f_sub_type ) + 3 );
 		sprintf( *fstr, "(%s=" /*)*/, f->f_sub_type );
 	}
+#endif
 
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) )
@@ -382,7 +478,8 @@ get_substring_filter(
 			break;
 
 		default:
-			Debug( LDAP_DEBUG_FILTER, "  unknown type=%ld\n",
+			Debug( LDAP_DEBUG_FILTER,
+				"  unknown substring type=%ld\n",
 				(long) tag, 0, 0 );
 
 			ber_bvfree( val );
@@ -396,7 +493,11 @@ return_error:
 				*fstr = NULL;
 			}
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			/* not yet implemented */
+#else
 			ch_free( f->f_sub_type );
+#endif
 			ber_bvfree( f->f_sub_initial );
 			ber_bvecfree( f->f_sub_any );
 			ber_bvfree( f->f_sub_final );
@@ -415,8 +516,6 @@ return_error:
 	Debug( LDAP_DEBUG_FILTER, "end get_substring_filter\n", 0, 0, 0 );
 	return( LDAP_SUCCESS );
 }
-
-#endif /* not compat */
 
 void
 filter_free( Filter *f )
@@ -486,7 +585,7 @@ filter_free( Filter *f )
 		break;
 
 	default:
-		Debug( LDAP_DEBUG_ANY, "unknown filter type %lu\n",
+		Debug( LDAP_DEBUG_ANY, "filter_free: unknown filter type=%lu\n",
 		       f->f_choice, 0, 0 );
 		break;
 	}
@@ -510,8 +609,8 @@ filter_print( Filter *f )
 	case LDAP_FILTER_EQUALITY:
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		fprintf( stderr, "(%s=%s)",
-			f->f_ava->aa_desc->ad_cname,
-		    f->f_ava->aa_value->bv_val );
+			f->f_av_desc->ad_cname->bv_val,
+		    f->f_av_value->bv_val );
 #else
 		fprintf( stderr, "(%s=%s)", f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
@@ -521,8 +620,8 @@ filter_print( Filter *f )
 	case LDAP_FILTER_GE:
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		fprintf( stderr, "(%s>=%s)",
-			f->f_ava->aa_desc->ad_cname,
-		    f->f_ava->aa_value->bv_val );
+			f->f_av_desc->ad_cname->bv_val,
+		    f->f_av_value->bv_val );
 #else
 		fprintf( stderr, "(%s>=%s)", f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
@@ -532,7 +631,7 @@ filter_print( Filter *f )
 	case LDAP_FILTER_LE:
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		fprintf( stderr, "(%s<=%s)",
-			f->f_ava->aa_desc->ad_cname,
+			f->f_ava->aa_desc->ad_cname->bv_val,
 		    f->f_ava->aa_value->bv_val );
 #else
 		fprintf( stderr, "(%s<=%s)", f->f_ava.ava_type,
@@ -543,7 +642,7 @@ filter_print( Filter *f )
 	case LDAP_FILTER_APPROX:
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		fprintf( stderr, "(%s~=%s)",
-			f->f_ava->aa_desc->ad_cname,
+			f->f_ava->aa_desc->ad_cname->bv_val,
 		    f->f_ava->aa_value->bv_val );
 #else
 		fprintf( stderr, "(%s~=%s)", f->f_ava.ava_type,
@@ -553,7 +652,8 @@ filter_print( Filter *f )
 
 	case LDAP_FILTER_SUBSTRINGS:
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		fprintf( stderr, "(%s=" /*)*/, f->f_sub_desc->ad_cname );
+		fprintf( stderr, "(%s=" /*)*/,
+			f->f_sub_desc->ad_cname->bv_val );
 #else
 		fprintf( stderr, "(%s=" /*)*/, f->f_sub_type );
 #endif
@@ -574,7 +674,7 @@ filter_print( Filter *f )
 	case LDAP_FILTER_PRESENT:
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		fprintf( stderr, "(%s=*)",
-			f->f_desc->ad_cname );
+			f->f_desc->ad_cname->bv_val );
 #else
 		fprintf( stderr, "(%s=*)", f->f_type );
 #endif
