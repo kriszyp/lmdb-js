@@ -28,8 +28,13 @@ bdb_dn2id_add(
 	char		*buf;
 	struct berval	ptr, pdn;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "db2id", LDAP_LEVEL_ARGS, "bdb_dn2id_add( \"%s\", 0x%08lx )\n",
+		e->e_ndn, (long) e->e_id ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_add( \"%s\", 0x%08lx )\n",
 		e->e_ndn, (long) e->e_id, 0 );
+#endif
 	assert( e->e_id != NOID );
 
 	DBTzero( &key );
@@ -49,8 +54,14 @@ bdb_dn2id_add(
 	/* store it -- don't override */
 	rc = db->put( db, txn, &key, &data, DB_NOOVERWRITE );
 	if( rc != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "db2id", LDAP_LEVEL_ERR, 
+			"bdb_dn2id_add: put failed: %s %d\n",
+			db_strerror(rc), rc ));
+#else
 		Debug( LDAP_DEBUG_ANY, "=> bdb_dn2id_add: put failed: %s %d\n",
 			db_strerror(rc), rc, 0 );
+#endif
 		goto done;
 	}
 
@@ -58,9 +69,15 @@ bdb_dn2id_add(
 		buf[0] = DN_SUBTREE_PREFIX;
 		rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
 		if( rc != 0 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "db2id", LDAP_LEVEL_ERR, 
+			"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
+			ptr.bv_val, rc ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 			"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
 			ptr.bv_val, rc, 0 );
+#endif
 			goto done;
 		}
 		
@@ -74,9 +91,15 @@ bdb_dn2id_add(
 		rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
 
 		if( rc != 0 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "db2id", LDAP_LEVEL_ERR, 
+				"=> bdb_dn2id_add: parent (%s) insert failed: %d\n",
+				ptr.bv_val, rc ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"=> bdb_dn2id_add: parent (%s) insert failed: %d\n",
 					ptr.bv_val, rc, 0 );
+#endif
 			goto done;
 		}
 	}
@@ -87,9 +110,15 @@ bdb_dn2id_add(
 		rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
 
 		if( rc != 0 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "db2id", LDAP_LEVEL_ERR, 
+				"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
+				ptr.bv_val, rc ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
 					ptr.bv_val, rc, 0 );
+#endif
 			break;
 		}
 		dnParent( &ptr, &pdn );
@@ -101,7 +130,12 @@ bdb_dn2id_add(
 
 done:
 	ch_free( buf );
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "db2id", LDAP_LEVEL_RESULTS, 
+		"<= bdb_dn2id_add: %d\n", rc ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_add: %d\n", rc, 0, 0 );
+#endif
 	return rc;
 }
 
@@ -119,8 +153,14 @@ bdb_dn2id_delete(
 	char		*buf;
 	struct berval	pdn, ptr;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "db2id", LDAP_LEVEL_ARGS, 
+		"=> bdb_dn2id_delete ( \"%s\", 0x08lx )\n", 
+		e->e_ndn, e->e_id ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_delete( \"%s\", 0x%08lx )\n",
 		e->e_ndn, e->e_id, 0 );
+#endif
 
 	DBTzero( &key );
 	key.size = e->e_nname.bv_len + 2;
@@ -136,8 +176,14 @@ bdb_dn2id_delete(
 	/* delete it */
 	rc = db->del( db, txn, &key, 0 );
 	if( rc != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "db2id", LDAP_LEVEL_ERR, 
+			"=> bdb_dn2id_delete: delete failed: %s %d\n", 
+			db_strerror(rc), rc ));
+#else
 		Debug( LDAP_DEBUG_ANY, "=> bdb_dn2id_delete: delete failed: %s %d\n",
 			db_strerror(rc), rc, 0 );
+#endif
 		goto done;
 	}
 
@@ -145,9 +191,15 @@ bdb_dn2id_delete(
 		buf[0] = DN_SUBTREE_PREFIX;
 		rc = bdb_idl_delete_key( be, db, txn, &key, e->e_id );
 		if( rc != 0 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "db2id", LDAP_LEVEL_ERR, 
+			"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n", 
+			ptr.bv_val, rc ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 			"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n",
 			ptr.bv_val, rc, 0 );
+#endif
 			goto done;
 		}
 
@@ -161,9 +213,15 @@ bdb_dn2id_delete(
 		rc = bdb_idl_delete_key( be, db, txn, &key, e->e_id );
 
 		if( rc != 0 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "db2id", LDAP_LEVEL_ERR, 
+				"=> bdb_dn2id_delete: parent (%s) delete failed: %d\n", 
+				ptr.bv_val, rc ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"=> bdb_dn2id_delete: parent (%s) delete failed: %d\n",
 				ptr.bv_val, rc, 0 );
+#endif
 			goto done;
 		}
 	}
@@ -173,9 +231,15 @@ bdb_dn2id_delete(
 
 		rc = bdb_idl_delete_key( be, db, txn, &key, e->e_id );
 		if( rc != 0 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "db2id", LDAP_LEVEL_ERR, 
+				"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n", 
+				ptr.bv_val, rc ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n",
 				ptr.bv_val, rc, 0 );
+#endif
 			goto done;
 		}
 		dnParent( &ptr, &pdn );
@@ -187,7 +251,11 @@ bdb_dn2id_delete(
 
 done:
 	ch_free( buf );
-	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_delete %d\n", rc, 0, 0 );
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "db2id", LDAP_LEVEL_RESULTS, "<= bdb_dn2id_delete %d\n", rc ));
+#else
+	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_delete %d\n", rc, 0, 0 )
+#endif
 	return rc;
 }
 
@@ -203,7 +271,12 @@ bdb_dn2id(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "db2id", LDAP_LEVEL_ARGS, "=> bdb_dn2id( \"%s\" )\n", 
+	dn->bv_val ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id( \"%s\" )\n", dn->bv_val, 0, 0 );
+#endif
 
 	assert (id);
  
@@ -228,11 +301,22 @@ bdb_dn2id(
 	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
 
 	if( rc != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "db2id", LDAP_LEVEL_ERR, 
+			"<= bdb_dn2id: get failed %s (%d)\n", 
+			db_strerror(rc), rc ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: get failed: %s (%d)\n",
 			db_strerror( rc ), rc, 0 );
+#endif
 	} else {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "db2id", LDAP_LEVEL_RESULTS, 
+			"<= bdb_dn2id: got id=0x%08lx\n", *id ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: got id=0x%08lx\n",
 			*id, 0, 0 );
+#endif
 	}
 
 	ch_free( key.data );
@@ -255,7 +339,12 @@ bdb_dn2id_matched(
 	struct	berval dn;
 	ID		cached_id;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "db2id", LDAP_LEVEL_ARGS, 
+		"=> bdb_dn2id_matched( \"%s\" )\n", in->bv_val ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_matched( \"%s\" )\n", in->bv_val, 0, 0 );
+#endif
 
 	DBTzero( &key );
 	key.size = in->bv_len + 2;
@@ -297,9 +386,14 @@ bdb_dn2id_matched(
 			if ( ! be_issuffix( be, &dn ) ) {
 				dnParent( &dn, &pdn );
 			} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "db2id", LDAP_LEVEL_DETAIL1, 
+					"<= bdb_dn2id_matched: no match\n" ));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 					"<= bdb_dn2id_matched: no match\n",
 					0, 0, 0 );
+#endif
 				break;
 			}
 
@@ -309,25 +403,44 @@ bdb_dn2id_matched(
 
 		} else if ( rc == 0 ) {
 			if( data.size != sizeof( ID ) ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "db2id", LDAP_LEVEL_DETAIL1, 
+					"<= bdb_dn2id_matched: get size mismatch:"
+					"expected %ld, got %ld\n",
+					(long) sizeof(ID), (long) data.size ));
+#else
 				Debug( LDAP_DEBUG_ANY,
 					"<= bdb_dn2id_matched: get size mismatch: "
 					"expected %ld, got %ld\n",
 					(long) sizeof(ID), (long) data.size, 0 );
+#endif
 			}
 
 			if( dn.bv_val != buf+1 ) {
 				*id2 = *id;
 			}
 
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "db2id", LDAP_LEVEL_DETAIL1, 
+				"<= bdb_dn2id_matched: id=0x%08lx: %s %s\n",
+				(long) *id, *id2 == 0 ? "entry" : "matched", dn.bv_val ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"<= bdb_dn2id_matched: id=0x%08lx: %s %s\n",
 				(long) *id, *id2 == 0 ? "entry" : "matched", dn.bv_val );
+#endif
 			break;
 
 		} else {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "db2id", LDAP_LEVEL_ERR, 
+				"<= bdb_dn2id_matched: get failed: %s (%d)\n",
+				db_strerror(rc), rc ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"<= bdb_dn2id_matched: get failed: %s (%d)\n",
 				db_strerror(rc), rc, 0 );
+#endif
 			break;
 		}
 	}
@@ -348,8 +461,13 @@ bdb_dn2id_children(
 	DB *db = bdb->bi_dn2id->bdi_db;
 	ID		id;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "db2id", LDAP_LEVEL_ARGS, 
+		"=> bdb_dn2id_children( %s )\n", dn->bv_val ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_children( %s )\n",
 		dn->bv_val, 0, 0 );
+#endif
 
 	DBTzero( &key );
 	key.size = dn->bv_len + 2;
@@ -368,10 +486,17 @@ bdb_dn2id_children(
 	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
 	free( key.data );
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "db2id", LDAP_LEVEL_DETAIL1, 
+		"<= bdb_dn2id_children( %s ): %schildren (%d)\n", 
+		dn->bv_val, rc == 0 ? "" : ( rc == DB_NOTFOUND ? "no " :
+		db_strerror(rc)), rc ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_children( %s ): %schildren (%d)\n",
 		dn->bv_val,
 		rc == 0 ? "" : ( rc == DB_NOTFOUND ? "no " :
 			db_strerror(rc) ), rc );
+#endif
 
 	return rc;
 }
@@ -388,7 +513,12 @@ bdb_dn2idl(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "db2id", LDAP_LEVEL_ARGS, 
+		"=> bdb_dn2ididl( \"%s\" )\n", dn->bv_val ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2idl( \"%s\" )\n", dn->bv_val, 0, 0 );
+#endif
 
 	if (prefix == DN_SUBTREE_PREFIX && be_issuffix(be, dn))
 	{
@@ -405,15 +535,28 @@ bdb_dn2idl(
 	rc = bdb_idl_fetch_key( be, db, NULL, &key, ids );
 
 	if( rc != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "db2id", LDAP_LEVEL_ERR, 
+			"<= bdb_dn2ididl: get failed: %s (%d)\n", 
+			db_strerror(rc), rc ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb_dn2idl: get failed: %s (%d)\n",
 			db_strerror( rc ), rc, 0 );
+#endif
 
 	} else {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "db2id", LDAP_LEVEL_RESULTS, 
+			"<= bdb_dn2ididl: id=%ld first=%ld last=%ld\n", 
+			(long) ids[0], (long) BDB_IDL_FIRST( ids ), 
+			(long) BDB_IDL_LAST( ids ) ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb_dn2idl: id=%ld first=%ld last=%ld\n",
 			(long) ids[0],
 			(long) BDB_IDL_FIRST( ids ), (long) BDB_IDL_LAST( ids ) );
+#endif
 	}
 
 	ch_free( key.data );

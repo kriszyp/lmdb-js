@@ -30,8 +30,13 @@ bdb_dn2entry_rw(
 	int rc;
 	ID		id, id2 = 0;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "db2entry", LDAP_LEVEL_ARGS, "bdb_dn2entry_rw(\"%s\")\n",
+		dn->bv_val ));
+#else
 	Debug(LDAP_DEBUG_TRACE, "bdb_dn2entry_rw(\"%s\")\n",
 		dn->bv_val, 0, 0 );
+#endif
 
 	*e = NULL;
 
