@@ -2847,7 +2847,7 @@ if test "$ol_enable_proxycache" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_PROXYCACHE,$MFLAG,[define for Proxy Cache overlay])
 fi
 
-if test "$ol_enable_rwm " != no ; then
+if test "$ol_enable_rwm" != no ; then
 	BUILD_REWRITE=yes
 	BUILD_RWM=$ol_enable_rwm
 	if test "$ol_enable_rwm" = mod ; then

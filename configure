@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.522 2004/04/07 04:26:03 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.524 2004/04/08 00:43:04 kurt Exp  
 
 # This work is part of OpenLDAP Software <http://www.openldap.org/>.
 #
@@ -24006,7 +24006,7 @@ EOF
 
 fi
 
-if test "$ol_enable_rwm " != no ; then
+if test "$ol_enable_rwm" != no ; then
 	BUILD_REWRITE=yes
 	BUILD_RWM=$ol_enable_rwm
 	if test "$ol_enable_rwm" = mod ; then
