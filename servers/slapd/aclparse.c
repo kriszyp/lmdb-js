@@ -1987,13 +1987,18 @@ acl_usage( void )
 		"<attrlist> ::= <attr> [val[.<attrstyle>]=<value>] | <attr> , <attrlist>\n"
 		"<attr> ::= <attrname> | entry | children\n",
 		"<who> ::= [ * | anonymous | users | self | dn[.<dnstyle>]=<DN> ]\n"
+			"\t[ realanonymous | realusers | realself | realdn[.<dnstyle>]=<DN> ]\n"
 			"\t[dnattr=<attrname>]\n"
+			"\t[realdnattr=<attrname>]\n"
 			"\t[group[/<objectclass>[/<attrname>]][.<style>]=<group>]\n"
 			"\t[peername[.<peernamestyle>]=<peer>] [sockname[.<style>]=<name>]\n"
 			"\t[domain[.<domainstyle>]=<domain>] [sockurl[.<style>]=<url>]\n"
 #ifdef SLAPD_ACI_ENABLED
-			"\t[aci=<attrname>]\n"
+			"\t[aci=[<attrname>]]\n"
 #endif
+#ifdef SLAP_DYNACL
+			"\t[dynacl/<name>[.<dynstyle>][=<pattern>]]\n"
+#endif /* SLAP_DYNACL */
 			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n",
 		"<style> ::= exact | regex | base(Object)\n"
 		"<dnstyle> ::= base(Object) | one(level) | sub(tree) | children | "
@@ -2002,7 +2007,7 @@ acl_usage( void )
 			"sub(tree) | children\n"
 		"<peernamestyle> ::= exact | regex | ip | path\n"
 		"<domainstyle> ::= exact | regex | base(Object) | sub(tree)\n"
-		"<access> ::= [self]{<level>|<priv>}\n"
+		"<access> ::= [[real]self]{<level>|<priv>}\n"
 		"<level> ::= none|disclose|auth|compare|search|read|write|manage\n"
 		"<priv> ::= {=|+|-}{0|d|x|c|s|r|w|m}+\n"
 		"<control> ::= [ stop | continue | break ]\n"

@@ -233,6 +233,14 @@ It can have the forms
 
 	dn[.<dnstyle>[,<modifier>]]=<DN>
 	dnattr=<attrname>
+
+	realanonymous
+	realusers
+	realself[.<selfstyle>]
+
+	realdn[.<dnstyle>[,<modifier>]]=<DN>
+	realdnattr=<attrname>
+
 	group[/<objectclass>[/<attrname>]]
 		[.<groupstyle>]=<group>
 	peername[.<peernamestyle>]=<peername>
@@ -246,7 +254,8 @@ It can have the forms
 	tls_ssf=<n>
 	sasl_ssf=<n>
 
-	aci=<attrname>
+	aci[=<attrname>]
+	dynacl/name[.<dynstyle>][=<pattern>]
 .fi
 .LP
 with
@@ -271,6 +280,11 @@ They may be specified in combination.
 The wildcard
 .B *
 refers to everybody.
+.LP
+The keywords prefixed by
+.B real
+act as their counterparts without prefix; the checking respectively occurs
+with the \fIauthentication\fP DN and the \fIauthorization\fP DN.
 .LP
 The keyword
 .B anonymous
@@ -601,11 +615,38 @@ The statement
 is undocumented yet.
 .LP
 The statement
-.B aci=<attrname>
+.B aci[=<attrname>]
 means that the access control is determined by the values in the
 .B attrname
 of the entry itself.
+The optional
+.B <attrname>
+indicates what attributeType holds the ACI information in the entry.
+By default, the 
+.B OpenLDAPaci
+operational attribute is used.
 ACIs are experimental; they must be enabled at compile time.
+.LP
+The statement
+.B dynacl/<name>[.<dynstyle>][=<pattern>]
+means that access checking is delegated to the admin-defined method
+indicated by
+.BR <name> ,
+which can be registered at run-time by means of the
+.B moduleload
+statement.
+The fields
+.B <dynstyle>
+and
+.B <pattern>
+are optional, and are directly passed to the registered parsing routine.
+Dynacl is experimental; it must be enabled at compile time.
+If dynacl and ACIs are both enabled, ACIs are cast into the dynacl scheme,
+where 
+.B <name>=aci
+and, optionally,
+.BR <patten>=<attrname> .
+However, the original ACI syntax is preserved for backward compatibility.
 .LP
 The statements
 .BR ssf=<n> ,
@@ -617,7 +658,7 @@ set the minimum required Security Strength Factor (ssf) needed
 to grant access.  The value should be positive integer.
 .SH THE <ACCESS> FIELD
 The field
-.B <access> ::= [self]{<level>|<priv>}
+.B <access> ::= [[real]self]{<level>|<priv>}
 determines the access level or the specific access privileges the
 .B who 
 field will have.
@@ -633,7 +674,12 @@ The modifier
 allows special operations like having a certain access level or privilege
 only in case the operation involves the name of the user that's requesting
 the access.
-It implies the user that requests access is bound.
+It implies the user that requests access is authorized.
+The modifier
+.B realself
+refers to the authenticated DN as opposed to the authorized DN of the
+.B self
+modifier.
 An example is the
 .B selfwrite
 access to the member attribute of a group, which allows one to add/delete
@@ -662,7 +708,7 @@ access level disallows all access including disclosure on error.
 .LP
 The
 .B disclose
-access level allows disclorure of information on error.
+access level allows disclosure of information on error.
 .LP
 The 
 .B auth
