@@ -56,23 +56,6 @@ ltest:	$(LIBRARY) test.o $(LDAP_LIBLBER_DEPEND)
 ttest:	$(LIBRARY) tmpltest.o $(LDAP_LIBLBER_DEPEND)
 	$(LTLINK) $(LDFLAGS) -o $@ tmpltest.o $(LIBS)
 
-CFFILES=ldap.conf ldapfilter.conf ldaptemplates.conf ldapsearchprefs.conf
-
 install-local: $(CFFILES) FORCE
 	-$(MKDIR) $(libdir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(libdir)
-	-$(MKDIR) $(sysconfdir)
-	@for i in $(CFFILES); do \
-		if test ! -f $(sysconfdir)/$$i; then \
-			echo "installing $$i in $(sysconfdir)"; \
-			echo "$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(sysconfdir)/$$i"; \
-			$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(sysconfdir)/$$i; \
-		else \
-			echo "PRESERVING EXISTING CONFIGURATION FILE $(sysconfdir)/$$i" ; \
-		fi; \
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(sysconfdir)/$$i.default; \
-	done
-	-$(MKDIR) $(datadir)
-	-$(MV) $(datadir)/ldapfriendly $(datadir)/ldapfriendly-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 ldapfriendly $(datadir)/ldapfriendly
-
