@@ -93,32 +93,40 @@ typedef struct dncookie {
 #endif
 } dncookie;
 
-int rwm_dn_massage(dncookie *dc, struct berval *dn, struct berval *res);
+int rwm_dn_massage( dncookie *dc, struct berval *in,
+	struct berval *dn, struct berval *ndn );
 
 /* attributeType/objectClass mapping */
 int rwm_mapping_cmp (const void *, const void *);
 int rwm_mapping_dup (void *, void *);
 
-void rwm_map_init ( struct ldapmap *lm, struct ldapmapping ** );
+int rwm_map_init ( struct ldapmap *lm, struct ldapmapping ** );
 void rwm_map ( struct ldapmap *map, struct berval *s, struct berval *m,
 	int remap );
+int rwm_mapping ( struct ldapmap *map, struct berval *s,
+		struct ldapmapping **m, int remap );
 #define RWM_MAP	0
 #define RWM_REMAP	1
 char *
 rwm_map_filter(
 		struct ldapmap *at_map,
 		struct ldapmap *oc_map,
-		struct berval *f,
-		int remap
-);
+		struct berval *f );
 
 int
 rwm_map_attrs(
 		struct ldapmap *at_map,
 		AttributeName *a,
 		int remap,
-		char ***mapped_attrs
-);
+		char ***mapped_attrs );
+
+int
+rwm_map_attrnames(
+		struct ldapmap *at_map,
+		struct ldapmap *oc_map,
+		AttributeName *an,
+		AttributeName **anp,
+		int remap );
 
 extern void rwm_mapping_free ( void *mapping );
 
@@ -134,8 +142,7 @@ extern int
 rwm_filter_map_rewrite(
 		dncookie		*dc,
 		Filter			*f,
-		struct berval		*fstr,
-		int			remap );
+		struct berval		*fstr );
 
 /* suffix massaging by means of librewrite */
 #ifdef ENABLE_REWRITE
@@ -147,8 +154,8 @@ extern int rwm_dnattr_rewrite(
 	Operation		*op,
 	SlapReply		*rs,
 	void			*cookie,
-	BerVarray		a_vals
-	);
+	BerVarray		a_vals,
+	BerVarray		*pa_nvals );
 extern int rwm_dnattr_result_rewrite( dncookie *dc, BerVarray a_vals );
 
 LDAP_END_DECL

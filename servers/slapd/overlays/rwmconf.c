@@ -172,10 +172,15 @@ rwm_map_config(
 				 * and add it here.
 				 */
 
-				mapping[0].m_src_ad = ch_malloc( sizeof( AttributeDescription ) );
-				memset( mapping[0].m_src_ad, 0, sizeof( AttributeDescription ) );
-				mapping[0].m_src_ad->ad_cname = mapping[0].m_src;
-				mapping[1].m_flags |= RWMMAP_F_FREE_SRC;
+				rc = slap_bv2undef_ad( &mapping[0].m_src,
+						&mapping[0].m_src_ad, &text );
+				if ( rc != LDAP_SUCCESS ) {
+					fprintf( stderr,
+	"%s: line %d: source attributeType '%s': %d (%s)\n",
+						fname, lineno, src, rc, text ? text : "null" );
+					return 1;
+				}
+
 			}
 			mapping[1].m_dst_ad = mapping[0].m_src_ad;
 		}
@@ -187,15 +192,19 @@ rwm_map_config(
 	"is not defined in schema\n",
 				fname, lineno, dst );
 
-			mapping[0].m_dst_ad = ch_malloc( sizeof( AttributeDescription ) );
-			memset( mapping[0].m_dst_ad, 0, sizeof( AttributeDescription ) );
-			mapping[0].m_dst_ad->ad_cname = mapping[0].m_dst;
-			mapping[1].m_flags |= RWMMAP_F_FREE_SRC;
+			rc = slap_bv2undef_ad( &mapping[0].m_dst,
+					&mapping[0].m_dst_ad, &text );
+			if ( rc != LDAP_SUCCESS ) {
+				fprintf( stderr,
+	"%s: line %d: destination attributeType '%s': %d (%s)\n",
+					fname, lineno, src, rc, text ? text : "null" );
+				return 1;
+			}
 		}
 		mapping[1].m_src_ad = mapping[0].m_dst_ad;
 	}
 
-	if ( (src[0] != '\0' && avl_find( map->map, (caddr_t)mapping, rwm_mapping_cmp ) != NULL)
+	if ( ( src[0] != '\0' && avl_find( map->map, (caddr_t)mapping, rwm_mapping_cmp ) != NULL)
 			|| avl_find( map->remap, (caddr_t)&mapping[1], rwm_mapping_cmp ) != NULL)
 	{
 		fprintf( stderr,
