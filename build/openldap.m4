@@ -621,12 +621,10 @@ dnl
 dnl ====================================================================
 dnl Check POSIX Thread version 
 dnl
-dnl defines ol_cv_pthread_version to 0, 4, 5, 6, 7, 10, depending on the
+dnl defines ol_cv_pthread_version to 4, 5, 6, 7, 10, depending on the
 dnl	version of the POSIX.4a Draft that is implemented.
 dnl	10 == POSIX.4a Final == POSIX.1c-1996 for our purposes.
-dnl 	0 implies that the version could not be detected
-dnl		or that pthreads.h does exist.  Existence of pthreads.h
-dnl		should be tested separately.
+dnl	Existence of pthreads.h should be tested separately.
 dnl
 dnl tests:
 dnl	pthread_yield() was dropped in Draft 9, so
@@ -639,8 +637,8 @@ dnl	pthread_attr_default was dropped in Draft 6, only 4 and 5 have it
 dnl	PTHREAD_MUTEX_INITIALIZER was introduced in Draft 5. It's not
 dnl		interesting to us because we don't try to statically
 dnl		initialize mutexes. 5-10 has it.
-dnl	pthread_attr_create was renamed to pthread_attr_init after Draft 4.
-dnl		Draft 6-10 has _init, Draft 4 has _create. (dunno about 5)
+dnl	pthread_attr_create was renamed to pthread_attr_init in Draft 6.
+dnl		Draft 6-10 has _init, Draft 4-5 has _create.
 dnl
 dnl Draft 9 and 10 are equivalent for our purposes.
 dnl
@@ -660,9 +658,7 @@ AC_DEFUN([OL_POSIX_THREAD_VERSION],
 #ifdef		PTHREAD_MUTEX_INITIALIZER
 		draft5
 #endif
-	], ol_cv_pthread_version=5, [
-	AC_EGREP_HEADER(pthread_attr_create,pthread.h,
-	ol_cv_pthread_version=4, ol_cv_pthread_version=0) ]) ],
+	], ol_cv_pthread_version=5, ol_cv_pthread_version=4) ],
 	ol_cv_pthread_version=6) ]) ],
 	ol_cv_pthread_version=8) ],
 	ol_cv_pthread_version=10)

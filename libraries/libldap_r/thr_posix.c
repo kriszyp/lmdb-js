@@ -21,7 +21,7 @@
 #include "ldap_pvt_thread.h"
 
 
-#if HAVE_PTHREADS == 4
+#if HAVE_PTHREADS < 6
 #  define LDAP_INT_THREAD_ATTR_DEFAULT		pthread_attr_default
 #  define LDAP_INT_THREAD_CONDATTR_DEFAULT	pthread_condattr_default
 #  define LDAP_INT_THREAD_MUTEXATTR_DEFAULT	pthread_mutexattr_default
@@ -102,7 +102,7 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	pthread_attr_t attr;
 
 /* Always create the thread attrs, so we can set stacksize if we need to */
-#if HAVE_PTHREADS > 4
+#if HAVE_PTHREADS > 5
 	pthread_attr_init(&attr);
 #else
 	pthread_attr_create(&attr);
@@ -122,12 +122,10 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 #endif
 #endif
 	rtn = pthread_create( thread, &attr, start_routine, arg );
-#if HAVE_PTHREADS > 4
+#if HAVE_PTHREADS > 5
 	pthread_attr_destroy(&attr);
 #else
 	pthread_attr_delete(&attr);
-#endif
-#if HAVE_PTHREADS < 6
 	if( detach ) {
 		pthread_detach( thread );
 	}
