@@ -61,7 +61,7 @@ bdb_referrals(
 
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-				(long) op->o_tag, dn, matched_dn );
+				(long) op->o_tag, dn->bv_val, matched_dn );
 
 			if( is_entry_referral( matched ) ) {
 				rc = LDAP_OTHER;

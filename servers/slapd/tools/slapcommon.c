@@ -217,7 +217,7 @@ slap_tool_init(
 		rc = dnNormalize( NULL, &base, &nbase );
 		if( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: slap_init invalid suffix (\"%s\")\n",
-				progname, base );
+				progname, base.bv_val );
 			exit( EXIT_FAILURE );
 		}
 

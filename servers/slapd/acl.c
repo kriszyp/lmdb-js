@@ -1045,12 +1045,12 @@ acl_check_modlist(
 		LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
 			   "acl_check_modlist: conn %d  backend default %s access %s to \"%s\"\n",
 			   conn->c_connid, access2str( ACL_WRITE ),
-			   be->be_dfltaccess >= ACL_WRITE ? "granted" : "denied", op->o_dn ));
+			   be->be_dfltaccess >= ACL_WRITE ? "granted" : "denied", op->o_dn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: backend default %s access %s to \"%s\"\n",
 			access2str( ACL_WRITE ),
-			be->be_dfltaccess >= ACL_WRITE ? "granted" : "denied", op->o_dn );
+			be->be_dfltaccess >= ACL_WRITE ? "granted" : "denied", op->o_dn.bv_val );
 #endif
 		return be->be_dfltaccess >= ACL_WRITE;
 

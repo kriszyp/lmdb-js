@@ -611,11 +611,11 @@ try_again:
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
 				   "cache_find_entry_dn2id: (%s) %ld not ready: %d\n",
-				   ndn, id, state ));
+				   ndn->bv_val, id, state ));
 #else
 			Debug(LDAP_DEBUG_TRACE,
 				"====> cache_find_entry_dn2id(\"%s\"): %ld (not ready) %d\n",
-				ndn, id, state);
+				ndn->bv_val, id, state);
 #endif
 
 
@@ -633,11 +633,11 @@ try_again:
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
 			   "cache_find_entry_dn2id: (%s): %ld %d tries\n",
-			   ndn, id, count ));
+			   ndn->bv_val, id, count ));
 #else
 		Debug(LDAP_DEBUG_TRACE,
 			"====> cache_find_entry_dn2id(\"%s\"): %ld (%d tries)\n",
-			ndn, id, count);
+			ndn->bv_val, id, count);
 #endif
 
 

@@ -92,7 +92,7 @@ retry:	/* transaction retry */
 
 		Debug( LDAP_DEBUG_ARGS,
 			"<=- bdb_delete: no such object %s\n",
-			dn, 0, 0);
+			dn->bv_val, 0, 0);
 
 		if ( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
@@ -221,7 +221,7 @@ retry:	/* transaction retry */
 		case 0:
 			Debug(LDAP_DEBUG_ARGS,
 				"<=- bdb_delete: non-leaf %s\n",
-				dn, 0, 0);
+				dn->bv_val, 0, 0);
 			rc = LDAP_NOT_ALLOWED_ON_NONLEAF;
 			text = "subtree delete not supported";
 			break;

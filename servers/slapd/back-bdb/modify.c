@@ -171,7 +171,7 @@ bdb_modify(
 	DB_TXN	*ltid = NULL;
 	struct bdb_op_info opinfo;
 
-	Debug( LDAP_DEBUG_ARGS, "bdb_modify: %s\n", dn, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "bdb_modify: %s\n", dn->bv_val, 0, 0 );
 
 	if( 0 ) {
 retry:	/* transaction retry */

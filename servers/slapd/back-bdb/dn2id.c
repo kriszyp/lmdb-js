@@ -344,7 +344,7 @@ bdb_dn2id_children(
 	free( key.data );
 
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_children( %s ): %schildren (%d)\n",
-		dn,
+		dn->bv_val,
 		rc == 0 ? "" : ( rc == DB_NOTFOUND ? "no " :
 			db_strerror(rc) ), rc );
 

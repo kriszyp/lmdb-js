@@ -40,7 +40,7 @@ ldbm_back_attribute(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
-		"ldbm_back_attribute: gr dn: \"%s\"\n", entry_ndn ));
+		"ldbm_back_attribute: gr dn: \"%s\"\n", entry_ndn->bv_val ));
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
 		"ldbm_back_attribute: at: \"%s\"\n", entry_at_name));
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
@@ -49,7 +49,7 @@ ldbm_back_attribute(
 #else
 	Debug( LDAP_DEBUG_ARGS,
 		"=> ldbm_back_attribute: gr dn: \"%s\"\n",
-		entry_ndn, 0, 0 ); 
+		entry_ndn->bv_val, 0, 0 ); 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> ldbm_back_attribute: at: \"%s\"\n", 
 		entry_at_name, 0, 0 ); 
@@ -79,11 +79,11 @@ ldbm_back_attribute(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 				"ldbm_back_attribute: cannot find entry (%s)\n",
-				entry_ndn ));
+				entry_ndn->bv_val ));
 #else
 			Debug( LDAP_DEBUG_ACL,
 				"=> ldbm_back_attribute: cannot find entry: \"%s\"\n",
-					entry_ndn, 0, 0 ); 
+					entry_ndn->bv_val, 0, 0 ); 
 #endif
 
 			return LDAP_NO_SUCH_OBJECT; 

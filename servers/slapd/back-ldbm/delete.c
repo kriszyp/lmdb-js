@@ -103,10 +103,10 @@ ldbm_back_delete(
 	if ( has_children( be, e ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
-			   "ldbm_back_delete: (%s) is a non-leaf node.\n", dn ));
+			   "ldbm_back_delete: (%s) is a non-leaf node.\n", dn->bv_val ));
 #else
 		Debug(LDAP_DEBUG_ARGS, "<=- ldbm_back_delete: non leaf %s\n",
-			dn, 0, 0);
+			dn->bv_val, 0, 0);
 #endif
 
 		send_ldap_result( conn, op, LDAP_NOT_ALLOWED_ON_NONLEAF,
