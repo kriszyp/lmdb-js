@@ -161,6 +161,7 @@ octetStringOrderingMatch(
 	return LDAP_SUCCESS;
 }
 
+void
 hashDigestify(
 	HASH_CONTEXT *HASHcontext,
 	unsigned char *HASHdigest,
@@ -204,7 +205,7 @@ int octetStringIndexer(
 	digest.bv_val = (char *)HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	for( i=0; values[i].bv_val != NULL; i++ ) {
+	for( i=0; !BER_BVISNULL( &values[i] ); i++ ) {
 		/* just count them */
 	}
 
@@ -216,14 +217,13 @@ int octetStringIndexer(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	for( i=0; values[i].bv_val != NULL; i++ ) {
+	for( i=0; !BER_BVISNULL( &values[i] ); i++ ) {
 		hashDigestify( &HASHcontext, HASHdigest, prefix, 0,
 			syntax, mr, (unsigned char *)values[i].bv_val, values[i].bv_len );
 		ber_dupbv_x( &keys[i], &digest, ctx );
 	}
 
-	keys[i].bv_val = NULL;
-	keys[i].bv_len = 0;
+	BER_BVZERO( &keys[i] );
 
 	*keysp = keys;
 
@@ -259,8 +259,7 @@ int octetStringFilter(
 		syntax, mr, (unsigned char *)value->bv_val, value->bv_len );
 
 	ber_dupbv_x( keys, &digest, ctx );
-	keys[1].bv_val = NULL;
-	keys[1].bv_len = 0;
+	BER_BVZERO( &keys[1] );
 
 	*keysp = keys;
 
@@ -283,20 +282,20 @@ octetStringSubstringsMatch(
 	ber_len_t inlen = 0;
 
 	/* Add up asserted input length */
-	if( sub->sa_initial.bv_val ) {
+	if ( !BER_BVISNULL( &sub->sa_initial ) ) {
 		inlen += sub->sa_initial.bv_len;
 	}
-	if( sub->sa_any ) {
-		for(i=0; sub->sa_any[i].bv_val != NULL; i++) {
+	if ( sub->sa_any ) {
+		for ( i = 0; !BER_BVISNULL( &sub->sa_any[i] ); i++ ) {
 			inlen += sub->sa_any[i].bv_len;
 		}
 	}
-	if( sub->sa_final.bv_val ) {
+	if ( !BER_BVISNULL( &sub->sa_final ) ) {
 		inlen += sub->sa_final.bv_len;
 	}
 
-	if( sub->sa_initial.bv_val ) {
-		if( inlen > left.bv_len ) {
+	if ( !BER_BVISNULL( &sub->sa_initial ) ) {
+		if ( inlen > left.bv_len ) {
 			match = 1;
 			goto done;
 		}
@@ -304,7 +303,7 @@ octetStringSubstringsMatch(
 		match = memcmp( sub->sa_initial.bv_val, left.bv_val,
 			sub->sa_initial.bv_len );
 
-		if( match != 0 ) {
+		if ( match != 0 ) {
 			goto done;
 		}
 
@@ -313,8 +312,8 @@ octetStringSubstringsMatch(
 		inlen -= sub->sa_initial.bv_len;
 	}
 
-	if( sub->sa_final.bv_val ) {
-		if( inlen > left.bv_len ) {
+	if ( !BER_BVISNULL( &sub->sa_final ) ) {
+		if ( inlen > left.bv_len ) {
 			match = 1;
 			goto done;
 		}
@@ -323,7 +322,7 @@ octetStringSubstringsMatch(
 			&left.bv_val[left.bv_len - sub->sa_final.bv_len],
 			sub->sa_final.bv_len );
 
-		if( match != 0 ) {
+		if ( match != 0 ) {
 			goto done;
 		}
 
@@ -331,19 +330,19 @@ octetStringSubstringsMatch(
 		inlen -= sub->sa_final.bv_len;
 	}
 
-	if( sub->sa_any ) {
-		for(i=0; sub->sa_any[i].bv_val; i++) {
+	if ( sub->sa_any ) {
+		for ( i = 0; !BER_BVISNULL( &sub->sa_any[i] ); i++ ) {
 			ber_len_t idx;
 			char *p;
 
 retry:
-			if( inlen > left.bv_len ) {
+			if ( inlen > left.bv_len ) {
 				/* not enough length */
 				match = 1;
 				goto done;
 			}
 
-			if( sub->sa_any[i].bv_len == 0 ) {
+			if ( BER_BVISEMPTY( &sub->sa_any[i] ) ) {
 				continue;
 			}
 
@@ -356,7 +355,7 @@ retry:
 
 			idx = p - left.bv_val;
 
-			if( idx >= left.bv_len ) {
+			if ( idx >= left.bv_len ) {
 				/* this shouldn't happen */
 				return LDAP_OTHER;
 			}
@@ -364,7 +363,7 @@ retry:
 			left.bv_val = p;
 			left.bv_len -= idx;
 
-			if( sub->sa_any[i].bv_len > left.bv_len ) {
+			if ( sub->sa_any[i].bv_len > left.bv_len ) {
 				/* not enough left */
 				match = 1;
 				goto done;
@@ -374,7 +373,7 @@ retry:
 				sub->sa_any[i].bv_val,
 				sub->sa_any[i].bv_len );
 
-			if( match != 0 ) {
+			if ( match != 0 ) {
 				left.bv_val++;
 				left.bv_len--;
 				goto retry;
@@ -413,9 +412,9 @@ octetStringSubstringsIndexer(
 	digest.bv_val = (char *)HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	nkeys=0;
+	nkeys = 0;
 
-	for( i=0; values[i].bv_val != NULL; i++ ) {
+	for ( i = 0; !BER_BVISNULL( &values[i] ); i++ ) {
 		/* count number of indices to generate */
 		if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
 			if( values[i].bv_len >= index_substr_if_maxlen ) {
@@ -453,8 +452,8 @@ octetStringSubstringsIndexer(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	nkeys=0;
-	for( i=0; values[i].bv_val != NULL; i++ ) {
+	nkeys = 0;
+	for ( i = 0; !BER_BVISNULL( &values[i] ); i++ ) {
 		ber_len_t j,max;
 
 		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
@@ -497,7 +496,7 @@ octetStringSubstringsIndexer(
 	}
 
 	if( nkeys > 0 ) {
-		keys[nkeys].bv_val = NULL;
+		BER_BVZERO( &keys[nkeys] );
 		*keysp = keys;
 	} else {
 		ch_free( keys );
@@ -531,7 +530,7 @@ octetStringSubstringsFilter (
 	sa = (SubstringsAssertion *) assertedValue;
 
 	if( flags & SLAP_INDEX_SUBSTR_INITIAL &&
-		sa->sa_initial.bv_val != NULL &&
+		!BER_BVISNULL( &sa->sa_initial ) &&
 		sa->sa_initial.bv_len >= index_substr_if_minlen )
 	{
 		nkeys++;
@@ -542,9 +541,9 @@ octetStringSubstringsFilter (
 		}
 	}
 
-	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
+	if ( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
 		ber_len_t i;
-		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
+		for( i=0; !BER_BVISNULL( &sa->sa_any[i] ); i++ ) {
 			if( sa->sa_any[i].bv_len >= index_substr_any_len ) {
 				/* don't bother accounting with stepping */
 				nkeys += sa->sa_any[i].bv_len -
@@ -554,7 +553,7 @@ octetStringSubstringsFilter (
 	}
 
 	if( flags & SLAP_INDEX_SUBSTR_FINAL &&
-		sa->sa_final.bv_val != NULL &&
+		!BER_BVISNULL( &sa->sa_final ) &&
 		sa->sa_final.bv_len >= index_substr_if_minlen )
 	{
 		nkeys++;
@@ -580,7 +579,7 @@ octetStringSubstringsFilter (
 	nkeys = 0;
 
 	if( flags & SLAP_INDEX_SUBSTR_INITIAL &&
-		sa->sa_initial.bv_val != NULL &&
+		!BER_BVISNULL( &sa->sa_initial ) &&
 		sa->sa_initial.bv_len >= index_substr_if_minlen )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
@@ -614,7 +613,7 @@ octetStringSubstringsFilter (
 		pre = SLAP_INDEX_SUBSTR_PREFIX;
 		klen = index_substr_any_len;
 
-		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
+		for( i=0; !BER_BVISNULL( &sa->sa_any[i] ); i++ ) {
 			if( sa->sa_any[i].bv_len < index_substr_any_len ) {
 				continue;
 			}
@@ -633,7 +632,7 @@ octetStringSubstringsFilter (
 	}
 
 	if( flags & SLAP_INDEX_SUBSTR_FINAL &&
-		sa->sa_final.bv_val != NULL &&
+		!BER_BVISNULL( &sa->sa_final ) &&
 		sa->sa_final.bv_len >= index_substr_if_minlen )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
@@ -663,7 +662,7 @@ octetStringSubstringsFilter (
 	}
 
 	if( nkeys > 0 ) {
-		keys[nkeys].bv_val = NULL;
+		BER_BVZERO( &keys[nkeys] );
 		*keysp = keys;
 	} else {
 		ch_free( keys );
@@ -695,13 +694,13 @@ bitStringValidate(
 	 */
 	
 	if( in->bv_val[0] != '\'' ||
-		in->bv_val[in->bv_len-2] != '\'' ||
-		in->bv_val[in->bv_len-1] != 'B' )
+		in->bv_val[in->bv_len - 2] != '\'' ||
+		in->bv_val[in->bv_len - 1] != 'B' )
 	{
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	for( i=in->bv_len-3; i>0; i-- ) {
+	for( i = in->bv_len - 3; i > 0; i-- ) {
 		if( in->bv_val[i] != '0' && in->bv_val[i] != '1' ) {
 			return LDAP_INVALID_SYNTAX;
 		}
@@ -858,14 +857,14 @@ nameUIDValidate(
 	int rc;
 	struct berval dn, uid;
 
-	if( in->bv_len == 0 ) return LDAP_SUCCESS;
+	if( BER_BVISEMPTY( in ) ) return LDAP_SUCCESS;
 
 	ber_dupbv( &dn, in );
 	if( !dn.bv_val ) return LDAP_OTHER;
 
 	/* if there's a "#", try bitStringValidate()... */
 	uid.bv_val = strrchr( dn.bv_val, '#' );
-	if ( uid.bv_val ) {
+	if ( !BER_BVISNULL( &uid ) ) {
 		uid.bv_val++;
 		uid.bv_len = dn.bv_len - ( uid.bv_val - dn.bv_val );
 
@@ -897,7 +896,7 @@ nameUIDPretty(
 
 	Debug( LDAP_DEBUG_TRACE, ">>> nameUIDPretty: <%s>\n", val->bv_val, 0, 0 );
 
-	if( val->bv_len == 0 ) {
+	if( BER_BVISEMPTY( val ) ) {
 		ber_dupbv_x( out, val, ctx );
 
 	} else if ( val->bv_len > SLAP_LDAPDN_MAXLEN ) {
@@ -909,7 +908,7 @@ nameUIDPretty(
 		struct berval	uidval = BER_BVNULL;
 
 		uidval.bv_val = strrchr( val->bv_val, '#' );
-		if ( uidval.bv_val ) {
+		if ( !BER_BVISNULL( &uidval ) ) {
 			uidval.bv_val++;
 			uidval.bv_len = val->bv_len - ( uidval.bv_val - val->bv_val );
 
@@ -921,7 +920,7 @@ nameUIDPretty(
 				dnval.bv_val[dnval.bv_len] = '\0';
 
 			} else {
-				uidval.bv_val = NULL;
+				BER_BVZERO( &uidval );
 			}
 		}
 
@@ -933,7 +932,7 @@ nameUIDPretty(
 			return rc;
 		}
 
-		if( uidval.bv_val ) {
+		if( !BER_BVISNULL( &uidval ) ) {
 			int	i, c, got1;
 			char	*tmp;
 
@@ -995,7 +994,7 @@ uniqueMemberNormalize(
 		struct berval uid = BER_BVNULL;
 
 		uid.bv_val = strrchr( out.bv_val, '#' );
-		if ( uid.bv_val ) {
+		if ( !BER_BVISNULL( &uid ) ) {
 			uid.bv_val++;
 			uid.bv_len = out.bv_len - ( uid.bv_val - out.bv_val );
 
@@ -1004,7 +1003,7 @@ uniqueMemberNormalize(
 				uid.bv_val[-1] = '\0';
 				out.bv_len -= uid.bv_len + 1;
 			} else {
-				uid.bv_val = NULL;
+				BER_BVZERO( &uid );
 			}
 		}
 
@@ -1015,7 +1014,7 @@ uniqueMemberNormalize(
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		if( uid.bv_val ) {
+		if( !BER_BVISNULL( &uid ) ) {
 			char	*tmp;
 
 			tmp = ch_realloc( normalized->bv_val,
@@ -1237,12 +1236,12 @@ UTF8StringValidate(
 	int len;
 	unsigned char *u = (unsigned char *)in->bv_val;
 
-	if( in->bv_len == 0 && syntax == slap_schema.si_syn_directoryString ) {
+	if( BER_BVISEMPTY( in ) && syntax == slap_schema.si_syn_directoryString ) {
 		/* directory strings cannot be empty */
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	for( count = in->bv_len; count > 0; count-=len, u+=len ) {
+	for( count = in->bv_len; count > 0; count -= len, u += len ) {
 		/* get the length indicated by the first byte */
 		len = LDAP_UTF8_CHARLEN2( u, len );
 
@@ -1302,12 +1301,11 @@ UTF8StringNormalize(
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( use ));
 
-	if( val->bv_val == NULL ) {
+	if( BER_BVISNULL( val ) ) {
 		/* assume we're dealing with a syntax (e.g., UTF8String)
 		 * which allows empty strings
 		 */
-		normalized->bv_len = 0;
-		normalized->bv_val = NULL;
+		BER_BVZERO( normalized );
 		return LDAP_SUCCESS;
 	}
 
@@ -1325,8 +1323,8 @@ UTF8StringNormalize(
 	nvalue.bv_len = 0;
 	nvalue.bv_val = tmp.bv_val;
 
-	wasspace=1; /* trim leading spaces */
-	for( i=0; i<tmp.bv_len; i++) {
+	wasspace = 1; /* trim leading spaces */
+	for( i = 0; i < tmp.bv_len; i++) {
 		if ( ASCII_SPACE( tmp.bv_val[i] )) {
 			if( wasspace++ == 0 ) {
 				/* trim repeated spaces */
@@ -1338,7 +1336,7 @@ UTF8StringNormalize(
 		}
 	}
 
-	if( nvalue.bv_len ) {
+	if( !BER_BVISEMPTY( &nvalue ) ) {
 		if( wasspace ) {
 			/* last character was a space, trim it */
 			--nvalue.bv_len;
@@ -1489,11 +1487,11 @@ approxIndexer(
 	struct berval *newkeys;
 	BerVarray keys=NULL;
 
-	for( j=0; values[j].bv_val != NULL; j++ ) {
+	for( j = 0; !BER_BVISNULL( &values[j] ); j++ ) {
 		struct berval val = BER_BVNULL;
 		/* Yes, this is necessary */
 		UTF8bvnormalize( &values[j], &val, LDAP_UTF8_APPROX, NULL );
-		assert( val.bv_val != NULL );
+		assert( !BER_BVISNULL( &val ) );
 
 		/* Isolate how many words there are. There will be a key for each */
 		for( wordcount = 0, c = val.bv_val; *c; c++) {
@@ -1522,7 +1520,7 @@ approxIndexer(
 
 		ber_memfree( val.bv_val );
 	}
-	keys[keycount].bv_val = NULL;
+	BER_BVZERO( &keys[keycount] );
 	*keysp = keys;
 
 	return LDAP_SUCCESS;
@@ -1547,9 +1545,9 @@ approxFilter(
 	/* Yes, this is necessary */
 	val = UTF8bvnormalize( ((struct berval *)assertedValue),
 		NULL, LDAP_UTF8_APPROX, NULL );
-	if( val == NULL || val->bv_val == NULL ) {
+	if( val == NULL || BER_BVISNULL( val ) ) {
 		keys = (struct berval *)ch_malloc( sizeof(struct berval) );
-		keys[0].bv_val = NULL;
+		BER_BVZERO( &keys[0] );
 		*keysp = keys;
 		ber_bvfree( val );
 		return LDAP_SUCCESS;
@@ -1577,7 +1575,7 @@ approxFilter(
 
 	ber_bvfree( val );
 
-	keys[count].bv_val = NULL;
+	BER_BVZERO( &keys[count] );
 	*keysp = keys;
 
 	return LDAP_SUCCESS;
@@ -1598,7 +1596,7 @@ telephoneNumberNormalize(
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ));
 
 	/* validator should have refused an empty string */
-	assert( val->bv_len );
+	assert( !BER_BVISEMPTY( val ) );
 
 	q = normalized->bv_val = slap_sl_malloc( val->bv_len + 1, ctx );
 
@@ -1611,9 +1609,9 @@ telephoneNumberNormalize(
 
 	normalized->bv_len = q - normalized->bv_val;
 
-	if( normalized->bv_len == 0 ) {
+	if( BER_BVISEMPTY( normalized ) ) {
 		slap_sl_free( normalized->bv_val, ctx );
-		normalized->bv_val = NULL;
+		BER_BVZERO( normalized );
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -1627,7 +1625,7 @@ numericoidValidate(
 {
 	struct berval val = *in;
 
-	if( val.bv_len == 0 ) {
+	if( BER_BVISEMPTY( &val ) ) {
 		/* disallow empty strings */
 		return LDAP_INVALID_SYNTAX;
 	}
@@ -1672,13 +1670,13 @@ integerValidate(
 	ber_len_t i;
 	struct berval val = *in;
 
-	if( val.bv_len == 0 ) return LDAP_INVALID_SYNTAX;
+	if ( BER_BVISEMPTY( &val ) ) return LDAP_INVALID_SYNTAX;
 
 	if ( val.bv_val[0] == '-' ) {
 		val.bv_len--;
 		val.bv_val++;
 
-		if( val.bv_len == 0 ) { /* bare "-" */
+		if( BER_BVISEMPTY( &val ) ) { /* bare "-" */
 			return LDAP_INVALID_SYNTAX;
 		}
 
@@ -1724,7 +1722,7 @@ integerMatch(
 		v.bv_len--;
 	}
 
-	if( v.bv_len == 0 ) vsign = 0;
+	if( BER_BVISEMPTY( &v ) ) vsign = 0;
 
 	a = *asserted;
 	if( a.bv_val[0] == '-' ) {
@@ -1733,7 +1731,7 @@ integerMatch(
 		a.bv_len--;
 	}
 
-	if( a.bv_len == 0 ) vsign = 0;
+	if( BER_BVISEMPTY( &a ) ) vsign = 0;
 
 	match = vsign - asign;
 	if( match == 0 ) {
@@ -1771,7 +1769,7 @@ printableStringValidate(
 {
 	ber_len_t i;
 
-	if( val->bv_len == 0 ) return LDAP_INVALID_SYNTAX;
+	if( BER_BVISEMPTY( val ) ) return LDAP_INVALID_SYNTAX;
 
 	for(i=0; i < val->bv_len; i++) {
 		if( !SLAP_PRINTABLE(val->bv_val[i]) ) {
@@ -1789,7 +1787,7 @@ printablesStringValidate(
 {
 	ber_len_t i, len;
 
-	if( val->bv_len == 0 ) return LDAP_INVALID_SYNTAX;
+	if( BER_BVISEMPTY( val ) ) return LDAP_INVALID_SYNTAX;
 
 	for(i=0,len=0; i < val->bv_len; i++) {
 		int c = val->bv_val[i];
@@ -1821,7 +1819,7 @@ IA5StringValidate(
 {
 	ber_len_t i;
 
-	if( val->bv_len == 0 ) return LDAP_INVALID_SYNTAX;
+	if( BER_BVISEMPTY( val ) ) return LDAP_INVALID_SYNTAX;
 
 	for(i=0; i < val->bv_len; i++) {
 		if( !LDAP_ASCII(val->bv_val[i]) ) {
@@ -1844,7 +1842,7 @@ IA5StringNormalize(
 	char *p, *q;
 	int casefold = !SLAP_MR_ASSOCIATED(mr, slap_schema.si_mr_caseExactIA5Match);
 
-	assert( val->bv_len );
+	assert( !BER_BVISEMPTY( val ) );
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( use ));
 
@@ -1888,7 +1886,7 @@ IA5StringNormalize(
 	*q = '\0';
 
 	normalized->bv_len = q - normalized->bv_val;
-	if( normalized->bv_len == 0 ) {
+	if( BER_BVISEMPTY( normalized ) ) {
 		normalized->bv_val = slap_sl_realloc( normalized->bv_val, 2, ctx );
 		normalized->bv_val[0] = ' ';
 		normalized->bv_val[1] = '\0';
@@ -1984,7 +1982,7 @@ numericStringValidate(
 {
 	ber_len_t i;
 
-	if( in->bv_len == 0 ) return LDAP_INVALID_SYNTAX;
+	if( BER_BVISEMPTY( in ) ) return LDAP_INVALID_SYNTAX;
 
 	for(i=0; i < in->bv_len; i++) {
 		if( !SLAP_NUMERIC(in->bv_val[i]) ) {
@@ -2007,7 +2005,7 @@ numericStringNormalize(
 	/* removal all spaces */
 	char *p, *q;
 
-	assert( val->bv_len );
+	assert( !BER_BVISEMPTY( val ) );
 
 	normalized->bv_val = slap_sl_malloc( val->bv_len + 1, ctx );
 
@@ -2031,7 +2029,7 @@ numericStringNormalize(
 
 	normalized->bv_len = q - normalized->bv_val;
 
-	if( normalized->bv_len == 0 ) {
+	if( BER_BVISEMPTY( normalized ) ) {
 		normalized->bv_val = slap_sl_realloc( normalized->bv_val, 2, ctx );
 		normalized->bv_val[0] = ' ';
 		normalized->bv_val[1] = '\0';
@@ -2132,7 +2130,7 @@ serialNumberAndIssuerValidate(
 	if( in->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
 	i.bv_val = strchr( in->bv_val, '$' );
-	if( i.bv_val == NULL ) return LDAP_INVALID_SYNTAX;
+	if( BER_BVISNULL( &i ) ) return LDAP_INVALID_SYNTAX;
 
 	sn.bv_val = in->bv_val;
 	sn.bv_len = i.bv_val - in->bv_val;
@@ -2173,7 +2171,7 @@ serialNumberAndIssuerPretty(
 	if( val->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
 	i.bv_val = strchr( val->bv_val, '$' );
-	if( i.bv_val == NULL ) return LDAP_INVALID_SYNTAX;
+	if( BER_BVISNULL( &i ) ) return LDAP_INVALID_SYNTAX;
 
 	sn.bv_val = val->bv_val;
 	sn.bv_len = i.bv_val - val->bv_val;
@@ -2200,7 +2198,7 @@ serialNumberAndIssuerPretty(
 	out->bv_len = sn.bv_len + newi.bv_len + 1;
 	out->bv_val = slap_sl_realloc( newi.bv_val, out->bv_len + 1, ctx );
 
-	if( out->bv_val == NULL ) {
+	if( BER_BVISNULL( out ) ) {
 		slap_sl_free( newi.bv_val, ctx );
 		return LDAP_OTHER;
 	}
@@ -2248,7 +2246,7 @@ serialNumberAndIssuerNormalize(
 	if( val->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
 	i.bv_val = strchr( val->bv_val, '$' );
-	if( i.bv_val == NULL ) return LDAP_INVALID_SYNTAX;
+	if( BER_BVISNULL( &i ) ) return LDAP_INVALID_SYNTAX;
 
 	sn.bv_val = val->bv_val;
 	sn.bv_len = i.bv_val - val->bv_val;
@@ -2277,7 +2275,7 @@ serialNumberAndIssuerNormalize(
 	out->bv_len = sn.bv_len + newi.bv_len + 1;
 	out->bv_val = slap_sl_realloc( newi.bv_val, out->bv_len + 1, ctx );
 
-	if( out->bv_val == NULL ) {
+	if( BER_BVISNULL( out ) ) {
 		slap_sl_free( newi.bv_val, ctx );
 		return LDAP_OTHER;
 	}
@@ -2315,7 +2313,7 @@ certificateExactNormalize(
 	ASN1_INTEGER *sn = NULL;
 	X509 *xcert = NULL;
 
-	if( val->bv_len == 0 ) goto done;
+	if( BER_BVISEMPTY( val ) ) goto done;
 
 	if( SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX(usage) ) {
 		return serialNumberAndIssuerNormalize(0,NULL,NULL,val,normalized,ctx);
@@ -2612,14 +2610,14 @@ generalizedTimeNormalize(
 
 	len = sizeof("YYYYmmddHHMMSSZ")-1 + fraction.bv_len;
 	normalized->bv_val = slap_sl_malloc( len + 1, ctx );
-	if ( normalized->bv_val == NULL ) {
+	if ( BER_BVISNULL( normalized ) ) {
 		return LBER_ERROR_MEMORY;
 	}
 
 	sprintf( normalized->bv_val, "%02d%02d%02d%02d%02d%02d%02d",
 		parts[0], parts[1], parts[2] + 1, parts[3] + 1,
 		parts[4], parts[5], parts[6] );
-	if ( fraction.bv_len ) {
+	if ( !BER_BVISEMPTY( &fraction ) ) {
 		memcpy( normalized->bv_val + sizeof("YYYYmmddHHMMSSZ")-2,
 			fraction.bv_val, fraction.bv_len );
 		normalized->bv_val[sizeof("YYYYmmddHHMMSSZ")-2] = '.';
@@ -2870,19 +2868,19 @@ again:
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	if( tmp.bv_len == 0 ) return LDAP_SUCCESS;
+	if( BER_BVISEMPTY( &tmp ) ) return LDAP_SUCCESS;
 
-	while( tmp.bv_len && ( tmp.bv_val[0] == ' ' )) {
+	while( !BER_BVISEMPTY( &tmp ) && ( tmp.bv_val[0] == ' ' ) ) {
 		tmp.bv_len++;
 		tmp.bv_val--;
 	}
-	if( tmp.bv_len && ( tmp.bv_val[0] == '$' )) {
+	if( !BER_BVISEMPTY( &tmp ) && ( tmp.bv_val[0] == '$' ) ) {
 		tmp.bv_len++;
 		tmp.bv_val--;
 	} else {
 		return LDAP_INVALID_SYNTAX;
 	}
-	while( tmp.bv_len && ( tmp.bv_val[0] == ' ' )) {
+	while( !BER_BVISEMPTY( &tmp ) && ( tmp.bv_val[0] == ' ' ) ) {
 		tmp.bv_len++;
 		tmp.bv_val--;
 	}
@@ -2898,7 +2896,7 @@ nisNetgroupTripleValidate(
 	char *p, *e;
 	int commas = 0;
 
-	if ( val->bv_len == 0 ) {
+	if ( BER_BVISEMPTY( val ) ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -2941,7 +2939,7 @@ bootParameterValidate(
 {
 	char *p, *e;
 
-	if ( val->bv_len == 0 ) {
+	if ( BER_BVISEMPTY( val ) ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -3017,7 +3015,7 @@ firstComponentNormalize(
 	/* grab next word */
 	comp.bv_val = &val->bv_val[len];
 	len = val->bv_len - len;
-	for( comp.bv_len=0;
+	for( comp.bv_len = 0;
 		!ASCII_SPACE(comp.bv_val[comp.bv_len]) && comp.bv_len < len;
 		comp.bv_len++ )
 	{
