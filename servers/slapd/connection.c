@@ -1573,6 +1573,10 @@ connection_input(
 	op->o_preread_attrs = NULL;
 	op->o_postread_attrs = NULL;
 	op->o_vrFilter = NULL;
+	/* clear state if the connection is being reused from inactive */
+	if ( conn->c_conn_state == SLAP_C_INACTIVE ) {
+		memset( &conn->c_pagedresults_state, 0, sizeof( conn->c_pagedresults_state ) );
+	}
 	op->o_pagedresults_state = conn->c_pagedresults_state;
 
 	op->o_res_ber = NULL;
