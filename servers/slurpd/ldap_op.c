@@ -471,7 +471,7 @@ op_ldap_modrdn(
 #endif /* LDAP_DEBUG */
 
     /* Do the modrdn */
-    rc = ldap_rename2_s( ri->ri_ldp, re->re_dn, mi->mi_val, drdnflag, newsup );
+    rc = ldap_rename2_s( ri->ri_ldp, re->re_dn, mi->mi_val, newsup, drdnflag );
 
 	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &lderr);
     return( lderr );

@@ -38,12 +38,12 @@ static int	ldapport = 0;
 static int	not, verbose, contoper;
 static LDAP	*ld;
 
-static int domodrdn LDAP_P((
+static int domodrdn(
     LDAP	*ld,
     char	*dn,
     char	*rdn,
-    int		remove,		/* flag: remove old RDN */
-    char	*newSuperior));
+    char	*newSuperior,
+    int		remove );	/* flag: remove old RDN */
 
 int
 main(int argc, char **argv)
@@ -252,7 +252,7 @@ main(int argc, char **argv)
 
     rc = 0;
     if (havedn)
-	rc = domodrdn(ld, entrydn, rdn, remove, newSuperior);
+	rc = domodrdn( ld, entrydn, rdn, newSuperior, remove );
     else while ((rc == 0 || contoper) && fgets(buf, sizeof(buf), fp) != NULL) {
 	if ( *buf != '\0' ) {	/* blank lines optional, skip */
 	    buf[ strlen( buf ) - 1 ] = '\0';	/* remove nl */
@@ -262,7 +262,7 @@ main(int argc, char **argv)
                     perror( "strdup" );
                     return( EXIT_FAILURE );
 		}
-		rc = domodrdn(ld, entrydn, rdn, remove, newSuperior);
+		rc = domodrdn(ld, entrydn, rdn, newSuperior, remove );
 		havedn = 0;
 	    } else if ( !havedn ) {	/* don't have DN yet */
 	        if (( entrydn = strdup( buf )) == NULL ) {
@@ -284,8 +284,8 @@ static int domodrdn(
     LDAP	*ld,
     char	*dn,
     char	*rdn,
-    int		remove,		/* flag: remove old RDN */
-    char	*newSuperior)
+    char	*newSuperior,
+    int		remove ) /* flag: remove old RDN */
 {
     int	i;
 
@@ -299,7 +299,7 @@ static int domodrdn(
 	}
 
     if ( !not ) {
-	i = ldap_rename2_s( ld, dn, rdn, remove, newSuperior );
+	i = ldap_rename2_s( ld, dn, rdn, newSuperior, remove );
 	if ( i != LDAP_SUCCESS ) {
 	    ldap_perror( ld, "ldap_rename2_s" );
 	} else if ( verbose ) {

@@ -59,8 +59,8 @@ ldap_rename(
 	LDAP *ld,
 	LDAP_CONST char *dn,
 	LDAP_CONST char *newrdn,
-	int deleteoldrdn,
 	LDAP_CONST char *newSuperior,
+	int deleteoldrdn,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls,
 	int *msgidp )
@@ -141,16 +141,16 @@ ldap_rename2(
 	LDAP *ld,
 	LDAP_CONST char *dn,
 	LDAP_CONST char *newrdn,
-	int deleteoldrdn,
-	LDAP_CONST char *newSuperior )
+	LDAP_CONST char *newSuperior,
+	int deleteoldrdn )
 {
 	int msgid;
 	int rc;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_rename2\n", 0, 0, 0 );
 
-	rc = ldap_rename( ld, dn, newrdn, deleteoldrdn, newSuperior,
-		NULL, NULL, &msgid );
+	rc = ldap_rename( ld, dn, newrdn, newSuperior,
+		deleteoldrdn, NULL, NULL, &msgid );
 
 	return rc == LDAP_SUCCESS ? msgid : -1;
 }
@@ -173,13 +173,13 @@ ldap_modrdn2( LDAP *ld,
 	LDAP_CONST char *newrdn,
 	int deleteoldrdn )
 {
-	return ldap_rename2( ld, dn, newrdn, deleteoldrdn, NULL );
+	return ldap_rename2( ld, dn, newrdn, NULL, deleteoldrdn );
 }
 
 int
 ldap_modrdn( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *newrdn )
 {
-	return( ldap_rename2( ld, dn, newrdn, 1, NULL ) );
+	return( ldap_rename2( ld, dn, newrdn, NULL, 1 ) );
 }
 
 
@@ -188,8 +188,8 @@ ldap_rename_s(
 	LDAP *ld,
 	LDAP_CONST char *dn,
 	LDAP_CONST char *newrdn,
-	int deleteoldrdn,
 	LDAP_CONST char *newSuperior,
+	int deleteoldrdn,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls )
 {
@@ -197,8 +197,8 @@ ldap_rename_s(
 	int msgid;
 	LDAPMessage *res;
 
-	rc = ldap_rename( ld, dn, newrdn, deleteoldrdn,
-		newSuperior, sctrls, cctrls, &msgid );
+	rc = ldap_rename( ld, dn, newrdn, newSuperior,
+		deleteoldrdn, sctrls, cctrls, &msgid );
 
 	if( rc != LDAP_SUCCESS ) {
 		return rc;
@@ -218,21 +218,22 @@ ldap_rename2_s(
 	LDAP *ld,
 	LDAP_CONST char *dn,
 	LDAP_CONST char *newrdn,
-	int deleteoldrdn,
-	LDAP_CONST char *newSuperior )
+	LDAP_CONST char *newSuperior,
+	int deleteoldrdn )
 {
-	return ldap_rename_s( ld, dn, newrdn, deleteoldrdn, newSuperior, NULL, NULL );
+	return ldap_rename_s( ld, dn, newrdn, newSuperior,
+		deleteoldrdn, NULL, NULL );
 }
 
 int
 ldap_modrdn2_s( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *newrdn, int deleteoldrdn )
 {
-	return ldap_rename_s( ld, dn, newrdn, deleteoldrdn, NULL, NULL, NULL );
+	return ldap_rename_s( ld, dn, newrdn, NULL, deleteoldrdn, NULL, NULL );
 }
 
 int
 ldap_modrdn_s( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *newrdn )
 {
-	return ldap_rename_s( ld, dn, newrdn, 1, NULL, NULL, NULL );
+	return ldap_rename_s( ld, dn, newrdn, NULL, 1, NULL, NULL );
 }
 

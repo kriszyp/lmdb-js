@@ -884,8 +884,8 @@ ldap_rename LDAP_P((
 	LDAP *ld,
 	LDAP_CONST char *dn,
 	LDAP_CONST char *newrdn,
-	int deleteoldrdn,
 	LDAP_CONST char *newSuperior,
+	int deleteoldrdn,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls,
 	int *msgidp ));
@@ -895,8 +895,8 @@ ldap_rename_s LDAP_P((
 	LDAP *ld,
 	LDAP_CONST char *dn,
 	LDAP_CONST char *newrdn,
-	int deleteoldrdn,
 	LDAP_CONST char *newSuperior,
+	int deleteoldrdn,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls ));
 
@@ -926,16 +926,16 @@ ldap_rename2 LDAP_P((
 	LDAP *ld,
 	LDAP_CONST char *dn,
 	LDAP_CONST char *newrdn,
-	int deleteoldrdn,
-	LDAP_CONST char *newSuperior ));
+	LDAP_CONST char *newSuperior,
+	int deleteoldrdn ));
 
 LIBLDAP_F( int )
 ldap_rename2_s LDAP_P((
 	LDAP *ld,
 	LDAP_CONST char *dn,
 	LDAP_CONST char *newrdn,
-	int deleteoldrdn,
-	LDAP_CONST char *newSuperior));
+	LDAP_CONST char *newSuperior,
+	int deleteoldrdn ));
 
 LIBLDAP_F( int )
 ldap_modrdn LDAP_P((
