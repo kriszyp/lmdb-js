@@ -1,85 +1,131 @@
 # Copyright 1999-2000, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
-H1: SASL
+H1: Using SASL
 
-  OpenLDAP clients and servers are capable of providing authentication
-via the Simple Authentication Security Layer (SASL) system, which is
-explained in RFC 2222. There are several industry standard
+OpenLDAP clients and servers are capable of providing authentication
+via the {{TERM[expand]SASL}} ({{TERM:SASL}}) system, which is
+explained in {{REF:RFC2222}}. There are several industry standard
 authentication mechanisms that can be used with SASL, including
 Kerberos V4, GSSAPI, and some of the Digest mechanisms. The standard
 client tools provided with OpenLDAP, such as {{ldapsearch}}(1) and
 {{ldapmodify}}(1), will by default attempt to authenticate the user
 to the {{slapd}}(8) server using SASL. Basic authentication service
 can be set up by the LDAP administrator with a few steps, allowing
-users to be authenticated to the slapd server as their LDAP entry. With 
-a few extra steps, some users and services can be allowed to exploit
-SASL's authorization feature, allowing them to authenticate themselves
-and then switch their identity to that of another user or service.
+users to be authenticated to the slapd server as their LDAP entry.
+With a few extra steps, some users and services can be allowed to
+exploit SASL's authorization feature, allowing them to authenticate
+themselves and then switch their identity to that of another user
+or service.
 
-  Note that in the following text the term "{{user}}" is used to
+Note that in the following text the term "{{user}}" is used to
 describe a person who is connecting to the LDAP server via a client
-program, such as {{ldapsearch}}(1). The term can also be used to
+program, such as {{ldapsearch}}(1).  The term can also be used to
 describe a computer program that runs itself and accesses the LDAP
-database, such as a sendmail program or a nightly update program run
-out of cron. Thus {{"user"}} refers to any computer process connecting
-to the LDAP server, whether or not it has a human monitoring it.
+database, such as a sendmail program or a nightly update program
+run out of cron.  Thus {{"user"}} refers to any computer process
+connecting to the LDAP server, whether or not it has a human
+monitoring it.
+
+H2: Security Considerations
+
+SASL offers many different authentication mechanisms.  This section
+breifly outlines security considerations.
+
+Some mechanisms, such as PLAIN and LOGIN, offer no security over
+LDAP "simple" authentication.  Like "simple" authentication, such
+mechanisms should not be used unless you have adequate security
+protections in place.  It is recommended that these mechanism be
+used only in conjunction with {{TERM[expand]TLS}} (TLS).  Use of
+PLAIN and LOGIN are not discussed further in this document.
+
+The DIGEST-MD5 mechanism is the mandatory-to-implement authentication
+mechanism for LDAPv3.  Though DIGEST-MD5 is not a strong authentication
+mechanism in comparison with trusted third party authentication
+systems, it does offer significant protections against a number of
+attacks.  Unlike the CRAM-MD5 mechanism, it prevents chosen plaintext
+attacks.  DIGEST-MD5 is favored over weaker and even more dangerous
+use of plaintext password mechanisms.  The CRAM-MD5 mechanism is
+deprecated in favor of DIGEST-MD5.
+
+# Use of DIGEST-MD5 is discussed below.
+
+The KERBEROS_V4 mechanism utilizes Kerberos IV services to provide
+secure authentication services.  There are also GSSAPI based
+mechanisms which utilize Kerberos V.  Kerberos is viewed as a
+secure, distributed authentication system.
+Use of KERBEROS_V4 is discussed below.
+#Use of KERBEROS_V4 and GSSAPI are discussed below.
+
+The EXTERNAL mechanism utilizes authentication services provided
+by lower level network services such as {{TERM:TLS}} (TLS).  When
+used in conjunction with TLS X.509-based public key technology,
+EXTERNAL offers strong authentication.
+#Use of EXTERNAL is discussed in the TLS chapter.
+
+There are other strong authentication mechanisms to choose from,
+including OTP (one time passwords) and SRP (secure remote passwords).
+These mechanisms are not discussed in this document.
 
 
 H2: SASL Authentication
 
-  Getting basic SASL authentication running involves a few simple
-steps. The first step configures your slapd server environment so that
-it can communicate with client programs using the security system in
-place at your site. This usually involves setting up a service key, a
-public key, or other form of secret. The second step concerns mapping
-authentication identities to LDAP DN's, which depends on how entries
-are laid out in your directory. An explanation of the first step will
-be given in the next section using Kerberos V4 as an example
-mechanism. The steps necessary for your site's authentication
-mechanism will be similar, but a guide to every mechanism available
-under SASL is beyond the scope of this chapter. The next section after
-that describes the second step of mapping authentication identities to
-DN's.
+Getting basic SASL authentication running involves a few steps. The
+first step configures your slapd server environment so
+that it can communicate with client programs using the security
+system in place at your site. This usually involves setting up a
+service key, a public key, or other form of secret. The second step
+concerns mapping authentication identities to LDAP DN's, which
+depends on how entries are laid out in your directory. An explanation
+of the first step will be given in the next section using Kerberos
+V4 as an example mechanism. The steps necessary for your site's
+authentication mechanism will be similar, but a guide to every
+mechanism available under SASL is beyond the scope of this chapter.
+The next section after that describes the second step of mapping
+authentication identities to DN's.
 
 
-H3: MIT Kerberos V4
+H3: Kerberos V4
 
-  It will be assumed that you are familiar with the workings of MIT's
-Kerberos security system, and that your site has this mechanism in
-place. Your users should be familiar with authentication policy, are
-aware of how to receive credentials in a Kerberos ticket cache, and
-how to refresh expired credentials.
+This section describes the use of the SASL KERBEROS_V4 mechanism
+with OpenLDAP.  It will be assumed that you are familiar with the
+workings of Kerberos V4 security system, and that your site has
+either Kerberos V4 deployed.  Your users should be familiar with
+authentication policy, are aware of how to receive credentials in
+a Kerberos ticket cache, and how to refresh expired credentials.
 
-  Client programs will need to be able to obtain a session key for use
-when connecting to your LDAP server. This allows the LDAP server to
-know the identity of the user, and allows the client to know it is
-connecting to a legitimate server. If encryption layers are to be
-used, the session key can also be used to help negotiate that option.
+Client programs will need to be able to obtain a session key for
+use when connecting to your LDAP server. This allows the LDAP server
+to know the identity of the user, and allows the client to know it
+is connecting to a legitimate server. If encryption layers are to
+be used, the session key can also be used to help negotiate that
+option.
 
-  The slapd server runs the service called "{{ldap}}", and the server
-will require a srvtab file with a service key. SASL aware client
+The slapd server runs the service called "{{ldap}}", and the server
+will require a srvtab file with a service key.  SASL aware client
 programs will be obtaining an "ldap" service ticket with the user's
-ticket granting ticket (TGT), with the instance of the ticket matching
-the hostname of the OpenLDAP server. For example, if your realm is
-named EXAMPLE.COM and the slapd server is running on the host named
-directory.example.com, the /etc/srvtab file on the server will have a
-service key
+ticket granting ticket (TGT), with the instance of the ticket
+matching the hostname of the OpenLDAP server. For example, if your
+realm is named EXAMPLE.COM and the slapd server is running on the
+host named directory.example.com, the /etc/srvtab file on the server
+will have a service key
 
 >	ldap.directory@EXAMPLE.COM
 
-When a SASL client is authenticating a user to LDAP, it will request a
-session key for that same principal, either from the ticket cache or
-by obtaining a new one from the kerberos server. This will require the
-TGT to be available and valid in the cache as well. If it is not
-present or has expired, SASL will print out the message
+When a LDAP client is authenticating a user to the directory using
+the KERBEROS_IV mechanism, it will request a session key for that
+same principal, either from the ticket cache or by obtaining a new
+one from the Kerberos server.  This will require the TGT to be
+available and valid in the cache as well.  If it is not present or
+has expired, SASL will print out the message
 
 >	ldap_sasl_interactive_bind_s: Local error
 
 When the service ticket is obtained, it will be passed to the LDAP
-server as proof of the user's identity. The server will take the
-user's username and realm out of the service ticket using SASL library
-calls, and convert them into an {{authentication request DN}} of the form
+server as proof of the user's identity.  The server will take the
+user's username and realm out of the service ticket using SASL
+library calls, and convert them into an {{authentication request
+DN}} of the form
 
 >	uid=<username>,cn=<realm>,cn=<mechanism>,cn=authzid
 
@@ -90,10 +136,10 @@ authentication request DN would be:
 
 This authentication request DN by itself could be placed into ACL's
 and {{EX:groupOfNames}} "member" attributes, since it is of legitimate
-LDAP DN format. The next section, however, tells how to map that DN
-into the DN of a person's own LDAP entry.
+LDAP DN format. The next section, however, tells how to map that
+DN into the DN of a person's own LDAP entry.
 
-  Also note that this example, being for Kerberos, shows the <realm>
+Also note that this example, being for Kerberos, shows the <realm>
 portion of the DN being filled in with the Kerberos realm of the
 company. Several other authentication mechanisms do not emply the
 concept of a realm, so the ",cn=<realm>" portion of the authentication
@@ -102,12 +148,13 @@ request DN would not appear.
 
 H3: Mapping Authentication identities to LDAP entries
 
-  The authentication mechanism in the slapd server will use SASL
-library calls to obtain the authenticated user's "username", based on
-whatever underlying authentication mechanism was used.  This username is
-in the namespace of the authentication mechanism, and not in the LDAP
-namespace. As stated in the section above, that username is
-reformatted into an authentication request DN of the form
+The authentication mechanism in the slapd server will use SASL
+library calls to obtain the authenticated user's "username", based
+on whatever underlying authentication mechanism was used.  This
+username is in the namespace of the authentication mechanism, and
+not in the LDAP namespace. As stated in the section above, that
+username is reformatted into an authentication request DN of the
+form
 
 >	uid=<username>,cn=<realm>,cn=<mechanism>,cn=authzid
 
@@ -115,58 +162,60 @@ or
 
 >	uid=<username>,cn=<mechanism>,cn=authzid
 
-depending on whether or not <mechanism> employs the concept of "realms".
+depending on whether or not <mechanism> employs the concept of
+"realms".
 
-  It is not intended that you should add LDAP entries of the above
+It is not intended that you should add LDAP entries of the above
 form to your LDAP database. Chances are you have an LDAP entry for
-each of the people that will be authenticating to LDAP, laid out in
-your directory tree, and the tree does not start at cn=authzid. But if
-your site has a clear mapping between the "username" and an LDAP entry
-for the person, you will be able to configure your LDAP server to
-automatically map a user's authentication username to their
-{{authentication DN.}}
+each of the people that will be authenticating to LDAP, laid out
+in your directory tree, and the tree does not start at cn=authzid.
+But if your site has a clear mapping between the "username" and an
+LDAP entry for the person, you will be able to configure your LDAP
+server to automatically map a user's authentication username to
+their {{authentication DN.}}
 
-  The LDAP administrator will need to tell the slapd server how to map
-an authentication request DN to a user's authentication DN. This is
-done by adding one or more {{EX:saslRegexp}} directives to the 
-{{slapd.conf}}(5) file.  This directive takes two arguments:
+The LDAP administrator will need to tell the slapd server how to
+map an authentication request DN to a user's authentication DN.
+This is done by adding one or more {{EX:saslRegexp}} directives to
+the {{slapd.conf}}(5) file.  This directive takes two arguments:
 
 >	saslRegexp   <search pattern>   <replacement pattern>
 
-  The authentication request DN is compared to the search pattern
-using the regular expression functions {{regcomp}}() and
-{{regexec}}(), and if it matches, it is rewritten as the replacement
-pattern. If there are multiple {{EX:saslRegexp}} directives, only the first
-whose search pattern matches the authentication identity is used. The
-string that is output from the replacement pattern should be the
-authentication DN of the user, in a legitimate LDAP DN format. It can
-also be an LDAP URI, which is discussed below.
+The authentication request DN is compared to the search pattern
+using the regular expression functions {{regcomp}}() and {{regexec}}(),
+and if it matches, it is rewritten as the replacement pattern. If
+there are multiple {{EX:saslRegexp}} directives, only the first
+whose search pattern matches the authentication identity is used.
+The string that is output from the replacement pattern should be
+the authentication DN of the user, in a legitimate LDAP DN format.
+It can also be an LDAP URL, which is discussed below.
 
-  The search pattern can contain any of the regular expression
-characters listed in {{regexec}}(3C). The main characters of note are 
-dot ".", asterisk "*", and the open and close parenthesis "(" and ")".
-Essentially, the dot matches any character, the asterisk matches one
-or more characters, and terms in parenthesis are remembered for the
-replacement pattern.
+The search pattern can contain any of the regular expression
+characters listed in {{regexec}}(3C). The main characters of note
+are dot ".", asterisk "*", and the open and close parenthesis "("
+and ")".  Essentially, the dot matches any character, the asterisk
+matches one or more characters, and terms in parenthesis are
+remembered for the replacement pattern.
 
-  The replacement pattern will produce the final authentication DN of
-the user.  Anything from the authentication request DN that matched a
-string in parenthesis in the search pattern is stored in the variable
-"$1". That variable "$1" can appear in the replacement pattern, and
-will be replaced by the string from the authentication request DN. If
-there were multiple sets of parenthesis in the search pattern, the
-variables $2, $3, etc are used.
+The replacement pattern will produce the final authentication DN
+of the user.  Anything from the authentication request DN that
+matched a string in parenthesis in the search pattern is stored in
+the variable "$1". That variable "$1" can appear in the replacement
+pattern, and will be replaced by the string from the authentication
+request DN. If there were multiple sets of parenthesis in the search
+pattern, the variables $2, $3, etc are used.
 
-  For example, suppose the user's authentication identity is written
+For example, suppose the user's authentication identity is written
 as the DN string
 
 >	uid=ADAMSON,cn=EXAMPLE.COM,cn=KERBEROS_V4,cn=AUTHZID
 
-and the user's actual LDAP entry is 
+and the user's actual LDAP entry is
 
 >	uid=ADAMSON,ou=PERSON,dc=EXAMPLE,dc=COM
 
-The {{EX:saslRegexp}} directive in {{slapd.conf}}(5) could be written
+The {{EX:saslRegexp}} directive in {{slapd.conf}}(5) could be
+written
 
 >	saslRegexp 
 >	  uid=(.*),cn=example.com,cn=kerberos_v4,cn=authzid
@@ -178,152 +227,156 @@ An even more lenient rule could be written as
 >	  uid=(.*),.*cn=authzid 
 >	  uid=$1,ou=person,dc=example,dc=com
 
-  Be careful about setting the search pattern too leniently, however,
-since it may mistakenly allow people to become authenticated as a DN
-to which they should not have access. It is better to write several
-strict directives than one lenient directive which has security
-holes. If there is only one authentication mechanism in place at your
-site, and zero or one realms in use, you might be able to map between
-authentication identities and LDAP DN's with a single {{EX:saslRegexp}}
-directive.
+Be careful about setting the search pattern too leniently, however,
+since it may mistakenly allow people to become authenticated as a
+DN to which they should not have access. It is better to write
+several strict directives than one lenient directive which has
+security holes. If there is only one authentication mechanism in
+place at your site, and zero or one realms in use, you might be
+able to map between authentication identities and LDAP DN's with
+a single {{EX:saslRegexp}} directive.
 
-  Some sites may have people's DN's spread to multiple areas of the
+Some sites may have people's DN's spread to multiple areas of the
 LDAP tree, such as if there were an ou=accounting tree and an
-ou=engineering tree, with people interspersed between them. Or there
-may not be enough information in the authentication identity to
-isolate the DN, such as if the above person's LDAP entry looked like
+ou=engineering tree, with people interspersed between them. Or
+there may not be enough information in the authentication identity
+to isolate the DN, such as if the above person's LDAP entry looked
+like
 
 >	dn: cn=mark adamson,ou=person,dc=example,dc=com
 >	objectclass: Person
 >	cn: mark adamson
 >	uid: adamson
 
-In this case, the information in the authentication identity can only
-be used to search for the user's DN, not derive it directly. For both
-of these situations, and others, the replacement pattern in the
-{{EX:saslRegexp}} directives will need to produce an LDAP URI,
-described in the next section.
+In this case, the information in the authentication identity can
+only be used to search for the user's DN, not derive it directly.
+For both of these situations, and others, the replacement pattern
+in the {{EX:saslRegexp}} directives will need to produce an LDAP
+URL, described in the next section.
 
 
 H3: Performing searches for a person's DN
 
-  When there is not enough information in the authentication identity
+When there is not enough information in the authentication identity
 to derive a person's authentication DN directly, the {{EX:saslRegexp}}
 directives in the {{slapd.conf}}(5) file will need to produce an
-LDAP URI.  This URI will then be used to perform an internal search of
-the LDAP database to find the person's authentication DN.
+LDAP URL.  This URL will then be used to perform an internal search
+of the LDAP database to find the person's authentication DN.
 
-  An LDAP URI, similar to other URI's, is of the form
+An LDAP URL, similar to other URL's, is of the form
 
 >	ldap://<host>/<base>?<attrs>?<scope>?<filter>
 
-This contains all of the elements necessary to perform an LDAP search:
-the name of the server <host>, the LDAP DN search base <base>, the
-LDAP attributes to retrieve <attrs>, the search scope <scope> which is
-one of the three options "base", "one", or "sub", and lastly an LDAP
-search filter <filter>. Since the search is for an LDAP DN on the
-local machine, the <host> portion is ignored. By the same token the
-<attrs> field is also ignored since only the DN is of concern.  These
-two elements are left in the format of the URI to maintain the clarity
-of what information goes where in the string.
+This contains all of the elements necessary to perform an LDAP
+search:  the name of the server <host>, the LDAP DN search base
+<base>, the LDAP attributes to retrieve <attrs>, the search scope
+<scope> which is one of the three options "base", "one", or "sub",
+and lastly an LDAP search filter <filter>. Since the search is for
+an LDAP DN on the local machine, the <host> portion is ignored. By
+the same token the <attrs> field is also ignored since only the DN
+is of concern.  These two elements are left in the format of the
+URL to maintain the clarity of what information goes where in the
+string.
 
-   Suppose that the person in the example from above did in fact have
-an authentication username of "adamson" and that information was kept
-in the attribute "uid" in their LDAP entry. The {{EX:saslRegexp}}
+Suppose that the person in the example from above did in fact have
+an authentication username of "adamson" and that information was
+kept in the attribute "uid" in their LDAP entry. The {{EX:saslRegexp}}
 directive might be written as
 
 >	saslRegexp 
 >	  uid=(.*),cn=example.com,cn=kerberos_v4,cn=authzid  
 >	  ldap://localhost/ou=person,dc=example,dc=com??sub?uid=$1
 
-  This will initiate an internal search of the LDAP database inside the
-slapd server. If the search returns exactly one entry, it is accepted
-as being the DN of the user. If there are more than one entries
-returned, or if there are zero entries returned, the authentication
-fails and the user's connection is left bound as the authentication
-request DN.
+This will initiate an internal search of the LDAP database inside
+the slapd server. If the search returns exactly one entry, it is
+accepted as being the DN of the user. If there are more than one
+entries returned, or if there are zero entries returned, the
+authentication fails and the user's connection is left bound as
+the authentication request DN.
 
-  Note that if the search scope <scope> in the URI is "base", then the
-only LDAP entry that will be returned is the searchbase DN <base>, so
-the actual search of the database is skipped. This is equivalent to
-setting the replacement pattern in the directive to a DN directly, as
-in the section above.
+Note that if the search scope <scope> in the URL is "base", then
+the only LDAP entry that will be returned is the searchbase DN
+<base>, so the actual search of the database is skipped. This is
+equivalent to setting the replacement pattern in the directive to
+a DN directly, as in the section above.
 
-  The attributes that are used in the search filter <filter> in the
-URI should be indexed to allow faster searching. If they are not, the
-authentication step alone can take uncomfortably long periods, and
-users may assume the server is down.
+The attributes that are used in the search filter <filter> in the
+URL should be indexed to allow faster searching. If they are not,
+the authentication step alone can take uncomfortably long periods,
+and users may assume the server is down.
 
 
 H2: SASL Authorization
 
-  The SASL library offers a feature known as {{authorization}}, which
-allows an authenticated user to request that they act on the behalf of
-another user. This step occurs after the user has obtained an
-authentication DN, and involves sending an authorization identity to
-the server. The server will then make a decision on whether or not to
-allow the authorization to occur. If it is allowed, the user's LDAP
-connection is switched to have a binding DN derived from the
-authorization identity, and the LDAP session proceeds with the access
-of the new authorization DN.
+The SASL offers a feature known as {{authorization}}, which allows
+an authenticated user to request that they act on the behalf of
+another user.  This step occurs after the user has obtained an
+authentication DN, and involves sending an authorization identity
+to the server. The server will then make a decision on whether or
+not to allow the authorization to occur. If it is allowed, the
+user's LDAP connection is switched to have a binding DN derived
+from the authorization identity, and the LDAP session proceeds with
+the access of the new authorization DN.
 
-  The decision to allow an authorization to proceed depends on the
-rules and policies of the site where LDAP is running, and thus cannot
-be made by SASL alone. The SASL library leaves it up to the server to
-make the decision. The LDAP administrator sets the guidelines of who
-can authorize to what identity by adding information into the LDAP
-database entries.
+The decision to allow an authorization to proceed depends on the
+rules and policies of the site where LDAP is running, and thus
+cannot be made by SASL alone. The SASL library leaves it up to the
+server to make the decision. The LDAP administrator sets the
+guidelines of who can authorize to what identity by adding information
+into the LDAP database entries.
 
 
 H3: Uses of Authorization
 
-  This sort of service is useful when one entity needs to act on the
-behalf of many other users. For example, users may be directed to a
-web page to make changes to their personal information in their LDAP
-entry. The users authenticate to the web server to establish their
-identity, but the web server CGI cannot authenticate to the LDAP
-server as that user to make changes for them. Instead, the web server
-authenticates itself to the LDAP server as a service identity, say,
+This sort of service is useful when one entity needs to act on the
+behalf of many other users. For example, users may be directed to
+a web page to make changes to their personal information in their
+LDAP entry. The users authenticate to the web server to establish
+their identity, but the web server CGI cannot authenticate to the
+LDAP server as that user to make changes for them. Instead, the
+web server authenticates itself to the LDAP server as a service
+identity, say,
 
 >	cn=WebUpdate,dc=example,dc=com
 
 and then it will SASL authorize to the DN of the user. Once so
-authorized, the CGI makes changes to the LDAP entry of the user, and
-as far as the slapd server can tell for its ACLs, it is the user
-themself on the other end of the connection. The user could have
-connected to the LDAP server directly and authenticated as themself,
-but that would require the user to have more knowledge of LDAP clients,
-knowledge which the web page provides in an easier format.
+authorized, the CGI makes changes to the LDAP entry of the user,
+and as far as the slapd server can tell for its ACLs, it is the
+user themself on the other end of the connection. The user could
+have connected to the LDAP server directly and authenticated as
+themself, but that would require the user to have more knowledge
+of LDAP clients, knowledge which the web page provides in an easier
+format.
 
-  Authorization can also be used to limit access to an account that
-has greater access to the database. Such an account, perhaps even the
-root DN specified in {{slapd.conf}}(5), can have a strict list of
-people who can authorize to that DN. Changes to the LDAP database
-could then be only allowed by that DN, and in order to become that DN,
-users must first authenticate as one of the persons on the list. This
-allows for better auditing of who made changes to the LDAP database. 
-If people were allowed to authenticate directly to the priviliged
-account, possibly through the {{EX:rootpw}} {{slapd.conf}}(5)
-directive or through a {{EX:userPassword}} attribute, then auditing
-becomes more difficult.
+Authorization can also be used to limit access to an account that
+has greater access to the database. Such an account, perhaps even
+the root DN specified in {{slapd.conf}}(5), can have a strict list
+of people who can authorize to that DN. Changes to the LDAP database
+could then be only allowed by that DN, and in order to become that
+DN, users must first authenticate as one of the persons on the
+list. This allows for better auditing of who made changes to the
+LDAP database.  If people were allowed to authenticate directly to
+the priviliged account, possibly through the {{EX:rootpw}}
+{{slapd.conf}}(5) directive or through a {{EX:userPassword}}
+attribute, then auditing becomes more difficult.
 
-  Note that after a successful authorization, the original
-authentication DN in the LDAP connection is overwritten by the new DN
-from the authorization request. If a service program is able to
-authenticate itself as its own authentication DN and then authorize to
-other DN's, and it is planning on switching to several different
-identities during one LDAP session, it will need to authenticate itself 
-each time before authorizing to another DN. The slapd server does not
-keep record of the service program's ability to switch to other DN's.
-On authentication mechanisms like Kerberos this will not require
-multiple connections being made to the Kerberos server, since the
-user's TGT and "ldap" session key are valid for multiple uses for the
-several hours of the ticket lifetime.
+Note that after a successful authorization, the original authentication
+DN in the LDAP connection is overwritten by the new DN from the
+authorization request. If a service program is able to authenticate
+itself as its own authentication DN and then authorize to other
+DN's, and it is planning on switching to several different identities
+during one LDAP session, it will need to authenticate itself each
+time before authorizing to another DN. The slapd server does not
+keep record of the service program's ability to switch to other
+DN's.  On authentication mechanisms like Kerberos this will not
+require multiple connections being made to the Kerberos server,
+since the user's TGT and "ldap" session key are valid for multiple
+uses for the several hours of the ticket lifetime.
 
 
 H3: Authorization Identities
 
-  The authorization identity is sent to the slapd server via the -X
+The authorization identity is sent to the slapd server via the -X
 switch for {{ldapsearch}}(1) and other tools, or in the *authzid
 parameter to the {{lutil_sasl_defaults}}() call. The identity can
 be in one of two forms, either
@@ -334,59 +387,60 @@ or
 
 >	dn:<dn>
 
-In the first form, the <username> is from the same namespace as the
-authentication identities above. It is the user's username as it is
-refered to by the underlying authentication mechanism. Authorization
-identities of this form are converted into a DN format by the same
-function that the authentication process used, producing an
-{{authorization request DN}} of the form
+In the first form, the <username> is from the same namespace as
+the authentication identities above. It is the user's username as
+it is refered to by the underlying authentication mechanism.
+Authorization identities of this form are converted into a DN format
+by the same function that the authentication process used, producing
+an {{authorization request DN}} of the form
 
 >	uid=<username>,cn=<realm>,cn=authzid
 
-That authorization request DN is then run through the same {{EX:saslRegexp}}
-process to convert it into a legitimate authorization DN from the
-database. If it cannot be converted due to a failed search from an
-LDAP URI, the authorization request fails with "inappropriate access". 
-Otherwise, the DN string is now a legitimate authorization DN ready to
-undergo approval.
+That authorization request DN is then run through the same
+{{EX:saslRegexp}} process to convert it into a legitimate authorization
+DN from the database. If it cannot be converted due to a failed
+search from an LDAP URL, the authorization request fails with
+"inappropriate access".  Otherwise, the DN string is now a legitimate
+authorization DN ready to undergo approval.
 
-  If the authorization identity was provided in the second form, with
-a "dn:" prefix, the string after the prefix is already in
-authorization DN form, ready to undergo approval.
+If the authorization identity was provided in the second form, with
+a "dn:" prefix, the string after the prefix is already in authorization
+DN form, ready to undergo approval.
 
 
 H3: Authorization rules
 
-  Once slapd has the authorization DN, the actual approval process
-begins. There are two attributes that the LDAP administrator can put
-into LDAP entries to allow authorization:
+Once slapd has the authorization DN, the actual approval process
+begins. There are two attributes that the LDAP administrator can
+put into LDAP entries to allow authorization:
 
 >	saslAuthzTo
 >	saslAuthzFrom
 
-Both can be multivalued. The first is called a source rule, and it is
-placed into a person's authentication DN entry to tell what other
-authorization DN's the person is allowed to change to. The second form
-is called a destination rule, and it is placed into an authorization
-DN's entry to tell what authenticated DN a person must be coming from
-in order to switch to that authorization DN. The choice of which form
-to use is up to the administrator. Source rules are checked first in
-the person's authentication DN entry, and if none of the saslAuthzTo
-rules specify the authorization is permitted, the saslAuthzFrom rules
-in the authorization DN entry are then checked. If neither case
-specifies that the request be honored, the request is denied with an
-"inappropriate access" message. Since the default behaviour is to deny
-authorization requests, rules only specify that a request be allowed;
-there are no negative rules telling what authorizations to deny.
+Both can be multivalued. The first is called a source rule, and it
+is placed into a person's authentication DN entry to tell what
+other authorization DN's the person is allowed to change to. The
+second form is called a destination rule, and it is placed into an
+authorization DN's entry to tell what authenticated DN a person
+must be coming from in order to switch to that authorization DN.
+The choice of which form to use is up to the administrator. Source
+rules are checked first in the person's authentication DN entry,
+and if none of the saslAuthzTo rules specify the authorization is
+permitted, the saslAuthzFrom rules in the authorization DN entry
+are then checked. If neither case specifies that the request be
+honored, the request is denied with an "inappropriate access"
+message. Since the default behaviour is to deny authorization
+requests, rules only specify that a request be allowed; there are
+no negative rules telling what authorizations to deny.
 
-  The value(s) in the two attributes are of the same form as the
+The value(s) in the two attributes are of the same form as the
 output of the replacement pattern of a {{EX:saslRegexp}} directive:
-either a DN or an LDAP URI. For example, if a saslAuthzTo value is a
-DN, that DN is one the authenticated user can authorize to. On the
-other hand, if the saslAuthzTo value is an LDAP URI, the URI is used
-as an internal search of the LDAP database, and the authenticated user
-can become ANY DN returned by the search. If an LDAP entry looked
-like:
+either a DN or an LDAP URL. For example, if a saslAuthzTo value is
+a DN, that DN is one the authenticated user can authorize to. On
+the other hand, if the saslAuthzTo value is an LDAP URL, the URL
+is used as an internal search of the LDAP database, and the
+authenticated user can become ANY DN returned by the search. If an
+LDAP entry looked like:
 
 >	dn: cn=WebUpdate,dc=example,dc=com
 >	saslAuthzTo: ldap://host/dc=example,dc=com??sub?objectclass=Person
@@ -398,34 +452,35 @@ could authorize to any other LDAP entry under the search base
 
 H4: Notes on Authorization rules
 
-  An LDAP URI in a saslAuthzTo or saslAuthzFrom attribute will return
+An LDAP URL in a saslAuthzTo or saslAuthzFrom attribute will return
 a list of DN's, and that list must be linearly scanned. Searches
-which return a long list can cause the authorization process to take
-an uncomfortably long time. Also, searches should be performed on
-attributes that have been indexed by slapd.
+which return a long list can cause the authorization process to
+take an uncomfortably long time. Also, searches should be performed
+on attributes that have been indexed by slapd.
 
-  To help produce more sweeping rules for saslAuthzFrom and
-saslAuthzTo, the values of these attributes are allowed to be DN's
-with regular expression characters in them. This means a source rule
-like
+To help produce more sweeping rules for saslAuthzFrom and saslAuthzTo,
+the values of these attributes are allowed to be DN's with regular
+expression characters in them. This means a source rule like
 
 >	saslAuthzTo: uid=.*,dc=example,dc=com
 
 would allow that authenticated user to authorize to any DN that
 matches the regular expression pattern given. This regular expression
-comparison can be evaluated much faster than an LDAP search for "uid=*".
+comparison can be evaluated much faster than an LDAP search for
+"uid=*".
 
-  Also note that the values in an authorization rule must be one of the
-two forms: an LDAP URI or a DN (with or without regular expression
-characters). Anything that does not begin with "ldap://" is taken as a
-DN. It is not permissable to enter another authorization identity of
-the form "u:<username>" as an authorization rule. 
+Also note that the values in an authorization rule must be one of
+the two forms: an LDAP URL or a DN (with or without regular expression
+characters). Anything that does not begin with "ldap://" is taken
+as a DN. It is not permissable to enter another authorization
+identity of the form "u:<username>" as an authorization rule.
 
-  The decision of which type of rules to use, saslAuthzFrom or
-saslAuthzTo, will depend on the site's situation. For example, if the
-set of people who may become a given identity can easily be written as
-a search filter, then a single destination rule could be written. If
-the set of people is not easily defined by a search filter, and the
-set of people is small, it may be better to write a source rule in the
-entries of each of those people who should be allowed to perform the
-authorization.
+The decision of which type of rules to use, saslAuthzFrom or
+saslAuthzTo, will depend on the site's situation. For example, if
+the set of people who may become a given identity can easily be
+written as a search filter, then a single destination rule could
+be written. If the set of people is not easily defined by a search
+filter, and the set of people is small, it may be better to write
+a source rule in the entries of each of those people who should be
+allowed to perform the authorization.
+
