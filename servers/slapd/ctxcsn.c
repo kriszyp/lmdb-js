@@ -187,14 +187,11 @@ slap_get_csn(
 	if ( csn == NULL )
 		return LDAP_OTHER;
 
-	if ( manage_ctxcsn ) {
-		pending = (struct slap_csn_entry *) ch_calloc( 1, sizeof( struct slap_csn_entry ));
-	}
-
 	csn->bv_len = lutil_csnstr( csnbuf, len, 0, 0 );
 	csn->bv_val = csnbuf;
 
 	if ( manage_ctxcsn ) {
+		pending = (struct slap_csn_entry *) ch_calloc( 1, sizeof( struct slap_csn_entry ));
 		ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
 		pending->csn = ber_dupbv( NULL, csn );
 		pending->connid = op->o_connid;

@@ -1060,6 +1060,11 @@ syncrepl_del_nonpresent(
 }
 
 
+static struct berval gcbva[] = {
+	BER_BVC("top"),
+	BER_BVC("glue")
+};
+
 void
 syncrepl_add_glue(
 	syncinfo_t *si,
@@ -1076,67 +1081,75 @@ syncrepl_add_glue(
 	slap_callback cb;
 	Attribute	*a;
 	int	rc;
-	int levels = 0;
-	int i, j, k;
+	int suffrdns;
+	int i;
 	struct berval dn = {0, NULL};
-	struct berval pdn = {0, NULL};
 	struct berval ndn = {0, NULL};
-	struct berval rdn = {0, NULL};
 	Entry	*glue;
 	SlapReply	rs = {REP_RESULT};
-	Connection *conn = op->o_conn;
-	char* ptr;
+	char	*ptr, *comma;
 
 	op->o_tag = LDAP_REQ_ADD;
 	op->o_callback = &cb;
 	cb.sc_response = null_callback;
 	cb.sc_private = si;
 
-	ber_dupbv( &dn, &e->e_nname );
-	ber_dupbv( &pdn, &e->e_nname );
+	dn = e->e_name;
+	ndn = e->e_nname;
 
-	ptr = dn.bv_val;
-	while ( !be_issuffix ( be, &pdn )) {
-		dnParent( &dn, &pdn );
-		dn.bv_val = pdn.bv_val;
-		dn.bv_len = pdn.bv_len;
-		levels++;
-	}
-	ch_free( ptr );
-
-	for ( i = 0; i <= levels; i++ ) {
-		glue = (Entry*) ch_calloc( 1, sizeof(Entry) );
-		ber_dupbv( &dn, &e->e_nname );
-		j = levels - i;
-
-		ptr = dn.bv_val;
-		for ( k = 0; k < j; k++ ) {
-			dnParent( &dn, &pdn );
-			dn.bv_val = pdn.bv_val;
-			dn.bv_len = pdn.bv_len;
+	/* count RDNs in suffix */
+	if ( be->be_nsuffix[0].bv_len ) {
+		for (i=0, ptr=be->be_nsuffix[0].bv_val; ptr; ptr=strchr( ptr, ',' )) {
+			ptr++;
+			i++;
 		}
+		suffrdns = i+1;
+	} else {
+		/* suffix is "" */
+		suffrdns = 0;
+	}
 
-		dnPrettyNormal( 0, &dn, &pdn, &ndn, op->o_tmpmemctx );
-		ber_dupbv( &glue->e_name, &pdn );
+	/* advance to first child: count RDN separators since the prettyDNs
+	 * may not be exactly the same length
+	 */
+	for ( i = 0, ptr = NULL; i < suffrdns; i++ ) {
+		comma = strrchr(dn.bv_val, ',');
+		if ( ptr ) *ptr = ',';
+		if ( comma ) *comma = '\0';
+		ptr = comma;
+	}
+	if ( ptr ) {
+		*ptr++ = ',';
+		dn.bv_len -= ptr - dn.bv_val;
+		dn.bv_val = ptr;
+	}
+	/* the normalizedDNs are always the same length, no counting
+	 * required.
+	 */
+	if ( ndn.bv_len > be->be_nsuffix[0].bv_len ) {
+		comma = ndn.bv_val + ndn.bv_len - be->be_nsuffix[0].bv_len - 1;
+		*comma = '\0';
+		ptr = strrchr( ndn.bv_val, ',' ) + 1;
+		*comma = ',';
+		ndn.bv_len -= ptr - ndn.bv_val;
+		ndn.bv_val = ptr;
+	}
+
+	while ( ndn.bv_val > e->e_nname.bv_val ) {
+		glue = (Entry *) ch_calloc( 1, sizeof(Entry) );
+		ber_dupbv( &glue->e_name, &dn );
 		ber_dupbv( &glue->e_nname, &ndn );
-		ch_free( ptr );
-		ch_free( pdn.bv_val );
-		ch_free( ndn.bv_val );
 
 		a = ch_calloc( 1, sizeof( Attribute ));
 		a->a_desc = slap_schema.si_ad_objectClass;
 
 		a->a_vals = ch_calloc( 3, sizeof( struct berval ));
-		ber_str2bv( "top", strlen("top"), 1, &a->a_vals[0] );
-		ber_str2bv( "glue", strlen("glue"), 1, &a->a_vals[1] );
+		ber_dupbv( &a->a_vals[0], &gcbva[0] );
+		ber_dupbv( &a->a_vals[1], &gcbva[1] );
 		a->a_vals[2].bv_len = 0;
 		a->a_vals[2].bv_val = NULL;
 
-		a->a_nvals = ch_calloc( 3, sizeof( struct berval ));
-		ber_str2bv( "top", strlen("top"), 1, &a->a_nvals[0] );
-		ber_str2bv( "glue", strlen("glue"), 1, &a->a_nvals[1] );
-		a->a_nvals[2].bv_len = 0;
-		a->a_nvals[2].bv_val = NULL;
+		a->a_nvals = a->a_vals;
 
 		a->a_next = glue->e_attrs;
 		glue->e_attrs = a;
@@ -1145,41 +1158,44 @@ syncrepl_add_glue(
 		a->a_desc = slap_schema.si_ad_structuralObjectClass;
 
 		a->a_vals = ch_calloc( 2, sizeof( struct berval ));
-		ber_str2bv( "glue", strlen("glue"), 1, &a->a_vals[0] );
+		ber_dupbv( &a->a_vals[0], &gcbva[1] );
 		a->a_vals[1].bv_len = 0;
 		a->a_vals[1].bv_val = NULL;
 
-		a->a_nvals = ch_calloc( 2, sizeof( struct berval ));
-		ber_str2bv( "glue", strlen("glue"), 1, &a->a_nvals[0] );
-		a->a_nvals[1].bv_len = 0;
-		a->a_nvals[1].bv_val = NULL;
+		a->a_nvals = a->a_vals;
 
 		a->a_next = glue->e_attrs;
 		glue->e_attrs = a;
 
-		if ( !strcmp( e->e_nname.bv_val, glue->e_nname.bv_val )) {
-			op->o_req_dn = e->e_name;
-			op->o_req_ndn = e->e_nname;
-			op->ora_e = e;
-			rc = be->be_add ( op, &rs );
-			if ( rc == LDAP_SUCCESS )
-				be_entry_release_w( op, e );
-			else 
-				entry_free( e );
-			entry_free( glue );
+		op->o_req_dn = glue->e_name;
+		op->o_req_ndn = glue->e_nname;
+		op->ora_e = glue;
+		rc = be->be_add ( op, &rs );
+		if ( rc == LDAP_SUCCESS ) {
+			be_entry_release_w( op, glue );
 		} else {
-			op->o_req_dn = glue->e_name;
-			op->o_req_ndn = glue->e_nname;
-			op->ora_e = glue;
-			rc = be->be_add ( op, &rs );
-			if ( rc == LDAP_SUCCESS ) {
-				be_entry_release_w( op, glue );
-			} else {
-			/* incl. ALREADY EXIST */
-				entry_free( glue );
-			}
+		/* incl. ALREADY EXIST */
+			entry_free( glue );
 		}
+
+		/* Move to next child */
+		for (ptr = dn.bv_val-2; ptr > e->e_name.bv_val && *ptr != ','; ptr--);
+		if ( ptr == e->e_name.bv_val ) break;
+		dn.bv_val = ptr+1;
+		dn.bv_len = e->e_name.bv_len - (ptr-e->e_name.bv_val);
+		for (ptr = ndn.bv_val-2; ptr > e->e_nname.bv_val && *ptr != ','; ptr--);
+		ndn.bv_val = ptr+1;
+		ndn.bv_len = e->e_nname.bv_len - (ptr-e->e_nname.bv_val);
 	}
+
+	op->o_req_dn = e->e_name;
+	op->o_req_ndn = e->e_nname;
+	op->ora_e = e;
+	rc = be->be_add ( op, &rs );
+	if ( rc == LDAP_SUCCESS )
+		be_entry_release_w( op, e );
+	else 
+		entry_free( e );
 
 	return;
 }
@@ -1202,7 +1218,7 @@ static struct berval ssbva[] = {
 };
 
 static struct berval scbva[] = {
-	BER_BVC("subentry"),
+	BER_BVNULL,
 	BER_BVNULL
 };
 
@@ -1229,6 +1245,7 @@ syncrepl_updateCookie(
 	Entry* e = NULL;
 	int rc;
 
+	char syncrepl_cbuf[sizeof(CN_STR SYNCREPL_STR)];
 	struct berval slap_syncrepl_dn_bv = BER_BVNULL;
 	struct berval slap_syncrepl_cn_bv = BER_BVNULL;
 	
@@ -1260,6 +1277,7 @@ syncrepl_updateCookie(
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
+	if ( scbva[0].bv_val ) ch_free( scbva[0].bv_val );
 	ber_dupbv( &scbva[0], si->syncCookie );
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
@@ -1277,26 +1295,13 @@ syncrepl_updateCookie(
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
-#if 0
-	rc = slap_mods_check( modlist, 1, &text, txtbuf, textlen, NULL );
-
-	if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-				"syncrepl_updateCookie: mods check (%s)\n", text, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "syncrepl_updateCookie: mods check (%s)\n",
-			 text, 0, 0 );
-#endif
-	}
-#endif
+	mlnext = mod;
 
 	op->o_tag = LDAP_REQ_ADD;
 	rc = slap_mods_opattrs( op, modlist, modtail,
 							 &text,txtbuf, textlen );
 
-	for ( ml = modlist; ml != NULL; ml = mlnext ) {
-		mlnext = ml->sml_next;
+	for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
 		ml->sml_op = LDAP_MOD_REPLACE;
 	}
 
@@ -1312,18 +1317,17 @@ syncrepl_updateCookie(
 
 	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
 
-	ber_dupbv( &slap_syncrepl_cn_bv, (struct berval *) &slap_syncrepl_cn_bvc );
+	slap_syncrepl_cn_bv.bv_val = syncrepl_cbuf;
 	slap_syncrepl_cn_bv.bv_len = snprintf( slap_syncrepl_cn_bv.bv_val,
 										slap_syncrepl_cn_bvc.bv_len,
 										"cn=syncrepl%d", si->id );
 
-	build_new_dn( &slap_syncrepl_dn_bv, pdn, &slap_syncrepl_cn_bv, NULL );
-	dnPrettyNormal( NULL, &slap_syncrepl_dn_bv, &e->e_name, &e->e_nname, NULL );
+	build_new_dn( &slap_syncrepl_dn_bv, pdn, &slap_syncrepl_cn_bv, op->o_tmpmemctx );
+	ber_dupbv( &e->e_name, &slap_syncrepl_dn_bv );
+	ber_dupbv( &e->e_nname, &slap_syncrepl_dn_bv );
 
-	if ( slap_syncrepl_cn_bv.bv_val )
-		ch_free( slap_syncrepl_cn_bv.bv_val );
 	if ( slap_syncrepl_dn_bv.bv_val )
-		ch_free( slap_syncrepl_dn_bv.bv_val );
+		sl_free( slap_syncrepl_dn_bv.bv_val, op->o_tmpmemctx );
 
 	e->e_attrs = NULL;
 
@@ -1404,10 +1408,21 @@ update_cookie_retry:
 
 done :
 
-	if ( cnbva[0].bv_val )
+	if ( cnbva[0].bv_val ) {
 		ch_free( cnbva[0].bv_val );
+		cnbva[0].bv_val = NULL;
+	}
+	if ( scbva[0].bv_val ) {
+		ch_free( scbva[0].bv_val );
+		scbva[0].bv_val = NULL;
+	}
 
-	for ( ; ml != NULL; ml = mlnext ) {
+	if ( mlnext->sml_next ) {
+		slap_mods_free( mlnext->sml_next );
+		mlnext->sml_next = NULL;
+	}
+
+	for (ml = modlist ; ml != NULL; ml = mlnext ) {
 		mlnext = ml->sml_next;
 		free( ml );
 	}
