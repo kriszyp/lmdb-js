@@ -296,7 +296,7 @@ typedef struct bgbvr {
 ber_tag_t
 ber_get_stringbvr( bgbvr *b, int n )
 {
-	struct berval bv;
+	struct berval bv, *bvp = NULL;
 
 	if ( n )
 		b->tag = ber_next_element( b->ber, &b->len, b->last );
@@ -327,8 +327,13 @@ ber_get_stringbvr( bgbvr *b, int n )
 		return 0;
 	}
 
-	if ( ber_get_stringbv( b->ber, &bv ) == LBER_DEFAULT )
+	if ( b->choice == BvVec )
+		bvp = LBER_MALLOC( sizeof( struct berval ));
+
+	if ( ber_get_stringbv( b->ber, &bv ) == LBER_DEFAULT ) {
+		if ( bvp ) LBER_FREE( bvp );
 		return LBER_DEFAULT;
+	}
 
 	b->tag = ber_get_stringbvr( b, n+1 );
 	if ( b->tag == 0 )
@@ -342,10 +347,12 @@ ber_get_stringbvr( bgbvr *b, int n )
 			(*b->res.ba)[n] = bv;
 			break;
 		case BvVec:
-			(*b->res.bv)[n] = ber_bvdup( &bv );
+			(*b->res.bv)[n] = bvp;
+			*bvp = bv;
 			break;
 		}
 	} else {
+		if ( bvp ) LBER_FREE( bvp );
 		LBER_FREE( bv.bv_val );
 	}
 	return b->tag;
