@@ -50,7 +50,7 @@ bdb_filter_candidates(
 	ID *tmp,
 	ID *stack )
 {
-	int rc = -1;
+	int rc = 0;
 #ifdef NEW_LOGGING
 	LDAP_LOG ( INDEX, ENTRY, "=> bdb_filter_candidates\n", 0, 0, 0 );
 #else
@@ -59,7 +59,6 @@ bdb_filter_candidates(
 
 	switch ( f->f_choice ) {
 	case SLAPD_FILTER_COMPUTED:
-		rc = 0;
 		break;
 
 	case SLAPD_FILTER_DN_ONE:
@@ -150,7 +149,6 @@ bdb_filter_candidates(
 		{ struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 		BDB_IDL_ALL( bdb, ids );
 		}
-		rc = 0;
 		break;
 
 	case LDAP_FILTER_AND:
