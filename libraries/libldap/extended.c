@@ -337,6 +337,12 @@ ldap_parse_intermediate (
 
 	tag = ber_peek_tag( ber, &len );
 
+	/*
+	 * NOTE: accept intermediate and extended response tag values
+	 * as older versions of slapd(8) incorrectly used extended
+	 * response tags.
+	 * Should be removed when 2.2 is moved to Historic.
+	 */
 	if( tag == LDAP_TAG_IM_RES_OID || tag == LDAP_TAG_EXOP_RES_OID ) {
 		/* we have a resoid */
 		if( ber_scanf( ber, "a", &resoid ) == LBER_ERROR ) {
