@@ -99,6 +99,21 @@ Internet standard '.' format.
 will listen on the default LDAP port (389) unless this option is given
 to override the default.  A numeric port number is expected.
 .TP
+.BI \-T
+If
+.B slapd
+is built with support for Transport Layer Security and this option is
+given, it will bind on an additional port for TLS/SSL connections.
+Notice that this is LDAP over raw TLS, not TLS with SASL that works
+on the normal port.
+.TP
+.BI \-P " port\-number"
+Changes the port where 
+.B slapd
+will expect LDAP over raw TLS connections.  If this option is not given,
+the default port for this purpose (636) will be used.  A numeric port
+number is expected.
+.TP
 .BI \-u " user"
 .B slapd
 will run slapd with the specified user name or id, and that user's
