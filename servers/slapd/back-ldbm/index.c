@@ -262,7 +262,7 @@ static int index_at_values(
 			mask );
 	}
 
-	if( lang ) {
+	if( lang->bv_len ) {
 		char *dbname = NULL;
 		size_t tlen = strlen( type->sat_cname );
 		size_t llen = lang->bv_len;
