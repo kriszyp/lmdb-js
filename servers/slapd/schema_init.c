@@ -4116,7 +4116,7 @@ bootParameterValidate(
 
 	/* path */
 	for ( p++; p < e; p++ ) {
-		if ( !AD_CHAR( *p ) ) {
+		if ( !SLAP_PRINTABLE( *p ) ) {
 			return LDAP_INVALID_SYNTAX;
 		}
 	}
