@@ -134,7 +134,7 @@ int sasl_bind(
     char                *ndn,
     char                *mech,
     struct berval       *cred,
-    char                **edn)
+	char				**edn )
 {
 	struct berval response;
 	const char *errstr;
@@ -180,7 +180,7 @@ int sasl_bind(
 			callbacks, SASL_SECURITY_LAYER, &conn->c_sasl_bind_context );
 
 		if( sc != SASL_OK ) {
-			send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
+			send_ldap_result( conn, op, rc = LDAP_AUTH_METHOD_NOT_SUPPORTED,
 				NULL, NULL, NULL, NULL );
 		} else {
 			conn->c_authmech = ch_strdup( mech );
@@ -188,7 +188,7 @@ int sasl_bind(
 				cred->bv_val, cred->bv_len, (char **)&response.bv_val,
 				(unsigned *)&response.bv_len, &errstr );
 			if ( (sc != SASL_OK) && (sc != SASL_CONTINUE) ) {
-				send_ldap_result( conn, op, ldap_pvt_sasl_err2ldap( sc ),
+				send_ldap_result( conn, op, rc = ldap_pvt_sasl_err2ldap( sc ),
 					NULL, errstr, NULL, NULL );
 			}
 		}
@@ -196,7 +196,7 @@ int sasl_bind(
 		sc = sasl_server_step( conn->c_sasl_bind_context, cred->bv_val, cred->bv_len,
 			(char **)&response.bv_val, (unsigned *)&response.bv_len, &errstr );
 		if ( (sc != SASL_OK) && (sc != SASL_CONTINUE) ) {
-			send_ldap_result( conn, op, ldap_pvt_sasl_err2ldap( sc ),
+			send_ldap_result( conn, op, rc = ldap_pvt_sasl_err2ldap( sc ),
 				NULL, errstr, NULL, NULL );
 		}
 	}
@@ -206,30 +206,30 @@ int sasl_bind(
 
 		if ( ( sc = sasl_getprop( conn->c_sasl_bind_context, SASL_USERNAME,
 			(void **)&authzid ) ) != SASL_OK ) {
-			send_ldap_result( conn, op, ldap_pvt_sasl_err2ldap( sc ),
+			send_ldap_result( conn, op, rc = ldap_pvt_sasl_err2ldap( sc ),
 				NULL, NULL, NULL, NULL );
+
 		} else {
-			if ( *edn != NULL ) {
-				free( *edn );
-			}
-			if ( strcasecmp( authzid, "anonymous" ) == 0 ) {
-				*edn = ch_strdup( "" );
-			} else {
+			if( strncasecmp( authzid, "anonymous", sizeof("anonyous")-1 ) &&
+				( ( authzid[sizeof("anonymous")] == '\0' ) ||
+				( authzid[sizeof("anonymous")] == '@' ) ) )
+			{
 				*edn = ch_malloc( sizeof( "authzid=" ) + strlen( authzid ) );
 				strcpy( *edn, "authzid=" );
 				strcat( *edn, authzid );
 			}
-			/* let FE send result */
-			rc = 0;
+
+			send_ldap_result( conn, op, rc = LDAP_SUCCESS,
+				NULL, NULL, NULL, NULL );
 		}
+
 	} else if ( sc == SASL_CONTINUE ) {
 		/*
 		 * We set c_sasl_bind_in_progress because it doesn't appear
 		 * that connection.c sets this (unless do_bind() itself
 		 * returns LDAP_SASL_BIND_IN_PROGRESS).
 		 */
-		conn->c_sasl_bind_in_progress = 1;
-		send_ldap_sasl( conn, op, LDAP_SASL_BIND_IN_PROGRESS,
+		send_ldap_sasl( conn, op, rc = LDAP_SASL_BIND_IN_PROGRESS,
 			NULL, NULL, NULL, NULL,  &response );
 	} 
 

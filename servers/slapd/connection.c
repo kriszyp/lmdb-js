@@ -817,15 +817,11 @@ operations_error:
 		break;
 
 	case LDAP_REQ_BIND:
+		conn->c_sasl_bind_in_progress =
+			rc == LDAP_SASL_BIND_IN_PROGRESS ? 1 : 0;
+
 		if( conn->c_conn_state == SLAP_C_BINDING) {
 			conn->c_conn_state = SLAP_C_ACTIVE;
-		}
-		/*
-		 * Is this ever the case? For now, rely on
-		 * the backend to set this.
-		 */
-		if ( rc == LDAP_SASL_BIND_IN_PROGRESS ) {
-			conn->c_sasl_bind_in_progress = 1;
 		}
 	}
 
