@@ -34,6 +34,7 @@ moduledir = @libexecdir@$(ldap_subdir)
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@$(ldap_subdir)
+schemadir = $(sysconfdir)/schema
 
 EXEEXT = @EXEEXT@
 OBJEXT = @OBJEXT@

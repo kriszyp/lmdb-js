@@ -5,6 +5,9 @@ OpenLDAP 2.0.X Engineering
 	Fixed slapd/sasl no cred bug
 	Fixed slapd idletimeout lock bug (ITS#767)
 	Fixed slurpd TLS initialization bug (ITS#768)
+	Updated -llber bprint routine
+	Build Environment
+		Fixed VPATH schema install
 
 OpenLDAP 2.0.4 Release
 	Fixed clients printf/usage bugs (ITS#749)

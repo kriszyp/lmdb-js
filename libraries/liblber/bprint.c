@@ -144,12 +144,49 @@ ber_bprint(
 
 	assert( data != NULL );
 
+<<<<<<< bprint.c
     memset( out, '\0', BPLEN );
     for ( ;; ) {
 	if ( len < 1 ) {
 	    sprintf( buf, "\t%s\n", ( i == 0 ) ? "(end)" : out );
 		(*ber_pvt_log_print)( buf );
 	    break;
+=======
+	/* in case len is zero */
+	line[0] = '\n';
+	line[1] = '\0';
+	
+	for ( i = 0 ; i < len ; i++ ) {
+		int n = i % 16;
+		unsigned off;
+
+		if( !n ) {
+			if( i ) (*ber_pvt_log_print)( line );
+			memset( line, ' ', sizeof(line)-2 );
+			line[sizeof(line)-2] = '\n';
+			line[sizeof(line)-1] = '\0';
+
+			off = i % 0x0ffffU;
+
+			line[ 2 ] = hexdig[ 0x0f & (off >> 12) ];
+			line[ 3 ] = hexdig[ 0x0f & (off >>  8) ];
+			line[ 4 ] = hexdig[ 0x0f & (off >>  4) ];
+			line[ 5 ] = hexdig[ 0x0f & off ];
+			line[ 6 ] = ':';
+		}
+
+		off = BP_OFFSET + n*3 + ((n >= 8)?1:0);
+		line[ off   ] = hexdig[ 0x0f & ( data[i] >> 4 ) ];
+		line[ off+1 ] = hexdig[ 0x0f & data[i] ];
+		
+		off = BP_GRAPH + n;
+
+		if ( isprint( data[i] )) {
+			line[ BP_GRAPH + n ] = data[i];
+		} else {
+			line[ BP_GRAPH + n ] = '.';
+		}
+>>>>>>> 1.34
 	}
 
 #ifndef LDAP_HEX
