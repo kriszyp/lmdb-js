@@ -5,6 +5,7 @@ OpenLDAP 2.0.19 Engineering
 	Fixed back-ldbm not filter indexing
 	Fixed back-passwd e_ndn bug
 	Fixed slapd suffix "" bugs (ITS#1430)
+	Fixed slapd zero length replace bug
 	Fixed various memory leaks
 	Updated slapd emfile/enfile handling
 	Build environment

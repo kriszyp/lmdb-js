@@ -41,10 +41,8 @@ value_add(
 	}
 
 	for ( i = 0, j = 0; i < nn; i++ ) {
-		if ( addvals[i]->bv_len > 0 ) {
-			(*vals)[n + j] = ber_bvdup( addvals[i] );
-			if( (*vals)[n + j++] == NULL ) break;
-		}
+		(*vals)[n + j] = ber_bvdup( addvals[i] );
+		if( (*vals)[n + j++] == NULL ) break;
 	}
 	(*vals)[n + j] = NULL;
 
