@@ -76,9 +76,16 @@ ldap_pvt_thread_get_concurrency(void)
 }
 #endif
 
-/* These are first defined in Draft 7 */
+/* detachstate appeared in Draft 6, but without manifest constants.
+ * in Draft 7 they were called PTHREAD_CREATE_UNDETACHED and ...DETACHED.
+ * in Draft 8 on, ...UNDETACHED became ...JOINABLE.
+ */
 #ifndef PTHREAD_CREATE_JOINABLE
+#ifdef PTHREAD_CREATE_UNDETACHED
+#define	PTHREAD_CREATE_JOINABLE	PTHREAD_CREATE_UNDETACHED
+#else
 #define	PTHREAD_CREATE_JOINABLE	0
+#endif
 #endif
 
 #ifndef PTHREAD_CREATE_DETACHED
@@ -93,6 +100,8 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 {
 	int rtn;
 	pthread_attr_t attr;
+
+/* Always create the thread attrs, so we can set stacksize if we need to */
 #if HAVE_PTHREADS > 4
 	pthread_attr_init(&attr);
 #else
@@ -104,7 +113,7 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	pthread_attr_setstacksize( &attr, LDAP_PVT_THREAD_STACK_SIZE );
 #endif
 
-#if HAVE_PTHREADS > 4
+#if HAVE_PTHREADS > 5
 	detach = detach ? PTHREAD_CREATE_DETACHED : PTHREAD_CREATE_JOINABLE;
 #if HAVE_PTHREADS == 6
 	pthread_attr_setdetachstate(&attr, &detach);
@@ -117,6 +126,8 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	pthread_attr_destroy(&attr);
 #else
 	pthread_attr_delete(&attr);
+#endif
+#if HAVE_PTHREADS < 6
 	if( detach ) {
 		pthread_detach( thread );
 	}
@@ -155,7 +166,7 @@ ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 {
 #if HAVE_PTHREADS > 6
 	return pthread_kill( thread, signo );
-#elif HAVE_PTHREADS == 6
+#elif HAVE_PTHREADS > 4
 	if ( pthread_kill( thread, signo ) < 0 ) return errno;
 	return 0;
 #else
