@@ -70,10 +70,10 @@ libbackends.a: .backend
 	@ls -l libbackends.a
 
 version.c: libbackends.a $(OBJS) $(LDAP_LIBDEPEND) \
-		$(LDAP_LIBDIR)/liblber.a \
-		$(LDAP_LIBDIR)/liblldbm.a \
-		$(LDAP_LIBDIR)/liblavl.a \
-		$(LDAP_LIBDIR)/liblldif.a \
+		$(LDAP_LIBDIR)/libldbm.a \
+		$(LDAP_LIBDIR)/libavl.a \
+		$(LDAP_LIBDIR)/libldif.a \
+		$(LDAP_LIBDIR)/liblutil.a \
 		$(LDAP_LIBDIR)/liblthread.a 
 	$(RM) $@
 	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
