@@ -758,6 +758,32 @@ domodrdn( char *dn, char *newrdn, int deleteoldrdn )
 
 
 
+// for Windows we need local versions of the berval
+// free functions because the LDAP DLL uses a different
+// heap.
+
+static void
+l_ber_bvfree( struct berval *bv )
+{
+    if ( bv != NULL ) {
+	if ( bv->bv_val != NULL ) {
+	    free( bv->bv_val );
+	}
+	free( (char *) bv );
+    }
+}
+
+static void
+l_ber_bvecfree( struct berval **bv )
+{
+    int	i;
+
+    for ( i = 0; bv[i] != NULL; i++ ) {
+	l_ber_bvfree( bv[i] );
+    }
+    free( (char *) bv );
+}
+
 static void
 freepmods( LDAPMod **pmods )
 {
@@ -765,7 +791,7 @@ freepmods( LDAPMod **pmods )
 
     for ( i = 0; pmods[ i ] != NULL; ++i ) {
 	if ( pmods[ i ]->mod_bvalues != NULL ) {
-	    ber_bvecfree( pmods[ i ]->mod_bvalues );
+	    l_ber_bvecfree( pmods[ i ]->mod_bvalues );
 	}
 	if ( pmods[ i ]->mod_type != NULL ) {
 	    free( pmods[ i ]->mod_type );
