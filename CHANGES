@@ -1,6 +1,6 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.13 Engineering
+OpenLDAP 2.1.13 Release
 	Fixed back-bdb group ACL deadlock bug (ITS#2195)
 	Fixed back-bdb passwd hang bug (ITS#2122)
 	Fixed slapd RDN handling (ITS#2243)
@@ -19,7 +19,7 @@ OpenLDAP 2.1.13 Engineering
 	Updated back-ldap, back-meta, back-sql
 	Added slapd ACL caching
 	Added slapd attribute options enhancement
-	Added slapd ldapi// SASL EXTERNAL support
+	Added slapd ldapi:// SASL EXTERNAL support
 	Added liblutil passwd sanity checks (ITS#2159)
 	Build Environment
 		Check back-bdb requirement for BDB 4.1
