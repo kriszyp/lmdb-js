@@ -252,7 +252,7 @@ ldap_start_tls ( LDAP *ld,
 			LDAP_FREE(rspoid);
 		if (rspdata != NULL)
 			ber_bvfree(rspdata);
-		rc = ldap_pvt_tls_start( lc->lconn_sb, ld->ld_options.ldo_tls_ctx );
+		rc = ldap_pvt_tls_start( ld, lc->lconn_sb, ld->ld_options.ldo_tls_ctx );
 		if (rc != LDAP_SUCCESS)
 			return rc;
 	}
@@ -309,7 +309,7 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 	tls = (srv->lud_properties & LDAP_URL_USE_SSL);
 
 	if ( tls != 0 ) {
-		rc = ldap_pvt_tls_start( sb, ld->ld_options.ldo_tls_ctx );
+		rc = ldap_pvt_tls_start( ld, sb, ld->ld_options.ldo_tls_ctx );
 		if (rc != LDAP_SUCCESS)
 			return rc;
 	}
