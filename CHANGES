@@ -12,7 +12,7 @@ OpenLDAP 2.0.26 Engineering
 	Updated back-ldbm reindexing - slapindex rebuilds dn2id index
 	Build environment
 		Require version 1.5 if Cyrus SASL is present
-
+		Remove tempnam checking and replacment implementation
 
 OpenLDAP 2.0.25 Release
 	Fixed slapd extended op reqdata crash bug (ITS#1721)

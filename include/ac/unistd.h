@@ -55,12 +55,6 @@ LDAP_LUTIL_F(char*)(lutil_getpass) LDAP_P((const char *getpass));
 	LDAP_LIBC_V (int) optind, opterr, optopt;
 #endif
 
-#ifndef HAVE_TEMPNAM
-	LDAP_LUTIL_F(char *)(tempnam) LDAP_P((
-		const char *tmpdir,
-		const char *prefix));
-#endif
-
 /* use lutil file locking */
 #define ldap_lockf(x)	lutil_lockf(x)
 #define ldap_unlockf(x)	lutil_unlockf(x)

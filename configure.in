@@ -2108,15 +2108,8 @@ AC_CHECK_FUNCS(		\
 	sendto			\
 )
 
-dnl We actually may need to replace more than this.
-AC_REPLACE_FUNCS(getopt tempnam)
-
 if test "$ac_cv_func_getopt" != yes; then
     LIBSRCS="$LIBSRCS getopt.c"
-fi
-
-if test "$ac_cv_func_tempnam" != yes; then
-    LIBSRCS="$LIBSRCS tempnam.c"
 fi
 
 dnl ----------------------------------------------------------------

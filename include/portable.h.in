@@ -169,9 +169,6 @@
 /* Define if you have the gethostname function.  */
 #undef HAVE_GETHOSTNAME
 
-/* Define if you have the getopt function.  */
-#undef HAVE_GETOPT
-
 /* Define if you have the getpass function.  */
 #undef HAVE_GETPASS
 
@@ -303,9 +300,6 @@
 
 /* Define if you have the sysconf function.  */
 #undef HAVE_SYSCONF
-
-/* Define if you have the tempnam function.  */
-#undef HAVE_TEMPNAM
 
 /* Define if you have the thr_getconcurrency function.  */
 #undef HAVE_THR_GETCONCURRENCY
