@@ -60,9 +60,8 @@ ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rw )
 
 	rw->ltrw_valid = 0;
 
-#ifdef SLAP_CLEANUP
 	ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
-#endif
+
 	ldap_pvt_thread_mutex_destroy( &rw->ltrw_mutex );
 	ldap_pvt_thread_cond_destroy( &rw->ltrw_read );
 	ldap_pvt_thread_cond_destroy( &rw->ltrw_write );
