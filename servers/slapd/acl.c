@@ -1750,10 +1750,9 @@ aci_mask(
 				rc = 0;
 			free(ndn.bv_val);
 		}
-		return(rc);
-	}
+		return (rc);
 
-	if (ber_bvstrcasecmp( &aci_bv_self, &bv ) == 0) {
+	} else if (ber_bvstrcasecmp( &aci_bv_self, &bv ) == 0) {
 		if (dn_match(&op->o_ndn, &e->e_nname))
 			return(1);
 
