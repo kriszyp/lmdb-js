@@ -352,17 +352,19 @@ bdb_idl_fetch_key(
 		bdb_idl_cache_entry_t *matched_idl_entry;
 		DBT2bv( key, &idl_tmp.kstr );
 		idl_tmp.db = db;
-		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
+		ldap_pvt_thread_rdwr_rlock( &bdb->bi_idl_tree_rwlock );
 		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
 		                              bdb_idl_entry_cmp );
 		if ( matched_idl_entry != NULL ) {
 			BDB_IDL_CPY( ids, matched_idl_entry->idl );
+			ldap_pvt_thread_rdwr_runlock( &bdb->bi_idl_tree_rwlock );
+			ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
 			IDL_LRU_DELETE( bdb, matched_idl_entry );
 			IDL_LRU_ADD( bdb, matched_idl_entry );
-			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
+			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
 			return LDAP_SUCCESS;
 		}
-		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
+		ldap_pvt_thread_rdwr_runlock( &bdb->bi_idl_tree_rwlock );
 	}
 #endif
 
@@ -492,41 +494,45 @@ bdb_idl_fetch_key(
 		ee->idl_lru_next = NULL;
 		BDB_IDL_CPY( ee->idl, ids );
 		ber_dupbv( &ee->kstr, &idl_tmp.kstr );
-		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
+		ldap_pvt_thread_rdwr_wlock( &bdb->bi_idl_tree_rwlock );
 		if ( avl_insert( &bdb->bi_idl_tree, (caddr_t) ee,
 			bdb_idl_entry_cmp, avl_dup_error ))
 		{
 			ch_free( ee->kstr.bv_val );
 			ch_free( ee->idl );
 			ch_free( ee );
-		} else {
-			IDL_LRU_ADD( bdb, ee );
-			if ( ++bdb->bi_idl_cache_size > bdb->bi_idl_cache_max_size ) {
-				int i = 0;
-				while ( bdb->bi_idl_lru_tail != NULL && i < 10 ) {
-					ee = bdb->bi_idl_lru_tail;
-					if ( avl_delete( &bdb->bi_idl_tree, (caddr_t) ee,
-					            bdb_idl_entry_cmp ) == NULL ) {
+			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
+			return rc;
+		}
+		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
+		IDL_LRU_ADD( bdb, ee );
+		if ( ++bdb->bi_idl_cache_size > bdb->bi_idl_cache_max_size ) {
+			int i = 0;
+			while ( bdb->bi_idl_lru_tail != NULL && i < 10 ) {
+				ee = bdb->bi_idl_lru_tail;
+				if ( avl_delete( &bdb->bi_idl_tree, (caddr_t) ee,
+				            bdb_idl_entry_cmp ) == NULL ) {
 #ifdef NEW_LOGGING
-						LDAP_LOG( INDEX, ERR, 
-							"bdb_idl_fetch_key: AVL delete failed\n", 
-							0, 0, 0 );
+					LDAP_LOG( INDEX, ERR, 
+						"bdb_idl_fetch_key: AVL delete failed\n", 
+						0, 0, 0 );
 #else
-						Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
-							"AVL delete failed\n",
-							0, 0, 0 );
+					Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
+						"AVL delete failed\n",
+						0, 0, 0 );
 #endif
-					}
-					IDL_LRU_DELETE( bdb, ee );
-					i++;
-					--bdb->bi_idl_cache_size;
-					ch_free( ee->kstr.bv_val );
-					ch_free( ee->idl );
-					ch_free( ee );
 				}
+				IDL_LRU_DELETE( bdb, ee );
+				i++;
+				--bdb->bi_idl_cache_size;
+				ch_free( ee->kstr.bv_val );
+				ch_free( ee->idl );
+				ch_free( ee );
 			}
 		}
-		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
+
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
+		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
 	}
 #endif
 
@@ -569,7 +575,7 @@ bdb_idl_insert_key(
 		bdb_idl_cache_entry_t *matched_idl_entry, idl_tmp;
 		DBT2bv( key, &idl_tmp.kstr );
 		idl_tmp.db = db;
-		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
+		ldap_pvt_thread_rdwr_wlock( &bdb->bi_idl_tree_rwlock );
 		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
 		                              bdb_idl_entry_cmp );
 		if ( matched_idl_entry != NULL ) {
@@ -586,12 +592,14 @@ bdb_idl_insert_key(
 #endif
 			}
 			--bdb->bi_idl_cache_size;
+			ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
 			IDL_LRU_DELETE( bdb, matched_idl_entry );
+			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
 			free( matched_idl_entry->kstr.bv_val );
 			free( matched_idl_entry->idl );
 			free( matched_idl_entry );
 		}
-		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
+		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
 	}
 #endif
 
@@ -791,7 +799,7 @@ bdb_idl_delete_key(
 		bdb_idl_cache_entry_t *matched_idl_entry, idl_tmp;
 		DBT2bv( key, &idl_tmp.kstr );
 		idl_tmp.db = db;
-		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
+		ldap_pvt_thread_rdwr_wlock( &bdb->bi_idl_tree_rwlock );
 		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
 		                              bdb_idl_entry_cmp );
 		if ( matched_idl_entry != NULL ) {
@@ -808,12 +816,14 @@ bdb_idl_delete_key(
 #endif
 			}
 			--bdb->bi_idl_cache_size;
+			ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
 			IDL_LRU_DELETE( bdb, matched_idl_entry );
+			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
 			free( matched_idl_entry->kstr.bv_val );
 			free( matched_idl_entry->idl );
 			free( matched_idl_entry );
 		}
-		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
+		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
 	}
 #endif
 

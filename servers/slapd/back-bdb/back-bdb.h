@@ -145,7 +145,8 @@ struct bdb_info {
 	Avlnode		*bi_idl_tree;
 	bdb_idl_cache_entry_t	*bi_idl_lru_head;
 	bdb_idl_cache_entry_t	*bi_idl_lru_tail;
-	ldap_pvt_thread_mutex_t bi_idl_tree_mutex;
+	ldap_pvt_thread_rdwr_t bi_idl_tree_rwlock;
+	ldap_pvt_thread_mutex_t bi_idl_tree_lrulock;
 #endif
 };
 
