@@ -1189,6 +1189,12 @@ acl_regex_normalized_dn(
 	for ( p = str; p && p[ 0 ]; p++ ) {
 		/* escape */
 		if ( p[ 0 ] == '\\' ) {
+			/* 
+			 * if escaping a hex pair we should
+			 * increment p twice; however, in that 
+			 * case the second hex number does 
+			 * no harm
+			 */
 			p++;
 		}
 
@@ -1196,6 +1202,10 @@ acl_regex_normalized_dn(
 			if ( p[ 1 ] == ' ' ) {
 				char *q;
 			
+				/*
+				 * too much space should be 
+				 * an error if we are pedantic
+				 */
 				for ( q = &p[ 2 ]; q[ 0 ] == ' '; q++ ) {
 					/* DO NOTHING */ ;
 				}
