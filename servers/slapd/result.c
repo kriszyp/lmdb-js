@@ -612,19 +612,18 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ENTRY, 
-		"send_search_entry: conn %lu	dn=\"%s\"%s\n",
-		op->o_connid, rs->sr_entry->e_name.bv_val, op->ors_attrsonly ? " (attrsOnly)" : "" );
+	LDAP_LOG( OPERATION, ENTRY, "send_search_entry: conn %lu	dn=\"%s\"%s\n",
+		op->o_connid, rs->sr_entry->e_name.bv_val,
+		op->ors_attrsonly ? " (attrsOnly)" : "" );
 #else
-	Debug( LDAP_DEBUG_TRACE,
-		"=> send_search_entry: dn=\"%s\"%s\n",
-		rs->sr_entry->e_name.bv_val, op->ors_attrsonly ? " (attrsOnly)" : "", 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> send_search_entry: dn=\"%s\"%s\n",
+		rs->sr_entry->e_name.bv_val,
+		op->ors_attrsonly ? " (attrsOnly)" : "", 0 );
 #endif
 
 	mark = sl_mark( op->o_tmpmemctx );
 
-	if ( ! access_allowed( op, rs->sr_entry, ad_entry, NULL, ACL_READ, NULL ) )
-	{
+	if ( !access_allowed( op, rs->sr_entry, ad_entry, NULL, ACL_READ, NULL )) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, INFO, 
 			"send_search_entry: conn %lu access to entry (%s) not allowed\n", 
@@ -642,9 +641,9 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	edn = rs->sr_entry->e_nname.bv_val;
 
 #ifdef LDAP_CONNECTIONLESS
-	if (op->o_conn && op->o_conn->c_is_udp)
+	if (op->o_conn && op->o_conn->c_is_udp) {
 	    ber = op->o_res_ber;
-	else
+	} else
 #endif
 	{
 		ber_len_t	siz, len;
@@ -726,7 +725,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			}
 			a_flags = (char *)(e_flags + i);
 			memset( a_flags, 0, k );
-			for ( a = rs->sr_entry->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
+			for ( a=rs->sr_entry->e_attrs, i=0; a != NULL; a=a->a_next, i++ ) {
 				for ( j = 0; a->a_vals[j].bv_val != NULL; j++ );
 				e_flags[i] = a_flags;
 				a_flags += j;
@@ -735,18 +734,22 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			rc = filter_matched_values(op, rs->sr_entry->e_attrs, &e_flags) ; 
 			if ( rc == -1 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, ERR, 
-					"send_search_entry: conn %lu matched values filtering failed\n",
+				LDAP_LOG( OPERATION, ERR, "send_search_entry: "
+					"conn %lu matched values filtering failed\n",
 					op->o_connid ? op->o_connid : 0, 0, 0 );
 #else
 		    	Debug( LDAP_DEBUG_ANY,
 					"matched values filtering failed\n", 0, 0, 0 );
 #endif
 #ifdef LDAP_CONNECTIONLESS
-			if (!op->o_conn || op->o_conn->c_is_udp == 0)
+				if (!op->o_conn || op->o_conn->c_is_udp == 0)
 #endif
-				ber_free( ber, 1 );
-				send_ldap_error( op, rs, LDAP_OTHER, "matched values filtering error" );
+				{
+					ber_free( ber, 1 );
+				}
+
+				send_ldap_error( op, rs, LDAP_OTHER,
+					"matched values filtering error" );
 				goto error_return;
 			}
 		}
@@ -845,7 +848,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					if (!op->o_conn || op->o_conn->c_is_udp == 0)
 #endif
 					ber_free_buf( ber );
-					send_ldap_error( op, rs, LDAP_OTHER, "encoding values error" );
+					send_ldap_error( op, rs, LDAP_OTHER,
+						"encoding values error" );
 					goto error_return;
 				}
 			}
@@ -889,7 +893,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			 * Reuse previous memory - we likely need less space
 			 * for operational attributes
 			 */
-			tmp = sl_realloc( e_flags, i * sizeof(char *) + k, op->o_tmpmemctx );
+			tmp = sl_realloc( e_flags, i * sizeof(char *) + k,
+				op->o_tmpmemctx );
 			if ( tmp == NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, ERR, 
@@ -906,7 +911,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 #endif
 				ber_free( ber, 1 );
 	
-				send_ldap_error( op, rs, LDAP_OTHER, "not enough memory for matched values filtering" );
+				send_ldap_error( op, rs, LDAP_OTHER,
+					"not enough memory for matched values filtering" );
 				goto error_return;
 			}
 			e_flags = tmp;
@@ -930,11 +936,14 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					"matched values filtering failed\n", 0, 0, 0 );
 #endif
 #ifdef LDAP_CONNECTIONLESS
-			if (!op->o_conn || op->o_conn->c_is_udp == 0)
+				if (!op->o_conn || op->o_conn->c_is_udp == 0)
 #endif
-				ber_free( ber, 1 );
+				{
+					ber_free( ber, 1 );
+				}
 	
-				send_ldap_error( op, rs, LDAP_OTHER, "matched values filtering error" );
+				send_ldap_error( op, rs, LDAP_OTHER,
+					"matched values filtering error" );
 				goto error_return;
 			}
 		}
@@ -956,8 +965,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					continue;
 				}
 			} else {
-				if (!userattrs && !ad_inlist( desc, rs->sr_attrs ) )
-				{
+				if (!userattrs && !ad_inlist( desc, rs->sr_attrs ) ) {
 					continue;
 				}
 			}
@@ -973,8 +981,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				op->o_connid, desc->ad_cname.bv_val, 0 );
 #else
 			Debug( LDAP_DEBUG_ACL, "send_search_entry: access to attribute %s "
-					"not allowed\n",
-			    		desc->ad_cname.bv_val, 0, 0 );
+				"not allowed\n", desc->ad_cname.bv_val, 0, 0 );
 #endif
 
 			continue;
@@ -993,7 +1000,9 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 #ifdef LDAP_CONNECTIONLESS
 			if (!op->o_conn || op->o_conn->c_is_udp == 0)
 #endif
-			ber_free_buf( ber );
+			{
+				ber_free_buf( ber );
+			}
 			send_ldap_error( op, rs, LDAP_OTHER, "encoding description error" );
 
 			attrs_free( aa );
@@ -1037,8 +1046,11 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 #ifdef LDAP_CONNECTIONLESS
 					if (!op->o_conn || op->o_conn->c_is_udp == 0)
 #endif
-					ber_free_buf( ber );
-					send_ldap_error( op, rs, LDAP_OTHER, "encoding values error" );
+					{
+						ber_free_buf( ber );
+					}
+					send_ldap_error( op, rs, LDAP_OTHER,
+						"encoding values error" );
 					attrs_free( aa );
 					goto error_return;
 				}
@@ -1057,7 +1069,9 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 #ifdef LDAP_CONNECTIONLESS
 			if (!op->o_conn || op->o_conn->c_is_udp == 0)
 #endif
-			ber_free_buf( ber );
+			{
+				ber_free_buf( ber );
+			}
 			send_ldap_error( op, rs, LDAP_OTHER, "encode end error" );
 
 			attrs_free( aa );
@@ -1083,7 +1097,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	 */
 	if ( rs->sr_attrs != NULL ) {
 		for ( anp = rs->sr_attrs; anp->an_name.bv_val != NULL; anp++ ) {
-			rc = compute_evaluator( &ctx, anp->an_name.bv_val, rs->sr_entry, slapi_x_compute_output_ber );
+			rc = compute_evaluator( &ctx, anp->an_name.bv_val,
+				rs->sr_entry, slapi_x_compute_output_ber );
 			if ( rc == 1 ) {
 				break;
 			}
@@ -1094,7 +1109,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		 * when the user requested only user attributes. We'll let the
 		 * plugin decide whether to be naughty or not.
 		 */
-		rc = compute_evaluator( &ctx, "*", rs->sr_entry, slapi_x_compute_output_ber );
+		rc = compute_evaluator( &ctx, "*",
+			rs->sr_entry, slapi_x_compute_output_ber );
 	}
 	if ( rc == 1 ) {
 		ber_free_buf( ber );
@@ -1117,7 +1133,9 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	}
 
 #ifdef LDAP_CONNECTIONLESS
-	if( op->o_conn && op->o_conn->c_is_udp && op->o_protocol == LDAP_VERSION2 ) {
+	if( op->o_conn && op->o_conn->c_is_udp &&
+		op->o_protocol == LDAP_VERSION2 )
+	{
 		; /* empty, skip following if */
 	} else
 #endif
@@ -1137,43 +1155,43 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 #ifdef LDAP_CONNECTIONLESS
 		if (!op->o_conn || op->o_conn->c_is_udp == 0)
 #endif
-		ber_free_buf( ber );
+		{
+			ber_free_buf( ber );
+		}
 		send_ldap_error( op, rs, LDAP_OTHER, "encode entry end error" );
 		sl_release( mark, op->o_tmpmemctx );
 		return( 1 );
 	}
 
 #ifdef LDAP_CONNECTIONLESS
-	if (!op->o_conn || op->o_conn->c_is_udp == 0) {
+	if (!op->o_conn || op->o_conn->c_is_udp == 0)
 #endif
-	bytes = op->o_noop ? 0 : send_ldap_ber( op->o_conn, ber );
-	ber_free_buf( ber );
+	{
+		bytes = op->o_noop ? 0 : send_ldap_ber( op->o_conn, ber );
+		ber_free_buf( ber );
 
-	if ( bytes < 0 ) {
+		if ( bytes < 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR, 
-			   "send_search_entry: conn %lu  ber write failed.\n", 
-			   op->o_connid, 0, 0 );
+			LDAP_LOG( OPERATION, ERR, 
+				"send_search_entry: conn %lu  ber write failed.\n", 
+				op->o_connid, 0, 0 );
 #else
-		Debug( LDAP_DEBUG_ANY,
-			"send_search_entry: ber write failed\n",
-			0, 0, 0 );
+			Debug( LDAP_DEBUG_ANY,
+				"send_search_entry: ber write failed\n",
+				0, 0, 0 );
 #endif
 
-		sl_release( mark, op->o_tmpmemctx );
-		return -1;
-	}
-	rs->sr_nentries++;
+			sl_release( mark, op->o_tmpmemctx );
+			return -1;
+		}
+		rs->sr_nentries++;
 
-	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
-	num_bytes_sent += bytes;
-	num_entries_sent++;
-	num_pdu_sent++;
-	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
-
-#ifdef LDAP_CONNECTIONLESS
+		ldap_pvt_thread_mutex_lock( &num_sent_mutex );
+		num_bytes_sent += bytes;
+		num_entries_sent++;
+		num_pdu_sent++;
+		ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
 	}
-#endif
 
 	Statslog( LDAP_DEBUG_STATS2, "conn=%lu op=%lu ENTRY dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, rs->sr_entry->e_dn, 0, 0 );
