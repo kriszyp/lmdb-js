@@ -357,8 +357,12 @@ bdb_search(
 		if ( !manageDSAit && scope != LDAP_SCOPE_BASE &&
 			is_entry_referral( e ) )
 		{
-			struct berval **refs = get_entry_referrals(
+			struct berval **erefs = get_entry_referrals(
 				be, conn, op, e, NULL, scope );
+			struct berval **ref = referral_rewrite( eref, e->e_dn, NULL,
+				scope == LDAP_SCOPE_SUBTREE 
+					? LDAP_SCOPE_SUBTREE
+					: LDAP_SCOPE_BASE );
 
 			send_search_reference( be, conn, op,
 				e, refs, NULL, &v2refs );
