@@ -69,7 +69,7 @@ ldbm_back_close(
     BackendInfo	*bi
 )
 {
-	/* initialize the underlying database system */
+	/* terminate the underlying database system */
 	ldbm_shutdown();
 
 	return 0;
