@@ -58,9 +58,10 @@
 
 LDAP_BEGIN_DECL
 
-#define SLAP_ACL_HONOR_DISCLOSE	/* partially implemented */
 
 #ifdef LDAP_DEVEL
+#define SLAP_ACL_HONOR_DISCLOSE	/* partially implemented */
+#define SLAP_ACL_HONOR_MANAGE	/* not yet implemented */
 #define SLAP_DYNACL
 #define LDAP_COMP_MATCH
 #define LDAP_DYNAMIC_OBJECTS
