@@ -73,14 +73,14 @@ ldbm_back_search(
 		    /* need normalized dn below */
 		    ber_dupbv( &realbase, &e->e_nname );
 		} else {
-			if ((scope == LDAP_SCOPE_BASE) 
-    					&& (e = dn2entry_r( op->o_bd, &op->o_req_ndn &matched )))
+			if ((op->oq_search.rs_scope == LDAP_SCOPE_BASE) 
+    					&& (e = dn2entry_r( op->o_bd, &op->o_req_ndn, &matched )))
     			{
-				candidates = base_candidate(op->o_bd,e);
+				candidates = base_candidate(op->o_bd, e);
 				cache_return_entry_r( &li->li_cache, e );
 				goto searchit;
     			}
-    			cache_base_entry.e_nname = *nbase;
+    			cache_base_entry.e_nname = op->o_req_ndn;
     			e = &cache_base_entry;
 		}
 #endif /* LDAP_CACHING */
