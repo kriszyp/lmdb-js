@@ -493,12 +493,14 @@ UTF8StringNormalize(
 	struct berval *normalized )
 {
 	char *p, *q, *s;
+	int len = 0;
 
 	p = val->bv_val;
 
 	/* Ignore initial whitespace */
-	while ( ldap_utf8_isspace( p ) ) {
-		LDAP_UTF8_INCR( p );
+	/* All space is ASCII. All ASCII is 1 byte */
+	while ( ASCII_SPACE( *p ) ) {
+		p++;
 	}
 
 	if( *p == '\0' ) {
@@ -513,31 +515,28 @@ UTF8StringNormalize(
 	s = NULL;
 
 	while ( *p ) {
-		int len;
-
-		if ( ldap_utf8_isspace( p ) ) {
-			len = LDAP_UTF8_COPY(q,p);
-			s=q;
-			p+=len;
-			q+=len;
+		q += len;
+		if ( ASCII_SPACE( *p ) ) {
+			s = q - len;
+			len = 1;
+			*q = *p++;
 
 			/* Ignore the extra whitespace */
-			while ( ldap_utf8_isspace( p ) ) {
-				LDAP_UTF8_INCR( p );
+			while ( ASCII_SPACE( *p ) ) {
+				p++;
 			}
 		} else {
 			len = LDAP_UTF8_COPY(q,p);
 			s=NULL;
 			p+=len;
-			q+=len;
 		}
 	}
 
 	assert( normalized->bv_val < p );
-	assert( q <= p );
+	assert( q+len <= p );
 
 	/* cannot start with a space */
-	assert( !ldap_utf8_isspace(normalized->bv_val) );
+	assert( !ASCII_SPACE(normalized->bv_val[0]) );
 
 	/*
 	 * If the string ended in space, backup the pointer one
@@ -550,7 +549,9 @@ UTF8StringNormalize(
 	}
 
 	/* cannot end with a space */
-	assert( !ldap_utf8_isspace( LDAP_UTF8_PREV(q) ) );
+	assert( !ASCII_SPACE( *q ) );
+
+	q += len;
 
 	/* null terminate */
 	*q = '\0';
@@ -560,7 +561,7 @@ UTF8StringNormalize(
 	return LDAP_SUCCESS;
 }
 
-/* Returns Unicode cannonically normalized copy of a substring assertion
+/* Returns Unicode canonically normalized copy of a substring assertion
  * Skipping attribute description */
 static SubstringsAssertion *
 UTF8SubstringsassertionNormalize(
