@@ -16,7 +16,7 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-echo "### This test requires the ldap backend."
+echo "### This test requires the ldap backend and glue overlay."
 echo "### If available, and explicitly requested, it can use SASL bind;"
 echo "### note that SASL must be properly set up, and the requested"
 echo "### mechanism must be available.  Define SLAPD_USE_SASL={yes|<mech>},"
@@ -24,6 +24,11 @@ echo "### with \"yes\" defaulting to DIGEST-MD5 to enable SASL authc[/authz]."
 
 if test $BACKLDAP = "ldapno" ; then 
 	echo "LDAP backend not available, test skipped"
+	exit 0
+fi 
+
+if test $GLUE = "glueno" ; then 
+	echo "glue overlay not available, test skipped"
 	exit 0
 fi 
 
