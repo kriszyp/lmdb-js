@@ -505,6 +505,51 @@ if test $ol_link_tls = yes ; then
 	AC_DEFINE(HAVE_TLS, 1, [define if you have TLS])
 fi	
 
+dnl
+dnl Tests for reentrant functions necessary to build a
+dnl thread_safe -lldap.
+dnl
+AC_CHECK_FUNCS(		\
+	ctime_r			\
+	gethostbyaddr_r \
+	gethostbyname_r	\
+)
+
+if test "$ac_cv_func_ctime_r" = yes ; then
+	OL_FUNC_CTIME_R_NARGS
+dnl	OL_FUNC_CTIME_R_TYPE
+else
+	ol_cv_func_ctime_r_nargs=0
+fi
+
+if test "$ac_cv_func_gethostbyname_r" = yes ; then
+ 	OL_FUNC_GETHOSTBYNAME_R_NARGS
+else
+ 	ol_cv_func_gethostbyname_r_nargs=0
+fi
+ 
+if test "$ac_cv_func_gethostbyaddr_r" = yes ; then
+ 	OL_FUNC_GETHOSTBYADDR_R_NARGS
+else
+ 	ol_cv_func_gethostbyaddr_r_nargs=0
+fi
+
+if test "$ac_cv_func_ctime_r" = yes \
+	-a "$ol_cv_func_ctime_r_nargs" -ge 2 -a "$ol_cv_func_ctime_r_nargs" -le 3 \
+ 	-a "$ol_cv_func_gethostbyname_r_nargs" -ge 5 -a "$ol_cv_func_gethostbyname_r_nargs" -le 6 \
+ 	-a "$ol_cv_func_gethostbyaddr_r_nargs" -ge 5 -a "$ol_cv_func_gethostbyaddr_r_nargs" -le 6 \
+	-a "$ac_cv_func_gethostbyaddr_r" = yes \
+	-a "$ac_cv_func_gethostbyname_r" = yes \
+	; then
+
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_REENTRANT, 1)
+fi
+
+if test $ol_link_threads != no ; then
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE, 1)
+fi
+
+
 ol_link_threads=no
 if test $ol_with_threads = auto -o $ol_with_threads = yes \
 	-o $ol_with_threads = posix ; then
@@ -1578,47 +1623,6 @@ AC_CHECK_FUNCS(		\
 	sysconf			\
 	waitpid			\
 )
-
-# these functions are required to build a thread_safe -lldap
-AC_CHECK_FUNCS(		\
-	ctime_r			\
-	gethostbyaddr_r \
-	gethostbyname_r	\
-)
-
-if test "$ac_cv_func_ctime_r" = yes ; then
-	OL_FUNC_CTIME_R_NARGS
-	OL_FUNC_CTIME_R_TYPE
-else
-	ol_cv_func_ctime_r_nargs=0
-fi
-
-if test "$ac_cv_func_gethostbyname_r" = yes ; then
- 	OL_FUNC_GETHOSTBYNAME_R_NARGS
-else
- 	ol_cv_func_gethostbyname_r_nargs=0
-fi
- 
-if test "$ac_cv_func_gethostbyaddr_r" = yes ; then
- 	OL_FUNC_GETHOSTBYADDR_R_NARGS
-else
- 	ol_cv_func_gethostbyaddr_r_nargs=0
-fi
-
-if test "$ac_cv_func_ctime_r" = yes \
-	-a "$ol_cv_func_ctime_r_nargs" -ge 2 -a "$ol_cv_func_ctime_r_nargs" -le 3 \
- 	-a "$ol_cv_func_gethostbyname_r_nargs" -ge 5 -a "$ol_cv_func_gethostbyname_r_nargs" -le 6 \
- 	-a "$ol_cv_func_gethostbyaddr_r_nargs" -ge 5 -a "$ol_cv_func_gethostbyaddr_r_nargs" -le 6 \
-	-a "$ac_cv_func_gethostbyaddr_r" = yes \
-	-a "$ac_cv_func_gethostbyname_r" = yes \
-	; then
-
-	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_REENTRANT, 1)
-fi
-
-if test $ol_link_threads != no ; then
-	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE, 1)
-fi
 
 dnl We actually may need to replace more than this.
 AC_REPLACE_FUNCS(getopt tempnam)

@@ -567,6 +567,15 @@
 /* define if you have TLS */
 #undef HAVE_TLS
 
+/* set to the number of arguments ctime_r() expects */
+#undef CTIME_R_NARGS
+
+/* set to the number of arguments gethostbyname_r() expects */
+#undef GETHOSTBYNAME_R_NARGS
+
+/* set to the number of arguments gethostbyaddr_r() expects */
+#undef GETHOSTBYADDR_R_NARGS
+
 /* define if pthreads API compatible with final spec */
 #undef HAVE_PTHREADS_FINAL
 
@@ -635,18 +644,6 @@
 
 /* define if cross compiling */
 #undef CROSS_COMPILING
-
-/* set to the number of arguments ctime_r() expects */
-#undef CTIME_R_NARGS
-
-/* define if ctime_r() returns int */
-#undef CTIME_R_RETURNS_INT
-
-/* set to the number of arguments gethostbyname_r() expects */
-#undef GETHOSTBYNAME_R_NARGS
-
-/* set to the number of arguments gethostbyaddr_r() expects */
-#undef GETHOSTBYADDR_R_NARGS
 
 /* define if sys_errlist is declared in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
