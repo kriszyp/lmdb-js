@@ -615,9 +615,7 @@ bdb_initialize(
 
 	bi->bi_chk_referrals = bdb_referrals;
 	bi->bi_operational = bdb_operational;
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
 	bi->bi_has_subordinates = bdb_hasSubordinates;
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 	bi->bi_entry_release_rw = bdb_entry_release;
 
 	/*

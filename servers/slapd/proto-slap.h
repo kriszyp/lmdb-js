@@ -483,9 +483,7 @@ LDAP_SLAPD_F (int) get_vrFilter LDAP_P(( Connection *conn, BerElement *ber,
 LDAP_SLAPD_F (void) vrFilter_free LDAP_P(( ValuesReturnFilter *f ));
 LDAP_SLAPD_F (void) vrFilter2bv LDAP_P(( ValuesReturnFilter *f, struct berval *fstr ));
 
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
 LDAP_SLAPD_F (int) filter_has_subordinates LDAP_P(( Filter *filter ));
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 /*
  * filterentry.c

@@ -460,7 +460,6 @@ test_ava_filter(
 		}
 	}
 
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
 	if ( ava->aa_desc == slap_schema.si_ad_hasSubordinates 
 			&& be && be->be_has_subordinates ) {
 		int		hasSubordinates;
@@ -493,7 +492,6 @@ test_ava_filter(
 
 		return LDAP_COMPARE_FALSE;
 	}
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 	return( LDAP_COMPARE_FALSE );
 }
@@ -517,7 +515,6 @@ test_presence_filter(
 
 	a = attrs_find( e->e_attrs, desc );
 
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
 	if ( a == NULL && desc == slap_schema.si_ad_hasSubordinates ) {
 
 		/*
@@ -532,7 +529,6 @@ test_presence_filter(
 
 		return LDAP_COMPARE_FALSE;
 	}
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 	return a != NULL ? LDAP_COMPARE_TRUE : LDAP_COMPARE_FALSE;
 }

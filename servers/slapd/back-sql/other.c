@@ -70,10 +70,7 @@ backsql_operational(
 
 
 	if ( ( opattrs || ad_inlist( slap_schema.si_ad_hasSubordinates, attrs ) ) 
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
-			&& attr_find( e->e_attrs, slap_schema.si_ad_hasSubordinates ) == NULL
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
-			) {
+			&& attr_find( e->e_attrs, slap_schema.si_ad_hasSubordinates ) == NULL ) {
 		
 		rc = backsql_get_db_conn( be, conn, &dbh );
 		if ( rc != LDAP_SUCCESS ) {

@@ -1213,11 +1213,8 @@ struct slap_backend_db {
  * (in previous use there was a flaw with back-bdb and back-ldbm; now it 
  * is fixed).
  */
-#define SLAP_X_FILTER_HASSUBORDINATES
 
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
 #define		be_has_subordinates bd_info->bi_has_subordinates
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 #define		be_controls	bd_info->bi_controls
 
@@ -1418,11 +1415,9 @@ typedef int (BI_operational)  LDAP_P((Backend *bd,
 		struct slap_conn *c, struct slap_op *o,
 		Entry *e, AttributeName *attrs, int opattrs, Attribute **a ));
 
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
 typedef int (BI_has_subordinates) LDAP_P((Backend *bd,
 		struct slap_conn *c, struct slap_op *o,
 	        Entry *e, int *has_subordinates ));
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 typedef int (BI_connection_init) LDAP_P((BackendDB *bd,
 		struct slap_conn *c));
@@ -1517,9 +1512,7 @@ struct slap_backend_info {
 	BI_acl_attribute	*bi_acl_attribute;
 
 	BI_operational	*bi_operational;
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
 	BI_has_subordinates	*bi_has_subordinates;
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 	BI_connection_init	*bi_connection_init;
 	BI_connection_destroy	*bi_connection_destroy;
