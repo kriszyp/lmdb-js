@@ -16,6 +16,8 @@
 MONITORDB=${AC_MONITOR-no}
 PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
+REFINT=${AC_refint-refintno}
+UNIQUE=${AC_unique-uniqueno}
 WITHTLS=${AC_WITHTLS-yes}
 
 DATADIR=./testdata
@@ -52,6 +54,8 @@ P3SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist3.conf
 REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
 SCHEMACONF=$DATADIR/slapd-schema.conf
 GLUECONF=$DATADIR/slapd-glue.conf
+REFINTCONF=$DATADIR/slapd-refint.conf
+UNIQUECONF=$DATADIR/slapd-unique.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
@@ -117,6 +121,8 @@ LDIFPPOLICY=$DATADIR/ppolicy.ldif
 LDIFLANG=$DATADIR/test-lang.ldif
 LDIFLANGOUT=$DATADIR/lang-out.ldif
 LDIFREF=$DATADIR/referrals.ldif
+LDIFREFINT=$DATADIR/test-refint.ldif
+LDIFUNIQUE=$DATADIR/test-unique.ldif
 MONITOR=""
 REFDN="c=US"
 BASEDN="o=University of Michigan,c=US"
@@ -126,6 +132,8 @@ PASSWD=secret
 BABSDN="cn=Barbara Jensen,ou=Information Technology DivisioN,OU=People,o=University of Michigan,c=us"
 BJORNSDN="cn=Bjorn Jensen,ou=Information Technology DivisioN,OU=People,o=University of Michigan,c=us"
 JAJDN="cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Michigan,c=US"
+REFINTDN="cn=Manager,o=refint"
+UNIQUEDN="cn=Manager,o=unique"
 
 LOG1=$TESTDIR/slapd.1.log
 LOG2=$TESTDIR/slapd.2.log
