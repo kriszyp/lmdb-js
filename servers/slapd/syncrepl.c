@@ -1088,7 +1088,7 @@ done:
 	ber_free ( ber, 0 );
 	if ( rc != LDAP_SUCCESS ) {
 		entry_free( e );
-		e = NULL;
+		*entry = e = NULL;
 	}
 
 	return rc;
