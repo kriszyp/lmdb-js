@@ -1175,7 +1175,7 @@ operations_error:
 	return NULL;
 }
 
-static const Listener dummy_list = { {0, ""}, {0, ""} };
+static const Listener dummy_list = { BER_BVC(""), BER_BVC("") };
 
 int connection_client_setup(
 	ber_socket_t s,
@@ -1880,6 +1880,7 @@ connection_fake_init(
 	conn->c_send_search_entry = slap_send_search_entry;
 	conn->c_send_search_reference = slap_send_search_reference;
 	conn->c_listener = (Listener *)&dummy_list;
+	conn->c_peer_domain = slap_empty_bv;
 	conn->c_peer_name = slap_empty_bv;
 
 	/* set memory context */
