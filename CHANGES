@@ -1,7 +1,7 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.6 Engineering
-	Fixed slapd unsupported non-criticial control handling
+	Fixed slapd unsupported non-critical control handling
 	Fixed slapd value_find() uninitialized variable bug (ITS#2097)
 	Updated libldap_r Pth support (ITS#724) (ITS#1033)
 	Updated slapd adlist support
