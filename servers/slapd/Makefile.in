@@ -286,9 +286,11 @@ libbackends.a: .backend
 	fi
 	@ls -l libbackends.a; echo ""
 
-version.c: $(OBJS) $(SLAPD_LIBDEPEND) 
+version.c: Makefile
 	@-$(RM) $@
 	$(MKVERSION) -s -n Versionstr slapd > $@
+
+version.o: version.c $(OBJS) $(SLAPD_LIBDEPEND) 
 
 depend-local-srv: FORCE
 	@for i in back-* shell-backends slapi tools; do \
