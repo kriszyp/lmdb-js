@@ -227,18 +227,22 @@ attr_syntax_config(
 	    strcasecmp( argv[lasti], "cis" ) == 0 ) {
 		at->at_syntax_oid = "1.3.6.1.4.1.1466.115.121.1.15";
 		at->at_equality_oid = "2.5.13.2";
+		at->at_ordering_oid = "2.5.13.3";
+		at->at_substr_oid = "2.5.13.4";
 	} else if ( strcasecmp( argv[lasti], "telephone" ) == 0 ||
 	    strcasecmp( argv[lasti], "tel" ) == 0 ) {
 		at->at_syntax_oid = "1.3.6.1.4.1.1466.115.121.1.50";
 		at->at_equality_oid = "2.5.13.20";
+		at->at_substr_oid = "2.5.13.21";
 	} else if ( strcasecmp( argv[lasti], "dn" ) == 0 ) {
 		at->at_syntax_oid = "1.3.6.1.4.1.1466.115.121.1.12";
 		at->at_equality_oid = "2.5.13.1";
 	} else if ( strcasecmp( argv[lasti], "caseexactstring" ) == 0 ||
 	    strcasecmp( argv[lasti], "ces" ) == 0 ) {
 		at->at_syntax_oid = "1.3.6.1.4.1.1466.115.121.1.15";
-		/* notice: this is caseExactIA5Match */
-		at->at_equality_oid = "1.3.6.1.4.1.1466.109.114.1";
+		at->at_equality_oid = "2.5.13.5";
+		at->at_ordering_oid = "2.5.13.6";
+		at->at_substr_oid = "2.5.13.7";
 	} else if ( strcasecmp( argv[lasti], "binary" ) == 0 ||
 	    strcasecmp( argv[lasti], "bin" ) == 0 ) {
 		at->at_syntax_oid = "1.3.6.1.4.1.1466.115.121.1.5";
@@ -514,8 +518,7 @@ at_add(
 		if ( !strcmp(at->at_syntax_oid,
 			     "1.3.6.1.4.1.1466.115.121.1.15") ) {
 			if ( at->at_equality_oid &&
-			     !strcmp(at->at_equality_oid,
-				     "1.3.6.1.4.1.1466.109.114.1") ) {
+			     !strcmp(at->at_equality_oid, "2.5.13.5") ) {
 				sat->sat_syntax_compat = SYNTAX_CES;
 			} else {
 				sat->sat_syntax_compat = SYNTAX_CIS;
