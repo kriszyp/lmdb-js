@@ -132,8 +132,8 @@ typedef struct lber_memory_fns {
 #define LBER_SB_OPT_DRAIN		10
 #define LBER_SB_OPT_NEEDS_READ		11
 #define LBER_SB_OPT_NEEDS_WRITE		12
-#define LBER_SB_OPT_GET_MAX_INCOMING 13
-#define LBER_SB_OPT_SET_MAX_INCOMING 14
+#define LBER_SB_OPT_GET_MAX_INCOMING	13
+#define LBER_SB_OPT_SET_MAX_INCOMING	14
 /* Largest option used by the library */
 #define LBER_SB_OPT_OPT_MAX		14
 
@@ -201,6 +201,8 @@ typedef struct berval {
 	char		*bv_val;
 } BerValue;
 
+typedef BerValue *BVarray;	/* To distinguish from a single bv */
+
 /* this should be moved to lber-int.h */
 
 /*
@@ -259,6 +261,11 @@ ber_get_stringb LDAP_P((
 	BerElement *ber,
 	char *buf,
 	ber_len_t *len ));
+
+LBER_F( ber_tag_t )
+ber_get_stringbv LDAP_P((
+	BerElement *ber,
+	struct berval *bv ));
 
 LBER_F( ber_tag_t )
 ber_get_stringa LDAP_P((

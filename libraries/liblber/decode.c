@@ -279,39 +279,8 @@ ber_get_stringb(
 }
 
 ber_tag_t
-ber_get_stringa( BerElement *ber, char **buf )
+ber_get_stringbv( BerElement *ber, struct berval *bv )
 {
-	ber_len_t	datalen;
-	ber_tag_t	tag;
-
-	assert( ber != NULL );
-	assert( buf != NULL );
-
-	assert( LBER_VALID( ber ) );
-
-	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT ) {
-		*buf = NULL;
-		return LBER_DEFAULT;
-	}
-
-	if ( (*buf = (char *) LBER_MALLOC( datalen + 1 )) == NULL ) {
-		return LBER_DEFAULT;
-	}
-
-	if ( datalen > 0 && (ber_len_t) ber_read( ber, *buf, datalen ) != datalen ) {
-		LBER_FREE( *buf );
-		*buf = NULL;
-		return LBER_DEFAULT;
-	}
-	(*buf)[datalen] = '\0';
-
-	return tag;
-}
-
-ber_tag_t
-ber_get_stringal( BerElement *ber, struct berval **bv )
-{
-	ber_len_t	len;
 	ber_tag_t	tag;
 
 	assert( ber != NULL );
@@ -319,38 +288,58 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 
 	assert( LBER_VALID( ber ) );
 
-	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT ) {
-		*bv = NULL;
+	if ( (tag = ber_skip_tag( ber, &bv->bv_len )) == LBER_DEFAULT ) {
+		bv->bv_val = NULL;
 		return LBER_DEFAULT;
 	}
+
+	if ( (bv->bv_val = (char *) LBER_MALLOC( bv->bv_len + 1 )) == NULL ) {
+		return LBER_DEFAULT;
+	}
+
+	if ( bv->bv_len > 0 && (ber_len_t) ber_read( ber, bv->bv_val,
+		bv->bv_len ) != bv->bv_len ) {
+		LBER_FREE( bv->bv_val );
+		bv->bv_val = NULL;
+		return LBER_DEFAULT;
+	}
+	bv->bv_val[bv->bv_len] = '\0';
+
+	return tag;
+}
+
+ber_tag_t
+ber_get_stringa( BerElement *ber, char **buf )
+{
+	BerValue	bv;
+	ber_tag_t	tag;
+
+	assert( buf != NULL );
+
+	tag = ber_get_stringbv( ber, &bv );
+	*buf = bv.bv_val;
+
+	return tag;
+}
+
+ber_tag_t
+ber_get_stringal( BerElement *ber, struct berval **bv )
+{
+	ber_tag_t	tag;
+
+	assert( ber != NULL );
+	assert( bv != NULL );
 
 	*bv = (struct berval *) LBER_MALLOC( sizeof(struct berval) );
 	if ( *bv == NULL ) {
 		return LBER_DEFAULT;
 	}
 
-	if( len == 0 ) {
-		(*bv)->bv_val = NULL;
-		(*bv)->bv_len = 0;
-		return tag;
-	}
-
-	(*bv)->bv_val = (char *) LBER_MALLOC( len + 1 );
-	if ( (*bv)->bv_val == NULL ) {
+	tag = ber_get_stringbv( ber, *bv );
+	if ( tag == LBER_DEFAULT ) {
 		LBER_FREE( *bv );
 		*bv = NULL;
-		return LBER_DEFAULT;
 	}
-
-	if ( (ber_len_t) ber_read( ber, (*bv)->bv_val, len ) != len ) {
-		ber_bvfree( *bv );
-		*bv = NULL;
-		return LBER_DEFAULT;
-	}
-
-	((*bv)->bv_val)[len] = '\0';
-	(*bv)->bv_len = len;
-
 	return tag;
 }
 
@@ -479,6 +468,9 @@ ber_next_element(
 	return ber_peek_tag( ber, len );
 }
 
+/* Hopefully no one sends vectors with more elements than this */
+#define	TMP_SLOTS	1024
+
 /* VARARGS */
 ber_tag_t
 ber_scanf ( BerElement *ber,
@@ -562,8 +554,7 @@ ber_scanf ( BerElement *ber,
 
 		case 'o':	/* octet string in a supplied berval */
 			bval = va_arg( ap, struct berval * );
-			ber_peek_tag( ber, &bval->bv_len );
-			rc = ber_get_stringa( ber, &bval->bv_val );
+			rc = ber_get_stringbv( ber, bval );
 			break;
 
 		case 'O':	/* octet string - allocate & include length */
@@ -588,6 +579,8 @@ ber_scanf ( BerElement *ber,
 			break;
 
 		case 'v':	/* sequence of strings */
+		{
+			char *tmp[TMP_SLOTS];
 			sss = va_arg( ap, char *** );
 			*sss = NULL;
 			j = 0;
@@ -595,25 +588,30 @@ ber_scanf ( BerElement *ber,
 			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
 			    tag = ber_next_element( ber, &len, last ) )
 			{
-				char **save = *sss;
-
-				*sss = (char **) LBER_REALLOC( *sss,
-					(j + 2) * sizeof(char *) );
-
-				if( *sss == NULL ) {
-					save[j] = NULL;
-					ber_memvfree( (void **) save );
-					rc = LBER_DEFAULT;
-					goto breakout;
-				}
-
-				rc = ber_get_stringa( ber, &((*sss)[j]) );
+				rc = ber_get_stringa( ber, &tmp[j] );
 				j++;
+				assert(j < TMP_SLOTS);
 			}
-			if ( j > 0 ) (*sss)[j] = NULL;
+			if (j > 0 && rc != LBER_DEFAULT ) {
+				*sss = (char **)LBER_MALLOC( (j+1) * sizeof(char *));
+				if (*sss == NULL) {
+					rc = LBER_DEFAULT;
+				} else {
+					(*sss)[j] = NULL;
+					for (j--; j>=0; j--)
+						(*sss)[j] = tmp[j];
+				}
+			}
+			if ( rc == LBER_DEFAULT ) {
+				for (j--; j>=0; j--)
+					LBER_FREE(tmp[j]);
+			}
 			break;
+		}
 
 		case 'V':	/* sequence of strings + lengths */
+		{
+			struct berval *tmp[TMP_SLOTS];
 			bv = va_arg( ap, struct berval *** );
 			*bv = NULL;
 			j = 0;
@@ -621,23 +619,58 @@ ber_scanf ( BerElement *ber,
 			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
 			    tag = ber_next_element( ber, &len, last ) )
 			{
-				struct berval **save = *bv;
-
-				*bv = (struct berval **) LBER_REALLOC( *bv,
-					(j + 2) * sizeof(struct berval *) );
-		
-				if( *bv == NULL ) {
-					save[j] = NULL;
-					ber_bvecfree( save );
-					rc = LBER_DEFAULT;
-					goto breakout;
-				}
-
-				rc = ber_get_stringal( ber, &((*bv)[j]) );
+				rc = ber_get_stringal( ber, &tmp[j] );
 				j++;
+				assert( j < TMP_SLOTS);
 			}
-			if ( j > 0 ) (*bv)[j] = NULL;
+			if (j > 0 && rc != LBER_DEFAULT ) {
+				*bv = (struct berval **)LBER_MALLOC( (j+1) * sizeof(struct berval *));
+				if (*bv == NULL) {
+					rc = LBER_DEFAULT;
+				} else {
+					(*bv)[j] = NULL;
+					for (j--; j>=0; j--)
+						(*bv)[j] = tmp[j];
+				}
+			}
+			if ( rc == LBER_DEFAULT ) {
+				for (j--; j>=0; j--)
+					ber_bvfree(tmp[j]);
+			}
 			break;
+		}
+
+		case 'W':	/* bvarray */
+		{
+			struct berval tmp[TMP_SLOTS];
+			bvp = va_arg( ap, struct berval ** );
+			*bvp = NULL;
+			j = 0;
+			for ( tag = ber_first_element( ber, &len, &last );
+			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
+			    tag = ber_next_element( ber, &len, last ) )
+			{
+				rc = ber_get_stringbv( ber, &tmp[j] );
+				j++;
+				assert( j < TMP_SLOTS);
+			}
+			if (j > 0 && rc != LBER_DEFAULT ) {
+				*bvp = (struct berval *)LBER_MALLOC( (j+1) * sizeof(struct berval));
+				if (*bvp == NULL) {
+					rc = LBER_DEFAULT;
+				} else {
+					(*bvp)[j].bv_val = NULL;
+					(*bvp)[j].bv_len = 0;
+					for (j--; j>=0; j--)
+						(*bvp)[j] = tmp[j];
+				}
+			}
+			if ( rc == LBER_DEFAULT ) {
+				for (j--; j>=0; j--)
+					LBER_FREE(tmp[j].bv_val);
+			}
+			break;
+		}
 
 		case 'x':	/* skip the next element - whatever it is */
 			if ( (rc = ber_skip_tag( ber, &len )) == LBER_DEFAULT )
@@ -747,21 +780,8 @@ breakout:
 			break;
 
 		case 'v':	/* sequence of strings */
-			sss = va_arg( ap, char *** );
-			if ( *sss ) {
-				ber_memvfree( (void **) *sss );
-				*sss = NULL;
-			}
-			break;
-
 		case 'V':	/* sequence of strings + lengths */
-			bv = va_arg( ap, struct berval *** );
-			if ( *bv ) {
-				ber_bvecfree( *bv );
-				*bv = NULL;
-			}
-			break;
-
+		case 'W':	/* BVarray */
 		case 'n':	/* null */
 		case 'x':	/* skip the next element - whatever it is */
 		case '{':	/* begin sequence */
