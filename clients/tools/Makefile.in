@@ -2,8 +2,10 @@
 ##
 ## Makefile for LDAP tools
 ##
-SRCS	= ldapsearch.c ldapmodify.c ldapdelete.c ldapmodrdn.c ldappasswd.c
-OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o ldappasswd.o
+SRCS	= ldapsearch.c ldapmodify.c ldapdelete.c ldapmodrdn.c \
+		ldappasswd.c ldapwhoami.c
+OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o \
+		ldappasswd.o ldapwhoami.o
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
@@ -11,9 +13,11 @@ LDAP_LIBDIR= ../../libraries
 XLIBS =  -llutil -lldif -lldap -llber
 XXLIBS	= $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
 
-XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c ldpversion.c
+XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c \
+	ldpversion.c ldwversion.c
 
-PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn ldapadd ldappasswd
+PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn ldapadd \
+	ldappasswd ldapwhoami
 
 ldapsearch:	ldsversion.o
 	$(LTLINK) -o $@ ldapsearch.o ldsversion.o $(LIBS)
@@ -29,6 +33,9 @@ ldapmodrdn:	ldrversion.o
 
 ldappasswd:	ldpversion.o
 	$(LTLINK) -o $@ ldappasswd.o ldpversion.o $(LIBS)
+
+ldapwhoami:	ldwversion.o
+	$(LTLINK) -o $@ ldapwhoami.o ldwversion.o $(LIBS)
 
 ldapadd:	ldapmodify
 	@-$(RM) $@$(EXEEXT)
@@ -53,6 +60,10 @@ ldpversion.c: ldappasswd.o $(LDAP_LIBDEPEND)
 ldrversion.c: ldapmodrdn.o $(LDAP_LIBDEPEND)
 	@-$(RM) $@
 	$(MKVERSION) ldapmodrdn > $@
+
+ldwversion.c: ldappasswd.o $(LDAP_LIBDEPEND)
+	@-$(RM) $@
+	$(MKVERSION) ldapwhoami > $@
 
 install-local:	FORCE
 	-$(MKDIR) $(DESTDIR)$(bindir)
