@@ -30,8 +30,8 @@
  * 4. This notice may not be removed or altered.
  */
 
-#ifndef _PROTO_BACK_LDBM
-#define _PROTO_BACK_LDBM
+#ifndef _PROTO_BACK_MONITOR
+#define _PROTO_BACK_MONITOR
 
 #include <ldap_cdefs.h>
 
@@ -105,5 +105,5 @@ int monitor_subsys_time_update LDAP_P(( Operation *op, Entry *e ));
 
 LDAP_END_DECL
 
-#endif /* _PROTO_BACK_LDBM */
+#endif /* _PROTO_BACK_MONITOR */
 
