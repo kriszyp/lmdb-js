@@ -49,8 +49,12 @@ int lutil_entropy( char *buf, int nbytes )
 		static int counter = 0;
 		int n;
 
-		struct {
+		struct rdata_s {
 			int counter;
+
+			char *buf;
+			struct rdata_s *stack;
+
 			pid_t	pid;
 
 #ifdef HAVE_GETTIMEOFDAY
@@ -61,18 +65,25 @@ int lutil_entropy( char *buf, int nbytes )
 			unsigned long	junk;
 		} rdata;
 
+		/* make sure rdata differs for each process */
 		rdata.pid = getpid();
-		
+
+		/* make sure rdata differs for each program */
+		rdata.buf = buf;
+		rdata.stack = &rdata;
+
 		for( n = 0; n < nbytes; n += 16 ) {
 			struct lutil_MD5Context ctx;
 			char digest[16];
 
+			/* hopefully has good resolution */
 #ifdef HAVE_GETTIMEOFDAY
 			(void) gettimeofday( &rdata.tv, sizeof( rdata.tv ) );
 #else
 			(void) time( &rdata.time );
 #endif
 
+			/* make sure rdata differs */
 			rdata.counter = ++counter;
 			rdata.pid++;
 			rdata.junk++;
