@@ -181,7 +181,7 @@ static int	use_tls = 0;
 static char	*sortattr = NULL;
 static int	verbose, not, includeufn, vals2tmp, ldif;
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-static int pageSize;
+static int pageSize = 0;
 static ber_int_t searchControlSize = 0;
 static ber_int_t morePagedResults = 1;
 static struct berval cookie = { 0, NULL };
@@ -222,7 +222,7 @@ main( int argc, char **argv )
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 	BerElement	*pageber = NULL;
 	struct berval	*bvalptr = NULL;
-	int		num = 0, moreEntries, searchControlCrit = 0;
+	int		num = 0, searchControlCrit = 0;
 #endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 
@@ -336,7 +336,7 @@ main( int argc, char **argv )
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 		} else if ( strcasecmp( control, "pr" ) == 0 ) {
 			/* PagedResults control */
-			if ( searchControlSize !=0 ) {
+			if ( pageSize != 0 ) {
 				fprintf( stderr, "PagedResultsControl previously specified" );
 				return EXIT_FAILURE;
 			}
@@ -1025,7 +1025,7 @@ main( int argc, char **argv )
 
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 getNextPage:
-	if ( manageDSAit || noop || valuesReturnFilter || searchControlSize ) {
+	if ( manageDSAit || noop || valuesReturnFilter || pageSize ) {
 		int critical = 0;
 #else /* !LDAP_CONTROL_PAGEDRESULTS */
 	if ( manageDSAit || noop || valuesReturnFilter ) {
@@ -1119,7 +1119,7 @@ getNextPage:
 		}
 
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-		if ( searchControlSize ) {
+		if ( pageSize ) {
 			if (( pageber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
 			}
@@ -1227,6 +1227,11 @@ getNextPage:
 			printf("\n# with valuesReturnFilter %scontrol: %s",
 				valuesReturnFilter > 1 ? "critical " : "", vrFilter );
 		}
+		if ( pageSize ) {
+			printf("\n# with pagedResults %scontrol: size=%d",
+				searchControlCrit ? "critical " : "", 
+				searchControlSize );
+		}
 
 		printf( "\n#\n\n" );
 	}
@@ -1254,15 +1259,34 @@ getNextPage:
 	}
 
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-	if ( ( searchControlSize != 0 ) && ( morePagedResults != 0 ) ) { 
+	if ( ( pageSize != 0 ) && ( morePagedResults != 0 ) ) { 
+		char	buf[6];
+		int	i, moreEntries, tmpSize;
+
 		/* Loop to get the next pages when 
 		 * enter is pressed on the terminal.
 		 */
-		printf( "Press Enter for the next %d entries.\n",
+		printf( "Press [size] Enter for the next {%d|size} entries.\n",
 			(int)searchControlSize ); 
+		i = 0;
 		moreEntries = getchar();
 		while ( moreEntries != EOF && moreEntries != '\n' ) { 
+			if ( i < sizeof(buf) - 1 ) {
+				buf[i] = moreEntries;
+				i++;
+			}
 			moreEntries = getchar();
+		}
+		buf[i] = '\0';
+
+		if ( i > 0 && isdigit( buf[0] ) ) {
+			num = sscanf( buf, "%d", &tmpSize );
+			if ( num != 1 ) {
+				fprintf( stderr, "Invalid value for PagedResultsControl, %s.\n", buf);
+				return EXIT_FAILURE;
+
+			}
+			searchControlSize = (ber_int_t)tmpSize;
 		}
 
 		goto getNextPage;	
@@ -1383,7 +1407,7 @@ static int dosearch(
 			case LDAP_RES_SEARCH_RESULT:
 				rc = print_result( ld, msg, 1 );
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-				if ( searchControlSize != 0 ) { 
+				if ( pageSize != 0 ) { 
 					rc = parse_page_control( ld, msg, &cookie );
 				}
 #endif /* LDAP_CONTROL_PAGEDRESULTS */
@@ -1401,7 +1425,7 @@ static int dosearch(
 
 done:
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-	if ( searchControlSize == 0 ) { 
+	if ( pageSize == 0 ) { 
 		if ( ldif < 2 ) {
 			printf( "\n# numResponses: %d\n", nresponses );
 			if( nentries ) printf( "# numEntries: %d\n", nentries );

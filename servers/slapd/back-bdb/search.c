@@ -358,6 +358,12 @@ dn2entry_retry:
 		if ( op->o_pagedresults_state.ps_cookie == 0 ) {
 			id = 0;
 		} else {
+			if ( op->o_pagedresults_size == 0 ) {
+				send_search_result( conn, op, LDAP_SUCCESS,
+					NULL, "search abandoned by pagedResult size=0",
+					NULL, NULL, 0);
+				goto done;
+			}
 			for ( id = bdb_idl_first( candidates, &cursor );
 				id != NOID && id <= (ID)( op->o_pagedresults_state.ps_cookie );
 				id = bdb_idl_next( candidates, &cursor ) );
@@ -1114,20 +1120,13 @@ send_pagerequest_response(
 	respcookie = ( PagedResultsCookie )lastid;
 	conn->c_pagedresults_state.ps_cookie = respcookie;
 	cookie.bv_len = sizeof( respcookie );
-#if 0
-	cookie.bv_val = ber_memalloc( sizeof( respcookie ) );
-	AC_MEMCPY( cookie.bv_val, &respcookie, sizeof( respcookie ) );
-#else
 	cookie.bv_val = (char *)&respcookie;
-#endif
-/*
-	conn->c_pagedresults_state.ps_cookie = cookie.bv_val;
-*/
 
+	/*
+	 * FIXME: we should consider sending an estimate of the entries
+	 * left, after appropriate security check is done
+	 */
 	ber_printf( ber, "{iO}", 0, &cookie ); 
-#if 0
-	ber_memfree( cookie.bv_val );
-#endif
 
 	if ( ber_flatten( ber, &bvalp ) == LBER_ERROR ) {
 		goto done;

@@ -518,7 +518,7 @@ static int parsePagedResults (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if( size <= 0 ) {
+	if( size < 0 ) {
 		*text = "paged results control size invalid";
 		return LDAP_PROTOCOL_ERROR;
 	}
