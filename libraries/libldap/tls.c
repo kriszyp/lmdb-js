@@ -658,16 +658,54 @@ ldap_pvt_tls_get_handle( LDAP *ld )
 	return ldap_pvt_tls_sb_handle( ld->ld_sb );
 }
 
-const char *
-ldap_pvt_tls_get_peer( LDAP *ld )
+int
+ldap_pvt_tls_get_strength( void *s )
 {
-    return NULL;
+    SSL_CIPHER *c;
+
+    c = SSL_get_current_cipher((SSL *)s);
+    return SSL_CIPHER_get_bits(c, NULL);
+}
+
+
+const char *
+ldap_pvt_tls_get_peer( void *s )
+{
+    X509 *x;
+    X509_NAME *xn;
+    char buf[2048], *p;
+
+    x = SSL_get_peer_certificate((SSL *)s);
+
+    if (!x)
+    	return NULL;
+    
+    xn = X509_get_subject_name(x);
+    p = LDAP_STRDUP(X509_NAME_oneline(xn, buf, sizeof(buf)));
+    X509_free(x);
+    return p;
 }
 
 const char *
-ldap_pvt_tls_get_peer_issuer( LDAP *ld )
+ldap_pvt_tls_get_peer_issuer( void *s )
 {
+#if 0	/* currently unused; see ldap_pvt_tls_get_peer() if needed */
+    X509 *x;
+    X509_NAME *xn;
+    char buf[2048], *p;
+
+    x = SSL_get_peer_certificate((SSL *)s);
+
+    if (!x)
+    	return NULL;
+    
+    xn = X509_get_issuer_name(x);
+    p = LDAP_STRDUP(X509_NAME_oneline(xn, buf, sizeof(buf)));
+    X509_free(x);
+    return p;
+#else
     return NULL;
+#endif
 }
 
 int
