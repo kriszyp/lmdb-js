@@ -80,32 +80,48 @@ ldap_back_map_init ( struct ldapmap *lm, struct ldapmapping **m )
 	*m = mapping;
 }
 
+int
+ldap_back_mapping ( struct ldapmap *map, struct berval *s, struct ldapmapping **m,
+	int remap )
+{
+	Avlnode *tree;
+	struct ldapmapping fmapping;
+
+	assert( m );
+
+	if ( remap == BACKLDAP_REMAP ) {
+		tree = map->remap;
+	} else {
+		tree = map->map;
+	}
+
+	fmapping.src = *s;
+	*m = (struct ldapmapping *)avl_find( tree, (caddr_t)&fmapping, mapping_cmp );
+	if ( *m == NULL ) {
+		return map->drop_missing;
+	}
+
+	return 0;
+}
+
 void
 ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
 	int remap )
 {
-	Avlnode *tree;
-	struct ldapmapping *mapping, fmapping;
+	struct ldapmapping *mapping;
 
-	if (remap == BACKLDAP_REMAP)
-		tree = map->remap;
-	else
-		tree = map->map;
-
-	bv->bv_len = 0;
-	bv->bv_val = NULL;
-	fmapping.src = *s;
-	mapping = (struct ldapmapping *)avl_find( tree, (caddr_t)&fmapping, mapping_cmp );
-	if (mapping != NULL) {
-		if ( mapping->dst.bv_val )
+	BER_BVZERO( bv );
+	( void )ldap_back_mapping( map, s, &mapping, remap );
+	if ( mapping != NULL ) {
+		if ( !BER_BVISNULL( &mapping->dst ) ) {
 			*bv = mapping->dst;
+		}
 		return;
 	}
 
-	if (!map->drop_missing)
+	if ( !map->drop_missing ) {
 		*bv = *s;
-
-	return;
+	}
 }
 
 int

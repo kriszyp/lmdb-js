@@ -93,14 +93,24 @@ ldap_back_add(
 
 	isupdate = be_shadow_update( op );
 	for (i=0, a=op->oq_add.rs_e->e_attrs; a; a=a->a_next) {
+		int	is_oc = 0;
+
 		if ( !isupdate && a->a_desc->ad_type->sat_no_user_mod  ) {
 			continue;
 		}
 
-		ldap_back_map(&li->rwmap.rwm_at, &a->a_desc->ad_cname, &mapped,
-				BACKLDAP_MAP);
-		if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
-			continue;
+		if ( a->a_desc == slap_schema.si_ad_objectClass
+				|| a->a_desc == slap_schema.si_ad_structuralObjectClass )
+		{
+			is_oc = 1;
+			mapped = a->a_desc->ad_cname;
+
+		} else {
+			ldap_back_map(&li->rwmap.rwm_at, &a->a_desc->ad_cname, &mapped,
+					BACKLDAP_MAP);
+			if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
+				continue;
+			}
 		}
 
 		attrs[i] = (LDAPMod *)ch_malloc(sizeof(LDAPMod));
@@ -111,20 +121,54 @@ ldap_back_add(
 		attrs[i]->mod_op = LDAP_MOD_BVALUES;
 		attrs[i]->mod_type = mapped.bv_val;
 
-		if ( a->a_desc->ad_type->sat_syntax ==
-			slap_schema.si_syn_distinguishedName ) {
-			/*
-			 * FIXME: rewrite could fail; in this case
-			 * the operation should give up, right?
-			 */
-			(void)ldap_dnattr_rewrite( &dc, a->a_vals );
-		}
+		if ( is_oc ) {
+			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); j++ )
+				;
 
-		for (j=0; a->a_vals[j].bv_val; j++);
-		attrs[i]->mod_vals.modv_bvals = ch_malloc((j+1)*sizeof(struct berval *));
-		for (j=0; a->a_vals[j].bv_val; j++)
-			attrs[i]->mod_vals.modv_bvals[j] = &a->a_vals[j];
-		attrs[i]->mod_vals.modv_bvals[j] = NULL;
+			attrs[ i ]->mod_bvalues =
+				(struct berval **)ch_malloc( ( j + 1 ) *
+				sizeof( struct berval * ) );
+
+			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); ) {
+				struct ldapmapping	*mapping;
+
+				ldap_back_mapping( &li->rwmap.rwm_oc,
+						&a->a_vals[ j ], &mapping, BACKLDAP_MAP );
+
+				if ( mapping == NULL ) {
+					if ( li->rwmap.rwm_oc.drop_missing ) {
+						continue;
+					}
+					attrs[ i ]->mod_bvalues[ j ] = &a->a_vals[ j ];
+
+				} else {
+					attrs[ i ]->mod_bvalues[ j ] = &mapping->dst;
+				}
+				j++;
+			}
+			attrs[ i ]->mod_bvalues[ j ] = NULL;
+
+		} else {
+			if ( a->a_desc->ad_type->sat_syntax ==
+				slap_schema.si_syn_distinguishedName )
+			{
+				/*
+				 * FIXME: rewrite could fail; in this case
+				 * the operation should give up, right?
+				 */
+				(void)ldap_dnattr_rewrite( &dc, a->a_vals );
+				if ( a->a_vals == NULL || BER_BVISNULL( &a->a_vals[0] ) ) {
+					ch_free( attrs );
+					continue;
+				}
+			}
+
+			for (j=0; a->a_vals[j].bv_val; j++);
+			attrs[i]->mod_vals.modv_bvals = ch_malloc((j+1)*sizeof(struct berval *));
+			for (j=0; a->a_vals[j].bv_val; j++)
+				attrs[i]->mod_vals.modv_bvals[j] = &a->a_vals[j];
+			attrs[i]->mod_vals.modv_bvals[j] = NULL;
+		}
 		i++;
 	}
 	attrs[i] = NULL;
