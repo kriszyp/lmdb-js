@@ -91,7 +91,7 @@ add_lastmods( Operation *op, LDAPModList **modlist )
 
 }
 
-static int
+int
 bdb2i_back_modify_internal(
     BackendDB	*be,
     Connection	*conn,
