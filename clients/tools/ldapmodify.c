@@ -141,7 +141,7 @@ usage( const char *prog )
 int
 main( int argc, char **argv )
 {
-    char		*infile, *rejfile, *rbuf, *start, *rejbuf;
+    char		*infile, *rejfile, *rbuf, *start, *rejbuf = NULL;
     FILE		*fp, *rejfp;
 	char		*matched_msg = NULL, *error_msg = NULL;
 	int		rc, i, authmethod, version, want_bindpw, debug, manageDSAit, referrals;
