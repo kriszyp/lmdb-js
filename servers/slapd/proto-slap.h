@@ -989,7 +989,8 @@ LDAP_SLAPD_F (int) slap_parse_user LDAP_P((
 LDAP_SLAPD_F (void) slap_sasl2dn LDAP_P((
 	Operation *op,
 	struct berval *saslname,
-	struct berval *dn ));
+	struct berval *dn,
+	int flags ));
 LDAP_SLAPD_F (int) slap_sasl_authorized LDAP_P((
 	Operation *op,
 	struct berval *authcid,

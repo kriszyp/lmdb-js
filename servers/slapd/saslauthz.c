@@ -492,7 +492,8 @@ static void slap_sasl_rx_exp(
    LDAP URI to find the matching LDAP entry, using the pattern matching
    strings given in the saslregexp config file directive(s) */
 
-static int slap_sasl_regexp( struct berval *in, struct berval *out, void *ctx )
+static int slap_sasl_regexp( struct berval *in, struct berval *out,
+		int flags, void *ctx )
 {
 	char *saslname = in->bv_val;
 	SaslRegexp_t *reg;
@@ -812,7 +813,7 @@ COMPLETE:
  * entry, return the DN of that one entry.
  */
 void slap_sasl2dn( Operation *opx,
-	struct berval *saslname, struct berval *sasldn )
+	struct berval *saslname, struct berval *sasldn, int flags )
 {
 	int rc;
 	slap_callback cb = { NULL, sasl_sc_sasl2dn, NULL, NULL };
@@ -835,7 +836,7 @@ void slap_sasl2dn( Operation *opx,
 	cb.sc_private = sasldn;
 
 	/* Convert the SASL name into a minimal URI */
-	if( !slap_sasl_regexp( saslname, &regout, opx->o_tmpmemctx ) ) {
+	if( !slap_sasl_regexp( saslname, &regout, flags, opx->o_tmpmemctx ) ) {
 		goto FINISHED;
 	}
 

@@ -1970,7 +1970,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 	}
 
 	/* Run thru regexp */
-	slap_sasl2dn( op, dn, &dn2 );
+	slap_sasl2dn( op, dn, &dn2, flags );
 	if( dn2.bv_val ) {
 		sl_free( dn->bv_val, op->o_tmpmemctx );
 		*dn = dn2;
