@@ -98,8 +98,8 @@ meta_back_group(
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 	LDAPMessage	*result;
 	char *gattr[ 2 ];
-	char *filter, *ptr;
-	LDAP *ld;
+	char *filter = NULL, *ptr;
+	LDAP *ld = NULL;
 	struct berval mop_ndn = { 0, NULL }, mgr_ndn = { 0, NULL };
 
 	struct berval group_oc_name = { 0, NULL };
