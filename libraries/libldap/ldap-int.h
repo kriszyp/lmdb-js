@@ -311,9 +311,6 @@ struct ldap {
 	LDAPConn	*ld_defconn;	/* default connection */
 	LDAPConn	*ld_conns;	/* list of server connections */
 	void		*ld_selectinfo;	/* platform specifics for select */
-#ifdef HAVE_TLS
-	void		*ld_ssl;	/* SSL session for next connection */
-#endif
 };
 #define LDAP_VALID(ld)	( (ld)->ld_valid == LDAP_VALID_SESSION )
 
