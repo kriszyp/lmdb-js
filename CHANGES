@@ -2,6 +2,8 @@ OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.24 Engineering
 	Fixed slapd "exact" v "base" handling (ITS#2782)
+	Build Environment
+		Fixed liblber libdir handling (ITS#2797)
 
 OpenLDAP 2.1.23 Release
 	Fixed ldapmodify NULL dn bug (ITS#2645)
