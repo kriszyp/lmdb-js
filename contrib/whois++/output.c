@@ -56,11 +56,11 @@ LDAPMessage	*entry;
 			"Read on object \"%s\" failed, %s",
 			dn, ldap_err2string( ld->ld_errno ) );
 		ldap_memfree( dn );
-		return;
+		return NULL;
 	} else
 		ldap_memfree( dn );
 	if ( ( val = ldap_get_values( ld, result, "objectClass" ) ) == NULL )
-		return;
+		return NULL;
 	for ( i = 0 ; val[i] != NULL ; i++ )
 		if ( specifyAttributes( lowerCase( val[i] ) ) != NULL ) {
 			template = strdup( val[i] );
