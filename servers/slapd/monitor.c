@@ -27,14 +27,18 @@ void
 monitor_info( Connection *conn, Operation *op )
 {
 	Entry		*e;
-	char		buf[BUFSIZ], buf2[22];
+	char		buf[BUFSIZ];
 	struct berval	val;
 	struct berval	*vals[2];
-	int		i, nconns, nwritewaiters, nreadwaiters;
+	int    nconns, nwritewaiters, nreadwaiters;
 	struct tm	*ltm;
 	char		*p;
+#ifdef LDAP_COUNTERS
+    int        i;
+    char       buf2[22]
 	Connection *c;
-	time_t		currenttime;
+#endif
+    time_t		currenttime;
 
 	vals[0] = &val;
 	vals[1] = NULL;
