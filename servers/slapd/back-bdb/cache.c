@@ -1078,3 +1078,24 @@ bdb_locker_id( Operation *op, DB_ENV *env, int *locker )
 	return 0;
 }
 #endif
+
+void
+bdb_cache_delete_entry(
+	struct bdb_info *bdb,
+	EntryInfo *ei,
+	u_int32_t locker,
+	DB_LOCK *lock )
+{
+	ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
+	if ( bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, ei, 1, 1, &lock ) == 0 ) {
+		if ( ei->bei_e && !(ei->bei_state & CACHE_ENTRY_NOT_LINKED )) {
+			LRU_DELETE( &bdb->bi_cache, ei );
+			ei->bei_e->e_private = NULL;
+			bdb_entry_return( ei->bei_e );
+			ei->bei_e = NULL;
+			--bdb->bi_cache.c_cursize;
+		}
+		bdb_cache_entry_db_unlock( bdb->bi_dbenv, &lock );
+	}
+	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
+}
