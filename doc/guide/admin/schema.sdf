@@ -16,7 +16,7 @@ export schema definitions from an LDAPv3 server and transform it
 to {{slapd.conf}}(5) format.
 !endif
 
-This chapter does discuss how to extend system schema used by
+This chapter does not discuss how to extend system schema used by
 {{slapd}}(8) as this requires source code modification.  System
 schema includes all operational attribute types or any object class
 which allows or requires an operational attribute (directly or
