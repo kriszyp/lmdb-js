@@ -117,31 +117,44 @@ slap_parse_sync_cookie(
 	char *csn_ptr;
 	char *csn_str;
 	int csn_str_len;
+	int valid = 0;
 	char *sid_ptr;
 	char *sid_str;
 	char *rid_ptr;
 	char *rid_str;
 	char *cval;
-	struct berval *ctxcsn;
+	struct berval ctxcsn;
 
 	if ( cookie == NULL )
 		return -1;
 
-	if (( csn_ptr = strstr( cookie->octet_str[0].bv_val, "csn=" )) != NULL ) {
-		csn_str = SLAP_STRNDUP( csn_ptr, LDAP_LUTIL_CSNSTR_BUFSIZE );
-		if ( (cval = strchr( csn_str, ',' )) != NULL ) {
-			*cval = '\0';
-			csn_str_len = cval - csn_str - (sizeof("csn=") - 1);
-		} else {
-			csn_str_len = cookie->octet_str[0].bv_len -
-							(csn_ptr - cookie->octet_str[0].bv_val) -
-							(sizeof("csn=") - 1);
-		}
-		ctxcsn = ber_str2bv( csn_str + (sizeof("csn=")-1),
-							 csn_str_len, 1, NULL );
-		ch_free( csn_str );
-		ber_bvarray_add( &cookie->ctxcsn, ctxcsn );
-		ch_free( ctxcsn );
+	while (( csn_ptr = strstr( cookie->octet_str[0].bv_val, "csn=" )) != NULL ) {
+		AttributeDescription *ad = slap_schema.si_ad_modifyTimestamp;
+		slap_syntax_validate_func *validate;
+		struct berval stamp;
+
+		csn_str = csn_ptr + STRLENOF("csn=");
+		cval = strchr( csn_str, ',' );
+		if ( cval )
+			csn_str_len = cval - csn_str;
+		else
+			csn_str_len = 0;
+
+		/* FIXME use csnValidate when it gets implemented */
+		csn_ptr = strchr( csn_str, '#' );
+		if ( !csn_ptr ) break;
+
+		stamp.bv_val = csn_str;
+		stamp.bv_len = csn_ptr - csn_str;
+		validate = ad->ad_type->sat_syntax->ssyn_validate;
+		if ( validate( ad->ad_type->sat_syntax, &stamp ) != LDAP_SUCCESS )
+			break;
+		valid = 1;
+		break;
+	}
+	if ( valid ) {
+		ber_str2bv( csn_str, csn_str_len, 1, &ctxcsn );
+		ber_bvarray_add( &cookie->ctxcsn, &ctxcsn );
 	} else {
 		cookie->ctxcsn = NULL;
 	}

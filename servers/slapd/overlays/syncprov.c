@@ -1761,33 +1761,9 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	/* If we have a cookie, handle the PRESENT lookups */
 	if ( srs->sr_state.ctxcsn ) {
 		sessionlog *sl;
-		int valid = 0;
 
-		/* Is the CSN in a valid format? */
-		/* FIXME: should use csnValidate when that is implemented */
-		while (!valid) {
-			char *ptr;
-			struct berval timestamp;
-			slap_syntax_validate_func *validate;
-			AttributeDescription *ad = slap_schema.si_ad_modifyTimestamp;
+		/* The cookie was validated when it was parsed, just use it */
 
-			if ( srs->sr_state.ctxcsn->bv_len >= LDAP_LUTIL_CSNSTR_BUFSIZE )
-				break;
-			ptr = strchr( srs->sr_state.ctxcsn->bv_val, '#' );
-			if ( !ptr )
-				break;
-			timestamp.bv_val = srs->sr_state.ctxcsn->bv_val;
-			timestamp.bv_len = ptr - timestamp.bv_val;
-			validate = ad->ad_type->sat_syntax->ssyn_validate;
-			if ( validate( ad->ad_type->sat_syntax, &timestamp ))
-				break;
-			valid = 1;
-			break;
-		}
-		/* Skip any present searches, there's nothing to compare */
-		if ( !valid ) {
-			goto shortcut;
-		}
 		/* If just Refreshing and nothing has changed, shortcut it */
 		if ( bvmatch( srs->sr_state.ctxcsn, &ctxcsn )) {
 			nochange = 1;
