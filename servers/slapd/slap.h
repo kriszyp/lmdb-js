@@ -1395,6 +1395,7 @@ struct slap_backend_db {
 #endif
 
 #define SLAP_BFLAG_NOLASTMOD		0x0001U
+#define SLAP_BFLAG_NO_SCHEMA_CHECK	0x0002U
 #define	SLAP_BFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
 #define	SLAP_BFLAG_GLUE_SUBORDINATE	0x0020U	/* child of a glue hierarchy */
 #define	SLAP_BFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
@@ -1406,6 +1407,7 @@ struct slap_backend_db {
 #define SLAP_BFLAG_DYNAMIC			0x8000U
 	slap_mask_t	be_flags;
 #define SLAP_LASTMOD(be)	(!((be)->be_flags & SLAP_BFLAG_NOLASTMOD))
+#define SLAP_NO_SCHEMA_CHECK	(!((be)->be_flags & SLAP_BFLAG_NO_SCHEMA_CHECK))
 #define	SLAP_GLUE_INSTANCE(be)	((be)->be_flags & SLAP_BFLAG_GLUE_INSTANCE)
 #define	SLAP_GLUE_SUBORDINATE(be) \
 	((be)->be_flags & SLAP_BFLAG_GLUE_SUBORDINATE)

@@ -2800,6 +2800,7 @@ add_syncrepl(
 			"Config: ** successfully added syncrepl \"%s\"\n",
 			si->provideruri == NULL ? "(null)" : si->provideruri, 0, 0 );
 #endif
+		be->be_flags |= SLAP_BFLAG_NO_SCHEMA_CHECK;
 		si->be = be;
 	}
 }
