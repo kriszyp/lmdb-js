@@ -272,11 +272,11 @@ int backend_startup(Backend *be)
 		if(rc != 0) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_CRIT,
-				   "backend_startup: bi_db_open failed!\n" ));
+				"backend_startup: bi_db_open failed! (%d)\n", rc ));
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"backend_startup: bi_db_open failed!\n",
-				0, 0, 0 );
+				"backend_startup: bi_db_open failed! (%d)\n",
+				rc, 0, 0 );
 #endif
 			return rc;
 		}
@@ -322,11 +322,12 @@ int backend_startup(Backend *be)
 		if(rc != 0) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_CRIT,
-				   "backend_startup: bi_db_open %d failed!\n", i ));
+				"backend_startup: bi_db_open(%d) failed! (%d)\n",
+				i, rc ));
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"backend_startup: bi_db_open %d failed!\n",
-				i, 0, 0 );
+				"backend_startup: bi_db_open(%d) failed! (%d)\n",
+				i, rc, 0 );
 #endif
 			return rc;
 		}

@@ -79,7 +79,11 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_txn = 1;	/* default to using transactions */
 
 #ifndef NO_THREADS
+#if 0
 	bdb->bi_lock_detect = DB_LOCK_NORUN;
+#else
+	bdb->bi_lock_detect = DB_LOCK_DEFAULT;
+#endif
 #endif
 
 	ldap_pvt_thread_mutex_init( &bdb->bi_database_mutex );
@@ -356,7 +360,6 @@ bdb_db_destroy( BackendDB *be )
 
 	/* close db environment */
 	if( bdb->bi_dbenv ) {
-
 		/* force a checkpoint */
 		if( bdb->bi_txn ) {
 			rc = TXN_CHECKPOINT( bdb->bi_dbenv, 0, 0, DB_FORCE );
