@@ -129,8 +129,8 @@ int connection_read LDAP_P((int s));
 
 long connections_nextid(void);
 
-Connection* connection_first LDAP_P((void));
-Connection* connection_next LDAP_P((Connection *));
+Connection* connection_first LDAP_P((int *));
+Connection* connection_next LDAP_P((Connection *, int *));
 void connection_done LDAP_P((Connection *));
 
 /*

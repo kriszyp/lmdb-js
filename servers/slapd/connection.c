@@ -16,20 +16,19 @@
 /* protected by connections_mutex */
 static ldap_pvt_thread_mutex_t connections_mutex;
 static Connection *connections = NULL;
-static int conn_index = -1;
 static long conn_nextid = 0;
 
 /* structure state (protected by connections_mutex) */
-#define SLAP_C_UNINITIALIZED	0x0	/* MUST BE ZERO (0) */
-#define SLAP_C_UNUSED			0x1
-#define SLAP_C_USED				0x2
+#define SLAP_C_UNINITIALIZED	0x00	/* MUST BE ZERO (0) */
+#define SLAP_C_UNUSED			0x01
+#define SLAP_C_USED				0x02
 
 /* connection state (protected by c_mutex ) */
-#define SLAP_C_INVALID			0x0	/* MUST BE ZERO (0) */
-#define SLAP_C_INACTIVE			0x1	/* zero threads */
-#define SLAP_C_ACTIVE			0x2 /* one or more threads */
-#define SLAP_C_BINDING			0x3	/* binding */
-#define SLAP_C_CLOSING			0x4	/* closing */
+#define SLAP_C_INVALID			0x00	/* MUST BE ZERO (0) */
+#define SLAP_C_INACTIVE			0x01	/* zero threads */
+#define SLAP_C_ACTIVE			0x02	/* one or more threads */
+#define SLAP_C_BINDING			0x03	/* binding */
+#define SLAP_C_CLOSING			0x04	/* closing */
 
 void slapd_remove(int s);
 static Connection* connection_get( int s );
@@ -50,8 +49,6 @@ struct co_arg {
  */
 int connections_init(void)
 {
-	int i;
-
 	assert( connections == NULL );
 
 	if( connections != NULL) {
@@ -71,6 +68,9 @@ int connections_init(void)
 			dtblsize, (long) sizeof(Connection), 0 );
 		return -1;
 	}
+
+    assert( connections[0].c_struct_state == SLAP_C_UNINITIALIZED );
+    assert( connections[dtblsize-1].c_struct_state == SLAP_C_UNINITIALIZED );
 
 	/*
 	 * per entry initialization of the Connection array initialization
@@ -137,6 +137,8 @@ int connections_shutdown(void)
 
 static Connection* connection_get( int s )
 {
+	/* connections_mutex should be locked by caller */
+
 	Connection *c = NULL;
 
 	assert( connections != NULL );
@@ -366,7 +368,8 @@ connection_destroy( Connection *c )
 
 int connection_state_closing( Connection *c )
 {
-	/* connection must be locked by caller */
+	/* c_mutex must be locked by caller */
+
 	int state;
 	assert( c != NULL );
 	assert( c->c_struct_state == SLAP_C_USED );
@@ -384,6 +387,8 @@ void connection_closing( Connection *c )
 	assert( c != NULL );
 	assert( c->c_struct_state == SLAP_C_USED );
 	assert( c->c_conn_state != SLAP_C_INVALID );
+
+	/* c_mutex must be locked by caller */
 
 	if( c->c_conn_state != SLAP_C_CLOSING ) {
 		Operation *o;
@@ -428,7 +433,7 @@ static void connection_close( Connection *c )
 	assert( c->c_struct_state == SLAP_C_USED );
 	assert( c->c_conn_state == SLAP_C_CLOSING );
 
-	/* note: connections_mutex should be locked by caller */
+	/* note: connections_mutex and c_mutex should be locked by caller */
 
 	if( c->c_ops != NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -458,23 +463,23 @@ long connections_nextid(void)
 	return id;
 }
 
-Connection* connection_first(void)
+Connection* connection_first( int *index )
 {
 	assert( connections != NULL );
+	assert( index != NULL );
 
 	ldap_pvt_thread_mutex_lock( &connections_mutex );
 
-	assert( conn_index == -1 );
-	conn_index = 0;
+	*index = 0;
 
-	return connection_next(NULL);
+	return connection_next(NULL, index);
 }
 
-Connection* connection_next(Connection *c)
+Connection* connection_next( Connection *c, int *index )
 {
 	assert( connections != NULL );
-	assert( conn_index != -1 );
-	assert( conn_index <= dtblsize );
+	assert( index != NULL );
+	assert( *index <= dtblsize );
 
 	if( c != NULL ) {
 		ldap_pvt_thread_mutex_unlock( &c->c_mutex );
@@ -482,9 +487,9 @@ Connection* connection_next(Connection *c)
 
 	c = NULL;
 
-	for(; conn_index < dtblsize; conn_index++) {
-		if( connections[conn_index].c_struct_state == SLAP_C_UNINITIALIZED ) {
-			assert( connections[conn_index].c_conn_state == SLAP_C_INVALID );
+	for(; *index < dtblsize; (*index)++) {
+		if( connections[*index].c_struct_state == SLAP_C_UNINITIALIZED ) {
+			assert( connections[*index].c_conn_state == SLAP_C_INVALID );
 #ifndef HAVE_WINSOCK
 			continue;
 #else
@@ -492,14 +497,14 @@ Connection* connection_next(Connection *c)
 #endif
 		}
 
-		if( connections[conn_index].c_struct_state == SLAP_C_USED ) {
-			assert( connections[conn_index].c_conn_state != SLAP_C_INVALID );
-			c = &connections[conn_index++];
+		if( connections[*index].c_struct_state == SLAP_C_USED ) {
+			assert( connections[*index].c_conn_state != SLAP_C_INVALID );
+			c = &connections[(*index)++];
 			break;
 		}
 
-		assert( connections[conn_index].c_struct_state == SLAP_C_UNUSED );
-		assert( connections[conn_index].c_conn_state == SLAP_C_INVALID );
+		assert( connections[*index].c_struct_state == SLAP_C_UNUSED );
+		assert( connections[*index].c_conn_state == SLAP_C_INVALID );
 	}
 
 	if( c != NULL ) {
@@ -509,17 +514,14 @@ Connection* connection_next(Connection *c)
 	return c;
 }
 
-void connection_done(Connection *c)
+void connection_done( Connection *c )
 {
 	assert( connections != NULL );
-	assert( conn_index != -1 );
-	assert( conn_index <= dtblsize );
 
 	if( c != NULL ) {
 		ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 	}
 
-	conn_index = -1;
 	ldap_pvt_thread_mutex_unlock( &connections_mutex );
 }
 

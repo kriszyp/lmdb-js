@@ -37,6 +37,7 @@ monitor_info( Connection *conn, Operation *op )
     int        i;
     char       buf2[22]
 	Connection *c;
+	int			connindex;
 #endif
     time_t		currenttime;
 
@@ -71,7 +72,10 @@ monitor_info( Connection *conn, Operation *op )
 
 #ifdef LDAP_COUNTERS
 	/* loop through the connections */
-	for ( c = connection_first() ; c != NULL;  c = connection_next(c) ) {
+	for ( c = connection_first( &connindex );
+		c != NULL;
+		c = connection_next( c, &connindex ))
+	{
 		nconns++;
 		if ( c->c_writewaiter ) {
 			nwritewaiters++;
