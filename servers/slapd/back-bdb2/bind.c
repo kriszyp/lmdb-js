@@ -65,6 +65,7 @@ bdb2i_back_bind_internal(
     Operation		*op,
     char		*dn,
     int			method,
+	char		*mech,
     struct berval	*cred,
 	char**	edn
 )
@@ -86,17 +87,33 @@ bdb2i_back_bind_internal(
 	/* get entry with reader lock */
 	if ( (e = bdb2i_dn2entry_r( be, dn, &matched )) == NULL ) {
 		/* allow noauth binds */
-		if ( method == LDAP_AUTH_SIMPLE && cred->bv_len == 0 ) {
-			/*
-			 * bind successful, but return 1 so we don't
-			 * authorize based on noauth credentials
-			 */
-			send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
-			rc = 1;
-		} else if ( be_isroot_pw( be, dn, cred ) ) {
-			/* front end will send result */
-			*edn = ch_strdup( be_root_dn( be ) );
-			rc = 0;
+		rc = 1;
+		if ( method == LDAP_AUTH_SIMPLE ) {
+			if( cred->bv_len == 0 ) {
+				/* SUCCESS */
+				send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
+
+			} else if ( be_isroot_pw( be, dn, cred ) ) {
+				/* front end will send result */
+				*edn = ch_strdup( be_root_dn( be ) );
+				rc = 0;
+
+			} else {
+				send_ldap_result( conn, op,
+					LDAP_NO_SUCH_OBJECT, matched, NULL );
+			}
+
+		} else if ( method == LDAP_AUTH_SASL ) {
+			if( mech != NULL && strcasecmp(mech,"DIGEST-MD5") == 0 ) {
+				/* insert DIGEST calls here */
+				send_ldap_result( conn, op,
+					LDAP_AUTH_METHOD_NOT_SUPPORTED, NULL, NULL );
+
+			} else {
+				send_ldap_result( conn, op,
+					LDAP_AUTH_METHOD_NOT_SUPPORTED, NULL, NULL );
+			}
+
 		} else {
 			send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched, NULL );
 			rc = 1;
@@ -110,6 +127,14 @@ bdb2i_back_bind_internal(
 	*edn = ch_strdup( e->e_dn );
 
 	/* check for deleted */
+
+	if ( ! access_allowed( be, conn, op, e,
+		"entry", NULL, ACL_AUTH ) )
+	{
+		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS, "", "" );
+		rc = 1;
+		goto return_results;
+	}
 
 	switch ( method ) {
 	case LDAP_AUTH_SIMPLE:
@@ -127,6 +152,14 @@ bdb2i_back_bind_internal(
 			if( *edn != NULL ) free( *edn );
 			*edn = ch_strdup( be_root_dn( be ) );
 			rc = 0;
+			goto return_results;
+		}
+
+		if ( ! access_allowed( be, conn, op, e,
+			"userpassword", NULL, ACL_AUTH ) )
+		{
+			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS, "", "" );
+			rc = 1;
 			goto return_results;
 		}
 
@@ -155,11 +188,21 @@ bdb2i_back_bind_internal(
 		if ( bdb2i_krbv4_ldap_auth( be, cred, &ad ) != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
 			    NULL, NULL );
-			rc = 0;
+			rc = 1;
 			goto return_results;
 		}
+
+		if ( ! access_allowed( be, conn, op, e,
+			"krbname", NULL, ACL_AUTH ) )
+		{
+			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS, "", "" );
+			rc = 1;
+			goto return_results;
+		}
+
 		sprintf( krbname, "%s%s%s@%s", ad.pname, *ad.pinst ? "."
 		    : "", ad.pinst, ad.prealm );
+
 		if ( (a = attr_find( e->e_attrs, "krbname" )) == NULL ) {
 			/*
 			 * no krbName values present:  check against DN
@@ -194,6 +237,9 @@ bdb2i_back_bind_internal(
 		rc = 1;
 		goto return_results;
 #endif
+
+	case LDAP_AUTH_SASL:
+		/* insert sasl code here */
 
 	default:
 		send_ldap_result( conn, op, LDAP_STRONG_AUTH_NOT_SUPPORTED,
@@ -237,7 +283,7 @@ bdb2_back_bind(
 
 	}
 
-	ret = bdb2i_back_bind_internal( be, conn, op, dn, method, cred, edn );
+	ret = bdb2i_back_bind_internal( be, conn, op, dn, method, mech, cred, edn );
 
 	(void) bdb2i_leave_backend_r( lock );
 

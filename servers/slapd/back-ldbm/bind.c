@@ -98,16 +98,19 @@ ldbm_back_bind(
 				rc = 0; /* front end will send result */
 
 			} else {
-				send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched, NULL );
+				send_ldap_result( conn, op,
+					LDAP_NO_SUCH_OBJECT, matched, NULL );
 			}
 
 		} else if ( method == LDAP_AUTH_SASL ) {
-			if( mech != NULL && strcasecmp(mech,"DIGEST-MD5") ) {
+			if( mech != NULL && strcasecmp(mech,"DIGEST-MD5") == 0 ) {
 				/* insert DIGEST calls here */
-				send_ldap_result( conn, op, LDAP_INAPPROPRIATE_AUTH, NULL, NULL );
+				send_ldap_result( conn, op,
+					LDAP_AUTH_METHOD_NOT_SUPPORTED, NULL, NULL );
 				
 			} else {
-				send_ldap_result( conn, op, LDAP_INAPPROPRIATE_AUTH, NULL, NULL );
+				send_ldap_result( conn, op,
+					LDAP_AUTH_METHOD_NOT_SUPPORTED, NULL, NULL );
 			}
 
 		} else {
@@ -193,12 +196,21 @@ ldbm_back_bind(
 		if ( krbv4_ldap_auth( be, cred, &ad ) != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
 			    NULL, NULL );
-			rc = 0;
+			rc = 1;
+			goto return_results;
+		}
+
+		if ( ! access_allowed( be, conn, op, e,
+			"krbname", NULL, ACL_AUTH ) )
+		{
+			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS, "", "" );
+			rc = 1;
 			goto return_results;
 		}
 
 		sprintf( krbname, "%s%s%s@%s", ad.pname, *ad.pinst ? "."
 		    : "", ad.pinst, ad.prealm );
+
 
 		if ( (a = attr_find( e->e_attrs, "krbname" )) == NULL ) {
 			/*
@@ -235,6 +247,9 @@ ldbm_back_bind(
 		rc = 1;
 		goto return_results;
 #endif
+
+	case LDAP_AUTH_SASL:
+		/* insert SASL code here */
 
 	default:
 		send_ldap_result( conn, op, LDAP_STRONG_AUTH_NOT_SUPPORTED,
