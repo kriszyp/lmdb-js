@@ -41,7 +41,7 @@ static void	lru_print(struct cache *cache);
 static int
 cache_entry_rdwr_lock(Entry *e, int rw)
 {
-	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%slock: ID: %lu\n",
+	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%slock: ID: %ld\n",
 		rw ? "w" : "r", e->e_id, 0);
 
 	if (rw)
@@ -53,7 +53,7 @@ cache_entry_rdwr_lock(Entry *e, int rw)
 static int
 cache_entry_rdwr_trylock(Entry *e, int rw)
 {
-	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%strylock: ID: %lu\n",
+	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%strylock: ID: %ld\n",
 		rw ? "w" : "r", e->e_id, 0);
 
 	if (rw)
@@ -65,7 +65,7 @@ cache_entry_rdwr_trylock(Entry *e, int rw)
 static int
 cache_entry_rdwr_unlock(Entry *e, int rw)
 {
-	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%sunlock: ID: %lu\n",
+	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%sunlock: ID: %ld\n",
 		rw ? "w" : "r", e->e_id, 0);
 
 	if (rw)
@@ -143,7 +143,7 @@ cache_return_entry_rw( struct cache *cache, Entry *e, int rw )
 
 	if ( LEI(e)->lei_state == CACHE_ENTRY_CREATING ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"====> cache_return_entry_%s( %lu ): created (%d)\n",
+			"====> cache_return_entry_%s( %ld ): created (%d)\n",
 			rw ? "w" : "r", e->e_id, LEI(e)->lei_refcnt );
 
 		LEI(e)->lei_state = CACHE_ENTRY_READY;
@@ -151,12 +151,12 @@ cache_return_entry_rw( struct cache *cache, Entry *e, int rw )
 	} else if ( LEI(e)->lei_state == CACHE_ENTRY_DELETED ) {
 		if( LEI(e)->lei_refcnt > 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"====> cache_return_entry_%s( %lu ): delete pending (%d)\n",
+				"====> cache_return_entry_%s( %ld ): delete pending (%d)\n",
 				rw ? "w" : "r", e->e_id, LEI(e)->lei_refcnt );
 
 		} else {
 			Debug( LDAP_DEBUG_TRACE,
-				"====> cache_return_entry_%s( %lu ): deleted (%d)\n",
+				"====> cache_return_entry_%s( %ld ): deleted (%d)\n",
 				rw ? "w" : "r", e->e_id, LEI(e)->lei_refcnt );
 
 			cache_entry_private_destroy( e );
@@ -165,7 +165,7 @@ cache_return_entry_rw( struct cache *cache, Entry *e, int rw )
 
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
-			"====> cache_return_entry_%s( %lu ): returned (%d)\n",
+			"====> cache_return_entry_%s( %ld ): returned (%d)\n",
 			rw ? "w" : "r", e->e_id, LEI(e)->lei_refcnt);
 	}
 
@@ -224,7 +224,7 @@ cache_add_entry_rw(
 
 	if( cache_entry_private_init(e) != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"====> cache_add_entry( %lu ): \"%s\": private init failed!\n",
+			"====> cache_add_entry( %ld ): \"%s\": private init failed!\n",
 		    e->e_id, e->e_dn, 0 );
 		return( -1 );
 	}
@@ -233,7 +233,7 @@ cache_add_entry_rw(
 		entry_dn_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_TRACE,
-			"====> cache_add_entry( %lu ): \"%s\": already in dn cache\n",
+			"====> cache_add_entry( %ld ): \"%s\": already in dn cache\n",
 		    e->e_id, e->e_dn, 0 );
 
 		cache_entry_private_destroy(e);
@@ -248,7 +248,7 @@ cache_add_entry_rw(
 		entry_id_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_ANY,
-			"====> cache_add_entry( %lu ): \"%s\": already in id cache\n",
+			"====> cache_add_entry( %ld ): \"%s\": already in id cache\n",
 		    e->e_id, e->e_dn, 0 );
 
 
@@ -342,7 +342,7 @@ cache_update_entry(
 		entry_dn_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_TRACE,
-			"====> cache_update_entry( %lu ): \"%s\": already in dn cache\n",
+			"====> cache_update_entry( %ld ): \"%s\": already in dn cache\n",
 		    e->e_id, e->e_dn, 0 );
 
 		/* free cache mutex */
@@ -355,7 +355,7 @@ cache_update_entry(
 		entry_id_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_ANY,
-			"====> cache_update_entry( %lu ): \"%s\": already in id cache\n",
+			"====> cache_update_entry( %ld ): \"%s\": already in id cache\n",
 		    e->e_id, e->e_dn, 0 );
 
 		/* delete from dn tree inserted above */
@@ -460,7 +460,7 @@ cache_find_entry_dn2id(
 			assert(LEI(ep)->lei_state != CACHE_ENTRY_UNDEFINED);
 #endif
 			Debug(LDAP_DEBUG_TRACE,
-				"====> cache_find_entry_dn2id(\"%s\"): %lu (not ready) %d\n",
+				"====> cache_find_entry_dn2id(\"%s\"): %ld (not ready) %d\n",
 				dn, ep->e_id, LEI(ep)->lei_state);
 
 			/* free cache mutex */
@@ -469,7 +469,7 @@ cache_find_entry_dn2id(
 		}
 
 		Debug(LDAP_DEBUG_TRACE,
-			"====> cache_find_entry_dn2id(\"%s\"): %lu\n",
+			"====> cache_find_entry_dn2id(\"%s\"): %ld\n",
 			dn, ep->e_id, 0);
 
 		/* lru */
@@ -527,7 +527,7 @@ try_again:
 			assert(LEI(ep)->lei_state != CACHE_ENTRY_UNDEFINED);
 #endif
 			Debug(LDAP_DEBUG_TRACE,
-				"====> cache_find_entry_id( %lu ): %lu (not ready) %d\n",
+				"====> cache_find_entry_id( %ld ): %ld (not ready) %d\n",
 				id, ep->e_id, LEI(ep)->lei_state);
 
 			/* free cache mutex */
@@ -536,7 +536,7 @@ try_again:
 		}
 
 		Debug(LDAP_DEBUG_TRACE,
-			"====> cache_find_entry_id( %lu, %s ) \"%s\" (found)\n",
+			"====> cache_find_entry_id( %ld, %s ) \"%s\" (found)\n",
 			id, rw ? "w" : "r", ep->e_dn);
 
 		/* acquire reader lock */
@@ -596,7 +596,7 @@ cache_delete_entry(
 	assert( e->e_private );
 #endif
 
-	Debug( LDAP_DEBUG_TRACE, "====> cache_delete_entry( %lu )\n",
+	Debug( LDAP_DEBUG_TRACE, "====> cache_delete_entry( %ld )\n",
 		e->e_id, 0, 0 );
 
 	rc = cache_delete_entry_internal( cache, e );
@@ -653,12 +653,12 @@ lru_print( struct cache *cache )
 
 	fprintf( stderr, "LRU queue (head to tail):\n" );
 	for ( e = cache->c_lruhead; e != NULL; e = LEI(e)->lei_lrunext ) {
-		fprintf( stderr, "\tdn \"%20s\" id %lu refcnt %d\n",
+		fprintf( stderr, "\tdn \"%20s\" id %ld refcnt %d\n",
 			e->e_dn, e->e_id, LEI(e)->lei_refcnt );
 	}
 	fprintf( stderr, "LRU queue (tail to head):\n" );
 	for ( e = cache->c_lrutail; e != NULL; e = LEI(e)->lei_lruprev ) {
-		fprintf( stderr, "\tdn \"%20s\" id %lu refcnt %d\n",
+		fprintf( stderr, "\tdn \"%20s\" id %ld refcnt %d\n",
 			e->e_dn, e->e_id, LEI(e)->lei_refcnt );
 	}
 }

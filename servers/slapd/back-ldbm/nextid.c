@@ -42,7 +42,7 @@ next_id_read( Backend *be )
 
 	if(id < 1) {
 		Debug( LDAP_DEBUG_ANY,
-			"next_id_read %lu: atol(%s) return non-positive integer\n",
+			"next_id_read %ld: atol(%s) return non-positive integer\n",
 			id, buf, 0 );
 		return NOID;
 	}
@@ -60,7 +60,7 @@ next_id_write( Backend *be, ID id )
 	int		rc;
 
 	if ( (fp = fopen( file, "w" )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "next_id_write(%lu): could not open \"%s\"\n",
+		Debug( LDAP_DEBUG_ANY, "next_id_write(%ld): could not open \"%s\"\n",
 		    id, file, 0 );
 		return -1;
 	} 
@@ -68,13 +68,13 @@ next_id_write( Backend *be, ID id )
 	rc = 0;
 
 	if ( fprintf( fp, "%ld\n", id ) == EOF ) {
-		Debug( LDAP_DEBUG_ANY, "next_id_write(%lu): cannot fprintf\n",
+		Debug( LDAP_DEBUG_ANY, "next_id_write(%ld): cannot fprintf\n",
 		    id, 0, 0 );
 		rc = -1;
 	}
 
 	if( fclose( fp ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "next_id_write %lu: cannot fclose\n",
+		Debug( LDAP_DEBUG_ANY, "next_id_write %ld: cannot fclose\n",
 		    id, 0, 0 );
 		rc = -1;
 	}

@@ -76,7 +76,7 @@ dn2id(
 	/* first check the cache */
 	if ( (id = cache_find_entry_dn2id( be, &li->li_cache, dn )) != NOID ) {
 		free( dn );
-		Debug( LDAP_DEBUG_TRACE, "<= dn2id %lu (in cache)\n", id,
+		Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld (in cache)\n", id,
 			0, 0 );
 		return( id );
 	}
@@ -106,7 +106,7 @@ dn2id(
 
 	ldbm_datum_free( db->dbc_db, data );
 
-	Debug( LDAP_DEBUG_TRACE, "<= dn2id %lu\n", id, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld\n", id, 0, 0 );
 	return( id );
 }
 
@@ -179,7 +179,7 @@ dn2entry_rw(
 
 	if ( id != NOID ) {
 		Debug(LDAP_DEBUG_ANY,
-			"dn2entry_%s: no entry for valid id (%lu), dn \"%s\"\n",
+			"dn2entry_%s: no entry for valid id (%ld), dn \"%s\"\n",
 			rw ? "w" : "r", id, dn);
 		/* must have been deleted from underneath us */
 		/* treat as if NOID was found */

@@ -98,7 +98,7 @@ str2entry( char	*s )
 		if ( strcasecmp( type, "dn" ) == 0 ) {
 			if ( e->e_dn != NULL ) {
 				Debug( LDAP_DEBUG_ANY,
- "str2entry: entry %lu has multiple dns \"%s\" and \"%s\" (second ignored)\n",
+ "str2entry: entry %ld has multiple dns \"%s\" and \"%s\" (second ignored)\n",
 				    e->e_id, e->e_dn, value );
 				continue;
 			}
@@ -106,7 +106,7 @@ str2entry( char	*s )
 
 			if ( e->e_ndn != NULL ) {
 				Debug( LDAP_DEBUG_ANY,
- "str2entry: entry %lu already has a normalized dn \"%s\" for \"%s\" (first ignored)\n",
+ "str2entry: entry %ld already has a normalized dn \"%s\" for \"%s\" (first ignored)\n",
 				    e->e_id, e->e_ndn, value );
 				free( e->e_ndn );
 			}
@@ -128,7 +128,7 @@ str2entry( char	*s )
 
 	/* check to make sure there was a dn: line */
 	if ( e->e_dn == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "str2entry: entry %lu has no dn\n",
+		Debug( LDAP_DEBUG_ANY, "str2entry: entry %ld has no dn\n",
 		    e->e_id, 0, 0 );
 		entry_free( e );
 		return( NULL );
@@ -136,13 +136,13 @@ str2entry( char	*s )
 
 	if ( e->e_ndn == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"str2entry: entry %lu (\"%s\") has no normalized dn\n",
+			"str2entry: entry %ld (\"%s\") has no normalized dn\n",
 		    e->e_id, e->e_dn, 0 );
 		entry_free( e );
 		return( NULL );
 	}
 
-	Debug(LDAP_DEBUG_TRACE, "<= str2entry(%s) -> %lu (0x%lx)\n",
+	Debug(LDAP_DEBUG_TRACE, "<= str2entry(%s) -> %ld (0x%lx)\n",
 		e->e_dn, e->e_id, (unsigned long)e );
 
 	return( e );

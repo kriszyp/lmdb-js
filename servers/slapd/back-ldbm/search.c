@@ -171,7 +171,7 @@ ldbm_back_search(
 
 		/* get the entry with reader lock */
 		if ( (e = id2entry_r( be, id )) == NULL ) {
-			Debug( LDAP_DEBUG_ARGS, "candidate %lu not found\n",
+			Debug( LDAP_DEBUG_ARGS, "candidate %ld not found\n",
 			       id, 0, 0 );
 			continue;
 		}

@@ -25,7 +25,7 @@ id2entry_add( Backend *be, Entry *e )
 	ldbm_datum_init( key );
 	ldbm_datum_init( data );
 
-	Debug( LDAP_DEBUG_TRACE, "=> id2entry_add( %lu, \"%s\" )\n", e->e_id,
+	Debug( LDAP_DEBUG_TRACE, "=> id2entry_add( %ld, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
 
 	if ( (db = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, LDBM_WRCREAT ))
@@ -64,7 +64,7 @@ id2entry_delete( Backend *be, Entry *e )
 	Datum		key;
 	int		rc;
 
-	Debug(LDAP_DEBUG_TRACE, "=> id2entry_delete( %lu, \"%s\" )\n", e->e_id,
+	Debug(LDAP_DEBUG_TRACE, "=> id2entry_delete( %ld, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
 
 #ifdef notdef
@@ -84,7 +84,7 @@ id2entry_delete( Backend *be, Entry *e )
 	}
 
 	if ( cache_delete_entry( &li->li_cache, e ) != 0 ) {
-		Debug(LDAP_DEBUG_ANY, "could not delete %lu (%s) from cache\n",
+		Debug(LDAP_DEBUG_ANY, "could not delete %ld (%s) from cache\n",
 		    e->e_id, e->e_dn, 0 );
 	}
 
