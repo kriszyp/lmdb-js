@@ -2,8 +2,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 
+#include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
 
