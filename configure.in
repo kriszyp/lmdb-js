@@ -520,12 +520,15 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 			AC_MSG_CHECKING([if pthread_create() works])
 			AC_CACHE_VAL(ol_cv_pthread_create_works,[
 			AC_TRY_RUN([
-#include <stdlib.h>
 #include <pthread.h>
-static int g = 0;
+#ifndef NULL
+#define NULL (void*)0
+#endif
 
-static void task(void *p) {
-	return g++;
+static void *task(p)
+	void *p;
+{
+	return (void *) (p == NULL);
 }
 
 int main(argc, argv)
@@ -533,8 +536,9 @@ int main(argc, argv)
 	char **argv;
 {
 	pthread_t t;
-	exit(pthread_create(&t, NULL, (void *) task, NULL));
-}],
+	exit(pthread_create(&t, NULL, task, NULL));
+}
+],
 				[ol_cv_pthread_create_works=yes],
 				[ol_cv_pthread_create_works=no],
 				[dnl assume yes
@@ -555,13 +559,13 @@ int main(argc, argv)
 #include <unistd.h>
 #include <pthread.h>
 #ifndef NULL
-#define NULL 0
+#define NULL (void*) 0
 #endif
 
-int fildes[2];
+static int fildes[2];
 
-int task(arg)
-	int *arg;
+static void *task(p)
+	void *p;
 {
 	int i;
 	struct timeval tv;
@@ -606,7 +610,7 @@ int main(argc, argv)
 #endif
 #endif
 
-	pthread_create(&t, NULL, (void *) task, NULL);
+	pthread_create(&t, NULL, task, NULL);
 
 #if HAVE_SCHED_YIELD
 	sched_yield();	/* make sure task runs first */
