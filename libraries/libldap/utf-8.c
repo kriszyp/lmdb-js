@@ -70,8 +70,6 @@ int ldap_utf8_offset( const char * p )
 
 /*
  * Returns length indicated by first byte.
- *
- * This function should use a table lookup.
  */
 const char ldap_utf8_lentab[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -94,6 +92,23 @@ int ldap_utf8_charlen( const char * p )
 /*
  * Make sure the UTF-8 char used the shortest possible encoding
  * returns charlen if valid, 0 if not. 
+ *
+ * Here are the valid UTF-8 encodings, taken from RFC 2279 page 4.
+ * The table is slightly modified from that of the RFC.
+ *
+ * UCS-4 range (hex)      UTF-8 sequence (binary)
+ * 0000 0000-0000 007F   0.......
+ * 0000 0080-0000 07FF   110++++. 10......
+ * 0000 0800-0000 FFFF   1110++++ 10+..... 10......
+ * 0001 0000-001F FFFF   11110+++ 10++.... 10...... 10......
+ * 0020 0000-03FF FFFF   111110++ 10+++... 10...... 10...... 10......
+ * 0400 0000-7FFF FFFF   1111110+ 10++++.. 10...... 10...... 10...... 10......
+ *
+ * The '.' bits are "don't cares". When validating a UTF-8 sequence,
+ * at least one of the '+' bits must be set, otherwise the character
+ * should have been encoded in fewer octets. Note that in the two-octet
+ * case, only the first octet needs to be validated, and this is done
+ * in the ldap_utf8_lentab[] above.
  */
 
 /* mask of required bits in second octet */
