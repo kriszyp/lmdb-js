@@ -202,7 +202,6 @@ bdb_db_config(
 		}
 
 		se_id = atoi( argv[1] );
-		se_size = atoi( argv[2] );
 
 		if ( se_id < 0 || se_id > 999 ) {
 #ifdef NEW_LOGGING
@@ -217,7 +216,8 @@ bdb_db_config(
 			return( 1 );
 		}
 
-		if ( se_size < 0 || se_size > 999 ) {
+		se_size = atoi( argv[2] );
+		if ( se_size < 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( CONFIG, CRIT,
 				"%s: line %d: session log size %d is negative\n",
