@@ -299,8 +299,8 @@ enum bgbvc { ChArray, BvArray, BvVec, BvOff };
  * stack use to the absolute minimum.
  */
 typedef struct bgbvr {
-	BerElement *ber;
 	enum bgbvc choice;
+	BerElement *ber;
 	ber_tag_t tag;
 	ber_len_t len;
 	char *last;
@@ -729,7 +729,8 @@ ber_scanf ( BerElement *ber,
 
 		case 'v':	/* sequence of strings */
 		{
-			bgbvr cookie = { ber, ChArray };
+			bgbvr cookie = { ChArray };
+			cookie.ber = ber;
 			cookie.res.c = va_arg( ap, char *** );
 			cookie.alloc = 1;
 			rc = ber_get_stringbvr( &cookie, 0 );
@@ -738,7 +739,8 @@ ber_scanf ( BerElement *ber,
 
 		case 'V':	/* sequence of strings + lengths */
 		{
-			bgbvr cookie = { ber, BvVec };
+			bgbvr cookie = { BvVec };
+			cookie.ber = ber;
 			cookie.res.bv = va_arg( ap, struct berval *** );
 			cookie.alloc = 1;
 			rc = ber_get_stringbvr( &cookie, 0 );
@@ -747,7 +749,8 @@ ber_scanf ( BerElement *ber,
 
 		case 'W':	/* bvarray */
 		{
-			bgbvr cookie = { ber, BvArray };
+			bgbvr cookie = { BvArray };
+			cookie.ber = ber;
 			cookie.res.ba = va_arg( ap, struct berval ** );
 			cookie.alloc = 1;
 			rc = ber_get_stringbvr( &cookie, 0 );
@@ -760,7 +763,8 @@ ber_scanf ( BerElement *ber,
 				 * len ptr on finish. parsed in-place.
 				 */
 		{
-			bgbvr cookie = { ber, BvOff };
+			bgbvr cookie = { BvOff };
+			cookie.ber = ber;
 			cookie.res.ba = va_arg( ap, struct berval ** );
 			cookie.alloc = 0;
 			l = va_arg( ap, ber_len_t * );
