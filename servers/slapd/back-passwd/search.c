@@ -83,14 +83,6 @@ passwd_back_search(
 		}
 		pthread_mutex_unlock( &op->o_abandonmutex );
 
-		/* check size limit */
-		if ( --slimit == -1 ) {
-			send_ldap_result( conn, op, LDAP_SIZELIMIT_EXCEEDED,
-			    NULL, NULL );
-			endpwent();
-			return( 0 );
-		}
-
 		/* check time limit */
 		pthread_mutex_lock( &currenttime_mutex );
 		time( &currenttime );
@@ -106,6 +98,14 @@ passwd_back_search(
 		e = pw2entry( be, pw );
 
 		if ( test_filter( be, conn, op, e, filter ) == 0 ) {
+			/* check size limit */
+			if ( --slimit == -1 ) {
+				send_ldap_result( conn, op, LDAP_SIZELIMIT_EXCEEDED,
+				    NULL, NULL );
+				endpwent();
+				return( 0 );
+			}
+
 			send_search_entry( be, conn, op, e, attrs, attrsonly );
 		}
 
