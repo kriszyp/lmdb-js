@@ -71,8 +71,8 @@ bdb_db_init( BackendDB *be )
 	LDAP_LOG( BACK_BDB, ENTRY, "bdb_db_init", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY,
-		"bdb_db_init: Initializing BDB database\n",
-		0, 0, 0 );
+		"bdb_db_init: Initializing %s database\n",
+		be->bd_info->bi_type, 0, 0 );
 #endif
 
 	/* allocate backend-database-specific stuff */
