@@ -43,7 +43,7 @@ DOCUMENTATION
 		doc/drafts  LDAP-related IETF drafts
 		doc/install Installation and Integration
 		doc/man     Raw man(1) pages
-		doc/rfcs    LDAP-related Request for Comments
+		doc/rfc     LDAP-related Request for Comments
 
 	There is an OpenLDAP home page available that contains the latest
 	LDAP news, releases announcements, pointers to other LDAP resources,
