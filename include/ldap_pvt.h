@@ -106,7 +106,7 @@ LDAP_F (void) ldap_pvt_hex_unescape LDAP_P(( char *s ));
  * these macros assume 'x' is an ASCII x
  * and assume the "C" locale
  */
-#define LDAP_ASCII(c)		((c) < 0x80)
+#define LDAP_ASCII(c)		(!((c) & 0x80))
 #define LDAP_SPACE(c)		((c) == ' ' || (c) == '\t' || (c) == '\n')
 #define LDAP_DIGIT(c)		((c) >= '0' && (c) <= '9')
 #define LDAP_LOWER(c)		((c) >= 'a' && (c) <= 'z')
