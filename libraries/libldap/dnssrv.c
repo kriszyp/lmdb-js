@@ -39,8 +39,8 @@ int ldap_dn2domain(
 {
 	int i, j;
 	char *ndomain;
-	LDAPDN *dn = NULL;
-	LDAPRDN *rdn = NULL;
+	LDAPDN dn = NULL;
+	LDAPRDN rdn = NULL;
 	LDAPAVA *ava = NULL;
 	struct berval domain = { 0, NULL };
 	static const struct berval DC = BER_BVC("DC");
@@ -49,18 +49,21 @@ int ldap_dn2domain(
 	assert( dn_in != NULL );
 	assert( domainp != NULL );
 
+	*domainp = NULL;
+
 	if ( ldap_str2dn( dn_in, &dn, LDAP_DN_FORMAT_LDAP ) != LDAP_SUCCESS ) {
 		return -2;
 	}
 
-	if( dn ) for( i=0; (*dn)[i] != NULL; i++ ) {
-		rdn = (*dn)[i];
+	if( dn ) for( i=0; dn[i] != NULL; i++ ) {
+		rdn = dn[i];
 
-		for( j=0; (*rdn)[j] != NULL; j++ ) {
-			ava = (*rdn)[j];
+		for( j=0; rdn[j] != NULL; j++ ) {
+			ava = rdn[j];
 
-			if( (*dn)[i][j][1] == NULL &&
-				!ava->la_flags && ava->la_value.bv_len &&
+			if( rdn[j+1] == NULL &&
+				(ava->la_flags & LDAP_AVA_STRING) &&
+				ava->la_value.bv_len &&
 				( ber_bvstrcasecmp( &ava->la_attr, &DC ) == 0
 				|| ber_bvstrcasecmp( &ava->la_attr, &DCOID ) == 0 ) )
 			{

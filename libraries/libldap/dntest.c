@@ -33,7 +33,7 @@ main( int argc, char *argv[] )
 	int 		rc, i, debug = 0, f2 = 0;
 	unsigned 	flags[ 2 ] = { 0U, 0 };
 	char		*strin, *str = NULL, buf[ 1024 ];
-	LDAPDN		*dn, *dn2 = NULL;
+	LDAPDN		dn, dn2 = NULL;
 
 	while ( 1 ) {
 		int opt = getopt( argc, argv, "d:" );
@@ -124,8 +124,8 @@ main( int argc, char *argv[] )
 	if ( rc == LDAP_SUCCESS ) {
 		int i;
 		if ( dn ) {
-			for ( i = 0; dn[ 0 ][ i ]; i++ ) {
-				LDAPRDN		*rdn = dn[ 0 ][ i ];
+			for ( i = 0; dn[ i ]; i++ ) {
+				LDAPRDN		rdn = dn[ i ];
 				char		*rstr = NULL;
 
 				if ( ldap_rdn2str( rdn, &rstr, flags[ f2 ] ) ) {
@@ -241,15 +241,15 @@ main( int argc, char *argv[] )
 			if( dn != NULL && dn2 == NULL ) {
 				fprintf( stdout, "dn mismatch\n" );
 			} else if (( dn != NULL ) && (dn2 != NULL))
-				for ( iRDN = 0; dn[ 0 ][ iRDN ] && dn2[ 0 ][ iRDN ]; iRDN++ )
+				for ( iRDN = 0; dn[ iRDN ] && dn2[ iRDN ]; iRDN++ )
 			{
-				LDAPRDN 	*r = dn[ 0 ][ iRDN ];
-				LDAPRDN 	*r2 = dn2[ 0 ][ iRDN ];
+				LDAPRDN 	r = dn[ iRDN ];
+				LDAPRDN 	r2 = dn2[ iRDN ];
 				int 		iAVA;
 				
-				for ( iAVA = 0; r[ 0 ][ iAVA ] && r2[ 0 ][ iAVA ]; iAVA++ ) {
-					LDAPAVA		*a = r[ 0 ][ iAVA ];
-					LDAPAVA		*a2 = r2[ 0 ][ iAVA ];
+				for ( iAVA = 0; r[ iAVA ] && r2[ iAVA ]; iAVA++ ) {
+					LDAPAVA		*a = r[ iAVA ];
+					LDAPAVA		*a2 = r2[ iAVA ];
 
 					if ( a->la_attr.bv_len != a2->la_attr.bv_len ) {
 						fprintf( stdout, "ava(%d), rdn(%d) attr len mismatch (%ld->%ld)\n", 

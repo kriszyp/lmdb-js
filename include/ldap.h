@@ -1229,15 +1229,18 @@ typedef struct ldap_ava {
 	struct berval la_attr;
 	struct berval la_value;
 	unsigned la_flags;
-#define LDAP_AVA_STRING				0x0000U
-#define LDAP_AVA_BINARY				0x0001U
-#define LDAP_AVA_NONPRINTABLE		0x0002U
+#define LDAP_AVA_NULL				0x0000U
+#define LDAP_AVA_STRING				0x0001U
+#define LDAP_AVA_BINARY				0x0002U
+#define LDAP_AVA_NONPRINTABLE		0x0004U
+#define LDAP_AVA_FREE_ATTR		0x0010U
+#define LDAP_AVA_FREE_VALUE		0x0020U
 
 	void *la_private;
 } LDAPAVA;
 
 typedef LDAPAVA** LDAPRDN;
-typedef LDAPRDN** LDAPDN;
+typedef LDAPRDN* LDAPDN;
 
 /* DN formats */
 #define LDAP_DN_FORMAT_LDAP			0x0000U
@@ -1256,57 +1259,75 @@ typedef LDAPRDN** LDAPDN;
 #define LDAP_DN_P_NOSPACEAFTERRDN	0x2000U
 #define LDAP_DN_PEDANTIC			0xF000U
 
-LDAP_F( void ) ldap_avafree LDAP_P(( LDAPAVA *ava ));
-LDAP_F( void ) ldap_rdnfree LDAP_P(( LDAPRDN *rdn ));
-LDAP_F( void ) ldap_dnfree LDAP_P(( LDAPDN *dn ));
+LDAP_F( void ) ldap_rdnfree LDAP_P(( LDAPRDN rdn ));
+LDAP_F( void ) ldap_rdnfree_x LDAP_P(( LDAPRDN rdn, void *ctx ));
+LDAP_F( void ) ldap_dnfree LDAP_P(( LDAPDN dn ));
+LDAP_F( void ) ldap_dnfree_x LDAP_P(( LDAPDN dn, void *ctx ));
 
 LDAP_F( int )
 ldap_bv2dn LDAP_P(( 
 	struct berval *bv, 
-	LDAPDN **dn, 
+	LDAPDN *dn, 
 	unsigned flags ));
+
+LDAP_F( int )
+ldap_bv2dn_x LDAP_P(( 
+	struct berval *bv, LDAPDN *dn, unsigned flags, void *ctx ));
 
 LDAP_F( int )
 ldap_str2dn LDAP_P((
 	LDAP_CONST char *str,
-	LDAPDN **dn,
+	LDAPDN *dn,
 	unsigned flags ));
 
 LDAP_F( int )
 ldap_dn2bv LDAP_P((
-	LDAPDN *dn,
+	LDAPDN dn,
 	struct berval *bv,
 	unsigned flags ));
 
 LDAP_F( int )
+ldap_dn2bv_x LDAP_P((
+	LDAPDN dn, struct berval *bv, unsigned flags, void *ctx ));
+
+LDAP_F( int )
 ldap_dn2str LDAP_P((
-	LDAPDN *dn,
+	LDAPDN dn,
 	char **str,
 	unsigned flags ));
 
 LDAP_F( int )
 ldap_bv2rdn LDAP_P((
 	struct berval *bv,
-	LDAPRDN **rdn,
+	LDAPRDN *rdn,
 	char **next,
 	unsigned flags ));
 
 LDAP_F( int )
+ldap_bv2rdn_x LDAP_P((
+	struct berval *bv, LDAPRDN *rdn, char **next,
+	unsigned flags, void *ctx ));
+
+LDAP_F( int )
 ldap_str2rdn LDAP_P((
 	LDAP_CONST char *str,
-	LDAPRDN **rdn,
+	LDAPRDN *rdn,
 	char **next,
 	unsigned flags ));
 
 LDAP_F( int )
 ldap_rdn2bv LDAP_P((
-	LDAPRDN *rdn,
+	LDAPRDN rdn,
 	struct berval *bv,
 	unsigned flags ));
 
 LDAP_F( int )
+ldap_rdn2bv_x LDAP_P((
+	LDAPRDN rdn, struct berval *bv, unsigned flags, void *ctx ));
+
+LDAP_F( int )
 ldap_rdn2str LDAP_P((
-	LDAPRDN *rdn,
+	LDAPRDN rdn,
 	char **str,
 	unsigned flags ));
 
@@ -1329,7 +1350,7 @@ ldap_explode_rdn LDAP_P(( /* deprecated */
 	LDAP_CONST char *rdn,
 	int notypes ));
 
-typedef int LDAPDN_rewrite_func LDAP_P(( LDAPDN *dn, unsigned flags ));
+typedef int LDAPDN_rewrite_func LDAP_P(( LDAPDN dn, unsigned flags, void *ctx ));
 
 LDAP_F( int )
 ldap_X509dn2bv LDAP_P(( void *x509_name, struct berval *dn,

@@ -112,6 +112,7 @@ ldap_pvt_tls_destroy( void )
 	tls_def_ctx = NULL;
 
 	EVP_cleanup();
+	ERR_remove_state(0);
 	ERR_free_strings();
 
 	if ( tls_opt_certfile ) {

@@ -348,13 +348,21 @@ LDAP_F ( void ) ldap_int_initialize_global_options LDAP_P((
 
 /* memory.c */
 	/* simple macros to realloc for now */
-#define LDAP_MALLOC(s)		(LBER_MALLOC((s)))
-#define LDAP_CALLOC(n,s)	(LBER_CALLOC((n),(s)))
-#define LDAP_REALLOC(p,s)	(LBER_REALLOC((p),(s)))
-#define LDAP_FREE(p)		(LBER_FREE((p)))
-#define LDAP_VFREE(v)		(LBER_VFREE((void **)(v)))
-#define LDAP_STRDUP(s)		(LBER_STRDUP((s)))
-#define LDAP_STRNDUP(s,l)	(LBER_STRNDUP((s),(l)))
+#define LDAP_MALLOC(s)		(ber_memalloc_x((s),NULL))
+#define LDAP_CALLOC(n,s)	(ber_memcalloc_x((n),(s),NULL))
+#define LDAP_REALLOC(p,s)	(ber_memrealloc_x((p),(s),NULL))
+#define LDAP_FREE(p)		(ber_memfree_x((p),NULL))
+#define LDAP_VFREE(v)		(ber_memvfree_x((void **)(v),NULL))
+#define LDAP_STRDUP(s)		(ber_strdup_x((s),NULL))
+#define LDAP_STRNDUP(s,l)	(ber_strndup_x((s),(l),NULL))
+
+#define LDAP_MALLOCX(s,x)	(ber_memalloc_x((s),(x)))
+#define LDAP_CALLOCX(n,s,x)	(ber_memcalloc_x((n),(s),(x)))
+#define LDAP_REALLOCX(p,s,x)	(ber_memrealloc_x((p),(s),(x)))
+#define LDAP_FREEX(p,x)		(ber_memfree_x((p),(x)))
+#define LDAP_VFREEX(v,x)	(ber_memvfree_x((void **)(v),(x)))
+#define LDAP_STRDUPX(s,x)	(ber_strdup_x((s),(x)))
+#define LDAP_STRNDUPX(s,l,x)	(ber_strndup_x((s),(l),(x)))
 
 /*
  * in error.c
