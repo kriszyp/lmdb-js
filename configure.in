@@ -230,6 +230,9 @@ OL_ARG_WITH(passwd_module,[    --with-passwd-module  module type static|dynamic]
 OL_ARG_ENABLE(perl,[    --enable-perl	  enable perl backend], no)dnl
 OL_ARG_WITH(perl_module,[    --with-perl-module	  module type static|dynamic], static,
 	[static dynamic])
+OL_ARG_ENABLE(relay,[    --enable-relay  	  enable relay backend], yes)dnl
+OL_ARG_WITH(relay_module,[    --with-relay-module   module type static|dynamic], static,
+	[static dynamic])
 OL_ARG_ENABLE(shell,[    --enable-shell	  enable shell backend], no)dnl
 OL_ARG_WITH(shell_module,[    --with-shell-module	  module type static|dynamic], static,
 	[static dynamic])
@@ -299,6 +302,9 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_perl = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-perl argument])
 	fi
+	if test $ol_enable_relay = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-relay argument])
+	fi
 	if test $ol_enable_shell = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-shell argument])
 	fi
@@ -356,6 +362,9 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_with_perl_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-perl-module argument])
 	fi
+	if test $ol_with_relay_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-relay-module argument])
+	fi
 	if test $ol_with_shell_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-shell-module argument])
 	fi
@@ -390,6 +399,7 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_null=no
 	ol_enable_passwd=no
 	ol_enable_perl=no
+	ol_enable_relay=no
 	ol_enable_shell=no
 	ol_enable_sql=no
 
@@ -412,6 +422,7 @@ if test $ol_enable_slapd = no ; then
 	ol_with_null_module=static
 	ol_with_passwd_module=static
 	ol_with_perl_module=static
+	ol_with_relay_module=static
 	ol_with_shell_module=static
 	ol_with_sql_module=static
 
@@ -448,6 +459,7 @@ elif test $ol_enable_ldbm = no ; then
 		$ol_enable_null = no -a \
 		$ol_enable_passwd = no -a \
 		$ol_enable_perl = no -a \
+		$ol_enable_relay = no -a \
 		$ol_enable_shell = no -a \
 		$ol_enable_sql = no ; then
 
@@ -564,6 +576,7 @@ BUILD_MONITOR=no
 BUILD_NULL=no
 BUILD_PASSWD=no
 BUILD_PERL=no
+BUILD_RELAY=no
 BUILD_SHELL=no
 BUILD_SQL=no
 
@@ -577,6 +590,7 @@ BUILD_MONITOR_DYNAMIC=static
 BUILD_NULL_DYNAMIC=static
 BUILD_PASSWD_DYNAMIC=static
 BUILD_PERL_DYNAMIC=static
+BUILD_RELAY_DYNAMIC=static
 BUILD_SHELL_DYNAMIC=static
 BUILD_SQL_DYNAMIC=static
 
@@ -809,6 +823,7 @@ else
 	ol_with_null_module=static
 	ol_with_passwd_module=static
 	ol_with_perl_module=static
+	ol_with_relay_module=static
 	ol_with_shell_module=static
 	ol_with_sql_module=static
 	if test $ol_with_dyngroup = mod ; then
@@ -2704,6 +2719,21 @@ if test "$ol_link_perl" != no ; then
 	fi
 fi
 
+if test "$ol_enable_relay" != no ; then
+	AC_DEFINE(SLAPD_RELAY,1,[define to support relay backend])
+	BUILD_SLAPD=yes
+	BUILD_RELAY=yes
+	if test "$ol_with_relay_module" != static ; then
+		AC_DEFINE(SLAPD_RELAY_DYNAMIC,1,
+			[define to support dynamic relay backend])
+		BUILD_RELAY=mod
+		BUILD_RELAY_DYNAMIC=shared
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-relay"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-relay"
+	fi
+fi
+
 if test "$ol_enable_shell" != no ; then
 	if test "$ol_link_thread" != no ; then
 		AC_MSG_WARN([Use of --without-threads is recommended with back-shell])
@@ -2824,6 +2854,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_MONITOR)
   AC_SUBST(BUILD_NULL)
   AC_SUBST(BUILD_PASSWD)
+  AC_SUBST(BUILD_RELAY)
   AC_SUBST(BUILD_PERL)
   AC_SUBST(BUILD_SHELL)
   AC_SUBST(BUILD_SQL)
@@ -2837,6 +2868,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_NULL_DYNAMIC)
   AC_SUBST(BUILD_PASSWD_DYNAMIC)
   AC_SUBST(BUILD_PERL_DYNAMIC)
+  AC_SUBST(BUILD_RELAY_DYNAMIC)
   AC_SUBST(BUILD_SHELL_DYNAMIC)
   AC_SUBST(BUILD_SQL_DYNAMIC)
   AC_SUBST(BUILD_DYNGROUP)
@@ -2919,6 +2951,7 @@ servers/slapd/back-monitor/Makefile:build/top.mk:servers/slapd/back-monitor/Make
 servers/slapd/back-null/Makefile:build/top.mk:servers/slapd/back-null/Makefile.in:build/mod.mk \
 servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/mod.mk \
 servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk \
+servers/slapd/back-relay/Makefile:build/top.mk:servers/slapd/back-relay/Makefile.in:build/mod.mk \
 servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk \
 servers/slapd/back-sql/Makefile:build/top.mk:servers/slapd/back-sql/Makefile.in:build/mod.mk \
 servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
