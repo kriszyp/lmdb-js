@@ -7,13 +7,13 @@ slapd \- Stand-alone LDAP Daemon
 .SH SYNOPSIS
 .B LIBEXECDIR/slapd 
 .B [\-[4|6]]
-.B [\-T (a|c|i|p)]
+.B [\-T {a|c|d|i|p|t}]
 .B [\-d debug\-level]
 .B [\-f slapd\-config\-file]
 .B [\-h URLs]
 .B [\-n service\-name] [\-s syslog\-level] [\-l syslog\-local\-user]
 .B [\-r directory]
-.B [\-u user] [\-g group] [\-t]
+.B [\-u user] [\-g group]
 .B [\-c cookie]
 .B 
 .SH DESCRIPTION
@@ -65,13 +65,13 @@ Listen on IPv4 addresses only.
 .B \-6
 Listen on IPv6 addresses only.
 .TP
-.B \-T (a|c|i|p)
+.B \-T {a|c|d|i|p|t}
 Run in Tool mode. The additional argument selects whether to run as
-slapadd, slapcat, slapindex, or slappasswd. This option should be the first
-option specified when it is used. Any remaining options will be interpreted
-by the corresponding slap tool program. Note that these tool programs will
-usually be symbolic links to slapd. This option is provided for situations
-where symbolic links are not provided or not usable.
+slapadd, slapcat, slapdn, slapindex, slappasswd, or slatest. This option 
+should be the first option specified when it is used. Any remaining options 
+will be interpreted by the corresponding slap tool program. Note that these 
+tool programs will usually be symbolic links to slapd. This option is provided 
+for situations where symbolic links are not provided or not usable.
 .TP
 .BI \-d " debug\-level"
 Turn on debugging as defined by
@@ -175,12 +175,6 @@ Note that on some systems, running as a non-privileged user will prevent
 passwd back-ends from accessing the encrypted passwords.  Note also that
 any shell back-ends will run as the specified non-privileged user.
 .TP
-.BI \-t
-.B slapd
-will read the configuration file (the default if none is given with the 
-\fI\-f\fP switch) and check its syntax, without opening any listener 
-or database.
-.TP
 .BI \-c " cookie"
 This option provides a cookie for the syncrepl replication consumer.
 The cookie is a comma separated list of name=value pairs.
@@ -229,7 +223,7 @@ To test whether the configuration file is correct or not, type:
 .LP
 .nf
 .ft tt
-	LIBEXECDIR/slapd -t
+	LIBEXECDIR/slapd -Tt
 .ft
 .fi
 .LP
@@ -239,8 +233,10 @@ To test whether the configuration file is correct or not, type:
 .BR slapd.access (5),
 .BR slapadd (8),
 .BR slapcat (8),
+.BR slapdn (8),
 .BR slapindex (8),
 .BR slappasswd (8),
+.BR slaptest (8),
 .BR slurpd (8)
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
