@@ -58,8 +58,10 @@ do_add( Connection *conn, Operation *op )
 	entry_rdwr_init(e);
 
 	e->e_dn = dn;
-	dn = dn_normalize( ch_strdup( dn ) );
-	Debug( LDAP_DEBUG_ARGS, "    do_add: dn (%s)\n", dn, 0, 0 );
+	e->e_ndn = dn_normalize( ch_strdup( dn ) );
+	dn = NULL;
+
+	Debug( LDAP_DEBUG_ARGS, "    do_add: ndn (%s)\n", e->e_ndn, 0, 0 );
 
 	/* get the attrs */
 	e->e_attrs = NULL;
@@ -71,7 +73,6 @@ do_add( Connection *conn, Operation *op )
 		if ( ber_scanf( ber, "{a{V}}", &type, &vals ) == LBER_ERROR ) {
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
 			    NULL, "decoding error" );
-			free( dn );
 			entry_free( e );
 			return;
 		}
@@ -82,7 +83,6 @@ do_add( Connection *conn, Operation *op )
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
 			    NULL );
 			free( type );
-			free( dn );
 			entry_free( e );
 			return;
 		}
@@ -94,15 +94,14 @@ do_add( Connection *conn, Operation *op )
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d ADD dn=\"%s\"\n",
-	    conn->c_connid, op->o_opid, dn, 0, 0 );
+	    conn->c_connid, op->o_opid, e->e_ndn, 0, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	be = select_backend( dn );
-	free( dn );
+	be = select_backend( e->e_ndn );
 	if ( be == NULL ) {
 		entry_free( e );
 		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
