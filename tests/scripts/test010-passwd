@@ -65,8 +65,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 $LDAPPASSWD -h localhost -p $PORT \
-	-w secret -s newsecret \
-	-D "cn=smd5, $BASEDN" >> $TESTOUT 2>&1
+	-w $PASSWD -s newsecret \
+	-D $MANAGERDN "cn=smd5, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldappasswd failed ($RC)!"
 	kill -HUP $PID
