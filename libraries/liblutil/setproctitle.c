@@ -1,16 +1,8 @@
 /* $OpenLDAP$ */
-#include "portable.h"
-
-#ifndef HAVE_SETPROCTITLE
-
-#include <stdio.h>
-
-#include <ac/stdlib.h>
-
-#include <ac/setproctitle.h>
-#include <ac/string.h>
-#include <ac/stdarg.h>
-
+/*
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
  * Copyright (c) 1990,1991 Regents of the University of Michigan.
  * All rights reserved.
@@ -22,6 +14,18 @@
  * software without specific prior written permission. This software
  * is provided ``as is'' without express or implied warranty.
  */
+
+#include "portable.h"
+
+#ifndef HAVE_SETPROCTITLE
+
+#include <stdio.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/setproctitle.h>
+#include <ac/string.h>
+#include <ac/stdarg.h>
 
 char	**Argv;		/* pointer to original (main's) argv */
 int	Argc;		/* original argc */

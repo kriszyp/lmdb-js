@@ -1,4 +1,8 @@
 /* $OpenLDAP$ */
+/* 
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
 ** This is an improved implementation of Reader/Writer locks does
 ** not protect writers from starvation.  That is, if a writer is

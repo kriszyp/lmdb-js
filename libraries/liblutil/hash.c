@@ -1,4 +1,8 @@
 /* $OpenLDAP$ */
+/*
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /* This implements the Fowler / Noll / Vo (FNV-1) hash algorithm.
  * A summary of the algorithm can be found at:
  *   http://www.isthe.com/chongo/tech/comp/fnv/index.html
