@@ -55,6 +55,8 @@ int slapi_entry_attr_get_uint( const Slapi_Entry *e, const char *type );
 int slapi_entry_attr_get_ulong( const Slapi_Entry *e, const char *type );
 int slapi_entry_attr_hasvalue( Slapi_Entry *e, const char *type, const char *value );
 int slapi_entry_attr_merge_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals );
+int slapi_entry_first_attr( const Slapi_Entry *e, Slapi_Attr **attr );
+int slapi_entry_next_attr( const Slapi_Entry *e, Slapi_Attr *prevattr, Slapi_Attr **attr );
 char *slapi_entry_get_dn( Slapi_Entry *e );
 int slapi_x_entry_get_id( Slapi_Entry *e );
 void slapi_entry_set_dn( Slapi_Entry *e, char *dn );

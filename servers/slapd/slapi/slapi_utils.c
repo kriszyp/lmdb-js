@@ -463,6 +463,42 @@ slapi_entry_attr_merge_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals 
 }
 
 int
+slapi_entry_first_attr( const Slapi_Entry *e, Slapi_Attr **attr )
+{
+#ifdef LDAP_SLAPI
+	if ( e == NULL ) {
+		return -1;
+	}
+
+	*attr = e->e_attrs;
+
+	return ( *attr != NULL ) ? 0 : -1;
+#else
+	return -1;
+#endif
+}
+
+int
+slapi_entry_next_attr( const Slapi_Entry *e, Slapi_Attr *prevattr, Slapi_Attr **attr )
+{
+#ifdef LDAP_SLAPI
+	if ( e == NULL ) {
+		return -1;
+	}
+
+	if ( prevattr == NULL ) {
+		return -1;
+	}
+
+	*attr = prevattr->a_next;
+
+	return ( *attr != NULL ) ? 0 : -1;
+#else
+	return -1;
+#endif
+}
+
+int
 slapi_entry_attr_replace_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals )
 {
 #ifdef LDAP_SLAPI
