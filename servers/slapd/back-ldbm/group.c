@@ -29,7 +29,7 @@ ldbm_back_group(
 {
         struct ldbminfo *li = (struct ldbminfo *) be->be_private;    
         Entry        *e;
-		char		*tdn;
+		char		*tdn, *xdn; 
         char        *matched;
         Attribute   *objectClass;
         Attribute   *member;
@@ -41,7 +41,9 @@ ldbm_back_group(
                 objectclassValue, groupattrName, 0 ); 
 
 	tdn = dn_normalize_case( ch_strdup( target->e_dn ) );
-	if (strcmp(tdn, bdn) == 0) {
+	xdn = dn_normalize_case( ch_strdup( bdn ) );
+	Debug( LDAP_DEBUG_TRACE, "=> ldbm_back_group: tdn: %s\n", tdn, 0, 0 ); 
+	if (strcmp(tdn, xdn) == 0) {
 		/* we already have a LOCKED copy of the entry */
 		e = target;
         	Debug( LDAP_DEBUG_ARGS,
@@ -56,6 +58,7 @@ ldbm_back_group(
 			if (matched != NULL)
 				free(matched);
 			free(tdn);
+			free(xdn);
 			return( 1 );
 		}
         	Debug( LDAP_DEBUG_ARGS,
@@ -63,6 +66,7 @@ ldbm_back_group(
 			bdn, 0, 0 ); 
         }
 	free(tdn);
+	free(xdn);
 
 
         /* check for deleted */
