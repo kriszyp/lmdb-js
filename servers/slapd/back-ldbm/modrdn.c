@@ -50,6 +50,7 @@ ldbm_back_modrdn(
 	char		*new_dn = NULL, *new_ndn = NULL;
 	Entry		*e, *p = NULL;
 	Entry		*matched;
+	int		isroot = -1;
 	int		rootlock = 0;
 #define CAN_ROLLBACK	-1
 #define MUST_DESTROY	1
@@ -205,7 +206,8 @@ ldbm_back_modrdn(
 
 	} else {
 		/* no parent, must be root to modify rdn */
-		if( ! be_isroot( be, op->o_ndn ) ) {
+		isroot = be_isroot( be, op->o_ndn );
+		if ( ! be_isroot ) {
 			if ( be_issuffix( be, "" ) ) {
 				static const Entry rootp = { NOID, "", "", NULL, NULL };
 				p = (Entry *)&rootp;
@@ -219,7 +221,7 @@ ldbm_back_modrdn(
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
 						"ldbm_back_modrdn: no access "
-						"to parent of ("")\n" ));
+						"to parent \"\"\n" ));
 #else
 					Debug( LDAP_DEBUG_TRACE,
 						"<=- ldbm_back_modrdn: no "
@@ -299,82 +301,136 @@ ldbm_back_modrdn(
 		/* newSuperior == entry being moved?, if so ==> ERROR */
 		/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
-		if( (np = dn2entry_w( be, np_ndn, NULL )) == NULL) {
+		if ( newSuperior[ 0 ] != '\0' ) {
+
+			if( (np = dn2entry_w( be, np_ndn, NULL )) == NULL) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
-				   "ldbm_back_modrdn: newSup(ndn=%s) not found.\n", np_ndn ));
+				LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+					   "ldbm_back_modrdn: newSup(ndn=%s) not found.\n", np_ndn ));
+#else
+				Debug( LDAP_DEBUG_TRACE,
+				       "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
+				       np_ndn, 0, 0);
+#endif
+
+				send_ldap_result( conn, op, LDAP_OTHER,
+					NULL, "newSuperior not found", NULL, NULL );
+				goto return_results;
+			}
+
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+				   "ldbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
+				   np, np->e_id ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
-			       "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
-			       np_ndn, 0, 0);
+			       "ldbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
+			       np, np->e_id, 0 );
 #endif
 
-			send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, "newSuperior not found", NULL, NULL );
-			goto return_results;
-		}
-
+			/* check newSuperior for "children" acl */
+			if ( !access_allowed( be, conn, op, np, children, NULL,
+					      ACL_WRITE ) )
+			{
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			   "ldbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
-			   np, np->e_id ));
+				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+					   "ldbm_back_modrdn: no wr to newSup children.\n" ));
 #else
-		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
-		       np, np->e_id, 0 );
+				Debug( LDAP_DEBUG_TRACE,
+				       "ldbm_back_modrdn: no wr to newSup children\n",
+				       0, 0, 0 );
 #endif
 
-		/* check newSuperior for "children" acl */
-		if ( !access_allowed( be, conn, op, np, children, NULL,
-				      ACL_WRITE ) )
-		{
+				send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+					NULL, NULL, NULL, NULL );
+				goto return_results;
+			}
+
+			if ( is_entry_alias( np ) ) {
+				/* parent is an alias, don't allow add */
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				   "ldbm_back_modrdn: no wr to newSup children.\n" ));
+				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+					   "ldbm_back_modrdn: entry (%s) is an alias.\n", np->e_dn ));
 #else
-			Debug( LDAP_DEBUG_TRACE,
-			       "ldbm_back_modrdn: no wr to newSup children\n",
-			       0, 0, 0 );
-#endif
-
-			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-				NULL, NULL, NULL, NULL );
-			goto return_results;
-		}
-
-		if ( is_entry_alias( np ) ) {
-			/* entry is an alias, don't allow bind */
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				   "ldbm_back_modrdn: entry (%s) is an alias.\n", np->e_dn ));
-#else
-			Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0,
-			    0, 0 );
+				Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0, 0, 0 );
 #endif
 
 
-			send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
-			    NULL, "newSuperior is an alias", NULL, NULL );
+				send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
+				    NULL, "newSuperior is an alias", NULL, NULL );
 
-			goto return_results;
-		}
+				goto return_results;
+			}
 
-		if ( is_entry_referral( np ) ) {
-			/* parent is a referral, don't allow add */
-			/* parent is an alias, don't allow add */
+			if ( is_entry_referral( np ) ) {
+				/* parent is a referral, don't allow add */
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				"ldbm_back_modrdn: entry (%s) is a referral\n",
+				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+					"ldbm_back_modrdn: entry (%s) is a referral\n",
 				np->e_dn ));
 #else
-			Debug( LDAP_DEBUG_TRACE, "entry (%s) is referral\n",
-				np->e_dn, 0, 0 );
+				Debug( LDAP_DEBUG_TRACE, "entry (%s) is referral\n",
+					np->e_dn, 0, 0 );
 #endif
 
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			    NULL, "newSuperior is a referral", NULL, NULL );
+				send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+				    NULL, "newSuperior is a referral", NULL, NULL );
 
-			goto return_results;
+				goto return_results;
+			}
+
+		} else {
+
+			/* no parent, must be root to modify newSuperior */
+			if ( isroot == -1 ) {
+				isroot = be_isroot( be, op->o_ndn );
+			}
+
+			if ( ! be_isroot ) {
+				if ( be_issuffix( be, "" ) ) {
+					static const Entry rootp = { NOID, "", "", NULL, NULL };
+					np = (Entry *)&rootp;
+				
+					rc = access_allowed( be, conn, op, np,
+							children, NULL, ACL_WRITE );
+					np = NULL;
+								
+					/* check parent for "children" acl */
+					if ( ! rc ) {
+#ifdef NEW_LOGGING
+						LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+							"ldbm_back_modrdn: no access "
+							"to new superior \"\"\n" ));
+#else
+						Debug( LDAP_DEBUG_TRACE,
+							"<=- ldbm_back_modrdn: no "
+							"access to new superior\n", 0, 0, 0 );
+#endif
+
+						send_ldap_result( conn, op, 
+							LDAP_INSUFFICIENT_ACCESS,
+							NULL, NULL, NULL, NULL );
+						goto return_results;
+					}
+
+				} else {
+#ifdef NEW_LOGGING
+					LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+						   "ldbm_back_modrdn: \"\" "
+						   "not allowed as new superior\n" ));
+#else
+					Debug( LDAP_DEBUG_TRACE,
+						"<=- ldbm_back_modrdn: \"\" "
+						"not allowed as new superior\n", 
+						0, 0, 0);
+#endif
+
+					send_ldap_result( conn, op, 
+						LDAP_INSUFFICIENT_ACCESS,
+						NULL, NULL, NULL, NULL );
+					goto return_results;
+				}
+			}
 		}
 
 #ifdef NEW_LOGGING
