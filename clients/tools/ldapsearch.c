@@ -1070,7 +1070,8 @@ print_entry(
 						continue;
 					}
 
-					if (( tmpfd = open( tmpfname, O_WRONLY|O_CREAT|O_EXCL, 0600 )) == -1 ) {
+					tmpfd = open( tmpfname, O_WRONLY|O_CREAT|O_EXCL, 0600 );
+					if ( tmpfd == -1 ) {
 						perror( tmpfname );
 						continue;
 					}

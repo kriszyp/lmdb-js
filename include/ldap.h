@@ -285,6 +285,7 @@ typedef struct ldapcontrol {
 
 /* sasl methods */
 #define LDAP_SASL_SIMPLE		((char*)0)
+#define LDAP_SASL_NULL			("")
 
 
 /* authentication methods available */
