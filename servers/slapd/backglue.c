@@ -675,6 +675,9 @@ glue_tool_entry_next (
 	int i;
 	ID rc;
 
+	if (!glueBack)
+		return NOID;
+
 	rc = glueBack->be_entry_next (glueBack);
 
 	/* If we ran out of entries in one database, move on to the next */
