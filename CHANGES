@@ -3,6 +3,7 @@ OpenLDAP Change Log
 Changes included in OpenLDAP 1.2 Release Engineering
 	CVS Tag: OPENLDAP_REL_ENG_1_2
 	Added the MDBM to the ldbm backends (memory mapped dbm)
+	Fixed slapd to reap back-shell children processes
 	Updated README to require BerkeleyDB 2.7.5
 	Fixed incorrect schema check when objectclass is missing (ITS#204)
 	Build environment

@@ -14,6 +14,7 @@
 
 #include <signal.h>
 
+#undef SIGNAL
 #ifdef HAVE_SIGSET
 #define SIGNAL sigset
 #else
@@ -50,6 +51,14 @@
 #			define LDAP_SIGUSR2	SIGEMT
 #		endif
 #	endif
+#endif
+
+#ifndef LDAP_SIGCHLD
+#ifdef SIGCHLD
+#define LDAP_SIGCHLD SIGCHLD
+#elif SIGCLD
+#define LDAP_SIGCHLD SIGCLD
+#endif
 #endif
 
 #endif /* _AC_SIGNAL_H */

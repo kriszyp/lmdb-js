@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include <ac/errno.h>
 #include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/string.h>
@@ -11,6 +12,10 @@
 #include "ldapconfig.h"
 #include "slap.h"
 #include "lutil.h"			/* Get lutil_detach() */
+
+#ifdef LDAP_SIGCHLD
+static void wait4child( int sig );
+#endif
 
 /*
  * when more than one slapd is running on one machine, each one might have
@@ -197,6 +202,9 @@ main( int argc, char **argv )
 		(void) SIGNAL( SIGTERM, slap_set_shutdown );
 		(void) SIGNAL( SIGINT, slap_set_shutdown );
 		(void) SIGNAL( SIGHUP, slap_set_shutdown );
+#ifdef LDAP_SIGCHLD
+		(void) SIGNAL( LDAP_SIGCHLD, wait4child );
+#endif
 
 		time( &starttime );
 
@@ -293,6 +301,36 @@ main( int argc, char **argv )
 	}
 	return 1;
 }
+
+
+#ifdef LDAP_SIGCHLD
+
+/*
+ *  Catch and discard terminated child processes, to avoid zombies.
+ */
+
+static void
+wait4child( int sig )
+{
+    int save_errno = errno;
+
+#ifdef WNOHANG
+    errno = 0;
+#ifdef HAVE_WAITPID
+    while ( waitpid( (pid_t)-1, NULL, WNOHANG ) >= 0 || errno == EINTR )
+	;	/* NULL */
+#else
+    while ( wait3( NULL, WNOHANG, NULL ) >= 0 || errno == EINTR )
+	;	/* NULL */
+#endif
+#else
+    (void) wait( NULL );
+#endif
+    (void) SIGNAL( sig, wait4child );
+    errno = save_errno;
+}
+
+#endif /* SIGCHLD || SIGCLD */
 
 
 #ifdef LOG_LOCAL4
