@@ -90,7 +90,8 @@ bdb_dn2idl(
 	BackendDB	*be,
 	struct berval	*dn,
 	int prefix,
-	ID *ids );
+	ID *ids,
+	void *ctx );
 
 /*
  * entry.c

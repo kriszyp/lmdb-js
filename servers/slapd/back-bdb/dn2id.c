@@ -416,7 +416,8 @@ bdb_dn2idl(
 	BackendDB	*be,
 	struct berval	*dn,
 	int prefix,
-	ID *ids )
+	ID *ids,
+	void *ctx )
 {
 	int		rc;
 	DBT		key;
@@ -442,7 +443,7 @@ bdb_dn2idl(
 	key.size = dn->bv_len + 2;
 	key.ulen = key.size;
 	key.flags = DB_DBT_USERMEM;
-	key.data = ch_malloc( key.size );
+	key.data = sl_malloc( key.size, ctx );
 	((char *)key.data)[0] = prefix;
 	AC_MEMCPY( &((char *)key.data)[1], dn->bv_val, key.size - 1 );
 
@@ -472,7 +473,7 @@ bdb_dn2idl(
 #endif
 	}
 
-	ch_free( key.data );
+	sl_free( key.data, ctx );
 	return rc;
 }
 #else	/* BDB_HIER */
@@ -480,6 +481,7 @@ bdb_dn2idl(
 /* Experimental management routines for a hierarchically structured database.
  *
  * Unsupported! Use at your own risk!
+ * -- Howard Chu, Symas Corp. 2003.
  *
  * Instead of a ldbm-style dn2id database, we use a hierarchical one. Each
  * entry in this database is a struct diskNode, keyed by entryID and with
@@ -581,7 +583,8 @@ bdb_dn2id_add(
 	if (nrlen) {
 		rlen = dn_rdnlen( be, &e->e_name );
 	} else {
-		rlen = 0;
+		nrlen = e->e_nname.bv_len;
+		rlen = e->e_name.bv_len;
 	}
 
 	d = sl_malloc(sizeof(diskNode) + rlen + nrlen, ctx);
@@ -693,6 +696,7 @@ bdb_dn2id(
 	char	*ptr;
 
 	nrlen = dn_rdnlen( be, &in );
+	if (!nrlen) nrlen = in->bv_len;
 
 	DBTzero(&key);
 	key.size = sizeof(ID);
@@ -768,41 +772,100 @@ bdb_dn2id_children(
 	return rc;
 }
 
+struct dn2id_cookie {
+	struct bdb_info *bdb;
+	DB *db;
+	int prefix;
+	int rc;
+	ID id;
+	ID dbuf;
+	ID *ids;
+	ID tmp[BDB_IDL_DB_SIZE];
+	ID buf[BDB_IDL_UM_SIZE];
+	DBT key;
+	DBT data;
+	DBC dbc;
+	void *ptr;
+	void *ctx;
+};
+
+/* We can't just use bdb_idl_fetch_key because
+ * 1 - our data items are longer than just an entry ID
+ * 2 - our data items are sorted alphabetically by nrdn, not by ID.
+ */
+int
+bdb_dn2idl_internal(
+	struct dn2id_cookie *cx
+)
+{
+	ID *save, *i;
+
+#ifdef SLAP_IDL_CACHE
+	if ( cx->bdb->bi_idl_cache_size ) {
+		cx->rc = bdb_idl_cache_get(cx->bdb, cx->db, &cx->key, cx->tmp);
+		if ( cx->rc == DB_NOTFOUND ) {
+			return cx->rc;
+		}
+		if ( cx->rc == LDAP_SUCCESS ) {
+			readit = 0;
+		}
+	}
+#endif
+	
+	cx->data.data = &cx->dbuf;
+	cx->data.ulen = sizeof(ID);
+	cx->data.dlen = sizeof(ID);
+	cx->data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
+
+	cx->rc = db->cursor( cx->db, NULL, &cx->dbc, cx->bdb->bi_db_opflags );
+	if ( cx->rc ) return cx->rc;
+	BDB_IDL_ZERO( cx->tmp );
+
+	cx->rc = dbc->c_get( dbc, &cx->key, &cx->data, DB_FIRST );
+	cx->data.data = &cx->buf;
+	cx->data.ulen = sizeof(cx->buf);
+	while ( cx->rc == 0 ) {
+		u_int8_t *j;
+		size_t len;
+		cx->rc = dbc->c_get( dbc, &cx->key, &cx->data, DB_MULTIPLE |
+			DB_NEXT_DUP );
+		DB_MULTIPLE_INIT( cx->ptr, &cx->data );
+		while (cx->ptr) {
+			DB_MULTIPLE_NEXT( cx->ptr, &cx->data, j, len );
+			if (j) {
+				AC_MEMCPY( &cx->dbuf, j, sizeof(ID) );
+				bdb_idl_insert( cx->tmp, cx->dbuf );
+			}
+		}
+	}
+	dbc->c_close( dbc );
+	
+}
+
 int
 bdb_dn2idl(
 	BackendDB	*be,
 	struct berval	*dn,
 	int prefix,
-	ID *ids )
+	ID *ids,
+	void *ctx )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int		rc;
-	ID		id;
-	idNode		*n;
+	struct dn2id_cookie cx;
 
-	if (prefix == DN_SUBTREE_PREFIX && be_issuffix(be, dn)) {
-		BDB_IDL_ALL(bdb, ids);
-		return 0;
-	}
+	cx.id = *(ID *)dn;
 
-	rc = bdb_dn2id(be, NULL, dn, &id, 0);
-	if (rc) return rc;
+	cx.bdb = (struct bdb_info *)be->be_private;
+	cx.db = cx.bdb->bi_dn2id->bdi_db;
+	cx.prefix = prefix;
+	cx.ids = ids;
+	cx.ctx = ctx;
 
-	ldap_pvt_thread_rdwr_rlock(&bdb->bi_tree_rdwr);
-	n = bdb_find_id_node(id, bdb->bi_tree);
-	ldap_pvt_thread_rdwr_runlock(&bdb->bi_tree_rdwr);
+	DBTzero(&cx.key);
+	cx.key.data = &cx.id;
+	cx.key.size = sizeof(ID);
+	cx.key.flags = DB_DBT_USERMEM;
+	DBTzero(&cx.data);
 
-	ids[0] = 0;
-	ldap_pvt_thread_rdwr_rlock(&n->i_kids_rdwr);
-	if (prefix == DN_ONE_PREFIX) {
-		rc = avl_apply(n->i_kids, insert_one, ids, -1, AVL_INORDER);
-	} else {
-		ids[0] = 1;
-		ids[1] = id;
-		if (n->i_kids)
-			rc = avl_apply(n->i_kids, insert_sub, ids, -1, AVL_INORDER);
-	}
-	ldap_pvt_thread_rdwr_runlock(&n->i_kids_rdwr);
-	return rc;
+	return bdb_dn2idl_internal(&cx);
 }
 #endif	/* BDB_HIER */

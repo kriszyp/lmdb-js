@@ -67,7 +67,8 @@ bdb_filter_candidates(
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tDN ONE\n", 0, 0, 0 );
 #endif
-		rc = bdb_dn2idl( op->o_bd, f->f_dn, DN_ONE_PREFIX, ids );
+		rc = bdb_dn2idl( op->o_bd, f->f_dn, DN_ONE_PREFIX, ids,
+			op->o_tmpmemctx );
 		if( rc == DB_NOTFOUND ) {
 			BDB_IDL_ZERO( ids );
 			rc = 0;
@@ -80,7 +81,8 @@ bdb_filter_candidates(
 #else
 		Debug( LDAP_DEBUG_FILTER, "\tDN SUBTREE\n", 0, 0, 0 );
 #endif
-		rc = bdb_dn2idl( op->o_bd, f->f_dn, DN_SUBTREE_PREFIX, ids );
+		rc = bdb_dn2idl( op->o_bd, f->f_dn, DN_SUBTREE_PREFIX, ids,
+			op->o_tmpmemctx );
 		break;
 
 	case LDAP_FILTER_PRESENT:

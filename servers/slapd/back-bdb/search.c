@@ -268,12 +268,17 @@ nextido:
 		 * we should never see the ID of an entry that doesn't exist.
 		 * Set the name so that the scope's IDL can be retrieved.
 		 */
+#ifndef BDB_HIER
 		ei = NULL;
 		rs->sr_err = bdb_cache_find_entry_id(op->o_bd, NULL, ido, &ei,
 			0, locker, &locka, op->o_tmpmemctx );
 		if (rs->sr_err != LDAP_SUCCESS) goto nextido;
 		e = ei->bei_e;
 		sf->f_dn = &e->e_nname;
+#else
+		/* bdb_dn2idl uses IDs for keys, not DNs */
+		sf->f_dn = (struct berval *)&ido;
+#endif
 	}
 	return rs->sr_err;
 }
@@ -1514,7 +1519,11 @@ static int search_candidates(
 	scopef.f_choice = op->oq_search.rs_scope == LDAP_SCOPE_SUBTREE
 		? SLAPD_FILTER_DN_SUBTREE
 		: SLAPD_FILTER_DN_ONE;
+#ifdef BDB_HIER
+	scopef.f_dn = (struct berval *)&e->e_id;
+#else
 	scopef.f_dn = &e->e_nname;
+#endif
 	scopef.f_next = NULL;
 
 	f.f_next = NULL;
