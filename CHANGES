@@ -1,6 +1,6 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.X Engineering
+OpenLDAP 2.0.2 Release
 	Fixed KBIND (ITS#717)
 	Fixed clients/tools -R handling (ITS#726)
 	Fixed -lldap SASL got_max_ssf bug 
