@@ -644,6 +644,16 @@ rewriteRule "(.*\e\e()uid=([a-z0-9_]+)(\e\e).*)"
 rewriteRule "[^,]+,ou=admin,dc=home,dc=net"
   "%{*prefix}|(uid=%{*arg})(cn=%{*arg})%{*suffix}" "@I"
 rewriteRule ".*<>" "%{*prefix}uid=%{*arg}%{*suffix}" ":"
+
+# This example shows how to strip unwanted DN-valued
+# attribute values from a search result; the first rule
+# matches DN values below "ou=People,dc=example,dc=com";
+# in case of match the rewriting exits successfully.
+# The second rule matches everything else and causes
+# the value to be rejected.
+rewriteContext searchResult
+rewriteRule ".*,ou=People,dc=example,dc=com" "%0" "@"
+rewriteRule ".*" "" "#"
 .fi
 .SH "LDAP Proxy resolution (a possible evolution of slapd\-ldap(5)):"
 In case the rewritten DN is an LDAP URI, the operation is initiated
