@@ -21,7 +21,8 @@ A N N O U N C E M E N T -- OpenLDAP 2.1
         * LDAPv3 extensions, including:
             - Enhanced Language Tag/Range Support
             - 'Who am i?' Extended Operation
-			- 'Matched Values' Control
+            - 'Matched Values' Control
+            - 'NOOP' Control
 
     This release includes the following major components:
 
