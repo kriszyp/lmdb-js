@@ -27,7 +27,7 @@ fax5version.c: ${FAX5OBJS} $(LDAP_LIBDEPEND)
 	$(MKVERSION) fax500 > $@
 
 xrpcomp.tmp: xrpcomp
-	$(SED) -e 's%\%LIBEXECDIR\%%$(libexecdir)%' $(srcdir)/xrpcomp > xrpcomp.tmp
+	$(SED) -e 's|%LIBEXECDIR%|$(libexecdir)|' $(srcdir)/xrpcomp > xrpcomp.tmp
 
 install-local: $(PROGRAMS) FORCE
 	-$(MKDIR) $(libexecdir)
