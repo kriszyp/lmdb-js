@@ -76,7 +76,7 @@ static int emfile;
 
 static int waking;
 #define WAKE_LISTENER(w) \
-do { if (w && !waking) tcp_write( wake_sds[1], "0", 1 ); waking=w; } while(0)
+do { if (w && waking < 5) { tcp_write( wake_sds[1], "0", 1 ); waking++;} } while(0)
 
 volatile sig_atomic_t slapd_shutdown = 0, slapd_gentle_shutdown = 0;
 volatile sig_atomic_t slapd_abrupt_shutdown = 0;
