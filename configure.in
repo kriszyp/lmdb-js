@@ -195,11 +195,14 @@ OL_ARG_ENABLE(slapi,[    --enable-slapi        enable SLAPI support (experimenta
 OL_ARG_ENABLE(slp,[    --enable-slp          enable SLPv2 support], no)dnl     
 OL_ARG_ENABLE(wrappers,[    --enable-wrappers	  enable tcp wrapper support], no)dnl
 
-
+dnl ----------------------------------------------------------------
+dnl SLAPD Backend Options
 Backends="bdb dnssrv hdb ldap ldbm meta monitor null \
 	passwd perl relay shell sql"
 
-dnl SLAPD Backend options
+AC_ARG_WITH(xxslapoverlays,[
+SLAPD Backend Options:])
+
 OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend no|yes|mod], yes, [no yes mod])dnl
 OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend no|yes|mod], no, [no yes mod])dnl
 OL_ARG_ENABLE(hdb,[    --enable-hdb	  enable Hierarchical DB backend no|yes|mod], no, [no yes mod])dnl
@@ -224,6 +227,7 @@ Overlays="chain denyop dyngroup lastmod ppolicy proxycache rwm"
 
 AC_ARG_WITH(xxslapoverlays,[
 SLAPD Overlay Options:])
+
 OL_ARG_ENABLE(chain,[    --enable-chain   	  LDAP Chain Response no|yes|mod], no,
 	[no yes mod])
 OL_ARG_ENABLE(denyop,[    --enable-denyop  	  Deny Operation overlay no|yes|mod], no,
