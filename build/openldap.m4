@@ -344,6 +344,11 @@ main()
 
 	rc = db_env_create( &env, 0 );
 
+	flags |= DB_INIT_MPOOL;
+#ifdef DB_MPOOL_PRIVATE
+	flags |= DB_MPOOL_PRIVATE;
+#endif
+
 	if( rc ) {
 		printf("BerkeleyDB: %s\n", db_strerror(rc) );
 		return rc;
