@@ -52,7 +52,7 @@ lutil_detach LDAP_P((
 /* entropy.c */
 LDAP_LUTIL_F( int )
 lutil_entropy LDAP_P((
-	char *buf,
+	unsigned char *buf,
 	ber_len_t nbytes ));
 
 /* passwd.c */

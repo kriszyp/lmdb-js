@@ -34,7 +34,7 @@
  * This routinue should be extended to support additional sources
  * of entropy.
  */
-int lutil_entropy( char *buf, ber_len_t nbytes )
+int lutil_entropy( unsigned char *buf, ber_len_t nbytes )
 {
 	if( nbytes == 0 ) return 0;
 
