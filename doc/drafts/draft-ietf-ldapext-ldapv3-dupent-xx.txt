@@ -2,8 +2,8 @@
 
 LDAPEXT Working Group                                    J. Sermersheim
 Internet Draft                                              Novell, Inc
-Document: draft-ietf-ldapext-ldapv3-dupent-03.txt            March 2000
-Category: Proposed Standard
+Document: draft-ietf-ldapext-ldapv3-dupent-05.txt          October 2000
+Intended Category: Standard Track
 
 
   LDAP Control for a Duplicate Entry Representation of Search Results
@@ -55,7 +55,7 @@ Category: Proposed Standard
    to represent each attribute value prior to sorting.
 
 
- Sermersheim      Standards Track - Expires Sep 2000            Page 1
+Sermersheim       Internet-Draft - Expires Apr 2001            Page 1
 
 LDAP Control for a Duplicate Entry Representation of Search Results
 
@@ -75,8 +75,8 @@ LDAP Control for a Duplicate Entry Representation of Search Results
    to create a result set of duplicate groupOfNames entries, each with
    a single, unique value in its member attribute.
 
-   The key words "MUST", "SHOULD", and "MAY" used in this document
-   carry the meanings described in [Bradner97].
+   The key words "MUST", "MUST NOT", "SHOULD", "SHOULD NOT", and "MAY"
+   used in this document carry the meanings described in [RFC2119].
 
 4. The Controls
 
@@ -89,43 +89,54 @@ LDAP Control for a Duplicate Entry Representation of Search Results
 
    This control is included in the searchRequest message as part of the
    controls field of the LDAPMessage, as defined in Section 4.1.12 of
-   [LDAPv3].
+   [RFC2251].
 
    The controlType is set to "2.16.840.1.113719.1.27.101.1". The
    criticality MAY be set to either TRUE or FALSE.  The controlValue is
    an OCTET STRING, whose value is the BER encoding of the following
    type:
 
-   DuplicateEntryRequest ::= AttributeDescriptionList
+   DuplicateEntryRequest ::= SEQUENCE {
+        AttributeDescriptionList, -- from [RFC2251]
+        PartialApplicationAllowed BOOLEAN DEFAULT TRUE }
 
-   The "AttributeDescriptionList" data type is described in 4.1.5 of
-   [LDAPv3] and describes a list of 0 or more AttributeDescription
-   types as also described in 4.1.5 of [LDAPv3]. Both definitions are
+
+4.1.1 AttributeDescriptionList Semantics
+
+   The AttributeDescriptionList data type is described in 4.1.5 of
+   [RFC2251] and describes a list of 0 or more AttributeDescription
+   types as also described in 4.1.5 of [RFC2251]. Both definitions are
    repeated here for convenience:
 
         AttributeDescriptionList ::= SEQUENCE OF
                 AttributeDescription
 
-        AttributeDescription ::= <AttributeType> [ ";" <options> ]
-
-   While processing a search request, a server implementation examines
-   this list.  If a specified attribute exists in an entry to be
-   returned by search, one instance of that entry per attribute value
-   is returned. In this case, the specified attribute in each entry
+        AttributeDescription ::= LDAPString
 
 
-Sermersheim       Standards Track - Expires Sep 2000            Page 2
+Sermersheim       Internet-Draft - Expires Jan 2001            Page 2
 
 LDAP Control for a Duplicate Entry Representation of Search Results
 
 
-   holds a single, unique value from the original set of values of that
-   attribute.
+   A value of AttributeDescription is based on the following BNF:
 
-   An AttributeDescription should only occur once in the list.  If an
+        attributeDescription = AttributeType [ ";" <options> ]
+
+   While processing a search request, a server implementation examines
+   this list.  If a specified attribute or attribute subtype exists in
+   an entry to be returned by search, and that attribute holds multiple
+   values, the server treats the entry as if it were multiple,
+   duplicate entries -- the specified attributes each holding a single,
+   unique value from the original set of values of that attribute.
+
+   An AttributeDescription MUST only occur once in the list.  If an
    AttributeDescription is included in the DuplicateEntryRequest
-   multiple times, the server should return an unwillingToPerform error
-   in the DuplicateEntryResponse.
+   multiple times, the server MUST return a protocolError error in the
+   DuplicateEntryResponseDone control.
+
+   Client implementations SHOULD NOT specify attribute type options
+   that indicate transfer encoding.
 
    When two or more attribute types are specified by this control, the
    number of duplicate entries is the combination of all values in each
@@ -138,33 +149,65 @@ LDAP Control for a Duplicate Entry Representation of Search Results
    all attributes are used.  (The "*" allows the client to request all
    user attributes in addition to specific operational attributes).
 
-4.2 Response Control
+4.1.2 PartialApplicationAllowed Semantics
+
+   The PartialApplicationAllowed field is used to specify whether the
+   client will allow the server to apply this control to a subset of
+   the search result set. If TRUE, the server is free to arbitrarily
+   apply this control to no, any, or all search results. If FALSE, the
+   server MUST either apply the control to all search results or fail
+   to support the control at all.
+
+   Client implementations use the DuplicateSearchResult control to
+   discover which search results have been affected by this control
+
+4.2 Response Controls
+
+   Two response controls are defined to provide feedback while the
+   search results are being processed; DuplicateSearchResult and
+   DuplicateEntryResponseDone.
+
+   The DuplicateSearchResult control is sent with all SearchResultEntry
+   operations that contain search results which have been modified by
+   the DuplicateEntryRequest control.
+
+
+
+Sermersheim       Internet-Draft - Expires Jan 2001            Page 3
+
+LDAP Control for a Duplicate Entry Representation of Search Results
+
+
+   The DuplicateEntryResponseDone control is sent with the
+   SearchResultDone operation in order to convey completion
+   information.
+
+4.2.1 The DuplicateSearchResult control
+
+   This control is included in the SearchResultEntry message of any
+   search result that holds an entry that has been modified by the
+   DuplicateEntryRequest control as part of the controls field of the
+   LDAPMessage, as defined in Section 4.1.12 of [RFC2251]. This control
+   is absent on search results that are unaffected by
+   DuplicateEntryRequest control.
+
+   The controlType is set to "2.16.840.1.113719.1.27.101.2". The
+   criticality is ignored. The controlValue is not included.
+
+4.2.2 The DuplicateEntryResponseDone control
 
    This control is included in the searchResultDone message as part of
    the controls field of the LDAPMessage, as defined in Section 4.1.12
-   of [LDAPv3].
+   of [RFC2251].
 
-   The controlType is set to "2.16.840.1.113719.1.27.101.2". The
-   criticality is FALSE (MAY be absent). The controlValue is an OCTET
-   STRING, whose value is the BER encoding of the following SEQUENCE:
+   The controlType is set to "2.16.840.1.113719.1.27.101.3". The
+   criticality is ignored. The controlValue is an OCTET STRING, whose
+   value is the BER encoding of the following SEQUENCE:
 
-      DuplicateEntryResponse ::= SEQUENCE {
-          result   ENUMERATED {
-             success             (0),
-             operations error    (1),  -- server internal failure
-             timeLimitExceeded   (3),  -- time limit reached before
-                                        -- attribute values could be
-                                        -- processed
-             sizeLimitExceeded   (4),  -- size limit reached as a
-                                        -- result of this control
-             adminLimitExceeded  (11), -- result set too large for
-                                        -- server to handle
-             noSuchAttribute     (16), -- unrecognized attribute
-                                        -- description
-             busy                (51),
-             unwillingToPerform  (53),
-             other               (80) },
-          attributeType   AttributeDescription OPTIONAL }
+      DuplicateEntryResponseDone ::= SEQUENCE {
+          resultCode,     -- From [RFC2251]
+          errorMessage    [0] LDAPString OPTIONAL,
+          attributeType   [1] AttributeDescription OPTIONAL }
 
    A result field is provided here to allow feedback in the case where
    the criticality of the request control is FALSE, and the server
@@ -173,11 +216,29 @@ LDAP Control for a Duplicate Entry Representation of Search Results
    TRUE, and the server cannot process the control, the resultCode of
    the LDAPResult is used to report the error.
 
-Sermersheim       Standards Track - Expires Sep 2000            Page 3
+   Though any result code that is defined in [RFC2251] MAY be returned
+   the following list assigns special meanings to certain result codes
+   when returned in this control:
+
+   - success:             The control was successful.
+   - protocolError        Invalid data in request control.
+   - timeLimitExceeded    Time limit reached before attribute values
+                          could be processed.
+   - sizeLimitExceeded    Size limit reached as a result of this
+                          control.
+   - adminLimitExceeded   result set too large for server to handle.
+   - noSuchAttribute      unrecognized attribute description.
+   - unwillingToPerform   Server cannot process control.
+
+
+
+Sermersheim       Internet-Draft - Expires Jan 2001            Page 4
 
 LDAP Control for a Duplicate Entry Representation of Search Results
 
 
+   errorMessage MAY be populated with a human-readable string in the
+   event of an erroneous result code.
 
    attributeType MAY be set to the value of the first attribute type
    specified by the DuplicateEntryRequest that was in error.  The
@@ -188,54 +249,57 @@ LDAP Control for a Duplicate Entry Representation of Search Results
 5.1 Simple example
 
    This example will show this control being used to produce a list of
-   all telephone numbers in the "Acting" organizational unit of "Looney
-   Tunes".  Let's say the following three entries exist in this
-   organization;
+   all telephone numbers in the dc=example,dc=net container.  Let's say
+   the following three entries exist in this container;
 
-   dn: cn=Bugs Bunny,ou=Acting,o=Looney Tunes
+   dn: cn=User1,dc=example,dc=net
    telephoneNumber: 555-0123
 
-   dn: cn=Daffy Duck,ou=Acting,o=Looney Tunes
+   dn: cn=User2,dc=example,dc=net
    telephoneNumber: 555-8854
    telephoneNumber: 555-4588
    telephoneNumber: 555-5884
 
-   dn: cn=Porky Pig,ou=Acting,o=Looney Tunes
+   dn: cn=User3,dc=example,dc=net
    telephoneNumber: 555-9425
    telephoneNumber: 555-7992
 
-   First an LDAP search is specified with a baseDN of "ou=Acting,
-   o=Looney Tunes ", subtree scope, filter set to "telephoneNumber=*".
-   A DuplicateEntryRequest control is attached to the search,
-   specifying "telephoneNumber" as the attribute description, and the
-   search request is sent to the server.
+   First an LDAP search is specified with a baseDN of
+   "dc=example,dc=net", subtree scope, filter set to
+   "telephoneNumber=*".  A DuplicateEntryRequest control is attached to
+   the search, specifying "telephoneNumber" as the attribute
+   description, and the search request is sent to the server.
 
    The set of search results returned by the server would then consist
    of the following entries:
 
-   dn: cn=Bugs Bunny,ou=Acting,o=Looney Tunes
+   dn: cn=User1,dc=example,dc=net
    telephoneNumber: 555-0123
+   <no DuplicateSearchResult control sent with search result>
 
-   dn: cn=Daffy Duck,ou=Acting,o=Looney Tunes
+   dn: cn=User2,dc=example,dc=net
    telephoneNumber: 555-8854
 
-   dn: cn=Daffy Duck,ou=Acting,o=Looney Tunes
+   dn: cn=User2,dc=example,dc=net
    telephoneNumber: 555-4588
 
-   dn: cn=Daffy Duck,ou=Acting,o=Looney Tunes
+   dn: cn=User2,dc=example,dc=net
    telephoneNumber: 555-5884
 
-   dn: cn=Porky Pig,ou=Acting,o=Looney Tunes
+   dn: cn=User3,dc=example,dc=net
    telephoneNumber: 555-9425
 
-   dn: cn=Porky Pig,ou=Acting,o=Looney Tunes
-   telephoneNumber: 555-7992
+   dn: cn=User3,dc=example,dc=net
 
-
-Sermersheim       Standards Track - Expires Sep 2000            Page 4
+Sermersheim       Internet-Draft - Expires Jan 2001            Page 5
 
 LDAP Control for a Duplicate Entry Representation of Search Results
 
+
+   telephoneNumber: 555-7992
+
+   All but the first entry are accompanied by the DuplicateSearchResult
+   control when sent from the server.
 
    Note that it is not necessary to use an attribute type in this
    control that is specified in the search filter.  This example only
@@ -247,38 +311,38 @@ LDAP Control for a Duplicate Entry Representation of Search Results
    A more complicated example involving multiple attributes will result
    in more entries.  If we assume these entries in the directory:
 
-   dn: cn=Bugs Bunny,ou=Acting,o=Looney Tunes
-   givenName: Bugs
-   mail: bbunny@looneytunes.com
+   dn: cn=User1,dc=example,dc=net
+   givenName: User1
+   mail: user1@example.net
 
-   dn: cn=Elmer Fudd,ou=Acting,o=Looney Tunes
-   givenName: Elmer
-   givenName: Doc
-   mail: efudd@looneytunes.com
-   mail: bunnyhunter@nra.org
+   dn: cn=User2,dc=example,dc=net
+   givenName: User2
+   givenName: User Two
+   mail: user2@example.net
+   mail: usertwo@example.net
 
    And both "mail" and "givenName" are specified as attribute types in
    this control, the resulting set of entries would be this:
 
-   dn: cn=Bugs Bunny,ou=Acting,o=Looney Tunes
-   givenName: Bugs
-   mail: bbunny@looneytunes.com
+   dn: cn=User1,dc=example,dc=net
+   givenName: User1
+   mail: user1@example.net
 
-   dn: cn=Elmer Fudd,ou=Acting,o=Looney Tunes
-   givenName: Elmer
-   mail: efudd@looneytunes.com
+   dn: cn=User2,dc=example,dc=net
+   givenName: User2
+   mail: user2@example.net
 
-   dn: cn=Elmer Fudd,ou=Acting,o=Looney Tunes
-   givenName: Elmer
-   mail: bunnyhunter@nra.org
+   dn: cn=User2,dc=example,dc=net
+   givenName: User2
+   mail: usertwo@example.net
 
-   dn: cn=Elmer Fudd,ou=Acting,o=Looney Tunes
-   givenName: Doc
-   mail: efudd@looneytunes.com
+   dn: cn=User2,dc=example,dc=net
+   givenName: User Two
+   mail: user2@example.net
 
-   dn: cn=Elmer Fudd,ou=Acting,o=Looney Tunes
-   givenName: Doc
-   mail: bunnyhunter@nra.org
+   dn: cn=User2,dc=example,dc=net
+   givenName: User Two
+   mail: usertwo@example.net
 
 5.3 Listing the members of a groupOfNames
 
@@ -286,35 +350,35 @@ LDAP Control for a Duplicate Entry Representation of Search Results
    groupOfNames entry into multiple duplicate entries.  Let∆s say this
    is our groupOfNames entry:
 
-   dn: cn=Administrators,o=acme
-   cn: Administrators
-   member: cn=aBaker,o=acme
-   member: cn=cDavis,o=acme
-
-Sermersheim       Standards Track - Expires Sep 2000            Page 5
+Sermersheim       Internet-Draft - Expires Jan 2001            Page 6
 
 LDAP Control for a Duplicate Entry Representation of Search Results
 
 
-   member: cn=bChilds,o=acme
-   member: cn=dEvans,o=acme
 
-   We could set our search base to "cn=Administrators,o=acme", filter
-   to "objectClass=*", use an object scope (to restrict it to this
-   entry) and send the duplicateEntryRequest control with "member" as
-   its attribute value.  The resulting set would look like this:
+   dn: cn=Administrators,dc=example,dc=net
+   cn: Administrators
+   member: cn=aBaker,dc=example,dc=net
+   member: cn=cDavis,dc=example,dc=net
+   member: cn=bChilds,dc=example,dc=net
+   member: cn=dEvans,dc=example,dc=net
 
-   dn: cn=Administrators,o=acme
-   member: cn=aBaker,o=acme
+   We could set our search base to "cn=Administrators,dc=example,dc=net
+   ", filter to "objectClass=*", use an object scope (to restrict it to
+   this entry) and send the duplicateEntryRequest control with "member"
+   as its attribute value.  The resulting set would look like this:
 
-   dn: cn=Administrators,o=acme
-   member: cn=cDavis,o=acme
+   dn: cn=Administrators,dc=example,dc=net
+   member: cn=aBaker,dc=example,dc=net
 
-   dn: cn=Administrators,o=acme
-   member: cn=bChilds,o=acme
+   dn: cn=Administrators,dc=example,dc=net
+   member: cn=cDavis,dc=example,dc=net
 
-   dn: cn=Administrators,o=acme
-   member: cn=dEvans,o=acme
+   dn: cn=Administrators,dc=example,dc=net
+   member: cn=bChilds,dc=example,dc=net
+
+   dn: cn=Administrators,dc=example,dc=net
+   member: cn=dEvans,dc=example,dc=net
 
    This list can then be sorted by member and displayed (also by
    member) in a list.
@@ -325,11 +389,11 @@ LDAP Control for a Duplicate Entry Representation of Search Results
    Server Side Sorting control [SSS].  By pairing this control with the
    Server Side Sorting control, One can produce a set of entries,
    sorted by attribute values, where each attribute value is
-   represented in the sorted set.  Server implementations should ensure
+   represented in the sorted set.  Server implementations MUST ensure
    that this control is processed before sorting the result of a
    search, as this control alters the result set of search.
 
-   This control may also be used with the Virtual List View [VLV]
+   This control MAY also be used with the Virtual List View [VLV]
    control (which has a dependency on the Server Side Sort control).
    The nature of the dependency between the VLV control and the Sort
    control is such that the Sorting takes place first. Because the sort
@@ -342,64 +406,79 @@ LDAP Control for a Duplicate Entry Representation of Search Results
 
 7. Notes for Implementers
 
-   Both client and server implementations should be aware that using
-   this control could potentially result in a very large set of search
-   results. Servers MAY return an adminLimitExceeded result in the
-   response control due to inordinate consumption of resources. This
-   may be due to some a priori knowledge such as a server restriction
-   of the number of attribute types in the request control that it's
+   Both client and server implementations MUST be aware that using this
+   control could potentially result in a very large set of search
 
-
-Sermersheim       Standards Track - Expires Sep 2000            Page 6
+Sermersheim       Internet-Draft - Expires Jan 2001            Page 7
 
 LDAP Control for a Duplicate Entry Representation of Search Results
 
 
+   results. Servers MAY return an adminLimitExceeded result in the
+   response control due to inordinate consumption of resources. This
+   may be due to some a priori knowledge such as a server restriction
+   of the number of attribute types in the request control that it's
    willing to service, or it may be due to the server attempting to
    service the control and running out of resources.
 
-   Client implementations must be aware that search entries returned,
-   when using this control will contain a subset of the values of any
+   Client implementations MUST be aware that when using this control,
+   search entries returned will contain a subset of the values of any
    specified attribute.
 
-8. Acknowledgments
+   If this control is used in a chained environment, servers SHOULD NOT
+   pass this control to other servers. Instead they SHOULD gather
+   results and apply this control themselves.
+
+8. Security Considerations
+
+   This control allows finer control of the result set returned by an
+   LDAP search operation and as such may be used in a denial of service
+   attack. See Section 7 for more information on how this is detected
+   and handled.
+
+9. Acknowledgments
 
    The author gratefully thanks the input and support of participants
    of the LDAP-EXT working group.
 
-9. References
+10. References
 
-   [LDAPv3]
+   [RFC2251]
    Wahl, M, S. Kille and T. Howes, "Lightweight Directory Access
    Protocol (v3)", Internet Standard, December, 1997.
    Available as RFC2251.
 
    [SSS]
    Wahl, M, A. Herron and T. Howes, "LDAP Control Extension for Server
-   Side Sorting of Search Results", Internet Draft, March, 1998.
-   Available as draft-ietf-ldapext-sorting-02.txt.
+   Side Sorting of Search Results", Internet Draft, June, 2000.
+   Available as draft-ietf-ldapext-sorting-03.txt.
 
    [VLV]
    Boreham, D, Sermersheim, J, Anantha, A, Armijo, M, "LDAP Extensions
    for Scrolling View Browsing of Search Results", Internet Draft,
-   June, 1999.
-   Available as draft-ietf-ldapext-ldapv3-vlv-03.txt.
-
+   April, 2000.
+   Available as draft-ietf-ldapext-ldapv3-vlv-04.txt.
 
    [X.511]
    ITU-T Rec. X.511, "The Directory: Abstract Service Definition",
    1993.
 
-   [Bradner97]
+   [RFC2119]
    Bradner, Scott, "Key Words for use in RFCs to Indicate Requirement
    Levels", Internet Draft, March, 1997.
    Available as RFC2119.
 
-10. Author's Address
+Sermersheim       Internet-Draft - Expires Jan 2001            Page 8
+
+LDAP Control for a Duplicate Entry Representation of Search Results
+
+
+
+11. Author's Address
 
    Jim Sermersheim
    Novell, Inc.
-   122 East 1700 South
+   1800 South Novell Place
    Provo, Utah 84606, USA
    jimse@novell.com
    +1 801 861-3088
@@ -409,4 +488,44 @@ LDAP Control for a Duplicate Entry Representation of Search Results
 
 
 
-Sermersheim       Standards Track - Expires Sep 2000            Page 7
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Sermersheim       Internet-Draft - Expires Jan 2001            Page 9
+
