@@ -642,7 +642,7 @@ typedef struct slap_entry {
 
 	/* for migration purposes */
 #define e_dn e_name.bv_val
-#define e_ndn e_name.bv_val
+#define e_ndn e_nname.bv_val
 
 	Attribute	*e_attrs;	/* list of attributes + values */
 
