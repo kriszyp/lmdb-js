@@ -111,7 +111,7 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ufn\n", 0, 0, 0 );
 
 	( void )ldap_dn_normalize( dn, LDAP_DN_FORMAT_LDAP, 
-				   &out, LDAP_DN_FORMAT_UFN );
+		&out, LDAP_DN_FORMAT_UFN );
 	
 	return( out );
 }
@@ -592,7 +592,7 @@ int
 ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
 {
 	const char 	*p;
-	int		rc = LDAP_INVALID_DN_SYNTAX;
+	int		rc = LDAP_DECODING_ERROR;
 	int		nrdns = 0;
 
 	LDAPDN		*newDN = NULL;
@@ -615,14 +615,15 @@ ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
 	/* unsupported in str2dn */
 	case LDAP_DN_FORMAT_UFN:
 	case LDAP_DN_FORMAT_AD_CANONICAL:
-		return( LDAP_INVALID_DN_SYNTAX );
+		return LDAP_PARAM_ERROR;
 
+	case LDAP_DN_FORMAT_LBER:
 	default:
-		return( LDAP_OTHER );
+		return LDAP_PARAM_ERROR;
 	}
 
 	if ( str[ 0 ] == '\0' ) {
-		return( LDAP_SUCCESS );
+		return LDAP_SUCCESS;
 	}
 
 	p = str;
@@ -662,7 +663,7 @@ ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
 			switch ( LDAP_DN_FORMAT( flags ) ) {
 			case LDAP_DN_FORMAT_LDAPV3:
 				if ( !LDAP_DN_RDN_SEP( p[ 0 ] ) ) {
-					rc = LDAP_OTHER;
+					rc = LDAP_DECODING_ERROR;
 					goto parsing_error;
 				}
 				break;
@@ -670,14 +671,14 @@ ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
 			case LDAP_DN_FORMAT_LDAP:
 			case LDAP_DN_FORMAT_LDAPV2:
 				if ( !LDAP_DN_RDN_SEP_V2( p[ 0 ] ) ) {
-					rc = LDAP_OTHER;
+					rc = LDAP_DECODING_ERROR;
 					goto parsing_error;
 				}
 				break;
 	
 			case LDAP_DN_FORMAT_DCE:
 				if ( !LDAP_DN_RDN_SEP_DCE( p[ 0 ] ) ) {
-					rc = LDAP_OTHER;
+					rc = LDAP_DECODING_ERROR;
 					goto parsing_error;
 				}
 				break;
@@ -728,7 +729,6 @@ parsing_error:;
 		ldap_rdnfree( tmpDN[nrdns] );
 
 return_result:;
-
 	Debug( LDAP_DEBUG_TRACE, "<= ldap_str2dn(%s,%u)=%d\n", str, flags, rc );
 	*dn = newDN;
 	
@@ -749,7 +749,7 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 	const char 	*p;
 	int		navas = 0;
 	int 		state = B4AVA;
-	int		rc = LDAP_INVALID_DN_SYNTAX;
+	int		rc = LDAP_DECODING_ERROR;
 	int		attrTypeEncoding = LDAP_AVA_STRING, 
 			attrValueEncoding = LDAP_AVA_STRING;
 
@@ -780,14 +780,15 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 	/* unsupported in str2dn */
 	case LDAP_DN_FORMAT_UFN:
 	case LDAP_DN_FORMAT_AD_CANONICAL:
-		return( LDAP_INVALID_DN_SYNTAX );
+		return LDAP_PARAM_ERROR;
 
+	case LDAP_DN_FORMAT_LBER:
 	default:
-		return( LDAP_OTHER );
+		return LDAP_PARAM_ERROR;
 	}
 
 	if ( str[ 0 ] == '\0' ) {
-		return( LDAP_SUCCESS );
+		return LDAP_SUCCESS;
 	}
 
 	p = str;
@@ -2597,6 +2598,10 @@ ldap_rdn2str( LDAPRDN *rdn, char **str, unsigned flags )
 
 	assert( str );
 
+	if((flags & LDAP_DN_FORMAT_MASK) == LDAP_DN_FORMAT_LBER) {
+		return LDAP_PARAM_ERROR;
+	}
+
 	rc = ldap_rdn2bv( rdn, &bv, flags );
 	*str = bv.bv_val;
 	return rc;
@@ -2625,36 +2630,36 @@ ldap_rdn2bv( LDAPRDN *rdn, struct berval *bv, unsigned flags )
 	switch ( LDAP_DN_FORMAT( flags ) ) {
 	case LDAP_DN_FORMAT_LDAPV3:
 		if ( rdn2strlen( rdn, flags, &l, strval2strlen ) ) {
-			return( LDAP_OTHER );
+			return LDAP_DECODING_ERROR;
 		}
 		break;
 
 	case LDAP_DN_FORMAT_LDAPV2:
 		if ( rdn2strlen( rdn, flags, &l, strval2IA5strlen ) ) {
-			return( LDAP_OTHER );
+			return LDAP_DECODING_ERROR;
 		}
 		break;
 
 	case LDAP_DN_FORMAT_UFN:
 		if ( rdn2UFNstrlen( rdn, flags, &l ) ) {
-			return( LDAP_OTHER );
+			return LDAP_DECODING_ERROR;
 		}
 		break;
 
 	case LDAP_DN_FORMAT_DCE:
 		if ( rdn2DCEstrlen( rdn, flags, &l ) ) {
-			return( LDAP_OTHER );
+			return LDAP_DECODING_ERROR;
 		}
 		break;
 
 	case LDAP_DN_FORMAT_AD_CANONICAL:
 		if ( rdn2ADstrlen( rdn, flags, &l ) ) {
-			return( LDAP_OTHER );
+			return LDAP_DECODING_ERROR;
 		}
 		break;
 
 	default:
-		return( LDAP_INVALID_DN_SYNTAX );
+		return( LDAP_PARAM_ERROR );
 	}
 
 	bv->bv_val = LDAP_MALLOC( l + 1 );
@@ -2687,18 +2692,18 @@ ldap_rdn2bv( LDAPRDN *rdn, struct berval *bv, unsigned flags )
 
 	default:
 		/* need at least one of the previous */
-		return( LDAP_OTHER );
+		return LDAP_PARAM_ERROR;
 	}
 
 	if ( rc ) {
 		ldap_memfree( bv->bv_val );
-		return( LDAP_OTHER );
+		return rc;
 	}
 
 	bv->bv_len = l - back;
 	bv->bv_val[ bv->bv_len ] = '\0';
 
-	return( LDAP_SUCCESS );
+	return LDAP_SUCCESS;
 }
 
 /*
@@ -2720,6 +2725,10 @@ int ldap_dn2str( LDAPDN *dn, char **str, unsigned flags )
 
 	assert( str );
 
+	if((flags & LDAP_DN_FORMAT_MASK) == LDAP_DN_FORMAT_LBER) {
+		return LDAP_PARAM_ERROR;
+	}
+	
 	rc = ldap_dn2bv( dn, &bv, flags );
 	*str = bv.bv_val;
 	return rc;
@@ -2728,7 +2737,7 @@ int ldap_dn2str( LDAPDN *dn, char **str, unsigned flags )
 int ldap_dn2bv( LDAPDN *dn, struct berval *bv, unsigned flags )
 {
 	int		iRDN;
-	int		rc = LDAP_OTHER;
+	int		rc = LDAP_ENCODING_ERROR;
 	ber_len_t	len, l;
 
 	/* stringifying helpers for LDAPv3/LDAPv2 */
@@ -3019,7 +3028,7 @@ got_funcs:
 			if ( flags & LDAP_DN_PEDANTIC ) {
 				LDAP_FREE( bv->bv_val );
 				bv->bv_val = NULL;
-				rc = LDAP_INVALID_DN_SYNTAX;
+				rc = LDAP_ENCODING_ERROR;
 				break;
 			}
 
@@ -3048,8 +3057,7 @@ got_funcs:
 	}
 
 	default:
-		return( LDAP_INVALID_DN_SYNTAX );
-
+		return LDAP_PARAM_ERROR;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= ldap_dn2bv(%s,%u)=%d\n",

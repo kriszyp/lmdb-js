@@ -1184,6 +1184,7 @@ typedef LDAPRDN** LDAPDN;
 #define LDAP_DN_FORMAT_DCE		0x0030U
 #define LDAP_DN_FORMAT_UFN		0x0040U	/* dn2str only */
 #define LDAP_DN_FORMAT_AD_CANONICAL	0x0050U	/* dn2str only */
+#define LDAP_DN_FORMAT_LBER		0x00F0U /* for testing only */
 #define LDAP_DN_FORMAT_MASK		0x00F0U
 
 /* DN flags */
