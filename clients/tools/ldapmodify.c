@@ -103,12 +103,14 @@ usage( const char *prog )
 "	specified by \"-f file\".\n"
 "Add or modify options:\n"
 "  -a         add values (default%s)\n"
+"  -c         continuous operation mode (do not stop on errors)\n"
+"  -f file    read operations from `file'\n"
 "  -F         force all changes records to be used\n"
+"  -S file    write skipped modifications to `file'\n"
 
 "Common options:\n"
 "  -d level   set LDAP debugging level to `level'\n"
 "  -D binddn  bind DN\n"
-"  -f file    read operations from `file'\n"
 "  -h host    LDAP server\n"
 "  -H URI     LDAP Uniform Resource Indentifier(s)\n"
 "  -I         use SASL Interactive mode\n"
@@ -138,10 +140,11 @@ usage( const char *prog )
 int
 main( int argc, char **argv )
 {
-    char		*infile, *rbuf, *start;
-    FILE		*fp;
+    char		*infile, *rejfile, *rbuf, *start, *rejbuf;
+    FILE		*fp, *rejfp;
+	char		*matched_msg = NULL, *error_msg = NULL;
 	int		rc, i, authmethod, version, want_bindpw, debug, manageDSAit, referrals;
-	int count;
+	int count, len;
 
     if (( prog = strrchr( argv[ 0 ], *LDAP_DIRSEP )) == NULL ) {
 	prog = argv[ 0 ];
@@ -156,12 +159,13 @@ main( int argc, char **argv )
     ldapadd = ( strncmp( prog, "ldapadd", sizeof("ldapadd")-1 ) == 0 );
 
     infile = NULL;
+    rejfile = NULL;
     not = verbose = want_bindpw = debug = manageDSAit = referrals = 0;
     authmethod = -1;
 	version = -1;
 
     while (( i = getopt( argc, argv, "acrf:F"
-		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:Y:Z" )) != EOF )
+		"Cd:D:h:H:IkKMnO:p:P:QR:S:U:vw:WxX:Y:Z" )) != EOF )
 	{
 	switch( i ) {
 	/* Modify Options */
@@ -403,6 +407,13 @@ main( int argc, char **argv )
 		return( EXIT_FAILURE );
 #endif
 		break;
+	case 'S':	/* skipped modifications to file */
+		if( rejfile != NULL ) {
+			fprintf( stderr, "%s: -S previously specified\n", prog );
+			return EXIT_FAILURE;
+		}
+		rejfile = strdup( optarg );
+		break;
 	case 'U':
 #ifdef HAVE_CYRUS_SASL
 		if( sasl_authc_id != NULL ) {
@@ -539,6 +550,15 @@ main( int argc, char **argv )
 	if ( argc != optind )
 	usage( prog );
 
+    if ( rejfile != NULL ) {
+	if (( rejfp = fopen( rejfile, "w" )) == NULL ) {
+	    perror( rejfile );
+	    return( EXIT_FAILURE );
+	}
+    } else {
+	rejfp = NULL;
+    }
+
     if ( infile != NULL ) {
 	if (( fp = fopen( infile, "r" )) == NULL ) {
 	    perror( infile );
@@ -671,6 +691,7 @@ main( int argc, char **argv )
 			ldap_perror( ld, "ldap_bind" );
 			return( EXIT_FAILURE );
 		}
+
 	}
 
     }
@@ -707,15 +728,42 @@ main( int argc, char **argv )
 
 	start = rbuf;
 
+	if ( rejfp ) {
+		len = strlen( rbuf );
+		if (( rejbuf = (char *)malloc( len+1 )) == NULL ) {
+			perror( "realloc" );
+			exit( EXIT_FAILURE );
+		}
+		memcpy( rejbuf, rbuf, len+1 );
+	}
+
     rc = process_ldif_rec( start, count );
 
-	if( rc )
-		fprintf( stderr, "ldif_record() = %d\n", rc );
+	if ( rc && rejfp ) {
+		fprintf(rejfp, "# Error: %s (%d)", ldap_err2string(rc), rc);
+
+		ldap_get_option(ld, LDAP_OPT_MATCHED_DN, &matched_msg);
+		if ( matched_msg != NULL && *matched_msg != '\0' ) {
+			fprintf( rejfp, ", matched DN: %s", matched_msg );
+		}
+
+		ldap_get_option(ld, LDAP_OPT_ERROR_STRING, &error_msg);
+		if ( error_msg != NULL && *error_msg != '\0' ) {
+			fprintf( rejfp, ", additional info: %s", error_msg );
+		}
+		fprintf( rejfp, "\n%s\n", rejbuf );
+	}
+		if (rejfp) 
+			free( rejbuf );
 		free( rbuf );
     }
 
     if ( !not ) {
 		ldap_unbind( ld );
+    }
+
+    if ( rejfp != NULL ) {
+	    fclose( rejfp );
     }
 
 	return( rc );

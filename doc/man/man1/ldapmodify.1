@@ -11,6 +11,8 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 [\c
 .BR \-c ]
 [\c
+.BI \-S \ file\fR]
+.[\c
 .BR \-C ]
 [\c
 .BR \-n ]
@@ -60,6 +62,8 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 .B ldapadd
 [\c
 .BR \-c ]
+[\c
+.BI \-S \ file\fR]
 [\c
 .BR \-C ]
 [\c
@@ -137,6 +141,11 @@ Continuous operation mode.  Errors are reported, but
 .B ldapmodify
 will continue with modifications.  The default is to exit after
 reporting an error.
+.TP
+.BI \-S \ file
+Add or change records which where skipped due to an error are written to \fIfile\fP 
+and the error message returned by the server is added as a comment. Most useful in 
+conjunction with -c.
 .TP
 .B \-n
 Show what would be done, but don't actually modify entries.  Useful for
