@@ -1,0 +1,20 @@
+# $OpenLDAP$
+#
+# This file contains schema items specific to OpenLDAP software.
+#
+
+#
+# This file *should* only depend upon core.schema
+#
+
+# 
+# slapd cn=monitor items
+#
+
+# 
+# slapd cn=config items
+#
+
+#
+# other slapd items
+#

@@ -6,6 +6,11 @@
 #	RFC2251-RFC2256 (LDAPv3)
 #	RFC2079 (URI)
 #
+# and other "core" items
+#   ldapsubentry draft
+#	named referrals draft
+#	alias draft
+#
 
 # Standard X.501(93) Operational Attribute Types from RFC2252
 
