@@ -104,7 +104,7 @@ int bdb_id2entry_rw(
 	}
 
 	/* fetch it */
-	rc = db->get( db, tid, &key, &data, bdb->bi_db_opflags );
+	rc = db->get( db, tid, &key, &data, bdb->bi_db_opflags | ( rw ? DB_RMW : 0 ));
 
 	if( rc != 0 ) {
 		return rc;

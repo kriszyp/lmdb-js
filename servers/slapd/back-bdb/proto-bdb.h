@@ -69,14 +69,16 @@ int bdb_dn2id(
 	BackendDB *be,
 	DB_TXN *tid,
 	struct berval *dn,
-	ID *id );
+	ID *id,
+	int flags );
 
 int bdb_dn2id_matched(
 	BackendDB *be,
 	DB_TXN *tid,
 	struct berval *dn,
 	ID *id,
-	ID *id2 );
+	ID *id2,
+	int flags );
 
 int bdb_dn2id_add(
 	BackendDB *be,
@@ -93,7 +95,8 @@ int bdb_dn2id_delete(
 int bdb_dn2id_children(
 	BackendDB *be,
 	DB_TXN *tid,
-	struct berval *dn );
+	struct berval *dn,
+	int flags );
 
 int
 bdb_dn2idl(

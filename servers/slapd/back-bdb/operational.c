@@ -87,7 +87,7 @@ retry:	/* transaction retry */
 	opinfo.boi_err = 0;
 	op->o_private = &opinfo;
 
-	rc = bdb_dn2id_children( be, ltid, &e->e_nname );
+	rc = bdb_dn2id_children( be, ltid, &e->e_nname, 0 );
 	
 	switch( rc ) {
 	case DB_LOCK_DEADLOCK:
