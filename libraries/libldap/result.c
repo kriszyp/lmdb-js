@@ -349,7 +349,7 @@ wait4msg(
 			    {
 				    ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
 				        LDAP_TIMEOUT);
-				    return -1;
+				    return rc;
 			    }
 
 			    if ( rc == -1 ) {
