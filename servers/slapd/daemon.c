@@ -359,7 +359,8 @@ slapd_daemon_task(
 		switch(ns = select( nfds, &readfds, &writefds, 0, tvp )) {
 		case -1: {	/* failure - try again */
 				int err = errno;
-				if( err != EINTR ) {
+
+				if( err != EINTR || err == EBADF) {
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: select failed (%d): %s\n",
 						err,
