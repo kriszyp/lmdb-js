@@ -29,6 +29,7 @@ mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 # - start slave
 # - populate over ldap
 # - perform some modifies and deleted
+# - attempt to modify the slave (referral)
 # - retrieve database over ldap and compare against expected results
 #
 
@@ -200,7 +201,7 @@ fi
 echo "Waiting 15 seconds for syncrepl to receive changes..."
 sleep 15
 
-echo "Try updating the slave..."
+echo "Try updating the slave slapd..."
 $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT2 -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
 dn: cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, dc=com
