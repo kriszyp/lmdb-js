@@ -359,6 +359,7 @@ main( int argc, char **argv )
 				return EXIT_FAILURE;
 			}
 			if( crit ) subentries *= -1;
+			break;
 #endif
 
 		} else {
