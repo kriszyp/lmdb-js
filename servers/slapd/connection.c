@@ -772,17 +772,10 @@ static void connection_abandon( Connection *c )
 {
 	/* c_mutex must be locked by caller */
 
-	Operation *o, *next, op = {0};
-	SlapReply rs = {0};
+	Operation *o;
 
-	op.o_conn = c;
-	op.o_connid = c->c_connid;
-	op.o_tag = LDAP_REQ_ABANDON;
-	for ( o = LDAP_STAILQ_FIRST( &c->c_ops ); o; o=next ) {
-		next = LDAP_STAILQ_NEXT( o, o_next );
-		op.orn_msgid = o->o_msgid;
+	LDAP_STAILQ_FOREACH( o, &c->c_ops, o_next ) {
 		o->o_abandon = 1;
-		fe_op_abandon( &op, &rs );
 	}
 
 	/* remove pending operations */
