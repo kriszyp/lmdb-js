@@ -741,6 +741,10 @@ typedef signed int ssize_t;
 #define LDAP_DEBUG
 #endif
 
+#ifndef OLD_LOGGING
+#  define NEW_LOGGING 1
+#endif
+
 #include "ldap_cdefs.h"
 #include "ldap_features.h"
 
