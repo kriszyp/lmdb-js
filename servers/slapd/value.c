@@ -198,6 +198,10 @@ value_match(
 	int usage = 0;
 	struct berval *nv1 = NULL;
 
+	if( !mr->smr_match ) {
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
 	if( ad->ad_type->sat_syntax->ssyn_normalize ) {
 		rc = ad->ad_type->sat_syntax->ssyn_normalize(
 			ad->ad_type->sat_syntax, v1, &nv1 );
@@ -205,10 +209,6 @@ value_match(
 		if( rc != LDAP_SUCCESS ) {
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
-	}
-
-	if( !mr->smr_match ) {
-		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
 	rc = (mr->smr_match)( match, usage,
@@ -287,19 +287,31 @@ value_find(
 {
 	int	i;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+	int rc;
+	struct berval *nval = NULL;
 	MatchingRule *mr = ad->ad_type->sat_equality;
 
 	if( mr == NULL || !mr->smr_match ) {
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
+
+	if( mr->smr_syntax->ssyn_normalize ) {
+		rc = mr->smr_syntax->ssyn_normalize(
+			mr->smr_syntax, val, &nval );
+
+		if( rc != LDAP_SUCCESS ) {
+			return LDAP_INAPPROPRIATE_MATCHING;
+		}
+	}
 #endif
 
 	for ( i = 0; vals[i] != NULL; i++ ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		int rc;
 		int match;
 		const char *text;
-		rc = value_match( &match, ad, mr, vals[i], val, &text );
+
+		rc = value_match( &match, ad, mr, vals[i],
+			nval == NULL ? val : nval, &text );
 
 		if( rc == LDAP_SUCCESS && match == 0 )
 #else

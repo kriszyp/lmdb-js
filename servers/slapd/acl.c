@@ -22,7 +22,7 @@ static AccessControl * acl_get(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc,
 #else
-	const char *attr,
+	const char *desc,
 #endif
 	int nmatches, regmatch_t *matches );
 
@@ -33,7 +33,7 @@ static slap_control_t acl_mask(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc,
 #else
-	const char *attr,
+	const char *desc,
 #endif
 	struct berval *val,
 	regmatch_t *matches );
@@ -46,10 +46,13 @@ static int aci_mask(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc,
 #else
-	const char *attr,
+	const char *desc,
 #endif
-	struct berval *val, struct berval *aci,
-	regmatch_t *matches, slap_access_t *grant, slap_access_t *deny );
+	struct berval *val,
+	struct berval *aci,
+	regmatch_t *matches,
+	slap_access_t *grant,
+	slap_access_t *deny );
 
 char *supportedACIMechs[] = {
 	"1.3.6.1.4.1.4203.666.7.1",	/* experimental IETF aci family */
@@ -87,9 +90,9 @@ access_allowed(
     Operation		*op,
     Entry		*e,
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeDescription	*attr,
+	AttributeDescription	*desc,
 #else
-    const char		*attr,
+    const char		*desc,
 #endif
     struct berval	*val,
     slap_access_t	access )
@@ -101,6 +104,12 @@ access_allowed(
 #endif
 	slap_access_mask_t mask;
 	slap_control_t control;
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	const char *attr = desc ? desc->ad_cname->bv_val : NULL;
+#else
+    const char *attr = desc;
+#endif
 
 	regmatch_t       matches[MAXREMATCHES];
 
@@ -128,7 +137,7 @@ access_allowed(
 	 * by the user
 	 */
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	if ( access >= ACL_WRITE && is_at_no_user_mod( attr->ad_type ) )
+	if ( access >= ACL_WRITE && is_at_no_user_mod( desc->ad_type ) )
 #else
 	if ( access >= ACL_WRITE && oc_check_op_no_usermod_attr( attr ) )
 #endif
@@ -168,7 +177,7 @@ access_allowed(
 	a = NULL;
 	count = 0;
 
-	while( a = acl_get( a, &count, be, op, e, attr, MAXREMATCHES, matches ) )
+	while( a = acl_get( a, &count, be, op, e, desc, MAXREMATCHES, matches ) )
 	{
 		int i;
 
@@ -186,7 +195,7 @@ access_allowed(
 		}
 
 		control = acl_mask( a, &mask, be, conn, op,
-			e, attr, val, matches );
+			e, desc, val, matches );
 
 		if ( control != ACL_BREAK ) {
 			break;
@@ -241,6 +250,12 @@ acl_get(
 	assert( e != NULL );
 	assert( count != NULL );
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	attr = desc ? desc->ad_cname->bv_val : NULL;
+#else
+	attr = desc;
+#endif
+
 	if( a == NULL ) {
 		if( be == NULL ) {
 			a = global_acl;
@@ -253,12 +268,6 @@ acl_get(
 	} else {
 		a = a->acl_next;
 	}
-
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	attr = desc->ad_cname->bv_val;
-#else
-	attr = desc;
-#endif
 
 	for ( ; a != NULL; a = a->acl_next ) {
 		(*count) ++;
@@ -320,9 +329,9 @@ acl_mask(
     Operation	*op,
     Entry		*e,
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeDescription *attr,
+	AttributeDescription *desc,
 #else
-    const char	*attr,
+    const char	*desc,
 #endif
     struct berval	*val,
 	regmatch_t	*matches
@@ -332,6 +341,11 @@ acl_mask(
 	Access	*b;
 #ifdef LDAP_DEBUG
 	char accessmaskbuf[ACCESSMASK_MAXLEN];
+#endif
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	const char *attr = desc ? desc->ad_cname->bv_val : NULL;
+#else
+	const char *attr = desc;
 #endif
 
 	assert( a != NULL );
@@ -441,6 +455,10 @@ acl_mask(
 		if ( b->a_dn_at != NULL && op->o_ndn != NULL ) {
 			Attribute	*at;
 			struct berval	bv;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			int match;
+			const char *text;
+#endif
 
 			Debug( LDAP_DEBUG_ACL, "<= check a_dn_at: %s\n",
 				b->a_dn_at, 0, 0);
@@ -455,9 +473,29 @@ acl_mask(
 				at = attrs_find( e->e_attrs->a_next, b->a_dn_at ) )
 			{
 				if( value_find( b->a_dn_at, at->a_vals, &bv ) == 0 ) {
+					/* found it */
+					match = 1;
+					break;
 				}
 			}
 
+			if( match ) {
+				if ( b->a_dn_self && (val == NULL
+					|| value_match( &match, b->a_dn_at,
+						b->a_dn_at->ad_type->sat_equality, &bv, val, &text ) )
+						!= LDAP_SUCCESS
+					|| match )
+				{
+					continue;
+				}
+			} else if ( ! b->a_dn_self || val == NULL
+				|| value_match( &match, b->a_dn_at,
+					b->a_dn_at->ad_type->sat_equality, &bv, val, &text )
+					!= LDAP_SUCCESS
+				|| match )
+			{
+				continue;
+			}
 #else
 			/* see if asker is listed in dnattr */
 			if ( (at = attr_find( e->e_attrs, b->a_dn_at )) != NULL &&
