@@ -913,7 +913,7 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 int
 ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 {
-	char *peer_cert_cn, *peer_hostname;
+	char *peer_cert_cn;
 	void *ssl;
 
 	(void) ldap_pvt_tls_init();
@@ -926,9 +926,12 @@ ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 	}
 
 	ssl = (void *) ldap_pvt_tls_sb_handle( sb );
+	assert( ssl != NULL );
+
 	/* 
-	 * compare hostname of server with name in certificate 
+	 * compare ld->ld_host with name in certificate 
 	 */
+
 	peer_cert_cn = ldap_pvt_tls_get_peer_hostname( ssl );
 	if ( !peer_cert_cn ) {
 		/* could not get hostname from peer certificate */
@@ -937,29 +940,16 @@ ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 			0, 0, 0 );
 		return LDAP_LOCAL_ERROR;
 	}
-	
-	peer_hostname = ldap_host_connected_to( sb );
-	if ( !peer_hostname ) {
-		/* could not lookup hostname */
-		Debug( LDAP_DEBUG_ANY,
-			"TLS: unable to reverse lookup peer hostname.\n",
-			0, 0, 0 );
-		LDAP_FREE( peer_cert_cn );
-		return LDAP_LOCAL_ERROR;
-	}
 
-	if ( strcasecmp(peer_hostname, peer_cert_cn) != 0 ) {
+	if ( strcasecmp(ld->ld_host, peer_cert_cn) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
 			"common name in certificate (%s).", 
-			peer_hostname, peer_cert_cn, 0 );
+			ld->ld_host, peer_cert_cn, 0 );
 		LDAP_FREE( peer_cert_cn );
-		LDAP_FREE( peer_hostname );
 		return LDAP_CONNECT_ERROR;
-
-	} else {
-		LDAP_FREE( peer_cert_cn );
-		LDAP_FREE( peer_hostname );
 	}
+
+	LDAP_FREE( peer_cert_cn );
 
 	/*
 	 * set SASL properties to TLS ssf and authid
