@@ -1767,11 +1767,35 @@ typedef struct slap_op {
 #define oq_abandon o_request.oq_abandon
 #define oq_cancel o_request.oq_cancel
 #define oq_extended o_request.oq_extended
-/* ... */
 
 /* short hands for inner request members */
-#define o_bind_edn oq_bind.rb_edn
-/* ... */
+#define orb_method oq_bind.rb_method
+#define orb_cred oq_bind.rb_cred
+#define orb_edn oq_bind.rb_edn
+#define orb_ssf oq_bind.rb_ssf
+
+#define ors_scope oq_search.rs_scope
+#define ors_deref oq_search.rs_deref
+#define ors_slimit oq_search.rs_slimit
+#define ors_tlimit oq_search.rs_tlimit
+#define ors_attrsonly oq_search.rs_attrsonly
+#define ors_attrs oq_search.rs_attrs
+#define ors_filter oq_search.rs_filter
+#define ors_filterstr oq_search.rs_filterstr
+
+#define orr_newrdn oq_modrdn.rs_newrdn
+#define orr_nnewrdn oq_modrdn.rs_nnewrdn
+#define orr_newSup oq_modrdn.rs_newSup
+#define orr_nnewSup oq_modrdn.rs_nnewSup
+#define orr_deleteoldrdn oq_modrdn.rs_deleteoldrdn
+
+#define orc_ava oq_compare.rs_ava
+#define ora_e oq_add.rs_e
+#define orn_msgid oq_abandon.rs_msgid
+#define orm_modlist oq_modify.rs_modlist
+
+#define ore_reqoid oq_extended.rs_reqoid
+#define ore_reqdata oq_extended.rs_reqdata
 
 	ldap_pvt_thread_t	o_tid;	/* thread handling this op */
 
