@@ -1035,7 +1035,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	}
 
 	/* eventually will loop through generated operational attributes */
-	/* only have subschemaSubentry and numSubordinates are implemented */
+	/* only subschemaSubentry and numSubordinates are implemented */
 	aa = backend_operational( op, rs, opattrs );
 
 	if ( aa != NULL && op->o_vrFilter != NULL ) {
