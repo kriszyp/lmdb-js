@@ -52,8 +52,11 @@ static int addrdnvalues_preop_add(Slapi_PBlock *pb)
 	szDN = slapi_entry_get_dn(e);
 	rc = ldap_str2dn(szDN, &dn, LDAP_DN_FORMAT_LDAPV3);
 	if (rc != LDAP_SUCCESS) {
-		slapi_send_ldap_result(pb, rc, NULL, NULL, 0, NULL);
-		slapi_log_error(SLAPI_LOG_PLUGIN, "addrdnvalues_preop_add", "%s\n", ldap_err2string(rc));
+		slapi_send_ldap_result(pb, LDAP_OTHER, NULL,
+			"Failed to parse distinguished name", 0, NULL);
+		slapi_log_error(SLAPI_LOG_PLUGIN, "addrdnvalues_preop_add",
+			"Failed to parse distinguished name: %s\n",
+			ldap_err2string(rc));
 		return -1;
 	}
 
