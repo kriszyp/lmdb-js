@@ -54,6 +54,10 @@ LDAP_BEGIN_DECL
  * When using BDB_IDL_MULTI, the IDL size is no longer an issue. Smaller
  * pages are better for concurrency.
  */
+#ifndef BDB_ID2ENTRY_PAGESIZE
+#define	BDB_ID2ENTRY_PAGESIZE	16384
+#endif
+
 #ifndef BDB_PAGESIZE
 #ifdef BDB_IDL_MULTI
 #define	BDB_PAGESIZE	4096	/* BDB's original default */

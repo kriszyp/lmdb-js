@@ -244,6 +244,11 @@ bdb_db_open( BackendDB *be )
 		if( i == BDB_ID2ENTRY ) {
 			rc = db->bdi_db->set_bt_compare( db->bdi_db,
 				bdb_bt_compare );
+			rc = db->bdi_db->set_pagesize( db->bdi_db,
+				BDB_ID2ENTRY_PAGESIZE );
+		} else {
+			rc = db->bdi_db->set_pagesize( db->bdi_db,
+				BDB_PAGESIZE );
 		}
 #ifdef BDB_IDL_MULTI
 		if( i == BDB_DN2ID ) {
@@ -252,8 +257,6 @@ bdb_db_open( BackendDB *be )
 				bdb_bt_compare );
 		}
 #endif
-		rc = db->bdi_db->set_pagesize( db->bdi_db, BDB_PAGESIZE );
-
 		rc = db->bdi_db->open( db->bdi_db,
 			bdbi_databases[i].file,
 		/*	bdbi_databases[i].name, */ NULL,
