@@ -12,7 +12,7 @@
 #       Stand alone LDAP server tools makefile
 #
 #-----------------------------------------------------------------------------
-HAVE_ISODE = @HAVE_ISODE@
+HAVE_QUIPU = @HAVE_QUIPU@
 BUILD_LDBM = @BUILD_LDBM@
 BUILD_BDB2 = @BUILD_BDB2@
 
@@ -75,10 +75,10 @@ ldbm-tools: $(PROGRAMS)
 bdb2-tools: $(PROGRAMS2)
 
 build-edb2ldif:	FORCE
-	@if [ "$(HAVE_ISODE)" = "yes" ]; then \
+	@if [ "$(HAVE_QUIPU)" = "yes" ]; then \
 		$(MAKE) $(MFLAGS) edb2ldif; \
 	else \
-		echo "run configure with --with-isode to build edb2ldif"; \
+		echo "run configure with --enable-quipu to build edb2ldif"; \
 	fi
 
 edb2ldif:	edb2-vers.o
@@ -89,10 +89,10 @@ edb2-vers.c: $(EDB2LDIFOBJS)
 	$(MKVERSION) ebd2ldif > $@
 
 build-chlog2replog: FORCE
-	@if [ "$(HAVE_ISODE)" = "yes" ]; then \
+	@if [ "$(HAVE_QUIPU)" = "yes" ]; then \
 		$(MAKE) $(MFLAGS) chlog2replog; \
 	else \
-		echo "run configure with --with-isode to build chlog2replog"; \
+		echo "run configure with --enable-quipu to build chlog2replog"; \
 	fi
 
 chlog2replog: chlog2replog.o ../lock.o ../ch_malloc.o $(SLAPD_LIBDEPEND) 
@@ -146,7 +146,7 @@ clean-local: FORCE
 		*.o core .libs/*
 
 depend-local: FORCE
-	@DEPEND=no ; DEPEND_LDBM= ; DEPEND_BDB2= ; DEPEND_ISODE= ; \
+	@DEPEND=no ; DEPEND_LDBM= ; DEPEND_BDB2= ; DEPEND_QUIPU= ; \
 	if [ "$(BUILD_LDBM)" = "yes" ]; then \
 		DEPEND_LDBM="$(SRCS)"; \
 		DEPEND=yes ; \
@@ -155,18 +155,18 @@ depend-local: FORCE
 		DEPEND_BDB2="$(SRCS2)"; \
 		DEPEND=yes ; \
 	fi; \
-	if [ "$(HAVE_ISODE)" = "yes" ]; then \
-		DEPEND_ISODE="$(ISODEINCLUDEFLAG) chlog2replog.c $(EDB2LDIFSRCS)"; \
+	if [ "$(HAVE_QUIPU)" = "yes" ]; then \
+		DEPEND_QUIPU="$(QUIPUINCLUDEFLAG) chlog2replog.c $(EDB2LDIFSRCS)"; \
 		DEPEND=yes ; \
 	fi; \
 	if [ "$$DEPEND" = "yes" ]; then \
-	$(MKDEP) $(DEFS) $(DEFINES) $$DEPEND_ISODE \
+	$(MKDEP) $(DEFS) $(DEFINES) $$DEPEND_QUIPU \
 			$$DEPEND_LDBM $$DEPEND_BDB2; \
 	else \
 		echo "slapd-tools: no dependencies to make"; \
 	fi
 
-install-local: install-ldbm install-bdb2 install-isode FORCE
+install-local: install-ldbm install-bdb2 install-quipu FORCE
 
 install-ldbm: FORCE
 	@-$(MKDIR) $(sbindir) 
@@ -194,9 +194,9 @@ install-bdb2: FORCE
 		exit 0 ; \
 	fi
 
-install-isode: FORCE
+install-quipu: FORCE
 	@-$(MKDIR) $(sbindir)
-	@if [ "$(HAVE_ISODE)" = "yes" ]; then \
+	@if [ "$(HAVE_QUIPU)" = "yes" ]; then \
 		$(LTINSTALL) $(INSTALLFLAGS) -m 755 edb2ldif $(sbindir); \
 		$(LTINSTALL) $(INSTALLFLAGS) -m 755 chlog2replog $(sbindir); \
 	else \
