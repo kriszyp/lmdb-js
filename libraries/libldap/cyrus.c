@@ -149,12 +149,16 @@ sb_sasl_pkt_length( const unsigned char *buf, unsigned max, int debuglevel )
 		| buf[2] << 8
 		| buf[3];
    
-	if ( size > max ) {
+	if ( size > SASL_MAX_BUFF_SIZE ) {
 		/* somebody is trying to mess me up. */
 		ber_log_printf( LDAP_DEBUG_ANY, debuglevel,
 			"sb_sasl_pkt_length: received illegal packet length "
 			"of %lu bytes\n", (unsigned long)size );      
 		size = 16; /* this should lead to an error. */
+	} else if ( size > max ) {
+		ber_log_printf( LDAP_DEBUG_ANY, debuglevel,
+			"sb_sasl_pkt_length: received packet length "
+			"of %lu exceeds negotiated max of %lu bytes\n", (unsigned long)size, (unsigned long)max );
 	}
 
 	return size + 4; /* include the size !!! */
@@ -211,7 +215,7 @@ sb_sasl_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 			continue;
 #endif
 		if ( ret <= 0 )
-			return ret;
+			return bufptr ? bufptr : ret;
 
 		p->sec_buf_in.buf_ptr += ret;
 	}
@@ -240,7 +244,7 @@ sb_sasl_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 			continue;
 #endif
 		if ( ret <= 0 )
-			return ret;
+			return bufptr ? bufptr : ret;
 
 		p->sec_buf_in.buf_ptr += ret;
    	}
@@ -283,8 +287,13 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	/* Are there anything left in the buffer? */
 	if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
 		ret = ber_pvt_sb_do_write( sbiod, &p->buf_out );
-		if ( ret <= 0 )
+		if ( ret < 0 )
 			return ret;
+		/* Still have something left?? */
+		if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
+			errno = EAGAIN;
+			return 0;
+		}
 	}
 
 	/* now encode the next packet. */
