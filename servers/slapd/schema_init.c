@@ -2216,7 +2216,10 @@ oidValidate(
 {
 	ber_len_t i;
 
-	if( val->bv_len == 0 ) return 0;
+	if( val->bv_len == 0 ) {
+		/* disallow empty strings */
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	if( OID_LEADCHAR(val->bv_val[0]) ) {
 		int dot = 0;
