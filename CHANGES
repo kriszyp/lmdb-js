@@ -1,7 +1,7 @@
 OpenLDAP Change Log
 
-Changes included in OpenLDAP 1.2 Release Engineering
-	CVS Tag: OPENLDAP_REL_ENG_1_2
+Changes included in OpenLDAP 1.2.6
+	CVS Tag: OPENLDAP_REL_ENG_1_2_6
 	Fixed slapd index removal bug in previous ITS#179 fix
 	Fixed ldif2id2entry NEXTID bug
 	Fixed ldif2id2children ignored ID bug
