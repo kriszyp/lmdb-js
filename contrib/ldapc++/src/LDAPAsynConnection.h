@@ -3,12 +3,13 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-// $Id: LDAPAsynConnection.h,v 1.4 2000/08/31 17:43:48 rhafer Exp $
 
 #ifndef LDAP_ASYN_CONNECTION_H
 #define LDAP_ASYN_CONNECTION_H
 
-#include<iostream.h>
+#include<iostream>
+#include<string>
+
 #include<ldap.h>
 #include<lber.h>
 
@@ -22,8 +23,8 @@
 class LDAPEntry;
 class LDAPAttribute;
 
-//! Main class for an asynchronous LDAP connection 
-/*!
+//* Main class for an asynchronous LDAP connection 
+/**
  * This class represents an asynchronous connection to an LDAP-Server. It 
  * provides the methods for authentication, and all other LDAP-Operations
  * (e.g. search, add, delete, etc.)
@@ -41,62 +42,47 @@ class LDAPAttribute;
  * 7. Close the connection (feature not implemented yet :) ) <BR>
  */
 class LDAPAsynConnection{
-
-    private :
-        LDAP *cur_session;
-        LDAPConstraints *m_constr;
     public :
         static const int SEARCH_BASE=0;
         static const int SEARCH_ONE=1;
         static const int SEARCH_SUB=2;
+//        static const int SEARCH_SUB=LDAP_SCOPE_SUBTREE;
+//        static const int SEARCH_ONE=LDAP_SCOPE_ONELEVEL;
+//        static const int SEARCH_SUB=LDAP_SCOPE_SUBTREE;
 
-        //! Construtor that initializes a connection to a server
-        /*!
+        //* Construtor that initializes a connection to a server
+        /**
          * @param hostname Name (or IP-Adress) of the destination host
          * @param port Port the LDAP server is running on
          * @param cons Default constraints to use with operations over 
          *      this connection
          */
-        LDAPAsynConnection(const char* hostname="localhost", int port=389, 
-                LDAPConstraints *cons=new LDAPConstraints() );
+        LDAPAsynConnection(const string& hostname=string("localhost"),
+                int port=389, LDAPConstraints *cons=new LDAPConstraints() );
 
-        //! Change the default constraints of the connection
-        /*!
-         * @cons cons New LDAPConstraints to use with the connection
-         */
-        void setConstraints(LDAPConstraints *cons);
-        
-        //! Get the default constraints of the connection
-        /*!
-         * @return Pointer to the LDAPConstraints-Object that is currently
-         *      used with the Connection
-         */
-        LDAPConstraints* getConstraints() const;
+        //* Destructor
+        virtual ~LDAPAsynConnection();
 
-        //! used internally only for automatic referral chasing
-        LDAPAsynConnection* referralConnect(const LDAPUrlList *urls,
-                LDAPUrl** usedUrl) const;
-
-        /*! 
+        /** 
          * Initzializes a connection to a server. There actually no
          * communication to the server. Just the object is initialized
          * (e.g. this method is called with the 
          * LDAPAsynConnection(char*,int,LDAPConstraints) constructor.)
          */
-        void init(const char* hostname, int port);
+        void init(const string& hostname, int port);
 
-        //! Simple authentication to a LDAP-Server
-        /*!
+        //* Simple authentication to a LDAP-Server
+        /**
          * This method does a simple (username, password) bind to the server.
          * Other, saver, authentcation methods are provided later
          * @param dn the distiguished name to bind as
          * @param passwd cleartext password to use
          */
-        LDAPMessageQueue* bind(const char* dn, const char *passwd,
+        LDAPMessageQueue* bind(const string& dn="", const string& passwd="",
                 const LDAPConstraints *cons=0);
 
-        //! Performing a search on a directory tree.
-        /*!
+        //* Performing a search on a directory tree.
+        /**
          * Use the search method to perform a search on the LDAP-Directory
          * @param base The distinguished name of the starting point for the
          *      search operation
@@ -104,24 +90,28 @@ class LDAPAsynConnection{
          *      LDAPAsynConnection::SEARCH_BASE, <BR> 
          *      LDAPAsynConnection::SEARCH_ONE, <BR>
          *      LDAPAsynConnection::SEARCH_SUB
+         * @param attrsOnly true if only the attributes names (no values) 
+         *      should be returned
          * @param cons A set of constraints that should be used with this
          *      request
          */
-        LDAPMessageQueue* search(const char *base, int scope=0, 
-                                 const char *filter=0, char **attrs=0, 
+        LDAPMessageQueue* search(const string& base="", int scope=0, 
+                                 const string& filter="objectClass=*", 
+                                 const StringList& attrs=StringList(), 
+                                 bool attrsOnly=false,
                                  const LDAPConstraints *cons=0);
         
-        //! Delete an entry from the directory
-        /*!
+        //* Delete an entry from the directory
+        /**
          * This method sends a delete request to the server
          * @param dn    Distinguished name of the entry that should be deleted
          * @param cons  A set of constraints that should be used with this
          *              request
          */
-        LDAPMessageQueue* del(const char *dn, const LDAPConstraints *cons=0);
+        LDAPMessageQueue* del(const string& dn, const LDAPConstraints *cons=0);
         
-        //! Perform the compare operation on an attribute 
-        /*!
+        //* Perform the compare operation on an attribute 
+        /**
          * @param dn    Distinguished name of the entry for which the compare
          *              should be performed
          * @param attr  An Attribute (one (!) value) to use for the
@@ -129,34 +119,94 @@ class LDAPAsynConnection{
          * @param cons  A set of constraints that should be used with this
          *              request
          */
-        LDAPMessageQueue* compare(const char *dn, const LDAPAttribute *attr, 
-                const LDAPConstraints *cons);
+        LDAPMessageQueue* compare(const string& dn, const LDAPAttribute& attr, 
+                const LDAPConstraints *cons=0);
 
-        //! Add an entry to the directory
-        /*!
+        //* Add an entry to the directory
+        /**
          * @see LDAPEntry
          * @param le The entry that will be added to the directory
          */
-        LDAPMessageQueue* add(LDAPEntry *le, const LDAPConstraints *const=0);
+        LDAPMessageQueue* add( const LDAPEntry* le,
+                const LDAPConstraints *const=0);
 
-        //! Apply one modification to an attribute of a datebase entry
-        LDAPMessageQueue* modify(char *dn, LDAPModification *mod);
+        //* Apply modifications to attributes of an entry
+        /**
+         * @param dn Distiguished Name of the Entry to modify
+         * @param modlist A set of modification that should be applied
+         *      to the Entry
+         * @param cons  A set of constraints that should be used with this
+         *              request
+         */
+        LDAPMessageQueue* modify(const string& dn, const LDAPModList *modlist,
+                const LDAPConstraints *cons=0);
 
-        //! Apply multiple modifications to attrbutes of an entry
-        LDAPMessageQueue* modify(const char *dn, LDAPModList *modlist,
-                const LDAPConstraints *cons);
-
-        LDAPMessageQueue* rename(const char *dn, const char *newRDN,
-                bool delOldRDN, const char *newParentDN,
-                const LDAPConstraints *cons);
+        //* modify the DN of an entry
+        /**
+         * @param dn            DN to modify
+         * @param newRDN        The new relative DN for the entry
+         * @param delOldRDN     true=The old RDN will be removed from the 
+         *                      attributes <BR>
+         *                      false=The old RDN will still be present in the
+         *                      attributes of the entry
+         * @param newParentDN   The DN of the new parent entry of the entry
+         *                      0 to keep the old one
+         */
+        LDAPMessageQueue* rename(const string& dn, const string& newRDN,
+                bool delOldRDN=false, const string& newParentDN="",
+                const LDAPConstraints* cons=0);
         
-        LDAPMessageQueue* extOperation(const char* oid, BerValue* value,
-                const LDAPConstraints *cons);
+        //* Perform a LDAP extended Operation
+        /**
+         * e.g. requesting TLS security features
+         * @param oid The dotted decimal representation of the extended 
+         *      Operation that should be performed
+         * @param value The data asociated with this operation
+         * @param cons  A set of constraints that should be used with this
+         *              request
+         */
+        LDAPMessageQueue* extOperation(const string& oid, 
+                const string& value="", const LDAPConstraints *cons=0);
         
+        //* End an outstanding request
+        /**
+         * @param q All outstanding request related to this LDAPMessageQueue 
+         *      will be abandoned
+         */
         void abandon(LDAPMessageQueue *q);
-
+        void unbind();
         LDAP* getSessionHandle() const ;
+        const string& getHost() const;
+        int getPort() const;
+        
+        //* Change the default constraints of the connection
+        /**
+         * @cons cons New LDAPConstraints to use with the connection
+         */
+        void setConstraints(LDAPConstraints *cons);
+        
+        //* Get the default constraints of the connection
+        /**
+         * @return Pointer to the LDAPConstraints-Object that is currently
+         *      used with the Connection
+         */
+        const LDAPConstraints* getConstraints() const;
+
+        //* used internally only for automatic referral chasing
+        LDAPAsynConnection* referralConnect(const LDAPUrlList& urls,
+                LDAPUrlList::const_iterator& usedUrl,
+                const LDAPConstraints* cons) const;
+
+
+    private :
+        // no copy constructor
+        LDAPAsynConnection(const LDAPAsynConnection& lc){};
+        LDAP *cur_session;
+        LDAPConstraints *m_constr;
+        string m_host;
+        int m_port;
+
 };
-#endif //LDAP_CONNECTION_H
+#endif //LDAP_ASYN_CONNECTION_H
 
 

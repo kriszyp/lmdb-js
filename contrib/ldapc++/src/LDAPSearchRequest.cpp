@@ -7,94 +7,125 @@
 #include "LDAPSearchRequest.h"
 #include "LDAPException.h"
 #include "LDAPSearchReference.h"
+#include "LDAPResult.h"
 #include "LDAPRequest.h"
-#include "LDAPReferral.h"
 #include "LDAPUrl.h"
 
 LDAPSearchRequest::LDAPSearchRequest(const LDAPSearchRequest& req ) :
         LDAPRequest (req){
-    DEBUG(LDAP_DEBUG_TRACE, 
-        "LDAPSearchRequest::LDAPSearchRequest(LDAPSearchRequest&" << endl);
+    DEBUG(LDAP_DEBUG_CONSTRUCT, 
+        "LDAPSearchRequest::LDAPSearchRequest(&)" << endl);
+    m_base=req.m_base;
+    m_scope=req.m_scope;
+    m_filter=req.m_filter;
+    m_attrs=req.m_attrs;
+    m_attrsOnly=req.m_attrsOnly;
 }
         
 
-LDAPSearchRequest::LDAPSearchRequest(const char *base, int scope, 
-        const char *filter, char **attrs, const LDAPAsynConnection *connect,
-        const LDAPConstraints* cons, bool isReferral) 
-            : LDAPRequest (connect,cons,isReferral) {
+LDAPSearchRequest::LDAPSearchRequest(const string& base, int scope, 
+        const string& filter, const StringList& attrs, bool attrsOnly,
+        LDAPAsynConnection *connect,
+        const LDAPConstraints* cons, bool isReferral, 
+        const LDAPRequest* parent) 
+            : LDAPRequest (connect,cons,isReferral,parent) {
     
-    DEBUG(LDAP_DEBUG_TRACE,"LDAPSearchRequest:LDAPSearchRequest" << endl);
+    DEBUG(LDAP_DEBUG_CONSTRUCT,
+            "LDAPSearchRequest:LDAPSearchRequest()" << endl);
+    DEBUG(LDAP_DEBUG_CONSTRUCT & LDAP_DEBUG_PARAMETER,
+            "   base:" << base << endl << "   scope:" << scope << endl
+            << "   filter:" << filter << endl);
     m_requestType=LDAPRequest::SEARCH;
     //insert some validating and copying here  
-    m_base=strdup(base);
+    m_base=base;
     m_scope=scope;
-  
-    if (filter != 0 ){
-        m_filter=strdup(filter);
+    if(filter == ""){
+        m_filter="objectClass=*";  
     }else{
-        m_filter=0;
+        m_filter=filter;
     }
-
-    if (attrs != 0){
-        size_t size=0;
-        for (char** i=attrs; *i != 0; i++){
-            size++;
-        }
-        m_attrs = new char*[size+1];
-        m_attrs[size]=0;
-        int j=0;
-        for (char** i=attrs; *i != 0; i++,j++){
-            m_attrs[j]=strdup(*i);
-        }
-    }else{
-        m_attrs = 0;
-    }
+    m_attrs=attrs;
+    m_attrsOnly=attrsOnly;
 }
 
 LDAPSearchRequest::~LDAPSearchRequest(){
-    DEBUG(LDAP_DEBUG_TRACE, "LDAPSearchRequest::~LDAPSearchRequest" << endl);
-    delete[] m_base;
-    delete[] m_filter;
-    if (m_attrs != 0){
-        for (char** i=m_attrs; *i != 0; i++){
-            delete[] *i;
-        }
-    }
-    delete[] m_attrs;
+    DEBUG(LDAP_DEBUG_DESTROY, "LDAPSearchRequest::~LDAPSearchRequest" << endl);
 }
 
 LDAPMessageQueue* LDAPSearchRequest::sendRequest(){
     int msgID; 
     DEBUG(LDAP_DEBUG_TRACE, "LDAPSearchRequest::sendRequest()" << endl);
-    int err=ldap_search_ext(m_connection->getSessionHandle(), m_base, m_scope,
-            m_filter, m_attrs, 0, m_cons->getSrvCtrlsArray(), 
-            m_cons->getClCtrlsArray(), m_cons->getTimeoutStruct(),
-            m_cons->getSizeLimit(), &msgID );
+    timeval* tmptime=m_cons->getTimeoutStruct();
+    char** tmpattrs=m_attrs.toCharArray();
+    LDAPControl** tmpSrvCtrl=m_cons->getSrvCtrlsArray();
+    LDAPControl** tmpClCtrl=m_cons->getClCtrlsArray();
+    int aliasDeref = m_cons->getAliasDeref();
+    ldap_set_option(m_connection->getSessionHandle(), LDAP_OPT_DEREF, 
+            &aliasDeref);
+    int err=ldap_search_ext(m_connection->getSessionHandle(), m_base.c_str(),
+            m_scope, m_filter.c_str(), tmpattrs, m_attrsOnly, tmpSrvCtrl,
+            tmpClCtrl, tmptime, m_cons->getSizeLimit(), &msgID );
+    delete tmptime;
+    ldap_value_free(tmpattrs);
+    ldap_controls_free(tmpSrvCtrl);
+    ldap_controls_free(tmpClCtrl);
+
     if (err != LDAP_SUCCESS){  
-        delete this;
         throw LDAPException(err);
-    } else {
+    } else if (isReferral()){
+        m_msgID=msgID;
+        return 0;
+    }else{
         m_msgID=msgID;
         return  new LDAPMessageQueue(this);
     }
 }
 
-LDAPRequest* LDAPSearchRequest::followReferral(LDAPUrlList *ref){
-    LDAPUrl *usedUrl;
+LDAPRequest* LDAPSearchRequest::followReferral(LDAPMsg* ref){
     DEBUG(LDAP_DEBUG_TRACE, "LDAPSearchRequest::followReferral()" << endl);
-    LDAPAsynConnection *con = getConnection()->referralConnect(ref, &usedUrl);
-    if (con != 0){
-        const char *base= usedUrl->getDN();
-        // TODO maybe the scope and filter have to be adjusted
-        int scope = m_scope;
-        char *filter=0;
-        if (m_filter != 0){
-           filter = strdup(m_filter);
+    LDAPUrlList urls;
+    LDAPUrlList::const_iterator usedUrl;
+    LDAPAsynConnection* con;
+    string filter;
+    int scope;
+    if(ref->getMessageType() == LDAPMsg::SEARCH_REFERENCE){
+        urls = ((LDAPSearchReference *)ref)->getUrls();
+    }else{
+        urls = ((LDAPResult *)ref)->getReferralUrls();
+    }
+    con = getConnection()->referralConnect(urls,usedUrl,m_cons);
+    if(con != 0){
+        cerr << usedUrl->getFilter();
+        if((usedUrl->getFilter() != "") && 
+            (usedUrl->getFilter() != m_filter)){
+                filter=usedUrl->getFilter();
+        }else{
+            filter=m_filter;
         }
-        return new LDAPSearchRequest(base, scope, filter, 0, con, m_cons,true);
+        if( (ref->getMessageType() == LDAPMsg::SEARCH_REFERENCE) && 
+            (m_scope == LDAPAsynConnection::SEARCH_ONE)
+          ){
+            scope = LDAPAsynConnection::SEARCH_BASE;
+            DEBUG(LDAP_DEBUG_TRACE,"   adjusted scope to BASE" << endl);
+        }else{
+            scope = m_scope;
+        }
     }else{
         return 0;
     }
+    return new LDAPSearchRequest(usedUrl->getDN(), scope, filter,
+            m_attrs, m_attrsOnly, con, m_cons,true,this);
 }
 
-
+bool LDAPSearchRequest::equals(const LDAPRequest* req)const{
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPSearchRequest::equals()" << endl);
+    if( LDAPRequest::equals(req)){
+        LDAPSearchRequest* sreq = (LDAPSearchRequest*)req;
+        if ( (m_base == sreq->m_base) &&
+             (m_scope == sreq->m_scope) 
+           ){
+            return true;
+        }
+    }
+    return false;
+}

@@ -10,38 +10,41 @@
 #include "LDAPDeleteRequest.h"
 #include "LDAPException.h"
 #include "LDAPMessageQueue.h"
+#include "LDAPResult.h"
 
 LDAPDeleteRequest::LDAPDeleteRequest( const LDAPDeleteRequest& req) :
         LDAPRequest(req){
-	DEBUG(LDAP_DEBUG_TRACE, 
-		"LDAPDeleteRequest::LDAPDeleteRequest(LDAPDeleteRequest&)" 
-		<< endl);
+	DEBUG(LDAP_DEBUG_CONSTRUCT, 
+		"LDAPDeleteRequest::LDAPDeleteRequest(&)" << endl);
+    m_dn = req.m_dn;
 }
 
-LDAPDeleteRequest::LDAPDeleteRequest(const char *dn, 
-        const LDAPAsynConnection *connect, const LDAPConstraints *cons,
-        bool isReferral=false) : LDAPRequest(connect, cons, isReferral) {
-
-	DEBUG(LDAP_DEBUG_TRACE, "LDAPDeleteRequest::LDAPDeleteRequest()" << endl);
-	DEBUG(LDAP_DEBUG_PARAMETER, "   dn:" << dn << endl);
+LDAPDeleteRequest::LDAPDeleteRequest(const string& dn, 
+        LDAPAsynConnection *connect, const LDAPConstraints *cons,
+        bool isReferral, const LDAPRequest* parent) 
+        : LDAPRequest(connect, cons, isReferral, parent) {
+	DEBUG(LDAP_DEBUG_CONSTRUCT,
+            "LDAPDeleteRequest::LDAPDeleteRequest()" << endl);
+	DEBUG(LDAP_DEBUG_CONSTRUCT | LDAP_DEBUG_PARAMETER, "   dn:" << dn << endl);
     m_requestType=LDAPRequest::DELETE;
-    if(dn != 0){
-        m_dn=strdup(dn);
-    }
+    m_dn=dn;
 }
 
 LDAPDeleteRequest::~LDAPDeleteRequest(){
-	DEBUG(LDAP_DEBUG_TRACE, "LDAPDeleteRequest::~LDAPDeleteRequest()" << endl);
-    delete[] m_dn;
+	DEBUG(LDAP_DEBUG_DESTROY,
+            "LDAPDeleteRequest::~LDAPDeleteRequest()" << endl);
 }
 
 LDAPMessageQueue* LDAPDeleteRequest::sendRequest(){
 	DEBUG(LDAP_DEBUG_TRACE, "LDAPDeleteRequest::sendRequest()" << endl);
     int msgID=0;
-    int err=ldap_delete_ext(m_connection->getSessionHandle(),m_dn, 
-            m_cons->getSrvCtrlsArray(), m_cons->getClCtrlsArray(),&msgID);
+    LDAPControl** tmpSrvCtrls=m_cons->getSrvCtrlsArray();
+    LDAPControl** tmpClCtrls=m_cons->getClCtrlsArray();
+    int err=ldap_delete_ext(m_connection->getSessionHandle(),m_dn.c_str(), 
+            tmpSrvCtrls, tmpClCtrls ,&msgID);
+    ldap_controls_free(tmpSrvCtrls);
+    ldap_controls_free(tmpClCtrls);
     if(err != LDAP_SUCCESS){
-        delete this;
         throw LDAPException(err);
     }else{
         m_msgID=msgID;
@@ -49,9 +52,21 @@ LDAPMessageQueue* LDAPDeleteRequest::sendRequest(){
     }
 }
 
-LDAPRequest* LDAPDeleteRequest::followReferral(LDAPUrlList *refs){
+LDAPRequest* LDAPDeleteRequest::followReferral(LDAPMsg* refs){
 	DEBUG(LDAP_DEBUG_TRACE, "LDAPDeleteRequest::followReferral()" << endl);
-    cerr << "to be implemented" << endl;
+    LDAPUrlList::const_iterator usedUrl;
+    LDAPUrlList urls= ((LDAPResult*)refs)->getReferralUrls();
+    LDAPAsynConnection* con=0;
+    try{
+        con = getConnection()->referralConnect(urls,usedUrl,m_cons);
+    }catch (LDAPException e){
+        delete con;
+        return 0;
+    }
+    if(con != 0){
+        return new LDAPDeleteRequest(m_dn, con, m_cons, true, this);
+    }
     return 0;
 }
+
 

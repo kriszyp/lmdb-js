@@ -10,14 +10,16 @@
 class LDAPMessageQueue;
 
 class LDAPDeleteRequest : public LDAPRequest{
-	private :
-		char *m_dn;
     public :
         LDAPDeleteRequest(const LDAPDeleteRequest& req);
-        LDAPDeleteRequest(const char *dn, const LDAPAsynConnection *connect,
-                const LDAPConstraints *cons, bool isReferral=false);
+        LDAPDeleteRequest(const string& dn, LDAPAsynConnection *connect,
+                const LDAPConstraints *cons, bool isReferral=false, 
+                const LDAPRequest* parent=0);
         virtual ~LDAPDeleteRequest();
         virtual LDAPMessageQueue* sendRequest();
-        virtual LDAPRequest* followReferral(LDAPUrlList *refs); 
+        virtual LDAPRequest* followReferral(LDAPMsg* refs); 
+	
+    private :
+		string m_dn;
 };
 #endif //LDAP_DELETE_REQUEST_H

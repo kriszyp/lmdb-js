@@ -3,7 +3,6 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-// $Id: LDAPMessageQueue.h,v 1.10 2000/08/31 17:43:49 rhafer Exp $
 
 #ifndef LDAP_MESSAGE_QUEUE_H
 #define LDAP_MESSAGE_QUEUE_H
@@ -18,17 +17,19 @@ class LDAPRequest;
 class LDAPSearchRequest;
 class LDAPUrl;
 typedef stack<LDAPRequest*> LDAPRequestStack;
+typedef list<LDAPRequest*> LDAPRequestList;
 
 class LDAPMessageQueue{
-    private :
-        LDAPRequestStack m_reqQueue;
-        void chaseReference(LDAPSearchRequest *req);
     public :
         LDAPMessageQueue(LDAPRequest *conn);
         ~LDAPMessageQueue();
         LDAPMsg* getNext();
-        LDAPRequest* chaseReferral(LDAPUrlList *ref);
+        LDAPRequest* chaseReferral(LDAPMsg* ref);
         LDAPRequestStack* getRequestStack(); 
+    
+    private :
+        LDAPRequestStack m_activeReq;
+        LDAPRequestList m_issuedReq;
 };
 #endif //ifndef LDAP_MESSAGE_QUEUE_H
 

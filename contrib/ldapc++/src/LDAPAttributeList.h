@@ -3,31 +3,38 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-// $Id: LDAPAttributeList.h,v 1.5 2000/08/31 17:43:48 rhafer Exp $
 
 #ifndef LDAP_ATTRIBUTE_LIST_H
 #define LDAP_ATTRIBUTE_LIST_H
 
 #include <list>
-#include <ldap.h>
-#include "LDAPAttribute.h"
-#include "LDAPAsynConnection.h"
-#include "LDAPMessage.h"
+class LDAPAttribute;
+class LDAPAsynConnection;
+class LDAPMsg;
 
 typedef list<LDAPAttribute> AttrList;
 
 class LDAPAttributeList{
+    typedef AttrList::const_iterator const_iterator;
+
 	private :
 		AttrList m_attrs;
 
 	public :
-		LDAPAttributeList(const LDAPAsynConnection *ld, LDAPMessage *msg);
 		LDAPAttributeList(const LDAPAttributeList& al);
+        
+        /*!
+         * @throws LDAPException if msg does not contain an entry
+         */
+		LDAPAttributeList(const LDAPAsynConnection *ld, LDAPMessage *msg);
 		LDAPAttributeList();
-		~LDAPAttributeList();
+        virtual ~LDAPAttributeList();
+
+        size_t size() const;
+        const_iterator begin() const;
+        const_iterator end() const;
 		void addAttribute(const LDAPAttribute& attr);
-		void find(char* name);
-		LDAPMod** toLDAPModArray();
+		LDAPMod** toLDAPModArray() const;
 		
 		friend ostream& operator << (ostream& s, const LDAPAttributeList& al);
 };

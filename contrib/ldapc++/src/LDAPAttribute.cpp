@@ -3,144 +3,180 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-// $Id: LDAPAttribute.cpp,v 1.3 2000/08/31 17:43:48 rhafer Exp $
 
 //TODO!!!
-//  * Spend some thoughts about binary attributes
+//  * some kind of iterator to step through the attribute values
+//  * remove values from Attribute
 //  * handling of subtypes (;de; and so on)
-//  * For binary attributes use one of the other constructors (provided later )
-//  * creatind LDAPAttributes from the CAPI-structures.
-//  * Defining return values and error codes
 //  * some documentation
 
+
 #include <ldap.h> 
-#include <ac/string.h>
 #include <ctype.h>
+
+#include "debug.h"
+#include "StringList.h"
+
 #include "LDAPAttribute.h"
 
 
-//Copy-constructor
-LDAPAttribute::LDAPAttribute(const LDAPAttribute& attr){
-	this->setName(attr.m_name);
-	ValueList::const_iterator i;
-	for (i=attr.m_values.begin(); i!=attr.m_values.end(); i++){
-		this->m_values.push_back(ber_bvdup(*i));
-	}
+LDAPAttribute::LDAPAttribute(){
+    DEBUG(LDAP_DEBUG_CONSTRUCT, "LDAPAttribute::LDAPAttribute( )" << endl);
+    m_name=string();
 }
 
-//This Constructor expects the parameter value to be either UTF-8 encoded
-// (for LDAPv3) or T.61 encoded (for LDAPv2).
-LDAPAttribute::LDAPAttribute(const char *name=0, const char *value=0){
-	this->setName(name);
-	this->addValue(value);
+LDAPAttribute::LDAPAttribute(const LDAPAttribute& attr){
+    DEBUG(LDAP_DEBUG_CONSTRUCT, "LDAPAttribute::LDAPAttribute(&)" << endl);
+    DEBUG(LDAP_DEBUG_CONSTRUCT | LDAP_DEBUG_PARAMETER,
+            "   attr:" << attr << endl);
+	m_name=attr.m_name;
+    m_values=StringList(attr.m_values);
+}
+
+LDAPAttribute::LDAPAttribute(const string& name, const string& value){
+    DEBUG(LDAP_DEBUG_CONSTRUCT, "LDAPAttribute::LDAPAttribute()" << endl);
+    DEBUG(LDAP_DEBUG_CONSTRUCT | LDAP_DEBUG_PARAMETER,
+            "   name:" << name << endl << "   value:" << value << endl);
+    this->setName(name);
+    if(value != ""){
+    	this->addValue(value);
+    }
+}
+
+
+LDAPAttribute::LDAPAttribute(const string& name, const StringList& values){
+    DEBUG(LDAP_DEBUG_CONSTRUCT, "LDAPAttribute::LDAPAttribute()" << endl);
+    DEBUG(LDAP_DEBUG_CONSTRUCT | LDAP_DEBUG_PARAMETER,
+            "   name:" << name << endl);
+    m_name=name;
+    m_values=values;
 }
 
 LDAPAttribute::LDAPAttribute(const char *name, char **values){
+    DEBUG(LDAP_DEBUG_CONSTRUCT, "LDAPAttribute::LDAPAttribute()" << endl);
+    DEBUG(LDAP_DEBUG_CONSTRUCT | LDAP_DEBUG_PARAMETER,
+            "   name:" << name << endl);
 	this->setName(name);
 	this->setValues(values);
 }
 
-
 LDAPAttribute::LDAPAttribute(const char *name, BerValue **values){
+    DEBUG(LDAP_DEBUG_CONSTRUCT, "LDAPAttribute::LDAPAttribute()" << endl);
+    DEBUG(LDAP_DEBUG_CONSTRUCT | LDAP_DEBUG_PARAMETER,
+            "   name:" << name << endl);
 	this->setName(name);
 	this->setValues(values);
 }
 
 LDAPAttribute::~LDAPAttribute(){
-	delete[] m_name;
-	ValueList::const_iterator i;
-	for(i=m_values.begin(); i!=m_values.end(); i++){
-		ber_bvfree(*i);
-	}
-	m_values.clear();
+    DEBUG(LDAP_DEBUG_DESTROY,"LDAPAttribute::~LDAPAttribute()" << endl);
 }
 
-int LDAPAttribute::addValue(const char *value){
-	if(value!=0){
-		BerValue *berval=new BerValue;
-		berval->bv_len=strlen(value);
-		berval->bv_val=strdup(value);
-		m_values.push_back(berval);
-		return 0;
-	}
-	return -1;
+void LDAPAttribute::addValue(const string& value){
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::addValue()" << endl);
+    m_values.add(value);
 }
 
 int LDAPAttribute::addValue(const BerValue *value){
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::addValue()" << endl);
 	if(value!=0){
-		m_values.push_back(ber_bvdup(value));
+		this->addValue(string(value->bv_val, value->bv_len));
 		return 0;
 	}
 	return -1;
 }
 
 int LDAPAttribute::setValues(char **values){
-	ValueList::const_iterator i;
-	for(i=m_values.begin(); i!=m_values.end(); i++){
-		delete[](*i);
-	}
-	m_values.clear();
-	for( char **i=values; *i!=0; i++){
-		this->addValue(*i);
-	}
-	return 0;
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::setValues()" << endl);
+	if(values){
+        m_values.clear();
+        for( char **i=values; *i!=0; i++){
+            this->addValue(*i);
+        }
+    }
+    return 0;
 }
 
 int LDAPAttribute::setValues(BerValue **values){
-	ValueList::const_iterator i;
-	for(i=m_values.begin(); i!=m_values.end(); i++){
-		delete[](*i);
-	}
-	m_values.clear();
-	for( BerValue **i=values; *i!=0; i++){
-		this->addValue(*i);
-	}
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::setValues()" << endl);
+    if(values){
+	    m_values.clear();
+        for( BerValue **i=values; *i!=0; i++){
+            if( this->addValue(*i) ){
+                return -1;
+            }
+        }
+    }
 	return 0;
 }
-	
-BerValue** LDAPAttribute::getValues() const{
-	size_t size=m_values.size();
-	BerValue **temp = new BerValue*[size+1];
-	ValueList::const_iterator i;
-	int p;
 
-	for(i=m_values.begin(), p=0; i!=m_values.end(); i++,p++){
-		temp[p]=ber_bvdup( (*i) );
-	}
-	temp[size]=0;
-	return temp;
+void LDAPAttribute::setValues(const StringList& values){
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::setValues()" << endl);
+    m_values=values;
+}
+
+const StringList& LDAPAttribute::getValues() const{
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::getValues()" << endl);
+    return m_values;
+}
+
+BerValue** LDAPAttribute::getBerValues() const{
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::getBerValues()" << endl);
+	size_t size=m_values.size();
+    if (size == 0){
+        return 0;
+    }else{
+        BerValue **temp = new BerValue*[size+1];
+        StringList::const_iterator i;
+        int p=0;
+
+        for(i=m_values.begin(), p=0; i!=m_values.end(); i++,p++){
+            temp[p]=new BerValue;
+            temp[p]->bv_len= i->size();
+            temp[p]->bv_val= new char[i->size()+1];
+            i->copy(temp[p]->bv_val,string::npos);
+        }
+        temp[size]=0;
+        return temp;
+    }
 }
 
 int LDAPAttribute::getNumValues() const{
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::getNumValues()" << endl);
 	return m_values.size();
 }
 
-char* LDAPAttribute::getName(){
-	return strdup(m_name);
+const string& LDAPAttribute::getName() const {
+    DEBUG(LDAP_DEBUG_TRACE, "LDAPAttribute::getName()" << endl);
+	return m_name;
 }
 
-int LDAPAttribute::setName(const char *name){
-	if (name!=0){
-		m_name=strdup(name);
-	}
-	return 0;
+void LDAPAttribute::setName(const string& name){
+    DEBUG(LDAP_DEBUG_TRACE, "LDAPAttribute::setName()" << endl);
+    DEBUG(LDAP_DEBUG_TRACE | LDAP_DEBUG_PARAMETER,"   name:" << name << endl);
+    m_name.erase();
+    m_name=name;
 }
 
 // The bin-FLAG of the mod_op  is always set to LDAP_MOD_BVALUES (0x80) 
 LDAPMod* LDAPAttribute::toLDAPMod() const {
+    DEBUG(LDAP_DEBUG_TRACE, "LDAPAttribute::toLDAPMod()" << endl);
 	LDAPMod* ret=new LDAPMod();
-	ret->mod_op=LDAP_MOD_BVALUES;	//alway asume binary-Values
-	ret->mod_type=strdup(m_name);
-	ret->mod_bvalues=this->getValues();
+	ret->mod_op=LDAP_MOD_BVALUES;	//always assume binary-Values
+	ret->mod_type= new char[m_name.size()+1];
+    m_name.copy(ret->mod_type,string::npos);
+    cerr << "                         " << m_name<< endl;
+    ret->mod_type[m_name.size()]=0;
+	ret->mod_bvalues=this->getBerValues();
 	return ret;
 }
 
 bool LDAPAttribute::isNotPrintable() const {
-	ValueList::const_iterator i;
+	StringList::const_iterator i;
 	for(i=m_values.begin(); i!=m_values.end(); i++){
-		ber_len_t len=(*i)->bv_len;
-		for(ber_len_t j=0; j<len; j++){
-			if (! isprint( (*i)->bv_val[j] ) ){
+		size_t len = i->size();
+		for(size_t j=0; j<len; j++){
+			if (! isprint( (i->data())[j] ) ){
 				return true;
 			}
 		}
@@ -150,12 +186,12 @@ bool LDAPAttribute::isNotPrintable() const {
 
 ostream& operator << (ostream& s, const LDAPAttribute& attr){
 	s << attr.m_name << "=";
-	ValueList::const_iterator i;
+	StringList::const_iterator i;
 	if (attr.isNotPrintable()){
 		s << "NOT_PRINTABLE" ;
 	}else{
 		for(i=attr.m_values.begin(); i!=attr.m_values.end(); i++){
-			s << (*i)->bv_val << " ";
+			s << *i << " ";
 		}
 	}
 	return s;

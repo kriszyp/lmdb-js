@@ -10,41 +10,46 @@
 #include "LDAPModifyRequest.h"
 #include "LDAPException.h"
 #include "LDAPMessageQueue.h"
+#include "LDAPResult.h"
 
 LDAPModifyRequest::LDAPModifyRequest(const LDAPModifyRequest& req) :
         LDAPRequest(req){
-    DEBUG(LDAP_DEBUG_TRACE, 
-            "LDAPModifyRequest::LDAPModifyRequest(LDAPModifyRequest&)" 
-            << endl);
+    DEBUG(LDAP_DEBUG_CONSTRUCT, 
+            "LDAPModifyRequest::LDAPModifyRequest(&)" << endl);
+    m_modList = new LDAPModList(*(req.m_modList));
+    m_dn = req.m_dn;
 }
 
-LDAPModifyRequest::LDAPModifyRequest(const char *dn, 
-        const LDAPModList *modList, const LDAPAsynConnection *connect,
-        const LDAPConstraints *cons, bool isReferral=false) :
-        LDAPRequest(connect, cons, isReferral){
-    DEBUG(LDAP_DEBUG_TRACE, 
-            "LDAPModifyRequest::LDAPModifyRequest(LDAPModifyRequest&)" 
-            << endl);            
-    DEBUG(LDAP_DEBUG_PARAMETER, "   dn:" << dn << endl);
-
-    m_dn = strdup(dn);
+LDAPModifyRequest::LDAPModifyRequest(const string& dn, 
+        const LDAPModList *modList, LDAPAsynConnection *connect,
+        const LDAPConstraints *cons, bool isReferral,
+        const LDAPRequest* parent) :
+        LDAPRequest(connect, cons, isReferral, parent){
+    DEBUG(LDAP_DEBUG_CONSTRUCT, 
+            "LDAPModifyRequest::LDAPModifyRequest(&)" << endl);            
+    DEBUG(LDAP_DEBUG_CONSTRUCT | LDAP_DEBUG_PARAMETER, 
+            "   dn:" << dn << endl);
+    m_dn = dn;
     m_modList = new LDAPModList(*modList);
 }
 
 LDAPModifyRequest::~LDAPModifyRequest(){
-    DEBUG(LDAP_DEBUG_TRACE, "LDAPModifyRequest::~LDAPModifyRequest()" << endl);
-    delete m_dn;
+    DEBUG(LDAP_DEBUG_DESTROY, 
+            "LDAPModifyRequest::~LDAPModifyRequest()" << endl);
     delete m_modList;
 }
 
 LDAPMessageQueue* LDAPModifyRequest::sendRequest(){
     DEBUG(LDAP_DEBUG_TRACE, "LDAPModifyRequest::sendRequest()" << endl);
     int msgID=0;
-    int err=ldap_modify_ext(m_connection->getSessionHandle(),m_dn,
-            m_modList->toLDAPModArray(), m_cons->getSrvCtrlsArray(), 
-            m_cons->getClCtrlsArray(),&msgID);
+    LDAPControl** tmpSrvCtrls=m_cons->getSrvCtrlsArray();
+    LDAPControl** tmpClCtrls=m_cons->getClCtrlsArray();
+    LDAPMod** tmpMods=m_modList->toLDAPModArray();
+    int err=ldap_modify_ext(m_connection->getSessionHandle(),m_dn.c_str(),
+            tmpMods, tmpSrvCtrls, tmpClCtrls,&msgID);
+    ldap_controls_free(tmpSrvCtrls);
+    ldap_controls_free(tmpClCtrls);
     if(err != LDAP_SUCCESS){
-        delete this;
         throw LDAPException(err);
     }else{
         m_msgID=msgID;
@@ -52,9 +57,21 @@ LDAPMessageQueue* LDAPModifyRequest::sendRequest(){
     }
 }
 
-LDAPRequest* LDAPModifyRequest::followReferral(LDAPUrlList *refs){
+LDAPRequest* LDAPModifyRequest::followReferral(LDAPMsg* ref){
     DEBUG(LDAP_DEBUG_TRACE, "LDAPModifyRequest::followReferral()" << endl);
-    cerr << "to be implemented ..." << endl;
+    LDAPUrlList::const_iterator usedUrl;
+    LDAPUrlList urls = ((LDAPResult*)ref)->getReferralUrls();
+    LDAPAsynConnection* con = 0;
+    try {
+        con = getConnection()->referralConnect(urls,usedUrl,m_cons);
+    } catch(LDAPException e){
+        delete con;
+        return 0;
+    }
+    if(con != 0){
+        return new LDAPModifyRequest(m_dn, m_modList, con, m_cons,true,this);
+    }
     return 0;
 }
+
 

@@ -3,22 +3,32 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-// $Id: LDAPControl.h,v 1.4 2000/08/31 17:43:48 rhafer Exp $
 
 #ifndef LDAP_CONTROL_H
 #define LDAP_CONTROL_H
+#include <string>
+#include <ldap.h>
 
-#include <lber.h>
 
 class LDAPCtrl{
-	private :
-		char *m_oid;
-		BerValue *m_data;
-		bool m_isCritical;
-
 	public :
-		LDAPCtrl(char *oid, bool critical,  char *value=0, int length=0);
-		
+        LDAPCtrl(const LDAPCtrl& c);
+		LDAPCtrl(const char *oid, bool critical, const char *data=0, 
+                int length=0);
+        LDAPCtrl(const string& oid, bool critical=false,
+                const string& data=string());
+        LDAPCtrl(const LDAPControl* ctrl);
+        ~LDAPCtrl();
+        
+        string getOID() const;
+        string getData() const;
+        bool isCritical() const;
+        LDAPControl* getControlStruct() const;
+	
+    private :
+        string m_oid;
+        string m_data;
+        bool m_isCritical;
 };
 
 #endif //LDAP_CONTROL_H

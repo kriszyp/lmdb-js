@@ -92,7 +92,7 @@ REPEAT_BRIEF         = yes
 # Doxygen will generate a detailed section even if there is only a brief
 # description.
 
-ALWAYS_DETAILED_SEC  = NO
+ALWAYS_DETAILED_SEC  = yes
 
 # If the FULL_PATH_NAMES tag is set to YES then Doxygen will prepend the full
 # path before files name in the file list and in the header files. If set
@@ -123,7 +123,7 @@ CLASS_DIAGRAMS       = YES
 # If the SOURCE_BROWSER tag is set to YES then a list of source files will
 # be generated. Documented entities will be cross-referenced with these sources.
 
-SOURCE_BROWSER       = Yes
+SOURCE_BROWSER       = no
 
 # Setting the INLINE_SOURCES tag to YES will include the body
 # of functions and classes directly in the documentation.
@@ -176,7 +176,7 @@ TAB_SIZE             = 4
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT                = /suse/rhafer/prog/ldapsdk/src
+INPUT                = ./src
 
 # If the value of the INPUT tag contains directories, you can use the 
 # FILE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 

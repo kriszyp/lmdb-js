@@ -10,17 +10,18 @@
 
 class LDAPExtRequest : LDAPRequest {
 
-    private:
-        char *m_oid;
-        BerValue *m_data;
     public:
         LDAPExtRequest(const LDAPExtRequest& req);
-        LDAPExtRequest(const char *oid, const BerValue *data, 
-                const LDAPAsynConnection *connect, const LDAPConstraints *cons,
-                bool isReferral=false);
+        LDAPExtRequest(const string& oid, const string& data, 
+                LDAPAsynConnection *connect, const LDAPConstraints *cons,
+                bool isReferral=false, const LDAPRequest* parent=0);
         virtual ~LDAPExtRequest();
         virtual LDAPMessageQueue* sendRequest();
-        virtual LDAPRequest* followReferral(LDAPUrlList *urls);
+        virtual LDAPRequest* followReferral(LDAPMsg* urls);
+    
+    private:
+        string m_oid;
+        string m_data;
 };
 
 #endif // LDAP_EXT_REQUEST_H

@@ -9,61 +9,77 @@
 
 #include "LDAPModDNRequest.h"
 #include "LDAPException.h"
+#include "LDAPResult.h"
 #include "LDAPUrlList.h"
 
 LDAPModDNRequest::LDAPModDNRequest(const LDAPModDNRequest& req) :
         LDAPRequest(req){
-    DEBUG(LDAP_DEBUG_TRACE, 
-            "LDAPModDNRequest::LDAPModDNRequest(LDAPModDNRequest&)" << endl);
+    DEBUG(LDAP_DEBUG_CONSTRUCT, 
+            "LDAPModDNRequest::LDAPModDNRequest(&)" << endl);
+    m_dn = req.m_dn;
+    m_newRDN = req.m_newRDN;
+    m_newParentDN = req.m_newParentDN;
+    m_deleteOld = req.m_deleteOld;
 }
 
-LDAPModDNRequest::LDAPModDNRequest(const char *dn, const char *newRDN, 
-        bool deleteOld, const char *newParentDN, 
-        const LDAPAsynConnection *connect, 
-        const LDAPConstraints *cons, bool isReferral=false):
-        LDAPRequest(connect, cons, isReferral){
-    DEBUG(LDAP_DEBUG_TRACE, "LDAPModDNRequest::LDAPModDNRequest()" << endl);
-    DEBUG(LDAP_DEBUG_PARAMETER, "   dn:" << dn << endl
-            << "   newRDN:" << newRDN << endl
-            << "   deleteOld:" << deleteOld << endl
-            << "   newParentDN:" << newParentDN << endl);
-    assert(dn);
-    m_dn = strdup(dn);
-    assert(newRDN);
-    m_newRDN = strdup(newRDN);
-    if (newParentDN){
-        m_newParentDN = strdup(newParentDN);
-    }else{
-        m_newParentDN = 0;
-    }
+LDAPModDNRequest::LDAPModDNRequest(const string& dn, const string& newRDN, 
+        bool deleteOld, const string& newParentDN, 
+        LDAPAsynConnection *connect, 
+        const LDAPConstraints *cons, bool isReferral, 
+        const LDAPRequest* parent):
+        LDAPRequest(connect, cons, isReferral, parent){
+    DEBUG(LDAP_DEBUG_CONSTRUCT, 
+            "LDAPModDNRequest::LDAPModDNRequest(&)" << endl);
+    DEBUG(LDAP_DEBUG_CONSTRUCT | LDAP_DEBUG_PARAMETER, 
+            "   dn:" << dn << endl << "   newRDN:" << newRDN << endl
+            << "   deleteOld:" << deleteOld << endl 
+            << "   newParent:" << newParentDN << endl);
+    m_dn = dn;
+    m_newRDN = newRDN;
+    m_newParentDN = newParentDN;
     m_deleteOld=deleteOld;
 }
 
 LDAPModDNRequest::~LDAPModDNRequest(){
-    DEBUG(LDAP_DEBUG_TRACE, "LDAPModDNRequest::~LDAPModDNRequest()" << endl);
-    delete[] m_dn;
-    delete[] m_newRDN;
-    delete[] m_newParentDN;
+    DEBUG(LDAP_DEBUG_DESTROY, "LDAPModDNRequest::~LDAPModDNRequest()" << endl);
 }
 
 LDAPMessageQueue* LDAPModDNRequest::sendRequest(){
+    DEBUG(LDAP_DEBUG_TRACE, "LDAPModDNRequest::sendRequest()" << endl);
     int msg_id;
-    int err=ldap_rename(m_connection->getSessionHandle(),m_dn,m_newRDN,
-            m_newParentDN,m_deleteOld ? 1 : 0, m_cons->getSrvCtrlsArray(),
-            m_cons->getClCtrlsArray(),&msg_id);
+    const char* newRDN = (m_newRDN == "" ? 0 :m_newRDN.c_str());
+    const char* newParentDN = (m_newParentDN == "" ? 
+            0 :
+            m_newParentDN.c_str());
+    LDAPControl** tmpSrvCtrls=m_cons->getSrvCtrlsArray();
+    LDAPControl** tmpClCtrls=m_cons->getClCtrlsArray();
+    int err=ldap_rename(m_connection->getSessionHandle(),m_dn.c_str(),newRDN,
+            newParentDN,m_deleteOld ? 1 : 0, tmpSrvCtrls, tmpClCtrls,&msg_id);
+    ldap_controls_free(tmpSrvCtrls);
+    ldap_controls_free(tmpClCtrls);
     if(err!=LDAP_SUCCESS){
-        delete this;
         throw LDAPException(err);
     }else{
         m_msgID=msg_id;
         return new LDAPMessageQueue(this);
     }
-
 }
 
-LDAPRequest* LDAPModDNRequest::followReferral(LDAPUrlList *urls){
+LDAPRequest* LDAPModDNRequest::followReferral(LDAPMsg* ref){
     DEBUG(LDAP_DEBUG_TRACE, "LDAPModifyRequest::followReferral()" << endl);
-    cerr << "to be implemented ..." << endl;
+    LDAPUrlList::const_iterator usedUrl;
+    LDAPUrlList urls = ((LDAPResult*)ref)->getReferralUrls();
+    LDAPAsynConnection* con = 0;
+    try {
+        con = getConnection()->referralConnect(urls,usedUrl,m_cons);
+    } catch(LDAPException e){
+        delete con;
+        return 0;
+    }
+    if(con != 0){
+        return new LDAPModDNRequest(m_dn, m_newRDN, m_deleteOld, m_newParentDN,
+                con, m_cons,true,this);
+    }
     return 0;
 }
 

@@ -3,21 +3,26 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-// $Id: LDAPModList.cpp,v 1.3 2000/08/31 17:43:49 rhafer Exp $
 
 #include "LDAPModList.h"
+#include "debug.h"
 
 LDAPModList::LDAPModList(){
+    DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPModList::LDAPModList()" << endl);
 }
 
-LDAPModList::LDAPModList(const LDAPModList&){
+LDAPModList::LDAPModList(const LDAPModList& ml){
+    DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPModList::LDAPModList(&)" << endl);
+    m_modList=ml.m_modList;
 }
 
 void LDAPModList::addModification(const LDAPModification &mod){
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPModList::addModification()" << endl);
 	m_modList.push_back(mod);
 }
 
 LDAPMod** LDAPModList::toLDAPModArray(){
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPModList::toLDAPModArray()" << endl);
 	LDAPMod **ret = new LDAPMod*[m_modList.size()+1];
 	ret[m_modList.size()]=0;
 	ModList::const_iterator i;

@@ -3,13 +3,12 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-// $Id: LDAPMessage.h,v 1.7 2000/08/31 17:43:48 rhafer Exp $
 
 #ifndef LDAP_MSG_H
 #define LDAP_MSG_H
 #include <ldap.h>
 
-//#include "LDAPConnection.h"
+#include "LDAPControlSet.h"
 
 class LDAPRequest;
 //! Represents an LDAPMsg returned from the server
@@ -19,14 +18,7 @@ class LDAPRequest;
  * static method create() (see below)
  */
 class LDAPMsg{
-	private:
-		int msgID;
-	protected:
-		int msgType;
-		LDAPMsg(LDAPMessage *msg);
-
 	public:
-
         //public Constants defining the Message types
         static const int BIND_RESPONSE=LDAP_RES_BIND;
         static const int SEARCH_ENTRY=LDAP_RES_SEARCH_ENTRY;
@@ -48,8 +40,19 @@ class LDAPMsg{
          * *msg-Parameter. *msg is e.g. a Message returned by the C-API's
          * ldap_result call.
 		 */
-		static LDAPMsg* create(LDAPRequest *req, LDAPMessage *msg);	
+		static LDAPMsg* create(const LDAPRequest *req, LDAPMessage *msg);	
 		int getMessageType();
         int getMsgID();
+        bool hasControls() const;
+        const LDAPControlSet& getSrvControls() const;
+	
+    protected:
+		LDAPMsg(LDAPMessage *msg);
+        LDAPControlSet m_srvControls;
+        bool m_hasControls;
+
+	private:
+		int msgType;
+		int msgID;
 };
 #endif //ifndef LDAP_MSG_H

@@ -14,24 +14,29 @@ class LDAPReferral;
 class LDAPUrl;
 
 class LDAPSearchRequest : public LDAPRequest{ 
-    private :
-        const char *m_base;
-        int m_scope;
-        const char *m_filter;
-        char **m_attrs;
-
-        //no default constructor
-        LDAPSearchRequest();
 
     public :
         LDAPSearchRequest(const LDAPSearchRequest& req);
 
-        LDAPSearchRequest(const char *base, int scope, const char* filter,
-                          char **attrs, const LDAPAsynConnection *connect,
-                          const LDAPConstraints* cons, bool isReferral=false);
+        LDAPSearchRequest(const string& base, int scope, const string& filter,
+                          const StringList& attrs, bool attrsOnly, 
+                          LDAPAsynConnection *connect,
+                          const LDAPConstraints* cons, bool isReferral=false,
+                          const LDAPRequest* parent=0);
         virtual ~LDAPSearchRequest();        
         virtual LDAPMessageQueue* sendRequest();
-        virtual LDAPRequest* followReferral(LDAPUrlList *ref);
+        virtual LDAPRequest* followReferral(LDAPMsg* ref);
+        virtual bool equals(const LDAPRequest* req) const;
+    
+    private :
+        string m_base;
+        int m_scope;
+        string m_filter;
+        StringList m_attrs;
+        bool m_attrsOnly;
+
+        //no default constructor
+        LDAPSearchRequest(){};
 };
 
 #endif //LDAP_SEARCH_REQUEST_H

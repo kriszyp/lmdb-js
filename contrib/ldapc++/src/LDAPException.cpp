@@ -3,44 +3,46 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-// $Id: LDAPException.cpp,v 1.7 2000/08/31 17:43:48 rhafer Exp $
 
 
 #include <ldap.h>
 #include "config.h"
-#include "ac/string.h"
 #include "LDAPException.h"
+#include "LDAPReferralException.h"
 
-LDAPException::LDAPException(int res_code, char *err_string=0){
+#include "LDAPAsynConnection.h"
+
+LDAPException::LDAPException(int res_code, const string& err_string){
 	m_res_code=res_code;
-	m_res_string=ldap_err2string(res_code);
-	if(err_string != 0){
-        m_err_string=strdup(err_string);
-    }else{
-        m_err_string=0;
-    }
+	m_res_string=string(ldap_err2string(res_code));
+    m_err_string=err_string;
 }
 
 LDAPException::LDAPException(const LDAPAsynConnection *lc){
-	m_err_string=0;
-	m_res_string=0;
+	m_err_string=string();
+	m_res_string=string();
 	LDAP *l = lc->getSessionHandle();
 	ldap_get_option(l,LDAP_OPT_ERROR_NUMBER,&m_res_code);
-	m_res_string=ldap_err2string(m_res_code);
-	ldap_get_option(l,LDAP_OPT_ERROR_STRING,&m_err_string);
+	m_res_string=string(ldap_err2string(m_res_code));
+    char* err_string;
+	ldap_get_option(l,LDAP_OPT_ERROR_STRING,&err_string);
+    m_err_string=string(err_string);
 }
 
-int LDAPException::getResultCode(){
+LDAPException::~LDAPException(){
+}
+
+int LDAPException::getResultCode() const{
 	return m_res_code;
 }
 
-char* LDAPException::getResultMsg(){
-	return strdup(m_res_string);
+const string& LDAPException::getResultMsg() const{
+	return m_res_string;
 }
 
 ostream& operator << (ostream& s, LDAPException e){
 	s << "Error " << e.m_res_code << ": " << e.m_res_string;
-	if (e.m_err_string != 0) {
+	if (e.m_err_string.size() > 0) {
 		s << endl <<  "additional info: " << e.m_err_string ;
 	}
 	return s;

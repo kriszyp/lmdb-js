@@ -3,7 +3,6 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-// $Id: LDAPSearchReference.cpp,v 1.7 2000/08/31 17:43:49 rhafer Exp $
 
 #include <iostream>
 
@@ -13,32 +12,39 @@
 #include "LDAPRequest.h"
 #include "LDAPUrl.h"
 
-LDAPSearchReference::LDAPSearchReference(LDAPRequest *req, LDAPMessage *msg) : 
-        LDAPMsg(msg){
-    DEBUG(LDAP_DEBUG_TRACE,"LDAPSearchReference::LDAPSearchReference()"
-            << endl;)    
+LDAPSearchReference::LDAPSearchReference(const LDAPRequest *req,
+        LDAPMessage *msg) : LDAPMsg(msg){
+    DEBUG(LDAP_DEBUG_CONSTRUCT,
+            "LDAPSearchReference::LDAPSearchReference()" << endl;)    
     char **ref=0;
+    LDAPControl** srvctrls=0;
     const LDAPAsynConnection* con=req->getConnection();
-    int err = ldap_parse_reference(con->getSessionHandle(), msg, &ref, 0,0);
+    int err = ldap_parse_reference(con->getSessionHandle(), msg, &ref, 
+            &srvctrls,0);
     if (err != LDAP_SUCCESS){
+        ldap_value_free(ref);
+        ldap_controls_free(srvctrls);
         throw LDAPException(err);
     }else{
-        char **tmp;
-        for (tmp=ref; *tmp != 0; tmp++){   
-            m_urlList.push_back( new LDAPUrl(*tmp) );
-            DEBUG(LDAP_DEBUG_PARAMETER,"   URL:" << *tmp << endl);
+        m_urlList=LDAPUrlList(ref);
+        ldap_value_free(ref);
+        if (srvctrls){
+            m_srvControls = LDAPControlSet(srvctrls);
+            m_hasControls = true;
+            ldap_controls_free(srvctrls);
+        }else{
+            m_hasControls = false;
         }
     }
 }
 
 LDAPSearchReference::~LDAPSearchReference(){
-    LDAPUrlList::const_iterator i;
-    for(i=m_urlList.begin(); i!=m_urlList.end(); i++){
-        delete *i;
-    }
+    DEBUG(LDAP_DEBUG_DESTROY,"LDAPSearchReference::~LDAPSearchReference()"
+            << endl);
 }
 
-LDAPUrlList* LDAPSearchReference::getURLs(){
-    return &m_urlList;
+const LDAPUrlList& LDAPSearchReference::getUrls() const{
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPSearchReference::getUrls()" << endl);
+    return m_urlList;
 }
 

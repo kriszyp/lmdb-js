@@ -1,8 +1,9 @@
-SASL Authentication 
-TLS encryption
-adjustment of search scope for search reference following
+some more methods in the base classes (LDAPAttribute, LDAPEntry, ..) e.g.:
+	-sorting/searching of Attributes
+	-sorting of Entries
+localization and subtypes
 Debugging and Logging
 LDAPv2  Operations
-Referral chasing for all operations
-Classes to make synchronous Operations
+SASL Authentication 
+TLS encryption
 

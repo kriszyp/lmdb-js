@@ -3,7 +3,6 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-// $Id: LDAPSearchReference.h,v 1.7 2000/08/31 17:43:49 rhafer Exp $
 
 #ifndef LDAP_SEARCH_REFERENCE_H
 #define LDAP_SEARCH_REFERENCE_H 
@@ -16,14 +15,14 @@ class LDAPUrl;
 
 class LDAPSearchReference : public LDAPMsg{
 
+    public :
+        LDAPSearchReference(const LDAPRequest* req, LDAPMessage* msg);
+        ~LDAPSearchReference();
+        const LDAPUrlList& getUrls() const;
+
     private :
         LDAPUrlList m_urlList;
         LDAPSearchReference();
-
-    public :
-        LDAPSearchReference(LDAPRequest* req, LDAPMessage* msg);
-        ~LDAPSearchReference();
-        LDAPUrlList* getURLs();
 };
 
 

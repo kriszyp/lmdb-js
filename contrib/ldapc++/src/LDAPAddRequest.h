@@ -7,20 +7,23 @@
 #define  LDAP_ADD_REQUEST_H
 
 #include "LDAPRequest.h"
+#include "LDAPEntry.h"
+
 class LDAPMessageQueue;
-class LDAPEntry;
 
 class LDAPAddRequest : LDAPRequest {
-    private:
-        LDAPEntry *m_entry;
-
     public:
         LDAPAddRequest(const LDAPAddRequest& req);
-        LDAPAddRequest(const LDAPEntry* entry, const LDAPAsynConnection *connect,
-                const LDAPConstraints *cons, bool isReferral=false);
+        LDAPAddRequest(const LDAPEntry* entry, 
+                LDAPAsynConnection *connect,
+                const LDAPConstraints *cons, bool isReferral=false, 
+                const LDAPRequest* parent=0);
         virtual ~LDAPAddRequest();
         virtual LDAPMessageQueue* sendRequest();
-        virtual LDAPRequest* followReferral(LDAPUrlList *refs);
+        virtual LDAPRequest* followReferral(LDAPMsg* refs);
+    private:
+        LDAPEntry* m_entry;
+
 };
 #endif // LDAP_ADD_REQUEST_H
 

@@ -3,10 +3,11 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-// $Id: LDAPMessage.cpp,v 1.6 2000/08/31 17:43:48 rhafer Exp $
 
 #include "LDAPMessage.h"
+
 #include "LDAPResult.h"
+#include "LDAPExtResult.h"
 #include "LDAPRequest.h"
 #include "LDAPSearchResult.h"
 #include "LDAPSearchReference.h"
@@ -14,19 +15,23 @@
 #include <iostream>
 
 LDAPMsg::LDAPMsg(LDAPMessage *msg){
-    DEBUG(LDAP_DEBUG_TRACE,"LDAPMsg::LDAPMsg()" << endl);
+    DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPMsg::LDAPMsg()" << endl);
 	msgType=ldap_msgtype(msg);
+    m_hasControls=false;
 }
 
-LDAPMsg* LDAPMsg::create(LDAPRequest *req, LDAPMessage *msg){
+LDAPMsg* LDAPMsg::create(const LDAPRequest *req, LDAPMessage *msg){
     DEBUG(LDAP_DEBUG_TRACE,"LDAPMsg::create()" << endl);
 	switch(ldap_msgtype(msg)){
-		case LDAP_RES_SEARCH_ENTRY :
+		case SEARCH_ENTRY :
 			return new LDAPSearchResult(req,msg);
 		break;
-		case LDAP_RES_SEARCH_REFERENCE :
+		case SEARCH_REFERENCE :
 			return new LDAPSearchReference(req, msg);
 		break;
+        case EXTENDED_RESPONSE :
+            return new LDAPExtResult(req,msg);
+        break;
 		default :
 			return new LDAPResult(req, msg);
 	}
@@ -35,10 +40,20 @@ LDAPMsg* LDAPMsg::create(LDAPRequest *req, LDAPMessage *msg){
 
 
 int LDAPMsg::getMessageType(){
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPMsg::getMessageType()" << endl);
 	return msgType;
 }
 
 int LDAPMsg::getMsgID(){
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPMsg::getMsgID()" << endl);
 	return msgID;
+}
+
+bool LDAPMsg::hasControls() const{
+    return m_hasControls;
+}
+
+const LDAPControlSet& LDAPMsg::getSrvControls() const {
+    return m_srvControls;
 }
 

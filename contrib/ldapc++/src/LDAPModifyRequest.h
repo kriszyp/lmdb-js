@@ -12,17 +12,17 @@ class LDAPMessageQueue;
 
 class LDAPModifyRequest : LDAPRequest {
     private :
-        char *m_dn;
+        string m_dn;
         LDAPModList *m_modList;
 
     public:
         LDAPModifyRequest(const LDAPModifyRequest& mod);
-        LDAPModifyRequest(const char *dn, const LDAPModList *modList,
-                const LDAPAsynConnection *connect, const LDAPConstraints *cons,
-                bool isReferral=false);
+        LDAPModifyRequest(const string& dn, const LDAPModList *modList,
+                LDAPAsynConnection *connect, const LDAPConstraints *cons,
+                bool isReferral=false, const LDAPRequest* req=0);
         virtual ~LDAPModifyRequest();
         virtual LDAPMessageQueue* sendRequest();
-        virtual LDAPRequest* followReferral(LDAPUrlList *refs);
+        virtual LDAPRequest* followReferral(LDAPMsg* refs);
 };
 
 #endif // LDAP_MODIFY_REQUEST_H

@@ -3,60 +3,68 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-// $Id: LDAPEntry.cpp,v 1.6 2000/08/31 17:43:48 rhafer Exp $
 
 #include "debug.h"
 #include "LDAPEntry.h"
 
+#include "LDAPException.h"
+
 LDAPEntry::LDAPEntry(const LDAPEntry& entry){
-    DEBUG(LDAP_DEBUG_TRACE,"LDAPEntry::LDAPEntry(LDAPEntry&)" << endl);
-	this->setDN(entry.m_dn);
-	this->setAttributes(entry.m_attrs);
+    DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPEntry::LDAPEntry(&)" << endl);
+    m_dn=entry.m_dn;
+    m_attrs=new LDAPAttributeList( *(entry.m_attrs));
 }
 
 
-LDAPEntry::LDAPEntry(const char *dn, 
-        LDAPAttributeList *attrs=new LDAPAttributeList()){
-	m_attrs=attrs;
- 	m_dn=strdup(dn);
+LDAPEntry::LDAPEntry(const string& dn, const LDAPAttributeList *attrs){
+    DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPEntry::LDAPEntry()" << endl);
+    DEBUG(LDAP_DEBUG_CONSTRUCT | LDAP_DEBUG_PARAMETER,
+            "   dn:" << dn << endl << " attrs:" << *attrs << endl);
+    m_attrs=new LDAPAttributeList(*attrs);
+    m_dn=dn;
 }
 
 LDAPEntry::LDAPEntry(const LDAPAsynConnection *ld, LDAPMessage *msg){
-    DEBUG(LDAP_DEBUG_TRACE,"LDAPEntry::LDAPEntry()" << endl);
-	m_dn = ldap_get_dn(ld->getSessionHandle(),msg);
-	m_attrs = new LDAPAttributeList(ld, msg);
-	m_attrs->find("objectClass");
+    DEBUG(LDAP_DEBUG_CONSTRUCT,"LDAPEntry::LDAPEntry()" << endl);
+    char* tmp=ldap_get_dn(ld->getSessionHandle(),msg);
+    m_dn=string(tmp);
+    delete[] tmp;
+    m_attrs = new LDAPAttributeList(ld, msg);
 }
 
 LDAPEntry::~LDAPEntry(){
-    DEBUG(LDAP_DEBUG_TRACE,"LDAPEntry::~LDAPEntry()" << endl);
-	delete[] m_dn;
-	delete m_attrs;
+    DEBUG(LDAP_DEBUG_DESTROY,"LDAPEntry::~LDAPEntry()" << endl);
+    delete m_attrs;
 }
 
-void LDAPEntry::setDN(const char* dn){
-	if (m_dn != 0){
-		delete[] m_dn;
-	}
-	m_dn=strdup(dn);
+void LDAPEntry::setDN(const string& dn){
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPEntry::setDN()" << endl);
+    DEBUG(LDAP_DEBUG_TRACE | LDAP_DEBUG_PARAMETER,
+            "   dn:" << dn << endl);
+    m_dn=dn;
 }
 
 void LDAPEntry::setAttributes(LDAPAttributeList *attrs){
-	if (m_attrs != 0){
-		delete m_attrs;
-	}
-	m_attrs=attrs;
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPEntry::setAttributes()" << endl);
+    DEBUG(LDAP_DEBUG_TRACE | LDAP_DEBUG_PARAMETER,
+            "   attrs:" << *attrs << endl);
+    if (m_attrs != 0){
+        delete m_attrs;
+    }
+    m_attrs=attrs;
 }
 
-char* LDAPEntry::getDN(){
-	return strdup(m_dn);
+const string LDAPEntry::getDN() const{
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPEntry::getDN()" << endl);
+    return m_dn;
 }
 
-LDAPAttributeList* LDAPEntry::getAttributes(){
-	return m_attrs;
+const LDAPAttributeList* LDAPEntry::getAttributes() const{
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPEntry::getAttributes()" << endl);
+    return m_attrs;
 }
 
 ostream& operator << (ostream& s, const LDAPEntry& le){
-	s << "DN: " << le.m_dn << ": " << *(le.m_attrs); 
-	return s;
+    s << "DN: " << le.m_dn << ": " << *(le.m_attrs); 
+    return s;
 }

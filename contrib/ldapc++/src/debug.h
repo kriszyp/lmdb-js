@@ -9,8 +9,8 @@
 
 #define LDAP_DEBUG_NONE         0x0000
 #define LDAP_DEBUG_TRACE        0x0001
-#define LDAP_DEBUG_RESPONSE     0x0002
-#define LDAP_DEBUG_REQUEST      0x0004
+#define LDAP_DEBUG_CONSTRUCT    0x0002
+#define LDAP_DEBUG_DESTROY      0x0004
 #define LDAP_DEBUG_PARAMETER    0x0008
 #define LDAP_DEBUG_ANY -1
 
@@ -20,10 +20,13 @@
 	cerr << "file: " __FILE__  << " line: " << __LINE__ 
 
 #define DEBUG(level, arg)       \
-    if(level & DEBUGLEVEL){     \
+    if((level) & DEBUGLEVEL){     \
         cerr  << arg ;          \
     } 
 
-
+/*
+*	#undef DEBUG
+*	#define DEBUG(level,arg)
+*/
 
 #endif // DEBUG_H

@@ -3,32 +3,35 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-// $Id: LDAPUrl.h,v 1.5 2000/08/31 17:43:49 rhafer Exp $
 
 #ifndef LDAP_URL_H
 #define LDAP_URL_H
 
 #include <ldap.h>
-
+#include "StringList.h"
 class LDAPUrl{
     
     protected :
+        int m_Port;
+        int m_Scope;
+        string m_Host;
+        string m_DN;
+        string m_Filter;
+        StringList m_Attrs;
         LDAPURLDesc *m_urlDesc;
-        char *m_urlString;
+        string m_urlString;
 
     public : 
-        LDAPUrl(char *url);
-        LDAPUrl(char *host, int port, char *dn, char **attrs, int scope=0,
-                char *filter=0);
+        LDAPUrl(const char *url);
         ~LDAPUrl();
 
         int getPort() const;
         int getScope() const;
-        char* getURLString() const;
-        char* getHost() const;
-        char* getDN() const;
-        char* getFilter() const;
-        char** getAttrs() const;
+        const string& getURLString() const;
+        const string& getHost() const;
+        const string& getDN() const;
+        const string& getFilter() const;
+        const StringList& getAttrs() const;
 };
 
 #endif //LDAP_URL_H

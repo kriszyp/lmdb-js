@@ -3,7 +3,6 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-// $Id: LDAPModList.h,v 1.3 2000/08/31 17:43:49 rhafer Exp $
 
 #ifndef LDAP_MOD_LIST_H
 #define LDAP_MOD_LIST_H
@@ -15,8 +14,6 @@
 typedef list<LDAPModification> ModList;
 
 class LDAPModList{
-	private : 
-		ModList m_modList;
 
 	public : 
 		LDAPModList();
@@ -25,6 +22,8 @@ class LDAPModList{
 		void addModification(const LDAPModification &mod);
 		LDAPMod** toLDAPModArray();
 
+	private : 
+		ModList m_modList;
 };
 #endif //LDAP_MOD_LIST_H
 

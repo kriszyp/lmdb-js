@@ -3,7 +3,6 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
-// $Id: LDAPModification.h,v 1.3 2000/08/31 17:43:49 rhafer Exp $
 
 #ifndef LDAP_MODIFICATION_H
 #define LDAP_MODIFICATION_H

@@ -11,18 +11,19 @@
 class LDAPMessageQueue;
 
 class LDAPCompareRequest : public LDAPRequest {
-    private :
-        char *m_dn;
-        LDAPAttribute *m_attr;
-        
     public :
         LDAPCompareRequest(const LDAPCompareRequest& req);
-        LDAPCompareRequest(const char* dn, const LDAPAttribute* attr, 
-                const LDAPAsynConnection *connect, const LDAPConstraints *cons,
-                bool isReferral=false);
+        LDAPCompareRequest(const string& dn, const LDAPAttribute& attr, 
+                LDAPAsynConnection *connect, const LDAPConstraints *cons,
+                bool isReferral=false, const LDAPRequest* parent=0);
         virtual ~LDAPCompareRequest();
         virtual LDAPMessageQueue* sendRequest();
-        virtual LDAPRequest* followReferral(LDAPUrlList *urls);
+        virtual LDAPRequest* followReferral(LDAPMsg* urls);
+    
+    private :
+        string m_dn;
+        LDAPAttribute m_attr;
+        
 };
 #endif //LDAP_COMPARE_REQUEST_H
 

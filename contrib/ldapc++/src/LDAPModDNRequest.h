@@ -9,21 +9,23 @@
 #include "LDAPRequest.h"
 
 class LDAPModDNRequest : LDAPRequest {
-    private:
-        char *m_dn;
-        char *m_newRDN;
-        char *m_newParentDN;
-        bool m_deleteOld;
 
     public:
         LDAPModDNRequest(const LDAPModDNRequest& req); 
-        LDAPModDNRequest(const char *dn, const char *newRDN, bool deleteOld, 
-                const char *newParentDN, const LDAPAsynConnection *connect,
-                const LDAPConstraints *cons, bool isReferral=false); 
+        LDAPModDNRequest(const string& dn, const string& newRDN,
+                bool deleteOld, const string& newParentDN,
+                LDAPAsynConnection *connect, const LDAPConstraints *cons,
+                bool isReferral=false, const LDAPRequest* parent=0); 
         virtual ~LDAPModDNRequest(); 
         
         virtual LDAPMessageQueue* sendRequest(); 
-        virtual LDAPRequest* followReferral(LDAPUrlList* urls);
+        virtual LDAPRequest* followReferral(LDAPMsg*  urls);
+    
+    private:
+        string m_dn;
+        string m_newRDN;
+        string m_newParentDN;
+        bool m_deleteOld;
 };    
 
 #endif // LDAP_MOD_DN_REQUEST_H

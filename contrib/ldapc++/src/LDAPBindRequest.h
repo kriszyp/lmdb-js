@@ -10,19 +10,19 @@
 
 class LDAPBindRequest : LDAPRequest {
     private:
-        char *m_dn;
-        BerValue *m_cred;
-        char *m_mech;
+        string m_dn;
+        string m_cred;
+        string m_mech;
 
     public:
         LDAPBindRequest(const LDAPBindRequest& req);
         //just for simple authentication
-        LDAPBindRequest(const char *dn, const char *passwd, 
-                const LDAPAsynConnection *connect, const LDAPConstraints *cons, 
+        LDAPBindRequest(const string&, const string& passwd, 
+                LDAPAsynConnection *connect, const LDAPConstraints *cons, 
                 bool isReferral=false);
         virtual ~LDAPBindRequest();
         virtual LDAPMessageQueue *sendRequest();
-        virtual LDAPRequest* followReferral(LDAPUrlList *urls);
+        virtual LDAPRequest* followReferral(LDAPMsg* urls);
 };
 #endif //LDAP_BIND_REQUEST_H
 
