@@ -26,7 +26,7 @@ A new command by the name of \fIcommand\fR will be created to access
 the LDAP database at \fIhostlist\fR.  \fIhostlist\fR may contain elements
 of the format \fBhost:port\fR if a port other than the default LDAP port
 of 389 is required.  The LDAP library will attempt to connect to each
-host in turn until it succeeds.
+host in turn until it succeeds or exhausts the list.
 .PP
 The \fBexplode\fR form provides a means (via ldap_explode(3)) to explode a DN
 into its component parts.  \fB-nonames\fR strips off the attribute names,
@@ -64,9 +64,6 @@ deferred until we actually try to do something.
 For the purposes of this example, we're going to assume that "foo" is the
 command created by opening a connection using "ldap open".
 
-Note:  Karl is particularly dissatisfied with the syntax of this option,
-so it is one of the most likely things to change in a subsequent release.
-
 .SH BINDING
 
 After a connection is made to an LDAP server, an LDAP bind operation must
@@ -74,11 +71,10 @@ be performed before other operations can be attempted over the connection.
 
 Both simple authentication and kerberos authentication are available.
 LDAP version 3 supports many new "SSL"-style authentication and encryption
-systems, which are not currently supported by the UMich server, and hence
-by this interface package.
+systems, which are not currently supported by the OpenLDAP v1.2 server, and
+hence by this interface package.
 
-Currently simple authentication, and kerberos-based authentication, are
-supported.
+Currently simple and kerberos-based authentication, are supported.
 
 To use LDAP and still have reasonable security in a networked, 
 Internet/Intranet environment, secure shell can be used to setup
@@ -140,17 +136,19 @@ This creates a new distinguished name and defines zero or more attributes.
 
 "attributePairList" is a list of key-value pairs, the same as would
 be returned by "array get" if an array had been set up containing the
-key-value pairs.  Note that, right now, the sort of lowest-level pair
-of the DN must also appear in the attributePairList, as in:
+key-value pairs.
 
     foo add "cn=karl, ou=People, o=NeoSoft Inc, c=US" {cn karl ...}
+
+Some directory servers and/or their client SDKs will automatically
+add the leaf attribute value for you.
 
 Here is a more precise description of how an attributePairList looks:
 
     {cn {karl {Karl Lehenbauer}} telephone 713-968-5800}
 
 Note here that two cn values, "karl" and "Karl Lehenbauer", are added.
-A command error is to write
+Is it an error to write:
 
     {cn {Karl Lehenbauer}}
 
@@ -161,11 +159,11 @@ typing hard-coded lists.
 
 We have noticed that the Netscape server will automatically add the
 left-most rdn portion of the DN (ie. cn=karl), whereas the University
-of Michigan version does not.
+of Michigan and OpenLDAP 1.2 versions do not.
 
 .SH ADDING, DELETING, AND REPLACING OBJECT ATTRIBUTES
 
-You can have multiple occurrences of the same attribute in a record.
+You can have multiple values for a given attribute in an LDAP object.
 These are represented in search results, through the Tcl interface,
 as a list.
 
@@ -173,21 +171,23 @@ as a list.
 
 This adds key-value pairs to an existing DN.  If an attribute being
 added already exists, the new value will be appended to the list.
+If a particular value being added to an attribute already exists in
+the object a Tcl error is raised.
 
     foo replace_attributes dn attributePairList
 
-This replaces specified key-value pairs in an existing DN, leaving
-unnamed ones untouched.
+This replaces the specified attributes in an existing DN, leaving
+unnamed ones untouched.  Any previous values for the supplied attributes
+(if any) are discarded.
 
     foo delete_attributes dn attributePairList
 
-This deletes attributes in the list.  If a pair is "foo {bar snap}" and
-you delete "foo bar", "foo" will still have "snap".
+This deletes attributes in the list.  If an attribute "foo" has the
+value list {bar snap}, and you delete using the attributePairList "foo bar",
+"foo" will still have "snap".
 
-If you provide an empty string ("") for the value part of the key-value
-pair, the entire attribute will be deleted.  To reiterate, if you provide
-a non-empty string for the value part, only that value will be removed
-from the value list.
+If you provide an empty string ("") for the value list,
+the entire attribute will be deleted.
 
 .SH SEARCHING
 
@@ -233,8 +233,8 @@ version.
 
 .SH CACHING (Note: Netscape clients do not have caching interfaces).
 
-The UMich LDAP library offers the client application fairly fine-
-grained control of caching of results retrieved from searches, 
+The UMich and OpenLDAP client libraries offers the client application fairly
+fine-grained control of caching of results retrieved from searches, 
 offering significant performance improvement and reduced
 network traffic.
 
@@ -272,7 +272,10 @@ To enable caching of data received from an LDAP connection,
 
 	This should be used, for example, after doing an add_attributes,
 	delete_attributes, or replace_attributes (ldap_modify(3)) 
-	involving the requested DN.
+	involving the requested DN.  Generally this should not be needed,
+	as the Tcl interface automatically performs this operation on
+	any dn that is modified (add,replace,delete) while caching is
+	enabled.
 
     foo cache no_errors
 
@@ -295,7 +298,8 @@ Because we used the new "Tcl object" C interfaces, this package only works
 with Tcl 8.0 or above.
 
 This package interfaces with the University of Michigan LDAP protocol
-package, version 3.3, an implementation of version 2 of the LDAP protocol.
+package, version 3.3, and OpenLDAP version 1.2, both of which are
+implementations of version 2 of the LDAP protocol.
 
 Although an LDAP client (or server) could be written in native Tcl 8.0,
 as Tcl 8.0 and above can do binary I/O, and Tcl 8 and above have strings 
@@ -334,8 +338,8 @@ related to LDAP services.
 
 .SH AUTHORS
 It was written by Karl Lehenbauer, of NeoSoft, Inc., in August and
-September of 1997.  Ldap explode, and numerous bug fixes by Randy
-Kunkee, also of NeoSoft, Inc., in 1998.
+September of 1997.  Ldap explode, and numerous bug fixes and extensions
+by Randy Kunkee, also of NeoSoft, Inc., in 1998-1999.
 
 .SH KEYWORDS
 element, join, list, separator
