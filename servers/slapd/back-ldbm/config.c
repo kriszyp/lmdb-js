@@ -1,5 +1,7 @@
 /* config.c - ldbm backend configuration file routine */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -76,6 +78,10 @@ ldbm_back_config(
 			exit( 1 );
 		}
 		li->li_dbcachesize = atoi( argv[1] );
+
+	/* flush on writes */
+	} else if ( strcasecmp( argv[0], "flushwrites" ) == 0 ) {
+		li->li_flush_wrt = 1;
 
 	/* anything else */
 	} else {

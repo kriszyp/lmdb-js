@@ -1,5 +1,7 @@
 /* entry.c - routines for dealing with entries */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>

@@ -1,5 +1,7 @@
 /* modify.c - shell backend modify function */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>

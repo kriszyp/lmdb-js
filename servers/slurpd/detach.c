@@ -10,6 +10,8 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <sys/types.h>
 #ifdef SVR4
@@ -38,6 +40,12 @@ detach()
 #else /* USE_SYSCONF */
 	nbits = getdtablesize();
 #endif /* USE_SYSCONF */
+
+#ifdef FD_SETSIZE
+	if ( nbits > FD_SETSIZE ) {
+		nbits = FD_SETSIZE;
+	}
+#endif /* FD_SETSIZE */
 
 #ifdef LDAP_DEBUG
 	if ( ldap_debug == 0 ) {

@@ -1,5 +1,7 @@
 /* attr.c - routines for dealing with attributes */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>

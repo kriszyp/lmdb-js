@@ -24,6 +24,7 @@
  * is so much simpler...
  */
 
+#include "portable.h"
 #include <stdio.h>
 
 #include "slurp.h"

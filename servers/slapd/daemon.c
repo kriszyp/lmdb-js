@@ -5,7 +5,6 @@
  *	Added locking of new_conn_mutex when traversing the c[] array.
  */
 
-#define DISABLE_BRIDGE /* disable bridge code */
 #include "portable.h"
 
 #include <stdio.h>

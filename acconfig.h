@@ -5,6 +5,9 @@
    Leave the following blank line there!!  Autoheader needs it.  */
 
 
+/* define this if toupper() requires tolower() check */
+#undef C_UPPER_LOWER
+
 /* define this if sys_errlist is not defined in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 

@@ -14,6 +14,8 @@
  * lock.c - routines to open and apply an advisory lock to a file
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/types.h>

@@ -1,5 +1,7 @@
 /* init.c - initialize various things */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
@@ -18,9 +20,6 @@ extern pthread_mutex_t	entry2str_mutex;
 extern pthread_mutex_t	replog_mutex;
 extern pthread_mutex_t	ops_mutex;
 extern pthread_mutex_t	num_sent_mutex;
-#ifndef sunos5
-extern pthread_mutex_t	regex_mutex;
-#endif
 
 init()
 {
@@ -31,7 +30,4 @@ init()
 	pthread_mutex_init( &replog_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &ops_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &num_sent_mutex, pthread_mutexattr_default );
-#ifndef sunos5
-	pthread_mutex_init( &regex_mutex, pthread_mutexattr_default );
-#endif
 }

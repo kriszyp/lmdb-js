@@ -14,7 +14,6 @@
  * fm.c - file management routines.
  */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #include <stdio.h>

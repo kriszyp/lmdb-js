@@ -10,6 +10,8 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>

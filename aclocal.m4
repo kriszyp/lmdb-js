@@ -113,7 +113,7 @@ AC_DEFUN([OL_BERKELEY_DB2],
 	fi
 ])
  if test $ol_cv_berkeley_db2 = yes ; then
-	AC_DEFINE(HAVE_BERKELEY_DB2)
+	AC_DEFINE(HAVE_BERKELEY_DB2,1)
  fi
 ])dnl
 dnl
@@ -179,7 +179,7 @@ AC_DEFUN([OL_BERKELEY_DB],
 	fi
 ])
  if test $ol_cv_berkeley_db = yes ; then
-	AC_DEFINE(HAVE_BERKELEY_DB)
+	AC_DEFINE(HAVE_BERKELEY_DB,1)
  fi
 ])dnl
 dnl
@@ -224,7 +224,7 @@ AC_DEFUN([OL_GDBM],
 	fi
 ])
  if test $ol_cv_gdbm = yes ; then
-	AC_DEFINE(HAVE_GDBM)
+	AC_DEFINE(HAVE_GDBM,1)
  fi
 ])dnl
 dnl
@@ -280,7 +280,7 @@ AC_DEFUN([OL_NDBM],
 	fi
 ])
  if test $ol_cv_ndbm = yes ; then
-	AC_DEFINE(HAVE_NDBM)
+	AC_DEFINE(HAVE_NDBM,1)
  fi
 ])dnl
 dnl
@@ -341,6 +341,30 @@ AC_CACHE_CHECK([for LinuxThreads], [ol_cv_linux_threads], [
 ])dnl
 dnl
 dnl ====================================================================
+dnl Check if toupper() requires islower() to be called first
+AC_DEFUN([OL_C_UPPER_LOWER],
+[
+AC_MSG_CHECKING([if toupper() requires islower()])
+AC_CACHE_VAL(ol_cv_c_upper_lower,[
+	AC_TRY_RUN([
+#include <ctypes.h>
+main()
+{
+	if ('C' == toupper('C'))
+		exit 0;
+	else
+		exit 1;
+}],
+	[ol_cv_c_upper_lower=no],
+	[ol_cv_c_upper_lower=yes],
+	[ol_cv_c_upper_lower=safe])])
+AC_MSG_RESULT($ol_cv_c_upper_lower)
+if test $ol_cv_c_upper_lower != no ; then
+	AC_DEFINE(C_UPPER_LOWER,1)
+fi
+])
+
+dnl ====================================================================
 dnl Check for declaration of sys_errlist in one of stdio.h and errno.h.
 dnl Declaration of sys_errlist on BSD4.4 interferes with our declaration.
 dnl Reported by Keith Bostic.
@@ -359,7 +383,7 @@ AC_MSG_RESULT($ol_cv_dcl_sys_errlist)
 
 # It's possible (for near-UNIX clones) that sys_errlist doesn't exist
 if test $ol_cv_dcl_sys_errlist = no ; then
-	AC_DEFINE(DECL_SYS_ERRLIST)
+	AC_DEFINE(DECL_SYS_ERRLIST,1)
 	AC_MSG_CHECKING([existence of sys_errlist])
 	AC_CACHE_VAL(ol_cv_have_sys_errlist,[
 		AC_TRY_LINK([#include <errno.h>],

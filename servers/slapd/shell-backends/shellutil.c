@@ -14,6 +14,8 @@
 */
 
 
+#include "portable.h"
+
 #include <sys/types.h>
 #include <stdio.h>
 #include <string.h>

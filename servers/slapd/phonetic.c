@@ -1,5 +1,7 @@
 /* phonetic.c - routines to do phonetic matching */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>

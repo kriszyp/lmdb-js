@@ -1,5 +1,7 @@
 /* schemaparse.c - routines to parse config file objectclass definitions */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>

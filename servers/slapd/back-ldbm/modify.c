@@ -1,5 +1,7 @@
 /* modify.c - ldbm backend modify routine */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>

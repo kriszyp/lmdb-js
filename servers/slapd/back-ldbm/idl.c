@@ -1,6 +1,5 @@
 /* idl.c - ldap id list handling routines */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #include <stdio.h>

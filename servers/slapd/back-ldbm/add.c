@@ -1,5 +1,7 @@
 /* add.c - ldap ldbm back-end add routine */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>

@@ -16,7 +16,6 @@
  * writing status information to disk.
  */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #include <stdio.h>

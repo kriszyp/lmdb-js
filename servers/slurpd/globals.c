@@ -14,6 +14,8 @@
  * globals.c - initialization code for global data
  */
 
+#include <portable.h>
+
 #include <stdio.h>
 
 #include "slurp.h"

@@ -1,5 +1,7 @@
 /* schema.c - routines to enforce schema definitions */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -76,6 +78,11 @@ oc_check_required( Entry *e, char *ocname )
 		return( 0 );
 	}
 
+	/* check for empty oc_required */
+	if(oc->oc_required == NULL) {
+		return( 0 );
+	}
+
 	/* for each required attribute */
 	for ( i = 0; oc->oc_required[i] != NULL; i++ ) {
 		/* see if it's in the entry */
@@ -111,14 +118,16 @@ oc_check_allowed( char *type, struct berval **ocl )
 		/* if we know about the oc */
 		if ( (oc = oc_find( ocl[i]->bv_val )) != NULL ) {
 			/* does it require the type? */
-			for ( j = 0; oc->oc_required[j] != NULL; j++ ) {
+			for ( j = 0; oc->oc_required != NULL && 
+				oc->oc_required[j] != NULL; j++ ) {
 				if ( strcasecmp( oc->oc_required[j], type )
 				    == 0 ) {
 					return( 0 );
 				}
 			}
 			/* does it allow the type? */
-			for ( j = 0; oc->oc_allowed[j] != NULL; j++ ) {
+			for ( j = 0; oc->oc_allowed != NULL && 
+				oc->oc_allowed[j] != NULL; j++ ) {
 				if ( strcasecmp( oc->oc_allowed[j], type )
 				    == 0 || strcmp( oc->oc_allowed[j], "*" )
 				    == 0 )

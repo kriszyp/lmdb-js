@@ -1,5 +1,7 @@
 /* compare.c - ldbm backend compare routine */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>

@@ -1,5 +1,7 @@
 /* modrdn.c - shell backend modrdn function */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>

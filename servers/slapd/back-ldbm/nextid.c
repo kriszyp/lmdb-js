@@ -1,5 +1,7 @@
 /* id.c - keep track of the next id to be given out */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>

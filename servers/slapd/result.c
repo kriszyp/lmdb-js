@@ -1,6 +1,5 @@
 /* result.c - routines to send ldap results, errors, and referrals */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #include <stdio.h>

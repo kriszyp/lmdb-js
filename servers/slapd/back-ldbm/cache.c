@@ -1,5 +1,7 @@
 /* cache.c - routines to maintain an in-core cache of entries */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>

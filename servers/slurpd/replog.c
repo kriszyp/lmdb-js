@@ -15,9 +15,7 @@
  * replog.c - routines which read and write replication log files.
  */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
-
 
 #include <errno.h>
 #include <stdio.h>

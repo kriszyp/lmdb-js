@@ -15,6 +15,7 @@
  * reconfiguration of slurpd.
  */
 
+#include "portable.h"
 
 #include <stdio.h>
 #include <signal.h>

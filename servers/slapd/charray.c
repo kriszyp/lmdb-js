@@ -1,5 +1,7 @@
 /* charray.c - routines for dealing with char * arrays */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -113,6 +115,9 @@ str2charray( char *str, char *brkstr )
 	char	*s;
 	int	i;
 
+	/* protect the input string from strtok */
+	str = strdup( str );
+
 	i = 1;
 	for ( s = str; *s; s++ ) {
 		if ( strchr( brkstr, *s ) != NULL ) {
@@ -128,5 +133,6 @@ str2charray( char *str, char *brkstr )
 	}
 	res[i] = NULL;
 
+	free( str );
 	return( res );
 }

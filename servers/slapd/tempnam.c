@@ -1,3 +1,5 @@
+#include "portable.h"
+
 #if defined( nextstep )
 
 #include <string.h>

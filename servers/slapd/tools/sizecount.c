@@ -1,3 +1,5 @@
+#include "portable.h"
+
 #include <stdio.h>
 #include <ldbm.h>
 #include <lber.h>

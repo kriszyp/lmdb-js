@@ -1,5 +1,7 @@
 /* dn2id.c - routines to deal with the dn2id index */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>

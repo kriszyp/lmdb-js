@@ -1,5 +1,7 @@
 /* modrdn.c - ldbm backend modrdn routine */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>

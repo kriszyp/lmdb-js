@@ -15,6 +15,8 @@
  * main.c - main routine for slurpd.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 
 #include "slurp.h"
@@ -121,6 +123,21 @@ main(
      * Start the main file manager thread (in fm.c).
      */
     pthread_attr_init( &attr );
+#ifndef THREAD_MIT_PTHREADS
+    /* POSIX_THREADS or compatible
+     * This is a draft 10 or standard pthreads implementation
+     */
+    if ( pthread_create( &(sglob->fm_tid), &attr, (void *) fm, (void *) NULL )
+	    != 0 ) {
+	Debug( LDAP_DEBUG_ANY, "file manager pthread_create failed\n",
+		0, 0, 0 );
+	exit( 1 );
+
+    }
+#else /* !THREAD_MIT_PTHREADS */
+    /*
+     * This is a draft 4 or earlier pthreads implementation
+     */
     if ( pthread_create( &(sglob->fm_tid), attr, (void *) fm, (void *) NULL )
 	    != 0 ) {
 	Debug( LDAP_DEBUG_ANY, "file manager pthread_create failed\n",
@@ -128,17 +145,26 @@ main(
 	exit( 1 );
 
     }
+#endif /* !THREAD_MIT_PTHREADS */
     pthread_attr_destroy( &attr );
 
     /*
      * Wait for the fm thread to finish.
      */
+#ifdef POSIX_THREADS
+    pthread_join( sglob->fm_tid, (void *) NULL );
+#else
     pthread_join( sglob->fm_tid, (void *) &status );
+#endif
     /*
      * Wait for the replica threads to finish.
      */
     for ( i = 0; sglob->replicas[ i ] != NULL; i++ ) {
+#ifdef POSIX_THREADS
+	pthread_join( sglob->replicas[ i ]->ri_tid, (void *) NULL );
+#else
 	pthread_join( sglob->replicas[ i ]->ri_tid, (void *) &status );
+#endif
     }
     Debug( LDAP_DEBUG_ANY, "slurpd: terminating normally\n", 0, 0, 0 );
     sglob->slurpd_shutdown = 1;

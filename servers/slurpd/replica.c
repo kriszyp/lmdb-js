@@ -15,6 +15,7 @@
  * replica.c - code to start up replica threads.
  */
 
+#include "portable.h"
 
 #include <stdio.h>
 
@@ -57,8 +58,26 @@ start_replica_thread(
     pthread_attr_t	attr;
 
     pthread_attr_init( &attr );
+#ifdef NOTDEF
+	/* if main wants to join with us, we shouldn't detach */
     pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
+#endif
 
+#ifndef THREAD_MIT_PTHREADS
+    /* POSIX_THREADS or compatible
+     * This is a draft 10 or standard pthreads implementation
+     */
+    if ( pthread_create( &(ri->ri_tid), &attr, (void *) replicate,
+	    (void *) ri ) != 0 ) {
+	Debug( LDAP_DEBUG_ANY, "replica \"%s:%d\" pthread_create failed\n",
+		ri->ri_hostname, ri->ri_port, 0 );
+	pthread_attr_destroy( &attr );
+	return -1;
+    }
+#else	/* !THREAD_MIT_PTHREADS */
+    /*
+     * This is a draft 4 or earlier pthreads implementation
+     */
     if ( pthread_create( &(ri->ri_tid), attr, (void *) replicate,
 	    (void *) ri ) != 0 ) {
 	Debug( LDAP_DEBUG_ANY, "replica \"%s:%d\" pthread_create failed\n",
@@ -66,6 +85,7 @@ start_replica_thread(
 	pthread_attr_destroy( &attr );
 	return -1;
     }
+#endif	/* !THREAD_MIT_PTHREADS */
     pthread_attr_destroy( &attr );
     return 0;
 }

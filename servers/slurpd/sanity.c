@@ -18,6 +18,8 @@
  * feedback to the users.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>

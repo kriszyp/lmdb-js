@@ -1,5 +1,7 @@
 /* add.c - shell backend add function */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>

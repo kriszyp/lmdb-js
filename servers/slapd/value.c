@@ -1,5 +1,6 @@
 /* value.c - routines for dealing with values */
 
+#include "portable.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>

@@ -17,7 +17,6 @@
  * to a replica LDAP server.
  */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #include <stdio.h>

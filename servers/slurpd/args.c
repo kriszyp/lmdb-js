@@ -14,8 +14,11 @@
  * args.c - process command-line arguments, and set appropriate globals.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include <lber.h>
 #include <ldap.h>

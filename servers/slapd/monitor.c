@@ -17,6 +17,8 @@
  *	Added locking of currenttime_mutex to protect call(s) to localtime().
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <time.h>

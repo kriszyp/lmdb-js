@@ -1,6 +1,5 @@
 /* ldbmcache.c - maintain a cache of open ldbm files */
 
-#define DISABLE_BRIDGE /* disable LDAP_BRIDGE code */
 #include "portable.h"
 
 #include <stdio.h>

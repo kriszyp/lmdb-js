@@ -1,5 +1,7 @@
 /* id2children.c - routines to deal with the id2children index */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -22,6 +24,11 @@ id2children_add(
 	int		len, rc;
 	IDList		*idl;
 	char		buf[20];
+
+#ifdef LDBM_USE_DB2
+	memset( &key, 0, sizeof( key ) );
+	memset( &data, 0, sizeof( data ) );
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> id2children_add( %d, %d )\n", p ? p->e_id
 	    : 0, e->e_id, 0 );
@@ -62,6 +69,10 @@ has_children(
 	int		rc;
 	IDList		*idl;
 	char		buf[20];
+
+#ifdef LDBM_USE_DB2
+	memset( &key, 0, sizeof( key ) );
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> has_children( %d )\n", p->e_id , 0, 0 );
 

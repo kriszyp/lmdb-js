@@ -1,5 +1,7 @@
 /* kerberos.c - ldbm backend kerberos bind routines */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>

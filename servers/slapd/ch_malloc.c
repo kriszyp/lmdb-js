@@ -1,5 +1,7 @@
 /* ch_malloc.c - malloc routines that test returns from malloc and friends */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>

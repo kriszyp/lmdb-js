@@ -1,5 +1,7 @@
 /* bind.c - shell backend bind function */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>

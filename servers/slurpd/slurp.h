@@ -17,6 +17,8 @@
 
 #define LDAP_SYSLOG
 
+#include "portable.h"
+
 #include <syslog.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -24,7 +26,6 @@
 #include "lber.h"
 #include "ldap.h"
 #include "lthread.h"
-#include "portable.h"
 #include "ldapconfig.h"
 #include "ldif.h"
 
@@ -135,6 +136,7 @@
 #define	RETRY_SLEEP_TIME		60
 
 
+LDAP_BEGIN_DECL
 
 /*
  * ****************************************************************************
@@ -335,15 +337,11 @@ typedef struct tsl {
 /* 
  * Public functions used to instantiate and initialize queue objects.
  */
-#ifdef NEEDPROTOS
-extern int Ri_init( Ri **ri );
-extern int Rq_init( Rq **rq );
-extern int Re_init( Re **re );
-#else /* NEEDPROTOS */
-extern int Ri_init();
-extern int Rq_init();
-extern int Re_init();
-#endif /* NEEDPROTOS */
+extern int Ri_init LDAP_P(( Ri **ri ));
+extern int Rq_init LDAP_P(( Rq **rq ));
+extern int Re_init LDAP_P(( Re **re ));
+
+LDAP_END_DECL
 
 #endif /* _SLURPD_H_ */
 

@@ -1,7 +1,8 @@
+#include "portable.h"
+
 #if defined( ultrix ) || defined( nextstep )
 
 #include <string.h>
-
 
 char *strdup( char *s )
 {

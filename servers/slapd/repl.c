@@ -1,5 +1,7 @@
 /* repl.c - log modifications for replication purposes */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>

@@ -1,5 +1,7 @@
 /* id2entry.c - routines to deal with the id2entry index */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>

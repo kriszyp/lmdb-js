@@ -1,5 +1,7 @@
 /* filterindex.c - generate the list of candidate entries from a filter */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>

@@ -14,7 +14,6 @@
  * ldap_op.c - routines to perform LDAP operations
  */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #include <stdio.h>

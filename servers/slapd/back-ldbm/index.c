@@ -1,5 +1,7 @@
 /* index.c - routines for dealing with attribute indexes */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -105,6 +107,10 @@ index_read(
 	char		*realval, *tmpval;
 	char		buf[BUFSIZ];
 
+#ifdef LDBM_USE_DB2
+	memset( &key, 0, sizeof( key ) );
+#endif
+
 	prefix = index2prefix( indextype );
 	Debug( LDAP_DEBUG_TRACE, "=> index_read( \"%s\" \"%c\" \"%s\" )\n",
 	    type, prefix, val );
@@ -130,25 +136,26 @@ index_read(
 	realval = val;
 	tmpval = NULL;
 	if ( prefix != '\0' ) {
-		int	len;
+              int     len = strlen( val );
 
-		if ( (len = strlen( val )) < sizeof(buf) ) {
-			buf[0] = prefix;
-			strcpy( &buf[1], val );
+              if ( (len + 2) < sizeof(buf) ) {
 			realval = buf;
 		} else {
 			/* value + prefix + null */
 			tmpval = (char *) ch_malloc( len + 2 );
-			tmpval[0] = prefix;
-			strcat( &tmpval[1], val );
 			realval = tmpval;
 		}
+              realval[0] = prefix;
+              strcpy( &realval[1], val );
 	}
 
 	key.dptr = realval;
 	key.dsize = strlen( realval ) + 1;
 
 	idl = idl_fetch( be, db, key );
+      if ( tmpval != NULL ) {
+              free( tmpval );
+      }
 
 	ldbm_cache_close( be, db );
 
@@ -174,6 +181,10 @@ add_value(
 	char	*realval, *tmpval, *s;
 	char	buf[BUFSIZ];
 
+#ifdef LDBM_USE_DB2
+	memset( &key, 0, sizeof( key ) );
+#endif
+
 	prefix = index2prefix( indextype );
 	Debug( LDAP_DEBUG_TRACE, "=> add_value( \"%c%s\" )\n", prefix, val, 0 );
 
@@ -181,19 +192,17 @@ add_value(
 	tmpval = NULL;
 	idl = NULL;
 	if ( prefix != '\0' ) {
-		int	len;
+              int     len = strlen( val );
 
-		if ( (len = strlen( val )) < sizeof(buf) ) {
-			buf[0] = prefix;
-			strcpy( &buf[1], val );
+              if ( (len + 2) < sizeof(buf) ) {
 			realval = buf;
 		} else {
 			/* value + prefix + null */
 			tmpval = (char *) ch_malloc( len + 2 );
-			tmpval[0] = prefix;
-			strcat( &tmpval[1], val );
 			realval = tmpval;
 		}
+              realval[0] = prefix;
+              strcpy( &realval[1], val );
 	}
 
 	key.dptr = realval;
