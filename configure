@@ -2032,7 +2032,7 @@ else
   echo "$ac_t""no" 1>&6
 fi
 
-	for ac_func in strtok_r pthread_init
+	for ac_func in strtok_r sched_yield
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
 echo "configure:2039: checking for $ac_func" >&5
@@ -2091,7 +2091,7 @@ done
 		LTHREAD_LIBS="$LTHREAD_LIBS -lc_r"
 	fi
 else
-	for ac_func in strtok_r
+	for ac_func in strtok_r sched_yield
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
 echo "configure:2098: checking for $ac_func" >&5

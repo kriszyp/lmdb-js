@@ -320,12 +320,12 @@ AC_CHECK_LIB(pthread,strtok_r)
 
 if test $ac_cv_lib_pthread_strtok_r = no ; then
 	AC_CHECK_LIB(c_r,strtok_r)
-	AC_CHECK_FUNCS(strtok_r pthread_init)
+	AC_CHECK_FUNCS(strtok_r sched_yield)
 	if test $ac_cv_lib_c_r_strtok_r = yes ; then
 		LTHREAD_LIBS="$LTHREAD_LIBS -lc_r"
 	fi
 else
-	AC_CHECK_FUNCS(strtok_r)
+	AC_CHECK_FUNCS(strtok_r sched_yield)
 fi
 
 LIBS="$save_LIBS"
