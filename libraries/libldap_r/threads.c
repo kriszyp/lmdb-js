@@ -49,8 +49,10 @@ typedef struct t_ldap_pvt_thread_ctx {
 	void *ltc_arg;
 } ldap_pvt_thread_ctx;
 
+#ifndef NO_THREADS
 ldap_pvt_thread_list ldap_pvt_thread_pool_list = NULL;
 ldap_pvt_thread_mutex_t ldap_pvt_thread_pool_mutex;
+#endif
 
 void *ldap_pvt_thread_pool_wrapper( ldap_pvt_thread_pool_t pool );
 void *ldap_pvt_thread_enlist( ldap_pvt_thread_list *list, void *elem );
@@ -65,9 +67,7 @@ ldap_pvt_thread_initialize ( void )
 
 	rc = ldap_int_thread_initialize();
 	if (rc == 0) {
-		/* init the mutex that protext the list of pools
-		 */
-		ldap_pvt_thread_mutex_init(&ldap_pvt_thread_pool_mutex);
+		ldap_pvt_thread_pool_startup();
 	}
 	return rc;
 }
@@ -75,11 +75,7 @@ ldap_pvt_thread_initialize ( void )
 int
 ldap_pvt_thread_destroy ( void )
 {
-	while (ldap_pvt_thread_pool_list != NULL) {
-		ldap_pvt_thread_pool_destroy((ldap_pvt_thread_pool_t)ldap_pvt_thread_pool_list, 0);
-	}
-	ldap_pvt_thread_mutex_destroy(&ldap_pvt_thread_pool_mutex);
-
+	ldap_pvt_thread_pool_shutdown();
 	return ldap_int_thread_destroy();
 }
 
