@@ -86,7 +86,7 @@ referring to superior directory services.  For servers without
 immediate superiors, such as for {{EX:a.example.net}} in the example
 above, the server can be configured to use directory service with
 {{global knowledge}}, such as the {{OpenLDAP Root Service}}
-(http://www.openldap.org/faq/index.cgi?file=393).
+({{URL:http://www.openldap.org/faq/index.cgi?file=393}}).
 
 >	referral	ldap://root.openldap.org/
 

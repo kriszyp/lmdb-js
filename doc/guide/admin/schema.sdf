@@ -349,4 +349,4 @@ you desire.
 
 The object class inherits the required/allowed attribute
 types of {{EX:inetOrgPerson}} but requires {{EX:myUniqueName}}
-and {EX:givenName}} and allows {{EX:myPhoto}}.
+and {{EX:givenName}} and allows {{EX:myPhoto}}.
