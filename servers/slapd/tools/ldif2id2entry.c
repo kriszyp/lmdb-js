@@ -1,7 +1,9 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
+#include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/socket.h>
 #include <ac/unistd.h>
@@ -144,8 +146,13 @@ main( int argc, char **argv )
 
 			len = strlen( line );
 			if ( buf == NULL || *buf == '\0' ) {
-				sprintf( idbuf, "%lu\n", id + 1 );
-				idlen = strlen( idbuf );
+				if (!isdigit(line[0])) {
+					sprintf( idbuf, "%d\n", id + 1 );
+					idlen = strlen( idbuf );
+				} else {
+					id = atol(line) - 1;
+					idlen = 0;
+				}
 			} else {
 				idlen = 0;
 			}
@@ -166,11 +173,16 @@ main( int argc, char **argv )
 		}
 		if ( line[0] == '\n' || stop && buf && *buf ) {
 			if ( *buf != '\n' ) {
+				int len;
+
 				id++;
 				key.dptr = (char *) &id;
 				key.dsize = sizeof(ID);
 				data.dptr = buf;
-				data.dsize = strlen( buf ) + 1;
+				len = strlen(buf);
+				if (buf[len - 1] == '\n')
+					buf[--len] = '\0';
+				data.dsize = len + 1;
 				if ( ldbm_store( db->dbc_db, key, data,
 				    LDBM_INSERT ) != 0 ) {
 					fputs("id2entry ldbm_store failed\n",
