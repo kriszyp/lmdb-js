@@ -58,13 +58,29 @@ backsql_modify_delete_all_values(
 	SQLHSTMT	asth;
 	BACKSQL_ROW_NTS	row;
 
+	assert( at );
+	if ( at->bam_delete_proc == NULL ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"   backsql_modify_delete_all_values(): "
+			"missing attribute value delete procedure "
+			"for attr \"%s\"\n",
+			at->bam_ad->ad_cname.bv_val, 0, 0 );
+		if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
+			rs->sr_text = "SQL-backend error";
+			return rs->sr_err = LDAP_OTHER;
+		}
+
+		return LDAP_SUCCESS;
+	}
+
 	rc = backsql_Prepare( dbh, &asth, at->bam_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_modify_delete_all_values(): "
-			"error preparing query\n", 0, 0, 0 );
-		backsql_PrintErrors( bi->db_env, dbh, 
-				asth, rc );
+			"error preparing attribute value select query "
+			"\"%s\"\n",
+			at->bam_query, 0, 0 );
+		backsql_PrintErrors( bi->db_env, dbh, asth, rc );
 
 		if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
 			rs->sr_text = "SQL-backend error";
