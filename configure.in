@@ -675,18 +675,18 @@ int main(argc, argv)
 		if test $ol_link_threads = no ; then
 			dnl try -mt
 			AC_CACHE_CHECK([for pthread_create with -mt],
-				[ol_cv_thread_flag], [
+				[ol_cv_pthread_mt_flag], [
 				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-mt $LIBS"
 				AC_TRY_LINK([char pthread_create();],
 					[pthread_create();],
-					[ol_cv_thread_flag=yes], [ol_cv_thread_flag=no])
+					[ol_cv_pthread_mt_flag=yes], [ol_cv_pthread_mt_flag=no])
 				dnl restore the LIBS
 				LIBS="$save_LIBS"
 			])
 
-			if test $ol_cv_thread_flag = yes ; then
+			if test $ol_cv_pthread_mt_flag = yes ; then
 				LTHREAD_LIBS="$LTHREAD_LIBS -mt"
 				ol_link_threads=posix
 			fi
@@ -869,18 +869,18 @@ int main(argc, argv)
 		if test $ol_link_threads = no ; then
 			dnl try -threads
 			AC_CACHE_CHECK([for pthread_create with -threads],
-				[ol_cv_thread_flag], [
+				[ol_cv_threads_flag], [
 				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-threads $LIBS"
 				AC_TRY_LINK([char pthread_create();],[
 					pthread_create();
-					], ol_cv_thread_flag=yes, ol_cv_thread_flag=no)
+					], ol_cv_threads_flag=yes, ol_cv_threads_flag=no)
 				dnl restore the LIBS
 				LIBS="$save_LIBS"
 			])
 
-			if test $ol_cv_thread_flag = yes ; then
+			if test $ol_cv_threads_flag = yes ; then
 				LTHREAD_LIBS="$LTHREAD_LIBS -threads"
 				ol_link_threads=posix
 			fi
