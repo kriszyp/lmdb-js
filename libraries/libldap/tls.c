@@ -1254,6 +1254,7 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 		authid = ldap_pvt_tls_get_my_dn( ssl, NULL, 0 );
 
 		(void) ldap_int_sasl_external( ld, conn, authid, ssf );
+		LDAP_FREE( authid );
 	}
 
 	return LDAP_SUCCESS;
