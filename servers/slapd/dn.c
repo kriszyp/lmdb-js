@@ -494,201 +494,56 @@ rdn_attr_value( const char * rdn )
  * array of strings "attribute_type" which is placed in newly allocated 
  * memory, and the values of the attributes in pvalues, that is the
  * array of strings "attribute_value" which is placed in newly allocated
- * memory. Returns 1 on success, 0 on failure.
+ * memory. Returns 0 on success, -1 on failure.
  *
  * note: got part of the code from dn_validate
  */
+
 int
 rdn_attrs( const char * rdn_in, char ***ptypes, char ***pvalues)
 {
-	char	*start, *end, *s;
-	int	state, gotesc, t = 0, v = 0;
-	char	*dn = ch_strdup( rdn_in );
+	char **parts, **p;
 
 	*ptypes = NULL;
 	*pvalues = NULL;
 
-	gotesc = 0;
-	state = B4LEADTYPE;
-	for ( start = end = s = dn; *s; s++ ) {
-		switch ( state ) {
-		case B4LEADTYPE:
-		case B4TYPE:
-			if ( OID_LEADCHAR(*s) ) {
-				state = INOIDTYPE;
-				start = end;
-				*end++ = *s;
-			} else if ( ATTR_LEADCHAR(*s) ) {
-				state = INKEYTYPE;
-				start = end;
-				*end++ = *s;
-			} else if ( ! ASCII_SPACE( *s ) ) {
-				goto failure;
-				state = INKEYTYPE;
-				*end++ = *s;
-			}
-			break;
+	/*
+	 * explode the rdn in parts
+	 */
+	parts = ldap_explode_rdn( rdn_in, 0 );
 
-		case INOIDTYPE:
-			if ( OID_CHAR(*s) ) {
-				*end++ = *s;
-			} else if ( *s == '=' ) {
-				state = B4VALUE;
-				charray_add_n( ptypes, start, ( end - start ) );
-				t++;
-				*end++ = *s;
-			} else if ( ASCII_SPACE( *s ) ) {
-				state = B4EQUAL;
-				charray_add_n( ptypes, start, ( end - start ) );
-				t++;
-			} else {
-				*end++ = *s;
-				goto failure;
-			}
-			break;
-
-		case INKEYTYPE:
-			if ( ATTR_CHAR(*s) ) {
-				*end++ = *s;
-			} else if ( *s == '=' ) {
-				state = B4VALUE;
-				charray_add_n( ptypes, start, ( end - start ) );
-				t++;
-				*end++ = *s;
-			} else if ( ASCII_SPACE( *s ) ) {
-				state = B4EQUAL;
-				charray_add_n( ptypes, start, ( end - start ) );
-				t++;
-			} else {
-				*end++ = *s;
-				goto failure;
-			}
-			break;
-
-		case B4EQUAL:
-			if ( *s == '=' ) {
-				state = B4VALUE;
-				*end++ = *s;
-			} else if ( ! ASCII_SPACE( *s ) ) {
-				/* not a valid dn - but what can we do here? */
-				*end++ = *s;
-				goto failure;
-			}
-			break;
-
-		case B4VALUE:
-			if ( *s == '"' ) {
-				state = INQUOTEDVALUE;
-				start = end;
-				*end++ = *s;
-			} else if ( ! ASCII_SPACE( *s ) ) { 
-				state = INVALUE;
-				start = end;
-				*end++ = *s;
-			}
-			break;
-
-		case INVALUE:
-			if ( !gotesc && RDN_SEPARATOR( *s ) ) {
-				while ( ASCII_SPACE( *(end - 1) ) )
-					end--;
-				state = B4TYPE;
-				if ( RDN_ATTRTYPEANDVALUE_SEPARATOR( *s ) ) {
-					if ( ++v != t ) {
-						goto failure;
-					}
-					charray_add_n( pvalues, start, ( end - start ) );
-					*end++ = *s;
-				} else {
-					/* not a rdn! */
-					goto failure;
-				}
-			} else if ( gotesc && !RDN_NEEDSESCAPE( *s ) &&
-			    !RDN_SEPARATOR( *s ) ) {
-				*--end = *s;
-				end++;
-			} else if( !ASCII_SPACE( *s ) || !ASCII_SPACE( *(end - 1) ) ) {
-				*end++ = *s;
-			}
-			break;
-
-		case INQUOTEDVALUE:
-			if ( !gotesc && *s == '"' ) {
-				state = B4SEPARATOR;
-				*end++ = *s;
-			} else if ( gotesc && !RDN_NEEDSESCAPE( *s ) ) {
-				*--end = *s;
-				end++;
-			} else if( !ASCII_SPACE( *s ) || !ASCII_SPACE( *(end - 1) ) ) {
-				*end++ = *s;
-			}
-			break;
-
-		case B4SEPARATOR:
-			if ( RDN_SEPARATOR( *s ) ) {
-				state = B4TYPE;
-				if ( RDN_ATTRTYPEANDVALUE_SEPARATOR( *s ) ) {
-					if ( ++v != t ) {
-						goto failure;
-					}
-					charray_add_n( pvalues, start, ( end - start ) );
-					*end++ = *s;
-				} else {
-					/* not a rdn! */
-					goto failure;
-				}
-			} else if ( !ASCII_SPACE( *s ) ) {
-				goto failure;
-			}
-			break;
-
-		default:
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "rdn_attrs: unknown state %d for rdn \"%s\".\n",
-				   state, dn_in ));
-#else
-			Debug( LDAP_DEBUG_ANY,
-			    "rdn_attrs - unknown state %d\n", state, 0, 0 );
-#endif
-			goto failure;
-		}
-
-		if ( *s == '\\' ) {
-			gotesc = 1;
-		} else {
-			gotesc = 0;
-		}
+	if ( parts == NULL ) {
+		return( -1 );
 	}
 
-	if( gotesc ) {
-		/* shouldn't be left in escape */
-		goto failure;
-	}
-
-	/* check end state */
-	switch( state ) {
-	case B4LEADTYPE:	/* looking for first type */
-	case B4SEPARATOR:	/* looking for separator */
-	case INVALUE:		/* inside value */
-		if ( ++v != t ) {
-			goto failure;
+	for ( p = parts; p[0]; p++ ) {
+		char *s, *e, *d;
+		
+		/* split each rdn part in type value */
+		s = strchr( p[0], '=' );
+		if ( s == NULL ) {
+			charray_free( *ptypes );
+			charray_free( *pvalues );
+			charray_free( parts );
+			return( -1 );
 		}
-		charray_add_n( pvalues, start, ( end - start ) );
-		break;
-	default:
-		goto failure;
-	}
-	ch_free( dn );
-	
-	return( 1 );
+		
+		/* type should be fine */
+		charray_add_n( ptypes, p[0], ( s-p[0] ) );
 
-failure:
-	ch_free( dn );
-	charray_free( *ptypes );
-	*ptypes = NULL;
-	charray_free( *pvalues );
-	*pvalues = NULL;
+		/* value needs to be unescaped 
+		 * (maybe this should be moved to ldap_explode_rdn?) */
+		for ( e = d = s + 1; e[0]; e++ ) {
+			if ( *e != '\\' ) {
+				*d++ = *e;
+			}
+		}
+		d[0] = '\0';
+		charray_add( pvalues, s + 1 );
+	}
+
+	/* free array */
+	charray_free( parts );
 
 	return( 0 );
 }

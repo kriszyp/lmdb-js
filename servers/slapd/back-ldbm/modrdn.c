@@ -619,7 +619,7 @@ ldbm_back_modrdn(
 	/* Get attribute types and values of our new rdn, we will
 	 * need to add that to our new entry
 	 */
-	if ( !rdn_attrs( newrdn, &new_rdn_types, &new_rdn_vals ) ) {
+	if ( rdn_attrs( newrdn, &new_rdn_types, &new_rdn_vals ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 			   "ldbm_back_modrdn: can't figure out type(s)/value(s) of newrdn\n" ));
@@ -661,7 +661,7 @@ ldbm_back_modrdn(
 		goto return_results;		
 	}
 
-	if ( !rdn_attrs( old_rdn, &old_rdn_types, &old_rdn_vals ) ) {
+	if ( rdn_attrs( old_rdn, &old_rdn_types, &old_rdn_vals ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 			   "ldbm_back_modrdn: can't figure out the old_rdn type(s)/value(s).\n" ));
