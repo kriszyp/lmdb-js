@@ -47,7 +47,7 @@ Other database options are described in the
 .BR slapd.conf (5)
 manual page.
 .LP
-Note: It is strongly recommended to set
+Note: In early versions of back-ldap it was recommended to always set
 .LP
 .RS
 .nf
@@ -63,6 +63,8 @@ database.
 This is because operational attributes related to entry creation and
 modification should not be used, as they could be passed to the target
 servers, generating an error.
+The current implementation automatically sets ldapmod to off, so its use
+is redundant and can be safely omitted.
 .TP
 .B uri <ldapurl>
 LDAP server to use.  Multiple URIs can be set in in a single
@@ -234,7 +236,30 @@ in conjunction with Proxy Authorization.
 .TP
 .B rebind-as-user
 If this option is given, the client's bind credentials are remembered
-for rebinds when chasing referrals.
+for rebinds when chasing referrals.  Useful in conjunction with
+\fBchase-referrals\fP, useless if \fBdont-chase-referrals\fP is set.
+.LP
+.B chase-referrals
+.br
+.B dont-chase-referrals
+.RS
+enable/disable automatic referral chasing, which is delegated to the
+underlying libldap, with rebinding eventually performed if the
+\fBrebind-as-user\fP directive is used.  The default is to chase referrals.
+.RE
+
+.LP
+.B start-tls
+.br
+.B try-start-tls
+.RS
+execute the start TLS extended operation when the connection is initialized.
+\fBtry-start-tls\fP continues operations if start TLS fails.
+.RE
+
+
+
+
 .TP
 .\".B suffixmassage <suffix> <massaged (remote) suffix>
 .\"DNs ending with <suffix> in a request are changed to end with <remote

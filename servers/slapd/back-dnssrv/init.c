@@ -34,13 +34,12 @@ dnssrv_back_initialize(
 {
 	static char *controls[] = {
 		LDAP_CONTROL_MANAGEDSAIT,
- 		LDAP_CONTROL_VALUESRETURNFILTER,
 		NULL
 	};
 
 	bi->bi_controls = controls;
 
-	bi->bi_open = 0;
+	bi->bi_open = dnssrv_back_open;
 	bi->bi_config = 0;
 	bi->bi_close = 0;
 	bi->bi_destroy = 0;
@@ -67,6 +66,21 @@ dnssrv_back_initialize(
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
+
+	return 0;
+}
+
+AttributeDescription	*ad_dc;
+AttributeDescription	*ad_associatedDomain;
+
+int
+dnssrv_back_open(
+    BackendInfo *bi )
+{
+	const char *text;
+
+	(void)slap_str2ad( "dc", &ad_dc, &text );
+	(void)slap_str2ad( "associatedDomain", &ad_associatedDomain, &text );
 
 	return 0;
 }

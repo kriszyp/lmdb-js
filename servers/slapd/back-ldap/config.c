@@ -289,12 +289,32 @@ ldap_back_db_config(
 	} else if ( strcasecmp( argv[0], "rebind-as-user" ) == 0 ) {
 		if ( argc != 1 ) {
 			fprintf( stderr,
-	"%s: line %d: rebind-as-user takes no arguments\n",
+	"%s: line %d: \"rebind-as-user\" takes no arguments\n",
 					fname, lineno );
 			return( 1 );
 		}
 		li->flags |= LDAP_BACK_F_SAVECRED;
-	
+
+	} else if ( strcasecmp( argv[0], "chase-referrals" ) == 0 ) {
+		if ( argc != 1 ) {
+			fprintf( stderr,
+	"%s: line %d: \"chase-referrals\" takes no arguments\n",
+					fname, lineno );
+			return( 1 );
+		}
+
+		li->flags |= LDAP_BACK_F_CHASE_REFERRALS;
+
+	} else if ( strcasecmp( argv[0], "dont-chase-referrals" ) == 0 ) {
+		if ( argc != 1 ) {
+			fprintf( stderr,
+	"%s: line %d: \"dont-chase-referrals\" takes no arguments\n",
+					fname, lineno );
+			return( 1 );
+		}
+
+		li->flags &= ~LDAP_BACK_F_CHASE_REFERRALS;
+
 	/* intercept exop_who_am_i? */
 	} else if ( strcasecmp( argv[0], "proxy-whoami" ) == 0 ) {
 		if ( argc != 1 ) {

@@ -86,8 +86,25 @@ frontend_init( void )
 	frontendDB->bd_info->bi_type = "frontend";
 
 	/* known controls */
-	frontendDB->bd_info->bi_controls = slap_known_controls;
-	frontendDB->be_controls = ldap_charray_dup( slap_known_controls );
+	if ( slap_known_controls ) {
+		int	i;
+
+		frontendDB->bd_info->bi_controls = slap_known_controls;
+
+		for ( i = 0; slap_known_controls[ i ]; i++ ) {
+			int	cid;
+
+			if ( slap_find_control_id( slap_known_controls[ i ], &cid )
+					== LDAP_CONTROL_NOT_FOUND )
+			{
+				assert( 0 );
+				return -1;
+			}
+
+			frontendDB->bd_info->bi_ctrls[ cid ] = 1;
+			frontendDB->be_ctrls[ cid ] = 1;
+		}
+	}
 
 	/* calls */
 	frontendDB->bd_info->bi_op_abandon = fe_op_abandon;

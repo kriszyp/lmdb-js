@@ -264,6 +264,9 @@ LDAP_SLAPD_F (int) backend_unbind LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) backend_connection_init LDAP_P((Connection *conn));
 LDAP_SLAPD_F (int) backend_connection_destroy LDAP_P((Connection *conn));
 
+LDAP_SLAPD_F( int ) backend_check_controls LDAP_P((
+	Operation *op,
+	SlapReply *rs ));
 LDAP_SLAPD_F( int )	backend_check_restrictions LDAP_P((
 	Operation *op,
 	SlapReply *rs,
@@ -430,7 +433,7 @@ LDAP_SLAPD_F (int) get_supported_controls LDAP_P ((
 LDAP_SLAPD_F (int) slap_find_control_id LDAP_P ((
 	const char *oid, int *cid ));
 LDAP_SLAPD_F (int) slap_global_control LDAP_P ((
-	Operation *op, const char *oid ));
+	Operation *op, const char *oid, int *cid ));
 
 /*
  * config.c

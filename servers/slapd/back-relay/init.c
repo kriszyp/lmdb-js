@@ -21,6 +21,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <ac/string.h>
 
 #include "slap.h"
 #include "back-relay.h"
@@ -102,15 +103,11 @@ relay_back_db_open( Backend *be )
 		assert( ri->ri_bd );
 
 		/* inherit controls */
-		if ( ri->ri_bd->be_controls ) {
-			be->be_controls = ldap_charray_dup( ri->ri_bd->be_controls );
-		}
+		AC_MEMCPY( be->be_ctrls, ri->ri_bd->be_ctrls, sizeof( be->be_ctrls ) );
 
 	} else {
 		/* inherit all? */
-		if ( frontendDB->be_controls ) {
-			be->be_controls = ldap_charray_dup( frontendDB->be_controls );
-		}
+		AC_MEMCPY( be->be_ctrls, frontendDB->be_ctrls, sizeof( be->be_ctrls ) );
 	}
 
 	return 0;

@@ -106,7 +106,7 @@ static struct slap_control control_defs[] = {
 		parsePostRead, LDAP_SLIST_ENTRY_INITIALIZER(next) },
  	{ LDAP_CONTROL_VALUESRETURNFILTER,
  		(int)offsetof(struct slap_control_ids, sc_valuesReturnFilter),
- 		SLAP_CTRL_SEARCH, NULL,
+ 		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH, NULL,
 		parseValuesReturnFilter, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_PAGEDRESULTS,
  		(int)offsetof(struct slap_control_ids, sc_pagedResults),
@@ -381,7 +381,7 @@ slap_find_control_id(
 }
 
 int
-slap_global_control( Operation *op, const char *oid )
+slap_global_control( Operation *op, const char *oid, int *cid )
 {
 	struct slap_control *ctrl = find_ctrl( oid );
 
@@ -390,22 +390,23 @@ slap_global_control( Operation *op, const char *oid )
 		Debug( LDAP_DEBUG_ANY,
 			"slap_global_control: unrecognized control: %s\n",      
 			oid, 0, 0 );
-		assert( 0 );
-		return 0;
+		return LDAP_CONTROL_NOT_FOUND;
 	}
 
-	if ( ctrl->sc_mask & SLAP_CTRL_GLOBAL ) return 1;
+	if ( cid ) *cid = ctrl->sc_cid;
 
-	if (( op->o_tag & LDAP_REQ_SEARCH ) &&
-		( ctrl->sc_mask & SLAP_CTRL_GLOBAL_SEARCH ))
+	if ( ( ctrl->sc_mask & SLAP_CTRL_GLOBAL ) ||
+			( ( op->o_tag & LDAP_REQ_SEARCH ) &&
+			( ctrl->sc_mask & SLAP_CTRL_GLOBAL_SEARCH ) ) )
 	{
-		return 1;
+		return LDAP_COMPARE_TRUE;
 	}
 
-	Debug( LDAP_DEBUG_ANY,
+	Debug( LDAP_DEBUG_TRACE,
 		"slap_global_control: unavailable control: %s\n",      
 		oid, 0, 0 );
-	return 0;
+
+	return LDAP_COMPARE_FALSE;
 }
 
 void slap_free_ctrls(

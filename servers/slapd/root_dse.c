@@ -128,7 +128,7 @@ root_dse_info(
 			}
 			continue;
 		}
-		if ( SLAP_GLUE_SUBORDINATE( &backends[i] ) ) {
+		if ( SLAP_GLUE_SUBORDINATE( &backends[i] ) && !SLAP_GLUE_ADVERTISE( &backends[i] ) ) {
 			continue;
 		}
 		for ( j = 0; backends[i].be_suffix[j].bv_val != NULL; j++ ) {

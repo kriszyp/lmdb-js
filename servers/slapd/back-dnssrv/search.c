@@ -47,11 +47,27 @@ dnssrv_back_search(
 
 	rs->sr_ref = NULL;
 
+	if ( BER_BVISEMPTY( &op->o_req_ndn ) ) {
+#ifdef LDAP_DEVEL
+		/* FIXME: need some means to determine whether the database
+		 * is a glue instance; if we got here with empty DN, then
+		 * we passed this same test in dnssrv_back_referrals() */
+		if ( !SLAP_GLUE_INSTANCE( op->o_bd ) ) {
+			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			rs->sr_text = "DNS SRV operation upon null (empty) DN disallowed";
+
+		} else {
+			rs->sr_err = LDAP_SUCCESS;
+		}
+		goto done;
+#endif /* LDAP_DEVEL */
+	}
+
 	manageDSAit = get_manageDSAit( op );
 	/*
 	 * FIXME: we may return a referral if manageDSAit is not set
 	 */
-	if ( ! manageDSAit ) {
+	if ( !manageDSAit ) {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 				"manageDSAit must be set" );
 		goto done;
@@ -151,7 +167,6 @@ dnssrv_back_search(
 		send_ldap_error( op, rs, LDAP_SUCCESS, NULL );
 
 	} else {
-		struct berval	vals[2];
 		Entry *e = ch_calloc( 1, sizeof(Entry) );
 		AttributeDescription *ad_objectClass
 			= slap_schema.si_ad_objectClass;
@@ -164,54 +179,36 @@ dnssrv_back_search(
 		e->e_attrs = NULL;
 		e->e_private = NULL;
 
-		vals[1].bv_val = NULL;
+		attr_mergeit_one( e, ad_objectClass, &slap_schema.si_oc_top->soc_cname );
+		attr_mergeit_one( e, ad_objectClass, &slap_schema.si_oc_referral->soc_cname );
+		attr_mergeit_one( e, ad_objectClass, &slap_schema.si_oc_extensibleObject->soc_cname );
 
-		vals[0].bv_val = "top";
-		vals[0].bv_len = sizeof("top")-1;
-		attr_mergeit( e, ad_objectClass, vals );
+		if ( ad_dc ) {
+			char		*p;
+			struct berval	bv;
 
-		vals[0].bv_val = "referral";
-		vals[0].bv_len = sizeof("referral")-1;
-		attr_mergeit( e, ad_objectClass, vals );
+			bv.bv_val = domain;
 
-		vals[0].bv_val = "extensibleObject";
-		vals[0].bv_len = sizeof("extensibleObject")-1;
-		attr_mergeit( e, ad_objectClass, vals );
-
-		{
-			AttributeDescription *ad = NULL;
-			const char *text;
-
-			rc = slap_str2ad( "dc", &ad, &text );
-
-			if( rc == LDAP_SUCCESS ) {
-				char *p;
-				vals[0].bv_val = ch_strdup( domain );
-
-				p = strchr( vals[0].bv_val, '.' );
+			p = strchr( bv.bv_val, '.' );
 					
-				if( p == vals[0].bv_val ) {
-					vals[0].bv_val[1] = '\0';
-				} else if ( p != NULL ) {
-					*p = '\0';
-				}
+			if ( p == bv.bv_val ) {
+				bv.bv_len = 1;
 
-				vals[0].bv_len = strlen(vals[0].bv_val);
-				attr_mergeit( e, ad, vals );
+			} else if ( p != NULL ) {
+				bv.bv_len = p - bv.bv_val;
+
+			} else {
+				bv.bv_len = strlen( bv.bv_val );
 			}
+
+			attr_mergeit_one( e, ad_dc, &bv );
 		}
 
-		{
-			AttributeDescription *ad = NULL;
-			const char *text;
+		if ( ad_associatedDomain ) {
+			struct berval	bv;
 
-			rc = slap_str2ad( "associatedDomain", &ad, &text );
-
-			if( rc == LDAP_SUCCESS ) {
-				vals[0].bv_val = domain;
-				vals[0].bv_len = strlen(domain);
-				attr_mergeit( e, ad, vals );
-			}
+			ber_str2bv( domain, 0, 0, &bv );
+			attr_mergeit_one( e, ad_associatedDomain, &bv );
 		}
 
 		attr_mergeit( e, ad_ref, urls );

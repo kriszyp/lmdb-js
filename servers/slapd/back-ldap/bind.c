@@ -68,7 +68,7 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	rs->sr_err = ldap_sasl_bind( lc->lc_ld, op->o_req_dn.bv_val,
 			LDAP_SASL_SIMPLE,
 			&op->orb_cred, op->o_ctrls, NULL, &msgid );
-	rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDRESULT );
+	rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDERR );
 
 	if ( rc == LDAP_SUCCESS ) {
 		/* If defined, proxyAuthz will be used also when
@@ -241,15 +241,12 @@ ldap_back_prepare_conn( struct ldapconn **lcp, Operation *op, SlapReply *rs, lda
 	 */
 	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, (const void *)&vers );
 
-	/* Set LDAP version. This will always succeed: If the client
-	 * bound with a particular version, then so can we.
-	 */
-	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
-			(const void *)&vers );
+	/* automatically chase referrals ("chase-referrals"/"dont-chase-referrals" statement) */
+	if ( li->flags & LDAP_BACK_F_CHASE_REFERRALS ) {
+		ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON );
+	}
 
-	/* FIXME: configurable? */
-	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON );
-
+	/* start TLS ("start-tls"/"try-start-tls" statements) */
 	if ( ( li->flags & LDAP_BACK_F_USE_TLS )
 			&& !ldap_is_ldaps_url( li->url )
 			&& ( rs->sr_err = ldap_start_tls_s( ld, NULL, NULL ) ) != LDAP_SUCCESS )

@@ -109,6 +109,9 @@ ldap_back_db_init( Backend *be )
 	/* by default, use proxyAuthz control on each operation */
 	li->idassert_flags = LDAP_BACK_AUTH_NONE;
 
+	/* initialize flags */
+	li->flags = LDAP_BACK_F_CHASE_REFERRALS;
+
 	ldap_pvt_thread_mutex_init( &li->conn_mutex );
 
 	be->be_private = li;

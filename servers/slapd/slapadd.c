@@ -99,6 +99,7 @@ static void *do_put(void *ptr)
 
 	} while (1);
 	ldap_pvt_thread_mutex_unlock( &put_mutex1 );
+	return NULL;
 }
 
 int

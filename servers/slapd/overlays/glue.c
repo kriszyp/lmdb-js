@@ -194,6 +194,58 @@ glue_op_func ( Operation *op, SlapReply *rs )
 }
 
 static int
+glue_chk_referrals ( Operation *op, SlapReply *rs )
+{
+	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
+	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
+	BackendDB *b0 = op->o_bd;
+	BackendInfo *bi0 = op->o_bd->bd_info;
+	int rc;
+
+	op->o_bd = glue_back_select (b0, &op->o_req_ndn);
+	b0->bd_info = on->on_info->oi_orig;
+
+	if ( op->o_bd->bd_info->bi_chk_referrals )
+		rc = ( *op->o_bd->bd_info->bi_chk_referrals )( op, rs );
+	else
+		rc = SLAP_CB_CONTINUE;
+
+	op->o_bd = b0;
+	op->o_bd->bd_info = bi0;
+	return rc;
+}
+
+static int
+glue_chk_controls ( Operation *op, SlapReply *rs )
+{
+	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
+	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
+	BackendDB *b0 = op->o_bd;
+	BackendInfo *bi0 = op->o_bd->bd_info;
+	int rc = SLAP_CB_CONTINUE;
+
+	op->o_bd = glue_back_select (b0, &op->o_req_ndn);
+	b0->bd_info = on->on_info->oi_orig;
+
+	/* if the subordinate database has overlays, the bi_chk_controls()
+	 * hook is actually over_aux_chk_controls(); in case it actually
+	 * wraps a missing hok, we need to mimic the behavior
+	 * of the frontend applied to that database */
+	if ( op->o_bd->bd_info->bi_chk_controls ) {
+		rc = ( *op->o_bd->bd_info->bi_chk_controls )( op, rs );
+	}
+
+	
+	if ( rc == SLAP_CB_CONTINUE ) {
+		rc = backend_check_controls( op, rs );
+	}
+
+	op->o_bd = b0;
+	op->o_bd->bd_info = bi0;
+	return rc;
+}
+
+static int
 glue_op_search ( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
@@ -326,6 +378,9 @@ glue_op_search ( Operation *op, SlapReply *rs )
 			case LDAP_TIMELIMIT_EXCEEDED:
 			case LDAP_ADMINLIMIT_EXCEEDED:
 			case LDAP_NO_SUCH_OBJECT:
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+			case LDAP_CANNOT_CHAIN:
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 				goto end_of_loop;
 			
 			default:
@@ -679,6 +734,8 @@ glue_db_open (
 	int i;
 
 	for ( i=0; i<gi->gi_nodes; i++ ) {
+		int j;
+
 		gi->gi_n[i].gn_be = backendDB + gi->gi_n[i].gn_bx;
 	}
 	return 0;
@@ -707,23 +764,30 @@ glue_db_config(
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
 
+	/* redundant; could be applied just once */
+	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_GLUE_INSTANCE;
+
 	if ( strcasecmp( argv[0], "glue-sub" ) == 0 ) {
-		int async = 0;
+		int i, async = 0, advertise = 0;
 		BackendDB *b2;
 		struct berval bv, dn;
 		gluenode *gn;
 
 		if ( argc < 2 ) {
 			fprintf( stderr, "%s: line %d: too few arguments in "
-				"\"glue-sub <suffixDN> [async]\"\n", fname, lineno );
+				"\"glue-sub <suffixDN> [async] [advertise]\"\n", fname, lineno );
 			return -1;
 		}
-		if ( argc == 3 ) {
-			if ( strcasecmp( argv[2], "async" )) {
-				fprintf( stderr, "%s: line %d: unrecognized option "
-					"\"%s\" ignored.\n", fname, lineno, argv[2] );
-			} else {
+		for ( i = 2; i < argc; i++ ) {
+			if ( strcasecmp( argv[i], "async" ) == 0 ) {
 				async = 1;
+
+			} else if ( strcasecmp( argv[i], "advertise" ) == 0 ) {
+				advertise = 1;
+
+			} else {
+				fprintf( stderr, "%s: line %d: unrecognized option "
+					"\"%s\" ignored.\n", fname, lineno, argv[i] );
 			}
 		}
 		ber_str2bv( argv[1], 0, 0, &bv );
@@ -738,6 +802,9 @@ glue_db_config(
 			return -1;
 		}
 		SLAP_DBFLAGS(b2) |= SLAP_DBFLAG_GLUE_SUBORDINATE;
+		if ( advertise ) {
+			SLAP_DBFLAGS(b2) |= SLAP_DBFLAG_GLUE_ADVERTISE;
+		}
 		gi = (glueinfo *)ch_realloc( gi, sizeof(glueinfo) +
 			gi->gi_nodes * sizeof(gluenode));
 		gi->gi_n[gi->gi_nodes].gn_bx = b2 - backendDB;
@@ -766,6 +833,9 @@ glue_init()
 	glue.on_bi.bi_op_modrdn = glue_op_func;
 	glue.on_bi.bi_op_add = glue_op_func;
 	glue.on_bi.bi_op_delete = glue_op_func;
+
+	glue.on_bi.bi_chk_referrals = glue_chk_referrals;
+	glue.on_bi.bi_chk_controls = glue_chk_controls;
 
 	return overlay_register( &glue );
 }

@@ -291,15 +291,16 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 			return rc;
 		}
 #endif
-		FD_ZERO(&wfds);
-		FD_SET(s, &wfds );
-
-#ifdef HAVE_WINSOCK
-		FD_ZERO(&efds);
-		FD_SET(s, &efds );
-#endif
 
 		do {
+			FD_ZERO(&wfds);
+			FD_SET(s, &wfds );
+
+#ifdef HAVE_WINSOCK
+			FD_ZERO(&efds);
+			FD_SET(s, &efds );
+#endif
+
 			rc = select(ldap_int_tblsize, z, &wfds,
 #ifdef HAVE_WINSOCK
 				&efds,

@@ -65,6 +65,32 @@ BackendDB		*backendDB = NULL;
 ldap_pvt_thread_pool_t	syncrepl_pool;
 int			syncrepl_pool_max = SLAP_MAX_SYNCREPL_THREADS;
 
+static int
+backend_init_controls( BackendInfo *bi )
+{
+	if ( bi->bi_controls ) {
+		int	i;
+
+		for ( i = 0; bi->bi_controls[ i ]; i++ ) {
+			int	cid;
+
+			if ( slap_find_control_id( bi->bi_controls[ i ], &cid )
+					== LDAP_CONTROL_NOT_FOUND )
+			{
+				if ( !( slapMode & SLAP_TOOL_MODE ) ) {
+					assert( 0 );
+				}
+
+				return -1;
+			}
+
+			bi->bi_ctrls[ cid ] = 1;
+		}
+	}
+
+	return 0;
+}
+
 int backend_init(void)
 {
 	int rc = -1;
@@ -132,12 +158,15 @@ int backend_add(BackendInfo *aBackendInfo)
 		return -1;
 	}
 
-   if ((rc = aBackendInfo->bi_init(aBackendInfo)) != 0) {
+	rc = aBackendInfo->bi_init(aBackendInfo);
+	if ( rc != 0) {
 		Debug( LDAP_DEBUG_ANY,
 			"backend_add:  initialization for type \"%s\" failed\n",
 			aBackendInfo->bi_type, 0, 0 );
 		return rc;
-   }
+	}
+
+	(void)backend_init_controls( aBackendInfo );
 
 	/* now add the backend type to the Backend Info List */
 	{
@@ -161,65 +190,66 @@ int backend_add(BackendInfo *aBackendInfo)
 	}
 }
 
+static int
+backend_set_controls( BackendDB *be )
+{
+	BackendInfo	*bi = be->bd_info;
+
+	/* back-relay takes care of itself; so may do other */
+	if ( overlay_is_over( be ) ) {
+		bi = ((slap_overinfo *)be->bd_info->bi_private)->oi_orig;
+	}
+
+	if ( bi->bi_controls ) {
+		if ( be->be_ctrls[ SLAP_MAX_CIDS ] == 0 ) {
+			AC_MEMCPY( be->be_ctrls, bi->bi_ctrls,
+					sizeof( be->be_ctrls ) );
+			be->be_ctrls[ SLAP_MAX_CIDS ] = 1;
+			
+		} else {
+			int	i;
+			
+			for ( i = 0; i < SLAP_MAX_CIDS; i++ ) {
+				if ( bi->bi_ctrls[ i ] ) {
+					be->be_ctrls[ i ] = bi->bi_ctrls[ i ];
+				}
+			}
+		}
+
+	}
+
+	return 0;
+}
+
 /* startup a specific backend database */
 int backend_startup_one(Backend *be)
 {
 	int		rc = 0;
-	BackendInfo	*bi = be->bd_info;
 
-	assert(be);
+	assert( be );
 
 	be->be_pending_csn_list = (struct be_pcl *)
 		ch_calloc( 1, sizeof( struct be_pcl ));
 
 	LDAP_TAILQ_INIT( be->be_pending_csn_list );
 
-	/* back-relay takes care of itself; so may do other */
-	if ( be->be_controls == NULL ) {
-		if ( overlay_is_over( be ) ) {
-			bi = ((slap_overinfo *)be->bd_info->bi_private)->oi_orig;
-		}
-
-		if ( bi->bi_controls ) {
-			be->be_controls = ldap_charray_dup( bi->bi_controls );
-		}
-	}
-
 	Debug( LDAP_DEBUG_TRACE,
-		"backend_startup: starting \"%s\"\n",
+		"backend_startup_one: starting \"%s\"\n",
 		be->be_suffix ? be->be_suffix[0].bv_val : "(unknown)",
 		0, 0 );
+
+	/* set database controls */
+	(void)backend_set_controls( be );
+
 	if ( be->bd_info->bi_db_open ) {
 		rc = be->bd_info->bi_db_open( be );
-		if ( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"backend_startup: bi_db_open failed! (%d)\n",
-				rc, 0, 0 );
-		}
-	}
-
-	/* back-relay takes care of itself; so may do other */
-	bi = be->bd_info;
-	if ( overlay_is_over( be ) ) {
-		bi = ((slap_overinfo *)be->bd_info->bi_private)->oi_orig;
-	}
-
-	if ( bi->bi_controls ) {
-		if ( be->be_controls == NULL ) {
-			be->be_controls = ldap_charray_dup( bi->bi_controls );
+		if ( rc == 0 ) {
+			(void)backend_set_controls( be );
 
 		} else {
-			int	i;
-
-			/* maybe not efficient, but it's startup and few dozens of controls... */
-			for ( i = 0; bi->bi_controls[ i ]; i++ ) {
-				if ( !ldap_charray_inlist( be->be_controls, bi->bi_controls[ i ] ) ) {
-					rc = ldap_charray_add( &be->be_controls, bi->bi_controls[ i ] );
-					if ( rc != 0 ) {
-						break;
-					}
-				}
-			}
+			Debug( LDAP_DEBUG_ANY,
+				"backend_startup_one: bi_db_open failed! (%d)\n",
+				rc, 0, 0 );
 		}
 	}
 
@@ -273,8 +303,7 @@ int backend_startup(Backend *be)
 		}
 
 		if( backendInfo[i].bi_open ) {
-			rc = backendInfo[i].bi_open(
-				&backendInfo[i] );
+			rc = backendInfo[i].bi_open( &backendInfo[i] );
 			if ( rc != 0 ) {
 				Debug( LDAP_DEBUG_ANY,
 					"backend_startup: bi_open %d failed!\n",
@@ -282,6 +311,8 @@ int backend_startup(Backend *be)
 				return rc;
 			}
 		}
+
+		(void)backend_init_controls( &backendInfo[i] );
 	}
 
 	ldap_pvt_thread_mutex_init( &slapd_rq.rq_mutex );
@@ -448,9 +479,6 @@ int backend_destroy(void)
 			free( bd->be_rootpw.bv_val );
 		}
 		acl_destroy( bd->be_acl, frontendDB->be_acl );
-		if ( bd->be_controls ) {
-			ldap_charray_free( bd->be_controls );
-		}
 	}
 	free( backendDB );
 
@@ -836,7 +864,7 @@ backend_connection_destroy(
 	return 0;
 }
 
-static int
+int
 backend_check_controls(
 	Operation *op,
 	SlapReply *rs )
@@ -847,9 +875,9 @@ backend_check_controls(
 	if( ctrls ) {
 		for( ; *ctrls != NULL ; ctrls++ ) {
 			int cid;
-			if( slap_find_control_id( (*ctrls)->ldctl_oid, &cid ) ==
-				LDAP_CONTROL_NOT_FOUND )
-			{
+
+			switch ( slap_global_control( op, (*ctrls)->ldctl_oid, &cid ) ) {
+			case LDAP_CONTROL_NOT_FOUND:
 				/* unrecognized control */ 
 				if ( (*ctrls)->ldctl_iscritical ) {
 					/* should not be reachable */ 
@@ -858,27 +886,39 @@ backend_check_controls(
 						(*ctrls)->ldctl_oid, 0, 0 );
 					assert( 0 );
 				}
-
-			} else if ( !slap_global_control( op, (*ctrls)->ldctl_oid ) &&
-				!ldap_charray_inlist( op->o_bd->be_controls,
-					(*ctrls)->ldctl_oid ) )
-			{
-				/* Per RFC 2251 (and LDAPBIS discussions), if the control
-				 * is recognized and appropriate for the operation (which
-				 * we've already verified), then the server should make
-				 * use of the control when performing the operation.
-				 * 
-				 * Here we find that operation extended by the control
-				 * is not unavailable in a particular context, hence the
-				 * return of unwillingToPerform.
-				 */
-				rs->sr_text = "control unavailable in context";
-				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 				break;
+
+			case LDAP_COMPARE_FALSE:
+				if ( !op->o_bd->be_ctrls[ cid ] )
+				{
+					/* Per RFC 2251 (and LDAPBIS discussions), if the control
+					 * is recognized and appropriate for the operation (which
+					 * we've already verified), then the server should make
+					 * use of the control when performing the operation.
+					 * 
+					 * Here we find that operation extended by the control
+					 * is not unavailable in a particular context, hence the
+					 * return of unwillingToPerform.
+					 */
+					rs->sr_text = "control unavailable in context";
+					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+					goto done;
+				}
+				break;
+
+			case LDAP_COMPARE_TRUE:
+				break;
+
+			default:
+				/* unreachable */
+				rs->sr_text = "unable to check control";
+				rs->sr_err = LDAP_OTHER;
+				goto done;
 			}
 		}
 	}
 
+done:;
 	return rs->sr_err;
 }
 
@@ -897,8 +937,18 @@ backend_check_restrictions(
 	int starttls = 0;
 	int session = 0;
 
-	if( op->o_bd ) {
-		if ( backend_check_controls( op, rs ) != LDAP_SUCCESS ) {
+	if ( op->o_bd ) {
+		int	rc = SLAP_CB_CONTINUE;
+
+		if ( op->o_bd->be_chk_controls ) {
+			rc = ( *op->o_bd->be_chk_controls )( op, rs );
+		}
+
+		if ( rc == SLAP_CB_CONTINUE ) {
+			rc = backend_check_controls( op, rs );
+		}
+
+		if ( rc != LDAP_SUCCESS ) {
 			return rs->sr_err;
 		}
 
@@ -1759,18 +1809,7 @@ int backend_operational(
 	if (( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
 		op->o_bd && op->o_bd->be_operational != NULL )
 	{
-		Attribute	*a;
-		
-		a = rs->sr_operational_attrs;
-		rs->sr_operational_attrs = NULL;
 		rc = op->o_bd->be_operational( op, rs );
-		*ap = rs->sr_operational_attrs;
-		if ( a != NULL ) {
-			rs->sr_operational_attrs = a;
-		}
-
-		for ( ; *ap; ap = &(*ap)->a_next )
-			/* just count them */ ;
 	}
 	op->o_bd = be_orig;
 

@@ -126,8 +126,8 @@ slap_init( int mode, const char *name )
 		ldap_pvt_mp_init( slap_counters.sc_entries );
 		ldap_pvt_mp_init( slap_counters.sc_refs );
 
-		ldap_pvt_mp_init( slap_counters.sc_ops_completed );
 		ldap_pvt_mp_init( slap_counters.sc_ops_initiated );
+		ldap_pvt_mp_init( slap_counters.sc_ops_completed );
 
 #ifdef SLAPD_MONITOR
 		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
@@ -239,8 +239,8 @@ int slap_destroy(void)
 		ldap_pvt_mp_clear( slap_counters.sc_pdu );
 		ldap_pvt_mp_clear( slap_counters.sc_entries );
 		ldap_pvt_mp_clear( slap_counters.sc_refs );
-		ldap_pvt_mp_clear( slap_counters.sc_ops_completed );
 		ldap_pvt_mp_clear( slap_counters.sc_ops_initiated );
+		ldap_pvt_mp_clear( slap_counters.sc_ops_completed );
 
 #ifdef SLAPD_MONITOR
 		for ( i = 0; i < SLAP_OP_LAST; i++ ) {

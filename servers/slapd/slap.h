@@ -1527,6 +1527,10 @@ typedef struct syncinfo_s {
 
 LDAP_TAILQ_HEAD( be_pcl, slap_csn_entry );
 
+#ifndef SLAP_MAX_CIDS
+#define	SLAP_MAX_CIDS	32	/* Maximum number of supported controls */
+#endif
+
 struct slap_backend_db {
 	BackendInfo	*bd_info;	/* pointer to shared backend info */
 
@@ -1551,6 +1555,7 @@ struct slap_backend_db {
 #define		be_extended	bd_info->bi_extended
 
 #define		be_chk_referrals	bd_info->bi_chk_referrals
+#define		be_chk_controls		bd_info->bi_chk_controls
 #define		be_fetch	bd_info->bi_entry_get_rw
 #define		be_release	bd_info->bi_entry_release_rw
 #define		be_group	bd_info->bi_acl_group
@@ -1563,12 +1568,6 @@ struct slap_backend_db {
  * is fixed).
  */
 #define		be_has_subordinates bd_info->bi_has_subordinates
-
-	/* supported controls */
-	/* NOTE: this stores a duplicate of the control OIDs as listed
-	 * in bd_info->bi_controls at database startup; later on,
-	 * controls may be added run-time, e.g. by overlays */
-	char		**be_controls;
 
 #define		be_connection_init	bd_info->bi_connection_init
 #define		be_connection_destroy	bd_info->bi_connection_destroy
@@ -1587,14 +1586,20 @@ struct slap_backend_db {
 #define		be_entry_modify	bd_info->bi_tool_entry_modify
 #endif
 
+	/* supported controls */
+	/* note: set to 0 if the database does not support the control;
+	 * be_ctrls[SLAP_MAX_CIDS] is set to 1 if initialized */
+	char		be_ctrls[SLAP_MAX_CIDS + 1];
+
 /* Database flags */
 #define SLAP_DBFLAG_NOLASTMOD		0x0001U
 #define SLAP_DBFLAG_NO_SCHEMA_CHECK	0x0002U
 #define	SLAP_DBFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
 #define	SLAP_DBFLAG_GLUE_SUBORDINATE	0x0020U	/* child of a glue hierarchy */
 #define	SLAP_DBFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
-#define SLAP_DBFLAG_OVERLAY		0x0080U	/* this db struct is an overlay */
-#define	SLAP_DBFLAG_GLOBAL_OVERLAY	0x0100U	/* this db struct is a global overlay */
+#define SLAP_DBFLAG_GLUE_ADVERTISE	0x0080U /* advertise in rootDSE */
+#define SLAP_DBFLAG_OVERLAY		0x0100U	/* this db struct is an overlay */
+#define	SLAP_DBFLAG_GLOBAL_OVERLAY	0x0200U	/* this db struct is a global overlay */
 #define SLAP_DBFLAG_SHADOW		0x8000U /* a shadow */
 #define SLAP_DBFLAG_SYNC_SHADOW		0x1000U /* a sync shadow */
 #define SLAP_DBFLAG_SLURP_SHADOW	0x2000U /* a slurp shadow */
@@ -1611,6 +1616,8 @@ struct slap_backend_db {
 	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_SUBORDINATE)
 #define	SLAP_GLUE_LINKED(be)		\
 	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_LINKED)
+#define	SLAP_GLUE_ADVERTISE(be)	\
+	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_ADVERTISE)
 #define SLAP_SHADOW(be)				(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SHADOW)
 #define SLAP_SYNC_SHADOW(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SYNC_SHADOW)
 #define SLAP_SLURP_SHADOW(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SLURP_SHADOW)
@@ -1873,6 +1880,8 @@ typedef int (BI_op_extended) LDAP_P((
 	struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_chk_referrals) LDAP_P((
 	struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_chk_controls) LDAP_P((
+	struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_entry_release_rw)
 	LDAP_P(( struct slap_op *op, Entry *e, int rw ));
 typedef int (BI_entry_get_rw) LDAP_P(( struct slap_op *op, struct berval *ndn,
@@ -1974,6 +1983,7 @@ struct slap_backend_info {
 	/* Auxilary Functions */
 	BI_operational		*bi_operational;
 	BI_chk_referrals	*bi_chk_referrals;
+	BI_chk_controls		*bi_chk_controls;
 	BI_entry_get_rw		*bi_entry_get_rw;
 	BI_entry_release_rw	*bi_entry_release_rw;
 
@@ -2017,7 +2027,8 @@ struct slap_backend_info {
 #define SLAP_NOLASTMODCMD(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_NOLASTMODCMD)
 #define SLAP_LASTMODCMD(be)	(!SLAP_NOLASTMODCMD(be))
 
-	char **bi_controls;		/* supported controls */
+	char	**bi_controls;		/* supported controls */
+	char	bi_ctrls[SLAP_MAX_CIDS + 1];
 
 	unsigned int bi_nDB;	/* number of databases of this type */
 	void	*bi_private;	/* anything the backend type needs */
@@ -2102,10 +2113,6 @@ typedef struct slap_gacl {
 	ber_len_t ga_len;
 	char ga_ndn[1];
 } GroupAssertion;
-
-#ifndef SLAP_MAX_CIDS
-#define	SLAP_MAX_CIDS	32	/* Maximum number of supported controls */
-#endif
 
 struct slap_control_ids {
 	int sc_assert;

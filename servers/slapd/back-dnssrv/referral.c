@@ -41,7 +41,15 @@ dnssrv_back_referrals(
 	char **hosts = NULL;
 	BerVarray urls = NULL;
 
-	if( op->o_req_dn.bv_len == 0 ) {
+	if ( BER_BVISEMPTY( &op->o_req_dn ) ) {
+#ifdef LDAP_DEVEL
+		/* FIXME: need some means to determine whether the database
+		 * is a glue instance */
+		if ( SLAP_GLUE_INSTANCE( op->o_bd ) ) {
+			return LDAP_SUCCESS;
+		}
+#endif /* LDAP_DEVEL */
+
 		rs->sr_text = "DNS SRV operation upon null (empty) DN disallowed";
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
