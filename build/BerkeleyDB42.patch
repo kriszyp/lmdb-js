@@ -1,11 +1,15 @@
 This patch is intended to be applied to Berkeley DB 4.2.52 and,
 if applied, will automatically be used by slapd(8) back-bdb/hdb.
+Without this patch the BDB DB_LOG_AUTOREMOVE option will not work,
+nor will db_archive allow any transaction log files to be removed
+while slapd is running.
 
-The patch can be applied using patch(1) as follows
+The patch can be applied to the BDB source using patch(1) as follows
 	cd db-4.2.52
-	patch < openldap-src/build/BerkeleyDB42.patch
+	patch -p0 < openldap-src/build/BerkeleyDB42.patch
 
-(modify directory paths as necessary).
+(modify directory paths as necessary, then recompile and reinstall
+the BerkeleyDB 4.2 library.)
 
 The patch should not be applied to Berkeley DB 4.3.
 
