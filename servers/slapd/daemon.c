@@ -1383,6 +1383,9 @@ slapd_daemon_task(
 			long id;
 			slap_ssf_t ssf = 0;
 			char *authid = NULL;
+#ifdef SLAPD_RLOOKUPS
+			char *hebuf = NULL;
+#endif
 
 			char	*dnsname = NULL;
 			char	*peeraddr = NULL;
@@ -1601,23 +1604,21 @@ slapd_daemon_task(
 				if ( use_reverse_lookup ) {
 					struct hostent he;
 					int herr;
-					char *ha = NULL;
-					hp = NULL;
+					struct hostent *hp = NULL;
 #  ifdef LDAP_PF_INET6
 					if ( from.sa_addr.sa_family == AF_INET6 )
 						ldap_pvt_gethostbyaddr_a(
 							(char *)&(from.sa_in6_addr.sin6_addr),
 							sizeof(from.sa_in6_addr.sin6_addr),
-							AF_INET6, &he, &ha,
+							AF_INET6, &he, &hebuf,
 							&hp, &herr );
 					else
 #  endif /* LDAP_PF_INET6 */
 					ldap_pvt_gethostbyaddr_a(
 						(char *) &(from.sa_in_addr.sin_addr),
 						sizeof(from.sa_in_addr.sin_addr),
-						AF_INET, &he, &ha, &hp, &herr );
+						AF_INET, &he, &hebuf, &hp, &herr );
 					dnsname = hp ? ldap_pvt_str2lower( hp->h_name ) : NULL;
-					if (ha) ldap_memfree( ha );
 				}
 #else
 				dnsname = NULL;
@@ -1631,7 +1632,7 @@ slapd_daemon_task(
 				{
 					/* DENY ACCESS */
 					Statslog( LDAP_DEBUG_STATS,
-						"fd=%ld host access from %s (%s) denied.\n",
+						"fd=%ld DENIED from %s (%s)",
 						(long) s,
 						dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
 						peeraddr != NULL ? peeraddr : SLAP_STRING_UNKNOWN,
@@ -1655,6 +1656,9 @@ slapd_daemon_task(
 				authid );
 
 			if( authid ) ch_free(authid);
+#ifdef SLAPD_RLOOKUPS
+			if( hebuf ) ldap_memfree(hebuf);
+#endif
 
 			if( id < 0 ) {
 #ifdef NEW_LOGGING
@@ -1677,8 +1681,8 @@ slapd_daemon_task(
 			}
 
 			Statslog( LDAP_DEBUG_STATS,
-				"daemon: conn=%ld fd=%ld connection from %s "
-				"(%s) accepted.\n",
+				"conn=%ld fd=%ld ACCEPT from %s "
+				"(%s)\n",
 				id, (long) s,
 				peername,
 				slap_listeners[l]->sl_name.bv_val,

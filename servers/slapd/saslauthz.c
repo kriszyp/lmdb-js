@@ -414,6 +414,7 @@ void slap_sasl2dn( Connection *conn,
 	}
 
 	rc = slap_parseURI( &regout, &dn, &scope, &filter );
+	if( regout.bv_val ) ch_free( regout.bv_val );
 	if( rc != LDAP_SUCCESS ) {
 		goto FINISHED;
 	}
