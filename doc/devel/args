@@ -1,28 +1,48 @@
-Clients         ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+Tools           ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+ldapdelete         DE   I K M  P    U WXYZ  cd f h  k  n p     vw
+ldapmodify         DEF  I K M  P    U WXYZabcd f h  k  n p r t vw
+ldapmodrdn         DE   I K M  P    U WXYZ  cd f h  k  n p rs  vw
+ldappasswd      A  DE   I         S U WXYZa  d   h          s  vw    
+ldapsearch      AB DEF  I KLM  P RSTUVWXYZab d f h  kl n p  stuvw  z
 
+Other Clients   ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 fax500                                         f h    m
 finger                                      c  f  i  l  p    t   x
 go500                   I                  bcd f     l  p    t   x
 go500gw                 I      P          a cd f h   l  p    t   x
-ldapdelete         D*   * K M  P    * W***  cd f h  k  np      vw
-ldapmodify         D*F  * K M  P    * W***abcd f h  k  np  r t vw
-ldapmodrdn         D*   * K M  P    * W***  cd f h  k  np  rs  vw
-ldappasswd      A  D*   *         S * W***a  d   h          s  vw    
-ldapsearch      AB D*F  * KLM  P RST*VW***ab d f h  kl np   stuvw  z
 mail500           C                          d f h   lm        v
 rcpt500                             U     abc  f h   l  p   st     z
 rp500                                     ab d f                 x z
 ud                 D                 V      cd f     l  p   s uv
 
 
-* New flags:
+* General flags:
+	-D bind DN
+	-P protocol version
+	-W prompt for bind password
+	-d debug
+	-h host
+	-n no-op
+	-p port
+	-v verbose
+	-w bind password
 
--I SASL Intergity
--E SASL Privacy (encryption)
--Z StartTLS
--U SASL Authentication Identity (username)
--X SASL Authorization Identity
--Y SASL Mechanism
+* LDAPv3 Only 
+	-M ManageDSAIT
+
+	-Z StartTLS
+	-C Certificate (reserved)
+
+	-I SASL Intergity
+	-E SASL Privacy (encryption)
+	-U SASL Authentication Identity (username)
+	-X SASL Authorization Identity
+	-Y SASL Mechanism
+
+* LDAPv2 Only
+
+	-K LDAPv2 Kerberos Bind (Step 1 only)
+	-k LDAPv2 Kerberos Bind
 
 
 $OpenLDAP$
