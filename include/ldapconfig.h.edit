@@ -10,22 +10,41 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#ifndef _CONFIG_H
-#define _CONFIG_H
+#ifndef _LDAP_CONFIG_H
+#define _LDAP_CONFIG_H
 
 /*
  * config.h for LDAP -- edit this file to customize LDAP client behavior.
  * NO platform-specific definitions should be placed in this file.
- * Note that this is NOT used by the LDAP or LBER libraries.
+ * Note that this IS USED by the LDAP or LBER libraries.
  */
 
 /*
  * SHARED DEFINITIONS - things you should change
  */
-	/* default ldap host */
+#define DEFAULT_BINDIR		"%BINDIR%"
+#define DEFAULT_SBINDIR		"%SBINDIR%"
+#define DEFAULT_DATADIR		"%DATADIR%"
+#define DEFAULT_SYSCONFDIR	"%SYSCONFDIR%"
+#define DEFAULT_LIBEXECDIR	"%LIBEXECDIR%"
+
+/* default ldap host */
 #define LDAPHOST	"localhost"
-	/* default place to start searching */
+
+#define DEFAULT_LDAPHOST_FILE "%SYSCONFDIR%/ldaphost"
+/* default place to start searching */
 #define DEFAULT_BASE	"o=Your Organization Name, c=US"
+#define DEFAULT_BASE_FILE "%SYSCONFDIR%/ldapbase"
+
+/*
+ * default binddn and creditials
+ *  use files, make sure they are not generally readable
+ */
+#define DEFAULT_BINDDN		NULL
+#define DEFAULT_BINDDN_FILE "%SYSCONFDIR%/ldapbinddn"
+
+#define DEFAULT_BIND_CRED	NULL
+#define DEFAULT_BIND_CRED_FILE "%SYSCONFDIR%/ldapbindcred"
 
 /*********************************************************************
  *                                                                   *
@@ -41,27 +60,28 @@
 	/* default count of DN components to show in entry displays */
 #define DEFAULT_RDNCOUNT	2
 	/* default config file locations */
-#define FILTERFILE	"%ETCDIR%/ldapfilter.conf"
-#define TEMPLATEFILE	"%ETCDIR%/ldaptemplates.conf"
-#define SEARCHFILE	"%ETCDIR%/ldapsearchprefs.conf"
-#define FRIENDLYFILE	"%ETCDIR%/ldapfriendly"
+#define FILTERFILE	"%SYSCONFDIR%/ldapfilter.conf"
+#define TEMPLATEFILE	"%SYSCONFDIR%/ldaptemplates.conf"
+#define SEARCHFILE	"%SYSCONFDIR%/ldapsearchprefs.conf"
+#define FRIENDLYFILE	"%DATADIR%/ldapfriendly"
 
 /*
  * FINGER DEFINITIONS
  */
 	/* who to bind as */
-#define FINGER_BINDDN		NULL
+#define FINGER_BINDDN			NULL
+#define FINGER_BIND_CRED		NULL
 	/* where to search */
-#define FINGER_BASE		DEFAULT_BASE
+#define FINGER_BASE				DEFAULT_BASE
 	/* banner to print */
 #define FINGER_BANNER		"X.500 Finger Service...\r\n"
 	/* who to report errors to */
-#define FINGER_ERRORS		"your local system administrator"
+#define FINGER_ERRORS		"System Administrator"
 	/* what to say if no matches are found */
 #define FINGER_NOMATCH		"Search failed to find anything.\r\n"
 	/* what to say if the service may be unavailable */
 #define FINGER_UNAVAILABLE	\
-"The X.500 service may be temporarily unavailable.\r\n\
+"The directory service may be temporarily unavailable.\r\n\
 Please try again later.\r\n"
 	/* printed if a match has no email address - for disptmp default */
 #define FINGER_NOEMAIL1	"None registered in this service."
@@ -72,7 +92,7 @@ Please try again later.\r\n"
 	/* max number of hits displayed in full before a list is presented */
 #define FINGER_LISTLIMIT	1
 	/* what to exec for "finger @host" */
-#define FINGER_CMD		"/usr/ucb/finger"
+#define FINGER_CMD		"%FINGER%"
 	/* how to treat aliases when searching */
 #define FINGER_DEREF		LDAP_DEREF_FINDING
 	/* attribute to use when sorting results */
@@ -89,6 +109,7 @@ Please try again later.\r\n"
  */
 	/* who to bind as */
 #define GO500_BINDDN	NULL
+#define GO500_BIND_CRED	NULL
 	/* where to search */
 #define GO500_BASE	DEFAULT_BASE
 	/* port on which to listen */
@@ -113,9 +134,10 @@ Please try again later.\r\n"
  * GO500GW GOPHER GATEWAY DEFINITIONS
  */
 	/* who to bind as */
-#define GO500GW_BINDDN		NULL
+#define GO500GW_BINDDN			NULL
+#define GO500GW_BIND_CRED		NULL
 	/* where the helpfile lives */
-#define GO500GW_HELPFILE	"%ETCDIR%/go500gw.help"
+#define GO500GW_HELPFILE	"%DATADIR%/go500gw.help"
 	/* port on which to listen */
 #define GO500GW_PORT		7777
 	/* timeout on all searches */
@@ -137,15 +159,16 @@ Please try again later.\r\n"
  */
 	/* who to bind as */
 #define RCPT500_BINDDN		NULL
+#define RCPT500_BIND_CRED	NULL
 	/* where the helpfile lives */
-#define RCPT500_HELPFILE	"%ETCDIR%/rcpt500.help"
+#define RCPT500_HELPFILE	"%DATADIR%/rcpt500.help"
 	/* maximum number of matches returned */
 #define RCPT500_SIZELIMIT	50
 	/* address replies will appear to come from */
-#define RCPT500_FROM		"\"X.500 Query Program\" <X500-Query>"
+#define RCPT500_FROM		"\"Directory Query Program\" <Dir-Query>"
 	/* command that will accept an RFC822 message text on standard
 	   input, and send it.  sendmail -t does this nicely. */
-#define RCPT500_PIPEMAILCMD	"/usr/lib/sendmail -t"
+#define RCPT500_PIPEMAILCMD	"%SENDMAIL% -t"
         /* where to search */
 #define RCPT500_BASE             DEFAULT_BASE
 	/* attribute to use when sorting results */
@@ -161,7 +184,8 @@ Please try again later.\r\n"
  * LDAPSEARCH TOOL
  */
 	/* who to bind as */
-#define LDAPSEARCH_BINDDN	NULL
+#define LDAPSEARCH_BINDDN		NULL
+#define LDAPSEARCH_BIND_CRED	NULL
 	/* search base */
 #define LDAPSEARCH_BASE		DEFAULT_BASE
 
@@ -169,7 +193,8 @@ Please try again later.\r\n"
  * LDAPMODIFY TOOL
  */
 	/* who to bind as */
-#define LDAPMODIFY_BINDDN	NULL
+#define LDAPMODIFY_BINDDN		NULL
+#define LDAPMODIFY_BIND_CRED	NULL
 	/* search base */
 #define LDAPMODIFY_BASE		DEFAULT_BASE
 
@@ -177,7 +202,8 @@ Please try again later.\r\n"
  * LDAPDELETE TOOL
  */
 	/* who to bind as */
-#define LDAPDELETE_BINDDN	NULL
+#define LDAPDELETE_BINDDN		NULL
+#define LDAPDELETE_BIND_CRED	NULL
 	/* search base */
 #define LDAPDELETE_BASE		DEFAULT_BASE
 
@@ -185,7 +211,8 @@ Please try again later.\r\n"
  * LDAPMODRDN TOOL
  */
 	/* who to bind as */
-#define LDAPMODRDN_BINDDN	NULL
+#define LDAPMODRDN_BINDDN		NULL
+#define LDAPMODRDN_BIND_CRED	NULL
 	/* search base */
 #define LDAPMODRDN_BASE		DEFAULT_BASE
 
@@ -193,7 +220,8 @@ Please try again later.\r\n"
  * MAIL500 MAILER DEFINITIONS
  */
 	/* who to bind as */
-#define MAIL500_BINDDN		NULL
+#define MAIL500_BINDDN			NULL
+#define MAIL500_BIND_CRED			NULL
 	/* max number of ambiguous matches reported */
 #define MAIL500_MAXAMBIGUOUS	10
 	/* max subscribers allowed (size limit when searching for them ) */
@@ -201,23 +229,23 @@ Please try again later.\r\n"
 	/* timeout for all searches */
 #define MAIL500_TIMEOUT		180
 	/* sendmail location - mail500 needs to exec this */
-#define MAIL500_SENDMAIL	"/usr/lib/sendmail"
+#define MAIL500_SENDMAIL	"%SENDMAIL%"
 
 /*
  * UD DEFINITIONS
  */
 	/* ud configuration file */
-#define UD_CONFIG_FILE		"%ETCDIR%/ud.conf"
+#define UD_CONFIG_FILE		"%SYSCONFDIR%/ud.conf"
 	/* default editor */
-#define UD_DEFAULT_EDITOR	"/usr/ucb/vi"
+#define UD_DEFAULT_EDITOR	"%EDITOR%"
 	/* default bbasename of user config file */
 #define UD_USER_CONFIG_FILE	".udrc"
 	/* default user to bind as */
 #define UD_BINDDN		NULL
 	/* default password to bind with */
-#define UD_PASSWD		NULL
+#define UD_BIND_CRED	NULL
 	/* default search base */
-#define UD_BASE			DEFAULT_BASE
+#define UD_BASE		DEFAULT_BASE
 	/* default base where groups are created */
 #define UD_WHERE_GROUPS_ARE_CREATED	""
 	/* default base below which all groups live */
@@ -227,7 +255,10 @@ Please try again later.\r\n"
  * FAX500 DEFINITIONS
  */
 	/* what to bind as */
-#define FAX_BINDDN	NULL
+#define FAX_BINDDN		NULL
+#define FAX_BIND_CRED	NULL
+	/* default search base */
+#define FAX_BASE		DEFAULT_BASE
 	/* how long to wait for searches */
 #define FAX_TIMEOUT		180
 	/* maximum number of ambiguous matches reported */
@@ -235,13 +266,17 @@ Please try again later.\r\n"
 	/* maximum number of members allowed */
 #define FAX_MAXMEMBERS		LDAP_NO_LIMIT
 	/* program to send mail */
-#define FAX_SENDMAIL		"/usr/lib/sendmail"
+#define FAX_SENDMAIL		"%SENDMAIL%"
 
 /*
  * RP500 DEFINITIONS
  */
 	/* what to bind as */
-#define RP_BINDDN	NULL
+#define RP_BINDDN		NULL
+#define RP_BIND_CRED	NULL
+	/* default search base */
+#define RP_BASE			DEFAULT_BASE
+
 	/* prefix to add to non-fully-qualified numbers */
 #define RP_PHONEPREFIX	""
 
@@ -249,15 +284,17 @@ Please try again later.\r\n"
  * SLAPD DEFINITIONS
  */
 	/* location of the default slapd config file */
-#define SLAPD_DEFAULT_CONFIGFILE	"%ETCDIR%/slapd.conf"
+#define SLAPD_DEFAULT_CONFIGFILE	"%SYSCONFDIR%/slapd.conf"
+	/* default max deref depth for aliases */
+#define SLAPD_DEFAULT_MAXDEREFDEPTH	15	
 	/* default sizelimit on number of entries from a search */
 #define SLAPD_DEFAULT_SIZELIMIT		500
 	/* default timelimit to spend on a search */
 #define SLAPD_DEFAULT_TIMELIMIT		3600
 	/* location of the slapd pid file */
-#define SLAPD_PIDFILE			"%ETCDIR%/slapd.pid"
+#define SLAPD_PIDFILE			"%RUNDIR%/slapd.pid"
 	/* location of the slapd args file */
-#define SLAPD_ARGSFILE			"%ETCDIR%/slapd.args"
+#define SLAPD_ARGSFILE			"%RUNDIR%/slapd.args"
 	/* dn of the special "monitor" entry */
 #define SLAPD_MONITOR_DN		"cn=monitor"
 	/* dn of the special "config" entry */
@@ -265,4 +302,4 @@ Please try again later.\r\n"
 	/* minimum max ids that a single index entry can map to in ldbm */
 #define SLAPD_LDBM_MIN_MAXIDS		4000
 
-#endif /* _CONFIG_H */
+#endif /* _LDAP_CONFIG_H */

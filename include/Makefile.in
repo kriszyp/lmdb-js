@@ -32,6 +32,7 @@ ldapconfig.h: $(srcdir)/ldapconfig.h.edit Makefile
 	echo "" >> $@; \
 	$(SED) \
 			-e 's;%SYSCONFDIR%;$(sysconfdir);' \
+			-e 's;%DATADIR%;$(datadir);' \
 			-e 's;%BINDIR%;$(bindir);' \
 			-e 's;%SBINDIR%;$(sbindir);' \
 			-e 's;%LIBEXECDIR%;$(libexecdir);' \

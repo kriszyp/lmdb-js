@@ -13,6 +13,7 @@ install-common: FORCE
 		$(SED) -e "s%LDVERSION%$$VERSION%" \
 			-e 's%ETCDIR%$(sysconfdir)%' \
 			-e 's%SYSCONFDIR%$(sysconfdir)%' \
+			-e 's%DATADIR%$(datadir)%' \
 			-e 's%SBINDIR%$(sbindir)%' \
 			-e 's%BINDIR%$(bindir)%' \
 			-e 's%LIBDIR%$(libdir)%' \

@@ -19,7 +19,7 @@ version.c: ${OBJS} $(LDAP_LIBDEPEND)
 	    < $(srcdir)/Version.c > $@)
 
 install-local: $(PROGRAMS) rcpt500.help FORCE
-	-$(MKDIR) -p $(libexecdir) $(sysconfdir)
+	-$(MKDIR) $(libexecdir) $(datadir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 rcpt500 $(libexecdir)
-	-$(MV) $(sysconfdir)/rcpt500.help $(sysconfdir)/rcpt500.help-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 rcpt500.help $(sysconfdir)
+	-$(MV) $(datadir)/rcpt500.help $(datadir)/rcpt500.help-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 rcpt500.help $(datadir)

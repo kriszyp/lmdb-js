@@ -1,4 +1,4 @@
-.TH LDAP_FRIENDLY 3  "11 October 1993" "U-M LDAP LDVERSION"
+.TH LDAP_FRIENDLY 3 "22 September 1998" "OpenLDAP LDVERSION"
 .SH NAME
 ldap_friendly_name, ldap_free_friendlymap \- LDAP unfriendly to friendly name mapping routine
 .SH SYNOPSIS
@@ -43,7 +43,7 @@ For example:
         FriendlyMap *map = NULL;
 
         printf( "unfriendly %s => friendly %s\\n", name,
-            ldap_friendly_name( "ETCDIR/ldapfriendly", name, &map ) );
+            ldap_friendly_name( "DATADIR/ldapfriendly", name, &map ) );
 .ft
 .fi
 .LP
@@ -63,6 +63,11 @@ NULL is returned by
 if there is an error opening \fIfilename\fP, or if the file has a bad
 format, or if the \fImap\fP parameter is NULL.
 .SH FILES
-ETCDIR/ldapfriendly.conf
+DATADIR/ldapfriendly.conf
 .SH SEE ALSO
 .BR ldap (3)
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

@@ -36,8 +36,8 @@ gwversion.c: ${GWOBJS} $(LDAP_LIBDEPEND)
 	    < $(srcdir)/Versiongw.c > $@)
 
 install-local: $(PROGRAMS) go500gw.help FORCE
-	-$(MKDIR) -p $(libexecdir) $(sysconfdir)
+	-$(MKDIR) $(libexecdir) $(datadir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 go500	$(libexecdir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 go500gw $(libexecdir)
-	-$(MV) $(sysconfdir)/go500gw.help $(sysconfdir)/go500gw.help-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 go500gw.help $(sysconfdir)
+	-$(MV) $(datadir)/go500gw.help $(datadir)/go500gw.help-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 go500gw.help $(datadir)

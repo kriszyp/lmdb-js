@@ -62,7 +62,7 @@ ldrversion.c: ldapmodrdn.o $(LDAP_LIBDEPEND)
 	< $(srcdir)/Versionldr.c > $@)
 
 install-local:	FORCE
-	-$(MKDIR) -p $(bindir)
+	-$(MKDIR) $(bindir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapsearch $(bindir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapmodify $(bindir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapdelete $(bindir)
