@@ -87,7 +87,7 @@ fi
 
 TMP=/tmp/mkdep$$
 
-trap 'rm -f $TMP ; exit 1' 1 2 3 13 15
+trap 'rm -f $TMP.sed $TMP ; exit 1' 1 2 3 13 15
 
 cp $MAKE ${MAKE}.bak
 
@@ -134,7 +134,9 @@ _EOF_
 
 $CC $CC_MKDEP_FLAGS $files | \
 	sed -e 's; \./; ;g' | \
-	$SED | \
+	$SED > $TMP.sed
+# dont pipe to awk.  SGI awk wants a filename as argument.
+# (or '-', but I do not know if all other awks support that.)
 awk '
 $1 ~ /:/ {
 	filenm=$1;
@@ -153,7 +155,7 @@ $1 !~ /:/ {
 		print rec;
 	}
     }
-' noslash="$NOSLASH" >> $TMP
+' noslash="$NOSLASH" $TMP.sed >> $TMP
 
 
 cat << _EOF_ >> $TMP
@@ -163,5 +165,5 @@ _EOF_
 
 # copy to preserve permissions
 cp $TMP $MAKE
-rm -f ${MAKE}.bak $TMP
+rm -f ${MAKE}.bak $TMP.sed $TMP
 exit 0
