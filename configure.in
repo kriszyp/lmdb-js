@@ -708,7 +708,6 @@ AC_CHECK_FUNC(socket, :, [
 dnl hopefully we won't include too many libraries
 	AC_CHECK_LIB(socket, main)
 	AC_CHECK_LIB(net, main)
-	AC_CHECK_LIB(net, socket)
 	AC_CHECK_LIB(nsl_s, main)
 	AC_CHECK_LIB(nsl, main)
 	AC_CHECK_LIB(inet, socket)
@@ -717,7 +716,6 @@ dnl hopefully we won't include too many libraries
 
 dnl require select
 AC_CHECK_FUNC(select, :, AC_MSG_ERROR([select() required.]))
-dnl AC_CHECK_FUNCS(socketpair)
 
 if test "${ac_cv_header_winsock_h}" != yes; then
     dnl Select arg types
@@ -1945,12 +1943,10 @@ AC_COMPILE_CHECK_SIZEOF(short)
 AC_COMPILE_CHECK_SIZEOF(int) 
 AC_COMPILE_CHECK_SIZEOF(long)
 
-if test "$ac_cv_sizeof_int" -lt 4 ; then
-	AC_MSG_WARN([OpenLDAP requires 'int' to be 32 bits or greater.])
-
+if test "$ac_cv_sizeof_short" -lt 4 ; then
 	AC_DEFINE(LBER_INT_T,long)
 else
-	AC_DEFINE(LBER_INT_T,int)
+	AC_DEFINE(LBER_INT_T,short)
 fi
 
 AC_DEFINE(LBER_LEN_T,long)

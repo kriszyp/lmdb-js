@@ -26,14 +26,30 @@ LDAP_BEGIN_DECL
 
 extern BER_ERRNO_FN ber_int_errno_fn;
 
-
 /* these have to match lber types settings */
-#define LBER_INT_HTON(i)	AC_HTONL(i)
-#define LBER_INT_NTOH(i)	AC_NTOHL(i)
-#define LBER_LEN_HTON(l)	AC_HTONL(l)
-#define LBER_LEN_NTOH(l)	AC_NTOHL(l)
-#define LBER_TAG_HTON(t)	AC_HTONL(t)
-#define LBER_TAG_NTOH(t)	AC_NTOHL(t)
+#if LBER_INT_T == short
+#	define LBER_INT_HTON(i)	AC_HTONS(i)
+#	define LBER_INT_NTOH(i)	AC_NTOHS(i)
+#else
+#	define LBER_INT_HTON(i)	AC_HTONL(i)
+#	define LBER_INT_NTOH(i)	AC_NTOHL(i)
+#endif
+
+#if LBER_LEN_T == short
+#	define LBER_LEN_HTON(l)	AC_HTONS(l)
+#	define LBER_LEN_NTOH(l)	AC_NTOHS(l)
+#else
+#	define LBER_LEN_HTON(l)	AC_HTONL(l)
+#	define LBER_LEN_NTOH(l)	AC_NTOHL(l)
+#endif
+
+#if LBER_TAG_T == short
+#	define LBER_TAG_HTON(t)	AC_HTONS(t)
+#	define LBER_TAG_NTOH(t)	AC_NTOHS(t)
+#else
+#	define LBER_TAG_HTON(t)	AC_HTONL(t)
+#	define LBER_TAG_NTOH(t)	AC_NTOHL(t)
+#endif
 
 
 struct lber_options {
