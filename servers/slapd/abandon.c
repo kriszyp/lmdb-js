@@ -38,9 +38,16 @@ do_abandon(
 	 */
 
 	if ( ber_scanf( op->o_ber, "i", &id ) == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0 ,0 );
+		Debug( LDAP_DEBUG_ANY, "do_abandon: ber_scanf failed\n", 0, 0 ,0 );
 		return;
 	}
+
+#ifdef GET_CTRLS
+	if( get_ctrls( conn, op, 0 ) == -1 ) {
+		Debug( LDAP_DEBUG_ANY, "do_abandon: get_ctrls failed\n", 0, 0 ,0 );
+		return;
+	} 
+#endif
 
 	Debug( LDAP_DEBUG_ARGS, "do_abandon: id %d\n", id, 0 ,0 );
 

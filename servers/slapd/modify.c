@@ -133,6 +133,15 @@ do_modify(
 	}
 #endif
 
+#ifdef  GET_CTRLS
+	if( get_ctrls( conn, op, 1 ) == -1 ) {
+		free( ndn );
+		modlist_free( modlist );
+		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
+		return;
+	} 
+#endif
+
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d MOD dn=\"%s\"\n",
 	    conn->c_connid, op->o_opid, ndn, 0, 0 );
 

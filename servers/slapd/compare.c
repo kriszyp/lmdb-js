@@ -48,6 +48,16 @@ do_compare(
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
 		return;
 	}
+
+#ifdef GET_CTRLS
+	if( get_ctrls( conn, op, 1 ) == -1 ) {
+		free( ndn );
+		ava_free( &ava, 0 );
+		Debug( LDAP_DEBUG_ANY, "do_compare: get_ctrls failed\n", 0, 0, 0 );
+		return;
+	} 
+#endif
+
 	value_normalize( ava.ava_value.bv_val, attr_syntax( ava.ava_type ) );
 
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",

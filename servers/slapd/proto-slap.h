@@ -121,6 +121,14 @@ char ** charray_dup LDAP_P(( char **a ));
 char ** str2charray LDAP_P(( char *str, char *brkstr ));
 
 /*
+ * controls.c
+ */
+int get_ctrls LDAP_P((
+	Connection *co,
+	Operation *op,
+	int senderrors ));
+
+/*
  * config.c
  */
 

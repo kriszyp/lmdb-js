@@ -93,13 +93,22 @@ do_search(
 		goto return_results;
 	}
 
+#ifdef GET_CTRLS
+	if( get_ctrls( conn, op, 1 ) == -1 ) {
+		Debug( LDAP_DEBUG_ANY, "do_search: get_ctrls failed\n", 0, 0, 0 );
+		goto return_results;
+	} 
+#endif
+
 	Debug( LDAP_DEBUG_ARGS, "    attrs:", 0, 0, 0 );
+
 	if ( attrs != NULL ) {
 		for ( i = 0; attrs[i] != NULL; i++ ) {
 			attr_normalize( attrs[i] );
 			Debug( LDAP_DEBUG_ARGS, " %s", attrs[i], 0, 0 );
 		}
 	}
+
 	Debug( LDAP_DEBUG_ARGS, "\n", 0, 0, 0 );
 
 	Statslog( LDAP_DEBUG_STATS,

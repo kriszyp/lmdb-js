@@ -60,6 +60,22 @@ do_bind(
 		return;
 	}
 
+#ifdef GET_CTRLS
+	if( get_ctrls( conn, op, 1 ) == -1 ) {
+		if ( cdn != NULL ) {
+			free( cdn );
+		}
+		if ( ndn != NULL ) {
+			free( ndn );
+		}
+		if ( cred.bv_val != NULL ) {
+			free( cred.bv_val );
+		}
+		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
+		return;
+	} 
+#endif
+
 	Debug( LDAP_DEBUG_TRACE, "do_bind: version %d dn (%s) method %d\n",
 	    version, cdn, method );
 

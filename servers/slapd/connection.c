@@ -647,6 +647,12 @@ connection_operation( void *arg_v )
 		do_abandon( conn, arg->co_op );
 		break;
 
+#if 0
+	case LDAP_REQ_EXTENDED:
+		do_extended( conn, arg->co_op );
+		break;
+#endif
+
 	default:
 		Debug( LDAP_DEBUG_ANY, "unknown request 0x%lx\n",
 		    arg->co_op->o_tag, 0, 0 );

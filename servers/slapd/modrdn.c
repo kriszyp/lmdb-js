@@ -67,11 +67,6 @@ do_modrdn(
 		return;
 	}
 
-	Debug( LDAP_DEBUG_ARGS,
-	    "do_modrdn: dn (%s) newrdn (%s) deloldrdn (%d)\n", ndn, newrdn,
-	    deloldrdn );
-
-
 	/* Check for newSuperior parameter, if present scan it */
 
 	if ( ber_peek_tag( op->o_ber, &length ) == LDAP_TAG_NEWSUPERIOR ) {
@@ -97,7 +92,7 @@ do_modrdn(
 			return;
 		}
 
-		if ( ber_scanf( op->o_ber, /*{*/ "a}", &newSuperior ) 
+		if ( ber_scanf( op->o_ber, "a", &newSuperior ) 
 		     == LBER_ERROR ) {
 
 		    Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\"}) failed\n",
@@ -108,10 +103,34 @@ do_modrdn(
 
 		}
 
+	}
 
-		Debug( LDAP_DEBUG_ARGS, "do_modrdn: newSuperior=(%s)\n",
-		       newSuperior, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS,
+	    "do_modrdn: dn (%s) newrdn (%s) newsuperior (%s)\n",
+		ndn, newrdn,
+		newSuperior != NULL ? newSuperior : "" );
 
+	if ( ber_scanf( op->o_ber, /*{*/ "}") == LBER_ERROR ) {
+		free( ndn );
+		free( newrdn );	
+		free( newSuperior );
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: ber_scanf failed\n", 0, 0, 0 );
+		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
+		    "decoding error" );
+		return;
+	}
+
+#ifdef  GET_CTRLS
+	if( get_ctrls( conn, op, 1 ) == -1 ) {
+		free( ndn );
+		free( newrdn );	
+		free( newSuperior );
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: get_ctrls failed\n", 0, 0, 0 );
+		return;
+	} 
+#endif
+
+	if( newSuperior != NULL ) {
 		/* GET BACKEND FOR NEW SUPERIOR */
 
 		nnewSuperior = strdup( newSuperior );
@@ -125,7 +144,6 @@ do_modrdn(
 			 * XXX: We may need to do something else here, not sure
 			 * what though.
 			 */
-		
 
 			Debug( LDAP_DEBUG_ARGS,
 			       "do_modrdn: cant find backend for=(%s)\n",
@@ -138,9 +156,7 @@ do_modrdn(
 			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
 					  default_referral );
 			return;
-			
 		}
-
 	}
 
 	dn_normalize_case( ndn );

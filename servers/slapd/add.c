@@ -48,7 +48,7 @@ do_add( Connection *conn, Operation *op )
 
 	/* get the name */
 	if ( ber_scanf( ber, "{a", /*}*/ &dn ) == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
 		    "decoding error" );
 		return;
@@ -93,6 +93,22 @@ do_add( Connection *conn, Operation *op )
 		free( type );
 		ber_bvecfree( vals );
 	}
+
+	if ( ber_scanf( ber, /*{*/ "}") == LBER_ERROR ) {
+		entry_free( e );
+		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
+		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
+		    "decoding error" );
+		return;
+	}
+
+#ifdef GET_CTRLS
+	if( get_ctrls( conn, op, 1 ) == -1 ) {
+		entry_free( e );
+		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
+		return;
+	} 
+#endif
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d ADD dn=\"%s\"\n",
 	    conn->c_connid, op->o_opid, e->e_ndn, 0, 0 );
