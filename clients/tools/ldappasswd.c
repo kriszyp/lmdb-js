@@ -580,7 +580,8 @@ main( int argc, char *argv[] )
 	}
 
 	if( ld == NULL ) {
-		fprintf( stderr, "Could not create LDAP session handle (%d): %s\n", rc );
+		fprintf( stderr, "Could not create LDAP session handle (%d): %s\n",
+			rc, ldap_err2string(rc) );
 		return EXIT_FAILURE;
 	}
 
