@@ -149,10 +149,11 @@ int backsql_destroy_schema_map( backsql_info *si );
  * search.c
  */
 
-void backsql_init_search( backsql_srch_info *bsi, 
+int backsql_init_search( backsql_srch_info *bsi, 
 		struct berval *nbase, int scope, int slimit, int tlimit,
 		time_t stoptime, Filter *filter, SQLHDBC dbh,
-		Operation *op, SlapReply *rs, AttributeName *attrs );
+		Operation *op, SlapReply *rs, AttributeName *attrs,
+		int get_base_id );
 
 /*
  * sql-wrap.h

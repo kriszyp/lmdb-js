@@ -31,8 +31,6 @@
 int 
 backsql_bind( Operation *op, SlapReply *rs )
 {
-	backsql_info		*bi = (backsql_info*)op->o_bd->be_private;
-	backsql_entryID		user_id = BACKSQL_ENTRYID_INIT;
 	SQLHDBC			dbh;
 	AttributeDescription	*password = slap_schema.si_ad_userPassword;
 	Entry			*e, user_entry;
@@ -85,7 +83,12 @@ backsql_bind( Operation *op, SlapReply *rs )
 		goto error_return;
 	}
 
-	rc = backsql_dn2id( bi, &user_id, dbh, &dn );
+	anlist[0].an_name = password->ad_cname;
+	anlist[0].an_desc = password;
+	anlist[1].an_name.bv_val = NULL;
+
+	rc = backsql_init_search( &bsi, &dn, LDAP_SCOPE_BASE, 
+			-1, -1, -1, NULL, dbh, op, rs, anlist, 1 );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_bind(): "
 			"could not retrieve bind dn id - no such entry\n", 
@@ -95,14 +98,8 @@ backsql_bind( Operation *op, SlapReply *rs )
 		return 1;
 	}
 
-	anlist[0].an_name = password->ad_cname;
-	anlist[0].an_desc = password;
-	anlist[1].an_name.bv_val = NULL;
-
-	backsql_init_search( &bsi, &dn, LDAP_SCOPE_BASE, 
-			-1, -1, -1, NULL, dbh, op, rs, anlist );
 	bsi.bsi_e = &user_entry;
-	rc = backsql_id2entry( &bsi, &user_id );
+	rc = backsql_id2entry( &bsi, &bsi.bsi_base_id );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_bind(): "
 			"error %d in backsql_id2entry() "
@@ -137,6 +134,10 @@ backsql_bind( Operation *op, SlapReply *rs )
 	}
 
 error_return:;
+	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_dn ) ) {
+		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
+	}
+
 	if ( rs->sr_err ) {
 		send_ldap_result( op, rs );
 		return 1;

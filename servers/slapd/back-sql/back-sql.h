@@ -92,6 +92,7 @@
  * define to enable very extensive trace logging (debug only)
  */
 #undef BACKSQL_TRACE
+#define BACKSQL_TRACE
 
 /*
  * define to enable varchars as unique keys in user tables
@@ -254,6 +255,7 @@ typedef struct backsql_srch_info {
 #define BSQL_SF_FILTER_HASSUBORDINATE	0x0002
 
 	struct berval		*bsi_base_dn;
+	backsql_entryID		bsi_base_id;
 	int			bsi_scope;
 #define BACKSQL_SCOPE_BASE_LIKE		( LDAP_SCOPE_BASE | 0x1000 )
 	Filter			*bsi_filter;
@@ -320,6 +322,7 @@ typedef struct {
 #define BSQLF_HAS_LDAPINFO_DN_RU	0x0010
 #define BSQLF_DONTCHECK_LDAPINFO_DN_RU	0x0020
 #define BSQLF_USE_REVERSE_DN		0x0040
+#define BSQLF_ALLOW_ORPHANS		0x0080
 
 #define	BACKSQL_SCHEMA_LOADED(si) \
 	((si)->bsql_flags & BSQLF_SCHEMA_LOADED)
@@ -337,6 +340,8 @@ typedef struct {
 	((si)->bsql_flags & BSQLF_USE_REVERSE_DN)
 #define BACKSQL_CANUPPERCASE(si) \
 	((si)->upper_func.bv_val)
+#define BACKSQL_ALLOW_ORPHANS(si) \
+	((si)->bsql_flags & BSQLF_ALLOW_ORPHANS)
 	
 	struct berval	strcast_func;
 	Avlnode		*db_conns;

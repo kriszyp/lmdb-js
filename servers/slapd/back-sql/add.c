@@ -1016,7 +1016,8 @@ backsql_add( Operation *op, SlapReply *rs )
 		 *  if not attempting to add entry at suffix or with parent ""
 		 */
 		if ( ( ( !be_isroot( op ) && !be_shadow_update( op ) )
-			|| !BER_BVISEMPTY( &pdn ) ) && !is_entry_glue( op->oq_add.rs_e ) )
+			|| !BER_BVISEMPTY( &pdn ) ) && !is_entry_glue( op->oq_add.rs_e )
+			&& !BACKSQL_ALLOW_ORPHANS( bi ) )
 		{
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add: %s denied\n",
 				BER_BVISEMPTY( &pdn ) ? "suffix" : "entry at root",
@@ -1391,7 +1392,7 @@ done:;
 		ch_free( realpdn.bv_val );
 	}
 	if ( !BER_BVISNULL( &parent_id.eid_dn ) ) {
-		backsql_free_entryID( &parent_id, 0 );
+		(void)backsql_free_entryID( &parent_id, 0 );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_add(\"%s\"): %d \"%s\"\n",

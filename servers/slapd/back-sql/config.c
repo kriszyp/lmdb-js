@@ -360,6 +360,35 @@ backsql_db_config(
 			"fail_if_no_mapping=%s\n", 
 			BACKSQL_FAIL_IF_NO_MAPPING( si ) ? "yes" : "no", 0, 0 );
 
+	} else if ( !strcasecmp( argv[ 0 ], "allow_orphans") ) {
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"missing { yes | no }"
+				"in \"allow_orphans\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+			si->bsql_flags |= BSQLF_ALLOW_ORPHANS;
+
+		} else if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+			si->bsql_flags &= ~BSQLF_ALLOW_ORPHANS;
+
+		} else {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"\"allow_orphans\" directive arg "
+				"must be \"yes\" or \"no\"\n",
+				fname, lineno, 0 );
+			return 1;
+
+		}
+		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
+			"allow_orphans=%s\n", 
+			BACKSQL_ALLOW_ORPHANS( si ) ? "yes" : "no", 0, 0 );
+
 	} else if ( !strcasecmp( argv[ 0 ], "sqllayer") ) {
 		if ( backsql_api_config( si, argv[ 1 ] ) ) {
 			Debug( LDAP_DEBUG_TRACE,
