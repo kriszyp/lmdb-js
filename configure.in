@@ -826,13 +826,13 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 ; then
 
 	if test $ac_cv_header_kerberosIV_krb_h = yes ; then
 		AC_CHECK_LIB(krb4, main, [have_k5=yes], [have_k5=no],
-			[-lkrb5 -ldes425])
+			[-lkrb5 -ldes425 -lcrypto -lcom_err])
 
 		if test $have_k5 = yes ; then
 			ol_with_kerberos=found
 			ol_link_kerberos=yes
 
-			KRB_LIBS="-lkrb4 -lkrb5 -ldes425"
+			KRB_LIBS="-lkrb4 -lkrb5 -ldes425 -lcrypto -lcom_err"
 
 			LIBS="$KRB_LIBS $LIBS"
 
