@@ -426,38 +426,25 @@ static int get_url_perms(
 				return LDAP_OTHER;
 			} 
 #else
+			int 	j;
+
 			if ( strlen(value) != 3 ) {
 				return LDAP_OTHER;
 			} 
 
-			switch ( value[ 0 ] ) {
-			case 'w':
-				p |= S_IRWXU;
-				break;
-			case '-':
-				break;
-			default:
-				return LDAP_OTHER;
-			} 
+			for ( j = 0; j < 3; j++ ) {
+				static mode_t	m[ 3 ] 
+					= { S_IRWXU, S_IRWXG, S_IRWXO };
 
-			switch ( value[ 1 ] ) {
-			case 'w':
-				p |= S_IRWXG;
-				break;
-			case '-':
-				break;
-			default:
-				return LDAP_OTHER;
-			} 
-
-			switch ( value[ 2 ] ) {
-			case 'w':
-				p |= S_IRWXO;
-				break;
-			case '-':
-				break;
-			default:
-				return LDAP_OTHER;
+				switch ( value[ j ] ) {
+				case 'w':
+					p |= m[ j ];
+					break;
+				case '-':
+					break;
+				default:
+					return LDAP_OTHER;
+				}
 			} 
 #endif
 
@@ -467,6 +454,8 @@ static int get_url_perms(
 			return LDAP_SUCCESS;
 		}
 	}
+
+	return LDAP_OTHER;
 }
 #endif /* LDAP_PF_LOCAL */
 
