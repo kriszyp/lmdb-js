@@ -1,0 +1,164 @@
+CONTENT
+1. Purpose
+2. Metainformation used
+3. Typical back-sql operation
+4. Perspectives on back-sql as effective storage backend (not MAPPER)
+
+
+1. Purpose
+Primary purpose of this backend is to PRESENT information stored in some RDBMS
+as an LDAP subtree. It is being designed to be tunable to virtually any
+relational schema without having to change source. It is NOT designed as backend
+that uses RDBMS to store LDAP data (though you can use it for this purpose, it 
+will definitely be not the most effective way). 
+But THIS backend primarily targets the situation when you ALREADY HAVE some
+data in one or more RDBMSes of one or more different vendors on one or more
+different hosts and operating systems, having one or more different
+relational schemas. These could be data used by different software, which you
+want to integrate, or just local parts of bigger information project. Using 
+LDAP standalone server with back-sql as middleware, you can integrate this
+heterogeneous information as a single distributed LDAP tree, and even organize
+data exchange between nodes, not having to worry about unique id's, different
+schemas etc (****see authordn attribute in samples, and dts_ldap utility).
+Or, you could simply want to export some information like ISP database to LDAP,
+to authenticate users, make email lookups or whatever...
+
+2. Metainformation used
+***
+Almost everything mentioned later is illustrated in example, which is located
+in backsql/RDBMS_DEPENDENT directory, and contains scripts for generating sample
+database for Oracle,MS SQL Server and mySQL.
+***
+First thing that one must arrange for himself is what set of objectclasses
+can present your RDBMS information. The easiest way is to create objectclass
+for each entity you had in ER-diagram when designing your relational schema.
+Or you could choose some other way...
+Nevertheless, when you think it out, we must define a way to translate LDAP
+operation requests to (series of) SQL queries. Let us deal with SEARCH 
+operation.
+
+Example:
+Lets suppose that we store information about persons working in our 
+organization in two tables:
+
+PERSONS   		PHONES
+----------           -------------
+id integer		id integer
+first_name varchar      pers_id integer references persons(id)
+last_name varchar       phone
+middle_name varchar
+...
+
+(PHONES contains telephone numbers associated with persons). A person can have
+several numbers, then PHONES contains several records with corresponding 
+pers_id, or no numbers (and no records in PHONES with such pers_id). LDAP
+objectclass to present such information could look like this:
+person
+-------
+MUST cn
+MAY telephoneNumber
+MAY firstName
+MAY lastName
+...
+
+To fetch all values for cn attribute given person ID, we construct the query:
+SELECT CONCAT(persons.first_name,' ',persons.last_name) as cn FROM persons WHERE persons.id=?
+
+for telephoneNumber we can use:
+SELECT phones.phone as telephoneNumber FROM persons,phones WHERE persons.id=phones.pers.id and persons.id=?
+
+if we wanted to service LDAP request with filter like (telephoneNumber=123*),
+we would construct something like:
+SELECT ... FROM persons,phones WHERE persons.id=phones.pers.id and persons.id=? and phones.phone like '123%'
+
+So, if we had information about what tables contain values for given each 
+attribute, how to join this tables and arrange these values, we could try
+to automatically generate such statements, and translate search filters
+to SQL clauses
+
+To store such information, we add three more tables to our schema, so that
+ and fill it with data (see samples):
+
+ldap_objclasses
+---------------
+id=1
+name="person"
+keytbl="persons"
+keycol="id"
+create_proc="{call create_person(?)}"
+delete_proc="{call delete_person(?)}"
+
+ldap_attrs
+-----------
+id=1
+oc_id=1
+name="cn"
+sel_expr="CONCAT(persons.first_name,' ',persons.last_name)"
+from_tbls="persons"
+join_where=NULL
+add_proc=...
+delete_proc=...
+************
+id=<n>
+oc_id=1
+name="telephoneNumber"
+expr="phones.phone"
+from_tbls="persons,phones"
+join_where="phones.pers_id=persons.id"
+add_proc=...
+delete_proc=...
+
+
+ldap_entries
+------------
+id=1
+dn=<dn you choose>
+parent=<parent record id>
+keyval=<value of primary key>
+
+First two tables contain structured information about constructing queries like
+those we made in example. The latter (ldap_entries), contains information about
+structure of LDAP tree, referencing actual information by key value. Having 
+objectclass id, we can determine table and column which contain primary keys,
+and load data for the entry attributes using our queries.
+
+3. Typical back-sql operation
+Having metainformation loaded, back-sql uses these tables to determine a set
+of primary keys of candidates (depending on search scope and filter). It tries
+to do it for each objectclass registered in ldap_objclasses.
+Exapmle:
+for our query with filter (telephoneNumber=123*) we would get following
+query (which loads candidate IDs)
+SELECT ldap_entries.id,persons.id, 'person' AS objectClass, ldap_entries.dn AS dn FROM ldap_entries,persons,phones WHERE persons.id=ldap_entries.keyval AND ldap_entries.objclass=? AND ldap_entries.parent=? AND phones.pers_id=persons.id AND (phones.phone LIKE '123%')
+(for ONELEVEL search)
+or "... AND dn=?" (for BASE search)
+or "... AND dn LIKE '%?'" (for SUBTREE)
+
+Then, for each candidate, we load attributes requested using per-attribute queries
+like
+
+SELECT phones.phone AS telephoneNumber FROM persons,phones WHERE persons.id=? AND phones.pers_id=persons.id
+
+Then, we use test_filter() to test entry for full LDAP search filter match (since
+we cannot effectively make sense of SYNTAX of corresponding LDAP schema attribute,
+we translate the filter into most relaxed SQL condition to filter candidates),
+and send it to user.
+
+ADD,DELETE,MODIFY operations also performed on per-attribute metainformation
+(add_proc etc.). In those fields one can specify an SQL statement or stored procedure
+call which can add, or delete given value of given attribute, using given entry
+keyval (see examples -- mostly ORACLE and MSSQL - since there're no stored procs in mySQL).
+
+
+4. Perspectives on back-sql as effective storage backend (not MAPPER)
+Though as I said, back-sql is intended for presenting existing databases to LDAP,
+and as such is not most effective in presenting LDAP data to RDBMS, I have a couple
+of ideas on this point, and going to implement this in back-sql using 
+#ifdefs (one that wants to do RDBMS->LDAP, defines one flag, one that wants
+LDAP->RDBMS, defines another).
+These tasks have much in common (RDBMS access,connection handling etc), but
+latter does not need so much additional metainformation.
+For instance, it may have one table for each attribute type in LDAP schema,
+and use ldap_entries analog to present tree structure... Later this functionality
+will be described more closely...
+

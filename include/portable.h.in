@@ -909,6 +909,12 @@
 /* define to support dynamic SHELL backend */
 #undef SLAPD_SHELL_DYNAMIC
 
+/* define to support SQL backend */
+#undef SLAPD_SQL
+
+/* define to support dynamic SQL backend */
+#undef SLAPD_SQL_DYNAMIC
+
 
 /* begin of postamble */
 
