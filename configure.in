@@ -971,6 +971,11 @@ if test $ac_cv_func_res_query = no ; then
 	ac_cv_func_res_query=$ac_cv_lib_resolv___res_query
 fi
 
+if test $ac_cv_func_res_query = no ; then 
+	AC_CHECK_LIB(resolv, _res_9_query)
+	ac_cv_func_res_query=$ac_cv_lib_resolv_res_9_query
+fi
+
 if test "$ac_cv_func_res_query" = yes ; then
 	AC_DEFINE(HAVE_RES_QUERY,1,
 		[define if you have res_query()])
