@@ -2047,7 +2047,7 @@ config_tls_option(ConfigArgs *c) {
 	case CFG_TLS_CA_PATH:	flag = LDAP_OPT_X_TLS_CACERTDIR;	break;
 	case CFG_TLS_CA_FILE:	flag = LDAP_OPT_X_TLS_CACERTFILE;	break;
 	default:		Debug(LDAP_DEBUG_ANY, "%s: "
-					"unknown tls_option <%x>\n",
+					"unknown tls_option <0x%x>\n",
 					c->log, c->type, 0);
 	}
 	if (c->op == SLAP_CONFIG_EMIT) {
@@ -2080,7 +2080,7 @@ config_tls_config(ConfigArgs *c) {
 		flag = LDAP_OPT_X_TLS_CRLCHECK; keys = crlkeys;
 #else
 		Debug(LDAP_DEBUG_ANY, "%s: "
-				"disabled tls_option \"TLSCRLCheck\" <%x>\n",
+				"disabled tls_option \"TLSCRLCheck\" <0x%x>\n",
 				c->log, c->type, 0);
 #endif
 		break;
@@ -2089,7 +2089,7 @@ config_tls_config(ConfigArgs *c) {
 		break;
 	default:
 		Debug(LDAP_DEBUG_ANY, "%s: "
-				"unknown tls_option <%x>\n",
+				"unknown tls_option <0x%x>\n",
 				c->log, c->type, 0);
 	}
 	if (c->op == SLAP_CONFIG_EMIT) {
