@@ -99,6 +99,12 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 echo "Making queries on the proxy cache..." 
 echo "Query 1: filter:(sn=Jon) attrs: all" 
 $LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
