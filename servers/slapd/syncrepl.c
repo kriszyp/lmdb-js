@@ -1279,7 +1279,7 @@ syncrepl_entry(
 	op->o_tag = LDAP_REQ_SEARCH;
 	op->ors_scope = LDAP_SCOPE_SUBTREE;
 
-	/* get syncrepl cookie of shadow replica from subentry */
+	/* get the entry for this UUID */
 	op->o_req_dn = si->si_base;
 	op->o_req_ndn = si->si_base;
 
@@ -1287,8 +1287,8 @@ syncrepl_entry(
 	op->ors_tlimit = SLAP_NO_LIMIT;
 	op->ors_slimit = 1;
 
-	op->ors_attrs = slap_anlist_no_attrs;
-	op->ors_attrsonly = 1;
+	op->ors_attrs = slap_anlist_all_attributes;
+	op->ors_attrsonly = 0;
 
 	/* set callback function */
 	op->o_callback = &cb;
@@ -2111,7 +2111,12 @@ dn_callback(
 				Attribute *old, *new;
 				int i;
 
-				/* Did the DN change? */
+				/* Did the DN change? Note that we don't explicitly try to
+				 * discover if the deleteOldRdn argument applies here. It
+				 * would save an unnecessary Modify if we detected it, but
+				 * that's a fair amount of trouble to compare the two attr
+				 * lists in detail.
+				 */
 				if ( !dn_match( &rs->sr_entry->e_name,
 						&dni->new_entry->e_name ) )
 				{
@@ -2125,6 +2130,12 @@ dn_callback(
 
 				dni->attrs = i;
 
+				/* We assume that attributes are saved in the same order
+				 * in the remote and local databases. So if we walk through
+				 * the attributeDescriptions one by one they should match in
+				 * lock step. If not, we signal a change. Otherwise we test
+				 * all the values...
+				 */
 				for ( old = rs->sr_entry->e_attrs, new = dni->new_entry->e_attrs;
 						old && new;
 						old = old->a_next, new = new->a_next )
