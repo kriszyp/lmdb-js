@@ -240,7 +240,11 @@ main( int argc, char **argv )
 		}
 		if ( line[0] == '\n' || stop && buf && *buf ) {
 			if ( * buf != '\n' ) {
-				id++;
+				if (isdigit((unsigned char) *buf)) {
+					id = atol(buf);
+				} else {
+					id++;
+				}
 				s = buf;
 				while ( (linep = ldif_getline( &s )) != NULL ) {
 					if ( ldif_parse_line( linep, &type, &val,
