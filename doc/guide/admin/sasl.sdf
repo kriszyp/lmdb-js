@@ -341,7 +341,7 @@ directive might be written as
 
 >	sasl-regexp 
 >	  uid=(.*),cn=example.com,cn=kerberos_v4,cn=auth  
->	  ldap:///ou=person,dc=example,dc=com??sub?uid=$1
+>	  ldap:///ou=person,dc=example,dc=com??sub?(uid=$1)
 
 This will initiate an internal search of the LDAP database inside
 the slapd server. If the search returns exactly one entry, it is

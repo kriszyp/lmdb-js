@@ -79,7 +79,7 @@ H3: Kerberos Authentication Services
 
 OpenLDAP clients and servers support Kerberos-based authentication
 services.
-In particular, OpenLDAP supports {{TERM:SASL}}/{{TERM:GSSAPI}}
+In particular, OpenLDAP supports the {{TERM:SASL}}/{{TERM:GSSAPI}}
 authentication mechanism using either {{PRD:Heimdal}} or
 {{PRD:MIT Kerberos}} V packages.
 If you desire to use Kerberos-based SASL/GSSAPI authentication,

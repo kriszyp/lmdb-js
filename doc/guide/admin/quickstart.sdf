@@ -247,7 +247,7 @@ For example, for {{EX:example.com}}, use:
 
 . where {{F:example.ldif}} is the file you created above.
 ..{{EX: }}
-. Additional informaton regarding directory creation can be found
+. Additional information regarding directory creation can be found
 in the {{SECT:Database Creation and Maintenance Tools}} chapter of
 this document.
 
