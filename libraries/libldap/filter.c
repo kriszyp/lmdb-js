@@ -968,7 +968,7 @@ put_vrFilter( BerElement *ber, const char *str_in )
 				0, 0, 0 );
 #endif
 			next = strchr( str, '\0' );
-			if ( put_simple_filter( ber, str ) == -1 ) {
+			if ( put_simple_vrFilter( ber, str ) == -1 ) {
 				rc = -1;
 				goto done;
 			}
@@ -1098,11 +1098,7 @@ put_simple_vrFilter(
 					goto done;
 				}
 				rule = "";
-			
-			} else {
-				*rule++ = '\0';
 			}
-
 
 			if ( *str == '\0' && ( !rule || *rule == '\0' ) ) {
 				/* must have either type or rule */
