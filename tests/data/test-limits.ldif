@@ -1,0 +1,107 @@
+#LEAD COMMENT
+dn: o=University of Michigan,c=US
+#EMBEDDED COMMENT
+objectclass: organization
+objectclass: domainRelatedObject
+l: Ann Arbor, Michigan
+st: Michigan
+o: University of Michigan
+o: UMICH
+o: UM
+o: U-M
+o: U of M
+description: The University of Michigan at Ann Arbor
+postaladdress: University of Michigan $ 535 W. William St. $ Ann Arbor, MI 481
+ 09 $ US
+telephonenumber: +1 313 764-1817
+associateddomain: example.com
+
+dn: ou=People,o=University of Michigan,c=US
+objectclass: organizationalUnit
+ou: People
+
+dn: cn=Unlimited User,ou=People,o=University of Michigan,c=US
+objectclass: OpenLDAPperson
+cn: Unlimited User
+sn: User
+uid: unlimited
+userpassword:: c2VjcmV0
+
+dn: cn=Soft Limited User,ou=People,o=University of Michigan,c=US
+objectclass: OpenLDAPperson
+cn: Soft Limited User
+sn: User
+uid: softlimited
+userpassword:: c2VjcmV0
+
+dn: cn=Hard Limited User,ou=People,o=University of Michigan,c=US
+objectclass: OpenLDAPperson
+cn: Hard Limited User
+sn: User
+uid: hardlimited
+userpassword:: c2VjcmV0
+
+dn: cn=Unchecked Limited User,ou=People,o=University of Michigan,c=US
+objectclass: OpenLDAPperson
+cn: Unchecked Limited User
+sn: User
+uid: uncheckedlimited
+userpassword:: c2VjcmV0
+
+dn: cn=Other User,ou=People,o=University of Michigan,c=US
+objectclass: OpenLDAPperson
+cn: Other User
+sn: User
+uid: other
+userpassword:: c2VjcmV0
+
+dn: cn=Foo User,ou=People,o=University of Michigan,c=US
+objectclass: OpenLDAPperson
+cn: Foo User
+sn: User
+uid: foo
+userpassword:: c2VjcmV0
+
+dn: cn=Bar User,ou=People,o=University of Michigan,c=US
+objectclass: OpenLDAPperson
+cn: Bar User
+sn: User
+uid: bar
+userpassword:: c2VjcmV0
+
+dn: cn=Unchecked Limited User 2,ou=People,o=University of Michigan,c=US
+objectclass: OpenLDAPperson
+cn: Unchecked Limited User 2
+sn: User 2
+uid: uncheckedlimited2
+userpassword:: c2VjcmV0
+
+dn: ou=Groups,o=University of Michigan,c=US
+objectclass: organizationalUnit
+ou: Groups
+
+dn: cn=Unchecked Limited Users,ou=Groups,o=University of Michigan,c=US
+objectClass: groupOfNames
+objectClass: simpleSecurityObject
+cn: Unchecked Limited Users
+userpassword:: c2VjcmV0
+member: cn=Unchecked Limited User 2,ou=People,o=University of Michigan,c=US
+
+dn: ou=Admin,o=University of Michigan,c=US
+objectclass: organizationalUnit
+ou: Admin
+
+dn: cn=Unchecked Limited User 3,ou=Admin,o=University of Michigan,c=US
+objectclass: OpenLDAPperson
+cn: Unchecked Limited User 3
+sn: User 3
+uid: uncheckedlimited3
+userpassword:: c2VjcmV0
+
+dn: cn=Special User,o=University of Michigan,c=US
+objectclass: OpenLDAPperson
+cn: Special User
+sn: User
+uid: special
+userpassword:: c2VjcmV0
+

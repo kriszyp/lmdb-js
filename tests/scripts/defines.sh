@@ -56,6 +56,7 @@ SCHEMACONF=$DATADIR/slapd-schema.conf
 GLUECONF=$DATADIR/slapd-glue.conf
 REFINTCONF=$DATADIR/slapd-refint.conf
 UNIQUECONF=$DATADIR/slapd-unique.conf
+LIMITSCONF=$DATADIR/slapd-limits.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
@@ -123,6 +124,7 @@ LDIFLANGOUT=$DATADIR/lang-out.ldif
 LDIFREF=$DATADIR/referrals.ldif
 LDIFREFINT=$DATADIR/test-refint.ldif
 LDIFUNIQUE=$DATADIR/test-unique.ldif
+LDIFLIMITS=$DATADIR/test-limits.ldif
 MONITOR=""
 REFDN="c=US"
 BASEDN="o=University of Michigan,c=US"
