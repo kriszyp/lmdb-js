@@ -231,6 +231,8 @@ long connection_init(
 	{
 		int i;
 
+		c = NULL;
+
         for( i=0; i < dtblsize; i++) {
             if( connections[i].c_struct_state == SLAP_C_UNINITIALIZED ) {
                 assert( connections[i].c_sb == 0 );
