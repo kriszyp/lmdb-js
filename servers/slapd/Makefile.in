@@ -421,6 +421,6 @@ install-tools: FORCE
 	cd $(DESTDIR)$(sbindir); \
 	rm -f $(SLAPTOOLS); \
 	for i in $(SLAPTOOLS); do \
-		$(LN_S) $(libexecdir)/slapd $$i \
+		$(LN_S) $(libexecdir)/slapd $$i; \
 	done
 
