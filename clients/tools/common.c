@@ -670,6 +670,7 @@ tool_bind( LDAP *ld )
 			sasl_mech, NULL, NULL,
 			sasl_flags, lutil_sasl_interact, defaults );
 
+		lutil_sasl_freedefs( defaults );
 		if( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_sasl_interactive_bind_s" );
 			exit( EXIT_FAILURE );

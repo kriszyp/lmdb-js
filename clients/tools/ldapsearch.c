@@ -915,6 +915,8 @@ getNextPage:
 #endif
 
 	ldap_unbind( ld );
+	sasl_done();
+	ldap_pvt_tls_destroy();
 	return( rc );
 }
 
@@ -1120,6 +1122,7 @@ static int dosearch(
 	}
 
 done:
+	ldap_msgfree( res );
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 	if ( pageSize != 0 ) { 
 		npagedresponses = npagedresponses + nresponses;
@@ -1521,23 +1524,27 @@ static int print_result(
 		fprintf( stderr, "%s (%d)\n", ldap_err2string(err), err );
 	}
 
-	if( matcheddn && *matcheddn ) {
+	if( matcheddn ) {
+		if( *matcheddn ) {
 		if( !ldif ) {
 			write_ldif( LDIF_PUT_VALUE,
 				"matchedDN", matcheddn, strlen(matcheddn) );
 		} else {
 			fprintf( stderr, "Matched DN: %s\n", matcheddn );
 		}
+		}
 
 		ber_memfree( matcheddn );
 	}
 
-	if( text && *text ) {
+	if( text ) {
+		if( *text ) {
 		if( !ldif ) {
 			write_ldif( LDIF_PUT_TEXT, "text",
 				text, strlen(text) );
 		} else {
 			fprintf( stderr, "Additional information: %s\n", text );
+		}
 		}
 
 		ber_memfree( text );
