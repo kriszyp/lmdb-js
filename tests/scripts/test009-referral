@@ -69,7 +69,7 @@ done
 cat /dev/null > $SEARCHOUT
 
 echo "Testing exact searching..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
 	'sn=jensen' >> $SEARCHOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldapsearch failed!"
@@ -78,7 +78,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing OR searching..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
 	'(|(objectclass=groupofnames)(sn=jones))' >> $SEARCHOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldapsearch failed!"
@@ -87,7 +87,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing AND matching and ends-with searching..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
 	'(&(objectclass=groupofnames)(cn=A*))' >> $SEARCHOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldapsearch failed!"
@@ -96,7 +96,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing NOT searching..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
 	'(!(objectclass=person))' >> $SEARCHOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldapsearch failed!"
