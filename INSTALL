@@ -216,11 +216,11 @@ o    Using locally installed software
                 LDFLAGS="-L/usr/local/lib" \
                 ./configure
 
-Note: You may have add additional flags if your system supports shared
-libraries.
+Note: You may have to add additional flags if your system supports
+shared libraries.
 
 End of OpenLDAP INSTALL file.
 
-$OpenLDAP: pkg/openldap-guide/release/install.sdf,v 1.8 2000/08/22
-22:50:50 kurt Exp $
+$OpenLDAP: pkg/openldap-guide/release/install.sdf,v 1.9 2000/08/22
+22:56:27 kurt Exp $
 
