@@ -1471,11 +1471,11 @@ update_cookie_retry:
 		}
 	}
 
-done :
-
 	if ( e != NULL ) {
 		entry_free( e );
 	}
+
+done :
 
 	if ( modlist ) {
 		slap_mods_free( modlist );
