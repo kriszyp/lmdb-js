@@ -125,7 +125,10 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 		return( LDAP_PROTOCOL_ERROR );
 	}
 
-	/* could check the hostname here */
+	if ( ludp->lud_host && *ludp->lud_host ) {
+		/* host part should be empty */
+		return( LDAP_PROTOCOL_ERROR );
+	}
 
 	/* Grab the scope */
 	*scope = ludp->lud_scope;
