@@ -13,7 +13,9 @@ Changes included in OpenLDAP 1.2.11 Release Engineering
 	Raise MAXDBCACHE to 128 (ITS#512)
 	Fixed slapd client_addr crash (ITS#579)
 	Build Environment
+		Update res_search detection
 		Detect and use getpassphrase() and getpass()
+		Unset CDPATH
 		Change GNU Pth to enable soft syscalls
 		Changed RCPT cmds symbol to avoid link conflict (ITS#526)
 		Changed LDBM directory to $localstatedir/openldap-ldbm
