@@ -371,9 +371,7 @@ bdb2i_idl_insert_key(
 				bdb2i_idl_free( idl );
 				idl = bdb2i_idl_allids( be );
 				rc = idl_store( be, db, key, idl );
-				bdb2i_idl_free( idl );
-
-				return( rc );
+				break;
 			}
 
 			idl_split_block( idl, id, &tmp, &tmp2 );
@@ -442,6 +440,7 @@ bdb2i_idl_insert_key(
 		Debug( LDAP_DEBUG_ANY, "nonexistent continuation block (%s)\n",
 		    k2.dptr, 0, 0 );
 		free( kstr );
+		bdb2i_idl_free( idl );
 		return( -1 );
 	}
 
@@ -510,10 +509,9 @@ bdb2i_idl_insert_key(
 				return( 0 );
 
 			case 3:		/* split the original block */
-				bdb2i_idl_free( tmp2 );
 				break;
 			}
-
+			bdb2i_idl_free( tmp2 );
 		}
 
 		/*
@@ -703,10 +701,12 @@ bdb2i_idl_delete_key (
 					idl_store( be, db, key, idl );
 				}
 
+				bdb2i_idl_free( idl );
 				return 0;
 			}
 			/*  We didn't find the ID.  Hmmm... */
 		}
+		bdb2i_idl_free( idl );
 		return -1;
 	}
 	
@@ -758,12 +758,16 @@ bdb2i_idl_delete_key (
 					else
 						idl_store( be, db, key, idl );
 				}
+				bdb2i_idl_free( tmp );
 				free( kstr );
+				bdb2i_idl_free( idl );
 				return 0;
 			}
 		}
+		bdb2i_idl_free( tmp );
 	}
 	free( kstr );
+	bdb2i_idl_free( idl );
 	return -1;
 }
 
