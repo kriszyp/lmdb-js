@@ -356,14 +356,11 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	/* now encode the next packet. */
 #if SASL_VERSION_MAJOR >= 2
 	ber_pvt_sb_buf_init( &p->buf_out );
-	/* sasl v2 makes sure this number is correct */
-	if ( len > *p->sasl_maxbuf )
-		len = *p->sasl_maxbuf;
 #else
 	ber_pvt_sb_buf_destroy( &p->buf_out );
+#endif
 	if ( len > *p->sasl_maxbuf - 100 )
 		len = *p->sasl_maxbuf - 100;	/* For safety margin */
-#endif
 	ret = sasl_encode( p->sasl_context, buf, len,
 		(SASL_CONST char **)&p->buf_out.buf_base,
 		(unsigned *)&p->buf_out.buf_size );
