@@ -201,6 +201,18 @@ get_filter(
 
 		if( err != LDAP_SUCCESS ) {
 			/* unrecognized attribute description or other error */
+#ifdef NEW_LOGGING
+			LDAP_LOG( FILTER, ERR, 
+				"get_filter: conn %d unknown attribute "
+				"type=%s (%d)\n",
+				op->o_connid, type.bv_val, err );
+#else
+			Debug( LDAP_DEBUG_ANY, 
+				"get_filter: conn %d unknown attribute "
+				"type=%s (%d)\n",
+				op->o_connid, type.bv_val, err );
+#endif
+
 			f.f_choice = SLAPD_FILTER_COMPUTED;
 			f.f_result = LDAP_COMPARE_FALSE;
 			err = LDAP_SUCCESS;
@@ -423,6 +435,16 @@ get_ssa(
 	rc = slap_bv2ad( &desc, &ssa.sa_desc, text );
 
 	if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( FILTER, ERR, 
+			"get_ssa: conn %d d unknown attribute type=%s (%d)\n",
+			op->o_connid, desc.bv_val, rc );
+#else
+		Debug( LDAP_DEBUG_ANY, 
+			"get_ssa: conn %d unknown attribute type=%s (%d)\n",
+			op->o_connid, desc.bv_val, rc );
+#endif
+
 		/* skip over the rest of this filter */
 		for ( tag = ber_first_element( ber, &len, &last );
 			tag != LBER_DEFAULT;
@@ -1031,6 +1053,18 @@ get_simple_vrFilter(
 
 		if( err != LDAP_SUCCESS ) {
 			/* unrecognized attribute description or other error */
+#ifdef NEW_LOGGING
+			LDAP_LOG( FILTER, ERR, 
+				"get_simple_vrFilter: conn %d unknown "
+				"attribute type=%s (%d)\n",
+				op->o_connid, type.bv_val, err );
+#else
+			Debug( LDAP_DEBUG_ANY, 
+				"get_simple_vrFilter: conn %d unknown "
+				"attribute type=%s (%d)\n",
+				op->o_connid, type.bv_val, err );
+#endif
+
 			vrf.vrf_choice = SLAPD_FILTER_COMPUTED;
 			vrf.vrf_result = LDAP_COMPARE_FALSE;
 			err = LDAP_SUCCESS;
