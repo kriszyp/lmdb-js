@@ -548,11 +548,13 @@ select_backend(
 				continue;
 			}
 			
+			/*
+			 * input DN is normalized, so the separator check
+			 * need not look at escaping
+			 */
 			if ( len && len < dnlen &&
-				( !DN_SEPARATOR( dn->bv_val[(dnlen-len)-1] ) ||
-					DN_ESCAPE( dn->bv_val[(dnlen-len)-2] ) ) )
+				!DN_SEPARATOR( dn->bv_val[(dnlen-len)-1] ))
 			{
-				/* make sure we have a separator */
 				continue;
 			}
 
