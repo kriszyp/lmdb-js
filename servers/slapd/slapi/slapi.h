@@ -131,13 +131,16 @@ typedef enum slapi_extension_e {
 
 #ifndef NO_PBLOCK_CLASS		/* where's this test from? */
 
-#if 0	/* unused (yet?) */
-#define CMP_EQUAL			0
-#define CMP_GREATER			1
-#define CMP_LOWER			(-1)
-#endif
+typedef enum slapi_pblock_class_e {
+	PBLOCK_CLASS_INVALID = 0,
+	PBLOCK_CLASS_INTEGER,
+	PBLOCK_CLASS_LONG_INTEGER,
+	PBLOCK_CLASS_POINTER,
+	PBLOCK_CLASS_FUNCTION_POINTER
+} slapi_pblock_class_t;
+
+#define PBLOCK_SUCCESS			(0)
 #define PBLOCK_ERROR			(-1)
-#define INVALID_PARAM			PBLOCK_ERROR
 #define PBLOCK_MAX_PARAMS		100
 
 struct slapi_pblock {
@@ -282,6 +285,8 @@ extern Backend * slapi_cl_get_be(char *dn);
 #define SLAPI_X_CONN_IS_UDP			1302
 #define SLAPI_X_CONN_SSF			1303
 #define SLAPI_X_CONN_SASL_CONTEXT		1304
+
+#define SLAPI_X_CONFIG_ARGV	1400
 
 #define SLAPD_AUTH_NONE   "none"
 #define SLAPD_AUTH_SIMPLE "simple"

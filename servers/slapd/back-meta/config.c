@@ -384,7 +384,73 @@ meta_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		li->savecred = 1;
+
+		li->flags |= LDAP_BACK_F_SAVECRED;
+
+	} else if ( strcasecmp( argv[0], "chase-referrals" ) == 0 ) {
+		if ( argc != 1 ) {
+			fprintf( stderr,
+	"%s: line %d: \"chase-referrals\" takes no arguments\n",
+					fname, lineno );
+			return( 1 );
+		}
+
+		li->flags |= LDAP_BACK_F_CHASE_REFERRALS;
+
+	} else if ( strcasecmp( argv[0], "dont-chase-referrals" ) == 0 ) {
+		if ( argc != 1 ) {
+			fprintf( stderr,
+	"%s: line %d: \"dont-chase-referrals\" takes no arguments\n",
+					fname, lineno );
+			return( 1 );
+		}
+
+		li->flags &= ~LDAP_BACK_F_CHASE_REFERRALS;
+
+	} else if ( strncasecmp( argv[0], "tls-", STRLENOF( "tls-" ) ) == 0 ) {
+
+		/* start tls */
+		if ( strcasecmp( argv[0], "tls-start" ) == 0 ) {
+			if ( argc != 1 ) {
+				fprintf( stderr,
+		"%s: line %d: tls-start takes no arguments\n",
+						fname, lineno );
+				return( 1 );
+			}
+			li->flags |= ( LDAP_BACK_F_USE_TLS | LDAP_BACK_F_TLS_CRITICAL );
+	
+		/* try start tls */
+		} else if ( strcasecmp( argv[0], "tls-try-start" ) == 0 ) {
+			if ( argc != 1 ) {
+				fprintf( stderr,
+		"%s: line %d: tls-try-start takes no arguments\n",
+						fname, lineno );
+				return( 1 );
+			}
+			li->flags &= ~LDAP_BACK_F_TLS_CRITICAL;
+			li->flags |= LDAP_BACK_F_USE_TLS;
+	
+		/* propagate start tls */
+		} else if ( strcasecmp( argv[0], "tls-propagate" ) == 0 ) {
+			if ( argc != 1 ) {
+				fprintf( stderr,
+		"%s: line %d: tls-propagate takes no arguments\n",
+						fname, lineno );
+				return( 1 );
+			}
+			li->flags |= ( LDAP_BACK_F_PROPAGATE_TLS | LDAP_BACK_F_TLS_CRITICAL );
+		
+		/* try start tls */
+		} else if ( strcasecmp( argv[0], "tls-try-propagate" ) == 0 ) {
+			if ( argc != 1 ) {
+				fprintf( stderr,
+		"%s: line %d: tls-try-propagate takes no arguments\n",
+						fname, lineno );
+				return( 1 );
+			}
+			li->flags &= ~LDAP_BACK_F_TLS_CRITICAL;
+			li->flags |= LDAP_BACK_F_PROPAGATE_TLS;
+		}
 	
 	/* name to use as pseudo-root dn */
 	} else if ( strcasecmp( argv[ 0 ], "pseudorootdn" ) == 0 ) {

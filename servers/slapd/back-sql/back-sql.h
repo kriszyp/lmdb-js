@@ -444,7 +444,6 @@ typedef struct backsql_srch_info {
 				**bsi_id_listtail,
 				*bsi_c_eid;
 	int			bsi_n_candidates;
-	int			bsi_abandon;
 	int			bsi_status;
 
 	backsql_oc_map_rec	*bsi_oc;

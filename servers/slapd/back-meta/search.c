@@ -71,16 +71,9 @@ meta_back_search( Operation *op, SlapReply *rs )
 	 * to map attrs and maybe rewrite value
 	 */
 	lc = meta_back_getconn( op, rs, META_OP_ALLOW_MULTIPLE, 
-			&op->o_req_ndn, NULL );
-	if ( !lc ) {
- 		send_ldap_result( op, rs );
-		return -1;
-	}
-
-	if ( !meta_back_dobind( lc, op ) ) {
-		rs->sr_err = LDAP_UNAVAILABLE;
- 		send_ldap_result( op, rs );
-		return -1;
+			&op->o_req_ndn, NULL, LDAP_BACK_SENDERR );
+	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
+		return rs->sr_err;
 	}
 
 	/*
@@ -310,7 +303,7 @@ new_candidate:;
 			
 			if ( ab ) {
 				ldap_abandon_ext( lsc->msc_ld, msgid[ i ], NULL, NULL );
-				rc = 0;
+				rc = SLAPD_ABANDON;
 				break;
 			}
 

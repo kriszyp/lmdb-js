@@ -253,7 +253,6 @@ backsql_init_search(
 		}
 	}
 
-	bsi->bsi_abandon = 0;
 	bsi->bsi_id_list = NULL;
 	bsi->bsi_id_listtail = &bsi->bsi_id_list;
 	bsi->bsi_n_candidates = 0;
@@ -1464,6 +1463,12 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_oc_get_candidates(): oc=\"%s\"\n",
 			BACKSQL_OC_NAME( oc ), 0, 0 );
 
+	/* check for abandon */
+	if ( op->o_abandon ) {
+		bsi->bsi_status = SLAPD_ABANDON;
+		return BACKSQL_AVL_STOP;
+	}
+
 	if ( bsi->bsi_n_candidates == -1 ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 			"unchecked limit has been overcome\n", 0, 0, 0 );
@@ -1943,6 +1948,12 @@ backsql_search( Operation *op, SlapReply *rs )
 		 */
 		avl_apply( bi->sql_oc_by_oc, backsql_oc_get_candidates,
 				&bsi, BACKSQL_AVL_STOP, AVL_INORDER );
+
+		/* check for abandon */
+		if ( op->o_abandon ) {
+			rs->sr_err = SLAPD_ABANDON;
+			goto send_results;
+		}
 	}
 
 	if ( op->ors_limit != NULL	/* isroot == FALSE */
@@ -1973,7 +1984,8 @@ backsql_search( Operation *op, SlapReply *rs )
 
 		/* check for abandon */
 		if ( op->o_abandon ) {
-			break;
+			rs->sr_err = SLAPD_ABANDON;
+			goto send_results;
 		}
 
 		/* check time limit */
@@ -1983,10 +1995,7 @@ backsql_search( Operation *op, SlapReply *rs )
 			rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
 			rs->sr_ctrls = NULL;
 			rs->sr_ref = rs->sr_v2ref;
-			rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS
-				: LDAP_REFERRAL;
-			send_ldap_result( op, rs );
-			goto end_of_search;
+			goto send_results;
 		}
 
 #ifdef BACKSQL_ARBITRARY_KEY
@@ -2217,17 +2226,11 @@ next_entry2:;
 				&& rs->sr_nentries >= op->ors_slimit )
 		{
 			rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-			send_ldap_result( op, rs );
-			goto end_of_search;
+			goto send_results;
 		}
 	}
 
 end_of_search:;
-	entry_clean( &base_entry );
-
-	/* in case we got here accidentally */
-	entry_clean( &user_entry );
-
 	if ( rs->sr_nentries > 0 ) {
 		rs->sr_ref = rs->sr_v2ref;
 		rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS
@@ -2236,7 +2239,16 @@ end_of_search:;
 	} else {
 		rs->sr_err = bsi.bsi_status;
 	}
-	send_ldap_result( op, rs );
+
+send_results:;
+	if ( rs->sr_err != SLAPD_ABANDON ) {
+		send_ldap_result( op, rs );
+	}
+
+	entry_clean( &base_entry );
+
+	/* in case we got here accidentally */
+	entry_clean( &user_entry );
 
 	if ( rs->sr_v2ref ) {
 		ber_bvarray_free( rs->sr_v2ref );
@@ -2284,7 +2296,8 @@ done:;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_search()\n", 0, 0, 0 );
-	return 0;
+
+	return rs->sr_err;
 }
 
 /* return LDAP_SUCCESS IFF we can retrieve the specified entry.

@@ -215,7 +215,14 @@ struct metainfo {
 	ldap_pvt_thread_mutex_t	conn_mutex;
 	Avlnode			*conntree;
 
-	int			savecred;
+	unsigned		flags;
+/* defined in <back-ldap/back-ldap.h>
+#define LDAP_BACK_F_NONE		0x00U
+#define LDAP_BACK_F_SAVECRED		0x01U
+#define LDAP_BACK_F_USE_TLS		0x02U
+#define LDAP_BACK_F_TLS_CRITICAL	( 0x04U | LDAP_BACK_F_USE_TLS )
+#define LDAP_BACK_F_CHASE_REFERRALS	0x8U
+*/
 };
 
 #define META_OP_ALLOW_MULTIPLE		0x00
@@ -227,13 +234,15 @@ meta_back_getconn(
 		SlapReply		*rs,
 		int			op_type,
 		struct berval		*dn,
-		int			*candidate
+		int			*candidate,
+		ldap_back_send_t	sendok
 );
 
 extern int
 meta_back_dobind(
 		struct metaconn		*lc,
-		Operation		*op
+		Operation		*op,
+		ldap_back_send_t	sendok
 );
 
 extern int

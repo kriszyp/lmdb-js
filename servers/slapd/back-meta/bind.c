@@ -63,7 +63,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		op_type = META_OP_REQUIRE_ALL;
 	}
 	lc = meta_back_getconn( op, rs, op_type,
-			&op->o_req_ndn, NULL );
+			&op->o_req_ndn, NULL, LDAP_BACK_SENDERR );
 	if ( !lc ) {
 		Debug( LDAP_DEBUG_ANY,
 				"meta_back_bind: no target for dn %s.\n%s%s",
@@ -248,7 +248,7 @@ retry:;
 	lsc->msc_bound = META_BOUND;
 	lc->mc_bound_target = candidate;
 
-	if ( li->savecred ) {
+	if ( LDAP_BACK_SAVECRED( li ) ) {
 		if ( !BER_BVISNULL( &lsc->msc_cred ) ) {
 			/* destroy sensitive data */
 			memset( lsc->msc_cred.bv_val, 0, lsc->msc_cred.bv_len );
@@ -277,7 +277,7 @@ return_results:;
  * meta_back_dobind
  */
 int
-meta_back_dobind( struct metaconn *lc, Operation *op )
+meta_back_dobind( struct metaconn *lc, Operation *op, ldap_back_send_t sendok )
 {
 	struct metasingleconn	*lsc;
 	int			bound = 0, i;
@@ -328,7 +328,7 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 			BER_BVZERO( &lsc->msc_cred );
 		}
 
-		/* FIXME: should be check if at least some of the op->o_ctrls
+		/* FIXME: should we check if at least some of the op->o_ctrls
 		 * can/should be passed? */
 		rc = ldap_sasl_bind( lsc->msc_ld, "", LDAP_SASL_SIMPLE, &cred,
 				NULL, NULL, &msgid );

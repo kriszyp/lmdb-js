@@ -213,26 +213,50 @@ ldap_back_db_config(
 		li->url = ch_strdup( argv[ 1 ] );
 #endif
 
-	/* start tls */
-	} else if ( strcasecmp( argv[0], "start-tls" ) == 0 ) {
-		if ( argc != 1 ) {
-			fprintf( stderr,
-	"%s: line %d: start-tls takes no arguments\n",
-					fname, lineno );
-			return( 1 );
-		}
-		li->flags |= LDAP_BACK_F_TLS_CRITICAL;
+	} else if ( strncasecmp( argv[0], "tls-", STRLENOF( "tls-" ) ) == 0 ) {
+
+		/* start tls */
+		if ( strcasecmp( argv[0], "tls-start" ) == 0 ) {
+			if ( argc != 1 ) {
+				fprintf( stderr,
+		"%s: line %d: tls-start takes no arguments\n",
+						fname, lineno );
+				return( 1 );
+			}
+			li->flags |= ( LDAP_BACK_F_USE_TLS | LDAP_BACK_F_TLS_CRITICAL );
 	
-	/* try start tls */
-	} else if ( strcasecmp( argv[0], "try-start-tls" ) == 0 ) {
-		if ( argc != 1 ) {
-			fprintf( stderr,
-	"%s: line %d: try-start-tls takes no arguments\n",
-					fname, lineno );
-			return( 1 );
+		/* try start tls */
+		} else if ( strcasecmp( argv[0], "tls-try-start" ) == 0 ) {
+			if ( argc != 1 ) {
+				fprintf( stderr,
+		"%s: line %d: tls-try-start takes no arguments\n",
+						fname, lineno );
+				return( 1 );
+			}
+			li->flags &= ~LDAP_BACK_F_TLS_CRITICAL;
+			li->flags |= LDAP_BACK_F_USE_TLS;
+	
+		/* propagate start tls */
+		} else if ( strcasecmp( argv[0], "tls-propagate" ) == 0 ) {
+			if ( argc != 1 ) {
+				fprintf( stderr,
+		"%s: line %d: tls-propagate takes no arguments\n",
+						fname, lineno );
+				return( 1 );
+			}
+			li->flags |= ( LDAP_BACK_F_PROPAGATE_TLS | LDAP_BACK_F_TLS_CRITICAL );
+		
+		/* try start tls */
+		} else if ( strcasecmp( argv[0], "tls-try-propagate" ) == 0 ) {
+			if ( argc != 1 ) {
+				fprintf( stderr,
+		"%s: line %d: tls-try-propagate takes no arguments\n",
+						fname, lineno );
+				return( 1 );
+			}
+			li->flags &= ~LDAP_BACK_F_TLS_CRITICAL;
+			li->flags |= LDAP_BACK_F_PROPAGATE_TLS;
 		}
-		li->flags &= ~LDAP_BACK_F_TLS_CRITICAL;
-		li->flags |= LDAP_BACK_F_USE_TLS;
 	
 	/* name to use for ldap_back_group */
 	} else if ( strcasecmp( argv[0], "acl-authcdn" ) == 0
@@ -723,7 +747,7 @@ parse_idassert(
 						li->idassert_flags |= LDAP_BACK_AUTH_NATIVE_AUTHZ;
 
 					} else {
-						fprintf( stderr, "%s: line %s: "
+						fprintf( stderr, "%s: line %d: "
 							"unknown authz mode \"%s\"\n",
 							fname, lineno, val );
 						return 1;

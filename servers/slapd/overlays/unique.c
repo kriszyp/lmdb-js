@@ -46,6 +46,7 @@ typedef struct unique_data_s {
 } unique_data;
 
 typedef struct unique_counter_s {
+	struct berval *ndn;
 	int count;
 } unique_counter;
 
@@ -231,16 +232,23 @@ static int count_attr_cb(
 	SlapReply *rs
 )
 {
+	unique_counter *uc;
+
 	/* because you never know */
 	if(!op || !rs) return(0);
 
 	/* Only search entries are interesting */
 	if(rs->sr_type != REP_SEARCH) return(0);
 
+	uc = op->o_callback->sc_private;
+
+	/* Ignore the current entry */
+	if ( dn_match( uc->ndn, &rs->sr_entry->e_nname )) return(0);
+
 	Debug(LDAP_DEBUG_TRACE, "==> count_attr_cb <%s>\n",
 		rs->sr_entry ? rs->sr_entry->e_name.bv_val : "UNKNOWN_DN", 0, 0);
 
-	((unique_counter*)op->o_callback->sc_private)->count++;
+	uc->count++;
 
 	return(0);
 }
@@ -316,7 +324,7 @@ static int unique_search(
 	unique_data *ud = on->on_bi.bi_private;
 	SlapReply nrs = { REP_RESULT };
 	slap_callback cb = { NULL, NULL, NULL, NULL }; /* XXX */
-	unique_counter uq = { 0 };
+	unique_counter uq = { NULL, 0 };
 	int rc;
 
 	nop->ors_filter = str2filter_x(nop, key);
@@ -333,6 +341,8 @@ static int unique_search(
 	nop->ors_tlimit	= SLAP_NO_LIMIT;
 	nop->ors_attrs	= slap_anlist_no_attrs;
 	nop->ors_attrsonly = 1;
+
+	uq.ndn = &op->o_req_ndn;
 
 	nop->o_req_ndn	= ud->dn;
 	nop->o_ndn = op->o_bd->be_rootndn;

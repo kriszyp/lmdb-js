@@ -87,7 +87,7 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 		lc->lc_bound = 1;
 		ber_dupbv( &lc->lc_bound_ndn, &op->o_req_ndn );
 
-		if ( li->flags & LDAP_BACK_F_SAVECRED ) {
+		if ( LDAP_BACK_SAVECRED( li ) ) {
 			if ( !BER_BVISNULL( &lc->lc_cred ) ) {
 				memset( lc->lc_cred.bv_val, 0,
 						lc->lc_cred.bv_len );
@@ -241,27 +241,99 @@ ldap_back_prepare_conn( struct ldapconn **lcp, Operation *op, SlapReply *rs, lda
 	 */
 	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, (const void *)&vers );
 
-	/* automatically chase referrals ("chase-referrals"/"dont-chase-referrals" statement) */
-	if ( li->flags & LDAP_BACK_F_CHASE_REFERRALS ) {
+	/* automatically chase referrals ("[dont-]chase-referrals" statement) */
+	if ( LDAP_BACK_CHASE_REFERRALS( li ) ) {
 		ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON );
 	}
 
-	/* start TLS ("start-tls"/"try-start-tls" statements) */
-	if ( ( li->flags & LDAP_BACK_F_USE_TLS )
-			&& !ldap_is_ldaps_url( li->url )
-			&& ( rs->sr_err = ldap_start_tls_s( ld, NULL, NULL ) ) != LDAP_SUCCESS )
+#ifdef HAVE_TLS
+	/* start TLS ("tls-[try-]{start,propagate}" statements) */
+	if ( ( LDAP_BACK_USE_TLS( li ) || ( op->o_conn->c_is_tls && LDAP_BACK_PROPAGATE_TLS( li ) ) )
+				&& !ldap_is_ldaps_url( li->url ) )
 	{
+#if 1
+		/*
+		 * use asynchronous StartTLS
+		 * in case, chase referral (not implemented yet)
+		 */
+		int		msgid;
+
+		rs->sr_err = ldap_start_tls( ld, NULL, NULL, &msgid );
+		if ( rs->sr_err == LDAP_SUCCESS ) {
+			LDAPMessage	*res = NULL;
+			int		rc, retries = 1;
+			struct timeval	tv = { 0, 0 };
+
+retry:;
+			rc = ldap_result( ld, msgid, LDAP_MSG_ALL, &tv, &res );
+			if ( rc < 0 ) {
+				rs->sr_err = LDAP_OTHER;
+
+			} else if ( rc == 0 ) {
+				if ( retries ) {
+					retries--;
+					tv.tv_sec = 0;
+					tv.tv_usec = 100000;
+					goto retry;
+				}
+				rs->sr_err = LDAP_OTHER;
+
+			} else if ( rc == LDAP_RES_EXTENDED ) {
+				struct berval	*data = NULL;
+
+				rs->sr_err = ldap_parse_extended_result( ld, res,
+						NULL, &data, 0 );
+				if ( rs->sr_err == LDAP_SUCCESS ) {
+					rs->sr_err = ldap_result2error( ld, res, 1 );
+					res = NULL;
+					
+					/* FIXME: in case a referral 
+					 * is returned, should we try
+					 * using it instead of the 
+					 * configured URI? */
+					if ( rs->sr_err == LDAP_SUCCESS ) {
+						ldap_install_tls( ld );
+
+					} else if ( rs->sr_err == LDAP_REFERRAL ) {
+						rs->sr_err = LDAP_OTHER;
+						rs->sr_text = "unwilling to chase referral returned by Start TLS exop";
+					}
+
+					if ( data ) {
+						if ( data->bv_val ) {
+							ber_memfree( data->bv_val );
+						}
+						ber_memfree( data );
+					}
+				}
+
+			} else {
+				rs->sr_err = LDAP_OTHER;
+			}
+
+			if ( res != NULL ) {
+				ldap_msgfree( res );
+			}
+		}
+#else
+		/*
+		 * use synchronous StartTLS
+		 */
+		rs->sr_err = ldap_start_tls_s( ld, NULL, NULL );
+#endif
+
 		/* if StartTLS is requested, only attempt it if the URL
 		 * is not "ldaps://"; this may occur not only in case
 		 * of misconfiguration, but also when used in the chain 
 		 * overlay, where the "uri" can be parsed out of a referral */
 		if ( rs->sr_err == LDAP_SERVER_DOWN
-				|| ( li->flags & LDAP_BACK_F_TLS_CRITICAL ) )
+				|| ( rs->sr_err != LDAP_SUCCESS && LDAP_BACK_TLS_CRITICAL( li ) ) )
 		{
 			ldap_unbind_ext_s( ld, NULL, NULL );
 			goto error_return;
 		}
 	}
+#endif /* HAVE_TLS */
 
 	if ( *lcp == NULL ) {
 		*lcp = (struct ldapconn *)ch_malloc( sizeof( struct ldapconn ) );
@@ -797,8 +869,12 @@ done:;
  * If no server-side controls are defined for the operation,
  * simply add the proxyAuthz control; otherwise, if the
  * proxyAuthz control is not already set, add it as
- * the first one (FIXME: is controls order significant
- * for security?).
+ * the first one
+ *
+ * FIXME: is controls order significant for security?
+ * ANSWER: controls ordering and interoperability
+ * must be indicated by the specs of each control; if none
+ * is specified, the order is irrelevant.
  */
 int
 ldap_back_proxy_authz_ctrl(

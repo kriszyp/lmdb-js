@@ -51,18 +51,11 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	dncookie		dc;
 
 	lc = meta_back_getconn( op, rs, META_OP_ALLOW_MULTIPLE,
-			&op->o_req_ndn, NULL );
-	if ( !lc ) {
- 		send_ldap_result( op, rs );
-		return -1;
+			&op->o_req_ndn, NULL, LDAP_BACK_SENDERR );
+	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
+		return rs->sr_err;
 	}
 	
-	if ( !meta_back_dobind( lc, op ) ) {
-		rs->sr_err = LDAP_UNAVAILABLE;
- 		send_ldap_result( op, rs );
-		return -1;
-	}
-
 	msgid = ch_calloc( sizeof( int ), li->ntargets );
 	if ( msgid == NULL ) {
 		return -1;

@@ -56,7 +56,6 @@ ldap_back_search(
 	int		i;
 	char		**attrs = NULL;
 	int		dontfreetext = 0;
-	int		freeconn = 0;
 	int		do_retry = 1;
 	LDAPControl	**ctrls = NULL;
 
@@ -120,12 +119,18 @@ retry:
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 fail:;
-		rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDERR );
-		if ( freeconn ) {
+		if ( rs->sr_err == LDAP_SERVER_DOWN ) {
+			if ( do_retry ) {
+				do_retry = 0;
+				if ( ldap_back_retry( lc, op, rs, LDAP_BACK_DONTSEND ) ) {
+					goto retry;
+				}
+			}
+			rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_DONTSEND );
 			ldap_back_freeconn( op, lc );
 			lc = NULL;
+			goto finish;
 		}
-		goto finish;
 	}
 
 	/* We pull apart the ber result, stuff it into a slapd entry, and
@@ -138,7 +143,7 @@ fail:;
 		/* check for abandon */
 		if ( op->o_abandon ) {
 			ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
-			rc = 0;
+			rc = SLAPD_ABANDON;
 			goto finish;
 		}
 
@@ -253,7 +258,7 @@ fail:;
 				rs->sr_ref = ch_calloc( cnt + 1, sizeof( struct berval ) );
 
 				for ( cnt = 0; references[ cnt ]; cnt++ ) {
-					ber_str2bv( references[ cnt ], 0, 0, &rs->sr_ref[ cnt ] );
+					ber_str2bv( references[ cnt ], 0, 1, &rs->sr_ref[ cnt ] );
 				}
 
 				/* cleanup */
@@ -274,9 +279,7 @@ fail:;
 				goto retry;
 			}
 		}
-		/* FIXME: invalidate the connection? */
 		rs->sr_err = LDAP_SERVER_DOWN;
-		freeconn = 1;
 		goto fail;
 	}
 
@@ -291,7 +294,9 @@ fail:;
 	}
 
 finish:;
-	send_ldap_result( op, rs );
+	if ( rc != SLAPD_ABANDON ) {
+		send_ldap_result( op, rs );
+	}
 
 	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 

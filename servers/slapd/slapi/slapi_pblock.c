@@ -24,53 +24,57 @@
 #include <slap.h>
 #include <slapi.h>
 
-static int 
-isOkNetscapeParam( int param ) 
+static slapi_pblock_class_t 
+getPBlockClass( int param ) 
 {
 	switch ( param ) {
-	case SLAPI_BACKEND:
-	case SLAPI_CONNECTION:
-	case SLAPI_OPERATION:
-	case SLAPI_OPERATION_PARAMETERS:
-	case SLAPI_OPERATION_TYPE:
-	case SLAPI_OPERATION_ID:
-	case SLAPI_OPERATION_AUTHTYPE:
-	case SLAPI_REQUESTOR_ISROOT:
-	case SLAPI_BE_MONITORDN:
-	case SLAPI_BE_TYPE:
-	case SLAPI_BE_READONLY:
-	case SLAPI_BE_LASTMOD:
-	case SLAPI_CONN_ID:
-	case SLAPI_OPINITIATED_TIME:
-	case SLAPI_REQUESTOR_DN:
-	case SLAPI_REQUESTOR_ISUPDATEDN:
-	case SLAPI_CONN_DN:
-	case SLAPI_CONN_CLIENTIP:
-	case SLAPI_CONN_SERVERIP:
-	case SLAPI_CONN_AUTHTYPE:
-	case SLAPI_CONN_AUTHMETHOD:
-	case SLAPI_CONN_CERT:
-	case SLAPI_X_CONN_IS_UDP:
-	case SLAPI_X_CONN_CLIENTPATH:
-	case SLAPI_X_CONN_SERVERPATH:
-	case SLAPI_X_CONN_SSF:
-	case SLAPI_X_CONN_SASL_CONTEXT:
-	case SLAPI_IBM_CONN_DN_ALT:
-	case SLAPI_IBM_CONN_DN_ORIG:
-	case SLAPI_IBM_GSSAPI_CONTEXT:
-	case SLAPI_PLUGIN:
-	case SLAPI_PLUGIN_PRIVATE:
 	case SLAPI_PLUGIN_TYPE:
-	case SLAPI_PLUGIN_ARGV:
 	case SLAPI_PLUGIN_ARGC:
 	case SLAPI_PLUGIN_VERSION:
 	case SLAPI_PLUGIN_OPRETURN:
-	case SLAPI_PLUGIN_OBJECT:
-	case SLAPI_PLUGIN_DESTROY_FN:
-	case SLAPI_PLUGIN_DESCRIPTION:
 	case SLAPI_PLUGIN_INTOP_RESULT:
-	case SLAPI_PLUGIN_INTOP_SEARCH_ENTRIES:
-	case SLAPI_PLUGIN_INTOP_SEARCH_REFERRALS:
+	case SLAPI_CONFIG_LINENO:
+	case SLAPI_CONFIG_ARGC:
+	case SLAPI_BIND_METHOD:
+	case SLAPI_MODRDN_DELOLDRDN:
+	case SLAPI_SEARCH_SCOPE:
+	case SLAPI_SEARCH_DEREF:
+	case SLAPI_SEARCH_SIZELIMIT:
+	case SLAPI_SEARCH_TIMELIMIT:
+	case SLAPI_SEARCH_ATTRSONLY:
+	case SLAPI_NENTRIES:
+	case SLAPI_CHANGENUMBER:
+	case SLAPI_DBSIZE:
+	case SLAPI_REQUESTOR_ISROOT:
+	case SLAPI_BE_READONLY:
+	case SLAPI_BE_LASTMOD:
+	case SLAPI_DB2LDIF_PRINTKEY:
+	case SLAPI_LDIF2DB_REMOVEDUPVALS:
+	case SLAPI_MANAGEDSAIT:
+	case SLAPI_IBM_BROADCAST_BE:
+	case SLAPI_IBM_REPLICATE:
+	case SLAPI_IBM_CL_MAX_ENTRIES:
+	case SLAPI_IBM_CL_FIRST_ENTRY:
+	case SLAPI_IBM_CL_LAST_ENTRY:
+	case SLAPI_IBM_EVENT_ENABLED:
+	case SLAPI_IBM_EVENT_MAXREG:
+	case SLAPI_IBM_EVENT_REGPERCONN:
+	case SLAPI_REQUESTOR_ISUPDATEDN:
+	case SLAPI_X_CONN_IS_UDP:
+	case SLAPI_X_CONN_SSF:
+	case SLAPI_RESULT_CODE:
+		return PBLOCK_CLASS_INTEGER;
+		break;
+
+	case SLAPI_CONN_ID:
+	case SLAPI_OPERATION_ID:
+	case SLAPI_OPINITIATED_TIME:
+	case SLAPI_ABANDON_MSGID:
+		return PBLOCK_CLASS_LONG_INTEGER;
+		break;
+
+	case SLAPI_PLUGIN_DB_INIT_FN:
+	case SLAPI_PLUGIN_DESTROY_FN:
 	case SLAPI_PLUGIN_DB_BIND_FN:
 	case SLAPI_PLUGIN_DB_UNBIND_FN:
 	case SLAPI_PLUGIN_DB_SEARCH_FN:
@@ -132,11 +136,49 @@ isOkNetscapeParam( int param )
 	case SLAPI_PLUGIN_MR_FILTER_INDEX_FN:
 	case SLAPI_PLUGIN_MR_FILTER_RESET_FN:
 	case SLAPI_PLUGIN_MR_INDEX_FN:
+	case SLAPI_PLUGIN_COMPUTE_EVALUATOR_FN:
+	case SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN:
+	case SLAPI_PLUGIN_ACL_ALLOW_ACCESS:
+	case SLAPI_X_PLUGIN_PRE_GROUP_FN:
+	case SLAPI_X_PLUGIN_POST_GROUP_FN:
+	case SLAPI_PLUGIN_AUDIT_FN:
+		return PBLOCK_CLASS_FUNCTION_POINTER;
+		break;
+
+	case SLAPI_BACKEND:
+	case SLAPI_CONNECTION:
+	case SLAPI_OPERATION:
+	case SLAPI_OPERATION_PARAMETERS:
+	case SLAPI_OPERATION_TYPE:
+	case SLAPI_OPERATION_AUTHTYPE:
+	case SLAPI_BE_MONITORDN:
+	case SLAPI_BE_TYPE:
+	case SLAPI_REQUESTOR_DN:
+	case SLAPI_CONN_DN:
+	case SLAPI_CONN_CLIENTIP:
+	case SLAPI_CONN_SERVERIP:
+	case SLAPI_CONN_AUTHTYPE:
+	case SLAPI_CONN_AUTHMETHOD:
+	case SLAPI_CONN_CERT:
+	case SLAPI_X_CONN_CLIENTPATH:
+	case SLAPI_X_CONN_SERVERPATH:
+	case SLAPI_X_CONN_SASL_CONTEXT:
+	case SLAPI_X_CONFIG_ARGV:
+	case SLAPI_IBM_CONN_DN_ALT:
+	case SLAPI_IBM_CONN_DN_ORIG:
+	case SLAPI_IBM_GSSAPI_CONTEXT:
 	case SLAPI_PLUGIN_MR_OID:
 	case SLAPI_PLUGIN_MR_TYPE:
 	case SLAPI_PLUGIN_MR_VALUE:
 	case SLAPI_PLUGIN_MR_VALUES:
 	case SLAPI_PLUGIN_MR_KEYS:
+	case SLAPI_PLUGIN:
+	case SLAPI_PLUGIN_PRIVATE:
+	case SLAPI_PLUGIN_ARGV:
+	case SLAPI_PLUGIN_OBJECT:
+	case SLAPI_PLUGIN_DESCRIPTION:
+	case SLAPI_PLUGIN_INTOP_SEARCH_ENTRIES:
+	case SLAPI_PLUGIN_INTOP_SEARCH_REFERRALS:
 	case SLAPI_PLUGIN_MR_FILTER_REUSABLE:
 	case SLAPI_PLUGIN_MR_QUERY_OPERATOR:
 	case SLAPI_PLUGIN_MR_USAGE:
@@ -152,10 +194,7 @@ isOkNetscapeParam( int param )
 	case SLAPI_PLUGIN_SYNTAX_OID:
 	case SLAPI_PLUGIN_SYNTAX_FLAGS:
 	case SLAPI_PLUGIN_SYNTAX_COMPARE:
-	case SLAPI_MANAGEDSAIT:
 	case SLAPI_CONFIG_FILENAME:
-	case SLAPI_CONFIG_LINENO:
-	case SLAPI_CONFIG_ARGC:
 	case SLAPI_CONFIG_ARGV:
 	case SLAPI_TARGET_DN:
 	case SLAPI_REQCONTROLS:
@@ -164,7 +203,6 @@ isOkNetscapeParam( int param )
 	case SLAPI_RESCONTROLS:
 	case SLAPI_ADD_RESCONTROL:
 	case SLAPI_ADD_ENTRY:
-	case SLAPI_BIND_METHOD:
 	case SLAPI_BIND_CREDENTIALS:
 	case SLAPI_BIND_SASLMECHANISM:
 	case SLAPI_BIND_RET_SASLCREDS:
@@ -172,17 +210,10 @@ isOkNetscapeParam( int param )
 	case SLAPI_COMPARE_VALUE:
 	case SLAPI_MODIFY_MODS:
 	case SLAPI_MODRDN_NEWRDN:
-	case SLAPI_MODRDN_DELOLDRDN:
 	case SLAPI_MODRDN_NEWSUPERIOR:
-	case SLAPI_SEARCH_SCOPE:
-	case SLAPI_SEARCH_DEREF:
-	case SLAPI_SEARCH_SIZELIMIT:
-	case SLAPI_SEARCH_TIMELIMIT:
 	case SLAPI_SEARCH_FILTER:
 	case SLAPI_SEARCH_STRFILTER:
 	case SLAPI_SEARCH_ATTRS:
-	case SLAPI_SEARCH_ATTRSONLY:
-	case SLAPI_ABANDON_MSGID:
 	case SLAPI_SEQ_TYPE:
 	case SLAPI_SEQ_ATTRNAME:
 	case SLAPI_SEQ_VAL:
@@ -196,57 +227,27 @@ isOkNetscapeParam( int param )
 	case SLAPI_MR_FILTER_OID:
 	case SLAPI_MR_FILTER_DNATTRS:
 	case SLAPI_LDIF2DB_FILE:
-	case SLAPI_LDIF2DB_REMOVEDUPVALS:
-	case SLAPI_DB2LDIF_PRINTKEY:
 	case SLAPI_PARENT_TXN:
 	case SLAPI_TXN:
 	case SLAPI_SEARCH_RESULT_SET:
 	case SLAPI_SEARCH_RESULT_ENTRY:
-	case SLAPI_NENTRIES:
 	case SLAPI_SEARCH_REFERRALS:
-	case SLAPI_CHANGENUMBER:
 	case SLAPI_LOG_OPERATION:
-	case SLAPI_DBSIZE:
-	case SLAPI_RESULT_CODE:
 	case SLAPI_RESULT_TEXT:
 	case SLAPI_RESULT_MATCHED:
-	case SLAPI_PLUGIN_COMPUTE_EVALUATOR_FN:
-	case SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN:
-	case SLAPI_PLUGIN_ACL_ALLOW_ACCESS:
-	case SLAPI_X_PLUGIN_PRE_GROUP_FN:
-	case SLAPI_X_PLUGIN_POST_GROUP_FN:
 	case SLAPI_X_GROUP_ENTRY:
 	case SLAPI_X_GROUP_ATTRIBUTE:
 	case SLAPI_X_GROUP_OPERATION_DN:
 	case SLAPI_X_GROUP_TARGET_ENTRY:
-		return LDAP_SUCCESS;
+	case SLAPI_PLUGIN_AUDIT_DATA:
+	case SLAPI_IBM_PBLOCK:
+		return PBLOCK_CLASS_POINTER;
+		break;
 	default:
-		return INVALID_PARAM;
+		break;
 	}
-}
 
-static int
-isValidParam( Slapi_PBlock *pb, int param ) 
-{
-	if ( !pb ) {
-		return INVALID_PARAM;
-	}
-	
-	if ( pb->ckParams == TRUE ) {
-		if ( IBM_RESERVED( param ) ) return LDAP_SUCCESS;
-		if (param == SLAPI_PLUGIN_AUDIT_FN ||
-	     			param == SLAPI_PLUGIN_AUDIT_DATA )
-			return LDAP_SUCCESS;
-		if ( param < LAST_IBM_PARAM ) {
-			return INVALID_PARAM;
-		} else if ( NETSCAPE_RESERVED( param ) ) {
-			return INVALID_PARAM;
-		} else {
-			return isOkNetscapeParam(param);
-		}
-	} else {
-		return LDAP_SUCCESS;
-	}
+	return PBLOCK_CLASS_INVALID;
 }
 
 static void
@@ -265,22 +266,49 @@ static int
 get( Slapi_PBlock *pb, int param, void **val ) 
 {	
 	int i;
+	slapi_pblock_class_t pbClass;
 
-	if ( isValidParam( pb, param ) == INVALID_PARAM ) {
+	pbClass = getPBlockClass( param );
+	if ( pbClass == PBLOCK_CLASS_INVALID ) {
 		return PBLOCK_ERROR;
 	}
 	
 	Lock( pb );
-	
-	*val = NULL;
+
+	switch ( pbClass ) {
+	case PBLOCK_CLASS_INTEGER:
+		*((int *)val) = 0;
+		break;
+	case PBLOCK_CLASS_LONG_INTEGER:
+		*((long *)val) = 0L;
+		break;
+	case PBLOCK_CLASS_POINTER:
+	case PBLOCK_CLASS_FUNCTION_POINTER:
+		*val = NULL;
+		break;
+	}
+
 	for ( i = 0; i < pb->numParams; i++ ) {
 		if ( pb->curParams[i] == param ) {
-			*val = pb->curVals[i];
+			switch ( pbClass ) {
+			case PBLOCK_CLASS_INTEGER:
+				*((int *)val) = (int)pb->curVals[i];
+				break;
+			case PBLOCK_CLASS_LONG_INTEGER:
+				*((long *)val) = (long)pb->curVals[i];
+				break;
+			case PBLOCK_CLASS_POINTER:
+			case PBLOCK_CLASS_FUNCTION_POINTER:
+				*val = pb->curVals[i];
+				break;
+			default:
+				break;
+			}
 			break;
 	  	}
 	}
 	unLock( pb );	
-	return LDAP_SUCCESS;
+	return PBLOCK_SUCCESS;
 }
 
 static int 
@@ -289,8 +317,10 @@ set( Slapi_PBlock *pb, int param, void *val )
 #if defined(LDAP_SLAPI)
 	int i, freeit;
 	int addcon = 0;
+	slapi_pblock_class_t pbClass;
 
-	if ( isValidParam( pb, param ) == INVALID_PARAM ) {
+	pbClass = getPBlockClass( param );
+	if ( pbClass == PBLOCK_CLASS_INVALID ) {
 		return PBLOCK_ERROR;
 	}
 
@@ -313,9 +343,11 @@ set( Slapi_PBlock *pb, int param, void *val )
         case SLAPI_IBM_CONN_DN_ORIG:
         case SLAPI_RESULT_TEXT:
         case SLAPI_RESULT_MATCHED:
-		freeit = 1; break;
+		freeit = 1;
+		break;
 	default:
-		freeit = 0; break;
+		freeit = 0;
+		break;
 	}
 	for( i = 0; i < pb->numParams; i++ ) { 
 		if ( pb->curParams[i] == param ) {
@@ -347,7 +379,7 @@ set( Slapi_PBlock *pb, int param, void *val )
 	}
 
 	unLock( pb );	
-	return LDAP_SUCCESS;
+	return PBLOCK_SUCCESS;
 #endif /* LDAP_SLAPI */
 	return PBLOCK_ERROR;
 }
@@ -386,7 +418,7 @@ deleteParam( Slapi_PBlock *p, int param )
 	}
 	p->numParams--;
 	unLock( p );	
-	return LDAP_SUCCESS;
+	return PBLOCK_SUCCESS;
 }
 
 Slapi_PBlock *

@@ -139,6 +139,15 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Logging end state with ldapsearch..."
+echo "" >> $TESTOUT
+echo "++ Initial search" >> $TESTOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 \
+	-D "$MANAGERDN" -w $PASSWD \
+	-b "$BASEDN" \
+	'objectclass=*' >> $TESTOUT 2>&1
+
+
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"

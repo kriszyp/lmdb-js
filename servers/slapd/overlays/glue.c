@@ -396,7 +396,9 @@ end_of_loop:;
 
 		break;
 	}
-	if ( !op->o_abandon ) {
+	if ( op->o_abandon ) {
+		rs->sr_err = SLAPD_ABANDON;
+	} else {
 		op->o_callback = cb.sc_next;
 		rs->sr_err = gs.err;
 		rs->sr_matched = gs.matched;

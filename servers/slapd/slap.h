@@ -822,7 +822,6 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_monitorContext;
 	AttributeDescription *si_ad_vendorName;
 	AttributeDescription *si_ad_vendorVersion;
-	AttributeDescription *si_ad_configContext;
 
 	/* subentry attribute descriptions */
 	AttributeDescription *si_ad_administrativeRole;
@@ -2030,7 +2029,6 @@ struct slap_backend_info {
 
 	slap_mask_t	bi_flags; /* backend flags */
 #define SLAP_BFLAG_MONITOR			0x0001U /* a monitor backend */
-#define SLAP_BFLAG_CONFIG			0x0002U /* a config backend */
 #define SLAP_BFLAG_NOLASTMODCMD		0x0010U
 #define SLAP_BFLAG_INCREMENT		0x0100U
 #define SLAP_BFLAG_ALIASES			0x1000U
@@ -2040,7 +2038,6 @@ struct slap_backend_info {
 
 #define SLAP_BFLAGS(be)		((be)->bd_info->bi_flags)
 #define SLAP_MONITOR(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_MONITOR)
-#define SLAP_CONFIG(be)		(SLAP_BFLAGS(be) & SLAP_BFLAG_CONFIG)
 #define SLAP_INCREMENT(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_INCREMENT)
 #define SLAP_ALIASES(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_ALIASES)
 #define SLAP_REFERRALS(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_REFERRALS)

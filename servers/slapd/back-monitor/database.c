@@ -30,7 +30,7 @@
 
 #if defined(LDAP_SLAPI)
 #include "slapi.h"
-static int monitor_back_add_plugin( Backend *be, Entry *e );
+static int monitor_back_add_plugin( monitor_info_t *mi, Backend *be, Entry *e );
 #endif /* defined(LDAP_SLAPI) */
 
 #if defined(SLAPD_BDB)
@@ -391,7 +391,7 @@ monitor_subsys_database_init(
 		}
 
 #if defined(LDAP_SLAPI)
-		monitor_back_add_plugin( be, e );
+		monitor_back_add_plugin( mi, be, e );
 #endif /* defined(LDAP_SLAPI) */
 
 		if ( oi != NULL ) {
@@ -829,11 +829,10 @@ done:;
 
 #if defined(LDAP_SLAPI)
 static int
-monitor_back_add_plugin( Backend *be, Entry *e_database )
+monitor_back_add_plugin( monitor_info_t *mi, Backend *be, Entry *e_database )
 {
 	Slapi_PBlock	*pCurrentPB; 
 	int		i, rc = LDAP_SUCCESS;
-	monitor_info_t	*mi = ( monitor_info_t * )be->be_private;
 
 	if ( slapi_int_pblock_get_first( be, &pCurrentPB ) != LDAP_SUCCESS ) {
 		/*

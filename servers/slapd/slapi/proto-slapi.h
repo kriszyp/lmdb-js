@@ -285,6 +285,7 @@ extern int slapi_int_register_extop(Backend *pBE, ExtendedOp **opList, Slapi_PBl
 extern int slapi_int_get_extop_plugin(struct berval  *reqoid, SLAPI_FUNC *pFuncAddr );
 extern int slapi_int_read_config(Backend *be, const char *fname, int lineno,
 		int argc, char **argv );
+extern void slapi_int_plugin_unparse(Backend *be, BerVarray *out );
 extern int slapi_int_initialize(void);
 
 

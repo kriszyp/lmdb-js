@@ -143,7 +143,7 @@ passwd_back_search(
 				if ( op->o_abandon ) {
 					endpwent();
 					ldap_pvt_thread_mutex_unlock( &passwd_mutex );
-					return( -1 );
+					return( SLAPD_ABANDON );
 				}
 
 				/* check time limit */

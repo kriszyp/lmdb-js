@@ -43,24 +43,21 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	dncookie		dc;
 
 	lc = meta_back_getconn( op, rs, META_OP_REQUIRE_SINGLE,
-			&op->o_req_ndn, &candidate );
+			&op->o_req_ndn, &candidate, LDAP_BACK_SENDERR );
 	if ( !lc ) {
-		rc = -1;
-		goto cleanup;
+		return rs->sr_err;
 	}
 
 	assert( candidate != META_TARGET_NONE );
 
-	if ( !meta_back_dobind( lc, op ) ) {
-		rs->sr_err = LDAP_UNAVAILABLE;
-
-	} else if ( !meta_back_is_valid( lc, candidate ) ) {
-		rs->sr_err = LDAP_OTHER;
+	if ( !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
+		return rs->sr_err;
 	}
-
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		rc = -1;
-		goto cleanup;
+		
+	if ( !meta_back_is_valid( lc, candidate ) ) {
+		rs->sr_err = LDAP_OTHER;
+		send_ldap_result( op, rs );
+		return rs->sr_err;
 	}
 
 	dc.conn = op->o_conn;

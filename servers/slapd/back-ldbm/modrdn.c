@@ -361,6 +361,7 @@ ldbm_back_modrdn(
 
 	/* check for abandon */
 	if ( op->o_abandon ) {
+		rs->sr_err = SLAPD_ABANDON;
 		goto return_results;
 	}
 
@@ -420,6 +421,7 @@ ldbm_back_modrdn(
 
 	/* check for abandon */
 	if ( op->o_abandon ) {
+		rs->sr_err = SLAPD_ABANDON;
 		goto return_results;
 	}
 
