@@ -315,7 +315,7 @@ a separate attributes type for each format, prefix the photo
 with some typing information, or describe the value using
 {{TERM:ASN.1}} and use the {{EX:;binary}} transfer option.
 
-Another alternative is for the attribute only to hold a URI
+Another alternative is for the attribute to hold a {{TERM:URI}}
 pointing to the photo.  You can model such an attribute after
 {{EX:labeledURI}} ({{REF:RFC2079}}).
 
@@ -351,7 +351,7 @@ names, oids is one or more names and/or OIDs.
 
 H4: myPhotoObject
 
-To define an auxiliary object class which allows
+To define an {{auxiliary}} object class which allows
 myPhoto to be added to any existing entry.
 
 >	objectclass ( 1.1.2.2.1 NAME 'myPhotoObject'
@@ -362,10 +362,10 @@ myPhoto to be added to any existing entry.
 
 H4: myPerson
 
-If your organization would like have a private structural
+If your organization would like have a private {{structural}}
 object class to instantiate users, you can subclass one of
 the existing person classes, such as {{EX:inetOrgPerson}}
-{{REF:RFC2798}}, and add any additional attributes which
+({{REF:RFC2798}}), and add any additional attributes which
 you desire.
 
 >	objectclass ( 1.1.2.2.2 NAME 'myPerson'
