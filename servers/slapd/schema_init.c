@@ -522,7 +522,7 @@ UTF8StringNormalize(
 	struct berval *val,
 	struct berval *normalized )
 {
-	char *p, *q, *s;
+	char *p, *q, *s, *e;
 	int len = 0;
 
 	p = val->bv_val;
@@ -537,14 +537,15 @@ UTF8StringNormalize(
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	ber_str2bv( p, val->bv_len - (p - val->bv_val), 1, normalized );
+	ber_mem2bv( p, val->bv_len - (p - val->bv_val), 1, normalized );
+	e = normalized->bv_val + val->bv_len - (p - val->bv_val);
 
 	assert( normalized->bv_val );
 
 	p = q = normalized->bv_val;
 	s = NULL;
 
-	while ( *p ) {
+	while ( p < e ) {
 		q += len;
 		if ( ASCII_SPACE( *p ) ) {
 			s = q - len;
