@@ -705,7 +705,7 @@ do_bind(
 	    NULL, ri->ri_authcId, NULL, NULL );
 	ldrc = ldap_sasl_interactive_bind_s( ri->ri_ldp, ri->ri_bind_dn,
 	    ri->ri_saslmech, NULL, NULL,
-	    LDAP_SASL_AUTOMATIC, lutil_sasl_interact, defaults );
+	    LDAP_SASL_QUIET, lutil_sasl_interact, defaults );
 	if ( ldrc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "Error: LDAP SASL for %s:%d failed: %s\n",
 		    ri->ri_hostname, ri->ri_port, ldap_err2string( ldrc ));
