@@ -6,7 +6,6 @@
  */
 
 /* Patched for Berkeley DB version 2.0; /KSp; 98/02/23
- *
  *   - DB version 2.6.4b   ; 1998/12/28, /KSp
  *   - DB_DBT_MALLOC       ; 1998/03/22, /KSp
  *   - basic implementation; 1998/02/23, /KSp
@@ -59,21 +58,38 @@ ldbm_datum_dup( LDBM ldbm, Datum data )
 
 static int ldbm_initialized = 0;
 
-#ifdef USE_BERKELEY_CDB
+#if defined( USE_BERKELEY_CDB )
 	/* not currently supported */
-#define LDBM_LOCK	((void) 0)
-#define LDBM_UNLOCK	((void) 0)
+#define LDBM_RWLOCK_INIT  ((void) 0)
+#define LDBM_RWLOCK_DESTROY ((void) 0)
+#define LDBM_WLOCK		((void) 0)
+#define LDBM_WUNLOCK	((void) 0)
+#define LDBM_RLOCK		((void) 0)
+#define LDBM_RUNLOCK	((void) 0)
+
+#elif defined( HAVE_BERKELEY_DB_THREAD )
+static ldap_pvt_thread_rdwr_t ldbm_big_rdwr;
+#define LDBM_RWLOCK_INIT (ldap_pvt_thread_rdwr_init( &ldbm_big_rdwr ))
+#define LDBM_RWLOCK_DESTROY (ldap_pvt_thread_rdwr_destroy( &ldbm_big_rdwr ))
+#define LDBM_WLOCK		(ldap_pvt_thread_rdwr_wlock(&ldbm_big_rdwr))
+#define LDBM_WUNLOCK	(ldap_pvt_thread_rdwr_wunlock(&ldbm_big_rdwr))
+#define LDBM_RLOCK		(ldap_pvt_thread_rdwr_rlock(&ldbm_big_rdwr))
+#define LDBM_RUNLOCK	(ldap_pvt_thread_rdwr_runlock(&ldbm_big_rdwr))
+
 #else
 static ldap_pvt_thread_mutex_t ldbm_big_mutex;
-#define LDBM_LOCK	(ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
-#define LDBM_UNLOCK	(ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
+#define LDBM_RWLOCK_INIT (ldap_pvt_thread_mutex_init( &ldbm_big_mutex ))
+#define LDBM_RWLOCK_DESTROY (ldap_pvt_thread_mutex_destroy( &ldbm_big_mutex ))
+#define LDBM_WLOCK		(ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
+#define LDBM_WUNLOCK	(ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
+#define LDBM_RLOCK		LDBM_WLOCK
+#define LDBM_RUNLOCK	LDBM_WUNLOCK
 #endif
 
 #if !defined( HAVE_BERKELEY_DB ) || (DB_VERSION_MAJOR < 3)
 	/*  a dbEnv for BERKELEYv2  */
 DB_ENV *ldbm_Env = NULL;	/* real or fake, depending on db and version */
 #endif
-
 
 /*******************************************************************
  *                                                                 *
@@ -126,11 +142,6 @@ int ldbm_initialize( const char* home )
 		}
 	}
 
-#ifndef USE_BERKELEY_CDB
-	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
-#endif
-
-
 #if DB_VERSION_MAJOR < 3
 	ldbm_Env = calloc( 1, sizeof( DB_ENV ));
 
@@ -161,6 +172,8 @@ int ldbm_initialize( const char* home )
 	}
 #endif
 
+	LDBM_RWLOCK_INIT;
+
 	return 0;
 }
 
@@ -172,9 +185,7 @@ int ldbm_shutdown( void )
 	db_appexit( ldbm_Env );
 #endif
 
-#ifndef USE_BERKELEY_CDB
-	ldap_pvt_thread_mutex_destroy( &ldbm_big_mutex );
-#endif
+	LDBM_RWLOCK_DESTROY;
 	return 0;
 }
 
@@ -184,7 +195,7 @@ int ldbm_initialize( const char * home )
 {
 	if(ldbm_initialized++) return 1;
 
-	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
+	LDBM_RWLOCK_INIT;
 
 	return 0;
 }
@@ -193,13 +204,12 @@ int ldbm_shutdown( void )
 {
 	if( !ldbm_initialized ) return 1;
 
-	ldap_pvt_thread_mutex_destroy( &ldbm_big_mutex );
+	LDBM_RWLOCK_DESTROY;
 
 	return 0;
 }
 
 #endif /* HAVE_BERKELEY_DB */
-
 
 #if defined( HAVE_BERKELEY_DB ) && (DB_VERSION_MAJOR >= 3)
 
@@ -263,7 +273,6 @@ void ldbm_shutdown_env(DB_ENV *env)
 	env->close( env, 0 );
 }
 
-
 #else
 
 DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
@@ -276,7 +285,6 @@ void ldbm_shutdown_env(DB_ENV *env)
 }
 
 #endif
-
 
 #if defined( LDBM_USE_DBHASH ) || defined( LDBM_USE_DBBTREE )
 
@@ -294,12 +302,12 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 #if DB_VERSION_MAJOR >= 3
 	int err;
 
-	LDBM_LOCK;
+	LDBM_WLOCK;
 
 	err = db_create( &ret, env, 0 );
 	if ( err != 0 ) {
 		(void)ret->close(ret, 0);
-		LDBM_UNLOCK;
+		LDBM_WUNLOCK;
 
 		return NULL;
 	}
@@ -313,8 +321,6 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 	ret->set_malloc( ret, ldbm_malloc );
 #endif
 
-	/* ret->set_cachesize( ret, 0, dbcachesize, 0 ); */
-
 	err = ret->open( ret, name, NULL, DB_TYPE, rw, mode);
 
 	if ( err != 0 ) {
@@ -322,11 +328,11 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 		(void)ret->close(ret, 0);
 		errno = tmp;
 
-		LDBM_UNLOCK;
+		LDBM_WUNLOCK;
 		return NULL;
 	}
 
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
  
 #elif DB_VERSION_MAJOR >= 2
 	DB_INFO dbinfo;
@@ -348,9 +354,9 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 	dbinfo.db_pagesize	= DEFAULT_DB_PAGE_SIZE;
 	dbinfo.db_malloc	= ldbm_malloc;
 
-	LDBM_LOCK;
+	LDBM_WLOCK;
 	(void) db_open( name, DB_TYPE, rw, mode, ldbm_Env, &dbinfo, &ret );
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 
 #else
 	void		*info;
@@ -369,9 +375,9 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 		info = NULL;
 	}
 
-	LDBM_LOCK;
+	LDBM_WLOCK;
 	ret = dbopen( name, rw, mode, DB_TYPE, info );
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 #endif
 
 	return ret;
@@ -380,7 +386,7 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 void
 ldbm_close( LDBM ldbm )
 {
-	LDBM_LOCK;
+	LDBM_WLOCK;
 #if DB_VERSION_MAJOR >= 3
 	ldbm->close( ldbm, 0 );
 #elif DB_VERSION_MAJOR >= 2
@@ -388,15 +394,15 @@ ldbm_close( LDBM ldbm )
 #else
 	(*ldbm->close)( ldbm );
 #endif
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 }
 
 void
 ldbm_sync( LDBM ldbm )
 {
-	LDBM_LOCK;
+	LDBM_WLOCK;
 	(*ldbm->sync)( ldbm, 0 );
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 }
 
 Datum
@@ -405,7 +411,7 @@ ldbm_fetch( LDBM ldbm, Datum key )
 	Datum	data;
 	int	rc;
 
-	LDBM_LOCK;
+	LDBM_RLOCK;
 
 #if DB_VERSION_MAJOR >= 3
 	ldbm_datum_init( data );
@@ -440,7 +446,7 @@ ldbm_fetch( LDBM ldbm, Datum key )
 	}
 #endif
 
-	LDBM_UNLOCK;
+	LDBM_RUNLOCK;
 
 	return( data );
 }
@@ -450,7 +456,7 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 {
 	int	rc;
 
-	LDBM_LOCK;
+	LDBM_WLOCK;
 
 #if DB_VERSION_MAJOR >= 3
 	rc = ldbm->put( ldbm, NULL, &key, &data, flags & ~LDBM_SYNC );
@@ -466,7 +472,7 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 	if ( flags & LDBM_SYNC )
 		(*ldbm->sync)( ldbm, 0 );
 
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 
 	return( rc );
 }
@@ -476,7 +482,7 @@ ldbm_delete( LDBM ldbm, Datum key )
 {
 	int	rc;
 
-	LDBM_LOCK;
+	LDBM_WLOCK;
 
 #if DB_VERSION_MAJOR >= 3
 	rc = ldbm->del( ldbm, NULL, &key, 0 );
@@ -489,7 +495,7 @@ ldbm_delete( LDBM ldbm, Datum key )
 #endif
 	(*ldbm->sync)( ldbm, 0 );
 
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 
 	return( rc );
 }
@@ -498,6 +504,7 @@ Datum
 ldbm_firstkey( LDBM ldbm, LDBMCursor **dbch )
 {
 	Datum	key, data;
+	int	rc;
 
 #if DB_VERSION_MAJOR >= 2
 	LDBMCursor  *dbci;
@@ -507,47 +514,46 @@ ldbm_firstkey( LDBM ldbm, LDBMCursor **dbch )
 
 	key.flags = data.flags = DB_DBT_MALLOC;
 
-	LDBM_LOCK;
+	LDBM_RLOCK;
 
 	/* acquire a cursor for the DB */
 # if DB_VERSION_MAJOR >= 3
-	if ( ldbm->cursor( ldbm, NULL, &dbci, 0 ) )
+	rc = ldbm->cursor( ldbm, NULL, &dbci, 0 );
 # elif defined( DB_VERSION_MAJOR ) && defined( DB_VERSION_MINOR ) && \
 	(DB_VERSION_MAJOR == 2 && DB_VERSION_MINOR < 6)
+	rc = (*ldbm->cursor)( ldbm, NULL, &dbci );
+# else
+	rc = (*ldbm->cursor)( ldbm, NULL, &dbci, 0 );
+# endif
 
-	if ( (*ldbm->cursor)( ldbm, NULL, &dbci ))
-
-#  else
-	if ( (*ldbm->cursor)( ldbm, NULL, &dbci, 0 ))
-#  endif
-	{
+	if( rc ) {
 		key.dptr = NULL;
-		return( key );
 	} else {
 		*dbch = dbci;
 		if ( (*dbci->c_get)( dbci, &key, &data, DB_NEXT ) == 0 ) {
 			ldbm_datum_free( ldbm, data );
+		} else {
+			key.dptr = NULL;
+			key.dsize = 0;
 		}
-	else {
-#else
-	int	rc;
-
-	LDBM_LOCK;
-
-	if ( (rc = (*ldbm->seq)( ldbm, &key, &data, R_FIRST )) == 0 ) {
-		key = ldbm_datum_dup( ldbm, key );
 	}
-	else {
-#endif
+
+	LDBM_RUNLOCK;
+
+#else
+	LDBM_RLOCK;
+
+	rc = (*ldbm->seq)( ldbm, &key, &data, R_FIRST );
+
+	if ( rc == 0 ) {
+		key = ldbm_datum_dup( ldbm, key );
+	} else {
 		key.dptr = NULL;
 		key.dsize = 0;
 	}
 
-#if DB_VERSION_MAJOR >= 2
-	}
+	LDBM_RUNLOCK;
 #endif
-
-	LDBM_UNLOCK;
 
 	return( key );
 }
@@ -555,7 +561,10 @@ ldbm_firstkey( LDBM ldbm, LDBMCursor **dbch )
 Datum
 ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *dbcp )
 {
+	int	rc;
 	Datum	data;
+
+	LDBM_RLOCK;
 
 #if DB_VERSION_MAJOR >= 2
 	ldbm_datum_init( data );
@@ -563,28 +572,23 @@ ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *dbcp )
 	ldbm_datum_free( ldbm, key );
 	key.flags = data.flags = DB_DBT_MALLOC;
 
-	LDBM_LOCK;
-
-	if ( (*dbcp->c_get)( dbcp, &key, &data, DB_NEXT ) == 0 ) {
+	rc = (*dbcp->c_get)( dbcp, &key, &data, DB_NEXT );
+	if ( rc == 0 ) {
 		ldbm_datum_free( ldbm, data );
-	}
-	else {
+	} else
 #else
-	int	rc;
+	rc = (*ldbm->seq)( ldbm, &key, &data, R_NEXT );
 
-	LDBM_LOCK;
-
-	if ( (rc = (*ldbm->seq)( ldbm, &key, &data, R_NEXT )) == 0 ) {
+	if ( rc == 0 ) {
 		key = ldbm_datum_dup( ldbm, key );
-	}
-	else {
+	} else
 #endif
+	{
 		key.dptr = NULL;
 		key.dsize = 0;
 	}
 
-	LDBM_UNLOCK;
-
+	LDBM_RUNLOCK;
 	return( key );
 }
 
@@ -620,10 +624,10 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 		struct stat	st;
 #endif
 
-	LDBM_LOCK;
+	LDBM_WLOCK;
 
-	if ( (db =  gdbm_open( name, 0, rw | GDBM_FAST, mode, 0 )) == NULL ) {
-		LDBM_UNLOCK;
+	if ( (db = gdbm_open( name, 0, rw | GDBM_FAST, mode, 0 )) == NULL ) {
+		LDBM_WUNLOCK;
 		return( NULL );
 	}
 
@@ -641,7 +645,7 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 	}
 #endif
 
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 
 	return( db );
 }
@@ -649,17 +653,17 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 void
 ldbm_close( LDBM ldbm )
 {
-	LDBM_LOCK;
+	LDBM_WLOCK;
 	gdbm_close( ldbm );
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 }
 
 void
 ldbm_sync( LDBM ldbm )
 {
-	LDBM_LOCK;
+	LDBM_WLOCK;
 	gdbm_sync( ldbm );
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 }
 
 Datum
@@ -667,9 +671,9 @@ ldbm_fetch( LDBM ldbm, Datum key )
 {
 	Datum d;
 
-	LDBM_LOCK;
+	LDBM_RLOCK;
 	d = gdbm_fetch( ldbm, key );
-	LDBM_UNLOCK;
+	LDBM_RUNLOCK;
 
 	return d;
 }
@@ -679,11 +683,11 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 {
 	int	rc;
 
-	LDBM_LOCK;
+	LDBM_WLOCK;
 	rc = gdbm_store( ldbm, key, data, flags & ~LDBM_SYNC );
 	if ( flags & LDBM_SYNC )
 		gdbm_sync( ldbm );
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 
 	return( rc );
 }
@@ -693,10 +697,10 @@ ldbm_delete( LDBM ldbm, Datum key )
 {
 	int	rc;
 
-	LDBM_LOCK;
+	LDBM_WLOCK;
 	rc = gdbm_delete( ldbm, key );
 	gdbm_sync( ldbm );
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 
 	return( rc );
 }
@@ -706,9 +710,9 @@ ldbm_firstkey( LDBM ldbm, LDBMCursor **dbcp )
 {
 	Datum d;
 
-	LDBM_LOCK;
+	LDBM_RLOCK;
 	d = gdbm_firstkey( ldbm );
-	LDBM_UNLOCK;
+	LDBM_RUNLOCK;
 
 	if ( d.dptr != NULL ) {
 		*dbcp = (Datum *) malloc( sizeof( Datum ) );
@@ -723,9 +727,9 @@ ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *dbcp )
 {
 	Datum d;
 
-	LDBM_LOCK;
+	LDBM_RLOCK;
 	d = gdbm_nextkey( ldbm, *dbcp );
-	LDBM_UNLOCK;
+	LDBM_RUNLOCK;
 
 	ldbm_datum_free( ldbm, *dbcp );
 
@@ -743,9 +747,9 @@ ldbm_errno( LDBM ldbm )
 {
 	int err;
 
-	LDBM_LOCK;
+	LDBM_WLOCK;
 	err = gdbm_errno;
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 
 	return( err );
 }
@@ -768,7 +772,6 @@ ldbm_errno( LDBM ldbm )
 #ifdef MDBM_CHAIN
 
 /* Use chaining */
-
 
 #define mdbm_store	mdbm_chain_store
 #define mdbm_fetch	mdbm_chain_fetch
@@ -798,26 +801,23 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 	fflush( stdout );
 #endif
 
-	LDBM_LOCK;	/* We need locking here, this is the only non-thread
-			 * safe function we have.
-			 */
+	LDBM_WLOCK;	/* We need locking here, this is the only non-thread
+		* safe function we have.  */
 
 	if ( (db =  mdbm_open( name, rw, mode, MDBM_PG_SZ )) == NULL ) {
-
-		LDBM_UNLOCK;
+		LDBM_WUNLOCK;
 #ifdef MDBM_DEBUG
 		fprintf( stdout, "<==(mdbm)ldbm_open(db=NULL)\n" );
 		fflush( stdout );
 #endif
 		return( NULL );
-
 	}
 
 #ifdef MDBM_CHAIN
 	(void)mdbm_set_chain(db);
 #endif
 
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 
 #ifdef MDBM_DEBUG
 	fprintf( stdout, "<==(mdbm)ldbm_open(db=%p)\n", db );
@@ -825,16 +825,11 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 #endif
 
 	return( db );
-
 }
-
-
-
 
 void
 ldbm_close( LDBM ldbm )
 {
-
 	/* Open and close are not reentrant so we need to use locks here */
 
 #ifdef MDBM_DEBUG
@@ -843,19 +838,15 @@ ldbm_close( LDBM ldbm )
 	fflush( stdout );
 #endif
 
-	LDBM_LOCK;
+	LDBM_WLOCK;
 	mdbm_close( ldbm );
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 
 #ifdef MDBM_DEBUG
 	fprintf( stdout, "<==(mdbm)ldbm_close()\n" );
 	fflush( stdout );
 #endif
-
 }
-
-
-
 
 void
 ldbm_sync( LDBM ldbm )
@@ -864,11 +855,10 @@ ldbm_sync( LDBM ldbm )
 	 * you can leave LOCKS out.
 	 */
 
-	LDBM_LOCK;
+	LDBM_WLOCK;
 	mdbm_sync( ldbm );
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 }
-
 
 #define MAX_MDBM_RETRY	5
 
@@ -884,8 +874,6 @@ ldbm_fetch( LDBM ldbm, Datum key )
 	 * mode.
 	 */
 
-	/* LDBM_LOCK; */
-
 #ifdef NO_NULL_KEY
 	k.key.dsize = key.dsize + 1;			
 	k.key.dptr = malloc(k.key.dsize);
@@ -898,44 +886,33 @@ ldbm_fetch( LDBM ldbm, Datum key )
 	k.val.dptr = NULL;
 	k.val.dsize = 0;
 
+	/* LDBM_RLOCK; */
 	do {
-
 		d = mdbm_fetch( ldbm, k );
 
 		if ( d.dsize > 0 ) {
-
 			if ( k.val.dptr != NULL ) {
 				free( k.val.dptr );
 			}
 
 			if ( (k.val.dptr = malloc( d.dsize )) != NULL ) {
-		
 				k.val.dsize = d.dsize;
 				d = mdbm_fetch( ldbm, k );
 
 			} else { 
-
 				d.dsize = 0;
 				break;
-			
 			}
-
 		}/* if ( d.dsize > 0 ) */
-
 	} while ((d.dsize > k.val.dsize) && (++retry < MAX_MDBM_RETRY));
-
-	/* LDBM_UNLOCK; */
+	/* LDBM_RUNLOCK; */
 
 #ifdef NO_NULL_KEY
 	free(k.key.dptr);
 #endif
 
 	return d;
-
 }
-
-
-
 
 int
 ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
@@ -950,7 +927,7 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 	fflush( stdout );
 #endif
 
-	/* LDBM_LOCK; */
+	/* LDBM_WLOCK; */
 
 #ifdef NO_NULL_KEY
 	int_key.dsize = key.dsize + 1;
@@ -966,7 +943,7 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 		mdbm_sync( ldbm );
 	}
 
-	/* LDBM_UNLOCK; */
+	/* LDBM_WUNLOCK; */
 
 #ifdef MDBM_DEBUG
 	fprintf( stdout, "<==(mdbm)ldbm_store(rc=%d)\n", rc );
@@ -978,10 +955,7 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 #endif
 
 	return( rc );
-
 }
-
-
 
 int
 ldbm_delete( LDBM ldbm, Datum key )
@@ -989,7 +963,7 @@ ldbm_delete( LDBM ldbm, Datum key )
 	int	rc;
 	Datum	int_key;
 
-	/* LDBM_LOCK; */
+	/* LDBM_WLOCK; */
 
 #ifdef NO_NULL_KEY
 	int_key.dsize = key.dsize + 1;
@@ -1002,16 +976,13 @@ ldbm_delete( LDBM ldbm, Datum key )
 	
 	rc = mdbm_delete( ldbm, int_key );
 
-	/* LDBM_UNLOCK; */
+	/* LDBM_WUNLOCK; */
 #ifdef NO_NULL_KEY
 	free(int_key.dptr);
 #endif
 
 	return( rc );
 }
-
-
-
 
 static Datum
 ldbm_get_next( LDBM ldbm, kvpair (*fptr)(MDBM *, kvpair) ) 
@@ -1026,7 +997,7 @@ ldbm_get_next( LDBM ldbm, kvpair (*fptr)(MDBM *, kvpair) )
 	int	delta = 0;
 #endif
 
-	/* LDBM_LOCK; */
+	/* LDBM_RLOCK; */
 
 	in.key.dsize = sz;	/* Assume first key in one pg */
 	in.key.dptr = malloc(sz);
@@ -1052,7 +1023,7 @@ ldbm_get_next( LDBM ldbm, kvpair (*fptr)(MDBM *, kvpair) )
 	    }
 	}
 
-	/* LDBM_UNLOCK; */
+	/* LDBM_RUNLOCK; */
 	
 	free(in.key.dptr);
 	return ret;
@@ -1082,9 +1053,6 @@ ldbm_errno( LDBM ldbm )
 	return( errno );
 }
 
-
-
-
 #elif defined( HAVE_NDBM )
 
 /*****************************************************************
@@ -1099,9 +1067,9 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 {
 	LDBM ldbm;
 
-	LDBM_LOCK;
+	LDBM_WLOCK;
 	ldbm = dbm_open( name, rw, mode );
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 
 	return( ldbm );
 }
@@ -1109,9 +1077,9 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 void
 ldbm_close( LDBM ldbm )
 {
-	LDBM_LOCK;
+	LDBM_WLOCK;
 	dbm_close( ldbm );
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 }
 
 /* ARGSUSED */
@@ -1126,9 +1094,9 @@ ldbm_fetch( LDBM ldbm, Datum key )
 {
 	Datum d;
 
-	LDBM_LOCK;
+	LDBM_RLOCK;
 	d = ldbm_datum_dup( ldbm, dbm_fetch( ldbm, key ) );
-	LDBM_UNLOCK;
+	LDBM_RUNLOCK;
 
 	return d;
 }
@@ -1138,9 +1106,9 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 {
 	int rc;
 
-	LDBM_LOCK;
+	LDBM_WLOCK;
 	rc = dbm_store( ldbm, key, data, flags );
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 
 	return rc;
 }
@@ -1150,9 +1118,9 @@ ldbm_delete( LDBM ldbm, Datum key )
 {
 	int rc;
 
-	LDBM_LOCK;
+	LDBM_WLOCK;
 	rc = dbm_delete( ldbm, key );
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 
 	return rc;
 }
@@ -1162,9 +1130,9 @@ ldbm_firstkey( LDBM ldbm, LDBMCursor **dbcp )
 {
 	Datum d;
 
-	LDBM_LOCK;
+	LDBM_RLOCK;
 	d = dbm_firstkey( ldbm );
-	LDBM_UNLOCK;
+	LDBM_RUNLOCK;
 
 	return d;
 }
@@ -1174,9 +1142,9 @@ ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *dbcp )
 {
 	Datum d;
 
-	LDBM_LOCK;
+	LDBM_RLOCK;
 	d = dbm_nextkey( ldbm );
-	LDBM_UNLOCK;
+	LDBM_RUNLOCK;
 
 	return d;
 }
@@ -1186,9 +1154,9 @@ ldbm_errno( LDBM ldbm )
 {
 	int err;
 
-	LDBM_LOCK;
+	LDBM_WLOCK;
 	err = dbm_error( ldbm );
-	LDBM_UNLOCK;
+	LDBM_WUNLOCK;
 
 	return err;
 }
