@@ -2355,8 +2355,6 @@ countryStringValidate(
 	Syntax *syntax,
 	struct berval *val )
 {
-	ber_len_t i;
-
 	if( val->bv_len != 2 ) return LDAP_INVALID_SYNTAX;
 
 	if( !SLAP_PRINTABLE(val->bv_val[0]) ) {
