@@ -769,7 +769,7 @@ int ldap_pvt_sasl_secprops(
 			}
 
 			if( maxbufsize && (( maxbufsize < SASL_MIN_BUFF_SIZE ) {
-				|| (maxbufsize > SASL_MAX_BUFF_SIZE ))
+				|| (maxbufsize > SASL_MAX_BUFF_SIZE )))
 			{
 				/* bad maxbufsize */
 				return LDAP_PARAM_ERROR;
