@@ -355,6 +355,7 @@ void connection_closing( Connection *c )
 		}
 
 		/* wake write blocked operations */
+		slapd_clr_write( c->c_sb.sb_sd, 1 );
 		ldap_pvt_thread_cond_signal( &c->c_write_cv );
 	}
 }
