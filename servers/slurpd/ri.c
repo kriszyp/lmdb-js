@@ -99,14 +99,16 @@ Ri_process(
 			    re->re_dn, ri->ri_hostname, ri->ri_port );
 		    continue;
 		    break;
-		case DO_LDAP_ERR_FATAL:
+		case DO_LDAP_ERR_FATAL: {
 		    /* Non-retryable error.  Write rejection log. */
-		    write_reject( ri, re, ri->ri_ldp->ld_errno, errmsg );
+			int ld_errno = 0;
+			ldap_get_option(ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+		    write_reject( ri, re, ld_errno, errmsg );
 		    /* Update status ... */
 		    (void) sglob->st->st_update( sglob->st, ri->ri_stel, re );
 		    /* ... and write to disk */
 		    (void) sglob->st->st_write( sglob->st );
-		    break;
+		    } break;
 		default:
 		    /* LDAP op completed ok - update status... */
 		    (void) sglob->st->st_update( sglob->st, ri->ri_stel, re );

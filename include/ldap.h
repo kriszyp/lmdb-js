@@ -24,32 +24,42 @@ LDAP_BEGIN_DECL
 #define LDAP_VERSION		LDAP_VERSION2
 #define LDAP_VERSION_MAX	LDAP_VERSION2
 
+/*
+ * We'll use 2000+draft revision for our API version number
+ * As such, the number will be above the old RFC but below 
+ * whatever number does finally get assigned
+ */
+#define LDAP_API_VERSION	2001
+#define LDAP_VENDOR			"OpenLDAP"
+/* We'll eventually release as 200 */
+#define LDAP_VENDOR_VERSION	190
+
 #define LDAP_COMPAT20
 #define LDAP_COMPAT30
 #if defined(LDAP_COMPAT20) || defined(LDAP_COMPAT30)
 #define LDAP_COMPAT
 #endif
 
-#define LDAP_OPT_API_INFO			0x00
-#define LDAP_OPT_DESC				0x01
-#define LDAP_OPT_DEREF				0x02
-#define LDAP_OPT_SIZELIMIT			0x03
-#define LDAP_OPT_TIMELIMIT			0x04
-#define LDAP_OPT_REFERRALS			0x08
-#define LDAP_OPT_RESTART			0x09
-#define LDAP_OPT_PROTOCOL_VERSION	0x11
-#define LDAP_OPT_SERVER_CONTROLS	0x12
-#define LDAP_OPT_CLIENT_CONTROLS	0x13
-#define LDAP_OPT_HOST_NAME			0x30
-#define	LDAP_OPT_ERROR_NUMBER		0x31
-#define LDAP_OPT_ERROR_STRING		0x32
+#define LDAP_OPT_API_INFO			0x0000
+#define LDAP_OPT_DESC				0x0001
+#define LDAP_OPT_DEREF				0x0002
+#define LDAP_OPT_SIZELIMIT			0x0003
+#define LDAP_OPT_TIMELIMIT			0x0004
+#define LDAP_OPT_REFERRALS			0x0008
+#define LDAP_OPT_RESTART			0x0009
+#define LDAP_OPT_PROTOCOL_VERSION	0x0011
+#define LDAP_OPT_SERVER_CONTROLS	0x0012
+#define LDAP_OPT_CLIENT_CONTROLS	0x0013
+#define LDAP_OPT_HOST_NAME			0x0030
+#define	LDAP_OPT_ERROR_NUMBER		0x0031
+#define LDAP_OPT_ERROR_STRING		0x0032
 
 /* for LDAPv2 compatibility */
-#define LDAP_OPT_DNS				0x40	/* use DN & DNS */
+#define LDAP_OPT_DNS				0x0101	/* use DN & DNS */
 
 /* on/off values */
 #define LDAP_OPT_ON		((void *) 1)
-#define LDAP_OPT_OFF	((void *)) 0)
+#define LDAP_OPT_OFF	((void *) 0)
 
 #define LDAP_OPT_SUCCESS	0
 #define	LDAP_OPT_ERROR		(-1)
@@ -61,7 +71,7 @@ typedef struct ldapapiinfo {
 	int		ldapai_api_version;			/* revision of API supported */
 	int		ldapai_protocol_version;	/* highest LDAP version supported */
 	char	**ldapai_extensions;		/* names of API extensions */
-	char	*ldapi_vendor_name;			/* name of supplier */
+	char	*ldapai_vendor_name;		/* name of supplier */
 	int		ldapai_vendor_version;		/* supplier-specific version times 100 */
 } LDAPAPIInfo;
 
@@ -448,9 +458,8 @@ typedef struct ldap_url_desc {
 #define LDAP_URL_ERR_BADSCOPE	3	/* URL scope string is invalid */
 #define LDAP_URL_ERR_MEM	4	/* can't allocate memory space */
 
-/* this typedef is never used, only exists to rid of declaration
- in function param list warning */
-typedef struct timeval LDAPtv;
+/* avoid pulling in headers */
+struct timeval;
 
 LDAP_F int ldap_get_option LDAP_P((LDAP *ld, int option, void *outvalue));
 LDAP_F int ldap_set_option LDAP_P((LDAP *ld, int option, void *invalue));

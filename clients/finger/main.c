@@ -28,11 +28,6 @@
 #include "lber.h"
 #include "ldap.h"
 
-#if LDAP_VERSION < LDAP_VERSION3
-/* quick fix until we have ldap_set_options */
-#include "../libraries/libldap/ldap-int.h"
-#endif
-
 #include "disptmpl.h"
 
 #include "ldapconfig.h"
@@ -165,8 +160,12 @@ static do_query()
 		perror( "ldap_open" );
 		exit( 1 );
 	}
-	ld->ld_sizelimit = FINGER_SIZELIMIT;
-	ld->ld_deref = deref;
+
+	{
+		int limit = FINGER_SIZELIMIT;
+		ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &limit);
+	}
+	ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
 
 	if ( ldap_simple_bind_s( ld, FINGER_BINDDN, FINGER_BIND_CRED )
 		!= LDAP_SUCCESS )
@@ -258,6 +257,7 @@ char	*buf;
 	char		**title;
 	int		rc, matches, i, ufn;
 	struct timeval	tv;
+	LDAPFiltDesc	*fd;
 	LDAPFiltInfo	*fi;
 	LDAPMessage	*result, *e;
 	static char	*attrs[] = { "cn", "title", "objectClass", "joinable",
@@ -286,16 +286,16 @@ char	*buf;
 		ufn = 1;
 	} else {
 #endif
-		if ( (ld->ld_filtd = ldap_init_getfilter( filterfile ))
+		if ( (fd = ldap_init_getfilter( filterfile ))
 		    == NULL ) {
 			fprintf( stderr, "Cannot open filter file (%s)\n",
 			    filterfile );
 			exit( 1 );
 		}
 
-		for ( fi = ldap_getfirstfilter( ld->ld_filtd, "finger", buf );
+		for ( fi = ldap_getfirstfilter( fd, "finger", buf );
 		    fi != NULL;
-		    fi = ldap_getnextfilter( ld->ld_filtd ) )
+		    fi = ldap_getnextfilter( fd ) )
 		{
 			tv.tv_sec = FINGER_TIMEOUT;
 			tv.tv_usec = 0;

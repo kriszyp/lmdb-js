@@ -750,7 +750,7 @@ main( int argc, char **argv )
 			getline( line, sizeof(line), stdin, "sizelimit?" );
 			ld->ld_sizelimit = atoi( line );
 
-			ld->ld_options = 0;
+			LDAP_BOOL_ZERO(ld);
 
 #ifdef STR_TRANSLATION
 			getline( line, sizeof(line), stdin,
@@ -775,7 +775,7 @@ main( int argc, char **argv )
 			getline( line, sizeof(line), stdin,
 				"Use DN & DNS to determine where to send requests (0=no, 1=yes)?" );
 			if ( atoi( line ) != 0 ) {
-				ld->ld_options |= LDAP_OPT_DNS;
+				LDAP_BOOL_SET(ld, LDAP_BOOL_DNS);
 			}
 #endif /* LDAP_DNS */
 
@@ -783,7 +783,7 @@ main( int argc, char **argv )
 			getline( line, sizeof(line), stdin,
 				"Recognize and chase referrals (0=no, 1=yes)?" );
 			if ( atoi( line ) != 0 ) {
-				ld->ld_options |= LDAP_OPT_REFERRALS;
+				LDAP_BOOL_SET(ld, LDAP_BOOL_REFERRALS);
 				getline( line, sizeof(line), stdin,
 					"Prompt for bind credentials when chasing referrals (0=no, 1=yes)?" );
 				if ( atoi( line ) != 0 ) {

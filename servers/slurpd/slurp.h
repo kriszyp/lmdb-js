@@ -27,7 +27,7 @@
 #include "lber.h"
 #include "ldap.h"
 #include "ldap_log.h"
-#include "../libraries/libldap/ldap-int.h"
+
 #include "lthread.h"
 #include "ldapconfig.h"
 #include "ldif.h"

@@ -194,7 +194,9 @@ op_ldap_add(
 	Debug( LDAP_DEBUG_ARGS, "replica %s:%d - add dn \"%s\"\n",
 		ri->ri_hostname, ri->ri_port, re->re_dn );
 	rc = ldap_add_s( ri->ri_ldp, re->re_dn, ldmarr );
-	lderr = ri->ri_ldp->ld_errno;
+
+	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &lderr);
+
     } else {
 	*errmsg = "No modifications to do";
 	Debug( LDAP_DEBUG_ANY,
@@ -362,6 +364,7 @@ op_ldap_modrdn(
     int		rc = 0;
     Mi		*mi;
     int		i;
+	int		lderr = 0;
     int		state = 0;
     int		drdnflag = -1;
     char	*newrdn;
@@ -429,7 +432,8 @@ op_ldap_modrdn(
     /* Do the modrdn */
     rc = ldap_modrdn2_s( ri->ri_ldp, re->re_dn, mi->mi_val, drdnflag );
 
-    return( ri->ri_ldp->ld_errno );
+	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &lderr);
+    return( lderr );
 }
 
 
@@ -622,10 +626,8 @@ do_bind(
      * Set ldap library options to (1) not follow referrals, and 
      * (2) restart the select() system call.
      */
-#ifdef LDAP_REFERRALS
-    ri->ri_ldp->ld_options &= ~LDAP_OPT_REFERRALS;
-#endif /* LDAP_REFERRALS */
-    ri->ri_ldp->ld_options |= LDAP_OPT_RESTART;
+	ldap_set_option(ri->ri_ldp, LDAP_OPT_REFERRALS, LDAP_OPT_OFF);
+	ldap_set_option(ri->ri_ldp, LDAP_OPT_RESTART, LDAP_OPT_ON);
 
     switch ( ri->ri_bind_method ) {
     case AUTH_KERBEROS:

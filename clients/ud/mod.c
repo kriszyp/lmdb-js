@@ -52,6 +52,7 @@ char *who;
 	static char printed_warning = 0;	/* for use with the */
 	struct attribute no_batch_update_attr;
 	extern char * fetch_boolean_value();
+	int ld_errno;
 #endif
 	int is_a_group;		/* TRUE if it is; FALSE otherwise */
 	extern void Free();
@@ -111,7 +112,10 @@ char *who;
 	 */
 	no_batch_update_attr.quipu_name = "noBatchUpdates";
 	(void) fetch_boolean_value(dn, no_batch_update_attr);
-	if (verbose && !printed_warning && (ld->ld_errno == LDAP_NO_SUCH_ATTRIBUTE)) {
+
+	ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+
+	if (verbose && !printed_warning && (ld_errno == LDAP_NO_SUCH_ATTRIBUTE)) {
 		printed_warning = 1;
 		printf("\n  WARNING!\n");
 		printf("  You are about to make a modification to an LDAP entry\n");
@@ -799,15 +803,22 @@ char *url;
 
 mod_perror( LDAP *ld )
 {
-	if ( ld == NULL || ( ld->ld_errno != LDAP_UNAVAILABLE &&
-	    ld->ld_errno != LDAP_UNWILLING_TO_PERFORM )) {
+	int ld_errno = 0;
+
+	if(ld != NULL) {
+		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+	}
+
+	if (( ld == NULL ) || ( ld_errno != LDAP_UNAVAILABLE &&
+	    ld_errno != LDAP_UNWILLING_TO_PERFORM ))
+	{
 		ldap_perror( ld, "modify" );
 		return;
 	}
 
 	fprintf( stderr, "\n  modify: failed because part of the online directory is not able\n" );
 	fprintf( stderr, "  to be modified right now" );
-	if ( ld->ld_errno == LDAP_UNAVAILABLE ) {
+	if ( ld_errno == LDAP_UNAVAILABLE ) {
 		fprintf( stderr, " or is temporarily unavailable" );
 	}
 	fprintf( stderr, ".\n  Please try again later.\n" );

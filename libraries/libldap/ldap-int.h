@@ -30,6 +30,17 @@ LDAP_BEGIN_DECL
 #endif /* LDAP_DNS */
 #endif /* LDAP_REFERRALS */
 
+#define LDAP_BOOL_REFERRALS		0
+#define LDAP_BOOL_RESTART		1
+#define LDAP_BOOL_DNS			2
+
+#define LDAP_BOOL(n)	(1 << (n))
+#define LDAP_BOOL_GET(ld, bool)	((ld)->ld_booleans & LDAP_BOOL(bool) \
+									?  LDAP_OPT_ON : LDAP_OPT_OFF)
+#define LDAP_BOOL_SET(ld, bool) ((ld)->ld_booleans |= LDAP_BOOL(bool))
+#define LDAP_BOOL_CLR(ld, bool) ((ld)->ld_booleans &= ~LDAP_BOOL(bool))
+#define LDAP_BOOL_ZERO(ld) ((ld)->ld_booleans = 0)
+
 /*
  * This structure represents both ldap messages and ldap responses.
  * These are really the same, except in the case of search responses,
@@ -82,7 +93,7 @@ struct ldap {
 	int		ld_cldaptries;	/* connectionless search retry count */
 	int		ld_cldaptimeout;/* time between retries */
 	int		ld_refhoplimit;	/* limit on referral nesting */
-	unsigned long	ld_options;	/* boolean options */
+	unsigned long	ld_booleans;	/* boolean options */
 
 	/* do not mess with the rest though */
 	char		*ld_defhost;	/* full name of default server */
@@ -98,6 +109,14 @@ struct ldap {
 				/* routine to get info needed for re-bind */
 #endif /* LDAP_REFERRALS */
 };
+
+
+/*
+ * in init.c
+ */
+extern int openldap_ldap_initialized;
+extern struct ldap openldap_ld_globals;
+void openldap_ldap_initialize LDAP_P((void));
 
 /*
  * in cache.c

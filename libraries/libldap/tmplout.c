@@ -17,10 +17,12 @@
 #endif
 
 #include "lber.h"
-#include "ldap-int.h"
+#include "ldap.h"
+
 #include "ldap_log.h"
 #include "disptmpl.h"
 
+#include "ldap-int.h"
 #include "ldapconfig.h"
 
 static int do_entry2text LDAP_P((

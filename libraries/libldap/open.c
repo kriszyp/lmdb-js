@@ -148,8 +148,12 @@ ldap_init( char *defhost, int defport )
 	    WSACleanup( );
 		return( NULL );
 	}
-	ld->ld_options = LDAP_OPT_REFERRALS;
-#endif /* LDAP_REFERRALS */
+
+	LDAP_BOOL_ZERO(ld);
+	LDAP_BOOL_SET(ld, LDAP_BOOL_REFERRALS);
+#else
+	LDAP_BOOL_ZERO(ld);
+#endif
 
 	if ( defhost != NULL &&
 	    ( ld->ld_defhost = strdup( defhost )) == NULL ) {
@@ -168,7 +172,7 @@ ldap_init( char *defhost, int defport )
 	ld->ld_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
 
 #ifdef LDAP_REFERRALS
-        ld->ld_options |= LDAP_OPT_REFERRALS;
+	LDAP_BOOL_SET(ld, LDAP_BOOL_REFERRALS);
 #endif /* LDAP_REFERRALS */
 
 #if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )

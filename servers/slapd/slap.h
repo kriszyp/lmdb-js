@@ -15,11 +15,9 @@
 #include <assert.h>
 
 #include "avl.h"
-#include "lber.h"
+#include "../../libraries/liblber/lber-int.h"
 #include "ldap.h"
 #include "ldap_log.h"
-
-#include "../libraries/libldap/ldap-int.h"
 
 #include "lthread.h"
 #include "lthread_rdwr.h"

@@ -26,11 +26,6 @@
 #include <lber.h>
 #include <ldap.h>
 
-#if LDAP_VERSION < LDAP_VERSION3
-/* quick fix until we have ldap_set_options */
-#include "../libraries/libldap/ldap-int.h"
-#endif
-
 #include <ldapconfig.h>
 
 #define DEFAULT_PORT		79
@@ -39,8 +34,8 @@
 int		debug;
 char	*ldaphost = LDAPHOST;
 char	*base = RP_BASE;
-int		deref;
-int		sizelimit;
+int		deref = LDAP_DEREF_ALWAYS;
+int		sizelimit = DEFAULT_SIZELIMIT;
 LDAPFiltDesc	*filtd;
 
 static print_entry();
@@ -72,7 +67,6 @@ main (argc, argv)
 	extern char	*optarg;
 	extern int	optind;
 
-	deref = LDAP_DEREF_ALWAYS;
 	while ( (i = getopt( argc, argv, "ab:d:f:x:z:" )) != EOF ) {
 		switch( i ) {
 		case 'a':	/* do not deref aliases when searching */
@@ -118,8 +112,9 @@ main (argc, argv)
 		perror( "ldap_open" );
 		exit( -1 );
 	}
-	ld->ld_sizelimit = sizelimit ? sizelimit : DEFAULT_SIZELIMIT;
-	ld->ld_deref = deref;
+
+	ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &sizelimit);
+	ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
 
 	if ( ldap_simple_bind_s( ld, RP_BINDDN, RP_BIND_CRED ) != LDAP_SUCCESS ) {
 		fprintf( stderr, "X.500 is temporarily unavailable.\n" );
@@ -129,7 +124,8 @@ main (argc, argv)
 
 	result = NULL;
 	if ( strchr( key, ',' ) != NULL ) {
-		ld->ld_deref = LDAP_DEREF_FINDING;
+		int ld_deref = LDAP_DEREF_FINDING;
+		ldap_set_option(ld, LDAP_OPT_DEREF, &ld_deref);
 		if ( (rc = ldap_ufn_search_s( ld, key, attrs, 0, &result ))
 		    != LDAP_SUCCESS && rc != LDAP_SIZELIMIT_EXCEEDED &&
 		    rc != LDAP_TIMELIMIT_EXCEEDED )

@@ -240,9 +240,11 @@ int implicit;
 	ldap_flush_cache( ld );
 	rc = ldap_bind_s(ld, Entry.DN, passwd, authmethod);
 	if (rc != LDAP_SUCCESS) {
-		if (ld->ld_errno == LDAP_NO_SUCH_ATTRIBUTE)
+		int ld_errno;
+		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+		if (ld_errno == LDAP_NO_SUCH_ATTRIBUTE)
 			fprintf(stderr, "  Entry has no password\n");
-		else if (ld->ld_errno == LDAP_INVALID_CREDENTIALS)
+		else if (ld_errno == LDAP_INVALID_CREDENTIALS)
 #ifdef HAVE_KERBEROS
 			if ( authmethod == LDAP_AUTH_KRBV4 ) {
 				fprintf(stderr, "  The Kerberos credentials are invalid.\n");

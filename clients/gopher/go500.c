@@ -23,6 +23,8 @@
 #include <ac/unistd.h>
 #include <ac/wait.h>
 
+#include <ac/setproctitle.h>
+
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
@@ -32,11 +34,7 @@
 #include "ldapconfig.h"
 #include "lber.h"
 #include "ldap.h"
-
-#if LDAP_VERSION < LDAP_VERSION3
-/* quick fix until we have ldap_set_options */
-#include "../libraries/libldap/ldap-int.h"
-#endif
+#include "ldap_log.h"
 
 #include "disptmpl.h"
 
@@ -83,12 +81,12 @@ char	**argv;
 	int			fromlen;
 	RETSIGTYPE			wait4child();
 	extern char		*optarg;
-	extern char		**Argv;
-	extern int		Argc;
 
+#if defined( LDAP_PROCTITLE ) && !defined( HAVE_SETPROCTITLE )
 	/* for setproctitle */
-        Argv = argv;
-        Argc = argc;
+	Argv = argv;
+ 	Argc = argc;
+#endif
 
 	while ( (i = getopt( argc, argv, "b:d:f:lp:c:t:x:I" )) != EOF ) {
 		switch( i ) {
@@ -201,8 +199,10 @@ char	**argv;
 				    inet_ntoa( from.sin_addr ) );
 			}
 
+#ifdef LDAP_PROCTITLE
 			setproctitle( hp == NULL ? inet_ntoa( from.sin_addr ) :
 			    hp->h_name );
+#endif
 		}
 
 		do_queries( 0 );
@@ -387,7 +387,11 @@ int	s;
 			exit( 1 );
 		}
 
-		ld->ld_deref = GO500_DEREF;
+		{
+			int deref = GO500_DEREF;
+			ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
+		}
+
 		if ( (rc = ldap_simple_bind_s( ld, GO500_BINDDN, GO500_BIND_CRED ))
 		    != LDAP_SUCCESS ) {
 			fprintf(fp,

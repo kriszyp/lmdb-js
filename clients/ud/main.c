@@ -255,11 +255,14 @@ do_commands()
 				printf("  Verbose mode has been turned on.\n");
 		}
 		else if (!strncasecmp("dereference", cmd, strlen(cmd))) {
+			int deref;
 			dereference = 1 - dereference;
-			if (dereference == 1)
-				ld->ld_deref = LDAP_DEREF_ALWAYS;
-			else
-				ld->ld_deref = LDAP_DEREF_NEVER;
+			if (dereference == 1) {
+				deref = LDAP_DEREF_ALWAYS;
+			} else {
+				deref = LDAP_DEREF_NEVER;
+			}
+			ldap_set_option(ld, LDAP_OPT_DEREF, (void *) &deref);
 		}
 		else if (!strncasecmp("tidy", cmd, strlen(cmd)))
 			tidy_up();
@@ -282,15 +285,22 @@ status()
 {
 	void printbase();
 	register char **rdns;
+	char *host;
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
 		printf("->status()\n");
 #endif
 	printf("  Current server is %s", server);
-	if ( ld != NULL && ld->ld_host != NULL && strcasecmp( ld->ld_host,
-	    server ) != 0 )
-		printf( " (%s)", ld->ld_host );
+	if ( ld != NULL ) {
+		char *host = NULL;
+		
+		ldap_get_option(ld, LDAP_OPT_HOST_NAME, &host);
+
+		if (( host != NULL ) && (strcasecmp( host, server ) != 0 )) {
+			printf( " (%s)", host );
+		}
+	}
 	putchar( '\n' );
 	printbase("  Search base is ", search_base);
 	printbase("  Group  base is ", group_base);
@@ -303,7 +313,10 @@ status()
 	}
 	printf( "  Verbose mode is %sabled\n", ( verbose ? "en" : "dis" ));
 	if ( ld != NULL ) {
-		printf( "  Aliases are %sbeing dereferenced\n", ( ld->ld_deref == LDAP_DEREF_ALWAYS ) ? "" : "not" );
+		int deref = LDAP_DEREF_NEVER;
+		ldap_get_option(ld, LDAP_OPT_DEREF, &deref);
+		printf( "  Aliases are %sbeing dereferenced\n",
+			( deref == LDAP_DEREF_ALWAYS ) ? "" : "not" );
 	}
 }
 
@@ -419,8 +432,10 @@ char **base, *s;
 		 *  type a number at that point too.
 		 */
 		if (ldap_search_s(ld, *base, LDAP_SCOPE_ONELEVEL, "(|(objectClass=quipuNonLeafObject)(objectClass=externalNonLeafObject))", attrs, FALSE, &mp) != LDAP_SUCCESS) {
-			if ((ld->ld_errno == LDAP_TIMELIMIT_EXCEEDED) ||
-			    (ld->ld_errno == LDAP_SIZELIMIT_EXCEEDED)) {
+			int ld_errno = 0;
+			ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+			if ((ld_errno == LDAP_TIMELIMIT_EXCEEDED) ||
+			    (ld_errno == LDAP_SIZELIMIT_EXCEEDED)) {
 				if (verbose) {
 					printf("  Your query was too general and a limit was exceeded.  The results listed\n");
 					printf("  are not complete.  You may want to try again with a more refined query.\n\n");
@@ -626,13 +641,19 @@ initialize_client()
 	}
 	if (ldap_bind_s(ld, (char *) default_bind_object, (char *) UD_BIND_CRED,
 	    LDAP_AUTH_SIMPLE) != LDAP_SUCCESS) {
+		int ld_errno = 0;
+		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+
 		fprintf(stderr, "  The LDAP Directory is temporarily unavailable.  Please try again later.\n");
-		if (ld->ld_errno != LDAP_UNAVAILABLE)
+		if (ld_errno != LDAP_UNAVAILABLE)
 			ldap_perror(ld, "  ldap_bind_s");
 		exit(0);
 		/* NOTREACHED */
 	}
-	ld->ld_deref = LDAP_DEREF_ALWAYS;
+	{
+		int deref = LDAP_DEREF_ALWAYS;
+		ldap_set_option(ld, LDAP_OPT_DEREF, (void *) &deref);
+	}
 	bind_status = UD_NOT_BOUND;
 	if ( default_bind_object != NULL ) {
 		bound_dn = strdup(default_bind_object);

@@ -31,11 +31,6 @@
 #include "lber.h"
 #include "ldap.h"
 
-#if LDAP_VERSION < LDAP_VERSION3
-/* quick fix until we have ldap_set_options */
-#include "../libraries/libldap/ldap-int.h"
-#endif
-
 #include <ldapconfig.h>
 
 #define USER		0
@@ -310,12 +305,16 @@ char	**argv;
 
 connect_to_x500()
 {
+	int sizelimit = FAX_MAXAMBIGUOUS;
+	int deref = LDAP_DEREF_ALWAYS;
+
 	if ( (ld = ldap_open( LDAPHOST, LDAP_PORT )) == NULL ) {
 		syslog( LOG_ALERT, "ldap_open failed" );
 		return( -1 );
 	}
-	ld->ld_sizelimit = FAX_MAXAMBIGUOUS;
-	ld->ld_deref = LDAP_DEREF_ALWAYS;
+
+	ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &sizelimit);
+	ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
 
 	if ( ldap_simple_bind_s( ld, FAX_BINDDN, FAX_BIND_CRED ) != LDAP_SUCCESS ) {
 		syslog( LOG_ALERT, "ldap_simple_bind_s failed" );
@@ -685,7 +684,10 @@ do_group_members( e, dn, to, nto, togroups, ngroups, err, nerr )
 		timeout.tv_usec = 0;
 
 		/* for each subtree to look in... */
-		ld->ld_sizelimit = FAX_MAXMEMBERS;
+		{
+			int sizelimit = FAX_MAXMEMBERS;
+			ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &sizelimit);
+		}	
 		for ( i = 0; base[i].b_dn != NULL; i++ ) {
 			/* find entries that have joined this group... */
 			rc = ldap_search_st( ld, base[i].b_dn,
@@ -784,7 +786,10 @@ do_group_members( e, dn, to, nto, togroups, ngroups, err, nerr )
 
 			ldap_msgfree( res );
 		}
-		ld->ld_sizelimit = FAX_MAXAMBIGUOUS;
+		{
+			int sizelimit = FAX_MAXAMBIGUOUS;
+			ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &sizelimit);
+		}	
 	}
 
 	return;

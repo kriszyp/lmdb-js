@@ -235,7 +235,9 @@ char *name;
 	 *  Now remove this from the LDAP Directory.
 	 */
 	if (ldap_delete_s(ld, dn) != 0) {
-		if (ld->ld_errno == LDAP_INSUFFICIENT_ACCESS)
+		int ld_errno = 0;
+		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+		if (ld_errno == LDAP_INSUFFICIENT_ACCESS)
 			printf("  You do not own the group \"%s\".\n", name);
 		else
 			ldap_perror(ld, "  ldap_delete_s");
@@ -326,9 +328,11 @@ char *name;
 #endif
 
 	if (ldap_modify_s(ld, bound_dn, mods)) {
-		if ((action == G_JOIN) && (ld->ld_errno == LDAP_TYPE_OR_VALUE_EXISTS))
+		int ld_errno = 0;
+		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+		if ((action == G_JOIN) && (ld_errno == LDAP_TYPE_OR_VALUE_EXISTS))
 			printf("  You are already subscribed to \"%s\"\n", group_name);
-		else if ((action == G_RESIGN) && (ld->ld_errno == LDAP_NO_SUCH_ATTRIBUTE))
+		else if ((action == G_RESIGN) && (ld_errno == LDAP_NO_SUCH_ATTRIBUTE))
 			printf("  You are not subscribed to \"%s\"\n", group_name);
 		else
 			mod_perror(ld);
@@ -928,7 +932,9 @@ int offset;
 #endif
 
 		if (my_ldap_modify_s(ld, group, mods)) {
-			if (ld->ld_errno == LDAP_NO_SUCH_ATTRIBUTE) {
+			int ld_errno = 0;
+			ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+			if (ld_errno == LDAP_NO_SUCH_ATTRIBUTE) {
 				printf("  Could not locate value \"%s\"\n", 
 								new_value);
 				continue;
@@ -987,7 +993,9 @@ int offset;
 			 	*  A "No such attribute" error is no big deal.
 			 	*  We only wanted to clear the attribute anyhow.
 			 	*/
-				if (ld->ld_errno != LDAP_NO_SUCH_ATTRIBUTE) {
+				int ld_errno = 0;
+				ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+				if (ld_errno != LDAP_NO_SUCH_ATTRIBUTE) {
 					mod_perror(ld);
 					return;
 				}

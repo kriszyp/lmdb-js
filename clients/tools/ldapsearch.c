@@ -11,11 +11,6 @@
 #include <ldap.h>
 #include <ldif.h>
 
-#if LDAP_VERSION == LDAP_VERSION2
-/* until we implement ldap_set_options() */
-#include "../libraries/libldap/ldap-int.h"
-#endif
-
 #include "ldapconfig.h"
 
 #define DEFSEP		"="
@@ -98,7 +93,7 @@ char	**argv;
     char		*infile, *filtpattern, **attrs, line[ BUFSIZ ];
     FILE		*fp;
     int			rc, i, first, scope, kerberos, deref, attrsonly;
-    int			ldap_options, timelimit, sizelimit, authmethod;
+    int			referrals, timelimit, sizelimit, authmethod;
     LDAP		*ld;
     extern char		*optarg;
     extern int		optind;
@@ -106,11 +101,7 @@ char	**argv;
     infile = NULL;
     deref = verbose = allow_binary = not = kerberos = vals2tmp =
 	    attrsonly = ldif = 0;
-#ifdef LDAP_REFERRALS
-    ldap_options = LDAP_OPT_REFERRALS;
-#else /* LDAP_REFERRALS */
-    ldap_options = 0;
-#endif /* LDAP_REFERRALS */
+    referrals = (int) LDAP_OPT_ON;
     sizelimit = timelimit = 0;
     scope = LDAP_SCOPE_SUBTREE;
 
@@ -150,12 +141,7 @@ char	**argv;
 	    ++vals2tmp;
 	    break;
 	case 'R':	/* don't automatically chase referrals */
-#ifdef LDAP_REFERRALS
-	    ldap_options &= ~LDAP_OPT_REFERRALS;
-#else /* LDAP_REFERRALS */
-	    fprintf( stderr,
-		    "compile with -DLDAP_REFERRALS for referral support\n" );
-#endif /* LDAP_REFERRALS */
+		referrals = (int) LDAP_OPT_OFF;
 	    break;
 	case 'A':	/* retrieve attribute names only -- no values */
 	    ++attrsonly;
@@ -270,10 +256,18 @@ char	**argv;
 	exit( 1 );
     }
 
-    ld->ld_deref = deref;
-    ld->ld_timelimit = timelimit;
-    ld->ld_sizelimit = sizelimit;
-    ld->ld_options = ldap_options;
+	if (ldap_set_option( ld, LDAP_OPT_DEREF, (void *) &deref ) == -1 ) {
+		/* set option error */
+	}
+	if (ldap_set_option( ld, LDAP_OPT_TIMELIMIT, (void *) &timelimit ) == -1 ) {
+		/* set option error */
+	}
+	if (ldap_set_option( ld, LDAP_OPT_SIZELIMIT, (void *) &sizelimit ) == -1 ) {
+		/* set option error */
+	}
+	if (ldap_set_option( ld, LDAP_OPT_REFERRALS, (void *) referrals ) == -1 ) {
+		/* set option error */
+	}
 
     if ( !kerberos ) {
 	authmethod = LDAP_AUTH_SIMPLE;
@@ -349,7 +343,11 @@ static int dosearch(
 
     if ( ldap_search( ld, base, scope, filter, attrs, attrsonly ) == -1 ) {
 	ldap_perror( ld, "ldap_search" );
-	return( ld->ld_errno );
+#ifdef HAVE_LDERRNO
+	return( ldap_lderrno(ld) );
+#else
+	return( -1 );
+#endif
     }
 
     matches = 0;

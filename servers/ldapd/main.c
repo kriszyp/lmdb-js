@@ -29,6 +29,10 @@
 #include <ac/unistd.h>
 #include <ac/wait.h>
 
+#ifdef LDAP_PROCTITLE
+#include <ac/setproctitle.h>
+#endif
+
 #include <quipu/commonarg.h>
 #include <quipu/ds_error.h>
 
@@ -113,10 +117,8 @@ char	**argv;
 	int			dsapargc;
 	char			**dsapargv;
 	RETSIGTYPE			wait4child();
-#ifndef NOSETPROCTITLE
+#ifdef LDAP_PROCTITLE
 	char			title[80];
-	extern char		**Argv;
-	extern int		Argc;
 #endif
 	extern char		*optarg;
 	extern int		optind;
@@ -243,7 +245,7 @@ char	**argv;
 	}
 #endif /* FD_SETSIZE */
 
-#ifndef NOSETPROCTITLE
+#if defined(LDAP_PROCTITLE) && !defined( HAVE_SETPROCTITLE )
 	/* for setproctitle */
 	Argv = argv;
 	Argc = argc;
@@ -260,7 +262,7 @@ char	**argv;
 	 * that have exited
 	 */
 	if (!RunFromInetd) {
-#ifndef NOSETPROCTITLE
+#ifdef LDAP_SETPROCTITLE
 		setproctitle( "initializing" );
 #endif
 #ifndef VMS
@@ -330,7 +332,7 @@ char	**argv;
 				    inet_ntoa( from.sin_addr ) );
 			}
 
-#ifndef NOSETPROCTITLE
+#ifdef LDAP_SETPROCTITLE
 			sprintf( title, "%s %d\n", hp == NULL ?
 			    inet_ntoa( from.sin_addr ) : hp->h_name, myport );
 			setproctitle( title );
@@ -355,7 +357,7 @@ char	**argv;
 	 * if we are doing CLDAP as well, handle those requests on the fly
 	 */
 
-#ifndef NOSETPROCTITLE
+#ifdef LDAP_SETPROCTITLE
 #ifdef LDAP_CONNECTIONLESS
         sprintf( title, "listening %s/%s %d", do_tcp ? "tcp" : "",
             do_udp ? "udp" : "", myport );
@@ -436,7 +438,7 @@ char	**argv;
 #ifdef VMS
 		/* This is for debug on terminal on VMS */
 		close( tcps );
-#ifndef NOSETPROCTITLE
+#ifdef LDAP_SETPROCTITLE
 		setproctitle( hp == NULL ? inet_ntoa( from.sin_addr ) :
 		    hp->h_name );
 #endif
@@ -450,7 +452,7 @@ char	**argv;
 		switch( pid = fork() ) {
 		case 0:         /* child */
 			close( tcps );
-#ifndef NOSETPROCTITLE
+#ifdef LDAP_SETPROCTITLE
                         sprintf( title, "%s (%d)\n", hp == NULL ?
 				inet_ntoa( from.sin_addr ) : hp->h_name,
 				myport );

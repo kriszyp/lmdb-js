@@ -23,6 +23,8 @@
 #include <ac/unistd.h>
 #include <ac/wait.h>
 
+#include <ac/setproctitle.h>
+
 #include <sys/resource.h>
 
 #ifdef HAVE_SYS_PARAM_H
@@ -31,11 +33,7 @@
 
 #include "lber.h"
 #include "ldap.h"
-
-#if LDAP_VERSION < LDAP_VERSION3
-/* quick fix until we have ldap_set_options */
-#include "../libraries/libldap/ldap-int.h"
-#endif
+#include "ldap_log.h"
 
 #include "disptmpl.h"
 
@@ -91,12 +89,12 @@ char	**argv;
 	int			fromlen;
 	RETSIGTYPE			wait4child();
 	extern char		*optarg;
-	extern char		**Argv;
-	extern int		Argc;
 
+#if defined( LDAP_PROCTITLE ) && !defined( HAVE_SETPROCTITLE )
 	/* for setproctitle */
-        Argv = argv;
-        Argc = argc;
+	Argv = argv;
+	Argc = argc;
+#endif
 
 	while ( (i = getopt( argc, argv, "P:ad:f:h:lp:t:x:Ic:" )) != EOF ) {
 		switch( i ) {
@@ -223,8 +221,10 @@ char	**argv;
 				    inet_ntoa( from.sin_addr ) );
 			}
 
+#ifdef LDAP_PROCTITLE
 			setproctitle( hp == NULL ? inet_ntoa( from.sin_addr ) :
 			    hp->h_name );
+#endif
 		}
 
 		do_queries( 0 );
@@ -355,6 +355,7 @@ int	s;
 	int		len;
 	FILE		*fp;
 	int		rc;
+	int		deref;
 	struct timeval	timeout;
 	fd_set		readfds;
 	LDAP		*ld;
@@ -432,9 +433,11 @@ int	s;
 		exit( 1 );
 	}
 
-	ld->ld_deref = LDAP_DEREF_ALWAYS;
+	deref = LDAP_DEREF_ALWAYS;
 	if ( !searchaliases )
-		ld->ld_deref = LDAP_DEREF_FINDING;
+		deref = LDAP_DEREF_FINDING;
+
+	ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
 
 	if ( (rc = ldap_simple_bind_s( ld, GO500GW_BINDDN, NULL ))
 	    != LDAP_SUCCESS ) {
@@ -521,14 +524,16 @@ char	*dn;
 		struct timeval	timeout;
 		LDAPMessage	*res = NULL;
 		static char	*attrs[] = { "objectClass", 0 };
+		int sizelimit = 1;
 
 		timeout.tv_sec = GO500GW_TIMEOUT;
 		timeout.tv_usec = 0;
-		ld->ld_sizelimit = 1;
+		ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &sizelimit);
 		if ( (rc = ldap_search_st( ld, dn, LDAP_SCOPE_ONELEVEL,
 		    "(objectClass=*)", attrs, 0, &timeout, &res ))
 		    == LDAP_SUCCESS || rc == LDAP_SIZELIMIT_EXCEEDED ) {
-			ld->ld_sizelimit = LDAP_NO_LIMIT;
+			sizelimit = LDAP_NO_LIMIT;
+			ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &sizelimit);
 
 			numentries = ldap_count_entries( ld, res );
 			if ( res != NULL )
@@ -584,10 +589,13 @@ char	*dn;
 	struct timeval	timeout;
 	FriendlyMap	*fm = NULL;
 	static char	*attrs[] = { "objectClass", 0 };
+	int deref = LDAP_DEREF_FINDING;
 
 	timeout.tv_sec = GO500GW_TIMEOUT;
 	timeout.tv_usec = 0;
-	ld->ld_deref = LDAP_DEREF_FINDING;
+
+	ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
+
 	if ( (rc = ldap_search_st( ld, dn, LDAP_SCOPE_ONELEVEL,
 	    "(!(objectClass=dSA))", attrs, 0, &timeout, &res )) != LDAP_SUCCESS
 	    && rc != LDAP_SIZELIMIT_EXCEEDED ) {
@@ -595,7 +603,9 @@ char	*dn;
 		    rc, myhost, myport );
 		return;
 	}
-	ld->ld_deref = LDAP_DEREF_ALWAYS;
+
+	deref = LDAP_DEREF_ALWAYS;
+	ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
 
 	if ( ldap_count_entries( ld, res ) < 1 ) {
 		return;
@@ -699,6 +709,7 @@ LDAP	*ld;
 FILE	*fp;
 char	*query;
 {
+	int deref;
 	int		scope;
 	char		*base, *filter;
 	char		*filtertype;
@@ -722,7 +733,9 @@ char	*query;
 		timeout.tv_sec = GO500GW_TIMEOUT;
 		timeout.tv_usec = 0;
 		ldap_ufn_timeout( (void *) &timeout );
-		ld->ld_deref = LDAP_DEREF_FINDING;
+
+		deref = LDAP_DEREF_FINDING;
+		ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
 
 		if ( (rc = ldap_ufn_search_s( ld, filter, attrs, 0, &res ))
 		    != LDAP_SUCCESS && rc != LDAP_SIZELIMIT_EXCEEDED ) {
@@ -742,8 +755,9 @@ char	*query;
 
 		filtertype = (scope == LDAP_SCOPE_ONELEVEL ?
 		    "go500gw onelevel" : "go500gw subtree");
-		ld->ld_deref = (scope == LDAP_SCOPE_ONELEVEL ?
+		deref = (scope == LDAP_SCOPE_ONELEVEL ?
 		    LDAP_DEREF_FINDING : LDAP_DEREF_ALWAYS);
+		ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
 		timeout.tv_sec = GO500GW_TIMEOUT;
 		timeout.tv_usec = 0;
 
@@ -768,7 +782,8 @@ char	*query;
 			if ( (count = ldap_count_entries( ld, res )) != 0 )
 				break;
 		}
-		ld->ld_deref = LDAP_DEREF_ALWAYS;
+		deref = LDAP_DEREF_ALWAYS;
+		ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
 		ldap_getfilter_free( filtd );
 #ifdef GO500GW_UFN
 	}
@@ -847,9 +862,12 @@ char	*dn;
 	if ( ldap_entry2text_search( ld, dn, NULL, NULL, tmpllist, NULL, NULL,
 	    entry2textwrite,(void *) fp, "\r\n", rdncount, 0 )
 	    != LDAP_SUCCESS ) {
+		int ld_errno = 0;
+		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+
 		fprintf(fp,
 		    "0An error occurred (explanation)\t@%d\t%s\t%d\r\n",
-		    ld->ld_errno, myhost, myport );
+		    ld_errno, myhost, myport );
 	}
 
 	if ( tmpllist != NULL ) {

@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef STDC_HEADERS
+#if defined( HAVE_STDARG_H ) && __STDC__
 #include <stdarg.h>
 #else
 #include <varargs.h>
@@ -509,7 +509,7 @@ ber_put_set( BerElement *ber )
 /* VARARGS */
 int
 ber_printf
-#ifdef STDC_HEADERS
+#if defined( HAVE_STDARG_H ) && __STDC__
 	( BerElement *ber, char *fmt, ... )
 #else
 	( va_alist )
@@ -517,7 +517,7 @@ va_dcl
 #endif
 {
 	va_list		ap;
-#ifndef STDC_HEADERS
+#if !(defined( HAVE_STDARG_H ) && __STDC__)
 	BerElement	*ber;
 	char		*fmt;
 #endif
@@ -526,7 +526,7 @@ va_dcl
 	int		rc, i;
 	unsigned long	len;
 
-#ifdef STDC_HEADERS 
+#if defined( HAVE_STDARG_H ) && __STDC__
 	va_start( ap, fmt );
 #else
 	va_start( ap );

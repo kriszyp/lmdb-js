@@ -3,14 +3,15 @@
 ##
 PROGRAMS= go500gw go500
 
-SRCS=	detach.c go500.c go500gw.c setproctitle.c
+SRCS=	detach.c go500.c go500gw.c 
 XSRCS= gwversion.o goversion.o
-GOOBJS =  go500.o detach.o setproctitle.o
-GWOBJS =  go500gw.o detach.o setproctitle.o
+GOOBJS =  go500.o detach.o
+GWOBJS =  go500gw.o detach.o
 
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
+XLIBS = -llutil @LUTIL_LIBS@
 
 go500 : goversion.o
 	$(CC) $(LDFLAGS) -o $@ $(GOOBJS) goversion.o $(LIBS)

@@ -18,11 +18,6 @@
 #include "lber.h"
 #include "ldap.h"
 
-#if LDAP_VERSION < LDAP_VERSION3
-/* quick fix until we have ldap_set_options */
-#include "../libraries/libldap/ldap-int.h"
-#endif
-
 #include "disptmpl.h"
 
 #include "rcpt500.h"
@@ -56,7 +51,7 @@ query_cmd( msgp, reply )
     LDAP			*ldp;
     LDAPMessage			*ldmsgp, *entry;
     char			*s, *dn;
-    int				matches, rc, ufn;
+    int				matches, rc, ld_errno, ufn;
     LDAPFiltDesc		*lfdp;
     LDAPFiltInfo		*lfi;
     struct ldap_disptmpl	*tmpllist = NULL;
@@ -113,8 +108,8 @@ query_cmd( msgp, reply )
     /*
      * set options for search and build filter
      */
-    ldp->ld_deref = derefaliases;
-    ldp->ld_sizelimit = sizelimit;
+	ldap_set_option(ldp, LDAP_OPT_DEREF, &derefaliases);
+	ldap_set_option(ldp, LDAP_OPT_SIZELIMIT, &sizelimit);
 
     matches = 0;
 
@@ -179,8 +174,11 @@ query_cmd( msgp, reply )
 	return( 0 );
     }
 
-    if ( ldp->ld_errno == LDAP_TIMELIMIT_EXCEEDED
-	    || ldp->ld_errno == LDAP_SIZELIMIT_EXCEEDED ) {
+	ld_errno = 0;
+	ldap_get_option(ldp, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+
+    if ( ld_errno == LDAP_TIMELIMIT_EXCEEDED
+	    || ld_errno == LDAP_SIZELIMIT_EXCEEDED ) {
 	strcat( reply, "(Partial results only - a limit was exceeded)\n" );
     }
 
@@ -339,8 +337,11 @@ report_ldap_err( ldp, reply )
     LDAP	*ldp;
     char	*reply;
 {
+	int ld_errno = 0;
+	ldap_get_option(ldp, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+
     strcat( reply, errpreface );
-    strcat( reply, ldap_err2string( ldp->ld_errno ));
+    strcat( reply, ldap_err2string( ld_errno ));
     strcat( reply, "\n" );
 }
 

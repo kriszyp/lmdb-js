@@ -17,6 +17,9 @@
 
 #ifdef STDC_HEADERS
 #include <stdlib.h>
+#endif
+
+#if defined( HAVE_STDARG_H ) && __STDC__
 #include <stdarg.h>
 #else
 #include <varargs.h>
@@ -367,7 +370,7 @@ ber_next_element( BerElement *ber, unsigned long *len, char *last )
 /* VARARGS */
 unsigned long
 ber_scanf
-#ifdef STDC_HEADERS
+#if defined( HAVE_STDARG_H ) && __STDC__
 	( BerElement *ber, char *fmt, ... )
 #else
 	( va_alist )
@@ -375,7 +378,7 @@ va_dcl
 #endif
 {
 	va_list		ap;
-#ifndef STDC_HEADERS
+#if !(defined( HAVE_STDARG_H ) && __STDC__)
 	BerElement	*ber;
 	char		*fmt;
 #endif
@@ -386,7 +389,7 @@ va_dcl
 	long		*l, rc, tag;
 	unsigned long	len;
 
-#if STDC_HEADERS
+#if defined( HAVE_STDARG_H ) && __STDC__
 	va_start( ap, fmt );
 #else
 	va_start( ap );

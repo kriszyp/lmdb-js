@@ -31,11 +31,6 @@
 #include "lber.h"
 #include "ldap.h"
 
-#if LDAP_VERSION < LDAP_VERSION3
-/* quick fix until we have ldap_set_options */
-#include "../libraries/libldap/ldap-int.h"
-#endif
-
 #include "ldapconfig.h"
 
 #define USER		0x01
@@ -345,12 +340,17 @@ char	**argv;
 
 connect_to_x500()
 {
+	int opt;
+
 	if ( (ld = ldap_open( ldaphost, LDAP_PORT )) == NULL ) {
 		syslog( LOG_ALERT, "ldap_open failed" );
 		return( -1 );
 	}
-	ld->ld_sizelimit = MAIL500_MAXAMBIGUOUS;
-	ld->ld_deref = LDAP_DEREF_ALWAYS;
+
+	opt = MAIL500_MAXAMBIGUOUS;
+	ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &opt);
+	opt = LDAP_DEREF_ALWAYS;
+	ldap_set_option(ld, LDAP_OPT_DEREF, &opt);
 
 	if ( ldap_simple_bind_s( ld, MAIL500_BINDDN, NULL ) != LDAP_SUCCESS ) {
 		syslog( LOG_ALERT, "ldap_simple_bind_s failed" );
@@ -774,6 +774,7 @@ do_group_members( e, dn, to, nto, togroups, ngroups, err, nerr )
 	char		filter[1024];
 	LDAPMessage	*ee, *res;
 	struct timeval	timeout;
+	int		opt;
 
 	/*
 	 * if all has gone according to plan, we've already arranged for
@@ -832,7 +833,8 @@ do_group_members( e, dn, to, nto, togroups, ngroups, err, nerr )
 		timeout.tv_usec = 0;
 
 		/* for each subtree to look in... */
-		ld->ld_sizelimit = MAIL500_MAXGROUPMEMBERS;
+		opt = MAIL500_MAXAMBIGUOUS;
+		ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &opt);
 		for ( i = 0; base[i].b_dn != NULL; i++ ) {
 			/* find entries that have joined this group... */
 			rc = ldap_search_st( ld, base[i].b_dn,
@@ -892,7 +894,8 @@ do_group_members( e, dn, to, nto, togroups, ngroups, err, nerr )
 
 			ldap_msgfree( res );
 		}
-		ld->ld_sizelimit = MAIL500_MAXAMBIGUOUS;
+		opt = MAIL500_MAXAMBIGUOUS;
+		ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &opt);
 	}
 
 	if ( ! anymembers ) {
