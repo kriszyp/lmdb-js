@@ -762,6 +762,8 @@ LDAP_SLAPD_V( void * ) slap_tls_ctx;
  * index.c
  */
 LDAP_SLAPD_F (int) slap_str2index LDAP_P(( const char *str, slap_mask_t *idx ));
+LDAP_SLAPD_F (void) slap_index2bvlen LDAP_P(( slap_mask_t idx, struct berval *bv ));
+LDAP_SLAPD_F (void) slap_index2bv LDAP_P(( slap_mask_t idx, struct berval *bv ));
 
 /*
  * init.c

@@ -130,12 +130,12 @@ bdb_cf_oc(ConfigArgs *c)
 }
 
 static slap_verbmasks bdb_lockd[] = {
-	{ "default", DB_LOCK_DEFAULT },
-	{ "oldest", DB_LOCK_OLDEST },
-	{ "random", DB_LOCK_RANDOM },
-	{ "youngest", DB_LOCK_YOUNGEST },
-	{ "fewest", DB_LOCK_MINLOCKS },
-	{ NULL, 0 }
+	{ BER_BVC("default"), DB_LOCK_DEFAULT },
+	{ BER_BVC("oldest"), DB_LOCK_OLDEST },
+	{ BER_BVC("random"), DB_LOCK_RANDOM },
+	{ BER_BVC("youngest"), DB_LOCK_YOUNGEST },
+	{ BER_BVC("fewest"), DB_LOCK_MINLOCKS },
+	{ BER_BVNULL, 0 }
 };
 
 static int
@@ -166,18 +166,17 @@ bdb_cf_gen(ConfigArgs *c)
 			break;
 			
 		case BDB_INDEX:
-			rc = 1;
+			bdb_attr_index_unparse( bdb, &c->rvalue_vals );
+			if ( !c->rvalue_vals ) rc = 1;
 			break;
 
 		case BDB_LOCKD:
 			rc = 1;
 			if ( bdb->bi_lock_detect != DB_LOCK_DEFAULT ) {
 				int i;
-				for (i=0; bdb_lockd[i].word; i++) {
+				for (i=0; !BER_BVISNULL(&bdb_lockd[i].word); i++) {
 					if ( bdb->bi_lock_detect == bdb_lockd[i].mask ) {
-						struct berval bv;
-						ber_str2bv( bdb_lockd[i].word, 0, 1, &bv );
-						ber_bvarray_add( &c->rvalue_vals, &bv );
+						value_add_one( &c->rvalue_vals, &bdb_lockd[i].word );
 						rc = 0;
 						break;
 					}
@@ -214,7 +213,7 @@ bdb_cf_gen(ConfigArgs *c)
 
 	case BDB_LOCKD:
 		rc = verb_to_mask( c->argv[1], bdb_lockd );
-		if ( !bdb_lockd[rc].word ) {
+		if ( BER_BVISNULL(&bdb_lockd[rc].word) ) {
 			fprintf( stderr, "%s: "
 				"bad policy (%s) in \"lockDetect <policy>\" line\n",
 				c->log, c->argv[1] );

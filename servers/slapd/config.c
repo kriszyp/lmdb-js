@@ -551,8 +551,8 @@ badline:
 int
 verb_to_mask(const char *word, slap_verbmasks *v) {
 	int i;
-	for(i = 0; v[i].word; i++)
-		if(!strcasecmp(word, v[i].word))
+	for(i = 0; !BER_BVISNULL(&v[i].word); i++)
+		if(!strcasecmp(word, v[i].word.bv_val))
 			break;
 	return(i);
 }
@@ -562,7 +562,7 @@ verbs_to_mask(int argc, char *argv[], slap_verbmasks *v, slap_mask_t *m) {
 	int i, j;
 	for(i = 1; i < argc; i++) {
 		j = verb_to_mask(argv[i], v);
-		if(!v[j].word) return(1);
+		if(BER_BVISNULL(&v[j].word)) return(1);
 		while (!v[j].mask) j--;
 		*m |= v[j].mask;
 	}
@@ -575,28 +575,28 @@ mask_to_verbs(slap_verbmasks *v, slap_mask_t m, BerVarray *bva) {
 	struct berval bv;
 
 	if (!m) return 1;
-	for (i=0; v[i].word; i++) {
+	for (i=0; !BER_BVISNULL(&v[i].word); i++) {
 		if (!v[i].mask) continue;
 		if (( m & v[i].mask ) == v[i].mask ) {
-			ber_str2bv( v[i].word, 0, 0, &bv );
-			value_add_one( bva, &bv );
+			value_add_one( bva, &v[i].word );
 		}
 	}
 	return 0;
 }
 
 static slap_verbmasks tlskey[] = {
-	{ "no",		SB_TLS_OFF },
-	{ "yes",		SB_TLS_ON },
-	{ "critical",	SB_TLS_CRITICAL }
+	{ BER_BVC("no"),		SB_TLS_OFF },
+	{ BER_BVC("yes"),		SB_TLS_ON },
+	{ BER_BVC("critical"),	SB_TLS_CRITICAL },
+	{ BER_BVNULL, 0 }
 };
 
 static slap_verbmasks methkey[] = {
-	{ "simple",	LDAP_AUTH_SIMPLE },
+	{ BER_BVC("simple"),	LDAP_AUTH_SIMPLE },
 #ifdef HAVE_CYRUS_SASL
-	{ "sasl",	LDAP_AUTH_SASL },
+	{ BER_BVC("sasl"),	LDAP_AUTH_SASL },
 #endif
-	{ NULL, 0 }
+	{ BER_BVNULL, 0 }
 };
 
 typedef struct cf_aux_table {
@@ -630,8 +630,8 @@ int bindconf_parse( const char *word, slap_bindconf *bc ) {
 			if ( tab->aux ) {
 				int j;
 				rc = 1;
-				for (j=0; tab->aux[j].word; j++) {
-					if (!strcasecmp(word+tab->key.bv_len, tab->aux[j].word)) {
+				for (j=0; !BER_BVISNULL(&tab->aux[j].word); j++) {
+					if (!strcasecmp(word+tab->key.bv_len, tab->aux[j].word.bv_val)) {
 						int *ptr = (int *)cptr;
 						*ptr = tab->aux[j].mask;
 						rc = 0;
@@ -661,11 +661,11 @@ int bindconf_unparse( slap_bindconf *bc, struct berval *bv ) {
 		cptr = (char **)((char *)bc + tab->off);
 		if ( tab->aux ) {
 			int *ip = (int *)cptr, i;
-			for ( i=0; tab->aux[i].word; i++ ) {
+			for ( i=0; !BER_BVISNULL(&tab->aux[i].word); i++ ) {
 				if ( *ip == tab->aux[i].mask ) {
 					*ptr++ = ' ';
 					ptr = lutil_strcopy( ptr, tab->key.bv_val );
-					ptr = lutil_strcopy( ptr, tab->aux[i].word );
+					ptr = lutil_strcopy( ptr, tab->aux[i].word.bv_val );
 					break;
 				}
 			}

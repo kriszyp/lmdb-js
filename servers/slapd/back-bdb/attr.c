@@ -23,6 +23,7 @@
 
 #include "slap.h"
 #include "back-bdb.h"
+#include "lutil.h"
 
 /* for the cache of attribute information (which are indexed, etc.) */
 typedef struct bdb_attrinfo {
@@ -294,6 +295,39 @@ bdb_attr_index_config(
 	if ( indexes != NULL ) ldap_charray_free( indexes );
 
 	return LDAP_SUCCESS;
+}
+
+static int
+bdb_attr_index_unparser( void *v1, void *v2 )
+{
+	AttrInfo *ai = v1;
+	BerVarray *bva = v2;
+	struct berval bv;
+	char *ptr;
+
+	slap_index2bvlen( ai->ai_indexmask, &bv );
+	if ( bv.bv_len ) {
+		bv.bv_len += ai->ai_desc->ad_cname.bv_len + 1;
+		ptr = ch_malloc( bv.bv_len+1 );
+		bv.bv_val = lutil_strcopy( ptr, ai->ai_desc->ad_cname.bv_val );
+		*bv.bv_val++ = ' ';
+		slap_index2bv( ai->ai_indexmask, &bv );
+		bv.bv_val = ptr;
+		ber_bvarray_add( bva, &bv );
+	}
+}
+
+static AttributeDescription addef = { NULL, NULL, BER_BVC("default") };
+static AttrInfo aidef = { &addef };
+
+void
+bdb_attr_index_unparse( struct bdb_info *bdb, BerVarray *bva )
+{
+	if ( bdb->bi_defaultmask ) {
+		aidef.ai_indexmask = bdb->bi_defaultmask;
+		bdb_attr_index_unparser( &aidef, bva );
+	}
+	avl_apply( bdb->bi_attrs, bdb_attr_index_unparser, bva, -1, AVL_INORDER );
 }
 
 void

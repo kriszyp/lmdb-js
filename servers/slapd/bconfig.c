@@ -1324,22 +1324,22 @@ config_restrict(ConfigArgs *c) {
 	slap_mask_t restrictops = 0;
 	int i;
 	slap_verbmasks restrictable_ops[] = {
-		{ "bind",		SLAP_RESTRICT_OP_BIND },
-		{ "add",		SLAP_RESTRICT_OP_ADD },
-		{ "modify",		SLAP_RESTRICT_OP_MODIFY },
-		{ "rename",		SLAP_RESTRICT_OP_RENAME },
-		{ "modrdn",		0 },
-		{ "delete",		SLAP_RESTRICT_OP_DELETE },
-		{ "search",		SLAP_RESTRICT_OP_SEARCH },
-		{ "compare",	SLAP_RESTRICT_OP_COMPARE },
-		{ "read",		SLAP_RESTRICT_OP_READS },
-		{ "write",		SLAP_RESTRICT_OP_WRITES },
-		{ "extended",	SLAP_RESTRICT_OP_EXTENDED },
-		{ "extended=" LDAP_EXOP_START_TLS,		SLAP_RESTRICT_EXOP_START_TLS },
-		{ "extended=" LDAP_EXOP_MODIFY_PASSWD,	SLAP_RESTRICT_EXOP_MODIFY_PASSWD },
-		{ "extended=" LDAP_EXOP_X_WHO_AM_I,		SLAP_RESTRICT_EXOP_WHOAMI },
-		{ "extended=" LDAP_EXOP_X_CANCEL,		SLAP_RESTRICT_EXOP_CANCEL },
-		{ NULL,	0 }
+		{ BER_BVC("bind"),		SLAP_RESTRICT_OP_BIND },
+		{ BER_BVC("add"),		SLAP_RESTRICT_OP_ADD },
+		{ BER_BVC("modify"),		SLAP_RESTRICT_OP_MODIFY },
+		{ BER_BVC("rename"),		SLAP_RESTRICT_OP_RENAME },
+		{ BER_BVC("modrdn"),		0 },
+		{ BER_BVC("delete"),		SLAP_RESTRICT_OP_DELETE },
+		{ BER_BVC("search"),		SLAP_RESTRICT_OP_SEARCH },
+		{ BER_BVC("compare"),	SLAP_RESTRICT_OP_COMPARE },
+		{ BER_BVC("read"),		SLAP_RESTRICT_OP_READS },
+		{ BER_BVC("write"),		SLAP_RESTRICT_OP_WRITES },
+		{ BER_BVC("extended"),	SLAP_RESTRICT_OP_EXTENDED },
+		{ BER_BVC("extended=" LDAP_EXOP_START_TLS ),		SLAP_RESTRICT_EXOP_START_TLS },
+		{ BER_BVC("extended=" LDAP_EXOP_MODIFY_PASSWD ),	SLAP_RESTRICT_EXOP_MODIFY_PASSWD },
+		{ BER_BVC("extended=" LDAP_EXOP_X_WHO_AM_I ),		SLAP_RESTRICT_EXOP_WHOAMI },
+		{ BER_BVC("extended=" LDAP_EXOP_X_CANCEL ),		SLAP_RESTRICT_EXOP_CANCEL },
+		{ BER_BVNULL,	0 }
 	};
 
 	if (c->emit) {
@@ -1364,11 +1364,11 @@ config_allows(ConfigArgs *c) {
 	slap_mask_t allows = 0;
 	int i;
 	slap_verbmasks allowable_ops[] = {
-		{ "bind_v2",		SLAP_ALLOW_BIND_V2 },
-		{ "bind_anon_cred",	SLAP_ALLOW_BIND_ANON_CRED },
-		{ "bind_anon_dn",	SLAP_ALLOW_BIND_ANON_DN },
-		{ "update_anon",	SLAP_ALLOW_UPDATE_ANON },
-		{ NULL,	0 }
+		{ BER_BVC("bind_v2"),		SLAP_ALLOW_BIND_V2 },
+		{ BER_BVC("bind_anon_cred"),	SLAP_ALLOW_BIND_ANON_CRED },
+		{ BER_BVC("bind_anon_dn"),	SLAP_ALLOW_BIND_ANON_DN },
+		{ BER_BVC("update_anon"),	SLAP_ALLOW_UPDATE_ANON },
+		{ BER_BVNULL,	0 }
 	};
 	if (c->emit) {
 		return mask_to_verbs( allowable_ops, global_allows, &c->rvalue_vals );
@@ -1389,12 +1389,12 @@ config_disallows(ConfigArgs *c) {
 	slap_mask_t disallows = 0;
 	int i;
 	slap_verbmasks disallowable_ops[] = {
-		{ "bind_anon",		SLAP_DISALLOW_BIND_ANON },
-		{ "bind_simple",	SLAP_DISALLOW_BIND_SIMPLE },
-		{ "bind_krb4",		SLAP_DISALLOW_BIND_KRBV4 },
-		{ "tls_2_anon",		SLAP_DISALLOW_TLS_2_ANON },
-		{ "tls_authc",		SLAP_DISALLOW_TLS_AUTHC },
-		{ NULL, 0 }
+		{ BER_BVC("bind_anon"),		SLAP_DISALLOW_BIND_ANON },
+		{ BER_BVC("bind_simple"),	SLAP_DISALLOW_BIND_SIMPLE },
+		{ BER_BVC("bind_krb4"),		SLAP_DISALLOW_BIND_KRBV4 },
+		{ BER_BVC("tls_2_anon"),		SLAP_DISALLOW_TLS_2_ANON },
+		{ BER_BVC("tls_authc"),		SLAP_DISALLOW_TLS_AUTHC },
+		{ BER_BVNULL, 0 }
 	};
 	if (c->emit) {
 		return mask_to_verbs( disallowable_ops, global_disallows, &c->rvalue_vals );
@@ -1415,12 +1415,12 @@ config_requires(ConfigArgs *c) {
 	slap_mask_t requires = 0;
 	int i;
 	slap_verbmasks requires_ops[] = {
-		{ "bind",		SLAP_REQUIRE_BIND },
-		{ "LDAPv3",		SLAP_REQUIRE_LDAP_V3 },
-		{ "authc",		SLAP_REQUIRE_AUTHC },
-		{ "sasl",		SLAP_REQUIRE_SASL },
-		{ "strong",		SLAP_REQUIRE_STRONG },
-		{ NULL, 0 }
+		{ BER_BVC("bind"),		SLAP_REQUIRE_BIND },
+		{ BER_BVC("LDAPv3"),		SLAP_REQUIRE_LDAP_V3 },
+		{ BER_BVC("authc"),		SLAP_REQUIRE_AUTHC },
+		{ BER_BVC("sasl"),		SLAP_REQUIRE_SASL },
+		{ BER_BVC("strong"),		SLAP_REQUIRE_STRONG },
+		{ BER_BVNULL, 0 }
 	};
 	if (c->emit) {
 		return mask_to_verbs( requires_ops, c->be->be_requires, &c->rvalue_vals );
@@ -1441,22 +1441,22 @@ config_loglevel(ConfigArgs *c) {
 	int i;
 	char *next;
 	slap_verbmasks loglevel_ops[] = {
-		{ "Trace",	LDAP_DEBUG_TRACE },
-		{ "Packets",	LDAP_DEBUG_PACKETS },
-		{ "Args",	LDAP_DEBUG_ARGS },
-		{ "Conns",	LDAP_DEBUG_CONNS },
-		{ "BER",	LDAP_DEBUG_BER },
-		{ "Filter",	LDAP_DEBUG_FILTER },
-		{ "Config",	LDAP_DEBUG_CONFIG },
-		{ "ACL",	LDAP_DEBUG_ACL },
-		{ "Stats",	LDAP_DEBUG_STATS },
-		{ "Stats2",	LDAP_DEBUG_STATS2 },
-		{ "Shell",	LDAP_DEBUG_SHELL },
-		{ "Parse",	LDAP_DEBUG_PARSE },
-		{ "Cache",	LDAP_DEBUG_CACHE },
-		{ "Index",	LDAP_DEBUG_INDEX },
-		{ "Any",	-1 },
-		{ NULL,	0 }
+		{ BER_BVC("Trace"),	LDAP_DEBUG_TRACE },
+		{ BER_BVC("Packets"),	LDAP_DEBUG_PACKETS },
+		{ BER_BVC("Args"),	LDAP_DEBUG_ARGS },
+		{ BER_BVC("Conns"),	LDAP_DEBUG_CONNS },
+		{ BER_BVC("BER"),	LDAP_DEBUG_BER },
+		{ BER_BVC("Filter"),	LDAP_DEBUG_FILTER },
+		{ BER_BVC("Config"),	LDAP_DEBUG_CONFIG },
+		{ BER_BVC("ACL"),	LDAP_DEBUG_ACL },
+		{ BER_BVC("Stats"),	LDAP_DEBUG_STATS },
+		{ BER_BVC("Stats2"),	LDAP_DEBUG_STATS2 },
+		{ BER_BVC("Shell"),	LDAP_DEBUG_SHELL },
+		{ BER_BVC("Parse"),	LDAP_DEBUG_PARSE },
+		{ BER_BVC("Cache"),	LDAP_DEBUG_CACHE },
+		{ BER_BVC("Index"),	LDAP_DEBUG_INDEX },
+		{ BER_BVC("Any"),	-1 },
+		{ BER_BVNULL,	0 }
 	};
 
 	if (c->emit) {
@@ -1479,7 +1479,7 @@ config_loglevel(ConfigArgs *c) {
 			}
 		} else {
 			int j = verb_to_mask(c->argv[i], loglevel_ops);
-			if(!loglevel_ops[j].word) {
+			if(BER_BVISNULL(&loglevel_ops[j].word)) {
 				Debug( LDAP_DEBUG_ANY,
 					"%s: unknown level \"%s\" "
 					"in \"loglevel <level> [...]\" line.\n",
@@ -1906,17 +1906,17 @@ static int
 config_tls_config(ConfigArgs *c) {
 	int i, flag;
 	slap_verbmasks crlkeys[] = {
-		{ "none",	LDAP_OPT_X_TLS_CRL_NONE },
-		{ "peer",	LDAP_OPT_X_TLS_CRL_PEER },
-		{ "all",	LDAP_OPT_X_TLS_CRL_ALL },
-		{ NULL, 0 }
+		{ BER_BVC("none"),	LDAP_OPT_X_TLS_CRL_NONE },
+		{ BER_BVC("peer"),	LDAP_OPT_X_TLS_CRL_PEER },
+		{ BER_BVC("all"),	LDAP_OPT_X_TLS_CRL_ALL },
+		{ BER_BVNULL, 0 }
 	};
 	slap_verbmasks vfykeys[] = {
-		{ "never",	LDAP_OPT_X_TLS_NEVER },
-		{ "demand",	LDAP_OPT_X_TLS_DEMAND },
-		{ "try",	LDAP_OPT_X_TLS_TRY },
-		{ "hard",	LDAP_OPT_X_TLS_HARD },
-		{ NULL, 0 }
+		{ BER_BVC("never"),	LDAP_OPT_X_TLS_NEVER },
+		{ BER_BVC("demand"),	LDAP_OPT_X_TLS_DEMAND },
+		{ BER_BVC("try"),	LDAP_OPT_X_TLS_TRY },
+		{ BER_BVC("hard"),	LDAP_OPT_X_TLS_HARD },
+		{ BER_BVNULL, 0 }
 	}, *keys;
 	switch(c->type) {
 #ifdef HAVE_OPENSSL_CRL
@@ -1931,9 +1931,9 @@ config_tls_config(ConfigArgs *c) {
 	}
 	if (c->emit) {
 		ldap_pvt_tls_get_option( NULL, flag, &c->value_int );
-		for (i=0; keys[i].word; i++) {
+		for (i=0; !BER_BVISNULL(&keys[i].word); i++) {
 			if (keys[i].mask == c->value_int) {
-				c->value_string = ch_strdup( keys[i].word );
+				c->value_string = ch_strdup( keys[i].word.bv_val );
 				return 0;
 			}
 		}

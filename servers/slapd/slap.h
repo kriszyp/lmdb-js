@@ -1419,7 +1419,7 @@ struct slap_replica_info {
 };
 
 typedef struct slap_verbmasks {
-	const char *word;
+	struct berval word;
 	const int mask;
 } slap_verbmasks;
 
