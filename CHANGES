@@ -4,6 +4,7 @@ OpenLDAP 2.1.26 Engineering
 	Fixed slapd bdb error recovery bug (ITS#2865)
 	Fixed slapd bdb IDL cache cleanup bug (ITS#2917)
 	Fixed slapd SASL auxprop typo (ITS#2909)
+	Fixed slapd backglue segfault (ITS#2924)
 	Fixed back-ldap compare operation (ITS#2893)
 	Fixed libldap sort references bug (ITS#2494)
 	Updated lutil_passwd (ITS#2835, ITS#2869)
