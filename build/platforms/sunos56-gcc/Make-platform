@@ -1,0 +1,28 @@
+#
+# LDAP SunOS5 GNU C Make-platform file
+#
+
+#
+# add any platform-specific overrides below here
+#
+
+
+#
+# -------------------------------------------------------------------------
+# you will probably not need to edit anything below this point
+# -------------------------------------------------------------------------
+CC	= gcc
+
+# ranlib not needed under SunOS5
+RANLIB	= ""
+
+# give full path to hostname since it may not be in user's path
+HOSTNAME=/bin/hostname
+
+# don't count on /usr/ucb/install being present or first in path
+INSTALL=$(LDAPSRC)/build/install.sh
+
+PLATFORMCFLAGS=	-Dsunos5 -D__SunOS_5_6 -D_REENTRANT
+PLATFORMLIBS= -lsocket -lnsl -lgen
+THREADS= -DTHREAD_SUNOS5_LWP
+THREADSLIB=-lthread
