@@ -275,6 +275,8 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	err = db_create( &ret, ldbm_Env, 0 );
 	if ( err != 0 ) {
 		(void)ret->close(ret, 0);
+		LDBM_UNLOCK;
+
 		return NULL;
 	}
 
@@ -283,12 +285,16 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 
 	err = ret->open( ret, name, NULL, DB_TYPE, rw, mode);
 
-	LDBM_UNLOCK;
-
 	if ( err != 0 ) {
+		int tmp = errno;
 		(void)ret->close(ret, 0);
+		errno = tmp;
+
+		LDBM_UNLOCK;
 		return NULL;
 	}
+
+	LDBM_UNLOCK;
  
 #elif DB_VERSION_MAJOR >= 2
 	DB_INFO dbinfo;
@@ -336,7 +342,7 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	LDBM_UNLOCK;
 #endif
 
-	return( ret );
+	return ret;
 }
 
 void
