@@ -45,6 +45,7 @@
  *	@(#)queue.h	8.5 (Berkeley) 8/20/94
  * $FreeBSD: src/sys/sys/queue.h,v 1.32.2.5 2001/09/30 21:12:54 luigi Exp $
  */
+/* See also: ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change */
 
 #ifndef _LDAP_QUEUE_H_
 #define	_LDAP_QUEUE_H_
