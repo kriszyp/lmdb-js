@@ -14,6 +14,7 @@ define([AC_CACHE_SAVE], )dnl
 dnl Configure.in for OpenLDAP
 AC_INIT(build/version)dnl
 AC_CONFIG_AUX_DIR(build)dnl
+OPENLDAP_ID=OL_RCS_ID(OpenLDAP)
 
 OL_VERSION=`cat $ac_aux_dir/version`
 if test -z "$OL_VERSION"; then
