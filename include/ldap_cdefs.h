@@ -31,12 +31,20 @@
 #	define LDAP_STRING(x)	#x /* stringify without expanding x */
 #	define LDAP_XSTRING(x)	LDAP_STRING(x) /* expand x, then stringify */
 
+#ifndef LDAP_CONST
+#	define LDAP_CONST	const
+#endif
+
 #else /* no prototypes */
 
 	/* traditional C */
 #	define LDAP_P(protos)	()
 #	define LDAP_CONCAT(x,y)	x/**/y
 #	define LDAP_STRING(x)	"x"
+
+#ifndef LDAP_CONST
+#	define LDAP_CONST	/* no const */
+#endif
 
 #endif /* no prototypes */
 
