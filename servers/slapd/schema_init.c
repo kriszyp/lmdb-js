@@ -3449,7 +3449,7 @@ objectIdentifierFirstComponentMatch(
 	int rc = LDAP_SUCCESS;
 	int match;
 	struct berval *asserted = (struct berval *) assertedValue;
-	ber_len_t i;
+	ber_len_t i, j;
 	struct berval oid;
 
 	if( value->bv_len == 0 || value->bv_val[0] != '(' /*')'*/ ) {
@@ -3463,8 +3463,8 @@ objectIdentifierFirstComponentMatch(
 
 	/* grab next word */
 	oid.bv_val = &value->bv_val[i];
-	oid.bv_len = value->bv_len - i;
-	for( i=1; ASCII_SPACE(value->bv_val[i]) && i < oid.bv_len; i++ ) {
+	j = value->bv_len - i;
+	for( i=0; !ASCII_SPACE(oid.bv_val[i]) && i < j; i++ ) {
 		/* empty */
 	}
 	oid.bv_len = i;
