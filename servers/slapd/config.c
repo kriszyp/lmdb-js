@@ -206,7 +206,7 @@ read_config( const char *fname )
 
 			if( dn_normalize( default_search_nbase ) == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"invalid default search base \"%s\"\n"
+					"invalid default search base \"%s\"\n",
 					fname, lineno, default_search_base );
 				return 1;
 			}
