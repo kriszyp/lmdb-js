@@ -19,6 +19,7 @@
 
 #include "../../libraries/liblber/lber-int.h"
 
+static SLAP_CTRL_PARSE_FN parseAssert;
 static SLAP_CTRL_PARSE_FN parseProxyAuthz;
 static SLAP_CTRL_PARSE_FN parseManageDSAit;
 static SLAP_CTRL_PARSE_FN parseNoOp;
@@ -39,31 +40,17 @@ static SLAP_CTRL_PARSE_FN parseLdupSync;
 
 #undef sc_mask /* avoid conflict with Irix 6.5 <sys/signal.h> */
 
-static char *proxy_authz_extops[] = {
-	LDAP_EXOP_MODIFY_PASSWD,
-	LDAP_EXOP_X_WHO_AM_I,
-	NULL
-};
-
 struct slap_control {
-	/*
-	 * Control OID
-	 */
+	/* Control OID */
 	char *sc_oid;
 
-	/*
-	 * Operations supported by control
-	 */
+	/* Operations supported by control */
 	slap_mask_t sc_mask;
 
-	/*
-	 * Extended operations supported by control
-	 */
+	/* Extended operations supported by control */
 	char **sc_extendedops;
 
-	/*
-	 * Control parsing callback
-	 */
+	/* Control parsing callback */
 	SLAP_CTRL_PARSE_FN *sc_parse;
 
 	LDAP_SLIST_ENTRY(slap_control) sc_next;
@@ -77,7 +64,16 @@ static LDAP_SLIST_HEAD(ControlsList, slap_control) controls_list
  */
 char **slap_known_controls = NULL;
 
+static char *proxy_authz_extops[] = {
+	LDAP_EXOP_MODIFY_PASSWD,
+	LDAP_EXOP_X_WHO_AM_I,
+	NULL
+};
+
 static struct slap_control control_defs[] = {
+	{ LDAP_CONTROL_ASSERT,
+		SLAP_CTRL_ACCESS, NULL,
+		parseAssert, LDAP_SLIST_ENTRY_INITIALIZER(next) },
  	{ LDAP_CONTROL_VALUESRETURNFILTER,
  		SLAP_CTRL_SEARCH, NULL,
 		parseValuesReturnFilter, LDAP_SLIST_ENTRY_INITIALIZER(next) },
@@ -872,6 +868,69 @@ static int parsePagedResults (
 }
 #endif
 
+static int parseAssert (
+	Operation *op,
+	SlapReply *rs,
+	LDAPControl *ctrl )
+{
+	BerElement	*ber;
+	struct berval	fstr = { 0, NULL };
+	const char *err_msg = "";
+
+	if ( op->o_assert != SLAP_NO_CONTROL ) {
+		rs->sr_text = "assert control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( ctrl->ldctl_value.bv_len == 0 ) {
+		rs->sr_text = "assert control value is empty (or absent)";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	ber = ber_init( &(ctrl->ldctl_value) );
+	if (ber == NULL) {
+		rs->sr_text = "internal error";
+		return LDAP_OTHER;
+	}
+	
+	rs->sr_err = get_filter( op, ber, &(op->o_assertion), &rs->sr_text);
+
+	if( rs->sr_err != LDAP_SUCCESS ) {
+		if( rs->sr_err == SLAPD_DISCONNECT ) {
+			rs->sr_err = LDAP_PROTOCOL_ERROR;
+			send_ldap_disconnect( op, rs );
+			rs->sr_err = SLAPD_DISCONNECT;
+		} else {
+			send_ldap_result( op, rs );
+		}
+		if( op->o_assertion != NULL) {
+			filter_free_x( op, op->o_assertion ); 
+		}
+	}
+#ifdef LDAP_DEBUG
+	else {
+		filter2bv_x( op, op->o_assertion, &fstr );
+	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, ARGS, 
+		"parseAssert: conn %d assert: %s\n", 
+		op->o_connid, fstr.bv_len ? fstr.bv_val : "empty" , 0 );
+#else
+	Debug( LDAP_DEBUG_ARGS, "parseAssert: conn %d assert: %s\n",
+		op->o_connid, fstr.bv_len ? fstr.bv_val : "empty" , 0 );
+#endif
+	op->o_tmpfree( fstr.bv_val, op->o_tmpmemctx );
+#endif
+
+	op->o_assert = ctrl->ldctl_iscritical
+		? SLAP_CRITICAL_CONTROL
+		: SLAP_NONCRITICAL_CONTROL;
+
+	rs->sr_err = LDAP_SUCCESS;
+	return LDAP_SUCCESS;
+}
+
 int parseValuesReturnFilter (
 	Operation *op,
 	SlapReply *rs,
@@ -897,7 +956,7 @@ int parseValuesReturnFilter (
 		return LDAP_OTHER;
 	}
 	
-	rs->sr_err = get_vrFilter( op, ber, &(op->vrFilter), &rs->sr_text);
+	rs->sr_err = get_vrFilter( op, ber, &(op->o_vrFilter), &rs->sr_text);
 
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		if( rs->sr_err == SLAPD_DISCONNECT ) {
@@ -907,12 +966,12 @@ int parseValuesReturnFilter (
 		} else {
 			send_ldap_result( op, rs );
 		}
-		if( op->vrFilter != NULL) vrFilter_free( op, op->vrFilter ); 
+		if( op->o_vrFilter != NULL) vrFilter_free( op, op->o_vrFilter ); 
 
 	}
 #ifdef LDAP_DEBUG
 	else {
-		vrFilter2bv( op, op->vrFilter, &fstr );
+		vrFilter2bv( op, op->o_vrFilter, &fstr );
 	}
 
 #ifdef NEW_LOGGING

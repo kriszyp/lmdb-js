@@ -1915,6 +1915,9 @@ typedef struct slap_op {
 	char o_subentries_visibility;
 #define get_subentries_visibility(op)	((int)(op)->o_subentries_visibility)
 
+	char o_assert;
+#define get_assert(op)					((int)(op)->o_assert)
+
 	char o_valuesreturnfilter;
 
 #ifdef LDAP_CONTROL_X_PERMISSIVE_MODIFY
@@ -1987,7 +1990,10 @@ typedef struct slap_op {
 	void	*o_private;	/* anything the backend needs */
 
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
-	ValuesReturnFilter *vrFilter; /* Structure represents ValuesReturnFilter */
+
+	Filter *o_assertion; /* Assert control filter */
+#define get_assertion(op)				((op)->o_assertion)
+	ValuesReturnFilter *o_vrFilter; /* ValuesReturnFilter */
 
 #ifdef LDAP_CACHING 
  	char		o_caching_on; 

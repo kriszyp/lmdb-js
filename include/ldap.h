@@ -180,6 +180,7 @@ typedef struct ldapcontrol {
 } LDAPControl;
 
 /* LDAP Controls */
+#define LDAP_CONTROL_ASSERT			"1.3.6.1.4.1.4203.666.5.9"
 #define LDAP_CONTROL_VALUESRETURNFILTER "1.2.826.0.1.334810.2.3"
 #define LDAP_CONTROL_SUBENTRIES		"1.3.6.1.4.1.4203.1.10.1"
 #define LDAP_CONTROL_NOOP			"1.3.6.1.4.1.4203.1.10.2"

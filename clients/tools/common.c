@@ -41,6 +41,7 @@ char	*sasl_secprops = NULL;
 #endif
 int   use_tls = 0;
 
+char *assertion = NULL;
 char *authzid = NULL;
 int   manageDSAit = 0;
 int   noop = 0;
@@ -74,6 +75,7 @@ N_("  -C         chase referrals\n"),
 N_("  -d level   set LDAP debugging level to `level'\n"),
 N_("  -D binddn  bind DN\n"),
 N_("  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n")
+N_("             [!]assert=<filter>   (an RFC 2254 Filter)\n")
 N_("             [!]authzid=<authzid> (\"dn:<dn>\" or \"u:<user>\")\n")
 N_("             [!]manageDSAit       (alternate form, see -M)\n")
 N_("             [!]noop\n"),
@@ -155,7 +157,20 @@ tool_args( int argc, char **argv )
 				*cvalue++ = '\0';
 			}
 
-			if ( strcasecmp( control, "authzid" ) == 0 ) {
+			if ( strcasecmp( control, "assert" ) == 0 ) {
+				if( assertion != NULL ) {
+					fprintf( stderr, "assert control previously specified\n");
+					exit( EXIT_FAILURE );
+				}
+				if( cvalue == NULL ) {
+					fprintf( stderr, "assert: control value expected\n" );
+					usage();
+				}
+
+				assert( assertion == NULL );
+				assertion = cvalue;
+
+			} else if ( strcasecmp( control, "authzid" ) == 0 ) {
 				if( authzid != NULL ) {
 					fprintf( stderr, "authzid control previously specified\n");
 					exit( EXIT_FAILURE );
@@ -710,12 +725,41 @@ void
 tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 {
 	int i = 0, j, crit = 0, err;
-	LDAPControl c[3], **ctrls;
+	LDAPControl c[4], **ctrls;
 
 	ctrls = (LDAPControl**) malloc(sizeof(c) + (count+1)*sizeof(LDAPControl*));
 	if ( ctrls == NULL ) {
 		fprintf( stderr, "No memory\n" );
 		exit( EXIT_FAILURE );
+	}
+
+	if ( assertion ) {
+		char berbuf[LBER_ELEMENT_SIZEOF];
+		BerElement *ber = (BerElement *)berbuf;
+		
+		if( *assertion == '\0' ) {
+			fprintf( stderr, "Assertion=<empty>\n" );
+			exit( EXIT_FAILURE );
+		}
+
+		ber_init2( ber, NULL, LBER_USE_DER );
+
+		err = ldap_pvt_put_filter( ber, assertion );
+		if( err < 0 ) {
+			fprintf( stderr, "assertion encode failed (%d)\n", err );
+			exit( EXIT_FAILURE );
+		}
+
+		err = ber_flatten2( ber, &c[i].ldctl_value, 0 );
+		if( err < 0 ) {
+			fprintf( stderr, "assertion flatten failed (%d)\n", err );
+			exit( EXIT_FAILURE );
+		}
+
+		c[i].ldctl_oid = LDAP_CONTROL_ASSERT;
+		c[i].ldctl_iscritical = 1;
+		ctrls[i] = &c[i];
+		i++;
 	}
 
 	if ( authzid ) {
