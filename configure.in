@@ -266,9 +266,9 @@ OL_ARG_ENABLE(refint,[    --enable-refint	  Referential Integrity overlay no|yes
 	no, [no yes mod])
 OL_ARG_ENABLE(rwm,[    --enable-rwm       	  Rewrite/Remap overlay no|yes|mod],
 	no, [no yes mod])
-OL_ARG_ENABLE(syncprov,[    --enable-syncprov       	  Syncrepl Provider overlay no|yes|mod],
+OL_ARG_ENABLE(syncprov,[    --enable-syncprov	  Syncrepl Provider overlay no|yes|mod],
 	yes, [no yes mod])
-OL_ARG_ENABLE(translucent,[    --enable-translucent       	  Translucent Proxy overlay no|yes|mod],
+OL_ARG_ENABLE(translucent,[    --enable-translucent  Translucent Proxy overlay no|yes|mod],
 	no, [no yes mod])
 OL_ARG_ENABLE(unique,[    --enable-unique       Attribute Uniqueness overlay no|yes|mod],
 	no, [no yes mod])
@@ -530,6 +530,7 @@ BUILD_PROXYCACHE=no
 BUILD_REFINT=no
 BUILD_RWM=no
 BUILD_SYNCPROV=no
+BUILD_TRANSLUCENT=no
 BUILD_UNIQUE=no
 
 SLAPD_DYNAMIC_OVERLAYS=
@@ -2875,6 +2876,17 @@ if test "$ol_enable_syncprov" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_SYNCPROV,$MFLAG,[define for Syncrepl Provider overlay])
 fi
 
+if test "$ol_enable_translucent" != no ; then
+	BUILD_TRANSLUCENT=$ol_enable_translucent
+	if test "$ol_enable_translucent" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS translucent.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_TRANSLUCENT,$MFLAG,[define for Translucent Proxy overlay])
+fi
+
 if test "$ol_enable_unique" != no ; then
 	BUILD_UNIQUE=$ol_enable_unique
 	if test "$ol_enable_unique" = mod ; then
@@ -2952,6 +2964,7 @@ dnl overlays
   AC_SUBST(BUILD_REFINT)
   AC_SUBST(BUILD_RWM)
   AC_SUBST(BUILD_SYNCPROV)
+  AC_SUBST(BUILD_TRANSLUCENT)
   AC_SUBST(BUILD_UNIQUE)
 AC_SUBST(BUILD_SLURPD)
 

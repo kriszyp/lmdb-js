@@ -25,6 +25,7 @@ PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}
 RWM=${AC_rwm-rwmno}
+TRANSLUCENT=${AC_translucent-translucentno}
 UNIQUE=${AC_unique-uniqueno}
 SYNCPROV=${AC_syncprov-syncprovno}
 WITH_SASL=${AC_WITH_SASL-no}
@@ -85,6 +86,8 @@ CHAINCONF2=$DATADIR/slapd-chain2.conf
 GLUESYNCCONF1=$DATADIR/slapd-glue-syncrepl1.conf
 GLUESYNCCONF2=$DATADIR/slapd-glue-syncrepl2.conf
 SQLCONF=$DATADIR/slapd-sql.conf
+TRANSLUCENTLOCALCONF=$DATADIR/slapd-translucent-local.conf
+TRANSLUCENTREMOTECONF=$DATADIR/slapd-translucent-remote.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
@@ -169,6 +172,10 @@ LDIFLDAPGLUE3=$DATADIR/test-ldapgluegroups.ldif
 LDIFCOMPMATCH=$DATADIR/test-compmatch.ldif
 LDIFCHAIN1=$DATADIR/test-chain1.ldif
 LDIFCHAIN2=$DATADIR/test-chain2.ldif
+LDIFTRANSLUCENTDATA=$DATADIR/test-translucent-data.ldif
+LDIFTRANSLUCENTCONFIG=$DATADIR/test-translucent-config.ldif
+LDIFTRANSLUCENTADD=$DATADIR/test-translucent-add.ldif
+LDIFTRANSLUCENTMERGED=$DATADIR/test-translucent-merged.ldif
 SQLADD=$DATADIR/sql-add.ldif
 MONITOR=""
 REFDN="c=US"
@@ -182,6 +189,10 @@ JAJDN="cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com"
 REFINTDN="cn=Manager,o=refint"
 UNIQUEDN="cn=Manager,o=unique"
 EMPTYDNDN="cn=Manager,c=US"
+TRANSLUCENTROOT="o=translucent"
+TRANSLUCENTUSER="ou=users,o=translucent"
+TRANSLUCENTDN="uid=binder,o=translucent"
+TRANSLUCENTPASSWD="bindtest"
 
 LOG1=$TESTDIR/slapd.1.log
 LOG2=$TESTDIR/slapd.2.log
@@ -245,6 +256,7 @@ CHAINMODOUT=$DATADIR/chainmod.out
 GLUESYNCOUT=$DATADIR/gluesync.out
 SQLREAD=$DATADIR/sql-read.out
 SQLWRITE=$DATADIR/sql-write.out
+TRANSLUCENTOUT=$DATADIR/translucent.search.out
 
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH

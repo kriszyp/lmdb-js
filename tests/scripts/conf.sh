@@ -47,6 +47,7 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${AC_ppolicy}#//"			\
 	-e "s/^#${AC_refint}#//"			\
 	-e "s/^#${AC_syncprov}#//"			\
+	-e "s/^#${AC_translucent}#//"		\
 	-e "s/^#${AC_unique}#//"			\
 	-e "s/^#${AC_rwm}#//"			\
 	-e "s/^#${MON}#//"				\

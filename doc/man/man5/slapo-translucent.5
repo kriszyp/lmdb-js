@@ -3,11 +3,11 @@
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
-slapo-translucent \- Proxy Override overlay
+slapo-translucent \- Translucent Proxy overlay
 .SH SYNOPSIS
 ETCDIR/slapd.conf
 .SH DESCRIPTION
-The Proxy Override overlay can be used with a backend database such as
+The Translucent Proxy overlay can be used with a backend database such as
 .BR slapd-bdb (5)
 to create a "translucent proxy".  Entries retrieved from a remote LDAP
 server may have some or all attributes overridden, or new attributes
@@ -31,12 +31,12 @@ operation will perform a comparison with attributes defined in the local
 database record (if any) before any comparison is made with data in the
 remote database.
 .SH CONFIGURATION
-The Proxy Override overlay uses a remote LDAP server which is configured
+The Translucent Proxy overlay uses a remote LDAP server which is configured
 with the options shown in
 .BR slapd-ldap (5).
 These
 .B slapd.conf
-options are specific to the Proxy Override overlay; they may appear anywhere
+options are specific to the Translucent Proxy overlay; they may appear anywhere
 after the
 .B overlay
 directive and before any subsequent
@@ -61,7 +61,7 @@ must be created by hand. Glue records are always created for a
 operation.
 .SH CAVEATS
 .LP
-The Proxy Override overlay will disable schema checking in the local database,
+The Translucent Proxy overlay will disable schema checking in the local database,
 so that an entry consisting of overlay attributes need not adhere to the
 complete schema.
 .LP

@@ -1064,6 +1064,9 @@
 /* define for Syncrepl Provider overlay */
 #undef SLAPD_OVER_SYNCPROV
 
+/* define for Translucent Proxy overlay */
+#undef SLAPD_OVER_TRANSLUCENT
+
 /* define for Attribute Uniqueness overlay */
 #undef SLAPD_OVER_UNIQUE
 
