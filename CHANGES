@@ -8,6 +8,7 @@ OpenLDAP 2.2.12 Engineering
 	Fixed slapd first component bug (ITS#3118)
 	Fixed slapd TOLOWER macro use bug (ITS#3115)
 	Fixed slapd TLS context clash bug (ITS#3109)
+	Fixed slapd extended match memory leak (ITS#3146)
 	Fixed libldap SASL buffering bug (ITS#1181)
 	Build Environment
 		Fixed liblber memory debug portability bug (ITS#3116)
