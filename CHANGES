@@ -7,6 +7,8 @@ OpenLDAP 2.1.23 Engineering
 	Fixed back-bdb cache crash (ITS#2682, ITS#2759)
 	Fixed portability issue in ldapsasl (ITS#2691)
 	Fixed slurpd pid file handling (ITS#2761)
+	Fixed LMHASH bug (ITS#2566)
+	Fixed NS-MTA-MD5 buffer size bug (ITS#2662)
 	Added replica uri keyword (ITS#2594)
 	Added replica-pidfile, replica-argsfile keywords
 
