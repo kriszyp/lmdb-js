@@ -6,7 +6,7 @@
  *  Copyright (c) 1996 Regents of the University of Michigan.
  *  All rights reserved.
  *
- *  LIBLDAP url.c -- LDAP URL related routines
+ *  LIBLDAP url.c -- LDAP URL (RFC 2255) related routines
  *
  *  LDAP URLs look like this:
  *    ldap[s]://host:port[/[dn[?[attributes][?[scope][?[filter][?exts]]]]]]
@@ -14,7 +14,7 @@
  *  where:
  *   attributes is a comma separated list
  *   scope is one of these three strings:  base one sub (default=base)
- *   filter is an string-represented filter as in RFC 1558
+ *   filter is an string-represented filter as in RFC 2254
  *
  *  e.g.,  ldap://host:port/dc=com?o,cn?base?o=openldap?extension
  *
