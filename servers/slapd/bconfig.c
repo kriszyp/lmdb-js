@@ -344,6 +344,7 @@ config_back_initialize( BackendInfo *bi )
 	return 0;
 }
 
+
 void config_back_init( ConfigFile *cfp, ConfigTable *ct )
 {
 	BackendInfo bi = {0};
@@ -355,10 +356,6 @@ void config_back_init( ConfigFile *cfp, ConfigTable *ct )
 	bi.bi_init = config_back_initialize;
 	bi.bi_cf_table = ct;
 	backend_add( &bi );
-	/* FIXME */
-	if ( slapMode & SLAP_TOOL_MODE ) {
-		return;
-	}
 	be = backend_db_init( bi.bi_type );
 	ber_str2bv( CONFIG_DN, 0, 1, &be->be_rootdn );
 	ber_dupbv( &be->be_rootndn, &be->be_rootdn );

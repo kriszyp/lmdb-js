@@ -201,7 +201,7 @@ slap_tool_init(
 			break;
 
 		case 'n':	/* which config file db to index */
-			dbnum = atoi( optarg ) - 1;
+			dbnum = atoi( optarg );
 			break;
 
 		case 'q':	/* turn on quick */
@@ -441,7 +441,7 @@ slap_tool_init(
 			exit( EXIT_FAILURE );
 		}
 		
-		be = &backends[dbnum=0];
+		be = &backends[dbnum=1];
 		/* If just doing the first by default and it is a
 		 * glue subordinate, find the master.
 		 */
