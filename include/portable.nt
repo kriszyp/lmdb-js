@@ -925,7 +925,7 @@
 /* #undef SLAPD_MODULES */
 
 /* define to support BDB backend */
-/* #undef SLAPD_BDB */
+#define SLAPD_BDB 1
 
 /* define to support dynamic BDB backend */
 /* #undef SLAPD_BDB_DYNAMIC */
@@ -943,7 +943,7 @@
 /* #undef SLAPD_LDAP_DYNAMIC */
 
 /* define to support LDBM backend */
-#define SLAPD_LDBM 1
+/* #undef SLAPD_LDBM 1 */
 
 /* define to support dynamic LDBM backend */
 /* #undef SLAPD_LDBM_DYNAMIC */

@@ -231,6 +231,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "ldapcompare"=..\clients\tools\ldapcompare.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "ldapdelete"=..\clients\tools\ldapdelete.dsp - Package Owner=<4>
 
 Package=<5>
