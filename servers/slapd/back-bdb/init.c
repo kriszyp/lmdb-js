@@ -362,7 +362,7 @@ bdb_db_open( BackendDB *be )
 				BDB_PAGESIZE );
 		}
 
-		rc = db->bdi_db->open( db->bdi_db,
+		rc = DB_OPEN( db->bdi_db, 
 			bdbi_databases[i].file,
 		/*	bdbi_databases[i].name, */ NULL,
 			bdbi_databases[i].type,

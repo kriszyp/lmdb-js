@@ -109,7 +109,7 @@ bdb_db_cache(
 	file = ch_malloc( strlen( name ) + sizeof(BDB_SUFFIX) );
 	sprintf( file, "%s" BDB_SUFFIX, name );
 
-	rc = db->bdi_db->open( db->bdi_db,
+	rc = DB_OPEN( db->bdi_db,
 		file, name,
 		DB_HASH, bdb->bi_db_opflags | DB_CREATE | DB_THREAD,
 		bdb->bi_dbenv_mode );

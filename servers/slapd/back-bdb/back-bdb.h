@@ -143,6 +143,9 @@ struct bdb_op_info {
 	int			boi_err;
 };
 
+#define	DB_OPEN(db, file, name, type, flags, mode) \
+	(db)->open(db, file, name, type, flags, mode)
+
 #if DB_VERSION_MAJOR < 4
 #define LOCK_DETECT(env,f,t,a)		lock_detect(env, f, t, a)
 #define LOCK_GET(env,i,f,o,m,l)		lock_get(env, i, f, o, m, l)
@@ -167,6 +170,13 @@ struct bdb_op_info {
 #define TXN_ID(txn)					(txn)->id(txn)
 #define LOCK_ID(env, locker)		(env)->lock_id(env, locker)
 #define LOCK_ID_FREE(env, locker)	(env)->lock_id_free(env, locker)
+
+#if DB_VERSION_MINOR > 1 || DB_VERSION_PATCH >= 17
+#undef DB_OPEN
+#define	DB_OPEN(db, file, name, type, flags, mode) \
+	(db)->open(db, NULL, file, name, type, (flags)|DB_AUTO_COMMIT, mode)
+#endif
+
 #endif
 
 LDAP_END_DECL

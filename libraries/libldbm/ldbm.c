@@ -335,7 +335,11 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 	__atoe(n2);
 	name = n2;
 #endif
+#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR > 0 && DB_VERSION_PATCH >= 17
+	err = ret->open( ret, NULL, name, NULL, DB_TYPE, rw, mode);
+#else
 	err = ret->open( ret, name, NULL, DB_TYPE, rw, mode);
+#endif
 
 	if ( err != 0 ) {
 		int tmp = errno;
