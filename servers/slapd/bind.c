@@ -478,8 +478,6 @@ do_bind(
 		goto cleanup;
 	}
 
-	conn->c_authz_backend = be;
-
 	if ( be->be_bind ) {
 		int ret;
 
@@ -491,6 +489,10 @@ do_bind(
 
 		if ( ret == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+
+			if( conn->c_authz_backend == NULL ) {
+				conn->c_authz_backend = be;
+			}
 
 			if(edn.bv_len) {
 				conn->c_dn = edn;

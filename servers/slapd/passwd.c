@@ -29,6 +29,7 @@ int passwd_extop(
 	const char **text,
 	BerVarray *refs )
 {
+	Backend *be;
 	int rc;
 
 	assert( reqoid != NULL );
@@ -39,7 +40,16 @@ int passwd_extop(
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
-	if( conn->c_authz_backend == NULL || !conn->c_authz_backend->be_extended ) {
+	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+	be = conn->c_authz_backend;
+	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+
+	if( be == NULL ) {
+		*text = "operation not supported for SASL user";
+		return LDAP_UNWILLING_TO_PERFORM;
+	}
+
+	if( !be->be_extended ) {
 		*text = "operation not supported for current user";
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
@@ -47,23 +57,22 @@ int passwd_extop(
 	{
 		struct berval passwd = BER_BVC( LDAP_EXOP_MODIFY_PASSWD );
 
-		rc = backend_check_restrictions( conn->c_authz_backend,
-			conn, op, &passwd, text );
+		rc = backend_check_restrictions( be, conn, op, &passwd, text );
 	}
 
 	if( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
 
-	if( conn->c_authz_backend->be_update_ndn.bv_len ) {
+	if( be->be_update_ndn.bv_len ) {
 		/* we SHOULD return a referral in this case */
-		*refs = referral_rewrite( conn->c_authz_backend->be_update_refs,
+		*refs = referral_rewrite( be->be_update_refs,
 			NULL, NULL, LDAP_SCOPE_DEFAULT );
 			rc = LDAP_REFERRAL;
 
 	} else {
-		rc = conn->c_authz_backend->be_extended(
-			conn->c_authz_backend, conn, op,
+		rc = be->be_extended(
+			be, conn, op,
 			reqoid, reqdata,
 			rspoid, rspdata, rspctrls,
 			text, refs );

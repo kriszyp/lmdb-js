@@ -573,8 +573,8 @@ long connection_init(
 
 void connection2anonymous( Connection *c )
 {
-    assert( connections != NULL );
-    assert( c != NULL );
+	assert( connections != NULL );
+	assert( c != NULL );
 
 	{
 		ber_len_t max = sockbuf_max_incoming;
@@ -587,16 +587,16 @@ void connection2anonymous( Connection *c )
 	}
 	c->c_authmech.bv_len = 0;
 
-    if(c->c_dn.bv_val != NULL) {
-	free(c->c_dn.bv_val);
-	c->c_dn.bv_val = NULL;
-    }
-    c->c_dn.bv_len = 0;
-    if(c->c_ndn.bv_val != NULL) {
-	free(c->c_ndn.bv_val);
-	c->c_ndn.bv_val = NULL;
-    }
-    c->c_ndn.bv_len = 0;
+	if(c->c_dn.bv_val != NULL) {
+		free(c->c_dn.bv_val);
+		c->c_dn.bv_val = NULL;
+	}
+	c->c_dn.bv_len = 0;
+	if(c->c_ndn.bv_val != NULL) {
+		free(c->c_ndn.bv_val);
+		c->c_ndn.bv_val = NULL;
+	}
+	c->c_ndn.bv_len = 0;
 
 	if(c->c_cdn.bv_val != NULL) {
 		free(c->c_cdn.bv_val);
@@ -605,17 +605,15 @@ void connection2anonymous( Connection *c )
 	c->c_cdn.bv_len = 0;
 
 	c->c_authz_backend = NULL;
-    
-    {
-	GroupAssertion *g, *n;
-	for (g = c->c_groups; g; g=n)
+	
 	{
-	    n = g->ga_next;
-	    free(g);
+		GroupAssertion *g, *n;
+		for (g = c->c_groups; g; g=n) {
+			n = g->ga_next;
+			free(g);
+		}
+		c->c_groups = NULL;
 	}
-	c->c_groups = NULL;
-    }
-
 }
 
 static void

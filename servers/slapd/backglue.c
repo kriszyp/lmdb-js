@@ -413,8 +413,15 @@ glue_back_bind (
 	be = glue_back_select (b0, ndn->bv_val);
 
 	if (be && be->be_bind) {
-		conn->c_authz_backend = be;
 		rc = be->be_bind (be, conn, op, dn, ndn, method, cred, edn);
+
+		if( rc == LDAP_SUCCESS ) {
+			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+			if( conn->c_authz_backend == NULL ) {
+				conn->c_authz_backend = be;
+			}
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+		}
 	} else {
 		rc = LDAP_UNWILLING_TO_PERFORM;
 		send_ldap_result (conn, op, rc, NULL, "No bind target found",
