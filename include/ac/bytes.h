@@ -32,7 +32,7 @@ typedef AC_INT4_TYPE ac_int4;
 typedef signed AC_INT4_TYPE ac_sint4;
 typedef unsigned AC_INT4_TYPE ac_uint4;
 
-#if !defined( AC_INT4_TYPE ) 
+#if !defined( AC_INT2_TYPE ) 
 #	if SIZEOF_SHORT == 2
 #		define AC_INT2_TYPE short
 #	elif SIZEOF_INT == 2
