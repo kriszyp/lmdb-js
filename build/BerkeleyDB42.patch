@@ -8,8 +8,9 @@ The patch can be applied to the BDB source using patch(1) as follows
 	cd db-4.2.52
 	patch -p0 < openldap-src/build/BerkeleyDB42.patch
 
-(modify directory paths as necessary, then recompile and reinstall
-the BerkeleyDB 4.2 library.)
+(modify directory paths as necessary), then recompile and reinstall
+the BerkeleyDB 4.2 library, and then build and install OpenLDAP
+Software.
 
 The patch should not be applied to Berkeley DB 4.3.
 
