@@ -1246,9 +1246,6 @@ backend_group(
 				if ( target && dn_match( &target->e_nname, op_ndn ) ) {
 					user = target;
 				} else {
-					/* back-bdb stored lockinfo here, we saved it
-					 * above. Clear it out so that a new lock can be used.
-					 */
 					op->o_bd = select_backend( op_ndn, 0, 0 );
 					rc = be_entry_get_rw(op, op_ndn, NULL, NULL, 0, &user );
 				}
