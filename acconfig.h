@@ -7,13 +7,14 @@
 
 
 /* define this if needed to get reentrant functions */
+#undef REENTRANT
 #undef _REENTRANT
 
-/* define this if needed to get thread safe functions */
-#undef _THREAD_SAFE
-
-/* define this if needed to get thread safe functions */
+/* define this if needed to get threadsafe functions */
+#undef THREADSAFE
 #undef _THREADSAFE
+#undef THREAD_SAFE
+#undef _THREAD_SAFE
 
 /* define this if cross compiling */
 #undef CROSS_COMPILING
