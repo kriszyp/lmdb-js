@@ -907,40 +907,37 @@ AC_CHECK_LIB(V3, sigset)
 dnl The following is INTENTIONALLY scripted out because shell does not
 dnl support variable names with the '@' character, which is what
 dnl autoconf would try to generate if one merely used AC_SEARCH_LIBS
-AC_MSG_CHECKING(for winsock)
+if test "$ac_cv_header_winsock_h" = yes; then
+AC_CACHE_CHECK([for winsock], [ol_cv_winsock],
 save_LIBS="$LIBS"
 for curlib in ws2_32 wsock32; do
 	LIBS="$LIBS -l$curlib"
-	AC_TRY_LINK([
-			char socket@12();
-			char select@20();
-			char closesocket@4();
-			char gethostname@8();
+	AC_TRY_LINK([#include <winsock.h>
 			],
 			[
-			socket@12();
-			select@20();
-			closesocket@4();
-			gethostname@8();
+			socket(0,0,0);
+			select(0,NULL,NULL,NULL,NULL);
+			closesocket(0);
+			gethostname(NULL,0);
 			],
-			have_winsock=yes, have_winsock=no)
+			ol_cv_winsock=yes, ol_cv_winsock=no)
 
-	if test $have_winsock = yes; then
+	if test $ol_cv_winsock = yes; then
 		AC_DEFINE(HAVE_WINSOCK, 1, [define if you have winsock])
 		ac_cv_func_socket=yes
 		ac_cv_func_select=yes
 		ac_cv_func_closesocket=yes
 		ac_cv_func_gethostname=yes
 		if test $curlib = ws2_32; then
-			have_winsock=winsock2
+			ol_cv_winsock=winsock2
 			AC_DEFINE(HAVE_WINSOCK2, 1,
 				  [define if you have winsock2])
 		fi
 		break
 	fi
 	LIBS="$save_LIBS"
-done
-AC_MSG_RESULT($have_winsock)
+done)
+fi
 
 dnl Find socket()
 dnl Likely combinations:
