@@ -60,6 +60,13 @@
 #define IA5StringApproxIndexer			approxIndexer
 #define IA5StringApproxFilter			approxFilter
 
+/* Change Sequence Number (CSN) - much of this will change */
+#define csnValidate				blobValidate
+#define csnMatch				octetStringMatch
+#define csnOrderingMatch		octetStringOrderingMatch
+#define csnIndexer				generalizedTimeIndexer
+#define csnFilter				generalizedTimeFilter
+
 unsigned int index_substr_if_minlen = SLAP_INDEX_SUBSTR_IF_MINLEN_DEFAULT;
 unsigned int index_substr_if_maxlen = SLAP_INDEX_SUBSTR_IF_MAXLEN_DEFAULT;
 unsigned int index_substr_any_len = SLAP_INDEX_SUBSTR_ANY_LEN_DEFAULT;
@@ -3197,9 +3204,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 		SLAP_SYNTAX_HIDE, UUIDValidate, NULL},
 
 	{"( 1.3.6.1.4.1.4203.666.11.2.1 DESC 'CSN' )",
-		SLAP_SYNTAX_HIDE,
-		blobValidate,	/* THIS WILL CHANGE */
-		NULL},
+		SLAP_SYNTAX_HIDE, csnValidate, NULL},
 
 	/* OpenLDAP Void Syntax */
 	{"( 1.3.6.1.4.1.4203.1.1.1 DESC 'OpenLDAP void' )" ,
@@ -3638,14 +3643,14 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 1.3.6.1.4.1.4203.666.11.2.2 NAME 'CSNMatch' "
 		"SYNTAX 1.3.6.1.4.1.4203.666.11.2.1 )",
 		SLAP_MR_HIDE | SLAP_MR_EQUALITY | SLAP_MR_ORDERED_INDEX, NULL,
-		NULL, NULL, octetStringMatch,
-		generalizedTimeIndexer, generalizedTimeFilter,
+		NULL, NULL, csnMatch,
+		csnIndexer, csnFilter,
 		NULL},
 
 	{"( 1.3.6.1.4.1.4203.666.11.2.3 NAME 'CSNOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.4203.666.11.2.1 )",
 		SLAP_MR_HIDE | SLAP_MR_ORDERING | SLAP_MR_ORDERED_INDEX, NULL,
-		NULL, NULL, octetStringOrderingMatch,
+		NULL, NULL, csnOrderingMatch,
 		NULL, NULL,
 		"CSNMatch" },
 
