@@ -30,8 +30,7 @@ bdb_group(
 	struct berval	*gr_ndn,
 	struct berval	*op_ndn,
 	ObjectClass *group_oc,
-	AttributeDescription *group_at
-)
+	AttributeDescription *group_at )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct bdb_op_info *boi = NULL;
@@ -58,18 +57,19 @@ bdb_group(
 		op_ndn->bv_val, gr_ndn->bv_val, group_oc_name );
 #else
 	Debug( LDAP_DEBUG_ARGS,
-		"=> bdb_group: gr dn: \"%s\"\n",
+		"=> bdb_group: group ndn: \"%s\"\n",
 		gr_ndn->bv_val, 0, 0 ); 
 
 	Debug( LDAP_DEBUG_ARGS,
-		"=> bdb_group: op dn: \"%s\"\n",
+		"=> bdb_group: op ndn: \"%s\"\n",
 		op_ndn->bv_val, 0, 0 ); 
+
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_group: oc: \"%s\" at: \"%s\"\n", 
 		group_oc_name, group_at_name, 0 ); 
 
 	Debug( LDAP_DEBUG_ARGS,
-		"=> bdb_group: tr dn: \"%s\"\n",
+		"=> bdb_group: tr ndn: \"%s\"\n",
 		target->e_ndn, 0, 0 ); 
 #endif
 

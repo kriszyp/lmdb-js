@@ -919,7 +919,6 @@ dn_match_cleanup:;
 		}
 
 		if ( b->a_group_pat.bv_len ) {
-			char buf[ACL_BUF_SIZE];
 			struct berval bv;
 			struct berval ndn = { 0, NULL };
 			int rc;
@@ -928,29 +927,33 @@ dn_match_cleanup:;
 				continue;
 			}
 
-			bv.bv_len = sizeof(buf) - 1;
-			bv.bv_val = buf; 
-
 			/* b->a_group is an unexpanded entry name, expanded it should be an 
 			 * entry with objectclass group* and we test to see if odn is one of
 			 * the values in the attribute group
 			 */
 			/* see if asker is listed in dnattr */
 			if ( b->a_group_style == ACL_STYLE_REGEX ) {
-				string_expand(&bv, &b->a_group_pat, e->e_ndn, matches);
-				if ( dnNormalize2(NULL, &bv, &ndn) != LDAP_SUCCESS ) {
+				char buf[ACL_BUF_SIZE];
+				bv.bv_len = sizeof(buf) - 1;
+				bv.bv_val = buf; 
+
+				string_expand( &bv, &b->a_group_pat, e->e_ndn, matches );
+				if ( dnNormalize2( NULL, &bv, &ndn ) != LDAP_SUCCESS ) {
 					/* did not expand to a valid dn */
 					continue;
 				}
+
 				bv = ndn;
+
 			} else {
 				bv = b->a_group_pat;
 			}
 
-			rc = backend_group(be, conn, op, e, &bv, &op->o_ndn,
-				b->a_group_oc, b->a_group_at);
-			if ( ndn.bv_val )
-				free( ndn.bv_val );
+			rc = backend_group( be, conn, op, e, &bv, &op->o_ndn,
+				b->a_group_oc, b->a_group_at );
+
+			if ( ndn.bv_val ) free( ndn.bv_val );
+
 			if ( rc != 0 ) {
 				continue;
 			}
@@ -1674,7 +1677,8 @@ aci_group_member (
 		bv.bv_val = (char *)&buf;
 		string_expand(&bv, &subjdn, e->e_ndn, matches);
 		if ( dnNormalize2(NULL, &bv, &ndn) == LDAP_SUCCESS ) {
-			rc = (backend_group(be, conn, op, e, &ndn, &op->o_ndn, grp_oc, grp_ad) == 0);
+			rc = (backend_group(be, conn, op, e, &ndn, &op->o_ndn,
+				grp_oc, grp_ad) == 0);
 			free( ndn.bv_val );
 		}
 	}
