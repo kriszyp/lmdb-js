@@ -69,7 +69,7 @@ BerRead(
 				break;
 			return( c );
 		}
-		buf+= c;
+		buf+=c;
 		nread+=c;
 		len-=c;
 	}
