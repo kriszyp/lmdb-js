@@ -580,7 +580,6 @@ at_index_print( void )
 }
 #endif
 
-#if defined( SLAPD_SCHEMA_DN )
 int
 at_schema_info( Entry *e )
 {
@@ -598,13 +597,8 @@ at_schema_info( Entry *e )
 
 		if( at->sat_flags & SLAP_AT_HIDE ) continue;
 
-#if 0
-		Debug( LDAP_DEBUG_TRACE, "Merging at [%ld] %s\n",
-		       (long) vals[0].bv_len, vals[0].bv_val, 0 );
-#endif
 		attr_merge( e, ad_attributeTypes, vals );
 		ldap_memfree( vals[0].bv_val );
 	}
 	return 0;
 }
-#endif

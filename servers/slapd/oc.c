@@ -466,7 +466,6 @@ oc_add(
 }
 
 #ifdef LDAP_DEBUG
-
 static void
 oc_print( ObjectClass *oc )
 {
@@ -489,11 +488,7 @@ oc_print( ObjectClass *oc )
 		printf( "\n" );
 	}
 }
-
 #endif
-
-
-#if defined( SLAPD_SCHEMA_DN )
 
 int
 oc_schema_info( Entry *e )
@@ -521,5 +516,3 @@ oc_schema_info( Entry *e )
 	}
 	return 0;
 }
-
-#endif

@@ -248,6 +248,7 @@ typedef union slap_sockaddr {
 	struct sockaddr sa_addr;
 	struct sockaddr_in sa_in_addr;
 #ifdef LDAP_PF_INET6
+	struct sockaddr_storage sa_storage;
 	struct sockaddr_in6 sa_in6_addr;
 #endif
 #ifdef LDAP_PF_LOCAL
@@ -1276,10 +1277,8 @@ struct slap_backend_db {
 	BerVarray	be_suffix;	/* the DN suffixes of data in this backend */
 	BerVarray	be_nsuffix;	/* the normalized DN suffixes in this backend */
 	BerVarray	be_suffixAlias; /* pairs of DN suffix aliases and deref values */
-#ifdef SLAPD_SCHEMA_DN
 	struct berval be_schemadn;	/* per-backend subschema subentry DN */
 	struct berval be_schemandn;	/* normalized subschema DN */
-#endif
 	struct berval be_rootdn;	/* the magic "root" name (DN) for this db */
 	struct berval be_rootndn;	/* the magic "root" normalized name (DN) for this db */
 	struct berval be_rootpw;	/* the magic "root" password for this db	*/

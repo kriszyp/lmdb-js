@@ -102,8 +102,6 @@ do_delete(
 			NULL, "cannot delete the root DSE", NULL, NULL );
 		goto cleanup;
 
-#ifdef SLAPD_SCHEMA_DN
-
 	} else if ( bvmatch( &ndn, &global_schemandn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_delete: conn %d: "
@@ -115,8 +113,6 @@ do_delete(
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "cannot delete the root DSE", NULL, NULL );
 		goto cleanup;
-
-#endif
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu DEL dn=\"%s\"\n",

@@ -188,8 +188,6 @@ register_syntax(
 	return( 0 );
 }
 
-#if defined( SLAPD_SCHEMA_DN )
-
 int
 syn_schema_info( Entry *e )
 {
@@ -230,4 +228,3 @@ syn_schema_info( Entry *e )
 	return 0;
 }
 
-#endif

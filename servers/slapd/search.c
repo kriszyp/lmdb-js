@@ -234,10 +234,8 @@ do_search(
 			}
 
 			rc = root_dse_info( conn, &entry, &text );
-		}
 
-#if defined( SLAPD_SCHEMA_DN )
-		else if ( bvmatch( &nbase, &global_schemandn ) ) {
+		} else if ( bvmatch( &nbase, &global_schemandn ) ) {
 			/* check restrictions */
 			rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
 			if( rc != LDAP_SUCCESS ) {
@@ -248,7 +246,6 @@ do_search(
 
 			rc = schema_info( &entry, &text );
 		}
-#endif
 
 		if( rc != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, rc,

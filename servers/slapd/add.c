@@ -188,13 +188,11 @@ do_add( Connection *conn, Operation *op )
 			NULL, NULL );
 		goto done;
 
-#if defined( SLAPD_SCHEMA_DN )
 	} else if ( bvmatch( &e->e_nname, &global_schemandn ) ) {
 		send_ldap_result( conn, op, rc = LDAP_ALREADY_EXISTS,
 			NULL, "subschema subentry already exists",
 			NULL, NULL );
 		goto done;
-#endif
 	}
 
 	manageDSAit = get_manageDSAit( op );
