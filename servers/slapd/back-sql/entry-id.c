@@ -565,7 +565,7 @@ next:;
 				bsi, 0, AVL_INORDER );
 	}
 
-	if ( global_schemacheck ) {
+	if ( SLAPD_GLOBAL(schemachecking) ) {
 		const char	*text = NULL;
 		char		textbuf[ 1024 ];
 		size_t		textlen = sizeof( textbuf );

@@ -126,7 +126,7 @@ slap_init( int mode, const char *name )
 		ldap_pvt_thread_mutex_init( &SLAPD_GLOBAL(gmtime_mutex) );
 #endif
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
-		ldap_pvt_thread_mutex_init( &passwd_mutex );
+		ldap_pvt_thread_mutex_init( &SLAPD_GLOBAL(passwd_mutex) );
 #endif
 
 		rc = slap_sasl_init();

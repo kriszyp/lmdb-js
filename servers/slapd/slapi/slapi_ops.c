@@ -125,7 +125,7 @@ slapi_int_init_connection(
 	int OpType ) 
 { 
 	Connection *pConn;
-	ber_len_t max = sockbuf_max_incoming;
+	ber_len_t max = SLAPD_GLOBAL(sockbuf_max_incoming);
 
 	pConn = (Connection *) slapi_ch_calloc(1, sizeof(Connection));
 	if (pConn == NULL) {
@@ -1180,12 +1180,12 @@ slapi_search_internal(
 		}
 	}
 
-	if ( !op->o_req_ndn.bv_len && default_search_nbase.bv_len ) {
+	if ( !op->o_req_ndn.bv_len && !BER_BVISNULL( &SLAPD_GLOBAL(default_search_nbase) ) ) {
 		slapi_ch_free( (void **)&op->o_req_dn.bv_val );
 		slapi_ch_free( (void **)&op->o_req_ndn.bv_val );
 
-		ber_dupbv( &op->o_req_dn, &default_search_base );
-		ber_dupbv( &op->o_req_ndn, &default_search_nbase );
+		ber_dupbv( &op->o_req_dn, &SLAPD_GLOBAL(default_search_base) );
+		ber_dupbv( &op->o_req_ndn, &SLAPD_GLOBAL(default_search_nbase) );
 	}
 
 	if ( slapi_control_present( controls,
