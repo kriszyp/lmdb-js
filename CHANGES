@@ -1,30 +1,37 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.12 Engineering
-	Fixed ldapmodrdn SASL auth bug (ITS#1179)
-	Fixed slapd modlist2mods error text bug
-	Fixed slapd empty rootdn bug (ITS#1172)
-	Fixed slapd numericString empty value bug (ITS#1182)
 	Fixed slapd acl default clause bug (ITS#1187)
+	Fixed slapd modlist2mods error text bug
+	Fixed slapd numericString empty value bug (ITS#1182)
+	Fixed slapd empty rootdn bug (ITS#1172)
 	Fixed slapd passwd modify replication
-	Added slapadd already exists check (ITS#1191)
+	Fixed ldapmodrdn SASL auth bug (ITS#1179)
+	Fixed slapadd already exists bug (ITS#1191)
+	Fixed slapadd empty dn bug
 	Added slapd modrdn children check (ITS#1053,1192)
 	Added slapd sb_max_incoming_auth support (ITS#1181)
 	Added slapd crypt salt format support (ITS#1202)
+	Added slurpd include support (ITS#121)
+	Added -lldap critical client control checks
 	Updated slapd schema check handling
 	Updated ldbm to use BerkeleyDB's CDB (ITS#1176)
 	Updated ldbm error handling
 	Updated slapd filter checks
+	Updated slapd single-value checks
 	Updated ldaptcl API (contrib)
+	Updated -lldap sasl/tls referral handling
+	Updated -lldap pthread code
+	Removed -lldap UFN search support
 	Build environment
-		Remove extraneous files
+		Removed extraneous files
 
 OpenLDAP 2.0.11 Release
-	Fix attribute parse bug (ITS#1159)
+	Fixed attribute parse bug (ITS#1159)
 
 OpenLDAP 2.0.10 Release
 	Build Environment
-		Fix TLS-less build (ITS#1156)
+		Fixed TLS-less build (ITS#1156)
 
 OpenLDAP 2.0.9 Release
 	Add slapd obsolete schema check

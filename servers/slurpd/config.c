@@ -1,5 +1,9 @@
 /* $OpenLDAP$ */
 /*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -107,6 +111,34 @@ slurpd_read_config(
 	    }
 	} else if ( strcasecmp( cargv[0], "replica" ) == 0 ) {
 	    add_replica( cargv, cargc );
+	    
+	    /* include another config file */
+	} else if ( strcasecmp( cargv[0], "include" ) == 0 ) {
+	    char *savefname;
+	    int savelineno;
+
+            if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+                LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+                        "%s: line %d: missing filename in \"include "
+                        "<filename>\" line.\n", fname, lineno ));
+#else
+                Debug( LDAP_DEBUG_ANY,
+        "%s: line %d: missing filename in \"include <filename>\" line\n",
+                        fname, lineno, 0 );
+#endif
+		
+                return( 1 );
+            }
+	    savefname = strdup( cargv[1] );
+	    savelineno = lineno;
+	    
+	    if ( slurpd_read_config( savefname ) != 0 ) {
+	        return( 1 );
+	    }
+		
+	    free( savefname );
+	    lineno = savelineno - 1;
 	}
     }
     fclose( fp );
@@ -345,6 +377,8 @@ parse_replica_line(
 	    }
 	    ri->ri_hostname = strdup( val );
 	    gots |= GOT_HOST;
+	} else if ( !strncasecmp( cargv[ i ], SUFFIXSTR, strlen( HOSTSTR ))) {
+	    /* ignore it */ ;
 	} else if ( !strncasecmp( cargv[ i ], TLSSTR, strlen( TLSSTR ))) {
 	    val = cargv[ i ] + strlen( TLSSTR ) + 1;
 		if( !strcasecmp( val, TLSCRITICALSTR ) ) {

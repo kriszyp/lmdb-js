@@ -1,5 +1,9 @@
 /* $OpenLDAP$ */
 /*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -115,6 +119,7 @@
 
 /* Config file keywords */
 #define	HOSTSTR			"host"
+#define	SUFFIXSTR		"suffix"
 #define	BINDDNSTR		"binddn"
 #define	BINDMETHSTR		"bindmethod"
 #define	KERBEROSSTR		"kerberos"
