@@ -231,6 +231,8 @@ ldap_pvt_tls_init_def_ctx( void )
 			goto error_exit;
 		}
 
+		SSL_CTX_set_session_id_context( tls_def_ctx,
+			"OpenLDAP", sizeof("OpenLDAP")-1 );
 		if ( tls_opt_ciphersuite &&
 			!SSL_CTX_set_cipher_list( tls_def_ctx, ciphersuite ) )
 		{
@@ -884,7 +886,6 @@ ldap_pvt_tls_get_my_dn( void *s, struct berval *dn, LDAPDN_rewrite_dummy *func, 
 	
 	xn = X509_get_subject_name(x);
 	rc = ldap_X509dn2bv(xn, dn, (LDAPDN_rewrite_func *)func, flags );
-	X509_free(x);
 	return rc;
 }
 
@@ -915,7 +916,6 @@ ldap_pvt_tls_get_peer_dn( void *s, struct berval *dn, LDAPDN_rewrite_dummy *func
 	
 	xn = X509_get_subject_name(x);
 	rc = ldap_X509dn2bv(xn, dn, (LDAPDN_rewrite_func *)func, flags);
-	X509_free(x);
 	return rc;
 }
 
@@ -934,12 +934,10 @@ ldap_pvt_tls_get_peer_hostname( void *s )
 
 	ret = X509_NAME_get_text_by_NID(xn, NID_commonName, buf, sizeof(buf));
 	if( ret == -1 ) {
-		X509_free(x);
 		return NULL;
 	}
 
 	p = LDAP_STRDUP(buf);
-	X509_free(x);
 	return p;
 }
 
@@ -1066,7 +1064,6 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 			ret = LDAP_SUCCESS;
 		}
 	}
-	X509_free(x);
 	return ret;
 }
 
@@ -1084,7 +1081,6 @@ ldap_pvt_tls_get_peer_issuer( void *s )
 	
 	xn = X509_get_issuer_name(x);
 	p = LDAP_STRDUP(X509_NAME_oneline(xn, buf, sizeof(buf)));
-	X509_free(x);
 	return p;
 #else
 	return NULL;
