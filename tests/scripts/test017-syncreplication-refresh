@@ -213,24 +213,11 @@ EOMODS
 
 RC=$?
 
-if test $BACKLDAP = "ldapno" ; then
-	# expect 10 (LDAP_REFERRAL)...
-	if test $RC != 10 ; then
-		echo "ldapmodify should have failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
-
-else
-	# expect 0 (LDAP_SUCCESS)...
-	if test $RC != 0 ; then
-		echo "ldapmodify failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
-
-	echo "Waiting 5 seconds for slurpd to send changes..."
-	sleep 5
+# expect 10 (LDAP_REFERRAL)...
+if test $RC != 10 ; then
+	echo "ldapmodify should have failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
 fi
 
 echo "Using ldapsearch to read all the entries from the master..."
