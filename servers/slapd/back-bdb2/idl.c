@@ -467,7 +467,8 @@ bdb2i_idl_insert_key(
 		rc = idl_change_first( be, db, key, idl, i, k2, tmp );
 		break;
 
-	case 2:		/* id not inserted - already there */
+	case 2:		/* id not inserted - already there, do nothing */
+		rc = 0;
 		break;
 
 	case 3:		/* id not inserted - block is full */
@@ -488,7 +489,8 @@ bdb2i_idl_insert_key(
 				Debug( LDAP_DEBUG_ANY,
 				    "idl_fetch_one (%s) returns NULL\n",
 				    k2.dptr, 0, 0 );
-				break;
+				/* split the original block */
+				goto split;
 			}
 
 			switch ( (rc = bdb2i_idl_insert( &tmp2, id,
@@ -514,13 +516,18 @@ bdb2i_idl_insert_key(
 			case 3:		/* split the original block */
 				break;
 			}
+
 			bdb2i_idl_free( tmp2 );
 		}
 
+split:
 		/*
 		 * must split the block, write both new blocks + update
 		 * and write the indirect header block.
 		 */
+
+		rc = 0;	/* optimistic */
+
 
 		/* count how many indirect blocks *//* XXX linear count XXX */
 		for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ )
@@ -618,7 +625,7 @@ bdb2i_idl_insert_key(
 int
 bdb2i_idl_insert( ID_BLOCK **idl, ID id, unsigned int maxids )
 {
-	unsigned int	i, j;
+	unsigned int	i;
 
 	if ( ID_BLOCK_ALLIDS( *idl ) ) {
 		return( 2 );	/* already there */
@@ -648,8 +655,8 @@ bdb2i_idl_insert( ID_BLOCK **idl, ID id, unsigned int maxids )
 	}
 
 	/* make a slot for the new id */
-	SAFEMEMCPY( &ID_BLOCK_ID(*idl, i), &ID_BLOCK_ID(*idl, i+1),
-		ID_BLOCK_NIDS(*idl) - i );
+	SAFEMEMCPY( &ID_BLOCK_ID(*idl, i+1), &ID_BLOCK_ID(*idl, i),
+	            (ID_BLOCK_NIDS(*idl) - i) * sizeof(ID) );
 
 	ID_BLOCK_ID(*idl, i) = id;
 	ID_BLOCK_NIDS(*idl)++;
