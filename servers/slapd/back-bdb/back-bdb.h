@@ -113,6 +113,7 @@ typedef struct bdb_cache {
 	int             c_maxsize;
 	int             c_cursize;
 	EntryInfo	c_dntree;
+	EntryInfo	*c_eifree;	/* free list */
 	Avlnode         *c_idtree;
 	EntryInfo	*c_lruhead;	/* lru - add accessed entries here */
 	EntryInfo	*c_lrutail;	/* lru - rem lru entries from here */

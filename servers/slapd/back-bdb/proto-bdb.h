@@ -476,6 +476,7 @@ int bdb_cache_delete(
 	DB_LOCK	*lock
 );
 void bdb_cache_delete_cleanup(
+	Cache	*cache,
 	Entry	*e
 );
 void bdb_cache_release_all( Cache *cache );
