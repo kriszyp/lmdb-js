@@ -163,11 +163,11 @@ static struct slap_daemon {
 	rc = epoll_ctl(slap_daemon.sd_epfd, EPOLL_CTL_ADD, s,	\
 			&SLAP_SOCK_EP(s));	\
 	if ( rc == 0 ) slap_daemon.sd_nfds++;	\
-	else {
-		Debug( LDAP_DEBUG_ANY, "daemon: epoll_ctl ADD failed, errno %d, shutting down\n"
-		errno, 0, 0 );
+	else {	\
+		Debug( LDAP_DEBUG_ANY, "daemon: epoll_ctl ADD failed, errno %d, shutting down\n",	\
+		errno, 0, 0 );	\
 		slapd_shutdown = 2;	\
-	}
+	}	\
 } while(0)
 
 #define	SLAP_EV_LISTENER(ptr) (((int *)(ptr) >= slap_daemon.sd_index && \
