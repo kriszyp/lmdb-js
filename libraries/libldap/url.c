@@ -355,7 +355,7 @@ char * ldap_url_desc2str( LDAPURLDesc *u )
 	};
 
 	if( u->lud_port ) {
-		len+=6;
+		len += sizeof(":65535") - 1;
 	}
 
 	if( u->lud_host ) {
