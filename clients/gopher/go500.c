@@ -378,7 +378,7 @@ do_queries( int s )
 
 	if ( *query == '~' || *query == '@' ) {
 		ld = NULL;
-	} else if ( (ld = ldap_open( ldaphost, LDAP_PORT )) == NULL ) {
+	} else if ( (ld = ldap_open( ldaphost, 0 )) == NULL ) {
 		fprintf(fp,
 			"0An error occurred (explanation)\t@%d\t%s\t%d\r\n",
 			LDAP_SERVER_DOWN, myhost, myport );

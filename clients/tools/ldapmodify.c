@@ -262,7 +262,7 @@ process_ldif_rec( char *rbuf )
 	    if ( !use_record && strcasecmp( type, T_REPLICA_STR ) == 0 ) {
 		++saw_replica;
 		if (( p = strchr( value, ':' )) == NULL ) {
-		    replicaport = LDAP_PORT;
+		    replicaport = 0;
 		} else {
 		    *p++ = '\0';
 		    replicaport = atoi( p );

@@ -59,7 +59,7 @@ char copyright[] =
 static char *server = NULL;
 static char *config_file = UD_CONFIG_FILE;
 static char *filter_file = FILTERFILE;
-static int ldap_port = LDAP_PORT;
+static int ldap_port = 0;
 static int dereference = TRUE;
 
 char *default_bind_object = NULL;

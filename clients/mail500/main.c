@@ -355,7 +355,7 @@ connect_to_x500( void )
 {
 	int opt;
 
-	if ( (ld = ldap_open( ldaphost, LDAP_PORT )) == NULL ) {
+	if ( (ld = ldap_open( ldaphost, 0 )) == NULL ) {
 		syslog( LOG_ALERT, "ldap_open failed" );
 		return( -1 );
 	}
