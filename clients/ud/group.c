@@ -239,10 +239,12 @@ remove_group( char *name )
 	}
 	ldap_uncache_entry(ld, dn);
 	if (verbose)
+	{
 	    if (name == NULL)
 		printf("  The group has been removed.\n");
 	    else
 		printf("  The group \"%s\" has been removed.\n", name);
+	}
 	Free(dn);
 	return;
 }

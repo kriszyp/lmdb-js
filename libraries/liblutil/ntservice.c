@@ -76,13 +76,13 @@ int srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszBinaryPathName)
 				"REG_SZ", REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, 
 				&dwDisposition) != ERROR_SUCCESS)
 			{
-				fprintf( stderr, "RegCreateKeyEx() failed. GetLastError=%d (%s)\n", GetLastError(), GetLastErrorString() );
+				fprintf( stderr, "RegCreateKeyEx() failed. GetLastError=%lu (%s)\n", GetLastError(), GetLastErrorString() );
 				RegCloseKey(hKey);
 				return(0);
 			}
 			if ( RegSetValueEx(hKey, "EventMessageFile", 0, REG_EXPAND_SZ, lpszBinaryPathName, strlen(lpszBinaryPathName) + 1) != ERROR_SUCCESS)
 			{
-				fprintf( stderr, "RegSetValueEx(EventMessageFile) failed. GetLastError=%d (%s)\n", GetLastError(), GetLastErrorString() );
+				fprintf( stderr, "RegSetValueEx(EventMessageFile) failed. GetLastError=%lu (%s)\n", GetLastError(), GetLastErrorString() );
 				RegCloseKey(hKey);
 				return(0);
 			}
@@ -90,7 +90,7 @@ int srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszBinaryPathName)
 			dwValue = EVENTLOG_ERROR_TYPE | EVENTLOG_WARNING_TYPE | EVENTLOG_INFORMATION_TYPE;
 			if ( RegSetValueEx(hKey, "TypesSupported", 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD)) != ERROR_SUCCESS) 
 			{
-				fprintf( stderr, "RegCreateKeyEx(TypesSupported) failed. GetLastError=%d (%s)\n", GetLastError(), GetLastErrorString() );
+				fprintf( stderr, "RegCreateKeyEx(TypesSupported) failed. GetLastError=%lu (%s)\n", GetLastError(), GetLastErrorString() );
 				RegCloseKey(hKey);
 				return(0);
 			}
@@ -99,13 +99,13 @@ int srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszBinaryPathName)
 		}
 		else
 		{
-			fprintf( stderr, "CreateService() failed. GetLastError=%d (%s)\n", GetLastError(), GetLastErrorString() );
+			fprintf( stderr, "CreateService() failed. GetLastError=%lu (%s)\n", GetLastError(), GetLastErrorString() );
 			CloseServiceHandle(schSCManager);
 			return(0);
 		}
 	}
 	else
-		fprintf( stderr, "OpenSCManager() failed. GetLastError=%d (%s)\n", GetLastError(), GetLastErrorString() );
+		fprintf( stderr, "OpenSCManager() failed. GetLastError=%lu (%s)\n", GetLastError(), GetLastErrorString() );
 	return(0);
 }
 
@@ -125,20 +125,20 @@ int srv_remove(LPCTSTR lpszServiceName, LPCTSTR lpszBinaryPathName)
 				CloseServiceHandle(schSCManager);
 				return(1);
 			} else {
-				fprintf( stderr, "DeleteService() failed. GetLastError=%d (%s)\n", GetLastError(), GetLastErrorString() );
+				fprintf( stderr, "DeleteService() failed. GetLastError=%lu (%s)\n", GetLastError(), GetLastErrorString() );
 				fprintf( stderr, "The %s service has not been removed.\n", lpszBinaryPathName);
 				CloseServiceHandle(schService);
 				CloseServiceHandle(schSCManager);
 				return(0);
 			}
 		} else {
-			fprintf( stderr, "OpenService() failed. GetLastError=%d (%s)\n", GetLastError(), GetLastErrorString() );
+			fprintf( stderr, "OpenService() failed. GetLastError=%lu (%s)\n", GetLastError(), GetLastErrorString() );
 			CloseServiceHandle(schSCManager);
 			return(0);
 		}
 	}
 	else
-		fprintf( stderr, "OpenSCManager() failed. GetLastError=%d (%s)\n", GetLastError(), GetLastErrorString() );
+		fprintf( stderr, "OpenSCManager() failed. GetLastError=%lu (%s)\n", GetLastError(), GetLastErrorString() );
 	return(0);
 }
 
@@ -335,7 +335,7 @@ void LogSlapdStartedEvent( char *svc, int slap_debug, char *configfile, char *ur
 	Inserts[i++] = ldap_pvt_strdup( is_NT_Service ? "svc" : "cmd" );
 
 	ReportEvent( hEventLog, EVENTLOG_INFORMATION_TYPE, 0,
-		MSG_SLAPD_STARTED, NULL, i, 0, Inserts, NULL );
+		MSG_SLAPD_STARTED, NULL, i, 0, (LPCSTR *) Inserts, NULL );
 
 	for ( j = 0; j < i; j++ )
 		ldap_memfree( Inserts[j] );

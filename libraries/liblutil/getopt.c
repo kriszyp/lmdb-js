@@ -59,6 +59,7 @@ int getopt (int argc, char * const argv [], const char * opts)
 printf("DF_TRACE_DEBUG: 	int getopt () in getopt.c\n");
 #endif
 	if (sp == 1)
+	{
 		if (optind >= argc || argv[optind][0] != sw
 		|| argv[optind][1] == eos)
 			return EOF;
@@ -67,6 +68,7 @@ printf("DF_TRACE_DEBUG: 	int getopt () in getopt.c\n");
 			optind++;
 			return EOF;
 		}
+	}
 	c = argv[optind][sp];
 	optopt = (int) c;
 	if (c == arg || (cp = strchr(opts,c)) == NULL)
