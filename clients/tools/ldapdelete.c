@@ -70,6 +70,13 @@ main( int argc, char **argv )
 	    break;
 	case 'w':	/* password */
 	    passwd = strdup( optarg );
+		{
+			char* p;
+
+			for( p = optarg; *p == NULL; p++ ) {
+				*p = 'X';
+			}
+		}
 	    break;
 	case 'f':	/* read DNs from a file */
 	    if (( fp = fopen( optarg, "r" )) == NULL ) {

@@ -514,6 +514,13 @@ main (int argc, char *argv[])
 
 		case 'w':	/* bind password */
 			bindpw = strdup (optarg);
+			{
+				char* p;
+
+				for( p = optarg; *p == NULL; p++ ) {
+					*p = 'X';
+				}
+			}
 			break;
 
 		case 'Y':	/* salt length */

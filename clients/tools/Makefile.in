@@ -10,7 +10,7 @@ LDAP_LIBDIR= ../../libraries
 XLIBS =  -lldif -lldap -llber -llutil
 XXLIBS	= $(KRB_LIBS) $(LUTIL_LIBS)
 
-XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c
+XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c ldpversion.c
 
 PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn ldapadd ldappasswd
 
