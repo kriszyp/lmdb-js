@@ -200,7 +200,7 @@ int backsql_load_schema_map(backsql_info *si,SQLHDBC dbh)
 	 Debug(LDAP_DEBUG_TRACE,"join_where='%s',add_proc='%s' ",at_row.cols[3],
              at_row.cols[4],0);
 	 Debug(LDAP_DEBUG_TRACE,"delete_proc='%s'\n",at_row.cols[5],0,0);
-	 Debug(LDAP_DEBUG_TRACE,"sel_expr_u='%s'\n", at_row.cols[8],0,0); // TimesTen
+	 Debug(LDAP_DEBUG_TRACE,"sel_expr_u='%s'\n", at_row.cols[8],0,0); /* TimesTen*/
      at_map=(backsql_at_map_rec*)ch_calloc(1,sizeof(backsql_at_map_rec));
      at_map->name=ch_strdup(at_row.cols[0]);
      at_map->sel_expr=ch_strdup(at_row.cols[1]);
@@ -234,13 +234,14 @@ backsql_oc_map_rec* backsql_oc_with_name(backsql_info *si,char* objclass)
 {
  backsql_oc_map_rec tmp,*res;
  
-// Debug(LDAP_DEBUG_TRACE,"==>oc_with_name(): searching for objectclass with name='%s'\n",objclass,0,0);
+/* Debug(LDAP_DEBUG_TRACE,"==>oc_with_name(): searching for objectclass with name='%s'\n",objclass,0,0);*/
  tmp.name=objclass;
  res=(backsql_oc_map_rec*)avl_find(si->oc_by_name,&tmp,(AVL_CMP)backsql_cmp_oc_name);
-// if (res!=NULL)
-//  Debug(LDAP_DEBUG_TRACE,"<==oc_with_name(): found name='%s', id=%d\n",res->name,res->id,0);
-// else
-//  Debug(LDAP_DEBUG_TRACE,"<==oc_with_name(): not found\n",0,0,0);
+/* if (res!=NULL)
+  Debug(LDAP_DEBUG_TRACE,"<==oc_with_name(): found name='%s', id=%d\n",res->name,res->id,0);
+ else
+  Debug(LDAP_DEBUG_TRACE,"<==oc_with_name(): not found\n",0,0,0);
+*/
  return res;
 }
 
@@ -248,13 +249,14 @@ backsql_oc_map_rec* backsql_oc_with_id(backsql_info *si,unsigned long id)
 {
  backsql_oc_map_rec tmp,*res;
  
-// Debug(LDAP_DEBUG_TRACE,"==>oc_with_id(): searching for objectclass with id='%d'\n",id,0,0);
+/* Debug(LDAP_DEBUG_TRACE,"==>oc_with_id(): searching for objectclass with id='%d'\n",id,0,0);*/
  tmp.id=id;
  res=(backsql_oc_map_rec*)avl_find(si->oc_by_id,&tmp,(AVL_CMP)backsql_cmp_oc_id);
-// if (res!=NULL)
-//  Debug(LDAP_DEBUG_TRACE,"<==oc_with_name(): found name='%s', id=%d\n",res->name,res->id,0);
-// else
-//  Debug(LDAP_DEBUG_TRACE,"<==oc_with_name(): not found\n",0,0,0);
+/* if (res!=NULL)
+  Debug(LDAP_DEBUG_TRACE,"<==oc_with_name(): found name='%s', id=%d\n",res->name,res->id,0);
+ else
+  Debug(LDAP_DEBUG_TRACE,"<==oc_with_name(): not found\n",0,0,0);
+*/
  return res;
 }
 
@@ -262,15 +264,17 @@ backsql_at_map_rec* backsql_at_with_name(backsql_oc_map_rec* objclass,char* attr
 {
  backsql_at_map_rec tmp,*res;
  
- //Debug(LDAP_DEBUG_TRACE,"==>at_with_name(): searching for attribute with name='%s' (for objectclass '%s')\n",
- //                attr,objclass->name,0);
+ /*Debug(LDAP_DEBUG_TRACE,"==>at_with_name(): searching for attribute with name='%s' (for objectclass '%s')\n",
+                 attr,objclass->name,0);
+*/
  tmp.name=attr;
  res=(backsql_at_map_rec*)avl_find(objclass->attrs,&tmp,(AVL_CMP)backsql_cmp_attr);
- //if (res!=NULL)
-  //Debug(LDAP_DEBUG_TRACE,"<==at_with_name(): found name='%s', sel_expr='%s'\n",
-  //            res->name,res->sel_expr,0);
- //else
- // Debug(LDAP_DEBUG_TRACE,"<==at_with_name(): not found\n",0,0,0);
+ /*if (res!=NULL)
+  Debug(LDAP_DEBUG_TRACE,"<==at_with_name(): found name='%s', sel_expr='%s'\n",
+              res->name,res->sel_expr,0);
+ else
+  Debug(LDAP_DEBUG_TRACE,"<==at_with_name(): not found\n",0,0,0);
+*/
  return res;
 }
 
@@ -291,7 +295,7 @@ int backsql_free_attr(backsql_at_map_rec *at)
   ch_free(at->query);
  ch_free(at);
  if (at->sel_expr_u)
-   ch_free(at->sel_expr_u); // TimesTen
+   ch_free(at->sel_expr_u); /* TimesTen */
  Debug(LDAP_DEBUG_TRACE,"<==free_attr()\n",0,0,0);
  return 1;
 }

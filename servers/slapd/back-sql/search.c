@@ -378,11 +378,11 @@ int backsql_oc_get_candidates(backsql_oc_map_rec *oc,backsql_srch_info *bsi)
  SQLHSTMT sth;
  RETCODE rc;
  backsql_entryID base_id,*res,*c_id;
- //Entry *e;
+ /*Entry *e;*/
  BACKSQL_ROW_NTS row;
  int i;
  int j;
- char temp_base_dn[BACKSQL_MAX_DN_LEN+1]; // TimesTen
+ char temp_base_dn[BACKSQL_MAX_DN_LEN+1]; /* TimesTen*/
  
  Debug(LDAP_DEBUG_TRACE,"==>backsql_oc_get_candidates(): oc='%s'\n",oc->name,0,0);
  bsi->oc=oc;
@@ -492,10 +492,10 @@ SQL_SUCCESS)
      if (row.is_null[i]>0)
       {
        backsql_entry_addattr(e,row.col_names[i],row.cols[i],row.col_prec[i]);
-//       Debug(LDAP_DEBUG_TRACE,"prec=%d\n",(int)row.col_prec[i],0,0);
+       Debug(LDAP_DEBUG_TRACE,"prec=%d\n",(int)row.col_prec[i],0,0);
       }
-    // else
-    //  Debug(LDAP_DEBUG_TRACE,"NULL value in this row for attribute '%s'\n",row.col_names[i],0,0);
+     else
+      Debug(LDAP_DEBUG_TRACE,"NULL value in this row for attribute '%s'\n",row.col_names[i],0,0);
     }
    */
 
@@ -571,14 +571,16 @@ int backsql_search(BackendDB *be,Connection *conn,Operation *op,
  backsql_init_search(&srch_info,bi,(char*)nbase,scope,slimit,tlimit,stoptime,filter,dbh,
 		 be,conn,op,attrs);
 
- //for each objectclass we try to construct query which gets IDs
- //of entries matching LDAP query filter and scope (or at least candidates),
- //and get the IDs
+ /*for each objectclass we try to construct query which gets IDs
+  *of entries matching LDAP query filter and scope (or at least candidates),
+  *and get the IDs
+*/
  avl_apply(bi->oc_by_name,(AVL_APPLY)backsql_oc_get_candidates,&srch_info,0,AVL_INORDER);
 	     
  nentries=0;
- //now we load candidate entries (only those attrubutes mentioned in attrs and filter),
- //test it against full filter and then send to client
+ /*now we load candidate entries (only those attrubutes mentioned in attrs and filter),
+  *test it against full filter and then send to client
+*/
  for(eid=srch_info.id_list;eid!=NULL;eid=eid->next)
   {
    /* check for abandon */

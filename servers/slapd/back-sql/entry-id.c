@@ -80,7 +80,7 @@ backsql_entryID* backsql_dn2id(backsql_info *bi,backsql_entryID *id,SQLHDBC dbh,
 
  if ((rc=backsql_BindParamStr(sth,1,toBind,
                   BACKSQL_MAX_DN_LEN)) != SQL_SUCCESS)
- // end TimesTen
+ /* end TimesTen*/
  {
    Debug(LDAP_DEBUG_TRACE,"backsql_dn2id(): error binding dn parameter:\n",0,0,0);
    backsql_PrintErrors(SQL_NULL_HENV,dbh,sth,rc);
@@ -162,10 +162,11 @@ int backsql_get_attr_vals(backsql_at_map_rec *at,backsql_srch_info *bsi)
       {
        backsql_entry_addattr(bsi->e,row.col_names[i],row.cols[i],/*row.col_prec[i]*/
 					strlen(row.cols[i]));
-//       Debug(LDAP_DEBUG_TRACE,"prec=%d\n",(int)row.col_prec[i],0,0);
+/*       Debug(LDAP_DEBUG_TRACE,"prec=%d\n",(int)row.col_prec[i],0,0);*/
       }
-    // else
-    //  Debug(LDAP_DEBUG_TRACE,"NULL value in this row for attribute '%s'\n",row.col_names[i],0,0);
+    /* else
+      Debug(LDAP_DEBUG_TRACE,"NULL value in this row for attribute '%s'\n",row.col_names[i],0,0);
+*/
     }
   }
  backsql_FreeRow(&row);
@@ -188,7 +189,7 @@ Entry* backsql_id2entry(backsql_srch_info *bsi,Entry* e,backsql_entryID* eid)
  e->e_attrs=NULL;
  e->e_private=NULL;
  
-// if (bsi->base_dn != NULL)???
+/* if (bsi->base_dn != NULL)???*/
 
  e->e_id=eid->id;
  e->e_dn=ch_strdup(bsi->c_eid->dn);
@@ -201,7 +202,7 @@ Entry* backsql_id2entry(backsql_srch_info *bsi,Entry* e,backsql_entryID* eid)
   {
    if (!strcasecmp(*c_at_name,"objectclass") || !strcasecmp(*c_at_name,"0.10"))
    {
-	//backsql_entry_addattr(bsi->e,"objectclass",bsi->oc->name,strlen(bsi->oc->name));
+	/*backsql_entry_addattr(bsi->e,"objectclass",bsi->oc->name,strlen(bsi->oc->name));*/
     continue;
    }
    at=backsql_at_with_name(bsi->oc,*c_at_name);
