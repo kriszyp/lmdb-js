@@ -62,7 +62,7 @@ if test "x$RELAYS" = "x" ; then
 	exit 0
 fi
 
-echo "Testing virtual naming context mapping with backend(s) $RELAYS..."
+echo "Testing virtual naming context mapping with $RELAYS backend(s)..."
 echo ""
 
 first=1
