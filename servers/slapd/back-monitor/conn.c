@@ -253,9 +253,9 @@ conn_create(
 {
 	struct monitorentrypriv *mp;
 	struct tm		*ltm;
-	char			buf[1024];
-	char			buf2[22];
-	char			buf3[22];
+	char			buf[ 1024 ];
+	char			buf2[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+	char			buf3[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 
 	struct berval           bv[2];
 
@@ -293,10 +293,10 @@ conn_create(
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 	
 	ltm = gmtime( &c->c_starttime );
-	lutil_gentime( buf2, sizeof(buf2), ltm );
+	lutil_gentime( buf2, sizeof( buf2 ), ltm );
 			
 	ltm = gmtime( &c->c_activitytime );
-	lutil_gentime( buf3, sizeof(buf2), ltm );
+	lutil_gentime( buf3, sizeof( buf3 ), ltm );
 			
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 

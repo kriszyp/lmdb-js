@@ -65,7 +65,7 @@ lutil_csnstr(char *buf, size_t len, unsigned int replica, unsigned int mod)
 int
 main(int argc, char **argv)
 {
-	char buf[256];
+	char buf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 
 	if ( ! lutil_csnstr( buf, (size_t) 10, 0, 0 ) ) {
 		fprintf(stderr, "failed lutil_csnstr\n");

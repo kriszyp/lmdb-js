@@ -547,8 +547,8 @@ int slap_mods_opattrs(
 	char *textbuf, size_t textlen )
 {
 	struct berval name, timestamp, csn;
-	char timebuf[22];
-	char csnbuf[64];
+	char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+	char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 	Modifications *mod;
 
 	int mop = op->o_tag == LDAP_REQ_ADD
@@ -603,7 +603,7 @@ int slap_mods_opattrs(
 		}
 
 		if( SLAP_LASTMOD(be) ) {
-			char uuidbuf[40];
+			char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
 
 			tmpval.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
 			tmpval.bv_val = uuidbuf;
