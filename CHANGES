@@ -1,6 +1,30 @@
 OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.1-Alpha (from -devel)
+	CVS Tag: OPENLDAP_REL_ENG_1_1_BETA
+	Added ldap.conf support
+	Added configuration preservation support
+	Updated shared library version to release 1
+	Fixed lib-shared.mk handling of static library
+	Fixed no-ldapd make install bugs
+	Fixed slapd/detach-join thread bug
+	Fixed slapd/nextid-atol bug
+	Updated slapd to use ch_strdup()
+	Moved ldapfriendly to datadir
+	Updated $(MKDIR) handling to always use -p
+	Updated test007 to skip test if slurpd is not built
+	Modified ud to accept "host" in ud.conf
+	Updated contributed software
+	Updated manuals and other docs
+	Fixed LinuxThread handling on alpha/sparc
+	Autoconf:
+		Added --with_subdir added
+		Added pthread_create consistency check
+		Added additonal caching of results
+		Fixed REENTRANT defines
+		Updated Kerberos support
+
+Changes included in OpenLDAP 1.1-Alpha (from -devel)
 	CVS Tag: OPENLDAP_REL_ENG_1_1_ALPHA3
 	Changed LDBM default to sync on writes
 	Added mail500 BOUNCEFROM patch

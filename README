@@ -42,9 +42,6 @@ MAKING AND INSTALLING THE DISTRIBUTION
 	% ./configure
 		configure OpenLDAP for current platform
 
-	% [env settings] ./configure [options]
-		this will configure the build system
-
 	% make depend
 		this will create dependency information
 
