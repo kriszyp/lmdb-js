@@ -598,6 +598,8 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 			entry = (Entry *)get_entry( op, &ni->li_base_path );
 		}
 
+		ldap_pvt_thread_mutex_unlock( &ni->li_mutex );
+
 		op->o_req_dn = odn;
 		op->o_req_ndn = ondn;
 
@@ -643,11 +645,10 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 			rs->sr_matched = NULL;
 		}
 
-		ldap_pvt_thread_mutex_unlock( &ni->li_mutex );
-
 		return rc;
-
 	}
+
+	ldap_pvt_thread_mutex_unlock( &ni->li_mutex );
 
 	if ( is_entry_referral( entry ) ) {
 		/* entry is a referral */
@@ -676,8 +677,6 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 
 		entry_free( entry );
 	}
-
-	ldap_pvt_thread_mutex_unlock( &ni->li_mutex );
 
 	return rc;
 }
