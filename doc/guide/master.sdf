@@ -3,7 +3,6 @@
 #
 # master.sdf 
 # SDF master file for the OpenLDAP Administrator's guide
-#
 
 # title information
 !include "title.sdf"
@@ -27,5 +26,5 @@
 # Appendices 
 
 # Software Copyright/License
-# !include "copyright.sdf"
-# !include "license.sdf"
+!include "copyright.sdf"
+!include "license.sdf"
