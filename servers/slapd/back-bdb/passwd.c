@@ -12,13 +12,14 @@
 
 #include "back-bdb.h"
 #include "external.h"
+#include "lber_pvt.h"
 
 int
 bdb_exop_passwd(
 	Backend		*be,
 	Connection		*conn,
 	Operation		*op,
-	const char		*reqoid,
+	struct berval		*reqoid,
 	struct berval	*reqdata,
 	char			**rspoid,
 	struct berval	**rspdata,
@@ -45,7 +46,7 @@ bdb_exop_passwd(
 	DB_LOCK		lock;
 
 	assert( reqoid != NULL );
-	assert( strcmp( LDAP_EXOP_MODIFY_PASSWD, reqoid ) == 0 );
+	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, reqoid ) == 0 );
 
 	rc = slap_passwd_parse( reqdata,
 		&id, NULL, &new, text );

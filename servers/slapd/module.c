@@ -266,8 +266,8 @@ load_extop_module (
 )
 {
 	SLAP_EXTOP_MAIN_FN *ext_main;
-	int (*ext_getoid)(int index, char *oid, int blen);
-	char *oid;
+	SLAP_EXTOP_GETOID_FN *ext_getoid;
+	struct berval oid;
 	int rc;
 
 	ext_main = (SLAP_EXTOP_MAIN_FN *)module_resolve(module, "ext_main");
@@ -280,19 +280,15 @@ load_extop_module (
 		return(-1);
 	}
 
-	oid = ch_malloc(256);
-	rc = (ext_getoid)(0, oid, 256);
+	rc = (ext_getoid)(0, &oid, 256);
 	if (rc != 0) {
-		ch_free(oid);
 		return(rc);
 	}
-	if (*oid == 0) {
-		free(oid);
+	if (oid.bv_val == NULL || oid.bv_len == 0) {
 		return(-1);
 	}
 
-	rc = load_extop( oid, ext_main );
-	free(oid);
+	rc = load_extop( &oid, ext_main );
 	return rc;
 }
 #endif /* SLAPD_EXTERNAL_EXTENSIONS */

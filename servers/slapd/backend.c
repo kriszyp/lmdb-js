@@ -856,8 +856,7 @@ backend_check_restrictions(
 		}
 
 		{
-			struct berval bv = BER_BVC( LDAP_EXOP_START_TLS );
-			if( bvmatch( opdata, &bv ) ) {
+			if( bvmatch( opdata, &slap_EXOP_START_TLS ) ) {
 				session++;
 				starttls++;
 				break;
@@ -865,16 +864,14 @@ backend_check_restrictions(
 		}
 
 		{
-			struct berval bv = BER_BVC( LDAP_EXOP_X_WHO_AM_I );
-			if( bvmatch( opdata, &bv ) ) {
+			if( bvmatch( opdata, &slap_EXOP_WHOAMI ) ) {
 				break;
 			}
 		}
 
 #ifdef LDAP_EXOP_X_CANCEL
 		{
-			struct berval bv = BER_BVC( LDAP_EXOP_X_CANCEL );
-			if ( bvmatch( opdata, &bv ) ) {
+			if ( bvmatch( opdata, &slap_EXOP_CANCEL ) ) {
 				break;
 			}
 		}

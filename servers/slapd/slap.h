@@ -1412,7 +1412,7 @@ typedef int (BI_op_extended) LDAP_P((
 	BackendDB		*be,
 	struct slap_conn	*conn,
 	struct slap_op		*op,
-	const char		*reqoid,
+	struct berval		*reqoid,
 	struct berval * reqdata,
 	char		**rspoid,
 	struct berval ** rspdata,

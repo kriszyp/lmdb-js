@@ -24,7 +24,7 @@ int
 starttls_extop (
 	Connection *conn,
 	Operation *op,
-	const char * reqoid,
+	struct berval * reqoid,
 	struct berval * reqdata,
 	char ** rspoid,
 	struct berval ** rspdata,

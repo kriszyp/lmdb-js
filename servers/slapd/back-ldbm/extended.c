@@ -15,12 +15,13 @@
 #include "slap.h"
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
+#include "lber_pvt.h"
 
 struct exop {
-	char *oid;
+	struct berval *oid;
 	BI_op_extended	*extended;
 } exop_table[] = {
-	{ LDAP_EXOP_MODIFY_PASSWD, ldbm_back_exop_passwd },
+	{ (struct berval *)&slap_EXOP_MODIFY_PASSWD, ldbm_back_exop_passwd },
 	{ NULL, NULL }
 };
 
@@ -29,7 +30,7 @@ ldbm_back_extended(
     Backend		*be,
     Connection		*conn,
     Operation		*op,
-	const char		*reqoid,
+	struct berval	*reqoid,
     struct berval	*reqdata,
 	char		**rspoid,
     struct berval	**rspdata,
@@ -40,8 +41,8 @@ ldbm_back_extended(
 {
 	int i;
 
-	for( i=0; exop_table[i].oid != NULL; i++ ) {
-		if( strcmp( exop_table[i].oid, reqoid ) == 0 ) {
+	for( i=0; exop_table[i].extended != NULL; i++ ) {
+		if( ber_bvcmp( exop_table[i].oid, reqoid ) == 0 ) {
 			return (exop_table[i].extended)(
 				be, conn, op,
 				reqoid, reqdata,

@@ -451,9 +451,16 @@ LDAP_SLAPD_F (int) entry_id_cmp LDAP_P(( const void *v_a, const void *v_b ));
 /*
  * extended.c
  */
+#ifdef LDAP_EXOP_X_CANCEL
+const struct berval slap_EXOP_CANCEL;
+#endif
+const struct berval slap_EXOP_WHOAMI;
+const struct berval slap_EXOP_MODIFY_PASSWD;
+const struct berval slap_EXOP_START_TLS;
+
 typedef int (SLAP_EXTOP_MAIN_FN) LDAP_P((
 	Connection *conn, Operation *op,
-	const char * reqoid,
+	struct berval * reqoid,
 	struct berval * reqdata,
 	char ** rspoid,
 	struct berval ** rspdata,
@@ -462,10 +469,10 @@ typedef int (SLAP_EXTOP_MAIN_FN) LDAP_P((
 	BerVarray *refs ));
 
 typedef int (SLAP_EXTOP_GETOID_FN) LDAP_P((
-	int index, char *oid, int blen ));
+	int index, struct berval *oid, int blen ));
 
 LDAP_SLAPD_F (int) load_extop LDAP_P((
-	const char *ext_oid,
+	struct berval *ext_oid,
 	SLAP_EXTOP_MAIN_FN *ext_main ));
 
 LDAP_SLAPD_F (int) extops_init LDAP_P(( void ));
@@ -891,7 +898,7 @@ LDAP_SLAPD_F (int) slap_sasl_bind LDAP_P((
 LDAP_SLAPD_F (int) slap_sasl_setpass(
 	Connection      *conn,
 	Operation       *op,
-	const char      *reqoid,
+	struct berval   *reqoid,
 	struct berval   *reqdata,
 	char            **rspoid,
 	struct berval   **rspdata,

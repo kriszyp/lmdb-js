@@ -21,7 +21,7 @@
 
 int passwd_extop(
 	Connection *conn, Operation *op,
-	const char *reqoid,
+	struct berval *reqoid,
 	struct berval *reqdata,
 	char **rspoid,
 	struct berval **rspdata,
@@ -33,7 +33,7 @@ int passwd_extop(
 	int rc;
 
 	assert( reqoid != NULL );
-	assert( strcmp( LDAP_EXOP_MODIFY_PASSWD, reqoid ) == 0 );
+	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, reqoid ) == 0 );
 
 	if( op->o_dn.bv_len == 0 ) {
 		*text = "only authenticated users may change passwords";
@@ -50,8 +50,7 @@ int passwd_extop(
 	}
 
 	{
-		struct berval passwd = BER_BVC( LDAP_EXOP_MODIFY_PASSWD );
-		rc = backend_check_restrictions( be, conn, op, &passwd, text );
+		rc = backend_check_restrictions( be, conn, op, &slap_EXOP_MODIFY_PASSWD, text );
 	}
 
 	if( rc != LDAP_SUCCESS ) {

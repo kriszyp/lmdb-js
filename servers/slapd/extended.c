@@ -49,28 +49,31 @@ static struct extop_list {
 
 static SLAP_EXTOP_MAIN_FN whoami_extop;
 
-/* BerVal Constant initializer */
-
-#define	BVC(x)	{sizeof(x)-1, x}
-
 /* this list of built-in extops is for extops that are not part
  * of backends or in external modules.	essentially, this is
  * just a way to get built-in extops onto the extop list without
  * having a separate init routine for each built-in extop.
  */
+#ifdef LDAP_EXOP_X_CANCEL
+const struct berval slap_EXOP_CANCEL = BER_BVC(LDAP_EXOP_X_CANCEL);
+#endif
+const struct berval slap_EXOP_WHOAMI = BER_BVC(LDAP_EXOP_X_WHO_AM_I);
+const struct berval slap_EXOP_MODIFY_PASSWD = BER_BVC(LDAP_EXOP_MODIFY_PASSWD);
+const struct berval slap_EXOP_START_TLS = BER_BVC(LDAP_EXOP_START_TLS);
+
 static struct {
-	struct berval oid;
+	const struct berval *oid;
 	SLAP_EXTOP_MAIN_FN *ext_main;
 } builtin_extops[] = {
 #ifdef LDAP_EXOP_X_CANCEL
-	{ BVC(LDAP_EXOP_X_CANCEL), cancel_extop },
+	{ &slap_EXOP_CANCEL, cancel_extop },
 #endif
-	{ BVC(LDAP_EXOP_X_WHO_AM_I), whoami_extop },
-	{ BVC(LDAP_EXOP_MODIFY_PASSWD), passwd_extop },
+	{ &slap_EXOP_WHOAMI, whoami_extop },
+	{ &slap_EXOP_MODIFY_PASSWD, passwd_extop },
 #ifdef HAVE_TLS
-	{ BVC(LDAP_EXOP_START_TLS), starttls_extop },
+	{ &slap_EXOP_START_TLS, starttls_extop },
 #endif
-	{ {0,NULL}, NULL }
+	{ NULL, NULL }
 };
 
 
@@ -234,7 +237,7 @@ do_extended(
 #endif /* defined(LDAP_SLAPI) */
 
 		rc = (ext->ext_main)( conn, op,
-			  reqoid.bv_val, reqdata.bv_val ? &reqdata : NULL,
+			  &reqoid, reqdata.bv_val ? &reqdata : NULL,
 			  &rspoid, &rspdata, &rspctrls, &text, &refs );
 
 		if( rc != SLAPD_ABANDON ) {
@@ -336,23 +339,23 @@ done:
 
 int
 load_extop(
-	const char *ext_oid,
+	struct berval *ext_oid,
 	SLAP_EXTOP_MAIN_FN *ext_main )
 {
 	struct extop_list *ext;
 
-	if( ext_oid == NULL || *ext_oid == '\0' ) return -1; 
+	if( ext_oid == NULL || ext_oid->bv_val == NULL ||
+		ext_oid->bv_val[0] == '\0' || ext_oid->bv_len == 0 ) return -1; 
 	if(!ext_main) return -1; 
 
-	ext = ch_calloc(1, sizeof(struct extop_list));
+	ext = ch_calloc(1, sizeof(struct extop_list) + ext_oid->bv_len + 1);
 	if (ext == NULL)
 		return(-1);
 
-	ber_str2bv( ext_oid, 0, 1, &ext->oid );
-	if (ext->oid.bv_val == NULL) {
-		free(ext);
-		return(-1);
-	}
+	ext->oid.bv_val = (char *)(ext + 1);
+	AC_MEMCPY( ext->oid.bv_val, ext_oid->bv_val, ext_oid->bv_len );
+	ext->oid.bv_len = ext_oid->bv_len;
+	ext->oid.bv_val[ext->oid.bv_len] = '\0';
 
 	ext->ext_main = ext_main;
 	ext->next = supp_ext_list;
@@ -367,8 +370,8 @@ extops_init (void)
 {
 	int i;
 
-	for (i = 0; builtin_extops[i].oid.bv_val != NULL; i++) {
-		load_extop(builtin_extops[i].oid.bv_val, builtin_extops[i].ext_main);
+	for (i = 0; builtin_extops[i].oid != NULL; i++) {
+		load_extop((struct berval *)builtin_extops[i].oid, builtin_extops[i].ext_main);
 	}
 	return(0);
 }
@@ -381,8 +384,6 @@ extops_kill (void)
 	/* we allocated the memory, so we have to free it, too. */
 	while ((ext = supp_ext_list) != NULL) {
 		supp_ext_list = ext->next;
-		if (ext->oid.bv_val != NULL)
-			ch_free(ext->oid.bv_val);
 		ch_free(ext);
 	}
 	return(0);
@@ -405,7 +406,7 @@ static int
 whoami_extop (
 	Connection *conn,
 	Operation *op,
-	const char * reqoid,
+	struct berval * reqoid,
 	struct berval * reqdata,
 	char ** rspoid,
 	struct berval ** rspdata,
@@ -422,11 +423,8 @@ whoami_extop (
 	}
 
 	{
-		int rc;
-		struct berval whoami = BER_BVC( LDAP_EXOP_X_WHO_AM_I );
-
-		rc = backend_check_restrictions( conn->c_authz_backend,
-			conn, op, &whoami, text );
+		int rc = backend_check_restrictions( conn->c_authz_backend,
+			conn, op, (struct berval *)&slap_EXOP_WHOAMI, text );
 
 		if( rc != LDAP_SUCCESS ) return rc;
 	}

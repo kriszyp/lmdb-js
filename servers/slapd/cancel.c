@@ -24,7 +24,7 @@
 int cancel_extop(
 	Connection *conn,
 	Operation *op,
-	const char *reqoid,
+	struct berval *reqoid,
 	struct berval *reqdata,
 	char **rspoid,
 	struct berval **rspdata,
@@ -40,7 +40,7 @@ int cancel_extop(
 	int i;
 
 	assert( reqoid != NULL );
-	assert( strcmp( LDAP_EXOP_X_CANCEL, reqoid ) == 0 );
+	assert( ber_bvcmp( &slap_EXOP_CANCEL, reqoid ) == 0 );
 
 	if ( reqdata == NULL ) {
 		*text = "no message ID supplied";

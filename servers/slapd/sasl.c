@@ -1436,7 +1436,7 @@ int
 slap_sasl_setpass(
 	Connection      *conn,
 	Operation       *op,
-	const char      *reqoid,
+	struct berval   *reqoid,
 	struct berval   *reqdata,
 	char            **rspoid,
 	struct berval   **rspdata,
@@ -1449,7 +1449,7 @@ slap_sasl_setpass(
 	struct berval old = { 0, NULL };
 
 	assert( reqoid != NULL );
-	assert( strcmp( LDAP_EXOP_MODIFY_PASSWD, reqoid ) == 0 );
+	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, reqoid ) == 0 );
 
 	rc = sasl_getprop( conn->c_sasl_context, SASL_USERNAME,
 		(SASL_CONST void **)&id.bv_val );
