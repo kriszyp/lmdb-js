@@ -2003,6 +2003,7 @@ restrict_unknown:;
 						{ LDAP_DEBUG_PARSE,	"Parse"		},
 						{ LDAP_DEBUG_CACHE,	"Cache"		},
 						{ LDAP_DEBUG_INDEX,	"Index"		},
+						{ -1,			"Any"		},
 						{ 0,			NULL		}
 					};
 					int	j;

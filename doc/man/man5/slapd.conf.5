@@ -573,7 +573,18 @@ entry parsing
 .RE
 The desired log level can be input as a single integer that combines 
 the (ORed) desired levels, as a list of integers (that are ORed internally),
-or as a list of the names that are shown between brackets.
+or as a list of the names that are shown between brackets, such that
+.LP
+.nf
+    loglevel 129
+    loglevel 128 1
+    loglevel acl trace
+.fi
+.LP
+are equivalent.
+The keyword 
+.B any
+can be used as a shortcut to enable logging at all levels (equivalent to -1).
 .RE
 .TP
 .B moduleload <filename>
