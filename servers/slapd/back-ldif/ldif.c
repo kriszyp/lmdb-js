@@ -42,6 +42,13 @@ struct ldif_info {
 
 #define LDIF	".ldif"
 
+#define IX_DNL	'{'
+#define	IX_DNR	'}'
+#ifndef IX_FSL
+#define	IX_FSL	IX_DNL
+#define IX_FSR	IX_DNR
+#endif
+
 #define ENTRY_BUFF_INCREMENT 500
 
 static ObjectClass *ldif_oc;
@@ -100,6 +107,17 @@ dn2path(struct berval * dn, struct berval * rootdn, struct berval * base_path,
 		end = sep;
 	}
 	strcpy(ptr, LDIF);
+#if IX_FSL != IX_DNL
+	ptr = res->bv_val;
+	while( ptr=strchr(ptr, IX_DNL) ) {
+		*ptr++ = IX_FSL;
+		ptr = strchr(ptr, IX_DNR);
+		if ( ptr )
+			*ptr++ = IX_FSR;
+		else
+			break;
+	}
+#endif
 }
 
 static char * slurp_file(int fd) {
@@ -350,11 +368,11 @@ static void r_enum_tree(enumCookie *ck, struct berval *path,
 			bvl = ch_malloc( sizeof(bvlist) );
 			ber_dupbv( &bvl->bv, &fname );
 			BER_BVZERO( &bvl->num );
-			itmp.bv_val = strchr( bvl->bv.bv_val, '{' );
+			itmp.bv_val = strchr( bvl->bv.bv_val, IX_FSL );
 			if ( itmp.bv_val ) {
 				char *ptr;
 				itmp.bv_val++;
-				ptr = strchr( itmp.bv_val, '}' );
+				ptr = strchr( itmp.bv_val, IX_FSR );
 				if ( ptr ) {
 					itmp.bv_len = ptr - itmp.bv_val;
 					ber_dupbv( &bvl->num, &itmp );
