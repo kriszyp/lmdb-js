@@ -65,8 +65,6 @@ int slap_sasl_setpolicy( const char *arg )
 	return rc;
 }
 
-/* URI format: ldap://<host>/<base>[?[<attrs>][?[<scope>][?[<filter>]]]] */
-
 static int slap_parseURI( Operation *op, struct berval *uri,
 	struct berval *searchbase, int *scope, Filter **filter )
 {
@@ -84,7 +82,8 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 	LDAP_LOG( TRANSPORT, ENTRY, 
 		"slap_parseURI: parsing %s\n", uri->bv_val, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "slap_parseURI: parsing %s\n", uri->bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE,
+		"slap_parseURI: parsing %s\n", uri->bv_val, 0, 0 );
 #endif
 
 	/* If it does not look like a URI, assume it is a DN */
@@ -114,8 +113,8 @@ is_dn:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 	if (( ludp->lud_host && *ludp->lud_host )
 		|| ludp->lud_attrs || ludp->lud_exts )
 	{
-		/* host part should be empty */
-		/* attrs and extensions parts should be empty */
+		/* host part must be empty */
+		/* attrs and extensions parts must be empty */
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -385,7 +384,8 @@ static int sasl_sc_smatch( Operation *o, SlapReply *rs )
  */
 
 static
-int slap_sasl_match(Operation *opx, struct berval *rule, struct berval *assertDN, struct berval *authc )
+int slap_sasl_match( Operation *opx, struct berval *rule,
+	struct berval *assertDN, struct berval *authc )
 {
 	int rc; 
 	regex_t reg;
@@ -404,7 +404,8 @@ int slap_sasl_match(Operation *opx, struct berval *rule, struct berval *assertDN
 		assertDN->bv_val, rule->bv_val, 0 );
 #endif
 
-	rc = slap_parseURI( opx, rule, &op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter );
+	rc = slap_parseURI( opx, rule,
+		&op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter );
 	if( rc != LDAP_SUCCESS ) goto CONCLUDED;
 
 	/* Massive shortcut: search scope == base */
@@ -575,7 +576,8 @@ void slap_sasl2dn( Operation *opx,
 		goto FINISHED;
 	}
 
-	rc = slap_parseURI( opx, &regout, &op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter );
+	rc = slap_parseURI( opx, &regout,
+		&op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter );
 	if( regout.bv_val ) sl_free( regout.bv_val, opx->o_tmpmemctx );
 	if( rc != LDAP_SUCCESS ) {
 		goto FINISHED;
