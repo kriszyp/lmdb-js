@@ -167,6 +167,12 @@ changetype: delete
 
 EOMODS
 
+if test $RC != 0 ; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 echo "Waiting 15 seconds for slurpd to send changes..."
 sleep 15
 
