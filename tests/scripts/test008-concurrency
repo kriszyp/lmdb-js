@@ -45,7 +45,7 @@ fi
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h localhost -p $PORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 1 ; then
@@ -55,7 +55,7 @@ for i in 0 1 2 3 4 5; do
 done
 
 echo "Using tester for concurrent server access..."
-$SLAPDTESTER -b "$BASEDN" -P "$PROGDIR" -d "$DATADIR" -h localhost -p $PORT -D "$MANAGERDN" -w $PASSWD -l 50
+$SLAPDTESTER -b "$BASEDN" -P "$PROGDIR" -d "$DATADIR" -h $LOCALHOST -p $PORT -D "$MANAGERDN" -w $PASSWD -l 50
 RC=$?
 
 if test $RC != 0 ; then
@@ -64,7 +64,7 @@ if test $RC != 0 ; then
 fi 
 
 echo "Using ldapsearch to retrieve all the entries..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
 			'objectClass=*' > $SEARCHOUT 2>&1
 RC=$?
 

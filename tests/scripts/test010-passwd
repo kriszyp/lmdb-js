@@ -32,7 +32,7 @@ fi
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h localhost -p $PORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 1 ; then
@@ -42,7 +42,7 @@ for i in 0 1 2 3 4 5; do
 done
 
 echo "Using ldapadd to populate the database..."
-$LDAPADD -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD < \
+$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD < \
 	$LDIFPASSWD > $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -56,14 +56,14 @@ echo > $TESTOUT
 
 echo "Using ldapsearch to verify population ..."
 echo "++ Initial search" >> $SEARCHOUT
-$LDAPSEARCH -h localhost -p $PORT \
+$LDAPSEARCH -h $LOCALHOST -p $PORT \
 	-D "$MANAGERDN" -w $PASSWD \
 	-b "$BASEDN" \
 	'objectclass=*' >> $SEARCHOUT 2>&1
 
 echo "Using ldappasswd (PASS 1)  ..."
 echo "Pass 1" >> $TESTOUT
-$LDAPPASSWD -h localhost -p $PORT \
+$LDAPPASSWD -h $LOCALHOST -p $PORT \
 	-w secret -s newsecret \
 	-D "cn=md5, $BASEDN" >> $TESTOUT 2>&1
 RC=$?
@@ -72,7 +72,7 @@ if test $RC != 0 ; then
 	kill -HUP $PID
 	exit $RC
 fi
-$LDAPPASSWD -h localhost -p $PORT \
+$LDAPPASSWD -h $LOCALHOST -p $PORT \
 	-w $PASSWD -s newsecret \
 	-D $MANAGERDN "cn=smd5, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
@@ -80,7 +80,7 @@ if test $RC != 0 ; then
 	kill -HUP $PID
 	exit $RC
 fi
-$LDAPPASSWD -h localhost -p $PORT \
+$LDAPPASSWD -h $LOCALHOST -p $PORT \
 	-w secret -s newsecret \
 	-D "cn=sha, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
@@ -88,7 +88,7 @@ if test $RC != 0 ; then
 	kill -HUP $PID
 	exit $RC
 fi
-$LDAPPASSWD -h localhost -p $PORT \
+$LDAPPASSWD -h $LOCALHOST -p $PORT \
 	-w secret -s newsecret \
 	-D "cn=ssha, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
@@ -100,7 +100,7 @@ fi
 echo "" >> $TESTOUT
 echo "Pass 2" >> $TESTOUT
 echo "Using ldappasswd (PASS 2)  ..."
-$LDAPPASSWD -h localhost -p $PORT \
+$LDAPPASSWD -h $LOCALHOST -p $PORT \
 	-w newsecret \
 	-D "cn=md5, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
@@ -108,7 +108,7 @@ if test $RC != 0 ; then
 	kill -HUP $PID
 	exit $RC
 fi
-$LDAPPASSWD -h localhost -p $PORT \
+$LDAPPASSWD -h $LOCALHOST -p $PORT \
 	-w newsecret \
 	-D "cn=smd5, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
@@ -116,7 +116,7 @@ if test $RC != 0 ; then
 	kill -HUP $PID
 	exit $RC
 fi
-$LDAPPASSWD -h localhost -p $PORT \
+$LDAPPASSWD -h $LOCALHOST -p $PORT \
 	-w newsecret \
 	-D "cn=sha, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then
@@ -124,7 +124,7 @@ if test $RC != 0 ; then
 	kill -HUP $PID
 	exit $RC
 fi
-$LDAPPASSWD -h localhost -p $PORT \
+$LDAPPASSWD -h $LOCALHOST -p $PORT \
 	-w newsecret \
 	-D "cn=ssha, $BASEDN" >> $TESTOUT 2>&1
 if test $RC != 0 ; then

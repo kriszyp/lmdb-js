@@ -43,7 +43,7 @@ fi
 
 echo "Testing slapd modify operations..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h localhost -p $PORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 1 ; then
@@ -59,7 +59,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing modify, add, and delete..."
-$LDAPMODIFY -v -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD > \
+$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
 version: 1
 
@@ -131,7 +131,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to retrieve all the entries..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
 	    'objectClass=*' > $SEARCHOUT 2>&1
 RC=$?
 kill -HUP $PID

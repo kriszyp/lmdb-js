@@ -55,7 +55,7 @@ fi
 
 echo "Testing for master slapd..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h localhost -p $PORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 1 ; then
@@ -72,7 +72,7 @@ fi
 
 echo "Testing for slave slapd..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h localhost -p $SLAVEPORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $SLAVEPORT \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 1 ; then
@@ -84,7 +84,7 @@ done
 cat /dev/null > $SEARCHOUT
 
 echo "Testing exact searching..."
-$LDAPSEARCH -C -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $SLAVEPORT \
 	'sn=jensen' >> $SEARCHOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -93,7 +93,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing OR searching..."
-$LDAPSEARCH -C -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $SLAVEPORT \
 	'(|(objectclass=groupofnames)(sn=jones))' >> $SEARCHOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -102,7 +102,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing AND matching and ends-with searching..."
-$LDAPSEARCH -C -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $SLAVEPORT \
 	'(&(objectclass=groupofnames)(cn=A*))' >> $SEARCHOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -111,7 +111,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing NOT searching..."
-$LDAPSEARCH -C -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $SLAVEPORT \
 	'(!(objectclass=person))' >> $SEARCHOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"

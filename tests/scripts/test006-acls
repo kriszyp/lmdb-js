@@ -40,7 +40,7 @@ fi
 
 echo "Testing slapd access control..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h localhost -p $PORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 1 ; then
@@ -62,10 +62,10 @@ cat /dev/null > $SEARCHOUT
 # give us nothing if we're not bound, and should return all attributes
 # if we're bound as anyone under UM.
 #
-$LDAPSEARCH -b "$JAJDN" -h localhost -p $PORT "objectclass=*" \
+$LDAPSEARCH -b "$JAJDN" -h $LOCALHOST -p $PORT "objectclass=*" \
 	>> $SEARCHOUT 2>&1
 
-$LDAPSEARCH -b "$JAJDN" -h localhost -p $PORT \
+$LDAPSEARCH -b "$JAJDN" -h $LOCALHOST -p $PORT \
 	-D "$BABSDN" -w bjensen "objectclass=*"  >> $SEARCHOUT 2>&1
 
 
@@ -74,7 +74,7 @@ $LDAPSEARCH -b "$JAJDN" -h localhost -p $PORT \
 # fail when we add some DN other than our own, and should succeed when
 # we add our own DN.
 # bjensen
-$LDAPMODIFY -D "$JAJDN" -h localhost -p $PORT -w jaj > \
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT -w jaj > \
 	$TESTOUT 2>&1 << EOMODS1
 version: 1
 dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
@@ -84,7 +84,7 @@ member: cn=Barbara Jensen, ou=Information Technology Division, ou=People, o=Univ
 
 EOMODS1
 
-$LDAPMODIFY -D "$JAJDN" -h localhost -p $PORT -w jaj >> \
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT -w jaj >> \
 	$TESTOUT 2>&1 << EOMODS2
 version: 1
 
@@ -99,7 +99,7 @@ EOMODS2
 # 1) bound as "James A Jones 1" - should fail
 # 2) bound as "Barbara Jensen" - should succeed
 #
-$LDAPMODIFY -D "$JAJDN" -h localhost -p $PORT -w jaj >> \
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT -w jaj >> \
 	$TESTOUT 2>&1 << EOMODS3
 
 dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
@@ -108,7 +108,7 @@ delete: member
 
 EOMODS3
 
-$LDAPMODIFY -D "$BJORNSDN" -h localhost -p $PORT -w bjorn >> \
+$LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT -w bjorn >> \
 	$TESTOUT 2>&1 << EOMODS4
 # COMMENT
 version: 1
@@ -124,7 +124,7 @@ ou: Groups
 EOMODS4
 
 echo "Using ldapsearch to retrieve all the entries..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
 	    'objectClass=*' | . $LDIFFILTER >> $SEARCHOUT 2>&1
 RC=$?
 kill -HUP $PID
