@@ -1614,7 +1614,7 @@ dnl Checks for header files.
 OL_HEADER_STDC
 
 if test $ol_cv_header_stdc != yes; then
-	AC_MSG_WARN([could not Standard C compliant headers])
+	AC_MSG_WARN([could not locate Standard C compliant headers])
 fi
 
 AC_HEADER_DIRENT
@@ -1699,6 +1699,7 @@ AC_FUNC_MEMCMP
 dnl AM_FUNC_MKTIME dnl checks for sys/time.h and unistd.h
 AC_FUNC_STRFTIME
 dnl AM_FUNC_STRTOD
+AC_FUNC_VFORK
 AC_FUNC_VPRINTF
 
 if test $ac_cv_func_vprintf = yes ; then
@@ -1743,6 +1744,11 @@ AC_CHECK_FUNCS(		\
 	waitpid			\
 	wait4			\
 )
+
+dnl Select arg types
+dnl (if this detection becomes permenent, it and the select() detection
+dnl should be done before the yielding select test) 
+AC_FUNC_SELECT_ARGTYPES
 
 dnl We actually may need to replace more than this.
 AC_REPLACE_FUNCS(getopt tempnam)

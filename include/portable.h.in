@@ -43,6 +43,9 @@
 /* Define if you have <sys/wait.h> that is POSIX.1 compatible.  */
 #undef HAVE_SYS_WAIT_H
 
+/* Define if you have <vfork.h>.  */
+#undef HAVE_VFORK_H
+
 /* Define if you have the vprintf function.  */
 #undef HAVE_VPRINTF
 
@@ -68,6 +71,15 @@
 /* Define as the return type of signal handlers (int or void).  */
 #undef RETSIGTYPE
 
+/* Define to the type of arg1 for select(). */
+#undef SELECT_TYPE_ARG1
+
+/* Define to the type of args 2, 3 and 4 for select(). */
+#undef SELECT_TYPE_ARG234
+
+/* Define to the type of arg5 for select(). */
+#undef SELECT_TYPE_ARG5
+
 /* Define to `unsigned' if <sys/types.h> doesn't define.  */
 #undef size_t
 
@@ -82,6 +94,9 @@
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
 #undef uid_t
+
+/* Define vfork as fork if vfork does not work.  */
+#undef vfork
 
 /* Define if your processor stores words with the most significant
    byte first (like Motorola and SPARC, unlike Intel and VAX).  */
@@ -249,9 +264,6 @@
 /* Define if you have the gettimeofday function.  */
 #undef HAVE_GETTIMEOFDAY
 
-/* Define if you have the <grp.h> header file.  */
-#undef HAVE_GRP_H
-
 /* Define if you have the lockf function.  */
 #undef HAVE_LOCKF
 
@@ -275,6 +287,12 @@
 
 /* Define if you have the pthread_yield function.  */
 #undef HAVE_PTHREAD_YIELD
+
+/* Define if you have the recv function.  */
+#undef HAVE_RECV
+
+/* Define if you have the recvfrom function.  */
+#undef HAVE_RECVFROM
 
 /* Define if you have the res_search function.  */
 #undef HAVE_RES_SEARCH
@@ -398,6 +416,9 @@
 
 /* Define if you have the <getopt.h> header file.  */
 #undef HAVE_GETOPT_H
+
+/* Define if you have the <grp.h> header file.  */
+#undef HAVE_GRP_H
 
 /* Define if you have the <kerberosIV/des.h> header file.  */
 #undef HAVE_KERBEROSIV_DES_H
