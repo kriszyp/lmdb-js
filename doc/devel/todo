@@ -21,7 +21,7 @@ Larger than life projects
 -------------------------
 LDAPv3 support <kurt@openldap.org>
 LDAP C API (draft-ietf-ldapext-ldap-c-api-xx) support <kurt@openldap.org>
-Redesign slapd memory allocation failure handling
+Redesign slapd memory allocation fault handling
 Schema Repository
 
 
@@ -30,10 +30,9 @@ Large projects
 Add SASL/TLS (SSL) support <bart@openldap.org>
 Redesign slapd threading (thread pooling)
 Modify -lldap to be session-level multithreaded
-Port slapd (incl back-ldbm & tools) to NT
+Port slapd (incl back-ldbm & tools) to NT <gwilliams@openldap.org>
 MajorLDAP - Design and implement an LDAP-enabled mailing list manager
-Slapd-DB2 - Design and implement a backend to take full advantage
-	of the latest DB2 features <ksp@openldap.org>. 
+Slapd-DB2 - Berkeley DB backend w/ transaction support <ksp@openldap.org>
 
 
 Medium projects
@@ -46,7 +45,7 @@ Extend slapd schema support, add "superior" support
 Extend slapd to support identd (RFC1413) information in ACLs
 Extend configure.in to support autodetect of ISODE features
 Remove ldapconfig.h.edit dependencies
-Update SLAPD/SLURD Admin Guide
+Update SLAPD/SLURD Admin Guide <willb@openldap.org>
 Port slurpd to NT
 
 
@@ -57,7 +56,6 @@ Create ldapquery (from ldapsearch?) to support searching using ldap_getfilter(3)
 Create mkversion script generate version.c (to replace templates)
 Extend build system to support CYGWIN environment
 Extend gateways to support tcp_wrappers
-Extend slapd acl support
 Extend slapd/tcp_wrapper to support identd
 Extend configure.in to support autodetect of Kerberos features
 Extend mail500 (and other daemons) to use ldap_getfilter(3)
