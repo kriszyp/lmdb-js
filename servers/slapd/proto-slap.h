@@ -274,6 +274,7 @@ LDAP_SLAPD_F (char **) str2charray LDAP_P(( const char *str, const char *brkstr 
 LDAP_SLAPD_F (struct berval **) str2bvec LDAP_P(( struct berval **vec, const char *str, const char *brkstr ));
 LDAP_SLAPD_F (int) charray_strcmp LDAP_P(( const char **a1, const char **a2 ));
 LDAP_SLAPD_F (int) charray_strcasecmp LDAP_P(( const char **a1, const char **a2 ));
+LDAP_SLAPD_F (char *) slap_strcopy LDAP_P(( char *a1, char *a2 ));
 	
 
 /*

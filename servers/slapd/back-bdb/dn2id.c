@@ -430,22 +430,6 @@ typedef struct idNode {
 	ldap_pvt_thread_rdwr_t i_kids_rdwr;
 } idNode;
 
-/* strcopy is like strcpy except it returns a pointer to the trailing NUL of
- * the result string. This allows fast construction of catenated strings
- * without the overhead of strlen/strcat.
- */
-char *
-bdb_strcopy(
-	char *a,
-	char *b
-)
-{
-	if (!a || !b)
-		return a;
-	
-	while (*a++ = *b++) ;
-	return a-1;
-}
 
 /* The main AVL tree is sorted in ID order. The i_kids AVL trees are
  * sorted in lexical order. These are the various helper routines used
@@ -630,9 +614,9 @@ int bdb_fix_dn(
 	ptr = e->e_dn;
 	nptr = e->e_ndn;
 	for (n = o; n; n=n->i_parent) {
-		ptr = bdb_strcopy(ptr, n->i_rdn->rdn.bv_val);
+		ptr = slap_strcopy(ptr, n->i_rdn->rdn.bv_val);
 		*ptr++ = ',';
-		nptr = bdb_strcopy(nptr, n->i_rdn->nrdn.bv_val);
+		nptr = slap_strcopy(nptr, n->i_rdn->nrdn.bv_val);
 		*nptr++ = ',';
 	}
 	ldap_pvt_thread_rdwr_runlock(&bdb->bi_tree_rdwr);
@@ -800,7 +784,7 @@ bdb_dn2id_matched(
 		ptr = ch_malloc(len);
 		*matchedDN = ptr;
 		for (;rdns[i]; i++) {
-			ptr = bdb_strcopy(ptr, rdns[i]);
+			ptr = slap_strcopy(ptr, rdns[i]);
 			*ptr++ = ',';
 		}
 		ptr[-1] = '\0';
