@@ -3,7 +3,40 @@
 #ifndef _LTHREAD_H
 #define _LTHREAD_H
 
-#if defined( THREAD_SUNOS4_LWP )
+#if defined ( THREAD_NEXT_CTHREADS )
+
+#define _THREAD
+
+#include <mach/cthreads.h>
+
+typedef cthread_fn_t	VFP;
+typedef int		pthread_attr_t;
+typedef cthread_t	pthread_t;
+
+/* default attr states */
+#define pthread_mutexattr_default	NULL
+#define pthread_condattr_default	NULL
+
+/* thread state - joinable or not */
+#define PTHREAD_CREATE_JOINABLE	0
+#define PTHREAD_CREATE_DETACHED	1
+/* thread scope - who is in scheduling pool */
+#define PTHREAD_SCOPE_PROCESS	0
+#define PTHREAD_SCOPE_SYSTEM	1
+
+/* mutex attributes and mutex type */
+typedef int	pthread_mutexattr_t;
+typedef struct mutex pthread_mutex_t;
+
+/* mutex and condition variable scope - process or system */
+#define PTHREAD_SHARE_PRIVATE	0
+#define PTHREAD_SHARE_PROCESS	1
+
+/* condition variable attributes and condition variable type */
+typedef int	pthread_condattr_t;
+typedef struct condition pthread_cond_t;
+
+#elif defined( THREAD_SUNOS4_LWP )
 /***********************************
  *                                 *
  * thread definitions for sunos4   *
@@ -66,9 +99,11 @@ typedef void	*(*VFP)();
 /* sunos5 threads are preemptive */
 #define PTHREAD_PREEMPTIVE	1
 
+#if !defined(__SunOS_5_6)
 /* thread attributes and thread type */
 typedef int		pthread_attr_t;
 typedef thread_t	pthread_t;
+#endif /* ! sunos56 */
 
 /* default attr states */
 #define pthread_mutexattr_default	NULL
@@ -81,17 +116,21 @@ typedef thread_t	pthread_t;
 #define PTHREAD_SCOPE_PROCESS   0
 #define PTHREAD_SCOPE_SYSTEM    THR_BOUND
 
+#if !defined(__SunOS_5_6)
 /* mutex attributes and mutex type */
 typedef int	pthread_mutexattr_t;
 typedef mutex_t	pthread_mutex_t;
+#endif /* ! sunos56 */
 
 /* mutex and condition variable scope - process or system */
 #define PTHREAD_SHARE_PRIVATE   USYNC_THREAD
 #define PTHREAD_SHARE_PROCESS   USYNC_PROCESS
 
+#if !defined(__SunOS_5_6)
 /* condition variable attributes and condition variable type */
 typedef int     pthread_condattr_t;
 typedef cond_t	pthread_cond_t;
+#endif /* ! sunos56 */
 
 #else /* end sunos5 */
 
@@ -127,6 +166,18 @@ typedef cond_t	pthread_cond_t;
 #define pthread_attr_setdetachstate( a, b ) \
 					pthread_attr_setdetach_np( a, b )
 
+#else /* end dce pthreads */
+
+#if defined( POSIX_THREADS )
+
+#define _THREAD
+
+#include <pthread.h>
+
+#define pthread_mutexattr_default	NULL
+#define pthread_condattr_default	NULL
+
+#endif /* posix threads */
 #endif /* dce pthreads */
 #endif /* mit pthreads */
 #endif /* sunos5 */
