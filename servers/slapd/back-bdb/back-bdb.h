@@ -124,13 +124,7 @@ typedef struct bdb_entry_info {
 typedef struct bdb_cache {
 	int             c_maxsize;
 	int             c_cursize;
-	int		c_eiused;
-/* c_eiused shows how many EntryInfos are in use. It should
- * also equal the length of the LRU list, i.e., everything now lives
- * on the LRU list. c_cursize shows how many Entries are attached.
- * c_cursize will be <= c_eiused because internal nodes of the DIT
- * will be retained in memory as long as their children are in use.
- */
+	int		c_eiused;	/* EntryInfo's in use */
 	EntryInfo	c_dntree;
 	EntryInfo	*c_eifree;	/* free list */
 	Avlnode         *c_idtree;
