@@ -50,17 +50,22 @@
 #define caseExactNormalize							UTF8StringNormalize
 #define caseIgnoreNormalize							UTF8StringNormalize
 
-#define integerNormalize							NULL
 #define integerFirstComponentNormalize				NULL
 #define objectIdentifierNormalize					NULL
 #define objectIdentifierFirstComponentNormalize		NULL
-#define generalizedTimeNormalize					NULL
-#define bitStringNormalize							NULL
 
 #define distinguishedNameNormalize	dnNormalize
 #define distinguishedNameMatch  	dnMatch
 #define distinguishedNameIndexer	octetStringIndexer
 #define distinguishedNameFilter		octetStringFilter
+
+#define integerOrderingMatch			integerMatch
+#define integerFirstComponentMatch		NULL
+#define integerIndexer NULL
+#define integerFilter NULL
+
+#define generalizedTimeMatch			caseIgnoreIA5Match
+#define generalizedTimeOrderingMatch	caseIgnoreIA5Match
 
 #define uniqueMemberMatch			dnMatch /* FIXME! */
 
@@ -73,14 +78,6 @@
 #define bitStringMatch			octetStringMatch
 #define bitStringIndexer		octetStringIndexer
 #define bitStringFilter			octetStringFilter
-
-#define integerMatch NULL
-#define integerOrderingMatch NULL
-#define integerIndexer NULL
-#define integerFilter NULL
-
-#define generalizedTimeMatch	NULL
-#define generalizedTimeOrderingMatch	NULL
 
 #define caseIgnoreMatch		octetStringMatch
 #define caseIgnoreOrderingMatch		octetStringOrderingMatch
@@ -171,7 +168,6 @@
 #define objectIdentifierFirstComponentNormalize		NULL
 #define generalizedTimeNormalize					NULL
 #define uniqueMemberNormalize						NULL
-#define bitStringNormalize							NULL
 #define telephoneNumberNormalize					NULL
 
 
@@ -2112,8 +2108,6 @@ oidValidate(
 	return LDAP_INVALID_SYNTAX;
 }
 
-#ifndef SLAP_NVALUES
-
 static int
 integerMatch(
 	int *matchp,
@@ -2132,18 +2126,20 @@ integerMatch(
 	/* Skip leading space/sign/zeroes, and get the sign of the *value number */
 	v = value->bv_val;
 	vlen = value->bv_len;
+
+#ifndef SLAP_NVALUES
 	if( mr == slap_schema.si_mr_integerFirstComponentMatch ) {
 		char *tmp = memchr( v, '$', vlen );
-		if( tmp )
-			vlen = tmp - v;
-		while( vlen && ASCII_SPACE( v[vlen-1] ))
-			vlen--;
+		if( tmp ) vlen = tmp - v;
+		while( vlen && ASCII_SPACE( v[vlen-1] )) vlen--;
 	}
-	for( ; vlen && ( *v < '1' || '9' < *v ); v++, vlen-- ) /* ANSI 2.2.1 */
-		if( *v == '-' )
-			vsign = -1;
-	if( vlen == 0 )
-		vsign = 0;
+#endif
+
+	for( ; vlen && ( *v < '1' || '9' < *v ); v++, vlen-- ) { /* ANSI 2.2.1 */
+		if( *v == '-' ) vsign = -1;
+	}
+
+	if( vlen == 0 ) vsign = 0;
 
 	/* Do the same with the *assertedValue number */
 	asserted = (struct berval *) assertedValue;
@@ -2168,7 +2164,6 @@ integerMatch(
 	return LDAP_SUCCESS;
 }
 	
-#endif
 static int
 integerValidate(
 	Syntax *syntax,
@@ -2180,6 +2175,7 @@ integerValidate(
 
 	if(( val->bv_val[0] == '+' ) || ( val->bv_val[0] == '-' )) {
 		if( val->bv_len < 2 ) return LDAP_INVALID_SYNTAX;
+
 	} else if( !ASCII_DIGIT(val->bv_val[0]) ) {
 		return LDAP_INVALID_SYNTAX;
 	}
@@ -2191,12 +2187,20 @@ integerValidate(
 	return LDAP_SUCCESS;
 }
 
-#ifndef SLAP_NVALUES
 static int
+#ifdef SLAP_NVALUES
+integerNormalize(
+	slap_mask_t use,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized )
+#else
 xintegerNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *normalized )
+#endif
 {
 	char *p;
 	int negative=0;
@@ -2232,19 +2236,19 @@ xintegerNormalize(
 	if( len == 0 ) {
 		normalized->bv_val = ch_strdup("0");
 		normalized->bv_len = 1;
-	}
-	else {
+
+	} else {
 		normalized->bv_len = len+negative;
 		normalized->bv_val = ch_malloc( normalized->bv_len + 1 );
-		if( negative ) {
-			normalized->bv_val[0] = '-';
-		}
+		if( negative ) normalized->bv_val[0] = '-';
 		AC_MEMCPY( normalized->bv_val + negative, p, len );
 		normalized->bv_val[len+negative] = '\0';
 	}
 
 	return LDAP_SUCCESS;
 }
+
+#ifndef SLAP_NVALUES
 
 /* Index generation function */
 static int integerIndexer(
@@ -2437,8 +2441,8 @@ IA5StringValidate(
 	return LDAP_SUCCESS;
 }
 
-#ifdef SLAP_NVALUES
 static int
+#ifdef SLAP_NVALUES
 IA5StringNormalize(
 	slap_mask_t use,
 	Syntax *syntax,
@@ -2446,7 +2450,6 @@ IA5StringNormalize(
 	struct berval *val,
 	struct berval *normalized )
 #else
-static int
 xIA5StringNormalize(
 	Syntax *syntax,
 	struct berval *val,
@@ -4496,13 +4499,20 @@ generalizedTimeValidate(
 	return check_time_syntax(in, 0, parts);
 }
 
-#ifndef SLAP_NVALUES
-
 static int
+#ifdef SLAP_NVALUES
+generalizedTimeNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized )
+#else
 xgeneralizedTimeNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *normalized )
+#endif
 {
 	int parts[9], rc;
 
@@ -4524,7 +4534,6 @@ xgeneralizedTimeNormalize(
 	return LDAP_SUCCESS;
 }
 
-#endif
 static int
 nisNetgroupTripleValidate(
 	Syntax *syntax,
@@ -4960,7 +4969,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL,
-		bitStringNormalize, bitStringMatch,
+		NULL, bitStringMatch,
 		bitStringIndexer, bitStringFilter,
 		NULL},
 
