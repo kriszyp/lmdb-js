@@ -29,6 +29,8 @@
 #undef f_next /* name conflict between sys/file.h on SCO and struct filter */
 #endif
 
+#define SERVICE_NAME  OPENLDAP_PACKAGE "-slapd"
+
 /* LDAPMod.mod_op value ===> Must be kept in sync with ldap.h!
  *
  * This is a value used internally by the backends. It is needed to allow
