@@ -66,7 +66,7 @@ static struct m_s {
 	slap_mask_t flags;
 	int	offset;
 } moc[] = {
-	{ "lastmod", "( 1.3.6.1.4.1.4203.666.3.100001 "
+	{ "lastmod", "( 1.3.6.1.4.1.4203.666.3.13"
 		"NAME 'lastmod' "
 		"DESC 'OpenLDAP per-database last modification monitoring' "
 		"SUP top STRUCTURAL "
@@ -80,7 +80,7 @@ static struct m_s {
 		offsetof(struct lastmod_schema_t, lms_oc_lastmod) },
 	{ NULL }
 }, mat[] = {
-	{ "lastmodDN", "( 1.3.6.1.4.1.4203.666.1.100001 "
+	{ "lastmodDN", "( 1.3.6.1.4.1.4203.666.1.28"
 		"NAME 'lastmodDN' "
 		"DESC 'DN of last modification' "
 		"EQUALITY distinguishedNameMatch "
@@ -88,7 +88,7 @@ static struct m_s {
 		"NO-USER-MODIFICATION "
 		"USAGE directoryOperation )", SLAP_AT_HIDE,
 		offsetof(struct lastmod_schema_t, lms_ad_lastmodDN) },
-	{ "lastmodType", "( 1.3.6.1.4.1.4203.666.1.100002 "
+	{ "lastmodType", "( 1.3.6.1.4.1.4203.666.1.29"
 		"NAME 'lastmodType' "
 		"DESC 'Type of last modification' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
