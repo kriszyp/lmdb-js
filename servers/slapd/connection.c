@@ -348,8 +348,6 @@ long connection_init(
 #endif
 
     assert( c != NULL );
-    assert( c->c_struct_state != SLAP_C_USED );
-    assert( c->c_conn_state == SLAP_C_INVALID );
 
     if( c->c_struct_state == SLAP_C_UNINITIALIZED ) {
         c->c_dn = NULL;
