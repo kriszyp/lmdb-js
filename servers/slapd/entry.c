@@ -392,7 +392,7 @@ entry_id_cmp( Entry *e1, Entry *e2 )
 int entry_encode(Entry *e, struct berval **bv)
 {
 	int siz = sizeof(Entry);
-	int len, dnlen;
+	int len, dnlen, ndnlen;
 	int i, j;
 	Entry *f;
 	Attribute *a, *b;
@@ -400,8 +400,6 @@ int entry_encode(Entry *e, struct berval **bv)
 	char *ptr, *base, *data;
 
 	*bv = ch_malloc(sizeof(struct berval));
-	/* Compress any white space in the DN */
-	dn_validate(e->e_dn);
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
 		"entry_encode: id: 0x%08lx  \"%s\"\n",
@@ -411,8 +409,8 @@ int entry_encode(Entry *e, struct berval **bv)
 		(long) e->e_id, e->e_dn, 0 );
 #endif
 	dnlen = strlen(e->e_dn);
-	/* The dn and ndn are always the same length */
-	len = dnlen + dnlen + 2;	/* two trailing NUL bytes */
+	ndnlen = strlen(e->e_ndn);
+	len = dnlen + ndnlen + 2;	/* two trailing NUL bytes */
 	for (a=e->e_attrs; a; a=a->a_next) {
 		/* For AttributeDesc, we only store the attr name */
 		siz += sizeof(Attribute);
@@ -436,8 +434,8 @@ int entry_encode(Entry *e, struct berval **bv)
 	ptr += dnlen;
 	*ptr++ = '\0';
 	f->e_ndn = (char *)(ptr-base);
-	memcpy(ptr, e->e_ndn, dnlen);
-	ptr += dnlen;
+	memcpy(ptr, e->e_ndn, ndnlen);
+	ptr += ndnlen;
 	*ptr++ = '\0';
 	f->e_attrs = e->e_attrs ? (Attribute *)sizeof(Entry) : NULL;
 	f->e_private = NULL;
