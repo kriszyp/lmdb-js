@@ -20,11 +20,7 @@
 
 #include <lber.h>				/* get ber_slen_t */
 
-#ifdef _MSC_VER
 #include "../libraries/liblunicode/ucdata/ucdata.h"
-#else
-#include "../libraries/liblunicode/ucdata.h"
-#endif
 
 LDAP_BEGIN_DECL
 
