@@ -90,7 +90,7 @@ these steps:
  7. install the binaries and man pages.  You may need to be superuser to
     do this (depending on where you are installing things):
 
-	% su root -c make install
+	% su root -c 'make install'
 
     That's it!
 
@@ -107,10 +107,10 @@ these steps:
 	  ldaptemplates.conf   - display template definitions
 
 	Server configuration files:
-	  ldapd.conf           - LDAP - X.500 daemon
-	  slapd.conf           - Standalone LDAP daemon
+	  slapd.conf           - Standalone LDAP daemon configuration
+	  schema/*.schema      - Schema Definitions
 
-    There are section 5 man pages for all of these files.
+    There are section 5 man pages for these configuration files.
 
 
 Building LDAP For More Than One Platform
@@ -224,4 +224,5 @@ HINTS
 		./configure
 
 
-End of OpenLDAP INSTALL file.
+---
+$OpenLDAP$

@@ -12,3 +12,6 @@ OpenLDAP Devel README
 	Client developers seeking a stable development platform
 	should use OpenLDAP-release or OpenLDAP-software.
 		http://www.openldap.org/software/
+
+---
+$OpenLDAP$
