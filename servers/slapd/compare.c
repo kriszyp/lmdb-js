@@ -35,15 +35,13 @@ do_compare(
 	struct berval value;
 	Backend	*be;
 	int rc = LDAP_SUCCESS;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	char *text = NULL;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeAssertion ava;
-
 	ava.aa_desc = NULL;
 #else
 	Ava	ava;
 #endif
-	char *text;
 
 	desc.bv_val = NULL;
 	value.bv_val = NULL;

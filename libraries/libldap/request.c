@@ -762,7 +762,6 @@ re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp )
  * XXX this routine knows way too much about how the lber library works!
  */
 	ber_int_t	along;
-	ber_len_t	len;
 	ber_tag_t	tag;
 	ber_int_t	ver;
 	int		rc;

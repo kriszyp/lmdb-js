@@ -102,9 +102,9 @@ ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond,
 }
 
 int
-ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cv )
+ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cond )
 {
-	SetEvent( *cv );
+	SetEvent( *cond );
 	return( 0 );
 }
 
