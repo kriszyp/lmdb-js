@@ -94,7 +94,8 @@ usage( void )
     fprintf( stderr, _("	The list of desired operations are read from stdin or from the file\n"));
     fprintf( stderr, _("	specified by \"-f file\".\n"));
     fprintf( stderr, _("Add or modify options:\n"));
-    fprintf( stderr, _("  -a         add values (default%s)\n"), (ldapadd ? "" : _(" is to replace")));
+    fprintf( stderr, _("  -a         add values (%s)\n"),
+		(ldapadd ? _("default") : _("default is to replace")));
     fprintf( stderr, _("  -F         force all changes records to be used\n"));
     fprintf( stderr, _("  -S file    write skipped modifications to `file'\n"));
     tool_common_usage();
@@ -827,9 +828,10 @@ domodify(
     if ( verbose ) {
 	for ( i = 0; pmods[ i ] != NULL; ++i ) {
 	    op = pmods[ i ]->mod_op & ~LDAP_MOD_BVALUES;
-	    printf( "%s %s:\n", op == LDAP_MOD_REPLACE ?
-		    _("replace") : op == LDAP_MOD_ADD ?
-		    _("add") : _("delete"), pmods[ i ]->mod_type );
+	    printf( "%s %s:\n",
+			op == LDAP_MOD_REPLACE ? _("replace") : op == LDAP_MOD_ADD
+				?  _("add") : _("delete"),
+			pmods[ i ]->mod_type );
 	    if ( pmods[ i ]->mod_bvalues != NULL ) {
 		for ( j = 0; pmods[ i ]->mod_bvalues[ j ] != NULL; ++j ) {
 		    bvp = pmods[ i ]->mod_bvalues[ j ];

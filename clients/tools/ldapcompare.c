@@ -49,7 +49,8 @@ usage( void )
 	fprintf( stderr, _("  b64value\tbase64 encoding of assertion value\n"));
 
 	fprintf( stderr, _("Compare options:\n"));
-	fprintf( stderr, _("  -z         Quiet mode, don't print anything, use return values\n"));
+	fprintf( stderr, _("  -z         Quiet mode,"
+		" don't print anything, use return values\n"));
 	tool_common_usage();
 	exit( EXIT_FAILURE );
 }
