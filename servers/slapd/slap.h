@@ -224,19 +224,20 @@ typedef struct slap_ssf_set {
 #define SLAP_SCHERR_CLASS_BAD_SUP		4
 #define SLAP_SCHERR_CLASS_DUP			5
 #define SLAP_SCHERR_ATTR_NOT_FOUND		6
-#define SLAP_SCHERR_ATTR_BAD_USAGE		7
-#define SLAP_SCHERR_ATTR_BAD_SUP		8
-#define SLAP_SCHERR_ATTR_INCOMPLETE		9
-#define SLAP_SCHERR_ATTR_DUP			10
-#define SLAP_SCHERR_MR_NOT_FOUND		11
-#define SLAP_SCHERR_MR_INCOMPLETE		12
-#define SLAP_SCHERR_MR_DUP				13
-#define SLAP_SCHERR_SYN_NOT_FOUND		14
-#define SLAP_SCHERR_SYN_DUP				15
-#define SLAP_SCHERR_NO_NAME				16
-#define SLAP_SCHERR_NOT_SUPPORTED		17
-#define SLAP_SCHERR_BAD_DESCR			18
-#define SLAP_SCHERR_OIDM				19
+#define SLAP_SCHERR_ATTR_BAD_MR			7
+#define SLAP_SCHERR_ATTR_BAD_USAGE		8
+#define SLAP_SCHERR_ATTR_BAD_SUP		9
+#define SLAP_SCHERR_ATTR_INCOMPLETE		10
+#define SLAP_SCHERR_ATTR_DUP			11
+#define SLAP_SCHERR_MR_NOT_FOUND		12
+#define SLAP_SCHERR_MR_INCOMPLETE		13
+#define SLAP_SCHERR_MR_DUP				14
+#define SLAP_SCHERR_SYN_NOT_FOUND		15
+#define SLAP_SCHERR_SYN_DUP				16
+#define SLAP_SCHERR_NO_NAME				17
+#define SLAP_SCHERR_NOT_SUPPORTED		18
+#define SLAP_SCHERR_BAD_DESCR			19
+#define SLAP_SCHERR_OIDM				20
 #define SLAP_SCHERR_LAST				SLAP_SCHERR_OIDM
 
 typedef union slap_sockaddr {
@@ -442,7 +443,7 @@ typedef struct slap_matching_rule {
 	/*
 	 * null terminated list of syntaxes compatible with this syntax
 	 * note: when MS_EXT is set, this MUST NOT contain the assertion
-     * syntax of the rule.  When MS_EXT is not set, it MAY.
+	 * syntax of the rule.  When MS_EXT is not set, it MAY.
 	 */
 	Syntax					**smr_compat_syntaxes;
 
@@ -1228,7 +1229,7 @@ struct slap_backend_db {
 #define SLAP_RESTRICT_OP_SEARCH		0x0080U
 
 #define SLAP_RESTRICT_OP_READS	\
-	( SLAP_RESTRICT_OP_COMPARE    \
+	( SLAP_RESTRICT_OP_COMPARE	\
 	| SLAP_RESTRICT_OP_SEARCH )
 #define SLAP_RESTRICT_OP_WRITES	\
 	( SLAP_RESTRICT_OP_ADD    \
@@ -1270,7 +1271,7 @@ struct slap_backend_db {
 	struct berval be_rootdn;	/* the magic "root" name (DN) for this db */
 	struct berval be_rootndn;	/* the magic "root" normalized name (DN) for this db */
 	struct berval be_rootpw;	/* the magic "root" password for this db	*/
-	unsigned int be_max_deref_depth;       /* limit for depth of an alias deref  */
+	unsigned int be_max_deref_depth; /* limit for depth of an alias deref  */
 #define be_sizelimit	be_def_limit.lms_s_soft
 #define be_timelimit	be_def_limit.lms_t_soft
 	struct slap_limits_set be_def_limit; /* default limits */
@@ -1343,13 +1344,13 @@ typedef int (BI_op_abandon) LDAP_P((BackendDB *bd,
 		ber_int_t msgid));
 
 typedef int (BI_op_extended) LDAP_P((
-    BackendDB		*be,
-    struct slap_conn	*conn,
-    struct slap_op		*op,
+	BackendDB		*be,
+	struct slap_conn	*conn,
+	struct slap_op		*op,
 	const char		*reqoid,
-    struct berval * reqdata,
+	struct berval * reqdata,
 	char		**rspoid,
-    struct berval ** rspdata,
+	struct berval ** rspdata,
 	LDAPControl *** rspctrls,
 	const char **	text,
 	BerVarray *refs ));
@@ -1576,6 +1577,17 @@ typedef struct slap_op {
 	ber_int_t o_pagedresults_size;
 	PagedResultsState o_pagedresults_state;
 
+#ifdef LDAP_CLIENT_UPDATE
+	char o_clientupdate;
+	char o_clientupdate_type;
+#define SLAP_LCUP_NONE				(0x0)
+#define SLAP_LCUP_SYNC 				(0x1)
+#define SLAP_LCUP_PERSIST			(0x2)
+#define SLAP_LCUP_SYNC_AND_PERSIST	(0x3)
+	ber_int_t o_clientupdate_interval;
+	struct berval* o_clientupdate_state;
+#endif
+
 #ifdef LDAP_CONNECTIONLESS
 	Sockaddr	o_peeraddr;	/* UDP peer address		  */
 #endif
@@ -1682,7 +1694,7 @@ typedef struct slap_conn {
 			fprintf( stderr, (fmt), (connid), (opid), (arg1), (arg2), (arg3) );\
 		if ( ldap_syslog & (level) ) \
 			syslog( ldap_syslog_level, (fmt), (connid), (opid), (arg1), \
-			        (arg2), (arg3) ); \
+				(arg2), (arg3) ); \
 	} while (0)
 #else
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )

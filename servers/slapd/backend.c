@@ -585,7 +585,7 @@ be_issuffix(
 	int	i;
 
 	for ( i = 0; be->be_nsuffix != NULL && be->be_nsuffix[i].bv_val != NULL; i++ ) {
-		if ( ber_bvcmp( &be->be_nsuffix[i], bvsuffix ) == 0 ) {
+		if ( bvmatch( &be->be_nsuffix[i], bvsuffix ) ) {
 			return( 1 );
 		}
 	}
@@ -821,7 +821,7 @@ backend_check_restrictions(
 
 		{
 			struct berval bv = BER_BVC( LDAP_EXOP_START_TLS );
-			if( ber_bvcmp( opdata, &bv ) == 0 ) {
+			if( bvmatch( opdata, &bv ) ) {
 				session++;
 				starttls++;
 				break;
@@ -830,7 +830,7 @@ backend_check_restrictions(
 
 		{
 			struct berval bv = BER_BVC( LDAP_EXOP_X_WHO_AM_I );
-			if( ber_bvcmp( opdata, &bv ) == 0 ) {
+			if( bvmatch( opdata, &bv ) ) {
 				break;
 			}
 		}

@@ -18,6 +18,211 @@
 
 #include "slap.h"
 
+#undef QUICK_DIRTY_DUPLICATE_CHECK
+
+int
+modify_check_duplicates(
+	AttributeDescription	*ad,
+	MatchingRule		*mr,
+	BerVarray		vals,
+	BerVarray		mods,
+	const char	**text,
+	char *textbuf, size_t textlen )
+{
+	int		i, j, numvals = 0, nummods,
+			rc = LDAP_SUCCESS;
+	BerVarray	nvals = NULL, nmods;
+
+	/*
+	 * FIXME: better do the following
+	 * 
+	 *   - count the existing values
+	 *   - count the new values
+	 *   
+	 *   - if the existing values are less than the new ones {
+	 *       - normalize all the existing values
+	 *       - for each new value {
+	 *           - normalize
+	 *           - check with existing
+	 *           - cross-check with already normalized new vals
+	 *       }
+	 *   } else {
+	 *       - for each new value {
+	 *           - normalize
+	 *           - cross-check with already normalized new vals
+	 *       }
+	 *       - for each existing value {
+	 *           - normalize
+	 *           - check with already normalized new values
+	 *       }
+	 *   }
+	 *
+	 * The first case is good when adding a lot of new values,
+	 * and significantly at first import of values (e.g. adding
+	 * a new group); the latter case seems to be quite important
+	 * as well, because it is likely to be the most frequently
+	 * used when administering the entry.  The current 
+	 * implementation will always normalize all the existing
+	 * values before checking.  If there's no duplicate, the
+	 * performances should not change; they will in case of error.
+	 */
+
+	for ( nummods = 0; mods[ nummods ].bv_val != NULL; nummods++ )
+		/* count new values */ ;
+
+	if ( vals ) {
+		for ( numvals = 0; vals[ numvals ].bv_val != NULL; numvals++ )
+			/* count existing values */ ;
+	}
+
+	if ( numvals > 0 && numvals < nummods ) {
+		nvals = ch_calloc( numvals + 1, sizeof( struct berval ) );
+
+		/* normalize the existing values first */
+		for ( j = 0; vals[ j ].bv_val != NULL; j++ ) {
+			rc = value_normalize( ad, SLAP_MR_EQUALITY,
+				&vals[ j ], &nvals[ j ], text );
+
+			/* existing attribute values must normalize */
+			assert( rc == LDAP_SUCCESS );
+
+			if ( rc != LDAP_SUCCESS ) {
+				nvals[ j ].bv_val = NULL;
+				goto return_results;
+			}
+		}
+		nvals[ j ].bv_val = NULL;
+	}
+
+	/*
+	 * If the existing values are less than the new values,
+	 * it is more convenient to normalize all the existing
+	 * values and test each new value against them first,
+	 * then to other already normalized values
+	 */
+	nmods = ch_calloc( nummods + 1, sizeof( struct berval ) );
+
+	for ( i = 0; mods[ i ].bv_val != NULL; i++ ) {
+		rc = value_normalize( ad, SLAP_MR_EQUALITY,
+			&mods[ i ], &nmods[ i ], text );
+
+		if ( rc != LDAP_SUCCESS ) {
+			nmods[ i ].bv_val = NULL;
+			goto return_results;
+		}
+
+		if ( numvals > 0 && numvals < nummods ) {
+			for ( j = 0; nvals[ j ].bv_val; j++ ) {
+#ifdef QUICK_DIRTY_DUPLICATE_CHECK
+				if ( bvmatch( &nmods[ i ], &nvals[ j ] ) ) {
+#else /* !QUICK_DIRTY_DUPLICATE_CHECK */
+				int match;
+
+				rc = (mr->smr_match)( &match,
+					SLAP_MR_VALUE_SYNTAX_MATCH,
+					ad->ad_type->sat_syntax,
+					mr, &nmods[ i ], &nvals[ j ] );
+				if ( rc != LDAP_SUCCESS ) {
+					nmods[ i + 1 ].bv_val = NULL;
+					goto return_results;
+				}
+	
+				if ( match == 0 ) {
+#endif /* !QUICK_DIRTY_DUPLICATE_CHECK */
+					snprintf( textbuf, textlen,
+						"%s: value #%d provided more than once",
+						ad->ad_cname.bv_val, i );
+					rc = LDAP_TYPE_OR_VALUE_EXISTS;
+					nmods[ i + 1 ].bv_val = NULL;
+					goto return_results;
+				}
+			}
+		}
+	
+		for ( j = 0; j < i; j++ ) {
+#ifdef QUICK_DIRTY_DUPLICATE_CHECK
+			if ( bvmatch( &nmods[ i ], &nmods[ j ] ) ) {
+#else /* !QUICK_DIRTY_DUPLICATE_CHECK */
+			int match;
+
+			rc = (mr->smr_match)( &match,
+				SLAP_MR_VALUE_SYNTAX_MATCH,
+				ad->ad_type->sat_syntax,
+				mr, &nmods[ i ], &nmods[ j ] );
+			if ( rc != LDAP_SUCCESS ) {
+				nmods[ i + 1 ].bv_val = NULL;
+				goto return_results;
+			}
+
+			if ( match == 0 ) {
+#endif /* !QUICK_DIRTY_DUPLICATE_CHECK */
+				snprintf( textbuf, textlen,
+					"%s: value #%d provided more than once",
+					ad->ad_cname.bv_val, j );
+				rc = LDAP_TYPE_OR_VALUE_EXISTS;
+				nmods[ i + 1 ].bv_val = NULL;
+				goto return_results;
+			}
+		}
+	}
+	nmods[ i ].bv_val = NULL;
+
+	/*
+	 * if new values are more than existing values, it is more
+	 * convenient to normalize and check all new values first,
+	 * then check each new value against existing values, which 
+	 * can be normalized in place
+	 */
+
+	if ( numvals >= nummods ) {
+		for ( j = 0; vals[ j ].bv_val; j++ ) {
+			struct berval	asserted;
+
+			rc = value_normalize( ad, SLAP_MR_EQUALITY,
+				&vals[ j ], &asserted, text );
+
+			if ( rc != LDAP_SUCCESS ) {
+				goto return_results;
+			}
+
+			for ( i = 0; nmods[ i ].bv_val; i++ ) {
+#ifdef QUICK_DIRTY_DUPLICATE_CHECK
+				if ( bvmatch( &nmods[ i ], &asserted ) ) {
+#else /* !QUICK_DIRTY_DUPLICATE_CHECK */
+				int match;
+
+				rc = (mr->smr_match)( &match,
+					SLAP_MR_VALUE_SYNTAX_MATCH,
+					ad->ad_type->sat_syntax,
+					mr, &nmods[ i ], &asserted );
+				if ( rc != LDAP_SUCCESS ) {
+					goto return_results;
+				}
+
+				if ( match == 0 ) {
+#endif /* !QUICK_DIRTY_DUPLICATE_CHECK */
+					snprintf( textbuf, textlen,
+						"%s: value #%d provided more than once",
+						ad->ad_cname.bv_val, j );
+					rc = LDAP_TYPE_OR_VALUE_EXISTS;
+					goto return_results;
+				}
+			}
+
+		}
+	}
+
+return_results:;
+	if ( nvals ) {
+		ber_bvarray_free( nvals );
+	}
+	if ( nmods ) {
+		ber_bvarray_free( nmods );
+	}
+
+	return rc;
+}
+
 int
 modify_add_values(
 	Entry	*e,
@@ -61,10 +266,9 @@ modify_add_values(
 			/* test asserted values against existing values */
 			if( a ) {
 				for( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
-					int rc = ber_bvcmp( &mod->sm_bvalues[i],
-						&a->a_vals[j] );
+					if ( bvmatch( &mod->sm_bvalues[i],
+						&a->a_vals[j] ) ) {
 
-					if( rc == 0 ) {
 						/* value exists already */
 						*text = textbuf;
 						snprintf( textbuf, textlen,
@@ -77,10 +281,9 @@ modify_add_values(
 
 			/* test asserted values against themselves */
 			for( j = 0; j < i; j++ ) {
-				int rc = ber_bvcmp( &mod->sm_bvalues[i],
-					&mod->sm_bvalues[j] );
+				if ( bvmatch( &mod->sm_bvalues[i],
+					&mod->sm_bvalues[j] ) ) {
 
-				if( rc == 0 ) {
 					/* value exists already */
 					*text = textbuf;
 					snprintf( textbuf, textlen,
@@ -92,23 +295,56 @@ modify_add_values(
 		}
 
 	} else {
-		for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
-			int rc, match;
-			struct berval asserted;
 
-			rc = value_normalize( mod->sm_desc,
-				SLAP_MR_EQUALITY,
-				&mod->sm_bvalues[i],
-				&asserted,
-				text );
+		/*
+		 * The original code performs ( n ) normalizations 
+		 * and ( n * ( n - 1 ) / 2 ) matches, which hide
+		 * the same number of normalizations.  The new code
+		 * performs the same number of normalizations ( n )
+		 * and ( n * ( n - 1 ) / 2 ) mem compares, far less
+		 * expensive than an entire match, if a match is
+		 * equivalent to a normalization and a mem compare ...
+		 * 
+		 * This is far more memory expensive than the previous,
+		 * but it can heavily improve performances when big
+		 * chunks of data are added (typical example is a group
+		 * with thousands of DN-syntax members; on my system:
+		 * for members of 5-RDN DNs,
 
-			if( rc != LDAP_SUCCESS ) return rc;
+		members		orig		bvmatch (dirty)	new
+		1000		0m38.456s	0m0.553s 	0m0.608s
+		2000		2m33.341s	0m0.851s	0m1.003s
 
-			if( a ) {
-				for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
-					int rc = value_match( &match, mod->sm_desc, mr,
+		 * Moreover, 100 groups with 10000 members each were
+		 * added in 37m27.933s (an analogous LDIF file was
+		 * loaded into Active Directory in 38m28.682s, BTW).
+		 * 
+		 * Maybe we could switch to the new algorithm when
+		 * the number of values overcomes a given threshold?
+		 */
+
+		int		rc;
+		const char	*text = NULL;
+		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
+
+		if ( mod->sm_bvalues[ 1 ].bv_val == 0 ) {
+			if ( a != NULL ) {
+				struct berval	asserted;
+				int		i;
+
+				rc = value_normalize( mod->sm_desc, SLAP_MR_EQUALITY,
+					&mod->sm_bvalues[ 0 ], &asserted, &text );
+
+				if ( rc != LDAP_SUCCESS ) {
+					return rc;
+				}
+
+				for ( i = 0; a->a_vals[ i ].bv_val; i++ ) {
+					int	match;
+
+					rc = value_match( &match, mod->sm_desc, mr,
 						SLAP_MR_VALUE_SYNTAX_MATCH,
-						&a->a_vals[j], &asserted, text );
+						&a->a_vals[ i ], &asserted, &text );
 
 					if( rc == LDAP_SUCCESS && match == 0 ) {
 						free( asserted.bv_val );
@@ -117,18 +353,14 @@ modify_add_values(
 				}
 			}
 
-			for ( j = 0; j < i; j++ ) {
-				int rc = value_match( &match, mod->sm_desc, mr,
-					SLAP_MR_VALUE_SYNTAX_MATCH,
-					&mod->sm_bvalues[j], &asserted, text );
-
-				if( rc == LDAP_SUCCESS && match == 0 ) {
-					free( asserted.bv_val );
-					return LDAP_TYPE_OR_VALUE_EXISTS;
-				}
+		} else {
+			rc = modify_check_duplicates( mod->sm_desc, mr,
+					a ? a->a_vals : NULL, mod->sm_bvalues,
+					&text, textbuf, sizeof( textbuf ) );
+	
+			if ( rc != LDAP_SUCCESS ) {
+				return rc;
 			}
-
-			free( asserted.bv_val );
 		}
 	}
 
@@ -190,7 +422,11 @@ modify_delete_values(
 		return LDAP_NO_SUCH_ATTRIBUTE;
 	}
 
-	/* find each value to delete */
+	/* find each value to delete
+	 *
+	 * FIXME: need to optimize this operation too,
+	 * see modify_check_duplicates()
+	 */
 	for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
 		int rc;
 		struct berval asserted;
