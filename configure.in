@@ -95,7 +95,10 @@ AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_MAJOR,$OL_MAJOR,Major)
 AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_MINOR,$OL_MINOR,Minor)
 AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_PATCH,$OL_PATCH,Patch)
 
-OPENLDAP_LIBVERSION=$OL_API_LIB
+OPENLDAP_LIBRELEASE=$OL_API_LIB_RELEASE
+AC_SUBST(OPENLDAP_LIBRELEASE)dnl
+
+OPENLDAP_LIBVERSION=$OL_API_LIB_VERSION
 AC_SUBST(OPENLDAP_LIBVERSION)dnl
 
 OPENLDAP_RELEASE_DATE="$OL_RELEASE_DATE"
@@ -150,8 +153,9 @@ dnl OL_ARG_ENABLE(kbind,[  --enable-kbind	  enable LDAPv2+ Kerberos IV bind (dep
 ol_enable_kbind=${ol_enable_kbind-no}
 OL_ARG_ENABLE(ipv6,[  --enable-ipv6 	  enable IPv6 support], auto)dnl
 OL_ARG_ENABLE(local,[  --enable-local	  enable AF_LOCAL (AF_UNIX) socket support], auto)dnl
-OL_ARG_ENABLE(x_compile,[  --enable-x-compile	  enable cross compiling],
-	no, [yes no])dnl
+dnl OL_ARG_ENABLE(x_compile,[  --enable-x-compile	  enable cross compiling],
+dnl	no, [yes no])dnl
+ol_enable_x_compile=${ol_enable_x_compile-no}
 
 dnl ----------------------------------------------------------------
 dnl General "with" options

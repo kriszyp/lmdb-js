@@ -67,8 +67,9 @@ MKVERSION = $(top_srcdir)/build/mkversion -v "$(VERSION)"
 SHTOOL = $(top_srcdir)/build/shtool
 
 LIBTOOL = @LIBTOOL@
+LIBRELEASE = @OPENLDAP_LIBRELEASE@
 LIBVERSION = @OPENLDAP_LIBVERSION@
-LTVERSION = -release $(LIBVERSION)
+LTVERSION = -release $(LIBRELEASE) -version-info $(LIBVERSION)
 
 # libtool --only flag for libraries: platform specific
 NT_LTONLY_LIB = # --only-$(BUILD_LIBS_DYNAMIC)

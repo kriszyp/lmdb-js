@@ -2,6 +2,9 @@ OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.7 Engineering
 	<insert changes here>
+	Build Environment
+		Fixed shared library soname issues (ITS#3035)
+		  May requires changes in link practices of dependent apps
 
 OpenLDAP 2.2.7 Release
 	Fixed slapd IDL avl_delete failure bug (ITS#3004)
