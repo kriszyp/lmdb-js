@@ -542,7 +542,9 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 			prev->lm_next = l->lm_next;
 		*result = l;
 		ld->ld_errno = LDAP_SUCCESS;
-#ifndef ultrix
+#ifdef LDAP_WORLD_P16
+		/* inclusion of this patch causes searchs to hang on
+			multiple platforms */
 		return( l->lm_msgtype );
 #else
 		return( tag );
