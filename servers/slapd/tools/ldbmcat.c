@@ -60,9 +60,15 @@ main( int argc, char **argv )
             key = ldbm_nextkey( dbp, last ) )
 #endif
         {
+#ifdef HAVE_BERKELEY_DB2
+				key.flags = 0;
+                data = ldbm_fetch( dbp, key );
+				key.flags = DB_DBT_MALLOC;
+#else
                 if ( last.dptr != NULL )
                         ldbm_datum_free( dbp, last );
                 data = ldbm_fetch( dbp, key );
+#endif
 
                 if (( s = data.dptr ) != NULL ) {
 
@@ -83,8 +89,10 @@ main( int argc, char **argv )
 
                 last = key;
         }
+#ifdef HAVE_BERKELEY_DB2
         if ( last.dptr != NULL )
                 ldbm_datum_free( dbp, last );
+#endif
         ldbm_close( dbp );
 
         exit( 0 );
