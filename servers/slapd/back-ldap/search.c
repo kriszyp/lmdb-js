@@ -533,24 +533,20 @@ ldap_build_entry(
 
 next_attr:;
 
-		if ( normalize ) {
-			if ( last && attr->a_desc->ad_type->sat_equality &&
-				attr->a_desc->ad_type->sat_equality->smr_normalize ) {
-				int i;
+		if ( normalize && last && attr->a_desc->ad_type->sat_equality &&
+			attr->a_desc->ad_type->sat_equality->smr_normalize ) {
+			int i;
 
-				attr->a_nvals = ch_malloc((last+1)*sizeof(struct berval));
-				for (i=0; i<last; i++) {
-					attr->a_desc->ad_type->sat_equality->smr_normalize(
-						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-						attr->a_desc->ad_type->sat_syntax,
-						attr->a_desc->ad_type->sat_equality,
-						&attr->a_vals[i], &attr->a_nvals[i] );
-				}
-				attr->a_nvals[i].bv_val = NULL;
-				attr->a_nvals[i].bv_len = 0;
-			} else {
-				attr->a_nvals = attr->a_vals;
+			attr->a_nvals = ch_malloc((last+1)*sizeof(struct berval));
+			for (i=0; i<last; i++) {
+				attr->a_desc->ad_type->sat_equality->smr_normalize(
+					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+					attr->a_desc->ad_type->sat_syntax,
+					attr->a_desc->ad_type->sat_equality,
+					&attr->a_vals[i], &attr->a_nvals[i] );
 			}
+			attr->a_nvals[i].bv_val = NULL;
+			attr->a_nvals[i].bv_len = 0;
 		} else {
 			attr->a_nvals = attr->a_vals;
 		}
