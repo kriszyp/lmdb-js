@@ -200,21 +200,21 @@ void
 usage(char *s)
 {
 	fprintf(stderr, "usage: %s [options] [filter]\n", s);
-	fprintf(stderr, "	-a attrib   password attribute (default: userPassword)\n");
-	fprintf(stderr, "	-b basedn   basedn to perform searches\n");
-	fprintf(stderr, "	-c hash	 hash type: none, crypt, md5, sha (default: crypt)\n");
-	fprintf(stderr, "	-D binddn   bind dn\n");
-	fprintf(stderr, "	-d level	debugging level\n");
-	fprintf(stderr, "	-h host	 ldap server (default: localhost)\n");
-	fprintf(stderr, "	-l time	 time limit\n");
-	fprintf(stderr, "	-n		  make no modifications\n");
-	fprintf(stderr, "	-p port	 ldap port\n");
-	fprintf(stderr, "	-s scope	search scope: base, one, sub (default: sub)\n");
-	fprintf(stderr, "	-t targetdn dn to change password\n");
-	fprintf(stderr, "	-W newpass  new password\n");
-	fprintf(stderr, "	-w passwd   bind password (for simple authentication)\n");
-	fprintf(stderr, "	-v		  verbose\n");
-	fprintf(stderr, "	-z size	 size limit\n");
+	fprintf(stderr, "\t-a attrib   password attribute (default: userPassword)\n");
+	fprintf(stderr, "\t-b basedn   basedn to perform searches\n");
+	fprintf(stderr, "\t-c hash	 hash type: none, crypt, md5, sha (default: crypt)\n");
+	fprintf(stderr, "\t-D binddn   bind dn\n");
+	fprintf(stderr, "\t-d level	debugging level\n");
+	fprintf(stderr, "\t-h host	 ldap server (default: localhost)\n");
+	fprintf(stderr, "\t-l time	 time limit\n");
+	fprintf(stderr, "\t-n		  make no modifications\n");
+	fprintf(stderr, "\t-p port	 ldap port\n");
+	fprintf(stderr, "\t-s scope	search scope: base, one, sub (default: sub)\n");
+	fprintf(stderr, "\t-t targetdn dn to change password\n");
+	fprintf(stderr, "\t-W newpass  new password\n");
+	fprintf(stderr, "\t-w passwd   bind password (for simple authentication)\n");
+	fprintf(stderr, "\t-v		  verbose\n");
+	fprintf(stderr, "\t-z size	 size limit\n");
 	exit(1);
 }
 
