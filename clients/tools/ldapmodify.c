@@ -34,6 +34,8 @@
 #include "ldif.h"
 #include "ldap_defaults.h"
 #include "ldap_log.h"
+/* needed for ldap_control_dup(); we should declare it somewhere else ... */
+#include "../../libraries/libldap/ldap-int.h"
 
 static char	*prog;
 static char	*binddn = NULL;
@@ -59,6 +61,7 @@ static LDAP	*ld = NULL;
 #define T_VERSION_STR		"version"
 #define T_REPLICA_STR		"replica"
 #define T_DN_STR		"dn"
+#define T_CONTROL_STR		"control"
 #define T_CHANGETYPESTR         "changetype"
 #define T_ADDCTSTR		"add"
 #define T_MODIFYCTSTR		"modify"
@@ -77,6 +80,7 @@ static LDAP	*ld = NULL;
 
 static void usage LDAP_P(( const char *prog )) LDAP_GCCATTR((noreturn));
 static int process_ldif_rec LDAP_P(( char *rbuf, int count ));
+static int parse_ldif_control LDAP_P(( char *line, LDAPControl ***pctrls ));
 static void addmodifyop LDAP_P((
 	LDAPMod ***pmodsp, int modop,
 	const char *attr,
@@ -84,14 +88,17 @@ static void addmodifyop LDAP_P((
 static int domodify LDAP_P((
 	const char *dn,
 	LDAPMod **pmods,
+    LDAPControl **pctrls,
 	int newentry ));
 static int dodelete LDAP_P((
-	const char *dn ));
+	const char *dn,
+    LDAPControl **pctrls ));
 static int dorename LDAP_P((
 	const char *dn,
 	const char *newrdn,
 	const char *newsup,
-	int deleteoldrdn ));
+	int deleteoldrdn,
+    LDAPControl **pctrls ));
 static char *read_one_record LDAP_P(( FILE *fp ));
 
 static void
@@ -197,7 +204,7 @@ main( int argc, char **argv )
 			optarg++;
 		}
 
-		control = strdup( optarg );
+		control = ber_strdup( optarg );
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
@@ -209,7 +216,7 @@ main( int argc, char **argv )
 			fprintf( stderr, "%s: -f previously specified\n", prog );
 			return EXIT_FAILURE;
 		}
-	    infile = strdup( optarg );
+	    infile = ber_strdup( optarg );
 	    break;
 	case 'F':	/* force all changes records to be used */
 	    force = 1;
@@ -227,7 +234,7 @@ main( int argc, char **argv )
 			fprintf( stderr, "%s: -D previously specified\n", prog );
 			return EXIT_FAILURE;
 		}
-	    binddn = strdup( optarg );
+	    binddn = ber_strdup( optarg );
 	    break;
 	case 'e': /* general controls */
 		if( version == LDAP_VERSION2 ) {
@@ -247,7 +254,7 @@ main( int argc, char **argv )
 			optarg++;
 		}
 
-		control = strdup( optarg );
+		control = ber_strdup( optarg );
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
@@ -296,7 +303,7 @@ main( int argc, char **argv )
 			fprintf( stderr, "%s: -h previously specified\n", prog );
 			return EXIT_FAILURE;
 		}
-	    ldaphost = strdup( optarg );
+	    ldaphost = ber_strdup( optarg );
 	    break;
 	case 'H':	/* ldap URI */
 		if( ldaphost != NULL ) {
@@ -311,7 +318,7 @@ main( int argc, char **argv )
 			fprintf( stderr, "%s: -H previously specified\n", prog );
 			return EXIT_FAILURE;
 		}
-	    ldapuri = strdup( optarg );
+	    ldapuri = ber_strdup( optarg );
 	    break;
 	case 'I':
 #ifdef HAVE_CYRUS_SASL
@@ -405,7 +412,7 @@ main( int argc, char **argv )
 		}
 		authmethod = LDAP_AUTH_SASL;
 		version = LDAP_VERSION3;
-		sasl_secprops = strdup( optarg );
+		sasl_secprops = ber_strdup( optarg );
 #else
 		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
@@ -487,7 +494,7 @@ main( int argc, char **argv )
 		}
 		authmethod = LDAP_AUTH_SASL;
 		version = LDAP_VERSION3;
-		sasl_realm = strdup( optarg );
+		sasl_realm = ber_strdup( optarg );
 #else
 		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
@@ -499,7 +506,7 @@ main( int argc, char **argv )
 			fprintf( stderr, "%s: -S previously specified\n", prog );
 			return EXIT_FAILURE;
 		}
-		rejfile = strdup( optarg );
+		rejfile = ber_strdup( optarg );
 		break;
 	case 'U':
 #ifdef HAVE_CYRUS_SASL
@@ -520,7 +527,7 @@ main( int argc, char **argv )
 		}
 		authmethod = LDAP_AUTH_SASL;
 		version = LDAP_VERSION3;
-		sasl_authc_id = strdup( optarg );
+		sasl_authc_id = ber_strdup( optarg );
 #else
 		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
@@ -531,7 +538,7 @@ main( int argc, char **argv )
 	    verbose++;
 	    break;
 	case 'w':	/* password */
-	    passwd.bv_val = strdup( optarg );
+	    passwd.bv_val = ber_strdup( optarg );
 		{
 			char* p;
 
@@ -564,7 +571,7 @@ main( int argc, char **argv )
 		}
 		authmethod = LDAP_AUTH_SASL;
 		version = LDAP_VERSION3;
-		sasl_mech = strdup( optarg );
+		sasl_mech = ber_strdup( optarg );
 #else
 		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
@@ -597,7 +604,7 @@ main( int argc, char **argv )
 		}
 		authmethod = LDAP_AUTH_SASL;
 		version = LDAP_VERSION3;
-		sasl_authz_id = strdup( optarg );
+		sasl_authz_id = ber_strdup( optarg );
 #else
 		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
@@ -834,8 +841,8 @@ main( int argc, char **argv )
 
 	if ( rejfp ) {
 		len = strlen( rbuf );
-		if (( rejbuf = (char *)malloc( len+1 )) == NULL ) {
-			perror( "realloc" );
+		if (( rejbuf = (char *)ber_memalloc( len+1 )) == NULL ) {
+			perror( "malloc" );
 			exit( EXIT_FAILURE );
 		}
 		memcpy( rejbuf, rbuf, len+1 );
@@ -885,6 +892,7 @@ process_ldif_rec( char *rbuf, int count )
     LDAPMod	**pmods;
 	int version;
 	struct berval val;
+    LDAPControl **pctrls;
 
     new_entry = ldapadd;
 
@@ -896,6 +904,7 @@ process_ldif_rec( char *rbuf, int count )
     deleteoldrdn = 1;
     use_record = force;
     pmods = NULL;
+    pctrls = NULL;
     dn = newrdn = newsup = NULL;
 
     while ( rc == 0 && ( line = ldif_getline( &rbuf )) != NULL ) {
@@ -937,7 +946,7 @@ process_ldif_rec( char *rbuf, int count )
 			version++;
 
 	    } else if ( strcasecmp( type, T_DN_STR ) == 0 ) {
-		if (( dn = strdup( val.bv_val ? val.bv_val : "" )) == NULL ) {
+		if (( dn = ber_strdup( val.bv_val ? val.bv_val : "" )) == NULL ) {
 		    perror( "strdup" );
 		    exit( EXIT_FAILURE );
 		}
@@ -947,6 +956,18 @@ process_ldif_rec( char *rbuf, int count )
 	}
 
 	if ( expect_ct ) {
+        
+        /* Check for "control" tag after dn and before changetype. */
+        if (strcasecmp(type, T_CONTROL_STR) == 0) {
+            /* Parse and add it to the list of controls */
+            rc = parse_ldif_control( line, &pctrls );
+            if (rc != 0) {
+		    	fprintf( stderr, "%s: Error processing %s line, line %d: %s\n",
+			   	prog, T_CONTROL_STR, linenum, ldap_err2string(rc) );
+            }
+            goto end_line;
+        }
+        
 	    expect_ct = 0;
 	    if ( !use_record && saw_replica ) {
 		printf( "%s: skipping change record for entry: %s\n"
@@ -1041,7 +1062,7 @@ process_ldif_rec( char *rbuf, int count )
 
 	if ( expect_newrdn ) {
 	    if ( strcasecmp( type, T_NEWRDNSTR ) == 0 ) {
-			if (( newrdn = strdup( val.bv_val ? val.bv_val : "" )) == NULL ) {
+			if (( newrdn = ber_strdup( val.bv_val ? val.bv_val : "" )) == NULL ) {
 		    perror( "strdup" );
 		    exit( EXIT_FAILURE );
 		}
@@ -1065,7 +1086,7 @@ process_ldif_rec( char *rbuf, int count )
 	    }
 	} else if ( expect_newsup ) {
 	    if ( strcasecmp( type, T_NEWSUPSTR ) == 0 ) {
-		if (( newsup = strdup( val.bv_val ? val.bv_val : "" )) == NULL ) {
+		if (( newsup = ber_strdup( val.bv_val ? val.bv_val : "" )) == NULL ) {
 		    perror( "strdup" );
 		    exit( EXIT_FAILURE );
 		}
@@ -1097,13 +1118,50 @@ end_line:
 		return 0;
 	}
 
+    /* If default controls are set (as with -M option) and controls are
+       specified in the LDIF file, we must add the default controls to
+       the list of controls sent with the ldap operation.
+    */
+    if ( rc == 0 ) {
+        if (pctrls) {
+            LDAPControl **defctrls = NULL;   /* Default server controls */
+            LDAPControl **newctrls = NULL;
+            ldap_get_option(ld, LDAP_OPT_SERVER_CONTROLS, &defctrls);
+            if (defctrls) {
+                int npc=0;                  /* Number of LDIF controls */
+                int ndefc=0;                /* Number of default controls */
+                while (pctrls[npc])         /* Count LDIF controls */
+                    npc++; 
+                while (defctrls[ndefc])     /* Count default controls */
+                    ndefc++;
+                newctrls = ber_memrealloc(pctrls, (npc+ndefc+1)*sizeof(LDAPControl*));
+                if (newctrls == NULL)
+                    rc = LDAP_NO_MEMORY;
+                else {
+                    int i;
+                    pctrls = newctrls;
+                    for (i=npc; i<npc+ndefc; i++) {
+                        pctrls[i] = ldap_control_dup(defctrls[i-npc]);
+                        if (pctrls[i] == NULL) {
+                            rc = LDAP_NO_MEMORY;
+                            break;
+                        }
+                    }
+                    pctrls[npc+ndefc] = NULL;
+                    ldap_controls_free(defctrls);  /* Must be freed by library */
+                }
+            }
+        }
+    }
+
+
     if ( rc == 0 ) {
 	if ( delete_entry ) {
-	    rc = dodelete( dn );
+	    rc = dodelete( dn, pctrls );
 	} else if ( newrdn != NULL ) {
-	    rc = dorename( dn, newrdn, newsup, deleteoldrdn );
+	    rc = dorename( dn, newrdn, newsup, deleteoldrdn, pctrls );
 	} else {
-	    rc = domodify( dn, pmods, new_entry );
+	    rc = domodify( dn, pmods, pctrls, new_entry );
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
@@ -1120,6 +1178,138 @@ end_line:
     if ( pmods != NULL ) {
 	ldap_mods_free( pmods, 1 );
     }
+
+    if (pctrls != NULL) {
+        ldap_controls_free( pctrls );
+    }
+
+    return( rc );
+}
+
+/* Parse an LDIF control line of the form
+      control:  oid  [true/false]  [: value]              or
+      control:  oid  [true/false]  [:: base64-value]      or
+      control:  oid  [true/false]  [:< url]
+   The control is added to the list of controls in *ppctrls.
+*/      
+static int
+parse_ldif_control( char *line, 
+                    LDAPControl ***ppctrls )
+{
+    char *oid = NULL;
+    int criticality = 0;   /* Default is false if not present */
+    char *type=NULL;
+    char *val = NULL;
+    ber_len_t value_len = 0;
+    int i, rc=0;
+    char *s, *oidStart, *pcolon;
+    LDAPControl *newctrl = NULL;
+    LDAPControl **pctrls = NULL;
+
+    if (ppctrls) {
+        pctrls = *ppctrls;
+    }
+    s = line + strlen(T_CONTROL_STR);  /* Skip over "control" */
+    pcolon = s;                        /* Save this position for later */
+    if (*s++ != ':')                   /* Make sure colon follows */
+        return ( LDAP_PARAM_ERROR );
+    while (*s && isspace(*s))  s++;    /* Skip white space before OID */
+
+    /* OID should come next. Validate and extract it. */
+    if (*s == 0)
+        return ( LDAP_PARAM_ERROR );
+    oidStart = s;
+    while (isdigit(*s) || *s == '.')  s++;    /* OID should be digits or . */
+    if (s == oidStart) 
+        return ( LDAP_PARAM_ERROR );   /* OID was not present */
+    if (*s) {                          /* End of OID should be space or NULL */
+        if (!isspace(*s))
+            return ( LDAP_PARAM_ERROR ); /* else OID contained invalid chars */
+        *s++ = 0;                    /* Replace space with null to terminate */
+    }
+
+    
+    oid = ber_strdup(oidStart);
+    if (oid == NULL)
+        return ( LDAP_NO_MEMORY );
+
+    /* Optional Criticality field is next. */
+    while (*s && isspace(*s))  s++;   /* Skip white space before criticality */
+    if (strncasecmp(s, "true", 4) == 0) {
+        criticality = 1;
+        s += 4;
+    } 
+    else if (strncasecmp(s, "false", 5) == 0) {
+        criticality = 0;
+        s += 5;
+    }
+
+    /* Optional value field is next */
+    while (*s && isspace(*s))  s++;    /* Skip white space before value */
+    if (*s) {
+        if (*s != ':') {           /* If value is present, must start with : */
+            rc = LDAP_PARAM_ERROR;
+            goto cleanup;
+        }
+
+        /* Shift value down over OID and criticality so it's in the form
+             control: value
+             control:: base64-value
+             control:< url
+           Then we can use ldif_parse_line to extract and decode the value
+        */
+        while ( (*pcolon++ = *s++) != 0)     /* Shift value */
+            ;
+        rc = ldif_parse_line(line, &type, &val, &value_len);
+        if (type)  ber_memfree(type);   /* Don't need this field*/
+        if (rc < 0) {
+            rc = LDAP_PARAM_ERROR;
+            goto cleanup;
+        }
+    }
+
+    /* Create a new LDAPControl structure. */
+    newctrl = (LDAPControl *)ber_memalloc(sizeof(LDAPControl));
+    if ( newctrl == NULL ) {
+        rc = LDAP_NO_MEMORY;
+        goto cleanup;
+    }
+    newctrl->ldctl_oid = oid;
+    oid = NULL;
+    newctrl->ldctl_iscritical = criticality;
+    newctrl->ldctl_value.bv_len = value_len;
+    newctrl->ldctl_value.bv_val = val;
+    val = NULL;
+
+    /* Add the new control to the passed-in list of controls. */
+    i = 0;
+    if (pctrls) {
+        while ( pctrls[i] )      /* Count the # of controls passed in */
+            i++;
+    }
+    /* Allocate 1 more slot for the new control and 1 for the NULL. */
+    pctrls = (LDAPControl **)ber_memrealloc(pctrls, (i+2)*(sizeof(LDAPControl *)));
+    if (pctrls == NULL) {
+        rc = LDAP_NO_MEMORY;
+        goto cleanup;
+    }
+    pctrls[i] = newctrl;
+    newctrl = NULL;
+    pctrls[i+1] = NULL;
+    *ppctrls = pctrls;
+
+cleanup:
+    if (newctrl) {
+        if (newctrl->ldctl_oid)
+            ber_memfree(newctrl->ldctl_oid);
+        if (newctrl->ldctl_value.bv_val)
+            ber_memfree(newctrl->ldctl_value.bv_val);
+        ber_memfree(newctrl);
+    }
+    if (val)
+        ber_memfree(val);
+    if (oid)
+        ber_memfree(oid);
 
     return( rc );
 }
@@ -1203,6 +1393,7 @@ static int
 domodify(
 	const char *dn,
 	LDAPMod **pmods,
+    LDAPControl **pctrls,
 	int newentry )
 {
     int			i, j, k, notascii, op;
@@ -1258,9 +1449,9 @@ domodify(
 
     if ( !not ) {
 	if ( newentry ) {
-	    i = ldap_add_s( ld, dn, pmods );
+	    i = ldap_add_ext_s( ld, dn, pmods, pctrls, NULL );
 	} else {
-	    i = ldap_modify_s( ld, dn, pmods );
+	    i = ldap_modify_ext_s( ld, dn, pmods, pctrls, NULL );
 	}
 	if ( i != LDAP_SUCCESS ) {
 		/* print error message about failed update including DN */
@@ -1281,13 +1472,14 @@ domodify(
 
 static int
 dodelete(
-	const char *dn )
+	const char *dn,
+    LDAPControl **pctrls )
 {
     int	rc;
 
     printf( "%sdeleting entry \"%s\"\n", not ? "!" : "", dn );
     if ( !not ) {
-	if (( rc = ldap_delete_s( ld, dn )) != LDAP_SUCCESS ) {
+	if (( rc = ldap_delete_ext_s( ld, dn, pctrls, NULL )) != LDAP_SUCCESS ) {
 		fprintf( stderr, "%s: delete failed: %s\n", prog, dn );
 		ldap_perror( ld, "ldap_delete" );
 	} else if ( verbose ) {
@@ -1308,7 +1500,8 @@ dorename(
 	const char *dn,
 	const char *newrdn,
 	const char* newsup,
-	int deleteoldrdn )
+	int deleteoldrdn,
+    LDAPControl **pctrls )
 {
     int	rc;
 
@@ -1319,9 +1512,8 @@ dorename(
 		newrdn, deleteoldrdn ? "do not " : "" );
     }
     if ( !not ) {
-	if (( rc = ldap_rename2_s( ld, dn, newrdn, newsup, deleteoldrdn ))
-		!= LDAP_SUCCESS )
-	{
+	if (( rc = ldap_rename_s( ld, dn, newrdn, newsup, deleteoldrdn, pctrls, NULL ))
+		!= LDAP_SUCCESS ) {
 		fprintf( stderr, "%s: rename failed: %s\n", prog, dn );
 		ldap_perror( ld, "ldap_modrdn" );
 	} else {
@@ -1361,7 +1553,7 @@ read_one_record( FILE *fp )
 			lmax = LDAPMOD_MAXLINE
 				* (( lcur + len + 1 ) / LDAPMOD_MAXLINE + 1 );
 
-			if (( buf = (char *)realloc( buf, lmax )) == NULL ) {
+			if (( buf = (char *)ber_memrealloc( buf, lmax )) == NULL ) {
 				perror( "realloc" );
 				exit( EXIT_FAILURE );
 			}
@@ -1373,3 +1565,5 @@ read_one_record( FILE *fp )
 
     return( buf );
 }
+
+
