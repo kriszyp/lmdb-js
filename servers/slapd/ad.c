@@ -17,6 +17,7 @@
 
 #include "ldap_pvt.h"
 #include "slap.h"
+#include "lutil.h"
 
 typedef struct Attr_option {
 	struct berval name;	/* option name or prefix */
@@ -352,16 +353,13 @@ done:;
 						j = (lp
 						     ? lp - desc.ad_tags.bv_val - 1
 						     : strlen( desc.ad_tags.bv_val ));
-						strncpy(cp, desc.ad_tags.bv_val, j);
-						cp += j;
+						cp = lutil_strncopy(cp, desc.ad_tags.bv_val, j);
 					}
 				}
-				strcpy(cp, ";binary");
-				cp += sizeof(";binary")-1;
+				cp = lutil_strcopy(cp, ";binary");
 				if( lp != NULL ) {
 					*cp++ = ';';
-					strcpy(cp, lp);
-					cp += strlen( cp );
+					cp = lutil_strcopy(cp, lp);
 				}
 				d2->ad_cname.bv_len = cp - d2->ad_cname.bv_val;
 				if( desc.ad_tags.bv_len )
