@@ -17,6 +17,7 @@ OpenLDAP 2.0.16 Engineering
 	Removed -lldbm use of Berkeley CDB
 	Updated -lldbm to use r/w lock with DB_THREAD
 	Updated ldbm update attribute indices on delete
+	Updated ud Kerberos ticket handling
 	Added back-ldbm idl_check() code
 	Build environment
 		Updated ltconfig for MacOS X 10.1 (ITS#1361)
@@ -26,6 +27,7 @@ OpenLDAP 2.0.16 Engineering
 		Updated test005 /dev/null diff for Tru64 compat
 		Updated test007 modrdn test
 		Updated test008 read/write ratio
+		Updated MSVC5 project files
 	Documentation
 		Update slapcat/add pages
 

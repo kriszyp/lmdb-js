@@ -355,10 +355,6 @@ SOURCE=.\tmplout.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ufn.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\unbind.c
 # End Source File
 # Begin Source File
