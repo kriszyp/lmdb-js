@@ -25,7 +25,7 @@
 #include "slap.h"
 #include "back-relay.h"
 
-#ifdef SLAPD_RELAY_DYNAMIC
+#if SLAPD_RELAY == SLAPD_MOD_DYNAMIC
 
 int
 init_module( int argc, char *argv[] ) {
@@ -39,7 +39,7 @@ init_module( int argc, char *argv[] ) {
 	return 0;
 }
 
-#endif /* SLAPD_RELAY_DYNAMIC */
+#endif /* SLAPD_RELAY */
 
 int
 relay_back_initialize( BackendInfo *bi )

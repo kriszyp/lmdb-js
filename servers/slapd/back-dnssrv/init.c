@@ -28,7 +28,7 @@
 #include "slap.h"
 #include "external.h"
 
-#ifdef SLAPD_DNSSRV_DYNAMIC
+#if SLAPD_DNSSRV == SLAPD_MOD_DYNAMIC
 
 int init_module(int argc, char *argv[])
 {
@@ -42,7 +42,7 @@ int init_module(int argc, char *argv[])
     return 0;
 }
 
-#endif /* SLAPD_DNSSRV_DYNAMIC */
+#endif /* SLAPD_DNSSRV */
 
 int
 dnssrv_back_initialize(

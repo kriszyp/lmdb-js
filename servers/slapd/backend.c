@@ -51,97 +51,97 @@
  * imported into slapd without appropriate __declspec(dllimport) directives.
  */
 
-#if defined(SLAPD_BDB) && !defined(SLAPD_BDB_DYNAMIC)
+#if SLAPD_BDB == SLAPD_MOD_STATIC
 #include "back-bdb/external.h"
 #endif
-#if defined(SLAPD_DNSSRV) && !defined(SLAPD_DNSSRV_DYNAMIC)
+#if SLAPD_DNSSRV == SLAPD_MOD_STATIC
 #include "back-dnssrv/external.h"
 #endif
-#if defined(SLAPD_HDB) && !defined(SLAPD_HDB_DYNAMIC)
+#if SLAPD_HDB == SLAPD_MOD_STATIC
 #include "back-hdb/external.h"
 #endif
-#if defined(SLAPD_LDAP) && !defined(SLAPD_LDAP_DYNAMIC)
+#if SLAPD_LDAP == SLAPD_MOD_STATIC
 #include "back-ldap/external.h"
 #endif
-#if defined(SLAPD_LDBM) && !defined(SLAPD_LDBM_DYNAMIC)
+#if SLAPD_LDBM == SLAPD_MOD_STATIC
 #include "back-ldbm/external.h"
 #endif
-#if defined(SLAPD_META) && !defined(SLAPD_META_DYNAMIC)
+#if SLAPD_META == SLAPD_MOD_STATIC
 #include "back-meta/external.h"
 #endif
-#if defined(SLAPD_MONITOR) && !defined(SLAPD_MONITOR_DYNAMIC)
+#if SLAPD_MONITOR == SLAPD_MOD_STATIC
 #include "back-monitor/external.h"
 #endif
-#if defined(SLAPD_NULL) && !defined(SLAPD_NULL_DYNAMIC)
+#if SLAPD_NULL == SLAPD_MOD_STATIC
 #include "back-null/external.h"
 #endif
-#if defined(SLAPD_PASSWD) && !defined(SLAPD_PASSWD_DYNAMIC)
+#if SLAPD_PASSWD == SLAPD_MOD_STATIC
 #include "back-passwd/external.h"
 #endif
-#if defined(SLAPD_PERL) && !defined(SLAPD_PERL_DYNAMIC)
+#if SLAPD_PERL == SLAPD_MOD_STATIC
 #include "back-perl/external.h"
 #endif
-#if defined(SLAPD_RELAY) && !defined(SLAPD_RELAY_DYNAMIC)
+#if SLAPD_RELAY == SLAPD_MOD_STATIC
 #include "back-relay/external.h"
 #endif
-#if defined(SLAPD_SHELL) && !defined(SLAPD_SHELL_DYNAMIC)
+#if SLAPD_SHELL == SLAPD_MOD_STATIC
 #include "back-shell/external.h"
 #endif
-#if defined(SLAPD_TCL) && !defined(SLAPD_TCL_DYNAMIC)
+#if SLAPD_TCL == SLAPD_MOD_STATIC
 #include "back-tcl/external.h"
 #endif
-#if defined(SLAPD_SQL) && !defined(SLAPD_SQL_DYNAMIC)
+#if SLAPD_SQL == SLAPD_MOD_STATIC
 #include "back-sql/external.h"
 #endif
-#if defined(SLAPD_PRIVATE) && !defined(SLAPD_PRIVATE_DYNAMIC)
+#if SLAPD_PRIVATE == SLAPD_MOD_STATIC
 #include "private/external.h"
 #endif
 
 static BackendInfo binfo[] = {
-#if defined(SLAPD_BDB) && !defined(SLAPD_BDB_DYNAMIC)
+#if SLAPD_BDB == SLAPD_MOD_STATIC
 	{"bdb",	bdb_initialize},
 #endif
-#if defined(SLAPD_DNSSRV) && !defined(SLAPD_DNSSRV_DYNAMIC)
+#if SLAPD_DNSSRV == SLAPD_MOD_STATIC
 	{"dnssrv",	dnssrv_back_initialize},
 #endif
-#if defined(SLAPD_HDB) && !defined(SLAPD_HDB_DYNAMIC)
+#if SLAPD_HDB == SLAPD_MOD_STATIC
 	{"hdb",	hdb_initialize},
 #endif
-#if defined(SLAPD_LDAP) && !defined(SLAPD_LDAP_DYNAMIC)
+#if SLAPD_LDAP == SLAPD_MOD_STATIC
 	{"ldap",	ldap_back_initialize},
 #endif
-#if defined(SLAPD_LDBM) && !defined(SLAPD_LDBM_DYNAMIC)
+#if SLAPD_LDBM == SLAPD_MOD_STATIC
 	{"ldbm",	ldbm_back_initialize},
 #endif
-#if defined(SLAPD_META) && !defined(SLAPD_META_DYNAMIC)
+#if SLAPD_META == SLAPD_MOD_STATIC
 	{"meta",	meta_back_initialize},
 #endif
-#if defined(SLAPD_MONITOR) && !defined(SLAPD_MONITOR_DYNAMIC)
+#if SLAPD_MONITOR == SLAPD_MOD_STATIC
 	{"monitor",	monitor_back_initialize},
 #endif
-#if defined(SLAPD_NULL) && !defined(SLAPD_NULL_DYNAMIC)
+#if SLAPD_NULL == SLAPD_MOD_STATIC
 	{"null",	null_back_initialize},
 #endif
-#if defined(SLAPD_PASSWD) && !defined(SLAPD_PASSWD_DYNAMIC)
+#if SLAPD_PASSWD == SLAPD_MOD_STATIC
 	{"passwd",	passwd_back_initialize},
 #endif
-#if defined(SLAPD_PERL) && !defined(SLAPD_PERL_DYNAMIC)
+#if SLAPD_PERL == SLAPD_MOD_STATIC
 	{"perl",	perl_back_initialize},
 #endif
-#if defined(SLAPD_RELAY) && !defined(SLAPD_RELAY_DYNAMIC)
+#if SLAPD_RELAY == SLAPD_MOD_STATIC
 	{"relay",	relay_back_initialize},
 #endif
-#if defined(SLAPD_SHELL) && !defined(SLAPD_SHELL_DYNAMIC)
+#if SLAPD_SHELL == SLAPD_MOD_STATIC
 	{"shell",	shell_back_initialize},
 #endif
-#if defined(SLAPD_TCL) && !defined(SLAPD_TCL_DYNAMIC)
+#if SLAPD_TCL == SLAPD_MOD_STATIC
 	{"tcl",		tcl_back_initialize},
 #endif
-#if defined(SLAPD_SQL) && !defined(SLAPD_SQL_DYNAMIC)
+#if SLAPD_SQL == SLAPD_MOD_STATIC
 	{"sql",		sql_back_initialize},
 #endif
 	/* for any private backend */
-#if defined(SLAPD_PRIVATE) && !defined(SLAPD_PRIVATE_DYNAMIC)
+#if SLAPD_PRIVATE == SLAPD_MOD_STATIC
 	{"private",	private_back_initialize},
 #endif
 	{NULL}

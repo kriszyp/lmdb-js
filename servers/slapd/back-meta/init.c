@@ -26,7 +26,7 @@
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
 
-#ifdef SLAPD_META_DYNAMIC
+#if SLAPD_META == SLAPD_MOD_DYNAMIC
 
 int
 init_module( int argc, char *argv[] ) {
@@ -40,7 +40,7 @@ init_module( int argc, char *argv[] ) {
     return 0;
 }
 
-#endif /* SLAPD_META_DYNAMIC */
+#endif /* SLAPD_META */
 
 int
 meta_back_initialize(

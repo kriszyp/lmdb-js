@@ -24,7 +24,7 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-#ifdef SLAPD_LDBM_DYNAMIC
+#if SLAPD_LDBM == SLAPD_MOD_DYNAMIC
 
 int init_module(int argc, char *argv[]) {
     BackendInfo bi;
@@ -37,7 +37,7 @@ int init_module(int argc, char *argv[]) {
     return 0;
 }
 
-#endif /* SLAPD_LDBM_DYNAMIC */
+#endif /* SLAPD_LDBM */
 
 int
 ldbm_back_initialize(

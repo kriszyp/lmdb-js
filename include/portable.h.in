@@ -944,80 +944,41 @@
 /* define to support BDB backend */
 #undef SLAPD_BDB
 
-/* define to support dynamic BDB backend */
-#undef SLAPD_BDB_DYNAMIC
-
 /* define to support DNS SRV backend */
 #undef SLAPD_DNSSRV
-
-/* define to support dynamic DNS SRV backend */
-#undef SLAPD_DNSSRV_DYNAMIC
 
 /* define to support HDB backend */
 #undef SLAPD_HDB
 
-/* define to support dynamic HDB backend */
-#undef SLAPD_HDB_DYNAMIC
-
 /* define to support LDAP backend */
 #undef SLAPD_LDAP
-
-/* define to support dynamic LDAP backend */
-#undef SLAPD_LDAP_DYNAMIC
 
 /* define to support LDBM backend */
 #undef SLAPD_LDBM
 
-/* define to support dynamic LDBM backend */
-#undef SLAPD_LDBM_DYNAMIC
-
 /* define to support LDAP Metadirectory backend */
 #undef SLAPD_META
-
-/* define to support dynamic LDAP Metadirectory backend */
-#undef SLAPD_META_DYNAMIC
 
 /* define to support cn=Monitor backend */
 #undef SLAPD_MONITOR
 
-/* define to support dynamic cn=Monitor backend */
-#undef SLAPD_MONITOR_DYNAMIC
-
 /* define to support NULL backend */
 #undef SLAPD_NULL
-
-/* define to support dynamic NULL backend */
-#undef SLAPD_NULL_DYNAMIC
 
 /* define to support PASSWD backend */
 #undef SLAPD_PASSWD
 
-/* define to support dynamic PASSWD backend */
-#undef SLAPD_PASSWD_DYNAMIC
-
 /* define to support PERL backend */
 #undef SLAPD_PERL
-
-/* define to support dynamic PERL backend */
-#undef SLAPD_PERL_DYNAMIC
 
 /* define to support relay backend */
 #undef SLAPD_RELAY
 
-/* define to support dynamic relay backend */
-#undef SLAPD_RELAY_DYNAMIC
-
 /* define to support SHELL backend */
 #undef SLAPD_SHELL
 
-/* define to support dynamic SHELL backend */
-#undef SLAPD_SHELL_DYNAMIC
-
 /* define to support SQL backend */
 #undef SLAPD_SQL
-
-/* define to support dynamic SQL backend */
-#undef SLAPD_SQL_DYNAMIC
 
 /* define for Dynamic Group overlay */
 #undef SLAPD_OVER_CHAIN

@@ -147,7 +147,7 @@ struct monitorsubsys monitor_subsys[] = {
 	}, { -1, NULL }
 };
 
-#ifdef SLAPD_MONITOR_DYNAMIC
+#if SLAPD_MONITOR == SLAPD_MOD_DYNAMIC
 
 int
 init_module( int argc, char *argv[] )
@@ -161,7 +161,7 @@ init_module( int argc, char *argv[] )
 	return 0;
 }
 
-#endif /* SLAPD_MONITOR_DYNAMIC */
+#endif /* SLAPD_MONITOR */
 
 int
 monitor_back_initialize(

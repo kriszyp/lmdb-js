@@ -29,7 +29,7 @@
 #include "ldap_pvt.h"
 #include "proto-sql.h"
 
-#ifdef SLAPD_SQL_DYNAMIC
+#if SLAPD_SQL == SLAPD_MOD_DYNAMIC
 
 int
 init_module(
@@ -46,7 +46,7 @@ init_module(
 	return 0;
 }
 
-#endif /* SLAPD_SQL_DYNAMIC */
+#endif /* SLAPD_SQL */
 
 int
 sql_back_initialize(

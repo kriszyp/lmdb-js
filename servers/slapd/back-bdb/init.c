@@ -553,8 +553,8 @@ bdb_db_destroy( BackendDB *be )
 	return 0;
 }
 
-#if	(defined(SLAPD_BDB_DYNAMIC) && !defined(BDB_HIER)) || \
-	(defined(SLAPD_HDB_DYNAMIC) && defined(BDB_HIER))
+#if	(SLAPD_BDB == SLAPD_MOD_DYNAMIC && !defined(BDB_HIER)) || \
+	(SLAPD_HDB == SLAPD_MOD_DYNAMIC && defined(BDB_HIER))
 int init_module( int argc, char *argv[] ) {
 	BackendInfo bi;
 
@@ -569,7 +569,7 @@ int init_module( int argc, char *argv[] ) {
 	backend_add( &bi );
 	return 0;
 }
-#endif /* SLAPD_BDB_DYNAMIC */
+#endif /* SLAPD_BDB */
 
 int
 bdb_initialize(

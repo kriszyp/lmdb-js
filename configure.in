@@ -196,53 +196,32 @@ OL_ARG_ENABLE(slp,[    --enable-slp          enable SLPv2 support], no)dnl
 OL_ARG_ENABLE(wrappers,[    --enable-wrappers	  enable tcp wrapper support], no)dnl
 
 
+Backends="bdb dnssrv hdb ldap ldbm meta monitor null \
+	passwd perl relay shell sql"
+
 dnl SLAPD Backend options
-OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend], yes)dnl
-OL_ARG_WITH(bdb_module,[    --with-bdb-module     module type static|dynamic], static,
-	[static dynamic])
-OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend], no)dnl
-OL_ARG_WITH(dnssrv_module,[    --with-dnssrv-module  module type static|dynamic], static,
-	[static dynamic])
-OL_ARG_ENABLE(hdb,[    --enable-hdb	  enable Hierarchical DB backend], no)dnl
-OL_ARG_WITH(hdb_module,[    --with-hdb-module     module type static|dynamic], static,
-	[static dynamic])
-OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend], no)dnl
-OL_ARG_WITH(ldap_module,[    --with-ldap-module	  module type static|dynamic], static,
-	[static dynamic])
-OL_ARG_ENABLE(ldbm,[    --enable-ldbm	  enable ldbm backend], no)dnl
+OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend no|yes|mod], yes, [no yes mod])dnl
+OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend no|yes|mod], no, [no yes mod])dnl
+OL_ARG_ENABLE(hdb,[    --enable-hdb	  enable Hierarchical DB backend], no, [no yes mod])dnl
+OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend], no, [no yes mod])dnl
+OL_ARG_ENABLE(ldbm,[    --enable-ldbm	  enable ldbm backend], no, [no yes mod])dnl
 OL_ARG_WITH(ldbm_api,[    --with-ldbm-api       with LDBM API auto|berkeley|bcompat|mdbm|gdbm], auto,
 	[auto berkeley bcompat mdbm gdbm])
-OL_ARG_WITH(ldbm_module,[    --with-ldbm-module	  module type static|dynamic], static,
-	[static dynamic])
 OL_ARG_WITH(ldbm_type,[    --with-ldbm-type	  use LDBM type auto|btree|hash], auto,
 	[auto btree hash])
-OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend], no)dnl
-OL_ARG_WITH(meta_module,[    --with-meta-module	  module type static|dynamic], static,
-	[static dynamic])
-OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend], yes)dnl
-OL_ARG_WITH(monitor_module,[    --with-monitor-module module type static|dynamic], static,
-	[static dynamic])
-OL_ARG_ENABLE(null,[    --enable-null	  enable null backend], no)dnl
-OL_ARG_WITH(null_module,[    --with-null-module	  module type static|dynamic], static,
-	[static dynamic])
-OL_ARG_ENABLE(passwd,[    --enable-passwd	  enable passwd backend], no)dnl
-OL_ARG_WITH(passwd_module,[    --with-passwd-module  module type static|dynamic], static,
-	[static dynamic])
-OL_ARG_ENABLE(perl,[    --enable-perl	  enable perl backend], no)dnl
-OL_ARG_WITH(perl_module,[    --with-perl-module	  module type static|dynamic], static,
-	[static dynamic])
-OL_ARG_ENABLE(relay,[    --enable-relay  	  enable relay backend], yes)dnl
-OL_ARG_WITH(relay_module,[    --with-relay-module   module type static|dynamic], static,
-	[static dynamic])
-OL_ARG_ENABLE(shell,[    --enable-shell	  enable shell backend], no)dnl
-OL_ARG_WITH(shell_module,[    --with-shell-module	  module type static|dynamic], static,
-	[static dynamic])
-OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend], no)dnl
-OL_ARG_WITH(sql_module,[    --with-sql-module	  module type static|dynamic], static,
-	[static dynamic])
+OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend], no, [no yes mod])dnl
+OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend], yes, [no yes mod])dnl
+OL_ARG_ENABLE(null,[    --enable-null	  enable null backend], no, [no yes mod])dnl
+OL_ARG_ENABLE(passwd,[    --enable-passwd	  enable passwd backend], no, [no yes mod])dnl
+OL_ARG_ENABLE(perl,[    --enable-perl	  enable perl backend], no, [no yes mod])dnl
+OL_ARG_ENABLE(relay,[    --enable-relay  	  enable relay backend], yes, [no yes mod])dnl
+OL_ARG_ENABLE(shell,[    --enable-shell	  enable shell backend], no, [no yes mod])dnl
+OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend], no, [no yes mod])dnl
 
 dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
+Overlays="chain denyop dyngroup ppolicy proxycache rwm"
+
 AC_ARG_WITH(xxslapoverlays,[
 SLAPD Overlay Options:])
 OL_ARG_ENABLE(chain,[    --enable-chain   	  LDAP Chain Response no|yes|mod], no,
@@ -279,45 +258,13 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_slapi = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-slapi argument])
 	fi
-	if test $ol_enable_bdb = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-bdb argument])
-	fi
-	if test $ol_enable_dnssrv = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-dnssrv argument])
-	fi
-	if test $ol_enable_hdb = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-hdb argument])
-	fi
-	if test $ol_enable_ldap = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-ldap argument])
-	fi
-	if test $ol_enable_ldbm = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-ldbm argument])
-	fi
-	if test $ol_enable_meta = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-meta argument])
-	fi
-	if test $ol_enable_monitor = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-monitor argument])
-	fi
-	if test $ol_enable_null = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-null argument])
-	fi
-	if test $ol_enable_passwd = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-passwd argument])
-	fi
-	if test $ol_enable_perl = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-perl argument])
-	fi
-	if test $ol_enable_relay = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-relay argument])
-	fi
-	if test $ol_enable_shell = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-shell argument])
-	fi
-	if test $ol_enable_sql = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-sql argument])
-	fi
+	for i in $Backends; do
+		eval "ol_tmp=\$ol_enable_$i"
+		if test $ol_tmp != no ; then
+			AC_MSG_WARN([slapd disabled, ignoring --enable-$i argument])
+			eval "\$ol_enable_$i=no"
+		fi
+	done
 	if test $ol_enable_modules = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-modules argument])
 	fi
@@ -339,45 +286,6 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_with_ldbm_type != auto ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-ldbm-type argument])
 	fi
-	if test $ol_with_bdb_module != static ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-bdb-module argument])
-	fi
-	if test $ol_with_dnssrv_module != static ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-dnssrv-module argument])
-	fi
-	if test $ol_with_hdb_module != static ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-hdb-module argument])
-	fi
-	if test $ol_with_ldap_module != static ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-ldap-module argument])
-	fi
-	if test $ol_with_ldbm_module != static ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-ldbm-module argument])
-	fi
-	if test $ol_with_meta_module != static ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-meta-module argument])
-	fi
-	if test $ol_with_monitor_module != static ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-monitor-module argument])
-	fi
-	if test $ol_with_null_module != static ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-null-module argument])
-	fi
-	if test $ol_with_passwd_module != static ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-passwd-module argument])
-	fi
-	if test $ol_with_perl_module != static ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-perl-module argument])
-	fi
-	if test $ol_with_relay_module != static ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-relay-module argument])
-	fi
-	if test $ol_with_shell_module != static ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-shell-module argument])
-	fi
-	if test $ol_with_sql_module != static ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-sql-module argument])
-	fi
 	if test $ol_enable_slurpd = yes ; then
 		AC_MSG_ERROR([slurpd requires slapd])
 	fi
@@ -385,40 +293,16 @@ if test $ol_enable_slapd = no ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-rewrite argument])
 	fi
 	dnl overlays
-	if test $ol_with_chain != no ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-chain argument])
-	fi
-	if test $ol_with_denyop != no ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-denyop argument])
-	fi
-	if test $ol_with_dyngroup != no ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-dyngroup argument])
-	fi
-	if test $ol_with_ppolicy != no ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-ppolicy argument])
-	fi
-	if test $ol_with_proxycache != no ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-proxycache argument])
-	fi
-	if test $ol_with_rwm != no ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with-rwm argument])
-	fi
+	for i in $Overlays; do
+		eval "ol_tmp=\$ol_enable_$i"
+		if test $ol_tmp != no ; then
+			AC_MSG_WARN([slapd disabled, ignoring --enable-$i argument])
+			eval "\$ol_enable_$i=no"
+		fi
+	done
 
 	# force settings to no
 	ol_enable_slapi=no
-	ol_enable_bdb=no
-	ol_enable_dnssrv=no
-	ol_enable_hdb=no
-	ol_enable_ldap=no
-	ol_enable_ldbm=no
-	ol_enable_meta=no
-	ol_enable_monitor=no
-	ol_enable_null=no
-	ol_enable_passwd=no
-	ol_enable_perl=no
-	ol_enable_relay=no
-	ol_enable_shell=no
-	ol_enable_sql=no
 
 	ol_enable_modules=no
 	ol_enable_multimaster=no
@@ -429,30 +313,9 @@ if test $ol_enable_slapd = no ; then
 	ol_with_ldbm_api=no
 	ol_with_ldbm_type=no
 
-	ol_with_bdb_module=static
-	ol_with_dnssrv_module=static
-	ol_with_hdb_module=static
-	ol_with_ldap_module=static
-	ol_with_ldbm_module=static
-	ol_with_meta_module=static
-	ol_with_monitor_module=static
-	ol_with_null_module=static
-	ol_with_passwd_module=static
-	ol_with_perl_module=static
-	ol_with_relay_module=static
-	ol_with_shell_module=static
-	ol_with_sql_module=static
-
 	ol_enable_slurpd=no
 
 	ol_enable_rewrite=no
-
-	ol_enable_chain=no
-	ol_enable_denyop=no
-	ol_enable_dyngroup=no
-	ol_enable_ppolicy=no
-	ol_enable_proxycache=no
-	ol_enable_rwm=no
 
 elif test $ol_enable_ldbm = no ; then
 	dnl SLAPD without LDBM
@@ -463,10 +326,6 @@ elif test $ol_enable_ldbm = no ; then
 
 	if test $ol_with_ldbm_type != auto ; then
 		AC_MSG_WARN([LDBM disabled, ignoring --with-ldbm-type argument])
-	fi
-
-	if test $ol_with_ldbm_module != static ; then
-		AC_MSG_WARN([LDBM disabled, ignoring --with-ldbm-module argument])
 	fi
 
 	if test $ol_enable_modules != yes -a \
@@ -493,7 +352,6 @@ elif test $ol_enable_ldbm = no ; then
 
 	ol_with_ldbm_api=no
 	ol_with_ldbm_type=no
-	ol_with_ldbm_module=static
 
 	if test $ol_enable_bdb != no -o $ol_enable_hdb != no; then
 		ol_with_ldbm_api=berkeley
@@ -607,20 +465,6 @@ BUILD_PERL=no
 BUILD_RELAY=no
 BUILD_SHELL=no
 BUILD_SQL=no
-
-BUILD_BDB_DYNAMIC=static
-BUILD_DNSSRV_DYNAMIC=static
-BUILD_HDB_DYNAMIC=static
-BUILD_LDAP_DYNAMIC=static
-BUILD_LDBM_DYNAMIC=static
-BUILD_META_DYNAMIC=static
-BUILD_MONITOR_DYNAMIC=static
-BUILD_NULL_DYNAMIC=static
-BUILD_PASSWD_DYNAMIC=static
-BUILD_PERL_DYNAMIC=static
-BUILD_RELAY_DYNAMIC=static
-BUILD_SHELL_DYNAMIC=static
-BUILD_SQL_DYNAMIC=static
 
 BUILD_CHAIN=no
 BUILD_DENYOP=no
@@ -748,7 +592,7 @@ if test $ol_enable_perl != no ; then
 		PERL_CPPFLAGS="`$PERLBIN -MExtUtils::Embed -e ccopts`"
 		PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e 's/ -lc / /' -e 's/ -lc$//'`"
 
-		if test x"$ol_with_perl_module" = "xstatic" ; then
+		if test x"$ol_enable_perl" = "xyes" ; then
 			SLAPD_PERL_LDFLAGS="$PERL_LDFLAGS"
 		else
 			MOD_PERL_LDFLAGS="$PERL_LDFLAGS"
@@ -831,43 +675,20 @@ if test $ol_enable_modules != no ; then
 	ol_link_modules=yes
 
 else
-	ol_with_bdb_module=static
-	ol_with_dnssrv_module=static
-	ol_with_hdb_module=static
-	ol_with_ldap_module=static
-	ol_with_ldbm_module=static
-	ol_with_meta_module=static
-	ol_with_monitor_module=static
-	ol_with_null_module=static
-	ol_with_passwd_module=static
-	ol_with_perl_module=static
-	ol_with_relay_module=static
-	ol_with_shell_module=static
-	ol_with_sql_module=static
-	if test $ol_enable_chain = mod ; then
-		AC_MSG_WARN([building static chain overlay])
-		ol_enable_chain=yes
-	fi
-	if test $ol_enable_denyop = mod ; then
-		AC_MSG_WARN([building static denyop overlay])
-		ol_enable_denyop=yes
-	fi
-	if test $ol_enable_dyngroup = mod ; then
-		AC_MSG_WARN([building static dyngroup overlay])
-		ol_enable_dyngroup=yes
-	fi
-	if test $ol_enable_ppolicy = mod ; then
-		AC_MSG_WARN([building static ppolicy overlay])
-		ol_enable_ppolicy=yes
-	fi
-	if test $ol_enable_proxycache = mod ; then
-		AC_MSG_WARN([building static proxycache overlay])
-		ol_enable_proxycache=yes
-	fi
-	if test $ol_enable_rwm = mod ; then
-		AC_MSG_WARN([building static rwm overlay])
-		ol_enable_rwm=yes
-	fi
+	for i in $Backends; do
+		eval "ol_tmp=\$ol_enable_$i"
+		if test $ol_tmp = mod ; then
+			AC_MSG_WARN([building static $i backend])
+			eval "\$ol_enable_$i=yes"
+		fi
+	done
+	for i in $Overlays; do
+		eval "ol_tmp=\$ol_enable_$i"
+		if test $ol_tmp = mod ; then
+			AC_MSG_WARN([building static $i overlay])
+			eval "\$ol_enable_$i=yes"
+		fi
+	done
 fi
 
 dnl ----------------------------------------------------------------
@@ -1102,7 +923,7 @@ if test "$ac_cv_func_res_query" = yes ; then
 	fi
 fi
 
-if test "$ol_enable_dnssrv" = yes -a "$ol_link_dnssrv" = no ; then
+if test "$ol_enable_dnssrv" != no -a "$ol_link_dnssrv" = no ; then
 	AC_MSG_ERROR([DNSSRV requires res_query()])
 fi
 
@@ -2594,202 +2415,176 @@ AC_DEFINE(SLAPD_MOD_STATIC,1,[statically linked module])
 AC_DEFINE(SLAPD_MOD_DYNAMIC,2,[dynamically linked module])
 
 if test "$ol_enable_bdb" != no ; then
-	AC_DEFINE(SLAPD_BDB,1,[define to support BDB backend])
 	BUILD_SLAPD=yes
-	BUILD_BDB=yes
-	if test "$ol_with_bdb_module" != static ; then
-		AC_DEFINE(SLAPD_BDB_DYNAMIC,1,
-			[define to support dynamic BDB backend])
-		BUILD_BDB=mod
-		BUILD_BDB_DYNAMIC=shared
+	BUILD_BDB=$ol_enable_bdb
+	if test "$ol_enable_bdb" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-bdb"
+		MFLAG=SLAPD_MOD_DYNAMIC
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-bdb"
+		MFLAG=SLAPD_MOD_STATIC
 	fi
+	AC_DEFINE_UNQUOTED(SLAPD_BDB,$MFLAG,[define to support BDB backend])
 fi
 
-if test "$ol_link_dnssrv" != no ; then
-	AC_DEFINE(SLAPD_DNSSRV,1,[define to support DNS SRV backend])
+if test "$ol_enable_dnssrv" != no ; then
 	BUILD_SLAPD=yes
-	BUILD_DNSSRV=yes
-	if test "$ol_with_dnssrv_module" != static ; then
-		AC_DEFINE(SLAPD_DNSSRV_DYNAMIC,1,
-			[define to support dynamic DNS SRV backend])
-		BUILD_DNSSRV=mod
-		BUILD_DNSSRV_DYNAMIC=shared
+	BUILD_DNSSRV=$ol_enable_dnssrv
+	if test "$ol_enable_dnssrv" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-dnssrv"
+		MFLAG=SLAPD_MOD_DYNAMIC
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-dnssrv"
+		MFLAG=SLAPD_MOD_STATIC
 	fi
+	AC_DEFINE_UNQUOTED(SLAPD_DNSSRV,$MFLAG,[define to support DNS SRV backend])
 fi
 
 if test "$ol_enable_hdb" != no ; then
-	AC_DEFINE(SLAPD_HDB,1,[define to support HDB backend])
 	BUILD_SLAPD=yes
-	BUILD_HDB=yes
-	if test "$ol_with_hdb_module" != static ; then
-		AC_DEFINE(SLAPD_HDB_DYNAMIC,1,
-			[define to support dynamic HDB backend])
-		BUILD_HDB=mod
-		BUILD_HDB_DYNAMIC=shared
+	BUILD_HDB=$ol_enable_hdb
+	if test "$ol_enable_hdb" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-hdb"
+		MFLAG=SLAPD_MOD_DYNAMIC
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-hdb"
+		MFLAG=SLAPD_MOD_STATIC
 	fi
+	AC_DEFINE_UNQUOTED(SLAPD_HDB,$MFLAG,[define to support HDB backend])
 fi
 
 if test "$ol_enable_ldap" != no ; then
-	AC_DEFINE(SLAPD_LDAP,1,[define to support LDAP backend])
 	BUILD_SLAPD=yes
-	BUILD_LDAP=yes
-	if test "$ol_with_ldap_module" != static ; then
-		AC_DEFINE(SLAPD_LDAP_DYNAMIC,1,
-			[define to support dynamic LDAP backend])
-		BUILD_LDAP=mod
-		BUILD_LDAP_DYNAMIC=shared
+	BUILD_LDAP=$ol_enable_ldap
+	if test "$ol_enable_ldap" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-ldap"
+		MFLAG=SLAPD_MOD_DYNAMIC
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-ldap"
+		MFLAG=SLAPD_MOD_STATIC
 	fi
+	AC_DEFINE_UNQUOTED(SLAPD_LDAP,$MFLAG,[define to support LDAP backend])
 fi
 
 if test "$ol_link_ldbm" != no -a $ol_enable_ldbm != no; then
-	AC_DEFINE(SLAPD_LDBM,1,[define to support LDBM backend])
 	BUILD_SLAPD=yes
-	BUILD_LDBM=yes
-	if test "$ol_with_ldbm_module" != static ; then
-		AC_DEFINE(SLAPD_LDBM_DYNAMIC,1,
-			[define to support dynamic LDBM backend])
-		BUILD_LDBM=mod
-		BUILD_LDBM_DYNAMIC=shared
+	BUILD_LDBM=$ol_enable_ldbm
+	if test "$ol_enable_ldbm" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-ldbm"
+		MFLAG=SLAPD_MOD_DYNAMIC
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-ldbm"
+		MFLAG=SLAPD_MOD_STATIC
 	fi
+	AC_DEFINE_UNQUOTED(SLAPD_LDBM,$MFLAG,[define to support LDBM backend])
 fi
 
 if test "$ol_enable_meta" != no ; then
-	AC_DEFINE(SLAPD_META,1,[define to support LDAP Metadirectory backend])
 	BUILD_SLAPD=yes
-	BUILD_META=yes
+	BUILD_META=$ol_enable_meta
 	BUILD_REWRITE=yes
-	if test "$ol_with_meta_module" != static ; then
-		AC_DEFINE(SLAPD_META_DYNAMIC,1,
-			[define to support dynamic LDAP Metadirectory backend])
-		BUILD_META=mod
-		BUILD_META_DYNAMIC=shared
+	if test "$ol_enable_meta" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-meta"
+		MFLAG=SLAPD_MOD_DYNAMIC
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-meta"
+		MFLAG=SLAPD_MOD_STATIC
 	fi
+	AC_DEFINE_UNQUOTED(SLAPD_META,$MFLAG,[define to support LDAP Metadirectory backend])
 fi
 
 if test "$ol_enable_monitor" != no ; then
-	AC_DEFINE(SLAPD_MONITOR,1,[define to support cn=Monitor backend])
 	BUILD_SLAPD=yes
-	BUILD_MONITOR=yes
-	if test "$ol_with_monitor_module" != static ; then
-		AC_DEFINE(SLAPD_MONITOR_DYNAMIC,1,
-			[define to support dynamic cn=Monitor backend])
-		BUILD_MONITOR=mod
-		BUILD_MONITOR_DYNAMIC=shared
+	BUILD_MONITOR=$ol_enable_monitor
+	if test "$ol_enable_monitor" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-monitor"
+		MFLAG=SLAPD_MOD_DYNAMIC
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-monitor"
+		MFLAG=SLAPD_MOD_STATIC
 	fi
+	AC_DEFINE_UNQUOTED(SLAPD_MONITOR,$MFLAG,[define to support cn=Monitor backend])
 fi
 
 if test "$ol_enable_null" != no ; then
-	AC_DEFINE(SLAPD_NULL,1,[define to support NULL backend])
 	BUILD_SLAPD=yes
-	BUILD_NULL=yes
-	if test "$ol_with_null_module" != static ; then
-		AC_DEFINE(SLAPD_NULL_DYNAMIC,1,
-			[define to support dynamic NULL backend])
-		BUILD_NULL=mod
-		BUILD_NULL_DYNAMIC=shared
+	BUILD_NULL=$ol_enable_null
+	if test "$ol_enable_null" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-null"
+		MFLAG=SLAPD_MOD_DYNAMIC
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-null"
+		MFLAG=SLAPD_MOD_STATIC
 	fi
+	AC_DEFINE_UNQUOTED(SLAPD_NULL,$MFLAG,[define to support NULL backend])
 fi
 
 if test "$ol_enable_passwd" != no ; then
-	AC_DEFINE(SLAPD_PASSWD,1,[define to support PASSWD backend])
 	BUILD_SLAPD=yes
-	BUILD_PASSWD=yes
-	if test "$ol_with_passwd_module" != static ; then
-		AC_DEFINE(SLAPD_PASSWD_DYNAMIC,1,
-			[define to support dynamic PASSWD backend])
-		BUILD_PASSWD=mod
-		BUILD_PASSWD_DYNAMIC=shared
+	BUILD_PASSWD=$ol_enable_passwd
+	if test "$ol_enable_passwd" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-passwd"
+		MFLAG=SLAPD_MOD_DYNAMIC
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-passwd"
+		MFLAG=SLAPD_MOD_STATIC
 	fi
+	AC_DEFINE_UNQUOTED(SLAPD_PASSWD,$MFLAG,[define to support PASSWD backend])
 fi
 
 if test "$ol_link_perl" != no ; then
-	AC_DEFINE(SLAPD_PERL,1,[define to support PERL backend])
 	BUILD_SLAPD=yes
-	BUILD_PERL=yes
-	if test "$ol_with_perl_module" != static ; then
-		AC_DEFINE(SLAPD_PERL_DYNAMIC,1,
-			[define to support dynamic PERL backend])
-		BUILD_PERL=mod
-		BUILD_PERL_DYNAMIC=shared
+	BUILD_PERL=$ol_enable_perl
+	if test "$ol_enable_perl" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-perl"
+		MFLAG=SLAPD_MOD_DYNAMIC
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-perl"
+		MFLAG=SLAPD_MOD_STATIC
 	fi
+	AC_DEFINE_UNQUOTED(SLAPD_PERL,$MFLAG,[define to support PERL backend])
 fi
 
 if test "$ol_enable_relay" != no ; then
-	AC_DEFINE(SLAPD_RELAY,1,[define to support relay backend])
 	BUILD_SLAPD=yes
-	BUILD_RELAY=yes
-	if test "$ol_with_relay_module" != static ; then
-		AC_DEFINE(SLAPD_RELAY_DYNAMIC,1,
-			[define to support dynamic relay backend])
-		BUILD_RELAY=mod
-		BUILD_RELAY_DYNAMIC=shared
+	BUILD_RELAY=$ol_enable_relay
+	if test "$ol_enable_relay" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-relay"
+		MFLAG=SLAPD_MOD_DYNAMIC
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-relay"
+		MFLAG=SLAPD_MOD_STATIC
 	fi
+	AC_DEFINE_UNQUOTED(SLAPD_RELAY,$MFLAG,[define to support relay backend])
 fi
 
 if test "$ol_enable_shell" != no ; then
 	if test "$ol_link_thread" != no ; then
 		AC_MSG_WARN([Use of --without-threads is recommended with back-shell])
 	fi
-	AC_DEFINE(SLAPD_SHELL,1,[define to support SHELL backend])
 	BUILD_SLAPD=yes
-	BUILD_SHELL=yes
-	if test "$ol_with_shell_module" != static ; then
-		AC_DEFINE(SLAPD_SHELL_DYNAMIC,1,
-			[define to support dynamic SHELL backend])
-		BUILD_SHELL=mod
-		BUILD_SHELL_DYNAMIC=shared
+	BUILD_SHELL=$ol_enable_shell
+	if test "$ol_enable_shell" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-shell"
+		MFLAG=SLAPD_MOD_DYNAMIC
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-shell"
+		MFLAG=SLAPD_MOD_STATIC
 	fi
+	AC_DEFINE_UNQUOTED(SLAPD_SHELL,$MFLAG,[define to support SHELL backend])
 fi
 
 if test "$ol_link_sql" != no ; then
-	AC_DEFINE(SLAPD_SQL,1,[define to support SQL backend])
 	BUILD_SLAPD=yes
-	BUILD_SQL=yes
-	if test "$ol_with_sql_module" != static; then
-		AC_DEFINE(SLAPD_SQL_DYNAMIC,1,
-			[define to support dynamic SQL backend])
-		BUILD_SQL=mod
-		BUILD_SQL_DYNAMIC=shared
+	BUILD_SQL=$ol_enable_sql
+	if test "$ol_enable_sql" = mod; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-sql"
+		MFLAG=SLAPD_MOD_DYNAMIC
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-sql"
+		MFLAG=SLAPD_MOD_STATIC
 	fi
+	AC_DEFINE_UNQUOTED(SLAPD_SQL,$MFLAG,[define to support SQL backend])
 fi
 
 if test "$ol_enable_chain" != no ; then
@@ -2918,20 +2713,6 @@ dnl backends
   AC_SUBST(BUILD_PERL)
   AC_SUBST(BUILD_SHELL)
   AC_SUBST(BUILD_SQL)
-dnl backend modules
-  AC_SUBST(BUILD_BDB_DYNAMIC)
-  AC_SUBST(BUILD_DNSSRV_DYNAMIC)
-  AC_SUBST(BUILD_HDB_DYNAMIC)
-  AC_SUBST(BUILD_LDAP_DYNAMIC)
-  AC_SUBST(BUILD_LDBM_DYNAMIC)
-  AC_SUBST(BUILD_META_DYNAMIC)
-  AC_SUBST(BUILD_MONITOR_DYNAMIC)
-  AC_SUBST(BUILD_NULL_DYNAMIC)
-  AC_SUBST(BUILD_PASSWD_DYNAMIC)
-  AC_SUBST(BUILD_PERL_DYNAMIC)
-  AC_SUBST(BUILD_RELAY_DYNAMIC)
-  AC_SUBST(BUILD_SHELL_DYNAMIC)
-  AC_SUBST(BUILD_SQL_DYNAMIC)
 dnl overlays
   AC_SUBST(BUILD_CHAIN)
   AC_SUBST(BUILD_DENYOP)
