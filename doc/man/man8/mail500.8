@@ -4,11 +4,11 @@ mail500 \- X.500 capable mailer
 .LP
 fax500 \- X.500 capable fax delivery agent
 .SH SYNOPSIS
-.B ETCDIR/mail500 [\-d level] [\-f mailfrom]
+.B LIBEXECDIR/mail500 [\-d level] [\-f mailfrom]
 .B [\-h hostname] [\-l ldaphost]
 .B [\-m address] [\-v vacationhost]
 .LP
-.B ETCDIR/fax500 [\-d level] [\-f mailfrom]
+.B LIBEXECDIR/fax500 [\-d level] [\-f mailfrom]
 .B [\-h hostname] [\-l ldaphost]
 .B [\-m address]
 .SH DESCRIPTION
@@ -253,8 +253,8 @@ The mail500 and fax500 mailers should be defined similar to this in the
 sendmail.cf file:
 .LP
 .nf
-Mmail500, P=ETCDIR/mail500, F=DFMSmnXuh, A=mail500 -f $f -h $h -m $n@$w $u
-Mfax500, P=ETCDIR/fax500, F=DFMSmnXuh, A=fax500 -f $f -h $h -m $n@$w $u
+Mmail500, P=LIBEXECDIR/mail500, F=DFMSmnXuh, A=mail500 -f $f -h $h -m $n@$w $u
+Mfax500, P=LIBEXECDIR/fax500, F=DFMSmnXuh, A=fax500 -f $f -h $h -m $n@$w $u
 .fi
 .LP
 This defines how mail500/fax500 will be treated by sendmail and what

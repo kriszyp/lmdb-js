@@ -22,19 +22,23 @@
 #############################################################################
 #
 # by default, everything is installed below INSTROOT
-# servers, config files, etc. are put in ETCDIR
+# config files, etc. are put in ETCDIR
 # include files get put in INCLUDEDIR
 # libraries are put in LIBDIR
 # man pages are put under MANDIR
 # programs end-users will run are put in BINDIR
+# programs sysadmins will run are put in SBINDIR
+# servers are put in LIBEXECDIR
 #
 PREFIX?=/usr/local
-INSTROOT=${PREFIX}
-ETCDIR= $(INSTROOT)/etc/ldap
-INCLUDEDIR= $(INSTROOT)/include
-LIBDIR= $(INSTROOT)/lib
-MANDIR= $(INSTROOT)/man
-BINDIR= $(INSTROOT)/bin
+INSTROOT?=${PREFIX}
+ETCDIR?= $(INSTROOT)/etc/ldap
+INCLUDEDIR?= $(INSTROOT)/include
+LIBDIR?= $(INSTROOT)/lib
+MANDIR?= $(INSTROOT)/man
+BINDIR?= $(INSTROOT)/bin
+SBINDIR?=$(INSTROOT)/sbin
+LIBEXECDIR?=$(INSTROOT)/libexec
 #
 # if you want things to run in a different directory from where they
 # are installed, set this accordingly (this path gets compiled into a
@@ -45,9 +49,9 @@ RUNTIMEETCDIR?= $(ETCDIR)
 ## General compiler options                                                ##
 #############################################################################
 # Passed to every compile (cc or gcc).  This is where you put -O or -g, etc.
-#EXTRACFLAGS=-O -g
+EXTRACFLAGS=-O -g
 #EXTRACFLAGS=-O
-EXTRACFLAGS=-g
+#EXTRACFLAGS=-g
 # Passed to every link (ld).  Include -g here if you did in EXTRACFLAGS.
 EXTRALDFLAGS=-g
 
@@ -118,7 +122,7 @@ EXTRALDFLAGS=-g
 MAKESLAPD= yes
 #
 # remove the defines for backends you don't want to enable 
-SLAPD_BACKENDS= -DLDAP_LDBM # -DLDAP_SHELL -DLDAP_PASSWD
+SLAPD_BACKENDS= -DLDAP_LDBM -DLDAP_SHELL -DLDAP_PASSWD
 #
 # If you have included -DLDAP_LDBM in the SLAPD_BACKENDS line you need
 # to specify which low-level database package to use.  There are
@@ -142,6 +146,7 @@ SLAPD_BACKENDS= -DLDAP_LDBM # -DLDAP_SHELL -DLDAP_PASSWD
 LDBMBACKEND?=-DLDBM_USE_NDBM
 LDBMINCLUDE?=
 LDBMLIB?=
+
 # if you want to use a non-default threads package change the defines below
 # to one of:
 #	-DPOSIX_THREADS         (draft 10 or standard)
@@ -153,6 +158,13 @@ LDBMLIB?=
 # and select the appropriate library.
 #THREADS?=-DNO_THREADS
 #THREADSLIB?=
+
+#
+# Locations of auxilary programs
+# (excepts to below are generally defined in Make-platform)
+SENDMAIL?=/usr/lib/sendmail
+EDITOR?=/usr/ucb/vi
+FINGER?=/usr/ucb/finger
 
 #############################################################################
 ## The following options are used by the xax500 client.  If you haven't    ##
@@ -210,13 +222,15 @@ LDAP_DEBUG=-DLDAP_DEBUG
 LDAP_REFERRALS=-DLDAP_REFERRALS
 
 # uncomment these lines to enable support for CRYPT passwords in LDBM.
-LDAP_CRYPT=-DLDAP_CRYPT
-LDAP_CRYPT_LIB=-lcrypt
+# LDAP_CRYPT=-DLDAP_CRYPT
+# LDAP_CRYPT_LIB?=
+# and comment this line out
+LDAP_CRYPT_LIB=
 
 # uncomment these lines to enable support fro tcp_wrappers in servers.
 # Requires tcp_wrappers.
-LDAP_TCP_WRAPPERS=-DTCP_WRAPPERS -I/usr/local/include
-LDAP_TCP_WRAPPERS_LIB=-L/usr/local/lib -lwrap
+# LDAP_TCP_WRAPPERS=-DTCP_WRAPPERS -I/usr/local/include
+# LDAP_TCP_WRAPPERS_LIB=-L/usr/local/lib -lwrap
 
 # uncomment this line to use soundex for approximate matches in slapd.
 # the default is to use the metaphone algorithm.

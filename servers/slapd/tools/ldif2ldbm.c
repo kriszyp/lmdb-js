@@ -7,7 +7,7 @@
 #include "../back-ldbm/back-ldbm.h"
 
 #define DEFAULT_CONFIGFILE	"%ETCDIR%/slapd.conf"
-#define DEFAULT_ETCDIR		"%ETCDIR%"
+#define DEFAULT_SBINDIR		"%SBINDIR%"
 #define INDEXCMD		"ldif2index"
 #define ID2ENTRYCMD		"ldif2id2entry"
 #define ID2CHILDRENCMD		"ldif2id2children"
@@ -52,14 +52,14 @@ static int      nkids;
 static void
 usage( char *name )
 {
-	fprintf( stderr, "usage: %s -i inputfile [-d debuglevel] [-f configfile] [-j #jobs] [-n databasenumber] [-e etcdir]\n", name );
+	fprintf( stderr, "usage: %s -i inputfile [-d debuglevel] [-f configfile] [-j #jobs] [-n databasenumber] [-s sbindir]\n", name );
 	exit( 1 );
 }
 
 main( int argc, char **argv )
 {
 	int		i, stop, status;
-	char		*linep, *buf, *etcdir;
+	char		*linep, *buf, *sbindir;
 	char		*args[10];
 	char		buf2[20], buf3[20];
 	char		line[BUFSIZ];
@@ -74,17 +74,18 @@ main( int argc, char **argv )
 	Avlnode		*avltypes = NULL;
 	extern char	*optarg;
 
-	etcdir = DEFAULT_ETCDIR;
+	sbindir = DEFAULT_SBINDIR;
 	tailorfile = DEFAULT_CONFIGFILE;
 	dbnum = -1;
-	while ( (i = getopt( argc, argv, "d:e:f:i:j:n:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "d:e:s:f:i:j:n:" )) != EOF ) {
 		switch ( i ) {
 		case 'd':	/* turn on debugging */
 			ldap_debug = atoi( optarg );
 			break;
 
-		case 'e':	/* alternate etcdir (index cmd location) */
-			etcdir = strdup( optarg );
+		case 's':	/* alternate sbindir (index cmd location) */
+		case 'e':	/* accept -e for backwards compatibility */
+			sbindir = strdup( optarg );
 			break;
 
 		case 'f':	/* specify a tailor file */
@@ -150,7 +151,7 @@ main( int argc, char **argv )
 	 */
 
 	i = 0;
-	sprintf( cmd, "%s/%s", etcdir, ID2ENTRYCMD );
+	sprintf( cmd, "%s/%s", sbindir, ID2ENTRYCMD );
 	args[i++] = cmd;
 	args[i++] = "-i";
 	args[i++] = inputfile;
@@ -172,7 +173,7 @@ main( int argc, char **argv )
 	 */
 
 	i = 0;
-	sprintf( cmd, "%s/%s", etcdir, ID2CHILDRENCMD );
+	sprintf( cmd, "%s/%s", sbindir, ID2CHILDRENCMD );
 	args[i++] = cmd;
 	args[i++] = "-i";
 	args[i++] = inputfile;
@@ -194,7 +195,7 @@ main( int argc, char **argv )
 	 */
 
 	i = 0;
-	sprintf( cmd, "%s/%s", etcdir, INDEXCMD );
+	sprintf( cmd, "%s/%s", sbindir, INDEXCMD );
 	args[i++] = cmd;
 	args[i++] = "-i";
 	args[i++] = inputfile;

@@ -43,7 +43,7 @@ version.c:	$(OBJS) $(LDIR)/libldap.a
 
 install:	in.xfingerd FORCE
 	-$(MKDIR) -p $(ETCDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 in.xfingerd $(ETCDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 in.xfingerd $(LIBEXECDIR)
 
 lint:	FORCE
 	$(LINT) $(INCLUDES) $(DEFINES) $(SRCS)

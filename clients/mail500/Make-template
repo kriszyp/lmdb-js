@@ -42,7 +42,7 @@ version.c: $(OBJS) $(LDIR)/libldap/libldap.a
 
 install:	mail500 FORCE
 	-$(MKDIR) -p $(ETCDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 mail500 $(ETCDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 mail500 $(LIBEXECDIR)
 
 lint:	FORCE
 	$(LINT) $(INCLUDES) $(DEFINES) $(SRCS)

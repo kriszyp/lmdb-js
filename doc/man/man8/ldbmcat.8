@@ -2,7 +2,7 @@
 .SH NAME
 ldbmcat \- LDBM to LDIF database format conversion utility
 .SH SYNOPSIS
-.B ETCDIR/ldbmcat [\-n] id2entry\-file
+.B SBINDIR/ldbmcat [\-n] id2entry\-file
 .LP
 .SH DESCRIPTION
 .LP
@@ -33,7 +33,7 @@ give the command:
 .LP
 .nf
 .ft tt
-	ETCDIR/ldbmcat -n id2entry.dbb > ldif
+	SBINDIR/ldbmcat -n id2entry.dbb > ldif
 .ft
 .fi
 .LP
@@ -43,8 +43,8 @@ attribute, give these commands:
 .LP
 .nf
 .ft tt
-	ETCDIR/ldbmcat id2entry.dbb > ldif
-	ETCDIR/ldif2index -i ldif -f slapd-config-file mail
+	SBINDIR/ldbmcat id2entry.dbb > ldif
+	SBINDIR/ldif2index -i ldif -f slapd-config-file mail
 .ft
 .fi
 .LP

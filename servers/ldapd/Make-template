@@ -71,10 +71,10 @@ install:	FORCE
 	    echo "uncomment the HAVEISODE=yes line in the Make-common file to build and install ldapd"; \
         fi
 
-install-ldapd: $(ETCDIR) $(ETCDIR)/ldapd
+install-ldapd: $(LIBEXECDIR) $(LIBEXECDIR)/ldapd
 
-$(ETCDIR)/ldapd:	ldapd
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapd $(ETCDIR)
+$(LIBEXECDIR)/ldapd:	ldapd
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapd $(LIBEXECDIR)
 
 lint:	FORCE
 	$(LINT) $(INCLUDES) $(DEFINES) $(SRCS)

@@ -40,7 +40,7 @@ version.c: $(OBJS) $(LDIR)/libldap.a
 
 install:	rcpt500 rcpt500.help FORCE
 	-$(MKDIR) -p $(ETCDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 rcpt500 $(ETCDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 rcpt500 $(LIBEXECDIR)
 	$(INSTALL) $(INSTALLFLAGS) -m 644 rcpt500.help $(ETCDIR)
 
 lint:	FORCE

@@ -2,21 +2,21 @@
 .SH NAME
 ldif2ldbm, ldif2index, ldif2id2entry, ldif2id2children \- LDIF to LDBM database format conversion utilities
 .SH SYNOPSIS
-.B ETCDIR/ldif2ldbm
+.B SBINDIR/ldif2ldbm
 .B \-i ldif\-input\-file
 .B [\-d debug\-level] [\-f slapd\-config\-file]
 .B [\-j number\-of\-jobs]
 .LP
-.B ETCDIR/ldif2index
+.B SBINDIR/ldif2index
 .B \-i ldif\-input\-file
 .B [\-d debug\-level] [\-f slapd\-config\-file]
 .B attribute\-name
 .LP
-.B ETCDIR/ldif2id2entry
+.B SBINDIR/ldif2id2entry
 .B \-i ldif\-input\-file
 .B [\-d debug\-level] [\-f slapd\-config\-file]
 .LP
-.B ETCDIR/ldif2id2children
+.B SBINDIR/ldif2id2children
 .B \-i ldif\-input\-file
 .B [\-d debug\-level] [\-f slapd\-config\-file]
 .LP
@@ -85,12 +85,12 @@ To convert the file
 into an LDBM database with indexes as described in the
 .I slapd
 config file
-.BR /usr/local/etc/slapd.conf ,
+.BR ETCDIR/slapd.conf ,
 give the command:
 .LP
 .nf
 .ft tt
-	ETCDIR/ldif2index -i ldif.input -f /usr/local/etc/slapd.conf
+	SBINDIR/ldif2index -i ldif.input -f ETCDIR/slapd.conf
 .ft
 .fi
 .LP
@@ -99,7 +99,7 @@ give this command:
 .LP
 .nf
 .ft tt
-	ETCDIR/ldif2index -i ldif.input -f /usr/local/etc/slapd.conf -j 2
+	SBINDIR/ldif2index -i ldif.input -f ETCDIR/slapd.conf -j 2
 .ft
 .fi
 .LP

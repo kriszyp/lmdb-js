@@ -57,8 +57,8 @@ gwversion.c: go500gw.o detach.o setproctitle.o $(DLIBS)
 
 install:	go500 go500gw go500gw.help FORCE
 	-$(MKDIR) -p $(ETCDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 go500 $(ETCDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 go500gw $(ETCDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 go500 $(LIBEXECDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 go500gw $(LIBEXECDIR)
 	-$(MV) $(ETCDIR)/go500gw.help $(ETCDIR)/go500gw.help-
 	$(INSTALL) $(INSTALLFLAGS) -m 644 go500gw.help $(ETCDIR)
 

@@ -2,7 +2,7 @@
 .SH NAME
 slapd \- Stand-alone LDAP Daemon
 .SH SYNOPSIS
-.B ETCDIR/slapd [\-d debug\-level]
+.B LIBEXECDIR/slapd [\-d debug\-level]
 .B [\-f slapd\-config\-file] [\-p port\-number]
 .B [\-s syslog\-level] [\-i]
 .B 
@@ -89,7 +89,7 @@ on voluminous debugging which will be printed on standard error, type:
 .LP
 .nf
 .ft tt
-	ETCDIR/slapd -f /usr/local/slapd/slapd.conf -d 255
+	LIBEXECDIR/slapd -f ETCDIR/slapd.conf -d 255
 .ft
 .fi
 .LP

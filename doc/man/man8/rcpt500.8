@@ -2,7 +2,7 @@
 .SH NAME
 rcpt500 \- mail to X.500 gateway program
 .SH SYNOPSIS
-.B ETCDIR/rcpt500 [\-l] [\-h ldaphost] [\-p ldapport]
+.B LIBEXECDIR/rcpt500 [\-l] [\-h ldaphost] [\-p ldapport]
 .B [\-b searchbase] [\-a] [\-U] [\-z sizelimit] [\-u dapuser]
 .B [\-f filterfile] [\-t templatefile] [\-c rdncount]
 .SH DESCRIPTION
@@ -27,7 +27,7 @@ invoked whenever mail is sent to the address \fInamelookup\fP on your host:
 .nf
 .fi
 .ft tt
-    namelookup:	"|ETCDIR/rcpt500 -l"
+    namelookup:	"|LIBEXECDIR/rcpt500 -l"
 .ft
 .fi
 .SH OPTIONS

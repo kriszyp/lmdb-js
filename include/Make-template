@@ -31,7 +31,13 @@ ldapconfig.h:	ldapconfig.h.edit Makefile
         echo " * INSTALL file for more information." >> $@; \
         echo " */ " >> $@; \
         echo "" >> $@; \
-	$(SED) -e 's;%ETCDIR%;$(RUNTIMEETCDIR);' ldapconfig.h.edit >> $@; \
+	$(SED) -e 's;%ETCDIR%;$(RUNTIMEETCDIR);' \
+			-e 's;%SBINDIR%;$(SBINDIR);' \
+			-e 's;%LIBEXECDIR%;$(LIBEXECDIR);' \
+			-e 's;%EDITOR%;$(EDITOR);' \
+			-e 's;%FINGER%;$(FINGER);' \
+			-e 's;%SENDMAIL%;$(SENDMAIL);' \
+			 ldapconfig.h.edit >> $@; \
 	$(CHMOD) 444 $@
 
 install: all FORCE

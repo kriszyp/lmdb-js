@@ -2,7 +2,7 @@
 .SH NAME
 centipede \- LDAP centroid index generation and maintenance program
 .SH SYNOPSIS
-.B ETCDIR/centipede
+.B SBINDIR/centipede
 .B [\-f filter]
 .B [\-F] [\-R]
 .B [\-f filter] [\-t directory]
@@ -25,7 +25,7 @@ The basic form of the command is as follows
 .LP
 .nf
 .ft tt
-	ETCDIR/centipede [options]
+	SBINDIR/centipede [options]
 		-s "ldap://[host/]subtree-to-index-dn"
 		-d "ldap://[host/]parent-of-index-entry-dn"
 		attributes
@@ -61,7 +61,7 @@ like this:
 .LP
 .nf
 .ft tt
-	ETCDIR/centipede -f '(objectclass=person)'
+	SBINDIR/centipede -f '(objectclass=person)'
 		-m simple -b your-rootdn -p your-rootdnpw
 		-s "ldap://babs.com/o=BabsCo, c=US"
 		-d "ldap://vertigo.rs.itd.umich.edu/c=US"

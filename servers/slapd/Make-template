@@ -100,12 +100,13 @@ version.c: libbackends.a $(OBJS) $(LDIR)/liblber/liblber.a \
 	-e "s|%VERSION%|$${v}|" \
 	< Version.c > $@)
 
-install: all $(ETCDIR) $(ETCDIR)/slapd $(ETCDIR)/slapd.conf \
+install: all $(LIBEXECDIR) $(LIBEXECDIR)/slapd \
+		$(ETCDIR) $(ETCDIR)/slapd.conf \
 		$(ETCDIR)/slapd.at.conf $(ETCDIR)/slapd.oc.conf \
 		install-tools
 
-$(ETCDIR)/slapd:	slapd
-	$(INSTALL) $(INSTALLFLAGS) -m 755 slapd $(ETCDIR)
+$(LIBEXECDIR)/slapd:	slapd
+	$(INSTALL) $(INSTALLFLAGS) -m 755 slapd $(LIBEXECDIR)
 
 $(ETCDIR)/slapd.conf:	slapd.conf
 	$(SED) -e 's;%ETCDIR%;$(RUNTIMEETCDIR);' slapd.conf > /tmp/slapd.$$

@@ -6,12 +6,14 @@
 #
 # add any platform-specific overrides below here
 #
-PREFIX?=/usr/local
-INSTROOT=${PREFIX}
-ETCDIR= $(INSTROOT)/etc/ldap
-EXTRACFLAGS=-O
+EXTRACFLAGS=-O -g
 LDBMBACKEND=-DLDBM_USE_DBBTREE
 LDBMINCLUDE=-I/usr/include
+
+EDITOR=/usr/bin/vi
+FINGER=/usr/bin/finger
+SENDMAIL=/usr/sbin/sendmail
+
 #
 # LDAP has a problem with the idea of implicit vs. explicit yields
 # in call conversion threading packages, like the MIT pthreads

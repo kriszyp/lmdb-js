@@ -25,7 +25,11 @@ install:	FORCE
 	@TMPMAN=/tmp/ldapman.$$$$; \
 	VERSION=`$(CAT) $(VERSIONFILE)`; \
 	for page in *.$(SECT); do \
-	    $(SED) -e 's%ETCDIR%$(RUNTIMEETCDIR)%' -e "s%LDVERSION%$$VERSION%" \
+	    $(SED) -e "s%LDVERSION%$$VERSION%" \
+			-e 's%ETCDIR%$(RUNTIMEETCDIR)%' \
+			-e 's%SBINDIR%$(SBINDIR)%' \
+			-e 's%BINDIR%$(BINDIR)%' \
+			-e 's%LIBEXECDIR%$(LIBEXECDIR)%' \
 		    $$page > $$TMPMAN; \
 	    echo "installing $(INSTDIR)/$$page"; \
 	    $(INSTALL) $(INSTALLFLAGS) -m 644 $$TMPMAN $(INSTDIR)/$$page; \
