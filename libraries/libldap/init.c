@@ -81,7 +81,6 @@ static const struct ol_attribute {
 #endif
 
 #ifdef HAVE_TLS
-  	{0, ATTR_TLS,		"TLS",			NULL,	LDAP_OPT_X_TLS},
 	{1, ATTR_TLS,		"TLS_CERT",		NULL,	LDAP_OPT_X_TLS_CERTFILE},
 	{1, ATTR_TLS,		"TLS_KEY",		NULL,	LDAP_OPT_X_TLS_KEYFILE},
   	{0, ATTR_TLS,		"TLS_CACERT",	NULL,	LDAP_OPT_X_TLS_CACERTFILE},

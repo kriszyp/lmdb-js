@@ -520,7 +520,12 @@ tool_args( int argc, char **argv )
 #endif
 	}
 
-	if( ldapuri != NULL ) {
+	if( ldapuri == NULL ) {
+		if( ldapport && ( ldaphost == NULL )) {
+			fprintf( stderr, "%s: -p without -h is invalid.\n", prog );
+			exit( EXIT_FAILURE );
+		}
+	} else {
 		if( ldaphost != NULL ) {
 			fprintf( stderr, "%s: -H incompatible with -h\n", prog );
 			exit( EXIT_FAILURE );
