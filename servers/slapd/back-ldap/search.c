@@ -390,10 +390,11 @@ ldap_send_entry(
 	 * Rewrite the dn of the result, if needed
 	 */
 	switch ( rewrite_session( li->rwinfo, "searchResult",
-				dn, lc->conn, &ent.e_dn ) ) {
+				dn, lc->conn, &ent.e_name.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
-		if ( ent.e_dn == NULL ) {
-			ent.e_dn = dn;
+		if ( ent.e_name.bv_val == NULL ) {
+			ent.e_name.bv_val = dn;
+			
 		} else {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
@@ -406,6 +407,7 @@ ldap_send_entry(
 			free( dn );
 			dn = NULL;
 		}
+		ent.e_name.bv_len = strlen( ent.e_name.bv_val );
 		break;
 		
 	case REWRITE_REGEXEC_ERR:
