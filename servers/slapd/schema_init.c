@@ -16,8 +16,9 @@
 #include "slap.h"
 #include "ldap_pvt.h"
 
+#define berValidate blobValidate
 static int
-octetStringValidate(
+blobValidate(
 	Syntax *syntax,
 	struct berval *in )
 {
@@ -150,18 +151,21 @@ IA5StringConvert(
 	struct berval *in,
 	struct berval **out )
 {
-	ber_len_t i;
+	ldap_unicode_t *u;
+	ber_len_t i, len = in->bv_len;
 	struct berval *bv = ch_malloc( sizeof(struct berval) );
-	bv->bv_len = (in->bv_len+1) * sizeof( ldap_unicode_t );
-	bv->bv_val = ch_malloc( bv->bv_len );
 
-	for(i=0; i < in->bv_len; i++ ) {
+	bv->bv_len = len * sizeof( ldap_unicode_t );
+	bv->bv_val = (char *) u = ch_malloc( bv->bv_len + sizeof( ldap_unicode_t ) );;
+
+	for(i=0; i < len; i++ ) {
 		/*
 		 * IA5StringValidate should have been called to ensure
 		 * input is limited to IA5.
 		 */
-		bv->bv_val[i] = in->bv_val[i];
+		u[i] = in->bv_val[i];
 	}
+	u[i] = 0;
 
 	*out = bv;
 	return 0;
@@ -269,27 +273,33 @@ struct syntax_defs_rec {
 	slap_syntax_transform_func *sd_str2ber;
 };
 
+#define X_BINARY ""
+#define X_NOT_H_R ""
+
 struct syntax_defs_rec syntax_defs[] = {
-	{"( 1.3.6.1.4.1.1466.115.121.1.1 DESC 'ACI Item' )",
-		SLAP_SYNTAX_BINARY, NULL, NULL, NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.2 DESC 'Access Point' )",
-		SLAP_SYNTAX_BINARY, NULL, NULL, NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.1 DESC 'ACI Item' " X_BINARY X_NOT_H_R ")",
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, NULL, NULL, NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.2 DESC 'Access Point' " X_NOT_H_R ")",
+		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.3 DESC 'Attribute Type Description' )",
 		0, NULL, NULL, NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.4 DESC 'Audio' )",
-		SLAP_SYNTAX_BINARY, NULL, NULL, NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.5 DESC 'Binary' )",
-		SLAP_SYNTAX_BINARY, NULL, NULL, NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.4 DESC 'Audio' " X_NOT_H_R ")",
+		SLAP_SYNTAX_BLOB, blobValidate, NULL, NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.5 DESC 'Binary' " X_BINARY X_NOT_H_R ")",
+		SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.7 DESC 'Boolean' )",
 		0, NULL, NULL, NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' )",
-		SLAP_SYNTAX_BINARY, NULL, NULL, NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.9 DESC 'Certificate List' )",
-		SLAP_SYNTAX_BINARY, NULL, NULL, NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.10 DESC 'Certificate Pair' )",
-		SLAP_SYNTAX_BINARY, NULL, NULL, NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' "
+		X_BINARY X_NOT_H_R ")",
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.9 DESC 'Certificate List' "
+		X_BINARY X_NOT_H_R ")",
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.10 DESC 'Certificate Pair'
+		" X_BINARY X_NOT_H_R ")",
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.11 DESC 'Country String' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'DN' )",
@@ -312,8 +322,8 @@ struct syntax_defs_rec syntax_defs[] = {
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.22 DESC 'Facsimile Telephone Number' )",
 		0, NULL, NULL, NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.23 DESC 'Fax' )",
-		SLAP_SYNTAX_BINARY, NULL, NULL, NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.23 DESC 'Fax' " X_NOT_H_R ")",
+		SLAP_SYNTAX_BLOB, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.24 DESC 'Generalized Time' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.25 DESC 'Guide' )",
@@ -322,8 +332,8 @@ struct syntax_defs_rec syntax_defs[] = {
 		0, IA5StringValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'Integer' )",
 		0, NULL, NULL, NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.28 DESC 'JPEG' )",
-		SLAP_SYNTAX_BINARY, NULL, NULL, NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.28 DESC 'JPEG' " X_NOT_H_R ")",
+		SLAP_SYNTAX_BLOB, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.29 DESC 'Master And Shadow Access Points' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.30 DESC 'Matching Rule Description' )",
@@ -347,7 +357,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.39 DESC 'Other Mailbox' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.40 DESC 'Octet String' )",
-		0, octetStringValidate, NULL, NULL},
+		NULL, blobValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.41 DESC 'Postal Address' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.42 DESC 'Protocol Information' )",
@@ -356,8 +366,9 @@ struct syntax_defs_rec syntax_defs[] = {
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.44 DESC 'Printable String' )",
 		0, NULL, NULL, NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.49 DESC 'Supported Algorithm' )",
-		SLAP_SYNTAX_BINARY, NULL, NULL, NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.49 DESC 'Supported Algorithm' "
+		X_BINARY X_NOT_H_R ")",
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.50 DESC 'Telephone Number' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'Teletex Terminal Identifier' )",

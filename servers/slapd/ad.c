@@ -130,14 +130,12 @@ int slap_bv2ad(
 
 	for( i=1; tokens[i] != NULL; i++ ) {
 		if( strcasecmp( tokens[i], "binary" ) == 0 ) {
-			if( desc.ad_flags & SLAP_DESC_BINARY ) {
+			if( slap_ad_is_binary( &desc ) ) {
 				*text = "option \"binary\" specified multiple times";
 				goto done;
 			}
 
-			if(!( desc.ad_type->sat_syntax->ssyn_flags
-				& SLAP_SYNTAX_BINARY ))
-			{
+			if( !slap_syntax_is_binary( desc.ad_type->sat_syntax )) {
 				/* not stored in binary, disallow option */
 				*text = "option \"binary\" with type not supported";
 				goto done;
@@ -166,7 +164,7 @@ int slap_bv2ad(
 	desc.ad_cname = ch_malloc( sizeof( struct berval ) );
 
 	desc.ad_cname->bv_len = strlen( desc.ad_type->sat_cname );
-	if( desc.ad_flags & SLAP_DESC_BINARY ) {
+	if( slap_ad_is_binary( &desc ) ) {
 		desc.ad_cname->bv_len += sizeof("binary");
 	}
 	if( desc.ad_lang != NULL ) {
@@ -176,7 +174,7 @@ int slap_bv2ad(
 	desc.ad_cname->bv_val = ch_malloc( desc.ad_cname->bv_len + 1 );
 
 	strcpy( desc.ad_cname->bv_val, desc.ad_type->sat_cname );
-	if( desc.ad_flags & SLAP_DESC_BINARY ) {
+	if( slap_ad_is_binary( &desc ) ) {
 		strcat( desc.ad_cname->bv_val, ";binary" );
 	}
 

@@ -569,7 +569,9 @@ LIBSLAPD_F (int) oc_add LDAP_P((LDAP_OBJECT_CLASS *oc, const char **err));
 
 LIBSLAPD_F (Syntax *) syn_find LDAP_P((const char *synname));
 LIBSLAPD_F (Syntax *) syn_find_desc LDAP_P((const char *syndesc, int *slen));
-LIBSLAPD_F (int) syn_add LDAP_P((LDAP_SYNTAX *syn, int flags,
+LIBSLAPD_F (int) syn_add LDAP_P((
+	LDAP_SYNTAX *syn,
+	unsigned flags,
 	slap_syntax_validate_func *validate,
 	slap_syntax_transform_func *ber2str,
 	slap_syntax_transform_func *str2ber,
@@ -585,12 +587,15 @@ LIBSLAPD_F (int) mr_add LDAP_P((LDAP_MATCHING_RULE *mr,
 	slap_mr_filter_func *filter,
 	const char **err));
 
-LIBSLAPD_F (int) register_syntax LDAP_P((char *desc, int flags,
+LIBSLAPD_F (int) register_syntax LDAP_P((
+	char *desc,
+	unsigned flags,
 	slap_syntax_validate_func *validate,
 	slap_syntax_transform_func *ber2str,
 	slap_syntax_transform_func *str2ber ));
 
-LIBSLAPD_F (int) register_matching_rule LDAP_P((char * desc,
+LIBSLAPD_F (int) register_matching_rule LDAP_P((
+	char * desc,
 	unsigned usage,
 	slap_mr_convert_func *convert,
 	slap_mr_normalize_func *normalize,
@@ -667,15 +672,16 @@ LIBSLAPD_F (char *) suffix_alias LDAP_P(( Backend *be, char *ndn ));
 LIBSLAPD_F (int) value_normalize LDAP_P((
 	AttributeDescription *ad,
 	unsigned usage,
-	struct berval *val,
+	struct berval *in,
+	struct berval **out,
 	char ** text ));
 #else
 LIBSLAPD_F (int) value_add_fast LDAP_P(( struct berval ***vals, struct berval **addvals, int nvals, int naddvals, int *maxvals ));
-LIBSLAPD_F (int) value_add LDAP_P(( struct berval ***vals, struct berval **addvals ));
 LIBSLAPD_F (void) value_normalize LDAP_P(( char *s, int syntax ));
 LIBSLAPD_F (int) value_cmp LDAP_P(( struct berval *v1, struct berval *v2, int syntax, int normalize ));
 LIBSLAPD_F (int) value_find LDAP_P(( struct berval **vals, struct berval *v, int syntax, int normalize ));
 #endif
+LIBSLAPD_F (int) value_add LDAP_P(( struct berval ***vals, struct berval **addvals ));
 
 /*
  * user.c

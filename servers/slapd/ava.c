@@ -38,10 +38,10 @@ get_ava(
 )
 {
 	int rc;
-	struct berval type, *value;
+	struct berval type, value, *nvalue;
 	AttributeAssertion *aa;
 
-	rc = ber_scanf( ber, "{oO}", &type, &value );
+	rc = ber_scanf( ber, "{oo}", &type, &value );
 
 	if( rc == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "  get_ava ber_scanf\n", 0, 0, 0 );
@@ -56,22 +56,22 @@ get_ava(
 
 	if( rc != LDAP_SUCCESS ) {
 		ch_free( type.bv_val );
-		ber_bvfree( value );
+		ch_free( value.bv_val );
 		ch_free( aa );
 		return rc;
 	}
 
-	rc = value_normalize( aa->aa_desc, usage, value, text );
+	rc = value_normalize( aa->aa_desc, usage, &value, &nvalue, text );
+	ch_free( value.bv_val );
 
 	if( rc != LDAP_SUCCESS ) {
 		ch_free( type.bv_val );
-		ber_bvfree( value );
 		ad_free( aa->aa_desc, 1 );
 		ch_free( aa );
 		return rc;
 	}
 
-	aa->aa_value = value;
+	aa->aa_value = nvalue;
 	*ava = aa;
 
 	return LDAP_SUCCESS;

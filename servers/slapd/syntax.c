@@ -102,7 +102,7 @@ syn_insert(
 int
 syn_add(
     LDAP_SYNTAX		*syn,
-	int flags,
+	unsigned flags,
     slap_syntax_validate_func	*validate,
     slap_syntax_transform_func	*ber2str,
     slap_syntax_transform_func	*str2ber,
@@ -113,20 +113,27 @@ syn_add(
 	int		code;
 
 	ssyn = (Syntax *) ch_calloc( 1, sizeof(Syntax) );
-	memcpy( &ssyn->ssyn_syn, syn, sizeof(LDAP_SYNTAX));
+
+	memcpy( &ssyn->ssyn_syn, syn, sizeof(LDAP_SYNTAX) );
+
+	ssyn->ssyn_next = NULL;
 
 	ssyn->ssyn_flags = flags;
 	ssyn->ssyn_validate = validate;
+
+#ifdef SLAPD_BINARY_CONVERSION
 	ssyn->ssyn_ber2str = ber2str;
 	ssyn->ssyn_str2ber = str2ber;
+#endif
 
-	code = syn_insert(ssyn,err);
+	code = syn_insert(ssyn, err);
 	return code;
 }
 
 int
 register_syntax(
-	char * desc, int flags,
+	char * desc,
+	unsigned flags,
 	slap_syntax_validate_func *validate,
 	slap_syntax_transform_func *ber2str,
 	slap_syntax_transform_func *str2ber )

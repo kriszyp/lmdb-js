@@ -371,7 +371,7 @@ index_change_values(
 		/*
 		 * substrings index entry
 		 */
-		if ( indexmask & SLAP_INDEX_SUB ) {
+		if ( indexmask & SLAP_INDEX_SUBSTR ) {
 			/* leading and trailing */
 			if ( len > SUBLEN - 2 ) {
 				buf[0] = '^';
@@ -380,7 +380,7 @@ index_change_values(
 				}
 				buf[SUBLEN] = '\0';
 
-				change_value( be, db, at_cn, SLAP_INDEX_SUB,
+				change_value( be, db, at_cn, SLAP_INDEX_SUBSTR,
 					      buf, id, idl_funct );
 
 				p = val + len - SUBLEN + 1;
@@ -390,7 +390,7 @@ index_change_values(
 				buf[SUBLEN - 1] = '$';
 				buf[SUBLEN] = '\0';
 
-				change_value( be, db, at_cn, SLAP_INDEX_SUB,
+				change_value( be, db, at_cn, SLAP_INDEX_SUBSTR,
 					      buf, id, idl_funct );
 			}
 
@@ -401,7 +401,7 @@ index_change_values(
 				}
 				buf[SUBLEN] = '\0';
 
-				change_value( be, db, at_cn, SLAP_INDEX_SUB,
+				change_value( be, db, at_cn, SLAP_INDEX_SUBSTR,
 					      buf, id, idl_funct );
 			}
 		}
@@ -430,7 +430,7 @@ index2prefix( int indextype )
 	case SLAP_INDEX_APPROX:
 		prefix = APPROX_PREFIX;
 		break;
-	case SLAP_INDEX_SUB:
+	case SLAP_INDEX_SUBSTR:
 		prefix = SUB_PREFIX;
 		break;
 	default:

@@ -333,7 +333,7 @@ substring_comp_candidates(
 		}
 		buf[SUBLEN] = '\0';
 
-		if ( (idl = index_read( be, type, SLAP_INDEX_SUB, buf )) == NULL ) {
+		if ( (idl = index_read( be, type, SLAP_INDEX_SUBSTR, buf )) == NULL ) {
 			return( NULL );
 		}
 	} else if ( prepost == '$' ) {
@@ -344,7 +344,7 @@ substring_comp_candidates(
 		buf[SUBLEN - 1] = '$';
 		buf[SUBLEN] = '\0';
 
-		if ( (idl = index_read( be, type, SLAP_INDEX_SUB, buf )) == NULL ) {
+		if ( (idl = index_read( be, type, SLAP_INDEX_SUBSTR, buf )) == NULL ) {
 			return( NULL );
 		}
 	}
@@ -355,7 +355,7 @@ substring_comp_candidates(
 		}
 		buf[SUBLEN] = '\0';
 
-		if ( (tmp = index_read( be, type, SLAP_INDEX_SUB, buf )) == NULL ) {
+		if ( (tmp = index_read( be, type, SLAP_INDEX_SUBSTR, buf )) == NULL ) {
 			idl_free( idl );
 			return( NULL );
 		}

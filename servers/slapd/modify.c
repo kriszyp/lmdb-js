@@ -313,12 +313,21 @@ int slap_modlist2mods(
 			return rc;
 		}
 
-		if((ad->ad_type->sat_syntax->ssyn_flags & SLAP_SYNTAX_BINARY)
-			&& !( ad->ad_flags & SLAP_DESC_BINARY ))
+		if( slap_syntax_is_binary( ad->ad_type->sat_syntax )
+			&& !slap_ad_is_binary( ad ))
 		{
 			/* attribute requires binary transfer */
 			slap_mods_free( mod );
 			*text = "attribute requires ;binary transfer";
+			return LDAP_UNDEFINED_TYPE;
+		}
+
+		if( !slap_syntax_is_binary( ad->ad_type->sat_syntax )
+			&& slap_ad_is_binary( ad ))
+		{
+			/* attribute requires binary transfer */
+			slap_mods_free( mod );
+			*text = "attribute disallows ;binary transfer";
 			return LDAP_UNDEFINED_TYPE;
 		}
 
@@ -378,7 +387,6 @@ int slap_mods_opattrs(
 	Modifications **modtail,
 	char **text )
 {
-	int rc;
 	struct berval name, timestamp;
 	time_t now = slap_get_time();
 	char timebuf[22];

@@ -33,15 +33,15 @@ do_compare(
 	char	*dn = NULL, *ndn=NULL;
 	struct berval desc;
 	struct berval value;
-	Backend	*be;
-	int rc = LDAP_SUCCESS;
-	char *text = NULL;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+	struct berval *nvalue;
 	AttributeAssertion ava;
-	ava.aa_desc = NULL;
 #else
 	Ava	ava;
 #endif
+	Backend	*be;
+	int rc = LDAP_SUCCESS;
+	char *text = NULL;
 
 	desc.bv_val = NULL;
 	value.bv_val = NULL;
@@ -106,7 +106,7 @@ do_compare(
 		goto cleanup;
 	}
 
-	rc = value_normalize( ava.aa_desc, SLAP_MR_EQUALITY, &value, &text );
+	rc = value_normalize( ava.aa_desc, SLAP_MR_EQUALITY, &value, &nvalue, &text );
 
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc, NULL,
@@ -114,7 +114,7 @@ do_compare(
 		goto cleanup;
 	}
 
-	ava.aa_value = &value;
+	ava.aa_value = nvalue;
 
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
 	    dn, ava.aa_desc->ad_cname, ava.aa_value->bv_val );

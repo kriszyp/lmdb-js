@@ -105,7 +105,7 @@ LIBSLAPD_F (int) slap_debug;
 #define SLAP_INDEX_PRESENCE      0x0001U
 #define SLAP_INDEX_EQUALITY      0x0002U
 #define SLAP_INDEX_APPROX        0x0004U
-#define SLAP_INDEX_SUB           0x0008U
+#define SLAP_INDEX_SUBSTR        0x0008U
 #define SLAP_INDEX_EXTENDED		 0x0010U
 #define SLAP_INDEX_UNDEFINED     0x1000U
 #define SLAP_INDEX_FROMINIT      0x8000U	/* psuedo type */
@@ -147,21 +147,31 @@ typedef int slap_syntax_transform_func LDAP_P((
 
 typedef struct slap_syntax {
 	LDAP_SYNTAX			ssyn_syn;
+#define ssyn_oid		ssyn_syn.syn_oid
+#define ssyn_desc		ssyn_syn.syn_desc
+
 	unsigned	ssyn_flags;
 
 #define SLAP_SYNTAX_NONE	0x0U
-#define SLAP_SYNTAX_BINARY	0x1U
+#define SLAP_SYNTAX_BLOB	0x1U /* syntax treated as blob (audio) */
+#define SLAP_SYNTAX_BINARY	0x2U /* binary transfer required (certificate) */
+#define SLAP_SYNTAX_BER		0x4U /* stored using BER encoding (binary,certificate) */
 
 	slap_syntax_validate_func	*ssyn_validate;
 
+#ifdef SLAPD_BINARY_CONVERSION
 	/* convert to and from binary */
 	slap_syntax_transform_func	*ssyn_ber2str;
 	slap_syntax_transform_func	*ssyn_str2ber;
+#endif
 
 	struct slap_syntax		*ssyn_next;
-#define ssyn_oid			ssyn_syn.syn_oid
-#define ssyn_desc			ssyn_syn.syn_desc
 } Syntax;
+
+#define slap_syntax_is_flag(s,flag) ((int)((s)->ssyn_flags & (flag)) ? 1 : 0)
+#define slap_syntax_is_blob(s)		slap_syntax_is_flag((s),SLAP_SYNTAX_BLOB)
+#define slap_syntax_is_binary(s)	slap_syntax_is_flag((s),SLAP_SYNTAX_BINARY)
+#define slap_syntax_is_ber(s)		slap_syntax_is_flag((s),SLAP_SYNTAX_BER)
 
 /* XXX -> UCS-2 Converter */
 typedef int slap_mr_convert_func LDAP_P((
@@ -211,14 +221,15 @@ typedef struct slap_matching_rule {
 
 #define SLAP_MR_NONE			0x0000U
 #define SLAP_MR_EQUALITY		0x0100U
-#define SLAP_MR_APPROX			0x0200U
-#define SLAP_MR_ORDERING		0x0400U
-#define SLAP_MR_SUBSTR			0x0800U
-#define SLAP_MR_EXT				0x1000U
+#define SLAP_MR_ORDERING		0x0200U
+#define SLAP_MR_SUBSTR			0x0400U
+#define SLAP_MR_EXT				0x0800U
 
-#define SLAP_MR_SUBSTR_INITIAL	(SLAP_MR_SUBSTR | 0x0001U )
-#define SLAP_MR_SUBSTR_ANY		(SLAP_MR_SUBSTR | 0x0002U )
-#define SLAP_MR_SUBSTR_FINAL	(SLAP_MR_SUBSTR | 0x0004U )
+#define SLAP_MR_EQUALITY_APPROX	( SLAP_MR_EQUALITY | 0x0001U )
+
+#define SLAP_MR_SUBSTR_INITIAL	( SLAP_MR_SUBSTR | 0x0001U )
+#define SLAP_MR_SUBSTR_ANY		( SLAP_MR_SUBSTR | 0x0002U )
+#define SLAP_MR_SUBSTR_FINAL	( SLAP_MR_SUBSTR | 0x0004U )
 
 	Syntax					*smr_syntax;
 	slap_mr_convert_func	*smr_convert;
@@ -299,6 +310,8 @@ typedef struct slap_attr_desc {
 #define SLAP_DESC_NONE		0x0U
 #define SLAP_DESC_BINARY	0x1U
 } AttributeDescription;
+
+#define slap_ad_is_binary(ad)	( (int)((ad)->ad_flags & SLAP_DESC_BINARY) ? 1 : 0 )
 
 /*
  * pointers to schema elements used internally

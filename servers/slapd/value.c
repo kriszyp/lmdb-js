@@ -92,10 +92,51 @@ int
 value_normalize(
 	AttributeDescription *ad,
 	unsigned usage,
-	struct berval *val,
+	struct berval *in,
+	struct berval **out,
 	char **text )
 {
-	/* not yet implemented */
+	int rc;
+	MatchingRule *mr;
+
+	switch( usage & SLAP_MR_TYPE_MASK ) {
+	case SLAP_MR_NONE:
+	case SLAP_MR_EQUALITY:
+		mr = ad->ad_type->sat_equality;
+		break;
+	case SLAP_MR_ORDERING:
+		mr = ad->ad_type->sat_ordering;
+		break;
+	case SLAP_MR_SUBSTR:
+		mr = ad->ad_type->sat_substr;
+		break;
+	case SLAP_MR_EXT:
+	default:
+		assert( 0 );
+		*text = "internal error";
+		return LDAP_OTHER;
+	}
+
+	if( mr == NULL ) {
+		*text = "inappropriate matching request";
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	/* we only support equality matching of binary attributes */
+	if( slap_ad_is_binary( ad ) && usage != SLAP_MR_EQUALITY ) {
+		*text = "inappropriate binary matching";
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	rc = (mr->smr_normalize)( usage,
+		ad->ad_type->sat_syntax,
+		mr, in, out );
+
+	if( rc != LDAP_SUCCESS ) {
+		*text = "unable to normalize value";
+		return LDAP_INVALID_SYNTAX;
+	}
+
 	return LDAP_SUCCESS;
 }
 

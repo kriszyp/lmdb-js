@@ -230,7 +230,7 @@ get_filter(
 		Debug( LDAP_DEBUG_FILTER, "APPROX\n", 0, 0, 0 );
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		err = get_ava( ber, &f->f_ava, SLAP_MR_APPROX, text );
+		err = get_ava( ber, &f->f_ava, SLAP_MR_EQUALITY_APPROX, text );
 #else
 		err = get_ava( ber, &f->f_ava, text );
 #endif
@@ -374,7 +374,8 @@ get_substring_filter(
 	ber_tag_t	tag;
 	ber_len_t	len;
 	ber_tag_t	rc;
-	struct berval *val;
+	struct berval *value;
+	struct berval *nvalue;
 	char		*last;
 	struct berval type;
 #ifndef SLAPD_SCHEMA_NOT_COMPAT
@@ -431,14 +432,14 @@ get_substring_filter(
 	{
 		unsigned usage;
 
-		rc = ber_scanf( ber, "O", &val );
+		rc = ber_scanf( ber, "O", &value );
 		if ( rc == LBER_ERROR ) {
 			rc = SLAPD_DISCONNECT;
 			goto return_error;
 		}
 
-		if ( val == NULL || val->bv_len == 0 ) {
-			ber_bvfree( val );
+		if ( value == NULL || value->bv_len == 0 ) {
+			ber_bvfree( value );
 			rc = LDAP_INVALID_SYNTAX;
 			goto return_error;
 		} 
@@ -464,22 +465,24 @@ get_substring_filter(
 				"  unknown substring choice=%ld\n",
 				(long) tag, 0, 0 );
 
-			ber_bvfree( val );
+			ber_bvfree( value );
 			goto return_error;
 		}
 
-		rc = value_normalize( f->f_sub_desc, usage, val, text );
+		rc = value_normalize( f->f_sub_desc, usage, value, &nvalue, text );
+		ber_bvfree( value );
 
 		if( rc != LDAP_SUCCESS ) {
-			ber_bvfree( val );
 			goto return_error;
 		}
+
+		value = nvalue;
 #else
 
 		/* we should call a substring syntax normalization routine */
-		value_normalize( val->bv_val, syntax );
+		value_normalize( value->bv_val, syntax );
 		/* this is bogus, value_normalize should take a berval */
-		val->bv_len = strlen( val->bv_val );
+		value->bv_len = strlen( value->bv_val );
 #endif
 
 		rc = LDAP_PROTOCOL_ERROR;
@@ -488,48 +491,47 @@ get_substring_filter(
 		case LDAP_SUBSTRING_INITIAL:
 			Debug( LDAP_DEBUG_FILTER, "  INITIAL\n", 0, 0, 0 );
 			if ( f->f_sub_initial != NULL ) {
-				ber_bvfree( val );
+				ber_bvfree( value );
 				goto return_error;
 			}
 
-
-			f->f_sub_initial = val;
+			f->f_sub_initial = value;
 
 			if( fstr ) {
 				*fstr = ch_realloc( *fstr,
-					strlen( *fstr ) + val->bv_len + 1 );
-				strcat( *fstr, val->bv_val );
+					strlen( *fstr ) + value->bv_len + 1 );
+				strcat( *fstr, value->bv_val );
 			}
 			break;
 
 		case LDAP_SUBSTRING_ANY:
 			Debug( LDAP_DEBUG_FILTER, "  ANY\n", 0, 0, 0 );
-			if( ber_bvecadd( &f->f_sub_any, val ) < 0 ) {
-				ber_bvfree( val );
+			if( ber_bvecadd( &f->f_sub_any, value ) < 0 ) {
+				ber_bvfree( value );
 				goto return_error;
 			}
 
 			if( fstr ) {
 				*fstr = ch_realloc( *fstr,
-					strlen( *fstr ) + val->bv_len + 2 );
+					strlen( *fstr ) + value->bv_len + 2 );
 				strcat( *fstr, "*" );
-				strcat( *fstr, val->bv_val );
+				strcat( *fstr, value->bv_val );
 			}
 			break;
 
 		case LDAP_SUBSTRING_FINAL:
 			Debug( LDAP_DEBUG_FILTER, "  FINAL\n", 0, 0, 0 );
 			if ( f->f_sub_final != NULL ) {
-				ber_bvfree( val );
+				ber_bvfree( value );
 				goto return_error;
 			}
-			f->f_sub_final = val;
+			f->f_sub_final = value;
 
 			if( fstr ) {
 				*fstr = ch_realloc( *fstr,
-					strlen( *fstr ) + val->bv_len + 2 );
+					strlen( *fstr ) + value->bv_len + 2 );
 				strcat( *fstr, "*" );
-				strcat( *fstr, val->bv_val );
+				strcat( *fstr, value->bv_val );
 			}
 			break;
 
@@ -538,7 +540,7 @@ get_substring_filter(
 				"  unknown substring type=%ld\n",
 				(long) tag, 0, 0 );
 
-			ber_bvfree( val );
+			ber_bvfree( value );
 
 return_error:
 			Debug( LDAP_DEBUG_FILTER, "  error=%ld\n",

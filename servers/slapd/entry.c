@@ -121,6 +121,7 @@ str2entry( char *s )
 
 		bval.bv_val = value;
 		bval.bv_len = vlen;
+
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		/* not yet implemented */
 #else

@@ -109,39 +109,50 @@ attr_index_config(
 		if ( argc == 1 ) {
 			a->ai_indexmask = (
 				SLAP_INDEX_PRESENCE | SLAP_INDEX_EQUALITY |
-			    SLAP_INDEX_APPROX | SLAP_INDEX_SUB);
+			    SLAP_INDEX_APPROX | SLAP_INDEX_SUBSTR);
 		} else {
 			a->ai_indexmask = 0;
 			for ( j = 0; indexes[j] != NULL; j++ ) {
-				if ( strncasecmp( indexes[j], "pres", 4 )
-				    == 0 ) {
+				if ( strncasecmp( indexes[j],
+					"pres", sizeof("pres")-1 ) == 0 )
+				{
 					a->ai_indexmask |= SLAP_INDEX_PRESENCE;
-				} else if ( strncasecmp( indexes[j], "eq", 2 )
-				    == 0 ) {
+
+				} else if ( strncasecmp( indexes[j],
+					"eq", sizeof("eq")-1 ) == 0 )
+				{
 					a->ai_indexmask |= SLAP_INDEX_EQUALITY;
-				} else if ( strncasecmp( indexes[j], "approx",
-				    6 ) == 0 ) {
+
+				} else if ( strncasecmp( indexes[j],
+					"approx", sizeof("approx")-1 ) == 0 )
+				{
 					a->ai_indexmask |= SLAP_INDEX_APPROX;
-				} else if ( strncasecmp( indexes[j], "sub", 3 )
-				    == 0 ) {
-					a->ai_indexmask |= SLAP_INDEX_SUB;
-				} else if ( strncasecmp( indexes[j], "none", 4 )
-				    == 0 ) {
+
+				} else if ( strncasecmp( indexes[j],
+					"sub", sizeof("sub")-1 ) == 0 )
+				{
+					a->ai_indexmask |= SLAP_INDEX_SUBSTR;
+
+				} else if ( strncasecmp( indexes[j],
+					"none", sizeof("none")-1 ) == 0 )
+				{
 					if ( a->ai_indexmask != 0 ) {
-						fprintf( stderr,
-"%s: line %d: index type \"none\" cannot be combined with other types\n",
+						fprintf( stderr, "%s: line %d: "
+							"index type \"none\" cannot be combined with other types\n",
 						    fname, lineno );
 					}
 					a->ai_indexmask = 0;
+
 				} else {
-					fprintf( stderr,
-			"%s: line %d: unknown index type \"%s\" (ignored)\n",
+					fprintf( stderr, "%s: line %d: "
+						"unknown index type \"%s\" (ignored)\n",
 					    fname, lineno, indexes[j] );
-					fprintf( stderr,
-	"valid index types are \"pres\", \"eq\", \"approx\", or \"sub\"\n" );
+					fprintf( stderr, "\tvalid index types are "
+						"\"pres\", \"eq\", \"approx\", or \"sub\"\n" );
 				}
 			}
 		}
+
 		if ( init ) {
 			a->ai_indexmask |= SLAP_INDEX_FROMINIT;
 		}
