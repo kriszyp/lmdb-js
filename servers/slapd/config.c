@@ -2005,7 +2005,7 @@ load_ucdata( char *path )
 		return( 0 );
 	}
 	err = ucdata_load( path ? path : SLAPD_DEFAULT_UCDATA,
-			   UCDATA_CASE|UCDATA_CTYPE|UCDATA_NUM );
+			   UCDATA_CASE|UCDATA_CTYPE|UCDATA_NUM|UCDATA_COMP );
 	if ( err ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
