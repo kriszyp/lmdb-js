@@ -488,8 +488,8 @@ send_ldap_sasl(
 	ber_tag_t tag;
 	ber_int_t msgid;
 
-	Debug( LDAP_DEBUG_TRACE, "send_ldap_sasl %ld\n",
-		(long) err, NULL, NULL );
+	Debug( LDAP_DEBUG_TRACE, "send_ldap_sasl: err=%ld len=%ld\n",
+		(long) err, cred ? cred->bv_len : -1, NULL );
 
 	tag = req2res( op->o_tag );
 	msgid = (tag != LBER_SEQUENCE) ? op->o_msgid : 0;

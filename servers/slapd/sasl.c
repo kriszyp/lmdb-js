@@ -486,7 +486,8 @@ int slap_sasl_bind(
 			}
 
 			send_ldap_sasl( conn, op, rc = LDAP_SUCCESS,
-				NULL, NULL, NULL, NULL, &response );
+				NULL, NULL, NULL, NULL,
+				response.bv_len ? &response : NULL );
 		}
 
 	} else if ( sc == SASL_CONTINUE ) {

@@ -470,7 +470,7 @@ ldap_int_sasl_bind(
 	sasl_conn_t	*ctx;
 	sasl_interact_t *prompts = NULL;
 	unsigned credlen;
-	struct berval ccred, *scred;
+	struct berval ccred;
 	ber_socket_t		sd;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_int_sasl_bind: %s\n",
@@ -547,25 +547,34 @@ ldap_int_sasl_bind(
 		return ld->ld_errno;
 	}
 
-	scred = NULL;
-
 	do {
+		struct berval *scred;
 		unsigned credlen;
 
-		rc = ldap_sasl_bind_s( ld, dn, mech, &ccred, sctrls, cctrls, &scred );
+		scred = NULL;
 
-		if ( rc == LDAP_SUCCESS ) {
-			break;
-		} else if ( rc != LDAP_SASL_BIND_IN_PROGRESS ) {
-			if ( ccred.bv_val != NULL ) {
-				LDAP_FREE( ccred.bv_val );
-			}
-			return ld->ld_errno;
-		}
+		rc = ldap_sasl_bind_s( ld, dn, mech, &ccred, sctrls, cctrls, &scred );
 
 		if ( ccred.bv_val != NULL ) {
 			LDAP_FREE( ccred.bv_val );
 			ccred.bv_val = NULL;
+		}
+
+		if ( rc != LDAP_SUCCESS && rc != LDAP_SASL_BIND_IN_PROGRESS ) {
+			return ld->ld_errno;
+		}
+
+		if( rc == LDAP_SUCCESS && saslrc == SASL_OK ) {
+			/* we're done, no need to step */
+			if( scred ) {
+				/* but server provided us with data! */
+				Debug( LDAP_DEBUG_TRACE,
+					"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
+					rc, saslrc, scred->bv_len );
+				ber_bvfree( scred );
+				return ld->ld_errno = LDAP_LOCAL_ERROR;
+			}
+			break;
 		}
 
 		do {
@@ -598,7 +607,13 @@ ldap_int_sasl_bind(
 		}
 	} while ( rc == LDAP_SASL_BIND_IN_PROGRESS );
 
-	assert ( rc == LDAP_SUCCESS );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	if ( saslrc != SASL_OK ) {
+		return ld->ld_errno = sasl_err2ldap( saslrc );
+	}
 
 	/* likely should add a quiet option */
 
