@@ -684,13 +684,9 @@ glue_db_close(
 )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
-	int rc = 0;
 
-	if ( on->on_info->oi_orig->bi_db_close ) {
-		rc = on->on_info->oi_orig->bi_db_close( be );
-		on->on_info->oi_orig->bi_db_close = NULL;
-	}
-	return rc;
+	on->on_info->oi_bi.bi_db_close = NULL;
+	return 0;
 }
 
 static int
