@@ -12,14 +12,18 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
+#include <portable.h>
+
+#include <ac/string.h>
+#include <ac/ctype.h>
+#include <ac/signal.h>
+#include <ac/errno.h>
+#include <ac/stdlib.h>
+#include <ac/ctype.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
 #include <stdio.h>
-#include <limits.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <ctype.h>
-#include <time.h>
 
 /*
  * Schema reader that allows us to define DSA schema (including
@@ -336,12 +340,12 @@ strtok_quote( char *line, char *sep )
 			} else {
 				inquote = 1;
 			}
-			memcpy( next, next + 1, strlen( next + 1 ) + 1 );
+			AC_MEMCPY( next, next + 1, strlen( next + 1 ) + 1 );
 			break;
 
 		case '\\':
 			if ( next[1] )
-				memcpy( next,
+				AC_MEMCPY( next,
 					    next + 1, strlen( next + 1 ) + 1 );
 			next++;		/* dont parse the escaped character */
 			break;
