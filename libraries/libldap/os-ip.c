@@ -25,19 +25,6 @@
 #include <io.h>
 #endif /* HAVE_IO_H */
 
-#if defined( HAVE_FCNTL_H )
-#include <fcntl.h>
-#ifndef O_NONBLOCK
-#define O_NONBLOCK O_NDELAY
-#endif
-#endif /* HAVE_FCNTL_H */
-
-#if defined( HAVE_SYS_FILIO_H )
-#include <sys/filio.h>
-#elif defined( HAVE_SYS_IOCTL_H )
-#include <sys/ioctl.h>
-#endif
-
 #include "ldap-int.h"
 
 int ldap_int_tblsize = 0;
@@ -96,31 +83,14 @@ static int
 ldap_pvt_ndelay_on(LDAP *ld, int fd)
 {
 	osip_debug(ld, "ldap_ndelay_on: %d\n",fd,0,0);
-#ifdef notyet
-/* #if defined( HAVE_FCNTL_H ) */
-	return fcntl(fd,F_SETFL,fcntl(fd,F_GETFL,0) | O_NONBLOCK);
-#else
-{
-	ioctl_t	status = 1;
-	return ioctl( fd, FIONBIO, &status );
-}
-#endif
-	return 0;
+	return ber_pvt_socket_set_nonblock( fd, 1 );
 }
    
 static int
 ldap_pvt_ndelay_off(LDAP *ld, int fd)
 {
 	osip_debug(ld, "ldap_ndelay_off: %d\n",fd,0,0);
-#ifdef notyet
-/* #if defined( HAVE_FCNTL_H ) */
-	return fcntl(fd,F_SETFL,fcntl(fd,F_GETFL,0) & ~O_NONBLOCK);
-#else
-{
-	ioctl_t	status = 0;
-	return ioctl( fd, FIONBIO, &status );
-}
-#endif
+	return ber_pvt_socket_set_nonblock( fd, 0 );
 }
 
 static ber_socket_t
@@ -153,6 +123,15 @@ ldap_pvt_prepare_socket(LDAP *ld, int fd)
 	return 0;
 }
 
+#undef TRACE
+#define TRACE do { \
+	osip_debug(ld, \
+		"ldap_is_socket_ready: errror on socket %d: errno: %d (%s)\n", \
+		s, \
+		errno, \
+		strerror(errno) ); \
+} while( 0 )
+
 /*
  * check the socket for errors after select returned.
  */
@@ -161,22 +140,13 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 {
 	osip_debug(ld, "ldap_is_sock_ready: %d\n",s,0,0);
 
-#define TRACE \
-{ \
-	osip_debug(ld, \
-		"ldap_is_socket_ready: errror on socket %d: errno: %d (%s)\n", \
-		s, \
-		errno, \
-		strerror(errno) ); \
-}
-
-#ifdef notyet
-/* #ifdef SO_ERROR */
+#if defined( notyet ) /* && defined( SO_ERROR ) */
 {
 	int so_errno;
 	int dummy = sizeof(so_errno);
-	if ( getsockopt(s,SOL_SOCKET,SO_ERROR,&so_errno,&dummy) == -1 )
+	if ( getsockopt( s, SOL_SOCKET, SO_ERROR, &so_errno, &dummy ) == -1 ) {
 		return -1;
+	}
 	if ( so_errno ) {
 		ldap_pvt_set_errno(so_errno);
 		TRACE;
@@ -190,20 +160,21 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 	struct sockaddr_in sin;
 	char ch;
 	int dummy = sizeof(sin);
-	if ( getpeername(s, (struct sockaddr *) &sin, &dummy) == -1 ) {
+	if ( getpeername( s, (struct sockaddr *) &sin, &dummy ) == -1 ) {
+		/* XXX: needs to be replace with ber_stream_read() */
 		read(s, &ch, 1);
 #ifdef HAVE_WINSOCK
 		ldap_pvt_set_errno( WSAGetLastError() );
 #endif
 		TRACE;
 		return -1;
-		}
+	}
 	return 0;
 }
 #endif
 	return -1;
-#undef TRACE
 }
+#undef TRACE
 
 static int
 ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_in *sin, int async)
@@ -244,7 +215,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_in *sin, int async)
 	FD_ZERO(&wfds);
 	FD_SET(s, &wfds );
 
-	if ( select(s + 1, z, &wfds, z, opt_tv ? &tv : NULL) == -1)
+	if ( select(ldap_int_tblsize, z, &wfds, z, opt_tv ? &tv : NULL) == -1)
 		return ( -1 );
 
 	if ( FD_ISSET(s, &wfds) ) {

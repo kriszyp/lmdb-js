@@ -8,6 +8,8 @@
 
 #include "portable.h"
 
+#ifdef DIGEST_MD5
+
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/time.h>
@@ -375,3 +377,5 @@ parse_value_list(
 	*valuesp = values;
 	return rc;
 }
+
+#endif
