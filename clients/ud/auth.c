@@ -13,12 +13,16 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <pwd.h>
+#include <stdlib.h>
 
 #include <ac/ctype.h>
 #include <ac/krb.h>
 #include <ac/string.h>
 #include <ac/time.h>
+
+#ifdef HAVE_PWD_H
+#include <pwd.h>
+#endif
 
 #include <lber.h>
 #include <ldap.h>
@@ -51,7 +55,11 @@ int implicit;
 	char **rdns;		/* for fiddling with the DN */
 	int authmethod;
 	int name_provided;	/* was a name passed in? */
+#ifdef HAVE_GETPWUID
 	struct passwd *pw;	/* for getting user id */
+#else
+	char *user;
+#endif
 	char uidname[20];
 #ifdef HAVE_KERBEROS
 	char **krbnames;	/* for kerberos names */
@@ -81,11 +89,26 @@ int implicit;
 	 *  The user needs to bind.  If <who> is not specified, we
 	 *  assume that authenticating as user id is what user wants.
 	 */
-	if (who == NULL && implicit && (pw = getpwuid((uid_t)geteuid()))
-	    != (struct passwd *) NULL) {
-		sprintf(uidname, "uid=%s", pw->pw_name);
-		/* who = pw->pw_name; /* */
-		who = uidname;
+	if (who == NULL && implicit) {
+		uidname[0] = '\0';
+
+#ifdef HAVE_GETPWUID
+		if ((pw = getpwuid((uid_t)geteuid())) != (struct passwd *) NULL) {
+			sprintf(uidname, "uid=%s", pw->pw_name);
+		}
+#else
+		user = getenv("USER");
+		if(user == NULL) user = getenv("USERNAME");
+		if(user == NULL) user = getenv("LOGNAME");
+
+		if(user != NULL) {
+			sprintf(uidname, "uid=%s", user);
+		}
+#endif
+
+		if(uidname[0] != '\0') {
+			who = uidname;
+		}
 	}
 
 	if ( who == NULL ) {

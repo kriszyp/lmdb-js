@@ -20,7 +20,12 @@
 #include <ac/time.h>
 #include <ac/wait.h>
 
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
+#endif
+#ifdef HAVE_PROCESS_H
+#include <process.h>
+#endif
 
 #include <lber.h>
 #include <ldap.h>
@@ -172,8 +177,16 @@ static load_editor()
 			++p;
 		}
 		printf("  Using %s as the editor...\n", p );
+#ifndef HAVE_SPAWNLP
 		sleep(2);
+#endif
 	}
+#ifdef HAVE_SPAWNLP
+	rc = _spawnlp( _P_WAIT, editor, editor, entry_temp_file, NULL );
+	if(rc != 0) {
+		fatal("spawnlp");
+	}
+#else
 	if ((pid = fork()) == 0) {	
 		/* child - edit the Directory entry */
 		(void) SIGNAL(SIGINT, SIG_IGN);
@@ -191,6 +204,7 @@ static load_editor()
 		fatal("fork");
 		/*NOTREACHED*/
 	}
+#endif
 	return(0);
 }
 

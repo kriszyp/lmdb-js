@@ -21,7 +21,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <setjmp.h>
+
+#ifdef HAVE_PWD_H
 #include <pwd.h>
+#endif
 
 #include <ac/signal.h>
 #include <ac/string.h>
@@ -562,6 +565,7 @@ void initialize_client()
 	 *  A per-user config file has precedence over any system-wide
 	 *  config file, if one exists.
 	 */
+#ifdef HAVE_GETPWUID_H
 	if ((pw = getpwuid((uid_t) geteuid())) == (struct passwd *) NULL)
 		config = config_file;
 	else {
@@ -576,6 +580,7 @@ void initialize_client()
 				config = config_file;
 		}
 	}
+#endif /* getpwduid() */
 #ifdef DEBUG
 	if (debug & D_INITIALIZE)
 		printf("Using config file %s\n", config);

@@ -36,7 +36,7 @@ extern int debug;
 char * mygetpass(prompt)
 char *prompt;
 {
-#if defined(DOS) || defined(VMS)
+#if !defined(HAVE_TERMIOS) || !defined(HAVE_SGTTY_H)
 	static char buf[256];
 	int i, c;
 
