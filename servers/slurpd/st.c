@@ -56,8 +56,7 @@ St_add(
 	pthread_mutex_unlock( &(st->st_mutex ));
 	return NULL;
     }
-    st->st_data[ ind ]  = ( Stel * ) ch_malloc( st->st_data,
-	    sizeof( Stel ));
+    st->st_data[ ind ]  = ( Stel * ) ch_malloc( sizeof( Stel ) );
     if ( st->st_data[ ind ] == NULL ) {
 	pthread_mutex_unlock( &(st->st_mutex ));
 	return NULL;
