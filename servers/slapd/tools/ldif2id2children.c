@@ -5,7 +5,8 @@
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 
-#define DEFAULT_CONFIGFILE	"/usr/local/etc/slapd.conf"
+#include "ldapconfig.h"
+
 #define MAXARGS      		100
 
 extern struct dbcache	*ldbm_cache_open();
@@ -69,7 +70,7 @@ main( int argc, char **argv )
 	Avlnode		*avltypes = NULL;
 	extern char	*optarg;
 
-	tailorfile = DEFAULT_CONFIGFILE;
+	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	dbnum = -1;
 	while ( (i = getopt( argc, argv, "d:f:i:n:" )) != EOF ) {
 		switch ( i ) {
