@@ -70,7 +70,7 @@ typedef struct {
 } CfBackInfo;
 
 /* These do nothing in slapd, they're kept only to make them
- * editable in back-config
+ * editable here.
  */
 static char *replica_pidFile, *replica_argsFile;
 static int replicationInterval;
@@ -91,38 +91,34 @@ static int add_syncrepl LDAP_P(( Backend *, char **, int ));
 static int parse_syncrepl_line LDAP_P(( char **, int, syncinfo_t *));
 static void syncrepl_unparse LDAP_P (( syncinfo_t *, struct berval *));
 
-/* All of these table entries and handlers really belong
- * in back-config, only the parser/table engine belongs here.
- */
-
-static int config_fname(ConfigArgs *c);
-static int config_generic(ConfigArgs *c);
-static int config_search_base(ConfigArgs *c);
-static int config_passwd_hash(ConfigArgs *c);
-static int config_schema_dn(ConfigArgs *c);
-static int config_sizelimit(ConfigArgs *c);
-static int config_timelimit(ConfigArgs *c);
-static int config_limits(ConfigArgs *c); 
-static int config_overlay(ConfigArgs *c);
-static int config_suffix(ConfigArgs *c); 
-static int config_deref_depth(ConfigArgs *c);
-static int config_rootdn(ConfigArgs *c);
-static int config_rootpw(ConfigArgs *c);
-static int config_restrict(ConfigArgs *c);
-static int config_allows(ConfigArgs *c);
-static int config_disallows(ConfigArgs *c);
-static int config_requires(ConfigArgs *c);
-static int config_security(ConfigArgs *c);
-static int config_referral(ConfigArgs *c);
-static int config_loglevel(ConfigArgs *c);
-static int config_syncrepl(ConfigArgs *c);
-static int config_replica(ConfigArgs *c);
-static int config_updatedn(ConfigArgs *c);
-static int config_updateref(ConfigArgs *c);
-static int config_include(ConfigArgs *c);
+static ConfigDriver config_fname;
+static ConfigDriver config_generic;
+static ConfigDriver config_search_base;
+static ConfigDriver config_passwd_hash;
+static ConfigDriver config_schema_dn;
+static ConfigDriver config_sizelimit;
+static ConfigDriver config_timelimit;
+static ConfigDriver config_limits; 
+static ConfigDriver config_overlay;
+static ConfigDriver config_suffix; 
+static ConfigDriver config_deref_depth;
+static ConfigDriver config_rootdn;
+static ConfigDriver config_rootpw;
+static ConfigDriver config_restrict;
+static ConfigDriver config_allows;
+static ConfigDriver config_disallows;
+static ConfigDriver config_requires;
+static ConfigDriver config_security;
+static ConfigDriver config_referral;
+static ConfigDriver config_loglevel;
+static ConfigDriver config_syncrepl;
+static ConfigDriver config_replica;
+static ConfigDriver config_updatedn;
+static ConfigDriver config_updateref;
+static ConfigDriver config_include;
 #ifdef HAVE_TLS
-static int config_tls_option(ConfigArgs *c);
-static int config_tls_config(ConfigArgs *c);
+static ConfigDriver config_tls_option;
+static ConfigDriver config_tls_config;
 #endif
 
 enum {
@@ -543,6 +539,7 @@ ConfigTable config_back_cf_table[] = {
 	{ NULL,	NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL }
 };
+
 static ConfigOCs cf_ocs[] = {
 	{ "( OLcfgOc:1 "
 		"NAME 'olcConfig' "
@@ -2467,6 +2464,16 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 	ber_dupbv( bv, &bc );
 }
 
+
+int
+read_config(const char *fname, int depth) {
+
+	if ( !backend_db_init( "config" ))
+		return 1;
+
+	ber_str2bv( fname, 0, 1, &cf_prv.c_file );
+	return read_config_file(fname, depth, NULL);
+}
 
 static int
 config_back_bind( Operation *op, SlapReply *rs )

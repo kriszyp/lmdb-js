@@ -385,14 +385,6 @@ init_config_ocs( ConfigOCs *ocs ) {
 }
 
 int
-read_config(const char *fname, int depth) {
-
-	if ( !backend_db_init( "config" ))
-		return 1;
-	return read_config_file(fname, depth, NULL);
-}
-
-int
 read_config_file(const char *fname, int depth, ConfigArgs *cf)
 {
 	FILE *fp;
