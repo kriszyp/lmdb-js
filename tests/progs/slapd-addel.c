@@ -153,13 +153,13 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
 	    	}
 		}
 		if (( pmods[ i ]->mod_bvalues =
-			(struct berval **)ber_realloc( pmods[ i ]->mod_bvalues,
+			(struct berval **)ber_memrealloc( pmods[ i ]->mod_bvalues,
 			(j + 2) * sizeof( struct berval * ))) == NULL ) {
 	    		perror( "ber_realloc" );
 	    		exit( 1 );
 		}
 		pmods[ i ]->mod_bvalues[ j + 1 ] = NULL;
-		if (( bvp = (struct berval *)ber_malloc( sizeof( struct berval )))
+		if (( bvp = (struct berval *)ber_memalloc( sizeof( struct berval )))
 			== NULL ) {
 	    		perror( "malloc" );
 	    		exit( 1 );
