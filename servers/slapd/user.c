@@ -121,13 +121,13 @@ slap_init_user( char *user, char *group )
 
     if ( uid > 0 ) {
 	if ( setuid( uid ) != 0 ) {
-	    Debug( LDAP_DEBUG_ANY, "Could not set effective user id to %d\n",
+	    Debug( LDAP_DEBUG_ANY, "Could not set real user id to %d\n",
 		   uid, 0, 0 );
 	    exit( 1 );
 	}
 #ifdef HAVE_SETEUID
 	if ( seteuid( uid ) != 0 ) {
-	    Debug( LDAP_DEBUG_ANY, "Could not set real user id to %d\n",
+	    Debug( LDAP_DEBUG_ANY, "Could not set effective user id to %d\n",
 		   uid, 0, 0 );
 	    exit( 1 );
 	}
