@@ -43,6 +43,7 @@
 #define generalizedTimeMatch			caseIgnoreIA5Match
 #define generalizedTimeOrderingMatch	caseIgnoreIA5Match
 #define uniqueMemberMatch				dnMatch
+#define integerFirstComponentMatch		integerMatch
 
 /* approx matching rules */
 #define directoryStringApproxMatchOID	"1.3.6.1.4.1.4203.666.4.4"
@@ -54,15 +55,15 @@
 #define IA5StringApproxIndexer			approxIndexer
 #define IA5StringApproxFilter			approxFilter
 
-/* orderring matching rules */
+/* ordering matching rules */
 #define caseIgnoreOrderingMatch			caseIgnoreMatch
 #define caseExactOrderingMatch			caseExactMatch
+#define integerOrderingMatch			integerMatch
 
 /* unimplemented matching routines */
 #define caseIgnoreListMatch				NULL
 #define caseIgnoreListSubstringsMatch	NULL
 #define protocolInformationMatch		NULL
-#define integerFirstComponentMatch		NULL
 
 #ifdef SLAPD_ACI_ENABLED
 #define OpenLDAPaciMatch				NULL
@@ -82,9 +83,20 @@
 #define telephoneNumberSubstringsIndexer	caseIgnoreIA5SubstringsIndexer
 #define telephoneNumberSubstringsFilter		caseIgnoreIA5SubstringsFilter
 
-/* must match OIDs below */
-#define caseExactMatchOID			"2.5.13.5"
-#define caseExactSubstringsMatchOID		"2.5.13.7"
+static MatchingRule *caseExactMatchingRule;
+static MatchingRule *caseExactSubstringsMatchingRule;
+static MatchingRule *integerFirstComponentMatchingRule;
+
+static const struct MatchingRulePtr {
+	const char   *oid;
+	MatchingRule **mr;
+} mr_ptr [] = {
+	/* must match OIDs below */
+	{ "2.5.13.5",  &caseExactMatchingRule },
+	{ "2.5.13.7",  &caseExactSubstringsMatchingRule },
+	{ "2.5.13.29", &integerFirstComponentMatchingRule }
+};
+
 
 static char *bvcasechr( struct berval *bv, int c, ber_len_t *len )
 {
@@ -1022,7 +1034,7 @@ caseExactIgnoreSubstringsMatch(
 	char *nav = NULL;
 	unsigned casefold;
 
-	casefold = strcmp( mr->smr_oid, caseExactSubstringsMatchOID )
+	casefold = ( mr != caseExactSubstringsMatchingRule )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	if ( UTF8bvnormalize( value, &left, casefold ) == NULL ) {
@@ -1192,7 +1204,7 @@ static int caseExactIgnoreIndexer(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	casefold = strcmp( mr->smr_oid, caseExactMatchOID )
+	casefold = ( mr != caseExactMatchingRule )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	for( i=0; values[i].bv_val != NULL; i++ ) {
@@ -1246,7 +1258,7 @@ static int caseExactIgnoreFilter(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	casefold = strcmp( mr->smr_oid, caseExactMatchOID )
+	casefold = ( mr != caseExactMatchingRule )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	UTF8bvnormalize( (struct berval *) assertValue, &value, casefold );
@@ -1312,7 +1324,7 @@ static int caseExactIgnoreSubstringsIndexer(
 	/* we should have at least one value at this point */
 	assert( i > 0 );
 
-	casefold = strcmp( mr->smr_oid, caseExactSubstringsMatchOID )
+	casefold = ( mr != caseExactSubstringsMatchingRule )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	nvalues = ch_malloc( sizeof( struct berval ) * (i+1) );
@@ -1482,7 +1494,7 @@ static int caseExactIgnoreSubstringsFilter(
 	struct berval *value;
 	struct berval digest;
 
-	casefold = strcmp( mr->smr_oid, caseExactSubstringsMatchOID )
+	casefold = ( mr != caseExactSubstringsMatchingRule )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	sa = UTF8SubstringsassertionNormalize( assertValue, casefold );
@@ -1653,6 +1665,27 @@ caseIgnoreMatch(
 	return LDAP_SUCCESS;
 }
 	
+/* Remove all spaces and '-' characters */
+static int
+telephoneNumberNormalize(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *normalized )
+{
+	char *p, *q;
+
+	q = normalized->bv_val = ch_malloc( val->bv_len + 1 );
+
+	for( p = val->bv_val; *p; p++ )
+		if ( ! ( ASCII_SPACE( *p ) || *p == '-' ))
+			*q++ = *p;
+	*q = '\0';
+
+	normalized->bv_len = q - normalized->bv_val;
+
+	return LDAP_SUCCESS;
+}
+
 static int
 oidValidate(
 	Syntax *syntax,
@@ -1702,85 +1735,47 @@ integerMatch(
 	void *assertedValue )
 {
 	char *v, *av;
-	int vsign=0, avsign=0;
+	int vsign = 1, avsign = 1;	/* default sign = '+' */
 	struct berval *asserted;
 	ber_len_t vlen, avlen;
+	int match;
 
-
-	/* Start off pessimistic */
-	*matchp = 1;
-
-	/* Skip past leading spaces/zeros, and get the sign of the *value number */
+	/* Skip leading space/sign/zeroes, and get the sign of the *value number */
 	v = value->bv_val;
 	vlen = value->bv_len;
-	while( vlen ) {
-		if( ASCII_SPACE(*v) || ( *v == '0' )) {
-			/* empty -- skip spaces */
-		}
-		else if ( *v == '+' ) {
-			vsign = 1;
-		}
-		else if ( *v == '-' ) {
-			vsign = -1;
-		}
-		else if ( ASCII_DIGIT(*v) ) {
-			if ( vsign == 0 ) vsign = 1;
-			vsign *= 2;
-			break;
-		}
-		v++;
-		vlen--;
+	if( mr == integerFirstComponentMatchingRule ) {
+		char *tmp = memchr( v, '$', vlen );
+		if( tmp )
+			vlen = tmp - v;
+		while( vlen && ASCII_SPACE( v[vlen-1] ))
+			vlen--;
 	}
+	for( ; vlen && ( *v < '1' || '9' < *v ); v++, vlen-- ) /* ANSI 2.2.1 */
+		if( *v == '-' )
+			vsign = -1;
+	if( vlen == 0 )
+		vsign = 0;
 
-	/* Skip past leading spaces/zeros, and get the sign of the *assertedValue
-	   number */
+	/* Do the same with the *assertedValue number */
 	asserted = (struct berval *) assertedValue;
 	av = asserted->bv_val;
 	avlen = asserted->bv_len;
-	while( avlen ) {
-		if( ASCII_SPACE(*av) || ( *av == '0' )) {
-			/* empty -- skip spaces */
-		}
-		else if ( *av == '+' ) {
-			avsign = 1;
-		}
-		else if ( *av == '-' ) {
+	for( ; avlen && ( *av < '1' || '9' < *av ); av++, avlen-- )
+		if( *av == '-' )
 			avsign = -1;
-		}
-		else if ( ASCII_DIGIT(*av) ) {
-			if ( avsign == 0 ) avsign = 1;
-			avsign *= 2;
-			break;
-		}
-		av++;
-		avlen--;
+	if( avlen == 0 )
+		avsign = 0;
+
+	match = vsign - avsign;
+	if( match == 0 ) {
+		match = (vlen != avlen
+			     ? ( vlen < avlen ? -1 : 1 )
+			     : memcmp( v, av, vlen ));
+		if( vsign < 0 )
+			match = -match;
 	}
 
-	/* The two ?sign vars are now one of :
-	   -2  negative non-zero number
-	   -1  -0   \
-	    0   0   collapse these three to 0
-	   +1  +0   /
-	   +2  positive non-zero number
-	*/
-	if ( abs( vsign ) == 1 ) vsign = 0;
-	if ( abs( avsign ) == 1 ) avsign = 0;
-
-	if( vsign != avsign ) return LDAP_SUCCESS;
-
-	/* Check the significant digits */
-	while( vlen && avlen ) {
-		if( *v != *av ) break;
-		v++;
-		vlen--;
-		av++;
-		avlen--;
-	}
-
-	/* If all digits compared equal, the numbers are equal */
-	if(( vlen == 0 ) && ( avlen == 0 )) {
-		*matchp = 0;
-	}
+	*matchp = match;
 	return LDAP_SUCCESS;
 }
 	
@@ -4157,7 +4152,7 @@ static struct syntax_defs_rec {
 	{"( 1.3.6.1.4.1.1466.115.121.1.21 DESC 'Enhanced Guide' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.22 DESC 'Facsimile Telephone Number' )",
-		0, printablesStringValidate, IA5StringNormalize, NULL},
+		0, printablesStringValidate, telephoneNumberNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.23 DESC 'Fax' " X_NOT_H_R ")",
 		SLAP_SYNTAX_BLOB, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.24 DESC 'Generalized Time' )",
@@ -4209,7 +4204,7 @@ static struct syntax_defs_rec {
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.50 DESC 'Telephone Number' )",
-		0, printableStringValidate, IA5StringNormalize, NULL},
+		0, printableStringValidate, telephoneNumberNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'Teletex Terminal Identifier' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'Telex Number' )",
@@ -4269,7 +4264,6 @@ static struct syntax_defs_rec {
  * Other matching rules in X.520 that we do not use (yet):
  *
  * 2.5.13.9		numericStringOrderingMatch
- * 2.5.13.15	integerOrderingMatch
  * 2.5.13.18	octetStringOrderingMatch
  * 2.5.13.19	octetStringSubstringsMatch
  * 2.5.13.25	uTCTimeMatch
@@ -4429,6 +4423,13 @@ static struct mrule_defs_rec {
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
 		integerMatch, integerIndexer, integerFilter,
+		NULL},
+
+	{"( 2.5.13.15 NAME 'integerOrderingMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
+		SLAP_MR_ORDERING,
+		NULL, NULL,
+		integerOrderingMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.16 NAME 'bitStringMatch' "
@@ -4645,6 +4646,9 @@ slap_schema_init( void )
 		}
 	}
 
+	for ( i=0; i < (int)(sizeof(mr_ptr)/sizeof(mr_ptr[0])); i++ )
+		*mr_ptr[i].mr = mr_find( mr_ptr[i].oid );
+
 	res = slap_schema_load();
 	schema_init_done = 1;
 	return res;
@@ -4653,9 +4657,12 @@ slap_schema_init( void )
 void
 schema_destroy( void )
 {
+	int i;
 	oidm_destroy();
 	oc_destroy();
 	at_destroy();
+	for ( i=0; i < (int)(sizeof(mr_ptr)/sizeof(mr_ptr[0])); i++ )
+		*mr_ptr[i].mr = NULL;
 	mr_destroy();
 	syn_destroy();
 }
