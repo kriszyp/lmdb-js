@@ -16,8 +16,8 @@
 
 #include "slap.h"
 
-#if !defined(METAPHONE) && !defined(SLAPD_PHONETIC)
-#define METAPHONE
+#if !defined(SLAPD_METAPHONE) && !defined(SLAPD_PHONETIC)
+#define SLAPD_METAPHONE
 #endif
 
 #define iswordbreak(x)  (!isascii(x) || isspace((unsigned char) (x)) || \
@@ -162,7 +162,7 @@ phonetic( char *s )
 }
 
 #else
-#if defined(METAPHONE)
+#if defined(SLAPD_METAPHONE)
 
 /*
  * Metaphone copied from C Gazette, June/July 1991, pp 56-57,
