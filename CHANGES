@@ -1,7 +1,7 @@
 OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2.4
-	CVS Tag: OPENLDAP_REL_ENG_1_2
+	CVS Tag: OPENLDAP_REL_ENG_1_2_4
 	Fixed the growing index file problem.
 	Added the MDBM to the ldbm backends (memory mapped dbm)
 	Fixed slapd to reap back-shell children processes
