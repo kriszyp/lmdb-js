@@ -71,6 +71,12 @@ lber_set_option(
 		if(option == LBER_OPT_BER_DEBUG) {
 			lber_int_debug = * (int *) invalue;
 			return LBER_OPT_SUCCESS;
+
+		} else if(option == LBER_OPT_LOG_PRINT_FN) {
+			extern BER_LOG_PRINT_FN lber_log_print;
+
+			lber_log_print = (BER_LOG_PRINT_FN) invalue;
+			return LBER_OPT_SUCCESS;
 		}
 
 		return LBER_OPT_ERROR;

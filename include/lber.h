@@ -76,7 +76,11 @@ typedef int (*BERTranslateProc) LDAP_P(( char **bufp,
 /* get/set options for BerElement */
 #define LBER_OPT_BER_OPTIONS	0x01
 #define LBER_OPT_BER_DEBUG		0x02
+
 #define LBER_OPT_DEBUG_LEVEL	LBER_OPT_BER_DEBUG
+#define LBER_OPT_LOG_PRINT_FN	0x8001
+
+typedef void (*BER_LOG_PRINT_FN) LDAP_P(( char *buf ));
 
 /* LBER Sockbuf options */ 
 #define LBER_TO_FILE           0x01	/* to a file referenced by sb_fd   */
