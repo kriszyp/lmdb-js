@@ -711,8 +711,12 @@ static void connection_abandon( Connection *c )
 	/* c_mutex must be locked by caller */
 
 	Operation *o, *next, op = {0};
+	Opheader ohdr = {0};
 	SlapReply rs = {0};
 
+	op.o_hdr = &ohdr;
+	op.o_conn = c;
+	op.o_connid = c->c_connid;
 	op.o_tag = LDAP_REQ_ABANDON;
 	for ( o = LDAP_STAILQ_FIRST( &c->c_ops ); o; o=next ) {
 		next = LDAP_STAILQ_NEXT( o, o_next );
