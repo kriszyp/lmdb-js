@@ -1,8 +1,11 @@
 OpenLDAP 2.2 Change Log
 
+OpenLDAP 2.2.11 Engineering
+	Fixed slapd undefined objectclass bug (ITS#3097)
+
 OpenLDAP 2.2.10 Release
 	Build Environment
-		Fix configure bug
+		Fix configure bug (ITS#3094)
 
 OpenLDAP 2.2.9 Release
 	Fixed slapd syncrepl replication bugs (ITS#3055,3056,3069)

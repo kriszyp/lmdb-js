@@ -110,6 +110,9 @@ modify_add_values(
 						"modify/%s: %s: value #%d already exists",
 						op, mod->sm_desc->ad_cname.bv_val, i );
 					return LDAP_TYPE_OR_VALUE_EXISTS;
+
+				} else if ( rc != LDAP_SUCCESS ) {
+					return rc;
 				}
 			}
 

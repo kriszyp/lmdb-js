@@ -501,7 +501,7 @@ slap_mods2entry(
 				}
 
 			} else {
-				int		rc = LDAP_SUCCESS;
+				int	rc;
 				int match;
 
 				for ( i = 1; mods->sml_values[i].bv_val != NULL; i++ ) {
@@ -519,17 +519,18 @@ slap_mods2entry(
 								? &mods->sml_nvalues[j]
 								: &mods->sml_values[j],
 							text );
+
 						if ( rc == LDAP_SUCCESS && match == 0 ) {
 							/* value exists already */
 							snprintf( textbuf, textlen,
 								"%s: value #%d provided more than once",
 								mods->sml_desc->ad_cname.bv_val, j );
 							return LDAP_TYPE_OR_VALUE_EXISTS;
+
+						} else if ( rc != LDAP_SUCCESS ) {
+							return rc;
 						}
 					}
-				}
-				if ( rc != LDAP_SUCCESS ) {
-					return rc;
 				}
 			}
 		}

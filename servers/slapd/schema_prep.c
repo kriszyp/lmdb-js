@@ -70,12 +70,12 @@ objectSubClassMatch(
 		}
 
 		/* desc form, return undefined */
-		return SLAPD_COMPARE_UNDEFINED;
+		return LDAP_INVALID_SYNTAX;
 	}
 
 	if ( oc == NULL ) {
 		/* unrecognized stored value */
-		return SLAPD_COMPARE_UNDEFINED;
+		return LDAP_INVALID_SYNTAX;
 	}
 
 	if( SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX( flags ) ) {
