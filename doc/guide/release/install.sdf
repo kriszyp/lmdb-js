@@ -50,7 +50,7 @@ VARIABLES' section for commonly used settings.
 .These environment variables are used: 
 
 >	CC		C compiler	gcc
->	CFLAGS		C flags		-ansi
+>	CFLAGS		C flags		-O -g
 >	CPPFLAGS	cpp flags	-I/path/include -Ddef
 >	LDFLAGS		ld flags	-L/usr/local/lib
 >	LIBS		libraries	-llib
@@ -165,7 +165,7 @@ between environments is your responsibility.
 Supported Environmental Variables:
 
 >	CC		C compiler	cc
->	CFLAGS		C flags		-ansi
+>	CFLAGS		C flags		-O -g
 >	CPPFLAGS	cpp flags	-I/path/include -Ddef
 >	LDFLAGS		ld flags	-L/usr/local/lib
 >	LIBS		libraries	-llib
