@@ -86,20 +86,14 @@ ldbm_malloc( size_t size )
 	return( calloc( 1, size ));
 }
 
-#ifdef HAVE_SYSLOG
-#ifdef HAVE_SYSLOG_H
-#include "syslog.h"
-#else
-/* quick hack */
-#define LOG_INFO 1
-extern int syslog(int, char*, ...);
+#ifdef LDAP_SYSLOG
+#include <ac/syslog.h>
 #endif
-#endif /* HAVE_SYSLOG */
 
 static void
 ldbm_db_errcall( const char *prefix, char *message )
 {
-#ifdef HAVE_SYSLOG
+#ifdef LDAP_SYSLOG
 	syslog( LOG_INFO, "ldbm_db_errcall(): %s %s", prefix, message );
 #endif
 }
@@ -136,7 +130,7 @@ int ldbm_initialize( void )
 			sprintf( error, "%s\n", strerror( err ));
 		}
 
-#ifdef HAVE_SYSLOG
+#ifdef LDAP_SYSLOG
 		syslog( LOG_INFO,
 			"ldbm_initialize(): FATAL error in db_appinit() : %s\n",
 			error );
