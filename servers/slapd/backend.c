@@ -646,7 +646,6 @@ backend_db_init(
 	be->be_context_csn.bv_val = NULL;
 	be->be_pcl_mutexp = &be->be_pcl_mutex;
 	ldap_pvt_thread_mutex_init( be->be_pcl_mutexp );
-	ldap_pvt_thread_mutex_init( &be->be_context_csn_mutex );
 
 	LDAP_STAILQ_INIT( &be->be_syncinfo );
 

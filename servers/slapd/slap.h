@@ -1583,7 +1583,6 @@ struct slap_backend_db {
 	ldap_pvt_thread_mutex_t					be_pcl_mutex;
 	ldap_pvt_thread_mutex_t					*be_pcl_mutexp;
 	struct berval							be_context_csn;
-	ldap_pvt_thread_mutex_t					be_context_csn_mutex;
 	LDAP_STAILQ_HEAD( be_si, syncinfo_s )	be_syncinfo; /* For syncrepl */
 
 	char	*be_realm;
