@@ -241,22 +241,27 @@ ldap_back_prepare_conn( struct ldapconn **lcp, Operation *op, SlapReply *rs, lda
 	 */
 	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, (const void *)&vers );
 
-	/* automatically chase referrals ("chase-referrals"/"dont-chase-referrals" statement) */
+	/* automatically chase referrals ("[dont-]chase-referrals" statement) */
 	if ( LDAP_BACK_CHASE_REFERRALS( li ) ) {
 		ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON );
 	}
 
 #ifdef HAVE_TLS
-	/* start TLS ("start-tls"/"try-start-tls" statements) */
+	/* start TLS ("tls-[try-]{start,propagate}" statements) */
 	if ( ( LDAP_BACK_USE_TLS( li ) || ( op->o_conn->c_is_tls && LDAP_BACK_PROPAGATE_TLS( li ) ) )
-				&& !ldap_is_ldaps_url( li->url ) ) {
-#if 0
-		int		rc, msgid;
-		LDAPMessage	*res;
-		int		retries = 1;
+				&& !ldap_is_ldaps_url( li->url ) )
+	{
+#if 1
+		/*
+		 * use asynchronous StartTLS
+		 * in case, chase referral (not implemented yet)
+		 */
+		int		msgid;
 
-		rc = ldap_start_tls( ld, NULL, NULL, &msgid );
-		if ( rc == LDAP_SUCCESS ) {
+		rs->sr_err = ldap_start_tls( ld, NULL, NULL, &msgid );
+		if ( rs->sr_err == LDAP_SUCCESS ) {
+			LDAPMessage	*res = NULL;
+			int		rc, retries = 1;
 			struct timeval	tv = { 0, 0 };
 
 retry:;
@@ -273,32 +278,49 @@ retry:;
 				}
 				rs->sr_err = LDAP_OTHER;
 
-			} else {
-				if ( rc == LDAP_RES_EXTENDED ) {
-					rc = ldap_parse_result( ld, res,
-						&rs->sr_err, NULL, NULL, NULL, NULL, 1 );
-					if ( rc != LDAP_SUCCESS ) {
-						rs->sr_err = rc;
+			} else if ( rc == LDAP_RES_EXTENDED ) {
+				struct berval	*data = NULL;
 
+				rs->sr_err = ldap_parse_extended_result( ld, res,
+						NULL, &data, 0 );
+				if ( rs->sr_err == LDAP_SUCCESS ) {
+					rs->sr_err = ldap_result2error( ld, res, 1 );
+					res = NULL;
+					
 					/* FIXME: in case a referral 
 					 * is returned, should we try
 					 * using it instead of the 
 					 * configured URI? */
+					if ( rs->sr_err == LDAP_SUCCESS ) {
+						ldap_install_tls( ld );
+
 					} else if ( rs->sr_err == LDAP_REFERRAL ) {
 						rs->sr_err = LDAP_OTHER;
 						rs->sr_text = "unwilling to chase referral returned by Start TLS exop";
 					}
 
-				} else {
-					ldap_msgfree( res );
-					rs->sr_err = LDAP_OTHER;
+					if ( data ) {
+						if ( data->bv_val ) {
+							ber_memfree( data->bv_val );
+						}
+						ber_memfree( data );
+					}
 				}
+
+			} else {
+				rs->sr_err = LDAP_OTHER;
+			}
+
+			if ( res != NULL ) {
+				ldap_msgfree( res );
 			}
 		}
 #else
-
-#endif
+		/*
+		 * use synchronous StartTLS
+		 */
 		rs->sr_err = ldap_start_tls_s( ld, NULL, NULL );
+#endif
 
 		/* if StartTLS is requested, only attempt it if the URL
 		 * is not "ldaps://"; this may occur not only in case
@@ -311,7 +333,7 @@ retry:;
 			goto error_return;
 		}
 	}
-#endif
+#endif /* HAVE_TLS */
 
 	if ( *lcp == NULL ) {
 		*lcp = (struct ldapconn *)ch_malloc( sizeof( struct ldapconn ) );
