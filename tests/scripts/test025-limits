@@ -315,10 +315,18 @@ RC=$?
 COUNT=`cat $SEARCHOUT | grep '^# numEntries:' | sed 's;.*\([0-9]\+\)$;\1;'`
 case $RC in
 	0)
-		echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
+		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
 	;;
-	11)
-		echo "...bumped into server-side unchecked limit"
+	4)
+		if test "x$COUNT" != "x" ; then
+			if test $SIZELIMIT = $COUNT ; then
+				echo "...bumped into requested ($SIZELIMIT) size limit"
+			else
+				echo "...bumped into server-side size limit ($COUNT)"
+			fi
+		else
+			echo "...bumped into either requested ($SIZELIMIT) or server-side size limit"
+		fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -335,10 +343,18 @@ RC=$?
 COUNT=`cat $SEARCHOUT | grep '^# numEntries:' | sed 's;.*\([0-9]\+\)$;\1;'`
 case $RC in
 	0)
-		echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
+		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
 	;;
-	11)
-		echo "...bumped into server-side unchecked limit"
+	4)
+		if test "x$COUNT" != "x" ; then
+			if test $SIZELIMIT = $COUNT ; then
+				echo "...bumped into requested ($SIZELIMIT) size limit"
+			else
+				echo "...bumped into server-side size limit ($COUNT)"
+			fi
+		else
+			echo "...bumped into either requested ($SIZELIMIT) or server-side size limit"
+		fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -355,10 +371,18 @@ RC=$?
 COUNT=`cat $SEARCHOUT | grep '^# numEntries:' | sed 's;.*\([0-9]\+\)$;\1;'`
 case $RC in
 	0)
-		echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
+		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
 	;;
-	11)
-		echo "...bumped into server-side unchecked limit"
+	4)
+		if test "x$COUNT" != "x" ; then
+			if test $SIZELIMIT = $COUNT ; then
+				echo "...bumped into requested ($SIZELIMIT) size limit"
+			else
+				echo "...bumped into server-side size limit ($COUNT)"
+			fi
+		else
+			echo "...bumped into either requested ($SIZELIMIT) or server-side size limit"
+		fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -375,10 +399,18 @@ RC=$?
 COUNT=`cat $SEARCHOUT | grep '^# numEntries:' | sed 's;.*\([0-9]\+\)$;\1;'`
 case $RC in
 	0)
-		echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
+		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
 	;;
-	11)
-		echo "...bumped into server-side unchecked limit"
+	4)
+		if test "x$COUNT" != "x" ; then
+			if test $SIZELIMIT = $COUNT ; then
+				echo "...bumped into requested ($SIZELIMIT) size limit"
+			else
+				echo "...bumped into server-side size limit ($COUNT)"
+			fi
+		else
+			echo "...bumped into either requested ($SIZELIMIT) or server-side size limit"
+		fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -395,10 +427,18 @@ RC=$?
 COUNT=`cat $SEARCHOUT | grep '^# numEntries:' | sed 's;.*\([0-9]\+\)$;\1;'`
 case $RC in
 	0)
-		echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
+		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
 	;;
-	11)
-		echo "...bumped into server-side unchecked limit"
+	4)
+		if test "x$COUNT" != "x" ; then
+			if test $SIZELIMIT = $COUNT ; then
+				echo "...bumped into requested ($SIZELIMIT) size limit"
+			else
+				echo "...bumped into server-side size limit ($COUNT)"
+			fi
+		else
+			echo "...bumped into either requested ($SIZELIMIT) or server-side size limit"
+		fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
@@ -414,10 +454,18 @@ RC=$?
 COUNT=`cat $SEARCHOUT | grep '^# numEntries:' | sed 's;.*\([0-9]\+\)$;\1;'`
 case $RC in
 	0)
-		echo "...success; didn't bump into server-side unchecked limit (got $COUNT entries)"
+		echo "...success; didn't bump into either requested ($SIZELIMIT) or server-side size limit (got $COUNT entries)"
 	;;
-	11)
-		echo "...bumped into server-side unchecked limit"
+	4)
+		if test "x$COUNT" != "x" ; then
+			if test $SIZELIMIT = $COUNT ; then
+				echo "...bumped into requested ($SIZELIMIT) size limit"
+			else
+				echo "...bumped into server-side size limit ($COUNT)"
+			fi
+		else
+			echo "...bumped into either requested ($SIZELIMIT) or server-side size limit"
+		fi
 	;;
 	*)
 		echo "ldapsearch failed ($RC)!"
