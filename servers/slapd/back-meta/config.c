@@ -172,7 +172,8 @@ meta_back_db_config(
 
 		ludp->lud_dn[ 0 ] = '\0';
 
-		for ( tmpludp = ludp->lud_next; tmpludp; tmpludp = tmpludp->lud_next ) {
+		/* check all, to apply the scope check on the first one */
+		for ( tmpludp = ludp; tmpludp; tmpludp = tmpludp->lud_next ) {
 			if ( tmpludp->lud_dn != NULL && tmpludp->lud_dn[ 0 ] != '\0' ) {
 				fprintf( stderr, "%s: line %d: "
 						"multiple URIs must have "
@@ -180,6 +181,10 @@ meta_back_db_config(
 					fname, lineno );
 				return( 1 );
 
+			}
+
+			if ( tmpludp->lud_scope == LDAP_SCOPE_BASE ) {
+				tmpludp->lud_scope = LDAP_SCOPE_DEFAULT;
 			}
 		}
 
