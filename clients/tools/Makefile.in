@@ -3,9 +3,9 @@
 ## Makefile for LDAP tools
 ##
 SRCS	= ldapsearch.c ldapmodify.c ldapdelete.c ldapmodrdn.c \
-		ldappasswd.c ldapwhoami.c ldapcompare.c
+		ldappasswd.c ldapwhoami.c ldapcompare.c common.c
 OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o \
-		ldappasswd.o ldapwhoami.o ldapcompare.o
+		ldappasswd.o ldapwhoami.o ldapcompare.o common.o
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
@@ -21,56 +21,56 @@ PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn ldapadd \
 
 
 ldapsearch:	ldsversion.o
-	$(LTLINK) -o $@ ldapsearch.o ldsversion.o $(LIBS)
+	$(LTLINK) -o $@ ldapsearch.o common.o ldsversion.o $(LIBS)
 
 ldapmodify:	ldmversion.o
-	$(LTLINK) -o $@ ldapmodify.o ldmversion.o $(LIBS)
+	$(LTLINK) -o $@ ldapmodify.o common.o ldmversion.o $(LIBS)
 
 ldapdelete:	lddversion.o
-	$(LTLINK) -o $@ ldapdelete.o lddversion.o $(LIBS)
+	$(LTLINK) -o $@ ldapdelete.o common.o lddversion.o $(LIBS)
 
 ldapmodrdn:	ldrversion.o
-	$(LTLINK) -o $@ ldapmodrdn.o ldrversion.o $(LIBS)
+	$(LTLINK) -o $@ ldapmodrdn.o common.o ldrversion.o $(LIBS)
 
 ldappasswd:	ldpversion.o
-	$(LTLINK) -o $@ ldappasswd.o ldpversion.o $(LIBS)
+	$(LTLINK) -o $@ ldappasswd.o common.o ldpversion.o $(LIBS)
 
 ldapwhoami:	ldwversion.o
-	$(LTLINK) -o $@ ldapwhoami.o ldwversion.o $(LIBS)
+	$(LTLINK) -o $@ ldapwhoami.o common.o ldwversion.o $(LIBS)
 
 ldapcompare: ldcversion.o
-	$(LTLINK) -o $@ ldapcompare.o ldcversion.o $(LIBS)
+	$(LTLINK) -o $@ ldapcompare.o common.o ldcversion.o $(LIBS)
 
 ldapadd:	ldapmodify
 	@-$(RM) $@$(EXEEXT)
 	$(LN_H) ldapmodify$(EXEEXT) ldapadd$(EXEEXT)
 
 
-ldsversion.c: ldapsearch.o $(XLIBS)
+ldsversion.c: ldapsearch.o common.o $(XLIBS)
 	@-$(RM) $@
 	$(MKVERSION) ldapsearch > $@
 
-ldmversion.c: ldapmodify.o $(XLIBS)
+ldmversion.c: ldapmodify.o common.o $(XLIBS)
 	@-$(RM) $@
 	$(MKVERSION) ldapmodify > $@
 
-lddversion.c: ldapdelete.o $(XLIBS)
+lddversion.c: ldapdelete.o common.o $(XLIBS)
 	@-$(RM) $@
 	$(MKVERSION) ldapdelete > $@
 
-ldpversion.c: ldappasswd.o $(XLIBS)
+ldpversion.c: ldappasswd.o common.o $(XLIBS)
 	@-$(RM) $@
 	$(MKVERSION) ldappasswd > $@
 
-ldrversion.c: ldapmodrdn.o $(XLIBS)
+ldrversion.c: ldapmodrdn.o common.o $(XLIBS)
 	@-$(RM) $@
 	$(MKVERSION) ldapmodrdn > $@
 
-ldwversion.c: ldapwhoami.o $(XLIBS)
+ldwversion.c: ldapwhoami.o common.o $(XLIBS)
 	@-$(RM) $@
 	$(MKVERSION) ldapwhoami > $@
 
-ldcversion.c: ldapcompare.o $(XLIBS)
+ldcversion.c: ldapcompare.o common.o $(XLIBS)
 	@-$(RM) $@
 	$(MKVERSION) ldapcompare > $@
 
