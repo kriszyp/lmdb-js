@@ -246,4 +246,4 @@ char *derefDN ( Backend     *be,
   return newDN;
 }
 
-#endif SLAPD_ALIAS_DEREF
+#endif /* SLAPD_ALIAS_DEREF */
