@@ -464,6 +464,15 @@ try_read1msg(
 						}
 					}
 				}
+
+				if( lr->lr_res_matched != NULL ) {
+					LDAP_FREE( lr->lr_res_matched );
+					lr->lr_res_matched = NULL;
+				}
+				if( lr->lr_res_error != NULL ) {
+					LDAP_FREE( lr->lr_res_error );
+					lr->lr_res_error = NULL;
+				}
 			}
 		}
 	}
