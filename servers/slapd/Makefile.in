@@ -43,11 +43,11 @@ BUILD_SRV = @BUILD_SLAPD@
 all-local-srv: all-cffiles
 
 slapd: libbackends.a version.o
-	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)
+	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
 	(cd tools; $(MAKE) $(MFLAGS) all)
 
 sslapd: version.o
-	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS)
+	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
 
 .backend: FORCE
 	@for i in back-*; do \

@@ -1606,13 +1606,15 @@ if test $ol_enable_wrappers != no ; then
 	if test $ac_cv_header_tcpd_h != yes ; then
 		have_wrappers=no
 	else
-		AC_CHECK_LIB(wrap, main,
-			[have_wrappers=yes], [have_wrappers=no])
+		AC_TRY_COMPILE([
+int allow_severity = 0;
+int deny_severity  = 0;
+		],[hosts_access()],[have_wrappers=yes],[have_wrappers=no])
 	fi
 
 	if test $have_wrappers = yes ; then
 		AC_DEFINE(HAVE_TCPD,1, [define if you have -lwrap])
-		SLAPD_LIBS="$SLAPD_LIBS -lwrap"
+		WRAP_LIBS="-lwrap"
 
 		dnl We add another check for -lnsl since some libwrap's
 		dnl need it, but it isn't always included from above
@@ -1625,6 +1627,7 @@ if test $ol_enable_wrappers != no ; then
 
 		AC_MSG_WARN(disabling wrappers support)
 		ol_enable_wrappers=no
+		WRAP_LIBS=""
 	fi
 fi
 
