@@ -975,6 +975,8 @@ dnMatch(
 	assert( matchp );
 	assert( value );
 	assert( assertedValue );
+	assert( !BER_BVISNULL( value ) );
+	assert( !BER_BVISNULL( asserted ) );
 	
 	match = value->bv_len - asserted->bv_len;
 
