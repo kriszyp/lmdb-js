@@ -58,6 +58,8 @@
 
 LDAP_BEGIN_DECL
 
+#define SLAP_CONTROL_AVAILABILITY_KLUDGE
+
 #ifdef LDAP_DEVEL
 #define SLAP_ACL_HONOR_DISCLOSE	/* partially implemented */
 #define SLAP_DYNACL

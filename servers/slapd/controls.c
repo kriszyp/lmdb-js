@@ -612,6 +612,7 @@ int get_ctrls(
 					goto return_results;
 				}
 
+#ifdef SLAP_CONTROL_AVAILABILITY_KLUDGE
 				if ( sc->sc_mask & SLAP_CTRL_FRONTEND ) {
 					/* KLUDGE: disable backend_control() check */
 					c->ldctl_iscritical = 0;
@@ -626,6 +627,7 @@ int get_ctrls(
 					/* KLUDGE: enable backend_control() check */
 					c->ldctl_iscritical = 1;
 				}
+#endif
 
 			} else if( c->ldctl_iscritical ) {
 				/* unavailable CRITICAL control */
