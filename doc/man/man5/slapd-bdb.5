@@ -133,12 +133,19 @@ region that will house the environment.
 .TP
 .B sessionlog <sid> <limit>
 Specify a session log store for the syncrepl replication provider
-site which contains information on the entries that have been scoped
-out of the content of the replication session identified by {{EX:<sid>}}.
-The number of entries in the session log store is limited
-by {{EX:<limit>}}. Excessive entries are removed from the store
-in the FIFO order. Both {{EX:<sid>}} and {{EX:<limit>}} are
-non-negative integers. {{EX:<sid>}} has no more than three digits.
+server. The session log store contains information on the entries that
+have been scoped out of the provider replication content identified by
+.B <sid>.
+The number of entries in the session log store is limited by
+.B <limit>.
+Excessive entries are removed from the store in the FIFO order.
+Both
+.B <sid>
+and
+.B <limit>
+are non-negative integers.
+.B <sid>
+has no more than three decimal digits.
 Refer to the "OpenLDAP Administrator's Guide" for detailed information
 on setting up a replicated slapd directory service using the syncrepl
 replication engine and the session log store.

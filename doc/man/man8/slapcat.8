@@ -8,6 +8,8 @@ slapcat \- SLAPD database to LDIF utility
 .B SBINDIR/slapcat
 .B [\-v]
 .B [\-c]
+.B [\-k]
+.B [\-m]
 .B [\-d level]
 .B [\-b suffix]
 .B [\-n dbnum]
@@ -36,13 +38,23 @@ without first being reordered.
 .SH OPTIONS
 .TP
 .B \-v
-enable verbose mode.
+Enable verbose mode.
 .TP
 .B \-c
-enable continue (ignore errors) mode.
+Enable continue (ignore errors) mode.
+.TP
+.B \-k
+Include
+.B syncConsumerSubentry
+of the syncrepl consumer in the generated LDIF output.
+.TP
+.B \-m
+Include
+.B syncProviderSubentry
+of the syncrepl provider in the generated LDIF output.
 .TP
 .BI \-d " level"
-enable debugging messages as defined by the specified
+Enable debugging messages as defined by the specified
 .IR level .
 .TP
 .BI \-b " suffix" 
@@ -69,7 +81,7 @@ or
 option is given.
 .TP
 .BI \-f " slapd.conf"
-specify an alternative
+Specify an alternative
 .BR slapd.conf (5)
 file.
 .TP
