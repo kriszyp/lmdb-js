@@ -675,7 +675,7 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 
 		*nextstar++ = '\0';
 
-		if ( *val != '\0' ) {
+		if ( *val != '\0' || ftype == LDAP_SUBSTRING_ANY ) {
 			ber_slen_t len = ldap_pvt_filter_value_unescape( val );
 
 			if ( len < 0  ) {
