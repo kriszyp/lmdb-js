@@ -20,10 +20,10 @@ static int	get_filter_list(
 	Filter **f,
 	const char **text );
 
-static int	get_substring_filter(
+static int	get_ssa(
 	Connection *conn,
 	BerElement *ber,
-	Filter *f,
+	SubstringsAssertion **s,
 	const char **text );
 
 static void simple_vrFilter2bv(
@@ -125,7 +125,7 @@ get_filter(
 #else
 		Debug( LDAP_DEBUG_FILTER, "SUBSTRINGS\n", 0, 0, 0 );
 #endif
-		err = get_substring_filter( conn, ber, &f, text );
+		err = get_ssa( conn, ber, &f.f_sub, text );
 		if( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -343,10 +343,10 @@ get_filter_list( Connection *conn, BerElement *ber,
 }
 
 static int
-get_substring_filter(
+get_ssa(
 	Connection	*conn,
 	BerElement	*ber,
-	Filter	*f,
+	SubstringsAssertion	**out,
 	const char	**text )
 {
 	ber_tag_t	tag;
@@ -360,17 +360,15 @@ get_substring_filter(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( FILTER, ENTRY, 
-		"get_substring_filter: conn %d  begin\n", conn->c_connid, 0, 0 );
+		"get_ssa: conn %d  begin\n", conn->c_connid, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_FILTER, "begin get_substring_filter\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "begin get_ssa\n", 0, 0, 0 );
 #endif
 	if ( ber_scanf( ber, "{m" /*}*/, &desc ) == LBER_ERROR ) {
 		return SLAPD_DISCONNECT;
 	}
 
 	*text = NULL;
-	f->f_choice = SLAPD_FILTER_COMPUTED;
-	f->f_result = SLAPD_COMPARE_UNDEFINED;
 
 	ssa.sa_desc = NULL;
 	ssa.sa_initial.bv_val = NULL;
@@ -468,7 +466,7 @@ get_substring_filter(
 		case LDAP_SUBSTRING_INITIAL:
 #ifdef NEW_LOGGING
 			LDAP_LOG( FILTER, DETAIL1,
-				"get_substring_filter: conn %d  INITIAL\n",
+				"get_ssa: conn %d  INITIAL\n",
 				conn->c_connid, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_FILTER, "  INITIAL\n", 0, 0, 0 );
@@ -488,7 +486,7 @@ get_substring_filter(
 		case LDAP_SUBSTRING_ANY:
 #ifdef NEW_LOGGING
 			LDAP_LOG( FILTER, DETAIL1,
-				"get_substring_filter: conn %d  ANY\n",
+				"get_ssa: conn %d  ANY\n",
 				conn->c_connid, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_FILTER, "  ANY\n", 0, 0, 0 );
@@ -505,7 +503,7 @@ get_substring_filter(
 		case LDAP_SUBSTRING_FINAL:
 #ifdef NEW_LOGGING
 			LDAP_LOG( FILTER, DETAIL1, 
-				"get_substring_filter: conn %d  FINAL\n",
+				"get_ssa: conn %d  FINAL\n",
 				conn->c_connid, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_FILTER, "  FINAL\n", 0, 0, 0 );
@@ -522,7 +520,7 @@ get_substring_filter(
 		default:
 #ifdef NEW_LOGGING
 			LDAP_LOG( FILTER, INFO, 
-				"get_substring_filter: conn %d  unknown substring type %ld\n",
+				"get_ssa: conn %d  unknown substring type %ld\n",
 				conn->c_connid, (long)tag, 0 );
 #else
 			Debug( LDAP_DEBUG_FILTER,
@@ -536,7 +534,7 @@ get_substring_filter(
 return_error:
 #ifdef NEW_LOGGING
 			LDAP_LOG( FILTER, INFO, 
-				"get_substring_filter: conn %d  error %ld\n",
+				"get_ssa: conn %d  error %ld\n",
 				conn->c_connid, (long)rc, 0 );
 #else
 			Debug( LDAP_DEBUG_FILTER, "  error=%ld\n",
@@ -552,16 +550,15 @@ return_error:
 	}
 
 	if( rc == LDAP_SUCCESS ) {
-		f->f_choice = LDAP_FILTER_SUBSTRINGS;
-		f->f_sub = ch_malloc( sizeof( ssa ) );
-		*f->f_sub = ssa;
+		*out = ch_malloc( sizeof( ssa ) );
+		**out = ssa;
 	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( FILTER, ENTRY, 
-		"get_substring_filter: conn %d exit\n", conn->c_connid, 0, 0 );
+		"get_ssa: conn %d exit\n", conn->c_connid, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_FILTER, "end get_substring_filter\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "end get_ssa\n", 0, 0, 0 );
 #endif
 
 	return LDAP_SUCCESS;
@@ -868,7 +865,7 @@ get_simple_vrFilter(
 	ber_tag_t	tag;
 	ber_len_t	len;
 	int		err;
-	ValuesReturnFilter *vrf;
+	ValuesReturnFilter vrf;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( FILTER, ENTRY, 
@@ -884,13 +881,12 @@ get_simple_vrFilter(
 		return SLAPD_DISCONNECT;
 	}
 
-	vrf = (ValuesReturnFilter *) ch_malloc( sizeof(ValuesReturnFilter) );
-	vrf->vrf_next = NULL;
+	vrf.vrf_next = NULL;
 
 	err = LDAP_SUCCESS;
-	vrf->vrf_choice = tag; 
+	vrf.vrf_choice = tag; 
 
-	switch ( vrf->vrf_choice ) {
+	switch ( vrf.vrf_choice ) {
 	case LDAP_FILTER_EQUALITY:
 #ifdef NEW_LOGGING
 		LDAP_LOG( FILTER, DETAIL2, 
@@ -898,12 +894,12 @@ get_simple_vrFilter(
 #else
 		Debug( LDAP_DEBUG_FILTER, "EQUALITY\n", 0, 0, 0 );
 #endif
-		err = get_ava( ber, &vrf->vrf_ava, SLAP_MR_EQUALITY, text );
+		err = get_ava( ber, &vrf.vrf_ava, SLAP_MR_EQUALITY, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
 
-		assert( vrf->vrf_ava != NULL );
+		assert( vrf.vrf_ava != NULL );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
@@ -913,7 +909,7 @@ get_simple_vrFilter(
 #else
 		Debug( LDAP_DEBUG_FILTER, "SUBSTRINGS\n", 0, 0, 0 );
 #endif
-		err = get_substring_filter( conn, ber, (Filter *)vrf, text );
+		err = get_ssa( conn, ber, &vrf.vrf_sub, text );
 		break;
 
 	case LDAP_FILTER_GE:
@@ -923,7 +919,7 @@ get_simple_vrFilter(
 #else
 		Debug( LDAP_DEBUG_FILTER, "GE\n", 0, 0, 0 );
 #endif
-		err = get_ava( ber, &vrf->vrf_ava, SLAP_MR_ORDERING, text );
+		err = get_ava( ber, &vrf.vrf_ava, SLAP_MR_ORDERING, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -936,7 +932,7 @@ get_simple_vrFilter(
 #else
 		Debug( LDAP_DEBUG_FILTER, "LE\n", 0, 0, 0 );
 #endif
-		err = get_ava( ber, &vrf->vrf_ava, SLAP_MR_ORDERING, text );
+		err = get_ava( ber, &vrf.vrf_ava, SLAP_MR_ORDERING, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -957,13 +953,13 @@ get_simple_vrFilter(
 			break;
 		}
 
-		vrf->vrf_desc = NULL;
-		err = slap_bv2ad( &type, &vrf->vrf_desc, text );
+		vrf.vrf_desc = NULL;
+		err = slap_bv2ad( &type, &vrf.vrf_desc, text );
 
 		if( err != LDAP_SUCCESS ) {
 			/* unrecognized attribute description or other error */
-			vrf->vrf_choice = SLAPD_FILTER_COMPUTED;
-			vrf->vrf_result = LDAP_COMPARE_FALSE;
+			vrf.vrf_choice = SLAPD_FILTER_COMPUTED;
+			vrf.vrf_result = LDAP_COMPARE_FALSE;
 			err = LDAP_SUCCESS;
 			break;
 		}
@@ -976,7 +972,7 @@ get_simple_vrFilter(
 #else
 		Debug( LDAP_DEBUG_FILTER, "APPROX\n", 0, 0, 0 );
 #endif
-		err = get_ava( ber, &vrf->vrf_ava, SLAP_MR_EQUALITY_APPROX, text );
+		err = get_ava( ber, &vrf.vrf_ava, SLAP_MR_EQUALITY_APPROX, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -990,12 +986,12 @@ get_simple_vrFilter(
 		Debug( LDAP_DEBUG_FILTER, "EXTENSIBLE\n", 0, 0, 0 );
 #endif
 
-		err = get_mra( ber, &vrf->vrf_mra, text );
+		err = get_mra( ber, &vrf.vrf_mra, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
 
-		assert( vrf->vrf_mra != NULL );
+		assert( vrf.vrf_mra != NULL );
 		break;
 
 	default:
@@ -1003,30 +999,26 @@ get_simple_vrFilter(
 #ifdef NEW_LOGGING
 		LDAP_LOG( FILTER, ERR, 
 			"get_simple_vrFilter: conn %d unknown filter type=%lu\n",
-			conn->c_connid, vrf->vrf_choice, 0 );
+			conn->c_connid, vrf.vrf_choice, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "get_simple_vrFilter: unknown filter type=%lu\n",
-			vrf->vrf_choice, 0, 0 );
+			vrf.vrf_choice, 0, 0 );
 #endif
-		vrf->vrf_choice = SLAPD_FILTER_COMPUTED;
-		vrf->vrf_result = SLAPD_COMPARE_UNDEFINED;
+		vrf.vrf_choice = SLAPD_FILTER_COMPUTED;
+		vrf.vrf_result = SLAPD_COMPARE_UNDEFINED;
 		break;
 	}
 
-	if ( err != LDAP_SUCCESS ) {
-		if( err != SLAPD_DISCONNECT ) {
-			/* ignore error */
-			vrf->vrf_choice = SLAPD_FILTER_COMPUTED;
-			vrf->vrf_result = SLAPD_COMPARE_UNDEFINED;
-			err = LDAP_SUCCESS;
-			*filt = vrf;
+	if ( err != LDAP_SUCCESS && err != SLAPD_DISCONNECT ) {
+		/* ignore error */
+		vrf.vrf_choice = SLAPD_FILTER_COMPUTED;
+		vrf.vrf_result = SLAPD_COMPARE_UNDEFINED;
+		err = LDAP_SUCCESS;
+	}
 
-		} else {
-			free(vrf);
-		}
-
-	} else {
-		*filt = vrf;
+	if ( err == LDAP_SUCCESS ) {
+		*filt = ch_malloc( sizeof vrf );
+		**filt = vrf;
 	}
 
 #ifdef NEW_LOGGING
@@ -1035,7 +1027,8 @@ get_simple_vrFilter(
 #else
 	Debug( LDAP_DEBUG_FILTER, "end get_simple_vrFilter %d\n", err, 0, 0 );
 #endif
-	return( err );
+
+	return err;
 }
 
 int
@@ -1102,8 +1095,9 @@ get_vrFilter( Connection *conn, BerElement *ber,
 		tag = ber_next_element( ber, &len, last ) )
 	{
 		int err = get_simple_vrFilter( conn, ber, n, text );
-		if ( err != LDAP_SUCCESS )
-			return( err );
+
+		if ( err != LDAP_SUCCESS ) return( err );
+
 		n = &(*n)->vrf_next;
 	}
 	*n = NULL;
@@ -1397,6 +1391,7 @@ get_substring_vrFilter(
 	struct berval value;
 	char		*last;
 	struct berval bv;
+	SubstringsAssertion ssa;
 	*text = "error decoding filter";
 
 #ifdef NEW_LOGGING
