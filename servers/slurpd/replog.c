@@ -142,7 +142,7 @@ copy_replog(
     /*
      * Make our own private copy of the replication log.
      */
-    while (( p = fgets( rbuf, sizeof( buf ), rfp )) != NULL ) {
+    while (( p = fgets( rbuf, sizeof( rbuf ), rfp )) != NULL ) {
 	fputs( rbuf, dfp );
     }
     /* Only truncate the source file if we're not in one-shot mode */
