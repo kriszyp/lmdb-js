@@ -252,6 +252,10 @@ SOURCE=.\root_dse.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\sasl.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\schema.c
 # End Source File
 # Begin Source File
