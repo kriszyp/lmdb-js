@@ -202,7 +202,7 @@ do_bind(
 			NULL, "requested protocol version not supported", NULL, NULL );
 		goto cleanup;
 
-	} else if (( global_disallows & SLAP_DISALLOW_BIND_V2 ) &&
+	} else if (!( global_allows & SLAP_ALLOW_BIND_V2 ) &&
 		version < LDAP_VERSION3 )
 	{
 		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
@@ -331,13 +331,13 @@ do_bind(
 			text = NULL;
 
 			if( cred.bv_len &&
-				( global_disallows & SLAP_DISALLOW_BIND_ANON_CRED ))
+				!( global_allows & SLAP_ALLOW_BIND_ANON_CRED ))
 			{
 				/* cred is not empty, disallow */
 				rc = LDAP_INVALID_CREDENTIALS;
 
 			} else if ( ndn != NULL && *ndn != '\0' &&
-				( global_disallows & SLAP_DISALLOW_BIND_ANON_DN ))
+				!( global_allows & SLAP_ALLOW_BIND_ANON_DN ))
 			{
 				/* DN is not empty, disallow */
 				rc = LDAP_UNWILLING_TO_PERFORM;

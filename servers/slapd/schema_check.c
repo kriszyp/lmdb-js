@@ -76,6 +76,7 @@ entry_schema_check(
 		}
 	}
 
+	/* it's a REALLY bad idea to disable schema checks */
 	if( !global_schemacheck ) return LDAP_SUCCESS;
 
 	/* find the object class attribute - could error out here */

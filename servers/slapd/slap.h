@@ -12,6 +12,7 @@
 
 #include "ldap_defaults.h"
 
+#include <stdio.h>
 #include <ac/stdlib.h>
 
 #include <sys/types.h>
@@ -953,19 +954,16 @@ struct slap_backend_db {
 	| SLAP_RESTRICT_OP_MODIFY \
 	| SLAP_RESTRICT_OP_RENAME )
 
-#define SLAP_ALLOW_TLS_2_ANON	0x0001U /* StartTLS -> Anonymous */
+#define SLAP_ALLOW_BIND_V2			0x0001U	/* LDAPv2 bind */
+#define SLAP_ALLOW_BIND_ANON_CRED	0x0002U /* cred should be empty */
+#define SLAP_ALLOW_BIND_ANON_DN		0x0003U /* dn should be empty */
 
-#define SLAP_DISALLOW_BIND_V2	0x0001U	/* LDAPv2 bind */
-#define SLAP_DISALLOW_BIND_ANON 0x0002U /* no anonymous */
-#define SLAP_DISALLOW_BIND_ANON_CRED \
-								0x0004U /* cred should be empty */
-#define SLAP_DISALLOW_BIND_ANON_DN \
-								0x0008U /* dn should be empty */
+#define SLAP_DISALLOW_BIND_ANON		0x0001U /* no anonymous */
+#define SLAP_DISALLOW_BIND_SIMPLE	0x0002U	/* simple authentication */
+#define SLAP_DISALLOW_BIND_KRBV4	0x0004U /* Kerberos V4 authentication */
 
-#define SLAP_DISALLOW_BIND_SIMPLE	0x0010U	/* simple authentication */
-#define SLAP_DISALLOW_BIND_KRBV4	0x0020U /* Kerberos V4 authentication */
-
-#define SLAP_DISALLOW_TLS_AUTHC	0x0100U	/* TLS while authenticated */
+#define SLAP_DISALLOW_TLS_2_ANON	0x0010U /* StartTLS -> Anonymous */
+#define SLAP_DISALLOW_TLS_AUTHC		0x0020U	/* TLS while authenticated */
 
 	slap_mask_t	be_requires;	/* pre-operation requirements */
 #define SLAP_REQUIRE_BIND		0x0001U	/* bind before op */

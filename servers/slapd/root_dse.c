@@ -117,7 +117,7 @@ root_dse_info(
 
 	/* supportedLDAPVersion */
 	for ( i=LDAP_VERSION_MIN; i<=LDAP_VERSION_MAX; i++ ) {
-		if (( global_disallows & SLAP_DISALLOW_BIND_V2 ) &&
+		if (!( global_allows & SLAP_ALLOW_BIND_V2 ) &&
 			( i < LDAP_VERSION3 ) )
 		{
 			/* version 2 and lower are disallowed */

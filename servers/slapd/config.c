@@ -1266,8 +1266,14 @@ read_config( const char *fname )
 			allows = 0;
 
 			for( i=1; i < cargc; i++ ) {
-				if( strcasecmp( cargv[i], "tls_2_anon" ) == 0 ) {
-					allows |= SLAP_ALLOW_TLS_2_ANON;
+				if( strcasecmp( cargv[i], "bind_v2" ) == 0 ) {
+					allows |= SLAP_ALLOW_BIND_V2;
+
+				} else if( strcasecmp( cargv[i], "bind_anon_cred" ) == 0 ) {
+					allows |= SLAP_ALLOW_BIND_ANON_CRED;
+
+				} else if( strcasecmp( cargv[i], "bind_anon_dn" ) == 0 ) {
+					allows |= SLAP_ALLOW_BIND_ANON_DN;
 
 				} else if( strcasecmp( cargv[i], "none" ) != 0 ) {
 #ifdef NEW_LOGGING
@@ -1323,23 +1329,17 @@ read_config( const char *fname )
 			disallows = 0;
 
 			for( i=1; i < cargc; i++ ) {
-				if( strcasecmp( cargv[i], "bind_v2" ) == 0 ) {
-					disallows |= SLAP_DISALLOW_BIND_V2;
-
-				} else if( strcasecmp( cargv[i], "bind_anon" ) == 0 ) {
+				if( strcasecmp( cargv[i], "bind_anon" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_BIND_ANON;
-
-				} else if( strcasecmp( cargv[i], "bind_anon_cred" ) == 0 ) {
-					disallows |= SLAP_DISALLOW_BIND_ANON_CRED;
-
-				} else if( strcasecmp( cargv[i], "bind_anon_dn" ) == 0 ) {
-					disallows |= SLAP_DISALLOW_BIND_ANON_DN;
 
 				} else if( strcasecmp( cargv[i], "bind_simple" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_BIND_SIMPLE;
 
 				} else if( strcasecmp( cargv[i], "bind_krbv4" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_BIND_KRBV4;
+
+				} else if( strcasecmp( cargv[i], "tls_2_anon" ) == 0 ) {
+					disallows |= SLAP_DISALLOW_TLS_2_ANON;
 
 				} else if( strcasecmp( cargv[i], "tls_authc" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_TLS_AUTHC;
