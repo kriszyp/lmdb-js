@@ -1,6 +1,10 @@
 /* bind.c - ldap backend bind function */
 /* $OpenLDAP$ */
-
+/*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/* This is an altered version */
 /*
  * Copyright 1999, Howard Chu, All rights reserved. <hyc@highlandsun.com>
  * 
