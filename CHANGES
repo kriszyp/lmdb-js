@@ -7,9 +7,12 @@ Changes included in OpenLDAP 1.2
 	Add client/tools password prompting (-W)
 	Add slapd logging option
 	Add slapd alternative args/pid file locations
+	Fix client SIGPIPE handling
+	Fix configure wait3 handling
 	Fix lber leaking ber_scanf
-	Updated slapd DN handling
+	Updated client -d(ebug) handling
 	Updated slapd alias deref functionality to be optional
+	Updated slapd DN handling
 	Updated client/tools Kerberos option handling
 
 Changes included in OpenLDAP 1.1.3
