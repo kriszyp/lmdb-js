@@ -226,16 +226,18 @@ int ldap_domain2hostlist(
 
 	/* Parse out query */
 	p = reply;
+
 #ifdef NS_HFIXEDSZ
 	/* Bind 8/9 interface */
 	p += NS_HFIXEDSZ;
-#else
-#ifndef	HFIXEDSZ
-#define	HFIXEDSZ	sizeof(HEADER)
-#endif
-	/* Bind 4 interface */
+#elif defined(HFIXEDSZ)
+	/* Bind 4 interface w/ HFIXEDSZ */
 	p += HFIXEDSZ;
+#else
+	/* Bind 4 interface w/o HFIXEDSZ */
+	p += sizeof(HEADER);
 #endif
+
 	status = dn_expand(reply, reply + len, p, host, sizeof(host));
 	if (status < 0) {
 	    goto out;
