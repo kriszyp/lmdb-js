@@ -821,7 +821,7 @@ if test $ac_cv_func_getaddrinfo = no ; then
 else
 	AC_CACHE_CHECK([INET6_ADDRSTRLEN],[ol_cv_inet6_addrslen],[
 		AC_EGREP_CPP(__has_inet6_addrslen__,[
-#			include <net/in.h>
+#			include <netinet/in.h>
 #			ifdef INET6_ADDRSLEN
 				__has_inet6_addrslen__;
 #			endif

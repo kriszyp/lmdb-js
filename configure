@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.335 2000/09/24 23:13:28 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.336 2000/09/24 23:15:14 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -5776,7 +5776,7 @@ else
 #line 5777 "configure"
 #include "confdefs.h"
 
-#			include <net/in.h>
+#			include <netinet/in.h>
 #			ifdef INET6_ADDRSLEN
 				__has_inet6_addrslen__;
 #			endif
