@@ -308,7 +308,8 @@ slapadd( int argc, char **argv )
 			}
 		}
 
-		if ( update_ctxcsn == SLAP_TOOL_CTXCSN_KEEP ) {
+		if ( update_ctxcsn == SLAP_TOOL_CTXCSN_KEEP &&
+			( replica_promotion || replica_demotion )) {
 			if ( is_entry_syncProviderSubentry( e )) { 
 				if ( !LDAP_SLIST_EMPTY( &consumer_subentry )) {
 					fprintf( stderr, "%s: consumer and provider subentries "
@@ -402,8 +403,9 @@ slapadd( int argc, char **argv )
 			}
 		}
 
-		if ( !is_entry_syncProviderSubentry( e ) &&
-			 !is_entry_syncConsumerSubentry( e )) {
+		if (( !is_entry_syncProviderSubentry( e ) &&
+			 !is_entry_syncConsumerSubentry( e )) ||
+			 ( !replica_promotion && !replica_demotion )) {
 			if (!dryrun) {
 				ID id = be->be_entry_put( be, e, &bvtext );
 				if( id == NOID ) {
