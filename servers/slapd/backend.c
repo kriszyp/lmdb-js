@@ -1086,10 +1086,9 @@ be_entry_get_rw(
 	op->o_bd = select_backend( ndn, 0, 0 );
 
 	if (op->o_bd == NULL) {
-		op->o_bd = be;	
 		rc = LDAP_NO_SUCH_OBJECT;
 	} else if ( op->o_bd->be_fetch ) {
-		rc = op->o_bd->be_fetch( op, ndn,
+		rc = ( op->o_bd->be_fetch )( op, ndn,
 			oc, at, rw, e );
 	} else {
 		rc = LDAP_UNWILLING_TO_PERFORM;
