@@ -49,6 +49,7 @@ static void connection_close( Connection *c );
 
 static int connection_op_activate( Connection *conn, Operation *op );
 static int connection_resched( Connection *conn );
+static void connection_abandon( Connection *conn );
 
 struct co_arg {
 	Connection	*co_conn;
@@ -473,6 +474,27 @@ int connection_state_closing( Connection *c )
 	return state == SLAP_C_CLOSING;
 }
 
+static void connection_abandon( Connection *c )
+{
+	/* c_mutex must be locked by caller */
+
+	Operation *o;
+
+	for( o = c->c_ops; o != NULL; o = o->o_next ) {
+		ldap_pvt_thread_mutex_lock( &o->o_abandonmutex );
+		o->o_abandon = 1;
+		ldap_pvt_thread_mutex_unlock( &o->o_abandonmutex );
+	}
+
+	/* remove pending operations */
+	for( o = slap_op_pop( &c->c_pending_ops );
+		o != NULL;
+		o = slap_op_pop( &c->c_pending_ops ) )
+	{
+		slap_op_free( o );
+	}
+}
+
 void connection_closing( Connection *c )
 {
 	assert( connections != NULL );
@@ -483,7 +505,6 @@ void connection_closing( Connection *c )
 	/* c_mutex must be locked by caller */
 
 	if( c->c_conn_state != SLAP_C_CLOSING ) {
-		Operation *o;
 
 		Debug( LDAP_DEBUG_TRACE,
 			"connection_closing: readying conn=%ld sd=%d for close.\n",
@@ -498,19 +519,7 @@ void connection_closing( Connection *c )
 		/* shutdown I/O -- not yet implemented */
 
 		/* abandon active operations */
-		for( o = c->c_ops; o != NULL; o = o->o_next ) {
-			ldap_pvt_thread_mutex_lock( &o->o_abandonmutex );
-			o->o_abandon = 1;
-			ldap_pvt_thread_mutex_unlock( &o->o_abandonmutex );
-		}
-
-		/* remove pending operations */
-		for( o = slap_op_pop( &c->c_pending_ops );
-			o != NULL;
-			o = slap_op_pop( &c->c_pending_ops ) )
-		{
-			slap_op_free( o );
-		}
+		connection_abandon( c );
 
 		/* wake write blocked operations */
 		slapd_clr_write( ber_pvt_sb_get_desc(c->c_sb), 1 );
@@ -853,6 +862,11 @@ connection_input(
 		return -1;
 	}
 
+	if(tag == LDAP_REQ_BIND) {
+		/* immediately abandon all exiting operations upon BIND */
+		connection_abandon( conn );
+	}
+
 	op = slap_op_alloc( ber, msgid, tag, conn->c_n_ops_received++ );
 
 	if ( conn->c_conn_state == SLAP_C_BINDING
@@ -923,6 +937,10 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	int status;
 	ber_tag_t tag = op->o_tag;
 
+	if(tag == LDAP_REQ_BIND) {
+		conn->c_conn_state = SLAP_C_BINDING;
+	}
+
 	if ( conn->c_dn != NULL ) {
 		tmpdn = ch_strdup( conn->c_dn );
 	} else {
@@ -945,10 +963,6 @@ static int connection_op_activate( Connection *conn, Operation *op )
 		?  ch_strdup( conn->c_authmech ) : NULL;
 	
 	slap_op_add( &conn->c_ops, arg->co_op );
-
-	if(tag == LDAP_REQ_BIND) {
-		conn->c_conn_state = SLAP_C_BINDING;
-	}
 
 	if( tmpdn != NULL ) {
 		free( tmpdn );
