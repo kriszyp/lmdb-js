@@ -206,7 +206,7 @@ monitor_subsys_log_modify(
 #endif
 
 		/* check that the entry still obeys the schema */
-		rc = entry_schema_check( be, e, save_attrs, &text, textbuf, 
+		rc = entry_schema_check( NULL, e, save_attrs, &text, textbuf, 
 				sizeof( textbuf ) );
 		if ( rc != LDAP_SUCCESS ) {
 			goto cleanup;
