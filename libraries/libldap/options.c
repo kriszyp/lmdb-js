@@ -239,15 +239,33 @@ ldap_set_option(
 		openldap_ldap_initialize();
 	}
 
-	if(invalue == NULL) {
-		/* no place to set from */
-		return -1;
-	}
-
 	if(ld == NULL) {
 		lo = &openldap_ldap_global_options;
 	} else {
 		lo = &ld->ld_options;
+	}
+
+	switch(option) {
+	case LDAP_OPT_REFERRALS:
+		if(invalue == LDAP_OPT_ON) {
+			LDAP_BOOL_SET(lo, LDAP_BOOL_REFERRALS);
+		} else {
+			LDAP_BOOL_CLR(lo, LDAP_BOOL_REFERRALS);
+		}
+		return 0;
+
+	case LDAP_OPT_RESTART:
+		if(invalue == LDAP_OPT_ON) {
+			LDAP_BOOL_SET(lo, LDAP_BOOL_RESTART);
+		} else {
+			LDAP_BOOL_CLR(lo, LDAP_BOOL_RESTART);
+		}
+		return 0;
+	}
+
+	if(invalue == NULL) {
+		/* no place to set from */
+		return -1;
 	}
 
 	switch(option) {
@@ -266,22 +284,6 @@ ldap_set_option(
 
 	case LDAP_OPT_TIMELIMIT:
 		lo->ldo_timelimit = * (int *) invalue;
-		return 0;
-
-	case LDAP_OPT_REFERRALS:
-		if(invalue == LDAP_OPT_ON) {
-			LDAP_BOOL_SET(lo, LDAP_BOOL_REFERRALS);
-		} else {
-			LDAP_BOOL_CLR(lo, LDAP_BOOL_REFERRALS);
-		}
-		return 0;
-
-	case LDAP_OPT_RESTART:
-		if(invalue == LDAP_OPT_ON) {
-			LDAP_BOOL_SET(lo, LDAP_BOOL_RESTART);
-		} else {
-			LDAP_BOOL_CLR(lo, LDAP_BOOL_RESTART);
-		}
 		return 0;
 
 	case LDAP_OPT_PROTOCOL_VERSION: {
