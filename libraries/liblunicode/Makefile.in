@@ -23,7 +23,7 @@ ucgendat: $(LIBRARY) ucgendat.o
 	$(LTLINK) -o $@ ucgendat.o $(LIBS)
 	./ucgendat $(srcdir)/UnicodeData.txt -x $(srcdir)/CompositionExclusions.txt
 
-DATFILES = case.dat cmbcl.dat ctype.dat decomp.dat num.dat
+DATFILES = case.dat cmbcl.dat comp.dat ctype.dat decomp.dat num.dat
 
 install-local: $(PROGRAMS) FORCE
 	-$(MKDIR) $(DESTDIR)$(datadir)/ucdata

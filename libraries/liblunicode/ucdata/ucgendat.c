@@ -1159,6 +1159,7 @@ create_comps(void)
 	comps[cu].code2 = decomps[i].decomp[1];
 	cu++;
     }
+    comps_used = cu;
     qsort(comps, comps_used, sizeof(_comp_t),
 	  (int (*)(const void *, const void *)) cmpcomps);
 }
