@@ -14,7 +14,15 @@
 #include <ac/signal.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
+#include <ac/errno.h>
+#include <sys/stat.h>
 
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
 #ifdef HAVE_IO_H
 #include <io.h>
 #endif
@@ -794,6 +802,7 @@ print_entry(
 				if ( vals2tmp > 1 || ( vals2tmp
 					&& ldif_is_not_printable( bvals[i]->bv_val, bvals[i]->bv_len ) ))
 				{
+					int tmpfd;
 					/* write value to file */
 					sprintf( tmpfname, "%s" LDAP_DIRSEP "ldapsearch-%s-XXXXXX",
 						tmpdir, a );
@@ -804,7 +813,12 @@ print_entry(
 						continue;
 					}
 
-					if (( tmpfp = fopen( tmpfname, "w")) == NULL ) {
+					if (( tmpfd = open( tmpfname, O_WRONLY|O_CREAT|O_EXCL, 0600 )) == -1 ) {
+						perror( tmpfname );
+						continue;
+					}
+
+					if (( tmpfp = fdopen( tmpfd, "w")) == NULL ) {
 						perror( tmpfname );
 						continue;
 					}
