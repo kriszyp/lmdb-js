@@ -179,6 +179,9 @@ backsql_delete( Operation *op, SlapReply *rs )
 		break;
 
 	case LDAP_COMPARE_TRUE:
+		if ( get_treeDelete( op ) ) {
+			/* not supported yet */ ;
+		}
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"entry \"%s\" has children\n",
 			op->o_req_dn.bv_val, 0, 0 );
