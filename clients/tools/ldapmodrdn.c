@@ -95,6 +95,7 @@ usage( const char *s )
 "  -W         prompt for bind passwd\n"
 "  -x         Simple authentication\n"
 "  -X authzid SASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
+"  -y file    Read passwd from file\n"
 "  -Y mech    SASL mechanism\n"
 "  -Z         Start TLS request (-ZZ to require successful response)\n"
 ,		s );
@@ -110,6 +111,7 @@ main(int argc, char **argv)
 	int		rc, i, remove, havedn, authmethod, version, want_bindpw, debug, manageDSAit;
 	int		referrals;
     char	*newSuperior=NULL;
+	char	*pw_file = NULL;
 
     infile = NULL;
     not = contoper = verbose = remove = want_bindpw =
@@ -120,7 +122,7 @@ main(int argc, char **argv)
     prog = lutil_progname( "ldapmodrdn", argc, argv );
 
     while (( i = getopt( argc, argv, "cf:rs:"
-		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:Y:Z" )) != EOF )
+		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:y:Y:Z" )) != EOF )
 	{
 	switch( i ) {
 	/* Modrdn Options */
@@ -408,6 +410,9 @@ main(int argc, char **argv)
 	case 'W':
 		want_bindpw++;
 		break;
+	case 'y':
+		pw_file = optarg;
+		break;
 	case 'Y':
 #ifdef HAVE_CYRUS_SASL
 		if( sasl_mech != NULL ) {
@@ -590,9 +595,14 @@ main(int argc, char **argv)
 		}
 	}
 
-	if (want_bindpw) {
-		passwd.bv_val = getpassphrase("Enter LDAP Password: ");
-		passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
+	if ( pw_file || want_bindpw ) {
+		if ( pw_file ) {
+			rc = lutil_get_filed_password( pw_file, &passwd );
+			if( rc ) return EXIT_FAILURE;
+		} else {
+			passwd.bv_val = getpassphrase( "Enter LDAP Password: " );
+			passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
+		}
 	}
 
 	if ( authmethod == LDAP_AUTH_SASL ) {

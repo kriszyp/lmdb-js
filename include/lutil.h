@@ -56,9 +56,15 @@ lutil_entropy LDAP_P((
 	unsigned char *buf,
 	ber_len_t nbytes ));
 
-/* passwd.c */
+/* passfile.c */
 struct berval; /* avoid pulling in lber.h */
 
+LDAP_LUTIL_F( int )
+lutil_get_filed_password LDAP_P((
+	const char *filename,
+	struct berval * ));
+
+/* passwd.c */
 LDAP_LUTIL_F( int )
 lutil_authpasswd LDAP_P((
 	const struct berval *passwd,	/* stored password */

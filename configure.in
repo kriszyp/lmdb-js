@@ -2411,6 +2411,7 @@ AC_CHECK_FUNCS(		\
 	endpwent		\
 	fcntl			\
 	flock			\
+	fstat			\
 	getdtablesize	\
 	getgrgid		\
 	gethostname		\

@@ -49,6 +49,7 @@ usage(const char *s)
 "  -W         prompt for bind passwd\n"
 "  -x         Simple authentication\n"
 "  -X authzid SASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
+"  -y file    Read passwd from file\n"
 "  -Y mech    SASL mechanism\n"
 "  -Z         Start TLS request (-ZZ to require successful response)\n"
 		, s );
@@ -68,12 +69,9 @@ main( int argc, char *argv[] )
 	char	*binddn = NULL;
 
 	struct berval passwd = { 0, NULL };
-	char	*newpw = NULL;
-	char	*oldpw = NULL;
 
+	char	*pw_file = NULL;
 	int		want_bindpw = 0;
-	int		want_newpw = 0;
-	int		want_oldpw = 0;
 
 	int		not = 0;
 	int		i;
@@ -102,42 +100,10 @@ main( int argc, char *argv[] )
 
 	prog = lutil_progname( "ldapwhoami", argc, argv );
 
-	while( (i = getopt( argc, argv, "Aa:Ss:"
-		"Cd:D:h:H:InO:p:QR:U:vw:WxX:Y:Z" )) != EOF )
+	while( (i = getopt( argc, argv, 
+		"Cd:D:h:H:InO:p:QR:U:vw:WxX:y:Y:Z" )) != EOF )
 	{
 		switch (i) {
-		/* Password Options */
-		case 'A':	/* prompt for old password */
-			want_oldpw++;
-			break;
-
-		case 'a':	/* old password (secret) */
-			oldpw = strdup (optarg);
-
-			{
-				char* p;
-
-				for( p = optarg; *p != '\0'; p++ ) {
-					*p = '\0';
-				}
-			}
-			break;
-
-		case 'S':	/* prompt for user password */
-			want_newpw++;
-			break;
-
-		case 's':	/* new password (secret) */
-			newpw = strdup (optarg);
-			{
-				char* p;
-
-				for( p = optarg; *p != '\0'; p++ ) {
-					*p = '\0';
-				}
-			}
-			break;
-
 	/* Common Options (including options we don't use) */
 	case 'C':
 		referrals++;
@@ -399,6 +365,9 @@ main( int argc, char *argv[] )
 	case 'W':
 		want_bindpw++;
 		break;
+	case 'y':
+		pw_file = optarg;
+		break;
 	case 'Y':
 #ifdef HAVE_CYRUS_SASL
 		if( sasl_mech != NULL ) {
@@ -496,38 +465,14 @@ main( int argc, char *argv[] )
 		user = NULL;
 	}
 
-	if( want_oldpw && oldpw == NULL ) {
-		/* prompt for old password */
-		char *ckoldpw;
-		oldpw = strdup(getpassphrase("Old password: "));
-		ckoldpw = getpassphrase("Re-enter old password: ");
-
-		if( oldpw== NULL || ckoldpw == NULL ||
-			strcmp( oldpw, ckoldpw ))
-		{
-			fprintf( stderr, "passwords do not match\n" );
-			return EXIT_FAILURE;
+	if ( pw_file || want_bindpw ) {
+		if ( pw_file ) {
+			rc = lutil_get_filed_password( pw_file, &passwd );
+			if( rc ) return EXIT_FAILURE;
+		} else {
+			passwd.bv_val = getpassphrase( "Enter LDAP Password: " );
+			passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
 		}
-	}
-
-	if( want_newpw && newpw == NULL ) {
-		/* prompt for new password */
-		char *cknewpw;
-		newpw = strdup(getpassphrase("New password: "));
-		cknewpw = getpassphrase("Re-enter new password: ");
-
-		if( newpw== NULL || cknewpw == NULL ||
-			strcmp( newpw, cknewpw ))
-		{
-			fprintf( stderr, "passwords do not match\n" );
-			return EXIT_FAILURE;
-		}
-	}
-
-	if (want_bindpw && passwd.bv_val == NULL ) {
-		/* handle bind password */
-		passwd.bv_val = strdup( getpassphrase("Enter bind password: "));
-		passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
 	}
 
 	if ( debug ) {

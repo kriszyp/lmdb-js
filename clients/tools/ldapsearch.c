@@ -90,6 +90,7 @@ usage( const char *s )
 "  -W         prompt for bind passwd\n"
 "  -x         Simple authentication\n"
 "  -X authzid SASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
+"  -y file    Read passwd from file\n"
 "  -Y mech    SASL mechanism\n"
 "  -Z         Start TLS request (-ZZ to require successful response)\n"
 , s, def_urlpre, def_tmpdir );
@@ -188,6 +189,7 @@ main( int argc, char **argv )
 	BerElement	*ber = NULL;
 	struct berval 	*bvalp = NULL;
 	char	*vrFilter  = NULL, *control  = NULL, *s;
+	char	*pw_file = NULL;
 
 
 	infile = NULL;
@@ -226,7 +228,7 @@ main( int argc, char **argv )
 	urlize( def_urlpre );
 
 	while (( i = getopt( argc, argv, "Aa:b:E:F:f:Ll:S:s:T:tuz:"
-		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:Y:Z")) != EOF )
+		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:y:Y:Z")) != EOF )
 	{
 	switch( i ) {
 	/* Search Options */
@@ -603,6 +605,9 @@ main( int argc, char **argv )
 	case 'W':
 		want_bindpw++;
 		break;
+	case 'y':
+		pw_file = optarg;
+		break;
 	case 'Y':
 #ifdef HAVE_CYRUS_SASL
 		if( sasl_mech != NULL ) {
@@ -824,9 +829,14 @@ main( int argc, char **argv )
 		}
 	}
 
-	if (want_bindpw) {
-		passwd.bv_val = getpassphrase("Enter LDAP Password: ");
-		passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
+	if ( pw_file || want_bindpw ) {
+		if ( pw_file ) {
+			rc = lutil_get_filed_password( pw_file, &passwd );
+			if( rc ) return EXIT_FAILURE;
+		} else {
+			passwd.bv_val = getpassphrase( "Enter LDAP Password: " );
+			passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
+		}
 	}
 
 	if ( authmethod == LDAP_AUTH_SASL ) {
