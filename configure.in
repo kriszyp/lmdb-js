@@ -26,6 +26,9 @@ AC_PREFIX_DEFAULT(/usr/local)
 top_builddir=`pwd`
 AC_SUBST(top_builddir)dnl
 
+ldap_subdir="openldap"
+AC_SUBST(ldap_subdir)dnl
+
 OL_ARG_ENABLE(debug,[  --enable-debug 	enable debugging], yes)dnl
 dnl OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl

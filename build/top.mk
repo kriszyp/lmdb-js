@@ -18,16 +18,16 @@ prefix = @prefix@
 exec_prefix = @exec_prefix@
 
 bindir = @bindir@
-sbindir = @sbindir@
-libexecdir = @libexecdir@
-datadir = @datadir@
-sysconfdir = @sysconfdir@/ldap
-sharedstatedir = @sharedstatedir@
-localstatedir = @localstatedir@
-libdir = @libdir@
-infodir = @infodir@
-mandir = @mandir@
+datadir = @datadir@/@ldap_subdir@
 includedir = @includedir@
+infodir = @infodir@
+libdir = @libdir@
+libexecdir = @libexecdir@
+localstatedir = @localstatedir@
+mandir = @mandir@
+sbindir = @sbindir@
+sharedstatedir = @sharedstatedir@
+sysconfdir = @sysconfdir@/@ldap_subdir@
 
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -58,7 +58,7 @@ HOSTNAME = uname -n
 BASENAME = basename
 PWD = pwd
 CAT = cat
-MKDIR = mkdir
+MKDIR = mkdir -p
 CHMOD = chmod
 
 # Misc UNIX commands used in programs

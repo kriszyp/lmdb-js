@@ -24,6 +24,7 @@
  */
 #define DEFAULT_BINDIR		"%BINDIR%"
 #define DEFAULT_SBINDIR		"%SBINDIR%"
+#define DEFAULT_DATADIR		"%DATADIR%"
 #define DEFAULT_SYSCONFDIR	"%SYSCONFDIR%"
 #define DEFAULT_LIBEXECDIR	"%LIBEXECDIR%"
 
@@ -49,7 +50,7 @@
 #define FILTERFILE	"%SYSCONFDIR%/ldapfilter.conf"
 #define TEMPLATEFILE	"%SYSCONFDIR%/ldaptemplates.conf"
 #define SEARCHFILE	"%SYSCONFDIR%/ldapsearchprefs.conf"
-#define FRIENDLYFILE	"%SYSCONFDIR%/ldapfriendly"
+#define FRIENDLYFILE	"%DATADIR%/ldapfriendly"
 
 /*
  * FINGER DEFINITIONS
@@ -110,7 +111,7 @@ Please try again later.\r\n"
  * GO500GW GOPHER GATEWAY DEFINITIONS
  */
 	/* where the helpfile lives */
-#define GO500GW_HELPFILE	"%SYSCONFDIR%/go500gw.help"
+#define GO500GW_HELPFILE	"%DATADIR%/go500gw.help"
 	/* port on which to listen */
 #define GO500GW_PORT		7777
 	/* timeout on all searches */
@@ -131,7 +132,7 @@ Please try again later.\r\n"
  * RCPT500 MAIL RESPONDER GATEWAY DEFINITIONS
  */
 	/* where the helpfile lives */
-#define RCPT500_HELPFILE	"%SYSCONFDIR%/rcpt500.help"
+#define RCPT500_HELPFILE	"%DATADIR%/rcpt500.help"
 	/* maximum number of matches returned */
 #define RCPT500_SIZELIMIT	50
 	/* address replies will appear to come from */

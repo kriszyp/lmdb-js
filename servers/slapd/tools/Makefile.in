@@ -128,7 +128,7 @@ depend-local: FORCE
 install-local: install-ldbm install-isode FORCE
 
 install-ldbm: FORCE
-	@-$(MKDIR) -p $(sbindir) 
+	@-$(MKDIR) $(sbindir) 
 	@if [ "$(BUILD_LDBM)" = "yes" ]; then \
 		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm $(sbindir)	; \
 		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2index $(sbindir)	; \
@@ -143,7 +143,7 @@ install-ldbm: FORCE
 	fi
 
 install-isode: FORCE
-	@-$(MKDIR) -p $(sbindir)
+	@-$(MKDIR) $(sbindir)
 	@if [ "$(HAVE_ISODE)" = "yes" ]; then \
 		$(LTINSTALL) $(INSTALLFLAGS) -m 755 edb2ldif $(sbindir); \
 		$(LTINSTALL) $(INSTALLFLAGS) -m 755 chlog2replog $(sbindir); \

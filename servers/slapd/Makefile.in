@@ -116,16 +116,23 @@ install-slapd: FORCE
 	@-$(MKDIR) $(libexecdir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapd $(libexecdir)
 
+CFFILES=slapd.conf slapd.at.conf slapd.oc.conf
+
 install-conf: FORCE
-	@-$(MKDIR) -p $(sysconfdir)
-	$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' slapd.conf > /tmp/slapd.$$
-	-$(MV) $(sysconfdir)/slapd.conf $(sysconfdir)/slapd.conf-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 /tmp/slapd.$$ $(sysconfdir)/slapd.conf
-	$(RM) -f /tmp/slapd.$$
-	-$(MV) $(sysconfdir)/slapd.at.conf $(sysconfdir)/slapd.at.conf-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 slapd.at.conf $(sysconfdir)
-	-$(MV) $(sysconfdir)/slapd.oc.conf $(sysconfdir)/slapd.oc.conf-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 slapd.oc.conf $(sysconfdir)
+	@-$(MKDIR) $(sysconfdir)
+	@for i in $(CFFILES); do \
+		tmpcf=/tmp/$$i.$$ ; \
+		$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' $$i > $$tmpcf ; \
+		if test ! -f $(sysconfdir)/$$i; then \
+			echo "installing $$i in $(sysconfdir)"; \
+			echo "$(INSTALL) $(INSTALLFLAGS) -m 644 $$tmpcf $(sysconfdir)/$$i"; \
+			$(INSTALL) $(INSTALLFLAGS) -m 644 $$tmpcf $(sysconfdir)/$$i; \
+		else \
+			echo "PRESERVING EXISTING CONFIGURATION FILE $(sysconfdir)/$$i" ; \
+		fi; \
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $$tmpcf $(sysconfdir)/$$i.default; \
+		$(RM) -f /tmp/slapd.$$ ; \
+	done
 
 install-tools: FORCE
 	@-$(MKDIR) $(sbindir)

@@ -43,7 +43,7 @@ For example:
         FriendlyMap *map = NULL;
 
         printf( "unfriendly %s => friendly %s\\n", name,
-            ldap_friendly_name( "ETCDIR/ldapfriendly", name, &map ) );
+            ldap_friendly_name( "DATADIR/ldapfriendly", name, &map ) );
 .ft
 .fi
 .LP
@@ -63,7 +63,7 @@ NULL is returned by
 if there is an error opening \fIfilename\fP, or if the file has a bad
 format, or if the \fImap\fP parameter is NULL.
 .SH FILES
-ETCDIR/ldapfriendly.conf
+DATADIR/ldapfriendly.conf
 .SH SEE ALSO
 .BR ldap (3)
 .SH ACKNOWLEDGEMENTS

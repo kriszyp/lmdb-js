@@ -19,5 +19,5 @@ version.c: ${OBJS} $(LDAP_LIBDEPEND)
 	    < $(srcdir)/Version.c > $@)
 
 install-local: $(PROGRAMS) FORCE
-	-$(MKDIR) -p $(libexecdir)
+	-$(MKDIR) $(libexecdir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 mail500 $(libexecdir)
