@@ -1,4 +1,4 @@
-/* extended.c - ldbm backend extended routines */
+/* passwd.c - ldbm backend password routines */
 /* $OpenLDAP$ */
 /*
  * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
