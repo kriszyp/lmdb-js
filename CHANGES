@@ -6,7 +6,8 @@ OpenLDAP 2.2.7 Engineering
 	Fixed massaged base free in back-ldap (ITS#2999)
 	Fixed (undocumented) AD canonical DN (ITS#3000)
 	Fixed undefined attribute name request in back-sql search (ITS#3005)
-	Fixed ldapmodrdn(1) manpage (ITS#3003)
+	Documentation
+		Fixed ldapmodrdn(1) manpage (ITS#3003)
 
 OpenLDAP 2.2.6 Release
 	Fixed slapd SASL callback handling (ITS#2926)
@@ -22,7 +23,7 @@ OpenLDAP 2.2.6 Release
 	Updated slapd filter logging
 	Updated back-ldap
 	Updated back-bdb to use Btree indices instead of Hashes
-		Requires recreation of indices for existing databases
+		Requires recreation of indices of existing databases
 	Added slapd limit groups (ITS#2967)
 	Build Environment
 		Fixed test021 portable echo bug (ITS#2933, ITS#2879)
