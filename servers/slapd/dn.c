@@ -690,7 +690,7 @@ dnParent(
 		return;
 	}
 
-	assert( NDN_SEPARATOR( p[ 0 ] ) );
+	assert( DN_SEPARATOR( p[ 0 ] ) );
 	p++;
 
 	assert( ATTR_LEADCHAR( p[ 0 ] ) );
@@ -882,7 +882,7 @@ dnIsSuffix(
 	}
 
 	/* no rdn separator or escaped rdn separator */
-	if ( d > 1 && !NDN_SEPARATOR( dn->bv_val[ d - 1 ] ) ) {
+	if ( d > 1 && !DN_SEPARATOR( dn->bv_val[ d - 1 ] ) ) {
 		return 0;
 	}
 

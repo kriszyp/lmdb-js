@@ -133,8 +133,10 @@ LDAP_BEGIN_DECL
 	|| (c) == '(' || (c) == ')' || !ASCII_PRINTABLE(c) )
 
 #define DN_ESCAPE(c)	((c) == SLAP_ESCAPE_CHAR)
-#define NDN_SEPARATOR(c)	((c) == ',')
-#define DN_SEPARATOR(c)	(NDN_SEPARATOR(c) || (c) == ';')
+/* NOTE: for consistency, this macro must only operate
+ * on normalized/pretty DN, such that ';' is never used
+ * as RDN separator, and all occurrences of ';' must be escaped */
+#define DN_SEPARATOR(c)	((c) == ',')
 #define RDN_ATTRTYPEANDVALUE_SEPARATOR(c) ((c) == '+') /* RFC 2253 */
 #define RDN_SEPARATOR(c) (DN_SEPARATOR(c) || RDN_ATTRTYPEANDVALUE_SEPARATOR(c))
 #define RDN_NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')

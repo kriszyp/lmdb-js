@@ -163,7 +163,7 @@ limits_get(
 				}
 			} else {
 				/* check for unescaped rdn separator */
-				if ( !NDN_SEPARATOR( ndn->bv_val[d-1] ) ) {
+				if ( !DN_SEPARATOR( ndn->bv_val[d-1] ) ) {
 					break;
 				}
 			}

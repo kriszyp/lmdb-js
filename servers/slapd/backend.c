@@ -670,7 +670,7 @@ select_backend(
 			 * need not look at escaping
 			 */
 			if ( len && len < dnlen &&
-				!NDN_SEPARATOR( dn->bv_val[(dnlen-len)-1] ))
+				!DN_SEPARATOR( dn->bv_val[(dnlen-len)-1] ))
 			{
 				continue;
 			}

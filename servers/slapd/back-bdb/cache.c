@@ -336,9 +336,9 @@ bdb_cache_find_ndn(
 
 		/* Advance to next lower RDN */
 		for (ptr = ei.bei_nrdn.bv_val - 2; ptr > ndn->bv_val
-			&& !NDN_SEPARATOR(*ptr); ptr--) /* empty */;
+			&& !DN_SEPARATOR(*ptr); ptr--) /* empty */;
 		if ( ptr >= ndn->bv_val ) {
-			if (NDN_SEPARATOR(*ptr)) ptr++;
+			if (DN_SEPARATOR(*ptr)) ptr++;
 			ei.bei_nrdn.bv_len = ei.bei_nrdn.bv_val - ptr - 1;
 			ei.bei_nrdn.bv_val = ptr;
 		}
