@@ -46,7 +46,8 @@ do_delete(
 
 	dn_normalize_case( ndn );
 
-	Debug( LDAP_DEBUG_STATS, "DEL dn=\"%s\"\n", ndn, 0, 0 );
+	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d DEL dn=\"%s\"\n",
+		op->o_connid, op->o_opid, ndn, 0, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the

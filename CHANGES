@@ -8,8 +8,9 @@ Changes included in OpenLDAP 1.2 Release Engineering
 	Fixed ldbm db_appinit to use u_int32_t instead of int (ITS#295)
 	Fixed lber/io.c Cray T90 specific pointer arithmetic problem (ITS#325)
 	Added TCP_NODELAY support
-	Change slapd to apply ACL to lastmod attributes
-	Change slapd.conf default referral
+	Changed slapd to apply ACL to lastmod attributes
+	Changed slapd.conf default referral
+	Changed slapd delete stats log message for consistency
 	Disable DN subtree indexing
 	Build Environment
 		Support using short as LDAP_INT4
