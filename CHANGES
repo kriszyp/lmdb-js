@@ -1,5 +1,9 @@
 OpenLDAP 2.2 Change Log
 
+OpenLDAP 2.2.19 Engineering
+	Build Environment
+		Updated BDB mismatch messages
+
 OpenLDAP 2.2.18 Release
 	Fixed libldap schema keyword sensitivity (ITS#3334)
 	Fixed libldap DN filter sensitivity (ITS#3334)
