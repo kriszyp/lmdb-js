@@ -104,7 +104,7 @@ has_children(
 {
 	struct dbcache	*db;
 	Datum		key;
-	int		rc;
+	int		rc = 1;
 	ID_BLOCK		*idl;
 	char		buf[20];
 
@@ -127,9 +127,13 @@ has_children(
 	idl = idl_fetch( be, db, key );
 
 	ldbm_cache_close( be, db );
-	rc = idl ? 1 : 0;
-	idl_free( idl );
 
-	Debug( LDAP_DEBUG_TRACE, "<= has_children %d\n", rc, 0, 0 );
+	if( idl != NULL ) {
+		idl_free( idl );
+		rc = 0;
+	}
+
+	Debug( LDAP_DEBUG_TRACE, "<= has_children( %lu ): %s\n",
+		p->e_id, rc ? "yes" : "no", 0 );
 	return( rc );
 }
