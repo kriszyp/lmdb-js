@@ -2835,11 +2835,11 @@ typedef struct slap_component_desc {
 	/* Don't change the order of following four fields */
 	int		cd_tag;
 	AttributeType	*cd_comp_type;
-	struct berval	cd_padding[2];/* ad_type, ad_cname */
+	struct berval	cd_ad_type;/* ad_type, ad_cname */
+	struct berval	cd_ad_cname;/* ad_type, ad_cname */
 	unsigned	cd_flags; /*ad_flags*/
 	int		cd_type;
 	int		cd_type_id;
-	int		cd_compref_type;
 	encoder_func		*cd_ldap_encoder;
 	encoder_func		*cd_gser_encoder;
 	encoder_func		*cd_ber_encoder;
@@ -2847,8 +2847,6 @@ typedef struct slap_component_desc {
 	ber_decoder_func	*cd_ber_decoder;
 	comp_free_func		*cd_free;
 	extract_component_from_id_func*  cd_extract_i;
-	slap_syntax_validate_func	*cd_validate;
-	slap_syntax_transform_func	*cd_pretty;
 	allcomponent_matching_func	*cd_all_match;
 } ComponentDesc;
 
