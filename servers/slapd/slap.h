@@ -1674,6 +1674,8 @@ typedef struct slap_op {
 	char o_subentries_visibility;
 	char o_valuesreturnfilter;
 
+	char o_permitmodify;
+	char o_noreferrals;
 	char o_pagedresults;
 	ber_int_t o_pagedresults_size;
 	PagedResultsState o_pagedresults_state;
@@ -1698,6 +1700,9 @@ typedef struct slap_op {
 	AuthorizationInformation o_authz;
 
 	BerElement	*o_ber;		/* ber of the request		  */
+#ifdef LDAP_CONNECTIONLESS
+	BerElement	*o_res_ber;	/* ber of the reply		  */
+#endif
 	slap_callback	*o_callback;	/* callback pointers */
 	LDAPControl	**o_ctrls;	 /* controls */
 

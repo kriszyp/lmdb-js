@@ -1413,7 +1413,40 @@ connection_input(
 	    ber_str2bv( cdn, 0, 1, &op->o_dn );
 	    op->o_protocol = LDAP_VERSION2;
 	}
+	if (conn->c_is_udp) {
+		int rc;
+
+		op->o_res_ber = ber_alloc_t( LBER_USE_DER );
+		if (op->o_res_ber == NULL)
+			return 1;
+
+		rc = ber_write(op->o_res_ber, (char *)&op->o_peeraddr, sizeof(struct sockaddr), 0);
+		if (rc != sizeof(struct sockaddr)) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( CONNECTION, INFO, 
+				"connection_input: conn %lu  ber_write failed\n",
+				conn->c_connid, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY, "ber_write failed\n", 0, 0, 0 );
 #endif
+			return 1;
+		}
+
+		if (conn->c_protocol == LDAP_VERSION2) {
+			rc = ber_printf(op->o_res_ber, "{i{" /*}}*/, op->o_msgid);
+			if (rc == -1) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONNECTION, INFO, 
+					"connection_input: conn %lu  put outer sequence failed\n",
+					conn->c_connid, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, "ber_write failed\n", 0, 0, 0 );
+#endif
+				return rc;
+			}
+		}
+	}
+#endif /* LDAP_CONNECTIONLESS */
 
 	if ( conn->c_conn_state == SLAP_C_BINDING
 		|| conn->c_conn_state == SLAP_C_CLOSING )

@@ -38,6 +38,11 @@ slap_op_free( Operation *op )
 		ldap_controls_free( op->o_ctrls );
 	}
 
+#ifdef LDAP_CONNECTIONLESS
+	if ( op->o_res_ber != NULL ) {
+		ber_free( op->o_res_ber, 1 );
+	}
+#endif
 #ifdef LDAP_CLIENT_UPDATE
 	if ( op->o_clientupdate_state.bv_val != NULL ) {
 		free( op->o_clientupdate_state.bv_val );
@@ -71,6 +76,9 @@ slap_op_alloc(
 
 	op->o_time = slap_get_time();
 	op->o_opid = id;
+#ifdef LDAP_CONNECTIONLESS
+	op->o_res_ber = NULL;
+#endif
 
 #if defined( LDAP_SLAPI )
 	op->o_pb = slapi_pblock_new();
