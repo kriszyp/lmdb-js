@@ -27,7 +27,7 @@ H2: Local Directory Service with Referrals
 
 In this configuration, you run a slapd which provides directory service
 for your local domain and configure it to return referrals to a
-{{superior}} service capable of requests outside your local domain.
+{{superior}} service capable of handling requests outside your local domain.
 You may run this service yourself or use one provided to you.
 This configuration is shown in Figure 3.2.
 
@@ -47,7 +47,7 @@ is shown in figure 3.3.
 !import "config_repl.gif"; align="center"; title="Replicated Directory Services"
 FT[align="Center"] Figure 3.3: Replicated Directory Services
 
-This configuration can be used in conjunction with either of first
+This configuration can be used in conjunction with either of the first
 two configurations in situations where a single slapd does not
 provide the required reliability or availability.
 

@@ -25,7 +25,7 @@ Subordinate knowledge information is maintained in the directory
 as a special {{referral}} object at the delegate point.
 The referral object acts as a delegation point, gluing two services
 together.
-This mechanism allows for hierarchical directory services to to be
+This mechanism allows for hierarchical directory services to be
 constructed.
 
 A referral object has a structural object class of
@@ -84,7 +84,7 @@ Superior knowledge information may be specified using the
 {{EX:referral}} directive.  The value is a list of {{TERM:URI}}s
 referring to superior directory services.  For servers without
 immediate superiors, such as for {{EX:a.example.net}} in the example
-above, the server can be configured to use directory service with
+above, the server can be configured to use a directory service with
 {{global knowledge}}, such as the {{OpenLDAP Root Service}}
 ({{URL:http://www.openldap.org/faq/index.cgi?file=393}}).
 
@@ -96,8 +96,8 @@ as follows:
 
 >	referral	ldap://a.example.net/
 
-The server uses this information to generate referrals to
-operations acting upon operations not within or subordinate
+The server uses this information to generate referrals for
+operations acting upon entries not within or subordinate
 to any of the naming contexts held by the server.
 
 For those familiar with X.500, this use of the {{EX:ref}} attribute

@@ -143,7 +143,7 @@ For example:
 
 >	directory /usr/local/var/openldap-data
 
-Finally, you need to specify which indexes you want to build.  This
+Finally, you need to specify which indices you want to build.  This
 is done by one or more index options.
 
 >	index {<attrlist> | default} [pres,eq,approx,sub,none]
@@ -153,15 +153,16 @@ For example:
 >	index cn,sn,uid pres,eq,sub
 >	index objectClass eq
 
-This would create presence, equality and substring indexes for
+This would create presence, equality and substring indices for
 the {{EX:cn}}, {{EX:sn}}, and {{EX:uid}} attributes and an equality
-index for the {{EX:objectClass}} attribute. See the configuration
-file section for more information on this option.
+index for the {{EX:objectClass}} attribute. See 
+{{SECT:The slapd Configuration File}} section
+for more information on this option.
 
 H3: The {{EX:slapadd}} program
 
 Once you've configured things to your liking, you create the primary
-database and associated indexes by running the {{slapadd}}(8)
+database and associated indices by running the {{slapadd}}(8)
 program:
 
 >	slapadd -l <inputfile> -f <slapdconfigfile>
@@ -178,7 +179,7 @@ section).
 >	-f <slapdconfigfile>
 
 Specifies the slapd configuration file that tells where to create
-the indexes, what indexes to create, etc.
+the indices, what indices to create, etc.
 
 >	-d <debuglevel>
 

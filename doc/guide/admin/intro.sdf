@@ -16,14 +16,14 @@ provided by {{slapd}}(8).
 
 H2: What is a directory service?
 
-A directory is specialized database optimized for reading, browsing
+A directory is a specialized database optimized for reading, browsing
 and searching.  Directories tend to contain descriptive, attribute-based
 information and support sophisticated filtering capabilities.
 Directories generally do not support complicated transaction or
 roll-back schemes found in database management systems designed
 for handling high-volume complex updates.  Directory updates are
 typically simple all-or-nothing changes, if they are allowed at
-all.  Directories are tuned to give quick-response to high-volume
+all.  Directories are tuned to give quick response to high-volume
 lookup or search operations. They may have the ability to replicate
 information widely in order to increase availability and reliability,
 while reducing response time.  When directory information is
@@ -64,8 +64,8 @@ collection of attributes that has a globally-unique {{TERM[expand]DN}}
 the entry's attributes has a {{type}} and one or more {{values}}.
 The types are typically mnemonic strings, like "{{EX:cn}}" for
 common name, or "{{EX:mail}}" for email address. The syntax of
-values depend on the attribute type is.  For example, {{EX:cn}}
-attribute might be the value {{EX:Babs Jensen}}.  A {{EX:mail}}
+values depend on the attribute type.  For example, a {{EX:cn}}
+attribute might contain the value {{EX:Babs Jensen}}.  A {{EX:mail}}
 attribute might contain the value "{{EX:babs@example.com}}". A
 {{EX:jpegPhoto}} attribute would contain a photograph in the JPEG
 (binary) format.
@@ -73,7 +73,7 @@ attribute might contain the value "{{EX:babs@example.com}}". A
 {{How is the information arranged?}} In LDAP, directory entries
 are arranged in a hierarchical tree-like structure.  Traditionally,
 this structure reflected the geographic and/or organizational
-boundaries.  Entries representing countries appeared at the top of
+boundaries.  Entries representing countries appear at the top of
 the tree. Below them are entries representing states and national
 organizations. Below them might be entries representing organizational
 units, people, printers, documents, or just about anything else
@@ -86,7 +86,7 @@ FT[align="Center"] Figure 1.1: LDAP directory tree (traditional naming)
 
 The tree may also be arranged based upon Internet domain names.
 This naming approach is becoming increasing popular as it allows
-for directory services to be locating using the {{DNS}}.
+for directory services to be located using the {{DNS}}.
 Figure 1.2 shows an example LDAP directory tree using domain-based
 naming.
 
@@ -156,9 +156,9 @@ H2: What about X.500?
 
 Technically, {{TERM:LDAP}} is a directory access protocol to an
 {{TERM:X.500}} directory service, the {{TERM:OSI}} directory service.
-Initially, LDAP clients accessed gateways to directory service.
-This gateway ran LDAP (between the client and gateway) and X.500's
-{{TERM[expand]DAP}} ({{TERM:DAP}}) (between the gateway and the
+Initially, LDAP clients accessed gateways to the X.500 directory service.
+This gateway ran LDAP between the client and gateway and X.500's
+{{TERM[expand]DAP}} ({{TERM:DAP}}) between the gateway and the
 X.500 server.  DAP is a heavyweight protocol that operates over a
 full OSI protocol stack and requires a significant amount of
 computing resources.  LDAP is designed to operate over
@@ -190,11 +190,11 @@ replication.
 
 H2: What is the difference between LDAPv2 and LDAPv3?
 
-LDAPv3 was developed in late 1990's to replace LDAPv2.
+LDAPv3 was developed in the late 1990's to replace LDAPv2.
 LDAPv3 adds the following features to LDAP:
 
  - Strong Authentication via {{TERM:SASL}}
- - Integrity and Confidential Protections via {{TERM:TLS}} (SSL)
+ - Integrity and Confidentiality Protection via {{TERM:TLS}} (SSL)
  - Internationalization through the use of Unicode
  - Referrals and Continuations
  - Extensibility (controls and extended operations)
@@ -240,7 +240,7 @@ and other criteria.  {{slapd}} supports both {{static}} and
 {{B:Internationalization}}: {{slapd}} supports Unicode and language
 tags.
 
-{{B:Choice of databases backends}}: {{slapd}} comes with a variety
+{{B:Choice of database backends}}: {{slapd}} comes with a variety
 of different database backends you can choose from. They include
 {{TERM:BDB}}, a high-performance transactional database backend;
 {{TERM:LDBM}}, a lightweight DBM based backend; {{SHELL}}, a backend
@@ -270,7 +270,7 @@ programming languages ({{PRD:Perl}}, {{shell}}, {{PRD:SQL}}, and
 {{B:Threads}}: {{slapd}} is threaded for high performance.  A single
 multi-threaded {{slapd}} process handles all incoming requests
 using a pool of threads.  This reduces the amount of system overhead
-required while proving high performance.
+required while providing high performance.
 
 {{B:Replication}}: {{slapd}} can be configured to maintain replica
 copies of its database. This {{single-master/multiple-slave}}

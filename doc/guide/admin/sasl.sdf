@@ -42,7 +42,7 @@ briefly outlines security considerations.
 Some mechanisms, such as PLAIN and LOGIN, offer no greater security over
 LDAP "simple" authentication.  Like "simple" authentication, such
 mechanisms should not be used unless you have adequate security
-protections in place.  It is recommended that these mechanism be
+protections in place.  It is recommended that these mechanisms be
 used only in conjunction with {{TERM[expand]TLS}} (TLS).  Use of
 PLAIN and LOGIN are not discussed further in this document.
 
@@ -57,7 +57,7 @@ password mechanisms.  The CRAM-MD5 mechanism is deprecated in favor
 of DIGEST-MD5.  Use of {{SECT:DIGEST-MD5}} is discussed below.
 
 The KERBEROS_V4 mechanism utilizes Kerberos IV to provide secure
-authentication services.  There are also GSSAPI based mechanisms
+authentication services.  There is also a GSSAPI based mechanism
 which is generally used in conjunction with Kerberos V.  Kerberos
 is viewed as a secure, distributed authentication system suitable
 for both small and large enterprises.  Use of {{SECT:KERBEROS_V4}}
@@ -94,7 +94,7 @@ H3: KERBEROS_V4
 
 This section describes the use of the SASL KERBEROS_V4 mechanism
 with OpenLDAP.  It will be assumed that you are familiar with the
-workings of Kerberos IV security system, and that your site has
+workings of the Kerberos IV security system, and that your site has
 Kerberos IV deployed.  Your users should be familiar with
 authentication policy, how to receive credentials in
 a Kerberos ticket cache, and how to refresh expired credentials.
@@ -259,7 +259,7 @@ of the user.  Anything from the authentication request DN that
 matched a string in parenthesis in the search pattern is stored in
 the variable "$1". That variable "$1" can appear in the replacement
 pattern, and will be replaced by the string from the authentication
-request DN. If there were multiple sets of parenthesis in the search
+request DN. If there were multiple sets of parentheses in the search
 pattern, the variables $2, $3, etc are used.
 
 For example, suppose the user's authentication identity is written

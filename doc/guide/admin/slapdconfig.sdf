@@ -23,7 +23,7 @@ information: global, backend specific, and database specific.  Global
 information is specified first, followed by information associated
 with a particular backend type, which is then followed by information
 associated with a particular database instance.  Global directives can
-be overridden in a backend and/or database directives, backend directives
+be overridden in backend and/or database directives, and backend directives
 can be overridden by database directives.
 
 Blank lines and comment lines beginning with a '{{EX:#}}' character
@@ -69,7 +69,7 @@ and object classes) are also provided in the
 H2: Configuration File Directives
 
 This section details commonly used configuration directives.  For
-a complete list, see {{slapd.conf}}(5) manual page.  This section
+a complete list, see the {{slapd.conf}}(5) manual page.  This section
 separates the configuration file directives into global,
 backend-specific and data-specific categories, describing each
 directive and its default value (if any), and giving an example of
@@ -238,7 +238,7 @@ by database directives.
 H4: backend <type>
 
 This directive marks the beginning of a backend declaration.
-{{EX:<type>}} should be one of {{EX:bdb}} or one of other
+{{EX:<type>}} should be one of the
 supported backend types listed in Table 5.2.
 
 !block table; align=Center; coltags="EX,N"; \
@@ -259,7 +259,7 @@ tcl	TCL Programmable backend
 
 \Example:
 
->	database bdb
+>	backend bdb
 
 This marks the beginning of a new {{TERM:BDB}} backend
 definition.
@@ -274,7 +274,7 @@ H4: database <type>
 
 This directive marks the beginning of a database instance
 declaration.
-{{EX:<type>}} should be one of {{EX:bdb}} or one of the other
+{{EX:<type>}} should be one of the
 supported backend types listed in Table 5.2.
 
 \Example:
@@ -374,7 +374,7 @@ Entry-based Example:
 
 SASL-based Example:
 
->	rootdn "uid=root@EXAMPLE.COM"
+>	rootdn "uid=root,cn=example.com,cn=digest-md5,cn=auth"
 
 
 H4: rootpw <password>
@@ -421,10 +421,10 @@ Entry-based Example:
 
 SASL-based Example:
 
->	updatedn "uid=slurpd@EXAMPLE.COM"
+>	updatedn "uid=slurpd,cn=example.com,cn=digest-md5,cn=auth"
 
-See the {{SECT:Replication}} chapter for more information on how to
-use this directive.
+See the {{SECT:Replication with slurpd}} chapter for more information
+on how to use this directive.
 
 H4: updateref <URL>
 
@@ -447,7 +447,7 @@ subsequent "backend" or "database" line.
 H4: directory <directory>
 
 This directive specifies the directory where the BDB files
-containing the database and associated indexes live.
+containing the database and associated indices live.
 
 \Default:
 
@@ -477,7 +477,7 @@ associated with each open index file. If not supported by the
 underlying database method, this directive is ignored without
 comment. Increasing this number uses more memory but can
 cause a dramatic performance increase, especially during
-modifies or when building indexes.
+modifies or when building indices.
 
 \Default:
 
@@ -493,15 +493,15 @@ of data security.
 
 H4: dbnosync
 
-This option causes on-disk database contents not be immediately
+This option causes on-disk database contents to not be immediately
 synchronized with in memory changes upon change.  Enabling this option
-may improve performance at the expense of data security.
+may improve performance at the expense of data integrity.
 
 
 H4: directory <directory>
 
 This directive specifies the directory where the LDBM files
-containing the database and associated indexes live.
+containing the database and associated indices live.
 
 \Default:
 
@@ -510,9 +510,9 @@ containing the database and associated indexes live.
 
 H4: index {<attrlist> | default} [pres,eq,approx,sub,none]
 
-This directive specifies the indexes to maintain for the given
+This directive specifies the indices to maintain for the given
 attribute. If only an {{EX:<attrlist>}} is given, the default
-indexes are maintained.
+indices are maintained.
 
 \Example:
 
@@ -554,13 +554,13 @@ access line is:
 
 >	<access directive> ::= access to <what>
 >		[by <who> <access> <control>]+
->	<what> ::= * | [ dn[.<target style>]=<regex>]
+>	<what> ::= * | [ dn[.<dn style>]=<regex>]
 >		[filter=<ldapfilter>] [attrs=<attrlist>]
->	<target style> ::= regex | base | one | subtree | children
+>	<dn style> ::= regex | exact | base | one | subtree | children
 >	<attrlist> ::= <attr> | <attr> , <attrlist>
 >	<attr> ::= <attrname> | entry | children
 >	<who> ::= [* | anonymous | users | self |
->		dn[.<subject style>]=<regex>]
+>		dn[.<dn style>]=<regex>]
 >		[dnattr=<attrname> ]
 >		[group[/<objectclass>[/<attrname>][.<basic style>]]=<regex> ]
 >		[peername[.<basic style>]=<regex>]
@@ -569,7 +569,6 @@ access line is:
 >		[sockurl[.<basic style>]=<regex>]
 >		[set=<setspec>]
 >		[aci=<attrname>]
->	<subject style> ::= regex | exact | base | one | subtree | children
 >	<basic style> ::= regex | exact
 >	<access> ::= [self]{<level>|<priv>}
 >	<level> ::= none | auth | compare | search | read | write
@@ -581,7 +580,9 @@ which the access applies, the {{EX:<who>}} part specifies which
 entities are granted access, and the {{EX:<access>}} part specifies
 the access granted. Multiple {{EX:<who> <access> <control>}} triplets
 are supported, allowing many entities to be granted different
-access to the same set of entries and attributes.
+access to the same set of entries and attributes. Not all of these
+access control options are described here; for more details see
+the {{slapd.access}}(5) man page.
 
 
 H3: What to control access to
@@ -696,9 +697,9 @@ H3: Access Control Evaluation
 When evaluating whether some requester should be given access to
 an entry and/or attribute, slapd compares the entry and/or attribute
 to the {{EX:<what>}} selectors given in the configuration file.
-For each entry, access control provided in the database which holds
+For each entry, access controls provided in the database which holds
 the entry (or the first database if not held in any database) apply
-first, followed by the global access directivies.  Within this
+first, followed by the global access directives.  Within this
 priority, access directives are examined in the order in which they
 appear in the config file.  Slapd stops with the first {{EX:<what>}}
 selector that matches the entry and/or attribute. The corresponding
@@ -832,7 +833,7 @@ E:  3.	referral ldap://root.openldap.org
 E:  4.	access to * by * read
  
 Line 1 is a comment. Line 2 includes another config file
-which containing {{core}} schema definitions.
+which contains {{core}} schema definitions.
 The {{EX:referral}} directive on line 3
 means that queries not local to one of the databases defined
 below will be referred to the LDAP server running on the
@@ -842,11 +843,11 @@ Line 4 is a global access control.  It applies to all
 entries (after any applicable database-specific access
 controls).
 
-The next section of the configuration file defines an BDB
+The next section of the configuration file defines a BDB
 backend that will handle queries for things in the
 "dc=example,dc=com" portion of the tree. The
 database is to be replicated to two slave slapds, one on
-truelies, the other on judgmentday. Indexes are to be
+truelies, the other on judgmentday. Indices are to be
 maintained for several attributes, and the {{EX:userPassword}}
 attribute is to be protected from unauthorized access.
 
@@ -884,12 +885,12 @@ by the database keyword on line 6. Line 7 specifies the DN suffix
 for queries to pass to this database. Line 8 specifies the directory
 in which the database files will live.
 
-Lines 9 and 10 identify the database "super user" entry and associated
+Lines 9 and 10 identify the database {{super-user}} entry and associated
 password. This entry is not subject to access control or size or
 time limit restrictions.
 
 Lines 11 through 18 are for replication. Line 12 specifies the
-replication log file (where changes to the database are logged \-
+replication log file (where changes to the database are logged -
 this file is written by slapd and read by slurpd). Lines 13 through
 15 specify the hostname and port for a replicated host, the DN to
 bind as when performing updates, the bind method (simple) and the
@@ -897,10 +898,10 @@ credentials (password) for the binddn. Lines 16 through 18 specify
 a second replication site.  See the {{SECT:Replication with slurpd}}
 chapter for more information on these directives.
 
-Lines 20 through 22 indicate the indexes to maintain for various
+Lines 20 through 22 indicate the indices to maintain for various
 attributes.
 
-Lines 24 through 32 specify access control for entries in the this
+Lines 24 through 32 specify access control for entries in this
 database.  As this is the first database, the controls also apply
 to entries not held in any database (such as the Root DSE).  For
 all applicable entries, the {{EX:userPassword}} attribute is writable

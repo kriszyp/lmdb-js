@@ -98,7 +98,7 @@ This section details commonly used {{slurpd}}(8) command-line options.
 
 This option sets the slurpd debug level to {{EX: <level>}}. When
 level is a `?' character, the various debugging levels are
-printed and slapd exits, regardless of any other options
+printed and slurpd exits, regardless of any other options
 you give it. Current debugging levels (a subset of slapd's
 debugging levels) are
 
@@ -240,8 +240,14 @@ Suffix		Database
 In general, you should copy each file found in the database
 {{EX: directory}} unless you know it is not used by {{slapd}}(8).
 
-Note: The copy process assumes homogeneous servers with
-identically configured OpenLDAP installations.
+Note: This copy process assumes homogeneous servers with
+identically configured OpenLDAP installations. Alternatively,
+you may use {{slapcat}} to output the master's database in LDIF
+format and use the LDIF with {{slapadd}} to populate the
+slave. Using LDIF avoids any potential incompatibilities due
+to differing server architectures or software configurations.
+See the {{SECT:Database Creation and Maintenance Tools}}
+chapter for details on these tools.
 
 
 H3: Configure the master slapd for replication

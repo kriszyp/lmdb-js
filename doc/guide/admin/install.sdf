@@ -23,8 +23,8 @@ The project makes available two series of packages for {{general
 use}}.  The project makes {{releases}} as new features and bug
 fixes come available.  Though the project takes steps to improve
 stablity of these releases, it is common for problems to arise
-only after {{release}}.  The latest {{release}} which has
-demonstrated stability through general use.
+only after {{release}}.  The {{Stable}} release is the latest
+{{release}} which has demonstrated stability through general use.
 
 Users of OpenLDAP Software can choose, depending on their desire
 for the {{latest features}} versus {{demonstrated stability}},
@@ -57,7 +57,7 @@ you may have to download and install a number of additional
 software packages.  This section details commonly needed third party
 software packages you might have to install.  Note that some of
 these third party packages may depend on additional software
-packages.  Install each package per installation instructions
+packages.  Install each package per the installation instructions
 provided with it.
 
 
@@ -114,7 +114,7 @@ H3: Database Software
 OpenLDAP's {{slapd}}(8) primary database backend, {{TERM:BDB}},
 requires {{ORG[expand]Sleepycat}} {{PRD:Berkeley DB}}, version 4.
 If not available at configure time, you will not be able build
-{{slapd}}(8) with primary database backend.
+{{slapd}}(8) with this primary database backend.
 
 Your operating system may provide {{PRD:Berkeley DB}}, version 4,
 in the base system or as an optional software component.  If not,
@@ -127,7 +127,7 @@ the latest release, version 4.0, is recommended. This package
 is required if you wish to use the {{TERM:BDB}} database backend.
 
 OpenLDAP's {{slapd}}(8) LDBM backend supports a variety of data
-base managers {{PRD:Berkeley DB}} and {{PRD:GDBM}}.  {{PRD:GDBM}}
+base managers including {{PRD:Berkeley DB}} and {{PRD:GDBM}}.  {{PRD:GDBM}}
 is available from {{ORG:FSF}}'s download site
 {{URL: ftp://ftp.gnu.org/pub/gnu/gdbm/}}.
 
@@ -144,8 +144,8 @@ of the OpenLDAP FAQ {{URL: http://www.openldap.org/faq/}}.
 
 H3: TCP Wrappers
 
-{{slapd}}(8) supports TCP wrappers (IP level access control filters)
-if preinstalled.  Use of TCP wrappers or other IP-level access
+{{slapd}}(8) supports TCP Wrappers (IP level access control filters)
+if preinstalled.  Use of TCP Wrappers or other IP-level access
 filters (such as those provided by an IP-level firewall) is recommended
 for servers containing non-public information.
 
@@ -181,9 +181,9 @@ environment variables.
 >	[[env] settings] ./configure [options]
 
 As an example, let's assume that we want to install OpenLDAP with
-LDBM backend and TCP wrapper support.  By default, LDBM
-is enabled and TCP wrappers is not.  So, we just need to specify
-{{EX:--with-wrappers}} to include TCP wrapper support:
+BDB backend and TCP Wrappers support.  By default, BDB
+is enabled and TCP Wrappers is not.  So, we just need to specify
+{{EX:--with-wrappers}} to include TCP Wrappers support:
 
 >	./configure --with-wrappers
 
@@ -247,7 +247,7 @@ By default OpenLDAP is installed in {{F:/usr/local}}.  If you changed this
 setting with the {{EX:--prefix}} configure option, it will be installed
 in the location you provided.
 
-Typically, the installation typically requires super-user priviledges.
+Typically, the installation requires {{super-user}} privileges.
 From the top level OpenLDAP source directory, type:
 
 >	su root -c 'make install'
@@ -255,5 +255,5 @@ From the top level OpenLDAP source directory, type:
 You should examine the output of this command carefully to make sure
 everything is installed correctly. You will find the configuration files
 for {{slapd}}(8) in {{F:/usr/local/etc/openldap}} by default.  See the
-{{SECT:The slapd Configuration File}} chapter for additional information.
+chapter {{SECT:The slapd Configuration File}} for additional information.
 
