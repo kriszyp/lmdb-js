@@ -38,14 +38,22 @@ bdb_add(
 	DB_LOCK		lock;
 #endif
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "add", LDAP_LEVEL_ARGS, "==> bdb_add: %s\n", e->e_dn ));
+#else
 	Debug(LDAP_DEBUG_ARGS, "==> bdb_add: %s\n", e->e_dn, 0, 0);
+#endif
 
 	/* check entry's schema */
 	rc = entry_schema_check( be, e, NULL, &text, textbuf, textlen );
 	if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "add", LDAP_LEVEL_ERR, "bdb_add: entry failed schema check: %s (%d)\n", text, rc ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_add: entry failed schema check: %s (%d)\n",
 			text, rc, 0 );
+#endif
 		goto return_results;
 	}
 
@@ -59,9 +67,13 @@ bdb_add(
 	 */
 	rc = bdb_next_id( be, NULL, &e->e_id );
 	if( rc != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "add", LDAP_LEVEL_ERR, "bdb_add: next_id failed (%d)\n", rc ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_add: next_id failed (%d)\n",
 			rc, 0, 0 );
+#endif
 		rc = LDAP_OTHER;
 		text = "internal error";
 		goto return_results;
@@ -85,9 +97,13 @@ retry:	/* transaction retry */
 		bdb->bi_db_opflags );
 	text = NULL;
 	if( rc != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "add", LDAP_LEVEL_ERR, "bdb_add: txn_begin failed: %s (%d)\n", db_strerror(rc), rc ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_add: txn_begin failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
+#endif
 		rc = LDAP_OTHER;
 		text = "internal error";
 		goto return_results;
@@ -158,8 +174,12 @@ retry:	/* transaction retry */
 					NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
 			}
 
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "add", LDAP_LEVEL_DETAIL1, "bdb_add: parent does not exist\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent does not exist\n",
 				0, 0, 0 );
+#endif
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				matched_dn, NULL, refs, NULL );
@@ -183,8 +203,12 @@ retry:	/* transaction retry */
 		}
 
 		if ( ! rc ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "add", LDAP_LEVEL_DETAIL1, "bdb_add: no write access to parent\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: no write access to parent\n",
 				0, 0, 0 );
+#endif
 			rc = LDAP_INSUFFICIENT_ACCESS;
 			text = "no write access to parent";
 			goto return_results;;
@@ -193,8 +217,12 @@ retry:	/* transaction retry */
 #ifdef BDB_SUBENTRIES
 		if ( is_entry_subentry( p ) ) {
 			/* parent is a subentry, don't allow add */
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "add", LDAP_LEVEL_DETAIL1, "bdb_add: parent is subentry\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent is subentry\n",
 				0, 0, 0 );
+#endif
 			rc = LDAP_OBJECT_CLASS_VIOLATION;
 			text = "parent is a subentry";
 			goto return_results;;
@@ -203,8 +231,12 @@ retry:	/* transaction retry */
 #ifdef BDB_ALIASES
 		if ( is_entry_alias( p ) ) {
 			/* parent is an alias, don't allow add */
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "add", LDAP_LEVEL_DETAIL1, "bdb_add: parent is alias\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent is alias\n",
 				0, 0, 0 );
+#endif
 			rc = LDAP_ALIAS_PROBLEM;
 			text = "parent is an alias";
 			goto return_results;;
@@ -216,8 +248,12 @@ retry:	/* transaction retry */
 			char *matched_dn = p->e_dn;
 			BerVarray refs = get_entry_referrals( be, conn, op, p );
 
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "add", LDAP_LEVEL_DETAIL1, "bdb_add: parent is referral\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent is referral\n",
 				0, 0, 0 );
+#endif
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				matched_dn, NULL, refs, NULL );
@@ -261,18 +297,26 @@ retry:	/* transaction retry */
 				}
 
 				if ( ! rc ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG (( "add", LDAP_LEVEL_DETAIL1, "bdb_add: no write access to parent\n" ));
+#else
 					Debug( LDAP_DEBUG_TRACE,
 						"bdb_add: no write access to parent\n",
 						0, 0, 0 );
+#endif
 					rc = LDAP_INSUFFICIENT_ACCESS;
 					text = "no write access to parent";
 					goto return_results;;
 				}
 
 			} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "add", LDAP_LEVEL_DETAIL1, "bdb_add: %s denied\n", pdn.bv_len == 0 ? "suffix" : "entry at root" ));
+#else
 				Debug( LDAP_DEBUG_TRACE, "bdb_add: %s denied\n",
 					pdn.bv_len == 0 ? "suffix" : "entry at root",
 					0, 0 );
+#endif
 				rc = LDAP_INSUFFICIENT_ACCESS;
 				goto return_results;
 			}
@@ -280,9 +324,13 @@ retry:	/* transaction retry */
 
 #ifdef BDB_SUBENTRIES
 		if( subentry ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "add", LDAP_LEVEL_DETAIL1, "bdb_add: no parent, cannot add subentry\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_add: no parent, cannot add subentry\n",
 				0, 0, 0 );
+#endif
 			rc = LDAP_INSUFFICIENT_ACCESS;
 			text = "no parent, cannot add subentry";
 			goto return_results;;
@@ -302,8 +350,12 @@ retry:	/* transaction retry */
 	/* dn2id index */
 	rc = bdb_dn2id_add( be, ltid, &pdn, e );
 	if ( rc != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "add", LDAP_LEVEL_ERR, "bdb_add: dn2id_add failed: %s (%d)\n", db_strerror(rc), rc ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: dn2id_add failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
+#endif
 
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
@@ -321,8 +373,12 @@ retry:	/* transaction retry */
 	/* id2entry index */
 	rc = bdb_id2entry_add( be, ltid, e );
 	if ( rc != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "add", LDAP_LEVEL_ERR, "bdb_add: id2entry_add failed\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: id2entry_add failed\n",
 			0, 0, 0 );
+#endif
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
@@ -337,8 +393,12 @@ retry:	/* transaction retry */
 	/* attribute indexes */
 	rc = bdb_index_entry_add( be, ltid, e, e->e_attrs );
 	if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "add", LDAP_LEVEL_ERR, "bdb_add: index_entry_add failed\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: index_entry_add failed\n",
 			0, 0, 0 );
+#endif
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
@@ -390,14 +450,22 @@ retry:	/* transaction retry */
 	op->o_private = NULL;
 
 	if (rc == LDAP_SUCCESS) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "add", LDAP_LEVEL_RESULTS, "bdb_add: added%s id=%08lx dn=\"%s\"\n", op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn ));
+#else
 		Debug(LDAP_DEBUG_TRACE, "bdb_add: added%s id=%08lx dn=\"%s\"\n",
 			op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
+#endif
 		text = NULL;
 		bdb_cache_entry_commit( e );
 	}
 	else {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "add", LDAP_LEVEL_ERR, "bdb_add: %s : %s (%d)\n", text, db_strerror(rc), rc ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: %s : %s (%d)\n",
 			text, db_strerror(rc), rc );
+#endif
 		rc = LDAP_OTHER;
 	}
 
