@@ -79,7 +79,7 @@ allow (default none).
 .B bind_v2
 allows acceptance of LDAPv2 bind requests.
 .B bind_anon_cred
-allows anonymous bind creditials are not empty (e.g.
+allows anonymous bind when credentials are not empty (e.g.
 when DN is empty).
 .B bind_anon_dn
 allows unauthenticated (anonymous) bind when DN is not empty.
@@ -408,7 +408,7 @@ requires authentication prior to directory operations.
 requires SASL authentication prior to directory operations.
 .B strong
 requires strong authentication prior to directory operations.
-Currently
+The
 .B SASL
 and
 .B strong
