@@ -225,9 +225,12 @@ do_commands( void )
 				parse_answer(mp);
 				print_an_entry();
 				ldap_msgfree(mp);
-			}
-			else
+
+			} else if (cp != NULL) {
 				printf(" Could not find \"%s\".\n", cp);
+			} else {
+				printf(" Could not complete find.\n");
+			}
 		}
 #ifdef UOFM
 		else if (iscom("vedit") && isatty( 1 )) {
