@@ -44,41 +44,43 @@ static const struct ol_keyvalue deref_kv[] = {
 };
 
 static const struct ol_attribute {
+	int			useronly;
 	int			type;
 	const char *	name;
 	const void *	data;
 	size_t		offset;
 } attrs[] = {
-	{ATTR_KV,		"DEREF",	deref_kv, /* or &deref_kv[0] */
+	{0, ATTR_KV,		"DEREF",	deref_kv, /* or &deref_kv[0] */
 		offsetof(struct ldapoptions, ldo_deref)},
-	{ATTR_INT,		"SIZELIMIT",	NULL,
+	{0, ATTR_INT,		"SIZELIMIT",	NULL,
 		offsetof(struct ldapoptions, ldo_sizelimit)},
-	{ATTR_INT,		"TIMELIMIT",	NULL,
+	{0, ATTR_INT,		"TIMELIMIT",	NULL,
 		offsetof(struct ldapoptions, ldo_timelimit)},
-	{ATTR_STRING,	"BASE",			NULL,
+	{0, ATTR_STRING,	"BASE",			NULL,
 		offsetof(struct ldapoptions, ldo_defbase)},
-	{ATTR_INT,		"PORT",			NULL,
+	{0, ATTR_INT,		"PORT",			NULL,
 		offsetof(struct ldapoptions, ldo_defport)},
 	/* **** keep this around for backward compatibility */
-	{ATTR_URIS,		"HOST",			NULL,	1},
+	{0, ATTR_URIS,		"HOST",			NULL,	1},
 	/* **** */
-	{ATTR_URIS,		"URI",			NULL,	0},
-	{ATTR_BOOL,		"REFERRALS",	NULL,	LDAP_BOOL_REFERRALS},
-	{ATTR_BOOL,		"RESTART",		NULL,	LDAP_BOOL_RESTART},
-	{ATTR_BOOL,		"DNS",			NULL,	LDAP_BOOL_DNS},
-  	{ATTR_TLS,		"TLS",			NULL,	LDAP_OPT_X_TLS},
-	{ATTR_TLS,		"TLS_CERT",		NULL,	LDAP_OPT_X_TLS_CERTFILE},
-	{ATTR_TLS,		"TLS_KEY",		NULL,	LDAP_OPT_X_TLS_KEYFILE},
-  	{ATTR_TLS,		"TLS_CACERT",	NULL,	LDAP_OPT_X_TLS_CACERTFILE},
-  	{ATTR_TLS,		"TLS_CACERTDIR",NULL,	LDAP_OPT_X_TLS_CACERTDIR},
-  	{ATTR_TLS,		"TLS_REQCERT",	NULL,	LDAP_OPT_X_TLS_REQUIRE_CERT},
-	{ATTR_NONE,		NULL,		NULL,	0}
+	{0, ATTR_URIS,		"URI",			NULL,	0},
+	{0, ATTR_BOOL,		"REFERRALS",	NULL,	LDAP_BOOL_REFERRALS},
+	{0, ATTR_BOOL,		"RESTART",		NULL,	LDAP_BOOL_RESTART},
+	{0, ATTR_BOOL,		"DNS",			NULL,	LDAP_BOOL_DNS},
+  	{0, ATTR_TLS,		"TLS",			NULL,	LDAP_OPT_X_TLS},
+	{0, ATTR_TLS,		"TLS_CERT",		NULL,	LDAP_OPT_X_TLS_CERTFILE},
+	{0, ATTR_TLS,		"TLS_KEY",		NULL,	LDAP_OPT_X_TLS_KEYFILE},
+  	{0, ATTR_TLS,		"TLS_CACERT",	NULL,	LDAP_OPT_X_TLS_CACERTFILE},
+  	{0, ATTR_TLS,		"TLS_CACERTDIR",NULL,	LDAP_OPT_X_TLS_CACERTDIR},
+  	{0, ATTR_TLS,		"TLS_REQCERT",	NULL,	LDAP_OPT_X_TLS_REQUIRE_CERT},
+	{0, ATTR_NONE,		NULL,		NULL,	0}
 };
 
 #define MAX_LDAP_ATTR_LEN  sizeof("TLS_CACERTDIR")
 #define MAX_LDAP_ENV_PREFIX_LEN 8
 
-static void openldap_ldap_init_w_conf(const char *file)
+static void openldap_ldap_init_w_conf(
+	const char *file, int userconf )
 {
 	char linebuf[128];
 	FILE *fp;
@@ -135,6 +137,10 @@ static void openldap_ldap_init_w_conf(const char *file)
 
 		for(i=0; attrs[i].type != ATTR_NONE; i++) {
 			void *p;
+
+			if( !userconf && !attrs[i].useronly ) {
+				continue;
+			}
 
 			if(strcasecmp(cmd, attrs[i].name) != 0) {
 				continue;
@@ -198,6 +204,11 @@ static void openldap_ldap_init_w_conf(const char *file)
 	fclose(fp);
 }
 
+static void openldap_ldap_init_w_sysconf(const char *file)
+{
+	openldap_ldap_init_w_conf( file, 0 );
+}
+
 static void openldap_ldap_init_w_userconf(const char *file)
 {
 	char *home;
@@ -221,11 +232,11 @@ static void openldap_ldap_init_w_userconf(const char *file)
 
 		/* try ~/file */
 		sprintf(path, "%s/%s", home, file);
-		openldap_ldap_init_w_conf(path);
+		openldap_ldap_init_w_conf(path, 1);
 
 		/* try ~/.file */
 		sprintf(path, "%s/.%s", home, file);
-		openldap_ldap_init_w_conf(path);
+		openldap_ldap_init_w_conf(path, 1);
 	}
 
 	if(path != NULL) {
@@ -233,7 +244,7 @@ static void openldap_ldap_init_w_userconf(const char *file)
 	}
 
 	/* try file */
-	openldap_ldap_init_w_conf(file);
+	openldap_ldap_init_w_conf(file, 1);
 }
 
 static void openldap_ldap_init_w_env(const char *prefix)
@@ -362,14 +373,14 @@ void ldap_int_initialize( void )
 		return;
 	}
 
-	openldap_ldap_init_w_conf(LDAP_CONF_FILE);
+	openldap_ldap_init_w_sysconf(LDAP_CONF_FILE);
 	openldap_ldap_init_w_userconf(LDAP_USERRC_FILE);
 
 	{
 		char *altfile = getenv(LDAP_ENV_PREFIX "CONF");
 
 		if( altfile != NULL ) {
-			openldap_ldap_init_w_conf( altfile );
+			openldap_ldap_init_w_sysconf( altfile );
 		}
 	}
 
