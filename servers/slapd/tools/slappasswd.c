@@ -46,6 +46,7 @@ main( int argc, char *argv[] )
 	char	*scheme = "{SSHA}";
 	char	*newpw = NULL;
 	char	*pwfile = NULL;
+	const char *text;
 
 	int		i;
 	struct berval passwd;
@@ -115,15 +116,17 @@ main( int argc, char *argv[] )
 		passwd.bv_len = strlen(passwd.bv_val);
 	}
 
-	hash = lutil_passwd_hash( &passwd, scheme );
+	hash = lutil_passwd_hash( &passwd, scheme, &text );
 
 	if( hash == NULL || hash->bv_val == NULL ) {
-		fprintf( stderr, "Password generation failed.\n");
+		fprintf( stderr, "Password generation failed. %s\n",
+			text ? text : "" );
 		return EXIT_FAILURE;
 	}
 
-	if( lutil_passwd( hash, &passwd, NULL ) ) {
-		fprintf( stderr, "Password verification failed.\n");
+	if( lutil_passwd( hash, &passwd, NULL, &text ) ) {
+		fprintf( stderr, "Password verification failed. %s\n",
+			text ? text : "" );
 		return EXIT_FAILURE;
 	}
 

@@ -192,7 +192,7 @@ dn2entry_retry:
 			goto done;
 		}
 
-		if ( slap_passwd_check( op->o_conn, a, &op->oq_bind.rb_cred ) != 0 ) {
+		if ( slap_passwd_check( op->o_conn, a, &op->oq_bind.rb_cred, &rs->sr_text ) != 0 ) {
 			rs->sr_err = LDAP_INVALID_CREDENTIALS;
 			send_ldap_result( op, rs );
 			goto done;

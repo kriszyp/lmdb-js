@@ -70,11 +70,13 @@ struct lutil_pw_scheme;
 typedef int (LUTIL_PASSWD_CHK_FUNC)(
 	const struct berval *scheme,
 	const struct berval *passwd,
-	const struct berval *cred );
+	const struct berval *cred,
+	const char **text );
 
 typedef struct berval * (LUTIL_PASSWD_HASH_FUNC) (
 	const struct berval *scheme,
-	const struct berval *passwd );
+	const struct berval *passwd,
+	const char **text );
 
 LDAP_LUTIL_F( int )
 lutil_passwd_add LDAP_P((
@@ -110,7 +112,8 @@ LDAP_LUTIL_F( int )
 lutil_passwd LDAP_P((
 	const struct berval *passwd,	/* stored password */
 	const struct berval *cred,	/* user supplied value */
-	const char **methods ));
+	const char **methods,
+	const char **text ));			/* error message */
 
 LDAP_LUTIL_F( struct berval * )
 lutil_passwd_generate LDAP_P(( ber_len_t ));
@@ -118,7 +121,8 @@ lutil_passwd_generate LDAP_P(( ber_len_t ));
 LDAP_LUTIL_F( struct berval * )
 lutil_passwd_hash LDAP_P((
 	const struct berval *passwd,
-	const char *method ));
+	const char *method,
+	const char **text ));
 
 LDAP_LUTIL_F( int )
 lutil_passwd_scheme LDAP_P((

@@ -502,7 +502,7 @@ sasl_cb_checkpass( Operation *op, SlapReply *rs )
 		NULL, ACL_AUTH, NULL ) ) return 0;
 
 	for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
-		if ( !lutil_passwd( bv, &ci->cred, NULL ) ) {
+		if ( !lutil_passwd( bv, &ci->cred, NULL, &rs->sr_text ) ) {
 			ci->rc = SASL_OK;
 			break;
 		}

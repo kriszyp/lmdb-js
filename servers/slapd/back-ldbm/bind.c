@@ -152,7 +152,7 @@ ldbm_back_bind(
 			goto return_results;
 		}
 
-		if ( slap_passwd_check( op->o_conn, a, &op->oq_bind.rb_cred ) != 0 ) {
+		if ( slap_passwd_check( op->o_conn, a, &op->oq_bind.rb_cred, &rs->sr_text ) != 0 ) {
 			send_ldap_error( op, rs, LDAP_INVALID_CREDENTIALS, NULL );
 			/* stop front end from sending result */
 			rc = 1;

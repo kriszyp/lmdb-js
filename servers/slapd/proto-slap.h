@@ -744,13 +744,15 @@ LDAP_SLAPD_F (SLAP_EXTOP_MAIN_FN) passwd_extop;
 LDAP_SLAPD_F (int) slap_passwd_check(
 	Connection			*conn,
 	Attribute			*attr,
-	struct berval		*cred );
+	struct berval		*cred,
+	const char			**text );
 
 LDAP_SLAPD_F (void) slap_passwd_generate( struct berval * );
 
 LDAP_SLAPD_F (void) slap_passwd_hash(
 	struct berval		*cred,
-	struct berval		*hash );
+	struct berval		*hash,
+	const char		**text );
 
 LDAP_SLAPD_F (struct berval *) slap_passwd_return(
 	struct berval		*cred );

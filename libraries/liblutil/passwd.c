@@ -288,9 +288,12 @@ int
 lutil_passwd(
 	const struct berval *passwd,	/* stored passwd */
 	const struct berval *cred,		/* user cred */
-	const char **schemes )
+	const char **schemes,
+	const char **text )
 {
 	struct pw_slist *pws;
+
+	if ( text ) *text = NULL;
 
 	if (cred == NULL || cred->bv_len == 0 ||
 		passwd == NULL || passwd->bv_len == 0 )
@@ -307,7 +310,7 @@ lutil_passwd(
 				passwd, &x, schemes );
 
 			if( p != NULL ) {
-				return (pws->s.chk_fn)( &(pws->s.name), p, cred );
+				return (pws->s.chk_fn)( &(pws->s.name), p, cred, text );
 			}
 		}
 	}
@@ -357,14 +360,16 @@ struct berval * lutil_passwd_generate( ber_len_t len )
 
 struct berval * lutil_passwd_hash(
 	const struct berval * passwd,
-	const char * method )
+	const char * method,
+	const char **text )
 {
 	const struct pw_scheme *sc = get_scheme( method );
 
+	if( text ) *text = NULL;
 	if( sc == NULL ) return NULL;
 	if( ! sc->hash_fn ) return NULL;
 
-	return (sc->hash_fn)( &sc->name, passwd );
+	return (sc->hash_fn)( &sc->name, passwd, text );
 }
 
 /* pw_string is only called when SLAPD_LMHASH or SLAPD_CRYPT is defined */
@@ -459,7 +464,8 @@ static struct berval * pw_string64(
 static int chk_ssha1(
 	const struct berval *sc,
 	const struct berval * passwd,
-	const struct berval * cred )
+	const struct berval * cred,
+	const char **text )
 {
 	lutil_SHA1_CTX SHA1context;
 	unsigned char SHA1digest[LUTIL_SHA1_BYTES];
@@ -502,7 +508,8 @@ static int chk_ssha1(
 static int chk_sha1(
 	const struct berval *sc,
 	const struct berval * passwd,
-	const struct berval * cred )
+	const struct berval * cred,
+	const char **text )
 {
 	lutil_SHA1_CTX SHA1context;
 	unsigned char SHA1digest[LUTIL_SHA1_BYTES];
@@ -538,7 +545,8 @@ static int chk_sha1(
 static int chk_smd5(
 	const struct berval *sc,
 	const struct berval * passwd,
-	const struct berval * cred )
+	const struct berval * cred,
+	const char **text )
 {
 	lutil_MD5_CTX MD5context;
 	unsigned char MD5digest[LUTIL_MD5_BYTES];
@@ -582,7 +590,8 @@ static int chk_smd5(
 static int chk_md5(
 	const struct berval *sc,
 	const struct berval * passwd,
-	const struct berval * cred )
+	const struct berval * cred,
+	const char **text )
 {
 	lutil_MD5_CTX MD5context;
 	unsigned char MD5digest[LUTIL_MD5_BYTES];
@@ -618,7 +627,8 @@ static int chk_md5(
 static int chk_lanman(
 	const struct berval *scheme,
 	const struct berval *passwd,
-	const struct berval *cred )
+	const struct berval *cred,
+	const char **text )
 {
 	struct berval *hash;
 
@@ -631,7 +641,8 @@ static int chk_lanman(
 static int chk_ns_mta_md5(
 	const struct berval *scheme,
 	const struct berval *passwd,
-	const struct berval *cred )
+	const struct berval *cred,
+	const char **text )
 {
 	lutil_MD5_CTX MD5context;
 	unsigned char MD5digest[LUTIL_MD5_BYTES], c;
@@ -683,7 +694,8 @@ sasl_conn_t *lutil_passwd_sasl_conn = NULL;
 static int chk_sasl(
 	const struct berval *sc,
 	const struct berval * passwd,
-	const struct berval * cred )
+	const struct berval * cred,
+	const char **text )
 {
 	unsigned int i;
 	int rtn;
@@ -714,11 +726,10 @@ static int chk_sasl(
 	if( lutil_passwd_sasl_conn != NULL ) {
 		int sc;
 # if SASL_VERSION_MAJOR < 2
-		const char *errstr = NULL;
 		sc = sasl_checkpass( lutil_passwd_sasl_conn,
 			passwd->bv_val, passwd->bv_len,
 			cred->bv_val, cred->bv_len,
-			&errstr );
+			text );
 # else
 		sc = sasl_checkpass( lutil_passwd_sasl_conn,
 			passwd->bv_val, passwd->bv_len,
@@ -736,7 +747,8 @@ static int chk_sasl(
 static int chk_kerberos(
 	const struct berval *sc,
 	const struct berval * passwd,
-	const struct berval * cred )
+	const struct berval * cred,
+	const char **text )
 {
 	unsigned int i;
 	int rtn;
@@ -909,7 +921,8 @@ static int chk_kerberos(
 static int chk_crypt(
 	const struct berval *sc,
 	const struct berval * passwd,
-	const struct berval * cred )
+	const struct berval * cred,
+	const char **text )
 {
 	char *cr;
 	unsigned int i;
@@ -952,7 +965,8 @@ static int chk_crypt(
 static int chk_unix(
 	const struct berval *sc,
 	const struct berval * passwd,
-	const struct berval * cred )
+	const struct berval * cred,
+	const char **text )
 {
 	unsigned int i;
 	char *pw,*cr;
@@ -1027,7 +1041,8 @@ static int chk_unix(
 #ifdef LUTIL_SHA1_BYTES
 static struct berval *hash_ssha1(
 	const struct berval *scheme,
-	const struct berval  *passwd )
+	const struct berval  *passwd,
+	const char **text )
 {
 	lutil_SHA1_CTX  SHA1context;
 	unsigned char   SHA1digest[LUTIL_SHA1_BYTES];
@@ -1056,7 +1071,8 @@ static struct berval *hash_ssha1(
 
 static struct berval *hash_sha1(
 	const struct berval *scheme,
-	const struct berval  *passwd )
+	const struct berval  *passwd,
+	const char **text )
 {
 	lutil_SHA1_CTX  SHA1context;
 	unsigned char   SHA1digest[LUTIL_SHA1_BYTES];
@@ -1075,7 +1091,8 @@ static struct berval *hash_sha1(
 
 static struct berval *hash_smd5(
 	const struct berval *scheme,
-	const struct berval  *passwd )
+	const struct berval  *passwd,
+	const char **text )
 {
 	lutil_MD5_CTX   MD5context;
 	unsigned char   MD5digest[LUTIL_MD5_BYTES];
@@ -1104,7 +1121,8 @@ static struct berval *hash_smd5(
 
 static struct berval *hash_md5(
 	const struct berval *scheme,
-	const struct berval  *passwd )
+	const struct berval  *passwd,
+	const char **text )
 {
 	lutil_MD5_CTX   MD5context;
 	unsigned char   MD5digest[LUTIL_MD5_BYTES];
@@ -1201,7 +1219,8 @@ static void lmPasswd_to_key(
 
 static struct berval *hash_lanman(
 	const struct berval *scheme,
-	const struct berval *passwd )
+	const struct berval *passwd,
+	const char **text )
 {
 
 	int i;
@@ -1249,7 +1268,8 @@ static struct berval *hash_lanman(
 #ifdef SLAPD_CRYPT
 static struct berval *hash_crypt(
 	const struct berval *scheme,
-	const struct berval *passwd )
+	const struct berval *passwd,
+	const char **text )
 {
 	struct berval hash;
 	unsigned char salt[32];	/* salt suitable for most anything */
@@ -1310,7 +1330,8 @@ int lutil_salt_format(const char *format)
 #ifdef SLAPD_CLEARTEXT
 static struct berval *hash_clear(
 	const struct berval *scheme,
-	const struct berval  *passwd )
+	const struct berval  *passwd,
+	const char **text )
 {
 	return ber_bvdup( (struct berval *) passwd );
 }

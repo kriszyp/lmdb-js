@@ -63,10 +63,10 @@ ldbm_back_exop_passwd(
 		rs->sr_rspdata = slap_passwd_return( &new );
 	}
 
-	slap_passwd_hash( &new, &hash );
+	slap_passwd_hash( &new, &hash, &rs->sr_text );
 
 	if( hash.bv_len == 0 ) {
-		rs->sr_text = "password hash failed";
+		if( !rs->sr_text ) rs->sr_text = "password hash failed";
 		rc = LDAP_OTHER;
 		goto done;
 	}

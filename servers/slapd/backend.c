@@ -680,6 +680,7 @@ int
 be_isroot_pw( Operation *op )
 {
 	int result;
+	char *errmsg;
 
 	if ( ! be_isroot( op->o_bd, &op->o_req_ndn ) ) {
 		return 0;
@@ -696,7 +697,7 @@ be_isroot_pw( Operation *op )
 #endif
 #endif
 
-	result = lutil_passwd( &op->o_bd->be_rootpw, &op->orb_cred, NULL );
+	result = lutil_passwd( &op->o_bd->be_rootpw, &op->orb_cred, NULL, NULL );
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 #ifdef SLAPD_SPASSWD
