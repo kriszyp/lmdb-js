@@ -145,6 +145,9 @@ ldap_back_exop_passwd(
 	if (rc == LDAP_SUCCESS) {
 		if (ldap_result(lc->ld, msgid, 1, NULL, &res) == -1) {
 			ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER, &rc);
+			ldap_back_freeconn( op, lc );
+			lc = NULL;
+
 		} else {
 			/* sigh. parse twice, because parse_passwd doesn't give
 			 * us the err / match / msg info.

@@ -58,6 +58,7 @@ ldap_back_search(
 	struct berval mbase;
 	struct berval mfilter = BER_BVNULL;
 	int dontfreetext = 0;
+	int freeconn = 0;
 	dncookie dc;
 	LDAPControl **ctrls = NULL;
 
@@ -75,11 +76,14 @@ ldap_back_search(
 	}
 
 	/* should we check return values? */
-	if (op->ors_deref != -1)
-		ldap_set_option( lc->ld, LDAP_OPT_DEREF, (void *)&op->ors_deref);
-	if (op->ors_tlimit != SLAP_NO_LIMIT) {
+	if ( op->ors_deref != -1 ) {
+		ldap_set_option( lc->ld, LDAP_OPT_DEREF, (void *)&op->ors_deref );
+	}
+
+	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
 		tv.tv_sec = op->ors_tlimit;
 		tv.tv_usec = 0;
+
 	} else {
 		tv.tv_sec = 0;
 	}
@@ -125,7 +129,7 @@ ldap_back_search(
 	rs->sr_err = ldap_back_map_attrs( &li->rwmap.rwm_at,
 			op->ors_attrs,
 			BACKLDAP_MAP, &mapped_attrs );
-	if ( rs->sr_err ) {
+	if ( rs->sr_err != LDAP_SUCCESS ) {
 		rc = -1;
 		goto finish;
 	}
@@ -139,7 +143,7 @@ ldap_back_search(
 	}
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 	
-	rs->sr_err = ldap_search_ext(lc->ld, mbase.bv_val,
+	rs->sr_err = ldap_search_ext( lc->ld, mbase.bv_val,
 			op->ors_scope, mfilter.bv_val,
 			mapped_attrs, op->ors_attrsonly,
 			ctrls, NULL,
@@ -148,7 +152,11 @@ ldap_back_search(
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 fail:;
-		rc = ldap_back_op_result(lc, op, rs, msgid, 0);
+		rc = ldap_back_op_result( lc, op, rs, msgid, 0 );
+		if ( freeconn ) {
+			ldap_back_freeconn( op, lc );
+			lc = NULL;
+		}
 		goto finish;
 	}
 
@@ -157,27 +165,28 @@ fail:;
 	 * but this is necessary for version matching, and for ACL processing.
 	 */
 
-	for ( rc=0; rc != -1; rc = ldap_result(lc->ld, msgid, 0, &tv, &res))
+	for ( rc = 0; rc != -1; rc = ldap_result( lc->ld, msgid, 0, &tv, &res ) )
 	{
 		/* check for abandon */
-		if (op->o_abandon) {
-			ldap_abandon(lc->ld, msgid);
+		if ( op->o_abandon ) {
+			ldap_abandon( lc->ld, msgid );
 			rc = 0;
 			goto finish;
 		}
 
-		if (rc == 0) {
+		if ( rc == 0 ) {
 			tv.tv_sec = 0;
 			tv.tv_usec = 100000;
 			ldap_pvt_thread_yield();
 
-		} else if (rc == LDAP_RES_SEARCH_ENTRY) {
+		} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
 			Entry ent = {0};
 			struct berval bdn;
 			int abort = 0;
-			e = ldap_first_entry(lc->ld,res);
-			if ( ( rc = ldap_build_entry(op, e, &ent, &bdn,
-						LDAP_BUILD_ENTRY_PRIVATE)) == LDAP_SUCCESS ) {
+			e = ldap_first_entry( lc->ld, res );
+			rc = ldap_build_entry( op, e, &ent, &bdn,
+					LDAP_BUILD_ENTRY_PRIVATE );
+		       if ( rc == LDAP_SUCCESS ) {
 				rs->sr_entry = &ent;
 				rs->sr_attrs = op->ors_attrs;
 				rs->sr_flags = 0;
@@ -190,10 +199,12 @@ fail:;
 					ent.e_attrs = a->a_next;
 
 					v = a->a_vals;
-					if (a->a_vals != &dummy)
+					if ( a->a_vals != &dummy ) {
 						ber_bvarray_free(a->a_vals);
-					if (a->a_nvals != v)
+					}
+					if ( a->a_nvals != v ) {
 						ber_bvarray_free(a->a_nvals);
+					}
 					ch_free(a);
 				}
 				
@@ -202,9 +213,9 @@ fail:;
 				if ( ent.e_ndn )
 					free( ent.e_ndn );
 			}
-			ldap_msgfree(res);
+			ldap_msgfree( res );
 			if ( abort ) {
-				ldap_abandon(lc->ld, msgid);
+				ldap_abandon( lc->ld, msgid );
 				goto finish;
 			}
 
@@ -249,18 +260,24 @@ fail:;
 			}
 
 		} else {
-			rc = ldap_parse_result(lc->ld, res, &rs->sr_err,
+			rc = ldap_parse_result( lc->ld, res, &rs->sr_err,
 					&match.bv_val, (char **)&rs->sr_text,
-					NULL, NULL, 1);
-			if (rc != LDAP_SUCCESS ) rs->sr_err = rc;
+					NULL, NULL, 1 );
+			if (rc != LDAP_SUCCESS ) {
+				rs->sr_err = rc;
+			}
 			rs->sr_err = slap_map_api2result( rs );
 			rc = 0;
 			break;
 		}
 	}
 
-	if (rc == -1)
+	if ( rc == -1 ) {
+		/* FIXME: invalidate the connection? */
+		rs->sr_err = LDAP_SERVER_DOWN;
+		freeconn = 1;
 		goto fail;
+	}
 
 	/*
 	 * Rewrite the matched portion of the search base, if required
@@ -275,7 +292,7 @@ fail:;
 		dc.normalized = 0;
 #endif
 		match.bv_len = strlen( match.bv_val );
-		ldap_back_dn_massage(&dc, &match, &mdn);
+		ldap_back_dn_massage( &dc, &match, &mdn );
 		rs->sr_matched = mdn.bv_val;
 	}
 	if ( rs->sr_v2ref ) {

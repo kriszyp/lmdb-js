@@ -209,6 +209,20 @@ static void myprint( Avlnode *root )
 }
 #endif /* PRINT_CONNTREE */
 
+int
+ldap_back_freeconn( Operation *op, struct ldapconn *lc )
+{
+	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
+
+	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+	lc = avl_delete( &li->conntree, (caddr_t)lc,
+			ldap_back_conn_cmp );
+	ldap_back_conn_free( (void *)lc );
+	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
+
+	return 0;
+}
+
 struct ldapconn *
 ldap_back_getconn(Operation *op, SlapReply *rs)
 {
@@ -645,16 +659,16 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 	if ( ERR_OK( rs->sr_err ) ) {
 		/* if result parsing fails, note the failure reason */
 		if ( ldap_result( lc->ld, msgid, 1, NULL, &res ) == -1 ) {
-			ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER,
-					&rs->sr_err);
+			ldap_get_option( lc->ld, LDAP_OPT_ERROR_NUMBER,
+					&rs->sr_err );
 
 		/* otherwise get the result; if it is not
 		 * LDAP_SUCCESS, record it in the reply
 		 * structure (this includes 
 		 * LDAP_COMPARE_{TRUE|FALSE}) */
 		} else {
-			int rc = ldap_parse_result(lc->ld, res, &rs->sr_err,
-					&match, &text, NULL, NULL, 1);
+			int rc = ldap_parse_result( lc->ld, res, &rs->sr_err,
+					&match, &text, NULL, NULL, 1 );
 			rs->sr_text = text;
 			if ( rc != LDAP_SUCCESS ) rs->sr_err = rc;
 		}

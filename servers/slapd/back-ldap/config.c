@@ -501,6 +501,9 @@ ldap_back_exop_whoami(
 			if (ldap_result(lc->ld, msgid, 1, NULL, &res) == -1) {
 				ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER,
 					&rs->sr_err);
+				ldap_back_freeconn( op, lc );
+				lc = NULL;
+
 			} else {
 				rs->sr_err = ldap_parse_whoami(lc->ld, res, &bv);
 				ldap_msgfree(res);
