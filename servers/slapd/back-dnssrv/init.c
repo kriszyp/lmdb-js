@@ -34,6 +34,13 @@ dnssrv_back_initialize(
     BackendInfo	*bi
 )
 {
+	static char *controls[] = {
+		LDAP_CONTROL_MANAGEDSAIT,
+		NULL
+	};
+
+	bi->bi_controls = controls;
+
 	bi->bi_open = 0;
 	bi->bi_config = 0;
 	bi->bi_close = 0;

@@ -21,7 +21,9 @@ dnssrv_back_request(
     Connection	*conn,
     Operation	*op,
     const char *dn,
-    const char *ndn )
+    const char *ndn,
+	int scope, Filter *filter,
+	char **attrs, int attrsonly )
 {
 	int i;
 	int rc;
@@ -29,6 +31,7 @@ dnssrv_back_request(
 	char *hostlist = NULL;
 	char **hosts = NULL;
 	struct berval **urls = NULL;
+	int		manageDSAit = get_manageDSAit( op );
 
 	if( ndn == NULL || *ndn == '\0' ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
@@ -87,12 +90,122 @@ dnssrv_back_request(
 	    "conn=%ld op=%d DNSSRV p=%d dn=\"%s\" url=\"%s\"\n",
 	    op->o_connid, op->o_opid, op->o_protocol, dn, urls[0]->bv_val );
 
-	Debug( LDAP_DEBUG_TRACE, "DNSSRV: dn=\"%s\" -> url=\"%s\"\n",
+	Debug( LDAP_DEBUG_TRACE, "DNSSRV: %sdn=\"%s\" -> url=\"%s\"\n",
+		manageDSAit ? "ManageDSAit " : "",
 		dn == NULL ? "" : dn,
-		urls[0]->bv_val, 0 );
+		urls[0]->bv_val );
 
-	send_ldap_result( conn, op, LDAP_REFERRAL,
-		NULL, "DNS SRV generated referrals", urls, NULL );
+	if( manageDSAit ) {
+		if( op->o_tag != LDAP_REQ_SEARCH ) {
+			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+				dn, "DNS SRV ManageDSAIT control disallowed",
+				NULL, NULL );
+
+		} else if ( scope != LDAP_SCOPE_ONELEVEL ) {
+			struct berval	val;
+			struct berval	*vals[2];
+			Entry *e = ch_calloc( 1, sizeof(Entry) );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			AttributeDescription *ad_objectClass
+				= slap_schema.si_ad_objectClass;
+			AttributeDescription *ad_ref = slap_schema.si_ad_ref;
+#else
+			const char ad_objectClass = "objectClass";
+			const char ad_ref = "ref";
+#endif
+			e->e_dn = strdup( dn );
+			e->e_ndn = strdup( ndn );
+
+			e->e_attrs = NULL;
+			e->e_private = NULL;
+
+			vals[0] = &val;
+			vals[1] = NULL;
+
+			val.bv_val = "top";
+			val.bv_len = sizeof("top")-1;
+			attr_merge( e, ad_objectClass, vals );
+
+			val.bv_val = "referral";
+			val.bv_len = sizeof("referral")-1;
+			attr_merge( e, ad_objectClass, vals );
+
+			val.bv_val = "extensibleObject";
+			val.bv_len = sizeof("extensibleObject")-1;
+			attr_merge( e, ad_objectClass, vals );
+
+			{
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				AttributeDescription *ad = NULL;
+				const char *text;
+
+				rc = slap_str2ad( "dc", &ad, &text );
+#else
+				rc = LDAP_SUCCESS;
+				const char *ad = "dc";
+#endif
+
+				if( rc == LDAP_SUCCESS ) {
+					char *p;
+					val.bv_val = ch_strdup( domain );
+
+					p = strchr( val.bv_val, '.' );
+					
+					if( p == val.bv_val ) {
+						val.bv_val[1] = '\0';
+					} else if ( p != NULL ) {
+						*p = '\0';
+					}
+
+					val.bv_len = strlen(val.bv_val);
+					attr_merge( e, ad, vals );
+
+					ad_free( ad, 1 );
+				}
+			}
+
+			{
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				AttributeDescription *ad = NULL;
+				const char *text;
+
+				rc = slap_str2ad( "associatedDomain", &ad, &text );
+#else
+				rc = LDAP_SUCCESS;
+				const char *ad = "associatedDomain";
+#endif
+
+				if( rc == LDAP_SUCCESS ) {
+					val.bv_val = domain;
+					val.bv_len = strlen(domain);
+					attr_merge( e, ad, vals );
+
+					ad_free( ad, 1 );
+				}
+			}
+
+			attr_merge( e, ad_ref, urls );
+
+			rc = test_filter( be, conn, op, e, filter ); 
+
+			if( rc == LDAP_COMPARE_TRUE ) {
+				send_search_entry( be, conn, op,
+					e, attrs, attrsonly, NULL );
+			}
+
+			entry_free( e );
+			
+			send_ldap_result( conn, op, LDAP_SUCCESS,
+				NULL, NULL, NULL, NULL );
+
+		} else {
+			send_ldap_result( conn, op, LDAP_SUCCESS,
+				NULL, NULL, NULL, NULL );
+		}
+	} else {
+		send_ldap_result( conn, op, LDAP_REFERRAL,
+			NULL, "DNS SRV generated referrals", urls, NULL );
+	}
 
 done:
 	if( domain != NULL ) ch_free( domain );

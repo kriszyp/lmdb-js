@@ -25,5 +25,6 @@ dnssrv_back_delete(
     const char	*ndn
 )
 {
-	return dnssrv_back_request( be, conn, op, dn, ndn );
+	return dnssrv_back_request( be, conn, op, dn, ndn,
+		0, NULL, NULL, 0 );
 }

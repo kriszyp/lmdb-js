@@ -86,6 +86,8 @@ charray_inlist(
 {
 	int	i;
 
+	if( a == NULL ) return 0;
+
 	for ( i = 0; a[i] != NULL; i++ ) {
 		if ( strcasecmp( s, a[i] ) == 0 ) {
 			return( 1 );

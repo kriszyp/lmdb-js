@@ -671,7 +671,7 @@ static int dosearch(
 	char	*value)
 {
 	char		filter[ BUFSIZ ];
-	int			rc, first, matches, err;
+	int			rc, first, matches;
 	LDAPMessage		*res, *e;
 
 	if( filtpatt != NULL ) {
@@ -721,8 +721,7 @@ static int dosearch(
 	ldap_perror( ld, "ldap_result" );
 	return( rc );
 	}
-	rc = ldap_parse_result( ld, res, &err, NULL, NULL, NULL, NULL, 0 );
-	if ( rc != LDAP_SUCCESS || rc != LDAP_SUCCESS ) {
+	if (( rc = ldap_result2error( ld, res, 0 )) != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_search" );
 	}
 	if ( sortattr != NULL ) {

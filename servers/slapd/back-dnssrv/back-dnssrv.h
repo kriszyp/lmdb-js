@@ -20,7 +20,9 @@ int dnssrv_result();
 extern int dnssrv_back_request LDAP_P((
 	BackendDB *bd,
 	Connection *conn, Operation *op,
-	const char *dn, const char *ndn ));
+	const char *dn, const char *ndn,
+	int scope, Filter *filter,
+	char **attrs, int attrsonly ));
 
 LDAP_END_DECL
 

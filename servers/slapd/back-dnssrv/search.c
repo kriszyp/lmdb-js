@@ -34,5 +34,6 @@ dnssrv_back_search(
     int		attrsonly
 )
 {
-	return dnssrv_back_request( be, conn, op, dn, ndn );
+	return dnssrv_back_request( be, conn, op, dn, ndn,
+		scope, filter, attrs, attrsonly );
 }

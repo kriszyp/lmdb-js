@@ -29,5 +29,6 @@ dnssrv_back_compare(
 #endif
 )
 {
-	return dnssrv_back_request( be, conn, op, dn, ndn );
+	return dnssrv_back_request( be, conn, op, dn, ndn,
+		0, NULL, NULL, 0 );
 }
