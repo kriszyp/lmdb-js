@@ -34,6 +34,7 @@ pthread_mutex_t	entry2str_mutex;
 pthread_mutex_t	active_threads_mutex;
 pthread_mutex_t	new_conn_mutex;
 pthread_mutex_t	currenttime_mutex;
+pthread_mutex_t	strtok_mutex;
 pthread_mutex_t	replog_mutex;
 pthread_mutex_t	ops_mutex;
 pthread_mutex_t	regex_mutex;
