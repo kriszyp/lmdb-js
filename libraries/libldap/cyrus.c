@@ -398,7 +398,7 @@ ldap_int_sasl_open(
 	sasl_conn_t *ctx;
 
 	sasl_callback_t *session_callbacks =
-		ber_memcalloc( 2, sizeof( sasl_callback_t ) );
+		LDAP_CALLOC( 2, sizeof( sasl_callback_t ) );
 
 	if( session_callbacks == NULL ) return LDAP_NO_MEMORY;
 
@@ -419,7 +419,7 @@ ldap_int_sasl_open(
 
 	rc = sasl_client_new( "ldap", host, session_callbacks,
 		SASL_SECURITY_LAYER, &ctx );
-	ber_memfree( session_callbacks );
+	LDAP_FREE( session_callbacks );
 
 	if ( rc != SASL_OK ) {
 		ld->ld_errno = sasl_err2ldap( rc );
