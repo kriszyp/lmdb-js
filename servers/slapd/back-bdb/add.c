@@ -53,6 +53,7 @@ bdb_add(
 	}
 
 	if (0) {
+		/* transaction retry */
 retry:	rc = txn_abort( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
@@ -91,6 +92,9 @@ retry:	rc = txn_abort( ltid );
 		ch_free( pdn );
 
 		switch( rc ) {
+		case 0:
+		case DB_NOTFOUND:
+			break;
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
@@ -214,7 +218,13 @@ retry:	rc = txn_abort( ltid );
 	if ( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: id2entry_add failed\n",
 			0, 0, 0 );
-		rc = LDAP_OTHER;
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		default:
+			rc = LDAP_OTHER;
+		}
 		text = "entry store failed";
 		goto return_results;
 	}
@@ -224,7 +234,13 @@ retry:	rc = txn_abort( ltid );
 	if ( index_entry_add( be, e, e->e_attrs ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: index_entry_add failed\n",
 			0, 0, 0 );
-		rc = LDAP_OTHER;
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		default:
+			rc = LDAP_OTHER;
+		}
 		text = "index generation failed";
 		goto return_results;
 	}

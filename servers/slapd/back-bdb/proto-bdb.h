@@ -34,6 +34,17 @@ int bdb_dn2id_add(
 	const char *dn,
 	ID id );
 
+int bdb_dn2id_delete(
+	BackendDB *be,
+	DB_TXN *tid,
+	const char *dn,
+	ID id );
+
+int bdb_dn2id_children(
+	BackendDB *be,
+	DB_TXN *tid,
+	const char *dn );
+
 int bdb_dn2entry_rw LDAP_P(( Backend *be, DB_TXN *tid,
 	const char *dn, Entry **e, Entry **matched, int rw ));
 
@@ -58,10 +69,22 @@ int bdb_id2entry_add(
 	DB_TXN *tid,
 	Entry *e );
 
+int bdb_id2entry_delete(
+	Backend *be,
+	DB_TXN *tid,
+	ID id );
+
 /*
  * idl.c
  */
 int bdb_idl_insert_key(
+	BackendDB *be,
+	DB *db,
+	DB_TXN *txn,
+	DBT *key,
+	ID id );
+
+int bdb_idl_delete_key(
 	BackendDB *be,
 	DB *db,
 	DB_TXN *txn,

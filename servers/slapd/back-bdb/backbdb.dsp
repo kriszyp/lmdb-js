@@ -135,6 +135,10 @@ SOURCE=".\back-bdb.h"
 # End Source File
 # Begin Source File
 
+SOURCE=.\compare.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\delete.c
 # End Source File
 # Begin Source File

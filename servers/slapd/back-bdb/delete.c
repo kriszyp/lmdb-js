@@ -34,6 +34,7 @@ bdb_delete(
 	Debug(LDAP_DEBUG_ARGS, "==> bdb_delete: %s\n", dn, 0, 0);
 
 	if (0) {
+		/* transaction retry */
 retry:	rc = txn_abort( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
@@ -66,6 +67,9 @@ retry:	rc = txn_abort( ltid );
 		ch_free( pdn );
 
 		switch( rc ) {
+		case 0:
+		case DB_NOTFOUND:
+			break;
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
@@ -115,6 +119,9 @@ retry:	rc = txn_abort( ltid );
 	rc = dn2entry_w( be, ltid, ndn, &e, &matched );
 
 	switch( rc ) {
+	case 0:
+	case DB_NOTFOUND:
+		break;
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
 		goto retry;
@@ -173,32 +180,58 @@ retry:	rc = txn_abort( ltid );
 		goto done;
 	}
 
-
-	if ( bdb_has_children( be, e ) ) {
-		Debug(LDAP_DEBUG_ARGS,
-			"<=- bdb_delete: non leaf %s\n",
-			dn, 0, 0);
-		rc = LDAP_NOT_ALLOWED_ON_NONLEAF;
-		text = "subtree delete not supported";
+	rc = bdb_dn2id_children( be, ltid, e->e_ndn );
+	if( rc != DB_NOTFOUND ) {
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		case 0:
+			Debug(LDAP_DEBUG_ARGS,
+				"<=- bdb_delete: non-leaf %s\n",
+				dn, 0, 0);
+			rc = LDAP_NOT_ALLOWED_ON_NONLEAF;
+			text = "subtree delete not supported";
+			break;
+		default:
+			Debug(LDAP_DEBUG_ARGS,
+				"<=- bdb_delete: has_children failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
+			rc = LDAP_OTHER;
+			text = "internal error";
+		}
 		goto return_results;
 	}
 
-	/* delete from dn2id mapping */
-	if ( bdb_dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
+	/* delete from dn2id */
+	rc = bdb_dn2id_delete( be, ltid, e->e_ndn, e->e_id );
+	if ( rc != 0 ) {
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		default:
+			rc = LDAP_OTHER;
+		}
 		Debug(LDAP_DEBUG_ARGS,
-			"<=- ldbm_back_delete: operations error %s\n",
-			dn, 0, 0);
-		rc = LDAP_OTHER;
+			"<=- bdb_delete: dn2id failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
 		text = "DN index delete failed";
 		goto return_results;
 	}
 
-	/* delete from disk and cache */
-	if ( bdb_id2entry_delete( be, e ) != 0 ) {
+	/* delete from id2entry */
+	if ( bdb_id2entry_delete( be, ltid, e->e_id ) != 0 ) {
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		default:
+			rc = LDAP_OTHER;
+		}
 		Debug(LDAP_DEBUG_ARGS,
-			"<=- bdb_delete: operations error %s\n",
-			dn, 0, 0);
-		rc = LDAP_OTHER;
+			"<=- bdb_delete: id2entry failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
 		text = "entry delete failed";
 		goto return_results;
 	}
@@ -213,6 +246,7 @@ retry:	rc = txn_abort( ltid );
 			db_strerror(rc), rc, 0 );
 		rc = LDAP_OTHER;
 		text = "commit failed";
+
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_add: added id=%08x dn=\"%s\"\n",
@@ -226,8 +260,8 @@ return_results:
 		NULL, text, NULL, NULL );
 
 done:
-	/* free entry and writer lock */
-	bdb_entry_return( be, e );
+	/* free entry */
+	if( e != NULL ) bdb_entry_return( be, e );
 
 	if( ltid != NULL ) {
 		txn_abort( ltid );

@@ -8,9 +8,7 @@
 #include "portable.h"
 
 #include <stdio.h>
-
 #include <ac/string.h>
-#include <ac/socket.h>
 
 #include "back-bdb.h"
 
@@ -27,7 +25,7 @@ bdb_dn2id_add(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_index_dn_add( \"%s\", %ld )\n", dn, id, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_add( \"%s\", %ld )\n", dn, id, 0 );
 	assert( id != NOID );
 
 	DBTzero( &key );
@@ -88,7 +86,121 @@ bdb_dn2id_add(
 
 done:
 	ch_free( key.data );
-	Debug( LDAP_DEBUG_TRACE, "<= bdb_index_dn_add %d\n", rc, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_add %d\n", rc, 0, 0 );
+	return rc;
+}
+
+int
+bdb_dn2id_delete(
+    Backend	*be,
+	DB_TXN *txn,
+    const char	*dn,
+    ID		id
+)
+{
+	int		rc;
+	DBT		key;
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	DB *db = bdb->bi_dn2id->bdi_db;
+
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_delete( \"%s\", %ld )\n", dn, id, 0 );
+	assert( id != NOID );
+
+	DBTzero( &key );
+	key.size = strlen( dn ) + 2;
+	key.data = ch_malloc( key.size );
+	((char *)key.data)[0] = DN_BASE_PREFIX;
+	AC_MEMCPY( &((char *)key.data)[1], dn, key.size - 1 );
+
+	/* store it -- don't override */
+	rc = db->del( db, txn, &key, 0 );
+	if( rc != 0 ) {
+		goto done;
+	}
+
+	{
+		char *pdn = dn_parent( NULL, dn );
+		((char *)(key.data))[0] = DN_ONE_PREFIX;
+
+		if( pdn != NULL ) {
+			key.size = strlen( pdn ) + 2;
+			AC_MEMCPY( &((char*)key.data)[1],
+				pdn, key.size - 1 );
+
+			rc = bdb_idl_delete_key( be, db, txn, &key, id );
+			free( pdn );
+
+			if( rc != 0 ) {
+				goto done;
+			}
+		}
+	}
+
+	{
+		char **subtree = dn_subtree( NULL, dn );
+
+		if( subtree != NULL ) {
+			int i;
+			((char *)key.data)[0] = DN_SUBTREE_PREFIX;
+			for( i=0; subtree[i] != NULL; i++ ) {
+				key.size = strlen( subtree[i] ) + 2;
+				AC_MEMCPY( &((char *)key.data)[1],
+					subtree[i], key.size - 1 );
+
+				rc = bdb_idl_delete_key( be, db, txn, &key, id );
+
+				if( rc != 0 ) {
+					goto done;
+				}
+			}
+
+			charray_free( subtree );
+		}
+	}
+
+done:
+	ch_free( key.data );
+	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_delete %d\n", rc, 0, 0 );
+	return rc;
+}
+
+int
+bdb_dn2id_children(
+    Backend	*be,
+	DB_TXN *txn,
+    const char *dn
+)
+{
+	int		rc;
+	DBT		key, data;
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	DB *db = bdb->bi_dn2id->bdi_db;
+	ID		id;
+
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_children( %s )\n",
+		dn, 0, 0 );
+
+	DBTzero( &key );
+	key.size = strlen( dn ) + 2;
+	key.data = ch_malloc( key.size );
+	((char *)key.data)[0] = DN_ONE_PREFIX;
+	AC_MEMCPY( &((char *)key.data)[1], dn, key.size - 1 );
+
+	/* we actually could do a empty get... */
+	DBTzero( &data );
+	data.data = &id;
+	data.ulen = sizeof(id);
+	data.flags = DB_DBT_USERMEM;
+	data.doff = 0;
+	data.dlen = sizeof(id);
+
+	rc = db->get( db, txn, &key, &data, 0 );
+
+	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_children( %s ): %s (%d)\n",
+		dn,
+		rc == 0 ? "yes" :	( rc == DB_NOTFOUND ? "no" :
+			db_strerror(rc) ), rc );
+
 	return rc;
 }
 
@@ -182,83 +294,6 @@ dn2idl(
 	return( idl );
 }
 
-
-int
-dn2id_delete(
-    Backend	*be,
-    const char	*dn,
-	ID id
-)
-{
-	DBCache	*db;
-	Datum		key;
-	int		rc;
-
-	Debug( LDAP_DEBUG_TRACE, "=> dn2id_delete( \"%s\", %ld )\n", dn, id, 0 );
-
-	assert( id != NOID );
-
-	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
-	    == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-		    "<= dn2id_delete could not open dn2id%s\n", LDBM_SUFFIX,
-		    0, 0 );
-		return( -1 );
-	}
-
-
-	{
-		char *pdn = dn_parent( NULL, dn );
-
-		if( pdn != NULL ) {
-			ldbm_datum_init( key );
-			key.dsize = strlen( pdn ) + 2;
-			key.dptr = ch_malloc( key.dsize );
-			sprintf( key.dptr, "%c%s", DN_ONE_PREFIX, pdn );
-
-			(void) idl_delete_key( be, db, key, id );
-
-			free( key.dptr );
-			free( pdn );
-		}
-	}
-
-	{
-		char **subtree = dn_subtree( NULL, dn );
-
-		if( subtree != NULL ) {
-			int i;
-			for( i=0; subtree[i] != NULL; i++ ) {
-				ldbm_datum_init( key );
-				key.dsize = strlen( subtree[i] ) + 2;
-				key.dptr = ch_malloc( key.dsize );
-				sprintf( key.dptr, "%c%s",
-					DN_SUBTREE_PREFIX, subtree[i] );
-
-				(void) idl_delete_key( be, db, key, id );
-
-				free( key.dptr );
-			}
-
-			charray_free( subtree );
-		}
-	}
-
-	ldbm_datum_init( key );
-
-	key.dsize = strlen( dn ) + 2;
-	key.dptr = ch_malloc( key.dsize );
-	sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, dn );
-
-	rc = ldbm_cache_delete( db, key );
-
-	free( key.dptr );
-
-	ldbm_cache_close( be, db );
-
-	Debug( LDAP_DEBUG_TRACE, "<= dn2id_delete %d\n", rc, 0, 0 );
-	return( rc );
-}
 
 /*
  * dn2entry - look up dn in the cache/indexes and return the corresponding
