@@ -1,7 +1,7 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.11 Engineering
-	Fixed slapd ocflags bug
+OpenLDAP 2.1.11 Release
+	Fixed slapd ocflags bug (ITS#2186)
 	Fixed slapd objectIdentifierFirstComponentMatch bug
 	Fixed slapd octetStringOrderingMatch bug
 	Fixed slapd bitString normalization bug
