@@ -123,7 +123,6 @@ ber_output_dump LDAP_P((
 	int level,
 	BerElement *ber,
 	int inout ));
-
 #endif
 
 LBER_F( int )
