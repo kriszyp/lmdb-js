@@ -3373,7 +3373,7 @@ fi
 
 echo "$ac_t""$ol_cv_var_des_debug" 1>&6
 
-			if test $ol_cv_var_des_debug= yes ; then
+			if test $ol_cv_var_des_debug = yes ; then
 				cat >> confdefs.h <<\EOF
 #define HAVE_DES_DEBUG 1
 EOF

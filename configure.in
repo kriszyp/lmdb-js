@@ -356,7 +356,7 @@ des_debug = 1;
 				LIBS="$save_LIBS"
 			])
 
-			if test $ol_cv_var_des_debug= yes ; then
+			if test $ol_cv_var_des_debug = yes ; then
 				AC_DEFINE(HAVE_DES_DEBUG,1,
 					[define if you have Kerberos des_debug])
 			fi
