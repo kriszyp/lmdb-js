@@ -37,11 +37,11 @@ Implement LDAP sorted search results control (RFC 2891)
 
 Medium projects
 ---------------
+Add syncrepl "turn" support
 Add DSML capabilities to command line tools
 Implement DIT Structure Rules and Name Forms
 Implement native support for simple SASL mechanisms
 	(e.g. EXTERNAL and PLAIN)
-Redesign slapd to use poll(2) instead of select(2)
 Redesign slapd memory allocation fault handling
 Localize tools
 
@@ -52,7 +52,6 @@ Implement authPassword (RFC 3112)
 Add LDIFv2 (XML) support to command line tools
 Implement LDAPprep and SASLprep
 Implement additional matching rules (RFC 3698)
-Add syncrepl "turn" support
 Add dumpasn1 logging support
 Add tests to test suite
 Add jail(2) support
