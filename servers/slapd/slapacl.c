@@ -109,7 +109,8 @@ slapacl( int argc, char **argv )
 		slap_mask_t		mask;
 		AttributeDescription	*desc = NULL;
 		int			rc;
-		struct berval		val;
+		struct berval		val = BER_BVNULL,
+					*valp = NULL;
 		const char		*text;
 		char			accessmaskbuf[ACCESSMASK_MAXLEN];
 		char			*accessstr;
@@ -124,6 +125,7 @@ slapacl( int argc, char **argv )
 			val.bv_val[0] = '\0';
 			val.bv_val++;
 			val.bv_len = strlen( val.bv_val );
+			valp = &val;
 		}
 
 		accessstr = strchr( attr, '/' );
@@ -151,7 +153,7 @@ slapacl( int argc, char **argv )
 			break;
 		}
 
-		rc = access_allowed_mask( op, &e, desc, &val, access,
+		rc = access_allowed_mask( op, &e, desc, valp, access,
 				NULL, &mask );
 
 		if ( accessstr ) {
